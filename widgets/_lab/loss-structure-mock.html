@@ -1,0 +1,994 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · loss-functions · where a student meets binary, and how the rail divides</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1040px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-6); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 96ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); max-width: 300px; min-height: 24px; white-space: pre-line; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 96ch; }
+  ul.proof { font-size: var(--fs-sm); color: var(--ink-2); max-width: 96ch; padding-left: 18px; }
+  ul.proof li { margin-bottom: 4px; }
+  .measure { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--ink-3); margin: 4px 0 0; max-width: 620px; }
+  table.facts { border-collapse: collapse; font-size: var(--fs-sm); color: var(--ink-2); margin: var(--sp-2) 0 0; max-width: 100ch; }
+  table.facts th, table.facts td { border: 1px solid var(--grid); padding: 4px 8px; text-align: left; vertical-align: top; }
+  table.facts th { color: var(--ink-1); font-weight: 600; background: var(--surface-2); white-space: nowrap; }
+  table.facts td b { color: var(--ink-1); }
+  /* THE RAIL AT THE REAL 300px, WITH THE SHELL'S OWN GRID. `.w-controls` is a
+     grid whose row gap and whose `grid-column: 1 / -1` on `.w-section` are part
+     of every height measured below, so the rail carries that class and the four
+     rules the split layout overrides on it. */
+  .lab .rail-solo { width: 300px; grid-template-columns: 1fr; border-top: 0; padding-top: 0; margin-top: 0; }
+  .lab .rail-page { margin: 0 0 var(--sp-4); }
+  .lab .rail-page > .w-section:first-child { margin-top: 0; }
+  .pagehead { font-size: var(--fs-xs); font-weight: 600; color: var(--c-highlight); margin: 0 0 4px;
+              text-transform: uppercase; letter-spacing: 0.04em; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>loss-functions · where a student meets binary, and how the rail divides</h1>
+
+  <p class="note">
+    Kenneth, 2026-09-11, verbatim: <i>&ldquo;1) binary is within single/multiple label, but students may not
+    appreciate that binary can be expressed in 2 ways: single label - 2 (binary), 3 (&gt;2 classes); multiple
+    label - 1 label (binary), 5 (&gt;1 label). 2) exclude binary within single/multiple label? &hellip; in the
+    notebook, it's expressed by function cross entropy, BCEwithlogitloss. not sure how to harmonize&rdquo;</i>.
+    This is a <b>structure</b> comparison, not a geometry one: where the word <i>binary</i> is met, what each
+    control teaches, and whether the notebook's table and its sections can both stay on screen. Every rail below
+    is the shell's own DOM at the real <b>300px</b>, measured after the fonts load.
+  </p>
+
+  <p class="note">
+    <b>What the standard sources do with binary.</b> PyTorch's own documentation splits the two by shape rather
+    than by task: <code>CrossEntropyLoss</code> is described for <i>a classification problem with C classes</i>,
+    taking unnormalized logits and a class index; <code>BCEWithLogitsLoss</code> is described as combining a
+    sigmoid layer with <code>BCELoss</code>, and is the loss named for binary and for multi-label targets. The
+    textbooks frame the two forms as one model: Bishop's <i>Pattern Recognition and Machine Learning</i>
+    &sect;4.3 derives two-class logistic regression with a sigmoid and the K-class case with a softmax, and
+    Goodfellow, Bengio and Courville's <i>Deep Learning</i> &sect;6.2.2 pairs a Bernoulli output with a sigmoid
+    unit and a multinoulli output with a softmax unit. <b>The two forms are the same model:</b> softmax over two
+    logits gives p_B = e^{z_B} / (e^{z_A} + e^{z_B}) = &sigma;(z_B &minus; z_A), so a two-output softmax head and
+    a one-output sigmoid head on the difference return the same probability and the same loss &mdash; verified on
+    torch 2.14 in <code>_lab/dl-loss-torch.py</code> &sect;6 to <b>1.2e&minus;07</b> over the whole drag. What
+    the sources do <i>not</i> agree on is where binary belongs in a taxonomy: scikit-learn's user guide keeps
+    <i>binary</i>, <i>multiclass</i> and <i>multilabel</i> as three separate target types, while PyTorch has no
+    binary loss at all &mdash; binary is a shape either loss can take. That disagreement is the whole of
+    Kenneth's question, and it is why the widget has to choose.
+  </p>
+
+  <p class="note">
+    <b>What the host does.</b> 05-4 cell 30's table has three rows <b>by task</b> &mdash; Regression
+    (<code>nn.MSELoss</code>), Single-label classification (<code>nn.CrossEntropyLoss</code>), Multi-label
+    classification (<code>nn.BCEWithLogitsLoss</code>) &mdash; and then three sections <b>by function</b>:
+    <code>MSELoss</code> (31&ndash;33), <code>CrossEntropyLoss</code> (34&ndash;36),
+    <code>BCEWithLogitsLoss</code> (37&ndash;39). The <code>BCEWithLogitsLoss</code> section is the one that
+    names binary, and it names it <i>alongside</i> multi-label: <i>&ldquo;can be used for binary classification,
+    where a sample can be classified with a single label&hellip;; multi-label classification, where each sample
+    can belong to multiple classes at once&rdquo;</i>. Cell 29's own workflow MLP ends in
+    <code>nn.Linear(hidden, num_classes)</code> with <code>num_classes = 2</code> and
+    <code>CrossEntropyLoss</code> &mdash; binary as <b>two outputs</b>. So the notebook itself puts binary in two
+    places under two functions, and never says they are the same model.
+  </p>
+
+  <p class="note">
+    <b>Kenneth's figures are the count of what has to have a home.</b> <code>dl-loss-mse.png</code> draws two
+    columns (<i>1 target</i>, <i>&gt; 1 target</i>); <code>dl-loss-ce.png</code> draws one
+    (<code>[batch, N], float32</code> against <code>[batch], long</code>); <code>dl-loss-bce.png</code> draws two
+    (<i>&gt; 1 label</i>, <i>1 label</i>). Five columns, plus cell 29's two-output binary head, is
+    <b>six things</b>. A candidate can be scored by how many of the six get exactly one home.
+  </p>
+  <p class="note" id="mono"></p>
+
+  <h2>&sect;1 &middot; A &mdash; as built now, binary in three places</h2>
+  <p class="note">
+    <code>task</code> in two option groups (Regression | Classification: Single-label &middot; Multi-label
+    &middot; Binary), <code>Outputs</code> 1 &middot; 3 on Regression, <code>Classes</code> 2 &middot; 3 on
+    Single-label, <code>Classes</code> 1 &middot; 5 on Multi-label, and a Binary page drawing both forms side by
+    side. Kenneth's worry is the two silent ones: at <code>Classes = 2</code> the student is looking at binary as
+    two outputs and the control says <i>the width of the score row</i>; at <code>Classes = 1</code> the student
+    is looking at binary as one output and the control says the same thing.
+  </p>
+  <div class="row" id="mapA"></div>
+  <div class="row" id="railA"></div>
+  <div id="tabA"></div>
+
+  <h2>&sect;2 &middot; B &mdash; binary only on its own page</h2>
+  <p class="note">
+    Kenneth's option 2. Single-label at the notebook's three classes only and Multi-label at its five only, with
+    no count control on either; <code>Outputs</code> 1 &middot; 3 survives on Regression, where it is his own MSE
+    figure's two columns and is not binary. The Binary page carries both forms and is the only place a two-class
+    softmax or a one-label sigmoid appears; its option detail names both functions.
+  </p>
+  <div class="row" id="mapB"></div>
+  <div class="row" id="railB"></div>
+  <div id="tabB"></div>
+
+  <h2>&sect;3 &middot; C &mdash; organised by function, as the notebook's sections</h2>
+  <p class="note">
+    The rail's first control is <code>Loss</code>, its faces the three class names. Each page then carries a
+    <code>Task</code> control naming its own cases: <code>MSELoss</code> keeps <code>Outputs</code> 1 &middot; 3;
+    <code>CrossEntropyLoss</code> gets Binary &middot; Multi-class; <code>BCEWithLogitsLoss</code> gets Binary
+    &middot; Multi-label. The two-way comparison has no page of its own &mdash; at Binary on either function
+    page a second column draws the other function's form of the same example, so the equivalence is met twice.
+  </p>
+  <div class="row" id="mapC"></div>
+  <div class="row" id="railC"></div>
+  <div id="tabC"></div>
+
+  <h2>&sect;4 &middot; The two names on screen &mdash; the harmonisation</h2>
+  <p class="note">
+    The widget as built names the task in the rail (cell 30's table) and the function on the stage header (the
+    notebook's sections): <code>Single-label &middot; CrossEntropyLoss</code>. The question is whether a
+    candidate keeps <b>both</b> names visible at once, or makes the reader pick one organisation and lose the
+    other.
+  </p>
+  <div id="tabHarm"></div>
+  <p class="rec" id="recHarm"></p>
+
+  <h2>The recommendation</h2>
+  <p class="rec" id="recCase"></p>
+  <p class="rec" id="rec"></p>
+
+  <h2>What the mock proves</h2>
+  <ul class="proof" id="proof"></ul>
+</main>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+const MONO = T.mono || "monospace";
+const M = {};
+
+/* ============================ drawing helpers ============================== */
+const el = (tag, cls, text) => {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text != null) e.textContent = text;
+  return e;
+};
+function panel(host, title, sub, w, h) {
+  const cand = el("div", "cand");
+  if (title) cand.innerHTML = `<h3>${title}</h3><p class="sub">${sub}</p>`;
+  const cv = document.createElement("canvas");
+  cv.width = Math.round(w * DPR); cv.height = Math.round(h * DPR);
+  cv.style.width = `${w}px`; cv.style.height = `${h}px`;
+  cand.appendChild(cv); host.appendChild(cand);
+  const ctx = cv.getContext("2d");
+  ctx.scale(DPR, DPR);
+  ctx.fillStyle = T.surface; ctx.fillRect(0, 0, w, h);
+  return { ctx, cand };
+}
+function note(cand, s) {
+  const p = el("p", "measure", s);
+  cand.appendChild(p);
+  return p;
+}
+function txt(ctx, s, x, y, o = {}) {
+  ctx.fillStyle = o.color ?? T.ink2;
+  ctx.textAlign = o.align ?? "left";
+  ctx.textBaseline = o.baseline ?? "alphabetic";
+  ctx.font = `${o.weight ?? ""} ${o.size ?? T.fsSm} ${o.mono ? MONO : T.font}`.trim();
+  ctx.fillText(s, x, y);
+}
+const wash = (hex, a) => {
+  const p = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+  return `rgba(${p[0]},${p[1]},${p[2]},${a})`;
+};
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+function head(ctx, x, y, color = T.ink1) {
+  ctx.beginPath();
+  ctx.moveTo(x, y); ctx.lineTo(x - 7, y - 4); ctx.lineTo(x - 7, y + 4);
+  ctx.closePath();
+  ctx.fillStyle = color; ctx.fill();
+}
+/** One probe canvas, so every "it fits" on this page is a measureText. */
+const probe = document.createElement("canvas").getContext("2d");
+function widthOf(s, size, mono) {
+  probe.font = `${size} ${mono ? MONO : T.font}`;
+  return probe.measureText(s).width;
+}
+
+/* ======================= the six things needing a home =====================
+ * Five columns across Kenneth's three figures, plus cell 29's own two-output
+ * binary head. A candidate is scored by how many of the six get exactly one
+ * home; a `covers` id appearing on two states is a figure drawn twice. */
+const COVERS = {
+  mse1: "MSE 1 target",
+  mseN: "MSE > 1 target",
+  ceN: "CE one column",
+  bceN: "BCE > 1 label",
+  bce1: "BCE 1 label",
+  ce2: "cell 29 two outputs",
+};
+const FNS = [
+  { id: "mse", name: "MSELoss", cells: "cells 31–33" },
+  { id: "ce", name: "CrossEntropyLoss", cells: "cells 34–36" },
+  { id: "bce", name: "BCEWithLogitsLoss", cells: "cells 37–39" },
+];
+
+/* ============================== the candidates =============================
+ * `groups` are the rail's own top-level shape; a `face` is one option of the
+ * first control; a `state` is one settled figure the reader can reach with the
+ * task and count controls (the dtype arm, the label and the drag are not
+ * counted — they move a figure rather than choose one). */
+const CANDS = {
+  A: {
+    title: "A · as built now",
+    first: "Task",
+    groups: [
+      { head: "Regression", faces: [{ name: "Regression", states: [
+        { label: "Outputs 1", fn: ["mse"], covers: ["mse1"] },
+        { label: "Outputs 3", fn: ["mse"], covers: ["mseN"] },
+      ] }] },
+      { head: "Classification", faces: [
+        { name: "Single-label", states: [
+          { label: "Classes 2", fn: ["ce"], covers: ["ce2"], binary: "two outputs" },
+          { label: "Classes 3", fn: ["ce"], covers: ["ceN"] },
+        ] },
+        { name: "Multi-label", states: [
+          { label: "Classes 1", fn: ["bce"], covers: ["bce1"], binary: "one output" },
+          { label: "Classes 5", fn: ["bce"], covers: ["bceN"] },
+        ] },
+        { name: "Binary", states: [
+          { label: "both forms", fn: ["ce", "bce"], covers: ["ce2", "bce1"], binary: "both, side by side" },
+        ] },
+      ] },
+    ],
+    counts: "the width of the score row — and at one end of each classification control that row is binary, "
+      + "which the control does not say",
+    clicks: "one click on Task, and nothing on the page asks for it",
+  },
+  B: {
+    title: "B · binary only on its own page",
+    first: "Task",
+    groups: [
+      { head: "Regression", faces: [{ name: "Regression", states: [
+        { label: "Outputs 1", fn: ["mse"], covers: ["mse1"] },
+        { label: "Outputs 3", fn: ["mse"], covers: ["mseN"] },
+      ] }] },
+      { head: "Classification", faces: [
+        { name: "Single-label", states: [{ label: "3 classes", fn: ["ce"], covers: ["ceN"] }] },
+        { name: "Multi-label", states: [{ label: "5 labels", fn: ["bce"], covers: ["bceN"] }] },
+        { name: "Binary", states: [
+          { label: "both forms", fn: ["ce", "bce"], covers: ["ce2", "bce1"], binary: "both, side by side" },
+        ] },
+      ] },
+    ],
+    counts: "the shape of y_pred and y_true, on the one page where the count is not binary",
+    clicks: "none — the only binary state is the comparison",
+  },
+  C: {
+    title: "C · organised by function",
+    first: "Loss",
+    groups: [
+      { faces: [
+        { name: "MSELoss", states: [
+          { label: "Outputs 1", fn: ["mse"], covers: ["mse1"] },
+          { label: "Outputs 3", fn: ["mse"], covers: ["mseN"] },
+        ] },
+        { name: "CrossEntropyLoss", states: [
+          { label: "Binary", fn: ["ce", "bce"], covers: ["ce2", "bce1"], binary: "both, side by side" },
+          { label: "Multi-class", fn: ["ce"], covers: ["ceN"] },
+        ] },
+        { name: "BCEWithLogitsLoss", states: [
+          { label: "Binary", fn: ["ce", "bce"], covers: ["ce2", "bce1"], binary: "both, side by side" },
+          { label: "Multi-label", fn: ["bce"], covers: ["bceN"] },
+        ] },
+      ] },
+    ],
+    counts: "the case, by name — Binary against Multi-class or Multi-label — so the reader is told which "
+      + "state they are in; the same label Task covers two different partitions on two pages",
+    clicks: "none — every binary state is the comparison, drawn twice",
+  },
+};
+
+/** Every state of a candidate, flat, with its face and group. */
+function statesOf(c) {
+  const out = [];
+  for (const g of c.groups) {
+    for (const f of g.faces) {
+      f.states.forEach((s, i) => out.push({ ...s, face: f.name, group: g.head, firstOfFace: i === 0 }));
+    }
+  }
+  return out;
+}
+/** How many states cover each figure column, so a duplicate is counted and not
+    claimed. A candidate's score is how many of the six get exactly one home. */
+function coverage(c) {
+  const n = {};
+  for (const k of Object.keys(COVERS)) n[k] = 0;
+  for (const s of statesOf(c)) for (const k of s.covers) n[k] += 1;
+  return n;
+}
+for (const [k, c] of Object.entries(CANDS)) {
+  const st = statesOf(c);
+  const cov = coverage(c);
+  M[k] = {
+    states: st.length,
+    places: st.filter((s) => s.binary).length,
+    dup: Object.keys(cov).filter((x) => cov[x] > 1),
+    missing: Object.keys(cov).filter((x) => cov[x] === 0),
+    once: Object.keys(cov).filter((x) => cov[x] === 1).length,
+    cov,
+  };
+}
+
+/* ============================= the page map ================================
+ * Left, the rail as the candidate builds it — a row per settled state. Right,
+ * the notebook's three function sections, fixed. An arrow runs from each state
+ * to every function it reaches, routed through its own bus column so the lines
+ * do not lie on top of each other. Only two things carry colour: the notebook's
+ * sections in --c-reference, because they are the fixed thing the rail is
+ * judged against, and every path that reaches a binary form in --c-highlight.
+ * A dashed arrow is a figure a second state already draws. */
+const ROW_H = 40;
+const HEAD_H = 22;
+const CHIP_X = 132;
+const FN_W = 204;
+const FN_H = 46;
+const FN_GAP = 20;
+const TOP = 40;
+const BUS_STEP = 11;
+
+function drawMap(hostId, key) {
+  const c = CANDS[key];
+  const st = statesOf(c);
+  const heads = c.groups.filter((g) => g.head).length;
+  const rowsH = st.length * ROW_H + heads * HEAD_H;
+  const fnsH = FNS.length * FN_H + (FNS.length - 1) * FN_GAP;
+  const H = TOP + Math.max(rowsH, fnsH) + 26;
+
+  /* THE CHIP IS AS WIDE AS ITS OWN LONGEST LINE. The first draft fixed it at
+     172px and the Binary row's two covers ran 30px past the edge, over the
+     arrows. Every width here is a measureText. */
+  const CHIP_W = Math.ceil(Math.max(...st.map((s) => Math.max(
+    widthOf(s.label, T.fsSm, false),
+    widthOf(s.covers.map((k) => COVERS[k]).join(" + "), T.fsXs, false)))) ) + 20;
+
+  /* ONE BUS COLUMN PER ARROW, NOT PER FUNCTION, AND ONE ARRIVAL POINT PER
+     ARROW. Sharing a bus per function put two arrows on one final horizontal
+     run into the same box, so the dashed one painted over the solid one and the
+     map read as though the FIRST copy were the duplicate. Buses are assigned in
+     row order, so a line from higher up turns first and nothing crosses twice. */
+  const arrows = [];
+  st.forEach((s, i) => { for (const f of s.fn) arrows.push({ i, f, s }); });
+  const perFn = {};
+  for (const a of arrows) perFn[a.f] = (perFn[a.f] ?? 0) + 1;
+  const seenFn = {};
+  arrows.forEach((a, k) => {
+    a.bus = CHIP_X + CHIP_W + 16 + k * BUS_STEP;
+    a.slot = (seenFn[a.f] = (seenFn[a.f] ?? 0) + 1);
+  });
+  const FN_X = CHIP_X + CHIP_W + 16 + arrows.length * BUS_STEP + 18;
+  const MW = FN_X + FN_W + 14;
+
+  const { ctx, cand } = panel(document.getElementById(hostId), c.title,
+    `${st.length} settled states · ${M[key].places} carry a binary form · the notebook's three sections at the right`,
+    MW, H);
+
+  txt(ctx, `the rail — ${c.first} first`, 14, 22, { color: T.ink2, weight: "600" });
+  txt(ctx, "the notebook's sections", MW - 14, 22, { color: T.ink2, weight: "600", align: "right" });
+  ctx.strokeStyle = T.grid; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(14, 28.5); ctx.lineTo(MW - 14, 28.5); ctx.stroke();
+
+  /* the three function boxes, centred against the rows they serve */
+  const fnTop = TOP + Math.max(0, (rowsH - fnsH) / 2);
+  const fnTopY = {};
+  FNS.forEach((f, i) => {
+    const y = fnTop + i * (FN_H + FN_GAP);
+    fnTopY[f.id] = y;
+    ctx.fillStyle = wash(T.reference, 0.14);
+    roundRect(ctx, FN_X, y, FN_W, FN_H, 5); ctx.fill();
+    ctx.strokeStyle = T.reference; ctx.lineWidth = 1.5;
+    roundRect(ctx, FN_X + 0.75, y + 0.75, FN_W - 1.5, FN_H - 1.5, 5); ctx.stroke();
+    txt(ctx, f.name, FN_X + 12, y + 20, { color: T.ink1, mono: true, size: T.fsSm });
+    txt(ctx, f.cells, FN_X + 12, y + 36, { color: T.ink3, size: T.fsXs });
+  });
+  const arriveY = (a) => fnTopY[a.f] + (FN_H * a.slot) / (perFn[a.f] + 1);
+
+  /* a row per state, its face name printed once per face */
+  const cov = M[key].cov;
+  const seen = {};
+  const rowY = [];
+  let y = TOP;
+  let lastGroup = null;
+  st.forEach((s, i) => {
+    if (s.group && s.group !== lastGroup) {
+      txt(ctx, s.group, 14, y + 12, { color: T.ink3, size: T.fsXs, weight: "600" });
+      ctx.strokeStyle = T.grid; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(14, y + 17.5); ctx.lineTo(CHIP_X + CHIP_W, y + 17.5); ctx.stroke();
+      y += HEAD_H;
+      lastGroup = s.group;
+    }
+    rowY[i] = y + ROW_H / 2 - 3;
+    s.dup = s.covers.some((k) => cov[k] > 1 && seen[k]);
+    for (const k of s.covers) seen[k] = true;
+    y += ROW_H;
+  });
+
+  /* the arrows first, so a chip's own edge is never crossed by a line */
+  for (const a of arrows) {
+    const lit = Boolean(a.s.binary);
+    const color = lit ? T.highlight : T.axis;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = lit ? 2 : 1.5;
+    ctx.setLineDash(a.s.dup ? [4, 3] : []);
+    ctx.beginPath();
+    ctx.moveTo(CHIP_X + CHIP_W, rowY[a.i]);
+    ctx.lineTo(a.bus, rowY[a.i]);
+    ctx.lineTo(a.bus, arriveY(a));
+    ctx.lineTo(FN_X - 9, arriveY(a));
+    ctx.stroke();
+    ctx.setLineDash([]);
+    head(ctx, FN_X - 1, arriveY(a), color);
+  }
+
+  st.forEach((s, i) => {
+    const cy = rowY[i];
+    if (s.firstOfFace) txt(ctx, s.face, 14, cy + 4, { color: T.ink1, size: T.fsSm, weight: "600" });
+    const lit = Boolean(s.binary);
+    const chipY = cy - (ROW_H - 10) / 2;
+    const chipH = ROW_H - 10;
+    ctx.fillStyle = lit ? wash(T.highlight, 0.12) : T.surface2;
+    roundRect(ctx, CHIP_X, chipY, CHIP_W, chipH, 5); ctx.fill();
+    ctx.strokeStyle = lit ? T.highlight : T.grid;
+    ctx.lineWidth = lit ? 2 : 1;
+    roundRect(ctx, CHIP_X + 1, chipY + 1, CHIP_W - 2, chipH - 2, 5); ctx.stroke();
+    txt(ctx, s.label, CHIP_X + 10, chipY + 13, { color: lit ? T.highlight : T.ink1, size: T.fsSm });
+    txt(ctx, s.covers.map((k) => COVERS[k]).join(" + "), CHIP_X + 10, chipY + 25,
+      { color: T.ink3, size: T.fsXs });
+  });
+
+  txt(ctx, "solid: the only place this figure is drawn · dashed: a second copy of one above it",
+    14, H - 9, { color: T.ink3, size: T.fsXs });
+  return cand;
+}
+
+/* ============================ the rails ====================================
+ * The shell's own DOM, so what truncates here truncates in the widget. */
+const field = (label, detail) => {
+  const f = el("div", "w-field");
+  if (label) { const l = el("label"); l.appendChild(el("span", null, label)); f.appendChild(l); }
+  if (detail) f.appendChild(el("p", "w-detail", detail));
+  return f;
+};
+const put = (f, node) => {
+  const d = f.querySelector(".w-detail");
+  if (d) f.insertBefore(node, d); else f.appendChild(node);
+};
+const segRun = (f, opts, on, grid) => {
+  const s = el("div", grid ? "w-seg w-seg-grid" : "w-seg");
+  s.setAttribute("role", "group");
+  for (const o of opts) {
+    const label = o.label ?? o;
+    const b = el("button", o.span ? "w-seg-btn w-seg-btn--span" : "w-seg-btn", label);
+    b.type = "button";
+    b.setAttribute("aria-pressed", String(label === on));
+    s.appendChild(b);
+  }
+  put(f, s);
+  return s;
+};
+
+const DTYPE = { label: "Target dtype", detail: "what the target tensor holds when the loss reads it" };
+const REG_FIELDS = [
+  { kind: "text", label: "y_pred", detail: "the predictions, one per output", value: "2.5, 0, 2.1" },
+  { kind: "text", label: "y_true", detail: "one target per output, in the units of the prediction", value: "3, -0.5, 2" },
+];
+const OUTPUTS = { kind: "seg", label: "Outputs", detail: "one output, or several: the shape of y_pred and y_true",
+  opts: ["1", "3"], on: "3" };
+const BOOLS = [
+  { kind: "section", label: "y_true", detail: "the classes the target marks present" },
+  { kind: "bools", names: ["A", "B", "C", "D", "E"], on: [0, 1, 1, 0, 0] },
+];
+
+/* The task control, four faces in two option groups — the shape core builds
+   from `groupHeads: true`. B's Binary detail names both functions, because the
+   page is then the only place either binary form appears. */
+const BIN_DETAIL_A = "softmax over two scores, or sigmoid over their difference"
+  + " · y_true is a class index, long, or a 0 or 1, float32";
+const BIN_DETAIL_B = "softmax over two scores with CrossEntropyLoss,"
+  + " or sigmoid over their difference with BCEWithLogitsLoss";
+const taskCtl = (on, binDetail) => ({
+  kind: "groups", label: "Task", on,
+  detail: on === "Binary" ? binDetail
+    : on === "Regression" ? "no function applied · y_true is float32, the same shape as y_pred"
+      : on === "Single-label" ? "softmax over the row · y_true is one class index, long"
+        : "sigmoid per class · y_true is 0 or 1 per class, float32",
+  groups: [
+    { head: "Regression", opts: ["Regression"] },
+    { head: "Classification", opts: ["Single-label", "Multi-label", "Binary"] },
+  ],
+});
+const lossCtl = (on, grid) => ({
+  kind: "seg", label: "Loss", grid, on,
+  opts: grid ? [{ label: "MSELoss", span: true }, { label: "CrossEntropyLoss", span: true },
+    { label: "BCEWithLogitsLoss", span: true }]
+    : ["MSELoss", "CrossEntropyLoss", "BCEWithLogitsLoss"],
+  detail: on === "MSELoss" ? "each prediction against its own target"
+    : on === "CrossEntropyLoss" ? "softmax over the row · y_true is one class index, long"
+      : "sigmoid per class · y_true is 0 or 1 per class, float32",
+});
+
+const RAILS = {
+  A: [
+    { page: "Regression", ctls: [taskCtl("Regression", BIN_DETAIL_A), ...REG_FIELDS, OUTPUTS] },
+    { page: "Single-label", ctls: [taskCtl("Single-label", BIN_DETAIL_A),
+      { kind: "text", label: "y_pred", detail: "the scores, one per class", value: "5, 0.5" },
+      { kind: "seg", label: "Classes", detail: "two classes, or several: the width of the score row",
+        opts: ["2", "3"], on: "2" },
+      { kind: "seg", label: "y_true", detail: "the index of the true class, counting from A at 0",
+        opts: ["0", "1"], on: "0" },
+      { kind: "seg", ...DTYPE, opts: ["long", "float32"], on: "long" }] },
+    { page: "Multi-label", ctls: [taskCtl("Multi-label", BIN_DETAIL_A),
+      { kind: "text", label: "y_pred", detail: "the logits, one per class", value: "0.2, -1, 0.5, 2, -0.3" },
+      { kind: "seg", label: "Classes", detail: "one label, or several: the width of the score row",
+        opts: ["1", "5"], on: "5" },
+      ...BOOLS,
+      { kind: "seg", ...DTYPE, opts: ["float32", "long"], on: "float32" }] },
+    { page: "Binary", ctls: [taskCtl("Binary", BIN_DETAIL_A),
+      { kind: "text", label: "y_pred", detail: "two scores, A and B", value: "0.5, 2" },
+      { kind: "seg", label: "y_true", detail: "the index of the true class: 0 is A, 1 is B",
+        opts: ["0", "1"], on: "1" }] },
+  ],
+  B: [
+    { page: "Regression", ctls: [taskCtl("Regression", BIN_DETAIL_B), ...REG_FIELDS, OUTPUTS] },
+    { page: "Single-label", ctls: [taskCtl("Single-label", BIN_DETAIL_B),
+      { kind: "text", label: "y_pred", detail: "the scores, one per class", value: "5, 0.5, 0.1" },
+      { kind: "seg", label: "y_true", detail: "the index of the true class, counting from A at 0",
+        opts: ["0", "1", "2"], on: "0" },
+      { kind: "seg", ...DTYPE, opts: ["long", "float32"], on: "long" }] },
+    { page: "Multi-label", ctls: [taskCtl("Multi-label", BIN_DETAIL_B),
+      { kind: "text", label: "y_pred", detail: "the logits, one per class", value: "0.2, -1, 0.5, 2, -0.3" },
+      ...BOOLS,
+      { kind: "seg", ...DTYPE, opts: ["float32", "long"], on: "float32" }] },
+    { page: "Binary", ctls: [taskCtl("Binary", BIN_DETAIL_B),
+      { kind: "text", label: "y_pred", detail: "two scores, A and B", value: "0.5, 2" },
+      { kind: "seg", label: "y_true", detail: "the index of the true class: 0 is A, 1 is B",
+        opts: ["0", "1"], on: "1" }] },
+  ],
+  C: [
+    { page: "MSELoss", ctls: [lossCtl("MSELoss"), OUTPUTS, ...REG_FIELDS] },
+    { page: "CrossEntropyLoss", ctls: [lossCtl("CrossEntropyLoss"),
+      { kind: "seg", label: "Task", detail: "two classes, or more than two: the width of the score row",
+        opts: ["Binary", "Multi-class"], on: "Binary" },
+      { kind: "text", label: "y_pred", detail: "the scores, one per class", value: "0.5, 2" },
+      { kind: "seg", label: "y_true", detail: "the index of the true class, counting from A at 0",
+        opts: ["0", "1"], on: "1" },
+      { kind: "seg", ...DTYPE, opts: ["long", "float32"], on: "long" }] },
+    { page: "BCEWithLogitsLoss", ctls: [lossCtl("BCEWithLogitsLoss"),
+      { kind: "seg", label: "Task", detail: "one label, or more than one: the width of the score row",
+        opts: ["Binary", "Multi-label"], on: "Multi-label" },
+      { kind: "text", label: "y_pred", detail: "the logits, one per class", value: "0.2, -1, 0.5, 2, -0.3" },
+      ...BOOLS,
+      { kind: "seg", ...DTYPE, opts: ["float32", "long"], on: "float32" }] },
+  ],
+};
+
+function buildControl(host, c) {
+  if (c.kind === "section") {
+    host.appendChild(el("p", "w-section", c.label));
+    if (c.detail) host.appendChild(el("p", "w-detail", c.detail));
+    return null;
+  }
+  if (c.kind === "bools") {
+    const g = el("div", "w-field w-bools");
+    c.names.forEach((nm, i) => {
+      const b = el("div", "w-bool");
+      const l = el("label");
+      const inp = el("input");
+      inp.type = "checkbox";
+      inp.checked = Boolean(c.on[i]);
+      l.appendChild(inp); l.appendChild(el("span", null, nm));
+      b.appendChild(l); g.appendChild(b);
+    });
+    host.appendChild(g);
+    return g;
+  }
+  const f = field(c.label, c.detail);
+  if (c.kind === "text") {
+    const i = el("input", "w-text");
+    i.type = "text"; i.value = c.value;
+    put(f, i);
+  } else if (c.kind === "groups") {
+    for (const g of c.groups) {
+      put(f, el("p", "w-seg-head", g.head));
+      segRun(f, g.opts, c.on);
+    }
+  } else {
+    segRun(f, c.opts, c.on, c.grid);
+  }
+  host.appendChild(f);
+  return f;
+}
+
+/** One candidate's rails, one block per page, each measured on its own. */
+const RAIL_NODES = {};
+function buildRails(hostId, key, sub) {
+  const cand = el("div", "cand");
+  cand.innerHTML = `<h3>${CANDS[key].title} · the rail per page</h3><p class="sub">${sub}</p>`;
+  const box = el("div", "row");
+  RAIL_NODES[key] = [];
+  for (const spec of RAILS[key]) {
+    const wrapper = el("div");
+    wrapper.appendChild(el("p", "pagehead", spec.page));
+    const rail = el("div", "w-controls rail-solo");
+    const nodes = {};
+    for (const c of spec.ctls) {
+      const n = buildControl(rail, c);
+      if (n && c.label) nodes[c.label] = n;
+      if (c.kind === "groups") nodes.task = n;
+      if (c.kind === "seg" && c.label === "Loss") nodes.loss = n;
+    }
+    wrapper.appendChild(rail);
+    box.appendChild(wrapper);
+    RAIL_NODES[key].push({ page: spec.page, rail, nodes, wrapper });
+  }
+  cand.appendChild(box);
+  document.getElementById(hostId).appendChild(cand);
+  return cand;
+}
+
+/* ============================ build the page =============================== */
+for (const [id, key] of [["mapA", "A"], ["mapB", "B"], ["mapC", "C"]]) drawMap(id, key);
+const railCands = {
+  A: buildRails("railA", "A",
+    "four pages · the count control on all three of the first ones"),
+  B: buildRails("railB", "B",
+    "four pages · the count control only where it is not binary"),
+  C: buildRails("railC", "C",
+    "three pages · Loss first, then a Task control naming that function's cases"),
+};
+
+/* C's Loss control as a stacked grid, the fallback if three class names do not
+   fit one row. Measured beside the row so the cost is a number. */
+const cGrid = el("div");
+cGrid.appendChild(el("p", "pagehead", "C · Loss stacked"));
+const cGridRail = el("div", "w-controls rail-solo");
+buildControl(cGridRail, lossCtl("CrossEntropyLoss", true));
+cGrid.appendChild(cGridRail);
+railCands.C.querySelector(".row").appendChild(cGrid);
+
+/* ============================== the tables ================================= */
+function factTable(hostId, key) {
+  const c = CANDS[key];
+  const m = M[key];
+  const t = el("table", "facts");
+  const rows = [
+    ["where the student meets binary", () => c.binaryWhere],
+    ["which function is named where", () => c.namesWhere],
+    ["states reachable", () => `<b>${m.states}</b> settled states · binary in <b>${m.places}</b> of them · `
+      + `${m.once} of the six figure columns get exactly one home`
+      + (m.dup.length ? `, and ${m.dup.map((k) => COVERS[k]).join(" and ")} `
+        + `${m.dup.length === 1 ? "is" : "are"} drawn twice` : "")],
+    ["rail height, tallest page", () => m.railText],
+    ["what the count control teaches", () => c.counts],
+    ["clicks from a binary state to the two-way comparison", () => c.clicks],
+  ];
+  for (const [k, v] of rows) {
+    const tr = el("tr");
+    tr.appendChild(el("th", null, k));
+    const td = el("td");
+    td.dataset.fact = k;
+    tr.appendChild(td);
+    t.appendChild(tr);
+  }
+  document.getElementById(hostId).appendChild(t);
+  return { table: t, rows };
+}
+CANDS.A.namesWhere = "the rail names the task, the stage header names the function "
+  + "(Single-label · CrossEntropyLoss). On the Binary page one header carries two function names.";
+CANDS.B.namesWhere = "the same: task in the rail, function on the stage header. The Binary page is the one "
+  + "header with two function names, and the Task detail carries both as well.";
+CANDS.C.namesWhere = "the rail names the function first and the task second, so both names are in the RAIL "
+  + "and the stage header repeats the pair. Single-label becomes Multi-class, one level down.";
+const TABLES = {
+  A: factTable("tabA", "A"),
+  B: factTable("tabB", "B"),
+  C: factTable("tabC", "C"),
+};
+CANDS.A.binaryWhere = "three places — Single-label at Classes 2, Multi-label at Classes 1, and the Binary page";
+CANDS.B.binaryWhere = "one place — the Binary page, whose face is the word itself";
+CANDS.C.binaryWhere = "two places — a Task face called Binary on each of the two classification function pages";
+
+/* the harmonisation table, across the three */
+{
+  const t = el("table", "facts");
+  const headRow = el("tr");
+  for (const h of ["", "the notebook's TABLE (by task)", "the notebook's SECTIONS (by function)",
+    "both on screen together?"]) headRow.appendChild(el("th", null, h));
+  t.appendChild(headRow);
+  const cells = {
+    A: ["the rail's four faces, in cell 30's own order", "the stage header, right of the page name",
+      "yes, on every page"],
+    B: ["the rail's four faces, in cell 30's own order", "the stage header, right of the page name",
+      "yes, on every page"],
+    C: ["a second control, one level down, and Single-label is renamed Multi-class",
+      "the rail's first control", "yes, but both are in the rail and the reader picks the function first"],
+  };
+  for (const k of ["A", "B", "C"]) {
+    const tr = el("tr");
+    tr.appendChild(el("th", null, CANDS[k].title));
+    for (const v of cells[k]) tr.appendChild(el("td", null, v));
+    t.appendChild(tr);
+  }
+  document.getElementById("tabHarm").appendChild(t);
+}
+
+/* ============================== measurement ================================
+ * Every number below is a DOM read, taken once synchronously and again once the
+ * fonts have loaded: the fallback face is not the shipped one, and without the
+ * second pass the tables and the recommendation disagree by a few pixels. */
+function measureAll() {
+  document.querySelectorAll(".rail-measure").forEach((n) => n.remove());
+
+  /* WHAT A FACE HAS FOR ITS TEXT — A FLOAT, AT THE PRESSED WEIGHT. The second
+     mock's §3 recorded why: `padding + label` missed `.w-seg-btn`'s 1px
+     `border-right`, and `scrollWidth > clientWidth` rounds a 62.0px box holding
+     62.4px of text to 74 against 74. Both said a row fitted that shipped an
+     ellipsis, so the box is `getBoundingClientRect` less every computed padding
+     and border, kept as a float, and the label is measured at `font-weight:600`
+     because any face can be the pressed one. */
+  const faceOf = (b) => {
+    const cs = getComputedStyle(b);
+    const r = b.getBoundingClientRect();
+    const inner = r.width
+      - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight)
+      - parseFloat(cs.borderLeftWidth) - parseFloat(cs.borderRightWidth);
+    probe.font = `600 ${cs.fontSize} ${cs.fontFamily}`;
+    const text = probe.measureText(b.textContent).width;
+    return { label: b.textContent, box: r.width, inner, text, cut: text > inner };
+  };
+  const facesOf = (f) => [...f.querySelectorAll(".w-seg-btn")].map(faceOf);
+  const px = (v) => v.toFixed(1);
+  /* HOW MANY LINE BOXES A DETAIL ACTUALLY TAKES. A Range over the text node
+     reports one rect per line, which is the only reading that survives a word
+     the wrap point falls inside. */
+  const linesOf = (node) => {
+    if (!node || !node.firstChild) return 0;
+    const r = document.createRange();
+    r.selectNodeContents(node);
+    return r.getClientRects().length;
+  };
+
+  /* --- the rails, page by page ------------------------------------------- */
+  for (const key of ["A", "B", "C"]) {
+    const pages = RAIL_NODES[key].map((p) => ({
+      page: p.page,
+      h: Math.round(p.rail.getBoundingClientRect().height),
+    }));
+    const tall = pages.reduce((a, b) => (b.h > a.h ? b : a), pages[0]);
+    const total = pages.reduce((a, b) => a + b.h, 0);
+    M[key].pages = pages;
+    M[key].tall = tall;
+    M[key].total = total;
+    M[key].railText = `<b>${tall.h}px</b> on ${tall.page} · `
+      + pages.map((p) => `${p.page} ${p.h}px`).join(" · ")
+      + ` · ${total}px across the ${pages.length} pages`;
+  }
+
+  /* --- the task control, and whether B's longer detail costs a line ------- */
+  const detailOf = (key, page) => RAIL_NODES[key].find((p) => p.page === page).nodes.task
+    .querySelector(".w-detail");
+  M.binLinesA = linesOf(detailOf("A", "Binary"));
+  M.binLinesB = linesOf(detailOf("B", "Binary"));
+  M.binWA = Math.ceil(widthOf(BIN_DETAIL_A, T.fsXs, false));
+  M.binWB = Math.ceil(widthOf(BIN_DETAIL_B, T.fsXs, false));
+  M.detailBox = px(detailOf("B", "Binary").getBoundingClientRect().width);
+  M.taskA = Math.round(RAIL_NODES.A.find((p) => p.page === "Binary").nodes.task
+    .getBoundingClientRect().height);
+  M.taskB = Math.round(RAIL_NODES.B.find((p) => p.page === "Binary").nodes.task
+    .getBoundingClientRect().height);
+
+  /* --- C's Loss faces ----------------------------------------------------- */
+  const lossRow = RAIL_NODES.C[0].nodes.loss;
+  M.lossFaces = facesOf(lossRow);
+  M.lossCut = M.lossFaces.filter((f) => f.cut);
+  M.lossInner = px(M.lossFaces[0].inner);
+  M.lossBox = px(M.lossFaces[0].box);
+  M.lossWidest = M.lossFaces.reduce((a, b) => (b.text > a.text ? b : a), M.lossFaces[0]);
+  M.lossOver = px(M.lossWidest.text - M.lossFaces[0].inner);
+  M.lossRowH = Math.round(lossRow.getBoundingClientRect().height);
+  M.lossGridH = Math.round(cGridRail.getBoundingClientRect().height);
+  M.gridFaces = facesOf(cGridRail);
+  M.gridCut = M.gridFaces.filter((f) => f.cut);
+  M.gridInner = px(M.gridFaces[0].inner);
+
+  /* C's own Task control, whose two faces are the case names */
+  const ceTask = RAIL_NODES.C.find((p) => p.page === "CrossEntropyLoss").nodes.Task;
+  M.cTaskFaces = facesOf(ceTask);
+  M.cTaskCut = M.cTaskFaces.filter((f) => f.cut);
+  M.cTaskInner = px(M.cTaskFaces[0].inner);
+
+  /* the four task faces of A and B, for the comparison against C's three */
+  M.abFaces = facesOf(RAIL_NODES.A[0].nodes.task);
+  M.abCut = M.abFaces.filter((f) => f.cut);
+
+  const railNote = (host, s) => {
+    const p = note(host, s);
+    p.classList.add("rail-measure");
+  };
+  for (const key of ["A", "B", "C"]) {
+    railNote(railCands[key], `${M[key].pages.map((p) => `${p.page} ${p.h}px`).join(" · ")} · `
+      + `tallest ${M[key].tall.h}px · ${M[key].total}px across ${M[key].pages.length} pages`);
+  }
+  railNote(railCands.C, `Loss in one row: button ${M.lossBox}px with ${M.lossInner}px for text against `
+    + `${px(M.lossWidest.text)}px for ${M.lossWidest.label} pressed — truncated: `
+    + `${M.lossCut.map((f) => f.label).join(", ") || "none"} · stacked: ${M.gridInner}px for text, `
+    + `${M.lossGridH - M.lossRowH}px more rail, truncated: `
+    + `${M.gridCut.map((f) => f.label).join(", ") || "none"}`);
+  railNote(railCands.B, `the Binary detail names both functions: ${M.binWB}px in a ${M.detailBox}px box, `
+    + `${M.binLinesB} lines, Task field ${M.taskB}px — against A's dtype wording at ${M.binWA}px, `
+    + `${M.binLinesA} lines and ${M.taskA}px`);
+
+  writeFacts();
+  writeRecs();
+}
+
+function writeFacts() {
+  for (const key of ["A", "B", "C"]) {
+    for (const [k, v] of TABLES[key].rows) {
+      TABLES[key].table.querySelector(`td[data-fact="${CSS.escape(k)}"]`).innerHTML = v();
+    }
+  }
+}
+
+/* ============================ the recommendation =========================== */
+function writeRecs() {
+  document.getElementById("mono").innerHTML =
+    `<b>Measured on this browser:</b> a <code>.w-seg</code> row of three at 300px gives `
+    + `<b>${M.lossInner}px</b> of text per face; a row of four gives `
+    + `${M.abFaces[0].inner.toFixed(1)}px. Every rail height below is a `
+    + `<code>getBoundingClientRect</code> on the shell's own <code>.w-controls</code> after `
+    + `<code>document.fonts.ready</code>, and covers the parameter block alone — the drive row and Play speed `
+    + `are the same on all three candidates.`;
+
+  document.getElementById("recHarm").innerHTML =
+    `<b>A and B keep both names on screen; C keeps both names but moves them into one column.</b> The `
+    + `notebook's table is by task and its sections are by function, and they are not the same cut: the table `
+    + `has no binary row at all, while the <code>BCEWithLogitsLoss</code> section names binary and multi-label `
+    + `in one sentence. A widget that keeps the task in the rail and the function on the stage header is `
+    + `carrying both cuts at once — <code>Single-label · CrossEntropyLoss</code> is the table's row and the `
+    + `section's title on one line, and the reader is never asked which taxonomy is the real one. C has to `
+    + `choose, because a control is a choice: <code>Loss</code> first makes the function the organising idea `
+    + `and demotes the table to a second control, which also renames the table's <i>Single-label</i> row to `
+    + `<i>Multi-class</i> and puts the widget's own centre — softmax over the row against sigmoid per class — `
+    + `on two pages that are no longer adjacent faces (2.7).`;
+
+  document.getElementById("recCase").innerHTML =
+    `<b>The strongest case for each, one sentence.</b> <b>A:</b> the count control is one idea used three `
+    + `times, so a student learns that every one of these losses is indifferent to how many columns the row `
+    + `has, and binary falls out as the narrow end of two of them rather than as a special case. <b>B:</b> `
+    + `every column of Kenneth's three figures, plus cell 29's own two-output head, gets exactly one home — `
+    + `<b>all ${M.B.once} of six</b> against ${M.A.once} for A and ${M.C.once} for C — and the word <i>Binary</i> `
+    + `is a top-level face, so the state is named where the reader picks it. <b>C:</b> it is the notebook's `
+    + `own section order, and its second control names the case rather than counting it, so a student at `
+    + `<code>Task = Binary</code> is told what they are looking at, which is precisely the connection A fails `
+    + `to make.`;
+
+  const dupA = M.A.dup.map((k) => COVERS[k]).join(" and ");
+  const dupC = M.C.dup.map((k) => COVERS[k]).join(" and ");
+  document.getElementById("rec").innerHTML =
+    `<b>Recommend B — binary on its own page, and nowhere else.</b> <b>The deciding number is `
+    + `all ${M.B.once} of six against ${M.A.once} for A and ${M.C.once} for C.</b> Six things need a home: `
+    + `the five columns `
+    + `of Kenneth's three figures and cell 29's <code>Linear(hidden, 2)</code> head. Under B each has exactly `
+    + `one, in <b>${M.B.states} settled states</b>. Under A the same six take <b>${M.A.states} states</b> and `
+    + `two of them are drawn twice — ${dupA} — which is Kenneth's <i>three places</i> counted: the duplicate `
+    + `is not a repeated picture but a repeated idea the widget never says is repeated. Under C the six take `
+    + `<b>${M.C.states} states</b> and the duplicate is the whole side-by-side comparison, ${dupC}, drawn once `
+    + `on each classification page. <b>The second number is where the word is.</b> Binary appears in `
+    + `<b>${M.A.places}</b> places under A, <b>${M.C.places}</b> under C and <b>${M.B.places}</b> under B — and `
+    + `under B that one place is a face labelled with the word, so the state is named at the top level where `
+    + `the reader picks it, which is C's own virtue taken one level up. <b>It answers question 1 by removing `
+    + `it:</b> there is no longer a <code>Classes = 2</code> or a <code>Classes = 1</code> for a student to sit `
+    + `in without knowing it is binary, because those two states are the two halves of the Binary page and are `
+    + `on screen together. <b>And question 2 by keeping the count where it still teaches something:</b> `
+    + `<code>Outputs</code> 1 · 3 stays on Regression, which is his own MSE figure's two columns and has no `
+    + `binary reading at all (3.5 — a control that carries an idea); the two classification pages lose a `
+    + `control each and open on the notebook's own three classes and five labels, which is what his CE and BCE `
+    + `figures draw. <b>The rail cost is nothing.</b> B's tallest page is <b>${M.B.tall.h}px</b> `
+    + `(${M.B.tall.page}) against A's ${M.A.tall.h}px (${M.A.tall.page}) and C's ${M.C.tall.h}px `
+    + `(${M.C.tall.page}); across all pages B is ${M.B.total}px against A's ${M.A.total}px — B is the shortest `
+    + `rail of the three on every page it shares with A. <b>And naming both functions on the Binary face is `
+    + `free:</b> the option detail goes from ${M.binWA}px to ${M.binWB}px in a ${M.detailBox}px box and stays `
+    + `at <b>${M.binLinesB} lines</b>, so the Task field is ${M.taskB}px either way — the dtype clause it `
+    + `replaces was the longer half, and the Binary page prints both dtypes on its two columns regardless. `
+    + `<b>C is also the only candidate whose first control does not fit.</b> `
+    + `Three class names in one <code>.w-seg</code> row at 300px leave ${M.lossInner}px a face against `
+    + `${M.lossWidest.text.toFixed(1)}px for <code>${M.lossWidest.label}</code> pressed — `
+    + `<b>${M.lossOver}px over</b>, truncating ${M.lossCut.map((f) => f.label).join(", ") || "nothing"} — so `
+    + `it has to stack, ${M.gridInner}px a face for ${M.lossGridH - M.lossRowH}px more rail. <b>What B gives `
+    + `up, said plainly:</b> A's reading that a loss does not care how wide the row is, which under B survives `
+    + `only on Regression. That is a real loss and it is the smaller one, because the reading a student `
+    + `actually needs from 05-4 is the one Kenneth named at the start of this build — when to reach for `
+    + `<code>CrossEntropyLoss</code> and when for <code>BCEWithLogitsLoss</code> — and B is the only candidate `
+    + `that keeps those two as adjacent faces of one Classification group (2.7) with the third face saying, in `
+    + `one word, that the question has a third answer where both are right.`;
+
+  renderProof();
+}
+
+function renderProof() {
+  const ul = document.getElementById("proof");
+  ul.textContent = "";
+  const items = [
+    `<b>Six things need a home</b> — five figure columns and cell 29's two-output head — and the candidates `
+    + `give exactly one home to <b>${M.A.once}</b> (A), <b>${M.B.once}</b> (B) and <b>${M.C.once}</b> (C) of `
+    + `them. A draws ${M.A.dup.map((k) => COVERS[k]).join(" and ")} twice; C draws `
+    + `${M.C.dup.map((k) => COVERS[k]).join(" and ")} twice; B draws nothing twice. All three reach all six `
+    + `— nothing is dropped by any candidate (${["A", "B", "C"]
+      .map((k) => `${k}: ${M[k].missing.length} missing`).join(", ")}), so the difference is repetition and `
+    + `not coverage.`,
+    `<b>Binary is met in ${M.A.places} places under A, ${M.C.places} under C and ${M.B.places} under B.</b> `
+    + `Under B that place is a top-level face carrying the word, so the reader is told what the state is `
+    + `before entering it; under A the two silent ones are labelled <i>the width of the score row</i>.`,
+    `<b>The settled states are ${M.A.states}, ${M.B.states} and ${M.C.states}.</b> Fewer states here means `
+    + `fewer figures saying the same thing, not less taught: every one of the six things is still reachable `
+    + `under B.`,
+    `<b>Rail heights, parameter block only, at the real 300px.</b> A: `
+    + `${M.A.pages.map((p) => `${p.page} ${p.h}`).join(" · ")}. B: `
+    + `${M.B.pages.map((p) => `${p.page} ${p.h}`).join(" · ")}. C: `
+    + `${M.C.pages.map((p) => `${p.page} ${p.h}`).join(" · ")}. Tallest ${M.A.tall.h} / ${M.B.tall.h} / `
+    + `${M.C.tall.h}px, total ${M.A.total} / ${M.B.total} / ${M.C.total}px.`,
+    `<b>C's first control does not fit one row.</b> A face is ${M.lossBox}px with ${M.lossInner}px for text `
+    + `against ${M.lossWidest.text.toFixed(1)}px for <code>${M.lossWidest.label}</code> at the pressed weight `
+    + `— ${M.lossOver}px over, truncating ${M.lossCut.map((f) => f.label).join(", ") || "nothing"}. Stacked it `
+    + `gives ${M.gridInner}px a face and truncates `
+    + `${M.gridCut.map((f) => f.label).join(", ") || "nothing"}, for ${M.lossGridH - M.lossRowH}px more rail. `
+    + `The four task faces of A and B truncate `
+    + `${M.abCut.map((f) => f.label).join(", ") || "nothing"} in the option groups they already ship.`,
+    `<b>C's second control means two different things on two pages.</b> Both are labelled <code>Task</code>, `
+    + `one partitioning Binary against Multi-class and the other Binary against Multi-label, at `
+    + `${M.cTaskInner}px a face (truncating ${M.cTaskCut.map((f) => f.label).join(", ") || "nothing"}). `
+    + `3.5 asks a control to carry an idea; two partitions under one label is two ideas under one name.`,
+    `<b>Naming both functions on the Binary face costs no rail.</b> The option detail goes from ${M.binWA}px `
+    + `to ${M.binWB}px in a ${M.detailBox}px box, ${M.binLinesA} lines to ${M.binLinesB}, and the Task field `
+    + `is ${M.taskA}px against ${M.taskB}px. It replaces the dtype clause, which the Binary page already `
+    + `prints on both of its columns.`,
+    `<b>Both names stay on screen under A and B and not under C.</b> The task is the rail's face and the `
+    + `function is the stage header, so the notebook's table and its sections are both read without either `
+    + `being chosen. C puts both in the rail and makes the function the first pick, which also renames the `
+    + `table's <i>Single-label</i> row to <i>Multi-class</i>.`,
+    `<b>The two forms are one model, and the sources say so.</b> Softmax over two logits is the sigmoid of `
+    + `their difference (Bishop §4.3, Goodfellow et al. §6.2.2); PyTorch's own docs name `
+    + `<code>BCEWithLogitsLoss</code> for binary and for multi-label and give <code>CrossEntropyLoss</code> C `
+    + `classes with no binary special case, while scikit-learn's user guide keeps binary, multiclass and `
+    + `multilabel as three target types. The taxonomies disagree, which is why the widget has to pick one and `
+    + `say it in the shape.`,
+  ];
+  for (const t of items) {
+    const li = document.createElement("li");
+    li.innerHTML = t;
+    ul.appendChild(li);
+  }
+}
+
+measureAll();
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(measureAll);
+</script>
+</body>
+</html>
