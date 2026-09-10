@@ -1129,10 +1129,10 @@ const shapeIs = (s, want) => Array.isArray(s) && s.join() === want.join();
     ["ordering pattern", {}, M.ordering("pattern")],
     ["ordering combinations", {}, M.ordering("combinations")],
     ["ordering position", {}, M.ordering("position")],
-    ["building flat", { show: "print" }, M.building("sequential", "flat", "all", "print")],
-    ["building blocks", { show: "print" }, M.building("sequential", "blocks", "all", "print")],
-    ["building MLP1", { show: "summary" }, M.building("module", "flat", "all", "summary")],
-    ["building MLP2", { show: "print" }, M.building("module", "flat", "learnable", "print")],
+    ["building flat", { inspect: "print" }, M.building("sequential", "flat", "all", "print")],
+    ["building blocks", { inspect: "print" }, M.building("sequential", "blocks", "all", "print")],
+    ["building MLP1", { inspect: "summary" }, M.building("module", "flat", "all", "summary")],
+    ["building MLP2", { inspect: "print" }, M.building("module", "flat", "learnable", "print")],
     ["dimensions image", {}, M.dimensions("image", M.DATA_SETS.image.menus.map((m) => m[0]))],
     ["dimensions failing", {}, M.dimensions("image", ["Conv2d-3-16-3", "MaxPool2d-2", "Flatten", "Linear-100-10"])],
     ["dimensions sequence", {}, M.dimensions("sequence", M.DATA_SETS.sequence.menus.map((m) => m[0]))],
@@ -1371,9 +1371,29 @@ const shapeIs = (s, want) => Array.isArray(s) && s.join() === want.join();
   check("no reader-facing string names a lesson, a notebook or a cell",
     !strings.some((s) => /\b(notebook|lesson|chapter|cell \d)\b/i.test(s)));
 
+  /* ONE NAME FOR THE ROUTING BOX. The diagram labels it `gate`, the code calls
+     `self.gate(x)`, and three strings called it a router: the tile, the card's
+     note and the hard caption. A reader who meets both words has to decide
+     whether they are the same thing (the copy audit, 2026-09-11). */
+  check('no reader-facing string says "router"',
+    !strings.some((s) => /\brouter\b/i.test(s)),
+    strings.filter((s) => /\brouter\b/i.test(s)).slice(0, 2).join(" | "));
+
+  /* 2.10'S CLEFT, which the audit found in nine strings across the two files:
+     "which is what the block learns", "the forward pass is what decides",
+     "a projection is what aligns them". Each says the claim once when the
+     cleft is struck. */
+  check("no reader-facing string opens a cleft or trails a relative clause",
+    !strings.some((s) => /which is|\bis what\b/i.test(s)),
+    strings.filter((s) => /which is|\bis what\b/i.test(s)).slice(0, 2).join(" | "));
+
   check("the blurb is one sentence, inside the 120-character cap",
     entry.blurb.length <= 120 && entry.blurb.split(". ").length === 1,
     `${entry.blurb.length} characters`);
+
+  check("the blurb names the four connections the four flow pages draw",
+    entry.blurb === "A model is layers composed in order, with connections that skip, gate, branch and route.",
+    "one declarative sentence, the concept and not the controls (2.10)");
 
   check("the meta description is the blurb verbatim",
     html.includes(`<meta name="description" content="${entry.blurb}">`));
@@ -1403,10 +1423,113 @@ const shapeIs = (s, want) => Array.isArray(s) && s.join() === want.join();
     /width:[\s\S]{0,400}?value: "10", label: "10"/.test(src)
     && /fc2:[\s\S]{0,400}?value: "6", label: "6"/.test(src));
 
+  /* THE THREE BUILDING PARAMETERS TOOK THE NAME OF THEIR OWN CONTROL
+     (5.9, widget 44's incident, and its warning about half-done renames: a
+     lookup left keyed on the old name draws "undefined"). `blocks=blocks` was
+     a value repeating its parameter, `style=all|learnable` named nothing on
+     screen, and `show` was shorthand for a control reading "Inspect with". */
+  check("the three Building parameters are named for their controls",
+    /\n    grouping: \{[\s\S]{0,120}label: "Grouping"/.test(src)
+    && /\n    declared: \{[\s\S]{0,120}label: "Declared in __init__"/.test(src)
+    && /\n    inspect: \{[\s\S]{0,120}label: "Inspect with"/.test(src),
+    "grouping, declared and inspect");
+
+  check("no read of the old names survives in either file",
+    !/params\.blocks\b|params\.style\b|params\.show\b/.test(`${src}${model}`)
+    && !/\n    blocks: \{|\n    style: \{|\n    show: \{/.test(src),
+    "a rename that leaves one lookup behind draws undefined");
+
+  check("the renamed parameters are read where the page is built and drawn",
+    src.includes("M.building(params.api, params.grouping, params.declared, params.inspect)")
+    && /params\.inspect === "summary"/.test(src)
+    && /params\.inspect === "summary"/.test(model),
+    "computeFor, the Building band header and the Building caption");
+
+  check("the values behind the three names are unchanged",
+    /value: "flat"[\s\S]{0,200}value: "blocks"/.test(src)
+    && /value: "all"[\s\S]{0,200}value: "learnable"/.test(src)
+    && /value: "print"[\s\S]{0,200}value: "summary"/.test(src),
+    "flat|blocks, all|learnable, print|summary");
+
+  check("the Routing control is labelled Mode and keeps mode=hard|soft",
+    /mode: \{[\s\S]{0,200}label: "Mode"/.test(src)
+    && /value: "hard"[\s\S]{0,200}value: "soft"/.test(src),
+    "the page is already headed Routing");
+
   check("the drive label is Next line, and Next layer where a layer is the unit",
     /stepLabel: { param: "topic", labels: STEP_LABELS, default: "Next line" }/.test(src)
     && /dimensions: "Next layer"/.test(src)
     && /building: { param: "api", labels: { sequential: "Next layer", module: "Next line" }/.test(src));
+
+  /* THE TITLES NEST WHERE THE LABEL DOES. Building's Step said "Run the next
+     layer of the forward pass" at both APIs, against a button reading "Next
+     line" and a `forward()` body on the stage (the copy audit, 2026-09-11). */
+  check("the two Building drive titles follow the API the label follows",
+    /sequential: "Run the next layer of the forward pass",\s*\n\s*module: "Run the next line of forward\(\)",/.test(src)
+    && /sequential: "Run the remaining layers",\s*\n\s*module: "Run the remaining lines of forward\(\)",/.test(src));
+
+  /* THE SHARED TILE COUNTS WHAT THE STEP BUTTON APPLIES, so its label is the
+     same nested map keyed the same way: layers on Dimensions and on Building
+     at `sequential`, lines everywhere else. */
+  check("the ran tile's label nests on topic and api, as the step label does",
+    /const RAN_LABELS = \{\s*\n\s*dimensions: "Layers run",\s*\n\s*building: \{ param: "api", labels: \{ sequential: "Layers run", module: "Lines run" \}, default: "Lines run" \},/
+      .test(src)
+    && /label: ranLabel\(params\)/.test(src),
+    "Layers run on two pages, Lines run on the other five");
+
+  /* THE DIMENSIONS CAPTION SPEAKS OF THE WHOLE BATCH, so it needs the plural
+     of the control's own word rather than the singular button label. */
+  check("every data set carries the plural its caption opens with",
+    Object.values(M.DATA_SETS).every((d) => typeof d.plural === "string" && d.plural.length > 1)
+    && M.DATA_SETS.image.plural === "Images" && M.DATA_SETS.vectors.plural === "Vectors"
+    && M.DATA_SETS.sequence.plural === "Sequences",
+    Object.values(M.DATA_SETS).map((d) => `${d.label} → ${d.plural}`).join(", "));
+
+  check("the Dimensions caption opens with that plural and its own shape",
+    M.captions({}, M.dimensions("image", M.DATA_SETS.image.menus.map((m) => m[0])))[0].text
+      === "Images enter as [4, 3, 32, 32], and no layer is told about dimension 0, the batch."
+    && M.captions({}, M.dimensions("sequence", M.DATA_SETS.sequence.menus.map((m) => m[0])))[0].text
+      .startsWith("Sequences enter as [4, 5],"));
+
+  check("a Branching caption opens with the merge's own word, capitalised",
+    M.captions({ sample: "0" }, M.branching("concat", 6))[0].text.startsWith("Concat on 8 and 6 gives")
+    && M.captions({ sample: "0" }, M.branching("add", 8))[0].text.startsWith("Add on 8 and 8 gives")
+    && M.captions({ sample: "0" }, M.branching("average", 8))[0].text.startsWith("Average on 8 and 8 gives"));
+
+  check("the three Ordering band headers name the view the way the control does",
+    src.includes('"Ordering · Pattern"') && src.includes('"Ordering · Combinations"')
+    && src.includes('"Ordering · Position"'),
+    "Pattern, Combinations and Position, as the View buttons read");
+
+  /* THE HARD FORM IS THE ARGMAX. Cell 99's if / else schematic has two
+     branches and this diagram has three, chosen by the gate's largest weight. */
+  check("hard routing states the argmax in the band header and on the card",
+    src.includes('hard ? "y = f_k(x), k = argmax α(x)"')
+    && src.includes('"y = f_k(x), k = argmax α(x)"')
+    && !src.includes("condition(x)"),
+    "one string, drawn on the canvas and offered as the plain fallback");
+
+  check("the Gating card names the tensor the page draws",
+    src.includes('"gated = g ⊙ h"') && src.includes('rows: [["gated", CARD.gate, true]]'),
+    "gated is the edge, the band and the readout's own word");
+
+  check("the hard-routing tiles print three different facts",
+    src.includes('label: "Weight of the branch taken"')
+    && src.includes('label: "Gradient to the gate"')
+    && !src.includes('label: "Largest branch",\n            value: `branch'),
+    "Branch taken, the gradient, and how large that branch's weight was");
+
+  check("the Dimensions legend names the ink boxes as well as the two hues",
+    /token: "ink-2", label: "A layer with no sizes to match"/.test(src),
+    "ReLU and Flatten are drawn in ink and had no entry");
+
+  check("the Topic grid carries no detail line under its two row heads",
+    !/topic: \{[\s\S]*?detail:[\s\S]*?options: TOPICS/.test(src),
+    "the heads already say the split");
+
+  check("the three paces are named a step, the collection's own wording",
+    M.SPEEDS.every((sp) => /^\d\.\d seconds a step$/.test(sp.detail)),
+    M.SPEEDS.map((sp) => sp.detail).join(" / "));
 
   check("the rail's two row heads are the notebook's own headings",
     src.includes('const COMPOSING = "Composing layers"') && src.includes('const FLOW = "Controlling flow"'));

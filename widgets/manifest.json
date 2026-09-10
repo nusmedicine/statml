@@ -763,7 +763,7 @@
     {
       "slug": "composition",
       "title": "Deep Learning - Composition",
-      "blurb": "A network is layers composed in order, with connections that skip, gate, branch and merge.",
+      "blurb": "A model is layers composed in order, with connections that skip, gate, branch and route.",
       "course": "PHM5005",
       "topics": [
         "composition",

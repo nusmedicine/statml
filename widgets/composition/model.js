@@ -70,9 +70,9 @@ export const linearParams = (inF, outF) => inF * outF + outF;
  * A line of `forward()` is one beat; nothing here is staged in two phases,
  * because a line either produced a tensor or it did not. */
 export const SPEEDS = [
-  { value: "slow", label: "Slow", detail: "1.2 seconds a line" },
-  { value: "medium", label: "Medium", detail: "0.7 seconds a line" },
-  { value: "fast", label: "Fast", detail: "0.3 seconds a line" },
+  { value: "slow", label: "Slow", detail: "1.2 seconds a step" },
+  { value: "medium", label: "Medium", detail: "0.7 seconds a step" },
+  { value: "fast", label: "Fast", detail: "0.3 seconds a step" },
 ];
 export const unitMs = (speed) => (speed === "slow" ? 1200 : speed === "fast" ? 300 : 700);
 
@@ -499,7 +499,7 @@ export const POSITIONS = [
     box: "Encoding",
     pos: "beginning",
     tile: "Embedding, Convolution",
-    side: ["Embedding for tokens, Convolution for images,", "or the raw inputs normalized"],
+    side: ["Embedding for tokens, Convolution for images,", "or the inputs normalized"],
   },
   {
     box: "Subunit",
@@ -643,8 +643,8 @@ export const CODE_MLP = {
   learnable: ["def forward(self, x):", "x = self.fc1(x)", "x = F.relu(x)", "x = self.fc2(x)", "return x"],
 };
 
-export function building(api, blocks, style, show) {
-  const key = api === "module" ? style : blocks;
+export function building(api, grouping, declared, inspect) {
+  const key = api === "module" ? declared : grouping;
   const node = MODELS[key];
   const steps = BUILD_STEPS[key];
   const all = leaves(node);
@@ -662,10 +662,10 @@ export function building(api, blocks, style, show) {
     printed: all.length,
     run: steps.length,
     params,
-    text: show === "summary" ? summary : print,
+    text: inspect === "summary" ? summary : print,
     print,
     summary,
-    code: api === "module" ? CODE_MLP[style] : null,
+    code: api === "module" ? CODE_MLP[declared] : null,
     units: steps.length,
   };
 }
@@ -705,6 +705,11 @@ const LAYER = {
 export const DATA_SETS = {
   image: {
     label: "Image",
+    /* the caption speaks of the whole batch, so it needs the plural of the
+       control's own word: "Images enter as [4, 3, 32, 32]" (the copy audit,
+       2026-09-11). `label` is the button and stays singular where the control
+       names one data type. */
+    plural: "Images",
     shape: [4, 3, 32, 32],
     note: "4 images, 3 channels, 32 by 32",
     menus: [
@@ -716,6 +721,7 @@ export const DATA_SETS = {
   },
   vectors: {
     label: "Vectors",
+    plural: "Vectors",
     shape: [4, 10],
     note: "4 samples, 10 features",
     menus: [
@@ -727,6 +733,7 @@ export const DATA_SETS = {
   },
   sequence: {
     label: "Sequence",
+    plural: "Sequences",
     shape: [4, 5],
     note: "4 sequences of 5 residues, as integer ids",
     menus: [
@@ -1195,6 +1202,9 @@ export function routeRestColumn(st, s) {
  * It lives here rather than in `main.js` so the verify script reads the same
  * table the drawing does (5.8), and the copy audit reads both files.
  */
+/** A merge's own word at the head of a sentence. */
+const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+
 export function captions(params, state) {
   const line = (text, at = 0) => ({ text, at });
   switch (state.kind) {
@@ -1203,13 +1213,13 @@ export function captions(params, state) {
       const set = state.set;
       if (last && last.error) {
         return [
-          line(`${last.layer.label} was given ${shapeText(last.from)}, and its own sizes describe a different tensor.`,
+          line(`${last.layer.label} was given ${shapeText(last.from)}, and the size it was declared for is different.`,
             state.steps.length),
           line("Each layer's output shape has to be the input shape the next layer was told to expect."),
         ];
       }
       return [
-        line(`${set.label} enter as ${shapeText(set.shape)}, and dimension 0 is the batch, which no layer is told about.`),
+        line(`${set.plural} enter as ${shapeText(set.shape)}, and no layer is told about dimension 0, the batch.`),
         line(`The chain ends at ${shapeText(state.out)}, and every size in between is fixed by the layer that produced it.`,
           state.units),
       ];
@@ -1232,11 +1242,11 @@ export function captions(params, state) {
     case "gating":
       return state.gate === "mask"
         ? [
-          line(`${state.blocked} of the 20 features are blocked, and their column of gated is empty for every sample.`, 3),
+          line(`${state.blocked} of the 20 features are blocked, and their columns of gated are empty for every sample.`, 3),
           line("A fixed mask is a tensor of 1s and 0s, so it has nothing to learn and the same features are blocked for every input."),
         ]
         : [
-          line("Every feature has its own gate between 0 and 1, so the signal is turned down rather than switched off.", 2),
+          line("Every feature has its own gate between 0 and 1, so each feature is scaled rather than removed.", 2),
           line("The gate is a second Linear on the same input, and its output is the same shape as the path it multiplies."),
         ];
     case "branching": {
@@ -1248,7 +1258,9 @@ export function captions(params, state) {
         ];
       }
       return [
-        line(`${state.merge} on 8 and ${w2} gives ${state.feats} features, so fc3 is Linear(${state.fc3In}, 2).`, 3),
+        /* the merge's own word opens the sentence, so it is capitalised: the
+           control reads Concat, Add and Average (the copy audit, 2026-09-11) */
+        line(`${cap(state.merge)} on 8 and ${w2} gives ${state.feats} features, so fc3 is Linear(${state.fc3In}, 2).`, 3),
         line(state.merge === "concat"
           ? "Concatenation keeps both branches whole, so the merged width is the sum of the two."
           : "Addition and averaging combine the branches cell by cell, so the merged width is the width of one branch."),
@@ -1259,10 +1271,10 @@ export function captions(params, state) {
       return state.mode === "hard"
         ? [
           line(`Sample ${s} takes branch ${state.top[s] + 1}, and the other two branches contribute nothing to its output.`, 4),
-          line("The argmax is a discrete choice, so no gradient reaches the router and it cannot be trained by backpropagation."),
+          line("The argmax is a discrete choice, so no gradient reaches the gate."),
         ]
         : [
-          line(`Sample ${s} mixes the three branches ${state.weights[s].map((v) => v.toFixed(2)).join(" · ")}, and branch ${state.top[s] + 1} carries the most of it.`, 5),
+          line(`Sample ${s} mixes the three branches at ${state.weights[s].map((v) => v.toFixed(2)).join(" · ")}, and branch ${state.top[s] + 1} has the largest weight.`, 5),
           line("nn.ModuleList holds the three branches so they can be applied in a loop; nn.ModuleDict holds them by name so one can be chosen."),
         ];
     }
@@ -1272,11 +1284,11 @@ export function captions(params, state) {
           ? "F.relu is called in forward and is not a submodule, so it is not in the print."
           : state.key === "blocks"
             ? "Each block is a Sequential of its own, so the print nests and the parameter count is the sum of all five layers."
-            : "Every layer was declared in __init__, so every layer is in the print.",
+            : "Every layer is a registered submodule, so every layer is in the print.",
         state.units),
-        line(params.show === "summary"
+        line(params.inspect === "summary"
           ? "summary() counts registered modules, so it reports the same layers the print names."
-          : "A print names the layers a model declares, and the forward pass is what decides which of them run."),
+          : "A print names the layers a model declares, and the forward pass decides which of them run."),
       ];
     default:
       /* ORDERING'S THREE VIEWS. Combinations is the one page in the widget
@@ -1293,7 +1305,7 @@ export function captions(params, state) {
         return [
           line("The layers at the beginning follow the data and the layers at the end follow the task.",
             state.units),
-          line("Only the middle is repeated, and the number of repeats is what sets the depth."),
+          line("Only the middle is repeated, and the number of repeats sets the depth."),
         ];
       }
       return [

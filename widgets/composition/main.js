@@ -1563,7 +1563,7 @@ function drawRoute(ctx, colors, w, params, state, anim, pointer) {
   const sample = Number(params.sample);
   const hard = state.mode === "hard";
   let y = band(ctx, colors, 0, w, "Routing",
-    hard ? "y = f₁(x) if condition(x) else f₂(x)" : "y = Σ αᵢ(x) fᵢ(x)");
+    hard ? "y = f_k(x), k = argmax α(x)" : "y = Σ αᵢ(x) fᵢ(x)");
   const top = y;
 
   const usedW = 3 * (g.branchW + COLGAP) + g.gateW;
@@ -1719,7 +1719,7 @@ function drawBuild(ctx, colors, w, params, state, anim) {
   const walk = walkAt(anim, state);
   const title = { flat: "Building · Sequential", blocks: "Building · Sequential of blocks", all: "Building · MLP1", learnable: "Building · MLP2" }[state.key];
   let y = band(ctx, colors, 0, w, title,
-    params.show === "summary" ? "summary(model, input_size=(10,))" : "print(model)");
+    params.inspect === "summary" ? "summary(model, input_size=(10,))" : "print(model)");
   const top = y;
 
   txt(ctx, colors, "x", g.cx, y + 12, { color: colors.ink1, align: "center", mono: true });
@@ -1810,7 +1810,7 @@ function drawSide(ctx, colors, p, tx, boxY, w, ink) {
 /** The pattern: the four steps of his subunit figure, each with the job it
     does over the layers that fill it. Decision 17 has the colours. */
 function drawPatternView(ctx, colors, w, walk) {
-  const y0 = band(ctx, colors, 0, w, "Ordering · the pattern", M.PATTERN);
+  const y0 = band(ctx, colors, 0, w, "Ordering · Pattern", M.PATTERN);
   const cx = PAD + BOX_W / 2;
   const sx = PAD + BOX_W + SIDE_GAP;
   let cy = y0;
@@ -1838,7 +1838,7 @@ function drawPatternView(ctx, colors, w, walk) {
     the mock measured a reason under every group and the widest ran into its
     neighbour. */
 function drawCombosView(ctx, colors, w, g, walk) {
-  const y = band(ctx, colors, 0, w, "Ordering · combinations", "layers that are used as a unit");
+  const y = band(ctx, colors, 0, w, "Ordering · Combinations", "layers that are used as a unit");
   M.COMBOS.forEach((c, i) => {
     const unit = i + 1;
     const st = stageAt(walk, unit);
@@ -1865,7 +1865,7 @@ const REPEAT_LABEL = "× N";
 /** The position: the whole network from the input down, with the repeated
     middle inside brackets so a repeat cannot read as a combination. */
 function drawPositionView(ctx, colors, w, walk) {
-  const y0 = band(ctx, colors, 0, w, "Ordering · position", "beginning · repeated middle · end");
+  const y0 = band(ctx, colors, 0, w, "Ordering · Position", "beginning · repeated middle · end");
   const cx = PAD + BOX_W / 2;
   const sx = PAD + BOX_W + SIDE_GAP;
   const last = M.POSITIONS.length;
@@ -1964,15 +1964,21 @@ const CARD = {
     "y = x + f(x)"),
   skipProj: eq(row(mi("y"), mo("="), mi("P"), mo("("), mi("x"), mo(")"), mo("+"), mi("f"), mo("("), mi("x"), mo(")")),
     "y = P(x) + f(x)"),
-  gate: eq(row(mi("y"), mo("="), mi("g"), mo("⊙"), mi("x")), "y = g ⊙ x"),
+  /* the card names the tensor the page draws, not a generic y: `gated` is the
+     edge, the band and the readout's own word (the copy audit, 2026-09-11) */
+  gate: eq(row(mi("gated"), mo("="), mi("g"), mo("⊙"), mi("h")), "gated = g ⊙ h"),
   concat: eq(row(mi("y"), mo("="), mi("concat"), mo("("), fx(f1), mo(","), fx(f2), mo(")")),
     "y = concat(f₁(x), f₂(x))"),
   add: eq(row(mi("y"), mo("="), fx(f1), mo("+"), fx(f2)), "y = f₁(x) + f₂(x)"),
   average: eq(row(mi("y"), mo("="), frac(mn("1"), mn("2")), mo("("), fx(f1), mo("+"), fx(f2), mo(")")),
     "y = ½(f₁(x) + f₂(x))"),
-  hard: eq(row(mi("y"), mo("="), fx(f1), mo("if"), mi("condition"), mo("("), mi("x"), mo(")"),
-    mo("else"), fx(f2)),
-  "y = f₁(x) if condition(x) else f₂(x)"),
+  /* THE HARD FORM IS THE ARGMAX, NOT AN if / else. Cell 99's two-branch
+     schematic reads as a condition on x, and this diagram has three branches
+     chosen by the gate's largest weight, so the card states the branch index
+     the page computes (the copy audit, 2026-09-11). */
+  hard: eq(row(mi("y"), mo("="), msub(mi("f"), mi("k")), mo("("), mi("x"), mo(")"), mo(","),
+    mi("k"), mo("="), mi("argmax"), mi("α"), mo("("), mi("x"), mo(")")),
+  "y = f_k(x), k = argmax α(x)"),
   soft: eq(row(mi("y"), mo("="), mo("∑"), msub(mi("α"), mi("i")), mo("("), mi("x"), mo(")"),
     msub(mi("f"), mi("i")), mo("("), mi("x"), mo(")")),
   "y = ∑ αᵢ(x) fᵢ(x)"),
@@ -2009,11 +2015,11 @@ function cardFor(state) {
         ],
         note: state.proj
           ? `P is a Linear(10, ${state.width}) on the skip path, so both sides of the add have the same shape.`
-          : "The add requires the same shape on both sides, and a projection is what aligns them where they differ.",
+          : "The add requires the same shape on both sides, and a projection aligns them where they differ.",
       };
     case "gating":
       return {
-        rows: [["y", CARD.gate, true]],
+        rows: [["gated", CARD.gate, true]],
         note: "g = 0 blocks the signal, g = 1 lets it pass unchanged, and a value in between passes part of it. "
           + "⊙ is elementwise, so there is one gate for each feature of each sample.",
       };
@@ -2034,7 +2040,7 @@ function cardFor(state) {
           ["y", CARD.soft, state.mode === "soft"],
         ],
         note: "The softmax weights sum to 1 for each sample, so soft routing is a mixture. "
-          + "A discrete choice has no derivative, so hard routing gives the router no gradient.",
+          + "A discrete choice has no derivative, so hard routing gives the gate no gradient.",
       };
     case "ordering":
       return {
@@ -2109,7 +2115,7 @@ let walkAnim = null;
 function computeFor(params, rng) {
   switch (params.topic) {
     case "building":
-      return M.building(params.api, params.blocks, params.style, params.show);
+      return M.building(params.api, params.grouping, params.declared, params.inspect);
     case "dimensions":
       return M.dimensions(params.data, CHAIN(params));
     case "skip":
@@ -2197,7 +2203,16 @@ const STEP_TITLES = {
     },
     default: "Apply the next step of the pattern",
   },
-  building: "Run the next layer of the forward pass",
+  /* the title follows the API for the same reason the label does: at `module`
+     a `forward()` body is on screen and the unit is one of its lines */
+  building: {
+    param: "api",
+    labels: {
+      sequential: "Run the next layer of the forward pass",
+      module: "Run the next line of forward()",
+    },
+    default: "Run the next line of forward()",
+  },
   dimensions: "Apply the next layer of the chain",
   skip: "Run the next line of forward()",
   gating: "Run the next line of forward()",
@@ -2214,7 +2229,14 @@ const RUN_TITLES = {
     },
     default: "Apply the remaining steps",
   },
-  building: "Run the remaining layers",
+  building: {
+    param: "api",
+    labels: {
+      sequential: "Run the remaining layers",
+      module: "Run the remaining lines of forward()",
+    },
+    default: "Run the remaining lines of forward()",
+  },
   dimensions: "Apply the remaining layers",
   skip: "Run the remaining lines of forward()",
   gating: "Run the remaining lines of forward()",
@@ -2228,9 +2250,26 @@ const SAMPLE_FIELD = {
   min: 0,
   max: 3,
   default: 0,
-  detail: "which row of the batch the readout takes its values from",
+  detail: "which row of the batch the figure lights and the readout reads",
   display: true,
 };
+
+/* THE SHARED TILE'S LABEL NESTS THE WAY THE DRIVE LABEL DOES (decision 7 and
+   the copy audit, 2026-09-11): the last readout tile counts the same units the
+   Step button applies, so it has to say the same noun. Dimensions runs layers,
+   Building runs layers at `sequential` and lines of `forward()` at `module`,
+   and the four flow pages run lines. Keyed exactly as `STEP_LABELS` is, so the
+   two cannot drift apart. */
+const RAN_LABELS = {
+  dimensions: "Layers run",
+  building: { param: "api", labels: { sequential: "Layers run", module: "Lines run" }, default: "Lines run" },
+};
+function ranLabel(params) {
+  const entry = RAN_LABELS[params.topic];
+  if (typeof entry === "string") return entry;
+  if (!entry) return "Lines run";
+  return entry.labels[params[entry.param]] ?? entry.default;
+}
 
 defineWidget({
   slug: "composition",
@@ -2258,7 +2297,9 @@ defineWidget({
       label: "Topic",
       style: "grid",
       groupHeads: true,
-      detail: "the first three compose layers into a model, the last four change where the data goes",
+      /* NO DETAIL: the two row heads already say the split, and a line under
+         the grid repeating them is the same sentence twice (the copy audit,
+         2026-09-11). */
       options: TOPICS,
       default: "ordering",
     },
@@ -2267,7 +2308,7 @@ defineWidget({
     view: {
       type: "segmented",
       label: "View",
-      detail: "three things the order of a model is decided by",
+      detail: "what decides the order of a model",
       options: [
         { value: "pattern", label: "Pattern", detail: "the four steps a block applies, and the job each one does" },
         { value: "combinations", label: "Combinations", detail: "pairs of layers that are placed together, and why" },
@@ -2281,15 +2322,18 @@ defineWidget({
     api: {
       type: "segmented",
       label: "API",
-      detail: "two ways to connect the same three layers",
+      detail: "two ways to compose the same layers",
       options: [
         { value: "sequential", label: "Sequential", detail: "nn.Sequential applies the layers in the order they are listed" },
-        { value: "module", label: "Module", detail: "a class with a forward() method, which can branch and loop" },
+        { value: "module", label: "Module", detail: "a class whose forward() method can branch and loop" },
       ],
       default: "sequential",
       when: ON("building"),
     },
-    blocks: {
+    /* THE WIRE NAME IS THE CONTROL'S OWN WORD (5.9, widget 44's incident):
+       `blocks=blocks` read as a value repeating its parameter, and the control
+       is labelled Grouping. Renamed with every read of it, 2026-09-11. */
+    grouping: {
       type: "segmented",
       label: "Grouping",
       detail: "a flat list of layers, or three blocks each a Sequential of its own",
@@ -2300,7 +2344,9 @@ defineWidget({
       default: "flat",
       when: { all: [ON("building"), { param: "api", equals: "sequential" }] },
     },
-    style: {
+    /* `style=all|learnable` named nothing on screen; the control reads
+       "Declared in __init__" and its options are which layers are declared. */
+    declared: {
       type: "segmented",
       label: "Declared in __init__",
       detail: "which layers the class declares, and therefore which ones it registers",
@@ -2311,7 +2357,8 @@ defineWidget({
       default: "all",
       when: { all: [ON("building"), { param: "api", equals: "module" }] },
     },
-    show: {
+    /* the control reads "Inspect with", so the link does too */
+    inspect: {
       type: "segmented",
       label: "Inspect with",
       detail: "two readings of one model",
@@ -2329,7 +2376,7 @@ defineWidget({
       type: "segmented",
       label: "Data",
       style: "grid",
-      detail: "the shape the batch arrives in, which decides what the first layer can be",
+      detail: "the shape the batch arrives in, and what the first layer can be",
       options: [
         { value: "image", label: "Image", detail: "[4, 3, 32, 32]: 4 images, 3 channels, 32 by 32" },
         { value: "vectors", label: "Vectors", detail: "[4, 10]: 4 samples of 10 features" },
@@ -2377,7 +2424,7 @@ defineWidget({
     chain: {
       type: "expr",
       label: "Chain",
-      detail: "each menu holds a layer that fits the step before it and one that does not",
+      detail: "the menus hold layers that fit the step before them, and layers that do not",
       join: " → ",
       slots: M.SLOT_KEYS,
       when: ON("dimensions"),
@@ -2389,7 +2436,7 @@ defineWidget({
       label: "Width after fc2",
       detail: "the number of features f(x) produces",
       options: [
-        { value: "10", label: "10", detail: "the same width as the input, so the add works" },
+        { value: "10", label: "10", detail: "the same width as the input, so the add is elementwise" },
         { value: "20", label: "20", detail: "a different width from the input, so the add has nothing to line up" },
       ],
       default: "10",
@@ -2401,7 +2448,7 @@ defineWidget({
       detail: "a Linear that maps the input to the width of f(x)",
       options: [
         { value: "off", label: "Off", detail: "the input is added as it is" },
-        { value: "on", label: "On", detail: "a Linear(10, width) is applied to the input first" },
+        { value: "on", label: "On", detail: "a Linear maps the input to that width first" },
       ],
       default: "off",
       when: ON("skip"),
@@ -2412,7 +2459,7 @@ defineWidget({
     gate: {
       type: "segmented",
       label: "Gate",
-      detail: "a gate the model learns, or one written by hand",
+      detail: "a gate the model learns, or a fixed one",
       options: [
         { value: "sigmoid", label: "Sigmoid", detail: "a Linear on the input through a sigmoid, so every gate is between 0 and 1" },
         { value: "mask", label: "Mask", detail: "a fixed tensor of 1s and 0s, so a blocked feature is blocked for every sample" },
@@ -2429,7 +2476,7 @@ defineWidget({
       detail: "three ways to combine two branches",
       options: [
         { value: "concat", label: "Concat", detail: "the features are joined, so the widths add" },
-        { value: "add", label: "Add", detail: "the branches are summed cell by cell, which needs the same width" },
+        { value: "add", label: "Add", detail: "the branches are summed cell by cell, so both need the same width" },
         { value: "average", label: "Average", detail: "the same sum halved, so the merged values are on the scale of one branch", span: true },
       ],
       default: "concat",
@@ -2450,7 +2497,8 @@ defineWidget({
     /* --- Routing ----------------------------------------------------------- */
     mode: {
       type: "segmented",
-      label: "Routing",
+      /* the page is already headed Routing, so the control names what it sets */
+      label: "Mode",
       detail: "one branch chosen, or all three mixed",
       options: [
         { value: "hard", label: "Hard", detail: "the largest weight picks one branch, and the choice has no derivative" },
@@ -2497,7 +2545,7 @@ defineWidget({
       return [
         { token: "group-a", label: "Transform, which learns new features" },
         { token: "group-b", label: "Normalize and Activate, which condition what Transform produces" },
-        { token: "group-c", label: "Regularize, which acts during training" },
+        { token: "group-c", label: "Regularize, which reduces overfitting" },
         { token: "highlight", label: "The step being applied" },
       ];
     }
@@ -2511,6 +2559,10 @@ defineWidget({
       const st = M.dimensions(params.data, CHAIN(params));
       return [
         { token: "group-b", label: "A layer with sizes of its own to match" },
+        /* the ReLU and Flatten boxes are drawn in ink, and until 2026-09-11 no
+           entry named them (the copy audit): a hue on the figure with nothing
+           in the legend reads as a fourth meaning nobody stated */
+        { token: "ink-2", label: "A layer with no sizes to match" },
         { token: "empirical", label: "The layer that produces the output" },
         { token: "highlight", label: "The layer being applied" },
         ...(st.failed ? [{ token: "extreme", label: "The message torch raises" }] : []),
@@ -2520,7 +2572,7 @@ defineWidget({
       return [
         { token: "group-a", label: "The input, the layers of f(x), and the result of the add" },
         ...(params.proj === "on" ? [{ token: "group-b", label: "The projection on the skip path" }] : []),
-        { token: "highlight", label: "The line being run" },
+        { token: "highlight", label: "The line being run, and the chosen sample" },
       ];
     }
     if (topic === "gating") {
@@ -2532,8 +2584,8 @@ defineWidget({
     }
     if (topic === "branching") {
       return [
-        { token: "group-a", label: "Branch 1, which is 8 features wide, and the merged result" },
-        { token: "group-b", label: `Branch 2, which is ${params.fc2} features wide` },
+        { token: "group-a", label: "Branch 1 at 8 features, and the merged result" },
+        { token: "group-b", label: `Branch 2 at ${params.fc2} features` },
         { token: "highlight", label: "The line being run, and the chosen sample" },
       ];
     }
@@ -2664,7 +2716,7 @@ defineWidget({
   readout({ params, state, anim }) {
     const walk = walkAt(anim, state);
     const s = Number(params.sample);
-    const ran = { label: "Lines run", value: `${walk.done} of ${state.units}` };
+    const ran = { label: ranLabel(params), value: `${walk.done} of ${state.units}` };
 
     if (state.kind === "dimensions") {
       const last = state.steps[Math.max(0, walk.done - 1)];
@@ -2676,7 +2728,7 @@ defineWidget({
           note: state.set.note,
         },
         {
-          label: walk.done > 0 ? `After step ${walk.done}` : "After step 1",
+          label: walk.done > 0 ? `After step ${walk.done}` : "Latest shape",
           value: walk.done === 0 ? "—" : last.error ? "—" : sizeText(last.shape),
           note: walk.done === 0
             ? `${state.units} steps to run, and each one is a layer of the chain`
@@ -2710,7 +2762,7 @@ defineWidget({
           value: shapeText([4, state.width]),
           note: walk.done >= 4
             ? `sample ${s}: ${rowText(state.x3)}, and 3 of ${state.width} values shown`
-            : "the output of fc2, which is what the block learns",
+            : "the output of fc2, the correction the block learns",
         },
         {
           label: "skip",
@@ -2753,7 +2805,7 @@ defineWidget({
           label: "Features blocked",
           value: `${state.blocked} of 20`,
           note: state.gate === "mask"
-            ? "counted from the mask that was drawn, and the same features are blocked for every sample"
+            ? "counted from the mask itself, and the same features are blocked for every sample"
             : "a sigmoid gate is above 0, so no feature is blocked outright",
         },
         {
@@ -2806,17 +2858,22 @@ defineWidget({
           {
             label: "Branch taken",
             value: `branch ${state.top[s] + 1}`,
-            note: `sample ${s} has its largest weight there, at ${w[state.top[s]].toFixed(3)}`,
+            note: `over the 4 samples the branches taken are ${state.top.map((t) => t + 1).join(", ")}`,
           },
           {
-            label: "Gradient to the router",
+            label: "Gradient to the gate",
             value: "none",
             note: "the argmax is a discrete choice, so the gate cannot be trained by backpropagation",
           },
+          /* AT hard THE THIRD TILE IS THE WEIGHT, NOT THE BRANCH. It read
+             "Largest branch" and printed what "Branch taken" above it already
+             printed, since at hard the branch taken IS the largest (the copy
+             audit, 2026-09-11). The number the reader cannot get anywhere else
+             is how large that weight was. */
           {
-            label: "Largest branch",
-            value: `branch ${state.top[s] + 1}`,
-            note: `over the 4 samples the branches taken are ${state.top.map((t) => t + 1).join(", ")}`,
+            label: "Weight of the branch taken",
+            value: w[state.top[s]].toFixed(3),
+            note: "the weight the gate gave the branch it chose",
           },
           {
             label: "Output",
@@ -2861,14 +2918,16 @@ defineWidget({
             : "every layer the model declares appears in the print",
         },
         {
-          label: "Layers run",
+          /* the count is what the forward pass runs; how many have run so far
+             is the shared `ran` tile below, so the note says neither twice */
+          label: "Layers the forward pass runs",
           value: String(state.run),
-          note: `${walk.done} of ${state.units} run so far, and the forward pass decides which they are`,
+          note: "the forward pass decides which layers run",
         },
         {
           label: "Parameters",
           value: String(state.params),
-          note: "the weights and biases of the Linear layers, which an activation adds none to",
+          note: "the weights and biases of the Linear layers; an activation adds none",
         },
         {
           label: "Output",
@@ -2895,7 +2954,7 @@ defineWidget({
             : "each combination is a pair of layers that are placed together",
         },
         {
-          label: "Data it suits",
+          label: "Data it fits",
           value: c ? c.data : "—",
           note: c
             ? `this pair is where a model that takes ${c.data} begins`
@@ -2906,7 +2965,7 @@ defineWidget({
           value: c ? c.follows : "—",
           note: c
             ? `${c.boxes[0]} hands its output to it`
-            : "the second layer of the pair, which the first one hands to",
+            : "the second layer of the pair",
         },
         {
           label: "Combinations shown",
@@ -2940,7 +2999,7 @@ defineWidget({
         {
           label: "Positions shown",
           value: `${walk.done} of ${state.units}`,
-          note: "from the input to the output, in the order the data passes through them",
+          note: "four layers across the three positions, from the input to the output",
         },
       ];
     }
@@ -2961,12 +3020,12 @@ defineWidget({
       {
         label: "Steps that carry weights",
         value: `${M.ROLES_WITH_WEIGHTS} of ${M.ROLES.length}`,
-        note: "an activation and a dropout hold no parameters at all",
+        note: "an activation and a dropout carry none",
       },
       {
         label: "Steps applied",
         value: `${walk.done} of ${state.units}`,
-        note: "the order of the last three is an empirical choice",
+        note: "Transform comes first, and the other three follow it",
       },
     ];
   },
