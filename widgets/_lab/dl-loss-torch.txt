@@ -17,3 +17,25 @@ BCE with CE's class index [0] (shape [1] vs [1, 3]): ValueError: Target size (to
 BCE with CE's index as float [0.]: ValueError: Target size (torch.Size([1])) must be the same as input size (torch.Size([1, 3]))
 CE with BCE's 0/1 row as float32 (runs: class probabilities): 5.361583
 BCE with a one-hot [1, 0, 0] (runs): 0.575063
+
+-- §6 binary two ways --
+softmax([zA, zB]) = tensor([[0.1824, 0.8176]])  sigmoid(zB - zA) = 0.8175744414329529
+CE two outputs, label B (1): 0.201413
+BCE one output zB - zA, y = 1: 0.201413
+CE two outputs, label A (0): 1.701413
+BCE one output zB - zA, y = 0: 1.701413
+the drag: zB moved with zA held at 0.5, label B
+  zB  -2.0  z = zB - zA  -2.5  p_B 0.0759  CE 2.578890  BCE 2.578890  diff 0.0e+00
+  zB  -1.0  z = zB - zA  -1.5  p_B 0.1824  CE 1.701413  BCE 1.701413  diff 1.2e-07
+  zB   0.0  z = zB - zA  -0.5  p_B 0.3775  CE 0.974077  BCE 0.974077  diff 0.0e+00
+  zB   0.5  z = zB - zA   0.0  p_B 0.5000  CE 0.693147  BCE 0.693147  diff 0.0e+00
+  zB   1.0  z = zB - zA   0.5  p_B 0.6225  CE 0.474077  BCE 0.474077  diff 0.0e+00
+  zB   2.0  z = zB - zA   1.5  p_B 0.8176  CE 0.201413  BCE 0.201413  diff 4.5e-08
+  zB   3.0  z = zB - zA   2.5  p_B 0.9241  CE 0.078890  BCE 0.078890  diff 1.5e-08
+  zB   4.0  z = zB - zA   3.5  p_B 0.9707  CE 0.029750  BCE 0.029750  diff 1.9e-09
+the redundancy: both scores shifted by +3 give the same probability
+  softmax([3.5, 5.0]) = tensor([[0.1824, 0.8176]])
+cell 36's three-class row read as two classes A, B: p_A = sigmoid(zA - zB) = 0.9890130758285522  CE([5.0, 0.5], label 0) = 0.011047743260860443
+prediction rule: argmax over [zA, zB] is B iff zB > zA iff sigmoid(zB - zA) > 0.5
+BCE one output, shape [1]: score 2.0, y 1: 0.126928
+MSE one target, shape [1]: 2.5 against 3.0: 0.250000
