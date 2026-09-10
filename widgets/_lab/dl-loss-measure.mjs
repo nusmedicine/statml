@@ -26,9 +26,10 @@
  *   5. What float32 does to the printed digits, since `loss.item()` prints
  *      a float32 and the widget computes in float64.
  *
- * torch is not installed on this machine (checked: python, python3, WSL),
- * so the two error strings in §4 are quoted from torch 2.x's source and
- * marked UNVERIFIED; everything else is arithmetic.
+ * torch was not on this machine when this was written, so §4's error strings
+ * were quoted from memory — and two of the three were WRONG. torch 2.14 was
+ * installed 2026-09-11 on Kenneth's ask; `_lab/dl-loss-torch.py` prints every
+ * number and string here for real, and §4 now carries torch's own text.
  * Run: node widgets/_lab/dl-loss-measure.mjs
  */
 
@@ -173,11 +174,11 @@ console.log(`  sigmoid   ${row(Z_CE.map(sigmoid), 4)}   sum ${f(Z_CE.map(sigmoid
 
 console.log("\nwhat each loss does with the OTHER loss's target (torch 2.x):");
 console.log("  BCEWithLogitsLoss(scores [1, 3], target tensor([0]) long, shape [1]):");
-console.log("    ValueError: Target size (torch.Size([1])) must be the same as input size (torch.Size([1, 3]))   UNVERIFIED, from source");
+console.log("    ValueError: Target size (torch.Size([1])) must be the same as input size (torch.Size([1, 3]))   VERIFIED torch 2.14, _lab/dl-loss-torch.py");
 console.log("  CrossEntropyLoss(scores [1, 3], target tensor([0.]) float32, shape [1]):");
-console.log("    RuntimeError: expected scalar type Long but found Float   UNVERIFIED, from source");
+console.log("    RuntimeError: expected target dtype to be Long or Byte, but got Float   VERIFIED torch 2.14, _lab/dl-loss-torch.py");
 console.log("  BCEWithLogitsLoss(scores [1, 5], target [[0, 1, 1, 0, 0]] long, shape [1, 5]):");
-console.log("    RuntimeError: Found dtype Long but expected Float   UNVERIFIED, from source");
+console.log("    RuntimeError: result type Float can't be cast to the desired output type Long   VERIFIED torch 2.14, _lab/dl-loss-torch.py");
 console.log("  CrossEntropyLoss(scores [1, 5], target [[0, 1, 1, 0, 0]] float32, shape [1, 5]):");
 console.log("    RUNS — same shape as the scores, so torch reads the row as class PROBABILITIES and the");
 console.log("    loss is -sum_c y_c log softmax_c:");

@@ -12110,10 +12110,13 @@ checked with `Math.fround`):
   0.6225 0.8808 0.4256 (sum 2.75). Each loss handed the OTHER loss's target:
   BCE with a class index of shape `[1]` raises `ValueError: Target size
   (torch.Size([1])) must be the same as input size (torch.Size([1, 3]))`;
-  CE with a `float32` index raises `RuntimeError: expected scalar type Long
-  but found Float`; BCE with a `long` 0/1 row raises `RuntimeError: Found
-  dtype Long but expected Float` — all three UNVERIFIED, quoted from torch
-  2.x source, for Kenneth to confirm in Colab. And two RUN and print a
+  CE with a `float32` index raises `RuntimeError: expected target dtype to
+  be Long or Byte, but got Float`; BCE with a `long` 0/1 row raises
+  `RuntimeError: result type Float can't be cast to the desired output
+  type Long` — all three VERIFIED on torch 2.14 (`_lab/dl-loss-torch.py`,
+  installed on this machine 2026-09-11 on Kenneth's ask; the two dtype
+  strings first quoted from memory were both wrong). MSE with a `long`
+  target RUNS (type promotion), so Regression has no dtype control. And two RUN and print a
   different loss: CE with the 0/1 row as a `float32` target of the same
   shape reads it as class probabilities and prints 5.3616 against BCE's
   1.0534, because the softmax makes five classes compete for one unit when
@@ -12183,8 +12186,8 @@ error showing.
    softmax's reads 1.0000.
 4. **§5 — the dtype control**, a `Target dtype` segmented `long · float32`
    on the two classification pages, the wrong arm printing torch's own
-   error where the loss number would be; **both strings UNVERIFIED** and
-   Kenneth runs the two calls in Colab before the widget ships.
+   error where the loss number would be; **both strings torch 2.14's own**
+   (`_lab/dl-loss-torch.py`).
 
 Taken as the measured defaults without asking: §1a one row of three faces;
 §1c the tensors as `text` fields per page; §2b the curve right of the rows;

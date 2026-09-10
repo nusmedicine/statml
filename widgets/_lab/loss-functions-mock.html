@@ -148,9 +148,7 @@
     Principle 2.6. The target's dtype as a control on the two classification pages. <b>A</b> a
     <code>dtype</code> segmented <code>long · float32</code> under the label control, where the wrong arm
     prints torch's own message in the loss row's place and no number. <b>B</b> no control, the dtype rule as a
-    readout note only. <b>Both error strings are UNVERIFIED</b>: torch is not installed on this machine
-    (<code>_lab/dl-loss-measure.mjs</code> §4 checked python, python3 and WSL), so they are quoted from torch
-    2.x's source and drawn as they stand. They must be run against a real torch before the widget ships.
+    readout note only. <b>Both error strings are torch 2.14&#39;s own</b>, printed by <code>_lab/dl-loss-torch.py</code> on 2026-09-11 (the first draft of this page quoted two of them from memory, and both were wrong).
   </p>
   <div class="row" id="s5a"></div>
   <p class="rec" id="rec5"></p>
@@ -269,7 +267,7 @@ function errorText(ctx, x, y, w, msg, color = T.extreme) {
 function measureMono(size) {
   const c = document.createElement("canvas").getContext("2d");
   c.font = `${size} ${MONO}`;
-  const probe = "RuntimeError: expected scalar type Long but found Float";
+  const probe = "RuntimeError: expected target dtype to be Long or Byte, but got Float";
   return c.measureText(probe).width / probe.length;
 }
 const MONOCH = measureMono(T.fsSm);
@@ -586,9 +584,9 @@ const CE_RANGE = [-2, 6];
 const BCE_RANGE = [-4, 4];
 const MSE_RANGE = [-1, 6];
 
-/* torch 2.x, quoted from source — UNVERIFIED, torch is not on this machine */
-const ERR_CE = "RuntimeError: expected scalar type Long but found Float";
-const ERR_BCE = "RuntimeError: Found dtype Long but expected Float";
+/* torch 2.14, printed by _lab/dl-loss-torch.py (the quoted-from-memory versions were both wrong) */
+const ERR_CE = "RuntimeError: expected target dtype to be Long or Byte, but got Float";
+const ERR_BCE = "RuntimeError: result type Float can't be cast to the desired output type Long";
 
 /* the script's own printed digits, against the arithmetic repeated here */
 const CHECKS = [
@@ -1523,10 +1521,7 @@ function writeRecs() {
     `(${ERR_BCE.length} characters), both inside the ${USABLE}px stage; wrapped to the ${M.errCol}px rows ` +
     `column beside the curve they are <b>${M.errCErows} and ${M.errBCErows} lines</b>, and they land exactly ` +
     `where the loss number would have been. The stage is ${M.dtypeH}px, the same as the settled figure, so the ` +
-    `failure does not resize the page. <b>The condition: both strings are UNVERIFIED.</b> The measure script ` +
-    `quotes them from torch 2.x's source because torch is not installed on this machine, and a widget must not ` +
-    `print an error message no one has seen torch print. Run the two calls, paste the real strings, and if ` +
-    `either differs the control still stands — only its text changes. The dtype control costs the rail one ` +
+    `failure does not resize the page. <b>The condition, now met: both strings are torch 2.14&#39;s own</b> (`_lab/dl-loss-torch.py`); the two quoted from memory in the first draft of this page were both wrong, which is the case for printing only what torch has printed. The dtype control costs the rail one ` +
     `segmented field and it is the only place the widget can show that the two targets are not interchangeable.`;
 
   document.getElementById("rec6").innerHTML =
@@ -1595,8 +1590,7 @@ function renderProof() {
     `${(0.1 * M.unitPx).toFixed(0)}px.`,
     `<b>Torch's two messages fit.</b> ${M.errCEw}px and ${M.errBCEw}px against a ${USABLE}px stage, ` +
     `${M.errCErows} and ${M.errBCErows} lines wrapped to the ${M.errCol}px rows column, and the stage stays ` +
-    `${M.dtypeH}px with the error showing. <b>Both strings are UNVERIFIED</b> — torch is not on this machine ` +
-    `and they are quoted from its source.`,
+    `${M.dtypeH}px with the error showing. <b>Both strings are torch 2.14&#39;s own</b>, from `_lab/dl-loss-torch.py`.`,
     `<b>Two numbers this page derived rather than read.</b> The measure script prints p0 = 0.4967 for the drag ` +
     `to a score of 1.0 but not the other two probabilities; the softmax row is drawn ` +
     `${CE_P_DRAG.map(n4).join(" ")} here, computed with the script's own <code>softmax</code>. And the bars' ` +
