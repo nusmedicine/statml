@@ -585,7 +585,7 @@ export const DEG = ADJ.map((row) => row.reduce((a, b) => a + b, 0));
 export const neighbours = (i) => ADJ[i].map((a, j) => (a ? j : -1)).filter((j) => j >= 0);
 
 export const AGGREGATES = [
-  { value: "normalized-sum", label: "Normalized sum", detail: "each neighbour weighted by 1/√(d̂ᵢ d̂ⱼ), which is what GCNConv computes" },
+  { value: "normalized-sum", label: "Normalized sum", detail: "each neighbour weighted by 1/√(d̂ᵢ d̂ⱼ), the GCNConv aggregate" },
   { value: "mean", label: "Mean", detail: "the average over the neighbours and the node itself" },
   { value: "max", label: "Max", detail: "the largest value at each feature, over the neighbours and the node itself" },
 ];

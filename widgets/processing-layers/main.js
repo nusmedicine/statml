@@ -150,8 +150,9 @@
        at the Output box's right edge — so if anything has to give it is the
        arrow into that box, never the pitch the alignment rests on. The band
        carries one caption line because the box and the row below it mean
-       different things: `o→` and `o←` are the last state each pass reaches,
-       while the Output row is y_t at every step.
+       different things: `h→` and `h←` are the last state each pass reaches,
+       while the Output row is y_t at every step. (The glyphs were `o→` and
+       `o←` until the copy round, decision 23.)
 
    ROUND 3 OF KENNETH'S REVIEW (2026-09-10) — Attention and Graph:
 
@@ -317,6 +318,54 @@
        `regions` alike, and `_lab/processing-layers-verify.mjs` reads them back
        at 550 and 770. The constants that decide a column moved with it, inside
        `attnWidest`, because a fit computed twice is a fit that can differ.
+
+   THE COPY ROUND (2026-09-10) — a read of every reader-facing string in this
+   file, `model.js`, `index.html` and the manifest entry, and Kenneth's picks on
+   the five it could not settle:
+
+   23. THIRTY-ONE STRINGS CHANGED, AND ONE PARAMETER WAS RENAMED. The title, the
+       subtitle and the gallery blurb were read and kept. What moved, and why:
+
+       · `trueimage` IS NOW `difference`, labelled Difference with Off / On. The
+         label said True image, and nothing about the image is withheld — it is
+         the input, on screen throughout — while what the toggle draws is
+         z − img. `True <noun>` is reserved for a truth the widget hid (3.7), so
+         the label names the quantity instead, and the KEY moved with it: a URL
+         value is copy a reader reads (2.13) and `trueimage=1` named the old
+         label. Nothing recorded breaks, because the widget is a draft with no
+         fingerprint baseline.
+       · THE FIVE `stepTitle`s NAME THE COMPUTATION, NOT THE HIGHLIGHT. Four of
+         them said "lighting the row of x…", which is the widget describing its
+         own effect (2.10); `tensors` writes "from a row of X and a column of
+         Wᵀ" and these now read the same way.
+       · THE ATTENTION LEGEND SPLIT IN TWO. One `--c-highlight` line named the
+         query being computed AND the query band 2 is pinned to, and those are
+         different tokens whenever the reader picks one. The `legend` function is
+         where that lives, and it says which token each entry means.
+       · THE TWO RECURRENT CAPTIONS DROPPED "the recurrence is drawn closed", a
+         metaphor (2.9) that also contradicted band 1's own header, "The loop,
+         unrolled". The point it hinted at is on the card in words.
+       · THE IDENTITY CAPTION SAYS ITS TWO NUMBERS ARE DISTANCES. They were
+         printed as bare bounds beside a value row; the caption now says every
+         output sits within 0.48 of “sat”’s row and no closer than 0.68 to
+         “The”’s, which is what `_lab/processing-layers-verify.mjs` measures.
+       · ONE SHAPE FOR "not computed yet", `<name>, not computed yet`. Three
+         surfaces wrote it three ways — comma, colon, and comma with no
+         quantity — so the graph's strips and printed rows now name the indexed
+         value the way the convolution's map cells already did.
+       · THE OUTPUT BOX GLYPHS ARE `h→` and `h←`, which is what the hover text
+         and the box's own note call that quantity; the glyph had invented `o`.
+       · SMALLER: the per-filter weight count on Kernel size, gather and scatter
+         as one verb pair on Convolution, "shown" rather than "drawn" where the
+         Seed detail already uses "drawn" for a sample, "projection" rather than
+         `nn.MultiheadAttention`'s internal `in_proj` on a control labelled
+         Projection, quoted tokens in the readout as the captions already quote
+         them, `Filter 1` in the case its siblings use, `√d_k` in both branches
+         of the score line, and the em-dash asides out of the Linear card note.
+
+       THE VERIFY SCRIPT ASSERTS THE RULE RATHER THAN THE ROUND (§11): no string
+       literal in either file carries an em-dash or the word "never". Source
+       comments are exempt and are read past, so the two registers stay apart.
    ========================================================================= */
 
 import {
@@ -816,7 +865,7 @@ function convGeom(ctx, colors, w, params) {
      and runs 10px past the 550 stage; the mock had room for it there because
      its reveal panel drew z alone at the left margin. One line of band, and
      only while the reveal is on. */
-  const noteH = transposed && params.trueimage === "1" ? PRINT_LH + 6 : 0;
+  const noteH = transposed && params.difference === "1" ? PRINT_LH + 6 : 0;
   const h1 = transposed
     ? LBL + Math.max(2 * n * s.pix + TRANS_MAP_GAP, zN * s.pix) + noteH
     : LBL + Math.max(padN * s.pix, 2 * n * s.pix + s.mapGap);
@@ -880,10 +929,10 @@ function drawConv(ctx, colors, w, params, state, anim) {
       PAD + padN * s.pix + s.arrow - 6, y + LBL + padN * s.pix / 2, colors.ink3, 2);
 
     /* the shape rides on each filter's own label: one `Feature maps [2, 8, 8]`
-       line above them sat on exactly the baseline `filter 1` uses */
+       line above them sat on exactly the baseline `Filter 1` uses */
     for (let f = 0; f < 2; f += 1) {
       const my = g.mapY + f * g.mapStep;
-      label(ctx, colors, g.mapX, my - 5, `filter ${f + 1}`, [n, n], colors.ink2);
+      label(ctx, colors, g.mapX, my - 5, `Filter ${f + 1}`, [n, n], colors.ink2);
       shaded(ctx, colors, g.mapX, my, n, n, s.pix, (r, c) => {
         const a = arrival(walk, r * n + c);
         return a === 0 ? null : signedFill(colors, state.maps[f][r][c], state.biases[f], spans[f]);
@@ -923,7 +972,7 @@ function drawConv(ctx, colors, w, params, state, anim) {
       const idx = pr >= 0 ? `y[0, ${f}, ${pr}, ${pc}]` : "";
       ctx.font = `${colors.fsSm} ${colors.mono}`;
       const fits = pr >= 0 && sx + ctx.measureText(idx).width <= w - PAD;
-      label(ctx, colors, sx, ry + 11, fits ? idx : `filter ${f + 1}`);
+      label(ctx, colors, sx, ry + 11, fits ? idx : `Filter ${f + 1}`);
       cell(ctx, colors, sx, ry + LBL + Math.floor(k / 2) * s.ch, s.cw, s.ch,
         pr >= 0 ? M.n2(state.maps[f][pr][pc]) : "",
         pr >= 0 ? litFace(colors, arrival(walk, walk.idx)) : { empty: true });
@@ -940,7 +989,7 @@ function drawConv(ctx, colors, w, params, state, anim) {
      its step completes, so the picture and the count in the readout agree. */
   const z = M.reconstruct(state, walk.done);
   const diff = M.difference(z);
-  const reveal = params.trueimage === "1";
+  const reveal = params.difference === "1";
   let y = band(ctx, colors, g.y1, w, "Feature maps and reconstruction",
     reveal ? "z − img" : "convTranspose2d(y)");
   label(ctx, colors, PAD, y + 11, "y", [1, 2, n, n]);
@@ -1053,7 +1102,7 @@ const RNN_ROW_GAP = 26;
 const SUP = ["¹", "²", "³", "⁴", "⁵"];
 
 /* The one place the diagram and the rows under it mean different things, and
-   the mock flagged it: `o→` and `o←` are the last state each pass reaches,
+   the mock flagged it: `h→` and `h←` are the last state each pass reaches,
    while the row labelled Output is y_t at every step. */
 const rnnBandNote = (bidirectional) => (bidirectional
   ? "The Output box holds each pass's last state; the Output row below is both states at every step."
@@ -1160,12 +1209,12 @@ function drawChain(ctx, colors, g, y, bi, step, walk) {
   const bw = st.outW;
   roundBox(ctx, colors, bx, y + st.fwdTop, bw, st.bottom - st.fwdTop, 6,
     { hue: colors.empirical, ...lit(ends, walk.land) });
-  txt(ctx, colors, "o→", bx + bw / 2, bi ? fwdMid + 4 : y + (st.fwdTop + st.bottom) / 2 + 4,
+  txt(ctx, colors, "h→", bx + bw / 2, bi ? fwdMid + 4 : y + (st.fwdTop + st.bottom) / 2 + 4,
     { color: colors.ink1, align: "center", mono: true });
   if (bi) {
     txt(ctx, colors, "+", bx + bw / 2, xMid + 5,
       { color: colors.ink1, align: "center", size: colors.fsMd });
-    txt(ctx, colors, "o←", bx + bw / 2, revMid + 4,
+    txt(ctx, colors, "h←", bx + bw / 2, revMid + 4,
       { color: colors.ink1, align: "center", mono: true });
   }
   /* above the box, not under it: on two passes the return line runs under it */
@@ -1446,7 +1495,7 @@ function drawAttn(ctx, colors, w, params, state, anim, pointer) {
   const dy = sy + 3 * s.ch + 12;
   if (q >= 0) {
     txt(ctx, colors,
-      `Each score is the row of Q for ${M.TOKENS[q]} against one row of K, divided by √${M.D_K}.`,
+      `Each score is the row of Q for ${M.TOKENS[q]} against one row of K, divided by √d_k.`,
       PAD, dy + 10, { color: colors.ink2 });
     for (let j = 0; j < 3; j += 1) {
       txt(ctx, colors, scoreLine(state, q, j), PAD, dy + (j + 1) * PRINT_LH + 10,
@@ -1707,7 +1756,7 @@ function drawGraph(ctx, colors, w, params, state, anim, pointer) {
       spotGrid(x, b.stripY, 1, M.GRAPH_IN, s.iw, s.iw,
         (r, c) => (vals
           ? `${name}[${i}, ${c}] = ${num(vals[c])}`
-          : `${M.nodeKey(i)}: ${name} not computed yet`));
+          : `${name}[${i}, ${c}], not computed yet`));
       /* the strips this step reads, and — in the bands that fill rather than
          are read — the strip the step lands in */
       if (read ? read.includes(i) : i === node) {
@@ -1792,7 +1841,7 @@ function drawGraph(ctx, colors, w, params, state, anim, pointer) {
     for (const t of targets) {
       if (t.kind !== "print" || t.band !== bandIdx) continue;
       spotGrid(t.x, t.y, 1, 1, t.w, t.h, () => (placed && !placed(t.node)
-        ? `${M.nodeKey(t.node)}, not computed yet`
+        ? `${name}[${t.node}], not computed yet`
         : `${M.nodeKey(t.node)}: ${name}[${t.node}] = ${rowAt(t.node).map(num).join(", ")}`));
     }
   };
@@ -1869,7 +1918,7 @@ const WEIGHTS_CAPTION =
 const ATT_COLUMNS_CAPTION =
   "Each row of V is one token's value vector, one number per embedding "
   + "dimension. The output for the query is a new vector for that token: each "
-  + "column is the weighted sum of that column across the three tokens.";
+  + "column is the weighted sum of that column of V across the three tokens.";
 
 function pageCaption(params) {
   switch (params.block) {
@@ -1877,13 +1926,13 @@ function pageCaption(params) {
       if (params.conv !== "transposed") {
         return "Each kernel slides over every position, so every value in its map comes from the same weights.";
       }
-      return params.trueimage === "1"
+      return params.difference === "1"
         ? "The difference reaches the full range of the input, so z restores the size and not the values."
         : "Each input value scatters into a patch of z, and overlapping patches add.";
     case "recurrent":
       return params.direction === "bidirectional"
-        ? "The recurrence is drawn closed, and each y_t is the forward hidden state and the reverse hidden state placed end to end."
-        : "The recurrence is drawn closed: these values stand in for whichever of RNN, LSTM and GRU is named.";
+        ? "Each y_t is the forward hidden state and the reverse hidden state placed end to end."
+        : "These hidden states stand in for whichever of RNN, LSTM and GRU is named.";
     /* WHAT THE THREE PRODUCT ROWS ADD UP TO, at each projection (decision 16).
        Both are claims about the WHOLE page rather than about one query: the
        caption block's height is a function of the parameters, so a caption that
@@ -1892,7 +1941,7 @@ function pageCaption(params) {
        and `_lab/processing-layers-verify.mjs` asserts them. */
     case "attention":
       return params.projection === "identity"
-        ? "“cat” and “sat” weight each other above “The”, so every output lies nearer “sat”’s value row, 0.48 or less, than “The”’s, 0.68 or more."
+        ? "“cat” and “sat” weight each other above “The”, so every output sits within 0.48 of “sat”’s value row and no closer than 0.68 to “The”’s."
         : "Each weight stays within 0.06 of one third, so every output lands within 0.02 of the mean of the three value rows.";
     case "graph":
       return params.aggregate === "max"
@@ -1975,7 +2024,7 @@ function cardFor(params) {
           rows: [["out", `(${n} − 1) × ${M.STRIDE} − 2 × ${p} + ${k} + ${M.OUT_PAD} = `
             + `${transposedOutSize(n, k, M.STRIDE, p, M.OUT_PAD)}`]],
           note: "out = (in − 1) × stride − 2 × padding + kernel_size + output_padding. "
-            + "output_padding is 1, which is what makes z the size of the image again.",
+            + "output_padding is 1, so z is the size of the image again.",
         }
         : {
           rows: [["Y[p]", CARD.convSum],
@@ -2003,13 +2052,13 @@ function cardFor(params) {
             ? "Max takes the largest value at each feature, over the neighbours and the node itself."
             : params.aggregate === "mean"
               ? "Mean weights the neighbours and the node itself equally."
-              : "Its own aggregate weights each pair by 1/√(d̂ᵢ d̂ⱼ), with self-loops added."),
+              : "Normalized sum weights each pair by 1/√(d̂ᵢ d̂ⱼ), with self-loops added."),
       };
     default:
       return {
         rows: [["y", CARD.linear], ["torch", CARD.linearTorch]],
-        note: `PyTorch stores W as [out_features, in_features] — here [${params.out}, ${M.LIN_IN}], `
-          + "one row per output unit — and computes x @ W.T.",
+        note: `PyTorch stores W as [out_features, in_features], here [${params.out}, ${M.LIN_IN}], `
+          + "one row per output unit, and computes x @ W.T.",
       };
   }
 }
@@ -2075,11 +2124,11 @@ const STEP_LABELS = {
   graph: "Next node",
 };
 const STEP_TITLES = {
-  linear: "Compute the next output value, lighting the row of x and the row of W it reads",
-  convolutional: "Compute the next output position, lighting the window of the input it reads",
-  recurrent: "Take the next time step, lighting the input at that step and the hidden state before it",
+  linear: "Compute the next output value from a row of x and a row of W",
+  convolutional: "Compute the next output position from the window of the input it reads",
+  recurrent: "Take the next time step, from x at that step and the hidden state before it",
   attention: "Compute the next query's weights and the output they build from the values",
-  graph: "Update the next node, lighting its neighbours and its own features",
+  graph: "Update the next node from its neighbours and its own features",
 };
 const RUN_TITLES = {
   linear: "Compute every remaining output value",
@@ -2117,7 +2166,7 @@ defineWidget({
       type: "segmented",
       label: "Layer",
       style: "grid",
-      detail: "the five processing layers, each with its own rule for which inputs an output reads",
+      detail: "each layer has its own rule for which inputs an output reads",
       options: BLOCKS,
       default: "linear",
     },
@@ -2128,7 +2177,7 @@ defineWidget({
       detail: "a projection can compress or expand: 4 features in, this many out",
       options: [
         { value: "2", label: "2", detail: "four features compressed into two" },
-        { value: "3", label: "3", detail: "four features into three" },
+        { value: "3", label: "3", detail: "four features compressed into three" },
         { value: "5", label: "5", detail: "four features expanded into five" },
       ],
       default: "3",
@@ -2138,7 +2187,7 @@ defineWidget({
     conv: {
       type: "segmented",
       label: "Convolution",
-      detail: "standard reads the image into feature maps; transposed reads the maps back to the image size",
+      detail: "standard gathers the image into feature maps; transposed scatters the maps back to the image size",
       options: [
         { value: "standard", label: "Standard", detail: "a window gathers a patch of the input into one output value" },
         { value: "transposed", label: "Transposed", detail: "one input value scatters into a patch of the output" },
@@ -2151,8 +2200,8 @@ defineWidget({
       label: "Kernel size",
       detail: "the width of the square window the filter reads",
       options: [
-        { value: "3", label: "3", detail: "a 3 × 3 window, nine weights" },
-        { value: "5", label: "5", detail: "a 5 × 5 window, twenty-five weights" },
+        { value: "3", label: "3", detail: "a 3 × 3 window, nine weights per filter" },
+        { value: "5", label: "5", detail: "a 5 × 5 window, twenty-five weights per filter" },
       ],
       default: "3",
       when: ON("convolutional"),
@@ -2185,7 +2234,7 @@ defineWidget({
     sample: {
       type: "choice",
       label: "Sequence",
-      detail: "which of the two sequences in the batch is drawn",
+      detail: "which of the two sequences in the batch is shown",
       options: [
         { value: "0", label: "0", detail: "the first sequence of the batch" },
         { value: "1", label: "1", detail: "the second sequence of the batch" },
@@ -2200,7 +2249,7 @@ defineWidget({
       label: "Projection",
       detail: "how the tokens are turned into queries, keys and values",
       options: [
-        { value: "random", label: "Random", detail: "the untrained in-projection a new layer starts with" },
+        { value: "random", label: "Random", detail: "the untrained projection a new layer starts with" },
         { value: "identity", label: "Identity", detail: "Q, K and V are the embeddings themselves, so a score is one embedding against another" },
       ],
       default: "random",
@@ -2229,7 +2278,7 @@ defineWidget({
     seed: {
       type: "choice",
       label: "Seed",
-      detail: "which untrained in-projection is drawn",
+      detail: "which draw of the untrained projection is used",
       options: [
         { value: "1", label: "1" },
         { value: "2", label: "2" },
@@ -2256,10 +2305,10 @@ defineWidget({
 
     /* The settled reveal, after the drive row (3.4j): the same 16 × 16
        footprint redrawn as z − img. Display, so the reveal keeps the walk. */
-    trueimage: {
+    difference: {
       type: "segmented",
-      label: "True image",
-      detail: "redraws the reconstruction as its difference from the input image",
+      label: "Difference",
+      detail: "the reconstruction as its difference from the input image",
       options: [
         { value: "0", label: "Off", detail: "the reconstruction on its own range" },
         { value: "1", label: "On", detail: "z − img, so what the reconstruction did not recover is visible" },
@@ -2298,18 +2347,27 @@ defineWidget({
     }[params.block];
     const ramp = params.block === "convolutional" || params.block === "graph";
     return [
-      { token: "group-a", label: params.block === "graph" ? "The node features read in" : "The input tensor" },
+      { token: "group-a", label: params.block === "graph" ? "The node features" : "The input tensor" },
       ...(second ? [{ token: "group-b", label: second }] : []),
-      { token: "empirical", label: "The output the layer produces" },
+      { token: "empirical", label: "The output tensor" },
       {
         token: "highlight",
-        /* the Attention page's highlight carries a third thing — the weighted
-           value rows band 2 sums — and a legend that named two of the three
-           would be a legend for a different figure (2.11) */
         label: params.block === "attention"
-          ? "The query being computed, the inputs it reads, and the chosen query's weighted value rows"
+          ? "The query being computed, and the inputs it reads"
           : "The element being computed, and the inputs it reads",
       },
+      /* TWO ENTRIES ON THE ATTENTION PAGE, because the highlight marks two
+         different tokens there: the query the WALK is computing in band 1, and
+         the query the RAIL has pinned in band 2, whose value rows are drawn at
+         each weight's own alpha (decision 16). One line naming both left the
+         reader no way to tell which token the colour meant (copy round,
+         decision 23). Both entries carry `highlight` because both things ARE
+         that colour on the canvas, and no `mark` the legend supports — line,
+         dot, dash, tri, hollow, ring — is drawn on this page, so a mark here
+         would name a shape the figure does not draw. */
+      ...(params.block === "attention"
+        ? [{ token: "highlight", label: "The chosen query's weighted value rows" }]
+        : []),
       /* the signed ramp, named as two ends rather than one — a token name in a
          legend line would be reader-facing copy naming a stylesheet (2.9) */
       ...(ramp
@@ -2503,7 +2561,7 @@ defineWidget({
               ? `both values scattered into the same ${state.k} × ${state.k} patch of z, one kernel each`
               : ones(state, at.r, at.c) === 0
                 ? "every value in the window is 0, so each output is its own bias"
-                : `${ones(state, at.r, at.c)} of the ${state.k * state.k} window values are 1, so that many weights of each kernel and its bias are summed`)
+                : `${ones(state, at.r, at.c)} of the ${state.k * state.k} window values are 1, so ${ones(state, at.r, at.c)} weights of each kernel are summed with its bias`)
             : "no position has been taken yet",
         },
         {
@@ -2559,8 +2617,8 @@ defineWidget({
           value: taken ? state.W[qs].map(M.n3).join(", ") : "—",
           /* the chain the band writes out in full: q · k, divided, softmaxed */
           note: taken
-            ? `${M.TOKENS[qs]}: q · k ÷ √4 = ${M.TOKENS.map((t, j) => `${M.n2(M.attTerms(state, qs, j).score).trim()} on ${t}`).join(", ")}, which softmax turns into these weights`
-            : `${M.TOKENS[qs]} is not computed yet`,
+            ? `“${M.TOKENS[qs]}”: q · k ÷ √4 = ${M.TOKENS.map((t, j) => `${M.n2(M.attTerms(state, qs, j).score).trim()} on ${t}`).join(", ")}; softmax turns these into the weights`
+            : `“${M.TOKENS[qs]}” is not computed yet`,
         },
         cellTile("—", "a cell's index and value"),
       ];
@@ -2588,7 +2646,7 @@ defineWidget({
     const at = walk.idx >= 0 ? { i: Math.floor(walk.idx / out), j: walk.idx % out } : null;
     const terms = at ? state.terms(at.i, at.j) : null;
     return [
-      { label: "Input", value: sizeText([M.LIN_BATCH, M.LIN_IN]), note: "a batch of 2, four features each" },
+      { label: "Input", value: sizeText([M.LIN_BATCH, M.LIN_IN]), note: "2 samples, 4 features each" },
       {
         label: "Output",
         value: sizeText([M.LIN_BATCH, out]),

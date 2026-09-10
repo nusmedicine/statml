@@ -365,17 +365,19 @@ const near = (a, b, eps = 1e-9) => Math.abs(a - b) <= eps;
   }
 
   /* THE IDENTITY CAPTION: "“cat” and “sat” weight each other above “The”, so
-     every output lies nearer “sat”’s value row, 0.48 or less, than “The”’s, 0.68
-     or more." Measured for all three queries, because the caption is on screen
-     whichever query the walk is standing on. */
+     every output sits within 0.48 of “sat”’s value row and no closer than 0.68
+     to “The”’s." Measured for all three queries, because the caption is on
+     screen whichever query the walk is standing on. The two bounds are the same
+     two the caption carried before the copy round said what they measure
+     (main.js decision 23), so what is asserted here did not move. */
   {
     const I = M.attention(makeRng(1), "identity");
     const dist = (i, j) => Math.hypot(...I.V[j].map((v, c) => v - I.out[i][c]));
     const near2 = [0, 1, 2].map((i) => dist(i, 2));
     const far = [0, 1, 2].map((i) => dist(i, 0));
-    check("Identity: every output is 0.48 or less from “sat”’s value row",
+    check("Identity: every output sits within 0.48 of “sat”’s value row",
       Math.max(...near2) <= 0.48, near2.map((v) => v.toFixed(3)).join(" "));
-    check("Identity: every output is 0.68 or more from “The”’s value row",
+    check("Identity: every output is no closer than 0.68 to “The”’s value row",
       Math.min(...far) >= 0.68, far.map((v) => v.toFixed(3)).join(" "));
     check("Identity: “The” is the farthest value row from every one of the three outputs",
       [0, 1, 2].every((i) => far[i] > dist(i, 1) && far[i] > dist(i, 2)));
@@ -707,6 +709,123 @@ const near = (a, b, eps = 1e-9) => Math.abs(a - b) <= eps;
       moved.rows.every((r, k) => r.y === st.rows[k].y + 100 && r.x === st.rows[k].x),
       `sy ${st.sy} → ${moved.sy}`);
   }
+}
+
+/* --- 11 · the register of the strings the reader sees (main.js decision 23) -- *
+ * The copy round took thirty-one strings out of the two files and the rules it
+ * applied are standing ones: NO EM-DASH and NO "never" in anything a reader
+ * reads. Neither is visible to a pixel hash and neither is visible to
+ * `npm run check`, whose copy scan looks for lesson references in `label`,
+ * `detail` and `note` alone — a caption, a band header or a hover line is a
+ * string this file can reach and that one cannot.
+ *
+ * SOURCE COMMENTS ARE EXEMPT AND ARE READ PAST. Both files carry their history
+ * in comments full of em-dashes, and that history is the most valuable thing in
+ * them (CLAUDE.md § Style), so the scan takes the STRING LITERALS only: a small
+ * scanner rather than a regex, because a regex over the file cannot tell a
+ * comment's dash from a caption's. Inside a template literal the `${…}` is code
+ * and its own nested strings are collected in turn, so `“${TOKENS[i]}” is not
+ * computed yet` is read as the two halves it paints.
+ *
+ * THE ONE EM-DASH THAT STAYS is the bare "—" a readout tile shows in place of a
+ * value it does not have yet: thirty-two widgets write it, so it is the
+ * collection's own glyph for an empty tile and not an aside inside a sentence. */
+{
+  /** Every string literal in `src`, comments skipped, `${}` expressions walked. */
+  const literals = (src) => {
+    const out = [];
+    const n = src.length;
+    let i = 0;
+    /** From `j` inside a quote of `q`, the body up to the closing quote. */
+    const quoted = (q, j) => {
+      let s = "";
+      while (j < n && src[j] !== q) {
+        if (src[j] === "\\") { j += 2; continue; }
+        s += src[j];
+        j += 1;
+      }
+      return { s, end: j + 1 };
+    };
+    while (i < n) {
+      const c = src[i];
+      const d = src[i + 1];
+      if (c === "/" && d === "*") { i = src.indexOf("*/", i + 2) + 2; continue; }
+      if (c === "/" && d === "/") { const nl = src.indexOf("\n", i); i = nl < 0 ? n : nl; continue; }
+      if (c === '"' || c === "'") {
+        const { s, end } = quoted(c, i + 1);
+        out.push(s);
+        i = end;
+        continue;
+      }
+      if (c === "`") {
+        let j = i + 1;
+        let s = "";
+        while (j < n && src[j] !== "`") {
+          if (src[j] === "\\") { j += 2; continue; }
+          if (src[j] === "$" && src[j + 1] === "{") {
+            out.push(s);
+            s = "";
+            let depth = 1;
+            j += 2;
+            while (j < n && depth > 0) {
+              const e = src[j];
+              if (e === "{") depth += 1;
+              else if (e === "}") depth -= 1;
+              else if (e === '"' || e === "'" || e === "`") {
+                const inner = quoted(e, j + 1);
+                out.push(inner.s);
+                j = inner.end - 1;
+              }
+              j += 1;
+            }
+            continue;
+          }
+          s += src[j];
+          j += 1;
+        }
+        out.push(s);
+        i = j + 1;
+        continue;
+      }
+      i += 1;
+    }
+    return out.filter((s) => s.trim() !== "");
+  };
+
+  for (const file of ["main.js", "model.js"]) {
+    const text = readFileSync(new URL(`../processing-layers/${file}`, import.meta.url), "utf8");
+    const strings = literals(text);
+    const dashed = strings.filter((s) => s.includes("—") && s.trim() !== "—");
+    const never = strings.filter((s) => /\bnever\b/i.test(s));
+    check(`${file}: no string a reader sees carries an em-dash`,
+      dashed.length === 0,
+      dashed.length ? dashed.map((s) => JSON.stringify(s)).join(" · ") : `${strings.length} strings read`);
+    check(`${file}: no string a reader sees says "never"`,
+      never.length === 0,
+      never.length ? never.map((s) => JSON.stringify(s)).join(" · ") : `${strings.length} strings read`);
+  }
+
+  /* THE SCANNER ITSELF NEEDS A READER, or a bug in it reads as a clean file:
+     both rules fire on a line built the way the widget's own lines are. */
+  const probe = literals('const a = "x — y"; /* — */ const b = `${"never"} ok`; // never\n');
+  check("the scanner sees a template's parts and reads past the comments",
+    probe.join("|") === "x — y|never| ok",
+    probe.map((s) => JSON.stringify(s)).join(" "));
+
+  /* THE REVEAL'S KEY IS ITS LABEL'S OWN WORD (main.js decision 23). `trueimage`
+     named a label that no longer exists, and a URL value is copy a reader reads
+     (2.13), so the field key moved with the label. Read off the source text, the
+     same door the `query` classification uses above. The old key survives in the
+     comment that records the rename, so what is asserted is that no FIELD and no
+     READ carries it — a comment is not a parameter. */
+  const src = readFileSync(new URL("../processing-layers/main.js", import.meta.url), "utf8");
+  const stale = /trueimage\s*:/.test(src) || src.includes("params.trueimage");
+  check("the transposed reveal is `difference`, labelled Difference, Off / On",
+    !stale
+    && /\n {4}difference: \{/.test(src)
+    && /label: "Difference"/.test(src)
+    && /label: "Off"/.test(src) && /label: "On"/.test(src),
+    stale ? "a `trueimage` field or read is still in the file" : "difference · Off / On");
 }
 
 console.log(failed ? `\n${failed} of ${ran} FAILED\n` : `\nall ${ran} checks passed\n`);
