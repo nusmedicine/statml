@@ -59,6 +59,9 @@
 /* Spec entries that declare POSITION in the control block and nothing else.
    They carry no value, never reach `values`, and never reach the URL. */
 const NON_PARAM_TYPES = new Set(["section", "readback", "expr"]);
+/* the types whose value must be one of a list — a list that may follow another
+   parameter (`optionsFrom`) and so may not hold the field's own default */
+const OPTION_TYPES = new Set(["select", "choice", "segmented", "matrix"]);
 
 /** Clamp and snap a number to the field's min/max/step. */
 function coerceNumber(field, raw, isInt) {
@@ -92,6 +95,16 @@ export function resolveParams(spec, search) {
     const raw = search.get(name);
     if (raw === null || raw === "") {
       out[name] = field.default;
+      /* A list that follows another parameter may not hold the default: a
+         chain slot whose menu follows the data type, on a link that names
+         only the data type (widget 51, 2026-09-10 — the rail's four selects
+         sat blank while the figure drew the first option). The first option
+         stands in, which is exactly what widget.js does when the list changes
+         under a click; without this the two doors disagreed. */
+      if (OPTION_TYPES.has(field.type)) {
+        const keys = optionKeys(field, out);
+        if (keys.length && !keys.includes(field.default)) out[name] = keys[0];
+      }
       continue;
     }
     switch (field.type) {
@@ -115,7 +128,9 @@ export function resolveParams(spec, search) {
         /* `out` so far: a list that depends on another parameter reads it
            resolved, which asks that the other be declared first */
         const keys = optionKeys(field, out);
-        out[name] = keys.includes(raw) ? raw : field.default;
+        out[name] = keys.includes(raw) ? raw
+          : keys.includes(field.default) || !keys.length ? field.default
+            : keys[0];   // the default itself may have left the list (see above)
         break;
       }
       /* a typed value is stored in its canonical form whether it came from the

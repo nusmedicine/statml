@@ -27,6 +27,7 @@
 import { readFileSync } from "node:fs";
 import { makeRng } from "../core/rng.js";
 import { torchError, outSize } from "../core/torch.js";
+import { resolveParams } from "../core/params.js";
 import * as M from "../composition/model.js";
 
 let failed = 0;
@@ -64,6 +65,18 @@ const shapeIs = (s, want) => Array.isArray(s) && s.join() === want.join();
   check("Ordering counts the parameters at the printed sizes",
     M.ORDER_BLOCKS.mlp.params === 260 && M.ORDER_BLOCKS.resnet.params === 2352 && M.ORDER_BLOCKS.transformer.params === 3340,
     "260, 2352, 3340");
+  {
+    /* core resolves a slot whose menu follows the data type to that menu's
+       first option when the link names only the data type (params.js) */
+    const spec = {
+      data: { type: "segmented", options: [{ value: "image" }, { value: "vectors" }, { value: "sequence" }], default: "image" },
+      step1: { type: "select", options: (v) => M.slotOptions(v.data, 0), optionsFrom: "data", default: "Conv2d-3-16-3" },
+    };
+    const at = (q) => resolveParams(spec, new URLSearchParams(q)).step1;
+    check("a link naming only the data type resolves the slots to that menu (core)",
+      at("data=sequence") === "Embedding-6-4" && at("data=sequence&step1=Conv2d-3-16-3") === "Embedding-6-4"
+        && at("") === "Conv2d-3-16-3" && at("data=sequence&step1=Embedding-6-8") === "Embedding-6-8");
+  }
 
   check("the box count follows the block: 4, 3 and 5 steps",
     mlp.units === 4 && res.units === 3 && tr.units === 5,
