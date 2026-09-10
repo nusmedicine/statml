@@ -734,6 +734,11 @@ function markDims(ctx, colors, text, skip, shape, next, cx, ruleY) {
 const SKIP_BOX = 130;
 const SKIP_RAIL = 60;     // the column the skip elbow runs down, from the right
 
+/* the gradient overlay's up-arrow column, left of the spine: far enough that a
+   factor label right-aligned beside it clears the widest edge label, `x3  [4, 10]`
+   (at 26px the two collided, Kenneth's round 1) */
+const GRAD_UX = 60;
+
 function skipGeom(ctx, colors, w, params, state) {
   const usable = w - 2 * PAD;
   const cw = codeW(ctx, colors, state.code);
@@ -742,7 +747,7 @@ function skipGeom(ctx, colors, w, params, state) {
   const grad = params.grad === "1";
   ctx.font = `${colors.fsXs} ${colors.font}`;
   const ow = grad
-    ? 26 + 8 + Math.ceil(Math.max(...M.SKIP_FACTORS.map(([, l]) => ctx.measureText(l).width)))
+    ? GRAD_UX + 8 + Math.ceil(Math.max(...M.SKIP_FACTORS.map(([, l]) => ctx.measureText(l).width)))
     : 0;
   const errRows = state.error ? wrapMono(ctx, colors, state.error, diagW).length : 0;
   const bandH = M.BATCH_N * s.band;
@@ -935,7 +940,7 @@ function drawSkip(ctx, colors, w, params, state, anim) {
   /* DECISION 14: a factor is written on an edge, so it waits for the edge. The
      leg on the input arrow is the bus's and needs no line to have run. */
   if (g.grad && state.match && walk.done > 0) {
-    const ux = cx - 26;
+    const ux = cx - GRAD_UX;
     const legs = [[Y.e6, "Wᵀ_out", 6], [Y.e5, "1", 5], [Y.e4, "Wᵀ₂", 4],
       [Y.e3, "f′(x1)", 3], [Y.e2, "Wᵀ₁", 2], [Y.e1, "", 0]];
     for (const [a, label, unit] of legs) {
