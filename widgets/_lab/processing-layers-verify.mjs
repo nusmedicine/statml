@@ -205,7 +205,112 @@ const near = (a, b, eps = 1e-9) => Math.abs(a - b) <= eps;
     M.EDGE_INDEX.length === 2 && M.EDGE_INDEX[0].length === 6);
 }
 
-/* --- 7 · the print's height, which `height` reserves before it has values --- */
+/* --- 7 · what the bands write out, after Kenneth's review of 2026-09-10 ----- *
+ * Each of these is a LINE OF ARITHMETIC the figure now prints, and a line of
+ * arithmetic is exactly the kind of claim a pixel hash cannot check: the
+ * picture is identical whichever numbers are in the cells. */
+{
+  /* BOTH KERNELS (decision 12). Band 2 draws two rows, and each row's sum cell
+     is the map cell band 1 shades — for filter 1 AND filter 2. */
+  for (const k of [3, 5]) {
+    const C = M.conv(makeRng(1), k, 1);
+    let worst = 0;
+    for (let f = 0; f < 2; f += 1) {
+      for (let r = 0; r < C.n; r += 1) {
+        for (let c = 0; c < C.n; c += 1) {
+          const t = M.convTerms(C, f, r, c);
+          const sum = t.terms.reduce((s, x) => s + x.product, 0) + t.bias;
+          worst = Math.max(worst, Math.abs(sum - C.maps[f][r][c]), Math.abs(t.value - C.maps[f][r][c]));
+        }
+      }
+    }
+    check(`k = ${k}: both kernels' sums are the map cells the figure shades`,
+      worst < 1e-12, `worst ${worst.toExponential(1)} over ${2 * C.n * C.n} cells`);
+
+    /* the two kernels are DIFFERENT draws — a figure showing one twice would
+       pass every sum above and still be the bug the review found */
+    const same = C.kernels[0].flat().every((v, i) => v === C.kernels[1].flat()[i]);
+    check(`k = ${k}: the second kernel is its own draw, not the first again`, !same);
+
+    /* THE TRANSPOSED PATCH IS TWO CONTRIBUTIONS ADDED. `ConvTranspose2d(2, 1, k)`
+       holds one kernel per input map, and what one position adds to z is the
+       two products summed — which is what the shared patch grid prints. */
+    const before = M.reconstruct(C, 5);
+    const after = M.reconstruct(C, 6);
+    const m = Math.floor(5 / C.n), q = 5 % C.n;
+    let pworst = 0;
+    let terms2 = 0;
+    for (let u = 0; u < k; u += 1) {
+      for (let v = 0; v < k; v += 1) {
+        const t = M.patchTerms(C, m, q, u, v);
+        terms2 = t.terms.length;
+        const i = m * M.STRIDE - C.p + u, j = q * M.STRIDE - C.p + v;
+        if (i < 0 || i >= C.zN || j < 0 || j >= C.zN) continue;
+        pworst = Math.max(pworst, Math.abs(after[i][j] - before[i][j] - t.value));
+      }
+    }
+    check(`k = ${k}: a patch cell is both maps' contributions added`,
+      pworst < 1e-12 && terms2 === 2, `${terms2} terms, worst ${pworst.toExponential(1)}`);
+  }
+
+  /* ATTENTION: THE DOT PRODUCTS THE BAND WRITES OUT SUM TO THE SCORE. The page
+     answers "where did scores[sat, The] come from" with q · k ÷ √d_k written
+     term by term, so the terms and the score must be one calculation. */
+  for (const projection of ["random", "identity"]) {
+    const A = M.attention(makeRng(1), projection);
+    let worst = 0;
+    for (let i = 0; i < 3; i += 1) {
+      for (let j = 0; j < 3; j += 1) {
+        const t = M.attTerms(A, i, j);
+        const dot = t.terms.reduce((s, x) => s + x.product, 0);
+        worst = Math.max(worst, Math.abs(dot - t.dot), Math.abs(t.score - A.scores[i][j]));
+      }
+    }
+    check(`${projection}: the four products sum to q · k, and ÷ √d_k is the score`,
+      worst < 1e-12 && M.attTerms(A, 0, 0).terms.length === M.D_K,
+      `${M.attTerms(A, 0, 0).terms.length} terms, worst ${worst.toExponential(1)}`);
+  }
+  /* the ramp is NOT stretched to the grid's range, and this is why: at Random
+     every weight sits in a band a straight 0 -> 1 ramp draws as one shade */
+  {
+    const A = M.attention(makeRng(1), "random");
+    const lo = Math.min(...A.W.flat()), hi = Math.max(...A.W.flat());
+    check("at Random every attention weight is between 0.30 and 0.36",
+      lo > 0.3 && hi < 0.36, `${lo.toFixed(3)} to ${hi.toFixed(3)}`);
+  }
+
+  /* GRAPH: THE AGGREGATION WRITTEN OUT IS THE AGGREGATE. The strips carry no
+     digits, so this line is the only place the printed X and the printed
+     output are joined. */
+  for (const aggregate of ["normalized-sum", "mean", "max"]) {
+    const G = M.graph(makeRng(1), aggregate);
+    let worst = 0;
+    let counts = [];
+    for (let i = 0; i < M.NODES; i += 1) {
+      for (let f = 0; f < M.GRAPH_IN; f += 1) {
+        const t = M.aggTerms(G, i, f);
+        const v = t.kind === "max"
+          ? Math.max(...t.terms.map((x) => x.x))
+          : t.terms.reduce((s, x) => s + x.product, 0);
+        worst = Math.max(worst, Math.abs(v - G.agg[i][f]), Math.abs(t.value - G.agg[i][f]));
+        if (f === 0) counts.push(t.terms.length);
+      }
+    }
+    check(`${aggregate}: the terms the readout prints are the aggregate`,
+      worst < 1e-12 && counts.join(",") === "2,3,3,2",
+      `terms per node ${counts.join(", ")}, worst ${worst.toExponential(1)}`);
+
+    /* every term reads a node feature the Input band prints, at the same
+       index — the line is a path from that print to this one */
+    const t1 = M.aggTerms(G, 1, 0);
+    check(`${aggregate}: node 1's terms read X[0, 0], X[1, 0] and X[2, 0]`,
+      t1.terms.map((x) => x.j).join(",") === "0,1,2"
+      && t1.terms.every((x) => x.x === G.X[x.j][0]),
+      t1.terms.map((x) => `X[${x.j}, 0] = ${x.x.toFixed(4)}`).join("  "));
+  }
+}
+
+/* --- 8 · the print's height, which `height` reserves before it has values --- */
 {
   check("a [2, 3] result prints on 2 lines and a [4, 3] on 4",
     M.printRows([2, 3]) === 2 && M.printRows([4, 3]) === 4

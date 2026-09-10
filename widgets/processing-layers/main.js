@@ -74,6 +74,58 @@
        what `tensors` does and what the mock drew in `--ink-3`. The sibling
        won: ink-3 is under the 4.5:1 floor (tensors round 21), and a reader
        moving between the two widgets should meet one convention.
+
+   ROUND 1 OF KENNETH'S REVIEW (2026-09-10) — four fixes, one decision each:
+
+   11. EVERY BAND GROWS WITH THE STAGE ("make the bands grow with the stage
+       width"). The 550 geometry was fixed, so at the 770 stage the figure sat
+       left with up to 338px blank. Now one scale `t` runs 0 at 550 to 1 at
+       770, and every length that carries a value or an image pixel is
+       interpolated on it: the float cell 46 x 26 -> 60 x 34, the image pixel
+       14 -> 20, the graph strip cell 30 -> 40, the operator column 26 -> 34,
+       the node radius 16 -> 22, an arrow's gap 40 -> 54. `fitSizes` then
+       steps `t` DOWN until the page's widest band is inside `w − 2 · PAD`, so
+       the fit is measured rather than asserted, and `t` is floored at 0 — the
+       mock's numbers stand at 550 and nothing below it shrinks further than
+       it already did. TEXT DOES NOT SCALE: sizes come from the tokens, and
+       the one thing that follows the cell is `tensors`' own value ladder
+       (`--fs-lg` at a cell 28 tall, `--fs-md` at 22, else `--fs-sm`, then
+       `fit`), so a cell and its printed value stay the same glyphs.
+
+   12. BOTH KERNELS ARE DRAWN, AND THE ARITHMETIC BAND HAS TWO ROWS ("for CNN,
+       there are 2 filters, but I see only one kernel?"). A kernel column in
+       band 1, between the input and the maps as his own figure orders them,
+       does not fit: band 1 is 404px of 522 at 550 and three value cells need
+       138 more, and at k = 5 five need 220. So band 2 carries both, one row
+       per filter — `window ∗ kernel 1 = y[0, 0, r, c]` over
+       `window ∗ kernel 2 = y[0, 1, r, c]` — which is his figure's own
+       Window · Kernel · Weighted sum · Feature map order twice over, and both
+       rows light at the one step because both maps fill at once per position.
+       The transposed page reads the same way: `ConvTranspose2d(2, 1, k)`
+       holds one kernel per INPUT map, so each map's value goes through its
+       own kernel and the two contributions ADD into one patch of z, which is
+       why the patch is drawn once and shared.
+
+   13. A SCORE IS WRITTEN OUT WHERE IT IS COMPUTED ("it wasn't clear where I
+       got the scores for pairings like sat-The"). Under the scores grid, for
+       the query in hand, three lines of `q · k` as its four products, their
+       sum and the division by √d_k. The scores and the weights are labelled
+       on both axes — rows the query token, columns the key token — so
+       `scores[sat, The]` reads as a pair. The weights are a heat map on a
+       STRAIGHT 0 -> 1 ramp, `--c-empirical` at full for 1 and the surface for
+       0, and the ramp is NOT stretched to the grid's own range: at the random
+       projection the three weights are 0.31–0.35, and a stretched ramp would
+       draw a strong pattern where the page's whole measured claim is that
+       there is none.
+
+   14. THE GRAPH PRINTS WHAT IT READS ("is it possible to show input values? I
+       see the output, but I don't know where they came from"). The strips are
+       shaded and carry no digits, so `X` prints under the Input band exactly
+       as the result prints under the Output band, and `W` prints under the
+       Aggregate band, which is where it is about to be applied. The readout's
+       This node tile writes the aggregation out at the first feature, so the
+       printed input, the coefficients on the arcs and the printed output are
+       one line of arithmetic.
    ========================================================================= */
 
 import {
@@ -92,7 +144,7 @@ function measureCtx() {
   return measureCanvas;
 }
 
-/* --- geometry, all of it the mock's ---------------------------------------- */
+/* --- geometry: the mock's at the 550 stage, grown from there (decision 11) --- */
 
 const PAD = 14;           // widgets/tensors/main.js:469
 const OP_W = 26;          // the @, +, ∗ and = between two operands
@@ -102,6 +154,8 @@ const IW = 30;            // a shaded feature cell, no digits
 const PIX = 14;           // an image pixel
 const HLW = 2.5;          // the --c-highlight frame
 const NODE_R = 16;
+const ARROW_GAP = 40;     // the column an arrow between two grids sits in
+const MAP_GAP = 18;       // between two feature maps, and their own labels
 
 const BAND_HEAD = 26;     // a band's name, its expression and the hairline under
 const BAND_GAP = 20;      // between two bands
@@ -122,6 +176,42 @@ const LIT_A = 0.50;       // the lit face, `tensors`' litFace
 const SPLIT = 150 / 450;
 const c01 = (v) => Math.max(0, Math.min(1, v));
 const easeOut = (t) => 1 - (1 - t) ** 3;
+
+/* --- how far the geometry has grown (decision 11) --------------------------- *
+ * One number per page, 0 at the 550 stage the mock drew and 1 at the 770 one
+ * the side layout gives a wide viewport. Every length that carries a value or
+ * an image pixel is interpolated on it; nothing that carries text is. */
+const W_BASE = 550;
+const W_WIDE = 770;
+const BASE = { cw: CW, ch: CH, iw: IW, pix: PIX, op: OP_W, nodeR: NODE_R, arrow: ARROW_GAP, mapGap: MAP_GAP };
+const WIDE = { cw: 60, ch: 34, iw: 40, pix: 20, op: 34, nodeR: 22, arrow: 54, mapGap: 24 };
+
+function sizesAt(t) {
+  const s = { t };
+  for (const key of Object.keys(BASE)) s[key] = Math.round(BASE[key] + (WIDE[key] - BASE[key]) * t);
+  return s;
+}
+
+/* A cell keeps its 550 proportions as it grows, so the four-character window
+   cell and the five-character kernel cell stay in the ratio the mock fixed. */
+const scaledCell = (base, s) => Math.round((base * s.cw) / CW);
+
+/**
+ * The largest geometry whose widest band is inside the stage — MEASURED, from
+ * the same function `draw` lays the band out with, rather than asserted from a
+ * table of widths that would drift the first time a band changed. Floored at
+ * the 550 geometry: below 550 the figure overruns exactly as it did before,
+ * and shrinking the value cell further is where digits stop being readable.
+ */
+const SIZE_STEP = 1 / 48;
+function fitSizes(w, widest) {
+  const avail = w - 2 * PAD;
+  for (let t = c01((w - W_BASE) / (W_WIDE - W_BASE)); t > 0; t -= SIZE_STEP) {
+    const s = sizesAt(t);
+    if (widest(s) <= avail) return s;
+  }
+  return sizesAt(0);
+}
 
 /* --- primitives ------------------------------------------------------------ */
 
@@ -208,7 +298,11 @@ function cell(ctx, colors, x, y, cw, ch, text, o = {}) {
   if (text != null && text !== "") {
     txt(ctx, colors, text, x + cw / 2, y + ch / 2 + 0.5, {
       color: colors.ink1, align: "center", baseline: "middle", mono: true,
-      size: o.size ?? colors.fsSm, weight: o.lit || o.bold ? "600" : "", fit: cw - 6,
+      /* `tensors`' own ladder, on the SHORT side of the cell: a value takes the
+         largest face that keeps it off the cell's edge, and `fit` steps back
+         down for a string the ladder was too generous to (decision 11). */
+      size: o.size ?? (ch >= 28 ? colors.fsLg : ch >= 22 ? colors.fsMd : colors.fsSm),
+      weight: o.lit || o.bold ? "600" : "", fit: cw - 6,
     });
   }
 }
@@ -232,8 +326,8 @@ function frame(ctx, x, y, w, h, color, lw = HLW, dash = []) {
   ctx.setLineDash([]);
 }
 
-function op(ctx, colors, x, y, h, s) {
-  txt(ctx, colors, s, x + OP_W / 2, y + h / 2 + 1,
+function op(ctx, colors, x, y, h, glyph, ow) {
+  txt(ctx, colors, glyph, x + ow / 2, y + h / 2 + 1,
     { color: colors.ink1, align: "center", baseline: "middle", size: colors.fsLg });
 }
 
@@ -384,48 +478,50 @@ const arrival = (walk, k) => {
 
 function linearGeom(ctx, colors, w, params) {
   const out = Number(params.out);
+  /* the operands band binds: four cells of x, four of W, one of b, two ops */
+  const s = fitSizes(w, (z) => 9 * z.cw + 2 * z.op);
   const rows1 = Math.max(M.LIN_BATCH, out);
-  const h1 = LBL + rows1 * CH;
-  const h2 = LBL + M.LIN_BATCH * CH + PRINT_DROP + M.printRows([M.LIN_BATCH, out]) * PRINT_LH;
+  const h1 = LBL + rows1 * s.ch;
+  const h2 = LBL + M.LIN_BATCH * s.ch + PRINT_DROP + M.printRows([M.LIN_BATCH, out]) * PRINT_LH;
   const y1 = 0;
   const y2 = BAND_HEAD + h1 + BAND_GAP;
   const capY = y2 + BAND_HEAD + h2 + CAP_GAP;
   const caps = captionLines(ctx, colors, w, params);
-  return { out, h1, h2, y1, y2, capY, caps, height: capY + caps.length * CAPTION_H + PAD };
+  return { s, out, h1, h2, y1, y2, capY, caps, height: capY + caps.length * CAPTION_H + PAD };
 }
 
 function drawLinear(ctx, colors, w, params, state, anim) {
   const g = linearGeom(ctx, colors, w, params);
   const walk = walkAt(anim, state, params);
-  const { out } = g;
+  const { out, s } = g;
   const lit = walk.idx >= 0 ? { i: Math.floor(walk.idx / out), j: walk.idx % out } : null;
   const face = (on) => (on ? litFace(colors, walk.light) : {});
 
   let y = band(ctx, colors, g.y1, w, "Operands", "x @ W.T + b");
   label(ctx, colors, PAD, y + 11, "x", [M.LIN_BATCH, M.LIN_IN]);
-  grid(ctx, colors, PAD, y + LBL, M.LIN_BATCH, M.LIN_IN, CW, CH, (r, c) =>
+  grid(ctx, colors, PAD, y + LBL, M.LIN_BATCH, M.LIN_IN, s.cw, s.ch, (r, c) =>
     ({ text: M.n2(state.X[r][c]), hue: colors.groupA, ...face(lit && r === lit.i) }));
-  spotGrid(PAD, y + LBL, M.LIN_BATCH, M.LIN_IN, CW, CH,
+  spotGrid(PAD, y + LBL, M.LIN_BATCH, M.LIN_IN, s.cw, s.ch,
     (r, c) => `x[${r}, ${c}] = ${num(state.X[r][c])}`);
-  op(ctx, colors, PAD + 4 * CW, y + LBL, M.LIN_BATCH * CH, "@");
+  op(ctx, colors, PAD + 4 * s.cw, y + LBL, M.LIN_BATCH * s.ch, "@", s.op);
 
-  const wx = PAD + 4 * CW + OP_W;
+  const wx = PAD + 4 * s.cw + s.op;
   label(ctx, colors, wx, y + 11, "W", [out, M.LIN_IN]);
-  grid(ctx, colors, wx, y + LBL, out, M.LIN_IN, CW, CH, (r, c) =>
+  grid(ctx, colors, wx, y + LBL, out, M.LIN_IN, s.cw, s.ch, (r, c) =>
     ({ text: M.n2(state.W[r][c]), hue: colors.groupB, ...face(lit && r === lit.j) }));
-  spotGrid(wx, y + LBL, out, M.LIN_IN, CW, CH,
+  spotGrid(wx, y + LBL, out, M.LIN_IN, s.cw, s.ch,
     (r, c) => `W[${r}, ${c}] = ${num(state.W[r][c])}`);
-  op(ctx, colors, wx + 4 * CW, y + LBL, out * CH, "+");
+  op(ctx, colors, wx + 4 * s.cw, y + LBL, out * s.ch, "+", s.op);
 
-  const bx = wx + 4 * CW + OP_W;
+  const bx = wx + 4 * s.cw + s.op;
   label(ctx, colors, bx, y + 11, "b", [out]);
-  grid(ctx, colors, bx, y + LBL, out, 1, CW, CH, (r) =>
+  grid(ctx, colors, bx, y + LBL, out, 1, s.cw, s.ch, (r) =>
     ({ text: M.n2(state.b[r]), hue: colors.groupB, ...face(lit && r === lit.j) }));
-  spotGrid(bx, y + LBL, out, 1, CW, CH, (r) => `b[${r}] = ${num(state.b[r])}`);
+  spotGrid(bx, y + LBL, out, 1, s.cw, s.ch, (r) => `b[${r}] = ${num(state.b[r])}`);
 
   y = band(ctx, colors, g.y2, w, "Result", "y = x @ W.T + b");
   label(ctx, colors, PAD, y + 11, "y", [M.LIN_BATCH, out]);
-  grid(ctx, colors, PAD, y + LBL, M.LIN_BATCH, out, CW, CH, (r, c) => {
+  grid(ctx, colors, PAD, y + LBL, M.LIN_BATCH, out, s.cw, s.ch, (r, c) => {
     const a = arrival(walk, r * out + c);
     if (a === 0) return { empty: true };
     const on = lit && r === lit.i && c === lit.j;
@@ -433,10 +529,10 @@ function drawLinear(ctx, colors, w, params, state, anim) {
       ? { text: M.n2(state.Y[r][c]), ...litFace(colors, a) }
       : { text: M.n2(state.Y[r][c]), fill: wash(colors.empirical, WASH) };
   });
-  spotGrid(PAD, y + LBL, M.LIN_BATCH, out, CW, CH, (r, c) =>
+  spotGrid(PAD, y + LBL, M.LIN_BATCH, out, s.cw, s.ch, (r, c) =>
     (r * out + c < walk.done ? `y[${r}, ${c}] = ${num(state.Y[r][c])}` : null));
   if (walk.done > 0) {
-    printBlock(ctx, colors, PAD, y + LBL + M.LIN_BATCH * CH + PRINT_DROP,
+    printBlock(ctx, colors, PAD, y + LBL + M.LIN_BATCH * s.ch + PRINT_DROP,
       [M.LIN_BATCH, out], ([r, c]) => state.Y[r][c], ([r, c]) => r * out + c < walk.done);
   }
   return g;
@@ -447,10 +543,12 @@ function drawLinear(ctx, colors, w, params, state, anim) {
 /* Band 2 holds a k x k window, a k x k kernel and the sum cell, and at k = 5
    the 46px cell runs 34px past the 550 stage. The window's cells hold `0.00`
    and `1.00`, four characters, so they are the ones that give first. */
-const winCell = (k) => (k === 5 ? 36 : 40);
-const kerCell = (k) => (k === 5 ? 44 : CW);
-const scatterCell = (k) => (k === 5 ? 42 : CW);
-const MAP_GAP = 18;
+const winCell = (k, s) => scaledCell(k === 5 ? 36 : 40, s);
+const kerCell = (k, s) => scaledCell(k === 5 ? 44 : CW, s);
+const scatterCell = (k, s) => scaledCell(k === 5 ? 42 : CW, s);
+const TRANS_MAP_GAP = 10;   // between the two maps on the transposed page
+const CONV_ROW_GAP = 12;    // between the two filters' rows in band 2
+const PROD_H = 20;          // the products line under one filter's row
 
 function convGeom(ctx, colors, w, params) {
   const k = Number(params.k);
@@ -459,6 +557,13 @@ function convGeom(ctx, colors, w, params) {
   const n = outSize(M.IMG_N, k, M.STRIDE, p);
   const zN = transposedOutSize(n, k, M.STRIDE, p, M.OUT_PAD);
   const padN = M.IMG_N + 2 * p;
+  /* Both bands are measured, and the wider one binds: band 1 is the image
+     beside the maps, band 2 the window, one kernel and the result. */
+  const s = fitSizes(w, (z) => (transposed
+    ? Math.max(n * z.pix + z.arrow + zN * z.pix,
+      z.cw + z.op + k * scatterCell(k, z) + z.op + k * scatterCell(k, z))
+    : Math.max(padN * z.pix + z.arrow + n * z.pix,
+      k * winCell(k, z) + z.op + k * kerCell(k, z) + z.op + z.cw)));
   /* THE DIFFERENCE'S OWN LINE SITS UNDER THE GRIDS, NOT BESIDE THEM. Beside,
      `largest |z − img| = 1.42` starts at x 402 with z where the maps leave it
      and runs 10px past the 550 stage; the mock had room for it there because
@@ -466,19 +571,23 @@ function convGeom(ctx, colors, w, params) {
      only while the reveal is on. */
   const noteH = transposed && params.trueimage === "1" ? PRINT_LH + 6 : 0;
   const h1 = transposed
-    ? LBL + Math.max(2 * n * PIX + 10, zN * PIX) + noteH
-    : LBL + Math.max(padN * PIX, 2 * n * PIX + MAP_GAP);
-  const h2 = LBL + k * CH + 22;
+    ? LBL + Math.max(2 * n * s.pix + TRANS_MAP_GAP, zN * s.pix) + noteH
+    : LBL + Math.max(padN * s.pix, 2 * n * s.pix + s.mapGap);
+  /* BAND 2 IS TWO ROWS, ONE PER FILTER (decision 12). The standard page gives
+     each row its own products line; the transposed page gives the two rows one
+     shared patch, because the two contributions land in the same cells of z. */
+  const rowH = transposed ? LBL + k * s.ch : LBL + k * s.ch + PROD_H;
+  const h2 = 2 * rowH + CONV_ROW_GAP;
   const y1 = 0;
   const y2 = BAND_HEAD + h1 + BAND_GAP;
   const capY = y2 + BAND_HEAD + h2 + CAP_GAP;
   const caps = captionLines(ctx, colors, w, params);
   /* where the clickable feature-map cells sit, for `regions` and for `draw` */
-  const mapX = transposed ? PAD : PAD + padN * PIX + 40;
+  const mapX = transposed ? PAD : PAD + padN * s.pix + s.arrow;
   const mapY = y1 + BAND_HEAD + LBL;
-  const mapStep = transposed ? n * PIX + 10 : n * PIX + MAP_GAP;
+  const mapStep = transposed ? n * s.pix + TRANS_MAP_GAP : n * s.pix + s.mapGap;
   return {
-    k, p, n, zN, padN, transposed, h1, h2, y1, y2, capY, caps,
+    s, k, p, n, zN, padN, transposed, h1, h2, rowH, y1, y2, capY, caps,
     mapX, mapY, mapStep, height: capY + caps.length * CAPTION_H + PAD,
   };
 }
@@ -486,7 +595,7 @@ function convGeom(ctx, colors, w, params) {
 function drawConv(ctx, colors, w, params, state, anim) {
   const g = convGeom(ctx, colors, w, params);
   const walk = walkAt(anim, state, params);
-  const { k, p, n, zN, padN, transposed } = g;
+  const { s, k, p, n, zN, padN, transposed } = g;
   const pr = walk.idx >= 0 ? Math.floor(walk.idx / n) : -1;
   const pc = walk.idx >= 0 ? walk.idx % n : -1;
   const spans = state.maps.map((m, f) =>
@@ -495,12 +604,12 @@ function drawConv(ctx, colors, w, params, state, anim) {
   if (!transposed) {
     let y = band(ctx, colors, g.y1, w, "Input and feature maps", "conv2d(x)");
     label(ctx, colors, PAD, y + 11, p > 0 ? "Padded input" : "Input", [padN, padN]);
-    shaded(ctx, colors, PAD, y + LBL, padN, padN, PIX, (r, c) => {
+    shaded(ctx, colors, PAD, y + LBL, padN, padN, s.pix, (r, c) => {
       const ri = r - p, ci = c - p;
       const inside = ri >= 0 && ri < M.IMG_N && ci >= 0 && ci < M.IMG_N;
       return inside ? plainFill(colors.groupA, M.IMG[ri][ci]) : null;
     });
-    spotGrid(PAD, y + LBL, padN, padN, PIX, PIX, (r, c) => {
+    spotGrid(PAD, y + LBL, padN, padN, s.pix, s.pix, (r, c) => {
       const ri = r - p, ci = c - p;
       return ri >= 0 && ri < M.IMG_N && ci >= 0 && ci < M.IMG_N
         ? `img[${ri}, ${ci}] = ${M.IMG[ri][ci].toFixed(2)}`
@@ -510,59 +619,72 @@ function drawConv(ctx, colors, w, params, state, anim) {
       ctx.strokeStyle = colors.ink3;
       ctx.lineWidth = 1;
       ctx.setLineDash([3, 3]);
-      ctx.strokeRect(PAD + 0.5, y + LBL + 0.5, padN * PIX - 1, padN * PIX - 1);
+      ctx.strokeRect(PAD + 0.5, y + LBL + 0.5, padN * s.pix - 1, padN * s.pix - 1);
       ctx.setLineDash([]);
       ctx.strokeStyle = colors.axis;
-      ctx.strokeRect(PAD + p * PIX + 0.5, y + LBL + p * PIX + 0.5,
-        M.IMG_N * PIX - 1, M.IMG_N * PIX - 1);
+      ctx.strokeRect(PAD + p * s.pix + 0.5, y + LBL + p * s.pix + 0.5,
+        M.IMG_N * s.pix - 1, M.IMG_N * s.pix - 1);
     }
     if (pr >= 0) {
-      frame(ctx, PAD + pc * M.STRIDE * PIX, y + LBL + pr * M.STRIDE * PIX,
-        k * PIX, k * PIX, colors.highlight);
+      frame(ctx, PAD + pc * M.STRIDE * s.pix, y + LBL + pr * M.STRIDE * s.pix,
+        k * s.pix, k * s.pix, colors.highlight);
     }
-    arrow(ctx, PAD + padN * PIX + 8, y + LBL + padN * PIX / 2,
-      PAD + padN * PIX + 34, y + LBL + padN * PIX / 2, colors.ink3, 2);
+    arrow(ctx, PAD + padN * s.pix + 8, y + LBL + padN * s.pix / 2,
+      PAD + padN * s.pix + s.arrow - 6, y + LBL + padN * s.pix / 2, colors.ink3, 2);
 
     /* the shape rides on each filter's own label: one `Feature maps [2, 8, 8]`
        line above them sat on exactly the baseline `filter 1` uses */
     for (let f = 0; f < 2; f += 1) {
       const my = g.mapY + f * g.mapStep;
       label(ctx, colors, g.mapX, my - 5, `filter ${f + 1}`, [n, n], colors.ink2);
-      shaded(ctx, colors, g.mapX, my, n, n, PIX, (r, c) => {
+      shaded(ctx, colors, g.mapX, my, n, n, s.pix, (r, c) => {
         const a = arrival(walk, r * n + c);
         return a === 0 ? null : signedFill(colors, state.maps[f][r][c], state.biases[f], spans[f]);
       });
-      spotGrid(g.mapX, my, n, n, PIX, PIX, (r, c) =>
+      spotGrid(g.mapX, my, n, n, s.pix, s.pix, (r, c) =>
         (r * n + c < walk.done
           ? `y[0, ${f}, ${r}, ${c}] = ${num(state.maps[f][r][c])}`
           : `y[0, ${f}, ${r}, ${c}], not computed yet`));
-      if (f === 0 && pr >= 0) frame(ctx, g.mapX + pc * PIX, my + pr * PIX, PIX, PIX, colors.highlight);
+      /* BOTH maps are framed: one position fills one cell of each (decision 12) */
+      if (pr >= 0) frame(ctx, g.mapX + pc * s.pix, my + pr * s.pix, s.pix, s.pix, colors.highlight);
     }
 
-    y = band(ctx, colors, g.y2, w, "One output value",
-      pr >= 0 ? `y[0, 0, ${pr}, ${pc}]` : "y[0, 0, · , · ]");
+    y = band(ctx, colors, g.y2, w, "One position, both filters",
+      pr >= 0 ? `y[0, · , ${pr}, ${pc}]` : "y[0, · , · , · ]");
     const win = pr >= 0 ? state.window(pr, pc) : null;
-    const wcw = winCell(k);
-    const kcw = kerCell(k);
-    label(ctx, colors, PAD, y + 11, "Window", [k, k]);
-    grid(ctx, colors, PAD, y + LBL, k, k, wcw, CH, (r, c) =>
-      (win ? { text: win[r][c].toFixed(2), ...litFace(colors, walk.light) } : { empty: true }));
-    if (win) frame(ctx, PAD, y + LBL, k * wcw, k * CH, colors.highlight);
-    op(ctx, colors, PAD + k * wcw, y + LBL, k * CH, "∗");
-    const kx = PAD + k * wcw + OP_W;
-    label(ctx, colors, kx, y + 11, "Kernel", [k, k]);
-    grid(ctx, colors, kx, y + LBL, k, k, kcw, CH, (r, c) =>
-      ({ text: M.n2(state.kernels[0][r][c]), hue: colors.groupB }));
-    spotGrid(kx, y + LBL, k, k, kcw, CH,
-      (r, c) => `kernel 1 [${r}, ${c}] = ${num(state.kernels[0][r][c])}`);
-    op(ctx, colors, kx + k * kcw, y + LBL, k * CH, "=");
-    const sx = kx + k * kcw + OP_W;
-    label(ctx, colors, sx, y + 11, "Sum");
-    cell(ctx, colors, sx, y + LBL + Math.floor(k / 2) * CH, CW, CH,
-      pr >= 0 ? M.n2(state.maps[0][pr][pc]) : "",
-      pr >= 0 ? litFace(colors, arrival(walk, walk.idx)) : { empty: true });
-    if (pr >= 0) txt(ctx, colors, productLine(ctx, colors, state, pr, pc, w), PAD, y + LBL + k * CH + 16,
-      { color: colors.ink2, mono: true });
+    const wcw = winCell(k, s);
+    const kcw = kerCell(k, s);
+    for (let f = 0; f < 2; f += 1) {
+      const ry = y + f * (g.rowH + CONV_ROW_GAP);
+      label(ctx, colors, PAD, ry + 11, "Window", [k, k]);
+      grid(ctx, colors, PAD, ry + LBL, k, k, wcw, s.ch, (r, c) =>
+        (win ? { text: win[r][c].toFixed(2), ...litFace(colors, walk.light) } : { empty: true }));
+      if (win) frame(ctx, PAD, ry + LBL, k * wcw, k * s.ch, colors.highlight);
+      op(ctx, colors, PAD + k * wcw, ry + LBL, k * s.ch, "∗", s.op);
+      const kx = PAD + k * wcw + s.op;
+      label(ctx, colors, kx, ry + 11, `Kernel ${f + 1}`, [k, k]);
+      grid(ctx, colors, kx, ry + LBL, k, k, kcw, s.ch, (r, c) =>
+        ({ text: M.n2(state.kernels[f][r][c]), hue: colors.groupB }));
+      spotGrid(kx, ry + LBL, k, k, kcw, s.ch,
+        (r, c) => `kernel ${f + 1} [${r}, ${c}] = ${num(state.kernels[f][r][c])}`);
+      op(ctx, colors, kx + k * kcw, ry + LBL, k * s.ch, "=", s.op);
+      const sx = kx + k * kcw + s.op;
+      /* the result's index where it fits, the filter's name where it does not:
+         at k = 5 on the 550 stage the sum cell starts at x 466 and
+         `y[0, 0, 5, 5]` runs 2px past the edge. The band's own expression
+         carries the position either way, so nothing is lost by the fallback. */
+      const idx = pr >= 0 ? `y[0, ${f}, ${pr}, ${pc}]` : "";
+      ctx.font = `${colors.fsSm} ${colors.mono}`;
+      const fits = pr >= 0 && sx + ctx.measureText(idx).width <= w - PAD;
+      label(ctx, colors, sx, ry + 11, fits ? idx : `filter ${f + 1}`);
+      cell(ctx, colors, sx, ry + LBL + Math.floor(k / 2) * s.ch, s.cw, s.ch,
+        pr >= 0 ? M.n2(state.maps[f][pr][pc]) : "",
+        pr >= 0 ? litFace(colors, arrival(walk, walk.idx)) : { empty: true });
+      if (pr >= 0) {
+        txt(ctx, colors, productLine(ctx, colors, state, f, pr, pc, w),
+          PAD, ry + LBL + k * s.ch + 16, { color: colors.ink2, mono: true, fit: w - 2 * PAD });
+      }
+    }
     return g;
   }
 
@@ -577,61 +699,80 @@ function drawConv(ctx, colors, w, params, state, anim) {
   label(ctx, colors, PAD, y + 11, "y", [1, 2, n, n]);
   for (let f = 0; f < 2; f += 1) {
     const my = g.mapY + f * g.mapStep;
-    shaded(ctx, colors, PAD, my, n, n, PIX, (r, c) =>
+    shaded(ctx, colors, PAD, my, n, n, s.pix, (r, c) =>
       signedFill(colors, state.maps[f][r][c], state.biases[f], spans[f]));
-    spotGrid(PAD, my, n, n, PIX, PIX,
+    spotGrid(PAD, my, n, n, s.pix, s.pix,
       (r, c) => `y[0, ${f}, ${r}, ${c}] = ${num(state.maps[f][r][c])}`);
-    if (f === 0 && pr >= 0) frame(ctx, PAD + pc * PIX, my + pr * PIX, PIX, PIX, colors.highlight);
+    /* both maps carry the position, because both scatter at the one step */
+    if (pr >= 0) frame(ctx, PAD + pc * s.pix, my + pr * s.pix, s.pix, s.pix, colors.highlight);
   }
-  const ay = g.mapY + (2 * n * PIX + 10) / 2;
-  arrow(ctx, PAD + n * PIX + 8, ay, PAD + n * PIX + 34, ay, colors.ink3, 2);
-  const zx = PAD + n * PIX + 40;
+  const ay = g.mapY + (2 * n * s.pix + TRANS_MAP_GAP) / 2;
+  arrow(ctx, PAD + n * s.pix + 8, ay, PAD + n * s.pix + s.arrow - 6, ay, colors.ink3, 2);
+  const zx = PAD + n * s.pix + s.arrow;
   label(ctx, colors, zx, y + 11, reveal ? "z − img" : "z", [zN, zN]);
   const zc = M.mean(z.flat());
   const zs = Math.max(...z.flat().map((v) => Math.abs(v - zc))) || 1;
-  shaded(ctx, colors, zx, y + LBL, zN, zN, PIX, (r, c) => (reveal
+  shaded(ctx, colors, zx, y + LBL, zN, zN, s.pix, (r, c) => (reveal
     ? signedFill(colors, diff.d[r][c], 0, diff.max)
     : signedFill(colors, z[r][c], zc, zs)));
-  spotGrid(zx, y + LBL, zN, zN, PIX, PIX, (r, c) => (reveal
+  spotGrid(zx, y + LBL, zN, zN, s.pix, s.pix, (r, c) => (reveal
     ? `z − img at [${r}, ${c}] = ${num(diff.d[r][c])}`
     : `z[${r}, ${c}] = ${num(z[r][c])}`));
   if (reveal) {
-    frame(ctx, zx + diff.mc * PIX, y + LBL + diff.mr * PIX, PIX, PIX, colors.highlight);
+    frame(ctx, zx + diff.mc * s.pix, y + LBL + diff.mr * s.pix, s.pix, s.pix, colors.highlight);
     txt(ctx, colors,
       `largest |z − img| = ${num(diff.max)}, at row ${diff.mr}, column ${diff.mc}`,
-      PAD, y + LBL + Math.max(2 * n * PIX + 10, zN * PIX) + PRINT_LH,
+      PAD, y + LBL + Math.max(2 * n * s.pix + TRANS_MAP_GAP, zN * s.pix) + PRINT_LH,
       { color: colors.ink2, mono: true });
   } else {
-    frame(ctx, zx + M.SQ_FROM * PIX, y + LBL + M.SQ_FROM * PIX,
-      (M.SQ_TO - M.SQ_FROM) * PIX, (M.SQ_TO - M.SQ_FROM) * PIX, colors.ink3, 1.5, [4, 3]);
+    frame(ctx, zx + M.SQ_FROM * s.pix, y + LBL + M.SQ_FROM * s.pix,
+      (M.SQ_TO - M.SQ_FROM) * s.pix, (M.SQ_TO - M.SQ_FROM) * s.pix, colors.ink3, 1.5, [4, 3]);
   }
 
-  y = band(ctx, colors, g.y2, w, "One input value",
-    pr >= 0 ? `y[0, 0, ${pr}, ${pc}]` : "y[0, 0, · , · ]");
-  const tcw = scatterCell(k);
-  label(ctx, colors, PAD, y + 11, "Value");
-  cell(ctx, colors, PAD, y + LBL + Math.floor(k / 2) * CH, CW, CH,
-    pr >= 0 ? M.n2(state.maps[0][pr][pc]) : "",
-    pr >= 0 ? litFace(colors, walk.light) : { empty: true });
-  op(ctx, colors, PAD + CW, y + LBL, k * CH, "×");
-  const kx = PAD + CW + OP_W;
-  label(ctx, colors, kx, y + 11, "Kernel", [k, k]);
-  grid(ctx, colors, kx, y + LBL, k, k, tcw, CH, (r, c) =>
-    ({ text: M.n2(state.tw[0][r][c]), hue: colors.groupB }));
-  spotGrid(kx, y + LBL, k, k, tcw, CH,
-    (r, c) => `kernel 1 [${r}, ${c}] = ${num(state.tw[0][r][c])}`);
-  op(ctx, colors, kx + k * tcw, y + LBL, k * CH, "→");
-  const px = kx + k * tcw + OP_W;
+  /* ONE POSITION, BOTH MAPS (decision 12). `ConvTranspose2d(2, 1, k)` holds a
+     [2, 1, k, k] weight — one kernel per input map — so the position's two
+     values go through their own kernel and land in ONE patch of z, which is
+     why the patch is drawn once, between the rows, and holds the sums. */
+  y = band(ctx, colors, g.y2, w, "One position, both maps",
+    pr >= 0 ? `y[0, · , ${pr}, ${pc}]` : "y[0, · , · , · ]");
+  const tcw = scatterCell(k, s);
+  const kx = PAD + s.cw + s.op;
+  for (let f = 0; f < 2; f += 1) {
+    const ry = y + f * (g.rowH + CONV_ROW_GAP);
+    label(ctx, colors, PAD, ry + 11, `Value ${f + 1}`);
+    cell(ctx, colors, PAD, ry + LBL + Math.floor(k / 2) * s.ch, s.cw, s.ch,
+      pr >= 0 ? M.n2(state.maps[f][pr][pc]) : "",
+      pr >= 0 ? litFace(colors, walk.light) : { empty: true });
+    op(ctx, colors, PAD + s.cw, ry + LBL, k * s.ch, "×", s.op);
+    label(ctx, colors, kx, ry + 11, `Kernel ${f + 1}`, [k, k]);
+    grid(ctx, colors, kx, ry + LBL, k, k, tcw, s.ch, (r, c) =>
+      ({ text: M.n2(state.tw[f][r][c]), hue: colors.groupB }));
+    spotGrid(kx, ry + LBL, k, k, tcw, s.ch,
+      (r, c) => `kernel ${f + 1} [${r}, ${c}] = ${num(state.tw[f][r][c])}`);
+  }
+  /* the two rows add, and the sum is the one patch. The + sits in the whole
+     visual gap — the row gap AND the second row's label line — so it reads as
+     between the two rows rather than hung off the first. */
+  op(ctx, colors, kx, y + LBL + k * s.ch, LBL + CONV_ROW_GAP, "+", k * tcw);
+  op(ctx, colors, kx + k * tcw, y, g.h2, "→", s.op);
+  const px = kx + k * tcw + s.op;
   const at = pr >= 0 ? patchAt(state, pr, pc) : null;
   /* The patch's place written as an index, not a sentence: at k = 5 the band
      starts at x 322 and "into z at rows 11–15, columns 11–15" ran 3px past the
      550 stage. The readout's Patch tile spells the rows and columns out. */
-  label(ctx, colors, px, y + 11, at ? `into z[${at.rows}, ${at.cols}]` : "into z");
-  grid(ctx, colors, px, y + LBL, k, k, tcw, CH, (r, c) =>
+  const py = y + (g.h2 - k * s.ch) / 2;
+  label(ctx, colors, px, py - 5, at ? `into z[${at.rows}, ${at.cols}]` : "into z");
+  grid(ctx, colors, px, py, k, k, tcw, s.ch, (r, c) =>
     (pr >= 0
-      ? { text: M.n2(state.maps[0][pr][pc] * state.tw[0][r][c]), fill: wash(colors.empirical, WASH) }
+      ? { text: M.n2(M.patchTerms(state, pr, pc, r, c).value), fill: wash(colors.empirical, WASH) }
       : { empty: true }));
-  if (pr >= 0) frame(ctx, px, y + LBL, k * tcw, k * CH, colors.highlight);
+  if (pr >= 0) {
+    frame(ctx, px, py, k * tcw, k * s.ch, colors.highlight);
+    spotGrid(px, py, k, k, tcw, s.ch, (r, c) => {
+      const t = M.patchTerms(state, pr, pc, r, c);
+      return `${num(t.terms[0].product)} from map 0 and ${num(t.terms[1].product)} from map 1`;
+    });
+  }
   return g;
 }
 
@@ -643,21 +784,16 @@ function patchAt(state, r, c) {
   return { rows: `${lo(r)}–${hi(r)}`, cols: `${lo(c)}–${hi(c)}` };
 }
 
-/** The kernel values the window's ones pick out, summed, with the bias. */
-function productLine(ctx, colors, state, r, c, w) {
-  const win = state.window(r, c);
-  const terms = [];
-  for (let u = 0; u < state.k; u += 1) {
-    for (let v = 0; v < state.k; v += 1) if (win[u][v] !== 0) terms.push(state.kernels[0][u][v]);
-  }
-  const b = state.biases[0];
+/** Filter `f`'s kernel values the window's ones pick out, summed, with the bias. */
+function productLine(ctx, colors, state, f, r, c, w) {
+  const { terms, bias, value } = M.convTerms(state, f, r, c);
   /* signs as a sum is written, not as `+ -0.33`: the first term carries its
      own sign and every later one becomes a + or a − with a bare magnitude */
   const signed = (v, first) => (first
     ? M.n2(v).trim()
     : `${v < 0 ? "− " : "+ "}${Math.abs(v).toFixed(2)}`);
-  const body = terms.length ? terms.map((v, i) => signed(v, i === 0)).join(" ") : "0";
-  const tail = `${signed(b, false)} = ${M.n2(state.maps[0][r][c]).trim()}`;
+  const body = terms.length ? terms.map((t, i) => signed(t.product, i === 0)).join(" ") : "0";
+  const tail = `${signed(bias, false)} = ${M.n2(value).trim()}`;
   const full = `${body} ${tail}`;
   ctx.font = `${colors.fsSm} ${colors.mono}`;
   if (ctx.measureText(full).width <= w - 2 * PAD) return full;
@@ -666,8 +802,7 @@ function productLine(ctx, colors, state, r, c, w) {
 
 /* ============================ 3 · Recurrent ================================ */
 
-const RNN_GUT = 62;                 // the row labels, left of the first cell
-const RNN_PITCH = CW + OP_W;        // 72 between two time steps
+const RNN_GUT = 62;                 // the row labels, left of the first cell — text, so fixed
 const RNN_ROW_GAP = 26;
 
 const rnnRows = (bidirectional) => (bidirectional
@@ -685,21 +820,25 @@ const rnnRows = (bidirectional) => (bidirectional
 
 function rnnGeom(ctx, colors, w, params) {
   const rows = rnnRows(params.direction === "bidirectional");
-  const bodyH = rows.reduce((a, r) => a + r.tall * CH, 0) + (rows.length - 1) * RNN_ROW_GAP;
+  /* five time steps, four arrow columns between them, after the label gutter */
+  const s = fitSizes(w, (z) => RNN_GUT + (M.SEQ - 1) * (z.cw + z.op) + z.cw);
+  const bodyH = rows.reduce((a, r) => a + r.tall * s.ch, 0) + (rows.length - 1) * RNN_ROW_GAP;
   const capY = BAND_HEAD + bodyH + CAP_GAP;
   const caps = captionLines(ctx, colors, w, params);
-  return { rows, bodyH, capY, caps, height: capY + caps.length * CAPTION_H + PAD };
+  return { s, rows, bodyH, capY, caps, height: capY + caps.length * CAPTION_H + PAD };
 }
 
 function drawRnn(ctx, colors, w, params, state, anim) {
   const g = rnnGeom(ctx, colors, w, params);
+  const { s } = g;
+  const pitch = s.cw + s.op;        // one time step and the arrow after it
   const walk = walkAt(anim, state, params);
   const bi = params.direction === "bidirectional";
-  const s = Number(params.sample);
+  const seq = Number(params.sample);
   const step = walk.idx >= 0 ? M.rnnStepAt(walk.idx + 1, bi) : null;
-  const fwd = state.fwd[s];
-  const rev = state.rev[s];
-  const y0 = state.y[s];
+  const fwd = state.fwd[seq];
+  const rev = state.rev[seq];
+  const y0 = state.y[seq];
 
   /* how many time steps of each row are drawn, from the ordinal alone */
   const fwdDone = bi ? Math.min(walk.done, M.SEQ) : walk.done;
@@ -724,11 +863,11 @@ function drawRnn(ctx, colors, w, params, state, anim) {
   let y = band(ctx, colors, 0, w, "Time steps", "h_t = f(x_t, h_{t−1})");
   for (const row of g.rows) {
     const cy = y;
-    txt(ctx, colors, row.label, PAD, cy + (row.tall * CH) / 2 + 4,
+    txt(ctx, colors, row.label, PAD, cy + (row.tall * s.ch) / 2 + 4,
       { color: colors.ink1, weight: "600" });
     for (let t = 0; t < M.SEQ; t += 1) {
-      const x = PAD + RNN_GUT + t * RNN_PITCH;
-      const vals = row.key === "x" ? state.X[s][t]
+      const x = PAD + RNN_GUT + t * pitch;
+      const vals = row.key === "x" ? state.X[seq][t]
         : row.key === "fwd" ? fwd[t]
           : row.key === "rev" ? rev[t] : y0[t];
       const shown = shownAt(row.key, t);
@@ -748,23 +887,23 @@ function drawRnn(ctx, colors, w, params, state, anim) {
         const face = reads ? litFace(colors, walk.light)
           : lands ? litFace(colors, walk.land)
             : { hue: row.key === "x" ? colors.groupA : colors.empirical };
-        cell(ctx, colors, x, cy + k * CH, CW, CH,
+        cell(ctx, colors, x, cy + k * s.ch, s.cw, s.ch,
           shown > 0 ? M.n2(v) : "", shown > 0 ? face : { empty: true });
       }
-      spotGrid(x, cy, row.tall, 1, CW, CH, (k) =>
+      spotGrid(x, cy, row.tall, 1, s.cw, s.ch, (k) =>
         (shown > 0 ? `${rnnName(row.key, bi)}[${t}, ${k}] = ${num(vals[k])}` : null));
       if (row.dir && t < M.SEQ - 1) {
-        const ax = x + CW;
-        const ayy = cy + (row.tall * CH) / 2;
-        if (row.dir === "right") arrow(ctx, ax + 4, ayy, ax + OP_W - 4, ayy, colors.ink3);
-        else arrow(ctx, ax + OP_W - 4, ayy, ax + 4, ayy, colors.ink3);
+        const ax = x + s.cw;
+        const ayy = cy + (row.tall * s.ch) / 2;
+        if (row.dir === "right") arrow(ctx, ax + 4, ayy, ax + s.op - 4, ayy, colors.ink3);
+        else arrow(ctx, ax + s.op - 4, ayy, ax + 4, ayy, colors.ink3);
       }
       if (row.key === "x") {
-        txt(ctx, colors, `t${t + 1}`, x + CW / 2, cy - 4,
+        txt(ctx, colors, `t${t + 1}`, x + s.cw / 2, cy - 4,
           { color: colors.ink2, align: "center", size: colors.fsXs, mono: true });
       }
     }
-    y += row.tall * CH + RNN_ROW_GAP;
+    y += row.tall * s.ch + RNN_ROW_GAP;
   }
   return g;
 }
@@ -775,107 +914,160 @@ const rnnName = (key, bi) =>
 /* ============================ 4 · Attention ================================ */
 
 const ATT_GAP_QK = 34;
-const ATT_GAP_SC = 24;
+const ATT_GAP_SC = 34;    // the grid's name, and the key tokens over its columns
 const ATT_LAB = 54;
 const ATT_DOT = 22;
+const ATT_TOK = 30;       // the query token, in a gutter left of a labelled grid
+const ATT_SOFT = 60;      // the softmax arrow between scores and weights
+/* A LINE SAYING WHAT THE THREE LINES ARE, then the three (decision 13). The
+   lines are labelled by the KEY token and the grid above them is rowed by the
+   QUERY token, so without the heading three lines reading The / cat / sat under
+   a grid rowed The / cat / sat read as that grid's rows. */
+const ATT_DERIV = 4 * PRINT_LH + 12;
+
+/** `q · k` written out, and the division that makes it a score (decision 13). */
+function scoreLine(state, i, j) {
+  const { terms, dot, score } = M.attTerms(state, i, j);
+  const body = terms.map((t) => `${M.n2(t.q).trim()}×${M.n2(t.k).trim()}`).join(" + ");
+  return `${M.TOKENS[j].padEnd(4)} ${body} = ${M.n2(dot).trim()}  ÷ √4 = ${M.n2(score).trim()}`;
+}
 
 function attnGeom(ctx, colors, w, params) {
-  const h1 = LBL + 3 * CH + ATT_GAP_QK + 3 * CH + ATT_GAP_SC + 3 * CH;
-  const h2 = LBL + 3 * (CH + 8) + 4 + 16 + 4 + CH + 8;
+  /* three bands of grids and the labelled pair below them; band 2's row is the
+     weight, its pair name, the dot and the four values of V */
+  const s = fitSizes(w, (z) => Math.max(
+    8 * z.cw + z.op,
+    2 * ATT_TOK + 6 * z.cw + ATT_SOFT,
+    5 * z.cw + 8 + ATT_LAB + ATT_DOT + 8 + 100));
+  const h1 = LBL + 3 * s.ch + ATT_GAP_QK + 3 * s.ch + ATT_GAP_SC + 3 * s.ch + ATT_DERIV;
+  const h2 = LBL + 3 * (s.ch + 8) + 4 + 16 + 4 + s.ch + 8;
   const y1 = 0;
   const y2 = BAND_HEAD + h1 + BAND_GAP;
   const capY = y2 + BAND_HEAD + h2 + CAP_GAP;
   const caps = captionLines(ctx, colors, w, params);
-  return { h1, h2, y1, y2, capY, caps, height: capY + caps.length * CAPTION_H + PAD };
+  return { s, h1, h2, y1, y2, capY, caps, height: capY + caps.length * CAPTION_H + PAD };
 }
 
 function drawAttn(ctx, colors, w, params, state, anim) {
   const g = attnGeom(ctx, colors, w, params);
+  const { s } = g;
   const walk = walkAt(anim, state, params);
-  const gw = 4 * CW;
-  const sw = 3 * CW;
+  const gw = 4 * s.cw;
+  const sw = 3 * s.cw;
   const q = walk.idx >= 0 ? walk.idx : -1;
-  const heat = (v) => wash(colors.empirical, 0.06 + 1.6 * v);
+  /* A STRAIGHT 0 -> 1 RAMP, not one stretched to the grid's own range: at the
+     random projection every weight is 0.31–0.35, and a stretched ramp would
+     draw a strong pattern where the measured finding is that there is none
+     (decision 13). */
+  const heat = (v) => wash(colors.empirical, c01(v));
+
+  /** A 3 x 3 grid read as pairs: key tokens over the columns, query tokens
+      down a gutter to its left. */
+  const axisTokens = (gx, gy) => {
+    for (let c = 0; c < 3; c += 1) {
+      txt(ctx, colors, M.TOKENS[c], gx + c * s.cw + s.cw / 2, gy - 5,
+        { color: colors.ink2, align: "center", size: colors.fsXs });
+    }
+    for (let r = 0; r < 3; r += 1) {
+      txt(ctx, colors, M.TOKENS[r], gx - 6, gy + r * s.ch + s.ch / 2 + 4,
+        { color: colors.ink2, align: "right", size: colors.fsXs });
+    }
+  };
 
   let y = band(ctx, colors, g.y1, w, "Scores and weights", "softmax(QKᵀ / √d_k)");
   label(ctx, colors, PAD, y + 11, "X", [3, 4]);
-  grid(ctx, colors, PAD, y + LBL, 3, 4, CW, CH, (r, c) =>
+  grid(ctx, colors, PAD, y + LBL, 3, 4, s.cw, s.ch, (r, c) =>
     ({ text: M.n2(M.ATT_X[r][c]), hue: colors.groupA, ...(r === q ? litFace(colors, walk.light) : {}) }));
-  spotGrid(PAD, y + LBL, 3, 4, CW, CH, (r, c) => `X[${r}, ${c}] = ${num(M.ATT_X[r][c])}`);
+  spotGrid(PAD, y + LBL, 3, 4, s.cw, s.ch, (r, c) => `X[${r}, ${c}] = ${num(M.ATT_X[r][c])}`);
   for (let r = 0; r < 3; r += 1) {
-    txt(ctx, colors, M.TOKENS[r], PAD + gw + 6, y + LBL + r * CH + CH / 2 + 4,
+    txt(ctx, colors, M.TOKENS[r], PAD + gw + 6, y + LBL + r * s.ch + s.ch / 2 + 4,
       { color: colors.ink2, size: colors.fsXs });
   }
 
-  const qy = y + LBL + 3 * CH + ATT_GAP_QK;
-  arrow(ctx, PAD + gw / 2, y + LBL + 3 * CH + 2, PAD + gw / 2, qy - 18, colors.ink3);
-  arrow(ctx, PAD + gw / 2, y + LBL + 3 * CH + 2, PAD + gw + OP_W + gw / 2, qy - 18, colors.ink3);
+  const qy = y + LBL + 3 * s.ch + ATT_GAP_QK;
+  arrow(ctx, PAD + gw / 2, y + LBL + 3 * s.ch + 2, PAD + gw / 2, qy - 18, colors.ink3);
+  arrow(ctx, PAD + gw / 2, y + LBL + 3 * s.ch + 2, PAD + gw + s.op + gw / 2, qy - 18, colors.ink3);
   label(ctx, colors, PAD, qy - 5, "Q", [3, 4]);
-  grid(ctx, colors, PAD, qy, 3, 4, CW, CH, (r, c) =>
+  grid(ctx, colors, PAD, qy, 3, 4, s.cw, s.ch, (r, c) =>
     ({ text: M.n2(state.Q[r][c]), hue: colors.groupB, ...(r === q ? litFace(colors, walk.light) : {}) }));
-  spotGrid(PAD, qy, 3, 4, CW, CH, (r, c) => `Q[${r}, ${c}] = ${num(state.Q[r][c])}`);
-  const kx = PAD + gw + OP_W;
+  spotGrid(PAD, qy, 3, 4, s.cw, s.ch, (r, c) => `Q[${r}, ${c}] = ${num(state.Q[r][c])}`);
+  const kx = PAD + gw + s.op;
   label(ctx, colors, kx, qy - 5, "K", [3, 4]);
   /* a query reads EVERY key, which is the claim the page is making, so all
      three rows of K light at once */
-  grid(ctx, colors, kx, qy, 3, 4, CW, CH, (r, c) =>
+  grid(ctx, colors, kx, qy, 3, 4, s.cw, s.ch, (r, c) =>
     ({ text: M.n2(state.K[r][c]), hue: colors.groupB, ...(q >= 0 ? litFace(colors, walk.light) : {}) }));
-  spotGrid(kx, qy, 3, 4, CW, CH, (r, c) => `K[${r}, ${c}] = ${num(state.K[r][c])}`);
+  spotGrid(kx, qy, 3, 4, s.cw, s.ch, (r, c) => `K[${r}, ${c}] = ${num(state.K[r][c])}`);
 
-  const sy = qy + 3 * CH + ATT_GAP_SC;
+  const sy = qy + 3 * s.ch + ATT_GAP_SC;
+  const sx = PAD + ATT_TOK;
   const smax = Math.max(...state.scores.flat().map(Math.abs)) || 1;
-  label(ctx, colors, PAD, sy - 5, "scores", [3, 3]);
-  grid(ctx, colors, PAD, sy, 3, 3, CW, CH, (r, c) => {
+  label(ctx, colors, PAD, sy - 19, "scores", [3, 3]);
+  grid(ctx, colors, sx, sy, 3, 3, s.cw, s.ch, (r, c) => {
     const a = arrival(walk, r);
     return a === 0
       ? { empty: true }
       : { text: M.n2(state.scores[r][c]), fill: signedFill(colors, state.scores[r][c], 0, smax) };
   });
-  spotGrid(PAD, sy, 3, 3, CW, CH,
-    (r, c) => (r < walk.done ? `scores[${r}, ${c}] = ${num(state.scores[r][c])}` : null));
-  arrow(ctx, PAD + sw + 12, sy + 3 * CH / 2, PAD + sw + 48, sy + 3 * CH / 2, colors.ink3);
-  txt(ctx, colors, "softmax", PAD + sw + 30, sy + 3 * CH / 2 - 8,
+  spotGrid(sx, sy, 3, 3, s.cw, s.ch,
+    (r, c) => (r < walk.done ? `scores[${M.TOKENS[r]}, ${M.TOKENS[c]}] = ${num(state.scores[r][c])}` : null));
+  axisTokens(sx, sy);
+  arrow(ctx, sx + sw + 12, sy + 3 * s.ch / 2, sx + sw + ATT_SOFT - 12, sy + 3 * s.ch / 2, colors.ink3);
+  txt(ctx, colors, "softmax", sx + sw + ATT_SOFT / 2, sy + 3 * s.ch / 2 - 8,
     { color: colors.ink2, align: "center", size: colors.fsXs });
-  const wx = PAD + sw + 60;
-  label(ctx, colors, wx, sy - 5, "weights", [3, 3]);
-  grid(ctx, colors, wx, sy, 3, 3, CW, CH, (r, c) => {
+  const wx = sx + sw + ATT_SOFT + ATT_TOK;
+  label(ctx, colors, wx - ATT_TOK, sy - 19, "weights", [3, 3]);
+  grid(ctx, colors, wx, sy, 3, 3, s.cw, s.ch, (r, c) => {
     const a = arrival(walk, r);
     return a === 0 ? { empty: true } : { text: M.n3(state.W[r][c]), fill: heat(state.W[r][c]) };
   });
-  spotGrid(wx, sy, 3, 3, CW, CH,
-    (r, c) => (r < walk.done ? `weights[${r}, ${c}] = ${M.n3(state.W[r][c])}` : null));
-  for (let r = 0; r < 3; r += 1) {
-    txt(ctx, colors, M.TOKENS[r], wx + sw + 6, sy + r * CH + CH / 2 + 4,
-      { color: colors.ink2, size: colors.fsXs });
+  spotGrid(wx, sy, 3, 3, s.cw, s.ch,
+    (r, c) => (r < walk.done ? `weights[${M.TOKENS[r]}, ${M.TOKENS[c]}] = ${M.n3(state.W[r][c])}` : null));
+  axisTokens(wx, sy);
+
+  /* WHERE THE THREE SCORES COME FROM (decision 13): the query's row of Q
+     against each row of K, term by term, and the division by √d_k. */
+  const dy = sy + 3 * s.ch + 12;
+  if (q >= 0) {
+    txt(ctx, colors,
+      `Each score is the row of Q for ${M.TOKENS[q]} against one row of K, divided by √${M.D_K}.`,
+      PAD, dy + 10, { color: colors.ink2 });
+    for (let j = 0; j < 3; j += 1) {
+      txt(ctx, colors, scoreLine(state, q, j), PAD, dy + (j + 1) * PRINT_LH + 10,
+        { color: colors.ink2, mono: true, fit: w - 2 * PAD });
+    }
+  } else {
+    txt(ctx, colors, "A score is one row of Q against one row of K, divided by √d_k.",
+      PAD, dy + 10, { color: colors.ink3 });
   }
 
   y = band(ctx, colors, g.y2, w, q >= 0 ? `One query: ${M.TOKENS[q]}` : "One query",
     "Attention(Q, K, V) = softmax(QKᵀ / √d_k) V");
-  const vx = PAD + CW + 8 + ATT_LAB + ATT_DOT;
+  const vx = PAD + s.cw + 8 + ATT_LAB + ATT_DOT;
   for (let j = 0; j < 3; j += 1) {
-    const ry = y + LBL + j * (CH + 8);
+    const ry = y + LBL + j * (s.ch + 8);
     if (q >= 0) {
-      cell(ctx, colors, PAD, ry, CW, CH, M.n3(state.W[q][j]), { fill: heat(state.W[q][j]) });
-      txt(ctx, colors, `${M.TOKENS[q]}–${M.TOKENS[j]}`, PAD + CW + 8, ry + CH / 2 + 4,
+      cell(ctx, colors, PAD, ry, s.cw, s.ch, M.n3(state.W[q][j]), { fill: heat(state.W[q][j]) });
+      txt(ctx, colors, `${M.TOKENS[q]}–${M.TOKENS[j]}`, PAD + s.cw + 8, ry + s.ch / 2 + 4,
         { color: colors.ink2 });
-      txt(ctx, colors, "·", vx - ATT_DOT / 2, ry + CH / 2 + 4,
+      txt(ctx, colors, "·", vx - ATT_DOT / 2, ry + s.ch / 2 + 4,
         { color: colors.ink1, align: "center", size: colors.fsLg });
     } else {
-      cell(ctx, colors, PAD, ry, CW, CH, "", { empty: true });
+      cell(ctx, colors, PAD, ry, s.cw, s.ch, "", { empty: true });
     }
-    grid(ctx, colors, vx, ry, 1, 4, CW, CH, (r, c) =>
+    grid(ctx, colors, vx, ry, 1, 4, s.cw, s.ch, (r, c) =>
       ({ text: M.n2(state.V[j][c]), hue: colors.groupB }));
-    spotGrid(vx, ry, 1, 4, CW, CH, (r, c) => `V[${j}, ${c}] = ${num(state.V[j][c])}`);
+    spotGrid(vx, ry, 1, 4, s.cw, s.ch, (r, c) => `V[${j}, ${c}] = ${num(state.V[j][c])}`);
   }
-  const sumY = y + LBL + 3 * (CH + 8) + 4;
-  arrow(ctx, vx + 2 * CW, sumY, vx + 2 * CW, sumY + 16, colors.ink3);
-  txt(ctx, colors, "Sum", vx + 2 * CW + 10, sumY + 12, { color: colors.ink2 });
-  grid(ctx, colors, vx, sumY + 20, 1, 4, CW, CH, (r, c) => (q >= 0
+  const sumY = y + LBL + 3 * (s.ch + 8) + 4;
+  arrow(ctx, vx + 2 * s.cw, sumY, vx + 2 * s.cw, sumY + 16, colors.ink3);
+  txt(ctx, colors, "Sum", vx + 2 * s.cw + 10, sumY + 12, { color: colors.ink2 });
+  grid(ctx, colors, vx, sumY + 20, 1, 4, s.cw, s.ch, (r, c) => (q >= 0
     ? { text: M.n2(state.out[q][c]), ...litFace(colors, arrival(walk, q)) }
     : { empty: true }));
   if (q >= 0) {
-    spotGrid(vx, sumY + 20, 1, 4, CW, CH, (r, c) => `output[${q}, ${c}] = ${num(state.out[q][c])}`);
-    txt(ctx, colors, `output for ${M.TOKENS[q]}`, vx + 4 * CW + 8, sumY + 20 + CH / 2 + 4,
+    spotGrid(vx, sumY + 20, 1, 4, s.cw, s.ch, (r, c) => `output[${q}, ${c}] = ${num(state.out[q][c])}`);
+    txt(ctx, colors, `output for ${M.TOKENS[q]}`, vx + 4 * s.cw + 8, sumY + 20 + s.ch / 2 + 4,
       { color: colors.ink2, size: colors.fsXs });
   }
   return g;
@@ -883,26 +1075,39 @@ function drawAttn(ctx, colors, w, params, state, anim) {
 
 /* ============================== 5 · Graph ================================== */
 
-const G_PITCH = 3 * IW + 20;          // one node's strip, and the gap to the next
-const G_STAGE = LBL + IW + 10 + 2 * NODE_R + 8;
+const G_STRIP_GAP = 20;               // between one node's strip and the next
 const G_EXTRA = 34;                   // the self-loop and its coefficient
 const G_GAP = 22;
 
+const gPitch = (s) => M.GRAPH_IN * s.iw + G_STRIP_GAP;
+const gStage = (s) => LBL + s.iw + 10 + 2 * s.nodeR + 8;
+
 function graphGeom(ctx, colors, w, params) {
+  const s = fitSizes(w, (z) => M.NODES * gPitch(z) - G_STRIP_GAP);
+  const stageH = gStage(s);
+  /* THE PRINTS ARE PART OF THE BAND (decision 14): the strips carry no digits,
+     so X prints under the Input band and W under the Aggregate band, where it
+     is about to be applied, exactly as the result prints under the Output. */
   const printH = PRINT_DROP + M.printRows([M.NODES, M.GRAPH_IN]) * PRINT_LH;
+  const printW = PRINT_DROP + LBL + M.printRows([M.GRAPH_IN, M.GRAPH_IN]) * PRINT_LH;
   const y1 = 0;
-  const y2 = BAND_HEAD + G_STAGE + G_GAP;
-  const y3 = y2 + BAND_HEAD + G_STAGE + G_EXTRA + G_GAP;
-  const capY = y3 + BAND_HEAD + G_STAGE + printH + CAP_GAP;
+  const y2 = BAND_HEAD + stageH + printH + G_GAP;
+  const y3 = y2 + BAND_HEAD + stageH + G_EXTRA + printW + G_GAP;
+  const capY = y3 + BAND_HEAD + stageH + printH + CAP_GAP;
   const caps = captionLines(ctx, colors, w, params);
-  return { y1, y2, y3, printH, capY, caps, height: capY + caps.length * CAPTION_H + PAD };
+  return {
+    s, stageH, y1, y2, y3, printH, printW, capY, caps,
+    height: capY + caps.length * CAPTION_H + PAD,
+  };
 }
 
 function drawGraph(ctx, colors, w, params, state, anim) {
   const g = graphGeom(ctx, colors, w, params);
+  const { s, stageH } = g;
+  const pitch = gPitch(s);
   const walk = walkAt(anim, state, params);
   const node = walk.idx >= 0 ? walk.idx : -1;
-  const nodeX = (i) => PAD + i * G_PITCH + (3 * IW) / 2;
+  const nodeX = (i) => PAD + i * pitch + (M.GRAPH_IN * s.iw) / 2;
   const spanX = Math.max(...state.X.flat().map(Math.abs)) || 1;
   const spanA = Math.max(...state.agg.flat().map(Math.abs)) || 1;
   const spanO = Math.max(...state.out.flat().map(Math.abs)) || 1;
@@ -911,28 +1116,28 @@ function drawGraph(ctx, colors, w, params, state, anim) {
   const stage = (y, header, expr, valueAt, span, hue, name, lit, read) => {
     const cy = band(ctx, colors, y, w, header, expr);
     for (let i = 0; i < M.NODES; i += 1) {
-      const x = PAD + i * G_PITCH;
+      const x = PAD + i * pitch;
       const vals = valueAt(i);
-      shaded(ctx, colors, x, cy + LBL, 1, M.GRAPH_IN, IW,
+      shaded(ctx, colors, x, cy + LBL, 1, M.GRAPH_IN, s.iw,
         (r, c) => (vals ? signedFill(colors, vals[c], 0, span) : null));
-      spotGrid(x, cy + LBL, 1, M.GRAPH_IN, IW, IW,
+      spotGrid(x, cy + LBL, 1, M.GRAPH_IN, s.iw, s.iw,
         (r, c) => (vals ? `${name}[${i}, ${c}] = ${num(vals[c])}` : null));
       if (read && read.includes(i)) {
-        frame(ctx, x, cy + LBL, M.GRAPH_IN * IW, IW, colors.highlight, HLW);
+        frame(ctx, x, cy + LBL, M.GRAPH_IN * s.iw, s.iw, colors.highlight, HLW);
       }
     }
-    const ny = cy + LBL + IW + 10 + NODE_R;
+    const ny = cy + LBL + s.iw + 10 + s.nodeR;
     ctx.strokeStyle = colors.ink2;
     ctx.lineWidth = 1.5;
     for (let i = 0; i < M.NODES - 1; i += 1) {
       ctx.beginPath();
-      ctx.moveTo(nodeX(i) + NODE_R, ny);
-      ctx.quadraticCurveTo((nodeX(i) + nodeX(i + 1)) / 2, ny - 22, nodeX(i + 1) - NODE_R, ny);
+      ctx.moveTo(nodeX(i) + s.nodeR, ny);
+      ctx.quadraticCurveTo((nodeX(i) + nodeX(i + 1)) / 2, ny - 22, nodeX(i + 1) - s.nodeR, ny);
       ctx.stroke();
     }
     for (let i = 0; i < M.NODES; i += 1) {
       ctx.beginPath();
-      ctx.arc(nodeX(i), ny, NODE_R, 0, Math.PI * 2);
+      ctx.arc(nodeX(i), ny, s.nodeR, 0, Math.PI * 2);
       ctx.fillStyle = wash(hue, 0.75);
       ctx.fill();
       ctx.strokeStyle = colors.axis;
@@ -946,14 +1151,14 @@ function drawGraph(ctx, colors, w, params, state, anim) {
       ctx.lineWidth = 2;
       ctx.setLineDash([4, 3]);
       ctx.beginPath();
-      ctx.arc(nodeX(lit), ny, NODE_R + 5, 0, Math.PI * 2);
+      ctx.arc(nodeX(lit), ny, s.nodeR + 5, 0, Math.PI * 2);
       ctx.stroke();
       ctx.setLineDash([]);
       for (const j of M.neighbours(lit)) {
         if (j === lit) continue;
         const from = nodeX(j), to = nodeX(lit);
         const dir = Math.sign(to - from);
-        arrow(ctx, from + dir * (NODE_R + 6), ny + 2, to - dir * (NODE_R + 7), ny + 2,
+        arrow(ctx, from + dir * (s.nodeR + 6), ny + 2, to - dir * (s.nodeR + 7), ny + 2,
           colors.highlight, 2, [], 8);
         if (state.coef) {
           txt(ctx, colors, M.n3(state.coef[lit][j]), (from + to) / 2, ny + 22,
@@ -963,10 +1168,10 @@ function drawGraph(ctx, colors, w, params, state, anim) {
       ctx.strokeStyle = colors.highlight;
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.arc(nodeX(lit), ny + NODE_R + 8, 9, Math.PI * 0.85, Math.PI * 0.15, false);
+      ctx.arc(nodeX(lit), ny + s.nodeR + 8, 9, Math.PI * 0.85, Math.PI * 0.15, false);
       ctx.stroke();
       if (state.coef) {
-        txt(ctx, colors, M.n3(state.coef[lit][lit]), nodeX(lit), ny + NODE_R + 30,
+        txt(ctx, colors, M.n3(state.coef[lit][lit]), nodeX(lit), ny + s.nodeR + 30,
           { color: colors.highlight, align: "center", mono: true, size: colors.fsXs });
       }
     }
@@ -974,14 +1179,24 @@ function drawGraph(ctx, colors, w, params, state, anim) {
   };
 
   const reads = node >= 0 ? M.neighbours(node) : null;
-  stage(g.y1, "Input", `X  ${shapeText([M.NODES, M.GRAPH_IN])}`,
+  const iy = stage(g.y1, "Input", `X  ${shapeText([M.NODES, M.GRAPH_IN])}`,
     (i) => state.X[i], spanX, colors.groupA, "X", -1, reads);
-  stage(g.y2, "Aggregate", "over N(i) ∪ {i}",
+  /* the node features the strips are shaded from, printed (decision 14) */
+  printBlock(ctx, colors, PAD, iy + stageH + PRINT_DROP,
+    [M.NODES, M.GRAPH_IN], ([r, c]) => state.X[r][c]);
+
+  const ay = stage(g.y2, "Aggregate", "over N(i) ∪ {i}",
     (i) => (arrival(walk, i) > 0 ? state.agg[i] : null), spanA, colors.groupA, "aggregate", node, null);
+  /* the weight the next band is about to apply */
+  label(ctx, colors, PAD, ay + stageH + G_EXTRA + PRINT_DROP + 4, "W",
+    [M.GRAPH_IN, M.GRAPH_IN], colors.ink2);
+  printBlock(ctx, colors, PAD, ay + stageH + G_EXTRA + PRINT_DROP + LBL,
+    [M.GRAPH_IN, M.GRAPH_IN], ([r, c]) => state.W[r][c]);
+
   const oy = stage(g.y3, "Output", "W · aggregate",
     (i) => (arrival(walk, i) > 0 ? state.out[i] : null), spanO, colors.empirical, "h'", -1, null);
   if (walk.done > 0) {
-    printBlock(ctx, colors, PAD, oy + G_STAGE + PRINT_DROP,
+    printBlock(ctx, colors, PAD, oy + stageH + PRINT_DROP,
       [M.NODES, M.GRAPH_IN], ([r, c]) => state.out[r][c], ([r]) => r < walk.done);
   }
   return g;
@@ -999,7 +1214,7 @@ function pageCaption(params) {
   switch (params.block) {
     case "convolutional":
       if (params.conv !== "transposed") {
-        return "One kernel slides over every position, so every value in a map comes from the same weights.";
+        return "Each kernel slides over every position, so every value in its map comes from the same weights.";
       }
       return params.trueimage === "1"
         ? "The difference reaches the full range of the input, so z restores the size and not the values."
@@ -1385,7 +1600,7 @@ defineWidget({
   legend: ({ params }) => {
     const second = {
       linear: "W and b, one row of weights per output unit",
-      convolutional: "The kernel, the same weights at every position",
+      convolutional: "The two kernels, the same weights at every position",
       recurrent: null,
       attention: "Q, K and V, the three projections of the tokens",
       graph: null,
@@ -1497,10 +1712,10 @@ defineWidget({
       for (let r = 0; r < g.n; r += 1) {
         for (let c = 0; c < g.n; c += 1) {
           out.push({
-            x: g.mapX + c * PIX,
-            y: g.mapY + f * g.mapStep + r * PIX,
-            w: PIX,
-            h: PIX,
+            x: g.mapX + c * g.s.pix,
+            y: g.mapY + f * g.mapStep + r * g.s.pix,
+            w: g.s.pix,
+            h: g.s.pix,
             set: { pos: r * g.n + c },
             label: `position ${r}, ${c}`,
           });
@@ -1551,13 +1766,14 @@ defineWidget({
         },
         {
           label: "This position",
-          value: at ? num(state.maps[0][at.r][at.c]) : "—",
+          /* both filters, because one step fills one cell of each map */
+          value: at ? state.maps.map((m) => num(m[at.r][at.c])).join(", ") : "—",
           note: at
             ? (transposed
-              ? `scattered into a ${state.k} × ${state.k} patch of z`
+              ? `both values scattered into the same ${state.k} × ${state.k} patch of z, one kernel each`
               : ones(state, at.r, at.c) === 0
-                ? "every value in the window is 0, so the output is the bias"
-                : `${ones(state, at.r, at.c)} of the ${state.k * state.k} window values are 1, so that many kernel weights and the bias are summed`)
+                ? "every value in the window is 0, so each output is its own bias"
+                : `${ones(state, at.r, at.c)} of the ${state.k * state.k} window values are 1, so that many weights of each kernel and its bias are summed`)
             : "no position has been taken yet",
         },
         {
@@ -1604,8 +1820,9 @@ defineWidget({
         {
           label: "This query",
           value: q >= 0 ? M.TOKENS[q] : "—",
+          /* the chain the band writes out in full: q · k, divided, softmaxed */
           note: q >= 0
-            ? `${state.W[q].map(M.n3).join(", ")} on ${M.TOKENS.join(", ")}; they sum to 1`
+            ? `q · k ÷ √4 = ${M.TOKENS.map((t, j) => `${M.n2(M.attTerms(state, q, j).score).trim()} on ${t}`).join(", ")}; softmax gives ${state.W[q].map(M.n3).join(", ")}`
             : "no query has been taken yet",
         },
         cellTile("—", "a cell's index and value"),
@@ -1614,7 +1831,6 @@ defineWidget({
 
     if (params.block === "graph") {
       const i = walk.idx >= 0 ? walk.idx : -1;
-      const nb = i >= 0 ? M.neighbours(i).filter((j) => j !== i) : [];
       return [
         { label: "Nodes", value: sizeText([M.NODES, M.GRAPH_IN]), note: "4 nodes, 3 features each" },
         { label: "Edges", value: sizeText([2, M.EDGE_INDEX[0].length]), note: "the chain 0–1–2–3, both directions" },
@@ -1622,11 +1838,10 @@ defineWidget({
         {
           label: "This node",
           value: i >= 0 ? state.out[i].map(num).join(", ") : "—",
-          note: i >= 0
-            ? (state.coef
-              ? `neighbours ${nb.join(", ")}; coefficients ${nb.map((j) => M.n3(state.coef[i][j])).join(", ")} and ${M.n3(state.coef[i][i])} on itself`
-              : `neighbours ${nb.join(", ")}; the largest value at each feature`)
-            : "no node has been updated yet",
+          /* THE AGGREGATION WRITTEN OUT (decision 14), at the first feature: the
+             printed X above, the coefficients on the arcs, and the value the
+             Aggregate strip is shaded from, on one line. */
+          note: i >= 0 ? aggLine(state, i) : "no node has been updated yet",
         },
         cellTile("—", "a cell's index and value"),
       ];
@@ -1659,4 +1874,19 @@ defineWidget({
 /** How many of a kernel's weights the window's ones pick out at (r, c). */
 function ones(state, r, c) {
   return state.window(r, c).flat().filter((v) => v !== 0).length;
+}
+
+/**
+ * Node `i`'s aggregate at the first feature, written out (decision 14). Four
+ * decimals, which is what the printed X above the band shows, so the line and
+ * the print are the same digits; a negative goes in brackets rather than after
+ * a plus sign.
+ */
+function aggLine(state, i) {
+  const { kind, terms, value } = M.aggTerms(state, i, 0);
+  const f4 = (v) => (v < 0 ? `(${v.toFixed(4)})` : v.toFixed(4));
+  const body = kind === "max"
+    ? `max(${terms.map((t) => t.x.toFixed(4)).join(", ")})`
+    : terms.map((t) => `${M.n3(t.coef)}×${f4(t.x)}`).join(" + ");
+  return `at the first feature, ${body} = ${value.toFixed(4)}`;
 }

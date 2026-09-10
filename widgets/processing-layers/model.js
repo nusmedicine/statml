@@ -157,6 +157,41 @@ export function conv(rng, k, p) {
 }
 
 /**
+ * One output value written out: the kernel weights filter `f`'s window picks
+ * out at (r, c), and the bias. The window holds 0 and 1 only, so a product is
+ * the weight itself — but it is returned as a product anyway, because the band
+ * draws `window ∗ kernel` and the assertion checks the multiplication (5.8).
+ *
+ * ADDED FOR BOTH FILTERS (round 1 of Kenneth's review): `f` was 0 everywhere
+ * and the second kernel was never on screen.
+ */
+export const convTerms = (state, f, r, c) => {
+  const win = state.window(r, c);
+  const terms = [];
+  for (let u = 0; u < state.k; u += 1) {
+    for (let v = 0; v < state.k; v += 1) {
+      if (win[u][v] !== 0) {
+        terms.push({ x: win[u][v], w: state.kernels[f][u][v], product: win[u][v] * state.kernels[f][u][v] });
+      }
+    }
+  }
+  return { terms, bias: state.biases[f], value: state.maps[f][r][c] };
+};
+
+/**
+ * What ONE input position adds to the patch of z it scatters into: both maps'
+ * values through their own kernel, added. `ConvTranspose2d(2, 1, k)` holds a
+ * `[2, 1, k, k]` weight — one kernel per INPUT map — so a patch cell is two
+ * contributions, not one.
+ */
+export const patchTerms = (state, r, c, u, v) => {
+  const terms = state.maps.map((m, ic) => ({
+    map: ic, value: m[r][c], w: state.tw[ic][u][v], product: m[r][c] * state.tw[ic][u][v],
+  }));
+  return { terms, value: terms.reduce((s, t) => s + t.product, 0) };
+};
+
+/**
  * The reconstruction after the first `count` input positions have scattered,
  * in row order over the n x n map — both channels at each position, which is
  * what one step of the transposed page is. `count = n · n` is the whole of z.
@@ -276,6 +311,17 @@ export function attention(rng, projection) {
   return { kind: "attention", identity, Q, K, V, scores, W, out, bound, units: TOKENS.length };
 }
 
+/**
+ * Where one score comes from: `q_i · k_j / √d_k`, as its four products, their
+ * sum, and the division. The band writes this out under the scores grid and
+ * the readout names the result, so the two read one function (5.8).
+ */
+export const attTerms = (state, i, j) => {
+  const terms = state.Q[i].map((q, c) => ({ q, k: state.K[j][c], product: q * state.K[j][c] }));
+  const dot = terms.reduce((s, t) => s + t.product, 0);
+  return { terms, dot, scale: Math.sqrt(D_K), score: dot / Math.sqrt(D_K) };
+};
+
 /* ========================= 5 · Graph (cells 24-28) ========================= */
 
 export const NODES = 4;
@@ -314,3 +360,24 @@ export function graph(rng, aggregate) {
   const out = agg.map((a) => W.map((w) => dot(w, a)));
   return { kind: "graph", aggregate, X, W, coef, agg, out, bound, units: NODES };
 }
+
+/**
+ * Node `i`'s aggregate at feature `f`, written out — every neighbour it reads,
+ * the coefficient applied to it and the node feature it multiplies, or the
+ * values Max chooses between. Added at round 1 of Kenneth's review: the strips
+ * are shaded and carry no digits, so without this the path from the printed X
+ * to the printed output is not on screen anywhere.
+ */
+export const aggTerms = (state, i, f) => {
+  const nb = neighbours(i);
+  if (!state.coef) {
+    return { kind: "max", terms: nb.map((j) => ({ j, x: state.X[j][f] })), value: state.agg[i][f] };
+  }
+  return {
+    kind: "sum",
+    terms: nb.map((j) => ({
+      j, coef: state.coef[i][j], x: state.X[j][f], product: state.coef[i][j] * state.X[j][f],
+    })),
+    value: state.agg[i][f],
+  };
+};
