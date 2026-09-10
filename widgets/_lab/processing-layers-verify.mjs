@@ -591,5 +591,103 @@ const near = (a, b, eps = 1e-9) => Math.abs(a - b) <= eps;
     `${uni.bandH}px against ${bi.bandH}px`);
 }
 
+/* --- 10 · the query the reader picks, and the rows it is picked from --------- *
+ * Round 4: "can students choose different queries?" (main.js decision 22). TWO
+ * THINGS NO PICTURE SETTLES. The ORDER — a figure showing cat's weights looks
+ * the same whether Step goes on to sat or back to The, and the rule is that the
+ * walk rotates, so the picked query is first and the tokens follow in their own
+ * order, wrapping. And the TARGETS — a click target six columns from the row it
+ * names renders identically to one sitting on it, so `attnStage` places the
+ * page's columns and the three query rows once, for the drawing and for the
+ * region map alike, and this reads the rectangles back at the 550 stage the mock
+ * drew and the 770 one a wide viewport gives. */
+{
+  /* the default is no token picked, and then the walk is the one the page took
+     before a query could be picked at all */
+  const none = M.attnWalk("");
+  check("no token picked: the walk is the tokens' own order",
+    none.start === 0 && none.order.join(",") === "0,1,2" && none.ordinal.join(",") === "0,1,2",
+    none.order.map((i) => M.TOKENS[i]).join(" → "));
+  check("a value that is not a token falls back to that same order",
+    M.attnWalk("dog").order.join(",") === "0,1,2");
+
+  const expected = { The: "The cat sat", cat: "cat sat The", sat: "sat The cat" };
+  for (const [i, token] of M.TOKENS.entries()) {
+    const wk = M.attnWalk(token);
+    const words = wk.order.map((t) => M.TOKENS[t]);
+    check(`${token} first: the walk rotates to ${expected[token]}`,
+      wk.start === i && words.join(" ") === expected[token],
+      words.join(" → "));
+    /* a rotation, so every step is the next token down and each is visited once */
+    check(`${token} first: each token once, each step the next one down`,
+      new Set(wk.order).size === M.TOKENS.length
+      && wk.order.every((t, k) => t === (i + k) % M.TOKENS.length),
+      wk.order.join(", "));
+    /* `ordinal` is what the scores and weights grids ask — which STEP a row is
+       computed at — and with a rotation that is no longer the row's own index */
+    check(`${token} first: ordinal is the inverse of the order`,
+      wk.ordinal.length === M.TOKENS.length
+      && wk.order.every((t, k) => wk.ordinal[t] === k),
+      wk.ordinal.join(", "));
+  }
+
+  for (const w of [550, 770]) {
+    const xTop = 55;                       // X's grid top; main.js owns the header above it
+    const st = M.attnStage(w, xTop);
+    const { s } = st;
+    check(`${w}px: the page's widest band is inside the stage`,
+      M.attnWidest(s) <= w - 2 * M.PAD,
+      `${M.attnWidest(s)} of ${w - 2 * M.PAD}, cell ${s.cw} × ${s.ch}`);
+
+    const kinds = ["x", "scores", "weights"];
+    check(`${w}px: one target per token in each of the three places it is named`,
+      st.rows.length === kinds.length * M.TOKENS.length
+      && kinds.every((k) => st.rows.filter((r) => r.kind === k).length === M.TOKENS.length)
+      /* the value it sets is the TOKEN WORD, which is the option list core
+         checks a region against at load */
+      && st.rows.every((r) => r.query === M.TOKENS[r.i] && M.TOKENS.includes(r.query)),
+      `${st.rows.length} targets`);
+
+    /* THE ASSERTION THIS SECTION EXISTS FOR: each target IS the row the drawing
+       paints. X's three rows tile its grid from `xTop` down at the value cell's
+       own height and span its four columns; each grid's row label sits in the
+       gutter immediately left of the grid, ATT_TOK wide, on the grid's own rows. */
+    const rowsOf = (kind) => st.rows.filter((r) => r.kind === kind).sort((a, b) => a.i - b.i);
+    const xr = rowsOf("x");
+    check(`${w}px: X's three targets tile X's grid, ${s.cw * 4} × ${s.ch} each`,
+      xr.every((r, i) => r.x === M.PAD && r.w === 4 * s.cw && r.h === s.ch
+        && r.y === xTop + i * s.ch),
+      xr.map((r) => `${r.x},${r.y}`).join(" · "));
+    for (const [kind, gx] of [["scores", st.sx], ["weights", st.wx]]) {
+      const gr = rowsOf(kind);
+      check(`${w}px: the ${kind} row labels are the gutter left of the grid`,
+        gr.every((r, i) => r.x + r.w === gx && r.w === M.ATT_TOK && r.h === s.ch
+          && r.y === st.sy + i * s.ch),
+        gr.map((r) => `${r.x}–${r.x + r.w} at ${r.y}`).join(" · "));
+    }
+    check(`${w}px: every target is inside the stage's margins`,
+      st.rows.every((r) => r.x >= M.PAD && r.x + r.w <= w - M.PAD),
+      `widest right edge ${Math.max(...st.rows.map((r) => r.x + r.w))} of ${w - M.PAD}`);
+
+    /* no two rows share a rectangle, or a click would set the wrong query —
+       resolved by the same half-open rule core's own hitTest uses */
+    const centre = (r) => ({ x: r.x + r.w / 2, y: r.y + r.h / 2 });
+    const wrong = st.rows.filter((r) => {
+      const hit = M.graphHit(st.rows, centre(r));
+      return !hit || hit.query !== r.query || hit.kind !== r.kind;
+    });
+    check(`${w}px: a click at any target's centre picks that token and no other`,
+      wrong.length === 0,
+      wrong.length ? wrong.map((r) => `${r.kind} ${r.query}`).join(", ") : `${st.rows.length} targets`);
+
+    /* the whole stage hangs off `xTop`, so the band moving down moves the
+       targets with it rather than leaving them where the mock drew them */
+    const moved = M.attnStage(w, xTop + 100);
+    check(`${w}px: every target moves with the band it sits in`,
+      moved.rows.every((r, k) => r.y === st.rows[k].y + 100 && r.x === st.rows[k].x),
+      `sy ${st.sy} → ${moved.sy}`);
+  }
+}
+
 console.log(failed ? `\n${failed} of ${ran} FAILED\n` : `\nall ${ran} checks passed\n`);
 process.exit(failed ? 1 : 0);

@@ -490,6 +490,88 @@ export const attProducts = (state, i) => {
     on, which is the Random page's caption and is asserted at every seed. */
 export const attValueMean = (state) => state.V[0].map((_, c) => mean(state.V.map((r) => r[c])));
 
+/* --- which query the walk starts at (main.js decision 22) ------------------- *
+ * The walk visits the three queries in the tokens' own order, and a click on a
+ * token starts it there and WRAPS: "cat" gives cat, sat, The. Rotation rather
+ * than "the picked one, then the rest from the top", because Step means the
+ * next token DOWN on every page of this widget — under the other rule a walk
+ * begun at cat would step upwards to The and then jump past sat, and the
+ * scores grid would fill in an order with no rule a reader can see. At the
+ * default — no token picked — the rotation is the identity, so the walk is
+ * exactly the one the page took before the click existed.
+ *
+ * `ordinal[t]` is the step at which token `t` is computed, which is what the
+ * scores and weights grids ask: a row is drawn once the walk has reached it,
+ * and with a rotation that is no longer the row's own index.
+ *
+ * It is arithmetic with a second reader, so it lives here (decision 15's
+ * reasoning): `_lab/processing-layers-verify.mjs` reads the order back in node
+ * for every start token, where `main.js` cannot be imported.
+ */
+export function attnWalk(query) {
+  const start = Math.max(0, TOKENS.indexOf(query));
+  const order = TOKENS.map((_, i) => (start + i) % TOKENS.length);
+  const ordinal = TOKENS.map((_, t) => order.indexOf(t));
+  return { start, order, ordinal };
+}
+
+/* --- the Attention page's columns, and the rows a query is picked from ------- *
+ * BAND 2 BINDS THE PAGE (main.js decision 16): a weight cell, the key token,
+ * the four values, the operator column and the four products is nine cells and
+ * one operator wide. The constants below are the ones that decide a COLUMN, so
+ * they sit with the fit rather than with the drawing, and `attnStage` computes
+ * the three query rows' rectangles from them — once, for the drawing and for
+ * the region map alike (5.8). Nothing in a picture says whether a target sits
+ * where the row is drawn, so the verify script reads the rectangles back. */
+export const ATT_TOK = 30;       // the query token, in a gutter left of a labelled grid
+export const ATT_SOFT = 60;      // the softmax arrow between scores and weights
+/* BAND 2'S ROW LABEL IS THE KEY TOKEN ALONE (main.js decision 16). The pair
+   `cat–The` took 54, and the row carries its product row as well: label, values
+   and products measured 538 against the 522 available at the 550 stage. */
+export const ATT_ROWLAB = 30;
+export const ATT_DOT = 22;       // the · between the weight and the value row
+/* X'S BOTTOM EDGE TO Q AND K, and what has to fit in it (main.js decision 20):
+   the elbows' stem, the rail, the drop, and inside the drop the `Q [3, 4]` line
+   and the column-header row. It was 34 while the connectors were diagonals with
+   nothing but a label under them. */
+export const ATT_GAP_QK = 48;
+export const ATT_GAP_SC = 34;    // the grid's name, and the key tokens over its columns
+
+export const attnWidest = (z) => Math.max(
+  8 * z.cw + z.op,
+  2 * ATT_TOK + 6 * z.cw + ATT_SOFT,
+  9 * z.cw + z.op + 8 + ATT_ROWLAB + ATT_DOT);
+
+/**
+ * Where every column of the Attention page sits, and the rectangle of each
+ * token's row in the three places a query can be picked from: its row of X in
+ * band 1, and its row label in the gutter of the scores grid and of the weights
+ * grid. `xTop` is X's own grid top, which `main.js` owns because the band
+ * header and the name line above it are shared by all five pages.
+ *
+ * `main.js` lays band 1 out from what this returns, so a target cannot drift
+ * from the row it names, and `regions` builds one target per row from `rows`.
+ */
+export function attnStage(w, xTop) {
+  const s = fitSizes(w, attnWidest);
+  const gw = 4 * s.cw;                     // a four-dimension value grid
+  const sw = 3 * s.cw;                     // a 3 x 3 scores or weights grid
+  const xBot = xTop + 3 * s.ch;
+  const qy = xBot + ATT_GAP_QK;            // Q and K, under the elbows
+  const kx = PAD + gw + s.op;
+  const sy = qy + 3 * s.ch + ATT_GAP_SC;   // the scores and weights grids
+  const sx = PAD + ATT_TOK;
+  const wx = sx + sw + ATT_SOFT + ATT_TOK;
+  const rows = [];
+  for (let i = 0; i < TOKENS.length; i += 1) {
+    const query = TOKENS[i];
+    rows.push({ kind: "x", i, query, x: PAD, y: xTop + i * s.ch, w: gw, h: s.ch });
+    rows.push({ kind: "scores", i, query, x: sx - ATT_TOK, y: sy + i * s.ch, w: ATT_TOK, h: s.ch });
+    rows.push({ kind: "weights", i, query, x: wx - ATT_TOK, y: sy + i * s.ch, w: ATT_TOK, h: s.ch });
+  }
+  return { s, gw, sw, xTop, xBot, qy, kx, sy, sx, wx, rows };
+}
+
 /* ========================= 5 · Graph (cells 24-28) ========================= */
 
 export const NODES = 4;
