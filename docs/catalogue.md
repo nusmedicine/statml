@@ -12136,6 +12136,61 @@ that lands one row a step, a drag on a finished figure keeping it finished
 error (2.6) offered against a readout note. Kenneth's four figures are
 `_lab/figs/dl-loss-{mse,ce,bce,dice}.png`.
 
+#### The mock, drawn and picked — `_lab/loss-functions-mock.html`, 2026-09-11 (`c0dba16`)
+
+Six sections, an Opus builder from the composition mock's shell, every
+number from the measure script (the page re-derives all twelve on load and
+asserts they reproduce). One fix before Kenneth saw it: the target's tick at
+3.0 ran through the bar value 2.5 on the Regression page, and the value now
+sits inside the bar where the tick would strike it.
+
+**Numbers the mock corrected or added.** The three task faces fit ONE ROW
+at 300px (a button is 100px against Single-label's 62 + 12 = 74px), so the
+`w-seg-grid` the seven-topic widgets needed is not needed here. A shared
+"Class + Score" control cannot open on the notebook's numbers — one
+parameter has one default, and class A is 5.0 on one page and 0.2 on the
+other — so the tensors are `text` parameters per page (536px of rail across
+the three pages, 124px on any one). Single-label runs four columns at 75px
+in a 300px rows column (three classes and the row sum) against the 47px a
+four-decimal cell needs; the curve beside makes the stage 414px against
+586px below. At rest, settled and dragged are ALL 414px: the walk lands
+values into frames already drawn, which is what lets a drag on a finished
+figure keep it finished (4.4). **The bar axis must be fixed, not fitted
+(2.5)**: fitted to the values on screen, dragging A from 5.0 to 1.0 leaves
+A's own bar at 69px and takes untouched B from 7px to 34px — the drag moves
+every bar except the one under the cursor; fixed at −2..6 (CE), −4..4
+(BCE), −1..6 (MSE), A goes 55 → 11px and B holds at 6px. Multi-label with
+the sum column is the tightest column in the widget, 50px against 47px, so
+its values are drawn at `--fs-xs`; at 770 the pitch goes to 86px. The five
+BCE points span 83px of the 200px curve (p 0.1192 to 0.6225) where the
+single CE point sits 4px from the right wall at 0.9818 and moves 104px
+under the drag to 1.0. The squared row cannot be an area: at 12.6px per
+unit the squares are 6.3, 6.3 and 1.3px on a side, and 0.0100's 1.3px
+square carries a 37px label. Torch's two messages are 363px and 323px,
+two lines each in the 300px column, and the stage stays 426px with the
+error showing.
+
+**Kenneth's picks (four asked, one click each):**
+
+1. **§1b — A, the detail line**, not the readback case table. Each Task
+   option carries its own detail (`softmax over the row · one class index,
+   long` / `sigmoid per class · 0 or 1 per class, float32` / `no function ·
+   float32, same shape as y_pred`); the contrast lives on the stage, where
+   the two pages print 1.0000 and 2.7476 in the same column.
+2. **§2a — bars**, one per class under its letter on a fixed axis, the
+   value at the bar's end and the bar's top as the drag.
+3. **§3 — keep the row-sum column** on Multi-label, reading 2.7476 where
+   softmax's reads 1.0000.
+4. **§5 — the dtype control**, a `Target dtype` segmented `long · float32`
+   on the two classification pages, the wrong arm printing torch's own
+   error where the loss number would be; **both strings UNVERIFIED** and
+   Kenneth runs the two calls in Colab before the widget ships.
+
+Taken as the measured defaults without asking: §1a one row of three faces;
+§1c the tensors as `text` fields per page; §2b the curve right of the rows;
+§2c the fixed bar axis; §4 the squared row as cells with the bracket kept
+on the bars; §6 the −log p curve, p on x from 0 to 1 and loss clipped at 5.
+
 #### The mock-up — `_lab/tensor-mock.html`, 2026-09-08, awaiting picks
 
 Five sections, each a pick: **§1** how the `[2, 2, 5]` tensor is drawn — A the
