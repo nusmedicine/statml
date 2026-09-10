@@ -5,7 +5,7 @@
 
    PHM5005 05-3 cells 61-101. Every operand here is the notebook's own: one
    `x = torch.randn(4, 10)` (cells 66, 68, 72, 74, 92, 95, 98, 101), cell 62's
-   three example blocks, cells 72 and 74's MLP1 and MLP2, cell 80's
+   three perspectives on the order, cells 72 and 74's MLP1 and MLP2, cell 80's
    `summary()`, cell 88's output-size rules and its layer table, and the four
    `forward()` bodies of cells 92, 95, 98 and 101.
 
@@ -152,11 +152,17 @@ export function pageUnits(state) {
         { id: "combined", unit: 5 },
         { id: "fc_out", unit: 6 },
       ];
-    default:
-      return state.view === "combination"
-        ? COMBOS.flatMap((g, i) => g.boxes.map((b, j) => ({ id: `${i}-${j}-${b}`, unit: 0 })))
-          .map((e, i) => ({ ...e, unit: i + 1 }))
-        : state.block.steps.map(([generic], i) => ({ id: generic, unit: i + 1 }));
+    default: {
+      /* Ordering: one unit a step, a combination or a position, by view. A
+         combination is ONE unit and not one per box — Step lights the group,
+         because what the figure claims is that the layers go together. */
+      const ids = state.view === "combinations"
+        ? COMBOS.map((c) => c.boxes.join(" + "))
+        : state.view === "position"
+          ? POSITIONS.map((p) => p.box)
+          : ROLES.map((r) => r.role);
+      return ids.map((id, i) => ({ id, unit: i + 1 }));
+    }
   }
 }
 
@@ -186,6 +192,8 @@ export const CAP_GAP = 14;
 export const TEXT_GAP = 16;       // between the diagram column and the text column
 export const BOX_W = 150;         // a named layer box on a single-column diagram
 export const MIN_BOX = 60;        // `Linear` plus its padding, the narrowest box
+export const XLAB = 16;           // a one-line label above a spine, `x` or `input`
+export const ORDER_EDGE = 26;     // Ordering's shorter edge, since it has five of them
 
 /**
  * A --fs-sm mono character, measured in the browser with `measureText` over
@@ -259,8 +267,10 @@ export const bandWidth = {
     (beside ? cw + TEXT_GAP + routeDiagMin(z, fixed) : Math.max(cw, routeDiagMin(z, fixed))),
   dimensions: () => DIM_BOX_W,
   building: (z, cw, beside) => (beside ? cw + TEXT_GAP + BOX_W : Math.max(cw, BOX_W)),
-  ordering: (z, cw, beside) =>
-    (beside ? cw + TEXT_GAP + ORDER_MIN_DIAG : Math.max(cw, ORDER_MIN_DIAG)),
+  /* Ordering carries no text column at all since the rebuild: the three views
+     draw a box and the text beside it, and the text wraps to whatever the
+     stage leaves. So the page's claim on the width is the diagram's own. */
+  ordering: () => ORDER_MIN_DIAG,
 };
 
 export const routeMinDiag = (z) => 3 * (MIN_BOX + COLGAP) + 3 * z.wcell;
@@ -321,7 +331,7 @@ export const routeDiagMin = (z, fixed) =>
 /* the box, the gradient gutter and the skip rail down the right */
 export const SKIP_MIN_DIAG = 250;
 export const DIM_BOX_W = 180;
-/* the 150px box, and the class name printed beside it */
+/* the 150px box, and the text printed beside it */
 export const ORDER_MIN_DIAG = 250;
 
 /* ============================ the shared batch =============================
@@ -394,100 +404,135 @@ export function printSummary(rows) {
 }
 
 /* ======================== 1 · Ordering (cell 62) ===========================
- * Cell 62's three example blocks in its own words, and its own claim: the
- * ordering is empirical, so the page ranks nothing. What the shapes DO say is
- * that Transform is the only step that changes them. */
+ * THE PAGE NAMES NO ARCHITECTURE. It drew cell 62's three example blocks —
+ * MLP, ResNet, the transformer feed-forward path — until Kenneth on
+ * 2026-09-10: "maybe we don't go into details for specific architectures i.e.
+ * MLP, Resnet, transformer", and "we want principles like in the notebook 05-3
+ * (general pattern, layer combinations, some specific layers at beginning and
+ * end)". `_lab/composition-ordering-mock.html` drew three ways to carry that
+ * and he picked A: the notebook's three perspectives on one `view` control.
+ *
+ *   pattern        the four steps a block applies, and the job each one does
+ *   combinations   pairs of layers that are used as a unit, each with its reason
+ *   position       where each layer sits between the input and the output
+ *
+ * No page here carries a tensor shape any more, so the widget's shape story
+ * belongs to Dimensions alone. The geometry is the mock's §A, constant for
+ * constant, and it lives here because `pageHeight`, `draw` and the verify
+ * script all measure it (5.8).
+ */
 
-export const ORDER_BLOCKS = {
-  mlp: {
-    label: "MLP",
-    in: [4, 10],
-    params: linearParams(10, 20) + 2 * 20,        // 220, and a scale and a shift per feature: 260
-    steps: [
-      ["Transform", "Linear", [4, 20]],
-      ["Normalize", "BatchNorm1d", [4, 20]],
-      ["Activate", "ReLU", [4, 20]],
-      ["Regularize", "Dropout", [4, 20]],
-    ],
-  },
-  resnet: {
-    label: "ResNet",
-    in: [4, 16, 32, 32],
-    params: 16 * 16 * 9 + 16 + 2 * 16,             // Conv2d(16, 16, 3) 2320, BatchNorm2d(16) 32: 2352
-    steps: [
-      ["Transform", "Conv2d", [4, 16, 32, 32]],
-      ["Normalize", "BatchNorm2d", [4, 16, 32, 32]],
-      ["Activate", "ReLU", [4, 16, 32, 32]],
-    ],
-  },
-  transformer: {
-    label: "Transformer feed-forward",
-    in: [4, 20],
-    params: linearParams(20, 80) + linearParams(80, 20) + 2 * 20, // 1680 + 1620, LayerNorm(20) 40: 3340
-    steps: [
-      ["Transform", "Linear", [4, 80]],
-      ["Activate", "GELU", [4, 80]],
-      ["Transform", "Linear", [4, 20]],
-      ["Regularize", "Dropout", [4, 20]],
-      ["Normalize", "LayerNorm", [4, 20]],
-    ],
-  },
-};
+/** The four steps of the subunit figure: the role, the job it does, and the
+    layers that fill it. `weights` is whether the step has parameters, which is
+    what the readout counts. */
+export const ROLES = [
+  { role: "Transform", job: "learns new features", eg: "Linear, Convolution, Attention", hue: "groupA", weights: true },
+  { role: "Normalize", job: "stabilizes the distribution of activations", eg: "BatchNorm, LayerNorm", hue: "groupB", weights: true },
+  { role: "Activate", job: "introduces non-linearity", eg: "ReLU, GELU, SiLU", hue: "groupB", weights: false },
+  { role: "Regularize", job: "reduces overfitting", eg: "Dropout", hue: "groupC", weights: false },
+];
+export const PATTERN = ROLES.map((r) => r.role).join(" → ");
+export const ROLES_WITH_WEIGHTS = ROLES.filter((r) => r.weights).length;
 
-/** What `nn.Sequential` prints for each of the three blocks. */
-export const ORDER_PRINT = {
-  mlp: [
-    "Sequential(",
-    "  (0): Linear(in_features=10, out_features=20, bias=True)",
-    "  (1): BatchNorm1d(20, eps=1e-05, momentum=0.1)",
-    "  (2): ReLU()",
-    "  (3): Dropout(p=0.5, inplace=False)",
-    ")",
-  ],
-  resnet: [
-    "Sequential(",
-    "  (0): Conv2d(16, 16, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))",
-    "  (1): BatchNorm2d(16, eps=1e-05, momentum=0.1)",
-    "  (2): ReLU()",
-    ")",
-  ],
-  transformer: [
-    "Sequential(",
-    "  (0): Linear(in_features=20, out_features=80, bias=True)",
-    "  (1): GELU(approximate='none')",
-    "  (2): Linear(in_features=80, out_features=20, bias=True)",
-    "  (3): Dropout(p=0.5, inplace=False)",
-    "  (4): LayerNorm((20,), eps=1e-05)",
-    ")",
-  ],
-};
-
-/** Cell 62's second figure: the layers that are used as a unit. */
+/** Cell 62's second figure: the layers that are used as a unit. `or` is the
+    row a group's alternatives are separated at, and `follows` is the layer the
+    first one hands to, which is the readout's third tile. */
 export const COMBOS = [
-  { boxes: ["Convolutional", "Pooling"], note: "local features, then a coarser summary" },
+  {
+    boxes: ["Convolution", "Pooling"],
+    or: null,
+    data: "images",
+    follows: "Pooling",
+    reason: "Convolution extracts local features and pooling summarizes them at a coarser resolution.",
+  },
   {
     boxes: ["Embedding", "Recurrent", "Attention"],
     or: 2,
-    note: "tokens to vectors, then related across the sequence",
+    data: "sequences",
+    follows: "Recurrent or Attention",
+    reason: "Embedding maps tokens to vectors and the layer after it relates them across the sequence.",
   },
-  { boxes: ["Linear", "Activation"], note: "a linear map, then a non-linearity" },
+  {
+    boxes: ["Linear", "Activation"],
+    or: null,
+    data: "vectors",
+    follows: "Activation",
+    reason: "Two linear layers in a row are one linear map, so the activation adds the non-linearity.",
+  },
 ];
-export const COMBO_BOXES = COMBOS.reduce((a, g) => a + g.boxes.length, 0);
 
-export function ordering(block, view) {
-  const b = ORDER_BLOCKS[block];
-  const changed = b.steps.filter(([, , out], i) => {
-    const prev = i === 0 ? b.in : b.steps[i - 1][2];
-    return out.join() !== prev.join();
-  }).length;
-  return {
-    kind: "ordering",
-    view,
-    block: b,
-    print: ORDER_PRINT[block],
-    changed,
-    units: view === "combination" ? COMBO_BOXES : b.steps.length,
-  };
+/** Cell 62's third figure: the whole network, top to bottom. `side` is the
+    text beside the box, at most two lines because a 30px box holds two. */
+export const POSITIONS = [
+  {
+    box: "Encoding",
+    pos: "beginning",
+    tile: "Embedding, Convolution",
+    side: ["Embedding for tokens, Convolution for images,", "or the raw inputs normalized"],
+  },
+  {
+    box: "Subunit",
+    pos: "middle",
+    repeated: true,
+    tile: "the block, repeated",
+    side: [PATTERN, "stacked to add depth"],
+  },
+  {
+    box: "Global pooling",
+    pos: "end",
+    tile: "Global pooling",
+    side: ["averages across time or space"],
+  },
+  {
+    box: "Linear",
+    pos: "end",
+    tile: "Linear",
+    side: ["maps to the number of outputs the task needs"],
+  },
+];
+
+export const ORDER_VIEWS = {
+  pattern: ROLES.length,
+  combinations: COMBOS.length,
+  position: POSITIONS.length,
+};
+
+/* --- the mock's §A geometry, so the verify script measures the same page ---
+ * The one thing `orderHeight` cannot know is how many rows the caption block
+ * wraps to, since that needs a canvas; `main.js` measures it and passes it in,
+ * and the verify script asserts the arithmetic at the row counts the browser
+ * reports. The same arrangement as MONO_SM. */
+
+export const SIDE_GAP = 8;          // between a box and the text beside it
+export const REPEAT_PAD = 24;       // the height the brackets add around a subunit
+export const COMBO_GAP = 8;         // between two boxes of one combination
+export const COMBO_HEAD = 12;       // above the first box inside a dashed group
+export const COMBO_FOOT = 8;        // below the last one
+
+export const COMBO_ROWS = Math.max(...COMBOS.map((c) => c.boxes.length + (c.or != null ? 1 : 0)));
+export const COMBO_GROUP_H = COMBO_HEAD + COMBO_ROWS * (BOX_H + COMBO_GAP) + COMBO_FOOT;
+export const comboGroupW = (usable) => Math.floor((usable - 2 * GAP) / 3);
+
+/** How tall one position's row is: the repeated one carries its brackets. */
+export const positionRowH = (p) => (p.repeated ? BOX_H + REPEAT_PAD : BOX_H);
+
+/** The figure alone, without the band header or the captions. */
+export function orderBodyH(view) {
+  if (view === "combinations") return COMBO_GROUP_H;
+  if (view === "position") {
+    return XLAB + POSITIONS.reduce((a, p) => a + positionRowH(p) + ORDER_EDGE, 0)
+      + ORDER_EDGE + XLAB;
+  }
+  return ROLES.length * BOX_H + (ROLES.length - 1) * ORDER_EDGE;
+}
+
+/** The stage the page asks for, at a measured number of caption rows. */
+export const orderHeight = (view, capRows) =>
+  BAND_HEAD + orderBodyH(view) + CAP_GAP + capRows * CAPTION_H + PAD;
+
+export function ordering(view) {
+  const v = ORDER_VIEWS[view] ? view : "pattern";
+  return { kind: "ordering", view: v, units: ORDER_VIEWS[v] };
 }
 
 /* ======================= 2 · Building (cells 63-80) ========================
@@ -1073,9 +1118,10 @@ export function routeRestColumn(st, s) {
  *   Building    what the print names against what the forward pass runs is the
  *               page's result and waits for the last layer; what a print is is
  *               a definition.
- *   Ordering    how many steps changed the shape waits for the last one; that
- *               the order is empirical is a definition, and a Combination is
- *               two definitions.
+ *   Ordering    Pattern and Position each hold a result that waits for the
+ *               last unit and a definition that reads at rest; Combinations
+ *               holds one reason per group, each marked `only`, so the row
+ *               shows for the group being lit and the block stays one line.
  *
  * It lives here rather than in `main.js` so the verify script reads the same
  * table the drawing does (5.8), and the copy audit reads both files.
@@ -1170,18 +1216,27 @@ export function captions(params, state) {
           : "A print names the layers a model declares, and the forward pass is what decides which of them run."),
       ];
     default:
-      if (state.view === "combination") {
+      /* ORDERING'S THREE VIEWS. Combinations is the one page in the widget
+         whose caption is not a stack: each group has a reason of its own, and
+         `only` says the row belongs to the group being shown rather than to
+         everything that has landed. The rows SHARE one slot, so the block is
+         one line tall whichever group is lit and `pageHeight` is unmoved — the
+         mock's §A measured the alternative, a reason under every group, and
+         the widest ran into its neighbour. */
+      if (state.view === "combinations") {
+        return COMBOS.map((c, i) => ({ text: c.reason, at: i + 1, only: true }));
+      }
+      if (state.view === "position") {
         return [
-          line("These layers are used as a unit because their roles complete each other."),
-          line("A model is assembled from such units, and the same unit appears in many architectures."),
+          line("The layers at the beginning follow the data and the layers at the end follow the task.",
+            state.units),
+          line("Only the middle is repeated, and the number of repeats is what sets the depth."),
         ];
       }
       return [
-        line(state.changed === 0
-          ? `Nothing here changes the shape: this Conv2d has padding 1, so ${shapeText(state.block.in)} goes through as it is.`
-          : `${state.changed} of the ${state.block.steps.length} steps change the shape, and ${state.changed === 1 ? "it is a Transform" : "both are Transforms"}.`,
-        state.units),
-        line("The order is an empirical choice, and the shapes are the same whichever order these steps are written in."),
+        line(`${ROLES_WITH_WEIGHTS} of the ${ROLES.length} steps carry weights, and an activation and a dropout carry none.`,
+          state.units),
+        line("A block applies these four steps, and the order of the last three is an empirical choice."),
       ];
   }
 }

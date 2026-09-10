@@ -57,14 +57,27 @@ const shapeIs = (s, want) => Array.isArray(s) && s.join() === want.join();
     `mean ${mean.toFixed(3)} over ${flat.length} values`);
 }
 
-/* --- 2 · Ordering: cell 62's three blocks ----------------------------------- */
+/* --- 2 · Ordering: cell 62's three perspectives ------------------------------ *
+ * The page named three architectures until 2026-09-10, when Kenneth asked for
+ * the notebook's principles instead and picked candidate A of
+ * `composition-ordering-mock.html`. What is asserted here is what the three
+ * views walk, what the drive button is called on each, which caption waits for
+ * which unit, and the three stage heights the mock measured — none of which a
+ * pixel hash of a settled figure can see.
+ */
 {
-  const mlp = M.ordering("mlp", "subunit");
-  const res = M.ordering("resnet", "subunit");
-  const tr = M.ordering("transformer", "subunit");
-  check("Ordering counts the parameters at the printed sizes",
-    M.ORDER_BLOCKS.mlp.params === 260 && M.ORDER_BLOCKS.resnet.params === 2352 && M.ORDER_BLOCKS.transformer.params === 3340,
-    "260, 2352, 3340");
+  const pat = M.ordering("pattern");
+  const comb = M.ordering("combinations");
+  const pos = M.ordering("position");
+  /* source comments are exempt from the copy rules and from these two, since
+     decision 15 names in prose exactly what it removed from the code (5.9) */
+  const bare = (u) => readFileSync(new URL(u, import.meta.url), "utf8")
+    .replace(/\/\*[\s\S]*?\*\//g, " ").replace(/^\s*\/\/.*$/gm, " ");
+  const src = bare("../composition/main.js");
+  const model = bare("../composition/model.js");
+  /* the section markers are comments, so the slicing reads the file as written */
+  const rawSrc = readFileSync(new URL("../composition/main.js", import.meta.url), "utf8");
+
   {
     /* core resolves a slot whose menu follows the data type to that menu's
        first option when the link names only the data type (params.js) */
@@ -78,39 +91,126 @@ const shapeIs = (s, want) => Array.isArray(s) && s.join() === want.join();
         && at("") === "Conv2d-3-16-3" && at("data=sequence&step1=Embedding-6-8") === "Embedding-6-8");
   }
 
-  check("the box count follows the block: 4, 3 and 5 steps",
-    mlp.units === 4 && res.units === 3 && tr.units === 5,
-    `${mlp.units} / ${res.units} / ${tr.units}`);
+  check("the three views walk 4 steps, 3 combinations and 4 positions",
+    pat.units === 4 && comb.units === 3 && pos.units === 4,
+    `${pat.units} / ${comb.units} / ${pos.units}`);
 
-  check("the MLP block is Linear, BatchNorm1d, ReLU, Dropout",
-    mlp.block.steps.map(([, c]) => c).join(" → ") === "Linear → BatchNorm1d → ReLU → Dropout");
+  check("a view the link does not name falls back to the pattern",
+    M.ordering("subunit").view === "pattern" && M.ordering(undefined).view === "pattern");
 
-  check("the ResNet block has no Regularize step at all",
-    !res.block.steps.some(([g]) => g === "Regularize"));
+  check("the pattern is Transform, Normalize, Activate, Regularize",
+    M.PATTERN === "Transform → Normalize → Activate → Regularize");
 
-  check("the transformer feed-forward path has two Transform steps",
-    tr.block.steps.filter(([g]) => g === "Transform").length === 2);
+  check("every step names the job it does and the layers that fill it",
+    M.ROLES.every((r) => r.job && r.eg && r.hue),
+    M.ROLES.map((r) => r.eg.split(",")[0]).join(", "));
 
-  check("only a Transform changes the shape, and the ResNet Conv2d changes none",
-    mlp.changed === 1 && tr.changed === 2 && res.changed === 0,
-    `${mlp.changed} / ${tr.changed} / ${res.changed}`);
+  check("two of the four steps carry weights, and the other two carry none",
+    M.ROLES_WITH_WEIGHTS === 2
+    && M.ROLES.filter((r) => r.weights).map((r) => r.role).join(", ") === "Transform, Normalize",
+    `${M.ROLES_WITH_WEIGHTS} of ${M.ROLES.length}`);
 
-  check("the transformer widens to [4, 80] and comes back to [4, 20]",
-    shapeIs(tr.block.steps[0][2], [4, 80]) && shapeIs(tr.block.steps[4][2], [4, 20]));
+  check("the three hues are group-a, group-b twice, and group-c",
+    M.ROLES.map((r) => r.hue).join(" ") === "groupA groupB groupB groupC",
+    "the job separates the steps, so Normalize and Activate share a hue");
 
-  check("nn.Sequential prints one line per layer, plus the two braces",
-    M.ORDER_PRINT.mlp.length === 6 && M.ORDER_PRINT.resnet.length === 5
-    && M.ORDER_PRINT.transformer.length === 7);
+  check("the three combinations are Conv + Pool, Embedding + Recurrent or Attention, Linear + Activation",
+    M.COMBOS.map((c) => c.boxes.join(" ")).join(" | ")
+      === "Convolution Pooling | Embedding Recurrent Attention | Linear Activation");
 
-  /* the mock's correction: the plan took the widest print line to be the
-     36-character Dropout one, and a Sequential Linear is 57 */
-  check("the widest print line is a Linear at 57 characters, not a Dropout at 36",
-    M.codeChars(M.ORDER_PRINT.mlp) === 57 && M.codeChars(M.ORDER_PRINT.resnet) === 72,
-    `mlp ${M.codeChars(M.ORDER_PRINT.mlp)}, resnet ${M.codeChars(M.ORDER_PRINT.resnet)}`);
+  check("the sequence combination is the one with an alternative in it",
+    M.COMBOS.filter((c) => c.or != null).length === 1 && M.COMBOS[1].or === 2
+    && M.COMBOS[1].follows === "Recurrent or Attention");
 
-  const comb = M.ordering("mlp", "combination");
-  check("the Combination view walks the seven layers of the three combinations",
-    comb.units === 7 && M.COMBO_BOXES === 7);
+  check("every combination names the data it suits and the layer that follows",
+    M.COMBOS.every((c) => c.data && c.reason && c.boxes.includes(c.follows.split(" or ")[0])));
+
+  check("the four positions are the beginning, the repeated middle and two at the end",
+    M.POSITIONS.map((p) => p.pos).join(" ") === "beginning middle end end"
+    && M.POSITIONS.filter((p) => p.repeated).length === 1
+    && M.POSITIONS[1].box === "Subunit",
+    M.POSITIONS.map((p) => p.box).join(" → "));
+
+  check("the repeated position's side text is the pattern itself",
+    M.POSITIONS[1].side[0] === M.PATTERN && M.POSITIONS[1].side.length === 2);
+
+  check("no position carries more than the two lines a 30px box has room for",
+    M.POSITIONS.every((p) => p.side.length <= 2));
+
+  /* THE DRIVE LABEL NESTS ON `view`, through core's own label map — the door
+     the sibling widget grew and Building already uses for its two APIs. */
+  check("the drive label nests on view: Next step, Next combination, Next position",
+    /ordering: \{\s*param: "view",\s*labels: \{ pattern: "Next step", combinations: "Next combination", position: "Next position" \}/
+      .test(src),
+    "Step names the unit of the view it is in");
+
+  /* THE CAPTIONS. Pattern and Position hold a result that waits for the last
+     unit and a definition that reads at rest; Combinations holds one reason a
+     group, each marked `only`, so the row shows for the group being lit. */
+  const capsOf = (st) => M.captions({}, st);
+  check("Pattern and Position hold a result at the last unit and a definition at rest",
+    [pat, pos].every((st) => {
+      const c = capsOf(st);
+      return c.length === 2 && c[0].at === st.units && c[1].at === 0;
+    }));
+
+  check("Combinations holds one reason a group, each waiting for its own group",
+    capsOf(comb).length === 3
+    && capsOf(comb).every((c, i) => c.at === i + 1 && c.only === true)
+    && capsOf(comb).map((c) => c.text).join("") === M.COMBOS.map((c) => c.reason).join(""));
+
+  /* EVERY ORDERING CAPTION IS ONE ROW WIDE. The block is 17px a row and the
+     three stage heights below are measured at 2, 1 and 2 rows, so a line that
+     wrapped would move the page. Measured on the live canvas at --fs-sm over a
+     522px stage: the three reasons are 470, 478 and 451px, Position's two lines
+     444 and 416, Pattern's 392 and 452. The character cap is the proxy the
+     verify script can hold, since node has no canvas to ask. */
+  check("every Ordering caption line fits the 522px stage on one row",
+    [pat, comb, pos].every((st) => capsOf(st).every((c) => c.text.length <= 90)),
+    `widest ${Math.max(...[pat, comb, pos].flatMap((st) => capsOf(st).map((c) => c.text.length)))} characters, `
+    + "478px of 522 measured");
+  check("no caption reads before its unit lands, on any of the three views",
+    [pat, comb, pos].every((st) => capsOf(st).every((c) =>
+      c.at === 0 || M.stageOf(0, c.at) !== "landed")),
+    "the definition line is the only one on the stage at rest");
+
+  /* THE THREE HEIGHTS, at the caption row counts the browser measures: 2 rows
+     on Pattern, 1 on Combinations, 2 on Position (the mock, §A). */
+  check("the three views are 286, 243 and 394px at 550",
+    M.orderHeight("pattern", 2) === 286
+    && M.orderHeight("combinations", 1) === 243
+    && M.orderHeight("position", 2) === 394,
+    `${M.orderHeight("pattern", 2)} / ${M.orderHeight("combinations", 1)} / ${M.orderHeight("position", 2)}`);
+
+  check("each view's figure is the mock's own body: 198, 172 and 306px",
+    M.orderBodyH("pattern") === 198 && M.orderBodyH("combinations") === 172
+    && M.orderBodyH("position") === 306,
+    "four boxes and three edges, one group block, four positions between input and output");
+
+  check("the three combination groups are 159px on a 522px stage, boxes 139 wide",
+    M.comboGroupW(522) === 159 && M.comboGroupW(522) - 20 === 139 && M.COMBO_GROUP_H === 172,
+    `${M.comboGroupW(522)}px a group, ${M.COMBO_ROWS} rows deep`);
+
+  /* WHAT THE REBUILD REMOVED, asserted so it cannot come back by accident. */
+  check("the three named blocks and their prints are gone from both files",
+    !/ORDER_BLOCKS|ORDER_PRINT|COMBO_BOXES/.test(`${src}${model}`)
+    && !/\bblock:\s/.test(src) && !/\bblock:\s/.test(model),
+    "no ORDER_BLOCKS, no ORDER_PRINT, and no block control");
+
+  check("no architecture is named by anything the page draws",
+    ![M.PATTERN, ...M.ROLES.flatMap((r) => [r.role, r.job, r.eg]),
+      ...M.COMBOS.flatMap((c) => [...c.boxes, c.data, c.follows, c.reason]),
+      ...M.POSITIONS.flatMap((q) => [q.box, q.pos, q.tile, ...q.side]),
+      ...M.captions({}, pat).map((c) => c.text),
+      ...M.captions({}, comb).map((c) => c.text),
+      ...M.captions({}, pos).map((c) => c.text)]
+      .some((t) => /\b(MLP|ResNet|Transformer|BERT|GPT)\b/i.test(t)),
+    "the roles, the pairs, the positions and the captions name layers and jobs only");
+
+  const orderSrc = rawSrc.slice(rawSrc.indexOf("7 · Ordering"), rawSrc.indexOf("the captions ====="));
+  check("Ordering draws no tensor shape at all",
+    orderSrc.length > 1000 && !/shapeText|sizeText/.test(orderSrc),
+    `the shape story is Dimensions', over ${orderSrc.length} characters of the page`);
 }
 
 /* --- 3 · Building: MLP1 prints 3, MLP2 prints 2, both run 3 ------------------ */
@@ -662,7 +762,6 @@ const shapeIs = (s, want) => Array.isArray(s) && s.join() === want.join();
       building: M.besideFits(w, M.codeWidth([
         "  (fc1): Linear(in_features=10, out_features=20, bias=True)",
       ]), M.BOX_W),
-      ordering: M.besideFits(w, M.codeWidth(M.ORDER_PRINT.resnet), M.ORDER_MIN_DIAG),
     };
     const cases = [
       ["skip", M.fitSizes(w, (z) => M.bandWidth.skip(z, CW.skip)), (z) => M.bandWidth.skip(z, CW.skip)],
@@ -675,7 +774,7 @@ const shapeIs = (s, want) => Array.isArray(s) && s.join() === want.join();
       ["building", M.sizesAt(0), (z) => M.bandWidth.building(z, M.codeWidth([
         "  (fc1): Linear(in_features=10, out_features=20, bias=True)",
       ]), beside.building)],
-      ["ordering", M.sizesAt(0), (z) => M.bandWidth.ordering(z, M.codeWidth(M.ORDER_PRINT.resnet), beside.ordering)],
+      ["ordering", M.sizesAt(0), () => M.bandWidth.ordering()],
     ];
     for (const [name, z, widthOf] of cases) {
       steps += 1;
@@ -827,10 +926,9 @@ const shapeIs = (s, want) => Array.isArray(s) && s.join() === want.join();
 {
   const rng = () => makeRng(1);
   const PAGES = [
-    ["ordering mlp", { sample: "0" }, M.ordering("mlp", "subunit")],
-    ["ordering resnet", { sample: "0" }, M.ordering("resnet", "subunit")],
-    ["ordering transformer", { sample: "0" }, M.ordering("transformer", "subunit")],
-    ["ordering combination", { sample: "0" }, M.ordering("mlp", "combination")],
+    ["ordering pattern", {}, M.ordering("pattern")],
+    ["ordering combinations", {}, M.ordering("combinations")],
+    ["ordering position", {}, M.ordering("position")],
     ["building flat", { show: "print" }, M.building("sequential", "flat", "all", "print")],
     ["building blocks", { show: "print" }, M.building("sequential", "blocks", "all", "print")],
     ["building MLP1", { show: "summary" }, M.building("module", "flat", "all", "summary")],
@@ -933,10 +1031,11 @@ const shapeIs = (s, want) => Array.isArray(s) && s.join() === want.join();
     }),
     "Combination is the one page whose two lines are both definitions");
 
-  check("a definition line reads at rest on every page but Skip where the add works",
-    PAGES.filter(([n]) => n !== "skip 10" && n !== "skip 20 proj")
+  check("a definition line reads at rest on every page but three",
+    PAGES.filter(([n]) => n !== "skip 10" && n !== "skip 20 proj" && n !== "ordering combinations")
       .every(([, p, st]) => M.captions(p, st).some((c) => c.at === 0)),
-    "both of Skip's lines there are claims about the add and about the two routes back to x");
+    "both of Skip's lines there are claims about the add and about the two routes back to x, and "
+    + "Ordering's Combinations carries a reason a group and takes its definition from the card");
 
   check("a result caption is blank at 0 and present at the end of the walk",
     PAGES.filter(([n]) => n !== "ordering combination").every(([, p, st]) =>
@@ -1036,7 +1135,7 @@ const shapeIs = (s, want) => Array.isArray(s) && s.join() === want.join();
 
   check("the drive label is Next line, and Next layer where a layer is the unit",
     /stepLabel: { param: "topic", labels: STEP_LABELS, default: "Next line" }/.test(src)
-    && /ordering: "Next layer"/.test(src) && /dimensions: "Next layer"/.test(src)
+    && /dimensions: "Next layer"/.test(src)
     && /building: { param: "api", labels: { sequential: "Next layer", module: "Next line" }/.test(src));
 
   check("the rail's two row heads are the notebook's own headings",

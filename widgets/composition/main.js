@@ -31,18 +31,20 @@
        formula each (5.8).
 
     3. THE STAGE HEIGHT IS A FUNCTION OF THE PARAMETERS AND THE WIDTH.
-       Dimensions is a 366px page and Ordering a 522px one, and Routing loses
+       Dimensions is a 366px page and Ordering three of 286, 243 and 394,
+       and Routing loses
        138px when the code moves beside the diagram at 770, so a single height
        would make every short page pay for the tallest. `pageHeight` and `draw`
        ask the same geometry functions (5.8), and both build the state from the
        same `computeFor`, so neither can measure a figure the other did not
        draw.
 
-    4. THE FIT PASS IS ONE RULE FOR THREE PAGES. Routing, Ordering and
-       Building each carry a text column, and each puts it UNDER the diagram
-       where beside would leave the diagram too narrow to draw and BESIDE it
-       where it would not. Skip, Gating and Branching keep theirs beside at
-       both widths, which the same rule answers without a second one.
+    4. THE FIT PASS IS ONE RULE FOR TWO PAGES. Routing and Building each carry
+       a text column, and each puts it UNDER the diagram where beside would
+       leave the diagram too narrow to draw and BESIDE it where it would not.
+       Skip, Gating and Branching keep theirs beside at both widths, which the
+       same rule answers without a second one. Ordering was the third until
+       decision 15 took its print away, and it carries no text column now.
 
     5. THE `forward()` BODY IS DRAWN WITH ITS INDENT REMOVED, as the mock drew
        it: the `def` line as written and the body flush under it. Every "it
@@ -83,8 +85,9 @@
        (`:80`, both mean the reader's own data), so a figure that used them to
        tell two things apart would tell them apart in the legend and nowhere
        else. Where a page needs a second hue against the reader's tensor it
-       takes `--c-group-b`, which is what the second operand already is;
-       Ordering's non-Transform steps take `--ink-2` instead.
+       takes `--c-group-b`, which is what the second operand already is.
+       Ordering read its non-Transform steps as `--ink-2` until decision 17,
+       which gives its four steps three hues on the job each one does.
 
    12. THE GATE'S WEIGHTS ARE DRAWN AS THE [4, 3] TENSOR THEY ARE. The mock
        drew the chosen sample's row alone, which leaves the four rows the plan
@@ -148,6 +151,45 @@
        (3.6) — and the walk reaches it through the `anim` object `draw` stashes,
        since core hands `regions` the parameters and the state and not the
        animation.
+
+   15. ORDERING NAMES NO ARCHITECTURE. The page drew cell 62's three example
+       blocks — MLP, ResNet, the transformer feed-forward path — with a `block`
+       control, a print and a shape on every edge, until Kenneth on 2026-09-10:
+       "maybe we don't go into details for specific architectures i.e. MLP,
+       Resnet, transformer", and "we want principles like in the notebook 05-3
+       (general pattern, layer combinations, some specific layers at beginning
+       and end)". `_lab/composition-ordering-mock.html` drew three ways to
+       carry that at the real stage and he picked A: the notebook's three
+       perspectives on the one `view` control, `pattern`, `combinations` and
+       `position`. Its §A is the geometry of record here, as the eight-section
+       mock is for the other six pages.
+
+       WHAT WENT WITH THE BLOCKS. `ORDER_BLOCKS`, `ORDER_PRINT`, the `block`
+       control and its URL values, the `changed` count, the print column, and
+       the Shape in / Shape out / Steps that change the shape / Parameters
+       tiles. NO SHAPE IS DRAWN ON THIS PAGE AT ALL now, which is why the fit
+       pass no longer asks whether Ordering's text column sits beside the
+       diagram: there is no text column. The shape story is Dimensions'.
+
+       Step's label follows the view through core's nested label map — Next
+       step · Next combination · Next position — the same door Building's
+       label uses for its two APIs.
+
+   16. A CAPTION ROW CAN BE SHARED. Combinations gives every group a reason of
+       its own and the lit group's reason is what prints, so the three rows
+       occupy ONE row of stage: `M.captions` marks them `only`, `captionLines`
+       lays them at the same row, and the height asks `capRows` rather than
+       `caps.length`. The alternative the mock measured is a reason under every
+       group, where the widest runs into its neighbour at the 174px group
+       pitch; that collision is what the shipped page had.
+
+   17. THE PATTERN'S FOUR STEPS CARRY THREE HUES, from his own subunit figure:
+       Transform `--c-group-a`, Normalize and Activate `--c-group-b`,
+       Regularize `--c-group-c`. Decision 11's reading of the old page — the
+       non-Transform steps as ink, because only Transform changed the shape —
+       went with the shapes. What separates the four now is the JOB each does,
+       the legend names the three groups by that job, and `--c-group-c` is the
+       third parallel role the token was added for.
    ========================================================================= */
 
 import {
@@ -166,14 +208,12 @@ function measureCtx() {
 
 const {
   PAD, GAP, COLGAP, BOX_H, BOX_BW, EDGE_H, HEAD, LINE, BAND_HEAD, CAPTION_H,
-  CAP_GAP, TEXT_GAP, BOX_W, DIM_BOX_W,
+  CAP_GAP, TEXT_GAP, BOX_W, DIM_BOX_W, XLAB, ORDER_EDGE, SIDE_GAP,
 } = M;
 
 const HLW = 2.5;          // the --c-highlight frame
-const XLAB = 16;          // the `x  [4, 10]` line above a diagram
 const SPLIT_H = 26;       // the bus that splits x into two columns
 const ROUTE_SPLIT = 36;   // the same bus with four columns and their names
-const ORDER_EDGE = 26;    // Ordering's shorter edge, since it has five of them
 
 /* --- primitives ------------------------------------------------------------ */
 
@@ -268,6 +308,39 @@ function layerBox(ctx, colors, x, y, w, label, color, o = {}) {
     color: o.pale ? colors.ink3 : colors.ink1, align: "center", baseline: "middle",
     mono: true, size: o.size ?? colors.fsSm,
   });
+}
+
+/** The dashed enclosure of his combination figure: layers used as a unit. */
+function dashedGroup(ctx, x, y, w, h, color) {
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2;
+  ctx.setLineDash([5, 4]);
+  ctx.strokeRect(x + 1, y + 1, w - 2, h - 2);
+  ctx.setLineDash([]);
+}
+
+/** Square brackets around the repeated middle, with `× N` beside the right
+    one. Brackets rather than a second dashed rectangle: dashes already mean
+    "used as a unit" on this page, and a repeat is a different claim. */
+function brackets(ctx, colors, x, y, w, h, label, color) {
+  const s = 8;
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2;
+  ctx.lineCap = "butt";
+  ctx.beginPath();
+  ctx.moveTo(x + s, y);
+  ctx.lineTo(x, y);
+  ctx.lineTo(x, y + h);
+  ctx.lineTo(x + s, y + h);
+  ctx.moveTo(x + w - s, y);
+  ctx.lineTo(x + w, y);
+  ctx.lineTo(x + w, y + h);
+  ctx.lineTo(x + w - s, y + h);
+  ctx.stroke();
+  if (label) {
+    txt(ctx, colors, label, x + w + 6, y + h / 2 + 0.5,
+      { color, baseline: "middle" });
+  }
 }
 
 /** An outlined box with no fill — the `Merge` rectangle of his branch figure.
@@ -445,9 +518,11 @@ function errorText(ctx, colors, x, y, maxW, msg) {
   return rows.length;
 }
 
-/** One line at a time, wrapped to the width it is given. */
-function wrapLines(ctx, colors, text, maxW) {
-  ctx.font = `${colors.fsSm} ${colors.font}`;
+/** One line at a time, wrapped to the width it is given. The size is a
+    parameter because Ordering's side text falls back to --fs-xs where the
+    larger face would take two lines beside a 30px box. */
+function wrapLines(ctx, colors, text, maxW, size = colors.fsSm) {
+  ctx.font = `${size} ${colors.font}`;
   const out = [];
   let cur = "";
   for (const word of text.split(" ")) {
@@ -1497,102 +1572,170 @@ function drawBuild(ctx, colors, w, params, state, anim) {
 }
 
 /* ============================= 7 · Ordering ================================ *
- * Cell 62. The ordering is empirical and the page ranks nothing; what the
- * shapes DO say is that Transform is the only step that changes them, so the
- * shapes cannot decide the order either.
+ * Cell 62's three perspectives, and no architecture named on any of them
+ * (decision 15). One `view` control chooses which figure the stage holds, and
+ * Step applies one step of the pattern, lights one combination, or walks one
+ * position. `model.js` holds the geometry, because `pageHeight`, `draw` and the
+ * verify script all measure the same page (5.8).
+ *
+ * NO SHAPES ANYWHERE HERE. With the three blocks gone there is no tensor to
+ * carry, and every claim a shape made on this page is Dimensions' claim.
  */
 
 function orderGeom(ctx, colors, w, params, state) {
   const usable = w - 2 * PAD;
   const caps = captionLines(ctx, colors, w, params, state);
-  if (state.view === "combination") {
-    const gw = Math.floor((usable - 2 * GAP) / 3);
-    const maxRows = Math.max(...M.COMBOS.map((c) => c.boxes.length + (c.or != null ? 1 : 0)));
-    const groupH = 14 + maxRows * (BOX_H + 8) + 6;
-    const capY = BAND_HEAD + groupH + 24 + CAP_GAP;
-    return {
-      usable, caps, capY, gw, groupH, bw: gw - 20,
-      height: capY + caps.length * CAPTION_H + PAD,
-    };
-  }
-  const pw = codeW(ctx, colors, state.print);
-  const beside = M.besideFits(w, pw, M.ORDER_MIN_DIAG);
-  const n = state.block.steps.length;
-  const bodyH = XLAB + n * (BOX_H + ORDER_EDGE) + ORDER_EDGE;
-  const printH = state.print.length * LINE;
-  const capY = BAND_HEAD + (beside ? Math.max(bodyH, printH + 20) : bodyH + 16 + printH) + CAP_GAP;
-  return {
-    usable, caps, capY, pw, beside, n, bodyH, printH,
-    height: capY + caps.length * CAPTION_H + PAD,
+  const capY = BAND_HEAD + M.orderBodyH(state.view) + CAP_GAP;
+  const g = {
+    usable,
+    caps,
+    capY,
+    /* Combinations shares one caption slot across its three reasons, so the
+       block is shorter than the list of rows (decision 16). */
+    height: M.orderHeight(state.view, capRows(caps)),
   };
+  if (state.view === "combinations") {
+    const gw = M.comboGroupW(usable);
+    return { ...g, gw, bw: gw - 20, groupH: M.COMBO_GROUP_H };
+  }
+  return g;
+}
+
+/** The lines of text beside one position box, and how wide they reach. The
+    pattern line is mono and breaks at the middle arrow rather than wrapping,
+    because a 30px box has room for two lines and no more. */
+function sideLines(ctx, colors, p, tx, w) {
+  const avail = w - PAD - tx;
+  ctx.font = `${colors.fsXs} ${colors.mono}`;
+  const raw = p.repeated && ctx.measureText(p.side[0]).width > avail
+    ? ["Transform → Normalize →", "Activate → Regularize"]
+    : p.side;
+  const rows = raw.flatMap((l) => {
+    if (l.includes("→")) return [l];
+    const a = wrapLines(ctx, colors, l, avail);
+    return a.length === 1 ? a : wrapLines(ctx, colors, l, avail, colors.fsXs);
+  });
+  return rows.slice(0, 2);
+}
+
+function drawSide(ctx, colors, p, tx, boxY, w, ink) {
+  const lines = sideLines(ctx, colors, p, tx, w);
+  const multi = lines.length > 1;
+  lines.forEach((line, k) => {
+    const mono = line.includes("→");
+    const size = multi || mono ? colors.fsXs : colors.fsSm;
+    txt(ctx, colors, line, tx, boxY + (multi ? 12 + k * 13 : BOX_H / 2 + 0.5), {
+      color: mono ? colors.ink2 : k === 0 ? ink : colors.ink3,
+      baseline: multi ? "alphabetic" : "middle",
+      mono,
+      size,
+    });
+  });
+}
+
+/** The pattern: the four steps of his subunit figure, each with the job it
+    does over the layers that fill it. Decision 17 has the colours. */
+function drawPatternView(ctx, colors, w, walk) {
+  const y0 = band(ctx, colors, 0, w, "Ordering · the pattern", M.PATTERN);
+  const cx = PAD + BOX_W / 2;
+  const sx = PAD + BOX_W + SIDE_GAP;
+  let cy = y0;
+  M.ROLES.forEach((r, i) => {
+    const unit = i + 1;
+    const on = onStage(walk, unit);
+    if (i > 0) {
+      if (on) arrow(ctx, cx, cy, cx, cy + ORDER_EDGE, colors.axis, 2);
+      cy += ORDER_EDGE;
+    }
+    unitBox(ctx, colors, PAD, cy, BOX_W, r.role, colors[r.hue], walk, unit);
+    if (on) {
+      const lit = landed(walk, unit);
+      txt(ctx, colors, r.job, sx, cy + 12,
+        { color: walk.done === unit ? colors.ink1 : lit ? colors.ink2 : colors.ink3 });
+      txt(ctx, colors, r.eg, sx, cy + 25,
+        { color: colors.ink3, mono: true, size: colors.fsXs });
+    }
+    cy += BOX_H;
+  });
+}
+
+/** The combinations: three dashed groups, one lit at a time. The reason for
+    the lit one is the caption, which is why no group carries text of its own —
+    the mock measured a reason under every group and the widest ran into its
+    neighbour. */
+function drawCombosView(ctx, colors, w, g, walk) {
+  const y = band(ctx, colors, 0, w, "Ordering · combinations", "layers that are used as a unit");
+  M.COMBOS.forEach((c, i) => {
+    const unit = i + 1;
+    const st = stageAt(walk, unit);
+    if (st === "absent") return;
+    const gx = PAD + i * (g.gw + GAP);
+    dashedGroup(ctx, gx, y, g.gw, g.groupH,
+      walk.done === unit ? colors.highlight : st === "preview" ? colors.axis : colors.ink3);
+    let by = y + M.COMBO_HEAD;
+    c.boxes.forEach((label, j) => {
+      if (c.or === j) {
+        txt(ctx, colors, "or", gx + g.gw / 2, by + 14,
+          { color: colors.ink3, align: "center", size: colors.fsXs });
+        by += BOX_H + M.COMBO_GAP;
+      }
+      unitBox(ctx, colors, gx + 10, by, g.bw, label, colors.groupA, walk, unit);
+      by += BOX_H + M.COMBO_GAP;
+    });
+  });
+}
+
+/* the count beside the brackets: a repeat, not a size */
+const REPEAT_LABEL = "× N";
+
+/** The position: the whole network from the input down, with the repeated
+    middle inside brackets so a repeat cannot read as a combination. */
+function drawPositionView(ctx, colors, w, walk) {
+  const y0 = band(ctx, colors, 0, w, "Ordering · position", "beginning · repeated middle · end");
+  const cx = PAD + BOX_W / 2;
+  const sx = PAD + BOX_W + SIDE_GAP;
+  const last = M.POSITIONS.length;
+  ctx.font = `${colors.fsSm} ${colors.font}`;
+  const labelW = ctx.measureText(REPEAT_LABEL).width;
+  txt(ctx, colors, "input", cx, y0 + 12, { color: colors.ink1, align: "center", mono: true });
+  let cy = y0 + XLAB;
+  M.POSITIONS.forEach((p, i) => {
+    const unit = i + 1;
+    const on = onStage(walk, unit);
+    if (on) arrow(ctx, cx, cy, cx, cy + ORDER_EDGE, colors.axis, 2);
+    cy += ORDER_EDGE;
+    const boxY = p.repeated ? cy + 12 : cy;
+    unitBox(ctx, colors, PAD, boxY, BOX_W, p.box,
+      p.repeated ? colors.groupB : colors.groupA, walk, unit);
+    if (p.repeated && on) {
+      brackets(ctx, colors, PAD - 8, cy, BOX_W + 16, BOX_H + M.REPEAT_PAD, REPEAT_LABEL,
+        walk.done === unit ? colors.highlight : landed(walk, unit) ? colors.ink2 : colors.ink3);
+    }
+    if (on) {
+      /* THE REPEATED ROW'S TEXT STARTS PAST THE `× N` LABEL, MEASURED. The
+         mock offset it by a flat 26px, which is where the label ENDS, so the
+         pattern line began exactly at its right edge and the two read as one
+         string. The bracket closes at BOX_W + 8 from the stage's left and the
+         label sits 6px past it. */
+      const tx = p.repeated ? sx + 6 + labelW + SIDE_GAP : sx;
+      drawSide(ctx, colors, p, tx, boxY, w, landed(walk, unit) ? colors.ink2 : colors.ink3);
+    }
+    cy += M.positionRowH(p);
+  });
+  /* the output edge is the last position's, so it waits for it */
+  if (landed(walk, last)) {
+    arrow(ctx, cx, cy, cx, cy + ORDER_EDGE, colors.axis, 2);
+    txt(ctx, colors, "output", cx, cy + ORDER_EDGE + 12,
+      { color: colors.ink1, align: "center", mono: true });
+  }
 }
 
 function drawOrder(ctx, colors, w, params, state, anim) {
   const g = orderGeom(ctx, colors, w, params, state);
   const walk = walkAt(anim, state);
-  if (state.view === "combination") {
-    const y = band(ctx, colors, 0, w, "Ordering · combinations", "layers that are used as a unit");
-    let unit = 0;
-    M.COMBOS.forEach((group, i) => {
-      const gx = PAD + i * (g.gw + GAP);
-      ctx.strokeStyle = colors.ink3;
-      ctx.lineWidth = 2;
-      ctx.setLineDash([5, 4]);
-      ctx.strokeRect(gx + 1, y + 1, g.gw - 2, g.groupH - 2);
-      ctx.setLineDash([]);
-      let by = y + 12;
-      group.boxes.forEach((label, j) => {
-        if (group.or === j) {
-          txt(ctx, colors, "or", gx + g.gw / 2, by + 14,
-            { color: colors.ink3, align: "center", size: colors.fsXs });
-          by += BOX_H + 8;
-        }
-        unit += 1;
-        unitBox(ctx, colors, gx + 10, by, g.bw, label, colors.groupA, walk, unit);
-        by += BOX_H + 8;
-      });
-      txt(ctx, colors, group.note, gx + 2, y + g.groupH + 16,
-        { color: colors.ink3, size: colors.fsXs });
-    });
-    return g;
-  }
-
-  const blk = state.block;
-  let y = band(ctx, colors, 0, w, `Ordering · ${blk.label}`,
-    "Transform → Normalize → Activate → Regularize");
-  const top = y;
-  const cx = PAD + BOX_W / 2;
-  txt(ctx, colors, "x", cx, y + 12, { color: colors.ink1, align: "center", mono: true });
-  let cy = y + XLAB;
-  let prev = blk.in;
-  blk.steps.forEach(([generic, cls, out], i) => {
-    /* DECISION 14: the edge above a box carries what the step before it
-       produced, so it belongs to that step; the first one is the input's. */
-    unitEdge(ctx, colors, cx, cy, cy + ORDER_EDGE, shapeText(prev), walk, i,
-      { color: i === 0 ? colors.groupA : colors.empirical, size: colors.fsXs });
-    cy += ORDER_EDGE;
-    /* DECISION 11: only Transform carries a hue here. `--c-group-a` and
-       `--c-empirical` are one colour by design (tokens.css:80, both mean "our
-       data"), so colouring the other three steps `--c-empirical` would draw
-       four identical boxes under a legend claiming they differ. The step that
-       changes the shape is the one the page is about, and the rest are ink. */
-    unitBox(ctx, colors, PAD, cy, BOX_W, generic,
-      generic === "Transform" ? colors.groupA : colors.ink2, walk, i + 1);
-    if (onStage(walk, i + 1)) {
-      txt(ctx, colors, cls, PAD + BOX_W + 8, cy + BOX_H / 2 + 0.5, {
-        color: landed(walk, i + 1) ? colors.ink2 : colors.ink3,
-        baseline: "middle", mono: true, size: colors.fsXs,
-      });
-    }
-    cy += BOX_H;
-    prev = out;
-  });
-  unitEdge(ctx, colors, cx, cy, cy + ORDER_EDGE, shapeText(prev), walk, g.n,
-    { color: colors.empirical, size: colors.fsXs });
-
-  const printX = PAD + g.usable - g.pw;
-  if (g.beside) printLines(ctx, colors, printX, top + 20, state.print);
-  else printLines(ctx, colors, PAD, top + g.bodyH + 24, state.print);
+  if (state.view === "combinations") drawCombosView(ctx, colors, w, g, walk);
+  else if (state.view === "position") drawPositionView(ctx, colors, w, walk);
+  else drawPatternView(ctx, colors, w, walk);
   return g;
 }
 
@@ -1601,12 +1744,30 @@ function drawOrder(ctx, colors, w, params, state, anim) {
  * decision 14 and principle 2.4. Here they are only wrapped to the stage, and
  * every row carries its own `at`, so `draw` can leave it blank without the
  * block changing height. `pageHeight` measures the FULL text at every walk
- * position, so a held row is a reserved row rather than a shorter figure. */
+ * position, so a held row is a reserved row rather than a shorter figure.
+ *
+ * DECISION 16, THE SHARED SLOT. A caption marked `only` belongs to the unit
+ * being shown rather than to everything that has landed, and every `only` line
+ * of one page starts at the same row. Ordering's Combinations view is the one
+ * user: its three groups have a reason each, the lit group's reason is what
+ * prints, and the block is one line tall whichever group that is. `capRows`
+ * rather than `caps.length` is what the height then asks for, because three
+ * rows sharing one slot are one row of stage. */
 
 function captionLines(ctx, colors, w, params, state) {
-  return M.captions(params, state).flatMap(({ text, at }) =>
-    wrapLines(ctx, colors, text, w - 2 * PAD).map((line) => ({ line, at })));
+  const out = [];
+  let n = 0;
+  for (const { text, at, only } of M.captions(params, state)) {
+    const wrapped = wrapLines(ctx, colors, text, w - 2 * PAD);
+    const top = only ? 0 : n;
+    wrapped.forEach((line, k) => out.push({ line, at, only: Boolean(only), row: top + k }));
+    n = Math.max(n, top + wrapped.length);
+  }
+  return out;
 }
+
+/** How many rows of stage a caption block occupies. */
+const capRows = (caps) => (caps.length ? Math.max(...caps.map((c) => c.row)) + 1 : 0);
 
 /* ============================ the formula card ============================= */
 
@@ -1709,11 +1870,15 @@ function cardFor(params, state) {
       };
     case "ordering":
       return {
-        rows: [["block", "Transform → Normalize → Activate → Regularize", true]],
-        note: state.view === "combination"
-          ? "Convolution and pooling, embedding and attention, linear and activation: each pair is used as a unit."
-          : `This block is ${state.block.steps.map(([, cls]) => cls).join(" → ")}. `
-            + "The order differs across architectures and the difference is empirical.",
+        rows: [["block", M.PATTERN, true]],
+        note: state.view === "combinations"
+          ? "Convolution and pooling, embedding and the layer that relates its vectors, linear and activation: "
+            + "the two layers of each pair complete each other, so they are placed together."
+          : state.view === "position"
+            ? "The beginning is chosen for the data the model takes, the end for the number of outputs the task "
+              + "needs, and the block between them is repeated to add depth."
+            : "Transform learns new features, Normalize stabilizes the distribution of activations, "
+              + "Activate introduces non-linearity, and Regularize reduces overfitting.",
       };
     default:
       return null;
@@ -1733,7 +1898,7 @@ function renderCard(params, state) {
     figure.parentNode.insertBefore(cardHost, figure);
   }
   const card = cardFor(params, state);
-  const key = [params.topic, params.block, params.view, params.data, params.merge,
+  const key = [params.topic, params.view, params.data, params.merge,
     params.fc2, params.width, params.proj, params.gate, params.mode, params.grad,
     params.step1, params.step2, params.step3, params.step4].join(":");
   if (key === cardKey) return;
@@ -1788,7 +1953,7 @@ function computeFor(params, rng) {
     case "routing":
       return M.routing(params.mode);
     default:
-      return M.ordering(params.block, params.view);
+      return M.ordering(params.view);
   }
 }
 
@@ -1844,12 +2009,26 @@ const ON = (topic) => ({ param: "topic", equals: topic });
    Building takes the nested form, because its two APIs differ on exactly that
    (core's `resolveLabel`, added for the sibling on 2026-09-10). */
 const STEP_LABELS = {
-  ordering: "Next layer",
+  /* Ordering's unit is whatever its view holds, so the label follows the view
+     through the same nested form (decision 15). */
+  ordering: {
+    param: "view",
+    labels: { pattern: "Next step", combinations: "Next combination", position: "Next position" },
+    default: "Next step",
+  },
   dimensions: "Next layer",
   building: { param: "api", labels: { sequential: "Next layer", module: "Next line" }, default: "Next line" },
 };
 const STEP_TITLES = {
-  ordering: "Apply the next layer of the block",
+  ordering: {
+    param: "view",
+    labels: {
+      pattern: "Apply the next step of the pattern",
+      combinations: "Show the next combination",
+      position: "Show the next position",
+    },
+    default: "Apply the next step of the pattern",
+  },
   building: "Run the next layer of the forward pass",
   dimensions: "Apply the next layer of the chain",
   skip: "Run the next line of forward()",
@@ -1858,7 +2037,15 @@ const STEP_TITLES = {
   routing: "Run the next line of forward()",
 };
 const RUN_TITLES = {
-  ordering: "Apply the remaining layers",
+  ordering: {
+    param: "view",
+    labels: {
+      pattern: "Apply the remaining steps",
+      combinations: "Show the remaining combinations",
+      position: "Show the remaining positions",
+    },
+    default: "Apply the remaining steps",
+  },
   building: "Run the remaining layers",
   dimensions: "Apply the remaining layers",
   skip: "Run the remaining lines of forward()",
@@ -1909,28 +2096,16 @@ defineWidget({
     },
 
     /* --- Ordering ---------------------------------------------------------- */
-    block: {
-      type: "segmented",
-      label: "Block",
-      style: "grid",
-      detail: "three blocks that different architectures repeat",
-      options: [
-        { value: "mlp", label: "MLP", detail: "Linear → BatchNorm1d → ReLU → Dropout" },
-        { value: "resnet", label: "ResNet", detail: "Conv2d → BatchNorm2d → ReLU, and no regularization step" },
-        { value: "transformer", label: "Transformer", detail: "the feed-forward path: Linear → GELU → Linear → Dropout → LayerNorm", span: true },
-      ],
-      default: "mlp",
-      when: ON("ordering"),
-    },
     view: {
       type: "segmented",
       label: "View",
-      detail: "a block as a sequence of roles, or the pairs of layers used as a unit",
+      detail: "three things the order of a model is decided by",
       options: [
-        { value: "subunit", label: "Subunit", detail: "one block, with the role each layer plays beside it" },
-        { value: "combination", label: "Combination", detail: "three pairs of layers whose roles complete each other" },
+        { value: "pattern", label: "Pattern", detail: "the four steps a block applies, and the job each one does" },
+        { value: "combinations", label: "Combinations", detail: "pairs of layers that are placed together, and why" },
+        { value: "position", label: "Position", detail: "which layers sit at the beginning, in the middle and at the end" },
       ],
-      default: "subunit",
+      default: "pattern",
       when: ON("ordering"),
     },
 
@@ -2154,15 +2329,25 @@ defineWidget({
   legend: ({ params }) => {
     const topic = params.topic;
     if (topic === "ordering") {
-      return params.view === "combination"
-        ? [
+      if (params.view === "combinations") {
+        return [
           { token: "group-a", label: "A layer of the combination" },
-          { token: "highlight", label: "The layer being added" },
-        ]
-        : [
-          { token: "group-a", label: "The Transform step, which is the one that changes the shape" },
-          { token: "highlight", label: "The step being applied" },
+          { token: "highlight", label: "The combination being shown" },
         ];
+      }
+      if (params.view === "position") {
+        return [
+          { token: "group-a", label: "A layer with a fixed position" },
+          { token: "group-b", label: "The block that is repeated" },
+          { token: "highlight", label: "The position being shown" },
+        ];
+      }
+      return [
+        { token: "group-a", label: "Transform, which learns new features" },
+        { token: "group-b", label: "Normalize and Activate, which condition what Transform produces" },
+        { token: "group-c", label: "Regularize, which acts during training" },
+        { token: "highlight", label: "The step being applied" },
+      ];
     }
     if (topic === "building") {
       return [
@@ -2308,9 +2493,11 @@ defineWidget({
     const g = (DRAW[params.topic] ?? drawOrder)(ctx, colors, w, params, state, anim, pointer);
     /* 2.4 AND DECISION 14: a row whose claim has not happened yet is reserved
        and left blank, so the block is the same height empty as full. */
-    g.caps.forEach((row, i) => {
-      if (!landed(walk, row.at)) return;
-      txt(ctx, colors, row.line, PAD, g.capY + 12 + i * CAPTION_H, { color: colors.ink2 });
+    g.caps.forEach((row) => {
+      /* DECISION 16: a shared row reads for the unit being shown, not for
+         every unit behind it. */
+      if (!(row.only ? walk.done === row.at : landed(walk, row.at))) return;
+      txt(ctx, colors, row.line, PAD, g.capY + 12 + row.row * CAPTION_H, { color: colors.ink2 });
     });
   },
 
@@ -2534,45 +2721,95 @@ defineWidget({
       ];
     }
 
-    const blk = state.block;
-    if (state.view === "combination") {
+    /* ORDERING: the three views take three sets of tiles, and every one of them
+       is a word rather than a number, because nothing on this page is measured
+       (decision 15). A tile that names the unit being shown reads `—` until
+       Step has landed one. */
+    const at = walk.done - 1;
+    if (state.view === "combinations") {
+      const c = at >= 0 ? M.COMBOS[at] : null;
       return [
-        { label: "Combinations", value: String(M.COMBOS.length), note: "each pair is used as a unit" },
         {
-          label: "Layers shown",
+          label: "Combination",
+          value: c ? `${c.boxes[0]} → ${c.follows}` : "—",
+          note: c
+            ? "the two layers are placed together, and the second one takes what the first produces"
+            : "each combination is a pair of layers that are placed together",
+        },
+        {
+          label: "Data it suits",
+          value: c ? c.data : "—",
+          note: c
+            ? `this pair is where a model that takes ${c.data} begins`
+            : "the data decides which pair a model starts from",
+        },
+        {
+          label: "Layer that follows",
+          value: c ? c.follows : "—",
+          note: c
+            ? `${c.boxes[0]} hands its output to it`
+            : "the second layer of the pair, which the first one hands to",
+        },
+        {
+          label: "Combinations shown",
           value: `${walk.done} of ${state.units}`,
-          note: "the layers of the three combinations, in the order they are applied",
+          note: "three pairs, and the same pair appears in many models",
         },
-        {
-          label: "Shape in",
-          value: "—",
-          note: "a combination is a pattern rather than one model, so it carries no shape of its own",
-        },
-        {
-          label: "Shape out",
-          value: "—",
-          note: "the shapes depend on which layers the pattern is built from",
-        },
-        ran,
       ];
     }
-    const outShape = blk.steps[blk.steps.length - 1][2];
+    if (state.view === "position") {
+      const p = at >= 0 ? M.POSITIONS[at] : null;
+      return [
+        {
+          label: "Position",
+          value: p ? p.pos : "—",
+          note: p
+            ? `${p.box} sits at the ${p.pos} of the network`
+            : "the beginning, the repeated middle, and the end",
+        },
+        {
+          label: "Layers",
+          value: p ? p.tile : "—",
+          note: p
+            ? "what fills this position"
+            : "each position is filled by layers of its own",
+        },
+        {
+          label: "Blocks repeated",
+          value: "N",
+          note: "the number of repeats is chosen for the depth the model needs",
+        },
+        {
+          label: "Positions shown",
+          value: `${walk.done} of ${state.units}`,
+          note: "from the input to the output, in the order the data passes through them",
+        },
+      ];
+    }
+    const r = at >= 0 ? M.ROLES[at] : null;
     return [
-      { label: "Shape in", value: sizeText(blk.in), note: `the input to one ${blk.label} block` },
-      { label: "Shape out", value: sizeText(outShape), note: `the output of the block, after ${blk.steps.length} steps` },
       {
-        label: "Steps that change the shape",
-        value: `${state.changed} of ${blk.steps.length}`,
-        note: state.changed === 0
-          ? "this Conv2d has padding 1, so even the Transform step leaves the shape as it is"
-          : "the Transform steps, and the shapes cannot say which order is right",
+        label: "Role",
+        value: r ? r.role : "—",
+        note: r ? r.job : "the four steps a block applies, in order",
       },
       {
-        label: "Parameters",
-        value: String(blk.params),
-        note: "the weights and biases of the Transform layer at the printed sizes, and a scale and a shift per feature for the normalization",
+        label: "Examples",
+        value: r ? r.eg : "—",
+        note: r
+          ? `layers that fill the ${r.role} step`
+          : "the layers that fill each step",
       },
-      ran,
+      {
+        label: "Steps that carry weights",
+        value: `${M.ROLES_WITH_WEIGHTS} of ${M.ROLES.length}`,
+        note: "an activation and a dropout hold no parameters at all",
+      },
+      {
+        label: "Steps applied",
+        value: `${walk.done} of ${state.units}`,
+        note: "the order of the last three is an empirical choice",
+      },
     ];
   },
 });
