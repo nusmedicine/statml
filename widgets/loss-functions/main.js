@@ -327,7 +327,7 @@ function fnArrow(ctx, colors, cx, y0, y1, label, live) {
  * on x from 0 to 1 and the loss clipped at 5, which keeps 4.5184 and 4.9184 on
  * it. Drawn the way `support-layers`' `curvePanel` draws an activation.
  */
-function logCurve(ctx, colors, x, y, pts) {
+function logCurve(ctx, colors, x, y, pts, kind) {
   const f = curveFrame(ctx, colors, x, y);
   const px = (p) => f.L + p * (f.R - f.L);
   const py = (v) => f.B - (Math.min(v, YMAX) / YMAX) * (f.B - f.T);
@@ -351,7 +351,7 @@ function logCurve(ctx, colors, x, y, pts) {
     plotDot(ctx, colors, px(p), py(-Math.log(p)), pt.lit);
   }
   curveAxes(ctx, colors, f, x, y, String(YMAX), M.STRINGS.curveY, "0", "1",
-    M.STRINGS.curveTitle, M.STRINGS.curveX);
+    M.STRINGS.curveTitle, M.STRINGS.curveX[kind]);
 }
 
 /** gap² against gap, the Regression page's own curve, on the same frame. */
@@ -549,12 +549,12 @@ function drawPage(ctx, colors, w, params, state, anim, pointer) {
       landed(done, unitOf(state, "curve points")) ? state.gaps : [], held);
   } else if (state.kind === "single-label") {
     logCurve(ctx, colors, g.curveX, g.curveY,
-      landed(done, state.units) && !state.bad ? [{ p: state.p[state.label], lit: true }] : []);
+      landed(done, state.units) && !state.bad ? [{ p: state.p[state.label], lit: true }] : [], state.kind);
   } else {
     logCurve(ctx, colors, g.curveX, g.curveY,
       landed(done, state.units) && !state.bad
         ? state.pTrue.map((p, i) => ({ p, lit: i === held }))
-        : []);
+        : [], state.kind);
   }
 
   /* the caption block: a row waits for the step that makes it true (2.4), and
@@ -617,11 +617,11 @@ function hoverAt(pointer, g, state, done) {
     return {
       name: `y_true[0, ${col}]`,
       value: String(state.y[col]),
-      note: `the target says class ${M.LETTERS[col]} is ${state.y[col] ? "present" : "not present"}`,
+      note: `the target marks class ${M.LETTERS[col]} ${state.y[col] ? "present" : "not present"}`,
     };
   }
   return {
-    name: `${row.label}[0, ${col}]`,
+    name: `${M.hoverName(row.id)}[0, ${col}]`,
     value: cellText(state, row.id, col),
     note: rowNote(state, row.id),
   };
@@ -659,10 +659,10 @@ function rowNote(state, id) {
   if (id === "target") return "the target this prediction is measured against";
   if (id === "gap") return "the prediction minus its target";
   if (id === "gap squared") return "the gap multiplied by itself";
-  if (id === "p at the true label") return "the probability the model gives this class's own 0 or 1";
+  if (id === "p at the true label") return "the probability given to this class's own 0 or 1";
   if (id === "-log p") return "this class's own term of the loss";
   return state.kind === "single-label"
-    ? "the share of the row this class holds"
+    ? "this class's probability in the row"
     : "the probability this class is present";
 }
 
@@ -808,7 +808,7 @@ defineWidget({
     logits: {
       type: "text",
       label: "y_pred",
-      detail: M.STRINGS.scoresDetail,
+      detail: M.STRINGS.logitsDetail,
       default: M.BCE_SCORES,
       size: 18,
       parse: (t) => M.parseVec(t, 5, M.RANGE["multi-label"]),
@@ -878,8 +878,8 @@ defineWidget({
     const rows = task === "regression"
       ? "The predictions, the gaps and the squared gaps"
       : task === "single-label"
-        ? "The scores, the probabilities the softmax makes, and the curve they are read on"
-        : "The scores, the probabilities the sigmoid makes, the per-class terms, and the curve";
+        ? "The scores, the softmax probabilities, and the curve"
+        : "The scores, the sigmoid probabilities, the per-class terms, and the curve";
     return [
       { token: "empirical", label: rows },
       {
@@ -890,7 +890,7 @@ defineWidget({
             ? "The target: the one class the sample belongs to"
             : "The target: a 0 or a 1 for each class",
       },
-      { token: "highlight", label: "The column under the pointer, which the bar's top drags" },
+      { token: "highlight", label: "The column under the pointer" },
       ...(bad ? [{ token: "extreme", label: "The message torch raises" }] : []),
     ];
   },
@@ -1024,7 +1024,7 @@ defineWidget({
       {
         label: "Rows landed",
         value: `${done} of ${state.units}`,
-        note: "each step lands one row of the loss's computation",
+        note: "each step lands one row, and the last the loss",
       },
     ];
     return tiles;
@@ -1039,10 +1039,8 @@ function pageTile(state, done) {
     state.gaps.forEach((g, i) => { if (Math.abs(g) > Math.abs(state.gaps[top])) top = i; });
     return {
       label: "Largest gap",
-      value: on ? M.n2(state.gaps[top]) : "—",
-      note: on
-        ? `output ${M.LETTERS[top]} is furthest from its target`
-        : "the gap between a prediction and its target",
+      value: on ? M.n2(Math.abs(state.gaps[top])) : "—",
+      note: "the largest distance from a prediction to its target",
     };
   }
   const on = landed(done, 1);
@@ -1050,7 +1048,7 @@ function pageTile(state, done) {
     return {
       label: "p at the true class",
       value: on ? M.n4(state.p[state.label]) : "—",
-      note: M.SUM_NOTE["single-label"],
+      note: M.STRINGS.pTrueNote,
     };
   }
   return {

@@ -469,26 +469,26 @@ export const FN_LABEL = {
 
 export const STRINGS = {
   subtitle:
-    "A loss function measures how far a model's output is from the target as one "
-    + "number, and training drives that number down. Regression compares each "
-    + "prediction with its value; classification turns the scores into "
-    + "probabilities first, over the row when a sample has one class and per "
-    + "class when it can have several.",
+    "A loss measures how far a model's output is from its target, as one number "
+    + "training drives down. Classification turns the scores into probabilities "
+    + "first: over the row when a sample has one class, per class when it can "
+    + "have several.",
 
   stepLabel: "Next row",
-  stepTitle: "Land the next row of the loss's computation",
+  stepTitle: "Compute the next row of the loss",
   runLabel: "Play",
-  runTitle: "Land every row to the loss",
+  runTitle: "Land every remaining row",
 
   taskLabel: "Task",
   speedLabel: "Play speed",
   dtypeLabel: "Target dtype",
   dtypeDetail: "what the target tensor holds when the loss reads it",
   labelDetail: "the index of the true class: 0 is A, 1 is B, 2 is C",
-  boolsDetail: "the classes the target says are present",
-  predDetail: "one prediction per output",
+  boolsDetail: "the classes the target marks present",
+  predDetail: "the predictions, one per output",
   targetDetail: "one target per output, in the units of the prediction",
-  scoresDetail: "one score per class",
+  scoresDetail: "the scores, one per class",
+  logitsDetail: "the logits, one per class",
 
   /* the caption block: two rows a page, each waiting for the step that makes
      it true (2.4), the row reserved so the block is the same height empty */
@@ -502,7 +502,7 @@ export const STRINGS = {
       { row: 1, at: 3, line: "The loss is the negative log of the probability given to the true class." },
     ],
     "multi-label": [
-      { row: 0, at: 1, line: "Each class has its own probability, so the five do not sum to 1." },
+      { row: 0, at: 1, line: "Each class has its own probability; no rule holds the five to 1." },
       { row: 1, at: 5, line: "The loss is the mean of the five per-class terms." },
     ],
   },
@@ -516,17 +516,17 @@ export const STRINGS = {
     "single-label": "−log of the probability given to the true class",
     "multi-label": "mean of the five per-class terms",
   },
-  raisedNote: "the loss raised",
+  raisedNote: "the call raised a RuntimeError",
   dtypeRule: {
-    regression: "y_true is float32, the same shape as y_pred",
-    "single-label": "y_true is a class index stored as long",
-    "multi-label": "y_true is 0 or 1 per class stored as float32",
+    regression: "y_true must be float32, the same shape as y_pred",
+    "single-label": "the class index must be long",
+    "multi-label": "the 0 or 1 per class must be float32",
   },
 
   cardNote: {
     regression: "N is the number of outputs, and every gap is measured in the units of the target.",
-    "single-label": "The sum inside runs over the classes, so the scores become one distribution and the loss reads the true class's share of it.",
-    "multi-label": "Each class carries its own term, and a class scored high when its target is 0 contributes as much as one scored low when its target is 1.",
+    "single-label": "The sum inside runs over the classes: the scores become one distribution, and the loss reads the true class's probability.",
+    "multi-label": "Each class carries its own term, and a score wrong by the same amount costs the same whether its target is 0 or 1.",
   },
 
   /* cell 40's other losses are a sentence, not a page: each needs a data shape
@@ -534,7 +534,7 @@ export const STRINGS = {
   cardExtra: "Losses can also be summed with weights, so one model trains on more than one objective at a time.",
 
   curveTitle: "−log p",
-  curveX: "p at the true label",
+  curveX: { "single-label": "p at the true class", "multi-label": "p at the true label" },
   curveY: "loss",
   parabolaTitle: "gap²",
   parabolaX: "gap = y_pred − y_true",
@@ -543,13 +543,24 @@ export const STRINGS = {
   gapHi: "3",
 
   rowSumHead: "row sum",
-  outputRow: "Output (N)",
+  pTrueNote: "the softmax's probability for the target class",
+  outputRow: "y_pred",
 };
+
+/** The mono name a row's cell carries in the readout: the tensor's own name
+    where the row is a tensor, and the short form of the loss line's own
+    notation where it is a reading (`p[y]` for the probability at the true
+    label, as the header prints `mean(−log p[y])`). A row label is prose and
+    reads wrong with an index after it. */
+export const hoverName = (id) => ({
+  target: "y_true", gap: "gap", "gap squared": "gap²", p: "p",
+  "p at the true label": "p[y]", "-log p": "−log p",
+}[id] ?? id);
 
 /** The row-sum column's note, which is the whole contrast in one tile. */
 export const SUM_NOTE = {
   "single-label": "the three sum to 1",
-  "multi-label": "each class has its own probability, so they do not sum to 1",
+  "multi-label": "each class has its own probability; nothing holds them to 1",
 };
 
 /** The shape and dtype line under a row — the anchor of the whole widget. */

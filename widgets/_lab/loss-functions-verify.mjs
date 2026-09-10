@@ -532,7 +532,7 @@ const BCE = M.computeFor({
     M.STRINGS.subtitle.length >= 140 && M.STRINGS.subtitle.length <= 400,
     `${M.STRINGS.subtitle.length} chars`);
   check("the subtitle names the loss, the target and the two classification cases",
-    /loss function/.test(M.STRINGS.subtitle) && /target/.test(M.STRINGS.subtitle)
+    /A loss measures/.test(M.STRINGS.subtitle) && /target/.test(M.STRINGS.subtitle)
     && /per class/.test(M.STRINGS.subtitle));
   check("each task option carries a detail with both halves: the function and the target",
     M.TASKS.every((t) => t.detail.includes(" · ") && /y_true/.test(t.detail)),
@@ -555,11 +555,11 @@ const BCE = M.computeFor({
     Object.values(M.STRINGS.captions).flat().every((c) => /^[A-Z].*\.$/.test(c.line)));
   check("the two error captions say which dtype the loss reads",
     Object.values(M.STRINGS.errorCaption).every((s) => /float32|long/.test(s)));
-  check("the dtype rule is stated for all three pages",
+  check("the dtype rule is stated for all three pages as a requirement, so it stays true on the failing arm (2.11)",
     Object.keys(M.STRINGS.dtypeRule).length === 3
-    && Object.values(M.STRINGS.dtypeRule).every((s) => s.startsWith("y_true")));
+    && Object.values(M.STRINGS.dtypeRule).every((s) => / must be /.test(s)));
   check("the row-sum note is the contrast, one page at a time",
-    /sum to 1/.test(M.SUM_NOTE["single-label"]) && /do not sum to 1/.test(M.SUM_NOTE["multi-label"]));
+    /sum to 1/.test(M.SUM_NOTE["single-label"]) && /nothing holds them to 1/.test(M.SUM_NOTE["multi-label"]));
   check("the two classification pages name the function on their own arrow",
     M.FN_LABEL["single-label"] === "softmax over the row"
     && M.FN_LABEL["multi-label"] === "sigmoid per class");
