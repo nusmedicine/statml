@@ -11625,6 +11625,27 @@ stack drawn as the code builds it, and the "why one row" question gone.
 Routing becomes the tallest page against Gating's 464. Built by an Opus
 builder, replacing C.
 
+**D built (`6840a1c`)**: the box holds `weights * outs` as three `[4, 20]`
+bands against one maximum, a weight column of four digits beside each with
+the chosen row lit, the combined band, the framed column and line; hard mode
+keeps in each band only the rows whose argmax is that branch; the sixteen band
+rows are `regions` setting `sample` (a click on branch 2's second row gave
+`sample=1` with the walk kept at 6 of 6); 151 assertions.
+
+**Round 1, comment 3 — Kenneth, on Gating and Branching:** *"some of
+downstream processes shouldn't be shown at the beginning but revealed with the
+animation"*, circling the ⊙ and fc2 on Gating and fc3 on Branching. The draft
+drew every page's whole diagram pale at rest and lit it as the walk ran, the
+sibling widgets' convention. Put to him as one rule for all seven pages,
+three ways: one line ahead (the next line's layers pale as a preview, later
+ones absent); the split at rest and the rest revealed (his circles as drawn);
+nothing at rest but x. **He picked one line ahead.** Built as decision 14 by an
+Opus builder, together with principle 2.4 on the captions: a caption line that
+states a result appears when the line producing it has run, its row reserved
+until then; a line that states a definition may show at rest. `regions`
+return only the rows that are drawn; page heights unchanged, the empty space
+is where the reveal lands.
+
 **Build order within the widget**, once the mock is picked: Dimensions first (the
 strongest losing state and the most machinery), then Skip, Branching, Gating,
 Routing, Building, Ordering. The widget itself is built after
