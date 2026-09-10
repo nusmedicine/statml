@@ -31,7 +31,7 @@
        the output-size rule — because those are one formula each (5.8).
 
     3. THE STAGE HEIGHT IS A FUNCTION OF THE PARAMETERS, as the sibling's is.
-       Probability is a 190px page and Layer normalization a 470px one, and a
+       Sigmoid is a 190px page and Layer normalization a 470px one, and a
        single height would make the short page pay for the tall one.
        `pageHeight` and `draw` ask the same geometry functions (5.8).
 
@@ -60,7 +60,7 @@
     8. `fn` IS A DISPLAY PARAMETER AND ONLY EXISTS ON Hidden. It chooses which
        curve the reference panel draws; all three output rows are drawn
        whatever it says, so it changes no number and must not discard the walk
-       (invariant 3). On Probability and Distribution there is one function and
+       (invariant 3). On Sigmoid and Softmax there is one function and
        no curve panel, so the control would be a question with no answer on
        screen (3.4b) and `when` removes it.
 
@@ -688,15 +688,15 @@ const DIST_GAP = 20;
 
 function actGeom(ctx, colors, w, params) {
   const use = params.use;
-  if (use === "probability") {
-    const s = fitSizes(w, (z) => M.bandWidth.probability(z));
+  if (use === "sigmoid") {
+    const s = fitSizes(w, (z) => M.bandWidth.sigmoid(z));
     const h1 = LBL + M.PROB_IN.length * s.ch;
     const capY = BAND_HEAD + h1 + CAP_GAP;
     const caps = captionLines(ctx, colors, w, params);
     return { s, use, h1, y1: 0, capY, caps, height: capY + caps.length * CAPTION_H + PAD };
   }
-  if (use === "distribution") {
-    const s = fitSizes(w, (z) => M.bandWidth.distribution(z));
+  if (use === "softmax") {
+    const s = fitSizes(w, (z) => M.bandWidth.softmax(z));
     const h1 = LBL + M.DIST_IN.length * s.ch + DIST_GAP + LBL + M.DIST_IN.length * s.ch;
     const capY = BAND_HEAD + h1 + CAP_GAP;
     const caps = captionLines(ctx, colors, w, params);
@@ -757,8 +757,8 @@ function drawAct(ctx, colors, w, params, state, anim) {
   const { s } = g;
   const face = (on) => (on ? litFace(colors, walk.light) : {});
 
-  if (g.use === "probability") {
-    const y = band(ctx, colors, g.y1, w, "Probability", "p = sigmoid(score)");
+  if (g.use === "sigmoid") {
+    const y = band(ctx, colors, g.y1, w, "Sigmoid", "p = sigmoid(score)");
     label(ctx, colors, PAD, y + 11, "score", [M.PROB_IN.length, 1]);
     grid(ctx, colors, PAD, y + LBL, M.PROB_IN.length, 1, s.cw, s.ch, (r) =>
       ({ text: M.n2(M.PROB_IN[r]), hue: colors.groupA, ...face(walk.idx === r) }));
@@ -779,9 +779,9 @@ function drawAct(ctx, colors, w, params, state, anim) {
     return g;
   }
 
-  if (g.use === "distribution") {
+  if (g.use === "softmax") {
     const cols = M.DIST_IN[0].length;
-    let y = band(ctx, colors, g.y1, w, "Distribution", "softmax(x, dim=1)");
+    let y = band(ctx, colors, g.y1, w, "Softmax", "softmax(x, dim=1)");
     label(ctx, colors, PAD, y + 11, "x", [M.DIST_IN.length, cols]);
     grid(ctx, colors, PAD, y + LBL, M.DIST_IN.length, cols, s.cw, s.ch, (r, c) =>
       ({ text: M.n2(M.DIST_IN[r][c]), hue: colors.groupA, ...face(walk.idx === r) }));
@@ -842,31 +842,58 @@ function drawAct(ctx, colors, w, params, state, anim) {
   return g;
 }
 
-/* ============================= 5 · Dropout ================================= */
+/* ============================= 5 · Dropout ================================= *
+ * DECISION 13: THE SCALING IS ITS OWN ROW. `_lab/figs/dl-layer-dropout.png`
+ * draws four rows — the input, the Dropout box, a "random dropout" row with the
+ * dropped cells empty, and a "scale remaining activations" row — and folding
+ * the last two into one output row hides the half the page is about. So
+ * Training is x → Dropout(p) → m ⊙ x → y, and ONE Next cell lands the masked
+ * cell on the step's LIGHTING phase and the scaled cell under it on its
+ * LANDING phase, which is the sibling's lit-then-glide read down the column
+ * instead of across it. Evaluation has no mask, so there is nothing to draw
+ * between x and y and it keeps its two rows.
+ *
+ * DECISION 14: THE MASKED ROW CARRIES THE INPUT'S OWN COLOUR. Its numbers ARE
+ * x's numbers with holes in them, and the arrow below is where they change, so
+ * `--c-empirical` starts at the row the scaling produces.
+ */
 
-const DROP_ARROW = 26;    // the gap an arrow between two rows sits in
+const DROP_ARROW = 26;    // x → the Dropout box
 const DROP_BOX = 24;      // the Dropout box
-const DROP_ARROW2 = 30;
+const DROP_ARROW2 = 30;   // the box → the masked row
+const DROP_ARROW3 = 30;   // the masked row → the output row
+
+/** The two annotations that sit at the arrows, in the column right of the rows. */
+function dropAnns(params) {
+  const p = Number(params.p);
+  return params.mode !== "evaluation"
+    ? [`kept with probability ${(1 - p).toFixed(1)}`, `× ${(1 / (1 - p)).toFixed(2)}`]
+    : ["nothing is dropped", "y = x, value for value"];
+}
 
 function dropAnnW(ctx, colors, params) {
-  const p = Number(params.p);
-  const training = params.mode !== "evaluation";
   ctx.font = `${colors.fsXs} ${colors.font}`;
-  return 12 + Math.ceil(Math.max(
-    ctx.measureText(training ? `kept with probability ${(1 - p).toFixed(1)}` : "nothing is dropped").width,
-    ctx.measureText(training ? `survivors × ${(1 / (1 - p)).toFixed(2)}` : "y = x, value for value").width));
+  return 12 + Math.ceil(Math.max(...dropAnns(params).map((s) => ctx.measureText(s).width)));
 }
 
 function dropGeom(ctx, colors, w, params) {
   const annW = dropAnnW(ctx, colors, params);
   const s = fitSizes(w, (z) => M.bandWidth.dropout(z, annW));
   const shape = [M.DROP_ROWS, M.DROP_COLS];
-  const printH = PRINT_DROP + M.printRows(shape) * PRINT_LH;
-  const h1 = LBL + M.DROP_ROWS * s.ch + DROP_ARROW + DROP_BOX + DROP_ARROW2
-    + M.DROP_ROWS * s.ch + 2 * printH;
+  const training = params.mode !== "evaluation";
+  /* A PRINT IS HEADED BY ITS OWN NAME, as the sibling's are, so the block under
+     the band cannot be read as the print of the grid it sits below (Kenneth,
+     round 1). The heading costs LBL. */
+  const printH = PRINT_DROP + LBL + M.printRows(shape) * PRINT_LH;
+  const rowH = M.DROP_ROWS * s.ch;
+  const h1 = LBL + rowH + DROP_ARROW + DROP_BOX + DROP_ARROW2
+    + (training ? rowH + DROP_ARROW3 : 0) + rowH + 2 * printH;
   const capY = BAND_HEAD + h1 + CAP_GAP;
   const caps = captionLines(ctx, colors, w, params);
-  return { s, annW, shape, h1, y1: 0, capY, caps, height: capY + caps.length * CAPTION_H + PAD };
+  return {
+    s, annW, shape, training, printH, h1, y1: 0, capY, caps,
+    height: capY + caps.length * CAPTION_H + PAD,
+  };
 }
 
 function drawDrop(ctx, colors, w, params, state, anim) {
@@ -877,20 +904,53 @@ function drawDrop(ctx, colors, w, params, state, anim) {
   const training = state.training;
   const rowW = M.DROP_COLS * s.cw;
   const gx = PAD + DROP_GUT;
+  const rowH = M.DROP_ROWS * s.ch;
+  const [annDrop, annScale] = dropAnns(params);
   const at = walk.idx >= 0 ? { r: Math.floor(walk.idx / M.DROP_COLS), c: walk.idx % M.DROP_COLS } : null;
+  const ord = (r, c) => r * M.DROP_COLS + c;
+
+  /** DECISION 13: the masked cell lands on the phase the step lights on. */
+  const maskArrival = (k) =>
+    (k < walk.done ? 1 : walk.moving && k === walk.idx ? walk.light : 0);
+
+  /**
+   * One cell of the masked row or the output row. DECISION 10: a dropped cell
+   * and one the walk has not reached are both empty. The cell IN FLIGHT keeps
+   * its highlight frame either way, in both rows, because the frame says where
+   * the step is and a dropped cell has to be somewhere while it is drawn.
+   */
+  const dropCell = (r, c, a, value, hue) => {
+    const flight = Boolean(at) && at.r === r && at.c === c;
+    if (a <= 0 || !state.mask[r][c]) return flight ? { empty: true, lit: true } : { empty: true };
+    return flight
+      ? { text: M.n2(value), ...litFace(colors, a) }
+      : { text: M.n2(value), fill: wash(hue, WASH) };
+  };
+
+  const rowName = (name, cy) =>
+    txt(ctx, colors, `${name}  ${shapeText(g.shape)}`, gx - 8, cy + s.ch,
+      { color: colors.ink2, align: "right", baseline: "middle", mono: true });
+
+  /** A down arrow in its own slot, with the note that says what it does. */
+  const step = (cy, slot, note, color) => {
+    arrow(ctx, gx + rowW / 2, cy + 6, gx + rowW / 2, cy + slot - 6, colors.ink3, 2);
+    if (note) {
+      txt(ctx, colors, note, gx + rowW + 12, cy + slot / 2 + 0.5,
+        { color: color ?? colors.ink3, baseline: "middle", size: colors.fsXs });
+    }
+  };
 
   const y = band(ctx, colors, g.y1, w, training ? "Training" : "Evaluation",
     training ? `y = (m ⊙ x) / (1 − ${p})` : "y = x");
-  txt(ctx, colors, `x  ${shapeText(g.shape)}`, gx - 8, y + LBL + s.ch,
-    { color: colors.ink2, align: "right", baseline: "middle", mono: true });
+  rowName("x", y + LBL);
   grid(ctx, colors, gx, y + LBL, M.DROP_ROWS, M.DROP_COLS, s.cw, s.ch, (r, c) =>
     ({ text: M.n2(M.XD[r][c]), hue: colors.groupA,
       ...(at && at.r === r && at.c === c ? litFace(colors, walk.light) : {}) }));
   spotGrid(gx, y + LBL, M.DROP_ROWS, M.DROP_COLS, s.cw, s.ch, (r, c) =>
     `x[${r}, ${c}] = ${num(M.XD[r][c])}`);
 
-  let cy = y + LBL + M.DROP_ROWS * s.ch;
-  arrow(ctx, gx + rowW / 2, cy + 6, gx + rowW / 2, cy + 24, colors.ink3, 2);
+  let cy = y + LBL + rowH;
+  step(cy, DROP_ARROW);
   cy += DROP_ARROW;
   ctx.fillStyle = wash(colors.groupB, 0.2);
   ctx.fillRect(gx, cy, rowW, DROP_BOX);
@@ -900,41 +960,55 @@ function drawDrop(ctx, colors, w, params, state, anim) {
   txt(ctx, colors, training ? `Dropout(p = ${p})` : `Dropout(p = ${p}), eval`,
     gx + rowW / 2, cy + DROP_BOX / 2 + 0.5,
     { color: colors.ink1, align: "center", baseline: "middle", mono: true });
-  txt(ctx, colors, training ? `kept with probability ${(1 - p).toFixed(1)}` : "nothing is dropped",
-    gx + rowW + 12, cy + DROP_BOX / 2 + 0.5,
-    { color: colors.ink3, baseline: "middle", size: colors.fsXs });
   cy += DROP_BOX;
-  arrow(ctx, gx + rowW / 2, cy + 6, gx + rowW / 2, cy + 24, colors.ink3, 2);
+  step(cy, DROP_ARROW2, annDrop);
   cy += DROP_ARROW2;
 
-  txt(ctx, colors, `y  ${shapeText(g.shape)}`, gx - 8, cy + s.ch,
-    { color: colors.ink2, align: "right", baseline: "middle", mono: true });
-  grid(ctx, colors, gx, cy, M.DROP_ROWS, M.DROP_COLS, s.cw, s.ch, (r, c) => {
-    const k = r * M.DROP_COLS + c;
-    const a = arrival(walk, k);
-    /* DECISION 10: a dropped cell and one the walk has not reached are both
-       empty, and the input row above says which is which. */
-    if (a === 0 || !state.mask[r][c]) return { empty: true };
-    return at && at.r === r && at.c === c
-      ? { text: M.n2(state.y[r][c]), ...litFace(colors, a) }
-      : { text: M.n2(state.y[r][c]), fill: wash(colors.empirical, WASH) };
-  });
-  spotGrid(gx, cy, M.DROP_ROWS, M.DROP_COLS, s.cw, s.ch, (r, c) =>
-    (r * M.DROP_COLS + c < walk.done
+  /* THE MASK'S OWN ROW (decision 13): a survivor still carries the value it
+     came in with, so this row is the input with holes in it. */
+  if (training) {
+    rowName("m ⊙ x", cy);
+    const my = cy;
+    grid(ctx, colors, gx, my, M.DROP_ROWS, M.DROP_COLS, s.cw, s.ch, (r, c) =>
+      dropCell(r, c, maskArrival(ord(r, c)), M.XD[r][c], colors.groupA));
+    spotGrid(gx, my, M.DROP_ROWS, M.DROP_COLS, s.cw, s.ch, (r, c) =>
+      (maskArrival(ord(r, c)) > 0
+        ? (state.mask[r][c]
+          ? `(m ⊙ x)[${r}, ${c}] = ${num(M.XD[r][c])}, kept`
+          : `(m ⊙ x)[${r}, ${c}] = 0, dropped`)
+        : `(m ⊙ x)[${r}, ${c}], not computed yet`));
+    cy += rowH;
+    step(cy, DROP_ARROW3, annScale, colors.highlight);
+    cy += DROP_ARROW3;
+  }
+
+  rowName("y", cy);
+  const oy = cy;
+  grid(ctx, colors, gx, oy, M.DROP_ROWS, M.DROP_COLS, s.cw, s.ch, (r, c) =>
+    dropCell(r, c, arrival(walk, ord(r, c)), state.y[r][c], colors.empirical));
+  spotGrid(gx, oy, M.DROP_ROWS, M.DROP_COLS, s.cw, s.ch, (r, c) =>
+    (ord(r, c) < walk.done
       ? `y[${r}, ${c}] = ${num(state.y[r][c])}${state.mask[r][c] ? "" : ", dropped"}`
       : `y[${r}, ${c}], not computed yet`));
-  txt(ctx, colors, training ? `survivors × ${state.scale.toFixed(2)}` : "y = x, value for value",
-    gx + rowW + 12, cy + s.ch, { color: colors.highlight, baseline: "middle", size: colors.fsXs });
+  if (!training) {
+    txt(ctx, colors, annScale, gx + rowW + 12, oy + s.ch,
+      { color: colors.ink3, baseline: "middle", size: colors.fsXs });
+  }
+  cy += rowH;
 
   /* THE PRINTS ARE WHERE THE ZEROS ARE. A dropped cell is drawn empty, and the
      tensor torch holds carries 0.0000 there, so the print is the one place a
-     reader sees what the layer actually passed on. */
-  let py = cy + M.DROP_ROWS * s.ch + PRINT_DROP;
-  printBlock(ctx, colors, PAD, py, g.shape, ([r, c]) => M.XD[r][c]);
-  py += M.printRows(g.shape) * PRINT_LH + PRINT_DROP;
+     reader sees what the layer actually passed on. Each is headed by its own
+     name, because at the first render y's grid is empty and an unheaded print
+     under it reads as y's (Kenneth, round 1). */
+  let py = cy + PRINT_DROP;
+  label(ctx, colors, PAD, py + 11, "x", g.shape, colors.ink2);
+  printBlock(ctx, colors, PAD, py + LBL, g.shape, ([r, c]) => M.XD[r][c]);
+  py += LBL + M.printRows(g.shape) * PRINT_LH + PRINT_DROP;
+  label(ctx, colors, PAD, py + 11, "y", g.shape, colors.ink2);
   if (walk.done > 0) {
-    printBlock(ctx, colors, PAD, py, g.shape, ([r, c]) => state.y[r][c],
-      ([r, c]) => r * M.DROP_COLS + c < walk.done);
+    printBlock(ctx, colors, PAD, py + LBL, g.shape, ([r, c]) => state.y[r][c],
+      ([r, c]) => ord(r, c) < walk.done);
   }
   return g;
 }
@@ -965,15 +1039,17 @@ function pageCaptions(params) {
           "γ and β are learned, and they let the layer restore any scale and shift the next layer needs.",
         ];
     case "activation":
-      if (params.use === "probability") {
+      if (params.use === "sigmoid") {
         return [
-          "A score of 2 is a probability of 0.881, and each row is one case on its own.",
+          "The sigmoid turns one score into the probability of one outcome: a score of 2 is 0.881, "
+          + "and each row is a case on its own.",
           "BCEWithLogitsLoss applies the sigmoid itself, so a model trained with it ends at the score.",
         ];
       }
-      if (params.use === "distribution") {
+      if (params.use === "softmax") {
         return [
-          "Row 1 is five zeros, so every probability is 0.2 and the row still sums to 1.0000.",
+          "The softmax turns a row of scores into a distribution over the five classes: row 1 is five "
+          + "zeros, so every probability is 0.2 and the row sums to 1.0000.",
           "CrossEntropyLoss applies the softmax itself, so a model trained with it ends at the scores.",
         ];
       }
@@ -1074,17 +1150,18 @@ function cardFor(params) {
             + "own pair. eps of 1e-5 is added inside the square root.",
       };
     case "activation": {
-      if (params.use === "probability") {
+      if (params.use === "sigmoid") {
         return {
           rows: [["p", CARD.sigmoid]],
-          note: "The sigmoid maps any score to a probability between 0 and 1, one case at a time.",
+          note: "The sigmoid maps any score to a probability between 0 and 1, one case at a time. "
+            + "BCEWithLogitsLoss applies it inside the loss.",
         };
       }
-      if (params.use === "distribution") {
+      if (params.use === "softmax") {
         return {
           rows: [["p_j", CARD.softmax]],
           note: "The softmax is taken along dim=1, so each row becomes a distribution over the five classes "
-            + "and sums to 1.",
+            + "and sums to 1. CrossEntropyLoss applies it inside the loss.",
         };
       }
       const chosen = M.actByKey(params.fn);
@@ -1184,8 +1261,8 @@ const STEP_TITLES = {
   embedding: "Copy out the next token's row of the table",
   pooling: "Summarize the next window with both its maximum and its mean",
   normalization: "Standardize the next group on its own mean and standard deviation",
-  activation: "Apply the function to the next input, one value on Hidden and Probability and one row on Distribution",
-  dropout: "Draw the next cell of the mask and write the output value it produces",
+  activation: "Apply the function to the next input, one value on Hidden and Sigmoid and one row on Softmax",
+  dropout: "Draw the next cell of the mask, then scale the value it keeps",
 };
 const RUN_TITLES = {
   embedding: "Look up the remaining tokens",
@@ -1284,15 +1361,20 @@ defineWidget({
       when: ON("normalization"),
     },
 
+    /* THE NOTEBOOK'S OWN THREE HEADINGS, and the values a link carries, so the
+       word in the URL is the word on the band header (Kenneth, round 1: the
+       page called "Probability" left him asking which function it was). The
+       detail says the job AND the loss, because the loss is where the last two
+       functions actually live. */
     use: {
       type: "segmented",
-      label: "What the numbers mean",
+      label: "Use",
       style: "grid",
       detail: "an activation is used for three different jobs",
       options: [
         { value: "hidden", label: "Hidden", detail: "a hidden value, where the function makes the network nonlinear" },
-        { value: "probability", label: "Probability", detail: "one score turned into the probability of a single outcome" },
-        { value: "distribution", label: "Distribution", detail: "a row of scores turned into a distribution over classes", span: true },
+        { value: "sigmoid", label: "Sigmoid", detail: "one score to the probability of one outcome, and BCEWithLogitsLoss applies it inside the loss" },
+        { value: "softmax", label: "Softmax", detail: "a row of scores to a distribution over the classes, and CrossEntropyLoss applies it inside the loss", span: true },
       ],
       default: "hidden",
       when: ON("activation"),
@@ -1366,7 +1448,11 @@ defineWidget({
       pooling: "The input image",
       normalization: "The input tensor",
       activation: "The input tensor",
-      dropout: "The input tensor",
+      /* group-a carries two rows at training, because m ⊙ x holds the input's
+         own values (decision 14), and the legend names both */
+      dropout: params.mode === "training"
+        ? "The input tensor, and what the mask leaves of it"
+        : "The input tensor",
     }[params.block];
     const second = {
       embedding: "The embedding table, one row per residue",
@@ -1535,7 +1621,7 @@ defineWidget({
     }
 
     if (params.block === "activation") {
-      if (params.use === "probability") {
+      if (params.use === "sigmoid") {
         const at = walk.idx >= 0 ? walk.idx : -1;
         return [
           { label: "Input", value: sizeText([M.PROB_IN.length, 1]), note: "5 cases, one score each" },
@@ -1554,7 +1640,7 @@ defineWidget({
           cellTile("—", "a cell's index and value"),
         ];
       }
-      if (params.use === "distribution") {
+      if (params.use === "softmax") {
         const at = walk.idx >= 0 ? walk.idx : -1;
         return [
           { label: "Input", value: sizeText([M.DIST_IN.length, M.DIST_IN[0].length]), note: "3 cases, 5 classes each" },

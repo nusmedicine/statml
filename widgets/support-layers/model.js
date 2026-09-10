@@ -97,7 +97,14 @@ export const IDXW = 20;          // the embedding table's row-index gutter
 export const LAYER_CELL = 44;    // the layer-normalization cell (mock section 4)
 export const CURVE = { w: 150, h: 130 };   // the activation curve panel
 export const ACT_GUT = 60;       // the row-name gutter on the Hidden rows
-export const DROP_GUT = 110;     // the row-name gutter on the Dropout rows
+/* The row-name gutter on the Dropout rows. It holds the widest of the THREE
+   row names the masked row made it (main.js decision 13): `m ⊙ x  [2, 5]` is
+   thirteen characters of --fs-sm mono, measured at 91px, so the mock's 110
+   still clears it by 11 and no page grew wider to carry the extra row. */
+export const DROP_GUT = 110;
+/** A --fs-sm mono character, measured in the browser at 7.0px. A row name is
+    laid out in this font, and the verify script has no canvas to ask. */
+export const MONO_SM = 7;
 export const NORM_STAT = 96;     // the column that holds `μ 7.00  σ 2.34`
 
 const W_BASE = 550;
@@ -154,8 +161,8 @@ export const bandWidth = {
   batchNorm: (z) => 2 * 3 * z.cw + z.arrow,
   layerNorm: (z) => 2 * 4 * scaledCell(LAYER_CELL, z) + NORM_STAT + GAP,
   hidden: (z) => CURVE.w + GAP + ACT_GUT + 5 * z.cw,
-  probability: (z) => z.cw + z.op + z.cw,
-  distribution: (z) => 6 * z.cw,
+  sigmoid: (z) => z.cw + z.op + z.cw,
+  softmax: (z) => 6 * z.cw,
   dropout: (z, annW) => DROP_GUT + 5 * z.cw + annW,
 };
 
@@ -306,6 +313,9 @@ export const ACTS = [
 ];
 export const actByKey = (key) => ACTS.find((a) => a.key === key) ?? ACTS[0];
 
+/* The three uses carry the notebook's own headings — Hidden, Sigmoid, Softmax
+   — and those are the values `use` takes, so a shared link reads as the words
+   on screen. */
 export const HIDDEN_IN = [-2, -1, 0, 1, 2];          // cell 50
 export const PROB_IN = [-2, 0, 1, 2, 3];             // cell 54
 export const DIST_IN = [                              // cell 56
@@ -315,11 +325,11 @@ export const DIST_IN = [                              // cell 56
 ];
 
 export function activation(use) {
-  if (use === "probability") {
+  if (use === "sigmoid") {
     const out = PROB_IN.map(sigmoid);
     return { kind: "activation", use, out, units: PROB_IN.length };
   }
-  if (use === "distribution") {
+  if (use === "softmax") {
     const out = DIST_IN.map(softmax);
     return {
       kind: "activation", use, out, units: DIST_IN.length,

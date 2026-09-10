@@ -211,7 +211,7 @@ const allNear = (a, b, eps = 1e-9) => a.length === b.length && a.every((v, i) =>
   check("SiLU is x times the sigmoid of x",
     H.out[2].every((v, i) => near(v, M.HIDDEN_IN[i] * M.sigmoid(M.HIDDEN_IN[i]))));
 
-  const P = M.activation("probability");
+  const P = M.activation("sigmoid");
   check("a score of 0 is a probability of 0.5, and 2 is 0.881",
     near(P.out[1], 0.5) && near(P.out[3], 0.8808, 5e-4),
     P.out.map((v) => v.toFixed(3)).join(", "));
@@ -219,7 +219,7 @@ const allNear = (a, b, eps = 1e-9) => a.length === b.length && a.every((v, i) =>
   check("every probability is between 0 and 1 and rises with the score",
     P.out.every((v) => v > 0 && v < 1) && P.out.every((v, i) => i === 0 || v > P.out[i - 1]));
 
-  const D = M.activation("distribution");
+  const D = M.activation("softmax");
   check("softmax is taken along dim=1, so every row sums to 1",
     D.out.every((_, r) => near(D.rowSum(r), 1, 1e-12)),
     D.out.map((_, r) => D.rowSum(r).toFixed(4)).join(", "));
@@ -235,8 +235,19 @@ const allNear = (a, b, eps = 1e-9) => a.length === b.length && a.every((v, i) =>
       return row[arg] === Math.max(...row);
     }));
 
-  check("the walk takes one input on Hidden and Probability and one row on Distribution",
+  check("the walk takes one input on Hidden and Sigmoid and one row on Softmax",
     H.units === 5 && P.units === 5 && D.units === 3);
+
+  /* THE THREE USES ARE KEYED BY THE NOTEBOOK'S OWN HEADINGS, which is what a
+     shared link carries. Core drops a key that is not an option and takes the
+     default, so an old `?use=probability` opens on Hidden; the model's own
+     fallback is the same page, and this asserts it rather than leaving the
+     stale key to reach a branch that no longer exists. */
+  check("the three uses are keyed hidden, sigmoid and softmax",
+    M.activation("hidden").use === "hidden" && P.use === "sigmoid" && D.use === "softmax"
+    && Array.isArray(M.activation("probability").out[0])
+    && M.activation("distribution").units === 5,
+    "hidden · sigmoid · softmax");
 }
 
 /* --- 5 · Dropout: the scaling, the two modes, and the running mean ---------- */
@@ -253,6 +264,14 @@ const allNear = (a, b, eps = 1e-9) => a.length === b.length && a.every((v, i) =>
 
   check("the mask is 0 or 1 and nothing else",
     T.mask.flat().every((v) => v === 0 || v === 1));
+
+  /* THE TWO ROWS THE FIGURE NOW DRAWS (main.js decision 13): m ⊙ x carries the
+     input's own value where a cell survives, and y is that row times the scale.
+     Two steps rather than one, which is what Kenneth's figure separates. */
+  check("y is the masked row times the scale, value for value",
+    T.y.every((row, r) => row.every((v, c) =>
+      near(v, (T.mask[r][c] ? M.XD[r][c] : 0) * T.scale))),
+    `scale ${T.scale.toFixed(2)}`);
 
   const E = M.dropout(1, 0.5, "evaluation");
   check("at evaluation the output IS the input, value for value",
@@ -303,10 +322,11 @@ const allNear = (a, b, eps = 1e-9) => a.length === b.length && a.every((v, i) =>
     ["Batch normalization", (z) => M.bandWidth.batchNorm(z)],
     ["Layer normalization", (z) => M.bandWidth.layerNorm(z)],
     ["Activation Hidden", (z) => M.bandWidth.hidden(z)],
-    ["Activation Probability", (z) => M.bandWidth.probability(z)],
-    ["Activation Distribution", (z) => M.bandWidth.distribution(z)],
-    /* 140 is the annotation column `main.js` measures at --fs-xs; the check is
-       a ceiling on it rather than the measurement, which needs a canvas */
+    ["Activation Sigmoid", (z) => M.bandWidth.sigmoid(z)],
+    ["Activation Softmax", (z) => M.bandWidth.softmax(z)],
+    /* The annotation column `main.js` measures at --fs-xs came to 130px in the
+       browser ("kept with probability 0.5" is the widest of the four); the
+       measurement needs a canvas, so 140 stands here as a ceiling on it */
     ["Dropout", (z) => M.bandWidth.dropout(z, 140)],
   ];
   for (const w of [550, 770]) {
@@ -337,7 +357,19 @@ const allNear = (a, b, eps = 1e-9) => a.length === b.length && a.every((v, i) =>
     M.fitSizes(420, (z) => 10 * z.cw).t === 0);
 
   check("a wider stage grows the value cell rather than leaving the band left",
-    M.fitSizes(770, (z) => M.bandWidth.probability(z)).cw === 60);
+    M.fitSizes(770, (z) => M.bandWidth.sigmoid(z)).cw === 60);
+
+  /* THE DROPOUT ROW GUTTER HOLDS THE WIDEST OF THE THREE ROW NAMES the masked
+     row made it (main.js decision 13). `m ⊙ x  [2, 5]` is the widest, and it is
+     right-aligned 8px left of the grid, so anything past the gutter runs off the
+     stage. Node has no canvas, so the character width is `MONO_SM`, measured in
+     the browser at the 550 stage; the assertion is that the name fits the
+     gutter the mock drew rather than that the gutter was widened for it. */
+  const rowNames = ["x  [2, 5]", "m ⊙ x  [2, 5]", "y  [2, 5]"];
+  const widestName = Math.max(...rowNames.map((s) => s.length)) * M.MONO_SM;
+  check("the row-name gutter holds `m ⊙ x  [2, 5]` at --fs-sm mono",
+    M.DROP_GUT >= 8 + Math.ceil(widestName),
+    `${M.DROP_GUT}px against ${8 + Math.ceil(widestName)}px`);
 }
 
 /* --- 7 · the register of the strings the reader sees ------------------------ *

@@ -11040,6 +11040,54 @@ over ten 0.524, which is the third tile's reason. One decision the mock took
 without asking: the pooling window is drawn at input rows and columns 4–6 so it
 straddles the square's edge, where max and mean differ.
 
+#### BUILT AS A DRAFT 2026-09-10 (`a7315f2`), and Round 1 the same day
+
+An Opus 5 builder wrote `main.js` (1654 lines), `model.js` (374) and
+`_lab/support-layers-verify.mjs` (65 assertions, under `npm test`) from the
+mock; the main session read every page in the browser before the commit and
+made two legend fixes first (the Dropout mask entry is Training only;
+Normalization lists no second-operand entry, since nothing yellow is drawn).
+Eight decisions in the header, the three that matter: fixed seeds per page in
+`model.js`, so the Dropout `seed` reaches no other page's draw; the Dropout
+mean tile is the mean over seeds 1..seed, computed in `compute()`, so it is a
+pure function of the parameters (non-negotiable 1) and `?seed=10` reproduces
+it; and at `dim = 8` the Embedding result frames stack, measured against the
+stage rather than written as `dim === 8`. Heights at 550: Embedding 553 (776
+stacked), Pooling 467, Batch 273, Layer 435, Hidden 250, Probability 241,
+Distribution 304, Dropout 395 / 378.
+
+**Round 1 — Kenneth, 2026-09-10, "great, looks good" and two points.** **(1)**
+*"for activation, can you explain what probability, distribution mean.. so
+this is cross entropy and softmax?"* — yes: Probability is cell 54's sigmoid,
+one score per sample to the probability of the positive class, which
+`BCEWithLogitsLoss` applies inside itself; Distribution is cell 56's softmax
+across each row's five class scores, which `CrossEntropyLoss` applies inside
+itself. The labels named the result and not the function, which is what his
+question showed. Offered: *Hidden · Sigmoid · Softmax* (the notebook's own
+headings, the detail text naming the job and the loss), the labels kept with
+richer detail text, or *Hidden · Binary · Multi-class*. **His pick: Hidden ·
+Sigmoid · Softmax**, and the URL values follow (`?use=sigmoid|softmax`), since
+a URL value is reader-facing copy. **(2)** an arrow at the empty output row,
+*"should we show another step for scaling?"* — the draft collapsed the drop
+and the scale into one output row where his `dl-layer-dropout.png` draws
+three: input, random dropout, scale remaining activations. Offered three rows
+(the masked row with survivors at their input value, then × 1/(1 − p) into the
+output row, about 90px more stage) against one row landing in two phases.
+**His pick: three rows.** A third item from his screenshot, not his comment:
+at `shown=0` x's print sat unlabelled under the empty y grid, so it read as
+y already filled; each print is headed by its name and y's fills as cells
+land. One builder round for all three.
+
+**Round 1 built the same day:** `use` is `hidden | sigmoid | softmax`, the band
+headers *Sigmoid* (`p = sigmoid(score)`) and *Softmax* (`softmax(x, dim=1)`),
+every caption and card note naming the job and the loss; Dropout Training is
+four rows, `x` → the box → `m ⊙ x` (survivors at their input value, in
+`--c-group-a` since the numbers are x's) → `× 2.00` → `y`, one Next cell
+landing the masked cell on the lighting phase and the scaled cell on the
+landing phase; the prints headed `x  [2, 5]` and `y  [2, 5]`, y's filling as
+cells land with a dropped cell printing `0.0000`. The 110px annotation gutter
+held `m ⊙ x  [2, 5]` at a measured 91px, so no band grew. Dropout 509 / 410 at
+550 and 540 / 442 at 770 (was 395 / 378). 68 assertions.
 ### Slot 51 · `composition` — Composing Layers and Controlling Flow — PLANNED 2026-09-10
 
 **Host.** 05-3 cells 61–101, the notebook's two `##` headings: *Composing
