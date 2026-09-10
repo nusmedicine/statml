@@ -2274,7 +2274,7 @@ function ranLabel(params) {
 defineWidget({
   slug: "composition",
   title: "Deep Learning - Composition",
-  status: "draft",
+  status: "shipped",
   subtitle:
     "A model is layers composed in an order, each layer's output shape the "
     + "input shape of the next. Connections can also add the input back after a "

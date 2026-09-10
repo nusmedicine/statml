@@ -3968,252 +3968,252 @@
       "tx": "ca06d024"
     },
     {
-      "$note": "PLACEHOLDER, draft: Ordering, Pattern: the four steps a block applies, all four applied, Transform against the two steps that condition it and the one that acts in training",
+      "$note": "Ordering, Pattern: the four steps a block applies, all four applied, Transform against the two steps that condition it and the one that acts in training",
       "slug": "composition",
       "state": "?theme=light&topic=ordering&shown=40",
-      "px": "0",
-      "tx": "0"
+      "px": "80e33e5e",
+      "tx": "59c2f2db"
     },
     {
-      "$note": "PLACEHOLDER, draft: Ordering, Combinations: the three pairs of layers that are placed together, all three shown, the last one's reason in the shared caption row",
+      "$note": "Ordering, Combinations: the three pairs of layers that are placed together, all three shown, the last one's reason in the shared caption row",
       "slug": "composition",
       "state": "?theme=light&topic=ordering&view=combinations&shown=40",
-      "px": "0",
-      "tx": "0"
+      "px": "d5a7de3e",
+      "tx": "f3486351"
     },
     {
-      "$note": "PLACEHOLDER, draft: Ordering, Position: the four positions from the beginning to the end, the repeated middle in its brackets",
+      "$note": "Ordering, Position: the four positions from the beginning to the end, the repeated middle in its brackets",
       "slug": "composition",
       "state": "?theme=light&topic=ordering&view=position&shown=40",
-      "px": "0",
-      "tx": "0"
+      "px": "1d0a93aa",
+      "tx": "adf5599a"
     },
     {
-      "$note": "PLACEHOLDER, draft: Building, Sequential and flat: the three layers listed one after another, and print showing what the model declares",
+      "$note": "Building, Sequential and flat: the three layers listed one after another, and print showing what the model declares",
       "slug": "composition",
       "state": "?theme=light&topic=building&shown=40",
-      "px": "0",
-      "tx": "0"
+      "px": "cd8c28c0",
+      "tx": "a8cf262f"
     },
     {
-      "$note": "PLACEHOLDER, draft: Building, Module with every layer declared: the class and its forward(), the activation an nn.ReLU registered with the rest",
+      "$note": "Building, Module with every layer declared: the class and its forward(), the activation an nn.ReLU registered with the rest",
       "slug": "composition",
       "state": "?theme=light&topic=building&api=module&shown=40",
-      "px": "0",
-      "tx": "0"
+      "px": "2dc23c74",
+      "tx": "2aece4bc"
     },
     {
-      "$note": "PLACEHOLDER, draft: Building, Module declaring the learnable layers only: F.relu is called in forward and never registered, so the print is a line shorter",
+      "$note": "Building, Module declaring the learnable layers only: F.relu is called in forward and never registered, so the print is a line shorter",
       "slug": "composition",
       "state": "?theme=light&topic=building&api=module&declared=learnable&shown=40",
-      "px": "0",
-      "tx": "0"
+      "px": "71eb0b38",
+      "tx": "9fb2242f"
     },
     {
-      "$note": "PLACEHOLDER, draft: Building, Sequential in three blocks: an input block, a hidden block and an output block, each a Sequential of its own",
+      "$note": "Building, Sequential in three blocks: an input block, a hidden block and an output block, each a Sequential of its own",
       "slug": "composition",
       "state": "?theme=light&topic=building&grouping=blocks&shown=40",
-      "px": "0",
-      "tx": "0"
+      "px": "60afb394",
+      "tx": "6dd6a7d5"
     },
     {
-      "$note": "PLACEHOLDER, draft: Building, summary: the same three layers with the output shape and the parameter count of each",
+      "$note": "Building, summary: the same three layers with the output shape and the parameter count of each",
       "slug": "composition",
       "state": "?theme=light&topic=building&inspect=summary&shown=40",
-      "px": "0",
-      "tx": "0"
+      "px": "12c29bf1",
+      "tx": "a8cf262f"
     },
     {
-      "$note": "PLACEHOLDER, draft: Dimensions, Image: [4, 3, 32, 32] through Conv2d(3, 16, 3), MaxPool2d(2), Flatten and Linear(3600, 10), every layer applied",
+      "$note": "Dimensions, Image: [4, 3, 32, 32] through Conv2d(3, 16, 3), MaxPool2d(2), Flatten and Linear(3600, 10), every layer applied",
       "slug": "composition",
       "state": "?theme=light&topic=dimensions&shown=40",
-      "px": "0",
-      "tx": "0"
+      "px": "df17422a",
+      "tx": "004488e7"
     },
     {
-      "$note": "PLACEHOLDER, draft: Dimensions, Vectors: [4, 10] through the four slots the vector menus open on, Linear(10, 20) to Linear(20, 2)",
+      "$note": "Dimensions, Vectors: [4, 10] through the four slots the vector menus open on, Linear(10, 20) to Linear(20, 2)",
       "slug": "composition",
       "state": "?theme=light&topic=dimensions&data=vectors&shown=40",
-      "px": "0",
-      "tx": "0"
+      "px": "6eaa3e29",
+      "tx": "55060063"
     },
     {
-      "$note": "PLACEHOLDER, draft: Dimensions, Sequence: [4, 5] of integer ids through Embedding(6, 4), ReLU, Flatten and Linear(20, 2)",
+      "$note": "Dimensions, Sequence: [4, 5] of integer ids through Embedding(6, 4), ReLU, Flatten and Linear(20, 2)",
       "slug": "composition",
       "state": "?theme=light&topic=dimensions&data=sequence&shown=40",
-      "px": "0",
-      "tx": "0"
+      "px": "e57dcc93",
+      "tx": "63daabdb"
     },
     {
-      "$note": "PLACEHOLDER, draft: Dimensions, the losing chain: Linear(100, 10) where the Flatten before it produces 3600 features, so torch's matmul message is the last thing on the page",
+      "$note": "Dimensions, the losing chain: Linear(100, 10) where the Flatten before it produces 3600 features, so torch's matmul message is the last thing on the page",
       "slug": "composition",
       "state": "?theme=light&topic=dimensions&data=image&step4=Linear-100-10&shown=40",
-      "px": "0",
-      "tx": "0"
+      "px": "5223eb77",
+      "tx": "3c3c5cbe"
     },
     {
-      "$note": "PLACEHOLDER, draft: Skip at width 10 with no projection: all six lines run, and the block reads x3 + skip = out down the spine",
+      "$note": "Skip at width 10 with no projection: all six lines run, and the block reads x3 + skip = out down the spine",
       "slug": "composition",
       "state": "?theme=light&topic=skip&shown=40",
-      "px": "0",
-      "tx": "0"
+      "px": "2a43452a",
+      "tx": "0cd607a3"
     },
     {
-      "$note": "PLACEHOLDER, draft: Skip at width 20: f(x) leaves 20 features against an input of 10, so the add raises and torch's message takes the result band's row",
+      "$note": "Skip at width 20: f(x) leaves 20 features against an input of 10, so the add raises and torch's message takes the result band's row",
       "slug": "composition",
       "state": "?theme=light&topic=skip&width=20&shown=40",
-      "px": "0",
-      "tx": "0"
+      "px": "f0aee9bf",
+      "tx": "14b8ddf6"
     },
     {
-      "$note": "PLACEHOLDER, draft: Skip with the projection on: a Linear(10, 10) on the skip path, and the second colour in the legend that comes with it",
+      "$note": "Skip with the projection on: a Linear(10, 10) on the skip path, and the second colour in the legend that comes with it",
       "slug": "composition",
       "state": "?theme=light&topic=skip&proj=on&shown=40",
-      "px": "0",
-      "tx": "0"
+      "px": "22608011",
+      "tx": "55715166"
     },
     {
-      "$note": "PLACEHOLDER, draft: Skip at width 20 with the projection on: the Linear maps the input to 20, so the add lines up and the out band returns",
+      "$note": "Skip at width 20 with the projection on: the Linear maps the input to 20, so the add lines up and the out band returns",
       "slug": "composition",
       "state": "?theme=light&topic=skip&width=20&proj=on&shown=40",
-      "px": "0",
-      "tx": "0"
+      "px": "35680b59",
+      "tx": "89bac223"
     },
     {
-      "$note": "PLACEHOLDER, draft: Skip with sample 2 chosen: the third row lit in all three bands and the readout taking its values from it - the state a band-row click lands in",
+      "$note": "Skip with sample 2 chosen: the third row lit in all three bands and the readout taking its values from it - the state a band-row click lands in",
       "slug": "composition",
       "state": "?theme=light&topic=skip&sample=2&shown=40",
-      "px": "0",
-      "tx": "0"
+      "px": "34a99f9f",
+      "tx": "3ca9ef6b"
     },
     {
-      "$note": "PLACEHOLDER, draft: Gating with the learned gate: gate_fc through a sigmoid, and the gated band on the result edge with all four lines run",
+      "$note": "Gating with the learned gate: gate_fc through a sigmoid, and the gated band on the result edge with all four lines run",
       "slug": "composition",
       "state": "?theme=light&topic=gating&shown=40",
-      "px": "0",
-      "tx": "0"
+      "px": "16fee0d8",
+      "tx": "aff586cd"
     },
     {
-      "$note": "PLACEHOLDER, draft: Gating with the fixed mask: a blocked feature is blocked for every sample, so the gated band has empty columns rather than pale ones",
+      "$note": "Gating with the fixed mask: a blocked feature is blocked for every sample, so the gated band has empty columns rather than pale ones",
       "slug": "composition",
       "state": "?theme=light&topic=gating&gate=mask&shown=40",
-      "px": "0",
-      "tx": "0"
+      "px": "873084bc",
+      "tx": "ddbb6402"
     },
     {
-      "$note": "PLACEHOLDER, draft: Branching, concat of 8 and 6: the two bands side by side under their own columns and fc3 declared on 14",
+      "$note": "Branching, concat of 8 and 6: the two bands side by side under their own columns and fc3 declared on 14",
       "slug": "composition",
       "state": "?theme=light&topic=branching&shown=40",
-      "px": "0",
-      "tx": "0"
+      "px": "b27fe394",
+      "tx": "951d2b09"
     },
     {
-      "$note": "PLACEHOLDER, draft: Branching, add on 8 and 6: the notebook's own failure, the two operands stacked around the + and torch's message printed under the =",
+      "$note": "Branching, add on 8 and 6: the notebook's own failure, the two operands stacked around the + and torch's message printed under the =",
       "slug": "composition",
       "state": "?theme=light&topic=branching&merge=add&shown=40",
-      "px": "0",
-      "tx": "0"
+      "px": "a63b226d",
+      "tx": "1922ab97"
     },
     {
-      "$note": "PLACEHOLDER, draft: Branching, average on 8 and 6: the same failure at the same line, since the half-sum needs the two widths to line up first",
+      "$note": "Branching, average on 8 and 6: the same failure at the same line, since the half-sum needs the two widths to line up first",
       "slug": "composition",
       "state": "?theme=light&topic=branching&merge=average&shown=40",
-      "px": "0",
-      "tx": "0"
+      "px": "ed22c456",
+      "tx": "5e7d177f"
     },
     {
-      "$note": "PLACEHOLDER, draft: Branching, concat of 8 and 8: the widest merge the page draws, 16 features into fc3",
+      "$note": "Branching, concat of 8 and 8: the widest merge the page draws, 16 features into fc3",
       "slug": "composition",
       "state": "?theme=light&topic=branching&fc2=8&shown=40",
-      "px": "0",
-      "tx": "0"
+      "px": "c41e51d8",
+      "tx": "52c94488"
     },
     {
-      "$note": "PLACEHOLDER, draft: Branching, add on 8 and 8: x1 + x2 = y down the diagram's centre line, and fc3 on 8",
+      "$note": "Branching, add on 8 and 8: x1 + x2 = y down the diagram's centre line, and fc3 on 8",
       "slug": "composition",
       "state": "?theme=light&topic=branching&merge=add&fc2=8&shown=40",
-      "px": "0",
-      "tx": "0"
+      "px": "34adae5a",
+      "tx": "2c4a0806"
     },
     {
-      "$note": "PLACEHOLDER, draft: Branching, average on 8 and 8: the same five rows as add, the half in the band header's expression rather than in an operator of its own",
+      "$note": "Branching, average on 8 and 8: the same five rows as add, the half in the band header's expression rather than in an operator of its own",
       "slug": "composition",
       "state": "?theme=light&topic=branching&merge=average&fc2=8&shown=40",
-      "px": "0",
-      "tx": "0"
+      "px": "f4ce1085",
+      "tx": "006f9e9e"
     },
     {
-      "$note": "PLACEHOLDER, draft: Routing, soft: the three weights mix the branches, every cell the product one branch contributes, the combined band under the rule",
+      "$note": "Routing, soft: the three weights mix the branches, every cell the product one branch contributes, the combined band under the rule",
       "slug": "composition",
       "state": "?theme=light&topic=routing&mode=soft&shown=40",
-      "px": "0",
-      "tx": "0"
+      "px": "84e8cf2f",
+      "tx": "d4b7dec9"
     },
     {
-      "$note": "PLACEHOLDER, draft: Routing, hard: the largest weight picks one branch a sample, and the readout says what the argmax costs - no gradient reaches the router",
+      "$note": "Routing, hard: the largest weight picks one branch a sample, and the readout says what the argmax costs - no gradient reaches the router",
       "slug": "composition",
       "state": "?theme=light&topic=routing&mode=hard&shown=40",
-      "px": "0",
-      "tx": "0"
+      "px": "6aebf0ea",
+      "tx": "b85d4fc7"
     },
     {
-      "$note": "PLACEHOLDER, draft: Routing with sample 2 chosen: the third row lit in the weight grid and in all four bands, and the arithmetic printed for it - the state a weight-row click lands in",
+      "$note": "Routing with sample 2 chosen: the third row lit in the weight grid and in all four bands, and the arithmetic printed for it - the state a weight-row click lands in",
       "slug": "composition",
       "state": "?theme=light&topic=routing&sample=2&shown=40",
-      "px": "0",
-      "tx": "0"
+      "px": "eb29c167",
+      "tx": "43b7b920"
     },
     {
-      "$note": "PLACEHOLDER, draft: Ordering, Pattern: empty, the first step pale and no step applied",
+      "$note": "Ordering, Pattern: empty, the first step pale and no step applied",
       "slug": "composition",
       "state": "?theme=light&topic=ordering&shown=0",
-      "px": "0",
-      "tx": "0"
+      "px": "d55ce8bb",
+      "tx": "4d8073c0"
     },
     {
-      "$note": "PLACEHOLDER, draft: Building: empty, the first layer of the forward pass pale and nothing run",
+      "$note": "Building: empty, the first layer of the forward pass pale and nothing run",
       "slug": "composition",
       "state": "?theme=light&topic=building&shown=0",
-      "px": "0",
-      "tx": "0"
+      "px": "7a21fc9b",
+      "tx": "60aa0614"
     },
     {
-      "$note": "PLACEHOLDER, draft: Dimensions, Image: empty, the batch's shape and the first layer pale, no output shape on any edge",
+      "$note": "Dimensions, Image: empty, the batch's shape and the first layer pale, no output shape on any edge",
       "slug": "composition",
       "state": "?theme=light&topic=dimensions&shown=0",
-      "px": "0",
-      "tx": "0"
+      "px": "f9de4f43",
+      "tx": "d9febbc5"
     },
     {
-      "$note": "PLACEHOLDER, draft: Skip: empty, x and the tee off it, the skip arm pale, and no band, no + and no rail",
+      "$note": "Skip: empty, x and the tee off it, the skip arm pale, and no band, no + and no rail",
       "slug": "composition",
       "state": "?theme=light&topic=skip&shown=0",
-      "px": "0",
-      "tx": "0"
+      "px": "304b698f",
+      "tx": "bb920cbf"
     },
     {
-      "$note": "PLACEHOLDER, draft: Gating: empty, x and the two columns' first boxes pale, and no gated band",
+      "$note": "Gating: empty, x and the two columns' first boxes pale, and no gated band",
       "slug": "composition",
       "state": "?theme=light&topic=gating&shown=0",
-      "px": "0",
-      "tx": "0"
+      "px": "9496d13e",
+      "tx": "e9fd1b69"
     },
     {
-      "$note": "PLACEHOLDER, draft: Branching: empty, x and the first branch's fc1 pale, and neither band nor merge",
+      "$note": "Branching: empty, x and the first branch's fc1 pale, and neither band nor merge",
       "slug": "composition",
       "state": "?theme=light&topic=branching&shown=0",
-      "px": "0",
-      "tx": "0"
+      "px": "40854d40",
+      "tx": "5bbfc9d1"
     },
     {
-      "$note": "PLACEHOLDER, draft: Routing: empty, x and the gate column pale, and no weight grid and no weighted-sum box",
+      "$note": "Routing: empty, x and the gate column pale, and no weight grid and no weighted-sum box",
       "slug": "composition",
       "state": "?theme=light&topic=routing&shown=0",
-      "px": "0",
-      "tx": "0"
+      "px": "83cd79d5",
+      "tx": "4ad526bf"
     },
     {
-      "$note": "PLACEHOLDER, draft, DRIVEN: Ordering, Pattern: one press, the first step of the pattern applied and the second pale behind it",
+      "$note": "Ordering, Pattern: one press, the first step of the pattern applied and the second pale behind it",
       "slug": "composition",
       "state": "?theme=light&topic=ordering",
       "drive": {
@@ -4221,11 +4221,11 @@
         "frames": 30,
         "dt": 32
       },
-      "px": "0",
-      "tx": "0"
+      "px": "84494454",
+      "tx": "395bb416"
     },
     {
-      "$note": "PLACEHOLDER, draft, DRIVEN: Building: one press, the first layer of the forward pass run",
+      "$note": "Building: one press, the first layer of the forward pass run",
       "slug": "composition",
       "state": "?theme=light&topic=building",
       "drive": {
@@ -4233,11 +4233,11 @@
         "frames": 30,
         "dt": 32
       },
-      "px": "0",
-      "tx": "0"
+      "px": "04584317",
+      "tx": "242b1a09"
     },
     {
-      "$note": "PLACEHOLDER, draft, DRIVEN: Dimensions, Image: one press, Conv2d applied and its output shape on the edge",
+      "$note": "Dimensions, Image: one press, Conv2d applied and its output shape on the edge",
       "slug": "composition",
       "state": "?theme=light&topic=dimensions",
       "drive": {
@@ -4245,11 +4245,11 @@
         "frames": 30,
         "dt": 32
       },
-      "px": "0",
-      "tx": "0"
+      "px": "6fda6120",
+      "tx": "d50952c0"
     },
     {
-      "$note": "PLACEHOLDER, draft, DRIVEN: Skip: one press, skip = x taken off the tee and its label under the corner",
+      "$note": "Skip: one press, skip = x taken off the tee and its label under the corner",
       "slug": "composition",
       "state": "?theme=light&topic=skip",
       "drive": {
@@ -4257,11 +4257,11 @@
         "frames": 30,
         "dt": 32
       },
-      "px": "0",
-      "tx": "0"
+      "px": "9016aa0d",
+      "tx": "fcf967ed"
     },
     {
-      "$note": "PLACEHOLDER, draft, DRIVEN: Gating: one press, fc1 and its relu run on the main path",
+      "$note": "Gating: one press, fc1 and its relu run on the main path",
       "slug": "composition",
       "state": "?theme=light&topic=gating",
       "drive": {
@@ -4269,11 +4269,11 @@
         "frames": 30,
         "dt": 32
       },
-      "px": "0",
-      "tx": "0"
+      "px": "260de32c",
+      "tx": "bdfce484"
     },
     {
-      "$note": "PLACEHOLDER, draft, DRIVEN: Branching: one press, fc1 run and the x1 band landed under it",
+      "$note": "Branching: one press, fc1 run and the x1 band landed under it",
       "slug": "composition",
       "state": "?theme=light&topic=branching",
       "drive": {
@@ -4281,11 +4281,11 @@
         "frames": 30,
         "dt": 32
       },
-      "px": "0",
-      "tx": "0"
+      "px": "57b811cc",
+      "tx": "bf3872c0"
     },
     {
-      "$note": "PLACEHOLDER, draft, DRIVEN: Routing: one press, the gate run and the [4, 3] weight tensor landed beside the branches",
+      "$note": "Routing: one press, the gate run and the [4, 3] weight tensor landed beside the branches",
       "slug": "composition",
       "state": "?theme=light&topic=routing",
       "drive": {
@@ -4293,11 +4293,11 @@
         "frames": 30,
         "dt": 32
       },
-      "px": "0",
-      "tx": "0"
+      "px": "99276c6d",
+      "tx": "73fdcaa6"
     },
     {
-      "$note": "PLACEHOLDER, draft, DRIVEN: INTERRUPTED: Routing stepped again while line 1 is still in flight - core finishes the unit by fastForward and runs line 2 to its end, so two lines have landed where one press lands one",
+      "$note": "INTERRUPTED: Routing stepped again while line 1 is still in flight - core finishes the unit by fastForward and runs line 2 to its end, so two lines have landed where one press lands one",
       "slug": "composition",
       "state": "?theme=light&topic=routing",
       "drive": {
@@ -4311,11 +4311,11 @@
         "frames": 30,
         "dt": 32
       },
-      "px": "0",
-      "tx": "0"
+      "px": "ad09f01f",
+      "tx": "48555cad"
     },
     {
-      "$note": "PLACEHOLDER, draft, DRIVEN: HIT-DRIVEN: the walk run to the end, then the pointer on row 2 of the skip band at [85, 364] writes sample=2 - the middle band of x3 + skip = out, whose rows run x 25 to 145 and y 358 to 370 at both stage widths",
+      "$note": "HIT-DRIVEN: the walk run to the end, then the pointer on row 2 of the skip band at [85, 364] writes sample=2 - the middle band of x3 + skip = out, whose rows run x 25 to 145 and y 358 to 370 at both stage widths",
       "slug": "composition",
       "state": "?theme=light&topic=skip",
       "drive": {
@@ -4332,11 +4332,11 @@
         "frames": 4,
         "dt": 32
       },
-      "px": "0",
-      "tx": "0"
+      "px": "34a99f9f",
+      "tx": "3ca9ef6b"
     },
     {
-      "$note": "PLACEHOLDER, draft, DRIVEN: HIT-DRIVEN: the walk run to the end, then the pointer on row 2 of the gated band at [134, 284] writes sample=2 - the band sits at x 14, y 254 at both stage widths, so the third of its four 12px rows is y 278 to 290",
+      "$note": "HIT-DRIVEN: the walk run to the end, then the pointer on row 2 of the gated band at [134, 284] writes sample=2 - the band sits at x 14, y 254 at both stage widths, so the third of its four 12px rows is y 278 to 290",
       "slug": "composition",
       "state": "?theme=light&topic=gating",
       "drive": {
@@ -4353,11 +4353,11 @@
         "frames": 4,
         "dt": 32
       },
-      "px": "0",
-      "tx": "0"
+      "px": "66288d2a",
+      "tx": "f4e6ead4"
     },
     {
-      "$note": "PLACEHOLDER, draft, DRIVEN: HIT-DRIVEN: the walk run to the end, then the pointer on row 1 of the x1 band at [125, 206] writes sample=1 - the eight-cell branch-1 band of the concat, x 80.5 to 176.5 at a 550 stage and 73 to 169 at 535, y 200 to 212 at both",
+      "$note": "HIT-DRIVEN: the walk run to the end, then the pointer on row 1 of the x1 band at [125, 206] writes sample=1 - the eight-cell branch-1 band of the concat, x 80.5 to 176.5 at a 550 stage and 73 to 169 at 535, y 200 to 212 at both",
       "slug": "composition",
       "state": "?theme=light&topic=branching",
       "drive": {
@@ -4374,11 +4374,11 @@
         "frames": 4,
         "dt": 32
       },
-      "px": "0",
-      "tx": "0"
+      "px": "2c614659",
+      "tx": "670c3bb4"
     },
     {
-      "$note": "PLACEHOLDER, draft, DRIVEN: HIT-DRIVEN: the walk run to the end, then the pointer on row 3 of the [4, 3] weight grid at [477, 254] writes sample=3 - the grid is x 434 to 536 at a 550 stage and 419 to 521 at 535, and its four 16px rows start at y 198",
+      "$note": "HIT-DRIVEN: the walk run to the end, then the pointer on row 3 of the [4, 3] weight grid at [477, 254] writes sample=3 - the grid is x 434 to 536 at a 550 stage and 419 to 521 at 535, and its four 16px rows start at y 198",
       "slug": "composition",
       "state": "?theme=light&topic=routing",
       "drive": {
@@ -4395,11 +4395,11 @@
         "frames": 4,
         "dt": 32
       },
-      "px": "0",
-      "tx": "0"
+      "px": "b5bc7851",
+      "tx": "2595682d"
     },
     {
-      "$note": "PLACEHOLDER, draft, DRIVEN: HIT-DRIVEN: the walk run to the end, then the pointer on row 1 of branch 2's band inside the weighted-sum box at [220, 301] writes sample=1 - the twenty cells run x 102 to 342 at a 550 stage and 95 to 335 at 535, and the band's four 12px rows start at y 283",
+      "$note": "HIT-DRIVEN: the walk run to the end, then the pointer on row 1 of branch 2's band inside the weighted-sum box at [220, 301] writes sample=1 - the twenty cells run x 102 to 342 at a 550 stage and 95 to 335 at 535, and the band's four 12px rows start at y 283",
       "slug": "composition",
       "state": "?theme=light&topic=routing",
       "drive": {
@@ -4416,8 +4416,8 @@
         "frames": 4,
         "dt": 32
       },
-      "px": "0",
-      "tx": "0"
+      "px": "f270a213",
+      "tx": "7d5cc925"
     }
   ]
 }
