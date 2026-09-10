@@ -11088,6 +11088,42 @@ landing phase; the prints headed `x  [2, 5]` and `y  [2, 5]`, y's filling as
 cells land with a dropped cell printing `0.0000`. The 110px annotation gutter
 held `m ⊙ x  [2, 5]` at a measured 91px, so no band grew. Dropout 509 / 410 at
 550 and 540 / 442 at 770 (was 395 / 378). 68 assertions.
+
+**"Tested ok" (2026-09-10), with "do the copy audit and push to gallery if
+there are no major changes."** The sibling's order: an Opus 5 reviewer's
+read-only audit of every reader-facing string as a table, in parallel with the
+shooter and the placeholder states (no hashes until the copy lands); then the
+copy applied in one round; then the hashes recorded from three identical
+shots, the full suite once more at DPR 1.25 with the pane fronted, the status
+flipped, and the push on his standing word above.
+
+**The states and the shooter (2026-09-10):** 27 placeholder states, 21 settled
+(every page full and empty, each control's other arm: `dim=2`, `dim=8`, `k=4`,
+`norm=layer`, `gamma=2&beta=1`, `fn=gelu`, `use=sigmoid`, `use=softmax`,
+`mode=evaluation`, `p=0.8&seed=10`, `p=0.2`) and 6 driven (Step at 14 frames
+on every page, and Dropout stepped again mid-flight), no hit-driven since the
+widget declares no `regions`; `_lab/support-layers-shoot.html` ran clean at DPR
+1.25, all 27 stable over three runs, every drive moving its figure. One state
+carries its coverage in `px` alone by design: the Dropout driven state's
+readout text does not change until the unit commits.
+
+**The audit** (an Opus 5 reviewer, read-only): about 280 reader-facing strings
+over every surface, 19 with a problem, the subtitle passing (208 characters,
+two sentences). By kind: the blurb a verbatim copy of the subtitle's first
+sentence with no antecedent on a card; the `block` detail contradicting the
+subtitle's own split; three names for pooling's two statistics; the pooling
+caption repeating the card's arithmetic; a Layer caption saying "beside" of
+stacked samples; "steps" for positions; two step titles describing the
+dashboard or false at Evaluation; one legend noun ("group") for five pages;
+a Dropout note saying "0 of 10 survived … each scaled"; "right", "does
+nothing at all" and a cleft in the Dropout captions; a spread stated with no
+number. **His three picks, all the recommendation:** the Normalization page's
+Batch · Layer control is *Group* (the rail's *Layer* stays); the Activation
+step label keyed on the use (Next value · Next score · Next row); the speed
+details keep "a step" since this widget's unit varies by page. Four
+non-copy consistency items from the same pass: Parameters 0 on Sigmoid and
+Softmax, an Input tile on Dropout, the window readout at one precision, and a
+source comment's "one in six" corrected to about one in ten (0.8¹⁰).
 ### Slot 51 · `composition` — Composing Layers and Controlling Flow — PLANNED 2026-09-10
 
 **Host.** 05-3 cells 61–101, the notebook's two `##` headings: *Composing
