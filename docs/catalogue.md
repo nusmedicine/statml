@@ -11720,6 +11720,24 @@ gradients widget owning that argument. The notebook's own sentence about the
 skip route passing the gradient through stays in the caption. Both built by
 one Opus builder.
 
+**Built (`2676263`)**: Skip's bands x3, `+`, skip, `=`, out; the overlay cut;
+Skip 629 / 660.
+
+**Round 1, comments 10 to 12 — Kenneth, on Branching and Skip.** **(10)**
+*"branching add → should have + and ="* and **(11)** *"branching average →
+should have ="* — the stacked operand bands and the merged band had no
+operator between them; Skip's statement down the spine (`+` between the
+operands, `=` before the result) applied to add and average, the message at
+8 against 6 under the `=`. **(12)** *"skip (with or without projection) →
+downstream + and arrows occur prematurely … should appear at x3 + skip step"*
+— the one-line-ahead preview (decision 14) drew the next line's operator,
+rail and result edge pale one press early. **Amended: the preview is for
+layer boxes and the bus arm that reaches them only**; an operator node, a
+rail, a band, a result edge and the Routing box land with their line and are
+not previewed, on every page (Skip, Gating's ⊙ and gate arrow, Branching's
+merge, Routing's box), with `preview: false` on those entries of
+`pageUnits` so the verify sweep reads one table. Built by one Opus builder.
+
 **Build order within the widget**, once the mock is picked: Dimensions first (the
 strongest losing state and the most machinery), then Skip, Branching, Gating,
 Routing, Building, Ordering. The widget itself is built after
