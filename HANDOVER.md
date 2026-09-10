@@ -10,7 +10,36 @@ widgets are titled *Deep Learning - Tensors / Gradients / Processing Layers*
 
 ---
 
-# NEXT: `support-layers` (SLOT 50) — MOCK FIRST, THEN THE DRAFT
+# NEXT: `support-layers` (SLOT 50) — THE DRAFT IS BUILT; ROUND 1 IS KENNETH'S
+
+**State on 2026-09-10 (afternoon), all committed LOCALLY, nothing pushed:**
+`0559fb4` the mock (`_lab/support-layers-mock.html`, seven sections, Kenneth
+took the recommendation on all seven), `953a6fa` the catalogue record under
+slot 50 (the picks, and the arithmetic the drawing corrected), `a7315f2` the
+DRAFT — `widgets/support-layers/{index.html,main.js,model.js}`,
+`_lab/support-layers-verify.mjs` (65 assertions under `npm test`), manifest
+entry at status draft. Every page read in the browser at 550, console clean;
+two legend fixes made before he saw it (the Dropout mask entry is Training
+only, and Normalization lists no second-operand entry since nothing yellow is
+drawn). `main.js`'s header lists the builder's eight decisions; the two that
+matter: fixed seeds per page in `model.js` so the Dropout `seed` reaches no
+other page's draw, and the Dropout mean tile is the mean over seeds 1..seed,
+computed in `compute()`, so it is a pure function of the parameters. At
+`dim = 8` the Embedding result frames stack (782px side by side against 522).
+URL for him: `http://localhost:8010/widget/support-layers/` (no `shown=`).
+**Next is step (4) below**: his round-1 comments from annotated screenshots;
+fixes built in the main session when small, designs mocked in `_lab/` first.
+
+**Git on this machine can refuse a commit with `unable to write file
+.git/objects/…: Permission denied`** — Dropbox indexes each new object as git
+writes it, and the object is there a second later. `git add` one file at a
+time with a retry loop, then commit; a five-file add took two or three tries
+per file on 2026-09-10 and the commit went first time.
+
+---
+
+## How slot 50 was planned (kept as written before the mock)
+
 
 **`05-3` was planned on 2026-09-10 as three widgets** — 49 `processing-layers`
 (SHIPPED), 50 `support-layers` (Embedding · Pooling · Normalization ·
