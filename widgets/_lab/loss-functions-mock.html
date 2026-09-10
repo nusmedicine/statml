@@ -1521,7 +1521,7 @@ function writeRecs() {
     `(${ERR_BCE.length} characters), both inside the ${USABLE}px stage; wrapped to the ${M.errCol}px rows ` +
     `column beside the curve they are <b>${M.errCErows} and ${M.errBCErows} lines</b>, and they land exactly ` +
     `where the loss number would have been. The stage is ${M.dtypeH}px, the same as the settled figure, so the ` +
-    `failure does not resize the page. <b>The condition, now met: both strings are torch 2.14&#39;s own</b> (`_lab/dl-loss-torch.py`); the two quoted from memory in the first draft of this page were both wrong, which is the case for printing only what torch has printed. The dtype control costs the rail one ` +
+    `failure does not resize the page. <b>The condition, now met: both strings are torch 2.14&#39;s own</b> (<code>_lab/dl-loss-torch.py</code>); the two quoted from memory in the first draft of this page were both wrong, which is the case for printing only what torch has printed. The dtype control costs the rail one ` +
     `segmented field and it is the only place the widget can show that the two targets are not interchangeable.`;
 
   document.getElementById("rec6").innerHTML =
@@ -1590,7 +1590,7 @@ function renderProof() {
     `${(0.1 * M.unitPx).toFixed(0)}px.`,
     `<b>Torch's two messages fit.</b> ${M.errCEw}px and ${M.errBCEw}px against a ${USABLE}px stage, ` +
     `${M.errCErows} and ${M.errBCErows} lines wrapped to the ${M.errCol}px rows column, and the stage stays ` +
-    `${M.dtypeH}px with the error showing. <b>Both strings are torch 2.14&#39;s own</b>, from `_lab/dl-loss-torch.py`.`,
+    `${M.dtypeH}px with the error showing. <b>Both strings are torch 2.14&#39;s own</b>, from <code>_lab/dl-loss-torch.py</code>.`,
     `<b>Two numbers this page derived rather than read.</b> The measure script prints p0 = 0.4967 for the drag ` +
     `to a score of 1.0 but not the other two probabilities; the softmax row is drawn ` +
     `${CE_P_DRAG.map(n4).join(" ")} here, computed with the script's own <code>softmax</code>. And the bars' ` +
