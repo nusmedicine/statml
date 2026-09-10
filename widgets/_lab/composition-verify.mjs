@@ -1403,8 +1403,8 @@ const shapeIs = (s, want) => Array.isArray(s) && s.join() === want.join();
     && html.includes("<title>Deep Learning - Composition · statml widgets</title>")
     && src.includes('title: "Deep Learning - Composition"'));
 
-  check("the widget is declared a draft in both files",
-    entry.status === "draft" && src.includes('status: "draft"'));
+  check("the widget is declared shipped in both files (2026-09-11)",
+    entry.status === "shipped" && src.includes('status: "shipped"'));
 
   const sub = src.match(/subtitle:\s*\n?\s*((?:\s*\+?\s*"(?:[^"\\]|\\.)*"\s*\n?)+)/);
   const subText = sub ? sub[1].match(/"((?:[^"\\]|\\.)*)"/g).map((s) => s.slice(1, -1)).join("") : "";
