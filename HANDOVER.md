@@ -59,12 +59,23 @@ is at most about 8 wide, and shaded with no digits beyond that.
    drawing corrected (the Conv page's rail measures 633px against a 322px
    Linear stage). **Build from the mock's geometry, not the plan's**: where
    the two differ the mock is what he saw.
-3. **Build `processing-layers` as a draft from his picks**, then
-   `support-layers`, then `composition`. One widget per commit, `npm run
-   check` read before every one, push only on "tested ok". Neither build
-   touches `widgets/core/`: a build that finds it needs a core change stops
-   and asks. Baseline last, after the design is agreed — the `bootstrap`
-   lesson.
+3. **`processing-layers` is BUILT AS A DRAFT (`11e471d`, 2026-09-10) and
+   awaits Kenneth's first review.** `widgets/processing-layers/{main.js,
+   model.js, index.html}`, a manifest entry at `status: "draft"`, and
+   `_lab/processing-layers-verify.mjs` (47 assertions, under `npm test`).
+   Written by an Opus 5 builder from the mock; the main session read every
+   page in the browser before committing. `npm run check` and all 17 test
+   scripts pass; console clean on five pages; the builder's `fillText` sweep
+   over 30 settled and 5 driven states found no `NaN` and no overrun at 550;
+   `pos` regions verified by real pointer events. **Its eleven departures
+   from the mock are in the builder's header decisions** — the two to put to
+   Kenneth first: every band is fixed at the 550 geometry, so at the 770
+   stage the figure sits left with up to 338px blank (the mock drew a 20px
+   pixel for 770; he picked the 550 layout, and the builder did not invent a
+   width-following size); and the Graph rail's *Normalized sum* button
+   truncates at three across. Then `support-layers`, then `composition`. One
+   widget per commit, `npm run check` read before every one, push only on
+   "tested ok". Neither build touches `widgets/core/`. Baseline last.
 
 **How he wants a widget built, learned across 48 and 53:**
 
