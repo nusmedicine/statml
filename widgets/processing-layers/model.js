@@ -490,29 +490,30 @@ export const attProducts = (state, i) => {
     on, which is the Random page's caption and is asserted at every seed. */
 export const attValueMean = (state) => state.V[0].map((_, c) => mean(state.V.map((r) => r[c])));
 
-/* --- which query the walk starts at (main.js decision 22) ------------------- *
- * The walk visits the three queries in the tokens' own order, and a click on a
- * token starts it there and WRAPS: "cat" gives cat, sat, The. Rotation rather
- * than "the picked one, then the rest from the top", because Step means the
- * next token DOWN on every page of this widget — under the other rule a walk
- * begun at cat would step upwards to The and then jump past sat, and the
- * scores grid would fill in an order with no rule a reader can see. At the
- * default — no token picked — the rotation is the identity, so the walk is
- * exactly the one the page took before the click existed.
+/* --- which query each step of the walk computes (main.js decision 22) -------- *
+ * THE ORDER IS THE TOKENS' OWN AND ALWAYS HAS BEEN: Step is "Next query" and it
+ * goes The, cat, sat, so the scores and weights grids fill row by row from the
+ * top. The round-4 draft ROTATED the walk to whichever token had been clicked,
+ * so that clicking cat gave cat, sat, The. Kenneth read the click as the
+ * selector he had asked for rather than as a new starting point — "oh so it
+ * plays thru all the queries? I thought I would get a selector?" — so the pick
+ * became a display control, band 2 is pinned to it, and the walk went back to
+ * the one order whose rule is on the screen.
  *
- * `ordinal[t]` is the step at which token `t` is computed, which is what the
- * scores and weights grids ask: a row is drawn once the walk has reached it,
- * and with a rotation that is no longer the row's own index.
+ * `order[k]` is the token step `k` computes, and `ordinal[t]` is the step token
+ * `t` is computed at, which is what the grids and band 2 ask: is this row drawn
+ * yet. Both are the identity, and the two names stay because the drawing asks
+ * for them by name in both directions — and because a walk that stops being the
+ * token order has one place to say so rather than two.
  *
  * It is arithmetic with a second reader, so it lives here (decision 15's
- * reasoning): `_lab/processing-layers-verify.mjs` reads the order back in node
- * for every start token, where `main.js` cannot be imported.
+ * reasoning): `_lab/processing-layers-verify.mjs` reads the order back in node,
+ * where `main.js` cannot be imported.
  */
-export function attnWalk(query) {
-  const start = Math.max(0, TOKENS.indexOf(query));
-  const order = TOKENS.map((_, i) => (start + i) % TOKENS.length);
+export function attnWalk() {
+  const order = TOKENS.map((_, i) => i);
   const ordinal = TOKENS.map((_, t) => order.indexOf(t));
-  return { start, order, ordinal };
+  return { order, ordinal };
 }
 
 /* --- the Attention page's columns, and the rows a query is picked from ------- *

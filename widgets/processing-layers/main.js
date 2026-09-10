@@ -264,28 +264,51 @@
        the stack's own rectangle, not a spot, because the frame must know the
        column before the readout does.
 
-   22. THE READER PICKS THE QUERY BY CLICKING A TOKEN, exactly as the
-       Convolutional page picks a position ("can students choose different
-       queries?", 2026-09-10). A hidden DATA parameter `query`, carrying the
-       TOKEN WORD because a value in a link is copy someone reads (2.13), set
-       through `regions` from three places the token is already named: its row of
-       X in band 1, and its row label in the gutter of the scores grid and of the
-       weights grid. No rail control — the click on the figure is the control
-       (3.6) and Step and Play remain the keyboard route, which is where the
-       Convolutional page's `pos` already stands.
+   ROUND 5 OF KENNETH'S REVIEW (2026-09-10) — the query is chosen, not walked to:
 
-       THE ORDER IS A ROTATION, and it is the one thing here to get right: the
-       picked query is computed FIRST and Step goes on through the tokens' own
-       order, wrapping, so cat gives cat, sat, The. `pos` is the walk's LAST
-       element and `query` its FIRST, because the two nouns differ — a position
-       is how far the window has slid, while a query is the one whose weights and
-       output band 2 is showing, and a reader who picks "sat" wants to see sat's
-       row rather than to be told the walk is finished. The alternative (the
-       picked one, then the rest from the top) was rejected: Step means the next
-       token DOWN on every page here, and cat, The, sat fills the scores grid in
-       an order with no rule on screen. At the default — no token picked — the
-       rotation is the identity, so the page walks as it did before this existed,
-       and `?query=cat&shown=1` publishes the figure with cat computed.
+   22. THE READER PICKS THE QUERY WITH A CONTROL, AND THE WALK IS UNCHANGED.
+       Round 4 answered "can students choose different queries?" with a hidden
+       DATA parameter that a click on a token set, and the walk ROTATED to start
+       there. Kenneth: "oh so it plays thru all the queries? I thought I would
+       get a selector?" — so the rotation is gone and the pick is a `segmented`
+       control labelled Query in the rail, The · cat · sat, between Projection
+       and Seed. The walk is the layer's computation and it is the same walk it
+       always was: Step is Next query, the order is The, cat, sat, and Play
+       fills the scores and weights grids row by row from the top.
+
+       IT IS A DISPLAY PARAMETER, and that is the whole of the fix. Choosing
+       which query to read is a READING of data the walk has already computed,
+       so it must not throw the walk away (invariant 3) — the reader who has
+       played to the end and then wants to see sat's arithmetic must not lose
+       the two grids they filled to get there. `rebuild` discards a beat only
+       when the beat LENGTH changes, and `query` changes no clock, so a step in
+       flight keeps running while band 2 swaps under it. Data was the wrong
+       classification for the same reason it was the right one for `pos`: a
+       position is where the window has REACHED, and moving it is moving the
+       computation; a query is which finished row is on show.
+
+       BAND 2 IS PINNED TO IT, AND SAYS SO WHETHER OR NOT IT IS COMPUTED. The
+       header reads `One query: cat` always, and the three value rows, their key
+       tokens and the `output for cat` label are always drawn — V does not
+       depend on the walk. What DOES wait for the walk is everything the walk
+       makes: the weight cells, the · and the =, the product rows, the + signs,
+       the sum rule and the output row are empty cells until the query's own
+       ordinal is inside `walk.done`, or in flight with the two phases if it is
+       the one being computed. So picking a query the walk has not reached shows
+       the reader the shape of the answer and the fact that it is not filled in
+       yet, and Step fills it. The hover frame and its written-out sum work as
+       they did (decision 21), once there is a column with a number in it.
+
+       THE CLICK TARGETS STAY, and now they agree with the rail rather than
+       racing it: the three rows of X and the row labels of the scores and the
+       weights grids set the same `query` parameter through `regions`, so a
+       click moves the rail control and the URL and keeps the walk (3.6). Band 1
+       still follows the WALK — the row of X that lights, the rows of Q and K,
+       and the three lines of `q · k` under the scores grid are the query being
+       computed, not the one being read — because band 1 is the computation and
+       band 2 is the reading. `?query=cat&shown=1` publishes The computed in
+       band 1 with band 2 pinned to cat and empty; `?query=cat&shown=2` shows
+       cat's working.
 
        WHERE THE GEOMETRY WENT. The three rows have to be the rectangles the
        drawing paints, and nothing in a picture says whether they are — a target
@@ -1271,6 +1294,12 @@ const ATT_OUT_A = 0.40;   // the total's own fill: three product rows above it
    a grid rowed The / cat / sat read as that grid's rows. */
 const ATT_DERIV = 4 * PRINT_LH + 12;
 
+/** THE QUERY BAND 2 IS PINNED TO (decision 22): the rail control's own value,
+    which is a token word, so the band and the readout resolve it once and the
+    same way (5.8). `select`-family coercion means it is always one of the three,
+    and the fallback is there for the load-time probe alone. */
+const selQuery = (params) => Math.max(0, M.TOKENS.indexOf(params.query));
+
 /** `q · k` written out, and the division that makes it a score (decision 13). */
 function scoreLine(state, i, j) {
   const { terms, dot, score } = M.attTerms(state, i, j);
@@ -1314,11 +1343,12 @@ function drawAttn(ctx, colors, w, params, state, anim, pointer) {
   const { s, st } = g;
   const walk = walkAt(anim, state, params);
   const { gw, sw } = st;
-  /* WHICH QUERY EACH STEP IS (decision 22): the walk's own order, rotated to
-     start at the token the reader picked. `ordinal[r]` is the step at which row
-     `r` of the two grids is computed, which is what says whether it is drawn
-     yet — with a rotation that is no longer the row's own index. */
-  const { order, ordinal } = M.attnWalk(params.query);
+  /* WHICH QUERY EACH STEP IS (decision 22): the tokens' own order, and no
+     rotation — the walk is the layer's computation and the reader's pick does
+     not move it. `ordinal[r]` is the step at which row `r` of the two grids is
+     computed, which is what says whether it is drawn yet. `q` is the query the
+     WALK is on and belongs to band 1; band 2 is pinned to `qs` below. */
+  const { order, ordinal } = M.attnWalk();
   const q = walk.idx >= 0 ? order[walk.idx] : -1;
   /* A STRAIGHT 0 -> 1 RAMP, not one stretched to the grid's own range: at the
      random projection every weight is 0.31–0.35, and a stretched ramp would
@@ -1427,7 +1457,18 @@ function drawAttn(ctx, colors, w, params, state, anim, pointer) {
       PAD, dy + 10, { color: colors.ink3 });
   }
 
-  y = band(ctx, colors, g.y2, w, q >= 0 ? `One query: ${M.TOKENS[q]}` : "One query",
+  /* BAND 2 IS PINNED TO THE QUERY THE READER PICKED (decision 22), whether or
+     not the walk has reached it: the header names it, V and its key tokens are
+     drawn from the start, and everything the walk MAKES waits for the walk.
+     `qs` is that query, `lit` its lighting phase and `landed` its landing one —
+     0 until the walk arrives, `walk.light` / `walk.land` while it is the one in
+     flight, 1 once it is computed. */
+  const qs = selQuery(params);
+  const qsOrd = ordinal[qs];
+  const lit = qsOrd < walk.done ? 1
+    : walk.moving && walk.idx === qsOrd ? walk.light : 0;
+  const landed = arrival(walk, qsOrd);
+  y = band(ctx, colors, g.y2, w, `One query: ${M.TOKENS[qs]}`,
     "Attention(Q, K, V) = softmax(QKᵀ / √d_k) V");
   /* WHAT THE SUM MEANS, DRAWN (decision 16): the weight, the key token it
      belongs to, the value row, and the value row scaled by that weight. The
@@ -1436,7 +1477,7 @@ function drawAttn(ctx, colors, w, params, state, anim, pointer) {
   const vx = PAD + s.cw + 8 + ATT_ROWLAB + ATT_DOT;
   const px = vx + 4 * s.cw + s.op;
   const pitch = s.ch + ATT_PROD_GAP;
-  const prod = q >= 0 ? M.attProducts(state, q) : null;
+  const prod = M.attProducts(state, qs);
   label(ctx, colors, PAD, y + 11, "w");
   label(ctx, colors, vx, y + 11, "V");
   label(ctx, colors, px, y + 11, "w · v");
@@ -1474,13 +1515,15 @@ function drawAttn(ctx, colors, w, params, state, anim, pointer) {
   embedHeads(px, rowTop);
   for (let j = 0; j < 3; j += 1) {
     const ry = rowTop + j * pitch;
-    if (q >= 0) {
+    /* THE WEIGHT IS THE WALK'S (decision 22), so its cell is empty until the
+       walk has computed this query, and the operators are empty with it: a ·
+       and an = either side of a blank are operators with nothing to join. */
+    if (lit > 0) {
       /* the SAME ramp as band 1's weights grid: it is the same number, and one
          number in two hues is the page disagreeing with itself (decision 16) */
-      cell(ctx, colors, PAD, ry, s.cw, s.ch, M.n3(state.W[q][j]), { fill: heat(state.W[q][j]) });
+      cell(ctx, colors, PAD, ry, s.cw, s.ch, M.n3(state.W[qs][j]), { fill: heat(state.W[qs][j]) });
       spotGrid(PAD, ry, 1, 1, s.cw, s.ch,
-        () => `weights[${M.TOKENS[q]}, ${M.TOKENS[j]}] = ${M.n3(state.W[q][j])}`);
-      txt(ctx, colors, M.TOKENS[j], PAD + s.cw + 8, ry + s.ch / 2 + 4, { color: colors.ink2 });
+        () => `weights[${M.TOKENS[qs]}, ${M.TOKENS[j]}] = ${M.n3(state.W[qs][j])}`);
       txt(ctx, colors, "·", vx - ATT_DOT / 2, ry + s.ch / 2 + 4,
         { color: colors.ink1, align: "center", size: colors.fsLg });
       txt(ctx, colors, "=", px - s.op / 2, ry + s.ch / 2 + 4,
@@ -1488,18 +1531,22 @@ function drawAttn(ctx, colors, w, params, state, anim, pointer) {
     } else {
       cell(ctx, colors, PAD, ry, s.cw, s.ch, "", { empty: true });
     }
+    /* the key token and the value row do NOT wait for the walk: V is the layer's
+       own tensor, and a row of numbers with no name beside it is a row nobody
+       can look up in the grids above */
+    txt(ctx, colors, M.TOKENS[j], PAD + s.cw + 8, ry + s.ch / 2 + 4, { color: colors.ink2 });
     grid(ctx, colors, vx, ry, 1, 4, s.cw, s.ch, (r, c) =>
       ({ text: M.n2(state.V[j][c]), hue: colors.groupB }));
     spotGrid(vx, ry, 1, 4, s.cw, s.ch, (r, c) => `V[${j}, ${c}] = ${num(state.V[j][c])}`);
     /* the products carry the weight as an ALPHA, so a smaller weight is paler,
        and they arrive with the value rows' own lighting phase */
-    grid(ctx, colors, px, ry, 1, 4, s.cw, s.ch, (r, c) => (prod && walk.light > 0
+    grid(ctx, colors, px, ry, 1, 4, s.cw, s.ch, (r, c) => (lit > 0
       ? {
         text: M.n2(prod.rows[j].row[c]),
-        fill: wash(colors.highlight, c01(prod.rows[j].w) * walk.light),
+        fill: wash(colors.highlight, c01(prod.rows[j].w) * lit),
       }
       : { empty: true }));
-    if (prod) {
+    if (lit > 0) {
       spotGrid(px, ry, 1, 4, s.cw, s.ch,
         (r, c) => `w × V[${j}, ${c}] = ${num(prod.rows[j].row[c])}`);
     }
@@ -1507,37 +1554,40 @@ function drawAttn(ctx, colors, w, params, state, anim, pointer) {
        centre, so it reads as between the rows rather than hung off one. It
        arrives with the · and the = it belongs to: an addition sign between two
        empty rows is an operator with nothing to add. */
-    if (prod && j > 0) {
+    if (lit > 0 && j > 0) {
       txt(ctx, colors, "+", px - s.op / 2, ry - ATT_PROD_GAP / 2 + 4,
         { color: colors.ink1, align: "center", size: colors.fsMd });
     }
   }
   /* the sum rule, in --ink-2 at 1.5px: at the cell border's own weight and
-     colour it is one more grid line among forty and disappears */
+     colour it is one more grid line among forty and disappears. It arrives with
+     the products it draws a total under, for the same reason the + does. */
   const stackBot = rowTop + 2 * pitch + s.ch;
-  ctx.strokeStyle = colors.ink2;
-  ctx.lineWidth = 1.5;
-  ctx.beginPath();
-  ctx.moveTo(px - 3, stackBot + 8.5);
-  ctx.lineTo(px + 4 * s.cw + 3, stackBot + 8.5);
-  ctx.stroke();
+  if (lit > 0) {
+    ctx.strokeStyle = colors.ink2;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(px - 3, stackBot + 8.5);
+    ctx.lineTo(px + 4 * s.cw + 3, stackBot + 8.5);
+    ctx.stroke();
+  }
   const oy = stackBot + ATT_OUT_GAP;
   /* the output's own header row, under the rule: it is the same four columns as
      the products above it, and Kenneth's question was about this row (19) */
   embedHeads(px, oy);
-  const landed = q >= 0 ? arrival(walk, ordinal[q]) : 0;
   grid(ctx, colors, px, oy, 1, 4, s.cw, s.ch, (r, c) => (landed > 0
     ? {
-      text: M.n2(state.out[q][c]), bold: true,
+      text: M.n2(state.out[qs][c]), bold: true,
       fill: wash(colors.empirical, WASH + (ATT_OUT_A - WASH) * landed),
     }
     : { empty: true }));
-  if (q >= 0) {
-    txt(ctx, colors, `output for ${M.TOKENS[q]}`, px - s.op - 8, oy + s.ch / 2 + 4,
-      { color: colors.ink2, align: "right" });
-  }
+  /* the label names the token whether or not the row under it is filled in: the
+     band is about that query either way (decision 22) */
+  txt(ctx, colors, `output for ${M.TOKENS[qs]}`, px - s.op - 8, oy + s.ch / 2 + 4,
+    { color: colors.ink2, align: "right" });
   if (landed > 0) {
-    spotGrid(px, oy, 1, 4, s.cw, s.ch, (r, c) => `output[${q}, ${c}] = ${num(state.out[q][c])}`);
+    spotGrid(px, oy, 1, 4, s.cw, s.ch,
+      (r, c) => `output[${M.TOKENS[qs]}, ${c}] = ${num(state.out[qs][c])}`);
     /* THE COLUMN UNDER THE POINTER, and only that one (decision 21): the frame
        runs from the column's header through the three products to its output
        cell, and its sum is written out under the band. At rest nothing is
@@ -1550,7 +1600,7 @@ function drawAttn(ctx, colors, w, params, state, anim, pointer) {
     if (col >= 0) {
       frame(ctx, px + col * s.cw, stackTop, s.cw, oy + s.ch - stackTop,
         colors.highlight, 1.5, [4, 3]);
-      txt(ctx, colors, sumLine(state, q, col), PAD, oy + s.ch + PRINT_DROP + 11,
+      txt(ctx, colors, sumLine(state, qs, col), PAD, oy + s.ch + PRINT_DROP + 11,
         { color: colors.ink2, mono: true, fit: w - 2 * PAD });
     }
   }
@@ -2156,6 +2206,23 @@ defineWidget({
       default: "random",
       when: ON("attention"),
     },
+    /* WHICH QUERY THE SECOND BAND IS READING (decision 22). DISPLAY, because
+       choosing which of three computed rows to look at is a reading of the data
+       and must not throw the walk away (3.2) — the reader who has played to the
+       end and then wants sat's arithmetic keeps the two grids they filled. The
+       token words rather than an index, because a value in a URL is copy a
+       reader reads (2.13), and the three rows of X and the two grids' row labels
+       set this same parameter through `regions`, so the figure and the rail
+       cannot disagree (3.6). */
+    query: {
+      type: "segmented",
+      label: "Query",
+      detail: "which token's weights and output are written out in full",
+      options: M.TOKENS,
+      default: "The",
+      display: true,
+      when: ON("attention"),
+    },
     /* THE ONE PAGE WHERE CHANGING THE DRAW IS THE ARGUMENT, and only at the
        random projection: at identity Q = K = V = X and nothing is drawn, so a
        seed there would be a question with no answer on screen (3.4b). */
@@ -2216,20 +2283,6 @@ defineWidget({
        feature-map cell. Data, so a click restarts the walk there and the URL
        reproduces what is on screen (decision 6). */
     pos: { type: "int", min: 0, max: 400, default: 0, hidden: true },
-    /* THE QUERY THE WALK STARTS AT, set by clicking a token's row (decision 22).
-       The token words rather than an index, because a value in a URL is copy a
-       reader reads (2.13), and a select so the region map's value is checked
-       against a real option list at load. Data, for the same reason `pos` is:
-       the animation may not write to a parameter, so the click restarts the
-       walk and the URL says which query is on screen. Its default is no token —
-       absent from the link, and the walk in the tokens' own order. */
-    query: {
-      type: "select",
-      label: "Query",
-      options: M.TOKENS,
-      default: "",
-      hidden: true,
-    },
     /* Authoring escape hatch, first render only: output values, positions,
        time steps, queries or nodes, whichever the page counts. */
     shown: { type: "int", min: 0, max: 400, default: 0, hidden: true },
@@ -2254,7 +2307,7 @@ defineWidget({
            value rows band 2 sums — and a legend that named two of the three
            would be a legend for a different figure (2.11) */
         label: params.block === "attention"
-          ? "The query being computed, the inputs it reads, and its weighted value rows"
+          ? "The query being computed, the inputs it reads, and the chosen query's weighted value rows"
           : "The element being computed, and the inputs it reads",
       },
       /* the signed ramp, named as two ends rather than one — a token name in a
@@ -2306,22 +2359,16 @@ defineWidget({
          carrying one), and there the walk restarts with that position last so
          the URL and the screen agree (decision 6).
 
-         `query` IS THE SAME TRANSACTION ON THE ATTENTION PAGE (decision 22),
-         and the only difference is which end of the walk the picked element sits
-         at: a position is where the window has reached, so `pos` is the walk's
-         LAST, while a query is the one whose weights and output the band is
-         showing, so it is the walk's FIRST and Step goes on to the other two. */
-      const replay = seen !== null && seen.state === state
-        && seen.pos === params.pos && seen.query === params.query;
-      seen = { state, pos: params.pos, query: params.query };
+         `pos` IS THE ONLY PARAMETER THAT REACHES IN HERE. The Attention page's
+         `query` was briefly the other one, restarting the walk at the token the
+         reader picked; it is a display control now, so it never re-inits at all
+         and this probe is back to what `pos` alone needs (decision 22). */
+      const replay = seen !== null && seen.state === state && seen.pos === params.pos;
+      seen = { state, pos: params.pos };
       const usePos = !replay && params.block === "convolutional" && params.pos > 0;
-      const useQuery = !replay && params.block === "attention" && params.query !== "";
-      const shown = Math.min(Math.max(0, params.shown ?? 0), state.units);
       const n = usePos ? Math.min(params.pos + 1, state.units)
-        /* one query computed, or as many as a published link asked for */
-        : useQuery ? Math.max(1, fromScratch ? 0 : shown)
-          : fromScratch ? 0
-            : shown;
+        : fromScratch ? 0
+          : Math.min(Math.max(0, params.shown ?? 0), state.units);
       return { n, beat: 0, clock: M.unitMs(params.speed), done: n >= state.units };
     },
 
@@ -2341,8 +2388,11 @@ defineWidget({
 
     /* A beat in flight is cleared whenever the beat LENGTH changes: a fraction
        of one clock read against another leaves an element stopped between two
-       phases. Switching the reveal or the sequence changes no clock, so a step
-       in flight keeps running while the picture changes under it. */
+       phases. Switching the reveal, the sequence or the query changes no clock,
+       so a step in flight keeps running while the picture changes under it —
+       which is what makes `query` safe as a display parameter (decision 22):
+       nothing here discards `anim.n`, and `state.units` is 3 whichever token is
+       picked. */
     rebuild: (anim, { params, state }) => {
       anim.n = Math.min(anim.n, state.units);
       const ms = M.unitMs(params.speed);
@@ -2357,9 +2407,11 @@ defineWidget({
    * TWO PAGES DECLARE TARGETS AND CORE ALLOWS ONE `regions`, so this is one
    * function switched on the page: every feature-map cell is a target for `pos`
    * on the Convolutional page, and every token's row is a target for `query` on
-   * the Attention page. Neither page adds a rail control for its target — the
-   * click on the figure IS the control (3.6), and Step and Play stay the
-   * keyboard route to the same walk.
+   * the Attention page. The Convolutional page adds no rail control for `pos` —
+   * the click on the figure IS the control (3.6), and Step and Play stay the
+   * keyboard route to the same walk. The Attention page has BOTH, and both go
+   * through this one door, so the figure and the rail cannot disagree about
+   * which query band 2 is reading (decision 22).
    *
    * Built from the same geometry `draw` uses, lazily at click and hover time,
    * never inside `draw` (5.8). Core hands `regions` no colours and no canvas,
@@ -2373,7 +2425,9 @@ defineWidget({
     if (params.block === "attention") {
       /* THE THREE PLACES A QUERY IS NAMED (decision 22): its row of X, and its
          row label in the gutter of the scores grid and of the weights grid. The
-         rectangles are `model.js`'s, so they are the rows the drawing paints. */
+         rectangles are `model.js`'s, so they are the rows the drawing paints, and
+         the parameter is display, so a click moves the rail control and the URL
+         and leaves the walk where it stood. */
       return attnGeom(measureCtx(), readTokens(), w, params).st.rows.map((r) => ({
         x: r.x, y: r.y, w: r.w, h: r.h, set: { query: r.query }, label: `query ${r.query}`,
       }));
@@ -2488,20 +2542,25 @@ defineWidget({
     }
 
     if (params.block === "attention") {
-      /* the walk's own order, rotated to the query the reader picked (22) */
-      const { order } = M.attnWalk(params.query);
-      const q = walk.idx >= 0 ? order[walk.idx] : -1;
+      /* THE TILE FOLLOWS THE RAIL, NOT THE WALK (decision 22): band 2 is pinned
+         to the query the reader picked, and the readout reads the same band. The
+         `ordinal` is what says whether the walk has got there yet. */
+      const { ordinal } = M.attnWalk();
+      const qs = selQuery(params);
+      /* in flight counts as reached: the band's weight cells are filling at that
+         moment, and a readout that said otherwise would contradict them */
+      const taken = ordinal[qs] < walk.done || (walk.moving && walk.idx === ordinal[qs]);
       return [
         { label: "Input", value: sizeText([1, 3, M.D_K]), note: "one sequence of 3 tokens, 4 features each" },
         { label: "Weights", value: sizeText([1, 3, 3]), note: `${walk.done} of ${state.units} queries taken` },
         { label: "Output", value: sizeText([1, 3, M.D_K]), note: "one contextualized vector per token" },
         {
           label: "This query",
-          value: q >= 0 ? M.TOKENS[q] : "—",
+          value: taken ? state.W[qs].map(M.n3).join(", ") : "—",
           /* the chain the band writes out in full: q · k, divided, softmaxed */
-          note: q >= 0
-            ? `q · k ÷ √4 = ${M.TOKENS.map((t, j) => `${M.n2(M.attTerms(state, q, j).score).trim()} on ${t}`).join(", ")}; softmax gives ${state.W[q].map(M.n3).join(", ")}`
-            : "no query has been taken yet",
+          note: taken
+            ? `${M.TOKENS[qs]}: q · k ÷ √4 = ${M.TOKENS.map((t, j) => `${M.n2(M.attTerms(state, qs, j).score).trim()} on ${t}`).join(", ")}, which softmax turns into these weights`
+            : `${M.TOKENS[qs]} is not computed yet`,
         },
         cellTile("—", "a cell's index and value"),
       ];

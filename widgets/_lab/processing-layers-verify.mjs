@@ -22,6 +22,7 @@
    Exits non-zero on failure.
    ========================================================================= */
 
+import { readFileSync } from "node:fs";
 import { makeRng } from "../core/rng.js";
 import { outSize, transposedOutSize, initBound } from "../core/torch.js";
 import * as M from "../processing-layers/model.js";
@@ -592,44 +593,63 @@ const near = (a, b, eps = 1e-9) => Math.abs(a - b) <= eps;
 }
 
 /* --- 10 · the query the reader picks, and the rows it is picked from --------- *
- * Round 4: "can students choose different queries?" (main.js decision 22). TWO
- * THINGS NO PICTURE SETTLES. The ORDER — a figure showing cat's weights looks
- * the same whether Step goes on to sat or back to The, and the rule is that the
- * walk rotates, so the picked query is first and the tokens follow in their own
- * order, wrapping. And the TARGETS — a click target six columns from the row it
- * names renders identically to one sitting on it, so `attnStage` places the
- * page's columns and the three query rows once, for the drawing and for the
- * region map alike, and this reads the rectangles back at the 550 stage the mock
- * drew and the 770 one a wide viewport gives. */
+ * Round 5: "oh so it plays thru all the queries? I thought I would get a
+ * selector?" (main.js decision 22). THREE THINGS NO PICTURE SETTLES. The ORDER —
+ * a figure showing cat's weights looks the same whether Step goes on to sat or
+ * back to The, and the rule now is that there is no rotation at all: the walk is
+ * The, cat, sat whichever token the reader has picked, because the walk is the
+ * layer's computation and the pick is a reading of it. The CLASSIFICATION —
+ * `query` has to be `display`, or a click on a token throws away the grids the
+ * reader filled to get there, and nothing in a still figure says which it is.
+ * And the TARGETS — a click target six columns from the row it names renders
+ * identically to one sitting on it, so `attnStage` places the page's columns and
+ * the three query rows once, for the drawing and for the region map alike, and
+ * this reads the rectangles back at the 550 stage the mock drew and the 770 one
+ * a wide viewport gives. */
 {
-  /* the default is no token picked, and then the walk is the one the page took
-     before a query could be picked at all */
-  const none = M.attnWalk("");
-  check("no token picked: the walk is the tokens' own order",
-    none.start === 0 && none.order.join(",") === "0,1,2" && none.ordinal.join(",") === "0,1,2",
-    none.order.map((i) => M.TOKENS[i]).join(" → "));
-  check("a value that is not a token falls back to that same order",
-    M.attnWalk("dog").order.join(",") === "0,1,2");
+  const wk = M.attnWalk();
+  check("the walk is the tokens' own order, The → cat → sat",
+    wk.order.length === M.TOKENS.length && wk.order.every((t, k) => t === k),
+    wk.order.map((i) => M.TOKENS[i]).join(" → "));
+  /* `ordinal[t]` is the step token `t` is computed at, which is what the two
+     grids and band 2 ask; with no rotation it is the row's own index */
+  check("ordinal is the inverse of the order, so a row's step is its own index",
+    wk.ordinal.length === M.TOKENS.length
+    && wk.order.every((t, k) => wk.ordinal[t] === k)
+    && wk.ordinal.every((k, t) => k === t),
+    wk.ordinal.join(", "));
+  check("the walk takes no argument, so nothing a reader picks can move it",
+    M.attnWalk.length === 0,
+    `attnWalk takes ${M.attnWalk.length}`);
 
-  const expected = { The: "The cat sat", cat: "cat sat The", sat: "sat The cat" };
-  for (const [i, token] of M.TOKENS.entries()) {
-    const wk = M.attnWalk(token);
-    const words = wk.order.map((t) => M.TOKENS[t]);
-    check(`${token} first: the walk rotates to ${expected[token]}`,
-      wk.start === i && words.join(" ") === expected[token],
-      words.join(" → "));
-    /* a rotation, so every step is the next token down and each is visited once */
-    check(`${token} first: each token once, each step the next one down`,
-      new Set(wk.order).size === M.TOKENS.length
-      && wk.order.every((t, k) => t === (i + k) % M.TOKENS.length),
-      wk.order.join(", "));
-    /* `ordinal` is what the scores and weights grids ask — which STEP a row is
-       computed at — and with a rotation that is no longer the row's own index */
-    check(`${token} first: ordinal is the inverse of the order`,
-      wk.ordinal.length === M.TOKENS.length
-      && wk.order.every((t, k) => wk.ordinal[t] === k),
-      wk.ordinal.join(", "));
-  }
+  /* THE CLASSIFICATION, READ OFF THE SPEC. `main.js` calls `defineWidget` at
+     module scope and cannot be imported in node, so the field is read as source
+     text — the door `dbscan-drive.mjs` and `kmeans-drive.mjs` already use. What
+     matters is `display: true` on `query`: without it a click on a token is a
+     data change and core starts the walk from empty (CLAUDE.md invariant 3). */
+  const src = readFileSync(new URL("../processing-layers/main.js", import.meta.url), "utf8");
+  const field = src.slice(src.indexOf("    query: {"));
+  const body = field.slice(0, field.indexOf("\n    },"));
+  check("`query` is a display parameter, so picking one keeps the walk",
+    /\bdisplay:\s*true\b/.test(body),
+    body.includes("display") ? "display: true" : "NOT display");
+  check("`query` is a rail control on the Attention page, defaulting to The",
+    /type:\s*"segmented"/.test(body) && /default:\s*"The"/.test(body)
+    && /when:\s*ON\("attention"\)/.test(body) && /options:\s*M\.TOKENS/.test(body),
+    body.split("\n").map((l) => l.trim())
+      .filter((l) => l.startsWith("type") || l.startsWith("default")).join(" · "));
+  /* it is declared between Projection and Seed, which is where it renders */
+  check("it sits after Projection and before Seed in the Attention group",
+    src.indexOf("    projection: {") < src.indexOf("    query: {")
+    && src.indexOf("    query: {") < src.indexOf("    seed: {"),
+    "projection → query → seed");
+  /* and `init` no longer reads it: a display parameter never re-inits, so a
+     mention there would be a branch nothing can reach */
+  const init = src.slice(src.indexOf("    init: ({ params, state, fromScratch })"));
+  const initBody = init.slice(0, init.indexOf("advance:"));
+  check("`init` reads `pos` and not `query`",
+    initBody.includes("params.pos") && !initBody.includes("params.query"),
+    "the Replay probe is what `pos` alone needs");
 
   for (const w of [550, 770]) {
     const xTop = 55;                       // X's grid top; main.js owns the header above it
