@@ -10740,6 +10740,18 @@ pointer is over a product or output cell, then that column framed and its sum
 written out under the band; the caption states the rule in words, and every
 product and total stays on the canvas without a pointer.
 
+**Round 3 built (`c7561b6`, then the hover):** the Aggregate band prints
+`aggregate [4, 3]` row by row on the per-node key and W sits in the Output band
+under its strips, washed on the step's lighting phase (beside the output print
+it needed 694 of 522); headers `0 1 2 3` on X, Q, K, V, the products and the
+output, one *embedding dimension* span over V-and-products with a hairline
+span rule; the elbows drop at each grid's midpoint and cost 14px of rail
+clearance; the Attention caption in the words above. Graph 753 → 845 at 550,
+Attention 772 → 885. Then the frame: `drawAttn` takes the pointer, the framed
+column is the one under it (arithmetic on the stack's rectangle, before the
+readout resolves), nothing framed at rest, the sum line's row reserved so the
+stage does not move; `ATT_FEAT` is gone. 112 assertions.
+
 ### Slot 50 · `support-layers` — Normalization, Activation and Dropout — PLANNED 2026-09-10
 
 **Host.** 05-3 cells 29–60: Embedding (29–33), Pooling (34–39), BatchNorm and

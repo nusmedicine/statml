@@ -249,6 +249,20 @@
        line — and `polyArrow`, the Recurrent page's own primitive, draws them at
        2px with 9px heads in `--ink-2`. Band 1 is 27px taller in all: 13 for X's
        header row and 14 here.
+
+   21. THE FRAMED COLUMN IS THE ONE UNDER THE POINTER, AND AT REST THERE IS
+       NONE. The draft framed column 0 through the product stack and wrote its
+       sum out under the band; Kenneth: "what is the dotted line meant to
+       highlight?" and then "it is confusing to the student why this column is
+       special". His pick (2026-09-10) was hover only: a pointer over any
+       product or output cell frames THAT column from its header down and
+       writes that column's sum under the band; with no pointer nothing is
+       framed, the line's row stays reserved so the stage does not move, and
+       the caption states the rule in words. Every product and every total is
+       on the canvas without a pointer, so the working is a reading aid and not
+       the only place a number lives (house rule 4). The hit is arithmetic on
+       the stack's own rectangle, not a spot, because the frame must know the
+       column before the readout does.
    ========================================================================= */
 
 import {
@@ -1223,7 +1237,6 @@ const ATT_OUT_GAP = 26;   // the sum rule, the output's own header row, and 6px
 const ATT_ROWLAB = 30;
 const ATT_PROD_GAP = 16;  // between two product rows — the + sits in it
 const ATT_OUT_A = 0.40;   // the total's own fill: three product rows above it
-const ATT_FEAT = 0;       // the feature whose arithmetic is written out
 const ATT_DOT = 22;
 const ATT_TOK = 30;       // the query token, in a gutter left of a labelled grid
 const ATT_SOFT = 60;      // the softmax arrow between scores and weights
@@ -1272,7 +1285,7 @@ function attnGeom(ctx, colors, w, params) {
   return { s, h1, h2, y1, y2, capY, caps, height: capY + caps.length * CAPTION_H + PAD };
 }
 
-function drawAttn(ctx, colors, w, params, state, anim) {
+function drawAttn(ctx, colors, w, params, state, anim, pointer) {
   const g = attnGeom(ctx, colors, w, params);
   const { s } = g;
   const walk = walkAt(anim, state, params);
@@ -1497,15 +1510,24 @@ function drawAttn(ctx, colors, w, params, state, anim) {
   if (q >= 0) {
     txt(ctx, colors, `output for ${M.TOKENS[q]}`, px - s.op - 8, oy + s.ch / 2 + 4,
       { color: colors.ink2, align: "right" });
-    /* the one column whose arithmetic is written out, framed through the stack —
-       from its OWN HEADER down, so the frame says which dimension it is (19) */
-    frame(ctx, px + ATT_FEAT * s.cw, rowTop - ATT_HEAD, s.cw,
-      oy + s.ch - (rowTop - ATT_HEAD), colors.highlight, 1.5, [4, 3]);
   }
   if (landed > 0) {
     spotGrid(px, oy, 1, 4, s.cw, s.ch, (r, c) => `output[${q}, ${c}] = ${num(state.out[q][c])}`);
-    txt(ctx, colors, sumLine(state, q, ATT_FEAT), PAD, oy + s.ch + PRINT_DROP + 11,
-      { color: colors.ink2, mono: true, fit: w - 2 * PAD });
+    /* THE COLUMN UNDER THE POINTER, and only that one (decision 21): the frame
+       runs from the column's header through the three products to its output
+       cell, and its sum is written out under the band. At rest nothing is
+       framed and the line's row stays reserved and empty, so hovering moves no
+       pixel but these. */
+    const stackTop = rowTop - ATT_HEAD;
+    const col = pointer && pointer.x >= px && pointer.x < px + 4 * s.cw
+      && pointer.y >= stackTop && pointer.y < oy + s.ch
+      ? Math.floor((pointer.x - px) / s.cw) : -1;
+    if (col >= 0) {
+      frame(ctx, px + col * s.cw, stackTop, s.cw, oy + s.ch - stackTop,
+        colors.highlight, 1.5, [4, 3]);
+      txt(ctx, colors, sumLine(state, q, col), PAD, oy + s.ch + PRINT_DROP + 11,
+        { color: colors.ink2, mono: true, fit: w - 2 * PAD });
+    }
   }
   return g;
 }
@@ -2311,7 +2333,7 @@ defineWidget({
     renderCard(params);
     const g = params.block === "convolutional" ? drawConv(ctx, colors, w, params, state, anim)
       : params.block === "recurrent" ? drawRnn(ctx, colors, w, params, state, anim)
-        : params.block === "attention" ? drawAttn(ctx, colors, w, params, state, anim)
+        : params.block === "attention" ? drawAttn(ctx, colors, w, params, state, anim, pointer)
           /* the Graph page resolves the pointer inside its own draw: one node's
              strip, circle and printed row light as one, and that key has to be
              known before the first of the three is painted (decision 17) */
