@@ -1,87 +1,57 @@
 # Handover
 
-**FORTY-EIGHT WIDGETS — 46 on the gallery, `roc-auc` UNLISTED (Kenneth's
-call, 2026-08-30), NO DRAFT, and nothing unpushed except this commit
-series: `74b5455` (2026-09-10) added Kenneth's twenty-three `dl-*` figures
-under `widgets/_lab/figs/` and the measurement script
-`widgets/_lab/dl-layers-measure.mjs`, and the docs commit that records the
-`05-3` plan follows it. `tensors` (slot 53) SHIPPED 2026-09-09 on "tested
-ok, push it" after twenty-nine review rounds in two days, then two post-ship
-rounds the same day. All 404 fingerprint states MATCH, run twice that day,
-pane fronted at DPR 1.25. Nothing is half-built.**
+**FORTY-NINE WIDGETS — 47 on the gallery, `roc-auc` UNLISTED (Kenneth's
+call, 2026-08-30), NO DRAFT, and NOTHING UNPUSHED once the 2026-09-10 push
+lands: `processing-layers` (slot 49) SHIPPED and PUSHED 2026-09-10 on
+Kenneth's "ok push to gallery", the same day it was planned. All 433
+fingerprint states MATCH at DPR 1.25, pane fronted. The three DL Foundations
+widgets are titled *Deep Learning - Tensors / Gradients / Processing Layers*
+(his pick).**
 
 ---
 
-# NEXT: `widgets/core/torch.js` FIRST, THEN THE `processing-layers` MOCK
+# NEXT: `support-layers` (SLOT 50) — MOCK FIRST, THEN THE DRAFT
 
-**`05-3` was planned on 2026-09-10 and it is three widgets, not two.** Two
-Opus 5 subagents planned the notebook's two halves independently, a third
-surveyed core, a fourth reviewed both plans against the principles and
-returned 30 findings, and `widgets/_lab/dl-layers-measure.mjs` checked every
-number either plan asserted. **Kenneth answered eight questions by
-`AskUserQuestion`, one click each.** The whole record — his picks verbatim,
-the seven things the principles decided instead of asking him, the per-page
-geometry in numbers at 550, the measured facts and the cuts he declined — is
-[docs/catalogue.md](docs/catalogue.md) § *Slot 49 · `processing-layers`*,
-§ *Slot 50 · `support-layers`* and § *Slot 51 · `composition`*, with
-§ *How 05-3 was planned, 2026-09-10* above them. **Read those three entries
-before writing anything.** The headlines: the Layers half is two widgets
-because a ten-option rail spends 260px before any page control while five of
-its stages are shorter than that; Composition keeps all seven pages and the
-**diagram leads** with the `forward()` beside it (a declared departure from
-slot 51's own "the code leads"); every result is blue and every second
-operand yellow on all three widgets; values in the cells only where a tensor
-is at most about 8 wide, and shaded with no digits beyond that.
+**`05-3` was planned on 2026-09-10 as three widgets** — 49 `processing-layers`
+(SHIPPED), 50 `support-layers` (Embedding · Pooling · Normalization ·
+Activation · Dropout, cells 29–60), 51 `composition` (seven pages, cells
+61–101). The whole record — Kenneth's eight planning picks, the review's
+decisions, the per-page geometry at 550, the measured facts
+(`widgets/_lab/dl-layers-measure.mjs`) — is [docs/catalogue.md](docs/catalogue.md)
+§ *How 05-3 was planned, 2026-09-10* and § *Slots 49–51*. **Read slot 50's
+entry and slot 49's rounds before writing anything**: the 49 rounds are the
+pattern he expects, and several of his readings transfer (a choice needs a
+SELECTOR in the rail, not only a click; a device singled out at rest reads as
+confusing, so hover only; every result blue, second operand yellow; values in
+cells only up to ~8 wide; the notebook is the spec and his figures the
+vocabulary).
 
-**The order of work, and the first step is not a widget:**
+**The order for slot 50:** (1) `_lab/support-layers-mock.html` — the slot 50
+entry names the sections: Embedding (the table as a lookup, the `[2, 3] →
+[2, 3, 4]` rank increase as the claim), Pooling (the 16 × 16 square at 13px
+pixels, Max and Average side by side; `k = 2, s = 4` dropped), Normalization
+(Batch `[4, 3]` with arrows down the columns against Layer `[2, 5, 4]` with
+arrows across the rows; BatchNorm2d cut), Activation (three uses — Hidden,
+Probability, Distribution; the Gate use is slot 51's), Dropout (only the
+1/(1−p) scaling and train/eval, since tensors draws the mask; the sums agree
+on average only, so a running mean). Draw each at 550 with 2–3 options and a
+recommendation; the whole rail against the shortest stage. (2) He picks by
+`AskUserQuestion`. (3) An Opus 5 builder writes the draft from the mock's
+geometry, importing torch's print and the initialiser bounds from
+`widgets/core/torch.js`; reuse `processing-layers`' idiom (bands, `fitSizes`,
+`litFace`, the hover key) by copying, never by importing drawing code.
+(4) Rounds from his annotated screenshots; fixes built, designs mocked.
+(5) On "tested ok": the copy audit as a table, then the promotion as slot 49's
+was (shooter, three shots, full suite, flip, push on his word).
 
-1. **The core commit is DONE (2026-09-10, main session):** `widgets/core/torch.js`
-   holds `shapeSize`, `shapeText`, `sizeText`, `num`, `torchFloatFormat`,
-   `torchPrint` (lifted from `widgets/tensors/model.js`, which imports and
-   re-exports them so widget 53 and `_lab/tensor-verify.mjs` kept one import),
-   plus `outSize`, `transposedOutSize`, `torchError` (matmul, broadcast,
-   channels — torch 2.x's wording, printed by `_lab/dl-layers-measure.mjs`),
-   `initBound` (linear, conv, recurrent, xavier) and `uniform(rng, bound)`.
-   `readTokens` gained `mono` and `groupC`; `tokens.css` gained
-   `--c-group-c: var(--series-6)` (green — red is `--c-extreme` and shares the
-   Routing panel; green is also `--c-dim-b`, safe because a branch figure's
-   tensors are rank 2) with the second-operand reading recorded on
-   `--c-group-a/b`; CLAUDE.md's role list and layout table name both. **Full
-   suite: all 404 states MATCH at DPR 1.25**, `npm run check` and the 16 test
-   scripts pass. Neither widget build touches `widgets/core/` from here.
-2. **`_lab/processing-layers-mock.html` EXISTS and is PICKED** (2026-09-10,
-   committed after the docs commit): Kenneth took the recommendation on all
-   seven sections — grid rail; 46 × 26 cell at 2 dp with the print under; two
-   conv bands at a 14px pixel with `stride = 1` not offered; the True-image
-   reveal as the signed difference; Recurrent rows following `direction`;
-   the Attention stage at 600px accepted; Graph as horizontal shaded strips at
-   30px. The slot 49 entry records each pick with its number, and what the
-   drawing corrected (the Conv page's rail measures 633px against a 322px
-   Linear stage). **Build from the mock's geometry, not the plan's**: where
-   the two differ the mock is what he saw.
-3. **`processing-layers` is SHIPPED (2026-09-10) — status flipped, 29 states
-   recorded, all 433 suite states MATCH at DPR 1.25 — and AWAITS KENNETH'S
-   WORD TO PUSH; nothing is pushed.** Planned, mocked, drafted, reviewed
-   through five rounds and a copy round, and promoted in one day; the
-   catalogue's slot 49 entry has every comment, pick and commit. The three
-   DL Foundations titles now carry the *Deep Learning -* prefix (his pick).
-   Next after the push: `support-layers` (slot 50), then `composition` (51),
-   each from a `_lab` mock he picks from. First built as `11e471d`: `widgets/processing-layers/{main.js,
-   model.js, index.html}`, a manifest entry at `status: "draft"`, and
-   `_lab/processing-layers-verify.mjs` (47 assertions, under `npm test`).
-   Written by an Opus 5 builder from the mock; the main session read every
-   page in the browser before committing. `npm run check` and all 17 test
-   scripts pass; console clean on five pages; the builder's `fillText` sweep
-   over 30 settled and 5 driven states found no `NaN` and no overrun at 550;
-   `pos` regions verified by real pointer events. **Its eleven departures
-   from the mock are in the builder's header decisions** — the two to put to
-   Kenneth first: every band is fixed at the 550 geometry, so at the 770
-   stage the figure sits left with up to 338px blank (the mock drew a 20px
-   pixel for 770; he picked the 550 layout, and the builder did not invent a
-   width-following size); and the Graph rail's *Normalized sum* button
-   truncates at three across. Then `support-layers`, then `composition`. One
-   widget per commit, `npm run check` read before every one, push only on
-   "tested ok". Neither build touches `widgets/core/`. Baseline last.
+**Working with subagents, learned on 49 (his question 2026-09-10: "why does a
+simple task take so long?"):** each Opus subagent starts cold and spends two
+thirds of its time verifying. So: small edits (< ~20 lines, no design) in the
+main session; batch several comments into one brief; scope the verification
+in the brief to the touched page and one width for a string change; `check`
+and `npm test` always. `SendMessage` to a running agent was disabled in that
+session, so a change of mind mid-round costs a second round — decide the
+design with him before briefing.
 
 **How he wants a widget built, learned across 48 and 53:**
 
