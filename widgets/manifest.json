@@ -759,6 +759,27 @@
       ],
       "arc": 50,
       "status": "shipped"
+    },
+    {
+      "slug": "composition",
+      "title": "Deep Learning - Composition",
+      "blurb": "A network is layers composed in order, with connections that skip, gate, branch and merge.",
+      "course": "PHM5005",
+      "topics": [
+        "composition",
+        "nn.Sequential",
+        "nn.Module",
+        "forward",
+        "skip connection",
+        "residual",
+        "gating",
+        "branching",
+        "merging",
+        "routing",
+        "deep learning"
+      ],
+      "arc": 51,
+      "status": "draft"
     }
   ]
 }

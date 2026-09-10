@@ -1,0 +1,2260 @@
+/* ============================================================================
+   Widget 51 · Composition — a model is layers composed in an order, and the
+   four connections that send the data somewhere other than straight on.
+
+   PHM5005 05-3 cells 61-101, seven pages under the notebook's own two
+   headings: Composing layers (Ordering, Building, Dimensions) and Controlling
+   flow (Skip, Gating, Branching, Routing). `model.js` carries the arithmetic;
+   this file draws it and nothing else.
+
+   THE MISCONCEPTION IS THAT A MODEL IS A LIST. It is a graph, and the four
+   flow pages are the four edges that are not a straight line: an input added
+   back, a gate multiplied in, a split that merges, and a choice of path. So
+   the device on every page is the same — STEP RUNS ONE LINE OF `forward()`
+   AND LIGHTS WHAT THAT LINE PRODUCED — and what changes from page to page is
+   the shape of the connection.
+
+   DECISIONS TAKEN WHILE BUILDING, so they are not re-argued:
+
+    1. THE MOCK IS THE GEOMETRY OF RECORD. `_lab/composition-mock.html` drew
+       all eight sections to scale at the 550px stage and the pages that change
+       with the frame at 770, and Kenneth took the recommendation on every one
+       (2026-09-10). Every box size, column centre, band placement, elbow and
+       label offset below is the mock's, and the constants live in `model.js`
+       so the verify script measures the same numbers.
+
+    2. THE DRAWING IS NOT SHARED WITH THE TWO SIBLINGS. `txt`, `arrow`,
+       `elbow`, `edge`, `layerBox` and `shadedBand` are the same idiom written
+       again here, deliberately: drawing is geometry and belongs to the file
+       that lays out the stage. What IS shared is `core/torch.js` — the
+       output-size rule and the three error strings — because those are one
+       formula each (5.8).
+
+    3. THE STAGE HEIGHT IS A FUNCTION OF THE PARAMETERS AND THE WIDTH.
+       Dimensions is a 366px page and Ordering a 522px one, and Routing loses
+       138px when the code moves beside the diagram at 770, so a single height
+       would make every short page pay for the tallest. `pageHeight` and `draw`
+       ask the same geometry functions (5.8), and both build the state from the
+       same `computeFor`, so neither can measure a figure the other did not
+       draw.
+
+    4. THE FIT PASS IS ONE RULE FOR THREE PAGES. Routing, Ordering and
+       Building each carry a text column, and each puts it UNDER the diagram
+       where beside would leave the diagram too narrow to draw and BESIDE it
+       where it would not. Skip, Gating and Branching keep theirs beside at
+       both widths, which the same rule answers without a second one.
+
+    5. THE `forward()` BODY IS DRAWN WITH ITS INDENT REMOVED, as the mock drew
+       it: the `def` line as written and the body flush under it. Every "it
+       fits" number in the catalogue and the mock is measured on that form, and
+       restoring the four spaces costs 26px on a page whose slack is 41.
+
+    6. A DIMENSIONS SLOT'S MENU IS PER STEP AS WELL AS PER DATA TYPE. The page
+       needs every option to be either legal where it sits or to fail with one
+       of core's two messages, and one menu across all four positions cannot
+       keep that promise: `MaxPool2d(2)` after `Flatten` is a rank error, which
+       torch words a third way and this widget does not draw. Per-step menus
+       also give each step a losing option of its own.
+
+    7. THE STEP LABEL ON DIMENSIONS IS `Next layer`, not `Next line`. The page
+       has no `forward()` at all — its chain IS the code — and 3.4c asks the
+       label to name the widget's own noun. Ordering and Building at
+       `api: sequential` take the same label for the same reason, through
+       core's nested label map.
+
+    8. AT `mode: hard` THE ROUTER STILL COMPUTES ITS WEIGHTS. Cell 99 gives
+       hard routing as a two-branch `if / else` schematic and this diagram has
+       three branches, so the two lines that differ are written out rather than
+       transcribed, and the readout says what the difference costs: the argmax
+       is discrete, so no gradient reaches the router.
+
+    9. THE SECOND BRANCH'S EDGE ELBOWS INTO THE MERGED BAND. The mock leaves it
+       landing at its own column centre while the band is centred in the
+       diagram, so at `add` the arrowhead sits beside the stacked band rather
+       than on it. Both edges now turn at a right angle into the band they
+       feed, which is what every one of Kenneth's six figures does.
+
+   10. THE MASK IS THE ONE DRAW, and it comes from the rng `compute` is handed.
+       Everything else is a fixed draw at a seed `model.js` names, so no page's
+       figure moves under a control that is not on it.
+
+   11. NO PAGE DRAWS `--c-group-a` AND `--c-empirical` AS A CONTRAST, and no
+       legend lists both. They are ONE COLOUR in `tokens.css` on purpose
+       (`:80`, both mean the reader's own data), so a figure that used them to
+       tell two things apart would tell them apart in the legend and nowhere
+       else. Where a page needs a second hue against the reader's tensor it
+       takes `--c-group-b`, which is what the second operand already is;
+       Ordering's non-Transform steps take `--ink-2` instead.
+
+   12. THE GATE'S WEIGHTS ARE DRAWN AS THE [4, 3] TENSOR THEY ARE. The mock
+       drew the chosen sample's row alone, which leaves the four rows the plan
+       makes `regions` with nothing on the canvas to hit, and a target that is
+       not drawn is exactly what no pixel hash can catch (3.6). Four 16px rows
+       cost Routing 34px of height.
+   ========================================================================= */
+
+import {
+  defineWidget, readTokens, mathmlRenders, makeRng, shapeText, sizeText,
+} from "../core/index.js";
+import * as M from "./model.js";
+
+/* A canvas of this module's own, for the measurements `height` needs and core
+   hands none: `measureText` reads the font and ignores the transform, so this
+   gives the same character width the figure is laid out with. */
+let measureCanvas = null;
+function measureCtx() {
+  if (!measureCanvas) measureCanvas = document.createElement("canvas").getContext("2d");
+  return measureCanvas;
+}
+
+const {
+  PAD, GAP, COLGAP, BOX_H, BOX_BW, EDGE_H, HEAD, LINE, BAND_HEAD, CAPTION_H,
+  CAP_GAP, TEXT_GAP, BOX_W, DIM_BOX_W,
+} = M;
+
+const HLW = 2.5;          // the --c-highlight frame
+const XLAB = 16;          // the `x  [4, 10]` line above a diagram
+const SPLIT_H = 26;       // the bus that splits x into two columns
+const ROUTE_SPLIT = 36;   // the same bus with four columns and their names
+const ORDER_EDGE = 26;    // Ordering's shorter edge, since it has five of them
+
+/* --- primitives ------------------------------------------------------------ */
+
+function txt(ctx, colors, s, x, y, o = {}) {
+  const {
+    color = colors.ink2, align = "left", size = colors.fsSm,
+    baseline = "alphabetic", mono = false, weight = "",
+  } = o;
+  ctx.fillStyle = color;
+  ctx.textAlign = align;
+  ctx.textBaseline = baseline;
+  ctx.font = `${weight} ${size} ${mono ? colors.mono : colors.font}`.trim();
+  ctx.fillText(s, x, y);
+}
+
+/** A colour at an alpha, as a fill string. Tokens resolve to hex. */
+const wash = (hex, a) => {
+  const p = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+  return `rgba(${p[0]},${p[1]},${p[2]},${a})`;
+};
+
+function arrow(ctx, x0, y0, x1, y1, color, width = 2, dash = [], head = HEAD) {
+  const a = Math.atan2(y1 - y0, x1 - x0);
+  ctx.strokeStyle = color;
+  ctx.fillStyle = color;
+  ctx.lineWidth = width;
+  ctx.setLineDash(dash);
+  ctx.beginPath();
+  ctx.moveTo(x0, y0);
+  ctx.lineTo(x1, y1);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.beginPath();
+  ctx.moveTo(x1, y1);
+  ctx.lineTo(x1 - head * Math.cos(a - 0.45), y1 - head * Math.sin(a - 0.45));
+  ctx.lineTo(x1 - head * Math.cos(a + 0.45), y1 - head * Math.sin(a + 0.45));
+  ctx.closePath();
+  ctx.fill();
+}
+
+/** A right-angle elbow through `pts`, arrowhead on the last leg. Never
+    diagonal: every one of Kenneth's six figures turns at a right angle. */
+function elbow(ctx, pts, color, width = 2) {
+  ctx.strokeStyle = color;
+  ctx.lineWidth = width;
+  ctx.lineJoin = "miter";
+  ctx.beginPath();
+  ctx.moveTo(pts[0][0], pts[0][1]);
+  for (let i = 1; i < pts.length; i += 1) ctx.lineTo(pts[i][0], pts[i][1]);
+  ctx.stroke();
+  const [ax, ay] = pts[pts.length - 2];
+  const [bx, by] = pts[pts.length - 1];
+  const a = Math.atan2(by - ay, bx - ax);
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.moveTo(bx, by);
+  ctx.lineTo(bx - HEAD * Math.cos(a - 0.45), by - HEAD * Math.sin(a - 0.45));
+  ctx.lineTo(bx - HEAD * Math.cos(a + 0.45), by - HEAD * Math.sin(a + 0.45));
+  ctx.closePath();
+  ctx.fill();
+}
+
+/** A band's header: its name left, the expression it performs right, a
+    hairline under, and the top of its content returned. */
+function band(ctx, colors, y, w, name, expr) {
+  txt(ctx, colors, name, PAD, y + 11, { color: colors.ink1, weight: "600" });
+  if (expr) {
+    txt(ctx, colors, expr, w - PAD, y + 11,
+      { color: colors.highlight, align: "right", mono: true });
+  }
+  ctx.strokeStyle = colors.grid;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(PAD, y + 17.5);
+  ctx.lineTo(w - PAD, y + 17.5);
+  ctx.stroke();
+  return y + BAND_HEAD;
+}
+
+/** One layer box: 30 tall, a 2px border in the path's colour, the class name
+    in mono inside. Kenneth's figures put the name inside and the size on the
+    edge, and that convention is what makes four columns fit at 770. */
+function layerBox(ctx, colors, x, y, w, label, color, o = {}) {
+  ctx.fillStyle = colors.surface;
+  ctx.fillRect(x, y, w, BOX_H);
+  ctx.fillStyle = wash(color, o.lit ? 0.34 : o.pale ? 0.05 : 0.13);
+  ctx.fillRect(x, y, w, BOX_H);
+  ctx.strokeStyle = o.lit ? colors.highlight : o.pale ? colors.axis : color;
+  ctx.lineWidth = BOX_BW;
+  ctx.strokeRect(x + BOX_BW / 2, y + BOX_BW / 2, w - BOX_BW, BOX_H - BOX_BW);
+  txt(ctx, colors, label, x + w / 2, y + BOX_H / 2 + 0.5, {
+    color: o.pale ? colors.ink3 : colors.ink1, align: "center", baseline: "middle",
+    mono: true, size: o.size ?? colors.fsSm,
+  });
+}
+
+/** An outlined box with no fill — the `Merge` rectangle of his branch figure. */
+function outlineBox(ctx, colors, x, y, w, h, label, color) {
+  ctx.fillStyle = colors.surface;
+  ctx.fillRect(x, y, w, h);
+  ctx.strokeStyle = color;
+  ctx.lineWidth = BOX_BW;
+  ctx.strokeRect(x + BOX_BW / 2, y + BOX_BW / 2, w - BOX_BW, h - BOX_BW);
+  txt(ctx, colors, label, x + w / 2, y + h / 2 + 0.5,
+    { color: colors.ink1, align: "center", baseline: "middle", mono: true });
+}
+
+/**
+ * One edge: an arrow down the column with the shape written ON it, the surface
+ * knocked out behind the text.
+ *
+ * The knockout rather than the shape beside the arrow: at Routing's 770 frame
+ * a branch column is 66px and `[4, 20]` is 47 of them, so text beside the
+ * arrow lands in the next column. Written on the arrow it reads as one break
+ * in the line, which is what "shapes on the edges" looks like in his figures.
+ */
+function edge(ctx, colors, cx, y0, y1, text, o = {}) {
+  arrow(ctx, cx, y0, cx, y1, o.color ?? colors.axis, 2, o.dash ?? []);
+  if (!text) return null;
+  const size = o.size ?? colors.fsSm;
+  ctx.font = `${size} ${colors.mono}`;
+  const tw = ctx.measureText(text).width;
+  const mid = (y0 + y1) / 2;
+  ctx.fillStyle = colors.surface;
+  ctx.fillRect(cx - tw / 2 - 4, mid - 8, tw + 8, 16);
+  txt(ctx, colors, text, cx, mid + 0.5,
+    { color: o.ink ?? colors.ink1, align: "center", baseline: "middle", mono: true, size });
+  return { x: cx - tw / 2, y: mid + 9, w: tw };
+}
+
+/** The `+` circle of his skip figure. */
+function plusNode(ctx, colors, cx, cy, r, color) {
+  ctx.fillStyle = wash(color, 0.18);
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = color;
+  ctx.lineWidth = BOX_BW;
+  ctx.stroke();
+  txt(ctx, colors, "+", cx, cy + 0.5,
+    { color: colors.ink1, align: "center", baseline: "middle", size: colors.fsLg, weight: "600" });
+}
+
+/** The ⊙ ring of his gate figure: a ring with a filled dot inside. */
+function ringNode(ctx, colors, cx, cy, r, color) {
+  ctx.fillStyle = colors.surface;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2.5;
+  ctx.stroke();
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r * 0.3, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+/**
+ * A shaded band: one column per feature, one row per batch sample.
+ *
+ * Digits never go inside one: at two decimals a cell needs 40px, so a
+ * `[4, 20]` with values in it is 800px against a 522px stage, and at torch's
+ * own four decimals 1000. The values reach the reader through the readout for
+ * the chosen sample, whose row is lit here.
+ */
+function shadedBand(ctx, colors, x, y, rows, cols, p, fillAt, o = {}) {
+  for (let r = 0; r < rows; r += 1) {
+    for (let c = 0; c < cols; c += 1) {
+      ctx.fillStyle = colors.surface;
+      ctx.fillRect(x + c * p, y + r * p, p, p);
+      if (!(o.emptyAt && o.emptyAt(r, c))) {
+        ctx.fillStyle = fillAt(r, c);
+        ctx.fillRect(x + c * p, y + r * p, p, p);
+      }
+    }
+  }
+  ctx.strokeStyle = colors.grid;
+  ctx.lineWidth = 0.5;
+  for (let r = 0; r <= rows; r += 1) {
+    ctx.beginPath();
+    ctx.moveTo(x, y + r * p + 0.25);
+    ctx.lineTo(x + cols * p, y + r * p + 0.25);
+    ctx.stroke();
+  }
+  for (let c = 0; c <= cols; c += 1) {
+    ctx.beginPath();
+    ctx.moveTo(x + c * p + 0.25, y);
+    ctx.lineTo(x + c * p + 0.25, y + rows * p);
+    ctx.stroke();
+  }
+  ctx.strokeStyle = colors.axis;
+  ctx.lineWidth = 1;
+  ctx.strokeRect(x + 0.5, y + 0.5, cols * p - 1, rows * p - 1);
+  if (o.litRow != null) {
+    ctx.strokeStyle = colors.highlight;
+    ctx.lineWidth = HLW;
+    ctx.strokeRect(x - 1.25, y + o.litRow * p - 1.25, cols * p + 2.5, p + 2.5);
+  }
+}
+
+/** One value cell, at the size a signed two-decimal float needs. */
+function valueCell(ctx, colors, x, y, w, h, text, o = {}) {
+  const hue = o.hue ?? colors.groupA;
+  ctx.fillStyle = colors.surface;
+  ctx.fillRect(x, y, w, h);
+  if (!o.empty) {
+    ctx.fillStyle = wash(hue, o.lit ? 0.4 : 0.15);
+    ctx.fillRect(x, y, w, h);
+  }
+  ctx.strokeStyle = o.lit ? colors.highlight : colors.axis;
+  ctx.lineWidth = o.lit ? HLW : 1;
+  ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+  if (text != null && text !== "") {
+    txt(ctx, colors, text, x + w / 2, y + h / 2 + 0.5, {
+      color: colors.ink1, align: "center", baseline: "middle", mono: true,
+      size: o.size ?? colors.fsSm, weight: o.lit ? "600" : "",
+    });
+  }
+}
+
+/** A print, one line to a row, in the mono face. */
+function printLines(ctx, colors, x, y, lines, color) {
+  lines.forEach((l, i) =>
+    txt(ctx, colors, l, x, y + i * LINE, { color: color ?? colors.ink2, mono: true }));
+  return lines.length * LINE;
+}
+
+/** The notebook's own `forward()`, with the executing line lit and a wash
+    behind it. Decision 5: the `def` line as written, the body flush under it. */
+function codePanel(ctx, colors, x, y, w, lines, lit) {
+  lines.forEach((l, i) => {
+    const yy = y + i * LINE;
+    if (i === lit) {
+      ctx.fillStyle = wash(colors.highlight, 0.14);
+      ctx.fillRect(x - 4, yy - 12, w + 8, LINE);
+    }
+    txt(ctx, colors, l, x, yy,
+      { color: i === lit ? colors.highlight : colors.ink2, mono: true });
+  });
+  return lines.length * LINE;
+}
+
+/** Torch's own message, wrapped to `w` and printed in the failure colour. */
+function wrapMono(ctx, colors, msg, maxW) {
+  ctx.font = `${colors.fsSm} ${colors.mono}`;
+  const rows = [];
+  let cur = "";
+  for (const word of msg.split(" ")) {
+    const t = cur ? `${cur} ${word}` : word;
+    if (ctx.measureText(t).width > maxW && cur) {
+      rows.push(cur);
+      cur = word;
+    } else cur = t;
+  }
+  if (cur) rows.push(cur);
+  return rows;
+}
+
+function errorText(ctx, colors, x, y, maxW, msg) {
+  const rows = wrapMono(ctx, colors, msg, maxW);
+  rows.forEach((r, i) =>
+    txt(ctx, colors, r, x, y + i * LINE, { color: colors.extreme, mono: true }));
+  return rows.length;
+}
+
+/** One line at a time, wrapped to the width it is given. */
+function wrapLines(ctx, colors, text, maxW) {
+  ctx.font = `${colors.fsSm} ${colors.font}`;
+  const out = [];
+  let cur = "";
+  for (const word of text.split(" ")) {
+    const next = cur ? `${cur} ${word}` : word;
+    if (cur && ctx.measureText(next).width > maxW) {
+      out.push(cur);
+      cur = word;
+    } else cur = next;
+  }
+  if (cur) out.push(cur);
+  return out;
+}
+
+/** The mono font's width per character at --fs-sm, measured rather than
+    assumed: every "it fits" verdict in this file is a multiple of it. */
+function monoCW(ctx, colors) {
+  ctx.save();
+  ctx.font = `${colors.fsSm} ${colors.mono}`;
+  const cw = ctx.measureText("0000000000").width / 10;
+  ctx.restore();
+  return cw;
+}
+
+const codeW = (ctx, colors, lines) => M.codeWidth(lines, monoCW(ctx, colors));
+
+/* --- where the walk stands -------------------------------------------------- *
+ * One function, because the drawing and the readout must agree about it (5.8).
+ * `done` is how many lines have run; `lit` is the display line the last one
+ * was, which is the line index in the code panel because the `def` line is
+ * index 0 and the body starts at 1. */
+function walkAt(anim, state) {
+  const done = Math.min(Math.max(0, anim?.n ?? 0), state.units);
+  return { done, lit: done > 0 ? done : -1, idx: done - 1 };
+}
+
+/* the shade a band's cell carries, on the band's own largest magnitude */
+const shadeOf = (hue, v, hi) => wash(hue, 0.06 + 0.84 * Math.min(1, Math.abs(v) / (hi || 1)));
+const maxAbs = (rows) => Math.max(...rows.flat().map(Math.abs));
+
+/* ========================== 1 · Dimensions ================================= *
+ * Cell 88, and the strongest losing state on the widget: the menu deliberately
+ * holds layers that do not fit the step before them. There is no text column,
+ * because the chain IS the code and it lives in the rail.
+ */
+
+function dimGeom(ctx, colors, w, params, state) {
+  const usable = w - 2 * PAD;
+  const n = state.steps.length;
+  const last = state.steps[n - 1];
+  const errRows = last && last.error ? wrapMono(ctx, colors, last.error, usable).length : 0;
+  const bodyH = XLAB + 22 + n * BOX_H + (n - 1) * EDGE_H
+    + (errRows ? 12 + errRows * LINE : EDGE_H);
+  const caps = captionLines(ctx, colors, w, params, state);
+  const capY = BAND_HEAD + bodyH + CAP_GAP;
+  return { usable, n, errRows, bodyH, capY, caps, height: capY + caps.length * CAPTION_H + PAD };
+}
+
+/** The character span of each dimension in a printed shape. */
+function shapeSpans(shape) {
+  const spans = [];
+  let at = 1;
+  shape.forEach((v, i) => {
+    const len = String(v).length;
+    spans.push({ i, from: at, to: at + len });
+    at += len + 2;
+  });
+  return spans;
+}
+
+/** Which dimensions the NEXT layer is about to change. */
+function changedDims(shape, next) {
+  if (!next) return [];
+  if (next.kind === "conv2d" || next.kind === "maxpool2d") return [shape.length - 2, shape.length - 1];
+  if (next.kind === "flatten") return shape.slice(1).map((_, i) => i + 1);
+  if (next.kind === "linear") return [shape.length - 1];
+  return [];
+}
+
+function drawDim(ctx, colors, w, params, state, anim) {
+  const g = dimGeom(ctx, colors, w, params, state);
+  const walk = walkAt(anim, state);
+  const cx = PAD + g.usable / 2;
+  let y = band(ctx, colors, 0, w, "Dimensions", "each layer's output shape is the next one's input shape");
+
+  const inText = `x  ${shapeText(state.set.shape)}`;
+  txt(ctx, colors, inText, cx, y + 12, { color: colors.ink1, align: "center", mono: true });
+  markDims(ctx, colors, inText, 3, state.set.shape, state.layers[0], cx, y + 16);
+  let cy = y + XLAB + 6;
+  arrow(ctx, cx, cy, cx, cy + 16, colors.groupA, 2);
+  cy += 16;
+
+  state.steps.forEach((s, i) => {
+    /* THE FAILING BOX KEEPS ITS OWN HUE and wears the highlight frame instead.
+       `--c-extreme` on the box would put the failure colour on the layer and on
+       the message torch prints, in one panel, and the legend can then name only
+       one of them. */
+    const hue = i === state.steps.length - 1 && !state.failed ? colors.empirical
+      : s.layer.kind === "relu" || s.layer.kind === "flatten" ? colors.ink2 : colors.groupB;
+    layerBox(ctx, colors, cx - DIM_BOX_W / 2, cy, DIM_BOX_W, s.layer.label, hue,
+      { lit: walk.done === i + 1, pale: walk.done < i + 1 });
+    cy += BOX_H;
+    if (s.error) {
+      if (walk.done >= i + 1) errorText(ctx, colors, PAD, cy + 24, g.usable, s.error);
+      cy += 12 + g.errRows * LINE;
+      return;
+    }
+    const shown = walk.done >= i + 1;
+    const text = shown ? shapeText(s.shape) : "";
+    const last = i === state.steps.length - 1;
+    edge(ctx, colors, cx, cy, cy + EDGE_H, text, { color: last ? colors.empirical : colors.groupB });
+    if (shown) markDims(ctx, colors, text, 0, s.shape, state.layers[i + 1], cx, cy + EDGE_H / 2 + 9);
+    cy += EDGE_H;
+  });
+  return g;
+}
+
+/** The dimension hue as a 2px rule UNDER the sizes the next layer changes,
+    never on the text itself (principle 5). `skip` is how many characters of
+    the drawn string come before the shape's opening bracket. */
+function markDims(ctx, colors, text, skip, shape, next, cx, ruleY) {
+  const dims = changedDims(shape, next);
+  if (!dims.length) return;
+  ctx.font = `${colors.fsSm} ${colors.mono}`;
+  const cw = ctx.measureText("0").width;
+  const tw = ctx.measureText(text).width;
+  const x0 = cx - tw / 2 + skip * cw;
+  for (const { i, from, to } of shapeSpans(shape)) {
+    if (!dims.includes(i)) continue;
+    ctx.fillStyle = colors.dims[(shape.length - 1 - i) % colors.dims.length];
+    ctx.fillRect(x0 + from * cw, ruleY, (to - from) * cw, 2);
+  }
+}
+
+/* ============================== 2 · Skip =================================== *
+ * Cells 90-92. `y = x + f(x)`, and the add is where the widths have to agree.
+ */
+
+const SKIP_BOX = 130;
+const SKIP_RAIL = 60;     // the column the skip elbow runs down, from the right
+
+function skipGeom(ctx, colors, w, params, state) {
+  const usable = w - 2 * PAD;
+  const cw = codeW(ctx, colors, state.code);
+  const diagW = usable - cw - TEXT_GAP;
+  const grad = params.grad === "1";
+  ctx.font = `${colors.fsXs} ${colors.font}`;
+  const ow = grad
+    ? 26 + 8 + Math.ceil(Math.max(...M.SKIP_FACTORS.map(([, l]) => ctx.measureText(l).width)))
+    : 0;
+  const errRows = state.error ? wrapMono(ctx, colors, state.error, diagW).length : 0;
+  const bodyH = XLAB + 4 * (EDGE_H + BOX_H)
+    + (state.match ? EDGE_H + BOX_H + EDGE_H : 12 + errRows * LINE);
+  const caps = captionLines(ctx, colors, w, params, state);
+  const capY = BAND_HEAD + bodyH + (grad ? 20 : 0) + CAP_GAP;
+  return {
+    usable, cw, diagW, ow, errRows, bodyH, grad, capY, caps,
+    cx: PAD + ow + SKIP_BOX / 2 + 6,
+    railX: PAD + diagW - SKIP_RAIL,
+    height: capY + caps.length * CAPTION_H + PAD,
+  };
+}
+
+function drawSkip(ctx, colors, w, params, state, anim) {
+  const g = skipGeom(ctx, colors, w, params, state);
+  const walk = walkAt(anim, state);
+  const { cx, railX } = g;
+  const width = state.width;
+  let y = band(ctx, colors, 0, w, "Skip", state.proj ? "y = P(x) + f(x)" : "y = x + f(x)");
+  const top = y;
+  codePanel(ctx, colors, PAD + g.diagW + TEXT_GAP, top + 20, g.cw, state.code, walk.lit);
+
+  const Y = {};
+  Y.e1 = y + XLAB;
+  Y.fc1 = Y.e1 + EDGE_H;
+  Y.e2 = Y.fc1 + BOX_H;
+  Y.relu = Y.e2 + EDGE_H;
+  Y.e3 = Y.relu + BOX_H;
+  Y.fc2 = Y.e3 + EDGE_H;
+  Y.e4 = Y.fc2 + BOX_H;
+  Y.plus = Y.e4 + EDGE_H;
+  Y.e5 = Y.plus + BOX_H;
+  Y.fcOut = Y.e5 + EDGE_H;
+  Y.e6 = Y.fcOut + BOX_H;
+
+  txt(ctx, colors, "x", cx, y + 12, { color: colors.ink1, align: "center", mono: true });
+  edge(ctx, colors, cx, Y.e1, Y.e1 + EDGE_H, shapeText([4, 10]), { color: colors.groupA });
+  const boxes = [
+    ["fc1", Y.fc1, colors.groupA, 2],
+    ["relu", Y.relu, colors.groupA, 3],
+    ["fc2", Y.fc2, colors.groupA, 4],
+  ];
+  for (const [label, by, hue, unit] of boxes) {
+    layerBox(ctx, colors, cx - SKIP_BOX / 2, by, SKIP_BOX, label, hue,
+      { lit: walk.done === unit, pale: walk.done < unit });
+  }
+  edge(ctx, colors, cx, Y.e2, Y.e2 + EDGE_H, walk.done >= 2 ? shapeText([4, 20]) : "",
+    { color: colors.groupA });
+  edge(ctx, colors, cx, Y.e3, Y.e3 + EDGE_H, walk.done >= 3 ? shapeText([4, 20]) : "",
+    { color: colors.groupA });
+  edge(ctx, colors, cx, Y.e4, Y.e4 + EDGE_H, walk.done >= 4 ? `x3  ${shapeText([4, width])}` : "",
+    { color: colors.empirical });
+  const plusY = Y.plus + 15;
+  plusNode(ctx, colors, cx, plusY, 14, state.match ? colors.empirical : colors.extreme);
+
+  /* the skip path, down the right of the figure, both halves of his figure */
+  const teeY = y + 22;
+  const skipHue = state.proj ? colors.groupB : colors.groupA;
+  if (walk.done >= 1) {
+    elbow(ctx, [[cx, teeY], [railX, teeY], [railX, plusY], [cx + 18, plusY]], skipHue);
+    ctx.font = `${colors.fsXs} ${colors.mono}`;
+    const label = `skip  ${shapeText(state.skipShape)}`;
+    const tw = ctx.measureText(label).width;
+    const ly = state.proj ? Y.relu + BOX_H + 16 : Y.relu + 4;
+    ctx.fillStyle = colors.surface;
+    ctx.fillRect(railX - tw / 2 - 4, ly - 9, tw + 8, 14);
+    txt(ctx, colors, label, railX, ly,
+      { color: skipHue, align: "center", mono: true, size: colors.fsXs });
+  }
+  if (state.proj) {
+    layerBox(ctx, colors, railX - 55, Y.relu, 110, "proj", colors.groupB,
+      { pale: walk.done < 1 });
+    txt(ctx, colors, "P(x)", railX, Y.relu - 6,
+      { color: colors.groupB, align: "center", size: colors.fsXs });
+  }
+
+  if (!state.match) {
+    if (walk.done >= 5) errorText(ctx, colors, PAD, Y.plus + BOX_H + 20, g.diagW, state.error);
+  } else {
+    edge(ctx, colors, cx, Y.e5, Y.e5 + EDGE_H, walk.done >= 5 ? `out  ${shapeText([4, width])}` : "",
+      { color: colors.empirical });
+    layerBox(ctx, colors, cx - SKIP_BOX / 2, Y.fcOut, SKIP_BOX, "fc_out", colors.empirical,
+      { lit: walk.done === 6, pale: walk.done < 6 });
+    edge(ctx, colors, cx, Y.e6, Y.e6 + EDGE_H, walk.done >= 6 ? shapeText([4, 2]) : "",
+      { color: colors.empirical });
+  }
+
+  /* THE LOCAL FACTORS, off by default and conditioned on there being a result
+     to lie behind (3.4j): the same edges walked upwards, the two arriving at x
+     adding to 1 + f′(x). */
+  if (g.grad && state.match && walk.done > 0) {
+    const ux = cx - 26;
+    const legs = [[Y.e6, "Wᵀ_out"], [Y.e5, "1"], [Y.e4, "Wᵀ₂"], [Y.e3, "f′(x1)"], [Y.e2, "Wᵀ₁"], [Y.e1, ""]];
+    for (const [a, label] of legs) {
+      arrow(ctx, ux, a + EDGE_H, ux, a, colors.slope, 1.6, [], 7);
+      if (label) {
+        txt(ctx, colors, label, ux - 6, a + EDGE_H / 2 + 1,
+          { color: colors.slope, align: "right", baseline: "middle", size: colors.fsXs });
+      }
+    }
+    arrow(ctx, railX + 12, plusY, railX + 12, teeY + 4, colors.slope, 1.6, [], 7);
+    txt(ctx, colors, "1", railX + 18, (teeY + plusY) / 2, { color: colors.slope, size: colors.fsXs });
+    txt(ctx, colors, "∂y/∂x = 1 + f′(x)", PAD, top + g.bodyH + 14, { color: colors.slope, mono: true });
+  }
+  return g;
+}
+
+/* ============================= 3 · Gating ================================== *
+ * Cells 93-95. One shaded band, on the `gated` edge, because that is where the
+ * mask's blocked columns are the thing to see. Two bands side by side are
+ * 502px against a 282px diagram column, which the mock measured.
+ */
+
+function gateGeom(ctx, colors, w, params, state) {
+  const usable = w - 2 * PAD;
+  const cw = codeW(ctx, colors, state.code);
+  const s = M.fitSizes(w, (z) => M.bandWidth.gating(z, cw));
+  const diagW = usable - cw - TEXT_GAP;
+  const colW = Math.floor((diagW - COLGAP) / 2);
+  const bandH = 4 * s.band;
+  const gatedEdge = EDGE_H + bandH + 12;
+  const diagH = XLAB + SPLIT_H + 2 * BOX_H + 2 * EDGE_H + BOX_H + gatedEdge + BOX_H + EDGE_H;
+  const caps = captionLines(ctx, colors, w, params, state);
+  const capY = BAND_HEAD + diagH + CAP_GAP;
+  const c0 = PAD + colW / 2;
+  const boxTop = BAND_HEAD + XLAB + SPLIT_H;
+  const ringTop = boxTop + 2 * BOX_H + 2 * EDGE_H;
+  const bandY = ringTop + BOX_H + EDGE_H + 6;
+  return {
+    usable, cw, s, diagW, colW, bandH, gatedEdge, diagH, caps, capY,
+    c0, c1: PAD + colW + COLGAP + colW / 2, boxTop, ringTop, bandY,
+    boxW: Math.min(colW - 8, 110),
+    bandX: PAD,
+    height: capY + caps.length * CAPTION_H + PAD,
+  };
+}
+
+function drawGate(ctx, colors, w, params, state, anim) {
+  const g = gateGeom(ctx, colors, w, params, state);
+  const walk = walkAt(anim, state);
+  const sample = Number(params.sample);
+  const isMask = state.gate === "mask";
+  let y = band(ctx, colors, 0, w, "Gating", "gated = h * g");
+  codePanel(ctx, colors, PAD + g.diagW + TEXT_GAP, y + 26, g.cw, state.code, walk.lit);
+
+  const cxAll = PAD + (2 * g.colW + COLGAP) / 2;
+  txt(ctx, colors, `x  ${shapeText([4, 10])}`, cxAll, y + 12,
+    { color: colors.ink1, align: "center", mono: true });
+  const busY = y + XLAB + 12;
+  ctx.strokeStyle = colors.groupA;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(cxAll, y + XLAB);
+  ctx.lineTo(cxAll, busY);
+  if (isMask) {
+    ctx.moveTo(cxAll, busY);
+    ctx.lineTo(g.c0, busY);
+  } else {
+    ctx.moveTo(g.c0, busY);
+    ctx.lineTo(g.c1, busY);
+  }
+  ctx.stroke();
+  arrow(ctx, g.c0, busY, g.c0, g.boxTop, colors.groupA, 2);
+  if (!isMask) arrow(ctx, g.c1, busY, g.c1, g.boxTop, colors.groupB, 2);
+
+  /* the main path */
+  layerBox(ctx, colors, g.c0 - g.boxW / 2, g.boxTop, g.boxW, "fc1", colors.groupA,
+    { lit: walk.done === 1, pale: walk.done < 1 });
+  edge(ctx, colors, g.c0, g.boxTop + BOX_H, g.boxTop + BOX_H + EDGE_H,
+    walk.done >= 1 ? shapeText([4, 20]) : "", { color: colors.groupA });
+  layerBox(ctx, colors, g.c0 - g.boxW / 2, g.boxTop + BOX_H + EDGE_H, g.boxW, "relu", colors.groupA,
+    { lit: walk.done === 1, pale: walk.done < 1 });
+  edge(ctx, colors, g.c0, g.boxTop + 2 * BOX_H + EDGE_H, g.ringTop + 2,
+    walk.done >= 1 ? `h  ${shapeText([4, 20])}` : "", { color: colors.groupA });
+
+  /* the gate path. A fixed mask is a tensor the reader wrote, so at `mask` the
+     column holds one tile, no layers, and nothing flows into it from x. */
+  const ringY = g.ringTop + 15;
+  if (isMask) {
+    layerBox(ctx, colors, g.c1 - g.boxW / 2, g.boxTop + BOX_H + EDGE_H, g.boxW, "mask", colors.groupB,
+      { lit: walk.done === 2, pale: walk.done < 2 });
+  } else {
+    layerBox(ctx, colors, g.c1 - g.boxW / 2, g.boxTop, g.boxW, "gate_fc", colors.groupB,
+      { lit: walk.done === 2, pale: walk.done < 2 });
+    edge(ctx, colors, g.c1, g.boxTop + BOX_H, g.boxTop + BOX_H + EDGE_H,
+      walk.done >= 2 ? shapeText([4, 20]) : "", { color: colors.groupB });
+    layerBox(ctx, colors, g.c1 - g.boxW / 2, g.boxTop + BOX_H + EDGE_H, g.boxW, "sigmoid", colors.groupB,
+      { lit: walk.done === 2, pale: walk.done < 2 });
+  }
+  if (walk.done >= 2) {
+    txt(ctx, colors, `${isMask ? "mask" : "g"}  ${shapeText([4, 20])}`,
+      g.c1, g.boxTop + 2 * BOX_H + EDGE_H + 15,
+      { color: colors.ink1, align: "center", baseline: "middle", mono: true });
+    elbow(ctx, [[g.c1, g.boxTop + 2 * BOX_H + EDGE_H + 24], [g.c1, ringY], [g.c0 + 18, ringY]],
+      colors.groupB);
+    txt(ctx, colors, isMask ? "0 or 1" : "0 to 1", (g.c0 + g.c1) / 2 + 10, ringY - 6,
+      { color: colors.groupB, align: "center", size: colors.fsXs, mono: true });
+  }
+  ringNode(ctx, colors, g.c0, ringY, 13, colors.ink1);
+
+  /* the gated edge, and its band */
+  const gatedTop = g.ringTop + BOX_H;
+  const fc2Top = gatedTop + g.gatedEdge;
+  edge(ctx, colors, g.c0, gatedTop, gatedTop + EDGE_H,
+    walk.done >= 3 ? `gated  ${shapeText([4, 20])}` : "", { color: colors.empirical });
+  if (walk.done >= 3) {
+    const hi = maxAbs(state.gated);
+    shadedBand(ctx, colors, g.bandX, g.bandY, 4, 20, g.s.band,
+      (r, c) => shadeOf(colors.empirical, state.gated[r][c], hi), {
+        litRow: sample,
+        emptyAt: (r, c) => isMask && state.mask[c] === 0,
+      });
+    const bw = 20 * g.s.band;
+    txt(ctx, colors, `sample ${sample}`, g.bandX + bw + 8, g.bandY + sample * g.s.band + g.s.band / 2 + 1,
+      { color: colors.highlight, baseline: "middle", size: colors.fsXs });
+    txt(ctx, colors, `${20 - state.blocked} of 20 features carry a value`,
+      g.bandX + bw + 8, g.bandY + g.bandH - 4, { color: colors.ink3, size: colors.fsXs });
+  }
+  arrow(ctx, g.c0, gatedTop + g.gatedEdge - 6, g.c0, fc2Top, colors.empirical, 2);
+  layerBox(ctx, colors, g.c0 - g.boxW / 2, fc2Top, g.boxW, "fc2", colors.empirical,
+    { lit: walk.done === 4, pale: walk.done < 4 });
+  edge(ctx, colors, g.c0, fc2Top + BOX_H, fc2Top + BOX_H + EDGE_H,
+    walk.done >= 4 ? shapeText([4, 2]) : "", { color: colors.empirical });
+  return g;
+}
+
+/* =========================== 4 · Branching ================================= *
+ * Cells 96-98. Every merge both wins and loses on the notebook's own numbers,
+ * and the two failures print in DIFFERENT PLACES: `add` on unequal widths
+ * raises where the sum band would have been, and a merge that succeeds at the
+ * wrong width raises one layer later, under a band that is there and correct.
+ */
+
+function branchGeom(ctx, colors, w, params, state) {
+  const usable = w - 2 * PAD;
+  const cw = codeW(ctx, colors, state.code);
+  const s = M.fitSizes(w, (z) => M.bandWidth.branching(z, cw));
+  const diagW = usable - cw - TEXT_GAP;
+  const colW = Math.floor((diagW - COLGAP) / 2);
+  const bandH = 4 * s.band;
+  const elementwise = state.merge !== "concat";
+  const mergeErrRows = state.mergeError
+    ? wrapMono(ctx, colors, state.mergeError, diagW).length : 0;
+  const fcErrRows = state.fcError ? wrapMono(ctx, colors, state.fcError, diagW).length : 0;
+  const mergeH = elementwise
+    ? (state.mergeError
+      ? 2 * bandH + 8 + mergeErrRows * LINE + 18
+      : 3 * bandH + 20)
+    : bandH;
+  const tailH = state.mergeError ? BOX_H : EDGE_H + (fcErrRows ? fcErrRows * LINE + 18 : BOX_H + EDGE_H);
+  const diagH = XLAB + SPLIT_H + 2 * BOX_H + 2 * EDGE_H + mergeH + tailH;
+  const caps = captionLines(ctx, colors, w, params, state);
+  const capY = BAND_HEAD + diagH + CAP_GAP;
+  const mergeTop = BAND_HEAD + XLAB + SPLIT_H + 2 * BOX_H + 2 * EDGE_H;
+  return {
+    usable, cw, s, diagW, colW, bandH, mergeH, mergeErrRows, fcErrRows, elementwise, diagH,
+    caps, capY, mergeTop,
+    c0: PAD + colW / 2,
+    c1: PAD + colW + COLGAP + colW / 2,
+    boxW: Math.min(colW - 8, 110),
+    height: capY + caps.length * CAPTION_H + PAD,
+  };
+}
+
+/** Where each band of the merge sits, so `draw` and `regions` agree (5.8). */
+function branchBands(g, state) {
+  const p = g.s.band;
+  const w1 = 8 * p;
+  const w2 = state.fc2 * p;
+  if (g.elementwise) {
+    return {
+      b1: { x: PAD + (g.diagW - w1) / 2, y: g.mergeTop, cols: 8 },
+      b2: { x: PAD + (g.diagW - w2) / 2, y: g.mergeTop + g.bandH + 4, cols: state.fc2 },
+      sum: state.mergeError
+        ? null
+        : { x: PAD + (g.diagW - w1) / 2, y: g.mergeTop + 2 * g.bandH + 12, cols: 8 },
+    };
+  }
+  const total = w1 + w2;
+  const x = PAD + (g.diagW - total) / 2;
+  return {
+    b1: { x, y: g.mergeTop, cols: 8 },
+    b2: { x: x + w1, y: g.mergeTop, cols: state.fc2 },
+    sum: null,
+  };
+}
+
+function drawBranch(ctx, colors, w, params, state, anim) {
+  const g = branchGeom(ctx, colors, w, params, state);
+  const walk = walkAt(anim, state);
+  const sample = Number(params.sample);
+  const p = g.s.band;
+  const EXPR = { concat: "y = concat(f₁(x), f₂(x))", add: "y = f₁(x) + f₂(x)", average: "y = ½(f₁(x) + f₂(x))" };
+  let y = band(ctx, colors, 0, w, "Branching", EXPR[state.merge]);
+  codePanel(ctx, colors, PAD + g.diagW + TEXT_GAP, y + 26, g.cw, state.code, walk.lit);
+
+  const cxAll = PAD + (2 * g.colW + COLGAP) / 2;
+  txt(ctx, colors, `x  ${shapeText([4, 10])}`, cxAll, y + 12,
+    { color: colors.ink1, align: "center", mono: true });
+  const busY = y + XLAB + 12;
+  ctx.strokeStyle = colors.groupA;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(cxAll, y + XLAB);
+  ctx.lineTo(cxAll, busY);
+  ctx.moveTo(g.c0, busY);
+  ctx.lineTo(g.c1, busY);
+  ctx.stroke();
+  const boxTop = y + XLAB + SPLIT_H;
+  arrow(ctx, g.c0, busY, g.c0, boxTop, colors.groupA, 2);
+  arrow(ctx, g.c1, busY, g.c1, boxTop, colors.groupB, 2);
+
+  const bands = branchBands(g, state);
+  const branches = [
+    { cx: g.c0, hue: colors.groupA, name: "fc1", n: 8, unit: 1, out: "x1", band: bands.b1 },
+    { cx: g.c1, hue: colors.groupB, name: "fc2", n: state.fc2, unit: 2, out: "x2", band: bands.b2 },
+  ];
+  for (const b of branches) {
+    layerBox(ctx, colors, b.cx - g.boxW / 2, boxTop, g.boxW, b.name, b.hue,
+      { lit: walk.done === b.unit, pale: walk.done < b.unit });
+    edge(ctx, colors, b.cx, boxTop + BOX_H, boxTop + BOX_H + EDGE_H,
+      walk.done >= b.unit ? shapeText([4, b.n]) : "", { color: b.hue });
+    layerBox(ctx, colors, b.cx - g.boxW / 2, boxTop + BOX_H + EDGE_H, g.boxW, "relu", b.hue,
+      { lit: walk.done === b.unit, pale: walk.done < b.unit });
+    /* DECISION 9: the edge elbows INTO the band it feeds, rather than stopping
+       at its own column centre beside a band that is centred in the diagram. */
+    const from = boxTop + 2 * BOX_H + EDGE_H;
+    const target = b.band.x + (b.band.cols * p) / 2;
+    if (walk.done >= b.unit) {
+      txt(ctx, colors, `${b.out}  ${shapeText([4, b.n])}`, b.cx, from + 15,
+        { color: colors.ink1, align: "center", baseline: "middle", mono: true });
+    }
+    const turn = Math.max(from + 24, b.band.y - 14);
+    if (Math.abs(target - b.cx) < 2) {
+      arrow(ctx, b.cx, from + 24, b.cx, b.band.y - 2, b.hue, 2);
+    } else {
+      elbow(ctx, [[b.cx, from + 24], [b.cx, turn], [target, turn], [target, b.band.y - 2]], b.hue);
+    }
+  }
+
+  const mid = PAD + g.diagW / 2;
+  if (walk.done >= 1) {
+    const hi1 = maxAbs(state.x1);
+    shadedBand(ctx, colors, bands.b1.x, bands.b1.y, 4, 8, p,
+      (r, c) => shadeOf(colors.groupA, state.x1[r][c], hi1), { litRow: sample });
+  }
+  if (walk.done >= 2) {
+    const hi2 = maxAbs(state.x2);
+    shadedBand(ctx, colors, bands.b2.x, bands.b2.y, 4, state.fc2, p,
+      (r, c) => shadeOf(colors.groupB, state.x2[r][c], hi2), { litRow: sample });
+  }
+
+  const afterBands = g.mergeTop + (g.elementwise ? 2 * g.bandH + 4 : g.bandH);
+  if (state.mergeError) {
+    if (walk.done >= 3) errorText(ctx, colors, PAD, afterBands + 22, g.diagW, state.mergeError);
+    txt(ctx, colors, `fc3 expects ${M.FC3_IN}`, mid, g.mergeTop + g.mergeH + BOX_H / 2,
+      { color: colors.ink3, align: "center", baseline: "middle", mono: true });
+    return g;
+  }
+
+  if (walk.done >= 3 && bands.sum) {
+    const hiS = maxAbs(state.merged);
+    shadedBand(ctx, colors, bands.sum.x, bands.sum.y, 4, 8, p,
+      (r, c) => shadeOf(colors.empirical, state.merged[r][c], hiS), { litRow: sample });
+  }
+  const outTop = g.mergeTop + g.mergeH;
+  edge(ctx, colors, mid, outTop, outTop + EDGE_H,
+    walk.done >= 3 ? `x3  ${shapeText([4, state.feats])}` : "", { color: colors.empirical });
+  if (state.fcError) {
+    if (walk.done >= 4) errorText(ctx, colors, PAD, outTop + EDGE_H + 18, g.diagW, state.fcError);
+  } else {
+    layerBox(ctx, colors, mid - g.boxW / 2, outTop + EDGE_H, g.boxW, "fc3", colors.empirical,
+      { lit: walk.done === 4, pale: walk.done < 4 });
+    edge(ctx, colors, mid, outTop + EDGE_H + BOX_H, outTop + 2 * EDGE_H + BOX_H,
+      walk.done >= 4 ? shapeText([4, 2]) : "", { color: colors.empirical });
+  }
+  return g;
+}
+
+/* ============================= 5 · Routing ================================= *
+ * Cells 99-101. Three branch columns and a gate column, and the four fit at
+ * 770 only because the layer sizes sit on the edges rather than inside the
+ * boxes: `Linear(10, 20)` inside a box is 86px of label and needs a 104px box,
+ * where `Linear` alone needs 60.
+ */
+
+/* THE GATE'S WEIGHTS ARE DRAWN AS THE [4, 3] TENSOR THEY ARE, four rows of
+   three cells, with the chosen sample's row lit. The mock drew the chosen
+   sample's row alone, which left the four rows the plan makes `regions` with
+   nothing on the canvas to hit — and a target that is not drawn is exactly
+   what no pixel hash can catch (3.6). Four rows cost 34px of height. */
+const WROW = 16;
+const WBLOCK = 4 * WROW;
+
+function routeGeom(ctx, colors, w, params, state) {
+  const usable = w - 2 * PAD;
+  /* the column is reserved at the widest form, so the diagram does not move
+     when the reader switches modes (the mock's own decision) */
+  const cw = codeW(ctx, colors, state.codeWidest);
+  const s0 = M.sizesAt(Math.max(0, Math.min(1, (w - 550) / 220)));
+  const beside = M.besideFits(w, cw, M.routeMinDiag(s0));
+  const s = M.fitSizes(w, (z) => M.bandWidth.routing(z, cw, beside));
+  const gateW = 3 * s.wcell;
+  const roomy = beside ? usable - cw - TEXT_GAP : usable;
+  const diagW = Math.max(roomy, M.routeMinDiag(s));
+  const branchW = Math.floor((diagW - gateW - 3 * COLGAP) / 3);
+  const diagH = XLAB + ROUTE_SPLIT + 3 * BOX_H + WBLOCK + 4 * EDGE_H;
+  const codeH = state.code.length * LINE;
+  const caps = captionLines(ctx, colors, w, params, state);
+  const capY = BAND_HEAD + diagH + 12 + (beside ? 0 : codeH + 10) + CAP_GAP;
+  const boxTop = BAND_HEAD + XLAB + ROUTE_SPLIT;
+  const cols = [0, 1, 2].map((i) => PAD + i * (branchW + COLGAP) + branchW / 2);
+  return {
+    usable, cw, s, beside, gateW, roomy, diagW, branchW, diagH, codeH, caps, capY, boxTop, cols,
+    gateCx: PAD + 3 * (branchW + COLGAP) + gateW / 2,
+    boxW: Math.min(branchW, 92),
+    weightsY: boxTop + 2 * BOX_H + 2 * EDGE_H,
+    height: capY + caps.length * CAPTION_H + PAD,
+  };
+}
+
+function drawRoute(ctx, colors, w, params, state, anim) {
+  const g = routeGeom(ctx, colors, w, params, state);
+  const walk = walkAt(anim, state);
+  const sample = Number(params.sample);
+  const hard = state.mode === "hard";
+  let y = band(ctx, colors, 0, w, "Routing",
+    hard ? "y = f₁(x) if condition(x) else f₂(x)" : "y = Σ αᵢ(x) fᵢ(x)");
+  const top = y;
+
+  const usedW = 3 * (g.branchW + COLGAP) + g.gateW;
+  const cxAll = PAD + usedW / 2;
+  txt(ctx, colors, `x  ${shapeText([4, 10])}`, cxAll, y + 12,
+    { color: colors.ink1, align: "center", mono: true });
+  const busY = y + XLAB + 12;
+  ctx.strokeStyle = colors.groupA;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(cxAll, y + XLAB);
+  ctx.lineTo(cxAll, busY);
+  ctx.moveTo(g.cols[0], busY);
+  ctx.lineTo(g.gateCx, busY);
+  ctx.stroke();
+  for (const cx of [...g.cols, g.gateCx]) arrow(ctx, cx, busY, cx, g.boxTop, colors.groupA, 2);
+
+  const HUES = [colors.groupA, colors.groupB, colors.groupC];
+  const weightsY = g.weightsY;
+  const taken = hard ? state.top[sample] : -1;
+  g.cols.forEach((cx, i) => {
+    const off = hard && walk.done >= 4 && i !== taken;
+    layerBox(ctx, colors, cx - g.boxW / 2, g.boxTop, g.boxW, "Linear", HUES[i],
+      { lit: walk.done === 2, pale: walk.done < 2 || off });
+    edge(ctx, colors, cx, g.boxTop + BOX_H, g.boxTop + BOX_H + EDGE_H,
+      walk.done >= 2 ? shapeText([4, 20]) : "", { color: HUES[i] });
+    layerBox(ctx, colors, cx - g.boxW / 2, g.boxTop + BOX_H + EDGE_H, g.boxW, "ReLU", HUES[i],
+      { lit: walk.done === 2, pale: walk.done < 2 || off });
+    edge(ctx, colors, cx, g.boxTop + 2 * BOX_H + EDGE_H, weightsY,
+      walk.done >= 3 ? shapeText([4, 20]) : "", { color: HUES[i] });
+    txt(ctx, colors, `branch ${i + 1}`, cx, g.boxTop - 6,
+      { color: HUES[i], align: "center", size: colors.fsXs });
+  });
+
+  /* the gate column, in ink because it is not a branch */
+  layerBox(ctx, colors, g.gateCx - g.gateW / 2 + 8, g.boxTop, g.gateW - 16, "gate", colors.ink2,
+    { lit: walk.done === 1, pale: walk.done < 1 });
+  edge(ctx, colors, g.gateCx, g.boxTop + BOX_H, g.boxTop + BOX_H + EDGE_H,
+    walk.done >= 1 ? shapeText([4, 3]) : "", { color: colors.ink3 });
+  layerBox(ctx, colors, g.gateCx - g.gateW / 2 + 8, g.boxTop + BOX_H + EDGE_H, g.gateW - 16,
+    "softmax", colors.ink2, { lit: walk.done === 1, pale: walk.done < 1 });
+  edge(ctx, colors, g.gateCx, g.boxTop + 2 * BOX_H + EDGE_H, weightsY,
+    walk.done >= 1 ? shapeText([4, 3]) : "", { color: colors.ink3 });
+  txt(ctx, colors, "gate", g.gateCx, g.boxTop - 6,
+    { color: colors.ink3, align: "center", size: colors.fsXs });
+
+  const sumL = g.cols[0] - g.branchW / 2;
+  const sumR = g.cols[2] + g.branchW / 2;
+  outlineBox(ctx, colors, sumL, weightsY, sumR - sumL, WBLOCK,
+    hard ? `branch ${taken >= 0 ? taken + 1 : "·"} taken` : "weighted sum",
+    walk.done >= 5 ? colors.empirical : colors.axis);
+  for (let r = 0; r < 4; r += 1) {
+    for (let i = 0; i < 3; i += 1) {
+      valueCell(ctx, colors, g.gateCx - g.gateW / 2 + i * g.s.wcell, weightsY + r * WROW,
+        g.s.wcell, WROW, walk.done >= 1 ? state.weights[r][i].toFixed(2) : "", {
+          hue: HUES[i],
+          lit: walk.done >= 1 && r === sample && i === state.top[r],
+          empty: walk.done < 1,
+          size: colors.fsXs,
+        });
+    }
+  }
+  if (walk.done >= 1) {
+    ctx.strokeStyle = colors.highlight;
+    ctx.lineWidth = HLW;
+    ctx.strokeRect(g.gateCx - g.gateW / 2 - 1.25, weightsY + sample * WROW - 1.25,
+      3 * g.s.wcell + 2.5, WROW + 2.5);
+  }
+  arrow(ctx, g.gateCx - g.gateW / 2 - 2, weightsY + WBLOCK / 2, sumR + 4, weightsY + WBLOCK / 2,
+    colors.ink3, 2);
+
+  const fcTop = weightsY + WBLOCK + EDGE_H;
+  const sumCx = (sumL + sumR) / 2;
+  edge(ctx, colors, sumCx, weightsY + WBLOCK, fcTop,
+    walk.done >= 5 ? `combined  ${shapeText([4, 20])}` : "", { color: colors.empirical });
+  layerBox(ctx, colors, sumCx - 46, fcTop, 92, "fc_out", colors.empirical,
+    { lit: walk.done === 6, pale: walk.done < 6 });
+  edge(ctx, colors, sumCx, fcTop + BOX_H, fcTop + BOX_H + EDGE_H,
+    walk.done >= 6 ? shapeText([4, 2]) : "", { color: colors.empirical });
+
+  if (g.beside) {
+    codePanel(ctx, colors, PAD + g.roomy + TEXT_GAP, top + 26, g.cw, state.code, walk.lit);
+  } else {
+    codePanel(ctx, colors, PAD, top + g.diagH + 22, g.cw, state.code, walk.lit);
+  }
+  return g;
+}
+
+/* ============================= 6 · Building ================================ *
+ * Cells 63-80. MLP1 and MLP2 compute the same function and print differently,
+ * and the print is the page's whole argument, so it is the column that gets
+ * the fit pass: under the diagram at 550, beside it at 770.
+ */
+
+function buildGeom(ctx, colors, w, params, state) {
+  const usable = w - 2 * PAD;
+  const tw = codeW(ctx, colors, state.text);
+  const cw = state.code ? codeW(ctx, colors, state.code) : 0;
+  const codeGap = state.code ? cw + TEXT_GAP : 0;
+  const beside = M.besideFits(w, tw + codeGap, BOX_W);
+  const n = state.steps.length;
+  const bodyH = XLAB + (n + 1) * EDGE_H + n * BOX_H;
+  const textH = state.text.length * LINE;
+  const caps = captionLines(ctx, colors, w, params, state);
+  const capY = BAND_HEAD + (beside ? Math.max(bodyH, textH + 20) : bodyH + 16 + textH) + CAP_GAP;
+  const diagW = usable - codeGap - (beside ? tw + TEXT_GAP : 0);
+  return {
+    usable, tw, cw, codeGap, beside, n, bodyH, textH, caps, capY, diagW,
+    cx: PAD + diagW / 2,
+    height: capY + caps.length * CAPTION_H + PAD,
+  };
+}
+
+function drawBuild(ctx, colors, w, params, state, anim) {
+  const g = buildGeom(ctx, colors, w, params, state);
+  const walk = walkAt(anim, state);
+  const title = { flat: "Building · Sequential", blocks: "Building · Sequential of blocks", all: "Building · MLP1", learnable: "Building · MLP2" }[state.key];
+  let y = band(ctx, colors, 0, w, title,
+    params.show === "summary" ? "summary(model, input_size=(10,))" : "print(model)");
+  const top = y;
+
+  txt(ctx, colors, "x", g.cx, y + 12, { color: colors.ink1, align: "center", mono: true });
+  let cy = y + XLAB;
+  edge(ctx, colors, g.cx, cy, cy + EDGE_H, shapeText([4, 10]), { color: colors.groupA });
+  cy += EDGE_H;
+  state.steps.forEach(([label, out], i) => {
+    const last = i === g.n - 1;
+    const hue = last ? colors.empirical : colors.groupA;
+    layerBox(ctx, colors, g.cx - BOX_W / 2, cy, BOX_W, label, hue,
+      { lit: walk.done === i + 1, pale: walk.done < i + 1 });
+    cy += BOX_H;
+    edge(ctx, colors, g.cx, cy, cy + EDGE_H, walk.done >= i + 1 ? shapeText([4, out]) : "",
+      { color: hue });
+    cy += EDGE_H;
+  });
+
+  if (state.code) {
+    codePanel(ctx, colors, PAD + g.diagW + TEXT_GAP, top + 20, g.cw, state.code, walk.lit);
+  }
+  const textX = PAD + g.usable - g.tw;
+  if (g.beside) printLines(ctx, colors, textX, top + 20, state.text);
+  else printLines(ctx, colors, PAD, top + g.bodyH + 24, state.text);
+  return g;
+}
+
+/* ============================= 7 · Ordering ================================ *
+ * Cell 62. The ordering is empirical and the page ranks nothing; what the
+ * shapes DO say is that Transform is the only step that changes them, so the
+ * shapes cannot decide the order either.
+ */
+
+function orderGeom(ctx, colors, w, params, state) {
+  const usable = w - 2 * PAD;
+  const caps = captionLines(ctx, colors, w, params, state);
+  if (state.view === "combination") {
+    const gw = Math.floor((usable - 2 * GAP) / 3);
+    const maxRows = Math.max(...M.COMBOS.map((c) => c.boxes.length + (c.or != null ? 1 : 0)));
+    const groupH = 14 + maxRows * (BOX_H + 8) + 6;
+    const capY = BAND_HEAD + groupH + 24 + CAP_GAP;
+    return {
+      usable, caps, capY, gw, groupH, bw: gw - 20,
+      height: capY + caps.length * CAPTION_H + PAD,
+    };
+  }
+  const pw = codeW(ctx, colors, state.print);
+  const beside = M.besideFits(w, pw, M.ORDER_MIN_DIAG);
+  const n = state.block.steps.length;
+  const bodyH = XLAB + n * (BOX_H + ORDER_EDGE) + ORDER_EDGE;
+  const printH = state.print.length * LINE;
+  const capY = BAND_HEAD + (beside ? Math.max(bodyH, printH + 20) : bodyH + 16 + printH) + CAP_GAP;
+  return {
+    usable, caps, capY, pw, beside, n, bodyH, printH,
+    height: capY + caps.length * CAPTION_H + PAD,
+  };
+}
+
+function drawOrder(ctx, colors, w, params, state, anim) {
+  const g = orderGeom(ctx, colors, w, params, state);
+  const walk = walkAt(anim, state);
+  if (state.view === "combination") {
+    const y = band(ctx, colors, 0, w, "Ordering · combinations", "layers that are used as a unit");
+    let unit = 0;
+    M.COMBOS.forEach((group, i) => {
+      const gx = PAD + i * (g.gw + GAP);
+      ctx.strokeStyle = colors.ink3;
+      ctx.lineWidth = 2;
+      ctx.setLineDash([5, 4]);
+      ctx.strokeRect(gx + 1, y + 1, g.gw - 2, g.groupH - 2);
+      ctx.setLineDash([]);
+      let by = y + 12;
+      group.boxes.forEach((label, j) => {
+        if (group.or === j) {
+          txt(ctx, colors, "or", gx + g.gw / 2, by + 14,
+            { color: colors.ink3, align: "center", size: colors.fsXs });
+          by += BOX_H + 8;
+        }
+        unit += 1;
+        layerBox(ctx, colors, gx + 10, by, g.bw, label, colors.groupA,
+          { lit: walk.done === unit, pale: walk.done < unit });
+        by += BOX_H + 8;
+      });
+      txt(ctx, colors, group.note, gx + 2, y + g.groupH + 16,
+        { color: colors.ink3, size: colors.fsXs });
+    });
+    return g;
+  }
+
+  const blk = state.block;
+  let y = band(ctx, colors, 0, w, `Ordering · ${blk.label}`,
+    "Transform → Normalize → Activate → Regularize");
+  const top = y;
+  const cx = PAD + BOX_W / 2;
+  txt(ctx, colors, "x", cx, y + 12, { color: colors.ink1, align: "center", mono: true });
+  let cy = y + XLAB;
+  let prev = blk.in;
+  blk.steps.forEach(([generic, cls, out], i) => {
+    edge(ctx, colors, cx, cy, cy + ORDER_EDGE, walk.done >= i ? shapeText(prev) : "",
+      { color: i === 0 ? colors.groupA : colors.empirical, size: colors.fsXs });
+    cy += ORDER_EDGE;
+    /* DECISION 11: only Transform carries a hue here. `--c-group-a` and
+       `--c-empirical` are one colour by design (tokens.css:80, both mean "our
+       data"), so colouring the other three steps `--c-empirical` would draw
+       four identical boxes under a legend claiming they differ. The step that
+       changes the shape is the one the page is about, and the rest are ink. */
+    layerBox(ctx, colors, PAD, cy, BOX_W, generic,
+      generic === "Transform" ? colors.groupA : colors.ink2,
+      { lit: walk.done === i + 1, pale: walk.done < i + 1 });
+    txt(ctx, colors, cls, PAD + BOX_W + 8, cy + BOX_H / 2 + 0.5,
+      { color: walk.done >= i + 1 ? colors.ink2 : colors.ink3, baseline: "middle", mono: true, size: colors.fsXs });
+    cy += BOX_H;
+    prev = out;
+  });
+  edge(ctx, colors, cx, cy, cy + ORDER_EDGE, walk.done >= g.n ? shapeText(prev) : "",
+    { color: colors.empirical, size: colors.fsXs });
+
+  const printX = PAD + g.usable - g.pw;
+  if (g.beside) printLines(ctx, colors, printX, top + 20, state.print);
+  else printLines(ctx, colors, PAD, top + g.bodyH + 24, state.print);
+  return g;
+}
+
+/* ============================== the captions =============================== */
+
+function pageCaptions(params, state) {
+  switch (state.kind) {
+    case "dimensions": {
+      const last = state.steps[state.steps.length - 1];
+      const set = state.set;
+      if (last && last.error) {
+        return [
+          `${last.layer.label} was given ${shapeText(last.from)}, and its own sizes describe a different tensor.`,
+          "Each layer's output shape has to be the input shape the next layer was told to expect.",
+        ];
+      }
+      return [
+        `${set.label} enter as ${shapeText(set.shape)}, and dimension 0 is the batch, which no layer is told about.`,
+        `The chain ends at ${shapeText(state.out)}, and every size in between is fixed by the layer that produced it.`,
+      ];
+    }
+    case "skip":
+      return state.match
+        ? [
+          state.proj
+            ? `The projection is a Linear(10, ${state.width}), so both sides of the add are ${shapeText([4, state.width])}.`
+            : `f(x) and skip are both ${shapeText([4, state.width])}, so the add is elementwise and the block learns the correction.`,
+          "The path from the output back to x has two routes, and the one through the skip multiplies the gradient by 1.",
+        ]
+        : [
+          `f(x) is ${shapeText([4, state.width])} and skip is ${shapeText([4, 10])}, so the add has nothing to line up.`,
+          "A projection on the skip path maps the input to the width f(x) produces.",
+        ];
+    case "gating":
+      return state.gate === "mask"
+        ? [
+          `${state.blocked} of the 20 features are blocked, and their column of gated is empty for every sample.`,
+          "A fixed mask is a tensor of 1s and 0s, so it has nothing to learn and the same features are blocked for every input.",
+        ]
+        : [
+          "Every feature has its own gate between 0 and 1, so the signal is turned down rather than switched off.",
+          "The gate is a second Linear on the same input, and its output is the same shape as the path it multiplies.",
+        ];
+    case "branching": {
+      const w2 = state.fc2;
+      if (state.mergeError) {
+        return [
+          `The two branches are ${shapeText([4, 8])} and ${shapeText([4, w2])}, so ${state.merge} has nothing to line up.`,
+          "Concatenation joins the features instead, and it accepts branches of different widths.",
+        ];
+      }
+      if (state.fcError) {
+        return [
+          `${state.merge} on 8 and ${w2} gives ${state.feats} features, and fc3 is Linear(${M.FC3_IN}, 2).`,
+          "The merge decides the feature count, so the layer after it has to be told that number.",
+        ];
+      }
+      return [
+        `${state.merge} on 8 and ${w2} gives ${state.feats} features, which is what fc3 was built for.`,
+        state.merge === "concat"
+          ? "Concatenation keeps both branches whole, so the merged width is the sum of the two."
+          : "Addition and averaging combine the branches cell by cell, so the merged width is the width of one branch.",
+      ];
+    }
+    case "routing": {
+      const s = Number(params.sample);
+      return state.mode === "hard"
+        ? [
+          `Sample ${s} takes branch ${state.top[s] + 1}, and the other two branches contribute nothing to its output.`,
+          "The argmax is a discrete choice, so no gradient reaches the router and it cannot be trained by backpropagation.",
+        ]
+        : [
+          `Sample ${s} mixes the three branches ${state.weights[s].map((v) => v.toFixed(2)).join(" · ")}, and branch ${state.top[s] + 1} carries the most of it.`,
+          "nn.ModuleList holds the three branches so they can be applied in a loop; nn.ModuleDict holds them by name so one can be chosen.",
+        ];
+    }
+    case "building":
+      return [
+        state.key === "learnable"
+          ? "F.relu is called in forward and is not a submodule, so it is not in the print."
+          : state.key === "blocks"
+            ? "Each block is a Sequential of its own, so the print nests and the parameter count is the sum of all five layers."
+            : "Every layer was declared in __init__, so every layer is in the print.",
+        params.show === "summary"
+          ? "summary() counts registered modules, so it reports the same layers the print names."
+          : "A print names the layers a model declares, and the forward pass is what decides which of them run.",
+      ];
+    default:
+      if (state.view === "combination") {
+        return [
+          "These layers are used as a unit because their roles complete each other.",
+          "A model is assembled from such units, and the same unit appears in many architectures.",
+        ];
+      }
+      return [
+        state.changed === 0
+          ? `Nothing here changes the shape: this Conv2d has padding 1, so ${shapeText(state.block.in)} goes through as it is.`
+          : `${state.changed} of the ${state.block.steps.length} steps change the shape, and ${state.changed === 1 ? "it is a Transform" : "both are Transforms"}.`,
+        "The order is an empirical choice, and the shapes are the same whichever order these steps are written in.",
+      ];
+  }
+}
+
+function captionLines(ctx, colors, w, params, state) {
+  return pageCaptions(params, state).flatMap((line) => wrapLines(ctx, colors, line, w - 2 * PAD));
+}
+
+/* ============================ the formula card ============================= */
+
+const MATHML = mathmlRenders();
+const mml = (inner) => `<math><mrow>${inner}</mrow></math>`;
+const mi = (t) => `<mi>${t}</mi>`;
+const mo = (t) => `<mo>${t}</mo>`;
+const mn = (t) => `<mn>${t}</mn>`;
+const msub = (b, s) => `<msub>${b}${s}</msub>`;
+const frac = (a, b) => `<mfrac>${a}${b}</mfrac>`;
+const row = (...xs) => xs.join("");
+const eq = (mathml, plain) => (MATHML ? mml(mathml) : plain);
+
+const f1 = msub(mi("f"), mn("1"));
+const f2 = msub(mi("f"), mn("2"));
+const fx = (f) => row(f, mo("("), mi("x"), mo(")"));
+
+const CARD = {
+  skip: eq(row(mi("y"), mo("="), mi("x"), mo("+"), mi("f"), mo("("), mi("x"), mo(")")),
+    "y = x + f(x)"),
+  skipProj: eq(row(mi("y"), mo("="), mi("P"), mo("("), mi("x"), mo(")"), mo("+"), mi("f"), mo("("), mi("x"), mo(")")),
+    "y = P(x) + f(x)"),
+  grad: eq(row(frac(row(mo("∂"), mi("y")), row(mo("∂"), mi("x"))), mo("="), mn("1"), mo("+"),
+    mi("f′"), mo("("), mi("x"), mo(")")),
+  "∂y/∂x = 1 + f′(x)"),
+  gate: eq(row(mi("y"), mo("="), mi("g"), mo("⊙"), mi("x")), "y = g ⊙ x"),
+  concat: eq(row(mi("y"), mo("="), mi("concat"), mo("("), fx(f1), mo(","), fx(f2), mo(")")),
+    "y = concat(f₁(x), f₂(x))"),
+  add: eq(row(mi("y"), mo("="), fx(f1), mo("+"), fx(f2)), "y = f₁(x) + f₂(x)"),
+  average: eq(row(mi("y"), mo("="), frac(mn("1"), mn("2")), mo("("), fx(f1), mo("+"), fx(f2), mo(")")),
+    "y = ½(f₁(x) + f₂(x))"),
+  hard: eq(row(mi("y"), mo("="), fx(f1), mo("if"), mi("condition"), mo("("), mi("x"), mo(")"),
+    mo("else"), fx(f2)),
+  "y = f₁(x) if condition(x) else f₂(x)"),
+  soft: eq(row(mi("y"), mo("="), mo("∑"), msub(mi("α"), mi("i")), mo("("), mi("x"), mo(")"),
+    msub(mi("f"), mi("i")), mo("("), mi("x"), mo(")")),
+  "y = ∑ αᵢ(x) fᵢ(x)"),
+};
+
+/** The card's rows and its note, for the page on screen. A row carries the
+    name it is known by, the body, and whether it is the one in force. */
+function cardFor(params, state) {
+  switch (state.kind) {
+    case "dimensions": {
+      const conv = state.steps.find((s) => s.layer.kind === "conv2d" && !s.error);
+      const pool = state.steps.find((s) => s.layer.kind === "maxpool2d" && !s.error);
+      const convText = conv
+        ? `⌊(${conv.from[2]} + 2·0 − ${conv.layer.k}) / 1⌋ + 1 = ${conv.shape[2]}`
+        : "⌊(in + 2·padding − kernel_size) / stride⌋ + 1";
+      const poolText = pool
+        ? `⌊(${pool.from[2]} − ${pool.layer.k}) / ${pool.layer.k}⌋ + 1 = ${pool.shape[2]}`
+        : "⌊(in − kernel_size) / stride⌋ + 1";
+      return {
+        rowMin: "2.1em",
+        rows: [
+          ["Convolution", convText, Boolean(conv)],
+          ["Pooling", poolText, Boolean(pool)],
+        ],
+        note: "A Linear, an Embedding and a recurrent layer are told their output size. "
+          + "A convolution and a pooling window are not, so their output size is computed from the input.",
+      };
+    }
+    case "skip": {
+      const rows = [
+        ["y", CARD.skip, !state.proj],
+        ["y", CARD.skipProj, state.proj],
+      ];
+      if (params.grad === "1") rows.push(["∂y/∂x", CARD.grad, true]);
+      return {
+        rows,
+        note: state.proj
+          ? `P is a Linear(10, ${state.width}) on the skip path, so both sides of the add have the same shape.`
+          : "The add requires the same shape on both sides, and a projection is what aligns them where they differ.",
+      };
+    }
+    case "gating":
+      return {
+        rows: [["y", CARD.gate, true]],
+        note: "g = 0 blocks the signal, g = 1 lets it pass unchanged, and a value in between passes part of it. "
+          + "⊙ is elementwise, so there is one gate for each feature of each sample.",
+      };
+    case "branching":
+      return {
+        rows: [
+          ["y", CARD.concat, state.merge === "concat"],
+          ["y", CARD.add, state.merge === "add"],
+          ["y", CARD.average, state.merge === "average"],
+        ],
+        note: "Concatenation joins the features, so the widths add. Addition and averaging combine them "
+          + "cell by cell, so both branches have to be the same width.",
+      };
+    case "routing":
+      return {
+        rows: [
+          ["y", CARD.hard, state.mode === "hard"],
+          ["y", CARD.soft, state.mode === "soft"],
+        ],
+        note: "The softmax weights sum to 1 for each sample, so soft routing is a mixture. "
+          + "A discrete choice has no derivative, so hard routing gives the router no gradient.",
+      };
+    case "ordering":
+      return {
+        rows: [["block", "Transform → Normalize → Activate → Regularize", true]],
+        note: state.view === "combination"
+          ? "Convolution and pooling, embedding and attention, linear and activation: each pair is used as a unit."
+          : `This block is ${state.block.steps.map(([, cls]) => cls).join(" → ")}. `
+            + "The order differs across architectures and the difference is empirical.",
+      };
+    default:
+      return null;
+  }
+}
+
+const GUTTER = "5.2em";
+let cardHost = null;
+let cardKey = null;
+
+function renderCard(params, state) {
+  const figure = document.querySelector("#widget .w-figure");
+  if (!figure || !figure.parentNode) return;
+  if (!cardHost) {
+    cardHost = document.createElement("div");
+    cardHost.className = "w-math";
+    figure.parentNode.insertBefore(cardHost, figure);
+  }
+  const card = cardFor(params, state);
+  const key = [params.topic, params.block, params.view, params.data, params.merge,
+    params.fc2, params.width, params.proj, params.gate, params.mode, params.grad,
+    params.step1, params.step2, params.step3, params.step4].join(":");
+  if (key === cardKey) return;
+  cardKey = key;
+  if (!card) {
+    cardHost.hidden = true;
+    cardHost.innerHTML = "";
+    return;
+  }
+  cardHost.hidden = false;
+  /* 3.4k: a floor bracket descends past the strut, so a row that can carry one
+     reserves the taller line box rather than letting the figure jog. */
+  const min = card.rowMin ?? "0";
+  cardHost.innerHTML = card.rows
+    .map(([name, body, on]) =>
+      `<div class="w-math-eq" style="min-height:${min};padding-left:${GUTTER};text-indent:-${GUTTER};`
+      + `margin:0 0 var(--sp-1);color:var(--${on ? "ink-1" : "ink-3"})">`
+      + `<span style="display:inline-block;width:${GUTTER};text-indent:0;`
+      + `color:var(--${on ? "c-highlight" : "ink-3"})">${name}</span>${body}</div>`)
+    .join("") + `<p class="w-math-note">${card.note}</p>`;
+}
+
+/* ============================== the widget ================================= */
+
+const CHAIN = (params) => M.SLOT_KEYS.map((k) => params[k]);
+
+/** One door for the state, so `height`, `regions` and `compute` cannot each
+    measure a different figure (5.8). */
+function computeFor(params, rng) {
+  switch (params.topic) {
+    case "building":
+      return M.building(params.api, params.blocks, params.style, params.show);
+    case "dimensions":
+      return M.dimensions(params.data, CHAIN(params));
+    case "skip":
+      return M.skip(Number(params.width), params.proj === "on");
+    case "gating":
+      return M.gating(params.gate, rng);
+    case "branching":
+      return M.branching(params.merge, Number(params.fc2));
+    case "routing":
+      return M.routing(params.mode);
+    default:
+      return M.ordering(params.block, params.view);
+  }
+}
+
+const GEOM = {
+  dimensions: dimGeom,
+  skip: skipGeom,
+  gating: gateGeom,
+  branching: branchGeom,
+  routing: routeGeom,
+  building: buildGeom,
+  ordering: orderGeom,
+};
+const DRAW = {
+  dimensions: drawDim,
+  skip: drawSkip,
+  gating: drawGate,
+  branching: drawBranch,
+  routing: drawRoute,
+  building: drawBuild,
+  ordering: drawOrder,
+};
+
+/** The stage height for any page, from the parameters and the width alone. */
+function pageHeight(w, params) {
+  const ctx = measureCtx();
+  const colors = readTokens();
+  const state = computeFor(params, makeRng(1));
+  return (GEOM[params.topic] ?? orderGeom)(ctx, colors, w, params, state).height;
+}
+
+/* THE TWO ROW HEADS ARE THE NOTEBOOK'S OWN `##` HEADINGS (cells 61 and 89),
+   and they carry the split the seven names do not: the first three compose
+   layers into a model, the last four change where the data goes. The grid is
+   what makes the seven fit — a button in two columns is 149px against
+   Branching's 74, where one row of four would give 72 (the mock, §1). */
+const COMPOSING = "Composing layers";
+const FLOW = "Controlling flow";
+
+const TOPICS = [
+  { value: "ordering", label: "Ordering", group: COMPOSING },
+  { value: "building", label: "Building", group: COMPOSING },
+  { value: "dimensions", label: "Dimensions", group: COMPOSING, span: true },
+  { value: "skip", label: "Skip", group: FLOW },
+  { value: "gating", label: "Gating", group: FLOW },
+  { value: "branching", label: "Branching", group: FLOW },
+  { value: "routing", label: "Routing", group: FLOW },
+];
+
+const ON = (topic) => ({ param: "topic", equals: topic });
+
+/* DECISION 7: `Next line` everywhere a `forward()` is on screen, `Next layer`
+   on the three pages where the unit is a layer and no `forward()` is drawn.
+   Building takes the nested form, because its two APIs differ on exactly that
+   (core's `resolveLabel`, added for the sibling on 2026-09-10). */
+const STEP_LABELS = {
+  ordering: "Next layer",
+  dimensions: "Next layer",
+  building: { param: "api", labels: { sequential: "Next layer", module: "Next line" }, default: "Next line" },
+};
+const STEP_TITLES = {
+  ordering: "Apply the next layer of the block",
+  building: "Run the next layer of the forward pass",
+  dimensions: "Apply the next layer of the chain",
+  skip: "Run the next line of forward()",
+  gating: "Run the next line of forward()",
+  branching: "Run the next line of forward()",
+  routing: "Run the next line of forward()",
+};
+const RUN_TITLES = {
+  ordering: "Apply the remaining layers",
+  building: "Run the remaining layers",
+  dimensions: "Apply the remaining layers",
+  skip: "Run the remaining lines of forward()",
+  gating: "Run the remaining lines of forward()",
+  branching: "Run the remaining lines of forward()",
+  routing: "Run the remaining lines of forward()",
+};
+
+const SAMPLE_FIELD = {
+  type: "int",
+  label: "Sample",
+  min: 0,
+  max: 3,
+  default: 0,
+  detail: "which row of the batch the readout takes its values from",
+  display: true,
+};
+
+defineWidget({
+  slug: "composition",
+  title: "Deep Learning - Composition",
+  status: "draft",
+  subtitle:
+    "A model is layers composed in an order, each layer's output shape the "
+    + "input shape of the next. Connections can also add the input back after a "
+    + "layer, multiply it by a gate between 0 and 1, or split it into branches "
+    + "that merge again.",
+  layout: "side",
+  /* Decision 3: every page is as tall as its own diagram, its text column and
+     its wrapped captions, and Routing is 138px shorter once the code fits
+     beside it. */
+  height: ({ w, ...values }) => pageHeight(w, values),
+
+  params: {
+    topic: {
+      type: "segmented",
+      label: "Topic",
+      style: "grid",
+      groupHeads: true,
+      detail: "the first three compose layers into a model, the last four change where the data goes",
+      options: TOPICS,
+      default: "ordering",
+    },
+
+    /* --- Ordering ---------------------------------------------------------- */
+    block: {
+      type: "segmented",
+      label: "Block",
+      style: "grid",
+      detail: "three blocks that different architectures repeat",
+      options: [
+        { value: "mlp", label: "MLP", detail: "Linear → BatchNorm1d → ReLU → Dropout" },
+        { value: "resnet", label: "ResNet", detail: "Conv2d → BatchNorm2d → ReLU, and no regularization step" },
+        { value: "transformer", label: "Transformer", detail: "the feed-forward path: Linear → GELU → Linear → Dropout → LayerNorm", span: true },
+      ],
+      default: "mlp",
+      when: ON("ordering"),
+    },
+    view: {
+      type: "segmented",
+      label: "View",
+      detail: "a block as a sequence of roles, or the pairs of layers used as a unit",
+      options: [
+        { value: "subunit", label: "Subunit", detail: "one block, with the role each layer plays beside it" },
+        { value: "combination", label: "Combination", detail: "three pairs of layers whose roles complete each other" },
+      ],
+      default: "subunit",
+      when: ON("ordering"),
+    },
+
+    /* --- Building ---------------------------------------------------------- */
+    api: {
+      type: "segmented",
+      label: "API",
+      detail: "two ways to connect the same three layers",
+      options: [
+        { value: "sequential", label: "Sequential", detail: "nn.Sequential applies the layers in the order they are listed" },
+        { value: "module", label: "Module", detail: "a class with a forward() method, which can branch and loop" },
+      ],
+      default: "sequential",
+      when: ON("building"),
+    },
+    blocks: {
+      type: "segmented",
+      label: "Grouping",
+      detail: "a flat list of layers, or three blocks each a Sequential of its own",
+      options: [
+        { value: "flat", label: "Flat", detail: "three layers listed one after another" },
+        { value: "blocks", label: "Blocks", detail: "an input block, a hidden block and an output block" },
+      ],
+      default: "flat",
+      when: { all: [ON("building"), { param: "api", equals: "sequential" }] },
+    },
+    style: {
+      type: "segmented",
+      label: "Declared in __init__",
+      detail: "which layers the class declares, and therefore which ones it registers",
+      options: [
+        { value: "all", label: "All layers", detail: "the activation is an nn.ReLU declared with the rest" },
+        { value: "learnable", label: "Learnable only", detail: "the activation is F.relu, called in forward" },
+      ],
+      default: "all",
+      when: { all: [ON("building"), { param: "api", equals: "module" }] },
+    },
+    show: {
+      type: "segmented",
+      label: "Inspect with",
+      detail: "two readings of one model",
+      options: [
+        { value: "print", label: "print", detail: "the layers the model declares, in torch's own form" },
+        { value: "summary", label: "summary", detail: "the same layers with the output shape and parameter count of each" },
+      ],
+      default: "print",
+      display: true,
+      when: ON("building"),
+    },
+
+    /* --- Dimensions -------------------------------------------------------- */
+    data: {
+      type: "segmented",
+      label: "Data",
+      style: "grid",
+      detail: "the shape the batch arrives in, which decides what the first layer can be",
+      options: [
+        { value: "image", label: "Image", detail: "[4, 3, 32, 32]: 4 images, 3 channels, 32 by 32" },
+        { value: "vectors", label: "Vectors", detail: "[4, 10]: 4 samples of 10 features" },
+        { value: "sequence", label: "Sequence", detail: "[4, 5]: 4 sequences of 5 residues, as integer ids", span: true },
+      ],
+      default: "image",
+      when: ON("dimensions"),
+    },
+    step1: {
+      type: "select",
+      label: "step 1",
+      hidden: true,
+      options: (v) => M.slotOptions(v.data, 0),
+      optionsFrom: "data",
+      default: "Conv2d-3-16-3",
+      when: ON("dimensions"),
+    },
+    step2: {
+      type: "select",
+      label: "step 2",
+      hidden: true,
+      options: (v) => M.slotOptions(v.data, 1),
+      optionsFrom: "data",
+      default: "MaxPool2d-2",
+      when: ON("dimensions"),
+    },
+    step3: {
+      type: "select",
+      label: "step 3",
+      hidden: true,
+      options: (v) => M.slotOptions(v.data, 2),
+      optionsFrom: "data",
+      default: "Flatten",
+      when: ON("dimensions"),
+    },
+    step4: {
+      type: "select",
+      label: "step 4",
+      hidden: true,
+      options: (v) => M.slotOptions(v.data, 3),
+      optionsFrom: "data",
+      default: "Linear-3600-10",
+      when: ON("dimensions"),
+    },
+    chain: {
+      type: "expr",
+      label: "Chain",
+      detail: "each menu holds a layer that fits the step before it and one that does not",
+      join: " → ",
+      slots: M.SLOT_KEYS,
+      when: ON("dimensions"),
+    },
+
+    /* --- Skip -------------------------------------------------------------- */
+    width: {
+      type: "choice",
+      label: "Width after fc2",
+      detail: "the number of features f(x) produces",
+      options: [
+        { value: "10", label: "10", detail: "the same width as the input, so the add works" },
+        { value: "20", label: "20", detail: "a different width from the input, so the add has nothing to line up" },
+      ],
+      default: "10",
+      when: ON("skip"),
+    },
+    proj: {
+      type: "segmented",
+      label: "Projection on the skip path",
+      detail: "a Linear that maps the input to the width of f(x)",
+      options: [
+        { value: "off", label: "Off", detail: "the input is added as it is" },
+        { value: "on", label: "On", detail: "a Linear(10, width) is applied to the input first" },
+      ],
+      default: "off",
+      when: ON("skip"),
+    },
+    sample: { ...SAMPLE_FIELD, when: { any: [ON("skip"), ON("gating"), ON("branching"), ON("routing")] } },
+    /* 3.4j: the answer goes below the drive row, and it is conditioned on there
+       being a result to lie behind, so it returns by itself when the walk is
+       empty. The URL carries 0/1, which is the arc's convention for a reveal. */
+    grad: {
+      type: "segmented",
+      label: "Gradient",
+      detail: "the local factor on each edge, and the two that arrive at x",
+      options: [
+        { value: "0", label: "Off" },
+        { value: "1", label: "On", detail: "the same edges walked upwards, each with the factor it multiplies by" },
+      ],
+      default: "0",
+      display: true,
+      afterDrive: true,
+      when: ON("skip"),
+    },
+
+    /* --- Gating ------------------------------------------------------------ */
+    gate: {
+      type: "segmented",
+      label: "Gate",
+      detail: "a gate the model learns, or one written by hand",
+      options: [
+        { value: "sigmoid", label: "Sigmoid", detail: "a Linear on the input through a sigmoid, so every gate is between 0 and 1" },
+        { value: "mask", label: "Mask", detail: "a fixed tensor of 1s and 0s, so a blocked feature is blocked for every sample" },
+      ],
+      default: "sigmoid",
+      when: ON("gating"),
+    },
+
+    /* --- Branching --------------------------------------------------------- */
+    merge: {
+      type: "segmented",
+      label: "Merge",
+      style: "grid",
+      detail: "three ways to combine two branches",
+      options: [
+        { value: "concat", label: "Concat", detail: "the features are joined, so the widths add" },
+        { value: "add", label: "Add", detail: "the branches are summed cell by cell, which needs the same width" },
+        { value: "average", label: "Average", detail: "the same sum halved, so the merged values are on the scale of one branch", span: true },
+      ],
+      default: "concat",
+      when: ON("branching"),
+    },
+    fc2: {
+      type: "choice",
+      label: "fc2 output features",
+      detail: "the width of the second branch, against a first branch of 8",
+      options: [
+        { value: "6", label: "6", detail: "8 and 6 concatenate to 14, and neither add nor average can line them up" },
+        { value: "8", label: "8", detail: "8 and 8 add and average to 8, and concatenate to 16" },
+      ],
+      default: "6",
+      when: ON("branching"),
+    },
+
+    /* --- Routing ----------------------------------------------------------- */
+    mode: {
+      type: "segmented",
+      label: "Routing",
+      detail: "one branch chosen, or all three mixed",
+      options: [
+        { value: "hard", label: "Hard", detail: "the largest weight picks one branch, and the choice has no derivative" },
+        { value: "soft", label: "Soft", detail: "the three weights mix the branches, and they are learned with the rest" },
+      ],
+      default: "soft",
+      when: ON("routing"),
+    },
+
+    speed: {
+      type: "choice",
+      label: "Play speed",
+      options: M.SPEEDS,
+      default: "medium",
+      display: true,
+      afterDrive: true,
+    },
+
+    /* Authoring escape hatch, first render only: lines, layers or chain steps,
+       whichever the page runs. */
+    shown: { type: "int", min: 0, max: 40, default: 0, hidden: true },
+  },
+
+  /* DECISION 11 AGAIN: no page lists `group-a` and `empirical` together. They
+     are one colour in `tokens.css` on purpose — both mean the reader's own
+     data — so two entries would be two identical swatches under two different
+     names, which is worse than one entry that covers both. */
+  legend: ({ params }) => {
+    const topic = params.topic;
+    if (topic === "ordering") {
+      return params.view === "combination"
+        ? [
+          { token: "group-a", label: "A layer of the combination" },
+          { token: "highlight", label: "The layer being added" },
+        ]
+        : [
+          { token: "group-a", label: "The Transform step, which is the one that changes the shape" },
+          { token: "highlight", label: "The step being applied" },
+        ];
+    }
+    if (topic === "building") {
+      return [
+        { token: "group-a", label: "The layers of the model, in the order the forward pass runs them" },
+        { token: "highlight", label: "The layer being run" },
+      ];
+    }
+    if (topic === "dimensions") {
+      const st = M.dimensions(params.data, CHAIN(params));
+      return [
+        { token: "group-b", label: "A layer with sizes of its own to match" },
+        { token: "empirical", label: "The layer that produces the output" },
+        { token: "highlight", label: "The layer being applied" },
+        ...(st.failed ? [{ token: "extreme", label: "The message torch raises" }] : []),
+      ];
+    }
+    if (topic === "skip") {
+      return [
+        { token: "group-a", label: "The input, the layers of f(x), and the result of the add" },
+        ...(params.proj === "on" ? [{ token: "group-b", label: "The projection on the skip path" }] : []),
+        { token: "highlight", label: "The line being run" },
+        ...(params.grad === "1" ? [{ token: "slope", label: "The local factor on one edge" }] : []),
+      ];
+    }
+    if (topic === "gating") {
+      return [
+        { token: "group-a", label: "The main path, and the gated values it produces" },
+        { token: "group-b", label: params.gate === "mask" ? "The fixed mask" : "The learned gate" },
+        { token: "highlight", label: "The line being run, and the chosen sample" },
+      ];
+    }
+    if (topic === "branching") {
+      return [
+        { token: "group-a", label: "Branch 1, which is 8 features wide, and the merged result" },
+        { token: "group-b", label: `Branch 2, which is ${params.fc2} features wide` },
+        { token: "highlight", label: "The line being run, and the chosen sample" },
+      ];
+    }
+    return [
+      { token: "group-a", label: "Branch 1, and the combined features it contributes to" },
+      { token: "group-b", label: "Branch 2" },
+      { token: "group-c", label: "Branch 3" },
+      { token: "highlight", label: "The line being run, and the largest weight" },
+    ];
+  },
+
+  compute: ({ params, rng }) => computeFor(params, rng),
+
+  /* THE BAND ROWS AND THE WEIGHT ROWS ARE THE TARGETS (3.6), and each sets one
+     parameter: `sample`, which is display, so a click moves the rail control
+     and the URL and leaves the walk where it stood. Built from the same
+     geometry `draw` uses, lazily at click time, never inside `draw`. */
+  regions: ({ w, params, state }) => {
+    if (!state) return [];
+    const ctx = measureCtx();
+    const colors = readTokens();
+    const rows = (x, y, cellW, p) =>
+      [0, 1, 2, 3].map((i) => ({
+        /* a number, because `sample` is an int: a string would leave `?sample=0`
+           in a link that is at the default */
+        x, y: y + i * p, w: cellW, h: p, set: { sample: i }, label: `sample ${i}`,
+      }));
+    if (params.topic === "gating") {
+      const g = gateGeom(ctx, colors, w, params, state);
+      return rows(g.bandX, g.bandY, 20 * g.s.band, g.s.band);
+    }
+    if (params.topic === "branching") {
+      const g = branchGeom(ctx, colors, w, params, state);
+      const b = branchBands(g, state);
+      return [
+        ...rows(b.b1.x, b.b1.y, b.b1.cols * g.s.band, g.s.band),
+        ...rows(b.b2.x, b.b2.y, b.b2.cols * g.s.band, g.s.band),
+      ];
+    }
+    if (params.topic === "routing") {
+      const g = routeGeom(ctx, colors, w, params, state);
+      /* the four rows of the [4, 3] weight tensor, as they are drawn */
+      return rows(g.gateCx - g.gateW / 2, g.weightsY, 3 * g.s.wcell, WROW);
+    }
+    return [];
+  },
+
+  animation: {
+    stepLabel: { param: "topic", labels: STEP_LABELS, default: "Next line" },
+    stepTitle: { param: "topic", labels: STEP_TITLES, default: STEP_TITLES.skip },
+    runLabel: "Play",
+    runTitle: { param: "topic", labels: RUN_TITLES, default: RUN_TITLES.skip },
+
+    init: ({ params, state, fromScratch }) => {
+      const n = fromScratch ? 0 : Math.min(Math.max(0, params.shown ?? 0), state.units);
+      return { n, beat: 0, clock: M.unitMs(params.speed), done: n >= state.units };
+    },
+
+    advance: (anim, { dt, params, state }) => {
+      if (anim.n >= state.units) {
+        anim.beat = 0;
+        anim.done = true;
+        return false;
+      }
+      anim.beat += dt / M.unitMs(params.speed);
+      if (anim.beat < 1) return true;
+      anim.beat = 0;
+      anim.n += 1;
+      if (anim.n >= state.units) anim.done = true;
+      return anim.mode !== "step" && !anim.done;
+    },
+
+    /* A beat in flight is cleared whenever the beat LENGTH changes: a fraction
+       of one clock read against another leaves a step stopped between its two
+       ends. Changing the sample or the print changes no clock, so a step in
+       flight keeps running while the figure redraws under it. */
+    rebuild: (anim, { params, state }) => {
+      anim.n = Math.min(anim.n, state.units);
+      const ms = M.unitMs(params.speed);
+      if (ms !== anim.clock) {
+        anim.beat = 0;
+        anim.clock = ms;
+      }
+      anim.done = anim.n >= state.units;
+    },
+  },
+
+  draw({ ctx, colors, w, params, state, anim }) {
+    renderCard(params, state);
+    const g = (DRAW[params.topic] ?? drawOrder)(ctx, colors, w, params, state, anim);
+    g.caps.forEach((line, i) => {
+      txt(ctx, colors, line, PAD, g.capY + 12 + i * CAPTION_H, { color: colors.ink2 });
+    });
+  },
+
+  readout({ params, state, anim }) {
+    const walk = walkAt(anim, state);
+    const s = Number(params.sample);
+    const ran = { label: "Lines run", value: `${walk.done} of ${state.units}` };
+
+    if (state.kind === "dimensions") {
+      const last = state.steps[Math.max(0, walk.done - 1)];
+      const next = state.layers[walk.done];
+      return [
+        {
+          label: "Input",
+          value: sizeText(state.set.shape),
+          note: state.set.note,
+        },
+        {
+          label: walk.done > 0 ? `After step ${walk.done}` : "After step 1",
+          value: walk.done === 0 ? "—" : last.error ? "—" : sizeText(last.shape),
+          note: walk.done === 0
+            ? `${state.units} steps to run, and each one is a layer of the chain`
+            : last.error
+              ? `${last.layer.label} was given ${shapeText(last.from)}`
+              : `${last.layer.label} applied to ${shapeText(last.from)}`,
+        },
+        {
+          label: "Next layer expects",
+          value: next ? expectedText(next) : "—",
+          note: next
+            ? `${next.label} is the next step of the chain`
+            : state.failed
+              ? "the chain stopped where the sizes disagreed"
+              : "the chain has run to the end",
+        },
+        {
+          label: "Parameters",
+          value: String(state.params),
+          note: paramNote(state),
+        },
+        ran,
+      ];
+    }
+
+    if (state.kind === "skip") {
+      const rowText = (m) => (m ? m[s].slice(0, 3).map((v) => v.toFixed(2)).join(", ") : "—");
+      return [
+        {
+          label: "f(x)",
+          value: shapeText([4, state.width]),
+          note: walk.done >= 4
+            ? `sample ${s}: ${rowText(state.x3)}, and 3 of ${state.width} values shown`
+            : "the output of fc2, which is what the block learns",
+        },
+        {
+          label: "skip",
+          value: shapeText(state.skipShape),
+          note: walk.done >= 1
+            ? `sample ${s}: ${rowText(state.skip)}, and 3 of ${state.skipShape[1]} values shown`
+            : state.proj ? "the input through the projection" : "the input, carried past the layers",
+        },
+        {
+          label: "Add",
+          /* COMPUTED FROM THE TWO DRAWN SHAPES (2.11), not from the parameter */
+          value: state.match ? "shapes match" : "shapes differ",
+          note: `${shapeText([4, state.width])} and ${shapeText(state.skipShape)}`,
+        },
+        {
+          label: "Output",
+          value: state.y ? sizeText([4, 2]) : "—",
+          note: state.y ? "fc_out maps the sum to 2 classes" : "torch raises at the add, so there is no output",
+        },
+        { label: "Parameters", value: String(state.params), note: "the layers of this block, weights and biases" },
+        ran,
+      ];
+    }
+
+    if (state.kind === "gating") {
+      return [
+        {
+          label: "Gate range",
+          value: `${state.lo.toFixed(2)} to ${state.hi.toFixed(2)}`,
+          note: state.gate === "mask"
+            ? "a fixed mask holds only 0 and 1"
+            : "a sigmoid maps any score into the open interval between 0 and 1",
+        },
+        {
+          label: `Gate mean, sample ${s}`,
+          value: state.gateMean(s).toFixed(3),
+          note: `the mean of the 20 gates applied to sample ${s}`,
+        },
+        {
+          label: "Features blocked",
+          value: `${state.blocked} of 20`,
+          note: state.gate === "mask"
+            ? "counted from the mask that was drawn, and the same features are blocked for every sample"
+            : "a sigmoid gate is above 0, so no feature is blocked outright",
+        },
+        {
+          label: "Output",
+          value: sizeText([4, 2]),
+          note: `gated is ${shapeText([4, 20])}, and fc2 maps it to 2 classes`,
+        },
+        ran,
+      ];
+    }
+
+    if (state.kind === "branching") {
+      return [
+        {
+          label: "Branch 1",
+          value: shapeText([4, 8]),
+          note: walk.done >= 1
+            ? `sample ${s}: ${state.x1[s].slice(0, 3).map((v) => v.toFixed(2)).join(", ")}, and 3 of 8 values shown`
+            : "fc1 through a relu",
+        },
+        {
+          label: "Branch 2",
+          value: shapeText([4, state.fc2]),
+          note: walk.done >= 2
+            ? `sample ${s}: ${state.x2[s].slice(0, 3).map((v) => v.toFixed(2)).join(", ")}, and 3 of ${state.fc2} values shown`
+            : "fc2 through a relu",
+        },
+        {
+          label: "Merged",
+          value: state.merged ? shapeText([4, state.feats]) : "—",
+          note: state.mergeError
+            ? `${state.merge} needs both branches at one width`
+            : `${state.merge} on 8 and ${state.fc2} features`,
+        },
+        {
+          label: `fc3 expects ${M.FC3_IN}`,
+          value: state.y ? sizeText([4, 2]) : "—",
+          note: state.y
+            ? `the merge gave ${state.feats}, which is the width fc3 was built for`
+            : state.fcError
+              ? `the merge gave ${state.feats}, and fc3 is Linear(${M.FC3_IN}, 2)`
+              : "the merge raised, so fc3 has no input to take",
+        },
+        ran,
+      ];
+    }
+
+    if (state.kind === "routing") {
+      const w = state.weights[s];
+      if (state.mode === "hard") {
+        return [
+          {
+            label: "Branch taken",
+            value: `branch ${state.top[s] + 1}`,
+            note: `sample ${s} has its largest weight there, at ${w[state.top[s]].toFixed(3)}`,
+          },
+          {
+            label: "Gradient to the router",
+            value: "none",
+            note: "the argmax is a discrete choice, so the gate cannot be trained by backpropagation",
+          },
+          {
+            label: "Largest branch",
+            value: `branch ${state.top[s] + 1}`,
+            note: `over the 4 samples the branches taken are ${state.top.map((t) => t + 1).join(", ")}`,
+          },
+          {
+            label: "Output",
+            value: sizeText([4, 2]),
+            note: `combined is ${shapeText([4, 20])}, and fc_out maps it to 2 classes`,
+          },
+          ran,
+        ];
+      }
+      return [
+        {
+          label: `Weights, sample ${s}`,
+          value: w.map((v) => v.toFixed(3)).join(", "),
+          note: "one weight for each branch, from a softmax over the gate's three scores",
+        },
+        {
+          label: "Sum",
+          value: w.reduce((a, b) => a + b, 0).toFixed(3),
+          note: "a softmax row sums to 1, so the three weights are a mixture",
+        },
+        {
+          label: "Largest branch",
+          value: `branch ${state.top[s] + 1}`,
+          note: `at ${w[state.top[s]].toFixed(3)}, against ${(1 / 3).toFixed(3)} if the three were equal`,
+        },
+        {
+          label: "Output",
+          value: sizeText([4, 2]),
+          note: `combined is ${shapeText([4, 20])}, and fc_out maps it to 2 classes`,
+        },
+        ran,
+      ];
+    }
+
+    if (state.kind === "building") {
+      return [
+        {
+          label: "Layers printed",
+          value: String(state.printed),
+          note: state.key === "learnable"
+            ? "F.relu is not a submodule, so the print does not name it"
+            : "every layer the model declares appears in the print",
+        },
+        {
+          label: "Layers run",
+          value: String(state.run),
+          note: `${walk.done} of ${state.units} run so far, and the forward pass decides which they are`,
+        },
+        {
+          label: "Parameters",
+          value: String(state.params),
+          note: "the weights and biases of the Linear layers, which an activation adds none to",
+        },
+        {
+          label: "Output",
+          value: sizeText([4, 2]),
+          note: `${sizeText([4, 10])} in, 2 classes out`,
+        },
+        ran,
+      ];
+    }
+
+    const blk = state.block;
+    if (state.view === "combination") {
+      return [
+        { label: "Combinations", value: String(M.COMBOS.length), note: "each pair is used as a unit" },
+        {
+          label: "Layers shown",
+          value: `${walk.done} of ${state.units}`,
+          note: "the layers of the three combinations, in the order they are applied",
+        },
+        {
+          label: "Shape in",
+          value: "—",
+          note: "a combination is a pattern rather than one model, so it carries no shape of its own",
+        },
+        {
+          label: "Shape out",
+          value: "—",
+          note: "the shapes depend on which layers the pattern is built from",
+        },
+        ran,
+      ];
+    }
+    const outShape = blk.steps[blk.steps.length - 1][2];
+    return [
+      { label: "Shape in", value: sizeText(blk.in), note: `the input to one ${blk.label} block` },
+      { label: "Shape out", value: sizeText(outShape), note: `the output of the block, after ${blk.steps.length} steps` },
+      {
+        label: "Steps that change the shape",
+        value: `${state.changed} of ${blk.steps.length}`,
+        note: state.changed === 0
+          ? "this Conv2d has padding 1, so even the Transform step leaves the shape as it is"
+          : "the Transform steps, and the shapes cannot say which order is right",
+      },
+      {
+        label: "Parameters",
+        value: String(blk.params),
+        note: "the weights and biases of the Transform layer at the printed sizes, and a scale and a shift per feature for the normalization",
+      },
+      ran,
+    ];
+  },
+});
+
+/** What the next layer of a chain requires of the tensor reaching it. */
+function expectedText(L) {
+  if (L.kind === "linear") return `${L.inF} features`;
+  if (L.kind === "conv2d") return `${L.cin} channels`;
+  if (L.kind === "maxpool2d") return "4 dimensions";
+  if (L.kind === "embedding") return `ids under ${L.vocab}`;
+  return "any shape";
+}
+
+/** Which layers of a chain carry weights, and how many each holds. */
+function paramNote(state) {
+  const withParams = state.steps
+    .filter((s) => !s.error && M.layerParams(s.layer) > 0)
+    .map((s) => `${s.layer.label} ${M.layerParams(s.layer)}`);
+  return withParams.length
+    ? withParams.join(", ")
+    : "no layer of this chain carries weights";
+}
