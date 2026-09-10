@@ -32,9 +32,11 @@
     Kenneth on review of the <code>composition</code> draft: <i>"is there supposed to be a depiction of weighted
     sums?"</i> The Routing page draws an outlined box spanning the three branch columns, labelled
     <b>weighted sum</b>, with nothing inside it. The operation the page is named for is the one thing the page
-    does not show. Three ways to fill it, each drawn at the widget's own geometry at <b>550</b> and <b>770</b>,
-    in <code>mode: soft</code> at <code>sample 0</code>, and the recommended one drawn again at
-    <code>mode: hard</code>.
+    does not show. Four ways to fill it, each drawn at the widget's own geometry at <b>550</b> and <b>770</b>,
+    in <code>mode: soft</code> at <code>sample 0</code>, and each of the two candidates in play drawn again at
+    <code>mode: hard</code>. <b>C is what is built today.</b> <b>D</b> is the later question: Kenneth asked
+    whether the box should hold the full <code>[4, 20]</code> per branch, as the Gating and Branching pages do,
+    so a student is not left asking why a <code>[4, 20]</code> branch shows one row.
   </p>
   <p class="note">
     Every number is the widget's. <code>ROUTE_WEIGHTS</code>, <code>ROUTE_TOP</code> and
@@ -51,7 +53,7 @@
     Colour: branch 1 <code>--c-group-a</code>, branch 2 <code>--c-group-b</code>, branch 3
     <code>--c-group-c</code>, every result <code>--c-empirical</code>, the framed column and the chosen row
     <code>--c-highlight</code>, the gate column <code>--ink-2</code>. A strip cell is the branch's hue shaded by
-    its value; in <b>A</b> and <b>C</b> that shading is multiplied by the branch's weight, which is the attention
+    its value; in <b>A</b>, <b>C</b> and <b>D</b> that shading is multiplied by the weight, which is the attention
     precedent — a smaller weight is a paler row, and the row that contributes nothing is nearly blank.
   </p>
   <p class="note" id="mono"></p>
@@ -84,7 +86,12 @@
   </p>
   <div class="row" id="sC"></div>
 
-  <h2>§4 · The fit question at 770</h2>
+  <h2>§4 · D · the product tensor, all four samples</h2>
+  <p class="note" id="noteD"></p>
+  <div class="row" id="sD"></div>
+  <p class="rec" id="recD"></p>
+
+  <h2>§5 · The fit question at 770</h2>
   <p class="note">
     Routing puts the code beside the diagram at 770 and under it at 550, and the code column is <b>350px</b>
     whatever the frame. A block wide enough for 20 cells is a new claim on the diagram's width, so the left panel
@@ -93,7 +100,7 @@
   </p>
   <div class="row" id="sFit"></div>
 
-  <h2>§5 · The recommended option at <code>mode: hard</code></h2>
+  <h2>§6 · C at <code>mode: hard</code></h2>
   <p class="note">
     One branch is taken and the other two contribute nothing. The two untaken strips are drawn as empty cells,
     which is the same block saying a different thing, and the arithmetic line loses its products.
@@ -311,16 +318,19 @@ const LAB_R = Math.max(
   wid("taken", T.fsXs, false),
 );
 
-/** Everything in a row that is not a cell. B swaps the right label for a weight cell. */
+/** Everything in a row that is not a cell. B and D swap the right label for a
+    weight cell, and the column is reserved at the wider of the two either way —
+    so all four candidates get the same cell size at the same width. */
+const bands = (kind) => kind === "B" || kind === "D";
 const fixedW = (kind, wcell) =>
-  IN_PAD + OPW + OPGAP + LAB_L + GAP_L + GAP_R + Math.max(LAB_R, kind === "B" ? wcell : 0) + IN_PAD;
+  IN_PAD + OPW + OPGAP + LAB_L + GAP_L + GAP_R + Math.max(LAB_R, bands(kind) ? wcell : 0) + IN_PAD;
 const sumMinW = (kind, z) => fixedW(kind, z.wcell) + FEATS * z.band;
 /* the block is centred in the box rather than pinned to its left edge: the box
    spans three branch columns and at 770 that is 607px against a 456px block,
    and a block pinned left reads as a box that lost its right-hand contents */
 const blockX = (kind, g) => g.boxL + Math.round((g.boxWidth - (fixedW(kind, g.s.wcell) + FEATS * g.p)) / 2);
 const pitchFor = (kind, boxWidth, wcell) => Math.floor((boxWidth - fixedW(kind, wcell)) / FEATS);
-const blockH = (kind, p) => (kind === "B"
+const blockH = (kind, p) => (bands(kind)
   ? IN_PAD + HEADH + 3 * (4 * p) + 2 * SGAP + RULE_GAP + 4 * p + IN_PAD
   : IN_PAD + HEADH + 3 * p + 2 * SGAP + RULE_GAP + p + IN_PAD);
 
@@ -349,7 +359,7 @@ function geom(kind, w, mode, force) {
      case where it lands under the 12px the rest of the widget reads at */
   const p = Math.max(3, Math.min(s.band, pitchFor(kind, boxWidth, s.wcell)));
   const boxH = Math.max(WBLOCK, blockH(kind, p));
-  const arith = kind === "C" ? ARITH_H : 0;
+  const arith = kind === "C" || kind === "D" ? ARITH_H : 0;
   const diagH = XLAB + ROUTE_SPLIT + 3 * BOX_H + boxH + arith + 4 * EDGE_H;
   const codeH = M.CODE_ROUTE[mode].length * LINE;
   const caps = captions(mode).flatMap((line) => wrapLines(line, w - 2 * PAD));
@@ -381,7 +391,7 @@ function captions(mode) {
 }
 
 /* ============================ the drawing =================================== */
-function draw(host, kind, title, sub, w, mode, force) {
+function draw(host, kind, title, sub, w, mode, force, vsC) {
   const g = geom(kind, w, mode, force);
   const st = stateFor(mode);
   const hard = mode === "hard";
@@ -436,12 +446,12 @@ function draw(host, kind, title, sub, w, mode, force) {
   outlineBox(ctx, g.boxL, g.boxTop, g.boxWidth, g.boxH, T.empirical);
   txt(ctx, hard ? `branch ${taken + 1} taken` : "weighted sum", g.boxL + IN_PAD, g.boxTop + IN_PAD + 10,
     { color: T.ink3, size: T.fsXs });
-  const drawn = kind === "B"
-    ? drawBandBlock(ctx, g, st, mode, HUES)
-    : drawStripBlock(ctx, g, st, mode, HUES, kind === "C");
+  const drawn = kind === "B" ? drawBandBlock(ctx, g, st, mode, HUES)
+    : kind === "D" ? drawProductBands(ctx, g, st, mode, HUES)
+      : drawStripBlock(ctx, g, st, mode, HUES, kind === "C");
 
-  /* C's one line of arithmetic, under the box */
-  if (kind === "C") arithLine(ctx, g, st, mode, HUES, drawn.col);
+  /* C's and D's one line of arithmetic, under the box */
+  if (kind === "C" || kind === "D") arithLine(ctx, g, st, mode, HUES, drawn.col, kind);
 
   const fcTop = g.boxTop + g.boxH + g.arith + EDGE_H;
   const sumCx = (g.boxL + g.boxR) / 2;
@@ -467,6 +477,7 @@ function draw(host, kind, title, sub, w, mode, force) {
     + `· block needs ${g.sumMin}px, box is ${Math.round(g.boxWidth)}px `
     + `· diagram ${Math.round(g.diagW)}px, branch column ${g.branchW}px `
     + `· code ${g.beside ? "beside" : "under"} (beside fits: ${g.fits ? "yes" : "no"}) `
+    + (vsC == null ? "" : `· C's box here is ${vsC}px, so this one adds ${g.boxH - vsC}px `)
     + `· ${g.caps.length} caption lines · stage ${g.height}px at ${w}, was ${BASE[w]}`);
   return g;
 }
@@ -582,10 +593,84 @@ function drawBandBlock(ctx, g, st, mode, HUES) {
   return { col: null, cellX, p };
 }
 
+/** D. B's three [4, 20] bands, carrying the PRODUCT each branch contributes to
+    each sample, with C's framed column and printed line on top.
+    The alpha is `alphaOf(product) × weight`, which is what the strips in A and C
+    already do: the weight rides on the row twice, so a row a branch barely
+    contributes to reads as a pale row rather than as a digit to look up. */
+function drawProductBands(ctx, g, st, mode, HUES) {
+  const hard = mode === "hard";
+  const p = g.p;
+  const x0 = blockX("D", g);
+  const opX = x0 + IN_PAD + OPW / 2;
+  const labX = x0 + IN_PAD + OPW + OPGAP;
+  const cellX = labX + LAB_L + GAP_L;
+  const rightX = cellX + FEATS * p + GAP_R;
+  const y0 = g.boxTop + IN_PAD + HEADH;
+
+  /* the whole [4, 3, 20] tensor the code stacks: at soft every sample's row
+     from every branch, times that sample's weight on that branch; at hard the
+     row each sample takes and nothing at all in the two it does not */
+  const prod = [0, 1, 2].map((i) => st.outs[i].map((row, r) => (hard
+    ? (st.top[r] === i ? row.slice() : null)
+    : row.map((v) => v * st.weights[r][i]))));
+  /* ONE maximum over every product and the totals, so the three bands are
+     comparable with each other and with the combined band under them */
+  const hi = Math.max(maxAbs(prod.flat().filter(Boolean)), maxAbs(st.combined));
+
+  const bandY = [0, 1, 2].map((i) => y0 + i * (4 * p + SGAP));
+  const sumY = bandY[2] + 4 * p + RULE_GAP;
+  [0, 1, 2].forEach((i) => {
+    if (i > 0) {
+      txt(ctx, "+", opX, bandY[i] + 2 * p + 0.5,
+        { color: T.ink3, align: "center", baseline: "middle", size: T.fsSm });
+    }
+    txt(ctx, `branch ${i + 1}`, labX, bandY[i] + 2 * p + 0.5,
+      { color: HUES[i], baseline: "middle", size: T.fsXs });
+    cellBand(ctx, cellX, bandY[i], 4, FEATS, p,
+      (r, c) => (prod[i][r]
+        ? wash(HUES[i], alphaOf(prod[i][r][c], hi) * (hard ? 1 : st.weights[r][i]))
+        : T.surface),
+      { litRow: SAMPLE });
+    for (let r = 0; r < 4; r += 1) {
+      if (hard) {
+        /* the widget's own two words, one per row rather than one per strip,
+           because here a row is a sample and each sample takes its own branch */
+        txt(ctx, st.top[r] === i ? "taken" : "not taken", rightX, bandY[i] + r * p + p / 2 + 0.5,
+          { color: st.top[r] === i ? T.ink1 : T.ink3, baseline: "middle", size: T.fsXs });
+      } else {
+        valueCell(ctx, rightX, bandY[i] + r * p, g.s.wcell, p, n2(st.weights[r][i]),
+          { hue: HUES[i], lit: r === SAMPLE });
+      }
+    }
+  });
+  ctx.strokeStyle = T.grid; ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(labX, sumY - RULE_GAP / 2 + 0.5);
+  ctx.lineTo(rightX + (hard ? LAB_R : g.s.wcell), sumY - RULE_GAP / 2 + 0.5);
+  ctx.stroke();
+  txt(ctx, "=", opX, sumY + 2 * p + 0.5,
+    { color: T.ink3, align: "center", baseline: "middle", size: T.fsSm });
+  cellBand(ctx, cellX, sumY, 4, FEATS, p,
+    (r, c) => shadeOf(T.empirical, st.combined[r][c], hi), { litRow: SAMPLE });
+  txt(ctx, "combined", rightX, sumY + 2 * p + 0.5,
+    { color: T.empirical, baseline: "middle", size: T.fsXs });
+  /* soft only: at hard the column is already words, and a header over it would
+     say the same thing twice */
+  if (!hard) txt(ctx, "weights", rightX, bandY[0] - 4, { color: T.ink3, size: T.fsXs });
+
+  /* C's column, framed through all four bands rather than four strips */
+  const col = pickColumn(prod.map((band3) => band3[SAMPLE]), st.combined[SAMPLE]);
+  ctx.strokeStyle = T.highlight; ctx.lineWidth = HLW;
+  ctx.strokeRect(cellX + col * p - 1.25, bandY[0] - 1.25,
+    p + 2.5, sumY + 4 * p - bandY[0] + 2.5);
+  return { col, cellX, p };
+}
+
 /** C's line: one feature column, coloured by the branch each term came from. */
-function arithLine(ctx, g, st, mode, HUES, col) {
+function arithLine(ctx, g, st, mode, HUES, col, kind = "C") {
   const y = g.boxTop + g.boxH + 16;
-  let x = blockX("C", g) + IN_PAD;
+  let x = blockX(kind, g) + IN_PAD;
   const put = (s, color) => {
     txt(ctx, s, x, y, { color, mono: true, size: T.fsSm });
     x += wid(s, T.fsSm, true);
@@ -633,6 +718,15 @@ const CUnder = draw(document.getElementById("sFit"), "C", "C · at 770 as the fi
 const CHard = draw(document.getElementById("sHard"), "C", "C · mode: hard, at 550",
   "one branch taken, the other two drawn as empty cells", W, "hard");
 
+const D550 = draw(document.getElementById("sD"), "D", "D · the product tensor, at 550",
+  "three [4, 20] bands of products, the weights beside the rows they multiply,\n"
+  + "one column framed and its arithmetic printed", W, "soft", null, C550.boxH);
+const D770 = draw(document.getElementById("sD"), "D", "D · the product tensor, at 770",
+  "the same figure at the wide frame's 16px cell", WIDE, "soft", null, C770.boxH);
+const DHard = draw(document.getElementById("sD"), "D", "D · mode: hard, at 550",
+  "each sample keeps only the row of the branch it takes, so every band is mostly empty",
+  W, "hard", null, CHard.boxH);
+
 /* ============================ the readings ================================= */
 document.getElementById("mono").innerHTML =
   `<b>Measured on this browser:</b> one mono character at <code>--fs-sm</code> is `
@@ -657,9 +751,9 @@ document.getElementById("proof").innerHTML = [
   `<b>Beside does not survive at 770 for any of the three.</b> The diagram gets `
   + `${Math.round(CBeside.roomy)}px there, of which the gate column takes ${CBeside.gateW}px and the gaps `
   + `${3 * COLGAP}px, leaving a ${Math.round(CBeside.boxWidth)}px box. Twenty cells and a `
-  + `${fixedW("C", CBeside.s.wcell)}px fixed width fit in that only at <b>${CBeside.p}px a cell</b>, drawn in §4 `
+  + `${fixedW("C", CBeside.s.wcell)}px fixed width fit in that only at <b>${CBeside.p}px a cell</b>, drawn in §5 `
   + `— under the 12px the rest of the widget reads at. The block needs ${C770.sumMin}px of box and the fit pass `
-  + `finds it by putting the code under, which is what §4's right panel and §3's 770 panel draw.`,
+  + `finds it by putting the code under, which is what §5's right panel and §3's 770 panel draw.`,
   `<b>B costs ${B550.height - C550.height}px more than C at 550 and ${B770.height - C770.height}px more at 770</b>, `
   + `and its weight cells are ${B550.p}px tall at 550 against the ${WROW}px the gate grid uses, because a weight `
   + `cell in B has to line up with a band row.`,
@@ -667,6 +761,38 @@ document.getElementById("proof").innerHTML = [
   `<b>mode: hard is the same block.</b> ${CHard.boxH}px of box and a ${CHard.height}px stage at 550, `
   + `${CHard.height - C550.height}px from C's soft panel, so the diagram does not move when the reader switches.`,
 ].map((s) => `<li>${s}</li>`).join("");
+
+/* D's own two paragraphs, with the digits read off the model rather than typed */
+const W3 = [0, 1, 2, 3].map((r) => n2(SOFT.weights[r][2]));
+const GATING_H = 464;   // the Gating page's stage at 550, the tallest page today
+document.getElementById("noteD").innerHTML =
+  `The three branches as full <code>[4, 20]</code> bands again, as on Gating and Branching, but each band `
+  + `carries the product <code>αᵢ(x) · fᵢ(x)</code> for its own sample rather than the branch output — so the `
+  + `multiply is on the page instead of left to the reader. Branch 3's column of weights is `
+  + `<code>${W3.join(" · ")}</code>, and its band shows that: row 0 at <code>${W3[0]}</code> is nearly blank and `
+  + `row 3 at <code>${W3[3]}</code> is the strongest row it has. The weights stand beside the rows they `
+  + `multiply, the chosen sample's row is lit in every band, and C's framed column and printed line sit on top `
+  + `of it. This is the <code>[4, 3, 20]</code> tensor <code>torch.stack</code> builds, drawn as the code builds `
+  + `it, summed down to the combined <code>[4, 20]</code> under the rule.`;
+
+document.getElementById("recD").innerHTML =
+  `<b>D against C.</b> The box goes from ${C550.boxH}px to ${D550.boxH}px at 550 and from ${C770.boxH}px to `
+  + `${D770.boxH}px at 770, and the stage from ${C550.height}px to ${D550.height}px at 550 `
+  + `(<b>+${D550.height - C550.height}px</b>) and from ${C770.height}px to ${D770.height}px at 770 `
+  + `(<b>+${D770.height - C770.height}px</b>). Nothing else moves: the block reserves the same right column `
+  + `either way, so D draws at the same ${D550.p}px cell as C at 550 and ${D770.p}px at 770, keeps the code `
+  + `under the diagram at both widths, and the ${DHard.boxH}px hard box is the soft box, so the diagram holds `
+  + `still when the reader switches mode. <b>What it buys:</b> the box holds a whole tensor, which is the `
+  + `convention the Gating and Branching pages already set, so all four connection pages read the same way; the `
+  + `multiply is visible as each row's own paleness rather than as a digit to carry across; the `
+  + `<code>[4, 3, 20]</code> stack is drawn as the code writes it; and a reader who has just seen `
+  + `<code>[4, 20]</code> on three edges is not left asking why the box below them holds one row each. `
+  + `<b>What it costs:</b> Routing becomes the tallest page of the seven at ${D550.height}px against Gating's `
+  + `${GATING_H}px, so it is ${D550.height - GATING_H}px past the page the reader met three tabs earlier, and `
+  + `sixteen rows of cells is more picture to read than four. <b>Recommend D.</b> The ${D550.height - C550.height}px `
+  + `buys the answer to the question Kenneth asked, and it buys it in the convention the two pages before it `
+  + `already use, which is worth more than a shorter page. C stays the better figure only if Routing's height is `
+  + `itself the constraint, and at ${D550.height}px it is a long page rather than an unusable one.`;
 
 document.getElementById("rec").innerHTML =
   `<b>Recommend C.</b> It is the attention precedent, which Kenneth picked on 2026-09-10 for the same question `
