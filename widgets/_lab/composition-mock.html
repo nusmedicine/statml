@@ -1,0 +1,1777 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · composition · the design picks, drawn to scale</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 920px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-6); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 96ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); max-width: 560px; min-height: 24px; white-space: pre-line; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 96ch; }
+  .rec b { font-weight: 600; }
+  ul.proof { font-size: var(--fs-sm); color: var(--ink-2); max-width: 96ch; padding-left: 18px; }
+  ul.proof li { margin-bottom: 4px; }
+  /* the rail, at the real 300px, with the shell's own classes.
+     These four rules only pin the split at this page's width; the media query in
+     tokens.css collapses it below 880px and this page is read wider than that. */
+  .lab .w-split { display: grid; grid-template-columns: 300px 550px; gap: var(--sp-4); align-items: start; }
+  .lab .w-split .w-controls { grid-template-columns: 1fr; border-top: 0; padding-top: 0; margin-top: 0; }
+  .lab .w-rail { border-top: 0; padding-top: 0; margin-top: 0; }
+  .lab .w-split .w-drive { flex-direction: column; align-items: stretch; flex-wrap: nowrap; }
+  .rail-solo { width: 300px; }
+  .measure { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--ink-3); margin: 4px 0 0; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>composition · the design picks, drawn to scale</h1>
+  <p class="note">
+    The picks for the <code>composition</code> widget, slot 51: seven pages from PHM5005 <code>05-3</code>,
+    cells 61–101. Ordering, Building, Dimensions, Skip, Gating, Branching, Routing. Every stage is drawn at the
+    real <b>550</b> stage width, and the pages that change with the frame at <b>770</b> as well, on the geometry
+    the three deep-learning widgets share: <b>PAD 14</b>, <b>GAP 22</b>, usable width <b>522</b> at 550 and
+    <b>742</b> at 770; layer boxes <b>30px tall with a 2px border</b>, arrows 2px with a 9px head, shape labels
+    16px on the edge in mono ink, and the <code>--c-dim-*</code> hue only as a 2px rule under the size that is
+    about to change, never on text. Merge bands are shaded at <b>12px per cell</b>, one column per feature and
+    one row per batch sample, with the chosen sample's row lit; digits never go inside the wide
+    <code>[4, 20]</code> bands, because at two decimals a cell needs 40px and such a band is 800px.
+  </p>
+  <p class="note">
+    Colour: the input and branch 1 are <code>--c-group-a</code>, the second operand (a projection, the gate path,
+    branch 2) <code>--c-group-b</code>, Routing's third branch <code>--c-group-c</code>, every result
+    <code>--c-empirical</code>, the thing to look at right now <code>--c-highlight</code>, a torch error string
+    <code>--c-extreme</code>, and Routing's gate column <code>--ink-2</code>. Every random value comes from the
+    seeded <code>makeRng</code>: the batch is <code>randn(4, 10)</code> from one constant seed and every
+    <code>Linear</code> is drawn from <code>uniform(rng, initBound.linear(fanIn))</code>, PyTorch's own default.
+    The code panels are the notebook's <code>forward()</code> verbatim, with the executing line lit.
+  </p>
+  <p class="note" id="mono"></p>
+
+  <h2>§1 · The rail at the real 300px</h2>
+  <p class="note">
+    <code>topic</code> is a two-column grid of seven. <b>A</b> segments it with the notebook's own two
+    <code>##</code> headings (cells 61 and 89) as the row heads: <i>Composing layers</i> over Ordering ·
+    Building · Dimensions, <i>Controlling flow</i> over Skip · Gating · Branching · Routing. <b>B</b> is one
+    plain grid of seven, no heads. Both are the shell's own DOM and CSS, so what truncates here truncates in the
+    widget. Under them, the whole rail for the Skip page, which is the longest one in the widget, beside the
+    shortest stage in it (Dimensions).
+  </p>
+  <div class="row" id="s1a"></div>
+  <div class="row" id="s1b"></div>
+  <p class="rec" id="rec1"></p>
+
+  <h2>§2 · The Routing stage split, three ways</h2>
+  <p class="note">
+    Cells 99–101, and the worst case in the widget: the widest <code>forward()</code> line,
+    <code>branch_outs = [branch(x) for branch in self.branches]</code>, is 53 characters, and the diagram needs
+    four columns — three branches and a gate. <b>A</b> code under the diagram at 550. <b>B</b> code beside at
+    550. <b>C</b> the fit pass: under at 550, beside at 770. The gate column carries the softmax weights of the
+    chosen sample as three cells, at the digits <code>_lab/dl-layers-measure.mjs</code> §7 prints for this seed.
+  </p>
+  <div class="row" id="s2a"></div>
+  <div class="row" id="s2b"></div>
+  <p class="rec" id="rec2"></p>
+
+  <h2>§3 · A tensor on an edge, three ways, on Gating</h2>
+  <p class="note">
+    Cells 93–95: <code>GatedMLP</code>, whose two paths both produce <code>[4, 20]</code> and meet at the ⊙ ring
+    of <code>dl-flow-gate.png</code>. <b>A</b> shape text alone on the edges. <b>B</b> shape text plus a shaded
+    band at 12px a cell, 20 columns by 4 rows, with sample 0's row lit and, at <code>gate: mask</code>, the
+    blocked feature columns of <code>gated</code> drawn empty. <b>C</b> a full value grid at the 40px cells two
+    decimals actually need, drawn so the overflow past 522 is visible.
+  </p>
+  <div class="row" id="s3a"></div>
+  <div class="row" id="s3b"></div>
+  <div class="row" id="s3c"></div>
+  <p class="rec" id="rec3"></p>
+
+  <h2>§4 · The merge, four ways, on Branching</h2>
+  <p class="note">
+    Cells 96–98: <code>BranchMergeMLP</code>, <code>fc1</code> to 8 features and <code>fc2</code> to 6, merged
+    and fed to <code>Linear(14, 2)</code>. Every candidate is drawn on the notebook's own numbers in the state
+    that works and in the state where torch raises. <b>A</b> the two bands sliding together into one 14-column
+    band, and stacking with the sum band below at <code>add</code>. <b>B</b> a Merge box with the shapes only on
+    the edges. <b>C</b> the bands plus the readout digits for sample 0. <b>D</b> the gap closing, drawn at its
+    start and at its end, which is what the animation is.
+  </p>
+  <div class="row" id="s4a"></div>
+  <div class="row" id="s4b"></div>
+  <div class="row" id="s4c"></div>
+  <div class="row" id="s4d"></div>
+  <p class="rec" id="rec4"></p>
+
+  <h2>§5 · The residual gradient overlay on Skip, drawn and not drawn</h2>
+  <p class="note">
+    Cell 92's <code>ResidualMLP</code>, with <code>width</code> the size <code>fc2</code> maps to and the skip
+    elbow down the right to the <code>+</code> circle, both halves of <code>dl-flow-skip.png</code>. Three shape
+    states: <code>width = 10</code> with the projection off, where the add works; <code>width = 20</code> with it
+    off, where torch raises; and <code>width = 20</code> with it on, where a <code>Linear(10, 20)</code> sits on
+    the skip path. Then the overlay: a second set of arrows up the same diagram, each edge carrying its local
+    factor, the two arriving at <code>x</code> and adding.
+  </p>
+  <div class="row" id="s5a"></div>
+  <div class="row" id="s5b"></div>
+  <p class="rec" id="rec5"></p>
+
+  <h2>§6 · The <code>expr</code> chain in the 300px rail, on Dimensions</h2>
+  <p class="note">
+    Cell 88: four layer slots whose menus come from <code>data</code> (vectors · sequence · image), and the menu
+    deliberately holds layers that do not fit. <b>A</b> the <code>.w-expr</code> line with the full face,
+    <code>Conv2d(3, 16, 3)</code>. <b>B</b> the same line with the class name alone and the arguments fixed by
+    <code>data</code>, carried in the detail text. <b>C</b> four labelled <code>select</code> fields. The rail
+    height of each is measured, not estimated, and so is the number of lines four slots wrap to. Beside them the
+    Dimensions stage: the chain that fits, and the chain where <code>Linear(100, 10)</code> follows
+    <code>Flatten</code>.
+  </p>
+  <div class="row" id="s6a"></div>
+  <div class="row" id="s6b"></div>
+  <p class="rec" id="rec6"></p>
+
+  <h2>§7 · Ordering's transformer path, four boxes against five</h2>
+  <p class="note">
+    Cell 62's three example blocks: MLP <code>Linear → BatchNorm → ReLU → Dropout</code>, ResNet
+    <code>Conv → BatchNorm → ReLU</code>, and the transformer feed-forward path
+    <code>Linear → GELU → Linear → Dropout → LayerNorm</code>. The Subunit view of
+    <code>dl-compose-subunit.png</code> has four generic boxes, and two of the three blocks do not have four
+    steps. <b>A</b> the box count follows the block. <b>B</b> always four boxes, with the transformer's second
+    <code>Linear</code> folded into Transform. The Combination view of <code>dl-compose-combo.png</code> is drawn
+    once at 550.
+  </p>
+  <div class="row" id="s7a"></div>
+  <div class="row" id="s7b"></div>
+  <div class="row" id="s7c"></div>
+  <p class="rec" id="rec7"></p>
+
+  <h2>§8 · Building: the two prints</h2>
+  <p class="note">
+    Cells 72 and 74: <code>MLP1</code> declares the activation in <code>__init__</code> and <code>MLP2</code>
+    calls <code>F.relu</code> in <code>forward</code>. The two compute the same function and print differently.
+    The print column's widest line is
+    <code>  (fc1): Linear(in_features=10, out_features=20, bias=True)</code>, 59 characters. Drawn at 550 with
+    the print under the diagram, at 770 with it beside, and with cell 80's <code>summary()</code> table under the
+    diagram at 550.
+  </p>
+  <div class="row" id="s8a"></div>
+  <div class="row" id="s8b"></div>
+  <div class="row" id="s8c"></div>
+  <p class="rec" id="rec8"></p>
+
+  <h2>What the mock proves</h2>
+  <ul class="proof" id="proof"></ul>
+</main>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+import { makeRng } from "../core/rng.js";
+import { shapeText, sizeText, outSize, torchError, initBound, uniform } from "../core/torch.js";
+
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+const MONO = T.mono || "monospace";
+
+/* --- the geometry the three deep-learning widgets share -------------------- */
+const PAD = 14;            // widgets/tensors/main.js:469
+const GAP = 22;            // :472
+const BOX_H = 30;          // a layer box
+const BOX_BW = 2;          // its border
+const EDGE_H = 30;         // an arrow between two boxes, with the shape on it
+const HEAD = 9;            // the arrowhead
+const LINE = 16;           // one printed line
+const BAND = 12;           // one shaded cell of a merge band
+const VCELL = 40;          // one cell that carries a signed two-decimal value
+const VCH = 26;
+const W = 550;
+const WIDE = 770;
+const USABLE = W - 2 * PAD;         // 522
+const USABLE_WIDE = WIDE - 2 * PAD; // 742
+const COLGAP = 14;         // between two columns of one diagram
+
+/* ============================ drawing helpers ============================== */
+function panel(host, title, sub, w, h) {
+  const cand = document.createElement("div");
+  cand.className = "cand";
+  if (title) cand.innerHTML = `<h3>${title}</h3><p class="sub">${sub}</p>`;
+  const cv = document.createElement("canvas");
+  cv.width = Math.round(w * DPR); cv.height = Math.round(h * DPR);
+  cv.style.width = `${w}px`; cv.style.height = `${h}px`;
+  cand.appendChild(cv); host.appendChild(cand);
+  const ctx = cv.getContext("2d");
+  ctx.scale(DPR, DPR);
+  ctx.fillStyle = T.surface; ctx.fillRect(0, 0, w, h);
+  return { ctx, cand };
+}
+function note(cand, s) {
+  const p = document.createElement("p");
+  p.className = "measure";
+  p.textContent = s;
+  cand.appendChild(p);
+}
+function txt(ctx, s, x, y, o = {}) {
+  ctx.fillStyle = o.color ?? T.ink2;
+  ctx.textAlign = o.align ?? "left";
+  ctx.textBaseline = o.baseline ?? "alphabetic";
+  ctx.font = `${o.weight ?? ""} ${o.size ?? T.fsSm} ${o.mono ? MONO : T.font}`.trim();
+  ctx.fillText(s, x, y);
+}
+const wash = (hex, a) => {
+  const p = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+  return `rgba(${p[0]},${p[1]},${p[2]},${a})`;
+};
+function arrow(ctx, x0, y0, x1, y1, color, width = 2, dash = [], head = HEAD) {
+  const a = Math.atan2(y1 - y0, x1 - x0);
+  ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = width;
+  ctx.setLineDash(dash);
+  ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.beginPath(); ctx.moveTo(x1, y1);
+  ctx.lineTo(x1 - head * Math.cos(a - 0.45), y1 - head * Math.sin(a - 0.45));
+  ctx.lineTo(x1 - head * Math.cos(a + 0.45), y1 - head * Math.sin(a + 0.45));
+  ctx.closePath(); ctx.fill();
+}
+/** A right-angle elbow through `pts`, arrowhead on the last leg. Never diagonal:
+    every one of Kenneth's six figures turns at a right angle. */
+function elbow(ctx, pts, color, width = 2) {
+  ctx.strokeStyle = color; ctx.lineWidth = width;
+  ctx.lineJoin = "miter";
+  ctx.beginPath();
+  ctx.moveTo(pts[0][0], pts[0][1]);
+  for (let i = 1; i < pts.length; i += 1) ctx.lineTo(pts[i][0], pts[i][1]);
+  ctx.stroke();
+  const [ax, ay] = pts[pts.length - 2];
+  const [bx, by] = pts[pts.length - 1];
+  const a = Math.atan2(by - ay, bx - ax);
+  ctx.fillStyle = color;
+  ctx.beginPath(); ctx.moveTo(bx, by);
+  ctx.lineTo(bx - HEAD * Math.cos(a - 0.45), by - HEAD * Math.sin(a - 0.45));
+  ctx.lineTo(bx - HEAD * Math.cos(a + 0.45), by - HEAD * Math.sin(a + 0.45));
+  ctx.closePath(); ctx.fill();
+}
+/** A band's header: its name left, the expression it performs right, a hairline
+    under (processing-layers decision 10). */
+function band(ctx, y, w, name, expr) {
+  txt(ctx, name, PAD, y + 11, { color: T.ink2, weight: "600" });
+  if (expr) txt(ctx, expr, w - PAD, y + 11, { color: T.highlight, align: "right", mono: true });
+  ctx.strokeStyle = T.grid; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(PAD, y + 17.5); ctx.lineTo(w - PAD, y + 17.5); ctx.stroke();
+  return y + 26;
+}
+/** One layer box: 30 tall, a 2px border in the path's colour, the class name in
+    mono inside. Kenneth's figures put the name inside and the size on the edge. */
+function layerBox(ctx, x, y, w, label, color, o = {}) {
+  ctx.fillStyle = T.surface; ctx.fillRect(x, y, w, BOX_H);
+  ctx.fillStyle = wash(color, o.lit ? 0.34 : 0.13);
+  ctx.fillRect(x, y, w, BOX_H);
+  ctx.strokeStyle = o.lit ? T.highlight : color;
+  ctx.lineWidth = BOX_BW;
+  ctx.strokeRect(x + BOX_BW / 2, y + BOX_BW / 2, w - BOX_BW, BOX_H - BOX_BW);
+  txt(ctx, label, x + w / 2, y + BOX_H / 2 + 0.5,
+    { color: T.ink1, align: "center", baseline: "middle", mono: true, size: o.size ?? T.fsSm });
+}
+/** An outlined box with no fill — the `Merge` rectangle of dl-flow-branch-merge.png. */
+function outlineBox(ctx, x, y, w, h, label, color = T.ink1) {
+  ctx.fillStyle = T.surface; ctx.fillRect(x, y, w, h);
+  ctx.strokeStyle = color; ctx.lineWidth = BOX_BW;
+  ctx.strokeRect(x + BOX_BW / 2, y + BOX_BW / 2, w - BOX_BW, h - BOX_BW);
+  txt(ctx, label, x + w / 2, y + h / 2 + 0.5,
+    { color: T.ink1, align: "center", baseline: "middle", mono: true });
+}
+/**
+ * One edge: an arrow down the column with the shape written ON it, the
+ * background knocked out behind the text.
+ *
+ * The knockout rather than the shape beside the arrow: at Routing's 770 frame a
+ * branch column is 66px and `[4, 20]` is 47 of them, so text beside the arrow
+ * lands in the next column. Written on the arrow it reads as one break in the
+ * line, which is what "shapes on the edges" looks like in his figures.
+ */
+function edge(ctx, cx, y0, y1, text, o = {}) {
+  arrow(ctx, cx, y0, cx, y1, o.color ?? T.axis, 2, o.dash ?? []);
+  if (!text) return;
+  ctx.font = `${o.size ?? T.fsSm} ${MONO}`;
+  const w = ctx.measureText(text).width;
+  const mid = (y0 + y1) / 2;
+  ctx.fillStyle = T.surface;
+  ctx.fillRect(cx - w / 2 - 4, mid - 8, w + 8, 16);
+  txt(ctx, text, cx, mid + 0.5,
+    { color: o.ink ?? T.ink1, align: "center", baseline: "middle", mono: true, size: o.size ?? T.fsSm });
+  /* the dimension hue as a 2px rule UNDER the size about to change, never on the
+     text itself (principle 5, --c-dim-a…d) */
+  if (o.dimRule) {
+    ctx.fillStyle = o.dimRule;
+    ctx.fillRect(cx - w / 2, mid + 9, w, 2);
+  }
+}
+/** The `+` circle of dl-flow-skip.png. */
+function plusNode(ctx, cx, cy, r, color) {
+  ctx.fillStyle = wash(color, 0.18); ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = color; ctx.lineWidth = BOX_BW; ctx.stroke();
+  txt(ctx, "+", cx, cy + 0.5, { color: T.ink1, align: "center", baseline: "middle", size: T.fsLg, weight: "600" });
+}
+/** The ⊙ ring of dl-flow-gate.png: a ring with a filled dot inside. */
+function ringNode(ctx, cx, cy, r, color) {
+  ctx.fillStyle = T.surface; ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = color; ctx.lineWidth = 2.5; ctx.stroke();
+  ctx.fillStyle = color; ctx.beginPath(); ctx.arc(cx, cy, r * 0.3, 0, Math.PI * 2); ctx.fill();
+}
+/** A shaded band: one column per feature, one row per batch sample, 12px a cell.
+    `emptyAt` draws a cell as an outline with nothing in it. */
+function shadedBand(ctx, x, y, rows, cols, p, fillAt, o = {}) {
+  for (let r = 0; r < rows; r += 1) {
+    for (let c = 0; c < cols; c += 1) {
+      ctx.fillStyle = T.surface; ctx.fillRect(x + c * p, y + r * p, p, p);
+      if (!(o.emptyAt && o.emptyAt(r, c))) {
+        ctx.fillStyle = fillAt(r, c); ctx.fillRect(x + c * p, y + r * p, p, p);
+      }
+    }
+  }
+  ctx.strokeStyle = T.grid; ctx.lineWidth = 0.5;
+  for (let r = 0; r <= rows; r += 1) { ctx.beginPath(); ctx.moveTo(x, y + r * p + 0.25); ctx.lineTo(x + cols * p, y + r * p + 0.25); ctx.stroke(); }
+  for (let c = 0; c <= cols; c += 1) { ctx.beginPath(); ctx.moveTo(x + c * p + 0.25, y); ctx.lineTo(x + c * p + 0.25, y + rows * p); ctx.stroke(); }
+  ctx.strokeStyle = T.axis; ctx.lineWidth = 1;
+  ctx.strokeRect(x + 0.5, y + 0.5, cols * p - 1, rows * p - 1);
+  if (o.litRow != null) {
+    ctx.strokeStyle = T.highlight; ctx.lineWidth = 2.5;
+    ctx.strokeRect(x - 1.25, y + o.litRow * p - 1.25, cols * p + 2.5, p + 2.5);
+  }
+  return { w: cols * p, h: rows * p };
+}
+/** One value cell, at the 40px a signed two-decimal float needs. */
+function valueCell(ctx, x, y, w, h, text, o = {}) {
+  const hue = o.hue ?? T.groupA;
+  ctx.fillStyle = T.surface; ctx.fillRect(x, y, w, h);
+  if (!o.empty) { ctx.fillStyle = wash(hue, o.lit ? 0.4 : 0.15); ctx.fillRect(x, y, w, h); }
+  ctx.strokeStyle = o.lit ? T.highlight : T.axis;
+  ctx.lineWidth = o.lit ? 2.5 : 1;
+  ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+  if (text != null && text !== "") {
+    txt(ctx, text, x + w / 2, y + h / 2 + 0.5,
+      { color: T.ink1, align: "center", baseline: "middle", mono: true, size: o.size ?? T.fsXs });
+  }
+}
+function printLines(ctx, x, y, lines, color = T.ink2) {
+  lines.forEach((l, i) => txt(ctx, l, x, y + i * LINE, { color, mono: true, size: T.fsSm }));
+  return lines.length * LINE;
+}
+/** The notebook's own forward(), with the executing line lit and a wash behind it. */
+function codePanel(ctx, x, y, w, lines, lit) {
+  lines.forEach((l, i) => {
+    const yy = y + i * LINE;
+    if (i === lit) {
+      ctx.fillStyle = wash(T.highlight, 0.14);
+      ctx.fillRect(x - 4, yy - 12, w + 8, LINE);
+    }
+    txt(ctx, l, x, yy, { color: i === lit ? T.highlight : T.ink2, mono: true, size: T.fsSm });
+  });
+  return lines.length * LINE;
+}
+function caption(ctx, x, y, s, color = T.ink2) {
+  txt(ctx, s, x, y, { color, size: T.fsSm });
+}
+/** Torch's own message, wrapped to `w` and printed in the failure colour. */
+function errorText(ctx, x, y, w, msg, color = T.extreme) {
+  ctx.font = `${T.fsSm} ${MONO}`;
+  const words = msg.split(" ");
+  const rows = [];
+  let cur = "";
+  for (const word of words) {
+    const t = cur ? `${cur} ${word}` : word;
+    if (ctx.measureText(t).width > w && cur) { rows.push(cur); cur = word; } else cur = t;
+  }
+  if (cur) rows.push(cur);
+  rows.forEach((r, i) => txt(ctx, r, x, y + i * LINE, { color, mono: true, size: T.fsSm }));
+  return { h: rows.length * LINE, rows: rows.length };
+}
+/** How wide one mono character is at --fs-sm. Measured, never assumed: every
+    "it fits" verdict on this page is a multiple of it. */
+function measureMono() {
+  const c = document.createElement("canvas").getContext("2d");
+  c.font = `${T.fsSm} ${MONO}`;
+  const probe = "branch_outs = [branch(x) for branch in self.branches]";
+  return c.measureText(probe).width / probe.length;
+}
+const MONOCH = measureMono();
+const chars = (n) => Math.ceil(n * MONOCH);
+
+/* ============================ the arithmetic =============================== */
+const n2 = (v) => (v < 0 ? "" : " ") + v.toFixed(2);
+const mean = (v) => v.reduce((a, b) => a + b, 0) / v.length;
+const normalMat = (rng, rows, cols) =>
+  Array.from({ length: rows }, () => Array.from({ length: cols }, () => rng.normal()));
+const uniformMat = (rng, rows, cols, b) =>
+  Array.from({ length: rows }, () => Array.from({ length: cols }, () => uniform(rng, b)));
+/** x @ W^T + b — nn.Linear, weight [out, in]. */
+const linear = (x, W, b) => x.map((r) => W.map((w, i) => w.reduce((s, v, k) => s + v * r[k], 0) + b[i]));
+const relu = (m) => m.map((r) => r.map((v) => Math.max(0, v)));
+const sigmoid = (x) => 1 / (1 + Math.exp(-x));
+const softmax = (v) => {
+  const m = Math.max(...v);
+  const e = v.map((x) => Math.exp(x - m));
+  const s = e.reduce((a, b) => a + b, 0);
+  return e.map((x) => x / s);
+};
+function newLinear(rng, inF, outF) {
+  const b = initBound.linear(inF);
+  return { W: uniformMat(rng, outF, inF, b), b: Array.from({ length: outF }, () => uniform(rng, b)) };
+}
+const apply = (L, x) => linear(x, L.W, L.b);
+
+/* THE BATCH. One constant seed, and every page takes the same x — which is the
+   widget's gift: one input, five wirings. Seed 6 is the measured one: over ten
+   seeds its four gate rows are one of only three that pick three different
+   branches (`_lab/dl-layers-measure.mjs` §7), and at `mode: hard` a seed with
+   all four samples on one branch makes the page's point badly. */
+const BATCH_SEED = 6;
+const batchRng = makeRng(BATCH_SEED);
+const X = normalMat(batchRng, 4, 10);
+
+/* --- Routing, cells 99-101 --------------------------------------------------
+   The gate CONTINUES the batch stream, which is exactly the order §7 of the
+   measurement draws in, so the weights printed here are the ones it printed. */
+const GATE_BOUND = initBound.linear(10);
+const GATE_W = uniformMat(batchRng, 3, 10, GATE_BOUND);
+const GATE_BIAS = Array.from({ length: 3 }, () => uniform(batchRng, GATE_BOUND));
+const ROUTE_WEIGHTS = linear(X, GATE_W, GATE_BIAS).map(softmax);
+const rngBranchR = makeRng(11);
+const BRANCHES = [0, 1, 2].map(() => newLinear(rngBranchR, 10, 20));
+const BRANCH_OUT = BRANCHES.map((L) => relu(apply(L, X)));
+const COMBINED = X.map((_, s) =>
+  Array.from({ length: 20 }, (_, f) => BRANCH_OUT.reduce((a, o, i) => a + ROUTE_WEIGHTS[s][i] * o[s][f], 0)));
+const ROUTE_ARGMAX = ROUTE_WEIGHTS.map((r) => r.indexOf(Math.max(...r)));
+
+/* --- Gating, cells 93-95 ---------------------------------------------------- */
+const rngGate = makeRng(31);
+const G_FC1 = newLinear(rngGate, 10, 20);
+const G_GATE = newLinear(rngGate, 10, 20);
+const G_FC2 = newLinear(rngGate, 20, 2);
+const G_H = relu(apply(G_FC1, X));
+const G_G = apply(G_GATE, X).map((r) => r.map(sigmoid));
+const rngMask = makeRng(32);
+const G_MASK = Array.from({ length: 20 }, () => (rngMask.next() < 0.35 ? 0 : 1));
+const G_BLOCKED = G_MASK.filter((v) => v === 0).length;
+const gated = (mode) => G_H.map((r, i) => r.map((v, j) => v * (mode === "mask" ? G_MASK[j] : G_G[i][j])));
+
+/* --- Branching, cells 96-98 ------------------------------------------------- */
+const rngBr = makeRng(41);
+const B_FC1 = newLinear(rngBr, 10, 8);
+const B_FC2A = newLinear(rngBr, 10, 6);
+const B_FC2B = newLinear(rngBr, 10, 8);
+const B_X1 = relu(apply(B_FC1, X));
+const branchTwo = (w) => relu(apply(w === 6 ? B_FC2A : B_FC2B, X));
+
+/* --- Skip, cells 90-92 ------------------------------------------------------ */
+const rngSkip = makeRng(21);
+const S_FC1 = newLinear(rngSkip, 10, 20);
+const S_FC2A = newLinear(rngSkip, 20, 10);
+const S_FC2B = newLinear(rngSkip, 20, 20);
+const S_PROJ = newLinear(rngSkip, 10, 20);
+const S_X3 = (width) => apply(width === 10 ? S_FC2A : S_FC2B, relu(apply(S_FC1, X)));
+
+/* --- the forward() bodies, verbatim from the notebook ----------------------- */
+const CODE = {
+  skip: ["def forward(self, x):", "    skip = x", "    x1 = self.fc1(x)", "    x2 = self.relu(x1)",
+    "    x3 = self.fc2(x2)", "    out = x3 + skip", "    out = self.fc_out(out)", "    return out"],
+  gating: ["def forward(self, x):", "    h = self.relu(self.fc1(x))",
+    "    g = torch.sigmoid(self.gate_fc(x))", "    gated = h * g", "    out = self.fc2(gated)", "    return out"],
+  branch: ["def forward(self, x):", "    x1 = torch.relu(self.fc1(x))", "    x2 = torch.relu(self.fc2(x))",
+    "    x3 = torch.cat([x1, x2], dim=1)", "    y = self.fc3(x3)", "    return y"],
+  routing: ["def forward(self, x):", "    weights = F.softmax(self.gate(x), dim=1)",
+    "    branch_outs = [branch(x) for branch in self.branches]", "    outs = torch.stack(branch_outs, dim=1)",
+    "    weights = weights.unsqueeze(-1)", "    combined = torch.sum(weights * outs, dim=1)",
+    "    out = self.fc_out(combined)", "    return out"],
+  mlp1: ["def forward(self, x):", "    x = self.fc1(x)", "    x = self.relu(x)", "    x = self.fc2(x)", "    return x"],
+  mlp2: ["def forward(self, x):", "    x = self.fc1(x)", "    x = F.relu(x)", "    x = self.fc2(x)", "    return x"],
+};
+/* the widest line of a body, measured without its indent — the widget draws the
+   body only, and the catalogue's character counts are of the unindented line */
+const widest = (lines) => lines.reduce((m, l) => Math.max(m, l.trim().length), 0);
+const codeWidth = (lines) => Math.ceil(Math.max(...lines.map((l) => l.length)) * MONOCH);
+
+/* --- the prints (cells 72, 74, 80) ------------------------------------------ */
+const PRINT_MLP1 = ["MLP1(",
+  "  (fc1): Linear(in_features=10, out_features=20, bias=True)",
+  "  (relu): ReLU()",
+  "  (fc2): Linear(in_features=20, out_features=2, bias=True)",
+  ")"];
+const PRINT_MLP2 = ["MLP2(",
+  "  (fc1): Linear(in_features=10, out_features=20, bias=True)",
+  "  (fc2): Linear(in_features=20, out_features=2, bias=True)",
+  ")"];
+const SUMMARY = [
+  "----------------------------------------------------------------",
+  "        Layer (type)               Output Shape         Param #",
+  "================================================================",
+  "            Linear-1                   [-1, 20]             220",
+  "              ReLU-2                   [-1, 20]               0",
+  "            Linear-3                    [-1, 2]              42",
+  "================================================================",
+  "Total params: 262",
+  "Trainable params: 262",
+  "Non-trainable params: 0",
+  "----------------------------------------------------------------",
+];
+/* the three blocks of cell 62, and what nn.Sequential prints for the MLP one */
+const BLOCKS = {
+  mlp: {
+    label: "MLP", in: "[4, 10]",
+    steps: [["Transform", "Linear", "[4, 20]"], ["Normalize", "BatchNorm1d", "[4, 20]"],
+      ["Activate", "ReLU", "[4, 20]"], ["Regularize", "Dropout", "[4, 20]"]],
+  },
+  resnet: {
+    label: "ResNet", in: "[4, 16, 32, 32]",
+    steps: [["Transform", "Conv2d", "[4, 16, 32, 32]"], ["Normalize", "BatchNorm2d", "[4, 16, 32, 32]"],
+      ["Activate", "ReLU", "[4, 16, 32, 32]"]],
+  },
+  transformer: {
+    label: "Transformer feed-forward", in: "[4, 20]",
+    steps: [["Transform", "Linear", "[4, 80]"], ["Activate", "GELU", "[4, 80]"],
+      ["Transform", "Linear", "[4, 20]"], ["Regularize", "Dropout", "[4, 20]"],
+      ["Normalize", "LayerNorm", "[4, 20]"]],
+  },
+};
+const BLOCK_PRINT = {
+  mlp: ["Sequential(", "  (0): Linear(in_features=10, out_features=20, bias=True)",
+    "  (1): BatchNorm1d(20, eps=1e-05, momentum=0.1)", "  (2): ReLU()",
+    "  (3): Dropout(p=0.5, inplace=False)", ")"],
+  resnet: ["Sequential(", "  (0): Conv2d(16, 16, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))",
+    "  (1): BatchNorm2d(16, eps=1e-05, momentum=0.1)", "  (2): ReLU()", ")"],
+  transformer: ["Sequential(", "  (0): Linear(in_features=20, out_features=80, bias=True)",
+    "  (1): GELU(approximate='none')", "  (2): Linear(in_features=80, out_features=20, bias=True)",
+    "  (3): Dropout(p=0.5, inplace=False)", "  (4): LayerNorm((20,), eps=1e-05)", ")"],
+};
+
+/* the numbers every recommendation is written against */
+const M = {};
+document.getElementById("mono").innerHTML =
+  `<b>Measured on this browser:</b> one mono character at <code>--fs-sm</code> is ` +
+  `<b>${MONOCH.toFixed(2)}px</b>, measured with <code>measureText</code> over the 53-character Routing line. ` +
+  `Every "fits" and "does not fit" below is a multiple of that number, and none of them is an estimate.`;
+
+/* ============================ §1 · the rail ================================ */
+const el = (tag, cls, text) => {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text != null) e.textContent = text;
+  return e;
+};
+const field = (label, detail) => {
+  const f = el("div", "w-field");
+  if (label) { const l = el("label"); l.appendChild(el("span", null, label)); f.appendChild(l); }
+  if (detail) f.appendChild(el("p", "w-detail", detail));
+  return f;
+};
+const put = (f, node) => {
+  const d = f.querySelector(".w-detail");
+  if (d) f.insertBefore(node, d); else f.appendChild(node);
+};
+const segRun = (f, opts, on, gridStyle, head) => {
+  if (head) put(f, el("p", "w-seg-head", head));
+  const s = el("div", gridStyle ? "w-seg w-seg-grid" : "w-seg");
+  s.setAttribute("role", "group");
+  for (const o of opts) {
+    const b = el("button", o.span ? "w-seg-btn w-seg-btn--span" : "w-seg-btn", o.label ?? o);
+    b.type = "button";
+    b.setAttribute("aria-pressed", String((o.label ?? o) === on));
+    s.appendChild(b);
+  }
+  put(f, s);
+  return s;
+};
+const choice = (f, ticks, on) => {
+  const i = el("input"); i.type = "range"; i.min = "0"; i.max = String(ticks.length - 1);
+  i.step = "1"; i.value = String(ticks.indexOf(on));
+  const t = el("div", "w-ticks");
+  for (const k of ticks) t.appendChild(el("span", null, k));
+  const lab = f.querySelector("label");
+  if (lab) lab.appendChild(el("span", "val", on));
+  put(f, i); put(f, t);
+};
+const intField = (f, lo, hi, on) => {
+  const i = el("input"); i.type = "range"; i.min = String(lo); i.max = String(hi);
+  i.step = "1"; i.value = String(on);
+  const lab = f.querySelector("label");
+  if (lab) lab.appendChild(el("span", "val", String(on)));
+  put(f, i);
+};
+
+const TOPICS = ["Ordering", "Building", "Dimensions", "Skip", "Gating", "Branching", "Routing"];
+const TOPIC_HEADS = [
+  ["Composing layers", [{ label: "Ordering" }, { label: "Building" }, { label: "Dimensions", span: true }]],
+  ["Controlling flow", [{ label: "Skip" }, { label: "Gating" }, { label: "Branching" }, { label: "Routing" }]],
+];
+{
+  const a = el("div", "cand");
+  a.innerHTML = `<h3>A · two heads, the notebook's own ## headings</h3>` +
+    `<p class="sub">w-seg-head above each run, w-seg-grid inside it, Dimensions on a full row</p>`;
+  const aRail = el("div", "rail-solo");
+  const fa = field("Topic", "");
+  for (const [h, opts] of TOPIC_HEADS) segRun(fa, opts, "Skip", true, h);
+  aRail.appendChild(fa);
+  a.appendChild(aRail);
+  document.getElementById("s1a").appendChild(a);
+
+  const b = el("div", "cand");
+  b.innerHTML = `<h3>B · one grid of seven, no heads</h3><p class="sub">four grid rows, Routing on a full row</p>`;
+  const bRail = el("div", "rail-solo");
+  const fb = field("Topic", "");
+  segRun(fb, TOPICS.map((l, i) => ({ label: l, span: i === 6 })), "Skip", true);
+  bRail.appendChild(fb);
+  b.appendChild(bRail);
+  document.getElementById("s1a").appendChild(b);
+
+  /* the whole Skip rail, beside the shortest stage */
+  const split = el("div", "w-split");
+  const rail = el("div", "w-rail");
+  const controls = el("div", "w-controls");
+  const fT = field("Topic", "");
+  for (const [h, opts] of TOPIC_HEADS) segRun(fT, opts, "Skip", true, h);
+  controls.appendChild(fT);
+  const fW = field("Width after the second layer", "the number of features f(x) produces");
+  choice(fW, ["10", "20"], "20");
+  controls.appendChild(fW);
+  const fP = field("Projection on the skip path", "a Linear that maps the input to the width of f(x)");
+  segRun(fP, ["off", "on"], "off", false);
+  controls.appendChild(fP);
+  const fS = field("Sample", "which row of the batch the values are read from");
+  intField(fS, 0, 3, 0);
+  controls.appendChild(fS);
+  const fG = field("Gradient overlay", "the local factor on each edge, and the two that arrive at x");
+  segRun(fG, ["off", "on"], "off", false);
+  controls.appendChild(fG);
+  const fSp = field("Play speed", "");
+  segRun(fSp, ["Slow", "Medium", "Fast"], "Medium", false);
+  controls.appendChild(fSp);
+  rail.appendChild(controls);
+  const drive = el("div", "w-drive");
+  const group = el("div", "w-drive-group");
+  const step = el("button", "w-btn", "Next line"); step.type = "button"; step.dataset.key = "step";
+  const play = el("button", "w-btn w-btn--primary", "Play"); play.type = "button"; play.dataset.key = "run";
+  group.appendChild(step); group.appendChild(play);
+  const reset = el("button", "w-btn", "Reset"); reset.type = "button"; reset.dataset.key = "reset";
+  drive.appendChild(group); drive.appendChild(reset);
+  rail.appendChild(drive);
+  split.appendChild(rail);
+  const stageBox = el("div", "w-stage");
+  split.appendChild(stageBox);
+
+  const wrap = el("div", "cand");
+  wrap.innerHTML = `<h3>the whole Skip rail, the longest in the widget, beside the shortest stage</h3>` +
+    `<p class="sub">A's heads, width, projection, sample, gradient overlay, Play speed, the drive block</p>`;
+  wrap.appendChild(split);
+  document.getElementById("s1b").appendChild(wrap);
+  const shortH = drawDimensions(stageBox, "", "", { stageW: W, fits: true, bare: true }).H;
+
+  /* Measured synchronously, and again once the fonts have loaded. A
+     requestAnimationFrame here reads nothing when the pane is hidden, which is
+     where this page is read from the automation browser. */
+  const measureRail = () => {
+    document.querySelectorAll(".rail-measure").forEach((n) => n.remove());
+    const ha = Math.round(fa.getBoundingClientRect().height);
+    const hb = Math.round(fb.getBoundingClientRect().height);
+    const rh = Math.round(rail.getBoundingClientRect().height);
+    const bw = Math.round(fa.querySelector(".w-seg-btn").getBoundingClientRect().width);
+    const cv = document.createElement("canvas").getContext("2d");
+    const cs = getComputedStyle(fa.querySelector(".w-seg-btn"));
+    cv.font = `${cs.fontSize} ${cs.fontFamily}`;
+    const padX = 12;
+    const widths = TOPICS.map((l) => Math.round(cv.measureText(l).width));
+    const widestLabel = Math.max(...widths);
+    const over = TOPICS.filter((l) => cv.measureText(l).width + padX > bw);
+    /* what a single row of four would give each button, which is the form the
+       grid replaces (`Branching` is the one that decides it) */
+    const rowOf4 = Math.round((300 - 3 * 4) / 4);
+    const railNote = (host, s) => { note(host, s); host.lastChild.classList.add("rail-measure"); };
+    railNote(a, `field ${ha}px · button ${bw}px · widest label Branching ${widestLabel}px + ${padX}px padding = ${widestLabel + padX}px · truncated: ${over.join(", ") || "none"}`);
+    railNote(b, `field ${hb}px · button ${bw}px · truncated: ${over.join(", ") || "none"} · ${ha - hb}px shorter than A`);
+    railNote(wrap, `rail ${rh}px against the shortest stage ${shortH}px, the rail is ${rh > shortH ? `${rh - shortH}px taller` : `${shortH - rh}px shorter`}`);
+    M.railA = ha; M.railB = hb; M.railFull = rh; M.btnW = bw; M.widestLabel = widestLabel;
+    M.rowOf4 = rowOf4; M.dimStage = shortH;
+    document.getElementById("rec1").innerHTML =
+      `<b>Recommend A.</b> The two heads cost ${ha - hb}px of rail against B, and they carry the split the ` +
+      `seven names do not: the first three compose layers into a model, the last four change where the data ` +
+      `goes. Neither form truncates at two columns, because a button is <b>${bw}px</b> against a widest label ` +
+      `of ${widestLabel + padX}px (<code>Branching</code>, ${widestLabel}px of text plus ${padX}px of padding). ` +
+      `<b>The grid is what makes that true.</b> One row of seven gives each button ${Math.round((300 - 6 * 4) / 7)}px ` +
+      `and one row of four gives ${rowOf4}px, both under ${widestLabel + padX}px, so a single row would have to ` +
+      `rename the faces and the URL values to fit. The whole Skip rail is ${rh}px against the ${shortH}px ` +
+      `Dimensions stage, so the rail sets the page height on the shortest page and a per-page height is what ` +
+      `stops the other six paying for it.`;
+  };
+  measureRail();
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(measureRail);
+}
+
+/* ============================ §2 · Routing ================================= */
+/**
+ * The Routing stage. `beside` puts the code to the right of the diagram, and the
+ * diagram then gets whatever the code leaves; otherwise the code sits under the
+ * whole width. The body is drawn with its four-space indent removed, so the
+ * widest line is the 53-character `branch_outs` one the plan counts.
+ */
+function drawRouting(host, title, sub, o) {
+  const SW = o.stageW;
+  const usable = SW - 2 * PAD;
+  const code = CODE.routing.map((l, i) => (i === 0 ? l : l.slice(4)));
+  const cw = codeWidth(code);
+  const WCELL = 34;                      // one softmax weight at two decimals
+  const gateW = 3 * WCELL;               // 102
+  const MINBOX = 60;                     // `Linear` plus its padding
+  const roomy = o.beside ? usable - cw - 16 : usable;
+  const minDiag = 3 * (MINBOX + COLGAP) + gateW;
+  const diagW = Math.max(roomy, minDiag);
+  const branchW = Math.floor((diagW - gateW - 3 * COLGAP) / 3);
+  const boxW = Math.min(branchW, 92);
+  const cols = [0, 1, 2].map((i) => PAD + i * (branchW + COLGAP) + branchW / 2);
+  const gateCx = PAD + 3 * (branchW + COLGAP) + gateW / 2;
+  const usedW = 3 * (branchW + COLGAP) + gateW;
+  const cxAll = PAD + usedW / 2;
+  const SPLIT = 36;    // the split bus, plus room for the column labels under it
+  const diagH = 16 + SPLIT + BOX_H + EDGE_H + BOX_H + EDGE_H + BOX_H + EDGE_H + BOX_H + EDGE_H;
+  const codeH = code.length * LINE;
+  const H = 26 + diagH + 12 + (o.beside ? 0 : codeH + 10) + 22 + PAD;
+  const { ctx, cand } = panel(host, title, sub, SW, H);
+
+  let y = band(ctx, 0, SW, "Routing · soft", "y = Σ αᵢ(x) fᵢ(x)");
+  const top = y;
+
+  /* x, and the split into four columns */
+  txt(ctx, "x  [4, 10]", cxAll, y + 12, { color: T.ink1, align: "center", mono: true });
+  const busY = y + 16 + 12;
+  ctx.strokeStyle = T.groupA; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(cxAll, y + 16); ctx.lineTo(cxAll, busY);
+  ctx.moveTo(cols[0], busY); ctx.lineTo(gateCx, busY); ctx.stroke();
+  const boxTop = y + 16 + SPLIT;
+  for (const cx of [...cols, gateCx]) arrow(ctx, cx, busY, cx, boxTop, T.groupA, 2);
+
+  const HUES = [T.groupA, T.groupB, T.groupC];
+  const relu2Bottom = boxTop + BOX_H + EDGE_H + BOX_H + EDGE_H;
+  cols.forEach((cx, i) => {
+    layerBox(ctx, cx - boxW / 2, boxTop, boxW, "Linear", HUES[i]);
+    edge(ctx, cx, boxTop + BOX_H, boxTop + BOX_H + EDGE_H, "[4, 20]", { color: HUES[i] });
+    layerBox(ctx, cx - boxW / 2, boxTop + BOX_H + EDGE_H, boxW, "ReLU", HUES[i]);
+    edge(ctx, cx, boxTop + 2 * BOX_H + EDGE_H, relu2Bottom, "[4, 20]", { color: HUES[i] });
+    txt(ctx, `branch ${i + 1}`, cx, boxTop - 6, { color: HUES[i], align: "center", size: T.fsXs });
+  });
+
+  /* the gate column, in ink because it is not a branch */
+  layerBox(ctx, gateCx - gateW / 2 + 8, boxTop, gateW - 16, "gate", T.ink2);
+  edge(ctx, gateCx, boxTop + BOX_H, boxTop + BOX_H + EDGE_H, "[4, 3]", { color: T.ink3 });
+  layerBox(ctx, gateCx - gateW / 2 + 8, boxTop + BOX_H + EDGE_H, gateW - 16, "softmax", T.ink2);
+  edge(ctx, gateCx, boxTop + 2 * BOX_H + EDGE_H, relu2Bottom, "[4, 3]", { color: T.ink3 });
+  txt(ctx, "gate", gateCx, boxTop - 6, { color: T.ink3, align: "center", size: T.fsXs });
+
+  /* the weighted sum, spanning the three branch columns, and the weights row */
+  const sumL = cols[0] - branchW / 2;
+  const sumR = cols[2] + branchW / 2;
+  outlineBox(ctx, sumL, relu2Bottom, sumR - sumL, BOX_H, "weighted sum", T.empirical);
+  const wy = relu2Bottom;
+  const s = o.sample ?? 0;
+  for (let i = 0; i < 3; i += 1) {
+    valueCell(ctx, gateCx - gateW / 2 + i * WCELL, wy, WCELL, BOX_H, ROUTE_WEIGHTS[s][i].toFixed(2),
+      { hue: HUES[i], lit: i === ROUTE_ARGMAX[s], size: T.fsSm });
+  }
+  arrow(ctx, gateCx - gateW / 2 - 2, wy + BOX_H / 2, sumR + 4, wy + BOX_H / 2, T.ink3, 2);
+  const fcTop = wy + BOX_H + EDGE_H;
+  const sumCx = (sumL + sumR) / 2;
+  edge(ctx, sumCx, wy + BOX_H, fcTop, "combined  [4, 20]", { color: T.empirical });
+  layerBox(ctx, sumCx - 46, fcTop, 92, "fc_out", T.empirical);
+  edge(ctx, sumCx, fcTop + BOX_H, fcTop + BOX_H + EDGE_H, "[4, 2]", { color: T.empirical });
+
+  /* where the code takes the diagram's width away */
+  if (o.beside && diagW > roomy) {
+    ctx.strokeStyle = T.extreme; ctx.lineWidth = 2; ctx.setLineDash([5, 4]);
+    ctx.beginPath(); ctx.moveTo(PAD + roomy + 0.5, top); ctx.lineTo(PAD + roomy + 0.5, top + diagH); ctx.stroke();
+    ctx.setLineDash([]);
+    txt(ctx, `${Math.round(roomy)}px of diagram`, PAD + roomy - 6, top + diagH - 4,
+      { color: T.extreme, align: "right", size: T.fsXs });
+  }
+  /* the code is painted LAST, over its own knockout, so a diagram with no room
+     left is seen to run out of room rather than to cover the code up */
+  if (o.beside) {
+    const codeX = PAD + roomy + 16;
+    ctx.fillStyle = T.surface;
+    ctx.fillRect(codeX - 8, top, SW - codeX + 8, diagH);
+    codePanel(ctx, codeX, top + 26, cw, code, 2);
+  } else codePanel(ctx, PAD, top + diagH + 22, cw, code, 2);
+
+  const capY = H - PAD - 4;
+  caption(ctx, PAD, capY,
+    `Sample ${s} mixes the three branches ${ROUTE_WEIGHTS[s].map((v) => v.toFixed(2)).join(" · ")}, and branch ${ROUTE_ARGMAX[s] + 1} carries the most of it.`);
+  note(cand, `stage ${SW} · code ${cw}px (53 characters) · diagram ${o.beside ? `${Math.round(roomy)}px available, ${diagW}px needed` : `${diagW}px`} · branch column ${branchW}px, box ${boxW}px · stage ${H}px tall`);
+  return { H, cw, roomy: Math.round(roomy), diagW, branchW, boxW, minDiag };
+}
+{
+  const a = drawRouting(document.getElementById("s2a"), "A · code under the diagram at 550",
+    "the four columns get the whole 522, and the eight lines of forward() sit below", { stageW: W, beside: false });
+  const b = drawRouting(document.getElementById("s2a"), "B · code beside the diagram at 550",
+    "the dashed rule is where the diagram has to stop, and it does not", { stageW: W, beside: true });
+  const c1 = drawRouting(document.getElementById("s2b"), "C · the fit pass — under at 550",
+    "the same drawing as A: at this width the code goes under", { stageW: W, beside: false });
+  const c2 = drawRouting(document.getElementById("s2b"), "C · the fit pass — beside at 770",
+    "at the wide frame the code fits beside and the stage loses the code's height", { stageW: WIDE, beside: true });
+  M.route550 = c1.H; M.route770 = c2.H; M.routeCode = a.cw; M.routeMinDiag = a.minDiag;
+  M.routeRoomy550 = b.roomy; M.routeBranch770 = c2.branchW;
+  document.getElementById("rec2").innerHTML =
+    `<b>Recommend C, the fit pass.</b> The code column is <b>${a.cw}px</b> — 53 characters at ` +
+    `${MONOCH.toFixed(2)}px each — and four columns need at least <b>${a.minDiag}px</b>: three branch boxes at ` +
+    `the 60px <code>Linear</code> takes plus a 14px gap each, and a gate column of 102px, which is three ` +
+    `softmax weights at two decimals. At 550 the code beside leaves <b>${b.roomy}px</b>, so B is short by ` +
+    `${a.minDiag - b.roomy}px and the diagram runs under the code, which is what the dashed rule marks. ` +
+    `Under at 550 the diagram gets the whole ${USABLE}px and the stage is <b>${c1.H}px</b>; beside at 770 it ` +
+    `gets ${c2.roomy}px, a branch column is ${c2.branchW}px, and the stage drops to <b>${c2.H}px</b>, the ` +
+    `${c1.H - c2.H}px the code was costing in height. That is <code>height</code> as a function of the width, ` +
+    `which <code>linear-regularization</code> already does. <b>The four columns fit at 770 only because the ` +
+    `sizes sit on the edges:</b> <code>Linear(10, 20)</code> inside a box is ${chars(13)}px of label and needs a ` +
+    `${chars(13) + 18}px box, where <code>Linear</code> alone is ${chars(6)}px and needs 60px.`;
+}
+/* ============================ §3 · Gating ================================== */
+/**
+ * GatedMLP. `mode` is what a tensor looks like on an edge: "shapes" is the text
+ * alone, "band" adds the shaded 12px band on `gated`, "values" draws the grid at
+ * the 40px cells two decimals actually need. `stack` draws the fallback instead:
+ * the three bands under the split, at the full usable width.
+ */
+function drawGating(host, title, sub, o) {
+  /* the body, with the gate line following the control. cell 93 gives two
+     syntaxes and the fixed one is a tensor, not a layer, so at `mask` the gate
+     path has no gate_fc and no sigmoid to draw. The width is reserved at the
+     sigmoid form, which is the widest. */
+  const body = CODE.gating.map((l, i) => (i === 0 ? l : l.slice(4)));
+  const cw = codeWidth(body);
+  const code = body.slice();
+  if (o.gate === "mask") code[2] = "g = mask";
+  const diagW = USABLE - cw - 16;
+  const colW = Math.floor((diagW - COLGAP) / 2);
+  const c0 = PAD + colW / 2;
+  const c1 = PAD + colW + COLGAP + colW / 2;
+  const boxW = Math.min(colW - 8, 110);
+  const bandW = 20 * BAND;                    // 240
+  const bandH = 4 * BAND;                     // 48
+  const gatedEdge = o.mode === "band" ? EDGE_H + bandH + 12
+    : o.mode === "values" ? EDGE_H + 4 * VCH + 12 : EDGE_H;
+  const stackH = o.stack ? 3 * (14 + bandH) + 10 : 0;
+  const diagH = 16 + 26 + BOX_H + EDGE_H + BOX_H + EDGE_H + BOX_H + gatedEdge + BOX_H + EDGE_H;
+  const H = 26 + diagH + stackH + 10 + 22 + PAD;
+  const { ctx, cand } = panel(host, title, sub, W, H);
+
+  let y = band(ctx, 0, W, `Gating · ${o.gate === "mask" ? "mask" : "sigmoid"}`, "gated = h * g");
+  const top = y;
+  codePanel(ctx, PAD + diagW + 16, top + 26, cw, code, 2);
+
+  const cxAll = PAD + (2 * colW + COLGAP) / 2;
+  txt(ctx, "x  [4, 10]", cxAll, y + 12, { color: T.ink1, align: "center", mono: true });
+  const busY = y + 16 + 12;
+  ctx.strokeStyle = T.groupA; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(cxAll, y + 16); ctx.lineTo(cxAll, busY);
+  if (o.gate !== "mask") { ctx.moveTo(c0, busY); ctx.lineTo(c1, busY); }
+  else { ctx.moveTo(cxAll, busY); ctx.lineTo(c0, busY); }
+  ctx.stroke();
+  const boxTop = y + 16 + 26;
+  arrow(ctx, c0, busY, c0, boxTop, T.groupA, 2);
+  if (o.gate !== "mask") arrow(ctx, c1, busY, c1, boxTop, T.groupB, 2);
+
+  const isMask = o.gate === "mask";
+  const paths = [
+    { cx: c0, hue: T.groupA, first: "fc1", second: "relu", out: "h  [4, 20]" },
+    { cx: c1, hue: T.groupB, first: "gate_fc", second: "sigmoid", out: isMask ? "mask  [4, 20]" : "g  [4, 20]" },
+  ];
+  const ringTop = boxTop + 2 * BOX_H + 2 * EDGE_H;
+  paths.forEach((p, i) => {
+    if (i === 1 && isMask) {
+      /* a fixed mask is a tensor the reader wrote, so the column holds one tile
+         and no layers, and nothing flows into it from x */
+      layerBox(ctx, p.cx - boxW / 2, boxTop + BOX_H + EDGE_H, boxW, "mask", p.hue);
+      return;
+    }
+    layerBox(ctx, p.cx - boxW / 2, boxTop, boxW, p.first, p.hue);
+    edge(ctx, p.cx, boxTop + BOX_H, boxTop + BOX_H + EDGE_H, "[4, 20]", { color: p.hue });
+    layerBox(ctx, p.cx - boxW / 2, boxTop + BOX_H + EDGE_H, boxW, p.second, p.hue);
+  });
+  /* the main path goes straight into the ring; the gate path elbows in from the
+     right, which is dl-flow-gate.png's own arrangement */
+  const ringY = ringTop + 15;
+  edge(ctx, c0, boxTop + 2 * BOX_H + EDGE_H, ringTop + 2, paths[0].out, { color: T.groupA });
+  txt(ctx, paths[1].out, c1, boxTop + 2 * BOX_H + EDGE_H + 15,
+    { color: T.ink1, align: "center", baseline: "middle", mono: true });
+  elbow(ctx, [[c1, boxTop + 2 * BOX_H + EDGE_H + 24], [c1, ringY], [c0 + 18, ringY]], T.groupB);
+  txt(ctx, o.gate === "mask" ? "0/1" : "0–1", (c0 + c1) / 2 + 10, ringY - 6,
+    { color: T.groupB, align: "center", size: T.fsXs, mono: true });
+  ringNode(ctx, c0, ringY, 13, T.ink1);
+
+  const GV = gated(o.gate);
+  const gatedTop = ringTop + BOX_H;
+  const fc2Top = gatedTop + gatedEdge;
+  edge(ctx, c0, gatedTop, gatedTop + EDGE_H, "gated  [4, 20]", { color: T.empirical });
+  const blocked = o.gate === "mask" ? G_BLOCKED : 0;
+  if (o.mode === "band") {
+    const bx = PAD;
+    const by = gatedTop + EDGE_H + 6;
+    const flat = GV.flat();
+    const hi = Math.max(...flat);
+    shadedBand(ctx, bx, by, 4, 20, BAND, (r, c) => wash(T.empirical, 0.06 + 0.84 * (GV[r][c] / (hi || 1))), {
+      litRow: 0,
+      emptyAt: (r, c) => o.gate === "mask" && G_MASK[c] === 0,
+    });
+    txt(ctx, "sample 0", bx + bandW + 8, by + BAND / 2 + 1,
+      { color: T.highlight, baseline: "middle", size: T.fsXs });
+    txt(ctx, `${20 - blocked} of 20 features carry a value`, bx + bandW + 8, by + bandH - 4,
+      { color: T.ink3, size: T.fsXs });
+    arrow(ctx, c0, by + bandH, c0, fc2Top, T.empirical, 2);
+  } else if (o.mode === "values") {
+    const by = gatedTop + EDGE_H + 6;
+    for (let r = 0; r < 4; r += 1) {
+      for (let c = 0; c < 20; c += 1) {
+        valueCell(ctx, PAD + c * VCELL, by + r * VCH, VCELL, VCH,
+          o.gate === "mask" && G_MASK[c] === 0 ? "" : n2(GV[r][c]),
+          { hue: T.empirical, lit: r === 0, empty: o.gate === "mask" && G_MASK[c] === 0 });
+      }
+    }
+    ctx.strokeStyle = T.extreme; ctx.lineWidth = 2; ctx.setLineDash([5, 4]);
+    ctx.beginPath(); ctx.moveTo(PAD + USABLE + 0.5, by); ctx.lineTo(PAD + USABLE + 0.5, by + 4 * VCH); ctx.stroke();
+    ctx.setLineDash([]);
+    arrow(ctx, c0, by + 4 * VCH, c0, fc2Top, T.empirical, 2);
+  } else {
+    arrow(ctx, c0, gatedTop + EDGE_H, c0, fc2Top, T.empirical, 2);
+  }
+  layerBox(ctx, c0 - boxW / 2, fc2Top, boxW, "fc2", T.empirical);
+  edge(ctx, c0, fc2Top + BOX_H, fc2Top + BOX_H + EDGE_H, "[4, 2]", { color: T.empirical });
+
+  /* the fallback: the three bands under the split, at the full usable width */
+  if (o.stack) {
+    let sy = top + diagH + 6;
+    const rows = [["h  [4, 20]", G_H, T.groupA, null], ["g  [4, 20]", o.gate === "mask" ? G_H.map(() => G_MASK) : G_G, T.groupB, null],
+      ["gated  [4, 20]", GV, T.empirical, o.gate === "mask" ? G_MASK : null]];
+    for (const [label, vals, hue, mask] of rows) {
+      txt(ctx, label, PAD, sy + 10, { color: T.ink2, mono: true, size: T.fsXs });
+      const flat = vals.flat();
+      const hi = Math.max(...flat.map(Math.abs));
+      shadedBand(ctx, PAD, sy + 14, 4, 20, BAND,
+        (r, c) => wash(hue, 0.06 + 0.84 * (Math.abs(vals[r][c]) / (hi || 1))),
+        { litRow: 0, emptyAt: (r, c) => !!mask && mask[c] === 0 });
+      sy += 14 + bandH;
+    }
+  }
+
+  const slack = USABLE - 16 - cw - bandW;
+  caption(ctx, PAD, H - PAD - 4, o.gate === "mask"
+    ? `${blocked} of the 20 features are blocked, and their column of gated is empty for every sample.`
+    : "Every feature has its own gate between 0 and 1, so the signal is turned down rather than switched off.");
+  note(cand, `code ${cw}px (34 characters) · diagram ${diagW}px, column ${colW}px, box ${boxW}px · band ${bandW} × ${bandH} · slack 522 − 16 − ${cw} − ${bandW} = ${slack}px · stage ${H}px tall`);
+  return { H, cw, diagW, colW, slack, blocked };
+}
+{
+  const a = drawGating(document.getElementById("s3a"), "A · shape text alone on the edges",
+    "the whole claim carried by [4, 20] on four edges and [4, 2] on the last",
+    { mode: "shapes", gate: "sigmoid" });
+  const b = drawGating(document.getElementById("s3b"), "B · shape text plus a shaded band on gated",
+    "20 columns by 4 rows at 12px a cell, sample 0's row lit", { mode: "band", gate: "sigmoid" });
+  const bm = drawGating(document.getElementById("s3b"), "B · the same at gate: mask",
+    "the blocked feature columns of gated are drawn empty, for every sample",
+    { mode: "band", gate: "mask" });
+  const c = drawGating(document.getElementById("s3c"), "C · a full value grid at the 40px cells it needs",
+    "20 × 40 = 800px against the 522 the stage has; the dashed rule is the stage edge",
+    { mode: "values", gate: "sigmoid" });
+  const f = drawGating(document.getElementById("s3c"), "the fallback · bands under the split",
+    "h, g and gated at the full usable width, if the band on the edge does not fit",
+    { mode: "shapes", gate: "mask", stack: true });
+  M.gateSlack = a.slack; M.gateCode = a.cw; M.gateDiag = a.diagW;
+  M.gateBandH = b.H; M.gateStackH = f.H; M.blocked = bm.blocked;
+  document.getElementById("rec3").innerHTML =
+    `<b>Recommend B, with A as the fallback if the bands read as decoration.</b> The code column is ` +
+    `<b>${a.cw}px</b> (34 characters at ${MONOCH.toFixed(2)}px), so the diagram gets ` +
+    `<code>522 − 16 − ${a.cw} = ${a.diagW}px</code> and a 20-column band at 12px a cell is 240 of them: ` +
+    `<b>${a.slack}px of slack</b>. The plan put that at 21px on a 7.2px character; the measured character is ` +
+    `${MONOCH.toFixed(2)}px, so the real figure is ${a.slack}px. Only <b>one</b> band fits: two of them side by ` +
+    `side are <code>240 + 22 + 240 = 502px</code> against a ${a.diagW}px diagram, which is why the band goes on ` +
+    `<code>gated</code>, where the mask's empty columns are the thing to see. C is not a choice: 20 columns at ` +
+    `the 40px a signed two-decimal value needs is <b>800px</b>, ${800 - USABLE}px past the stage, and torch's ` +
+    `own four decimals would make it 1000. B costs ${b.H - a.H}px of height over A. The fallback, the three ` +
+    `bands under the split, is ${f.H}px against A's ${a.H}px, ${f.H - a.H}px more, and it is what to reach for ` +
+    `only if the single band on the edge reads as ornament.`;
+}
+
+/* ============================ §4 · Branching =============================== */
+/**
+ * BranchMergeMLP at the notebook's own widths. `merge` is concat or add, `w2` is
+ * the second branch's width, and `kind` is the four ways of drawing the meeting:
+ * bands, an outlined Merge box, bands with the digits, or the gap at two frames.
+ */
+function drawBranch(host, title, sub, o) {
+  /* the body of forward(), with the merge line following the control. The width
+     is reserved at the CONCAT form, which is the widest, so the diagram column
+     does not move when the reader switches merges. */
+  const body = CODE.branch.map((l, i) => (i === 0 ? l : l.slice(4)));
+  const cw = codeWidth(body);
+  const code = body.slice();
+  if (o.merge === "add") code[3] = "x3 = x1 + x2";
+  const diagW = USABLE - cw - 16;
+  const colW = Math.floor((diagW - COLGAP) / 2);
+  const c0 = PAD + colW / 2;
+  const c1 = PAD + colW + COLGAP + colW / 2;
+  const boxW = Math.min(colW - 8, 110);
+  const w2 = o.w2;
+  const X2 = branchTwo(w2);
+  const b1w = 8 * BAND, b2w = w2 * BAND, bandH = 4 * BAND;
+  const gapPx = o.kind === "gap" ? Math.round(12 * (1 - (o.t ?? 0))) : 0;
+  /* THE TWO FAILURES ARE AT DIFFERENT PLACES, and that is the page.
+     `add` on unequal widths raises at the merge itself; a merge that succeeds at
+     the wrong width raises one layer later, inside fc3. */
+  const merged = 8 + w2;
+  const addFails = o.merge === "add" && w2 !== 8;
+  const outFeat = o.merge === "concat" ? merged : 8;
+  const fcFails = !addFails && outFeat !== 14;
+  const errAdd = addFails ? torchError.broadcast(8, w2, 1) : null;
+  const errFc = fcFails ? torchError.matmul([4, outFeat], [14, 2]) : null;
+  const errText = errAdd || errFc;
+
+  /* how tall the meeting is */
+  ctx0.font = `${T.fsSm} ${MONO}`;
+  let mergeH;
+  if (o.kind === "box") mergeH = BOX_H + 26 + (errAdd ? wrapCount(errAdd, USABLE) * LINE : 0);
+  else if (o.kind === "digits") mergeH = bandH + 10 + VCH + 26;
+  else if (o.merge === "add") mergeH = errAdd ? 2 * bandH + 8 + wrapCount(errAdd, diagW) * LINE + 12 : 3 * bandH + 20;
+  else mergeH = bandH;
+
+  const diagH = 16 + 26 + BOX_H + EDGE_H + BOX_H + EDGE_H + mergeH + EDGE_H + BOX_H + EDGE_H;
+  const H = 26 + diagH + 10 + 22 + PAD;
+  const { ctx, cand } = panel(host, title, sub, W, H);
+
+  let y = band(ctx, 0, W, `Branching · ${o.merge}`, o.merge === "concat" ? "y = concat(f₁(x), f₂(x))" : "y = f₁(x) + f₂(x)");
+  const top = y;
+  codePanel(ctx, PAD + diagW + 16, top + 26, cw, code, 3);   // the merge line
+
+  const cxAll = PAD + (2 * colW + COLGAP) / 2;
+  txt(ctx, "x  [4, 10]", cxAll, y + 12, { color: T.ink1, align: "center", mono: true });
+  const busY = y + 16 + 12;
+  ctx.strokeStyle = T.groupA; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(cxAll, y + 16); ctx.lineTo(cxAll, busY);
+  ctx.moveTo(c0, busY); ctx.lineTo(c1, busY); ctx.stroke();
+  const boxTop = y + 16 + 26;
+  arrow(ctx, c0, busY, c0, boxTop, T.groupA, 2);
+  arrow(ctx, c1, busY, c1, boxTop, T.groupB, 2);
+
+  const branches = [
+    { cx: c0, hue: T.groupA, name: "fc1", w: 8, out: "x1  [4, 8]" },
+    { cx: c1, hue: T.groupB, name: "fc2", w: w2, out: `x2  [4, ${w2}]` },
+  ];
+  const mergeTop = boxTop + 2 * BOX_H + 2 * EDGE_H;
+  for (const b of branches) {
+    layerBox(ctx, b.cx - boxW / 2, boxTop, boxW, b.name, b.hue);
+    edge(ctx, b.cx, boxTop + BOX_H, boxTop + BOX_H + EDGE_H, `[4, ${b.w}]`, { color: b.hue });
+    layerBox(ctx, b.cx - boxW / 2, boxTop + BOX_H + EDGE_H, boxW, "relu", b.hue);
+    edge(ctx, b.cx, boxTop + 2 * BOX_H + EDGE_H, mergeTop, b.out, { color: b.hue });
+  }
+
+  const mid = (c0 + c1) / 2;
+  let outTop = mergeTop + mergeH;
+  if (o.kind === "box") {
+    outlineBox(ctx, mid - 70, mergeTop, 140, BOX_H, "Merge", T.ink1);
+    if (errAdd) errorText(ctx, PAD, mergeTop + BOX_H + 22, USABLE, errAdd);
+  } else if (o.merge === "add") {
+    const bx = PAD + (diagW - b1w) / 2;
+    const flat1 = B_X1.flat(), flat2 = X2.flat();
+    const hi1 = Math.max(...flat1), hi2 = Math.max(...flat2);
+    shadedBand(ctx, bx, mergeTop, 4, 8, BAND, (r, c) => wash(T.groupA, 0.06 + 0.84 * (B_X1[r][c] / (hi1 || 1))), { litRow: 0 });
+    shadedBand(ctx, PAD + (diagW - b2w) / 2, mergeTop + bandH + 4, 4, w2, BAND,
+      (r, c) => wash(T.groupB, 0.06 + 0.84 * (X2[r][c] / (hi2 || 1))), { litRow: 0 });
+    if (errAdd) {
+      errorText(ctx, PAD, mergeTop + 2 * bandH + 26, diagW, errAdd);
+    } else {
+      const sum = B_X1.map((r, i) => r.map((v, j) => v + X2[i][j]));
+      const hiS = Math.max(...sum.flat());
+      shadedBand(ctx, bx, mergeTop + 2 * bandH + 12, 4, 8, BAND,
+        (r, c) => wash(T.empirical, 0.06 + 0.84 * (sum[r][c] / (hiS || 1))), { litRow: 0 });
+      txt(ctx, "[4, 8]", bx + b1w + 8, mergeTop + 2 * bandH + 12 + bandH / 2,
+        { color: T.empirical, baseline: "middle", mono: true, size: T.fsXs });
+    }
+  } else {
+    /* concat: the two bands slide together, and at the end there is one band */
+    const totalW = b1w + gapPx + b2w;
+    const bx = PAD + (diagW - totalW) / 2;
+    const flat1 = B_X1.flat(), flat2 = X2.flat();
+    const hi1 = Math.max(...flat1), hi2 = Math.max(...flat2);
+    shadedBand(ctx, bx, mergeTop, 4, 8, BAND, (r, c) => wash(T.groupA, 0.06 + 0.84 * (B_X1[r][c] / (hi1 || 1))), { litRow: 0 });
+    shadedBand(ctx, bx + b1w + gapPx, mergeTop, 4, w2, BAND,
+      (r, c) => wash(T.groupB, 0.06 + 0.84 * (X2[r][c] / (hi2 || 1))), { litRow: 0 });
+    txt(ctx, gapPx ? `${gapPx}px still to close` : `[4, ${merged}]`, bx + totalW + 8, mergeTop + bandH / 2,
+      { color: gapPx ? T.ink3 : T.empirical, baseline: "middle", mono: true, size: T.fsXs });
+    if (o.kind === "digits") {
+      const dy = mergeTop + bandH + 10;
+      const row = [...B_X1[0], ...X2[0]];
+      for (let i = 0; i < row.length; i += 1) {
+        valueCell(ctx, PAD + i * VCELL, dy, VCELL, VCH, n2(row[i]),
+          { hue: i < 8 ? T.groupA : T.groupB, size: T.fsXs });
+      }
+      ctx.strokeStyle = T.extreme; ctx.lineWidth = 2; ctx.setLineDash([5, 4]);
+      ctx.beginPath(); ctx.moveTo(PAD + USABLE + 0.5, dy); ctx.lineTo(PAD + USABLE + 0.5, dy + VCH); ctx.stroke();
+      ctx.setLineDash([]);
+      txt(ctx, `sample 0, ${row.length} values at ${VCELL}px = ${row.length * VCELL}px`, PAD, dy + VCH + 14,
+        { color: T.ink3, size: T.fsXs, mono: true });
+    }
+  }
+
+  if (errAdd) {
+    txt(ctx, "fc3 expects 14", mid, outTop + EDGE_H + BOX_H / 2,
+      { color: T.ink3, align: "center", baseline: "middle", mono: true });
+  } else {
+    edge(ctx, mid, outTop, outTop + EDGE_H, `[4, ${outFeat}]`, { color: T.empirical });
+    if (errFc) errorText(ctx, PAD, outTop + EDGE_H + 18, diagW, errFc);
+    else {
+      layerBox(ctx, mid - boxW / 2, outTop + EDGE_H, boxW, "fc3", T.empirical);
+      edge(ctx, mid, outTop + EDGE_H + BOX_H, outTop + 2 * EDGE_H + BOX_H, "[4, 2]", { color: T.empirical });
+    }
+  }
+  caption(ctx, PAD, H - PAD - 4, errAdd
+    ? `The two branches are [4, 8] and [4, ${w2}], so add has nothing to line up.`
+    : errFc
+      ? `${o.merge} on 8 and ${w2} gives ${outFeat} features, and fc3 is Linear(14, 2).`
+      : `${o.merge} on 8 and ${w2} gives ${outFeat} features, which is what fc3 was built for.`);
+  const bandNote = o.kind === "box" ? "no bands drawn" : `bands ${b1w} + ${gapPx} + ${b2w} = ${b1w + gapPx + b2w}px`;
+  const lines2 = errText ? wrapCount(errText, diagW) : 0;
+  note(cand, `code ${cw}px (31 characters) · diagram ${diagW}px · ${bandNote} · ${errText ? `${errAdd ? "broadcast" : "matmul"} error ${Math.ceil(ctx0.measureText(errText).width)}px over ${lines2} line${lines2 === 1 ? "" : "s"} in ${diagW}px` : "no error"} · stage ${H}px tall`);
+  return { H, cw, diagW, errText, errAdd, errFc, errW: errText ? Math.ceil(ctx0.measureText(errText).width) : 0 };
+}
+const ctx0 = document.createElement("canvas").getContext("2d");
+function wrapCount(msg, w) {
+  ctx0.font = `${T.fsSm} ${MONO}`;
+  let n = 1, cur = "";
+  for (const word of msg.split(" ")) {
+    const t = cur ? `${cur} ${word}` : word;
+    if (ctx0.measureText(t).width > w && cur) { n += 1; cur = word; } else cur = t;
+  }
+  return n;
+}
+{
+  const a1 = drawBranch(document.getElementById("s4a"), "A · bands — concat at 8 and 6",
+    "the two bands closed into one 14-column band, sample 0's row lit", { kind: "bands", merge: "concat", w2: 6 });
+  const a2 = drawBranch(document.getElementById("s4a"), "A · bands — add at 8 and 6",
+    "the bands stack, and the error prints where the sum band would be", { kind: "bands", merge: "add", w2: 6 });
+  const a3 = drawBranch(document.getElementById("s4b"), "A · bands — concat at 8 and 8",
+    "16 features, which Linear(14, 2) rejects", { kind: "bands", merge: "concat", w2: 8 });
+  const a4 = drawBranch(document.getElementById("s4b"), "A · bands — add at 8 and 8",
+    "the same shape, so the sum band is drawn and fc3 still expects 14", { kind: "bands", merge: "add", w2: 8 });
+  const b1 = drawBranch(document.getElementById("s4c"), "B · a Merge box, shapes on the edges",
+    "the outlined rectangle of his figure, with the error under it", { kind: "box", merge: "concat", w2: 6 });
+  const b2 = drawBranch(document.getElementById("s4c"), "B · the same at add, 8 and 6",
+    "nothing in the picture changed, and the error is the only difference", { kind: "box", merge: "add", w2: 6 });
+  const c1 = drawBranch(document.getElementById("s4d"), "C · bands plus the digits for sample 0",
+    "fourteen values at the 40px a two-decimal cell needs", { kind: "digits", merge: "concat", w2: 6 });
+  const d1 = drawBranch(document.getElementById("s4d"), "D · the gap closing, at its start",
+    "12px still between the two bands", { kind: "gap", merge: "concat", w2: 6, t: 0 });
+  drawBranch(document.getElementById("s4d"), "D · the gap closing, at its end",
+    "the same two bands, touching, which is one [4, 14]", { kind: "gap", merge: "concat", w2: 6, t: 1 });
+  M.branchErr = a2.errText; M.branchErrW = a2.errW; M.branchErrLines = wrapCount(a2.errText, a2.diagW);
+  M.branchFcErr = a3.errText; M.branchFcLines = wrapCount(a3.errText, a3.diagW);
+  M.branchDiag = a1.diagW; M.branchCode = a1.cw;
+  M.branchA = a1.H; M.branchB = b1.H; M.branchC = c1.H; M.branchD = d1.H;
+  document.getElementById("rec4").innerHTML =
+    `<b>Recommend A, with the error in the band's place.</b> The code column is <b>${a1.cw}px</b> (31 ` +
+    `characters), so the diagram gets ${a1.diagW}px and the bands are <code>96 + 12 + 72 = 180px</code> open ` +
+    `and 168 closed, well inside it. What decides it is what happens when torch raises, and <b>it raises in two ` +
+    `different places</b>: <code>add</code> at 8 and 6 raises at the merge itself, and ` +
+    `<code>concat</code> at 8 and 8 merges fine and raises one layer later inside <code>fc3</code>. The ` +
+    `broadcast message is <b>${a2.errText.length} characters</b>, not the 70 the plan counted — ` +
+    `<b>${a2.errW}px</b>, ${a2.errW - USABLE}px past the whole ${USABLE}px stage — so it wraps either way; ` +
+    `wrapped to the ${a1.diagW}px diagram column it is ${M.branchErrLines} lines, ${M.branchErrLines * LINE}px, ` +
+    `which lands where the 48px sum band would have been. The matmul message is ${a3.errText.length} ` +
+    `characters and ${M.branchFcLines} lines, and it prints under a merge band that is there and correct, ` +
+    `which is the whole difference between the two failures. B draws the same picture at 8 and 6 whether the ` +
+    `merge works or not, so the figure carries none of that. C's digit row is 14 values at ${VCELL}px = ` +
+    `<b>${14 * VCELL}px</b>, ${14 * VCELL - USABLE}px past the stage, and the readout is where those numbers ` +
+    `belong. D is A at two frames of its animation rather than a fourth design, and it is worth keeping as the ` +
+    `proof that a 12px gap reads at 12px. Heights: A ${a1.H}px, B ${b1.H}px, C ${c1.H}px, D ${d1.H}px.`;
+}
+
+/* ============================ §5 · Skip ==================================== */
+const SLOPE = T.slope || T.highlight;      // --c-slope exists in tokens.css:259
+const GRAD = [
+  ["Wᵀ_out", "fc_out"], ["1", "the add"], ["Wᵀ₂", "fc2"], ["f′(x1)", "relu"], ["Wᵀ₁", "fc1"],
+];
+function overlayWidth() {
+  ctx0.font = `${T.fsXs} ${T.font}`;
+  return 26 + 8 + Math.ceil(Math.max(...GRAD.map(([l]) => ctx0.measureText(l).width)));
+}
+/**
+ * ResidualMLP. `width` is what fc2 maps to, `proj` puts a Linear on the skip
+ * path, and `overlay` draws the second set of arrows up the same diagram.
+ */
+function drawSkip(host, title, sub, o) {
+  const code = CODE.skip.map((l, i) => (i === 0 ? l : l.slice(4)));
+  const cw = codeWidth(code);
+  const diagW = USABLE - cw - 16;
+  const ow = o.overlay ? overlayWidth() : 0;
+  const boxW = 130;
+  const cx = PAD + ow + boxW / 2 + 6;
+  const railX = PAD + diagW - 60;
+  const fails = o.width !== 10 && !o.proj;
+  const err = fails ? torchError.broadcast(o.width, 10, 1) : null;
+  const errLines = err ? wrapCount(err, diagW) : 0;
+  const bodyH = 16 + EDGE_H + BOX_H + EDGE_H + BOX_H + EDGE_H + BOX_H + EDGE_H + BOX_H
+    + (fails ? 12 + errLines * LINE : EDGE_H + BOX_H + EDGE_H);
+  const H = 26 + bodyH + 14 + (o.overlay ? 20 : 0) + 22 + PAD;
+  const { ctx, cand } = panel(host, title, sub, W, H);
+
+  let y = band(ctx, 0, W, `Skip · width ${o.width}, projection ${o.proj ? "on" : "off"}`,
+    o.proj ? "y = P(x) + f(x)" : "y = x + f(x)");
+  const top = y;
+  codePanel(ctx, PAD + diagW + 16, top + 20, cw, code, 5);
+
+  const w = o.width;
+  const Y = {};
+  Y.xLab = y; Y.e1 = y + 16; Y.fc1 = Y.e1 + EDGE_H; Y.e2 = Y.fc1 + BOX_H;
+  Y.relu = Y.e2 + EDGE_H; Y.e3 = Y.relu + BOX_H; Y.fc2 = Y.e3 + EDGE_H; Y.e4 = Y.fc2 + BOX_H;
+  Y.plus = Y.e4 + EDGE_H; Y.e5 = Y.plus + BOX_H; Y.fcOut = Y.e5 + EDGE_H; Y.e6 = Y.fcOut + BOX_H;
+
+  txt(ctx, "x", cx, y + 12, { color: T.ink1, align: "center", mono: true });
+  edge(ctx, cx, Y.e1, Y.e1 + EDGE_H, "[4, 10]", { color: T.groupA });
+  layerBox(ctx, cx - boxW / 2, Y.fc1, boxW, "fc1", T.groupA);
+  edge(ctx, cx, Y.e2, Y.e2 + EDGE_H, "[4, 20]", { color: T.groupA });
+  layerBox(ctx, cx - boxW / 2, Y.relu, boxW, "relu", T.groupA);
+  edge(ctx, cx, Y.e3, Y.e3 + EDGE_H, "[4, 20]", { color: T.groupA });
+  layerBox(ctx, cx - boxW / 2, Y.fc2, boxW, "fc2", T.groupA);
+  edge(ctx, cx, Y.e4, Y.e4 + EDGE_H, `x3  [4, ${w}]`, { color: T.empirical });
+  const plusY = Y.plus + 15;
+  plusNode(ctx, cx, plusY, 14, fails ? T.extreme : T.empirical);
+
+  /* the skip elbow, down the right of the figure, both halves of his figure */
+  const teeY = y + 22;
+  elbow(ctx, [[cx, teeY], [railX, teeY], [railX, plusY], [cx + 18, plusY]], o.proj ? T.groupB : T.groupA);
+  const railLabel = (text, yy, color) => {
+    ctx.font = `${T.fsXs} ${MONO}`;
+    const tw = ctx.measureText(text).width;
+    ctx.fillStyle = T.surface;
+    ctx.fillRect(railX - tw / 2 - 4, yy - 9, tw + 8, 14);
+    txt(ctx, text, railX, yy, { color, align: "center", mono: true, size: T.fsXs });
+  };
+  if (o.proj) {
+    layerBox(ctx, railX - 55, Y.relu, 110, "Linear", T.groupB);
+    railLabel("skip  [4, 20]", Y.relu + BOX_H + 16, T.groupB);
+    txt(ctx, "P(x)", railX, Y.relu - 6, { color: T.groupB, align: "center", size: T.fsXs });
+  } else {
+    railLabel("skip  [4, 10]", Y.relu + 4, T.groupA);
+  }
+
+  if (fails) {
+    errorText(ctx, PAD, Y.plus + BOX_H + 20, diagW, err);
+  } else {
+    edge(ctx, cx, Y.e5, Y.e5 + EDGE_H, `out  [4, ${w}]`, { color: T.empirical });
+    layerBox(ctx, cx - boxW / 2, Y.fcOut, boxW, "fc_out", T.empirical);
+    edge(ctx, cx, Y.e6, Y.e6 + EDGE_H, "[4, 2]", { color: T.empirical });
+  }
+
+  /* the overlay: the same edges walked upwards, each carrying its local factor */
+  if (o.overlay && !fails) {
+    const ux = cx - 26;
+    const legs = [[Y.e6, Y.e6 + EDGE_H, "Wᵀ_out"], [Y.e5, Y.e5 + EDGE_H, "1"],
+      [Y.e4, Y.e4 + EDGE_H, "Wᵀ₂"], [Y.e3, Y.e3 + EDGE_H, "f′(x1)"], [Y.e2, Y.e2 + EDGE_H, "Wᵀ₁"],
+      [Y.e1, Y.e1 + EDGE_H, ""]];
+    for (const [a, b, label] of legs) {
+      arrow(ctx, ux, b, ux, a, SLOPE, 1.6, [], 7);
+      if (label) txt(ctx, label, ux - 6, (a + b) / 2 + 1,
+        { color: SLOPE, align: "right", baseline: "middle", size: T.fsXs });
+    }
+    arrow(ctx, railX + 12, plusY, railX + 12, teeY + 4, SLOPE, 1.6, [], 7);
+    txt(ctx, "1", railX + 18, (teeY + plusY) / 2, { color: SLOPE, size: T.fsXs });
+    txt(ctx, "∂y/∂x = 1 + f′(x)", PAD, top + bodyH + 14, { color: SLOPE, mono: true });
+  }
+
+  caption(ctx, PAD, H - PAD - 4, fails
+    ? `f(x) is [4, ${w}] and skip is [4, 10], so the add has nothing to line up.`
+    : o.proj
+      ? `The projection is a Linear(10, ${w}), so both sides of the add are [4, ${w}].`
+      : `f(x) and skip are both [4, ${w}], so the add is elementwise and the block learns the correction.`);
+  note(cand, `code ${cw}px (22 characters) · diagram ${diagW}px · column centre ${Math.round(cx)}px, rail ${railX}px${o.overlay ? ` · overlay adds ${ow}px on the left` : ""} · ${err ? `error ${errLines} lines in ${diagW}px` : "no error"} · body ${bodyH}px · stage ${H}px tall`);
+  return { H, cw, diagW, ow, bodyH, err };
+}
+{
+  const a = drawSkip(document.getElementById("s5a"), "A · overlay off, width 10, projection off",
+    "cell 92 as written: f(x) is [4, 10] and the add works", { width: 10, proj: false, overlay: false });
+  const f = drawSkip(document.getElementById("s5a"), "A · width 20, projection off",
+    "f(x) is [4, 20] against a [4, 10] skip, and torch says so", { width: 20, proj: false, overlay: false });
+  const p = drawSkip(document.getElementById("s5a"), "A · width 20, projection on",
+    "a Linear(10, 20) on the skip path, the right half of his figure", { width: 20, proj: true, overlay: false });
+  const ov = drawSkip(document.getElementById("s5b"), "B · overlay on, width 10, projection off",
+    "the same edges walked upwards, each with its local factor, two arriving at x",
+    { width: 10, proj: false, overlay: true });
+  M.skipCode = a.cw; M.skipDiag = a.diagW; M.skipH = a.H; M.skipOverlayH = ov.H; M.skipOW = ov.ow;
+  document.getElementById("rec5").innerHTML =
+    `<b>Recommend the overlay, off by default.</b> The code column is <b>${a.cw}px</b> (22 characters), the ` +
+    `widest line in either flow page, so the diagram gets <code>522 − 16 − ${a.cw} = ${a.diagW}px</code> and the ` +
+    `code sits beside at 550 as well as at 770. The diagram body is <b>${a.bodyH}px</b> and the stage ` +
+    `<b>${a.H}px</b>. The overlay costs <b>${ov.ow}px on the left</b> — the up-arrow column at 26px plus the ` +
+    `widest factor label — and ${ov.H - a.H}px of height for the <code>∂y/∂x = 1 + f′(x)</code> line, which the ` +
+    `${a.diagW}px diagram can pay: the column centre moves from ${Math.round(PAD + 0 + 130 / 2 + 6)}px to ` +
+    `${Math.round(PAD + ov.ow + 130 / 2 + 6)}px and the skip rail does not move at all. The failing state is ` +
+    `worth its own press: at <code>width 20</code> with the projection off the message wraps to ` +
+    `${wrapCount(f.err, a.diagW)} lines in the diagram column, and turning the projection on puts a ` +
+    `<code>Linear</code> in <code>--c-group-b</code> on the rail and the add works, which is the two halves of ` +
+    `<code>dl-flow-skip.png</code> as one control.`;
+}
+
+/* ============================ §6 · Dimensions ============================== */
+/** The image chain of cell 88, with the rule under the size about to change. */
+function drawDimensions(host, title, sub, o) {
+  const SW = o.stageW;
+  const usable = SW - 2 * PAD;
+  const cx = PAD + usable / 2;
+  const BW = 180;
+  const lastBox = o.fits ? "Linear(3600, 10)" : "Linear(100, 10)";
+  const err = o.fits ? null : torchError.matmul([4, 3600], [100, 10]);
+  const errLines = err ? wrapCount(err, usable) : 0;
+  const steps = [
+    { box: "Conv2d(3, 16, 3)", out: "[4, 16, 30, 30]", hue: T.groupB },
+    { box: "MaxPool2d(2)", out: "[4, 16, 15, 15]", hue: T.groupB },
+    { box: "Flatten", out: "[4, 3600]", hue: T.ink2 },
+    { box: lastBox, out: "[4, 10]", hue: T.empirical },
+  ];
+  const bodyH = 16 + 22 + 4 * BOX_H + 3 * EDGE_H + (err ? 12 + errLines * LINE : EDGE_H);
+  const H = 26 + bodyH + 10 + 18 + 20 + PAD;
+  const { ctx, cand } = panel(host, title, sub, SW, H);
+
+  let y = band(ctx, 0, SW, "Dimensions", "each layer's output shape is the next one's input shape");
+  const top = y;
+  /* the rules mark the part of the shape the NEXT layer changes, in the
+     dimension's own hue, counted from the last — on the rule, never on the text */
+  const IN = "x  [4, 3, 32, 32]";
+  txt(ctx, IN, cx, y + 12, { color: T.ink1, align: "center", mono: true });
+  ctx.font = `${T.fsSm} ${MONO}`;
+  const inW = ctx.measureText(IN).width;
+  ctx.fillStyle = T.dims[2];
+  ctx.fillRect(cx - inW / 2 + 7 * MONOCH, y + 16, MONOCH, 2);
+  ctx.fillStyle = T.dims[0];
+  ctx.fillRect(cx - inW / 2 + 10 * MONOCH, y + 16, 6 * MONOCH, 2);
+  let cy = y + 16 + 6;
+  arrow(ctx, cx, cy, cx, cy + 16, T.groupA, 2);
+  cy += 16;
+  const RULES = [
+    [8, 14, T.dims[0]],        // MaxPool2d changes the two spatial sizes
+    [4, 14, T.dims[0]],        // Flatten collapses everything after the batch
+    [4, 8, T.dims[0]],         // Linear changes the feature count
+    null,
+  ];
+  steps.forEach((s, i) => {
+    layerBox(ctx, cx - BW / 2, cy, BW, s.box, s.hue, { lit: !o.fits && i === 3 });
+    cy += BOX_H;
+    if (i === 3 && err) {
+      errorText(ctx, PAD, cy + 24, usable, err);
+      cy += 12 + errLines * LINE;
+      return;
+    }
+    const r = RULES[i];
+    edge(ctx, cx, cy, cy + EDGE_H, s.out, { color: i === 3 ? T.empirical : T.groupB });
+    if (r) {
+      ctx.font = `${T.fsSm} ${MONO}`;
+      const tw = ctx.measureText(s.out).width;
+      ctx.fillStyle = r[2];
+      ctx.fillRect(cx - tw / 2 + r[0] * MONOCH, cy + EDGE_H / 2 + 9, (r[1] - r[0]) * MONOCH, 2);
+    }
+    cy += EDGE_H;
+  });
+  txt(ctx, `⌊(32 + 2·0 − 3) / 1⌋ + 1 = ${outSize(32, 3, 1)}    ⌊(30 − 2) / 2⌋ + 1 = ${outSize(30, 2, 2)}`,
+    PAD, top + bodyH + 16, { color: T.ink2, mono: true });
+  caption(ctx, PAD, H - PAD - 4, o.fits
+    ? "Flatten turns 16 × 15 × 15 into 3600, and the Linear has to be told that number."
+    : "Flatten gives 3600 features and this Linear was told 100, so the multiply has nothing to match.");
+  if (!o.bare) note(cand, `stage ${SW} · boxes ${BW} × ${BOX_H} · body ${bodyH}px · ${err ? `error ${Math.ceil(ctx.measureText(err).width)}px over ${errLines} line${errLines === 1 ? "" : "s"} in ${usable}px` : "no error"} · stage ${H}px tall`);
+  return { H, bodyH };
+}
+{
+  /* the three rail forms, measured rather than estimated */
+  const LAYERS_FULL = ["Conv2d(3, 16, 3)", "MaxPool2d(2)", "Flatten", "Linear(3600, 10)", "Linear(100, 10)", "BatchNorm2d(16)"];
+  const LAYERS_SHORT = ["Conv2d", "MaxPool2d", "Flatten", "Linear", "BatchNorm2d"];
+  const CHOSEN_FULL = ["Conv2d(3, 16, 3)", "MaxPool2d(2)", "Flatten", "Linear(3600, 10)"];
+  const CHOSEN_SHORT = ["Conv2d", "MaxPool2d", "Flatten", "Linear"];
+  const SLOTNAMES = ["step 1", "step 2", "step 3", "step 4"];
+  const exprRail = (opts, chosen) => {
+    const rail = el("div", "rail-solo");
+    const f = el("div", "w-field w-expr-field");
+    const cap = el("span", "w-label", "Chain");
+    f.appendChild(cap);
+    const line = el("div", "w-expr");
+    line.setAttribute("role", "group");
+    chosen.forEach((v, i) => {
+      if (i > 0) line.appendChild(el("span", "w-expr-text", "→"));
+      const slot = el("span", "w-expr-slot");
+      const sel = el("span", "w-expr-sel");
+      const s = el("select");
+      for (const opt of opts) { const oEl = el("option", null, opt); oEl.value = opt; s.appendChild(oEl); }
+      s.value = v;
+      sel.appendChild(s); slot.appendChild(sel);
+      slot.appendChild(el("span", "w-expr-name", SLOTNAMES[i]));
+      line.appendChild(slot);
+    });
+    f.appendChild(line);
+    rail.appendChild(f);
+    return { rail, f, line };
+  };
+  const selectRail = (opts, chosen) => {
+    const rail = el("div", "rail-solo");
+    const controls = el("div", "w-controls");
+    chosen.forEach((v, i) => {
+      const f = field(SLOTNAMES[i].replace("step", "Step"), i === 0 ? "the layers the data type allows" : "");
+      const s = el("select");
+      for (const opt of opts) { const oEl = el("option", null, opt); oEl.value = opt; s.appendChild(oEl); }
+      s.value = v;
+      put(f, s);
+      controls.appendChild(f);
+    });
+    rail.appendChild(controls);
+    return { rail, f: controls };
+  };
+
+  const mk = (title, sub, built, detail) => {
+    const c = el("div", "cand");
+    c.innerHTML = `<h3>${title}</h3><p class="sub">${sub}</p>`;
+    if (detail) { const d = el("p", "w-detail", detail); built.rail.firstChild.appendChild(d); }
+    c.appendChild(built.rail);
+    document.getElementById("s6a").appendChild(c);
+    return c;
+  };
+  const A = exprRail(LAYERS_FULL, CHOSEN_FULL);
+  const cA = mk("A · the expr line at the full face", "Conv2d(3, 16, 3) is 16 characters in a --fs-md mono select", A,
+    "the menu holds layers that do not fit the step before them.");
+  const B = exprRail(LAYERS_SHORT, CHOSEN_SHORT);
+  const cB = mk("B · the expr line at the class name alone",
+    "the arguments are fixed by data and carried in the detail", B,
+    "vectors, sequence and image each fix the arguments; the chain chooses the layers.");
+  const C = selectRail(LAYERS_FULL, CHOSEN_FULL);
+  const cC = mk("C · four labelled select fields", "one field a step, the shell's own w-field", C);
+
+  drawDimensions(document.getElementById("s6b"), "the Dimensions stage at 550 — the chain that fits",
+    "boxes 180 × 30, the rule under the size the next layer changes", { stageW: W, fits: true });
+  drawDimensions(document.getElementById("s6b"), "the Dimensions stage at 550 — Linear(100, 10) after Flatten",
+    "the menu holds layers that do not fit, which is the page", { stageW: W, fits: false });
+
+  const measureExpr = () => {
+    document.querySelectorAll(".expr-measure").forEach((n) => n.remove());
+    /* the LINE and the FIELD are different numbers: the field carries the label
+       and the detail sentence, and a longer sentence is not a wider control. */
+    const lines = (built) =>
+      new Set([...built.line.querySelectorAll(".w-expr-slot")].map((sl) => Math.round(sl.offsetTop))).size;
+    const lineH = (built) => Math.round(built.line.getBoundingClientRect().height);
+    const selW = (built) => Math.round(built.line.querySelector("select").getBoundingClientRect().width);
+    const hA = Math.round(A.f.getBoundingClientRect().height);
+    const hB = Math.round(B.f.getBoundingClientRect().height);
+    const hC = Math.round(C.f.getBoundingClientRect().height);
+    const lA = lines(A), lB = lines(B);
+    const en = (host, str) => { note(host, str); host.lastChild.classList.add("expr-measure"); };
+    en(cA, `field ${hA}px · expr line ${lineH(A)}px · select ${selW(A)}px · four slots wrap to ${lA} line${lA === 1 ? "" : "s"}`);
+    en(cB, `field ${hB}px · expr line ${lineH(B)}px · select ${selW(B)}px · four slots wrap to ${lB} line${lB === 1 ? "" : "s"}`);
+    en(cC, `field ${hC}px · four fields, one a line · select ${Math.round(C.f.querySelector("select").getBoundingClientRect().width)}px`);
+    M.exprA = hA; M.exprB = hB; M.exprC = hC; M.exprLinesA = lA; M.exprLinesB = lB;
+    M.exprLineA = lineH(A); M.exprLineB = lineH(B); M.exprSelA = selW(A); M.exprSelB = selW(B);
+    const dim = M.dimStage;
+    document.getElementById("rec6").innerHTML =
+      `<b>Recommend A, the full face.</b> Measured at the real 300px, the plan's worry does not happen: four ` +
+      `slots at <code>Conv2d(3, 16, 3)</code> wrap to <b>${lA} lines, not four</b>, the expr line is ` +
+      `<b>${lineH(A)}px</b> and the whole field <b>${hA}px</b> — not the 150px of rail the plan estimated. ` +
+      `Shortening the faces to the class name buys nothing: B's line is ${lineH(B)}px at ${lB} lines, the same ` +
+      `two rows, because a select is ${selW(B)}px against A's ${selW(A)}px and three on one 300px row needs ` +
+      `about 85px each. B's field reads ${hB}px only because its detail sentence is a line longer. ` +
+      `<b>What settles it is the losing state.</b> The chain that fails is ` +
+      `<code>Flatten → Linear(100, 10)</code> against <code>Flatten → Linear(3600, 10)</code>, and at the class ` +
+      `name alone both slots read <code>Linear</code>, so the reader cannot see in the rail what they just ` +
+      `changed. C, four labelled fields, is <b>${hC}px</b>, ${hC - hA}px more than A, and it loses the one ` +
+      `thing the expr line is for, which is that the four steps are one expression read left to right. The ` +
+      `Dimensions stage is ${dim}px, so A's rail sits ${dim - hA}px inside it.`;
+  };
+  measureExpr();
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(measureExpr);
+}
+/* ============================ §7 · Ordering ================================ */
+/** The Subunit view: the generic boxes down a 240px column, the block's own
+    class names beside them, and print(block) in the column to the right. */
+function drawSubunit(host, title, sub, o) {
+  const DIAGC = 240, BW = 150, PRINTC = 260, EH = 26;
+  const blk = BLOCKS[o.block];
+  let steps = blk.steps;
+  if (o.fold && o.block === "transformer") {
+    /* folding the two Linears into one Transform box also folds away the
+       [4, 80] between them, which is the only shape the page had to show */
+    steps = [["Transform", "Linear → Linear", "[4, 20]"], ["Activate", "GELU", "[4, 20]"],
+      ["Regularize", "Dropout", "[4, 20]"], ["Normalize", "LayerNorm", "[4, 20]"]];
+  }
+  const n = steps.length;
+  const lines = BLOCK_PRINT[o.block];
+  const printW = codeWidth(lines);
+  const bodyH = 16 + n * (BOX_H + EH) + EH;
+  const H = 26 + bodyH + (o.printUnder ? 16 + lines.length * LINE : 0) + 12 + 20 + PAD;
+  const { ctx, cand } = panel(host, title, sub, W, H);
+
+  let y = band(ctx, 0, W, `Ordering · ${blk.label}`, "Transform → Normalize → Activate → Regularize");
+  const top = y;
+  const cx = PAD + BW / 2;
+  const inShape = blk.in;
+  txt(ctx, "x", cx, y + 12, { color: T.ink1, align: "center", mono: true });
+  let cy = y + 16;
+  let prev = inShape;
+  let changed = 0;
+  steps.forEach(([generic, cls, out], i) => {
+    const isTransform = generic === "Transform";
+    edge(ctx, cx, cy, cy + EH, prev, { color: i === 0 ? T.groupA : T.empirical, size: T.fsXs });
+    cy += EH;
+    layerBox(ctx, PAD, cy, BW, generic, isTransform ? T.groupA : T.empirical);
+    txt(ctx, cls, PAD + BW + 8, cy + BOX_H / 2 + 0.5,
+      { color: T.ink2, baseline: "middle", mono: true, size: T.fsXs });
+    cy += BOX_H;
+    if (out !== prev) changed += 1;
+    prev = out;
+  });
+  edge(ctx, cx, cy, cy + EH, prev, { color: T.empirical, size: T.fsXs });
+  if (o.printUnder) {
+    printLines(ctx, PAD, top + bodyH + 26, lines, T.ink2);
+  } else {
+    printLines(ctx, PAD + DIAGC + 16, top + 26, lines, T.ink2);
+    /* where the reserved 260px column ends, and where the print actually does */
+    ctx.strokeStyle = T.extreme; ctx.lineWidth = 2; ctx.setLineDash([5, 4]);
+    ctx.beginPath();
+    ctx.moveTo(PAD + DIAGC + 16 + PRINTC + 0.5, top + 20);
+    ctx.lineTo(PAD + DIAGC + 16 + PRINTC + 0.5, top + 26 + lines.length * LINE);
+    ctx.stroke(); ctx.setLineDash([]);
+  }
+  caption(ctx, PAD, H - PAD - 4, changed === 0
+    ? `Nothing here changes the shape: this Conv2d has padding 1, so ${inShape} goes through as it is.`
+    : `${changed} of the ${n} steps change the shape, and ${changed === 1 ? "it is a Transform" : "both are Transforms"}.`);
+  const rightEdge = o.printUnder ? PAD + printW : PAD + DIAGC + 16 + printW;
+  note(cand, `diagram column ${DIAGC}px, box ${BW} × ${BOX_H} · print ${printW}px (${Math.max(...lines.map((l) => l.length))} characters) against the ${PRINTC}px the plan reserved · right edge ${rightEdge} of ${W - PAD} · ${n} boxes · stage ${H}px tall`);
+  return { H, printW, n, rightEdge };
+}
+/** The Combination view of dl-compose-combo.png: three dashed groups. */
+function drawCombination(host, title, sub) {
+  const GROUPS = [
+    ["Convolutional", "Pooling"],
+    ["Embedding", "Recurrent", "or", "Attention"],
+    ["Linear", "Activation"],
+  ];
+  const NOTES = ["local features, then a coarser summary", "tokens to vectors, then related across the sequence", "a linear map, then a non-linearity"];
+  const gw = Math.floor((USABLE - 2 * GAP) / 3);
+  const bw = gw - 20;
+  const rowsOf = (g) => g.length;
+  const maxRows = Math.max(...GROUPS.map(rowsOf));
+  const groupH = 14 + maxRows * (BOX_H + 8) + 6;
+  const H = 26 + groupH + 40 + PAD;
+  const { ctx, cand } = panel(host, title, sub, W, H);
+  const y = band(ctx, 0, W, "Ordering · combinations", "layers that are used as a unit");
+  GROUPS.forEach((g, i) => {
+    const gx = PAD + i * (gw + GAP);
+    ctx.strokeStyle = T.ink3; ctx.lineWidth = 2; ctx.setLineDash([5, 4]);
+    ctx.strokeRect(gx + 1, y + 1, gw - 2, groupH - 2);
+    ctx.setLineDash([]);
+    let by = y + 12;
+    for (const label of g) {
+      if (label === "or") {
+        txt(ctx, "or", gx + gw / 2, by + 14, { color: T.ink3, align: "center", size: T.fsXs });
+        by += BOX_H + 8;
+        continue;
+      }
+      layerBox(ctx, gx + 10, by, bw, label, i === 1 && label === "Embedding" ? T.groupB : T.groupA);
+      by += BOX_H + 8;
+    }
+    txt(ctx, NOTES[i], gx + 2, y + groupH + 16, { color: T.ink3, size: T.fsXs });
+  });
+  note(cand, `group ${gw}px, box ${bw} × ${BOX_H} · three groups plus two ${GAP}px gaps = ${3 * gw + 2 * GAP}px of ${USABLE} · stage ${H}px tall`);
+  return { H, gw };
+}
+{
+  const t5 = drawSubunit(document.getElementById("s7a"), "A · the box count follows the block — transformer, five boxes",
+    "cell 62's feed-forward path: Linear → GELU → Linear → Dropout → LayerNorm", { block: "transformer" });
+  const r3 = drawSubunit(document.getElementById("s7a"), "A · the same rule at ResNet, three boxes",
+    "Conv → BatchNorm → ReLU, and no Regularize step exists", { block: "resnet" });
+  const t4 = drawSubunit(document.getElementById("s7b"), "B · always four boxes — the second Linear folded into Transform",
+    "the option would be named transformer (feed-forward)", { block: "transformer", fold: true });
+  const m4 = drawSubunit(document.getElementById("s7b"), "the MLP block, four boxes either way",
+    "Linear → BatchNorm → ReLU → Dropout, the case both candidates agree on", { block: "mlp" });
+  const u5 = drawSubunit(document.getElementById("s7b"), "the print under the diagram, transformer",
+    "the same five boxes, with print(block) below at the full width", { block: "transformer", printUnder: true });
+  const comb = drawCombination(document.getElementById("s7c"), "the Combination view at 550",
+    "three dashed groups, drawn once because the page holds two views");
+  M.sub5 = t5.H; M.sub4 = t4.H; M.sub3 = r3.H; M.subPrint = t5.printW; M.combH = comb.H;
+  M.subUnder = u5.H; M.subRight = t5.rightEdge;
+  document.getElementById("rec7").innerHTML =
+    `<b>Recommend A, the box count follows the block, with the print under the diagram.</b> Five boxes is ` +
+    `<b>${t5.H}px</b>, four is <b>${t4.H}px</b> and three is <b>${r3.H}px</b>, so switching <code>block</code> ` +
+    `moves the stage by ${t5.H - r3.H}px and a height reserved at the tallest case absorbs it. Folding the ` +
+    `transformer's second <code>Linear</code> into one Transform box prints <code>Linear → Linear</code> ` +
+    `inside a box labelled Transform, and cell 62's own point is that the feed-forward path has five steps and ` +
+    `the CNN path has three: A draws what the block is, B draws the template and then contradicts itself beside ` +
+    `the box. Folding also folds away the <code>[4, 80]</code> between the two Linears, which is the only shape ` +
+    `in that block that changes at all. <b>The plan's print column is wrong and the mock corrects it.</b> Its widest line was taken to be ` +
+    `<code>  (3): Dropout(p=0.5, inplace=False)</code> at 36 characters, but <code>nn.Sequential</code> prints a ` +
+    `<code>Linear</code> as 57 characters (<b>${t5.printW}px</b>) and the ResNet block's <code>Conv2d</code> as ` +
+    `72 (<b>${r3.printW}px</b>), against the 260px reserved. Beside the 240px diagram the print's right edge is ` +
+    `${t5.rightEdge}px and ${r3.rightEdge}px against a usable ${USABLE + PAD}, which the dashed rule marks. ` +
+    `Under the diagram it fits at the full ${USABLE}px and the stage becomes <b>${u5.H}px</b>, ` +
+    `${u5.H - t5.H}px more, which is the same fit pass Routing and Building already run. The Combination view ` +
+    `is ${comb.H}px at three groups of ${comb.gw}px, so both views sit inside one page height.`;
+}
+
+/* ============================ §8 · Building ================================ */
+/** MLP1 and MLP2 over the same diagram. `beside` puts the print to the right. */
+function drawBuilding(host, title, sub, o) {
+  const SW = o.stageW;
+  const usable = SW - 2 * PAD;
+  const lines = o.summary ? SUMMARY : o.style === "learnable" ? PRINT_MLP2 : PRINT_MLP1;
+  const pw = codeWidth(lines);
+  const BW = 150;
+  const diagW = o.beside ? usable - pw - 16 : usable;
+  const cx = PAD + diagW / 2;
+  const bodyH = 16 + 4 * EDGE_H + 3 * BOX_H;
+  const printH = lines.length * LINE;
+  const H = 26 + Math.max(bodyH, o.beside ? printH + 20 : 0) + (o.beside ? 0 : 16 + printH) + 34 + 20 + PAD;
+  const { ctx, cand } = panel(host, title, sub, SW, H);
+
+  let y = band(ctx, 0, SW, `Building · ${o.style === "learnable" ? "MLP2, learnable layers only" : "MLP1, all layers"}`,
+    o.summary ? "summary(model, input_size=(10,))" : "print(model)");
+  const top = y;
+  txt(ctx, "x", cx, y + 12, { color: T.ink1, align: "center", mono: true });
+  let cy = y + 16;
+  const boxes = [["fc1", T.groupA, "[4, 20]"], ["relu", T.groupA, "[4, 20]"], ["fc2", T.empirical, "[4, 2]"]];
+  edge(ctx, cx, cy, cy + EDGE_H, "[4, 10]", { color: T.groupA });
+  cy += EDGE_H;
+  boxes.forEach(([label, hue, out]) => {
+    layerBox(ctx, cx - BW / 2, cy, BW, label, hue);
+    cy += BOX_H;
+    edge(ctx, cx, cy, cy + EDGE_H, out, { color: hue });
+    cy += EDGE_H;
+  });
+  if (o.beside) {
+    printLines(ctx, PAD + diagW + 16, top + 20, lines, T.ink2);
+    if (diagW < BW) {
+      ctx.strokeStyle = T.extreme; ctx.lineWidth = 2; ctx.setLineDash([5, 4]);
+      ctx.beginPath(); ctx.moveTo(PAD + diagW + 0.5, top); ctx.lineTo(PAD + diagW + 0.5, top + bodyH); ctx.stroke();
+      ctx.setLineDash([]);
+      txt(ctx, `${diagW}px of diagram`, PAD + diagW - 6, top + bodyH - 4,
+        { color: T.extreme, align: "right", size: T.fsXs });
+    }
+  } else printLines(ctx, PAD, top + bodyH + 24, lines, T.ink2);
+
+  /* the readout tiles, which are where the page's whole argument sits */
+  const ry = H - PAD - 46;
+  /* COUNTED FROM THE PRINT AND THE FORWARD, not asserted: MLP1 declares fc1,
+     relu and fc2 and prints three; MLP2 declares two and calls F.relu, so it
+     prints two and still runs three. The plan's tiles said 3 and 4. */
+  const printed = o.style === "learnable" ? 2 : 3;
+  const tiles = [["Layers printed", String(printed)], ["Layers run", "3"],
+    ["Parameters", "262"], ["Output", "[4, 2]"]];
+  const tw = Math.floor((usable - 3 * 8) / 4);
+  tiles.forEach(([label, v], i) => {
+    const tx = PAD + i * (tw + 8);
+    ctx.fillStyle = wash(i === 0 ? T.highlight : T.empirical, i === 0 ? 0.16 : 0.08);
+    ctx.fillRect(tx, ry, tw, 34);
+    ctx.strokeStyle = i === 0 ? T.highlight : T.axis; ctx.lineWidth = i === 0 ? 2 : 1;
+    ctx.strokeRect(tx + 0.5, ry + 0.5, tw - 1, 33);
+    txt(ctx, label, tx + 8, ry + 13, { color: T.ink3, size: T.fsXs });
+    txt(ctx, v, tx + 8, ry + 28, { color: T.ink1, mono: true, weight: "600" });
+  });
+  caption(ctx, PAD, H - PAD - 2, o.summary
+    ? "The same model, printed a second way, and the activation is a row here as well."
+    : o.style === "learnable"
+      ? "F.relu is called in forward and is not a submodule, so it is not in the print."
+      : "Every layer was declared in __init__, so every layer is in the print.");
+  note(cand, `stage ${SW} · print ${pw}px (${Math.max(...lines.map((l) => l.length))} characters), ${lines.length} lines · layers printed ${printed}, run 3 · diagram ${o.beside ? `${diagW}px available, ${BW}px needed for a box` : `${diagW}px`} · stage ${H}px tall`);
+  return { H, pw, diagW };
+}
+{
+  const a1 = drawBuilding(document.getElementById("s8a"), "MLP1 at 550, print under the diagram",
+    "cell 72: fc1, relu and fc2 all declared in __init__", { stageW: W, style: "all", beside: false });
+  const a2 = drawBuilding(document.getElementById("s8a"), "MLP2 at 550, print under the diagram",
+    "cell 74: the same computation, one line fewer in the print", { stageW: W, style: "learnable", beside: false });
+  const b1 = drawBuilding(document.getElementById("s8b"), "MLP1 at 770, print beside the diagram",
+    "the wide frame, where what the print leaves is room for a 150px box", { stageW: WIDE, style: "all", beside: true });
+  const b2 = drawBuilding(document.getElementById("s8b"), "MLP1 at 550, print beside — the state that does not fit",
+    "the diagram gets 108px and a box needs 150", { stageW: W, style: "all", beside: true });
+  const c1 = drawBuilding(document.getElementById("s8c"), "summary() under the diagram at 550",
+    "cell 80's table, 64 columns", { stageW: W, style: "all", beside: false, summary: true });
+  M.printW = a1.pw; M.buildUnder = a1.H; M.buildBeside770 = b1.H; M.summaryW = c1.pw;
+  M.buildBeside550 = b2.diagW;
+  document.getElementById("rec8").innerHTML =
+    `<b>Recommend print under at 550 and beside at 770.</b> The print column's widest line, ` +
+    `<code>  (fc1): Linear(in_features=10, out_features=20, bias=True)</code>, is 59 characters and ` +
+    `<b>${a1.pw}px</b>. Beside at 550 that leaves <code>522 − ${a1.pw} − 16 = ${b2.diagW}px</code>, and a ` +
+    `150px layer box does not fit in it — the second panel of the wide row is what that looks like. Beside at ` +
+    `770 it leaves ${USABLE_WIDE - a1.pw - 16}px, which does. Under at 550 the stage is <b>${a1.H}px</b> and ` +
+    `beside at 770 it is <b>${b1.H}px</b>. Two prints side by side would be ${2 * a1.pw + GAP}px against ` +
+    `${USABLE_WIDE} at the wide frame, so <b>MLP1 against MLP2 is a control the reader flips, not two panels</b> ` +
+    `— which is better anyway, because the diagram underneath has to be seen not to move. It does not: ` +
+    `${a1.H === a2.H ? "both stages are the same height" : `MLP2's stage is ${a1.H - a2.H}px shorter, entirely in the print`}, ` +
+    `the shapes on the four edges are identical, and only <code>Layers printed</code> changes. <b>The plan's ` +
+    `tiles are wrong and the mock corrects them:</b> MLP1 declares <code>fc1</code>, <code>relu</code> and ` +
+    `<code>fc2</code> and prints <b>three</b>, MLP2 declares two and prints <b>two</b>, and both run three, so ` +
+    `the pair is 3 and 2 against a <code>Layers run</code> that stays at 3 — not the 3 and 4 the plan ` +
+    `states. Cell 80's <code>summary()</code> is ${c1.pw}px at 64 ` +
+    `columns, so it fits under the diagram at 550 with ${USABLE - c1.pw}px to spare and is a display option ` +
+    `rather than a page.`;
+}
+
+/* ============================ what the mock proves =========================
+   Built once synchronously and again once the fonts have loaded, because every
+   rail number here is a DOM measurement and the fallback face is not the shipped
+   one. Without the second pass this list and the recommendations above disagree
+   by a few pixels, which reads as one of them being wrong. */
+function renderProof() {
+  const ul = document.getElementById("proof");
+  ul.textContent = "";
+  const items = [
+    `One mono character at <code>--fs-sm</code> measures <b>${MONOCH.toFixed(2)}px</b> on this browser, against ` +
+    `the 6.75 the plan derived and the 7.2 it was conservative about. Every width below is a multiple of it.`,
+    `<b>The seven-name rail needs the grid.</b> A button in two columns is ${M.btnW}px against ` +
+    `<code>Branching</code>'s ${M.widestLabel} + 12 = ${M.widestLabel + 12}px; one row of four would give ` +
+    `${M.rowOf4}px and one row of seven ${Math.round((300 - 24) / 7)}px, so a single row would have to rename ` +
+    `the faces. The two heads cost ${M.railA - M.railB}px.`,
+    `<b>Routing does not fit beside at 550.</b> The code is ${M.routeCode}px, four columns need at least ` +
+    `${M.routeMinDiag}px, and beside leaves ${M.routeRoomy550}px. Under at 550 the stage is ${M.route550}px and ` +
+    `beside at 770 it is ${M.route770}px, a ${M.route550 - M.route770}px difference that is exactly the code's ` +
+    `own height.`,
+    `<b>Gating's slack is ${M.gateSlack}px</b>, not the plan's 21: <code>522 − 16 − ${M.gateCode} − 240</code>. ` +
+    `One band fits on the edge and two do not, since two are 502px against a ${M.gateDiag}px diagram. A full ` +
+    `value grid is 800px, ${800 - USABLE}px past the stage.`,
+    `<b>The broadcast message is ${M.branchErr.length} characters, not 70</b> — ${M.branchErrW}px, which is ` +
+    `${M.branchErrW - USABLE}px past the whole stage. Wrapped to the ${M.branchDiag}px diagram column it is ` +
+    `${M.branchErrLines} lines, ${M.branchErrLines * LINE}px, so it lands where the 48px sum band would have ` +
+    `been. The two failures are in different places: <code>add</code> at 8 and 6 raises at the merge, and ` +
+    `<code>concat</code> at 8 and 8 merges and raises inside <code>fc3</code> (${M.branchFcErr.length} ` +
+    `characters, ${M.branchFcLines} lines).`,
+    `<b>The residual overlay costs ${M.skipOW}px of width and ${M.skipOverlayH - M.skipH}px of height.</b> Skip's ` +
+    `code column is ${M.skipCode}px, so the diagram keeps ${M.skipDiag}px at 550 and the overlay is paid out of ` +
+    `slack the page already had.`,
+    `<b>Four <code>expr</code> slots at the full face wrap to ${M.exprLinesA} lines, not four</b>, the line is ` +
+    `${M.exprLineA}px and the field ${M.exprA}px, against the plan's estimate of 150px of rail. Shortening the ` +
+    `faces changes neither: ${M.exprLinesB} lines and ${M.exprLineB}px, since a select goes from ${M.exprSelA}px ` +
+    `to ${M.exprSelB}px and three still do not fit a 300px row. Four labelled fields are ${M.exprC}px.`,
+    `<b>Ordering's print column is not 260px.</b> The plan's widest line, ` +
+    `<code>  (3): Dropout(p=0.5, inplace=False)</code>, is 36 characters, but a <code>Linear</code> line is 57 ` +
+    `(${M.subPrint}px) and the ResNet block's <code>Conv2d</code> line is 72, so beside a 240px diagram the ` +
+    `print's right edge is ${M.subRight}px against a usable ${USABLE + PAD}. Under the diagram it fits and the ` +
+    `stage is ${M.subUnder}px. The Subunit view itself is ${M.sub3}px at three boxes, ${M.sub4}px at four and ` +
+    `${M.sub5}px at five.`,
+    `<b>Building's print is ${M.printW}px at 59 characters</b>, so beside at 550 leaves ${M.buildBeside550}px ` +
+    `against the 150px a box needs, and the fit pass is under at 550 (${M.buildUnder}px) and beside at 770 ` +
+    `(${M.buildBeside770}px). <code>summary()</code> is ${M.summaryW}px and fits under at 550.`,
+    `<b>Three pages run the same fit pass</b> — Routing, Ordering and Building all put their text column ` +
+    `under the diagram at 550 and beside it at 770 — and Skip, Gating and Branching all keep theirs beside ` +
+    `at both widths. Dimensions has no text column at all, and it is the shortest stage in the widget at ` +
+    `${M.dimStage}px.`,
+    `<b>Two constants already corrected in the catalogue, confirmed here by drawing:</b> the usable width at 770 ` +
+    `is 742, and the Routing line is 53 characters.`,
+  ];
+  for (const s of items) {
+    const li = document.createElement("li");
+    li.innerHTML = s;
+    ul.appendChild(li);
+  }
+}
+renderProof();
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(renderProof);
+</script>
+</body>
+</html>
