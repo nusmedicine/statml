@@ -126,6 +126,31 @@
        This node tile writes the aggregation out at the first feature, so the
        printed input, the coefficients on the arcs and the printed output are
        one line of arithmetic.
+
+   ROUND 2 OF KENNETH'S REVIEW (2026-09-10) — the Recurrent page:
+
+   15. THE RECURRENT PAGE DRAWS THE LOOP UNROLLED, AS A DIAGRAM BAND ABOVE THE
+       VALUES ("for RNN, possible to show a diagram about or somehow show the
+       unrolled loop?"). `_lab/processing-layers-rnn.html` drew three options
+       at the 550 stage — the edges added to the value rows, his own
+       `figs/dl-layer-rnn-bi.png` as a strip above them, and the rolled cell
+       beside the unrolled chain — and Kenneth picked B (2026-09-10). ITS
+       GEOMETRY IS THE MOCK'S: `x¹…x⁵` as circles, `h¹…h⁵` as rounded boxes in
+       a Forward row and, bidirectional, a Reverse row, and the Output box the
+       two passes end in. THE REASON IT IS B IS THE ALIGNMENT — the diagram's
+       columns sit on the value columns' own centres at the same pitch, so h³
+       in the diagram is directly above the three numbers of h³ below, and a
+       reader moving from one to the other moves straight down. So the columns
+       are arithmetic in `model.js`'s `rnnStage` rather than two coincidences
+       in the drawing, the verify script asserts the two agree at 550 and 770,
+       and the stage scale moved there with them: `main.js` calls
+       `defineWidget` at module scope and cannot be imported in node. The
+       diagram band binds the page's width — 522 of the 522 available at 550,
+       at the Output box's right edge — so if anything has to give it is the
+       arrow into that box, never the pitch the alignment rests on. The band
+       carries one caption line because the box and the row below it mean
+       different things: `o→` and `o←` are the last state each pass reaches,
+       while the Output row is y_t at every step.
    ========================================================================= */
 
 import {
@@ -144,18 +169,15 @@ function measureCtx() {
   return measureCanvas;
 }
 
-/* --- geometry: the mock's at the 550 stage, grown from there (decision 11) --- */
+/* --- geometry: the mock's at the 550 stage, grown from there (decision 11) --- *
+ * The scale itself — the cell sizes, `sizesAt` and the `fitSizes` pass — moved
+ * to `model.js` when the Recurrent page's columns needed a reader in node
+ * (decision 15). It is the same one number `t`, imported rather than declared;
+ * every stage below is still laid out and drawn here. */
 
-const PAD = 14;           // widgets/tensors/main.js:469
-const OP_W = 26;          // the @, +, ∗ and = between two operands
-const CW = 46;            // a signed two-decimal float cell: five mono characters
-const CH = 26;
-const IW = 30;            // a shaded feature cell, no digits
-const PIX = 14;           // an image pixel
+const { PAD, CW, fitSizes, scaledCell } = M;
+
 const HLW = 2.5;          // the --c-highlight frame
-const NODE_R = 16;
-const ARROW_GAP = 40;     // the column an arrow between two grids sits in
-const MAP_GAP = 18;       // between two feature maps, and their own labels
 
 const BAND_HEAD = 26;     // a band's name, its expression and the hairline under
 const BAND_GAP = 20;      // between two bands
@@ -176,42 +198,6 @@ const LIT_A = 0.50;       // the lit face, `tensors`' litFace
 const SPLIT = 150 / 450;
 const c01 = (v) => Math.max(0, Math.min(1, v));
 const easeOut = (t) => 1 - (1 - t) ** 3;
-
-/* --- how far the geometry has grown (decision 11) --------------------------- *
- * One number per page, 0 at the 550 stage the mock drew and 1 at the 770 one
- * the side layout gives a wide viewport. Every length that carries a value or
- * an image pixel is interpolated on it; nothing that carries text is. */
-const W_BASE = 550;
-const W_WIDE = 770;
-const BASE = { cw: CW, ch: CH, iw: IW, pix: PIX, op: OP_W, nodeR: NODE_R, arrow: ARROW_GAP, mapGap: MAP_GAP };
-const WIDE = { cw: 60, ch: 34, iw: 40, pix: 20, op: 34, nodeR: 22, arrow: 54, mapGap: 24 };
-
-function sizesAt(t) {
-  const s = { t };
-  for (const key of Object.keys(BASE)) s[key] = Math.round(BASE[key] + (WIDE[key] - BASE[key]) * t);
-  return s;
-}
-
-/* A cell keeps its 550 proportions as it grows, so the four-character window
-   cell and the five-character kernel cell stay in the ratio the mock fixed. */
-const scaledCell = (base, s) => Math.round((base * s.cw) / CW);
-
-/**
- * The largest geometry whose widest band is inside the stage — MEASURED, from
- * the same function `draw` lays the band out with, rather than asserted from a
- * table of widths that would drift the first time a band changed. Floored at
- * the 550 geometry: below 550 the figure overruns exactly as it did before,
- * and shrinking the value cell further is where digits stop being readable.
- */
-const SIZE_STEP = 1 / 48;
-function fitSizes(w, widest) {
-  const avail = w - 2 * PAD;
-  for (let t = c01((w - W_BASE) / (W_WIDE - W_BASE)); t > 0; t -= SIZE_STEP) {
-    const s = sizesAt(t);
-    if (widest(s) <= avail) return s;
-  }
-  return sizesAt(0);
-}
 
 /* --- primitives ------------------------------------------------------------ */
 
@@ -324,6 +310,62 @@ function frame(ctx, x, y, w, h, color, lw = HLW, dash = []) {
   ctx.setLineDash(dash);
   ctx.strokeRect(x - lw / 2, y - lw / 2, w + lw, h + lw);
   ctx.setLineDash([]);
+}
+
+/** An elbowed arrow: the head sits on the last segment. */
+function polyArrow(ctx, pts, color, width = 2, head = 9) {
+  ctx.strokeStyle = color;
+  ctx.fillStyle = color;
+  ctx.lineWidth = width;
+  ctx.lineJoin = "round";
+  ctx.beginPath();
+  ctx.moveTo(pts[0][0], pts[0][1]);
+  for (let i = 1; i < pts.length; i += 1) ctx.lineTo(pts[i][0], pts[i][1]);
+  ctx.stroke();
+  const [px, py] = pts[pts.length - 2];
+  const [qx, qy] = pts[pts.length - 1];
+  const a = Math.atan2(qy - py, qx - px);
+  ctx.beginPath();
+  ctx.moveTo(qx, qy);
+  ctx.lineTo(qx - head * Math.cos(a - 0.45), qy - head * Math.sin(a - 0.45));
+  ctx.lineTo(qx - head * Math.cos(a + 0.45), qy - head * Math.sin(a + 0.45));
+  ctx.closePath();
+  ctx.fill();
+}
+
+/** A rounded box: a hidden state in the diagram band (decision 15). */
+function roundBox(ctx, colors, x, y, bw, bh, r, o = {}) {
+  ctx.beginPath();
+  if (ctx.roundRect) ctx.roundRect(x + 0.5, y + 0.5, bw - 1, bh - 1, r);
+  else ctx.rect(x + 0.5, y + 0.5, bw - 1, bh - 1);
+  ctx.fillStyle = o.fill ?? wash(o.hue ?? colors.empirical, WASH);
+  ctx.fill();
+  ctx.strokeStyle = o.lit ? colors.highlight : colors.axis;
+  ctx.lineWidth = o.lit ? HLW : 1;
+  ctx.stroke();
+  if (o.text) {
+    txt(ctx, colors, o.text, x + bw / 2, y + bh / 2 + 0.5, {
+      color: colors.ink1, align: "center", baseline: "middle", mono: true,
+      size: o.size ?? colors.fsSm, weight: o.lit ? "600" : "",
+    });
+  }
+}
+
+/** A circle: one time step's input in the diagram band. */
+function disc(ctx, colors, cx, cy, r, o = {}) {
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.fillStyle = o.fill ?? wash(o.hue ?? colors.groupA, WASH);
+  ctx.fill();
+  ctx.strokeStyle = o.lit ? colors.highlight : colors.axis;
+  ctx.lineWidth = o.lit ? HLW : 1;
+  ctx.stroke();
+  if (o.text) {
+    txt(ctx, colors, o.text, cx, cy + 0.5, {
+      color: colors.ink1, align: "center", baseline: "middle", mono: true,
+      size: o.size ?? colors.fsXs, weight: o.lit ? "600" : "",
+    });
+  }
 }
 
 function op(ctx, colors, x, y, h, glyph, ow) {
@@ -802,8 +844,15 @@ function productLine(ctx, colors, state, f, r, c, w) {
 
 /* ============================ 3 · Recurrent ================================ */
 
-const RNN_GUT = 62;                 // the row labels, left of the first cell — text, so fixed
 const RNN_ROW_GAP = 26;
+const SUP = ["¹", "²", "³", "⁴", "⁵"];
+
+/* The one place the diagram and the rows under it mean different things, and
+   the mock flagged it: `o→` and `o←` are the last state each pass reaches,
+   while the row labelled Output is y_t at every step. */
+const rnnBandNote = (bidirectional) => (bidirectional
+  ? "The Output box holds each pass's last state; the Output row below is both states at every step."
+  : "The Output box holds the pass's last state; the Output row below is that state at every step.");
 
 const rnnRows = (bidirectional) => (bidirectional
   ? [
@@ -819,19 +868,119 @@ const rnnRows = (bidirectional) => (bidirectional
   ]);
 
 function rnnGeom(ctx, colors, w, params) {
-  const rows = rnnRows(params.direction === "bidirectional");
-  /* five time steps, four arrow columns between them, after the label gutter */
-  const s = fitSizes(w, (z) => RNN_GUT + (M.SEQ - 1) * (z.cw + z.op) + z.cw);
+  const bi = params.direction === "bidirectional";
+  const rows = rnnRows(bi);
+  /* the columns both bands stand on, and how tall the diagram is (decision 15);
+     its caption line is measured here, where there is a canvas to measure on */
+  const st = M.rnnStage(w, bi);
+  const s = st.s;
+  const note = wrapLines(ctx, colors, rnnBandNote(bi), w - 2 * PAD);
+  const bandH = st.bandH + (note.length - 1) * CAPTION_H;
   const bodyH = rows.reduce((a, r) => a + r.tall * s.ch, 0) + (rows.length - 1) * RNN_ROW_GAP;
-  const capY = BAND_HEAD + bodyH + CAP_GAP;
+  const y2 = BAND_HEAD + bandH + BAND_GAP;
+  const capY = y2 + BAND_HEAD + bodyH + CAP_GAP;
   const caps = captionLines(ctx, colors, w, params);
-  return { s, rows, bodyH, capY, caps, height: capY + caps.length * CAPTION_H + PAD };
+  return {
+    s, st, rows, note, bandH, bodyH, y2, capY, caps,
+    height: capY + caps.length * CAPTION_H + PAD,
+  };
+}
+
+/**
+ * THE LOOP, UNROLLED (decision 15): `_lab/figs/dl-layer-rnn-bi.png` drawn at
+ * the stage's own scale, on the value columns' centres. One step lights the
+ * same three things here and in the values below it — the box that lands, the
+ * input it read and the state before it — and the two arrows into that box
+ * with them, which is the edge the value rows on their own cannot show.
+ */
+function drawChain(ctx, colors, g, y, bi, step, walk) {
+  const { st } = g;
+  const { box } = st;
+  const cx = (t) => st.diagramCentres[t];
+  const fwdMid = y + st.fwdTop + box.h / 2;
+  const xMid = y + st.xTop + box.r;
+  const revMid = y + st.revTop + box.h / 2;
+  const hi = colors.highlight;
+  const ink = colors.ink2;
+  const lit = (on, a) => (on ? litFace(colors, a) : {});
+  /* the last step of the pass is where the Output box fills: on two passes
+     that is the concatenation, on one it is the last forward step */
+  const ends = step != null && (bi ? step.dir === 2 : step.t === M.SEQ - 1 && step.dir === 0);
+
+  txt(ctx, colors, "Forward", PAD, fwdMid + 4, { color: colors.ink1, weight: "600" });
+  txt(ctx, colors, "Input", PAD, xMid + 4, { color: colors.ink1, weight: "600" });
+  if (bi) txt(ctx, colors, "Reverse", PAD, revMid + 4, { color: colors.ink1, weight: "600" });
+
+  /* the recurrence, both passes, under the nodes they join */
+  for (let t = 0; t < M.SEQ - 1; t += 1) {
+    const readF = step != null && step.dir === 0 && step.t === t + 1;
+    arrow(ctx, cx(t) + box.w / 2 + 3, fwdMid, cx(t + 1) - box.w / 2 - 3, fwdMid,
+      readF ? hi : ink, 2);
+    if (!bi) continue;
+    const readR = step != null && step.dir === 1 && step.t === t;
+    arrow(ctx, cx(t + 1) - box.w / 2 - 3, revMid, cx(t) + box.w / 2 + 3, revMid,
+      readR ? hi : ink, 2);
+  }
+  /* each input into the hidden state of each pass */
+  for (let t = 0; t < M.SEQ; t += 1) {
+    const readF = step != null && step.dir === 0 && step.t === t;
+    arrow(ctx, cx(t), y + st.xTop - 3, cx(t), y + st.fwdTop + box.h + 3, readF ? hi : ink, 2);
+    if (!bi) continue;
+    const readR = step != null && step.dir === 1 && step.t === t;
+    arrow(ctx, cx(t), y + st.xTop + 2 * box.r + 3, cx(t), y + st.revTop - 3, readR ? hi : ink, 2);
+  }
+  /* the nodes themselves */
+  for (let t = 0; t < M.SEQ; t += 1) {
+    const lands = step != null && step.dir === 0 && step.t === t;
+    const readH = step != null && step.dir === 0 && step.t === t + 1;
+    roundBox(ctx, colors, cx(t) - box.w / 2, y + st.fwdTop, box.w, box.h, 5, {
+      text: `h${SUP[t]}`, hue: colors.empirical,
+      ...lit(lands, walk.land), ...lit(readH, walk.light),
+    });
+    const readX = step != null && step.dir < 2 && step.t === t;
+    disc(ctx, colors, cx(t), xMid, box.r, {
+      text: `x${SUP[t]}`, hue: colors.groupA, ...lit(readX, walk.light),
+    });
+    if (!bi) continue;
+    const landsR = step != null && step.dir === 1 && step.t === t;
+    const readR = step != null && step.dir === 1 && step.t === t - 1;
+    roundBox(ctx, colors, cx(t) - box.w / 2, y + st.revTop, box.w, box.h, 5, {
+      text: `h${SUP[t]}`, hue: colors.empirical,
+      ...lit(landsR, walk.land), ...lit(readR, walk.light),
+    });
+  }
+
+  /* the Output box the figure ends on, and the two passes arriving in it */
+  const bx = st.outX;
+  const bw = st.outW;
+  roundBox(ctx, colors, bx, y + st.fwdTop, bw, st.bottom - st.fwdTop, 6,
+    { hue: colors.empirical, ...lit(ends, walk.land) });
+  txt(ctx, colors, "o→", bx + bw / 2, bi ? fwdMid + 4 : y + (st.fwdTop + st.bottom) / 2 + 4,
+    { color: colors.ink1, align: "center", mono: true });
+  if (bi) {
+    txt(ctx, colors, "+", bx + bw / 2, xMid + 5,
+      { color: colors.ink1, align: "center", size: colors.fsMd });
+    txt(ctx, colors, "o←", bx + bw / 2, revMid + 4,
+      { color: colors.ink1, align: "center", mono: true });
+  }
+  /* above the box, not under it: on two passes the return line runs under it */
+  txt(ctx, colors, "Output", bx + bw / 2, y + st.fwdTop - 4,
+    { color: colors.ink2, align: "center", size: colors.fsXs });
+  arrow(ctx, cx(M.SEQ - 1) + box.w / 2 + 3, fwdMid, bx - 3, fwdMid, ends ? hi : ink, 2);
+  if (bi) {
+    polyArrow(ctx, [
+      [cx(0), y + st.revTop + box.h + 3], [cx(0), y + st.lowest],
+      [bx + bw / 2, y + st.lowest], [bx + bw / 2, y + st.bottom + 3],
+    ], ends ? hi : ink);
+  }
+  g.note.forEach((line, i) => {
+    txt(ctx, colors, line, PAD, y + st.noteY + i * CAPTION_H, { color: colors.ink2 });
+  });
 }
 
 function drawRnn(ctx, colors, w, params, state, anim) {
   const g = rnnGeom(ctx, colors, w, params);
-  const { s } = g;
-  const pitch = s.cw + s.op;        // one time step and the arrow after it
+  const { s, st } = g;
   const walk = walkAt(anim, state, params);
   const bi = params.direction === "bidirectional";
   const seq = Number(params.sample);
@@ -860,13 +1009,16 @@ function drawRnn(ctx, colors, w, params, state, anim) {
     return outDone > 0 ? 1 : (walk.moving && step?.dir === 2 ? walk.land : 0);
   };
 
-  let y = band(ctx, colors, 0, w, "Time steps", "h_t = f(x_t, h_{t−1})");
+  let y = band(ctx, colors, 0, w, "The loop, unrolled", "h_t = f(x_t, h_{t−1})");
+  drawChain(ctx, colors, g, y, bi, step, walk);
+
+  y = band(ctx, colors, g.y2, w, "Time steps", bi ? "y_t = [h_t→ ; h_t←]" : "y_t = h_t");
   for (const row of g.rows) {
     const cy = y;
     txt(ctx, colors, row.label, PAD, cy + (row.tall * s.ch) / 2 + 4,
       { color: colors.ink1, weight: "600" });
     for (let t = 0; t < M.SEQ; t += 1) {
-      const x = PAD + RNN_GUT + t * pitch;
+      const x = st.valueLeft[t];
       const vals = row.key === "x" ? state.X[seq][t]
         : row.key === "fwd" ? fwd[t]
           : row.key === "rev" ? rev[t] : y0[t];

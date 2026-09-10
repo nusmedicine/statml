@@ -74,6 +74,59 @@ export const choreographs = (speed) => speed !== "fast";
  * One function, two readers (5.8) — the drawing uses the real values. */
 export const printRows = (shape) => torchPrint(shape, () => "-0.0000").lines.length;
 
+/* --- the stage's scale (main.js's decision 11) ------------------------------ *
+ * One number per page, 0 at the 550 stage the mock drew and 1 at the 770 one
+ * the side layout gives a wide viewport; every length that carries a value or
+ * an image pixel is interpolated on it, and nothing that carries text is.
+ *
+ * IT LIVES HERE RATHER THAN IN `main.js` BECAUSE IT IS ARITHMETIC AND HAS A
+ * SECOND READER (decision 15): `_lab/processing-layers-verify.mjs` asserts in
+ * node that the Recurrent page's two bands stand on the same five columns, and
+ * `main.js` cannot be imported there — it calls `defineWidget` at module scope.
+ * `main.js` still lays every stage out and draws it. */
+
+export const PAD = 14;           // widgets/tensors/main.js:469
+const OP_W = 26;                 // the @, +, ∗ and = between two operands
+export const CW = 46;            // a signed two-decimal float cell: five mono characters
+const CH = 26;
+const IW = 30;                   // a shaded feature cell, no digits
+const PIX = 14;                  // an image pixel
+const NODE_R = 16;
+const ARROW_GAP = 40;            // the column an arrow between two grids sits in
+const MAP_GAP = 18;              // between two feature maps, and their own labels
+
+const W_BASE = 550;
+const W_WIDE = 770;
+const BASE = { cw: CW, ch: CH, iw: IW, pix: PIX, op: OP_W, nodeR: NODE_R, arrow: ARROW_GAP, mapGap: MAP_GAP };
+const WIDE = { cw: 60, ch: 34, iw: 40, pix: 20, op: 34, nodeR: 22, arrow: 54, mapGap: 24 };
+
+export function sizesAt(t) {
+  const s = { t };
+  for (const key of Object.keys(BASE)) s[key] = Math.round(BASE[key] + (WIDE[key] - BASE[key]) * t);
+  return s;
+}
+
+/* A cell keeps its 550 proportions as it grows, so the four-character window
+   cell and the five-character kernel cell stay in the ratio the mock fixed. */
+export const scaledCell = (base, s) => Math.round((base * s.cw) / CW);
+
+/**
+ * The largest geometry whose widest band is inside the stage — MEASURED, from
+ * the same function `draw` lays the band out with, rather than asserted from a
+ * table of widths that would drift the first time a band changed. Floored at
+ * the 550 geometry: below 550 the figure overruns exactly as it did before,
+ * and shrinking the value cell further is where digits stop being readable.
+ */
+const SIZE_STEP = 1 / 48;
+export function fitSizes(w, widest) {
+  const avail = w - 2 * PAD;
+  for (let t = Math.max(0, Math.min(1, (w - W_BASE) / (W_WIDE - W_BASE))); t > 0; t -= SIZE_STEP) {
+    const s = sizesAt(t);
+    if (widest(s) <= avail) return s;
+  }
+  return sizesAt(0);
+}
+
 /* ============================ 1 · Linear (cells 3-5) ======================= */
 
 export const LIN_BATCH = 2;
@@ -271,6 +324,90 @@ export const rnnStepAt = (i, bidirectional) => {
   if (i <= 2 * SEQ) return { dir: 1, t: 2 * SEQ - i };
   return { dir: 2, t: null };                        // the concatenation
 };
+
+/* --- the page's two bands stand on one set of columns (decision 15) --------- *
+ * Kenneth picked option B of `_lab/processing-layers-rnn.html`: his own
+ * `figs/dl-layer-rnn-bi.png` as a diagram band ABOVE the value rows, with the
+ * diagram's five columns on the value columns' own centres, so h³ in the
+ * diagram is directly over the three numbers of h³ below. That alignment is
+ * the reason he picked it, so it is arithmetic here rather than two
+ * coincidences in the drawing, and the verify script asserts it in node. */
+
+const RNN_GUT = 62;              // the row labels, left of the first cell — text, so fixed
+const D_BOX_W = 40;              // an h box in the diagram
+const D_BOX_H = 20;
+const D_CIRC_R = 10;             // an x circle
+const D_GAP = 24;                // between two diagram rows: the arrow between them
+const D_TOP = 12;                // above the Forward row
+const D_ELBOW = 14;              // the reverse pass's return line, under the chain
+const D_OUT_GAP = 57;            // the arrow from the last hidden state into the Output box
+const D_OUT_MIN = 16;            // …and the shortest that arrow is ever drawn
+const D_OUT_W = 72;              // the Output box
+const D_NOTE_DROP = 16;          // the band's own caption line, under the drawing
+const D_NOTE_TAIL = 8;
+
+/* The diagram band binds the page, not the value rows: the rows end at the
+   last cell and the diagram carries the arrow into the Output box and the box
+   past that — 522 of the 522 available at 550, which is why the arrow into the
+   box is the length that gives if anything has to. */
+const rnnWidest = (z) => RNN_GUT + (SEQ - 1) * (z.cw + z.op) + z.cw / 2
+  + scaledCell(D_BOX_W, z) / 2 + scaledCell(D_OUT_GAP, z) + scaledCell(D_OUT_W, z);
+
+/**
+ * Where everything on the Recurrent page sits horizontally, and how tall the
+ * diagram band is — pure arithmetic, at any stage width. `valueCentres` and
+ * `diagramCentres` are computed by the two bands' own paths and must agree;
+ * the band's caption line is measured in `main.js`, which has a canvas.
+ */
+export function rnnStage(w, bidirectional) {
+  const s = fitSizes(w, rnnWidest);
+  const pitch = s.cw + s.op;                         // one time step and the arrow after it
+  const x0 = PAD + RNN_GUT;
+  const valueLeft = Array.from({ length: SEQ }, (_, t) => x0 + t * pitch);
+  const valueCentres = valueLeft.map((x) => x + s.cw / 2);
+  const diagramCentres = Array.from({ length: SEQ }, (_, t) => x0 + t * pitch + s.cw / 2);
+  const box = {
+    w: scaledCell(D_BOX_W, s), h: scaledCell(D_BOX_H, s), r: scaledCell(D_CIRC_R, s),
+  };
+  const gap = scaledCell(D_GAP, s);
+  const fwdTop = scaledCell(D_TOP, s);
+  const xTop = fwdTop + box.h + gap;
+  const revTop = xTop + 2 * box.r + gap;
+  /* on unidirectional the diagram loses its Reverse row where the value rows
+     lose theirs, and the Output box shortens with it */
+  const bottom = bidirectional ? revTop + box.h : xTop + 2 * box.r;
+  const lowest = bidirectional ? bottom + scaledCell(D_ELBOW, s) : bottom;
+  /* THE ARROW INTO THE OUTPUT BOX IS THE LENGTH THAT GIVES. `fitSizes` is
+     floored at the 550 geometry, and a stage narrower than 550 is ordinary —
+     the page is tall enough to carry a scrollbar, which takes 15px of a 900
+     viewport — so below 550 the band would run past the margin at the one
+     place a reader would read as clipped. The arrow shortens instead: the
+     pitch is what the diagram and the values share, and it is the last thing
+     to touch. At 550 and above the fit already leaves the arrow its full
+     length, so this clamp bites nowhere else. */
+  const outW = scaledCell(D_OUT_W, s);
+  const upTo = diagramCentres[SEQ - 1] + box.w / 2;
+  const outX = upTo + Math.max(D_OUT_MIN,
+    Math.min(scaledCell(D_OUT_GAP, s), w - PAD - outW - upTo));
+  return {
+    s,
+    pitch,
+    valueLeft,
+    valueCentres,
+    diagramCentres,
+    box,
+    fwdTop,
+    xTop,
+    revTop,
+    bottom,
+    lowest,
+    outX,
+    outW,
+    right: outX + outW,
+    noteY: lowest + D_NOTE_DROP,
+    bandH: lowest + D_NOTE_DROP + D_NOTE_TAIL,
+  };
+}
 
 /* ======================= 4 · Attention (cells 20-23) ======================= */
 

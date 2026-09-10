@@ -10665,6 +10665,13 @@ it possible to illustrate what the sum means?"* — a design, mocked in
 sum; the running sum stepped; one feature as stacked bars — each at random
 and identity projections, since at random the output is nearly the mean of
 the value rows and at identity it leans toward the weighted tokens.
+Measured: A (the weighted rows `w·v` beside the value rows, a `+` between,
+the output as the column total with one feature's arithmetic under it) adds
+32px; B (the running sum stepped) adds none but makes one query three
+sub-steps; C (stacked bars) loses at both projections (segments within 0.02 at
+random, two of three zero at identity). **Kenneth picked A.** At random the
+output for cat IS the mean of the value rows to two decimals (largest
+difference 0.0015), so the caption can say the mean.
 **(2)** *"for graph, how do we show which node corresponds to which value in
 the tensor? should we break it into different tensors per node? or highlight
 the relevant parts of the tensor when animating or hovering?"* — answered
@@ -10673,6 +10680,19 @@ row per node) and tensors' shared-key idiom (decision 10 there) lights a
 node's strip and its print row together on step and on hover, with
 `node 0…3` labels in the print's gutter; a fix, queued behind the RNN strip
 build (the same file).
+
+**The RNN strip built (2026-09-10):** the Recurrent page is two bands, *The
+loop, unrolled* over *Time steps*; `drawChain` draws the mock's B with the
+diagram's five column centres asserted equal to the value columns' at 550
+(pitch 72) and 770 (pitch 94), both directions; at forward step t the box
+hᵗ→ lands, xᵗ and hᵗ⁻¹→ light, the two arrows into it take the highlight; the
+band is 158px bidirectional / 100 unidirectional at 550, the stage 822 / 582
+(was 618 / 436). The scale block (`PAD`, `sizesAt`, `fitSizes`) moved to
+`model.js` so the verify script can import it. One caption line names the
+tension the mock found: the Output box holds each pass's last state, the
+Output row is both states at every step. Open: the value rows' recurrence
+arrows are 1.5px `--ink-3` against the strip's 2px, two weights on one figure.
+79 assertions.
 
 ### Slot 50 · `support-layers` — Normalization, Activation and Dropout — PLANNED 2026-09-10
 

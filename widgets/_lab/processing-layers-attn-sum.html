@@ -1,0 +1,621 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · processing-layers Attention — showing what the Sum means</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 920px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-6); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 96ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); max-width: 560px; min-height: 24px; white-space: pre-line; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 96ch; }
+  .rec b { font-weight: 600; }
+  .measure { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--ink-3); margin: 4px 0 0; max-width: 560px; }
+  table.sizes { border-collapse: collapse; font-size: var(--fs-sm); margin: var(--sp-2) 0 0; }
+  table.sizes th, table.sizes td { border: 1px solid var(--grid); padding: 4px 10px; text-align: left; }
+  table.sizes th { color: var(--ink-2); font-weight: 600; }
+  table.sizes td.n { font-family: var(--font-mono); text-align: right; }
+  ul.facts { font-size: var(--fs-sm); color: var(--ink-2); max-width: 96ch; margin: 0 0 var(--sp-3); padding-left: var(--sp-4); }
+  ul.facts li { margin-bottom: 4px; }
+  ul.facts code { color: var(--ink-1); }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>processing-layers · Attention — three ways to show what the Sum means</h1>
+  <p class="note">
+    Band 2 today draws three rows of <code>[w_j] cat–token · [v_j, four cells]</code>, an arrow labelled
+    <b>Sum</b>, and the output row of four cells. The arrow is the only thing that says how the four output
+    numbers were made. What the sum <b>means</b> is that the output for a query is the weighted average of all
+    three tokens' value rows, the weights being that query's attention weights, which sum to 1 — so the output
+    lies between the value rows and moves toward whichever token the query weights most. These three options
+    draw that, at the real <b>550</b> stage (PAD 14, so 522 usable, right edge 536; cell 46 × 26, operator
+    column 26, row pitch 34), for the query <b>cat</b>, each at both projections.
+  </p>
+  <p class="note">
+    Every number is the widget's own: <code>model.js</code>'s <code>attention()</code> off
+    <code>makeRng(1)</code> — the page's default seed — at <code>projection=random</code> and at
+    <code>projection=identity</code>. Nothing here is invented and nothing uses <code>Math.random</code>.
+  </p>
+  <p class="note">
+    Two colour notes, both decisions rather than accidents. <b>The weight cell and the products take the
+    highlight ramp</b> — <code>--c-highlight</code> at an alpha equal to the weight — so a product's shade says
+    which weight built it; band 1's weights grid uses the same ramp in <code>--c-empirical</code>, so if an
+    option ships, one of the two ramps moves and they should be the same one. <b>The output row is
+    <code>--c-empirical</code></b> here, including in the "today" panel, where the page draws that cell in the
+    highlight lit face because the walk has just landed on it; drawn against three highlight-shaded product
+    rows the sum needs a face of its own. Value rows stay <code>--c-group-b</code>, as the page draws V.
+  </p>
+
+  <h2>What the numbers actually say</h2>
+  <ul class="facts" id="facts"></ul>
+
+  <h2>Today</h2>
+  <p class="note">
+    Band 2 exactly as <code>drawAttn</code> builds it, at both projections, so the options are measured against
+    a picture and not against a memory of one.
+  </p>
+  <div class="row" id="o0"></div>
+
+  <h2>A · the weighted rows, then the column sum</h2>
+  <p class="note">
+    Each row becomes its own line of arithmetic — <code>w_j · v_j = the product row</code> — with a
+    <code>+</code> between the products, a rule under them, and the output as their column-wise total. The
+    products sit <b>beside</b> the value rows rather than under them, which is what keeps the cost to one
+    output row and one printed line instead of three more rows; the price is the row label, which shortens from
+    the pair <code>cat–The</code> to the key token, because pair label + values + products measures 538px
+    against the 522 available. One feature's arithmetic is written under the total, and that feature's column is
+    framed through the stack.
+  </p>
+  <div class="row" id="oa"></div>
+  <p class="rec" id="reca"></p>
+
+  <h2>B · the running sum, stepped</h2>
+  <p class="note">
+    The output starts empty and each weighted row is added in turn, the output cells carrying the running total
+    after each addition. Three moments within one query — drawn here stacked so the accumulation is readable on
+    a still page; the widget would show <b>one</b> moment at a time, so its cost is one copy, not three.
+  </p>
+  <div class="row" id="ob"></div>
+  <p class="rec" id="recb"></p>
+
+  <h2>C · one feature as stacked bars</h2>
+  <p class="note">
+    Beside the number grids, a signed bar chart: for each of the four output features, the three products
+    <code>w_j · v_j</code> stacked end to end from zero, the stack's end being the output value, with a rule in
+    <code>--c-empirical</code> where the output cell below prints it. All four features are drawn, so no
+    <code>feature</code> control is needed.
+  </p>
+  <div class="row" id="oc"></div>
+  <p class="rec" id="recc"></p>
+
+  <h2>What the drawing measures</h2>
+  <table class="sizes" id="sizes"></table>
+  <p class="note" id="capnote"></p>
+  <p class="rec" id="recall"></p>
+</main>
+
+<script type="module">
+import { readTokens } from "../core/index.js";
+import { makeRng } from "../core/rng.js";
+import * as M from "../processing-layers/model.js";
+
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+
+/* --- the geometry band 2 already uses (main.js, decision 11 at t = 0) ------ */
+const PAD = 14;
+const OP_W = 26;
+const CW = 46, CH = 26;
+const HLW = 2.5;
+const W = 550;
+const USABLE = W - 2 * PAD;               // 522
+const RIGHT = W - PAD;                    // 536 — the last column of ink allowed
+const BAND_HEAD = 26;
+const BAND_GAP = 20;
+const LBL = 16;
+const CAP_GAP = 16;
+const CAPTION_H = 17;
+const PRINT_LH = 16;
+const ATT_LAB = 54;                       // main.js ATT_LAB — the pair label
+const ATT_TOKLAB = 30;                    // A and B: the key token alone
+const ATT_DOT = 22;
+const ROWP = CH + 8;                      // 34 — main.js's `s.ch + 8`
+const A_PITCH = CH + 16;                  // 42 — a + between two product rows needs the gap
+const WASH = 0.16;
+const LIT_A = 0.50;
+
+/* Band 1 is untouched by all three options, so its height is carried as the
+   constant main.js computes: LBL + 3ch + 34 + 3ch + 34 + 3ch + (4 print lines + 12). */
+const ATT_GAP_QK = 34, ATT_GAP_SC = 34, ATT_DERIV = 4 * PRINT_LH + 12;
+const H1 = LBL + 3 * CH + ATT_GAP_QK + 3 * CH + ATT_GAP_SC + 3 * CH + ATT_DERIV;
+
+/* the widget's own state, at the page's default seed, both projections */
+const ST = { random: M.attention(makeRng(1), "random"), identity: M.attention(makeRng(1), "identity") };
+const Q = 1;                              // "cat"
+
+const c01 = (v) => Math.max(0, Math.min(1, v));
+
+/* ============================ drawing helpers ============================== */
+let maxRight = 0;
+const reach = (x) => { if (x > maxRight) maxRight = x; };
+
+function panel(host, title, sub, w, h) {
+  const cand = document.createElement("div");
+  cand.className = "cand";
+  cand.innerHTML = `<h3>${title}</h3><p class="sub">${sub}</p>`;
+  const cv = document.createElement("canvas");
+  cv.width = w * DPR; cv.height = h * DPR;
+  cv.style.width = `${w}px`; cv.style.height = `${h}px`;
+  cand.appendChild(cv); host.appendChild(cand);
+  const ctx = cv.getContext("2d");
+  ctx.scale(DPR, DPR);
+  ctx.fillStyle = T.surface; ctx.fillRect(0, 0, w, h);
+  maxRight = 0;
+  return { ctx, cand };
+}
+function note(cand, s) {
+  const p = document.createElement("p");
+  p.className = "measure";
+  p.textContent = s;
+  cand.appendChild(p);
+}
+function txt(ctx, s, x, y, o = {}) {
+  ctx.fillStyle = o.color ?? T.ink2;
+  ctx.textAlign = o.align ?? "left";
+  ctx.textBaseline = o.baseline ?? "alphabetic";
+  ctx.font = `${o.weight ?? ""} ${o.size ?? T.fsSm} ${o.mono ? T.mono : T.font}`.trim();
+  ctx.fillText(s, x, y);
+  const wpx = ctx.measureText(s).width;
+  reach(o.align === "right" ? x : o.align === "center" ? x + wpx / 2 : x + wpx);
+}
+const wash = (hex, a) => {
+  const p = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+  return `rgba(${p[0]},${p[1]},${p[2]},${a})`;
+};
+/** main.js's own heat ramp, straight 0 -> 1 and never stretched (decision 13). */
+const heat = (v) => wash(T.highlight, c01(v));
+const litFace = () => ({ fill: wash(T.highlight, LIT_A), lit: true, bold: true });
+const outFace = () => ({ fill: wash(T.empirical, 0.40), bold: true });
+
+function arrow(ctx, x0, y0, x1, y1, color = T.ink3, width = 1.5) {
+  const a = Math.atan2(y1 - y0, x1 - x0);
+  ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = width;
+  ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x1, y1);
+  ctx.lineTo(x1 - 9 * Math.cos(a - 0.45), y1 - 9 * Math.sin(a - 0.45));
+  ctx.lineTo(x1 - 9 * Math.cos(a + 0.45), y1 - 9 * Math.sin(a + 0.45));
+  ctx.closePath(); ctx.fill();
+  reach(Math.max(x0, x1) + 2);
+}
+function polyArrow(ctx, pts, color = T.ink3) {
+  ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = 1.5; ctx.lineJoin = "round";
+  ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1]);
+  for (let i = 1; i < pts.length; i += 1) ctx.lineTo(pts[i][0], pts[i][1]);
+  ctx.stroke();
+  const [px, py] = pts[pts.length - 2];
+  const [qx, qy] = pts[pts.length - 1];
+  const a = Math.atan2(qy - py, qx - px);
+  ctx.beginPath(); ctx.moveTo(qx, qy);
+  ctx.lineTo(qx - 9 * Math.cos(a - 0.45), qy - 9 * Math.sin(a - 0.45));
+  ctx.lineTo(qx - 9 * Math.cos(a + 0.45), qy - 9 * Math.sin(a + 0.45));
+  ctx.closePath(); ctx.fill();
+  for (const [x] of pts) reach(x + 2);
+}
+function band(ctx, y, w, name, expr) {
+  txt(ctx, name, PAD, y + 11, { color: T.ink1, weight: "600" });
+  if (expr) txt(ctx, expr, w - PAD, y + 11, { color: T.highlight, align: "right", mono: true });
+  ctx.strokeStyle = T.grid; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(PAD, y + 17.5); ctx.lineTo(w - PAD, y + 17.5); ctx.stroke();
+  /* the hairline spans the stage by design, so it is not what the width note
+     measures — only the drawing under it counts */
+  maxRight = 0;
+  return y + BAND_HEAD;
+}
+function cell(ctx, x, y, cw, ch, text, o = {}) {
+  ctx.fillStyle = T.surface; ctx.fillRect(x, y, cw, ch);
+  if (!o.empty) { ctx.fillStyle = o.fill ?? wash(o.hue ?? T.groupA, WASH); ctx.fillRect(x, y, cw, ch); }
+  ctx.strokeStyle = o.lit ? T.highlight : T.axis;
+  ctx.lineWidth = o.lit ? HLW : 1;
+  ctx.strokeRect(x + 0.5, y + 0.5, cw - 1, ch - 1);
+  if (text) {
+    txt(ctx, text, x + cw / 2, y + ch / 2 + 0.5, {
+      color: T.ink1, align: "center", baseline: "middle", mono: true,
+      size: T.fsMd, weight: o.lit || o.bold ? "600" : "",
+    });
+  }
+  reach(x + cw);
+}
+function row4(ctx, x, y, vals, o) {
+  for (let c = 0; c < 4; c += 1) cell(ctx, x + c * CW, y, CW, CH, vals[c], o(c));
+}
+function label(ctx, x, y, s) {
+  txt(ctx, s, x, y, { color: T.ink1, mono: true });
+}
+function frame(ctx, x, y, w, h, color, lw = 2, dash = []) {
+  ctx.strokeStyle = color; ctx.lineWidth = lw; ctx.setLineDash(dash);
+  ctx.strokeRect(x - lw / 2, y - lw / 2, w + lw, h + lw);
+  ctx.setLineDash([]);
+  reach(x + w + lw);
+}
+function wrapLines(ctx, s, maxW) {
+  ctx.save();
+  ctx.font = `${T.fsSm} ${T.font}`;
+  const out = []; let line = "";
+  for (const word of s.split(" ")) {
+    const cand = line ? `${line} ${word}` : word;
+    if (line && ctx.measureText(cand).width > maxW) { out.push(line); line = word; }
+    else line = cand;
+  }
+  if (line) out.push(line);
+  ctx.restore();
+  return out;
+}
+
+/* --- the captions, verbatim from main.js ----------------------------------- */
+const WEIGHTS_CAPTION =
+  "The weights are untrained values drawn from the initializer PyTorch uses. "
+  + "Training changes the values, not which inputs an output reads.";
+const PAGE_CAPTION = {
+  random: "Before training the three attention weights are nearly equal.",
+  identity: "“The” attends most to itself; “cat” and “sat” weight each other above “The”.",
+};
+/* The candidates this review is for, checked against the numbers below. */
+const NEW_CAPTION = {
+  random: "With the three weights nearly equal, the output for “cat” is the mean of the three value rows to two decimals.",
+  identity: "“cat” weights itself and “sat” above “The”, so its output lies nearer their value rows.",
+};
+const mctx = document.createElement("canvas").getContext("2d");
+const capLines = (proj, which = PAGE_CAPTION) =>
+  [...wrapLines(mctx, which[proj], USABLE), ...wrapLines(mctx, WEIGHTS_CAPTION, USABLE)].length;
+
+/* The whole stage, for a band 2 of body height `h2`. */
+const stageH = (h2, proj, which) =>
+  BAND_HEAD + H1 + BAND_GAP + BAND_HEAD + h2 + CAP_GAP + capLines(proj, which) * CAPTION_H + PAD;
+
+/* ============================== today ====================================== */
+const H_TODAY = LBL + 3 * ROWP + 4 + 16 + 4 + CH + 8;      // 176, main.js's h2
+
+function drawToday(ctx, y, st) {
+  const vx = PAD + CW + 8 + ATT_LAB + ATT_DOT;             // 144
+  for (let j = 0; j < 3; j += 1) {
+    const ry = y + LBL + j * ROWP;
+    cell(ctx, PAD, ry, CW, CH, M.n3(st.W[Q][j]), { fill: heat(st.W[Q][j]) });
+    txt(ctx, `${M.TOKENS[Q]}–${M.TOKENS[j]}`, PAD + CW + 8, ry + CH / 2 + 4);
+    txt(ctx, "·", vx - ATT_DOT / 2, ry + CH / 2 + 4,
+      { color: T.ink1, align: "center", size: T.fsLg });
+    row4(ctx, vx, ry, st.V[j].map(M.n2), () => ({ hue: T.groupB }));
+  }
+  const sumY = y + LBL + 3 * ROWP + 4;
+  arrow(ctx, vx + 2 * CW, sumY, vx + 2 * CW, sumY + 16);
+  txt(ctx, "Sum", vx + 2 * CW + 10, sumY + 12);
+  row4(ctx, vx, sumY + 20, st.out[Q].map(M.n2), () => outFace());
+  txt(ctx, `output for ${M.TOKENS[Q]}`, vx + 4 * CW + 8, sumY + 20 + CH / 2 + 4, { size: T.fsXs });
+  return H_TODAY;
+}
+
+/* ================================ option A ================================= */
+const A_VX = PAD + CW + 8 + ATT_TOKLAB + ATT_DOT;          // 120
+const A_PX = A_VX + 4 * CW + OP_W;                         // 330
+const H_A = LBL + 2 * A_PITCH + CH + 20 + CH + 12 + PRINT_LH + 8;
+
+/** `output[cat, c] = w_0 x v_0 + … `, the page's own scoreLine convention. */
+const sumLine = (st, c) => `output[${M.TOKENS[Q]}, ${c}] = `
+  + [0, 1, 2].map((j) => `${M.n3(st.W[Q][j])}×${M.n2(st.V[j][c]).trim()}`).join(" + ")
+  + ` = ${M.n2(st.out[Q][c]).trim()}`;
+
+function drawA(ctx, y, st, feat = 0) {
+  label(ctx, PAD, y + 11, "w");
+  label(ctx, A_VX, y + 11, "V");
+  label(ctx, A_PX, y + 11, "w · v");
+  for (let j = 0; j < 3; j += 1) {
+    const ry = y + LBL + j * A_PITCH;
+    cell(ctx, PAD, ry, CW, CH, M.n3(st.W[Q][j]), { fill: heat(st.W[Q][j]) });
+    txt(ctx, M.TOKENS[j], PAD + CW + 8, ry + CH / 2 + 4);
+    txt(ctx, "·", A_VX - ATT_DOT / 2, ry + CH / 2 + 4,
+      { color: T.ink1, align: "center", size: T.fsLg });
+    row4(ctx, A_VX, ry, st.V[j].map(M.n2), () => ({ hue: T.groupB }));
+    txt(ctx, "=", A_PX - OP_W / 2, ry + CH / 2 + 4,
+      { color: T.ink1, align: "center", size: T.fsLg });
+    row4(ctx, A_PX, ry, st.V[j].map((v) => M.n2(st.W[Q][j] * v)), () => ({ fill: heat(st.W[Q][j]) }));
+    if (j > 0) {
+      txt(ctx, "+", A_PX - OP_W / 2, ry - (A_PITCH - CH) / 2 + 4,
+        { color: T.ink1, align: "center", size: T.fsMd });
+    }
+  }
+  const stackBot = y + LBL + 2 * A_PITCH + CH;
+  /* the sum bar, in --ink-2 and 1.5px: at the cell border's own weight and
+     colour it is one more grid line among forty and disappears */
+  ctx.strokeStyle = T.ink2; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(A_PX - 3, stackBot + 8.5); ctx.lineTo(A_PX + 4 * CW + 3, stackBot + 8.5); ctx.stroke();
+  reach(A_PX + 4 * CW + 3);
+  const oy = stackBot + 20;
+  row4(ctx, A_PX, oy, st.out[Q].map(M.n2), () => outFace());
+  txt(ctx, `output for ${M.TOKENS[Q]}`, A_PX - OP_W - 8, oy + CH / 2 + 4, { align: "right" });
+  /* the one column whose arithmetic is written out, framed through the stack */
+  frame(ctx, A_PX + feat * CW, y + LBL, CW, (oy + CH) - (y + LBL), T.highlight, 1.5, [4, 3]);
+  txt(ctx, sumLine(st, feat), PAD, oy + CH + 12 + 11, { mono: true });
+  return H_A;
+}
+
+/* ================================ option B ================================= */
+const H_B = H_TODAY;
+
+/** One moment: rows 0..m-1 added, row m in flight, the output the running sum. */
+function drawB(ctx, y, st, m) {
+  const running = st.V[0].map((_, c) =>
+    [0, 1, 2].reduce((s, j) => s + (j <= m ? st.W[Q][j] * st.V[j][c] : 0), 0));
+  label(ctx, PAD, y + 11, "w");
+  label(ctx, A_VX, y + 11, "V");
+  label(ctx, A_PX, y + 11, "w · v");
+  for (let j = 0; j < 3; j += 1) {
+    const ry = y + LBL + j * ROWP;
+    const flight = j === m;
+    cell(ctx, PAD, ry, CW, CH, M.n3(st.W[Q][j]), flight ? litFace() : { fill: heat(st.W[Q][j]) });
+    txt(ctx, M.TOKENS[j], PAD + CW + 8, ry + CH / 2 + 4,
+      { color: flight ? T.ink1 : T.ink2, weight: flight ? "600" : "" });
+    txt(ctx, "·", A_VX - ATT_DOT / 2, ry + CH / 2 + 4,
+      { color: T.ink1, align: "center", size: T.fsLg });
+    row4(ctx, A_VX, ry, st.V[j].map(M.n2), () => ({ hue: T.groupB }));
+    if (j <= m) {
+      txt(ctx, "=", A_PX - OP_W / 2, ry + CH / 2 + 4,
+        { color: T.ink1, align: "center", size: T.fsLg });
+      row4(ctx, A_PX, ry, st.V[j].map((v) => M.n2(st.W[Q][j] * v)),
+        () => (flight ? litFace() : { fill: heat(st.W[Q][j]) }));
+    } else {
+      row4(ctx, A_PX, ry, ["", "", "", ""], () => ({ empty: true }));
+    }
+  }
+  const sumY = y + LBL + 3 * ROWP + 4;
+  const oy = sumY + 20;
+  /* the row in flight enters the output down the right-hand lane, so the path
+     is the same shape whichever row it is */
+  const lane = A_PX + 4 * CW + 11;
+  const fy = y + LBL + m * ROWP + CH / 2;
+  polyArrow(ctx, [[A_PX + 4 * CW + 2, fy], [lane, fy], [lane, oy + CH / 2], [A_PX + 4 * CW + 3, oy + CH / 2]],
+    T.highlight);
+  row4(ctx, A_PX, oy, running.map(M.n2), () => outFace());
+  txt(ctx, `after ${M.TOKENS[m]}`, A_PX - OP_W - 8, oy + CH / 2 + 4, { align: "right", color: T.ink1 });
+  txt(ctx, m === 2 ? "output for cat" : "running total", A_PX - OP_W - 8, oy + CH / 2 + 20,
+    { align: "right", size: T.fsXs });
+  return H_B;
+}
+
+/* ================================ option C ================================= */
+const C_VX = PAD + CW + 8 + ATT_LAB + ATT_DOT;             // 144 — the pair label stays
+const C_X0 = C_VX + 4 * CW + 16;                           // 344
+const C_HALF = 60;                                         // the signed half-range, in px
+const C_COLW = 44, C_BARW = 26;
+const H_C = Math.max(H_TODAY, LBL + 2 * C_HALF + 14 + 16);
+
+function drawC(ctx, y, st) {
+  /* the number grids, as today, with the pair label kept */
+  for (let j = 0; j < 3; j += 1) {
+    const ry = y + LBL + j * ROWP;
+    cell(ctx, PAD, ry, CW, CH, M.n3(st.W[Q][j]), { fill: heat(st.W[Q][j]) });
+    txt(ctx, `${M.TOKENS[Q]}–${M.TOKENS[j]}`, PAD + CW + 8, ry + CH / 2 + 4);
+    txt(ctx, "·", C_VX - ATT_DOT / 2, ry + CH / 2 + 4,
+      { color: T.ink1, align: "center", size: T.fsLg });
+    row4(ctx, C_VX, ry, st.V[j].map(M.n2), () => ({ hue: T.groupB }));
+  }
+  const sumY = y + LBL + 3 * ROWP + 4;
+  arrow(ctx, C_VX + 2 * CW, sumY, C_VX + 2 * CW, sumY + 16);
+  txt(ctx, "Sum", C_VX + 2 * CW + 10, sumY + 12);
+  row4(ctx, C_VX, sumY + 20, st.out[Q].map(M.n2), () => outFace());
+
+  /* the chart: four stacks, one per output feature, each from zero */
+  const prod = (j, c) => st.W[Q][j] * st.V[j][c];
+  let scale = 0;
+  for (let c = 0; c < 4; c += 1) {
+    let cum = 0;
+    for (let j = 0; j < 3; j += 1) {
+      cum += prod(j, c);
+      scale = Math.max(scale, Math.abs(cum), Math.abs(prod(j, c)));
+    }
+  }
+  const zero = y + LBL + C_HALF;
+  const px = (v) => (v / scale) * (C_HALF - 8);
+  txt(ctx, "w · v, stacked per feature", C_X0, y + 11, { color: T.ink1, mono: true });
+  ctx.strokeStyle = T.ink3; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(C_X0, zero + 0.5); ctx.lineTo(C_X0 + 4 * C_COLW, zero + 0.5); ctx.stroke();
+  txt(ctx, "0", C_X0 - 6, zero + 4, { align: "right", size: T.fsXs, mono: true });
+  for (let c = 0; c < 4; c += 1) {
+    const bx = C_X0 + c * C_COLW + (C_COLW - C_BARW) / 2;
+    let cum = 0;
+    for (let j = 0; j < 3; j += 1) {
+      const y0 = zero - px(cum);
+      cum += prod(j, c);
+      const y1 = zero - px(cum);
+      ctx.fillStyle = heat(st.W[Q][j]);
+      ctx.fillRect(bx, Math.min(y0, y1), C_BARW, Math.max(1, Math.abs(y1 - y0)));
+      /* --ink-3 at 1px, not the cell border's 0.5px --axis: at random the three
+         segments are within 0.02 of each other and a fainter edge leaves one
+         slab where the option's whole claim is that there are three */
+      ctx.strokeStyle = T.ink3; ctx.lineWidth = 1;
+      ctx.strokeRect(bx + 0.5, Math.min(y0, y1) + 0.5, C_BARW - 1, Math.max(1, Math.abs(y1 - y0)) - 1);
+      reach(bx + C_BARW);
+    }
+    const end = zero - px(cum);
+    ctx.strokeStyle = T.empirical; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(bx - 3, end); ctx.lineTo(bx + C_BARW + 3, end); ctx.stroke();
+    reach(bx + C_BARW + 3);
+    txt(ctx, M.n2(cum).trim(), bx + C_BARW / 2, cum >= 0 ? end - 4 : end + 12,
+      { color: T.ink1, align: "center", size: T.fsXs, mono: true });
+    txt(ctx, `${c}`, bx + C_BARW / 2, y + LBL + 2 * C_HALF + 12,
+      { align: "center", size: T.fsXs, mono: true });
+  }
+  txt(ctx, `feature · full scale ${M.n2(scale).trim()}`, C_X0, y + LBL + 2 * C_HALF + 12 + 16,
+    { size: T.fsXs });
+  return H_C;
+}
+
+/* ============================== the panels ================================= */
+const PROJ = ["random", "identity"];
+const PROJ_SUB = {
+  random: "projection random, seed 1: the three weights for cat are 0.339 / 0.330 / 0.332",
+  identity: "projection identity: cat weights itself 0.381, sat 0.357, The 0.263",
+};
+
+function one(host, kind, draw, h2, extra = "") {
+  for (const proj of PROJ) {
+    const st = ST[proj];
+    const h = BAND_HEAD + h2 + 8;
+    const { ctx, cand } = panel(host, `${kind} · ${proj}`, PROJ_SUB[proj], W, h);
+    const y = band(ctx, 0, W, `One query: ${M.TOKENS[Q]}`, "Attention(Q, K, V) = softmax(QKᵀ / √d_k) V");
+    draw(ctx, y, st);
+    note(cand, `band 2 body ${h2}px (today ${H_TODAY}px, ${h2 === H_TODAY ? "no change" : `+${h2 - H_TODAY}px`}) · `
+      + `stage at 550 ${stageH(h2, proj)}px (today ${stageH(H_TODAY, proj)}px) · `
+      + `widest ink ${Math.round(maxRight)}px of ${RIGHT} (${Math.round(RIGHT - maxRight)}px spare, `
+      + `nothing past ${USABLE} wide)${extra}`);
+  }
+}
+
+one(document.getElementById("o0"), "today", drawToday, H_TODAY);
+one(document.getElementById("oa"), "A", drawA, H_A);
+
+/* B: the three moments stacked in one panel, since one still moment says little */
+for (const proj of PROJ) {
+  const st = ST[proj];
+  const h = 3 * (BAND_HEAD + H_B) + 2 * BAND_GAP + 8;
+  const { ctx, cand } = panel(document.getElementById("ob"), `B · ${proj}`, PROJ_SUB[proj], W, h);
+  let right = 0;
+  for (let m = 0; m < 3; m += 1) {
+    const top = m * (BAND_HEAD + H_B + BAND_GAP);
+    const y = band(ctx, top, W, m === 0 ? `One query: ${M.TOKENS[Q]}` : `One query: ${M.TOKENS[Q]} — after ${M.TOKENS[m]}`,
+      "Attention(Q, K, V) = softmax(QKᵀ / √d_k) V");
+    drawB(ctx, y, st, m);
+    right = Math.max(right, maxRight);
+  }
+  note(cand, `band 2 body ${H_B}px per moment (today ${H_TODAY}px, no change) · `
+    + `stage at 550 ${stageH(H_B, proj)}px, one moment at a time (today ${stageH(H_TODAY, proj)}px) · `
+    + `widest ink ${Math.round(right)}px of ${RIGHT} (${Math.round(RIGHT - right)}px spare) · `
+    + `three moments per query, so Play walks 9 beats where it now walks 3`);
+}
+
+one(document.getElementById("oc"), "C", drawC, H_C);
+
+/* ============================== the numbers ================================ */
+{
+  const R = ST.random, I = ST.identity;
+  const meanV = (st) => st.V[0].map((_, c) => (st.V[0][c] + st.V[1][c] + st.V[2][c]) / 3);
+  const dist = (st, j) => Math.hypot(...st.V[j].map((v, c) => v - st.out[Q][c]));
+  const mR = meanV(R);
+  const devR = Math.max(...R.out[Q].map((v, c) => Math.abs(v - mR[c])));
+  const sameAtTwo = R.out[Q].every((v, c) => M.n2(v) === M.n2(mR[c]));
+  /* Two ways to write the line, and what a reader doing its arithmetic by hand
+     lands on: the operands as A writes them (weight at three decimals, value at
+     two, the page's own scoreLine convention), and the printed products added. */
+  const lineSum = (st, c) =>
+    [0, 1, 2].reduce((s, j) => s + Number(M.n3(st.W[Q][j])) * Number(M.n2(st.V[j][c])), 0);
+  const prodSum = (st, c) => [0, 1, 2].reduce((s, j) => s + Number(M.n2(st.W[Q][j] * st.V[j][c])), 0);
+  const off = (f) => {
+    const out = [];
+    for (const [name, st] of [["random", R], ["identity", I]]) {
+      for (let c = 0; c < 4; c += 1) {
+        if (M.n2(f(st, c)) !== M.n2(st.out[Q][c])) {
+          out.push(`${name} feature ${c} (${M.n2(f(st, c)).trim()} against ${M.n2(st.out[Q][c]).trim()})`);
+        }
+      }
+    }
+    return out;
+  };
+  const offLine = off(lineSum);
+  const offProd = off(prodSum);
+  const facts = [
+    `<b>The weights sum to 1 at both projections</b>, which is what makes the output an average: `
+    + `<code>${R.W[Q].map(M.n3).join(" + ")} = ${M.n3(R.W[Q].reduce((a, b) => a + b, 0))}</code> at random, `
+    + `<code>${I.W[Q].map(M.n3).join(" + ")} = ${M.n3(I.W[Q].reduce((a, b) => a + b, 0))}</code> at identity.`,
+    `<b>At random the output for cat is the mean of the three value rows.</b> The mean is `
+    + `<code>${mR.map((v) => M.n2(v).trim()).join("  ")}</code> and the output is `
+    + `<code>${R.out[Q].map((v) => M.n2(v).trim()).join("  ")}</code> — the largest difference is `
+    + `${devR.toFixed(4)}, so ${sameAtTwo ? "all four features print the same two decimals" : "they differ in print"}.`,
+    `<b>At identity the output leans away from The.</b> cat weights itself `
+    + `<code>${M.n3(I.W[Q][1])}</code> and sat <code>${M.n3(I.W[Q][2])}</code> against The's `
+    + `<code>${M.n3(I.W[Q][0])}</code>; the distance from the output to each value row is `
+    + `<code>The ${dist(I, 0).toFixed(3)}, cat ${dist(I, 1).toFixed(3)}, sat ${dist(I, 2).toFixed(3)}</code>. `
+    + `Feature 0 is The's alone (0.90 against 0.00 and 0.00), and the output there is `
+    + `<code>${M.n2(I.out[Q][0]).trim()}</code> against a mean of <code>0.30</code>.`,
+    `<b>Two decimals do not always add up in print, and the form of the written line decides how often.</b> `
+    + `A writes <code>weight × value</code> with the weight at three decimals and the value at two, which is `
+    + `band 1's own score-line convention, and its arithmetic lands on the printed total for `
+    + `${8 - offLine.length} of the eight features drawn here — the exception is `
+    + `${offLine.join(", ")}, the very column the review named. Writing the line as the printed products `
+    + `instead (<code>0.11 + 0.09 + 0.11 = 0.31</code>) is worse: ${offProd.length} of eight are off by 0.01 `
+    + `— ${offProd.join(", ")}. So the line stays in the <code>weight × value</code> form the page already `
+    + `ships, and the last digit is the rounded true value rather than the sum of the rounded operands.`,
+    `<b>The caption candidates, adjusted to what is true.</b> At random — ${NEW_CAPTION.random} The `
+    + `submitted wording was “close to the mean”; it <em>is</em> the mean to two decimals, so the stronger `
+    + `claim is also the true one. At identity — ${NEW_CAPTION.identity} The submitted wording ended `
+    + `“nearer their values”, which reads as the values themselves; the figure labels rows, so “value rows” `
+    + `is what a reader can point at. Today's `
+    + `captions are one line each; the random candidate wraps to `
+    + `${wrapLines(mctx, NEW_CAPTION.random, USABLE).length} and the identity candidate to `
+    + `${wrapLines(mctx, NEW_CAPTION.identity, USABLE).length}, so a new caption costs `
+    + `${(capLines("random", NEW_CAPTION) - capLines("random")) * CAPTION_H}px at random and `
+    + `${(capLines("identity", NEW_CAPTION) - capLines("identity")) * CAPTION_H}px at identity.`,
+  ];
+  document.getElementById("facts").innerHTML = facts.map((f) => `<li>${f}</li>`).join("");
+
+  const table = document.getElementById("sizes");
+  const rows = [
+    ["", "band 2", "against today", "stage at 550", "against today", "reads on a still page"],
+    ["today", `${H_TODAY}px`, "—", `${stageH(H_TODAY, "random")}px`, "—", "the arrow only"],
+    ["A", `${H_A}px`, `+${H_A - H_TODAY}px`, `${stageH(H_A, "random")}px`, `+${stageH(H_A, "random") - stageH(H_TODAY, "random")}px`, "yes"],
+    ["B", `${H_B}px`, "0px", `${stageH(H_B, "random")}px`, "0px", "no — one moment of three"],
+    ["C", `${H_C}px`, `${H_C === H_TODAY ? "0px" : `+${H_C - H_TODAY}px`}`, `${stageH(H_C, "random")}px`, `${H_C === H_TODAY ? "0px" : `+${H_C - H_TODAY}px`}`, "yes, at low precision"],
+  ];
+  table.innerHTML = rows.map((r, i) => `<tr>${r.map((c, j) => {
+    const tag = i === 0 ? "th" : "td";
+    const cls = i > 0 && j > 0 && j < 5 ? ' class="n"' : "";
+    return `<${tag}${cls}>${c}</${tag}>`;
+  }).join("")}</tr>`).join("");
+
+  document.getElementById("capnote").innerHTML =
+    `The stage figures are at the random projection, whose caption block is `
+    + `${capLines("random")} lines; identity's is ${capLines("identity")}, which is `
+    + `${(capLines("identity") - capLines("random")) * CAPTION_H}px more on every row of the table. Band 1 is `
+    + `${H1}px in all four and none of the options touches it.`;
+
+  document.getElementById("reca").innerHTML =
+    `<b>Recommend A.</b> ${H_A - H_TODAY}px — ${stageH(H_A, "random")}px against today's `
+    + `${stageH(H_TODAY, "random")}px — for the whole statement on one still figure: three products, a `
+    + `rule, a total, and one feature's arithmetic written under it. It is the only option that says where each `
+    + `of the four output numbers came from without asking the reader to watch something. The two projections `
+    + `read differently in exactly the way the page claims: at random the three product rows are the same `
+    + `shade and nearly the same numbers, at identity the top row is visibly paler and feature 0's products are `
+    + `0.24, 0.00, 0.00.`;
+  document.getElementById("recb").innerHTML =
+    `<b>B is free in height and expensive in the walk.</b> The band stays ${H_B}px, and the picture of `
+    + `accumulation is the best of the three — but the page's step is one <em>query</em> (`
+    + `<code>units</code> is 3, the readout names the query, the step label is "Next query"), so three `
+    + `sub-steps per query make Play a 9-beat walk and every fingerprint state a different beat. A still `
+    + `reader who never presses Play sees one arbitrary moment of three, with two product rows empty and an `
+    + `output that is not the output. If the accumulation is wanted, it belongs on top of A rather than `
+    + `instead of it: A's three product rows are already the three addends, so B is A with the rule drawn one `
+    + `row at a time.`;
+  document.getElementById("recc").innerHTML =
+    `<b>C costs no height and loses the argument at both projections.</b> At random the three segments of `
+    + `every stack are within 0.02 of each other, so four stacks of three near-equal slabs say "nearly equal" `
+    + `less precisely than the three printed weights already do. At identity feature 0's stack is one segment `
+    + `and two of zero height, and feature 3's is 0.03, 0.00, 0.04 — a chart whose bars keep vanishing. `
+    + `It also introduces length as a second encoding for numbers already printed in the grids beside it, `
+    + `and it takes the ${Math.round(4 * C_COLW)}px right of the grids that band 2 currently leaves empty.`;
+  document.getElementById("recall").innerHTML =
+    `<b>A.</b> The sum means "each value row scaled by its weight, added down the columns", and A is the only `
+    + `option that draws all three parts of that sentence at once and prints one column of it as arithmetic. It `
+    + `costs ${H_A - H_TODAY}px. B is the same three rows revealed one at a time and can be added later without `
+    + `moving anything; C is the same three numbers drawn less precisely.`;
+}
+</script>
+</body>
+</html>

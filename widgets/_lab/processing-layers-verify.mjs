@@ -318,5 +318,52 @@ const near = (a, b, eps = 1e-9) => Math.abs(a - b) <= eps;
     `${M.printRows([2, 3])}, ${M.printRows([2, 5])}, ${M.printRows([4, 3])}`);
 }
 
+/* --- 9 · the Recurrent page's two bands stand on one set of columns --------- *
+ * THE ALIGNMENT IS WHY KENNETH PICKED OPTION B (main.js decision 15): the
+ * diagram band's h³ has to sit directly over the three numbers of h³ in the
+ * value rows below it. Nothing in a picture says whether it does — the band
+ * renders just as happily one column off — so `rnnStage` computes the two sets
+ * of centres by the two bands' own paths and this reads them back, at the 550
+ * stage the mock drew and the 770 one a wide viewport gives. */
+{
+  for (const w of [550, 770]) {
+    for (const bidirectional of [true, false]) {
+      const st = M.rnnStage(w, bidirectional);
+      const pass = bidirectional ? "two passes" : "one pass";
+      check(`${w}px, ${pass}: the diagram's five columns are the value columns`,
+        st.diagramCentres.length === M.SEQ
+        && st.diagramCentres.every((c, t) => c === st.valueCentres[t]),
+        st.diagramCentres.join(", "));
+      check(`${w}px, ${pass}: one pitch, a value cell and the arrow column after it`,
+        st.pitch === st.s.cw + st.s.op
+        && st.valueCentres.every((c, t) => t === 0 || c - st.valueCentres[t - 1] === st.pitch),
+        `pitch ${st.pitch} = ${st.s.cw} + ${st.s.op}`);
+      /* the band binds the page's width, so its own rightmost ink — the Output
+         box's right edge — is what has to clear the margin */
+      check(`${w}px, ${pass}: the Output box ends inside the stage`,
+        st.right <= w - M.PAD, `${st.right} of ${w - M.PAD}`);
+    }
+  }
+  /* at 550 it is exactly the margin, which is the measurement the mock took.
+     Below 550 the geometry is floored, so the band would run past the margin —
+     the arrow into the box shortens instead, and the pitch the two bands share
+     is untouched (main.js decision 15). A stage of 535 is what a 900 viewport
+     gives once the page is tall enough to carry a scrollbar. */
+  for (const w of [535, 550]) {
+    const st = M.rnnStage(w, true);
+    check(`at ${w} the Output box's right edge is the margin itself`,
+      st.right === w - M.PAD, `${st.right} of ${w - M.PAD}`);
+    check(`at ${w} the five columns are 72 apart, whatever the arrow does`,
+      st.pitch === 72, `pitch ${st.pitch}`);
+  }
+  /* on one pass the diagram loses its Reverse row where the value rows lose
+     theirs, so the band is shorter rather than blank at the bottom */
+  const bi = M.rnnStage(550, true);
+  const uni = M.rnnStage(550, false);
+  check("on one pass the diagram band loses the Reverse row's height",
+    uni.bandH < bi.bandH && uni.bottom === uni.xTop + 2 * uni.box.r,
+    `${uni.bandH}px against ${bi.bandH}px`);
+}
+
 console.log(failed ? `\n${failed} of ${ran} FAILED\n` : `\nall ${ran} checks passed\n`);
 process.exit(failed ? 1 : 0);
