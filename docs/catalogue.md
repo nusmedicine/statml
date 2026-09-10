@@ -11493,6 +11493,67 @@ the `expr` chain in a 300px rail, measured rather than estimated; **§6**
 Ordering's transformer path at four boxes against five; **§7** the rail at the
 real 300px, two headed rows in a grid.
 
+**The mock, drawn and picked (2026-09-10, `cef38b4`).** `_lab/composition-mock.html`,
+an Opus 5 builder from the support-layers mock's shell, eight sections (the
+seven above plus Building's two prints, so every page appears), every panel at
+the real 550 and the pages that change with the frame at 770. **Kenneth took the
+recommendation on all eight**: §1 the grid rail with the notebook's two headings
+as row heads (a button is 149px against Branching's 62 + 12 = 74px; one row of
+four would give 72px; the heads cost 54px; the whole Skip rail is 694px against
+the 366px Dimensions stage, so the page height is per page); §2 Routing's fit
+pass, code under at 550 (stage 504px) and beside at 770 (366px), since the code
+is 350px and four columns need 324px where beside leaves 156px; §3 shape text
+plus one shaded 12px band on Gating's `gated` edge, sample 0's row lit and the
+mask's blocked columns drawn empty (A, shape text alone, is the fallback); §4
+the merge as bands that slide together at concat and stack at add, with torch's
+error printed where the sum band would have been; §5 the residual gradient
+overlay, off by default (69px of width, 20px of height, paid from Skip's slack);
+§6 the `expr` chain at the FULL face; §7 Ordering's box count following the
+block, the print under the diagram; §8 Building's print under at 550 and beside
+at 770.
+
+**What the drawing corrected in this entry's arithmetic**, so the draft quotes
+these and not the numbers above: a mono character at `--fs-sm` is **6.60px**
+(`measureText` over the 53-character Routing line), not 6.75 or 7.2, so every
+width above is about 8 % smaller. **Gating's slack is 41px**, not 21. **The
+broadcast message is 103 characters**, not 70: 680px, past the whole stage at
+both widths, and wrapped to the 301px diagram column it is 3 lines, 48px, which
+is exactly the sum band's height; the matmul message is 71 characters and 2
+lines, printed under a merge band that is there and correct, and that
+difference in WHERE the two failures print is the page. **Ordering's print
+column is not 260px**: `nn.Sequential` prints a `Linear` at 57 characters
+(377px) and the ResNet block's `Conv2d` at 72 (476px), so beside a 240px
+diagram the print's right edge is 647 and 746 against a usable 536, and
+Ordering runs the same fit pass as Routing and Building, print under at 550
+(stage 522px at five boxes; the Subunit view alone is 282 / 338 / 394px at
+three, four and five boxes; the Combination view 252px). **Building's readout
+pair is 3 and 2 against a Layers run of 3**, not 3 and 4: MLP1 declares fc1,
+relu and fc2, MLP2 declares two, both run three. **The `expr` chain wraps to 2
+lines, not four**, field 139px at the full face; the class-name face is also 2
+lines (a select is 90px against 123, and three still do not fit a 300px row), so
+shortening buys nothing and loses the losing pair, since `Linear(3600, 10)` and
+`Linear(100, 10)` would both read `Linear`. The recommendation reversed to the
+full face and he took it. `Linear(10, 20)` inside a box is 86px of label needing
+a 104px box (not 78 / 110); the finding holds. The mask blocks **8 of 20** on the
+mock's seed; the tile counts from the draw, as 2.11 requires. Stage heights at
+550: Dimensions 366, Branching 372 (488 at add), Gating 414, Building 416
+(320 at 770), Skip 422 (442 with the overlay), Routing 504 (366 at 770),
+Ordering up to 522.
+
+**Three decisions the mock took that the draft keeps.** At `gate: mask` the
+right column is one `mask` tile with no `gate_fc` and no `sigmoid` and no arrow
+from `x`, because cell 93's fixed gate is a tensor and not a layer. The merge
+line and the gate line of `forward()` follow the control while the code column
+stays reserved at its widest form, so the diagram does not move when the reader
+switches. Only one band fits on an edge at 550 (two side by side are 502px
+against a 281px diagram), so it goes on the result edge. **One thing for the
+draft to fix that the mock does not**: on Branching the second branch's edge
+lands at its own column centre while the merged band is centred in the diagram,
+so at add the arrow tip sits beside the stacked band rather than on it; the
+edge should elbow into the band. (A scaled screenshot showed that arrow as
+diagonal; a pixel scan showed it vertical, and that is the phantom CLAUDE.md
+warns about.)
+
 **Build order within the widget**, once the mock is picked: Dimensions first (the
 strongest losing state and the most machinery), then Skip, Branching, Gating,
 Routing, Building, Ordering. The widget itself is built after
