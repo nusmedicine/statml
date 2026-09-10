@@ -8,34 +8,76 @@ his ask (`f8716f9`, pushed 2026-09-10). All 509 fingerprint states MATCH at
 DPR 1.25, pane fronted. One core change: `params.js` resolves an
 option-dependent parameter to its list's first option AT LOAD when its default
 is not in the list (`5f7321c`, his call). The 05-3 notebook is complete:
-49 `processing-layers`, 50 `support-layers`, 51 `composition`.**
+49 `processing-layers`, 50 `support-layers`, 51 `composition`. NEXT is slot 54
+`loss-functions` for 05-4, his call.**
 
 ---
 
-# NEXT: SLOT 52 `training-loop` (05-4) — MOCK FIRST, AS 49, 50 AND 51 WERE
+# NEXT: SLOT 54 `loss-functions` (05-4) — KENNETH'S CALL, MOCK FIRST
 
-**Where things stand (2026-09-11, morning).** `main` is at `2e9f7ba` plus
+**Where things stand (2026-09-11, morning).** `main` is at `ab1480d` plus
 this handover, `origin/main` level with it, tree clean, no draft, no branch
-but `wgcna` (another session's, untouched). The DL arc's next slot is **52
-`training-loop`**, MEASURED 2026-09-07 in `docs/catalogue.md` (search
-`### Slot 52`), whose notebook is 05-4 (`Downloads/PHM5005 AY2025-26 -
-Notebooks/Master/05-4 - DL Foundations - Workflow.ipynb`); slot 54
-`loss-functions` is PROPOSED for the same notebook and slot 52's Loss row
-links to it. **The notebook is the spec** — read it and its figures before
-proposing structure; extract the cells with outputs to a file the builders
-can read (node, `JSON.parse` of the ipynb), as was done for 05-3.
+but `wgcna` (another session's, untouched). Kenneth's word at the close of the
+composition session: *"let's continue the next new session to write the loss
+function widget to support 05-04 workflow notebook"*. So the next widget is
+**slot 54 `loss-functions`**, PROPOSED 2026-09-10 in `docs/catalogue.md`
+(search `### Slot 54`; the entry is short and carries the whole plan so far:
+the host is 05-4 cells 30–40, cell 30's table of losses by task, then
+`MSELoss` (31–33), `CrossEntropyLoss` (34–36), `BCEWithLogitsLoss` (37–39) and
+cell 40's other losses; the rail `task` Regression · Single-label · Binary /
+multi-label, cell 30's own three rows; each page the notebook's own example
+with the target in `--c-reference`, the scores in `--c-group-a`, the function
+applied inside the loss as a band, the probability given to the true label
+lit, and the number; the three worked numbers 0.17, 0.0184 (4.52 with the
+label moved to class 1) and 1.053; the drag on a score or the true label as
+the control that carries the idea, since cell 36's own example is a confident
+right answer with little to see at rest; the **−log p curve** shared by the two
+classification pages as the case for one widget; the formula cards as cells 34
+and 37's own lines; cell 30's dtype note as a readout note; Dice, contrastive
+and triplet as captions, `pos_weight` and `weight` not controls until measured).
+**Nothing is measured yet**: the three numbers are the arithmetic written
+out, not torch, and torch is not installed on this machine. Slot 52
+`training-loop` (MEASURED 2026-09-07) comes after; its Loss row links here.
 
-**The order, which has now run three times without a stall** (the same as
-below under slot 51, in short): the mock (`_lab/<slug>-mock.html`, an Opus
-builder from `_lab/composition-mock.html`'s shell; the main session READS
-EVERY SECTION in the browser before he sees it), his picks by
-`AskUserQuestion`, the catalogue record, the draft (an Opus builder from the
-mock's geometry and `widgets/composition/main.js` + `model.js` as the idiom,
-which now carries the reveal rule and the operator rule), rounds from his
-annotated screenshots (small fixes in the main session, designs mocked
-first), "tested ok" → the read-only copy audit in parallel with the shooter
-and the placeholder states → the pick rows to him → the copy round → the
-hashes → the full suite → the push on his word.
+**Read before writing anything:** the slot 54 entry; the 05-4 notebook
+(`Downloads/PHM5005 AY2025-26 - Notebooks/Master/05-4 - DL Foundations -
+Workflow.ipynb`), cells 23–40 with their outputs extracted to a scratchpad file
+the builders can read (node, `JSON.parse` of the ipynb, as was done for 05-3);
+`widgets/support-layers/main.js`'s Activation page, which already draws
+sigmoid and softmax with a curve panel (the loss widget applies the same
+functions INSIDE the loss, and the two must read as one convention);
+`docs/design-principles.md` §2.6 (the case that fails), §3.6 (a click on the
+figure is a control; the drag is the same), §2.11; and the rounds under slots
+49–51 for what transfers (every option reaches an output; the whole tensor,
+not one row; operators land with their line; a control needs a figure).
+
+**The order, which has now run three times without a stall:** (1) a measure
+script `_lab/dl-loss-measure.mjs` for the three losses at the notebook's
+values and at the dragged values (the −log p curve's range, the per-class
+BCE terms, what a moved label does), then the mock `_lab/loss-functions-
+mock.html` from `_lab/composition-mock.html`'s shell (an Opus builder; the
+main session READS EVERY SECTION in the browser before he sees it): the
+three pages at 550, the drag's target (the score bar? the point on the curve?
+the label chip?), where the −log p curve sits, the band that shows the
+function applied, 2–3 options each with a recommendation and measured
+widths, the whole rail against the shortest stage; (2) his picks by
+`AskUserQuestion`; (3) the catalogue record; (4) the draft (an Opus builder
+from the mock's geometry and `widgets/composition/main.js` + `model.js` as
+the idiom, which carry the reveal rule and the operator rule; a `drag`
+declaration follows core's `drag` contract, read `widgets/core/widget.js`
+for it and a widget that uses it); (5) rounds from his annotated
+screenshots; (6) "tested ok" → the copy audit in parallel with the shooter and
+placeholder states → the pick rows → the copy round → the hashes → the full
+suite → `check` AND `test` read on their own → the push on his word.
+
+**Two facts already told to him (2026-09-10), so they need no repeating:**
+05-4 cell 36's example is a confident right answer at 0.018, so the widget
+needs its drag to show anything; and the two sentences 05-3 could carry
+about sigmoid/softmax at the output and at prediction time (the slot 54
+entry has them).
+
+**After slot 54:** slot 52 `training-loop` (05-4 end to end, the loop
+treating the loss as one number per epoch, its Loss row linking to 54).
 
 **Things learned on 51 that are not in the principles yet:**
 
