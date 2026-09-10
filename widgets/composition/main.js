@@ -236,10 +236,13 @@ function outlineBox(ctx, colors, x, y, w, h, label, color) {
 function edge(ctx, colors, cx, y0, y1, text, o = {}) {
   arrow(ctx, cx, y0, cx, y1, o.color ?? colors.axis, 2, o.dash ?? []);
   if (!text) return null;
+  return edgeLabel(ctx, colors, cx, (y0 + y1) / 2, text, o);
+}
+/** The shape written ON a vertical line, the surface knocked out behind it. */
+function edgeLabel(ctx, colors, cx, mid, text, o = {}) {
   const size = o.size ?? colors.fsSm;
   ctx.font = `${size} ${colors.mono}`;
   const tw = ctx.measureText(text).width;
-  const mid = (y0 + y1) / 2;
   ctx.fillStyle = colors.surface;
   ctx.fillRect(cx - tw / 2 - 4, mid - 8, tw + 8, 16);
   txt(ctx, colors, text, cx, mid + 0.5,
@@ -859,19 +862,28 @@ function drawBranch(ctx, colors, w, params, state, anim) {
       walk.done >= b.unit ? shapeText([4, b.n]) : "", { color: b.hue });
     layerBox(ctx, colors, b.cx - g.boxW / 2, boxTop + BOX_H + EDGE_H, g.boxW, "relu", b.hue,
       { lit: walk.done === b.unit, pale: walk.done < b.unit });
-    /* DECISION 9: the edge elbows INTO the band it feeds, rather than stopping
-       at its own column centre beside a band that is centred in the diagram. */
+    /* DECISION 9, AMENDED IN ROUND 1: the edge APPEARS WITH ITS BAND, and it
+       enters the band straight from above when its column stands over the
+       band (concat lays the two side by side under their own columns) and
+       from the SIDE at mid-height when the column stands clear of it (add
+       stacks two centred bands, so both columns are beside them). The elbow
+       that arrived from the top had its head at the bend, and at add its
+       horizontal leg crossed the first band on the way to the second
+       (Kenneth, round 1: "the arrows below shouldn't be shown until we reach
+       that stage", "some of the arrowheads are too close to the bends"). */
     const from = boxTop + 2 * BOX_H + EDGE_H;
-    const target = b.band.x + (b.band.cols * p) / 2;
     if (walk.done >= b.unit) {
-      txt(ctx, colors, `${b.out}  ${shapeText([4, b.n])}`, b.cx, from + 15,
-        { color: colors.ink1, align: "center", baseline: "middle", mono: true });
-    }
-    const turn = Math.max(from + 24, b.band.y - 14);
-    if (Math.abs(target - b.cx) < 2) {
-      arrow(ctx, b.cx, from + 24, b.cx, b.band.y - 2, b.hue, 2);
-    } else {
-      elbow(ctx, [[b.cx, from + 24], [b.cx, turn], [target, turn], [target, b.band.y - 2]], b.hue);
+      const label = `${b.out}  ${shapeText([4, b.n])}`;
+      const bandW = b.band.cols * p;
+      const over = b.cx >= b.band.x + 6 && b.cx <= b.band.x + bandW - 6;
+      if (over) {
+        edge(ctx, colors, b.cx, from, b.band.y - 2, label, { color: b.hue });
+      } else {
+        const midY = b.band.y + (4 * p) / 2;
+        const endX = b.cx < b.band.x ? b.band.x - 2 : b.band.x + bandW + 2;
+        elbow(ctx, [[b.cx, from], [b.cx, midY], [endX, midY]], b.hue);
+        edgeLabel(ctx, colors, b.cx, from + EDGE_H / 2, label);
+      }
     }
   }
 
