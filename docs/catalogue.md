@@ -10727,7 +10727,12 @@ embedding dimension; the output for the query is a new vector for that token,
 each column the weighted sum of that column across the three tokens).
 **(3)** an annotation on the diagonal arrows from X to Q and K, *"90 degree or
 curved elbows?"* — right-angle elbows, his figures' convention. All three
-fixes, one builder round.
+fixes, one builder round. **(4)** *"what is the dotted line meant to
+highlight?"* — the dashed frame through the product stack marks column 0, the
+one embedding dimension whose arithmetic is written under the band, and
+nothing said so: the framed column's header digit sits inside the frame's top
+and the arithmetic line begins with the same dashed mark, so frame and line
+read as one thing.
 
 ### Slot 50 · `support-layers` — Normalization, Activation and Dropout — PLANNED 2026-09-10
 
