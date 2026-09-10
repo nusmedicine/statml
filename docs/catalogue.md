@@ -10762,7 +10762,15 @@ data parameter `query` (`The | cat | sat`) set by a click on a token's row of
 X or on its row label in the scores and weights grids, the walk restarting
 with that token first and continuing through the other two; `?query=cat`
 reproduces it; no rail control, the click is the control (3.6) and Step and
-Play the keyboard route.
+Play the keyboard route. **Built as a rotation** (`53b2448`: the picked token
+first, then the others in order, wrapping) — and Kenneth: *"oh so it plays
+thru all the queries? I thought I would get a selector?"* So the design
+changed: the walk is the layer's computation and always runs The → cat →
+sat; **`query` is a `segmented` DISPLAY control** (The · cat · sat) choosing
+which token's working band 2 explains, pinned there, its products and output
+empty until the walk reaches that token; the click targets set the same
+parameter; switching it keeps the walk, since choosing which query to read is
+a reading of computed data (3.2).
 
 ### Slot 50 · `support-layers` — Normalization, Activation and Dropout — PLANNED 2026-09-10
 
