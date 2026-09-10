@@ -11554,6 +11554,53 @@ edge should elbow into the band. (A scaled screenshot showed that arrow as
 diagonal; a pixel scan showed it vertical, and that is the phantom CLAUDE.md
 warns about.)
 
+**The draft (`0e39b03`, 2026-09-10, evening).** An Opus 5 builder from the
+mock's geometry and the support-layers idiom: seven pages, `model.js` for the
+arithmetic and the fit pass, 128 assertions, manifest at status draft, no core
+change needed. Twelve decisions in `main.js`'s header; the ones the catalogue
+did not settle: Dimensions' menus are per STEP as well as per data type, since
+one menu across four positions cannot promise every failure is matmul or
+channels (`MaxPool2d` after `Flatten` is a rank error torch words differently);
+the step label is *Next layer* on Dimensions too; at `mode: hard` the router
+still computes its weights and the two lines that differ from cell 101 are
+written into the code panel; the gate's weights are drawn as the `[4, 3]` tensor
+they are, four rows, so the `regions` rows have something to hit; the
+`forward()` body is drawn with its indent removed. `width` is Skip's choice
+(10 · 20) and `fc2` Branching's (6 · 8), because one name cannot hold two tick
+sets and fc2 is the layer's own name on the box and in the code. Before Kenneth
+saw it the main session made Ordering's Parameters tile count at the printed
+sizes (260 / 2352 / 3340) where it had printed a dash beside a print that
+states every size. **One core change, his call (`5f7321c`):** a parameter whose
+option list follows another parameter resolves to that list's first option AT
+LOAD when its default is not in the list, as it already did under a click, so
+`?topic=dimensions&data=sequence` no longer leaves the rail's four selects
+blank. The full suite after it: 457 MATCH; the 3 t-sne states DIFFER at 688px
+wide with the change stashed as well, the scrollbar flake.
+
+**Round 1 — Kenneth, 2026-09-10, from two annotated screenshots.** **(1)
+Branching:** *"maybe the arrows below shouldn't be shown until we reach that
+stage"* and *"some of the arrowheads are too close to the bends"* — a fix,
+built in the main session (`69fee91`): a branch's edge appears with its band,
+and it enters the band straight from above where its column stands over the
+band (concat) and from the SIDE at mid-height where it does not (add and
+average stack two centred bands); the elbow from above had a 4px last leg
+under a 9px head, and at add its horizontal leg crossed the first band on the
+way to the second. **(2) Routing:** *"is there supposed to be a depiction of
+weighted sums?"* — the box held only its label; a design, so mocked:
+`_lab/composition-routing-sum.html` (`e13df89`), three ways at 550 and 770 on
+the widget's own numbers. A the chosen sample's row from each branch as a
+strip scaled by its weight with `× 0.70` beside it and the combined strip
+below (box 64 → 119px, stage 581 → 636 at 550); B all four samples as three
+`[4, 20]` bands with the weight column beside each (stage 780 / 827); C A plus
+one feature's arithmetic under the box, the column framed through the four
+strips (stage 660 / 659). Two findings: beside FAILS at 770 for all three
+(the block needs 456px of box at 16px cells and the code leaves 259), so the
+code goes under at both widths and Routing's 770 stage grows from 426 to about
+660; and the framed column at rest is the one with the most non-zero terms,
+since every branch ends in a ReLU and column 0 is zero in all three. **Kenneth
+picked C**, the attention precedent (slot 49, round 2). Built by an Opus
+builder next.
+
 **Build order within the widget**, once the mock is picked: Dimensions first (the
 strongest losing state and the most machinery), then Skip, Branching, Gating,
 Routing, Building, Ordering. The widget itself is built after
