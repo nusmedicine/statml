@@ -10645,6 +10645,35 @@ aggregation written out for the stepped node. **(5)** *"where do the other
 layers come in? embedding/pooling, activation? this same widget or a separate
 one?"* — answered: `support-layers`, slot 50, his own first pick that morning.
 
+**Round 1 built the same day (`6c6db9e`)**: one scale `t` per page (0 at
+550, 1 at 770) interpolating every value- or pixel-carrying length, with a
+`fitSizes` pass stepping `t` down until the widest band fits `w − 2·PAD`
+(swept 550 → 776 in 0.2px steps over every parameter, 0 overruns, tightest
+slack 1px on transposed k = 5); band 2 of the Convolutional page as two rows,
+one per kernel, since a kernel column in band 1 needs 138px that 404 of 522
+does not leave; the scores grid labelled by query token (rows) and key token
+(columns) with the three dot products written out under it, and the weights
+as a heat map on a 0 → 1 ramp (asserted: every random-init weight in
+0.315–0.349); `X` under Input and `W` under Aggregate on the Graph page with
+the aggregation written out at the first feature. 62 assertions. The
+narrowest pages still leave stage to the right at 770 because the scale caps
+at the mock's own 770 sizes.
+
+**Round 2 — Kenneth, 2026-09-10, two comments.** **(1)** *"for attention, is
+it possible to illustrate what the sum means?"* — a design, mocked in
+`_lab/processing-layers-attn-sum.html`: the weighted rows then the column
+sum; the running sum stepped; one feature as stacked bars — each at random
+and identity projections, since at random the output is nearly the mean of
+the value rows and at identity it leans toward the weighted tokens.
+**(2)** *"for graph, how do we show which node corresponds to which value in
+the tensor? should we break it into different tensors per node? or highlight
+the relevant parts of the tensor when animating or hovering?"* — answered
+highlight: the `[4, 3]` shape is the lesson (one node-feature matrix, one
+row per node) and tensors' shared-key idiom (decision 10 there) lights a
+node's strip and its print row together on step and on hover, with
+`node 0…3` labels in the print's gutter; a fix, queued behind the RNN strip
+build (the same file).
+
 ### Slot 50 · `support-layers` — Normalization, Activation and Dropout — PLANNED 2026-09-10
 
 **Host.** 05-3 cells 29–60: Embedding (29–33), Pooling (34–39), BatchNorm and
