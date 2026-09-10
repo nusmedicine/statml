@@ -169,9 +169,10 @@ export const bandWidth = {
   gating: (z, cw) => cw + TEXT_GAP + Math.max(20 * z.band, 2 * MIN_BOX + COLGAP),
   /* the widest merge is concat on 8 and 8, and the open pair carries a 12px gap */
   branching: (z, cw) => cw + TEXT_GAP + Math.max(16 * z.band + 12, 2 * MIN_BOX + COLGAP),
-  /* three branch columns and a gate column of three weight cells */
-  routing: (z, cw, beside) =>
-    (beside ? cw + TEXT_GAP + routeMinDiag(z) : Math.max(cw, routeMinDiag(z))),
+  /* three branch columns, a gate column of three weight cells, and the block
+     of strips the weighted sum is drawn as, which the box has to hold */
+  routing: (z, cw, beside, fixed) =>
+    (beside ? cw + TEXT_GAP + routeDiagMin(z, fixed) : Math.max(cw, routeDiagMin(z, fixed))),
   dimensions: () => DIM_BOX_W,
   building: (z, cw, beside) => (beside ? cw + TEXT_GAP + BOX_W : Math.max(cw, BOX_W)),
   ordering: (z, cw, beside) =>
@@ -179,6 +180,53 @@ export const bandWidth = {
 };
 
 export const routeMinDiag = (z) => 3 * (MIN_BOX + COLGAP) + 3 * z.wcell;
+
+/* --- Routing's weighted sum, drawn ------------------------------------------
+ * The box under the three branches used to hold nothing but its own label, and
+ * Kenneth asked for a depiction of the sum the page is named for
+ * (`_lab/composition-routing-sum.html`, candidate C, 2026-09-10). It holds the
+ * chosen sample's row from each branch as a strip of ROUTE_HIDDEN cells, laid
+ * out as an equation: an operator column, the branch's name, the cells, and
+ * the weight that multiplies the row.
+ *
+ * THAT BLOCK IS NOW WHAT DECIDES THE DIAGRAM'S WIDTH. The box spans the three
+ * branch columns, so twenty cells and their labels are a claim on the diagram
+ * that `routeMinDiag`'s four columns alone never made, and the fit pass answers
+ * it by putting the code under the diagram at both widths — beside leaves a
+ * 259px box against a 456px block, and the strips fall to 6px a cell.
+ *
+ * The two label widths are MEASURED: `main.js` reads them off the live canvas
+ * and passes them in, and the constants below are that measurement, for the
+ * verify script which has no canvas to ask. The same arrangement as MONO_SM.
+ */
+export const SUM_PAD = 8;         // the block's inset inside the box
+export const SUM_HEAD = 15;       // the box's label, above the first strip
+export const SUM_GAP = 14;        // between two strips, and where the + sits
+export const SUM_RULE = 12;       // between the last branch strip and the total
+export const SUM_OPW = 12;        // the + / = column
+export const SUM_OPGAP = 4;
+export const SUM_LGAP = 6;        // between the branch's name and its cells
+export const SUM_RGAP = 6;        // between the cells and the weight
+export const SUM_ARITH = 24;      // the one printed line under the box
+/* `branch 3` at --fs-xs, and the widest of `× 0.00`, `combined`, `not taken`
+   and `taken`: the right column is reserved at the widest label it ever
+   carries, so the block does not move when the reader switches modes */
+export const SUM_LAB_L = 43;
+export const SUM_LAB_R = 49;
+
+/** Everything in a strip row that is not a cell. */
+export const routeSumFixed = (labL = SUM_LAB_L, labR = SUM_LAB_R) =>
+  2 * SUM_PAD + SUM_OPW + SUM_OPGAP + labL + SUM_LGAP + SUM_RGAP + labR;
+/** The box the block needs: 376px at a 12px cell, 456px at 16px. */
+export const routeSumMinW = (z, fixed = routeSumFixed()) =>
+  fixed + ROUTE_HIDDEN * z.band;
+/** Its height at a cell size: three branch strips, a rule, and the total. */
+export const routeSumH = (p) =>
+  2 * SUM_PAD + SUM_HEAD + 4 * p + 2 * SUM_GAP + SUM_RULE;
+/** The diagram's minimum: four columns, or the block plus the gate column. */
+export const routeDiagMin = (z, fixed) =>
+  Math.max(routeMinDiag(z), routeSumMinW(z, fixed) + 3 * z.wcell + COLGAP);
+
 /* the box, the gradient gutter and the skip rail down the right */
 export const SKIP_MIN_DIAG = 250;
 export const DIM_BOX_W = 180;
@@ -858,4 +906,39 @@ export function routing(mode) {
     codeWidest: CODE_ROUTE.soft,
     units: 6,
   };
+}
+
+/** The three rows the weighted-sum block stacks for one sample: at `soft` the
+    product each branch contributes, at `hard` the taken branch's row and
+    nothing at all for the other two. */
+export function routeSumRows(st, s) {
+  return [0, 1, 2].map((i) => (st.mode === "hard"
+    ? (i === st.top[s] ? st.outs[i][s] : null)
+    : st.outs[i][s].map((v) => v * st.weights[s][i])));
+}
+
+/**
+ * WHICH COLUMN THE BLOCK FRAMES WITH NO POINTER ON IT. Every branch ends in a
+ * ReLU, so a feature can be zero in all three, and column 0 is one of those:
+ * framed there the printed line reads `0.70 × 0.00 + 0.23 × 0.00 + 0.07 × 0.00
+ * = 0.00`, which carries the form and none of the arithmetic. The rest column
+ * is the one with the most non-zero terms, the largest total breaking the tie.
+ *
+ * Here rather than in `main.js` because the verify script asserts the rule and
+ * a rule computed twice is a rule that can differ (5.8).
+ */
+export function routeRestColumn(st, s) {
+  const rows = routeSumRows(st, s);
+  const total = st.combined[s];
+  let best = 0;
+  let bestScore = -1;
+  for (let c = 0; c < ROUTE_HIDDEN; c += 1) {
+    const live = rows.filter((r) => r && Math.abs(r[c]) > 0).length;
+    const score = live * 100 + Math.abs(total[c]);
+    if (score > bestScore) {
+      bestScore = score;
+      best = c;
+    }
+  }
+  return best;
 }

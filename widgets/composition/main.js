@@ -213,13 +213,15 @@ function layerBox(ctx, colors, x, y, w, label, color, o = {}) {
   });
 }
 
-/** An outlined box with no fill — the `Merge` rectangle of his branch figure. */
+/** An outlined box with no fill — the `Merge` rectangle of his branch figure.
+    A box with something drawn inside it passes no label and captions itself. */
 function outlineBox(ctx, colors, x, y, w, h, label, color) {
   ctx.fillStyle = colors.surface;
   ctx.fillRect(x, y, w, h);
   ctx.strokeStyle = color;
   ctx.lineWidth = BOX_BW;
   ctx.strokeRect(x + BOX_BW / 2, y + BOX_BW / 2, w - BOX_BW, h - BOX_BW);
+  if (!label) return;
   txt(ctx, colors, label, x + w / 2, y + h / 2 + 0.5,
     { color: colors.ink1, align: "center", baseline: "middle", mono: true });
 }
@@ -424,8 +426,11 @@ function walkAt(anim, state) {
   return { done, lit: done > 0 ? done : -1, idx: done - 1 };
 }
 
-/* the shade a band's cell carries, on the band's own largest magnitude */
-const shadeOf = (hue, v, hi) => wash(hue, 0.06 + 0.84 * Math.min(1, Math.abs(v) / (hi || 1)));
+/* the shade a band's cell carries, on the band's own largest magnitude. The
+   alpha is separate because Routing's strips multiply it by the branch's
+   weight, so a smaller weight is a paler row. */
+const alphaOf = (v, hi) => 0.06 + 0.84 * Math.min(1, Math.abs(v) / (hi || 1));
+const shadeOf = (hue, v, hi) => wash(hue, alphaOf(v, hi));
 const maxAbs = (rows) => Math.max(...rows.flat().map(Math.abs));
 
 /* ========================== 1 · Dimensions ================================= *
@@ -931,6 +936,21 @@ function drawBranch(ctx, colors, w, params, state, anim) {
  * 770 only because the layer sizes sit on the edges rather than inside the
  * boxes: `Linear(10, 20)` inside a box is 86px of label and needs a 104px box,
  * where `Linear` alone needs 60.
+ *
+ * THE BOX UNDER THE BRANCHES HOLDS THE SUM IT IS NAMED FOR. It used to hold
+ * its label and nothing else, and Kenneth on review: "is there supposed to be
+ * a depiction of weighted sums?" `_lab/composition-routing-sum.html` drew
+ * three answers at both widths and he picked C (2026-09-10) — the chosen
+ * sample's row from each branch as a strip of 20 cells, the weight riding on
+ * the row as `× 0.70` and as the row's own paleness, the combined row under a
+ * rule, and one column's arithmetic printed under the box. The block is the
+ * mock's geometry, constant for constant.
+ *
+ * AND IT IS WHY THE CODE NOW SITS UNDER THE DIAGRAM AT BOTH WIDTHS. Twenty
+ * cells and their labels need 376px of box at 12px and 456px at 16px; beside
+ * the 350px code column at 770 the box is 259px, which draws the strips at 6px
+ * a cell. The fit pass finds the width by moving the code, and the page is
+ * 660px at 550 and 659 at 770 either way.
  */
 
 /* THE GATE'S WEIGHTS ARE DRAWN AS THE [4, 3] TENSOR THEY ARE, four rows of
@@ -941,34 +961,162 @@ function drawBranch(ctx, colors, w, params, state, anim) {
 const WROW = 16;
 const WBLOCK = 4 * WROW;
 
+/** The block's two reserved label columns, measured on the live canvas: the
+    branch's name at the left, and the widest label the right column carries.
+    `model.js` holds the same two numbers for the verify script, which has no
+    canvas to ask — the arrangement `MONO_SM` already uses. */
+function sumLabels(ctx, colors) {
+  const at = (s, mono) => {
+    ctx.font = `${colors.fsXs} ${mono ? colors.mono : colors.font}`;
+    return Math.ceil(ctx.measureText(s).width);
+  };
+  return {
+    labL: Math.max(...[1, 2, 3].map((i) => at(`branch ${i}`))),
+    labR: Math.max(at("× 0.00", true), at("combined"), at("not taken"), at("taken")),
+  };
+}
+
 function routeGeom(ctx, colors, w, params, state) {
   const usable = w - 2 * PAD;
   /* the column is reserved at the widest form, so the diagram does not move
      when the reader switches modes (the mock's own decision) */
   const cw = codeW(ctx, colors, state.codeWidest);
+  const { labL, labR } = sumLabels(ctx, colors);
+  const fixed = M.routeSumFixed(labL, labR);
   const s0 = M.sizesAt(Math.max(0, Math.min(1, (w - 550) / 220)));
-  const beside = M.besideFits(w, cw, M.routeMinDiag(s0));
-  const s = M.fitSizes(w, (z) => M.bandWidth.routing(z, cw, beside));
+  const beside = M.besideFits(w, cw, M.routeDiagMin(s0, fixed));
+  const s = M.fitSizes(w, (z) => M.bandWidth.routing(z, cw, beside, fixed));
   const gateW = 3 * s.wcell;
   const roomy = beside ? usable - cw - TEXT_GAP : usable;
-  const diagW = Math.max(roomy, M.routeMinDiag(s));
+  const diagW = Math.max(roomy, M.routeDiagMin(s, fixed));
   const branchW = Math.floor((diagW - gateW - 3 * COLGAP) / 3);
-  const diagH = XLAB + ROUTE_SPLIT + 3 * BOX_H + WBLOCK + 4 * EDGE_H;
+  const boxTop = BAND_HEAD + XLAB + ROUTE_SPLIT;
+  const cols = [0, 1, 2].map((i) => PAD + i * (branchW + COLGAP) + branchW / 2);
+  /* the box spans the three branch columns, and the block is centred in it:
+     at 770 the box is 607px against a 456px block, and a block pinned to the
+     left edge reads as a box that lost its right-hand contents */
+  const boxL = cols[0] - branchW / 2;
+  const boxR = cols[2] + branchW / 2;
+  const boxWidth = boxR - boxL;
+  const p = Math.min(s.band, Math.floor((boxWidth - fixed) / M.ROUTE_HIDDEN));
+  const boxH = Math.max(WBLOCK, M.routeSumH(p));
+  /* the printed line's row is reserved whether or not there is a line to put
+     in it, so the stage does not move under a pointer */
+  const diagH = XLAB + ROUTE_SPLIT + 3 * BOX_H + boxH + M.SUM_ARITH + 4 * EDGE_H;
   const codeH = state.code.length * LINE;
   const caps = captionLines(ctx, colors, w, params, state);
   const capY = BAND_HEAD + diagH + 12 + (beside ? 0 : codeH + 10) + CAP_GAP;
-  const boxTop = BAND_HEAD + XLAB + ROUTE_SPLIT;
-  const cols = [0, 1, 2].map((i) => PAD + i * (branchW + COLGAP) + branchW / 2);
   return {
     usable, cw, s, beside, gateW, roomy, diagW, branchW, diagH, codeH, caps, capY, boxTop, cols,
+    labL, labR, fixed, p, boxL, boxR, boxWidth, boxH,
     gateCx: PAD + 3 * (branchW + COLGAP) + gateW / 2,
     boxW: Math.min(branchW, 92),
     weightsY: boxTop + 2 * BOX_H + 2 * EDGE_H,
+    blockX: boxL + Math.round((boxWidth - (fixed + M.ROUTE_HIDDEN * p)) / 2),
     height: capY + caps.length * CAPTION_H + PAD,
   };
 }
 
-function drawRoute(ctx, colors, w, params, state, anim) {
+/**
+ * The block inside the box: three branch strips, a rule, and the combined row,
+ * laid out as an equation. Returns the column it framed, which is the one
+ * under the pointer where there is one and `routeRestColumn`'s otherwise.
+ */
+function drawSumBlock(ctx, colors, g, state, sample, hard, pointer) {
+  const HUES = [colors.groupA, colors.groupB, colors.groupC];
+  const p = g.p;
+  const opX = g.blockX + M.SUM_PAD + M.SUM_OPW / 2;
+  const labX = g.blockX + M.SUM_PAD + M.SUM_OPW + M.SUM_OPGAP;
+  const cellX = labX + g.labL + M.SUM_LGAP;
+  const rightX = cellX + M.ROUTE_HIDDEN * p + M.SUM_RGAP;
+  const y0 = g.weightsY + M.SUM_PAD + M.SUM_HEAD;
+  const taken = state.top[sample];
+  /* at `soft` a strip is the PRODUCT the branch contributes, so the four rows
+     are an addition the reader can read off; at `hard` the two branches that
+     were not taken have no row at all, and their cells are drawn empty */
+  const rows = M.routeSumRows(state, sample);
+  const total = state.combined[sample];
+  const hi = Math.max(maxAbs(rows.filter(Boolean)), maxAbs([total]));
+  const stripY = [0, 1, 2].map((i) => y0 + i * (p + M.SUM_GAP));
+  const sumY = stripY[2] + p + M.SUM_RULE;
+
+  [0, 1, 2].forEach((i) => {
+    if (i > 0) {
+      txt(ctx, colors, "+", opX, stripY[i] + p / 2 + 0.5,
+        { color: colors.ink3, align: "center", baseline: "middle" });
+    }
+    txt(ctx, colors, `branch ${i + 1}`, labX, stripY[i] + p / 2 + 0.5,
+      { color: HUES[i], baseline: "middle", size: colors.fsXs });
+    shadedBand(ctx, colors, cellX, stripY[i], 1, M.ROUTE_HIDDEN, p,
+      (r, c) => wash(HUES[i], alphaOf(rows[i] ? rows[i][c] : 0, hi)
+        * (hard ? 1 : state.weights[sample][i])),
+      { emptyAt: () => !rows[i] });
+    const right = hard
+      ? (i === taken ? "taken" : "not taken")
+      : `× ${state.weights[sample][i].toFixed(2)}`;
+    txt(ctx, colors, right, rightX, stripY[i] + p / 2 + 0.5, {
+      color: rows[i] ? colors.ink1 : colors.ink3,
+      baseline: "middle", size: colors.fsXs, mono: !hard,
+    });
+  });
+
+  ctx.strokeStyle = colors.grid;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(labX, sumY - M.SUM_RULE / 2 + 0.5);
+  ctx.lineTo(rightX + g.labR, sumY - M.SUM_RULE / 2 + 0.5);
+  ctx.stroke();
+  txt(ctx, colors, "=", opX, sumY + p / 2 + 0.5,
+    { color: colors.ink3, align: "center", baseline: "middle" });
+  shadedBand(ctx, colors, cellX, sumY, 1, M.ROUTE_HIDDEN, p,
+    (r, c) => shadeOf(colors.empirical, total[c], hi));
+  txt(ctx, colors, "combined", rightX, sumY + p / 2 + 0.5,
+    { color: colors.empirical, baseline: "middle", size: colors.fsXs });
+
+  /* THE COLUMN THE POINTER IS OVER, resolved here because the frame has to
+     know it before the line under the box is printed. The hit is arithmetic on
+     the framed rectangle itself, so the target cannot sit anywhere but where
+     it is drawn. */
+  const over = pointer
+    && pointer.x >= cellX && pointer.x < cellX + M.ROUTE_HIDDEN * p
+    && pointer.y >= stripY[0] && pointer.y < sumY + p
+    ? Math.floor((pointer.x - cellX) / p)
+    : -1;
+  const col = over >= 0 ? over : M.routeRestColumn(state, sample);
+  ctx.strokeStyle = colors.highlight;
+  ctx.lineWidth = HLW;
+  ctx.strokeRect(cellX + col * p - 1.25, stripY[0] - 1.25,
+    p + 2.5, sumY + p - stripY[0] + 2.5);
+  return col;
+}
+
+/** The framed column's arithmetic, one line under the box, each product in the
+    hue of the branch it came from. */
+function drawSumLine(ctx, colors, g, state, sample, hard, col) {
+  const HUES = [colors.groupA, colors.groupB, colors.groupC];
+  const n2 = (v) => v.toFixed(2);
+  const y = g.weightsY + g.boxH + 16;
+  let x = g.blockX + M.SUM_PAD;
+  const put = (s, color) => {
+    txt(ctx, colors, s, x, y, { color, mono: true });
+    x += ctx.measureText(s).width;
+  };
+  put(`combined[${sample}, ${col}] = `, colors.ink2);
+  if (hard) {
+    const t = state.top[sample];
+    put(n2(state.outs[t][sample][col]), HUES[t]);
+    put(`, from branch ${t + 1}`, colors.ink2);
+    return;
+  }
+  [0, 1, 2].forEach((i) => {
+    if (i > 0) put(" + ", colors.ink3);
+    put(`${n2(state.weights[sample][i])} × ${n2(state.outs[i][sample][col])}`, HUES[i]);
+  });
+  put(" = ", colors.ink3);
+  put(n2(state.combined[sample][col]), colors.empirical);
+}
+
+function drawRoute(ctx, colors, w, params, state, anim, pointer) {
   const g = routeGeom(ctx, colors, w, params, state);
   const walk = walkAt(anim, state);
   const sample = Number(params.sample);
@@ -1021,11 +1169,14 @@ function drawRoute(ctx, colors, w, params, state, anim) {
   txt(ctx, colors, "gate", g.gateCx, g.boxTop - 6,
     { color: colors.ink3, align: "center", size: colors.fsXs });
 
-  const sumL = g.cols[0] - g.branchW / 2;
-  const sumR = g.cols[2] + g.branchW / 2;
-  outlineBox(ctx, colors, sumL, weightsY, sumR - sumL, WBLOCK,
-    hard ? `branch ${taken >= 0 ? taken + 1 : "·"} taken` : "weighted sum",
+  const sumL = g.boxL;
+  const sumR = g.boxR;
+  outlineBox(ctx, colors, sumL, weightsY, g.boxWidth, g.boxH, "",
     walk.done >= 5 ? colors.empirical : colors.axis);
+  /* the box's name is the block's caption, at its top left, because the middle
+     of the box is where the strips go */
+  txt(ctx, colors, hard ? `branch ${taken >= 0 ? taken + 1 : "·"} taken` : "weighted sum",
+    sumL + M.SUM_PAD, weightsY + M.SUM_PAD + 10, { color: colors.ink3, size: colors.fsXs });
   for (let r = 0; r < 4; r += 1) {
     for (let i = 0; i < 3; i += 1) {
       valueCell(ctx, colors, g.gateCx - g.gateW / 2 + i * g.s.wcell, weightsY + r * WROW,
@@ -1046,9 +1197,17 @@ function drawRoute(ctx, colors, w, params, state, anim) {
   arrow(ctx, g.gateCx - g.gateW / 2 - 2, weightsY + WBLOCK / 2, sumR + 4, weightsY + WBLOCK / 2,
     colors.ink3, 2);
 
-  const fcTop = weightsY + WBLOCK + EDGE_H;
+  /* THE BLOCK APPEARS WITH THE LINE THAT COMPUTES IT — unit 5, which is
+     `combined = torch.sum(weights * outs, dim=1)` and its hard-routing
+     equivalent. Before that the box is empty with its label, as it was. */
+  if (walk.done >= 5) {
+    const col = drawSumBlock(ctx, colors, g, state, sample, hard, pointer);
+    drawSumLine(ctx, colors, g, state, sample, hard, col);
+  }
+
+  const fcTop = weightsY + g.boxH + M.SUM_ARITH + EDGE_H;
   const sumCx = (sumL + sumR) / 2;
-  edge(ctx, colors, sumCx, weightsY + WBLOCK, fcTop,
+  edge(ctx, colors, sumCx, weightsY + g.boxH + M.SUM_ARITH, fcTop,
     walk.done >= 5 ? `combined  ${shapeText([4, 20])}` : "", { color: colors.empirical });
   layerBox(ctx, colors, sumCx - 46, fcTop, 92, "fc_out", colors.empirical,
     { lit: walk.done === 6, pale: walk.done < 6 });
@@ -1588,9 +1747,14 @@ defineWidget({
     + "layer, multiply it by a gate between 0 and 1, or split it into branches "
     + "that merge again.",
   layout: "side",
+  /* Routing frames the feature column under the pointer through its four
+     strips and prints that column's arithmetic under the box. With no pointer
+     the column with the most non-zero terms is framed and the same line is
+     printed, so every number is on the canvas without one and hovering moves
+     the frame rather than revealing anything. */
+  pointer: true,
   /* Decision 3: every page is as tall as its own diagram, its text column and
-     its wrapped captions, and Routing is 138px shorter once the code fits
-     beside it. */
+     its wrapped captions. */
   height: ({ w, ...values }) => pageHeight(w, values),
 
   params: {
@@ -1981,9 +2145,9 @@ defineWidget({
     },
   },
 
-  draw({ ctx, colors, w, params, state, anim }) {
+  draw({ ctx, colors, w, params, state, anim, pointer }) {
     renderCard(params, state);
-    const g = (DRAW[params.topic] ?? drawOrder)(ctx, colors, w, params, state, anim);
+    const g = (DRAW[params.topic] ?? drawOrder)(ctx, colors, w, params, state, anim, pointer);
     g.caps.forEach((line, i) => {
       txt(ctx, colors, line, PAD, g.capY + 12 + i * CAPTION_H, { color: colors.ink2 });
     });

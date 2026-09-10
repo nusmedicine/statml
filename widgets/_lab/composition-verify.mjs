@@ -508,6 +508,71 @@ const shapeIs = (s, want) => Array.isArray(s) && s.join() === want.join();
     && M.codeChars(hard.codeWidest) >= M.codeChars(hard.code));
 
   check("both modes walk the same six lines", soft.units === 6 && hard.units === 6);
+
+  /* --- the weighted sum, drawn (Kenneth's round of 2026-09-10) -------------
+     The box under the three branches holds the chosen sample's row from each
+     branch, one column framed through all four strips, and that column's
+     arithmetic printed under the box. Two things there are arithmetic no
+     picture settles: WHICH column is framed at rest, and whether the printed
+     line adds up to the number it ends with. */
+  const n2 = (v) => v.toFixed(2);
+  const liveAt = (st, s, c) => M.routeSumRows(st, s).filter((r) => r && Math.abs(r[c]) > 0).length;
+  const cols = Array.from({ length: M.ROUTE_HIDDEN }, (_, c) => c);
+
+  check("every branch ends in a ReLU, so a feature can be zero in all three",
+    cols.some((c) => liveAt(soft, 0, c) === 0),
+    `${cols.filter((c) => liveAt(soft, 0, c) === 0).length} of 20 columns are zero in all three`);
+
+  check("the framed column at rest carries the most non-zero terms of the 20",
+    liveAt(soft, 0, M.routeRestColumn(soft, 0)) === Math.max(...cols.map((c) => liveAt(soft, 0, c))),
+    `column ${M.routeRestColumn(soft, 0)}, with ${liveAt(soft, 0, M.routeRestColumn(soft, 0))} of the 3 branches non-zero`);
+
+  check("the largest total breaks the tie between columns with the same count",
+    cols.filter((c) => liveAt(soft, 0, c) === liveAt(soft, 0, M.routeRestColumn(soft, 0)))
+      .every((c) => Math.abs(soft.combined[0][c]) <= Math.abs(soft.combined[0][M.routeRestColumn(soft, 0)])));
+
+  check("the framed column is never one the printed line would read as all zeros",
+    [0, 1, 2, 3].every((s) => liveAt(soft, s, M.routeRestColumn(soft, s)) > 0
+      && liveAt(hard, s, M.routeRestColumn(hard, s)) > 0),
+    `soft ${[0, 1, 2, 3].map((s) => M.routeRestColumn(soft, s)).join(", ")}`);
+
+  /* THE PRINTED LINE IS THE ONE PLACE A WRONG NUMBER WOULD LOOK RIGHT: four
+     shaded strips carry no digits, so nothing on the figure contradicts it. */
+  check("the printed line ends at combined[s, j], to the two decimals it prints",
+    [0, 1, 2, 3].every((s) => {
+      const c = M.routeRestColumn(soft, s);
+      const mixed = soft.outs.reduce((a, o, i) => a + soft.weights[s][i] * o[s][c], 0);
+      return n2(mixed) === n2(soft.combined[s][c]);
+    }));
+
+  check("the printed products add up to the printed total, within a rounded digit",
+    [0, 1, 2, 3].every((s) => {
+      const c = M.routeRestColumn(soft, s);
+      const terms = [0, 1, 2].reduce((a, i) =>
+        a + Number(n2(soft.weights[s][i])) * Number(n2(soft.outs[i][s][c])), 0);
+      return Math.abs(terms - Number(n2(soft.combined[s][c]))) < 0.01;
+    }),
+    `worst gap ${Math.max(...[0, 1, 2, 3].map((s) => {
+      const c = M.routeRestColumn(soft, s);
+      const terms = [0, 1, 2].reduce((a, i) =>
+        a + Number(n2(soft.weights[s][i])) * Number(n2(soft.outs[i][s][c])), 0);
+      return Math.abs(terms - Number(n2(soft.combined[s][c])));
+    })).toFixed(4)}`);
+
+  check("at hard the line carries one value, which is the taken branch's own",
+    [0, 1, 2, 3].every((s) => {
+      const c = M.routeRestColumn(hard, s);
+      return n2(hard.outs[hard.top[s]][s][c]) === n2(hard.combined[s][c])
+        && liveAt(hard, s, c) === 1;
+    }),
+    `sample 0: combined[0, ${M.routeRestColumn(hard, 0)}] = `
+    + `${n2(hard.combined[0][M.routeRestColumn(hard, 0)])}, from branch ${hard.top[0] + 1}`);
+
+  check("a strip's paleness is the branch's weight, so the three sum to one row",
+    M.routeSumRows(soft, 0).every((r, i) =>
+      r.every((v, c) => Math.abs(v - soft.weights[0][i] * soft.outs[i][0][c]) < 1e-12))
+    && soft.combined[0].every((v, c) =>
+      Math.abs(v - M.routeSumRows(soft, 0).reduce((a, r) => a + r[c], 0)) < 1e-12));
 }
 
 /* --- 9 · the three torch messages, read from core's one copy ----------------- */
@@ -559,7 +624,8 @@ const shapeIs = (s, want) => Array.isArray(s) && s.join() === want.join();
   for (let w = 550; w <= 776.001; w += 0.2) {
     const av = usable(w);
     const beside = {
-      routing: M.besideFits(w, CW.routing, M.routeMinDiag(M.sizesAt(Math.max(0, Math.min(1, (w - 550) / 220))))),
+      routing: M.besideFits(w, CW.routing,
+        M.routeDiagMin(M.sizesAt(Math.max(0, Math.min(1, (w - 550) / 220))), M.routeSumFixed())),
       building: M.besideFits(w, M.codeWidth([
         "  (fc1): Linear(in_features=10, out_features=20, bias=True)",
       ]), M.BOX_W),
@@ -569,7 +635,9 @@ const shapeIs = (s, want) => Array.isArray(s) && s.join() === want.join();
       ["skip", M.fitSizes(w, (z) => M.bandWidth.skip(z, CW.skip)), (z) => M.bandWidth.skip(z, CW.skip)],
       ["gating", M.fitSizes(w, (z) => M.bandWidth.gating(z, CW.gating)), (z) => M.bandWidth.gating(z, CW.gating)],
       ["branching", M.fitSizes(w, (z) => M.bandWidth.branching(z, CW.branching)), (z) => M.bandWidth.branching(z, CW.branching)],
-      ["routing", M.fitSizes(w, (z) => M.bandWidth.routing(z, CW.routing, beside.routing)), (z) => M.bandWidth.routing(z, CW.routing, beside.routing)],
+      ["routing",
+        M.fitSizes(w, (z) => M.bandWidth.routing(z, CW.routing, beside.routing, M.routeSumFixed())),
+        (z) => M.bandWidth.routing(z, CW.routing, beside.routing, M.routeSumFixed())],
       ["dimensions", M.sizesAt(0), () => M.bandWidth.dimensions()],
       ["building", M.sizesAt(0), (z) => M.bandWidth.building(z, M.codeWidth([
         "  (fc1): Linear(in_features=10, out_features=20, bias=True)",
@@ -591,10 +659,19 @@ const shapeIs = (s, want) => Array.isArray(s) && s.join() === want.join();
   check("a shaded cell grows with the stage and is floored at the 550 geometry",
     M.sizesAt(0).band === 12 && M.sizesAt(1).band === 16 && M.fitSizes(550, () => 1e9).band === 12);
 
-  check("Routing's code does not fit beside at 550 and does at 770",
+  /* THE BLOCK MOVED THE CODE. Four columns alone fit beside the code at 770,
+     and the weighted-sum block inside the box does not: it needs 456px of box
+     there against the 259px beside leaves. */
+  check("four columns alone would fit beside Routing's code at 770, and did",
     !M.besideFits(550, CW.routing, M.routeMinDiag(M.sizesAt(0)))
     && M.besideFits(770, CW.routing, M.routeMinDiag(M.sizesAt(1))),
     `four columns need ${M.routeMinDiag(M.sizesAt(0))}px and beside leaves ${usable(550) - CW.routing - M.TEXT_GAP}px`);
+
+  check("the sum block puts Routing's code under the diagram at both widths",
+    !M.besideFits(550, CW.routing, M.routeDiagMin(M.sizesAt(0), M.routeSumFixed()))
+    && !M.besideFits(770, CW.routing, M.routeDiagMin(M.sizesAt(1), M.routeSumFixed())),
+    `the diagram needs ${M.routeDiagMin(M.sizesAt(1), M.routeSumFixed())}px at 770 `
+    + `and beside leaves ${usable(770) - CW.routing - M.TEXT_GAP}px`);
 
   const printW = M.codeWidth([
     "  (fc1): Linear(in_features=10, out_features=20, bias=True)",
@@ -608,6 +685,59 @@ const shapeIs = (s, want) => Array.isArray(s) && s.join() === want.join();
     M.besideFits(550, CW.skip, M.SKIP_MIN_DIAG)
     && M.besideFits(550, CW.gating, 2 * M.MIN_BOX + M.COLGAP)
     && M.besideFits(550, CW.branching, 2 * M.MIN_BOX + M.COLGAP));
+
+  /* --- Routing's weighted-sum block: does it fit, and what does it cost? ----
+   * `routeGeom` in main.js, with the three constants main.js does not export
+   * (main.js: XLAB 16, ROUTE_SPLIT 36, WBLOCK 64, the floor the box keeps so
+   * the gate's four weight rows always have a box to sit in). The label widths
+   * are model.js's measured defaults, which is what main.js reads off the live
+   * canvas — 43 and 49 on the browser the mock was drawn on. */
+  const XLAB = 16;
+  const ROUTE_SPLIT = 36;
+  const WBLOCK = 64;
+  const FIXED = M.routeSumFixed();
+  function routeStage(w, force) {
+    const t = Math.max(0, Math.min(1, (w - 550) / 220));
+    const fits = M.besideFits(w, CW.routing, M.routeDiagMin(M.sizesAt(t), FIXED));
+    const beside = force === "beside" ? true : force === "under" ? false : fits;
+    const s = M.fitSizes(w, (z) => M.bandWidth.routing(z, CW.routing, beside, FIXED));
+    const roomy = beside ? usable(w) - CW.routing - M.TEXT_GAP : usable(w);
+    const diagW = Math.max(roomy, force === "beside" ? M.routeMinDiag(s) : M.routeDiagMin(s, FIXED));
+    const branchW = Math.floor((diagW - 3 * s.wcell - 3 * M.COLGAP) / 3);
+    const boxWidth = 3 * branchW + 2 * M.COLGAP;
+    const p = Math.min(s.band, Math.floor((boxWidth - FIXED) / M.ROUTE_HIDDEN));
+    const boxH = Math.max(WBLOCK, M.routeSumH(p));
+    const diagH = XLAB + ROUTE_SPLIT + 3 * M.BOX_H + boxH + M.SUM_ARITH + 4 * M.EDGE_H;
+    const capY = M.BAND_HEAD + diagH + 12
+      + (beside ? 0 : M.CODE_ROUTE.soft.length * M.LINE + 10) + M.CAP_GAP;
+    return { beside, s, p, boxWidth, boxH, capY };
+  }
+
+  check("the block's fixed width is 136px, so 20 cells need 376px of box and 456 at 16",
+    FIXED === 136 && M.routeSumMinW(M.sizesAt(0)) === 376 && M.routeSumMinW(M.sizesAt(1)) === 456,
+    `${M.SUM_LAB_L} + ${M.SUM_LAB_R} of label and ${FIXED - M.SUM_LAB_L - M.SUM_LAB_R} of gaps`);
+
+  check("with the code under the diagram the box holds the block at both widths",
+    routeStage(550).boxWidth >= M.routeSumMinW(M.sizesAt(0))
+    && routeStage(770).boxWidth >= M.routeSumMinW(M.sizesAt(1))
+    && routeStage(550).p === 12 && routeStage(770).p === 16,
+    `${routeStage(550).boxWidth}px against 376 at 550, ${routeStage(770).boxWidth}px against 456 at 770`);
+
+  check("beside the code at 770 the box is 259px, and the strips fall to 6px a cell",
+    routeStage(770, "beside").boxWidth === 259 && routeStage(770, "beside").p === 6,
+    `${M.routeSumMinW(M.sizesAt(1))}px of block against a ${routeStage(770, "beside").boxWidth}px box`);
+
+  /* The caption line counts are read off the canvas that wraps them: three
+     lines at 550 and two at 770 (`_lab/composition-routing-sum.html`). */
+  check("Routing's stage is about 660px at 550 and at 770, the mock's own numbers",
+    Math.abs(routeStage(550).capY + 3 * M.CAPTION_H + M.PAD - 660) <= 3
+    && Math.abs(routeStage(770).capY + 2 * M.CAPTION_H + M.PAD - 660) <= 3,
+    `${routeStage(550).capY + 3 * M.CAPTION_H + M.PAD} at 550, `
+    + `${routeStage(770).capY + 2 * M.CAPTION_H + M.PAD} at 770`);
+
+  check("the box grows from 64px to 119 at 550 and 135 at 770, and reserves the line's row",
+    routeStage(550).boxH === 119 && routeStage(770).boxH === 135 && M.SUM_ARITH === 24,
+    `was ${WBLOCK}px, and 24px more for the printed line at every width`);
 }
 
 /* --- 11 · the reader-facing copy -------------------------------------------- *
