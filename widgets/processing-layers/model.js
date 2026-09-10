@@ -421,6 +421,17 @@ export const TOKENS = ["The", "cat", "sat"];
 export const D_K = 4;
 
 /**
+ * THE COLUMNS OF EVERY VALUE GRID ON THE PAGE ARE THE EMBEDDING DIMENSIONS
+ * (main.js decision 19). X, Q, K, V, the three product rows and the output row
+ * all carry `embed_dim` columns and the same four of them, so the headers over
+ * them are ONE list — the dimension indices — asked for by each of the four
+ * header rows rather than counted to four in the drawing. Kenneth's round-3
+ * question was what the columns of `w · v` mean, and the answer has to be the
+ * same string over every grid or it is four answers.
+ */
+export const EMBED_HEADS = Array.from({ length: D_K }, (_, c) => String(c));
+
+/**
  * `MultiheadAttention(embed_dim=4, num_heads=1)` on those three tokens. The
  * in-projection is one `[12, 4]` xavier draw, torch's own layout, split into
  * W_q, W_k and W_v; its bias is zero, which is torch's default.
@@ -541,6 +552,20 @@ export const nodeKey = (i) => `node ${i}`;
 
 /** The widest gutter label, for the measurement the gutter's width is taken from. */
 export const NODE_GUTTER = nodeKey(NODES - 1);
+
+/**
+ * WHICH BANDS PRINT A NODE-ROWED TENSOR, in the order they are drawn and under
+ * the name their strips and their readout tile already use. Every entry is a
+ * `[4, 3]`: one row per node, so it takes the node gutter and one row of the
+ * hit plan per node.
+ *
+ * THE AGGREGATE BAND JOINED THEM AT ROUND 4 (main.js decision 18) and `W` left
+ * them. `W` printed under Aggregate from round 1, where Kenneth read it as the
+ * thing the step changes; it is the layer's one weight matrix, its rows are
+ * features rather than nodes, and it is applied in the Output band, so it
+ * prints there and carries neither gutter nor key.
+ */
+export const NODE_PRINTS = ["X", "aggregate", "h'"];
 
 /**
  * Which printed LINE each leading index of a rank-2 print sits on, and how many

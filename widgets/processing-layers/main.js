@@ -122,7 +122,8 @@
        see the output, but I don't know where they came from"). The strips are
        shaded and carry no digits, so `X` prints under the Input band exactly
        as the result prints under the Output band, and `W` prints under the
-       Aggregate band, which is where it is about to be applied. The readout's
+       Aggregate band, which is where it is about to be applied — that last
+       placement lasted one round and decision 18 says why it moved. The readout's
        This node tile writes the aggregation out at the first feature, so the
        printed input, the coefficients on the arcs and the printed output are
        one line of arithmetic.
@@ -190,6 +191,64 @@
        keys back with no pointer and no pixel. During the Aggregate step the
        neighbours' printed rows light at the COEFFICIENT's own alpha, the same
        number drawn on the arcs, while the node being updated lights in full.
+
+   ROUND 4 OF KENNETH'S REVIEW (2026-09-10) — Graph and Attention again:
+
+   18. EVERY BAND PRINTS ITS OWN STRIPS, AND `W` PRINTS WHERE IT IS APPLIED
+       ("is the tensor for aggregation step supposed to change or be
+       highlighted?"). Round 1 put `W [3, 3]` under the Aggregate band, on the
+       reasoning that it was about to be applied; under a band whose strips
+       change per step it reads as a tensor that changes per step, and `W` does
+       not — it is the layer's one weight matrix, shared by every node. So the
+       Aggregate band now prints THE AGGREGATE, a `[4, 3]` on the same node
+       gutter and the same per-node key as X and the output, headed
+       `aggregate  [4, 3]` because the band's expression is the operation
+       (`over N(i) ∪ {i}`) and not the shape. `W` moves to the Output band,
+       above the output's own print, next to the expression `W · aggregate`
+       that consumes it, and takes a WASH on the step's lighting phase — the
+       phase every other operand on every page lights in — so the reader sees
+       the two things the product joins before the row lands. It keeps no node
+       gutter, and `model.js`'s `NODE_PRINTS` is the list of the three prints
+       that do, so the drawing, the readout names and the verify script read one
+       list. THE COST IS 92px at the 550 stage: the aggregate print is four
+       lines and a header where W's was three and a header, and W's block moved
+       rather than grew.
+
+   19. THE COLUMNS OF THE ATTENTION GRIDS ARE HEADED, AND THE CAPTION SAYS WHAT
+       THEY ARE ("what do the columns for w·v mean? are there headers? I may
+       have misunderstood the output"). Four header rows of the dimension
+       indices, from `model.js`'s `EMBED_HEADS` so every grid is headed with the
+       same list: one over X, one over Q and K, one over V and the products, and
+       one over the output row under the rule. They are mono at `--fs-xs` in
+       `--ink-3`, which is the face the node gutter on the Graph page already
+       uses for a row's own name. ONE SPANNING `embedding dimension` LABEL, over
+       the V-and-products area, because the products sit at the products' own x
+       with V's columns and the output sits under the products at the same x, so
+       one label reads over all three — with a RULE under it, because centred
+       alone the words sit nearest the products and read as a label for those
+       four columns. Band 1's X, Q and K are the same four dimensions and carry
+       the header row alone; `[3, 4]` beside the name already says how many.
+       The framed column now starts at its own header, so the frame answers
+       which column it is. AND THE PAGE SAYS IT IN WORDS: a caption line above
+       the projection's own claim, naming no token, because the caption block's
+       height is a function of the parameters and a line that changed length
+       with the walk would move the stage under the reader (decision 4). The
+       cost at the 550 stage is 13px in band 1, 35px in band 2 and three
+       caption lines.
+
+   20. X REACHES Q AND K THROUGH RIGHT-ANGLE ELBOWS ("90 degree or curved
+       elbows?"). Kenneth's own `figs/dl-layer-rnn-bi.png` routes every
+       connector orthogonally, so the diagonal to K is gone: the stem leaves X's
+       bottom centre, drops 14px to a rail, and the rail carries one branch
+       straight down into Q's top centre and one right and down into K's. Both
+       branches land 2px above the grid they enter, crossing the `Q [3, 4]` line
+       and the header row at the grid's own MIDPOINT — which is 10px clear of the
+       label's last character at the 550 stage and falls between the second and
+       third column headers at all three, so nothing had to move sideways. The
+       gap grew from 34 to 48 — 14px, for the rail's clearance over the `Q`
+       line — and `polyArrow`, the Recurrent page's own primitive, draws them at
+       2px with 9px heads in `--ink-2`. Band 1 is 27px taller in all: 13 for X's
+       header row and 14 here.
    ========================================================================= */
 
 import {
@@ -1143,8 +1202,21 @@ const rnnName = (key, bi) =>
 
 /* ============================ 4 · Attention ================================ */
 
-const ATT_GAP_QK = 34;
+/* X'S BOTTOM EDGE TO Q AND K, and what has to fit in it (decision 20): the
+   elbows' stem, the rail, the drop, and inside the drop the `Q [3, 4]` line and
+   the column-header row. It was 34 while the connectors were diagonals with
+   nothing but a label under them. */
+const ATT_GAP_QK = 48;
+const ATT_STEM = 14;      // X's bottom edge down to the rail the elbows leave
 const ATT_GAP_SC = 34;    // the grid's name, and the key tokens over its columns
+/* THE COLUMNS ARE HEADED, AND THE HEADERS ARE NAMED (decision 19). One header
+   row over each group of grids whose columns are the embedding dimensions, and
+   one spanning label over the group band 2 builds its output from. Baseline to
+   baseline is 14 either way, so a header sits under its own name and over its
+   own grid rather than between them. */
+const ATT_HEAD = 13;      // a row of the four dimension indices over a grid
+const ATT_SPAN = 16;      // `embedding dimension` over the header row under it
+const ATT_OUT_GAP = 26;   // the sum rule, the output's own header row, and 6px
 /* BAND 2'S ROW LABEL IS THE KEY TOKEN ALONE (decision 16). The pair `cat–The`
    took 54, and the row now carries its product row as well: label, values and
    products measured 538 against the 522 available at the 550 stage. */
@@ -1184,10 +1256,15 @@ function attnGeom(ctx, colors, w, params) {
     8 * z.cw + z.op,
     2 * ATT_TOK + 6 * z.cw + ATT_SOFT,
     9 * z.cw + z.op + 8 + ATT_ROWLAB + ATT_DOT));
-  const h1 = LBL + 3 * s.ch + ATT_GAP_QK + 3 * s.ch + ATT_GAP_SC + 3 * s.ch + ATT_DERIV;
-  /* three rows at the product pitch, the rule, the total, and the one line of
-     arithmetic under it */
-  const h2 = LBL + 2 * (s.ch + ATT_PROD_GAP) + s.ch + 20 + s.ch + PRINT_DROP + PRINT_LH + 8;
+  /* X's name, its header row, its grid, the elbows' gap — which carries Q and
+     K's names and their shared header row — and the rest as before */
+  const h1 = LBL + ATT_HEAD + 3 * s.ch + ATT_GAP_QK
+    + 3 * s.ch + ATT_GAP_SC + 3 * s.ch + ATT_DERIV;
+  /* the names, the spanning label and the header row over the value and product
+     rows, three rows at the product pitch, the rule and the output's own header
+     row, the total, and the one line of arithmetic under it */
+  const h2 = LBL + ATT_SPAN + ATT_HEAD + 2 * (s.ch + ATT_PROD_GAP) + s.ch
+    + ATT_OUT_GAP + s.ch + PRINT_DROP + PRINT_LH + 8;
   const y1 = 0;
   const y2 = BAND_HEAD + h1 + BAND_GAP;
   const capY = y2 + BAND_HEAD + h2 + CAP_GAP;
@@ -1221,25 +1298,49 @@ function drawAttn(ctx, colors, w, params, state, anim) {
     }
   };
 
+  /** The four embedding dimensions over one grid's columns (decision 19), in the
+      mono face the values themselves use, so a header and its column read as
+      one column. `model.js` holds the list: every grid on the page is headed
+      with the same four. */
+  const embedHeads = (gx, gy) => {
+    M.EMBED_HEADS.forEach((h, c) => {
+      txt(ctx, colors, h, gx + c * s.cw + s.cw / 2, gy - 4,
+        { color: colors.ink3, align: "center", mono: true, size: colors.fsXs });
+    });
+  };
+
   let y = band(ctx, colors, g.y1, w, "Scores and weights", "softmax(QKᵀ / √d_k)");
   label(ctx, colors, PAD, y + 11, "X", [3, 4]);
-  grid(ctx, colors, PAD, y + LBL, 3, 4, s.cw, s.ch, (r, c) =>
+  const xy = y + LBL + ATT_HEAD;
+  embedHeads(PAD, xy);
+  grid(ctx, colors, PAD, xy, 3, 4, s.cw, s.ch, (r, c) =>
     ({ text: M.n2(M.ATT_X[r][c]), hue: colors.groupA, ...(r === q ? litFace(colors, walk.light) : {}) }));
-  spotGrid(PAD, y + LBL, 3, 4, s.cw, s.ch, (r, c) => `X[${r}, ${c}] = ${num(M.ATT_X[r][c])}`);
+  spotGrid(PAD, xy, 3, 4, s.cw, s.ch, (r, c) => `X[${r}, ${c}] = ${num(M.ATT_X[r][c])}`);
   for (let r = 0; r < 3; r += 1) {
-    txt(ctx, colors, M.TOKENS[r], PAD + gw + 6, y + LBL + r * s.ch + s.ch / 2 + 4,
+    txt(ctx, colors, M.TOKENS[r], PAD + gw + 6, xy + r * s.ch + s.ch / 2 + 4,
       { color: colors.ink2, size: colors.fsXs });
   }
 
-  const qy = y + LBL + 3 * s.ch + ATT_GAP_QK;
-  arrow(ctx, PAD + gw / 2, y + LBL + 3 * s.ch + 2, PAD + gw / 2, qy - 18, colors.ink3);
-  arrow(ctx, PAD + gw / 2, y + LBL + 3 * s.ch + 2, PAD + gw + s.op + gw / 2, qy - 18, colors.ink3);
-  label(ctx, colors, PAD, qy - 5, "Q", [3, 4]);
+  const xBot = xy + 3 * s.ch;
+  const qy = xBot + ATT_GAP_QK;
+  const kx = PAD + gw + s.op;
+  /* RIGHT-ANGLE ELBOWS, HIS FIGURES' CONVENTION (decision 20): the stem leaves
+     X's bottom centre, drops to a rail, and the rail carries one branch straight
+     down into Q's top centre and one right and down into K's. Both cross the
+     name line and the header row at the grid's own midpoint, which falls between
+     two column headers and clear of the last character of the name. */
+  const cx = PAD + gw / 2;
+  const kcx = kx + gw / 2;
+  const railY = xBot + ATT_STEM;
+  polyArrow(ctx, [[cx, xBot + 2], [cx, qy - 2]], colors.ink2, 2, 9);
+  polyArrow(ctx, [[cx, railY], [kcx, railY], [kcx, qy - 2]], colors.ink2, 2, 9);
+  label(ctx, colors, PAD, qy - ATT_HEAD - 5, "Q", [3, 4]);
+  embedHeads(PAD, qy);
   grid(ctx, colors, PAD, qy, 3, 4, s.cw, s.ch, (r, c) =>
     ({ text: M.n2(state.Q[r][c]), hue: colors.groupB, ...(r === q ? litFace(colors, walk.light) : {}) }));
   spotGrid(PAD, qy, 3, 4, s.cw, s.ch, (r, c) => `Q[${r}, ${c}] = ${num(state.Q[r][c])}`);
-  const kx = PAD + gw + s.op;
-  label(ctx, colors, kx, qy - 5, "K", [3, 4]);
+  label(ctx, colors, kx, qy - ATT_HEAD - 5, "K", [3, 4]);
+  embedHeads(kx, qy);
   /* a query reads EVERY key, which is the claim the page is making, so all
      three rows of K light at once */
   grid(ctx, colors, kx, qy, 3, 4, s.cw, s.ch, (r, c) =>
@@ -1301,8 +1402,40 @@ function drawAttn(ctx, colors, w, params, state, anim) {
   label(ctx, colors, PAD, y + 11, "w");
   label(ctx, colors, vx, y + 11, "V");
   label(ctx, colors, px, y + 11, "w · v");
+  /* WHAT THE COLUMNS ARE, SAID ONCE (decision 19). The products sit at their own
+     x with V's columns and the output sits under the products at the same x, so
+     one label over the two of them reads over all three — but only with the RULE
+     under it: centred alone the words sit nearest the products and read as a
+     label for those four columns rather than for every column below. */
+  const rowTop = y + LBL + ATT_SPAN + ATT_HEAD;
+  const spanL = vx;
+  const spanR = px + 4 * s.cw;
+  const spanY = y + LBL + 11;
+  const spanW = (() => {
+    ctx.font = `${colors.fsXs} ${colors.font}`;
+    return ctx.measureText("embedding dimension").width;
+  })();
+  txt(ctx, colors, "embedding dimension", (spanL + spanR) / 2, spanY,
+    { color: colors.ink3, align: "center", size: colors.fsXs });
+  ctx.strokeStyle = colors.grid;
+  ctx.lineWidth = 1;
+  for (const [a, b] of [
+    [spanL, (spanL + spanR) / 2 - spanW / 2 - 6],
+    [(spanL + spanR) / 2 + spanW / 2 + 6, spanR],
+  ]) {
+    ctx.beginPath();
+    ctx.moveTo(a + 0.5, spanY + 3.5);
+    ctx.lineTo(a + 0.5, spanY - 3.5);
+    ctx.moveTo(a, spanY - 3.5);
+    ctx.lineTo(b, spanY - 3.5);
+    ctx.moveTo(b - 0.5, spanY - 3.5);
+    ctx.lineTo(b - 0.5, spanY + 3.5);
+    ctx.stroke();
+  }
+  embedHeads(vx, rowTop);
+  embedHeads(px, rowTop);
   for (let j = 0; j < 3; j += 1) {
-    const ry = y + LBL + j * pitch;
+    const ry = rowTop + j * pitch;
     if (q >= 0) {
       /* the SAME ramp as band 1's weights grid: it is the same number, and one
          number in two hues is the page disagreeing with itself (decision 16) */
@@ -1343,14 +1476,17 @@ function drawAttn(ctx, colors, w, params, state, anim) {
   }
   /* the sum rule, in --ink-2 at 1.5px: at the cell border's own weight and
      colour it is one more grid line among forty and disappears */
-  const stackBot = y + LBL + 2 * pitch + s.ch;
+  const stackBot = rowTop + 2 * pitch + s.ch;
   ctx.strokeStyle = colors.ink2;
   ctx.lineWidth = 1.5;
   ctx.beginPath();
   ctx.moveTo(px - 3, stackBot + 8.5);
   ctx.lineTo(px + 4 * s.cw + 3, stackBot + 8.5);
   ctx.stroke();
-  const oy = stackBot + 20;
+  const oy = stackBot + ATT_OUT_GAP;
+  /* the output's own header row, under the rule: it is the same four columns as
+     the products above it, and Kenneth's question was about this row (19) */
+  embedHeads(px, oy);
   const landed = q >= 0 ? arrival(walk, q) : 0;
   grid(ctx, colors, px, oy, 1, 4, s.cw, s.ch, (r, c) => (landed > 0
     ? {
@@ -1361,9 +1497,10 @@ function drawAttn(ctx, colors, w, params, state, anim) {
   if (q >= 0) {
     txt(ctx, colors, `output for ${M.TOKENS[q]}`, px - s.op - 8, oy + s.ch / 2 + 4,
       { color: colors.ink2, align: "right" });
-    /* the one column whose arithmetic is written out, framed through the stack */
-    frame(ctx, px + ATT_FEAT * s.cw, y + LBL, s.cw, oy + s.ch - (y + LBL),
-      colors.highlight, 1.5, [4, 3]);
+    /* the one column whose arithmetic is written out, framed through the stack —
+       from its OWN HEADER down, so the frame says which dimension it is (19) */
+    frame(ctx, px + ATT_FEAT * s.cw, rowTop - ATT_HEAD, s.cw,
+      oy + s.ch - (rowTop - ATT_HEAD), colors.highlight, 1.5, [4, 3]);
   }
   if (landed > 0) {
     spotGrid(px, oy, 1, 4, s.cw, s.ch, (r, c) => `output[${q}, ${c}] = ${num(state.out[q][c])}`);
@@ -1386,17 +1523,31 @@ function graphGeom(ctx, colors, w, params) {
   const s = fitSizes(w, (z) => M.NODES * gPitch(z) - G_STRIP_GAP);
   const stageH = gStage(s);
   /* THE PRINTS ARE PART OF THE BAND (decision 14): the strips carry no digits,
-     so X prints under the Input band and W under the Aggregate band, where it
-     is about to be applied, exactly as the result prints under the Output. */
-  const printH = PRINT_DROP + M.printRows([M.NODES, M.GRAPH_IN]) * PRINT_LH;
-  const printW = PRINT_DROP + LBL + M.printRows([M.GRAPH_IN, M.GRAPH_IN]) * PRINT_LH;
+     so every band prints the tensor its own strips are shaded from — and the
+     Output band prints W above its result, because that is the band that
+     applies it (decision 18). A print headed by a label costs LBL more. */
+  const blockN = PRINT_DROP + M.printRows([M.NODES, M.GRAPH_IN]) * PRINT_LH;
+  const blockA = PRINT_DROP + LBL + M.printRows([M.NODES, M.GRAPH_IN]) * PRINT_LH;
+  const blockW = PRINT_DROP + LBL + M.printRows([M.GRAPH_IN, M.GRAPH_IN]) * PRINT_LH;
+  const h1 = BAND_HEAD + stageH + blockN;
+  const h2 = BAND_HEAD + stageH + G_EXTRA + blockA;
+  const h3 = BAND_HEAD + stageH + blockW + blockN;
   const y1 = 0;
-  const y2 = BAND_HEAD + stageH + printH + G_GAP;
-  const y3 = y2 + BAND_HEAD + stageH + G_EXTRA + printW + G_GAP;
-  const capY = y3 + BAND_HEAD + stageH + printH + CAP_GAP;
+  const y2 = h1 + G_GAP;
+  const y3 = y2 + h2 + G_GAP;
+  /* Where each band's node-rowed print starts, measured from the band's own
+     content top: one array, read by the drawing and by the hit plan, so a
+     printed row and the rectangle that answers a pointer on it cannot part
+     company (5.8). */
+  const printOff = [
+    stageH + PRINT_DROP,
+    stageH + G_EXTRA + PRINT_DROP + LBL,
+    stageH + blockW + PRINT_DROP,
+  ];
+  const capY = y3 + h3 + CAP_GAP;
   const caps = captionLines(ctx, colors, w, params);
   return {
-    s, stageH, y1, y2, y3, printH, printW, capY, caps,
+    s, stageH, y1, y2, y3, printOff, capY, caps,
     height: capY + caps.length * CAPTION_H + PAD,
   };
 }
@@ -1423,7 +1574,7 @@ function drawGraph(ctx, colors, w, params, state, anim, pointer) {
     lineH: PRINT_LH,
     lines: M.printRowLines([M.NODES, M.GRAPH_IN]),
   };
-  const bandAt = (top, prints) => {
+  const bandAt = (top, off) => {
     const cy = top + BAND_HEAD;
     return {
       top,
@@ -1435,10 +1586,12 @@ function drawGraph(ctx, colors, w, params, state, anim, pointer) {
       nodeCX: Array.from({ length: M.NODES }, (_, i) => nodeX(i)),
       nodeY: cy + LBL + s.iw + 10 + s.nodeR,
       nodeR: s.nodeR,
-      print: prints ? { ...rowPrint, y: cy + stageH + PRINT_DROP } : null,
+      print: { ...rowPrint, y: cy + off },
     };
   };
-  const bands = [bandAt(g.y1, true), bandAt(g.y2, false), bandAt(g.y3, true)];
+  /* all three bands print a node-rowed tensor now (decision 18), each at its
+     own offset — the Aggregate band's clears the self-loop and its header */
+  const bands = [g.y1, g.y2, g.y3].map((top, i) => bandAt(top, g.printOff[i]));
   const targets = M.graphTargets(bands);
   const hit = M.graphHit(targets, pointer);
   const overNode = hit ? hit.node : -1;
@@ -1548,33 +1701,57 @@ function drawGraph(ctx, colors, w, params, state, anim, pointer) {
   };
 
   const reads = node >= 0 ? nb : null;
+  const [nameX, nameA, nameO] = M.NODE_PRINTS;
   const iy = stage(bands[0], "Input", `X  ${shapeText([M.NODES, M.GRAPH_IN])}`,
-    (i) => state.X[i], spanX, colors.groupA, "X", { read: reads });
+    (i) => state.X[i], spanX, colors.groupA, nameX, { read: reads });
   /* the node features the strips are shaded from, printed (decision 14), each
      row named by the node it belongs to (decision 17) */
-  printBlock(ctx, colors, PAD, iy + stageH + PRINT_DROP,
+  printBlock(ctx, colors, PAD, iy + g.printOff[0],
     [M.NODES, M.GRAPH_IN], ([r, c]) => state.X[r][c], null,
     { gutter, rows: rowFace(readAlpha) });
-  printSpots(0, "X", (i) => state.X[i]);
+  printSpots(0, nameX, (i) => state.X[i]);
 
+  /* A STEPPED NODE'S AGGREGATE IS DRAWN AND PRINTED (decision 18): the strip
+     and the row it prints are the same three numbers, and a node the walk has
+     not reached has neither. */
+  const aggShown = (i) => arrival(walk, i) > 0;
   const ay = stage(bands[1], "Aggregate", "over N(i) ∪ {i}",
-    (i) => (arrival(walk, i) > 0 ? state.agg[i] : null), spanA, colors.groupA,
-    "aggregate", { arcs: true });
-  /* the weight the next band is about to apply. ITS ROWS ARE FEATURES, NOT
-     NODES, so it carries no node gutter — but it is indented with the other two
-     prints, so the three blocks stand on one left edge. */
-  label(ctx, colors, PAD + gutter, ay + stageH + G_EXTRA + PRINT_DROP + 4, "W",
-    [M.GRAPH_IN, M.GRAPH_IN], colors.ink2);
-  printBlock(ctx, colors, PAD, ay + stageH + G_EXTRA + PRINT_DROP + LBL,
-    [M.GRAPH_IN, M.GRAPH_IN], ([r, c]) => state.W[r][c], null, { gutter });
+    (i) => (aggShown(i) ? state.agg[i] : null), spanA, colors.groupA,
+    nameA, { arcs: true });
+  /* headed in the band's own words, because the band's expression is the
+     operation rather than the shape */
+  label(ctx, colors, PAD + gutter, ay + g.printOff[1] - LBL + 4, nameA,
+    [M.NODES, M.GRAPH_IN], colors.ink2);
+  if (aggShown(0)) {
+    printBlock(ctx, colors, PAD, ay + g.printOff[1],
+      [M.NODES, M.GRAPH_IN], ([r, c]) => state.agg[r][c], ([r]) => aggShown(r),
+      { gutter, rows: rowFace((r) => (r === node && aggShown(r) ? 1 : 0)) });
+  }
+  printSpots(1, nameA, (i) => state.agg[i], aggShown);
 
   const oy = stage(bands[2], "Output", "W · aggregate",
-    (i) => (arrival(walk, i) > 0 ? state.out[i] : null), spanO, colors.empirical, "h'", {});
+    (i) => (arrival(walk, i) > 0 ? state.out[i] : null), spanO, colors.empirical, nameO, {});
+  /* W PRINTS IN THE BAND THAT APPLIES IT (decision 18), above the result of
+     `W · aggregate`. ITS ROWS ARE FEATURES, NOT NODES, so it carries no node
+     gutter — but it is indented with the other prints, so the blocks stand on
+     one left edge. It takes a wash on the step's LIGHTING phase, the phase
+     every other operand on every page lights in, so the reader sees the two
+     things the product joins before the row lands. */
+  const wy = oy + stageH + PRINT_DROP;
+  label(ctx, colors, PAD + gutter, wy + 4, "W", [M.GRAPH_IN, M.GRAPH_IN], colors.ink2);
+  if (node >= 0 && walk.light > 0) {
+    ctx.fillStyle = wash(colors.highlight, LIT_A * 0.5 * walk.light);
+    ctx.fillRect(PAD + gutter - 4, wy + LBL - 3,
+      M.printCols([M.GRAPH_IN, M.GRAPH_IN]) * monoCW(ctx, colors) + 8,
+      M.printRows([M.GRAPH_IN, M.GRAPH_IN]) * PRINT_LH + 2);
+  }
+  printBlock(ctx, colors, PAD, wy + LBL,
+    [M.GRAPH_IN, M.GRAPH_IN], ([r, c]) => state.W[r][c], null, { gutter });
   if (walk.done > 0) {
-    printBlock(ctx, colors, PAD, oy + stageH + PRINT_DROP,
+    printBlock(ctx, colors, PAD, oy + g.printOff[2],
       [M.NODES, M.GRAPH_IN], ([r, c]) => state.out[r][c], ([r]) => r < walk.done,
       { gutter, rows: rowFace((r) => (r === node && r < walk.done ? 1 : 0)) });
-    printSpots(2, "h'", (i) => state.out[i], (i) => i < walk.done);
+    printSpots(2, nameO, (i) => state.out[i], (i) => i < walk.done);
   }
   return g;
 }
@@ -1586,6 +1763,16 @@ function drawGraph(ctx, colors, w, params, state, anim, pointer) {
 const WEIGHTS_CAPTION =
   "The weights are untrained values drawn from the initializer PyTorch uses. "
   + "Training changes the values, not which inputs an output reads.";
+
+/* WHAT A COLUMN IS, IN WORDS AS WELL AS IN HEADERS (decision 19). It names no
+   token: the caption block's height is a function of the parameters, and a line
+   that changed length as the walk moved would move the stage under the reader
+   (decision 4). It leads the Attention page's captions, because it says what
+   the figure is before the projection's caption says what it measures. */
+const ATT_COLUMNS_CAPTION =
+  "Each row of V is one token's value vector, one number per embedding "
+  + "dimension. The output for the query is a new vector for that token: each "
+  + "column is the weighted sum of that column across the three tokens.";
 
 function pageCaption(params) {
   switch (params.block) {
@@ -1622,6 +1809,9 @@ function pageCaption(params) {
 /** Both captions, wrapped to the stage — the same lines `height` reserves. */
 function captionLines(ctx, colors, w, params) {
   return [
+    ...(params.block === "attention"
+      ? wrapLines(ctx, colors, ATT_COLUMNS_CAPTION, w - 2 * PAD)
+      : []),
     ...wrapLines(ctx, colors, pageCaption(params), w - 2 * PAD),
     ...wrapLines(ctx, colors, WEIGHTS_CAPTION, w - 2 * PAD),
   ];

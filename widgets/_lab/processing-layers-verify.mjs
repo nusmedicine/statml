@@ -381,6 +381,89 @@ const near = (a, b, eps = 1e-9) => Math.abs(a - b) <= eps;
   }
 }
 
+/* --- 7d · the columns of every attention grid are the embedding dimensions --- *
+ * Round 3 asked what the columns of `w · v` mean, so band 1 and band 2 head them
+ * (main.js decision 19). THE HEADERS ARE ONE LIST for every grid, which is the
+ * only way four header rows can agree — and a picture of `0 1 2 3` over four
+ * cells is a perfectly stable pixel hash whether there are four columns under it
+ * or five. So the count is asserted against every grid the headers go over. */
+{
+  check("the headers are the embedding dimension indices, one per embed_dim",
+    M.EMBED_HEADS.length === M.D_K
+    && M.EMBED_HEADS.every((h, c) => h === String(c)),
+    M.EMBED_HEADS.join(" "));
+
+  for (const projection of ["random", "identity"]) {
+    const A = M.attention(makeRng(1), projection);
+    const prod = M.attProducts(A, 1);
+    /* every row the four header rows stand over: X, Q and K in band 1, and V,
+       the three product rows, their total and each query's output in band 2 */
+    const widths = [
+      ...M.ATT_X.map((r) => r.length),
+      ...A.Q.map((r) => r.length), ...A.K.map((r) => r.length),
+      ...A.V.map((r) => r.length),
+      ...prod.rows.map((r) => r.row.length), prod.total.length,
+      ...A.out.map((r) => r.length),
+    ];
+    check(`${projection}: every headed row is exactly ${M.D_K} columns wide`,
+      widths.length === 19 && widths.every((n) => n === M.EMBED_HEADS.length),
+      `${widths.length} rows, ${new Set(widths).size} distinct width(s)`);
+    /* and a column of the output IS that column of the products added up, which
+       is what the caption line under band 2 claims in words */
+    let worst = 0;
+    for (let c = 0; c < M.D_K; c += 1) {
+      worst = Math.max(worst,
+        Math.abs(prod.rows.reduce((s, r) => s + r.row[c], 0) - A.out[1][c]));
+    }
+    check(`${projection}: column c of the output is column c of the products summed`,
+      worst < 1e-12, `worst ${worst.toExponential(1)} over ${M.D_K} columns`);
+  }
+}
+
+/* --- 7e · which bands print a node-rowed tensor (decision 18) --------------- *
+ * Kenneth read `W` under the Aggregate band as a tensor the step changes. It is
+ * not one, so the Aggregate band prints THE AGGREGATE and `W` prints in the band
+ * that applies it. WHAT A PICTURE CANNOT SAY is whether the printed rows are the
+ * numbers the strips are shaded from, or whether `W` still carries a node's key
+ * — the figure renders just as happily with either wrong. */
+{
+  check("three bands print a node-rowed tensor, and W is not one of them",
+    M.NODE_PRINTS.length === 3
+    && M.NODE_PRINTS.every((n) => n !== "W")
+    && M.NODE_PRINTS[1] === "aggregate",
+    M.NODE_PRINTS.join(", "));
+  check("W is a [3, 3] whose rows are features, so it prints on 3 lines",
+    M.printRows([M.GRAPH_IN, M.GRAPH_IN]) === M.GRAPH_IN
+    && M.printRowLines([M.GRAPH_IN, M.GRAPH_IN]).length === M.GRAPH_IN,
+    `${M.printRows([M.GRAPH_IN, M.GRAPH_IN])} lines`);
+  /* the aggregate print takes the node gutter, so node i's row has to be line i
+     — the same line X's row for that node is on, one band above */
+  check("a node-rowed [4, 3] puts node i on line i, so all three prints agree",
+    M.printRowLines([M.NODES, M.GRAPH_IN]).every((li, r) => li === r),
+    M.printRowLines([M.NODES, M.GRAPH_IN]).join(", "));
+
+  /* THE PRINTED ROW IS THE STRIP'S OWN THREE NUMBERS. Both read `state.agg[i]`
+     in `main.js`, so what is asserted here is that the aggregate a node's strip
+     is shaded from is the one the aggregation writes out, at every aggregate. */
+  for (const aggregate of ["normalized-sum", "mean", "max"]) {
+    const G = M.graph(makeRng(1), aggregate);
+    let worst = 0;
+    for (let i = 0; i < M.NODES; i += 1) {
+      for (let f = 0; f < M.GRAPH_IN; f += 1) {
+        worst = Math.max(worst, Math.abs(M.aggTerms(G, i, f).value - G.agg[i][f]));
+      }
+      /* and the output row the third band prints is W applied to that row */
+      for (let f = 0; f < M.GRAPH_IN; f += 1) {
+        const wa = G.W[f].reduce((s, v, k) => s + v * G.agg[i][k], 0);
+        worst = Math.max(worst, Math.abs(wa - G.out[i][f]));
+      }
+    }
+    check(`${aggregate}: the printed aggregate rows are the strips', and W · them is the output`,
+      worst < 1e-12 && G.agg.length === M.NODES && G.agg[0].length === M.GRAPH_IN,
+      `[${G.agg.length}, ${G.agg[0].length}], worst ${worst.toExponential(1)}`);
+  }
+}
+
 /* --- 7c · one key per node, worn by three surfaces (decision 17) ------------ *
  * The Graph page answers "which node is which row of the tensor" by lighting
  * the row with the strip and the circle, which only works if the three are one
@@ -413,7 +496,8 @@ const near = (a, b, eps = 1e-9) => Math.abs(a - b) <= eps;
       ? { x: M.PAD, y: top + 110, w: gutter + 37 * cw, lineH: 16, lines }
       : null,
   });
-  const bands = [bandAt(0, true), bandAt(200, false), bandAt(400, true)];
+  /* every band prints a node-rowed tensor from round 4 (decision 18) */
+  const bands = [bandAt(0, true), bandAt(200, true), bandAt(400, true)];
   const targets = M.graphTargets(bands);
 
   check("every target carries the key of the node it belongs to",
@@ -428,7 +512,8 @@ const near = (a, b, eps = 1e-9) => Math.abs(a - b) <= eps;
       new Set(mine.map((t) => t.key)).size === 1
       && mine[0].key === M.nodeKey(i)
       && kinds.has("strip") && kinds.has("circle") && kinds.has("print")
-      && mine.filter((t) => t.kind === "print").length === 2,   // Input and Output print
+      /* Input, Aggregate and Output print a row for this node (decision 18) */
+      && mine.filter((t) => t.kind === "print").length === M.NODE_PRINTS.length,
       `${mine.length} surfaces: ${[...kinds].join(", ")}`);
   }
   /* no two nodes share a target, or a hover would light the wrong row */
