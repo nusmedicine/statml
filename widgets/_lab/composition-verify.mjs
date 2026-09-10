@@ -816,7 +816,156 @@ const shapeIs = (s, want) => Array.isArray(s) && s.join() === want.join();
     `rows are ${routeStage(550).p}px at 550 and ${routeStage(770).p}px at 770`);
 }
 
-/* --- 11 · the reader-facing copy -------------------------------------------- *
+/* --- 11 · the walk is one line ahead ---------------------------------------- *
+ * DECISION 14 (Kenneth, 2026-09-10, round 1, comment 3). The stage holds the
+ * input, the bus, everything the walk has run, and the layers of exactly ONE
+ * more line. Nothing here is visible in a pixel hash of a settled state — every
+ * `?shown=N` at full N is the same picture it always was — and a page that
+ * revealed two lines ahead, or that never revealed a line at all, would hash
+ * identically at both ends of the walk.
+ */
+{
+  const rng = () => makeRng(1);
+  const PAGES = [
+    ["ordering mlp", { sample: "0" }, M.ordering("mlp", "subunit")],
+    ["ordering resnet", { sample: "0" }, M.ordering("resnet", "subunit")],
+    ["ordering transformer", { sample: "0" }, M.ordering("transformer", "subunit")],
+    ["ordering combination", { sample: "0" }, M.ordering("mlp", "combination")],
+    ["building flat", { show: "print" }, M.building("sequential", "flat", "all", "print")],
+    ["building blocks", { show: "print" }, M.building("sequential", "blocks", "all", "print")],
+    ["building MLP1", { show: "summary" }, M.building("module", "flat", "all", "summary")],
+    ["building MLP2", { show: "print" }, M.building("module", "flat", "learnable", "print")],
+    ["dimensions image", {}, M.dimensions("image", M.DATA_SETS.image.menus.map((m) => m[0]))],
+    ["dimensions failing", {}, M.dimensions("image", ["Conv2d-3-16-3", "MaxPool2d-2", "Flatten", "Linear-100-10"])],
+    ["dimensions sequence", {}, M.dimensions("sequence", M.DATA_SETS.sequence.menus.map((m) => m[0]))],
+    ["skip 10", {}, M.skip(10, false)],
+    ["skip 20", {}, M.skip(20, false)],
+    ["skip 20 proj", {}, M.skip(20, true)],
+    ["gating sigmoid", { sample: "0" }, M.gating("sigmoid", rng())],
+    ["gating mask", { sample: "0" }, M.gating("mask", rng())],
+    ["branching concat 6", { sample: "0" }, M.branching("concat", 6)],
+    ["branching concat 8", { sample: "0" }, M.branching("concat", 8)],
+    ["branching add 6", { sample: "0" }, M.branching("add", 6)],
+    ["branching add 8", { sample: "0" }, M.branching("add", 8)],
+    ["routing soft", { sample: "0" }, M.routing("soft")],
+    ["routing hard", { sample: "0" }, M.routing("hard")],
+  ];
+
+  check("the three stages are landed, preview and absent, and nothing else",
+    M.stageOf(2, 1) === "landed" && M.stageOf(2, 2) === "landed"
+    && M.stageOf(2, 3) === "preview" && M.stageOf(2, 4) === "absent"
+    && M.stageOf(0, 1) === "preview" && M.stageOf(0, 2) === "absent",
+    "at 2 lines run: 1 and 2 landed, 3 pale, 4 not drawn");
+
+  check("every page names a unit for every line it runs, and none outside the walk",
+    PAGES.every(([, , st]) => {
+      const owned = new Set(M.pageUnits(st).map((u) => u.unit));
+      return M.pageUnits(st).every((u) => u.unit >= 1 && u.unit <= st.units)
+        && Array.from({ length: st.units }, (_, i) => i + 1).every((u) => owned.has(u));
+    }),
+    `${PAGES.length} pages, ${PAGES.reduce((a, [, , st]) => a + M.pageUnits(st).length, 0)} drawn things`);
+
+  /* THE RULE, SWEPT. At every walk position of every page the drawn set is
+     exactly the lines that have run plus the one that is next. */
+  let positions = 0;
+  const bad = [];
+  for (const [name, , st] of PAGES) {
+    for (let done = 0; done <= st.units; done += 1) {
+      positions += 1;
+      const drawn = M.pageUnits(st).filter((u) => M.stageOf(done, u.unit) !== "absent");
+      const want = M.pageUnits(st).filter((u) => u.unit <= done + 1);
+      const preview = drawn.filter((u) => M.stageOf(done, u.unit) === "preview");
+      if (drawn.length !== want.length
+        || !drawn.every((u, i) => u.id === want[i].id)
+        || !preview.every((u) => u.unit === done + 1)) {
+        bad.push(`${name} at ${done}`);
+      }
+    }
+  }
+  check("the drawn set is the lines run plus one, at every position of every page",
+    bad.length === 0, `${positions} walk positions swept${bad.length ? `, worst ${bad[0]}` : ""}`);
+
+  check("at rest a page draws the first line's layers and nothing further downstream",
+    PAGES.every(([, , st]) => M.pageUnits(st).every((u) =>
+      M.stageOf(0, u.unit) === (u.unit === 1 ? "preview" : "absent"))));
+
+  check("at the end of the walk every piece of the diagram has landed",
+    PAGES.every(([, , st]) => M.pageUnits(st).every((u) => M.stageOf(st.units, u.unit) === "landed")),
+    "which is what ?shown=N at full N draws, so the settled states do not move");
+
+  /* THE BAND ROWS ARE THE TARGETS, and a target that is not drawn is not a
+     target (3.6). Gating's band is the `gated` line's, Branching's two are its
+     branches', and Routing's weight grid is line 1's with the block line 5's —
+     so at rest none of them is a row the reader can hit. */
+  const REGION_UNITS = { gating: [3], branching: [1, 2], routing: [1, 5] };
+  check("no band row is a target at rest on Gating, Branching or Routing",
+    Object.values(REGION_UNITS).every((us) => us.every((u) => M.stageOf(0, u) !== "landed")),
+    "the rows appear with the line that computes their values");
+
+  const drawSrc = readFileSync(new URL("../composition/main.js", import.meta.url), "utf8");
+  check("regions reads the walk the same way draw does, band by band",
+    /const walk = walkAt\(walkAnim \?\? \{ n: state\.units \}, state\);/.test(drawSrc)
+    && /if \(!landed\(walk, 3\)\) return \[\];/.test(drawSrc)
+    && /landed\(walk, 1\) \? rows\(b\.b1\.x/.test(drawSrc)
+    && /landed\(walk, 2\) \? rows\(b\.b2\.x/.test(drawSrc)
+    && /landed\(walk, 1\) \? rows\(g\.gateCx/.test(drawSrc)
+    && /landed\(walk, 5\)\s*\?\s*\[\.\.\.b\.bandY/.test(drawSrc));
+
+  check("every layer box goes through the one helper, and every edge but the input's",
+    (drawSrc.match(/(?<!function |unit)layerBox\(/g) ?? []).length === 1
+    && (drawSrc.match(/(?<![a-zA-Z])edge\(ctx/g) ?? []).length === 6,
+    "layerBox once, inside unitBox; edge once as its own definition, twice inside "
+    + "unitEdge, twice for the input arrow on Skip and Building, and once for the "
+    + "branch edge a landed guard already covers");
+
+  /* --- the captions (2.4) --------------------------------------------------
+     A line that states a RESULT waits for the line that produced it; a line
+     that states a DEFINITION is true before the walk starts. The row is
+     reserved either way, so the block is the same height empty as full. */
+  check("every caption waits for a line the page actually runs",
+    PAGES.every(([, p, st]) => M.captions(p, st).every((c) => c.at >= 0 && c.at <= st.units)),
+    `${PAGES.reduce((a, [, p, st]) => a + M.captions(p, st).length, 0)} caption lines`);
+
+  check("every page carries a result line, held at rest and shown at the end",
+    PAGES.filter(([n]) => n !== "ordering combination").every(([, p, st]) => {
+      const held = M.captions(p, st).filter((c) => c.at > 0);
+      return held.length >= 1 && held.every((c) => c.at <= st.units);
+    }),
+    "Combination is the one page whose two lines are both definitions");
+
+  check("a definition line reads at rest on every page but Skip where the add works",
+    PAGES.filter(([n]) => n !== "skip 10" && n !== "skip 20 proj")
+      .every(([, p, st]) => M.captions(p, st).some((c) => c.at === 0)),
+    "both of Skip's lines there are claims about the add and about the two routes back to x");
+
+  check("a result caption is blank at 0 and present at the end of the walk",
+    PAGES.filter(([n]) => n !== "ordering combination").every(([, p, st]) =>
+      M.captions(p, st).filter((c) => c.at > 0).every((c) =>
+        M.stageOf(0, c.at) !== "landed" && M.stageOf(st.units, c.at) === "landed")),
+    "the row is measured either way, so the stage height does not move");
+
+  check("the caption block is the same height at every walk position",
+    PAGES.every(([, p, st]) => {
+      const n = M.captions(p, st).length;
+      return Array.from({ length: st.units + 1 }, () => M.captions(p, st).length)
+        .every((k) => k === n);
+    }),
+    "captions() does not read the walk at all, so pageHeight cannot");
+
+  check("the nn.ModuleList line and the input's own shape read at rest",
+    M.captions({ sample: "0" }, M.routing("soft")).find((c) => c.text.startsWith("nn.ModuleList")).at === 0
+    && M.captions({}, M.dimensions("image", M.DATA_SETS.image.menus.map((m) => m[0])))[0].at === 0,
+    "a definition is not a claim about a result");
+
+  check("the two claims Kenneth named as results wait for their own line",
+    M.captions({ sample: "0" }, M.branching("concat", 6))[0].at === 3
+    && M.captions({ sample: "0" }, M.routing("soft"))[0].at === 5
+    && M.captions({}, M.skip(10, false))[0].at === 5
+    && M.captions({ sample: "0" }, M.gating("mask", makeRng(1)))[0].at === 3,
+    "the merge, the combine, the add, and the multiply");
+}
+
+/* --- 12 · the reader-facing copy -------------------------------------------- *
  * 5.9: the copy rules cover every string a reader can see. Source comments are
  * exempt and are stripped first, as `check.mjs` does. */
 {
@@ -901,7 +1050,7 @@ const shapeIs = (s, want) => Array.isArray(s) && s.join() === want.join();
     (src.match(/display: true/g) ?? []).length === 4, "four display parameters");
 
   check("the Routing caption carries the two containers by name",
-    src.includes("nn.ModuleList holds the three branches so they can be applied in a loop; "
+    model.includes("nn.ModuleList holds the three branches so they can be applied in a loop; "
       + "nn.ModuleDict holds them by name so one can be chosen."));
 
   check("no colour, size or font is hardcoded in the drawing",

@@ -100,6 +100,54 @@
        under them, the chosen sample lit in all four. The rows of all four
        bands join the weight grid as `regions` that set `sample`. It costs
        Routing 144px of height at 550 and 192 at 770, and no width at all.
+
+   14. THE WALK IS ONE LINE AHEAD OF ITSELF, ON EVERY PAGE. The draft drew the
+       whole diagram pale at rest and let the walk light it, and Kenneth on
+       Gating and Branching (2026-09-10, round 1, comment 3): "some of
+       downstream processes shouldn't be shown at the beginning but revealed
+       with the animation". His pick, for all seven pages, is ONE LINE AHEAD.
+
+       `M.stageOf(done, unit)` is the whole rule and `M.pageUnits` is the table
+       of which line owns which piece, both in `model.js` so the verify script
+       reads them too (5.8). A unit is:
+
+         absent   nothing at all — no box, no arrow, no edge label, no
+                  operator, no band, no value grid, no output edge
+         preview  the LAYERS of the next line, pale: a box in `layerBox`'s own
+                  pale form, an operator node in the axis colour, a bus arm
+                  that has to reach them, and the unit's own arrow as a grey
+                  line with no shape written on it
+         landed   the line has run: the box in its path's colour, the arrow
+                  with the shape on it, the band, the values
+
+       A BAND IS A VALUE, NOT A LAYER, so a preview never draws one: the whole
+       of 2.1 is that a widget does not open on its own answer, and a shaded
+       band drawn one line early is the answer. The `gated` band, Branching's
+       three bands, Routing's block and its weight grid all wait for the line
+       that computes them.
+
+       THE INPUT AND THE BUS ARE NOT A UNIT. `x [4, 10]` and the arm of the
+       split that reaches the FIRST line's column are drawn at every walk
+       position, because they are what the first line is applied to. A later
+       arm belongs to the line whose column it feeds, and appears pale with it
+       — which is what Kenneth asked for on Branching ("the second arm of the
+       bus and fc2/relu appear pale when line 1 lands").
+
+       `pageHeight` is unchanged and stays the FULL height at every walk
+       position. The stage does not grow as the walk runs; the empty space is
+       where the reveal will land, and a figure that reflowed under every press
+       would move the captions out from under the reader's eye. `pageHeight`
+       and `draw` still ask the same geometry functions (decision 3), and the
+       geometry functions do not read the walk at all.
+
+       THE CAPTIONS SPLIT THE SAME WAY (2.4). `M.captions` gives every line the
+       unit it waits for, `at: 0` meaning a definition that is true before the
+       walk starts. A held line's row is measured and reserved, so the caption
+       block is the same height empty as full. `regions` reads the walk through
+       the same `M.stageOf`, because a band that is not drawn is not a target
+       (3.6) — and the walk reaches it through the `anim` object `draw` stashes,
+       since core hands `regions` the parameters and the state and not the
+       animation.
    ========================================================================= */
 
 import {
@@ -435,6 +483,38 @@ function walkAt(anim, state) {
   return { done, lit: done > 0 ? done : -1, idx: done - 1 };
 }
 
+/* --- one line ahead, decision 14 -------------------------------------------- *
+ * Every box, arrow, operator and band on all seven pages goes through these
+ * three, so the rule cannot drift from one page to the next. `M.stageOf` is the
+ * rule itself and lives in `model.js`, where the verify script can read it.  */
+
+const stageAt = (walk, unit) => M.stageOf(walk.done, unit);
+/** The line has run: the shape, the band and the values are true now. */
+const landed = (walk, unit) => walk.done >= unit;
+/** The unit is on the stage at all — landed, or the next line's preview. */
+const onStage = (walk, unit) => walk.done + 1 >= unit;
+
+/** One layer box at its walk position. `dim` is Routing's untaken branch,
+    which is pale for a reason of its own and carries no highlight. */
+function unitBox(ctx, colors, x, y, w, label, color, walk, unit, o = {}) {
+  const st = stageAt(walk, unit);
+  if (st === "absent") return;
+  layerBox(ctx, colors, x, y, w, label, color, {
+    ...o,
+    lit: walk.done === unit && !o.dim,
+    pale: st === "preview" || Boolean(o.dim),
+  });
+}
+
+/** One edge at its walk position: absent, a grey line with nothing written on
+    it, or the path's own colour carrying the shape the line produced. */
+function unitEdge(ctx, colors, cx, y0, y1, text, walk, unit, o = {}) {
+  const st = stageAt(walk, unit);
+  if (st === "absent") return null;
+  if (st === "preview") return edge(ctx, colors, cx, y0, y1, "", { ...o, color: colors.axis });
+  return edge(ctx, colors, cx, y0, y1, text, o);
+}
+
 /* the shade a band's cell carries, on the band's own largest magnitude. The
    alpha is separate because Routing's strips multiply it by the branch's
    weight, so a smaller weight is a paler row. */
@@ -501,18 +581,19 @@ function drawDim(ctx, colors, w, params, state, anim) {
        one of them. */
     const hue = i === state.steps.length - 1 && !state.failed ? colors.empirical
       : s.layer.kind === "relu" || s.layer.kind === "flatten" ? colors.ink2 : colors.groupB;
-    layerBox(ctx, colors, cx - DIM_BOX_W / 2, cy, DIM_BOX_W, s.layer.label, hue,
-      { lit: walk.done === i + 1, pale: walk.done < i + 1 });
+    const u = i + 1;
+    unitBox(ctx, colors, cx - DIM_BOX_W / 2, cy, DIM_BOX_W, s.layer.label, hue, walk, u);
     cy += BOX_H;
     if (s.error) {
-      if (walk.done >= i + 1) errorText(ctx, colors, PAD, cy + 24, g.usable, s.error);
+      if (landed(walk, u)) errorText(ctx, colors, PAD, cy + 24, g.usable, s.error);
       cy += 12 + g.errRows * LINE;
       return;
     }
-    const shown = walk.done >= i + 1;
+    const shown = landed(walk, u);
     const text = shown ? shapeText(s.shape) : "";
     const last = i === state.steps.length - 1;
-    edge(ctx, colors, cx, cy, cy + EDGE_H, text, { color: last ? colors.empirical : colors.groupB });
+    unitEdge(ctx, colors, cx, cy, cy + EDGE_H, text, walk, u,
+      { color: last ? colors.empirical : colors.groupB });
     if (shown) markDims(ctx, colors, text, 0, s.shape, state.layers[i + 1], cx, cy + EDGE_H / 2 + 9);
     cy += EDGE_H;
   });
@@ -595,66 +676,95 @@ function drawSkip(ctx, colors, w, params, state, anim) {
     ["fc2", Y.fc2, colors.groupA, 4],
   ];
   for (const [label, by, hue, unit] of boxes) {
-    layerBox(ctx, colors, cx - SKIP_BOX / 2, by, SKIP_BOX, label, hue,
-      { lit: walk.done === unit, pale: walk.done < unit });
+    unitBox(ctx, colors, cx - SKIP_BOX / 2, by, SKIP_BOX, label, hue, walk, unit);
   }
-  edge(ctx, colors, cx, Y.e2, Y.e2 + EDGE_H, walk.done >= 2 ? shapeText([4, 20]) : "",
+  unitEdge(ctx, colors, cx, Y.e2, Y.e2 + EDGE_H, shapeText([4, 20]), walk, 2,
     { color: colors.groupA });
-  edge(ctx, colors, cx, Y.e3, Y.e3 + EDGE_H, walk.done >= 3 ? shapeText([4, 20]) : "",
+  unitEdge(ctx, colors, cx, Y.e3, Y.e3 + EDGE_H, shapeText([4, 20]), walk, 3,
     { color: colors.groupA });
-  edge(ctx, colors, cx, Y.e4, Y.e4 + EDGE_H, walk.done >= 4 ? `x3  ${shapeText([4, width])}` : "",
+  unitEdge(ctx, colors, cx, Y.e4, Y.e4 + EDGE_H, `x3  ${shapeText([4, width])}`, walk, 4,
     { color: colors.empirical });
+
+  /* DECISION 14 ON THIS PAGE: the rail and the + belong to `out = x3 + skip`,
+     which is the line where the two paths meet; `skip = x` previews the label
+     and nothing else, and a projection box appears with the line that applies
+     it. Kenneth's own split, 2026-09-10 round 1. */
   const plusY = Y.plus + 15;
-  plusNode(ctx, colors, cx, plusY, 14, state.match ? colors.empirical : colors.extreme);
+  if (onStage(walk, 5)) {
+    plusNode(ctx, colors, cx, plusY, 14, landed(walk, 5)
+      ? (state.match ? colors.empirical : colors.extreme)
+      : colors.axis);
+  }
 
   /* the skip path, down the right of the figure, both halves of his figure */
   const teeY = y + 22;
   const skipHue = state.proj ? colors.groupB : colors.groupA;
-  if (walk.done >= 1) {
-    elbow(ctx, [[cx, teeY], [railX, teeY], [railX, plusY], [cx + 18, plusY]], skipHue);
+  /* `skip = x` (unit 1) draws the branch OFF x: the tee from x's edge to the
+     rail column, with the label under its corner. The rail's descent and the
+     + are unit 5's, where the two paths meet. Before this split the label
+     stood alone at the rail column at rest, a word with nothing under it. */
+  if (onStage(walk, 1)) {
+    ctx.strokeStyle = landed(walk, 1) ? skipHue : colors.axis;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(cx, teeY);
+    ctx.lineTo(railX + 1, teeY);
+    ctx.stroke();
+  }
+  if (onStage(walk, 5)) {
+    elbow(ctx, [[railX, teeY], [railX, plusY], [cx + 18, plusY]],
+      landed(walk, 5) ? skipHue : colors.axis);
+  }
+  if (onStage(walk, 1)) {
     ctx.font = `${colors.fsXs} ${colors.mono}`;
     const label = `skip  ${shapeText(state.skipShape)}`;
     const tw = ctx.measureText(label).width;
-    const ly = state.proj ? Y.relu + BOX_H + 16 : Y.relu + 4;
+    const ly = state.proj ? Y.relu + BOX_H + 16 : teeY + 16;
     ctx.fillStyle = colors.surface;
     ctx.fillRect(railX - tw / 2 - 4, ly - 9, tw + 8, 14);
     txt(ctx, colors, label, railX, ly,
-      { color: skipHue, align: "center", mono: true, size: colors.fsXs });
+      { color: landed(walk, 1) ? skipHue : colors.ink3, align: "center", mono: true, size: colors.fsXs });
   }
-  if (state.proj) {
-    layerBox(ctx, colors, railX - 55, Y.relu, 110, "proj", colors.groupB,
-      { pale: walk.done < 1 });
+  if (state.proj && onStage(walk, 1)) {
+    unitBox(ctx, colors, railX - 55, Y.relu, 110, "proj", colors.groupB, walk, 1);
     txt(ctx, colors, "P(x)", railX, Y.relu - 6,
-      { color: colors.groupB, align: "center", size: colors.fsXs });
+      { color: landed(walk, 1) ? colors.groupB : colors.ink3, align: "center", size: colors.fsXs });
   }
 
   if (!state.match) {
-    if (walk.done >= 5) errorText(ctx, colors, PAD, Y.plus + BOX_H + 20, g.diagW, state.error);
+    if (landed(walk, 5)) errorText(ctx, colors, PAD, Y.plus + BOX_H + 20, g.diagW, state.error);
   } else {
-    edge(ctx, colors, cx, Y.e5, Y.e5 + EDGE_H, walk.done >= 5 ? `out  ${shapeText([4, width])}` : "",
+    unitEdge(ctx, colors, cx, Y.e5, Y.e5 + EDGE_H, `out  ${shapeText([4, width])}`, walk, 5,
       { color: colors.empirical });
-    layerBox(ctx, colors, cx - SKIP_BOX / 2, Y.fcOut, SKIP_BOX, "fc_out", colors.empirical,
-      { lit: walk.done === 6, pale: walk.done < 6 });
-    edge(ctx, colors, cx, Y.e6, Y.e6 + EDGE_H, walk.done >= 6 ? shapeText([4, 2]) : "",
+    unitBox(ctx, colors, cx - SKIP_BOX / 2, Y.fcOut, SKIP_BOX, "fc_out", colors.empirical, walk, 6);
+    unitEdge(ctx, colors, cx, Y.e6, Y.e6 + EDGE_H, shapeText([4, 2]), walk, 6,
       { color: colors.empirical });
   }
 
   /* THE LOCAL FACTORS, off by default and conditioned on there being a result
      to lie behind (3.4j): the same edges walked upwards, the two arriving at x
      adding to 1 + f′(x). */
+  /* DECISION 14: a factor is written on an edge, so it waits for the edge. The
+     leg on the input arrow is the bus's and needs no line to have run. */
   if (g.grad && state.match && walk.done > 0) {
     const ux = cx - 26;
-    const legs = [[Y.e6, "Wᵀ_out"], [Y.e5, "1"], [Y.e4, "Wᵀ₂"], [Y.e3, "f′(x1)"], [Y.e2, "Wᵀ₁"], [Y.e1, ""]];
-    for (const [a, label] of legs) {
+    const legs = [[Y.e6, "Wᵀ_out", 6], [Y.e5, "1", 5], [Y.e4, "Wᵀ₂", 4],
+      [Y.e3, "f′(x1)", 3], [Y.e2, "Wᵀ₁", 2], [Y.e1, "", 0]];
+    for (const [a, label, unit] of legs) {
+      if (!landed(walk, unit)) continue;
       arrow(ctx, ux, a + EDGE_H, ux, a, colors.slope, 1.6, [], 7);
       if (label) {
         txt(ctx, colors, label, ux - 6, a + EDGE_H / 2 + 1,
           { color: colors.slope, align: "right", baseline: "middle", size: colors.fsXs });
       }
     }
-    arrow(ctx, railX + 12, plusY, railX + 12, teeY + 4, colors.slope, 1.6, [], 7);
-    txt(ctx, colors, "1", railX + 18, (teeY + plusY) / 2, { color: colors.slope, size: colors.fsXs });
-    txt(ctx, colors, "∂y/∂x = 1 + f′(x)", PAD, top + g.bodyH + 14, { color: colors.slope, mono: true });
+    if (landed(walk, 5)) {
+      arrow(ctx, railX + 12, plusY, railX + 12, teeY + 4, colors.slope, 1.6, [], 7);
+      txt(ctx, colors, "1", railX + 18, (teeY + plusY) / 2, { color: colors.slope, size: colors.fsXs });
+    }
+    if (landed(walk, state.units)) {
+      txt(ctx, colors, "∂y/∂x = 1 + f′(x)", PAD, top + g.bodyH + 14, { color: colors.slope, mono: true });
+    }
   }
   return g;
 }
@@ -701,47 +811,51 @@ function drawGate(ctx, colors, w, params, state, anim) {
   txt(ctx, colors, `x  ${shapeText([4, 10])}`, cxAll, y + 12,
     { color: colors.ink1, align: "center", mono: true });
   const busY = y + XLAB + 12;
+  /* DECISION 14: the bus reaches the first line's column at every walk
+     position, and the gate column's own arm appears with the line that fills
+     it — pale as a preview, then in the gate path's colour. */
   ctx.strokeStyle = colors.groupA;
   ctx.lineWidth = 2;
   ctx.beginPath();
   ctx.moveTo(cxAll, y + XLAB);
   ctx.lineTo(cxAll, busY);
-  if (isMask) {
-    ctx.moveTo(cxAll, busY);
-    ctx.lineTo(g.c0, busY);
-  } else {
-    ctx.moveTo(g.c0, busY);
-    ctx.lineTo(g.c1, busY);
-  }
+  ctx.lineTo(g.c0, busY);
   ctx.stroke();
   arrow(ctx, g.c0, busY, g.c0, g.boxTop, colors.groupA, 2);
-  if (!isMask) arrow(ctx, g.c1, busY, g.c1, g.boxTop, colors.groupB, 2);
+  if (!isMask && onStage(walk, 2)) {
+    const arm = landed(walk, 2) ? colors.groupB : colors.axis;
+    ctx.strokeStyle = arm;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(cxAll, busY);
+    ctx.lineTo(g.c1, busY);
+    ctx.stroke();
+    arrow(ctx, g.c1, busY, g.c1, g.boxTop, arm, 2);
+  }
 
   /* the main path */
-  layerBox(ctx, colors, g.c0 - g.boxW / 2, g.boxTop, g.boxW, "fc1", colors.groupA,
-    { lit: walk.done === 1, pale: walk.done < 1 });
-  edge(ctx, colors, g.c0, g.boxTop + BOX_H, g.boxTop + BOX_H + EDGE_H,
-    walk.done >= 1 ? shapeText([4, 20]) : "", { color: colors.groupA });
-  layerBox(ctx, colors, g.c0 - g.boxW / 2, g.boxTop + BOX_H + EDGE_H, g.boxW, "relu", colors.groupA,
-    { lit: walk.done === 1, pale: walk.done < 1 });
-  edge(ctx, colors, g.c0, g.boxTop + 2 * BOX_H + EDGE_H, g.ringTop + 2,
-    walk.done >= 1 ? `h  ${shapeText([4, 20])}` : "", { color: colors.groupA });
+  unitBox(ctx, colors, g.c0 - g.boxW / 2, g.boxTop, g.boxW, "fc1", colors.groupA, walk, 1);
+  unitEdge(ctx, colors, g.c0, g.boxTop + BOX_H, g.boxTop + BOX_H + EDGE_H,
+    shapeText([4, 20]), walk, 1, { color: colors.groupA });
+  unitBox(ctx, colors, g.c0 - g.boxW / 2, g.boxTop + BOX_H + EDGE_H, g.boxW, "relu",
+    colors.groupA, walk, 1);
+  unitEdge(ctx, colors, g.c0, g.boxTop + 2 * BOX_H + EDGE_H, g.ringTop + 2,
+    `h  ${shapeText([4, 20])}`, walk, 1, { color: colors.groupA });
 
   /* the gate path. A fixed mask is a tensor the reader wrote, so at `mask` the
      column holds one tile, no layers, and nothing flows into it from x. */
   const ringY = g.ringTop + 15;
   if (isMask) {
-    layerBox(ctx, colors, g.c1 - g.boxW / 2, g.boxTop + BOX_H + EDGE_H, g.boxW, "mask", colors.groupB,
-      { lit: walk.done === 2, pale: walk.done < 2 });
+    unitBox(ctx, colors, g.c1 - g.boxW / 2, g.boxTop + BOX_H + EDGE_H, g.boxW, "mask",
+      colors.groupB, walk, 2);
   } else {
-    layerBox(ctx, colors, g.c1 - g.boxW / 2, g.boxTop, g.boxW, "gate_fc", colors.groupB,
-      { lit: walk.done === 2, pale: walk.done < 2 });
-    edge(ctx, colors, g.c1, g.boxTop + BOX_H, g.boxTop + BOX_H + EDGE_H,
-      walk.done >= 2 ? shapeText([4, 20]) : "", { color: colors.groupB });
-    layerBox(ctx, colors, g.c1 - g.boxW / 2, g.boxTop + BOX_H + EDGE_H, g.boxW, "sigmoid", colors.groupB,
-      { lit: walk.done === 2, pale: walk.done < 2 });
+    unitBox(ctx, colors, g.c1 - g.boxW / 2, g.boxTop, g.boxW, "gate_fc", colors.groupB, walk, 2);
+    unitEdge(ctx, colors, g.c1, g.boxTop + BOX_H, g.boxTop + BOX_H + EDGE_H,
+      shapeText([4, 20]), walk, 2, { color: colors.groupB });
+    unitBox(ctx, colors, g.c1 - g.boxW / 2, g.boxTop + BOX_H + EDGE_H, g.boxW, "sigmoid",
+      colors.groupB, walk, 2);
   }
-  if (walk.done >= 2) {
+  if (landed(walk, 2)) {
     txt(ctx, colors, `${isMask ? "mask" : "g"}  ${shapeText([4, 20])}`,
       g.c1, g.boxTop + 2 * BOX_H + EDGE_H + 15,
       { color: colors.ink1, align: "center", baseline: "middle", mono: true });
@@ -750,14 +864,17 @@ function drawGate(ctx, colors, w, params, state, anim) {
     txt(ctx, colors, isMask ? "0 or 1" : "0 to 1", (g.c0 + g.c1) / 2 + 10, ringY - 6,
       { color: colors.groupB, align: "center", size: colors.fsXs, mono: true });
   }
-  ringNode(ctx, colors, g.c0, ringY, 13, colors.ink1);
+  if (onStage(walk, 3)) {
+    ringNode(ctx, colors, g.c0, ringY, 13, landed(walk, 3) ? colors.ink1 : colors.axis);
+  }
 
-  /* the gated edge, and its band */
+  /* the gated edge, and its band. A BAND IS A VALUE, NOT A LAYER (decision 14),
+     so the preview draws the edge and the ⊙ and leaves the band to its line. */
   const gatedTop = g.ringTop + BOX_H;
   const fc2Top = gatedTop + g.gatedEdge;
-  edge(ctx, colors, g.c0, gatedTop, gatedTop + EDGE_H,
-    walk.done >= 3 ? `gated  ${shapeText([4, 20])}` : "", { color: colors.empirical });
-  if (walk.done >= 3) {
+  unitEdge(ctx, colors, g.c0, gatedTop, gatedTop + EDGE_H,
+    `gated  ${shapeText([4, 20])}`, walk, 3, { color: colors.empirical });
+  if (landed(walk, 3)) {
     const hi = maxAbs(state.gated);
     shadedBand(ctx, colors, g.bandX, g.bandY, 4, 20, g.s.band,
       (r, c) => shadeOf(colors.empirical, state.gated[r][c], hi), {
@@ -769,12 +886,11 @@ function drawGate(ctx, colors, w, params, state, anim) {
       { color: colors.highlight, baseline: "middle", size: colors.fsXs });
     txt(ctx, colors, `${20 - state.blocked} of 20 features carry a value`,
       g.bandX + bw + 8, g.bandY + g.bandH - 4, { color: colors.ink3, size: colors.fsXs });
+    arrow(ctx, g.c0, gatedTop + g.gatedEdge - 6, g.c0, fc2Top, colors.empirical, 2);
   }
-  arrow(ctx, g.c0, gatedTop + g.gatedEdge - 6, g.c0, fc2Top, colors.empirical, 2);
-  layerBox(ctx, colors, g.c0 - g.boxW / 2, fc2Top, g.boxW, "fc2", colors.empirical,
-    { lit: walk.done === 4, pale: walk.done < 4 });
-  edge(ctx, colors, g.c0, fc2Top + BOX_H, fc2Top + BOX_H + EDGE_H,
-    walk.done >= 4 ? shapeText([4, 2]) : "", { color: colors.empirical });
+  unitBox(ctx, colors, g.c0 - g.boxW / 2, fc2Top, g.boxW, "fc2", colors.empirical, walk, 4);
+  unitEdge(ctx, colors, g.c0, fc2Top + BOX_H, fc2Top + BOX_H + EDGE_H,
+    shapeText([4, 2]), walk, 4, { color: colors.empirical });
   return g;
 }
 
@@ -852,17 +968,28 @@ function drawBranch(ctx, colors, w, params, state, anim) {
   txt(ctx, colors, `x  ${shapeText([4, 10])}`, cxAll, y + 12,
     { color: colors.ink1, align: "center", mono: true });
   const busY = y + XLAB + 12;
+  const boxTop = y + XLAB + SPLIT_H;
+  /* DECISION 14, Kenneth's own wording: at rest the bus reaches only the first
+     line's column, and the second arm appears pale with fc2 and its relu,
+     which are line 2's. */
   ctx.strokeStyle = colors.groupA;
   ctx.lineWidth = 2;
   ctx.beginPath();
   ctx.moveTo(cxAll, y + XLAB);
   ctx.lineTo(cxAll, busY);
-  ctx.moveTo(g.c0, busY);
-  ctx.lineTo(g.c1, busY);
+  ctx.lineTo(g.c0, busY);
   ctx.stroke();
-  const boxTop = y + XLAB + SPLIT_H;
   arrow(ctx, g.c0, busY, g.c0, boxTop, colors.groupA, 2);
-  arrow(ctx, g.c1, busY, g.c1, boxTop, colors.groupB, 2);
+  if (onStage(walk, 2)) {
+    const arm = landed(walk, 2) ? colors.groupB : colors.axis;
+    ctx.strokeStyle = arm;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(cxAll, busY);
+    ctx.lineTo(g.c1, busY);
+    ctx.stroke();
+    arrow(ctx, g.c1, busY, g.c1, boxTop, arm, 2);
+  }
 
   const bands = branchBands(g, state);
   const branches = [
@@ -870,12 +997,11 @@ function drawBranch(ctx, colors, w, params, state, anim) {
     { cx: g.c1, hue: colors.groupB, name: "fc2", n: state.fc2, unit: 2, out: "x2", band: bands.b2 },
   ];
   for (const b of branches) {
-    layerBox(ctx, colors, b.cx - g.boxW / 2, boxTop, g.boxW, b.name, b.hue,
-      { lit: walk.done === b.unit, pale: walk.done < b.unit });
-    edge(ctx, colors, b.cx, boxTop + BOX_H, boxTop + BOX_H + EDGE_H,
-      walk.done >= b.unit ? shapeText([4, b.n]) : "", { color: b.hue });
-    layerBox(ctx, colors, b.cx - g.boxW / 2, boxTop + BOX_H + EDGE_H, g.boxW, "relu", b.hue,
-      { lit: walk.done === b.unit, pale: walk.done < b.unit });
+    unitBox(ctx, colors, b.cx - g.boxW / 2, boxTop, g.boxW, b.name, b.hue, walk, b.unit);
+    unitEdge(ctx, colors, b.cx, boxTop + BOX_H, boxTop + BOX_H + EDGE_H,
+      shapeText([4, b.n]), walk, b.unit, { color: b.hue });
+    unitBox(ctx, colors, b.cx - g.boxW / 2, boxTop + BOX_H + EDGE_H, g.boxW, "relu",
+      b.hue, walk, b.unit);
     /* DECISION 9, AMENDED IN ROUND 1: the edge APPEARS WITH ITS BAND, and it
        enters the band straight from above when its column stands over the
        band (concat lays the two side by side under their own columns) and
@@ -886,7 +1012,7 @@ function drawBranch(ctx, colors, w, params, state, anim) {
        (Kenneth, round 1: "the arrows below shouldn't be shown until we reach
        that stage", "some of the arrowheads are too close to the bends"). */
     const from = boxTop + 2 * BOX_H + EDGE_H;
-    if (walk.done >= b.unit) {
+    if (landed(walk, b.unit)) {
       const label = `${b.out}  ${shapeText([4, b.n])}`;
       const bandW = b.band.cols * p;
       const over = b.cx >= b.band.x + 6 && b.cx <= b.band.x + bandW - 6;
@@ -902,12 +1028,12 @@ function drawBranch(ctx, colors, w, params, state, anim) {
   }
 
   const mid = PAD + g.diagW / 2;
-  if (walk.done >= 1) {
+  if (landed(walk, 1)) {
     const hi1 = maxAbs(state.x1);
     shadedBand(ctx, colors, bands.b1.x, bands.b1.y, 4, 8, p,
       (r, c) => shadeOf(colors.groupA, state.x1[r][c], hi1), { litRow: sample });
   }
-  if (walk.done >= 2) {
+  if (landed(walk, 2)) {
     const hi2 = maxAbs(state.x2);
     shadedBand(ctx, colors, bands.b2.x, bands.b2.y, 4, state.fc2, p,
       (r, c) => shadeOf(colors.groupB, state.x2[r][c], hi2), { litRow: sample });
@@ -915,27 +1041,30 @@ function drawBranch(ctx, colors, w, params, state, anim) {
 
   const afterBands = g.mergeTop + (g.elementwise ? 2 * g.bandH + 4 : g.bandH);
   if (state.mergeError) {
-    if (walk.done >= 3) errorText(ctx, colors, PAD, afterBands + 22, g.diagW, state.mergeError);
-    txt(ctx, colors, `fc3 expects ${M.FC3_IN}`, mid, g.mergeTop + g.mergeH + BOX_H / 2,
-      { color: colors.ink3, align: "center", baseline: "middle", mono: true });
+    /* what fc3 was built for is read off the failure, so it arrives with it */
+    if (landed(walk, 3)) {
+      errorText(ctx, colors, PAD, afterBands + 22, g.diagW, state.mergeError);
+      txt(ctx, colors, `fc3 expects ${M.FC3_IN}`, mid, g.mergeTop + g.mergeH + BOX_H / 2,
+        { color: colors.ink3, align: "center", baseline: "middle", mono: true });
+    }
     return g;
   }
 
-  if (walk.done >= 3 && bands.sum) {
+  if (landed(walk, 3) && bands.sum) {
     const hiS = maxAbs(state.merged);
     shadedBand(ctx, colors, bands.sum.x, bands.sum.y, 4, 8, p,
       (r, c) => shadeOf(colors.empirical, state.merged[r][c], hiS), { litRow: sample });
   }
   const outTop = g.mergeTop + g.mergeH;
-  edge(ctx, colors, mid, outTop, outTop + EDGE_H,
-    walk.done >= 3 ? `x3  ${shapeText([4, state.feats])}` : "", { color: colors.empirical });
+  unitEdge(ctx, colors, mid, outTop, outTop + EDGE_H,
+    `x3  ${shapeText([4, state.feats])}`, walk, 3, { color: colors.empirical });
   if (state.fcError) {
-    if (walk.done >= 4) errorText(ctx, colors, PAD, outTop + EDGE_H + 18, g.diagW, state.fcError);
+    if (landed(walk, 4)) errorText(ctx, colors, PAD, outTop + EDGE_H + 18, g.diagW, state.fcError);
   } else {
-    layerBox(ctx, colors, mid - g.boxW / 2, outTop + EDGE_H, g.boxW, "fc3", colors.empirical,
-      { lit: walk.done === 4, pale: walk.done < 4 });
-    edge(ctx, colors, mid, outTop + EDGE_H + BOX_H, outTop + 2 * EDGE_H + BOX_H,
-      walk.done >= 4 ? shapeText([4, 2]) : "", { color: colors.empirical });
+    unitBox(ctx, colors, mid - g.boxW / 2, outTop + EDGE_H, g.boxW, "fc3",
+      colors.empirical, walk, 4);
+    unitEdge(ctx, colors, mid, outTop + EDGE_H + BOX_H, outTop + 2 * EDGE_H + BOX_H,
+      shapeText([4, 2]), walk, 4, { color: colors.empirical });
   }
   return g;
 }
@@ -1187,89 +1316,111 @@ function drawRoute(ctx, colors, w, params, state, anim, pointer) {
   txt(ctx, colors, `x  ${shapeText([4, 10])}`, cxAll, y + 12,
     { color: colors.ink1, align: "center", mono: true });
   const busY = y + XLAB + 12;
+  /* DECISION 14: line 1 is the router, so at rest the bus reaches the gate
+     column alone; the three branch arms are line 2's and arrive with it. */
   ctx.strokeStyle = colors.groupA;
   ctx.lineWidth = 2;
   ctx.beginPath();
   ctx.moveTo(cxAll, y + XLAB);
   ctx.lineTo(cxAll, busY);
-  ctx.moveTo(g.cols[0], busY);
   ctx.lineTo(g.gateCx, busY);
   ctx.stroke();
-  for (const cx of [...g.cols, g.gateCx]) arrow(ctx, cx, busY, cx, g.boxTop, colors.groupA, 2);
+  arrow(ctx, g.gateCx, busY, g.gateCx, g.boxTop, colors.groupA, 2);
+  if (onStage(walk, 2)) {
+    const arm = landed(walk, 2) ? colors.groupA : colors.axis;
+    ctx.strokeStyle = arm;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(g.cols[0], busY);
+    ctx.lineTo(cxAll, busY);
+    ctx.stroke();
+    for (const cx of g.cols) arrow(ctx, cx, busY, cx, g.boxTop, arm, 2);
+  }
 
   const HUES = [colors.groupA, colors.groupB, colors.groupC];
   const weightsY = g.weightsY;
   const taken = hard ? state.top[sample] : -1;
   g.cols.forEach((cx, i) => {
     const off = hard && walk.done >= 4 && i !== taken;
-    layerBox(ctx, colors, cx - g.boxW / 2, g.boxTop, g.boxW, "Linear", HUES[i],
-      { lit: walk.done === 2, pale: walk.done < 2 || off });
-    edge(ctx, colors, cx, g.boxTop + BOX_H, g.boxTop + BOX_H + EDGE_H,
-      walk.done >= 2 ? shapeText([4, 20]) : "", { color: HUES[i] });
-    layerBox(ctx, colors, cx - g.boxW / 2, g.boxTop + BOX_H + EDGE_H, g.boxW, "ReLU", HUES[i],
-      { lit: walk.done === 2, pale: walk.done < 2 || off });
-    edge(ctx, colors, cx, g.boxTop + 2 * BOX_H + EDGE_H, weightsY,
-      walk.done >= 3 ? shapeText([4, 20]) : "", { color: HUES[i] });
-    txt(ctx, colors, `branch ${i + 1}`, cx, g.boxTop - 6,
-      { color: HUES[i], align: "center", size: colors.fsXs });
+    unitBox(ctx, colors, cx - g.boxW / 2, g.boxTop, g.boxW, "Linear", HUES[i], walk, 2, { dim: off });
+    unitEdge(ctx, colors, cx, g.boxTop + BOX_H, g.boxTop + BOX_H + EDGE_H,
+      shapeText([4, 20]), walk, 2, { color: HUES[i] });
+    unitBox(ctx, colors, cx - g.boxW / 2, g.boxTop + BOX_H + EDGE_H, g.boxW, "ReLU",
+      HUES[i], walk, 2, { dim: off });
+    /* the stack is line 3, and it is three edges and nothing else */
+    unitEdge(ctx, colors, cx, g.boxTop + 2 * BOX_H + EDGE_H, weightsY,
+      shapeText([4, 20]), walk, 3, { color: HUES[i] });
+    if (onStage(walk, 2)) {
+      txt(ctx, colors, `branch ${i + 1}`, cx, g.boxTop - 6,
+        { color: landed(walk, 2) ? HUES[i] : colors.ink3, align: "center", size: colors.fsXs });
+    }
   });
 
   /* the gate column, in ink because it is not a branch */
-  layerBox(ctx, colors, g.gateCx - g.gateW / 2 + 8, g.boxTop, g.gateW - 16, "gate", colors.ink2,
-    { lit: walk.done === 1, pale: walk.done < 1 });
-  edge(ctx, colors, g.gateCx, g.boxTop + BOX_H, g.boxTop + BOX_H + EDGE_H,
-    walk.done >= 1 ? shapeText([4, 3]) : "", { color: colors.ink3 });
-  layerBox(ctx, colors, g.gateCx - g.gateW / 2 + 8, g.boxTop + BOX_H + EDGE_H, g.gateW - 16,
-    "softmax", colors.ink2, { lit: walk.done === 1, pale: walk.done < 1 });
-  edge(ctx, colors, g.gateCx, g.boxTop + 2 * BOX_H + EDGE_H, weightsY,
-    walk.done >= 1 ? shapeText([4, 3]) : "", { color: colors.ink3 });
+  unitBox(ctx, colors, g.gateCx - g.gateW / 2 + 8, g.boxTop, g.gateW - 16, "gate",
+    colors.ink2, walk, 1);
+  unitEdge(ctx, colors, g.gateCx, g.boxTop + BOX_H, g.boxTop + BOX_H + EDGE_H,
+    shapeText([4, 3]), walk, 1, { color: colors.ink3 });
+  unitBox(ctx, colors, g.gateCx - g.gateW / 2 + 8, g.boxTop + BOX_H + EDGE_H, g.gateW - 16,
+    "softmax", colors.ink2, walk, 1);
+  unitEdge(ctx, colors, g.gateCx, g.boxTop + 2 * BOX_H + EDGE_H, weightsY,
+    shapeText([4, 3]), walk, 1, { color: colors.ink3 });
   txt(ctx, colors, "gate", g.gateCx, g.boxTop - 6,
     { color: colors.ink3, align: "center", size: colors.fsXs });
 
   const sumL = g.boxL;
   const sumR = g.boxR;
-  outlineBox(ctx, colors, sumL, weightsY, g.boxWidth, g.boxH, "",
-    walk.done >= 5 ? colors.empirical : colors.axis);
-  /* the box's name is the block's caption, at its top left, because the middle
-     of the box is where the strips go */
-  txt(ctx, colors, hard ? `branch ${taken >= 0 ? taken + 1 : "·"} taken` : "weighted sum",
-    sumL + M.SUM_PAD, weightsY + M.SUM_PAD + 10, { color: colors.ink3, size: colors.fsXs });
-  for (let r = 0; r < 4; r += 1) {
-    for (let i = 0; i < 3; i += 1) {
-      valueCell(ctx, colors, g.gateCx - g.gateW / 2 + i * g.s.wcell, weightsY + r * WROW,
-        g.s.wcell, WROW, walk.done >= 1 ? state.weights[r][i].toFixed(2) : "", {
-          hue: HUES[i],
-          lit: walk.done >= 1 && r === sample && i === state.top[r],
-          empty: walk.done < 1,
-          size: colors.fsXs,
-        });
-    }
+  /* THE BOX IS LINE 5'S, so it arrives pale when line 4 lands and fills when
+     line 5 does; the weights are line 1's and are drawn as values or not at
+     all, because a value grid is a result and a result waits for its line. */
+  if (onStage(walk, 5)) {
+    outlineBox(ctx, colors, sumL, weightsY, g.boxWidth, g.boxH, "",
+      landed(walk, 5) ? colors.empirical : colors.axis);
   }
-  if (walk.done >= 1) {
+  if (landed(walk, 5)) {
+    /* the box's name is the block's caption, at its top left, because the
+       middle of the box is where the strips go */
+    txt(ctx, colors, hard ? `branch ${taken >= 0 ? taken + 1 : "·"} taken` : "weighted sum",
+      sumL + M.SUM_PAD, weightsY + M.SUM_PAD + 10, { color: colors.ink3, size: colors.fsXs });
+  }
+  if (landed(walk, 1)) {
+    for (let r = 0; r < 4; r += 1) {
+      for (let i = 0; i < 3; i += 1) {
+        valueCell(ctx, colors, g.gateCx - g.gateW / 2 + i * g.s.wcell, weightsY + r * WROW,
+          g.s.wcell, WROW, state.weights[r][i].toFixed(2), {
+            hue: HUES[i],
+            lit: r === sample && i === state.top[r],
+            size: colors.fsXs,
+          });
+      }
+    }
     ctx.strokeStyle = colors.highlight;
     ctx.lineWidth = HLW;
     ctx.strokeRect(g.gateCx - g.gateW / 2 - 1.25, weightsY + sample * WROW - 1.25,
       3 * g.s.wcell + 2.5, WROW + 2.5);
   }
-  arrow(ctx, g.gateCx - g.gateW / 2 - 2, weightsY + WBLOCK / 2, sumR + 4, weightsY + WBLOCK / 2,
-    colors.ink3, 2);
+  /* the weights reaching the sum is line 4 — the unsqueeze at soft, the argmax
+     at hard, which is also what dims the two branches a sample did not take */
+  if (landed(walk, 4)) {
+    arrow(ctx, g.gateCx - g.gateW / 2 - 2, weightsY + WBLOCK / 2, sumR + 4, weightsY + WBLOCK / 2,
+      colors.ink3, 2);
+  }
 
   /* THE BLOCK APPEARS WITH THE LINE THAT COMPUTES IT — unit 5, which is
      `combined = torch.sum(weights * outs, dim=1)` and its hard-routing
-     equivalent. Before that the box is empty with its label, as it was. */
-  if (walk.done >= 5) {
+     equivalent. */
+  if (landed(walk, 5)) {
     const col = drawSumBlock(ctx, colors, g, state, sample, hard, pointer);
     drawSumLine(ctx, colors, g, state, sample, hard, col);
   }
 
   const fcTop = weightsY + g.boxH + M.SUM_ARITH + EDGE_H;
   const sumCx = (sumL + sumR) / 2;
-  edge(ctx, colors, sumCx, weightsY + g.boxH + M.SUM_ARITH, fcTop,
-    walk.done >= 5 ? `combined  ${shapeText([4, 20])}` : "", { color: colors.empirical });
-  layerBox(ctx, colors, sumCx - 46, fcTop, 92, "fc_out", colors.empirical,
-    { lit: walk.done === 6, pale: walk.done < 6 });
-  edge(ctx, colors, sumCx, fcTop + BOX_H, fcTop + BOX_H + EDGE_H,
-    walk.done >= 6 ? shapeText([4, 2]) : "", { color: colors.empirical });
+  unitEdge(ctx, colors, sumCx, weightsY + g.boxH + M.SUM_ARITH, fcTop,
+    `combined  ${shapeText([4, 20])}`, walk, 5, { color: colors.empirical });
+  unitBox(ctx, colors, sumCx - 46, fcTop, 92, "fc_out", colors.empirical, walk, 6);
+  unitEdge(ctx, colors, sumCx, fcTop + BOX_H, fcTop + BOX_H + EDGE_H,
+    shapeText([4, 2]), walk, 6, { color: colors.empirical });
 
   if (g.beside) {
     codePanel(ctx, colors, PAD + g.roomy + TEXT_GAP, top + 26, g.cw, state.code, walk.lit);
@@ -1319,10 +1470,9 @@ function drawBuild(ctx, colors, w, params, state, anim) {
   state.steps.forEach(([label, out], i) => {
     const last = i === g.n - 1;
     const hue = last ? colors.empirical : colors.groupA;
-    layerBox(ctx, colors, g.cx - BOX_W / 2, cy, BOX_W, label, hue,
-      { lit: walk.done === i + 1, pale: walk.done < i + 1 });
+    unitBox(ctx, colors, g.cx - BOX_W / 2, cy, BOX_W, label, hue, walk, i + 1);
     cy += BOX_H;
-    edge(ctx, colors, g.cx, cy, cy + EDGE_H, walk.done >= i + 1 ? shapeText([4, out]) : "",
+    unitEdge(ctx, colors, g.cx, cy, cy + EDGE_H, shapeText([4, out]), walk, i + 1,
       { color: hue });
     cy += EDGE_H;
   });
@@ -1388,8 +1538,7 @@ function drawOrder(ctx, colors, w, params, state, anim) {
           by += BOX_H + 8;
         }
         unit += 1;
-        layerBox(ctx, colors, gx + 10, by, g.bw, label, colors.groupA,
-          { lit: walk.done === unit, pale: walk.done < unit });
+        unitBox(ctx, colors, gx + 10, by, g.bw, label, colors.groupA, walk, unit);
         by += BOX_H + 8;
       });
       txt(ctx, colors, group.note, gx + 2, y + g.groupH + 16,
@@ -1407,7 +1556,9 @@ function drawOrder(ctx, colors, w, params, state, anim) {
   let cy = y + XLAB;
   let prev = blk.in;
   blk.steps.forEach(([generic, cls, out], i) => {
-    edge(ctx, colors, cx, cy, cy + ORDER_EDGE, walk.done >= i ? shapeText(prev) : "",
+    /* DECISION 14: the edge above a box carries what the step before it
+       produced, so it belongs to that step; the first one is the input's. */
+    unitEdge(ctx, colors, cx, cy, cy + ORDER_EDGE, shapeText(prev), walk, i,
       { color: i === 0 ? colors.groupA : colors.empirical, size: colors.fsXs });
     cy += ORDER_EDGE;
     /* DECISION 11: only Transform carries a hue here. `--c-group-a` and
@@ -1415,15 +1566,18 @@ function drawOrder(ctx, colors, w, params, state, anim) {
        data"), so colouring the other three steps `--c-empirical` would draw
        four identical boxes under a legend claiming they differ. The step that
        changes the shape is the one the page is about, and the rest are ink. */
-    layerBox(ctx, colors, PAD, cy, BOX_W, generic,
-      generic === "Transform" ? colors.groupA : colors.ink2,
-      { lit: walk.done === i + 1, pale: walk.done < i + 1 });
-    txt(ctx, colors, cls, PAD + BOX_W + 8, cy + BOX_H / 2 + 0.5,
-      { color: walk.done >= i + 1 ? colors.ink2 : colors.ink3, baseline: "middle", mono: true, size: colors.fsXs });
+    unitBox(ctx, colors, PAD, cy, BOX_W, generic,
+      generic === "Transform" ? colors.groupA : colors.ink2, walk, i + 1);
+    if (onStage(walk, i + 1)) {
+      txt(ctx, colors, cls, PAD + BOX_W + 8, cy + BOX_H / 2 + 0.5, {
+        color: landed(walk, i + 1) ? colors.ink2 : colors.ink3,
+        baseline: "middle", mono: true, size: colors.fsXs,
+      });
+    }
     cy += BOX_H;
     prev = out;
   });
-  edge(ctx, colors, cx, cy, cy + ORDER_EDGE, walk.done >= g.n ? shapeText(prev) : "",
+  unitEdge(ctx, colors, cx, cy, cy + ORDER_EDGE, shapeText(prev), walk, g.n,
     { color: colors.empirical, size: colors.fsXs });
 
   const printX = PAD + g.usable - g.pw;
@@ -1432,108 +1586,16 @@ function drawOrder(ctx, colors, w, params, state, anim) {
   return g;
 }
 
-/* ============================== the captions =============================== */
-
-function pageCaptions(params, state) {
-  switch (state.kind) {
-    case "dimensions": {
-      const last = state.steps[state.steps.length - 1];
-      const set = state.set;
-      if (last && last.error) {
-        return [
-          `${last.layer.label} was given ${shapeText(last.from)}, and its own sizes describe a different tensor.`,
-          "Each layer's output shape has to be the input shape the next layer was told to expect.",
-        ];
-      }
-      return [
-        `${set.label} enter as ${shapeText(set.shape)}, and dimension 0 is the batch, which no layer is told about.`,
-        `The chain ends at ${shapeText(state.out)}, and every size in between is fixed by the layer that produced it.`,
-      ];
-    }
-    case "skip":
-      return state.match
-        ? [
-          state.proj
-            ? `The projection is a Linear(10, ${state.width}), so both sides of the add are ${shapeText([4, state.width])}.`
-            : `f(x) and skip are both ${shapeText([4, state.width])}, so the add is elementwise and the block learns the correction.`,
-          "The path from the output back to x has two routes, and the one through the skip multiplies the gradient by 1.",
-        ]
-        : [
-          `f(x) is ${shapeText([4, state.width])} and skip is ${shapeText([4, 10])}, so the add has nothing to line up.`,
-          "A projection on the skip path maps the input to the width f(x) produces.",
-        ];
-    case "gating":
-      return state.gate === "mask"
-        ? [
-          `${state.blocked} of the 20 features are blocked, and their column of gated is empty for every sample.`,
-          "A fixed mask is a tensor of 1s and 0s, so it has nothing to learn and the same features are blocked for every input.",
-        ]
-        : [
-          "Every feature has its own gate between 0 and 1, so the signal is turned down rather than switched off.",
-          "The gate is a second Linear on the same input, and its output is the same shape as the path it multiplies.",
-        ];
-    case "branching": {
-      const w2 = state.fc2;
-      if (state.mergeError) {
-        return [
-          `The two branches are ${shapeText([4, 8])} and ${shapeText([4, w2])}, so ${state.merge} has nothing to line up.`,
-          "Concatenation joins the features instead, and it accepts branches of different widths.",
-        ];
-      }
-      if (state.fcError) {
-        return [
-          `${state.merge} on 8 and ${w2} gives ${state.feats} features, and fc3 is Linear(${M.FC3_IN}, 2).`,
-          "The merge decides the feature count, so the layer after it has to be told that number.",
-        ];
-      }
-      return [
-        `${state.merge} on 8 and ${w2} gives ${state.feats} features, which is what fc3 was built for.`,
-        state.merge === "concat"
-          ? "Concatenation keeps both branches whole, so the merged width is the sum of the two."
-          : "Addition and averaging combine the branches cell by cell, so the merged width is the width of one branch.",
-      ];
-    }
-    case "routing": {
-      const s = Number(params.sample);
-      return state.mode === "hard"
-        ? [
-          `Sample ${s} takes branch ${state.top[s] + 1}, and the other two branches contribute nothing to its output.`,
-          "The argmax is a discrete choice, so no gradient reaches the router and it cannot be trained by backpropagation.",
-        ]
-        : [
-          `Sample ${s} mixes the three branches ${state.weights[s].map((v) => v.toFixed(2)).join(" · ")}, and branch ${state.top[s] + 1} carries the most of it.`,
-          "nn.ModuleList holds the three branches so they can be applied in a loop; nn.ModuleDict holds them by name so one can be chosen.",
-        ];
-    }
-    case "building":
-      return [
-        state.key === "learnable"
-          ? "F.relu is called in forward and is not a submodule, so it is not in the print."
-          : state.key === "blocks"
-            ? "Each block is a Sequential of its own, so the print nests and the parameter count is the sum of all five layers."
-            : "Every layer was declared in __init__, so every layer is in the print.",
-        params.show === "summary"
-          ? "summary() counts registered modules, so it reports the same layers the print names."
-          : "A print names the layers a model declares, and the forward pass is what decides which of them run.",
-      ];
-    default:
-      if (state.view === "combination") {
-        return [
-          "These layers are used as a unit because their roles complete each other.",
-          "A model is assembled from such units, and the same unit appears in many architectures.",
-        ];
-      }
-      return [
-        state.changed === 0
-          ? `Nothing here changes the shape: this Conv2d has padding 1, so ${shapeText(state.block.in)} goes through as it is.`
-          : `${state.changed} of the ${state.block.steps.length} steps change the shape, and ${state.changed === 1 ? "it is a Transform" : "both are Transforms"}.`,
-        "The order is an empirical choice, and the shapes are the same whichever order these steps are written in.",
-      ];
-  }
-}
+/* ============================== the captions ===============================
+ * The lines themselves, and the unit each one waits for, are `M.captions` —
+ * decision 14 and principle 2.4. Here they are only wrapped to the stage, and
+ * every row carries its own `at`, so `draw` can leave it blank without the
+ * block changing height. `pageHeight` measures the FULL text at every walk
+ * position, so a held row is a reserved row rather than a shorter figure. */
 
 function captionLines(ctx, colors, w, params, state) {
-  return pageCaptions(params, state).flatMap((line) => wrapLines(ctx, colors, line, w - 2 * PAD));
+  return M.captions(params, state).flatMap(({ text, at }) =>
+    wrapLines(ctx, colors, text, w - 2 * PAD).map((line) => ({ line, at })));
 }
 
 /* ============================ the formula card ============================= */
@@ -1687,6 +1749,17 @@ function renderCard(params, state) {
 /* ============================== the widget ================================= */
 
 const CHAIN = (params) => M.SLOT_KEYS.map((k) => params[k]);
+
+/* THE ANIMATION OBJECT, FOR `regions` ALONE. Core hands a region table the
+   parameters and the state, and the walk is in neither — but a band that is
+   not drawn is not a target (3.6), so the hit-test has to read the same walk
+   the drawing did. `draw` stashes the object rather than the number, so `n` is
+   the live position and not the position at the last frame; core builds a new
+   one on every rebuild, and `draw` runs before any pointer can reach the
+   canvas. Its one empty moment is core's load-time region probe, which runs
+   before the first frame — so `regions` reads a full walk there and hands the
+   probe the whole table to validate. */
+let walkAnim = null;
 
 /** One door for the state, so `height`, `regions` and `compute` cannot each
     measure a different figure (5.8). */
@@ -2136,6 +2209,12 @@ defineWidget({
     if (!state) return [];
     const ctx = measureCtx();
     const colors = readTokens();
+    /* DECISION 14: A BAND THAT IS NOT DRAWN IS NOT A TARGET (3.6). The walk
+       reaches here through the `anim` object `draw` stashes, because core hands
+       `regions` the parameters and the state and not the animation — and the
+       object is the live one, so `n` is the position on screen rather than the
+       position at the last draw. */
+    const walk = walkAt(walkAnim ?? { n: state.units }, state);
     const rows = (x, y, cellW, p) =>
       [0, 1, 2, 3].map((i) => ({
         /* a number, because `sample` is an int: a string would leave `?sample=0`
@@ -2143,6 +2222,7 @@ defineWidget({
         x, y: y + i * p, w: cellW, h: p, set: { sample: i }, label: `sample ${i}`,
       }));
     if (params.topic === "gating") {
+      if (!landed(walk, 3)) return [];
       const g = gateGeom(ctx, colors, w, params, state);
       return rows(g.bandX, g.bandY, 20 * g.s.band, g.s.band);
     }
@@ -2150,8 +2230,8 @@ defineWidget({
       const g = branchGeom(ctx, colors, w, params, state);
       const b = branchBands(g, state);
       return [
-        ...rows(b.b1.x, b.b1.y, b.b1.cols * g.s.band, g.s.band),
-        ...rows(b.b2.x, b.b2.y, b.b2.cols * g.s.band, g.s.band),
+        ...(landed(walk, 1) ? rows(b.b1.x, b.b1.y, b.b1.cols * g.s.band, g.s.band) : []),
+        ...(landed(walk, 2) ? rows(b.b2.x, b.b2.y, b.b2.cols * g.s.band, g.s.band) : []),
       ];
     }
     if (params.topic === "routing") {
@@ -2161,9 +2241,11 @@ defineWidget({
          from the geometry `drawSumBlock` lays them out with */
       const b = routeSumGeom(g);
       return [
-        ...rows(g.gateCx - g.gateW / 2, g.weightsY, 3 * g.s.wcell, WROW),
-        ...b.bandY.flatMap((y) => rows(b.cellX, y, b.bandW, b.p)),
-        ...rows(b.cellX, b.sumY, b.bandW, b.p),
+        ...(landed(walk, 1) ? rows(g.gateCx - g.gateW / 2, g.weightsY, 3 * g.s.wcell, WROW) : []),
+        ...(landed(walk, 5)
+          ? [...b.bandY.flatMap((y) => rows(b.cellX, y, b.bandW, b.p)),
+            ...rows(b.cellX, b.sumY, b.bandW, b.p)]
+          : []),
       ];
     }
     return [];
@@ -2211,9 +2293,14 @@ defineWidget({
 
   draw({ ctx, colors, w, params, state, anim, pointer }) {
     renderCard(params, state);
+    walkAnim = anim;
+    const walk = walkAt(anim, state);
     const g = (DRAW[params.topic] ?? drawOrder)(ctx, colors, w, params, state, anim, pointer);
-    g.caps.forEach((line, i) => {
-      txt(ctx, colors, line, PAD, g.capY + 12 + i * CAPTION_H, { color: colors.ink2 });
+    /* 2.4 AND DECISION 14: a row whose claim has not happened yet is reserved
+       and left blank, so the block is the same height empty as full. */
+    g.caps.forEach((row, i) => {
+      if (!landed(walk, row.at)) return;
+      txt(ctx, colors, row.line, PAD, g.capY + 12 + i * CAPTION_H, { color: colors.ink2 });
     });
   },
 

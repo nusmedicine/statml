@@ -28,7 +28,7 @@
    ========================================================================= */
 
 import { makeRng } from "../core/rng.js";
-import { initBound, uniform, outSize, torchError } from "../core/torch.js";
+import { initBound, uniform, outSize, torchError, shapeText } from "../core/torch.js";
 
 /* --- small helpers --------------------------------------------------------- */
 
@@ -75,6 +75,90 @@ export const SPEEDS = [
   { value: "fast", label: "Fast", detail: "0.3 seconds a line" },
 ];
 export const unitMs = (speed) => (speed === "slow" ? 1200 : speed === "fast" ? 300 : 700);
+
+/* ====================== the walk is one line ahead =========================
+ * DECISION 14, and `main.js`'s header carries the whole of it. Kenneth on
+ * Gating and Branching (2026-09-10, round 1, comment 3): "some of downstream
+ * processes shouldn't be shown at the beginning but revealed with the
+ * animation". A unit is LANDED once its line has run, PREVIEW while it is the
+ * next line to run, and ABSENT until then — so the stage holds the input, the
+ * bus, and exactly one line more than the reader has asked for.
+ *
+ * Here rather than in `main.js` because the verify script has to read the same
+ * rule the drawing does, and a rule computed twice is a rule that can differ
+ * (5.8).
+ */
+export function stageOf(done, unit) {
+  if (done >= unit) return "landed";
+  if (done + 1 === unit) return "preview";
+  return "absent";
+}
+
+/**
+ * WHICH LINE OWNS WHICH PIECE OF THE DIAGRAM. One entry per thing the page
+ * draws that is not the input or the bus, so the verify script can assert that
+ * every line lands something and that nothing is drawn more than one line
+ * ahead of the walk. `main.js` names the same units at the draw sites; this is
+ * the table those names have to agree with.
+ */
+export function pageUnits(state) {
+  switch (state.kind) {
+    case "dimensions":
+      return state.steps.map((s, i) => ({ id: s.layer.label, unit: i + 1 }));
+    case "building":
+      return state.steps.map(([label], i) => ({ id: label, unit: i + 1 }));
+    case "skip": {
+      const u = [
+        { id: "skip", unit: 1 },
+        { id: "fc1", unit: 2 },
+        { id: "relu", unit: 3 },
+        { id: "fc2", unit: 4 },
+        /* the rail and the + belong to `out = x3 + skip`, which is where the
+           two paths meet; line 1 previews the label and nothing else */
+        { id: "add", unit: 5 },
+        { id: "rail", unit: 5 },
+      ];
+      if (state.proj) u.push({ id: "proj", unit: 1 });
+      if (state.match) u.push({ id: "fc_out", unit: 6 });
+      return u;
+    }
+    case "gating":
+      return [
+        { id: "fc1", unit: 1 },
+        { id: "relu", unit: 1 },
+        { id: state.gate === "mask" ? "mask" : "gate_fc", unit: 2 },
+        { id: "ring", unit: 3 },
+        { id: "gated", unit: 3 },
+        { id: "fc2", unit: 4 },
+      ];
+    case "branching": {
+      const u = [
+        { id: "fc1", unit: 1 },
+        { id: "x1", unit: 1 },
+        { id: "fc2", unit: 2 },
+        { id: "x2", unit: 2 },
+        { id: "merge", unit: 3 },
+      ];
+      if (!state.mergeError) u.push({ id: "fc3", unit: 4 });
+      return u;
+    }
+    case "routing":
+      return [
+        { id: "gate", unit: 1 },
+        { id: "weights", unit: 1 },
+        { id: "branches", unit: 2 },
+        { id: "stack", unit: 3 },
+        { id: "select", unit: 4 },
+        { id: "combined", unit: 5 },
+        { id: "fc_out", unit: 6 },
+      ];
+    default:
+      return state.view === "combination"
+        ? COMBOS.flatMap((g, i) => g.boxes.map((b, j) => ({ id: `${i}-${j}-${b}`, unit: 0 })))
+          .map((e, i) => ({ ...e, unit: i + 1 }))
+        : state.block.steps.map(([generic], i) => ({ id: generic, unit: i + 1 }));
+  }
+}
 
 /* ============================== the geometry ===============================
  * The mock is the geometry of record: `_lab/composition-mock.html` drew all
@@ -961,4 +1045,143 @@ export function routeRestColumn(st, s) {
     }
   }
   return best;
+}
+
+/* ============================== the captions ===============================
+ * DECISION 14's second half, and principle 2.4: a claim waits until there is
+ * something to claim about. Each line carries the unit it waits for — `at: 0`
+ * is a DEFINITION, true before the walk starts, and any other number is a
+ * RESULT that appears when the line producing it has run. A held line's row is
+ * still measured and still reserved, so the stage height does not move as the
+ * walk fills it in.
+ *
+ * The split, line by line:
+ *   Dimensions  the input's own shape and its batch dimension are drawn at rest,
+ *               so that line shows at rest; where the chain ends is the result.
+ *               A failure is a result of the step that raised.
+ *   Skip        both sides of the add, and the two routes back to x, wait for
+ *               the add and for the output; what a projection does is a
+ *               definition.
+ *   Gating      what the gate holds waits for the gate, what gated holds waits
+ *               for the multiply; what a mask is, and what a second Linear is,
+ *               are definitions.
+ *   Branching   the feature count waits for the merge, the layer that rejects
+ *               it for the layer; what each merge does is a definition.
+ *   Routing     the sample's mixture waits for the combine and its branch for
+ *               the argmax; nn.ModuleList and the argmax's gradient are
+ *               definitions.
+ *   Building    what the print names against what the forward pass runs is the
+ *               page's result and waits for the last layer; what a print is is
+ *               a definition.
+ *   Ordering    how many steps changed the shape waits for the last one; that
+ *               the order is empirical is a definition, and a Combination is
+ *               two definitions.
+ *
+ * It lives here rather than in `main.js` so the verify script reads the same
+ * table the drawing does (5.8), and the copy audit reads both files.
+ */
+export function captions(params, state) {
+  const line = (text, at = 0) => ({ text, at });
+  switch (state.kind) {
+    case "dimensions": {
+      const last = state.steps[state.steps.length - 1];
+      const set = state.set;
+      if (last && last.error) {
+        return [
+          line(`${last.layer.label} was given ${shapeText(last.from)}, and its own sizes describe a different tensor.`,
+            state.steps.length),
+          line("Each layer's output shape has to be the input shape the next layer was told to expect."),
+        ];
+      }
+      return [
+        line(`${set.label} enter as ${shapeText(set.shape)}, and dimension 0 is the batch, which no layer is told about.`),
+        line(`The chain ends at ${shapeText(state.out)}, and every size in between is fixed by the layer that produced it.`,
+          state.units),
+      ];
+    }
+    case "skip":
+      return state.match
+        ? [
+          line(state.proj
+            ? `The projection is a Linear(10, ${state.width}), so both sides of the add are ${shapeText([4, state.width])}.`
+            : `f(x) and skip are both ${shapeText([4, state.width])}, so the add is elementwise and the block learns the correction.`,
+          5),
+          line("The path from the output back to x has two routes, and the one through the skip multiplies the gradient by 1.",
+            state.units),
+        ]
+        : [
+          line(`f(x) is ${shapeText([4, state.width])} and skip is ${shapeText([4, 10])}, so the add has nothing to line up.`,
+            5),
+          line("A projection on the skip path maps the input to the width f(x) produces."),
+        ];
+    case "gating":
+      return state.gate === "mask"
+        ? [
+          line(`${state.blocked} of the 20 features are blocked, and their column of gated is empty for every sample.`, 3),
+          line("A fixed mask is a tensor of 1s and 0s, so it has nothing to learn and the same features are blocked for every input."),
+        ]
+        : [
+          line("Every feature has its own gate between 0 and 1, so the signal is turned down rather than switched off.", 2),
+          line("The gate is a second Linear on the same input, and its output is the same shape as the path it multiplies."),
+        ];
+    case "branching": {
+      const w2 = state.fc2;
+      if (state.mergeError) {
+        return [
+          line(`The two branches are ${shapeText([4, 8])} and ${shapeText([4, w2])}, so ${state.merge} has nothing to line up.`, 3),
+          line("Concatenation joins the features instead, and it accepts branches of different widths."),
+        ];
+      }
+      if (state.fcError) {
+        return [
+          line(`${state.merge} on 8 and ${w2} gives ${state.feats} features, and fc3 is Linear(${FC3_IN}, 2).`, 4),
+          line("The merge decides the feature count, so the layer after it has to be told that number."),
+        ];
+      }
+      return [
+        line(`${state.merge} on 8 and ${w2} gives ${state.feats} features, which is what fc3 was built for.`, 3),
+        line(state.merge === "concat"
+          ? "Concatenation keeps both branches whole, so the merged width is the sum of the two."
+          : "Addition and averaging combine the branches cell by cell, so the merged width is the width of one branch."),
+      ];
+    }
+    case "routing": {
+      const s = Number(params.sample);
+      return state.mode === "hard"
+        ? [
+          line(`Sample ${s} takes branch ${state.top[s] + 1}, and the other two branches contribute nothing to its output.`, 4),
+          line("The argmax is a discrete choice, so no gradient reaches the router and it cannot be trained by backpropagation."),
+        ]
+        : [
+          line(`Sample ${s} mixes the three branches ${state.weights[s].map((v) => v.toFixed(2)).join(" · ")}, and branch ${state.top[s] + 1} carries the most of it.`, 5),
+          line("nn.ModuleList holds the three branches so they can be applied in a loop; nn.ModuleDict holds them by name so one can be chosen."),
+        ];
+    }
+    case "building":
+      return [
+        line(state.key === "learnable"
+          ? "F.relu is called in forward and is not a submodule, so it is not in the print."
+          : state.key === "blocks"
+            ? "Each block is a Sequential of its own, so the print nests and the parameter count is the sum of all five layers."
+            : "Every layer was declared in __init__, so every layer is in the print.",
+        state.units),
+        line(params.show === "summary"
+          ? "summary() counts registered modules, so it reports the same layers the print names."
+          : "A print names the layers a model declares, and the forward pass is what decides which of them run."),
+      ];
+    default:
+      if (state.view === "combination") {
+        return [
+          line("These layers are used as a unit because their roles complete each other."),
+          line("A model is assembled from such units, and the same unit appears in many architectures."),
+        ];
+      }
+      return [
+        line(state.changed === 0
+          ? `Nothing here changes the shape: this Conv2d has padding 1, so ${shapeText(state.block.in)} goes through as it is.`
+          : `${state.changed} of the ${state.block.steps.length} steps change the shape, and ${state.changed === 1 ? "it is a Transform" : "both are Transforms"}.`,
+        state.units),
+        line("The order is an empirical choice, and the shapes are the same whichever order these steps are written in."),
+      ];
+  }
 }
