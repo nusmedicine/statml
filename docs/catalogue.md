@@ -10602,6 +10602,45 @@ fingerprint cost is five settled states plus at least one driven and one
 hit-driven, each proved identical over three runs before it is baselined —
 which is the largest single cost in the plan and was in neither.
 
+#### BUILT AS A DRAFT 2026-09-10 (`11e471d`), and Round 1 the same day
+
+An Opus 5 builder wrote `main.js` (1662 lines), `model.js` (316) and
+`_lab/processing-layers-verify.mjs` (47 assertions, under `npm test`) from
+the mock; the main session read every page in the browser before the commit.
+Eleven decisions in the header, the two that mattered: prints on Linear and
+Graph only (a `[1, 2, 8, 8]` print is several stage heights of text), and
+`pos` restarting the walk at the clicked position while Replay builds from
+empty (core cannot tell a Replay from a re-init, so the widget compares the
+state object). `out_proj` is not drawn from the rng: the figure stops at
+`softmax(QKᵀ/√d_k)V`, which is the card's line.
+
+**Round 1 — Kenneth, 2026-09-10, five comments on the draft.** *"Make the
+bands grow with the stage width"* — the draft drew every band at the 550
+geometry, so the 770 stage sat blank to the right; a fix, the cell, pixel and
+gap sizes as functions of `w` (tensors' `cellSize(w)`), 46 → ~60 for a float
+cell and 14 → 20 for an image pixel, with nothing moving at 550.
+**(1)** *"for CNN, there are 2 filters, but I see only one kernel?"* — he was
+right: band 2 drew window ∗ one kernel, so the second kernel was never on
+screen; a fix, both kernels drawn in his figure's column order and band 2 as
+two rows, one per filter. **(2)** *"for RNN, possible to show a diagram about
+or somehow show the unrolled loop?"* — a design, so mocked:
+`_lab/processing-layers-rnn.html`, three options (arrows on the value rows;
+his `rnn-bi` figure as a strip above the values; rolled cell beside the
+unrolled chain above the values). **(3)** *"for attention, it wasn't clear
+where I got the scores for pairings like sat-The, sat-cat. Also the output,
+maybe should have a heatmap to illustrate who attends to what?"* — a fix: the
+scores grid labelled by query token (rows) and key token (columns), the
+dot-product terms written out in the readout as a query is stepped, and the
+weights grid a labelled heat map on a **0 → 1 ramp, not the grid's own
+min–max** — at random init the weights are 0.31–0.35 and a stretched ramp
+would draw a pattern the measurement says is not there; Identity is where the
+pattern shows. **(4)** *"for graph, is it possible to show input values? I
+see the output, but I don't know where they came from"* — a fix: `X` printed
+under the Input band as the output already was, `W` beside Aggregate, and the
+aggregation written out for the stepped node. **(5)** *"where do the other
+layers come in? embedding/pooling, activation? this same widget or a separate
+one?"* — answered: `support-layers`, slot 50, his own first pick that morning.
+
 ### Slot 50 · `support-layers` — Normalization, Activation and Dropout — PLANNED 2026-09-10
 
 **Host.** 05-3 cells 29–60: Embedding (29–33), Pooling (34–39), BatchNorm and
