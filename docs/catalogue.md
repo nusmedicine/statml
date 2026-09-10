@@ -11007,6 +11007,39 @@ the cut candidate, reference-shaped, with no stage that loses. Three of its five
 pages now have one: pooling's max-against-average on the 6 × 6 square, dropout at
 p = 0.8, and the all-zero softmax row.
 
+**The mock was built and picked the same day, 2026-09-10 (`0559fb4`).** An Opus 5
+subagent wrote `_lab/support-layers-mock.html` as seven sections, every stage
+drawn at 550 from the notebook's own operands (cells 32, 36, 43, 47, 50, 54,
+56, 59), the prints through `torchPrint`; the main session read every section
+in the browser before it went to him and made one fix first: the normalization
+arrows ran the full length of the grids, which over digits reads as a
+strikethrough, so each is now the stub outside the cells onto its μ and σ (his
+figures run them through shaded cells, where the problem does not arise).
+**Kenneth took the recommendation on all seven**: **§1** the grid rail with the
+three category heads (197px, nothing truncates; the plain grid is 111px); **§2**
+Embedding as two bands, tokens → table with the looked-up row lit, then the
+result in `tensors`' frames convention with its print (the one-band form with
+his figure's Mapping arrows fits at 524px but flattens `[2, 3]` to six ids,
+crosses 7 of 15 arrow pairs and leaves no room for the print); **§3** the 13px
+pixel at 550 and 19 at 770; **§4** Normalization as a `norm` selector, not both
+stacked (656px); **§5** the curve panel left of the three output rows (490 × 226
+against 318 × 370 above them); **§6** Dropout as one band in his figure's
+vertical flow with the dropped cells drawn empty on the output row; **§7** the
+third sum tile, the mean over draws.
+
+**What the drawing corrected in the plan's arithmetic:** the Embedding stage is
+**533px**, not 460 (band 2 is 442, the frame hug costs 24 and the `[2, 3, 4]`
+print is seven lines); Batch is 354 × **282** and Layer 498 × **398** at the 44px
+cell, not 450 and 486; Probability is 146 × **212**, not 138 × 166; the whole
+Dropout rail is **634px** against the 212px Probability stage, so on that page
+the rail sets the height; and **the 20px pooling pixel at 770 leaves 40px, not
+2** (the plan assumed a 50px arrow gutter where the drawn one is 40), so 19 is a
+margin choice rather than a fit. The ten seeded dropout draws at p = 0.8 give
+output sums from −5.453 to 6.530 against an input sum of 2.281, sd 3.27, mean
+over ten 0.524, which is the third tile's reason. One decision the mock took
+without asking: the pooling window is drawn at input rows and columns 4–6 so it
+straddles the square's edge, where max and mean differ.
+
 ### Slot 51 · `composition` — Composing Layers and Controlling Flow — PLANNED 2026-09-10
 
 **Host.** 05-3 cells 61–101, the notebook's two `##` headings: *Composing
