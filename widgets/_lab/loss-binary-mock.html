@@ -1,0 +1,1232 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · loss-functions · one output and several, and binary two ways</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 980px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-6); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 96ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); max-width: 560px; min-height: 24px; white-space: pre-line; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 96ch; }
+  .rec b { font-weight: 600; }
+  ul.proof { font-size: var(--fs-sm); color: var(--ink-2); max-width: 96ch; padding-left: 18px; }
+  ul.proof li { margin-bottom: 4px; }
+  /* the rail, at the real 300px, with the shell's own classes — the same four
+     rules the first mock used to pin the split at this page's width */
+  .lab .w-split { display: grid; grid-template-columns: 300px 550px; gap: var(--sp-4); align-items: start; }
+  .lab .w-split .w-controls { grid-template-columns: 1fr; border-top: 0; padding-top: 0; margin-top: 0; }
+  .lab .w-rail { border-top: 0; padding-top: 0; margin-top: 0; }
+  .lab .w-split .w-drive { flex-direction: column; align-items: stretch; flex-wrap: nowrap; }
+  .rail-solo { width: 300px; }
+  .measure { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--ink-3); margin: 4px 0 0; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>loss-functions · one output and several, and binary two ways</h1>
+  <p class="note">
+    Two asks from Kenneth, 2026-09-11: <i>&ldquo;can we show examples of 1 class and &gt;1 class? also how best to
+    explain that a binary class can be modeled as 1 label or 2 labels&rdquo;</i>. Both are extensions of the
+    <code>loss-functions</code> draft, so every stage below is drawn in that widget's own form at its own
+    <b>550</b> stage width, on the shared deep-learning geometry: <b>PAD 14</b>, <b>GAP 22</b>, a
+    <b>200 &times; 150</b> curve panel, and a rows column of <b>300px</b>.
+  </p>
+  <p class="note">
+    <b>The first ask is Kenneth's own figures.</b> <code>_lab/figs/dl-loss-mse.png</code> and
+    <code>dl-loss-bce.png</code> each draw <b>two</b> columns — one output (<code>[batch], float32</code>, headed
+    <i>1 target</i> and <i>1 label</i>) beside several (<code>[batch, N], float32</code>, <i>&gt; 1 target</i> and
+    <i>&gt; 1 label</i>) — while <code>dl-loss-ce.png</code> draws one column, <code>[batch, N], float32</code>
+    against <code>[batch], long</code>. The draft ships only the several-column of each. &sect;1 puts the other
+    column on a control.
+  </p>
+  <p class="note">
+    <b>The second ask is one measured fact.</b> Softmax over two scores is the sigmoid of their difference, so a
+    two-output model trained with <code>CrossEntropyLoss</code> and a one-output model trained with
+    <code>BCEWithLogitsLoss</code> on <code>z_B &minus; z_A</code> are the same model with the same loss.
+    <code>_lab/dl-loss-torch.py</code> ran both over a drag of <code>z_B</code> from &minus;2 to 4 and the two
+    agree to <b>1.2e&minus;07</b> at every point; the table in <code>dl-loss-torch.txt</code> &sect;6 is where
+    every number here comes from. &sect;2 picks the device that shows it, &sect;3 the rail that reaches it,
+    &sect;4 what its one derived bar is called and whether it drags.
+  </p>
+  <p class="note">
+    Colour, as the draft sets it: the model's scores <code>--c-group-a</code>, every computed row
+    <code>--c-empirical</code>, the target <code>--c-reference</code>, the held or dragged element and its point
+    on the curve <code>--c-highlight</code>. Nothing here is random.
+  </p>
+  <p class="note" id="mono"></p>
+
+  <h2>&sect;1 &middot; One output and several, per page</h2>
+  <p class="note">
+    A control per page switching the example between the two columns of Kenneth's figures. The faces are the
+    numbers, the label is the noun. <b>A</b> on all three pages &mdash; Regression <code>Outputs</code>
+    <b>1 &middot; 3</b>, Single-label <code>Classes</code> <b>2 &middot; 3</b>, Multi-label <code>Classes</code>
+    <b>1 &middot; 5</b>. <b>B</b> on the two classification pages only, with Regression left at the notebook's
+    three. The three one-output stages are drawn settled at 550 either way; under B the first of them is not
+    reachable.
+  </p>
+  <div class="row" id="s1a"></div>
+  <div class="row" id="s1b"></div>
+  <p class="note">
+    The rails, with the new control in place and the field the page already carries above it, so the added
+    height is the difference between the two columns.
+  </p>
+  <div class="row" id="s1c"></div>
+  <p class="rec" id="rec1"></p>
+
+  <h2>&sect;2 &middot; Binary two ways &mdash; the device</h2>
+  <p class="note">
+    The reader has to see the same number come out of both forms, and one drag move both. <b>A</b> a fourth task
+    page, <code>Binary</code>, <b>stacked</b>: the two-output form over the one-output form in the 300px rows
+    column, the curve beside with the one shared point. <b>B</b> the same fourth page <b>side by side</b>: two
+    250px columns, the curve below. <b>C</b> no fourth page &mdash; the two classification pages each carry one
+    extra line under the loss.
+  </p>
+  <div class="row" id="s2a"></div>
+  <div class="row" id="s2b"></div>
+  <div class="row" id="s2c"></div>
+  <p class="rec" id="rec2"></p>
+
+  <h2>&sect;3 &middot; The rail with a fourth task face</h2>
+  <p class="note">
+    <b>A</b> one row of four. <b>B</b> a <code>w-seg-grid</code> of 2 &times; 2. <b>C</b> the option groups core
+    already builds (<code>groupHeads: true</code>, <code>controls.js</code>:1073) &mdash; <i>Regression</i> alone
+    over a <i>Classification</i> row of three. All three are the shell's own DOM and CSS, so what truncates here
+    truncates in the widget. Adding a face adds a URL value, <code>task=binary</code>, which is a word on the
+    control.
+  </p>
+  <div class="row" id="s3a"></div>
+  <p class="rec" id="rec3"></p>
+
+  <h2>&sect;4 &middot; The Binary page's class names and the drag</h2>
+  <p class="note">
+    A meaning pick, so nothing is measured. Two ways to name the one-output score, and two answers to what the
+    drag on it does.
+  </p>
+  <p class="rec" id="rec4"></p>
+
+  <h2>What the mock proves</h2>
+  <ul class="proof" id="proof"></ul>
+</main>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+import { shapeText } from "../core/torch.js";
+
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+const MONO = T.mono || "monospace";
+
+/* --- the geometry the draft ships (widgets/loss-functions/model.js:297) ----- */
+const PAD = 14;
+const GAP = 22;
+const LINE = 16;
+const ROW_LBL = 18;
+const CH = 26;
+const BAR_H = 88;
+const EDGE = 26;
+const BAND_H = 26;
+const CURVE_W = 200;
+const CURVE_H = 150;
+const PITCH_CAP = 88;
+const CAP_GAP = 12;
+const CAPTION_ROWS = 2;
+const YMAX = 5;
+const GAP_LO = -3;
+const GAP_HI = 3;
+const SQ_MAX = 9;
+const W = 550;
+const USABLE = W - 2 * PAD;              // 522
+const LEFT_W = USABLE - CURVE_W - GAP;   // 300, the rows column
+
+/* ============================ drawing helpers ============================== */
+function panel(host, title, sub, w, h) {
+  const cand = document.createElement("div");
+  cand.className = "cand";
+  if (title) cand.innerHTML = `<h3>${title}</h3><p class="sub">${sub}</p>`;
+  const cv = document.createElement("canvas");
+  cv.width = Math.round(w * DPR); cv.height = Math.round(h * DPR);
+  cv.style.width = `${w}px`; cv.style.height = `${h}px`;
+  cand.appendChild(cv); host.appendChild(cand);
+  const ctx = cv.getContext("2d");
+  ctx.scale(DPR, DPR);
+  ctx.fillStyle = T.surface; ctx.fillRect(0, 0, w, h);
+  return { ctx, cand };
+}
+function note(cand, s) {
+  const p = document.createElement("p");
+  p.className = "measure";
+  p.textContent = s;
+  cand.appendChild(p);
+}
+function txt(ctx, s, x, y, o = {}) {
+  ctx.fillStyle = o.color ?? T.ink2;
+  ctx.textAlign = o.align ?? "left";
+  ctx.textBaseline = o.baseline ?? "alphabetic";
+  ctx.font = `${o.weight ?? ""} ${o.size ?? T.fsSm} ${o.mono ? MONO : T.font}`.trim();
+  ctx.fillText(s, x, y);
+}
+const wash = (hex, a) => {
+  const p = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+  return `rgba(${p[0]},${p[1]},${p[2]},${a})`;
+};
+function arrow(ctx, x0, y0, x1, y1, color, width = 2, head = 9) {
+  const a = Math.atan2(y1 - y0, x1 - x0);
+  ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = width;
+  ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x1, y1);
+  ctx.lineTo(x1 - head * Math.cos(a - 0.45), y1 - head * Math.sin(a - 0.45));
+  ctx.lineTo(x1 - head * Math.cos(a + 0.45), y1 - head * Math.sin(a + 0.45));
+  ctx.closePath(); ctx.fill();
+}
+function band(ctx, w, name, expr) {
+  txt(ctx, name, PAD, 11, { color: T.ink2, weight: "600" });
+  if (expr) txt(ctx, expr, w - PAD, 11, { color: T.highlight, align: "right", mono: true });
+  ctx.strokeStyle = T.grid; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(PAD, 17.5); ctx.lineTo(w - PAD, 17.5); ctx.stroke();
+}
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+/** One probe canvas, so every "it fits" on this page is a measureText. */
+const probe = document.createElement("canvas").getContext("2d");
+function widthOf(s, size, mono) {
+  probe.font = `${size} ${mono ? MONO : T.font}`;
+  return probe.measureText(s).width;
+}
+function measureMono(size) {
+  const s = "RuntimeError: expected target dtype to be Long or Byte, but got Float";
+  return widthOf(s, size, true) / s.length;
+}
+const MONOCH = measureMono(T.fsSm);
+const MONOCH_XS = measureMono(T.fsXs);
+
+/** A string wrapped to `w`, in whichever face it will be drawn in. */
+function wrap(s, w, size, mono) {
+  const out = [];
+  let cur = "";
+  for (const word of s.split(" ")) {
+    const t = cur ? `${cur} ${word}` : word;
+    if (widthOf(t, size, mono) > w && cur) { out.push(cur); cur = word; } else cur = t;
+  }
+  if (cur) out.push(cur);
+  return out;
+}
+
+function valueCell(ctx, x, y, w, h, text, o = {}) {
+  const hue = o.hue ?? T.groupA;
+  ctx.fillStyle = T.surface; ctx.fillRect(x, y, w, h);
+  if (!o.empty && !o.plain) { ctx.fillStyle = wash(hue, o.lit ? 0.4 : 0.15); ctx.fillRect(x, y, w, h); }
+  ctx.strokeStyle = o.lit ? T.highlight : (o.empty ? T.grid : T.axis);
+  ctx.lineWidth = o.lit ? 2.5 : 1;
+  ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+  if (text != null && text !== "") {
+    txt(ctx, text, x + w / 2, y + h / 2 + 0.5,
+      { color: T.ink1, align: "center", baseline: "middle", mono: true, size: T.fsXs });
+  }
+}
+function chipCell(ctx, cx, y, cw, s) {
+  const bx = cx - cw / 2;
+  ctx.fillStyle = T.surface;
+  roundRect(ctx, bx, y, cw, CH, 6); ctx.fill();
+  if (s.on) { ctx.fillStyle = T.reference; roundRect(ctx, bx, y, cw, CH, 6); ctx.fill(); }
+  ctx.strokeStyle = s.on ? T.reference : T.axis;
+  ctx.lineWidth = 1.5;
+  roundRect(ctx, bx + 0.75, y + 0.75, cw - 1.5, CH - 1.5, 6); ctx.stroke();
+  if (s.text) {
+    txt(ctx, s.text, cx, y + CH / 2 + 0.5,
+      { color: s.on ? T.surface : T.ink2, align: "center", baseline: "middle",
+        mono: true, size: T.fsSm, weight: s.on ? "600" : "" });
+  }
+}
+
+/* ============================ the arithmetic ===============================
+   Every number drawn on this page is recomputed here with the same functions
+   the widget uses, and the CHECKS table asserts each against the digits torch
+   printed in `_lab/dl-loss-torch.txt`. Nothing is re-derived by hand. */
+const softmax = (v) => {
+  const m = Math.max(...v);
+  const e = v.map((z) => Math.exp(z - m));
+  const s = e.reduce((a, b) => a + b, 0);
+  return e.map((z) => z / s);
+};
+const sigmoid = (z) => 1 / (1 + Math.exp(-z));
+const n1 = (v) => v.toFixed(1);
+const n2 = (v) => v.toFixed(2);
+const n4 = (v) => v.toFixed(4);
+const LETTERS = ["A", "B", "C", "D", "E"];
+
+/* the one-output examples, §6 of the torch run */
+const MSE1_PRED = 2.5, MSE1_TRUE = 3.0;
+const MSE1_GAP = MSE1_PRED - MSE1_TRUE;
+const MSE1_LOSS = MSE1_GAP * MSE1_GAP;
+
+const BCE1_Z = 2.0, BCE1_Y = 1;
+const BCE1_P = sigmoid(BCE1_Z);
+const BCE1_LOSS = -Math.log(BCE1_P);
+
+/* the binary pair: [zA, zB] against the single score zB − zA */
+const BIN_ZA = 0.5, BIN_ZB = 2.0;
+const BIN_Z = BIN_ZB - BIN_ZA;              // 1.5
+const BIN_P = softmax([BIN_ZA, BIN_ZB]);    // 0.1824 0.8176
+const BIN_SIG = sigmoid(BIN_Z);             // the same 0.8176
+const BIN_LOSS_B = -Math.log(BIN_P[1]);     // 0.2014, label B
+const BIN_LOSS_A = -Math.log(BIN_P[0]);     // 1.7014, label A
+const BIN_SHIFT = softmax([BIN_ZA + 3, BIN_ZB + 3]);
+
+/* the fixed bar axes the draft sets, and the two the new forms need. Both
+   classification ranges span EIGHT units, which is what makes the two halves of
+   the Binary page comparable — see the §2 recommendation. */
+const RANGE = {
+  regression: [-1, 6],
+  "single-label": [-2, 6],
+  "multi-label": [-4, 4],
+  binaryDiff: [-4, 4],
+};
+
+/* the notebook's own several-output rows, for the pages the control switches
+   away from */
+const CE_Z = [5.0, 0.5, 0.1];
+const CE_P = softmax(CE_Z);
+const BCE_Z = [0.2, -1.0, 0.5, 2.0, -0.3];
+const BCE_Y = [0, 1, 1, 0, 0];
+const BCE_S = BCE_Z.map(sigmoid);
+const BCE_PT = BCE_S.map((s, c) => (BCE_Y[c] ? s : 1 - s));
+const BCE_LOSS = BCE_PT.map((p) => -Math.log(p)).reduce((a, b) => a + b, 0) / 5;
+
+/* torch's own drag table, dl-loss-torch.txt §6: zB moved with zA held at 0.5,
+   label B. CE over two outputs, BCE over the one difference, and the difference
+   torch itself printed between them.
+   COMPARED NUMERICALLY, NOT AS STRINGS. The file prints six decimals, and
+   `toFixed(4)` on 0.029750 lands on the tie: the printed value rounds one way
+   and the full double the other, which reported a disagreement that was a
+   rounding rule rather than a number. */
+const DRAG = [
+  [-2.0, 0.0759, 2.578890, 0.0e+00], [-1.0, 0.1824, 1.701413, 1.2e-07],
+  [0.0, 0.3775, 0.974077, 0.0e+00], [0.5, 0.5000, 0.693147, 0.0e+00],
+  [1.0, 0.6225, 0.474077, 0.0e+00], [2.0, 0.8176, 0.201413, 4.5e-08],
+  [3.0, 0.9241, 0.078890, 1.5e-08], [4.0, 0.9707, 0.029750, 1.9e-09],
+];
+const dragBad = DRAG.filter(([zb, p, ce]) => {
+  const bySoftmax = -Math.log(softmax([BIN_ZA, zb])[1]);
+  const bySigmoid = -Math.log(sigmoid(zb - BIN_ZA));
+  return Math.abs(bySoftmax - ce) > 5e-6 || Math.abs(bySigmoid - ce) > 5e-6
+    || Math.abs(softmax([BIN_ZA, zb])[1] - p) > 5e-5;
+});
+/** The largest gap TORCH printed between the two forms over that drag. */
+const dragMax = Math.max(...DRAG.map((r) => r[3]));
+
+const CHECKS = [
+  ["softmax [0.5, 2.0]", BIN_P.map(n4).join(" "), "0.1824 0.8176"],
+  ["sigmoid(zB − zA)", n4(BIN_SIG), "0.8176"],
+  ["CE two outputs, label B", n4(BIN_LOSS_B), "0.2014"],
+  ["BCE one output, y = 1", n4(-Math.log(BIN_SIG)), "0.2014"],
+  ["CE two outputs, label A", n4(BIN_LOSS_A), "1.7014"],
+  ["BCE one output, y = 0", n4(-Math.log(1 - BIN_SIG)), "1.7014"],
+  ["both scores shifted +3", BIN_SHIFT.map(n4).join(" "), "0.1824 0.8176"],
+  ["BCE one output, score 2.0", n4(BCE1_LOSS), "0.1269"],
+  ["sigmoid 2.0", n4(BCE1_P), "0.8808"],
+  ["MSE one target", n4(MSE1_LOSS), "0.2500"],
+  ["CE cell 36 softmax", CE_P.map(n4).join(" "), "0.9818 0.0109 0.0073"],
+  ["CE cell 36 loss", n4(-Math.log(CE_P[0])), "0.0184"],
+  ["BCE cell 39 loss", n4(BCE_LOSS), "1.0534"],
+  ["the drag, 8 rows", dragBad.length === 0 ? "all agree" : `${dragBad.length} differ`, "all agree"],
+];
+const BAD = CHECKS.filter(([, got, want]) => got !== want);
+
+const M = {};
+document.getElementById("mono").innerHTML =
+  `<b>Measured on this browser:</b> one mono character is <b>${MONOCH.toFixed(2)}px</b> at ` +
+  `<code>--fs-sm</code> and <b>${MONOCH_XS.toFixed(2)}px</b> at <code>--fs-xs</code>. Every "fits" below is a ` +
+  `multiple of one of those. <b>${CHECKS.length - BAD.length} of ${CHECKS.length} numbers on this page ` +
+  `reproduce torch's own printed digits</b>` +
+  (BAD.length ? ` — except ${BAD.map(([k]) => k).join(", ")}, which DISAGREE and must be fixed.`
+    : `, recomputed here with the widget's own functions. The largest CE−BCE gap over the eight-point drag is ` +
+      `<b>${dragMax.toExponential(1)}</b>.`);
+
+/* ====================== one vertical flow, measured then drawn ==============
+ * The scores row, the function arrow, the computed rows, the loss line — the
+ * order every page of the draft draws in (`model.js` `layout`). ONE function,
+ * because this page draws it six ways: three one-output stages, the two halves
+ * of the Binary page stacked in a 300px column, and the same two side by side
+ * in 250px columns. A form that measured itself differently in one of those
+ * would be reporting a height the widget would not have.
+ */
+function flowGeom(colW, f) {
+  const cols = f.n + (f.sumCol ? 1 : 0);
+  const pitch = Math.min(PITCH_CAP, Math.floor(colW / cols));
+  const barW = Math.max(16, Math.round(pitch * 0.56));
+  let y = 0;
+  const nameY = y;
+  y += ROW_LBL;
+  const barY = y;
+  const barTop = y + ROW_LBL;
+  y += ROW_LBL + BAR_H;
+  const dtypeY = y;
+  y += LINE + 10;
+  const edgeY = y;
+  y += EDGE;
+  const rows = f.rows.map((r) => {
+    const out = { ...r };
+    if (r.edgeBefore != null) { out.edgeY = y; y += EDGE; }
+    out.nameY = y;
+    out.cellY = y + ROW_LBL;
+    y += ROW_LBL + CH;
+    if (r.dtype) { out.dtypeY = y; y += LINE; }
+    y += r.after ?? 12;
+    return out;
+  });
+  const lossY = y;
+  y += LINE + 10;
+  let extraLines = [];
+  let extraY = null;
+  if (f.extra) {
+    extraY = y;
+    extraLines = wrap(f.extra, colW, T.fsXs, true);
+    y += extraLines.length * LINE;
+  }
+  const [lo, hi] = f.range;
+  return {
+    cols, pitch, barW, nameY, barY, barTop, dtypeY, edgeY, rows, lossY, extraY, extraLines,
+    h: y,
+    unitPx: BAR_H / (hi - lo),
+    colX: (i) => i * pitch + pitch / 2,
+    py: (v) => barTop + BAR_H - ((v - lo) / (hi - lo)) * BAR_H,
+  };
+}
+
+/** Paint the flow `g` describes at (x, y0). Every offset is g's. */
+function paintFlow(ctx, x, y0, colW, f, g) {
+  const colX = (i) => x + g.colX(i);
+  const py = (v) => y0 + g.py(v);
+
+  txt(ctx, f.outputLabel ?? "Output (N)", x, y0 + g.nameY + 11, { color: T.ink2, size: T.fsSm });
+
+  /* the bars, with the zero line across every column */
+  ctx.strokeStyle = T.axis; ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(x, py(0) + 0.5); ctx.lineTo(x + g.cols * g.pitch, py(0) + 0.5); ctx.stroke();
+  f.scores.forEach((v, i) => {
+    const cx = colX(i);
+    const lit = f.held === i;
+    const y1 = py(v);
+    const yz = py(0);
+    ctx.fillStyle = wash(T.groupA, lit ? 0.42 : 0.18);
+    ctx.fillRect(cx - g.barW / 2, Math.min(yz, y1), g.barW, Math.abs(y1 - yz));
+    ctx.strokeStyle = lit ? T.highlight : T.groupA;
+    ctx.lineWidth = lit ? 2.5 : 1.5;
+    ctx.strokeRect(cx - g.barW / 2 + 0.5, Math.min(yz, y1) + 0.5,
+      g.barW - 1, Math.max(1, Math.abs(y1 - yz) - 1));
+    if (lit) {
+      ctx.strokeStyle = T.highlight; ctx.lineWidth = 2;
+      for (let k = -1; k <= 1; k += 1) {
+        ctx.beginPath();
+        ctx.moveTo(cx + k * 5 - 2, y1); ctx.lineTo(cx + k * 5 + 2, y1);
+        ctx.stroke();
+      }
+    }
+    const above = v >= 0;
+    const tick = f.ticks?.[i];
+    const clash = tick != null && Math.abs(py(tick) - (y1 - 8)) < 9 && Math.abs(y1 - yz) >= 18;
+    const tight = (above && y1 - (y0 + g.barTop) < 14) || clash;
+    const ty = tight ? y1 + 14 : (above ? y1 - 5 : y1 + 12);
+    txt(ctx, n1(v), cx, ty,
+      { color: lit ? T.highlight : T.ink1, align: "center", mono: true, size: T.fsXs });
+    txt(ctx, f.letters[i], cx, y0 + g.barY + 12,
+      { color: T.ink1, align: "center", mono: true, size: T.fsSm });
+  });
+  /* the target as a tick on the bars' own axis, which only Regression can do */
+  (f.ticks ?? []).forEach((t, i) => {
+    const cx = colX(i);
+    ctx.strokeStyle = T.reference; ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(cx - g.barW / 2 - 5, py(t)); ctx.lineTo(cx + g.barW / 2 + 5, py(t));
+    ctx.stroke();
+  });
+  /* the gap bracket between a bar's top and its target's tick */
+  (f.gaps ?? []).forEach((gp, i) => {
+    const cx = colX(i) + g.barW / 2 + 9;
+    const ya = py(f.scores[i]);
+    const yb = py(f.ticks[i]);
+    ctx.strokeStyle = T.empirical; ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(cx, ya); ctx.lineTo(cx, yb);
+    ctx.moveTo(cx - 3, ya); ctx.lineTo(cx + 3, ya);
+    ctx.moveTo(cx - 3, yb); ctx.lineTo(cx + 3, yb);
+    ctx.stroke();
+    txt(ctx, n2(gp), cx + 5, (ya + yb) / 2 + 3.5, { color: T.empirical, mono: true, size: T.fsXs });
+  });
+
+  txt(ctx, f.scoreShape, x, y0 + g.dtypeY + 11, { color: T.ink3, mono: true, size: T.fsXs });
+
+  /* the function applied inside the loss */
+  arrow(ctx, colX(0), y0 + g.edgeY, colX(0), y0 + g.edgeY + EDGE, T.axis, 2);
+  if (f.fn) {
+    txt(ctx, f.fn, colX(0) + 10, y0 + g.edgeY + EDGE / 2 + 0.5,
+      { color: T.ink2, align: "left", baseline: "middle", mono: true, size: T.fsXs });
+  }
+
+  for (const r of g.rows) {
+    if (r.edgeY != null) {
+      arrow(ctx, colX(0), y0 + r.edgeY, colX(0), y0 + r.edgeY + EDGE, T.axis, 2);
+      if (r.edgeBefore) {
+        txt(ctx, r.edgeBefore, colX(0) + 10, y0 + r.edgeY + EDGE / 2 + 0.5,
+          { color: T.ink2, align: "left", baseline: "middle", mono: true, size: T.fsXs });
+      }
+    }
+    txt(ctx, r.label, x, y0 + r.nameY + 11,
+      { color: T.ink2, mono: r.kind !== "chips", size: T.fsSm });
+    if (f.sumCol && r.id === "p") {
+      txt(ctx, "row sum", x + f.n * g.pitch + g.pitch / 2, y0 + r.nameY + 11,
+        { color: T.ink3, align: "center", size: T.fsXs });
+    }
+    for (let i = 0; i < f.n; i += 1) {
+      const s = r.at(i);
+      if (r.kind === "chips") chipCell(ctx, colX(i), y0 + r.cellY, Math.min(42, g.pitch - 10), s);
+      else valueCell(ctx, x + i * g.pitch, y0 + r.cellY, g.pitch, CH, s.text, s);
+    }
+    /* the sum column sits OUTSIDE the tensor, unfilled: a reading of the row
+       rather than one more probability (support-layers/main.js:819) */
+    if (f.sumCol && r.id === "p") {
+      valueCell(ctx, x + f.n * g.pitch, y0 + r.cellY, g.pitch, CH, f.sumCol, { plain: true });
+    }
+    if (r.dtypeY != null) {
+      txt(ctx, r.dtype, x, y0 + r.dtypeY + 11, { color: T.ink3, mono: true, size: T.fsXs });
+    }
+  }
+
+  /* the answer */
+  txt(ctx, f.loss.lead, x, y0 + g.lossY + 12, { color: T.ink2, mono: true, size: T.fsSm });
+  txt(ctx, f.loss.value, x + widthOf(f.loss.lead, T.fsSm, true), y0 + g.lossY + 12,
+    { color: T.empirical, mono: true, size: T.fsSm, weight: "600" });
+
+  g.extraLines.forEach((line, i) => {
+    txt(ctx, line, x, y0 + g.extraY + 11 + i * LINE, { color: T.ink3, mono: true, size: T.fsXs });
+  });
+}
+
+/* --- the two curve panels, as the draft draws them ------------------------- */
+function curveFrame(ctx, x, y, w, h) {
+  ctx.fillStyle = T.surface2; ctx.fillRect(x, y, w, h);
+  ctx.strokeStyle = T.grid; ctx.lineWidth = 1;
+  ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+  const f = { L: x + 26, R: x + w - 10, B: y + h - 20, T: y + 22 };
+  ctx.strokeStyle = T.axis; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(f.L, f.B + 0.5); ctx.lineTo(f.R, f.B + 0.5); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(f.L + 0.5, f.B); ctx.lineTo(f.L + 0.5, f.T); ctx.stroke();
+  return f;
+}
+function curveAxes(ctx, f, x, y, w, h, ymax, xlo, xhi, title, xlab) {
+  const small = { color: T.ink3, size: T.fsXs };
+  txt(ctx, "loss", f.L - 4, f.T - 9, { ...small, align: "right" });
+  txt(ctx, ymax, f.L - 4, f.T + 5, { ...small, align: "right" });
+  txt(ctx, "0", f.L - 4, f.B + 4, { ...small, align: "right" });
+  txt(ctx, xlo, f.L, f.B + 14, { ...small, align: "center" });
+  txt(ctx, xhi, f.R, f.B + 14, { ...small, align: "center" });
+  if (title) {
+    txt(ctx, title, x + w - 8, y + 14, { color: T.ink2, align: "right", mono: true, size: T.fsXs });
+  }
+  txt(ctx, xlab, (f.L + f.R) / 2, y + h - 5, { ...small, align: "center" });
+}
+function plotDot(ctx, x, y, lit) {
+  ctx.fillStyle = lit ? T.highlight : T.ink3;
+  ctx.beginPath(); ctx.arc(x, y, lit ? 4.5 : 3, 0, Math.PI * 2); ctx.fill();
+}
+function logCurve(ctx, x, y, w, h, pts) {
+  const f = curveFrame(ctx, x, y, w, h);
+  const px = (p) => f.L + p * (f.R - f.L);
+  const py = (v) => f.B - (Math.min(v, YMAX) / YMAX) * (f.B - f.T);
+  ctx.strokeStyle = T.empirical; ctx.lineWidth = 2;
+  ctx.beginPath();
+  const pLo = Math.exp(-YMAX);
+  for (let i = 0; i <= 160; i += 1) {
+    const p = pLo + (i / 160) * (1 - pLo);
+    if (i === 0) ctx.moveTo(px(p), py(-Math.log(p))); else ctx.lineTo(px(p), py(-Math.log(p)));
+  }
+  ctx.stroke();
+  for (const pt of pts) {
+    const p = Math.max(pLo, Math.min(1, pt.p));
+    plotDot(ctx, px(p), py(-Math.log(p)), pt.lit);
+  }
+  curveAxes(ctx, f, x, y, w, h, String(YMAX), "0", "1", "−log p", "p at the true label");
+  return { px, py };
+}
+function parabolaPanel(ctx, x, y, w, h, gaps) {
+  const f = curveFrame(ctx, x, y, w, h);
+  const px = (v) => f.L + ((v - GAP_LO) / (GAP_HI - GAP_LO)) * (f.R - f.L);
+  const py = (v) => f.B - (Math.min(v, SQ_MAX) / SQ_MAX) * (f.B - f.T);
+  ctx.strokeStyle = T.axis; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(px(0) + 0.5, f.B); ctx.lineTo(px(0) + 0.5, f.T); ctx.stroke();
+  ctx.strokeStyle = T.empirical; ctx.lineWidth = 2;
+  ctx.beginPath();
+  for (let i = 0; i <= 160; i += 1) {
+    const v = GAP_LO + (i / 160) * (GAP_HI - GAP_LO);
+    if (i === 0) ctx.moveTo(px(v), py(v * v)); else ctx.lineTo(px(v), py(v * v));
+  }
+  ctx.stroke();
+  gaps.forEach((v) => plotDot(ctx, px(v), py(v * v), true));
+  curveAxes(ctx, f, x, y, w, h, String(SQ_MAX), "−3", "3", "", "gap = y_pred − y_true");
+}
+
+/* ====================== a whole stage: one flow and its curve =============== */
+function drawStage(host, title, sub, spec) {
+  const f = spec.flow;
+  const g = flowGeom(LEFT_W, f);
+  const capY = BAND_H + Math.max(g.h, CURVE_H) + CAP_GAP;
+  const H = capY + CAPTION_ROWS * LINE + PAD;
+  const { ctx, cand } = panel(host, title, sub, W, H);
+  band(ctx, W, spec.head, spec.expr);
+  paintFlow(ctx, PAD, BAND_H, LEFT_W, f, g);
+  const cx = PAD + LEFT_W + GAP;
+  if (spec.curve === "parabola") parabolaPanel(ctx, cx, BAND_H, CURVE_W, CURVE_H, spec.pts);
+  else logCurve(ctx, cx, BAND_H, CURVE_W, CURVE_H, spec.pts.map((p) => ({ p, lit: true })));
+  spec.captions.forEach((c, i) => txt(ctx, c, PAD, capY + 12 + i * LINE, { color: T.ink2 }));
+  note(cand, `stage ${W} · rows column ${LEFT_W}px · ${g.cols} column${g.cols === 1 ? "" : "s"} at ` +
+    `pitch ${g.pitch}px, bar ${g.barW}px · flow ${g.h}px · stage ${H}px tall`);
+  return { H, g, cand };
+}
+
+/* ============================== §1 · the stages ============================ */
+const MSE1 = {
+  n: 1, letters: ["A"], scores: [MSE1_PRED], range: RANGE.regression,
+  ticks: [MSE1_TRUE], gaps: [MSE1_GAP],
+  scoreShape: `${shapeText([1])}, float32`,
+  fn: "",
+  sumCol: null,
+  rows: [
+    { id: "target", kind: "cells", label: "Target", dtype: `${shapeText([1])}, float32`,
+      at: () => ({ text: n2(MSE1_TRUE), hue: T.reference }) },
+    { id: "gap", kind: "cells", label: "gap", after: 10, edgeBefore: "y_pred − y_true",
+      at: () => ({ text: n2(MSE1_GAP), hue: T.empirical }) },
+    { id: "sq", kind: "cells", label: "gap²",
+      at: () => ({ text: n4(MSE1_LOSS), hue: T.empirical }) },
+  ],
+  loss: { lead: "loss = mean(gap²) = ", value: n4(MSE1_LOSS) },
+};
+const CE2 = {
+  n: 2, letters: ["A", "B"], scores: [BIN_ZA, BIN_ZB], range: RANGE["single-label"],
+  scoreShape: `${shapeText([1, 2])}, float32`,
+  fn: "softmax over the row",
+  sumCol: n4(BIN_P[0] + BIN_P[1]),
+  rows: [
+    { id: "p", kind: "cells", label: "p",
+      at: (i) => ({ text: n4(BIN_P[i]), hue: T.empirical, lit: i === 1 }) },
+    { id: "target", kind: "chips", label: "Target", dtype: `${shapeText([1])}, long`,
+      at: (i) => ({ text: LETTERS[i], on: i === 1 }) },
+  ],
+  loss: { lead: `loss = −log ${n4(BIN_P[1])} = `, value: n4(BIN_LOSS_B) },
+};
+const BCE1 = {
+  n: 1, letters: ["A"], scores: [BCE1_Z], range: RANGE["multi-label"],
+  scoreShape: `${shapeText([1])}, float32`,
+  fn: "sigmoid per class",
+  /* DRAWN AS THE DRAFT WOULD DRAW IT, sum column and all, because that is what
+     the §1 recommendation is about: at one class the reading of the row IS the
+     row, and the column prints 0.8808 twice. */
+  sumCol: n4(BCE1_P),
+  rows: [
+    { id: "p", kind: "cells", label: "p", at: () => ({ text: n4(BCE1_P), hue: T.empirical, lit: true }) },
+    { id: "target", kind: "chips", label: "Target", dtype: `${shapeText([1])}, float32`,
+      at: () => ({ text: String(BCE1_Y), on: true }) },
+    { id: "pt", kind: "cells", label: "p at the true label", after: 10,
+      at: () => ({ text: n4(BCE1_P), hue: T.empirical, lit: true }) },
+    { id: "term", kind: "cells", label: "−log p",
+      at: () => ({ text: n4(BCE1_LOSS), hue: T.empirical, lit: true }) },
+  ],
+  loss: { lead: "loss = mean(−log p) = ", value: n4(BCE1_LOSS) },
+};
+
+{
+  const a = drawStage(document.getElementById("s1a"),
+    "Regression · Outputs = 1", "one prediction against one target, [1], float32 both",
+    { flow: MSE1, head: "Regression · MSELoss", expr: "loss = mean((y_pred − y_true)²)",
+      curve: "parabola", pts: [MSE1_GAP],
+      captions: ["One prediction is compared with one target, in the same units.",
+        "The loss is the squared gap."] });
+  const b = drawStage(document.getElementById("s1a"),
+    "Single-label · Classes = 2", "two scores, softmax over the row, the label as a class index",
+    { flow: CE2, head: "Single-label · CrossEntropyLoss", expr: "loss = −log p[label]",
+      curve: "logp", pts: [BIN_P[1]],
+      captions: ["Two scores become one distribution over the classes, and it sums to 1.",
+        "The loss is the negative log of the probability given to the true class."] });
+  const c = drawStage(document.getElementById("s1b"),
+    "Multi-label · Classes = 1", "one score, its own sigmoid, a 0 or a 1 as the target",
+    { flow: BCE1, head: "Multi-label · BCEWithLogitsLoss", expr: "loss = mean(−log p[y])",
+      curve: "logp", pts: [BCE1_P],
+      captions: ["One class carries its own probability, from the sigmoid of its score.",
+        "The loss is that class's own term."] });
+  M.mse1H = a.H; M.ce2H = b.H; M.bce1H = c.H;
+  M.mse1Pitch = a.g.pitch; M.ce2Pitch = b.g.pitch; M.bce1Pitch = c.g.pitch;
+  M.cellNeed = Math.ceil(widthOf("0.9818", T.fsXs, true)) + 10;
+}
+
+/* ============================== §2 · the Binary page =======================
+ * The two forms, as flows. The two-output form is the notebook's own workflow
+ * shape (cell 29: `Linear(hidden, 2)` with CrossEntropyLoss); the one-output
+ * form is the same model read through the single score z_B − z_A.
+ */
+const binTwo = (held) => ({
+  n: 2, letters: ["A", "B"], scores: [BIN_ZA, BIN_ZB], range: RANGE["single-label"],
+  scoreShape: `${shapeText([1, 2])}, float32`,
+  outputLabel: "Output (2)",
+  fn: "softmax over the row",
+  sumCol: n4(BIN_P[0] + BIN_P[1]),
+  held,
+  rows: [
+    { id: "p", kind: "cells", label: "p",
+      at: (i) => ({ text: n4(BIN_P[i]), hue: T.empirical, lit: i === 1 }) },
+    { id: "target", kind: "chips", label: "Target", dtype: `${shapeText([1])}, long`,
+      at: (i) => ({ text: LETTERS[i], on: i === 1 }) },
+  ],
+  loss: { lead: `loss = −log ${n4(BIN_P[1])} = `, value: n4(BIN_LOSS_B) },
+});
+const binOne = () => ({
+  n: 1, letters: ["z_B − z_A"], scores: [BIN_Z], range: RANGE.binaryDiff,
+  scoreShape: `${shapeText([1])}, float32`,
+  outputLabel: "Output (1)",
+  fn: "sigmoid",
+  sumCol: null,
+  rows: [
+    { id: "p", kind: "cells", label: "p", at: () => ({ text: n4(BIN_SIG), hue: T.empirical, lit: true }) },
+    { id: "target", kind: "chips", label: "Target", dtype: `${shapeText([1])}, float32`,
+      at: () => ({ text: "1", on: true }) },
+  ],
+  loss: { lead: `loss = −log ${n4(BIN_SIG)} = `, value: n4(-Math.log(BIN_SIG)) },
+});
+
+const BIN_HEAD = "Binary · one output or two";
+const BIN_EXPR = "loss = −log p_B";
+const BIN_RULE = "softmax over two scores is the sigmoid of their difference: p_B = σ(z_B − z_A)";
+const BIN_CAP2 = "The two forms return the same loss, and dragging the score for B moves both.";
+
+/* --- A · stacked, the curve beside ----------------------------------------- */
+{
+  const fTwo = binTwo(1);
+  const fOne = binOne();
+  const gTwo = flowGeom(LEFT_W, fTwo);
+  const gOne = flowGeom(LEFT_W, fOne);
+  const RULE_GAP = 20;                     // the hairline between the two forms
+  const flowH = gTwo.h + RULE_GAP + gOne.h;
+  const capY = BAND_H + Math.max(flowH, CURVE_H) + CAP_GAP;
+  const H = capY + CAPTION_ROWS * LINE + PAD;
+  const { ctx, cand } = panel(document.getElementById("s2a"),
+    "A · the fourth page, stacked",
+    "the two-output form over the one-output form in the 300px rows column, the curve beside", W, H);
+  band(ctx, W, BIN_HEAD, BIN_EXPR);
+  paintFlow(ctx, PAD, BAND_H, LEFT_W, fTwo, gTwo);
+  const ruleY = BAND_H + gTwo.h + RULE_GAP / 2;
+  ctx.strokeStyle = T.grid; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(PAD, ruleY + 0.5); ctx.lineTo(PAD + LEFT_W, ruleY + 0.5); ctx.stroke();
+  const oneTop = BAND_H + gTwo.h + RULE_GAP;
+  paintFlow(ctx, PAD, oneTop, LEFT_W, fOne, gOne);
+  /* THE CURVE IS CENTRED BETWEEN THE TWO LOSS LINES, not top-aligned: one point
+     serves both forms, and top-aligned it reads as the upper form's own panel. */
+  const lossA = BAND_H + gTwo.lossY + 12;
+  const lossB = oneTop + gOne.lossY + 12;
+  const curveY = Math.round((lossA + lossB) / 2 - CURVE_H / 2);
+  logCurve(ctx, PAD + LEFT_W + GAP, curveY, CURVE_W, CURVE_H, [{ p: BIN_SIG, lit: true }]);
+  [BIN_RULE, BIN_CAP2].forEach((c, i) => txt(ctx, c, PAD, capY + 12 + i * LINE, { color: T.ink2 }));
+  M.stackH = H;
+  M.stackLossGap = Math.round(lossB - lossA);
+  M.ruleW = Math.ceil(widthOf(BIN_RULE, T.fsSm, false));
+  note(cand, `stage ${W} · two flows of ${gTwo.h}px and ${gOne.h}px in the ${LEFT_W}px column · ` +
+    `the two loss lines are ${M.stackLossGap}px apart · stage ${H}px tall`);
+}
+
+/* --- B · side by side, the curve below ------------------------------------- */
+{
+  const COL = Math.floor((USABLE - GAP) / 2);   // 250
+  const fTwo = binTwo(1);
+  const fOne = binOne();
+  const gTwo = flowGeom(COL, fTwo);
+  const gOne = flowGeom(COL, fOne);
+  const flowH = Math.max(gTwo.h, gOne.h);
+  const CURVE_B_W = 320;
+  const curveTop = BAND_H + flowH + GAP;
+  const capY = curveTop + CURVE_H + CAP_GAP;
+  const H = capY + CAPTION_ROWS * LINE + PAD;
+  const { ctx, cand } = panel(document.getElementById("s2b"),
+    "B · the fourth page, side by side",
+    "two 250px columns running the same rows at the same y, the curve below across the width", W, H);
+  band(ctx, W, BIN_HEAD, BIN_EXPR);
+  paintFlow(ctx, PAD, BAND_H, COL, fTwo, gTwo);
+  paintFlow(ctx, PAD + COL + GAP, BAND_H, COL, fOne, gOne);
+  /* the rule between the columns, so the two flows read as two forms of one
+     model rather than one wide figure */
+  ctx.strokeStyle = T.grid; ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(PAD + COL + GAP / 2 + 0.5, BAND_H);
+  ctx.lineTo(PAD + COL + GAP / 2 + 0.5, BAND_H + flowH);
+  ctx.stroke();
+  logCurve(ctx, PAD + Math.round((USABLE - CURVE_B_W) / 2), curveTop, CURVE_B_W, CURVE_H,
+    [{ p: BIN_SIG, lit: true }]);
+  [BIN_RULE, BIN_CAP2].forEach((c, i) => txt(ctx, c, PAD, capY + 12 + i * LINE, { color: T.ink2 }));
+  M.sideH = H;
+  M.sideNoCurve = H - CURVE_H - GAP;
+  M.sideCol = COL;
+  M.sidePitchTwo = gTwo.pitch;
+  M.sidePitchOne = gOne.pitch;
+  M.sideBarTwo = gTwo.barW;
+  M.sideColsTwo = gTwo.cols;
+  M.sideLossGap = COL + GAP;
+  M.lossLine = `loss = −log ${n4(BIN_P[1])} = ${n4(BIN_LOSS_B)}`;
+  M.lossLineW = Math.ceil(widthOf(M.lossLine, T.fsSm, true));
+  M.unitTwo = gTwo.unitPx;
+  M.unitOne = gOne.unitPx;
+  M.barPx = Math.round(BIN_Z * gTwo.unitPx);
+  M.zeroDrop = Math.round(Math.abs(gTwo.py(0) - gOne.py(0)));
+  note(cand, `stage ${W} · two ${COL}px columns · left ${gTwo.cols} columns at pitch ${gTwo.pitch}px, ` +
+    `bar ${gTwo.barW}px · right 1 column at pitch ${gOne.pitch}px · the two loss lines are ` +
+    `${M.sideLossGap}px apart on one line · flow ${flowH}px · stage ${H}px tall ` +
+    `(${M.sideNoCurve}px with no curve)`);
+}
+
+/* --- C · no fourth page, one extra line on each existing page -------------- */
+const EXTRA_CE = "the same loss as BCEWithLogitsLoss on the one score z_B − z_A = 1.5";
+const EXTRA_BCE = "the same loss as CrossEntropyLoss on the two scores [0, z]";
+{
+  const ce = { ...CE2, extra: EXTRA_CE };
+  const bce = { ...BCE1, extra: EXTRA_BCE };
+  const a = drawStage(document.getElementById("s2c"),
+    "C · Single-label at Classes = 2, with the line",
+    "the extra line under the loss, at --fs-xs in the 300px rows column",
+    { flow: ce, head: "Single-label · CrossEntropyLoss", expr: "loss = −log p[label]",
+      curve: "logp", pts: [BIN_P[1]],
+      captions: ["Two scores become one distribution over the classes, and it sums to 1.",
+        "The loss is the negative log of the probability given to the true class."] });
+  const b = drawStage(document.getElementById("s2c"),
+    "C · Multi-label at Classes = 1, with the line",
+    "the same treatment on the other page, naming the other loss",
+    { flow: bce, head: "Multi-label · BCEWithLogitsLoss", expr: "loss = mean(−log p[y])",
+      curve: "logp", pts: [BCE1_P],
+      captions: ["One class carries its own probability, from the sigmoid of its score.",
+        "The loss is that class's own term."] });
+  M.extraCEw = Math.ceil(widthOf(EXTRA_CE, T.fsXs, true));
+  M.extraBCEw = Math.ceil(widthOf(EXTRA_BCE, T.fsXs, true));
+  M.extraCELines = a.g.extraLines.length;
+  M.extraBCELines = b.g.extraLines.length;
+  M.ceExtraH = a.H;
+  M.bceExtraH = b.H;
+}
+
+/* ============================== the rails ================================== */
+const el = (tag, cls, text) => {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text != null) e.textContent = text;
+  return e;
+};
+const field = (label, detail) => {
+  const f = el("div", "w-field");
+  if (label) { const l = el("label"); l.appendChild(el("span", null, label)); f.appendChild(l); }
+  if (detail) f.appendChild(el("p", "w-detail", detail));
+  return f;
+};
+const put = (f, node) => {
+  const d = f.querySelector(".w-detail");
+  if (d) f.insertBefore(node, d); else f.appendChild(node);
+};
+const segRun = (f, opts, on, gridStyle, head) => {
+  if (head) put(f, el("p", "w-seg-head", head));
+  const s = el("div", gridStyle ? "w-seg w-seg-grid" : "w-seg");
+  s.setAttribute("role", "group");
+  for (const o of opts) {
+    const b = el("button", o.span ? "w-seg-btn w-seg-btn--span" : "w-seg-btn", o.label ?? o);
+    b.type = "button";
+    b.setAttribute("aria-pressed", String((o.label ?? o) === on));
+    s.appendChild(b);
+  }
+  put(f, s);
+  return s;
+};
+const textField = (f, value) => {
+  const i = el("input", "w-text");
+  i.type = "text"; i.value = value;
+  put(f, i);
+  return i;
+};
+const boolsRow = (f, names, on) => {
+  const row = el("div", "w-bools");
+  names.forEach((nm, i) => {
+    const b = el("div", "w-bool");
+    const l = el("label");
+    const c = el("input"); c.type = "checkbox"; c.checked = !!on[i];
+    l.appendChild(c); l.appendChild(el("span", null, nm));
+    b.appendChild(l); row.appendChild(b);
+  });
+  put(f, row);
+  return row;
+};
+
+/* --- §1c · the new control, on three pages and on two --------------------- */
+const OUT_DETAIL = "one output, or several: the shape of y_pred and y_true";
+const CE_DETAIL = "two classes, or several: the width of the score row";
+const BCE_DETAIL = "one label, or several: the width of the score row";
+const railA = el("div", "cand");
+const railB = el("div", "cand");
+const fOutA = field("Outputs", OUT_DETAIL);
+const fCeA = field("Classes", CE_DETAIL);
+const fBceA = field("Classes", BCE_DETAIL);
+const fCeB = field("Classes", CE_DETAIL);
+const fBceB = field("Classes", BCE_DETAIL);
+let railABox = null;
+let railBBox = null;
+let pageRegA = null;
+let pageRegB = null;
+/** One page's own block of the rail, so the added height is measured per PAGE
+    rather than over three pages that are never on screen together. */
+const pageBlock = (host, name) => {
+  const b = el("div");
+  b.appendChild(el("p", "w-section", name));
+  host.appendChild(b);
+  return b;
+};
+{
+  railA.innerHTML = `<h3>A · the control on all three pages</h3>` +
+    `<p class="sub">Outputs 1 · 3, Classes 2 · 3, Classes 1 · 5, each under the tensor fields it resizes</p>`;
+  railABox = el("div", "rail-solo");
+  pageRegA = pageBlock(railABox, "Regression");
+  const p1 = field("y_pred", "one prediction per output");
+  textField(p1, "2.5");
+  pageRegA.appendChild(p1);
+  const p1t = field("y_true", "one target per output, in the units of the prediction");
+  textField(p1t, "3");
+  pageRegA.appendChild(p1t);
+  segRun(fOutA, ["1", "3"], "1", false);
+  pageRegA.appendChild(fOutA);
+  const pCeA = pageBlock(railABox, "Single-label");
+  const p2 = field("y_pred", "one score per class");
+  textField(p2, "0.5, 2");
+  pCeA.appendChild(p2);
+  segRun(fCeA, ["2", "3"], "2", false);
+  pCeA.appendChild(fCeA);
+  const pBceA = pageBlock(railABox, "Multi-label");
+  const p3 = field("y_pred", "one score per class");
+  textField(p3, "2");
+  pBceA.appendChild(p3);
+  segRun(fBceA, ["1", "5"], "1", false);
+  pBceA.appendChild(fBceA);
+  railA.appendChild(railABox);
+  document.getElementById("s1c").appendChild(railA);
+
+  railB.innerHTML = `<h3>B · the control on the two classification pages</h3>` +
+    `<p class="sub">Regression left at the notebook's three, with no control of its own</p>`;
+  railBBox = el("div", "rail-solo");
+  pageRegB = pageBlock(railBBox, "Regression");
+  const q1 = field("y_pred", "one prediction per output");
+  textField(q1, "2.5, 0, 2.1");
+  pageRegB.appendChild(q1);
+  const q1t = field("y_true", "one target per output, in the units of the prediction");
+  textField(q1t, "3, -0.5, 2");
+  pageRegB.appendChild(q1t);
+  const pCeB = pageBlock(railBBox, "Single-label");
+  const q2 = field("y_pred", "one score per class");
+  textField(q2, "0.5, 2");
+  pCeB.appendChild(q2);
+  segRun(fCeB, ["2", "3"], "2", false);
+  pCeB.appendChild(fCeB);
+  const pBceB = pageBlock(railBBox, "Multi-label");
+  const q3 = field("y_pred", "one score per class");
+  textField(q3, "2");
+  pBceB.appendChild(q3);
+  segRun(fBceB, ["1", "5"], "1", false);
+  pBceB.appendChild(fBceB);
+  railB.appendChild(railBBox);
+  document.getElementById("s1c").appendChild(railB);
+}
+
+/* --- §3 · the fourth task face -------------------------------------------- */
+const TASKS3 = ["Regression", "Single-label", "Multi-label"];
+const TASKS4 = [...TASKS3, "Binary"];
+const face3A = el("div", "cand");
+const face3B = el("div", "cand");
+const face3C = el("div", "cand");
+const fFourRow = field("Task", "");
+const fFourGrid = field("Task", "");
+const fGroups = field("Task", "");
+const fThree = field("Task", "");
+let segGroupCls = null;
+{
+  face3A.innerHTML = `<h3>A · one row of four</h3>` +
+    `<p class="sub">w-seg, four faces sharing the 300px rail row</p>`;
+  const box = el("div", "rail-solo");
+  segRun(fThree, TASKS3, "Single-label", false);
+  const capNow = el("p", "measure", "the three faces the widget ships, for the comparison");
+  segRun(fFourRow, TASKS4, "Binary", false);
+  box.appendChild(fThree);
+  box.appendChild(capNow);
+  box.appendChild(fFourRow);
+  face3A.appendChild(box);
+  document.getElementById("s3a").appendChild(face3A);
+
+  face3B.innerHTML = `<h3>B · a 2 × 2 grid</h3>` +
+    `<p class="sub">w-seg-grid, two rows of two</p>`;
+  const box2 = el("div", "rail-solo");
+  segRun(fFourGrid, TASKS4, "Binary", true);
+  box2.appendChild(fFourGrid);
+  face3B.appendChild(box2);
+  document.getElementById("s3a").appendChild(face3B);
+
+  face3C.innerHTML = `<h3>C · option groups, the shape saying the kinds</h3>` +
+    `<p class="sub">groupHeads: Regression alone, then a Classification row of three</p>`;
+  const box3 = el("div", "rail-solo");
+  put(fGroups, el("p", "w-seg-head", "Regression"));
+  const s1 = el("div", "w-seg");
+  s1.setAttribute("role", "group");
+  const b1 = el("button", "w-seg-btn", "Regression");
+  b1.type = "button"; b1.setAttribute("aria-pressed", "false");
+  s1.appendChild(b1);
+  put(fGroups, s1);
+  put(fGroups, el("p", "w-seg-head", "Classification"));
+  segGroupCls = segRun(fGroups, ["Single-label", "Multi-label", "Binary"], "Binary", false);
+  box3.appendChild(fGroups);
+  face3C.appendChild(box3);
+  document.getElementById("s3a").appendChild(face3C);
+}
+
+/* ============================ the measured recommendations =================
+ * Every rail number is a DOM measurement, taken once synchronously and again
+ * once the fonts have loaded: the fallback face is not the shipped one, and
+ * without the second pass the recommendations and the proof list disagree by a
+ * few pixels, which reads as one of them being wrong. */
+function measureAll() {
+  document.querySelectorAll(".rail-measure").forEach((n) => n.remove());
+  const railNote = (host, s) => { note(host, s); host.lastChild.classList.add("rail-measure"); };
+
+  /* WHAT A FACE ACTUALLY HAS FOR ITS TEXT — IN FLOATS, AND AT THE PRESSED
+     WEIGHT. Two versions of this measurement were wrong before this one.
+     `padding + label` missed `.w-seg-btn`'s 1px `border-right` and said the
+     four-face row truncated nothing while the screenshot read `Single-lab…`.
+     `scrollWidth > clientWidth` then missed it too: both round to 74 on a box
+     whose content is 62.00px holding 62.37px of text. So the box is measured
+     from `getBoundingClientRect` less every computed padding and border, kept
+     as a float, and the label is measured at `font-weight: 600` — the pressed
+     face is the wide one, and any face can be the pressed one. */
+  const faceOf = (b) => {
+    const cs = getComputedStyle(b);
+    const inner = b.getBoundingClientRect().width
+      - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight)
+      - parseFloat(cs.borderLeftWidth) - parseFloat(cs.borderRightWidth);
+    probe.font = `600 ${cs.fontSize} ${cs.fontFamily}`;
+    const text = probe.measureText(b.textContent).width;
+    return { label: b.textContent, box: b.getBoundingClientRect().width, inner, text, cut: text > inner };
+  };
+  const facesOf = (f) => [...f.querySelectorAll(".w-seg-btn")].map(faceOf);
+  const cutList = (fs) => fs.filter((x) => x.cut).map((x) => x.label);
+  const widestOf = (fs) => fs.reduce((a, b) => (b.text > a.text ? b : a), fs[0]);
+  const px = (v) => v.toFixed(1);
+
+  M.f3 = facesOf(fThree);
+  M.f4 = facesOf(fFourRow);
+  M.fg = facesOf(fFourGrid);
+  M.fc = [...segGroupCls.querySelectorAll(".w-seg-btn")].map(faceOf);
+  M.widestName = widestOf(M.f4).label;
+  M.widest = px(widestOf(M.f4).text);
+  M.btn3 = px(M.f3[0].box); M.inner3 = px(M.f3[0].inner);
+  M.btn4 = px(M.f4[0].box); M.inner4 = px(M.f4[0].inner);
+  M.btnGrid = px(M.fg[0].box); M.innerGrid = px(M.fg[0].inner);
+  M.btnCls = px(M.fc[0].box); M.innerCls = px(M.fc[0].inner);
+  M.short4 = px(widestOf(M.f4).text - M.f4[0].inner);
+  {
+    const b = widestOf(M.f4);
+    const cs = getComputedStyle(fFourRow.querySelector(".w-seg-btn"));
+    probe.font = `400 ${cs.fontSize} ${cs.fontFamily}`;
+    M.weightGain = px(b.text - probe.measureText(b.label).width);
+  }
+  M.slack3 = px(M.f3[0].inner - widestOf(M.f4).text);
+  M.slackCls = px(M.fc[0].inner - widestOf(M.f4).text);
+  M.cut3 = cutList(M.f3);
+  M.cut4 = cutList(M.f4);
+  M.cutGrid = cutList(M.fg);
+  M.cutCls = cutList(M.fc);
+  M.h3 = Math.round(fThree.getBoundingClientRect().height);
+  M.h4row = Math.round(fFourRow.getBoundingClientRect().height);
+  M.h4grid = Math.round(fFourGrid.getBoundingClientRect().height);
+  M.h4groups = Math.round(fGroups.getBoundingClientRect().height);
+  railNote(face3A, `three faces ${M.h3}px, button ${M.btn3}px with ${M.inner3}px for text · four faces ` +
+    `${M.h4row}px, button ${M.btn4}px with ${M.inner4}px for text against ${M.widest}px for ` +
+    `${M.widestName} pressed · truncated: ${M.cut4.join(", ") || "none"}`);
+  railNote(face3B, `field ${M.h4grid}px, ${M.h4grid - M.h3}px taller than the three-face row · button ` +
+    `${M.btnGrid}px with ${M.innerGrid}px for text · truncated: ${M.cutGrid.join(", ") || "none"}`);
+  railNote(face3C, `field ${M.h4groups}px, ${M.h4groups - M.h3}px taller than the three-face row · the ` +
+    `Classification button is ${M.btnCls}px with ${M.innerCls}px for text · truncated: ` +
+    `${M.cutCls.join(", ") || "none"}`);
+
+  M.fOutA = Math.round(fOutA.getBoundingClientRect().height);
+  M.fCeA = Math.round(fCeA.getBoundingClientRect().height);
+  M.fBceA = Math.round(fBceA.getBoundingClientRect().height);
+  M.regA = Math.round(pageRegA.getBoundingClientRect().height);
+  M.regB = Math.round(pageRegB.getBoundingClientRect().height);
+  M.railAH = Math.round(railABox.getBoundingClientRect().height);
+  M.railBH = Math.round(railBBox.getBoundingClientRect().height);
+  railNote(railA, `the three pages' blocks stacked ${M.railAH}px · the new control is ${M.fOutA}px on ` +
+    `Regression, ${M.fCeA}px and ${M.fBceA}px on the two classification pages · the Regression block is ` +
+    `${M.regA}px`);
+  railNote(railB, `${M.railBH}px · the Regression block is ${M.regB}px, ${M.regA - M.regB}px less, and ` +
+    `carries no control for the left column of Kenneth's own MSE figure`);
+
+  writeRecs();
+}
+
+function writeRecs() {
+  const perPage = `<code>outputs</code>, <code>singleClasses</code> and <code>multiClasses</code>`;
+  document.getElementById("rec1").innerHTML =
+    `<b>Recommend A, the control on all three pages.</b> <b>The deciding number is that the page does not ` +
+    `resize:</b> the three one-output stages come out <b>${M.mse1H}px, ${M.ce2H}px and ${M.bce1H}px</b>, which ` +
+    `are the draft's own 494, 414 and 524 to the pixel. The control changes the number of COLUMNS, not the ` +
+    `number of rows, so switching it moves no row and the reader's eye stays where it was — the columns simply ` +
+    `widen to the ${PITCH_CAP}px cap: Regression to ${M.mse1Pitch}px, Single-label to ${M.ce2Pitch}px for ` +
+    `three columns, Multi-label to ${M.bce1Pitch}px for two, against the ${M.cellNeed}px a four-decimal cell ` +
+    `needs. <b>What settles A against B is Kenneth's own figure:</b> <code>dl-loss-mse.png</code> draws TWO ` +
+    `columns, <code>[batch], float32</code> and <code>[batch, N], float32</code>, exactly as ` +
+    `<code>dl-loss-bce.png</code> does, and B ships only the second of the pair on the page whose figure has ` +
+    `it. The rail cost is one segmented field of two faces, <b>${M.fOutA}px</b>, taking the Regression block ` +
+    `from ${M.regB}px to ${M.regA}px. <b>Two consequences.</b> One parameter has one default, so this is three ` +
+    `parameters and not one — ${perPage} — exactly as the two dtype controls already are; the URL values are ` +
+    `the numbers on the ticks, <code>1</code>/<code>3</code>, <code>2</code>/<code>3</code>, ` +
+    `<code>1</code>/<code>5</code>. And at <code>Classes = 1</code> the <code>row sum</code> column reads ` +
+    `${n4(BCE1_P)} beside a p row whose only value is ${n4(BCE1_P)}, as the third stage above shows, so ` +
+    `<b>the sum column is dropped when the row has one class</b> — it is a reading of a row, and a row of one ` +
+    `has nothing to read.`;
+
+  const fitsCell = M.sidePitchTwo - M.cellNeed;
+  document.getElementById("rec2").innerHTML =
+    `<b>Recommend B, the fourth page side by side.</b> The claim is that two forms give one number, and 2.7 ` +
+    `says adjacency is the argument: side by side the two loss lines sit <b>on the same line</b>, ` +
+    `${M.sideLossGap}px apart, and so do <code>softmax over the row</code> against <code>sigmoid</code>, ` +
+    `<code>${shapeText([1])}, long</code> against <code>${shapeText([1])}, float32</code>, and ` +
+    `<b>${n4(BIN_LOSS_B)} against ${n4(BIN_LOSS_B)}</b>. Stacked, the same two numbers are ` +
+    `<b>${M.stackLossGap}px apart</b> with a whole second figure between them. <b>It fits.</b> A 250px column ` +
+    `takes ${M.sideColsTwo} columns at <b>${M.sidePitchTwo}px</b> of pitch — two classes and the row sum — ` +
+    `against the ${M.cellNeed}px a four-decimal cell needs, ${fitsCell}px of slack, with a ` +
+    `${M.sideBarTwo}px bar; the loss line <code>${M.lossLine}</code> is ${M.lossLine.length} mono characters ` +
+    `at ${MONOCH.toFixed(2)}px = <b>${M.lossLineW}px</b> in ${M.sideCol}px. <b>And the two bands are ` +
+    `comparable</b>: −2..6 and −4..4 both span eight units, so both run at ` +
+    `${M.unitTwo.toFixed(1)}px per unit and a score of ${n1(BIN_Z)} is the same ${M.barPx}px of bar in either ` +
+    `form; only the zero line differs, sitting ${M.zeroDrop}px lower on the difference axis. <b>Height.</b> B ` +
+    `is ${M.sideH}px with the curve below and ${M.sideNoCurve}px without; A is <b>${M.stackH}px</b>, ` +
+    `${M.stackH - M.sideH}px more, and the tallest page in the widget is 524. <b>C cannot do the job at all.</b> ` +
+    `Its line is ${M.extraCEw}px of mono at <code>--fs-xs</code> in the ${LEFT_W}px rows column, so it wraps ` +
+    `to <b>${M.extraCELines} lines</b> (the Multi-label one is ${M.extraBCEw}px and ` +
+    `${M.extraBCELines} line${M.extraBCELines === 1 ? "" : "s"}), taking the two pages to ${M.ceExtraH}px and ` +
+    `${M.bceExtraH}px — and it is a sentence claiming a number the reader cannot see, on a page with no second ` +
+    `form for the drag to move. The shared rule line <code>p_B = σ(z_B − z_A)</code> is ${M.ruleW}px of the ` +
+    `${USABLE}px caption row on both A and B.`;
+
+  document.getElementById("rec3").innerHTML =
+    `<b>Recommend C, the option groups.</b> <b>The deciding number is ${M.inner4}px against ` +
+    `${M.widest}px.</b> One row of four is ${M.btn4}px a button, of which <b>${M.inner4}px</b> is left for ` +
+    `text once the 12px of padding and the 1px <code>border-right</code> are taken, and ` +
+    `<code>${M.widestName}</code> pressed is ${M.widest}px — <b>${M.short4}px too wide</b>, so the row ships ` +
+    `<code>Single-lab…</code>. It is truncating ${M.cut4.join(", ") || "nothing"} here, and it is worth saying ` +
+    `how that was found: the arithmetic said it fitted twice — once counting padding and forgetting the ` +
+    `border, once trusting <code>scrollWidth &gt; clientWidth</code>, which rounds 62.0 and 62.4 to the same ` +
+    `integer — and the screenshot is what disagreed. The three-face row it replaces gives ${M.inner3}px, ` +
+    `${M.slack3}px of slack, and truncates ${M.cut3.join(", ") || "nothing"}. The 2 × 2 grid takes the width ` +
+    `back — ${M.innerGrid}px for text, truncating ${M.cutGrid.join(", ") || "nothing"}, for ` +
+    `${M.h4grid - M.h3}px of extra rail — but it pairs Regression with Single-label and Multi-label with ` +
+    `Binary, which is not how the four divide. <b>The groups divide them the way the losses do</b> (3.4g): ` +
+    `<i>Regression</i> alone over <i>Classification</i>'s three, each classification face ` +
+    `<b>${M.innerCls}px</b> for text against ${M.widest}px — ${M.slackCls}px of slack, truncating ` +
+    `${M.cutCls.join(", ") || "nothing"} — for ${M.h4groups - M.h3}px of rail. The headings are one word each, ` +
+    `which is what 3.4g asks, and the shape is true before the reader clicks. The URL gains one value, ` +
+    `<code>task=binary</code>, a word on the control.`;
+
+  document.getElementById("rec4").innerHTML =
+    `<b>(a) Recommend A, <code>z_B − z_A</code> on the bar's own letter.</b> The letter line is where every ` +
+    `other page prints its class name, so the algebra lands in the slot the reader is already reading, ` +
+    `directly under the two bars it is built from — it is ${Math.ceil(widthOf("z_B − z_A", T.fsSm, true))}px ` +
+    `of mono in an ${M.sidePitchOne}px column, so it fits without a caption. B, a single named <code>z</code>, ` +
+    `needs a line saying what <code>z</code> equals, and 3.4g says a shape beats a caption: the whole ` +
+    `point of the page is that this one number is the difference, and naming it <code>z</code> hides exactly ` +
+    `that. <b>(b) Recommend that the one-output bar does not drag.</b> Its cursor stays the default, and one ` +
+    `line under it reads <i>this score is the difference between the two scores above it</i>. The reason is ` +
+    `non-negotiable 1: parameters are the only state of record, and this bar has no parameter — ` +
+    `<code>p_B = σ(z_B − z_A)</code> depends on the difference alone, so every position the bar can take is ` +
+    `already reachable by dragging B, and a second handle onto one number is a second state of record. The ` +
+    `alternative, dragging it moves z_B with z_A held, is defensible and was rejected for one measured ` +
+    `reason: the two-output form has a redundant degree of freedom — shifting both scores by +3 leaves ` +
+    `softmax at ${BIN_SHIFT.map(n4).join(" ")} — so the map from the difference back to a pair of scores is ` +
+    `not unique, and the widget would have to pick a rule the figure does not show. Dragging B moves both ` +
+    `bars; dragging the derived one moves nothing.`;
+
+  renderProof();
+}
+
+/* ============================ what the mock proves ========================= */
+function renderProof() {
+  const ul = document.getElementById("proof");
+  ul.textContent = "";
+  const items = [
+    `One mono character measures <b>${MONOCH.toFixed(2)}px</b> at <code>--fs-sm</code> and ` +
+    `<b>${MONOCH_XS.toFixed(2)}px</b> at <code>--fs-xs</code> on this browser, and all ` +
+    `${CHECKS.length} numbers drawn here reproduce the digits <code>_lab/dl-loss-torch.txt</code> ` +
+    `prints${BAD.length ? " EXCEPT " + BAD.length + " that do not" : ""}. The eight-point drag of ` +
+    `<code>z_B</code> agrees between CrossEntropyLoss on two outputs and BCEWithLogitsLoss on one to ` +
+    `<b>${dragMax.toExponential(1)}</b>.`,
+    `<b>Switching to one output resizes no page.</b> The three one-output stages are ${M.mse1H}px, ` +
+    `${M.ce2H}px and ${M.bce1H}px — the draft's own 494, 414 and 524 to the pixel — because the control ` +
+    `changes the number of columns and not the number of rows. The control costs ${M.fOutA}px of rail, ` +
+    `taking the Regression block from ${M.regB}px to ${M.regA}px.`,
+    `<b>Narrowing the row widens the columns to the cap.</b> Regression runs one column at ` +
+    `${M.mse1Pitch}px, Single-label three at ${M.ce2Pitch}px, Multi-label two at ${M.bce1Pitch}px — the ` +
+    `${PITCH_CAP}px cap, not the room — against the ${M.cellNeed}px a four-decimal cell needs.`,
+    `<b>At one class the row-sum column repeats its own cell.</b> It reads ${n4(BCE1_P)} beside a p row whose ` +
+    `only value is ${n4(BCE1_P)}, so the column is dropped at <code>Classes = 1</code>.`,
+    `<b>Side by side, the two losses share a line ${M.sideLossGap}px apart; stacked they are ` +
+    `${M.stackLossGap}px apart with a figure between them.</b> That is 2.7 as a measurement rather than a ` +
+    `preference, and it decides the Binary page.`,
+    `<b>A 250px column holds the two-output form.</b> ${M.sideColsTwo} columns at ${M.sidePitchTwo}px of ` +
+    `pitch against the ${M.cellNeed}px a cell needs, a ${M.sideBarTwo}px bar, and a loss line of ` +
+    `${M.lossLine.length} mono characters = ${M.lossLineW}px in ${M.sideCol}px.`,
+    `<b>Both fixed axes span eight units</b>, −2..6 and −4..4, so both run at ${M.unitTwo.toFixed(1)}px per ` +
+    `unit and ${n1(BIN_Z)} is the same ${M.barPx}px of bar in either form. Only the zero line moves, by ` +
+    `${M.zeroDrop}px, which is the one thing side by side has to be read carefully.`,
+    `<b>The Binary page is ${M.sideH}px side by side with the curve below</b>, ${M.sideNoCurve}px without it, ` +
+    `and ${M.stackH}px stacked — against 524 for the tallest page the widget ships.`,
+    `<b>C's extra line does not fit and could not carry the claim if it did.</b> ${M.extraCEw}px of mono at ` +
+    `<code>--fs-xs</code> in a ${LEFT_W}px column wraps to ${M.extraCELines} lines, taking the Single-label ` +
+    `page to ${M.ceExtraH}px, and no drag on that page moves a second form.`,
+    `<b>A fourth face does not fit one row.</b> A button is ${M.btn4}px with ${M.inner4}px for text against ` +
+    `${M.widest}px for <code>${M.widestName}</code> pressed — ${M.short4}px over, so it ellipses; three faces ` +
+    `give ${M.inner3}px, ${M.slack3}px of slack. The grid gives ${M.innerGrid}px for ${M.h4grid - M.h3}px of ` +
+    `rail; the option groups give ${M.innerCls}px for ${M.h4groups - M.h3}px and say which faces are the same ` +
+    `kind of task.`,
+    `<b>A truncation test has to be a float, and has to use the pressed weight.</b> Two versions of it were ` +
+    `wrong here: padding alone missed <code>.w-seg-btn</code>'s 1px <code>border-right</code>, and ` +
+    `<code>scrollWidth &gt; clientWidth</code> rounds a 62.0px box holding 62.4px of text to 74 against 74. ` +
+    `Both said the four-face row was clean; the screenshot said <code>Single-lab…</code>. A pressed face is ` +
+    `<code>font-weight: 600</code> and ${M.weightGain}px wider than the same word unpressed, and any face can ` +
+    `be the pressed one.`,
+    `<b>The rule line fits the caption row.</b> <code>${BIN_RULE}</code> is ${M.ruleW}px of the ${USABLE}px ` +
+    `stage, one line on both candidate pages.`,
+  ];
+  for (const t of items) {
+    const li = document.createElement("li");
+    li.innerHTML = t;
+    ul.appendChild(li);
+  }
+}
+
+measureAll();
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(measureAll);
+</script>
+</body>
+</html>

@@ -469,10 +469,10 @@ export const FN_LABEL = {
 
 export const STRINGS = {
   subtitle:
-    "A loss measures how far a model's output is from its target, as one number "
-    + "training drives down. Classification turns the scores into probabilities "
-    + "first: over the row when a sample has one class, per class when it can "
-    + "have several.",
+    "A loss function measures the difference between predictions and targets as a "
+    + "single number, which training minimizes. Regression compares each prediction "
+    + "with its target; classification first converts the scores to probabilities, "
+    + "by softmax across the classes or by a sigmoid for each class.",
 
   stepLabel: "Next row",
   stepTitle: "Compute the next row of the loss",

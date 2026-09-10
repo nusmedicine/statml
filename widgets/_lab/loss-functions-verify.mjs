@@ -532,8 +532,8 @@ const BCE = M.computeFor({
     M.STRINGS.subtitle.length >= 140 && M.STRINGS.subtitle.length <= 400,
     `${M.STRINGS.subtitle.length} chars`);
   check("the subtitle names the loss, the target and the two classification cases",
-    /A loss measures/.test(M.STRINGS.subtitle) && /target/.test(M.STRINGS.subtitle)
-    && /per class/.test(M.STRINGS.subtitle));
+    /A loss function measures/.test(M.STRINGS.subtitle) && /target/.test(M.STRINGS.subtitle)
+    && /for each class/.test(M.STRINGS.subtitle));
   check("each task option carries a detail with both halves: the function and the target",
     M.TASKS.every((t) => t.detail.includes(" · ") && /y_true/.test(t.detail)),
     M.TASKS.map((t) => t.detail.split(" · ")[0]).join(" / "));
