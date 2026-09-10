@@ -59,17 +59,14 @@ is at most about 8 wide, and shaded with no digits beyond that.
    drawing corrected (the Conv page's rail measures 633px against a 322px
    Linear stage). **Build from the mock's geometry, not the plan's**: where
    the two differ the mock is what he saw.
-3. **`processing-layers` is a DRAFT under review — FIVE rounds built the same
-   day (2026-09-10, last `65244c7`), the catalogue's slot 49 entry has each
-   comment, pick and commit; nothing pushed; no fingerprint states yet.** The
-   rounds: bands scale with the stage, both kernels, labelled scores and a
-   0–1 heat map, X and W printed (1); the RNN strip over the value rows, his
-   pick B, and the attention weighted sum, his pick A, with node gutters and
-   one hover key per node on Graph (2); the aggregate printed and W moved to
-   Output, embedding-dimension headers, right-angle elbows, the column frame
-   hover-only (3); the Aggregate grid rail and matched arrow weights (4); and
-   `query` as a DISPLAY selector pinning band 2, after a rotation he did not
-   want (5). First built as `11e471d`: `widgets/processing-layers/{main.js,
+3. **`processing-layers` is SHIPPED (2026-09-10) — status flipped, 29 states
+   recorded, all 433 suite states MATCH at DPR 1.25 — and AWAITS KENNETH'S
+   WORD TO PUSH; nothing is pushed.** Planned, mocked, drafted, reviewed
+   through five rounds and a copy round, and promoted in one day; the
+   catalogue's slot 49 entry has every comment, pick and commit. The three
+   DL Foundations titles now carry the *Deep Learning -* prefix (his pick).
+   Next after the push: `support-layers` (slot 50), then `composition` (51),
+   each from a `_lab` mock he picks from. First built as `11e471d`: `widgets/processing-layers/{main.js,
    model.js, index.html}`, a manifest entry at `status: "draft"`, and
    `_lab/processing-layers-verify.mjs` (47 assertions, under `npm test`).
    Written by an Opus 5 builder from the mock; the main session read every

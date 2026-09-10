@@ -9618,7 +9618,7 @@ epochs.
 |---|---|---|---|---|---|
 | 47 | `chain-rule` | Gradients by the Chain Rule | 1 | 05-1 cell 4; 05-2 cells 70–72 | proposed |
 | 48 | `gradients` (was `gradient-descent`) | Gradients | 1 | 05-2 cells 73–78; 05-1 cell 4; 05-4 cells 5, 41–44 | **SHIPPED 2026-09-08**, ten review rounds; absorbed slot 47's two-variable page |
-| 49 | `processing-layers` | Processing Layers | 2 | 05-3 cells 1–28 | **PLANNED 2026-09-10**; the first half of the notebook's Layers section, and **built first**, after one core commit |
+| 49 | `processing-layers` | Deep Learning - Processing Layers | 2 | 05-3 cells 1–28 | **SHIPPED 2026-09-10**, the same day it was planned: mock, draft, five review rounds, a copy round, 29 states, 433 MATCH |
 | 50 | `support-layers` | Normalization, Activation and Dropout | 2 | 05-3 cells 29–60 | **PLANNED 2026-09-10**; the second half of the Layers section. 49 and 50 are the two halves of one section, split on a measured rail — the "lowest priority, cut candidate" note is withdrawn |
 | 51 | `composition` | Composing Layers and Controlling Flow | 3 | 05-3 cells 61–101 | **PLANNED 2026-09-10**, seven pages, the diagram leading |
 | 52 | `training-loop` | Training with Validation | 4 | 05-4, the whole notebook | proposed, **measured** |
@@ -10793,7 +10793,22 @@ of "not computed yet". **His three picks, all the recommendation:** the seven
 longer rewrites that add a fact; the reveal renamed *Difference*, Off / On
 (and its parameter `trueimage` → `difference`, the URL being copy); the
 Identity caption saying its two numbers are distances. Applied in one builder
-round with the twenty-six rows the principles settled.
+round with the twenty-six rows the principles settled — 36 literals in all
+(`e9d33a4`), the verify script asserting that no reader-facing string carries
+an em-dash or "never" (141 assertions), and a 96-state `fillText` sweep clean
+at 550, 690 and 770.
+
+**SHIPPED 2026-09-10.** 29 fingerprint states — 21 settled (every page full,
+every page empty, each control's other arm), 6 driven (Step mid-land on all
+five pages at 14 frames, and Recurrent stepped again mid-flight through core's
+`fastForward`), 2 hit-driven (feature-map cell (3, 5) at [383, 91] writing
+`pos=29`; X's cat row at [106, 94] setting `query=cat`, both verified by real
+pointer events) — shot three times each by `_lab/processing-layers-shoot.html`,
+all stable, every drive moving its figure; status flipped in `main.js` and the
+manifest; the full suite **433 MATCH** at DPR 1.25 in one run. Two pairs of
+states share a `tx` by design (the reveal and the second sequence change only
+the canvas). The short pages hash at 688 wide and the tall ones at 669, so on
+this widget a px-only DIFFER from the scrollbar flake would appear at 669.
 
 ### Slot 50 · `support-layers` — Normalization, Activation and Dropout — PLANNED 2026-09-10
 

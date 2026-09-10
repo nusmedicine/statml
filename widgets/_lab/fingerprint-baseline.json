@@ -3483,148 +3483,148 @@
       "$note": "PLACEHOLDER, draft: Linear: the default projection, 4 features into 3, all six output values landed",
       "slug": "processing-layers",
       "state": "?theme=light&block=linear&shown=6",
-      "px": "0",
-      "tx": "0"
+      "px": "b5126689",
+      "tx": "0b531303"
     },
     {
       "$note": "PLACEHOLDER, draft: Linear: 4 features expanded into 5, ten output values and the wider W",
       "slug": "processing-layers",
       "state": "?theme=light&block=linear&out=5&shown=10",
-      "px": "0",
-      "tx": "0"
+      "px": "fb4d7e2c",
+      "tx": "62677068"
     },
     {
       "$note": "PLACEHOLDER, draft: Convolutional: the default 3x3 kernel with one ring of padding, both 8x8 maps full",
       "slug": "processing-layers",
       "state": "?theme=light&block=convolutional&shown=64",
-      "px": "0",
-      "tx": "0"
+      "px": "914497e4",
+      "tx": "077e2844"
     },
     {
       "$note": "PLACEHOLDER, draft: Convolutional: a 5x5 kernel and no padding, so the maps are 6x6 - the output-size rule on the figure",
       "slug": "processing-layers",
       "state": "?theme=light&block=convolutional&k=5&pad=0&shown=36",
-      "px": "0",
-      "tx": "0"
+      "px": "229c1ba8",
+      "tx": "eab09b32"
     },
     {
       "$note": "PLACEHOLDER, draft: Convolutional: transposed, the two maps scattered back to a 16x16 reconstruction",
       "slug": "processing-layers",
       "state": "?theme=light&block=convolutional&conv=transposed&shown=64",
-      "px": "0",
-      "tx": "0"
+      "px": "77046040",
+      "tx": "c6d13aca"
     },
     {
       "$note": "PLACEHOLDER, draft: Convolutional: transposed with the reveal on, z - img over the same footprint",
       "slug": "processing-layers",
       "state": "?theme=light&block=convolutional&conv=transposed&difference=1&shown=64",
-      "px": "0",
-      "tx": "0"
+      "px": "7f39b814",
+      "tx": "c6d13aca"
     },
     {
       "$note": "PLACEHOLDER, draft: Recurrent: bidirectional, the unrolled diagram over five time steps and the concatenated output",
       "slug": "processing-layers",
       "state": "?theme=light&block=recurrent&shown=11",
-      "px": "0",
-      "tx": "0"
+      "px": "aa68615d",
+      "tx": "655b16fa"
     },
     {
       "$note": "PLACEHOLDER, draft: Recurrent: unidirectional, one Forward row and five steps",
       "slug": "processing-layers",
       "state": "?theme=light&block=recurrent&direction=unidirectional&shown=5",
-      "px": "0",
-      "tx": "0"
+      "px": "2926c28e",
+      "tx": "4ac851f1"
     },
     {
       "$note": "PLACEHOLDER, draft: Recurrent: the second sequence of the batch, the same eleven steps taken",
       "slug": "processing-layers",
       "state": "?theme=light&block=recurrent&sample=1&shown=11",
-      "px": "0",
-      "tx": "0"
+      "px": "585748b8",
+      "tx": "655b16fa"
     },
     {
       "$note": "PLACEHOLDER, draft: Attention: the random in-projection, all three queries scored and weighted",
       "slug": "processing-layers",
       "state": "?theme=light&block=attention&shown=3",
-      "px": "0",
-      "tx": "0"
+      "px": "b3fa86ab",
+      "tx": "754f045b"
     },
     {
       "$note": "PLACEHOLDER, draft: Attention: the identity projection, so Q = K = V = X and a score is one embedding against another",
       "slug": "processing-layers",
       "state": "?theme=light&block=attention&projection=identity&shown=3",
-      "px": "0",
-      "tx": "0"
+      "px": "1548dc2a",
+      "tx": "de204382"
     },
     {
       "$note": "PLACEHOLDER, draft: Attention: two queries taken, band 2 pinned to cat - the row the walk has not reached is drawn empty",
       "slug": "processing-layers",
       "state": "?theme=light&block=attention&query=cat&shown=2",
-      "px": "0",
-      "tx": "0"
+      "px": "f79b83a7",
+      "tx": "8035112c"
     },
     {
       "$note": "PLACEHOLDER, draft: Attention: a third untrained in-projection, the weights still flat",
       "slug": "processing-layers",
       "state": "?theme=light&block=attention&seed=3&shown=3",
-      "px": "0",
-      "tx": "0"
+      "px": "7133e2da",
+      "tx": "d2bc8443"
     },
     {
       "$note": "PLACEHOLDER, draft: Graph: the normalized sum, four nodes updated over the chain",
       "slug": "processing-layers",
       "state": "?theme=light&block=graph&shown=4",
-      "px": "0",
-      "tx": "0"
+      "px": "cdb06bd3",
+      "tx": "1aa937e1"
     },
     {
       "$note": "PLACEHOLDER, draft: Graph: the mean over the neighbours and the node itself",
       "slug": "processing-layers",
       "state": "?theme=light&block=graph&aggregate=mean&shown=4",
-      "px": "0",
-      "tx": "0"
+      "px": "d59ee783",
+      "tx": "e7916098"
     },
     {
       "$note": "PLACEHOLDER, draft: Graph: the max at each feature, which applies no coefficients",
       "slug": "processing-layers",
       "state": "?theme=light&block=graph&aggregate=max&shown=4",
-      "px": "0",
-      "tx": "0"
+      "px": "2a1b85b6",
+      "tx": "415bd7d5"
     },
     {
       "$note": "PLACEHOLDER, draft: Linear: empty, before the first output value",
       "slug": "processing-layers",
       "state": "?theme=light&block=linear&shown=0",
-      "px": "0",
-      "tx": "0"
+      "px": "3ecbeb23",
+      "tx": "5baac5de"
     },
     {
       "$note": "PLACEHOLDER, draft: Convolutional: empty, the image and the two blank maps",
       "slug": "processing-layers",
       "state": "?theme=light&block=convolutional&shown=0",
-      "px": "0",
-      "tx": "0"
+      "px": "fd850633",
+      "tx": "ed8114ef"
     },
     {
       "$note": "PLACEHOLDER, draft: Recurrent: empty, the unrolled diagram with no state computed",
       "slug": "processing-layers",
       "state": "?theme=light&block=recurrent&shown=0",
-      "px": "0",
-      "tx": "0"
+      "px": "4d48494a",
+      "tx": "c0e54ab5"
     },
     {
       "$note": "PLACEHOLDER, draft: Attention: empty, X, Q and K drawn and both grids blank",
       "slug": "processing-layers",
       "state": "?theme=light&block=attention&shown=0",
-      "px": "0",
-      "tx": "0"
+      "px": "e04f59ec",
+      "tx": "1152a84a"
     },
     {
       "$note": "PLACEHOLDER, draft: Graph: empty, the four strips and the chain with nothing aggregated",
       "slug": "processing-layers",
       "state": "?theme=light&block=graph&shown=0",
-      "px": "0",
-      "tx": "0"
+      "px": "7fc32a55",
+      "tx": "ec80d108"
     },
     {
       "$note": "PLACEHOLDER, draft, DRIVEN: Linear mid-step at Medium, 432 ms into the 750 ms beat - inside the land phase, the first value on its way into y",
@@ -3635,8 +3635,8 @@
         "frames": 14,
         "dt": 32
       },
-      "px": "0",
-      "tx": "0"
+      "px": "3b882455",
+      "tx": "479273b4"
     },
     {
       "$note": "PLACEHOLDER, draft, DRIVEN: Convolutional mid-step at Medium, the window lit and the first cell of both maps landing",
@@ -3647,8 +3647,8 @@
         "frames": 14,
         "dt": 32
       },
-      "px": "0",
-      "tx": "0"
+      "px": "93527100",
+      "tx": "7a36d81e"
     },
     {
       "$note": "PLACEHOLDER, draft, DRIVEN: Recurrent mid-step at Medium, bidirectional, the first forward state landing",
@@ -3659,8 +3659,8 @@
         "frames": 14,
         "dt": 32
       },
-      "px": "0",
-      "tx": "0"
+      "px": "4ff3616d",
+      "tx": "b531899a"
     },
     {
       "$note": "PLACEHOLDER, draft, DRIVEN: Attention mid-step at Medium, the first query scored and its weights landing",
@@ -3671,8 +3671,8 @@
         "frames": 14,
         "dt": 32
       },
-      "px": "0",
-      "tx": "0"
+      "px": "f987c077",
+      "tx": "34fdc718"
     },
     {
       "$note": "PLACEHOLDER, draft, DRIVEN: Graph mid-step at Medium, node 0 aggregating its neighbours",
@@ -3683,8 +3683,8 @@
         "frames": 14,
         "dt": 32
       },
-      "px": "0",
-      "tx": "0"
+      "px": "813cd2e4",
+      "tx": "349b3b4e"
     },
     {
       "$note": "PLACEHOLDER, draft, DRIVEN: INTERRUPTED: Recurrent stepped again while the first step is in flight - core finishes the unit by fastForward and the second is mid-land, the state no settled hash can see",
@@ -3701,8 +3701,8 @@
         "frames": 14,
         "dt": 32
       },
-      "px": "0",
-      "tx": "0"
+      "px": "6484b65b",
+      "tx": "09832686"
     },
     {
       "$note": "PLACEHOLDER, draft, DRIVEN: HIT-DRIVEN: the pointer on feature-map cell (3, 5) of the first filter at [383, 91] writes pos=29 and restarts the walk there - the region geometry no pixel hash can see - a region click starts no frame loop, so the one frame the harness pumps is the pointer repaint",
@@ -3716,8 +3716,8 @@
         "frames": 4,
         "dt": 32
       },
-      "px": "0",
-      "tx": "0"
+      "px": "aed8aed7",
+      "tx": "7e9e8b34"
     },
     {
       "$note": "PLACEHOLDER, draft, DRIVEN: HIT-DRIVEN: the pointer on X's cat row at [106, 94] sets query=cat, then one step - a display region that must not throw the walk away",
@@ -3732,8 +3732,8 @@
         "frames": 15,
         "dt": 32
       },
-      "px": "0",
-      "tx": "0"
+      "px": "be0cd2de",
+      "tx": "d2571059"
     }
   ]
 }
