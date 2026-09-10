@@ -11702,6 +11702,24 @@ out stacked at the +, the chosen row lit and the rows as `regions`, the
 broadcast error in the sum band's place at width 20 without the projection,
 Branching's add form. Both built by one Opus builder.
 
+**Built (`f70dc31`, `d844229`):** fc3 follows the merge (`fc3In(merge, fc2)`,
+five of six combinations reach `[4, 2]`, only add or average at 8 against 6
+raise); Skip's three bands at the + with the rows as `regions`, 611 / 642 at
+550 and 770; the overlay's arrow column moved to 60px left of the spine so its
+factor labels clear `x3  [4, 10]`. 189 assertions.
+
+**Round 1, comments 8 and 9 — Kenneth, on Skip's bands.** **(8)** *"isn't the
+order incorrect for skip? shouldn't x3 + skip = out"* — the bands stacked x3,
+skip, the `+`, out, so the operator sat between the second operand and the
+result; changed to x3, `+`, skip, `=`, out, the rail still entering the skip
+band's right edge. **(9)** *"I think we can omit gradient option? I don't see
+it in any other page"* — the residual gradient overlay was the plan's own
+addition (Page 4 above, off by default) and no other page carries one; cut,
+with its `grad` parameter, the card's `∂y/∂x` row and the legend entry, the
+gradients widget owning that argument. The notebook's own sentence about the
+skip route passing the gradient through stays in the caption. Both built by
+one Opus builder.
+
 **Build order within the widget**, once the mock is picked: Dimensions first (the
 strongest losing state and the most machinery), then Skip, Branching, Gating,
 Routing, Building, Ordering. The widget itself is built after
