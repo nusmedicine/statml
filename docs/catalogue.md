@@ -10712,6 +10712,23 @@ strip, circle and print row (lit on step, the hover border on hover from any
 of the three, tensors' decision 10), and during Aggregate the neighbours'
 print rows light at the coefficient's alpha. 101 assertions.
 
+**Round 3 — Kenneth, 2026-09-10, "looks great" and three points.** **(1)** on
+the `W [3, 3]` print in the Aggregate band: *"is the tensor for aggregation
+step supposed to change or be highlighted?"* — W does not change (the layer's
+weights, one copy for every node, as the kernel is on the Convolutional page);
+printing it under Aggregate invited the reading, so the Aggregate band prints
+the **aggregated tensor** `[4, 3]` filling row by row as nodes are stepped, and
+W moves to the Output band beside `W · aggregate`, washed while the output
+lands. **(2)** *"what do the columns for w·v mean? are there headers?"* — the
+four embedding dimensions (`embed_dim=4`): headers `0 1 2 3` under a spanning
+*embedding dimension* label over V, the products and the output, and a caption
+in those words (each row of V is one token's value vector, one number per
+embedding dimension; the output for the query is a new vector for that token,
+each column the weighted sum of that column across the three tokens).
+**(3)** an annotation on the diagonal arrows from X to Q and K, *"90 degree or
+curved elbows?"* — right-angle elbows, his figures' convention. All three
+fixes, one builder round.
+
 ### Slot 50 · `support-layers` — Normalization, Activation and Dropout — PLANNED 2026-09-10
 
 **Host.** 05-3 cells 29–60: Embedding (29–33), Pooling (34–39), BatchNorm and
