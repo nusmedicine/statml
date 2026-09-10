@@ -11667,8 +11667,9 @@ own figure with Step applying one step, one combination or one position (286 /
 (876px); C the Position schematic as the whole page, input → Encoding →
 bracketed Subunit × N with the four roles expanded and the concrete class for
 the data beside each → Global pooling → Linear → output, a data control
-choosing the encoding (624px, 439 at 770). The recommendation was A; **Kenneth
-picked C.** Built by an Opus builder. Decided in the brief: the page's data
+choosing the encoding (624px, 439 at 770). The recommendation was A. **Kenneth picked C by an
+accidental click, said so at once, and switched to A**; the C build was
+stopped and its edits discarded. Built by an Opus builder. Decided in the brief: the page's data
 type is the same idea as Dimensions' `data` (Image · Vectors · Sequence), so
 that one parameter is shared across both pages rather than a second `data`
 with other values (3.7). The change removes `ORDER_BLOCKS`, `ORDER_PRINT`, the
