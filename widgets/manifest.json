@@ -743,7 +743,7 @@
     {
       "slug": "support-layers",
       "title": "Deep Learning - Support Layers",
-      "blurb": "These layers condition the values passing through a network rather than extract features from them.",
+      "blurb": "A support layer conditions the values a network passes on rather than extracting features from them.",
       "course": "PHM5005",
       "topics": [
         "layer",

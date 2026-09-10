@@ -9623,6 +9623,7 @@ epochs.
 | 51 | `composition` | Composing Layers and Controlling Flow | 3 | 05-3 cells 61–101 | **PLANNED 2026-09-10**, seven pages, the diagram leading |
 | 52 | `training-loop` | Training with Validation | 4 | 05-4, the whole notebook | proposed, **measured** |
 | 53 | `tensors` | Tensors | 0 — before the four groups | 05-2 cells 1–69 | **SHIPPED 2026-09-09** on "tested ok" after twenty-nine rounds in two days; 37 states — 34 settled, two driven, one hit-driven |
+| 54 | `loss-functions` | Loss Function | 4 | 05-4 cells 30–40 | **PROPOSED 2026-09-10** on Kenneth's question about where sigmoid, softmax and the losses belong; three pages by task, cell 30's own table |
 
 Numbers are provisional — 46 is `wgcna`, a draft on its own branch. The order
 is the notebooks' own. Six is the honest count for four groups because the
@@ -11680,6 +11681,68 @@ result and the dimension arrows at the fingerprint width, and which drawing
 of a three-dimensional tensor reads. Pinning is a handful of `torch` calls
 Kenneth can run in Colab — the values on every panel are the notebook's
 printed outputs already.
+
+
+### Slot 54 · `loss-functions` — Loss Function — PROPOSED 2026-09-10
+
+**Host.** 05-4 cells 30–40: cell 30's table of losses by task, then `MSELoss`
+(31–33), `CrossEntropyLoss` (34–36), `BCEWithLogitsLoss` (37–39) and cell 40's
+other losses. Proposed on 2026-09-10 when Kenneth asked, during `support-layers`'
+promotion, whether sigmoid, softmax and cross-entropy are layers or belong in a
+loss-function category, and how to group them in a widget that supports 05-4.
+
+**The answer the two notebooks already give.** Sigmoid and softmax are functions
+from a tensor to a tensor of the same shape with no parameters; cell 1's table
+lists `nn.Sigmoid` under Activation and cell 70 writes them in `forward` as
+functionals, so `support-layers`' Activation page is where they belong in 05-3.
+A loss takes the model's output AND the target and returns one number, so it has
+no place in a tensor-to-tensor table; 05-4 already treats the three losses as
+the criterion outside the model (cell 23's ingredient table, cells 30–39). The
+two functions therefore have two roles in two widgets: the model's own
+component in `support-layers`, and the first step inside two of the three
+losses here. Two sentences 05-3 could carry so a student is not left wondering
+where probabilities come from: at the output the loss absorbs the function, so
+a classification model ends at the scores; at prediction time there is no loss,
+so the scores go through sigmoid or softmax explicitly.
+
+**Why its own widget and not a page of slot 52.** `training-loop` is 05-4 end
+to end, and the loop treats the loss as one number per epoch; drawing the inside
+of the loss there is the ten-page rail again. Slot 52's Loss row links here.
+
+**The rail.** `task`, segmented, **data**, cell 30's own three rows:
+Regression · Single-label · Binary / multi-label. Each page draws the notebook's
+own example, the target in `--c-reference`, the scores in `--c-group-a`, the
+function applied inside the loss as a band, the probability given to the true
+label lit, and the number that comes out:
+
+| page | example | the stage | the loss |
+|---|---|---|---|
+| Regression · `MSELoss` | cell 33: `y_pred [2.5, 0.0, 2.1]`, `y_true [3.0, −0.5, 2.0]` | the three gaps, squared, their mean | (0.25 + 0.25 + 0.01) / 3 = **0.17** |
+| Single-label · `CrossEntropyLoss` | cell 36: scores `[5.0, 0.5, 0.1]`, label 0 | scores → softmax over the row `[0.9818, 0.0109, 0.0073]` → the true class lit → −log | **0.0184**; with the label at class 1 it is **4.52** |
+| Binary / multi-label · `BCEWithLogitsLoss` | cell 39: five scores, classes B and C true | scores → sigmoid per class `[0.55, 0.27, 0.62, 0.88, 0.43]` → each against its 0 / 1 → the per-class terms `[0.80, 1.31, 0.47, 2.13, 0.55]` → the mean | **1.053** |
+
+**The control that carries the idea.** A score is dragged, or the true label is
+moved, and the loss moves with it. Cell 36's own example is a confident right
+answer at 0.018, a figure with little to see at rest, so the drag is the
+argument rather than a convenience; the page should open at the notebook's
+values and let the reader push the score for class 0 down. The one picture the
+two classification pages share is the **−log p curve**, the loss against the
+probability given to the true label, with the current point on it: small when
+confident and right, large when confident and wrong. That shared curve is the
+case for one widget rather than a page each elsewhere. Formula cards are cells
+34 and 37's own two lines, and cell 30's note on dtypes (`long` indices
+against `float32` 0/1 targets) is a readout note, since it is the error a
+student meets first.
+
+**What stays out.** Cell 40's Dice, contrastive and triplet losses are
+captions, not pages: each needs its own data shape and none has a worked example
+in the notebook. Combining losses is one sentence on the card. `pos_weight` and
+`weight` are not controls until a page is measured to need them.
+
+**Not measured.** The three numbers above are the arithmetic written out, not
+torch; a measure script belongs to the planning session that mocks this, as
+`_lab/dl-layers-measure.mjs` did for 49–51. Neither `metrics` (widget 35, the
+scores after training) nor `mlp` (widget 37) draws a loss's inside.
 
 #### The mock-up — `_lab/tensor-mock.html`, 2026-09-08, awaiting picks
 

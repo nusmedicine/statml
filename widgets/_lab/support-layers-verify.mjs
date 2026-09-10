@@ -308,6 +308,31 @@ const allNear = (a, b, eps = 1e-9) => a.length === b.length && a.every((v, i) =>
   check("at p = 0.8 a draw that loses every cell is common enough to meet",
     zeros > 20 && zeros < 200, `${zeros} of 400 draws are all zero`);
 
+  /* THE TWO NUMBERS THE TRAINING CAPTION NOW CARRIES. 0.8¹⁰ = 0.107 is the rate
+     an all-zero draw arrives at, and the spread of one draw's sum is about twice
+     the input sum — both stated on screen, so both are asserted here rather than
+     left as a claim nobody measured. 2000 draws, because 400 puts the ratio at
+     1.84 on sampling noise alone. */
+  const wide = Array.from({ length: 2000 }, (_, i) => M.dropDraw(i + 1, 0.8).sum);
+  const wideMean = M.mean(wide);
+  const spread = Math.sqrt(M.mean(wide.map((v) => (v - wideMean) ** 2)));
+  check("at p = 0.8 the spread of the output sum is about twice the input sum",
+    Math.abs(spread / M.DROP_IN_SUM - 2) < 0.3,
+    `sd ${spread.toFixed(3)}, ${(spread / M.DROP_IN_SUM).toFixed(2)} × the input sum`);
+
+  check("at p = 0.8 about one draw in ten loses every cell, as 0.8^10 = 0.107 says",
+    Math.abs(wide.filter((v) => v === 0).length / wide.length - 0.8 ** 10) < 0.03,
+    `${(wide.filter((v) => v === 0).length / wide.length).toFixed(4)} against 0.107`);
+
+  /* THE READOUT BRANCH A ZERO DRAW NEEDS: "0 of the 10 cells survived this draw,
+     and each was scaled by 5.00" names a scaling applied to no value at all, so
+     the Output-sum note has a line of its own for this state. `?p=0.8&seed=3` is
+     the link that reaches it. */
+  const none = M.dropout(3, 0.8, "training");
+  check("at p = 0.8 and seed 3 no cell survives, so the output sum is 0",
+    none.kept === 0 && none.mask.flat().every((v) => v === 0) && none.outSum === 0,
+    `kept ${none.kept}, sum ${none.outSum.toFixed(3)}`);
+
   check("the walk has one unit per cell", T.units === 10 && E.units === 10);
 }
 
@@ -480,6 +505,129 @@ const allNear = (a, b, eps = 1e-9) => a.length === b.length && a.every((v, i) =>
   check("the three rail heads are cell 1's own category names",
     /Representation & Aggregation/.test(src) && /Normalization & Activation/.test(src)
     && /Regularization/.test(src) && /groupHeads: true/.test(src));
+}
+
+/* --- 8 · the copy round: the wording the audit settled ---------------------- *
+ * Section 7 asserts a PROPERTY of every string (no em-dash, no "never"); this
+ * one asserts the specific lines, because a rewrite is exactly the change that
+ * looks too small to check and the fingerprint's `tx` hash covers the card, the
+ * legend and the readout but reaches no canvas caption and no control label.
+ * Each check names the audit row it holds down, so a later rewrite can find
+ * what it is arguing with. */
+{
+  const src = readFileSync(new URL("../support-layers/main.js", import.meta.url), "utf8");
+  const stub = readFileSync(new URL("../support-layers/index.html", import.meta.url), "utf8");
+  const manifest = JSON.parse(readFileSync(new URL("../manifest.json", import.meta.url), "utf8"));
+  const card = manifest.widgets.find((w) => w.slug === "support-layers");
+  const has = (...parts) => parts.every((s) => src.includes(s));
+
+  /* ROW 1: the gallery card and the stub say the same sentence, and it is no
+     longer the subtitle's own first sentence read twice. */
+  const blurb = "A support layer conditions the values a network passes on rather than "
+    + "extracting features from them.";
+  check("row 1: the blurb and the meta description are the one new sentence",
+    card.blurb === blurb && stub.includes(`content="${blurb}"`)
+    && !src.includes(blurb) && card.blurb.length <= 120,
+    `${card.blurb.length} characters`);
+
+  check("row 2: the Layer control's detail names the options as layers",
+    has("each option is a layer that reshapes or rescales what passes through it"));
+
+  check("rows 3 and 5: the pooling captions are the stride claim and the two statistics",
+    has("The stride equals the window, so the windows tile the image and no input value is read twice.")
+    && has("Max keeps the window's largest value and average keeps the mean of its ")
+    && !src.includes("keeps their mean"));
+
+  /* ROW 5's other half: the output-size arithmetic left the caption and is still
+     on the card and its note, which is where a formula belongs. */
+  check("row 5: the output-size arithmetic is on the card alone, not in a caption",
+    (src.match(/⌊\(\$\{M\.IMG_N\} − \$\{k\}\) \/ \$\{k\}⌋/g) ?? []).length === 1
+    && has("out = ⌊(in − kernel_size) / stride⌋ + 1."));
+
+  check("row 4: the two statistics are max and mean, and the torch names stay on the band",
+    has('[[0, "max", "max"], [1, "avg", "mean"]]')
+    && has("`MaxPool2d(${k}, ${k})  ·  AvgPool2d(${k}, ${k})`")
+    && !src.includes('"Average"'));
+
+  check("row 6: the layer-norm caption names the other sample, which is stacked above",
+    has("so the other sample changes nothing.") && !src.includes("the sample beside it"));
+
+  check("row 7: the layer-norm Input note counts positions rather than steps",
+    has('"2 samples, 5 positions, 4 features"') && !src.includes("5 steps"));
+
+  check("rows 8 and 9: the activation and dropout titles name what a press does",
+    has("Apply the function to the next input and land its output")
+    && has("Take the next cell through the layer")
+    && has("Take the remaining cells through the layer"));
+
+  /* ROW 10: five pages, five nouns. The shared "The group being computed" was
+     true on every page and specific on one. */
+  const litLines = [
+    "The token being looked up, and the values it reads",
+    "The window being summarized, and the values it reads",
+    "The group being standardized, and the values it reads",
+    "The input being transformed, and the values it reads",
+    "The cell being drawn, and the values it reads",
+  ];
+  check("row 10: the highlight entry names the page's own group, on all five pages",
+    has(...litLines) && !src.includes("The group being computed"),
+    `${litLines.length} legend lines`);
+
+  check("row 11: the Output-sum note has a branch for a draw that keeps nothing",
+    has("no cell survived this draw, so the output sum is 0.000")
+    && has("state.kept === 0"));
+
+  check("rows 12 and 13: the training captions carry the scale and the measured spread",
+    has("so the output sum matches the input sum on average.")
+    && has("One draw can sit far from that average: at p = 0.8 the spread of the output sum is about twice the ")
+    && has("input sum, and about one draw in ten loses every cell."));
+
+  check("rows 14 and 15: the evaluation captions name the absent mask and what the scaling bought",
+    has("At evaluation the layer applies no mask and no scaling, so the output carries the input's own numbers.")
+    && has("The scaling during training is what lets the values pass through unchanged here and still have the ")
+    && !src.includes("PyTorch does nothing at all"));
+
+  check("row 16: the Use control's detail names the three jobs",
+    has("the same function is used for a hidden value, a probability, or a distribution"));
+
+  /* ROW 17 (Kenneth's pick): the page's Batch · Layer control is the GROUP the
+     statistics are taken over, and the rail's own "Layer" control is the one
+     that picks the page. Two controls called Layer on one screen was the find. */
+  check("row 17: the normalization control is labelled Group and the rail keeps Layer",
+    /norm: \{[\s\S]*?label: "Group",/.test(src) && /block: \{[\s\S]*?label: "Layer",/.test(src)
+    && !/norm: \{[\s\S]*?label: "Normalization",/.test(src)
+    /* the rail's page name is untouched: the option still reads Normalization */
+    && src.includes('{ value: "normalization", label: "Normalization"'));
+
+  /* ROW 18 (Kenneth's pick): the Activation step label follows `use` through
+     core's nested label form, added for it on 2026-09-10 after he chose the
+     core change over a single "Next input"; the four other pages keep their
+     own nouns because the outer map is still keyed on `block`. */
+  check("row 18: the step label is keyed on block, and Activation's on use",
+    /stepLabel: { param: "block", labels: STEP_LABELS/.test(src)
+    && /activation: { param: "use", labels: { hidden: "Next value", sigmoid: "Next score", softmax: "Next row" }, default: "Next value" }/.test(src)
+    && /embedding: "Next token"/.test(src) && /dropout: "Next cell"/.test(src),
+    "Next value / Next score / Next row on Activation, the other pages unchanged");
+
+  /* THE CONSISTENCY FIXES THE AUDIT SAW ON SCREEN. A tile missing from two pages
+     of five reads as a fact that stopped being true there. */
+  check("every page that has nothing to learn carries the Parameters 0 tile",
+    (src.match(/label: "Parameters"/g) ?? []).length === 5,
+    "embedding, pooling, Hidden, Sigmoid, Softmax");
+
+  check("the dropout page carries an Input shape tile, as every other page does",
+    /label: "Input",\s*\n\s*value: sizeText\(\[M\.DROP_ROWS, M\.DROP_COLS\]\),\s*\n\s*note: "2 samples, 5 features",/
+      .test(src));
+
+  check("the This window tile prints both statistics at torch's four decimals",
+    /state\.max\[at\.r\]\[at\.c\]\.toFixed\(4\)\}, \$\{state\.avg\[at\.r\]\[at\.c\]\.toFixed\(4\)/.test(src));
+
+  /* THE HEADER'S OWN ARITHMETIC. Comments are exempt from the register and not
+     from being true: decision 9 said one draw in six for an event the section
+     above measures at 0.107. */
+  check("decision 9 states the all-zero rate the measurement gives",
+    src.includes("one draw in ten drops every cell (0.8^10 = 0.107)")
+    && !src.includes("one draw in six"));
 }
 
 console.log(failed ? `\n${failed} of ${ran} FAILED\n` : `\nall ${ran} checks passed\n`);

@@ -930,12 +930,19 @@ export function defineWidget(config) {
     if (typeof decl === "string") return decl;
     const field = spec[decl.param];
     if (field && !fieldShowing(field, values)) return decl.default ?? fallback;
-    return decl.labels?.[values[decl.param]] ?? decl.default ?? fallback;
+    const entry = decl.labels?.[values[decl.param]];
+    /* An entry may itself be a { param, labels, default }, so one page's label
+       can follow a second control: `support-layers` keys its step label on
+       `block`, and the Activation page's on `use` (Next value / score / row,
+       Kenneth's pick 2026-09-10). The gate rule above applies at each level. */
+    if (entry && typeof entry === "object") return resolveLabel(entry, decl.default ?? fallback);
+    return entry ?? decl.default ?? fallback;
   }
   function labelSet(decl, fallback) {
     if (decl == null) return [fallback];
     if (typeof decl === "string") return [decl];
-    return [...Object.values(decl.labels ?? {}), decl.default ?? fallback];
+    const own = decl.default ?? fallback;
+    return [...Object.values(decl.labels ?? {}).flatMap((v) => (v && typeof v === "object" ? labelSet(v, own) : [v])), own];
   }
 
   function updateAnimButtons() {

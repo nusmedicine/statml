@@ -68,9 +68,9 @@
        mean output sum over draws 1 to `seed`, computed in `compute`, so
        `?seed=10` reproduces it and nothing accumulates outside `values`
        (invariant 1). It has to be there: at p = 0.8 one draw's sum has a
-       standard deviation about twice the input sum and about one draw in six
-       drops every cell, so a single press argues against the scaling the page
-       is about.
+       standard deviation about twice the input sum (1.97x, measured) and about
+       one draw in ten drops every cell (0.8^10 = 0.107), so a single press
+       argues against the scaling the page is about.
 
    10. A DROPPED CELL AND AN UNREACHED CELL ARE BOTH DRAWN EMPTY, and the walk
        is legible from the input row instead. Giving the dropped cell a mark of
@@ -533,7 +533,7 @@ function drawPool(ctx, colors, w, params, state, anim) {
   arrow(ctx, PAD + M.IMG_N * s.pix + 8, y + LBL + M.IMG_N * s.pix / 2,
     g.mapX - 6, y + LBL + M.IMG_N * s.pix / 2, colors.ink3, 2);
 
-  for (const [i, kind, name] of [[0, "max", "Max"], [1, "avg", "Average"]]) {
+  for (const [i, kind, name] of [[0, "max", "max"], [1, "avg", "mean"]]) {
     const gx = g.mapX + i * (n * s.pix + GAP);
     txt(ctx, colors, name, gx, y + 11, { color: colors.ink3, size: colors.fsXs });
     shaded(ctx, colors, gx, y + LBL, n, n, s.pix, (r, c) =>
@@ -1017,20 +1017,17 @@ function drawDrop(ctx, colors, w, params, state, anim) {
 
 function pageCaptions(params) {
   switch (params.block) {
-    case "pooling": {
-      const k = Number(params.k);
-      const n = M.IMG_N / k;
+    case "pooling":
       return [
-        `⌊(${M.IMG_N} − ${k}) / ${k}⌋ + 1 = ${n}, so each summary is ${n} × ${n}.`,
-        "Pooling has no parameters. Max keeps the largest value in the window and average keeps their mean, "
-        + "so the two differ most at the edge of the bright square.",
+        "The stride equals the window, so the windows tile the image and no input value is read twice.",
+        "Pooling has no parameters. Max keeps the window's largest value and average keeps the mean of its "
+        + "values, so the two differ most at the edge of the bright square.",
       ];
-    }
     case "normalization":
       return params.norm === "layer"
         ? [
           "Each row is standardized on the mean and standard deviation of its own four features, "
-          + "so the sample beside it changes nothing.",
+          + "so the other sample changes nothing.",
           "γ and β are learned, and they let the layer restore any scale and shift the next layer needs.",
         ]
         : [
@@ -1060,12 +1057,15 @@ function pageCaptions(params) {
     case "dropout":
       return params.mode === "evaluation"
         ? [
-          "At evaluation PyTorch does nothing at all, so the output carries the input's own numbers.",
-          "The scaling during training is what makes this pass-through the right thing to do.",
+          "At evaluation the layer applies no mask and no scaling, so the output carries the input's own numbers.",
+          "The scaling during training is what lets the values pass through unchanged here and still have the "
+          + "same expected sum.",
         ]
         : [
-          `The survivors are scaled by 1 / (1 − ${params.p}), which keeps the sum of the output right on average.`,
-          "Any one draw can be far from that average, and at a high drop probability a draw can lose every cell.",
+          `The survivors are scaled by 1 / (1 − ${params.p}) = ${(1 / (1 - Number(params.p))).toFixed(2)}, `
+          + "so the output sum matches the input sum on average.",
+          "One draw can sit far from that average: at p = 0.8 the spread of the output sum is about twice the "
+          + "input sum, and about one draw in ten loses every cell.",
         ];
     default:
       return [
@@ -1254,22 +1254,24 @@ const STEP_LABELS = {
   embedding: "Next token",
   pooling: "Next window",
   normalization: "Next group",
-  activation: "Next input",
+  /* keyed on the use, through core's nested label (his pick, the copy round):
+     the readout counts values, scores and rows, and the button says the same */
+  activation: { param: "use", labels: { hidden: "Next value", sigmoid: "Next score", softmax: "Next row" }, default: "Next value" },
   dropout: "Next cell",
 };
 const STEP_TITLES = {
   embedding: "Copy out the next token's row of the table",
   pooling: "Summarize the next window with both its maximum and its mean",
   normalization: "Standardize the next group on its own mean and standard deviation",
-  activation: "Apply the function to the next input, one value on Hidden and Sigmoid and one row on Softmax",
-  dropout: "Draw the next cell of the mask, then scale the value it keeps",
+  activation: "Apply the function to the next input and land its output",
+  dropout: "Take the next cell through the layer",
 };
 const RUN_TITLES = {
   embedding: "Look up the remaining tokens",
   pooling: "Summarize the remaining windows",
   normalization: "Standardize the remaining groups",
   activation: "Apply the function to the remaining inputs",
-  dropout: "Draw the remaining cells of the mask",
+  dropout: "Take the remaining cells through the layer",
 };
 
 defineWidget({
@@ -1296,7 +1298,7 @@ defineWidget({
       label: "Layer",
       style: "grid",
       groupHeads: true,
-      detail: "each layer conditions the values that pass through it",
+      detail: "each option is a layer that reshapes or rescales what passes through it",
       options: BLOCKS,
       default: "embedding",
     },
@@ -1328,7 +1330,7 @@ defineWidget({
 
     norm: {
       type: "segmented",
-      label: "Normalization",
+      label: "Group",
       detail: "which group the mean and standard deviation are taken over",
       options: [
         { value: "batch", label: "Batch", detail: "down one feature, across the samples of the batch" },
@@ -1370,7 +1372,7 @@ defineWidget({
       type: "segmented",
       label: "Use",
       style: "grid",
-      detail: "an activation is used for three different jobs",
+      detail: "the same function is used for a hidden value, a probability, or a distribution",
       options: [
         { value: "hidden", label: "Hidden", detail: "a hidden value, where the function makes the network nonlinear" },
         { value: "sigmoid", label: "Sigmoid", detail: "one score to the probability of one outcome, and BCEWithLogitsLoss applies it inside the loss" },
@@ -1466,11 +1468,22 @@ defineWidget({
          so a mask entry would name a colour the figure does not carry */
       dropout: params.mode === "training" ? "The dropout mask" : null,
     }[params.block];
+    /* THE HIGHLIGHT NAMES THE PAGE'S OWN GROUP, because "the group being
+       computed" is the one wording that is true everywhere and specific
+       nowhere: a token, a window, a group, an input and a cell are five
+       different things and the legend has to say which one is lit. */
+    const lit = {
+      embedding: "The token being looked up, and the values it reads",
+      pooling: "The window being summarized, and the values it reads",
+      normalization: "The group being standardized, and the values it reads",
+      activation: "The input being transformed, and the values it reads",
+      dropout: "The cell being drawn, and the values it reads",
+    }[params.block];
     return [
       { token: "group-a", label: first },
       ...(second ? [{ token: "group-b", label: second }] : []),
       { token: "empirical", label: "The output tensor" },
-      { token: "highlight", label: "The group being computed, and the values it reads" },
+      { token: "highlight", label: lit },
     ];
   },
 
@@ -1569,7 +1582,7 @@ defineWidget({
         },
         {
           label: "This window",
-          value: at ? `${state.max[at.r][at.c].toFixed(2)}, ${state.avg[at.r][at.c].toFixed(4)}` : "—",
+          value: at ? `${state.max[at.r][at.c].toFixed(4)}, ${state.avg[at.r][at.c].toFixed(4)}` : "—",
           note: at
             ? `max and mean of the ${state.k} × ${state.k} window at rows `
               + `${at.r * state.k}–${at.r * state.k + state.k - 1}, columns `
@@ -1595,7 +1608,7 @@ defineWidget({
         {
           label: "Input",
           value: sizeText(shape),
-          note: layer ? "2 samples, 5 steps, 4 features" : "4 samples, 3 features",
+          note: layer ? "2 samples, 5 positions, 4 features" : "4 samples, 3 features",
         },
         {
           label: "Output",
@@ -1637,6 +1650,11 @@ defineWidget({
               ? "a score above 0 is a probability above 0.5"
               : "no score has been taken yet",
           },
+          {
+            label: "Parameters",
+            value: "0",
+            note: "an activation has nothing to learn, and the shape of the tensor is unchanged",
+          },
           cellTile("—", "a cell's index and value"),
         ];
       }
@@ -1655,6 +1673,11 @@ defineWidget({
             note: at >= 0
               ? `the five probabilities sum to ${state.rowSum(at).toFixed(4)}`
               : "no row has been taken yet",
+          },
+          {
+            label: "Parameters",
+            value: "0",
+            note: "an activation has nothing to learn, and the shape of the tensor is unchanged",
           },
           cellTile("—", "a cell's index and value"),
         ];
@@ -1688,6 +1711,11 @@ defineWidget({
       const training = params.mode !== "evaluation";
       return [
         {
+          label: "Input",
+          value: sizeText([M.DROP_ROWS, M.DROP_COLS]),
+          note: "2 samples, 5 features",
+        },
+        {
           label: "Output",
           value: sizeText([M.DROP_ROWS, M.DROP_COLS]),
           note: `${walk.done} of ${state.units} cells taken`,
@@ -1696,8 +1724,14 @@ defineWidget({
         {
           label: "Output sum",
           value: state.outSum.toFixed(3),
+          /* A DRAW THAT KEEPS NOTHING NEEDS ITS OWN LINE: "0 of the 10 cells
+             survived this draw, and each was scaled by 5.00" names a scaling
+             that was applied to no value at all. At p = 0.8 it is about one
+             draw in ten, so it is a state a reader meets. */
           note: training
-            ? `${state.kept} of the 10 cells survived this draw, and each was scaled by ${state.scale.toFixed(2)}`
+            ? (state.kept === 0
+              ? "no cell survived this draw, so the output sum is 0.000"
+              : `${state.kept} of the 10 cells survived this draw, and each was scaled by ${state.scale.toFixed(2)}`)
             : "every value passes through, so the two sums agree exactly",
         },
         training
