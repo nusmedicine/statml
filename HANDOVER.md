@@ -9,20 +9,6 @@ torch 2.14 is INSTALLED on this machine since 2026-09-11. All 509 fingerprint
 states of the shipped widgets untouched; the draft owes none yet.**
 
 ---
-# Handover
-
-**FIFTY-ONE WIDGETS — 49 on the gallery, `roc-auc` UNLISTED (Kenneth's call,
-2026-08-30), NO DRAFT, NOTHING UNPUSHED: `composition` (slot 51) SHIPPED and
-PUSHED 2026-09-11 (`8b3602d`, then `2e9f7ba`), one day and twelve review
-comments after its mock. `support-layers` gained Tanh and a Sigmoid curve on
-his ask (`f8716f9`, pushed 2026-09-10). All 509 fingerprint states MATCH at
-DPR 1.25, pane fronted. One core change: `params.js` resolves an
-option-dependent parameter to its list's first option AT LOAD when its default
-is not in the list (`5f7321c`, his call). The 05-3 notebook is complete:
-49 `processing-layers`, 50 `support-layers`, 51 `composition`. NEXT is slot 54
-`loss-functions` for 05-4, his call.**
-
----
 
 # NEXT: SLOT 54 `loss-functions` — IN REVIEW, NOT PUSHED
 
