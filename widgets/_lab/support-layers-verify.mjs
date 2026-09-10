@@ -188,7 +188,17 @@ const allNear = (a, b, eps = 1e-9) => a.length === b.length && a.every((v, i) =>
 /* --- 4 · Activation: three uses, and the case that fails -------------------- */
 {
   const H = M.activation("hidden");
-  const [relu, gelu, silu] = H.out;
+  const [relu, gelu, silu, tanh] = H.out;
+  check("Hidden draws four functions, tanh the fourth, and tanh(−2) is −0.9640",
+    M.ACTS.length === 4 && M.ACTS[3].key === "tanh" && H.out.length === 4
+    && near(tanh[0], -0.9640, 5e-4) && near(tanh[2], 0, 1e-12) && near(tanh[4], 0.9640, 5e-4),
+    `tanh(−2) ${tanh[0].toFixed(4)}`);
+  {
+    const z = M.sizesAt(0);
+    check("the Sigmoid page reserves the curve panel's width left of its two columns",
+      M.bandWidth.sigmoid(z) === M.CURVE.w + M.GAP + 2 * z.cw + z.op + M.SIG_OP_EXTRA,
+      `${M.bandWidth.sigmoid(z)}px at 550`);
+  }
   check("the hidden input is cell 50's five values and the walk takes one each",
     allNear(M.HIDDEN_IN, [-2, -1, 0, 1, 2]) && H.units === 5);
 

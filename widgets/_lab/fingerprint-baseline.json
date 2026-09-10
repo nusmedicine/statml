@@ -3795,21 +3795,28 @@
       "$note": "Activation: hidden, five inputs through all three functions with the ReLU curve on the panel",
       "slug": "support-layers",
       "state": "?theme=light&block=activation&shown=5",
-      "px": "848addc5",
-      "tx": "5a9b20d2"
+      "px": "3d327157",
+      "tx": "57adb6e2"
     },
     {
       "$note": "Activation: hidden with the GELU curve drawn, the same five outputs - a display change that keeps the walk",
       "slug": "support-layers",
       "state": "?theme=light&block=activation&fn=gelu&shown=5",
-      "px": "cf3ed02e",
-      "tx": "016faac3"
+      "px": "6c1bd46f",
+      "tx": "617fde49"
+    },
+    {
+      "slug": "support-layers",
+      "state": "?theme=light&block=activation&fn=tanh&shown=5",
+      "px": "ea0fff9c",
+      "tx": "a3ea602c",
+      "$note": "Activation: hidden with the Tanh curve drawn, the same five inputs; tanh joined 2026-09-10"
     },
     {
       "$note": "Activation: sigmoid, five scores each to the probability of one outcome",
       "slug": "support-layers",
       "state": "?theme=light&block=activation&use=sigmoid&shown=5",
-      "px": "4cfa6d93",
+      "px": "8e3cecf1",
       "tx": "cd7aaa90"
     },
     {
@@ -3872,8 +3879,8 @@
       "$note": "Activation: empty, the five inputs and the three output rows blank",
       "slug": "support-layers",
       "state": "?theme=light&block=activation&shown=0",
-      "px": "6d68d604",
-      "tx": "6b5231a3"
+      "px": "9a077769",
+      "tx": "301b0225"
     },
     {
       "$note": "Dropout: empty, the input tensor and the mask before the first cell is decided",
@@ -3927,8 +3934,8 @@
         "frames": 14,
         "dt": 32
       },
-      "px": "a0459a80",
-      "tx": "c51f4416"
+      "px": "2db85c46",
+      "tx": "ff04b8a4"
     },
     {
       "$note": "DRIVEN: Dropout mid-step at Medium, the first cell decided and landing",

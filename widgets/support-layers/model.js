@@ -96,6 +96,7 @@ export const FRAME_LBL = 15;     // the `dim 0 = i` line inside a frame
 export const IDXW = 20;          // the embedding table's row-index gutter
 export const LAYER_CELL = 44;    // the layer-normalization cell (mock section 4)
 export const CURVE = { w: 150, h: 130 };   // the activation curve panel
+export const SIG_OP_EXTRA = 24;            // Sigmoid's arrow column, widened for its 13-character label
 export const ACT_GUT = 60;       // the row-name gutter on the Hidden rows
 /* The row-name gutter on the Dropout rows. It holds the widest of the THREE
    row names the masked row made it (main.js decision 13): `m ⊙ x  [2, 5]` is
@@ -161,7 +162,7 @@ export const bandWidth = {
   batchNorm: (z) => 2 * 3 * z.cw + z.arrow,
   layerNorm: (z) => 2 * 4 * scaledCell(LAYER_CELL, z) + NORM_STAT + GAP,
   hidden: (z) => CURVE.w + GAP + ACT_GUT + 5 * z.cw,
-  sigmoid: (z) => z.cw + z.op + z.cw,
+  sigmoid: (z) => CURVE.w + GAP + z.cw + z.op + SIG_OP_EXTRA + z.cw,   // the curve panel joined 2026-09-10
   softmax: (z) => 6 * z.cw,
   dropout: (z, annW) => DROP_GUT + 5 * z.cw + annW,
 };
@@ -310,6 +311,9 @@ export const ACTS = [
   { key: "relu", label: "ReLU", f: (x) => Math.max(0, x) },
   { key: "gelu", label: "GELU", f: (x) => x * 0.5 * (1 + erf(x / Math.SQRT2)) },
   { key: "silu", label: "SiLU", f: (x) => x * sigmoid(x) },
+  /* tanh joined on 2026-09-10 (Kenneth: the lessons ahead refer to it); cell
+     70's table lists it with the other four */
+  { key: "tanh", label: "Tanh", f: Math.tanh },
 ];
 export const actByKey = (key) => ACTS.find((a) => a.key === key) ?? ACTS[0];
 

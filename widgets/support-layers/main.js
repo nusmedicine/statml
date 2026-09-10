@@ -58,11 +58,12 @@
        are one idea and two sliders labelled in full would read as two.
 
     8. `fn` IS A DISPLAY PARAMETER AND ONLY EXISTS ON Hidden. It chooses which
-       curve the reference panel draws; all three output rows are drawn
+       curve the reference panel draws; all four output rows are drawn
        whatever it says, so it changes no number and must not discard the walk
-       (invariant 3). On Sigmoid and Softmax there is one function and
-       no curve panel, so the control would be a question with no answer on
-       screen (3.4b) and `when` removes it.
+       (invariant 3). On Sigmoid the panel draws the one function there is
+       (Kenneth asked for the graph, 2026-09-10) and on Softmax there is none,
+       so on both the control would be a question with no answer on screen
+       (3.4b) and `when` removes it.
 
     9. THE THIRD DROPOUT TILE IS A PURE FUNCTION OF THE PARAMETERS. It is the
        mean output sum over draws 1 to `seed`, computed in `compute`, so
@@ -684,16 +685,22 @@ function drawNorm(ctx, colors, w, params, state, anim) {
 /* =========================== 4 · Activation ================================ */
 
 const ACT_ROW_GAP = 10;
+const SIG_OP_EXTRA = M.SIG_OP_EXTRA;
 const DIST_GAP = 20;
 
 function actGeom(ctx, colors, w, params) {
   const use = params.use;
   if (use === "sigmoid") {
     const s = fitSizes(w, (z) => M.bandWidth.sigmoid(z));
-    const h1 = LBL + M.PROB_IN.length * s.ch;
+    /* the curve panel sits left of the two columns, as Hidden's does; five
+       rows at 26px are the panel's own 130px, so the band grows by nothing */
+    const h1 = LBL + Math.max(CURVE.h, M.PROB_IN.length * s.ch);
     const capY = BAND_HEAD + h1 + CAP_GAP;
     const caps = captionLines(ctx, colors, w, params);
-    return { s, use, h1, y1: 0, capY, caps, height: capY + caps.length * CAPTION_H + PAD };
+    return {
+      s, use, h1, y1: 0, capY, caps, rowX: PAD + CURVE.w + GAP,
+      height: capY + caps.length * CAPTION_H + PAD,
+    };
   }
   if (use === "softmax") {
     const s = fitSizes(w, (z) => M.bandWidth.softmax(z));
@@ -714,14 +721,18 @@ function actGeom(ctx, colors, w, params) {
   };
 }
 
-/** The chosen function over −3 to 3, with the five inputs marked on it. */
-function curvePanel(ctx, colors, x, y, fn, name, litIdx) {
+/** The chosen function over −3 to 3, with the five inputs marked on it.
+    `o.xs` are the inputs to mark (Hidden's by default) and `o.ylo`/`o.yhi`
+    the vertical range, since a sigmoid lives in 0..1 where the hidden
+    functions run −1..3. */
+function curvePanel(ctx, colors, x, y, fn, name, litIdx, o = {}) {
   ctx.fillStyle = colors.surface2;
   ctx.fillRect(x, y, CURVE.w, CURVE.h);
   ctx.strokeStyle = colors.grid;
   ctx.lineWidth = 1;
   ctx.strokeRect(x + 0.5, y + 0.5, CURVE.w - 1, CURVE.h - 1);
-  const lo = -3, hi = 3, ylo = -1, yhi = 3;
+  const lo = -3, hi = 3, ylo = o.ylo ?? -1, yhi = o.yhi ?? 3;
+  const xs = o.xs ?? M.HIDDEN_IN;
   const px = (v) => x + 8 + ((v - lo) / (hi - lo)) * (CURVE.w - 16);
   const py = (v) => y + CURVE.h - 8 - ((v - ylo) / (yhi - ylo)) * (CURVE.h - 16);
   ctx.strokeStyle = colors.axis;
@@ -742,7 +753,7 @@ function curvePanel(ctx, colors, x, y, fn, name, litIdx) {
     else ctx.lineTo(px(v), py(fn(v)));
   }
   ctx.stroke();
-  M.HIDDEN_IN.forEach((v, i) => {
+  xs.forEach((v, i) => {
     ctx.fillStyle = i === litIdx ? colors.highlight : colors.ink3;
     ctx.beginPath();
     ctx.arc(px(v), py(fn(v)), i === litIdx ? 4.5 : 3, 0, Math.PI * 2);
@@ -759,13 +770,18 @@ function drawAct(ctx, colors, w, params, state, anim) {
 
   if (g.use === "sigmoid") {
     const y = band(ctx, colors, g.y1, w, "Sigmoid", "p = sigmoid(score)");
-    label(ctx, colors, PAD, y + 11, "score", [M.PROB_IN.length, 1]);
-    grid(ctx, colors, PAD, y + LBL, M.PROB_IN.length, 1, s.cw, s.ch, (r) =>
+    curvePanel(ctx, colors, PAD, y + LBL, M.sigmoid, "sigmoid", walk.idx,
+      { xs: M.PROB_IN, ylo: -0.25, yhi: 1.25 });
+    const sx = g.rowX;
+    label(ctx, colors, sx, y + 11, "score", [M.PROB_IN.length, 1]);
+    grid(ctx, colors, sx, y + LBL, M.PROB_IN.length, 1, s.cw, s.ch, (r) =>
       ({ text: M.n2(M.PROB_IN[r]), hue: colors.groupA, ...face(walk.idx === r) }));
-    spotGrid(PAD, y + LBL, M.PROB_IN.length, 1, s.cw, s.ch, (r) =>
+    spotGrid(sx, y + LBL, M.PROB_IN.length, 1, s.cw, s.ch, (r) =>
       `score[${r}, 0] = ${num(M.PROB_IN[r])}`);
-    op(ctx, colors, PAD + s.cw, y + LBL, M.PROB_IN.length * s.ch, "→", s.op);
-    const ox = PAD + s.cw + s.op;
+    /* the arrow column is 24px wider than the shared op width: the score
+       label is 13 characters and would touch p's */
+    op(ctx, colors, sx + s.cw, y + LBL, M.PROB_IN.length * s.ch, "→", s.op + SIG_OP_EXTRA);
+    const ox = sx + s.cw + s.op + SIG_OP_EXTRA;
     label(ctx, colors, ox, y + 11, "p", [M.PROB_IN.length, 1]);
     grid(ctx, colors, ox, y + LBL, M.PROB_IN.length, 1, s.cw, s.ch, (r) => {
       const a = arrival(walk, r);
@@ -1051,7 +1067,7 @@ function pageCaptions(params) {
         ];
       }
       return [
-        "At x = −2 the three give 0.00, −0.05 and −0.24, so only ReLU sets a negative input to exactly zero.",
+        "At x = −2 the four give 0.00, −0.05, −0.24 and −0.96, so only ReLU sets a negative input to exactly zero.",
         "Each function is applied element by element, so the shape of the tensor is unchanged.",
       ];
     case "dropout":
@@ -1114,6 +1130,8 @@ const CARD = {
     "y = x · Φ(x)"),
   silu: eq(row(mi("y"), mo("="), mi("x"), mo("·"), mi("σ"), mo("("), mi("x"), mo(")")),
     "y = x · σ(x)"),
+  tanh: eq(row(mi("y"), mo("="), mi("tanh"), mo("("), mi("x"), mo(")")),
+    "y = tanh(x)"),
   sigmoid: eq(
     row(mi("p"), mo("="), frac(mn("1"), row(mn("1"), mo("+"), msup(mi("e"), row(mo("−"), mi("x")))))),
     "p = 1 / (1 + e^−x)"),
@@ -1172,7 +1190,10 @@ function cardFor(params) {
           : chosen.key === "gelu"
             ? "Φ is the standard normal cumulative distribution, so GELU scales an input by how far it sits "
               + "above the middle of that distribution."
-            : "σ is the sigmoid, so SiLU scales an input by a number between 0 and 1 that rises with it.",
+            : chosen.key === "silu"
+              ? "σ is the sigmoid, so SiLU scales an input by a number between 0 and 1 that rises with it."
+              : "tanh maps any input to a value between −1 and 1, with 0 at 0, so its outputs are centred "
+                + "where the sigmoid's are not.",
       };
     }
     case "dropout":
@@ -1688,7 +1709,7 @@ defineWidget({
         {
           label: "Output",
           value: sizeText([1, M.HIDDEN_IN.length]),
-          note: `${walk.done} of ${state.units} values taken, through all three functions`,
+          note: `${walk.done} of ${state.units} values taken, through all four functions`,
         },
         {
           label: "This value",
