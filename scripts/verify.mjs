@@ -33,6 +33,7 @@ const SCRIPTS = [
   "widgets/_lab/hc-verify.mjs",       // R hclust
   "widgets/_lab/kmeans-verify.mjs",   // sklearn.cluster.KMeans
   "widgets/_lab/norm-verify.mjs",     // properties no picture can settle
+  "widgets/_lab/processing-layers-verify.mjs",  // the layer arithmetic widget 49 prints
   "widgets/_lab/tensor-verify.mjs",   // the shape arithmetic widget 53 prints
   "widgets/_lab/tsne-verify.mjs",     // sklearn.manifold.TSNE
   "widgets/_lab/umap-verify.mjs",     // umap-learn 0.5.12

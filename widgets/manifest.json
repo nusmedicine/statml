@@ -719,6 +719,26 @@
       ],
       "arc": 53,
       "status": "shipped"
+    },
+    {
+      "slug": "processing-layers",
+      "title": "Processing Layers",
+      "blurb": "Each layer transforms an input tensor into an output tensor, differing in which inputs an output reads.",
+      "course": "PHM5005",
+      "topics": [
+        "layer",
+        "linear layer",
+        "convolution",
+        "transposed convolution",
+        "recurrent layer",
+        "attention",
+        "graph neural network",
+        "weight sharing",
+        "receptive field",
+        "deep learning"
+      ],
+      "arc": 49,
+      "status": "draft"
     }
   ]
 }

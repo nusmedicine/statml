@@ -1,0 +1,316 @@
+/* ============================================================================
+   Widget 49 · Processing Layers — the arithmetic of the five layers.
+
+   PHM5005 05-3 cells 1-28. Every operand here is the notebook's own: cell 5's
+   `Linear(4, 3)` on `randn(2, 4)`, cell 8's 16 x 16 square through cell 9's
+   `Conv2d(1, 2, 3, stride=2, padding=1)` and cell 14's `ConvTranspose2d`,
+   cell 19's `[2, 5, 4]` through a bidirectional recurrence with 3 hidden
+   features, cell 22's three token embeddings through
+   `MultiheadAttention(4, 1)`, and cell 27's four nodes on the chain 0-1-2-3
+   through `GCNConv(3, 3)`.
+
+   NOTHING IS TRAINED. Every learnable value is one draw from U(-bound, bound)
+   with the bound PyTorch's own `reset_parameters` uses — `core/torch.js`'s
+   `initBound` — off the seeded `rng` that `compute` is handed, never
+   `Math.random` (invariant 6). So an untrained figure has the magnitudes a
+   real `nn.Linear(4, 3)` prints rather than ones invented for the picture.
+
+   `main.js` draws these and nothing else; `_lab/processing-layers-verify.mjs`
+   asserts the arithmetic in node, with no browser and no clock.
+   ========================================================================= */
+
+import {
+  initBound, uniform, outSize, transposedOutSize, torchPrint,
+} from "../core/torch.js";
+
+/* --- small matrix helpers -------------------------------------------------- */
+
+export const mat = (rows, cols, f) =>
+  Array.from({ length: rows }, (_, r) => Array.from({ length: cols }, (_, c) => f(r, c)));
+
+const normalMat = (rng, rows, cols) => mat(rows, cols, () => rng.normal());
+const uniformMat = (rng, rows, cols, b) => mat(rows, cols, () => uniform(rng, b));
+const dot = (a, b) => a.reduce((s, v, i) => s + v * b[i], 0);
+
+/** `A @ B.T` — the form PyTorch computes a Linear in, and the one every
+    projection here takes: B's rows are the output units. */
+const matmulT = (A, B) => A.map((row) => B.map((w) => dot(w, row)));
+
+export const softmax = (v) => {
+  const m = Math.max(...v);
+  const e = v.map((x) => Math.exp(x - m));
+  const s = e.reduce((a, b) => a + b, 0);
+  return e.map((x) => x / s);
+};
+
+export const mean = (v) => v.reduce((a, b) => a + b, 0) / v.length;
+
+/* --- how a value is written ------------------------------------------------ *
+ * A signed two-decimal float is five characters, and five characters at
+ * --fs-sm mono measure 45.8px — which is why the value cell is 46 wide (the
+ * mock's §2, Kenneth's pick). The leading space on a positive keeps a column
+ * of signed values aligned about the minus sign, as his own figures do. */
+export const n2 = (v) => (v < 0 ? "" : " ") + v.toFixed(2);
+export const n3 = (v) => v.toFixed(3);
+
+/* --- how far one Play beat is ---------------------------------------------- *
+ * Slow and Medium choreograph a step in two phases — the inputs the element
+ * reads LIGHT, then the element LANDS. Fast declares that it does not: results
+ * appear in place. A declared property of the chosen speed, never something
+ * the animation decides mid-run. */
+export const SPEEDS = [
+  { value: "slow", label: "Slow", detail: "1.5 seconds an element, the inputs lit before the element lands" },
+  { value: "medium", label: "Medium", detail: "0.75 seconds an element, the inputs lit before the element lands" },
+  { value: "fast", label: "Fast", detail: "0.28 seconds an element, elements appearing in place" },
+];
+export const unitMs = (speed) => (speed === "slow" ? 1500 : speed === "fast" ? 280 : 750);
+export const choreographs = (speed) => speed !== "fast";
+
+/* --- the print, and the height it needs ------------------------------------ *
+ * `height` is a function of the parameters and has no state to read, so the
+ * line count of a print it must reserve room for is taken from the SHAPE with
+ * a widest-case value in every slot: a four-decimal float is six characters,
+ * seven with a sign, and at these shapes torch's 80-column rule wraps neither.
+ * One function, two readers (5.8) — the drawing uses the real values. */
+export const printRows = (shape) => torchPrint(shape, () => "-0.0000").lines.length;
+
+/* ============================ 1 · Linear (cells 3-5) ======================= */
+
+export const LIN_BATCH = 2;
+export const LIN_IN = 4;
+
+/** `nn.Linear(4, out)` on `torch.randn(2, 4)`: `y = x @ W.T + b`. */
+export function linear(rng, out) {
+  const X = normalMat(rng, LIN_BATCH, LIN_IN);
+  const bound = initBound.linear(LIN_IN);            // kaiming_uniform_(a=√5) -> 1/√4
+  const W = uniformMat(rng, out, LIN_IN, bound);
+  const b = Array.from({ length: out }, () => uniform(rng, bound));
+  const Y = X.map((row) => W.map((w, j) => dot(w, row) + b[j]));
+  return {
+    kind: "linear", out, X, W, b, Y, bound,
+    units: LIN_BATCH * out,
+    /* the four products the readout prints for y[i, j] */
+    terms: (i, j) => X[i].map((x, k) => ({ x, w: W[j][k], product: x * W[j][k] })),
+  };
+}
+
+/* ==================== 2 · Convolutional (cells 6-16) ======================= */
+
+export const IMG_N = 16;
+export const SQ_FROM = 5;
+export const SQ_TO = 11;
+/** Cell 8's `img[5:11, 5:11] = 1.0` — a 6 x 6 bright square in a 16 x 16 field. */
+export const IMG = mat(IMG_N, IMG_N, (r, c) =>
+  (r >= SQ_FROM && r < SQ_TO && c >= SQ_FROM && c < SQ_TO ? 1 : 0));
+
+/* STRIDE IS FIXED AT 2 AND IS NOT A CONTROL (Kenneth's pick, mock §3). Drawn,
+   stride 1 makes the feature map as large as the image: band 1 goes to 544 of
+   550 and the stage to 710, and shrinking the map to fit puts a 7px pixel
+   beside a 14px one, where the two grids stop reading as the same scale. */
+export const STRIDE = 2;
+/* `output_padding = 1` is cell 14's, and at stride 2 it is what makes the
+   reconstruction exactly 16 x 16 for all four kernel/padding combinations:
+   (8−1)·2−2+3+1, (7−1)·2−0+3+1, (7−1)·2−2+5+1 and (6−1)·2−0+5+1 are all 16. */
+export const OUT_PAD = 1;
+
+/** The value of the zero-padded input at a padded index, or 0 outside it. */
+const padded = (r, c, p) => {
+  const ri = r - p, ci = c - p;
+  return ri >= 0 && ri < IMG_N && ci >= 0 && ci < IMG_N ? IMG[ri][ci] : 0;
+};
+
+/**
+ * Cell 9's `Conv2d(1, 2, k, stride=2, padding=p)` and cell 14's
+ * `ConvTranspose2d(2, 1, k, stride=2, padding=p, output_padding=1)` on what it
+ * produced — one state, because the transposed half reads the standard half's
+ * feature maps and the page switches between the two readings of one figure.
+ */
+export function conv(rng, k, p) {
+  const cb = initBound.conv(1, k);                   // fan_in = 1 · k · k
+  const kernels = [uniformMat(rng, k, k, cb), uniformMat(rng, k, k, cb)];
+  const biases = [uniform(rng, cb), uniform(rng, cb)];
+  const n = outSize(IMG_N, k, STRIDE, p);
+  const maps = kernels.map((ker, f) => mat(n, n, (r, c) => {
+    let acc = biases[f];
+    for (let u = 0; u < k; u += 1) {
+      for (let v = 0; v < k; v += 1) acc += padded(r * STRIDE + u, c * STRIDE + v, p) * ker[u][v];
+    }
+    return acc;
+  }));
+
+  const tb = initBound.conv(2, k);                   // fan_in = 2 · k · k
+  const tw = [uniformMat(rng, k, k, tb), uniformMat(rng, k, k, tb)];
+  const tbias = uniform(rng, tb);
+  const zN = transposedOutSize(n, k, STRIDE, p, OUT_PAD);
+
+  return {
+    kind: "conv", k, p, n, zN, kernels, biases, maps, tw, tbias, cb, tb,
+    /** The k x k patch of the padded input under the window at output (r, c). */
+    window: (r, c) => mat(k, k, (u, v) => padded(r * STRIDE + u, c * STRIDE + v, p)),
+    /** Which rows and columns of the unpadded image that window covers. */
+    covers: (r, c) => {
+      const lo = (i) => Math.max(0, i * STRIDE - p);
+      const hi = (i) => Math.min(IMG_N - 1, i * STRIDE + k - 1 - p);
+      return { rows: [lo(r), hi(r)], cols: [lo(c), hi(c)] };
+    },
+  };
+}
+
+/**
+ * The reconstruction after the first `count` input positions have scattered,
+ * in row order over the n x n map — both channels at each position, which is
+ * what one step of the transposed page is. `count = n · n` is the whole of z.
+ */
+export function reconstruct(state, count) {
+  const { k, p, n, zN, maps, tw, tbias } = state;
+  const z = mat(zN, zN, () => tbias);
+  const total = Math.min(count, n * n);
+  for (let s = 0; s < total; s += 1) {
+    const m = Math.floor(s / n), q = s % n;
+    for (let ic = 0; ic < maps.length; ic += 1) {
+      const val = maps[ic][m][q];
+      for (let u = 0; u < k; u += 1) {
+        for (let v = 0; v < k; v += 1) {
+          const i = m * STRIDE - p + u, j = q * STRIDE - p + v;
+          if (i >= 0 && i < zN && j >= 0 && j < zN) z[i][j] += val * tw[ic][u][v];
+        }
+      }
+    }
+  }
+  return z;
+}
+
+/** `z − img`, and the position of the largest departure. */
+export function difference(z) {
+  const d = z.map((row, i) => row.map((v, j) => v - (IMG[i]?.[j] ?? 0)));
+  let mr = 0, mc = 0;
+  d.forEach((row, i) => row.forEach((v, j) => {
+    if (Math.abs(v) > Math.abs(d[mr][mc])) { mr = i; mc = j; }
+  }));
+  return { d, mr, mc, max: Math.abs(d[mr][mc]) };
+}
+
+/* ====================== 3 · Recurrent (cells 17-19) ======================== */
+
+export const RNN_BATCH = 2;
+export const SEQ = 5;
+export const RNN_IN = 4;
+export const RNN_HID = 3;
+
+/**
+ * Cell 19's `[2, 5, 4]` through a recurrence with 3 hidden features, forward
+ * and reverse. `f` is drawn CLOSED — the page shows what goes in and what
+ * comes out, not the gates — so `tanh(W_x x_t + W_h h_{t−1} + b)` at the LSTM
+ * initialiser's bound stands in for whichever of RNN, LSTM and GRU is named.
+ * Both samples are computed, so `sample` can be a display parameter (3.2).
+ */
+export function recurrent(rng) {
+  const X = Array.from({ length: RNN_BATCH }, () => normalMat(rng, SEQ, RNN_IN));
+  const bound = initBound.recurrent(RNN_HID);        // 1/√hidden, on every weight
+  const Wx = [uniformMat(rng, RNN_HID, RNN_IN, bound), uniformMat(rng, RNN_HID, RNN_IN, bound)];
+  const Wh = [uniformMat(rng, RNN_HID, RNN_HID, bound), uniformMat(rng, RNN_HID, RNN_HID, bound)];
+  const b = [
+    Array.from({ length: RNN_HID }, () => uniform(rng, bound)),
+    Array.from({ length: RNN_HID }, () => uniform(rng, bound)),
+  ];
+  const run = (seq, dir) => {
+    const steps = dir === 0 ? [0, 1, 2, 3, 4] : [4, 3, 2, 1, 0];
+    let h = new Array(RNN_HID).fill(0);
+    const out = new Array(SEQ);
+    for (const t of steps) {
+      h = Wx[dir].map((w, j) => Math.tanh(dot(w, seq[t]) + dot(Wh[dir][j], h) + b[dir][j]));
+      out[t] = h;
+    }
+    return out;
+  };
+  const fwd = X.map((s) => run(s, 0));
+  const rev = X.map((s) => run(s, 1));
+  const y = fwd.map((f, s) => f.map((h, t) => [...h, ...rev[s][t]]));
+  return { kind: "recurrent", X, Wx, Wh, b, fwd, rev, y, bound };
+}
+
+/** Which time step, and which direction, step `i` of the walk is (1-based). */
+export const rnnStepAt = (i, bidirectional) => {
+  if (!bidirectional) return { dir: 0, t: i - 1 };
+  if (i <= SEQ) return { dir: 0, t: i - 1 };
+  if (i <= 2 * SEQ) return { dir: 1, t: 2 * SEQ - i };
+  return { dir: 2, t: null };                        // the concatenation
+};
+
+/* ======================= 4 · Attention (cells 20-23) ======================= */
+
+/** Cell 22's embeddings for "The", "cat", "sat". */
+export const ATT_X = [
+  [0.9, 0.1, 0.1, 0.1],
+  [0.0, 0.2, 0.9, 0.0],
+  [0.0, 0.0, 0.8, 0.1],
+];
+export const TOKENS = ["The", "cat", "sat"];
+export const D_K = 4;
+
+/**
+ * `MultiheadAttention(embed_dim=4, num_heads=1)` on those three tokens. The
+ * in-projection is one `[12, 4]` xavier draw, torch's own layout, split into
+ * W_q, W_k and W_v; its bias is zero, which is torch's default.
+ *
+ * The figure stops at `softmax(QKᵀ / √d_k) V`, which is the formula card's
+ * line and what band 2 sums. `out_proj` is the layer's next step and is not
+ * drawn, so it is not drawn from the rng either — a weight nothing multiplies
+ * would be a number with no reader.
+ */
+export function attention(rng, projection) {
+  const bound = initBound.xavier(D_K, 3 * D_K);      // √(6/16) = 0.6124
+  const inProj = uniformMat(rng, 3 * D_K, D_K, bound);
+  const eye = mat(D_K, D_K, (r, c) => (r === c ? 1 : 0));
+  const identity = projection === "identity";
+  const [Wq, Wk, Wv] = identity
+    ? [eye, eye, eye]
+    : [inProj.slice(0, 4), inProj.slice(4, 8), inProj.slice(8, 12)];
+  const Q = matmulT(ATT_X, Wq);
+  const K = matmulT(ATT_X, Wk);
+  const V = matmulT(ATT_X, Wv);
+  const scale = Math.sqrt(D_K);
+  const scores = Q.map((q) => K.map((k) => dot(q, k) / scale));
+  const W = scores.map(softmax);
+  const out = W.map((w) => V[0].map((_, c) => w.reduce((s, wi, j) => s + wi * V[j][c], 0)));
+  return { kind: "attention", identity, Q, K, V, scores, W, out, bound, units: TOKENS.length };
+}
+
+/* ========================= 5 · Graph (cells 24-28) ========================= */
+
+export const NODES = 4;
+export const GRAPH_IN = 3;
+/** Cell 27's `edge_index` for the undirected chain 0-1-2-3: six directed edges. */
+export const EDGE_INDEX = [[0, 1, 1, 2, 2, 3], [1, 0, 2, 1, 3, 2]];
+/** The adjacency GCNConv works on, self-loops added: d̂ = 2, 3, 3, 2. */
+export const ADJ = mat(NODES, NODES, (i, j) => (i === j || Math.abs(i - j) === 1 ? 1 : 0));
+export const DEG = ADJ.map((row) => row.reduce((a, b) => a + b, 0));
+export const neighbours = (i) => ADJ[i].map((a, j) => (a ? j : -1)).filter((j) => j >= 0);
+
+export const AGGREGATES = [
+  { value: "normalized-sum", label: "Normalized sum", detail: "each neighbour weighted by 1/√(d̂ᵢ d̂ⱼ), which is what GCNConv computes" },
+  { value: "mean", label: "Mean", detail: "the average over the neighbours and the node itself" },
+  { value: "max", label: "Max", detail: "the largest value at each feature, over the neighbours and the node itself" },
+];
+
+/**
+ * Cell 27's `GCNConv(3, 3)` on four nodes of three features. The coefficients
+ * are worth printing and DO NOT sum to one: with self-loops an endpoint
+ * weights itself 0.500 and an interior node 0.333, with 0.408 between them, so
+ * the row sums are 0.908 at the ends and 1.075 inside. Max applies no
+ * coefficients, so it has none to print.
+ */
+export function graph(rng, aggregate) {
+  const X = normalMat(rng, NODES, GRAPH_IN);
+  const bound = initBound.xavier(GRAPH_IN, GRAPH_IN);   // glorot on [3, 3] -> 1
+  const W = uniformMat(rng, GRAPH_IN, GRAPH_IN, bound);
+  const coef = aggregate === "max" ? null : mat(NODES, NODES, (i, j) => {
+    if (!ADJ[i][j]) return 0;
+    return aggregate === "mean" ? 1 / DEG[i] : 1 / Math.sqrt(DEG[i] * DEG[j]);
+  });
+  const agg = mat(NODES, GRAPH_IN, (i, f) => (coef
+    ? coef[i].reduce((s, c, j) => s + c * X[j][f], 0)
+    : Math.max(...neighbours(i).map((j) => X[j][f]))));
+  const out = agg.map((a) => W.map((w) => dot(w, a)));
+  return { kind: "graph", aggregate, X, W, coef, agg, out, bound, units: NODES };
+}
