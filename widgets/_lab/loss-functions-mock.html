@@ -1,0 +1,1616 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · loss-functions · the design picks, drawn to scale</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 920px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-6); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 96ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); max-width: 560px; min-height: 24px; white-space: pre-line; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 96ch; }
+  .rec b { font-weight: 600; }
+  ul.proof { font-size: var(--fs-sm); color: var(--ink-2); max-width: 96ch; padding-left: 18px; }
+  ul.proof li { margin-bottom: 4px; }
+  /* the rail, at the real 300px, with the shell's own classes. These four rules
+     only pin the split at this page's width; the media query in tokens.css
+     collapses it below 880px and this page is read wider than that. */
+  .lab .w-split { display: grid; grid-template-columns: 300px 550px; gap: var(--sp-4); align-items: start; }
+  .lab .w-split .w-controls { grid-template-columns: 1fr; border-top: 0; padding-top: 0; margin-top: 0; }
+  .lab .w-rail { border-top: 0; padding-top: 0; margin-top: 0; }
+  .lab .w-split .w-drive { flex-direction: column; align-items: stretch; flex-wrap: nowrap; }
+  .rail-solo { width: 300px; }
+  .measure { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--ink-3); margin: 4px 0 0; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>loss-functions · the design picks, drawn to scale</h1>
+  <p class="note">
+    The picks for the <code>loss-functions</code> widget, slot 54: three pages from PHM5005 <code>05-4</code>,
+    cells 30–40. <b>Regression</b> (<code>MSELoss</code>, cells 31–33), <b>Single-label</b>
+    (<code>CrossEntropyLoss</code>, cells 34–36), <b>Multi-label</b> (<code>BCEWithLogitsLoss</code>, cells
+    37–39, which cell 37 says serves the binary case too). Cell 30's table has one row per task, and that table
+    is the rail. Every stage is drawn at the real <b>550</b> stage width, and the pages that change with the
+    frame at <b>770</b> as well, on the geometry the deep-learning widgets share: <b>PAD 14</b>, <b>GAP 22</b>,
+    usable width <b>522</b> at 550 and <b>742</b> at 770.
+  </p>
+  <p class="note">
+    The structure of every page is Kenneth's own figure (<code>_lab/figs/dl-loss-mse.png</code>,
+    <code>dl-loss-ce.png</code>, <code>dl-loss-bce.png</code>): a vertical flow with an <b>Output (N)</b> row
+    carrying the class letters over the model's scores and a shape/dtype line under it, and a <b>Target</b> row
+    with its own shape/dtype line. Those two strings are the anchor of the whole widget — <code>[batch, N],
+    float32</code> against <code>[batch], long</code> for CrossEntropyLoss, and <code>[batch, N], float32</code>
+    for BCEWithLogitsLoss — so they are on every page here. The probability row follows the convention
+    <code>support-layers</code> already set for softmax (<code>main.js</code> 810–824): the row sum sits in a
+    column <b>outside</b> the tensor, unfilled, because it is a reading of the row rather than one more
+    probability.
+  </p>
+  <p class="note">
+    Colour: the model's scores <code>--c-group-a</code>; every computed row — probabilities, per-class terms,
+    gaps, squares — <code>--c-empirical</code>; the target, which is the fixed thing the scores are judged
+    against, <code>--c-reference</code>; the held or dragged element and its point on the curve
+    <code>--c-highlight</code>; torch's own error string <code>--c-extreme</code>; the curve itself
+    <code>--c-empirical</code>, as <code>curvePanel</code> draws it in <code>support-layers</code>. Nothing on
+    any page is random, so the widget takes no seed.
+  </p>
+  <p class="note" id="mono"></p>
+
+  <h2>§1 · The rail at the real 300px</h2>
+  <p class="note">
+    <b>(a) the <code>task</code> faces.</b> <b>A</b> one row of three, the notebook's own three rows —
+    Regression · Single-label · Multi-label. <b>B</b> a <code>w-seg-grid</code> of two rows with the long face
+    <i>Binary / multi-label</i> spanning, which is cell 37's claim that one function serves both. Both are the
+    shell's own DOM and CSS, so what truncates here truncates in the widget.
+  </p>
+  <div class="row" id="s1a"></div>
+  <p class="note">
+    <b>(b) the cross-task contrast.</b> <b>A</b> each option's <code>detail</code> line, one visible at a time.
+    <b>B</b> a <code>readback</code> case table (core's <code>w-readback</code>, the one declaration is
+    <code>linear-regularization/main.js</code>:541) with the three tasks as rows and one column holding the
+    function applied inside the loss and the target the loss wants, the chosen row lit. Principle 3.4g: the
+    shape says it before the reader does anything, and the confusion this widget exists for is exactly a
+    confusion between two rows of that table.
+  </p>
+  <div class="row" id="s1b"></div>
+  <p class="note">
+    <b>(c) the per-page controls.</b> <b>A</b> the tensors as torch prints them — a <code>text</code> field per
+    tensor, plus the label control each page needs. <b>B</b> one <code>Class</code> segmented (which element is
+    held) and one <code>Score</code> slider, shared across the three pages. Then the whole rail for the longest
+    page, Multi-label, beside the shortest stage in the widget.
+  </p>
+  <div class="row" id="s1c"></div>
+  <div class="row" id="s1d"></div>
+  <p class="rec" id="rec1"></p>
+
+  <h2>§2 · The Single-label stage</h2>
+  <p class="note">
+    Cell 36: scores <code>[5.0, 0.5, 0.1]</code>, label <code>0</code>, loss <b>0.0184</b> — a confident right
+    answer with nothing to watch at rest, which is why the drag is the control that carries the idea.
+    <b>(a) the scores row:</b> <b>A</b> bars with a zero line, one per class under the letters, the value
+    printed at the bar's end and the bar's top as the drag target; <b>B</b> the sibling widgets' cell grid, one
+    number per cell, dragged to scrub the number. <b>(b) the curve panel:</b> <b>A</b> right of the rows;
+    <b>B</b> below them across the width.
+  </p>
+  <div class="row" id="s2a"></div>
+  <div class="row" id="s2b"></div>
+  <p class="note">
+    The recommended combination three times: at rest, settled, and settled with the score for class A dragged
+    down to 1.0 (measure script §2: p 0.4967, loss 0.6997). A drag on a finished figure keeps it finished
+    (principle 4.4) and moves the p row, the lit probability, the number and the point on the curve together.
+  </p>
+  <div class="row" id="s2c"></div>
+  <p class="note">
+    <b>(c) what the drag does to the axis.</b> Principle 2.5 — fix the frame, not the data. Left, the bar axis
+    is fitted to the values on screen, so dragging class A from 5.0 to 1.0 rescales the whole band and the two
+    bars the reader did not touch grow. Right, the axis is fixed over the range the drag reaches, −2 to 6, so
+    only the dragged bar moves. The bar heights are measured under each.
+  </p>
+  <div class="row" id="s2d"></div>
+  <p class="rec" id="rec2"></p>
+
+  <h2>§3 · The Multi-label stage</h2>
+  <p class="note">
+    Cell 39: scores <code>[0.2, -1.0, 0.5, 2.0, -0.3]</code>, <code>y = [0, 1, 1, 0, 0]</code>, loss
+    <b>1.0534</b>. Five bars, the sigmoid row, the five 0/1 chips with B and C filled, the probability given to
+    each class's own label, the per-class <code>−log p</code> and their mean; the curve carries five points and
+    lights the held one. <b>A</b> no sum column. <b>B</b> the sum in the same column position the Single-label
+    page uses, unfilled and outside the tensor, reading 2.7476 where softmax's reads 1.0000.
+  </p>
+  <div class="row" id="s3a"></div>
+  <div class="row" id="s3b"></div>
+  <p class="rec" id="rec3"></p>
+
+  <h2>§4 · The Regression stage</h2>
+  <p class="note">
+    Cell 33: <code>y_pred [2.5, 0.0, 2.1]</code>, <code>y_true [3.0, -0.5, 2.0]</code>, loss <b>0.1700</b>. The
+    target is a tick on the same axis as the bar, and the gap is the bracket between the bar's top and the
+    tick — the one page where the target can be drawn on the scores' own axis, because it is measured in the
+    same units. Then the squared row: <b>A</b> the square as an area whose side is <code>|gap|</code> at the
+    bars' own px-per-unit; <b>B</b> cells carrying <code>gap</code>, <code>gap²</code> and the mean as numbers.
+  </p>
+  <div class="row" id="s4a"></div>
+  <div class="row" id="s4b"></div>
+  <p class="rec" id="rec4"></p>
+
+  <h2>§5 · The case that fails</h2>
+  <p class="note">
+    Principle 2.6. The target's dtype as a control on the two classification pages. <b>A</b> a
+    <code>dtype</code> segmented <code>long · float32</code> under the label control, where the wrong arm
+    prints torch's own message in the loss row's place and no number. <b>B</b> no control, the dtype rule as a
+    readout note only. <b>Both error strings are UNVERIFIED</b>: torch is not installed on this machine
+    (<code>_lab/dl-loss-measure.mjs</code> §4 checked python, python3 and WSL), so they are quoted from torch
+    2.x's source and drawn as they stand. They must be run against a real torch before the widget ships.
+  </p>
+  <div class="row" id="s5a"></div>
+  <p class="rec" id="rec5"></p>
+
+  <h2>§6 · The curve panel's own axis</h2>
+  <p class="note">
+    <b>A</b> the <code>−log p</code> curve: loss against the probability given to the true label, p on x from 0
+    to 1 and loss on y clipped at 5. It is the same curve on both classification pages — CrossEntropyLoss
+    enters it at softmax's true-class probability, BCEWithLogitsLoss five times at
+    <code>sigmoid(z)</code> or <code>1 − sigmoid(z)</code>. <b>B</b> loss against the dragged score
+    <code>z</code>, a different curve per page and per held element. Both drawn at cell 36's values and with
+    the score for A dragged to 1.0.
+  </p>
+  <div class="row" id="s6a"></div>
+  <p class="rec" id="rec6"></p>
+
+  <h2>What the mock proves</h2>
+  <ul class="proof" id="proof"></ul>
+</main>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+import { shapeText } from "../core/torch.js";
+
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+const MONO = T.mono || "monospace";
+
+/* --- the geometry the deep-learning widgets share -------------------------- */
+const PAD = 14;            // widgets/tensors/main.js:469
+const GAP = 22;            // :472
+const LINE = 16;           // one printed line
+const ROW_LBL = 18;        // a row's label line, as support-layers' LBL
+const CH = 26;             // one value cell, tall
+const BAR_H = 88;          // the bar area of the scores row
+const EDGE = 26;           // an arrow between two rows, with the function on it
+const CURVE_W = 200;       // the curve panel; support-layers' is 150 x 130
+const CURVE_H = 150;
+const PITCH_CAP = 88;      // a column never wider than this, however much room there is
+const CAP_GAP = 12;
+const W = 550;
+const WIDE = 770;
+const USABLE = W - 2 * PAD;         // 522
+const USABLE_WIDE = WIDE - 2 * PAD; // 742
+
+/* ============================ drawing helpers ============================== */
+function panel(host, title, sub, w, h) {
+  const cand = document.createElement("div");
+  cand.className = "cand";
+  if (title) cand.innerHTML = `<h3>${title}</h3><p class="sub">${sub}</p>`;
+  const cv = document.createElement("canvas");
+  cv.width = Math.round(w * DPR); cv.height = Math.round(h * DPR);
+  cv.style.width = `${w}px`; cv.style.height = `${h}px`;
+  cand.appendChild(cv); host.appendChild(cand);
+  const ctx = cv.getContext("2d");
+  ctx.scale(DPR, DPR);
+  ctx.fillStyle = T.surface; ctx.fillRect(0, 0, w, h);
+  return { ctx, cand };
+}
+function note(cand, s) {
+  const p = document.createElement("p");
+  p.className = "measure";
+  p.textContent = s;
+  cand.appendChild(p);
+}
+function txt(ctx, s, x, y, o = {}) {
+  ctx.fillStyle = o.color ?? T.ink2;
+  ctx.textAlign = o.align ?? "left";
+  ctx.textBaseline = o.baseline ?? "alphabetic";
+  ctx.font = `${o.weight ?? ""} ${o.size ?? T.fsSm} ${o.mono ? MONO : T.font}`.trim();
+  ctx.fillText(s, x, y);
+}
+const wash = (hex, a) => {
+  const p = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+  return `rgba(${p[0]},${p[1]},${p[2]},${a})`;
+};
+function arrow(ctx, x0, y0, x1, y1, color, width = 2, dash = [], head = 9) {
+  const a = Math.atan2(y1 - y0, x1 - x0);
+  ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = width;
+  ctx.setLineDash(dash);
+  ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.beginPath(); ctx.moveTo(x1, y1);
+  ctx.lineTo(x1 - head * Math.cos(a - 0.45), y1 - head * Math.sin(a - 0.45));
+  ctx.lineTo(x1 - head * Math.cos(a + 0.45), y1 - head * Math.sin(a + 0.45));
+  ctx.closePath(); ctx.fill();
+}
+/** A band's header: its name left, the expression it performs right, a hairline
+    under (processing-layers decision 10). */
+function band(ctx, y, w, name, expr) {
+  txt(ctx, name, PAD, y + 11, { color: T.ink2, weight: "600" });
+  if (expr) txt(ctx, expr, w - PAD, y + 11, { color: T.highlight, align: "right", mono: true });
+  ctx.strokeStyle = T.grid; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(PAD, y + 17.5); ctx.lineTo(w - PAD, y + 17.5); ctx.stroke();
+  return y + 26;
+}
+function caption(ctx, x, y, s, color = T.ink2) {
+  txt(ctx, s, x, y, { color, size: T.fsSm });
+}
+/** Torch's own message, wrapped to `w` and printed in the failure colour. */
+function errorText(ctx, x, y, w, msg, color = T.extreme) {
+  ctx.font = `${T.fsSm} ${MONO}`;
+  const words = msg.split(" ");
+  const rows = [];
+  let cur = "";
+  for (const word of words) {
+    const t = cur ? `${cur} ${word}` : word;
+    if (ctx.measureText(t).width > w && cur) { rows.push(cur); cur = word; } else cur = t;
+  }
+  if (cur) rows.push(cur);
+  rows.forEach((r, i) => txt(ctx, r, x, y + i * LINE, { color, mono: true, size: T.fsSm }));
+  return { h: rows.length * LINE, rows: rows.length };
+}
+/** How wide one mono character is, at a given token size. Measured, never
+    assumed: every "it fits" verdict on this page is a multiple of it. */
+function measureMono(size) {
+  const c = document.createElement("canvas").getContext("2d");
+  c.font = `${size} ${MONO}`;
+  const probe = "RuntimeError: expected scalar type Long but found Float";
+  return c.measureText(probe).width / probe.length;
+}
+const MONOCH = measureMono(T.fsSm);
+const MONOCH_XS = measureMono(T.fsXs);
+const chars = (n) => Math.ceil(n * MONOCH);
+const charsXs = (n) => Math.ceil(n * MONOCH_XS);
+
+/** One value cell. `plain` draws no fill, which is what the row-sum column is:
+    a reading of the row rather than one more value in the tensor. */
+function valueCell(ctx, x, y, w, h, text, o = {}) {
+  const hue = o.hue ?? T.groupA;
+  ctx.fillStyle = T.surface; ctx.fillRect(x, y, w, h);
+  if (!o.empty && !o.plain) { ctx.fillStyle = wash(hue, o.lit ? 0.4 : 0.15); ctx.fillRect(x, y, w, h); }
+  ctx.strokeStyle = o.lit ? T.highlight : (o.empty ? T.grid : T.axis);
+  ctx.lineWidth = o.lit ? 2.5 : 1;
+  ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+  if (text != null && text !== "") {
+    txt(ctx, text, x + w / 2, y + h / 2 + 0.5,
+      { color: o.lit ? T.ink1 : T.ink1, align: "center", baseline: "middle", mono: true, size: o.size ?? T.fsXs });
+  }
+}
+/** A row of value cells at the column pitch, so every cell sits under its bar. */
+function cellRow(ctx, x, y, n, cw, at) {
+  for (let i = 0; i < n; i += 1) valueCell(ctx, x + i * cw, y, cw, CH, (at(i) || {}).text, at(i) || {});
+  return n * cw;
+}
+/** A row's name, and the shape it carries, on the label line above it. */
+function rowLabel(ctx, x, y, name, o = {}) {
+  txt(ctx, name, x, y + 11, { color: o.color ?? T.ink2, mono: o.mono !== false, size: T.fsSm });
+}
+/** The shape and dtype under a row — the anchor of the whole widget. */
+function dtypeLine(ctx, x, y, s, color = T.ink3) {
+  txt(ctx, s, x, y + 11, { color, mono: true, size: T.fsXs });
+  return LINE;
+}
+/**
+ * The scores row: one bar per class under its letter, a zero line, the value at
+ * the bar's outer end. `ticks` puts a reference mark on each column at the
+ * target's own value, which only the regression page can do — there the target
+ * is measured in the units of the prediction.
+ */
+function barRow(ctx, x, y, w, vals, o = {}) {
+  const n = vals.length;
+  const pitch = o.pitch ?? Math.min(PITCH_CAP, Math.floor(w / n));
+  const barW = Math.max(16, Math.round(pitch * 0.56));
+  const all = [...vals, 0, ...(o.ticks ?? [])];
+  const lo = Math.min(...all);
+  const hi = Math.max(...all);
+  const span = (hi - lo) || 1;
+  /* `range` fixes the axis across every value the drag can reach; without it
+     the axis is fitted to what is on screen and a drag on one bar moves the
+     other two, which is what principle 2.5 forbids */
+  const vlo = o.range ? o.range[0] : lo - span * 0.14;
+  const vhi = o.range ? o.range[1] : hi + span * 0.14;
+  const top = y + ROW_LBL;
+  const py = (v) => top + BAR_H - ((v - vlo) / (vhi - vlo)) * BAR_H;
+  const colX = (i) => x + i * pitch + pitch / 2;
+  /* the zero line, across every column */
+  ctx.strokeStyle = T.axis; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(x, py(0) + 0.5); ctx.lineTo(x + n * pitch, py(0) + 0.5); ctx.stroke();
+  vals.forEach((v, i) => {
+    const cx = colX(i);
+    const lit = o.held === i;
+    const y0 = py(0);
+    const y1 = py(v);
+    ctx.fillStyle = wash(o.hue ?? T.groupA, lit ? 0.42 : 0.18);
+    ctx.fillRect(cx - barW / 2, Math.min(y0, y1), barW, Math.abs(y1 - y0));
+    ctx.strokeStyle = lit ? T.highlight : (o.hue ?? T.groupA);
+    ctx.lineWidth = lit ? 2.5 : 1.5;
+    ctx.strokeRect(cx - barW / 2 + 0.5, Math.min(y0, y1) + 0.5, barW - 1, Math.max(1, Math.abs(y1 - y0) - 1));
+    /* the drag handle: a grip ON the bar's top edge, which is the target. Drawn
+       on the edge rather than above it because the tallest bar's top is 10px
+       from the top of the band and anything above it lands on the class letter */
+    if (lit) {
+      ctx.strokeStyle = T.highlight; ctx.lineWidth = 2;
+      for (let k = -1; k <= 1; k += 1) {
+        ctx.beginPath();
+        ctx.moveTo(cx + k * 5 - 2, y1); ctx.lineTo(cx + k * 5 + 2, y1);
+        ctx.stroke();
+      }
+    }
+    /* the value goes outside the bar's end, and inside it where the bar reaches
+       the top of the band — cell 36's 5.0 leaves 10px, and 5.0 needs 12 */
+    const above = v >= 0;
+    /* and inside it where the target's tick would run through the value: on
+       the regression page y_true 3.0 sits 6px above y_pred 2.5's top, exactly
+       where the label goes (found on the first render, the tick struck 2.5) */
+    const tick = o.ticks?.[i];
+    const clash = tick != null && Math.abs(py(tick) - (y1 - 8)) < 9 && Math.abs(y1 - y0) >= 18;
+    const tight = (above && y1 - top < 14) || clash;
+    const ty = tight ? y1 + 14 : (above ? y1 - 5 : y1 + 12);
+    txt(ctx, o.fmt ? o.fmt(v) : v.toFixed(1), cx, ty,
+      { color: lit ? T.highlight : T.ink1, align: "center", mono: true, size: T.fsXs });
+    txt(ctx, o.letters[i], cx, y + 12, { color: T.ink1, align: "center", mono: true, size: T.fsSm });
+  });
+  (o.ticks ?? []).forEach((t, i) => {
+    const cx = colX(i);
+    ctx.strokeStyle = T.reference; ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(cx - barW / 2 - 5, py(t)); ctx.lineTo(cx + barW / 2 + 5, py(t));
+    ctx.stroke();
+  });
+  return {
+    h: ROW_LBL + BAR_H, pitch, barW, colX, py,
+    unitPx: BAR_H / (vhi - vlo),
+    bottom: top + BAR_H,
+    heights: vals.map((v) => Math.abs(py(v) - py(0))),
+  };
+}
+/** The target chips: one per class, filled where the target says so. */
+function chipRow(ctx, x, y, n, pitch, at) {
+  const cw = Math.min(42, pitch - 10);
+  for (let i = 0; i < n; i += 1) {
+    const s = at(i) || {};
+    const cx = x + i * pitch + pitch / 2;
+    const bx = cx - cw / 2;
+    ctx.fillStyle = T.surface;
+    roundRect(ctx, bx, y, cw, CH, 6); ctx.fill();
+    if (s.on && !s.empty) { ctx.fillStyle = T.reference; roundRect(ctx, bx, y, cw, CH, 6); ctx.fill(); }
+    ctx.strokeStyle = s.lit ? T.highlight : (s.empty ? T.grid : (s.on ? T.reference : T.axis));
+    ctx.lineWidth = s.lit ? 2.5 : 1.5;
+    roundRect(ctx, bx + 0.75, y + 0.75, cw - 1.5, CH - 1.5, 6); ctx.stroke();
+    if (!s.empty && s.text) {
+      txt(ctx, s.text, cx, y + CH / 2 + 0.5,
+        { color: s.on ? T.surface : T.ink2, align: "center", baseline: "middle", mono: true,
+          size: T.fsSm, weight: s.on ? "600" : "" });
+    }
+  }
+  return CH;
+}
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+/**
+ * An arrow down between two rows, with the function named beside it.
+ *
+ * BESIDE, not on it. The arrow sits on the first column's centre, which is
+ * 51px in at the 300px rows column, and `softmax over the row` is 121px of
+ * mono — centred on the arrow it runs off the left edge of the stage. To the
+ * right of the arrow it reads as the arrow's own caption and has the whole
+ * rows column to run into, since nothing else is drawn between two rows.
+ */
+function fnArrow(ctx, cx, y0, y1, label, color = T.axis) {
+  arrow(ctx, cx, y0, cx, y1, color, 2);
+  if (!label) return;
+  txt(ctx, label, cx + 10, (y0 + y1) / 2 + 0.5,
+    { color: T.ink2, align: "left", baseline: "middle", mono: true, size: T.fsXs });
+}
+/**
+ * The −log p curve: loss against the probability given to the true label, p on
+ * x from 0 to 1 and loss on y clipped at YMAX. Drawn the way support-layers'
+ * `curvePanel` draws an activation — surface-2 ground, axes in `axis`, the
+ * function in `empirical`, the points on it with the held one lit.
+ */
+const YMAX = 5;
+function logCurve(ctx, x, y, w, h, pts, o = {}) {
+  ctx.fillStyle = T.surface2; ctx.fillRect(x, y, w, h);
+  ctx.strokeStyle = T.grid; ctx.lineWidth = 1;
+  ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+  const L = x + 26, R = x + w - 10, B = y + h - 20, Tp = y + 22;
+  const px = (p) => L + p * (R - L);
+  const py = (v) => B - (Math.min(v, YMAX) / YMAX) * (B - Tp);
+  ctx.strokeStyle = T.axis; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(L, B + 0.5); ctx.lineTo(R, B + 0.5); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(L + 0.5, B); ctx.lineTo(L + 0.5, Tp); ctx.stroke();
+  ctx.strokeStyle = T.empirical; ctx.lineWidth = 2;
+  ctx.beginPath();
+  const pLo = Math.exp(-YMAX);
+  for (let i = 0; i <= 160; i += 1) {
+    const p = pLo + (i / 160) * (1 - pLo);
+    const v = -Math.log(p);
+    if (i === 0) ctx.moveTo(px(p), py(v)); else ctx.lineTo(px(p), py(v));
+  }
+  ctx.stroke();
+  for (const pt of pts) {
+    const cx = px(pt.p);
+    const cy = py(-Math.log(pt.p));
+    ctx.fillStyle = pt.lit ? T.highlight : T.ink3;
+    ctx.beginPath(); ctx.arc(cx, cy, pt.lit ? 4.5 : 3, 0, Math.PI * 2); ctx.fill();
+  }
+  txt(ctx, "loss", L - 4, Tp - 9, { color: T.ink3, align: "right", size: T.fsXs });
+  txt(ctx, String(YMAX), L - 4, Tp + 5, { color: T.ink3, align: "right", size: T.fsXs });
+  txt(ctx, "0", L - 4, B + 4, { color: T.ink3, align: "right", size: T.fsXs });
+  txt(ctx, "0", L, B + 14, { color: T.ink3, align: "center", size: T.fsXs });
+  txt(ctx, "1", R, B + 14, { color: T.ink3, align: "center", size: T.fsXs });
+  txt(ctx, o.name ?? "−log p", x + w - 8, y + 14, { color: T.ink2, align: "right", mono: true, size: T.fsXs });
+  txt(ctx, o.xlab ?? "p at the true label", (L + R) / 2, y + h - 5,
+    { color: T.ink3, align: "center", size: T.fsXs });
+  return { px, py, right: R };
+}
+/** The same frame, with the loss against the DRAGGED SCORE instead. */
+function zCurve(ctx, x, y, w, h, lo, hi, f, pts, o = {}) {
+  ctx.fillStyle = T.surface2; ctx.fillRect(x, y, w, h);
+  ctx.strokeStyle = T.grid; ctx.lineWidth = 1;
+  ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+  const L = x + 26, R = x + w - 10, B = y + h - 20, Tp = y + 22;
+  const px = (z) => L + ((z - lo) / (hi - lo)) * (R - L);
+  const py = (v) => B - (Math.min(v, YMAX) / YMAX) * (B - Tp);
+  ctx.strokeStyle = T.axis; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(L, B + 0.5); ctx.lineTo(R, B + 0.5); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(L + 0.5, B); ctx.lineTo(L + 0.5, Tp); ctx.stroke();
+  ctx.strokeStyle = T.empirical; ctx.lineWidth = 2;
+  ctx.beginPath();
+  for (let i = 0; i <= 160; i += 1) {
+    const z = lo + (i / 160) * (hi - lo);
+    if (i === 0) ctx.moveTo(px(z), py(f(z))); else ctx.lineTo(px(z), py(f(z)));
+  }
+  ctx.stroke();
+  for (const pt of pts) {
+    ctx.fillStyle = pt.lit ? T.highlight : T.ink3;
+    ctx.beginPath(); ctx.arc(px(pt.z), py(f(pt.z)), pt.lit ? 4.5 : 3, 0, Math.PI * 2); ctx.fill();
+  }
+  txt(ctx, "loss", L - 4, Tp - 9, { color: T.ink3, align: "right", size: T.fsXs });
+  txt(ctx, String(YMAX), L - 4, Tp + 5, { color: T.ink3, align: "right", size: T.fsXs });
+  txt(ctx, "0", L - 4, B + 4, { color: T.ink3, align: "right", size: T.fsXs });
+  txt(ctx, String(lo), L, B + 14, { color: T.ink3, align: "center", size: T.fsXs });
+  txt(ctx, String(hi), R, B + 14, { color: T.ink3, align: "center", size: T.fsXs });
+  txt(ctx, o.name ?? "loss", x + w - 8, y + 14, { color: T.ink2, align: "right", mono: true, size: T.fsXs });
+  txt(ctx, o.xlab ?? "score for class A", (L + R) / 2, y + h - 5,
+    { color: T.ink3, align: "center", size: T.fsXs });
+  return { px, py };
+}
+/** gap² against gap, the regression page's own curve, on the same frame. */
+function parabolaPanel(ctx, x, y, w, h, gaps, lit) {
+  ctx.fillStyle = T.surface2; ctx.fillRect(x, y, w, h);
+  ctx.strokeStyle = T.grid; ctx.lineWidth = 1;
+  ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+  const L = x + 26, R = x + w - 10, B = y + h - 20, Tp = y + 22;
+  const LO = -3, HI = 3, VMAX = 9;
+  const px = (g) => L + ((g - LO) / (HI - LO)) * (R - L);
+  const py = (v) => B - (Math.min(v, VMAX) / VMAX) * (B - Tp);
+  ctx.strokeStyle = T.axis; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(L, B + 0.5); ctx.lineTo(R, B + 0.5); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(px(0) + 0.5, B); ctx.lineTo(px(0) + 0.5, Tp); ctx.stroke();
+  ctx.strokeStyle = T.empirical; ctx.lineWidth = 2;
+  ctx.beginPath();
+  for (let i = 0; i <= 160; i += 1) {
+    const g = LO + (i / 160) * (HI - LO);
+    if (i === 0) ctx.moveTo(px(g), py(g * g)); else ctx.lineTo(px(g), py(g * g));
+  }
+  ctx.stroke();
+  gaps.forEach((g, i) => {
+    ctx.fillStyle = i === lit ? T.highlight : T.ink3;
+    ctx.beginPath(); ctx.arc(px(g), py(g * g), i === lit ? 4.5 : 3, 0, Math.PI * 2); ctx.fill();
+  });
+  txt(ctx, "gap²", L - 4, Tp - 9, { color: T.ink3, align: "right", size: T.fsXs });
+  txt(ctx, "9", L - 4, Tp + 5, { color: T.ink3, align: "right", size: T.fsXs });
+  txt(ctx, "0", L - 4, B + 4, { color: T.ink3, align: "right", size: T.fsXs });
+  txt(ctx, "−3", L, B + 14, { color: T.ink3, align: "center", size: T.fsXs });
+  txt(ctx, "3", R, B + 14, { color: T.ink3, align: "center", size: T.fsXs });
+  txt(ctx, "gap²", x + w - 8, y + 14, { color: T.ink2, align: "right", mono: true, size: T.fsXs });
+  txt(ctx, "gap = y_pred − y_true", (L + R) / 2, y + h - 5, { color: T.ink3, align: "center", size: T.fsXs });
+}
+
+/* ============================ the arithmetic ===============================
+   Every number below is the one `_lab/dl-loss-measure.mjs` prints, recomputed
+   here with the same functions so the digits cannot drift apart; the CHECKS
+   table asserts that, and the result is printed at the top of the page. Two
+   values the script does not print are derived here and named in the notes:
+   the two OTHER softmax probabilities when the score for A is dragged to 1.0
+   (the script prints p0 = 0.4967 alone), and the px-per-unit of the bars. */
+const softmax = (v) => {
+  const m = Math.max(...v);
+  const e = v.map((z) => Math.exp(z - m));
+  const s = e.reduce((a, b) => a + b, 0);
+  return e.map((z) => z / s);
+};
+const sigmoid = (z) => 1 / (1 + Math.exp(-z));
+const mean = (v) => v.reduce((a, b) => a + b, 0) / v.length;
+const n4 = (v) => v.toFixed(4);
+const n2 = (v) => v.toFixed(2);
+const LETTERS = ["A", "B", "C", "D", "E"];
+
+/* cell 33 */
+const MSE_PRED = [2.5, 0.0, 2.1];
+const MSE_TRUE = [3.0, -0.5, 2.0];
+const MSE_GAP = MSE_PRED.map((p, i) => p - MSE_TRUE[i]);
+const MSE_SQ = MSE_GAP.map((g) => g * g);
+const MSE_LOSS = mean(MSE_SQ);
+
+/* cell 36 */
+const CE_Z = [5.0, 0.5, 0.1];
+const CE_LABEL = 0;
+const CE_P = softmax(CE_Z);
+const CE_LOSS = -Math.log(CE_P[CE_LABEL]);
+const CE_Z_DRAG = [1.0, 0.5, 0.1];
+const CE_P_DRAG = softmax(CE_Z_DRAG);
+const CE_LOSS_DRAG = -Math.log(CE_P_DRAG[CE_LABEL]);
+const CE_LOSS_AT = CE_P.map((p) => -Math.log(p));
+
+/* cell 39 */
+const BCE_Z = [0.2, -1.0, 0.5, 2.0, -0.3];
+const BCE_Y = [0, 1, 1, 0, 0];
+const BCE_S = BCE_Z.map(sigmoid);
+const BCE_SUM = BCE_S.reduce((a, b) => a + b, 0);
+const BCE_PT = BCE_S.map((s, c) => (BCE_Y[c] ? s : 1 - s));
+const BCE_TERM = BCE_PT.map((p) => -Math.log(p));
+const BCE_LOSS = mean(BCE_TERM);
+const BCE_HELD = 3;   // z = 2.0, y = 0: the largest term, and the one worth dragging
+
+/* The bar axis of each page, FIXED over the range its drag reaches rather than
+   fitted to what is on screen (principle 2.5; §2c measures what fitting does).
+   Each range is one the measure script names: CE's table runs the score for
+   class 0 from -3 to 8 and the interesting stretch is -2 to 6; BCE's says "a
+   slider from -4 to 4 spans a term of 0.018 .. 4.02"; MSE's says "a slider from
+   -1 to 6 spans loss 0.087 .. 5.42". */
+const CE_RANGE = [-2, 6];
+const BCE_RANGE = [-4, 4];
+const MSE_RANGE = [-1, 6];
+
+/* torch 2.x, quoted from source — UNVERIFIED, torch is not on this machine */
+const ERR_CE = "RuntimeError: expected scalar type Long but found Float";
+const ERR_BCE = "RuntimeError: Found dtype Long but expected Float";
+
+/* the script's own printed digits, against the arithmetic repeated here */
+const CHECKS = [
+  ["MSE gaps", MSE_GAP.map(n2).join(" "), "-0.50 0.50 0.10"],
+  ["MSE squared", MSE_SQ.map(n4).join(" "), "0.2500 0.2500 0.0100"],
+  ["MSE loss", n4(MSE_LOSS), "0.1700"],
+  ["CE softmax", CE_P.map(n4).join(" "), "0.9818 0.0109 0.0073"],
+  ["CE −log p", CE_LOSS_AT.map(n4).join(" "), "0.0184 4.5184 4.9184"],
+  ["CE dragged p0", n4(CE_P_DRAG[0]), "0.4967"],
+  ["CE dragged loss", n4(CE_LOSS_DRAG), "0.6997"],
+  ["BCE sigmoid", BCE_S.map(n4).join(" "), "0.5498 0.2689 0.6225 0.8808 0.4256"],
+  ["BCE sum", n4(BCE_SUM), "2.7476"],
+  ["BCE p at y", BCE_PT.map(n4).join(" "), "0.4502 0.2689 0.6225 0.1192 0.5744"],
+  ["BCE terms", BCE_TERM.map(n4).join(" "), "0.7981 1.3133 0.4741 2.1269 0.5544"],
+  ["BCE loss", n4(BCE_LOSS), "1.0534"],
+];
+const BAD = CHECKS.filter(([, got, want]) => got !== want);
+
+const M = {};
+document.getElementById("mono").innerHTML =
+  `<b>Measured on this browser:</b> one mono character is <b>${MONOCH.toFixed(2)}px</b> at ` +
+  `<code>--fs-sm</code> and <b>${MONOCH_XS.toFixed(2)}px</b> at <code>--fs-xs</code>, measured with ` +
+  `<code>measureText</code> over the 53-character <code>RuntimeError</code> line. Every "fits" below is a ` +
+  `multiple of one of those and none of them is an estimate. <b>${CHECKS.length} of ${CHECKS.length} ` +
+  `numbers on this page reproduce the measure script's printed digits</b>` +
+  (BAD.length ? ` — except ${BAD.map(([k]) => k).join(", ")}, which DISAGREE and must be fixed.`
+    : `, recomputed here with the same functions.`);
+
+/* ============================ §1 · the rail ================================ */
+const el = (tag, cls, text) => {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text != null) e.textContent = text;
+  return e;
+};
+const field = (label, detail) => {
+  const f = el("div", "w-field");
+  if (label) { const l = el("label"); l.appendChild(el("span", null, label)); f.appendChild(l); }
+  if (detail) f.appendChild(el("p", "w-detail", detail));
+  return f;
+};
+const put = (f, node) => {
+  const d = f.querySelector(".w-detail");
+  if (d) f.insertBefore(node, d); else f.appendChild(node);
+};
+const segRun = (f, opts, on, gridStyle, head) => {
+  if (head) put(f, el("p", "w-seg-head", head));
+  const s = el("div", gridStyle ? "w-seg w-seg-grid" : "w-seg");
+  s.setAttribute("role", "group");
+  for (const o of opts) {
+    const b = el("button", o.span ? "w-seg-btn w-seg-btn--span" : "w-seg-btn", o.label ?? o);
+    b.type = "button";
+    b.setAttribute("aria-pressed", String((o.label ?? o) === on));
+    s.appendChild(b);
+  }
+  put(f, s);
+  return s;
+};
+const choice = (f, ticks, on) => {
+  const i = el("input"); i.type = "range"; i.min = "0"; i.max = String(ticks.length - 1);
+  i.step = "1"; i.value = String(ticks.indexOf(on));
+  const t = el("div", "w-ticks");
+  for (const k of ticks) t.appendChild(el("span", null, k));
+  const lab = f.querySelector("label");
+  if (lab) lab.appendChild(el("span", "val", on));
+  put(f, i); put(f, t);
+};
+const textField = (f, value) => {
+  const i = el("input", "w-text");
+  i.type = "text"; i.value = value;
+  put(f, i);
+  return i;
+};
+const boolsRow = (f, names, on) => {
+  const row = el("div", "w-bools");
+  names.forEach((nm, i) => {
+    const b = el("div", "w-bool");
+    const l = el("label");
+    const c = el("input"); c.type = "checkbox"; c.checked = !!on[i];
+    l.appendChild(c); l.appendChild(el("span", null, nm));
+    b.appendChild(l); row.appendChild(b);
+  });
+  put(f, row);
+  return row;
+};
+/** core's `readback`, built the way controls.js:301 builds it. */
+const readback = (rows, cols, cells, at) => {
+  const wrap = el("div", "w-field");
+  const grid = el("div", "w-readback");
+  grid.style.gridTemplateColumns = `auto repeat(${cols.length}, 1fr)`;
+  grid.appendChild(el("div", "w-readback-hd"));
+  for (const c of cols) grid.appendChild(el("div", "w-readback-hd", c));
+  const cellEls = [];
+  rows.forEach((r, i) => {
+    grid.appendChild(el("div", "w-readback-hd", r));
+    cellEls[i] = [];
+    cells[i].forEach((text, j) => {
+      const e = el("div", null, text);
+      if (i === at[0] && j === at[1]) e.classList.add("w-readback-on");
+      grid.appendChild(e);
+      cellEls[i][j] = e;
+    });
+  });
+  wrap.appendChild(grid);
+  return { wrap, grid, cellEls };
+};
+const driveBlock = (stepLabel) => {
+  const drive = el("div", "w-drive");
+  const group = el("div", "w-drive-group");
+  const step = el("button", "w-btn", stepLabel); step.type = "button"; step.dataset.key = "step";
+  const play = el("button", "w-btn w-btn--primary", "Play"); play.type = "button"; play.dataset.key = "run";
+  group.appendChild(step); group.appendChild(play);
+  const reset = el("button", "w-btn", "Reset"); reset.type = "button"; reset.dataset.key = "reset";
+  drive.appendChild(group); drive.appendChild(reset);
+  return drive;
+};
+
+const TASKS = ["Regression", "Single-label", "Multi-label"];
+const RB_ROWS = TASKS;
+const RB_CELLS = [
+  ["no function · float32, same shape as y_pred"],
+  ["softmax over the row · one class index, long"],
+  ["sigmoid per class · 0 or 1 per class, float32"],
+];
+
+/* --- (a) the two task faces ------------------------------------------------ */
+const railA = el("div", "cand");
+const railB = el("div", "cand");
+const fTaskA = field("Task", "");
+const fTaskB = field("Task", "");
+{
+  railA.innerHTML = `<h3>A · one row of three, the notebook's own rows</h3>` +
+    `<p class="sub">w-seg, three faces on one line at 300px</p>`;
+  const box = el("div", "rail-solo");
+  segRun(fTaskA, TASKS, "Single-label", false);
+  box.appendChild(fTaskA);
+  railA.appendChild(box);
+  document.getElementById("s1a").appendChild(railA);
+
+  railB.innerHTML = `<h3>B · a grid of two rows, the long face spanning</h3>` +
+    `<p class="sub">w-seg-grid; "Binary / multi-label" takes the full row</p>`;
+  const box2 = el("div", "rail-solo");
+  segRun(fTaskB, [{ label: "Regression" }, { label: "Single-label" },
+    { label: "Binary / multi-label", span: true }], "Single-label", true);
+  box2.appendChild(fTaskB);
+  railB.appendChild(box2);
+  document.getElementById("s1a").appendChild(railB);
+}
+
+/* --- (b) the detail line against the case table ---------------------------- */
+const contrastA = el("div", "cand");
+const contrastB = el("div", "cand");
+const fDetail = field("Task", "softmax over the row · one class index, long");
+let RB = null;
+{
+  contrastA.innerHTML = `<h3>A · one detail line, changing with the selection</h3>` +
+    `<p class="sub">w-detail under the buttons; the other two readings are not on screen</p>`;
+  const box = el("div", "rail-solo");
+  segRun(fDetail, TASKS, "Single-label", false);
+  box.appendChild(fDetail);
+  contrastA.appendChild(box);
+  document.getElementById("s1b").appendChild(contrastA);
+
+  contrastB.innerHTML = `<h3>B · a readback case table, all three rows at rest</h3>` +
+    `<p class="sub">w-readback, three rows and one column, the chosen row lit</p>`;
+  const box2 = el("div", "rail-solo");
+  const f = field("Task", "");
+  segRun(f, TASKS, "Single-label", false);
+  box2.appendChild(f);
+  RB = readback(RB_ROWS, ["inside the loss · the target"], RB_CELLS, [1, 0]);
+  box2.appendChild(RB.wrap);
+  contrastB.appendChild(box2);
+  document.getElementById("s1b").appendChild(contrastB);
+}
+
+/* --- (c) the per-page controls --------------------------------------------- */
+const perPage = el("div", "cand");
+const altPage = el("div", "cand");
+const fPredM = field("y_pred", "the three predictions, as the tensor is written");
+const fTrueM = field("y_true", "the three targets");
+const fPredC = field("y_pred", "one score per class");
+const fLabelC = field("y_true", "the index of the true class");
+const fPredB = field("y_pred", "one score per class");
+const fLabelB = field("y_true", "the classes the target says are present");
+{
+  perPage.innerHTML = `<h3>A · the tensors as torch prints them, one set per page</h3>` +
+    `<p class="sub">Regression · Single-label · Multi-label, stacked here to be measured together</p>`;
+  const box = el("div", "rail-solo");
+  textField(fPredM, "2.5, 0, 2.1");
+  textField(fTrueM, "3, -0.5, 2");
+  box.appendChild(el("p", "w-section", "Regression"));
+  box.appendChild(fPredM); box.appendChild(fTrueM);
+  textField(fPredC, "5, 0.5, 0.1");
+  choice(fLabelC, ["0", "1", "2"], "0");
+  box.appendChild(el("p", "w-section", "Single-label"));
+  box.appendChild(fPredC); box.appendChild(fLabelC);
+  textField(fPredB, "0.2, -1, 0.5, 2, -0.3");
+  boolsRow(fLabelB, LETTERS, [0, 1, 1, 0, 0]);
+  box.appendChild(el("p", "w-section", "Multi-label"));
+  box.appendChild(fPredB); box.appendChild(fLabelB);
+  perPage.appendChild(box);
+  document.getElementById("s1c").appendChild(perPage);
+
+  altPage.innerHTML = `<h3>B · one Class segmented and one Score slider, shared by the three pages</h3>` +
+    `<p class="sub">the held element and its value, with the rest of the row fixed</p>`;
+  const box2 = el("div", "rail-solo");
+  const fClass = field("Class", "which element the score belongs to");
+  segRun(fClass, LETTERS, "A", false);
+  const fScore = field("Score", "the model's output for that class");
+  choice(fScore, ["-3", "0", "2", "5", "8"], "5");
+  box2.appendChild(fClass); box2.appendChild(fScore);
+  altPage.appendChild(box2);
+  document.getElementById("s1c").appendChild(altPage);
+}
+
+/* ============================ the three stages ============================= */
+/**
+ * The Single-label page. `stage` is how far the walk has landed: 0 the scores
+ * alone, 1 the softmax row, 2 the target, 3 the loss. A row that has not landed
+ * draws its frame pale and no values — the reveal rule composition's decision 14
+ * settled: a band is a value, not a layer, so the preview draws the frame and
+ * leaves the tensor to the step that computes it.
+ */
+function drawCE(host, title, sub, o) {
+  const SW = o.stageW ?? W;
+  const usable = SW - 2 * PAD;
+  const below = o.curve === "below";
+  const none = o.curve === "none";
+  const leftW = none ? usable : (below ? usable : usable - CURVE_W - GAP);
+  const n = CE_Z.length;
+  const sumCols = n + 1;
+  const pitch = Math.min(PITCH_CAP, Math.floor(leftW / sumCols));
+  const stage = o.stage ?? 3;
+  const scores = o.scores ?? CE_Z;
+  const P = softmax(scores);
+  const label = o.label ?? CE_LABEL;
+  const loss = -Math.log(P[label]);
+  const bad = o.dtype === "float32";
+
+  const rowsH = 2 * ROW_LBL + BAR_H + LINE + 10        // scores, its dtype line
+    + EDGE                                          // the softmax arrow
+    + ROW_LBL + CH + 12                             // p, and the row-sum column
+    + ROW_LBL + CH + LINE + 12                      // target chips, and its dtype line
+    + (bad ? LINE * 2 + 6 : LINE + 10);             // the loss line, or torch's message
+  const capH = 2 * LINE;
+  const H = 26 + Math.max(rowsH, none ? 0 : (below ? rowsH : CURVE_H))
+    + (below ? GAP + CURVE_H : 0) + CAP_GAP + capH + PAD;
+  const { ctx, cand } = panel(host, title, sub, SW, H);
+
+  let y = band(ctx, 0, SW, "Single-label · CrossEntropyLoss", "loss = −log p[label]");
+  const top = y;
+  const x = PAD;
+
+  /* the scores row — always drawn, whatever the walk has reached */
+  /* the row's name on its own line: at 300px the first class letter sits 51px in
+     and `Output (N)` is 62px wide, so sharing a line puts the two on top of
+     each other */
+  rowLabel(ctx, x, y, "Output (N)", { mono: false });
+  y += ROW_LBL;
+  let bars;
+  if (o.scoreForm === "cells") {
+    y += ROW_LBL;
+    for (let i = 0; i < n; i += 1) {
+      txt(ctx, LETTERS[i], x + i * pitch + pitch / 2, y - 6,
+        { color: T.ink1, align: "center", mono: true, size: T.fsSm });
+    }
+    cellRow(ctx, x, y, n, pitch, (i) =>
+      ({ text: scores[i].toFixed(1), hue: T.groupA, lit: o.held === i }));
+    y += BAR_H;
+    bars = { pitch, colX: (i) => x + i * pitch + pitch / 2 };
+  } else {
+    bars = barRow(ctx, x, y, leftW, scores,
+      { letters: LETTERS, held: o.held, pitch, range: o.fit ? null : (o.range ?? CE_RANGE) });
+    y += bars.h;
+  }
+  y += dtypeLine(ctx, x, y, `${shapeText([1, n])}, float32`);
+  y += 10;
+
+  /* softmax over the row */
+  fnArrow(ctx, bars.colX(0), y, y + EDGE, "softmax over the row",
+    stage >= 1 ? T.axis : T.grid);
+  y += EDGE;
+  rowLabel(ctx, x, y, "p", { color: stage >= 1 ? T.ink2 : T.ink3 });
+  txt(ctx, "row sum", x + n * pitch + pitch / 2, y + 11,
+    { color: T.ink3, align: "center", size: T.fsXs });
+  y += ROW_LBL;
+  cellRow(ctx, x, y, n, pitch, (i) => (stage >= 1
+    ? { text: n4(P[i]), hue: T.empirical, lit: stage >= 2 && i === label }
+    : { empty: true }));
+  /* the sum column sits OUTSIDE the tensor, with no fill: it is a reading of the
+     row rather than a fourth probability (support-layers/main.js:819) */
+  valueCell(ctx, x + n * pitch, y, pitch, CH,
+    stage >= 1 ? n4(P.reduce((a, b) => a + b, 0)) : "", { plain: true, empty: stage < 1 });
+  y += CH + 12;
+
+  /* the target */
+  rowLabel(ctx, x, y, "Target", { mono: false, color: stage >= 2 ? T.ink2 : T.ink3 });
+  y += ROW_LBL;
+  chipRow(ctx, x, y, n, pitch, (i) =>
+    (stage >= 2 ? { text: LETTERS[i], on: i === label, lit: false } : { text: "", empty: true }));
+  y += CH;
+  y += dtypeLine(ctx, x, y, `${shapeText([1])}, ${bad ? "float32" : "long"}`,
+    bad ? T.extreme : T.ink3);
+  y += 12;
+
+  /* the answer, which lands last */
+  let errRows = 0;
+  if (bad) {
+    errRows = errorText(ctx, x, y + 11, none ? usable : leftW, ERR_CE).rows;
+  } else if (stage >= 3) {
+    txt(ctx, `loss = −log ${n4(P[label])} = `, x, y + 12, { color: T.ink2, mono: true, size: T.fsSm });
+    ctx.font = `${T.fsSm} ${MONO}`;
+    const w0 = ctx.measureText(`loss = −log ${n4(P[label])} = `).width;
+    txt(ctx, n4(loss), x + w0, y + 12,
+      { color: T.empirical, mono: true, size: T.fsSm, weight: "600" });
+  }
+
+  /* the curve, and the point the reader is moving */
+  let cinfo = null;
+  if (!none) {
+    const cx = below ? PAD : PAD + leftW + GAP;
+    const cy = below ? top + rowsH + GAP : top;
+    const cw = below ? Math.min(usable, 320) : CURVE_W;
+    cinfo = logCurve(ctx, cx, cy, cw, CURVE_H,
+      stage >= 1 ? [{ p: P[label], lit: true }] : []);
+    M.curveRight = Math.round(cinfo.right - cinfo.px(CE_P[CE_LABEL]));
+    M.curveMove = Math.round(cinfo.px(CE_P[0]) - cinfo.px(CE_P_DRAG[0]));
+  }
+
+  const capY = H - PAD - LINE + 2;
+  const caps = bad
+    ? ["The target is float32, and CrossEntropyLoss reads the class index as long."]
+    : stage === 0
+      ? ["Three classes, one score each."]
+      : o.held != null
+        ? [`The score for class ${LETTERS[o.held]} is ${scores[o.held].toFixed(1)}. The probability given to class`,
+          `${LETTERS[label]} is ${n4(P[label])} and the loss is ${n4(loss)}.`]
+        : ["The three scores become one distribution over the classes, and it sums to 1.",
+          "The loss is the negative log of the probability given to the true class."];
+  caps.forEach((c, i) => caption(ctx, PAD, capY + (i - caps.length + 1) * LINE + LINE - 2, c));
+
+  if (!o.bare) {
+    note(cand, `stage ${SW} · rows column ${leftW}px · pitch ${pitch}px, bar ${bars.barW ?? pitch}px · ` +
+      `${sumCols} columns at pitch = ${sumCols * pitch}px in ${leftW}px · ` +
+      (bad ? `torch's message ${errRows} line${errRows === 1 ? "" : "s"} · ` : "") +
+      `stage ${H}px tall`);
+  }
+  return { H, pitch, leftW, sumCols, errRows, cand, heights: bars.heights ?? [] };
+}
+
+/**
+ * The Multi-label page. Two more rows than Single-label: the probability given
+ * to each class's OWN label, and the per-class term. `sum` draws the row-sum
+ * column in the position the Single-label page uses it.
+ */
+function drawBCE(host, title, sub, o) {
+  const SW = o.stageW ?? W;
+  const usable = SW - 2 * PAD;
+  const leftW = usable - CURVE_W - GAP;
+  const n = BCE_Z.length;
+  const cols = n + (o.sum ? 1 : 0);
+  const pitch = Math.min(PITCH_CAP, Math.floor(leftW / cols));
+  const stage = o.stage ?? 5;
+  const bad = o.dtype === "long";
+  const held = o.held ?? BCE_HELD;
+
+  const rowsH = 2 * ROW_LBL + BAR_H + LINE + 10
+    + EDGE
+    + ROW_LBL + CH + 12                    // sigmoid
+    + ROW_LBL + CH + LINE + 12             // y, and its dtype line
+    + ROW_LBL + CH + 10                    // p at the true label
+    + ROW_LBL + CH + 12                    // −log p
+    + LINE + 10;                           // the mean
+  const capH = 2 * LINE;
+  const H = 26 + Math.max(rowsH, CURVE_H) + CAP_GAP + capH + PAD;
+  const { ctx, cand } = panel(host, title, sub, SW, H);
+
+  let y = band(ctx, 0, SW, "Multi-label · BCEWithLogitsLoss", "loss = mean(−log p[y])");
+  const top = y;
+  const x = PAD;
+
+  /* the row's name on its own line: at 300px the first class letter sits 51px in
+     and `Output (N)` is 62px wide, so sharing a line puts the two on top of
+     each other */
+  rowLabel(ctx, x, y, "Output (N)", { mono: false });
+  y += ROW_LBL;
+  const bars = barRow(ctx, x, y, leftW, BCE_Z, { letters: LETTERS, held, pitch, range: BCE_RANGE });
+  y += bars.h;
+  y += dtypeLine(ctx, x, y, `${shapeText([1, n])}, float32`);
+  y += 10;
+
+  fnArrow(ctx, bars.colX(0), y, y + EDGE, "sigmoid per class", stage >= 1 ? T.axis : T.grid);
+  y += EDGE;
+  rowLabel(ctx, x, y, "p", { color: stage >= 1 ? T.ink2 : T.ink3 });
+  if (o.sum) {
+    txt(ctx, "row sum", x + n * pitch + pitch / 2, y + 11,
+      { color: T.ink3, align: "center", size: T.fsXs });
+  }
+  y += ROW_LBL;
+  cellRow(ctx, x, y, n, pitch, (i) => (stage >= 1
+    ? { text: n4(BCE_S[i]), hue: T.empirical, lit: i === held }
+    : { empty: true }));
+  if (o.sum) {
+    valueCell(ctx, x + n * pitch, y, pitch, CH, stage >= 1 ? n4(BCE_SUM) : "",
+      { plain: true, empty: stage < 1 });
+  }
+  y += CH + 12;
+
+  rowLabel(ctx, x, y, "Target", { mono: false, color: stage >= 2 ? T.ink2 : T.ink3 });
+  y += ROW_LBL;
+  chipRow(ctx, x, y, n, pitch, (i) => (stage >= 2
+    ? { text: String(BCE_Y[i]), on: BCE_Y[i] === 1 }
+    : { text: "", empty: true }));
+  y += CH;
+  y += dtypeLine(ctx, x, y, `${shapeText([1, n])}, ${bad ? "long" : "float32"}`,
+    bad ? T.extreme : T.ink3);
+  y += 12;
+
+  rowLabel(ctx, x, y, "p at the true label", { color: stage >= 3 ? T.ink2 : T.ink3 });
+  y += ROW_LBL;
+  cellRow(ctx, x, y, n, pitch, (i) => (stage >= 3
+    ? { text: n4(BCE_PT[i]), hue: T.empirical, lit: i === held }
+    : { empty: true }));
+  y += CH + 10;
+
+  rowLabel(ctx, x, y, "−log p", { color: stage >= 4 ? T.ink2 : T.ink3 });
+  y += ROW_LBL;
+  cellRow(ctx, x, y, n, pitch, (i) => (stage >= 4
+    ? { text: n4(BCE_TERM[i]), hue: T.empirical, lit: i === held }
+    : { empty: true }));
+  y += CH + 12;
+
+  let errRows = 0;
+  if (bad) {
+    errRows = errorText(ctx, x, y + 11, leftW, ERR_BCE).rows;
+  } else if (stage >= 5) {
+    const lead = "loss = mean(−log p) = ";
+    txt(ctx, lead, x, y + 12, { color: T.ink2, mono: true, size: T.fsSm });
+    ctx.font = `${T.fsSm} ${MONO}`;
+    txt(ctx, n4(BCE_LOSS), x + ctx.measureText(lead).width, y + 12,
+      { color: T.empirical, mono: true, size: T.fsSm, weight: "600" });
+  }
+
+  const cinfo = logCurve(ctx, PAD + leftW + GAP, top, CURVE_W, CURVE_H,
+    stage >= 3 ? BCE_PT.map((p, i) => ({ p, lit: i === held })) : []);
+  M.bceCurveSpread = Math.round(cinfo.px(Math.max(...BCE_PT)) - cinfo.px(Math.min(...BCE_PT)));
+
+  const capY = H - PAD - LINE + 2;
+  const caps = bad
+    ? ["The target is long, and BCEWithLogitsLoss reads a 0 or a 1 per class as float32."]
+    : ["Each class has its own probability, so the five do not sum to 1.",
+      `The loss is the mean of the five terms, and class ${LETTERS[held]} contributes ${n4(BCE_TERM[held])}.`];
+  caps.forEach((c, i) => caption(ctx, PAD, capY + (i - caps.length + 1) * LINE + LINE - 2, c));
+
+  if (!o.bare) {
+    note(cand, `stage ${SW} · rows column ${leftW}px · pitch ${pitch}px, bar ${bars.barW}px · ` +
+      `${cols} columns at pitch = ${cols * pitch}px in ${leftW}px · ` +
+      (bad ? `torch's message ${errRows} line${errRows === 1 ? "" : "s"} · ` : "") +
+      `stage ${H}px tall`);
+  }
+  return { H, pitch, leftW, cols, barW: bars.barW, errRows, cand };
+}
+
+/**
+ * The Regression page. The target is a tick on the bar's own axis, the gap the
+ * bracket between them; `squares` draws the squared row as an area of side
+ * |gap| at the bars' px-per-unit, otherwise as cells.
+ */
+function drawMSE(host, title, sub, o) {
+  const SW = o.stageW ?? W;
+  const usable = SW - 2 * PAD;
+  const leftW = usable - CURVE_W - GAP;
+  const n = MSE_PRED.length;
+  const pitch = Math.min(PITCH_CAP, Math.floor(leftW / n));
+  const stage = o.stage ?? 3;
+  const areas = o.squares === "area";
+  const AREA_H = 92;
+
+  const rowsH = 2 * ROW_LBL + BAR_H + LINE + 10
+    + EDGE
+    + ROW_LBL + CH + LINE + 12                     // y_true, drawn as its own row
+    + EDGE
+    + (areas ? 0 : ROW_LBL + CH + 10)              // the gap as numbers, where it is not a bracket alone
+    + ROW_LBL + (areas ? AREA_H : CH) + 12         // the squared row
+    + LINE + 10;
+  const capH = 2 * LINE;
+  const H = 26 + Math.max(rowsH, CURVE_H) + CAP_GAP + capH + PAD;
+  const { ctx, cand } = panel(host, title, sub, SW, H);
+
+  let y = band(ctx, 0, SW, "Regression · MSELoss", "loss = mean((y_pred − y_true)²)");
+  const top = y;
+  const x = PAD;
+
+  /* the row's name on its own line: at 300px the first class letter sits 51px in
+     and `Output (N)` is 62px wide, so sharing a line puts the two on top of
+     each other */
+  rowLabel(ctx, x, y, "Output (N)", { mono: false });
+  y += ROW_LBL;
+  const bars = barRow(ctx, x, y, leftW, MSE_PRED,
+    { letters: LETTERS, held: o.held, pitch, range: MSE_RANGE, ticks: stage >= 1 ? MSE_TRUE : null });
+  /* the gap as a bracket between the bar's top and the target's tick */
+  if (stage >= 1) {
+    MSE_GAP.forEach((g, i) => {
+      const cx = bars.colX(i) + bars.barW / 2 + 9;
+      const y0 = bars.py(MSE_PRED[i]);
+      const y1 = bars.py(MSE_TRUE[i]);
+      ctx.strokeStyle = T.empirical; ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(cx, y0); ctx.lineTo(cx, y1);
+      ctx.moveTo(cx - 3, y0); ctx.lineTo(cx + 3, y0);
+      ctx.moveTo(cx - 3, y1); ctx.lineTo(cx + 3, y1);
+      ctx.stroke();
+      txt(ctx, n2(g), cx + 5, (y0 + y1) / 2 + 3.5,
+        { color: T.empirical, mono: true, size: T.fsXs });
+    });
+  }
+  y += bars.h;
+  y += dtypeLine(ctx, x, y, `${shapeText([1, n])}, float32`);
+  y += 10;
+
+  /* a plain arrow into the target, as the figure has it: the target is given,
+     not computed */
+  fnArrow(ctx, bars.colX(0), y, y + EDGE, "", stage >= 1 ? T.axis : T.grid);
+  y += EDGE;
+  rowLabel(ctx, x, y, "Target", { mono: false, color: stage >= 1 ? T.ink2 : T.ink3 });
+  y += ROW_LBL;
+  cellRow(ctx, x, y, n, pitch, (i) => (stage >= 1
+    ? { text: MSE_TRUE[i].toFixed(2), hue: T.reference }
+    : { empty: true }));
+  y += CH;
+  y += dtypeLine(ctx, x, y, `${shapeText([1, n])}, float32`);
+  y += 12;
+
+  fnArrow(ctx, bars.colX(0), y, y + EDGE, "y_pred − y_true", stage >= 2 ? T.axis : T.grid);
+  y += EDGE;
+  if (!areas) {
+    rowLabel(ctx, x, y, "gap", { color: stage >= 2 ? T.ink2 : T.ink3 });
+    y += ROW_LBL;
+    cellRow(ctx, x, y, n, pitch, (i) => (stage >= 2
+      ? { text: n2(MSE_GAP[i]), hue: T.empirical, lit: o.held === i }
+      : { empty: true }));
+    y += CH + 10;
+  }
+
+  const sqTop = y;
+  rowLabel(ctx, x, y, "gap²", { color: stage >= 2 ? T.ink2 : T.ink3 });
+  y += ROW_LBL;
+  const sides = MSE_GAP.map((g) => Math.abs(g) * bars.unitPx);
+  if (areas) {
+    MSE_GAP.forEach((g, i) => {
+      const side = sides[i];
+      const cx = bars.colX(i);
+      const by = y + AREA_H - 2;
+      if (stage >= 2) {
+        ctx.fillStyle = wash(T.empirical, 0.22);
+        ctx.fillRect(cx - side / 2, by - side, side, side);
+        ctx.strokeStyle = T.empirical; ctx.lineWidth = 1.5;
+        ctx.strokeRect(cx - side / 2 + 0.75, by - side + 0.75, Math.max(0.5, side - 1.5), Math.max(0.5, side - 1.5));
+        txt(ctx, n4(MSE_SQ[i]), cx, by - side - 4,
+          { color: T.ink1, align: "center", mono: true, size: T.fsXs });
+      } else {
+        ctx.strokeStyle = T.grid; ctx.lineWidth = 1;
+        ctx.strokeRect(cx - 20.5, by - 40.5, 41, 41);
+      }
+      txt(ctx, `${Math.round(side)}px`, cx, by + 11,
+        { color: T.ink3, align: "center", mono: true, size: T.fsXs });
+    });
+    y += AREA_H;
+  } else {
+    cellRow(ctx, x, y, n, pitch, (i) => (stage >= 2
+      ? { text: n4(MSE_SQ[i]), hue: T.empirical, lit: o.held === i }
+      : { empty: true }));
+    y += CH;
+  }
+  y += 12;
+
+  if (stage >= 3) {
+    const lead = "loss = mean(gap²) = ";
+    txt(ctx, lead, x, y + 12, { color: T.ink2, mono: true, size: T.fsSm });
+    ctx.font = `${T.fsSm} ${MONO}`;
+    txt(ctx, n4(MSE_LOSS), x + ctx.measureText(lead).width, y + 12,
+      { color: T.empirical, mono: true, size: T.fsSm, weight: "600" });
+  }
+
+  parabolaPanel(ctx, PAD + leftW + GAP, top, CURVE_W, CURVE_H,
+    stage >= 1 ? MSE_GAP : [], o.held ?? -1);
+
+  const capY = H - PAD - LINE + 2;
+  const caps = ["Each prediction is compared with its own target, on the same axis.",
+    "The loss is the mean of the three squared gaps."];
+  caps.forEach((c, i) => caption(ctx, PAD, capY + (i - caps.length + 1) * LINE + LINE - 2, c));
+
+  if (!o.bare) {
+    note(cand, `stage ${SW} · rows column ${leftW}px · pitch ${pitch}px, bar ${bars.barW}px · ` +
+      `${bars.unitPx.toFixed(1)}px per unit · squares ${sides.map((s) => s.toFixed(1)).join(" · ")}px · ` +
+      `stage ${H}px tall`);
+  }
+  M.unitPx = bars.unitPx;
+  M.sqSides = sides;
+  M.msePitch = pitch;
+  M.mseBarW = bars.barW;
+  return { H, pitch, sides, unitPx: bars.unitPx, cand, sqTop };
+}
+
+/* ============================ §2 · Single-label ============================= */
+{
+  const a = drawCE(document.getElementById("s2a"), "A · bars, with the bar's top as the drag target",
+    "a zero line, one bar per class under its letter, the value at the bar's end",
+    { stage: 3, held: 0, curve: "right" });
+  const b = drawCE(document.getElementById("s2a"), "B · the sibling widgets' cell grid",
+    "one number per cell at the column pitch, dragged to scrub the number",
+    { stage: 3, held: 0, curve: "right", scoreForm: "cells" });
+  const c = drawCE(document.getElementById("s2b"), "A · the curve right of the rows, at 550",
+    "the same drawing as (a) A: the rows take the left column and the curve the 200px beside it",
+    { stage: 3, curve: "right" });
+  const d = drawCE(document.getElementById("s2b"), "B · the curve below the rows, at 550",
+    "the rows take the whole 522 and the curve sits under them",
+    { stage: 3, curve: "below" });
+  M.ceNoCurve = a.H; M.ceCells = b.H; M.ceRight = c.H; M.ceBelow = d.H;
+  M.cePitch = c.pitch; M.ceLeft = c.leftW; M.ceCols = c.sumCols;
+
+  const rest = drawCE(document.getElementById("s2c"), "the recommended form · at rest",
+    "the scores are drawn, every row below previews its frame and waits for its step",
+    { stage: 0, curve: "right" });
+  const settled = drawCE(document.getElementById("s2c"), "the recommended form · settled",
+    "softmax with its row sum outside the tensor, the true class filled, the point on the curve",
+    { stage: 3, curve: "right" });
+  const drag = drawCE(document.getElementById("s2c"),
+    "the recommended form · settled, the score for A dragged to 1.0",
+    "every row moves together and the figure stays finished (4.4)",
+    { stage: 3, curve: "right", held: 0, scores: CE_Z_DRAG });
+  M.ceRest = rest.H; M.ceSettled = settled.H; M.ceDrag = drag.H;
+  M.fitRest = settled.heights; M.fitDrag = drag.heights;
+
+  /* (c) the axis: fitted to what is on screen, against fixed over the drag's
+     own range. The pair is drawn at rest and dragged so the bars the reader did
+     not touch can be compared between the two. */
+  const RANGE = CE_RANGE;
+  const f1 = drawCE(document.getElementById("s2d"), "the axis fitted · at rest",
+    "the band spans the values on screen", { stage: 3, curve: "none", fit: true });
+  const f2 = drawCE(document.getElementById("s2d"), "the axis fitted · A dragged to 1.0",
+    "B and C did not move, and their bars are five times taller",
+    { stage: 3, curve: "none", fit: true, held: 0, scores: CE_Z_DRAG });
+  const g1 = drawCE(document.getElementById("s2d"), "the axis fixed at −2 .. 6 · at rest",
+    "the band spans every value the drag reaches", { stage: 3, curve: "none" });
+  const g2 = drawCE(document.getElementById("s2d"), "the axis fixed at −2 .. 6 · A dragged to 1.0",
+    "only the dragged bar moves", { stage: 3, curve: "none", held: 0, scores: CE_Z_DRAG });
+  M.fitB = [f1.heights[1], f2.heights[1]];
+  M.fixB = [g1.heights[1], g2.heights[1]];
+  M.fitA = [f1.heights[0], f2.heights[0]];
+  M.fixA = [g1.heights[0], g2.heights[0]];
+  M.fixC = [g1.heights[2], g2.heights[2]];
+  M.range = RANGE;
+}
+
+/* ============================ §3 · Multi-label ============================== */
+{
+  const a = drawBCE(document.getElementById("s3a"), "A · no sum column, at 550",
+    "the five sigmoids and nothing beside them",
+    { stage: 5, sum: false });
+  const b = drawBCE(document.getElementById("s3a"), "B · the sum in the column the other page uses",
+    "unfilled and outside the tensor, reading 2.7476 where softmax's reads 1.0000",
+    { stage: 5, sum: true });
+  const wide = drawBCE(document.getElementById("s3b"), "B at the 770 frame",
+    "the same six columns with the rows column 220px wider",
+    { stage: 5, sum: true, stageW: WIDE });
+  M.bce550 = b.H; M.bce770 = wide.H;
+  M.bcePitch550 = b.pitch; M.bcePitch770 = wide.pitch;
+  M.bceLeft550 = b.leftW; M.bceLeft770 = wide.leftW;
+  M.bceNoSum = a.pitch;
+  M.bceBar550 = b.barW; M.bceBar770 = wide.barW;
+}
+
+/* ============================ §4 · Regression =============================== */
+{
+  const a = drawMSE(document.getElementById("s4a"), "A · the square as an area of side |gap|",
+    "at the bars' own px-per-unit, so the three squares are drawn to one scale",
+    { stage: 3, squares: "area" });
+  const b = drawMSE(document.getElementById("s4b"), "B · the squared row as cells",
+    "gap on the bracket, gap² in the cell, the mean under it",
+    { stage: 3, squares: "cells", held: 2 });
+  M.mseArea = a.H; M.mseCells = b.H;
+  M.areaSides = a.sides;
+  /* what a four-decimal value needs, against what a column gives it, and how
+     wide the label of the smallest square is against the square itself */
+  const probe = document.createElement("canvas").getContext("2d");
+  probe.font = `${T.fsXs} ${MONO}`;
+  M.cellNeed = Math.ceil(probe.measureText("0.9818").width) + 10;
+  M.labelW = Math.ceil(probe.measureText("0.0100").width);
+  /* what a dragged gap would need: the parabola's own extreme, y_pred[0] at -1
+     gives a gap of -4 (measure script §1), and a gap of 3 is the slider's own
+     end at y_pred[0] = 6 */
+  M.side3 = 3 * a.unitPx;
+  M.side4 = 4 * a.unitPx;
+}
+
+/* ============================ §5 · the case that fails ===================== */
+{
+  const a = drawCE(document.getElementById("s5a"), "A · dtype = float32 on the Single-label page",
+    "torch's own message where the loss number would be, and no number",
+    { stage: 3, curve: "right", dtype: "float32" });
+  const b = drawBCE(document.getElementById("s5a"), "A · dtype = long on the Multi-label page",
+    "the same control, the other arm, the other message",
+    { stage: 5, sum: true, dtype: "long" });
+  const probe = document.createElement("canvas").getContext("2d");
+  probe.font = `${T.fsSm} ${MONO}`;
+  M.errCEw = Math.round(probe.measureText(ERR_CE).width);
+  M.errBCEw = Math.round(probe.measureText(ERR_BCE).width);
+  M.errCErows = a.errRows;
+  M.errBCErows = b.errRows;
+  M.errCol = a.leftW;
+  M.dtypeH = a.H;
+}
+
+/* ============================ §6 · the curve's axis ======================== */
+{
+  const CW6 = 250, CH6 = 190;
+  const mk = (title, sub, draw) => {
+    const { ctx, cand } = panel(document.getElementById("s6a"), title, sub, CW6 + 2 * PAD, CH6 + 2 * PAD);
+    const r = draw(ctx);
+    return { r, cand };
+  };
+  const held = [{ p: CE_P[CE_LABEL], lit: true }];
+  const heldDrag = [{ p: CE_P_DRAG[CE_LABEL], lit: true }];
+  const A1 = mk("A · −log p at the notebook's values", "p = 0.9818, loss = 0.0184",
+    (ctx) => logCurve(ctx, PAD, PAD, CW6, CH6, held));
+  const A2 = mk("A · −log p with the score for A at 1.0", "p = 0.4967, loss = 0.6997",
+    (ctx) => logCurve(ctx, PAD, PAD, CW6, CH6, heldDrag));
+  const fz = (z) => -Math.log(softmax([z, CE_Z[1], CE_Z[2]])[0]);
+  mk("B · loss against the dragged score, at 5.0", "z from −3 to 8, the other two scores held",
+    (ctx) => zCurve(ctx, PAD, PAD, CW6, CH6, -3, 8, fz, [{ z: 5, lit: true }]));
+  mk("B · loss against the dragged score, at 1.0", "the same curve, the point moved",
+    (ctx) => zCurve(ctx, PAD, PAD, CW6, CH6, -3, 8, fz, [{ z: 1, lit: true }]));
+  const fz1 = (z) => -Math.log(softmax([CE_Z[0], z, CE_Z[2]])[0]);
+  mk("B · the same page, holding class B instead", "a different curve for a different held element",
+    (ctx) => zCurve(ctx, PAD, PAD, CW6, CH6, -3, 8, fz1,
+      [{ z: 0.5, lit: true }], { xlab: "score for class B" }));
+  const fzB = (z) => -Math.log(1 - sigmoid(z));
+  mk("B · the Multi-label page, class D held", "z from −4 to 4, y = 0: a third curve again",
+    (ctx) => zCurve(ctx, PAD, PAD, CW6, CH6, -4, 4, fzB,
+      [{ z: 2, lit: true }], { xlab: "score for class D" }));
+  /* how far the point travels on each, over the same drag */
+  M.aMove = Math.round(A1.r.px(CE_P[0]) - A2.r.px(CE_P_DRAG[0]));
+  M.aFromRight = Math.round(A1.r.right - A1.r.px(CE_P[0]));
+  M.curveW6 = CW6;
+}
+
+/* ============================ the measured recommendations ================= */
+/* Every rail number is a DOM measurement, so it is taken synchronously and
+   again once the fonts have loaded: the fallback face is not the shipped one,
+   and without the second pass the recommendations and the proof list disagree
+   by a few pixels, which reads as one of them being wrong. */
+function measureAll() {
+  document.querySelectorAll(".rail-measure").forEach((n) => n.remove());
+  const railNote = (host, s) => { note(host, s); host.lastChild.classList.add("rail-measure"); };
+
+  const btn = fTaskA.querySelector(".w-seg-btn");
+  const cs = getComputedStyle(btn);
+  const probe = document.createElement("canvas").getContext("2d");
+  probe.font = `${cs.fontSize} ${cs.fontFamily}`;
+  const btnW = Math.round(btn.getBoundingClientRect().width);
+  const padX = 12;
+  const widths = TASKS.map((l) => Math.round(probe.measureText(l).width));
+  const widest = Math.max(...widths);
+  const widestName = TASKS[widths.indexOf(widest)];
+  const over = TASKS.filter((l) => probe.measureText(l).width + padX > btnW);
+  const spanW = Math.round(probe.measureText("Binary / multi-label").width);
+  const hA = Math.round(fTaskA.getBoundingClientRect().height);
+  const hB = Math.round(fTaskB.getBoundingClientRect().height);
+  railNote(railA, `field ${hA}px · button ${btnW}px · widest face ${widestName} ${widest}px + ${padX}px padding = ${widest + padX}px · truncated: ${over.join(", ") || "none"}`);
+  railNote(railB, `field ${hB}px · ${hB - hA}px taller than A · the spanning face is ${spanW}px of text in ${300 - 2}px`);
+
+  const hDet = Math.round(fDetail.getBoundingClientRect().height);
+  const rbH = Math.round(RB.grid.getBoundingClientRect().height);
+  const cell = RB.cellEls[1][0];
+  const rect = cell.getBoundingClientRect();
+  const ccs = getComputedStyle(cell);
+  probe.font = `${ccs.fontSize} ${ccs.fontFamily}`;
+  const cellTextW = Math.round(probe.measureText(RB_CELLS[1][0]).width);
+  const cellW = Math.round(rect.width - 12);
+  const oneLine = Math.round(parseFloat(ccs.lineHeight) || 14);
+  const cellLines = Math.max(1, Math.round((rect.height - 10) / oneLine));
+  railNote(contrastA, `field ${hDet}px, one reading visible`);
+  railNote(contrastB, `table ${rbH}px · the widest cell is ${cellTextW}px of text in ${cellW}px, so it wraps to ${cellLines} lines · a row is ${Math.round(rect.height)}px`);
+
+  const hPer = Math.round(perPage.querySelector(".rail-solo").getBoundingClientRect().height);
+  const hAlt = Math.round(altPage.querySelector(".rail-solo").getBoundingClientRect().height);
+  railNote(perPage, `three pages' fields stacked ${hPer}px · Multi-label's own three fields ${Math.round(fPredB.getBoundingClientRect().height + fLabelB.getBoundingClientRect().height)}px`);
+  railNote(altPage, `${hAlt}px · one score parameter, one default, carried across the three pages`);
+
+  M.btnW = btnW; M.widest = widest; M.widestName = widestName; M.over = over;
+  M.spanW = spanW; M.hA = hA; M.hB = hB;
+  M.hDet = hDet; M.rbH = rbH; M.cellTextW = cellTextW; M.cellW = cellW; M.cellLines = cellLines;
+  M.rbRow = Math.round(rect.height);
+  M.hPer = hPer; M.hAlt = hAlt;
+  M.railFull = Math.round(FULL_RAIL.getBoundingClientRect().height);
+  railNote(FULL_WRAP, `rail ${M.railFull}px against the shortest stage ${M.shortest}px (${M.shortestName}), the rail is ${M.railFull > M.shortest ? `${M.railFull - M.shortest}px taller` : `${M.shortest - M.railFull}px shorter`}`);
+
+  writeRecs();
+}
+
+/* --- the whole Multi-label rail, beside the shortest stage ----------------- */
+let FULL_RAIL = null;
+let FULL_WRAP = null;
+{
+  const split = el("div", "w-split");
+  const rail = el("div", "w-rail");
+  const controls = el("div", "w-controls");
+  const fT = field("Task", "");
+  segRun(fT, TASKS, "Multi-label", false);
+  controls.appendChild(fT);
+  const rb = readback(RB_ROWS, ["inside the loss · the target"], RB_CELLS, [2, 0]);
+  controls.appendChild(rb.wrap);
+  const fP = field("y_pred", "one score per class");
+  textField(fP, "0.2, -1, 0.5, 2, -0.3");
+  controls.appendChild(fP);
+  const fY = field("y_true", "the classes the target says are present");
+  boolsRow(fY, LETTERS, [0, 1, 1, 0, 0]);
+  controls.appendChild(fY);
+  const fD = field("Target dtype", "what the tensor holds when the loss reads it");
+  segRun(fD, ["long", "float32"], "float32", false);
+  controls.appendChild(fD);
+  const fSp = field("Play speed", "");
+  segRun(fSp, ["Slow", "Medium", "Fast"], "Medium", false);
+  controls.appendChild(fSp);
+  rail.appendChild(controls);
+  rail.appendChild(driveBlock("Next row"));
+  split.appendChild(rail);
+  const stageBox = el("div", "w-stage");
+  split.appendChild(stageBox);
+
+  const wrap = el("div", "cand");
+  wrap.innerHTML = `<h3>the whole Multi-label rail, the longest in the widget, beside the shortest stage</h3>` +
+    `<p class="sub">task, the case table, y_pred, five class switches, target dtype, Play speed, the drive block</p>`;
+  wrap.appendChild(split);
+  document.getElementById("s1d").appendChild(wrap);
+  const shortCE = drawCE(stageBox, "", "", { stage: 3, curve: "right", bare: true }).H;
+  const heights = [["Single-label", shortCE], ["Regression", M.mseCells], ["Multi-label", M.bce550]];
+  heights.sort((p, q) => p[1] - q[1]);
+  M.shortest = heights[0][1];
+  M.shortestName = heights.filter(([, h]) => h === M.shortest).map(([k]) => k).join(" and ");
+  M.tallest = heights[heights.length - 1][1];
+  M.ceStageH = shortCE;
+  FULL_RAIL = rail;
+  FULL_WRAP = wrap;
+}
+
+function writeRecs() {
+  const fitsA = M.over.length === 0;
+  document.getElementById("rec1").innerHTML =
+    `<b>(a) Recommend ${fitsA ? "A" : "B"}.</b> A button in one row of three is <b>${M.btnW}px</b> against a ` +
+    `widest face of ${M.widest + 12}px — <code>${M.widestName}</code>, ${M.widest}px of text plus 12px of ` +
+    `padding — so ${fitsA ? "nothing truncates and the three tasks read as the notebook's three rows in one line"
+      : `<code>${M.over.join(", ")}</code> truncates and the grid is what fixes it`}. ` +
+    `B costs ${M.hB - M.hA}px of rail for a spanning face of ${M.spanW}px, and it renames Multi-label to say ` +
+    `what cell 37 says in prose. <b>Keep the notebook's own three names</b> and put the binary case in the ` +
+    `readback row instead, where it costs no rail at all. ` +
+    `<b>(b) Recommend B, the case table.</b> The detail line is ${M.hDet}px of rail and shows one reading; the ` +
+    `table is ${M.rbH}px, ${M.rbH - M.hDet}px more, and shows three. Its widest cell is <b>${M.cellTextW}px</b> ` +
+    `of text in a ${M.cellW}px column, so it wraps to <b>${M.cellLines} lines</b> and a row is ` +
+    `${M.rbRow}px. That is the whole misconception on screen before the reader clicks anything ` +
+    `(3.4g): <i>softmax over the row · one class index, long</i> against <i>sigmoid per class · 0 or 1 per ` +
+    `class, float32</i>. ` +
+    `<b>(c) Recommend A, the tensors as fields.</b> B is ${M.hAlt}px against A's ${M.hPer}px for all three ` +
+    `pages stacked, and it is cheaper only because it is wrong: <b>one <code>score</code> parameter has one ` +
+    `default</b>, so switching task carries class A's 5.0 onto the Multi-label page, whose own class A is 0.2, ` +
+    `and no page would open on the notebook's own numbers. A <code>text</code> parameter per page holds the row ` +
+    `as typed — <code>scores=5,0.5,0.1</code> — which is also what makes the URL readable. The whole ` +
+    `Multi-label rail is <b>${M.railFull}px</b> against the ${M.shortest}px ${M.shortestName} stage, so the ` +
+    `rail sets the page height there; the three stages are ${M.shortest}px, ${M.shortest}px and ` +
+    `${M.tallest}px, so a height per task saves the two short pages ${M.tallest - M.shortest}px each.`;
+
+  document.getElementById("rec2").innerHTML =
+    `<b>(a) Recommend bars.</b> The column pitch is <b>${M.cePitch}px</b> — ${M.ceCols} columns (three classes ` +
+    `and the row sum) in a ${M.ceLeft}px rows column — and a bar is ${Math.round(M.cePitch * 0.56)}px wide, ` +
+    `against a ${M.cePitch}px cell whose whole face is the drag target. The reason is not the target size, it ` +
+    `is that <b>5.0 against 0.1 is a 50:1 ratio the digits do not show</b> and the bars do; and the drag is ` +
+    `this page's only motion, because at rest cell 36 is a right answer at 0.0184 with nothing to watch. ` +
+    `<b>(b) Recommend the curve to the right.</b> Right is <b>${M.ceRight}px</b> tall and below is ` +
+    `<b>${M.ceBelow}px</b>, ${M.ceBelow - M.ceRight}px more, which is the curve's own ${CURVE_H}px plus the ` +
+    `${GAP}px gap. The ${M.ceCols} columns fit the ${M.ceLeft}px left column at ${M.cePitch}px of pitch ` +
+    `against the <b>${M.cellNeed}px</b> a four-decimal cell needs, so there is ${M.cePitch - M.cellNeed}px of ` +
+    `slack per column. The curve beside also puts the ` +
+    `moving point level with the p row it reads, which is 2.7. At rest the stage is ${M.ceRest}px, settled ` +
+    `${M.ceSettled}px and dragged ${M.ceDrag}px — <b>the same height in all three</b>, so the walk lands values ` +
+    `into frames that are already there and nothing below moves. ` +
+    `<b>(c) Fix the bar axis at −${-M.range[0]} to ${M.range[1]} (principle 2.5).</b> Fitted to the values on ` +
+    `screen the drag inverts the figure: class A, the bar being dragged, stays <b>${M.fitA[0].toFixed(0)}px ` +
+    `before and ${M.fitA[1].toFixed(0)}px after</b> — the axis rescales exactly as far as the drag, so the ` +
+    `bar does not move — while <b>class B, which the reader did not touch, goes ${M.fitB[0].toFixed(0)} → ` +
+    `${M.fitB[1].toFixed(0)}px</b>, ${(M.fitB[1] / M.fitB[0]).toFixed(1)}× taller for a score that did not ` +
+    `change. Fixed, A goes ${M.fixA[0].toFixed(0)} → ${M.fixA[1].toFixed(0)}px and B holds at ` +
+    `${M.fixB[0].toFixed(0)}px. The cost is the small bars: at ${(BAR_H / (M.range[1] - M.range[0])).toFixed(1)}px ` +
+    `per unit, 0.5 is ${M.fixB[0].toFixed(1)}px and 0.1 is ${M.fixC[0].toFixed(1)}px, both of which carry their ` +
+    `printed value and neither of which is the thing being read — the p row below is.`;
+
+  const sumGain = M.bcePitch550;
+  document.getElementById("rec3").innerHTML =
+    `<b>Recommend B, the sum column.</b> It is the same column position, the same unfilled cell and the same ` +
+    `<code>row sum</code> head the Single-label page uses, and the two read <b>1.0000</b> against ` +
+    `<b>2.7476</b>. That is the misconception stated as a number in the same place twice, which no caption ` +
+    `does as well. It costs one column: with the sum the pitch is <b>${M.bcePitch550}px</b> against ` +
+    `${M.bceNoSum}px without it at 550, six columns in ${M.bceLeft550}px, and a bar narrows to ` +
+    `${M.bceBar550}px. <b>That is the tightest column in the widget</b> — ${M.bcePitch550}px against the ` +
+    `${M.cellNeed}px a four-decimal cell needs, ${M.bcePitch550 - M.cellNeed}px of slack — and it is why the ` +
+    `values are drawn at <code>--fs-xs</code>. <b>At 770 the columns do widen</b>: the rows column goes ${M.bceLeft550} → ` +
+    `${M.bceLeft770}px and the pitch ${M.bcePitch550} → <b>${M.bcePitch770}px</b> (the ${PITCH_CAP}px cap, not ` +
+    `the room — ${M.bceLeft770} / 6 = ${Math.floor(M.bceLeft770 / 6)}px would allow more), with the bar at ` +
+    `${M.bceBar770}px. The stage is ${M.bce550}px at both widths, since nothing here wraps. The five points on ` +
+    `the curve span <b>${M.bceCurveSpread}px</b> of the ${CURVE_W}px panel — 0.1192 to 0.6225 — so five points ` +
+    `are legible on one curve where one point at 0.9818 was not.`;
+
+  const s = M.areaSides;
+  document.getElementById("rec4").innerHTML =
+    `<b>Recommend B, the squared row as cells, and keep the bracket on the bars.</b> The bars run ` +
+    `<b>${M.unitPx.toFixed(1)}px per unit</b> at ${M.msePitch}px of pitch, so as an area the three squares are ` +
+    `<b>${s.map((v) => v.toFixed(1)).join("px, ")}px</b> on a side. The area is a faithful picture of the ` +
+    `quantity — the side is <code>|gap|</code>, so the area IS <code>gap²</code> — and it is still the wrong ` +
+    `mark: 0.0100 is a <b>${s[2].toFixed(1)}px</b> square carrying a ${M.labelW}px label, ` +
+    `<b>${(M.labelW / s[2]).toFixed(0)}× wider than the mark it names</b>, and one drag takes the same row ` +
+    `from ${s[2].toFixed(1)}px to ${M.side4.toFixed(0)}px at the parabola's own end (<code>y_pred[0] = −1</code>, ` +
+    `a gap of 4, measure script §1) — a <b>${(M.side4 / s[2]).toFixed(0)}:1 range inside one row</b> in the ` +
+    `${M.msePitch}px column. Cells print 0.2500 and 0.0100 at one size and never overflow. <b>The bracket is a ` +
+    `different case and stays</b>: it is on the bars' own axis, where 0.5 is a ` +
+    `${(0.5 * M.unitPx).toFixed(0)}px bracket and 0.1 a ${(0.1 * M.unitPx).toFixed(0)}px one, and a gap the ` +
+    `reader cannot see is the honest drawing of a gap of 0.1 — it carries its number beside it in any case. ` +
+    `Stage: ${M.mseCells}px with cells against ${M.mseArea}px with areas.`;
+
+  document.getElementById("rec5").innerHTML =
+    `<b>Recommend A, with a condition.</b> Torch's Single-label message is <b>${M.errCEw}px</b> ` +
+    `(${ERR_CE.length} characters at ${MONOCH.toFixed(2)}px) and the Multi-label one ${M.errBCEw}px ` +
+    `(${ERR_BCE.length} characters), both inside the ${USABLE}px stage; wrapped to the ${M.errCol}px rows ` +
+    `column beside the curve they are <b>${M.errCErows} and ${M.errBCErows} lines</b>, and they land exactly ` +
+    `where the loss number would have been. The stage is ${M.dtypeH}px, the same as the settled figure, so the ` +
+    `failure does not resize the page. <b>The condition: both strings are UNVERIFIED.</b> The measure script ` +
+    `quotes them from torch 2.x's source because torch is not installed on this machine, and a widget must not ` +
+    `print an error message no one has seen torch print. Run the two calls, paste the real strings, and if ` +
+    `either differs the control still stands — only its text changes. The dtype control costs the rail one ` +
+    `segmented field and it is the only place the widget can show that the two targets are not interchangeable.`;
+
+  document.getElementById("rec6").innerHTML =
+    `<b>Recommend A, the −log p curve.</b> One picture serves both classification pages: CrossEntropyLoss ` +
+    `enters it once at softmax's true-class probability, BCEWithLogitsLoss five times at ` +
+    `<code>sigmoid(z)</code> or <code>1 − sigmoid(z)</code>, and the axis never changes. Clipping the vertical ` +
+    `axis at ${YMAX} keeps 4.5184 and 4.9184 — the loss when the label moves to class 1 or 2 — on the curve, ` +
+    `which is the measure script's own test of the range. The notebook's own state sits <b>${M.aFromRight}px ` +
+    `from the right wall</b> of a ${M.curveW6}px panel at p = 0.9818, and the drag to a score of 1.0 moves the ` +
+    `point <b>${M.aMove}px</b> left, so the panel earns its width from the drag rather than from the resting ` +
+    `figure. <b>B loses because it is not one picture.</b> Its shape changes with the held element and with ` +
+    `the page — the four B panels above are four different curves for one idea — and its x axis is a score, ` +
+    `which is the thing the reader is already holding, so the panel would restate the control instead of ` +
+    `reading the probability the control produced.`;
+
+  renderProof();
+}
+
+/* ============================ what the mock proves ========================= */
+function renderProof() {
+  const ul = document.getElementById("proof");
+  ul.textContent = "";
+  const s = M.areaSides;
+  const items = [
+    `One mono character measures <b>${MONOCH.toFixed(2)}px</b> at <code>--fs-sm</code> and ` +
+    `<b>${MONOCH_XS.toFixed(2)}px</b> at <code>--fs-xs</code> on this browser. Every width below is a ` +
+    `multiple of one of them, and all ${CHECKS.length} numbers drawn on these canvases reproduce the digits ` +
+    `<code>_lab/dl-loss-measure.mjs</code> prints${BAD.length ? " EXCEPT " + BAD.length + " that do not" : ""}.`,
+    `<b>The three task faces fit one row.</b> A button is ${M.btnW}px against ` +
+    `<code>${M.widestName}</code>'s ${M.widest} + 12 = ${M.widest + 12}px, so nothing truncates and the ` +
+    `<code>w-seg-grid</code> the seven-topic widget needed is not needed here. The spanning face ` +
+    `<i>Binary / multi-label</i> is ${M.spanW}px and costs ${M.hB - M.hA}px of extra rail.`,
+    `<b>The case table wraps to ${M.cellLines} lines and is ${M.rbH}px</b>, ${M.rbH - M.hDet}px more than the ` +
+    `${M.hDet}px detail line it replaces: ${M.cellTextW}px of text in a ${M.cellW}px column. That is the ` +
+    `price of having all three readings on screen at rest.`,
+    `<b>A shared <code>score</code> control cannot open on the notebook's numbers.</b> One parameter has one ` +
+    `default; class A is 5.0 on the Single-label page and 0.2 on the Multi-label one. Per-page ` +
+    `<code>text</code> fields are ${M.hPer}px of rail for all three pages against ${M.hAlt}px for the shared ` +
+    `pair, and the whole Multi-label rail is ${M.railFull}px against a ${M.shortest}px stage.`,
+    `<b>Single-label runs ${M.ceCols} columns at ${M.cePitch}px</b> in a ${M.ceLeft}px rows column — three ` +
+    `classes and the row sum — against the ${M.cellNeed}px a four-decimal cell needs. With the curve beside, ` +
+    `the stage is ${M.ceRight}px; with it below, ${M.ceBelow}px, a ${M.ceBelow - M.ceRight}px difference which ` +
+    `is the curve's ${CURVE_H}px plus the ${GAP}px gap.`,
+    `<b>At rest, settled and dragged are all ${M.ceRest}px.</b> The walk lands values into frames that are ` +
+    `already drawn, so no row below moves when a step lands — which is what lets a drag on a finished figure ` +
+    `keep it finished (4.4).`,
+    `<b>The bar axis has to be fixed, not fitted, and the measurement is the argument.</b> Fitted to the ` +
+    `values on screen, dragging class A from 5.0 to 1.0 leaves A's own bar at ${M.fitA[0].toFixed(0)}px and ` +
+    `takes class B's untouched bar from ${M.fitB[0].toFixed(0)}px to ${M.fitB[1].toFixed(0)}px — the drag ` +
+    `moves every bar except the one under the cursor (2.5). Fixed at −${-M.range[0]} to ${M.range[1]}, A goes ` +
+    `${M.fixA[0].toFixed(0)} → ${M.fixA[1].toFixed(0)}px and B holds at ${M.fixB[0].toFixed(0)}px, at a cost ` +
+    `of ${M.fixC[0].toFixed(1)}px for the 0.1 bar.`,
+    `<b>The sum column costs one column and states the misconception.</b> With it the Multi-label pitch is ` +
+    `${M.bcePitch550}px against ${M.bceNoSum}px without, and the two pages read 1.0000 and 2.7476 in the same ` +
+    `place. ${M.bcePitch550}px against the ${M.cellNeed}px a cell needs is the tightest column in the widget. ` +
+    `At 770 the rows column goes ${M.bceLeft550} → ${M.bceLeft770}px and the pitch ` +
+    `${M.bcePitch550} → ${M.bcePitch770}px, which is the ${PITCH_CAP}px cap rather than the room.`,
+    `<b>The five BCE points span ${M.bceCurveSpread}px of the ${CURVE_W}px curve</b> (p 0.1192 to 0.6225), ` +
+    `where Single-label's single point sits ${M.aFromRight}px from the right wall at p = 0.9818 and moves ` +
+    `${M.aMove}px under the drag to a score of 1.0.`,
+    `<b>The squared row cannot be an area.</b> At ${M.unitPx.toFixed(1)}px per unit the three squares are ` +
+    `${s.map((v) => v.toFixed(1)).join(", ")}px on a side: 0.0100's ${s[2].toFixed(1)}px square carries a ` +
+    `${M.labelW}px label, ${(M.labelW / s[2]).toFixed(0)}× wider than the mark, and one drag runs the row from ` +
+    `${s[2].toFixed(1)}px to ${M.side4.toFixed(0)}px — ${(M.side4 / s[2]).toFixed(0)}:1 in the ${M.msePitch}px ` +
+    `column. The bracket on the bars' own axis stays: 0.5 is ${(0.5 * M.unitPx).toFixed(0)}px and 0.1 is ` +
+    `${(0.1 * M.unitPx).toFixed(0)}px.`,
+    `<b>Torch's two messages fit.</b> ${M.errCEw}px and ${M.errBCEw}px against a ${USABLE}px stage, ` +
+    `${M.errCErows} and ${M.errBCErows} lines wrapped to the ${M.errCol}px rows column, and the stage stays ` +
+    `${M.dtypeH}px with the error showing. <b>Both strings are UNVERIFIED</b> — torch is not on this machine ` +
+    `and they are quoted from its source.`,
+    `<b>Two numbers this page derived rather than read.</b> The measure script prints p0 = 0.4967 for the drag ` +
+    `to a score of 1.0 but not the other two probabilities; the softmax row is drawn ` +
+    `${CE_P_DRAG.map(n4).join(" ")} here, computed with the script's own <code>softmax</code>. And the bars' ` +
+    `${M.unitPx.toFixed(1)}px per unit is a property of this layout, not of the arithmetic.`,
+  ];
+  for (const t of items) {
+    const li = document.createElement("li");
+    li.innerHTML = t;
+    ul.appendChild(li);
+  }
+}
+
+measureAll();
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(measureAll);
+</script>
+</body>
+</html>
