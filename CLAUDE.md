@@ -63,7 +63,10 @@ change. This has already cost one debugging session.
    claim it is checked against), `--c-smoothed`, `--c-highlight` (the one thing
    to look at right now), `--c-reference` (the fixed benchmark the moving thing is judged against — the
    truth where one exists, else the baseline; audited 2026-08-27),
-   `--c-group-a` / `--c-group-b` (two arms of a comparison you decided),
+   `--c-group-a` / `--c-group-b` (two arms of a comparison you decided; also the
+   reader's tensor against the second operand — weights, kernel, keys, mask,
+   gate — recorded 2026-09-10), `--c-group-c` (a third parallel branch; green,
+   because red is `--c-extreme` and shares the panel — added 2026-09-10),
    `--c-cluster-a`…`f` (groups nobody assigned), `--c-extreme` (past a
    threshold — what a p-value counts), `--c-event` / `--c-nonevent` (the
    outcome happened to this person, or did not), `--c-unknown` (not measured
@@ -192,6 +195,8 @@ widgets/core/       the scaffold — everything a widget does not have to write
   canvas.js         plot primitives; mark specs are fixed here
   controls.js       controls generated from the parameter spec
   params.js         URL <-> typed values; param types and what each is for
+  torch.js          what PyTorch prints (torchPrint, sizeText, num), the output-size
+                    rules, torch's error strings, the default initialiser bounds
   rng.js  stats.js  env.js
 widgets/<slug>/     one widget: index.html (a stub) + main.js
 widgets/_lab/       design comparisons and the fingerprint harness; NOT deployed

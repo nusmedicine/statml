@@ -34,6 +34,14 @@
    result, and the widget animates that function one value at a time.
    ========================================================================= */
 
+/* What torch prints, and the bounds its layers start from, live in core since
+   2026-09-10 (core/torch.js): slots 49–51 print tensors the same way, and one
+   copy of torch's `_tensor_str` rules is the point. Re-exported here so this
+   widget's main.js and `_lab/tensor-verify.mjs` keep one import. */
+import { shapeSize, shapeText, sizeText, num, torchFloatFormat, torchPrint } from "../core/torch.js";
+export { shapeSize, shapeText, sizeText, num, torchFloatFormat, torchPrint };
+
+
 /* --- the tensors ---------------------------------------------------------- */
 
 /** The lesson's [2, 2, 5] tensor: 1-20 in reading order. */
@@ -783,12 +791,6 @@ export function shapeWalk(op) {
   return moves;
 }
 
-/** Total values in a shape; `[]` is a scalar and holds one. */
-export const shapeSize = (shape) => shape.reduce((a, b) => a * b, 1);
-
-/** `[2, 5, 2]` — the printed form of a shape, and of a scalar's empty one. */
-export const shapeText = (shape) => `[${shape.join(", ")}]`;
-
 /** `T[1, 0, 2]` — the printed form of one index. */
 export const indexText = (name, idx) => `${name}[${idx.join(", ")}]`;
 
@@ -815,27 +817,6 @@ export const ewCaseByValue = (value) => EW_OPS.find((o) => o.value === value) ??
 
 /** Y for one operation: the same shape, one cell from one cell. */
 export const ewValues = (op) => EW_X.map((row) => row.map(op.fn));
-
-/**
- * How torch prints the floats of ONE tensor: every value an integer prints
- * with a trailing point (`52.`), otherwise four decimals (`0.5000`), and a
- * tensor holding a value at or past 1e4 goes to four-digit scientific for
- * every cell (`5.1847e+21`) — what `print(torch.exp(X))` shows in cell 50.
- */
-export function torchFloatFormat(vals) {
-  const flat = vals.flat(Infinity).filter(Number.isFinite);
-  const sci = flat.some((v) => v !== 0 && Math.abs(v) >= 1e4);
-  if (sci) {
-    return (v) => {
-      const [m, e] = v.toExponential(4).split("e");
-      const sign = e.startsWith("-") ? "-" : "+";
-      return `${m}e${sign}${e.replace(/^[-+]/, "").padStart(2, "0")}`;
-    };
-  }
-  if (flat.every(Number.isInteger)) return (v) => `${v}.`;
-  /* torch keeps the sign of a negative zero, which X * mask makes of -0.7 */
-  return (v) => (Object.is(v, -0) ? "-" : "") + v.toFixed(4);
-}
 
 /* --- the dot product (cells 59-61) ------------------------------------------ *
  * The notebook's amino acids as vectors of hydrophobicity, charge and size,
@@ -1150,119 +1131,3 @@ export const UNIT_MS = { moves: 340, results: 120 };
 export const choreographs = (speed) => speed !== "results";
 
 export const unitMs = (speed) => UNIT_MS[speed] ?? UNIT_MS.moves;
-
-/* --- number formatting ---------------------------------------------------- */
-
-/** Integers plain, everything else to two decimals with trailing zeros gone. */
-export function num(v) {
-  if (!Number.isFinite(v)) return "—";
-  if (Number.isInteger(v)) return String(v);
-  return String(Math.round(v * 100) / 100);
-}
-
-/* --- how PyTorch prints a tensor ------------------------------------------ *
- * The Shape tab draws a tensor and prints it, and the two have to be the same
- * tensor: a value lights up in the drawing and in the text at once. So the
- * text is not a caption written by hand, it is torch's own layout reproduced
- * from its rules, checked against a real print in `_lab/tensor-verify.mjs`.
- *
- * The three rules that matter, from torch's `_tensor_str`:
- *   - every element is right-aligned to the width of the widest one, and
- *     elements are separated by ", ";
- *   - a node of rank r whose bracket sits at column c joins its children with
- *     "," then r − 1 newlines then c + 1 spaces — which is why a rank-3 print
- *     has a blank line between its 2-D blocks and a rank-4 print has two;
- *   - a row longer than the 80-column line width wraps, at
- *     floor((80 − c) / (width + 2)) elements a line, continuing at column
- *     c + 1. That is what puts `flatten()`'s twenty values on two lines.
- *
- * The lines come back as SEGMENTS rather than as strings, because the painter
- * colours one value at a time: the value in flight is highlighted, the values
- * already read are pale, and a value the walk has not reached yet is drawn as
- * nothing at all. The width is measured over EVERY value, present or not, so a
- * result filling up one value at a time never shifts under the reader.
- */
-
-const LINEWIDTH = 80;             // torch.set_printoptions default
-const TENSOR_PREFIX = "tensor(";
-
-/** Every index of `shape`, in reading order. */
-function eachIndex(shape, fn) {
-  const idx = shape.map(() => 0);
-  const total = shapeSize(shape);
-  for (let n = 0; n < total; n += 1) {
-    fn(idx.slice(), n);
-    for (let k = shape.length - 1; k >= 0; k -= 1) {
-      idx[k] += 1;
-      if (idx[k] < shape[k]) break;
-      idx[k] = 0;
-    }
-  }
-}
-
-/**
- * `torch.Size([2, 2, 5])` — what printing a tensor's `.shape` gives.
- * The drawn panels print the bare `[2, 2, 5]`; this is the line under the text.
- */
-export const sizeText = (shape) => `torch.Size(${shapeText(shape)})`;
-
-/**
- * A tensor as torch prints it: `{ lines, cols, text }`.
- *
- * `lines` is one array of segments per printed line; a segment carrying `idx`
- * is one value of the tensor at that index, and one without is punctuation,
- * indentation or a separator. `cols` is the longest line in characters, which
- * is what the layout measures the block by.
- */
-export function torchPrint(shape, valueAt) {
-  let width = 1;
-  eachIndex(shape, (idx) => { width = Math.max(width, String(valueAt(idx)).length); });
-
-  const lines = [[]];
-  /* a bracket segment carries the depth of the dimension it opens or closes,
-     so the print can light the pair a size-1 dimension adds (round 23) */
-  const put = (s, idx, depth) => {
-    if (s === "") return;
-    lines[lines.length - 1].push(idx ? { s, idx } : depth !== undefined ? { s, depth } : { s });
-  };
-  const wrap = (col) => { lines.push([]); put(" ".repeat(col)); };
-
-  const vector = (prefix, n, col, depth) => {
-    const perLine = Math.max(1, Math.floor((LINEWIDTH - col) / (width + 2)));
-    put("[", null, depth);
-    for (let i = 0; i < n; i += 1) {
-      const idx = [...prefix, i];
-      put(String(valueAt(idx)).padStart(width), idx);
-      if (i === n - 1) break;
-      put(",");
-      if ((i + 1) % perLine === 0) wrap(col + 1);
-      else put(" ");
-    }
-    put("]", null, depth);
-  };
-
-  const node = (prefix, depth, col) => {
-    const rest = shape.length - depth;
-    if (rest === 1) {
-      vector(prefix, shape[depth], col, depth);
-      return;
-    }
-    put("[", null, depth);
-    for (let i = 0; i < shape[depth]; i += 1) {
-      node([...prefix, i], depth + 1, col + 1);
-      if (i === shape[depth] - 1) break;
-      put(",");
-      for (let k = 0; k < rest - 1; k += 1) lines.push([]);
-      put(" ".repeat(col + 1));
-    }
-    put("]", null, depth);
-  };
-
-  put(TENSOR_PREFIX);
-  if (shape.length === 0) put(String(valueAt([])), []);
-  else node([], 0, TENSOR_PREFIX.length);
-  put(")");
-
-  const rows = lines.map((segs) => segs.map((g) => g.s).join(""));
-  return { lines, cols: Math.max(...rows.map((r) => r.length)), text: rows.join("\n") };
-}

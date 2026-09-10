@@ -35,27 +35,20 @@ is at most about 8 wide, and shaded with no digits beyond that.
 
 **The order of work, and the first step is not a widget:**
 
-1. **The core commit, main session, before either widget is built.** Lift
-   the torch print and format code out of `widgets/tensors/model.js` into a
-   new **`widgets/core/torch.js`** — `torchPrint`, `torchFloatFormat`, `num`,
-   `shapeText`/`sizeText` — and add to it `outSize(in, k, s, p)` (three call
-   sites across the two new widgets), `torchError(kind, …)` (both print
-   torch's messages verbatim, and two copies of a message string is how they
-   drift) and the initialiser bounds table (verified, all eight rows, under
-   slot 49). In the same commit: **`mono` in `readTokens`** (`core/env.js`)
-   — `tokens.css` has `--font-mono`, `probability-mechanisms` hardcodes the
-   family as a literal against rule 5 and `tensors` reads it off
-   `getComputedStyle` with a comment naming the gap; and
-   **`--c-group-c: var(--series-6)`** (green) in `tokens.css` plus its line in
-   CLAUDE.md rule 5's role list, with the reason in the token's comment —
-   `--series-8` is red and **is** `--c-extreme`, and slot 51's Routing page
-   prints a torch error on the same panel as its three branches, which is the
-   invariant `tokens.css:107` already states. Amend the `--c-group-a` /
-   `--c-group-b` comment while there to record the second-operand reading
-   (weights, kernel, keys, mask) that `tensors` already ships. Switch
-   `tensors` to the new imports. **One full fingerprint run, all 404 states
-   MATCH, before the commit** — nothing renders differently, so a DIFFER is a
-   real regression. One commit.
+1. **The core commit is DONE (2026-09-10, main session):** `widgets/core/torch.js`
+   holds `shapeSize`, `shapeText`, `sizeText`, `num`, `torchFloatFormat`,
+   `torchPrint` (lifted from `widgets/tensors/model.js`, which imports and
+   re-exports them so widget 53 and `_lab/tensor-verify.mjs` kept one import),
+   plus `outSize`, `transposedOutSize`, `torchError` (matmul, broadcast,
+   channels — torch 2.x's wording, printed by `_lab/dl-layers-measure.mjs`),
+   `initBound` (linear, conv, recurrent, xavier) and `uniform(rng, bound)`.
+   `readTokens` gained `mono` and `groupC`; `tokens.css` gained
+   `--c-group-c: var(--series-6)` (green — red is `--c-extreme` and shares the
+   Routing panel; green is also `--c-dim-b`, safe because a branch figure's
+   tensors are rank 2) with the second-operand reading recorded on
+   `--c-group-a/b`; CLAUDE.md's role list and layout table name both. **Full
+   suite: all 404 states MATCH at DPR 1.25**, `npm run check` and the 16 test
+   scripts pass. Neither widget build touches `widgets/core/` from here.
 2. **`_lab/processing-layers-mock.html` EXISTS and is PICKED** (2026-09-10,
    committed after the docs commit): Kenneth took the recommendation on all
    seven sections — grid rail; 46 × 26 cell at 2 dp with the print under; two

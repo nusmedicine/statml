@@ -9,3 +9,7 @@ export {
 export { makePlot, niceTicks, samplePdf, createCanvas, spanningRule, hitTest } from "./canvas.js";
 export { readTokens, resolveTheme, isEmbedded, mathmlRenders } from "./env.js";
 export { createPile, barMixFor, binsFor, DOT_R, FLASH_MS } from "./accumulator.js";
+export {
+  shapeSize, shapeText, sizeText, num, torchFloatFormat, torchPrint,
+  outSize, transposedOutSize, torchError, initBound, uniform,
+} from "./torch.js";

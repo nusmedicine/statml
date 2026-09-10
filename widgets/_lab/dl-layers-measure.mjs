@@ -31,6 +31,7 @@
  */
 
 import { makeRng } from "../core/rng.js";
+import { outSize, transposedOutSize, torchError, initBound } from "../core/torch.js";
 
 const f = (v, d = 3) => (v < 0 ? "" : " ") + v.toFixed(d);
 const row = (a) => a.map((v) => f(v)).join(" ");
@@ -72,7 +73,7 @@ const X_ATT = [
   [0.0, 0.0, 0.8, 0.1], // "sat"
 ];
 const TOK = ["The", "cat", "sat"];
-const XAVIER = Math.sqrt(6 / (12 + 4));
+const XAVIER = initBound.xavier(4, 12);   // sqrt(6 / 16)
 
 function attention(Wq, Wk, Wv) {
   const Q = matmulT(X_ATT, Wq);
@@ -132,7 +133,7 @@ rule("2 · POOLING — img[5:11, 5:11] = 1 on a 16x16 of zeros");
 const IMG = Array.from({ length: 16 }, (_, r) =>
   Array.from({ length: 16 }, (_, c) => (r >= 5 && r < 11 && c >= 5 && c < 11 ? 1 : 0)));
 
-const outSizePool = (n, k, s) => Math.floor((n - k) / s) + 1;
+const outSizePool = (n, k, s) => outSize(n, k, s);   // core's rule at padding 0
 
 function pool(img, k, s, kind) {
   const n = img.length;
@@ -168,7 +169,7 @@ for (const [k, s] of [[4, 4], [2, 4]]) {
  */
 rule("3 · CONVOLUTION — Conv2d(1, 2, 3, s=2, p=1) then ConvTranspose2d(2, 1, ...)");
 
-const outSizeConv = (n, k, s, p) => Math.floor((n + 2 * p - k) / s) + 1;
+const outSizeConv = outSize;   // core's rule, the one the formula cards read
 
 function conv2d(img, kernels, biases, k, s, p) {
   const n = img.length;
@@ -210,8 +211,8 @@ function convTranspose2d(maps, weight, bias, k, s, p, outPad) {
   return out;
 }
 
-const CB = 1 / 3;
-const TB = 1 / Math.sqrt(18);
+const CB = initBound.conv(1, 3);   // 1/3
+const TB = initBound.conv(2, 3);   // 1/sqrt(18)
 console.log(`Conv2d weights U(-${f(CB, 4)}, ${f(CB, 4)});  ConvTranspose2d U(-${f(TB, 4)}, ${f(TB, 4)})`);
 /* the 6x6 square at rows/cols 5-10 lands, under k=3 s=2 p=1, on output cells
  * 2-5 in both axes — the footprint the "is the square visible" count is about */
@@ -359,6 +360,13 @@ for (const p of [0.2, 0.5, 0.8]) {
  */
 rule("6 · COMPOSITION — shapes and parameter counts on x = randn(4, 10)");
 
+/* the three failures slots 49–51 print, from core so one string serves all */
+console.log("torch's messages, as core/torch.js prints them:");
+console.log("  " + torchError.matmul([4, 8], [20, 2]));
+console.log("  " + torchError.broadcast(8, 6, 1));
+console.log("  " + torchError.channels([16, 3, 3, 3], [4, 8, 32, 32], 8));
+console.log(`  ConvTranspose2d(2, 1, 3, s=2, p=1, op=1) on 8: ${transposedOutSize(8, 3, 2, 1, 1)}`);
+
 const lin = (i, o) => i * o + o;
 const MODELS = [
   ["MLP1 / cell 66 flat  Sequential(10->20, ReLU, 20->2)", [lin(10, 20), lin(20, 2)],
@@ -386,7 +394,7 @@ console.log("torchsummary's split for MLP1: Linear-1 220, ReLU-2 0, Linear-3 42,
  */
 rule("7 · SOFT ROUTING — gate weights per sample at default init, 10 seeds");
 
-const GB = 1 / Math.sqrt(10);
+const GB = initBound.linear(10);
 console.log(`gate Linear(10, 3): U(-${f(GB, 4)}, ${f(GB, 4)}) on weight and bias\n`);
 console.log("seed | largest weight per sample        | max-min across samples | spread within a sample");
 const bigs = [];

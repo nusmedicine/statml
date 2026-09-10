@@ -79,9 +79,25 @@
 
      Group A deliberately shares its hue with --c-empirical: both mean "our
      data", they never appear in the same panel, and giving the first arm its
-     own fourth colour would spend a hue to say nothing.  */
+     own fourth colour would spend a hue to say nothing.
+
+     THE SECOND OPERAND READING (widget 53, 2026-09-08; recorded 2026-09-10):
+     where a figure combines the reader's tensor with something else — the
+     weights, a kernel, the keys, a mask, a gate — the tensor is --c-group-a
+     and the other thing is --c-group-b, and the result is --c-empirical. That
+     is not an A/B comparison, but it is the same shape of statement: two
+     things you can name, one of them yours. Three widgets share it now, and a
+     fourth token for "the weights" would split one idiom across them.
+
+     --c-group-c is the THIRD arm, added 2026-09-10 for a figure with three
+     parallel branches (slot 51's Routing page, from Kenneth's own figure of
+     three). His figure draws it red; red here is --c-extreme, and the same
+     panel prints a torch error in it, so the third arm is green. Green is also
+     --c-dim-b, which is safe on that panel: a dimension hue appears only on a
+     rank-3 tensor's frames and every tensor on a branch figure is rank 2. */
   --c-group-a:   var(--series-1);    /* one arm of a comparison              */
   --c-group-b:   var(--series-4);    /* the other arm                        */
+  --c-group-c:   var(--series-6);    /* a third arm: three parallel branches */
 
   /* GROUPS NOBODY ASSIGNED — the unsupervised case, and not the A/B pair above.
      An arm of a comparison is a thing you decided; a cluster in a projection is
