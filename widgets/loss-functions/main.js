@@ -2,10 +2,11 @@
    Widget 54 · Loss functions — what the loss takes in, what it does inside,
    and the one number it hands back.
 
-   PHM5005 05-4 cells 30-40. Three pages, one per row of cell 30's table:
-   Regression (MSELoss, cells 31-33), Single-label (CrossEntropyLoss, cells
-   34-36) and Multi-label (BCEWithLogitsLoss, cells 37-39). `model.js` carries
-   the arithmetic, the copy and the geometry; this file draws them.
+   PHM5005 05-4 cells 30-40. One page per row of cell 30's table — Regression
+   (MSELoss, cells 31-33), Single-label (CrossEntropyLoss, cells 34-36) and
+   Multi-label (BCEWithLogitsLoss, cells 37-39) — and a fourth, Binary, where
+   the same two-class problem is drawn both ways. `model.js` carries the
+   arithmetic, the copy and the geometry; this file draws them.
 
    THE MISCONCEPTION IS BETWEEN THE TWO CLASSIFICATION PAGES. Kenneth,
    2026-09-11: "students often get confused when to use CrossEntropyLoss and
@@ -85,6 +86,51 @@
        `_lab/dl-loss-torch.py` (torch 2.14) and checked against its recorded
        output by the verify script. The first draft quoted both from memory
        and both were wrong.
+
+   ---- the second round: one output and several, and binary two ways --------
+   Kenneth, 2026-09-11: "can we show examples of 1 class and >1 class? also how
+   best to explain that a binary class can be modeled as 1 label or 2 labels".
+   `_lab/loss-binary-mock.html` drew every candidate at the real 550 stage and
+   he picked §1 A, §2 B and §3 C.
+
+   11. THE COUNT IS THE NUMBER OF COLUMNS, and it is three parameters, not one:
+       one parameter has one default, and each page opens on its own example
+       (`outputs` 1 · 3, `singleClasses` 2 · 3, `multiClasses` 1 · 5). The
+       tensor field keeps the row AS TYPED and `compute` reads the first k of
+       it, padding with 0 — so narrowing to one output and back returns the
+       row that was there. No page resizes: the mock measured the three
+       one-output stages at 494, 414 and 524, the several-output heights to the
+       pixel, because the control changes columns and not rows. At one class
+       the row-sum column is dropped, since a row of one has nothing to read.
+
+   12. THE FIELD FOLLOWS THE COUNT IN TWO PLACES, because core rebuilds the
+       control block BEFORE it recomputes the state. `show` narrows to the
+       count `computeFor` stashed, which is right on every path where the count
+       did not just move — a rebuild on a task change, a commit, the value a
+       drag writes back. The frame where the count itself moves is the one
+       `show` cannot see, so `syncTensorFields` repaints the field from the
+       state once it exists. Gating the field on the count instead was tried on
+       paper and does not help: the rebuild it triggers runs a step too early.
+
+   13. THE BINARY PAGE IS TWO COLUMNS OF ONE FLOW. `binaryLayout` measures the
+       vertical flow once and hands each column its own x, column count and
+       axis, so the two loss lines land on one line 272px apart — against 350px
+       with a whole figure between them when the two forms are stacked, which
+       is 2.7 as a measurement rather than a preference. Both axes span eight
+       units, so a score of 1.5 is the same length of bar in either column.
+
+   14. THE DERIVED BAR DOES NOT DRAG. It has no parameter, and non-negotiable 1
+       says parameters are the only state of record: p_B depends on the
+       difference alone, so every position it can take is already reachable by
+       dragging B, and the map from a difference back to a pair of scores is
+       not unique (both scores +3 leave softmax at 0.1824, 0.8176). Its cursor
+       stays the default, and the hit-test is the LEFT column's alone.
+
+   15. THE TASK CONTROL IS TWO OPTION GROUPS. One row of four faces truncates —
+       62.0px for text against Single-label's 64.4px at the pressed weight —
+       and the 2 × 2 grid that fixes the width pairs Regression with
+       Single-label, which is not how the four divide. The groups divide them
+       the way the losses do (3.4g).
    ========================================================================= */
 
 import { defineWidget, readTokens, mathmlRenders } from "../core/index.js";
@@ -294,7 +340,7 @@ function barRow(ctx, colors, g, vals, o = {}) {
     if (ty > g.barTop + BAR_H) ty = y1 - 5;
     txt(ctx, colors, M.n1(v), cx, ty,
       { color: lit ? colors.highlight : colors.ink1, align: "center", mono: true, size: colors.fsXs });
-    txt(ctx, colors, M.LETTERS[i], cx, g.barY + 12,
+    txt(ctx, colors, (o.letters ?? M.LETTERS)[i], cx, g.barY + 12,
       { color: colors.ink1, align: "center", mono: true, size: colors.fsSm });
   });
   (o.ticks ?? []).forEach((t, i) => {
@@ -327,8 +373,8 @@ function fnArrow(ctx, colors, cx, y0, y1, label, live) {
  * on x from 0 to 1 and the loss clipped at 5, which keeps 4.5184 and 4.9184 on
  * it. Drawn the way `support-layers`' `curvePanel` draws an activation.
  */
-function logCurve(ctx, colors, x, y, pts, kind) {
-  const f = curveFrame(ctx, colors, x, y);
+function logCurve(ctx, colors, x, y, pts, kind, cw = CURVE_W) {
+  const f = curveFrame(ctx, colors, x, y, cw);
   const px = (p) => f.L + p * (f.R - f.L);
   const py = (v) => f.B - (Math.min(v, YMAX) / YMAX) * (f.B - f.T);
   ctx.strokeStyle = colors.empirical;
@@ -351,7 +397,7 @@ function logCurve(ctx, colors, x, y, pts, kind) {
     plotDot(ctx, colors, px(p), py(-Math.log(p)), pt.lit);
   }
   curveAxes(ctx, colors, f, x, y, String(YMAX), M.STRINGS.curveY, "0", "1",
-    M.STRINGS.curveTitle, M.STRINGS.curveX[kind]);
+    M.STRINGS.curveTitle, M.STRINGS.curveX[kind], cw);
 }
 
 /** gap² against gap, the Regression page's own curve, on the same frame. */
@@ -389,13 +435,13 @@ function parabolaPanel(ctx, colors, x, y, gaps, held) {
     M.STRINGS.gapLo, M.STRINGS.gapHi, "", M.STRINGS.parabolaX);
 }
 
-function curveFrame(ctx, colors, x, y) {
+function curveFrame(ctx, colors, x, y, cw = CURVE_W) {
   ctx.fillStyle = colors.surface2;
-  ctx.fillRect(x, y, CURVE_W, CURVE_H);
+  ctx.fillRect(x, y, cw, CURVE_H);
   ctx.strokeStyle = colors.grid;
   ctx.lineWidth = 1;
-  ctx.strokeRect(x + 0.5, y + 0.5, CURVE_W - 1, CURVE_H - 1);
-  const f = { L: x + 26, R: x + CURVE_W - 10, B: y + CURVE_H - 20, T: y + 22 };
+  ctx.strokeRect(x + 0.5, y + 0.5, cw - 1, CURVE_H - 1);
+  const f = { L: x + 26, R: x + cw - 10, B: y + CURVE_H - 20, T: y + 22 };
   ctx.strokeStyle = colors.axis;
   ctx.lineWidth = 1;
   ctx.beginPath();
@@ -409,7 +455,7 @@ function curveFrame(ctx, colors, x, y) {
   return f;
 }
 
-function curveAxes(ctx, colors, f, x, y, ymax, ylab, xlo, xhi, title, xlab) {
+function curveAxes(ctx, colors, f, x, y, ymax, ylab, xlo, xhi, title, xlab, cw = CURVE_W) {
   const small = { color: colors.ink3, size: colors.fsXs };
   txt(ctx, colors, ylab, f.L - 4, f.T - 9, { ...small, align: "right" });
   txt(ctx, colors, ymax, f.L - 4, f.T + 5, { ...small, align: "right" });
@@ -417,7 +463,7 @@ function curveAxes(ctx, colors, f, x, y, ymax, ylab, xlo, xhi, title, xlab) {
   txt(ctx, colors, xlo, f.L, f.B + 14, { ...small, align: "center" });
   txt(ctx, colors, xhi, f.R, f.B + 14, { ...small, align: "center" });
   if (title) {
-    txt(ctx, colors, title, x + CURVE_W - 8, y + 14,
+    txt(ctx, colors, title, x + cw - 8, y + 14,
       { color: colors.ink2, align: "right", mono: true, size: colors.fsXs });
   }
   txt(ctx, colors, xlab, (f.L + f.R) / 2, y + CURVE_H - 5, { ...small, align: "center" });
@@ -460,6 +506,7 @@ let carry = null;
 let grabbed = -1;
 
 function drawPage(ctx, colors, w, params, state, anim, pointer) {
+  if (state.kind === "binary") return drawBinary(ctx, colors, w, state, anim, pointer);
   const g = M.layout(w, state);
   const done = walkDone(anim, state);
   const held = pointer ? M.barColAt(pointer.x, pointer.y, g) : -1;
@@ -571,6 +618,155 @@ function drawPage(ctx, colors, w, params, state, anim, pointer) {
   return g;
 }
 
+/* ============================ the Binary page =============================
+ * Two columns of ONE flow: the same rows at the same y, so the two loss lines
+ * sit on one line and the reader compares them without moving their eye
+ * (decision 13). Everything below is the same primitive the other three pages
+ * draw with, handed one column's geometry instead of the page's.
+ */
+
+function binaryColumn(ctx, colors, g, c, state, done, f) {
+  rowLabel(ctx, colors, c.x, g.nameY, f.name, { mono: false });
+  barRow(ctx, colors, c, f.scores, { held: f.held, letters: f.letters });
+  dtypeLine(ctx, colors, c.x, g.dtypeY, f.scoreShape);
+  fnArrow(ctx, colors, c.colX(0), g.edgeY, g.edgeY + EDGE, f.fn, landed(done, 1));
+
+  for (const row of g.rows) {
+    const st = M.stageOf(done, row.unit);
+    if (st === "absent") continue;
+    const on = st === "landed";
+    rowLabel(ctx, colors, c.x, row.nameY, row.label,
+      { mono: row.kind !== "chips", color: on ? colors.ink2 : colors.ink3 });
+    if (c.sumCol && row.id === "p") {
+      txt(ctx, colors, M.STRINGS.rowSumHead, c.x + c.n * c.pitch + c.pitch / 2, row.nameY + 11,
+        { color: colors.ink3, align: "center", size: colors.fsXs });
+    }
+    if (row.kind === "chips") {
+      chipRow(ctx, colors, c, row.cellY, (i) => (on ? f.chipAt(i) : { text: "", empty: true }));
+    } else {
+      cellRow(ctx, colors, c, row.cellY, (i) => (on ? f.cellAt(i) : { empty: true }));
+    }
+    if (c.sumCol && row.id === "p") {
+      valueCell(ctx, colors, c.x + c.n * c.pitch, row.cellY, c.pitch, CH,
+        on ? f.sum : "", { plain: true, empty: !on });
+    }
+    if (row.dtypeY !== undefined && on) {
+      dtypeLine(ctx, colors, c.x, row.dtypeY, f.targetShape);
+    }
+  }
+
+  if (landed(done, state.units)) {
+    const probe = measureCtx();
+    probe.font = `${colors.fsSm} ${colors.mono}`;
+    txt(ctx, colors, f.lead, c.x, g.lossY + 12, { color: colors.ink2, mono: true });
+    txt(ctx, colors, f.loss, c.x + probe.measureText(f.lead).width, g.lossY + 12,
+      { color: colors.empirical, mono: true, weight: "600" });
+  }
+}
+
+function drawBinary(ctx, colors, w, state, anim, pointer) {
+  const g = M.layout(w, state);
+  const done = walkDone(anim, state);
+  const held = pointer ? M.barColAt(pointer.x, pointer.y, g.left) : -1;
+  hovered = hoverBinary(pointer, g, state, done);
+
+  band(ctx, colors, w, M.HEAD.binary, M.binaryExpr(state.label));
+
+  /* the rule between the columns, so the two flows read as two forms of one
+     model rather than one wide figure */
+  ctx.strokeStyle = colors.grid;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(g.ruleX + 0.5, g.top);
+  ctx.lineTo(g.ruleX + 0.5, g.top + g.rowsH);
+  ctx.stroke();
+
+  binaryColumn(ctx, colors, g, g.left, state, done, {
+    name: M.STRINGS.binaryTwoRow,
+    scores: state.scores,
+    letters: M.LETTERS,
+    held,
+    fn: M.BIN_FN.two,
+    scoreShape: M.BIN_SHAPE.scoresTwo,
+    targetShape: M.BIN_SHAPE.targetTwo,
+    sum: M.n4(state.rowSum),
+    cellAt: (i) => ({ text: M.n4(state.p[i]), hue: colors.empirical, lit: i === state.label }),
+    chipAt: (i) => ({ text: M.LETTERS[i], on: i === state.label }),
+    lead: `loss = −log ${M.n4(state.p[state.label])} = `,
+    loss: M.n4(state.loss),
+  });
+  /* THE DERIVED BAR CARRIES ITS ALGEBRA ON THE LETTER LINE, where every other
+     page prints a class name, and it does not drag (decision 14). */
+  binaryColumn(ctx, colors, g, g.right, state, done, {
+    name: M.STRINGS.binaryOneRow,
+    scores: [state.z],
+    letters: [M.STRINGS.binaryDiffName],
+    held: -1,
+    fn: M.BIN_FN.one,
+    scoreShape: M.BIN_SHAPE.scoresOne,
+    targetShape: M.BIN_SHAPE.targetOne,
+    sum: null,
+    cellAt: () => ({ text: M.n4(state.pOne), hue: colors.empirical, lit: true }),
+    chipAt: () => ({ text: String(state.label), on: state.label === 1 }),
+    lead: `loss = −log ${M.n4(state.pOne)} = `,
+    loss: M.n4(state.lossOne),
+  });
+
+  /* ONE POINT, WHICH BOTH FORMS READ. The probability is the same number in
+     both columns, so there is one dot and not two on top of each other. */
+  logCurve(ctx, colors, g.curveX, g.curveY,
+    landed(done, state.units) ? [{ p: state.pOne, lit: true }] : [], state.kind, g.curveW);
+
+  M.STRINGS.captions.binary.forEach((c) => {
+    if (!landed(done, c.at)) return;
+    txt(ctx, colors, c.line, PAD, g.capY + 12 + c.row * LINE, { color: colors.ink2 });
+  });
+  return g;
+}
+
+/** The Binary page's own hover reading, from the same two column geometries. */
+function hoverBinary(pointer, g, state, done) {
+  if (!pointer) return null;
+  const bar = M.barColAt(pointer.x, pointer.y, g.left);
+  if (bar >= 0) {
+    return {
+      name: `y_pred[0, ${bar}]`,
+      value: M.n1(state.scores[bar]),
+      note: `the model's score for class ${M.LETTERS[bar]}`,
+    };
+  }
+  if (M.barColAt(pointer.x, pointer.y, g.right) === 0) {
+    return {
+      name: M.STRINGS.binaryDiffName,
+      value: M.n1(state.z),
+      note: M.STRINGS.binaryDerivedNote,
+    };
+  }
+  const row = g.rows.find((r) => pointer.y >= r.cellY && pointer.y <= r.cellY + CH);
+  if (!row || !landed(done, row.unit)) return null;
+  const c = pointer.x < g.ruleX ? g.left : g.right;
+  const two = c === g.left;
+  let col = -1;
+  for (let i = 0; i < c.n; i += 1) {
+    if (Math.abs(pointer.x - c.colX(i)) <= c.pitch / 2) col = i;
+  }
+  if (col < 0) {
+    const sumX = c.x + c.n * c.pitch + c.pitch / 2;
+    if (!c.sumCol || row.id !== "p" || Math.abs(pointer.x - sumX) > c.pitch / 2) return null;
+    return { name: M.STRINGS.rowSumHead, value: M.n4(state.rowSum), note: M.SUM_NOTE.binary };
+  }
+  if (row.kind === "chips") {
+    return {
+      name: "y_true[0]",
+      value: String(state.label),
+      note: two ? `the target is class ${M.LETTERS[state.label]}` : M.STRINGS.binaryTargetNote,
+    };
+  }
+  return two
+    ? { name: `p[0, ${col}]`, value: M.n4(state.p[col]), note: M.STRINGS.binaryPTwoNote }
+    : { name: "p[0]", value: M.n4(state.pOne), note: M.STRINGS.binaryPOneCellNote };
+}
+
 /**
  * WHAT THE POINTER IS OVER, for the readout's own tile. Resolved from the same
  * geometry the drawing uses, so a reading cannot name a cell that is somewhere
@@ -666,6 +862,38 @@ function rowNote(state, id) {
     : "the probability this class is present";
 }
 
+/* ======================= the field follows the count ======================
+ * DECISION 12. A tensor field must show the row the figure is drawing, and a
+ * `show` is handed its stored value and nothing else — so the count comes from
+ * `M.FIELD_N`, which `computeFor` writes. That covers every path but one: core
+ * REBUILDS the control block before it recomputes the state (`widget.js`
+ * `setParam` — the gate branch runs, then `render`), so on the frame a count
+ * parameter moves, the field's own `show` has already run against the previous
+ * count. The field is repainted here instead, once the new state exists.
+ *
+ * The `input` event is core's own door for a field that has changed width: it
+ * re-runs `liveText`, which resizes the box and re-checks the hint, and commits
+ * nothing — a value commits on `change`. And a field the reader is typing in is
+ * left alone.
+ */
+const FIELD_ROWS = {
+  regression: [["pred", "scores"], ["target", "target"]],
+  "single-label": [["scores", "scores"]],
+  "multi-label": [["logits", "scores"]],
+  binary: [["binaryScores", "scores"]],
+};
+
+function syncTensorFields(state) {
+  for (const [name, key] of FIELD_ROWS[state.kind] ?? []) {
+    const input = document.querySelector(`#widget input[data-param="${name}"]`);
+    if (!input || document.activeElement === input) continue;
+    const text = M.showVec(M.wire(state[key]));
+    if (input.value === text) continue;
+    input.value = text;
+    input.dispatchEvent(new Event("input"));
+  }
+}
+
 /* ============================ the formula card ============================= */
 
 const MATHML = mathmlRenders();
@@ -705,11 +933,20 @@ const CARD = {
       mo("("), mn("1"), mo("−"), Y_IC, mo(")"),
       mi("log"), mo("("), mn("1"), mo("−"), SIG(Z_IC), mo(")"), mo("]")),
     "L = −(1/N) Σᵢ Σ_c [ y_{i,c} log σ(z_{i,c}) + (1 − y_{i,c}) log(1 − σ(z_{i,c})) ]"),
+  /* THE BINARY CARD IS THE IDENTITY, not a loss: what the page claims is that
+     one probability has two expressions, and the losses follow from it. */
+  binary: eq(
+    row(msub(mi("p"), mi("B")), mo("="),
+      frac(msup(mi("e"), msub(mi("z"), mi("B"))),
+        mrow(msup(mi("e"), msub(mi("z"), mi("A"))), mo("+"), msup(mi("e"), msub(mi("z"), mi("B"))))),
+      mo("="), mi("σ"), mo("("), msub(mi("z"), mi("B")), mo("−"), msub(mi("z"), mi("A")), mo(")")),
+    "p_B = e^{z_B} / (e^{z_A} + e^{z_B}) = σ(z_B − z_A)"),
 };
 const CARD_NAME = {
   regression: "MSE",
   "single-label": "CE",
   "multi-label": "BCE",
+  binary: "p_B",
 };
 
 const GUTTER = "3.6em";
@@ -738,6 +975,19 @@ function renderCard(params) {
 /* ============================== the widget ================================= */
 
 const ON = (task) => ({ param: "task", equals: task });
+/* the four switches past the first, which only the several-class Multi-label
+   page has: a row of one class needs one switch and no row sum (decision 11) */
+const MANY = { all: [ON("multi-label"), { param: "multiClasses", equals: "5" }] };
+
+/** The tensor field each page's bars belong to, for the drag and the field
+    sync. `params` is a fixed list, so all four are declared and the three that
+    are off this page are returned unchanged. */
+const DRAG_KEY = {
+  regression: "pred",
+  "single-label": "scores",
+  "multi-label": "logits",
+  binary: "binaryScores",
+};
 
 defineWidget({
   slug: "loss-functions",
@@ -752,10 +1002,12 @@ defineWidget({
   height: ({ w, ...values }) => M.pageHeight(w, values),
 
   params: {
+    /* DECISION 15: four faces in two groups, the way the losses divide. */
     task: {
       type: "segmented",
       label: M.STRINGS.taskLabel,
       options: M.TASKS,
+      groupHeads: true,
       default: "regression",
     },
 
@@ -766,9 +1018,9 @@ defineWidget({
       detail: M.STRINGS.predDetail,
       default: M.MSE_PRED,
       size: 12,
-      parse: (t) => M.parseVec(t, 3, M.RANGE.regression),
-      show: M.showVec,
-      check: (t) => M.hintFor(t, 3, "output"),
+      parse: (t) => M.parseRow(t, M.RANGE.regression),
+      show: (v) => M.showRow(v, M.FIELD_N.pred, M.RANGE.regression),
+      check: (t, values) => M.hintFor(t, M.countOf(values, "outputs"), "output"),
       when: ON("regression"),
     },
     target: {
@@ -777,9 +1029,19 @@ defineWidget({
       detail: M.STRINGS.targetDetail,
       default: M.MSE_TRUE,
       size: 12,
-      parse: (t) => M.parseVec(t, 3, M.RANGE.regression),
-      show: M.showVec,
-      check: (t) => M.hintFor(t, 3, "output"),
+      parse: (t) => M.parseRow(t, M.RANGE.regression),
+      show: (v) => M.showRow(v, M.FIELD_N.target, M.RANGE.regression),
+      check: (t, values) => M.hintFor(t, M.countOf(values, "outputs"), "output"),
+      when: ON("regression"),
+    },
+    /* DECISION 11: the count is the number of COLUMNS, under the fields it
+       resizes and facing the numbers. */
+    outputs: {
+      type: "segmented",
+      label: M.STRINGS.outputsLabel,
+      detail: M.STRINGS.outputsDetail,
+      options: M.OUTPUT_COUNTS,
+      default: M.COUNT_DEFAULT.outputs,
       when: ON("regression"),
     },
 
@@ -790,16 +1052,27 @@ defineWidget({
       detail: M.STRINGS.scoresDetail,
       default: M.CE_SCORES,
       size: 12,
-      parse: (t) => M.parseVec(t, 3, M.RANGE["single-label"]),
-      show: M.showVec,
-      check: (t) => M.hintFor(t, 3, "class"),
+      parse: (t) => M.parseRow(t, M.RANGE["single-label"]),
+      show: (v) => M.showRow(v, M.FIELD_N.scores, M.RANGE["single-label"]),
+      check: (t, values) => M.hintFor(t, M.countOf(values, "singleClasses"), "class"),
       when: ON("single-label"),
     },
+    singleClasses: {
+      type: "segmented",
+      label: M.STRINGS.classesLabel,
+      detail: M.STRINGS.singleDetail,
+      options: M.SINGLE_COUNTS,
+      default: M.COUNT_DEFAULT.singleClasses,
+      when: ON("single-label"),
+    },
+    /* the indices the label can take follow the class count, through core's own
+       door: a label of 2 at two classes returns to the default */
     label: {
       type: "segmented",
       label: "y_true",
       detail: M.STRINGS.labelDetail,
-      options: ["0", "1", "2"],
+      options: (values) => M.labelOptions(M.countOf(values, "singleClasses")),
+      optionsFrom: "singleClasses",
       default: M.CE_LABEL,
       when: ON("single-label"),
     },
@@ -811,9 +1084,17 @@ defineWidget({
       detail: M.STRINGS.logitsDetail,
       default: M.BCE_SCORES,
       size: 18,
-      parse: (t) => M.parseVec(t, 5, M.RANGE["multi-label"]),
-      show: M.showVec,
-      check: (t) => M.hintFor(t, 5, "class"),
+      parse: (t) => M.parseRow(t, M.RANGE["multi-label"]),
+      show: (v) => M.showRow(v, M.FIELD_N.logits, M.RANGE["multi-label"]),
+      check: (t, values) => M.hintFor(t, M.countOf(values, "multiClasses"), "class"),
+      when: ON("multi-label"),
+    },
+    multiClasses: {
+      type: "segmented",
+      label: M.STRINGS.classesLabel,
+      detail: M.STRINGS.multiDetail,
+      options: M.MULTI_COUNTS,
+      default: M.COUNT_DEFAULT.multiClasses,
       when: ON("multi-label"),
     },
     /* FIVE SWITCHES RATHER THAN ONE FIELD: the target here is a 0 or a 1 per
@@ -829,10 +1110,31 @@ defineWidget({
       when: ON("multi-label"),
     },
     A: { type: "bool", label: "A", default: M.BCE_Y[0], when: ON("multi-label") },
-    B: { type: "bool", label: "B", default: M.BCE_Y[1], when: ON("multi-label") },
-    C: { type: "bool", label: "C", default: M.BCE_Y[2], when: ON("multi-label") },
-    D: { type: "bool", label: "D", default: M.BCE_Y[3], when: ON("multi-label") },
-    E: { type: "bool", label: "E", default: M.BCE_Y[4], when: ON("multi-label") },
+    B: { type: "bool", label: "B", default: M.BCE_Y[1], when: MANY },
+    C: { type: "bool", label: "C", default: M.BCE_Y[2], when: MANY },
+    D: { type: "bool", label: "D", default: M.BCE_Y[3], when: MANY },
+    E: { type: "bool", label: "E", default: M.BCE_Y[4], when: MANY },
+
+    /* --- Binary ------------------------------------------------------------ */
+    binaryScores: {
+      type: "text",
+      label: "y_pred",
+      detail: M.STRINGS.binaryScoresDetail,
+      default: M.BIN_SCORES,
+      size: 12,
+      parse: (t) => M.parseRow(t, M.RANGE.binary),
+      show: (v) => M.showRow(v, M.FIELD_N.binaryScores, M.RANGE.binary),
+      check: (t) => M.hintFor(t, 2, "class"),
+      when: ON("binary"),
+    },
+    binaryLabel: {
+      type: "segmented",
+      label: "y_true",
+      detail: M.STRINGS.binaryLabelDetail,
+      options: ["0", "1"],
+      default: M.BIN_LABEL,
+      when: ON("binary"),
+    },
 
     /* --- the case that fails (2.6) ----------------------------------------- *
      * TWO dtype parameters, because one parameter has one default and each page
@@ -879,16 +1181,18 @@ defineWidget({
       ? "The predictions, the gaps and the squared gaps"
       : task === "single-label"
         ? "The scores, the softmax probabilities, and the curve"
-        : "The scores, the sigmoid probabilities, the per-class terms, and the curve";
+        : task === "binary"
+          ? "The scores, the probabilities from softmax and from sigmoid, and the curve"
+          : "The scores, the sigmoid probabilities, the per-class terms, and the curve";
     return [
       { token: "empirical", label: rows },
       {
         token: "reference",
         label: task === "regression"
           ? "The target for each output"
-          : task === "single-label"
-            ? "The target: the one class the sample belongs to"
-            : "The target: a 0 or a 1 for each class",
+          : task === "multi-label"
+            ? "The target: a 0 or a 1 for each class"
+            : "The target: the one class the sample belongs to",
       },
       { token: "highlight", label: "The column under the pointer" },
       ...(bad ? [{ token: "extreme", label: "The message torch raises" }] : []),
@@ -906,9 +1210,23 @@ defineWidget({
     if (!state || state.kind === "regression") return [];
     const done = walkDone(carry ?? { n: state.units }, state);
     if (!landed(done, 2)) return [];
-    const g = M.layout(w, state);
+    const full = M.layout(w, state);
+    /* the Binary page's targets are the two-output form's chips: the class the
+       sample belongs to, which is the same `binaryLabel` the one-output form
+       reads as a 0 or a 1 */
+    const g = state.kind === "binary" ? full.left : full;
     const cw = Math.min(42, g.pitch - 10);
-    const row = g.rows.find((r) => r.id === "target");
+    const row = full.rows.find((r) => r.id === "target");
+    if (state.kind === "binary") {
+      return [0, 1].map((i) => ({
+        x: g.colX(i) - cw / 2,
+        y: row.cellY,
+        w: cw,
+        h: CH,
+        set: { binaryLabel: String(i) },
+        label: `class ${M.LETTERS[i]}`,
+      }));
+    }
     return Array.from({ length: g.n }, (_, i) => ({
       x: g.colX(i) - cw / 2,
       y: row.cellY,
@@ -927,16 +1245,20 @@ defineWidget({
      which is why `value` returns the canonical text the field's own `parse`
      would have produced. */
   drag: {
-    params: ["pred", "scores", "logits"],
+    params: ["pred", "scores", "logits", "binaryScores"],
     cursor: "grab",
+    /* DECISION 14: on the Binary page only the two-output form's bars are
+       handles. The derived bar has no parameter — p_B depends on the difference
+       alone, so every position it can take is already reachable by dragging B,
+       and the map from a difference back to a pair of scores is not unique. */
     hit: ({ x, y, w, state }) => {
-      grabbed = M.barColAt(x, y, M.layout(w, state));
+      const g = M.layout(w, state);
+      grabbed = M.barColAt(x, y, state.kind === "binary" ? g.left : g);
       return grabbed >= 0;
     },
-    value: ({ dy, start, params, state }) => {
+    value: ({ dy, start, state }) => {
       const next = { ...start };
-      const key = state.kind === "regression" ? "pred"
-        : state.kind === "single-label" ? "scores" : "logits";
+      const key = DRAG_KEY[state.kind];
       next[key] = M.dragVec(start[key], grabbed, dy, state.n, state.range);
       return next;
     },
@@ -992,6 +1314,7 @@ defineWidget({
 
   draw({ ctx, colors, w, params, state, anim, pointer }) {
     renderCard(params);
+    syncTensorFields(state);
     drawPage(ctx, colors, w, params, state, anim, pointer);
     carry = {
       state,
@@ -1004,13 +1327,28 @@ defineWidget({
   readout({ params, state, anim }) {
     const done = walkDone(anim, state);
     const ready = landed(done, state.units) && !state.bad;
+    /* THE BINARY PAGE READS ITS TWO LOSSES SIDE BY SIDE HERE TOO, and the
+       difference the one-output form is built from is the third tile. */
     const tiles = [
-      {
-        label: "Loss",
-        value: ready ? M.n4(state.loss) : "—",
-        note: state.bad ? M.STRINGS.raisedNote : M.STRINGS.lossNote[state.kind],
-      },
+      state.kind === "binary"
+        ? {
+          label: M.STRINGS.binaryTwoTile,
+          value: ready ? M.n4(state.loss) : "—",
+          note: M.STRINGS.binaryTwoNote,
+        }
+        : {
+          label: "Loss",
+          value: ready ? M.n4(state.loss) : "—",
+          note: state.bad ? M.STRINGS.raisedNote : M.STRINGS.lossNote[state.kind],
+        },
       pageTile(state, done),
+      ...(state.kind === "binary"
+        ? [{
+          label: M.STRINGS.binaryDiffName,
+          value: M.n1(state.z),
+          note: M.STRINGS.binaryDiffNote,
+        }]
+        : []),
       {
         label: "Target",
         value: M.targetDtypeText(state),
@@ -1033,6 +1371,13 @@ defineWidget({
 
 /** The second tile, which is the page's own reading of its probability row. */
 function pageTile(state, done) {
+  if (state.kind === "binary") {
+    return {
+      label: M.STRINGS.binaryOneTile,
+      value: landed(done, state.units) ? M.n4(state.lossOne) : "—",
+      note: M.STRINGS.binaryOneNote,
+    };
+  }
   if (state.kind === "regression") {
     const on = landed(done, 2);
     let top = 0;
@@ -1049,6 +1394,15 @@ function pageTile(state, done) {
       label: "p at the true class",
       value: on ? M.n4(state.p[state.label]) : "—",
       note: M.STRINGS.pTrueNote,
+    };
+  }
+  /* a row of one has no sum to read, on the stage or here (decision 11), so the
+     tile reads the one probability it would have summed */
+  if (!state.sumCol) {
+    return {
+      label: "p",
+      value: on ? M.n4(state.p[0]) : "—",
+      note: M.STRINGS.pOneNote,
     };
   }
   return {

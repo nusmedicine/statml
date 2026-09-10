@@ -4,7 +4,11 @@
 
    PHM5005 05-4 cells 30-40: cell 30's table of losses by task, then MSELoss
    (cells 31-33), CrossEntropyLoss (34-36) and BCEWithLogitsLoss (37-39). One
-   page per ROW of cell 30's table, each opening on that cell's own example.
+   page per ROW of cell 30's table, each opening on that cell's own example,
+   and a fourth for the two-class case both ways — softmax over two scores
+   against the sigmoid of their difference, which is the same number
+   (`_lab/dl-loss-torch.py` §6). Each page draws one output or several, on a
+   control of its own.
 
    NOTHING HERE IS RANDOM. Every number is the notebook's own arithmetic on the
    notebook's own tensors, so the widget takes no seed and `compute` ignores the
@@ -72,6 +76,26 @@ export const CE_LABEL = "0";
 /* cell 39 */
 export const BCE_SCORES = "0.2,-1,0.5,2,-0.3";
 export const BCE_Y = [false, true, true, false, false];
+/* the Binary page's pair, `_lab/dl-loss-torch.py` §6: softmax([0.5, 2.0]) is
+   [0.1824, 0.8176] and sigmoid(2.0 − 0.5) is the same 0.8176, so both forms
+   print 0.2014 at label B and 1.7014 at label A. */
+export const BIN_SCORES = "0.5,2";
+export const BIN_LABEL = "1";
+
+/* --- how many columns a page draws ----------------------------------------- *
+ * The count is the number of COLUMNS, one control per page, and it changes no
+ * row — so no page resizes when it moves (the second mock, §1: the three
+ * one-output stages come out at 494, 414 and 524, the same as the several-
+ * output ones). One parameter has one default, so there are three of them,
+ * exactly as the two dtype controls already are. */
+export const OUTPUT_COUNTS = ["1", "3"];
+export const SINGLE_COUNTS = ["2", "3"];
+export const MULTI_COUNTS = ["1", "5"];
+export const COUNT_DEFAULT = { outputs: "3", singleClasses: "3", multiClasses: "5" };
+export const countOf = (params, key) => Number(params[key] ?? COUNT_DEFAULT[key]);
+
+/** The class indices a label can take at a given class count. */
+export const labelOptions = (n) => Array.from({ length: n }, (_, i) => String(i));
 
 /* THE BAR AXIS IS FIXED, NOT FITTED (2.5). Fitted to the values on screen,
    dragging class A from 5.0 to 1.0 leaves A's own bar at 55px and takes
@@ -83,6 +107,12 @@ export const RANGE = {
   regression: [-1, 6],
   "single-label": [-2, 6],
   "multi-label": [-4, 4],
+  /* the Binary page's two axes. Both span EIGHT units, so 11px is one unit in
+     either column and a score of 1.5 is the same length of bar in both; only
+     the zero line differs, which is the one thing the side-by-side reading has
+     to be taken carefully. */
+  binary: [-2, 6],
+  binaryDiff: [-4, 4],
 };
 
 /* --- the tensors on the wire ----------------------------------------------- *
@@ -111,14 +141,36 @@ export function fit(list, n, range) {
 export const snap = (v, range) =>
   Math.min(range[1], Math.max(range[0], Math.round(v * 10) / 10));
 
-/** `parse` for a tensor field. */
+/** The row the FIGURE draws, as canonical text: the first `n` values of what
+    was typed, padded and held inside the axis. */
 export const parseVec = (text, n, range) => wire(fit(unwire(text), n, range));
+
+/** `parse` for a tensor field: the row AS TYPED, canonicalised and held inside
+    the axis, keeping whatever count was entered. The count control decides how
+    many of them the figure reads, so a row typed at three outputs is still
+    there when the reader switches back to three. */
+export const MAX_ROW = 8;
+export const parseRow = (text, range) =>
+  wire(unwire(text).slice(0, MAX_ROW).map((v) => snap(v, range)));
+
 /** `show` for the same field: the row as a person writes it. */
 export const showVec = (text) => unwire(text).join(", ");
+/** `show` narrowed to the count the page draws, so the field reads what the
+    figure reads. */
+export const showRow = (text, n, range) => showVec(parseVec(text, n, range));
+
+/** WHAT THE FIGURE IS DRAWING, for the tensor fields' own `show`. A field is
+    handed its stored value and nothing else, so the count it narrows to is
+    stashed here by `computeFor` — the one door every page's state comes
+    through. */
+export const FIELD_N = { pred: 3, target: 3, scores: 3, logits: 5, binaryScores: 2 };
+
 /** `check` for the same field, shown under it while it is typed in. */
 export const hintFor = (text, n, noun) =>
-  (unwire(text).length === n ? null : `${WORDS[n]} numbers, one per ${noun}`);
-const WORDS = { 3: "three", 5: "five" };
+  (unwire(text).length === n
+    ? null
+    : n === 1 ? `one number, for the one ${noun}` : `${WORDS[n]} numbers, one per ${noun}`);
+const WORDS = { 1: "one", 2: "two", 3: "three", 5: "five" };
 
 /* --- how far one Play beat is ---------------------------------------------- *
  * The collection's three paces, and the same wording every widget uses (3.7).
@@ -152,23 +204,39 @@ export const torchDtypeError = {
  */
 export function computeFor(params) {
   const task = params.task ?? "regression";
+  if (task === "binary") {
+    FIELD_N.binaryScores = 2;
+    return binary(
+      fit(unwire(params.binaryScores ?? BIN_SCORES), 2, RANGE.binary),
+      Number(params.binaryLabel ?? BIN_LABEL)
+    );
+  }
   if (task === "single-label") {
+    const n = countOf(params, "singleClasses");
+    FIELD_N.scores = n;
     return singleLabel(
-      fit(unwire(params.scores ?? CE_SCORES), 3, RANGE["single-label"]),
-      Number(params.label ?? CE_LABEL),
+      fit(unwire(params.scores ?? CE_SCORES), n, RANGE["single-label"]),
+      /* a label of 2 at two classes is held on the row it can reach; core's own
+         option door returns the parameter itself to its default */
+      Math.min(Number(params.label ?? CE_LABEL), n - 1),
       params.singleDtype ?? "long"
     );
   }
   if (task === "multi-label") {
+    const n = countOf(params, "multiClasses");
+    FIELD_N.logits = n;
     return multiLabel(
-      fit(unwire(params.logits ?? BCE_SCORES), 5, RANGE["multi-label"]),
-      LETTERS.map((k) => (params[k] ? 1 : 0)),
+      fit(unwire(params.logits ?? BCE_SCORES), n, RANGE["multi-label"]),
+      LETTERS.slice(0, n).map((k) => (params[k] ? 1 : 0)),
       params.multiDtype ?? "float32"
     );
   }
+  const n = countOf(params, "outputs");
+  FIELD_N.pred = n;
+  FIELD_N.target = n;
   return regression(
-    fit(unwire(params.pred ?? MSE_PRED), 3, RANGE.regression),
-    fit(unwire(params.target ?? MSE_TRUE), 3, RANGE.regression)
+    fit(unwire(params.pred ?? MSE_PRED), n, RANGE.regression),
+    fit(unwire(params.target ?? MSE_TRUE), n, RANGE.regression)
   );
 }
 
@@ -209,6 +277,38 @@ export function singleLabel(scores, label, dtype) {
   };
 }
 
+/**
+ * THE BINARY PAGE, both forms of one model. The two-output form is the
+ * notebook's own workflow shape (cell 29's `Linear(hidden, 2)` with
+ * CrossEntropyLoss); the one-output form reads the same model through the
+ * single score z_B − z_A, and softmax over two scores IS the sigmoid of their
+ * difference, so the two losses are one number.
+ */
+export function binary(scores, label) {
+  const p = softmax(scores);
+  const z = scores[1] - scores[0];
+  const sig = sigmoid(z);
+  const pOne = label === 1 ? sig : 1 - sig;
+  return {
+    kind: "binary",
+    n: 2,
+    scores,
+    label,
+    z,
+    p,
+    sig,
+    rowSum: sum(p),
+    pOne,
+    loss: -Math.log(p[label]),
+    lossOne: -Math.log(pOne),
+    units: 3,
+    sumCol: true,
+    bad: false,
+    range: RANGE.binary,
+    rangeOne: RANGE.binaryDiff,
+  };
+}
+
 export function multiLabel(scores, y, dtype) {
   const p = scores.map(sigmoid);
   const pTrue = p.map((v, c) => (y[c] ? v : 1 - v));
@@ -224,7 +324,10 @@ export function multiLabel(scores, y, dtype) {
     terms,
     loss: mean(terms),
     units: 5,
-    sumCol: true,
+    /* A ROW OF ONE HAS NOTHING TO READ. At one class the sum column repeats
+       its own cell — 0.5498 beside 0.5498 — so it is dropped there (the second
+       mock's §1 recommendation). */
+    sumCol: y.length > 1,
     bad: dtype === "long",
     dtype,
     range: RANGE["multi-label"],
@@ -278,6 +381,18 @@ export function pageUnits(state) {
       { id: "curve point", unit: 3, preview: false },
     ];
   }
+  /* THE BINARY PAGE LANDS THE SAME ROW IN BOTH COLUMNS AT EACH STEP: the two
+     probability rows together, the two targets together, then the two loss
+     lines and the one point they share. */
+  if (state.kind === "binary") {
+    return [
+      { id: "p", unit: 1 },
+      { id: "row sum", unit: 1 },
+      { id: "target", unit: 2 },
+      { id: "loss", unit: 3, preview: false },
+      { id: "curve point", unit: 3, preview: false },
+    ];
+  }
   return [
     { id: "p", unit: 1 },
     { id: "row sum", unit: 1 },
@@ -303,6 +418,9 @@ export const BAR_H = 88;        // the bar band of the scores row
 export const EDGE = 26;         // the arrow between two rows, with the function on it
 export const BAND_H = 26;       // the stage header and the hairline under it
 export const CURVE_W = 200;
+/* the Binary page's own panel: the curve sits BELOW two 250px columns rather
+   than beside one 300px one, so it takes the width the two columns leave */
+export const CURVE_WIDE = 320;
 export const CURVE_H = 150;
 export const PITCH_CAP = 88;    // a column is never wider than this
 export const CAP_GAP = 12;
@@ -321,6 +439,7 @@ export const SQ_MAX = 9;
  * hit-test that resolves a pointer to a bar.
  */
 export function layout(w, state) {
+  if (state.kind === "binary") return binaryLayout(w, state);
   const usable = w - 2 * PAD;
   const leftW = usable - CURVE_W - GAP;
   const n = state.n;
@@ -393,6 +512,75 @@ export function layout(w, state) {
     barW: Math.max(16, Math.round(pitch * 0.56)),
     curveX: PAD + leftW + GAP,
     curveY: top,
+    curveW: CURVE_W,
+    height: capY + CAPTION_ROWS * LINE + PAD,
+  };
+}
+
+/**
+ * THE BINARY PAGE IS THE SAME FLOW IN TWO COLUMNS, and the two columns run the
+ * same rows at the same y — which is the whole argument: the two loss lines
+ * sit on one line 272px apart, against 350px with a figure between them when
+ * the same two forms are stacked (the second mock, §2). So the vertical flow is
+ * measured once and each column carries only its own x, its own column count
+ * and its own axis.
+ */
+function binaryLayout(w, state) {
+  const usable = w - 2 * PAD;
+  const colW = Math.floor((usable - GAP) / 2);
+  const top = BAND_H;
+
+  let y = top;
+  const nameY = y;
+  y += ROW_LBL;
+  const barY = y;
+  const barTop = y + ROW_LBL;
+  y += ROW_LBL + BAR_H;
+  const dtypeY = y;
+  y += LINE + 10;
+  const edgeY = y;
+  y += EDGE;
+
+  const rows = [];
+  const row = (id, unit, kind, label, opts = {}) => {
+    const r = { id, unit, kind, label, nameY: y, cellY: y + ROW_LBL };
+    y += ROW_LBL + CH;
+    if (opts.dtype) { r.dtypeY = y; y += LINE; }
+    y += opts.after ?? 12;
+    rows.push(r);
+  };
+  row("p", 1, "cells", "p");
+  row("target", 2, "chips", "Target", { dtype: true });
+
+  const lossY = y;
+  y += LINE + 10;
+  const rowsH = y - top;
+  const curveY = top + rowsH + GAP;
+  const capY = curveY + CURVE_H + CAP_GAP;
+
+  /** One column's own geometry, in the shape `barColAt` and the drawing read. */
+  const side = (x, n, sumCol, range) => {
+    const cols = n + (sumCol ? 1 : 0);
+    const pitch = Math.min(PITCH_CAP, Math.floor(colW / cols));
+    const [lo, hi] = range;
+    return {
+      x, n, cols, pitch, sumCol, barY, barTop,
+      barW: Math.max(16, Math.round(pitch * 0.56)),
+      colX: (i) => x + i * pitch + pitch / 2,
+      py: (v) => barTop + BAR_H - ((v - lo) / (hi - lo)) * BAR_H,
+    };
+  };
+
+  return {
+    x: PAD, leftW: colW, colW, n: state.n, top,
+    nameY, barY, barTop, dtypeY, edgeY, secondEdgeY: null,
+    rows, lossY, rowsH, capY,
+    left: side(PAD, 2, true, state.range),
+    right: side(PAD + colW + GAP, 1, false, state.rangeOne),
+    ruleX: PAD + colW + GAP / 2,
+    curveX: PAD + Math.round((usable - CURVE_WIDE) / 2),
+    curveY,
+    curveW: CURVE_WIDE,
     height: capY + CAPTION_ROWS * LINE + PAD,
   };
 }
@@ -420,9 +608,12 @@ export function barColAt(x, y, g) {
 export const dragTo = (start, dy, range) =>
   snap(start + -dy / (BAR_H / (range[1] - range[0])), range);
 
-/** The whole tensor after that drag, as the canonical text the field stores. */
+/** The whole tensor after that drag, as the canonical text the field stores.
+    A row longer than the count the page draws keeps its tail: the count decides
+    how many columns are drawn, and a drag on one of them is no reason to throw
+    away what was typed for the others. */
 export function dragVec(text, col, dy, n, range) {
-  const vals = fit(unwire(text), n, range);
+  const vals = fit(unwire(text), Math.max(n, unwire(text).length), range);
   if (col < 0 || col >= n) return wire(vals);
   vals[col] = dragTo(vals[col], dy, range);
   return wire(vals);
@@ -433,21 +624,36 @@ export function dragVec(text, col, dy, n, range) {
  * verify script sweeps them for the register 5.9 asks for, and `main.js` has
  * no copy of its own to drift from them.
  */
+/* THE FOUR FACES DIVIDE THE WAY THE LOSSES DO (3.4g). One row of four
+   truncates — 62.0px for text against Single-label's 64.4px at the pressed
+   weight, measured in the second mock's §3 — and the two-column grid that
+   fixes the width pairs Regression with Single-label, which is not how the
+   four divide. The option groups say the division in the shape. */
 export const TASKS = [
   {
     value: "regression",
     label: "Regression",
+    group: "Regression",
     detail: "no function applied · y_true is float32, the same shape as y_pred",
   },
   {
     value: "single-label",
     label: "Single-label",
+    group: "Classification",
     detail: "softmax over the row · y_true is one class index, long",
   },
   {
     value: "multi-label",
     label: "Multi-label",
+    group: "Classification",
     detail: "sigmoid per class · y_true is 0 or 1 per class, float32",
+  },
+  {
+    value: "binary",
+    label: "Binary",
+    group: "Classification",
+    detail: "softmax over two scores, or sigmoid over their difference"
+      + " · y_true is a class index, long, or a 0 or 1, float32",
   },
 ];
 
@@ -455,16 +661,30 @@ export const HEAD = {
   regression: "Regression · MSELoss",
   "single-label": "Single-label · CrossEntropyLoss",
   "multi-label": "Multi-label · BCEWithLogitsLoss",
+  binary: "Binary · CrossEntropyLoss or BCEWithLogitsLoss",
 };
 export const HEAD_EXPR = {
   regression: "loss = mean((y_pred − y_true)²)",
   "single-label": "loss = −log p[label]",
   "multi-label": "loss = mean(−log p[y])",
 };
+/** The Binary page's loss expression NAMES THE TRUE CLASS, and moves when the
+    target chip does: at class A both forms return −log p_A. A fixed `−log p_B`
+    is false on half the states the page can reach. */
+export const binaryExpr = (label) => `loss = −log p_${LETTERS[label]}`;
 export const FN_LABEL = {
   regression: "",
   "single-label": "softmax over the row",
   "multi-label": "sigmoid per class",
+};
+/** The two functions the Binary page applies, one per column. */
+export const BIN_FN = { two: "softmax over the row", one: "sigmoid" };
+/** The Binary page's four shape and dtype lines, two per column. */
+export const BIN_SHAPE = {
+  scoresTwo: `${shapeText([1, 2])}, float32`,
+  scoresOne: `${shapeText([1])}, float32`,
+  targetTwo: `${shapeText([1])}, long`,
+  targetOne: `${shapeText([1])}, float32`,
 };
 
 export const STRINGS = {
@@ -483,27 +703,55 @@ export const STRINGS = {
   speedLabel: "Play speed",
   dtypeLabel: "Target dtype",
   dtypeDetail: "what the target tensor holds when the loss reads it",
-  labelDetail: "the index of the true class: 0 is A, 1 is B, 2 is C",
+  /* the class count is a control, so this line counts rather than lists: at two
+     classes there is no C to name */
+  labelDetail: "the index of the true class, counting from A at 0",
   boolsDetail: "the classes the target marks present",
   predDetail: "the predictions, one per output",
   targetDetail: "one target per output, in the units of the prediction",
   scoresDetail: "the scores, one per class",
   logitsDetail: "the logits, one per class",
 
+  outputsLabel: "Outputs",
+  classesLabel: "Classes",
+  outputsDetail: "one output, or several: the shape of y_pred and y_true",
+  singleDetail: "two classes, or several: the width of the score row",
+  multiDetail: "one label, or several: the width of the score row",
+
+  binaryScoresDetail: "two scores, A and B",
+  binaryLabelDetail: "the index of the true class: 0 is A, 1 is B",
+  binaryTwoRow: "y_pred, two outputs",
+  binaryOneRow: "y_pred, one output",
+  binaryDiffName: "z_B − z_A",
+  binaryTwoTile: "Loss, two outputs",
+  binaryOneTile: "Loss, one output",
+  binaryTwoNote: "CrossEntropyLoss over the two scores",
+  binaryOneNote: "BCEWithLogitsLoss over the difference between them",
+  binaryDiffNote: "the score for B minus the score for A",
+  binaryDerivedNote: "this score is the difference between the two scores beside it",
+  binaryTargetValue: "long · float32",
+  binaryTargetNote: "the target as a 0 or a 1: 0 is A, 1 is B",
+  binaryPTwoNote: "this class's probability in the row",
+  binaryPOneCellNote: "the probability the sigmoid gives the true class",
+
   /* the caption block: two rows a page, each waiting for the step that makes
      it true (2.4), the row reserved so the block is the same height empty */
   captions: {
     regression: [
       { row: 0, at: 1, line: "Each prediction is compared with its own target, on the same axis." },
-      { row: 1, at: 4, line: "The loss is the mean of the three squared gaps." },
+      { row: 1, at: 4, line: "The loss is the mean of the squared gaps." },
     ],
     "single-label": [
-      { row: 0, at: 1, line: "The three scores become one distribution over the classes, and it sums to 1." },
+      { row: 0, at: 1, line: "The scores become one distribution over the classes, and it sums to 1." },
       { row: 1, at: 3, line: "The loss is the negative log of the probability given to the true class." },
     ],
     "multi-label": [
-      { row: 0, at: 1, line: "Each class has its own probability; no rule holds the five to 1." },
-      { row: 1, at: 5, line: "The loss is the mean of the five per-class terms." },
+      { row: 0, at: 1, line: "Each class has its own probability; no rule holds them to 1." },
+      { row: 1, at: 5, line: "The loss is the mean of the per-class terms." },
+    ],
+    binary: [
+      { row: 0, at: 1, line: "Softmax over two scores is the sigmoid of their difference: p_B = σ(z_B − z_A)." },
+      { row: 1, at: 3, line: "The two forms give the same loss, and dragging the score for B moves both." },
     ],
   },
   errorCaption: {
@@ -512,21 +760,23 @@ export const STRINGS = {
   },
 
   lossNote: {
-    regression: "mean of the three squared gaps",
+    regression: "mean of the squared gaps",
     "single-label": "−log of the probability given to the true class",
-    "multi-label": "mean of the five per-class terms",
+    "multi-label": "mean of the per-class terms",
   },
   raisedNote: "the call raised a RuntimeError",
   dtypeRule: {
     regression: "y_true must be float32, the same shape as y_pred",
     "single-label": "the class index must be long",
     "multi-label": "the 0 or 1 per class must be float32",
+    binary: "the class index must be long, or the 0 or 1 float32",
   },
 
   cardNote: {
     regression: "N is the number of outputs, and every gap is measured in the units of the target.",
     "single-label": "The sum inside runs over the classes: the scores become one distribution, and the loss reads the true class's probability.",
     "multi-label": "Each class carries its own term, and a score wrong by the same amount costs the same whether its target is 0 or 1.",
+    binary: "The two-output form has one redundant degree of freedom: adding the same amount to both scores leaves the probability unchanged.",
   },
 
   /* cell 40's other losses are a sentence, not a page: each needs a data shape
@@ -534,7 +784,11 @@ export const STRINGS = {
   cardExtra: "Losses can also be summed with weights, so one model trains on more than one objective at a time.",
 
   curveTitle: "−log p",
-  curveX: { "single-label": "p at the true class", "multi-label": "p at the true label" },
+  curveX: {
+    "single-label": "p at the true class",
+    "multi-label": "p at the true label",
+    binary: "p at the true class",
+  },
   curveY: "loss",
   parabolaTitle: "gap²",
   parabolaX: "gap = y_pred − y_true",
@@ -544,6 +798,7 @@ export const STRINGS = {
 
   rowSumHead: "row sum",
   pTrueNote: "the softmax's probability for the target class",
+  pOneNote: "the probability this class is present",
   outputRow: "y_pred",
 };
 
@@ -559,14 +814,20 @@ export const hoverName = (id) => ({
 
 /** The row-sum column's note, which is the whole contrast in one tile. */
 export const SUM_NOTE = {
-  "single-label": "the three sum to 1",
+  "single-label": "the probabilities sum to 1",
   "multi-label": "each class has its own probability; nothing holds them to 1",
+  binary: "the two probabilities sum to 1",
 };
 
-/** The shape and dtype line under a row — the anchor of the whole widget. */
+/** The shape and dtype line under a row — the anchor of the whole widget.
+    A row of ONE is `[1]` and not `[1, 1]`: that is the shape of the left
+    column of Kenneth's own MSE and BCE figures. */
+const rowShape = (n) => shapeText(n === 1 ? [1] : [1, n]);
 export const targetDtypeText = (state) => {
-  if (state.kind === "regression") return `${shapeText([1, state.n])}, float32`;
+  if (state.kind === "regression") return `${rowShape(state.n)}, float32`;
   if (state.kind === "single-label") return `${shapeText([1])}, ${state.bad ? "float32" : "long"}`;
-  return `${shapeText([1, state.n])}, ${state.bad ? "long" : "float32"}`;
+  /* the Binary page carries a dtype line per column, so the readout names both */
+  if (state.kind === "binary") return STRINGS.binaryTargetValue;
+  return `${rowShape(state.n)}, ${state.bad ? "long" : "float32"}`;
 };
-export const scoresDtypeText = (state) => `${shapeText([1, state.n])}, float32`;
+export const scoresDtypeText = (state) => `${rowShape(state.n)}, float32`;

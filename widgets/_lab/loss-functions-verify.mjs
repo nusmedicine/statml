@@ -521,7 +521,12 @@ const BCE = M.computeFor({
   walk(M.HEAD);
   walk(M.HEAD_EXPR);
   walk(M.FN_LABEL);
-  check("there are strings to sweep", strings.length > 40, `${strings.length} strings`);
+  walk(M.BIN_FN);
+  walk(M.BIN_SHAPE);
+  walk([M.binaryExpr(0), M.binaryExpr(1)]);
+  walk([M.hintFor("", 1, "output"), M.hintFor("", 2, "class"),
+    M.hintFor("", 3, "class"), M.hintFor("", 5, "class")]);
+  check("there are strings to sweep", strings.length > 80, `${strings.length} strings`);
   const banned = /\b(notebook|lesson|cell \d|never)\b/i;
   const bad = strings.filter((s) => banned.test(s));
   check("no reader-facing string names a lesson, a notebook or a cell, and none says never",
@@ -534,11 +539,28 @@ const BCE = M.computeFor({
   check("the subtitle names the loss, the target and the two classification cases",
     /A loss function measures/.test(M.STRINGS.subtitle) && /target/.test(M.STRINGS.subtitle)
     && /for each class/.test(M.STRINGS.subtitle));
+  check("the count controls are labelled by their noun and detailed by what they resize",
+    M.STRINGS.outputsLabel === "Outputs" && M.STRINGS.classesLabel === "Classes"
+    && [M.STRINGS.outputsDetail, M.STRINGS.singleDetail, M.STRINGS.multiDetail]
+      .every((s) => /, or several: /.test(s)),
+    [M.STRINGS.outputsDetail, M.STRINGS.singleDetail, M.STRINGS.multiDetail].join(" | "));
+  check("the Binary page's two column names say which form each is",
+    M.STRINGS.binaryTwoRow === "y_pred, two outputs"
+    && M.STRINGS.binaryOneRow === "y_pred, one output");
+  check("its y_true detail names the two classes the index picks between",
+    /0 is A, 1 is B/.test(M.STRINGS.binaryLabelDetail));
   check("each task option carries a detail with both halves: the function and the target",
     M.TASKS.every((t) => t.detail.includes(" · ") && /y_true/.test(t.detail)),
     M.TASKS.map((t) => t.detail.split(" · ")[0]).join(" / "));
-  check("the three task faces are the notebook's own three rows",
-    M.TASKS.map((t) => t.label).join(" · ") === "Regression · Single-label · Multi-label");
+  check("the four task faces are the table's own three rows and the binary case",
+    M.TASKS.map((t) => t.label).join(" · ")
+    === "Regression · Single-label · Multi-label · Binary",
+    M.TASKS.map((t) => t.label).join(" · "));
+  check("they carry two group heads, and the three classification faces are one run",
+    M.TASKS.map((t) => t.group).join(" ") === "Regression Classification Classification Classification",
+    M.TASKS.map((t) => t.group).join(" "));
+  check("each group head is one word (3.4g)",
+    [...new Set(M.TASKS.map((t) => t.group))].every((g) => !g.includes(" ")));
   check("the three task values are the words on the control, lowercased (5.9)",
     M.TASKS.every((t) => t.value === t.label.toLowerCase()));
   check("each page's header names the loss class torch declares",
@@ -555,8 +577,8 @@ const BCE = M.computeFor({
     Object.values(M.STRINGS.captions).flat().every((c) => /^[A-Z].*\.$/.test(c.line)));
   check("the two error captions say which dtype the loss reads",
     Object.values(M.STRINGS.errorCaption).every((s) => /float32|long/.test(s)));
-  check("the dtype rule is stated for all three pages as a requirement, so it stays true on the failing arm (2.11)",
-    Object.keys(M.STRINGS.dtypeRule).length === 3
+  check("the dtype rule is stated for all four pages as a requirement, so it stays true on the failing arm (2.11)",
+    Object.keys(M.STRINGS.dtypeRule).length === 4
     && Object.values(M.STRINGS.dtypeRule).every((s) => / must be /.test(s)));
   check("the row-sum note is the contrast, one page at a time",
     /sum to 1/.test(M.SUM_NOTE["single-label"]) && /nothing holds them to 1/.test(M.SUM_NOTE["multi-label"]));
@@ -570,11 +592,331 @@ const BCE = M.computeFor({
   check("the run button is Play, the collection's own word (3.7)",
     M.STRINGS.runLabel === "Play");
   check("the card carries a note for each page",
-    Object.keys(M.STRINGS.cardNote).length === 3
+    Object.keys(M.STRINGS.cardNote).length === 4
     && Object.values(M.STRINGS.cardNote).every((s) => s.length > 40));
 }
 
-/* --- 11 · the shipping files -------------------------------------------------- */
+/* --- 11 · one output and several -------------------------------------------
+ * The count is the number of COLUMNS. The tensor field keeps the row as typed
+ * and `compute` reads the first k of it, so narrowing and widening returns the
+ * row that was there — and no page resizes, because no ROW moves.
+ */
+{
+  const REG1 = M.computeFor({ task: "regression", outputs: "1" });
+  const CE2 = M.computeFor({ task: "single-label", singleClasses: "2" });
+  const BCE1 = M.computeFor({ task: "multi-label", multiClasses: "1", A: false });
+
+  check("Regression at one output reads the first prediction and the first target",
+    REG1.scores.join() === "2.5" && REG1.target.join() === "3",
+    `${REG1.scores.join()} / ${REG1.target.join()}`);
+  check("and prints the 0.2500 torch printed for 2.5 against 3.0",
+    M.n4(REG1.loss) === "0.2500", M.n4(REG1.loss));
+  check("to six digits, as `_lab/dl-loss-torch.txt` prints it",
+    REG1.loss.toFixed(6) === "0.250000", REG1.loss.toFixed(6));
+  check("the one-output page draws one column", REG1.n === 1);
+
+  check("Single-label at two classes reads [5.0, 0.5]",
+    CE2.scores.join() === "5,0.5", CE2.scores.join());
+  check("its softmax is 0.9890 and 0.0110, the digits torch printed",
+    row4(CE2.p) === "0.9890 0.0110", row4(CE2.p));
+  check("and the loss at label 0 is 0.0110",
+    M.n4(CE2.loss) === "0.0110", M.n4(CE2.loss));
+  check("to six digits", CE2.loss.toFixed(6) === "0.011048", CE2.loss.toFixed(6));
+  check("two probabilities still sum to 1", Math.abs(CE2.rowSum - 1) < 1e-12);
+  check("so the row-sum column stays on a row of two", CE2.sumCol === true);
+
+  check("Multi-label at one class reads [0.2]", BCE1.scores.join() === "0.2", BCE1.scores.join());
+  check("its sigmoid is 0.5498", M.n4(BCE1.p[0]) === "0.5498", M.n4(BCE1.p[0]));
+  check("and with A = 0 the term is 0.7981, cell 39's own first term",
+    M.n4(BCE1.loss) === "0.7981", M.n4(BCE1.loss));
+  check("A ROW OF ONE HAS NOTHING TO READ, so the sum column is dropped there",
+    BCE1.sumCol === false);
+  check("the sum column would have repeated the row's only cell",
+    M.n4(BCE1.rowSum) === M.n4(BCE1.p[0]), M.n4(BCE1.rowSum));
+  check("the target is one class's own 0 or 1", BCE1.y.length === 1);
+  check("and the readout's own row-sum tile gives way to the probability it read",
+    /if \(!state\.sumCol\) \{/.test(read("widgets/loss-functions/main.js")));
+  check("the label's detail counts rather than listing, since C may not exist",
+    !/2 is C/.test(M.STRINGS.labelDetail), M.STRINGS.labelDetail);
+
+  /* the shapes of Kenneth's own left columns */
+  check("a row of one prints [1] and not [1, 1] (his own figures' left column)",
+    M.scoresDtypeText(REG1) === "[1], float32" && M.targetDtypeText(REG1) === "[1], float32",
+    M.scoresDtypeText(REG1));
+  check("two classes print [1, 2], float32",
+    M.scoresDtypeText(CE2) === "[1, 2], float32", M.scoresDtypeText(CE2));
+  check("and the class index is [1], long at either count",
+    M.targetDtypeText(CE2) === "[1], long", M.targetDtypeText(CE2));
+  check("one label prints [1], float32 on the Multi-label page",
+    M.scoresDtypeText(BCE1) === "[1], float32" && M.targetDtypeText(BCE1) === "[1], float32");
+
+  /* the count narrows and pads without touching what was typed */
+  const R = M.RANGE.regression;
+  check("a three-value row read at one output is its first value",
+    M.parseVec("2.5,0,2.1", 1, R) === "2.5", M.parseVec("2.5,0,2.1", 1, R));
+  check("a one-value row read at three outputs is padded with zeros",
+    M.parseVec("2.5", 3, R) === "2.5,0,0", M.parseVec("2.5", 3, R));
+  check("and the field shows the padding, so it reads what the figure reads",
+    M.showRow("2.5", 3, R) === "2.5, 0, 0", M.showRow("2.5", 3, R));
+  check("the field narrowed to one output shows one number",
+    M.showRow("2.5,0,2.1", 1, R) === "2.5", M.showRow("2.5,0,2.1", 1, R));
+  check("`parseRow` stores what was typed, whatever the count",
+    M.parseRow("2.5, 0.0, 2.1", R) === "2.5,0,2.1" && M.parseRow("2.5", R) === "2.5",
+    M.parseRow("2.5", R));
+  check("it still canonicalises and holds a value inside the axis",
+    M.parseRow("100, -100", M.RANGE["single-label"]) === "6,-2",
+    M.parseRow("100, -100", M.RANGE["single-label"]));
+  check("it caps a pasted row, so the URL cannot grow without end",
+    M.unwire(M.parseRow("1,1,1,1,1,1,1,1,1,1,1,1", R)).length === M.MAX_ROW);
+  check("so a row typed at three outputs survives a trip through one output",
+    M.parseVec(M.parseRow("2.5,0,2.1", R), 3, R) === "2.5,0,2.1");
+  check("a drag at one output keeps the columns it does not draw",
+    M.dragVec("2.5,0,2.1", 0, -22, 1, R) === "4.3,0,2.1",
+    M.dragVec("2.5,0,2.1", 0, -22, 1, R));
+  check("and a drag cannot reach a column the page is not drawing",
+    M.dragVec("2.5,0,2.1", 2, -22, 1, R) === "2.5,0,2.1");
+
+  check("the hint counts to whatever the control says",
+    M.hintFor("2.5", 1, "output") === null
+    && M.hintFor("2.5,0", 1, "output") === "one number, for the one output",
+    M.hintFor("2.5,0", 1, "output"));
+  check("and names two classes as two",
+    M.hintFor("5", 2, "class") === "two numbers, one per class",
+    M.hintFor("5", 2, "class"));
+
+  check("the count reads its default when the URL carries none",
+    M.countOf({}, "outputs") === 3 && M.countOf({}, "singleClasses") === 3
+    && M.countOf({}, "multiClasses") === 5);
+  check("the three counts are the numbers on their own ticks (5.9)",
+    M.OUTPUT_COUNTS.join() === "1,3" && M.SINGLE_COUNTS.join() === "2,3"
+    && M.MULTI_COUNTS.join() === "1,5");
+  check("each default is one of its own options",
+    M.OUTPUT_COUNTS.includes(M.COUNT_DEFAULT.outputs)
+    && M.SINGLE_COUNTS.includes(M.COUNT_DEFAULT.singleClasses)
+    && M.MULTI_COUNTS.includes(M.COUNT_DEFAULT.multiClasses));
+  check("each default is the notebook's own example, so the pages open as they did",
+    M.COUNT_DEFAULT.outputs === "3" && M.COUNT_DEFAULT.singleClasses === "3"
+    && M.COUNT_DEFAULT.multiClasses === "5");
+  check("the label's options follow the class count",
+    M.labelOptions(2).join() === "0,1" && M.labelOptions(3).join() === "0,1,2");
+  check("a label past the last class is held on the row it can reach",
+    M.computeFor({ task: "single-label", singleClasses: "2", label: "2" }).label === 1);
+
+  /* THE HEIGHTS ARE THE MOCK'S OWN, and the whole point of the pick */
+  const W = 550;
+  check("Regression is 494px at one output, as at three",
+    M.layout(W, REG1).height === 494, M.layout(W, REG1).height);
+  check("Single-label is 414px at two classes", M.layout(W, CE2).height === 414,
+    M.layout(W, CE2).height);
+  check("Multi-label is 524px at one class", M.layout(W, BCE1).height === 524,
+    M.layout(W, BCE1).height);
+  check("so the count moves no row on any page",
+    [[REG, REG1], [CE, CE2], [BCE, BCE1]]
+      .every(([a, b]) => M.layout(W, a).height === M.layout(W, b).height));
+  check("the rows are the same rows at the same y, whatever the count",
+    M.layout(W, CE).rows.map((r) => `${r.id}@${r.cellY}`).join()
+    === M.layout(W, CE2).rows.map((r) => `${r.id}@${r.cellY}`).join());
+  check("the columns widen to the 88px cap instead",
+    M.layout(W, REG1).pitch === M.PITCH_CAP && M.layout(W, BCE1).pitch === M.PITCH_CAP,
+    `${M.layout(W, REG1).pitch} / ${M.layout(W, BCE1).pitch}`);
+  check("Single-label at two classes runs three columns, the pair and the row sum",
+    M.layout(W, CE2).cols === 3 && M.layout(W, CE2).pitch === 88,
+    `${M.layout(W, CE2).cols} at ${M.layout(W, CE2).pitch}`);
+  check("Multi-label at one class runs one column and no sum",
+    M.layout(W, BCE1).cols === 1);
+  check("every bar is still grabbable at the narrow count",
+    M.barColAt(M.layout(W, REG1).colX(0), M.layout(W, REG1).barTop + 4, M.layout(W, REG1)) === 0
+    && M.barColAt(M.layout(W, CE2).colX(1), M.layout(W, CE2).barTop + 4, M.layout(W, CE2)) === 1);
+  check("and the sum column is over no bar at two classes",
+    M.barColAt(M.layout(W, CE2).colX(2), M.layout(W, CE2).barTop + 4, M.layout(W, CE2)) === -1);
+  check("the walk is the same walk at either count",
+    REG1.units === REG.units && CE2.units === CE.units && BCE1.units === BCE.units);
+  check("and the unit table is the same table",
+    M.pageUnits(BCE1).map((u) => u.id).join() === M.pageUnits(BCE).map((u) => u.id).join());
+}
+
+/* --- 12 · the Binary page, both forms of one model ---------------------------
+ * Softmax over two scores is the sigmoid of their difference, so
+ * CrossEntropyLoss on two outputs and BCEWithLogitsLoss on z_B − z_A are the
+ * same loss. Every number here is `_lab/dl-loss-torch.txt` §6's own.
+ */
+{
+  const BIN = M.computeFor({ task: "binary" });
+  const BIN_A = M.computeFor({ task: "binary", binaryLabel: "0" });
+
+  check("the page opens on the mock's own pair, [0.5, 2.0] with B as the target",
+    BIN.scores.join() === "0.5,2" && BIN.label === 1, BIN.scores.join());
+  check("softmax over the two is 0.1824 and 0.8176", row4(BIN.p) === "0.1824 0.8176", row4(BIN.p));
+  check("the difference z_B − z_A is 1.5", BIN.z === 1.5, String(BIN.z));
+  check("the sigmoid of that difference is the softmax's own p_B",
+    Math.abs(BIN.sig - BIN.p[1]) < 1e-12, BIN.sig.toExponential(3));
+  check("both forms print 0.2014 at label B",
+    M.n4(BIN.loss) === "0.2014" && M.n4(BIN.lossOne) === "0.2014",
+    `${M.n4(BIN.loss)} / ${M.n4(BIN.lossOne)}`);
+  check("and torch's own six digits", BIN.loss.toFixed(6) === "0.201413", BIN.loss.toFixed(6));
+  check("both print 1.7014 at label A",
+    M.n4(BIN_A.loss) === "1.7014" && M.n4(BIN_A.lossOne) === "1.7014",
+    `${M.n4(BIN_A.loss)} / ${M.n4(BIN_A.lossOne)}`);
+  check("to six digits, as torch printed both", BIN_A.loss.toFixed(6) === "1.701413");
+  check("at label A the one-output form reads 1 − σ(z_B − z_A)",
+    Math.abs(BIN_A.pOne - (1 - BIN.sig)) < 1e-12, M.n4(BIN_A.pOne));
+  check("the two probabilities sum to 1", M.n4(BIN.rowSum) === "1.0000");
+  check("the page lands three rows", BIN.units === 3);
+  check("it keeps the row-sum column, since a row of two has something to read",
+    BIN.sumCol === true);
+  check("and no dtype can raise on it: it has no dtype control", BIN.bad === false);
+
+  /* THE WHOLE §6 DRAG TABLE, with z_A held at 0.5 and B the target */
+  const DRAG = [
+    [-2.0, "0.0759", "2.578890"], [-1.0, "0.1824", "1.701413"],
+    [0.0, "0.3775", "0.974077"], [0.5, "0.5000", "0.693147"],
+    [1.0, "0.6225", "0.474077"], [2.0, "0.8176", "0.201413"],
+    [3.0, "0.9241", "0.078890"], [4.0, "0.9707", "0.029750"],
+  ];
+  for (const [zb, p, loss] of DRAG) {
+    const s = M.computeFor({ task: "binary", binaryScores: M.wire([0.5, zb]) });
+    check(`z_B at ${zb}: p_B ${p}, and the two forms agree`,
+      M.n4(s.p[1]) === p && Math.abs(s.loss - Number(loss)) < 5e-6
+      && Math.abs(s.lossOne - s.loss) < 1e-6,
+      `${M.n4(s.p[1])} / ${s.loss.toFixed(6)} / ${s.lossOne.toFixed(6)}`);
+  }
+  check("the largest gap between the two forms over the whole table is under 1e-6",
+    Math.max(...DRAG.map(([zb]) => {
+      const s = M.computeFor({ task: "binary", binaryScores: M.wire([0.5, zb]) });
+      return Math.abs(s.loss - s.lossOne);
+    })) < 1e-6);
+  check("the same holds at label A over the same table",
+    DRAG.every(([zb]) => {
+      const s = M.computeFor({ task: "binary", binaryScores: M.wire([0.5, zb]), binaryLabel: "0" });
+      return Math.abs(s.loss - s.lossOne) < 1e-6;
+    }));
+
+  /* THE REDUNDANT DEGREE OF FREEDOM, which is why the derived bar does not drag */
+  const shifted = M.computeFor({ task: "binary", binaryScores: M.wire([3.5, 5]) });
+  check("both scores shifted by +3 leave the probabilities where they were",
+    row4(shifted.p) === row4(BIN.p), row4(shifted.p));
+  check("and leave both losses where they were",
+    M.n4(shifted.loss) === "0.2014" && M.n4(shifted.lossOne) === "0.2014");
+  check("because the difference is unchanged", shifted.z === BIN.z);
+  check("so the map from the difference back to a pair is not unique, and the "
+    + "derived bar has no parameter to drag",
+    /state\.kind === "binary" \? g\.left : g/.test(read("widgets/loss-functions/main.js")));
+
+  /* the axes: eight units each, so one unit is 11px in both columns */
+  check("the two-output form is drawn on the Single-label axis, −2 to 6",
+    M.RANGE.binary.join() === "-2,6");
+  check("the difference is drawn on the Multi-label axis, −4 to 4",
+    M.RANGE.binaryDiff.join() === "-4,4");
+  check("both span eight units, so 1.5 is the same length of bar in either column",
+    M.RANGE.binary[1] - M.RANGE.binary[0] === M.RANGE.binaryDiff[1] - M.RANGE.binaryDiff[0]);
+  check("and both run at 11px a unit over the 88px band",
+    M.BAR_H / 8 === 11);
+  check("the drag moves the two-output form, which is what moves both",
+    M.dragVec("0.5,2", 1, 33, 2, M.RANGE.binary) === "0.5,-1",
+    M.dragVec("0.5,2", 1, 33, 2, M.RANGE.binary));
+  check("and dragging B by 33px lands the table's own z_B = −1.0 row",
+    M.n4(M.computeFor({
+      task: "binary", binaryScores: M.dragVec("0.5,2", 1, 33, 2, M.RANGE.binary),
+    }).loss) === "1.7014");
+  check("class A drags too", M.dragVec("0.5,2", 0, -22, 2, M.RANGE.binary) === "2.5,2");
+
+  /* the stage: two columns of one flow, the curve below */
+  const W = 550;
+  const g = M.layout(W, BIN);
+  check("the Binary stage is 586px at 550, from the same geometry function",
+    g.height === 586, g.height);
+  check("`pageHeight` agrees with it (5.8)",
+    M.pageHeight(W, { task: "binary" }) === 586, M.pageHeight(W, { task: "binary" }));
+  check("the height does not move with the target", M.layout(W, BIN_A).height === 586);
+  check("nor with the width, since nothing on it wraps",
+    M.layout(770, BIN).height === 586, M.layout(770, BIN).height);
+  check("the two columns are 250px at 550, the mock's own", g.colW === 250, g.colW);
+  check("and grow to 360px at 770", M.layout(770, BIN).colW === 360, M.layout(770, BIN).colW);
+  check("the left column runs three columns, the pair and the row sum",
+    g.left.cols === 3 && g.left.n === 2);
+  check("at a pitch of 83px, against the 43px a four-decimal cell needs",
+    g.left.pitch === 83, g.left.pitch);
+  check("the right column runs one, at the 88px cap",
+    g.right.cols === 1 && g.right.pitch === 88, `${g.right.cols} at ${g.right.pitch}`);
+  check("the right column has no row sum", g.right.sumCol === false);
+  check("both columns run the same rows at the same y, which is the argument",
+    g.rows.map((r) => r.id).join() === "p,target");
+  check("and both loss lines land on one line", typeof g.lossY === "number");
+  check("the two loss lines are 272px apart on that line, the mock's own measurement",
+    g.right.x - g.left.x === 272, String(g.right.x - g.left.x));
+  check("the left column starts at the stage's own inset", g.left.x === M.PAD);
+  check("the rule between them sits half a gap in", g.ruleX === M.PAD + g.colW + M.GAP / 2);
+  check("the curve sits BELOW both columns", g.curveY > g.top + g.rowsH);
+  check("across 320px of the width, centred", g.curveW === M.CURVE_WIDE
+    && g.curveX === M.PAD + Math.round((W - 2 * M.PAD - M.CURVE_WIDE) / 2), g.curveX);
+  check("and the captions sit under the curve", g.capY >= g.curveY + M.CURVE_H);
+  check("the two columns do not overlap", g.left.x + g.colW <= g.right.x);
+  check("and each column's own columns fit inside it",
+    g.left.cols * g.left.pitch <= g.colW && g.right.cols * g.right.pitch <= g.colW);
+  check("zero sits 22px higher on the difference axis than on the score axis",
+    Math.round(g.left.py(0) - g.right.py(0)) === 22,
+    String(Math.round(g.right.py(0) - g.left.py(0))));
+  check("a score of 1.5 is the same 17px of bar in either column",
+    Math.round(g.left.py(0) - g.left.py(1.5))
+    === Math.round(g.right.py(0) - g.right.py(1.5)),
+    String(Math.round(g.right.py(0) - g.right.py(1.5))));
+
+  /* the hit-test: the two-output form's bars, and nothing else */
+  check("both of the left column's bars are grabbable",
+    [0, 1].every((i) => M.barColAt(g.left.colX(i), g.left.barTop + 10, g.left) === i));
+  check("THE DERIVED BAR IS NOT: the left column's hit-test does not reach it",
+    M.barColAt(g.right.colX(0), g.left.barTop + 10, g.left) === -1,
+    String(g.right.colX(0)));
+  check("nor is the row-sum column",
+    M.barColAt(g.left.x + 2 * g.left.pitch + g.left.pitch / 2, g.left.barTop + 10, g.left) === -1);
+  check("a point above the band is over no bar",
+    M.barColAt(g.left.colX(0), g.left.barTop - 20, g.left) === -1);
+
+  /* the walk, and the copy */
+  const units = M.pageUnits(BIN);
+  check("every step of the Binary walk lands a piece",
+    [1, 2, 3].every((n) => units.some((u) => u.unit === n)));
+  check("the two probability rows land together, with the row sum",
+    units.filter((u) => u.unit === 1).map((u) => u.id).join() === "p,row sum");
+  check("the targets land together on the second step",
+    units.find((u) => u.id === "target").unit === 2);
+  check("the loss and the point land last, with no pale form",
+    units.find((u) => u.id === "loss").unit === 3
+    && units.find((u) => u.id === "loss").preview === false
+    && units.find((u) => u.id === "curve point").preview === false);
+  check("the header names both loss classes",
+    /CrossEntropyLoss/.test(M.HEAD.binary) && /BCEWithLogitsLoss/.test(M.HEAD.binary),
+    M.HEAD.binary);
+  check("and the header's expression NAMES THE TRUE CLASS, so it stays true at either target",
+    M.binaryExpr(0) === "loss = −log p_A" && M.binaryExpr(1) === "loss = −log p_B",
+    M.binaryExpr(0));
+  check("the two columns name the two functions",
+    M.BIN_FN.two === "softmax over the row" && M.BIN_FN.one === "sigmoid");
+  check("and print the four shape lines the two forms differ in",
+    M.BIN_SHAPE.scoresTwo === "[1, 2], float32" && M.BIN_SHAPE.scoresOne === "[1], float32"
+    && M.BIN_SHAPE.targetTwo === "[1], long" && M.BIN_SHAPE.targetOne === "[1], float32",
+    Object.values(M.BIN_SHAPE).join(" / "));
+  check("the first caption is the identity the page exists for",
+    /σ\(z_B − z_A\)/.test(M.STRINGS.captions.binary[0].line));
+  check("the second says what the drag does, and waits for the loss",
+    M.STRINGS.captions.binary[1].at === BIN.units
+    && /dragging/.test(M.STRINGS.captions.binary[1].line));
+  check("the card's note is the redundant degree of freedom",
+    /redundant degree of freedom/.test(M.STRINGS.cardNote.binary));
+  check("the readout names a loss per form, and the difference between them",
+    M.STRINGS.binaryTwoTile === "Loss, two outputs"
+    && M.STRINGS.binaryOneTile === "Loss, one output"
+    && M.STRINGS.binaryDiffName === "z_B − z_A");
+  check("and each loss tile's note names the torch class it comes from",
+    /CrossEntropyLoss/.test(M.STRINGS.binaryTwoNote)
+    && /BCEWithLogitsLoss/.test(M.STRINGS.binaryOneNote));
+  check("the dtype tile names both dtypes", M.targetDtypeText(BIN) === "long · float32",
+    M.targetDtypeText(BIN));
+  check("the target chips are the class index, one parameter (3.6)",
+    /set: \{ binaryLabel: String\(i\) \}/.test(read("widgets/loss-functions/main.js")));
+}
+
+/* --- 13 · the shipping files -------------------------------------------------- */
 {
   const src = read("widgets/loss-functions/main.js");
   const model = read("widgets/loss-functions/model.js");
@@ -619,8 +961,8 @@ const BCE = M.computeFor({
   check("exactly one widget is defined in the file",
     (src.match(/defineWidget\(\{/g) ?? []).length === 1);
 
-  check("the drag declares all three tensor parameters, since the list is fixed",
-    /params: \["pred", "scores", "logits"\]/.test(src));
+  check("the drag declares all four tensor parameters, since the list is fixed",
+    /params: \["pred", "scores", "logits", "binaryScores"\]/.test(src));
   check("the drag names a hit-test, so a click off the bars turns nothing",
     /hit: \(\{ x, y, w, state \}\)/.test(src));
   check("the target chips are the region map, one parameter each (3.6)",
@@ -633,7 +975,9 @@ const BCE = M.computeFor({
     /options: \["long", "float32"\],\s*\n\s*default: "long"/.test(src)
     && /options: \["float32", "long"\],\s*\n\s*default: "float32"/.test(src));
   check("the page opens on Regression, the first row of the table",
-    /options: M\.TASKS,\s*\n\s*default: "regression"/.test(src));
+    /options: M\.TASKS,\s*\n\s*groupHeads: true,\s*\n\s*default: "regression"/.test(src));
+  check("the task faces are drawn as option groups with heads above them (§3 C)",
+    /groupHeads: true/.test(src));
   check("the authoring head start is hidden and starts at zero (2.1)",
     /shown: \{ type: "int", min: 0, max: 5, default: 0, hidden: true \}/.test(src));
   check("the legend names group-a and empirical once, not twice",
