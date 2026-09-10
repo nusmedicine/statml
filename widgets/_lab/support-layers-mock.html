@@ -1,0 +1,1139 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · support-layers · the design picks, drawn to scale</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 920px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-6); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 96ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); max-width: 560px; min-height: 24px; white-space: pre-line; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 96ch; }
+  .rec b { font-weight: 600; }
+  ul.proof { font-size: var(--fs-sm); color: var(--ink-2); max-width: 96ch; padding-left: 18px; }
+  ul.proof li { margin-bottom: 4px; }
+  /* the rail, at the real 300px, with the shell's own classes.
+     These four rules only pin the split at this page's width; the media query in
+     tokens.css collapses it below 880px and this page is read wider than that. */
+  .lab .w-split { display: grid; grid-template-columns: 300px 550px; gap: var(--sp-4); align-items: start; }
+  .lab .w-split .w-controls { grid-template-columns: 1fr; border-top: 0; padding-top: 0; margin-top: 0; }
+  .lab .w-rail { border-top: 0; padding-top: 0; margin-top: 0; }
+  .lab .w-split .w-drive { flex-direction: column; align-items: stretch; flex-wrap: nowrap; }
+  .rail-solo { width: 300px; }
+  .measure { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--ink-3); margin: 4px 0 0; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>support-layers · the design picks, drawn to scale</h1>
+  <p class="note">
+    The picks for the <code>support-layers</code> widget, slot 50: five pages from PHM5005 <code>05-3</code>,
+    cells 29–60: Embedding, Pooling, Normalization, Activation, Dropout. Every stage is drawn at the real
+    <b>550</b> stage width, at the geometry constants <code>widgets/tensors/main.js</code> and
+    <code>widgets/processing-layers/main.js</code> share (PAD 14, GAP 22, operator 26, a signed two-decimal float
+    cell 46 × 26, an integer cell 30 × 26, an image pixel 14 square). Every random value comes from the seeded
+    <code>makeRng</code>; the prints are <code>torchPrint</code>. The width each band leaves at 550 is printed
+    under it, and the pages that change with the frame are drawn at <b>770</b> as well.
+  </p>
+  <p class="note">
+    Colour follows <code>processing-layers</code>: the input is <code>--c-group-a</code>, the second operand
+    (the embedding table, γ and β, the dropout mask) <code>--c-group-b</code>, every result
+    <code>--c-empirical</code>, and the element being computed together with what it reads
+    <code>--c-highlight</code>. The red of Kenneth's figures, the pooling window and the arrows that say which group
+    μ and σ are taken over, is <code>--c-highlight</code> here, which is the role those marks carry. His
+    normalization figures colour the output amber; the output is blue on every page of both widgets.
+  </p>
+
+  <h2>§1 · The rail at the real 300px</h2>
+  <p class="note">
+    <code>block</code> is a two-column grid of five. <b>A</b> segments it with the three heads of cell 1's
+    Category column: <i>Representation &amp; Aggregation</i>, <i>Normalization &amp; Activation</i>,
+    <i>Regularization</i>. <b>B</b> is one plain grid of five, no heads. Both are the shell's own DOM and CSS,
+    so what truncates here truncates in the widget. Under them, the whole rail for the Dropout page, which is the
+    longest one in the widget, beside the shortest stage in it (Activation · Probability).
+  </p>
+  <div class="row" id="s1a"></div>
+  <div class="row" id="s1b"></div>
+  <p class="rec" id="rec1"></p>
+
+  <h2>§2 · Embedding</h2>
+  <p class="note">
+    Cells 32–33: six amino acids as the vocabulary, <code>X = [[0, 1, 5], [4, 2, 0]]</code> (A C G and F D A)
+    through <code>nn.Embedding(6, 4)</code>, a table drawn from <code>N(0, 1)</code>. The claim is the integer
+    input and the <code>[2, 3] → [2, 3, 4]</code> rank increase. <b>A</b> two bands: the tokens, an arrow, the
+    table with the looked-up row lit; then the result in <code>tensors</code>' frames convention, one dashed frame
+    per index of dim 0. <b>B</b> one band, with the lookup drawn as arrows from each token to its table row, the
+    Mapping arrows of <code>dl-layer-embedding.png</code>, and the result frames beside them.
+  </p>
+  <div class="row" id="s2a"></div>
+  <div class="row" id="s2b"></div>
+  <p class="rec" id="rec2"></p>
+
+  <h2>§3 · Pooling</h2>
+  <p class="note">
+    Cells 36–37: a 16 × 16 of zeros with a 6 × 6 square of ones at rows and columns 5–10, through
+    <code>MaxPool2d(2, 2)</code> and <code>AvgPool2d(2, 2)</code>. Both summaries are always drawn, so the
+    question the page asks is what the two do differently at the same window. Band 1 is the image with the window
+    framed and the two outputs beside it; band 2 is one window's arithmetic. The pixel size is the pick: 13px
+    against 14px at 550, and 19px against 20px at 770.
+  </p>
+  <div class="row" id="s3a"></div>
+  <div class="row" id="s3b"></div>
+  <div class="row" id="s3c"></div>
+  <p class="rec" id="rec3"></p>
+
+  <h2>§4 · Normalization</h2>
+  <p class="note">
+    Cell 43's <code>X_batch = randn(4, 3) * 5 + 10</code> through <code>BatchNorm1d(3)</code>, and cell 47's
+    <code>X_seq = randn(2, 5, 4) * 3 + 7</code> through <code>LayerNorm(4)</code>. Batch takes μ and σ down each
+    column, Layer takes them across each row of each sample, and both samples are drawn because one sample cannot
+    make that claim. <b>A</b> the notebook's order as a <code>norm</code> selector, one stage each.
+    <b>B</b> both on one stage, stacked.
+  </p>
+  <div class="row" id="s4a"></div>
+  <div class="row" id="s4b"></div>
+  <p class="rec" id="rec4"></p>
+
+  <h2>§5 · Activation, three uses at their own widths</h2>
+  <p class="note">
+    Cell 48 lists what activations are for, and the three that remain here differ in what the numbers mean.
+    <b>Hidden</b> (cell 50): <code>[[-2, -1, 0, 1, 2]]</code> through ReLU, GELU and SiLU, all three output rows
+    at once, with a 150 × 130 curve panel of the chosen function. <b>Probability</b> (cell 54): five scores
+    through sigmoid. <b>Distribution</b> (cell 56): a 3 × 5 matrix through <code>softmax(dim=1)</code> with a
+    row-sum column. The pick is where the curve panel sits: <b>A</b> to the left of the rows, <b>B</b> above them.
+  </p>
+  <div class="row" id="s5a"></div>
+  <div class="row" id="s5b"></div>
+  <p class="rec" id="rec5"></p>
+
+  <h2>§6 · Dropout</h2>
+  <p class="note">
+    Cells 59–60: <code>x = randn(2, 5)</code> through <code>Dropout(p)</code>. <b>A</b> one band in the vertical
+    flow of <code>dl-layer-dropout.png</code>: the input row, a Dropout box, and an output row whose dropped cells
+    are drawn empty, with the surviving values carrying the <code>× 1/(1 − p)</code> scaling.
+    <b>B</b> the three-row form, input · mask · output, which is what <code>tensors</code>' Multiply tab already
+    draws on the same shape and the same seeded mask. Then Evaluation, where there is no mask row and the output
+    carries the input's own numbers.
+  </p>
+  <div class="row" id="s6a"></div>
+  <div class="row" id="s6b"></div>
+  <p class="rec" id="rec6"></p>
+
+  <h2>§7 · The running mean over presses, at p = 0.8</h2>
+  <p class="note">
+    The scaling keeps the sum right on average, and one draw can be far from it. Three tiles: the input sum, the
+    output sum of this draw, and the mean over the draws so far. Drawn after one press and after ten, on seeds
+    1 to 10.
+  </p>
+  <div class="row" id="s7"></div>
+  <p class="rec" id="rec7"></p>
+
+  <h2>What the mock proves</h2>
+  <ul class="proof" id="proof"></ul>
+</main>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+import { makeRng } from "../core/rng.js";
+import { torchPrint, torchFloatFormat, shapeText, outSize } from "../core/torch.js";
+
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+const MONO = getComputedStyle(document.documentElement).getPropertyValue("--font-mono").trim() || "monospace";
+
+/* --- the geometry the three deep-learning widgets share -------------------- */
+const PAD = 14;          // widgets/tensors/main.js:469
+const OP_W = 26;         // :471
+const GAP = 22;          // :472
+const CW = 46, CH = 26;  // a signed two-decimal float cell
+const IW = 30;           // an integer cell
+const PIX = 14;          // an image pixel, shading only
+const HLW = 2.5;         // the --c-highlight frame
+const FRAME_LBL = 15;    // the `dim 0 = i` line inside a frame
+const HUG = 6;           // a frame's clearance around what it holds
+const W = 550;
+const WIDE = 770;
+const USABLE = W - 2 * PAD;        // 522
+const USABLE_WIDE = WIDE - 2 * PAD; // 742
+
+/* ============================ drawing helpers ============================== */
+function panel(host, title, sub, w, h) {
+  const cand = document.createElement("div");
+  cand.className = "cand";
+  if (title) cand.innerHTML = `<h3>${title}</h3><p class="sub">${sub}</p>`;
+  const cv = document.createElement("canvas");
+  cv.width = w * DPR; cv.height = h * DPR;
+  cv.style.width = `${w}px`; cv.style.height = `${h}px`;
+  cand.appendChild(cv); host.appendChild(cand);
+  const ctx = cv.getContext("2d");
+  ctx.scale(DPR, DPR);
+  ctx.fillStyle = T.surface; ctx.fillRect(0, 0, w, h);
+  return { ctx, cand };
+}
+function note(cand, s) {
+  const p = document.createElement("p");
+  p.className = "measure";
+  p.textContent = s;
+  cand.appendChild(p);
+}
+function txt(ctx, s, x, y, o = {}) {
+  ctx.fillStyle = o.color ?? T.ink2;
+  ctx.textAlign = o.align ?? "left";
+  ctx.textBaseline = o.baseline ?? "alphabetic";
+  ctx.font = `${o.weight ?? ""} ${o.size ?? T.fsSm} ${o.mono ? MONO : T.font}`.trim();
+  ctx.fillText(s, x, y);
+}
+const wash = (hex, a) => {
+  const p = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+  return `rgba(${p[0]},${p[1]},${p[2]},${a})`;
+};
+function arrow(ctx, x0, y0, x1, y1, color, width = 2, dash = [], head = 9) {
+  const a = Math.atan2(y1 - y0, x1 - x0);
+  ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = width;
+  ctx.setLineDash(dash);
+  ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.beginPath(); ctx.moveTo(x1, y1);
+  ctx.lineTo(x1 - head * Math.cos(a - 0.45), y1 - head * Math.sin(a - 0.45));
+  ctx.lineTo(x1 - head * Math.cos(a + 0.45), y1 - head * Math.sin(a + 0.45));
+  ctx.closePath(); ctx.fill();
+}
+/** A band's header: its name left, the expression it performs right, a hairline under.
+    The expression is --c-highlight mono right-aligned (processing-layers decision 10). */
+function band(ctx, y, w, name, expr) {
+  txt(ctx, name, PAD, y + 11, { color: T.ink2, weight: "600" });
+  if (expr) txt(ctx, expr, w - PAD, y + 11, { color: T.highlight, align: "right", mono: true });
+  ctx.strokeStyle = T.grid; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(PAD, y + 17.5); ctx.lineTo(w - PAD, y + 17.5); ctx.stroke();
+  return y + 26;
+}
+/** One value cell. `lit` is the --c-highlight frame and the darker wash. */
+function cell(ctx, x, y, w, h, text, o = {}) {
+  const hue = o.hue ?? T.groupA;
+  ctx.fillStyle = T.surface; ctx.fillRect(x, y, w, h);
+  if (!o.empty) {
+    ctx.fillStyle = o.fill ?? wash(hue, o.lit ? 0.42 : 0.16);
+    ctx.fillRect(x, y, w, h);
+  }
+  ctx.strokeStyle = o.lit ? T.highlight : T.axis;
+  ctx.lineWidth = o.lit ? HLW : 1;
+  ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+  if (text != null && text !== "") {
+    txt(ctx, text, x + w / 2, y + h / 2 + 0.5, {
+      color: T.ink1, align: "center", baseline: "middle", mono: true,
+      size: o.size ?? T.fsSm, weight: o.lit ? "600" : "",
+    });
+  }
+}
+/** A grid of value cells. `at(r, c)` gives { text, hue, lit, fill, empty }. */
+function grid(ctx, x, y, rows, cols, cw, ch, at, o = {}) {
+  for (let r = 0; r < rows; r += 1) {
+    for (let c = 0; c < cols; c += 1) {
+      const s = at(r, c) ?? {};
+      cell(ctx, x + c * cw, y + r * ch, cw, ch, s.text, { ...o, ...s });
+    }
+  }
+  return { w: cols * cw, h: rows * ch };
+}
+/** A frame drawn over a grid — the red window of Kenneth's figures. */
+function frame(ctx, x, y, w, h, color = T.highlight, lw = HLW, dash = []) {
+  ctx.strokeStyle = color; ctx.lineWidth = lw; ctx.setLineDash(dash);
+  ctx.strokeRect(x - lw / 2, y - lw / 2, w + lw, h + lw);
+  ctx.setLineDash([]);
+}
+function op(ctx, x, y, h, s) {
+  txt(ctx, s, x + OP_W / 2, y + h / 2 + 1, { color: T.ink1, align: "center", baseline: "middle", size: T.fsLg });
+}
+function name(ctx, x, y, label, shape, color = T.ink1) {
+  txt(ctx, shape ? `${label}  ${shapeText(shape)}` : label, x, y, { color, mono: true });
+}
+function printLines(ctx, x, y, lines, color = T.ink2) {
+  lines.forEach((l, i) => txt(ctx, l, x, y + i * 16, { color, mono: true, size: T.fsSm }));
+  return lines.length * 16;
+}
+function caption(ctx, x, y, w, s, color = T.ink2) {
+  ctx.font = `${T.fsSm} ${T.font}`;
+  txt(ctx, s, x, y, { color, size: T.fsSm });
+}
+const plainFill = (v, hue) => wash(hue, 0.05 + 0.8 * Math.max(0, Math.min(1, v)));
+const signedFill = (v, centre, span) => {
+  const t = Math.max(-1, Math.min(1, span > 0 ? (v - centre) / span : 0));
+  return t >= 0 ? wash(T.valueHigh, 0.05 + 0.8 * t) : wash(T.valueLow, 0.05 + 0.8 * -t);
+};
+/** A shaded grid with no text — an image, drawn as imshow draws it. */
+function shaded(ctx, x, y, rows, cols, p, fillAt) {
+  for (let r = 0; r < rows; r += 1) {
+    for (let c = 0; c < cols; c += 1) {
+      ctx.fillStyle = T.surface; ctx.fillRect(x + c * p, y + r * p, p, p);
+      ctx.fillStyle = fillAt(r, c); ctx.fillRect(x + c * p, y + r * p, p, p);
+    }
+  }
+  ctx.strokeStyle = T.grid; ctx.lineWidth = 0.5;
+  for (let r = 0; r <= rows; r += 1) { ctx.beginPath(); ctx.moveTo(x, y + r * p + 0.25); ctx.lineTo(x + cols * p, y + r * p + 0.25); ctx.stroke(); }
+  for (let c = 0; c <= cols; c += 1) { ctx.beginPath(); ctx.moveTo(x + c * p + 0.25, y); ctx.lineTo(x + c * p + 0.25, y + rows * p); ctx.stroke(); }
+  ctx.strokeStyle = T.axis; ctx.lineWidth = 1;
+  ctx.strokeRect(x + 0.5, y + 0.5, cols * p - 1, rows * p - 1);
+  return { w: cols * p, h: rows * p };
+}
+/** A dashed frame with its `dim 0 = i` label along the top, tensors' frames view. */
+function dimFrame(ctx, x, y, w, h, label) {
+  ctx.strokeStyle = T.ink3; ctx.lineWidth = 1; ctx.setLineDash([4, 3]);
+  ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+  ctx.setLineDash([]);
+  txt(ctx, label, x + 6, y + 11, { color: T.ink3, mono: true, size: T.fsXs });
+}
+
+/* ============================ the arithmetic =============================== */
+const n2 = (v) => (v < 0 ? "" : " ") + v.toFixed(2);
+const n3 = (v) => v.toFixed(3);
+const n4 = (v) => v.toFixed(4);
+const mean = (v) => v.reduce((a, b) => a + b, 0) / v.length;
+const sd = (v) => Math.sqrt(mean(v.map((x) => (x - mean(v)) ** 2)));
+const normalMat = (rng, rows, cols) =>
+  Array.from({ length: rows }, () => Array.from({ length: cols }, () => rng.normal()));
+
+/* --- Embedding, cells 32-33 ------------------------------------------------ */
+const VOCAB = ["A", "C", "D", "E", "F", "G"];
+const TOKENS = [[0, 1, 5], [4, 2, 0]];
+const EDIM = 4;
+const ETABLE = normalMat(makeRng(3), 6, EDIM);            // nn.Embedding is N(0, 1)
+const EOUT = TOKENS.map((row) => row.map((id) => ETABLE[id]));
+const EFMT = torchFloatFormat(EOUT.flat(2));
+const EPRINT = torchPrint([2, 3, EDIM], ([i, j, k]) => EFMT(EOUT[i][j][k])).text.split("\n");
+
+/* --- Pooling, cells 36-37 -------------------------------------------------- */
+const IMG = Array.from({ length: 16 }, (_, r) =>
+  Array.from({ length: 16 }, (_, c) => (r >= 5 && r < 11 && c >= 5 && c < 11 ? 1 : 0)));
+function pool(img, k, s, kind) {
+  const o = outSize(img.length, k, s);
+  return Array.from({ length: o }, (_, r) =>
+    Array.from({ length: o }, (_, c) => {
+      const vals = [];
+      for (let u = 0; u < k; u += 1) for (let v = 0; v < k; v += 1) vals.push(img[r * s + u][c * s + v]);
+      return kind === "max" ? Math.max(...vals) : mean(vals);
+    }));
+}
+const POOL = {
+  "2,2": { max: pool(IMG, 2, 2, "max"), avg: pool(IMG, 2, 2, "avg") },
+  "4,4": { max: pool(IMG, 4, 4, "max"), avg: pool(IMG, 4, 4, "avg") },
+};
+
+/* --- Normalization, cells 43 and 47 ---------------------------------------- */
+const EPS = 1e-5;
+const rngN = makeRng(2);
+const XB = normalMat(rngN, 4, 3).map((r) => r.map((v) => v * 5 + 10));
+const colMean = [0, 1, 2].map((c) => mean(XB.map((r) => r[c])));
+const colSd = [0, 1, 2].map((c) => Math.sqrt(mean(XB.map((r) => (r[c] - colMean[c]) ** 2)) + EPS));
+const YB = XB.map((r) => r.map((v, c) => (v - colMean[c]) / colSd[c]));
+const rngS = makeRng(5);
+const XS = [0, 1].map(() => normalMat(rngS, 5, 4).map((r) => r.map((v) => v * 3 + 7)));
+const rowStat = (row) => {
+  const m = mean(row);
+  return { m, s: Math.sqrt(mean(row.map((v) => (v - m) ** 2)) + EPS) };
+};
+const YS = XS.map((sample) => sample.map((row) => {
+  const { m, s } = rowStat(row);
+  return row.map((v) => (v - m) / s);
+}));
+
+/* --- Activation, cells 50, 54, 56 ------------------------------------------ */
+const erf = (x) => {
+  /* Abramowitz and Stegun 7.1.26, which is exact to 1.5e-7 and is what the
+     drawn GELU needs; torch's own gelu uses the same normal CDF. */
+  const s = x < 0 ? -1 : 1;
+  const a = Math.abs(x);
+  const t = 1 / (1 + 0.3275911 * a);
+  const y = 1 - ((((1.061405429 * t - 1.453152027) * t + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-a * a);
+  return s * y;
+};
+const sigmoid = (x) => 1 / (1 + Math.exp(-x));
+const ACT = {
+  ReLU: (x) => Math.max(0, x),
+  GELU: (x) => x * 0.5 * (1 + erf(x / Math.SQRT2)),
+  SiLU: (x) => x * sigmoid(x),
+};
+const HID_IN = [-2, -1, 0, 1, 2];
+const PROB_IN = [-2, 0, 1, 2, 3];
+const DIST_IN = [[2, 1, 0.1, -1, -2], [0, 0, 0, 0, 0], [1.5, 2.5, 0.5, -1, -0.5]];
+const softmax = (v) => {
+  const m = Math.max(...v);
+  const e = v.map((x) => Math.exp(x - m));
+  const s = e.reduce((a, b) => a + b, 0);
+  return e.map((x) => x / s);
+};
+const DIST_OUT = DIST_IN.map(softmax);
+
+/* --- Dropout, cells 59-60 -------------------------------------------------- */
+const XD = normalMat(makeRng(1), 2, 5);
+const IN_SUM = XD.flat().reduce((a, b) => a + b, 0);
+/** One draw: the mask from a seeded rng, survivors scaled by 1/(1 - p). */
+function dropDraw(seed, p) {
+  const rng = makeRng(seed);
+  const mask = XD.map((r) => r.map(() => (rng.next() >= p ? 1 : 0)));
+  const y = XD.map((r, i) => r.map((v, j) => (mask[i][j] ? v / (1 - p) : 0)));
+  return { mask, y, sum: y.flat().reduce((a, b) => a + b, 0) };
+}
+const DROP = dropDraw(1, 0.5);
+const DFMT = torchFloatFormat(DROP.y.flat());
+const DPRINT = torchPrint([2, 5], ([i, j]) => DFMT(DROP.y[i][j])).text.split("\n");
+const XFMT = torchFloatFormat(XD.flat());
+const XPRINT = torchPrint([2, 5], ([i, j]) => XFMT(XD[i][j])).text.split("\n");
+const DRAWS8 = Array.from({ length: 10 }, (_, i) => dropDraw(i + 1, 0.8));
+
+/* ============================ §1 · the rail ================================ */
+{
+  const el = (tag, cls, text) => {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = text;
+    return e;
+  };
+  const field = (label, detail) => {
+    const f = el("div", "w-field");
+    if (label) { const l = el("label"); l.appendChild(el("span", null, label)); f.appendChild(l); }
+    if (detail) f.appendChild(el("p", "w-detail", detail));
+    return f;
+  };
+  const put = (f, node) => {
+    const d = f.querySelector(".w-detail");
+    if (d) f.insertBefore(node, d); else f.appendChild(node);
+  };
+  const segRun = (f, opts, on, gridStyle, head) => {
+    if (head) put(f, el("p", "w-seg-head", head));
+    const s = el("div", gridStyle ? "w-seg w-seg-grid" : "w-seg");
+    s.setAttribute("role", "group");
+    for (const o of opts) {
+      const b = el("button", o.span ? "w-seg-btn w-seg-btn--span" : "w-seg-btn", o.label ?? o);
+      b.type = "button";
+      b.setAttribute("aria-pressed", String((o.label ?? o) === on));
+      s.appendChild(b);
+    }
+    put(f, s);
+    return s;
+  };
+  const choice = (f, ticks, on) => {
+    const i = el("input"); i.type = "range"; i.min = "0"; i.max = String(ticks.length - 1);
+    i.step = "1"; i.value = String(ticks.indexOf(on));
+    const t = el("div", "w-ticks");
+    for (const k of ticks) t.appendChild(el("span", null, k));
+    const lab = f.querySelector("label");
+    if (lab) lab.appendChild(el("span", "val", on));
+    put(f, i); put(f, t);
+  };
+  const intField = (f, lo, hi, on) => {
+    const i = el("input"); i.type = "range"; i.min = String(lo); i.max = String(hi);
+    i.step = "1"; i.value = String(on);
+    const lab = f.querySelector("label");
+    if (lab) lab.appendChild(el("span", "val", String(on)));
+    put(f, i);
+  };
+
+  const BLOCKS = ["Embedding", "Pooling", "Normalization", "Activation", "Dropout"];
+  const HEADS = [
+    ["Representation & Aggregation", [{ label: "Embedding" }, { label: "Pooling" }]],
+    ["Normalization & Activation", [{ label: "Normalization" }, { label: "Activation" }]],
+    ["Regularization", [{ label: "Dropout", span: true }]],
+  ];
+
+  /* A · segmented, three heads */
+  const a = document.createElement("div");
+  a.className = "cand";
+  a.innerHTML = `<h3>A · three heads, cell 1's Category column</h3><p class="sub">w-seg-head above each run, w-seg-grid inside it</p>`;
+  const aRail = el("div", "rail-solo");
+  const fa = field("Layer", "");
+  for (const [h, opts] of HEADS) segRun(fa, opts, "Dropout", true, h);
+  aRail.appendChild(fa);
+  a.appendChild(aRail);
+  document.getElementById("s1a").appendChild(a);
+
+  /* B · one plain grid of five */
+  const b = document.createElement("div");
+  b.className = "cand";
+  b.innerHTML = `<h3>B · one grid of five, no heads</h3><p class="sub">three grid rows, Dropout on a full row</p>`;
+  const bRail = el("div", "rail-solo");
+  const fb = field("Layer", "");
+  segRun(fb, [{ label: "Embedding" }, { label: "Pooling" }, { label: "Normalization" },
+              { label: "Activation" }, { label: "Dropout", span: true }], "Dropout", true);
+  bRail.appendChild(fb);
+  b.appendChild(bRail);
+  document.getElementById("s1a").appendChild(b);
+
+  /* the whole Dropout rail, beside the shortest stage */
+  const split = el("div", "w-split");
+  const rail = el("div", "w-rail");
+  const controls = el("div", "w-controls");
+  const fL = field("Layer", "");
+  for (const [h, opts] of HEADS) segRun(fL, opts, "Dropout", true, h);
+  controls.appendChild(fL);
+  const fM = field("Mode", "training drops cells and scales what is left, evaluation passes the input through");
+  segRun(fM, ["Training", "Evaluation"], "Training", false);
+  controls.appendChild(fM);
+  const fP = field("Drop probability", "the chance each cell is set to zero");
+  choice(fP, ["0.2", "0.5", "0.8"], "0.5");
+  controls.appendChild(fP);
+  const fSeed = field("Seed", "a new draw of the mask on the same input");
+  intField(fSeed, 1, 200, 1);
+  controls.appendChild(fSeed);
+  const fSp = field("Play speed", "");
+  segRun(fSp, ["Slow", "Medium", "Fast"], "Medium", false);
+  controls.appendChild(fSp);
+  rail.appendChild(controls);
+  const drive = el("div", "w-drive");
+  const group = el("div", "w-drive-group");
+  const step = el("button", "w-btn", "Next cell"); step.type = "button"; step.dataset.key = "step";
+  const play = el("button", "w-btn w-btn--primary", "Play"); play.type = "button"; play.dataset.key = "run";
+  group.appendChild(step); group.appendChild(play);
+  const reset = el("button", "w-btn", "Reset"); reset.type = "button"; reset.dataset.key = "reset";
+  drive.appendChild(group); drive.appendChild(reset);
+  rail.appendChild(drive);
+  split.appendChild(rail);
+  const stageBox = el("div", "w-stage");
+  split.appendChild(stageBox);
+
+  const wrap = document.createElement("div");
+  wrap.className = "cand";
+  wrap.innerHTML = `<h3>the whole Dropout rail, the longest in the widget, beside the shortest stage</h3>` +
+    `<p class="sub">A's heads, mode, drop probability, seed, Play speed, the drive block</p>`;
+  wrap.appendChild(split);
+  document.getElementById("s1b").appendChild(wrap);
+  const shortH = drawProbability(stageBox, "", "", W);
+
+  /* Measured synchronously, and again once the fonts have loaded. A
+     requestAnimationFrame here reads nothing when the pane is hidden, which is
+     where this page is read from the automation browser. */
+  const measureRail = () => {
+    document.querySelectorAll(".rail-measure").forEach((n) => n.remove());
+    const ha = Math.round(fa.getBoundingClientRect().height);
+    const hb = Math.round(fb.getBoundingClientRect().height);
+    const rh = Math.round(rail.getBoundingClientRect().height);
+    const bw = Math.round(fa.querySelector(".w-seg-btn").getBoundingClientRect().width);
+    const cv = document.createElement("canvas").getContext("2d");
+    const cs = getComputedStyle(fa.querySelector(".w-seg-btn"));
+    cv.font = `${cs.fontSize} ${cs.fontFamily}`;
+    const padX = 12;
+    const widest = Math.round(Math.max(...BLOCKS.map((l) => cv.measureText(l).width)));
+    const over = BLOCKS.filter((l) => cv.measureText(l).width + padX > bw);
+    const railNote = (host, s) => { note(host, s); host.lastChild.classList.add("rail-measure"); };
+    railNote(a, `field ${ha}px · button ${bw}px · widest label ${widest}px + ${padX}px padding · truncated: ${over.join(", ") || "none"}`);
+    railNote(b, `field ${hb}px · button ${bw}px · truncated: ${over.join(", ") || "none"} · ${ha - hb}px shorter than A`);
+    railNote(wrap, `rail ${rh}px against the shortest stage ${shortH}px, the rail is ${rh > shortH ? `${rh - shortH}px taller` : `${shortH - rh}px shorter`}`);
+    document.getElementById("rec1").innerHTML =
+      `<b>Recommend A.</b> The three heads cost ${ha - hb}px of rail against B and they carry the one thing the ` +
+      `five names do not say, which is that Embedding and Pooling change the shape of the data, Normalization and ` +
+      `Activation change its values, and Dropout is there for training alone. Neither form truncates: a button is ` +
+      `${bw}px against a widest label of ${widest + padX}px, so <code>Normalization</code> fits at two columns ` +
+      `where a row of five would not. The whole Dropout rail is ${rh}px against the ${shortH}px Activation · ` +
+      `Probability stage, so the rail sets the page height on the shortest page and a per-page ` +
+      `<code>tabHeight</code> is what stops the other four paying for it.`;
+  };
+  measureRail();
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(measureRail);
+}
+
+/* ============================ §2 · Embedding =============================== */
+function drawEmbedA(host, title, sub, litToken) {
+  const IDXW = 20;                      // the table's row-index gutter
+  const tokW = 3 * IW;                  // 90
+  const tabW = IDXW + EDIM * CW;        // 204
+  const band1W = tokW + 40 + tabW;
+  const frameW = EDIM * CW + 2 * HUG;
+  const band2W = 2 * frameW + GAP;
+  const h1 = 16 + Math.max(2 * CH + 16, 6 * CH);
+  const h2 = 16 + FRAME_LBL + 3 * CH + 2 * HUG + 12 + EPRINT.length * 16;
+  const H = 26 + h1 + 20 + 26 + h2 + 30 + PAD;
+  const { ctx, cand } = panel(host, title, sub, W, H);
+
+  let y = band(ctx, 0, W, "Tokens and the table", "h = table[id]");
+  name(ctx, PAD, y + 11, "X", [2, 3]);
+  grid(ctx, PAD, y + 16, 2, 3, IW, CH, (r, c) => ({
+    text: String(TOKENS[r][c]), hue: T.groupA,
+    lit: !!litToken && litToken[0] === r && litToken[1] === c,
+  }));
+  /* the amino acid each id stands for, in the corner of its own cell */
+  for (let r = 0; r < 2; r += 1) {
+    for (let c = 0; c < 3; c += 1) {
+      txt(ctx, VOCAB[TOKENS[r][c]], PAD + c * IW + IW - 3, y + 16 + r * CH + 10,
+        { color: T.ink3, align: "right", size: T.fsXs, mono: true });
+    }
+  }
+  const tx = PAD + tokW + 40;
+  arrow(ctx, PAD + tokW + 8, y + 16 + CH, tx - 6, y + 16 + CH, T.ink3);
+  name(ctx, tx, y + 11, "table", [6, EDIM]);
+  for (let r = 0; r < 6; r += 1) {
+    txt(ctx, `${r} ${VOCAB[r]}`, tx + IDXW - 4, y + 16 + r * CH + CH / 2 + 0.5,
+      { color: T.ink3, align: "right", baseline: "middle", mono: true, size: T.fsXs });
+  }
+  const litId = litToken ? TOKENS[litToken[0]][litToken[1]] : null;
+  grid(ctx, tx + IDXW, y + 16, 6, EDIM, CW, CH, (r, c) => ({
+    text: n2(ETABLE[r][c]), hue: T.groupB, lit: r === litId,
+  }));
+  y += h1 + 20;
+
+  y = band(ctx, y, W, "Result", "[2, 3] → [2, 3, 4]");
+  name(ctx, PAD, y + 11, "h", [2, 3, EDIM]);
+  for (let i = 0; i < 2; i += 1) {
+    const fx = PAD + i * (frameW + GAP);
+    dimFrame(ctx, fx, y + 16, frameW, FRAME_LBL + 3 * CH + 2 * HUG, `dim 0 = ${i}`);
+    grid(ctx, fx + HUG, y + 16 + FRAME_LBL + HUG, 3, EDIM, CW, CH, (r, c) => ({
+      text: n2(EOUT[i][r][c]), hue: T.empirical,
+      lit: !!litToken && litToken[0] === i && litToken[1] === r,
+    }));
+  }
+  printLines(ctx, PAD, y + 16 + FRAME_LBL + 3 * CH + 2 * HUG + 26, EPRINT, T.ink2);
+  caption(ctx, PAD, H - PAD - 6, USABLE, litToken
+    ? `Token ${TOKENS[litToken[0]][litToken[1]]} is ${VOCAB[TOKENS[litToken[0]][litToken[1]]]}, and its row of the table is copied out whole.`
+    : "The table holds one row per amino acid, drawn from N(0, 1) and trained with the rest of the model.");
+  note(cand, `band 1 ${band1W + 2 * PAD}px of ${W} · ${W - band1W - 2 * PAD}px left · band 2 ${band2W + 2 * PAD}px · ${W - band2W - 2 * PAD}px left · stage ${H}px tall`);
+  return { H, band1W: band1W + 2 * PAD, band2W: band2W + 2 * PAD };
+}
+function drawEmbedB(host, title, sub) {
+  const IDXW = 20;
+  const tokW = IW;                       // one column of six ids
+  const ARR = 44;                        // the Mapping arrow gutter
+  const tabW = IDXW + EDIM * CW;
+  /* what is left for the result frames, once the lookup has taken its width.
+     The two frames stack, so one frame's width is the budget, and the cell is
+     capped at the 46 a signed two-decimal value needs. */
+  const left = USABLE - tokW - ARR - tabW - GAP;
+  const bcw = Math.min(CW, Math.floor((left - 2 * HUG) / EDIM));
+  const frameW = EDIM * bcw + 2 * HUG;
+  const bandW = tokW + ARR + tabW + GAP + frameW;
+  const h1 = 16 + Math.max(6 * CH, FRAME_LBL + 3 * CH + 2 * HUG + 8 + FRAME_LBL + 3 * CH + 2 * HUG);
+  const H = 26 + h1 + 12 + 36 + PAD;
+  const { ctx, cand } = panel(host, title, sub, W, H);
+
+  let y = band(ctx, 0, W, "Lookup and result", "h = table[id]");
+  const ids = TOKENS.flat();
+  name(ctx, PAD, y + 11, "ids", null);
+  grid(ctx, PAD, y + 16, 6, 1, IW, CH, (r) => ({ text: String(ids[r]), hue: T.groupA }));
+  const tx = PAD + tokW + ARR;
+  for (let r = 0; r < 6; r += 1) {
+    const y0 = y + 16 + r * CH + CH / 2;
+    const y1 = y + 16 + ids[r] * CH + CH / 2;
+    arrow(ctx, PAD + tokW + 5, y0, tx - 5, y1, T.highlight, 1.4, [], 6);
+  }
+  name(ctx, tx, y + 11, "table", [6, EDIM]);
+  for (let r = 0; r < 6; r += 1) {
+    txt(ctx, `${r} ${VOCAB[r]}`, tx + IDXW - 4, y + 16 + r * CH + CH / 2 + 0.5,
+      { color: T.ink3, align: "right", baseline: "middle", mono: true, size: T.fsXs });
+  }
+  grid(ctx, tx + IDXW, y + 16, 6, EDIM, CW, CH, (r, c) => ({ text: n2(ETABLE[r][c]), hue: T.groupB }));
+  const rx = tx + tabW + GAP;
+  name(ctx, rx, y + 11, "h", [2, 3, EDIM]);
+  for (let i = 0; i < 2; i += 1) {
+    const fy = y + 16 + i * (FRAME_LBL + 3 * CH + 2 * HUG + 8);
+    dimFrame(ctx, rx, fy, frameW, FRAME_LBL + 3 * CH + 2 * HUG, `dim 0 = ${i}`);
+    grid(ctx, rx + HUG, fy + FRAME_LBL + HUG, 3, EDIM, bcw, CH,
+      (r, c) => ({ text: n2(EOUT[i][r][c]), hue: T.empirical }));
+  }
+  let cross = 0;
+  for (let i = 0; i < 6; i += 1) for (let j = i + 1; j < 6; j += 1) if (ids[i] > ids[j]) cross += 1;
+  caption(ctx, PAD, H - PAD - 20, USABLE,
+    `The band fills ${bandW}px of the ${USABLE}px available, so there is no room for the print of h under it.`);
+  caption(ctx, PAD, H - PAD - 4, USABLE,
+    `X is flattened to six ids for the arrows to land, and ${cross} of the fifteen pairs of arrows cross.`, T.ink3);
+  note(cand, `band ${bandW + 2 * PAD}px of ${W} · ${W - bandW - 2 * PAD}px left · result cell ${bcw} × ${CH} · ${cross} crossing arrow pairs · stage ${H}px tall`);
+  return { H, bandW: bandW + 2 * PAD, bcw, cross };
+}
+{
+  const a1 = drawEmbedA(document.getElementById("s2a"),
+    "A · two bands, settled", "the tokens, the table, then the result in the frames convention", null);
+  drawEmbedA(document.getElementById("s2a"),
+    "A · one step: token X[0, 1] = 1", "the id, its row of the table and the row it wrote, lit at once", [0, 1]);
+  const b1 = drawEmbedB(document.getElementById("s2b"),
+    "B · one band, the Mapping arrows", "six ids, an arrow each to the row it reads, the frames beside");
+  document.getElementById("rec2").innerHTML =
+    `<b>Recommend A.</b> Both fit: A's two bands are ${a1.band1W}px and ${a1.band2W}px of 550, leaving ` +
+    `${W - a1.band1W}px and ${W - a1.band2W}px, and B's one band is ${b1.bandW}px, leaving ${W - b1.bandW}px, ` +
+    `with every value at the 46px cell in both. What separates them is what each says about the input. B has to ` +
+    `flatten <code>[2, 3]</code> into a column of six ids for the arrows to land, which discards the shape whose ` +
+    `change into <code>[2, 3, 4]</code> is the page's whole claim, and ${b1.cross} of the fifteen pairs of arrows ` +
+    `then cross, because the ids run 0, 1, 5, 4, 2, 0 and the table rows run in order. B also spends the width ` +
+    `that A's second band uses for the print of <code>h</code>, so the reader has no torch output to check the ` +
+    `drawn rank against. A's step does the arrows' work at one press: the id, the table row it reads and the ` +
+    `result row it wrote are lit together, one token at a time.`;
+}
+
+/* ============================ §3 · Pooling ================================= */
+function drawPool(host, title, sub, k, s, pix, SW) {
+  const key = `${k},${s}`;
+  const out = POOL[key];
+  const n = out.max.length;
+  const band1W = 16 * pix + 40 + n * pix + GAP + n * pix;
+  const winW = k * CW;
+  const band2W = winW + OP_W + CW + GAP + OP_W + CW;
+  const h1 = 16 + 16 * pix;
+  const h2 = 16 + k * CH;
+  const H = 26 + h1 + 20 + 26 + h2 + 22 + 30 + PAD;
+  const { ctx, cand } = panel(host, title, sub, SW, H);
+
+  let y = band(ctx, 0, SW, "Image and the two summaries", `MaxPool2d(${k}, ${s})  ·  AvgPool2d(${k}, ${s})`);
+  name(ctx, PAD, y + 11, "x", [1, 1, 16, 16]);
+  shaded(ctx, PAD, y + 16, 16, 16, pix, (r, c) => plainFill(IMG[r][c], T.groupA));
+  /* the window at input rows and columns 4..4+k, which straddles the square's edge */
+  const wr = 4, wc = 4;
+  frame(ctx, PAD + wc * pix, y + 16 + wr * pix, k * pix, k * pix);
+  arrow(ctx, PAD + 16 * pix + 8, y + 16 + 8 * pix, PAD + 16 * pix + 34, y + 16 + 8 * pix, T.ink3);
+  const mx = PAD + 16 * pix + 40;
+  const pr = Math.floor(wr / s), pc = Math.floor(wc / s);
+  for (const [i, kind] of [[0, "max"], [1, "avg"]]) {
+    const gx = mx + i * (n * pix + GAP);
+    txt(ctx, kind === "max" ? "Max" : "Average", gx, y + 11, { color: T.ink3, size: T.fsXs });
+    shaded(ctx, gx, y + 16, n, n, pix, (r, c) => plainFill(out[kind][r][c], T.empirical));
+    if (wr % s === 0 && wc % s === 0) frame(ctx, gx + pc * pix, y + 16 + pr * pix, pix, pix);
+  }
+  y += h1 + 20;
+
+  y = band(ctx, y, SW, "One window", `y[${pr}, ${pc}]`);
+  const win = [];
+  for (let u = 0; u < k; u += 1) {
+    win.push([]);
+    for (let v = 0; v < k; v += 1) win[u].push(IMG[wr + u][wc + v]);
+  }
+  name(ctx, PAD, y + 11, "window", [k, k]);
+  grid(ctx, PAD, y + 16, k, k, CW, CH, (r, c) => ({ text: win[r][c].toFixed(2), hue: T.groupA }));
+  frame(ctx, PAD, y + 16, k * CW, k * CH);
+  op(ctx, PAD + winW, y + 16, k * CH, "→");
+  const sx = PAD + winW + OP_W;
+  const wm = Math.max(...win.flat());
+  const wa = mean(win.flat());
+  txt(ctx, "max", sx, y + 11, { color: T.ink3, size: T.fsXs });
+  cell(ctx, sx, y + 16, CW, CH, wm.toFixed(2), { hue: T.empirical, lit: true });
+  const ax = sx + CW + GAP + OP_W;
+  op(ctx, sx + CW + GAP, y + 16, CH, "·");
+  txt(ctx, "mean", ax, y + 11, { color: T.ink3, size: T.fsXs });
+  cell(ctx, ax, y + 16, CW, CH, wa.toFixed(2), { hue: T.empirical, lit: true });
+  txt(ctx, `the window holds ${win.flat().filter((v) => v === 1).length} cells of value 1 out of ${k * k}, so max is ${wm.toFixed(2)} and mean is ${wa.toFixed(4)}`,
+    PAD, y + 16 + k * CH + 16, { color: T.ink2, mono: true, size: T.fsSm });
+  caption(ctx, PAD, H - PAD - 6, SW - 2 * PAD,
+    `⌊(16 − ${k}) / ${s}⌋ + 1 = ${n}, so each summary is ${n} × ${n}.`);
+  note(cand, `band 1 ${band1W + 2 * PAD}px of ${SW} · ${SW - band1W - 2 * PAD}px left · band 2 ${band2W + 2 * PAD}px · ${SW - band2W - 2 * PAD}px left · stage ${H}px tall · pixel ${pix}`);
+  return { H, band1W: band1W + 2 * PAD };
+}
+{
+  const p13 = drawPool(document.getElementById("s3a"), "13px pixel at the 550 stage",
+    "the pick: 12px of margin on band 1", 2, 2, 13, W);
+  const p14 = drawPool(document.getElementById("s3a"), "14px pixel at the 550 stage",
+    "the repo's own image pixel, and 12px of margin becomes 12px of overhang", 2, 2, 14, W);
+  const p19 = drawPool(document.getElementById("s3b"), "19px pixel at the 770 stage",
+    "the wide frame at the pick", 2, 2, 19, WIDE);
+  const p20 = drawPool(document.getElementById("s3b"), "20px pixel at the 770 stage",
+    "the tightest number in either plan", 2, 2, 20, WIDE);
+  const p44 = drawPool(document.getElementById("s3c"), "k = 4, s = 4 at 13px",
+    "the second rung of the ladder: a 4 × 4 output and one window of sixteen", 4, 4, 13, W);
+  document.getElementById("rec3").innerHTML =
+    `<b>Recommend 13px at 550 and 19px at 770.</b> Band 1 at 13px is ${p13.band1W}px of 550, which leaves ` +
+    `${W - p13.band1W}px; at 14px it is ${p14.band1W}px, which leaves ${W - p14.band1W}px, less than the 22px ` +
+    `gap the band itself uses between the two summaries. At 770 the band is ${p19.band1W}px at 19px and ` +
+    `${p20.band1W}px at 20px, so <b>20px also fits, with ${WIDE - p20.band1W}px to spare</b>, and the plan's ` +
+    `2px-of-742 is wrong: it assumed a 50px arrow gutter where the drawn one is 40. The wide frame is therefore ` +
+    `a choice of margin rather than of fit, and 19 is taken so the ramp from 13 stays even. ` +
+    `At <code>k = 4, s = 4</code> the stage is ${p44.H}px, every average in the interior is ${(9 / 16).toFixed(4)}, ` +
+    `and the four-value window band is where that number comes from, so the rung is honest even though the ` +
+    `output has no edge gradient left in it.`;
+}
+
+/* ============================ §4 · Normalization =========================== */
+function batchBand(ctx, y, w) {
+  const gw = 3 * CW;
+  const ARR = 50;
+  const statH = 2 * 16;
+  y = band(ctx, y, w, "Batch normalization", "μ, σ down each column");
+  name(ctx, PAD, y + 11, "X_batch", [4, 3]);
+  grid(ctx, PAD, y + 16, 4, 3, CW, CH, (r, c) => ({ text: n2(XB[r][c]), hue: T.groupA, lit: c === 0 }));
+  /* the red arrows of dl-layer-norm-batch.png, one down each column. His figure runs them
+     through shaded cells; over digits a full-length arrow reads as a strikethrough, so each is
+     the stub from the column's bottom edge onto its μ and σ. The row arrows below do the same. */
+  for (let c = 0; c < 3; c += 1) {
+    const x = PAD + c * CW + CW / 2;
+    arrow(ctx, x, y + 16 + 4 * CH + 2, x, y + 16 + 4 * CH + 14, T.highlight, 1.6, [], 7);
+  }
+  for (let c = 0; c < 3; c += 1) {
+    txt(ctx, `μ ${colMean[c].toFixed(2)}`, PAD + c * CW + CW / 2, y + 16 + 4 * CH + 26,
+      { color: T.highlight, align: "center", mono: true, size: T.fsXs });
+    txt(ctx, `σ ${colSd[c].toFixed(2)}`, PAD + c * CW + CW / 2, y + 16 + 4 * CH + 40,
+      { color: T.highlight, align: "center", mono: true, size: T.fsXs });
+  }
+  arrow(ctx, PAD + gw + 10, y + 16 + 2 * CH, PAD + gw + ARR - 10, y + 16 + 2 * CH, T.ink3);
+  const ox = PAD + gw + ARR;
+  name(ctx, ox, y + 11, "y", [4, 3]);
+  grid(ctx, ox, y + 16, 4, 3, CW, CH, (r, c) => ({ text: n2(YB[r][c]), hue: T.empirical, lit: c === 0 }));
+  txt(ctx, `column 0 before: mean ${colMean[0].toFixed(2)}, sd ${colSd[0].toFixed(2)}   after: mean ${mean(YB.map((r) => r[0])).toFixed(2)}, sd ${sd(YB.map((r) => r[0])).toFixed(2)}`,
+    PAD, y + 16 + 4 * CH + 58, { color: T.ink2, mono: true, size: T.fsSm });
+  return { y: y + 16 + 4 * CH + statH + 34, w: gw + ARR + gw };
+}
+function layerBand(ctx, y, w) {
+  const LCW = 44;
+  const gw = 4 * LCW;
+  const STAT = 96;
+  y = band(ctx, y, w, "Layer normalization", "μ, σ across each row");
+  let cy = y;
+  for (let sIdx = 0; sIdx < 2; sIdx += 1) {
+    txt(ctx, `sample ${sIdx}`, PAD, cy + 11, { color: T.ink3, mono: true, size: T.fsXs });
+    name(ctx, PAD + 70, cy + 11, "X_seq", [5, 4]);
+    grid(ctx, PAD, cy + 16, 5, 4, LCW, CH,
+      (r, c) => ({ text: n2(XS[sIdx][r][c]), hue: T.groupA, lit: sIdx === 0 && r === 0 }));
+    for (let r = 0; r < 5; r += 1) {
+      const ry = cy + 16 + r * CH + CH / 2;
+      arrow(ctx, PAD + gw + 3, ry, PAD + gw + 22, ry, T.highlight, 1.6, [], 7);
+      const st = rowStat(XS[sIdx][r]);
+      txt(ctx, `μ ${st.m.toFixed(2)}  σ ${st.s.toFixed(2)}`, PAD + gw + 28, ry + 0.5,
+        { color: T.highlight, baseline: "middle", mono: true, size: T.fsXs });
+    }
+    const ox = PAD + gw + STAT + GAP;
+    name(ctx, ox, cy + 11, "y", [5, 4]);
+    grid(ctx, ox, cy + 16, 5, 4, LCW, CH,
+      (r, c) => ({ text: n2(YS[sIdx][r][c]), hue: T.empirical, lit: sIdx === 0 && r === 0 }));
+    cy += 16 + 5 * CH + 18;
+  }
+  return { y: cy, w: gw + STAT + GAP + gw };
+}
+{
+  /* A · one page each */
+  {
+    const H = 26 + 16 + 4 * CH + 92 + 30 + PAD;
+    const { ctx, cand } = panel(document.getElementById("s4a"), "A · Batch, the notebook's first",
+      "μ and σ down each of the three columns, and the first column lit", W, H);
+    const r = batchBand(ctx, 0, W);
+    caption(ctx, PAD, H - PAD - 6, USABLE,
+      "γ = 1 and β = 0, so y is the normalized value itself. Both are learned, and they let the layer undo this.");
+    note(cand, `band ${r.w + 2 * PAD}px of ${W} · ${W - r.w - 2 * PAD}px left · stage ${H}px tall`);
+    window.__batchH = H; window.__batchW = r.w + 2 * PAD;
+  }
+  {
+    const H = 26 + 2 * (16 + 5 * CH + 18) + 30 + PAD;
+    const { ctx, cand } = panel(document.getElementById("s4a"), "A · Layer, both samples at a 44px cell",
+      "each row gets its own μ and σ, which is what two samples are drawn to show", W, H);
+    const r = layerBand(ctx, 0, W);
+    caption(ctx, PAD, H - PAD - 6, USABLE,
+      "Every row is normalized on its own numbers, so the sample beside it changes nothing.");
+    note(cand, `band ${r.w + 2 * PAD}px of ${W} · ${W - r.w - 2 * PAD}px left · stage ${H}px tall · cell 44 × ${CH}`);
+    window.__layerH = H; window.__layerW = r.w + 2 * PAD;
+  }
+  /* B · both on one stage */
+  {
+    const H = 26 + 16 + 4 * CH + 92 + 20 + 26 + 2 * (16 + 5 * CH + 18) + 30 + PAD;
+    const { ctx, cand } = panel(document.getElementById("s4b"), "B · both on one stage, stacked",
+      "the same two bands with no selector between them", W, H);
+    const r1 = batchBand(ctx, 0, W);
+    const r2 = layerBand(ctx, r1.y + 20, W);
+    caption(ctx, PAD, H - PAD - 6, USABLE,
+      "The two figures are the same picture with the arrows turned, which is the comparison the page is for.");
+    note(cand, `stage ${H}px tall · the fingerprint frame is 550 wide and a page past about 520 tall scrolls`);
+    window.__bothH = H;
+  }
+  document.getElementById("rec4").innerHTML =
+    `<b>Recommend A.</b> Batch is ${window.__batchW}px wide and ${window.__batchH}px tall, Layer is ` +
+    `${window.__layerW}px and ${window.__layerH}px, and each leaves ${W - window.__batchW}px and ` +
+    `${W - window.__layerW}px at 550. Stacked they are ${window.__bothH}px, which is ` +
+    `${window.__bothH - Math.max(window.__batchH, window.__layerH)}px more than the taller of the two on its own ` +
+    `and past every other stage in the widget, so B pays its whole cost on the four pages that are not ` +
+    `normalization. The comparison B is trying to make survives the selector: the two stages are the same ` +
+    `picture with the arrows turned, so switching <code>norm</code> moves the arrows and nothing else, which is ` +
+    `the contrast in one press. The measured heights correct the plan's 450 and 486.`;
+}
+
+/* ============================ §5 · Activation ============================== */
+function curvePanel(ctx, x, y, w, h, fn, label) {
+  ctx.fillStyle = T.surface2; ctx.fillRect(x, y, w, h);
+  ctx.strokeStyle = T.grid; ctx.lineWidth = 1; ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+  const lo = -3, hi = 3, ylo = -1, yhi = 3;
+  const px = (v) => x + 8 + ((v - lo) / (hi - lo)) * (w - 16);
+  const py = (v) => y + h - 8 - ((v - ylo) / (yhi - ylo)) * (h - 16);
+  ctx.strokeStyle = T.axis; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(px(lo), py(0)); ctx.lineTo(px(hi), py(0)); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(px(0), py(ylo)); ctx.lineTo(px(0), py(yhi)); ctx.stroke();
+  ctx.strokeStyle = T.empirical; ctx.lineWidth = 2;
+  ctx.beginPath();
+  for (let i = 0; i <= 120; i += 1) {
+    const v = lo + (i / 120) * (hi - lo);
+    const p = [px(v), py(fn(v))];
+    if (i === 0) ctx.moveTo(p[0], p[1]); else ctx.lineTo(p[0], p[1]);
+  }
+  ctx.stroke();
+  /* the five inputs as points on the curve */
+  for (const v of HID_IN) {
+    ctx.fillStyle = T.highlight;
+    ctx.beginPath(); ctx.arc(px(v), py(fn(v)), 3, 0, Math.PI * 2); ctx.fill();
+  }
+  txt(ctx, label, x + 8, y + 14, { color: T.ink2, mono: true, size: T.fsXs });
+}
+function drawHidden(host, title, sub, above) {
+  const GUT = 60;
+  const rowW = 5 * CW;
+  const CP = { w: 150, h: 130 };
+  const rowsH = 4 * (CH + 10);
+  const bandW = above ? Math.max(CP.w, GUT + rowW) : CP.w + GAP + GUT + rowW;
+  const h1 = 16 + (above ? CP.h + 14 + rowsH : Math.max(CP.h, rowsH));
+  const H = 26 + h1 + 26 + PAD;
+  const { ctx, cand } = panel(host, title, sub, W, H);
+  let y = band(ctx, 0, W, "Hidden", "y = f(x), element by element");
+  const rx = above ? PAD + GUT : PAD + CP.w + GAP + GUT;
+  const ry = above ? y + 16 + CP.h + 14 : y + 16;
+  const cx = above ? PAD : PAD;
+  curvePanel(ctx, cx, y + 16, CP.w, CP.h, ACT.ReLU, "ReLU");
+  const rows = [["x", HID_IN, T.groupA], ...Object.keys(ACT).map((k) => [k, HID_IN.map(ACT[k]), T.empirical])];
+  rows.forEach(([label, vals, hue], i) => {
+    const yy = ry + i * (CH + 10);
+    txt(ctx, label, rx - 8, yy + CH / 2 + 0.5, { color: T.ink2, align: "right", baseline: "middle", mono: true });
+    grid(ctx, rx, yy, 1, 5, CW, CH, (_, c) => ({ text: n2(vals[c]), hue, lit: c === 0 }));
+  });
+  caption(ctx, PAD, H - PAD - 6, USABLE,
+    `At x = −2 the three give ${n2(ACT.ReLU(-2)).trim()}, ${n2(ACT.GELU(-2)).trim()} and ${n2(ACT.SiLU(-2)).trim()}, so only ReLU sets it to exactly zero.`);
+  note(cand, `band ${bandW + 2 * PAD}px of ${W} · ${W - bandW - 2 * PAD}px left · stage ${H}px tall`);
+  return { H, bandW: bandW + 2 * PAD };
+}
+function drawProbability(host, title, sub, w) {
+  const bandW = CW + OP_W + CW;
+  const H = 26 + 16 + 5 * CH + 26 + PAD;
+  const { ctx, cand } = panel(host, title, sub, w, H);
+  const y = band(ctx, 0, w, "Probability", "p = sigmoid(score)");
+  name(ctx, PAD, y + 11, "score", [5, 1]);
+  grid(ctx, PAD, y + 16, 5, 1, CW, CH, (r) => ({ text: n2(PROB_IN[r]), hue: T.groupA, lit: r === 3 }));
+  op(ctx, PAD + CW, y + 16, 5 * CH, "→");
+  const ox = PAD + CW + OP_W;
+  name(ctx, ox, y + 11, "p", [5, 1]);
+  grid(ctx, ox, y + 16, 5, 1, CW, CH, (r) => ({ text: sigmoid(PROB_IN[r]).toFixed(3), hue: T.empirical, lit: r === 3 }));
+  caption(ctx, PAD, H - PAD - 6, w - 2 * PAD,
+    `A score of ${PROB_IN[3]} is a probability of ${sigmoid(PROB_IN[3]).toFixed(3)}. Each row is one case on its own.`);
+  if (title) note(cand, `band ${bandW + 2 * PAD}px of ${w} · ${w - bandW - 2 * PAD}px left · stage ${H}px tall`);
+  return H;
+}
+function drawDistribution(host, title, sub) {
+  const inW = 5 * CW;
+  const bandW = 5 * CW + CW;
+  const H = 26 + 16 + 3 * CH + 20 + 16 + 3 * CH + 26 + PAD;
+  const { ctx, cand } = panel(host, title, sub, W, H);
+  let y = band(ctx, 0, W, "Distribution", "softmax(x, dim=1)");
+  name(ctx, PAD, y + 11, "x", [3, 5]);
+  grid(ctx, PAD, y + 16, 3, 5, CW, CH, (r, c) => ({ text: n2(DIST_IN[r][c]), hue: T.groupA, lit: r === 1 }));
+  y += 16 + 3 * CH + 20;
+  name(ctx, PAD, y + 11, "p", [3, 5]);
+  txt(ctx, "row sum", PAD + inW + CW / 2, y + 11, { color: T.ink3, align: "center", size: T.fsXs });
+  grid(ctx, PAD, y + 16, 3, 5, CW, CH, (r, c) => ({ text: DIST_OUT[r][c].toFixed(3), hue: T.empirical, lit: r === 1 }));
+  grid(ctx, PAD + inW, y + 16, 3, 1, CW, CH,
+    (r) => ({ text: DIST_OUT[r].reduce((a, b) => a + b, 0).toFixed(4), hue: T.empirical, fill: "rgba(0,0,0,0)" }));
+  caption(ctx, PAD, H - PAD - 6, USABLE,
+    `Row 1 is five zeros, so every probability is ${DIST_OUT[1][0].toFixed(1)} and the row still sums to ${DIST_OUT[1].reduce((a, b) => a + b, 0).toFixed(4)}.`);
+  note(cand, `band ${bandW + 2 * PAD}px of ${W} · ${W - bandW - 2 * PAD}px left · stage ${H}px tall`);
+  return { H, bandW: bandW + 2 * PAD };
+}
+{
+  const ha = drawHidden(document.getElementById("s5a"), "A · the curve panel left of the rows",
+    "150 × 130 beside a 60px label gutter and five 46px cells", false);
+  const hb = drawHidden(document.getElementById("s5a"), "B · the curve panel above the rows",
+    "the same panel, the rows under it", true);
+  const hp = drawProbability(document.getElementById("s5b"), "Probability · two columns of five",
+    "cell 54's scores through sigmoid, one case per row", W);
+  const hd = drawDistribution(document.getElementById("s5b"), "Distribution · 3 × 5 with a row-sum column",
+    "cell 56's matrix through softmax(dim=1), the sum column outside the grid");
+  document.getElementById("rec5").innerHTML =
+    `<b>Recommend A.</b> Left of the rows the band is ${ha.bandW}px of 550 with ${W - ha.bandW}px left, and the ` +
+    `stage is ${ha.H}px; above them the band is only ${hb.bandW}px but the stage grows to ${hb.H}px, ` +
+    `${hb.H - ha.H}px more, and the width it saves is width the page had spare. Side by side also puts the point ` +
+    `on the curve level with the value in the row it produced, which is the reading. The three uses come out at ` +
+    `${ha.H}px, ${hp}px and ${hd.H}px, so Probability is the shortest stage in the widget and the strongest case ` +
+    `for a per-page height. Probability measures ${W - (CW + OP_W + CW) - 2 * PAD}px of margin against the plan's ` +
+    `assumed 166px stage, which the drawing puts at ${hp}px.`;
+}
+
+/* ============================ §6 · Dropout ================================= */
+function dropTiles(ctx, x, y, w, label, vals, hue, maskAt) {
+  txt(ctx, label, x - 8, y + CH + 1, { color: T.ink2, align: "right", baseline: "middle", mono: true });
+  for (let r = 0; r < 2; r += 1) {
+    for (let c = 0; c < 5; c += 1) {
+      const dropped = maskAt ? !maskAt(r, c) : false;
+      cell(ctx, x + c * CW, y + r * CH, CW, CH, dropped ? "" : n2(vals[r][c]),
+        { hue, empty: dropped });
+    }
+  }
+}
+function drawDropA(host, title, sub, mode, p) {
+  const GUT = 110;
+  const rowW = 5 * CW;
+  const bandW = GUT + rowW;
+  const scale = 1 / (1 - p);
+  const d = mode === "train" ? dropDraw(1, p) : null;
+  const outVals = mode === "train" ? d.y : XD;
+  const h = 26 + 16 + 2 * CH + 26 + 30 + 26 + 16 + 2 * CH + 8 + 2 * 16 + 30 + PAD;
+  const { ctx, cand } = panel(host, title, sub, W, h);
+  let y = band(ctx, 0, W, mode === "train" ? "Training" : "Evaluation",
+    mode === "train" ? `y = (m ⊙ x) / (1 − ${p})` : "y = x");
+  dropTiles(ctx, PAD + GUT, y + 16, rowW, "x  [2, 5]", XD, T.groupA, null);
+  let cy = y + 16 + 2 * CH;
+  arrow(ctx, PAD + GUT + rowW / 2, cy + 6, PAD + GUT + rowW / 2, cy + 24, T.ink3);
+  cy += 26;
+  ctx.fillStyle = wash(T.groupB, 0.2);
+  ctx.fillRect(PAD + GUT, cy, rowW, 24);
+  ctx.strokeStyle = T.axis; ctx.lineWidth = 1; ctx.strokeRect(PAD + GUT + 0.5, cy + 0.5, rowW - 1, 23);
+  txt(ctx, mode === "train" ? `Dropout(p = ${p})` : `Dropout(p = ${p}), eval`, PAD + GUT + rowW / 2, cy + 12.5,
+    { color: T.ink1, align: "center", baseline: "middle", mono: true });
+  txt(ctx, mode === "train" ? `kept with probability ${(1 - p).toFixed(1)}` : "nothing is dropped",
+    PAD + GUT + rowW + 12, cy + 12.5, { color: T.ink3, baseline: "middle", size: T.fsXs });
+  cy += 24;
+  arrow(ctx, PAD + GUT + rowW / 2, cy + 6, PAD + GUT + rowW / 2, cy + 24, T.ink3);
+  cy += 30;
+  dropTiles(ctx, PAD + GUT, cy, rowW, "y  [2, 5]", outVals, T.empirical,
+    mode === "train" ? (r, c) => d.mask[r][c] : null);
+  if (mode === "train") {
+    txt(ctx, `survivors × ${scale.toFixed(2)}`, PAD + GUT + rowW + 12, cy + CH,
+      { color: T.highlight, baseline: "middle", size: T.fsXs });
+  } else {
+    txt(ctx, "y = x, value for value", PAD + GUT + rowW + 12, cy + CH,
+      { color: T.highlight, baseline: "middle", size: T.fsXs });
+  }
+  const lines = mode === "train" ? DPRINT : XPRINT;
+  printLines(ctx, PAD, cy + 2 * CH + 20, lines, T.ink2);
+  caption(ctx, PAD, h - PAD - 6, USABLE, mode === "train"
+    ? `${d.mask.flat().filter(Boolean).length} of the 10 cells survived this draw, and the input sum ${IN_SUM.toFixed(3)} became ${d.sum.toFixed(3)}.`
+    : "At evaluation PyTorch does nothing at all, so the output carries the input's own numbers.");
+  /* the annotation column is part of the band, so it is measured, not assumed */
+  ctx.font = `${T.fsXs} ${T.font}`;
+  const annW = 12 + Math.ceil(Math.max(
+    ctx.measureText(mode === "train" ? `kept with probability ${(1 - p).toFixed(1)}` : "nothing is dropped").width,
+    ctx.measureText(mode === "train" ? `survivors × ${scale.toFixed(2)}` : "y = x, value for value").width));
+  const full = bandW + annW;
+  note(cand, `band ${full + 2 * PAD}px of ${W} · ${W - full - 2 * PAD}px left · rows ${bandW + 2 * PAD}px, annotations ${annW}px · stage ${h}px tall`);
+  return { H: h, bandW: full + 2 * PAD };
+}
+function drawDropB(host, title, sub, p) {
+  const GUT = 110;
+  const rowW = 5 * CW;
+  const bandW = GUT + rowW;
+  const d = dropDraw(1, p);
+  const sideW = 3 * rowW + 2 * OP_W;
+  const h = 26 + 3 * (16 + 2 * CH + 14) + 26 + PAD;
+  const { ctx, cand } = panel(host, title, sub, W, h);
+  let y = band(ctx, 0, W, "Training", `y = (m ⊙ x) / (1 − ${p})`);
+  const rows = [
+    ["x  [2, 5]", XD, T.groupA, null],
+    ["mask  [2, 5]", d.mask, T.groupB, null],
+    ["y  [2, 5]", d.y, T.empirical, null],
+  ];
+  let cy = y;
+  rows.forEach(([label, vals, hue]) => {
+    for (let r = 0; r < 2; r += 1) {
+      for (let c = 0; c < 5; c += 1) {
+        const v = vals[r][c];
+        cell(ctx, PAD + GUT + c * CW, cy + 16 + r * CH, CW, CH,
+          hue === T.groupB ? String(v) : n2(v), { hue });
+      }
+    }
+    txt(ctx, label, PAD + GUT - 8, cy + 16 + CH, { color: T.ink2, align: "right", baseline: "middle", mono: true });
+    cy += 16 + 2 * CH + 14;
+  });
+  caption(ctx, PAD, h - PAD - 6, USABLE,
+    `Side by side the three grids are ${sideW + 2 * OP_W > USABLE ? `${sideW + 2 * PAD}px, past the ${W} stage` : "inside the stage"}, so they stack, which is the layout tensors' Multiply tab already draws.`);
+  note(cand, `band ${bandW + 2 * PAD}px of ${W} · ${W - bandW - 2 * PAD}px left · side by side would be ${sideW + 2 * PAD}px · stage ${h}px tall`);
+  return { H: h, bandW: bandW + 2 * PAD };
+}
+{
+  const a = drawDropA(document.getElementById("s6a"), "A · one band, the mask as a property of the output row",
+    "his figure's vertical flow: input, the Dropout box, the output with the dropped cells empty", "train", 0.5);
+  const ev = drawDropA(document.getElementById("s6a"), "A · Evaluation",
+    "no mask row, and the output carries the input's own numbers", "eval", 0.5);
+  const b = drawDropB(document.getElementById("s6b"), "B · the three-row form",
+    "input, mask, output, which is what tensors' Multiply tab draws on this shape", 0.5);
+  document.getElementById("rec6").innerHTML =
+    `<b>Recommend A.</b> A is ${a.bandW}px of 550 and B is ${b.bandW}px, both well inside the stage, so the pick ` +
+    `is not width: it is what the picture claims. B draws the mask as a tensor in its own right, which is <code>tensors</code>' ` +
+    `Multiply tab on the same <code>[2, 5]</code> shape with the same seeded 0/1 mask, and this page has nothing ` +
+    `to add to it. A draws the mask as a property of the output row, empty where a cell was dropped, which leaves ` +
+    `the band free to carry the one thing that is new here: the ${(1 / (1 - 0.5)).toFixed(2)}× on the survivors, ` +
+    `written as the band expression. A is ${a.H}px against B's ${b.H}px, and the Evaluation branch is the same ` +
+    `${ev.H}px stage with the box relabelled and the output redrawn as an equality, so the two modes are one ` +
+    `figure and the contrast is a single press.`;
+}
+
+/* ============================ §7 · the running mean ======================== */
+{
+  function tiles(host, title, sub, nDraws) {
+    const TW = 158, TH = 60;
+    const bandW = 3 * TW + 2 * GAP;
+    const used = DRAWS8.slice(0, nDraws);
+    const runningMean = mean(used.map((d) => d.sum));
+    const H = 26 + 16 + TH + 18 + (nDraws > 1 ? 14 * 4 : 14 * 2) + 26 + PAD;
+    const { ctx, cand } = panel(host, title, sub, W, H);
+    const y = band(ctx, 0, W, "Sums", "1 / (1 − 0.8) = 5.00");
+    const last = used[used.length - 1];
+    const items = [
+      ["input sum", IN_SUM, T.groupA],
+      [`output sum, draw ${nDraws}`, last.sum, T.empirical],
+      [`mean over ${nDraws} draw${nDraws === 1 ? "" : "s"}`, runningMean, T.empirical],
+    ];
+    items.forEach(([label, v, hue], i) => {
+      const x = PAD + i * (TW + GAP);
+      ctx.fillStyle = wash(hue, i === 2 ? 0.22 : 0.12);
+      ctx.fillRect(x, y + 16, TW, TH);
+      ctx.strokeStyle = i === 2 ? T.highlight : T.axis;
+      ctx.lineWidth = i === 2 ? HLW : 1;
+      ctx.strokeRect(x + 0.5, y + 16.5, TW - 1, TH - 1);
+      txt(ctx, label, x + TW / 2, y + 30, { color: T.ink2, align: "center", size: T.fsXs });
+      txt(ctx, v.toFixed(3), x + TW / 2, y + 56, { color: T.ink1, align: "center", mono: true, size: T.fsLg, weight: "600" });
+    });
+    let ty = y + 16 + TH + 30;
+    const sums = used.map((d) => d.sum.toFixed(3)).join("  ");
+    txt(ctx, `draws: ${sums}`, PAD, ty, { color: T.ink2, mono: true, size: T.fsSm });
+    ty += 16;
+    if (nDraws > 1) {
+      const zeros = used.filter((d) => d.sum === 0).length;
+      txt(ctx, `sd of the ten sums ${sd(DRAWS8.map((d) => d.sum)).toFixed(3)}, against an input sum of ${IN_SUM.toFixed(3)}`,
+        PAD, ty, { color: T.ink2, mono: true, size: T.fsSm });
+      ty += 16;
+      txt(ctx, `${zeros} of these ${nDraws} draws dropped every cell`, PAD, ty, { color: T.ink3, mono: true, size: T.fsSm });
+      ty += 16;
+    }
+    caption(ctx, PAD, H - PAD - 6, USABLE, nDraws === 1
+      ? `One draw sits ${Math.abs(last.sum - IN_SUM).toFixed(3)} from the input sum, which is ${(Math.abs(last.sum - IN_SUM) / Math.abs(IN_SUM) * 100).toFixed(0)}% of it.`
+      : `The mean over ten is ${runningMean.toFixed(3)} against the input's ${IN_SUM.toFixed(3)}, and the scaling is what that agreement is for.`);
+    note(cand, `band ${bandW + 2 * PAD}px of ${W} · ${W - bandW - 2 * PAD}px left · stage ${H}px tall`);
+    return { H, runningMean };
+  }
+  const one = tiles(document.getElementById("s7"), "after one press, seed 1", "the two sums, and a mean that is still one number", 1);
+  const ten = tiles(document.getElementById("s7"), "after ten presses, seeds 1 to 10", "the same tiles, with the mean built up over the draws", 10);
+  const sums = DRAWS8.map((d) => d.sum);
+  document.getElementById("rec7").innerHTML =
+    `<b>Recommend the third tile.</b> On these ten seeds the output sums run ${Math.min(...sums).toFixed(3)} to ` +
+    `${Math.max(...sums).toFixed(3)} against an input sum of ${IN_SUM.toFixed(3)}, with a standard deviation of ` +
+    `${sd(sums).toFixed(3)}, so any one press argues that the scaling does not work. The running mean after ten ` +
+    `is ${ten.runningMean.toFixed(3)}. The tiles are ${3 * 158 + 2 * GAP + 2 * PAD}px of 550, which is the whole ` +
+    `usable width, and the caption is what carries the qualification: the scaling keeps the sum right on average, ` +
+    `and one draw can be far off or zero.`;
+}
+
+/* ============================ what the mock proves ========================= */
+{
+  const ul = document.getElementById("proof");
+  const sums = DRAWS8.map((d) => d.sum);
+  const items = [
+    `The 16 × 16 image and its two 8 × 8 summaries fit at a 13px pixel with ${W - (16 * 13 + 40 + 8 * 13 + GAP + 8 * 13) - 2 * PAD}px ` +
+    `left at 550, and at 19px with ${WIDE - (16 * 19 + 40 + 8 * 19 + GAP + 8 * 19) - 2 * PAD}px left at 770. At 14 and 20 the band runs past the stage.`,
+    `Embedding's lookup and its result do not share a band: the lookup is 264px of the ${USABLE}px usable and two ` +
+    `result frames at the 46px cell are ${2 * (EDIM * CW + 2 * HUG) + GAP}px, so the two-band form is what keeps every value on the canvas.`,
+    `Layer normalization draws both samples at a 44px cell inside ${USABLE}px, with μ and σ beside each of the ten rows.`,
+    `Softmax on row 1 of cell 56's matrix gives ${DIST_OUT[1][0].toFixed(1)} five times and a row sum of ` +
+    `${DIST_OUT[1].reduce((a, b) => a + b, 0).toFixed(4)}, which is the case that fails and reads like every other row.`,
+    `At p = 0.8 the ten seeded draws give output sums from ${Math.min(...sums).toFixed(3)} to ${Math.max(...sums).toFixed(3)} ` +
+    `against an input sum of ${IN_SUM.toFixed(3)}; their mean is ${mean(sums).toFixed(3)}, so the third tile is what makes the page's claim true.`,
+    `The five-block rail fits at two columns with three heads, and the whole Dropout rail is taller than the ` +
+    `shortest stage it sits beside, which is what a per-page height has to answer for.`,
+  ];
+  for (const s of items) {
+    const li = document.createElement("li");
+    li.innerHTML = s;
+    ul.appendChild(li);
+  }
+}
+</script>
+</body>
+</html>
