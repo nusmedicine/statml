@@ -117,6 +117,9 @@ export function pageUnits(state) {
            two paths meet; line 1 previews the label and nothing else */
         { id: "add", unit: 5 },
         { id: "rail", unit: 5 },
+        /* the three bands are values, so they belong to the line that adds
+           them and not to the lines that produced the two operands */
+        { id: "bands", unit: 5 },
       ];
       if (state.proj) u.push({ id: "proj", unit: 1 });
       if (state.match) u.push({ id: "fc_out", unit: 6 });
@@ -254,8 +257,10 @@ export const besideFits = (w, textW, minDiag) => w - 2 * PAD - textW - TEXT_GAP 
  * width that can differ (5.8). */
 
 export const bandWidth = {
-  /* the diagram's own minimum, plus the code column beside it */
-  skip: (z, cw) => cw + TEXT_GAP + SKIP_MIN_DIAG,
+  /* the diagram's own minimum, plus the code column beside it. The add is
+     drawn as three bands, and the fit pass reserves the widest of them at 20
+     cells, so the cell size does not change when the width control does. */
+  skip: (z, cw) => cw + TEXT_GAP + Math.max(SKIP_MIN_DIAG, SKIP_BAND_COLS * z.band),
   /* one 20-column band on the `gated` edge; two side by side do not fit and
      the mock's §3 measured that, so only the result edge carries one */
   gating: (z, cw) => cw + TEXT_GAP + Math.max(20 * z.band, 2 * MIN_BOX + COLGAP),
@@ -330,6 +335,8 @@ export const routeDiagMin = (z, fixed) =>
 
 /* the box, the gradient gutter and the skip rail down the right */
 export const SKIP_MIN_DIAG = 250;
+/* the widest band the add is drawn as: f(x) at the wider of the two widths */
+export const SKIP_BAND_COLS = 20;
 export const DIM_BOX_W = 180;
 /* the 150px box, and the text printed beside it */
 export const ORDER_MIN_DIAG = 250;
@@ -812,6 +819,27 @@ export const CODE_SKIP = [
 ];
 export const CODE_SKIP_PROJ = CODE_SKIP.map((l) => (l === "skip = x" ? "skip = self.proj(x)" : l));
 
+/* --- the add, drawn as three bands ------------------------------------------
+ * The page named the add with a `+` circle and printed the values of one
+ * sample in the readout, and Kenneth asked for the bands the plan carried
+ * (2026-09-10, round 2): x3, skip and out as three shaded tensors, the form
+ * Branching already draws its merge in. The two operands stack, the `+` sits
+ * on the spine in the gap under them, and the result is the band below it —
+ * or, where the widths disagree, torch's message in the result's place.
+ *
+ * Here rather than in `main.js` because `pageHeight`, `draw`, `regions` and
+ * the verify script all measure the same block (5.8).
+ */
+export const SKIP_BAND_GAP = 4;     // between the two operand bands
+export const SKIP_PLUS_GAP = 34;    // the row the + circle sits in, under them
+export const SKIP_BLOCK_FOOT = 8;   // under the result band, before the out edge
+export const SKIP_ERR_GAP = 22;     // into the result's row, to the message's first line
+
+/** The block's height, measured from the top of the x3 band. */
+export const skipBlockH = (bandH, match, errRows) =>
+  2 * bandH + SKIP_BAND_GAP + SKIP_PLUS_GAP
+  + (match ? bandH + SKIP_BLOCK_FOOT : SKIP_ERR_GAP + errRows * LINE + 10);
+
 /** The local factor on each edge of the walk back to x (cell 90's claim). */
 export const SKIP_FACTORS = [
   ["fc_out", "Wᵀ_out"],
@@ -912,18 +940,31 @@ export function gating(gate, rng) {
 }
 
 /* ==================== 6 · Branching (cells 96-98) ==========================
- * Every merge both wins and loses on the notebook's own numbers: with 8 and 6,
- * concat works and add and average raise the broadcast message; with 8 and 8,
- * add and average work and concat gives 16, which `Linear(14, 2)` rejects.
- * The two failures are at DIFFERENT PLACES, and that is the page.
+ * FC3 IS SIZED FOR THE MERGE. Cell 98 writes `fc3 = nn.Linear(14, 2)`, which
+ * is the width concat gives on 8 and 6, and the page held that number fixed
+ * until Kenneth on 2026-09-10: with fc3 pinned at 14, five of the six
+ * combinations end in a message and only the notebook's own reaches an output.
+ * `fc3In` is the width the merge produces, and fc3 is the `Linear(N, 2)` a
+ * model written for that merge would declare: 14 after concat on 8 and 6, 16
+ * after concat on 8 and 8, 8 after add or average.
+ *
+ * The one failure left is the notebook's own: add or average on 8 and 6, where
+ * the two branches have nothing to line up and torch raises AT THE MERGE.
  */
 
 export const BRANCH_SEED = 41;
-export const FC3_IN = 14;
+/** The width the merge produces, which is what fc3 is declared with. Concat
+    joins the two branches, and an elementwise merge keeps one branch's width. */
+export const fc3In = (merge, fc2) => (merge === "concat" ? 8 + fc2 : 8);
 const brRng = makeRng(BRANCH_SEED);
 const B_FC1 = initLinear(brRng, 10, 8);
 const B_FC2 = { 6: initLinear(brRng, 10, 6), 8: initLinear(brRng, 10, 8) };
-const B_FC3 = initLinear(brRng, FC3_IN, 2);
+/** One fc3 for each width a merge can hand it. */
+const B_FC3 = {
+  8: initLinear(brRng, 8, 2),
+  14: initLinear(brRng, 14, 2),
+  16: initLinear(brRng, 16, 2),
+};
 
 export const MERGE_LINE = {
   concat: "x3 = torch.cat([x1, x2], dim=1)",
@@ -951,8 +992,8 @@ export function branching(merge, fc2) {
       : x1.map((r, i) => [...r, ...x2[i]]);
   }
   const feats = merged ? merged[0].length : null;
-  const fcFails = Boolean(merged) && feats !== FC3_IN;
-  const y = merged && !fcFails ? applyLinear(B_FC3, merged) : null;
+  const inF = fc3In(merge, fc2);
+  const y = merged ? applyLinear(B_FC3[inF], merged) : null;
   const code = CODE_BRANCH.map((l) => (l === MERGE_LINE.concat ? MERGE_LINE[merge] : l));
   return {
     kind: "branching",
@@ -962,11 +1003,13 @@ export function branching(merge, fc2) {
     x2,
     merged,
     feats,
+    /* the width fc3 was declared with, which every merge that torch accepts
+       hands it exactly */
+    fc3In: inF,
     y,
     code,
     mergeError: mergeFails ? torchError.broadcast(8, fc2, 1) : null,
-    fcError: fcFails ? torchError.matmul([4, feats], [FC3_IN, 2]) : null,
-    params: linearParams(10, 8) + linearParams(10, fc2) + linearParams(FC3_IN, 2),
+    params: linearParams(10, 8) + linearParams(10, fc2) + linearParams(inF, 2),
     units: mergeFails ? 3 : 4,
   };
 }
@@ -1110,8 +1153,8 @@ export function routeRestColumn(st, s) {
  *   Gating      what the gate holds waits for the gate, what gated holds waits
  *               for the multiply; what a mask is, and what a second Linear is,
  *               are definitions.
- *   Branching   the feature count waits for the merge, the layer that rejects
- *               it for the layer; what each merge does is a definition.
+ *   Branching   the feature count and the fc3 it decides wait for the merge;
+ *               what each merge does is a definition.
  *   Routing     the sample's mixture waits for the combine and its branch for
  *               the argmax; nn.ModuleList and the argmax's gradient are
  *               definitions.
@@ -1178,14 +1221,8 @@ export function captions(params, state) {
           line("Concatenation joins the features instead, and it accepts branches of different widths."),
         ];
       }
-      if (state.fcError) {
-        return [
-          line(`${state.merge} on 8 and ${w2} gives ${state.feats} features, and fc3 is Linear(${FC3_IN}, 2).`, 4),
-          line("The merge decides the feature count, so the layer after it has to be told that number."),
-        ];
-      }
       return [
-        line(`${state.merge} on 8 and ${w2} gives ${state.feats} features, which is what fc3 was built for.`, 3),
+        line(`${state.merge} on 8 and ${w2} gives ${state.feats} features, so fc3 is Linear(${state.fc3In}, 2).`, 3),
         line(state.merge === "concat"
           ? "Concatenation keeps both branches whole, so the merged width is the sum of the two."
           : "Addition and averaging combine the branches cell by cell, so the merged width is the width of one branch."),

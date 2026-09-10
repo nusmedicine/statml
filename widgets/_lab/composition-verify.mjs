@@ -502,15 +502,32 @@ const shapeIs = (s, want) => Array.isArray(s) && s.join() === want.join();
     c6.params === 184,
     `${M.linearParams(10, 8)} + ${M.linearParams(10, 6)} + ${M.linearParams(14, 2)}`);
 
-  check("concat at 8 and 8 gives 16 features, which Linear(14, 2) rejects",
-    c8.feats === 16 && c8.y === null && c8.fcError === torchError.matmul([4, 16], [14, 2]),
-    c8.fcError.slice(0, 58));
+  /* DECISION 18: fc3 follows the merged width, so every merge torch accepts
+     reaches an output. Cell 98's Linear(14, 2) is the concat-at-6 case. */
+  check("fc3's in_features are the width the merge gives, one per combination",
+    [["concat", 6, 14], ["concat", 8, 16], ["add", 6, 8], ["add", 8, 8],
+      ["average", 6, 8], ["average", 8, 8]]
+      .every(([m, f, n]) => M.fc3In(m, f) === n && M.branching(m, f).fc3In === n),
+    "concat 14 and 16, add and average 8");
+
+  check("every merge but the notebook's own failure reaches [4, 2]",
+    [c6, c8, a8, v8].every((st) => st.y && st.y.length === 4 && st.y[0].length === 2)
+    && a6.y === null && v6.y === null,
+    "concat at 6 and 8, add at 8, average at 8");
+
+  check("the parameter count follows fc3, six combinations counted",
+    [[c6, 184], [c8, 210], [a6, 172], [a8, 194], [v6, 172], [v8, 194]]
+      .every(([st, n]) => st.params === n),
+    "184 / 210 concat, 172 / 194 add and average");
+
+  check("concat at 8 and 8 gives 16 features, and fc3 is Linear(16, 2)",
+    c8.feats === 16 && c8.fc3In === 16 && c8.y[0].length === 2);
 
   check("add at 8 and 6 raises the broadcast message AT THE MERGE",
-    a6.mergeError === torchError.broadcast(8, 6, 1) && a6.merged === null && a6.fcError === null);
+    a6.mergeError === torchError.broadcast(8, 6, 1) && a6.merged === null);
 
-  check("add at 8 and 8 works, and fc3 still expects 14",
-    a8.merged !== null && a8.feats === 8 && a8.fcError === torchError.matmul([4, 8], [14, 2]));
+  check("add at 8 and 8 works, and fc3 is Linear(8, 2)",
+    a8.merged !== null && a8.feats === 8 && a8.fc3In === 8);
 
   check("average is add halved, value for value",
     v8.merged.every((r, i) => r.every((v, j) => Math.abs(v - a8.merged[i][j] / 2) < 1e-12)));
@@ -518,15 +535,18 @@ const shapeIs = (s, want) => Array.isArray(s) && s.join() === want.join();
   check("average at 8 and 6 raises the same broadcast message add does",
     v6.mergeError === a6.mergeError);
 
-  /* THE TWO FAILURES ARE AT DIFFERENT PLACES, and that is the page. */
-  check("the two failures are at different places: the merge, and one layer later",
-    Boolean(a6.mergeError) && !a6.fcError && !c8.mergeError && Boolean(c8.fcError));
+  /* THE MATMUL AT FC3 CANNOT HAPPEN NOW, so nothing declares it. The comments
+     that record the decision are exempt and are stripped first, as section 12
+     does: the header naming what went is the point of keeping it. */
+  const noComments = (u) => readFileSync(new URL(u, import.meta.url), "utf8")
+    .replace(/\/\*[\s\S]*?\*\//g, " ").replace(/^\s*\/\/.*$/gm, " ");
+  check("the merge is the only place Branching can raise, and no fcError remains",
+    !/fcError/.test(noComments("../composition/model.js"))
+    && !/fcError/.test(noComments("../composition/main.js")),
+    "no dead declaration of a path that can no longer occur");
 
   check("the broadcast message is 103 characters, not the 70 the plan counted",
     a6.mergeError.length === 103, `${a6.mergeError.length} characters`);
-
-  check("the matmul message is 71 characters",
-    c8.fcError.length === 71, `${c8.fcError.length} characters`);
 
   check("concat joins the two rows in order, branch 1 first",
     c6.merged[0].slice(0, 8).join() === c6.x1[0].join()
@@ -818,6 +838,81 @@ const shapeIs = (s, want) => Array.isArray(s) && s.join() === want.join();
     && M.besideFits(550, CW.gating, 2 * M.MIN_BOX + M.COLGAP)
     && M.besideFits(550, CW.branching, 2 * M.MIN_BOX + M.COLGAP));
 
+  /* --- Skip's add, drawn as three bands (decision 19) -----------------------
+   * `skipGeom` in main.js, with the constants main.js does not export (XLAB 16
+   * and the three boxes on their edges). Two measurements come off the live
+   * canvas and are passed in here: how many rows torch's message wraps to, and
+   * how many rows the captions wrap to. Both are read from the browser and
+   * pinned below, the arrangement `MONO_SM` and Routing's label widths use.
+   */
+  function skipStage(w, { match = true, errRows = 0, grad = false, capRows = 2 } = {}) {
+    const s = M.fitSizes(w, (z) => M.bandWidth.skip(z, CW.skip));
+    const diagW = usable(w) - CW.skip - M.TEXT_GAP;
+    const bandH = M.BATCH_N * s.band;
+    const blockH = M.skipBlockH(bandH, match, errRows);
+    const bodyH = 16 + 3 * (M.EDGE_H + M.BOX_H) + M.EDGE_H + blockH
+      + (match ? M.EDGE_H + M.BOX_H + M.EDGE_H : 0);
+    const capY = M.BAND_HEAD + bodyH + (grad ? 20 : 0) + M.CAP_GAP;
+    /* `skipBands` in main.js, measured from the top of the x3 band */
+    const blockTop = M.BAND_HEAD + 16 + 3 * (M.EDGE_H + M.BOX_H) + M.EDGE_H;
+    const bandY = [blockTop, blockTop + bandH + M.SKIP_BAND_GAP,
+      blockTop + 2 * bandH + M.SKIP_BAND_GAP + M.SKIP_PLUS_GAP];
+    return {
+      s, diagW, bandH, blockH, bodyH, capY, blockTop, bandY,
+      plusY: bandY[1] + bandH + M.SKIP_PLUS_GAP / 2,
+      blockW: M.SKIP_BAND_COLS * s.band,
+      rowTops: (match ? bandY : bandY.slice(0, 2)).flatMap((y) =>
+        Array.from({ length: M.BATCH_N }, (_, r) => y + r * s.band)),
+      height: capY + capRows * M.CAPTION_H + M.PAD,
+    };
+  }
+
+  check("the add's block is 12 rows of band at 550 and the same at 770",
+    [550, 770].every((w) => skipStage(w).rowTops.length === 3 * M.BATCH_N)
+    && skipStage(550).s.band === 12 && skipStage(770).s.band === 16,
+    "x3, skip and out, four samples each");
+
+  check("every band row is inside the block, and the + sits between the operands",
+    [550, 770].every((w) => {
+      const st = skipStage(w);
+      return st.rowTops.every((y) => y >= st.blockTop
+        && y + st.s.band <= st.blockTop + st.blockH - M.SKIP_BLOCK_FOOT)
+        && st.plusY > st.bandY[1] + st.bandH && st.plusY < st.bandY[2];
+    }),
+    `at 550 the rows run ${skipStage(550).rowTops[0]} to `
+    + `${skipStage(550).rowTops[11] + 12}, in a block of ${skipStage(550).blockH}`);
+
+  check("where the add raises, the message takes the result band's row",
+    skipStage(550, { match: false, errRows: 2 }).rowTops.length === 2 * M.BATCH_N
+    && M.skipBlockH(48, false, 2) - M.skipBlockH(48, true, 0) === 8,
+    "two operands stacked, and torch's two lines where the third band would be");
+
+  /* MEASURED IN THE BROWSER, at the stage the side layout gives (549.6 and
+     770.4, which round to the same cell size and the same wrapped counts):
+     torch's message takes two rows at both widths, the captions three at 550
+     and two at 770. The bands add 152px at 550 and 200 at 770. */
+  check("Skip's stage is 611px at 550 and 642 at 770, the bands included",
+    skipStage(550, { capRows: 3 }).height === 611
+    && skipStage(770, { capRows: 2 }).height === 642
+    && skipStage(550, { capRows: 3, grad: true }).height === 631
+    && skipStage(770, { capRows: 2, grad: true }).height === 662,
+    `${skipStage(550, { capRows: 3 }).height} / ${skipStage(770, { capRows: 2 }).height}, `
+    + "and 20px more with the gradient line under the figure");
+
+  check("where the add raises, the stage is 512px at 550 and 544 at 770",
+    skipStage(550, { match: false, errRows: 2, capRows: 2 }).height === 512
+    && skipStage(770, { match: false, errRows: 2, capRows: 2 }).height === 544,
+    "two rows of message in the result band's place, and no fc_out under it");
+
+  check("the widest band and the rail column both fit the diagram, at both widths",
+    [550, 770].every((w) => {
+      const st = skipStage(w);
+      return st.blockW + 60 + 10 <= st.diagW
+        && M.bandWidth.skip(st.s, CW.skip) <= usable(w);
+    }),
+    `${skipStage(550).blockW}px of block against a ${skipStage(550).diagW}px diagram at 550, `
+    + `${skipStage(770).blockW} against ${skipStage(770).diagW} at 770`);
+
   /* --- Routing's weighted-sum block: does it fit, and what does it cost? ----
    * `routeGeom` in main.js, with the three constants main.js does not export
    * (main.js: XLAB 16, ROUTE_SPLIT 36, WBLOCK 64, the floor the box keeps so
@@ -995,19 +1090,30 @@ const shapeIs = (s, want) => Array.isArray(s) && s.join() === want.join();
      target (3.6). Gating's band is the `gated` line's, Branching's two are its
      branches', and Routing's weight grid is line 1's with the block line 5's —
      so at rest none of them is a row the reader can hit. */
-  const REGION_UNITS = { gating: [3], branching: [1, 2], routing: [1, 5] };
-  check("no band row is a target at rest on Gating, Branching or Routing",
+  const REGION_UNITS = { skip: [5], gating: [3], branching: [1, 2], routing: [1, 5] };
+  check("no band row is a target at rest on Skip, Gating, Branching or Routing",
     Object.values(REGION_UNITS).every((us) => us.every((u) => M.stageOf(0, u) !== "landed")),
     "the rows appear with the line that computes their values");
+
+  check("Skip's three bands are the add's own line, and land together",
+    M.pageUnits(M.skip(10, false)).find((u) => u.id === "bands").unit === 5
+    && M.pageUnits(M.skip(20, false)).find((u) => u.id === "bands").unit === 5,
+    "x3, skip and out are what `out = x3 + skip` produces");
 
   const drawSrc = readFileSync(new URL("../composition/main.js", import.meta.url), "utf8");
   check("regions reads the walk the same way draw does, band by band",
     /const walk = walkAt\(walkAnim \?\? \{ n: state\.units \}, state\);/.test(drawSrc)
+    && /if \(!landed\(walk, 5\)\) return \[\];[\s\S]{0,200}skipBands/.test(drawSrc)
     && /if \(!landed\(walk, 3\)\) return \[\];/.test(drawSrc)
     && /landed\(walk, 1\) \? rows\(b\.b1\.x/.test(drawSrc)
     && /landed\(walk, 2\) \? rows\(b\.b2\.x/.test(drawSrc)
     && /landed\(walk, 1\) \? rows\(g\.gateCx/.test(drawSrc)
     && /landed\(walk, 5\)\s*\?\s*\[\.\.\.b\.bandY/.test(drawSrc));
+
+  check("Skip's three bands are drawn and hit from one geometry",
+    /function skipBands\(g, state\)/.test(drawSrc)
+    && (drawSrc.match(/skipBands\(g, state\)/g) ?? []).length === 3,
+    "skipBands, read by drawSkip and by regions");
 
   check("every layer box goes through the one helper, and every edge but the input's",
     (drawSrc.match(/(?<!function |unit)layerBox\(/g) ?? []).length === 1

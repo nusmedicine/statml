@@ -190,6 +190,39 @@
        went with the shapes. What separates the four now is the JOB each does,
        the legend names the three groups by that job, and `--c-group-c` is the
        third parallel role the token was added for.
+
+   18. FC3 IS SIZED FOR THE MERGE. Cell 98 writes `fc3 = nn.Linear(14, 2)` and
+       the page held that 14 fixed, so of the six `merge × fc2` combinations
+       only the notebook's own — concat on 8 and 6 — reached an output, and add
+       and average could not work at any width. Kenneth on 2026-09-10, round 2:
+       every merge torch accepts should reach an output. `M.fc3In` is the width
+       the merge produces and fc3 is the `Linear(N, 2)` a model written for that
+       merge would declare, so five of the six now run to `[4, 2]` and the one
+       failure left is the notebook's own — add or average on 8 and 6, which
+       raises AT THE MERGE. The matmul path at fc3 went with it: `fcError`, its
+       message, its caption row and the geometry rows that reserved space for
+       it can no longer occur, so none of them is declared.
+
+   19. SKIP'S ADD IS DRAWN AS THREE BANDS. The page named the add with a `+`
+       circle and left the values to the readout, and Kenneth asked for the
+       bands the plan carried (2026-09-10, round 2). They are Branching's own
+       form at `add`: the two operands stacked, the result under them, every
+       cell shaded on the band's own largest magnitude and the chosen sample's
+       row lit in all three. What is new here is the `+`, which stays as the
+       node the two operand bands feed, in the gap between them and the result.
+
+       THE BLOCK IS CENTRED ON THE SPINE, CLAMPED. Centred in the diagram it
+       leaves the `+` standing beside its own bands at width 10; centred on the
+       spine it runs off the left edge at width 20, since the spine sits at the
+       left of the column and 20 cells are 240px at 550. So the centre is the
+       spine clamped into the room the rail leaves, and the width is reserved
+       at 20 cells so the block does not move when the width control does.
+       `M.bandWidth.skip` now measures the band rather than the boxes alone.
+
+       The bands land with `out = x3 + skip` and not with the lines that
+       produced the operands: a band is a value (decision 14), and the value
+       the page is about is the sum. Their rows are the `regions` that set
+       `sample`, read through the same walk the drawing uses.
    ========================================================================= */
 
 import {
@@ -694,6 +727,8 @@ function markDims(ctx, colors, text, skip, shape, next, cx, ruleY) {
 
 /* ============================== 2 · Skip =================================== *
  * Cells 90-92. `y = x + f(x)`, and the add is where the widths have to agree.
+ * The add is drawn as three bands (decision 19): x3 and skip stacked, the `+`
+ * on the spine under them, and `out` below it — or torch's message in its row.
  */
 
 const SKIP_BOX = 130;
@@ -702,6 +737,7 @@ const SKIP_RAIL = 60;     // the column the skip elbow runs down, from the right
 function skipGeom(ctx, colors, w, params, state) {
   const usable = w - 2 * PAD;
   const cw = codeW(ctx, colors, state.code);
+  const s = M.fitSizes(w, (z) => M.bandWidth.skip(z, cw));
   const diagW = usable - cw - TEXT_GAP;
   const grad = params.grad === "1";
   ctx.font = `${colors.fsXs} ${colors.font}`;
@@ -709,15 +745,48 @@ function skipGeom(ctx, colors, w, params, state) {
     ? 26 + 8 + Math.ceil(Math.max(...M.SKIP_FACTORS.map(([, l]) => ctx.measureText(l).width)))
     : 0;
   const errRows = state.error ? wrapMono(ctx, colors, state.error, diagW).length : 0;
-  const bodyH = XLAB + 4 * (EDGE_H + BOX_H)
-    + (state.match ? EDGE_H + BOX_H + EDGE_H : 12 + errRows * LINE);
+  const bandH = M.BATCH_N * s.band;
+  const blockH = M.skipBlockH(bandH, state.match, errRows);
+  /* the three bands of the add, and the layers above them: three boxes on
+     their edges, then the x3 edge that feeds the first band */
+  const bodyH = XLAB + 3 * (EDGE_H + BOX_H) + EDGE_H + blockH
+    + (state.match ? EDGE_H + BOX_H + EDGE_H : 0);
   const caps = captionLines(ctx, colors, w, params, state);
   const capY = BAND_HEAD + bodyH + (grad ? 20 : 0) + CAP_GAP;
+  const cx = PAD + ow + SKIP_BOX / 2 + 6;
+  const railX = PAD + diagW - SKIP_RAIL;
+  /* THE BLOCK IS AS CLOSE TO THE SPINE AS THE STAGE ALLOWS. Centred on the
+     diagram it would leave the + standing beside its own bands at width 10;
+     centred on the spine it would run off the left edge at width 20, where the
+     widest band is 240px against a spine 85px from the edge. So the centre is
+     the spine clamped into the room the rail leaves, on the widest band the
+     page actually draws: at width 10 the block sits under the boxes with the +
+     down its middle, and at 20 it opens out to both sides of the spine. */
+  const blockW = Math.max(state.width, state.skipShape[1]) * s.band;
   return {
-    usable, cw, diagW, ow, errRows, bodyH, grad, capY, caps,
-    cx: PAD + ow + SKIP_BOX / 2 + 6,
-    railX: PAD + diagW - SKIP_RAIL,
+    usable, cw, s, diagW, ow, errRows, bandH, blockH, bodyH, grad, capY, caps, cx, railX,
+    blockCx: Math.max(PAD + blockW / 2, Math.min(cx, railX - 10 - blockW / 2)),
+    /* the top of the x3 band: the three boxes on their edges, and the x3 edge */
+    blockTop: BAND_HEAD + XLAB + 3 * (EDGE_H + BOX_H) + EDGE_H,
     height: capY + caps.length * CAPTION_H + PAD,
+  };
+}
+
+/** Where each band of the add sits, so `draw` and `regions` agree (5.8). The
+    two operands stack, the + sits in the gap under them, and the result is the
+    band below it — or, where the widths disagree, torch's message in its row. */
+function skipBands(g, state) {
+  const p = g.s.band;
+  const top = g.blockTop;
+  const at = (cols, y) => ({ x: g.blockCx - (cols * p) / 2, y, cols });
+  const skipY = top + g.bandH + M.SKIP_BAND_GAP;
+  const outY = skipY + g.bandH + M.SKIP_PLUS_GAP;
+  return {
+    x3: at(state.width, top),
+    skip: at(state.skipShape[1], skipY),
+    out: state.match ? at(state.width, outY) : null,
+    plusY: skipY + g.bandH + M.SKIP_PLUS_GAP / 2,
+    outY,
   };
 }
 
@@ -738,10 +807,11 @@ function drawSkip(ctx, colors, w, params, state, anim) {
   Y.e3 = Y.relu + BOX_H;
   Y.fc2 = Y.e3 + EDGE_H;
   Y.e4 = Y.fc2 + BOX_H;
-  Y.plus = Y.e4 + EDGE_H;
-  Y.e5 = Y.plus + BOX_H;
+  Y.block = g.blockTop;             // the top of the x3 band, which is Y.e4 + EDGE_H
+  Y.e5 = Y.block + g.blockH;
   Y.fcOut = Y.e5 + EDGE_H;
   Y.e6 = Y.fcOut + BOX_H;
+  const bands = skipBands(g, state);
 
   txt(ctx, colors, "x", cx, y + 12, { color: colors.ink1, align: "center", mono: true });
   edge(ctx, colors, cx, Y.e1, Y.e1 + EDGE_H, shapeText([4, 10]), { color: colors.groupA });
@@ -760,11 +830,33 @@ function drawSkip(ctx, colors, w, params, state, anim) {
   unitEdge(ctx, colors, cx, Y.e4, Y.e4 + EDGE_H, `x3  ${shapeText([4, width])}`, walk, 4,
     { color: colors.empirical });
 
-  /* DECISION 14 ON THIS PAGE: the rail and the + belong to `out = x3 + skip`,
-     which is the line where the two paths meet; `skip = x` previews the label
-     and nothing else, and a projection box appears with the line that applies
-     it. Kenneth's own split, 2026-09-10 round 1. */
-  const plusY = Y.plus + 15;
+  /* DECISION 14 ON THIS PAGE: the rail, the + and the three bands belong to
+     `out = x3 + skip`, which is the line where the two paths meet; `skip = x`
+     previews the label and nothing else, and a projection box appears with the
+     line that applies it. Kenneth's own split, 2026-09-10 round 1.
+
+     A BAND IS A VALUE, NOT A LAYER, so the preview draws the + and the rail
+     and leaves the three tensors to the line that computes them. */
+  const { plusY } = bands;
+  const sample = Number(params.sample);
+  const teeY = y + 22;
+  /* the skip path takes the second operand's hue where a projection makes it a
+     tensor of its own, and the main path's where it is x carried past (11) */
+  const skipHue = state.proj ? colors.groupB : colors.groupA;
+  if (landed(walk, 5)) {
+    const p = g.s.band;
+    const hi3 = maxAbs(state.x3);
+    shadedBand(ctx, colors, bands.x3.x, bands.x3.y, M.BATCH_N, bands.x3.cols, p,
+      (r, c) => shadeOf(colors.groupA, state.x3[r][c], hi3), { litRow: sample });
+    const hiS = maxAbs(state.skip);
+    shadedBand(ctx, colors, bands.skip.x, bands.skip.y, M.BATCH_N, bands.skip.cols, p,
+      (r, c) => shadeOf(skipHue, state.skip[r][c], hiS), { litRow: sample });
+    if (bands.out) {
+      const hiO = maxAbs(state.out);
+      shadedBand(ctx, colors, bands.out.x, bands.out.y, M.BATCH_N, bands.out.cols, p,
+        (r, c) => shadeOf(colors.empirical, state.out[r][c], hiO), { litRow: sample });
+    }
+  }
   if (onStage(walk, 5)) {
     plusNode(ctx, colors, cx, plusY, 14, landed(walk, 5)
       ? (state.match ? colors.empirical : colors.extreme)
@@ -772,8 +864,6 @@ function drawSkip(ctx, colors, w, params, state, anim) {
   }
 
   /* the skip path, down the right of the figure, both halves of his figure */
-  const teeY = y + 22;
-  const skipHue = state.proj ? colors.groupB : colors.groupA;
   /* `skip = x` (unit 1) draws the branch OFF x: the tee from x's edge to the
      rail column, with the label under its corner. The rail's descent and the
      + are unit 5's, where the two paths meet. Before this split the label
@@ -792,8 +882,17 @@ function drawSkip(ctx, colors, w, params, state, anim) {
     }
     ctx.stroke();
   }
+  /* THE RAIL DELIVERS skip INTO ITS BAND, from the side and at mid-height,
+     which is the turn Branching's second branch makes into a band its column
+     stands clear of. Until the line runs there is no band to enter, so the
+     preview reaches the + instead: a bus arm previews to the layers it feeds,
+     and the values wait. */
+  const railEndY = landed(walk, 5)
+    ? bands.skip.y + g.bandH / 2 : plusY;
+  const railEndX = landed(walk, 5)
+    ? bands.skip.x + bands.skip.cols * g.s.band + 2 : cx + 18;
   if (onStage(walk, 5)) {
-    elbow(ctx, [[railX, teeY], [railX, plusY], [cx + 18, plusY]],
+    elbow(ctx, [[railX, teeY], [railX, railEndY], [railEndX, railEndY]],
       landed(walk, 5) ? skipHue : colors.axis);
   }
   /* the label and P(x) are landed-only: a preview carries no labels (Kenneth,
@@ -816,8 +915,12 @@ function drawSkip(ctx, colors, w, params, state, anim) {
     }
   }
 
+  /* the message prints where the result band would be, so the two stacked
+     operands are what the reader is looking at when it arrives */
   if (!state.match) {
-    if (landed(walk, 5)) errorText(ctx, colors, PAD, Y.plus + BOX_H + 20, g.diagW, state.error);
+    if (landed(walk, 5)) {
+      errorText(ctx, colors, PAD, bands.outY + M.SKIP_ERR_GAP, g.diagW, state.error);
+    }
   } else {
     unitEdge(ctx, colors, cx, Y.e5, Y.e5 + EDGE_H, `out  ${shapeText([4, width])}`, walk, 5,
       { color: colors.empirical });
@@ -844,8 +947,11 @@ function drawSkip(ctx, colors, w, params, state, anim) {
       }
     }
     if (landed(walk, 5)) {
-      arrow(ctx, railX + 12, plusY, railX + 12, teeY + 4, colors.slope, 1.6, [], 7);
-      txt(ctx, colors, "1", railX + 18, (teeY + plusY) / 2, { color: colors.slope, size: colors.fsXs });
+      /* the leg runs beside the rail, from where the rail ends: the block
+         reaches its widest at 20 cells and the rail column is clear of it at
+         both widths, so the gutter the arrow uses is empty */
+      arrow(ctx, railX + 12, railEndY, railX + 12, teeY + 4, colors.slope, 1.6, [], 7);
+      txt(ctx, colors, "1", railX + 18, (teeY + railEndY) / 2, { color: colors.slope, size: colors.fsXs });
     }
     if (landed(walk, state.units)) {
       txt(ctx, colors, "∂y/∂x = 1 + f′(x)", PAD, top + g.bodyH + 14, { color: colors.slope, mono: true });
@@ -980,10 +1086,10 @@ function drawGate(ctx, colors, w, params, state, anim) {
 }
 
 /* =========================== 4 · Branching ================================= *
- * Cells 96-98. Every merge both wins and loses on the notebook's own numbers,
- * and the two failures print in DIFFERENT PLACES: `add` on unequal widths
- * raises where the sum band would have been, and a merge that succeeds at the
- * wrong width raises one layer later, under a band that is there and correct.
+ * Cells 96-98. fc3 is sized for the merge (decision 18), so five of the six
+ * combinations run to `[4, 2]` and the one that raises is the notebook's own:
+ * `add` or `average` on unequal widths, which raises where the sum band would
+ * have been and leaves the two operands stacked above it.
  */
 
 function branchGeom(ctx, colors, w, params, state) {
@@ -996,19 +1102,18 @@ function branchGeom(ctx, colors, w, params, state) {
   const elementwise = state.merge !== "concat";
   const mergeErrRows = state.mergeError
     ? wrapMono(ctx, colors, state.mergeError, diagW).length : 0;
-  const fcErrRows = state.fcError ? wrapMono(ctx, colors, state.fcError, diagW).length : 0;
   const mergeH = elementwise
     ? (state.mergeError
       ? 2 * bandH + 8 + mergeErrRows * LINE + 18
       : 3 * bandH + 20)
     : bandH;
-  const tailH = state.mergeError ? BOX_H : EDGE_H + (fcErrRows ? fcErrRows * LINE + 18 : BOX_H + EDGE_H);
+  const tailH = state.mergeError ? BOX_H : EDGE_H + BOX_H + EDGE_H;
   const diagH = XLAB + SPLIT_H + 2 * BOX_H + 2 * EDGE_H + mergeH + tailH;
   const caps = captionLines(ctx, colors, w, params, state);
   const capY = BAND_HEAD + diagH + CAP_GAP;
   const mergeTop = BAND_HEAD + XLAB + SPLIT_H + 2 * BOX_H + 2 * EDGE_H;
   return {
-    usable, cw, s, diagW, colW, bandH, mergeH, mergeErrRows, fcErrRows, elementwise, diagH,
+    usable, cw, s, diagW, colW, bandH, mergeH, mergeErrRows, elementwise, diagH,
     caps, capY, mergeTop,
     c0: PAD + colW / 2,
     c1: PAD + colW + COLGAP + colW / 2,
@@ -1129,7 +1234,7 @@ function drawBranch(ctx, colors, w, params, state, anim) {
     /* what fc3 was built for is read off the failure, so it arrives with it */
     if (landed(walk, 3)) {
       errorText(ctx, colors, PAD, afterBands + 22, g.diagW, state.mergeError);
-      txt(ctx, colors, `fc3 expects ${M.FC3_IN}`, mid, g.mergeTop + g.mergeH + BOX_H / 2,
+      txt(ctx, colors, `fc3 expects ${state.fc3In}`, mid, g.mergeTop + g.mergeH + BOX_H / 2,
         { color: colors.ink3, align: "center", baseline: "middle", mono: true });
     }
     return g;
@@ -1143,14 +1248,10 @@ function drawBranch(ctx, colors, w, params, state, anim) {
   const outTop = g.mergeTop + g.mergeH;
   unitEdge(ctx, colors, mid, outTop, outTop + EDGE_H,
     `x3  ${shapeText([4, state.feats])}`, walk, 3, { color: colors.empirical });
-  if (state.fcError) {
-    if (landed(walk, 4)) errorText(ctx, colors, PAD, outTop + EDGE_H + 18, g.diagW, state.fcError);
-  } else {
-    unitBox(ctx, colors, mid - g.boxW / 2, outTop + EDGE_H, g.boxW, "fc3",
-      colors.empirical, walk, 4);
-    unitEdge(ctx, colors, mid, outTop + EDGE_H + BOX_H, outTop + 2 * EDGE_H + BOX_H,
-      shapeText([4, 2]), walk, 4, { color: colors.empirical });
-  }
+  unitBox(ctx, colors, mid - g.boxW / 2, outTop + EDGE_H, g.boxW, "fc3",
+    colors.empirical, walk, 4);
+  unitEdge(ctx, colors, mid, outTop + EDGE_H + BOX_H, outTop + 2 * EDGE_H + BOX_H,
+    shapeText([4, 2]), walk, 4, { color: colors.empirical });
   return g;
 }
 
@@ -2416,6 +2517,15 @@ defineWidget({
            in a link that is at the default */
         x, y: y + i * p, w: cellW, h: p, set: { sample: i }, label: `sample ${i}`,
       }));
+    if (params.topic === "skip") {
+      /* the three bands of the add, which land together with the line that
+         adds them: before that there is nothing on the canvas to hit */
+      if (!landed(walk, 5)) return [];
+      const g = skipGeom(ctx, colors, w, params, state);
+      const b = skipBands(g, state);
+      return [b.x3, b.skip, ...(b.out ? [b.out] : [])]
+        .flatMap((bd) => rows(bd.x, bd.y, bd.cols * g.s.band, g.s.band));
+    }
     if (params.topic === "gating") {
       if (!landed(walk, 3)) return [];
       const g = gateGeom(ctx, colors, w, params, state);
@@ -2629,13 +2739,11 @@ defineWidget({
             : `${state.merge} on 8 and ${state.fc2} features`,
         },
         {
-          label: `fc3 expects ${M.FC3_IN}`,
+          label: `fc3 expects ${state.fc3In}`,
           value: state.y ? sizeText([4, 2]) : "—",
           note: state.y
-            ? `the merge gave ${state.feats}, which is the width fc3 was built for`
-            : state.fcError
-              ? `the merge gave ${state.feats}, and fc3 is Linear(${M.FC3_IN}, 2)`
-              : "the merge raised, so fc3 has no input to take",
+            ? `fc3 is Linear(${state.fc3In}, 2), sized for this merge`
+            : "the merge raised, so fc3 has no input to take",
         },
         ran,
       ];
