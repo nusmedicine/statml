@@ -10752,6 +10752,18 @@ column is the one under it (arithmetic on the stack's rectangle, before the
 readout resolves), nothing framed at rest, the sum line's row reserved so the
 stage does not move; `ATT_FEAT` is gone. 112 assertions.
 
+**Round 4 — Kenneth, 2026-09-10:** *"fix the normalized sum button and match
+the arrow weights. Also, can students choose different queries?"* Built at
+once (`141863c`): the Aggregate control is a two-column grid (Normalized sum ·
+Mean over Max spanning), the Layer control's own shape, so no label
+truncates; the value rows' recurrence arrows are 2px `--ink-2` like the
+strip's. The query choice follows the Convolutional page's `pos`: a hidden
+data parameter `query` (`The | cat | sat`) set by a click on a token's row of
+X or on its row label in the scores and weights grids, the walk restarting
+with that token first and continuing through the other two; `?query=cat`
+reproduces it; no rail control, the click is the control (3.6) and Step and
+Play the keyboard route.
+
 ### Slot 50 · `support-layers` — Normalization, Activation and Dropout — PLANNED 2026-09-10
 
 **Host.** 05-3 cells 29–60: Embedding (29–33), Pooling (34–39), BatchNorm and
