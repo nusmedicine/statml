@@ -11755,6 +11755,56 @@ the placeholder states; the pick rows to him; the copy applied in one round;
 then the hashes from three identical shots, the full suite once at DPR 1.25
 with the pane fronted, the status flipped, and the push on his word above.
 
+**The audit** (an Opus 5 reviewer, read-only, 2026-09-11): about 300
+reader-facing strings over every surface, 48 rows with a problem covering
+about 60 strings, the subtitle passing (232 characters, two sentences) and the
+blurb passing (90). By kind: three clefts and six trailing "which" clauses; a
+Building caption false at Sequential ("declared in `__init__`" over an
+`nn.Sequential`); the speed details "a line" false on four pages; a "Lines
+run" tile on two pages with no `forward()`; the Gating card printing `y = g ⊙
+x` where the figure multiplies h; the `chain` detail claiming a failing layer
+in every menu where six of twelve hold none; "turned down rather than switched
+off"; three URL names on no control (`blocks`, `style`, `show`); the Routing
+control repeating its page's name; cell 99's two-branch formula over a
+three-branch figure; a constant "Layers run 3" tile at rest; Ordering's band
+headers in three cases; "router" and "gate" for one box. **His four picks, all
+the recommendation:** the blurb names route ("A model is layers composed in
+order, with connections that skip, gate, branch and route."); the Routing
+control is *Mode* with `?mode=` kept; hard routing prints `y = f_k(x),
+k = argmax α(x)`; Building's tile is *Layers the forward pass runs*. The other
+twelve picks went as recommended: `grouping`, `declared`, `inspect` for the
+three URL names (5.9), "Gradient to the gate", the `topic` detail cut, "so the
+add is elementwise", "Data it fits", "or the inputs normalized", "Latest
+shape" at rest, "has nothing to line up" kept. Two consistency items from the
+same pass: a legend entry for Dimensions' ink boxes, and hard routing's third
+tile, which printed the same value as its first, replaced by *Weight of the
+branch taken*. Applied in one builder round (`ac55ef7`), 220 assertions.
+
+**SHIPPED 2026-09-11 (`8b3602d`, pushed; `2e9f7ba` fixed the verify script's
+own draft-status assertion, which the ship commit had left failing under
+`npm test` because the push chain read `check`'s verdict and not `test`'s).**
+48 fingerprint states — 28 settled full (every page at its default and each
+control's other arm, the merge × width grid complete), 7 empty, 7 driven at
+30 frames (the walk is a step function of the beat, so 14 frames drew the
+empty page and the shooter's inert check would have refused it), 1
+interrupted on Routing, 5 hit-driven (Skip, Gating, Branching band rows,
+Routing's weight grid and a branch band, reached through one Play press of
+200 frames since `regions` return nothing before their line lands, the
+coordinates derived from the geometry at both 550 and 535); shot three times
+by `_lab/composition-shoot.html`, all STABLE, every drive moving its figure;
+the Skip hit state hashing identically to the settled `sample=2` state, which
+is the click landing on row 2. The full suite: 509 states, all 48 MATCH at
+DPR 1.25 with the pane fronted, on the second run; the first hashed nine
+Skip and Routing states at 688 wide against their settled 669, the scrollbar
+flake on the two tallest pages. Pushed on his "tested ok, do the copy audit
+and push to gallery".
+
+**Open, none blocking:** the readout tiles on the four flow pages print
+results at rest (Gate range, shapes match, Merged) while the captions wait
+for their line, raised twice and not taken up; the t-sne and naive-bayes
+px-only DIFFERs on tall pages recur in narrow panes and are the flake; the
+05-3 notebook does not yet link to any of the three widgets (prd §4).
+
 **Build order within the widget**, once the mock is picked: Dimensions first (the
 strongest losing state and the most machinery), then Skip, Branching, Gating,
 Routing, Building, Ordering. The widget itself is built after

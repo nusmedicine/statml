@@ -1,16 +1,88 @@
 # Handover
 
-**FIFTY WIDGETS — 48 on the gallery, `roc-auc` UNLISTED (Kenneth's call,
-2026-08-30), NO DRAFT, NOTHING UNPUSHED once the 2026-09-10 evening push lands:
-`support-layers` (slot 50) SHIPPED and PUSHED 2026-09-10, the same day it was
-mocked, one review round and a copy round after "tested ok". All 460
-fingerprint states MATCH at DPR 1.25, pane fronted. One core change today:
-a drive label may nest (`resolveLabel` in `widget.js`). Slot 54
-`loss-functions` is PROPOSED in the catalogue for 05-4, on his question.**
+**FIFTY-ONE WIDGETS — 49 on the gallery, `roc-auc` UNLISTED (Kenneth's call,
+2026-08-30), NO DRAFT, NOTHING UNPUSHED: `composition` (slot 51) SHIPPED and
+PUSHED 2026-09-11 (`8b3602d`, then `2e9f7ba`), one day and twelve review
+comments after its mock. `support-layers` gained Tanh and a Sigmoid curve on
+his ask (`f8716f9`, pushed 2026-09-10). All 509 fingerprint states MATCH at
+DPR 1.25, pane fronted. One core change: `params.js` resolves an
+option-dependent parameter to its list's first option AT LOAD when its default
+is not in the list (`5f7321c`, his call). The 05-3 notebook is complete:
+49 `processing-layers`, 50 `support-layers`, 51 `composition`.**
 
 ---
 
-# NEXT: `composition` (SLOT 51) — MOCK FIRST, AS 49 AND 50 WERE
+# NEXT: SLOT 52 `training-loop` (05-4) — MOCK FIRST, AS 49, 50 AND 51 WERE
+
+**Where things stand (2026-09-11, morning).** `main` is at `2e9f7ba` plus
+this handover, `origin/main` level with it, tree clean, no draft, no branch
+but `wgcna` (another session's, untouched). The DL arc's next slot is **52
+`training-loop`**, MEASURED 2026-09-07 in `docs/catalogue.md` (search
+`### Slot 52`), whose notebook is 05-4 (`Downloads/PHM5005 AY2025-26 -
+Notebooks/Master/05-4 - DL Foundations - Workflow.ipynb`); slot 54
+`loss-functions` is PROPOSED for the same notebook and slot 52's Loss row
+links to it. **The notebook is the spec** — read it and its figures before
+proposing structure; extract the cells with outputs to a file the builders
+can read (node, `JSON.parse` of the ipynb), as was done for 05-3.
+
+**The order, which has now run three times without a stall** (the same as
+below under slot 51, in short): the mock (`_lab/<slug>-mock.html`, an Opus
+builder from `_lab/composition-mock.html`'s shell; the main session READS
+EVERY SECTION in the browser before he sees it), his picks by
+`AskUserQuestion`, the catalogue record, the draft (an Opus builder from the
+mock's geometry and `widgets/composition/main.js` + `model.js` as the idiom,
+which now carries the reveal rule and the operator rule), rounds from his
+annotated screenshots (small fixes in the main session, designs mocked
+first), "tested ok" → the read-only copy audit in parallel with the shooter
+and the placeholder states → the pick rows to him → the copy round → the
+hashes → the full suite → the push on his word.
+
+**Things learned on 51 that are not in the principles yet:**
+
+- **Read `npm test`'s verdict on its own before a push, as `check`'s.** The
+  ship commit `8b3602d` went up with one verify assertion failing (the
+  script asserted the widget was a draft) because the push chain was
+  conditioned on `check` and `test`'s line scrolled past. `2e9f7ba` fixed it
+  in the next commit; the rule in this file about `check` applies to `test`.
+- **The reveal rule (decision 14 in `composition/main.js`):** the next
+  line's LAYER BOXES preview pale; operators, rails, bands, result edges and
+  labels land only with their line (`preview: false` in `pageUnits`, the
+  verify sweep reading the flag). Kenneth arrived at it in three comments
+  ("downstream shouldn't be shown at the beginning", "the projection is
+  shown before its line", "downstream + and arrows occur prematurely"); a
+  new walk-driven widget should start there.
+- **Every option must reach an output where torch accepts it.** Branching
+  shipped with fc3 fixed at the notebook's `Linear(14, 2)`, so five of six
+  merge × width combinations raised; he asked that they work "unless there
+  is an intention of demonstrating the shapes", and fc3 now follows the
+  merge. A "case that fails" is one case, not most of the grid.
+- **A page without a figure for its control is a question.** Skip had a
+  Sample control driving only the readout's digits; he asked "do we need
+  it?", and the bands the plan had always listed were added.
+- **The whole tensor, not one row.** Routing's box first showed the chosen
+  sample's row per branch (his pick C); he then asked how to explain a
+  `[4, 20]` branch showing one row and chose the full `[4, 20]` product
+  bands (D). When the sibling pages draw whole tensors, draw the whole
+  tensor.
+- **An accidental click is undone at once**: he picked Ordering's C by
+  mistake, said so, and the C build was stopped before it wrote anything.
+  Ask "was that your pick?" only when he does; otherwise build.
+- **A draft owes no fingerprint states** (`check.mjs:337` filters drafts),
+  so the draft can be committed to `main` and pushed under `/lab/` without
+  baselining; the states come at "tested ok".
+- **The shooter's driven states need enough frames to pass a beat**: 14
+  frames at 32 ms is 448 ms, under the 700 ms Medium beat, and a widget
+  whose walk is a step function of the beat draws the empty page at 14.
+  Composition's driven states use 30; the hit-driven ones run Play for 200
+  frames first because `regions` return nothing before their line lands.
+
+**Open on `composition`, none blocking:** the readout tiles on the four flow
+pages print results at rest (Gate range, shapes match, Merged) while the
+captions wait, raised twice and not taken up; the 05-3 notebook does not
+yet link to 49, 50 or 51 (prd §4 says how).
+
+## The composition record (kept as written during the build)
+
 
 **Where things stand (2026-09-10, evening).** `processing-layers` (49) and
 `support-layers` (50) both SHIPPED and PUSHED today, each in one day; `main` is
