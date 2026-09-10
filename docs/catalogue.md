@@ -10732,7 +10732,13 @@ highlight?"* — the dashed frame through the product stack marks column 0, the
 one embedding dimension whose arithmetic is written under the band, and
 nothing said so: the framed column's header digit sits inside the frame's top
 and the arithmetic line begins with the same dashed mark, so frame and line
-read as one thing.
+read as one thing — then his follow-up, *"so we should have a hover function
+for the dotted line highlights? or if there is no need to the dotted line as
+it is confusing to the student why this column is special"*, and **his pick:
+hover only, nothing framed at rest** — no frame and no column line until the
+pointer is over a product or output cell, then that column framed and its sum
+written out under the band; the caption states the rule in words, and every
+product and total stays on the canvas without a pointer.
 
 ### Slot 50 · `support-layers` — Normalization, Activation and Dropout — PLANNED 2026-09-10
 
