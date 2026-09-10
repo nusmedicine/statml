@@ -784,7 +784,7 @@
     {
       "slug": "loss-functions",
       "title": "Deep Learning - Loss Functions",
-      "blurb": "A loss turns a prediction and its target into one number, and the task decides which loss.",
+      "blurb": "A loss function measures the difference between predictions and targets; the choice of loss depends on the task.",
       "course": "PHM5005",
       "topics": [
         "loss function",
