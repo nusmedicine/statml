@@ -12,16 +12,91 @@ a drive label may nest (`resolveLabel` in `widget.js`). Slot 54
 
 # NEXT: `composition` (SLOT 51) — MOCK FIRST, AS 49 AND 50 WERE
 
-**`support-layers` is done (2026-09-10):** `0559fb4` mock, `a7315f2` draft,
-`3e6a974` round 1 (Sigmoid · Softmax labels, Dropout as the figure's four rows,
-headed prints), `23dd966` states and shooter, `b5cbcb1` copy round with the
-core line, then the promotion commit. Catalogue slot 50 has every round, the
-audit table's kinds and his picks. **Next is slot 51 `composition`**, seven
-pages, the diagram leading with `forward()` beside it — read its catalogue
-entry and the two siblings' rounds, then `_lab/composition-mock.html` first;
-the order under *The order for slot 50* below is the pattern. Slot 54
-`loss-functions` (05-4 cells 30–40) is proposed and unmeasured; it waits for the
-arc to reach 05-4.
+**Where things stand (2026-09-10, evening).** `processing-layers` (49) and
+`support-layers` (50) both SHIPPED and PUSHED today, each in one day; `main` is
+at `d1e22b0` plus this handover, `origin/main` level with it, tree clean, no
+draft, no branch but `wgcna` (another session's, untouched). The 05-3 notebook
+has one widget left: **slot 51 `composition`**, 05-3 cells 61–101.
+
+**Read before writing anything:** `docs/catalogue.md` § *Slot 51 ·
+`composition`* (search that heading; the entry is complete — seven pages,
+`topic` as a two-column grid with the notebook's two headings as group heads,
+the diagram leading with `forward()` beside it and the executing line lit,
+shaded merge bands at 12px a cell with digits in the readout, every example
+on one `x = randn(4, 10)`, no seed, Routing's third branch in
+`--c-group-c`), then the rounds under slots 49 and 50 (search *Round 1 —
+Kenneth* under each). His figures are `widgets/_lab/figs/dl-compose-*.png` and
+`dl-flow-*.png`; the measured facts are in `widgets/_lab/dl-layers-measure.mjs`
+§6–7 (shapes, torch's two error strings, parameter counts, the soft router's
+weights at init).
+
+**The order, which has now run twice without a stall:**
+
+1. `_lab/composition-mock.html`, an Opus 5 builder, from
+   `_lab/support-layers-mock.html`'s shell and helpers (copy, never import
+   drawing code): one section per pick, each drawn at 550 from the notebook's
+   own operands with 2–3 options and a recommendation carrying measured
+   widths, the whole rail against the shortest stage. The main session READS
+   EVERY SECTION in the browser before he sees it and fixes defects there (on
+   50: arrows through digits). Commit the mock.
+2. He picks by `AskUserQuestion`, up to four questions a call, the
+   recommendation first and marked. Record the picks and what the drawing
+   corrected in the plan's arithmetic under the slot, and commit.
+3. The draft, an Opus 5 builder, from the mock's geometry and
+   `widgets/support-layers/main.js` + `model.js` as the idiom (copy `txt`,
+   `band`, `cell`, `grid`, the scale `t` with `fitSizes`, `pageHeight` and
+   `draw` sharing geometry, hover in the readout, the header of numbered
+   decisions); `_lab/composition-verify.mjs` under `npm test`; registered as
+   `a7315f2` registered 50 (manifest at status draft, `scripts/verify.mjs`).
+   Read every page in the browser, then commit with the retry loop below.
+4. Rounds from his annotated screenshots, answered by number; small fixes
+   (< ~20 lines, no design) in the main session, designs mocked in `_lab/`
+   and picked before any brief; several comments batched into one builder
+   brief with the verification scoped to the touched page at 550.
+5. On "tested ok": in parallel, a read-only Opus 5 copy audit (the table:
+   surface · string · problem · rewrite · settled-or-pick) and the shooter +
+   placeholder states (`"px": "0", "tx": "0"`, settled for every page
+   full and empty and each control's other arm, one driven per page plus one
+   `before`, hit-driven only if `regions` is declared). Put the pick rows to
+   him, apply the copy in one round, commit. Then flip status, shoot three
+   times, write the 27-odd hashes, run the FULL suite once fronted at DPR 1.25
+   and read MATCH programmatically, `npm run check` read on its own, commit,
+   push on his word.
+
+**Three things learned today that are not in the principles yet:**
+
+- **A build that needs core stops and asks, and he says yes to a small one.**
+  Row 18 of 50's audit (the Activation step label keyed on `use`) needed
+  `resolveLabel` to nest; put to him as one click against the no-core option,
+  he took the six lines. A drive label entry may now itself be
+  `{ param, labels, default }` (`widgets/core/widget.js`, `resolveLabel` and
+  `labelSet`). The rail is not hashed, so a label change is verified by reading
+  the button's text on the pages that key one (`bayesian`, `balancing-data`).
+- **Git on this machine refuses multi-file adds** with `unable to write file
+  .git/objects/…: Permission denied`: Dropbox indexes each new object as git
+  writes it. `git add` one file at a time in a retry loop (six tries, no
+  sleep), then commit; docs-only commits usually go first time.
+- **His questions between rounds are planning input.** Asked whether
+  sigmoid, softmax and cross-entropy are layers, the answer from 05-3 cell
+  1/70 and 05-4 cells 23–40 became slot 54 `loss-functions` (PROPOSED,
+  unmeasured, three pages by task from 05-4 cell 30's table, the −log p curve
+  shared) on his "ok add it to the catalogue". It waits for the arc to reach
+  05-4; slot 52 `training-loop` links to it rather than drawing a loss's inside.
+
+**Told to him in the closing message of 2026-09-10 (so they need no
+repeating):** the three 05-3 notebook issues found while planning (cell 43
+prints `X`/`Y` for `X_batch`/`Y_batch`; cell 44 says BatchNorm3D; cell 60's
+eval comment describes a scaling that does not happen), two sentences cell 48
+could carry about sigmoid/softmax at the output and at prediction time, and
+that 05-4 cell 36's cross-entropy example is a confident right answer at
+0.018, so the loss widget will need its drag to show anything.
+
+**Open on `support-layers`, none blocking:** the pooling window's canvas
+arithmetic line prints max at 2 dp and mean at 4 dp (the readout tile was
+fixed, the canvas line was not named by the audit); the `PLACEHOLDER, draft:`
+note prefix still stands on `processing-layers`' 29 states in the baseline
+(50's were stripped; the shooter strips it itself, so it is cosmetic); the
+05-3 notebook does not yet link to either widget (prd §4 says how).
 
 ## The support-layers record (kept as written during the build)
 
