@@ -1,5 +1,16 @@
 # Handover
 
+**FIFTY-TWO WIDGETS — 49 on the gallery, `roc-auc` UNLISTED (Kenneth's call,
+2026-08-30), ONE DRAFT: `loss-functions` (slot 54, 05-4 cells 30–40) at
+`/lab/`, committed through `644d351` and NOT PUSHED (origin/main is at
+`0d7eff8`). Measured, mocked, picked, drafted and copy-audited on
+2026-09-11 in one session; his first round is in progress (see NEXT).
+torch 2.14 is INSTALLED on this machine since 2026-09-11. All 509 fingerprint
+states of the shipped widgets untouched; the draft owes none yet.**
+
+---
+# Handover
+
 **FIFTY-ONE WIDGETS — 49 on the gallery, `roc-auc` UNLISTED (Kenneth's call,
 2026-08-30), NO DRAFT, NOTHING UNPUSHED: `composition` (slot 51) SHIPPED and
 PUSHED 2026-09-11 (`8b3602d`, then `2e9f7ba`), one day and twelve review
@@ -13,68 +24,68 @@ is not in the list (`5f7321c`, his call). The 05-3 notebook is complete:
 
 ---
 
-# NEXT: SLOT 54 `loss-functions` (05-4) — KENNETH'S CALL, MOCK FIRST
+# NEXT: SLOT 54 `loss-functions` — IN REVIEW, NOT PUSHED
 
-**Where things stand (2026-09-11, morning).** `main` is at `ab1480d` plus
-this handover, `origin/main` level with it, tree clean, no draft, no branch
-but `wgcna` (another session's, untouched). Kenneth's word at the close of the
-composition session: *"let's continue the next new session to write the loss
-function widget to support 05-04 workflow notebook"*. So the next widget is
-**slot 54 `loss-functions`**, PROPOSED 2026-09-10 in `docs/catalogue.md`
-(search `### Slot 54`; the entry is short and carries the whole plan so far:
-the host is 05-4 cells 30–40, cell 30's table of losses by task, then
-`MSELoss` (31–33), `CrossEntropyLoss` (34–36), `BCEWithLogitsLoss` (37–39) and
-cell 40's other losses; the rail `task` Regression · Single-label · Binary /
-multi-label, cell 30's own three rows; each page the notebook's own example
-with the target in `--c-reference`, the scores in `--c-group-a`, the function
-applied inside the loss as a band, the probability given to the true label
-lit, and the number; the three worked numbers 0.17, 0.0184 (4.52 with the
-label moved to class 1) and 1.053; the drag on a score or the true label as
-the control that carries the idea, since cell 36's own example is a confident
-right answer with little to see at rest; the **−log p curve** shared by the two
-classification pages as the case for one widget; the formula cards as cells 34
-and 37's own lines; cell 30's dtype note as a readout note; Dice, contrastive
-and triplet as captions, `pos_weight` and `weight` not controls until measured).
-**Nothing is measured yet**: the three numbers are the arithmetic written
-out, not torch, and torch is not installed on this machine. Slot 52
-`training-loop` (MEASURED 2026-09-07) comes after; its Loss row links here.
+**Where things stand (2026-09-11, afternoon).** `main` is at `644d351`
+plus this handover; `origin/main` is at `0d7eff8`, so EVERYTHING BELOW IS
+LOCAL. The draft is at `http://localhost:8011/widgets/loss-functions/`
+(`node scripts/serve.mjs 8011`; 8010 is held by another session's server).
+Kenneth said "looks good" on the draft and asked two things: whether the
+front-facing text had been checked against the principles (the copy round,
+done, `644d351`), and then — the OPEN ITEM — *"can we show examples of 1
+class and >1 class? also how best to explain that a binary class can be
+modeled as 1 label or 2 labels. do research and mock-up as necessary"*. The
+research is `_lab/dl-loss-torch.py` §6 (`b016731`): softmax([zA, zB])[B] =
+sigmoid(zB − zA), so CrossEntropyLoss on two outputs and BCEWithLogitsLoss
+on their difference print the same loss (0.201413 at [0.5, 2.0], label B,
+equal to 1e-7 across the drag); cell 29's own MLP is the two-output form.
+The mock `_lab/loss-binary-mock.html` was briefed to an Opus builder (four
+sections: a per-page Outputs/Classes control switching between the one-
+and several-output columns of his figures; the Binary page stacked / side by
+side / no page; the rail with a fourth task face; the one-output score's
+name and what the drag does). If it is not on disk, re-brief it from the
+catalogue's slot 54 entry and this paragraph. Then his picks, the extension
+built into the draft (an Opus builder from the mock), and the one copy pick
+still open: the step button reads **Next row** while its last press lands
+the loss LINE (the readout note now says "each step lands one row, and the
+last the loss"); the alternative is **Next step**. Put it to him with the
+mock picks.
 
-**Read before writing anything:** the slot 54 entry; the 05-4 notebook
-(`Downloads/PHM5005 AY2025-26 - Notebooks/Master/05-4 - DL Foundations -
-Workflow.ipynb`), cells 23–40 with their outputs extracted to a scratchpad file
-the builders can read (node, `JSON.parse` of the ipynb, as was done for 05-3);
-`widgets/support-layers/main.js`'s Activation page, which already draws
-sigmoid and softmax with a curve panel (the loss widget applies the same
-functions INSIDE the loss, and the two must read as one convention);
-`docs/design-principles.md` §2.6 (the case that fails), §3.6 (a click on the
-figure is a control; the drag is the same), §2.11; and the rounds under slots
-49–51 for what transfers (every option reaches an output; the whole tensor,
-not one row; operators land with their line; a control needs a figure).
+**The day's commits, in order:** `b674304` figures + measure script;
+`01a0f79` catalogue MEASURED; `c0dba16` the mock (six sections; one fix
+before he saw it: the target tick struck the bar value 2.5); `c3c9080` his
+four picks (the Task option's DETAIL LINE not a readback table; BARS; the
+row-sum column KEPT on Multi-label, 2.7476 against 1.0000; the Target dtype
+control) and six defaults; `d207863` torch installed and
+`_lab/dl-loss-torch.py` — two of the three error strings quoted from memory
+were WRONG (the real ones: `expected target dtype to be Long or Byte, but got
+Float`; `result type Float can't be cast to the desired output type Long`);
+`11974cf` a mock fix; `a3395b0` the DRAFT (main.js 1061, model.js 561,
+verify 271 assertions, manifest at status draft); `b016731` torch §6 binary;
+`644d351` the copy round (23 audit rows). Catalogue slot 54 carries the
+measured facts, the mock's numbers and the picks.
 
-**The order, which has now run three times without a stall:** (1) a measure
-script `_lab/dl-loss-measure.mjs` for the three losses at the notebook's
-values and at the dragged values (the −log p curve's range, the per-class
-BCE terms, what a moved label does), then the mock `_lab/loss-functions-
-mock.html` from `_lab/composition-mock.html`'s shell (an Opus builder; the
-main session READS EVERY SECTION in the browser before he sees it): the
-three pages at 550, the drag's target (the score bar? the point on the curve?
-the label chip?), where the −log p curve sits, the band that shows the
-function applied, 2–3 options each with a recommendation and measured
-widths, the whole rail against the shortest stage; (2) his picks by
-`AskUserQuestion`; (3) the catalogue record; (4) the draft (an Opus builder
-from the mock's geometry and `widgets/composition/main.js` + `model.js` as
-the idiom, which carry the reveal rule and the operator rule; a `drag`
-declaration follows core's `drag` contract, read `widgets/core/widget.js`
-for it and a widget that uses it); (5) rounds from his annotated
-screenshots; (6) "tested ok" → the copy audit in parallel with the shooter and
-placeholder states → the pick rows → the copy round → the hashes → the full
-suite → `check` AND `test` read on their own → the push on his word.
+**What the draft is.** `task` segmented (Regression · Single-label ·
+Multi-label, cell 30's rows), each page opening on the notebook's own
+example; the tensors as `text` parameters (`pred`/`target`, `scores`/`label`,
+`logits`/`A`–`E`) carrying the row as typed; the scores as bars on a FIXED
+axis (−1..6, −2..6, −4..4) with the bar's top as core's `drag`; the target
+chips as `regions`; a walk landing one row a step under composition's
+reveal rule; a drag or chip on a FINISHED figure keeps it finished (4.4's
+data-path door, `init` comparing the previous task); the −log p curve beside
+with one point (CE) or five (BCE), the parabola on Regression; `singleDtype`
+/ `multiDtype` segmented whose wrong arm prints torch's own message
+(checked by the verify script against `_lab/dl-loss-torch.txt`); height a
+function of the task from the same geometry `draw` uses (494 / 414 / 524;
+426 with the Single-label error). No seed. Two dtype parameters because one
+parameter has one default and each page must open on its correct arm.
 
-**Two facts already told to him (2026-09-10), so they need no repeating:**
-05-4 cell 36's example is a confident right answer at 0.018, so the widget
-needs its drag to show anything; and the two sentences 05-3 could carry
-about sigmoid/softmax at the output and at prediction time (the slot 54
-entry has them).
+**Then, on "tested ok":** the shooter + placeholder states (settled per page
+full/empty and each control's other arm, one driven per page plus one
+`before`, hit-driven for the chips), the pick rows, the hashes, the full
+suite at DPR 1.25 fronted, `check` AND `test` read on their own, the push on
+his word. Read `npm test`'s verdict on its own line: the verify script
+asserts the status is draft in both files and must flip with it.
 
 **After slot 54:** slot 52 `training-loop` (05-4 end to end, the loop
 treating the loss as one number per epoch, its Loss row linking to 54).
