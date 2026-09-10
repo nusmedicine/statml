@@ -151,6 +151,45 @@
        carries one caption line because the box and the row below it mean
        different things: `o→` and `o←` are the last state each pass reaches,
        while the Output row is y_t at every step.
+
+   ROUND 3 OF KENNETH'S REVIEW (2026-09-10) — Attention and Graph:
+
+   16. WHAT THE SUM MEANS IS DRAWN, NOT ARROWED (Kenneth's pick A).
+       `_lab/processing-layers-attn-sum.html` drew three ways to answer "the
+       arrow labelled Sum is the only thing that says how the four output
+       numbers were made", and A is band 2 as it now stands: beside each value
+       row its PRODUCT row `w_j · v_j`, a `+` between the three, a rule, and
+       the output as their column-wise total, with one feature's arithmetic
+       written under it and that feature's column framed through the stack. It
+       costs 32px at the 550 stage and it is the only one of the three that
+       says where each of the four output numbers came from on a still figure.
+       THE ROW LABEL SHORTENED from the pair `cat–The` to the key token alone:
+       the pair label, the values and the products measured 538 against the
+       522 available, and the band's own header already carries the query.
+
+       COLOUR, AND WHICH WAY IT WENT. The mock put band 2's weight cell on the
+       highlight ramp; it is here on `--c-empirical`, the ramp band 1's weights
+       grid uses, because it is THE SAME NUMBER as the grid cell above it and a
+       number in two hues on one page is the page disagreeing with itself
+       (decision 13). What follows the weight into the products is its ALPHA,
+       not its hue: a product row is `--c-highlight` at the row's own weight, so
+       a smaller weight is paler, and the total is `--c-empirical` as every
+       result on every page is.
+
+   17. WHICH NODE IS WHICH ROW OF THE TENSOR, BY HIGHLIGHT ("should we break it
+       into different tensors per node? or highlight the relevant parts of the
+       tensor?"). Highlight, which keeps the `[4, 3]` the lesson's own shape.
+       Two parts. A ROW GUTTER names the node at the left of each printed row of
+       X and of the output — `W`'s rows are features, so its gutter carries no
+       node, and it is indented with them so the three blocks share one left
+       edge. And ONE KEY PER NODE, `model.js`'s `nodeKey`, worn by its strip, its
+       circle and its printed row alike: stepping a node lights all of them, and
+       hovering any one of them borders the other two. That is `tensors`'
+       decision 10 — the drawing and the print are hit-tested as one — and the
+       hit plan is arithmetic in `model.js` so the verify script can read the
+       keys back with no pointer and no pixel. During the Aggregate step the
+       neighbours' printed rows light at the COEFFICIENT's own alpha, the same
+       number drawn on the arcs, while the node being updated lights in full.
    ========================================================================= */
 
 import {
@@ -420,6 +459,19 @@ function shaded(ctx, colors, x, y, rows, cols, p, fillAt) {
   ctx.strokeRect(x + 0.5, y + 0.5, cols * p - 1, rows * p - 1);
 }
 
+/** The mono font's width per character at --fs-sm. A print is laid out by
+    COLUMN, so every offset inside one is a multiple of this single number. */
+function monoCW(ctx, colors) {
+  ctx.save();
+  ctx.font = `${colors.fsSm} ${colors.mono}`;
+  const cw = ctx.measureText("0000000000").width / 10;
+  ctx.restore();
+  return cw;
+}
+
+/** The row gutter's width: the widest label, and the gap after it (decision 17). */
+const gutterW = (ctx, colors) => M.NODE_GUTTER.length * monoCW(ctx, colors) + 10;
+
 /**
  * A tensor as torch prints it, under the drawing that holds the same values.
  *
@@ -428,18 +480,44 @@ function shaded(ctx, colors, x, y, rows, cols, p, fillAt) {
  * as nothing at all, in a slot whose width was measured over EVERY value, so
  * the block never shifts under the reader as it fills. Printing an unreached
  * value as 0.0000 would be the figure claiming a number it has not computed.
+ *
+ * `o.gutter` indents the block, and `o.rows(r)` says what the leading index `r`
+ * carries in that gutter and whether its line is lit or under the pointer
+ * (decision 17). The wash and the label go down first, so the values sit over
+ * them.
  */
-function printBlock(ctx, colors, x, y, shape, valueAt, placed) {
+function printBlock(ctx, colors, x, y, shape, valueAt, placed, o = {}) {
+  const gutter = o.gutter ?? 0;
   const fmt = torchFloatFormat(valuesOf(shape, valueAt));
   const p = torchPrint(shape, (idx) => fmt(valueAt(idx)));
-  ctx.save();
-  ctx.font = `${colors.fsSm} ${colors.mono}`;
-  const cw = ctx.measureText("0000000000").width / 10;
-  ctx.restore();
+  const cw = monoCW(ctx, colors);
+  if (o.rows) {
+    const blockW = gutter + p.cols * cw;
+    M.printRowLines(shape).forEach((li, r) => {
+      const face = o.rows(r);
+      if (!face) return;
+      const ry = y + li * PRINT_LH;
+      if (face.alpha > 0) {
+        ctx.fillStyle = wash(colors.highlight, LIT_A * face.alpha);
+        ctx.fillRect(x, ry - 2, blockW, PRINT_LH);
+      }
+      if (face.hover) {
+        ctx.strokeStyle = colors.ink1;
+        ctx.lineWidth = 1;
+        ctx.strokeRect(x - 1.5, ry - 2.5, blockW + 3, PRINT_LH);
+      }
+      if (face.label) {
+        txt(ctx, colors, face.label, x, ry, {
+          color: face.lit ? colors.highlight : colors.ink3, mono: true,
+          baseline: "top", weight: face.lit ? "600" : "",
+        });
+      }
+    });
+  }
   p.lines.forEach((segs, li) => {
     let col = 0;
     for (const seg of segs) {
-      const sx = x + col * cw;
+      const sx = x + gutter + col * cw;
       col += seg.s.length;
       if (!seg.s.trim()) continue;
       if (seg.idx && placed && !placed(seg.idx)) continue;
@@ -1067,7 +1145,13 @@ const rnnName = (key, bi) =>
 
 const ATT_GAP_QK = 34;
 const ATT_GAP_SC = 34;    // the grid's name, and the key tokens over its columns
-const ATT_LAB = 54;
+/* BAND 2'S ROW LABEL IS THE KEY TOKEN ALONE (decision 16). The pair `cat–The`
+   took 54, and the row now carries its product row as well: label, values and
+   products measured 538 against the 522 available at the 550 stage. */
+const ATT_ROWLAB = 30;
+const ATT_PROD_GAP = 16;  // between two product rows — the + sits in it
+const ATT_OUT_A = 0.40;   // the total's own fill: three product rows above it
+const ATT_FEAT = 0;       // the feature whose arithmetic is written out
 const ATT_DOT = 22;
 const ATT_TOK = 30;       // the query token, in a gutter left of a labelled grid
 const ATT_SOFT = 60;      // the softmax arrow between scores and weights
@@ -1084,15 +1168,26 @@ function scoreLine(state, i, j) {
   return `${M.TOKENS[j].padEnd(4)} ${body} = ${M.n2(dot).trim()}  ÷ √4 = ${M.n2(score).trim()}`;
 }
 
+/** One feature's arithmetic under the total (decision 16), in `scoreLine`'s own
+    convention: the weight at three decimals, the value at two, and the last
+    digit the rounded output rather than the sum of the rounded operands. */
+const sumLine = (state, i, c) => `output[${M.TOKENS[i]}, ${c}] = `
+  + M.attProducts(state, i).rows
+    .map((r) => `${M.n3(r.w)}×${M.n2(state.V[r.j][c]).trim()}`).join(" + ")
+  + ` = ${M.n2(state.out[i][c]).trim()}`;
+
 function attnGeom(ctx, colors, w, params) {
-  /* three bands of grids and the labelled pair below them; band 2's row is the
-     weight, its pair name, the dot and the four values of V */
+  /* three bands of grids and the arithmetic below them; BAND 2 BINDS THE PAGE
+     (decision 16): a weight cell, the key token, the four values, the operator
+     column and the four products is nine cells and one operator wide */
   const s = fitSizes(w, (z) => Math.max(
     8 * z.cw + z.op,
     2 * ATT_TOK + 6 * z.cw + ATT_SOFT,
-    5 * z.cw + 8 + ATT_LAB + ATT_DOT + 8 + 100));
+    9 * z.cw + z.op + 8 + ATT_ROWLAB + ATT_DOT));
   const h1 = LBL + 3 * s.ch + ATT_GAP_QK + 3 * s.ch + ATT_GAP_SC + 3 * s.ch + ATT_DERIV;
-  const h2 = LBL + 3 * (s.ch + 8) + 4 + 16 + 4 + s.ch + 8;
+  /* three rows at the product pitch, the rule, the total, and the one line of
+     arithmetic under it */
+  const h2 = LBL + 2 * (s.ch + ATT_PROD_GAP) + s.ch + 20 + s.ch + PRINT_DROP + PRINT_LH + 8;
   const y1 = 0;
   const y2 = BAND_HEAD + h1 + BAND_GAP;
   const capY = y2 + BAND_HEAD + h2 + CAP_GAP;
@@ -1195,14 +1290,29 @@ function drawAttn(ctx, colors, w, params, state, anim) {
 
   y = band(ctx, colors, g.y2, w, q >= 0 ? `One query: ${M.TOKENS[q]}` : "One query",
     "Attention(Q, K, V) = softmax(QKᵀ / √d_k) V");
-  const vx = PAD + s.cw + 8 + ATT_LAB + ATT_DOT;
+  /* WHAT THE SUM MEANS, DRAWN (decision 16): the weight, the key token it
+     belongs to, the value row, and the value row scaled by that weight. The
+     three product rows are the three addends, so the total under the rule is
+     the column-wise sum of what is on screen rather than the end of an arrow. */
+  const vx = PAD + s.cw + 8 + ATT_ROWLAB + ATT_DOT;
+  const px = vx + 4 * s.cw + s.op;
+  const pitch = s.ch + ATT_PROD_GAP;
+  const prod = q >= 0 ? M.attProducts(state, q) : null;
+  label(ctx, colors, PAD, y + 11, "w");
+  label(ctx, colors, vx, y + 11, "V");
+  label(ctx, colors, px, y + 11, "w · v");
   for (let j = 0; j < 3; j += 1) {
-    const ry = y + LBL + j * (s.ch + 8);
+    const ry = y + LBL + j * pitch;
     if (q >= 0) {
+      /* the SAME ramp as band 1's weights grid: it is the same number, and one
+         number in two hues is the page disagreeing with itself (decision 16) */
       cell(ctx, colors, PAD, ry, s.cw, s.ch, M.n3(state.W[q][j]), { fill: heat(state.W[q][j]) });
-      txt(ctx, colors, `${M.TOKENS[q]}–${M.TOKENS[j]}`, PAD + s.cw + 8, ry + s.ch / 2 + 4,
-        { color: colors.ink2 });
+      spotGrid(PAD, ry, 1, 1, s.cw, s.ch,
+        () => `weights[${M.TOKENS[q]}, ${M.TOKENS[j]}] = ${M.n3(state.W[q][j])}`);
+      txt(ctx, colors, M.TOKENS[j], PAD + s.cw + 8, ry + s.ch / 2 + 4, { color: colors.ink2 });
       txt(ctx, colors, "·", vx - ATT_DOT / 2, ry + s.ch / 2 + 4,
+        { color: colors.ink1, align: "center", size: colors.fsLg });
+      txt(ctx, colors, "=", px - s.op / 2, ry + s.ch / 2 + 4,
         { color: colors.ink1, align: "center", size: colors.fsLg });
     } else {
       cell(ctx, colors, PAD, ry, s.cw, s.ch, "", { empty: true });
@@ -1210,17 +1320,55 @@ function drawAttn(ctx, colors, w, params, state, anim) {
     grid(ctx, colors, vx, ry, 1, 4, s.cw, s.ch, (r, c) =>
       ({ text: M.n2(state.V[j][c]), hue: colors.groupB }));
     spotGrid(vx, ry, 1, 4, s.cw, s.ch, (r, c) => `V[${j}, ${c}] = ${num(state.V[j][c])}`);
+    /* the products carry the weight as an ALPHA, so a smaller weight is paler,
+       and they arrive with the value rows' own lighting phase */
+    grid(ctx, colors, px, ry, 1, 4, s.cw, s.ch, (r, c) => (prod && walk.light > 0
+      ? {
+        text: M.n2(prod.rows[j].row[c]),
+        fill: wash(colors.highlight, c01(prod.rows[j].w) * walk.light),
+      }
+      : { empty: true }));
+    if (prod) {
+      spotGrid(px, ry, 1, 4, s.cw, s.ch,
+        (r, c) => `w × V[${j}, ${c}] = ${num(prod.rows[j].row[c])}`);
+    }
+    /* the + between two product rows, in the operator column at the gap's own
+       centre, so it reads as between the rows rather than hung off one. It
+       arrives with the · and the = it belongs to: an addition sign between two
+       empty rows is an operator with nothing to add. */
+    if (prod && j > 0) {
+      txt(ctx, colors, "+", px - s.op / 2, ry - ATT_PROD_GAP / 2 + 4,
+        { color: colors.ink1, align: "center", size: colors.fsMd });
+    }
   }
-  const sumY = y + LBL + 3 * (s.ch + 8) + 4;
-  arrow(ctx, vx + 2 * s.cw, sumY, vx + 2 * s.cw, sumY + 16, colors.ink3);
-  txt(ctx, colors, "Sum", vx + 2 * s.cw + 10, sumY + 12, { color: colors.ink2 });
-  grid(ctx, colors, vx, sumY + 20, 1, 4, s.cw, s.ch, (r, c) => (q >= 0
-    ? { text: M.n2(state.out[q][c]), ...litFace(colors, arrival(walk, q)) }
+  /* the sum rule, in --ink-2 at 1.5px: at the cell border's own weight and
+     colour it is one more grid line among forty and disappears */
+  const stackBot = y + LBL + 2 * pitch + s.ch;
+  ctx.strokeStyle = colors.ink2;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(px - 3, stackBot + 8.5);
+  ctx.lineTo(px + 4 * s.cw + 3, stackBot + 8.5);
+  ctx.stroke();
+  const oy = stackBot + 20;
+  const landed = q >= 0 ? arrival(walk, q) : 0;
+  grid(ctx, colors, px, oy, 1, 4, s.cw, s.ch, (r, c) => (landed > 0
+    ? {
+      text: M.n2(state.out[q][c]), bold: true,
+      fill: wash(colors.empirical, WASH + (ATT_OUT_A - WASH) * landed),
+    }
     : { empty: true }));
   if (q >= 0) {
-    spotGrid(vx, sumY + 20, 1, 4, s.cw, s.ch, (r, c) => `output[${q}, ${c}] = ${num(state.out[q][c])}`);
-    txt(ctx, colors, `output for ${M.TOKENS[q]}`, vx + 4 * s.cw + 8, sumY + 20 + s.ch / 2 + 4,
-      { color: colors.ink2, size: colors.fsXs });
+    txt(ctx, colors, `output for ${M.TOKENS[q]}`, px - s.op - 8, oy + s.ch / 2 + 4,
+      { color: colors.ink2, align: "right" });
+    /* the one column whose arithmetic is written out, framed through the stack */
+    frame(ctx, px + ATT_FEAT * s.cw, y + LBL, s.cw, oy + s.ch - (y + LBL),
+      colors.highlight, 1.5, [4, 3]);
+  }
+  if (landed > 0) {
+    spotGrid(px, oy, 1, 4, s.cw, s.ch, (r, c) => `output[${q}, ${c}] = ${num(state.out[q][c])}`);
+    txt(ctx, colors, sumLine(state, q, ATT_FEAT), PAD, oy + s.ch + PRINT_DROP + 11,
+      { color: colors.ink2, mono: true, fit: w - 2 * PAD });
   }
   return g;
 }
@@ -1253,7 +1401,7 @@ function graphGeom(ctx, colors, w, params) {
   };
 }
 
-function drawGraph(ctx, colors, w, params, state, anim) {
+function drawGraph(ctx, colors, w, params, state, anim, pointer) {
   const g = graphGeom(ctx, colors, w, params);
   const { s, stageH } = g;
   const pitch = gPitch(s);
@@ -1264,21 +1412,61 @@ function drawGraph(ctx, colors, w, params, state, anim) {
   const spanA = Math.max(...state.agg.flat().map(Math.abs)) || 1;
   const spanO = Math.max(...state.out.flat().map(Math.abs)) || 1;
 
-  /** One band: four shaded strips over four nodes on a chain of arcs. */
-  const stage = (y, header, expr, valueAt, span, hue, name, lit, read) => {
-    const cy = band(ctx, colors, y, w, header, expr);
+  /* WHICH NODE IS WHICH ROW (decision 17). Every band's geometry is laid out
+     before anything is painted, because the pointer has to be resolved against
+     all of it first: one node's strip, its circle and its printed row wear one
+     key, so a pointer on any of the three borders the other two. */
+  const gutter = gutterW(ctx, colors);
+  const rowPrint = {
+    x: PAD,
+    w: gutter + M.printCols([M.NODES, M.GRAPH_IN]) * monoCW(ctx, colors),
+    lineH: PRINT_LH,
+    lines: M.printRowLines([M.NODES, M.GRAPH_IN]),
+  };
+  const bandAt = (top, prints) => {
+    const cy = top + BAND_HEAD;
+    return {
+      top,
+      cy,
+      stripLeft: Array.from({ length: M.NODES }, (_, i) => PAD + i * pitch),
+      stripY: cy + LBL,
+      stripW: M.GRAPH_IN * s.iw,
+      stripH: s.iw,
+      nodeCX: Array.from({ length: M.NODES }, (_, i) => nodeX(i)),
+      nodeY: cy + LBL + s.iw + 10 + s.nodeR,
+      nodeR: s.nodeR,
+      print: prints ? { ...rowPrint, y: cy + stageH + PRINT_DROP } : null,
+    };
+  };
+  const bands = [bandAt(g.y1, true), bandAt(g.y2, false), bandAt(g.y3, true)];
+  const targets = M.graphTargets(bands);
+  const hit = M.graphHit(targets, pointer);
+  const overNode = hit ? hit.node : -1;
+
+  /** One band: four shaded strips over four nodes on a chain of arcs. `read` is
+      the strips this step reads, and `arcs` draws the aggregation over them. */
+  const stage = (b, header, expr, valueAt, span, hue, name, { read = null, arcs = false }) => {
+    const cy = band(ctx, colors, b.top, w, header, expr);
     for (let i = 0; i < M.NODES; i += 1) {
-      const x = PAD + i * pitch;
+      const x = b.stripLeft[i];
       const vals = valueAt(i);
-      shaded(ctx, colors, x, cy + LBL, 1, M.GRAPH_IN, s.iw,
+      shaded(ctx, colors, x, b.stripY, 1, M.GRAPH_IN, s.iw,
         (r, c) => (vals ? signedFill(colors, vals[c], 0, span) : null));
-      spotGrid(x, cy + LBL, 1, M.GRAPH_IN, s.iw, s.iw,
-        (r, c) => (vals ? `${name}[${i}, ${c}] = ${num(vals[c])}` : null));
-      if (read && read.includes(i)) {
-        frame(ctx, x, cy + LBL, M.GRAPH_IN * s.iw, s.iw, colors.highlight, HLW);
+      /* a strip with nothing in it yet still answers the pointer, because it is
+         one of the node's three surfaces and all three light together */
+      spotGrid(x, b.stripY, 1, M.GRAPH_IN, s.iw, s.iw,
+        (r, c) => (vals
+          ? `${name}[${i}, ${c}] = ${num(vals[c])}`
+          : `${M.nodeKey(i)}: ${name} not computed yet`));
+      /* the strips this step reads, and — in the bands that fill rather than
+         are read — the strip the step lands in */
+      if (read ? read.includes(i) : i === node) {
+        frame(ctx, x, b.stripY, b.stripW, s.iw, colors.highlight, HLW);
+      } else if (i === overNode) {
+        frame(ctx, x, b.stripY, b.stripW, s.iw, colors.ink1, 1);
       }
     }
-    const ny = cy + LBL + s.iw + 10 + s.nodeR;
+    const ny = b.nodeY;
     ctx.strokeStyle = colors.ink2;
     ctx.lineWidth = 1.5;
     for (let i = 0; i < M.NODES - 1; i += 1) {
@@ -1292,64 +1480,101 @@ function drawGraph(ctx, colors, w, params, state, anim) {
       ctx.arc(nodeX(i), ny, s.nodeR, 0, Math.PI * 2);
       ctx.fillStyle = wash(hue, 0.75);
       ctx.fill();
-      ctx.strokeStyle = colors.axis;
-      ctx.lineWidth = 1;
+      /* the circle wears the same key as the strip above it and the printed row
+         below: lit where the step is, bordered where the pointer is */
+      ctx.strokeStyle = i === node ? colors.highlight : i === overNode ? colors.ink1 : colors.axis;
+      ctx.lineWidth = i === node ? HLW : i === overNode ? 2 : 1;
       ctx.stroke();
       txt(ctx, colors, String(i), nodeX(i), ny + 4,
         { color: colors.surface, align: "center", weight: "600" });
+      spotGrid(nodeX(i) - s.nodeR, ny - s.nodeR, 1, 1, 2 * s.nodeR, 2 * s.nodeR,
+        () => `node ${i} reads nodes ${M.neighbours(i).join(", ")}`);
     }
-    if (lit >= 0) {
+    if (arcs && node >= 0) {
       ctx.strokeStyle = colors.highlight;
       ctx.lineWidth = 2;
       ctx.setLineDash([4, 3]);
       ctx.beginPath();
-      ctx.arc(nodeX(lit), ny, s.nodeR + 5, 0, Math.PI * 2);
+      ctx.arc(nodeX(node), ny, s.nodeR + 5, 0, Math.PI * 2);
       ctx.stroke();
       ctx.setLineDash([]);
-      for (const j of M.neighbours(lit)) {
-        if (j === lit) continue;
-        const from = nodeX(j), to = nodeX(lit);
+      for (const j of M.neighbours(node)) {
+        if (j === node) continue;
+        const from = nodeX(j), to = nodeX(node);
         const dir = Math.sign(to - from);
         arrow(ctx, from + dir * (s.nodeR + 6), ny + 2, to - dir * (s.nodeR + 7), ny + 2,
           colors.highlight, 2, [], 8);
         if (state.coef) {
-          txt(ctx, colors, M.n3(state.coef[lit][j]), (from + to) / 2, ny + 22,
+          txt(ctx, colors, M.n3(state.coef[node][j]), (from + to) / 2, ny + 22,
             { color: colors.highlight, align: "center", mono: true, size: colors.fsXs });
         }
       }
       ctx.strokeStyle = colors.highlight;
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.arc(nodeX(lit), ny + s.nodeR + 8, 9, Math.PI * 0.85, Math.PI * 0.15, false);
+      ctx.arc(nodeX(node), ny + s.nodeR + 8, 9, Math.PI * 0.85, Math.PI * 0.15, false);
       ctx.stroke();
       if (state.coef) {
-        txt(ctx, colors, M.n3(state.coef[lit][lit]), nodeX(lit), ny + s.nodeR + 30,
+        txt(ctx, colors, M.n3(state.coef[node][node]), nodeX(node), ny + s.nodeR + 30,
           { color: colors.highlight, align: "center", mono: true, size: colors.fsXs });
       }
     }
     return cy;
   };
 
-  const reads = node >= 0 ? M.neighbours(node) : null;
-  const iy = stage(g.y1, "Input", `X  ${shapeText([M.NODES, M.GRAPH_IN])}`,
-    (i) => state.X[i], spanX, colors.groupA, "X", -1, reads);
-  /* the node features the strips are shaded from, printed (decision 14) */
-  printBlock(ctx, colors, PAD, iy + stageH + PRINT_DROP,
-    [M.NODES, M.GRAPH_IN], ([r, c]) => state.X[r][c]);
+  /* THE PRINTED ROWS ARE LIT ON THE SAME KEY AS THE STRIPS (decision 17). The
+     node being updated lights in full; the neighbours whose rows are being
+     combined light at the COEFFICIENT drawn on their arc, so the alpha in the
+     print and the number on the arc are the same quantity. Max applies no
+     coefficient, so its candidates share one alpha, the equal share. */
+  const nb = node >= 0 ? M.neighbours(node) : [];
+  const readAlpha = (r) => {
+    if (r === node) return 1;
+    if (!nb.includes(r)) return 0;
+    return (state.coef ? c01(state.coef[node][r]) : 1 / nb.length) * walk.light;
+  };
+  const rowFace = (alphaAt) => (r) => ({
+    label: M.nodeKey(r), alpha: alphaAt(r), lit: r === node, hover: r === overNode,
+  });
+  /** The printed row as a readout tile — off the hit plan's OWN rectangles, so
+      the tile and the border cannot answer a pointer differently (5.8). */
+  const printSpots = (bandIdx, name, rowAt, placed) => {
+    for (const t of targets) {
+      if (t.kind !== "print" || t.band !== bandIdx) continue;
+      spotGrid(t.x, t.y, 1, 1, t.w, t.h, () => (placed && !placed(t.node)
+        ? `${M.nodeKey(t.node)}, not computed yet`
+        : `${M.nodeKey(t.node)}: ${name}[${t.node}] = ${rowAt(t.node).map(num).join(", ")}`));
+    }
+  };
 
-  const ay = stage(g.y2, "Aggregate", "over N(i) ∪ {i}",
-    (i) => (arrival(walk, i) > 0 ? state.agg[i] : null), spanA, colors.groupA, "aggregate", node, null);
-  /* the weight the next band is about to apply */
-  label(ctx, colors, PAD, ay + stageH + G_EXTRA + PRINT_DROP + 4, "W",
+  const reads = node >= 0 ? nb : null;
+  const iy = stage(bands[0], "Input", `X  ${shapeText([M.NODES, M.GRAPH_IN])}`,
+    (i) => state.X[i], spanX, colors.groupA, "X", { read: reads });
+  /* the node features the strips are shaded from, printed (decision 14), each
+     row named by the node it belongs to (decision 17) */
+  printBlock(ctx, colors, PAD, iy + stageH + PRINT_DROP,
+    [M.NODES, M.GRAPH_IN], ([r, c]) => state.X[r][c], null,
+    { gutter, rows: rowFace(readAlpha) });
+  printSpots(0, "X", (i) => state.X[i]);
+
+  const ay = stage(bands[1], "Aggregate", "over N(i) ∪ {i}",
+    (i) => (arrival(walk, i) > 0 ? state.agg[i] : null), spanA, colors.groupA,
+    "aggregate", { arcs: true });
+  /* the weight the next band is about to apply. ITS ROWS ARE FEATURES, NOT
+     NODES, so it carries no node gutter — but it is indented with the other two
+     prints, so the three blocks stand on one left edge. */
+  label(ctx, colors, PAD + gutter, ay + stageH + G_EXTRA + PRINT_DROP + 4, "W",
     [M.GRAPH_IN, M.GRAPH_IN], colors.ink2);
   printBlock(ctx, colors, PAD, ay + stageH + G_EXTRA + PRINT_DROP + LBL,
-    [M.GRAPH_IN, M.GRAPH_IN], ([r, c]) => state.W[r][c]);
+    [M.GRAPH_IN, M.GRAPH_IN], ([r, c]) => state.W[r][c], null, { gutter });
 
-  const oy = stage(g.y3, "Output", "W · aggregate",
-    (i) => (arrival(walk, i) > 0 ? state.out[i] : null), spanO, colors.empirical, "h'", -1, null);
+  const oy = stage(bands[2], "Output", "W · aggregate",
+    (i) => (arrival(walk, i) > 0 ? state.out[i] : null), spanO, colors.empirical, "h'", {});
   if (walk.done > 0) {
     printBlock(ctx, colors, PAD, oy + stageH + PRINT_DROP,
-      [M.NODES, M.GRAPH_IN], ([r, c]) => state.out[r][c], ([r]) => r < walk.done);
+      [M.NODES, M.GRAPH_IN], ([r, c]) => state.out[r][c], ([r]) => r < walk.done,
+      { gutter, rows: rowFace((r) => (r === node && r < walk.done ? 1 : 0)) });
+    printSpots(2, "h'", (i) => state.out[i], (i) => i < walk.done);
   }
   return g;
 }
@@ -1375,10 +1600,16 @@ function pageCaption(params) {
       return params.direction === "bidirectional"
         ? "The recurrence is drawn closed, and each y_t is the forward hidden state and the reverse hidden state placed end to end."
         : "The recurrence is drawn closed: these values stand in for whichever of RNN, LSTM and GRU is named.";
+    /* WHAT THE THREE PRODUCT ROWS ADD UP TO, at each projection (decision 16).
+       Both are claims about the WHOLE page rather than about one query: the
+       caption block's height is a function of the parameters, so a caption that
+       moved with the walk would move the stage under the reader. Every bound
+       here holds for all three queries — and at Random for all five seeds —
+       and `_lab/processing-layers-verify.mjs` asserts them. */
     case "attention":
       return params.projection === "identity"
-        ? "“The” attends most to itself; “cat” and “sat” weight each other above “The”."
-        : "Before training the three attention weights are nearly equal.";
+        ? "“cat” and “sat” weight each other above “The”, so every output lies nearer “sat”’s value row, 0.48 or less, than “The”’s, 0.68 or more."
+        : "Each weight stays within 0.06 of one third, so every output lands within 0.02 of the mean of the three value rows.";
     case "graph":
       return params.aggregate === "max"
         ? "Max takes the largest value at each feature, so no coefficient is applied."
@@ -1762,7 +1993,15 @@ defineWidget({
       { token: "group-a", label: params.block === "graph" ? "The node features read in" : "The input tensor" },
       ...(second ? [{ token: "group-b", label: second }] : []),
       { token: "empirical", label: "The output the layer produces" },
-      { token: "highlight", label: "The element being computed, and the inputs it reads" },
+      {
+        token: "highlight",
+        /* the Attention page's highlight carries a third thing — the weighted
+           value rows band 2 sums — and a legend that named two of the three
+           would be a legend for a different figure (2.11) */
+        label: params.block === "attention"
+          ? "The query being computed, the inputs it reads, and its weighted value rows"
+          : "The element being computed, and the inputs it reads",
+      },
       /* the signed ramp, named as two ends rather than one — a token name in a
          legend line would be reader-facing copy naming a stylesheet (2.9) */
       ...(ramp
@@ -1883,7 +2122,10 @@ defineWidget({
     const g = params.block === "convolutional" ? drawConv(ctx, colors, w, params, state, anim)
       : params.block === "recurrent" ? drawRnn(ctx, colors, w, params, state, anim)
         : params.block === "attention" ? drawAttn(ctx, colors, w, params, state, anim)
-          : params.block === "graph" ? drawGraph(ctx, colors, w, params, state, anim)
+          /* the Graph page resolves the pointer inside its own draw: one node's
+             strip, circle and printed row light as one, and that key has to be
+             known before the first of the three is painted (decision 17) */
+          : params.block === "graph" ? drawGraph(ctx, colors, w, params, state, anim, pointer)
             : drawLinear(ctx, colors, w, params, state, anim);
     g.caps.forEach((line, i) => {
       txt(ctx, colors, line, PAD, g.capY + 12 + i * CAPTION_H, { color: colors.ink2 });

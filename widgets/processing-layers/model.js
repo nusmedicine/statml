@@ -72,7 +72,7 @@ export const choreographs = (speed) => speed !== "fast";
  * a widest-case value in every slot: a four-decimal float is six characters,
  * seven with a sign, and at these shapes torch's 80-column rule wraps neither.
  * One function, two readers (5.8) — the drawing uses the real values. */
-export const printRows = (shape) => torchPrint(shape, () => "-0.0000").lines.length;
+export const printRows = (shape) => widestPrint(shape).lines.length;
 
 /* --- the stage's scale (main.js's decision 11) ------------------------------ *
  * One number per page, 0 at the 550 stage the mock drew and 1 at the 770 one
@@ -459,6 +459,26 @@ export const attTerms = (state, i, j) => {
   return { terms, dot, scale: Math.sqrt(D_K), score: dot / Math.sqrt(D_K) };
 };
 
+/**
+ * WHAT THE SUM MEANS (main.js decision 16): one query's three value rows each
+ * scaled by its own weight, and the column-wise total of the three, which is
+ * the output row. The weights sum to 1, so the total is a weighted average of
+ * the three rows and lies between them.
+ *
+ * One function, two readers (5.8): band 2 draws these rows and the total, and
+ * `_lab/processing-layers-verify.mjs` adds the rows up and checks they are the
+ * output the rest of the page already prints.
+ */
+export const attProducts = (state, i) => {
+  const rows = state.W[i].map((w, j) => ({ j, w, row: state.V[j].map((v) => w * v) }));
+  const total = state.V[0].map((_, c) => rows.reduce((s, r) => s + r.row[c], 0));
+  return { rows, total };
+};
+
+/** The plain mean of the three value rows — what a near-uniform weighting lands
+    on, which is the Random page's caption and is asserted at every seed. */
+export const attValueMean = (state) => state.V[0].map((_, c) => mean(state.V.map((r) => r[c])));
+
 /* ========================= 5 · Graph (cells 24-28) ========================= */
 
 export const NODES = 4;
@@ -505,6 +525,87 @@ export function graph(rng, aggregate) {
  * are shaded and carry no digits, so without this the path from the printed X
  * to the printed output is not on screen anywhere.
  */
+/* --- which node is which row of the tensor (main.js decision 17) ------------ *
+ * The strips carry no digits and the print carries no picture, so the two are
+ * joined by a KEY rather than by position: ONE string per node, worn by its
+ * strip, its circle and its row of the print. That is `tensors`' own idiom (its
+ * decision 10, "the drawing and the print are hit-tested as one"), and it is
+ * what lets a pointer anywhere light the other two.
+ *
+ * It is arithmetic and it has a second reader, so it lives here rather than in
+ * `main.js`: `_lab/processing-layers-verify.mjs` reads the keys back in node,
+ * where no pixel and no pointer exists, and `main.js` cannot be imported there.
+ */
+
+export const nodeKey = (i) => `node ${i}`;
+
+/** The widest gutter label, for the measurement the gutter's width is taken from. */
+export const NODE_GUTTER = nodeKey(NODES - 1);
+
+/**
+ * Which printed LINE each leading index of a rank-2 print sits on, and how many
+ * characters wide the block is. At `[4, 3]` it is one row a line — but that is
+ * torch's bracket rule rather than a coincidence to rely on, so both are read
+ * off the segments, with the widest-case value `printRows` uses.
+ */
+const widestPrint = (shape) => torchPrint(shape, () => "-0.0000");
+
+export function printRowLines(shape) {
+  const at = new Map();
+  widestPrint(shape).lines.forEach((segs, li) => {
+    for (const seg of segs) if (seg.idx && !at.has(seg.idx[0])) at.set(seg.idx[0], li);
+  });
+  return Array.from({ length: shape[0] }, (_, r) => at.get(r) ?? 0);
+}
+
+export const printCols = (shape) => widestPrint(shape).cols;
+
+/**
+ * Every surface node `i` can be pointed at, each under `nodeKey(i)`: its strip
+ * and its circle in every band, and its row of the print where a band prints
+ * one. Handed each band's own arithmetic rather than computing it, so the
+ * drawing and the hit plan cannot disagree (5.8).
+ *
+ * A band is `{ stripLeft, stripY, stripW, stripH, nodeCX, nodeY, nodeR }` and,
+ * where it prints node rows, `print: { x, y, w, lineH, lines }`.
+ */
+export function graphTargets(bands) {
+  const out = [];
+  bands.forEach((b, band) => {
+    for (let i = 0; i < NODES; i += 1) {
+      const key = nodeKey(i);
+      out.push({
+        kind: "strip", band, node: i, key,
+        x: b.stripLeft[i], y: b.stripY, w: b.stripW, h: b.stripH,
+      });
+      out.push({
+        kind: "circle", band, node: i, key,
+        x: b.nodeCX[i] - b.nodeR, y: b.nodeY - b.nodeR, w: 2 * b.nodeR, h: 2 * b.nodeR,
+      });
+      if (b.print) {
+        out.push({
+          kind: "print", band, node: i, key,
+          x: b.print.x, y: b.print.y + b.print.lines[i] * b.print.lineH,
+          w: b.print.w, h: b.print.lineH,
+        });
+      }
+    }
+  });
+  return out;
+}
+
+/** The surface under the pointer, or null — half-open bounds, last match wins,
+    which is what `core/canvas.js`'s own `hitTest` does. */
+export function graphHit(targets, pointer) {
+  if (!pointer) return null;
+  for (let i = targets.length - 1; i >= 0; i -= 1) {
+    const t = targets[i];
+    if (pointer.x >= t.x && pointer.x < t.x + t.w
+      && pointer.y >= t.y && pointer.y < t.y + t.h) return t;
+  }
+  return null;
+}
+
 export const aggTerms = (state, i, f) => {
   const nb = neighbours(i);
   if (!state.coef) {

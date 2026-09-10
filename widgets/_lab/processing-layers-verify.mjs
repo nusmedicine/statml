@@ -310,6 +310,147 @@ const near = (a, b, eps = 1e-9) => Math.abs(a - b) <= eps;
   }
 }
 
+/* --- 7b · what band 2 of the Attention page adds up (main.js decision 16) --- *
+ * The band draws three product rows, a rule and a total, and prints one
+ * feature's arithmetic under it. THE PICTURE IS THE SAME WHATEVER NUMBERS ARE
+ * IN THE CELLS, so the addition is asserted here — and so are the two captions,
+ * which are quantitative claims about every query and, at Random, every seed on
+ * the control. A caption cannot be checked by looking at it. */
+{
+  for (const projection of ["random", "identity"]) {
+    for (const seed of [1, 2, 3, 4, 5]) {
+      if (projection === "identity" && seed > 1) continue;   // Q = K = V = X, one figure
+      const A = M.attention(makeRng(seed), projection);
+      let worst = 0;
+      for (let i = 0; i < 3; i += 1) {
+        const { rows, total } = M.attProducts(A, i);
+        for (let c = 0; c < M.D_K; c += 1) {
+          const sum = rows.reduce((s, r) => s + r.row[c], 0);
+          worst = Math.max(worst, Math.abs(sum - A.out[i][c]), Math.abs(total[c] - A.out[i][c]));
+        }
+        /* each row IS the value row scaled by that query's weight for it */
+        const scaled = rows.every((r) => r.row.every((v, c) => near(v, A.W[i][r.j] * A.V[r.j][c])));
+        if (!scaled) worst = 1;
+      }
+      check(`${projection} seed ${seed}: the three product rows sum to the output row`,
+        worst < 1e-12, `worst ${worst.toExponential(1)} over 3 queries × ${M.D_K} features`);
+    }
+  }
+
+  /* THE RANDOM CAPTION: "Each weight stays within 0.06 of one third, so every
+     output lands within 0.02 of the mean of the three value rows." Both bounds,
+     every query, every seed the control offers. The mean is the claim's own
+     arithmetic, so it comes from `model.js` rather than from a copy here. */
+  {
+    let worstW = 0;
+    let worstOut = 0;
+    for (const seed of [1, 2, 3, 4, 5]) {
+      const A = M.attention(makeRng(seed), "random");
+      const mean = M.attValueMean(A);
+      for (let i = 0; i < 3; i += 1) {
+        worstW = Math.max(worstW, ...A.W[i].map((v) => Math.abs(v - 1 / 3)));
+        worstOut = Math.max(worstOut, ...A.out[i].map((v, c) => Math.abs(v - mean[c])));
+      }
+    }
+    check("Random: every weight is within 0.06 of one third, at all five seeds",
+      worstW <= 0.06, `largest departure ${worstW.toFixed(4)}`);
+    check("Random: every output is within 0.02 of the mean of the value rows",
+      worstOut <= 0.02, `largest departure ${worstOut.toFixed(4)}`);
+    /* and the weights sum to 1, which is what makes the total an average at all */
+    const A = M.attention(makeRng(4), "random");
+    check("Random seed 4, the least uniform of the five, still sums to 1",
+      A.W.every((r) => near(r.reduce((a, b) => a + b, 0), 1, 1e-12)),
+      `weights ${A.W[0].map(M.n3).join(" ")}`);
+  }
+
+  /* THE IDENTITY CAPTION: "“cat” and “sat” weight each other above “The”, so
+     every output lies nearer “sat”’s value row, 0.48 or less, than “The”’s, 0.68
+     or more." Measured for all three queries, because the caption is on screen
+     whichever query the walk is standing on. */
+  {
+    const I = M.attention(makeRng(1), "identity");
+    const dist = (i, j) => Math.hypot(...I.V[j].map((v, c) => v - I.out[i][c]));
+    const near2 = [0, 1, 2].map((i) => dist(i, 2));
+    const far = [0, 1, 2].map((i) => dist(i, 0));
+    check("Identity: every output is 0.48 or less from “sat”’s value row",
+      Math.max(...near2) <= 0.48, near2.map((v) => v.toFixed(3)).join(" "));
+    check("Identity: every output is 0.68 or more from “The”’s value row",
+      Math.min(...far) >= 0.68, far.map((v) => v.toFixed(3)).join(" "));
+    check("Identity: “The” is the farthest value row from every one of the three outputs",
+      [0, 1, 2].every((i) => far[i] > dist(i, 1) && far[i] > dist(i, 2)));
+  }
+}
+
+/* --- 7c · one key per node, worn by three surfaces (decision 17) ------------ *
+ * The Graph page answers "which node is which row of the tensor" by lighting
+ * the row with the strip and the circle, which only works if the three are one
+ * target. NOTHING IN A PICTURE SAYS WHETHER THEY ARE — the figure renders just
+ * as happily with the print hit-tested on its own — so the keys are read back
+ * here, off the same function `main.js` builds the hit plan with. */
+{
+  /* one band's arithmetic at the 550 stage: four strips of three cells at 30px,
+     the circles under them, and the print with its gutter */
+  const cw = 9.16;                     // --fs-sm mono, the width model.js records
+  const gutter = M.NODE_GUTTER.length * cw + 10;
+  const lines = M.printRowLines([M.NODES, M.GRAPH_IN]);
+  check("each of the four nodes prints on its own line of a [4, 3]",
+    lines.length === M.NODES && new Set(lines).size === M.NODES,
+    `lines ${lines.join(", ")}`);
+  check("the [4, 3] print is 37 characters wide, so the gutter and it clear 522",
+    M.printCols([M.NODES, M.GRAPH_IN]) === 37
+    && gutter + M.printCols([M.NODES, M.GRAPH_IN]) * cw < 550 - 2 * M.PAD,
+    `${Math.round(gutter + M.printCols([M.NODES, M.GRAPH_IN]) * cw)}px of 522`);
+
+  const bandAt = (top, prints) => ({
+    stripLeft: [0, 1, 2, 3].map((i) => M.PAD + i * 110),
+    stripY: top + 16,
+    stripW: 90,
+    stripH: 30,
+    nodeCX: [0, 1, 2, 3].map((i) => M.PAD + i * 110 + 45),
+    nodeY: top + 72,
+    nodeR: 16,
+    print: prints
+      ? { x: M.PAD, y: top + 110, w: gutter + 37 * cw, lineH: 16, lines }
+      : null,
+  });
+  const bands = [bandAt(0, true), bandAt(200, false), bandAt(400, true)];
+  const targets = M.graphTargets(bands);
+
+  check("every target carries the key of the node it belongs to",
+    targets.every((t) => t.key === M.nodeKey(t.node)),
+    `${targets.length} targets over ${bands.length} bands`);
+  /* THE ASSERTION THIS SECTION EXISTS FOR: one string per node, worn by the
+     strip, the circle and the printed row alike. */
+  for (let i = 0; i < M.NODES; i += 1) {
+    const mine = targets.filter((t) => t.node === i);
+    const kinds = new Set(mine.map((t) => t.kind));
+    check(`node ${i}: strip, circle and print row are one key, ${M.nodeKey(i)}`,
+      new Set(mine.map((t) => t.key)).size === 1
+      && mine[0].key === M.nodeKey(i)
+      && kinds.has("strip") && kinds.has("circle") && kinds.has("print")
+      && mine.filter((t) => t.kind === "print").length === 2,   // Input and Output print
+      `${mine.length} surfaces: ${[...kinds].join(", ")}`);
+  }
+  /* no two nodes share a target, or a hover would light the wrong row */
+  const centre = (t) => ({ x: t.x + t.w / 2, y: t.y + t.h / 2 });
+  let wrong = [];
+  for (const t of targets) {
+    const found = M.graphHit(targets, centre(t));
+    if (!found || found.key !== t.key) wrong.push(`${t.kind} ${t.node}`);
+  }
+  check("a pointer at the centre of any surface finds that node and no other",
+    wrong.length === 0, wrong.length ? wrong.join(", ") : `${targets.length} surfaces`);
+  check("a pointer outside every surface finds nothing",
+    M.graphHit(targets, { x: 5, y: 5 }) === null
+    && M.graphHit(targets, null) === null);
+  /* the three surfaces of one node are three PLACES, so hovering the print row
+     is not the same rectangle as hovering the strip */
+  const n2 = targets.filter((t) => t.node === 2);
+  check("node 2's three surfaces are three separate rectangles",
+    new Set(n2.map((t) => `${t.x},${t.y}`)).size === n2.length,
+    n2.map((t) => `${t.kind} at ${Math.round(t.x)},${Math.round(t.y)}`).join(" · "));
+}
+
 /* --- 8 · the print's height, which `height` reserves before it has values --- */
 {
   check("a [2, 3] result prints on 2 lines and a [4, 3] on 4",

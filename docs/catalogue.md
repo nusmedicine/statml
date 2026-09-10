@@ -10694,6 +10694,24 @@ Output row is both states at every step. Open: the value rows' recurrence
 arrows are 1.5px `--ink-3` against the strip's 2px, two weights on one figure.
 79 assertions.
 
+**Round 2 built (2026-09-10):** Attention band 2 is the mock's A — each value
+row's product `w·v` beside it (`--c-highlight` at alpha = the weight, so a
+smaller weight is paler; the weight cell itself stays on band 1's
+`--c-empirical` 0 → 1 ramp so one number is one hue), a `+` between the three,
+the output as the column total, and one feature's arithmetic under it
+(`output[cat, 0] = 0.339×0.33 + 0.330×0.29 + 0.332×0.33 = 0.31`), band 2 176 →
+208 at 550. The captions are generic and asserted at measured bounds, because
+a caption naming the stepped query would move the stage's height under the
+reader and the mean claim breaks at seed 4 (departure 0.0197): *"Each weight
+stays within 0.06 of one third, so every output lands within 0.02 of the mean
+of the three value rows."* and, at identity, *"…so every output lies nearer
+"sat"'s value row, 0.48 or less, than "The"'s, 0.68 or more."* (the mock's
+wording was false for query The, whose output is nearest sat's row). Graph:
+the X and output prints carry a `node 0…3` gutter, one key per node across
+strip, circle and print row (lit on step, the hover border on hover from any
+of the three, tensors' decision 10), and during Aggregate the neighbours'
+print rows light at the coefficient's alpha. 101 assertions.
+
 ### Slot 50 · `support-layers` — Normalization, Activation and Dropout — PLANNED 2026-09-10
 
 **Host.** 05-3 cells 29–60: Embedding (29–33), Pooling (34–39), BatchNorm and
