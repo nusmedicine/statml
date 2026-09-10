@@ -1,0 +1,669 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · processing-layers Recurrent — drawing the unrolled loop</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 920px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-6); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 96ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); max-width: 560px; min-height: 24px; white-space: pre-line; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 96ch; }
+  .rec b { font-weight: 600; }
+  .measure { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--ink-3); margin: 4px 0 0; max-width: 560px; }
+  table.sizes { border-collapse: collapse; font-size: var(--fs-sm); margin: var(--sp-2) 0 0; }
+  table.sizes th, table.sizes td { border: 1px solid var(--grid); padding: 4px 10px; text-align: left; }
+  table.sizes th { color: var(--ink-2); font-weight: 600; }
+  table.sizes td.n { font-family: var(--font-mono); text-align: right; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>processing-layers · Recurrent — three ways to draw the unrolled loop</h1>
+  <p class="note">
+    The Recurrent page draws the <b>values</b>: four rows of 46 × 26 cells — Forward, Input, Reverse, Output — over
+    five time steps, with arrows only between one hidden state and the next. The recurrence itself is not drawn.
+    Nothing on the figure says that <code>x_t</code> and <code>h_{t−1}</code> both feed <code>h_t</code>, that the
+    same <code>f</code> runs at every step, or that the row is one cell unrolled over time. These three options add
+    that, at the real <b>550</b> stage width, with the geometry the widget already uses (PAD 14, so 522 usable;
+    cell 46 × 26, gutter 26, so 72 between time steps, 62 for the row labels).
+  </p>
+  <p class="note">
+    Every number is the widget's own: <code>model.js</code>'s <code>recurrent()</code> off <code>makeRng(1)</code>,
+    which is the state the page computes at its defaults — sample 1, bidirectional, output
+    <span id="outshape"></span>. Colour: input <code>--c-group-a</code>, hidden states and outputs
+    <code>--c-empirical</code>, the element being computed and what it reads <code>--c-highlight</code>. Arrows are
+    2px with a 9px head in <code>--ink-2</code>; the page draws its existing recurrence arrows at 1.5px in
+    <code>--ink-3</code>, and they are redrawn here at the heavier weight so a panel is judged at one arrow weight
+    rather than two.
+  </p>
+
+  <h2>A · arrows on the value rows</h2>
+  <p class="note">
+    The four rows exactly as built, with the missing edges added: <code>x_t</code> up into <code>h_t→</code> and
+    down into <code>h_t←</code> in the row gaps, and each hidden cell into its half of <code>y_t</code> — the
+    forward pass into the top three cells, the reverse pass into the bottom three. The two output edges have to
+    travel past two rows, so they are routed in the column gutters. Costs no height at all.
+  </p>
+  <div class="row" id="oa"></div>
+  <p class="rec" id="reca"></p>
+
+  <h2>B · his figure as a strip above the values</h2>
+  <p class="note">
+    A diagram band above the value rows in <code>dl-layer-rnn-bi.png</code>'s vocabulary at small size:
+    <code>x¹…x⁵</code> circles, <code>h¹…h⁵</code> rounded boxes in a Forward row and a Reverse row, arrows between
+    the boxes and from each <code>x</code> into both, and the two end states joining into an Output box on the
+    right. The columns sit on the value columns' own centres, so the diagram and the numbers under it are the same
+    five columns. On unidirectional the diagram loses its Reverse row, as the value rows do.
+  </p>
+  <div class="row" id="ob"></div>
+  <p class="rec" id="recb"></p>
+
+  <h2>C · rolled beside unrolled, then the values</h2>
+  <p class="note">
+    <code>dl-layer-rnn.png</code>'s whole statement: the rolled cell on the left — one <code>f</code> box with
+    <code>x_t</code> in, <code>h_t</code> out and the loop arrow back to itself labelled <code>h_{t−1}</code>, with
+    the shared weights named once — and B's unrolled chain on the right, then the value rows below. Play would walk
+    the chain and pulse the rolled cell's loop arrow at each step.
+  </p>
+  <div class="row" id="oc"></div>
+  <p class="rec" id="recc"></p>
+
+  <h2>One step mid-walk, in the recommended option</h2>
+  <p class="note">
+    Step 3 of the forward pass. <code>h³→</code> is the element being computed; <code>x³</code> and
+    <code>h²→</code> are what it reads. The diagram and the value rows light the same three things, and the two
+    arrows into <code>h³→</code> light with them — which is the edge the value rows alone cannot show.
+  </p>
+  <div class="row" id="od"></div>
+
+  <h2>What the drawing measures</h2>
+  <table class="sizes" id="sizes"></table>
+  <p class="rec" id="recall"></p>
+</main>
+
+<script type="module">
+import { readTokens } from "../core/index.js";
+import { makeRng } from "../core/rng.js";
+import { sizeText } from "../core/torch.js";
+import * as M from "../processing-layers/model.js";
+
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+
+/* --- the geometry the Recurrent page already uses -------------------------- */
+const PAD = 14;
+const OP_W = 26;
+const CW = 46, CH = 26;
+const HLW = 2.5;
+const W = 550;
+const USABLE = W - 2 * PAD;              // 522
+const RIGHT = W - PAD;                   // 536 — the last column of ink allowed
+const GUT = 62;                          // main.js RNN_GUT
+const PITCH = CW + OP_W;                 // 72
+const ROW_GAP = 26;                      // main.js RNN_ROW_GAP
+const BAND_HEAD = 26;
+const BAND_GAP = 20;
+const CAP_GAP = 16;
+const CAPTION_H = 17;
+const WASH = 0.16;
+const LIT_A = 0.50;
+
+/* the widget's own state, at the seed its defaults compute with */
+const S = M.recurrent(makeRng(1));
+const SAMPLE = 0;
+document.getElementById("outshape").textContent =
+  sizeText([M.RNN_BATCH, M.SEQ, 2 * M.RNN_HID]);
+
+/* ============================ drawing helpers ============================== */
+let maxRight = 0;                        // the rightmost ink of the panel being drawn
+const reach = (x) => { if (x > maxRight) maxRight = x; };
+
+function panel(host, title, sub, w, h) {
+  const cand = document.createElement("div");
+  cand.className = "cand";
+  cand.innerHTML = `<h3>${title}</h3><p class="sub">${sub}</p>`;
+  const cv = document.createElement("canvas");
+  cv.width = w * DPR; cv.height = h * DPR;
+  cv.style.width = `${w}px`; cv.style.height = `${h}px`;
+  cand.appendChild(cv); host.appendChild(cand);
+  const ctx = cv.getContext("2d");
+  ctx.scale(DPR, DPR);
+  ctx.fillStyle = T.surface; ctx.fillRect(0, 0, w, h);
+  maxRight = 0;
+  return { ctx, cand };
+}
+function note(cand, s) {
+  const p = document.createElement("p");
+  p.className = "measure";
+  p.textContent = s;
+  cand.appendChild(p);
+}
+function txt(ctx, s, x, y, o = {}) {
+  ctx.fillStyle = o.color ?? T.ink2;
+  ctx.textAlign = o.align ?? "left";
+  ctx.textBaseline = o.baseline ?? "alphabetic";
+  ctx.font = `${o.weight ?? ""} ${o.size ?? T.fsSm} ${o.mono ? T.mono : T.font}`.trim();
+  ctx.fillText(s, x, y);
+}
+const wash = (hex, a) => {
+  const p = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+  return `rgba(${p[0]},${p[1]},${p[2]},${a})`;
+};
+/** The lit face the widget uses: the highlight wash, a highlight edge, a bold digit. */
+const litFill = () => wash(T.highlight, LIT_A);
+
+/** Every arrow on this page: 2px, a 9px head, --ink-2 unless it is lit. */
+function arrow(ctx, x0, y0, x1, y1, color = T.ink2, dash = []) {
+  const a = Math.atan2(y1 - y0, x1 - x0);
+  ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = 2;
+  ctx.setLineDash(dash);
+  ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.beginPath(); ctx.moveTo(x1, y1);
+  ctx.lineTo(x1 - 9 * Math.cos(a - 0.45), y1 - 9 * Math.sin(a - 0.45));
+  ctx.lineTo(x1 - 9 * Math.cos(a + 0.45), y1 - 9 * Math.sin(a + 0.45));
+  ctx.closePath(); ctx.fill();
+  reach(Math.max(x0, x1) + 2);
+}
+/** An elbowed arrow: the head sits on the last segment. */
+function polyArrow(ctx, pts, color = T.ink2, dash = []) {
+  ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = 2;
+  ctx.lineJoin = "round";
+  ctx.setLineDash(dash);
+  ctx.beginPath();
+  ctx.moveTo(pts[0][0], pts[0][1]);
+  for (let i = 1; i < pts.length; i += 1) ctx.lineTo(pts[i][0], pts[i][1]);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  const [px, py] = pts[pts.length - 2];
+  const [qx, qy] = pts[pts.length - 1];
+  const a = Math.atan2(qy - py, qx - px);
+  ctx.beginPath(); ctx.moveTo(qx, qy);
+  ctx.lineTo(qx - 9 * Math.cos(a - 0.45), qy - 9 * Math.sin(a - 0.45));
+  ctx.lineTo(qx - 9 * Math.cos(a + 0.45), qy - 9 * Math.sin(a + 0.45));
+  ctx.closePath(); ctx.fill();
+  for (const [x] of pts) reach(x + 2);
+}
+function band(ctx, y, w, nm, expr) {
+  txt(ctx, nm, PAD, y + 11, { color: T.ink1, weight: "600" });
+  if (expr) txt(ctx, expr, w - PAD, y + 11, { color: T.highlight, align: "right", mono: true });
+  ctx.strokeStyle = T.grid; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(PAD, y + 17.5); ctx.lineTo(w - PAD, y + 17.5); ctx.stroke();
+  /* the hairline spans the stage by design, so it is not what the width note
+     is measuring — only the drawing under it counts */
+  return y + BAND_HEAD;
+}
+function cell(ctx, x, y, cw, ch, text, o = {}) {
+  ctx.fillStyle = T.surface; ctx.fillRect(x, y, cw, ch);
+  ctx.fillStyle = o.fill ?? wash(o.hue ?? T.groupA, WASH);
+  ctx.fillRect(x, y, cw, ch);
+  ctx.strokeStyle = o.lit ? T.highlight : T.axis;
+  ctx.lineWidth = o.lit ? HLW : 1;
+  ctx.strokeRect(x + 0.5, y + 0.5, cw - 1, ch - 1);
+  if (text) {
+    txt(ctx, text, x + cw / 2, y + ch / 2 + 0.5, {
+      color: T.ink1, align: "center", baseline: "middle", mono: true,
+      size: T.fsSm, weight: o.lit ? "600" : "",
+    });
+  }
+  reach(x + cw);
+}
+function roundBox(ctx, x, y, w, h, r, o = {}) {
+  ctx.beginPath();
+  if (ctx.roundRect) ctx.roundRect(x + 0.5, y + 0.5, w - 1, h - 1, r);
+  else ctx.rect(x + 0.5, y + 0.5, w - 1, h - 1);
+  ctx.fillStyle = o.fill ?? wash(o.hue ?? T.empirical, WASH);
+  ctx.fill();
+  ctx.strokeStyle = o.lit ? T.highlight : T.axis;
+  ctx.lineWidth = o.lit ? HLW : 1;
+  ctx.stroke();
+  if (o.text) {
+    txt(ctx, o.text, x + w / 2, y + h / 2 + 0.5, {
+      color: T.ink1, align: "center", baseline: "middle", mono: true,
+      size: o.size ?? T.fsSm, weight: o.lit ? "600" : "",
+    });
+  }
+  reach(x + w);
+}
+function disc(ctx, cx, cy, r, o = {}) {
+  ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.fillStyle = o.fill ?? wash(o.hue ?? T.groupA, WASH);
+  ctx.fill();
+  ctx.strokeStyle = o.lit ? T.highlight : T.axis;
+  ctx.lineWidth = o.lit ? HLW : 1;
+  ctx.stroke();
+  if (o.text) {
+    txt(ctx, o.text, cx, cy + 0.5, {
+      color: T.ink1, align: "center", baseline: "middle", mono: true,
+      size: o.size ?? T.fsSm, weight: o.lit ? "600" : "",
+    });
+  }
+  reach(cx + r);
+}
+function wrapLines(ctx, s, maxW) {
+  ctx.save();
+  ctx.font = `${T.fsSm} ${T.font}`;
+  const out = [];
+  let line = "";
+  for (const word of s.split(" ")) {
+    const cand = line ? `${line} ${word}` : word;
+    if (line && ctx.measureText(cand).width > maxW) { out.push(line); line = word; }
+    else line = cand;
+  }
+  if (line) out.push(line);
+  ctx.restore();
+  return out;
+}
+
+/* The two captions the Recurrent page carries, verbatim from main.js. */
+const PAGE_CAPTION =
+  "The recurrence is drawn closed, and each y_t is the forward hidden state and the reverse hidden state placed end to end.";
+const WEIGHTS_CAPTION =
+  "The weights are untrained values drawn from the initializer PyTorch uses. "
+  + "Training changes the values, not which inputs an output reads.";
+function captionBlock(ctx) {
+  return [...wrapLines(ctx, PAGE_CAPTION, USABLE), ...wrapLines(ctx, WEIGHTS_CAPTION, USABLE)];
+}
+function drawCaptions(ctx, y) {
+  const lines = captionBlock(ctx);
+  lines.forEach((l, i) => txt(ctx, l, PAD, y + i * CAPTION_H, { color: T.ink2, baseline: "top" }));
+  return lines.length * CAPTION_H;
+}
+
+/* ============================ the value rows =============================== */
+
+const ROWS = [
+  { key: "fwd", label: "Forward", tall: M.RNN_HID, dir: "right", hue: T.empirical, at: (t, k) => S.fwd[SAMPLE][t][k] },
+  { key: "x", label: "Input", tall: M.RNN_IN, hue: T.groupA, at: (t, k) => S.X[SAMPLE][t][k] },
+  { key: "rev", label: "Reverse", tall: M.RNN_HID, dir: "left", hue: T.empirical, at: (t, k) => S.rev[SAMPLE][t][k] },
+  { key: "y", label: "Output", tall: 2 * M.RNN_HID, hue: T.empirical, at: (t, k) => S.y[SAMPLE][t][k] },
+];
+const ROWS_BODY = ROWS.reduce((a, r) => a + r.tall * CH, 0) + (ROWS.length - 1) * ROW_GAP;
+const colX = (t) => PAD + GUT + t * PITCH;
+const colCx = (t) => colX(t) + CW / 2;
+const ROW_W = M.SEQ * CW + (M.SEQ - 1) * OP_W;      // 334
+const ROWS_RIGHT = PAD + GUT + ROW_W;               // 410
+
+/** Row tops, keyed by row key, for a body starting at `y0`. */
+function rowTops(y0) {
+  const tops = {};
+  let y = y0;
+  for (const r of ROWS) { tops[r.key] = y; y += r.tall * CH + ROW_GAP; }
+  return tops;
+}
+const rowBottom = (tops, key) => tops[key] + ROWS.find((r) => r.key === key).tall * CH;
+
+/**
+ * The four rows as the page draws them today, plus, when `edges` is on, the
+ * arrows option A adds. `step` is `{ dir, t }` — the widget's own walk step.
+ */
+function drawValueRows(ctx, y0, { edges = false, step = null } = {}) {
+  const tops = rowTops(y0);
+  for (const row of ROWS) {
+    const cy = tops[row.key];
+    txt(ctx, row.label, PAD, cy + (row.tall * CH) / 2 + 4, { color: T.ink1, weight: "600" });
+    for (let t = 0; t < M.SEQ; t += 1) {
+      const x = colX(t);
+      /* what the step reads, and what it lands on — main.js's own test */
+      const reads = step != null && (
+        (row.key === "x" && t === step.t)
+        || (row.key === "fwd" && step.dir === 0 && t === step.t - 1)
+        || (row.key === "rev" && step.dir === 1 && t === step.t + 1));
+      const lands = step != null && (
+        (row.key === "fwd" && step.dir === 0 && t === step.t)
+        || (row.key === "rev" && step.dir === 1 && t === step.t));
+      const lit = reads || lands;
+      for (let k = 0; k < row.tall; k += 1) {
+        cell(ctx, x, cy + k * CH, CW, CH, M.n2(row.at(t, k)),
+          lit ? { fill: litFill(), lit: true } : { hue: row.hue });
+      }
+      if (row.dir && t < M.SEQ - 1) {
+        const ax = x + CW;
+        const ay = cy + (row.tall * CH) / 2;
+        if (row.dir === "right") arrow(ctx, ax + 4, ay, ax + OP_W - 4, ay);
+        else arrow(ctx, ax + OP_W - 4, ay, ax + 4, ay);
+      }
+      if (row.key === "x") {
+        /* centred over the column, as the page draws it — except in A, where
+           the arrow into h_t→ is drawn on that centre and takes the space */
+        if (edges) txt(ctx, `t${t + 1}`, x + CW, cy - 5, { color: T.ink2, align: "right", size: T.fsXs, mono: true });
+        else txt(ctx, `t${t + 1}`, x + CW / 2, cy - 4, { color: T.ink2, align: "center", size: T.fsXs, mono: true });
+      }
+    }
+  }
+  if (edges) drawEdgesA(ctx, tops, step);
+  return tops;
+}
+
+/**
+ * Option A's added edges. Two of the four fit in a row gap; the two into y_t
+ * do not, because they have to pass two whole rows, so they take a lane in the
+ * column gutter and enter y_t at the half they fill.
+ */
+function drawEdgesA(ctx, tops, step) {
+  const fwdBot = rowBottom(tops, "fwd");
+  const xTop = tops.x, xBot = rowBottom(tops, "x");
+  const revTop = tops.rev, revBot = rowBottom(tops, "rev");
+  const yTop = tops.y;
+  for (let t = 0; t < M.SEQ; t += 1) {
+    const cx = colCx(t);
+    const readsHere = step != null && step.dir === 0 && t === step.t;
+    const ink = readsHere ? T.highlight : T.ink2;
+    /* x_t up into h_t→, and down into h_t← — both fit the 26px row gap */
+    arrow(ctx, cx, xTop - 3, cx, fwdBot + 3, ink);
+    arrow(ctx, cx, xBot + 3, cx, revTop - 3, T.ink2);
+    /* h_t→ into the top three cells of y_t, down the left-hand lane */
+    const lf = colX(t) - 8;
+    polyArrow(ctx, [
+      [colX(t), tops.fwd + 2.5 * CH], [lf, tops.fwd + 2.5 * CH],
+      [lf, yTop + 1.5 * CH], [colX(t) - 3, yTop + 1.5 * CH],
+    ]);
+    /* h_t← into the bottom three cells, down the right-hand lane */
+    const lr = colX(t) + CW + 8;
+    polyArrow(ctx, [
+      [colX(t) + CW, revTop + 2.5 * CH], [lr, revTop + 2.5 * CH],
+      [lr, yTop + 4.5 * CH], [colX(t) + CW + 3, yTop + 4.5 * CH],
+    ]);
+  }
+  /* the crossings this routing costs: a left-hand lane sits inside the gutter
+     the reverse recurrence arrow already spans */
+  let crossings = 0;
+  for (let t = 1; t < M.SEQ; t += 1) {
+    const lane = colX(t) - 8;
+    const arrowFrom = colX(t - 1) + CW + 4, arrowTo = colX(t - 1) + CW + OP_W - 4;
+    if (lane >= arrowFrom && lane <= arrowTo) crossings += 1;
+  }
+  return crossings;
+}
+const CROSSINGS_A = (() => {
+  let n = 0;
+  for (let t = 1; t < M.SEQ; t += 1) {
+    const lane = colX(t) - 8;
+    if (lane >= colX(t - 1) + CW + 4 && lane <= colX(t - 1) + CW + OP_W - 4) n += 1;
+  }
+  return n;
+})();
+
+/* ============================ the diagram chain ============================ */
+
+const BOX_W = 40, BOX_H = 20, CIRC_R = 10, DGAP = 24, DTOP = 12, ELBOW = 14;
+const SUP = ["¹", "²", "³", "⁴", "⁵"];
+
+function chainGeom(y0) {
+  const fwdTop = y0 + DTOP;
+  const xTop = fwdTop + BOX_H + DGAP;
+  const revTop = xTop + 2 * CIRC_R + DGAP;
+  return { fwdTop, xTop, revTop, bottom: revTop + BOX_H };
+}
+
+/**
+ * `dl-layer-rnn-bi.png` at small size. `cx(t)` places the columns, so B can put
+ * them on the value columns' centres and C cannot.
+ * `outputs` draws the Output box the figure ends on; `labels` the row names.
+ */
+function drawChain(ctx, y0, cx, { outputs = true, labels = true, step = null, bidirectional = true } = {}) {
+  const g = chainGeom(y0);
+  const fwdMid = g.fwdTop + BOX_H / 2;
+  const revMid = g.revTop + BOX_H / 2;
+  const xMid = g.xTop + CIRC_R;
+  if (labels) {
+    txt(ctx, "Forward", PAD, fwdMid + 4, { color: T.ink1, weight: "600" });
+    txt(ctx, "Input", PAD, xMid + 4, { color: T.ink1, weight: "600" });
+    if (bidirectional) txt(ctx, "Reverse", PAD, revMid + 4, { color: T.ink1, weight: "600" });
+  }
+  /* the recurrence, both passes */
+  for (let t = 0; t < M.SEQ - 1; t += 1) {
+    const litF = step != null && step.dir === 0 && (t + 1) === step.t;
+    arrow(ctx, cx(t) + BOX_W / 2 + 3, fwdMid, cx(t + 1) - BOX_W / 2 - 3, fwdMid,
+      litF ? T.highlight : T.ink2);
+    if (bidirectional) {
+      arrow(ctx, cx(t + 1) - BOX_W / 2 - 3, revMid, cx(t) + BOX_W / 2 + 3, revMid);
+    }
+  }
+  /* each x into both hidden states */
+  for (let t = 0; t < M.SEQ; t += 1) {
+    const litX = step != null && step.dir === 0 && t === step.t;
+    arrow(ctx, cx(t), g.xTop - 3, cx(t), g.fwdTop + BOX_H + 3, litX ? T.highlight : T.ink2);
+    if (bidirectional) arrow(ctx, cx(t), g.xTop + 2 * CIRC_R + 3, cx(t), g.revTop - 3);
+  }
+  /* the nodes, over the arrows */
+  for (let t = 0; t < M.SEQ; t += 1) {
+    const lands = step != null && step.dir === 0 && t === step.t;
+    const readsH = step != null && step.dir === 0 && t === step.t - 1;
+    const readsX = step != null && step.dir === 0 && t === step.t;
+    roundBox(ctx, cx(t) - BOX_W / 2, g.fwdTop, BOX_W, BOX_H, 5, {
+      text: `h${SUP[t]}`, ...(lands || readsH ? { fill: litFill(), lit: true } : { hue: T.empirical }),
+    });
+    disc(ctx, cx(t), xMid, CIRC_R, {
+      text: `x${SUP[t]}`, size: T.fsXs,
+      ...(readsX ? { fill: litFill(), lit: true } : { hue: T.groupA }),
+    });
+    if (bidirectional) {
+      roundBox(ctx, cx(t) - BOX_W / 2, g.revTop, BOX_W, BOX_H, 5,
+        { text: `h${SUP[t]}`, hue: T.empirical });
+    }
+  }
+  if (!outputs) return { ...g, lowest: g.bottom };
+  /* the Output box the figure ends on: the last state each pass reaches */
+  const boxX = 464, boxW = RIGHT - boxX;
+  roundBox(ctx, boxX, g.fwdTop, boxW, g.bottom - g.fwdTop, 6, { hue: T.empirical });
+  txt(ctx, "o→", boxX + boxW / 2, fwdMid + 4, { color: T.ink1, align: "center", mono: true });
+  txt(ctx, "+", boxX + boxW / 2, xMid + 5, { color: T.ink1, align: "center", size: T.fsMd });
+  txt(ctx, "o←", boxX + boxW / 2, revMid + 4, { color: T.ink1, align: "center", mono: true });
+  /* above the box, not under it: the reverse pass's return line runs under it */
+  txt(ctx, "Output", boxX + boxW / 2, g.fwdTop - 4, { color: T.ink2, align: "center", size: T.fsXs });
+  arrow(ctx, cx(M.SEQ - 1) + BOX_W / 2 + 3, fwdMid, boxX - 3, fwdMid);
+  if (bidirectional) {
+    polyArrow(ctx, [
+      [cx(0), g.revTop + BOX_H + 3], [cx(0), g.bottom + ELBOW],
+      [boxX + boxW / 2, g.bottom + ELBOW], [boxX + boxW / 2, g.bottom + 3],
+    ]);
+  }
+  return { ...g, lowest: g.bottom + ELBOW + 14 };
+}
+
+/* the height a chain band needs, measured rather than guessed */
+function chainBandH(outputs, bidirectional = true) {
+  const g = chainGeom(0);
+  if (!outputs) return g.bottom + 6;
+  return bidirectional ? g.bottom + ELBOW + 16 : g.bottom + 16;
+}
+
+/* ============================ the rolled cell ============================== */
+
+const ROLLED_W = 132;                     // the loop arc, the label and the box
+
+/** `dl-layer-rnn.png`'s left half: one f box with the loop back to itself. */
+function drawRolled(ctx, x0, y0, { lit = false } = {}) {
+  const cx = x0 + 84;                     // the boxes sit right of the loop label
+  const fw = 46, fh = 26;
+  const oCy = y0 + 18;
+  const fTop = y0 + 46;
+  const xCy = y0 + 100;
+  disc(ctx, cx, oCy, CIRC_R, { text: "h_t", size: T.fsXs, hue: T.empirical });
+  arrow(ctx, cx, fTop - 3, cx, oCy + CIRC_R + 3);
+  roundBox(ctx, cx - fw / 2, fTop, fw, fh, 5, { text: "f", hue: T.empirical });
+  arrow(ctx, cx, xCy - CIRC_R - 3, cx, fTop + fh + 3);
+  disc(ctx, cx, xCy, CIRC_R, { text: "x_t", size: T.fsXs, hue: T.groupA });
+  /* the loop: out of the box's left edge, round, and back into it */
+  const lx = cx - fw / 2;
+  ctx.strokeStyle = lit ? T.highlight : T.ink2;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(lx, fTop + 6);
+  ctx.bezierCurveTo(lx - 40, fTop + 2, lx - 40, fTop + fh + 8, lx - 6, fTop + fh - 4);
+  ctx.stroke();
+  const a = Math.atan2((fTop + fh - 4) - (fTop + fh + 4), -6 + 22);
+  ctx.fillStyle = lit ? T.highlight : T.ink2;
+  ctx.beginPath();
+  ctx.moveTo(lx - 3, fTop + fh - 5);
+  ctx.lineTo(lx - 3 - 9 * Math.cos(a - 0.45), fTop + fh - 5 - 9 * Math.sin(a - 0.45));
+  ctx.lineTo(lx - 3 - 9 * Math.cos(a + 0.45), fTop + fh - 5 - 9 * Math.sin(a + 0.45));
+  ctx.closePath(); ctx.fill();
+  /* over the arc, not beside it: at 550 the label to the left of the loop runs
+     off the stage, and moving the cell right costs the chain beside it */
+  txt(ctx, "h_{t−1}", lx - 26, fTop - 6, { color: T.ink2, align: "center", mono: true, size: T.fsXs });
+  txt(ctx, "W_x  W_h  b", cx, y0 + 128, { color: T.ink2, align: "center", mono: true, size: T.fsXs });
+  txt(ctx, "one copy, every step", cx, y0 + 142, { color: T.ink2, align: "center", size: T.fsXs });
+  reach(cx + fw / 2);
+  return y0 + 148;
+}
+const ROLLED_H = 148;
+
+/* ================================ option A ================================= */
+function drawA(host, title, sub, step) {
+  const caps = captionBlock(document.createElement("canvas").getContext("2d"));
+  const H = BAND_HEAD + ROWS_BODY + CAP_GAP + caps.length * CAPTION_H + PAD;
+  const { ctx, cand } = panel(host, title, sub, W, H);
+  const y = band(ctx, 0, W, "Time steps", "h_t = f(x_t, h_{t−1})");
+  drawValueRows(ctx, y, { edges: true, step });
+  drawCaptions(ctx, BAND_HEAD + ROWS_BODY + CAP_GAP);
+  note(cand, `stage ${H}px at 550 · widest ink ${Math.round(maxRight)}px of ${RIGHT} `
+    + `(${Math.round(RIGHT - maxRight)}px spare, nothing past ${USABLE} wide) · `
+    + `no height added · ${CROSSINGS_A} places where a y_t lane crosses a recurrence arrow`);
+  return { H, right: Math.round(maxRight) };
+}
+drawA(document.getElementById("oa"), "A · the value rows with every edge drawn",
+  "x_t up into h_t→ and down into h_t←; each hidden cell into its half of y_t, routed in the gutters", null);
+const A = drawA(document.getElementById("oa"),
+  "A · one step: the forward pass at t3",
+  "only the two edges into h³→ light; the eight other lanes stay on the figure", { dir: 0, t: 2 });
+
+/* ================================ option B ================================= */
+function drawB(host, title, sub, step, bidirectional = true) {
+  const caps = captionBlock(document.createElement("canvas").getContext("2d"));
+  const dh = chainBandH(true, bidirectional);
+  const rows = bidirectional ? ROWS : ROWS.filter((r) => r.key !== "rev");
+  const bodyH = bidirectional
+    ? ROWS_BODY
+    : rows.reduce((a, r) => a + (r.key === "y" ? M.RNN_HID : r.tall) * CH, 0) + (rows.length - 1) * ROW_GAP;
+  const y2 = BAND_HEAD + dh + BAND_GAP;
+  const H = y2 + BAND_HEAD + bodyH + CAP_GAP + caps.length * CAPTION_H + PAD;
+  const { ctx, cand } = panel(host, title, sub, W, H);
+  let y = band(ctx, 0, W, "The loop, unrolled", "h_t = f(x_t, h_{t−1})");
+  drawChain(ctx, y, colCx, { step, bidirectional });
+  y = band(ctx, y2, W, "Time steps", bidirectional ? "y_t = [h_t→ ; h_t←]" : "y_t = h_t");
+  if (bidirectional) drawValueRows(ctx, y, { step });
+  else drawUniRows(ctx, y);
+  drawCaptions(ctx, y2 + BAND_HEAD + bodyH + CAP_GAP);
+  note(cand, `stage ${H}px at 550 · diagram band ${dh}px · widest ink ${Math.round(maxRight)}px of ${RIGHT} `
+    + `(${Math.round(RIGHT - maxRight)}px spare, nothing past ${USABLE} wide) · `
+    + `diagram columns on the value columns' centres, ${PITCH}px apart in both`);
+  return { H, right: Math.round(maxRight) };
+}
+/** The unidirectional value rows, for the second B panel. */
+function drawUniRows(ctx, y0) {
+  const rows = [
+    { label: "Forward", tall: M.RNN_HID, dir: "right", hue: T.empirical, at: (t, k) => S.fwd[SAMPLE][t][k] },
+    { label: "Input", tall: M.RNN_IN, hue: T.groupA, at: (t, k) => S.X[SAMPLE][t][k] },
+    { label: "Output", tall: M.RNN_HID, hue: T.empirical, at: (t, k) => S.fwd[SAMPLE][t][k] },
+  ];
+  let y = y0;
+  for (const row of rows) {
+    txt(ctx, row.label, PAD, y + (row.tall * CH) / 2 + 4, { color: T.ink1, weight: "600" });
+    for (let t = 0; t < M.SEQ; t += 1) {
+      for (let k = 0; k < row.tall; k += 1) {
+        cell(ctx, colX(t), y + k * CH, CW, CH, M.n2(row.at(t, k)), { hue: row.hue });
+      }
+      if (row.dir && t < M.SEQ - 1) {
+        arrow(ctx, colX(t) + CW + 4, y + (row.tall * CH) / 2, colX(t) + CW + OP_W - 4, y + (row.tall * CH) / 2);
+      }
+    }
+    y += row.tall * CH + ROW_GAP;
+  }
+}
+const B = drawB(document.getElementById("ob"), "B · the diagram band over the values",
+  "x circles, h boxes in two rows, the Output box the two passes end in", null);
+drawB(document.getElementById("ob"), "B · unidirectional",
+  "the diagram loses its Reverse row where the value rows lose theirs", null, false);
+
+/* ================================ option C ================================= */
+function drawC(host, title, sub, step) {
+  const caps = captionBlock(document.createElement("canvas").getContext("2d"));
+  const chainH = chainBandH(false);
+  const dh = Math.max(ROLLED_H, chainH) + 6;
+  const y2 = BAND_HEAD + dh + BAND_GAP;
+  const H = y2 + BAND_HEAD + ROWS_BODY + CAP_GAP + caps.length * CAPTION_H + PAD;
+  const { ctx, cand } = panel(host, title, sub, W, H);
+  let y = band(ctx, 0, W, "One cell, and the same cell over time", "h_t = f(x_t, h_{t−1})");
+  drawRolled(ctx, PAD, y, { lit: step != null });
+  /* the equals sign between the two halves, as his figure has it */
+  txt(ctx, "=", PAD + ROLLED_W + 6, y + 76, { color: T.ink1, size: T.fsLg, align: "center" });
+  const cCx = (t) => PAD + ROLLED_W + 46 + BOX_W / 2 + t * PITCH;
+  drawChain(ctx, y, cCx, { outputs: false, labels: false, step });
+  y = band(ctx, y2, W, "Time steps", "y_t = [h_t→ ; h_t←]");
+  drawValueRows(ctx, y, { step });
+  drawCaptions(ctx, y2 + BAND_HEAD + ROWS_BODY + CAP_GAP);
+  const off = Math.round(cCx(0) - colCx(0));
+  note(cand, `stage ${H}px at 550 · rolled ${ROLLED_H}px, chain ${chainH}px, band ${dh}px · `
+    + `widest ink ${Math.round(maxRight)}px of ${RIGHT} (${Math.round(RIGHT - maxRight)}px spare, `
+    + `nothing past ${USABLE} wide) · chain column 1 is ${off}px right of value column 1 · `
+    + `no room for the Output box: it would need ${Math.round(cCx(4) + BOX_W / 2 + 18 + 72)}px`);
+  return { H, right: Math.round(maxRight) };
+}
+const C = drawC(document.getElementById("oc"), "C · rolled beside unrolled, then the values",
+  "the shared weights named once on the left, the five steps on the right", null);
+
+/* ============================ one step mid-walk ============================ */
+drawB(document.getElementById("od"), "B · step 3 of the forward pass",
+  "h³→ lands; x³ and h²→ are what it read, in the diagram and in the values at once", { dir: 0, t: 2 });
+
+/* ============================== the numbers ================================ */
+{
+  const capsN = captionBlock(document.createElement("canvas").getContext("2d")).length;
+  const rowsOnly = BAND_HEAD + ROWS_BODY + CAP_GAP + capsN * CAPTION_H + PAD;
+  const table = document.getElementById("sizes");
+  const rows = [
+    ["", "stage at 550", "against today", "widest ink", "columns aligned"],
+    ["today", `${rowsOnly}px`, "—", `${ROWS_RIGHT}px`, "—"],
+    ["A", `${A.H}px`, `+${A.H - rowsOnly}px`, `${A.right}px`, "yes"],
+    ["B", `${B.H}px`, `+${B.H - rowsOnly}px`, `${B.right}px`, "yes"],
+    ["C", `${C.H}px`, `+${C.H - rowsOnly}px`, `${C.right}px`, "no"],
+  ];
+  table.innerHTML = rows
+    .map((r, i) => `<tr>${r.map((c, j) => {
+      const tag = i === 0 ? "th" : "td";
+      const cls = i > 0 && j > 0 && j < 4 ? ' class="n"' : "";
+      return `<${tag}${cls}>${c}</${tag}>`;
+    }).join("")}</tr>`)
+    .join("");
+
+  document.getElementById("reca").innerHTML =
+    `<b>A costs no height and cannot draw two of its four edges cleanly.</b> The two edges into the hidden `
+    + `states fit the ${ROW_GAP}px row gap and read well. The two into y_t have to cross the Input and Reverse `
+    + `rows, so each takes a lane in a column gutter: ten vertical lanes run the height of the figure, and `
+    + `${CROSSINGS_A} of them cross a reverse recurrence arrow. The figure gains ten more lines and still does not `
+    + `say that the same f runs at every step, which is the thing the comment asks for.`;
+  document.getElementById("recb").innerHTML =
+    `<b>Recommend B.</b> ${B.H}px at 550 against today's ${rowsOnly}px — ${B.H - rowsOnly}px for a band that `
+    + `states the recurrence in Kenneth's own vocabulary, on the value columns' own centres, so a reader moving `
+    + `from h³ in the diagram to the three numbers under it moves straight down. The Output box is the one place `
+    + `the diagram and the rows below mean different things: o→ is the last state the forward pass reaches and o← `
+    + `the last the reverse pass reaches, while the Output row is y_t at every step. That is worth a word in the `
+    + `caption or dropping the box, which would return ${chainBandH(true) - chainBandH(false)}px.`;
+  document.getElementById("recc").innerHTML =
+    `<b>C says the most and pays for it twice.</b> ${C.H}px at 550, and the rolled cell takes `
+    + `${ROLLED_W}px of the ${USABLE} available, which pushes the unrolled chain ${Math.round(PAD + ROLLED_W + 46 + BOX_W / 2 - colCx(0))}px `
+    + `right of the value columns under it — the diagram and the numbers are then two different grids on one `
+    + `stage. There is also no room left for the Output box the figure ends on. The rolled cell is the clearest `
+    + `statement of "one f, every step" on the page; it belongs on the formula card or in the lesson, not beside `
+    + `a five-column chain at 550.`;
+  document.getElementById("recall").innerHTML =
+    `<b>B.</b> It is the only option whose diagram sits on the value columns, it draws the two edges A cannot `
+    + `route, and it costs ${B.H - rowsOnly}px — within ${Math.abs((C.H - rowsOnly) - (B.H - rowsOnly))}px of C, `
+    + `which buys a chain that no longer lines up with the numbers it explains.`;
+}
+</script>
+</body>
+</html>

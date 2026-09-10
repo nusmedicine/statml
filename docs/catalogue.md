@@ -10626,7 +10626,11 @@ two rows, one per filter. **(2)** *"for RNN, possible to show a diagram about
 or somehow show the unrolled loop?"* — a design, so mocked:
 `_lab/processing-layers-rnn.html`, three options (arrows on the value rows;
 his `rnn-bi` figure as a strip above the values; rolled cell beside the
-unrolled chain above the values). **(3)** *"for attention, it wasn't clear
+unrolled chain above the values) — measured 618 / 814 / 818px at 550, and
+**Kenneth picked B**, the strip: its x circles and h boxes sit on the value
+columns at the same 72px pitch, it draws the two edges into each h_t that the
+value rows cannot, and it costs 196px against C's 200 for a chain that no
+longer lines up with the numbers (C's rolled cell takes 132 of the 522). **(3)** *"for attention, it wasn't clear
 where I got the scores for pairings like sat-The, sat-cat. Also the output,
 maybe should have a heatmap to illustrate who attends to what?"* — a fix: the
 scores grid labelled by query token (rows) and key token (columns), the
