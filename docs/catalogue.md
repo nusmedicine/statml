@@ -11679,6 +11679,29 @@ only step that changes the shape" corrective under Page 1, and the mock's §7
 pick (the box count follows the block, the print under the diagram, the 377 /
 476px print arithmetic and the 282 / 338 / 394 / 522px heights).
 
+**Ordering built as A (`7c803ed`)**: `view=pattern|combinations|position`,
+4 / 3 / 4 units, Next step · Next combination · Next position, per-view
+tiles, card note, legend and captions; 286 / 243 / 394; two combination
+reasons shortened to hold one line at 550; 179 assertions.
+
+**Round 1, comments 6 and 7 — Kenneth, from three Branching screenshots and
+one of Skip.** **(6)** *"a lot of them are not compatible with fc3. please
+make sure they work, unless there is an intention of demonstrating that you
+need the shapes to be correct"* — true: with fc3 fixed at the notebook's
+`Linear(14, 2)`, only concat at 6 of the six `merge × fc2` combinations
+reached an output, so the entry's claim above that every option wins
+somewhere was false for add and average. **His pick: fc3 follows the merge**
+(`Linear(16, 2)` after concat at 8, `Linear(8, 2)` after add or average), the
+tile reading `fc3 expects N`; the matmul-at-fc3 failure goes, and the one
+failure left is add or average at 8 against 6, the broadcast error at the
+merge, which is the shape lesson. **(7)** *"for skip, there is a sample
+selector but there is no visualization? do we need it?"* — the draft left out
+the merge band this entry planned for Skip ("merge band 186"), so `sample`
+drove only the readout's digits. **His pick: add the bands** — x3, skip and
+out stacked at the +, the chosen row lit and the rows as `regions`, the
+broadcast error in the sum band's place at width 20 without the projection,
+Branching's add form. Both built by one Opus builder.
+
 **Build order within the widget**, once the mock is picked: Dimensions first (the
 strongest losing state and the most machinery), then Skip, Branching, Gating,
 Routing, Building, Ordering. The widget itself is built after
