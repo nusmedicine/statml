@@ -333,7 +333,7 @@ export const routeSumH = (p) =>
 export const routeDiagMin = (z, fixed) =>
   Math.max(routeMinDiag(z), routeSumMinW(z, fixed) + 3 * z.wcell + COLGAP);
 
-/* the box, the gradient gutter and the skip rail down the right */
+/* the box and the skip rail down the right */
 export const SKIP_MIN_DIAG = 250;
 /* the widest band the add is drawn as: f(x) at the wider of the two widths */
 export const SKIP_BAND_COLS = 20;
@@ -823,31 +823,27 @@ export const CODE_SKIP_PROJ = CODE_SKIP.map((l) => (l === "skip = x" ? "skip = s
  * The page named the add with a `+` circle and printed the values of one
  * sample in the readout, and Kenneth asked for the bands the plan carried
  * (2026-09-10, round 2): x3, skip and out as three shaded tensors, the form
- * Branching already draws its merge in. The two operands stack, the `+` sits
- * on the spine in the gap under them, and the result is the band below it —
- * or, where the widths disagree, torch's message in the result's place.
+ * Branching already draws its merge in.
+ *
+ * THE BLOCK READS AS THE STATEMENT IT IS: x3, the `+`, skip, the `=`, out,
+ * each operator on the spine in a row of its own between the bands it joins
+ * (Kenneth, 2026-09-10, round 1). The draft stacked the two operands and put
+ * the `+` under both, which left the operator between the second operand and
+ * the result — an arrangement that reads as `x3` then `skip + out`. Where the
+ * widths disagree torch's message takes the result's place, under the `=`.
  *
  * Here rather than in `main.js` because `pageHeight`, `draw`, `regions` and
  * the verify script all measure the same block (5.8).
  */
-export const SKIP_BAND_GAP = 4;     // between the two operand bands
-export const SKIP_PLUS_GAP = 34;    // the row the + circle sits in, under them
+export const SKIP_PLUS_GAP = 34;    // the row the + circle sits in, between the operands
+export const SKIP_EQ_GAP = 22;      // the row the = glyph sits in, before the result
 export const SKIP_BLOCK_FOOT = 8;   // under the result band, before the out edge
 export const SKIP_ERR_GAP = 22;     // into the result's row, to the message's first line
 
 /** The block's height, measured from the top of the x3 band. */
 export const skipBlockH = (bandH, match, errRows) =>
-  2 * bandH + SKIP_BAND_GAP + SKIP_PLUS_GAP
+  2 * bandH + SKIP_PLUS_GAP + SKIP_EQ_GAP
   + (match ? bandH + SKIP_BLOCK_FOOT : SKIP_ERR_GAP + errRows * LINE + 10);
-
-/** The local factor on each edge of the walk back to x (cell 90's claim). */
-export const SKIP_FACTORS = [
-  ["fc_out", "Wᵀ_out"],
-  ["the add", "1"],
-  ["fc2", "Wᵀ₂"],
-  ["relu", "f′(x1)"],
-  ["fc1", "Wᵀ₁"],
-];
 
 export function skip(width, proj) {
   const x1 = applyLinear(S_FC1, X);

@@ -431,9 +431,24 @@ const shapeIs = (s, want) => Array.isArray(s) && s.join() === want.join();
   check("the relu is applied to x1 and nothing else",
     s10.x2.every((r, i) => r.every((v, j) => v === Math.max(0, s10.x1[i][j]))));
 
-  check("the overlay names five local factors, one for each edge back to x",
-    M.SKIP_FACTORS.length === 5 && M.SKIP_FACTORS.some(([, l]) => l === "1"),
-    "the skip route multiplies by 1, which is the claim");
+  /* THE GRADIENT OVERLAY IS GONE (decision 20), so nothing declares it: the
+     control, the factors it labelled, the gutter it reserved and its legend row
+     all went together. The comments that record the cut are exempt and are
+     stripped first, as section 12 does. */
+  const bare = (u) => readFileSync(new URL(u, import.meta.url), "utf8")
+    .replace(/\/\*[\s\S]*?\*\//g, " ").replace(/^\s*\/\/.*$/gm, " ");
+  check("neither file declares the gradient overlay any more",
+    ["../composition/main.js", "../composition/model.js"].every((u) => {
+      const t = bare(u);
+      return !/\bgrad\b/.test(t) && !/SKIP_FACTORS/.test(t)
+        && !/GRAD_UX/.test(t) && !/slope/.test(t);
+    }),
+    "no dead declaration of a control the page no longer carries");
+
+  check("cell 90's claim survives as a caption, held to the end of the walk",
+    M.captions({ topic: "skip" }, s10).some((c) =>
+      c.text.includes("multiplies the gradient by 1") && c.at === s10.units),
+    "a sentence rather than a second figure");
 }
 
 /* --- 6 · Gating: cell 95, and the mask that blocks whole features ------------ */
@@ -845,21 +860,23 @@ const shapeIs = (s, want) => Array.isArray(s) && s.join() === want.join();
    * how many rows the captions wrap to. Both are read from the browser and
    * pinned below, the arrangement `MONO_SM` and Routing's label widths use.
    */
-  function skipStage(w, { match = true, errRows = 0, grad = false, capRows = 2 } = {}) {
+  function skipStage(w, { match = true, errRows = 0, capRows = 2 } = {}) {
     const s = M.fitSizes(w, (z) => M.bandWidth.skip(z, CW.skip));
     const diagW = usable(w) - CW.skip - M.TEXT_GAP;
     const bandH = M.BATCH_N * s.band;
     const blockH = M.skipBlockH(bandH, match, errRows);
     const bodyH = 16 + 3 * (M.EDGE_H + M.BOX_H) + M.EDGE_H + blockH
       + (match ? M.EDGE_H + M.BOX_H + M.EDGE_H : 0);
-    const capY = M.BAND_HEAD + bodyH + (grad ? 20 : 0) + M.CAP_GAP;
-    /* `skipBands` in main.js, measured from the top of the x3 band */
+    const capY = M.BAND_HEAD + bodyH + M.CAP_GAP;
+    /* `skipBands` in main.js, measured from the top of the x3 band: an operator
+       row between each pair of bands, so the block reads x3 + skip = out */
     const blockTop = M.BAND_HEAD + 16 + 3 * (M.EDGE_H + M.BOX_H) + M.EDGE_H;
-    const bandY = [blockTop, blockTop + bandH + M.SKIP_BAND_GAP,
-      blockTop + 2 * bandH + M.SKIP_BAND_GAP + M.SKIP_PLUS_GAP];
+    const bandY = [blockTop, blockTop + bandH + M.SKIP_PLUS_GAP,
+      blockTop + 2 * bandH + M.SKIP_PLUS_GAP + M.SKIP_EQ_GAP];
     return {
       s, diagW, bandH, blockH, bodyH, capY, blockTop, bandY,
-      plusY: bandY[1] + bandH + M.SKIP_PLUS_GAP / 2,
+      plusY: bandY[0] + bandH + M.SKIP_PLUS_GAP / 2,
+      eqY: bandY[1] + bandH + M.SKIP_EQ_GAP / 2,
       blockW: M.SKIP_BAND_COLS * s.band,
       rowTops: (match ? bandY : bandY.slice(0, 2)).flatMap((y) =>
         Array.from({ length: M.BATCH_N }, (_, r) => y + r * s.band)),
@@ -872,12 +889,14 @@ const shapeIs = (s, want) => Array.isArray(s) && s.join() === want.join();
     && skipStage(550).s.band === 12 && skipStage(770).s.band === 16,
     "x3, skip and out, four samples each");
 
-  check("every band row is inside the block, and the + sits between the operands",
+  check("every band row is inside the block, and the block reads x3 + skip = out",
     [550, 770].every((w) => {
       const st = skipStage(w);
       return st.rowTops.every((y) => y >= st.blockTop
         && y + st.s.band <= st.blockTop + st.blockH - M.SKIP_BLOCK_FOOT)
-        && st.plusY > st.bandY[1] + st.bandH && st.plusY < st.bandY[2];
+        /* the + between the two operands, the = between skip and the result */
+        && st.plusY > st.bandY[0] + st.bandH && st.plusY < st.bandY[1]
+        && st.eqY > st.bandY[1] + st.bandH && st.eqY < st.bandY[2];
     }),
     `at 550 the rows run ${skipStage(550).rowTops[0]} to `
     + `${skipStage(550).rowTops[11] + 12}, in a block of ${skipStage(550).blockH}`);
@@ -885,23 +904,21 @@ const shapeIs = (s, want) => Array.isArray(s) && s.join() === want.join();
   check("where the add raises, the message takes the result band's row",
     skipStage(550, { match: false, errRows: 2 }).rowTops.length === 2 * M.BATCH_N
     && M.skipBlockH(48, false, 2) - M.skipBlockH(48, true, 0) === 8,
-    "two operands stacked, and torch's two lines where the third band would be");
+    "the two operands and the add, and torch's two lines where the result would be");
 
   /* MEASURED IN THE BROWSER, at the stage the side layout gives (549.6 and
      770.4, which round to the same cell size and the same wrapped counts):
      torch's message takes two rows at both widths, the captions three at 550
-     and two at 770. The bands add 152px at 550 and 200 at 770. */
-  check("Skip's stage is 611px at 550 and 642 at 770, the bands included",
-    skipStage(550, { capRows: 3 }).height === 611
-    && skipStage(770, { capRows: 2 }).height === 642
-    && skipStage(550, { capRows: 3, grad: true }).height === 631
-    && skipStage(770, { capRows: 2, grad: true }).height === 662,
-    `${skipStage(550, { capRows: 3 }).height} / ${skipStage(770, { capRows: 2 }).height}, `
-    + "and 20px more with the gradient line under the figure");
+     and two at 770. The bands add 152px at 550 and 200 at 770, and the `=` row
+     that makes the block read x3 + skip = out adds 18 more at both. */
+  check("Skip's stage is 629px at 550 and 660 at 770, the bands included",
+    skipStage(550, { capRows: 3 }).height === 629
+    && skipStage(770, { capRows: 2 }).height === 660,
+    `${skipStage(550, { capRows: 3 }).height} / ${skipStage(770, { capRows: 2 }).height}`);
 
-  check("where the add raises, the stage is 512px at 550 and 544 at 770",
-    skipStage(550, { match: false, errRows: 2, capRows: 2 }).height === 512
-    && skipStage(770, { match: false, errRows: 2, capRows: 2 }).height === 544,
+  check("where the add raises, the stage is 530px at 550 and 562 at 770",
+    skipStage(550, { match: false, errRows: 2, capRows: 2 }).height === 530
+    && skipStage(770, { match: false, errRows: 2, capRows: 2 }).height === 562,
     "two rows of message in the result band's place, and no fc_out under it");
 
   check("the widest band and the rail column both fit the diagram, at both widths",
@@ -1235,10 +1252,6 @@ const shapeIs = (s, want) => Array.isArray(s) && s.join() === want.join();
     /width:[\s\S]{0,400}?value: "10", label: "10"/.test(src)
     && /fc2:[\s\S]{0,400}?value: "6", label: "6"/.test(src));
 
-  check("the reveal carries 0 and 1, which is the arc's convention",
-    /grad:[\s\S]{0,300}?value: "0", label: "Off"/.test(src)
-    && /value: "1", label: "On"/.test(src));
-
   check("the drive label is Next line, and Next layer where a layer is the unit",
     /stepLabel: { param: "topic", labels: STEP_LABELS, default: "Next line" }/.test(src)
     && /dimensions: "Next layer"/.test(src)
@@ -1251,8 +1264,8 @@ const shapeIs = (s, want) => Array.isArray(s) && s.join() === want.join();
     /SAMPLE_FIELD = {[\s\S]*?display: true,/.test(src)
     && /sample: { \.\.\.SAMPLE_FIELD, when: { any: \[ON\("skip"\), ON\("gating"\), ON\("branching"\), ON\("routing"\)\] } }/.test(src));
 
-  check("show, sample, grad and speed keep the walk, and nothing else does",
-    (src.match(/display: true/g) ?? []).length === 4, "four display parameters");
+  check("show, sample and speed keep the walk, and nothing else does",
+    (src.match(/display: true/g) ?? []).length === 3, "three display parameters");
 
   check("the Routing caption carries the two containers by name",
     model.includes("nn.ModuleList holds the three branches so they can be applied in a loop; "

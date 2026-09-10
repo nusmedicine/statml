@@ -203,13 +203,21 @@
        message, its caption row and the geometry rows that reserved space for
        it can no longer occur, so none of them is declared.
 
-   19. SKIP'S ADD IS DRAWN AS THREE BANDS. The page named the add with a `+`
-       circle and left the values to the readout, and Kenneth asked for the
-       bands the plan carried (2026-09-10, round 2). They are Branching's own
-       form at `add`: the two operands stacked, the result under them, every
-       cell shaded on the band's own largest magnitude and the chosen sample's
-       row lit in all three. What is new here is the `+`, which stays as the
-       node the two operand bands feed, in the gap between them and the result.
+   19. SKIP'S ADD IS DRAWN AS THREE BANDS, AND READS x3 + skip = out. The page
+       named the add with a `+` circle and left the values to the readout, and
+       Kenneth asked for the bands the plan carried (2026-09-10, round 2). They
+       are Branching's own form at `add`: three shaded tensors, every cell
+       shaded on the band's own largest magnitude and the chosen sample's row
+       lit in all three.
+
+       WHAT ORDER THEY STACK IN IS THE STATEMENT THEY MAKE. The draft stacked
+       the two operands, then the `+`, then the result, which puts the operator
+       between the second operand and the result and reads as `skip + out`. The
+       block now writes the whole line down the spine — the x3 band, the `+`
+       node, the skip band, an `=` glyph, the out band — so each operator sits
+       between the two things it joins (Kenneth, round 1). The rail still
+       elbows into the skip band's right edge at mid-height, because that is
+       the operand it is.
 
        THE BLOCK IS CENTRED ON THE SPINE, CLAMPED. Centred in the diagram it
        leaves the `+` standing beside its own bands at width 10; centred on the
@@ -223,6 +231,16 @@
        produced the operands: a band is a value (decision 14), and the value
        the page is about is the sum. Their rows are the `regions` that set
        `sample`, read through the same walk the drawing uses.
+
+   20. SKIP DRAWS NO GRADIENT OVERLAY. The page carried a `Gradient` control,
+       off by default, that walked the same edges upwards with the local factor
+       on each and printed `∂y/∂x = 1 + f′(x)`, and Kenneth cut it on
+       2026-09-10: no other page of this widget answers a question about
+       training, and the argument it made is the `gradients` widget's own. The
+       claim survives as the caption cell 90 makes — the route through the skip
+       multiplies the gradient by 1 — which is a sentence rather than a second
+       figure. With it went the gutter it reserved left of the spine, so the
+       diagram column is the boxes and the rail and nothing else.
    ========================================================================= */
 
 import {
@@ -727,28 +745,19 @@ function markDims(ctx, colors, text, skip, shape, next, cx, ruleY) {
 
 /* ============================== 2 · Skip =================================== *
  * Cells 90-92. `y = x + f(x)`, and the add is where the widths have to agree.
- * The add is drawn as three bands (decision 19): x3 and skip stacked, the `+`
- * on the spine under them, and `out` below it — or torch's message in its row.
+ * The add is drawn as three bands (decision 19), written down the spine as the
+ * statement it is: the x3 band, the `+`, the skip band, the `=`, and `out` —
+ * or torch's message in the result's row.
  */
 
 const SKIP_BOX = 130;
 const SKIP_RAIL = 60;     // the column the skip elbow runs down, from the right
-
-/* the gradient overlay's up-arrow column, left of the spine: far enough that a
-   factor label right-aligned beside it clears the widest edge label, `x3  [4, 10]`
-   (at 26px the two collided, Kenneth's round 1) */
-const GRAD_UX = 60;
 
 function skipGeom(ctx, colors, w, params, state) {
   const usable = w - 2 * PAD;
   const cw = codeW(ctx, colors, state.code);
   const s = M.fitSizes(w, (z) => M.bandWidth.skip(z, cw));
   const diagW = usable - cw - TEXT_GAP;
-  const grad = params.grad === "1";
-  ctx.font = `${colors.fsXs} ${colors.font}`;
-  const ow = grad
-    ? GRAD_UX + 8 + Math.ceil(Math.max(...M.SKIP_FACTORS.map(([, l]) => ctx.measureText(l).width)))
-    : 0;
   const errRows = state.error ? wrapMono(ctx, colors, state.error, diagW).length : 0;
   const bandH = M.BATCH_N * s.band;
   const blockH = M.skipBlockH(bandH, state.match, errRows);
@@ -757,8 +766,8 @@ function skipGeom(ctx, colors, w, params, state) {
   const bodyH = XLAB + 3 * (EDGE_H + BOX_H) + EDGE_H + blockH
     + (state.match ? EDGE_H + BOX_H + EDGE_H : 0);
   const caps = captionLines(ctx, colors, w, params, state);
-  const capY = BAND_HEAD + bodyH + (grad ? 20 : 0) + CAP_GAP;
-  const cx = PAD + ow + SKIP_BOX / 2 + 6;
+  const capY = BAND_HEAD + bodyH + CAP_GAP;
+  const cx = PAD + SKIP_BOX / 2 + 6;
   const railX = PAD + diagW - SKIP_RAIL;
   /* THE BLOCK IS AS CLOSE TO THE SPINE AS THE STAGE ALLOWS. Centred on the
      diagram it would leave the + standing beside its own bands at width 10;
@@ -769,7 +778,7 @@ function skipGeom(ctx, colors, w, params, state) {
      down its middle, and at 20 it opens out to both sides of the spine. */
   const blockW = Math.max(state.width, state.skipShape[1]) * s.band;
   return {
-    usable, cw, s, diagW, ow, errRows, bandH, blockH, bodyH, grad, capY, caps, cx, railX,
+    usable, cw, s, diagW, errRows, bandH, blockH, bodyH, capY, caps, cx, railX,
     blockCx: Math.max(PAD + blockW / 2, Math.min(cx, railX - 10 - blockW / 2)),
     /* the top of the x3 band: the three boxes on their edges, and the x3 edge */
     blockTop: BAND_HEAD + XLAB + 3 * (EDGE_H + BOX_H) + EDGE_H,
@@ -778,19 +787,21 @@ function skipGeom(ctx, colors, w, params, state) {
 }
 
 /** Where each band of the add sits, so `draw` and `regions` agree (5.8). The
-    two operands stack, the + sits in the gap under them, and the result is the
-    band below it — or, where the widths disagree, torch's message in its row. */
+    block writes `x3 + skip = out` down the spine: each operator has a row of
+    its own between the two bands it joins — or, where the widths disagree,
+    torch's message under the `=`, in the result's row. */
 function skipBands(g, state) {
   const p = g.s.band;
   const top = g.blockTop;
   const at = (cols, y) => ({ x: g.blockCx - (cols * p) / 2, y, cols });
-  const skipY = top + g.bandH + M.SKIP_BAND_GAP;
-  const outY = skipY + g.bandH + M.SKIP_PLUS_GAP;
+  const skipY = top + g.bandH + M.SKIP_PLUS_GAP;
+  const outY = skipY + g.bandH + M.SKIP_EQ_GAP;
   return {
     x3: at(state.width, top),
     skip: at(state.skipShape[1], skipY),
     out: state.match ? at(state.width, outY) : null,
-    plusY: skipY + g.bandH + M.SKIP_PLUS_GAP / 2,
+    plusY: top + g.bandH + M.SKIP_PLUS_GAP / 2,
+    eqY: skipY + g.bandH + M.SKIP_EQ_GAP / 2,
     outY,
   };
 }
@@ -840,9 +851,9 @@ function drawSkip(ctx, colors, w, params, state, anim) {
      previews the label and nothing else, and a projection box appears with the
      line that applies it. Kenneth's own split, 2026-09-10 round 1.
 
-     A BAND IS A VALUE, NOT A LAYER, so the preview draws the + and the rail
-     and leaves the three tensors to the line that computes them. */
-  const { plusY } = bands;
+     A BAND IS A VALUE, NOT A LAYER, so the preview draws the operators and the
+     rail and leaves the three tensors to the line that computes them. */
+  const { plusY, eqY } = bands;
   const sample = Number(params.sample);
   const teeY = y + 22;
   /* the skip path takes the second operand's hue where a projection makes it a
@@ -866,6 +877,13 @@ function drawSkip(ctx, colors, w, params, state, anim) {
     plusNode(ctx, colors, cx, plusY, 14, landed(walk, 5)
       ? (state.match ? colors.empirical : colors.extreme)
       : colors.axis);
+    /* the second operator is a glyph and not a node: the `+` is the layer the
+       two paths meet at, and the `=` only says what the band under it holds —
+       which is how the Routing box writes its own */
+    txt(ctx, colors, "=", cx, eqY + 0.5, {
+      color: landed(walk, 5) ? colors.ink3 : colors.axis,
+      align: "center", baseline: "middle", mono: true,
+    });
   }
 
   /* the skip path, down the right of the figure, both halves of his figure */
@@ -920,8 +938,9 @@ function drawSkip(ctx, colors, w, params, state, anim) {
     }
   }
 
-  /* the message prints where the result band would be, so the two stacked
-     operands are what the reader is looking at when it arrives */
+  /* the message prints where the result band would be, under the `=`, so the
+     two operands and the add they failed are what the reader is looking at
+     when it arrives */
   if (!state.match) {
     if (landed(walk, 5)) {
       errorText(ctx, colors, PAD, bands.outY + M.SKIP_ERR_GAP, g.diagW, state.error);
@@ -934,34 +953,6 @@ function drawSkip(ctx, colors, w, params, state, anim) {
       { color: colors.empirical });
   }
 
-  /* THE LOCAL FACTORS, off by default and conditioned on there being a result
-     to lie behind (3.4j): the same edges walked upwards, the two arriving at x
-     adding to 1 + f′(x). */
-  /* DECISION 14: a factor is written on an edge, so it waits for the edge. The
-     leg on the input arrow is the bus's and needs no line to have run. */
-  if (g.grad && state.match && walk.done > 0) {
-    const ux = cx - GRAD_UX;
-    const legs = [[Y.e6, "Wᵀ_out", 6], [Y.e5, "1", 5], [Y.e4, "Wᵀ₂", 4],
-      [Y.e3, "f′(x1)", 3], [Y.e2, "Wᵀ₁", 2], [Y.e1, "", 0]];
-    for (const [a, label, unit] of legs) {
-      if (!landed(walk, unit)) continue;
-      arrow(ctx, ux, a + EDGE_H, ux, a, colors.slope, 1.6, [], 7);
-      if (label) {
-        txt(ctx, colors, label, ux - 6, a + EDGE_H / 2 + 1,
-          { color: colors.slope, align: "right", baseline: "middle", size: colors.fsXs });
-      }
-    }
-    if (landed(walk, 5)) {
-      /* the leg runs beside the rail, from where the rail ends: the block
-         reaches its widest at 20 cells and the rail column is clear of it at
-         both widths, so the gutter the arrow uses is empty */
-      arrow(ctx, railX + 12, railEndY, railX + 12, teeY + 4, colors.slope, 1.6, [], 7);
-      txt(ctx, colors, "1", railX + 18, (teeY + railEndY) / 2, { color: colors.slope, size: colors.fsXs });
-    }
-    if (landed(walk, state.units)) {
-      txt(ctx, colors, "∂y/∂x = 1 + f′(x)", PAD, top + g.bodyH + 14, { color: colors.slope, mono: true });
-    }
-  }
   return g;
 }
 
@@ -1896,9 +1887,6 @@ const CARD = {
     "y = x + f(x)"),
   skipProj: eq(row(mi("y"), mo("="), mi("P"), mo("("), mi("x"), mo(")"), mo("+"), mi("f"), mo("("), mi("x"), mo(")")),
     "y = P(x) + f(x)"),
-  grad: eq(row(frac(row(mo("∂"), mi("y")), row(mo("∂"), mi("x"))), mo("="), mn("1"), mo("+"),
-    mi("f′"), mo("("), mi("x"), mo(")")),
-  "∂y/∂x = 1 + f′(x)"),
   gate: eq(row(mi("y"), mo("="), mi("g"), mo("⊙"), mi("x")), "y = g ⊙ x"),
   concat: eq(row(mi("y"), mo("="), mi("concat"), mo("("), fx(f1), mo(","), fx(f2), mo(")")),
     "y = concat(f₁(x), f₂(x))"),
@@ -1915,7 +1903,7 @@ const CARD = {
 
 /** The card's rows and its note, for the page on screen. A row carries the
     name it is known by, the body, and whether it is the one in force. */
-function cardFor(params, state) {
+function cardFor(state) {
   switch (state.kind) {
     case "dimensions": {
       const conv = state.steps.find((s) => s.layer.kind === "conv2d" && !s.error);
@@ -1936,19 +1924,16 @@ function cardFor(params, state) {
           + "A convolution and a pooling window are not, so their output size is computed from the input.",
       };
     }
-    case "skip": {
-      const rows = [
-        ["y", CARD.skip, !state.proj],
-        ["y", CARD.skipProj, state.proj],
-      ];
-      if (params.grad === "1") rows.push(["∂y/∂x", CARD.grad, true]);
+    case "skip":
       return {
-        rows,
+        rows: [
+          ["y", CARD.skip, !state.proj],
+          ["y", CARD.skipProj, state.proj],
+        ],
         note: state.proj
           ? `P is a Linear(10, ${state.width}) on the skip path, so both sides of the add have the same shape.`
           : "The add requires the same shape on both sides, and a projection is what aligns them where they differ.",
       };
-    }
     case "gating":
       return {
         rows: [["y", CARD.gate, true]],
@@ -2003,9 +1988,9 @@ function renderCard(params, state) {
     cardHost.className = "w-math";
     figure.parentNode.insertBefore(cardHost, figure);
   }
-  const card = cardFor(params, state);
+  const card = cardFor(state);
   const key = [params.topic, params.view, params.data, params.merge,
-    params.fc2, params.width, params.proj, params.gate, params.mode, params.grad,
+    params.fc2, params.width, params.proj, params.gate, params.mode,
     params.step1, params.step2, params.step3, params.step4].join(":");
   if (key === cardKey) return;
   cardKey = key;
@@ -2345,22 +2330,6 @@ defineWidget({
       when: ON("skip"),
     },
     sample: { ...SAMPLE_FIELD, when: { any: [ON("skip"), ON("gating"), ON("branching"), ON("routing")] } },
-    /* 3.4j: the answer goes below the drive row, and it is conditioned on there
-       being a result to lie behind, so it returns by itself when the walk is
-       empty. The URL carries 0/1, which is the arc's convention for a reveal. */
-    grad: {
-      type: "segmented",
-      label: "Gradient",
-      detail: "the local factor on each edge, and the two that arrive at x",
-      options: [
-        { value: "0", label: "Off" },
-        { value: "1", label: "On", detail: "the same edges walked upwards, each with the factor it multiplies by" },
-      ],
-      default: "0",
-      display: true,
-      afterDrive: true,
-      when: ON("skip"),
-    },
 
     /* --- Gating ------------------------------------------------------------ */
     gate: {
@@ -2475,7 +2444,6 @@ defineWidget({
         { token: "group-a", label: "The input, the layers of f(x), and the result of the add" },
         ...(params.proj === "on" ? [{ token: "group-b", label: "The projection on the skip path" }] : []),
         { token: "highlight", label: "The line being run" },
-        ...(params.grad === "1" ? [{ token: "slope", label: "The local factor on one edge" }] : []),
       ];
     }
     if (topic === "gating") {
