@@ -10770,7 +10770,30 @@ sat; **`query` is a `segmented` DISPLAY control** (The · cat · sat) choosing
 which token's working band 2 explains, pinned there, its products and output
 empty until the walk reaches that token; the click targets set the same
 parameter; switching it keeps the walk, since choosing which query to read is
-a reading of computed data (3.2).
+a reading of computed data (3.2). Built as `65244c7`.
+
+**"Tested ok" (2026-09-10), then the copy round before the promotion.** His
+asks: comments and descriptors to the principles; the title *Deep Learning -
+Processing Layers*; subtitle and gallery text against the previous widgets;
+options where unsure. **Title:** he picked the prefix on all three DL
+Foundations widgets — *Deep Learning - Tensors*, *- Gradients*, *- Processing
+Layers* (`ac2572c`; the title sits outside the hashed surfaces; `mlp` keeps
+*Neural Networks (MLP)*). **The audit** (an Opus 5 reviewer, read-only): about
+280 reader-facing strings over nine surfaces, 31 with a problem, the subtitle
+(228 chars, two sentences, between hmm's 224 and gradients' 222) and the blurb
+(103) both passing against the four examples and kept. The findings, by kind:
+four of five step titles named the highlight ("lighting the row of x") rather
+than the computation, unique in the arc; both Recurrent captions opened with
+"The recurrence is drawn closed", a metaphor contradicting band 1's own header
+*The loop, unrolled*; "True image" labelled a reveal where nothing was hidden;
+"nine weights" stood beside a two-kernel figure; three tics (a cleft, two
+trailing "which is", an em-dash aside); one legend entry naming two different
+queries in one colour; `o→`/`o←` as a third name for `h→`/`h←`; three shapes
+of "not computed yet". **His three picks, all the recommendation:** the seven
+longer rewrites that add a fact; the reveal renamed *Difference*, Off / On
+(and its parameter `trueimage` → `difference`, the URL being copy); the
+Identity caption saying its two numbers are distances. Applied in one builder
+round with the twenty-six rows the principles settled.
 
 ### Slot 50 · `support-layers` — Normalization, Activation and Dropout — PLANNED 2026-09-10
 
