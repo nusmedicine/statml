@@ -3736,154 +3736,154 @@
       "tx": "d2571059"
     },
     {
-      "$note": "PLACEHOLDER, draft: Embedding: four numbers a residue, all six tokens copied out of the table",
+      "$note": "Embedding: four numbers a residue, all six tokens copied out of the table",
       "slug": "support-layers",
       "state": "?theme=light&block=embedding&shown=6",
-      "px": "0",
-      "tx": "0"
+      "px": "ecb33b73",
+      "tx": "2ffa937b"
     },
     {
-      "$note": "PLACEHOLDER, draft: Embedding: two numbers a residue, the narrowest table and the two result frames side by side",
+      "$note": "Embedding: two numbers a residue, the narrowest table and the two result frames side by side",
       "slug": "support-layers",
       "state": "?theme=light&block=embedding&dim=2&shown=6",
-      "px": "0",
-      "tx": "0"
+      "px": "a68833ad",
+      "tx": "bd9ff0f4"
     },
     {
-      "$note": "PLACEHOLDER, draft: Embedding: eight numbers a residue, the setting where the two result frames stack",
+      "$note": "Embedding: eight numbers a residue, the setting where the two result frames stack",
       "slug": "support-layers",
       "state": "?theme=light&block=embedding&dim=8&shown=6",
-      "px": "0",
-      "tx": "0"
+      "px": "4045d0df",
+      "tx": "417044f3"
     },
     {
-      "$note": "PLACEHOLDER, draft: Pooling: the 2 x 2 window, all 64 windows taken and both 8 x 8 maps full",
+      "$note": "Pooling: the 2 x 2 window, all 64 windows taken and both 8 x 8 maps full",
       "slug": "support-layers",
       "state": "?theme=light&block=pooling&shown=64",
-      "px": "0",
-      "tx": "0"
+      "px": "fba532b4",
+      "tx": "e43dfdb9"
     },
     {
-      "$note": "PLACEHOLDER, draft: Pooling: the 4 x 4 window, 16 windows and a pair of 4 x 4 maps",
+      "$note": "Pooling: the 4 x 4 window, 16 windows and a pair of 4 x 4 maps",
       "slug": "support-layers",
       "state": "?theme=light&block=pooling&k=4&shown=16",
-      "px": "0",
-      "tx": "0"
+      "px": "27234deb",
+      "tx": "728ed279"
     },
     {
-      "$note": "PLACEHOLDER, draft: Normalization: batch, all three features standardized down the samples of the batch",
+      "$note": "Normalization: batch, all three features standardized down the samples of the batch",
       "slug": "support-layers",
       "state": "?theme=light&block=normalization&shown=3",
-      "px": "0",
-      "tx": "0"
+      "px": "0e1662e3",
+      "tx": "02d72e7b"
     },
     {
-      "$note": "PLACEHOLDER, draft: Normalization: layer, ten rows standardized across the features of one sample",
+      "$note": "Normalization: layer, ten rows standardized across the features of one sample",
       "slug": "support-layers",
       "state": "?theme=light&block=normalization&norm=layer&shown=10",
-      "px": "0",
-      "tx": "0"
+      "px": "f29e533d",
+      "tx": "9b921318"
     },
     {
-      "$note": "PLACEHOLDER, draft: Normalization: batch with the scale and shift off their defaults, so the group leaves with mean 1 and sd 2",
+      "$note": "Normalization: batch with the scale and shift off their defaults, so the group leaves with mean 1 and sd 2",
       "slug": "support-layers",
       "state": "?theme=light&block=normalization&gamma=2&beta=1&shown=3",
-      "px": "0",
-      "tx": "0"
+      "px": "c8032169",
+      "tx": "f6cb8ecf"
     },
     {
-      "$note": "PLACEHOLDER, draft: Activation: hidden, five inputs through all three functions with the ReLU curve on the panel",
+      "$note": "Activation: hidden, five inputs through all three functions with the ReLU curve on the panel",
       "slug": "support-layers",
       "state": "?theme=light&block=activation&shown=5",
-      "px": "0",
-      "tx": "0"
+      "px": "848addc5",
+      "tx": "5a9b20d2"
     },
     {
-      "$note": "PLACEHOLDER, draft: Activation: hidden with the GELU curve drawn, the same five outputs - a display change that keeps the walk",
+      "$note": "Activation: hidden with the GELU curve drawn, the same five outputs - a display change that keeps the walk",
       "slug": "support-layers",
       "state": "?theme=light&block=activation&fn=gelu&shown=5",
-      "px": "0",
-      "tx": "0"
+      "px": "cf3ed02e",
+      "tx": "016faac3"
     },
     {
-      "$note": "PLACEHOLDER, draft: Activation: sigmoid, five scores each to the probability of one outcome",
+      "$note": "Activation: sigmoid, five scores each to the probability of one outcome",
       "slug": "support-layers",
       "state": "?theme=light&block=activation&use=sigmoid&shown=5",
-      "px": "0",
-      "tx": "0"
+      "px": "4cfa6d93",
+      "tx": "cd7aaa90"
     },
     {
-      "$note": "PLACEHOLDER, draft: Activation: softmax, three scores to one distribution over the classes",
+      "$note": "Activation: softmax, three scores to one distribution over the classes",
       "slug": "support-layers",
       "state": "?theme=light&block=activation&use=softmax&shown=3",
-      "px": "0",
-      "tx": "0"
+      "px": "74f641b7",
+      "tx": "cfae9fb4"
     },
     {
-      "$note": "PLACEHOLDER, draft: Dropout: training at p = 0.5, all ten cells decided and the survivors scaled by 2.00",
+      "$note": "Dropout: training at p = 0.5, all ten cells decided and the survivors scaled by 2.00",
       "slug": "support-layers",
       "state": "?theme=light&block=dropout&shown=10",
-      "px": "0",
-      "tx": "0"
+      "px": "631b78c8",
+      "tx": "95d4912a"
     },
     {
-      "$note": "PLACEHOLDER, draft: Dropout: evaluation, no mask and the input passed straight through",
+      "$note": "Dropout: evaluation, no mask and the input passed straight through",
       "slug": "support-layers",
       "state": "?theme=light&block=dropout&mode=evaluation&shown=10",
-      "px": "0",
-      "tx": "0"
+      "px": "e5d07c69",
+      "tx": "b73ec3e3"
     },
     {
-      "$note": "PLACEHOLDER, draft: Dropout: p = 0.8 at seed 10, the draw the mean output sum of 0.524 was measured on",
+      "$note": "Dropout: p = 0.8 at seed 10, the draw the mean output sum of 0.524 was measured on",
       "slug": "support-layers",
       "state": "?theme=light&block=dropout&p=0.8&seed=10&shown=10",
-      "px": "0",
-      "tx": "0"
+      "px": "21d094d8",
+      "tx": "5c163ba3"
     },
     {
-      "$note": "PLACEHOLDER, draft: Dropout: p = 0.2, one cell in five and a 1.25 scaling",
+      "$note": "Dropout: p = 0.2, one cell in five and a 1.25 scaling",
       "slug": "support-layers",
       "state": "?theme=light&block=dropout&p=0.2&shown=10",
-      "px": "0",
-      "tx": "0"
+      "px": "1abfa72e",
+      "tx": "c298423f"
     },
     {
-      "$note": "PLACEHOLDER, draft: Embedding: empty, the token ids and the table with no row copied out",
+      "$note": "Embedding: empty, the token ids and the table with no row copied out",
       "slug": "support-layers",
       "state": "?theme=light&block=embedding&shown=0",
-      "px": "0",
-      "tx": "0"
+      "px": "0e0b88e9",
+      "tx": "63a39e80"
     },
     {
-      "$note": "PLACEHOLDER, draft: Pooling: empty, the image and the two blank maps",
+      "$note": "Pooling: empty, the image and the two blank maps",
       "slug": "support-layers",
       "state": "?theme=light&block=pooling&shown=0",
-      "px": "0",
-      "tx": "0"
+      "px": "72cc5d36",
+      "tx": "8eaae1b7"
     },
     {
-      "$note": "PLACEHOLDER, draft: Normalization: empty, the input tensor with no group standardized",
+      "$note": "Normalization: empty, the input tensor with no group standardized",
       "slug": "support-layers",
       "state": "?theme=light&block=normalization&shown=0",
-      "px": "0",
-      "tx": "0"
+      "px": "337d7b23",
+      "tx": "881487dd"
     },
     {
-      "$note": "PLACEHOLDER, draft: Activation: empty, the five inputs and the three output rows blank",
+      "$note": "Activation: empty, the five inputs and the three output rows blank",
       "slug": "support-layers",
       "state": "?theme=light&block=activation&shown=0",
-      "px": "0",
-      "tx": "0"
+      "px": "6d68d604",
+      "tx": "6b5231a3"
     },
     {
-      "$note": "PLACEHOLDER, draft: Dropout: empty, the input tensor and the mask before the first cell is decided",
+      "$note": "Dropout: empty, the input tensor and the mask before the first cell is decided",
       "slug": "support-layers",
       "state": "?theme=light&block=dropout&shown=0",
-      "px": "0",
-      "tx": "0"
+      "px": "4260e3fc",
+      "tx": "0b7ce1f9"
     },
     {
-      "$note": "PLACEHOLDER, draft, DRIVEN: Embedding mid-step at Medium, 14 frames of 32 ms into the 750 ms beat - past the light phase and mid-land, the first token's row on its way into the result",
+      "$note": "DRIVEN: Embedding mid-step at Medium, 14 frames of 32 ms into the 750 ms beat - past the light phase and mid-land, the first token's row on its way into the result",
       "slug": "support-layers",
       "state": "?theme=light&block=embedding",
       "drive": {
@@ -3891,11 +3891,11 @@
         "frames": 14,
         "dt": 32
       },
-      "px": "0",
-      "tx": "0"
+      "px": "495ee659",
+      "tx": "0db6e0c5"
     },
     {
-      "$note": "PLACEHOLDER, draft, DRIVEN: Pooling mid-step at Medium, the first 2 x 2 window lit and its max and its mean landing",
+      "$note": "DRIVEN: Pooling mid-step at Medium, the first 2 x 2 window lit and its max and its mean landing",
       "slug": "support-layers",
       "state": "?theme=light&block=pooling",
       "drive": {
@@ -3903,11 +3903,11 @@
         "frames": 14,
         "dt": 32
       },
-      "px": "0",
-      "tx": "0"
+      "px": "2b4ea424",
+      "tx": "9889f9c5"
     },
     {
-      "$note": "PLACEHOLDER, draft, DRIVEN: Normalization mid-step at Medium, the first feature's column lit and its standardized values landing",
+      "$note": "DRIVEN: Normalization mid-step at Medium, the first feature's column lit and its standardized values landing",
       "slug": "support-layers",
       "state": "?theme=light&block=normalization",
       "drive": {
@@ -3915,11 +3915,11 @@
         "frames": 14,
         "dt": 32
       },
-      "px": "0",
-      "tx": "0"
+      "px": "d9c7ab50",
+      "tx": "ced3555e"
     },
     {
-      "$note": "PLACEHOLDER, draft, DRIVEN: Activation mid-step at Medium, the first input lit and its three outputs landing",
+      "$note": "DRIVEN: Activation mid-step at Medium, the first input lit and its three outputs landing",
       "slug": "support-layers",
       "state": "?theme=light&block=activation",
       "drive": {
@@ -3927,11 +3927,11 @@
         "frames": 14,
         "dt": 32
       },
-      "px": "0",
-      "tx": "0"
+      "px": "a0459a80",
+      "tx": "c51f4416"
     },
     {
-      "$note": "PLACEHOLDER, draft, DRIVEN: Dropout mid-step at Medium, the first cell decided and landing",
+      "$note": "DRIVEN: Dropout mid-step at Medium, the first cell decided and landing",
       "slug": "support-layers",
       "state": "?theme=light&block=dropout",
       "drive": {
@@ -3939,11 +3939,11 @@
         "frames": 14,
         "dt": 32
       },
-      "px": "0",
-      "tx": "0"
+      "px": "32d50e79",
+      "tx": "0b7ce1f9"
     },
     {
-      "$note": "PLACEHOLDER, draft, DRIVEN: INTERRUPTED: Dropout stepped again while the first step is in flight - core finishes the unit by fastForward and the second cell is mid-land, the state no settled hash can see",
+      "$note": "DRIVEN: INTERRUPTED: Dropout stepped again while the first step is in flight - core finishes the unit by fastForward and the second cell is mid-land, the state no settled hash can see",
       "slug": "support-layers",
       "state": "?theme=light&block=dropout",
       "drive": {
@@ -3957,8 +3957,8 @@
         "frames": 14,
         "dt": 32
       },
-      "px": "0",
-      "tx": "0"
+      "px": "0fd1dad7",
+      "tx": "ca06d024"
     }
   ]
 }

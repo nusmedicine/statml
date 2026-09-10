@@ -1277,7 +1277,7 @@ const RUN_TITLES = {
 defineWidget({
   slug: "support-layers",
   title: "Deep Learning - Support Layers",
-  status: "draft",
+  status: "shipped",
   subtitle:
     "These layers condition the values passing through a network rather than "
     + "extract features from them. Embedding and pooling change the shape of a "

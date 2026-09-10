@@ -9619,7 +9619,7 @@ epochs.
 | 47 | `chain-rule` | Gradients by the Chain Rule | 1 | 05-1 cell 4; 05-2 cells 70–72 | proposed |
 | 48 | `gradients` (was `gradient-descent`) | Gradients | 1 | 05-2 cells 73–78; 05-1 cell 4; 05-4 cells 5, 41–44 | **SHIPPED 2026-09-08**, ten review rounds; absorbed slot 47's two-variable page |
 | 49 | `processing-layers` | Deep Learning - Processing Layers | 2 | 05-3 cells 1–28 | **SHIPPED 2026-09-10**, the same day it was planned: mock, draft, five review rounds, a copy round, 29 states, 433 MATCH |
-| 50 | `support-layers` | Normalization, Activation and Dropout | 2 | 05-3 cells 29–60 | **PLANNED 2026-09-10**; the second half of the Layers section. 49 and 50 are the two halves of one section, split on a measured rail — the "lowest priority, cut candidate" note is withdrawn |
+| 50 | `support-layers` | Deep Learning - Support Layers | 2 | 05-3 cells 29–60 | **SHIPPED 2026-09-10**, the same day as its sibling: mock, draft, one review round, a copy round with one core line, 27 states, 460 MATCH |
 | 51 | `composition` | Composing Layers and Controlling Flow | 3 | 05-3 cells 61–101 | **PLANNED 2026-09-10**, seven pages, the diagram leading |
 | 52 | `training-loop` | Training with Validation | 4 | 05-4, the whole notebook | proposed, **measured** |
 | 53 | `tensors` | Tensors | 0 — before the four groups | 05-2 cells 1–69 | **SHIPPED 2026-09-09** on "tested ok" after twenty-nine rounds in two days; 37 states — 34 settled, two driven, one hit-driven |
@@ -11125,6 +11125,24 @@ details keep "a step" since this widget's unit varies by page. Four
 non-copy consistency items from the same pass: Parameters 0 on Sigmoid and
 Softmax, an Input tile on Dropout, the window readout at one precision, and a
 source comment's "one in six" corrected to about one in ten (0.8¹⁰).
+
+**The copy round built (`b5cbcb1`):** 27 strings, 90 assertions. Row 18 needed
+core: `resolveLabel` reads one parameter, so a step label keyed on `use` gave
+the four other pages one default. Put to Kenneth (a build needing core stops
+and asks); **his pick: the core change** — a drive-label entry may itself be a
+`{ param, labels, default }`, six backward-compatible lines in `widget.js`, the
+gate rule applying at each level, `labelSet` flattening the nest. The rail is
+not hashed, so the step button was read directly on the three uses and on
+`bayesian` and `balancing-data`, the two shipped widgets that key a label.
+
+**SHIPPED 2026-09-10.** 27 fingerprint states, 21 settled and 6 driven (no
+`regions`, so no hit-driven), shot three times by
+`_lab/support-layers-shoot.html`, all STABLE, every drive moving its figure;
+status flipped in `main.js` and the manifest; the full suite **460 MATCH** at
+DPR 1.25, pane fronted, in one run, so the core change moved nothing hashed.
+The Dropout driven state shares its `tx` with the empty Dropout page by design
+and carries its coverage in `px`. Pushed on his standing word, "do the copy
+audit and push to gallery if there are no major changes."
 ### Slot 51 · `composition` — Composing Layers and Controlling Flow — PLANNED 2026-09-10
 
 **Host.** 05-3 cells 61–101, the notebook's two `##` headings: *Composing

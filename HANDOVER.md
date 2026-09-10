@@ -1,14 +1,29 @@
 # Handover
 
-**FORTY-NINE WIDGETS — 47 on the gallery, `roc-auc` UNLISTED (Kenneth's
-call, 2026-08-30), NO DRAFT, and NOTHING UNPUSHED once the 2026-09-10 push
-lands: `processing-layers` (slot 49) SHIPPED and PUSHED 2026-09-10 on
-Kenneth's "ok push to gallery", the same day it was planned. All 433
-fingerprint states MATCH at DPR 1.25, pane fronted. The three DL Foundations
-widgets are titled *Deep Learning - Tensors / Gradients / Processing Layers*
-(his pick).**
+**FIFTY WIDGETS — 48 on the gallery, `roc-auc` UNLISTED (Kenneth's call,
+2026-08-30), NO DRAFT, NOTHING UNPUSHED once the 2026-09-10 evening push lands:
+`support-layers` (slot 50) SHIPPED and PUSHED 2026-09-10, the same day it was
+mocked, one review round and a copy round after "tested ok". All 460
+fingerprint states MATCH at DPR 1.25, pane fronted. One core change today:
+a drive label may nest (`resolveLabel` in `widget.js`). Slot 54
+`loss-functions` is PROPOSED in the catalogue for 05-4, on his question.**
 
 ---
+
+# NEXT: `composition` (SLOT 51) — MOCK FIRST, AS 49 AND 50 WERE
+
+**`support-layers` is done (2026-09-10):** `0559fb4` mock, `a7315f2` draft,
+`3e6a974` round 1 (Sigmoid · Softmax labels, Dropout as the figure's four rows,
+headed prints), `23dd966` states and shooter, `b5cbcb1` copy round with the
+core line, then the promotion commit. Catalogue slot 50 has every round, the
+audit table's kinds and his picks. **Next is slot 51 `composition`**, seven
+pages, the diagram leading with `forward()` beside it — read its catalogue
+entry and the two siblings' rounds, then `_lab/composition-mock.html` first;
+the order under *The order for slot 50* below is the pattern. Slot 54
+`loss-functions` (05-4 cells 30–40) is proposed and unmeasured; it waits for the
+arc to reach 05-4.
+
+## The support-layers record (kept as written during the build)
 
 # NEXT: `support-layers` (SLOT 50) — THE DRAFT IS BUILT; ROUND 1 IS KENNETH'S
 
