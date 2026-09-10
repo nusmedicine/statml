@@ -739,6 +739,26 @@
       ],
       "arc": 49,
       "status": "shipped"
+    },
+    {
+      "slug": "support-layers",
+      "title": "Deep Learning - Support Layers",
+      "blurb": "These layers condition the values passing through a network rather than extract features from them.",
+      "course": "PHM5005",
+      "topics": [
+        "layer",
+        "embedding",
+        "pooling",
+        "batch normalization",
+        "layer normalization",
+        "activation function",
+        "softmax",
+        "dropout",
+        "regularization",
+        "deep learning"
+      ],
+      "arc": 50,
+      "status": "draft"
     }
   ]
 }
