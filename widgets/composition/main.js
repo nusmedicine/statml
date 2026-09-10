@@ -91,6 +91,15 @@
        makes `regions` with nothing on the canvas to hit, and a target that is
        not drawn is exactly what no pixel hash can catch (3.6). Four 16px rows
        cost Routing 34px of height.
+
+   13. AND THE WEIGHTED-SUM BOX HOLDS THE WHOLE TENSOR, for the same reason.
+       `_lab/composition-routing-sum.html` candidate C was built first and drew
+       the chosen sample's row from each branch as one strip of 20 cells;
+       Kenneth then asked why a `[4, 20]` branch showed one row, and picked D,
+       the mock's §4 — three bands of 4 rows by 20 cells, the combined band
+       under them, the chosen sample lit in all four. The rows of all four
+       bands join the weight grid as `regions` that set `sample`. It costs
+       Routing 144px of height at 550 and 192 at 770, and no width at all.
    ========================================================================= */
 
 import {
@@ -939,18 +948,24 @@ function drawBranch(ctx, colors, w, params, state, anim) {
  *
  * THE BOX UNDER THE BRANCHES HOLDS THE SUM IT IS NAMED FOR. It used to hold
  * its label and nothing else, and Kenneth on review: "is there supposed to be
- * a depiction of weighted sums?" `_lab/composition-routing-sum.html` drew
- * three answers at both widths and he picked C (2026-09-10) — the chosen
- * sample's row from each branch as a strip of 20 cells, the weight riding on
- * the row as `× 0.70` and as the row's own paleness, the combined row under a
- * rule, and one column's arithmetic printed under the box. The block is the
+ * a depiction of weighted sums?" `_lab/composition-routing-sum.html` drew four
+ * answers at both widths; C was built first — the chosen sample's row from each
+ * branch as one strip of 20 cells — and his next question was why a `[4, 20]`
+ * branch showed one row of it, so the block is now D, the mock's §4: THE WHOLE
+ * TENSOR. Three bands of 4 rows by 20 cells, one per branch in its hue, each
+ * cell shaded as the product `weights[s][i] × outs[i][s][c]` against one
+ * maximum over every product and total, the row's alpha then scaled by that
+ * row's own weight so paleness IS the multiply; a weight column of four digits
+ * beside each band, a rule, and the combined band under it. The block is the
  * mock's geometry, constant for constant.
  *
- * AND IT IS WHY THE CODE NOW SITS UNDER THE DIAGRAM AT BOTH WIDTHS. Twenty
- * cells and their labels need 376px of box at 12px and 456px at 16px; beside
- * the 350px code column at 770 the box is 259px, which draws the strips at 6px
- * a cell. The fit pass finds the width by moving the code, and the page is
- * 660px at 550 and 659 at 770 either way.
+ * AND IT IS WHY THE CODE SITS UNDER THE DIAGRAM AT BOTH WIDTHS. Twenty cells
+ * and their labels need 376px of box at 12px and 456px at 16px; beside the
+ * 350px code column at 770 the box is 259px, which draws the cells at 6px. The
+ * fit pass finds the width by moving the code. D's width is C's exactly — the
+ * right-hand column is reserved at the same measurement — so only the height
+ * moved: the box is 263px at 550 and 327 at 770 in both modes, and the page
+ * 804px at 550 and 851 at 770.
  */
 
 /* THE GATE'S WEIGHTS ARE DRAWN AS THE [4, 3] TENSOR THEY ARE, four rows of
@@ -962,17 +977,19 @@ const WROW = 16;
 const WBLOCK = 4 * WROW;
 
 /** The block's two reserved label columns, measured on the live canvas: the
-    branch's name at the left, and the widest label the right column carries.
-    `model.js` holds the same two numbers for the verify script, which has no
-    canvas to ask — the arrangement `MONO_SM` already uses. */
+    branch's name at the left, and the widest thing the right column carries —
+    its labels, and the weight cell, which is at its widest on the 770
+    geometry. `model.js` holds the same two numbers for the verify script,
+    which has no canvas to ask — the arrangement `MONO_SM` already uses. */
 function sumLabels(ctx, colors) {
-  const at = (s, mono) => {
-    ctx.font = `${colors.fsXs} ${mono ? colors.mono : colors.font}`;
+  const at = (s) => {
+    ctx.font = `${colors.fsXs} ${colors.font}`;
     return Math.ceil(ctx.measureText(s).width);
   };
   return {
     labL: Math.max(...[1, 2, 3].map((i) => at(`branch ${i}`))),
-    labR: Math.max(at("× 0.00", true), at("combined"), at("not taken"), at("taken")),
+    labR: Math.max(at("combined"), at("not taken"), at("taken"), at("weights"),
+      M.sizesAt(1).wcell),
   };
 }
 
@@ -1018,75 +1035,115 @@ function routeGeom(ctx, colors, w, params, state) {
 }
 
 /**
- * The block inside the box: three branch strips, a rule, and the combined row,
- * laid out as an equation. Returns the column it framed, which is the one
- * under the pointer where there is one and `routeRestColumn`'s otherwise.
+ * WHERE THE BLOCK'S FOUR BANDS SIT. `draw` and `regions` both read this, so a
+ * row the reader can click cannot be anywhere but where the row is drawn
+ * (5.8) — and that geometry is exactly what no pixel hash can see, since the
+ * picture is the same whether the target is on the row or six columns away.
+ */
+function routeSumGeom(g) {
+  const p = g.p;
+  const labX = g.blockX + M.SUM_PAD + M.SUM_OPW + M.SUM_OPGAP;
+  const cellX = labX + g.labL + M.SUM_LGAP;
+  const y0 = g.weightsY + M.SUM_PAD + M.SUM_HEAD;
+  const bandH = M.ROUTE_SAMPLES * p;
+  const bandY = [0, 1, 2].map((i) => y0 + i * (bandH + M.SUM_GAP));
+  return {
+    p,
+    bandH,
+    bandW: M.ROUTE_HIDDEN * p,
+    opX: g.blockX + M.SUM_PAD + M.SUM_OPW / 2,
+    labX,
+    cellX,
+    rightX: cellX + M.ROUTE_HIDDEN * p + M.SUM_RGAP,
+    bandY,
+    sumY: bandY[2] + bandH + M.SUM_RULE,
+  };
+}
+
+/**
+ * The block inside the box: three branch bands, a rule, and the combined band,
+ * laid out as an equation. Every band is the whole [4, 20] tensor the edge
+ * above it names, so the four rows of a band are the four samples and the
+ * chosen one is lit in all four bands. Returns the column it framed, which is
+ * the one under the pointer where there is one and `routeRestColumn`'s
+ * otherwise.
  */
 function drawSumBlock(ctx, colors, g, state, sample, hard, pointer) {
   const HUES = [colors.groupA, colors.groupB, colors.groupC];
-  const p = g.p;
-  const opX = g.blockX + M.SUM_PAD + M.SUM_OPW / 2;
-  const labX = g.blockX + M.SUM_PAD + M.SUM_OPW + M.SUM_OPGAP;
-  const cellX = labX + g.labL + M.SUM_LGAP;
-  const rightX = cellX + M.ROUTE_HIDDEN * p + M.SUM_RGAP;
-  const y0 = g.weightsY + M.SUM_PAD + M.SUM_HEAD;
-  const taken = state.top[sample];
-  /* at `soft` a strip is the PRODUCT the branch contributes, so the four rows
-     are an addition the reader can read off; at `hard` the two branches that
-     were not taken have no row at all, and their cells are drawn empty */
-  const rows = M.routeSumRows(state, sample);
-  const total = state.combined[sample];
-  const hi = Math.max(maxAbs(rows.filter(Boolean)), maxAbs([total]));
-  const stripY = [0, 1, 2].map((i) => y0 + i * (p + M.SUM_GAP));
-  const sumY = stripY[2] + p + M.SUM_RULE;
+  const b = routeSumGeom(g);
+  const p = b.p;
+  /* at `soft` a cell is the PRODUCT one branch contributes, so the three bands
+     are an addition the reader can read down; at `hard` a sample has a row in
+     the band it took and nothing at all in the other two, drawn as empty cells.
+     ONE maximum over every product and every total, so the three bands are
+     comparable with each other and with the combined band under them. */
+  const prod = M.routeProducts(state);
+  const hi = Math.max(maxAbs(prod.flat().filter(Boolean)), maxAbs(state.combined));
 
   [0, 1, 2].forEach((i) => {
     if (i > 0) {
-      txt(ctx, colors, "+", opX, stripY[i] + p / 2 + 0.5,
+      txt(ctx, colors, "+", b.opX, b.bandY[i] + b.bandH / 2 + 0.5,
         { color: colors.ink3, align: "center", baseline: "middle" });
     }
-    txt(ctx, colors, `branch ${i + 1}`, labX, stripY[i] + p / 2 + 0.5,
+    txt(ctx, colors, `branch ${i + 1}`, b.labX, b.bandY[i] + b.bandH / 2 + 0.5,
       { color: HUES[i], baseline: "middle", size: colors.fsXs });
-    shadedBand(ctx, colors, cellX, stripY[i], 1, M.ROUTE_HIDDEN, p,
-      (r, c) => wash(HUES[i], alphaOf(rows[i] ? rows[i][c] : 0, hi)
-        * (hard ? 1 : state.weights[sample][i])),
-      { emptyAt: () => !rows[i] });
-    const right = hard
-      ? (i === taken ? "taken" : "not taken")
-      : `× ${state.weights[sample][i].toFixed(2)}`;
-    txt(ctx, colors, right, rightX, stripY[i] + p / 2 + 0.5, {
-      color: rows[i] ? colors.ink1 : colors.ink3,
-      baseline: "middle", size: colors.fsXs, mono: !hard,
-    });
+    /* the weight rides on the row twice — in the product and again in the
+       alpha — so a branch a sample barely takes reads as a pale row rather
+       than as a digit to look up */
+    shadedBand(ctx, colors, b.cellX, b.bandY[i], M.ROUTE_SAMPLES, M.ROUTE_HIDDEN, p,
+      (r, c) => wash(HUES[i], alphaOf(prod[i][r] ? prod[i][r][c] : 0, hi)
+        * (hard ? 1 : state.weights[r][i])),
+      { litRow: sample, emptyAt: (r) => !prod[i][r] });
+    for (let r = 0; r < M.ROUTE_SAMPLES; r += 1) {
+      if (hard) {
+        /* one word per row rather than one per band, because here a row is a
+           sample and each sample takes a branch of its own */
+        txt(ctx, colors, state.top[r] === i ? "taken" : "not taken",
+          b.rightX, b.bandY[i] + r * p + p / 2 + 0.5, {
+            color: state.top[r] === i ? colors.ink1 : colors.ink3,
+            baseline: "middle", size: colors.fsXs,
+          });
+      } else {
+        valueCell(ctx, colors, b.rightX, b.bandY[i] + r * p, g.s.wcell, p,
+          state.weights[r][i].toFixed(2),
+          { hue: HUES[i], lit: r === sample, size: colors.fsXs });
+      }
+    }
   });
 
   ctx.strokeStyle = colors.grid;
   ctx.lineWidth = 1;
   ctx.beginPath();
-  ctx.moveTo(labX, sumY - M.SUM_RULE / 2 + 0.5);
-  ctx.lineTo(rightX + g.labR, sumY - M.SUM_RULE / 2 + 0.5);
+  ctx.moveTo(b.labX, b.sumY - M.SUM_RULE / 2 + 0.5);
+  ctx.lineTo(b.rightX + (hard ? g.labR : g.s.wcell), b.sumY - M.SUM_RULE / 2 + 0.5);
   ctx.stroke();
-  txt(ctx, colors, "=", opX, sumY + p / 2 + 0.5,
+  txt(ctx, colors, "=", b.opX, b.sumY + b.bandH / 2 + 0.5,
     { color: colors.ink3, align: "center", baseline: "middle" });
-  shadedBand(ctx, colors, cellX, sumY, 1, M.ROUTE_HIDDEN, p,
-    (r, c) => shadeOf(colors.empirical, total[c], hi));
-  txt(ctx, colors, "combined", rightX, sumY + p / 2 + 0.5,
+  shadedBand(ctx, colors, b.cellX, b.sumY, M.ROUTE_SAMPLES, M.ROUTE_HIDDEN, p,
+    (r, c) => shadeOf(colors.empirical, state.combined[r][c], hi), { litRow: sample });
+  txt(ctx, colors, "combined", b.rightX, b.sumY + b.bandH / 2 + 0.5,
     { color: colors.empirical, baseline: "middle", size: colors.fsXs });
+  /* soft only: at hard the column is already words, and a header over it would
+     say the same thing twice */
+  if (!hard) {
+    txt(ctx, colors, "weights", b.rightX, b.bandY[0] - 4,
+      { color: colors.ink3, size: colors.fsXs });
+  }
 
   /* THE COLUMN THE POINTER IS OVER, resolved here because the frame has to
      know it before the line under the box is printed. The hit is arithmetic on
      the framed rectangle itself, so the target cannot sit anywhere but where
      it is drawn. */
   const over = pointer
-    && pointer.x >= cellX && pointer.x < cellX + M.ROUTE_HIDDEN * p
-    && pointer.y >= stripY[0] && pointer.y < sumY + p
-    ? Math.floor((pointer.x - cellX) / p)
+    && pointer.x >= b.cellX && pointer.x < b.cellX + b.bandW
+    && pointer.y >= b.bandY[0] && pointer.y < b.sumY + b.bandH
+    ? Math.floor((pointer.x - b.cellX) / p)
     : -1;
   const col = over >= 0 ? over : M.routeRestColumn(state, sample);
   ctx.strokeStyle = colors.highlight;
   ctx.lineWidth = HLW;
-  ctx.strokeRect(cellX + col * p - 1.25, stripY[0] - 1.25,
-    p + 2.5, sumY + p - stripY[0] + 2.5);
+  ctx.strokeRect(b.cellX + col * p - 1.25, b.bandY[0] - 1.25,
+    p + 2.5, b.sumY + b.bandH - b.bandY[0] + 2.5);
   return col;
 }
 
@@ -2099,8 +2156,15 @@ defineWidget({
     }
     if (params.topic === "routing") {
       const g = routeGeom(ctx, colors, w, params, state);
-      /* the four rows of the [4, 3] weight tensor, as they are drawn */
-      return rows(g.gateCx - g.gateW / 2, g.weightsY, 3 * g.s.wcell, WROW);
+      /* the four rows of the [4, 3] weight tensor, and the four rows of each
+         band in the sum block — the three branches and the combined one — read
+         from the geometry `drawSumBlock` lays them out with */
+      const b = routeSumGeom(g);
+      return [
+        ...rows(g.gateCx - g.gateW / 2, g.weightsY, 3 * g.s.wcell, WROW),
+        ...b.bandY.flatMap((y) => rows(b.cellX, y, b.bandW, b.p)),
+        ...rows(b.cellX, b.sumY, b.bandW, b.p),
+      ];
     }
     return [];
   },

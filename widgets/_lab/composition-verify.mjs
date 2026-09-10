@@ -510,11 +510,13 @@ const shapeIs = (s, want) => Array.isArray(s) && s.join() === want.join();
   check("both modes walk the same six lines", soft.units === 6 && hard.units === 6);
 
   /* --- the weighted sum, drawn (Kenneth's round of 2026-09-10) -------------
-     The box under the three branches holds the chosen sample's row from each
-     branch, one column framed through all four strips, and that column's
-     arithmetic printed under the box. Two things there are arithmetic no
-     picture settles: WHICH column is framed at rest, and whether the printed
-     line adds up to the number it ends with. */
+     The box under the three branches holds three bands of [4, 20], one per
+     branch, each cell the product that branch contributes to that sample and
+     feature, with the combined band under a rule; one column is framed through
+     all four bands and its arithmetic printed under the box. Three things
+     there are arithmetic no picture settles: WHAT a cell's shade stands for,
+     WHICH column is framed at rest, and whether the printed line adds up to
+     the number it ends with. */
   const n2 = (v) => v.toFixed(2);
   const liveAt = (st, s, c) => M.routeSumRows(st, s).filter((r) => r && Math.abs(r[c]) > 0).length;
   const cols = Array.from({ length: M.ROUTE_HIDDEN }, (_, c) => c);
@@ -523,9 +525,33 @@ const shapeIs = (s, want) => Array.isArray(s) && s.join() === want.join();
     cols.some((c) => liveAt(soft, 0, c) === 0),
     `${cols.filter((c) => liveAt(soft, 0, c) === 0).length} of 20 columns are zero in all three`);
 
+  /* THE BANDS ARE THE PRODUCT TENSOR. Twelve hundred shaded cells carry no
+     digits, so nothing on the figure says what a shade stands for. */
+  check("every soft band cell is the product weights[s][i] × outs[i][s][c]",
+    M.routeProducts(soft).every((bd, i) => bd.every((row, s) =>
+      row.every((v, c) => Math.abs(v - soft.weights[s][i] * soft.outs[i][s][c]) < 1e-12))),
+    `${M.ROUTE_BRANCHES} × ${M.ROUTE_SAMPLES} × ${M.ROUTE_HIDDEN} cells`);
+
+  check("the three bands add down to the combined band, cell for cell",
+    soft.combined.every((row, s) => row.every((v, c) =>
+      Math.abs(v - M.routeProducts(soft).reduce((a, bd) => a + bd[s][c], 0)) < 1e-12)));
+
+  check("at hard a row is kept only in the band its sample took, and is that row whole",
+    M.routeProducts(hard).every((bd, i) => bd.every((row, s) =>
+      (hard.top[s] === i
+        ? row !== null && row.every((v, c) => v === hard.outs[i][s][c])
+        : row === null))),
+    `rows kept: ${hard.top.map((t, s) => `sample ${s} in band ${t + 1}`).join(", ")}`);
+
+  check("one band of the tensor is one sample's three rows, the same arithmetic twice",
+    [0, 1, 2, 3].every((s) => M.routeSumRows(soft, s).every((row, i) =>
+      row.every((v, c) => v === M.routeProducts(soft)[i][s][c]))));
+
   check("the framed column at rest carries the most non-zero terms of the 20",
-    liveAt(soft, 0, M.routeRestColumn(soft, 0)) === Math.max(...cols.map((c) => liveAt(soft, 0, c))),
-    `column ${M.routeRestColumn(soft, 0)}, with ${liveAt(soft, 0, M.routeRestColumn(soft, 0))} of the 3 branches non-zero`);
+    [0, 1, 2, 3].every((s) =>
+      liveAt(soft, s, M.routeRestColumn(soft, s)) === Math.max(...cols.map((c) => liveAt(soft, s, c)))
+      && liveAt(hard, s, M.routeRestColumn(hard, s)) === Math.max(...cols.map((c) => liveAt(hard, s, c)))),
+    `sample 0 frames column ${M.routeRestColumn(soft, 0)}, with ${liveAt(soft, 0, M.routeRestColumn(soft, 0))} of the 3 branches non-zero`);
 
   check("the largest total breaks the tie between columns with the same count",
     cols.filter((c) => liveAt(soft, 0, c) === liveAt(soft, 0, M.routeRestColumn(soft, 0)))
@@ -568,11 +594,18 @@ const shapeIs = (s, want) => Array.isArray(s) && s.join() === want.join();
     `sample 0: combined[0, ${M.routeRestColumn(hard, 0)}] = `
     + `${n2(hard.combined[0][M.routeRestColumn(hard, 0)])}, from branch ${hard.top[0] + 1}`);
 
-  check("a strip's paleness is the branch's weight, so the three sum to one row",
-    M.routeSumRows(soft, 0).every((r, i) =>
-      r.every((v, c) => Math.abs(v - soft.weights[0][i] * soft.outs[i][0][c]) < 1e-12))
-    && soft.combined[0].every((v, c) =>
-      Math.abs(v - M.routeSumRows(soft, 0).reduce((a, r) => a + r[c], 0)) < 1e-12));
+  /* THE BAND'S PALENESS IS THE WEIGHT TWICE — in the product and again in the
+     alpha — and at hard the alpha is the product alone. A shade carries no
+     digit, so the rule is read from the drawing rather than from a hash. */
+  const drawSrc = readFileSync(new URL("../composition/main.js", import.meta.url), "utf8");
+  check("the band's alpha is the product, scaled by that row's own weight at soft",
+    /alphaOf\(prod\[i\]\[r\] \? prod\[i\]\[r\]\[c\] : 0, hi\)\s*\*\s*\(hard \? 1 : state\.weights\[r\]\[i\]\)/
+      .test(drawSrc));
+
+  check("the four bands and the framed column are drawn and hit from one geometry",
+    /function routeSumGeom\(g\)/.test(drawSrc)
+    && (drawSrc.match(/routeSumGeom\(g\)/g) ?? []).length === 3,
+    "routeSumGeom, read by drawSumBlock and by regions");
 }
 
 /* --- 9 · the three torch messages, read from core's one copy ----------------- */
@@ -710,7 +743,24 @@ const shapeIs = (s, want) => Array.isArray(s) && s.join() === want.join();
     const diagH = XLAB + ROUTE_SPLIT + 3 * M.BOX_H + boxH + M.SUM_ARITH + 4 * M.EDGE_H;
     const capY = M.BAND_HEAD + diagH + 12
       + (beside ? 0 : M.CODE_ROUTE.soft.length * M.LINE + 10) + M.CAP_GAP;
-    return { beside, s, p, boxWidth, boxH, capY };
+    return { beside, s, p, boxWidth, boxH, capY, ...blockRows(p) };
+  }
+
+  /* `routeSumGeom` in main.js, measured from the box's own top: three branch
+     bands and the combined band, each ROUTE_SAMPLES rows of p, and the row
+     tops `regions` hands the hit-test. */
+  function blockRows(p) {
+    const bandH = M.ROUTE_SAMPLES * p;
+    const y0 = M.SUM_PAD + M.SUM_HEAD;
+    const bandY = [0, 1, 2].map((i) => y0 + i * (bandH + M.SUM_GAP));
+    const sumY = bandY[2] + bandH + M.SUM_RULE;
+    return {
+      bandH,
+      bandY,
+      sumY,
+      rowTops: [...bandY, sumY].flatMap((y) =>
+        Array.from({ length: M.ROUTE_SAMPLES }, (_, r) => y + r * p)),
+    };
   }
 
   check("the block's fixed width is 136px, so 20 cells need 376px of box and 456 at 16",
@@ -729,15 +779,41 @@ const shapeIs = (s, want) => Array.isArray(s) && s.join() === want.join();
 
   /* The caption line counts are read off the canvas that wraps them: three
      lines at 550 and two at 770 (`_lab/composition-routing-sum.html`). */
-  check("Routing's stage is about 660px at 550 and at 770, the mock's own numbers",
-    Math.abs(routeStage(550).capY + 3 * M.CAPTION_H + M.PAD - 660) <= 3
-    && Math.abs(routeStage(770).capY + 2 * M.CAPTION_H + M.PAD - 660) <= 3,
-    `${routeStage(550).capY + 3 * M.CAPTION_H + M.PAD} at 550, `
-    + `${routeStage(770).capY + 2 * M.CAPTION_H + M.PAD} at 770`);
+  /* The caption line counts are read off the canvas that wraps them: three
+     lines at 550 and two at 770 (`_lab/composition-routing-sum.html`). The
+     stage is the same in both modes, because the box is reserved at one size
+     and the caption wraps to the same count either way. */
+  const routeH = (w, capLines) => routeStage(w).capY + capLines * M.CAPTION_H + M.PAD;
+  check("Routing's stage is 804px at 550 and 851 at 770, the mock's own numbers",
+    Math.abs(routeH(550, 3) - 804) <= 3 && Math.abs(routeH(770, 2) - 851) <= 3,
+    `${routeH(550, 3)} at 550, ${routeH(770, 2)} at 770, soft and hard alike`);
 
-  check("the box grows from 64px to 119 at 550 and 135 at 770, and reserves the line's row",
-    routeStage(550).boxH === 119 && routeStage(770).boxH === 135 && M.SUM_ARITH === 24,
-    `was ${WBLOCK}px, and 24px more for the printed line at every width`);
+  check("the box holds the whole tensor: 263px at 550 and 327 at 770, either mode",
+    routeStage(550).boxH === 263 && routeStage(770).boxH === 327
+    && routeStage(550).boxH === M.routeSumH(12) && M.SUM_ARITH === 24,
+    `was ${WBLOCK}px empty and 119 at C's one row, and 24px more for the printed line`);
+
+  /* THE REGION RECTANGLES ARE THE DRAWN ROWS (3.6). No pixel hash can see a
+     target six columns from where it is painted, so the arithmetic that puts
+     the sixteen band rows inside the box is asserted here. */
+  check("the sixteen band rows fill the box between its two pads, at both widths",
+    [550, 770].every((w) => {
+      const st = routeStage(w);
+      return st.sumY + st.bandH + M.SUM_PAD === st.boxH
+        && st.rowTops.length === 4 * M.ROUTE_SAMPLES
+        && st.rowTops.every((y) => y >= M.SUM_PAD + M.SUM_HEAD && y + st.p <= st.boxH - M.SUM_PAD);
+    }),
+    `at 550 the rows start ${routeStage(550).rowTops[0]}px into the box and end `
+    + `${routeStage(550).rowTops[15] + routeStage(550).p}px in, of ${routeStage(550).boxH}`);
+
+  check("a band row is one sample tall and the twenty cells wide, at both widths",
+    [550, 770].every((w) => {
+      const st = routeStage(w);
+      return st.bandH === M.ROUTE_SAMPLES * st.p
+        && st.bandY.every((y, i) => y === st.bandY[0] + i * (st.bandH + M.SUM_GAP))
+        && st.sumY === st.bandY[2] + st.bandH + M.SUM_RULE;
+    }),
+    `rows are ${routeStage(550).p}px at 550 and ${routeStage(770).p}px at 770`);
 }
 
 /* --- 11 · the reader-facing copy -------------------------------------------- *

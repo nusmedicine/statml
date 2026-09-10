@@ -184,45 +184,52 @@ export const routeMinDiag = (z) => 3 * (MIN_BOX + COLGAP) + 3 * z.wcell;
 /* --- Routing's weighted sum, drawn ------------------------------------------
  * The box under the three branches used to hold nothing but its own label, and
  * Kenneth asked for a depiction of the sum the page is named for
- * (`_lab/composition-routing-sum.html`, candidate C, 2026-09-10). It holds the
- * chosen sample's row from each branch as a strip of ROUTE_HIDDEN cells, laid
- * out as an equation: an operator column, the branch's name, the cells, and
- * the weight that multiplies the row.
+ * (`_lab/composition-routing-sum.html`, 2026-09-10). Candidate C was built
+ * first — the chosen sample's row from each branch, one strip of ROUTE_HIDDEN
+ * cells apiece — and he then asked why a `[4, 20]` branch showed one row, so
+ * the block is candidate D, the mock's §4: THE WHOLE TENSOR. Three bands of
+ * ROUTE_SAMPLES rows by ROUTE_HIDDEN cells, one per branch, each cell shaded as
+ * the product that branch contributes to that sample and feature, over a rule,
+ * with the combined band under it. The chosen sample's row is lit in all four.
  *
- * THAT BLOCK IS NOW WHAT DECIDES THE DIAGRAM'S WIDTH. The box spans the three
+ * THAT BLOCK IS WHAT DECIDES THE DIAGRAM'S WIDTH. The box spans the three
  * branch columns, so twenty cells and their labels are a claim on the diagram
  * that `routeMinDiag`'s four columns alone never made, and the fit pass answers
  * it by putting the code under the diagram at both widths — beside leaves a
- * 259px box against a 456px block, and the strips fall to 6px a cell.
+ * 259px box against a 456px block, and the cells fall to 6px. The WIDTH is C's
+ * exactly: the right-hand column is reserved at the same measurement, so only
+ * the height moved, by three rows a band.
  *
  * The two label widths are MEASURED: `main.js` reads them off the live canvas
  * and passes them in, and the constants below are that measurement, for the
  * verify script which has no canvas to ask. The same arrangement as MONO_SM.
  */
 export const SUM_PAD = 8;         // the block's inset inside the box
-export const SUM_HEAD = 15;       // the box's label, above the first strip
-export const SUM_GAP = 14;        // between two strips, and where the + sits
-export const SUM_RULE = 12;       // between the last branch strip and the total
+export const SUM_HEAD = 15;       // the box's label, above the first band
+export const SUM_GAP = 14;        // between two bands, and where the + sits
+export const SUM_RULE = 12;       // between the last branch band and the total
 export const SUM_OPW = 12;        // the + / = column
 export const SUM_OPGAP = 4;
 export const SUM_LGAP = 6;        // between the branch's name and its cells
-export const SUM_RGAP = 6;        // between the cells and the weight
+export const SUM_RGAP = 6;        // between the cells and the weight column
 export const SUM_ARITH = 24;      // the one printed line under the box
-/* `branch 3` at --fs-xs, and the widest of `× 0.00`, `combined`, `not taken`
-   and `taken`: the right column is reserved at the widest label it ever
-   carries, so the block does not move when the reader switches modes */
+/* `branch 3` at --fs-xs, and the widest of `combined`, `not taken`, `taken`,
+   `weights` and a weight cell at the 770 geometry: the right column is
+   reserved at the widest thing it ever carries, so the block does not move
+   when the reader switches modes or the stage grows */
 export const SUM_LAB_L = 43;
 export const SUM_LAB_R = 49;
 
-/** Everything in a strip row that is not a cell. */
+/** Everything in a band row that is not a cell. */
 export const routeSumFixed = (labL = SUM_LAB_L, labR = SUM_LAB_R) =>
   2 * SUM_PAD + SUM_OPW + SUM_OPGAP + labL + SUM_LGAP + SUM_RGAP + labR;
 /** The box the block needs: 376px at a 12px cell, 456px at 16px. */
 export const routeSumMinW = (z, fixed = routeSumFixed()) =>
   fixed + ROUTE_HIDDEN * z.band;
-/** Its height at a cell size: three branch strips, a rule, and the total. */
+/** Its height at a cell size: three branch bands, a rule, and the total band,
+    each ROUTE_SAMPLES rows deep. 263px at a 12px cell and 327px at 16px. */
 export const routeSumH = (p) =>
-  2 * SUM_PAD + SUM_HEAD + 4 * p + 2 * SUM_GAP + SUM_RULE;
+  2 * SUM_PAD + SUM_HEAD + 4 * (ROUTE_SAMPLES * p) + 2 * SUM_GAP + SUM_RULE;
 /** The diagram's minimum: four columns, or the block plus the gate column. */
 export const routeDiagMin = (z, fixed) =>
   Math.max(routeMinDiag(z), routeSumMinW(z, fixed) + 3 * z.wcell + COLGAP);
@@ -852,6 +859,10 @@ export function branching(merge, fc2) {
 export const ROUTE_SEED = 11;
 export const ROUTE_BRANCHES = 3;
 export const ROUTE_HIDDEN = 20;
+/* the batch's own row count, named because the sum block draws every one of
+   them: a band is [ROUTE_SAMPLES, ROUTE_HIDDEN], which is what the branch
+   edges above it already say */
+export const ROUTE_SAMPLES = 4;
 const routeRng = makeRng(ROUTE_SEED);
 const R_BRANCH = [0, 1, 2].map(() => initLinear(routeRng, 10, ROUTE_HIDDEN));
 const R_OUT = initLinear(routeRng, ROUTE_HIDDEN, 2);
@@ -908,14 +919,23 @@ export function routing(mode) {
   };
 }
 
-/** The three rows the weighted-sum block stacks for one sample: at `soft` the
-    product each branch contributes, at `hard` the taken branch's row and
-    nothing at all for the other two. */
-export function routeSumRows(st, s) {
-  return [0, 1, 2].map((i) => (st.mode === "hard"
-    ? (i === st.top[s] ? st.outs[i][s] : null)
-    : st.outs[i][s].map((v) => v * st.weights[s][i])));
+/** What branch `i` contributes to sample `s`: at `soft` the product
+    `weights[s][i] * outs[i][s]`, which is the row the block shades; at `hard`
+    the row only where that sample took the branch, and null where it did not.
+    One function, because the bands, the framed column and the printed line all
+    read the same arithmetic (5.8). */
+export function routeProductRow(st, i, s) {
+  if (st.mode === "hard") return st.top[s] === i ? st.outs[i][s] : null;
+  return st.outs[i][s].map((v) => v * st.weights[s][i]);
 }
+
+/** The whole [ROUTE_BRANCHES, ROUTE_SAMPLES, ROUTE_HIDDEN] tensor the block
+    draws as three bands. */
+export const routeProducts = (st) =>
+  [0, 1, 2].map((i) => Array.from({ length: ROUTE_SAMPLES }, (_, s) => routeProductRow(st, i, s)));
+
+/** The three rows of one sample — one row out of each band. */
+export const routeSumRows = (st, s) => [0, 1, 2].map((i) => routeProductRow(st, i, s));
 
 /**
  * WHICH COLUMN THE BLOCK FRAMES WITH NO POINTER ON IT. Every branch ends in a
