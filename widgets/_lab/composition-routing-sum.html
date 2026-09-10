@@ -1,0 +1,686 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · composition · Routing, what the weighted sum looks like</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1720px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-6); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 110ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); max-width: 560px; min-height: 24px; white-space: pre-line; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 110ch; }
+  .rec b { font-weight: 600; }
+  ul.proof { font-size: var(--fs-sm); color: var(--ink-2); max-width: 110ch; padding-left: 18px; }
+  ul.proof li { margin-bottom: 4px; }
+  .measure { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--ink-3); margin: 4px 0 0; max-width: 780px; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>composition · Routing, what the weighted sum looks like</h1>
+  <p class="note">
+    Kenneth on review of the <code>composition</code> draft: <i>"is there supposed to be a depiction of weighted
+    sums?"</i> The Routing page draws an outlined box spanning the three branch columns, labelled
+    <b>weighted sum</b>, with nothing inside it. The operation the page is named for is the one thing the page
+    does not show. Three ways to fill it, each drawn at the widget's own geometry at <b>550</b> and <b>770</b>,
+    in <code>mode: soft</code> at <code>sample 0</code>, and the recommended one drawn again at
+    <code>mode: hard</code>.
+  </p>
+  <p class="note">
+    Every number is the widget's. <code>ROUTE_WEIGHTS</code>, <code>ROUTE_TOP</code> and
+    <code>routing(mode)</code> are imported from <code>../composition/model.js</code>, and so are
+    <code>PAD</code>, <code>COLGAP</code>, <code>BOX_H</code>, <code>EDGE_H</code>, <code>LINE</code>,
+    <code>BAND_HEAD</code>, <code>CAP_GAP</code>, <code>CAPTION_H</code>, <code>TEXT_GAP</code>,
+    <code>MIN_BOX</code>, <code>sizesAt</code>, <code>fitSizes</code>, <code>besideFits</code> and
+    <code>routeMinDiag</code> — so the fit pass on this page is the widget's fit pass, not a copy of it. The
+    drawing is copied from <code>composition-mock.html</code> §2 and from <code>main.js</code>
+    <code>drawRoute</code>; only the block inside the box is new. <code>WBLOCK</code> is <b>64</b> today, four
+    <code>WROW</code> rows of gate weights, and that is the height every "grows by" below is measured against.
+  </p>
+  <p class="note">
+    Colour: branch 1 <code>--c-group-a</code>, branch 2 <code>--c-group-b</code>, branch 3
+    <code>--c-group-c</code>, every result <code>--c-empirical</code>, the framed column and the chosen row
+    <code>--c-highlight</code>, the gate column <code>--ink-2</code>. A strip cell is the branch's hue shaded by
+    its value; in <b>A</b> and <b>C</b> that shading is multiplied by the branch's weight, which is the attention
+    precedent — a smaller weight is a paler row, and the row that contributes nothing is nearly blank.
+  </p>
+  <p class="note" id="mono"></p>
+
+  <h2>§1 · A · the chosen sample's rows</h2>
+  <p class="note">
+    Four strips of 20 cells inside the box, one row of the tensor each: the three products
+    <code>αᵢ(x) · fᵢ(x)</code> for <code>sample 0</code>, a <code>+</code> down the left, and the column total in
+    <code>--c-empirical</code> under a rule. The weight is printed at each strip's right. No digits go in the
+    strips: 20 cells at two decimals is 800px and the box is 406px at 550.
+  </p>
+  <div class="row" id="sA"></div>
+
+  <h2>§2 · B · all four samples</h2>
+  <p class="note">
+    The three branch outputs as full <code>[4, 20]</code> bands with the <code>[4, 3]</code> weights beside them,
+    one weight cell per sample row, and the combined <code>[4, 20]</code> band under. The chosen sample's row is
+    lit in every band. The bands carry <code>fᵢ(x)</code> itself rather than the product, so the multiply is the
+    one step this candidate leaves the reader to do.
+  </p>
+  <div class="row" id="sB"></div>
+
+  <h2>§3 · C · A plus one feature's arithmetic</h2>
+  <p class="note">
+    A's strips, one column framed through all four of them, and that column's arithmetic printed under the box
+    with the widget's own numbers. In the widget the framed column is the one under the pointer and the line is
+    reserved at rest, which is the hover idiom the attention page already uses. The mock frames the column with
+    the most non-zero terms: every branch ends in a ReLU, and at column 0 all three branches are zero, so a line
+    printed there would carry the form and none of the arithmetic.
+  </p>
+  <div class="row" id="sC"></div>
+
+  <h2>§4 · The fit question at 770</h2>
+  <p class="note">
+    Routing puts the code beside the diagram at 770 and under it at 550, and the code column is <b>350px</b>
+    whatever the frame. A block wide enough for 20 cells is a new claim on the diagram's width, so the left panel
+    forces the code beside at 770 and draws the strips at whatever cell size is then left. The right panel is the
+    same figure with the code under, which is what the fit pass chooses.
+  </p>
+  <div class="row" id="sFit"></div>
+
+  <h2>§5 · The recommended option at <code>mode: hard</code></h2>
+  <p class="note">
+    One branch is taken and the other two contribute nothing. The two untaken strips are drawn as empty cells,
+    which is the same block saying a different thing, and the arithmetic line loses its products.
+  </p>
+  <div class="row" id="sHard"></div>
+
+  <p class="rec" id="rec"></p>
+
+  <h2>What the mock measured</h2>
+  <ul class="proof" id="proof"></ul>
+</main>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+import * as M from "../composition/model.js";
+
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+const MONO = T.mono || "monospace";
+
+const {
+  PAD, COLGAP, BOX_H, BOX_BW, EDGE_H, HEAD, LINE, BAND_HEAD, CAPTION_H, CAP_GAP, TEXT_GAP,
+} = M;
+
+/* main.js's own three, which are not exported (main.js:115-118) */
+const HLW = 2.5;          // the --c-highlight frame
+const XLAB = 16;          // the `x  [4, 10]` line above a diagram
+const ROUTE_SPLIT = 36;   // the bus that splits x into four columns, and their names
+const WROW = 16;          // one row of the gate's [4, 3] weight grid (main.js:929)
+const WBLOCK = 4 * WROW;  // the box's height today, and what every growth is measured from
+
+const W = 550;
+const WIDE = 770;
+
+/* ============================ measuring ==================================== */
+const MC = document.createElement("canvas").getContext("2d");
+const wid = (s, size, mono) => {
+  MC.font = `${size} ${mono ? MONO : T.font}`;
+  return Math.ceil(MC.measureText(s).width);
+};
+const MONOCH = (() => {
+  MC.font = `${T.fsSm} ${MONO}`;
+  const probe = "branch_outs = [branch(x) for branch in self.branches]";
+  return MC.measureText(probe).width / probe.length;
+})();
+function wrapLines(text, maxW) {
+  MC.font = `${T.fsSm} ${T.font}`;
+  const out = [];
+  let cur = "";
+  for (const word of text.split(" ")) {
+    const next = cur ? `${cur} ${word}` : word;
+    if (cur && MC.measureText(next).width > maxW) { out.push(cur); cur = word; } else cur = next;
+  }
+  if (cur) out.push(cur);
+  return out;
+}
+
+/* ============================ drawing helpers ==============================
+   Copied from composition-mock.html and main.js. Drawing is geometry and
+   belongs to the file that lays out the stage (decision 2 of main.js). */
+function panel(host, title, sub, w, h) {
+  const cand = document.createElement("div");
+  cand.className = "cand";
+  if (title) cand.innerHTML = `<h3>${title}</h3><p class="sub">${sub}</p>`;
+  const cv = document.createElement("canvas");
+  cv.width = Math.round(w * DPR); cv.height = Math.round(h * DPR);
+  cv.style.width = `${w}px`; cv.style.height = `${h}px`;
+  cand.appendChild(cv); host.appendChild(cand);
+  const ctx = cv.getContext("2d");
+  ctx.scale(DPR, DPR);
+  ctx.fillStyle = T.surface; ctx.fillRect(0, 0, w, h);
+  return { ctx, cand };
+}
+function note(cand, s) {
+  const p = document.createElement("p");
+  p.className = "measure";
+  p.textContent = s;
+  cand.appendChild(p);
+}
+function txt(ctx, s, x, y, o = {}) {
+  ctx.fillStyle = o.color ?? T.ink2;
+  ctx.textAlign = o.align ?? "left";
+  ctx.textBaseline = o.baseline ?? "alphabetic";
+  ctx.font = `${o.weight ?? ""} ${o.size ?? T.fsSm} ${o.mono ? MONO : T.font}`.trim();
+  ctx.fillText(s, x, y);
+}
+const wash = (hex, a) => {
+  const p = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+  return `rgba(${p[0]},${p[1]},${p[2]},${a})`;
+};
+const shadeOf = (hue, v, hi) => wash(hue, 0.06 + 0.84 * Math.min(1, Math.abs(v) / (hi || 1)));
+const maxAbs = (rows) => Math.max(...rows.flat().map(Math.abs));
+
+function arrow(ctx, x0, y0, x1, y1, color, width = 2, dash = []) {
+  const a = Math.atan2(y1 - y0, x1 - x0);
+  ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = width;
+  ctx.setLineDash(dash);
+  ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.beginPath(); ctx.moveTo(x1, y1);
+  ctx.lineTo(x1 - HEAD * Math.cos(a - 0.45), y1 - HEAD * Math.sin(a - 0.45));
+  ctx.lineTo(x1 - HEAD * Math.cos(a + 0.45), y1 - HEAD * Math.sin(a + 0.45));
+  ctx.closePath(); ctx.fill();
+}
+function band(ctx, y, w, name, expr) {
+  txt(ctx, name, PAD, y + 11, { color: T.ink2, weight: "600" });
+  if (expr) txt(ctx, expr, w - PAD, y + 11, { color: T.highlight, align: "right", mono: true });
+  ctx.strokeStyle = T.grid; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(PAD, y + 17.5); ctx.lineTo(w - PAD, y + 17.5); ctx.stroke();
+  return y + BAND_HEAD;
+}
+function layerBox(ctx, x, y, w, label, color) {
+  ctx.fillStyle = T.surface; ctx.fillRect(x, y, w, BOX_H);
+  ctx.fillStyle = wash(color, 0.13); ctx.fillRect(x, y, w, BOX_H);
+  ctx.strokeStyle = color; ctx.lineWidth = BOX_BW;
+  ctx.strokeRect(x + BOX_BW / 2, y + BOX_BW / 2, w - BOX_BW, BOX_H - BOX_BW);
+  txt(ctx, label, x + w / 2, y + BOX_H / 2 + 0.5,
+    { color: T.ink1, align: "center", baseline: "middle", mono: true });
+}
+function outlineBox(ctx, x, y, w, h, color) {
+  ctx.fillStyle = T.surface; ctx.fillRect(x, y, w, h);
+  ctx.strokeStyle = color; ctx.lineWidth = BOX_BW;
+  ctx.strokeRect(x + BOX_BW / 2, y + BOX_BW / 2, w - BOX_BW, h - BOX_BW);
+}
+function edge(ctx, cx, y0, y1, text, o = {}) {
+  arrow(ctx, cx, y0, cx, y1, o.color ?? T.axis, 2);
+  if (!text) return;
+  ctx.font = `${T.fsSm} ${MONO}`;
+  const w = ctx.measureText(text).width;
+  const mid = (y0 + y1) / 2;
+  ctx.fillStyle = T.surface;
+  ctx.fillRect(cx - w / 2 - 4, mid - 8, w + 8, 16);
+  txt(ctx, text, cx, mid + 0.5,
+    { color: T.ink1, align: "center", baseline: "middle", mono: true });
+}
+function valueCell(ctx, x, y, w, h, text, o = {}) {
+  const hue = o.hue ?? T.groupA;
+  ctx.fillStyle = T.surface; ctx.fillRect(x, y, w, h);
+  if (!o.empty) { ctx.fillStyle = wash(hue, o.lit ? 0.4 : 0.15); ctx.fillRect(x, y, w, h); }
+  ctx.strokeStyle = o.lit ? T.highlight : T.axis;
+  ctx.lineWidth = o.lit ? HLW : 1;
+  ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+  if (text) {
+    txt(ctx, text, x + w / 2, y + h / 2 + 0.5,
+      { color: T.ink1, align: "center", baseline: "middle", mono: true, size: T.fsXs });
+  }
+}
+function codePanel(ctx, x, y, w, lines) {
+  lines.forEach((l, i) => txt(ctx, l, x, y + i * LINE, { color: T.ink2, mono: true, size: T.fsSm }));
+  return lines.length * LINE;
+}
+/** Rows of cells, one value each, no digits: the band idiom at one row deep. */
+function cellRow(ctx, x, y, cols, p, fillAt, o = {}) {
+  for (let c = 0; c < cols; c += 1) {
+    ctx.fillStyle = T.surface; ctx.fillRect(x + c * p, y, p, p);
+    if (!o.empty) { ctx.fillStyle = fillAt(c); ctx.fillRect(x + c * p, y, p, p); }
+  }
+  ctx.strokeStyle = T.grid; ctx.lineWidth = 0.5;
+  for (let c = 0; c <= cols; c += 1) {
+    ctx.beginPath(); ctx.moveTo(x + c * p + 0.25, y); ctx.lineTo(x + c * p + 0.25, y + p); ctx.stroke();
+  }
+  ctx.strokeStyle = T.axis; ctx.lineWidth = 1;
+  ctx.strokeRect(x + 0.5, y + 0.5, cols * p - 1, p - 1);
+}
+function cellBand(ctx, x, y, rows, cols, p, fillAt, o = {}) {
+  for (let r = 0; r < rows; r += 1) {
+    for (let c = 0; c < cols; c += 1) {
+      ctx.fillStyle = T.surface; ctx.fillRect(x + c * p, y + r * p, p, p);
+      ctx.fillStyle = fillAt(r, c); ctx.fillRect(x + c * p, y + r * p, p, p);
+    }
+  }
+  ctx.strokeStyle = T.grid; ctx.lineWidth = 0.5;
+  for (let r = 0; r <= rows; r += 1) { ctx.beginPath(); ctx.moveTo(x, y + r * p + 0.25); ctx.lineTo(x + cols * p, y + r * p + 0.25); ctx.stroke(); }
+  for (let c = 0; c <= cols; c += 1) { ctx.beginPath(); ctx.moveTo(x + c * p + 0.25, y); ctx.lineTo(x + c * p + 0.25, y + rows * p); ctx.stroke(); }
+  ctx.strokeStyle = T.axis; ctx.lineWidth = 1;
+  ctx.strokeRect(x + 0.5, y + 0.5, cols * p - 1, rows * p - 1);
+  if (o.litRow != null) {
+    ctx.strokeStyle = T.highlight; ctx.lineWidth = HLW;
+    ctx.strokeRect(x - 1.25, y + o.litRow * p - 1.25, cols * p + 2.5, p + 2.5);
+  }
+}
+
+/* ============================ the numbers ==================================
+   One formula, one place: the widget's own module is imported, so the digits
+   drawn here are the digits the widget draws. */
+const SAMPLE = 0;
+const FEATS = M.ROUTE_HIDDEN;              // 20
+const SOFT = M.routing("soft");
+const HARD = M.routing("hard");
+const n2 = (v) => v.toFixed(2);
+const stateFor = (mode) => (mode === "hard" ? HARD : SOFT);
+
+/* ============================ the block inside the box =====================
+ * Four rows, laid out as an equation: an operator column, the branch's name,
+ * the cells, and what multiplies that row. The right column is reserved at the
+ * widest of the four labels it ever carries, so the block does not move when
+ * the reader switches modes — the same reservation the code column already
+ * makes (main.js `codeWidth`).
+ */
+const IN_PAD = 8;
+const HEADH = 15;          // the `weighted sum` label inside the box, top left
+const SGAP = 14;           // between two strips, and where the + sits
+const RULE_GAP = 12;       // between the last branch strip and the total
+const OPW = 12;            // the + / = column
+const OPGAP = 4;
+const GAP_L = 6;
+const GAP_R = 6;
+const ARITH_H = 24;        // C's one printed line under the box
+
+const LAB_L = Math.max(...[1, 2, 3].map((i) => wid(`branch ${i}`, T.fsXs, false)));
+const LAB_R = Math.max(
+  wid("× 0.00", T.fsXs, true),
+  wid("combined", T.fsXs, false),
+  wid("not taken", T.fsXs, false),
+  wid("taken", T.fsXs, false),
+);
+
+/** Everything in a row that is not a cell. B swaps the right label for a weight cell. */
+const fixedW = (kind, wcell) =>
+  IN_PAD + OPW + OPGAP + LAB_L + GAP_L + GAP_R + Math.max(LAB_R, kind === "B" ? wcell : 0) + IN_PAD;
+const sumMinW = (kind, z) => fixedW(kind, z.wcell) + FEATS * z.band;
+/* the block is centred in the box rather than pinned to its left edge: the box
+   spans three branch columns and at 770 that is 607px against a 456px block,
+   and a block pinned left reads as a box that lost its right-hand contents */
+const blockX = (kind, g) => g.boxL + Math.round((g.boxWidth - (fixedW(kind, g.s.wcell) + FEATS * g.p)) / 2);
+const pitchFor = (kind, boxWidth, wcell) => Math.floor((boxWidth - fixedW(kind, wcell)) / FEATS);
+const blockH = (kind, p) => (kind === "B"
+  ? IN_PAD + HEADH + 3 * (4 * p) + 2 * SGAP + RULE_GAP + 4 * p + IN_PAD
+  : IN_PAD + HEADH + 3 * p + 2 * SGAP + RULE_GAP + p + IN_PAD);
+
+/* ============================ the page's geometry ==========================
+ * routeGeom from main.js:932, with one change: the sum block's own minimum
+ * width joins routeMinDiag, because the box spans the three branch columns and
+ * therefore takes its width from them.
+ */
+function geom(kind, w, mode, force) {
+  const usable = w - 2 * PAD;
+  const cw = M.codeWidth(M.CODE_ROUTE.soft, MONOCH);
+  const minDiag = (z) => Math.max(M.routeMinDiag(z), sumMinW(kind, z) + 3 * z.wcell + COLGAP);
+  const s0 = M.sizesAt(Math.max(0, Math.min(1, (w - W) / (WIDE - W))));
+  const fits = M.besideFits(w, cw, minDiag(s0));
+  const beside = force === "beside" ? true : force === "under" ? false : fits;
+  const s = M.fitSizes(w, (z) => (beside ? cw + TEXT_GAP + minDiag(z) : Math.max(cw, minDiag(z))));
+  const gateW = 3 * s.wcell;
+  const roomy = beside ? usable - cw - TEXT_GAP : usable;
+  const diagW = Math.max(roomy, force === "beside" ? M.routeMinDiag(s) : minDiag(s));
+  const branchW = Math.floor((diagW - gateW - 3 * COLGAP) / 3);
+  const cols = [0, 1, 2].map((i) => PAD + i * (branchW + COLGAP) + branchW / 2);
+  const boxL = cols[0] - branchW / 2;
+  const boxR = cols[2] + branchW / 2;
+  const boxWidth = boxR - boxL;
+  /* the cell size the box can actually hold, floored at nothing: §4 draws the
+     case where it lands under the 12px the rest of the widget reads at */
+  const p = Math.max(3, Math.min(s.band, pitchFor(kind, boxWidth, s.wcell)));
+  const boxH = Math.max(WBLOCK, blockH(kind, p));
+  const arith = kind === "C" ? ARITH_H : 0;
+  const diagH = XLAB + ROUTE_SPLIT + 3 * BOX_H + boxH + arith + 4 * EDGE_H;
+  const codeH = M.CODE_ROUTE[mode].length * LINE;
+  const caps = captions(mode).flatMap((line) => wrapLines(line, w - 2 * PAD));
+  const capY = BAND_HEAD + diagH + 12 + (beside ? 0 : codeH + 10) + CAP_GAP;
+  return {
+    usable, cw, s, p, fits, beside, gateW, roomy, diagW, branchW, boxL, boxR, boxWidth, boxH,
+    arith, diagH, codeH, caps, capY, cols,
+    minDiag: minDiag(s), sumMin: sumMinW(kind, s),
+    gateCx: PAD + 3 * (branchW + COLGAP) + gateW / 2,
+    boxW: Math.min(branchW, 92),
+    /* main.js `weightsY`: the box and the gate's weight grid share this row */
+    boxTop: BAND_HEAD + XLAB + ROUTE_SPLIT + 2 * BOX_H + 2 * EDGE_H,
+    height: capY + caps.length * CAPTION_H + PAD,
+  };
+}
+
+/* The widget's own two caption lines for the page (main.js:1268). */
+function captions(mode) {
+  const st = stateFor(mode);
+  return mode === "hard"
+    ? [
+      `Sample ${SAMPLE} takes branch ${st.top[SAMPLE] + 1}, and the other two branches contribute nothing to its output.`,
+      "The argmax is a discrete choice, so no gradient reaches the router and it cannot be trained by backpropagation.",
+    ]
+    : [
+      `Sample ${SAMPLE} mixes the three branches ${st.weights[SAMPLE].map(n2).join(" · ")}, and branch ${st.top[SAMPLE] + 1} carries the most of it.`,
+      "nn.ModuleList holds the three branches so they can be applied in a loop; nn.ModuleDict holds them by name so one can be chosen.",
+    ];
+}
+
+/* ============================ the drawing =================================== */
+function draw(host, kind, title, sub, w, mode, force) {
+  const g = geom(kind, w, mode, force);
+  const st = stateFor(mode);
+  const hard = mode === "hard";
+  const HUES = [T.groupA, T.groupB, T.groupC];
+  const { ctx, cand } = panel(host, title, sub, w, g.height);
+
+  let y = band(ctx, 0, w, "Routing", hard ? "y = f₁(x) if condition(x) else f₂(x)" : "y = Σ αᵢ(x) fᵢ(x)");
+  const top = y;
+
+  /* x, and the split into four columns */
+  const usedW = 3 * (g.branchW + COLGAP) + g.gateW;
+  const cxAll = PAD + usedW / 2;
+  txt(ctx, "x  [4, 10]", cxAll, y + 12, { color: T.ink1, align: "center", mono: true });
+  const busY = y + XLAB + 12;
+  ctx.strokeStyle = T.groupA; ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(cxAll, y + XLAB); ctx.lineTo(cxAll, busY);
+  ctx.moveTo(g.cols[0], busY); ctx.lineTo(g.gateCx, busY);
+  ctx.stroke();
+  const boxTop = BAND_HEAD + XLAB + ROUTE_SPLIT;
+  for (const cx of [...g.cols, g.gateCx]) arrow(ctx, cx, busY, cx, boxTop, T.groupA, 2);
+
+  const taken = hard ? st.top[SAMPLE] : -1;
+  g.cols.forEach((cx, i) => {
+    layerBox(ctx, cx - g.boxW / 2, boxTop, g.boxW, "Linear", HUES[i]);
+    edge(ctx, cx, boxTop + BOX_H, boxTop + BOX_H + EDGE_H, "[4, 20]", { color: HUES[i] });
+    layerBox(ctx, cx - g.boxW / 2, boxTop + BOX_H + EDGE_H, g.boxW, "ReLU", HUES[i]);
+    edge(ctx, cx, boxTop + 2 * BOX_H + EDGE_H, g.boxTop, "[4, 20]", { color: HUES[i] });
+    txt(ctx, `branch ${i + 1}`, cx, boxTop - 6, { color: HUES[i], align: "center", size: T.fsXs });
+  });
+
+  /* the gate column, in ink because it is not a branch */
+  layerBox(ctx, g.gateCx - g.gateW / 2 + 8, boxTop, g.gateW - 16, "gate", T.ink2);
+  edge(ctx, g.gateCx, boxTop + BOX_H, boxTop + BOX_H + EDGE_H, "[4, 3]", { color: T.ink3 });
+  layerBox(ctx, g.gateCx - g.gateW / 2 + 8, boxTop + BOX_H + EDGE_H, g.gateW - 16, "softmax", T.ink2);
+  edge(ctx, g.gateCx, boxTop + 2 * BOX_H + EDGE_H, g.boxTop, "[4, 3]", { color: T.ink3 });
+  txt(ctx, "gate", g.gateCx, boxTop - 6, { color: T.ink3, align: "center", size: T.fsXs });
+
+  /* the [4, 3] weight grid, top aligned with the box */
+  for (let r = 0; r < 4; r += 1) {
+    for (let i = 0; i < 3; i += 1) {
+      valueCell(ctx, g.gateCx - g.gateW / 2 + i * g.s.wcell, g.boxTop + r * WROW, g.s.wcell, WROW,
+        n2(st.weights[r][i]), { hue: HUES[i], lit: r === SAMPLE && i === st.top[r] });
+    }
+  }
+  ctx.strokeStyle = T.highlight; ctx.lineWidth = HLW;
+  ctx.strokeRect(g.gateCx - g.gateW / 2 - 1.25, g.boxTop + SAMPLE * WROW - 1.25,
+    3 * g.s.wcell + 2.5, WROW + 2.5);
+  arrow(ctx, g.gateCx - g.gateW / 2 - 2, g.boxTop + WBLOCK / 2, g.boxR + 4, g.boxTop + WBLOCK / 2, T.ink3, 2);
+
+  /* the box, and the block in it */
+  outlineBox(ctx, g.boxL, g.boxTop, g.boxWidth, g.boxH, T.empirical);
+  txt(ctx, hard ? `branch ${taken + 1} taken` : "weighted sum", g.boxL + IN_PAD, g.boxTop + IN_PAD + 10,
+    { color: T.ink3, size: T.fsXs });
+  const drawn = kind === "B"
+    ? drawBandBlock(ctx, g, st, mode, HUES)
+    : drawStripBlock(ctx, g, st, mode, HUES, kind === "C");
+
+  /* C's one line of arithmetic, under the box */
+  if (kind === "C") arithLine(ctx, g, st, mode, HUES, drawn.col);
+
+  const fcTop = g.boxTop + g.boxH + g.arith + EDGE_H;
+  const sumCx = (g.boxL + g.boxR) / 2;
+  edge(ctx, sumCx, g.boxTop + g.boxH + g.arith, fcTop, "combined  [4, 20]", { color: T.empirical });
+  layerBox(ctx, sumCx - 46, fcTop, 92, "fc_out", T.empirical);
+  edge(ctx, sumCx, fcTop + BOX_H, fcTop + BOX_H + EDGE_H, "[4, 2]", { color: T.empirical });
+
+  /* the code, painted last over its own knockout */
+  if (g.beside) {
+    const codeX = PAD + g.roomy + TEXT_GAP;
+    ctx.fillStyle = T.surface;
+    ctx.fillRect(codeX - 8, top, w - codeX + 8, g.diagH);
+    codePanel(ctx, codeX, top + 26, g.cw, M.CODE_ROUTE[mode]);
+  } else {
+    codePanel(ctx, PAD, top + g.diagH + 22, g.cw, M.CODE_ROUTE[mode]);
+  }
+
+  g.caps.forEach((line, i) => txt(ctx, line, PAD, g.capY + i * CAPTION_H, { color: T.ink2 }));
+
+  const grew = g.boxH - WBLOCK;
+  note(cand, `box ${g.boxH}px, was ${WBLOCK}, grew ${grew}px · cell ${g.p}px `
+    + (drawn.col == null ? "" : `· framed column ${drawn.col} `)
+    + `· block needs ${g.sumMin}px, box is ${Math.round(g.boxWidth)}px `
+    + `· diagram ${Math.round(g.diagW)}px, branch column ${g.branchW}px `
+    + `· code ${g.beside ? "beside" : "under"} (beside fits: ${g.fits ? "yes" : "no"}) `
+    + `· ${g.caps.length} caption lines · stage ${g.height}px at ${w}, was ${BASE[w]}`);
+  return g;
+}
+
+/** A · C. Four one-row strips, laid out as an equation. */
+function drawStripBlock(ctx, g, st, mode, HUES, framed) {
+  const hard = mode === "hard";
+  const p = g.p;
+  const x0 = blockX(framed ? "C" : "A", g);
+  const opX = x0 + IN_PAD + OPW / 2;
+  const labX = x0 + IN_PAD + OPW + OPGAP;
+  const cellX = labX + LAB_L + GAP_L;
+  const rightX = cellX + FEATS * p + GAP_R;
+  const y0 = g.boxTop + IN_PAD + HEADH;
+  const taken = st.top[SAMPLE];
+  const rows = [0, 1, 2].map((i) => (hard ? (i === taken ? st.outs[i][SAMPLE] : null)
+    : st.outs[i][SAMPLE].map((v) => v * st.weights[SAMPLE][i])));
+  const total = st.combined[SAMPLE];
+  const hi = Math.max(maxAbs(rows.filter(Boolean)), maxAbs([total]));
+
+  const stripY = [0, 1, 2].map((i) => y0 + i * (p + SGAP));
+  const sumY = stripY[2] + p + RULE_GAP;
+  [0, 1, 2].forEach((i) => {
+    if (i > 0) {
+      txt(ctx, "+", opX, stripY[i] + p / 2 + 0.5,
+        { color: T.ink3, align: "center", baseline: "middle", size: T.fsSm });
+    }
+    txt(ctx, `branch ${i + 1}`, labX, stripY[i] + p / 2 + 0.5,
+      { color: HUES[i], baseline: "middle", size: T.fsXs });
+    cellRow(ctx, cellX, stripY[i], FEATS, p,
+      (c) => (rows[i] ? wash(HUES[i], alphaOf(rows[i][c], hi) * (hard ? 1 : st.weights[SAMPLE][i])) : T.surface),
+      { empty: !rows[i] });
+    const right = hard ? (i === taken ? "taken" : "not taken") : `× ${n2(st.weights[SAMPLE][i])}`;
+    txt(ctx, right, rightX, stripY[i] + p / 2 + 0.5,
+      { color: rows[i] ? T.ink1 : T.ink3, baseline: "middle", size: T.fsXs, mono: !hard });
+  });
+  ctx.strokeStyle = T.grid; ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(labX, sumY - RULE_GAP / 2 + 0.5); ctx.lineTo(rightX + LAB_R, sumY - RULE_GAP / 2 + 0.5);
+  ctx.stroke();
+  txt(ctx, "=", opX, sumY + p / 2 + 0.5,
+    { color: T.ink3, align: "center", baseline: "middle", size: T.fsSm });
+  cellRow(ctx, cellX, sumY, FEATS, p, (c) => shadeOf(T.empirical, total[c], hi));
+  txt(ctx, "combined", rightX, sumY + p / 2 + 0.5,
+    { color: T.empirical, baseline: "middle", size: T.fsXs });
+
+  /* WHICH COLUMN THE MOCK FRAMES. Every branch ends in a ReLU, so a feature can
+     be zero in all three and column 0 is one of those: framed there the printed
+     line reads `0.70 × 0.00 + 0.23 × 0.00 + 0.07 × 0.00 = 0.00`, which shows the
+     form and none of the arithmetic. The mock frames the column with the most
+     non-zero terms, largest total breaking the tie. In the widget the column
+     follows the pointer and the reader finds this for themselves. */
+  const col = pickColumn(rows, total);
+  if (framed) {
+    ctx.strokeStyle = T.highlight; ctx.lineWidth = HLW;
+    ctx.strokeRect(cellX + col * p - 1.25, stripY[0] - 1.25, p + 2.5, sumY + p - stripY[0] + 2.5);
+  }
+  return { col: framed ? col : null, cellX, p };
+}
+const alphaOf = (v, hi) => 0.06 + 0.84 * Math.min(1, Math.abs(v) / (hi || 1));
+function pickColumn(rows, total) {
+  let best = 0;
+  let bestScore = -1;
+  for (let c = 0; c < FEATS; c += 1) {
+    const live = rows.filter((r) => r && Math.abs(r[c]) > 0).length;
+    const score = live * 100 + Math.abs(total[c]);
+    if (score > bestScore) { bestScore = score; best = c; }
+  }
+  return best;
+}
+
+/** B. Three [4, 20] bands and the [4, 3] weights beside each. */
+function drawBandBlock(ctx, g, st, mode, HUES) {
+  const hard = mode === "hard";
+  const p = g.p;
+  const x0 = blockX("B", g);
+  const opX = x0 + IN_PAD + OPW / 2;
+  const labX = x0 + IN_PAD + OPW + OPGAP;
+  const cellX = labX + LAB_L + GAP_L;
+  const rightX = cellX + FEATS * p + GAP_R;
+  const y0 = g.boxTop + IN_PAD + HEADH;
+  const taken = st.top[SAMPLE];
+  const hi = Math.max(maxAbs(st.outs.flat()), maxAbs(st.combined));
+
+  const bandY = [0, 1, 2].map((i) => y0 + i * (4 * p + SGAP));
+  const sumY = bandY[2] + 4 * p + RULE_GAP;
+  [0, 1, 2].forEach((i) => {
+    if (i > 0) {
+      txt(ctx, "+", opX, bandY[i] + 2 * p + 0.5,
+        { color: T.ink3, align: "center", baseline: "middle", size: T.fsSm });
+    }
+    txt(ctx, `branch ${i + 1}`, labX, bandY[i] + 2 * p + 0.5,
+      { color: HUES[i], baseline: "middle", size: T.fsXs });
+    cellBand(ctx, cellX, bandY[i], 4, FEATS, p,
+      (r, c) => shadeOf(HUES[i], st.outs[i][r][c], hi), { litRow: SAMPLE });
+    for (let r = 0; r < 4; r += 1) {
+      valueCell(ctx, rightX, bandY[i] + r * p, g.s.wcell, p, n2(st.weights[r][i]),
+        { hue: HUES[i], lit: hard ? r === SAMPLE && i === st.top[r] : r === SAMPLE });
+    }
+  });
+  ctx.strokeStyle = T.grid; ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(labX, sumY - RULE_GAP / 2 + 0.5); ctx.lineTo(rightX + g.s.wcell, sumY - RULE_GAP / 2 + 0.5);
+  ctx.stroke();
+  txt(ctx, "=", opX, sumY + 2 * p + 0.5,
+    { color: T.ink3, align: "center", baseline: "middle", size: T.fsSm });
+  cellBand(ctx, cellX, sumY, 4, FEATS, p,
+    (r, c) => shadeOf(T.empirical, st.combined[r][c], hi), { litRow: SAMPLE });
+  txt(ctx, "combined", rightX, sumY + 2 * p + 0.5,
+    { color: T.empirical, baseline: "middle", size: T.fsXs });
+  txt(ctx, hard ? "the row taken" : "weights", rightX, bandY[0] - 4,
+    { color: T.ink3, size: T.fsXs });
+  return { col: null, cellX, p };
+}
+
+/** C's line: one feature column, coloured by the branch each term came from. */
+function arithLine(ctx, g, st, mode, HUES, col) {
+  const y = g.boxTop + g.boxH + 16;
+  let x = blockX("C", g) + IN_PAD;
+  const put = (s, color) => {
+    txt(ctx, s, x, y, { color, mono: true, size: T.fsSm });
+    x += wid(s, T.fsSm, true);
+  };
+  put(`combined[${SAMPLE}, ${col}] = `, T.ink2);
+  if (mode === "hard") {
+    const t = st.top[SAMPLE];
+    put(n2(st.outs[t][SAMPLE][col]), HUES[t]);
+    put(`, from branch ${t + 1}`, T.ink2);
+    return;
+  }
+  [0, 1, 2].forEach((i) => {
+    if (i > 0) put(" + ", T.ink3);
+    put(`${n2(st.weights[SAMPLE][i])} × ${n2(st.outs[i][SAMPLE][col])}`, HUES[i]);
+  });
+  put(" = ", T.ink3);
+  put(n2(st.combined[SAMPLE][col]), T.empirical);
+}
+
+/* ============================ the panels =================================== */
+/* what the page is today, so every note can print the difference */
+const BASE = { 550: 581, 770: 426 };
+
+const A550 = draw(document.getElementById("sA"), "A", "A · the chosen sample's rows, at 550",
+  "three products and their total, one row of 20 cells each", W, "soft");
+const A770 = draw(document.getElementById("sA"), "A", "A · the chosen sample's rows, at 770",
+  "the block asks for width the code beside was holding", WIDE, "soft");
+
+const B550 = draw(document.getElementById("sB"), "B", "B · all four samples, at 550",
+  "three [4, 20] bands, the [4, 3] weights beside them, the combined band under", W, "soft");
+const B770 = draw(document.getElementById("sB"), "B", "B · all four samples, at 770",
+  "the same four bands at the wide frame's 16px cell", WIDE, "soft");
+
+const C550 = draw(document.getElementById("sC"), "C", "C · A plus one feature's arithmetic, at 550",
+  "one column framed through the four strips, its arithmetic under the box", W, "soft");
+const C770 = draw(document.getElementById("sC"), "C", "C · A plus one feature's arithmetic, at 770",
+  "the same figure at the wide frame", WIDE, "soft");
+
+const CBeside = draw(document.getElementById("sFit"), "C", "C · at 770 with the code forced beside",
+  "the diagram keeps 376px, the strips take what is left of it, and the printed line runs into"
+  + " the code column, where the code's own knockout cuts it", WIDE, "soft", "beside");
+const CUnder = draw(document.getElementById("sFit"), "C", "C · at 770 as the fit pass draws it",
+  "the code under, and the cells at the wide frame's own 16px", WIDE, "soft", "under");
+
+const CHard = draw(document.getElementById("sHard"), "C", "C · mode: hard, at 550",
+  "one branch taken, the other two drawn as empty cells", W, "hard");
+
+/* ============================ the readings ================================= */
+document.getElementById("mono").innerHTML =
+  `<b>Measured on this browser:</b> one mono character at <code>--fs-sm</code> is `
+  + `<b>${MONOCH.toFixed(2)}px</b>, so the reserved code column is <b>${A550.cw}px</b>. `
+  + `The block's fixed width — the operator column, the branch name, the two gaps and the right label — is `
+  + `<b>${fixedW("A", 34)}px</b> for A and C and <b>${fixedW("B", 34)}px</b> for B at the 550 weight cell, `
+  + `so 20 cells at 12px need <b>${sumMinW("A", { band: 12, wcell: 34 })}px</b> of box and at 16px `
+  + `<b>${sumMinW("A", { band: 16, wcell: 40 })}px</b>. Every height below is read off the canvas that drew it.`;
+
+const rows = [
+  ["A", A550, A770], ["B", B550, B770], ["C", C550, C770],
+];
+const grew = (g) => g.boxH - WBLOCK;
+document.getElementById("proof").innerHTML = [
+  `<b>The box grows.</b> ${rows.map(([k, a, b]) => `${k} ${a.boxH}px at 550 and ${b.boxH}px at 770`).join(", ")}, `
+  + `against ${WBLOCK}px today — so ${rows.map(([k, a]) => `${k} adds ${grew(a)}px`).join(", ")} at 550.`,
+  `<b>The stage grows more, because the code moves.</b> The page is ${BASE[550]}px at 550 and ${BASE[770]}px at `
+  + `770 today. At 550 nothing moves and the cost is the box: `
+  + `${rows.map(([k, a]) => `${k} ${a.height}px (+${a.height - BASE[550]})`).join(", ")}. `
+  + `At 770 the block takes width the code beside was holding, the fit pass puts the code under, and the page `
+  + `pays the box and the code together: ${rows.map(([k, , b]) => `${k} ${b.height}px (+${b.height - BASE[770]})`).join(", ")}.`,
+  `<b>Beside does not survive at 770 for any of the three.</b> The diagram gets `
+  + `${Math.round(CBeside.roomy)}px there, of which the gate column takes ${CBeside.gateW}px and the gaps `
+  + `${3 * COLGAP}px, leaving a ${Math.round(CBeside.boxWidth)}px box. Twenty cells and a `
+  + `${fixedW("C", CBeside.s.wcell)}px fixed width fit in that only at <b>${CBeside.p}px a cell</b>, drawn in §4 `
+  + `— under the 12px the rest of the widget reads at. The block needs ${C770.sumMin}px of box and the fit pass `
+  + `finds it by putting the code under, which is what §4's right panel and §3's 770 panel draw.`,
+  `<b>B costs ${B550.height - C550.height}px more than C at 550 and ${B770.height - C770.height}px more at 770</b>, `
+  + `and its weight cells are ${B550.p}px tall at 550 against the ${WROW}px the gate grid uses, because a weight `
+  + `cell in B has to line up with a band row.`,
+  `<b>C costs ${C550.height - A550.height}px over A</b> at both widths: one printed line and the gap above it.`,
+  `<b>mode: hard is the same block.</b> ${CHard.boxH}px of box and a ${CHard.height}px stage at 550, `
+  + `${CHard.height - C550.height}px from C's soft panel, so the diagram does not move when the reader switches.`,
+].map((s) => `<li>${s}</li>`).join("");
+
+document.getElementById("rec").innerHTML =
+  `<b>Recommend C.</b> It is the attention precedent, which Kenneth picked on 2026-09-10 for the same question `
+  + `on the same kind of figure: the weighted rows beside the values, a <code>+</code> between them, the output `
+  + `as the column total, and one feature's arithmetic under it — here the strips are already the products, so `
+  + `the weight rides on each row as <code>× ${n2(SOFT.weights[SAMPLE][0])}</code> and as the row's own paleness, `
+  + `and the printed line is what turns four shaded strips into an operation the reader can check. `
+  + `<b>It costs ${C550.height - BASE[550]}px at 550</b> (${BASE[550]} → ${C550.height}) `
+  + `<b>and ${C770.height - BASE[770]}px at 770</b> (${BASE[770]} → ${C770.height}), `
+  + `${C550.height - A550.height}px of that being the printed line; the rest is the box, and at 770 the code `
+  + `moving under the diagram. <b>B is ${B770.height - C770.height}px worse at 770</b> and shows the operands `
+  + `rather than the operation: three unweighted bands and a weight column leave the multiply to the reader, `
+  + `which is the step Kenneth asked to see. A is C without the arithmetic, and the ${C550.height - A550.height}px `
+  + `it saves buys back the one line that names the numbers.`;
+</script>
+</body>
+</html>
