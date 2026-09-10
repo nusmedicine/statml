@@ -709,13 +709,21 @@ function drawSkip(ctx, colors, w, params, state, anim) {
     ctx.beginPath();
     ctx.moveTo(cx, teeY);
     ctx.lineTo(railX + 1, teeY);
+    /* with the projection on, the path INTO P is line 1's too, so the tee
+       continues down to the proj box; the rail below it is the add line's */
+    if (state.proj) {
+      ctx.moveTo(railX, teeY);
+      ctx.lineTo(railX, Y.relu);
+    }
     ctx.stroke();
   }
   if (onStage(walk, 5)) {
     elbow(ctx, [[railX, teeY], [railX, plusY], [cx + 18, plusY]],
       landed(walk, 5) ? skipHue : colors.axis);
   }
-  if (onStage(walk, 1)) {
+  /* the label and P(x) are landed-only: a preview carries no labels (Kenneth,
+     round 1: the projection read as shown before its line ran) */
+  if (landed(walk, 1)) {
     ctx.font = `${colors.fsXs} ${colors.mono}`;
     const label = `skip  ${shapeText(state.skipShape)}`;
     const tw = ctx.measureText(label).width;
@@ -727,8 +735,10 @@ function drawSkip(ctx, colors, w, params, state, anim) {
   }
   if (state.proj && onStage(walk, 1)) {
     unitBox(ctx, colors, railX - 55, Y.relu, 110, "proj", colors.groupB, walk, 1);
-    txt(ctx, colors, "P(x)", railX, Y.relu - 6,
-      { color: landed(walk, 1) ? colors.groupB : colors.ink3, align: "center", size: colors.fsXs });
+    if (landed(walk, 1)) {
+      txt(ctx, colors, "P(x)", railX, Y.relu - 6,
+        { color: colors.groupB, align: "center", size: colors.fsXs });
+    }
   }
 
   if (!state.match) {
