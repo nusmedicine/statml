@@ -780,6 +780,26 @@
       ],
       "arc": 51,
       "status": "shipped"
+    },
+    {
+      "slug": "loss-functions",
+      "title": "Deep Learning - Loss Functions",
+      "blurb": "A loss turns a prediction and its target into one number, and the task decides which loss.",
+      "course": "PHM5005",
+      "topics": [
+        "loss function",
+        "MSE",
+        "cross-entropy",
+        "binary cross-entropy",
+        "softmax",
+        "sigmoid",
+        "logits",
+        "class index",
+        "multi-label",
+        "deep learning"
+      ],
+      "arc": 54,
+      "status": "draft"
     }
   ]
 }

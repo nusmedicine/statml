@@ -1,0 +1,650 @@
+/* ============================================================================
+   Assertions on widget 54's engine — the arithmetic and the geometry no
+   picture can settle.
+
+       node widgets/_lab/loss-functions-verify.mjs
+
+   Imports `widgets/loss-functions/model.js`, the shipping code and not a copy
+   (5.8). Every number here is either the notebook's own (PHM5005 05-4 cells
+   30-40), one of the digits `_lab/dl-loss-measure.mjs` prints, or one of the
+   sizes `_lab/loss-functions-mock.html` measured at the real stage.
+
+   Six of these need a reader most. THE THREE LOSSES are four digits in a tile
+   and nothing on the figure contradicts them. THE DRAG ARITHMETIC is pixels
+   into a score, which a settled hash never exercises and a screenshot of a
+   moved bar cannot check. THE STAGE HEIGHTS decide whether a page fits at all,
+   and `height` and `draw` share one function precisely so this script can
+   measure what the widget draws. THE UNIT TABLE says which row lands with
+   which step, and a row that lands one step early is a stable, plausible
+   picture. THE TWO TORCH MESSAGES are the whole of two losing states, so their
+   wording is checked against what torch 2.14 printed
+   (`_lab/dl-loss-torch.txt`, the output of `_lab/dl-loss-torch.py`). And THE REGISTER of every reader-facing string is
+   a 5.9 sweep no hash performs.
+
+   Exits non-zero on failure.
+   ========================================================================= */
+
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+import * as M from "../loss-functions/model.js";
+
+const root = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
+const read = (rel) => readFileSync(join(root, rel), "utf8");
+
+let failed = 0;
+let ran = 0;
+const pad = (s, n) => String(s).padEnd(n);
+function check(name, ok, detail = "") {
+  ran += 1;
+  if (!ok) failed += 1;
+  console.log(`  ${ok ? "ok  " : "FAIL"}  ${pad(name, 72)} ${detail}`);
+}
+const row4 = (v) => v.map(M.n4).join(" ");
+const row2 = (v) => v.map(M.n2).join(" ");
+
+/* the three pages at the notebook's own values, through the widget's own door */
+const REG = M.computeFor({ task: "regression" });
+const CE = M.computeFor({ task: "single-label" });
+const BCE = M.computeFor({
+  task: "multi-label", A: false, B: true, C: true, D: false, E: false,
+});
+
+/* --- 1 · MSELoss, cell 33 --------------------------------------------------- */
+{
+  check("cell 33's y_pred is [2.5, 0.0, 2.1]", REG.scores.join() === "2.5,0,2.1", REG.scores.join());
+  check("cell 33's y_true is [3.0, -0.5, 2.0]", REG.target.join() === "3,-0.5,2", REG.target.join());
+  check("the page runs three outputs", REG.n === 3);
+  check("the gaps are y_pred - y_true", row2(REG.gaps) === "-0.50 0.50 0.10", row2(REG.gaps));
+  check("the squared gaps", row4(REG.sq) === "0.2500 0.2500 0.0100", row4(REG.sq));
+  check("MSELoss is the mean of the three squares", M.n4(REG.loss) === "0.1700", M.n4(REG.loss));
+  check("MSELoss to six digits, as the measure script prints it",
+    REG.loss.toFixed(6) === "0.170000", REG.loss.toFixed(6));
+  check("the loss is the mean and not the sum",
+    Math.abs(REG.loss * 3 - M.sum(REG.sq)) < 1e-12);
+  check("no dtype can raise on the Regression page", REG.bad === false);
+  check("the Regression page has no row-sum column", REG.sumCol === false);
+
+  /* the parabola the drag walks: the floor sits at y_true[0] and the ends are
+     the axis's own, which is what the panel's -3..3 and 0..9 are drawn for */
+  const at = (p0) => M.mean(M.mseTerms([p0, 2.5 === p0 ? 0 : 0, 2.1], [3, -0.5, 2]));
+  check("y_pred[0] at its own target is the parabola's floor",
+    M.n4(at(3)) === "0.0867", M.n4(at(3)));
+  for (const [p0, want] of [[-1, "5.4200"], [0, "3.0867"], [1, "1.4200"], [2, "0.4200"],
+    [2.5, "0.1700"], [3.5, "0.1700"], [4, "0.4200"], [5, "1.4200"], [6, "3.0867"]]) {
+    check(`y_pred[0] dragged to ${p0} gives a loss of ${want}`, M.n4(at(p0)) === want, M.n4(at(p0)));
+  }
+  /* THE GAP CAN LEAVE THE PANEL. Both tensors are held inside -1..6, so a gap
+     runs -7..7 against a panel drawn over -3..3, and a point past the end is
+     drawn ON that end — where the clip at 9 puts it back on the curve. */
+  const widest = M.RANGE.regression[1] - M.RANGE.regression[0];
+  check("the widest gap the two fields can produce is 7", widest === 7);
+  check("which is wider than the parabola panel's own -3..3",
+    widest > M.GAP_HI - M.GAP_LO, `${M.GAP_LO}..${M.GAP_HI}`);
+  check("the panel's ceiling is the square of its own end, so a clamped point stays on the curve",
+    M.GAP_HI * M.GAP_HI === M.SQ_MAX, String(M.SQ_MAX));
+  check("and the drawing clamps the gap into the panel",
+    /Math\.max\(GAP_LO, Math\.min\(GAP_HI, v\)\)/.test(read("widgets/loss-functions/main.js")));
+}
+
+/* --- 2 · CrossEntropyLoss, cell 36 ------------------------------------------ */
+{
+  check("cell 36's scores are [5.0, 0.5, 0.1]", CE.scores.join() === "5,0.5,0.1", CE.scores.join());
+  check("the label opens at class 0", CE.label === 0);
+  check("the page runs three classes", CE.n === 3);
+  check("the softmax row", row4(CE.p) === "0.9818 0.0109 0.0073", row4(CE.p));
+  check("the softmax row sums to 1", M.n4(CE.rowSum) === "1.0000", M.n4(CE.rowSum));
+  check("the row sums to 1 to machine precision", Math.abs(CE.rowSum - 1) < 1e-12);
+  check("CrossEntropyLoss at label 0", M.n4(CE.loss) === "0.0184", M.n4(CE.loss));
+  check("the loss to six digits", CE.loss.toFixed(6) === "0.018386", CE.loss.toFixed(6));
+
+  const at = (l) => M.computeFor({ task: "single-label", label: String(l) });
+  check("the label moved to class 1", M.n4(at(1).loss) === "4.5184", M.n4(at(1).loss));
+  check("the label moved to class 2", M.n4(at(2).loss) === "4.9184", M.n4(at(2).loss));
+  check("-log of each probability is the loss for that label",
+    row4(CE.p.map((p) => -Math.log(p))) === "0.0184 4.5184 4.9184");
+  check("both moved losses stay under the curve's clip at 5",
+    at(1).loss < M.YMAX && at(2).loss < M.YMAX);
+  /* the worst the fixed axis allows: the true class at the floor, the other two
+     at the ceiling, which is left of where the curve enters the panel */
+  const worst = M.computeFor({ task: "single-label", scores: "-2,6,6" });
+  check("the axis still allows a loss past the curve's clip",
+    worst.loss > M.YMAX, M.n4(worst.loss));
+  check("and a probability left of where the curve is drawn from",
+    worst.p[0] < Math.exp(-M.YMAX), worst.p[0].toExponential(2));
+  check("so the drawing clamps a point onto the curve's own end",
+    /Math\.max\(pLo, Math\.min\(1, pt\.p\)\)/.test(read("widgets/loss-functions/main.js")));
+
+  /* the drag the page exists for: the true class losing confidence */
+  const drag = (z0) => M.computeFor({ task: "single-label", scores: M.wire([z0, 0.5, 0.1]) });
+  for (const [z0, p0, loss] of [[6, "0.9932", "0.0068"],
+    [5, "0.9818", "0.0184"], [4, "0.9520", "0.0492"], [3, "0.8794", "0.1285"],
+    [2, "0.7285", "0.3168"], [1, "0.4967", "0.6997"], [0, "0.2664", "1.3228"],
+    [-1, "0.1178", "2.1384"], [-2, "0.0468", "3.0610"]]) {
+    const s = drag(z0);
+    check(`the score for A at ${z0}: p ${p0}, loss ${loss}`,
+      M.n4(s.p[0]) === p0 && M.n4(s.loss) === loss, `${M.n4(s.p[0])} / ${M.n4(s.loss)}`);
+  }
+  check("a score typed past the axis is held at its ceiling, so every bar has a top",
+    drag(8).scores[0] === 6, String(drag(8).scores[0]));
+  const wrongUp = M.computeFor({ task: "single-label", scores: M.wire([5, 5, 0.1]) });
+  check("a wrong class dragged up to A's own 5.0 gives 0.6969",
+    M.n4(wrongUp.loss) === "0.6969", M.n4(wrongUp.loss));
+
+  const bad = M.computeFor({ task: "single-label", singleDtype: "float32" });
+  check("a float32 target raises on the Single-label page", bad.bad === true);
+  check("a long target does not", CE.bad === false);
+  check("the target's shape line follows the dtype",
+    M.targetDtypeText(CE) === "[1], long" && M.targetDtypeText(bad) === "[1], float32",
+    M.targetDtypeText(bad));
+  check("the scores' shape line is [1, 3], float32",
+    M.scoresDtypeText(CE) === "[1, 3], float32", M.scoresDtypeText(CE));
+}
+
+/* --- 3 · BCEWithLogitsLoss, cell 39 ----------------------------------------- */
+{
+  check("cell 39's scores are [0.2, -1.0, 0.5, 2.0, -0.3]",
+    BCE.scores.join() === "0.2,-1,0.5,2,-0.3", BCE.scores.join());
+  check("cell 39's target has B and C present", BCE.y.join() === "0,1,1,0,0", BCE.y.join());
+  check("the page runs five classes", BCE.n === 5);
+  check("the sigmoid row",
+    row4(BCE.p) === "0.5498 0.2689 0.6225 0.8808 0.4256", row4(BCE.p));
+  check("the sigmoid row sums to 2.7476, not to 1",
+    M.n4(BCE.rowSum) === "2.7476", M.n4(BCE.rowSum));
+  check("the probability given to each class's own label",
+    row4(BCE.pTrue) === "0.4502 0.2689 0.6225 0.1192 0.5744", row4(BCE.pTrue));
+  check("the five per-class terms",
+    row4(BCE.terms) === "0.7981 1.3133 0.4741 2.1269 0.5544", row4(BCE.terms));
+  check("BCEWithLogitsLoss is the mean of the five", M.n4(BCE.loss) === "1.0534", M.n4(BCE.loss));
+  check("the loss to six digits", BCE.loss.toFixed(6) === "1.053352", BCE.loss.toFixed(6));
+  check("reduction='sum' would print 5.2668", M.n4(M.sum(BCE.terms)) === "5.2668");
+  check("a term is -log of the probability at the true label",
+    BCE.terms.every((t, i) => Math.abs(t + Math.log(BCE.pTrue[i])) < 1e-12));
+
+  /* torch's own stable form, so the widget can print either and get the digits */
+  const stable = M.bceStable(BCE.scores, BCE.y);
+  check("torch's stable form agrees with the textbook one to 1e-12",
+    stable.every((t, i) => Math.abs(t - BCE.terms[i]) < 1e-12),
+    Math.max(...stable.map((t, i) => Math.abs(t - BCE.terms[i]))).toExponential(2));
+  check("the stable form prints the same four digits", row4(stable) === row4(BCE.terms));
+
+  const y = (bits) => M.computeFor({
+    task: "multi-label",
+    A: bits[0], B: bits[1], C: bits[2], D: bits[3], E: bits[4],
+  });
+  for (const [c, want] of [[0, "1.0134"], [1, "0.8534"], [2, "1.1534"], [3, "0.6534"], [4, "1.1134"]]) {
+    const bits = [false, true, true, false, false];
+    bits[c] = !bits[c];
+    check(`class ${M.LETTERS[c]} toggled gives a loss of ${want}`,
+      M.n4(y(bits).loss) === want, M.n4(y(bits).loss));
+  }
+  check("every class absent gives 0.9534",
+    M.n4(y([false, false, false, false, false]).loss) === "0.9534");
+  check("every class present gives 0.6734",
+    M.n4(y([true, true, true, true, true]).loss) === "0.6734");
+
+  const z = (i, v) => {
+    const s = [0.2, -1, 0.5, 2, -0.3];
+    s[i] = v;
+    return M.computeFor({
+      task: "multi-label", logits: M.wire(s),
+      A: false, B: true, C: true, D: false, E: false,
+    });
+  };
+  for (const [v, want] of [[2, "1.0534"], [1, "0.8906"], [0, "0.7666"], [-1, "0.6906"], [-2, "0.6534"]]) {
+    check(`class D's score at ${v} gives a loss of ${want}`, M.n4(z(3, v).loss) === want, M.n4(z(3, v).loss));
+  }
+  for (const [v, want] of [[-1, "1.0534"], [0, "0.9293"], [1, "0.8534"], [2, "0.8161"], [3, "0.8004"]]) {
+    check(`class B's score at ${v} gives a loss of ${want}`, M.n4(z(1, v).loss) === want, M.n4(z(1, v).loss));
+  }
+  check("a term of 0.0181 at one end of the axis and 4.0181 at the other",
+    M.n4(-Math.log(M.sigmoid(4))) === "0.0181" && M.n4(-Math.log(M.sigmoid(-4))) === "4.0181");
+
+  const bad = M.computeFor({
+    task: "multi-label", multiDtype: "long", A: false, B: true, C: true, D: false, E: false,
+  });
+  check("a long target raises on the Multi-label page", bad.bad === true);
+  check("a float32 target does not", BCE.bad === false);
+  check("the target's shape line follows the dtype",
+    M.targetDtypeText(BCE) === "[1, 5], float32" && M.targetDtypeText(bad) === "[1, 5], long",
+    M.targetDtypeText(bad));
+}
+
+/* --- 4 · the same row read both ways ----------------------------------------
+ * The confusion the widget exists for, as a number rather than a caption: one
+ * row of five scores under softmax and under sigmoid.
+ */
+{
+  const z = [0.2, -1, 0.5, 2, -0.3];
+  check("softmax over cell 39's row sums to 1",
+    M.n4(M.sum(M.softmax(z))) === "1.0000", M.n4(M.sum(M.softmax(z))));
+  check("sigmoid per class over the same row sums to 2.7476",
+    M.n4(M.sum(z.map(M.sigmoid))) === "2.7476");
+  check("softmax over cell 39's row",
+    row4(M.softmax(z)) === "0.1074 0.0324 0.1450 0.6500 0.0652", row4(M.softmax(z)));
+  check("sigmoid over cell 36's row does not sum to 1",
+    M.n4(M.sum([5, 0.5, 0.1].map(M.sigmoid))) !== "1.0000");
+  check("the two row sums the two pages print are different numbers",
+    M.n4(CE.rowSum) === "1.0000" && M.n4(BCE.rowSum) === "2.7476");
+  check("softmax is shift invariant, which is why it is computed off the maximum",
+    M.softmax([5, 0.5, 0.1]).every((p, i) => Math.abs(p - M.softmax([15, 10.5, 10.1])[i]) < 1e-12));
+  check("sigmoid(0) is a half", M.sigmoid(0) === 0.5);
+  check("a large negative score does not underflow the sigmoid", M.sigmoid(-40) > 0);
+}
+
+/* --- 5 · the tensors on the wire -------------------------------------------- */
+{
+  const R = M.RANGE.regression;
+  check("a typed row is canonicalised: spaces and trailing zeros go",
+    M.parseVec("2.5, 0.0, 2.1", 3, R) === "2.5,0,2.1", M.parseVec("2.5, 0.0, 2.1", 3, R));
+  check("the canonical form round trips through unwire",
+    M.wire(M.unwire("2.5,0,2.1")) === "2.5,0,2.1");
+  check("the negative target canonicalises",
+    M.parseVec("3.0, -0.50, 2.00", 3, R) === "3,-0.5,2", M.parseVec("3.0, -0.50, 2.00", 3, R));
+  check("show puts the row back the way a person writes it",
+    M.showVec("2.5,0,2.1") === "2.5, 0, 2.1", M.showVec("2.5,0,2.1"));
+  check("show and parse are inverses on a canonical row",
+    M.parseVec(M.showVec("0.2,-1,0.5,2,-0.3"), 5, M.RANGE["multi-label"]) === "0.2,-1,0.5,2,-0.3");
+  check("a short row is padded to the count the page draws",
+    M.parseVec("5", 3, M.RANGE["single-label"]) === "5,0,0", M.parseVec("5", 3, M.RANGE["single-label"]));
+  check("a long row is truncated to it",
+    M.parseVec("5,0.5,0.1,9", 3, M.RANGE["single-label"]) === "5,0.5,0.1");
+  check("a value is rounded to a tenth", M.parseVec("2.55,0,0", 3, R) === "2.6,0,0",
+    M.parseVec("2.55,0,0", 3, R));
+  check("a value off the axis is held inside it",
+    M.parseVec("100,-100,0", 3, M.RANGE["single-label"]) === "6,-2,0",
+    M.parseVec("100,-100,0", 3, M.RANGE["single-label"]));
+  check("text that is not numbers still leaves a drawable row",
+    M.parseVec("abc", 3, R) === "0,0,0", M.parseVec("abc", 3, R));
+  check("the hint is silent when the count is right", M.hintFor("5,0.5,0.1", 3, "class") === null);
+  check("the hint names the count and the noun",
+    M.hintFor("5,0.5", 3, "class") === "three numbers, one per class",
+    M.hintFor("5,0.5", 3, "class"));
+  check("and the five-class page says five",
+    M.hintFor("1", 5, "class") === "five numbers, one per class");
+  check("the notebook's three defaults are the canonical form",
+    [M.MSE_PRED, M.MSE_TRUE, M.CE_SCORES, M.BCE_SCORES]
+      .every((t, i) => M.parseVec(t, i === 3 ? 5 : 3,
+        i === 3 ? M.RANGE["multi-label"] : i < 2 ? R : M.RANGE["single-label"]) === t));
+  check("every default sits inside its page's own axis",
+    M.unwire(M.CE_SCORES).every((v) => v >= -2 && v <= 6)
+    && M.unwire(M.BCE_SCORES).every((v) => v >= -4 && v <= 4)
+    && [...M.unwire(M.MSE_PRED), ...M.unwire(M.MSE_TRUE)].every((v) => v >= -1 && v <= 6));
+}
+
+/* --- 6 · the drag -----------------------------------------------------------
+ * A gesture of dy pixels against the page's FIXED axis, resolved from the value
+ * the parameter held when it began.
+ */
+{
+  const CE_R = M.RANGE["single-label"];
+  check("the Single-label axis is 8 units over the 88px bar band",
+    M.BAR_H / (CE_R[1] - CE_R[0]) === 11, `${M.BAR_H / 8}px a unit`);
+  check("a dy of -44px moves a score by 4.0", M.dragTo(1, -44, CE_R) === 5, M.dragTo(1, -44, CE_R));
+  check("a dy of +44px moves it back", M.dragTo(5, 44, CE_R) === 1, M.dragTo(5, 44, CE_R));
+  check("dragging up raises the score", M.dragTo(0, -11, CE_R) === 1);
+  check("dragging down lowers it", M.dragTo(0, 11, CE_R) === -1);
+  check("a gesture of no distance changes nothing", M.dragTo(5, 0, CE_R) === 5);
+  check("the value snaps to a tenth", M.dragTo(5, -1, CE_R) === 5.1, M.dragTo(5, -1, CE_R));
+  check("a sub-tenth gesture rounds to the nearest tenth",
+    M.dragTo(0, 0.4, CE_R) === 0, M.dragTo(0, 0.4, CE_R));
+  check("the drag clamps at the top of the axis", M.dragTo(5, -400, CE_R) === 6);
+  check("and at the bottom", M.dragTo(5, 400, CE_R) === -2);
+  check("the Multi-label axis is 8 units too, over -4 to 4",
+    M.BAR_H / (M.RANGE["multi-label"][1] - M.RANGE["multi-label"][0]) === 11);
+  check("the Multi-label drag clamps at -4 and 4",
+    M.dragTo(0, 400, M.RANGE["multi-label"]) === -4
+    && M.dragTo(0, -400, M.RANGE["multi-label"]) === 4);
+  check("the Regression axis is 7 units over the same band",
+    Math.abs(M.BAR_H / (M.RANGE.regression[1] - M.RANGE.regression[0]) - 88 / 7) < 1e-12);
+  check("the Regression drag clamps at -1 and 6",
+    M.dragTo(0, 900, M.RANGE.regression) === -1 && M.dragTo(0, -900, M.RANGE.regression) === 6);
+
+  check("only the grabbed column moves",
+    M.dragVec("5,0.5,0.1", 0, -44, 3, CE_R) === "6,0.5,0.1",
+    M.dragVec("5,0.5,0.1", 0, -44, 3, CE_R));
+  check("the middle column moves alone",
+    M.dragVec("5,0.5,0.1", 1, -44, 3, CE_R) === "5,4.5,0.1",
+    M.dragVec("5,0.5,0.1", 1, -44, 3, CE_R));
+  check("class A dragged to 1.0 is the mock's own dragged figure",
+    M.dragVec("5,0.5,0.1", 0, 44, 3, CE_R) === "1,0.5,0.1");
+  check("and it gives the measured 0.6997",
+    M.n4(M.computeFor({ task: "single-label", scores: M.dragVec("5,0.5,0.1", 0, 44, 3, CE_R) }).loss)
+    === "0.6997");
+  check("a column outside the row leaves the tensor as it was",
+    M.dragVec("5,0.5,0.1", -1, -44, 3, CE_R) === "5,0.5,0.1");
+  check("the drag returns the canonical text the field's own parse would produce",
+    M.dragVec("5,0.5,0.1", 2, -11, 3, CE_R) === M.parseVec(M.dragVec("5,0.5,0.1", 2, -11, 3, CE_R), 3, CE_R));
+  check("the five-class row keeps its other four",
+    M.dragVec("0.2,-1,0.5,2,-0.3", 3, 44, 5, M.RANGE["multi-label"]) === "0.2,-1,0.5,-2,-0.3");
+  check("class D dragged to -2 gives the measured 0.6534",
+    M.n4(M.computeFor({
+      task: "multi-label", A: false, B: true, C: true, D: false, E: false,
+      logits: M.dragVec("0.2,-1,0.5,2,-0.3", 3, 44, 5, M.RANGE["multi-label"]),
+    }).loss) === "0.6534");
+}
+
+/* --- 7 · the walk ------------------------------------------------------------ */
+{
+  check("the Regression page lands four rows", REG.units === 4);
+  check("the Single-label page lands three", CE.units === 3);
+  check("the Multi-label page lands five", BCE.units === 5);
+
+  for (const [name, state] of [["Regression", REG], ["Single-label", CE], ["Multi-label", BCE]]) {
+    const units = M.pageUnits(state);
+    check(`${name}: every unit of the table is a step the page runs`,
+      units.every((u) => u.unit >= 1 && u.unit <= state.units),
+      units.map((u) => u.unit).join(","));
+    check(`${name}: every step lands at least one piece`,
+      Array.from({ length: state.units }, (_, i) => i + 1)
+        .every((n) => units.some((u) => u.unit === n)));
+    check(`${name}: nothing on the stage before the walk but the next row's frame`,
+      units.filter((u) => M.stageOf(0, u.unit, u.preview) !== "absent")
+        .every((u) => u.unit === 1));
+    check(`${name}: everything has landed once the last step has run`,
+      units.every((u) => M.stageOf(state.units, u.unit, u.preview) === "landed"));
+    check(`${name}: the loss waits for the last step`,
+      units.find((e) => e.id === "loss").unit === state.units);
+    check(`${name}: the loss has no pale form`,
+      units.find((e) => e.id === "loss").preview === false);
+  }
+
+  check("Regression lands the target, the gap, the square and the mean, in that order",
+    M.pageUnits(REG).filter((u) => u.preview !== false).map((u) => `${u.id}@${u.unit}`).join(" ")
+    === "target@1 gap@2 gap squared@3");
+  check("the target's tick on the bars has no pale form",
+    M.pageUnits(REG).find((u) => u.id === "target ticks").preview === false);
+  check("nor does the gap bracket",
+    M.pageUnits(REG).find((u) => u.id === "gap bracket").preview === false);
+  check("Regression's three points land with the row that squares the gaps",
+    M.pageUnits(REG).find((u) => u.id === "curve points").unit === 3);
+  check("Single-label lands the softmax row, the target and the loss",
+    M.pageUnits(CE).map((u) => `${u.id}@${u.unit}`).join(" ")
+    === "p@1 row sum@1 target@2 true class lit@2 loss@3 curve point@3");
+  check("Multi-label lands two rows the other page does not",
+    M.pageUnits(BCE).some((u) => u.id === "p at the true label")
+    && M.pageUnits(BCE).some((u) => u.id === "-log p"));
+  check("the row sum lands with the probability row it reads",
+    M.pageUnits(CE).find((u) => u.id === "row sum").unit
+    === M.pageUnits(CE).find((u) => u.id === "p").unit);
+
+  check("stageOf: a step that has run is landed", M.stageOf(2, 1) === "landed");
+  check("stageOf: the step itself is landed at its own number", M.stageOf(2, 2) === "landed");
+  check("stageOf: the next step previews", M.stageOf(2, 3) === "preview");
+  check("stageOf: the one after it is absent", M.stageOf(2, 4) === "absent");
+  check("stageOf: a piece with no pale form is absent until it lands",
+    M.stageOf(2, 3, false) === "absent");
+  check("stageOf: before the walk starts, only the first row previews",
+    M.stageOf(0, 1) === "preview" && M.stageOf(0, 2) === "absent");
+
+  check("the three paces are named a step, the collection's own wording",
+    M.SPEEDS.every((s) => /^\d\.\d seconds a step$/.test(s.detail)),
+    M.SPEEDS.map((s) => s.detail).join(" / "));
+  check("the paces are Slow, Medium and Fast",
+    M.SPEEDS.map((s) => s.label).join(" ") === "Slow Medium Fast");
+  check("a beat is 1.2s, 0.7s and 0.3s",
+    [M.unitMs("slow"), M.unitMs("medium"), M.unitMs("fast")].join() === "1200,700,300");
+  check("an unknown pace falls back to Medium", M.unitMs("what") === 700);
+}
+
+/* --- 8 · the stage, at the mock's own measurements ---------------------------- */
+{
+  const W = 550;
+  check("the Regression stage is 494px at 550", M.layout(W, REG).height === 494, M.layout(W, REG).height);
+  check("the Single-label stage is 414px", M.layout(W, CE).height === 414, M.layout(W, CE).height);
+  check("the Multi-label stage is 524px", M.layout(W, BCE).height === 524, M.layout(W, BCE).height);
+  check("`pageHeight` and `layout` are the same number (5.8)",
+    M.pageHeight(W, { task: "regression" }) === M.layout(W, REG).height);
+  check("the three heights differ, so no short page pays for the tallest",
+    new Set([494, 414, 524]).size === 3);
+
+  const bad = M.computeFor({ task: "single-label", singleDtype: "float32" });
+  check("torch's message costs the Single-label stage one printed line",
+    M.layout(W, bad).height === 426, M.layout(W, bad).height);
+  const badB = M.computeFor({
+    task: "multi-label", multiDtype: "long", A: false, B: true, C: true, D: false, E: false,
+  });
+  check("and costs the Multi-label stage nothing, since its loss line is the last thing drawn",
+    M.layout(W, badB).height === 524, M.layout(W, badB).height);
+
+  const gCE = M.layout(W, CE);
+  const gBCE = M.layout(W, BCE);
+  const gREG = M.layout(W, REG);
+  check("the rows column is 300px at 550", gCE.leftW === 300, gCE.leftW);
+  check("Single-label runs four columns, three classes and the row sum", gCE.cols === 4);
+  check("at a pitch of 75px", gCE.pitch === 75, gCE.pitch);
+  check("Multi-label runs six columns", gBCE.cols === 6);
+  check("at a pitch of 50px, the tightest column in the widget", gBCE.pitch === 50, gBCE.pitch);
+  check("Regression runs three columns and no sum", gREG.cols === 3);
+  check("at the 88px cap rather than the 100px the room allows", gREG.pitch === 88, gREG.pitch);
+  check("a bar is 56% of the pitch",
+    gCE.barW === Math.round(75 * 0.56) && gBCE.barW === Math.round(50 * 0.56),
+    `${gCE.barW} / ${gBCE.barW}`);
+  check("every column fits inside the rows column",
+    [gCE, gBCE, gREG].every((g) => g.cols * g.pitch <= g.leftW));
+
+  const wide = M.layout(770, BCE);
+  check("at 770 the rows column grows to 520px", wide.leftW === 520, wide.leftW);
+  check("and the pitch reaches the 88px cap rather than the room", wide.pitch === 86, wide.pitch);
+  check("the stage is the same height at both widths, since nothing here wraps",
+    wide.height === gBCE.height);
+  check("the curve panel keeps its 200px at both widths",
+    M.CURVE_W === 200 && wide.curveX === 770 - M.PAD - M.CURVE_W, wide.curveX);
+
+  check("the bars run 88px, the band the axis is drawn over", M.BAR_H === 88);
+  check("the bar band starts under the class letters",
+    gCE.barTop === gCE.barY + M.ROW_LBL, gCE.barTop);
+  check("the axis maps the range's floor to the foot of the band",
+    Math.abs(gCE.py(-2) - (gCE.barTop + M.BAR_H)) < 1e-9);
+  check("and its ceiling to the top", Math.abs(gCE.py(6) - gCE.barTop) < 1e-9);
+  check("zero sits a quarter of the band up from its foot, where -2..6 puts it",
+    Math.abs(gCE.py(0) - (gCE.barTop + M.BAR_H * 0.75)) < 1e-9, gCE.py(0));
+  check("a column centre is half a pitch in from its own left edge",
+    gCE.colX(0) === M.PAD + gCE.pitch / 2);
+  check("the columns are one pitch apart",
+    gCE.colX(1) - gCE.colX(0) === gCE.pitch);
+
+  /* what the drag's hit-test resolves, on the geometry the drawing uses */
+  check("a point on the first bar resolves to column 0",
+    M.barColAt(gCE.colX(0), gCE.barTop + 10, gCE) === 0);
+  check("a point on the last bar resolves to the last column",
+    M.barColAt(gCE.colX(2), gCE.barTop + 10, gCE) === 2);
+  check("a point above the band resolves to no column",
+    M.barColAt(gCE.colX(0), gCE.barTop - 20, gCE) === -1);
+  check("a point below the band resolves to no column",
+    M.barColAt(gCE.colX(0), gCE.barTop + M.BAR_H + 20, gCE) === -1);
+  check("a point in the row-sum column is over no bar",
+    M.barColAt(gCE.colX(3), gCE.barTop + 10, gCE) === -1, gCE.colX(3));
+  check("the band's own edges are grabbable, with a few px of tolerance",
+    M.barColAt(gCE.colX(1), gCE.barTop - 4, gCE) === 1
+    && M.barColAt(gCE.colX(1), gCE.barTop + M.BAR_H + 4, gCE) === 1);
+  check("all five Multi-label bars are grabbable",
+    [0, 1, 2, 3, 4].every((i) => M.barColAt(gBCE.colX(i), gBCE.barTop + 4, gBCE) === i));
+
+  /* the rows the walk lands, in the order the page draws them */
+  check("Regression draws target, gap and gap² in that order",
+    gREG.rows.map((r) => r.id).join(" ") === "target gap gap squared");
+  check("Single-label draws p then the target",
+    gCE.rows.map((r) => r.id).join(" ") === "p target");
+  check("Multi-label draws p, the target, p at the true label and −log p",
+    gBCE.rows.map((r) => r.id).join(" ") === "p target p at the true label -log p");
+  check("every row's cells sit below its own name",
+    [gCE, gBCE, gREG].every((g) => g.rows.every((r) => r.cellY === r.nameY + M.ROW_LBL)));
+  check("the rows do not overlap",
+    [gCE, gBCE, gREG].every((g) => g.rows.every((r, i) =>
+      i === 0 || r.nameY >= g.rows[i - 1].cellY + M.CH)));
+  check("the loss line sits under the last row",
+    [gCE, gBCE, gREG].every((g) => g.lossY >= g.rows.at(-1).cellY + M.CH));
+  check("the captions sit under both the rows and the curve",
+    [gCE, gBCE, gREG].every((g) => g.capY >= g.top + M.CURVE_H && g.capY >= g.top + g.rowsH));
+  check("the target row is the one that carries a dtype line",
+    [gCE, gBCE, gREG].every((g) =>
+      g.rows.filter((r) => r.dtypeY !== undefined).map((r) => r.id).join() === "target"));
+  check("only Regression draws a second arrow, into the gap",
+    gREG.secondEdgeY !== null && gCE.secondEdgeY === null && gBCE.secondEdgeY === null);
+  check("the target row is chips on the classification pages and cells on Regression",
+    gCE.rows.find((r) => r.id === "target").kind === "chips"
+    && gBCE.rows.find((r) => r.id === "target").kind === "chips"
+    && gREG.rows.find((r) => r.id === "target").kind === "cells");
+}
+
+/* --- 9 · torch's two messages, and their mark -------------------------------- */
+{
+  const model = read("widgets/loss-functions/model.js");
+  const printed = read("widgets/_lab/dl-loss-torch.txt");
+  check("the Single-label message is what torch printed for a float32 index",
+    printed.includes("CE with a float32 index [0.]: " + M.torchDtypeError["single-label"]),
+    M.torchDtypeError["single-label"]);
+  check("the Multi-label message is what torch printed for a long 0/1 row",
+    printed.includes("BCE with a long 0/1 row: " + M.torchDtypeError["multi-label"]),
+    M.torchDtypeError["multi-label"]);
+  check("the declaration says where the strings come from",
+    /TORCH 2\.14.S OWN[\s\S]{0,600}torchDtypeError/.test(model));
+  check("the Regression page declares no message, because it has no dtype control",
+    M.torchDtypeError.regression === undefined);
+  check("each message fits the stage's own 522px of usable width at 550",
+    Object.values(M.torchDtypeError).every((s) => s.length * 7 < 522 * 2));
+}
+
+/* --- 10 · the register of every reader-facing string (5.9) -------------------- */
+{
+  const strings = [];
+  const walk = (v) => {
+    if (typeof v === "string") strings.push(v);
+    else if (Array.isArray(v)) v.forEach(walk);
+    else if (v && typeof v === "object") Object.values(v).forEach(walk);
+  };
+  walk(M.STRINGS);
+  walk(M.TASKS.map((t) => [t.label, t.detail]));
+  walk(M.SPEEDS.map((s) => [s.label, s.detail]));
+  walk(M.SUM_NOTE);
+  walk(M.HEAD);
+  walk(M.HEAD_EXPR);
+  walk(M.FN_LABEL);
+  check("there are strings to sweep", strings.length > 40, `${strings.length} strings`);
+  const banned = /\b(notebook|lesson|cell \d|never)\b/i;
+  const bad = strings.filter((s) => banned.test(s));
+  check("no reader-facing string names a lesson, a notebook or a cell, and none says never",
+    bad.length === 0, bad.join(" | "));
+  check("no string editorialises with a verdict word",
+    !strings.some((s) => /\b(simply|obviously|of course|magic|beautiful)\b/i.test(s)));
+  check("the subtitle is two or three claims in the 140-240 character budget (2.10)",
+    M.STRINGS.subtitle.length >= 140 && M.STRINGS.subtitle.length <= 400,
+    `${M.STRINGS.subtitle.length} chars`);
+  check("the subtitle names the loss, the target and the two classification cases",
+    /loss function/.test(M.STRINGS.subtitle) && /target/.test(M.STRINGS.subtitle)
+    && /per class/.test(M.STRINGS.subtitle));
+  check("each task option carries a detail with both halves: the function and the target",
+    M.TASKS.every((t) => t.detail.includes(" · ") && /y_true/.test(t.detail)),
+    M.TASKS.map((t) => t.detail.split(" · ")[0]).join(" / "));
+  check("the three task faces are the notebook's own three rows",
+    M.TASKS.map((t) => t.label).join(" · ") === "Regression · Single-label · Multi-label");
+  check("the three task values are the words on the control, lowercased (5.9)",
+    M.TASKS.every((t) => t.value === t.label.toLowerCase()));
+  check("each page's header names the loss class torch declares",
+    Object.values(M.HEAD).join(" ").includes("MSELoss")
+    && Object.values(M.HEAD).join(" ").includes("CrossEntropyLoss")
+    && Object.values(M.HEAD).join(" ").includes("BCEWithLogitsLoss"));
+  check("each page has two caption rows",
+    Object.values(M.STRINGS.captions).every((c) => c.length === 2));
+  check("a caption's first row waits for the first step and its second for the last",
+    M.STRINGS.captions.regression[1].at === 4
+    && M.STRINGS.captions["single-label"][1].at === 3
+    && M.STRINGS.captions["multi-label"][1].at === 5);
+  check("every caption is a sentence",
+    Object.values(M.STRINGS.captions).flat().every((c) => /^[A-Z].*\.$/.test(c.line)));
+  check("the two error captions say which dtype the loss reads",
+    Object.values(M.STRINGS.errorCaption).every((s) => /float32|long/.test(s)));
+  check("the dtype rule is stated for all three pages",
+    Object.keys(M.STRINGS.dtypeRule).length === 3
+    && Object.values(M.STRINGS.dtypeRule).every((s) => s.startsWith("y_true")));
+  check("the row-sum note is the contrast, one page at a time",
+    /sum to 1/.test(M.SUM_NOTE["single-label"]) && /do not sum to 1/.test(M.SUM_NOTE["multi-label"]));
+  check("the two classification pages name the function on their own arrow",
+    M.FN_LABEL["single-label"] === "softmax over the row"
+    && M.FN_LABEL["multi-label"] === "sigmoid per class");
+  check("Regression names no function, because it applies none",
+    M.FN_LABEL.regression === "");
+  check("the drive labels name this widget's own noun (3.4c)",
+    M.STRINGS.stepLabel === "Next row" && /row/.test(M.STRINGS.stepTitle));
+  check("the run button is Play, the collection's own word (3.7)",
+    M.STRINGS.runLabel === "Play");
+  check("the card carries a note for each page",
+    Object.keys(M.STRINGS.cardNote).length === 3
+    && Object.values(M.STRINGS.cardNote).every((s) => s.length > 40));
+}
+
+/* --- 11 · the shipping files -------------------------------------------------- */
+{
+  const src = read("widgets/loss-functions/main.js");
+  const model = read("widgets/loss-functions/model.js");
+  const html = read("widgets/loss-functions/index.html");
+  const manifest = JSON.parse(read("widgets/manifest.json"));
+  const entry = manifest.widgets.find((w) => w.slug === "loss-functions");
+
+  check("the widget is registered in the manifest", Boolean(entry));
+  check("the manifest records it as a draft", entry.status === "draft", entry.status);
+  check("and main.js declares the same", /^\s*status: "draft",$/m.test(src));
+  check("the two agree, which is what keeps it off the gallery",
+    entry.status === (src.match(/^\s*status: "([^"]+)",$/m) ?? [])[1]);
+  check("it is arc 54 of PHM5005", entry.arc === 54 && entry.course === "PHM5005");
+  check("the blurb is one sentence inside the gallery's 120-character cap",
+    entry.blurb.length <= 120 && entry.blurb.split(". ").length === 1, `${entry.blurb.length} chars`);
+  check("the meta description is the blurb verbatim (5.8)",
+    html.includes(`content="${entry.blurb}"`));
+  check("the page title matches the card",
+    html.includes(`<title>${entry.title} · statml widgets</title>`));
+  check("the topics name the three losses and the two functions",
+    ["loss function", "MSE", "cross-entropy", "binary cross-entropy", "softmax", "sigmoid"]
+      .every((t) => entry.topics.includes(t)), entry.topics.join(", "));
+
+  check("the widget takes no seed, because nothing on any page is random",
+    !/seed:/.test(src) && !src.includes("makeRng"));
+  check("nothing draws from Math.random",
+    !src.includes("Math.random") && !model.includes("Math.random"));
+  check("compute is pure and ignores the rng it is handed",
+    /compute: \(\{ params \}\) => M\.computeFor\(params\)/.test(src));
+  check("no colour is hardcoded in the drawing",
+    !/#[0-9a-fA-F]{3,6}\b/.test(src) && !/#[0-9a-fA-F]{3,6}\b/.test(model));
+  check("every font, size and colour comes from the tokens, read once a render",
+    /readTokens/.test(src) && /colors\.fsSm/.test(src) && /colors\.mono/.test(src)
+    && !/font: "/.test(src));
+  check("the geometry is named constants, not numbers written at the draw sites",
+    /^const \{\n\s+PAD, GAP, LINE/m.test(src));
+  check("every path in the deployed files is relative",
+    !/["'(]\/(?!\/)/.test(html) && !/from "\//.test(src) && !/from "\//.test(model));
+  check("the stage is drawn side by side with its rail (3.4a)", /layout: "side"/.test(src));
+  check("the height is a function of the parameters and the width",
+    /height: \(\{ w, \.\.\.values \}\) => M\.pageHeight\(w, values\)/.test(src));
+  check("exactly one widget is defined in the file",
+    (src.match(/defineWidget\(\{/g) ?? []).length === 1);
+
+  check("the drag declares all three tensor parameters, since the list is fixed",
+    /params: \["pred", "scores", "logits"\]/.test(src));
+  check("the drag names a hit-test, so a click off the bars turns nothing",
+    /hit: \(\{ x, y, w, state \}\)/.test(src));
+  check("the target chips are the region map, one parameter each (3.6)",
+    /regions: \(\{ w, params, state \}\)/.test(src));
+  check("a region is skipped until the target row has landed",
+    /if \(!landed\(done, 2\)\) return \[\];/.test(src));
+  check("speed is the only display parameter, so nothing else keeps the walk",
+    (src.match(/display: true/g) ?? []).length === 1);
+  check("the two dtype controls open on opposite arms, one per page",
+    /options: \["long", "float32"\],\s*\n\s*default: "long"/.test(src)
+    && /options: \["float32", "long"\],\s*\n\s*default: "float32"/.test(src));
+  check("the page opens on Regression, the first row of the table",
+    /options: M\.TASKS,\s*\n\s*default: "regression"/.test(src));
+  check("the authoring head start is hidden and starts at zero (2.1)",
+    /shown: \{ type: "int", min: 0, max: 5, default: 0, hidden: true \}/.test(src));
+  check("the legend names group-a and empirical once, not twice",
+    !/token: "group-a"/.test(src));
+  check("the legend is a function of the parameters, so it matches the page",
+    /legend: \(\{ params \}\) =>/.test(src));
+  check("the walk keeps a finished figure finished on a data change (4.4)",
+    /carry\.state !== state/.test(src));
+  check("the geometry is asked for, never written twice (5.8)",
+    (src.match(/M\.layout\(/g) ?? []).length >= 3);
+}
+
+console.log(failed ? `\n${failed} of ${ran} FAILED\n` : `\nall ${ran} checks passed\n`);
+process.exit(failed ? 1 : 0);

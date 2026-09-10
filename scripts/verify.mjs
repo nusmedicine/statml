@@ -36,6 +36,7 @@ const SCRIPTS = [
   "widgets/_lab/processing-layers-verify.mjs",  // the layer arithmetic widget 49 prints
   "widgets/_lab/support-layers-verify.mjs",     // the layer arithmetic widget 50 prints
   "widgets/_lab/composition-verify.mjs",        // the shape chains and prints widget 51 draws
+  "widgets/_lab/loss-functions-verify.mjs",     // the three losses and the stage widget 54 draws
   "widgets/_lab/tensor-verify.mjs",   // the shape arithmetic widget 53 prints
   "widgets/_lab/tsne-verify.mjs",     // sklearn.manifold.TSNE
   "widgets/_lab/umap-verify.mjs",     // umap-learn 0.5.12
