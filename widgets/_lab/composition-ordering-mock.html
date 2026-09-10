@@ -1,0 +1,1026 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · composition · Ordering as principles, three ways</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 920px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-6); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 96ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); max-width: 560px; min-height: 24px; white-space: pre-line; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 96ch; }
+  .rec b { font-weight: 600; }
+  .contract { border-left-color: var(--axis); }
+  ul.proof { font-size: var(--fs-sm); color: var(--ink-2); max-width: 96ch; padding-left: 18px; }
+  ul.proof li { margin-bottom: 4px; }
+  /* the rail at the real 300px, with the shell's own classes */
+  .rail-solo { width: 300px; }
+  .lab .w-rail { border-top: 0; padding-top: 0; margin-top: 0; }
+  .lab .w-controls { grid-template-columns: 1fr; border-top: 0; padding-top: 0; margin-top: 0; }
+  .lab .w-drive { flex-direction: column; align-items: stretch; flex-wrap: nowrap; }
+  .measure { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--ink-3); margin: 4px 0 0; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>composition · Ordering as principles, three ways</h1>
+  <p class="note">
+    The Ordering page of the <code>composition</code> widget draws cell 62's three example blocks today —
+    MLP, ResNet, the transformer feed-forward path — as a Subunit view and a Combination view with
+    <code>print(block)</code> under the diagram. Kenneth, 2026-09-10: <i>"maybe we don't go into details for
+    specific architectures i.e. MLP, Resnet, transformer"</i> and <i>"we want principles like in the notebook
+    05-3 (general pattern, layer combinations, some specific layers at beginning and end)"</i>. Cell 62 states
+    three perspectives and the page has to carry them: <b>1)</b> layers as subunits, the
+    <code>Transform → Normalize → Activate → Regularize</code> pattern and the four roles;
+    <b>2)</b> layer combinations, Conv + Pool, Embed + Recurrent/Attention, Linear + Activation, each with
+    its reason; <b>3)</b> position in the network, the beginning, the repeated middle and the end.
+    Three candidates, each drawn at the real <b>550</b> stage and at <b>770</b> where the layout changes.
+  </p>
+  <p class="note">
+    Geometry is the widget's own, so a box here means what it means on the other six pages:
+    <b>PAD 14</b>, <b>GAP 22</b>, usable <b>522</b> at 550 and <b>742</b> at 770; layer boxes
+    <b>150 × 30</b> with a 2px border, Ordering's shorter <b>26px</b> edge, band head <b>26</b>, caption line
+    <b>17</b>, caption gap <b>14</b>. Colour follows <code>dl-compose-subunit.png</code>: Transform
+    <code>--c-group-a</code>, Normalize and Activate <code>--c-group-b</code>, Regularize
+    <code>--c-group-c</code>, and <code>--c-highlight</code> on the one step being applied. A dashed enclosure
+    means "used as a unit", which is the Combination idiom, and the repeated middle is drawn with square
+    brackets so the two enclosures cannot be confused. <b>No shapes anywhere on this page</b>: with the three
+    named blocks gone there is no tensor to carry, and the shape story belongs to Dimensions.
+  </p>
+  <p class="note" id="mono"></p>
+
+  <h2>§A · three views on one <code>view</code> control (Pattern · Combinations · Position)</h2>
+  <p class="note">
+    The page keeps a <code>view</code> control and swaps its three options for the notebook's three
+    perspectives. <b>Pattern</b> is the four generic boxes of his subunit figure with the role beside each,
+    drawn twice: the one-line form the plan asked for, and the two-line form, because the widest role text is
+    measured below. <b>Combinations</b> is his three dashed groups, drawn twice as well: with a reason under
+    every group, which is what the page does today, and with the reason for the lit group printed once under
+    the figure at the full width. <b>Position</b> is the whole network top to bottom, the repeated middle in
+    brackets holding one subunit box.
+  </p>
+  <div class="row" id="sA1"></div>
+  <div class="row" id="sA2"></div>
+  <div class="row" id="sA3"></div>
+  <div class="row" id="sA4"></div>
+  <p class="rec contract" id="recA"></p>
+
+  <h2>§B · one stage, the three perspectives stacked</h2>
+  <p class="note">
+    No <code>view</code> control: the pattern at the top, the combinations as a row under it, the position
+    schematic at the bottom, and Step running through all of them in the notebook's order. Drawn at 550, and
+    at 770 with the pattern and the position side by side, which is the only rearrangement the frame allows.
+  </p>
+  <div class="row" id="sB1"></div>
+  <div class="row" id="sB2"></div>
+  <p class="rec contract" id="recB"></p>
+
+  <h2>§C · the Position schematic as the whole page</h2>
+  <p class="note">
+    One diagram carrying all three perspectives: the subunit expanded inside the repeated region, so
+    perspective 1 lives inside perspective 3, and the combinations drawn as the encoding's alternatives —
+    Convolution + Pooling for images, Embedding + Attention for sequences — plus the Linear and Activation
+    pair inside the subunit. A <code>data</code> control (images · sequence · vectors) chooses which encoding
+    is drawn, which gives the page a data parameter and a reason for Step. Drawn at 550 for each of the three
+    data settings, and at 770 where the subunit moves out of the spine into a second column.
+  </p>
+  <div class="row" id="sC1"></div>
+  <div class="row" id="sC2"></div>
+  <div class="row" id="sC3"></div>
+  <p class="rec contract" id="recC"></p>
+
+  <h2>§D · the three rails at the real 300px</h2>
+  <p class="note">
+    The <code>topic</code> grid is unchanged in all three — the Ordering button is the first cell of the
+    <i>Composing layers</i> run and reads <b>Ordering</b>, under the topic detail
+    <i>the first three compose layers into a model, the last four change where the data goes</i>. What differs
+    is the page control under it: A's <code>view</code>, B's nothing, C's <code>data</code>.
+  </p>
+  <div class="row" id="sD"></div>
+  <p class="rec contract" id="recD"></p>
+
+  <h2>The pick</h2>
+  <p class="rec" id="recPick"></p>
+  <p class="note" id="removes"></p>
+
+  <h2>What the mock proves</h2>
+  <ul class="proof" id="proof"></ul>
+</main>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+const MONO = T.mono || "monospace";
+
+/* --- the geometry the widget already uses ---------------------------------- */
+const PAD = 14;            // widgets/composition/model.js
+const GAP = 22;
+const BOX_H = 30;
+const BOX_BW = 2;
+const EDGE = 26;           // ORDER_EDGE: Ordering's shorter edge
+const HEAD = 9;
+const BOX_W = 150;
+const BAND_HEAD = 26;
+const CAPTION_H = 17;
+const CAP_GAP = 14;
+const XLAB = 16;           // the one-line label above a spine
+const SIDE_GAP = 8;        // between a box and the text beside it
+const W = 550;
+const WIDE = 770;
+const USABLE = W - 2 * PAD;          // 522
+const USABLE_WIDE = WIDE - 2 * PAD;  // 742
+
+/* ============================ drawing helpers ============================== */
+const scratch = document.createElement("canvas").getContext("2d");
+function panel(host, title, sub, w, h) {
+  const cand = document.createElement("div");
+  cand.className = "cand";
+  if (title) cand.innerHTML = `<h3>${title}</h3><p class="sub">${sub}</p>`;
+  const cv = document.createElement("canvas");
+  cv.width = Math.round(w * DPR); cv.height = Math.round(h * DPR);
+  cv.style.width = `${w}px`; cv.style.height = `${h}px`;
+  cand.appendChild(cv); host.appendChild(cand);
+  const ctx = cv.getContext("2d");
+  ctx.scale(DPR, DPR);
+  ctx.fillStyle = T.surface; ctx.fillRect(0, 0, w, h);
+  return { ctx, cand };
+}
+function note(cand, s) {
+  const p = document.createElement("p");
+  p.className = "measure";
+  p.textContent = s;
+  cand.appendChild(p);
+}
+function txt(ctx, s, x, y, o = {}) {
+  ctx.fillStyle = o.color ?? T.ink2;
+  ctx.textAlign = o.align ?? "left";
+  ctx.textBaseline = o.baseline ?? "alphabetic";
+  ctx.font = `${o.weight ?? ""} ${o.size ?? T.fsSm} ${o.mono ? MONO : T.font}`.trim();
+  ctx.fillText(s, x, y);
+}
+const wash = (hex, a) => {
+  const p = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+  return `rgba(${p[0]},${p[1]},${p[2]},${a})`;
+};
+/** Width of a string in one of the two faces, measured and never assumed. */
+function widthOf(s, size, mono) {
+  scratch.font = `${size} ${mono ? MONO : T.font}`;
+  return scratch.measureText(s).width;
+}
+function wrapLines(s, w, size) {
+  scratch.font = `${size} ${T.font}`;
+  const out = [];
+  let cur = "";
+  for (const word of s.split(" ")) {
+    const t = cur ? `${cur} ${word}` : word;
+    if (scratch.measureText(t).width > w && cur) { out.push(cur); cur = word; } else cur = t;
+  }
+  if (cur) out.push(cur);
+  return out;
+}
+function arrow(ctx, x0, y0, x1, y1, color, width = 2, dash = []) {
+  const a = Math.atan2(y1 - y0, x1 - x0);
+  ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = width;
+  ctx.setLineDash(dash);
+  ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.beginPath(); ctx.moveTo(x1, y1);
+  ctx.lineTo(x1 - HEAD * Math.cos(a - 0.45), y1 - HEAD * Math.sin(a - 0.45));
+  ctx.lineTo(x1 - HEAD * Math.cos(a + 0.45), y1 - HEAD * Math.sin(a + 0.45));
+  ctx.closePath(); ctx.fill();
+}
+/** A band header: the page's name left, the expression it teaches right. */
+function band(ctx, y, w, name, expr) {
+  txt(ctx, name, PAD, y + 11, { color: T.ink2, weight: "600" });
+  if (expr) txt(ctx, expr, w - PAD, y + 11, { color: T.highlight, align: "right", mono: true });
+  ctx.strokeStyle = T.grid; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(PAD, y + 17.5); ctx.lineTo(w - PAD, y + 17.5); ctx.stroke();
+  return y + BAND_HEAD;
+}
+/**
+ * One layer box. `tone` is the walk state: "landed" full, "preview" pale,
+ * "lit" the step being applied. A hidden box is not drawn at all, and the
+ * caller still reserves its height — the widget's own rule, so a walk position
+ * never changes the figure's height.
+ */
+function layerBox(ctx, x, y, w, label, color, tone = "landed", o = {}) {
+  if (tone === "hidden") return;
+  ctx.fillStyle = T.surface; ctx.fillRect(x, y, w, BOX_H);
+  ctx.fillStyle = wash(color, tone === "lit" ? 0.34 : tone === "preview" ? 0.05 : 0.13);
+  ctx.fillRect(x, y, w, BOX_H);
+  ctx.strokeStyle = tone === "lit" ? T.highlight : tone === "preview" ? T.axis : color;
+  ctx.lineWidth = BOX_BW;
+  ctx.strokeRect(x + BOX_BW / 2, y + BOX_BW / 2, w - BOX_BW, BOX_H - BOX_BW);
+  txt(ctx, label, x + w / 2, y + BOX_H / 2 + 0.5, {
+    color: tone === "preview" ? T.ink3 : T.ink1,
+    align: "center", baseline: "middle", mono: true, size: o.size ?? T.fsSm,
+  });
+}
+/** The dashed enclosure of dl-compose-combo.png: layers used as a unit. */
+function dashedGroup(ctx, x, y, w, h, o = {}) {
+  ctx.strokeStyle = o.color ?? T.ink3; ctx.lineWidth = 2; ctx.setLineDash([5, 4]);
+  ctx.strokeRect(x + 1, y + 1, w - 2, h - 2);
+  ctx.setLineDash([]);
+}
+/**
+ * Square brackets around the repeated middle, with `× N` beside the right one.
+ * Brackets rather than a second dashed rectangle: dashes already mean "used as
+ * a unit" on this page, and a repeat is a different claim.
+ */
+function brackets(ctx, x, y, w, h, label, color = T.ink2) {
+  const s = 8;
+  ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.lineCap = "butt";
+  ctx.beginPath();
+  ctx.moveTo(x + s, y); ctx.lineTo(x, y); ctx.lineTo(x, y + h); ctx.lineTo(x + s, y + h);
+  ctx.moveTo(x + w - s, y); ctx.lineTo(x + w, y); ctx.lineTo(x + w, y + h); ctx.lineTo(x + w - s, y + h);
+  ctx.stroke();
+  if (label) txt(ctx, label, x + w + 6, y + h / 2 + 0.5, { color, baseline: "middle", size: T.fsSm });
+}
+function caption(ctx, x, y, lines, color = T.ink2) {
+  lines.forEach((l, i) => txt(ctx, l, x, y + i * CAPTION_H, { color, size: T.fsSm }));
+  return lines.length * CAPTION_H;
+}
+
+/* ============================== the content =================================
+ * Cell 62's own words, with the architecture names dropped. Every string below
+ * is reader-facing and reads as the notebook does: the role, the job it does,
+ * and the layers that fill it. */
+const ROLES = [
+  { role: "Transform", job: "learns new features", eg: "Linear, Convolution, Attention", hue: () => T.groupA },
+  { role: "Normalize", job: "stabilizes the distribution of activations", eg: "BatchNorm, LayerNorm", hue: () => T.groupB },
+  { role: "Activate", job: "introduces non-linearity", eg: "ReLU, GELU, SiLU", hue: () => T.groupB },
+  { role: "Regularize", job: "reduces overfitting", eg: "Dropout", hue: () => T.groupC },
+];
+const PATTERN_CAP =
+  "A block applies these four steps and a model repeats the block. The order of the last three differs "
+  + "across models, and the difference comes from testing rather than from a rule.";
+
+const COMBOS = [
+  {
+    boxes: ["Convolution", "Pooling"], data: "images",
+    reason: "Convolution extracts local features and pooling summarizes them at a coarser resolution.",
+    short: "local features, then a coarser summary",
+  },
+  {
+    boxes: ["Embedding", "Recurrent", "Attention"], or: 2, data: "sequences",
+    reason: "Embedding maps tokens to vectors and the layer after it relates those vectors across the sequence.",
+    short: "tokens to vectors, then related across the sequence",
+  },
+  {
+    boxes: ["Linear", "Activation"], data: "vectors",
+    reason: "Stacking linear maps gives another linear map, so the activation is what makes the model non-linear.",
+    short: "a linear map, then a non-linearity",
+  },
+];
+
+const POSITIONS = [
+  {
+    box: "Encoding", pos: "beginning",
+    side: ["Embedding for tokens, Convolution for images,", "or the raw inputs normalized"],
+    tile: "Embedding, Convolution",
+  },
+  {
+    box: "Subunit", pos: "middle", repeated: true,
+    side: ["Transform → Normalize → Activate → Regularize", "stacked to add depth"],
+    tile: "the block, repeated",
+  },
+  {
+    box: "Global pooling", pos: "end",
+    side: ["averages across time or space"],
+    tile: "Global pooling",
+  },
+  {
+    box: "Linear", pos: "end",
+    side: ["maps to the number of outputs the task needs"],
+    tile: "Linear",
+  },
+];
+/**
+ * The text beside one position, given where it starts and how wide the stage
+ * is. The repeated row's first line is the pattern itself, which is 45 mono
+ * characters: in a narrow column it breaks at the middle arrow and the second
+ * line goes, because two lines is all a 30px box has room for.
+ */
+function sideLines(p, tx, w) {
+  const avail = w - PAD - tx;
+  const raw = p.repeated && widthOf(p.side[0], T.fsXs, true) > avail
+    ? ["Transform → Normalize →", "Activate → Regularize"]
+    : p.side;
+  const wrapRow = (l) => {
+    const a = wrapLines(l, avail, T.fsSm);
+    return a.length === 1 ? a : wrapLines(l, avail, T.fsXs);
+  };
+  /* a 30px box holds two lines and no more, so a third is dropped and the
+     panel's note says so */
+  const all = raw.flatMap((l) => (l.includes("→") ? [l] : wrapRow(l)));
+  return { lines: all.slice(0, 2), dropped: all.length - Math.min(all.length, 2) };
+}
+/** The text beside one position box. Returns the right edge it reached. */
+function drawSide(ctx, p, tx, boxY, w, ink) {
+  const { lines } = sideLines(p, tx, w);
+  const multi = lines.length > 1;
+  let right = 0;
+  lines.forEach((line, k) => {
+    const mono = line.includes("→");
+    const size = multi || mono ? T.fsXs : T.fsSm;
+    txt(ctx, line, tx, boxY + (multi ? 12 + k * 13 : BOX_H / 2 + 0.5), {
+      color: mono ? T.ink2 : k === 0 ? ink : T.ink3,
+      baseline: multi ? "alphabetic" : "middle",
+      mono, size,
+    });
+    right = Math.max(right, tx + widthOf(line, size, mono));
+  });
+  return right;
+}
+const POSITION_CAP =
+  "The layers at the beginning follow the data and the layers at the end follow the task. "
+  + "Only the middle is repeated.";
+
+/* C's encodings, and the classes the subunit is drawn with under each */
+const DATA = {
+  images: {
+    label: "Images",
+    encode: { boxes: ["Convolution", "Pooling"], unit: true },
+    classes: ["Conv2d", "BatchNorm2d", "ReLU", "Dropout"],
+    cap: "Convolution and pooling are used as a unit at the beginning, and the block that follows is repeated.",
+  },
+  sequence: {
+    label: "Sequence",
+    encode: { boxes: ["Embedding", "Attention"], unit: true },
+    classes: ["Attention", "LayerNorm", "GELU", "Dropout"],
+    cap: "Embedding maps tokens to vectors and the layer after it relates them, so the two are used as a unit.",
+  },
+  vectors: {
+    label: "Vectors",
+    encode: { boxes: ["Normalization"], unit: false },
+    classes: ["Linear", "BatchNorm1d", "ReLU", "Dropout"],
+    cap: "With features already numeric the beginning is a normalization of the raw inputs, and nothing else.",
+  },
+};
+
+const M = {};
+const MONOCH = widthOf("Transform → Normalize → Activate → Regularize", T.fsXs, true) / 45;
+document.getElementById("mono").innerHTML =
+  `<b>Measured on this browser:</b> one mono character at <code>--fs-xs</code> is <b>${MONOCH.toFixed(2)}px</b>, `
+  + `the sans face at <code>--fs-sm</code> puts the longest role line `
+  + `<code>stabilizes the distribution of activations</code> at <b>${Math.round(widthOf(ROLES[1].job, T.fsSm, false))}px</b>, `
+  + `and the text column beside a 150px box is <b>${W - PAD - (PAD + BOX_W + SIDE_GAP)}px</b> wide at 550. `
+  + `Every fit below is one of those numbers, not an estimate.`;
+
+/* ========================= A · the Pattern view ============================ */
+/**
+ * The four generic boxes with the role beside each. `oneLine` writes the job
+ * and the examples on one line, which is what the plan asked for; the two-line
+ * form is drawn beside it because the measurement decides between them.
+ */
+function drawPattern(host, title, sub, o = {}) {
+  const w = o.w ?? W;
+  const walk = o.walk ?? 2;                 // two landed, the third being applied
+  const caps = wrapLines(PATTERN_CAP, w - 2 * PAD, T.fsSm);
+  const bodyH = ROLES.length * BOX_H + (ROLES.length - 1) * EDGE;
+  const capY = BAND_HEAD + bodyH + CAP_GAP;
+  const H = capY + caps.length * CAPTION_H + PAD;
+  const { ctx, cand } = panel(host, title, sub, w, H);
+  const y0 = band(ctx, 0, w, "Ordering · the pattern", "Transform → Normalize → Activate → Regularize");
+  const cx = PAD + BOX_W / 2;
+  const sx = PAD + BOX_W + SIDE_GAP;
+  let cy = y0;
+  /* measured over ALL FOUR roles, not just the ones this walk has revealed:
+     the question is whether the form fits, and the widest line decides it */
+  const right = Math.round(Math.max(...ROLES.map((r) => (o.oneLine
+    ? sx + widthOf(r.job, T.fsSm, false) + 6 + widthOf(r.eg, T.fsXs, true)
+    : sx + Math.max(widthOf(r.job, T.fsSm, false), widthOf(r.eg, T.fsXs, true))))));
+  ROLES.forEach((r, i) => {
+    const tone = i < walk ? "landed" : i === walk ? "lit" : "hidden";
+    if (i > 0) {
+      if (tone !== "hidden") arrow(ctx, cx, cy, cx, cy + EDGE, T.axis, 2);
+      cy += EDGE;
+    }
+    layerBox(ctx, PAD, cy, BOX_W, r.role, r.hue(), tone);
+    if (tone !== "hidden") {
+      const ink = tone === "lit" ? T.ink1 : T.ink2;
+      if (o.oneLine) {
+        const jw = widthOf(r.job, T.fsSm, false);
+        txt(ctx, r.job, sx, cy + BOX_H / 2 + 0.5, { color: ink, baseline: "middle" });
+        txt(ctx, r.eg, sx + jw + 6, cy + BOX_H / 2 + 0.5,
+          { color: T.ink3, baseline: "middle", mono: true, size: T.fsXs });
+      } else {
+        txt(ctx, r.job, sx, cy + 12, { color: ink });
+        txt(ctx, r.eg, sx, cy + 25, { color: T.ink3, mono: true, size: T.fsXs });
+      }
+    }
+    cy += BOX_H;
+  });
+  caption(ctx, PAD, capY + 12, caps);
+  const over = right - (w - PAD);
+  note(cand, `stage ${H}px · four boxes ${BOX_W} × ${BOX_H}, three ${EDGE}px edges, body ${bodyH}px · `
+    + `caption ${caps.length} lines · widest role text ends at ${right} of ${w - PAD} `
+    + `(${over > 0 ? `${over}px OVER` : `${-over}px of slack`})`);
+  return { H, right, over };
+}
+
+/* ======================= A · the Combinations view ========================= */
+function combosGeom(w) {
+  const usable = w - 2 * PAD;
+  const gw = Math.floor((usable - 2 * GAP) / 3);
+  const rows = Math.max(...COMBOS.map((c) => c.boxes.length + (c.or != null ? 1 : 0)));
+  return { usable, gw, bw: gw - 20, groupH: 14 + rows * (BOX_H + 8) + 6 };
+}
+/**
+ * The three dashed groups. `perGroup` prints each group's reason under it,
+ * which is what the page does today; otherwise the lit group's reason is
+ * printed once under the whole figure, wrapped to the usable width.
+ */
+function drawCombos(host, title, sub, o = {}) {
+  const w = o.w ?? W;
+  const lit = o.lit ?? 1;
+  const g = combosGeom(w);
+  const caps = o.perGroup ? [] : wrapLines(COMBOS[lit].reason, g.usable, T.fsSm);
+  const perGroupH = o.perGroup ? 20 : 0;
+  const capY = BAND_HEAD + g.groupH + perGroupH + CAP_GAP;
+  const H = capY + caps.length * CAPTION_H + PAD;
+  const { ctx, cand } = panel(host, title, sub, w, H);
+  const y = band(ctx, 0, w, "Ordering · combinations", "layers that are used as a unit");
+  let worst = 0;
+  COMBOS.forEach((c, i) => {
+    const gx = PAD + i * (g.gw + GAP);
+    const on = o.perGroup || i === lit;
+    dashedGroup(ctx, gx, y, g.gw, g.groupH, { color: on ? (i === lit ? T.highlight : T.ink3) : T.grid });
+    let by = y + 12;
+    c.boxes.forEach((label, j) => {
+      if (c.or === j) {
+        txt(ctx, "or", gx + g.gw / 2, by + 14, { color: T.ink3, align: "center", size: T.fsXs });
+        by += BOX_H + 8;
+      }
+      layerBox(ctx, gx + 10, by, g.bw, label, T.groupA, i === lit ? "lit" : on ? "landed" : "preview");
+      by += BOX_H + 8;
+    });
+    if (o.perGroup) {
+      txt(ctx, c.short, gx + 2, y + g.groupH + 16, { color: T.ink3, size: T.fsXs });
+      worst = Math.max(worst, Math.round(widthOf(c.short, T.fsXs, false)) - (g.gw + GAP));
+    }
+  });
+  if (caps.length) caption(ctx, PAD, capY + 12, caps);
+  note(cand, `stage ${H}px · three groups of ${g.gw}px, boxes ${g.bw} × ${BOX_H}, group block ${g.groupH}px · `
+    + (o.perGroup
+      ? `reason under each group: the widest runs ${worst}px past the next group's left edge`
+      : `one reason under the figure at ${g.usable}px, ${caps.length} line${caps.length === 1 ? "" : "s"}`));
+  return { H, gw: g.gw, worst };
+}
+
+/* ========================= A · the Position view =========================== */
+function drawPosition(host, title, sub, o = {}) {
+  const w = o.w ?? W;
+  const walk = o.walk ?? 1;
+  const caps = wrapLines(POSITION_CAP, w - 2 * PAD, T.fsSm);
+  const rowH = POSITIONS.map((p) => (p.repeated ? BOX_H + 24 : BOX_H));
+  const bodyH = XLAB + rowH.reduce((a, h) => a + h + EDGE, 0) + EDGE + XLAB;
+  const capY = BAND_HEAD + bodyH + CAP_GAP;
+  const H = capY + caps.length * CAPTION_H + PAD;
+  const { ctx, cand } = panel(host, title, sub, w, H);
+  const y0 = band(ctx, 0, w, "Ordering · position", "beginning · repeated middle · end");
+  const cx = PAD + BOX_W / 2;
+  const sx = PAD + BOX_W + SIDE_GAP;
+  txt(ctx, "input", cx, y0 + 12, { color: T.ink1, align: "center", mono: true });
+  let cy = y0 + XLAB;
+  let right = 0;
+  let dropped = 0;
+  POSITIONS.forEach((p, i) => {
+    const tone = i < walk ? "landed" : i === walk ? "lit" : "hidden";
+    if (tone !== "hidden") arrow(ctx, cx, cy, cx, cy + EDGE, T.axis, 2);
+    cy += EDGE;
+    const boxY = p.repeated ? cy + 12 : cy;
+    layerBox(ctx, PAD, boxY, BOX_W, p.box, p.repeated ? T.groupB : T.groupA, tone);
+    if (p.repeated && tone !== "hidden") {
+      brackets(ctx, PAD - 8, cy, BOX_W + 16, BOX_H + 24, "× N", tone === "lit" ? T.highlight : T.ink2);
+    }
+    if (tone !== "hidden") {
+      const ink = tone === "lit" ? T.ink1 : T.ink2;
+      /* the repeated row's text starts past the bracket and its `× N` label,
+         which sit at BOX_W + 16 and BOX_W + 22 from the stage's left */
+      const tx = p.repeated ? sx + 26 : sx;
+      right = Math.max(right, drawSide(ctx, p, tx, boxY, w, ink));
+      dropped += sideLines(p, tx, w).dropped;
+    }
+    cy += rowH[i];
+  });
+  arrow(ctx, cx, cy, cx, cy + EDGE, T.axis, 2);
+  cy += EDGE;
+  txt(ctx, "output", cx, cy + 12, { color: T.ink1, align: "center", mono: true });
+  caption(ctx, PAD, capY + 12, caps);
+  const over = Math.round(right) - (w - PAD);
+  note(cand, `stage ${H}px · four positions, body ${bodyH}px, the repeated region ${BOX_H + 24}px inside its `
+    + `brackets · widest side text ends at ${Math.round(right)} of ${w - PAD} `
+    + `(${over > 0 ? `${over}px OVER` : `${-over}px of slack`})`
+    + (dropped ? ` · ${dropped} side line${dropped === 1 ? "" : "s"} dropped for want of room` : ""));
+  return { H, over, dropped };
+}
+
+{
+  const p1 = drawPattern(document.getElementById("sA1"),
+    "A · Pattern, the role on one line",
+    "the job and its examples beside the box, as the plan asked", { oneLine: true });
+  const p2 = drawPattern(document.getElementById("sA1"),
+    "A · Pattern, the role on two lines",
+    "the job over its examples, both inside the box's 30px");
+  const c1 = drawCombos(document.getElementById("sA2"),
+    "A · Combinations, the reason under the lit group",
+    "Step lights one group, its reason prints once at the full width");
+  const c2 = drawCombos(document.getElementById("sA2"),
+    "A · Combinations, a reason under every group",
+    "what the page does today, drawn to show what it costs", { perGroup: true });
+  const po = drawPosition(document.getElementById("sA3"),
+    "A · Position, the whole network",
+    "input, encoding, the repeated middle in brackets, pooling, Linear, output");
+  const po0 = drawPosition(document.getElementById("sA4"),
+    "A · Position at the start, nothing applied",
+    "walk 0: the first position is the one being applied and nothing is behind it", { walk: 0 });
+  M.A = { p1, p2, c1, c2, po, po0 };
+  document.getElementById("recA").innerHTML =
+    `<b>A · the contract.</b> <code>view</code> Pattern · Combinations · Position (data). <b>Step</b> applies `
+    + `one unit of the view it is in: 4 steps of the pattern, 3 combinations, 4 positions, so the drive label `
+    + `nests on <code>view</code> — <i>Next step</i> · <i>Next combination</i> · <i>Next position</i>, the `
+    + `form core grew for the sibling widget. <b>Readout</b>, per view: Pattern <i>Role</i> | <i>Examples</i> | `
+    + `<i>Steps that carry weights</i> (2 of 4, since an activation and dropout hold none) | <i>Steps applied</i>; `
+    + `Combinations <i>Combination</i> | <i>Data it suits</i> | <i>Layer that follows</i> | `
+    + `<i>Combinations shown</i>; Position <i>Position</i> | <i>Layers</i> | <i>Blocks repeated</i> | `
+    + `<i>Positions shown</i>. <b>Card</b>: one row, <code>block</code> = `
+    + `<code>Transform → Normalize → Activate → Regularize</code>, with the note naming the four roles on `
+    + `Pattern, the three pairs on Combinations and the beginning/middle/end split on Position. `
+    + `<b>Legend</b>: Pattern lists group-a <i>Transform, which learns new features</i>, group-b `
+    + `<i>Normalize and Activate, which condition what Transform produces</i>, group-c <i>Regularize, which `
+    + `acts during training</i>, highlight <i>The step being applied</i>; Combinations lists group-a <i>A layer `
+    + `of the combination</i> and highlight <i>The combination being shown</i>; Position lists group-a <i>A `
+    + `layer with a fixed position</i>, group-b <i>The block that is repeated</i>, highlight <i>The position `
+    + `being shown</i>. <b>Heights at 550</b>: Pattern <b>${p2.H}px</b>, Combinations <b>${c1.H}px</b>, `
+    + `Position <b>${po.H}px</b>, so the page is <b>${Math.max(p2.H, c1.H, po.H)}px</b> at its tallest view `
+    + `and the widget's per-parameter height gives each view its own. <b>The two measurements this section `
+    + `settles.</b> The one-line role text ends at ${p1.right}px against a stage edge of ${W - PAD}: `
+    + `${p1.over > 0 ? `${p1.over}px over, so the one-line form does not fit and the two-line form is the one to build` : `${-p1.over}px of slack, so either form fits`}. `
+    + `A reason under every group runs ${c2.worst}px past the next group's left edge at a group pitch of `
+    + `${c1.gw + GAP}px, which is the collision the shipped Combination view already has; printing the lit `
+    + `group's reason once under the figure at ${USABLE}px removes it and gives Step something to reveal.`;
+}
+
+/* ===================== B · the three perspectives stacked ================== */
+function drawStacked(host, title, sub, o = {}) {
+  const w = o.w ?? W;
+  const wide = Boolean(o.wide);
+  const colW = wide ? Math.floor((w - 2 * PAD - GAP) / 2) : w - 2 * PAD;
+  const HEADH = 16;
+  /* the three parts, each with its own head */
+  const patternH = ROLES.length * BOX_H + (ROLES.length - 1) * EDGE;
+  const g = combosGeom(w);
+  const posRowH = POSITIONS.map((p) => (p.repeated ? BOX_H + 24 : BOX_H));
+  const posH = XLAB + posRowH.reduce((a, h) => a + h + EDGE, 0) + EDGE + XLAB;
+  const caps = wrapLines(
+    "The pattern is what a block repeats, the combinations are layers used as a unit, and the positions are "
+    + "where each of them sits in the network.", w - 2 * PAD, T.fsSm);
+  const bodyH = wide
+    ? Math.max(HEADH + patternH, HEADH + posH) + GAP + HEADH + g.groupH + 20
+    : HEADH + patternH + GAP + HEADH + g.groupH + 20 + GAP + HEADH + posH;
+  const capY = BAND_HEAD + bodyH + CAP_GAP;
+  const H = capY + caps.length * CAPTION_H + PAD;
+  const { ctx, cand } = panel(host, title, sub, w, H);
+  const y0 = band(ctx, 0, w, "Ordering", "Transform → Normalize → Activate → Regularize");
+  const walk = o.walk ?? 6;      // 4 pattern units, then 3 combinations, then 4 positions
+
+  /* 1 · the pattern */
+  const px = PAD;
+  const py = y0 + HEADH;
+  txt(ctx, "Subunits", px, y0 + 11, { color: T.ink1, weight: "600" });
+  let cy = py;
+  let patDropped = 0;
+  ROLES.forEach((r, i) => {
+    const tone = i < walk ? "landed" : i === walk ? "lit" : "hidden";
+    if (i > 0) { if (tone !== "hidden") arrow(ctx, px + BOX_W / 2, cy, px + BOX_W / 2, cy + EDGE, T.axis, 2); cy += EDGE; }
+    layerBox(ctx, px, cy, BOX_W, r.role, r.hue(), tone);
+    if (tone !== "hidden") {
+      /* at 770 the pattern column is half the frame, so the job wraps and the
+         examples line is what a two-line box has no room for */
+      const availP = (wide ? colW : w - 2 * PAD) - BOX_W - SIDE_GAP;
+      const jl = wrapLines(r.job, availP, T.fsSm);
+      if (jl.length === 1) {
+        txt(ctx, r.job, px + BOX_W + SIDE_GAP, cy + 12, { color: T.ink2 });
+        txt(ctx, r.eg, px + BOX_W + SIDE_GAP, cy + 25, { color: T.ink3, mono: true, size: T.fsXs });
+      } else {
+        wrapLines(r.job, availP, T.fsXs).slice(0, 2).forEach((l, k) => {
+          txt(ctx, l, px + BOX_W + SIDE_GAP, cy + 12 + k * 13, { color: T.ink2, size: T.fsXs });
+        });
+        patDropped += 1;
+      }
+    }
+    cy += BOX_H;
+  });
+
+  /* 3 · the positions — beside the pattern at 770, under the combinations at 550 */
+  const posX = wide ? PAD + colW + GAP : PAD;
+  const posY = py;
+  let posDropped = 0;
+  const drawPositions = (x, ytop) => {
+    const cxp = x + BOX_W / 2;
+    txt(ctx, "input", cxp, ytop + 12, { color: T.ink1, align: "center", mono: true });
+    let yy = ytop + XLAB;
+    POSITIONS.forEach((p, i) => {
+      const u = 7 + i;
+      const tone = u < walk ? "landed" : u === walk ? "lit" : "hidden";
+      if (tone !== "hidden") arrow(ctx, cxp, yy, cxp, yy + EDGE, T.axis, 2);
+      yy += EDGE;
+      const boxY = p.repeated ? yy + 12 : yy;
+      layerBox(ctx, x, boxY, BOX_W, p.box, p.repeated ? T.groupB : T.groupA, tone);
+      if (p.repeated && tone !== "hidden") brackets(ctx, x - 8, yy, BOX_W + 16, BOX_H + 24, "× N",
+        tone === "lit" ? T.highlight : T.ink2);
+      if (tone !== "hidden") {
+        const tx = x + BOX_W + SIDE_GAP + (p.repeated ? 26 : 0);
+        const colEdge = wide ? x + colW : w - PAD;
+        drawSide(ctx, p, tx, boxY, colEdge + PAD, T.ink2);
+        posDropped += sideLines(p, tx, colEdge + PAD).dropped;
+      }
+      yy += posRowH[i];
+    });
+    arrow(ctx, cxp, yy, cxp, yy + EDGE, T.axis, 2);
+    yy += EDGE;
+    txt(ctx, "output", cxp, yy + 12, { color: T.ink1, align: "center", mono: true });
+    return yy + XLAB;
+  };
+  if (wide) {
+    txt(ctx, "Position", posX, y0 + 11, { color: T.ink1, weight: "600" });
+    drawPositions(posX, posY);
+  }
+
+  /* 2 · the combinations */
+  const cbY = wide
+    ? y0 + Math.max(HEADH + patternH, HEADH + posH) + GAP + HEADH
+    : py + patternH + GAP + HEADH;
+  txt(ctx, "Combinations", PAD, cbY - 5, { color: T.ink1, weight: "600" });
+  COMBOS.forEach((c, i) => {
+    const gx = PAD + i * (g.gw + GAP);
+    const u = 4 + i;
+    const tone = u < walk ? "landed" : u === walk ? "lit" : "hidden";
+    dashedGroup(ctx, gx, cbY, g.gw, g.groupH, { color: tone === "lit" ? T.highlight : tone === "hidden" ? T.grid : T.ink3 });
+    let by = cbY + 12;
+    c.boxes.forEach((label, j) => {
+      if (c.or === j) { txt(ctx, "or", gx + g.gw / 2, by + 14, { color: T.ink3, align: "center", size: T.fsXs }); by += BOX_H + 8; }
+      layerBox(ctx, gx + 10, by, g.bw, label, T.groupA, tone === "hidden" ? "hidden" : tone);
+      by += BOX_H + 8;
+    });
+    if (tone !== "hidden") txt(ctx, c.short, gx + 2, cbY + g.groupH + 16, { color: T.ink3, size: T.fsXs });
+  });
+
+  if (!wide) {
+    const posTop = cbY + g.groupH + 20 + GAP + HEADH;
+    txt(ctx, "Position", PAD, posTop - 5, { color: T.ink1, weight: "600" });
+    drawPositions(PAD, posTop);
+  }
+  caption(ctx, PAD, capY + 12, caps);
+  note(cand, `stage ${H}px at ${w} · pattern ${patternH}px, combinations ${g.groupH + 20}px, `
+    + `position ${posH}px, three heads ${HEADH}px each, two ${GAP}px gaps · 11 units in one walk`
+    + (wide ? ` · two columns of ${colW}px, ${patDropped} examples line${patDropped === 1 ? "" : "s"} of the `
+      + `pattern and ${posDropped} side line${posDropped === 1 ? "" : "s"} of the position column dropped for `
+      + `want of room` : ""));
+  return { H, posDropped, patDropped };
+}
+{
+  const b1 = drawStacked(document.getElementById("sB1"),
+    "B · the three perspectives stacked, at 550",
+    "walk at 8 of 11: the pattern and the combinations behind it, the second position being applied",
+    { walk: 8 });
+  const b2 = drawStacked(document.getElementById("sB2"),
+    "B · at 770, the pattern and the position side by side",
+    "the only rearrangement the wider frame allows, the combinations still a full-width row",
+    { w: WIDE, wide: true, walk: 8 });
+  M.B = { b1, b2 };
+  document.getElementById("recB").innerHTML =
+    `<b>B · the contract.</b> No page control at all. <b>Step</b> runs 11 units in the notebook's order: the `
+    + `four steps of the pattern, the three combinations, the four positions, and the drive label is one `
+    + `word for three different kinds of unit — <i>Next</i>, or a label that lies on two thirds of the walk. `
+    + `<b>Readout</b>: <i>Perspective</i> (subunits · combinations · position) | <i>Step within it</i> | `
+    + `<i>Layers shown</i> | <i>Units applied</i>, so every tile has to switch on where in the walk the reader `
+    + `is. <b>Card</b> and <b>legend</b> are the union of A's three: the card holds the pattern line and a note `
+    + `covering all three perspectives, and the legend lists five entries at once, three of which describe a `
+    + `part of the figure the reader is not looking at. <b>Height at 550: ${b1.H}px</b>, which is `
+    + `${b1.H - 522}px past Ordering's current tallest stage and ${b1.H - 504}px past Routing, the tallest page `
+    + `in the widget. At 770 the pattern and the position sit side by side and it comes down to `
+    + `<b>${b2.H}px</b>, still ${b2.H - 504}px past Routing — and 770 is the frame the reader may not have. `
+    + `The side-by-side layout is also what the two columns cannot pay for: at ${b2.patDropped} of the four `
+    + `roles the examples line has no room left beside a wrapped job, and ${b2.posDropped} line of the `
+    + `position column's text is dropped, so the wider frame buys height by spending words.`;
+}
+
+/* ================ C · the position schematic as the whole page ============= */
+/**
+ * The spine with the subunit expanded. At 550 everything is one column; at 770
+ * the four subunit boxes move into a second column and a wedge connects the
+ * repeated region to them, which is the only place the layout changes.
+ */
+function drawWhole(host, title, sub, o = {}) {
+  const w = o.w ?? W;
+  const wide = Boolean(o.wide);
+  const d = DATA[o.data ?? "images"];
+  const walk = o.walk ?? 2;
+  const caps = wrapLines(d.cap, w - 2 * PAD, T.fsSm);
+  const encN = d.encode.boxes.length;
+  const encH = d.encode.unit ? 12 + encN * BOX_H + (encN - 1) * 8 + 12 : BOX_H;
+  const subInnerH = 4 * BOX_H + 3 * EDGE;
+  const regionH = wide ? BOX_H + 24 : subInnerH + 24;
+  const spineH = XLAB + (EDGE + encH) + (EDGE + regionH) + (EDGE + BOX_H) + (EDGE + BOX_H) + EDGE + XLAB;
+  const asideH = wide ? 16 + subInnerH : 0;
+  const bodyH = Math.max(spineH, asideH);
+  const capY = BAND_HEAD + bodyH + CAP_GAP;
+  const H = capY + caps.length * CAPTION_H + PAD;
+  const { ctx, cand } = panel(host, title, sub, w, H);
+  const y0 = band(ctx, 0, w, `Ordering · ${d.label.toLowerCase()}`, "beginning · repeated middle · end");
+  const cx = PAD + BOX_W / 2;
+  const sx = PAD + BOX_W + SIDE_GAP;
+  txt(ctx, "input", cx, y0 + 12, { color: T.ink1, align: "center", mono: true });
+  let cy = y0 + XLAB;
+
+  /* 1 · the encoding, drawn as the combination it is */
+  const encTone = walk >= 1 ? (walk === 1 ? "lit" : "landed") : "hidden";
+  arrow(ctx, cx, cy, cx, cy + EDGE, T.axis, 2);
+  cy += EDGE;
+  if (d.encode.unit) {
+    dashedGroup(ctx, PAD - 8, cy, BOX_W + 16, encH, { color: encTone === "lit" ? T.highlight : T.ink3 });
+    let by = cy + 12;
+    d.encode.boxes.forEach((b, i) => {
+      layerBox(ctx, PAD, by, BOX_W, b, T.groupA, encTone);
+      by += BOX_H + 8;
+    });
+    txt(ctx, "used as a unit", sx + 12, cy + encH / 2 + 0.5, { color: T.ink3, baseline: "middle", size: T.fsXs });
+  } else {
+    layerBox(ctx, PAD, cy, BOX_W, d.encode.boxes[0], T.groupA, encTone);
+    txt(ctx, "the raw inputs standardized", sx, cy + BOX_H / 2 + 0.5,
+      { color: T.ink2, baseline: "middle", size: T.fsXs });
+  }
+  cy += encH;
+
+  /* 2 · the repeated middle, holding the subunit */
+  const regTone = walk >= 2 ? (walk === 2 ? "lit" : "landed") : "hidden";
+  arrow(ctx, cx, cy, cx, cy + EDGE, T.axis, 2);
+  cy += EDGE;
+  const regTop = cy;
+  brackets(ctx, PAD - 12, regTop, BOX_W + 24, regionH, "× N", regTone === "lit" ? T.highlight : T.ink2);
+  if (wide) {
+    layerBox(ctx, PAD, regTop + 12, BOX_W, "Subunit", T.groupB, regTone);
+  } else {
+    /* past the brackets at BOX_W + 24 and their `× N` label */
+    const rsx = PAD + BOX_W + 30;
+    let by = regTop + 12;
+    ROLES.forEach((r, i) => {
+      if (i > 0) { arrow(ctx, cx, by, cx, by + EDGE, T.axis, 2); by += EDGE; }
+      layerBox(ctx, PAD, by, BOX_W, r.role, r.hue(), regTone);
+      txt(ctx, d.classes[i], rsx, by + BOX_H / 2 + 0.5,
+        { color: T.ink2, baseline: "middle", mono: true, size: T.fsXs });
+      by += BOX_H;
+    });
+    /* the Linear + Activation pair, which is NOT adjacent inside the subunit:
+       Normalize sits between them, so the enclosure has to span three boxes */
+    if ((o.data ?? "images") === "vectors") {
+      const pairTop = regTop + 12;
+      const pairH = 3 * BOX_H + 2 * EDGE;
+      dashedGroup(ctx, PAD - 6, pairTop - 4, BOX_W + 12, pairH + 8, { color: T.ink3 });
+      txt(ctx, "Linear with its activation,", rsx + 70, pairTop + pairH / 2 - 6,
+        { color: T.ink3, size: T.fsXs });
+      txt(ctx, "and Normalize between them", rsx + 70, pairTop + pairH / 2 + 8,
+        { color: T.ink3, size: T.fsXs });
+    }
+  }
+  cy += regionH;
+
+  /* 3 · the end */
+  [["Global pooling", "averages across time or space", 3], ["Linear", "maps to the number of outputs the task needs", 4]]
+    .forEach(([label, side, u]) => {
+      const tone = walk >= u ? (walk === u ? "lit" : "landed") : "hidden";
+      arrow(ctx, cx, cy, cx, cy + EDGE, T.axis, 2);
+      cy += EDGE;
+      layerBox(ctx, PAD, cy, BOX_W, label, T.groupA, tone);
+      if (tone !== "hidden") txt(ctx, side, sx, cy + BOX_H / 2 + 0.5,
+        { color: T.ink2, baseline: "middle", size: T.fsXs });
+      cy += BOX_H;
+    });
+  arrow(ctx, cx, cy, cx, cy + EDGE, T.axis, 2);
+  cy += EDGE;
+  txt(ctx, "output", cx, cy + 12, { color: T.ink1, align: "center", mono: true });
+
+  /* the second column at 770 */
+  if (wide) {
+    const ax = PAD + BOX_W + 120;
+    txt(ctx, "the subunit inside the repeated region", ax, y0 + 11, { color: T.ink2 });
+    let by = y0 + 16;
+    ctx.strokeStyle = T.ink3; ctx.lineWidth = 1; ctx.setLineDash([4, 4]);
+    /* the wedge starts past the brackets and their `× N` label */
+    const wedgeX = PAD + BOX_W + 46;
+    ctx.beginPath();
+    ctx.moveTo(wedgeX, regTop); ctx.lineTo(ax, by);
+    ctx.moveTo(wedgeX, regTop + regionH); ctx.lineTo(ax, by + subInnerH);
+    ctx.stroke(); ctx.setLineDash([]);
+    ROLES.forEach((r, i) => {
+      if (i > 0) { arrow(ctx, ax + BOX_W / 2, by, ax + BOX_W / 2, by + EDGE, T.axis, 2); by += EDGE; }
+      layerBox(ctx, ax, by, BOX_W, r.role, r.hue(), "landed");
+      txt(ctx, d.classes[i], ax + BOX_W + SIDE_GAP, by + BOX_H / 2 + 0.5,
+        { color: T.ink2, baseline: "middle", mono: true, size: T.fsXs });
+      by += BOX_H;
+    });
+  }
+  caption(ctx, PAD, capY + 12, caps);
+  note(cand, `stage ${H}px at ${w} · encoding ${encH}px, repeated region ${regionH}px, spine ${spineH}px`
+    + (wide ? `, second column ${asideH}px` : `, the four subunit boxes inside the brackets`));
+  return { H, spineH };
+}
+{
+  const c1 = drawWhole(document.getElementById("sC1"), "C · images, at 550",
+    "Convolution and Pooling as the encoding, the subunit expanded inside the brackets", { data: "images" });
+  const c2 = drawWhole(document.getElementById("sC1"), "C · sequence, at 550",
+    "Embedding and Attention as the encoding, and the block that follows", { data: "sequence" });
+  const c3 = drawWhole(document.getElementById("sC2"), "C · vectors, at 550",
+    "one normalization at the beginning, and the Linear and activation pair marked inside the subunit",
+    { data: "vectors" });
+  const c4 = drawWhole(document.getElementById("sC3"), "C · images, at 770",
+    "the subunit moves out of the spine into a second column, joined by a wedge",
+    { data: "images", w: WIDE, wide: true });
+  M.C = { c1, c2, c3, c4 };
+  document.getElementById("recC").innerHTML =
+    `<b>C · the contract.</b> <code>data</code> Images · Sequence · Vectors (data), detail <i>what the network `
+    + `takes in, which decides the layers at the beginning</i>. <b>Step</b> walks the positions: encoding, the `
+    + `repeated block, global pooling, the Linear head, 4 units, label <i>Next position</i>. <b>Readout</b>: `
+    + `<i>Beginning</i> (Convolution and Pooling) | <i>Block</i> (the four roles' classes for this data) | `
+    + `<i>End</i> (Global pooling, then Linear) | <i>Positions shown</i>. <b>Card</b>: the same one row, `
+    + `<code>Transform → Normalize → Activate → Regularize</code>, with the note naming what the beginning and `
+    + `the end do. <b>Legend</b>: group-a <i>A layer with a fixed position</i>, group-b <i>The block that is `
+    + `repeated</i>, group-c <i>Regularize, which acts during training</i>, highlight <i>The position being `
+    + `shown</i>, plus a dashed swatch for <i>Layers used as a unit</i>. <b>Heights at 550</b>: images `
+    + `<b>${c1.H}px</b>, sequence <b>${c2.H}px</b>, vectors <b>${c3.H}px</b>; at 770 the subunit moves into a `
+    + `second column and it drops to <b>${c4.H}px</b>. <b>Two things the drawing shows.</b> The pattern is `
+    + `visible but not walkable — Step passes the whole subunit in one unit, so perspective 1 is scenery inside `
+    + `perspective 3. And the Linear and Activation combination is not adjacent: Normalize sits between them, `
+    + `so the dashed enclosure that means "used as a unit" has to span three boxes and enclose a layer that is `
+    + `not part of the pair.`;
+}
+
+/* ============================== §D · the rails ============================= */
+const el = (tag, cls, text) => {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text != null) e.textContent = text;
+  return e;
+};
+const field = (label, detail) => {
+  const f = el("div", "w-field");
+  if (label) { const l = el("label"); l.appendChild(el("span", null, label)); f.appendChild(l); }
+  if (detail) f.appendChild(el("p", "w-detail", detail));
+  return f;
+};
+const put = (f, node) => {
+  const d = f.querySelector(".w-detail");
+  if (d) f.insertBefore(node, d); else f.appendChild(node);
+};
+const segRun = (f, opts, on, gridStyle, head) => {
+  if (head) put(f, el("p", "w-seg-head", head));
+  const s = el("div", gridStyle ? "w-seg w-seg-grid" : "w-seg");
+  s.setAttribute("role", "group");
+  for (const o of opts) {
+    const b = el("button", o.span ? "w-seg-btn w-seg-btn--span" : "w-seg-btn", o.label ?? o);
+    b.type = "button";
+    b.setAttribute("aria-pressed", String((o.label ?? o) === on));
+    s.appendChild(b);
+  }
+  put(f, s);
+  return s;
+};
+const TOPIC_HEADS = [
+  ["Composing layers", [{ label: "Ordering" }, { label: "Building" }, { label: "Dimensions", span: true }]],
+  ["Controlling flow", [{ label: "Skip" }, { label: "Gating" }, { label: "Branching" }, { label: "Routing" }]],
+];
+function railFor(host, title, sub, build, stepLabel) {
+  const wrap = el("div", "cand");
+  wrap.innerHTML = `<h3>${title}</h3><p class="sub">${sub}</p>`;
+  const solo = el("div", "rail-solo");
+  const rail = el("div", "w-rail");
+  const controls = el("div", "w-controls");
+  const fT = field("Topic", "the first three compose layers into a model, the last four change where the data goes");
+  for (const [h, opts] of TOPIC_HEADS) segRun(fT, opts, "Ordering", true, h);
+  controls.appendChild(fT);
+  build(controls);
+  rail.appendChild(controls);
+  const drive = el("div", "w-drive");
+  const group = el("div", "w-drive-group");
+  const step = el("button", "w-btn", stepLabel); step.type = "button"; step.dataset.key = "step";
+  const play = el("button", "w-btn w-btn--primary", "Play"); play.type = "button"; play.dataset.key = "run";
+  group.appendChild(step); group.appendChild(play);
+  const reset = el("button", "w-btn", "Reset"); reset.type = "button"; reset.dataset.key = "reset";
+  drive.appendChild(group); drive.appendChild(reset);
+  rail.appendChild(drive);
+  solo.appendChild(rail);
+  wrap.appendChild(solo);
+  host.appendChild(wrap);
+  return { wrap, rail, fT };
+}
+{
+  const host = document.getElementById("sD");
+  const rA = railFor(host, "A · Topic and View", "three views, one control", (c) => {
+    const f = field("View", "the three ways a network's ordering can be read");
+    segRun(f, [{ label: "Pattern" }, { label: "Combinations" }, { label: "Position" }], "Pattern", true);
+    c.appendChild(f);
+  }, "Next step");
+  const rB = railFor(host, "B · Topic alone", "no page control: the stage holds everything", () => {}, "Next");
+  const rC = railFor(host, "C · Topic and Data", "the data decides the layers at the beginning", (c) => {
+    const f = field("Data", "what the network takes in, which decides the layers at the beginning");
+    segRun(f, [{ label: "Images" }, { label: "Sequence" }, { label: "Vectors" }], "Images", true);
+    c.appendChild(f);
+  }, "Next position");
+
+  const measure = () => {
+    document.querySelectorAll(".rail-measure").forEach((n) => n.remove());
+    const railNote = (o, s) => { note(o.wrap, s); o.wrap.lastChild.classList.add("rail-measure"); };
+    const h = (o) => Math.round(o.rail.getBoundingClientRect().height);
+    const btn = (o) => {
+      const b = o.wrap.querySelectorAll(".w-seg-btn");
+      return Math.round(b[b.length - 1].getBoundingClientRect().width);
+    };
+    const cs = getComputedStyle(rA.wrap.querySelector(".w-seg-btn"));
+    scratch.font = `${cs.fontSize} ${cs.fontFamily}`;
+    const labelW = (s) => Math.round(scratch.measureText(s).width);
+    const combW = labelW("Combinations");
+    railNote(rA, `rail ${h(rA)}px · view button ${btn(rA)}px against Combinations at ${combW}px + 12px padding = ${combW + 12}px`);
+    railNote(rB, `rail ${h(rB)}px · ${h(rA) - h(rB)}px shorter than A, and the whole page is on the stage`);
+    railNote(rC, `rail ${h(rC)}px · data button ${btn(rC)}px, widest label Sequence at ${labelW("Sequence")}px`);
+    M.railA = h(rA); M.railB = h(rB); M.railC = h(rC); M.btnA = btn(rA); M.combW = combW;
+    document.getElementById("recD").innerHTML =
+      `<b>The rails.</b> The <code>topic</code> grid is untouched and the Ordering button is unchanged. A's `
+      + `<code>view</code> run is three buttons in the two-column grid, so the widest label `
+      + `<code>Combinations</code> gets ${btn(rA)}px against ${combW + 12}px of text plus padding — `
+      + `${combW + 12 > btn(rA) ? "it truncates, so the run needs the grid's full-width span on Combinations" : "it fits"}. `
+      + `Rail heights: A <b>${h(rA)}px</b>, B <b>${h(rB)}px</b>, C <b>${h(rC)}px</b>. B's rail is the `
+      + `shortest and that is the problem, not the saving: its only control is the topic, so the drive buttons `
+      + `sit under a rail with nothing to set, and Step is the page's whole interface.`;
+    writePick();
+  };
+  measure();
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(measure);
+}
+
+/* ============================== the pick =================================== */
+function writePick() {
+  const A = M.A; const B = M.B; const C = M.C;
+  const tallestA = Math.max(A.p2.H, A.c1.H, A.po.H);
+  document.getElementById("recPick").innerHTML =
+    `<b>Recommend A — three views on one <code>view</code> control.</b> It is the only candidate where each of `
+    + `cell 62's perspectives is a figure the reader builds: Step applies 4 steps of the pattern, 3 `
+    + `combinations or 4 positions, and every unit reveals a claim rather than a decoration (2.2). In B the `
+    + `walk crosses three kinds of unit under one label and every readout tile has to switch on where in the `
+    + `walk it is; in C the pattern is drawn but Step passes it in a single unit, so the perspective the `
+    + `notebook puts first is scenery. The control carries the idea in A — <code>view</code> IS the notebook's `
+    + `"three perspectives", so switching it is the lesson (3.5) — where B has no control at all and C's `
+    + `<code>data</code> carries one perspective's worth. All three open empty and reveal on Step, so 2.1 `
+    + `separates none of them. <b>The pixels.</b> A is ${A.p2.H}px, ${A.c1.H}px and ${A.po.H}px at 550, `
+    + `tallest view ${tallestA}px, all three under Ordering's current ${522}px and under Routing's 504px, `
+    + `with a ${M.railA}px rail beside them. B is <b>${B.b1.H}px</b> at 550 — ${B.b1.H - 522}px past the `
+    + `tallest stage the widget has — and still ${B.b2.H}px at 770. C is <b>${C.c1.H}px</b> at 550 and comes `
+    + `down to ${C.c4.H}px only by moving the subunit into a second column at 770, a frame the reader may not `
+    + `have. <b>Two details A settles `
+    + `along the way</b>: the role text goes on two lines beside the box, because the one-line form ends at `
+    + `${A.p1.right}px against a ${W - PAD}px stage edge; and the combination reasons move out from under the `
+    + `groups, where the widest runs ${A.c2.worst}px into its neighbour, to one line under the figure that `
+    + `Step reveals.`;
+  document.getElementById("removes").innerHTML =
+    `<b>What the change removes, for the record.</b> `
+    + `<code>ORDER_BLOCKS</code> (the three blocks, their steps, their input shapes and their parameter `
+    + `counts 260 / 2352 / 3340) and <code>ORDER_PRINT</code> (what <code>nn.Sequential</code> prints for each) `
+    + `go from <code>model.js</code>, and with them the <code>changed</code> count in <code>ordering()</code>, `
+    + `the print column in <code>orderGeom</code>/<code>drawOrder</code> and Ordering's use of `
+    + `<code>besideFits</code> and <code>ORDER_MIN_DIAG</code>. The <b><code>block</code> control</b> goes from `
+    + `the rail, and with it the <code>?block=mlp|resnet|transformer</code> URL values. The readout loses `
+    + `<i>Shape in</i>, <i>Shape out</i>, <i>Steps that change the shape</i> and <i>Parameters</i>, because no `
+    + `view carries a tensor any more. <b>Two catalogue claims depended on the three blocks and have to be `
+    + `rewritten when he picks:</b> the page-1 corrective that <b>"Transform is the only step that changes the `
+    + `shape"</b>, which was the whole reason the Subunit view drew shapes at all; and the mock §7 pick that `
+    + `<b>the box count follows the block, with the print under the diagram</b>, together with the arithmetic `
+    + `recorded under it — the print column at 377px and 476px rather than 260, and Ordering's stage at `
+    + `282 / 338 / 394 / 522px. The Combination view survives in A as one of the three views, so `
+    + `<code>COMBOS</code> stays; its per-group reasons move under the figure. Ordering's fingerprint states `
+    + `are all rebaselined, since every one of them names a <code>block</code>.`;
+  const proof = document.getElementById("proof");
+  proof.innerHTML = [
+    `A's three views measure ${A.p2.H}px, ${A.c1.H}px and ${A.po.H}px at 550 against a ${M.railA}px rail, so the page fits under every other page in the widget.`,
+    `The one-line role text ends at ${A.p1.right}px against a ${W - PAD}px stage edge, which decides the two-line form.`,
+    `A reason under every combination group runs ${A.c2.worst}px into the next group at a ${A.c1.gw + GAP}px pitch, which is a collision the shipped page already has.`,
+    `B is ${B.b1.H}px at 550 and ${B.b2.H}px at 770, past the tallest stage in the widget at both widths.`,
+    `C is ${C.c1.H}px at 550 and ${C.c4.H}px at 770, and its subunit is walked in one unit at both.`,
+    `No candidate draws a tensor shape, so nothing on the page repeats what Dimensions already teaches.`,
+  ].map((s) => `<li>${s}</li>`).join("");
+}
+</script>
+</body>
+</html>
