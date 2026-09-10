@@ -11601,6 +11601,30 @@ since every branch ends in a ReLU and column 0 is zero in all three. **Kenneth
 picked C**, the attention precedent (slot 49, round 2). Built by an Opus
 builder next.
 
+**C built (`ab634fd`), then his question, then D.** C went into the widget
+(the strips land at `combined = torch.sum(...)`, the framed column is the one
+with the most non-zero terms at rest and the column under the pointer on
+hover, hard mode empties the untaken strips; stage 660 / 659, code under at
+both widths, 144 assertions). Kenneth then asked how to explain a `[4, 20]`
+branch whose box shows one row, and whether the box should show the whole
+tensor with hover by sample as Gating and Branching do. The answer given: the
+weighted sum is per sample (the `[4, 3]` weights grid has one row per sample,
+`weights.unsqueeze(-1)` makes it `[4, 3, 1]`, `sum(dim=1)` leaves dimension 0
+alone), so the box was one index of dimension 0; and the recommendation was
+the whole tensor, drawn as the PRODUCT `weights * outs` so the multiply stays
+visible as each row's paleness. He asked for a mock first: **candidate D**
+(`c170316`), three `[4, 20]` bands shaded as the products against one maximum,
+a weight column of four digits beside each band with the chosen row lit, the
+chosen row lit in all four bands, C's framed column and line under; hard mode
+keeps in each band only the rows whose argmax is that branch, `taken` /
+`not taken` per row, so the four samples visibly take branches 1, 3, 1, 2.
+Box 263 / 327, stage **804 at 550 and 851 at 770**, hard equal to soft, cells
+and the code-under fit unchanged. **Kenneth picked D** over C (+144 / +192px):
+one convention across the three flow pages that draw a tensor, the `[4, 3, 20]`
+stack drawn as the code builds it, and the "why one row" question gone.
+Routing becomes the tallest page against Gating's 464. Built by an Opus
+builder, replacing C.
+
 **Build order within the widget**, once the mock is picked: Dimensions first (the
 strongest losing state and the most machinery), then Skip, Branching, Gating,
 Routing, Building, Ordering. The widget itself is built after
