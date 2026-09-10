@@ -56,14 +56,16 @@ is at most about 8 wide, and shaded with no digits beyond that.
    `tensors` to the new imports. **One full fingerprint run, all 404 states
    MATCH, before the commit** — nothing renders differently, so a DIFFER is a
    real regression. One commit.
-2. **`_lab/processing-layers-mock.html`**, for Kenneth to pick from. It is
-   **not in the tree as of this commit** — if it is there when you read this,
-   it was written after, and check what it already draws before starting one.
-   Its eight sections and their recommendations are in the slot 49 entry; the
-   two things it has to prove before any `main.js` are that the 16 × 16 image
-   with a 6 × 6 square still reads as a square at a 13–14px pixel on a
-   projector, and that the whole rail against the *shortest* stage is a
-   layout rather than a column of empty rail.
+2. **`_lab/processing-layers-mock.html` EXISTS and is PICKED** (2026-09-10,
+   committed after the docs commit): Kenneth took the recommendation on all
+   seven sections — grid rail; 46 × 26 cell at 2 dp with the print under; two
+   conv bands at a 14px pixel with `stride = 1` not offered; the True-image
+   reveal as the signed difference; Recurrent rows following `direction`;
+   the Attention stage at 600px accepted; Graph as horizontal shaded strips at
+   30px. The slot 49 entry records each pick with its number, and what the
+   drawing corrected (the Conv page's rail measures 633px against a 322px
+   Linear stage). **Build from the mock's geometry, not the plan's**: where
+   the two differ the mock is what he saw.
 3. **Build `processing-layers` as a draft from his picks**, then
    `support-layers`, then `composition`. One widget per commit, `npm run
    check` read before every one, push only on "tested ok". Neither build

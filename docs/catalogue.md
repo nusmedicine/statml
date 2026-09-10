@@ -10552,6 +10552,43 @@ output size. Two things the mock has to prove before any `main.js`: that a
 16 × 16 image with a 6 × 6 square still reads as a square at a 13–14px pixel on a
 projector, and that the two feature maps read as a pair at 112px.
 
+**The mock was built and picked the same day, 2026-09-10.** An Opus 5
+subagent wrote `_lab/processing-layers-mock.html` as seven sections (the
+`s = 1` question folded into the convolutional one), every stage drawn to scale
+at 550 from the seeded arithmetic, the prints through `torchPrint`; the main
+session read every section in the browser before it went to him. **Kenneth
+took the recommendation on all seven**: **§1** the rail as a two-column grid
+(149px a button against a widest label of 86px; a row of five truncates
+Convolutional, Recurrent *and* Attention, not only Recurrent); **§2** the
+46 × 26 cell at two decimals with the exact print under (five mono characters
+measure 45.8px); **§3** two bands, the padded image at a 14px pixel with the
+window framed over two 8 × 8 maps, and **`stride = 1` is not offered** — drawn,
+it is 544 of 550 wide and a 710px stage, and shrinking the map puts a 7px pixel
+beside a 14px one; **§4** the True-image reveal as the signed difference
+`z − img` in the same footprint (at the mock's seed the square is *darker* than
+its surround, so the reconstruction alone changes its reading with the seed);
+**§5** the Reverse and Output rows follow `direction`; **§6** the Attention
+stage at **600px** accepted — X above, Q and K beside (band 1 is 422 of 550
+exactly as predicted), band 2's row 342 not 318 because the token-pair label
+needs 54px and the dot 22; **§7** horizontal shaded strips at a 30px cell
+(448 of 550, all three of his bands in 484px; the vertical numbered strips are
+364 wide but 402px for two bands).
+
+**What the drawing corrected in the plan's arithmetic:** the Linear stage is
+322 tall (not 338) and its band 1 494 of 550 (a full `OP_W` before `b`); the
+Recurrent stage 584 bidirectional / 402 unidirectional (not 552 / 370 — the
+band header is 26 and the caption block 44); the Convolutional stage 496 (not
+520); **the rail for the Convolutional page measures 633px, not 260** (grid +
+`conv` + three `choice` ladders + Play speed + the drive block), 311px taller
+than the Linear stage beside it — the split into two widgets was the right
+call and the rail is still the long column; and on the Recurrent page the
+Input row and the hidden-state rows wear one blue, since `--c-group-a` and
+`--c-empirical` share the hue by design (his figure draws x red and h blue) —
+position and the row labels carry the difference, as on `tensors`. The
+feature maps, the reconstruction, the difference and the graph strips take the
+`--c-value-low` → `--c-value-high` ramp centred on the bias, because a filter's
+whole output was measured to sit on one side of it.
+
 **The cuts Kenneth declined here**, kept so they are not re-argued:
 
 | offered | what it would have saved | what it would have cost | his call |
