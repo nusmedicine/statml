@@ -12069,10 +12069,72 @@ captions, not pages: each needs its own data shape and none has a worked example
 in the notebook. Combining losses is one sentence on the card. `pos_weight` and
 `weight` are not controls until a page is measured to need them.
 
-**Not measured.** The three numbers above are the arithmetic written out, not
-torch; a measure script belongs to the planning session that mocks this, as
-`_lab/dl-layers-measure.mjs` did for 49–51. Neither `metrics` (widget 35, the
-scores after training) nor `mlp` (widget 37) draws a loss's inside.
+Neither `metrics` (widget 35, the scores after training) nor `mlp` (widget
+37) draws a loss's inside.
+
+#### MEASURED 2026-09-11 — `_lab/dl-loss-measure.mjs`
+
+Kenneth's brief for the session (2026-09-11): the three losses of the
+notebook and no others — *"students often get confused when to use
+CrossEntropyLoss and BCEWithLogitsLoss"* — with the other losses left to
+later notebooks. So the widget's centre is the contrast between the two
+classification pages, made structural rather than captioned: softmax over
+the ROW (the classes compete for one unit of probability; the target is one
+class index, `long`) against sigmoid PER CLASS (each class its own yes/no;
+the target is a 0/1 per class, `float32`, the same shape as the scores).
+
+The script confirms every number in the table above and adds what the drag
+needs (torch is not on this machine — python, python3 and WSL all checked —
+so the losses are the arithmetic written out, and the float32 digits are
+checked with `Math.fround`):
+
+- **MSE** 0.1700; `y_pred[0]` dragged is a parabola with its floor 0.0867
+  at `y_true[0] = 3.0`; a slider from −1 to 6 spans 0.087 to 5.42.
+- **CE** 0.018386 at label 0; 4.5184 at label 1 and 4.9184 at label 2. The
+  score for A dragged down: 1.0 → p 0.4967, loss 0.6997; 0 → 1.3228; −2 →
+  3.0610; −3 → 4.0309. A wrong class's score dragged UP to 5.0 (equal to
+  A's) → 0.6969; to 8 → 3.0489. **The −log p curve clipped at 5** keeps
+  4.52 and 4.92 on it; 0.0184 sits at p = 0.982, a few px from the right
+  wall, which is the case for the drag.
+- **BCE** 1.053352; sigmoids sum to 2.7476 (not 1); the per-class terms
+  0.7981, 1.3133, 0.4741, 2.1269, 0.5544 are −log of the probability given
+  to each class's TRUE label (0.4502, 0.2689, 0.6225, 0.1192, 0.5744), so
+  they sit on the same −log p curve as CE's point. Torch's stable form
+  (`max(z, 0) − z·y + log(1 + e^−|z|)`) agrees with the textbook one to
+  1.3e−15. A score from −4 to 4 spans a term of 0.018 to 4.02; the largest
+  term is D's (z = 2.0 against y = 0, a confident wrong), dragged to −2 the
+  mean falls 1.0534 → 0.6534; one label toggled moves the mean between
+  0.6534 (D → 1) and 1.1534 (C → 0).
+- **The same row read both ways.** Cell 39's five scores: softmax
+  0.1074 0.0324 0.1450 0.6500 0.0652 (sum 1) against sigmoid 0.5498 0.2689
+  0.6225 0.8808 0.4256 (sum 2.75). Each loss handed the OTHER loss's target:
+  BCE with a class index of shape `[1]` raises `ValueError: Target size
+  (torch.Size([1])) must be the same as input size (torch.Size([1, 3]))`;
+  CE with a `float32` index raises `RuntimeError: expected scalar type Long
+  but found Float`; BCE with a `long` 0/1 row raises `RuntimeError: Found
+  dtype Long but expected Float` — all three UNVERIFIED, quoted from torch
+  2.x source, for Kenneth to confirm in Colab. And two RUN and print a
+  different loss: CE with the 0/1 row as a `float32` target of the same
+  shape reads it as class probabilities and prints 5.3616 against BCE's
+  1.0534, because the softmax makes five classes compete for one unit when
+  the target says two are present; BCE with a one-hot `[1, 0, 0]` prints
+  0.5751 against CE's 0.0184, three binary questions instead of one
+  three-way one.
+- **float32** agrees with float64 at four decimals on all three numbers;
+  the readout prints four and claims no more.
+
+**The design brief the mock draws from (before his picks).** `task` is the
+rail, cell 30's three rows; each page's tensors are `text` parameters
+carrying the row as typed (`?scores=5,0.5,0.1`), the CE label a segmented
+`0 · 1 · 2` with the class chips on the stage as regions, the five BCE
+labels five checkboxes named by class letter with the chips toggling them;
+the scores drawn as bars whose tops are the drag; the computed rows as
+cells; the −log p curve at the right with one point (CE) or five (BCE),
+the parabola in the same slot on Regression; the figure built by a walk
+that lands one row a step, a drag on a finished figure keeping it finished
+(4.4's data-path door); a `dtype` control whose wrong arm prints torch's
+error (2.6) offered against a readout note. Kenneth's four figures are
+`_lab/figs/dl-loss-{mse,ce,bce,dice}.png`.
 
 #### The mock-up — `_lab/tensor-mock.html`, 2026-09-08, awaiting picks
 
