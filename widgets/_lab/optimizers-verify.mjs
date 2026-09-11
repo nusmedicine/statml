@@ -553,9 +553,9 @@ const base = (over = {}) => ({ ...DEFAULTS, ...over });
   check("the widget's height is the layout's",
     W.height({ ...defaults, w: 690 }) === M.layout(690, false).height
     && W.height({ ...defaults, scheduler: "plateau", w: 690 }) === M.layout(690, true).height);
-  check("the legend names the other walks only where they are drawn",
-    !W.legend({ ...{ params: { ...defaults } } }).some((e) => e.label.includes("other methods"))
-    && W.legend({ params: { ...defaults, compare: true } }).some((e) => e.label.includes("other methods")));
+  check("the legend names the other paths only where they are drawn",
+    !W.legend({ ...{ params: { ...defaults } } }).some((e) => e.label.includes("other optimizers"))
+    && W.legend({ params: { ...defaults, compare: true } }).some((e) => e.label.includes("other optimizers")));
 }
 
 console.log(failed ? `\n${failed} of ${ran} FAILED\n` : `\nall ${ran} checks passed\n`);

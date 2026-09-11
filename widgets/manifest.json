@@ -804,7 +804,7 @@
     {
       "slug": "optimizers",
       "title": "Deep Learning - Optimizers",
-      "blurb": "SGD, momentum, RMSprop and Adam turn one gradient into four different steps on a landscape with two minima.",
+      "blurb": "How an optimizer turns the gradient into an update: momentum, adaptive step sizes and learning-rate schedules.",
       "course": "PHM5005",
       "topics": [
         "optimizer",

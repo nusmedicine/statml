@@ -586,39 +586,43 @@ export const WHERE = {
 };
 
 export const STRINGS = {
+  /* Kenneth's picks from the copy audit (2026-09-11): the subtitle states the
+     principles and names no method ("don't need to name specific methods"),
+     the blurb states the concept rather than what the figure shows (2.10). */
   subtitle:
-    "An optimizer turns the gradient into a step. Gradient descent moves against "
-    + "the gradient by the learning rate, and momentum along a running sum of past "
-    + "gradients. Adam divides each parameter's step by the size of its own recent "
-    + "gradients, and a scheduler lowers the rate as the walk goes on.",
+    "An optimizer turns the gradient into a parameter update: at a fixed learning "
+    + "rate, with momentum from past gradients, or with a step size adapted to each "
+    + "parameter's recent gradients. A learning-rate scheduler reduces that step "
+    + "size as training proceeds.",
 
+  /* his pick A, trimmed of its landscape clause to the gallery card's 120 */
   blurb:
-    "SGD, momentum, RMSprop and Adam turn one gradient into four different steps "
-    + "on a landscape with two minima.",
+    "How an optimizer turns the gradient into an update: momentum, adaptive step "
+    + "sizes and learning-rate schedules.",
 
   stepLabel: "Take a step",
-  stepTitle: "Take one update and redraw the walk",
+  stepTitle: "Take one update and redraw the path",
   runLabel: "Play",
   runTitle: "Take every remaining update, to step 500",
 
   startLabel: "Start",
-  startDetail: "where the walk begins — drag the marker on the map to put it anywhere",
+  startDetail: "where the path begins; drag the marker on the map to move it",
   optimizerLabel: "Optimizer",
   optimizerDetail: "the rule that turns the gradient into a step",
   momentumLabel: "Momentum",
-  momentumDetail: "μ in optim.SGD, 0 by default",
+  momentumDetail: "μ in optim.SGD; 0 is the default",
   lrLabel: "Learning rate",
   /* THE RUNG'S LINE NAMES NO START AND THE FIELD'S DOES, because the two are
      rendered one above the other (3.4f) and a qualifier repeated on five lines
      is five copies of one fact. Naming it here is also what keeps every rung's
      claim true in every state of the Start control (2.11): it is a statement
      about that start, whichever start the reader is on. */
-  lrDetail: "lr in every rule below; each line is what that rate does from Beyond the local minimum",
+  lrDetail: "lr in the rule on the card; each rung says what that rate does from Beyond the local minimum",
   schedulerLabel: "Scheduler",
-  schedulerDetail: "how the learning rate changes as the walk goes on",
+  schedulerDetail: "how the learning rate changes over the steps",
   surfaceLabel: "Surface",
   compareLabel: "Compare",
-  compareDetail: "draws the other three methods' walks from the same start, dim, with their end labels",
+  compareDetail: "draws the other three optimizers' paths from the same start, dimmed and labelled at their ends",
   speedLabel: "Play speed",
   homeLabel: "Default view",
   homeDetail: "turns the surface back to the viewpoint the figure opens at",
@@ -634,11 +638,11 @@ export const STRINGS = {
 };
 
 export const OPTIMIZER_OPTIONS = [
-  { value: "sgd", label: "SGD", detail: "the step is the rate times the gradient" },
+  { value: "sgd", label: "SGD", detail: "the step is the learning rate times the gradient" },
   {
     value: "adam",
     label: "Adam",
-    detail: "a running mean of the gradient, divided by the root of its running mean square, both corrected for the early steps",
+    detail: "a running mean of the gradient divided by the root of its running mean square, each corrected for the first steps",
   },
   {
     value: "rmsprop",
@@ -652,21 +656,21 @@ export const MOMENTUM_OPTIONS = [
   {
     value: "0.9",
     label: "0.9",
-    detail: "the step follows a running sum of the gradients, nine tenths of the last sum plus the new gradient",
+    detail: "the step follows a running sum of past gradients, nine tenths of it kept at each step",
   },
 ];
 
 export const SCHEDULER_OPTIONS = [
-  { value: "none", label: "None", detail: "the rate stays where you set it", span: true },
+  { value: "none", label: "None", detail: "the learning rate stays at the value set above", span: true },
   {
     value: "steplr",
     label: "StepLR",
-    detail: "step_size 100, gamma 0.1: the rate falls by ten every hundred steps",
+    detail: "step_size 100, gamma 0.1: the learning rate falls tenfold every hundred steps",
   },
   {
     value: "plateau",
     label: "ReduceLROnPlateau",
-    detail: "factor 0.1, patience 10: the rate falls by ten after ten steps without a lower loss",
+    detail: "factor 0.1, patience 10: the learning rate falls tenfold after ten steps without a lower loss",
   },
 ];
 
@@ -682,7 +686,7 @@ export const SURFACE_OPTIONS = [
 export const SPEEDS = [
   { value: "slow", label: "Slow", detail: "2.5 seconds a step, with the gradient and the step drawn first" },
   { value: "medium", label: "Medium", detail: "0.4 seconds a step" },
-  { value: "fast", label: "Fast", detail: "40 steps a second, arrivals only" },
+  { value: "fast", label: "Fast", detail: "40 steps a second, the path alone" },
 ];
 
 /* ---- the rate ladder's own lines (decision 5) ----------------------------- */

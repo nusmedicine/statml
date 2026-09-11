@@ -824,7 +824,7 @@ const CARD_NAME = { sgd: "SGD", momentum: "SGD", rmsprop: "RMSprop", adam: "Adam
    it (3.5). The decay pulls every parameter toward zero, which matters for a
    network's weights and is invisible on two of them. */
 const ADAMW_LINE =
-  "AdamW first shrinks θ by (1 − lr·λ), λ 0.01; on this surface its walk is Adam's to within 0.03.";
+  "AdamW first shrinks θ by (1 − lr·λ), λ 0.01; on this surface its path is Adam's to within 0.03.";
 
 function torchCall(params) {
   const lr = params.lr;
@@ -1032,7 +1032,7 @@ widgetApi = defineWidget({
       default: "0",
       when: { param: "optimizer", equals: "sgd" },
     },
-    walkSec: { type: "section", label: "The walk" },
+    walkSec: { type: "section", label: "The path" },
     /* DECISION 5. Three named starts, each a claim, and a fourth face that
        exists only while the marker has been dragged off them. A `segmented`
        grid with every option spanning its own row: the mock measured all three
@@ -1134,8 +1134,8 @@ widgetApi = defineWidget({
      that appear only under one setting are added only there (lm-interaction,
      2026-08-29). */
   legend: ({ params }) => [
-    { token: "empirical", label: "The walk so far", mark: "line" },
-    { token: "empirical", label: "The point the walk stands at", mark: "dot" },
+    { token: "empirical", label: "The path so far", mark: "line" },
+    { token: "empirical", label: "The current point", mark: "dot" },
     ...(M.choreographs(params.speed)
       ? [{ token: "slope", label: "The direction against the gradient, at a fixed length", mark: "line" }]
       : []),
@@ -1144,7 +1144,7 @@ widgetApi = defineWidget({
     { token: "reference", label: "The local minimum", mark: "hollow" },
     { token: "highlight", label: "The start", mark: "hollow" },
     ...(params.compare
-      ? [{ token: "ink-3", label: "The other methods' walks, from the same start", mark: "line" }]
+      ? [{ token: "ink-3", label: "The other optimizers' paths, from the same start", mark: "line" }]
       : []),
   ],
 
@@ -1291,7 +1291,7 @@ widgetApi = defineWidget({
       {
         label: "Learning rate",
         value: M.rateText(at.rate),
-        note: state.hasRate ? "what the scheduler has left it at" : "the rate you set, unchanged",
+        note: state.hasRate ? "as the scheduler has set it" : "the rate you set, unchanged",
       },
       {
         label: "Distance to the global minimum",
@@ -1301,7 +1301,7 @@ widgetApi = defineWidget({
           : `within ${M.REACH} counts as reached`,
       },
       {
-        label: "The walk is",
+        label: "The path is",
         value: M.WHERE[whereAt(at.cur, at.gone)],
         note: "the well it is inside, or the plain between them",
       },
@@ -1345,6 +1345,6 @@ function startDetail(s) {
   if (s.value === "beyond") {
     return `(${s.at[0]}, ${s.at[1]}); the local well lies between here and the global one`;
   }
-  if (s.value === "plain") return `(${s.at[0]}, ${s.at[1]}); the gradient is ${M.n2(g)}, a long flat walk`;
-  return `(${s.at[0]}, ${s.at[1]}); the trench is steep across and shallow along`;
+  if (s.value === "plain") return `(${s.at[0]}, ${s.at[1]}); the gradient here is ${M.n2(g)}, a long way over flat ground`;
+  return `(${s.at[0]}, ${s.at[1]}); the trench is steep across its width and shallow along its length`;
 }
