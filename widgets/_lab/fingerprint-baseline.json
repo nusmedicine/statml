@@ -4418,6 +4418,337 @@
       },
       "px": "f270a213",
       "tx": "7d5cc925"
+    },
+    {
+      "$note": "Regression: the four rows landed - target, gap, gap squared and the mean, with the three points on the parabola",
+      "slug": "loss-functions",
+      "state": "?theme=light&shown=4",
+      "px": "c2376297",
+      "tx": "5873277a"
+    },
+    {
+      "$note": "Single-label: the three rows landed - softmax over the row, the class index, and -log at the true class on the curve",
+      "slug": "loss-functions",
+      "state": "?theme=light&task=single-label&shown=3",
+      "px": "671a3476",
+      "tx": "e15fe90d"
+    },
+    {
+      "$note": "Multi-label: the five rows landed - sigmoid per class, the five switches, p at each class's own 0 or 1, the terms and their mean",
+      "slug": "loss-functions",
+      "state": "?theme=light&task=multi-label&shown=5",
+      "px": "8105c451",
+      "tx": "a7b8fd38"
+    },
+    {
+      "$note": "Binary: the three rows landed in both columns, the two loss lines on one line and the one point both forms read",
+      "slug": "loss-functions",
+      "state": "?theme=light&task=binary&shown=3",
+      "px": "5418d56b",
+      "tx": "82de1b11"
+    },
+    {
+      "$note": "Regression: empty, the scores row drawn and the target frame pale, nothing computed",
+      "slug": "loss-functions",
+      "state": "?theme=light&shown=0",
+      "px": "fb6f1882",
+      "tx": "43836859"
+    },
+    {
+      "$note": "Single-label: empty, the scores row drawn and the p frame pale, no probabilities and no point",
+      "slug": "loss-functions",
+      "state": "?theme=light&task=single-label&shown=0",
+      "px": "bb3590ff",
+      "tx": "fe1c1d3d"
+    },
+    {
+      "$note": "Multi-label: empty, the five scores drawn and the p frame pale, no chips and no terms",
+      "slug": "loss-functions",
+      "state": "?theme=light&task=multi-label&shown=0",
+      "px": "a2a92c32",
+      "tx": "eb815600"
+    },
+    {
+      "$note": "Binary: empty, both columns' scores drawn and both p frames pale, neither loss line",
+      "slug": "loss-functions",
+      "state": "?theme=light&task=binary&shown=0",
+      "px": "779ea392",
+      "tx": "d40e96e6"
+    },
+    {
+      "$note": "Regression at two rows: target and gap landed, the gap bracket drawn, and gap squared pale one row ahead",
+      "slug": "loss-functions",
+      "state": "?theme=light&shown=2",
+      "px": "029f4d71",
+      "tx": "c0733988"
+    },
+    {
+      "$note": "Single-label at one row: the softmax row landed and the target chips pale, no loss line",
+      "slug": "loss-functions",
+      "state": "?theme=light&task=single-label&shown=1",
+      "px": "dea72c19",
+      "tx": "4a841628"
+    },
+    {
+      "$note": "Multi-label at three rows: p, the chips and p at the true label landed, the -log p row pale",
+      "slug": "loss-functions",
+      "state": "?theme=light&task=multi-label&shown=3",
+      "px": "bec85fa3",
+      "tx": "986855a7"
+    },
+    {
+      "$note": "Binary at two rows: both p rows and both target chips landed, neither loss line yet",
+      "slug": "loss-functions",
+      "state": "?theme=light&task=binary&shown=2",
+      "px": "166e4614",
+      "tx": "9f1e7b58"
+    },
+    {
+      "$note": "Regression at one output: one column, the row kept as typed and the first of it read",
+      "slug": "loss-functions",
+      "state": "?theme=light&outputs=1&shown=4",
+      "px": "a788b861",
+      "tx": "13207ee4"
+    },
+    {
+      "$note": "Single-label with the target at class 1: the lit cell moves to B and the loss is the confident wrong answer",
+      "slug": "loss-functions",
+      "state": "?theme=light&task=single-label&label=1&shown=3",
+      "px": "335d25ae",
+      "tx": "9cd0f4c4"
+    },
+    {
+      "$note": "Single-label with a float32 target: torch's own message on two reserved lines, and the page 12px taller",
+      "slug": "loss-functions",
+      "state": "?theme=light&task=single-label&singleDtype=float32&shown=3",
+      "px": "7855399b",
+      "tx": "d5a842bc"
+    },
+    {
+      "$note": "Multi-label with a long target: torch's own message in the loss line, and the error caption",
+      "slug": "loss-functions",
+      "state": "?theme=light&task=multi-label&multiDtype=long&shown=5",
+      "px": "c0cc56b7",
+      "tx": "64987589"
+    },
+    {
+      "$note": "Multi-label with A and C true instead of B and C: the chips move and every term with them",
+      "slug": "loss-functions",
+      "state": "?theme=light&task=multi-label&A=1&B=0&C=1&D=0&E=0&shown=5",
+      "px": "c1999523",
+      "tx": "fb94e425"
+    },
+    {
+      "$note": "Binary with the target at class A: the chip moves to the left column's A and the one-output form reads 0",
+      "slug": "loss-functions",
+      "state": "?theme=light&task=binary&binaryLabel=0&shown=3",
+      "px": "4baa92a6",
+      "tx": "0e544589"
+    },
+    {
+      "$note": "Regression with y_pred typed to -1, 0, 2.1: the first gap runs the other way and its bracket with it",
+      "slug": "loss-functions",
+      "state": "?theme=light&pred=-1,0,2.1&shown=4",
+      "px": "a4326c38",
+      "tx": "99091966"
+    },
+    {
+      "$note": "Single-label with the true class's score dragged from 5.0 to 1.0: p at the true class falls and the point climbs the curve",
+      "slug": "loss-functions",
+      "state": "?theme=light&task=single-label&scores=1,0.5,0.1&shown=3",
+      "px": "cd8a5262",
+      "tx": "3ffc3ab7"
+    },
+    {
+      "$note": "Multi-label with class D's score at -2 against its 0: the term that was the largest becomes the smallest",
+      "slug": "loss-functions",
+      "state": "?theme=light&task=multi-label&logits=0.2,-1,0.5,-2,-0.3&shown=5",
+      "px": "d6878525",
+      "tx": "3d0d1d1d"
+    },
+    {
+      "$note": "Binary with class B's score at -1: the difference goes negative and both forms print the same loss above 1",
+      "slug": "loss-functions",
+      "state": "?theme=light&task=binary&binaryScores=0.5,-1&shown=3",
+      "px": "40803fbf",
+      "tx": "b187686a"
+    },
+    {
+      "$note": "DRIVEN: Regression, one press - the target row landed with its ticks on the bars, gap pale behind it",
+      "slug": "loss-functions",
+      "state": "?theme=light",
+      "drive": {
+        "click": "step",
+        "frames": 30,
+        "dt": 32
+      },
+      "px": "c614c4c7",
+      "tx": "13db94e4"
+    },
+    {
+      "$note": "DRIVEN: Single-label, one press - the softmax row landed and the row sum reading 1.0000",
+      "slug": "loss-functions",
+      "state": "?theme=light&task=single-label",
+      "drive": {
+        "click": "step",
+        "frames": 30,
+        "dt": 32
+      },
+      "px": "dea72c19",
+      "tx": "4a841628"
+    },
+    {
+      "$note": "DRIVEN: Multi-label, one press - the sigmoid row landed and the row sum reading 2.7476 under the same head",
+      "slug": "loss-functions",
+      "state": "?theme=light&task=multi-label",
+      "drive": {
+        "click": "step",
+        "frames": 30,
+        "dt": 32
+      },
+      "px": "834b7511",
+      "tx": "4a42e0d1"
+    },
+    {
+      "$note": "DRIVEN: Binary, one press - both p rows landed together, softmax on the left and sigmoid on the right",
+      "slug": "loss-functions",
+      "state": "?theme=light&task=binary",
+      "drive": {
+        "click": "step",
+        "frames": 30,
+        "dt": 32
+      },
+      "px": "fdadfcb0",
+      "tx": "639bd593"
+    },
+    {
+      "$note": "DRIVEN: Regression run to 75 frames - three of four rows landed, the walk between gap squared and the mean",
+      "slug": "loss-functions",
+      "state": "?theme=light",
+      "drive": {
+        "click": "run",
+        "frames": 75,
+        "dt": 32
+      },
+      "px": "716c8b4f",
+      "tx": "4b5ba82d"
+    },
+    {
+      "$note": "DRIVEN: Single-label run to 55 frames - two of three rows landed, the walk between the chips and the loss",
+      "slug": "loss-functions",
+      "state": "?theme=light&task=single-label",
+      "drive": {
+        "click": "run",
+        "frames": 55,
+        "dt": 32
+      },
+      "px": "5663c83e",
+      "tx": "b73a62e3"
+    },
+    {
+      "$note": "DRIVEN: Multi-label run to 95 frames - four of five rows landed, the walk between the -log p row and the mean",
+      "slug": "loss-functions",
+      "state": "?theme=light&task=multi-label",
+      "drive": {
+        "click": "run",
+        "frames": 95,
+        "dt": 32
+      },
+      "px": "035624b7",
+      "tx": "a227fde4"
+    },
+    {
+      "$note": "DRIVEN: Binary run to 55 frames - two of three rows landed in both columns, neither loss line yet",
+      "slug": "loss-functions",
+      "state": "?theme=light&task=binary",
+      "drive": {
+        "click": "run",
+        "frames": 55,
+        "dt": 32
+      },
+      "px": "166e4614",
+      "tx": "9f1e7b58"
+    },
+    {
+      "$note": "INTERRUPTED: Multi-label stepped, then Play pressed while that step is still in flight - Play supersedes the step rather than toggling it off and carries the beat it was left at, so the walk reaches three rows in 60 frames where a clean Play reaches two",
+      "slug": "loss-functions",
+      "state": "?theme=light&task=multi-label",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 14
+          }
+        ],
+        "click": "run",
+        "frames": 60,
+        "dt": 32
+      },
+      "px": "bec85fa3",
+      "tx": "986855a7"
+    },
+    {
+      "$note": "HIT-DRIVEN: Single-label run to the end, then the pointer on chip B at [127, 289] writes label=1 - the three chips are 42px wide on a 75px pitch at the 550 stage, centred 51.5, 126.5 and 201.5, and the target row's cells start at y 276",
+      "slug": "loss-functions",
+      "state": "?theme=light&task=single-label",
+      "drive": {
+        "before": [
+          {
+            "click": "run",
+            "frames": 200
+          }
+        ],
+        "hit": [
+          127,
+          289
+        ],
+        "frames": 4,
+        "dt": 32
+      },
+      "px": "335d25ae",
+      "tx": "67d34ff2"
+    },
+    {
+      "$note": "HIT-DRIVEN: Multi-label run to the end, then the pointer on chip D at [189, 289] toggles D from 0 to 1 - five 40px chips on a 50px pitch centred 39, 89, 139, 189 and 239, the target row at y 276",
+      "slug": "loss-functions",
+      "state": "?theme=light&task=multi-label",
+      "drive": {
+        "before": [
+          {
+            "click": "run",
+            "frames": 200
+          }
+        ],
+        "hit": [
+          189,
+          289
+        ],
+        "frames": 4,
+        "dt": 32
+      },
+      "px": "0ad8d1fa",
+      "tx": "2e3de671"
+    },
+    {
+      "$note": "HIT-DRIVEN: Binary run to the end, then the pointer on chip A at [56, 289] writes binaryLabel=0 - the two-output column's chips are the page's targets, 42px wide on an 83px pitch and centred 55.5 and 138.5 at the 550 stage, the target row's cells at y 276",
+      "slug": "loss-functions",
+      "state": "?theme=light&task=binary",
+      "drive": {
+        "before": [
+          {
+            "click": "run",
+            "frames": 200
+          }
+        ],
+        "hit": [
+          56,
+          289
+        ],
+        "frames": 4,
+        "dt": 32
+      },
+      "px": "4baa92a6",
+      "tx": "4e0153a1"
     }
   ]
 }

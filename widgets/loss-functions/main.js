@@ -1039,7 +1039,7 @@ const DRAG_KEY = {
 defineWidget({
   slug: "loss-functions",
   title: "Deep Learning - Loss Functions",
-  status: "draft",
+  status: "shipped",
   subtitle: M.STRINGS.subtitle,
   layout: "side",
   /* the column under the pointer is lit, and named in the readout (decision 6) */

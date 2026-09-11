@@ -1,16 +1,29 @@
 # Handover
 
-**FIFTY-TWO WIDGETS — 49 on the gallery, `roc-auc` UNLISTED (Kenneth's call,
-2026-08-30), ONE DRAFT: `loss-functions` (slot 54, 05-4 cells 30–40) at
-`/lab/`, committed through `05b6006` and NOT PUSHED (origin/main is at
-`0d7eff8`). Measured, mocked, picked, drafted and copy-audited on
-2026-09-11 in one session; his first round is in progress (see NEXT).
-torch 2.14 is INSTALLED on this machine since 2026-09-11. All 509 fingerprint
-states of the shipped widgets untouched; the draft owes none yet.**
+**FIFTY-TWO WIDGETS — 50 on the gallery, `roc-auc` UNLISTED (Kenneth's call,
+2026-08-30), NO DRAFT: `loss-functions` (slot 54, 05-4 cells 30–40) SHIPPED
+2026-09-11 in one day — measured, mocked three times, picked, drafted,
+copy-audited, rebuilt on two core additions he authorised, 34 fingerprint
+states STABLE over three shots twice, the full suite 540 of 543 MATCH at DPR
+1.25 fronted (the 3 DIFFERs are t-sne's light states, reproduced on the
+pre-change tree, environmental, unresolved). Pushed as a draft at `f2a9c71`
+on "tested ok, push it", then the shipped push. torch 2.14 is INSTALLED on
+this machine since 2026-09-11.**
 
 ---
 
-# NEXT: SLOT 54 `loss-functions` — IN REVIEW, NOT PUSHED
+# NEXT: SLOT 52 `training-loop` (05-4) — after slot 54 SHIPPED 2026-09-11
+
+**Slot 54 shipped.** The record below is the day it was built, kept as
+written; the catalogue's slot 54 entries carry every pick. Next is slot 52
+`training-loop` (MEASURED 2026-09-07), its Loss row linking to 54; mock
+first, as the last four widgets. **Open: the t-sne light DIFFER** (three
+states, both hashes, identical latest hashes on every run since the
+afternoon, reproduced on `6424dfe` served from a worktree; t-sne renders
+byte-identically in both trees in a tab — so the harness and the tab
+disagree about t-sne alone; find what moved before rebaselining).
+
+## Slot 54, the record of the day
 
 **Where things stand (2026-09-11, evening).** `main` is at `05b6006` plus
 this handover; `origin/main` is at `0d7eff8`, so EVERYTHING BELOW IS LOCAL.

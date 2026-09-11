@@ -12328,6 +12328,41 @@ a `text` field option rendering the row as N cells under heads, and a
 segmented option's second line, both put to him as core and both taken.
 Full fingerprint suite to be re-run after the core change.
 
+#### SHIPPED 2026-09-11
+
+Thirty-four fingerprint states, shot three times each in
+`_lab/loss-functions-shoot.html` (the composition-shoot pattern; the copy
+proved against six existing states first, one of them a hit-driven one).
+Twenty-two settled — each of the four pages at its last row and empty, each
+part way in so the pale row one step ahead is covered, each control's other
+arm (one output, the target at class 1, a `float32` index and a `long`
+multi-label target so both of torch's messages are hashed, A and C true
+instead of B and C, the binary target at A), and a typed row on all four;
+nine driven — one press on each page, and Play run to 75 / 55 / 95 / 55
+frames at 32 ms so each walk is caught between rows, plus one interrupted,
+a Multi-label step 14 frames in with Play pressed over it, which supersedes
+the step and carries its beat, so 60 frames reach three rows where a clean
+Play reaches two; three hit-driven — the target chips, the walk run to the
+end first because `regions` returns nothing before the target row lands,
+then chip B on Single-label at [127, 289], chip D on Multi-label at
+[189, 289] and chip A on Binary at [56, 289], each confirmed by dispatching
+it and reading the parameter it wrote. Every driven state differs from its
+settled sibling.
+
+The status flip matters to the hashes here: the draft bar above the heading
+made the Binary page taller than the harness's 1200px frame, so it carried
+a scrollbar and a 535px stage. As shipped the page fits, the stage is 550,
+and eight Binary `px` hashes moved — every `tx` unchanged, since the bar is
+not in the figure's text. The recorded baseline is the shipped one.
+
+The two core additions this widget paid for are in `05b6006` and were put
+to Kenneth as core before either was written: a `text` field rendered as N
+equal cells under a head row (`cells: { count, heads }`, `cellsFrom`, one
+canonical string so the URL is unchanged), and an opt-in equal-column
+checkbox run, which is what puts each y_true control under the y_pred value
+for the same class. A segmented option's second line, for the two-line task
+faces, came with them.
+
 #### The mock-up — `_lab/tensor-mock.html`, 2026-09-08, awaiting picks
 
 Five sections, each a pick: **§1** how the `[2, 2, 5]` tensor is drawn — A the

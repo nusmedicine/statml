@@ -1024,9 +1024,9 @@ const BCE = M.computeFor({
   const entry = manifest.widgets.find((w) => w.slug === "loss-functions");
 
   check("the widget is registered in the manifest", Boolean(entry));
-  check("the manifest records it as a draft", entry.status === "draft", entry.status);
-  check("and main.js declares the same", /^\s*status: "draft",$/m.test(src));
-  check("the two agree, which is what keeps it off the gallery",
+  check("the manifest records it as shipped", entry.status === "shipped", entry.status);
+  check("and main.js declares the same", /^\s*status: "shipped",$/m.test(src));
+  check("the two agree, which is what puts it on the gallery",
     entry.status === (src.match(/^\s*status: "([^"]+)",$/m) ?? [])[1]);
   check("it is arc 54 of PHM5005", entry.arc === 54 && entry.course === "PHM5005");
   check("the blurb is one sentence inside the gallery's 120-character cap",
