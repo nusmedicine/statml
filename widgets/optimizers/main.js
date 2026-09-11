@@ -1137,7 +1137,7 @@ widgetApi = defineWidget({
     { token: "empirical", label: "The path so far", mark: "line" },
     { token: "empirical", label: "The current point", mark: "dot" },
     ...(M.choreographs(params.speed)
-      ? [{ token: "slope", label: "The direction against the gradient, at a fixed length", mark: "line" }]
+      ? [{ token: "slope", label: "The negative gradient direction, at a fixed length", mark: "line" }]
       : []),
     { token: "empirical", label: "The step the rule takes, to scale", mark: "line" },
     { token: "reference", label: "The global minimum", mark: "dot" },
@@ -1303,7 +1303,7 @@ widgetApi = defineWidget({
       {
         label: "The path is",
         value: M.WHERE[whereAt(at.cur, at.gone)],
-        note: "the well it is inside, or the plain between them",
+        note: "the minimum it has settled at, if either",
       },
     ];
   },
@@ -1343,8 +1343,8 @@ function whereAt(p, gone) {
 function startDetail(s) {
   const g = Math.hypot(...M.TRENCH.grad(s.at[0], s.at[1]));
   if (s.value === "beyond") {
-    return `(${s.at[0]}, ${s.at[1]}); the local well lies between here and the global one`;
+    return `(${s.at[0]}, ${s.at[1]}); the local minimum lies between here and the global one`;
   }
-  if (s.value === "plain") return `(${s.at[0]}, ${s.at[1]}); the gradient here is ${M.n2(g)}, a long way over flat ground`;
-  return `(${s.at[0]}, ${s.at[1]}); the trench is steep across its width and shallow along its length`;
+  if (s.value === "plateau") return `(${s.at[0]}, ${s.at[1]}); on the plateau, where the gradient is ${M.n2(g)}`;
+  return `(${s.at[0]}, ${s.at[1]}); inside the global basin, a valley steep across its width and shallow along its length`;
 }

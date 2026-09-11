@@ -13573,6 +13573,8 @@ Kenneth's asks: *"for the subtitle, can write it in terms of principles..i.e. op
 
 Settled rows applied without a pick: "the step is the learning rate times the gradient" (rate spelled out); Adam's and momentum 0.9's details shortened; "falls tenfold" for the two schedulers; "the learning rate stays at the value set above" for None; Fast's "arrivals only" (a pile widget's phrase) became "the path alone"; the compare detail names optimizers, not methods; the readout note "as the scheduler has set it"; the start details "a long way over flat ground" and "steep across its width and shallow along its length"; the legend's "The current point".
 
+**Round 2 of the audit, his catch:** *"i see some non-standard terms e.g. 'lr in the rule on the card; each rung says what that rate does from Beyond the local minimum'. what is card, rung? can you check again."* The audit had checked register, mannerisms and lesson references and not the collection's OWN vocabulary, which after a day in the catalogue stops looking coined. Every quoted string was then swept for it: card → the update rule above; rung → value; well → minimum / basin; plain → plateau (start value `plain` → `plateau`, label *On the plateau*); rim of the global well → *At the edge of the global basin* (value `rim` → `edge`); trench → valley; off the frame → outside the plotted region; "the direction against the gradient" → the negative gradient direction; the readout note → "the minimum it has settled at, if either"; the place readout → *at the global minimum / at the local minimum / away from both minima*. Recorded as a standing rule in the session memory.
+
 ### Questions for Kenneth, before any mock-up
 
 1. **Six or four.** Slots 47 (`chain-rule`) and 50 (`support-layers`) are the

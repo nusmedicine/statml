@@ -123,10 +123,10 @@ const base = (over = {}) => ({ ...DEFAULTS, ...over });
   /* the plain, which is Adam's claim, and the rim, which is SGD's */
   const plain = M.STARTS[1].at;
   const g = Math.hypot(...M.TRENCH.grad(plain[0], plain[1]));
-  check("the gradient On the plain is 0.09", M.n2(g) === "0.09", M.n3(g));
+  check("the gradient On the plateau is 0.09", M.n2(g) === "0.09", M.n3(g));
   const slowSGD = M.trace(M.TRENCH, "sgd", 0.01, plain);
   const fastAdam = M.trace(M.TRENCH, "adam", 0.01, plain);
-  check("On the plain at lr 0.01 Adam gets closer than SGD",
+  check("On the plateau at lr 0.01 Adam gets closer than SGD",
     fastAdam.dG < slowSGD.dG, `Adam ${M.n2(fastAdam.dG)} against SGD ${M.n2(slowSGD.dG)}`);
 
   /* a scheduler settles a rate that cannot settle itself */
@@ -277,9 +277,9 @@ const base = (over = {}) => ({ ...DEFAULTS, ...over });
   check("a bare page starts Beyond the local minimum",
     M.startPoint(resolve("")).join() === "-3.6,0.6", M.startPoint(resolve("")).join());
   check("a named face names a point",
-    M.startPoint(resolve("start=plain")).join() === "3.5,2.5");
+    M.startPoint(resolve("start=plateau")).join() === "3.5,2.5");
   check("the fourth face is not offered until the marker is dragged",
-    optionKeys(spec.start, resolve("")).join() === "beyond,plain,rim",
+    optionKeys(spec.start, resolve("")).join() === "beyond,plateau,edge",
     optionKeys(spec.start, resolve("")).join());
 
   const dragged = resolve("x0=-2.25&y0=1.5&start=dragged");
@@ -291,7 +291,7 @@ const base = (over = {}) => ({ ...DEFAULTS, ...over });
   check("the walk begins where the marker is",
     M.computeFor(base({ start: "dragged", x0: -2.25, y0: 1.5 })).mine.xs[0] === -2.25);
 
-  const named = resolve("x0=-2.25&y0=1.5&start=plain");
+  const named = resolve("x0=-2.25&y0=1.5&start=plateau");
   check("a named face wins over a stale pair of coordinates",
     M.startPoint(named).join() === "3.5,2.5", M.startPoint(named).join());
   check("the widget clears the pair on the frame after a named face is picked",
@@ -301,8 +301,8 @@ const base = (over = {}) => ({ ...DEFAULTS, ...over });
   check("the first draw is exempt, so an authored link keeps its head start",
     /if \(settled === null\)/.test(src));
   check("the cleared pair leaves the URL",
-    toQuery(spec, { start: "plain", x0: null, y0: null }) === "start=plain",
-    toQuery(spec, { start: "plain", x0: null, y0: null }));
+    toQuery(spec, { start: "plateau", x0: null, y0: null }) === "start=plateau",
+    toQuery(spec, { start: "plateau", x0: null, y0: null }));
   check("a dragged start is a link that reproduces it (3.6)",
     toQuery(spec, { start: "dragged", x0: -2.25, y0: 1.5 })
       === "x0=-2.25&y0=1.5&start=dragged",

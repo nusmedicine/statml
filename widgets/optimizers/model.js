@@ -371,8 +371,8 @@ export const kindOf = (params) =>
 
 export const STARTS = [
   { value: "beyond", label: "Beyond the local minimum", at: [-3.6, 0.6] },
-  { value: "plain", label: "On the plain", at: [3.5, 2.5] },
-  { value: "rim", label: "At the rim of the global well", at: [0.7, 0.6] },
+  { value: "plateau", label: "On the plateau", at: [3.5, 2.5] },
+  { value: "edge", label: "At the edge of the global basin", at: [0.7, 0.6] },
 ];
 export const DRAGGED = "dragged";
 export const DRAGGED_LABEL = "Where the marker is";
@@ -579,10 +579,10 @@ export const rateText = (v) => (!Number.isFinite(v) ? "—" : v >= 1e-4 ? sig(v)
 /* ---- the copy (5.9) ------------------------------------------------------- */
 
 export const WHERE = {
-  global: "in the global well",
-  local: "in the local well",
-  plain: "on the plain",
-  gone: "off the frame",
+  global: "at the global minimum",
+  local: "at the local minimum",
+  plain: "away from both minima",
+  gone: "outside the plotted region",
 };
 
 export const STRINGS = {
@@ -617,7 +617,7 @@ export const STRINGS = {
      is five copies of one fact. Naming it here is also what keeps every rung's
      claim true in every state of the Start control (2.11): it is a statement
      about that start, whichever start the reader is on. */
-  lrDetail: "lr in the rule on the card; each rung says what that rate does from Beyond the local minimum",
+  lrDetail: "lr in the update rule above; each value's note says what that rate does from Beyond the local minimum",
   schedulerLabel: "Scheduler",
   schedulerDetail: "how the learning rate changes over the steps",
   surfaceLabel: "Surface",
@@ -634,7 +634,7 @@ export const STRINGS = {
   rateCaption: "the learning rate at each step",
   rampMiddle: "loss, log scale",
   atRest: "the gradient at this point, and the step the rule makes from it",
-  gone: "off the frame",
+  gone: "outside the plotted region",
 };
 
 export const OPTIMIZER_OPTIONS = [
@@ -696,9 +696,9 @@ export const SPEEDS = [
 export function outcomePhrase(w, plural = false) {
   const v = (one, many) => (plural ? many : one);
   if (w.reached !== null) return `${v("reaches", "reach")} the global minimum at step ${w.reached}`;
-  if (w.where === "gone") return `${v("leaves", "leave")} the frame at step ${w.gone}`;
-  if (w.where === "local") return `${v("ends", "end")} in the local well`;
-  if (w.where === "global") return `${v("ends", "end")} in the global well`;
+  if (w.where === "gone") return `${v("leaves", "leave")} the plotted region at step ${w.gone}`;
+  if (w.where === "local") return `${v("ends", "end")} at the local minimum`;
+  if (w.where === "global") return `${v("ends", "end")} at the global minimum`;
   return `${v("ends", "end")} ${n2(w.dG)} from the global minimum`;
 }
 
