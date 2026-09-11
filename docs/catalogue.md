@@ -7168,6 +7168,38 @@ by the run; the script's comment keeps both. Note for the readout: PLINK's
 P column is Wigginton's exact test, so the file's failures start at
 n·F² ≈ 19 rather than 23.9; the widget uses the χ² the lesson's prose
 writes and can say so in one line.
+
+**MOCKED 2026-09-11, `_lab/hardy-weinberg-mock.html` (`d195842`), nine
+sections each drawn from real seeded samples by the measure script's own
+functions; four defects fixed after the main session read it in the browser
+(a caption collision, a fifth panel wrapping because the shell's `.lab`
+padding names a token that does not exist, the one-population panel off the
+curve at its seed, a third rail). Two things the mock found that the plan
+had not: at the realistic gap 0.17 the deficit is 2–3px on a 150px triangle
+at EVERY n — the deficit does not grow with n, the evidence does — so a
+detail window is where the scatter is seen to shrink; and core already has
+conditional controls (`when: { param, equals | oneOf }`), so the fields a
+source does not use cost nothing to hide.**
+
+**Kenneth's picks, 2026-09-12 (eight, in two calls; every recommendation
+but one):**
+
+| § | pick |
+|---|---|
+| 0 | subtitle A, three claims: *Hardy-Weinberg equilibrium predicts the three genotype frequencies from one allele frequency. Pooling two populations or miscalling heterozygotes moves a sample off it, and the sample size decides which deviations the test finds.* |
+| 1 | **C**, the de Finetti triangle (290px) with the three genotype bars beside it, observed beside expected |
+| 2 | **four sources**: One population · Two populations pooled · Heterozygotes miscalled as homozygotes · Homozygotes miscalled as heterozygotes — the last above the curve; the pooled panel draws both subpopulations' points on the curve with the chord under it |
+| 3 | **five rungs** 100 · 323 · 1,000 · 10,000 · 50,000, **with the detail window** — a magnified region of the same triangle where the drop and the scatter are visible at small differences |
+| 4 | **core readout tiles** (allele frequency; heterozygotes observed / expected; χ²; P against the threshold) and **the threshold as three rungs** 0.05 · 10⁻³ · 10⁻⁶, default 10⁻⁶ |
+| 5 | **B, individuals arrive one at a time**: Play accumulates the sample, each arrival a tick on its bar, the observed point walking to where it settles; batches at 50,000 so a run stays under ~8 s; Draw lands it finished; Step adds one |
+| 6 | **the Many-SNPs page NOW** — his one departure: a second page, 2,000 SNPs at the chosen source and n, a histogram of the heterozygote deficit F with the threshold's F line and the count past it (the mock: 3 of 2,000 at n = 323, mean F 0.029, 64.5% on the deficit side) |
+| 7 | **rail C**: short option names two per row (One population · Two pooled · Heterozygotes miscalled · Homozygotes miscalled), the frequency difference and miscall rate on `when`, Seed below the drive row; 819px at the tallest against a ~490px stage, and the rail sets the page height |
+
+So the widget is **two pages, One SNP · Many SNPs**, on one rail (the page
+control first, the source and its fields shared, the sample size shared,
+the threshold shared; the arrival drive belongs to One SNP and Many SNPs
+lands finished on Draw — its 2,000 tests are one `compute()`). Slug
+`hardy-weinberg`, title *Hardy-Weinberg Equilibrium*. NEXT: the draft.
 - **What it would cost to cut:** slot 57 opens on three clusters with no
   account of where they came from, and the QC lesson keeps its list of
   three causes with no way to tell which. Small widget, one page, no
