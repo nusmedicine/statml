@@ -1,0 +1,1621 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · hardy-weinberg — the figure, the source, the sample size, the count</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  /* The mock shell, copied from `_lab/optimizers-mock.html` (which took it from
+     `_lab/loss-rail-mock.html`): `.lab`, `.note`, `.rec`, `table.facts`,
+     `.measure`, `.pagehead`, `.legend`, and the `.rail-host` that renders a
+     candidate rail as the real core DOM at 300px. Nothing here is a new visual
+     decision. */
+  .lab { max-width: 1240px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-6); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 96ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); max-width: 360px; min-height: 26px; white-space: pre-line; }
+  /* NOTHING AROUND A PANEL MAY DECIDE ITS COLUMN'S WIDTH — optimizers-mock's
+     rule, and the reason each row pins its column to its own canvas. The blurb
+     above a canvas and the measured line under it are both longer than the
+     canvas. */
+  #figRow > .cand { width: 550px; }
+  #sourceRow > .cand { width: 280px; }
+  /* §3's two rows hold their panels in an inner `.row`, so the rule has to name
+     the HOLD: `#nRowA > .cand` matched nothing and the widths were being set
+     from script instead, which is the same rule written where nobody reading
+     the shell can see it. The arithmetic it has to satisfy: the page is 1240px
+     wide — `--sp-6` is not a token, so the `.lab` padding shorthand the shell
+     inherits is invalid and the page has none, measured here and true of every
+     `_lab` mock that copied it — and five panels with four 16px gaps leave 1176
+     for the canvases. Row B's was 240, which is 1264 in total, and its fifth
+     panel wrapped onto a second line; at 224 the row is 1184. */
+  #nRowAHold > .cand { width: 200px; }
+  #nRowBHold > .cand { width: 224px; }
+  #arrivalA > .cand, #arrivalB > .cand { width: 330px; }
+  #snpRow > .cand, #countRow > .cand { width: 550px; }
+  #railRow > .cand { width: 300px; }
+  /* Four 300px rails are 1200px of column, and at the 16px gap the rest of the
+     page uses that is 1248 — eight past the 1240 the page has, which wraps the
+     candidate the section recommends onto a line of its own. This row alone
+     takes the 8px gap: 1224, and the four stay side by side where they can be
+     compared. */
+  #railRow { gap: var(--sp-2); }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 96ch; }
+  .measure { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--ink-3); margin: 4px 0 0; max-width: 640px; white-space: pre-line; }
+  table.facts { border-collapse: collapse; font-size: var(--fs-sm); color: var(--ink-2); margin: var(--sp-2) 0 var(--sp-3); max-width: 110ch; }
+  table.facts th, table.facts td { border: 1px solid var(--grid); padding: 3px 8px; text-align: left; vertical-align: top; }
+  table.facts th { color: var(--ink-1); font-weight: 600; background: var(--surface-2); }
+  table.facts td b { color: var(--ink-1); }
+  table.facts td.num { font-family: var(--font-mono); white-space: nowrap; }
+  .pagehead { font-size: var(--fs-xs); font-weight: 600; color: var(--c-highlight); margin: 0 0 4px;
+              text-transform: uppercase; letter-spacing: 0.04em; }
+
+  /* The page legend. Every swatch is a token, so a mark on a canvas and its
+     name in the list cannot drift apart. */
+  .legend { display: flex; flex-wrap: wrap; gap: var(--sp-2) var(--sp-4); margin: 0 0 var(--sp-4);
+            font-size: var(--fs-xs); color: var(--ink-2); }
+  .legend span { display: flex; align-items: center; gap: 6px; }
+  .sw { width: 13px; height: 13px; border-radius: 50%; flex: 0 0 auto; }
+  .sw-obs { background: var(--c-empirical); }
+  .sw-exp { background: var(--c-theory); }
+  .sw-curve { width: 18px; height: 0; border-radius: 0; border-top: 2px solid var(--c-theory); }
+  .sw-g1 { background: var(--c-group-a); }
+  .sw-g2 { background: var(--c-group-b); }
+  .sw-high { background: var(--c-highlight); }
+  .sw-extreme { background: var(--c-extreme); }
+  .sw-ref { width: 18px; height: 0; border-radius: 0; border-top: 2px solid var(--c-reference); }
+
+  /* THE RAIL AT THE REAL 300px, IN THE SHELL'S OWN SPLIT CONTEXT — verbatim
+     from optimizers-mock, including why. `.w-split` is the ancestor four of
+     tokens.css's rules are written against (the one-column `.w-controls`, the
+     drive block's divider, its column direction, the `flex: 1 1 0` that drops
+     the run button's reserved width), so a rail measured outside it is not the
+     rail that ships. */
+  .lab .rail-host { display: block; width: 300px; }
+  .lab .rail-host .w-rail { border-top: 0; padding-top: 0; margin-top: 0; }
+  .lab .rail-host > .w-controls > .w-section:first-child { margin-top: 0; }
+
+  /* The heading and the readout at the stage's own width, in core's own DOM.
+     `.lab h1` and `.w-title` are both --fs-lg, so only the margin needs
+     resetting for the candidate heading to be the shipped one. */
+  .stage-host { width: 550px; }
+  .stage-host .w-heading h1 { margin: 0; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>hardy-weinberg · the figure, the source, the sample size, the count</h1>
+
+  <p class="note">
+    Slot 56 <code>hardy-weinberg</code>, PHM5003 week 6 QC. <b>The one thing:</b> one allele frequency
+    predicts the three genotype frequencies (p², 2pq, q²), a sample that sits off that prediction has
+    fewer heterozygotes when two populations are pooled or when heterozygotes are miscalled, and the χ²
+    test sees only a deviation the sample size allows. One page, one figure.
+  </p>
+  <p class="note">
+    <b>The measurement.</b> Every number and every point on this page is computed live by the code copied
+    verbatim out of <code>_lab/hwe-measure.mjs</code> — <code>erfc</code>, <code>chi1Tail</code>,
+    <code>hweTest</code>, <code>chi1Crit</code>, <code>poolSample</code>, <code>dropoutSample</code>,
+    <code>overcallSample</code>, <code>wahlundF</code>, comments and all — drawn with the seeded
+    <code>makeRng</code> from <code>widgets/core/rng.js</code>. Nothing is drawn from a remembered number,
+    and the page cannot drift from the survey that chose these values. One function is added and marked:
+    <code>poolStream</code>, which is <code>poolSample</code>'s own loop keeping the running table after
+    each individual, for &sect;5.
+  </p>
+  <p class="note" id="engineLine"></p>
+
+  <div class="legend">
+    <span><i class="sw sw-obs"></i>the observed sample</span>
+    <span><i class="sw sw-exp"></i>the Hardy-Weinberg prediction at the sample's own allele frequency</span>
+    <span><i class="sw sw-curve"></i>the Hardy-Weinberg curve</span>
+    <span><i class="sw sw-g1"></i>population 1</span>
+    <span><i class="sw sw-g2"></i>population 2</span>
+    <span><i class="sw sw-high"></i>the arriving individual</span>
+    <span><i class="sw sw-extreme"></i>past the threshold</span>
+    <span><i class="sw sw-ref"></i>the threshold</span>
+  </div>
+
+  <h2>&sect;0 &middot; The title and the subtitle</h2>
+  <p class="note">
+    Both candidates rendered in the shell's own <code>.w-heading</code> at the stage's 550px, with the
+    character count measured against the 140&ndash;240 the recent subtitles hold (2.10).
+  </p>
+  <div class="row" id="titleRow"></div>
+  <p class="rec" id="recTitle"></p>
+
+  <h2>&sect;1 &middot; The figure</h2>
+  <p class="note">
+    All three drawn from one sample: two populations pooled, allele frequency 0.5, frequency difference
+    0.5, 323 individuals, seed 1 &mdash; the deficit the test just sees at the lesson's own sample size.
+    <b>The de Finetti triangle's one property that makes it worth the space:</b> a genotype table's
+    horizontal position <i>is</i> its allele frequency (x = f<sub>Aa</sub>/2 + f<sub>aa</sub> = q exactly),
+    so the observed point and its prediction share a vertical, and the heterozygote deficit is the length
+    of that drop.
+  </p>
+  <div class="row" id="figRow"></div>
+  <p class="rec" id="recFig"></p>
+
+  <h2>&sect;2 &middot; What produced the sample</h2>
+  <p class="note">
+    Four sources at 323 individuals, allele frequency 0.5, seed 4 &mdash; the one-population panel at
+    seed 21, the nearest seed at which its sample lands on the curve rather than on the excess seed 4
+    happens to draw there; both readings are measured under the figures. The pooled panel draws the two
+    populations' own points on the curve and the line between them: the pooled sample is the average of
+    the two tables, so it sits on that line, and the line lies under the curve. That is the whole Wahlund
+    argument in one picture, and it is the reason the deficit has nothing to do with genotyping.
+  </p>
+  <div class="row" id="sourceRow"></div>
+  <p class="rec" id="recSource"></p>
+
+  <h2>&sect;3 &middot; Sample size</h2>
+  <p class="note">
+    Two populations pooled with a frequency difference of 0.17 &mdash; the average real SNP's deficit
+    (F 0.03), not the extreme one &sect;1 draws. Five sample sizes, the same seed. <b>Row A</b> is the whole
+    triangle, drawn at each size. <b>Row B</b> is the same five as a detail of the triangle around the
+    point, one fixed window for all five, with 24 further draws behind the seeded one so the sampling
+    scatter is visible as scatter.
+  </p>
+  <div class="row" id="nRowA"></div>
+  <div class="row" id="nRowB"></div>
+  <p class="measure" id="nMeasure"></p>
+  <p class="rec" id="recN"></p>
+
+  <h2>&sect;4 &middot; The count</h2>
+  <p class="note">
+    <b>A</b> core's own readout tiles under the figure. <b>B</b> a table drawn on canvas in the layout of
+    PLINK's <code>.hwe</code> file. Both show the same two samples: the pooled one from &sect;1 and one
+    population at the same allele frequency and size.
+  </p>
+  <div class="row" id="countRow"></div>
+  <p class="note">
+    <b>And the threshold.</b> Fixed at 10<sup>&minus;6</sup>, or a three-rung choice. The table is the same
+    sample read against each of the three.
+  </p>
+  <div id="threshFacts"></div>
+  <p class="rec" id="recCount"></p>
+
+  <h2>&sect;5 &middot; The arrival</h2>
+  <p class="note">
+    <b>A</b> Draw lands the finished sample at once. <b>B</b> individuals arrive one at a time: the arriving
+    one is a tick on its own bar, the bars grow, and the observed point walks from its first position to
+    where it settles. B is drawn as three stills of one run &mdash; the same 323 individuals as &sect;1, after
+    10, 60 and 323 of them.
+  </p>
+  <div class="row" id="arrivalA"></div>
+  <div class="row" id="arrivalB"></div>
+  <p class="rec" id="recArrival"></p>
+
+  <h2>&sect;6 &middot; Many SNPs</h2>
+  <p class="note">
+    <b>A</b> one SNP, the widget as described above. <b>B</b> a second page: 2,000 SNPs drawn at the chosen
+    source and sample size, a histogram of the heterozygote deficit F, the threshold's F line, and the count
+    past it. Drawn here at two populations pooled, 323 individuals, each SNP's mean allele frequency uniform
+    on 0.1&ndash;0.9 and its frequency difference a half-normal chosen so the mean F matches the lesson file's
+    0.030.
+  </p>
+  <div class="row" id="snpRow"></div>
+  <p class="rec" id="recSnp"></p>
+
+  <h2>&sect;7 &middot; The whole rail, at 300px</h2>
+  <p class="note">
+    Core's own DOM inside a <code>.w-split</code>, measured after <code>document.fonts.ready</code>; nothing
+    under <code>widgets/core/</code> is touched by this page. <b>A</b> every field always shown. <b>B</b> the
+    frequency difference and the miscall rate carried on <code>when</code>, which
+    <code>widgets/core/controls.js</code> already supports (<code>when: { param, equals }</code>,
+    <code>oneOf</code>, <code>all</code>, <code>any</code> &mdash; documented at the top of that file), drawn
+    in its two states.
+  </p>
+  <div class="row" id="railRow"></div>
+  <p class="measure" id="tickFit"></p>
+  <p class="rec" id="recRail"></p>
+
+  <h2>&sect;8 &middot; Every reader-facing string</h2>
+  <p class="note">
+    Control labels and their <code>detail</code> lines, the four source options in both namings, the
+    readout labels, the canvas caption. A <code>detail</code> says what the control is and never what will happen to the figure;
+    no line names a lesson, a cell or a notebook.
+  </p>
+  <div id="strings"></div>
+</main>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+import { makePlot } from "../core/canvas.js";
+import { makeRng } from "../core/rng.js";
+
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+
+/* ==========================================================================
+   THE ENGINE, COPIED VERBATIM FROM `_lab/hwe-measure.mjs`, comments included:
+   they are the record of what each function models and of the two expectations
+   the run corrected. Only `poolStream` is added, at the end of the block and
+   marked, because §5 needs the running table after each individual and the
+   sampler itself must not be touched.
+   ====================================================================== */
+
+/* ---- the test ------------------------------------------------------------ */
+
+/* erfc, Numerical Recipes' Chebyshev fit, |error| < 1.2e-7 — enough for a
+   P that is read on a log scale. */
+function erfc(x) {
+  const z = Math.abs(x);
+  const t = 1 / (1 + 0.5 * z);
+  const r =
+    t *
+    Math.exp(
+      -z * z -
+        1.26551223 +
+        t *
+          (1.00002368 +
+            t *
+              (0.37409196 +
+                t *
+                  (0.09678418 +
+                    t *
+                      (-0.18628806 +
+                        t *
+                          (0.27886807 +
+                            t *
+                              (-1.13520398 +
+                                t * (1.48851587 + t * (-0.82215223 + t * 0.17087277)))))))),
+    );
+  return x >= 0 ? r : 2 - r;
+}
+
+/** Upper tail of χ² with 1 df: P(X > x) = erfc(√(x/2)). */
+const chi1Tail = (x) => erfc(Math.sqrt(x / 2));
+
+/** The lesson's test on a genotype table [AA, Aa, aa]: p from the table,
+    expected counts n·(p², 2pq, q²), χ² over the three cells, 1 df. */
+function hweTest(counts) {
+  const [aa, ab, bb] = counts;
+  const n = aa + ab + bb;
+  const p = (2 * aa + ab) / (2 * n);
+  const q = 1 - p;
+  const exp = [n * p * p, 2 * n * p * q, n * q * q];
+  let chi = 0;
+  for (let i = 0; i < 3; i += 1) if (exp[i] > 0) chi += (counts[i] - exp[i]) ** 2 / exp[i];
+  const F = exp[1] > 0 ? 1 - ab / exp[1] : 0;
+  return { n, p, chi, P: chi1Tail(chi), F, exp };
+}
+
+/* the critical χ² at the lesson's thresholds, by bisection on the tail */
+function chi1Crit(alpha) {
+  let lo = 0;
+  let hi = 100;
+  for (let i = 0; i < 60; i += 1) {
+    const mid = (lo + hi) / 2;
+    if (chi1Tail(mid) > alpha) lo = mid;
+    else hi = mid;
+  }
+  return (lo + hi) / 2;
+}
+const CRIT = { 1e-6: chi1Crit(1e-6), 1e-3: chi1Crit(1e-3), 0.05: chi1Crit(0.05) };
+
+/* ---- the samples --------------------------------------------------------- */
+
+/** n individuals drawn from k equal subpopulations, each in HWE at its own
+    allele frequency; returns the pooled genotype table. */
+function poolSample(rng, n, ps) {
+  const counts = [0, 0, 0];
+  for (let i = 0; i < n; i += 1) {
+    const p = ps[i % ps.length];
+    const g = (rng.next() < p ? 1 : 0) + (rng.next() < p ? 1 : 0); // copies of A
+    counts[2 - g] += 1; // [AA, Aa, aa]
+  }
+  return counts;
+}
+
+/** One population in HWE at p, then heterozygotes miscalled as a homozygote
+    (either one, at random) with probability e — allele dropout. */
+function dropoutSample(rng, n, p, e) {
+  const c = poolSample(rng, n, [p]);
+  let moved = 0;
+  for (let i = 0; i < c[1]; i += 1) if (rng.next() < e) moved += 1;
+  c[1] -= moved;
+  for (let i = 0; i < moved; i += 1) c[rng.next() < 0.5 ? 0 : 2] += 1;
+  return c;
+}
+
+/** One population in HWE at p, then homozygotes miscalled as heterozygotes
+    with probability e — the excess side. */
+function overcallSample(rng, n, p, e) {
+  const c = poolSample(rng, n, [p]);
+  for (const k of [0, 2]) {
+    let moved = 0;
+    for (let i = 0; i < c[k]; i += 1) if (rng.next() < e) moved += 1;
+    c[k] -= moved;
+    c[1] += moved;
+  }
+  return c;
+}
+
+/* analytic Wahlund F for equal-weight subpopulations */
+function wahlundF(ps) {
+  const pbar = ps.reduce((a, b) => a + b, 0) / ps.length;
+  const v = ps.reduce((a, b) => a + (b - pbar) ** 2, 0) / ps.length;
+  return v / (pbar * (1 - pbar));
+}
+
+/* ---- ADDED FOR THE PAGE, and only this ------------------------------------
+   `poolSample`'s own loop, keeping the running table after each individual and
+   saying which cell the individual landed in. Same rng sequence, so the k-th
+   table here is the first k individuals of exactly that sample — the walking
+   point in §5 and the finished point in §1 cannot disagree. */
+function poolStream(rng, n, ps) {
+  const counts = [0, 0, 0];
+  const frames = [];
+  for (let i = 0; i < n; i += 1) {
+    const p = ps[i % ps.length];
+    const g = (rng.next() < p ? 1 : 0) + (rng.next() < p ? 1 : 0);
+    const k = 2 - g;
+    counts[k] += 1;
+    frames.push({ counts: [counts[0], counts[1], counts[2]], at: k });
+  }
+  return frames;
+}
+
+/* ==========================================================================
+   The widget's candidate parameters, and one place that turns them into a
+   sample. Every panel on this page calls `drawSample`, so no panel can be
+   drawn from a source this page does not offer.
+   ====================================================================== */
+
+const SOURCES = [
+  { key: "one", label: "One population",
+    detail: "every individual drawn from a single population at the allele frequency below" },
+  { key: "pooled", label: "Two populations pooled",
+    detail: "half the individuals from each of two populations, their allele frequencies a fixed distance apart" },
+  { key: "dropout", label: "Heterozygotes miscalled as homozygotes",
+    detail: "each heterozygote is called AA or aa with the miscall rate below" },
+  { key: "overcall", label: "Homozygotes miscalled as heterozygotes",
+    detail: "each homozygote is called Aa with the miscall rate below" },
+];
+const SOURCE_LABEL = Object.fromEntries(SOURCES.map((s) => [s.key, s.label]));
+
+/* THE SAME FOUR OPTIONS, NAMED SHORT ENOUGH TO SHARE A ROW — §7's candidate C,
+   and §8 carries them beside the long ones. Core's `w-seg-grid` is two columns,
+   so at a 300px rail each option has about 137px of face; the names above are
+   half again that long, which is why A and B mark every option `span: true` and
+   spend four rail rows on one control. Nothing is lost by the trim: what the
+   source DOES stays in the detail line, which is unchanged — the name says
+   which of the four, the line says what it does to the genotypes. */
+const SHORT_LABELS = {
+  one: "One population",
+  pooled: "Two pooled",
+  dropout: "Heterozygotes miscalled",
+  overcall: "Homozygotes miscalled",
+};
+const SHORT_SOURCES = SOURCES.map((s) => ({ ...s, label: SHORT_LABELS[s.key] }));
+
+const N_RUNGS = [100, 323, 1000, 10000, 50000];
+const THRESHOLDS = [0.05, 1e-3, 1e-6];
+const THRESH_LABEL = { 0.05: "0.05", 0.001: "10⁻³", 0.000001: "10⁻⁶" };
+
+function drawFrom(rng, source, { p = 0.5, gap = 0.5, error = 0.3, n = 323 }) {
+  if (source === "pooled") return poolSample(rng, n, [p - gap / 2, p + gap / 2]);
+  if (source === "dropout") return dropoutSample(rng, n, p, error);
+  if (source === "overcall") return overcallSample(rng, n, p, error);
+  return poolSample(rng, n, [p]);
+}
+/** One sample at one seed: the whole state a panel is drawn from. */
+function drawSample(source, cfg, seed) {
+  return drawFrom(makeRng(seed), source, cfg);
+}
+/** The two subpopulations' allele frequencies, for the pooled panel's marks. */
+const subFreqs = ({ p, gap }) => [p - gap / 2, p + gap / 2];
+
+/* ==========================================================================
+   Drawing. Every colour is a token read through `readTokens`, every font size
+   is --fs-xs or --fs-sm from the same place.
+   ====================================================================== */
+
+const S3 = Math.sqrt(3);
+
+const el = (tag, cls, text) => {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text != null) e.textContent = text;
+  return e;
+};
+const fmt = (v, d = 2) => (Number.isFinite(v) ? v.toFixed(d) : "-");
+const int = (v) => Math.round(v).toLocaleString("en-US");
+/** A P as the reader would see it: four decimals until it needs an exponent. */
+const pfmt = (P) => (P < 1e-4 ? P.toExponential(1) : P.toFixed(4));
+const probe = document.createElement("canvas").getContext("2d");
+
+/** The width one string takes in one font, off-screen. */
+function textW(s, font) {
+  probe.font = font;
+  return probe.measureText(s).width;
+}
+
+/** Shorten a string to fit `maxW` in `font`, ending in an ellipsis. Captions
+    are measured, never clipped. */
+function fit(s, font, maxW) {
+  probe.font = font;
+  if (probe.measureText(s).width <= maxW) return s;
+  let out = s;
+  while (out.length > 1 && probe.measureText(out + "…").width > maxW) out = out.slice(0, -1);
+  return out.trimEnd() + "…";
+}
+const capFont = () => `600 ${T.fsSm} ${T.font}`;
+const noteFont = () => `${T.fsXs} ${T.font}`;
+
+function canvasIn(parent, w, h) {
+  const cv = document.createElement("canvas");
+  cv.width = Math.round(w * DPR); cv.height = Math.round(h * DPR);
+  cv.style.width = `${w}px`; cv.style.height = `${h}px`;
+  parent.appendChild(cv);
+  const ctx = cv.getContext("2d");
+  ctx.scale(DPR, DPR);
+  ctx.fillStyle = T.surface; ctx.fillRect(0, 0, w, h);
+  return ctx;
+}
+function cand(parent, title, sub) {
+  const c = el("div", "cand");
+  if (title) c.appendChild(el("h3", null, title));
+  if (sub != null) c.appendChild(el("p", "sub", sub));
+  parent.appendChild(c);
+  return c;
+}
+
+/* A triangle's caption cannot use `plot.caption`: that draws 8px above the plot
+   area, which on this figure is exactly where the apex label "Aa" sits. The
+   caption goes a row higher, and the note with it. */
+function capAt(ctx, x, y, text, max) {
+  ctx.save();
+  ctx.font = capFont();
+  ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+  const s = fit(text, capFont(), max);
+  ctx.strokeStyle = T.surface; ctx.lineWidth = 3; ctx.strokeText(s, x, y);
+  ctx.fillStyle = T.ink2; ctx.fillText(s, x, y);
+  ctx.restore();
+  return textW(s, capFont()); // what it actually drew, for the note beside it
+}
+function noteAt(ctx, xRight, y, text, max, tone) {
+  ctx.save();
+  ctx.font = noteFont();
+  ctx.textAlign = "right"; ctx.textBaseline = "alphabetic";
+  const s = fit(text, noteFont(), max);
+  ctx.strokeStyle = T.surface; ctx.lineWidth = 3; ctx.strokeText(s, xRight, y);
+  ctx.fillStyle = tone ?? T.ink2; ctx.fillText(s, xRight, y);
+  ctx.restore();
+}
+
+/**
+ * The de Finetti map. A genotype table [AA, Aa, aa] is one point of the
+ * triangle: AA at the left corner, Aa at the apex, aa at the right corner.
+ * The x coordinate is f(Aa)/2 + f(aa), which is the allele frequency q
+ * exactly — so the observed point and the prediction at its own frequency are
+ * on one vertical and the deficit is the length of the drop between them.
+ */
+function uv(counts) {
+  const n = counts[0] + counts[1] + counts[2];
+  if (!n) return [0.5, 0];
+  const f = [counts[0] / n, counts[1] / n, counts[2] / n];
+  return [f[1] / 2 + f[2], (f[1] * S3) / 2];
+}
+/** The curve itself: the HWE table at allele frequency p, as a triangle point. */
+const curvePoint = (p) => [1 - p, (S3 / 2) * 2 * p * (1 - p)];
+const CURVE = Array.from({ length: 161 }, (_, i) => curvePoint(i / 160));
+
+/**
+ * One de Finetti triangle. `box` is { x, y, side } — the triangle's own
+ * bounding box, so every panel's geometry is stated in one number.
+ */
+function drawTri(ctx, box, {
+  counts = null, subs = null, trail = null, drop = true,
+  caption = null, capX = null, capMax = null, note = null, noteTone = null,
+  corners = true, curveLabel = false,
+} = {}) {
+  const rect = { x: box.x, y: box.y, w: box.side, h: (box.side * S3) / 2 };
+  const plot = makePlot({ ctx, colors: T, rect, xDomain: [0, 1], yDomain: [0, S3 / 2] });
+  /* The caption starts at the triangle's left edge and may run past its right
+     one: a 196px triangle under "Heterozygotes miscalled as homozygotes" would
+     otherwise ellipsise the source's own name. `capX` and `capMax` are the
+     PANEL's left edge and width, not the plot area's. */
+  const capLeft = capX ?? rect.x;
+  const capW = caption ? capAt(ctx, capLeft, rect.y - 22, caption, capMax ?? rect.w + 30) : 0;
+  if (note) {
+    /* THE CAPTION AND THE NOTE SHARE A ROW ONLY WHEN THEY BOTH FIT ON IT.
+       At §1C's 290px triangle "323 individuals, two populations pooled" and
+       "allele frequency 0.52" ran into one another and printed as one word.
+       Both are measured; when the caption plus a 12px gap reaches where the
+       note would start, the note drops to the row just above the apex — which
+       is OUTSIDE the triangle (the apex is at the top of the plot area), so the
+       only thing on that row is the centred "Aa", and the note is held clear of
+       it by half the width. */
+    const right = rect.x + rect.w;
+    const wide = rect.w * 0.5;
+    const room = right - (capLeft + capW) - 12;
+    if (textW(note, noteFont()) <= Math.min(room, wide)) {
+      noteAt(ctx, right, rect.y - 22, note, wide, noteTone);
+    } else {
+      noteAt(ctx, right, rect.y - 7, note, wide - 12, noteTone);
+    }
+  }
+
+  /* the three edges, in the recessive grid ink: they are the frame of the
+     figure, not a mark in it */
+  ctx.save();
+  ctx.strokeStyle = T.grid; ctx.lineWidth = 1; ctx.lineJoin = "round";
+  ctx.beginPath();
+  ctx.moveTo(plot.sx(0), plot.sy(0));
+  ctx.lineTo(plot.sx(1), plot.sy(0));
+  ctx.lineTo(plot.sx(0.5), plot.sy(S3 / 2));
+  ctx.closePath();
+  ctx.stroke();
+  ctx.restore();
+
+  plot.curve(CURVE, { stroke: T.theory, width: 2 });
+  if (curveLabel) {
+    /* On the curve's left shoulder, inside the frame: at q = 0.23 the left edge
+       is at height 0.398 in triangle units and the curve at 0.307, so a line of
+       text 14px above the curve still clears the edge on every panel that asks
+       for it. */
+    const [lx, ly] = curvePoint(0.77);
+    ctx.save();
+    ctx.font = noteFont(); ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+    ctx.strokeStyle = T.surface; ctx.lineWidth = 3;
+    ctx.strokeText("Hardy-Weinberg", plot.sx(lx) + 4, plot.sy(ly) - 8);
+    ctx.fillStyle = T.theory;
+    ctx.fillText("Hardy-Weinberg", plot.sx(lx) + 4, plot.sy(ly) - 8);
+    ctx.restore();
+  }
+
+  if (subs) {
+    /* The pooled sample is the average of the two populations' tables, so it
+       lies on the segment between their two points — and that segment lies
+       under the curve. The line is drawn first, so the points sit over it. */
+    const a = curvePoint(subs[0]);
+    const b = curvePoint(subs[1]);
+    plot.curve([a, b], { stroke: T.ink3, width: 1, dash: [4, 3] });
+    plot.dot(a[0], a[1], { fill: T.groupA, r: 4 });
+    plot.dot(b[0], b[1], { fill: T.groupB, r: 4 });
+  }
+
+  if (trail && trail.length > 1) {
+    plot.curve(trail, { stroke: T.empirical, width: 1.2, opacity: 0.45 });
+  }
+
+  if (counts && counts[0] + counts[1] + counts[2] > 0) {
+    const t = hweTest(counts);
+    const [ux, uy] = uv(counts);
+    const [, uyExp] = curvePoint(t.p);
+    if (drop) {
+      ctx.save();
+      ctx.strokeStyle = T.ink3; ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(plot.sx(ux), plot.sy(uy));
+      ctx.lineTo(plot.sx(ux), plot.sy(uyExp));
+      ctx.stroke();
+      ctx.restore();
+      plot.dot(ux, uyExp, { fill: T.theory, r: 4 });
+    }
+    plot.dot(ux, uy, { fill: T.empirical, r: 5 });
+  }
+
+  if (corners) {
+    ctx.save();
+    ctx.font = noteFont();
+    ctx.fillStyle = T.ink2;
+    ctx.textAlign = "center"; ctx.textBaseline = "top";
+    ctx.fillText("AA", plot.sx(0), plot.sy(0) + 7);
+    ctx.fillText("aa", plot.sx(1), plot.sy(0) + 7);
+    ctx.textBaseline = "alphabetic";
+    ctx.fillText("Aa", plot.sx(0.5), plot.sy(S3 / 2) - 7);
+    ctx.restore();
+  }
+  return plot;
+}
+
+/**
+ * The three genotypes as bars, observed beside expected. Six bands over
+ * [0, 6]: the observed bar of each genotype and then its prediction, so the
+ * pair the reader is asked to compare is the pair that touches (2.7).
+ */
+function drawBars(ctx, rect, counts, {
+  caption = null, note = null, noteTone = null, highlightAt = null, axisLabel = true,
+} = {}) {
+  const t = hweTest(counts);
+  const top = Math.max(1, ...counts, ...t.exp) * 1.15;
+  const plot = makePlot({ ctx, colors: T, rect, xDomain: [0, 6], yDomain: [0, top] });
+  if (caption) plot.caption(fit(caption, capFont(), rect.w * 0.8));
+  if (note) plot.note(fit(note, noteFont(), rect.w * 0.45), { tone: noteTone });
+  plot.bars([counts[0], 0, counts[1], 0, counts[2], 0], { lo: 0, width: 1, fill: T.empirical });
+  plot.bars([0, t.exp[0], 0, t.exp[1], 0, t.exp[2]], { lo: 0, width: 1, fill: T.theory });
+
+  if (highlightAt != null) {
+    /* The arriving individual, on the bar it landed on. One individual is under
+       a pixel tall at 323, so the tick is 3px: it marks WHERE the arrival
+       landed, and the bar's own height is what counts it. */
+    const band = rect.w / 6;
+    const bw = Math.max(1, Math.min(24, band - 2));
+    const bx = plot.sx(highlightAt * 2) + (band - bw) / 2;
+    const ty = plot.sy(counts[highlightAt]);
+    ctx.save();
+    ctx.fillStyle = T.highlight;
+    ctx.fillRect(bx, ty, bw, 3);
+    ctx.restore();
+  }
+
+  plot.axisX({ ticks: [1, 3, 5], format: (v) => ["AA", "Aa", "aa"][(v - 1) / 2] });
+  plot.axisY({ label: axisLabel ? "individuals" : undefined });
+  return plot;
+}
+
+/* ==========================================================================
+   §0 · the title and the subtitle
+   ====================================================================== */
+
+const TITLE = "Hardy-Weinberg Equilibrium";
+const SUBTITLES = [
+  { key: "A", claims: "three claims",
+    text: "Hardy-Weinberg equilibrium predicts the three genotype frequencies from one allele "
+    + "frequency. Pooling two populations or miscalling heterozygotes moves a sample off it, and the "
+    + "sample size decides which deviations the test finds." },
+  { key: "B", claims: "two claims",
+    text: "One allele frequency predicts the three genotype frequencies. Pooled populations and "
+    + "miscalled genotypes both leave a sample with fewer heterozygotes than predicted." },
+];
+{
+  const row = document.getElementById("titleRow");
+  for (const s of SUBTITLES) {
+    const box = el("div", "cand");
+    box.style.width = "550px";
+    box.appendChild(el("p", "pagehead", `${s.key} · ${s.claims}`));
+    const host = el("div", "stage-host");
+    const heading = el("div", "w-heading");
+    heading.appendChild(el("h1", "w-title", TITLE));
+    heading.appendChild(el("p", "w-subtitle", s.text));
+    host.appendChild(heading);
+    box.appendChild(host);
+    box.appendChild(el("p", "measure", `${s.text.length} characters · ${s.text.split(/(?<=\.)\s+/).length} sentences`));
+    row.appendChild(box);
+  }
+}
+
+/* ==========================================================================
+   §1 · the figure
+   ====================================================================== */
+
+const FIG = { p: 0.5, gap: 0.5, error: 0.3, n: 323 };
+const FIG_SEED = 1;
+const FIG_COUNTS = drawSample("pooled", FIG, FIG_SEED);
+const FIG_TEST = hweTest(FIG_COUNTS);
+
+const tableText = (c) => `${c[0]} / ${c[1]} / ${c[2]}`;
+const countLine = (c) => {
+  const t = hweTest(c);
+  return `AA/Aa/aa ${tableText(c)} · expected ${t.exp.map((v) => fmt(v, 1)).join(" / ")}`
+    + ` · χ² ${fmt(t.chi, 2)} · P ${pfmt(t.P)} · F ${fmt(t.F, 3)}`;
+};
+
+{
+  const row = document.getElementById("figRow");
+  const sub = "two populations pooled · allele frequency 0.5 · frequency difference 0.5\n323 individuals · seed 1";
+
+  {
+    const box = cand(row, "A · the de Finetti triangle alone", sub);
+    const ctx = canvasIn(box, 550, 420);
+    drawTri(ctx, { x: 85, y: 44, side: 380 }, {
+      counts: FIG_COUNTS, subs: subFreqs(FIG), curveLabel: true,
+      caption: "323 individuals, two populations pooled",
+      note: `allele frequency ${fmt(FIG_TEST.p)}`,
+    });
+    box.appendChild(el("p", "measure", countLine(FIG_COUNTS)));
+  }
+  {
+    const box = cand(row, "B · the three genotypes as bars", sub);
+    const ctx = canvasIn(box, 550, 340);
+    drawBars(ctx, { x: 70, y: 46, w: 430, h: 240 }, FIG_COUNTS, {
+      caption: "323 individuals, two populations pooled",
+      note: `χ² ${fmt(FIG_TEST.chi, 1)} · P ${pfmt(FIG_TEST.P)}`,
+    });
+    box.appendChild(el("p", "measure", countLine(FIG_COUNTS)));
+  }
+  {
+    const box = cand(row, "C · both, the triangle and the bars", sub);
+    const ctx = canvasIn(box, 550, 400);
+    drawTri(ctx, { x: 30, y: 44, side: 290 }, {
+      counts: FIG_COUNTS, subs: subFreqs(FIG), curveLabel: true,
+      caption: "323 individuals, two populations pooled",
+      note: `allele frequency ${fmt(FIG_TEST.p)}`,
+    });
+    drawBars(ctx, { x: 400, y: 44, w: 132, h: 247 }, FIG_COUNTS, {
+      caption: "counts",
+      note: `χ² ${fmt(FIG_TEST.chi, 1)}`,
+    });
+    box.appendChild(el("p", "measure", countLine(FIG_COUNTS)));
+  }
+}
+
+/* ==========================================================================
+   §2 · what produced the sample
+   ====================================================================== */
+
+const SRC_CFG = { p: 0.5, gap: 0.5, error: 0.3, n: 323 };
+const SRC_SEED = 4;
+/* THE ONE-POPULATION PANEL IS DRAWN AT ITS OWN SEED, and that is the only
+   departure. At seed 4 it lands 0.073 ABOVE the curve — a heterozygote excess
+   large enough to read as one, on the panel whose whole job is to show what a
+   sample in equilibrium looks like. Seeds 1–200 were searched for |F| < 0.015:
+   33 of them qualify, seed 32 is the flattest at F 0.0006, and seed 21 is the
+   one taken because it also keeps the sample's own allele frequency at the
+   control's 0.50 (0.503, against 0.525 at seed 32). Each panel makes its own
+   `makeRng`, so the other three are the same draws as before. */
+const SRC_SEEDS = { one: 21, pooled: SRC_SEED, dropout: SRC_SEED, overcall: SRC_SEED };
+const srcSeed = (key) => SRC_SEEDS[key] ?? SRC_SEED;
+{
+  const row = document.getElementById("sourceRow");
+  for (const s of SOURCES) {
+    const bits = [`allele frequency 0.5 · 323 individuals · seed ${srcSeed(s.key)}`];
+    if (s.key === "pooled") bits.push("frequency difference 0.5");
+    if (s.key === "dropout" || s.key === "overcall") bits.push("miscall rate 0.3");
+    const box = cand(row, s.label, bits.join("\n"));
+    const ctx = canvasIn(box, 280, 240);
+    const counts = drawSample(s.key, SRC_CFG, srcSeed(s.key));
+    const t = hweTest(counts);
+    drawTri(ctx, { x: 42, y: 40, side: 196 }, {
+      counts,
+      subs: s.key === "pooled" ? subFreqs(SRC_CFG) : null,
+      /* The caption takes the whole 280px line: at 196px of triangle the two
+         miscall names do not fit over it, and the name is the panel. F moves to
+         the measured line under the canvas rather than sharing this one. */
+      caption: s.label, capX: 10, capMax: 262,
+    });
+    box.appendChild(el("p", "measure",
+      `AA/Aa/aa ${tableText(counts)}\nχ² ${fmt(t.chi, 1)} · P ${pfmt(t.P)} · F ${fmt(t.F, 3)}`));
+  }
+}
+
+/* ==========================================================================
+   §3 · sample size
+   ====================================================================== */
+
+const N_CFG = { p: 0.5, gap: 0.17, error: 0.3 };
+/* Seed 15 rather than the first one tried: at seed 7 the 1,000-individual draw
+   landed on the EXCESS side by sampling alone — true, and a distraction in a
+   row whose subject is the deficit emerging from the noise. The 24 draws behind
+   it are where that honesty belongs, and they are all still drawn. */
+const N_SEED = 15;
+const N_SAMPLES = N_RUNGS.map((n) => drawSample("pooled", { ...N_CFG, n }, N_SEED));
+
+{
+  const rowA = document.getElementById("nRowA");
+  rowA.appendChild(el("p", "pagehead", "A · the whole triangle at each size"));
+  const holdA = el("div", "row");
+  holdA.id = "nRowAHold";
+  rowA.appendChild(holdA);
+  N_RUNGS.forEach((n, i) => {
+    const box = cand(holdA, `${int(n)} individuals`, "pooled · difference 0.17\nseed 15");
+    const ctx = canvasIn(box, 200, 192);
+    const counts = N_SAMPLES[i];
+    const t = hweTest(counts);
+    drawTri(ctx, { x: 25, y: 34, side: 150 }, {
+      counts, caption: int(n), note: `F ${fmt(t.F, 2)}`,
+      noteTone: t.P < 1e-6 ? T.extreme : null,
+    });
+    box.appendChild(el("p", "measure", `χ² ${fmt(t.chi, 1)}\nP ${pfmt(t.P)}`));
+  });
+}
+
+/* Row B: a detail of the same triangle around the point, one fixed window for
+   all five. The window is stated in triangle coordinates, so it is a magnified
+   region of row A's figure and not a second kind of plot. */
+const ZOOM = { q: [0.39, 0.61], het: [0.39, 0.61] };
+const ZOOM_REPS = 24;
+/* The panel and its plot area in one place, because the measured line under the
+   row reads the drop in pixels off the same numbers the canvas is drawn from.
+   224px of panel is what lets five of them share the page's own text column —
+   the shell's `#nRowBHold` rule carries that arithmetic — and the plot area
+   keeps the window ISOTROPIC: 164px across 0.22 of allele frequency is 745px
+   per unit, and 142px across the same 0.22 of triangle height (0.1905 in
+   triangle units) is 745 as well. A detail panel that stretched one axis would
+   be a second kind of plot rather than a magnified region of row A's figure. */
+const ZOOM_PANEL = { w: 224, h: 220 };
+const ZOOM_RECT = { x: 48, y: 34, w: 164, h: 142 };
+{
+  const rowB = document.getElementById("nRowB");
+  rowB.appendChild(el("p", "pagehead",
+    "B · a detail of the same triangle, one window for all five, 24 further draws behind the seeded one"));
+  const holdB = el("div", "row");
+  holdB.id = "nRowBHold";
+  rowB.appendChild(holdB);
+  const yDom = [(S3 / 2) * ZOOM.het[0], (S3 / 2) * ZOOM.het[1]];
+  N_RUNGS.forEach((n, i) => {
+    const box = cand(holdB, `${int(n)} individuals`, "pooled · difference 0.17\nseeds 15, 100…123");
+    const ctx = canvasIn(box, ZOOM_PANEL.w, ZOOM_PANEL.h);
+    const rect = ZOOM_RECT;
+    const plot = makePlot({ ctx, colors: T, rect, xDomain: ZOOM.q, yDomain: yDom });
+    plot.caption(fit(int(n), capFont(), rect.w * 0.5));
+
+    ctx.save();
+    ctx.beginPath(); ctx.rect(rect.x, rect.y, rect.w, rect.h); ctx.clip();
+    plot.curve(CURVE, { stroke: T.theory, width: 2 });
+    /* The repeat draws first and quiet, the seeded one over them: the cloud is
+       the sampling scatter and the solid point is the sample the controls name. */
+    for (let r = 0; r < ZOOM_REPS; r += 1) {
+      const c = drawSample("pooled", { ...N_CFG, n }, 100 + r);
+      const [ux, uy] = uv(c);
+      plot.dot(ux, uy, { fill: T.empirical, r: 2.4 });
+    }
+    const counts = N_SAMPLES[i];
+    const t = hweTest(counts);
+    const [ux, uy] = uv(counts);
+    const [, uyExp] = curvePoint(t.p);
+    ctx.strokeStyle = T.ink3; ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(plot.sx(ux), plot.sy(uy));
+    ctx.lineTo(plot.sx(ux), plot.sy(uyExp));
+    ctx.stroke();
+    plot.dot(ux, uyExp, { fill: T.theory, r: 4 });
+    plot.dot(ux, uy, { fill: T.empirical, r: 5 });
+    ctx.restore();
+
+    ctx.strokeStyle = T.grid; ctx.lineWidth = 1;
+    ctx.strokeRect(rect.x + 0.5, rect.y + 0.5, rect.w - 1, rect.h - 1);
+    plot.axisX({ ticks: [0.4, 0.5, 0.6], format: (v) => fmt(v, 1), label: "allele frequency" });
+    plot.axisY({
+      ticks: [0.4, 0.45, 0.5, 0.55, 0.6].map((h) => (S3 / 2) * h),
+      format: (v) => fmt((v * 2) / S3, 2),
+      label: "heterozygotes",
+    });
+    box.appendChild(el("p", "measure", `χ² ${fmt(t.chi, 1)} · P ${pfmt(t.P)}\nF ${fmt(t.F, 3)}`));
+  });
+}
+
+/* ==========================================================================
+   §4 · the count
+   ====================================================================== */
+
+const ONE_COUNTS = drawSample("one", { ...FIG, gap: 0 }, FIG_SEED);
+
+function readoutFor(host, counts, alpha, caption) {
+  const t = hweTest(counts);
+  const box = el("div", "w-readout");
+  const tiles = [
+    { label: "Allele frequency", value: fmt(t.p), note: "of A in the sample" },
+    { label: "Heterozygotes", value: `${counts[1]} / ${fmt(t.exp[1], 1)}`, note: "observed / expected" },
+    { label: "χ²", value: fmt(t.chi, 2), note: "1 degree of freedom" },
+    { label: "P", value: pfmt(t.P), note: `threshold ${THRESH_LABEL[alpha]}`,
+      tone: t.P < alpha ? "var(--c-extreme)" : null },
+  ];
+  for (const tile of tiles) {
+    const w = el("div");
+    w.appendChild(el("span", "w-stat-label", tile.label));
+    const v = el("span", "w-stat-value", tile.value);
+    if (tile.tone) v.style.color = tile.tone;
+    w.appendChild(v);
+    if (tile.note) w.appendChild(el("span", "w-stat-note", tile.note));
+    box.appendChild(w);
+  }
+  const wrap = el("div", "stage-host");
+  wrap.appendChild(el("p", "measure", caption));
+  wrap.appendChild(box);
+  host.appendChild(wrap);
+  return box;
+}
+
+{
+  const row = document.getElementById("countRow");
+  {
+    const box = cand(row, "A · core's readout tiles",
+      "the §1 sample above, then one population at the same frequency and size");
+    readoutFor(box, FIG_COUNTS, 1e-6, "two populations pooled, difference 0.5, 323 individuals");
+    readoutFor(box, ONE_COUNTS, 1e-6, "one population, 323 individuals");
+    box.appendChild(el("p", "measure",
+      `pooled: ${countLine(FIG_COUNTS)}\none population: ${countLine(ONE_COUNTS)}`));
+  }
+  {
+    const box = cand(row, "B · the table PLINK writes",
+      "the same two samples in the layout of a .hwe file");
+    const ctx = canvasIn(box, 550, 170);
+    const cols = [
+      { head: "SOURCE", w: 200, align: "left" },
+      { head: "GENO", w: 110, align: "left" },
+      { head: "O(HET)", w: 66, align: "right" },
+      { head: "E(HET)", w: 66, align: "right" },
+      { head: "P", w: 68, align: "right" },
+    ];
+    const rows = [
+      ["Two populations pooled", FIG_COUNTS],
+      ["One population", ONE_COUNTS],
+    ];
+    ctx.save();
+    capAt(ctx, 20, 26, "The same counts as a table", 400);
+    let y = 56;
+    ctx.font = noteFont();
+    ctx.textBaseline = "alphabetic";
+    let x = 20;
+    for (const c of cols) {
+      ctx.fillStyle = T.ink3;
+      ctx.textAlign = c.align;
+      ctx.fillText(c.head, c.align === "right" ? x + c.w : x, y);
+      x += c.w;
+    }
+    ctx.strokeStyle = T.grid; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(20, y + 6.5); ctx.lineTo(530, y + 6.5); ctx.stroke();
+    y += 26;
+    for (const [name, counts] of rows) {
+      const t = hweTest(counts);
+      const cells = [name, tableText(counts), String(counts[1]), fmt(t.exp[1], 1), pfmt(t.P)];
+      x = 20;
+      cells.forEach((cell, i) => {
+        const c = cols[i];
+        ctx.textAlign = c.align;
+        ctx.fillStyle = i === 4 && t.P < 1e-6 ? T.extreme : T.ink1;
+        ctx.font = i === 0 ? noteFont() : `${T.fsXs} ${T.mono}`;
+        ctx.fillText(cell, c.align === "right" ? x + c.w : x, y);
+        x += c.w;
+      });
+      y += 24;
+    }
+    ctx.fillStyle = T.ink3;
+    ctx.font = noteFont();
+    ctx.textAlign = "left";
+    ctx.fillText("P is the χ² tail on 1 degree of freedom", 20, y + 8);
+    ctx.restore();
+    box.appendChild(el("p", "measure",
+      "the .hwe columns dropped here: SNP, TEST, A1, A2 — one SNP, one test, one pair of alleles"));
+  }
+}
+
+{
+  /* the threshold, as the same sample read three ways */
+  const host = document.getElementById("threshFacts");
+  const tb = el("table", "facts");
+  const head = el("tr");
+  for (const h of ["threshold", "critical χ²", "the F it needs at 323", "the §1 sample",
+    "one population", "§3's 10,000, difference 0.17"]) {
+    head.appendChild(el("th", null, h));
+  }
+  tb.appendChild(head);
+  const tPool = hweTest(FIG_COUNTS);
+  const tOne = hweTest(ONE_COUNTS);
+  const tBig = hweTest(N_SAMPLES[3]);
+  const verdict = (t, a) => (t.P < a ? "past the threshold" : "not past it");
+  for (const a of THRESHOLDS) {
+    const tr = el("tr");
+    tr.appendChild(el("td", null, THRESH_LABEL[a]));
+    tr.appendChild(el("td", "num", fmt(CRIT[a], 2)));
+    tr.appendChild(el("td", "num", fmt(Math.sqrt(CRIT[a] / 323), 3)));
+    for (const t of [tPool, tOne, tBig]) tr.appendChild(el("td", null, verdict(t, a)));
+    tb.appendChild(tr);
+  }
+  host.appendChild(el("p", "measure",
+    `the §1 sample P ${pfmt(tPool.P)} · one population P ${pfmt(tOne.P)} · `
+    + `§3's 10,000-individual sample P ${pfmt(tBig.P)}`));
+  host.appendChild(tb);
+}
+
+/* ==========================================================================
+   §5 · the arrival
+   ====================================================================== */
+
+const FRAMES = poolStream(makeRng(FIG_SEED), FIG.n, subFreqs(FIG));
+/* The stream is poolSample's own loop, so the last frame must be the §1 table.
+   Printed rather than asserted: a mock states its numbers and lets the reader
+   check them. */
+const STREAM_OK = FRAMES.at(-1).counts.every((v, i) => v === FIG_COUNTS[i]);
+
+function drawStill(box, k, { trail }) {
+  const ctx = canvasIn(box, 330, 236);
+  const f = FRAMES[k - 1];
+  const path = [];
+  if (trail) {
+    for (let i = 2; i < k; i += 1) path.push(uv(FRAMES[i].counts));
+  }
+  const t = hweTest(f.counts);
+  drawTri(ctx, { x: 20, y: 40, side: 176 }, {
+    counts: f.counts, trail: path.length > 1 ? path : null,
+    caption: `${k} of 323`,
+    note: `F ${fmt(t.F, 2)}`,
+    drop: true,
+  });
+  drawBars(ctx, { x: 252, y: 40, w: 62, h: 152 }, f.counts, {
+    caption: "counts", axisLabel: false, highlightAt: trail ? f.at : null,
+  });
+  box.appendChild(el("p", "measure",
+    `AA/Aa/aa ${tableText(f.counts)} · χ² ${fmt(t.chi, 1)}\nP ${pfmt(t.P)} · F ${fmt(t.F, 3)}`));
+}
+
+{
+  const rowA = document.getElementById("arrivalA");
+  rowA.appendChild(el("p", "pagehead", "A · Draw lands the finished sample at once"));
+  const holdA = el("div", "row");
+  rowA.appendChild(holdA);
+  const box = cand(holdA, "after Draw", "two populations pooled · 323 individuals · seed 1");
+  box.style.width = "330px";
+  drawStill(box, 323, { trail: false });
+
+  const rowB = document.getElementById("arrivalB");
+  rowB.appendChild(el("p", "pagehead", "B · individuals arrive one at a time — three stills of one run"));
+  const holdB = el("div", "row");
+  rowB.appendChild(holdB);
+  for (const k of [10, 60, 323]) {
+    const b = cand(holdB, `after ${k}`, "the point's path since the third individual\nthe arriving individual on its own bar");
+    b.style.width = "330px";
+    drawStill(b, k, { trail: true });
+  }
+}
+
+/* ==========================================================================
+   §6 · many SNPs
+   ====================================================================== */
+
+const SNP_N = 323;
+const SNP_M = 2000;
+/* The frequency difference per SNP is a half-normal with SD 0.173, which puts
+   the mean F at the lesson file's own 0.030: F = (Δ/2)² / p̄q̄, so E[F] at
+   p̄ = 0.5 is E[Δ²] = 0.03. The mean allele frequency is uniform on 0.1–0.9 and
+   the two populations are clamped into [0.02, 0.98]. */
+const SNP_SD = 0.155;
+const SNP = (() => {
+  const rng = makeRng(56);
+  const Fs = [];
+  const Ps = [];
+  let past = 0;
+  let deficits = 0;
+  let meanF = 0;
+  for (let s = 0; s < SNP_M; s += 1) {
+    const pbar = 0.1 + 0.8 * rng.next();
+    const gap = Math.abs(rng.normal(0, SNP_SD));
+    const lo = Math.max(0.02, Math.min(0.98, pbar - gap / 2));
+    const hi = Math.max(0.02, Math.min(0.98, pbar + gap / 2));
+    const counts = poolSample(rng, SNP_N, [lo, hi]);
+    const t = hweTest(counts);
+    Fs.push(t.F);
+    Ps.push(t.P);
+    meanF += t.F;
+    if (t.F > 0) deficits += 1;
+    if (t.P < 1e-6) past += 1;
+  }
+  return { Fs, Ps, past, deficits, meanF: meanF / SNP_M };
+})();
+const F_CRIT = Math.sqrt(CRIT[1e-6] / SNP_N);
+
+{
+  const row = document.getElementById("snpRow");
+  const box = cand(row, "B · a second page, 2,000 SNPs",
+    `two populations pooled · 323 individuals · mean allele frequency uniform 0.1–0.9\n`
+    + `frequency difference half-normal, SD ${SNP_SD} · seed 56`);
+  const ctx = canvasIn(box, 550, 300);
+  const rect = { x: 62, y: 40, w: 460, h: 200 };
+  const LO = -0.20; const HI = 0.40; const NB = 60; const BW = (HI - LO) / NB;
+  const under = new Array(NB).fill(0);
+  const over = new Array(NB).fill(0);
+  for (const F of SNP.Fs) {
+    const b = Math.floor((F - LO) / BW);
+    if (b < 0 || b >= NB) continue;
+    /* a bin is assigned by its own centre, so the bin the line runs through
+       belongs to one side and the count in the note is the exact count */
+    if (LO + (b + 0.5) * BW >= F_CRIT) over[b] += 1; else under[b] += 1;
+  }
+  const top = Math.max(...under, ...over) * 1.12;
+  const plot = makePlot({ ctx, colors: T, rect, xDomain: [LO, HI], yDomain: [0, top] });
+  plot.caption("2,000 SNPs at 323 individuals");
+  plot.note(`${SNP.past} past the threshold`, { tone: T.extreme });
+  plot.bars(under, { lo: LO, width: BW, fill: T.empirical });
+  plot.bars(over, { lo: LO, width: BW, fill: T.extreme });
+  plot.vline(F_CRIT, { stroke: T.reference, width: 2, label: `10⁻⁶ at 323`, align: "right" });
+  plot.vline(0, { stroke: T.theory, width: 1, label: "no deficit", align: "left", labelDy: 13 });
+  plot.axisX({ label: "heterozygote deficit F" });
+  plot.axisY({ label: "SNPs" });
+  box.appendChild(el("p", "measure",
+    `mean F ${fmt(SNP.meanF, 3)} (the lesson file's own 0.030) · ${fmt((100 * SNP.deficits) / SNP_M, 1)}% on the deficit side\n`
+    + `F at the 10⁻⁶ line, 323 individuals: ${fmt(F_CRIT, 3)} · ${SNP.past} of ${int(SNP_M)} past it `
+    + `(${fmt((100 * SNP.past) / SNP_M, 2)}%; the lesson file's 2,008 of 1,651,345 is 0.12%)`));
+}
+
+/* ==========================================================================
+   §7 · the rail
+   ====================================================================== */
+
+const field = (label, detail) => {
+  const f = el("div", "w-field");
+  if (label) { const l = el("label"); l.appendChild(el("span", null, label)); f.appendChild(l); }
+  if (detail != null) f.appendChild(el("p", "w-detail", detail));
+  return f;
+};
+const put = (f, node) => {
+  const d = f.querySelector(".w-detail");
+  if (d) f.insertBefore(node, d); else f.appendChild(node);
+};
+function segRun(f, opts, on, mode) {
+  const s = el("div", mode === "grid" ? "w-seg w-seg-grid" : "w-seg");
+  s.setAttribute("role", "group");
+  for (const o of opts) {
+    const label = typeof o === "string" ? o : o.label;
+    const b = el("button", (typeof o === "object" && o.span) ? "w-seg-btn w-seg-btn--span" : "w-seg-btn");
+    b.type = "button";
+    b.dataset.value = label;
+    b.textContent = label;
+    b.setAttribute("aria-pressed", String(label === on));
+    s.appendChild(b);
+  }
+  put(f, s);
+  return s;
+}
+/** Core's `float`/`int`: a label carrying its value, and a range. */
+function numberField(host, label, value, detail) {
+  const f = el("div", "w-field");
+  const l = el("label");
+  l.appendChild(el("span", null, label));
+  l.appendChild(el("span", "val", value));
+  f.appendChild(l);
+  const r = el("input");
+  r.type = "range"; r.min = "0"; r.max = "1"; r.step = "0.01"; r.value = "0.5";
+  f.appendChild(r);
+  if (detail) f.appendChild(el("p", "w-detail", detail));
+  host.appendChild(f);
+  return f;
+}
+/** Core's `choice`: a label with its value, a range over the option index, and
+    tick labels — without them the slider shows a position and hides what the
+    positions are. */
+function choiceField(host, label, ticks, on, ownDetail) {
+  const f = el("div", "w-field");
+  const l = el("label");
+  l.appendChild(el("span", null, label));
+  l.appendChild(el("span", "val", ticks[on]));
+  f.appendChild(l);
+  const r = el("input");
+  r.type = "range"; r.min = "0"; r.max = String(ticks.length - 1); r.step = "1"; r.value = String(on);
+  f.appendChild(r);
+  const tk = el("div", "w-ticks");
+  for (const t of ticks) tk.appendChild(el("span", null, t));
+  f.appendChild(tk);
+  if (ownDetail) f.appendChild(el("p", "w-detail", ownDetail));
+  host.appendChild(f);
+  return f;
+}
+function driveBlock(host) {
+  const d = el("div", "w-drive");
+  const draw = el("button", "w-btn w-btn--primary", "Draw");
+  draw.type = "button"; draw.dataset.key = "draw";
+  d.appendChild(draw);
+  const g = el("div", "w-drive-group");
+  for (const [k, t] of [["step", "Step"], ["run", "Play"]]) {
+    const b = el("button", "w-btn", t);
+    b.type = "button"; b.dataset.key = k;
+    g.appendChild(b);
+  }
+  d.appendChild(g);
+  const r = el("button", "w-btn", "Reset");
+  r.type = "button"; r.dataset.key = "reset";
+  d.appendChild(r);
+  host.appendChild(d);
+  return d;
+}
+
+/* The copy the rail carries. One object, so §8's table and the rendered rail
+   are the same strings and cannot drift. */
+const COPY = {
+  source: { label: "What produced the sample",
+    detail: "the process the genotypes in the sample came from" },
+  p: { label: "Allele frequency",
+    detail: "the frequency of allele A; with two populations pooled it is the mean of the two" },
+  gap: { label: "Frequency difference",
+    detail: "the distance between the two populations' allele frequencies, half of it either side of the mean" },
+  error: { label: "Miscall rate",
+    detail: "the probability that one genotype is recorded as another" },
+  n: { label: "Sample size", detail: "the number of individuals genotyped" },
+  threshold: { label: "Significance threshold", detail: "the P value the test is read against" },
+  seed: { label: "Seed", detail: "the random stream the sample is drawn from" },
+};
+const N_TICKS = N_RUNGS.map((n) => int(n));
+const THRESH_TICKS = THRESHOLDS.map((a) => THRESH_LABEL[a]);
+
+const RAILS = {};
+{
+  const row = document.getElementById("railRow");
+  const CANDS = [
+    { key: "A", head: "A · every field always shown", show: { gap: true, error: true } },
+    { key: "B1", head: "B · with `when`, at Two populations pooled", show: { gap: true, error: false } },
+    { key: "B2", head: "B · with `when`, at One population", show: { gap: false, error: false } },
+    { key: "C", head: "C · B, the option names short and Seed below the drive row",
+      show: { gap: true, error: false }, short: true, seedAfter: true },
+  ];
+  for (const c of CANDS) {
+    const box = el("div", "cand");
+    box.appendChild(el("p", "pagehead", c.head));
+    const host = el("div", "w-split rail-host");
+    const rail = el("div", "w-controls");
+    host.appendChild(rail);
+
+    rail.appendChild(el("div", "w-section", "The sample"));
+    const sf = field(COPY.source.label, COPY.source.detail);
+    const opts = c.short ? SHORT_SOURCES : SOURCES;
+    const on = c.key === "B2" ? "one" : "pooled";
+    /* `span: true` gives an option a row of its own; without it the grid puts
+       two on a row, which is the whole of C's saving. */
+    segRun(sf, opts.map((s) => ({ label: s.label, span: !c.short })),
+      opts.find((s) => s.key === on).label, "grid");
+    rail.appendChild(sf);
+
+    numberField(rail, COPY.p.label, "0.50", COPY.p.detail);
+    if (c.show.gap) numberField(rail, COPY.gap.label, "0.50", COPY.gap.detail);
+    if (c.show.error) numberField(rail, COPY.error.label, "0.30", COPY.error.detail);
+    choiceField(rail, COPY.n.label, N_TICKS, 1, COPY.n.detail);
+
+    rail.appendChild(el("div", "w-section", "The test"));
+    const tf = field(COPY.threshold.label, COPY.threshold.detail);
+    segRun(tf, THRESH_TICKS, THRESH_TICKS[2]);
+    rail.appendChild(tf);
+
+    if (!c.seedAfter) numberField(rail, COPY.seed.label, "1", COPY.seed.detail);
+
+    const drive = driveBlock(host);
+    /* `afterDrive: true` — core builds a second `.w-controls` block below the
+       drive row for it (widget.js), so the DOM here is the one that ships,
+       including the fact that `.w-split .w-controls` zeroes that block's own
+       top margin. */
+    let after = null;
+    if (c.seedAfter) {
+      after = el("div", "w-controls w-controls--after");
+      host.appendChild(after);
+      numberField(after, COPY.seed.label, "1", COPY.seed.detail);
+    }
+    box.appendChild(host);
+    const measure = el("p", "measure");
+    box.appendChild(measure);
+    row.appendChild(box);
+    RAILS[c.key] = { host, rail, drive, after, measure };
+  }
+}
+
+/* ==========================================================================
+   §8 · every reader-facing string
+   ====================================================================== */
+
+const CAPTION_PATTERN = "323 individuals, two populations pooled";
+const READOUT_LABELS = [
+  ["Allele frequency", "of A in the sample"],
+  ["Heterozygotes", "observed / expected"],
+  ["χ²", "1 degree of freedom"],
+  ["P", "threshold 10⁻⁶"],
+];
+{
+  const host = document.getElementById("strings");
+  const tb = el("table", "facts");
+  const head = el("tr");
+  for (const h of ["where", "string", "the line under it"]) head.appendChild(el("th", null, h));
+  tb.appendChild(head);
+  const add = (where, s, d) => {
+    const tr = el("tr");
+    tr.appendChild(el("td", null, where));
+    const c = el("td");
+    c.appendChild(el("b", null, s));
+    tr.appendChild(c);
+    tr.appendChild(el("td", null, d ?? ""));
+    tb.appendChild(tr);
+  };
+  add("title", TITLE, "");
+  add("subtitle", SUBTITLES[0].text, "candidate A, §0");
+  for (const k of ["source", "p", "gap", "error", "n", "threshold", "seed"]) {
+    add("control", COPY[k].label, COPY[k].detail);
+  }
+  for (const s of SOURCES) add("source option", s.label, s.detail);
+  /* The same four, as §7's candidate C names them. The detail lines are the
+     same objects, so a trim to a name cannot quietly take the mechanism with
+     it — the line still says what the source does. */
+  for (const s of SHORT_SOURCES) add("source option · C's short set", s.label, s.detail);
+  for (const [l, n] of READOUT_LABELS) add("readout", l, n);
+  add("drive", "Draw", "a new sample at the current settings");
+  add("drive", "Step", "one individual");
+  add("drive", "Play", "the individuals in order");
+  add("drive", "Reset", "clears the sample");
+  add("canvas caption", CAPTION_PATTERN, "the sample size and the source, in the source's own words");
+  /* Read off the figure rather than typed: the row said 0.49 while §1 drew
+     `fmt(FIG_TEST.p)`, and a string table that disagrees with the string is
+     worse than no table. */
+  add("canvas note", `allele frequency ${fmt(FIG_TEST.p)}`,
+    "the figure's own horizontal position, named");
+  add("canvas corners", "AA · Aa · aa", "the three genotypes, at the corners they stand for");
+  add("canvas curve", "Hardy-Weinberg", "the curve, labelled once");
+  host.appendChild(tb);
+}
+
+/* ==========================================================================
+   Measuring, then the copy. Everything below runs again after the fonts land,
+   because a rail measured before them is not the rail that ships.
+   ====================================================================== */
+
+const hOf = (n) => Math.round(n.getBoundingClientRect().height);
+function segFit(btn) {
+  const cs = getComputedStyle(btn);
+  probe.font = `${cs.fontStyle} ${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+  const r = btn.getBoundingClientRect();
+  const inner = r.width - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight)
+    - parseFloat(cs.borderLeftWidth) - parseFloat(cs.borderRightWidth);
+  return { label: btn.textContent, text: probe.measureText(btn.textContent).width, inner };
+}
+function tickFitOf(f) {
+  const spans = [...f.querySelectorAll(".w-ticks span")];
+  const out = [];
+  for (const s of spans) {
+    const cs = getComputedStyle(s);
+    probe.font = `${cs.fontStyle} ${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+    out.push({ label: s.textContent, text: probe.measureText(s.textContent).width,
+      inner: s.getBoundingClientRect().width });
+  }
+  return out;
+}
+
+const STAGE_W = 550;
+const STAGE_H = 400;
+
+function writeCopy() {
+  /* --- the engine line -------------------------------------------------- */
+  document.getElementById("engineLine").innerHTML =
+    `<b>Live on this page:</b> the critical χ² on 1 degree of freedom is `
+    + `${fmt(CRIT[0.05], 2)} at 0.05, ${fmt(CRIT[1e-3], 2)} at 10⁻³ and `
+    + `${fmt(CRIT[1e-6], 2)} at 10⁻⁶; the χ² on a pooled table is n·F² with `
+    + `F = Var(p)/p̄q̄, so the 10⁻⁶ line is F ≥ ${fmt(Math.sqrt(CRIT[1e-6] / 323), 3)} `
+    + `at 323 individuals, ${fmt(Math.sqrt(CRIT[1e-6] / 1000), 3)} at 1,000 and `
+    + `${fmt(Math.sqrt(CRIT[1e-6] / 10000), 3)} at 10,000. A frequency difference of 0.5 at mean 0.5 is `
+    + `F = ${fmt(wahlundF([0.25, 0.75]), 3)}; one of 0.17 is F = ${fmt(wahlundF([0.415, 0.585]), 3)}.`;
+
+  /* --- §0 ---------------------------------------------------------------- */
+  document.getElementById("recTitle").innerHTML =
+    `<b>A.</b> ${SUBTITLES[0].text.length} characters against B's ${SUBTITLES[1].text.length}, `
+    + `both inside the 140–240 band. A carries three claims and the third is the one this widget's `
+    + `sample-size control exists for — B stops at the deficit and leaves the test out, so a reader who `
+    + `has only read the subtitle does not know that the sample size is part of the subject. Neither `
+    + `candidate opens with a cleft, a self-reference or a closing verdict, which is what 2.10 strikes. `
+    + `B is the better sentence in isolation and the smaller claim, and this widget's second half is the `
+    + `sample size.`;
+
+  /* --- §1 ---------------------------------------------------------------- */
+  const dropHet = FIG_TEST.exp[1] - FIG_COUNTS[1];
+  const triSide = 290;
+  const dropPx = (S3 / 2) * (dropHet / FIG.n) * triSide;
+  document.getElementById("recFig").innerHTML =
+    `<b>C, both.</b> The triangle carries the concept — one point against one curve, with the allele `
+    + `frequency as the horizontal position, so the prediction is directly above the observation and the `
+    + `deficit is a length. The bars carry the count, which is what the χ² is computed from and what `
+    + `the reader can actually read a number off. <b>Measured on this sample:</b> the heterozygote deficit `
+    + `is ${fmt(dropHet, 1)} individuals — ${fmt(100 * (dropHet / FIG_TEST.exp[1]), 1)}% of the expected Aa `
+    + `bar — which on C's ${triSide}px triangle is a drop of <b>${fmt(dropPx, 1)}px</b>. `
+    + `<b>What each panel alone leaves out.</b> B has the counts and no allele frequency: three bar pairs `
+    + `say the sample differs from the prediction and say nothing about the one number the prediction came `
+    + `from, so the claim "one frequency predicts three counts" has no mark on the figure at all. A has the `
+    + `claim and no counts, and the counts are what the test is computed from — the reader can see a drop `
+    + `and cannot say how many people it is. <b>What C costs:</b> the triangle goes from 380px wide to `
+    + `${triSide}px, which takes the drop from ${fmt((S3 / 2) * (dropHet / FIG.n) * 380, 1)}px to `
+    + `${fmt(dropPx, 1)}px. That is the trade, and it is worth it once §3 shows that at a realistic `
+    + `frequency difference the reading is the number rather than the picture. `
+    + `<b>One thing ${triSide}px costs that is not the drop:</b> the caption and the allele-frequency `
+    + `note no longer fit on one row, and at first they overprinted each other. Both are now measured, `
+    + `and when the caption reaches where the note would start the note takes the row above the apex — `
+    + `which is outside the triangle, so the only thing sharing it is the centred <i>Aa</i>.`;
+
+  /* --- §2 ---------------------------------------------------------------- */
+  const srcRows = SOURCES.map((s) => ({ s, t: hweTest(drawSample(s.key, SRC_CFG, srcSeed(s.key))) }));
+  const over = srcRows.find((r) => r.s.key === "overcall");
+  const drop = srcRows.find((r) => r.s.key === "dropout");
+  const pool = srcRows.find((r) => r.s.key === "pooled");
+  const one = srcRows.find((r) => r.s.key === "one");
+  const oneAt4 = hweTest(drawSample("one", SRC_CFG, SRC_SEED));
+  document.getElementById("recSource").innerHTML =
+    `<b>Four sources.</b> The deficit needs its other side to be read as a side: with three options every `
+    + `sample that is off the curve is below it, and a reader learns "off the curve" and "too few `
+    + `heterozygotes" as one fact. Measured at 323 individuals, F is `
+    + `${fmt(one.t.F, 3)} for one population, ${fmt(pool.t.F, 3)} pooled, ${fmt(drop.t.F, 3)} with `
+    + `heterozygotes miscalled and <b>${fmt(over.t.F, 3)}</b> with homozygotes miscalled — the one source `
+    + `that puts the point above the curve by construction, and a heterozygote excess is what a duplicated `
+    + `region or a mis-clustered assay produces. <b>The one-population panel is drawn at seed 21</b>, where `
+    + `F is ${fmt(one.t.F, 3)} and P ${pfmt(one.t.P)}: the point sits on the curve, which is what that panel `
+    + `is for. At seed 4 the same draw sits ${fmt(Math.abs(oneAt4.F), 3)} above it — sampling at 323, and `
+    + `${oneAt4.P < 0.05 ? "past 0.05" : `P ${pfmt(oneAt4.P)}`}, so nothing is being hidden by the change of `
+    + `seed; the wobble is what the Seed control is for and it belongs under the reader's hand rather than `
+    + `in the panel that defines the baseline. <b>The pooled panel is the section's argument:</b> the two `
+    + `populations' points are on the curve, the pooled sample is the average of their two tables so it is on `
+    + `the line between them, and that line is under the curve because the curve is curved. Nothing about `
+    + `genotyping is involved, and the panel says so without a sentence. <b>Pooling and dropout land on the `
+    + `same side at nearly the same F</b> (${fmt(pool.t.F, 3)} against ${fmt(drop.t.F, 3)} here), which is `
+    + `the reason the QC lesson cannot decide between them from this test and goes to the PC plot.`;
+
+  /* --- §3 ---------------------------------------------------------------- */
+  const nTests = N_SAMPLES.map((c) => hweTest(c));
+  const crossed = N_RUNGS.findIndex((n, i) => nTests[i].P < 1e-6);
+  const rowA = N_RUNGS.map((n, i) => `${int(n)}: χ² ${fmt(nTests[i].chi, 1)}, P ${pfmt(nTests[i].P)}`);
+  /* how far the deficit moves the point, in pixels, on each row's own panel */
+  const pxA = N_RUNGS.map((n, i) => (S3 / 2) * (nTests[i].exp[1] - N_SAMPLES[i][1]) / n * 150);
+  const zoomPx = N_RUNGS.map((n, i) =>
+    ((nTests[i].exp[1] - N_SAMPLES[i][1]) / n) * (ZOOM_RECT.h / (ZOOM.het[1] - ZOOM.het[0])));
+  document.getElementById("nMeasure").textContent =
+    `${rowA.join("  ·  ")}\n`
+    + `the deficit as a drop on row A's 150px triangle: ${pxA.map((v) => fmt(v, 2) + "px").join(" · ")}\n`
+    + `the same drop on row B's detail panel: ${zoomPx.map((v) => fmt(v, 1) + "px").join(" · ")}`;
+  document.getElementById("recN").innerHTML =
+    `<b>Five rungs — 100 · 323 · 1,000 · 10,000 · 50,000 — and row B's detail `
+    + `as the figure at small differences.</b> The rungs are real study sizes: 323 is the lesson's own `
+    + `cohort, 10,000 and 50,000 are biobanks, and the reading is which rung the threshold is crossed on `
+    + `— here <b>${crossed >= 0 ? int(N_RUNGS[crossed]) : "none of the five"}</b>. A log slider from 50 `
+    + `to 100,000 offers a hundred values of which four matter and hides which four; a choice slider carries `
+    + `its five tick labels at 300px (measured below) and makes the crossing a place rather than a position. `
+    + `<b>Row A is the honest bad news and is why row B exists:</b> at the average real SNP's difference of `
+    + `0.17 the deficit is ${fmt(pxA[1], 2)}px on a 150px triangle at 323 and ${fmt(pxA[4], 2)}px at 50,000 `
+    + `— the whole triangle cannot show it at any sample size, because the deficit does not grow, the `
+    + `evidence does. On row B's fixed window the same deficit is `
+    + `${fmt(Math.min(...zoomPx), 0)}–${fmt(Math.max(...zoomPx), 0)}px across the five, and what changes `
+    + `is the scatter around it: the cloud straddles the curve at 100 and sits wholly under `
+    + `it at 50,000. <b>Two ways to build that:</b> a <code>display</code> parameter that zooms the triangle `
+    + `on the point, or the readout carrying the reading at small differences while the triangle carries it `
+    + `at large ones. The second is what §1 already recommends and costs nothing; the first is a real `
+    + `control with a real idea in it, and is the one open question this section leaves.`;
+
+  /* --- §4 ---------------------------------------------------------------- */
+  const fPool = hweTest(FIG_COUNTS);
+  document.getElementById("recCount").innerHTML =
+    `<b>A, core's readout tiles, with the bars carrying the counts.</b> Four tiles say everything the `
+    + `.hwe table says — allele frequency, heterozygotes observed against expected, χ², P `
+    + `— and the one number a reader acts on (P against the threshold) gets `
+    + `<code>--c-extreme</code> when it is past the line, which no canvas table can do without inventing a `
+    + `second grammar. B's argument is recognition: a student who has run PLINK has seen exactly those `
+    + `column names. It is answered by putting the column names in the tile labels, which A does `
+    + `(<i>observed / expected</i> is O(HET) / E(HET)), and by the fact that the bars are already the `
+    + `GENO column drawn. <b>The threshold is an option, not a fixture.</b> Three samples read against each `
+    + `of the three rungs are in the table above, and the last column is the argument: §3's `
+    + `10,000-individual sample at a frequency difference of 0.17 has P `
+    + `${pfmt(hweTest(N_SAMPLES[3]).P)}, so it is past 0.05 and 10⁻³ and not past 10⁻⁶ — the same sample, `
+    + `kept or dropped depending on a line somebody chose. The critical F at 323 moves from `
+    + `${fmt(Math.sqrt(CRIT[0.05] / 323), 3)} to ${fmt(Math.sqrt(CRIT[1e-6] / 323), 3)} across the three `
+    + `rungs, and the §1 sample (P ${pfmt(fPool.P)}) is past all three. Three rungs, segmented, `
+    + `defaulting to 10⁻⁶.`;
+
+  /* --- §5 ---------------------------------------------------------------- */
+  const at10 = hweTest(FRAMES[9].counts);
+  const at60 = hweTest(FRAMES[59].counts);
+  const u10 = uv(FRAMES[9].counts);
+  const u60 = uv(FRAMES[59].counts);
+  const uEnd = uv(FIG_COUNTS);
+  const travel = (a, b) => fmt(Math.hypot(a[0] - b[0], a[1] - b[1]) * 290, 0);
+  document.getElementById("recArrival").innerHTML =
+    `<b>B, the individuals arriving.</b> The widget has to start empty (CLAUDE.md rule 4), so something `
+    + `has to fill it, and the filling is the sample-size story told without a control: the point is `
+    + `${travel(u10, uEnd)}px from where it settles after 10 individuals, ${travel(u60, uEnd)}px after 60, `
+    + `and 0 after 323, on §1C's 290px triangle. Its allele frequency wanders too — `
+    + `${fmt(at10.p)} at 10, ${fmt(at60.p)} at 60, ${fmt(fPool.p)} at 323 — so the prediction moves `
+    + `with it and the reader sees that the curve is not a fixed target. <b>A is not wrong, it is one `
+    + `frame of B</b>, which is what <code>?shown=N</code> is for: a finished figure for a lesson link, and `
+    + `the run for a reader who presses Play. <b>Pacing:</b> at 50,000 individuals one arrival a frame is `
+    + `14 minutes, so the reveal goes in batches the way widget 48's arrivals do — a fixed number of `
+    + `frames and as many individuals per frame as the sample needs, which keeps every rung under about `
+    + `eight seconds and makes Step one individual at 100 and 500 at 50,000. Step's own unit is worth `
+    + `stating on the drive hint rather than leaving the reader to count. <b>The stream is `
+    + `<code>poolSample</code>'s own loop</b>, so the last frame is the finished table: `
+    + `${STREAM_OK ? "checked on this page, the two agree exactly" : "MISMATCH — the two disagree"}.`;
+
+  /* --- §6 ---------------------------------------------------------------- */
+  document.getElementById("recSnp").innerHTML =
+    `<b>A for the build; B recorded as the page Kenneth can add.</b> One SNP is the whole idea and the `
+    + `cheapest build in the arc, which is the argument the catalogue makes for keeping the slot at all. `
+    + `<b>What B adds, honestly:</b> it is the only place "at 323 the test sees only the extreme SNPs" `
+    + `becomes a count rather than a sentence. On the histogram above, ${SNP.past} of ${int(SNP_M)} SNPs `
+    + `(${fmt((100 * SNP.past) / SNP_M, 2)}%) are past the 10⁻⁶ line at a mean F of `
+    + `${fmt(SNP.meanF, 3)} — the lesson's own file is 2,008 of 1,651,345, 0.12%, at mean F 0.030 — `
+    + `and the body of the histogram sits at a deficit the test never sees. It also gives the deficit `
+    + `direction as a count: ${fmt((100 * SNP.deficits) / SNP_M, 1)}% of these SNPs are on the deficit side, `
+    + `against the file's 55% and the 50% one population in equilibrium would give. <b>What it costs:</b> a `
+    + `second page, a second figure, and a second set of fingerprint states, on a slot whose case is that it `
+    + `is small. If it is built, it is built after 57, where the same 2,000 SNPs are already simulated.`;
+
+  /* --- §7 ---------------------------------------------------------------- */
+  const ticks = [...RAILS.A.rail.querySelectorAll(".w-field")]
+    .find((f) => f.querySelector(".w-ticks"));
+  const tf = ticks ? tickFitOf(ticks) : [];
+  const threshBtns = [...RAILS.A.rail.querySelectorAll(".w-seg:not(.w-seg-grid) .w-seg-btn")].map(segFit);
+  const srcBtns = [...RAILS.A.rail.querySelectorAll(".w-seg-grid .w-seg-btn")].map(segFit);
+  const tickOver = tf.filter((m) => m.text > m.inner);
+  const threshOver = threshBtns.filter((m) => m.text > m.inner);
+  const srcOver = srcBtns.filter((m) => m.text > m.inner);
+
+  /* CANDIDATE C's FOUR NAMES, MEASURED IN THE TWO-COLUMN FACE THEY ASK FOR, and
+     the layout follows the measurement rather than the other way round: the
+     span class comes off first so what is measured is the two-up face, and if
+     any name is wider than that face all four go back to a row each. A name
+     that ellipsises is not a shorter name, it is an unreadable one. Idempotent,
+     because `writeCopy` runs again once the fonts land. */
+  const cBtns = [...RAILS.C.rail.querySelectorAll(".w-seg-grid .w-seg-btn")];
+  for (const b of cBtns) b.classList.remove("w-seg-btn--span");
+  const cFit = cBtns.map(segFit);
+  const cOver = cFit.filter((m) => m.text > m.inner);
+  if (cOver.length) for (const b of cBtns) b.classList.add("w-seg-btn--span");
+  const cSpare = fmt(Math.min(...cFit.map((m) => m.inner - m.text)), 1);
+  const cVerdict = cOver.length
+    ? `${cOver.map((m) => `${m.label} ${fmt(m.text - m.inner, 1)}px over`).join(", ")}`
+      + ` — C is drawn one to a row with the short names`
+    : `all four fit two to a row, ${cSpare}px spare on the tightest`;
+
+  document.getElementById("tickFit").textContent =
+    `Sample size ticks: ${tf.map((m) => `${m.label} ${fmt(m.text, 0)}/${fmt(m.inner, 0)}px`).join(" · ")}`
+    + ` — ${tickOver.length ? `${tickOver.map((m) => m.label).join(", ")} over` : "nothing truncates"}\n`
+    + `Threshold row of three: ${threshOver.length ? `${threshOver.map((m) => m.label).join(", ")} over`
+      : `nothing truncates, ${fmt(Math.min(...threshBtns.map((m) => m.inner - m.text)), 1)}px spare`}\n`
+    + `Source options, one to a row: ${srcOver.length
+      ? srcOver.map((m) => `${m.label} ${fmt(m.text - m.inner, 1)}px over`).join(", ")
+      : `nothing truncates, ${fmt(Math.min(...srcBtns.map((m) => m.inner - m.text)), 1)}px spare`}\n`
+    + `C's short names in the two-column face: `
+    + `${cFit.map((m) => `${m.label} ${fmt(m.text, 0)}/${fmt(m.inner, 0)}px`).join(" · ")}`
+    + ` — ${cVerdict}`;
+
+  for (const n of Object.values(RAILS)) {
+    const blocks = [n.rail, ...(n.after ? [n.after] : [])];
+    const parts = blocks.flatMap((b) => [...b.children]).map((c) => {
+      const name = c.classList.contains("w-section")
+        ? c.textContent
+        : (c.querySelector("label span")?.textContent ?? "field");
+      return `${name} ${hOf(c)}`;
+    });
+    n.measure.textContent = `params ${hOf(n.rail)} · drive ${hOf(n.drive)}`
+      + (n.after ? ` · below the drive row ${hOf(n.after)}` : "")
+      + ` · rail ${hOf(n.host)}px\n${parts.join(" · ")}`;
+  }
+  RAILS.C.measure.textContent += `\nthe four names: ${cVerdict}`;
+  const hA = hOf(RAILS.A.host);
+  const hB1 = hOf(RAILS.B1.host);
+  const hB2 = hOf(RAILS.B2.host);
+  const hC = hOf(RAILS.C.host);
+  const stageH = STAGE_H + 90;
+  /* C is drawn at the pooled setting, so its One population state is the one
+     field B's two states differ by — measured there rather than guessed here. */
+  const hC2 = hC - (hB1 - hB2);
+  document.getElementById("recRail").innerHTML =
+    `<b>C: <code>when</code>, the option names short, and <code>Seed</code> below the drive row.</b> `
+    + `The gating is B's and core already has it — <code>when: { param: "source", equals: "pooled" }</code> `
+    + `and <code>when: { param: "source", oneOf: ["dropout", "overcall"] }</code> — so it costs two lines `
+    + `of the parameter spec and no new core work. It is also 3.4b's rule applied to a field rather than a `
+    + `stage: a miscall rate with no miscalling on screen is a question the reader has to rule out before `
+    + `the figure gets attention. <b>Measured at 300px:</b> A is <b>${hA}px</b>, B is <b>${hB1}px</b> at `
+    + `<i>Two populations pooled</i> and <b>${hB2}px</b> at <i>One population</i>, and C is `
+    + `<b>${hC}px</b> at the same pooled setting — ${hC2}px at <i>One population</i>, which is C less the `
+    + `one field B's two states differ by. <b>Against the stage:</b> the figure §1C proposes is `
+    + `${STAGE_W}×${STAGE_H}, and the readout and legend under it add about 90px, so the stage column `
+    + `is roughly ${stageH}px. `
+    + (hC > stageH
+      ? `<b>All three are taller than that</b> — A by ${hA - stageH}px, B at its tallest by `
+        + `${hB1 - stageH}px, C by ${hC - stageH}px — so the rail sets the page height whichever is `
+        + `taken, and the question is only by how much. `
+      : `<b>C fits under it</b> and A and B do not, so C is the only one of the three that leaves the `
+        + `figure setting the page height. `)
+    + `<b>Where C's saving is:</b> the four source options. At one to a row they are four rail rows for `
+    + `one control, the largest single cost in the column. `
+    + (cOver.length
+      ? `Two to a row they do not fit — ${cOver.map((m) => m.label).join(" and ")} `
+        + `${cOver.length > 1 ? "run" : "runs"} past the ${fmt(cFit[0].inner, 0)}px face (measured above), `
+        + `so C keeps a row each and buys no height at all. On these measurements B and C are the same `
+        + `column and the shorter names are worth taking on their own account: they stop a name reaching `
+        + `the edge of its face, and the mechanism they drop is still in the detail line under the control. `
+      : `Two to a row they fit, with ${cSpare}px spare on the tightest, which takes four rows to two. `
+        + `Nothing is lost: what the source does to the genotypes stays in the detail line, unchanged, `
+        + `which is where a reader looks for it — the name only has to say which of the four. `)
+    + `<b><code>Seed</code> below the drive row</b> (<code>afterDrive: true</code>; core builds it into a `
+    + `second control block under the buttons) buys no height — it is the same column — and is still `
+    + `right: it is the one control that is not part of describing the sample, so everything above the `
+    + `buttons reads as the description and the stream the sample came from sits with the button that `
+    + `draws it. <b>The Sample size detail line stays.</b> Its five ticks are bare numbers and that line `
+    + `is what says they are individuals. `
+    + (cOver.length ? `<b>Take B, with C's names.</b>` : `<b>Take C.</b>`);
+}
+
+if (document.fonts && document.fonts.ready) {
+  document.fonts.ready.then(writeCopy);
+}
+writeCopy();
+</script>
+</body>
+</html>
