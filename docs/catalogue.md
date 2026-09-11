@@ -7134,9 +7134,40 @@ and the whole lesson is the distance between them and what moved the point.
 - **The count:** the χ² on the three cells at the sample size, the P, and
   the lesson's 10⁻⁶ line. n is a control because at 323 the pooled
   deficit at a realistic frequency gap is invisible to the test, and the
-  file's 2008 failures are the SNPs where the gap is largest — a claim to
-  measure before the mock (`_lab/hwe-measure.mjs`: the fraction of SNPs
-  failing at 10⁻⁶ as a function of the gap and n).
+  file's 2008 failures are the SNPs where the gap is largest.
+
+**MEASURED 2026-09-11, `_lab/hwe-measure.mjs` (28 checks).** The lesson's
+χ² on a pooled table is exactly n·F², F = Var(p)/p̄q̄ the Wahlund deficit,
+so the 10⁻⁶ line (χ² 23.93) is F ≥ 0.27 at n = 323, 0.155 at 1000, 0.049
+at 10,000. Two populations pooled equally at p̄ = 0.5, power at 10⁻⁶
+(400 samples a cell, seeded):
+
+| gap Δ | F | n 100 | 323 | 1000 | 5000 | 20000 |
+|---|---|---|---|---|---|---|
+| 0.17 (the file's mean F 0.03) | 0.029 | 0 | 0 | 0 | 0 | 0.19 |
+| 0.20 | 0.040 | 0 | 0 | 0 | 0.01 | 0.78 |
+| 0.30 | 0.090 | 0 | 0 | 0.02 | 0.94 | 1 |
+| 0.40 | 0.160 | 0 | 0.01 | 0.60 | 1 | 1 |
+| 0.50 | 0.250 | 0 | 0.37 | 1 | 1 | 1 |
+| 0.60 | 0.360 | 0.05 | 0.95 | 1 | 1 | 1 |
+
+So at the lesson's n only a gap of ~0.5 or more fails, which is what the
+file's 2008 are (their mean F 0.32); the AVERAGE SNP's deficit needs
+n ≈ 26,600 to reach the line and fails reliably at 50,000 (0.94). **The n
+control therefore runs from 323 to a biobank's tens of thousands, and the
+one-line reading at 323 is that the test sees only the extreme SNPs.**
+Three populations at 0.2 / 0.5 / 0.8 give F 0.24 (power 0.25 at 323).
+Heterozygote dropout at rate e gives F ≈ e — the same side of the parabola
+as pooling — 10% passes at 323, 30% fails 71% of the time; homozygotes
+over-called as heterozygotes give F = −e, the other side. One population
+in HWE at 323 over 20,000 SNPs: 0 failures at 10⁻⁶, 4.8% at 0.05, deficit
+and excess 48 : 52 — so the file's 909,740 : 738,944 split is not
+sampling. First written with two wrong expectations (that 20,000 would
+fail the average SNP; that a gap of 0.1 was the edge there) and corrected
+by the run; the script's comment keeps both. Note for the readout: PLINK's
+P column is Wigginton's exact test, so the file's failures start at
+n·F² ≈ 19 rather than 23.9; the widget uses the χ² the lesson's prose
+writes and can say so in one line.
 - **What it would cost to cut:** slot 57 opens on three clusters with no
   account of where they came from, and the QC lesson keeps its list of
   three causes with no way to tell which. Small widget, one page, no
