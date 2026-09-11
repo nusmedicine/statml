@@ -1,0 +1,1475 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · optimizers — the landscape, the start, the ladder, the schedule</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  /* The mock shell, copied from `_lab/loss-rail-mock.html` and
+     `_lab/loss-structure-mock.html`: `.lab`, `.note`, `.rec`, `table.facts`,
+     `.measure`, `.pagehead`, and the `.rail-host` that renders a candidate rail
+     as the real core DOM at 300px. Nothing here is a new visual decision. */
+  .lab { max-width: 1240px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-6); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 96ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); max-width: 360px; min-height: 26px; white-space: pre-line; }
+  /* NOTHING AROUND A PANEL MAY DECIDE ITS COLUMN'S WIDTH. The blurb above a
+     canvas and the measured line under it are both longer than the canvas, and
+     between them they widened §4's four 250px panels to 375px and wrapped the
+     fourth onto a line of its own. Each row pins its column to its canvas and
+     the text wraps inside it. */
+  #stepA > .cand, #stepB .row > .cand { width: 250px; }
+  #landRow > .cand, #startRow > .cand, #pathRow > .cand { width: 350px; }
+  #schedRow > .cand { width: 372px; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 96ch; }
+  .measure { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--ink-3); margin: 4px 0 0; max-width: 640px; }
+  table.facts { border-collapse: collapse; font-size: var(--fs-sm); color: var(--ink-2); margin: var(--sp-2) 0 var(--sp-3); max-width: 100ch; }
+  table.facts th, table.facts td { border: 1px solid var(--grid); padding: 3px 8px; text-align: left; vertical-align: top; white-space: nowrap; }
+  table.facts th { color: var(--ink-1); font-weight: 600; background: var(--surface-2); }
+  table.facts td b { color: var(--ink-1); }
+  .pagehead { font-size: var(--fs-xs); font-weight: 600; color: var(--c-highlight); margin: 0 0 4px;
+              text-transform: uppercase; letter-spacing: 0.04em; }
+
+  /* The page legend. Every swatch is a token, so a mark on a canvas and its
+     name in the list cannot drift apart. */
+  .legend { display: flex; flex-wrap: wrap; gap: var(--sp-2) var(--sp-4); margin: 0 0 var(--sp-4);
+            font-size: var(--fs-xs); color: var(--ink-2); }
+  .legend span { display: flex; align-items: center; gap: 6px; }
+  .sw { width: 13px; height: 13px; border-radius: 50%; flex: 0 0 auto; }
+  .sw-global { background: var(--c-reference); }
+  .sw-local { border: 2px solid var(--c-reference); }
+  .sw-start { border: 2px solid var(--c-highlight); }
+  .sw-line { width: 18px; height: 0; border-radius: 0; border-top: 2px solid var(--c-empirical); }
+  .sw-other { width: 18px; height: 0; border-radius: 0; border-top: 1.5px solid var(--ink-3); }
+  .sw-slope { width: 18px; height: 0; border-radius: 0; border-top: 2px solid var(--c-slope); }
+
+  /* The four update rules as cards. Plain text, mono, no MathML: these are the
+     torch forms and every symbol in them is ASCII or a Greek letter. */
+  .cards { display: flex; flex-wrap: wrap; gap: var(--sp-3); margin: var(--sp-2) 0 0; }
+  .card { flex: 0 0 auto; max-width: 330px; padding: var(--sp-2) var(--sp-3);
+          background: var(--surface-2); border: 1px solid var(--grid); border-radius: var(--radius); }
+  .card h4 { font-size: var(--fs-sm); margin: 0 0 4px; color: var(--ink-1); }
+  .card p { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--ink-2); margin: 0 0 3px; }
+  .card .sig { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--ink-3); margin-top: 6px; }
+
+  /* The learning-rate ladder: a row per optimizer, a column per rate. */
+  .ladder { display: grid; gap: var(--sp-2) var(--sp-3); align-items: start;
+            grid-template-columns: max-content repeat(5, max-content); margin-bottom: var(--sp-2); }
+  .ladder .collab { font-size: var(--fs-sm); font-weight: 600; color: var(--ink-1); text-align: center; }
+  .ladder .rowlab { font-size: var(--fs-sm); color: var(--ink-1); align-self: center; max-width: 140px; }
+  .ladder .cell p { font-size: var(--fs-xs); color: var(--ink-2); margin: 3px 0 0; text-align: center; }
+
+  /* THE RAIL AT THE REAL 300px, IN THE SHELL'S OWN SPLIT CONTEXT — verbatim
+     from loss-rail-mock, including why. `.w-split` is the ancestor four of
+     tokens.css's rules are written against (the one-column `.w-controls`, the
+     drive block's divider, its column direction, the `flex: 1 1 0` that drops
+     the run button's reserved width), so a rail measured outside it is not the
+     rail that ships. */
+  .lab .rail-host { display: block; width: 300px; }
+  .lab .rail-host .w-rail { border-top: 0; padding-top: 0; margin-top: 0; }
+  .lab .rail-host > .w-controls > .w-section:first-child { margin-top: 0; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>optimizers · the landscape, the start, the ladder, the schedule</h1>
+
+  <p class="note">
+    Kenneth, 2026-09-11, verbatim: <i>&ldquo;new widget, but use a more complicated loss landscape with
+    local/global minima to illustrate how they behave. there is also a learning rate scheduler later in the
+    notebook. not sure if it's worthwhile showing how some of them work (there are too many, may only
+    simple ones)&rdquo;</i> — working title <b>Deep Learning · Optimizers</b>, slug <code>optimizers</code>,
+    slot 55. The material is 05-4 cells 41–44 (the optimizer table, and the <code>optim.SGD</code>,
+    <code>optim.Adam</code>, <code>optim.AdamW</code> syntax cells) and cells 82–86 (the scheduler table,
+    with <code>StepLR</code> and <code>ReduceLROnPlateau</code>).
+  </p>
+  <p class="note">
+    <b>What the site the notebook links does</b> (gradient-descent-vis.netlify.app): a 3D Plotly surface, six
+    toy landscapes, five methods (GD, Momentum, Adagrad, RMSprop, Adam), a click to place the start, and a run
+    that halts at |grad| &lt; 0.01. <b>What this stage adds:</b> the rules are <code>torch.optim</code>'s own at
+    their defaults rather than the paper forms, the names are torch's (SGD with <code>momentum</code> as a
+    parameter of it, RMSprop, Adam, AdamW), every method walks the same landscape so the comparison is a
+    comparison, the landscape is chosen so each method wins somewhere, the rate ladder reaches values that fail,
+    the two schedulers the notebook gives syntax for are on the same stage, and the whole state is in the URL.
+    <b>What it must not re-teach:</b> widget 48 <code>gradients</code> owns the derivative, the partial
+    derivatives, plain descent on a real regression's trench, and the mini-batch. Here the gradient is exact —
+    no data, no batches — and the subject is the update rule.
+  </p>
+  <p class="note">
+    <b>The measurement.</b> Every number and every path on this page is computed live by the engine copied
+    verbatim out of <code>_lab/dl-optim-measure.mjs</code> — <code>makeOptimizer</code>,
+    <code>makeScheduler</code>, the <code>wells</code> factory and <code>run</code>, comments and all — so the
+    page cannot drift from the survey that chose these surfaces. That engine agrees with torch 2.14 to 1e-6
+    over 60 trace lines (<code>_lab/dl-optim-torch.py</code>, <code>node dl-optim-measure.mjs --check</code>);
+    the budget is 800 steps and &ldquo;reached&rdquo; means within 0.1 of the global minimum.
+  </p>
+  <p class="note" id="engineLine"></p>
+
+  <div class="legend">
+    <span><i class="sw sw-global"></i>global minimum</span>
+    <span><i class="sw sw-local"></i>local minimum</span>
+    <span><i class="sw sw-start"></i>start</span>
+    <span><i class="sw sw-line"></i>the chosen walk</span>
+    <span><i class="sw sw-other"></i>the other walks</span>
+    <span><i class="sw sw-slope"></i>the gradient</span>
+  </div>
+
+  <h2>&sect;1 &middot; The landscape</h2>
+  <p class="note">
+    Three candidates, each drawn at the size a map panel would really be beside a 300px rail. The colour is
+    <code>log10(1 + (f &minus; f<sub>min</sub>)/0.05)</code>, capped at the frame's own range, so the wells read
+    as pits and the plain reads as one colour — a linear ramp paints both wells as one dot. Contours are drawn
+    at fixed steps of that same ramp. The three starts each map is scored on are drawn in &sect;2.
+  </p>
+  <div class="row" id="landRow"></div>
+  <div id="landFacts"></div>
+  <p class="rec" id="recLand"></p>
+
+  <h2>&sect;2 &middot; The start</h2>
+  <p class="note">
+    <b>A</b> a <code>start</code> choice of three named starts, each carrying a claim, with the marker also
+    draggable on the map (core has a <code>drag</code> channel; widget 48 uses it for the relief viewpoint),
+    writing <code>x0</code> and <code>y0</code>. <b>B</b> click or drag only, as the linked site does.
+    The three maps below are the recommended landscape, one per start, with all four walks at lr 0.3.
+  </p>
+  <div class="row" id="startRail"></div>
+  <div class="row" id="startRow"></div>
+  <p class="rec" id="recStart"></p>
+
+  <h2>&sect;3 &middot; One path, or all four</h2>
+  <p class="note">
+    The trench landscape, from <i>Beyond the local minimum</i>, at lr 0.3. The chosen optimizer is
+    SGD with momentum 0.9 — the one arm that crosses the local well here.
+  </p>
+  <div class="row" id="pathRow"></div>
+  <p class="rec" id="recPath"></p>
+
+  <h2>&sect;4 &middot; The step drawn</h2>
+  <p class="note">
+    What <i>Slow</i> speed would choreograph: the gradient, then the step the rule makes out of it. All three
+    walk the trench from <i>Beyond the local minimum</i> at lr 0.1, and each panel zooms on its own position
+    at the step where its rule is legible — the caption says which. A shared step index shows one of the three
+    and hides two: momentum's buffer only parts from the gradient where the path turns, and Adam's rescale is
+    clearest on the approach. The three windows are the same width, so the three steps are drawn to one scale
+    and can be compared. <b>A</b> the gradient's direction at a fixed length in <code>--c-slope</code> and
+    the step to scale in <code>--c-empirical</code>, plus a fourth panel for Adam's per-parameter rescale;
+    <b>B</b> the step alone, to scale.
+  </p>
+  <div class="row" id="stepA"></div>
+  <div class="row" id="stepB"></div>
+  <div class="cards" id="cards"></div>
+  <p class="rec" id="recStep"></p>
+
+  <h2>&sect;5 &middot; The learning-rate ladder</h2>
+  <p class="note">
+    The trench landscape from <i>Beyond the local minimum</i>: four optimizers down, five rates across, each
+    cell the whole 800-step walk with its outcome under it. This is the &ldquo;each one wins somewhere&rdquo;
+    table as pictures. The pick is the ladder itself — these five rungs, or widget 48's eight
+    (0.001 · 0.003 · 0.01 · 0.03 · 0.1 · 0.3 · 1 · 3).
+  </p>
+  <div class="ladder" id="ladder"></div>
+  <p class="rec" id="recLadder"></p>
+
+  <h2>&sect;6 &middot; Schedulers</h2>
+  <p class="note">
+    <b>A</b> none — the widget stops at optimizers. <b>B</b> <code>StepLR</code> only. <b>C</b> both, as a
+    <code>scheduler</code> choice, with a rate strip under the loss strip. Drawn on the round landscape from
+    <i>On the plain</i> at lr 1: two optimizers down, three schedules across. The survey&rsquo;s scheduler table ran with the local well 0.7 deep; here it is 0.35 as on every other panel of this page, which is why the unscheduled momentum arm ends in the local well rather than orbiting 0.59 from the global one.
+    The rate axis is log and floored at 1e-8; where a rate goes below that the panel says so.
+  </p>
+  <div class="row" id="schedRow"></div>
+  <p class="rec" id="recSched"></p>
+
+  <h2>&sect;7 &middot; The optimizer faces, and the whole rail</h2>
+  <p class="note">
+    <b>A</b> three classes — SGD · RMSprop · Adam — with <code>momentum</code> (0 · 0.9) under SGD and AdamW as
+    a line on Adam's card. <b>B</b> four faces, SGD · SGD + momentum · RMSprop · Adam. <b>C</b> the notebook's
+    table order, SGD · Adam · AdamW · RMSprop, with momentum under SGD. Both rails are the shell's own DOM
+    inside a <code>.w-split</code> at the real 300px, measured after <code>document.fonts.ready</code>; nothing
+    under <code>widgets/core/</code> is touched by this page.
+  </p>
+  <p class="note">
+    The <code>Scheduler</code> field is measured separately first, because <code>ReduceLROnPlateau</code> is the
+    longest option name in the arc and a segmented row divides 300px three ways.
+  </p>
+  <div class="row" id="schedFaces"></div>
+  <p class="measure" id="schedFit"></p>
+  <div class="row" id="railRow"></div>
+  <p class="rec" id="recRail"></p>
+
+  <h2>&sect;8 &middot; Map and relief</h2>
+  <p class="note">
+    Not a pick, a note. Widget 48's relief renderer is written against a <i>field</i> — <code>projector</code>,
+    <code>reliefMesh</code> and the hidden-line march in <code>widgets/gradients/model.js</code> take any
+    function of two variables — so a <code>display</code> toggle turning this map into a 3D relief costs an
+    import and a call, and the same walk can be lifted onto it with <code>reliefLift</code>. That is what the
+    linked site shows and the one thing it does better than a contour map: a reader who has never seen a level
+    set does not know a pit from a peak. It is deliberately not drawn here, because the picks above are about
+    what the walk does, and a relief decides none of them.
+  </p>
+</main>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+import { makePlot } from "../core/canvas.js";
+import { isoSegments } from "../gradients/model.js";
+
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+
+/* ==========================================================================
+   THE ENGINE, COPIED VERBATIM FROM `_lab/dl-optim-measure.mjs`.
+   Comments included: they are the record of how each rule differs from the
+   paper and the netlify forms, and the reason the page prints torch's numbers
+   rather than a plausible-looking approximation. Only two things are added, at
+   the end of the block and marked: a `prep` that is the script's own top-level
+   polish loop as a function, and two readers that drive `run` rather than
+   reimplementing it.
+   ====================================================================== */
+
+/* ---- torch.optim's update rules ------------------------------------------ */
+
+function makeOptimizer(kind, lr0) {
+  const s = { t: 0, buf: [0, 0], m: [0, 0], v: [0, 0], sq: [0, 0] };
+  const EPS = 1e-8;
+  return {
+    kind,
+    lr: lr0,
+    /* theta and g are [x, y]; mutates theta, as torch does */
+    step(theta, g) {
+      s.t += 1;
+      const lr = this.lr;
+      for (let i = 0; i < 2; i += 1) {
+        switch (kind) {
+          case "sgd":
+            theta[i] -= lr * g[i];
+            break;
+          case "momentum": {
+            /* torch.optim.SGD(momentum=0.9, dampening=0): buf = g on the first
+               step, then buf = mu*buf + g; theta -= lr*buf. The lr multiplies
+               the buffer, so it is not folded into it as in the classical
+               (and netlify) form v = mu*v + lr*g. */
+            s.buf[i] = s.t === 1 ? g[i] : 0.9 * s.buf[i] + g[i];
+            theta[i] -= lr * s.buf[i];
+            break;
+          }
+          case "rmsprop": {
+            /* torch.optim.RMSprop(alpha=0.99, eps=1e-8): eps OUTSIDE the root */
+            s.sq[i] = 0.99 * s.sq[i] + 0.01 * g[i] * g[i];
+            theta[i] -= (lr * g[i]) / (Math.sqrt(s.sq[i]) + EPS);
+            break;
+          }
+          case "adam":
+          case "adamw": {
+            /* torch.optim.Adam(betas=(0.9, 0.999), eps=1e-8); AdamW applies
+               the decoupled decay theta *= 1 - lr*wd BEFORE the Adam step,
+               wd = 0.01 its default. */
+            if (kind === "adamw") theta[i] *= 1 - lr * 0.01;
+            s.m[i] = 0.9 * s.m[i] + 0.1 * g[i];
+            s.v[i] = 0.999 * s.v[i] + 0.001 * g[i] * g[i];
+            const bc1 = 1 - 0.9 ** s.t;
+            const bc2 = 1 - 0.999 ** s.t;
+            const denom = Math.sqrt(s.v[i]) / Math.sqrt(bc2) + EPS;
+            theta[i] -= ((lr / bc1) * s.m[i]) / denom;
+            break;
+          }
+          default:
+            throw new Error(kind);
+        }
+      }
+    },
+  };
+}
+
+const OPTIMIZERS = ["sgd", "momentum", "rmsprop", "adam", "adamw"];
+
+/* ---- torch.optim.lr_scheduler, the two the notebook gives syntax for ----- */
+
+function makeScheduler(kind, opt) {
+  const base = opt.lr;
+  let best = Infinity;
+  let bad = 0;
+  let n = 0;
+  return {
+    /* called once per step with that step's loss, as the notebook's loop calls
+       scheduler.step() (StepLR) or scheduler.step(avg_val_loss) at the end of
+       each epoch */
+    step(loss) {
+      n += 1;
+      if (kind === "step") {
+        /* StepLR(step_size=100, gamma=0.1) */
+        opt.lr = base * 0.1 ** Math.floor(n / 100);
+      } else if (kind === "plateau") {
+        /* ReduceLROnPlateau(mode="min", factor=0.1, patience=10,
+           threshold=1e-4 rel, cooldown=0), torch's defaults */
+        if (loss < best * (1 - 1e-4)) {
+          best = loss;
+          bad = 0;
+        } else {
+          bad += 1;
+        }
+        if (bad > 10) {
+          opt.lr *= 0.1;
+          bad = 0;
+        }
+      }
+    },
+  };
+}
+
+/* ---- candidate landscapes -------------------------------------------------- */
+
+/* Two Gaussian wells on a faint bowl. Outside the wells the bowl's gradient is
+   ~0.02|theta|: a plain SGD walks it at lr * that, Adam at ~lr a step, which
+   is the plateau claim. One well is deeper (global), one shallower (local),
+   and the `aniso` variant stretches the global well into a trench so widget
+   48's curvature story is also present inside it. */
+function wells({ name, global, local, c = 0.01, range }) {
+  const terms = [global, local];
+  const f = (x, y) => {
+    let v = c * (x * x + y * y);
+    for (const w of terms) v -= w.d * Math.exp(-((x - w.x) ** 2 / w.sx + (y - w.y) ** 2 / w.sy));
+    return v;
+  };
+  const grad = (x, y) => {
+    let gx = 2 * c * x;
+    let gy = 2 * c * y;
+    for (const w of terms) {
+      const e = w.d * Math.exp(-((x - w.x) ** 2 / w.sx + (y - w.y) ** 2 / w.sy));
+      gx += (e * 2 * (x - w.x)) / w.sx;
+      gy += (e * 2 * (y - w.y)) / w.sy;
+    }
+    return [gx, gy];
+  };
+  return { name, f, grad, range, seeds: [[global.x, global.y], [local.x, local.y]] };
+}
+
+/* polish a seed into the exact minimum with a long, small-step descent */
+function polish(S, [x0, y0]) {
+  let x = x0;
+  let y = y0;
+  for (let k = 0; k < 20000; k += 1) {
+    const [gx, gy] = S.grad(x, y);
+    x -= 0.01 * gx;
+    y -= 0.01 * gy;
+  }
+  return { x, y, f: S.f(x, y) };
+}
+
+/* ---- one run --------------------------------------------------------------- */
+
+const BUDGET = 800;
+const NEAR = 0.15;      // "arrived": within this of a minimum at the budget
+const REACH = 0.1;      // "reached the global": first step within this
+
+function run(S, kind, lr, start, scheduler = null, trace = null) {
+  const theta = [start[0], start[1]];
+  const opt = makeOptimizer(kind, lr);
+  const sch = scheduler ? makeScheduler(scheduler, opt) : null;
+  const G = S.minima.find((m) => m.kind === "G");
+  const far = 3 * Math.max(...S.range.flat().map(Math.abs));
+  let reached = null;
+  for (let t = 1; t <= BUDGET; t += 1) {
+    const g = S.grad(theta[0], theta[1]);
+    opt.step(theta, g);
+    if (sch) sch.step(S.f(theta[0], theta[1]));
+    if (trace && trace.at.includes(t)) trace.out.push([t, theta[0], theta[1]]);
+    if (!Number.isFinite(theta[0]) || !Number.isFinite(theta[1]) || Math.hypot(theta[0], theta[1]) > far) {
+      return { outcome: "X", reached, lr: opt.lr, dG: Infinity };
+    }
+    if (reached === null && Math.hypot(theta[0] - G.x, theta[1] - G.y) < REACH) reached = t;
+  }
+  let outcome = "W";
+  let dist = Infinity;
+  for (const m of S.minima) {
+    const d = Math.hypot(theta[0] - m.x, theta[1] - m.y);
+    if (d < NEAR && d < dist) {
+      dist = d;
+      outcome = m.kind;
+    }
+  }
+  const dG = Math.hypot(theta[0] - G.x, theta[1] - G.y);
+  return { outcome, reached, lr: opt.lr, theta, loss: S.f(theta[0], theta[1]), dG };
+}
+
+/* ---- ADDED FOR THE PAGE, and only these three ----------------------------- */
+
+/** The script's own top-level polish loop, as a function: a page prepares a
+    surface on demand rather than at module load. `fmax` is new and is only for
+    the colour ramp — nothing the survey prints depends on it. */
+function prep(S) {
+  S.minima = S.seeds.map((p) => polish(S, p));
+  const fmin = Math.min(...S.minima.map((m) => m.f));
+  for (const m of S.minima) m.kind = Math.abs(m.f - fmin) < 1e-9 ? "G" : "L";
+  S.fmin = fmin;
+  let hi = -Infinity;
+  for (let i = 0; i <= 48; i += 1) {
+    for (let j = 0; j <= 48; j += 1) {
+      const x = S.range[0][0] + (i / 48) * (S.range[0][1] - S.range[0][0]);
+      const y = S.range[1][0] + (j / 48) * (S.range[1][1] - S.range[1][0]);
+      hi = Math.max(hi, S.f(x, y));
+    }
+  }
+  S.fmax = hi;
+  S.cap = Math.log10(1 + (hi - fmin) / 0.05);
+  return S;
+}
+
+/* THE PATH IS `run`'s OWN TRACE, not a second walk. `trace.at` is only ever
+   asked `includes(t)`, so an object that answers yes to every step records the
+   whole walk through the verbatim loop — the drawn path and the printed
+   outcome are then the same 800 steps, and cannot disagree. */
+const EVERY_STEP = { includes: () => true };
+function walk(S, kind, lr, start, scheduler = null) {
+  const trace = { at: EVERY_STEP, out: [] };
+  const r = run(S, kind, lr, start, scheduler, trace);
+  r.path = [[start[0], start[1]], ...trace.out.map(([, x, y]) => [x, y])];
+  r.losses = trace.out.map(([, x, y]) => S.f(x, y));
+  return r;
+}
+
+/* The rate at each step, replayed through the verbatim scheduler against the
+   loss sequence the walk actually produced. `makeScheduler` reads and writes
+   `opt.lr` and nothing else, so a bare object is the whole contract. */
+function lrTrack(kind, lr0, losses) {
+  const opt = { lr: lr0 };
+  const sch = kind ? makeScheduler(kind, opt) : null;
+  return losses.map((L) => {
+    if (sch) sch.step(L);
+    return opt.lr;
+  });
+}
+
+/* ==========================================================================
+   The surfaces this page draws. The local well is 0.35 deep on both variants
+   — the depth the survey swept and settled on — so every candidate differs in
+   one thing only: the shape of the GLOBAL well.
+   ====================================================================== */
+
+const SURF = {
+  round: prep(wells({
+    name: "round",
+    global: { x: 1.6, y: 0, d: 1.2, sx: 0.9, sy: 0.9 },
+    local: { x: -1.6, y: 0.4, d: 0.35, sx: 0.7, sy: 0.7 },
+    range: [[-4, 4], [-3, 3]],
+  })),
+  trench: prep(wells({
+    name: "trench",
+    global: { x: 1.6, y: 0, d: 1.2, sx: 2.5, sy: 0.25 },
+    local: { x: -1.6, y: 0.4, d: 0.35, sx: 0.7, sy: 0.7 },
+    range: [[-4, 4], [-3, 3]],
+  })),
+  camel: prep({
+    /* the three-hump camel: one global minimum at the origin, two local ones
+       at about (+-1.75, -+0.87), a classic test function */
+    name: "camel3",
+    f: (x, y) => 2 * x * x - 1.05 * x ** 4 + x ** 6 / 6 + x * y + y * y,
+    grad: (x, y) => [4 * x - 4.2 * x ** 3 + x ** 5 + y, x + 2 * y],
+    range: [[-2.2, 2.2], [-2.2, 2.2]],
+    seeds: [[0, 0], [1.75, -0.87], [-1.75, 0.87]],
+  }),
+};
+
+/* The three starts, each a claim. The camel's frame is +-2.2, so it carries the
+   same three ideas at its own coordinates. */
+const STARTS = {
+  wells: [
+    { key: "beyond", label: "Beyond the local minimum", at: [-3.6, 0.6] },
+    { key: "plain", label: "On the plain", at: [3.5, 2.5] },
+    { key: "rim", label: "At the rim of the global well", at: [0.7, 0.6] },
+  ],
+  camel: [
+    { key: "beyond", label: "Outside both wells", at: [-1.5, 1.5] },
+    { key: "plain", label: "In the local basin", at: [1.6, -0.6] },
+    { key: "rim", label: "At the rim of the global well", at: [0.7, -0.9] },
+  ],
+};
+const startsFor = (S) => (S === SURF.camel ? STARTS.camel : STARTS.wells);
+
+const METHODS = [
+  { key: "sgd", label: "SGD", short: "SGD" },
+  { key: "momentum", label: "SGD, momentum 0.9", short: "momentum 0.9" },
+  { key: "rmsprop", label: "RMSprop", short: "RMSprop" },
+  { key: "adam", label: "Adam", short: "Adam" },
+];
+
+const LADDER = [0.01, 0.03, 0.1, 0.3, 1];
+
+/* ==========================================================================
+   Drawing. Every colour is a token read through `readTokens`; the surface ramp
+   is --c-cost-low to --c-cost-high, which tokens.css defines for exactly this
+   ("a cost painted over a parameter space ... any later loss landscape").
+   ====================================================================== */
+
+const el = (tag, cls, text) => {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text != null) e.textContent = text;
+  return e;
+};
+const fmt = (v, d = 2) => (Number.isFinite(v) ? v.toFixed(d) : "-");
+const probe = document.createElement("canvas").getContext("2d");
+
+/** Shorten a string to fit `maxW` in `font`, ending in an ellipsis. Captions
+    are measured, never clipped. */
+function fit(s, font, maxW) {
+  probe.font = font;
+  if (probe.measureText(s).width <= maxW) return s;
+  let out = s;
+  while (out.length > 1 && probe.measureText(out + "…").width > maxW) out = out.slice(0, -1);
+  return out.trimEnd() + "…";
+}
+const capFont = () => `600 ${T.fsSm} ${T.font}`;
+const noteFont = () => `${T.fsXs} ${T.font}`;
+
+const hexLerp = (a, b, t) => {
+  const pa = [1, 3, 5].map((i) => parseInt(a.slice(i, i + 2), 16));
+  const pb = [1, 3, 5].map((i) => parseInt(b.slice(i, i + 2), 16));
+  const c = pa.map((v, i) => Math.round(v + (pb[i] - v) * t));
+  return `rgb(${c[0]}, ${c[1]}, ${c[2]})`;
+};
+/* The soft log the brief asks for: the loss here is a difference, not a ratio,
+   so there is no "times the least loss" to take a log of. 0.05 is the scale at
+   which a well stops being flat. */
+const rampT = (S, v) => Math.max(0, Math.min(1, Math.log10(1 + Math.max(0, v - S.fmin) / 0.05) / S.cap));
+const ramp = (S, v) => hexLerp(T.costLow, T.costHigh, rampT(S, v));
+/* Contours at even steps of the ramp, inverted back into loss units, so the
+   lines are where the colour changes rather than where the arithmetic is round. */
+const levelsFor = (S) => [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+  .map((t) => S.fmin + 0.05 * (10 ** (t * S.cap) - 1));
+
+function canvasIn(parent, w, h) {
+  const cv = document.createElement("canvas");
+  cv.width = Math.round(w * DPR); cv.height = Math.round(h * DPR);
+  cv.style.width = `${w}px`; cv.style.height = `${h}px`;
+  parent.appendChild(cv);
+  const ctx = cv.getContext("2d");
+  ctx.scale(DPR, DPR);
+  ctx.fillStyle = T.surface; ctx.fillRect(0, 0, w, h);
+  return ctx;
+}
+function cand(parent, title, sub) {
+  const c = el("div", "cand");
+  if (title) c.appendChild(el("h3", null, title));
+  if (sub != null) c.appendChild(el("p", "sub", sub));
+  parent.appendChild(c);
+  return c;
+}
+
+function arrow(ctx, x0, y0, x1, y1, color, width = 2, cased = true) {
+  const a = Math.atan2(y1 - y0, x1 - x0);
+  const head = (cx, cy) => {
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(cx - 8 * Math.cos(a - 0.4), cy - 8 * Math.sin(a - 0.4));
+    ctx.lineTo(cx - 8 * Math.cos(a + 0.4), cy - 8 * Math.sin(a + 0.4));
+    ctx.closePath();
+  };
+  /* A slope mark is CASED wherever it crosses another mark — tokens.css's own
+     rule for --c-slope, and this one crosses a full-bleed ramp everywhere. */
+  if (cased) {
+    ctx.strokeStyle = T.surface; ctx.fillStyle = T.surface; ctx.lineWidth = width + 3;
+    ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+    head(x1, y1); ctx.fill(); ctx.lineJoin = "round"; ctx.stroke();
+  }
+  ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = width;
+  ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+  head(x1, y1); ctx.fill();
+}
+
+/**
+ * One contour map. `rect` is the plot area; everything outside it is axis.
+ * `walks` are drawn in order, so the chosen one goes last and sits on top.
+ */
+function drawMap(ctx, rect, S, {
+  xDom = S.range[0], yDom = S.range[1],
+  walks = [], starts = [], minima = true,
+  caption = null, note = null, axes = true, cell = 2,
+} = {}) {
+  const plot = makePlot({ ctx, colors: T, rect, xDomain: xDom, yDomain: yDom });
+  if (caption) plot.caption(fit(caption, capFont(), rect.w * 0.72));
+  if (note) plot.note(fit(note, noteFont(), rect.w * 0.46));
+
+  for (let x = 0; x < rect.w; x += cell) {
+    for (let y = 0; y < rect.h; y += cell) {
+      const vx = xDom[0] + ((x + cell / 2) / rect.w) * (xDom[1] - xDom[0]);
+      const vy = yDom[1] - ((y + cell / 2) / rect.h) * (yDom[1] - yDom[0]);
+      ctx.fillStyle = ramp(S, S.f(vx, vy));
+      ctx.fillRect(rect.x + x, rect.y + y, cell, cell);
+    }
+  }
+  /* isoSegments comes from widgets/gradients/model.js: marching squares over
+     any field, in data coordinates. */
+  const segs = isoSegments(S.f, xDom, yDom, levelsFor(S), 80);
+  ctx.save();
+  ctx.beginPath(); ctx.rect(rect.x, rect.y, rect.w, rect.h); ctx.clip();
+  ctx.strokeStyle = T.surface; ctx.globalAlpha = 0.5; ctx.lineWidth = 1;
+  ctx.beginPath();
+  for (const [ax, ay, bx, by] of segs) {
+    ctx.moveTo(plot.sx(ax), plot.sy(ay));
+    ctx.lineTo(plot.sx(bx), plot.sy(by));
+  }
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+
+  /* Labels already on this panel, so the next one can step down rather than
+     print through. The four ends crowd the global well, which is exactly where
+     the reader is looking. */
+  const placed = [];
+  for (const w of walks) {
+    const pts = w.path;
+    /* EVERY WALK IS CASED. A path crosses a full-bleed ramp along its whole
+       length, and --ink-3 against the hot end of --c-cost-high is the pair
+       tokens.css warns about for --c-slope; a halo of the panel's own ground is
+       what makes a line findable there, and it also says which of two crossing
+       walks is in front. */
+    const drawLine = (style, width) => {
+      ctx.strokeStyle = style; ctx.lineWidth = width;
+      ctx.lineJoin = "round"; ctx.lineCap = "round";
+      ctx.beginPath();
+      let on = false;
+      for (const [px, py] of pts) {
+        if (!Number.isFinite(px) || !Number.isFinite(py)) break;
+        const sxp = plot.sx(px); const syp = plot.sy(py);
+        if (on) ctx.lineTo(sxp, syp); else { ctx.moveTo(sxp, syp); on = true; }
+      }
+      ctx.stroke();
+    };
+    const lw = w.width ?? 1.8;
+    drawLine(T.surface, lw + 2.5);
+    drawLine(w.color, lw);
+  }
+  /* The ends and their labels in REVERSE, so the walk drawn last — the chosen
+     one, the one on top — gets first claim on the label space. Placement runs
+     after every line is down, so no end marker can be buried by a later path. */
+  for (const w of [...walks].reverse()) {
+    const pts = w.path;
+    const last = pts.filter(([a, b]) => Number.isFinite(a) && Number.isFinite(b)).at(-1);
+    if (last) {
+      ctx.beginPath();
+      ctx.arc(plot.sx(last[0]), plot.sy(last[1]), w.endR ?? 3.5, 0, 2 * Math.PI);
+      ctx.fillStyle = w.color; ctx.fill();
+      ctx.lineWidth = 1.5; ctx.strokeStyle = T.surface; ctx.stroke();
+      if (w.label) {
+        const font = noteFont();
+        const s = fit(w.label, font, 96);
+        ctx.font = font;
+        const tw = ctx.measureText(s).width;
+        let lx = plot.sx(last[0]) + 7;
+        if (lx + tw > rect.x + rect.w - 3) lx = plot.sx(last[0]) - 7 - tw;
+        const base = Math.min(Math.max(plot.sy(last[1]) + 3, rect.y + 11), rect.y + rect.h - 4);
+        const clash = (y) => y < rect.y + 10 || y > rect.y + rect.h - 3
+          || placed.some((p) => Math.abs(p.y - y) < 12
+            && lx < p.x + p.w + 5 && p.x < lx + tw + 5);
+        /* Three tries, then the label is DROPPED rather than parked somewhere
+           it no longer points at its own end marker. Every panel that labels a
+           walk also prints the four outcomes under it, so a dropped label costs
+           the reader nothing and a wrong one would cost them the panel. */
+        const ly = [base, base + 13, base - 13].find((y) => !clash(y));
+        if (ly != null) {
+          placed.push({ x: lx, y: ly, w: tw });
+          ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+          ctx.strokeStyle = T.surface; ctx.lineWidth = 3; ctx.strokeText(s, lx, ly);
+          ctx.fillStyle = w.labelColor ?? w.color; ctx.fillText(s, lx, ly);
+        }
+      }
+    }
+  }
+
+  if (minima) {
+    for (const m of S.minima) {
+      const mx = plot.sx(m.x); const my = plot.sy(m.y);
+      ctx.beginPath(); ctx.arc(mx, my, 5, 0, 2 * Math.PI);
+      if (m.kind === "G") {
+        ctx.fillStyle = T.reference; ctx.fill();
+        ctx.lineWidth = 2; ctx.strokeStyle = T.surface; ctx.stroke();
+      } else {
+        ctx.lineWidth = 3.5; ctx.strokeStyle = T.surface; ctx.stroke();
+        ctx.lineWidth = 2; ctx.strokeStyle = T.reference; ctx.stroke();
+      }
+    }
+  }
+  for (const s of starts) {
+    const sx0 = plot.sx(s[0]); const sy0 = plot.sy(s[1]);
+    ctx.beginPath(); ctx.arc(sx0, sy0, 5, 0, 2 * Math.PI);
+    ctx.lineWidth = 3.5; ctx.strokeStyle = T.surface; ctx.stroke();
+    ctx.lineWidth = 2; ctx.strokeStyle = T.highlight; ctx.stroke();
+  }
+  ctx.restore();
+
+  ctx.strokeStyle = T.grid; ctx.lineWidth = 1;
+  ctx.strokeRect(rect.x + 0.5, rect.y + 0.5, rect.w - 1, rect.h - 1);
+  if (axes) {
+    plot.axisX({ label: "parameter 1" });
+    plot.axisY({ label: "parameter 2" });
+  }
+  return plot;
+}
+
+/** The one-line verdict a cell or a table entry carries. */
+function outcomeText(r) {
+  if (r.outcome === "X") return "gone";
+  if (r.outcome === "G") return `global in ${r.reached}`;
+  if (r.outcome === "L") return "local";
+  return `${fmt(r.dG)} away`;
+}
+
+const MAP_W = 350; const MAP_H = 285;
+const mapRect = { x: 60, y: 24, w: 278, h: 219 };
+
+/* ======================== §1 · the landscape ============================== */
+
+const LAND = [
+  { key: "A", S: SURF.round, title: "A · two wells, round global well",
+    sub: "global sx = sy = 0.9, local 0.35 deep\nthe well a matched rate lands in one step" },
+  { key: "B", S: SURF.trench, title: "B · two wells, trench global well",
+    sub: "global sx 2.5, sy 0.25, local 0.35 deep\nthe long axis lowers the ridge toward the local well" },
+  { key: "C", S: SURF.camel, title: "C · the three-hump camel",
+    sub: "2x² − 1.05x⁴ + x⁶/6 + xy + y²\ntwo local minima, polynomial walls" },
+];
+
+{
+  const row = document.getElementById("landRow");
+  for (const c of LAND) {
+    const box = cand(row, c.title, c.sub);
+    const ctx = canvasIn(box, MAP_W, MAP_H);
+    const G = c.S.minima.find((m) => m.kind === "G");
+    const L = c.S.minima.find((m) => m.kind === "L");
+    drawMap(ctx, mapRect, c.S, {
+      caption: c.S === SURF.camel ? "Three-hump camel" : (c.S === SURF.round ? "Round global well" : "Trench global well"),
+      note: `global ${fmt(G.f)} · local ${fmt(L.f)}`,
+    });
+    const st = startsFor(c.S)[1];
+    const g = c.S.grad(...st.at);
+    box.appendChild(el("p", "measure",
+      `|grad| at ${st.label} ${fmt(Math.hypot(...g), 3)} · `
+      + `f spans ${fmt(c.S.fmin)} to ${fmt(c.S.fmax)}`));
+  }
+
+  const host = document.getElementById("landFacts");
+  for (const c of LAND) {
+    host.appendChild(el("p", "pagehead", `${c.key} · ${c.title.replace(/^\w · /, "")}`));
+    const tb = el("table", "facts");
+    const head = el("tr");
+    for (const h of ["start", "lr", ...METHODS.map((m) => m.label)]) head.appendChild(el("th", null, h));
+    tb.appendChild(head);
+    for (const st of startsFor(c.S)) {
+      for (const lr of [0.1, 0.3]) {
+        const tr = el("tr");
+        tr.appendChild(el("td", null, lr === 0.1 ? st.label : ""));
+        tr.appendChild(el("td", null, String(lr)));
+        for (const m of METHODS) {
+          const r = run(c.S, m.key, lr, st.at);
+          const td = el("td");
+          td.innerHTML = r.outcome === "G" ? `<b>${outcomeText(r)}</b>` : outcomeText(r);
+          tr.appendChild(td);
+        }
+        tb.appendChild(tr);
+      }
+    }
+    host.appendChild(tb);
+  }
+}
+
+/* ======================== §2 · the start ================================== */
+
+{
+  const row = document.getElementById("startRow");
+  for (const st of STARTS.wells) {
+    const box = cand(row, st.label, `(${st.at[0]}, ${st.at[1]}) · all four walks at lr 0.3\nthe first 150 steps drawn; the outcome is the whole 800`);
+    const ctx = canvasIn(box, MAP_W, MAP_H);
+    const walks = METHODS.map((m) => {
+      const r = walk(SURF.trench, m.key, 0.3, st.at);
+      return { r, m, path: r.path.slice(0, 151), color: T.ink3, width: 1.4, label: m.short };
+    });
+    drawMap(ctx, mapRect, SURF.trench, { walks, starts: [st.at], caption: st.label });
+    const tb = el("table", "facts");
+    for (const w of walks) {
+      const tr = el("tr");
+      tr.appendChild(el("th", null, w.m.label));
+      tr.appendChild(el("td", null, outcomeText(w.r)));
+      tb.appendChild(tr);
+    }
+    box.appendChild(tb);
+  }
+}
+
+/* ======================== §3 · one path or four =========================== */
+
+{
+  const row = document.getElementById("pathRow");
+  const st = STARTS.wells[0];
+  const chosen = "momentum";
+  const runs = METHODS.map((m) => ({ m, r: walk(SURF.trench, m.key, 0.3, st.at) }));
+  const mine = runs.find((x) => x.m.key === chosen);
+
+  {
+    const box = cand(row, "A · the chosen walk only",
+      "one path, in --c-empirical, the first 150 steps\nthe other three are not drawn");
+    const ctx = canvasIn(box, MAP_W, MAP_H);
+    drawMap(ctx, mapRect, SURF.trench, {
+      walks: [{ path: mine.r.path.slice(0, 151), color: T.empirical, width: 2, label: mine.m.short, labelColor: T.ink1 }],
+      starts: [st.at], caption: "SGD, momentum 0.9",
+      note: outcomeText(mine.r),
+    });
+    box.appendChild(el("p", "measure", `${mine.m.label} at lr 0.3 — ${outcomeText(mine.r)}`));
+  }
+  {
+    const box = cand(row, "B · all four, the chosen one in front",
+      "chosen in --c-empirical, the rest in --ink-3 at 1.4px, the first 150 steps\ncolour carries one grouping: chosen against the rest");
+    const ctx = canvasIn(box, MAP_W, MAP_H);
+    const walks = [
+      ...runs.filter((x) => x.m.key !== chosen)
+        .map((x) => ({ path: x.r.path.slice(0, 151), color: T.ink3, width: 1.4, label: x.m.short })),
+      { path: mine.r.path.slice(0, 151), color: T.empirical, width: 2.2, label: mine.m.short, labelColor: T.ink1 },
+    ];
+    drawMap(ctx, mapRect, SURF.trench, { walks, starts: [st.at], caption: "Four walks, one start" });
+    box.appendChild(el("p", "measure",
+      runs.map((x) => `${x.m.short} ${outcomeText(x.r)}`).join(" · ")));
+  }
+}
+
+/* ======================== §4 · the step drawn ============================= */
+
+/** theta after K steps, the gradient there, and the displacement the rule makes
+    out of it — driven through the verbatim `makeOptimizer`. */
+function stepProbe(S, kind, lr, start, K) {
+  const theta = [start[0], start[1]];
+  const opt = makeOptimizer(kind, lr);
+  for (let t = 0; t < K; t += 1) opt.step(theta, S.grad(theta[0], theta[1]));
+  const before = [theta[0], theta[1]];
+  const g = S.grad(before[0], before[1]);
+  opt.step(theta, g);
+  return { before, g, d: [theta[0] - before[0], theta[1] - before[1]] };
+}
+
+const STEP_W = 250; const STEP_H = 230;
+const stepRect = { x: 40, y: 24, w: 196, h: 147 };
+/* EACH PANEL PICKS ITS OWN STEP, and the caption says which. The three rules
+   make their point at different moments of the same walk: the buffer only
+   parts from the gradient where the path turns (step 30, 87 degrees apart),
+   and Adam's rescale is clearest on the approach, where one coordinate's
+   gradient is nine times the other's and its step is 1.4 times (step 10). A
+   shared step index would have shown one of the three and hidden two. */
+const STEP_K = { sgd: 20, momentum: 30, adam: 10 };
+const STEP_LR = 0.1;
+/* ONE WINDOW FOR ALL THREE PANELS, sized to the largest of the three steps.
+   Three windows would let a 0.008 step and a 0.129 step be drawn the same
+   length, and the section exists to compare them. */
+const STEP_HX = Math.max(...["sgd", "momentum", "adam"].map((k) => {
+  const q = stepProbe(SURF.trench, k, STEP_LR, STARTS.wells[0].at, STEP_K[k]);
+  return 1.7 * Math.hypot(...q.d);
+}));
+
+function drawStepPanel(box, kind, label, { arrowOn }) {
+  const st = STARTS.wells[0].at;
+  const K = STEP_K[kind];
+  const p = stepProbe(SURF.trench, kind, STEP_LR, st, K);
+  const gLen = Math.hypot(...p.g);
+  const dLen = Math.hypot(...p.d);
+  const hx = STEP_HX;
+  const hy = hx * (stepRect.h / stepRect.w);
+  const ctx = canvasIn(box, STEP_W, STEP_H);
+  const plot = drawMap(ctx, stepRect, SURF.trench, {
+    xDom: [p.before[0] - hx, p.before[0] + hx],
+    yDom: [p.before[1] - hy, p.before[1] + hy],
+    minima: false, cell: 2,
+    caption: label,
+    note: `step ${K}`,
+  });
+  const px0 = plot.sx(p.before[0]); const py0 = plot.sy(p.before[1]);
+  if (arrowOn && gLen > 0) {
+    /* Direction only, at a fixed 46px: the gradient is not a displacement, and
+       drawing it to scale would make it a second step. */
+    const ux = -p.g[0] / gLen; const uy = -p.g[1] / gLen;
+    arrow(ctx, px0, py0, px0 + ux * 46, py0 - uy * 46, T.slope, 2);
+  }
+  arrow(ctx, px0, py0, plot.sx(p.before[0] + p.d[0]), plot.sy(p.before[1] + p.d[1]), T.empirical, 2.2);
+  ctx.beginPath(); ctx.arc(px0, py0, 3.5, 0, 2 * Math.PI);
+  ctx.fillStyle = T.ink1; ctx.fill();
+  ctx.lineWidth = 1.5; ctx.strokeStyle = T.surface; ctx.stroke();
+  const ang = gLen > 0 && dLen > 0
+    ? Math.acos(Math.max(-1, Math.min(1, (-p.g[0] * p.d[0] - p.g[1] * p.d[1]) / (gLen * dLen)))) * 180 / Math.PI
+    : 0;
+  const stepPx = (dLen / (2 * hx)) * stepRect.w;
+  box.appendChild(el("p", "measure",
+    `|g| ${fmt(gLen, 3)} · step ${fmt(dLen, 3)} = ${fmt(stepPx, 1)}px · `
+    + `${fmt(ang, 1)}° off the gradient · window ±${fmt(hx)}`));
+  return p;
+}
+
+let ADAM_PROBE = null;
+{
+  const rowA = document.getElementById("stepA");
+  drawStepPanel(cand(rowA, "SGD", "the step is the rate times the gradient,\nso the arrow and the step lie on one line"),
+    "sgd", "SGD", { arrowOn: true });
+  drawStepPanel(cand(rowA, "SGD, momentum 0.9", "the step follows the running sum, not the gradient,\nso the two are visibly apart"),
+    "momentum", "momentum 0.9", { arrowOn: true });
+  ADAM_PROBE = drawStepPanel(cand(rowA, "Adam", "each coordinate divided by the root of its own\nrunning mean square, so the step is about the rate"),
+    "adam", "Adam", { arrowOn: true });
+
+  /* The fourth panel: Adam's rescale, the one thing a map cannot show. Both
+     quantities are in parameter units, so one shared symmetric scale is honest. */
+  const box = cand(rowA, "Adam · the rescale",
+    "the gradient's two parts against the step's two parts,\non one scale");
+  const ctx = canvasIn(box, STEP_W, STEP_H);
+  const rect = { x: 76, y: 30, w: 152, h: 138 };
+  const p = ADAM_PROBE;
+  const lim = Math.max(...p.g.map(Math.abs), ...p.d.map(Math.abs)) * 1.15;
+  const plot = makePlot({ ctx, colors: T, rect, xDomain: [-lim, lim], yDomain: [0, 4] });
+  plot.caption(fit("Adam · the rescale", capFont(), rect.w + 60));
+  ctx.strokeStyle = T.axis; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(plot.sx(0), rect.y); ctx.lineTo(plot.sx(0), rect.y + rect.h); ctx.stroke();
+  const bars = [
+    { y: 3.3, v: p.g[0], c: T.slope, lab: "gradient, 1" },
+    { y: 2.6, v: p.d[0], c: T.empirical, lab: "step, 1" },
+    { y: 1.4, v: p.g[1], c: T.slope, lab: "gradient, 2" },
+    { y: 0.7, v: p.d[1], c: T.empirical, lab: "step, 2" },
+  ];
+  ctx.textBaseline = "middle";
+  for (const b of bars) {
+    const y = plot.sy(b.y);
+    const x0 = plot.sx(0); const x1 = plot.sx(b.v);
+    ctx.fillStyle = b.c;
+    ctx.fillRect(Math.min(x0, x1), y - 7, Math.abs(x1 - x0), 14);
+    ctx.font = noteFont(); ctx.fillStyle = T.ink2; ctx.textAlign = "right";
+    ctx.fillText(fit(b.lab, noteFont(), 68), rect.x - 6, y);
+    /* a negative bar runs to the row label, so its number sits on the empty
+       side of the axis instead of at the bar tip */
+    ctx.textAlign = "left";
+    ctx.fillStyle = T.ink1;
+    ctx.fillText(fmt(b.v, 3), (x1 >= x0 ? x1 : x0) + 4, y);
+  }
+  plot.axisX({ ticks: [-lim, 0, lim], format: (v) => fmt(v, 2), label: "parameter units" });
+  box.appendChild(el("p", "measure",
+    `gradient (${fmt(p.g[0], 3)}, ${fmt(p.g[1], 3)}) · step (${fmt(p.d[0], 3)}, ${fmt(p.d[1], 3)})`));
+}
+{
+  const rowB = document.getElementById("stepB");
+  rowB.classList.remove("row");
+  rowB.appendChild(el("p", "pagehead", "B · the step alone, to scale"));
+  const holder = el("div", "row");
+  rowB.appendChild(holder);
+  for (const [kind, label] of [["sgd", "SGD"], ["momentum", "momentum 0.9"], ["adam", "Adam"]]) {
+    drawStepPanel(cand(holder, label, "the step and nothing else"), kind, label, { arrowOn: false });
+  }
+}
+{
+  const cards = document.getElementById("cards");
+  /* THE RATE IS WRITTEN `lr`, NOT α. It is what the control is called, what
+     torch's keyword is, and what the notebook's cells pass; a Greek letter for
+     it would be the one symbol on these cards a reader has to be told. The
+     decays keep their symbols, and each card's last line names the torch
+     keyword that carries them. */
+  const RULES = [
+    ["SGD", ["θ ← θ − lr · g"], "optim.SGD(params, lr, weight_decay=0)"],
+    ["SGD, momentum 0.9", ["b ← μ b + g", "θ ← θ − lr · b"],
+      "optim.SGD(params, lr, momentum=0.9)   μ is momentum"],
+    ["RMSprop", ["v ← ρ v + (1−ρ) g²", "θ ← θ − lr · g / (√v + ε)"],
+      "optim.RMSprop(params, lr, alpha=0.99)   ρ is alpha"],
+    ["Adam", ["m ← β₁ m + (1−β₁) g", "v ← β₂ v + (1−β₂) g²",
+      "m̂ = m / (1−β₁ᵗ),   v̂ = v / (1−β₂ᵗ)",
+      "θ ← θ − lr · m̂ / (√v̂ + ε)"],
+      "optim.Adam(params, lr, betas=(0.9, 0.999))"],
+  ];
+  for (const [name, lines, sig] of RULES) {
+    const c = el("div", "card");
+    c.appendChild(el("h4", null, name));
+    for (const l of lines) c.appendChild(el("p", null, l));
+    c.appendChild(el("p", "sig", sig));
+    cards.appendChild(c);
+  }
+  const c = el("div", "card");
+  c.appendChild(el("h4", null, "AdamW"));
+  c.appendChild(el("p", null, "θ ← (1 − lr · λ) θ, then the Adam step"));
+  c.appendChild(el("p", "sig", "optim.AdamW(params, lr, weight_decay=0.01)   λ is weight_decay"));
+  cards.appendChild(c);
+}
+
+/* ======================== §5 · the ladder ================================= */
+
+const TINY_W = 152; const TINY_H = 114;
+{
+  const grid = document.getElementById("ladder");
+  grid.appendChild(el("div"));
+  for (const lr of LADDER) grid.appendChild(el("div", "collab", `lr ${lr}`));
+  for (const m of METHODS) {
+    grid.appendChild(el("div", "rowlab", m.label));
+    for (const lr of LADDER) {
+      const cellBox = el("div", "cell");
+      const ctx = canvasIn(cellBox, TINY_W, TINY_H);
+      const r = walk(SURF.trench, m.key, lr, STARTS.wells[0].at);
+      drawMap(ctx, { x: 1, y: 1, w: TINY_W - 2, h: TINY_H - 2 }, SURF.trench, {
+        walks: [{ path: r.path, color: T.empirical, width: 1.6, endR: 3 }],
+        starts: [STARTS.wells[0].at], axes: false, cell: 3,
+      });
+      cellBox.appendChild(el("p", null, outcomeText(r)));
+      grid.appendChild(cellBox);
+    }
+  }
+}
+
+/* ======================== §6 · schedulers ================================= */
+
+const SCHED_W = 372; const SCHED_H = 216;
+{
+  const row = document.getElementById("schedRow");
+  const start = STARTS.wells[1].at;
+  const LR0 = 1;
+  const FLOOR = 1e-8;
+  const SCHEDS = [[null, "None"], ["step", "StepLR"], ["plateau", "ReduceLROnPlateau"]];
+  const holder = row;
+  for (const m of [METHODS[0], METHODS[1]]) {
+    for (const [kind, name] of SCHEDS) {
+      const box = cand(holder, `${m.label} · ${name}`, `lr ${LR0}, from On the plain`);
+      const ctx = canvasIn(box, SCHED_W, SCHED_H);
+      const r = walk(SURF.round, m.key, LR0, start, kind);
+      const losses = r.losses;
+      const rates = lrTrack(kind, LR0, losses);
+      const n = losses.length;
+      const lossRect = { x: 52, y: 24, w: SCHED_W - 52 - 14, h: 62 };
+      const lrRect = { x: 52, y: 128, w: SCHED_W - 52 - 14, h: 52 };
+      const lo = Math.min(SURF.round.fmin, ...losses);
+      const hi = Math.max(...losses);
+      const lp = makePlot({ ctx, colors: T, rect: lossRect, xDomain: [0, Math.max(1, n)], yDomain: [lo, hi] });
+      lp.caption(fit(`${m.short} · ${name}`, capFont(), lossRect.w * 0.7));
+      lp.note(fit(outcomeText(r), noteFont(), lossRect.w * 0.28));
+      ctx.save();
+      ctx.beginPath(); ctx.rect(lossRect.x, lossRect.y - 2, lossRect.w, lossRect.h + 4); ctx.clip();
+      ctx.strokeStyle = T.empirical; ctx.lineWidth = 1.6; ctx.beginPath();
+      losses.forEach((v, i) => (i ? ctx.lineTo(lp.sx(i + 1), lp.sy(v)) : ctx.moveTo(lp.sx(1), lp.sy(v))));
+      ctx.stroke();
+      ctx.restore();
+      lp.axisY({ ticks: [lo, hi], format: (v) => fmt(v), label: "loss" });
+      lp.axisX({ ticks: [0, 400, 800] });
+
+      const ratesC = rates.map((v) => Math.max(FLOOR, v));
+      const rlo = Math.log10(Math.min(...ratesC));
+      const rhi = Math.log10(Math.max(...ratesC, LR0));
+      const rp = makePlot({ ctx, colors: T, rect: lrRect, xDomain: [0, Math.max(1, n)],
+        yDomain: [rlo === rhi ? rlo - 1 : rlo, rhi] });
+      ctx.strokeStyle = T.empirical; ctx.lineWidth = 1.6; ctx.beginPath();
+      ratesC.forEach((v, i) => (i ? ctx.lineTo(rp.sx(i + 1), rp.sy(Math.log10(v)))
+        : ctx.moveTo(rp.sx(1), rp.sy(Math.log10(v)))));
+      ctx.stroke();
+      rp.axisY({ ticks: [rlo === rhi ? rlo - 1 : rlo, rhi], format: (v) => `1e${Math.round(v)}`, label: "rate" });
+      rp.axisX({ ticks: [0, 400, 800], label: "step" });
+
+      const floored = rates.at(-1) < FLOOR;
+      box.appendChild(el("p", "measure",
+        `${outcomeText(r)} · final rate ${r.lr.toExponential(0)}`
+        + (floored ? " · the strip floors at 1e-8" : "")
+        + ` · replay ${rates.at(-1).toExponential(0)}`));
+    }
+  }
+}
+
+/* ======================== §7 · the rail =================================== */
+
+const field = (label, detail) => {
+  const f = el("div", "w-field");
+  if (label) { const l = el("label"); l.appendChild(el("span", null, label)); f.appendChild(l); }
+  if (detail != null) f.appendChild(el("p", "w-detail", detail));
+  return f;
+};
+const put = (f, node) => {
+  const d = f.querySelector(".w-detail");
+  if (d) f.insertBefore(node, d); else f.appendChild(node);
+};
+function segRun(f, opts, on, mode) {
+  const s = el("div", mode === "grid" ? "w-seg w-seg-grid" : "w-seg");
+  s.setAttribute("role", "group");
+  for (const o of opts) {
+    const label = typeof o === "string" ? o : o.label;
+    const b = el("button", o.span ? "w-seg-btn w-seg-btn--span" : "w-seg-btn");
+    b.type = "button";
+    b.dataset.value = label;
+    b.textContent = label;
+    b.setAttribute("aria-pressed", String(label === on));
+    s.appendChild(b);
+  }
+  put(f, s);
+  return s;
+}
+/** Core's `choice`: a label with its value, a range over the option index, and
+    tick labels — without them the slider shows a position and hides what the
+    positions are. */
+function choiceField(host, label, ticks, on, ownDetail, optionDetail) {
+  const f = el("div", "w-field");
+  const l = el("label");
+  l.appendChild(el("span", null, label));
+  l.appendChild(el("span", "val", ticks[on]));
+  f.appendChild(l);
+  const r = el("input");
+  r.type = "range"; r.min = "0"; r.max = String(ticks.length - 1); r.step = "1"; r.value = String(on);
+  f.appendChild(r);
+  const tk = el("div", "w-ticks");
+  for (const t of ticks) tk.appendChild(el("span", null, t));
+  f.appendChild(tk);
+  if (ownDetail) f.appendChild(el("p", "w-detail", ownDetail));
+  if (optionDetail) f.appendChild(el("p", "w-detail", optionDetail));
+  host.appendChild(f);
+  return f;
+}
+function driveBlock(host) {
+  const d = el("div", "w-drive");
+  const g = el("div", "w-drive-group");
+  for (const [k, t] of [["step", "Step"], ["run", "Play"]]) {
+    const b = el("button", "w-btn w-btn--primary", t);
+    b.type = "button"; b.dataset.key = k;
+    g.appendChild(b);
+  }
+  d.appendChild(g);
+  const r = el("button", "w-btn", "Reset");
+  r.type = "button"; r.dataset.key = "reset";
+  d.appendChild(r);
+  host.appendChild(d);
+  return d;
+}
+
+const SCHED_DETAIL = {
+  None: "the rate stays where you set it",
+  StepLR: "step_size 100, gamma 0.1 — the rate falls by ten every hundred steps",
+  ReduceLROnPlateau: "factor 0.1, patience 10 — the rate falls by ten after ten steps with no better loss",
+};
+const START_DETAIL = "where the walk begins — drag the marker on the map to put it anywhere";
+const OPT_DETAIL = {
+  SGD: "the step is the rate times the gradient",
+  "SGD + momentum": "the step follows a running sum of the gradients",
+  RMSprop: "each parameter divided by the root of its own running mean square",
+  Adam: "a running mean of the gradient, each parameter divided by its own running mean square — AdamW is this step after shrinking every parameter",
+};
+
+/* --- §2's own control, built here because the rail helpers live below ----- */
+const START_RAIL = {};
+{
+  const row = document.getElementById("startRail");
+  for (const [key, head, build] of [
+    ["A", "A · three named starts, and the marker draggable", (f) => segRun(f, [
+      { label: "Beyond the local minimum", span: true },
+      { label: "On the plain", span: true },
+      { label: "At the rim of the global well", span: true },
+    ], "Beyond the local minimum", "grid")],
+    ["B", "B · no control; the map is the only way in", null],
+  ]) {
+    const box = el("div", "cand");
+    box.appendChild(el("p", "pagehead", head));
+    const host = el("div", "w-split rail-host");
+    const rail = el("div", "w-controls");
+    host.appendChild(rail);
+    if (build) {
+      const f = field("Start", START_DETAIL);
+      build(f);
+      rail.appendChild(f);
+    } else {
+      rail.appendChild(el("p", "measure", "nothing in the rail · x0 and y0 written by the drag alone"));
+    }
+    box.appendChild(host);
+    row.appendChild(box);
+    START_RAIL[key] = { host };
+  }
+}
+
+/* --- the Scheduler field in three faces, measured ------------------------- */
+const SCHED_FACES = {};
+{
+  const row = document.getElementById("schedFaces");
+  const forms = [
+    ["one row of three", (f) => segRun(f, ["None", "StepLR", "ReduceLROnPlateau"], "StepLR")],
+    ["two columns, None spanning", (f) => segRun(f, [
+      { label: "None", span: true }, { label: "StepLR" }, { label: "ReduceLROnPlateau" },
+    ], "StepLR", "grid")],
+    ["a dropdown", (f) => {
+      const s = el("select");
+      for (const o of ["None", "StepLR", "ReduceLROnPlateau"]) {
+        const op = el("option", null, o);
+        if (o === "StepLR") op.selected = true;
+        s.appendChild(op);
+      }
+      put(f, s);
+      return s;
+    }],
+  ];
+  for (const [name, build] of forms) {
+    const box = el("div", "cand");
+    box.appendChild(el("p", "pagehead", name));
+    const host = el("div", "w-split rail-host");
+    const rail = el("div", "w-controls");
+    host.appendChild(rail);
+    const f = field("Scheduler", SCHED_DETAIL.StepLR);
+    build(f);
+    rail.appendChild(f);
+    box.appendChild(host);
+    row.appendChild(box);
+    SCHED_FACES[name] = { host, f };
+  }
+}
+
+/* --- the two whole rails --------------------------------------------------- */
+const RAILS = {};
+{
+  const row = document.getElementById("railRow");
+  const CANDS = [
+    { key: "A", head: "A · three classes, momentum under SGD",
+      faces: ["SGD", "RMSprop", "Adam"], on: "SGD", momentum: true },
+    { key: "B", head: "B · four faces",
+      faces: ["SGD", "SGD + momentum", "RMSprop", "Adam"], on: "SGD + momentum", momentum: false },
+  ];
+  for (const c of CANDS) {
+    const box = el("div", "cand");
+    box.appendChild(el("p", "pagehead", c.head));
+    const host = el("div", "w-split rail-host");
+    const rail = el("div", "w-controls");
+    host.appendChild(rail);
+
+    rail.appendChild(el("div", "w-section", "The walk"));
+    const sf = field("Start", START_DETAIL);
+    segRun(sf, [
+      { label: "Beyond the local minimum", span: true },
+      { label: "On the plain", span: true },
+      { label: "At the rim of the global well", span: true },
+    ], "Beyond the local minimum", "grid");
+    rail.appendChild(sf);
+
+    const of = field("Optimizer", OPT_DETAIL[c.on]);
+    segRun(of, c.faces, c.on, c.faces.length > 3 ? "grid" : undefined);
+    rail.appendChild(of);
+
+    if (c.momentum) {
+      const mf = field("Momentum", "0.9 — the step follows a running sum of the gradients");
+      segRun(mf, ["0", "0.9"], "0.9");
+      rail.appendChild(mf);
+    }
+    choiceField(rail, "Learning rate", ["0.01", "0.03", "0.1", "0.3", "1"], 3,
+      "how far the step goes for a given gradient", "0.3 — crosses the local well with momentum");
+
+    rail.appendChild(el("div", "w-section", "The rate over time"));
+    const scf = field("Scheduler", SCHED_DETAIL.StepLR);
+    segRun(scf, [
+      { label: "None", span: true }, { label: "StepLR" }, { label: "ReduceLROnPlateau" },
+    ], "StepLR", "grid");
+    rail.appendChild(scf);
+    choiceField(rail, "Play speed", ["Slow", "Medium", "Fast"], 1, null, "0.4 seconds a step");
+
+    const drive = driveBlock(host);
+    box.appendChild(host);
+    row.appendChild(box);
+    const measure = el("p", "measure");
+    box.appendChild(measure);
+    RAILS[c.key] = { host, rail, drive, measure, box };
+  }
+}
+
+/* ======================== measuring, then the copy ======================== */
+
+const hOf = (n) => Math.round(n.getBoundingClientRect().height);
+function segFit(btn) {
+  const cs = getComputedStyle(btn);
+  probe.font = `${cs.fontStyle} ${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+  const r = btn.getBoundingClientRect();
+  const inner = r.width - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight)
+    - parseFloat(cs.borderLeftWidth) - parseFloat(cs.borderRightWidth);
+  return { label: btn.textContent, text: probe.measureText(btn.textContent).width, inner };
+}
+
+function writeCopy() {
+  /* --- the engine line -------------------------------------------------- */
+  document.getElementById("engineLine").innerHTML =
+    `<b>Live on this page:</b> ${OPTIMIZERS.length} update rules, a budget of ${BUDGET} steps, `
+    + `&ldquo;arrived&rdquo; within ${NEAR} of a minimum and &ldquo;reached&rdquo; within ${REACH} of the `
+    + `global one — the engine's own constants, not restated here.`;
+
+  /* --- §1 ---------------------------------------------------------------- */
+  const gPlain = Math.hypot(...SURF.trench.grad(3.5, 2.5));
+  const gCamel = Math.hypot(...SURF.camel.grad(-1.5, 1.5));
+  const rimSGD = run(SURF.trench, "sgd", 0.3, STARTS.wells[2].at);
+  const rimMom = run(SURF.trench, "momentum", 0.3, STARTS.wells[2].at);
+  const rimAdam = run(SURF.trench, "adam", 0.3, STARTS.wells[2].at);
+  const roundSGD4 = run(SURF.round, "sgd", 0.3, STARTS.wells[2].at);
+  const roundSGD1 = run(SURF.round, "sgd", 1, STARTS.wells[2].at);
+  const trenchMom = run(SURF.trench, "momentum", 0.3, STARTS.wells[0].at);
+  const trenchAdam = run(SURF.trench, "adam", 1, STARTS.wells[0].at);
+  document.getElementById("recLand").innerHTML =
+    `<b>B, the trench.</b> It is the only one of the three that holds all four claims at once. `
+    + `<b>The plain:</b> |grad| is ${fmt(gPlain, 3)} at <i>On the plain</i>, so a small rate is visibly `
+    + `stuck and Adam is not — its step is about the rate per parameter whatever the gradient. `
+    + `<b>The trap:</b> at lr 0.1 every arm ends at the local minimum, and only momentum at 0.3 `
+    + `(${outcomeText(trenchMom)}) and Adam at 1 (${outcomeText(trenchAdam)}) roll through it. `
+    + `<b>The trench:</b> from <i>At the rim</i> at lr 0.3, SGD ends ${outcomeText(rimSGD)} across the long `
+    + `axis while momentum is ${outcomeText(rimMom)} and Adam ${outcomeText(rimAdam)}. `
+    + `<b>The overshoot:</b> the round well is where plain SGD wins outright — from <i>At the rim</i> at lr `
+    + `0.3 it lands in ${roundSGD4.reached} steps, the fastest arrival anywhere on this page, beating every `
+    + `adaptive rule — and at lr 1 the same walk ends ${outcomeText(roundSGD1)}. `
+    + `A is worth keeping as the round variant behind a <code>landscape</code> control only if that last `
+    + `pair of facts is wanted on stage; it wins nothing else the trench does not. `
+    + `<b>C loses on the plain:</b> |grad| at its far start is ${fmt(gCamel)}, thirty times the trench's, `
+    + `so there is no slow region to be slow in, and its polynomial walls send most arms out of frame at `
+    + `lr 0.3 and above — a fifth claim (a rate can diverge), bought by giving up the first.`;
+
+  /* --- §2 ---------------------------------------------------------------- */
+  const beyondAll = METHODS.map((m) => run(SURF.trench, m.key, 0.3, STARTS.wells[0].at));
+  document.getElementById("recStart").innerHTML =
+    `<b>A, three named starts plus the drag.</b> Each start is a different claim about the same four rules `
+    + `— from <i>Beyond the local minimum</i> at lr 0.3 the four outcomes are `
+    + METHODS.map((m, i) => `${m.short} ${outcomeText(beyondAll[i])}`).join(", ")
+    + `; from <i>On the plain</i> the question is arrival speed; from <i>At the rim</i> it is whether the `
+    + `step is stable. A click-only start (B) can reach all three positions and names none of them, so a `
+    + `reader has to find the interesting places by hunting, and a shared link carries a pair of numbers `
+    + `instead of a sentence. Principle 3.6 settles the rest: a drawn target is a shortcut and never the `
+    + `only route, so the drag needs the named control beside it in any case — which makes B a `
+    + `strict subset of A rather than a different design. <b>The field costs `
+    + `${hOf(START_RAIL.A.host)}px</b> of the rail at 300px — <code>style: "grid"</code> with every option `
+    + `<code>span: true</code>, one name to a row, because two of the three do not fit a half-width face.`;
+
+  /* --- §3 ---------------------------------------------------------------- */
+  document.getElementById("recPath").innerHTML =
+    `<b>B, all four at once, the chosen one in front.</b> The claim this widget exists to make is that the `
+    + `methods behave differently on one landscape, and A can only make it by memory: the reader has to `
+    + `change the Optimizer control and hold the previous picture in their head. B says it in one frame. `
+    + `Colour still carries exactly one grouping — chosen against the rest — so no method needs a `
+    + `hue of its own, and the end label is what names the three in <code>--ink-3</code>. A four-colour `
+    + `version would put a second grouping on the same panel and collide with the ramp underneath. `
+    + `<b>Two things B forces, both worth knowing before building:</b> every walk has to be cased in the `
+    + `panel's own ground, or a grey line on the hot end of the ramp cannot be found at all; and a walk that `
+    + `wanders — RMSprop at 0.3 here — draws 800 steps as a scribble across the whole frame, which says `
+    + `plainly that the animation is the primary reading and the finished path is the footnote. `
+    + `A <code>steps</code> parameter, or <code>?shown=N</code>, is what makes the static figure legible.`;
+
+  /* --- §4 ---------------------------------------------------------------- */
+  const gFar = Math.hypot(...SURF.trench.grad(3.5, 2.5));
+  const pxPerUnit = mapRect.w / (SURF.trench.range[0][1] - SURF.trench.range[0][0]);
+  const tinyStep = STEP_LR * gFar * pxPerUnit;
+  document.getElementById("recStep").innerHTML =
+    `<b>A, the gradient's direction plus the step to scale.</b> B is honest and, on the part of the `
+    + `landscape the widget opens on, invisible: |grad| at <i>On the plain</i> is ${fmt(gFar, 3)}, so SGD's `
+    + `step at lr ${STEP_LR} is ${fmt(STEP_LR * gFar, 4)} in parameter units — <b>${fmt(tinyStep)}px</b> on a `
+    + `${MAP_W}px map. The panels above are zoomed to the step, which is the only way B is legible at all, `
+    + `and a widget cannot zoom the stage without losing the landscape. Drawing the gradient at a fixed `
+    + `length in <code>--c-slope</code> and the step to scale in <code>--c-empirical</code> keeps one true `
+    + `quantity on the panel and one direction, and the momentum panel is the whole argument: the arrow and `
+    + `the step point different ways. Adam's fourth panel earns its place because its rescale is per `
+    + `parameter and a single arrow cannot show a per-coordinate division.`;
+
+  /* --- §5 ---------------------------------------------------------------- */
+  const ladderCells = {};
+  for (const m of METHODS) ladderCells[m.key] = LADDER.map((lr) => run(SURF.trench, m.key, lr, STARTS.wells[0].at));
+  const changes = [];
+  for (const m of METHODS) {
+    const outs = ladderCells[m.key].map(outcomeText);
+    for (let i = 1; i < outs.length; i += 1) {
+      if (outs[i] !== outs[i - 1]) changes.push(`${m.short} at ${LADDER[i - 1]}→${LADDER[i]}`);
+    }
+  }
+  document.getElementById("recLadder").innerHTML =
+    `<b>Five rungs: 0.01 · 0.03 · 0.1 · 0.3 · 1.</b> Every rung changes at least one row's `
+    + `outcome, and the grid above is the whole argument for a choice control here: `
+    + `${changes.length} of the ${METHODS.length * (LADDER.length - 1)} neighbouring pairs differ `
+    + `(${changes.join(", ")}). Widget 48's eight rungs exist because that surface has a stability `
+    + `threshold at 0.029 and needs values either side of it; this one has no single threshold — each `
+    + `method fails differently — so the extra three rungs below 0.01 would add a column of `
+    + `<i>local</i> under every row. Five ticks also fit a <code>choice</code> slider's tick labels at `
+    + `300px, which eight do not. <b>One cell in this grid does not reproduce across JavaScript engines and `
+    + `must not be fingerprinted:</b> RMSprop at lr 1 leaves the well and wanders, and its path agrees with `
+    + `<code>node</code>'s to step 20 and then parts — <code>node dl-optim-measure.mjs</code> ends it 5.01 `
+    + `from the minimum, this page ${outcomeText(ladderCells.rmsprop.at(-1))}. <code>Math.exp</code> has no `
+    + `specified precision, so one unit in the last place is enough once a walk is chaotic. Every other cell `
+    + `on this page matches the survey exactly. The widget can keep the state; a <code>px</code> baseline `
+    + `taken on it would read as somebody else's regression on another machine.`;
+
+  /* --- §6 ---------------------------------------------------------------- */
+  const start = STARTS.wells[1].at;
+  const s1 = run(SURF.round, "sgd", 1, start);
+  const s2 = run(SURF.round, "sgd", 1, start, "step");
+  const s3 = run(SURF.round, "sgd", 1, start, "plateau");
+  const s4 = run(SURF.round, "momentum", 1, start, "plateau");
+  const s4w = walk(SURF.round, "momentum", 1, start, "plateau");
+  const s4rates = lrTrack("plateau", 1, s4w.losses);
+  const collapse = s4rates.findIndex((v) => v < 1e-8) + 1;
+  const s4none = run(SURF.round, "momentum", 1, start);
+  document.getElementById("recSched").innerHTML =
+    `<b>C, both, as a <code>scheduler</code> choice with a rate strip under the loss strip.</b> The notebook `
+    + `gives syntax for exactly these two, and the measurement gives each one a picture that is not a `
+    + `restatement of the other. At lr 1 from <i>On the plain</i>, SGD alone ends ${outcomeText(s1)}; `
+    + `<code>StepLR</code> lands it (${outcomeText(s2)}, rate ${s2.lr.toExponential(0)}) and so does `
+    + `<code>ReduceLROnPlateau</code> (${outcomeText(s3)}, rate ${s3.lr.toExponential(0)}). The case that `
+    + `fails is the one worth having: with momentum the same schedule reads the climb out of a dip as `
+    + `&ldquo;no improvement&rdquo; and cuts the rate ten times over and over, past 1e-8 by step `
+    + `${collapse} and down to ${s4.lr.toExponential(0)} at the budget, which freezes the walk `
+    + `${outcomeText(s4)} while the unscheduled arm at least ends ${outcomeText(s4none)}. A rate strip that `
+    + `has collapsed while the loss strip is still moving is a picture neither A nor B can give. `
+    + `<b>Both strips are drawn in <code>--c-empirical</code>:</b> `
+    + `they are two records of one run in two panels with their own axes, so no second colour is needed. `
+    + `Overlaying them on one strip would need one, and that is the argument for stacking.`;
+
+  /* --- §7 ---------------------------------------------------------------- */
+  const fits = [];
+  for (const [name, n] of Object.entries(SCHED_FACES)) {
+    const btns = [...n.f.querySelectorAll(".w-seg-btn")];
+    if (!btns.length) {
+      fits.push(`${name}: rail ${hOf(n.host)}px, no truncation possible`);
+      continue;
+    }
+    const ms = btns.map(segFit);
+    const over = ms.filter((m) => m.text > m.inner);
+    fits.push(`${name}: rail ${hOf(n.host)}px · `
+      + (over.length
+        ? `${over.map((m) => `${m.label} ${fmt(m.text - m.inner, 1)}px over`).join(", ")}`
+        : `nothing truncates, ${fmt(Math.min(...ms.map((m) => m.inner - m.text)), 1)}px spare`));
+  }
+  document.getElementById("schedFit").textContent = fits.join("   ·   ");
+
+  for (const [key, n] of Object.entries(RAILS)) {
+    const parts = [...n.rail.children].map((c) => {
+      const name = c.classList.contains("w-section")
+        ? c.textContent
+        : (c.querySelector("label span")?.textContent ?? "field");
+      return `${name} ${hOf(c)}`;
+    });
+    n.measure.textContent = `params ${hOf(n.rail)} · drive ${hOf(n.drive)} · rail ${hOf(n.host)}px`
+      + `\n${parts.join(" · ")}`;
+    n.measure.style.whiteSpace = "pre-line";
+  }
+  const hA = hOf(RAILS.A.host);
+  const hB = hOf(RAILS.B.host);
+  document.getElementById("recRail").innerHTML =
+    `<b>A, three classes with <code>momentum</code> under SGD.</b> It is torch's own vocabulary: momentum is `
+    + `a parameter of <code>optim.SGD</code>, not a different optimizer, and a reader who has seen `
+    + `<code>optim.SGD(model.parameters(), lr=0.01, momentum=0.9)</code> is looking for that shape. It also `
+    + `makes the momentum comparison one click on one control rather than a jump between two faces, which is `
+    + `the comparison &sect;4 is built to show. <b>AdamW stays a line on Adam's card and gets no face:</b> its `
+    + `path here differs from Adam's by under 0.03 at every step, so a face for it would be a control with no `
+    + `idea in it (3.5) — the decoupled decay pulls each parameter toward zero by lr·0.01 a step, `
+    + `which matters for a network's weights and is invisible on a two-parameter landscape. C's order follows `
+    + `the notebook's table but puts AdamW on stage for the same reason A refuses to. `
+    + `<b>Measured:</b> A is ${hA}px and B is ${hB}px at 300px — `
+    + (hA === hB ? "the same height" : `${Math.abs(hA - hB)}px apart`)
+    + `, because B's fourth face costs a row of the segmented grid and A's Momentum field costs a field; the `
+    + `difference is not the reason to choose. The <code>Scheduler</code> measurement above is: `
+    + `<code>ReduceLROnPlateau</code> is the longest option name in the arc, and the row of three does not `
+    + `hold it, so both rails use the two-column grid with None spanning — the shape `
+    + `<code>controls.js</code> already renders for <code>style: "grid"</code> with <code>span: true</code>. `
+    + `<b>Both rails are too tall for the stage as drawn, and that is the open question this mock leaves.</b> `
+    + `Widget 48's stage is <code>surfSide(w) + 258</code>, about 558px at a 700px figure; A is ${hA}px. `
+    + `The per-field heights are under each rail — <code>Start</code> at three stacked faces and the two `
+    + `<code>choice</code> sliders with their tick rows are where it goes. Either the stage grows (a map `
+    + `panel over a loss strip and a rate strip is taller than widget 48's two panels anyway, which &sect;6 `
+    + `argues for), or <code>Play speed</code> moves below the drive row as <code>afterDrive</code> and the `
+    + `scheduler's defaults come off its detail line. Worth settling before anything is built, not after.`;
+}
+
+if (document.fonts && document.fonts.ready) {
+  document.fonts.ready.then(writeCopy);
+}
+writeCopy();
+</script>
+</body>
+</html>

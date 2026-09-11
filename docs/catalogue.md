@@ -9624,6 +9624,7 @@ epochs.
 | 52 | `training-loop` | Training with Validation | 4 | 05-4, the whole notebook | proposed, **measured** |
 | 53 | `tensors` | Tensors | 0 — before the four groups | 05-2 cells 1–69 | **SHIPPED 2026-09-09** on "tested ok" after twenty-nine rounds in two days; 37 states — 34 settled, two driven, one hit-driven |
 | 54 | `loss-functions` | Loss Function | 4 | 05-4 cells 30–40 | **PROPOSED 2026-09-10** on Kenneth's question about where sigmoid, softmax and the losses belong; three pages by task, cell 30's own table |
+| 55 | `optimizers` | Optimizer | 4 | 05-4 cells 41–44, 82–86 | **MEASURED 2026-09-11** on Kenneth's call for a new widget on a local/global landscape, taken ahead of 52; torch-checked; mock in progress |
 
 Numbers are provisional — 46 is `wgcna`, a draft on its own branch. The order
 is the notebooks' own. Six is the honest count for four groups because the
@@ -9748,6 +9749,9 @@ capped and the readout prints *diverged at epoch N*, which is the claim.
 **Open.** An `optimizer` picker (SGD, momentum, Adam — 05-4's table) is a
 natural second round: on the raw surface Adam should land where SGD crawls.
 Not measured; do not add it before it is.
+**Superseded 2026-09-11:** Kenneth chose a new widget instead, slot 55
+`optimizers`, on a landscape with a local and a global minimum; the picker
+does not come here.
 
 #### The mock-up — `_lab/gd-mock.html`, 2026-09-07, awaiting picks
 
@@ -13373,6 +13377,158 @@ dimension …", with the linear algebra "in three forms: element-wise
 operations, matrix multiplication, and reductions along a dimension"; the
 gallery blurb one sentence in the same form. Pushed with the headings.
 
+### Slot 55 · `optimizers` — Optimizer — MEASURED 2026-09-11, mock in progress
+
+**Kenneth's ask, 2026-09-11, the evening 54 shipped.** He raised the
+optimizer section of 05-4 himself — *"SGD, Adam/AdamW. Not sure if it's
+worth it? i was previously using another website's widget with SGD and
+momentum and some others"*. Slot 48's entry had reserved an `optimizer`
+picker as its second round, and that was the recommendation put to him: a
+control on 48's trench, where SGD crawls and Adam should land, measured
+first. His decision, verbatim: *"new widget, but use a more complicated loss
+landscape with local/global minima to illustrate how they behave. there is
+also a learning rate scheduler later in the notebook. not sure if it's
+worthwhile showing how some of them work (there are too many, may only
+simple ones)"*, and on order, *"mock the new widget (Deep Learning -
+Optimizers)"* — so this slot is taken ahead of 52. Slot 48's *Open* note is
+superseded by this entry.
+
+**Host.** 05-4 cell 41: the update rule θ ← θ − η ∇θ L, a link to
+<https://gradient-descent-vis.netlify.app/>, and a table of four —
+SGD (*often combined with momentum*), Adam (*keeps track of gradient mean
+and variance to adapt learning rate per parameter; default choice*), AdamW
+(*decoupled weight decay; preferred for transformers*), RMSprop (*scales
+learning rate by moving average of recent squared gradients*). Cells 42–44:
+the syntax cells `optim.SGD(model.parameters(), lr, momentum,
+weight_decay)`, `optim.Adam(…, lr, betas, weight_decay)` and
+`optim.AdamW(…, lr, weight_decay)`, each with a parameter list (momentum
+*default 0*; betas *default (0.9, 0.999)*; AdamW's decay *default 0.01*).
+Cells 82–86: the scheduler table (StepLR, ExponentialLR, ReduceLROnPlateau,
+CosineAnnealingLR, OneCycleLR) with syntax for **StepLR** (`step_size`,
+`gamma`) and **ReduceLROnPlateau** (`mode`, `factor`, `patience`) only, and
+the workflow's own choice of `ReduceLROnPlateau(optimizer)` at defaults.
+The notebook runs no optimizer but Adam at 1e-3.
+
+**What the notebook links today.** The netlify page draws one Plotly
+surface with six presets — Himmelblau by default, a bowl, a "local minimum"
+quartic-times-b²e^(−b), an elliptical bowl, a saddle, sin w + cos b hills, a
+tanh plateau — and five optimizers (GD, Momentum, Adagrad, RMSprop, Adam)
+with lr, β, decay, β₁, β₂ dials; the start is a click, and a run stops when
+|∇| < 0.01 or the walk leaves the range. Its update rules are the classical
+forms, not torch's: the learning rate is folded into the momentum buffer
+(v = μv + lr·g) and RMSprop's ε sits inside the square root. It is a zoo of
+surfaces with one walker at a time; what it cannot show is the same landscape
+under every method side by side, or a stage chosen so that each method has a
+place it wins.
+
+**What is already covered, and what this must not do.** Widget 48 owns the
+derivative, the partials, and plain descent on a real regression's loss —
+the 138× trench, the rate ladder with its divergent rung, mini-batches (the S
+in SGD), a contour map and a 3D relief. This slot draws none of that again:
+it is about the **update rule** on a landscape with more than one minimum,
+with the exact gradient. No data, so no batches, and the widget says so in
+one line.
+
+**The honesty question.** A control that offers a choice of methods is a
+claim that the choice is real (widget 43's lesson, 2026-09-04: measure both
+arms, and if one dominates everywhere the stage is wrong, not the control).
+So before any picture: does each optimizer win somewhere, and lose
+somewhere, on a landscape a student can read?
+
+#### MEASURED 2026-09-11 — `_lab/dl-optim-measure.mjs`, checked against torch
+
+The script carries `torch.optim`'s own rules at their defaults — SGD;
+SGD(momentum=0.9) with buf = g on the first step then buf = μ·buf + g and
+θ −= lr·buf; RMSprop(alpha=0.99, eps=1e-8) with ε outside the root; Adam
+(0.9, 0.999, 1e-8) with bias correction; AdamW with the decoupled
+θ ← θ(1 − lr·0.01) before the Adam step — and the two schedulers the notebook
+gives syntax for, StepLR(100, 0.1) and ReduceLROnPlateau at torch's defaults
+(factor 0.1, patience 10, threshold 1e-4 rel), stepped once per step with the
+loss. **`_lab/dl-optim-torch.py` runs the same two surfaces through torch
+2.14 and prints the same 60 trace lines; they are identical to 1e-6.** So
+whatever the widget draws is what `optimizer.step()` does.
+
+Three candidate landscapes: `wells` — a faint bowl 0.01(x² + y²) minus two
+Gaussian wells on x ∈ [−4, 4], y ∈ [−3, 3], the global well at (1.6, 0) of
+depth 1.2 and the local at (−1.6, 0.4); `wells-aniso` — the same with the
+global well a trench (σ² 2.5 along x, 0.25 along y); and the three-hump camel
+(one global, two local, polynomial walls). Twenty-five grid starts and three
+story starts × five optimizers × the ladder 0.003…1, 800 steps, and then the
+local well's depth swept 0.15…0.7 with the start at (−3.6, 0.6) so the local
+well lies **in the way** of the walk to the global one.
+
+- **From inside a local basin nothing escapes, at any rate, on any
+  surface.** A minimum is a minimum. The claim worth drawing is different:
+  a walk that *arrives* at a shallow well with speed may cross it, and how
+  deep a well it can cross depends on the method and the rate.
+- **The trench lowers the ridge.** On the round surface only lr 1 carries
+  momentum or Adam through a local well, and only at depth ≤ 0.25. On the
+  trench surface at depth 0.35: SGD ends in the local well at every rate;
+  momentum 0.9 crosses at **0.3 only** (45 steps), stays local at 0.1 and
+  below, and at 1 misses everything; Adam crosses at **1 only** (30 steps);
+  RMSprop never, and at 0.3 hovers 0.22 from the global minimum. At depth
+  0.25 momentum crosses from 0.1 and Adam from 0.3; at 0.5 and 0.7 momentum
+  still crosses at 0.3 and Adam never does.
+- **The plateau is Adam's.** From (3.5, 2.5), where |∇| is 0.086, SGD at
+  0.003 and 0.01 has not arrived after 800 steps and at 0.1 arrives at 189;
+  Adam arrives at 510 / 163 / 66 / 38 / 17 / 19 for the six rates — its step
+  is about the learning rate per coordinate whatever the gradient. Momentum
+  is three times SGD.
+- **The matched rate on a round bowl is plain SGD's.** From the rim of the
+  round global well at lr 0.3 SGD lands in 4 steps, faster than anything
+  else anywhere; Adam takes 17. At lr 1 the same SGD orbits 0.52 from the
+  minimum; momentum at 1 still lands (149 steps) and Adam lands at every
+  rate. On the trench at the rim SGD at 0.3 oscillates across the narrow
+  axis (0.30 away at the budget), momentum lands in 80, Adam in 17 — widget
+  48's picture, present here too.
+- **RMSprop cannot settle at a large rate**: 0.07 from the minimum at lr
+  0.1, 0.21 at 0.3, out of the frame at 1. Its step is about the rate with
+  no averaging to damp it, which is the case for Adam's first moment.
+- **Schedulers.** Round surface, far start, lr 1: SGD without a schedule
+  orbits at 0.52; StepLR lands it at 0.000 (lr ends 1e-8); ReduceLROnPlateau
+  lands SGD too (lr ends 0.1) **but kills momentum's walk** — the loss rises
+  while it climbs out of a dip, the scheduler reads the rise as no
+  improvement, cuts the rate every eleven steps to 1e-72, and the walk dies
+  2.86 from the minimum. At lr 0.3 every arm lands with or without a
+  schedule, so the schedule is only a story at a rate too large to settle.
+- **AdamW is Adam here**: its trace differs by < 0.03 at every printed step.
+  The decay pulls each parameter toward zero by lr·0.01 a step, invisible on
+  a surface with nothing to regularize.
+- The camel: lr 0.3 sends most methods off the polynomial walls (SGD
+  25/0/0/0 global at 0.3 and 1/0/0/24 gone at 1). Divergence is a fifth
+  claim but the picture is busy and the range tiny.
+
+**The stage the measurement recommends.** The trench surface with the
+local well at depth 0.35, a `start` choice of three named places — *beyond
+the local minimum* (−3.6, 0.6), *on the plain* (3.5, 2.5), *at the rim of the
+global well* (0.7, 0.6) — each a claim, the marker also draggable; the
+ladder 0.01 / 0.03 / 0.1 / 0.3 / 1; a budget of 500 steps (the slowest
+arrival on that ladder is under 400). All four walks from the same start on
+one map, the chosen one lit and the other three dim with end labels, so
+colour carries one grouping. Slow choreographs the step: the gradient arrow
+(`--c-slope`) and the step actually taken, which under momentum is a second
+arrow and under Adam a per-axis rescale. Formula cards in torch's form.
+Schedulers as a `scheduler` choice with an lr strip under the loss strip —
+if Kenneth keeps them.
+
+**The mock — `_lab/optimizers-mock.html`, 2026-09-11, awaiting picks.**
+Eight sections: §1 the landscape (round / **trench** / camel); §2 the start
+(**named starts plus drag** / click only); §3 one path or **all four**; §4
+the step drawn (**arrows** / to scale); §5 the rate ladder as a small
+multiple (**five rungs** / 48's eight); §6 schedulers (none / StepLR /
+**both**); §7 the optimizer faces (**SGD · RMSprop · Adam with momentum
+under SGD, AdamW a line on Adam's card** / four faces / the table's order)
+with both rails rendered at 300px and measured; §8 the relief, a note.
+Recommendations in bold.
+
+**What stays out.** Data and batches (48's); Adagrad and the netlify site's
+saddle and hills (not in the notebook); AdamW as a face (a control whose
+stage does not move); a click-only start (the URL could not name it).
+
+**Pinning.** Done before the mock: the update rules are torch's to 1e-6
+(above). The widget's engine will be the measure script's code moved into
+`widgets/optimizers/model.js`, and the torch script stays as its check.
+
 ### Questions for Kenneth, before any mock-up
 
 1. **Six or four.** Slots 47 (`chain-rule`) and 50 (`support-layers`) are the
@@ -13381,7 +13537,7 @@ gallery blurb one sentence in the same form. Pushed with the headings.
    slot 51's Skip page.
 3. **Which first.** The notebooks' order says 47. Slot 48 is the most ready:
    measured, and it reuses widget 27's stage.
-4. **The optimizer picker** on slot 48 — now, later, or never.
+4. **The optimizer picker** on slot 48 — now, later, or never. **Answered 2026-09-11: never; slot 55 instead.**
 5. **Pinning slot 52** — run the torch check in Colab from dumped weights, or
    install torch here (a network question; ask before it is worked around).
 
