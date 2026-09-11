@@ -2,7 +2,7 @@
 
 **FIFTY-TWO WIDGETS — 49 on the gallery, `roc-auc` UNLISTED (Kenneth's call,
 2026-08-30), ONE DRAFT: `loss-functions` (slot 54, 05-4 cells 30–40) at
-`/lab/`, committed through `644d351` and NOT PUSHED (origin/main is at
+`/lab/`, committed through `05b6006` and NOT PUSHED (origin/main is at
 `0d7eff8`). Measured, mocked, picked, drafted and copy-audited on
 2026-09-11 in one session; his first round is in progress (see NEXT).
 torch 2.14 is INSTALLED on this machine since 2026-09-11. All 509 fingerprint
@@ -12,30 +12,32 @@ states of the shipped widgets untouched; the draft owes none yet.**
 
 # NEXT: SLOT 54 `loss-functions` — IN REVIEW, NOT PUSHED
 
-**Where things stand (2026-09-11, afternoon).** `main` is at `644d351`
-plus this handover; `origin/main` is at `0d7eff8`, so EVERYTHING BELOW IS
-LOCAL. The draft is at `http://localhost:8011/widgets/loss-functions/`
-(`node scripts/serve.mjs 8011`; 8010 is held by another session's server).
-Kenneth said "looks good" on the draft and asked two things: whether the
-front-facing text had been checked against the principles (the copy round,
-done, `644d351`), and then — the OPEN ITEM — *"can we show examples of 1
-class and >1 class? also how best to explain that a binary class can be
-modeled as 1 label or 2 labels. do research and mock-up as necessary"*. The
-research is `_lab/dl-loss-torch.py` §6 (`b016731`): softmax([zA, zB])[B] =
-sigmoid(zB − zA), so CrossEntropyLoss on two outputs and BCEWithLogitsLoss
-on their difference print the same loss (0.201413 at [0.5, 2.0], label B,
-equal to 1e-7 across the drag); cell 29's own MLP is the two-output form.
-The mock `_lab/loss-binary-mock.html` was briefed to an Opus builder (four
-sections: a per-page Outputs/Classes control switching between the one-
-and several-output columns of his figures; the Binary page stacked / side by
-side / no page; the rail with a fourth task face; the one-output score's
-name and what the drag does). If it is not on disk, re-brief it from the
-catalogue's slot 54 entry and this paragraph. Then his picks, the extension
-built into the draft (an Opus builder from the mock), and the one copy pick
-still open: the step button reads **Next row** while its last press lands
-the loss LINE (the readout note now says "each step lands one row, and the
-last the loss"); the alternative is **Next step**. Put it to him with the
-mock picks.
+**Where things stand (2026-09-11, evening).** `main` is at `05b6006` plus
+this handover; `origin/main` is at `0d7eff8`, so EVERYTHING BELOW IS LOCAL.
+The draft is at `http://localhost:8011/widgets/loss-functions/` (`node
+scripts/serve.mjs 8011`; 8010 is held by another session's server). Since
+the afternoon: Kenneth's second ask (1 vs >1 outputs; binary two ways) was
+researched in `_lab/dl-loss-torch.py` §6, mocked (`_lab/loss-binary-mock`),
+picked and built (`c71e20b`); then his structure question — where binary
+lives — mocked as three structures (`_lab/loss-structure-mock`, `7ccd7fe`)
+and decided: **B, binary on its own page only**, faces in prevalence order
+**Binary / 2 classes · Single-label / >2 classes · Multi-label / >2
+classes** (his option 1 of three orderings), the count qualifier as a
+second line on the face (his pick D from `_lab/loss-rail-mock`, `0ec0769`),
+and **y_pred as a grid over y_true** (his pick, with a small core addition
+he authorised): `05b6006` carries the two core options (`cells` on a text
+field, `qual` on a segmented option, an opt-in equal-column checkbox run)
+and the widget on them. Subtitle B and blurb B are his words (`9f886c6`,
+`ae40ec6`). **The full fingerprint suite ran three times: 506 of 509
+MATCH, and the same 3 t-sne `theme=light` states DIFFER on both hashes with
+identical latest hashes — ALSO on the pre-change tree (`6424dfe`) served
+from a detached worktree, and t-sne renders byte-identically in both trees
+at 693 and 688px wide (same canvas hash, readout, legend, rail height). So
+it is not today's change; nothing today touches t-sne; it is an
+environmental shift since the morning's clean 509 (the composition ship).
+Not rebaselined (5.10). Open: find what moved — the light theme in the
+harness, or t-sne's own clock.** NEXT: his round on the rebuilt draft; then
+"tested ok" → the shooter + states → push on his word.
 
 **The day's commits, in order:** `b674304` figures + measure script;
 `01a0f79` catalogue MEASURED; `c0dba16` the mock (six sections; one fix
