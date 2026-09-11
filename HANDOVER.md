@@ -32,11 +32,17 @@ FOUR widgets — 58 folds into 59 as its first page; 56 stays a one-page
 widget; the notebooks' order, 56 → 57 → 59 → 60; 01-5 left as it is; this
 arc before slot 52.** Nothing built, nothing measured beyond the file
 reads; the order below (measure → mock → picks → catalogue → draft →
-rounds → audit → ship) applies to each slot as it did to 49–55. **NEXT:
-`_lab/hwe-measure.mjs` (the fraction of SNPs failing HWE at 10⁻⁶ as a
-function of the allele-frequency gap and n, to check the claim that at
-323 a realistic gap is invisible to the test), then the 56 mock.**
-Uncommitted at the time of writing.
+rounds → audit → ship) applies to each slot as it did to 49–55. The plan
+is committed at `bbd63a8`. **Slot 56 is MEASURED** — `_lab/hwe-measure.mjs`,
+28 checks, committed after it: the lesson's χ² on a pooled table is n·F²
+with F the Wahlund deficit, so at n = 323 only a frequency gap of ~0.5
+fails at 10⁻⁶ (the file's 2008) and the average SNP's deficit needs
+n ≈ 26,600, which sets the n control's range (323 to tens of thousands).
+**NEXT: the 56 mock in `_lab/hardy-weinberg-mock.html` from the newest
+mock's shell — the de Finetti triangle with the observed point and the
+HWE parabola, the "what produced the sample" control (one population ·
+two pooled · heterozygotes miscalled · over-called), n and the gap, the
+three-cell table with χ² and P against the 10⁻⁶ line — then his picks.**
 
 ---
 
