@@ -545,8 +545,8 @@ const BCE = M.computeFor({
     M.STRINGS.outputsLabel === "Outputs" && /, or several: /.test(M.STRINGS.outputsDetail),
     M.STRINGS.outputsDetail);
   check("the Binary page's two column names say which form each is",
-    M.STRINGS.binaryTwoRow === "y_pred, two outputs"
-    && M.STRINGS.binaryOneRow === "y_pred, one output");
+    M.STRINGS.binaryTwoRow === "CrossEntropyLoss · two outputs"
+    && M.STRINGS.binaryOneRow === "BCEWithLogitsLoss · one output");
   check("its y_true detail names the two classes the index picks between",
     /0 is A, 1 is B/.test(M.STRINGS.binaryLabelDetail));
   check("each task option carries a detail of several clauses, the function among them",
@@ -979,8 +979,12 @@ const BCE = M.computeFor({
     units.find((u) => u.id === "loss").unit === 3
     && units.find((u) => u.id === "loss").preview === false
     && units.find((u) => u.id === "curve point").preview === false);
-  check("the header names both loss classes",
-    /CrossEntropyLoss/.test(M.HEAD.binary) && /BCEWithLogitsLoss/.test(M.HEAD.binary),
+  /* Kenneth, round 2 (2026-09-11): "the 2 functions should align to the
+     columns, otherwise I have no idea which function should be used in which
+     case" — so the header names NEITHER function and each column names its own */
+  check("the header names neither loss class; the columns do",
+    !/CrossEntropyLoss|BCEWithLogitsLoss/.test(M.HEAD.binary)
+    && /^CrossEntropyLoss/.test(M.STRINGS.binaryTwoRow) && /^BCEWithLogitsLoss/.test(M.STRINGS.binaryOneRow),
     M.HEAD.binary);
   check("and the header's expression NAMES THE TRUE CLASS, so it stays true at either target",
     M.binaryExpr(0) === "loss = −log p_A" && M.binaryExpr(1) === "loss = −log p_B",

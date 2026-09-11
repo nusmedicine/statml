@@ -687,7 +687,7 @@ export const HEAD = {
   regression: "Regression · MSELoss",
   "single-label": "Single-label · CrossEntropyLoss",
   "multi-label": "Multi-label · BCEWithLogitsLoss",
-  binary: "Binary · CrossEntropyLoss or BCEWithLogitsLoss",
+  binary: "Binary · two outputs or one",
 };
 export const HEAD_EXPR = {
   regression: "loss = mean((y_pred − y_true)²)",
@@ -741,8 +741,8 @@ export const STRINGS = {
 
   binaryScoresDetail: "two scores, A and B",
   binaryLabelDetail: "the index of the true class: 0 is A, 1 is B",
-  binaryTwoRow: "y_pred, two outputs",
-  binaryOneRow: "y_pred, one output",
+  binaryTwoRow: "CrossEntropyLoss · two outputs",
+  binaryOneRow: "BCEWithLogitsLoss · one output",
   binaryDiffName: "z_B − z_A",
   binaryTwoTile: "Loss, two outputs",
   binaryOneTile: "Loss, one output",
