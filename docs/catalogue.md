@@ -7308,6 +7308,64 @@ anything.
 - **Not in scope:** imputation, meta-analysis, the region plot's gene
   track (topr's job), LD — that is 58.
 
+**MEASURED 2026-09-12, `_lab/gwas-measure.mjs` (110 checks; 1783 lines,
+every function exported for the widget's `model.js`).** The cohort:
+Balding–Nichols frequencies, Binomial(2, p) genotypes, sibships of 4 by
+Mendelian transmission when families are on; the trait a subpopulation
+shift in noise-SD units plus three causal SNPs plus an optional polygenic
+background and family effect. The tests: OLS per SNP on the residualised
+columns, P from t on n − p − 1; fastGWA's two steps as REML over h² in the
+GRM's eigenbasis (grid then golden section, the LRT halved as GCTA does)
+and a weighted scan in that basis, with the fallback to OLS when the LRT
+P > 0.05. Ten seeds a cell, n = 300, m = 2000, h2snp 0.05:
+
+| Fst | shift | SNP only λ / false peaks / power | + 2 PCs | + 5 PCs |
+|---|---|---|---|---|
+| 0.03 | 0 | 1.00 / 0.1 / 0.33 | 0.99 / 0.1 / 0.33 | 1.00 / 0.2 / 0.23 |
+| 0.03 | 1 | **3.11 / 28.3** / 0.30 | 0.99 / 0.1 / 0.33 | 1.00 / 0.1 / 0.23 |
+| 0.03 | 2 | **5.13 / 117** / 0.10 | 1.00 / 0 / 0.33 | 1.01 / 0 / 0.27 |
+| 0.1 | 1 | **8.11 / 249** / 0.40 | 1.01 / 0 / 0.30 | 1.01 / 0 / 0.30 |
+| 0.1 | 2 | **14.4 / 531** / 0.33 | 1.01 / 0 / 0.27 | 1.01 / 0 / 0.33 |
+
+At shift 1, Fst 0.03, SNP only puts 26.4% of SNPs under P < 0.05 against
+the null's 5%; + 2 PCs returns it to 4.9% — the QQ lifts along its whole
+length, not only at the tail. **Five claims came out differently from the
+plan**, each carrying a `FIRST WRITTEN AS` comment in the script:
+
+1. *+ PCs keeps the causal SNPs* holds at Fst 0.03 (power 0.30 → 0.33) and
+   fails at 0.1 (0.40 → 0.30): a strongly differentiated causal SNP is
+   partly collinear with PC1.
+2. *The GRM term is inert without families* is true of the SCAN (λ moves
+   ≤ 0.05, no peak crosses Bonferroni, fallback or forced) and false of the
+   ESTIMATE: ĥ² comes back 0.12–0.44, not the lesson's 6e-17, and a
+   polygenic background of 0.3 is found in 6 of 10 cohorts — because a
+   2,000-SNP GRM's off-diagonal SD is 0.024, fifteen times a 1.4M-SNP GRM's
+   0.0008. **The widget can promise the skyline will not move; it cannot
+   promise the variance readout prints zero** (with nothing heritable it
+   still fell back only 8 of 10).
+3. *Sibships alone* are already inflated under + PCs (λ 1.13; heritability
+   IS family resemblance, 1 + 3 × 0.5 × 0.075 ≈ 1.11), and more with a
+   shared family effect (sdFamily 1: λ 1.76, 3.8 false peaks); the GRM
+   returns λ to 0.99, LRT P 5e-12, no fallback.
+4. **Equal Fst between three populations gives λ1 ≈ λ2 (7.46, 7.06); the
+   lesson's GRM has 17.28 / 3.08, ratio 5.6.** A `topology: "nested"`
+   option — two populations close (Fst 0.005) and one far (0.05) — gives
+   the ratio 6.42 with PC2 still clear of the bulk. **The widget simulates
+   the nested topology.** The flat λ3…λ6 ≈ 1.8 is the Marchenko–Pastur
+   edge, not a fourth axis; with families the spectrum grows a ramp
+   exactly nFam − 1 = 74 wide ending in a cliff.
+5. h2snp 0.08 gives power 0.63 at n = 300, not > 0.7: the ladder is 0.03 →
+   0.17, 0.05 → 0.25, 0.08 → 0.63, **0.12 → 0.96**, 0.2 → 1.00. The mock's
+   default causal effect is 0.12; 0.05 shows a peak one time in four.
+
+**Cost at n = 300 / m = 2000 (ms):** cohort 12, GRM 44, full
+eigendecomposition 69 (Householder; Jacobi 367), three OLS scans 11, the
+rotation 88, REML 2, GLS 6 — ~230 in all, 1133 at n = 600. Subspace
+iteration for the top PCs (`topEigen(K, 2, 30)`) is 5.8 ms and a scan on
+its columns is identical to one on the full decomposition's, so a PC-only
+compute is ~70 ms; only the GRM model pays for the full decomposition.
+**n = 300 is the widget's ceiling at m = 2000.**
+
 ### Slot 58 · `linkage-disequilibrium` — FOLDED into 59 as its first page, Kenneth's call 2026-09-11
 
 **The one thing:** SNPs near each other on a chromosome are inherited
