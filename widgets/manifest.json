@@ -800,6 +800,27 @@
       ],
       "arc": 54,
       "status": "shipped"
+    },
+    {
+      "slug": "optimizers",
+      "title": "Deep Learning - Optimizers",
+      "blurb": "SGD, momentum, RMSprop and Adam turn one gradient into four different steps on a landscape with two minima.",
+      "course": "PHM5005",
+      "topics": [
+        "optimizer",
+        "stochastic gradient descent",
+        "momentum",
+        "RMSprop",
+        "Adam",
+        "AdamW",
+        "learning rate",
+        "learning rate scheduler",
+        "local minimum",
+        "loss landscape",
+        "deep learning"
+      ],
+      "arc": 55,
+      "status": "draft"
     }
   ]
 }

@@ -13563,6 +13563,10 @@ every method is computed once in `compute()` and the animation reveals it.
 
 **Asked mid-build, 2026-09-11 ("can i check if we have a 3D view like the previous widget on gradient descent?"):** the widget gets 48's `Surface` control, Map or Relief, a display parameter, with the walk lifted onto the surface and the drag to turn it; the fixed viewpoint is MEASURED before it is set, as 48's had to be, because the trench runs along x and an azimuth looking across it hides the walk inside it.
 
+#### ROUND 1, 2026-09-11 — on the early draft, before the builder had finished
+
+Kenneth opened the draft while it was being built. Two comments: (1) the rail order becomes **Optimizer first, in the order SGD · Adam · RMSprop, then Start, then Learning rate with Scheduler**; (2) *"all optimizers have problems when they are near the local minimum. did i choose wrong parameters?"* At the default rate 0.3 from *Beyond the local minimum*, SGD settles cleanly in the local well, Adam overshoots its bottom and rocks a few times before its running averages damp it, and RMSprop is flung across the map when the gradient jumps at the well's wall, because an adaptive step is about the rate in parameter units whatever the gradient and 0.3 is nearly half the well's width. Not wrong parameters: the same behaviour in torch, and the reason Adam's practical default rate is a hundred times SGD's smaller. **His pick: the widget opens at lr 0.1**, where all three descend cleanly; the rung details say what 0.3 (momentum crosses) and 1 (Adam crosses) do.
+
 ### Questions for Kenneth, before any mock-up
 
 1. **Six or four.** Slots 47 (`chain-rule`) and 50 (`support-layers`) are the
