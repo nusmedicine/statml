@@ -1,130 +1,184 @@
 # Handover
 
-**FIFTY-TWO WIDGETS — 50 on the gallery, `roc-auc` UNLISTED (Kenneth's call,
-2026-08-30), NO DRAFT: `loss-functions` (slot 54, 05-4 cells 30–40) SHIPPED
-2026-09-11 in one day — measured, mocked three times, picked, drafted,
-copy-audited, rebuilt on two core additions he authorised, 34 fingerprint
-states STABLE over three shots twice, the full suite 540 of 543 MATCH at DPR
-1.25 fronted (the 3 DIFFERs are t-sne's light states, reproduced on the
-pre-change tree, environmental, unresolved). Pushed as a draft at `f2a9c71`
-on "tested ok, push it", then the shipped push. torch 2.14 is INSTALLED on
-this machine since 2026-09-11.**
+**FIFTY-THREE WIDGETS — 51 on the gallery, `roc-auc` UNLISTED (Kenneth's
+call, 2026-08-30), NO DRAFT: `optimizers` (slot 55, 05-4 cells 41–44 and
+82–86) SHIPPED AND PUSHED 2026-09-11 at `cddb99d`, the day Kenneth asked
+for it — measured and torch-checked, mocked, seven picks, drafted by an Opus
+builder, four copy-audit rounds (two of them his catches), 28 fingerprint
+states stable over two passes of three shots, the full suite 568 of 571
+MATCH fronted at DPR 1.25 (the 3 DIFFERs t-sne's light states, unchanged,
+still open). `loss-functions` (slot 54) shipped the same morning.**
 
 ---
 
 # NEXT: SLOT 52 `training-loop` (05-4) — MOCK FIRST
 
-**Where things stand (2026-09-11, night).** `main` is at `42bf769` plus this
-handover, `origin/main` level with it, tree clean, no draft, no branch but
-`wgcna` (another session's, untouched). `loss-functions` (slot 54) SHIPPED
-AND PUSHED today, in one session, on Kenneth's "tested ok, push it". The
-05-4 notebook now has one widget (54) and one slot left: **52
+**Where things stand (2026-09-11, night).** `main` is at `cddb99d` plus
+this handover, `origin/main` level with it, tree clean, no draft, no branch
+but `wgcna` (another session's, untouched). Two widgets went from ask to
+shipped today: 54 in the morning and 55 in the evening. The 05-4 notebook now
+has two widgets (54 loss-functions, 55 optimizers) and one slot left: **52
 `training-loop`**, MEASURED 2026-09-07 in `docs/catalogue.md` (search
 `### Slot 52`; `_lab/dl-loop-measure.mjs` has the numbers: the validation
 loss bottoms in the 30s–40s on the lesson's recipe, patience 10 fires BEFORE
 the true minimum in three of five runs, the rise by epoch 100 is 0.01–0.03
-and over 300 epochs 0.09–0.12). Its Loss row links to 54
-(`…/widget/loss-functions/?task=single-label`), so the loop treats the loss
-as one number per epoch and draws no loss's inside.
+and over 300 epochs 0.09–0.12). Its Loss row links to 54 and its Optimizer
+row can link to 55 (`…/widget/optimizers/`), so the loop treats both as one
+number and one call per epoch.
 
 **Read before writing anything:** the slot 52 entry; the 05-4 notebook
 (`Downloads/PHM5005 AY2025-26 - Notebooks/Master/05-4 - DL Foundations -
-Workflow.ipynb`, cells 12–105 — extract them with node, `JSON.parse` of the
-ipynb, to a scratch file, as `nb-05-4.txt` was for 54; the saved notebook
-carries NO outputs, so every number is measured, not read); his figures for
-the loop (none downloaded yet — the notebook's `<img src="https://www.
-dropbox.com/…dl=1">` links fetch with `curl -sL` into `_lab/figs/`, as
-`dl-loss-*.png` were, with his standing leave); `widgets/loss-functions/
-main.js` + `model.js` as the newest idiom (the numbered-decisions header,
-the grid rail on core's `cells`, per-page heights from one geometry
-function, the 4.4 finished-figure rule in `init`, the reveal rule from
-composition); `widgets/mlp/main.js` for the decision-boundary wash the plan
+Workflow.ipynb`, cells 12–105 — extract with node, `JSON.parse` of the
+ipynb, to a scratch file; the saved notebook carries NO outputs, so every
+number is measured, not read); `widgets/optimizers/main.js` + `model.js` as
+the newest idiom (the numbered-decisions header, the descriptor on the
+formula card, the drag that writes two data params with a fourth face that
+exists only while dragged, the relief imported from 48, the per-state
+height from one geometry function); `widgets/loss-functions/main.js` for
+the grid rail; `widgets/mlp/main.js` for the decision-boundary wash the plan
 reuses; `docs/design-principles.md` §2.6, §3.4b (a second stage behind a
-gate — the loop's training run may be one), §4.1 (pacing is chosen: 100
-epochs need a speed), §5.9.
+gate — the loop's training run may be one), §4.1, §5.9.
 
-**The order, which has now run four times without a stall (49, 50, 51, 54):**
-(1) the measure script exists — re-run it and add what the mock needs; (2)
-the mock `_lab/training-loop-mock.html` from `_lab/loss-rail-mock.html`'s
-shell (an Opus builder; the main session READS EVERY SECTION in the browser
-before he sees it and fixes defects there — on 54 the target tick struck a
-bar value); (3) his picks by `AskUserQuestion`, up to four a call, the
-recommendation first and marked — and his questions between rounds are
-planning input, each one a mock and a pick ("1 class and >1 class", "binary
-two ways", "not aligned… like a grid" all became mocks today); (4) the
-catalogue record; (5) the draft (an Opus builder; manifest at status draft
-so it sits at `/lab/` only; `_lab/training-loop-verify.mjs` registered in
-`scripts/verify.mjs`); (6) rounds from his annotated screenshots, small
-fixes (< ~20 lines, no design) in the main session, designs mocked first;
-(7) the copy audit as a read-only Opus pass (the table: surface · string ·
-problem · rewrite · settled-or-pick), the settled rows applied, the picks
-put to him — and when he calls a line clunky, OFFER OPTIONS in standard
-textbook language and let him pick (subtitle B and blurb B on 54 are his
-picks from four each); (8) "tested ok" → push the draft if he says push,
-then the shooter + states (an Opus builder from `_lab/loss-functions-
-shoot.html`) → the full suite FRONTED → `check` AND `test` read on their
-own → commit → push.
+**The order, which has now run five times without a stall (49, 50, 51, 54,
+55):** (1) the measure script — re-run it and add what the mock needs; (2)
+the mock in `_lab/` from the newest mock's shell (`_lab/optimizers-mock.html`
+or `_lab/loss-rail-mock.html`; an Opus builder; the main session READS
+EVERY SECTION in the browser before he sees it and fixes defects there — on
+55 that was a clipped axis label, 800-step scribbles, a bar-label collision
+and a caption that disagreed with the survey); (3) his picks by
+`AskUserQuestion`, up to four a call, the recommendation first and marked —
+his questions between rounds are planning input, each one a mock and a
+pick; (4) the catalogue record; (5) the draft (an Opus builder; manifest at
+status draft so it sits at `/lab/` only; the verify script registered in
+`scripts/verify.mjs`); (6) rounds from his screenshots, small fixes (< ~20
+lines, no design) in the main session, designs mocked first; (7) the copy
+audit — see *Things learned on 55* for the two passes it now needs beyond
+register; (8) "tested ok" → push the draft if he says push, then the status
+flip → the shooter + states (an Opus builder from `_lab/optimizers-shoot.
+html`) → the full suite FRONTED in the main session → `check` AND `test`
+read on their own → commit → push.
 
 **Working on this machine (adds to *Working on Windows* below):**
 
-- **Ports.** 8010 is held by another session's server; `node scripts/serve.mjs
-  8011` (launch.json `widgets-alt`). Never `PORT=`, never 8000.
-- **torch 2.14 (CPU) is installed** on the Windows python since today
-  (`python -m pip install torch --index-url https://download.pytorch.org/whl/cpu`,
-  his ask). `python widgets/_lab/dl-loss-torch.py` prints every loss number
-  and error string for real. **Quote no torch message without running it**:
-  two of the three quoted from memory for 54 were wrong.
+- **Ports.** 8010 and 8011 are held by other sessions' servers; this session
+  used `node scripts/serve.mjs 8012` (launch.json `widgets-alt2`). Never
+  `PORT=`, never 8000. `preview_start` refuses a port another chat holds;
+  pick the next `widgets-altN`.
+- **torch 2.14 (CPU) is installed** on the Windows python. `python
+  widgets/_lab/dl-optim-torch.py` prints 60 trace lines that
+  `_lab/dl-optim-torch.txt` keeps and the widget's verify reproduces to
+  1e-6; `python widgets/_lab/dl-loss-torch.py` does the same for 54. **Quote
+  no torch message or number without running it.**
 - **The fingerprint harness needs its tab ACTIVE, not just the pane visible.**
-  A builder's shooter tab took the front mid-run and the hidden harness tab
-  produced degenerate hashes on naive-bayes (px and tx identical). Close the
-  builders' tabs, `tabs_select` the harness, confirm `devicePixelRatio ===
-  1.25 && !document.hidden`, then reload. 543 states take ~4 min; poll with
-  10 s waits and read the table by JS (`tbody tr` innerText, count MATCH).
-- **git add one file at a time** in a retry loop (Dropbox indexes each object;
-  a multi-file add fails on a different file each time).
+  Close the builders' tabs, `tabs_select` the harness, confirm
+  `devicePixelRatio === 1.25 && !document.hidden`, then reload. 571 states
+  take ~4 min; poll with 10 s waits and read the table by JS (`tbody tr`
+  innerText, count MATCH).
+- **git add one file at a time** in a retry loop (Dropbox indexes each
+  object; a multi-file add fails on a different file each time, and an add
+  that reports `Permission denied` can still have landed — check `git show
+  --stat` before assuming a file was left out).
+- **The Bash tool's heredocs and `node -e` scripts mangle backslashes and
+  quotes** on this machine (a `\d` became `d`, a `\r\n` broke a script).
+  Write any patch longer than a line to a scratch `.mjs` with the Write
+  tool and run it; normalise line endings in it (the repo's files are CRLF).
 
 **OPEN: the t-sne light DIFFER.** Three states (`?theme=light&step=40`, its
 step-driven and its hit-driven siblings) DIFFER on BOTH hashes with the same
-latest hashes on every run since the afternoon of 2026-09-11 (five runs),
-while the morning's composition-ship run had all 509 MATCH. They DIFFER
-identically on `6424dfe` served from a detached worktree (before the core
-change), and t-sne renders BYTE-IDENTICALLY in both trees in a plain tab at
-693 and 688px wide (same canvas hash, readout, legend, rail height). So the
-harness and a tab disagree about t-sne alone, and nothing committed today
-touches it. Not rebaselined (5.10). To settle it: serve `8b3602d` (the
-morning's clean run) from a worktree and run the harness there — if the
-three DIFFER there too, the environment moved (browser, GPU, the pane) and
-the baseline needs a decision with Kenneth; if they MATCH, bisect the day's
-commits in the harness, not in a tab. Told to him twice.
+latest hashes on every run since the afternoon of 2026-09-11 — now seven
+runs, including the 571-state run that shipped 55 — while the morning's
+composition-ship run had all 509 MATCH. They DIFFER identically on `6424dfe`
+served from a detached worktree (before that day's core change), and t-sne
+renders BYTE-IDENTICALLY in both trees in a plain tab. Not rebaselined
+(5.10). To settle it: serve `8b3602d` (the morning's clean run) from a
+worktree and run the harness there — if the three DIFFER there too, the
+environment moved and the baseline needs a decision with Kenneth; if they
+MATCH, bisect that day's commits in the harness, not in a tab. Told to him
+three times.
 
-**Things learned on 54 that are not in the principles yet:**
+**Things learned on 55 that are not in the principles yet:**
 
-- **A structure question gets a structure mock** — rails and page maps,
-  measured (states, places a concept appears, rail heights) — not a
-  geometry one. The harmonisation of the notebook's two cuts is: the TASK
-  in the rail (its table), the FUNCTION on the stage header (its sections).
-- **A truncation test is a float at the pressed weight (600), counting the
-  1px border.** Two arithmetic checks said a four-face row fitted;
-  the screenshot said `Single-lab…`; 2.4px over.
-- **Core rebuilds BEFORE it recomputes** (`setParam` → `controls.rebuild` →
-  `render`), so a `show()` reading a compute-time stash is one change stale;
-  loss-functions repaints its cells from `draw` (its decision 12).
-- **`optionEntries` whitelists option fields** (`params.js`): a new option
-  key (`qual`) is silently dropped until it is added there.
-- **Shoot the states AFTER the status flip.** The draft banner made the
-  Binary page 1234px in the harness's 1200px frame: a scrollbar, a 535px
-  stage, eight px hashes that would have been wrong the moment it shipped.
-- **Core's two additions today** (`cells: { count, heads }` + `cellsFrom` on a
-  `text` field; `qual` on a segmented option; an opt-in equal-column
-  checkbox run; a standalone text field's `detail` finally rendering — 3.4f
-  the fifth time) are documented in `params.js`'s type table and used by
-  54 alone.
+- **A copy audit has THREE passes, not one.** Register and lesson references
+  are the first. The second is the collection's OWN VOCABULARY: card, rung,
+  ladder, rail, stage, face, arm, pile, ramp, budget, arrivals, walk, well,
+  plain, trench, frame — words that stop looking coined after a day in the
+  catalogue. Kenneth caught "card" and "rung" in a control detail after the
+  first pass had passed it ("i thought you already checked with the
+  principles"). The third is OUTCOME COMMENTARY: a detail says what a
+  control IS (a coordinate, a torch parameter, a pace, an instruction);
+  it never says what will happen. The rate ladder's computed lines
+  ("momentum 0.9 reaches the global minimum at step 45, Adam ends at the
+  local minimum") were true, engine-built, and struck as editorializing
+  ("sigh, again"). `_lab/optimizers-verify.mjs` greps every option and
+  field line for outcome verbs; copy that guard into the next verify.
+- **The textbook's nouns, when unsure, are put to him as options** — he
+  chose *path* over *walk*, *update rule* over the bare *rule*, and asked
+  for the subtitle "in terms of principles" with no method named. The
+  optimizer's descriptor now sits ON THE FORMULA CARD under the update rule
+  (his pick from `_lab/optimizers-card-mock.html`), and the rail carries
+  only what is set and what the reader must do.
+- **Height on a relief is the loss, not the colour ramp.** The map's log
+  ramp as height made each well a needle so narrow that a 44-quad mesh
+  missed its floor and the exact-field walk hung below the drawn surface.
+  `model.js`'s `heightField` is now linear in the loss, `sampledField`
+  samples it once on the mesh's own grid and reads it back bilinearly, so
+  the mesh, the walk and the hidden-line march agree; the faces still take
+  the map's colours through `heightToRampT`.
+- **A relief viewpoint is measured against the WALK it must show**, and it
+  can come out steep: the trench is a cut 1.2 deep and one unit wide in a
+  frame eight by six, so from any elevation below 55° the rim hides two
+  thirds of the crossing; `_lab/dl-optim-view.mjs` sweeps 324 viewpoints and
+  the default is az 90 el 60. The verify asserts the PROPERTY (at least 50
+  of the crossing walk's first 60 segments in view from wherever the
+  constants say), not the two numbers.
+- **A chaotic cell exists and must never be a state.** RMSprop at lr 1 ends
+  5.01 from the minimum in node and 1.81 in Chrome from the same code
+  (`Math.exp` has no specified precision; one ulp is enough once a walk
+  hovers). Every other cell reproduces. Any lr-1 state is proven over three
+  shots like the rest.
+- **Core sends only the drag's LAST declared parameter through `setParam`**,
+  so the whole gesture takes that parameter's kind. A drag that must be
+  display for one panel (the relief's `tilt`) and data for another (the
+  marker's `x0`/`y0`) needs one deferred write through the data parameter on
+  the next microtask (decision 5 in `widgets/optimizers/main.js`). Found by
+  the builder; not a core change.
+- **Widget 48's arrivals-only branch floors at one step per frame**, so a
+  pace slower than the frame clock (2.5 steps a second) ran at 60. 55 keeps
+  the fraction across frames (`model.js` *pacing*); 48 itself still has the
+  floor, harmless at its 60 and 250.
+- **The relief renderer is now imported by two widgets** (`projector`,
+  `reliefMesh`, `reliefPoint`, `reliefLift`, `reliefHidden`, `isoSegments`
+  from `widgets/gradients/model.js`). A third relief is the moment to move
+  them into `widgets/core/`, with the full suite run that entails.
 
-**Open on 54, none blocking:** the 05-4 notebook does not yet link to it
-(prd §4 says how); the Single-label formula card's fraction inside the log
-renders small in MathML; the Multi-label rail (608px) is taller than the
-414px Single-label stage. **Open on composition** (from 2026-09-11): the
-readout tiles on the flow pages print at rest; the 05-3 notebook links.
+**Open on 55, none blocking:** the 05-4 notebook does not yet link to it
+(prd §4 says how; cell 41 links the netlify site today); the three Start
+detail lines were kept as descriptions of place ("(−3.6, 0.6); the local
+minimum lies between here and the global one") and Kenneth may strike them
+as steering; compare at lr 0.3 is a busy picture (real: RMSprop is flung at
+that rate); the rail is ~685px in the tallest state against a ~590px stage.
+**Open on 54:** the notebook link; the Single-label fraction renders small
+in MathML; the Multi-label rail is taller than its stage. **Open on
+composition:** the readout tiles on the flow pages print at rest; the 05-3
+notebook links.
+
+## Slot 55 — the record of the day it was built (2026-09-11), in brief
+
+The catalogue's `### Slot 55` entry carries the full record: the ask (his
+evening question after 54 shipped; the picker on 48 was recommended and he
+chose a new widget on a landscape with a local and a global minimum), the
+measurement (`_lab/dl-optim-measure.mjs`, torch's own update rules, three
+candidate landscapes, the local well's depth swept IN THE WAY of the walk;
+from inside a local basin nothing escapes at any rate — the claim is arrival
+with speed), the mock and his seven picks (the trench landscape; three named
+starts plus the drag; the CHOSEN walk with a compare toggle, his one
+departure; arrows plus Adam's rescale panel; five lr rungs; StepLR and
+ReduceLROnPlateau with a rate strip; faces SGD · Adam · RMSprop with momentum
+under SGD), his mid-build asks (the relief, the rail order, the opening rate
+0.1 after "all optimizers have problems near the local minimum"), the four
+audit rounds, and the ship. Commits: `f3c8572` measured and mocked,
+`4f5a265` the picks, `d284fb5` the draft, `7fca688` / `6c2eb41` / `8f2fca2` /
+`7c3c1d3` the four audit rounds, `cddb99d` shipped.
 
 ## Slot 54 — the record of the day it was built (2026-09-11), kept as written
 
