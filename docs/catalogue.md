@@ -12296,6 +12296,38 @@ grid for y_pred over y_true are the next mock (`_lab/loss-rail-mock.html`),
 which may need a small core addition (a `text` field rendered as N cells)
 — put to him before any core change.
 
+#### The rail mock and his picks — 2026-09-11 (`0ec0769`)
+
+Kenneth's three orderings for the classification faces, put to him as an
+assessment: (1) Binary · Single-label (>2 classes) · Multi-label (>2
+classes), by prevalence; (2) the count first, ">2 classes (single label)";
+(3) hierarchical, 2 / >2 classes then single / multi. He took **option 1**
+— the face names the task, the count qualifies it, all three visible at
+rest; (2) puts the same words on two faces; (3) hides two cases at rest.
+
+`_lab/loss-rail-mock.html` (an Opus builder; the main session added A1, the
+prevalence order) measured at 300px: the count IN the face truncates two of
+three by 38.9px; in the DETAIL line the Task field is flat at 169px on all
+four pages, jog 0; stacked full-width faces +59px; two-line faces (the name
+over a qualifier in `--fs-xs`) fit with 49.6px of 86.9px, +7px. And the
+alignment ask: as built the worst y_pred value sits 173 / 79 / 177px from
+its y_true control (Single-label / Multi-label / Binary); a GRID — class
+letters as heads, N equal cells for y_pred, the y_true row in the same
+columns — is 0.4 / 0.6 / 0.2px off by construction, keeps the URL
+(`scores=5,0.5,0.1`), and needs a core addition priced at ~40 lines of
+`controls.js` + ~22 of CSS + 4 for the checkbox run (`.w-bools` is 46px off
+N equal columns); the `expr` form wraps at five slots and would move the
+row to one key per class. Regression heads `1 2 3`, since an output is not
+a class (3.7). The four rails under B: 636 / 620 / 608 / 538px against the
+414px stage.
+
+**His picks (two asked):** §1 **D, two-line faces** — Binary / `2 classes`,
+Single-label / `>2 classes`, Multi-label / `>2 classes`, in that order,
+the counted details kept; §2 **yes to the grid and its core addition** —
+a `text` field option rendering the row as N cells under heads, and a
+segmented option's second line, both put to him as core and both taken.
+Full fingerprint suite to be re-run after the core change.
+
 #### The mock-up — `_lab/tensor-mock.html`, 2026-09-08, awaiting picks
 
 Five sections, each a pick: **§1** how the `[2, 2, 5]` tensor is drawn — A the
