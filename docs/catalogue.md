@@ -12,7 +12,7 @@ answer can be checked against what was assumed.
 
 | looking for | go to |
 |---|---|
-| what to build next | § *The deep learning arc* under PHM5005 — slot 48 `gradients` SHIPPED 2026-09-08, slot 53 `tensors` SHIPPED 2026-09-09 after twenty-nine rounds; **`05-3` is PLANNED 2026-09-10 as three widgets** — 49 `processing-layers`, 50 `support-layers`, 51 `composition` — on Kenneth's eight picks, with `processing-layers` first and one core commit (`widgets/core/torch.js`) before it; the high-throughput arc is complete |
+| what to build next | § *The GWAS and PRS arc* under PHM5003 — PROPOSED 2026-09-11 from week 6, four widgets on Kenneth’s picks the same evening (56 `hardy-weinberg`, 57 `gwas`, 59 `polygenic-score` with LD as its first page, 60 `mendelian-randomization`, in the notebooks’ order), three findings read from the lesson’s own output files; NEXT is 56’s measure script and mock; slot 52 `training-loop` (05-4) is still owed under § *The deep learning arc*; the high-throughput arc is complete |
 | how a widget got its shape | § *Widget N*, in order |
 | the four-method reconnaissance | § *Widget 19*, under the PCA sections |
 | the arcs, and what is deliberately not a widget | the arc sections below |
@@ -6991,6 +6991,302 @@ the figure is what a real analysis looks like: clusters, boxes and no verdict.**
 - **Narrow widths unchecked** since the canvas grew to 790 tall; last measured
   at 375px when it was 400.
 - **Not judged projected**, which every widget from 11 on still owes.
+
+---
+
+## The GWAS and PRS arc — PROPOSED 2026-09-11, from PHM5003 week 6
+
+**Kenneth's ask, 2026-09-11:** widgets for `06 - GWAS and PRS`, thinking of
+four — Hardy-Weinberg equilibrium ("not sure if there is anything to
+highlight about this concept for GWAS"), linear mixed models with fastGWA as
+the example, polygenic risk scores (LD, clumping, the score, the graphs), and
+Mendelian randomization. Read the notebooks first, research whether each
+earns a slot.
+
+**The nine notebooks were read in full the same day**, with their outputs
+(the copies at `../jupyterbook/phm5003/notebook/06 - GWAS and PRS/` carry
+outputs AND the result files: `iomics_check.hwe`, the GCTA and PRSice logs,
+`cholesterol_prs.prsice`, `.summary`, `.best`). Every number below is read
+from those files, not from the lesson prose. The lesson's own figures —
+the LD-clump diagram, the PRS quantile sketch, the two MR diagrams and the
+TwoSampleMR workflow poster — are what the mocks should be measured against
+(extracted to the scratchpad on 2026-09-11; copy the ones a mock uses into
+`_lab/figs/gwas-*.png` when that mock is built, as the DL arc did).
+
+The week is one continuous argument, and it is the genetics pipeline in
+order: *check the genotypes → find the ancestry structure → test each SNP
+with the structure taken out → read the skyline → add the SNPs up into a
+score → ask whether a trait causes another.*
+
+### What is already covered — read before proposing a slot
+
+| existing widget | what it already does for this week | so the arc must not |
+|---|---|---|
+| 32 `mixed-model` | the random effect, REML, families of related people, a ten-SNP panel where the flat fit finds false SNPs and lmer does not (measured: 2.5 false of 9 at family SD 5) | teach "a random effect exists" again. Its engine `fitLMM` (profiled REML, Cholesky) is the fitter the GWAS slot's variance step can call |
+| 19 `pca` | the eigen-decomposition and the projection | re-teach PCA. The GWAS slot draws the PC scatter the way 01-4 does and moves on to what the PCs are FOR |
+| 6 `multiple-testing` | why 20,000 tests need a corrected threshold | re-derive 5 × 10⁻⁸; the Manhattan line is a reading of that widget |
+| 26 `fork-pipe-collider` | the DAG, the confounder, when adjusting is right | re-teach confounding. Its DAG drawing and causal chips are the MR slot's starting idiom |
+| 28 `lm-adjustment` | what adding a covariate does to the other coefficients | re-teach adjustment; PCs as covariates are one instance of it |
+| 13 `generalization` | the holdout, tuning on the test set | re-teach why the tuned threshold's R² is optimistic — the PRS slot shows it and names the holdout |
+| 4 `confidence-interval` | the forest of intervals | invent a forest; MR's single-SNP forest is that figure with a different x |
+
+What no existing widget touches: genotype frequencies against allele
+frequencies; ancestry as a confounder of EVERY SNP at once; the QQ plot; what
+an LD block is and why one peak is one finding; a score as a weighted count
+of alleles and what tuning its threshold on the target costs; an instrument.
+
+### Five slots proposed, four on Kenneth's call (2026-09-11)
+
+| # | slug | notebook | misconception / prerequisite | evidence | status |
+|---|---|---|---|---|---|
+| 56 | `hardy-weinberg` | 01-2 | an HWE failure is a genotyping error. **Measured on the lesson's own file: 2007 of the 2008 SNPs failing at 10⁻⁶ are heterozygote DEFICITS** — the Wahlund signature of pooling three populations, not of a miscalled genotype. Prerequisite for 57: the allele-frequency differences that break HWE in the pooled sample are the structure PCA finds | reported (Wahlund; Anderson 2010 recommends testing controls only because the deviation can be the association) | proposed — the cuttable slot |
+| 57 | `gwas` | 01-3, 01-4, 01-5, 01-6 | a SNP that differs between ancestries is a SNP for the trait ("the chopsticks gene"); a QQ plot lifting off the line means many associations, when it means one confounder in every test; PCs "throw away real signal". And the two-step: the variance estimated once, then a million tests that each cost one regression | documented (Hamer & Sirota 2000; Price 2006; Devlin & Roeder 1999; Yang 2011 on λ under polygenicity; Jiang 2019 for fastGWA) | proposed |
+| 58 | `linkage-disequilibrium` | 02-1 step 1; 01-6's region plot; 03's independent instruments | every point under a peak is a finding, and the top one is the causal variant; for a score, ten correlated SNPs are ten pieces of evidence | reported (the lesson's own summary: "signals may arise from linkage disequilibrium rather than the causal variant") | **FOLDED into 59 as its first page, Kenneth's call 2026-09-11** — the section below stands as that page's spec |
+| 59 | `polygenic-score` | 02-1, 02-2 | the score is a probability of disease; a looser threshold is always more signal; the best-fit R² is the score's accuracy. **Measured: the lesson's R² 0.050 is the maximum over 1316 thresholds tested on the target itself**, which PRSice's own manual says "remains unadjusted and is affected by overfitting" | documented (Choi, Mak & O'Reilly 2020 tutorial's misconceptions section; Martin 2019 on portability; the lesson's own summary states the probability misconception) | proposed |
+| 60 | `mendelian-randomization` | 03 | the scatter of SNP effects is a correlation to be eyeballed, when its SLOPE THROUGH THE ORIGIN is the causal estimate and each point is one ratio; a SNP that also reaches the outcome another way (horizontal pleiotropy) is still a fine instrument; a weak instrument is merely imprecise | documented (Davies, Holmes & Davey Smith 2018 BMJ guide; Bowden 2015 for Egger; Sanderson 2022 primer, which the lesson links) | proposed |
+
+Numbers are provisional — 46 is `wgcna`, a draft on its own branch, and
+52 `training-loop` is still owed to 05-4. The order is the notebooks' own.
+Five is the honest count for four asks because LD is used by three lessons
+(the region plot, clumping, the instruments' independence) and none of the
+three has room to teach it; the slot that could be cut without losing a
+lesson is 56, and its entry says what that would cost.
+
+**Kenneth's picks, the same evening:** four widgets, not five — LD folds
+into 59 as its first page; 56 stays as a one-page widget; the order is the
+notebooks' own, 56 → 57 → 59 → 60; and 01-5 is left as it is, the widget
+carrying the fallback case on its own. The 58 section below is kept as the
+spec of 59's first page rather than rewritten into it.
+
+**Slug rulings.** *Name the method or the data shape, not the failure*
+(the 2026-08-28 renames): `gwas` and not `population-stratification`;
+`polygenic-score` and not `prs-overfitting`; `mendelian-randomization`
+spelt out because `mr` is two letters on a slide. 59 drops "risk" because
+the lesson's own summary is at pains to say the score is relative, not a
+risk — the title can carry *Polygenic Risk Scores*, the URL the neutral
+noun. If Kenneth prefers the lesson's initials, `prs` joins `pca`, `mds`,
+`hmm` and `umap` by the bare-name rule.
+
+### Three things the lesson's own output files say, told to Kenneth 2026-09-11
+
+These are findings about the notebooks, recorded here so the widgets are
+built against what actually ran and not against what the headings claim.
+
+1. **fastGWA did not fit a mixed model on this data.** The 01-5 log reads:
+   REML grid search, `Vg 4.8e-18`, `Ve 0.078`, `Heritability = 6e-17 (Pval
+   = 1)`, then *"the estimate of Vg is not statistically significant … the
+   program will use linear regression for association test."* So every
+   P in `iomics_filtered_association.fastGWA` is ordinary least squares on
+   the SNP plus five PCs. Not a defect in the code — 319 people from three
+   populations contain no families, so there is no relatedness variance to
+   estimate — but the lesson under the heading *Linear Mixed Models* shows
+   a run in which the random effect dropped out, and says nothing. The
+   sparse GRM's 5974 pairs above 0.05 (of 52,326) are same-population
+   pairs, not relatives: with the PCs in the model that information is
+   already spent, which is exactly why Vg goes to zero. **This is the
+   widget's case that fails (2.6):** at Families = none, the GRM term
+   should visibly do nothing and the PCs everything; families are what
+   bring it back. Kenneth may want a sentence in 01-5 either way.
+2. **The HWE filter on this sample removes the Wahlund effect, not
+   genotyping error.** `iomics_check.hwe`, founders only, 1,651,345
+   polymorphic SNPs: 909,740 have fewer heterozygotes than expected and
+   738,944 more — a deficit across the whole file — and of the 2008
+   failing at the lesson's 10⁻⁶, 2007 are deficits. 01-2 lists
+   "genotyping errors, population stratification, inbreeding" as causes
+   and does not say which one this is. The three PCA clusters in 01-4 are
+   the answer, two lessons later. Slot 56 exists to make that link.
+3. **The PRS R² is a tuned maximum.** `cholesterol_prs.prsice` holds 1316
+   thresholds from 5 × 10⁻⁸ (22 SNPs, R² 0.0013, P 0.52) through 0.05
+   (11,553 SNPs, R² 0.036) to the best at 0.404 (56,054 SNPs, R² 0.0497,
+   P 6 × 10⁻⁵), falling again by 0.5 (R² 0.046). PRSice's `--perm` gives an
+   empirical P for the selection; the R² has no such correction and the
+   `.summary` prints it as `PRS.R2`. 02-1 reports it without the caveat.
+   Slot 59's threshold page is that curve with a holdout beside it.
+
+Also noted, not a widget's business: GCTA's `--out iomics_filtered`
+overwrote PLINK's `iomics_filtered.log`, so the count of SNPs each QC filter
+removed is not on disk (2,527,458 in, 1,432,502 out; 876,113 are monomorphic
+in the `.hwe` file, which is most of the difference).
+
+### The PCA numbers the GWAS slot must reproduce in shape
+
+`iomics_filtered_pca.eigenval`: 17.28, 3.08, 1.55, 1.51, 1.40 — two axes
+carry the three populations and the rest is flat. A simulated cohort for 57
+should have the same signature: three subpopulations, PC1 separating one
+from the other two, PC2 the remaining pair, PC3 onward noise. 01-4's
+scatter is the reference picture.
+
+### Slot 56 · `hardy-weinberg` — the cuttable one
+
+**Kenneth's doubt is fair and the answer is one thing, not a lecture.** A
+genotype table has three numbers and an allele frequency has one; HWE is
+the claim that the one predicts the three. The de Finetti triangle draws
+that as a point (the observed AA/Aa/aa) against a parabola (the prediction),
+and the whole lesson is the distance between them and what moved the point.
+
+- **The control that carries the idea:** *What produced the sample* — one
+  population · two populations pooled (with an allele-frequency gap) ·
+  heterozygotes miscalled. The first sits on the parabola up to sampling
+  noise; the second sits BELOW it (deficit, by 2·Var(p) across the
+  subpopulations — Wahlund); the third sits below it too, which is why
+  the test alone cannot tell them apart and the PC plot is needed. A
+  fourth arm, heterozygotes over-called (a duplicated region), sits above.
+- **The count:** the χ² on the three cells at the sample size, the P, and
+  the lesson's 10⁻⁶ line. n is a control because at 323 the pooled
+  deficit at a realistic frequency gap is invisible to the test, and the
+  file's 2008 failures are the SNPs where the gap is largest — a claim to
+  measure before the mock (`_lab/hwe-measure.mjs`: the fraction of SNPs
+  failing at 10⁻⁶ as a function of the gap and n).
+- **What it would cost to cut:** slot 57 opens on three clusters with no
+  account of where they came from, and the QC lesson keeps its list of
+  three causes with no way to tell which. Small widget, one page, no
+  animation beyond the point moving as the controls move; the cheapest
+  build in the arc.
+
+### Slot 57 · `gwas` — the structure, the mixed model, the skyline
+
+**The one thing:** a test of every SNP on a structured sample finds the
+structure at every SNP, and the mixed model is how the structure is taken
+out — PCs for ancestry, the GRM for relatedness — before the skyline means
+anything.
+
+- **The cohort, simulated:** ~300 people in three subpopulations, ~2000
+  SNPs whose allele frequencies differ between subpopulations (Fst-scale
+  differences), a trait with a subpopulation mean shift (the "diet"
+  confounder), a small polygenic part, and an optional family structure
+  (sibships sharing genotypes and a family shift — `mixed-model`'s
+  `simulateSNP` has the pattern). Two or three causal SNPs, so there is a
+  right answer.
+- **The model control:** SNP only · + PCs · + PCs + GRM. The figure is the
+  Manhattan skyline with the corrected threshold and the QQ plot beside it
+  with λ printed — the lesson's two readings, both from 01-6. At *SNP
+  only* the QQ lifts off along its whole length (λ ≫ 1, the confounder in
+  every test) and the skyline is a forest of false peaks; *+ PCs* brings
+  the body of the QQ back to the line and leaves the causal SNPs standing;
+  *+ GRM* changes nothing at Families = none (finding 1 above, the lesson's
+  own run) and matters once families exist.
+- **The two-step, shown not said:** the variance components estimated
+  once (a readout: Vg, Ve, h²; `fitLMM` from `mixed-model/model.js`), then
+  the per-SNP walk — a step reveals one SNP's test landing on the skyline,
+  Play sweeps the chromosome. The walk is the lesson's own claim that the
+  expensive step happens once.
+- **The PC scatter:** 01-4's picture, coloured by subpopulation, drawn
+  small beside the skyline so the reader sees what the covariates are.
+- **Compute cost, to measure before the mock:** 2000 OLS fits on 300 rows
+  are trivial; the GLS with a 300 × 300 V is one Cholesky then 2000
+  solves; the PCs are a power iteration on the 300 × 300 GRM. All inside
+  `compute()`, no per-frame work. `_lab/gwas-measure.mjs`: λ under each
+  model at each subpopulation shift; how many false peaks at *SNP only*;
+  that *+ GRM* is inert without families and not with them.
+- **Not in scope:** imputation, meta-analysis, the region plot's gene
+  track (topr's job), LD — that is 58.
+
+### Slot 58 · `linkage-disequilibrium` — FOLDED into 59 as its first page, Kenneth's call 2026-09-11
+
+**The one thing:** SNPs near each other on a chromosome are inherited
+together, so one causal variant lights up its neighbours and one peak is
+ONE finding; clumping keeps the lead and drops what it explains.
+
+- **The figure:** a panel of haplotypes (rows are chromosomes, columns SNPs
+  along a stretch of sequence), recombination breaking the blocks over
+  generations — a countable thing while the count is small (2.3) — and
+  the r² triangle below it. Then the association view: one hidden causal
+  SNP, each SNP's −log₁₀ P against position (01-6's region plot without
+  the gene track), and clumping at the lesson's own defaults (r² 0.1,
+  250 kb, from the PRSice log's `--clump-r2 0.1 --clump-kb 250kb`).
+- **The controls:** generations of recombination (LD decays), the causal
+  SNP's position, clump r². The lead SNP is not always the causal one —
+  the case that fails, and the lesson's own summary sentence.
+- **Fold or stand:** the fold into 59 saves one widget and costs the region
+  plot in 01-6 and the instrument-independence line in 03 their link.
+  Recommend it stands; the mock will show whether the haplotype panel
+  alone fills a stage. **Kenneth chose the fold**, so 59's mock carries
+  this page and the question becomes whether one rail serves four pages.
+
+### Slot 59 · `polygenic-score`
+
+**The one thing:** a score is a weighted count of alleles, its weights
+come from another study, and how well it predicts is a number that must be
+read on people it was not tuned on.
+
+- **Page 1, LD and clumping:** slot 58's haplotype panel, r² triangle and
+  clump at the lesson's defaults, folded here on Kenneth's call — the
+  reader sees why the base study's SNPs are thinned before any is weighed.
+- **Page 2, the score:** a handful of people × a handful of SNPs, each
+  cell 0/1/2 effect alleles, each SNP's β from the base study, the sum
+  building one person at a time (composition's reveal rule) — the lesson's
+  equation with its terms visible. The count is the argument.
+- **Page 3, the threshold:** the R² curve against the P threshold with
+  the number of SNPs on a second axis — finding 3's shape (near zero at
+  5 × 10⁻⁸, rising through 0.05, a maximum, a fall); tuned on the target
+  against measured on a holdout (`--c-holdout`), so the reader sees the
+  best-fit R² sit above the honest one.
+- **Page 4, the quantile plot:** 02-2's figure, means with intervals by
+  vigintile, and a *Target population* control: the base study's ancestry ·
+  a different one (allele frequencies and LD shifted, so the weights point
+  at the wrong tags) — Martin 2019's portability loss and the lesson's
+  own explanation of its weak trend (East Asian base, three-population
+  target). The lesson's real curve has quantile 1 at 20.76 and quantile
+  20 at 21.21 on a range of 0.6; the simulated one should look like that
+  at the mismatched setting and steeper at the matched one.
+- **Not a probability:** the readout gives the person's percentile and a
+  standardised score, never a risk; the calibration paragraph in 02-2's
+  summary is prose, not a page.
+- **Measure first** (`_lab/prs-measure.mjs`): the tuned-versus-holdout gap
+  at the lesson's n (319) across thresholds; the portability loss at a
+  chosen LD/frequency shift; that the quantile trend is visible at the
+  matched setting at n = 319.
+
+### Slot 60 · `mendelian-randomization`
+
+**The one thing:** each SNP gives a ratio — its effect on the outcome over
+its effect on the exposure — and the causal estimate is those ratios
+combined; the assumptions are the three arrows the DAG must NOT have.
+
+- **The DAG, live:** G → X → Y, U → X, U → Y as the lesson draws it; two
+  violations as toggles that draw an arrow — G → Y direct (horizontal
+  pleiotropy) and G → U — `fork-pipe-collider`'s idiom.
+- **The population and the two GWAS:** simulated people with a genotype at
+  each of ~30 SNPs, an exposure and an outcome; each SNP's β on X and β on
+  Y estimated (two samples if the drive draws them separately — the lesson's
+  "two-sample" word made visible).
+- **The figure:** the lesson's scatter, β_Y against β_X with error bars,
+  IVW as the weighted slope through the origin, MR-Egger with its
+  intercept, the weighted median; and 03's forest of single-SNP ratios
+  with the combined estimate at the bottom. The confounded observational
+  estimate (regress Y on X) printed as the reference the MR estimate is
+  judged against — at U strong, they disagree and MR is right.
+- **The cases that fail:** pleiotropy ON bends IVW and lifts Egger's
+  intercept off zero, the median holding while fewer than half the SNPs
+  are invalid; *Instrument strength* low widens every ratio and drags the
+  estimate — toward the confounded value in one sample, toward null in two.
+- **The lesson's own numbers** as the target shape: 79 SNPs, IVW 0.446
+  (SE 0.059), Egger 0.502 (SE 0.144), weighted median 0.387 — a positive
+  slope with wide single-SNP intervals.
+- **Measure first** (`_lab/mr-measure.mjs`): bias of IVW versus Egger
+  versus median as the fraction of pleiotropic SNPs rises; weak-instrument
+  bias at the chosen n; that the DAG's three assumptions each map to one
+  visible failure.
+
+### The open calls — put to Kenneth and answered, 2026-09-11
+
+1. **Five or four.** Fold 58 into 59's first page, or let it stand.
+   Recommended standing; **he chose the fold.**
+2. **56 keep, fold or drop.** Keep as a one-page widget (recommended, cheap,
+   and the lesson has a real finding waiting in its own file), fold as a
+   first page of 57, or drop. **Kept.**
+3. **Order.** The notebooks' own — 56, 57, 59, 60 — or the three with
+   documented evidence first (57, 59, 60). Recommended the notebooks' own,
+   because 57 is the largest build and the order lets 56's measure script
+   seed 57's cohort. **The notebooks' own.**
+4. **The 01-5 finding.** Whether the lesson should say that fastGWA fell
+   back to linear regression on this sample, and why (no relatives).
+   **Left as it is**; the widget shows it at Families = none.
+5. **The 52 `training-loop` slot** stays owed to 05-4; this arc does not
+   replace it. He chose to start this arc; 52 waits.
+
+**NEXT:** `_lab/hwe-measure.mjs`, then the 56 mock from the newest mock's
+shell, then his picks.
 
 ---
 

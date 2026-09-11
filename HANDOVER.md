@@ -11,6 +11,35 @@ still open). `loss-functions` (slot 54) shipped the same morning.**
 
 ---
 
+# PLANNED 2026-09-11: THE GWAS AND PRS ARC (PHM5003 week 6) — HIS PICKS TAKEN, NEXT IS 56
+
+Kenneth asked for the next set of widgets for `06 - GWAS and PRS`, naming
+four: Hardy-Weinberg, the LMM with fastGWA, PRS (LD, clumping, the score,
+the graphs) and Mendelian randomization. The nine notebooks were read with
+their outputs and result files, the four topics researched, and the plan is
+in `docs/catalogue.md` § *The GWAS and PRS arc* (search that heading):
+**five slots, 56 `hardy-weinberg` (the cuttable one), 57 `gwas`, 58
+`linkage-disequilibrium`, 59 `polygenic-score`, 60
+`mendelian-randomization`**, each with its misconception, evidence grade,
+the figure and the measure script it needs before its mock. Three
+findings were read from the lesson's own files and are recorded there —
+**fastGWA estimated Vg = 0 on this sample and fell back to linear
+regression** (the 01-5 log says so; no relatives among 319 people), the
+HWE filter's 2008 failures are 2007 heterozygote deficits (the Wahlund
+effect of pooling three populations), and the PRS R² 0.050 is the maximum
+over 1316 thresholds tuned on the target. **His picks the same evening:
+FOUR widgets — 58 folds into 59 as its first page; 56 stays a one-page
+widget; the notebooks' order, 56 → 57 → 59 → 60; 01-5 left as it is; this
+arc before slot 52.** Nothing built, nothing measured beyond the file
+reads; the order below (measure → mock → picks → catalogue → draft →
+rounds → audit → ship) applies to each slot as it did to 49–55. **NEXT:
+`_lab/hwe-measure.mjs` (the fraction of SNPs failing HWE at 10⁻⁶ as a
+function of the allele-frequency gap and n, to check the claim that at
+323 a realistic gap is invisible to the test), then the 56 mock.**
+Uncommitted at the time of writing.
+
+---
+
 # NEXT: SLOT 52 `training-loop` (05-4) — MOCK FIRST
 
 **Where things stand (2026-09-11, night).** `main` is at `cddb99d` plus
