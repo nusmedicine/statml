@@ -444,9 +444,13 @@ function build(params, seed) {
     secs.map((s) => `${s.toFixed(1)}s`).join(" "));
   check("…and none of them in under two", secs.every((s) => s >= 2),
     secs.map((s) => `${s.toFixed(1)}s`).join(" "));
+  /* "Add N individuals" after the copy audit of 2026-09-12 — the noun on the
+     button, the number it adds inside it */
   check("every step label names the number of individuals it adds",
-    M.N_OPTIONS.every((o) => M.STEP_LABELS[o.value]
-      .endsWith(M.intText(M.batchFor(M.nOf(o.value))))),
+    M.N_OPTIONS.every((o) => {
+      const b = M.batchFor(M.nOf(o.value));
+      return M.STEP_LABELS[o.value] === (b === 1 ? "Add 1 individual" : `Add ${M.intText(b)} individuals`);
+    }),
     Object.values(M.STEP_LABELS).join(" · "));
 }
 
@@ -920,7 +924,7 @@ function build(params, seed) {
 
     const many = paintedAt(base({ page: "many" }), 0);
     check("the Many-SNPs caption names the count and the sample size",
-      many.some((s) => s === "2,000 SNPs at 323 individuals"),
+      many.some((s) => s === "2,000 SNPs, 323 individuals each"),
       many.find((s) => s.includes("SNPs")) ?? "");
     check("…the threshold's line is labelled with the threshold",
       many.includes("10⁻⁶"), many.join(" · "));

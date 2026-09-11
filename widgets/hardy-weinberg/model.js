@@ -440,12 +440,12 @@ export const PAGES = [
   {
     value: "one",
     label: "One SNP",
-    detail: "a single genotype table, built one individual at a time",
+    detail: "the genotype counts of one SNP, added one individual at a time",
   },
   {
     value: "many",
     label: "Many SNPs",
-    detail: "2,000 genotype tables at the same source and sample size, each with its own allele frequency",
+    detail: "the genotype counts of 2,000 SNPs from the same source and sample size, each at its own allele frequency",
   },
 ];
 
@@ -464,19 +464,19 @@ export const SOURCES = [
   {
     value: "one",
     label: "One population",
-    detail: "every individual drawn from a single population at the allele frequency below",
+    detail: "all individuals from one population, at the allele frequency below",
     caption: "one population",
   },
   {
     value: "pooled",
     label: "Two pooled",
-    detail: "half the individuals from each of two populations, their allele frequencies a fixed distance apart",
+    detail: "half the individuals from each of two populations whose allele frequencies differ by the frequency difference below",
     caption: "two populations pooled",
   },
   {
     value: "heterozygotes",
     label: "Heterozygotes miscalled",
-    detail: "each heterozygote is called AA or aa with the miscall rate below",
+    detail: "each heterozygote is recorded as AA or aa with probability equal to the miscall rate below",
     caption: "heterozygotes miscalled as homozygotes",
     /* Two per row, all four: the mock measured the long names at 130px in
        a 149px cell, and the draft's `span: true` on these two (a guess made
@@ -486,7 +486,7 @@ export const SOURCES = [
   {
     value: "homozygotes",
     label: "Homozygotes miscalled",
-    detail: "each homozygote is called Aa with the miscall rate below",
+    detail: "each homozygote is recorded as Aa with probability equal to the miscall rate below",
     caption: "homozygotes miscalled as heterozygotes",
   },
 ];
@@ -518,63 +518,72 @@ export const VIEWS = [
   {
     value: "whole",
     label: "Whole triangle",
-    detail: "the three corners and the whole Hardy-Weinberg curve",
+    detail: "the full triangle and curve",
   },
   {
     value: "sample",
     label: "Around the sample",
-    detail: "a magnified window at the allele frequency set above",
+    detail: "a magnified region around the allele frequency set above",
   },
 ];
 
 export const STRINGS = {
   /* Kenneth's pick A of two, 2026-09-12: three claims, the third being the one
      the sample-size control exists for. */
+  /* Copy audit 2026-09-12 (Kenneth: "quite a bit of mannerisms"): every
+     string below states a literal fact in plain words — no figurative verbs
+     ("moves a sample off it", "decides which deviations the test finds",
+     "read against"), no chatty tails ("or 2,000 of them"), no question-shaped
+     labels ("What produced the sample", "How much is drawn"). */
   subtitle:
     "Hardy-Weinberg equilibrium predicts the three genotype frequencies from one "
-    + "allele frequency. Pooling two populations or miscalling heterozygotes moves a "
-    + "sample off it, and the sample size decides which deviations the test finds.",
+    + "allele frequency. A sample pooled from two populations, or with miscalled "
+    + "heterozygotes, has fewer heterozygotes than predicted, and the sample size "
+    + "sets how small a deviation the chi-square test can detect.",
 
   /* the gallery card: one declarative sentence naming the concept */
+  /* under the card's 120 — every one of the 52 shipped blurbs is — so the
+     concept's name is left to the title above it */
   blurb:
-    "Hardy-Weinberg equilibrium predicts the three genotype frequencies from one allele frequency.",
+    "One allele frequency predicts three genotype frequencies; pooled populations and "
+    + "miscalled genotypes deviate from it.",
 
   pageLabel: "Page",
-  pageDetail: "one SNP tested, or 2,000 of them",
+  pageDetail: "one SNP, or 2,000 SNPs",
 
   sampleSection: "The sample",
   testSection: "The test",
   figureSection: "The figure",
 
-  sourceLabel: "What produced the sample",
-  sourceDetail: "the process the genotypes in the sample came from",
+  sourceLabel: "Source",
+  sourceDetail: "the process that produced the genotypes",
 
   pLabel: "Allele frequency",
-  pDetail: "the frequency of allele A; with two populations pooled it is the mean of the two",
+  pDetail: "the frequency of allele A; for two pooled populations, the mean of their two frequencies",
 
   gapLabel: "Frequency difference",
-  gapDetail: "the distance between the two populations' allele frequencies, half of it either "
-    + "side of the mean; on Many SNPs, the average difference across them",
+  gapDetail: "the difference between the two populations' allele frequencies, centred on the "
+    + "allele frequency above; on Many SNPs, the mean difference across SNPs",
 
   errorLabel: "Miscall rate",
-  errorDetail: "the probability that one genotype is recorded as another",
+  errorDetail: "the probability that a genotype is recorded as a different genotype",
 
   nLabel: "Sample size",
   nDetail: "the number of individuals genotyped",
 
   thresholdLabel: "Significance threshold",
-  thresholdDetail: "the P value the test is read against",
+  thresholdDetail: "the P value below which the deviation counts as significant",
 
-  viewLabel: "How much is drawn",
-  viewDetail: "how much of the triangle is drawn",
+  viewLabel: "View",
+  viewDetail: "the region of the triangle shown",
 
   wholeLabel: "Draw the whole sample",
-  wholeDetail: "the whole sample at once, rather than one individual at a time",
+  wholeDetail: "all remaining individuals added at once",
 
   seedLabel: "Seed",
-  seedDetail: "the random stream the sample is drawn from",
+  seedDetail: "draws different samples",
 
-  runTitle: "Genotype the rest of the sample, in order",
+  runTitle: "Add the remaining individuals, one batch at a time",
 
   /* on the canvas */
   curveLabel: "Hardy-Weinberg",
@@ -591,14 +600,17 @@ export const STRINGS = {
    individuals at each sample size — 3.4c's map form, which exists because core
    has to know every label the button can hold as well as the current one. */
 export const STEP_LABELS = Object.fromEntries(
-  N_OPTIONS.map((o) => [o.value, `Genotype ${intText(batchFor(nOf(o.value)))}`]),
+  N_OPTIONS.map((o) => {
+    const b = batchFor(nOf(o.value));
+    return [o.value, b === 1 ? "Add 1 individual" : `Add ${intText(b)} individuals`];
+  }),
 );
 export const STEP_TITLES = Object.fromEntries(
   N_OPTIONS.map((o) => {
     const b = batchFor(nOf(o.value));
     return [o.value, b === 1
-      ? "Genotype one more individual and add them to the sample"
-      : `Genotype ${intText(b)} more individuals and add them to the sample`];
+      ? "Add the next individual to the sample"
+      : `Add the next ${intText(b)} individuals to the sample`];
   }),
 );
 

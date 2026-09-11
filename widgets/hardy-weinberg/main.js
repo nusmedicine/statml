@@ -405,7 +405,7 @@ function drawHistogram(ctx, colors, L, params, state) {
   const top = Math.max(1, ...H.inside, ...H.beyond) * 1.12;
   const plot = makePlot({ ctx, colors, rect, xDomain: [H.lo, H.hi], yDomain: [0, top] });
 
-  plot.caption(`${M.intText(many.count)} SNPs at ${M.intText(state.cfg.n)} individuals`);
+  plot.caption(`${M.intText(many.count)} SNPs, ${M.intText(state.cfg.n)} individuals each`);
   plot.note(`${M.intText(many.past)} past the threshold`,
     { tone: many.past ? colors.extreme : colors.ink2 });
 
@@ -561,17 +561,17 @@ widgetApi = defineWidget({
 
   legend: ({ params }) => (params.page === "many"
     ? [
-      { token: "empirical", label: "SNPs at that deficit", mark: "bar" },
-      { token: "extreme", label: "Past the threshold", mark: "bar" },
+      { token: "empirical", label: "Number of SNPs at each deficit", mark: "bar" },
+      { token: "extreme", label: "SNPs past the threshold", mark: "bar" },
       { token: "reference", label: "The threshold, at F = √(χ² critical / n)", mark: "line" },
       { token: "theory", label: "No deficit", mark: "line" },
     ]
     : [
       { token: "empirical", label: "The observed sample", mark: "dot" },
-      { token: "theory", label: "The prediction at the sample's own allele frequency", mark: "dot" },
+      { token: "theory", label: "The Hardy-Weinberg prediction at the sample's allele frequency", mark: "dot" },
       { token: "theory", label: "The Hardy-Weinberg curve", mark: "line" },
-      { token: "empirical", label: "The path of the observed sample", mark: "line" },
-      { token: "highlight", label: "The individuals that just arrived", mark: "bar" },
+      { token: "empirical", label: "The path of the observed sample as individuals were added", mark: "line" },
+      { token: "highlight", label: "The individuals added in the last step", mark: "bar" },
       ...(params.source === "pooled"
         ? [
           { token: "group-a", label: "Population 1", mark: "dot" },
@@ -673,7 +673,7 @@ widgetApi = defineWidget({
           note: "F = 1 − observed heterozygotes / expected",
         },
         {
-          label: "Deficit side",
+          label: "Fewer heterozygotes",
           value: M.pctText(many.deficits / many.count),
           note: "share of SNPs with fewer heterozygotes than expected",
         },
@@ -711,14 +711,14 @@ widgetApi = defineWidget({
     const counts = M.countsAt(state.one, k);
     if (k === 0) {
       return `An empty de Finetti triangle with the Hardy-Weinberg curve across it, and empty `
-        + `genotype bars beside it, ready for ${M.intText(state.one.n)} individuals, ${src.caption}.`;
+        + `genotype bars beside it, before any of the ${M.intText(state.one.n)} individuals is added, ${src.caption}.`;
     }
     const t = M.hweTest(counts);
     return `A de Finetti triangle with the Hardy-Weinberg curve across it. `
       + `${M.intText(k)} of ${M.intText(state.one.n)} individuals, ${src.caption}: `
       + `${M.intText(counts[0])} AA, ${M.intText(counts[1])} Aa and ${M.intText(counts[2])} aa, `
       + `against ${expText(t.exp[1])} heterozygotes predicted at an allele frequency of `
-      + `${M.n2(t.p)}. χ² is ${M.n2(t.chi)} on 1 degree of freedom and P is ${M.pfmt(t.P)}, `
-      + `read against ${M.thresholdOf(params.threshold).label}.`;
+      + `${M.n2(t.p)}. χ² is ${M.n2(t.chi)} on 1 degree of freedom and P is ${M.pfmt(t.P)}; `
+      + `the threshold is ${M.thresholdOf(params.threshold).label}.`;
   },
 });
