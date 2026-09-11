@@ -7199,7 +7199,33 @@ So the widget is **two pages, One SNP · Many SNPs**, on one rail (the page
 control first, the source and its fields shared, the sample size shared,
 the threshold shared; the arrival drive belongs to One SNP and Many SNPs
 lands finished on Draw — its 2,000 tests are one `compute()`). Slug
-`hardy-weinberg`, title *Hardy-Weinberg Equilibrium*. NEXT: the draft.
+`hardy-weinberg`, title *Hardy-Weinberg Equilibrium*.
+
+**DRAFTED 2026-09-12** by an Opus builder from the picks, at
+`/lab/` only (manifest status draft); the verify script has 176
+assertions. The builder's decisions worth keeping: `page`, `threshold` and
+`view` are display so a visit to Many SNPs keeps the arrival, which forces
+the 2,000 tables to be drawn from counts (per individual is 100M draws at
+50,000); "Draw the whole sample" is a momentary action button, not a lead,
+because core's lead disables Step and Play and would open the widget on its
+own answer; the P value's colour is on the canvas because a readout tile
+carries no tone (a `tone` on tiles is the one core addition the build
+wanted and did not make); `plot.caption` draws where the apex label sits,
+so the triangle's caption is local. The verify caught a NaN page before
+any picture did — `configFor` returned no `gap`, and the Many-SNPs page
+printed *0 past the threshold* with nothing visibly wrong. Read in the
+browser by the main session before Kenneth: three fixes (the long source
+names one per row against the mock's measurement; a path drawn for a
+sample that landed at once; the curve label colliding with population 1's
+point at the default — now placed by the text's own extent and omitted
+where no shoulder is clear). **Open for his round:** the One-SNP legend
+lists the path and the arrivals even at rest after "Draw the whole
+sample", because core's legend function sees parameters only, not the
+animation; the frequency difference is shared by both pages, so at the
+default 0.5 the Many-SNPs page shows 654 of 2,000 past 10⁻⁶ (mean F
+0.21) rather than the lesson file's 0.12% — the mock's §6 drew the
+differences from a spread whose mean gave F 0.03; the Step label reads
+"Genotype 5" at 323, which names the batch, and he may prefer a noun.
 - **What it would cost to cut:** slot 57 opens on three clusters with no
   account of where they came from, and the QC lesson keeps its list of
   three causes with no way to tell which. Small widget, one page, no

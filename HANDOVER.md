@@ -38,11 +38,21 @@ is committed at `bbd63a8`. **Slot 56 is MEASURED** — `_lab/hwe-measure.mjs`,
 with F the Wahlund deficit, so at n = 323 only a frequency gap of ~0.5
 fails at 10⁻⁶ (the file's 2008) and the average SNP's deficit needs
 n ≈ 26,600, which sets the n control's range (323 to tens of thousands).
-**NEXT: the 56 mock in `_lab/hardy-weinberg-mock.html` from the newest
-mock's shell — the de Finetti triangle with the observed point and the
-HWE parabola, the "what produced the sample" control (one population ·
-two pooled · heterozygotes miscalled · over-called), n and the gap, the
-three-cell table with χ² and P against the 10⁻⁶ line — then his picks.**
+**Slot 56 is MOCKED (`d195842`), PICKED (`7a720d6`, eight picks, one
+departure: the Many-SNPs page now) and DRAFTED (2026-09-12, the commit
+after `7a720d6`)** — `widgets/hardy-weinberg/`, two pages One SNP · Many
+SNPs, at `http://localhost:8012/widgets/hardy-weinberg/` (`/lab/` on the
+site; manifest status draft; `_lab/hardy-weinberg-verify.mjs` 176
+assertions, registered). Read in the browser and fixed before his round:
+source names two per row, no path for a sample landed at once, the curve
+label placed by its own extent. The catalogue's DRAFTED paragraph under
+slot 56 lists what is open for his round (the static legend entries, the
+shared frequency difference on Many SNPs, the Step label). **NEXT: his
+round on the draft — rounds from his screenshots, small fixes in the main
+session, designs mocked first; then the three-pass copy audit; then
+"tested ok" → the shooter + states → the status flip → the full suite
+fronted → `check` AND `test` read on their own → commit → push on his
+word.**
 
 ---
 
