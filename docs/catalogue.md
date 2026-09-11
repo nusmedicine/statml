@@ -13529,6 +13529,40 @@ stage does not move); a click-only start (the URL could not name it).
 (above). The widget's engine will be the measure script's code moved into
 `widgets/optimizers/model.js`, and the torch script stays as its check.
 
+#### PICKED 2026-09-11 — from `_lab/optimizers-mock.html`, seven picks by `AskUserQuestion`
+
+Kenneth took the recommendation on six and chose differently on one:
+
+| § | pick | note |
+|---|---|---|
+| 1 landscape | **the trench** — two wells on a faint bowl, the global well σ² 2.5 × 0.25 at (1.6, 0) depth 1.2, the local well σ² 0.7 × 0.7 at (−1.6, 0.4) depth 0.35, x ∈ [−4, 4], y ∈ [−3, 3] | one surface, no `landscape` control |
+| 2 start | **three named starts plus the drag** — *Beyond the local minimum* (−3.6, 0.6), *On the plain* (3.5, 2.5), *At the rim of the global well* (0.7, 0.6); the marker draggable on the map, writing `x0`, `y0` | principle 3.6: the drag is a control and the URL reproduces it |
+| 3 paths | **the chosen walk, with a `compare` toggle** that overlays the other three dim with end labels | NOT the recommendation (all four always); a display parameter, so it must not reset the walk |
+| 4 the step | **arrows plus Adam's rescale** — the gradient's direction at a fixed length in `--c-slope`, the step to scale in `--c-empirical`, and a side panel drawing the gradient's two components against the step's two | the side panel serves every method: proportional under SGD, turned under momentum, rescaled per coordinate under Adam |
+| 5 ladder | **five rungs** 0.01 · 0.03 · 0.1 · 0.3 · 1 | every rung changes at least one method's outcome |
+| 6 schedulers | **StepLR and ReduceLROnPlateau** as a `scheduler` choice, a rate strip under the loss strip | StepLR(step_size 100, gamma 0.1); ReduceLROnPlateau(factor 0.1, patience 10), torch's defaults, stepped once per step with the loss |
+| 7 faces | **SGD · RMSprop · Adam**, `momentum` 0 · 0.9 under SGD, AdamW a line on Adam's card | torch's own vocabulary |
+
+**Two facts the mock added.** RMSprop at lr 1 is chaotic: node ends it 5.01
+from the minimum and Chrome 1.81, from the same code, because `Math.exp`
+has no specified precision and one unit in the last place is enough once a
+walk hovers. The engine's other cells reproduce across engines. **No
+fingerprint state may sit on a chaotic cell** (lr 1 with RMSprop; verify any
+lr-1 state across three runs before baselining, as always). And rail A
+measured 866px at 300px against widget 48's 558px stage; the stage here is
+the map with the loss strip and the rate strip beneath it, which is taller
+than 48's, and the rail may still exceed it — 54's Multi-label rail already
+does (608 against 414), so this is not a blocker.
+
+**Not asked, decided:** the default state is *Beyond the local minimum*,
+SGD, momentum 0, lr 0.3, no scheduler — the one rung where switching
+momentum on changes the outcome from local to global; the budget is 500
+steps; the rate strip is drawn only when a scheduler is on (the height is a
+function of the parameters, as `bayesian`'s is); the whole trajectory of
+every method is computed once in `compute()` and the animation reveals it.
+
+**Asked mid-build, 2026-09-11 ("can i check if we have a 3D view like the previous widget on gradient descent?"):** the widget gets 48's `Surface` control, Map or Relief, a display parameter, with the walk lifted onto the surface and the drag to turn it; the fixed viewpoint is MEASURED before it is set, as 48's had to be, because the trench runs along x and an azimuth looking across it hides the walk inside it.
+
 ### Questions for Kenneth, before any mock-up
 
 1. **Six or four.** Slots 47 (`chain-rule`) and 50 (`support-layers`) are the
