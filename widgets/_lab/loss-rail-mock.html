@@ -1,0 +1,1168 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · loss-functions · the three classification faces, and y_pred against y_true</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1040px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-6); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 96ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); max-width: 300px; min-height: 24px; white-space: pre-line; }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 96ch; }
+  ul.proof { font-size: var(--fs-sm); color: var(--ink-2); max-width: 96ch; padding-left: 18px; }
+  ul.proof li { margin-bottom: 4px; }
+  .measure { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--ink-3); margin: 4px 0 0; max-width: 620px; }
+  table.facts { border-collapse: collapse; font-size: var(--fs-sm); color: var(--ink-2); margin: var(--sp-2) 0 0; max-width: 100ch; }
+  table.facts th, table.facts td { border: 1px solid var(--grid); padding: 4px 8px; text-align: left; vertical-align: top; }
+  table.facts th { color: var(--ink-1); font-weight: 600; background: var(--surface-2); white-space: nowrap; }
+  table.facts td b { color: var(--ink-1); }
+  .pagehead { font-size: var(--fs-xs); font-weight: 600; color: var(--c-highlight); margin: 0 0 4px;
+              text-transform: uppercase; letter-spacing: 0.04em; }
+
+  /* THE RAIL AT THE REAL 300px, IN THE SHELL'S OWN SPLIT CONTEXT. `.w-split`
+     is the ancestor four of tokens.css's rules are written against — the
+     one-column `.w-controls`, the drive block's divider, its column direction
+     and the `flex: 1 1 0` that drops the run button's reserved width — so a
+     rail measured outside it is not the rail that ships. The grid is switched
+     off and the column pinned to the 300px `.w-split` resolves to. */
+  .lab .rail-host { display: block; width: 300px; }
+  .lab .rail-host .w-rail { border-top: 0; padding-top: 0; margin-top: 0; }
+  .lab .rail-host > .w-controls > .w-section:first-child { margin-top: 0; }
+  /* The off-screen strip that measures a field on every face. It carries the
+     same `display: block; width: 300px` as the visible rails and not the `.lab`
+     descendant rule, because it sits outside `main` — without that it resolves
+     shrink-to-fit, every detail becomes one long line, and the line counts come
+     back as 1 with nothing on screen looking wrong. */
+  .probe-host { position: absolute; left: -10000px; top: 0; display: block; width: 300px; }
+
+  /* ===================== DRAWN BY HAND, NOT IN CORE ========================
+     Everything below is what a core addition would render. No file under
+     `widgets/core/` is touched by this page; each block says what the addition
+     would be and the recommendation counts its lines.
+
+     (1) `cells: { count, heads }` on core's `text` field — §2 candidate b. One
+     canonical string still, split across N equal columns under a head row. The
+     outer border and `overflow: hidden` are `.w-seg`'s own, so N columns here
+     and N `.w-seg-btn` below divide exactly the same 298px — a grid track and a
+     `flex: 1 1 0` segment resolve that division to within a rounding step, which
+     the page measures rather than assumes. */
+  .mk-cells {
+    display: grid;
+    grid-template-columns: repeat(var(--mk-n), 1fr);
+    border: 1px solid var(--axis);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .mk-head {
+    grid-row: 1;
+    padding: 2px 0;
+    font-size: var(--fs-xs);
+    color: var(--ink-3);
+    text-align: center;
+    background: var(--surface-2);
+    border-right: 1px solid var(--grid);
+  }
+  .mk-cells .mk-head:nth-last-of-type(1) { border-right: 0; }
+  .mk-cell {
+    grid-row: 2;
+    min-width: 0;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 4px 2px;
+    text-align: center;
+    font-family: var(--font-mono);
+    font-size: var(--fs-md);
+    color: var(--ink-1);
+    background: var(--surface-1);
+    border: 0;
+    border-top: 1px solid var(--grid);
+    border-right: 1px solid var(--grid);
+  }
+  .mk-cells .mk-cell:last-child { border-right: 0; }
+  .mk-cell:focus { outline: 2px solid var(--c-highlight); outline-offset: -2px; }
+
+  /* (2) the same N columns for a run of `bool` switches — §2 candidate b on
+     Multi-label. `.w-bools` ships as a flex row with a `--sp-5` gap, which is
+     what puts the five letters where no column is. */
+  .mk-bools { display: grid; grid-template-columns: repeat(var(--mk-n), 1fr); gap: 0; }
+  .mk-bools .w-bool { align-items: center; }
+  .mk-bools label { justify-content: center; gap: 4px; }
+
+  /* (3) a two-line `.w-seg-btn` — §1 candidate D. The shipped face is one
+     `nowrap` line with an ellipsis; this one stacks a name over a qualifier. */
+  .mk-two { display: block; white-space: normal; line-height: 1.25; padding-top: 3px; padding-bottom: 3px; }
+  .mk-two .mk-two-name { display: block; }
+  .mk-two .mk-two-qual { display: block; font-size: var(--fs-xs); font-weight: 400; color: var(--ink-3); }
+
+  /* (4) the target row as chips — §2 candidate d. `.w-pill`'s look, sized to
+     the column instead of to its own text. */
+  .mk-chips { display: grid; grid-template-columns: repeat(var(--mk-n), 1fr); gap: 4px; margin-top: 4px; }
+  .mk-chip {
+    padding: 4px 0;
+    font: inherit;
+    font-size: var(--fs-sm);
+    color: var(--ink-2);
+    background: transparent;
+    border: 1.5px solid var(--ink-3);
+    border-radius: 999px;
+    cursor: pointer;
+  }
+  .mk-chip[aria-pressed="true"] {
+    border-color: var(--c-highlight);
+    background: var(--c-highlight);
+    color: var(--surface-1);
+    font-weight: 600;
+  }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>loss-functions · the three classification faces, and y_pred against y_true</h1>
+
+  <p class="note">
+    Two questions, both Kenneth's, both about the <b>rail</b> and not the stage. The structure is settled:
+    <b>B</b> from <code>_lab/loss-structure-mock.html</code> — Single-label at the notebook's three classes,
+    Multi-label at its five, the Binary page the only place both binary forms appear, <code>Outputs</code>
+    1&nbsp;&middot;&nbsp;3 kept on Regression, and the two <code>Classes</code> controls gone. What is left is
+    what the three classification faces <i>say</i>, and how the two tensors are entered.
+  </p>
+  <p class="note">
+    <b>&sect;1</b> is his wording for the three faces: <i>&ldquo;(1) single-label &gt;2 classes, (2) multi-label
+    &gt;2 classes, (3) binary&rdquo;</i>. <b>&sect;2</b> is his second ask, verbatim: <i>&ldquo;also can you mock
+    the rail input for y_pred? it's not aligned to the target? not sure, like a grid to align?&rdquo;</i>
+    Every rail below is the shell's own DOM inside a <code>.w-split</code>, at the real <b>300px</b>, measured
+    after <code>document.fonts.ready</code>. Nothing in <code>widgets/core/</code> is changed by this page; the
+    four things core does not render yet are drawn by hand in this file's own stylesheet and each is priced.
+  </p>
+  <p class="note" id="mono"></p>
+
+  <h2>&sect;1 &middot; The three classification faces</h2>
+  <p class="note">
+    The <code>Task</code> control keeps its two option groups, so Regression against Classification is already
+    said in the shape (3.4g) and only the three classification faces are in question. Each candidate is drawn on
+    <b>Single-label</b> and on <b>Binary</b> — the shortest detail and the longest — because a field whose
+    detail grows with the selection changes the height of everything under it.
+  </p>
+  <div class="row" id="faceRails"></div>
+  <div id="faceTab"></div>
+  <p class="rec" id="recFaces"></p>
+
+  <h2>&sect;2 &middot; y_pred and y_true, aligned as columns</h2>
+  <p class="note">
+    As it stands the two tensors are entered in two shapes that have nothing to do with each other: y_pred is
+    one text field holding a comma-separated row, y_true is a segmented row of indices or a run of checkboxes.
+    Nothing puts the third number over the third class. Four candidates, each drawn for Single-label (3),
+    Multi-label (5) and Binary (2).
+  </p>
+  <div class="row" id="alignA"></div>
+  <div class="row" id="alignB"></div>
+  <div class="row" id="alignC"></div>
+  <div class="row" id="alignD"></div>
+  <div id="alignTab"></div>
+  <p class="rec" id="recAlign"></p>
+
+  <h2>&sect;2b &middot; The recommended form on Regression</h2>
+  <p class="note">
+    Both rows are numbers there, and neither is a class: y_true is float32 in the units of the prediction. The
+    head row is drawn both ways so the choice is a measurement and not a taste.
+  </p>
+  <div class="row" id="regRails"></div>
+  <p class="rec" id="recReg"></p>
+
+  <h2>&sect;3 &middot; The whole rail, four pages, under structure B</h2>
+  <p class="note">
+    <code>Task</code> with the picked faces, the grid, <code>Target dtype</code> where it exists,
+    <code>Outputs</code> on Regression, then the divider, the drive block, and <code>Play speed</code> under it
+    (<code>afterDrive: true</code>). Measured against the shortest stage, <b>414px</b>.
+  </p>
+  <div class="row" id="fullRails"></div>
+  <p class="rec" id="recFull"></p>
+
+  <h2>What the mock proves</h2>
+  <ul class="proof" id="proof"></ul>
+</main>
+
+<div class="w-split rail-host probe-host" id="probe"></div>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+
+const T = readTokens();
+const M = {};
+const px = (v) => v.toFixed(1);
+
+/* ============================== helpers ==================================== */
+const el = (tag, cls, text) => {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text != null) e.textContent = text;
+  return e;
+};
+function note(host, s) {
+  const p = el("p", "measure", s);
+  p.classList.add("lab-measure");
+  host.appendChild(p);
+  return p;
+}
+/** One probe context, so every width on this page is a measureText. */
+const probe = document.createElement("canvas").getContext("2d");
+function widthOf(s, size, mono) {
+  probe.font = `${size} ${mono ? T.mono : T.font}`;
+  return probe.measureText(s).width;
+}
+
+/* ============================ rail builders ================================
+ * The shell's own classes, so what truncates here truncates in the widget. */
+const field = (label, detail) => {
+  const f = el("div", "w-field");
+  if (label) { const l = el("label"); l.appendChild(el("span", null, label)); f.appendChild(l); }
+  if (detail != null) f.appendChild(el("p", "w-detail", detail));
+  return f;
+};
+const put = (f, node) => {
+  const d = f.querySelector(".w-detail");
+  if (d) f.insertBefore(node, d); else f.appendChild(node);
+};
+/** A `.w-seg` run. `opts` entries are strings, or {label, qual} for candidate
+    D's two-line face, or {label, span} for a grid. */
+function segRun(f, opts, on, mode) {
+  const s = el("div", mode === "grid" ? "w-seg w-seg-grid" : "w-seg");
+  s.setAttribute("role", "group");
+  for (const o of opts) {
+    const label = typeof o === "string" ? o : o.label;
+    const b = el("button", o.span ? "w-seg-btn w-seg-btn--span" : "w-seg-btn");
+    b.type = "button";
+    b.dataset.value = label;
+    if (mode === "two" && o.qual) {
+      b.classList.add("mk-two");
+      b.appendChild(el("span", "mk-two-name", label));
+      b.appendChild(el("span", "mk-two-qual", o.qual));
+    } else {
+      b.textContent = label;
+    }
+    b.setAttribute("aria-pressed", String(label === on));
+    s.appendChild(b);
+  }
+  put(f, s);
+  return s;
+}
+/** The shipped `text` field: one row, one string, no columns. */
+function textRow(f, value) {
+  const i = el("input", "w-text");
+  i.type = "text"; i.value = value; i.spellcheck = false; i.autocomplete = "off";
+  put(f, i);
+  return i;
+}
+/** The shipped `bool` run: a flex row with a `--sp-5` gap. */
+function boolRow(f, names, on) {
+  const g = el("div", "w-field w-bools");
+  names.forEach((nm, i) => {
+    const b = el("div", "w-bool");
+    const l = el("label");
+    const inp = el("input");
+    inp.type = "checkbox";
+    inp.checked = Boolean(on[i]);
+    l.appendChild(inp); l.appendChild(el("span", null, nm));
+    b.appendChild(l); g.appendChild(b);
+  });
+  if (f) put(f, g);
+  return g;
+}
+
+/* --- (1) the grid: what `cells: { count, heads }` on `text` would render ----
+ * ONE parameter still. `parse` joins the cells into the canonical string and
+ * `show` splits it, exactly as the single field does today, so a drag that
+ * rewrites the row repaints every cell through the same door and the URL keeps
+ * `scores=5,0.5,0.1`. */
+function cellsRow(f, heads, values) {
+  const g = el("div", "mk-cells");
+  g.style.setProperty("--mk-n", String(heads.length));
+  for (const h of heads) g.appendChild(el("span", "mk-head", h));
+  values.forEach((v, i) => {
+    const inp = el("input", "mk-cell");
+    inp.type = "text"; inp.value = v; inp.spellcheck = false; inp.autocomplete = "off";
+    inp.setAttribute("aria-label", `${heads[i]}`);
+    g.appendChild(inp);
+  });
+  if (f) put(f, g);
+  return g;
+}
+/* --- (2) the same columns for a run of switches ---------------------------- */
+function boolGrid(f, names, on) {
+  const g = boolRow(null, names, on);
+  g.classList.add("mk-bools");
+  g.style.setProperty("--mk-n", String(names.length));
+  if (f) put(f, g);
+  return g;
+}
+/* --- (4) the target row as chips ------------------------------------------- */
+function chipRow(f, faces, on) {
+  const g = el("div", "mk-chips");
+  g.style.setProperty("--mk-n", String(faces.length));
+  for (const c of faces) {
+    const b = el("button", "mk-chip", c);
+    b.type = "button";
+    b.setAttribute("aria-pressed", String(on.includes(c)));
+    g.appendChild(b);
+  }
+  if (f) put(f, g);
+  return g;
+}
+/** Core's existing `expr` line, its slots typed. */
+function exprLine(host, label, open, slots, close, detail) {
+  const wrap = el("div", "w-field w-expr-field");
+  if (label) wrap.appendChild(el("span", "w-label", label));
+  const line = el("div", "w-expr");
+  line.setAttribute("role", "group");
+  const piece = (s) => line.appendChild(el("span", "w-expr-text", s));
+  if (open) piece(open);
+  slots.forEach((s, i) => {
+    if (i > 0) piece(", ");
+    const slot = el("span", "w-expr-slot");
+    const sel = el("span", "w-expr-sel w-expr-txt");
+    const inp = el("input");
+    inp.type = "text"; inp.value = s.value; inp.size = s.size ?? 3;
+    inp.spellcheck = false; inp.autocomplete = "off";
+    inp.setAttribute("aria-label", s.name ?? "value");
+    sel.appendChild(inp);
+    slot.appendChild(sel);
+    if (s.name) slot.appendChild(el("span", "w-expr-name", s.name));
+    line.appendChild(slot);
+  });
+  if (close) piece(close);
+  wrap.appendChild(line);
+  if (detail != null) wrap.appendChild(el("p", "w-detail", detail));
+  host.appendChild(wrap);
+  return { wrap, line };
+}
+/** Play speed: core's `choice` slider with its tick labels. */
+function speedField(host, on) {
+  const f = field("Play speed", "0.7 seconds a step");
+  const r = el("input");
+  r.type = "range"; r.min = "0"; r.max = "2"; r.step = "1"; r.value = String(on);
+  put(f, r);
+  const ticks = el("div", "w-ticks");
+  for (const t of ["Slow", "Medium", "Fast"]) ticks.appendChild(el("span", null, t));
+  put(f, ticks);
+  host.appendChild(f);
+  return f;
+}
+/** The drive block as `.w-split` lays it out: the fenced pair, then Reset. */
+function driveBlock(host) {
+  const d = el("div", "w-drive");
+  const g = el("div", "w-drive-group");
+  for (const [k, t] of [["step", "Next row"], ["run", "Play"]]) {
+    const b = el("button", "w-btn w-btn--primary", t);
+    b.type = "button"; b.dataset.key = k;
+    g.appendChild(b);
+  }
+  d.appendChild(g);
+  const r = el("button", "w-btn", "Reset");
+  r.type = "button"; r.dataset.key = "reset";
+  d.appendChild(r);
+  host.appendChild(d);
+  return d;
+}
+
+/* ============================== the copy ===================================
+ * Every string a reader would see, in the register the arc uses (5.9): the
+ * quantity named, no lesson reference, and every URL value a word on the
+ * control or a number on its ticks. */
+const REG_DETAIL = "no function applied · y_true is float32, the same shape as y_pred";
+const SHIPPED = {
+  "Single-label": "softmax over the row · y_true is one class index, long",
+  "Multi-label": "sigmoid per class · y_true is 0 or 1 per class, float32",
+  Binary: "softmax over two scores, or sigmoid over their difference"
+    + " · y_true is a class index, long, or a 0 or 1, float32",
+};
+/* A's details: the count moves into the line, and the dtype clause stays. */
+const COUNTED = {
+  "Single-label": "one class of three is true · softmax over the row · y_true is one class index, long",
+  "Multi-label": "any of five classes can be true · sigmoid per class · y_true is 0 or 1 per class, float32",
+  Binary: "one class of two is true, as two outputs or as one · softmax over two scores,"
+    + " or sigmoid over their difference",
+};
+
+/** One `Task` field, on `on`, for a candidate. */
+function taskField(host, cand, on) {
+  const detail = on === "Regression" ? REG_DETAIL
+    : (cand.details ?? SHIPPED)[on] ?? SHIPPED[on];
+  const f = field("Task", detail);
+  put(f, el("p", "w-seg-head", "Regression"));
+  segRun(f, ["Regression"], on);
+  put(f, el("p", "w-seg-head", "Classification"));
+  const seg = segRun(f, cand.faces, cand.faceOf ? cand.faceOf(on) : on, cand.mode);
+  host.appendChild(f);
+  return { f, seg };
+}
+
+const FACE_CANDS = {
+  A: {
+    title: "A · the noun, the count in the detail",
+    sub: "Single-label · Multi-label · Binary, one row of three\nthe count carried by each option's detail line",
+    faces: ["Single-label", "Multi-label", "Binary"],
+    details: COUNTED,
+  },
+  A1: {
+    title: "A · in prevalence order: Binary first",
+    sub: "Binary · Single-label · Multi-label, one row of three, the same counted details\nKenneth's option 1 (2026-09-11): the commonest case first",
+    faces: ["Binary", "Single-label", "Multi-label"],
+    details: COUNTED,
+  },
+  B: {
+    title: "B · the count in the face",
+    sub: "Single-label, >2 classes · Multi-label, >2 classes · Binary\none row of three, the shipped details kept",
+    faces: ["Single-label, >2 classes", "Multi-label, >2 classes", "Binary"],
+    faceOf: (on) => ({ "Single-label": "Single-label, >2 classes",
+      "Multi-label": "Multi-label, >2 classes", Binary: "Binary" }[on] ?? on),
+  },
+  C1: {
+    title: "C · stacked, spelled out",
+    sub: "three full-width rows\nSingle-label · more than two classes",
+    faces: [
+      { label: "Single-label · more than two classes", span: true },
+      { label: "Multi-label · more than two classes", span: true },
+      { label: "Binary · two classes, two ways", span: true },
+    ],
+    mode: "grid",
+    faceOf: (on) => ({ "Single-label": "Single-label · more than two classes",
+      "Multi-label": "Multi-label · more than two classes",
+      Binary: "Binary · two classes, two ways" }[on] ?? on),
+  },
+  C2: {
+    title: "C · stacked, his spelling",
+    sub: "three full-width rows\nSingle-label · >2 classes",
+    faces: [
+      { label: "Single-label · >2 classes", span: true },
+      { label: "Multi-label · >2 classes", span: true },
+      { label: "Binary · 2 classes", span: true },
+    ],
+    mode: "grid",
+    faceOf: (on) => ({ "Single-label": "Single-label · >2 classes",
+      "Multi-label": "Multi-label · >2 classes", Binary: "Binary · 2 classes" }[on] ?? on),
+  },
+  D: {
+    title: "D · two-line faces",
+    sub: "one row of three, the name over its qualifier\nneeds .w-seg-btn to allow two lines",
+    faces: [
+      { label: "Single-label", qual: ">2 classes" },
+      { label: "Multi-label", qual: ">2 classes" },
+      { label: "Binary", qual: "2 classes" },
+    ],
+    mode: "two",
+  },
+};
+
+const FACE_NODES = {};
+for (const [k, c] of Object.entries(FACE_CANDS)) {
+  const cand = el("div", "cand");
+  cand.appendChild(el("h3", null, c.title));
+  cand.appendChild(el("p", "sub", c.sub));
+  const box = el("div", "row");
+  FACE_NODES[k] = { cand, pages: {} };
+  for (const on of ["Single-label", "Binary"]) {
+    const wrapper = el("div");
+    wrapper.appendChild(el("p", "pagehead", on));
+    const host = el("div", "w-split rail-host");
+    const rail = el("div", "w-controls");
+    host.appendChild(rail);
+    FACE_NODES[k].pages[on] = taskField(rail, c, on);
+    FACE_NODES[k].pages[on].rail = rail;
+    wrapper.appendChild(host);
+    box.appendChild(wrapper);
+  }
+  cand.appendChild(box);
+  document.getElementById("faceRails").appendChild(cand);
+}
+
+/* A probe copy of every face on every one of the four faces, off screen, so the
+   height a field takes as the reader clicks across the control is a measurement
+   and not four screenshots. */
+const PROBE = {};
+{
+  const host = document.getElementById("probe");
+  for (const [k, c] of Object.entries(FACE_CANDS)) {
+    PROBE[k] = {};
+    for (const on of ["Regression", "Single-label", "Multi-label", "Binary"]) {
+      const rail = el("div", "w-controls");
+      host.appendChild(rail);
+      PROBE[k][on] = taskField(rail, c, on).f;
+    }
+  }
+  /* the shipped control, unchanged, as the baseline the jog is read against */
+  PROBE.shipped = {};
+  for (const on of ["Regression", "Single-label", "Multi-label", "Binary"]) {
+    const rail = el("div", "w-controls");
+    host.appendChild(rail);
+    PROBE.shipped[on] = taskField(rail, { faces: ["Single-label", "Multi-label", "Binary"] }, on).f;
+  }
+}
+
+/* ======================= §2 · the two tensors ==============================
+ * The three classification pages, each candidate drawn for all three. */
+const PAGES = [
+  { page: "Single-label", n: 3, heads: ["A", "B", "C"], pred: ["5", "0.5", "0.1"],
+    predText: "5, 0.5, 0.1", predDetail: "the scores, one per class",
+    trueKind: "index", trueFaces: ["0", "1", "2"], trueOn: "0",
+    trueDetail: "the index of the true class, counting from A at 0" },
+  { page: "Multi-label", n: 5, heads: ["A", "B", "C", "D", "E"],
+    pred: ["0.2", "-1", "0.5", "2", "-0.3"], predText: "0.2, -1, 0.5, 2, -0.3",
+    predDetail: "the logits, one per class",
+    trueKind: "bools", trueOn: [0, 1, 1, 0, 0],
+    trueDetail: "the classes the target marks present" },
+  { page: "Binary", n: 2, heads: ["A", "B"], pred: ["0.5", "2"], predText: "0.5, 2",
+    predDetail: "two scores, A and B",
+    trueKind: "index", trueFaces: ["0", "1"], trueOn: "1",
+    trueDetail: "the index of the true class: 0 is A, 1 is B" },
+];
+
+const ALIGN = {};
+function alignCand(hostId, key, title, sub, build) {
+  const cand = el("div", "cand");
+  cand.appendChild(el("h3", null, title));
+  cand.appendChild(el("p", "sub", sub));
+  const box = el("div", "row");
+  ALIGN[key] = { cand, pages: {} };
+  for (const p of PAGES) {
+    const wrapper = el("div");
+    wrapper.appendChild(el("p", "pagehead", p.page));
+    const host = el("div", "w-split rail-host");
+    const rail = el("div", "w-controls");
+    host.appendChild(rail);
+    ALIGN[key].pages[p.page] = { rail, ...build(rail, p) };
+    wrapper.appendChild(host);
+    box.appendChild(wrapper);
+  }
+  cand.appendChild(box);
+  document.getElementById(hostId).appendChild(cand);
+  return cand;
+}
+
+/* --- a · as built now ------------------------------------------------------ */
+alignCand("alignA", "a", "a · as built now",
+  "a text row for y_pred, a segmented row or five switches for y_true\nthe baseline every other number is read against",
+  (rail, p) => {
+    const pf = field("y_pred", p.predDetail);
+    const input = textRow(pf, p.predText);
+    rail.appendChild(pf);
+    if (p.trueKind === "bools") {
+      rail.appendChild(el("p", "w-section", "y_true"));
+      rail.appendChild(el("p", "w-detail", p.trueDetail));
+      const g = boolRow(null, p.heads, p.trueOn);
+      rail.appendChild(g);
+      return { input, trueNodes: [...g.querySelectorAll(".w-bool")] };
+    }
+    const tf = field("y_true", p.trueDetail);
+    const seg = segRun(tf, p.trueFaces, p.trueOn);
+    rail.appendChild(tf);
+    return { input, trueNodes: [...seg.querySelectorAll(".w-seg-btn")] };
+  });
+
+/* --- b · the grid ---------------------------------------------------------- */
+alignCand("alignB", "b", "b · the grid",
+  "a head row of class letters, N equal cells for y_pred,\nthe y_true row in the same N columns",
+  (rail, p) => {
+    const pf = field("y_pred", p.predDetail);
+    const grid = cellsRow(pf, p.heads, p.pred);
+    rail.appendChild(pf);
+    const tf = field("y_true", p.trueDetail);
+    let trueNodes;
+    if (p.trueKind === "bools") {
+      const g = boolGrid(tf, p.heads, p.trueOn);
+      trueNodes = [...g.querySelectorAll(".w-bool")];
+    } else {
+      const seg = segRun(tf, p.trueFaces, p.trueOn);
+      trueNodes = [...seg.querySelectorAll(".w-seg-btn")];
+    }
+    rail.appendChild(tf);
+    return { cells: [...grid.querySelectorAll(".mk-cell")], trueNodes };
+  });
+
+/* --- c · one expr line per tensor ------------------------------------------ */
+alignCand("alignC", "c", "c · an expr line per tensor",
+  "core's existing type: a slot per class, each its own hidden parameter\nslot widths follow their content",
+  (rail, p) => {
+    const a = exprLine(rail, "y_pred", "[", p.pred.map((v, i) => ({ value: v, name: p.heads[i], size: 3 })),
+      "]", p.predDetail);
+    const trueSlots = p.trueKind === "bools"
+      ? p.trueOn.map((v, i) => ({ value: String(v), name: p.heads[i], size: 1 }))
+      : [{ value: p.trueOn, name: "class", size: 1 }];
+    const b = exprLine(rail, "y_true", p.trueKind === "bools" ? "[" : "", trueSlots,
+      p.trueKind === "bools" ? "]" : "", p.trueDetail);
+    return {
+      cells: [...a.line.querySelectorAll("input")],
+      trueNodes: [...b.line.querySelectorAll(".w-expr-slot")],
+      predLine: a.line, trueLine: b.line,
+    };
+  });
+
+/* --- d · the grid, one head row, the target as chips ------------------------ */
+alignCand("alignD", "d", "d · one head row, the target as chips",
+  "the class letters head both rows\nthe target row wears the stage's chips",
+  (rail, p) => {
+    /* ONE HEAD ROW FOR BOTH TENSORS, so the field holds the pair and the two
+       labels move into the detail under them. */
+    const pf = field("y_pred · y_true", null);
+    const grid = cellsRow(pf, p.heads, p.pred);
+    const on = p.trueKind === "bools"
+      ? p.heads.filter((_, i) => p.trueOn[i])
+      : [p.heads[Number(p.trueOn)]];
+    const chips = chipRow(pf, p.heads, on);
+    pf.appendChild(el("p", "w-detail", `${p.predDetail} · ${p.trueDetail}`));
+    rail.appendChild(pf);
+    return {
+      cells: [...grid.querySelectorAll(".mk-cell")],
+      trueNodes: [...chips.querySelectorAll(".mk-chip")],
+    };
+  });
+
+/* ===================== §2b · Regression, the picked form =================== */
+const REG_NODES = {};
+{
+  const box = document.getElementById("regRails");
+  for (const [key, heads, sub] of [
+    ["letters", ["A", "B", "C"], "heads A B C"],
+    ["numbers", ["1", "2", "3"], "heads 1 2 3"],
+  ]) {
+    const wrapper = el("div");
+    wrapper.appendChild(el("p", "pagehead", sub));
+    const host = el("div", "w-split rail-host");
+    const rail = el("div", "w-controls");
+    host.appendChild(rail);
+    const pf = field("y_pred", "the predictions, one per output");
+    const a = cellsRow(pf, heads, ["2.5", "0", "2.1"]);
+    rail.appendChild(pf);
+    const tf = field("y_true", "one target per output, in the units of the prediction");
+    const b = cellsRow(tf, heads, ["3", "-0.5", "2"]);
+    rail.appendChild(tf);
+    host.appendChild(rail);
+    wrapper.appendChild(host);
+    box.appendChild(wrapper);
+    REG_NODES[key] = { rail, a, b };
+  }
+}
+
+/* ===================== §3 · the whole rail, four pages ===================== */
+const FULL = {};
+{
+  const box = document.getElementById("fullRails");
+  const spec = [
+    { page: "Regression", on: "Regression" },
+    { page: "Single-label", on: "Single-label", p: PAGES[0], dtype: ["long", "float32"] },
+    { page: "Multi-label", on: "Multi-label", p: PAGES[1], dtype: ["float32", "long"] },
+    { page: "Binary", on: "Binary", p: PAGES[2] },
+  ];
+  for (const s of spec) {
+    const wrapper = el("div");
+    wrapper.appendChild(el("p", "pagehead", s.page));
+    const host = el("div", "w-split rail-host");
+    const rail = el("div", "w-controls");
+    host.appendChild(rail);
+    taskField(rail, FACE_CANDS.A, s.on);
+    if (s.on === "Regression") {
+      const pf = field("y_pred", "the predictions, one per output");
+      cellsRow(pf, ["1", "2", "3"], ["2.5", "0", "2.1"]);
+      rail.appendChild(pf);
+      const tf = field("y_true", "one target per output, in the units of the prediction");
+      cellsRow(tf, ["1", "2", "3"], ["3", "-0.5", "2"]);
+      rail.appendChild(tf);
+      const of = field("Outputs", "one output, or several: the shape of y_pred and y_true");
+      segRun(of, ["1", "3"], "3");
+      rail.appendChild(of);
+    } else {
+      const p = s.p;
+      const pf = field("y_pred", p.predDetail);
+      cellsRow(pf, p.heads, p.pred);
+      rail.appendChild(pf);
+      const tf = field("y_true", p.trueDetail);
+      if (p.trueKind === "bools") boolGrid(tf, p.heads, p.trueOn);
+      else segRun(tf, p.trueFaces, p.trueOn);
+      rail.appendChild(tf);
+      if (s.dtype) {
+        const df = field("Target dtype", "what the target tensor holds when the loss reads it");
+        segRun(df, s.dtype, s.dtype[0]);
+        rail.appendChild(df);
+      }
+    }
+    const drive = driveBlock(host);
+    const after = el("div", "w-controls w-controls--after");
+    host.appendChild(after);
+    speedField(after, 1);
+    wrapper.appendChild(host);
+    box.appendChild(wrapper);
+    FULL[s.page] = { host, rail, drive, after, wrapper };
+  }
+}
+
+/* ============================== the tables ================================= */
+function factTable(hostId, headings, rowKeys) {
+  const t = el("table", "facts");
+  const hr = el("tr");
+  for (const h of headings) hr.appendChild(el("th", null, h));
+  t.appendChild(hr);
+  const cells = {};
+  for (const k of rowKeys) {
+    const tr = el("tr");
+    tr.appendChild(el("th", null, k));
+    cells[k] = [];
+    for (let i = 1; i < headings.length; i += 1) {
+      const td = el("td");
+      cells[k].push(td);
+      tr.appendChild(td);
+    }
+    t.appendChild(tr);
+  }
+  document.getElementById(hostId).appendChild(t);
+  return cells;
+}
+const FACE_KEYS = ["A", "A1", "B", "C1", "C2", "D"];
+const FACE_ROWS = ["widest face, at the pressed weight", "text the face has", "truncated",
+  "detail lines, Single-label → Binary", "Task field height, four faces", "height against A"];
+const FACE_CELLS = factTable("faceTab",
+  ["", ...FACE_KEYS.map((k) => FACE_CANDS[k].title)], FACE_ROWS);
+const ALIGN_KEYS = ["a", "b", "c", "d"];
+const ALIGN_ROWS = ["worst column offset, Single-label", "worst column offset, Multi-label",
+  "worst column offset, Binary", "rail height, the two fields", "what core has to gain", "the URL"];
+const ALIGN_CELLS = factTable("alignTab",
+  ["", "a · as built now", "b · the grid", "c · expr lines", "d · chips"], ALIGN_ROWS);
+
+/* ============================== measurement ================================
+ * Every number is a DOM read, taken once synchronously and again once the fonts
+ * have loaded: the fallback face is not the shipped one, and without the second
+ * pass the tables and the recommendation disagree by a few pixels. */
+
+/* WHAT A FACE HAS FOR ITS TEXT — A FLOAT, AT THE PRESSED WEIGHT. The structure
+   mock's §3 recorded why: `padding + label` misses `.w-seg-btn`'s 1px
+   `border-right`, and `scrollWidth > clientWidth` rounds a 62.0px box holding
+   62.4px of text to 74 against 74. Both said a row fitted that shipped an
+   ellipsis. So the box is `getBoundingClientRect` less every computed padding
+   and border, kept as a float, and the label is measured at `font-weight: 600`
+   because any face can be the pressed one. */
+function faceOf(b) {
+  const cs = getComputedStyle(b);
+  const r = b.getBoundingClientRect();
+  const inner = r.width
+    - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight)
+    - parseFloat(cs.borderLeftWidth) - parseFloat(cs.borderRightWidth);
+  const name = b.querySelector(".mk-two-name") ?? b;
+  probe.font = `600 ${getComputedStyle(name).fontSize} ${cs.fontFamily}`;
+  const text = probe.measureText(name.textContent).width;
+  const qual = b.querySelector(".mk-two-qual");
+  let qw = 0;
+  if (qual) {
+    probe.font = `400 ${getComputedStyle(qual).fontSize} ${cs.fontFamily}`;
+    qw = probe.measureText(qual.textContent).width;
+  }
+  return { label: name.textContent, box: r.width, inner, text, qual: qw,
+    cut: text > inner || qw > inner };
+}
+/** How many line boxes a paragraph actually takes. A Range over the text node
+    reports one rect per line, the only reading that survives a word the wrap
+    point falls inside. */
+function linesOf(node) {
+  if (!node || !node.firstChild) return 0;
+  const r = document.createRange();
+  r.selectNodeContents(node);
+  return r.getClientRects().length;
+}
+const hOf = (n) => Math.round(n.getBoundingClientRect().height);
+
+/** The x-centre of each element, in the rail's own coordinates. */
+function centresOf(rail, nodes) {
+  const x0 = rail.getBoundingClientRect().left;
+  return nodes.map((n) => {
+    const r = n.getBoundingClientRect();
+    return r.left - x0 + r.width / 2;
+  });
+}
+/** THE X-CENTRE OF EACH NUMBER INSIDE A TEXT FIELD. The field holds one string,
+    so a value's position is a measureText over the prefix that precedes it plus
+    the content box's own left inset — there is no element to read. */
+function tokenCentres(rail, input) {
+  const cs = getComputedStyle(input);
+  probe.font = `${cs.fontStyle} ${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+  const x0 = input.getBoundingClientRect().left - rail.getBoundingClientRect().left
+    + parseFloat(cs.paddingLeft) + parseFloat(cs.borderLeftWidth);
+  const s = input.value;
+  const out = [];
+  let i = 0;
+  for (const part of s.split(",")) {
+    const lead = part.length - part.trimStart().length;
+    const a = probe.measureText(s.slice(0, i + lead)).width;
+    const b = probe.measureText(s.slice(0, i + part.length)).width;
+    out.push(x0 + (a + b) / 2);
+    i += part.length + 1;
+  }
+  return out;
+}
+const worstGap = (a, b) => Math.max(...a.map((v, i) => Math.abs(v - b[i])));
+
+function measureAll() {
+  document.querySelectorAll(".lab-measure").forEach((n) => n.remove());
+
+  /* --- §1 ---------------------------------------------------------------- */
+  for (const k of FACE_KEYS) {
+    const seg = FACE_NODES[k].pages["Single-label"].seg;
+    const faces = [...seg.querySelectorAll(".w-seg-btn")].map(faceOf);
+    const widest = faces.reduce((x, y) => (y.text > x.text ? y : x), faces[0]);
+    const heights = ["Regression", "Single-label", "Multi-label", "Binary"]
+      .map((on) => hOf(PROBE[k][on]));
+    const lines = ["Single-label", "Binary"]
+      .map((on) => linesOf(PROBE[k][on].querySelector(".w-detail")));
+    M[k] = {
+      faces, widest, heights, lines,
+      inner: faces[0].inner,
+      cut: faces.filter((f) => f.cut),
+      over: widest.text - faces[0].inner,
+      tall: Math.max(...heights),
+      jog: Math.max(...heights) - Math.min(...heights),
+    };
+  }
+  M.shippedH = ["Regression", "Single-label", "Multi-label", "Binary"]
+    .map((on) => hOf(PROBE.shipped[on]));
+  M.shippedJog = Math.max(...M.shippedH) - Math.min(...M.shippedH);
+  M.shippedLines = ["Single-label", "Binary"]
+    .map((on) => linesOf(PROBE.shipped[on].querySelector(".w-detail")));
+
+  for (const k of FACE_KEYS) {
+    const m = M[k];
+    note(FACE_NODES[k].cand,
+      `face ${px(m.faces[0].box)}px, ${px(m.inner)}px for text · widest ${m.widest.label} `
+      + `${px(m.widest.text)}px (${m.over > 0 ? `${px(m.over)}px over` : `${px(-m.over)}px spare`}) · `
+      + `truncated: ${m.cut.map((f) => f.label).join(", ") || "none"} · `
+      + `Task field ${m.heights.join(" / ")}px over the four faces, jog ${m.jog}px`);
+  }
+
+  /* --- §2 ---------------------------------------------------------------- */
+  for (const key of ALIGN_KEYS) {
+    M[key] = { pages: {} };
+    for (const p of PAGES) {
+      const node = ALIGN[key].pages[p.page];
+      const predC = node.cells
+        ? centresOf(node.rail, node.cells)
+        : tokenCentres(node.rail, node.input);
+      const trueC = centresOf(node.rail, node.trueNodes);
+      const ideal = Array.from({ length: p.n }, (_, i) => (300 / p.n) * (i + 0.5));
+      M[key].pages[p.page] = {
+        predC, trueC,
+        gap: trueC.length === predC.length ? worstGap(predC, trueC) : NaN,
+        offIdealPred: worstGap(predC, ideal),
+        offIdealTrue: trueC.length === p.n ? worstGap(trueC, ideal) : NaN,
+        h: hOf(node.rail),
+        lines: node.predLine
+          ? new Set([...node.predLine.querySelectorAll(".w-expr-slot")]
+            .map((s) => Math.round(s.getBoundingClientRect().top))).size
+          : 1,
+        lineW: node.predLine ? px(node.predLine.getBoundingClientRect().width) : null,
+      };
+    }
+    M[key].tall = Math.max(...PAGES.map((p) => M[key].pages[p.page].h));
+    /* c's y_true is one slot on two of the three pages, so those pages have no
+       gap to report at all — Math.max over a NaN is NaN, and a NaN printed as a
+       measurement is worse than a missing one. */
+    M[key].worst = Math.max(...PAGES.map((p) => M[key].pages[p.page].gap)
+      .filter((v) => !Number.isNaN(v)));
+  }
+  /* `.w-bools` as it ships, against N equal columns — the reason b needs the
+     second hand-drawn block and not just the cells one. */
+  M.boolsOffIdeal = M.a.pages["Multi-label"].offIdealTrue;
+  M.segOffIdeal = M.a.pages["Single-label"].offIdealTrue;
+
+  for (const key of ALIGN_KEYS) {
+    note(ALIGN[key].cand, PAGES.map((p) => {
+      const m = M[key].pages[p.page];
+      return `${p.page} gap ${Number.isNaN(m.gap) ? "n/a" : `${px(m.gap)}px`}, ${m.h}px`;
+    }).join(" · ") + (key === "c"
+      ? ` · y_pred wraps to ${M.c.pages["Multi-label"].lines} lines at five slots, `
+        + `line box ${M.c.pages["Multi-label"].lineW}px`
+      : ""));
+  }
+  note(ALIGN.a.cand, `the y_true row against ${PAGES[0].n} / ${PAGES[1].n} equal columns of the rail: `
+    + `the segmented row is ${px(M.segOffIdeal)}px off, the five switches are `
+    + `${px(M.boolsOffIdeal)}px off`);
+
+  /* --- §2b and §3 -------------------------------------------------------- */
+  M.reg = {};
+  for (const k of ["letters", "numbers"]) {
+    const n = REG_NODES[k];
+    M.reg[k] = {
+      h: hOf(n.rail),
+      gap: worstGap(centresOf(n.rail, [...n.a.querySelectorAll(".mk-cell")]),
+        centresOf(n.rail, [...n.b.querySelectorAll(".mk-cell")])),
+    };
+  }
+  M.full = {};
+  for (const [page, n] of Object.entries(FULL)) {
+    M.full[page] = {
+      params: hOf(n.rail),
+      drive: hOf(n.drive),
+      after: hOf(n.after),
+      total: hOf(n.host),
+    };
+    note(n.wrapper, `params ${M.full[page].params} · drive ${M.full[page].drive} · `
+      + `speed ${M.full[page].after} · rail ${M.full[page].total}px`);
+  }
+  M.fullTall = Math.max(...Object.values(M.full).map((v) => v.total));
+  M.fullShort = Math.min(...Object.values(M.full).map((v) => v.total));
+
+  writeFacts();
+  writeRecs();
+}
+
+function writeFacts() {
+  const put2 = (cells, row, i, html) => { cells[row][i].innerHTML = html; };
+  FACE_KEYS.forEach((k, i) => {
+    const m = M[k];
+    put2(FACE_CELLS, FACE_ROWS[0], i, `<b>${m.widest.label}</b> · ${px(m.widest.text)}px`);
+    put2(FACE_CELLS, FACE_ROWS[1], i, `<b>${px(m.inner)}px</b> in a ${px(m.faces[0].box)}px face`);
+    put2(FACE_CELLS, FACE_ROWS[2], i, m.cut.length
+      ? `<b>${m.cut.map((f) => f.label).join(", ")}</b> — ${px(m.over)}px over`
+      : `nothing — ${px(-m.over)}px spare`);
+    put2(FACE_CELLS, FACE_ROWS[3], i, `${m.lines[0]} → ${m.lines[1]}`);
+    put2(FACE_CELLS, FACE_ROWS[4], i, `${m.heights.join(" / ")} · <b>jog ${m.jog}px</b>`);
+    put2(FACE_CELLS, FACE_ROWS[5], i, i === 0 ? "—"
+      : `${m.tall - M.A.tall >= 0 ? "+" : ""}${m.tall - M.A.tall}px tallest`);
+  });
+  const needs = {
+    a: "nothing — it is what ships",
+    b: "a <code>cells: { count, heads }</code> option on <code>text</code>, and the same "
+      + "N columns for a run of <code>bool</code> switches",
+    c: "nothing — <code>expr</code> exists, but one hidden parameter per class replaces one <code>text</code>",
+    d: "b's addition, plus a chip renderer for the target row",
+  };
+  const urls = {
+    a: "<code>scores=5,0.5,0.1</code> &amp; <code>label=0</code> — unchanged",
+    b: "<code>scores=5,0.5,0.1</code> &amp; <code>label=0</code> — <b>unchanged</b>",
+    c: "one key per class, e.g. <code>zA=5&amp;zB=0.5&amp;zC=0.1</code> — <b>z is on nothing</b>",
+    d: "<code>scores=5,0.5,0.1</code>, and <code>label</code> becomes a letter",
+  };
+  ALIGN_KEYS.forEach((k, i) => {
+    PAGES.forEach((p, j) => {
+      const m = M[k].pages[p.page];
+      /* c's y_true is ONE slot on the two index pages, so there is nothing to
+         align there — which is a fact about the candidate, not a missing
+         reading, and the cell says so. */
+      put2(ALIGN_CELLS, ALIGN_ROWS[j], i,
+        Number.isNaN(m.gap) ? "y_true is one slot" : `<b>${px(m.gap)}px</b>`);
+    });
+    put2(ALIGN_CELLS, ALIGN_ROWS[3], i,
+      PAGES.map((p) => `${p.page.slice(0, 2)} ${M[k].pages[p.page].h}`).join(" · ")
+      + ` · tallest <b>${M[k].tall}px</b>`);
+    put2(ALIGN_CELLS, ALIGN_ROWS[4], i, needs[k]);
+    put2(ALIGN_CELLS, ALIGN_ROWS[5], i, urls[k]);
+  });
+}
+
+/* ============================ the recommendations ========================== */
+function writeRecs() {
+  document.getElementById("mono").innerHTML =
+    `<b>Measured on this browser:</b> a <code>.w-seg</code> row of three at 300px gives `
+    + `<b>${px(M.A.inner)}px</b> of text per face. A <code>.w-seg</code> row and a `
+    + `<code>.mk-cells</code> grid of the same N both divide the same 298px inside a 1px border, `
+    + `which is what makes §2 candidate b's columns agree to `
+    + `<b>${px(M.b.worst)}px</b>. Every height is a <code>getBoundingClientRect</code> after `
+    + `<code>document.fonts.ready</code>.`;
+
+  const A = M.A;
+  const B = M.B;
+  document.getElementById("recFaces").innerHTML =
+    `<b>Recommend A — the noun on the face, the count in the detail.</b> `
+    + `<b>B is decided by truncation.</b> A face in a row of three has ${px(A.inner)}px, and `
+    + `<code>${B.widest.label}</code> measures ${px(B.widest.text)}px at the pressed weight — `
+    + `<b>${px(B.over)}px over</b>, so ${B.cut.map((f) => f.label).join(" and ")} ship an ellipsis. `
+    + `Two of the three faces would be cut off mid-qualifier, which is worse than not carrying the `
+    + `count at all. <b>C fits and costs height and meaning.</b> Stacked full width, a face gets `
+    + `${px(M.C1.inner)}px and truncates ${M.C1.cut.map((f) => f.label).join(", ") || "nothing"}; `
+    + `his own spelling truncates ${M.C2.cut.map((f) => f.label).join(", ") || "nothing"} at the `
+    + `same width. But the Task field goes to ${M.C1.tall}px against A's ${A.tall}px — `
+    + `<b>+${M.C1.tall - A.tall}px</b> — and three stacked rows in one group say the three faces `
+    + `are three kinds of thing, which is the shape 3.4g reserves for a real division. The real `
+    + `division is already drawn: Regression above, Classification below. Spending the same signal `
+    + `twice empties it. <b>D fits and is the near miss.</b> The qualifier is ${px(M.D.faces[0].qual)}px `
+    + `at <code>--fs-xs</code> against ${px(M.D.inner)}px, so it clears the column, for `
+    + `${M.D.tall - A.tall >= 0 ? "+" : ""}${M.D.tall - A.tall}px of Task field. It loses on what the `
+    + `second line can say: <code>&gt;2 classes</code> describes <i>this example</i>, not the task — `
+    + `Multi-label is not a task that needs more than two classes, it is a task where any number of `
+    + `them can be true at once, and the widget happens to draw five. A face is the name of the kind; `
+    + `an example belongs in the line that is allowed a sentence. <b>And A costs no height — it takes `
+    + `some back.</b> A detail changes with the selection, so the Task field's height is a function of `
+    + `which face is pressed: the control as it ships measures ${M.shippedH.join(" / ")}px over `
+    + `Regression, Single-label, Multi-label, Binary, a <b>${M.shippedJog}px jog</b> as the reader `
+    + `clicks across it. A's counted details all fill ${A.lines[0]} lines, so its field is `
+    + `${A.tall}px on every face and the jog is <b>${A.jog}px</b>. B jogs ${M.B.jog}px, C ${M.C1.jog}px `
+    + `and D ${M.D.jog}px, because each of those leaves the shipped details in place. Writing all four `
+    + `lines to the same length is 3.4k's reserve reached by the copy rather than by a measured `
+    + `constant, and it is the cheaper half of the rule: nothing has to be re-measured when the `
+    + `wording changes, because the wording is what holds it. <b>And the wording A should carry.</b> Not `
+    + `<i>&gt;2 classes</i> but what each face means `
+    + `with its own count named: <i>&ldquo;one class of three is true&rdquo;</i>, <i>&ldquo;any of `
+    + `five classes can be true&rdquo;</i>, <i>&ldquo;one class of two is true, as two outputs or as `
+    + `one&rdquo;</i>. That says both halves of Kenneth's question — how many classes there are, and `
+    + `how many of them the target marks — and the second half is the one the face cannot say in any `
+    + `spelling. The URL is untouched by all four: <code>task=single-label</code> is the face's own `
+    + `word either way (5.9).`;
+
+  const gA = M.a.worst;
+  const gB = M.b.worst;
+  document.getElementById("recAlign").innerHTML =
+    `<b>Recommend b — the grid, with the class letters as the head row.</b> `
+    + `<b>The misalignment is real and it is large.</b> As built, the worst number in y_pred sits `
+    + `<b>${px(gA)}px</b> from the y_true control under it — `
+    + PAGES.map((p) => `${p.page} ${px(M.a.pages[p.page].gap)}px`).join(", ")
+    + ` — on a 300px rail whose Multi-label column is 60px wide, so there a value is more than a `
+    + `whole column away from the switch marking the same class. The cause is that the two rows are `
+    + `laid out by different rules: y_pred is one string whose numbers fall where their own digits `
+    + `put them, while y_true is a row of controls laid out across the rail. <b>b makes it `
+    + `${px(gB)}px by construction.</b> The cells grid and the `
+    + `<code>.w-seg</code> row both carry a 1px border and divide the same 298px into N equal `
+    + `columns, so what is left is the rounding step between a grid track and a `
+    + `<code>flex: 1 1 0</code> segment — under a pixel at every count, with no arithmetic in `
+    + `the widget to get wrong and no state in which it comes apart. <b>The one place core has to do `
+    + `more than lay out a grid is the five `
+    + `switches.</b> <code>.w-seg-btn</code> is <code>flex: 1</code> and gives equal columns already `
+    + `(${px(M.segOffIdeal)}px off N equal columns of the rail), but <code>.w-bools</code> is a flex `
+    + `row with a <code>--sp-5</code> gap and its five switches sit <b>${px(M.boolsOffIdeal)}px</b> `
+    + `off those columns — so the Multi-label target needs the same N-column grid, not just the cells `
+    + `above it. <b>The core addition, priced.</b> A <code>cells: { count, heads }</code> option on `
+    + `<code>text</code>: build the head row and N inputs instead of one, paint each from `
+    + `<code>show(v).split(", ")</code>, commit on <code>change</code> by joining the cells and `
+    + `handing the joined string to the field's existing <code>parse</code> — <b>about 40 lines in `
+    + `<code>controls.js</code></b> beside the 18 the single field takes, plus <b>about 22 lines of `
+    + `CSS</b> in <code>tokens.css</code>, and <b>about 4 lines</b> to put a <code>bool</code> run in `
+    + `the same columns when its fields declare the same <code>cells</code> count. Nothing else `
+    + `changes: it is one parameter, one canonical string, one <code>parse</code> and one `
+    + `<code>show</code>, so the drag on the stage rewrites the row exactly as it does today and every `
+    + `cell repaints through <code>show</code>. <b>The URL is unchanged</b> — `
+    + `<code>scores=5,0.5,0.1</code>, <code>label=0</code>, <code>A=1&amp;B=1</code> — which is the `
+    + `reason to prefer b over c outright. <b>c is core's existing type and fails on three counts.</b> `
+    + `Slot widths follow their content, so the two lines do not align — on Multi-label, the one page `
+    + `where both lines have N slots, the worst is <b>${px(M.c.pages["Multi-label"].gap)}px</b> — and `
+    + `at five slots the y_pred line wraps to `
+    + `<b>${M.c.pages["Multi-label"].lines} lines</b> in a ${M.c.pages["Multi-label"].lineW}px box. `
+    + `Each slot is its own hidden parameter, so <code>scores</code> becomes one key per class; the `
+    + `letters are on the control but <code>z</code> is on nothing, and bare <code>A</code> is already `
+    + `the Multi-label switch. And <code>expr</code> has no bool slot at all — its non-text branch `
+    + `builds a <code>&lt;select&gt;</code> from the field's options, and a <code>bool</code> has `
+    + `none — so the Multi-label target would be five selects reading 0 and 1 where five checkboxes `
+    + `already say it. <b>d is b with the target as chips</b>, aligned to the same `
+    + `${px(M.d.worst)}px and ${M.d.tall - M.b.tall >= 0 ? "+" : ""}${M.d.tall - M.b.tall}px of rail. `
+    + `It loses the thing the segmented row is for: on Single-label <code>y_true</code> holds the `
+    + `class <b>index</b>, long, and a chip reading <code>B</code> hides the number the tensor `
+    + `actually holds. <b>Which faces the y_true row wears, and why.</b> The head row carries the `
+    + `letters and the buttons carry <code>0 · 1 · 2</code>, because the letter is the column and the `
+    + `index is the value — the widget's whole Single-label claim is that the target is one index, so `
+    + `the control shows the index and the column above it says which class that index is. On `
+    + `Multi-label the switches need no face beyond their column, and on Binary the two buttons are `
+    + `<code>0 · 1</code> under heads A and B, which is the mapping the page spends its stage on.`;
+
+  document.getElementById("recReg").innerHTML =
+    `<b>Number the outputs on Regression, do not letter them.</b> The two rows align to `
+    + `${px(M.reg.letters.gap)}px either way, and the rail measures ${M.reg.letters.h}px with `
+    + `letters against ${M.reg.numbers.h}px with numbers, so the choice is meaning and not space. `
+    + `A regression output is not a `
+    + `class: y_true there is float32 in the units of the prediction, and a letter is the widget's `
+    + `name for a class everywhere else on the four pages. Heads <code>1 2 3</code> say the outputs `
+    + `are positions in a row; heads <code>A B C</code> would import a vocabulary that three of the `
+    + `four pages use for something else (3.7 — a control the arc repeats keeps one name).`;
+
+  const f = M.full;
+  document.getElementById("recFull").innerHTML =
+    `<b>The four rails, parameters · drive · speed · total.</b> `
+    + Object.entries(f).map(([k, v]) => `<b>${k}</b> ${v.params} · ${v.drive} · ${v.after} · `
+      + `<b>${v.total}px</b>`).join(" &nbsp;|&nbsp; ")
+    + `. The tallest is <b>${M.fullTall}px</b> and the shortest ${M.fullShort}px, against the `
+    + `shortest stage at <b>414px</b> — so the rail is the taller column on `
+    + `${Object.values(f).filter((v) => v.total > 414).length} of the four pages, by up to `
+    + `${M.fullTall - 414}px. That is the bottleneck 3.4a names, and it is the figure's cue to spend `
+    + `the height rather than the rail's cue to shed it. <b>The grid's own cost, page by page:</b> `
+    + PAGES.map((p) => {
+      const d = M.b.pages[p.page].h - M.a.pages[p.page].h;
+      return `${p.page} ${d >= 0 ? "+" : ""}${d}px`;
+    }).join(", ")
+    + ` — it adds a head row on the two index pages and takes back more than that on Multi-label, `
+    + `where the <code>section</code> heading and its own detail line above the five switches are `
+    + `replaced by one field label.`;
+
+  renderProof();
+}
+
+function renderProof() {
+  const ul = document.getElementById("proof");
+  ul.textContent = "";
+  const items = [
+    `<b>A row of three faces leaves ${px(M.A.inner)}px for text at 300px.</b> `
+    + `<code>${M.B.widest.label}</code> needs ${px(M.B.widest.text)}px at the pressed weight, so `
+    + `candidate B truncates ${M.B.cut.map((x) => x.label).join(" and ")} by ${px(M.B.over)}px. `
+    + `Measured as a float off <code>getBoundingClientRect</code> less every computed padding and `
+    + `border, at <code>font-weight: 600</code>, because a rounded box comparison has twice reported `
+    + `a fit that shipped an ellipsis.`,
+    `<b>Stacking the faces costs +${M.C1.tall - M.A.tall}px of Task field and truncates `
+    + `${M.C1.cut.map((x) => x.label).join(", ") || "nothing"}</b>; his own <code>&gt;2 classes</code> `
+    + `spelling truncates ${M.C2.cut.map((x) => x.label).join(", ") || "nothing"} in the same rows. `
+    + `Both fit — C is decided on meaning, not width.`,
+    `<b>A two-line face fits.</b> The qualifier measures ${px(M.D.faces[0].qual)}px at `
+    + `<code>--fs-xs</code> against the ${px(M.D.inner)}px column, for a Task field of `
+    + `${M.D.tall}px against A's ${M.A.tall}px. It needs `
+    + `<code>white-space: normal</code> and two spans on <code>.w-seg-btn</code> — about 8 lines of `
+    + `CSS and 4 in <code>controls.js</code> — and it is still the wrong home for a count that `
+    + `describes the example rather than the kind.`,
+    `<b>A detail that carries the count takes the jog out.</b> The Task field's height follows the `
+    + `pressed face, because the detail does: as it ships it measures ${M.shippedH.join(" / ")}px `
+    + `over the four faces, a ${M.shippedJog}px jog. A's counted lines all wrap to ${M.A.lines[0]}, `
+    + `so its field is ${M.A.tall}px on every face — <b>jog ${M.A.jog}px</b>, against ${M.B.jog} for `
+    + `B, ${M.C1.jog} for C and ${M.D.jog} for D.`,
+    `<b>y_pred and y_true are out by up to ${px(M.a.worst)}px as they ship</b> — `
+    + PAGES.map((p) => `${p.page} ${px(M.a.pages[p.page].gap)}px`).join(", ")
+    + `. The y_pred numbers were located by <code>measureText</code> over the prefix that precedes `
+    + `each one plus the input's own content inset, because a text field holds one string and there `
+    + `is no element to read.`,
+    `<b>The grid is out by ${px(M.b.worst)}px, and that is by construction.</b> A `
+    + `<code>.w-seg</code> row and an N-column cells grid both carry one 1px border and divide the `
+    + `same 298px. The existing y_true controls do <i>not</i> both give equal columns: the segmented `
+    + `row is ${px(M.segOffIdeal)}px off N equal columns of the rail, and the five `
+    + `<code>.w-bools</code> switches are ${px(M.boolsOffIdeal)}px off them, because that row is a `
+    + `flex line with a <code>--sp-5</code> gap.`,
+    `<b>The grid keeps the URL and c does not.</b> b stays one canonical string, one `
+    + `<code>parse</code>, one <code>show</code> — <code>scores=5,0.5,0.1</code> and `
+    + `<code>label=0</code> unchanged, and the stage's drag still writes the same row. c replaces it `
+    + `with one hidden parameter per class, whose names are not on the control (5.9) and one of which `
+    + `collides with the Multi-label switches; and <code>expr</code> takes no bool slot at all — its `
+    + `non-text branch builds a <code>&lt;select&gt;</code> from the field's options and a `
+    + `<code>bool</code> declares none — so c's Multi-label target would be five dropdowns reading 0 `
+    + `and 1.`,
+    `<b>At five slots the expr line wraps to ${M.c.pages["Multi-label"].lines} lines</b> in a `
+    + `${M.c.pages["Multi-label"].lineW}px box, and its slot centres miss y_true's by `
+    + `${px(M.c.pages["Multi-label"].gap)}px — slot widths follow their content, so the two lines `
+    + `cannot align. On Single-label and Binary y_true is one slot, so there is nothing there to `
+    + `align it to.`,
+    `<b>The four rails under structure B measure ` + Object.entries(M.full)
+      .map(([k, v]) => `${k} ${v.total}`).join(" · ") + `px</b>, tallest ${M.fullTall}, against a `
+    + `shortest stage of 414px. Parameters, drive block and Play speed are separated in the note `
+    + `under each rail.`,
+    `<b>Nothing in <code>widgets/core/</code> is touched by this page.</b> The four things core would `
+    + `have to gain are drawn in this file's own stylesheet and named there: the cells grid, the same `
+    + `columns for a bool run, a two-line segmented face, and a chip row. Together the recommendation `
+    + `asks for the first two — about 44 lines of <code>controls.js</code> and 22 of `
+    + `<code>tokens.css</code>.`,
+  ];
+  for (const t of items) {
+    const li = document.createElement("li");
+    li.innerHTML = t;
+    ul.appendChild(li);
+  }
+}
+
+measureAll();
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(measureAll);
+</script>
+</body>
+</html>
