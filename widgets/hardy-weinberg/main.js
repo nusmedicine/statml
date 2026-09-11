@@ -438,7 +438,7 @@ function clearWhole() {
 widgetApi = defineWidget({
   slug: "hardy-weinberg",
   title: "Hardy-Weinberg Equilibrium",
-  status: "draft",
+  status: "shipped",
   subtitle: M.STRINGS.subtitle,
   layout: "side",
   /* one geometry function, for the height the page reserves and for every rect

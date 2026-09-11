@@ -1,17 +1,68 @@
 # Handover
 
-**FIFTY-THREE WIDGETS — 51 on the gallery, `roc-auc` UNLISTED (Kenneth's
-call, 2026-08-30), NO DRAFT: `optimizers` (slot 55, 05-4 cells 41–44 and
-82–86) SHIPPED AND PUSHED 2026-09-11 at `cddb99d`, the day Kenneth asked
-for it — measured and torch-checked, mocked, seven picks, drafted by an Opus
-builder, four copy-audit rounds (two of them his catches), 28 fingerprint
-states stable over two passes of three shots, the full suite 568 of 571
+**FIFTY-FOUR WIDGETS — 52 on the gallery, `roc-auc` UNLISTED (Kenneth's
+call, 2026-08-30), NO DRAFT: `hardy-weinberg` (slot 56, PHM5003 06 / 01-2,
+the first of the GWAS and PRS arc) SHIPPED AND PUSHED 2026-09-12, the day
+after the arc was planned — measured, mocked, eight picks, drafted by an
+Opus builder, three browser fixes, one copy audit on his ask, 26
+fingerprint states stable over three shots, the full suite 594 of 597
 MATCH fronted at DPR 1.25 (the 3 DIFFERs t-sne's light states, unchanged,
-still open). `loss-functions` (slot 54) shipped the same morning.**
+still open). `optimizers` (slot 55) shipped the day before.**
 
 ---
 
-# PLANNED 2026-09-11: THE GWAS AND PRS ARC (PHM5003 week 6) — HIS PICKS TAKEN, NEXT IS 56
+# NEXT: SLOT 57 `gwas` (06 / 01-3 to 01-6) — MEASURE, THEN MOCK
+
+The arc's order is the notebooks' own: 56 → **57 `gwas`** → 59
+`polygenic-score` (with LD as its first page) → 60 `mendelian-randomization`.
+Read `docs/catalogue.md` § *Slot 57 · `gwas`* (search the heading) for the
+design and the measure script it names (`_lab/gwas-measure.mjs`: λ under
+each model at each subpopulation shift, the false peaks at *SNP only*, that
+*+ GRM* is inert without families); the three findings under § *Three
+things the lesson's own output files say* — fastGWA fell back to linear
+regression on the lesson's data, which is the widget's case that fails;
+`widgets/mixed-model/model.js` `fitLMM` for the variance step; `widgets/pca/
+main.js` for the PC scatter; `widgets/hardy-weinberg/` as the newest idiom
+(two pages on one rail, a display `page` that keeps the animation, tables
+drawn from counts, the action button under the drive row). Then the order
+that has now run six times: measure → mock → picks → catalogue → draft →
+rounds → the three-pass copy audit → "tested ok" → shooter + states →
+status flip → full suite fronted → `check` AND `test` read on their own →
+commit → push on his word.
+
+**Things learned on 56 that are not in the principles yet:**
+
+- **A settled state on a widget that declares `shown` must pin `shown=`.**
+  `check` refuses "neither shown= nor drive" on such a widget, so a URL
+  that lands the same finished figure another way (`?whole=1`) is not a
+  state. Write the states with `shown=N` from the start.
+- **A legend function sees parameters only.** Core passes `{ params }`, so
+  a legend entry for a mark that exists only mid-animation (the path, the
+  last step's arrivals) stays listed at rest. Open on 56; a core change
+  would pass `anim` too — a full-suite change, to be argued not slipped in.
+- **A readout tile has no tone.** The P value past the threshold is
+  coloured on the canvas beside the bars instead; a `tone` on tiles is the
+  one core addition 56 wanted and did not make.
+- **Draw from counts when the page is 2,000 tables.** A display `page`
+  means `compute()` builds both pages on every data change; per-individual
+  sampling at 50,000 × 2,000 is 100M draws, so the Many-SNPs tables are
+  binomial draws on counts (exact when small, seeded normal when large),
+  with the verify asserting the moments.
+- **The copy audit's mannerism pass.** Beyond register, vocabulary and
+  outcome commentary: figurative verbs ("moves a sample off it", "read
+  against"), chatty tails ("or 2,000 of them") and question-shaped labels
+  ("What produced the sample") all read as mannerisms to him. State the
+  literal fact; a label is a noun.
+
+**Open on 56, none blocking:** the frequency difference is shared by both
+pages, so at the default 0.5 the Many-SNPs page shows most SNPs past the
+line (the mock drew each SNP's difference from a spread and matched the
+lesson file's 0.12%); the static legend entries above; the 01-2 notebook
+does not yet link to it (prd §4 says how).
+
+---
+
+# PLANNED 2026-09-11: THE GWAS AND PRS ARC (PHM5003 week 6) — 56 SHIPPED, NEXT IS 57
 
 Kenneth asked for the next set of widgets for `06 - GWAS and PRS`, naming
 four: Hardy-Weinberg, the LMM with fastGWA, PRS (LD, clumping, the score,
@@ -47,12 +98,10 @@ assertions, registered). Read in the browser and fixed before his round:
 source names two per row, no path for a sample landed at once, the curve
 label placed by its own extent. The catalogue's DRAFTED paragraph under
 slot 56 lists what is open for his round (the static legend entries, the
-shared frequency difference on Many SNPs, the Step label). **NEXT: his
-round on the draft — rounds from his screenshots, small fixes in the main
-session, designs mocked first; then the three-pass copy audit; then
-"tested ok" → the shooter + states → the status flip → the full suite
-fronted → `check` AND `test` read on their own → commit → push on his
-word.**
+shared frequency difference on Many SNPs, the Step label). **Then his copy
+audit ask ("quite a bit of mannerisms", `8c2ff77`), "tested ok, push" — the
+draft pushed, then SHIPPED 2026-09-12 in the commit after it: 26 states,
+594 of 597 MATCH. The record is under slot 56 in the catalogue.**
 
 ---
 

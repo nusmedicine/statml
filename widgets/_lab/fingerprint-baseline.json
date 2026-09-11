@@ -5014,6 +5014,247 @@
       },
       "px": "dd9c58ba",
       "tx": "8120fe2b"
+    },
+    {
+      "$note": "opens empty: the curve, the two populations and the chord, no individual yet",
+      "slug": "hardy-weinberg",
+      "state": "?theme=light&shown=0",
+      "px": "48abc5ad",
+      "tx": "f90c0f8e"
+    },
+    {
+      "$note": "the default landed at once: two populations pooled at 0.5 ± 0.25, 323 individuals, P just past 10⁻⁶",
+      "slug": "hardy-weinberg",
+      "state": "?theme=light&shown=323",
+      "px": "cb83540f",
+      "tx": "cced8216"
+    },
+    {
+      "$note": "one population: the sample on the curve, the label on the left shoulder",
+      "slug": "hardy-weinberg",
+      "state": "?theme=light&source=one&shown=323",
+      "px": "02360a26",
+      "tx": "42f4594b"
+    },
+    {
+      "$note": "heterozygotes miscalled at 0.3: the deficit side without any pooling",
+      "slug": "hardy-weinberg",
+      "state": "?theme=light&source=heterozygotes&shown=323",
+      "px": "3ed69c00",
+      "tx": "6dc4a2c8"
+    },
+    {
+      "$note": "homozygotes miscalled at 0.3: the excess side, the point above the curve",
+      "slug": "hardy-weinberg",
+      "state": "?theme=light&source=homozygotes&shown=323",
+      "px": "f48fca5a",
+      "tx": "ab255413"
+    },
+    {
+      "$note": "the realistic difference 0.17 at 50,000: the deficit the test sees only at a biobank",
+      "slug": "hardy-weinberg",
+      "state": "?theme=light&gap=0.17&n=50000&shown=50000",
+      "px": "1fd311cf",
+      "tx": "29776f03"
+    },
+    {
+      "$note": "100 individuals: the smallest sample, one-individual steps",
+      "slug": "hardy-weinberg",
+      "state": "?theme=light&n=100&shown=100",
+      "px": "3a62cad8",
+      "tx": "9fb10431"
+    },
+    {
+      "$note": "the detail window around the sample at the default",
+      "slug": "hardy-weinberg",
+      "state": "?theme=light&view=sample&shown=323",
+      "px": "e9455a13",
+      "tx": "cced8216"
+    },
+    {
+      "$note": "the detail window at 0.17 and 10,000: the drop visible where the whole triangle hides it",
+      "slug": "hardy-weinberg",
+      "state": "?theme=light&view=sample&gap=0.17&n=10000&shown=10000",
+      "px": "0ef56574",
+      "tx": "d478ff36"
+    },
+    {
+      "$note": "the threshold at 0.05: the same sample read against a looser line",
+      "slug": "hardy-weinberg",
+      "state": "?theme=light&threshold=0.05&shown=323",
+      "px": "cb83540f",
+      "tx": "e2861453"
+    },
+    {
+      "$note": "the threshold at 10⁻³ on one population: not past it",
+      "slug": "hardy-weinberg",
+      "state": "?theme=light&threshold=1e-3&source=one&shown=323",
+      "px": "02360a26",
+      "tx": "85c262c4"
+    },
+    {
+      "$note": "an off-centre sample: p 0.2, difference 0.3 — the label placed by its own extent",
+      "slug": "hardy-weinberg",
+      "state": "?theme=light&p=0.2&gap=0.3&shown=323",
+      "px": "733dcc91",
+      "tx": "e1b1d18a"
+    },
+    {
+      "$note": "a partial sample settled at 60 of 323: the caption counts, the tiles read the partial table",
+      "slug": "hardy-weinberg",
+      "state": "?theme=light&shown=60",
+      "px": "7c0ef35b",
+      "tx": "86b553cc"
+    },
+    {
+      "$note": "another seed, landed at once",
+      "slug": "hardy-weinberg",
+      "state": "?theme=light&seed=7&shown=323",
+      "px": "46361999",
+      "tx": "7afefecd"
+    },
+    {
+      "$note": "Many SNPs at the default: 2,000 tables at 0.5 ± 0.25, 323 individuals each",
+      "slug": "hardy-weinberg",
+      "state": "?theme=light&page=many&shown=0",
+      "px": "df6a9fc6",
+      "tx": "8d65abc8"
+    },
+    {
+      "$note": "Many SNPs from one population: the histogram centred on no deficit, nothing past the line",
+      "slug": "hardy-weinberg",
+      "state": "?theme=light&page=many&source=one&shown=0",
+      "px": "368f5866",
+      "tx": "2bdd5211"
+    },
+    {
+      "$note": "Many SNPs with heterozygotes miscalled at 0.1: a deficit the test cannot see at 323",
+      "slug": "hardy-weinberg",
+      "state": "?theme=light&page=many&source=heterozygotes&error=0.1&shown=0",
+      "px": "f1bbd107",
+      "tx": "9db5b19d"
+    },
+    {
+      "$note": "Many SNPs at 0.17 and 50,000: the average deficit past the line",
+      "slug": "hardy-weinberg",
+      "state": "?theme=light&page=many&gap=0.17&n=50000&shown=0",
+      "px": "7294035e",
+      "tx": "bbabd5f9"
+    },
+    {
+      "$note": "Many SNPs at the 0.05 threshold: the line moved in",
+      "slug": "hardy-weinberg",
+      "state": "?theme=light&page=many&threshold=0.05&shown=0",
+      "px": "931f1f1e",
+      "tx": "da6cc8c9"
+    },
+    {
+      "$note": "Play at the default, mid-run: batches of 5 landing, the path drawn since the third",
+      "slug": "hardy-weinberg",
+      "state": "?theme=light",
+      "drive": {
+        "click": "run",
+        "frames": 30,
+        "dt": 32
+      },
+      "px": "ce6c7e70",
+      "tx": "d7f8f6f2"
+    },
+    {
+      "$note": "one Step at the default: 5 individuals added, the arrivals marked on their bars",
+      "slug": "hardy-weinberg",
+      "state": "?theme=light",
+      "drive": {
+        "click": "step",
+        "frames": 20,
+        "dt": 32
+      },
+      "px": "dd4b9982",
+      "tx": "2998d880"
+    },
+    {
+      "$note": "Play at 50,000, mid-run: batches of 500",
+      "slug": "hardy-weinberg",
+      "state": "?theme=light&n=50000",
+      "drive": {
+        "click": "run",
+        "frames": 40,
+        "dt": 32
+      },
+      "px": "57ea33ea",
+      "tx": "acb14905"
+    },
+    {
+      "$note": "Play in the detail window: the path magnified",
+      "slug": "hardy-weinberg",
+      "state": "?theme=light&view=sample",
+      "drive": {
+        "click": "run",
+        "frames": 30,
+        "dt": 32
+      },
+      "px": "c61aeaf5",
+      "tx": "d7f8f6f2"
+    },
+    {
+      "$note": "a Step landed, then Play takes over from it",
+      "slug": "hardy-weinberg",
+      "state": "?theme=light",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 20
+          }
+        ],
+        "click": "run",
+        "frames": 30,
+        "dt": 32
+      },
+      "px": "c2d5206c",
+      "tx": "924ce46c"
+    },
+    {
+      "$note": "Play, then Reset empties it, then one Step from the start",
+      "slug": "hardy-weinberg",
+      "state": "?theme=light",
+      "drive": {
+        "before": [
+          {
+            "click": "run",
+            "frames": 40
+          },
+          {
+            "click": "reset",
+            "frames": 2
+          }
+        ],
+        "click": "step",
+        "frames": 20,
+        "dt": 32
+      },
+      "px": "fd53642a",
+      "tx": "b270e06a"
+    },
+    {
+      "$note": "a display change keeps the sample: Play, then the view switched to the detail window mid-run",
+      "slug": "hardy-weinberg",
+      "state": "?theme=light",
+      "drive": {
+        "before": [
+          {
+            "click": "run",
+            "frames": 30
+          }
+        ],
+        "set": {
+          "view": "sample"
+        },
+        "frames": 6,
+        "dt": 32
+      },
+      "px": "6bafdc36",
+      "tx": "d32f6b5e"
     }
   ]
 }

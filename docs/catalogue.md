@@ -7039,7 +7039,7 @@ of alleles and what tuning its threshold on the target costs; an instrument.
 
 | # | slug | notebook | misconception / prerequisite | evidence | status |
 |---|---|---|---|---|---|
-| 56 | `hardy-weinberg` | 01-2 | an HWE failure is a genotyping error. **Measured on the lesson's own file: 2007 of the 2008 SNPs failing at 10⁻⁶ are heterozygote DEFICITS** — the Wahlund signature of pooling three populations, not of a miscalled genotype. Prerequisite for 57: the allele-frequency differences that break HWE in the pooled sample are the structure PCA finds | reported (Wahlund; Anderson 2010 recommends testing controls only because the deviation can be the association) | proposed — the cuttable slot |
+| 56 | `hardy-weinberg` **SHIPPED 2026-09-12**, the day after it was planned | 01-2 | an HWE failure is a genotyping error. **Measured on the lesson's own file: 2007 of the 2008 SNPs failing at 10⁻⁶ are heterozygote DEFICITS** — the Wahlund signature of pooling three populations, not of a miscalled genotype. Prerequisite for 57: the allele-frequency differences that break HWE in the pooled sample are the structure PCA finds | reported (Wahlund; Anderson 2010 recommends testing controls only because the deviation can be the association) | proposed — the cuttable slot |
 | 57 | `gwas` | 01-3, 01-4, 01-5, 01-6 | a SNP that differs between ancestries is a SNP for the trait ("the chopsticks gene"); a QQ plot lifting off the line means many associations, when it means one confounder in every test; PCs "throw away real signal". And the two-step: the variance estimated once, then a million tests that each cost one regression | documented (Hamer & Sirota 2000; Price 2006; Devlin & Roeder 1999; Yang 2011 on λ under polygenicity; Jiang 2019 for fastGWA) | proposed |
 | 58 | `linkage-disequilibrium` | 02-1 step 1; 01-6's region plot; 03's independent instruments | every point under a peak is a finding, and the top one is the causal variant; for a score, ten correlated SNPs are ten pieces of evidence | reported (the lesson's own summary: "signals may arise from linkage disequilibrium rather than the causal variant") | **FOLDED into 59 as its first page, Kenneth's call 2026-09-11** — the section below stands as that page's spec |
 | 59 | `polygenic-score` | 02-1, 02-2 | the score is a probability of disease; a looser threshold is always more signal; the best-fit R² is the score's accuracy. **Measured: the lesson's R² 0.050 is the maximum over 1316 thresholds tested on the target itself**, which PRSice's own manual says "remains unadjusted and is affected by overfitting" | documented (Choi, Mak & O'Reilly 2020 tutorial's misconceptions section; Martin 2019 on portability; the lesson's own summary states the probability misconception) | proposed |
@@ -7226,6 +7226,44 @@ default 0.5 the Many-SNPs page shows 654 of 2,000 past 10⁻⁶ (mean F
 0.21) rather than the lesson file's 0.12% — the mock's §6 drew the
 differences from a spread whose mean gave F 0.03; the Step label reads
 "Genotype 5" at 323, which names the batch, and he may prefer a noun.
+
+**COPY AUDIT 2026-09-12 (`8c2ff77`), Kenneth's ask — "quite a bit of
+mannerisms".** Every reader-facing string restated as a literal fact:
+the subtitle's "moves a sample off it" and "decides which deviations the
+test finds" became *has fewer heterozygotes than predicted, and the sample
+size sets how small a deviation the chi-square test can detect*; the blurb
+brought under the card's 120 like all 52 shipped ones, the concept's name
+left to the title; the question-shaped labels (*What produced the sample*,
+*How much is drawn*) became *Source* and *View*; "read against", "or 2,000
+of them", "called AA or aa with the miscall rate", "a magnified window"
+and the rest rewritten; the Step label *Genotype 5* → *Add 5 individuals*;
+the Seed line the collection's own *draws different samples*; the legend
+and readout entries named as what they count (*Fewer heterozygotes* for
+*Deficit side*). The two the audit left, told to him: the caption note
+"frequency of A" beside a detail-view axis "frequency of a" — the
+triangle's horizontal coordinate is the other allele, on purpose.
+
+**SHIPPED 2026-09-12 on "tested ok, push"** — the draft pushed first
+(`8c2ff77`, live under `/lab/`), then the ship in one commit: the status
+flipped in the manifest, `main.js` and the verify's assertion; 26
+fingerprint states recorded through `_lab/hardy-weinberg-shoot.html` (the
+copy proven 6/6 against the baseline first) — 19 settled (the empty
+default; the default, each of the other three sources, 0.17 at 50,000,
+100 individuals, the detail window at the default and at 0.17 × 10,000,
+the 0.05 and 10⁻³ thresholds, an off-centre 0.2 ± 0.15, a partial 60 of
+323, seed 7, all landed by `shown=`; five Many-SNPs states — the default,
+one population, heterozygotes at 0.1, 0.17 × 50,000, the 0.05 threshold),
+4 driven (Play 30 frames at the default, one Step, Play at 50,000, Play in
+the detail window), 3 interrupted (Step then Play; Play, Reset, Step; and
+Play then the view switched to the detail window mid-run — the display
+change keeping the sample, rule 3); every one STABLE over three shots and
+every drive moved its figure; no `regions`, so no hit state owed. The
+full suite fronted at DPR 1.25: **597 states, 594 MATCH, all 26 of this
+widget's, the 3 DIFFERs t-sne's light states, unchanged and still open.**
+`check` and `test` green, each read on its own line. A lesson learned on
+the way: a settled state on a widget that declares `shown` must pin
+`shown=`, so `?whole=1` (which lands the same finished sample) is not a
+state — 18 entries rewritten before the shooter ran.
 - **What it would cost to cut:** slot 57 opens on three clusters with no
   account of where they came from, and the QC lesson keeps its list of
   three causes with no way to tell which. Small widget, one page, no
