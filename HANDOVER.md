@@ -12,18 +12,121 @@ this machine since 2026-09-11.**
 
 ---
 
-# NEXT: SLOT 52 `training-loop` (05-4) — after slot 54 SHIPPED 2026-09-11
+# NEXT: SLOT 52 `training-loop` (05-4) — MOCK FIRST
 
-**Slot 54 shipped.** The record below is the day it was built, kept as
-written; the catalogue's slot 54 entries carry every pick. Next is slot 52
-`training-loop` (MEASURED 2026-09-07), its Loss row linking to 54; mock
-first, as the last four widgets. **Open: the t-sne light DIFFER** (three
-states, both hashes, identical latest hashes on every run since the
-afternoon, reproduced on `6424dfe` served from a worktree; t-sne renders
-byte-identically in both trees in a tab — so the harness and the tab
-disagree about t-sne alone; find what moved before rebaselining).
+**Where things stand (2026-09-11, night).** `main` is at `42bf769` plus this
+handover, `origin/main` level with it, tree clean, no draft, no branch but
+`wgcna` (another session's, untouched). `loss-functions` (slot 54) SHIPPED
+AND PUSHED today, in one session, on Kenneth's "tested ok, push it". The
+05-4 notebook now has one widget (54) and one slot left: **52
+`training-loop`**, MEASURED 2026-09-07 in `docs/catalogue.md` (search
+`### Slot 52`; `_lab/dl-loop-measure.mjs` has the numbers: the validation
+loss bottoms in the 30s–40s on the lesson's recipe, patience 10 fires BEFORE
+the true minimum in three of five runs, the rise by epoch 100 is 0.01–0.03
+and over 300 epochs 0.09–0.12). Its Loss row links to 54
+(`…/widget/loss-functions/?task=single-label`), so the loop treats the loss
+as one number per epoch and draws no loss's inside.
 
-## Slot 54, the record of the day
+**Read before writing anything:** the slot 52 entry; the 05-4 notebook
+(`Downloads/PHM5005 AY2025-26 - Notebooks/Master/05-4 - DL Foundations -
+Workflow.ipynb`, cells 12–105 — extract them with node, `JSON.parse` of the
+ipynb, to a scratch file, as `nb-05-4.txt` was for 54; the saved notebook
+carries NO outputs, so every number is measured, not read); his figures for
+the loop (none downloaded yet — the notebook's `<img src="https://www.
+dropbox.com/…dl=1">` links fetch with `curl -sL` into `_lab/figs/`, as
+`dl-loss-*.png` were, with his standing leave); `widgets/loss-functions/
+main.js` + `model.js` as the newest idiom (the numbered-decisions header,
+the grid rail on core's `cells`, per-page heights from one geometry
+function, the 4.4 finished-figure rule in `init`, the reveal rule from
+composition); `widgets/mlp/main.js` for the decision-boundary wash the plan
+reuses; `docs/design-principles.md` §2.6, §3.4b (a second stage behind a
+gate — the loop's training run may be one), §4.1 (pacing is chosen: 100
+epochs need a speed), §5.9.
+
+**The order, which has now run four times without a stall (49, 50, 51, 54):**
+(1) the measure script exists — re-run it and add what the mock needs; (2)
+the mock `_lab/training-loop-mock.html` from `_lab/loss-rail-mock.html`'s
+shell (an Opus builder; the main session READS EVERY SECTION in the browser
+before he sees it and fixes defects there — on 54 the target tick struck a
+bar value); (3) his picks by `AskUserQuestion`, up to four a call, the
+recommendation first and marked — and his questions between rounds are
+planning input, each one a mock and a pick ("1 class and >1 class", "binary
+two ways", "not aligned… like a grid" all became mocks today); (4) the
+catalogue record; (5) the draft (an Opus builder; manifest at status draft
+so it sits at `/lab/` only; `_lab/training-loop-verify.mjs` registered in
+`scripts/verify.mjs`); (6) rounds from his annotated screenshots, small
+fixes (< ~20 lines, no design) in the main session, designs mocked first;
+(7) the copy audit as a read-only Opus pass (the table: surface · string ·
+problem · rewrite · settled-or-pick), the settled rows applied, the picks
+put to him — and when he calls a line clunky, OFFER OPTIONS in standard
+textbook language and let him pick (subtitle B and blurb B on 54 are his
+picks from four each); (8) "tested ok" → push the draft if he says push,
+then the shooter + states (an Opus builder from `_lab/loss-functions-
+shoot.html`) → the full suite FRONTED → `check` AND `test` read on their
+own → commit → push.
+
+**Working on this machine (adds to *Working on Windows* below):**
+
+- **Ports.** 8010 is held by another session's server; `node scripts/serve.mjs
+  8011` (launch.json `widgets-alt`). Never `PORT=`, never 8000.
+- **torch 2.14 (CPU) is installed** on the Windows python since today
+  (`python -m pip install torch --index-url https://download.pytorch.org/whl/cpu`,
+  his ask). `python widgets/_lab/dl-loss-torch.py` prints every loss number
+  and error string for real. **Quote no torch message without running it**:
+  two of the three quoted from memory for 54 were wrong.
+- **The fingerprint harness needs its tab ACTIVE, not just the pane visible.**
+  A builder's shooter tab took the front mid-run and the hidden harness tab
+  produced degenerate hashes on naive-bayes (px and tx identical). Close the
+  builders' tabs, `tabs_select` the harness, confirm `devicePixelRatio ===
+  1.25 && !document.hidden`, then reload. 543 states take ~4 min; poll with
+  10 s waits and read the table by JS (`tbody tr` innerText, count MATCH).
+- **git add one file at a time** in a retry loop (Dropbox indexes each object;
+  a multi-file add fails on a different file each time).
+
+**OPEN: the t-sne light DIFFER.** Three states (`?theme=light&step=40`, its
+step-driven and its hit-driven siblings) DIFFER on BOTH hashes with the same
+latest hashes on every run since the afternoon of 2026-09-11 (five runs),
+while the morning's composition-ship run had all 509 MATCH. They DIFFER
+identically on `6424dfe` served from a detached worktree (before the core
+change), and t-sne renders BYTE-IDENTICALLY in both trees in a plain tab at
+693 and 688px wide (same canvas hash, readout, legend, rail height). So the
+harness and a tab disagree about t-sne alone, and nothing committed today
+touches it. Not rebaselined (5.10). To settle it: serve `8b3602d` (the
+morning's clean run) from a worktree and run the harness there — if the
+three DIFFER there too, the environment moved (browser, GPU, the pane) and
+the baseline needs a decision with Kenneth; if they MATCH, bisect the day's
+commits in the harness, not in a tab. Told to him twice.
+
+**Things learned on 54 that are not in the principles yet:**
+
+- **A structure question gets a structure mock** — rails and page maps,
+  measured (states, places a concept appears, rail heights) — not a
+  geometry one. The harmonisation of the notebook's two cuts is: the TASK
+  in the rail (its table), the FUNCTION on the stage header (its sections).
+- **A truncation test is a float at the pressed weight (600), counting the
+  1px border.** Two arithmetic checks said a four-face row fitted;
+  the screenshot said `Single-lab…`; 2.4px over.
+- **Core rebuilds BEFORE it recomputes** (`setParam` → `controls.rebuild` →
+  `render`), so a `show()` reading a compute-time stash is one change stale;
+  loss-functions repaints its cells from `draw` (its decision 12).
+- **`optionEntries` whitelists option fields** (`params.js`): a new option
+  key (`qual`) is silently dropped until it is added there.
+- **Shoot the states AFTER the status flip.** The draft banner made the
+  Binary page 1234px in the harness's 1200px frame: a scrollbar, a 535px
+  stage, eight px hashes that would have been wrong the moment it shipped.
+- **Core's two additions today** (`cells: { count, heads }` + `cellsFrom` on a
+  `text` field; `qual` on a segmented option; an opt-in equal-column
+  checkbox run; a standalone text field's `detail` finally rendering — 3.4f
+  the fifth time) are documented in `params.js`'s type table and used by
+  54 alone.
+
+**Open on 54, none blocking:** the 05-4 notebook does not yet link to it
+(prd §4 says how); the Single-label formula card's fraction inside the log
+renders small in MathML; the Multi-label rail (608px) is taller than the
+414px Single-label stage. **Open on composition** (from 2026-09-11): the
+readout tiles on the flow pages print at rest; the 05-3 notebook links.
+
+## Slot 54 — the record of the day it was built (2026-09-11), kept as written
 
 **Where things stand (2026-09-11, evening).** `main` is at `05b6006` plus
 this handover; `origin/main` is at `0d7eff8`, so EVERYTHING BELOW IS LOCAL.
