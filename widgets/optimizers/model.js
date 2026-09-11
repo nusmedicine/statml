@@ -608,21 +608,18 @@ export const STRINGS = {
   startLabel: "Start",
   startDetail: "where the path begins; drag the marker on the map to move it",
   optimizerLabel: "Optimizer",
-  optimizerDetail: "the rule that turns the gradient into a step",
   momentumLabel: "Momentum",
-  momentumDetail: "μ in optim.SGD; 0 is the default",
   lrLabel: "Learning rate",
   /* THE RUNG'S LINE NAMES NO START AND THE FIELD'S DOES, because the two are
      rendered one above the other (3.4f) and a qualifier repeated on five lines
      is five copies of one fact. Naming it here is also what keeps every rung's
      claim true in every state of the Start control (2.11): it is a statement
      about that start, whichever start the reader is on. */
-  lrDetail: "lr in the update rule above; each value's note says what that rate does from Beyond the local minimum",
+  lrDetail: "what each value does from Beyond the local minimum",
   schedulerLabel: "Scheduler",
-  schedulerDetail: "how the learning rate changes over the steps",
   surfaceLabel: "Surface",
   compareLabel: "Compare",
-  compareDetail: "draws the other three optimizers' paths from the same start, dimmed and labelled at their ends",
+  compareDetail: "the other three optimizers' paths from the same start, dimmed",
   speedLabel: "Play speed",
   homeLabel: "Default view",
   homeDetail: "turns the surface back to the viewpoint the figure opens at",
@@ -633,49 +630,46 @@ export const STRINGS = {
   lossCaption: "loss after each step",
   rateCaption: "the learning rate at each step",
   rampMiddle: "loss, log scale",
-  atRest: "the gradient at this point, and the step the rule makes from it",
+  atRest: "the gradient at this point, and the update step made from it",
   gone: "outside the plotted region",
 };
 
 export const OPTIMIZER_OPTIONS = [
-  { value: "sgd", label: "SGD", detail: "the step is the learning rate times the gradient" },
-  {
-    value: "adam",
-    label: "Adam",
-    detail: "a running mean of the gradient divided by the root of its running mean square, each corrected for the first steps",
-  },
-  {
-    value: "rmsprop",
-    label: "RMSprop",
-    detail: "each parameter's step is divided by the root of its own running mean square gradient",
-  },
+  /* no option details: the explanation of each rule is the card's, under the
+     rule itself (Kenneth's pick, audit round 3, 2026-09-11) */
+  { value: "sgd", label: "SGD" },
+  { value: "adam", label: "Adam" },
+  { value: "rmsprop", label: "RMSprop" },
 ];
 
+/** The sentence under the update rule on the card, keyed by the rule the
+    card shows (`kindOf`): what its symbols are, in the reading colour. */
+export const DESCRIPTORS = {
+  sgd: "The update step is the learning rate times the gradient.",
+  momentum: "b is a running sum of past gradients: μ = 0.9 of the last sum is kept and the new gradient added, so the step keeps its direction from one update to the next.",
+  rmsprop: "v is a running mean of the squared gradient, one per parameter (ρ = 0.99); dividing by its root gives every parameter a step of about the learning rate, whatever its gradient.",
+  adam: "m is a running mean of the gradient (β₁ = 0.9) and v of its square (β₂ = 0.999), each corrected for the first steps; the step is their ratio times the learning rate.",
+};
+
+/** The sentence under a scheduler's call on the card. */
+export const SCHEDULER_DESCRIPTORS = {
+  steplr: "The learning rate falls tenfold every hundred steps.",
+  plateau: "The learning rate falls tenfold after ten steps without a lower loss.",
+};
+
 export const MOMENTUM_OPTIONS = [
-  { value: "0", label: "0", detail: "each step is the gradient alone" },
-  {
-    value: "0.9",
-    label: "0.9",
-    detail: "the step follows a running sum of past gradients, nine tenths of it kept at each step",
-  },
+  { value: "0", label: "0" },
+  { value: "0.9", label: "0.9" },
 ];
 
 export const SCHEDULER_OPTIONS = [
-  { value: "none", label: "None", detail: "the learning rate stays at the value set above", span: true },
-  {
-    value: "steplr",
-    label: "StepLR",
-    detail: "step_size 100, gamma 0.1: the learning rate falls tenfold every hundred steps",
-  },
-  {
-    value: "plateau",
-    label: "ReduceLROnPlateau",
-    detail: "factor 0.1, patience 10: the learning rate falls tenfold after ten steps without a lower loss",
-  },
+  { value: "none", label: "None", span: true },
+  { value: "steplr", label: "StepLR" },
+  { value: "plateau", label: "ReduceLROnPlateau" },
 ];
 
 export const SURFACE_OPTIONS = [
-  { value: "map", label: "Map", detail: "colour alone, seen from straight above" },
+  { value: "map", label: "Map" },
   {
     value: "relief",
     label: "Relief",

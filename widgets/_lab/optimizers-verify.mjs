@@ -236,6 +236,7 @@ const base = (over = {}) => ({ ...DEFAULTS, ...over });
     M.STRINGS.subtitle, M.STRINGS.blurb,
     ...Object.values(M.STRINGS),
     ...Object.values(M.WHERE),
+    ...Object.values(M.DESCRIPTORS), ...Object.values(M.SCHEDULER_DESCRIPTORS),
     ...[...M.OPTIMIZER_OPTIONS, ...M.MOMENTUM_OPTIONS, ...M.SCHEDULER_OPTIONS,
       ...M.SURFACE_OPTIONS, ...M.SPEEDS, ...M.LR_OPTIONS]
       .flatMap((o) => [o.label, o.detail].filter(Boolean)),

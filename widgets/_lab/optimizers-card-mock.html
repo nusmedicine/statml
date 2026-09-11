@@ -1,0 +1,324 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · optimizers · the word "rule", the descriptors on the card, the rail trimmed</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1240px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-6); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 96ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 1 auto; max-width: 100%; }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 96ch; }
+  .measure { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--ink-3); margin: 4px 0 0; max-width: 640px; }
+  table.facts { border-collapse: collapse; font-size: var(--fs-sm); color: var(--ink-2); margin: var(--sp-2) 0 var(--sp-3); max-width: 120ch; }
+  table.facts th, table.facts td { border: 1px solid var(--grid); padding: 4px 8px; text-align: left; vertical-align: top; }
+  table.facts th { color: var(--ink-1); font-weight: 600; background: var(--surface-2); white-space: nowrap; }
+  table.facts td b { color: var(--ink-1); }
+  .pagehead { font-size: var(--fs-xs); font-weight: 600; color: var(--c-highlight); margin: 0 0 4px;
+              text-transform: uppercase; letter-spacing: 0.04em; }
+  /* the card at the width it has beside a 300px rail on a 1200px page */
+  .cardhost { width: min(860px, 100%); }
+  .cardhost .w-math { margin: 0; }
+  .w-math-desc { margin: 4px 0 0; color: var(--ink-2); }
+  /* the rail as real core DOM at 300px */
+  .lab .rail-host { display: block; width: 300px; }
+  .lab .rail-host .w-rail { border-top: 0; padding-top: 0; margin-top: 0; }
+  .lab .rail-host > .w-controls > .w-section:first-child { margin-top: 0; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>optimizers · the word "rule", the descriptors on the card, the rail trimmed</h1>
+  <p class="note">
+    Kenneth, 2026-09-11, on the draft after the copy audit: <i>"can i check if rule is the accepted way of describing
+    optimizers? also check if there are self evident comments that can be trimmed? or moved to the right panel as
+    descriptor for the optimizer?"</i> — with the formula card circled and <i>"can move descriptors here?"</i> beside it.
+    Three sections: the word, the card, the rail. Every card below is the widget's own <code>.w-math</code> DOM at
+    the width it has beside the rail; every rail is core's own DOM at the real 300px, measured after the fonts load.
+  </p>
+
+  <h2>§1 · "rule"</h2>
+  <p class="note">
+    <b>Update rule</b> is standard: textbooks and the PyTorch documentation write "the SGD update rule", "Adam's
+    update rule". <b>"The rule" on its own, as a name for the optimizer, is not</b> — the standard nouns are the
+    <i>optimizer</i> for the method and the <i>update</i> or <i>update step</i> for what it does. Four strings use
+    "rule"; the table says which survive.
+  </p>
+  <table class="facts">
+    <tr><th>where</th><th>now</th><th>verdict</th><th>rewrite</th></tr>
+    <tr><td>Learning rate, detail</td><td>lr in the <b>update rule</b> above; each value's note says what that rate does from Beyond the local minimum</td><td>standard</td><td>keeps <i>update rule</i>; shortened in §3 to <i>what each value does from Beyond the local minimum</i></td></tr>
+    <tr><td>Optimizer, detail</td><td>the <b>rule</b> that turns the gradient into a step</td><td>not standard, and self-evident under a control named Optimizer</td><td><b>dropped</b> (§3)</td></tr>
+    <tr><td>legend</td><td>The step the <b>rule</b> takes, to scale</td><td>not standard</td><td><b>The update step, to scale</b></td></tr>
+    <tr><td>caption under the map</td><td>the gradient at this point, and the step the <b>rule</b> makes from it</td><td>not standard</td><td><b>the gradient at this point, and the update step made from it</b></td></tr>
+    <tr><td>drive tooltip</td><td>Take one <b>update</b> and redraw the path</td><td>standard</td><td>unchanged</td></tr>
+  </table>
+  <p class="rec"><b>Settled, not a pick:</b> <i>update rule</i> for the formula, <i>update step</i> for what is drawn, <i>optimizer</i> for the method; the bare word "rule" goes.</p>
+
+  <h2>§2 · The card, with the optimizer's descriptor on it</h2>
+  <p class="note">
+    <b>A</b> is the card as built: the name, the update rule, the torch call, and under Adam the AdamW line.
+    <b>B</b> moves the sentence that now sits under the Optimizer control (and under Momentum, and under the
+    Scheduler) onto the card as a descriptor line beneath the rule, in the reading colour rather than the note
+    colour, so the explanation stands beside the equation it explains and the rail says only what is set. Four
+    optimizer states and one scheduler state, A above B.
+  </p>
+  <div id="cards"></div>
+  <p class="rec"><b>B.</b> A descriptor under the rule is read with the rule; the same sentence under a segmented
+    control is read before the reader has seen what it describes. It also takes 70–100px out of the rail per state
+    (§3). The scheduler's parameter line moves with it, because <code>step_size 100, gamma 0.1</code> means nothing
+    without the call it belongs to, which is on the card.</p>
+
+  <h2>§3 · The rail, as built and trimmed</h2>
+  <p class="note">
+    What is removed and why, in the trimmed rail: the Optimizer detail (self-evident, §1) and its option detail
+    (moved to the card, §2); the Momentum detail and option detail (moved to the card); the Scheduler detail
+    <i>how the learning rate changes over the steps</i> (self-evident) and its option detail (moved to the card);
+    the Map option detail <i>colour alone, seen from straight above</i> (self-evident; Relief keeps its line because
+    it carries the drag instruction); the Learning rate detail shortened. Kept: the Start detail (it carries the
+    drag instruction) and the start's own line, the rate's value notes, Compare's line shortened, the speeds.
+  </p>
+  <div class="row" id="rails"></div>
+  <p class="measure" id="railMeasure"></p>
+  <p class="rec" id="railRec"></p>
+</main>
+
+<script type="module">
+const el = (tag, cls, text) => {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text != null) e.textContent = text;
+  return e;
+};
+
+/* ============================ §2 · the cards ============================== */
+
+const RULE = {
+  sgd: "θ ← θ − lr · g",
+  momentum: "b ← μ b + g,   θ ← θ − lr · b",
+  rmsprop: "v ← ρ v + (1 − ρ) g²,   θ ← θ − lr · g / (√v + ε)",
+  adam: "m ← β₁ m + (1 − β₁) g,   v ← β₂ v + (1 − β₂) g²,   m̂ = m / (1 − β₁ᵗ),   v̂ = v / (1 − β₂ᵗ),   θ ← θ − lr · m̂ / (√v̂ + ε)",
+};
+const NAME = { sgd: "SGD", momentum: "SGD", rmsprop: "RMSprop", adam: "Adam" };
+const CALL = {
+  sgd: "optim.SGD(model.parameters(), lr=0.1)",
+  momentum: "optim.SGD(model.parameters(), lr=0.1, momentum=0.9)",
+  rmsprop: "optim.RMSprop(model.parameters(), lr=0.1)",
+  adam: "optim.Adam(model.parameters(), lr=0.1)",
+};
+const ADAMW = "AdamW first shrinks θ by (1 − lr·λ), λ 0.01; on this surface its path is Adam's to within 0.03.";
+/* the descriptors: what the rail's option details say now, rewritten to stand
+   beside the symbols they explain */
+const DESC = {
+  sgd: "The update step is the learning rate times the gradient.",
+  momentum: "b is a running sum of past gradients: μ = 0.9 of the last sum is kept and the new gradient added, so the step keeps its direction from one update to the next.",
+  rmsprop: "v is a running mean of the squared gradient, one per parameter (ρ = 0.99); dividing by its root gives every parameter a step of about the learning rate, whatever its gradient.",
+  adam: "m is a running mean of the gradient (β₁ = 0.9) and v of its square (β₂ = 0.999), each corrected for the first steps; the step is their ratio times the learning rate.",
+};
+const SCHED = {
+  steplr: ["lr_scheduler.StepLR(optimizer, step_size=100, gamma=0.1)", "The learning rate falls tenfold every hundred steps."],
+  plateau: ["lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.1, patience=10)", "The learning rate falls tenfold after ten steps without a lower loss."],
+};
+const GUTTER = "4.4em";
+
+function card(kind, { desc = false, sched = null } = {}) {
+  const host = el("div", "cardhost");
+  const c = el("div", "w-math");
+  const eq = el("div", "w-math-eq");
+  eq.setAttribute("style", `min-height:0;padding-left:${GUTTER};text-indent:-${GUTTER};margin:0 0 4px`);
+  const name = el("span", null, NAME[kind]);
+  name.setAttribute("style", `display:inline-block;width:${GUTTER};text-indent:0;color:var(--ink-3)`);
+  eq.appendChild(name);
+  const m = el("span", null, RULE[kind]);
+  m.setAttribute("style", "font-family:var(--font-math, serif);font-size:1.3em;font-style:italic");
+  eq.appendChild(m);
+  c.appendChild(eq);
+  if (desc) c.appendChild(el("p", "w-math-desc", DESC[kind]));
+  c.appendChild(el("p", "w-math-note", CALL[kind]));
+  if (sched) {
+    c.appendChild(el("p", "w-math-note", SCHED[sched][0]));
+    if (desc) c.appendChild(el("p", "w-math-desc", SCHED[sched][1]));
+  }
+  if (kind === "adam") c.appendChild(el("p", "w-math-note", ADAMW));
+  host.appendChild(c);
+  return host;
+}
+
+{
+  const wrap = document.getElementById("cards");
+  const states = [
+    ["SGD, momentum 0", "sgd", null],
+    ["SGD, momentum 0.9", "momentum", null],
+    ["Adam", "adam", null],
+    ["RMSprop", "rmsprop", null],
+    ["SGD, momentum 0.9, with StepLR", "momentum", "steplr"],
+  ];
+  for (const [label, kind, sched] of states) {
+    wrap.appendChild(el("p", "pagehead", label));
+    const row = el("div", "row");
+    for (const [tag, desc] of [["A · as built", false], ["B · with the descriptor", true]]) {
+      const box = el("div", "cand");
+      box.appendChild(el("p", "measure", tag));
+      const h = card(kind, { desc, sched });
+      box.appendChild(h);
+      row.appendChild(box);
+      requestAnimationFrame(() => box.appendChild(el("p", "measure", `${h.getBoundingClientRect().height.toFixed(0)}px tall`)));
+    }
+    wrap.appendChild(row);
+  }
+}
+
+/* ============================ §3 · the rails ============================== */
+
+const field = (label, detail) => {
+  const f = el("div", "w-field");
+  if (label) { const l = el("label"); l.appendChild(el("span", null, label)); f.appendChild(l); }
+  if (detail != null) f.appendChild(el("p", "w-detail", detail));
+  return f;
+};
+const put = (f, node) => {
+  const d = f.querySelector(".w-detail");
+  if (d) f.insertBefore(node, d); else f.appendChild(node);
+};
+function segRun(f, opts, on, mode) {
+  const s = el("div", mode === "grid" ? "w-seg w-seg-grid" : "w-seg");
+  s.setAttribute("role", "group");
+  for (const o of opts) {
+    const label = typeof o === "string" ? o : o.label;
+    const b = el("button", o.span ? "w-seg-btn w-seg-btn--span" : "w-seg-btn");
+    b.type = "button";
+    b.dataset.value = label;
+    b.textContent = label;
+    b.setAttribute("aria-pressed", String(label === on));
+    s.appendChild(b);
+  }
+  put(f, s);
+  return s;
+}
+function choiceField(host, label, ticks, on, details) {
+  const f = el("div", "w-field");
+  const l = el("label");
+  l.appendChild(el("span", null, label));
+  l.appendChild(el("span", "val", ticks[on]));
+  f.appendChild(l);
+  const r = el("input");
+  r.type = "range"; r.min = "0"; r.max = String(ticks.length - 1); r.step = "1"; r.value = String(on);
+  f.appendChild(r);
+  const tk = el("div", "w-ticks");
+  for (const t of ticks) tk.appendChild(el("span", null, t));
+  f.appendChild(tk);
+  for (const d of details) if (d) f.appendChild(el("p", "w-detail", d));
+  host.appendChild(f);
+  return f;
+}
+function checkField(host, label, detail, on) {
+  const f = el("div", "w-field w-field--check");
+  const l = el("label");
+  const c = el("input"); c.type = "checkbox"; c.checked = on;
+  l.appendChild(c); l.appendChild(el("span", null, label));
+  f.appendChild(l);
+  if (detail) f.appendChild(el("p", "w-detail", detail));
+  host.appendChild(f);
+  return f;
+}
+function driveBlock(host) {
+  const d = el("div", "w-drive");
+  const g = el("div", "w-drive-group");
+  for (const [k, t] of [["step", "Take a step"], ["run", "Play"]]) {
+    const b = el("button", "w-btn w-btn--primary", t);
+    b.type = "button"; b.dataset.key = k;
+    g.appendChild(b);
+  }
+  d.appendChild(g);
+  const r = el("button", "w-btn", "Reset");
+  r.type = "button"; r.dataset.key = "reset";
+  d.appendChild(r);
+  host.appendChild(d);
+}
+
+/* the state both rails show: SGD, momentum 0.9, Beyond the local minimum, lr 0.1, StepLR, Map */
+function buildRail(trimmed) {
+  const rail = el("div", "w-controls");
+  const of = field("Optimizer", trimmed ? null : "the rule that turns the gradient into a step");
+  segRun(of, ["SGD", "Adam", "RMSprop"], "SGD");
+  if (!trimmed) of.appendChild(el("p", "w-detail", "the step is the learning rate times the gradient"));
+  rail.appendChild(of);
+  choiceField(rail, "Momentum", ["0", "0.9"], 1,
+    trimmed ? [] : ["μ in optim.SGD; 0 is the default", "the step follows a running sum of past gradients, nine tenths of it kept at each step"]);
+
+  rail.appendChild(el("div", "w-section", "The path"));
+  const sf = field("Start", "where the path begins; drag the marker on the map to move it");
+  segRun(sf, [
+    { label: "Beyond the local minimum", span: true },
+    { label: "On the plateau", span: true },
+    { label: "At the edge of the global basin", span: true },
+  ], "Beyond the local minimum", "grid");
+  sf.appendChild(el("p", "w-detail", "(-3.6, 0.6); the local minimum lies between here and the global one"));
+  rail.appendChild(sf);
+
+  rail.appendChild(el("div", "w-section", "The learning rate"));
+  choiceField(rail, "Learning rate", ["0.01", "0.03", "0.1", "0.3", "1"], 2, [
+    trimmed ? "what each value does from Beyond the local minimum"
+      : "lr in the update rule above; each value's note says what that rate does from Beyond the local minimum",
+    "SGD, momentum 0.9, RMSprop and Adam all end at the local minimum",
+  ]);
+  const scf = field("Scheduler", trimmed ? null : "how the learning rate changes over the steps");
+  segRun(scf, [{ label: "None", span: true }, { label: "StepLR" }, { label: "ReduceLROnPlateau" }], "StepLR", "grid");
+  if (!trimmed) scf.appendChild(el("p", "w-detail", "step_size 100, gamma 0.1: the learning rate falls tenfold every hundred steps"));
+  rail.appendChild(scf);
+
+  rail.appendChild(el("div", "w-section", "The view"));
+  const vf = field("Surface", null);
+  segRun(vf, ["Map", "Relief"], "Map");
+  if (!trimmed) vf.appendChild(el("p", "w-detail", "colour alone, seen from straight above"));
+  rail.appendChild(vf);
+  checkField(rail, "Compare", trimmed
+    ? "the other three optimizers' paths from the same start, dimmed"
+    : "draws the other three optimizers' paths from the same start, dimmed and labelled at their ends", false);
+  choiceField(rail, "Play speed", ["Slow", "Medium", "Fast"], 1, ["0.4 seconds a step"]);
+  driveBlock(rail);
+  return rail;
+}
+
+const RAILS = {};
+{
+  const row = document.getElementById("rails");
+  for (const [key, head, trimmed] of [["as built", "as built (the strings after the audit)", false], ["trimmed", "trimmed, descriptors on the card", true]]) {
+    const box = el("div", "cand");
+    box.appendChild(el("p", "pagehead", head));
+    const host = el("div", "w-split rail-host");
+    const rail = buildRail(trimmed);
+    host.appendChild(rail);
+    box.appendChild(host);
+    row.appendChild(box);
+    RAILS[key] = { host, rail };
+  }
+}
+
+function measureAll() {
+  const parts = [];
+  for (const [key, r] of Object.entries(RAILS)) {
+    const h = r.rail.getBoundingClientRect().height;
+    r.h = h;
+    parts.push(`${key}: ${h.toFixed(0)}px`);
+  }
+  const saved = RAILS["as built"].h - RAILS.trimmed.h;
+  document.getElementById("railMeasure").textContent =
+    parts.join("   ·   ") + `   ·   ${saved.toFixed(0)}px shorter in this state (SGD with momentum and a scheduler, the tallest)`;
+  document.getElementById("railRec").innerHTML =
+    `<b>Trimmed.</b> ${saved.toFixed(0)}px of the rail was explanation the card can carry better, and none of it was ` +
+    `an instruction; what stays in the rail is either something the reader must do (drag the marker, drag the ` +
+    `surface) or a fact about the value under the thumb. The stage is about 590px tall; the trimmed rail in this ` +
+    `state is ${RAILS.trimmed.h.toFixed(0)}px.`;
+}
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => requestAnimationFrame(measureAll));
+else requestAnimationFrame(measureAll);
+</script>
+</body>
+</html>

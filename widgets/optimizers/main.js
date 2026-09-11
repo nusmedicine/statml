@@ -856,9 +856,14 @@ function renderCard(params) {
   const key = `${kind}:${params.lr}:${params.scheduler}`;
   if (key === cardKey) return;
   cardKey = key;
-  const lines = [`<p class="w-math-note">${torchCall(params)}</p>`];
+  /* the descriptor under the rule, in the reading colour rather than the
+     note's (Kenneth's pick, audit round 3): the explanation of the symbols is
+     read with the equation, and the rail no longer carries it */
+  const desc = (s) => `<p class="w-math-note" style="color:var(--ink-2)">${s}</p>`;
+  const lines = [desc(M.DESCRIPTORS[kind]), `<p class="w-math-note">${torchCall(params)}</p>`];
   if (SCHED_CALL[params.scheduler]) {
     lines.push(`<p class="w-math-note">${SCHED_CALL[params.scheduler]}</p>`);
+    lines.push(desc(M.SCHEDULER_DESCRIPTORS[params.scheduler]));
   }
   if (kind === "adam") lines.push(`<p class="w-math-note">${ADAMW_LINE}</p>`);
   cardHost.innerHTML =
@@ -1018,7 +1023,6 @@ widgetApi = defineWidget({
     optimizer: {
       type: "segmented",
       label: M.STRINGS.optimizerLabel,
-      detail: M.STRINGS.optimizerDetail,
       options: M.OPTIMIZER_OPTIONS,
       default: "sgd",
     },
@@ -1027,7 +1031,6 @@ widgetApi = defineWidget({
     momentum: {
       type: "choice",
       label: M.STRINGS.momentumLabel,
-      detail: M.STRINGS.momentumDetail,
       options: M.MOMENTUM_OPTIONS,
       default: "0",
       when: { param: "optimizer", equals: "sgd" },
@@ -1075,7 +1078,6 @@ widgetApi = defineWidget({
     scheduler: {
       type: "segmented",
       label: M.STRINGS.schedulerLabel,
-      detail: M.STRINGS.schedulerDetail,
       style: "grid",
       options: M.SCHEDULER_OPTIONS,
       default: "none",
@@ -1139,7 +1141,7 @@ widgetApi = defineWidget({
     ...(M.choreographs(params.speed)
       ? [{ token: "slope", label: "The negative gradient direction, at a fixed length", mark: "line" }]
       : []),
-    { token: "empirical", label: "The step the rule takes, to scale", mark: "line" },
+    { token: "empirical", label: "The update step, to scale", mark: "line" },
     { token: "reference", label: "The global minimum", mark: "dot" },
     { token: "reference", label: "The local minimum", mark: "hollow" },
     { token: "highlight", label: "The start", mark: "hollow" },
