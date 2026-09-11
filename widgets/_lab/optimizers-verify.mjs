@@ -212,24 +212,21 @@ const base = (over = {}) => ({ ...DEFAULTS, ...over });
     /height: \(\{ w, \.\.\.values \}\) => M\.stageHeight\(w, values\)/.test(src));
 }
 
-/* --- 5 · the ladder's own lines, and the register (5.9) -------------------- */
+/* --- 5 · the ladder, and the register (5.9) --------------------------------- */
 {
-  const names = [...M.METHODS.map((m) => m.short), "SGD", "Adam", "RMSprop"];
-  let longest = 0;
-  let allNamed = true;
-  for (const o of M.LR_OPTIONS) {
-    longest = Math.max(longest, o.detail.length);
-    if (!names.some((n) => o.detail.includes(n))) allNamed = false;
-  }
-  check("every rate's line names at least one method", allNamed);
-  check("no rate's line is longer than 110 characters", longest <= 110, `longest ${longest}`);
   check("the five rungs are the ones the mock measured",
     M.LR_LADDER.join() === "0.01,0.03,0.1,0.3,1", M.LR_LADDER.join());
-  check("the lines are computed from the engine, not typed",
-    /LR_DETAILS = ladderDetails\(\)/.test(modelSrc));
-  check("the lines say which start they are about, once, on the field",
-    M.STRINGS.lrDetail.includes("Beyond the local minimum")
-    && M.LR_OPTIONS.every((o) => !o.detail.includes("Beyond the local minimum")));
+  /* Kenneth, 2026-09-11: a line under a value that said what the walk would do
+     ("… all end at the local minimum") was the widget announcing its own
+     answer. No control line may state an outcome. */
+  const optionLines = [...M.OPTIMIZER_OPTIONS, ...M.MOMENTUM_OPTIONS, ...M.SCHEDULER_OPTIONS,
+    ...M.SURFACE_OPTIONS, ...M.SPEEDS, ...M.LR_OPTIONS].map((o) => o.detail).filter(Boolean);
+  const fieldLines = [M.STRINGS.startDetail, M.STRINGS.compareDetail, M.STRINGS.homeDetail].filter(Boolean);
+  const outcome = /\b(reach|reaches|end at|ends at|all end|leaves the|global minimum at step)\b/i;
+  check("no control line announces an outcome",
+    ![...optionLines, ...fieldLines].some((s) => outcome.test(s)),
+    [...optionLines, ...fieldLines].filter((s) => outcome.test(s)).join(" | "));
+  check("the rate field carries no line of its own", M.STRINGS.lrDetail === undefined);
 
   /* every reader-facing string in the model, swept for the register */
   const reader = [

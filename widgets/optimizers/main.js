@@ -1070,7 +1070,6 @@ widgetApi = defineWidget({
     lr: {
       type: "choice",
       label: M.STRINGS.lrLabel,
-      detail: M.STRINGS.lrDetail,
       options: M.LR_OPTIONS,
       default: M.LR_DEFAULT,
     },

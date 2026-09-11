@@ -615,7 +615,6 @@ export const STRINGS = {
      is five copies of one fact. Naming it here is also what keeps every rung's
      claim true in every state of the Start control (2.11): it is a statement
      about that start, whichever start the reader is on. */
-  lrDetail: "what each value does from Beyond the local minimum",
   schedulerLabel: "Scheduler",
   surfaceLabel: "Surface",
   compareLabel: "Compare",
@@ -683,50 +682,11 @@ export const SPEEDS = [
   { value: "fast", label: "Fast", detail: "40 steps a second, the path alone" },
 ];
 
-/* ---- the rate ladder's own lines (decision 5) ----------------------------- */
-
-/** What a walk did, in a clause a rung's detail can carry. `plural` is for the
-    line that names all four rules at once and needs the verb to agree. */
-export function outcomePhrase(w, plural = false) {
-  const v = (one, many) => (plural ? many : one);
-  if (w.reached !== null) return `${v("reaches", "reach")} the global minimum at step ${w.reached}`;
-  if (w.where === "gone") return `${v("leaves", "leave")} the plotted region at step ${w.gone}`;
-  if (w.where === "local") return `${v("ends", "end")} at the local minimum`;
-  if (w.where === "global") return `${v("ends", "end")} at the global minimum`;
-  return `${v("ends", "end")} ${n2(w.dG)} from the global minimum`;
-}
-
-/**
- * One line a rung, built by running the four rules at that rate from the
- * default start. Two methods are named: the one that gets furthest and the one
- * that does not, so every line carries a contrast and a method's own name —
- * and where all four do the same thing, all four are named, because a line
- * that named none of them would be a claim about nothing in particular.
- *
- * The ordering is by ARRIVAL and then by final distance to the global minimum.
- * Ranking the outcome kinds instead put RMSprop's 0.22 hover below SGD's
- * settled local well, which reads as the worse walk and is not.
- */
-export function ladderDetails(startAt = STARTS[0]) {
-  const rank = (w) => (w.reached !== null ? w.reached : 1e6 + w.dG);
-  const out = {};
-  for (const lr of LR_LADDER) {
-    const runs = METHOD_KEYS.map((k) => trace(TRENCH, k, lr, startAt.at));
-    const sorted = [...runs].sort((a, b) => rank(a) - rank(b));
-    const best = sorted[0];
-    const worst = sorted[sorted.length - 1];
-    out[String(lr)] = outcomePhrase(best) === outcomePhrase(worst)
-      ? `${METHODS.map((m) => m.short).join(", ").replace(/, ([^,]*)$/, " and $1")} all ${outcomePhrase(best, true)}`
-      : `${methodShort(best.kind)} ${outcomePhrase(best)}, `
-        + `${methodShort(worst.kind)} ${outcomePhrase(worst)}`;
-  }
-  return out;
-}
-
-export const LR_DETAILS = ladderDetails();
-
-export const LR_OPTIONS = LR_LADDER.map((v) => ({
-  value: String(v),
-  label: String(v),
-  detail: LR_DETAILS[String(v)],
-}));
+/* ---- the rate ladder --------------------------------------------------------
+ * No line under a value. The draft computed one per value from the engine
+ * ("momentum 0.9 reaches the global minimum at step 45, Adam ends at the local
+ * minimum") and Kenneth struck them (2026-09-11): a control's line says what
+ * the control is, and a line that says what will happen is the widget
+ * announcing its own answer before the first step (2.9, 4.4). The reader
+ * finds out by pressing Play. */
+export const LR_OPTIONS = LR_LADDER.map((v) => ({ value: String(v), label: String(v) }));
