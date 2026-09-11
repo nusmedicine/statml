@@ -976,6 +976,50 @@ p.w-text-hint { max-width: none; text-align: left; }
   color: var(--ink-3);
 }
 
+/* ONE TEXT PARAMETER LAID OUT AS N CELLS UNDER A HEAD ROW (`cells` on a text
+   field — controls.js). The outer border and `overflow: hidden` are `.w-seg`'s
+   own, so N cells here and N segments below divide exactly the same width and
+   a value lands over the control that sets the same class — 0.4 / 0.6 / 0.2px
+   off at three, five and two columns, measured in `_lab/loss-rail-mock.html`. */
+.w-cells {
+  display: grid;
+  grid-template-columns: repeat(var(--w-cells-n), 1fr);
+  border: 1px solid var(--axis);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+/* The head names the column and sets nothing, so it is recessive and on the
+   second surface — the cells below it are the control. */
+.w-cell-head {
+  grid-row: 1;
+  padding: 2px 0;
+  font-size: var(--fs-xs);
+  color: var(--ink-3);
+  text-align: center;
+  background: var(--surface-2);
+  border-right: 1px solid var(--grid);
+}
+.w-cells .w-cell-head:last-of-type { border-right: 0; }
+.w-cell {
+  grid-row: 2;
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 4px 2px;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: var(--fs-md);
+  color: var(--ink-1);
+  background: var(--surface-1);
+  border: 0;
+  border-top: 1px solid var(--grid);
+  border-right: 1px solid var(--grid);
+}
+.w-cells .w-cell:last-child { border-right: 0; }
+/* inset, because the container clips its own edge and an outset ring on the
+   first or last cell would be cut in half by it */
+.w-cell:focus { outline: 2px solid var(--c-highlight); outline-offset: -2px; }
+
 /* A caption under one row of a grouped segmented control. Recessive, because
    the buttons are the control and this only says what kind they are. */
 .w-seg-cap {
@@ -1230,6 +1274,19 @@ p.w-text-hint { max-width: none; text-align: left; }
   gap: var(--sp-2) var(--sp-5);
 }
 
+/* THE RUN IN THE SAME N COLUMNS AS A CELLS GRID ABOVE IT, when the run's first
+   field declares a `cells` count. Opt-in: the flex line above is 46px off five
+   equal columns of a 300px rail, which is fine for two overlay toggles and is a
+   whole column's error when the switch under a value is meant to be the switch
+   for that class. */
+.w-bools--cols {
+  display: grid;
+  grid-template-columns: repeat(var(--w-cells-n), 1fr);
+  gap: 0;
+}
+.w-bools--cols .w-bool { align-items: center; }
+.w-bools--cols label { justify-content: center; gap: 4px; }
+
 /* One switch, and its detail beneath it when it has one. The ROW is the flex
    container and each switch is a column inside it, which is what stops a detail
    landing beside the next checkbox instead of under its own.
@@ -1367,6 +1424,26 @@ p.w-text-hint { max-width: none; text-align: left; }
 .w-seg-grid .w-seg-btn { border-bottom: 1px solid var(--grid); }
 .w-seg-grid .w-seg-btn:nth-child(2n) { border-right: 0; }
 .w-seg-grid .w-seg-btn--span { grid-column: 1 / -1; border-right: 0; }
+/* A FACE OVER ITS QUALIFIER (`qual` on an option — controls.js). The name keeps
+   the face's own size and weight; the second line is the detail's size and ink,
+   because it qualifies the name rather than competing with it. The class is on
+   the RUN, so every button in a row that has a qualifier takes the two-line box
+   and the row stays level (3.4d); a row with none is untouched. */
+.w-seg--two .w-seg-btn {
+  display: block;
+  padding-top: 3px;
+  padding-bottom: 3px;
+  white-space: normal;
+  line-height: 1.25;
+}
+.w-seg-name,
+.w-seg-qual { display: block; }
+.w-seg-qual {
+  font-size: var(--fs-xs);
+  font-weight: 400;
+  color: var(--ink-3);
+}
+
 /* The container clips its own outer edge, so the final row's bottom border and
    the last column's right border fall outside it and no rule doubles up. */
 .w-seg-btn:last-child { border-right: 0; }

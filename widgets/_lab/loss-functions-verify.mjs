@@ -24,7 +24,7 @@
    Exits non-zero on failure.
    ========================================================================= */
 
-import { readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import * as M from "../loss-functions/model.js";
@@ -515,7 +515,9 @@ const BCE = M.computeFor({
     else if (v && typeof v === "object") Object.values(v).forEach(walk);
   };
   walk(M.STRINGS);
-  walk(M.TASKS.map((t) => [t.label, t.detail]));
+  walk(M.TASKS.map((t) => [t.label, t.qual ?? "", t.detail]));
+  walk(M.OUTPUT_HEADS);
+  walk([...M.headsFor("multi-label"), ...M.LABEL_OPTIONS]);
   walk(M.SPEEDS.map((s) => [s.label, s.detail]));
   walk(M.SUM_NOTE);
   walk(M.HEAD);
@@ -539,26 +541,34 @@ const BCE = M.computeFor({
   check("the subtitle names the loss, the target and the two classification cases",
     /A loss function measures/.test(M.STRINGS.subtitle) && /target/.test(M.STRINGS.subtitle)
     && /for each class/.test(M.STRINGS.subtitle));
-  check("the count controls are labelled by their noun and detailed by what they resize",
-    M.STRINGS.outputsLabel === "Outputs" && M.STRINGS.classesLabel === "Classes"
-    && [M.STRINGS.outputsDetail, M.STRINGS.singleDetail, M.STRINGS.multiDetail]
-      .every((s) => /, or several: /.test(s)),
-    [M.STRINGS.outputsDetail, M.STRINGS.singleDetail, M.STRINGS.multiDetail].join(" | "));
+  check("the one count control is labelled by its noun and detailed by what it resizes",
+    M.STRINGS.outputsLabel === "Outputs" && /, or several: /.test(M.STRINGS.outputsDetail),
+    M.STRINGS.outputsDetail);
   check("the Binary page's two column names say which form each is",
     M.STRINGS.binaryTwoRow === "y_pred, two outputs"
     && M.STRINGS.binaryOneRow === "y_pred, one output");
   check("its y_true detail names the two classes the index picks between",
     /0 is A, 1 is B/.test(M.STRINGS.binaryLabelDetail));
-  check("each task option carries a detail with both halves: the function and the target",
-    M.TASKS.every((t) => t.detail.includes(" · ") && /y_true/.test(t.detail)),
+  check("each task option carries a detail of several clauses, the function among them",
+    M.TASKS.every((t) => t.detail.split(" · ").length >= 2),
     M.TASKS.map((t) => t.detail.split(" · ")[0]).join(" / "));
-  check("the four task faces are the table's own three rows and the binary case",
+  check("every classification detail opens with how many classes there are, and how many are true",
+    M.TASKS.filter((t) => t.qual).every((t) => /^(one class of (two|three)|any of five classes)/.test(t.detail)),
+    M.TASKS.filter((t) => t.qual).map((t) => t.detail.split(" · ")[0]).join(" / "));
+  check("the three that say what the target holds name it as y_true",
+    M.TASKS.filter((t) => /y_true/.test(t.detail)).length === 3);
+  check("the four faces run Regression, then the classification three commonest first",
     M.TASKS.map((t) => t.label).join(" · ")
-    === "Regression · Single-label · Multi-label · Binary",
+    === "Regression · Binary · Single-label · Multi-label",
     M.TASKS.map((t) => t.label).join(" · "));
   check("they carry two group heads, and the three classification faces are one run",
     M.TASKS.map((t) => t.group).join(" ") === "Regression Classification Classification Classification",
     M.TASKS.map((t) => t.group).join(" "));
+  check("only the classification faces carry a second line, and it is the class count",
+    M.TASKS.map((t) => t.qual ?? "—").join(" · ") === "— · 2 classes · >2 classes · >2 classes",
+    M.TASKS.map((t) => t.qual ?? "—").join(" · "));
+  check("a qualifier is a count and not a sentence, so it fits the 86.9px face at --fs-xs",
+    M.TASKS.filter((t) => t.qual).every((t) => t.qual.length <= 12 && !/\./.test(t.qual)));
   check("each group head is one word (3.4g)",
     [...new Set(M.TASKS.map((t) => t.group))].every((g) => !g.includes(" ")));
   check("the three task values are the words on the control, lowercased (5.9)",
@@ -603,8 +613,6 @@ const BCE = M.computeFor({
  */
 {
   const REG1 = M.computeFor({ task: "regression", outputs: "1" });
-  const CE2 = M.computeFor({ task: "single-label", singleClasses: "2" });
-  const BCE1 = M.computeFor({ task: "multi-label", multiClasses: "1", A: false });
 
   check("Regression at one output reads the first prediction and the first target",
     REG1.scores.join() === "2.5" && REG1.target.join() === "3",
@@ -615,40 +623,36 @@ const BCE = M.computeFor({
     REG1.loss.toFixed(6) === "0.250000", REG1.loss.toFixed(6));
   check("the one-output page draws one column", REG1.n === 1);
 
-  check("Single-label at two classes reads [5.0, 0.5]",
-    CE2.scores.join() === "5,0.5", CE2.scores.join());
-  check("its softmax is 0.9890 and 0.0110, the digits torch printed",
-    row4(CE2.p) === "0.9890 0.0110", row4(CE2.p));
-  check("and the loss at label 0 is 0.0110",
-    M.n4(CE2.loss) === "0.0110", M.n4(CE2.loss));
-  check("to six digits", CE2.loss.toFixed(6) === "0.011048", CE2.loss.toFixed(6));
-  check("two probabilities still sum to 1", Math.abs(CE2.rowSum - 1) < 1e-12);
-  check("so the row-sum column stays on a row of two", CE2.sumCol === true);
-
-  check("Multi-label at one class reads [0.2]", BCE1.scores.join() === "0.2", BCE1.scores.join());
-  check("its sigmoid is 0.5498", M.n4(BCE1.p[0]) === "0.5498", M.n4(BCE1.p[0]));
-  check("and with A = 0 the term is 0.7981, cell 39's own first term",
-    M.n4(BCE1.loss) === "0.7981", M.n4(BCE1.loss));
-  check("A ROW OF ONE HAS NOTHING TO READ, so the sum column is dropped there",
-    BCE1.sumCol === false);
-  check("the sum column would have repeated the row's only cell",
-    M.n4(BCE1.rowSum) === M.n4(BCE1.p[0]), M.n4(BCE1.rowSum));
-  check("the target is one class's own 0 or 1", BCE1.y.length === 1);
-  check("and the readout's own row-sum tile gives way to the probability it read",
-    /if \(!state\.sumCol\) \{/.test(read("widgets/loss-functions/main.js")));
-  check("the label's detail counts rather than listing, since C may not exist",
-    !/2 is C/.test(M.STRINGS.labelDetail), M.STRINGS.labelDetail);
+  /* THE THREE CLASSIFICATION PAGES ARE FIXED (structure B): a count control on
+     any of them said in a control what the face's own second line says. */
+  check("Single-label is the notebook's three classes, whatever the URL asks for",
+    M.computeFor({ task: "single-label", singleClasses: "2" }).n === 3);
+  check("Multi-label is its five", M.computeFor({ task: "multi-label", multiClasses: "1" }).n === 5);
+  check("and Binary is two, both ways", M.computeFor({ task: "binary" }).n === 2);
+  check("the page widths are declared once, for the fields and the figure alike",
+    M.PAGE_N["single-label"] === 3 && M.PAGE_N["multi-label"] === 5 && M.PAGE_N.binary === 2,
+    Object.values(M.PAGE_N).join(" / "));
+  check("THE ROW SUM IS BACK ON MULTI-LABEL UNCONDITIONALLY, since the page is five classes",
+    BCE.sumCol === true && M.n4(BCE.rowSum) === "2.7476");
+  check("which is the contrast, against Single-label's 1.0000 under the same head",
+    CE.sumCol === true && M.n4(CE.rowSum) === "1.0000");
+  check("so the readout has no row of one to give way to",
+    !/if \(!state\.sumCol\) \{/.test(read("widgets/loss-functions/main.js")));
+  check("the label's options are the three class indices, fixed",
+    M.LABEL_OPTIONS.join() === "0,1,2", M.LABEL_OPTIONS.join());
+  check("and its detail counts from A at 0, the head row's own letter",
+    /counting from A at 0/.test(M.STRINGS.labelDetail), M.STRINGS.labelDetail);
 
   /* the shapes of Kenneth's own left columns */
   check("a row of one prints [1] and not [1, 1] (his own figures' left column)",
     M.scoresDtypeText(REG1) === "[1], float32" && M.targetDtypeText(REG1) === "[1], float32",
     M.scoresDtypeText(REG1));
-  check("two classes print [1, 2], float32",
-    M.scoresDtypeText(CE2) === "[1, 2], float32", M.scoresDtypeText(CE2));
-  check("and the class index is [1], long at either count",
-    M.targetDtypeText(CE2) === "[1], long", M.targetDtypeText(CE2));
-  check("one label prints [1], float32 on the Multi-label page",
-    M.scoresDtypeText(BCE1) === "[1], float32" && M.targetDtypeText(BCE1) === "[1], float32");
+  check("three classes print [1, 3], float32",
+    M.scoresDtypeText(CE) === "[1, 3], float32", M.scoresDtypeText(CE));
+  check("and the class index is [1], long",
+    M.targetDtypeText(CE) === "[1], long", M.targetDtypeText(CE));
+  check("five labels print [1, 5], float32 on the Multi-label page",
+    M.scoresDtypeText(BCE) === "[1, 5], float32" && M.targetDtypeText(BCE) === "[1, 5], float32");
 
   /* the count narrows and pads without touching what was typed */
   const R = M.RANGE.regression;
@@ -685,54 +689,145 @@ const BCE = M.computeFor({
     M.hintFor("5", 2, "class"));
 
   check("the count reads its default when the URL carries none",
-    M.countOf({}, "outputs") === 3 && M.countOf({}, "singleClasses") === 3
-    && M.countOf({}, "multiClasses") === 5);
-  check("the three counts are the numbers on their own ticks (5.9)",
-    M.OUTPUT_COUNTS.join() === "1,3" && M.SINGLE_COUNTS.join() === "2,3"
-    && M.MULTI_COUNTS.join() === "1,5");
-  check("each default is one of its own options",
-    M.OUTPUT_COUNTS.includes(M.COUNT_DEFAULT.outputs)
-    && M.SINGLE_COUNTS.includes(M.COUNT_DEFAULT.singleClasses)
-    && M.MULTI_COUNTS.includes(M.COUNT_DEFAULT.multiClasses));
-  check("each default is the notebook's own example, so the pages open as they did",
-    M.COUNT_DEFAULT.outputs === "3" && M.COUNT_DEFAULT.singleClasses === "3"
-    && M.COUNT_DEFAULT.multiClasses === "5");
-  check("the label's options follow the class count",
-    M.labelOptions(2).join() === "0,1" && M.labelOptions(3).join() === "0,1,2");
+    M.countOf({}, "outputs") === 3);
+  check("the count is the numbers on its own ticks (5.9)",
+    M.OUTPUT_COUNTS.join() === "1,3", M.OUTPUT_COUNTS.join());
+  check("its default is one of its own options",
+    M.OUTPUT_COUNTS.includes(M.COUNT_DEFAULT.outputs));
+  check("and is the notebook's own example, so the page opens as it did",
+    M.COUNT_DEFAULT.outputs === "3");
+  check("no other count parameter is declared, since the other pages are fixed",
+    Object.keys(M.COUNT_DEFAULT).join() === "outputs", Object.keys(M.COUNT_DEFAULT).join());
   check("a label past the last class is held on the row it can reach",
-    M.computeFor({ task: "single-label", singleClasses: "2", label: "2" }).label === 1);
+    M.computeFor({ task: "single-label", label: "7" }).label === 2);
 
   /* THE HEIGHTS ARE THE MOCK'S OWN, and the whole point of the pick */
   const W = 550;
   check("Regression is 494px at one output, as at three",
     M.layout(W, REG1).height === 494, M.layout(W, REG1).height);
-  check("Single-label is 414px at two classes", M.layout(W, CE2).height === 414,
-    M.layout(W, CE2).height);
-  check("Multi-label is 524px at one class", M.layout(W, BCE1).height === 524,
-    M.layout(W, BCE1).height);
-  check("so the count moves no row on any page",
-    [[REG, REG1], [CE, CE2], [BCE, BCE1]]
-      .every(([a, b]) => M.layout(W, a).height === M.layout(W, b).height));
+  check("and at three", M.layout(W, REG).height === 494, M.layout(W, REG).height);
+  check("Single-label is 414px", M.layout(W, CE).height === 414, M.layout(W, CE).height);
+  check("Multi-label is 524px", M.layout(W, BCE).height === 524, M.layout(W, BCE).height);
+  check("so the count moves no row on the one page that has one",
+    M.layout(W, REG).height === M.layout(W, REG1).height);
   check("the rows are the same rows at the same y, whatever the count",
-    M.layout(W, CE).rows.map((r) => `${r.id}@${r.cellY}`).join()
-    === M.layout(W, CE2).rows.map((r) => `${r.id}@${r.cellY}`).join());
+    M.layout(W, REG).rows.map((r) => `${r.id}@${r.cellY}`).join()
+    === M.layout(W, REG1).rows.map((r) => `${r.id}@${r.cellY}`).join());
   check("the columns widen to the 88px cap instead",
-    M.layout(W, REG1).pitch === M.PITCH_CAP && M.layout(W, BCE1).pitch === M.PITCH_CAP,
-    `${M.layout(W, REG1).pitch} / ${M.layout(W, BCE1).pitch}`);
-  check("Single-label at two classes runs three columns, the pair and the row sum",
-    M.layout(W, CE2).cols === 3 && M.layout(W, CE2).pitch === 88,
-    `${M.layout(W, CE2).cols} at ${M.layout(W, CE2).pitch}`);
-  check("Multi-label at one class runs one column and no sum",
-    M.layout(W, BCE1).cols === 1);
+    M.layout(W, REG1).pitch === M.PITCH_CAP, String(M.layout(W, REG1).pitch));
+  check("Single-label runs four columns, the three classes and the row sum",
+    M.layout(W, CE).cols === 4, String(M.layout(W, CE).cols));
+  check("Multi-label runs six, the five classes and the row sum",
+    M.layout(W, BCE).cols === 6, String(M.layout(W, BCE).cols));
   check("every bar is still grabbable at the narrow count",
     M.barColAt(M.layout(W, REG1).colX(0), M.layout(W, REG1).barTop + 4, M.layout(W, REG1)) === 0
-    && M.barColAt(M.layout(W, CE2).colX(1), M.layout(W, CE2).barTop + 4, M.layout(W, CE2)) === 1);
-  check("and the sum column is over no bar at two classes",
-    M.barColAt(M.layout(W, CE2).colX(2), M.layout(W, CE2).barTop + 4, M.layout(W, CE2)) === -1);
-  check("the walk is the same walk at either count",
-    REG1.units === REG.units && CE2.units === CE.units && BCE1.units === BCE.units);
+    && M.barColAt(M.layout(W, CE).colX(1), M.layout(W, CE).barTop + 4, M.layout(W, CE)) === 1);
+  check("and the sum column is over no bar",
+    M.barColAt(M.layout(W, CE).colX(3), M.layout(W, CE).barTop + 4, M.layout(W, CE)) === -1);
+  check("the walk is the same walk at either count", REG1.units === REG.units);
   check("and the unit table is the same table",
-    M.pageUnits(BCE1).map((u) => u.id).join() === M.pageUnits(BCE).map((u) => u.id).join());
+    M.pageUnits(REG1).map((u) => u.id).join() === M.pageUnits(REG).map((u) => u.id).join());
+}
+
+/* --- 11b · the rail: the two tensors as columns, and the two core options ----
+ * `_lab/loss-rail-mock.html`, 2026-09-11, Kenneth's picks: §1 D (two-line
+ * faces) and §2 b (the grid). Both are core options rather than widget code, so
+ * what is asserted here is that this widget declares them and that no other
+ * widget's rail can have moved.
+ */
+{
+  const src = read("widgets/loss-functions/main.js");
+  /* every `cells: { … }` declared in the file, as { field: [count, heads] } */
+  const declared = {};
+  for (const m of src.matchAll(/^\s{4}(\w+): \{\n([\s\S]*?)\n\s{4}\},/gm)) {
+    const body = m[2];
+    const cells = body.match(/cells: \{([\s\S]*?)\},?\n/);
+    if (cells) declared[m[1]] = cells[1].replace(/\s+/g, " ").trim();
+  }
+  check("the five tensor rows and the switch run declare `cells`, and nothing else does",
+    Object.keys(declared).join() === "pred,target,scores,logits,A,binaryScores",
+    Object.keys(declared).join());
+  check("Regression's pair counts by Outputs and declares `cellsFrom`, so the block rebuilds with it",
+    /count: \(values\) => M\.countOf\(values, "outputs"\)/.test(declared.pred)
+    && /count: \(values\) => M\.countOf\(values, "outputs"\)/.test(declared.target)
+    && (src.match(/cellsFrom: "outputs"/g) ?? []).length === 2);
+  check("and heads its columns 1 2 3, since an output is not a class (3.7)",
+    M.OUTPUT_HEADS.join() === "1,2,3"
+    && /M\.OUTPUT_HEADS\.slice/.test(declared.pred) && /M\.OUTPUT_HEADS\.slice/.test(declared.target),
+    M.OUTPUT_HEADS.join());
+  check("the three classification rows head their columns with the class letters",
+    M.headsFor("single-label").join() === "A,B,C"
+    && M.headsFor("multi-label").join() === "A,B,C,D,E"
+    && M.headsFor("binary").join() === "A,B",
+    M.headsFor("multi-label").join());
+  check("each declares its own page's width as its count",
+    /count: M\.PAGE_N\["single-label"\]/.test(declared.scores)
+    && /count: M\.PAGE_N\["multi-label"\]/.test(declared.logits)
+    && /count: M\.PAGE_N\.binary/.test(declared.binaryScores));
+  check("and its own page's heads",
+    /HEADS\("single-label"\)/.test(declared.scores)
+    && /HEADS\("multi-label"\)/.test(declared.logits)
+    && /HEADS\("binary"\)/.test(declared.binaryScores));
+  check("the five switches take the same five columns, declared on the first of the run",
+    /A: \{\n\s+type: "bool",[\s\S]*?cells: \{ count: M\.PAGE_N\["multi-label"\] \},/.test(src));
+  check("and only the first of the run declares it, as a row caption does",
+    (src.match(/cells: \{ count: M\.PAGE_N\["multi-label"\] \}/g) ?? []).length === 1);
+  check("the three classification faces carry the second line, the Regression face none",
+    (src.match(/qual:/g) ?? []).length === 0
+    && M.TASKS.filter((t) => t.qual).length === 3);
+  check("THE URL IS UNCHANGED BY THE GRID: one canonical string, one parse, one show",
+    /parse: \(t\) => M\.parseRow\(t, M\.RANGE/.test(src)
+    && (src.match(/show: \(v\) => M\.showRow\(/g) ?? []).length === 5);
+  check("and the drag still writes that one string, which the cells repaint from",
+    /\.w-cells\[data-param="\$\{name\}"\]/.test(src));
+
+  /* NO OTHER WIDGET'S RAIL CAN HAVE MOVED. Both additions are opt-in, so the
+     proof is that nothing else opts in. */
+  const others = [];
+  for (const name of readdirSync(join(root, "widgets"), { withFileTypes: true })) {
+    if (!name.isDirectory() || name.name === "loss-functions" || name.name.startsWith("_")) continue;
+    for (const f of ["main.js", "model.js"]) {
+      const path = join(root, "widgets", name.name, f);
+      if (existsSync(path)) others.push([`${name.name}/${f}`, readFileSync(path, "utf8")]);
+    }
+  }
+  check("there are other widgets to check", others.length >= 24, `${others.length} files`);
+  check("no other widget declares `cells` on a field, so no rail of theirs is a grid",
+    others.filter(([, s]) => /^\s+cells: \{/m.test(s)).map(([n]) => n).join() === "",
+    others.filter(([, s]) => /^\s+cells: \{/m.test(s)).map(([n]) => n).join());
+  check("nor `cellsFrom`",
+    !others.some(([, s]) => /cellsFrom/.test(s)));
+  check("and no other option anywhere declares a `qual`, so no segmented row takes two lines",
+    others.filter(([, s]) => /\bqual:/.test(s)).map(([n]) => n).join() === "",
+    others.filter(([, s]) => /\bqual:/.test(s)).map(([n]) => n).join());
+
+  /* the core renderers themselves: the single field is untouched, the grid is
+     the same one parameter, and both additions are gated on a declaration */
+  const controls = read("widgets/core/controls.js");
+  check("core renders a cells grid only where a field declares one",
+    /if \(field\.cells\) \{/.test(controls));
+  check("a text field without `cells` keeps the single input it has",
+    /const input = textInput\(name, field\);\n\s+input\.id = id;\n\s+input\.classList\.add\("w-text"\);/
+      .test(controls));
+  check("the cells are joined with a comma for `parse`, so the URL is the same string",
+    /inputs\.map\(\(c\) => c\.value\.trim\(\)\)\.join\(","\)/.test(controls));
+  check("and `show` is split back across them",
+    /String\(field\.show \? field\.show\(v\) : v\)\.split\(","\)/.test(controls));
+  check("`cellsFrom` is a gating parameter, so the block rebuilds when the count moves",
+    /if \(field\.cellsFrom\)/.test(controls));
+  check("a two-line face is reserved PER RUN, so a row with none is untouched (3.4d)",
+    /if \(twoLine\.has\(o\.group\)\) run\.seg\.classList\.add\("w-seg--two"\)/.test(controls));
+  check("and the face stays the accessible name",
+    /b\.setAttribute\("aria-label", o\.label\)/.test(controls));
+  check("a bool run takes columns only where the run's first field asks for them",
+    /const runCells = cell\.fields\[0\]\[1\]\.cells;/.test(controls));
+  const css = read("widgets/core/tokens.css");
+  check("the grid, the two-line face and the column run are all in the tokens",
+    /\.w-cells \{/.test(css) && /\.w-seg--two \.w-seg-btn \{/.test(css)
+    && /\.w-bools--cols \{/.test(css));
+  check("and none of them writes a colour of its own (non-negotiable 5)",
+    !/\.w-cell[\s\S]{0,800}#[0-9a-f]{3,6}/i.test(css.slice(css.indexOf(".w-cells"),
+      css.indexOf(".w-cells") + 1400)));
 }
 
 /* --- 12 · the Binary page, both forms of one model ---------------------------

@@ -83,19 +83,27 @@ export const BIN_SCORES = "0.5,2";
 export const BIN_LABEL = "1";
 
 /* --- how many columns a page draws ----------------------------------------- *
- * The count is the number of COLUMNS, one control per page, and it changes no
- * row — so no page resizes when it moves (the second mock, §1: the three
- * one-output stages come out at 494, 414 and 524, the same as the several-
- * output ones). One parameter has one default, so there are three of them,
- * exactly as the two dtype controls already are. */
+ * The count is the number of COLUMNS, and it changes no row — so no page
+ * resizes when it moves (the second mock, §1: the one-output Regression stage
+ * comes out at 494, the same as the three-output one).
+ *
+ * ONLY REGRESSION CARRIES ONE (Kenneth, 2026-09-11, structure B): a
+ * single-label page is the notebook's three classes and a multi-label page its
+ * five, and the two `Classes` controls said in a control what the two faces
+ * already say — one class of three is true, any of five can be. The Binary page
+ * is the one place the two-class case appears, both ways. */
 export const OUTPUT_COUNTS = ["1", "3"];
-export const SINGLE_COUNTS = ["2", "3"];
-export const MULTI_COUNTS = ["1", "5"];
-export const COUNT_DEFAULT = { outputs: "3", singleClasses: "3", multiClasses: "5" };
+export const COUNT_DEFAULT = { outputs: "3" };
 export const countOf = (params, key) => Number(params[key] ?? COUNT_DEFAULT[key]);
 
-/** The class indices a label can take at a given class count. */
-export const labelOptions = (n) => Array.from({ length: n }, (_, i) => String(i));
+/** How many columns each fixed page draws, for the fields and their hints. */
+export const PAGE_N = { "single-label": 3, "multi-label": 5, binary: 2 };
+/** The head row over each page's cells. An output is NOT a class (3.7), so
+    Regression numbers its columns where the other three letter theirs. */
+export const OUTPUT_HEADS = ["1", "2", "3"];
+export const headsFor = (kind) => LETTERS.slice(0, PAGE_N[kind]);
+/** The class indices the Single-label target can take, fixed at three. */
+export const LABEL_OPTIONS = ["0", "1", "2"];
 
 /* THE BAR AXIS IS FIXED, NOT FITTED (2.5). Fitted to the values on screen,
    dragging class A from 5.0 to 1.0 leaves A's own bar at 55px and takes
@@ -212,18 +220,16 @@ export function computeFor(params) {
     );
   }
   if (task === "single-label") {
-    const n = countOf(params, "singleClasses");
+    const n = PAGE_N["single-label"];
     FIELD_N.scores = n;
     return singleLabel(
       fit(unwire(params.scores ?? CE_SCORES), n, RANGE["single-label"]),
-      /* a label of 2 at two classes is held on the row it can reach; core's own
-         option door returns the parameter itself to its default */
       Math.min(Number(params.label ?? CE_LABEL), n - 1),
       params.singleDtype ?? "long"
     );
   }
   if (task === "multi-label") {
-    const n = countOf(params, "multiClasses");
+    const n = PAGE_N["multi-label"];
     FIELD_N.logits = n;
     return multiLabel(
       fit(unwire(params.logits ?? BCE_SCORES), n, RANGE["multi-label"]),
@@ -324,10 +330,11 @@ export function multiLabel(scores, y, dtype) {
     terms,
     loss: mean(terms),
     units: 5,
-    /* A ROW OF ONE HAS NOTHING TO READ. At one class the sum column repeats
-       its own cell — 0.5498 beside 0.5498 — so it is dropped there (the second
-       mock's §1 recommendation). */
-    sumCol: y.length > 1,
+    /* THE ROW SUM IS THE WHOLE CONTRAST, and the page is five classes, so it is
+       always there: 2.7476 under the same head that prints 1.0000 one face
+       away. It was conditional while a `Classes` control could narrow the page
+       to one, where the sum repeated its own cell. */
+    sumCol: true,
     bad: dtype === "long",
     dtype,
     range: RANGE["multi-label"],
@@ -628,7 +635,21 @@ export function dragVec(text, col, dy, n, range) {
    truncates — 62.0px for text against Single-label's 64.4px at the pressed
    weight, measured in the second mock's §3 — and the two-column grid that
    fixes the width pairs Regression with Single-label, which is not how the
-   four divide. The option groups say the division in the shape. */
+   four divide. The option groups say the division in the shape.
+
+   THE THREE CLASSIFICATION FACES CARRY A SECOND LINE, and they run commonest
+   first (`_lab/loss-rail-mock.html` §1 D and A1, Kenneth's picks 2026-09-11 —
+   his own wording, "(1) single-label >2 classes, (2) multi-label >2 classes,
+   (3) binary", in his own prevalence order). The count does not fit ON the
+   face: at 300px a row of three leaves 86.9px and `Single-label, >2 classes`
+   measures 38.9px over it, so two of the three would ship an ellipsis. The
+   qualifier is 49.6px at `--fs-xs` on its own line and clears the column.
+
+   AND EVERY DETAIL COUNTS. Each classification line opens with how many
+   classes there are and how many of them the target marks — the half a face
+   cannot say in any spelling — and all four wrap to the same number of lines,
+   so the Task field is one height on every face and the rail does not jog as
+   the reader clicks across it (3.4k, reached by the copy). */
 export const TASKS = [
   {
     value: "regression",
@@ -637,23 +658,28 @@ export const TASKS = [
     detail: "no function applied · y_true is float32, the same shape as y_pred",
   },
   {
+    value: "binary",
+    label: "Binary",
+    qual: "2 classes",
+    group: "Classification",
+    detail: "one class of two is true, as two outputs or as one"
+      + " · softmax over two scores, or sigmoid over their difference",
+  },
+  {
     value: "single-label",
     label: "Single-label",
+    qual: ">2 classes",
     group: "Classification",
-    detail: "softmax over the row · y_true is one class index, long",
+    detail: "one class of three is true · softmax over the row"
+      + " · y_true is one class index, long",
   },
   {
     value: "multi-label",
     label: "Multi-label",
+    qual: ">2 classes",
     group: "Classification",
-    detail: "sigmoid per class · y_true is 0 or 1 per class, float32",
-  },
-  {
-    value: "binary",
-    label: "Binary",
-    group: "Classification",
-    detail: "softmax over two scores, or sigmoid over their difference"
-      + " · y_true is a class index, long, or a 0 or 1, float32",
+    detail: "any of five classes can be true · sigmoid per class"
+      + " · y_true is 0 or 1 per class, float32",
   },
 ];
 
@@ -703,8 +729,6 @@ export const STRINGS = {
   speedLabel: "Play speed",
   dtypeLabel: "Target dtype",
   dtypeDetail: "what the target tensor holds when the loss reads it",
-  /* the class count is a control, so this line counts rather than lists: at two
-     classes there is no C to name */
   labelDetail: "the index of the true class, counting from A at 0",
   boolsDetail: "the classes the target marks present",
   predDetail: "the predictions, one per output",
@@ -713,10 +737,7 @@ export const STRINGS = {
   logitsDetail: "the logits, one per class",
 
   outputsLabel: "Outputs",
-  classesLabel: "Classes",
   outputsDetail: "one output, or several: the shape of y_pred and y_true",
-  singleDetail: "two classes, or several: the width of the score row",
-  multiDetail: "one label, or several: the width of the score row",
 
   binaryScoresDetail: "two scores, A and B",
   binaryLabelDetail: "the index of the true class: 0 is A, 1 is B",
@@ -798,7 +819,6 @@ export const STRINGS = {
 
   rowSumHead: "row sum",
   pTrueNote: "the softmax's probability for the target class",
-  pOneNote: "the probability this class is present",
   outputRow: "y_pred",
 };
 

@@ -110,6 +110,97 @@ function textInput(name, field) {
   return input;
 }
 
+/**
+ * THE SAME ONE PARAMETER, TYPED AS N CELLS UNDER A HEAD ROW.
+ *
+ *     scores: { type: 'text', label: 'y_pred',
+ *               cells: { count: 3, heads: ['A', 'B', 'C'] }, ... }
+ *
+ * `count` is a number or `(values) => number`, `heads` an array or a function
+ * of the same shape. A `count` that follows another parameter declares
+ * `cellsFrom: "outputs"`, exactly as an option list declares `optionsFrom`, so
+ * the block rebuilds when that parameter moves and nowhere else.
+ *
+ * ONE canonical string throughout: the cells are joined with "," and handed to
+ * the field's own `parse`, `show(v)` is split back across them, and `check` is
+ * asked about the joined text — so `?scores=5,0.5,0.1` is the URL either way,
+ * a drag that rewrites the row repaints every cell through the same setter,
+ * and nothing downstream knows how the row was entered.
+ *
+ * Earned by widget 54 (`_lab/loss-rail-mock.html`, 2026-09-11, Kenneth: "it's
+ * not aligned to the target? not sure, like a grid to align?"). y_pred was one
+ * string whose numbers fell where their own digits put them and y_true a row of
+ * controls laid across the rail: the worst value sat 173 / 79 / 177px from the
+ * control marking the same class. A head row and N equal columns put it at
+ * 0.4 / 0.6 / 0.2px, and by construction rather than by arithmetic — the grid
+ * and a `.w-seg` row both carry one 1px border and divide the same width.
+ *
+ * NOTE FOR THE HARNESS: `data-param` sits on the GROUP, not on an input, and
+ * each cell carries `data-cell="i"`. `setParam` writes a `text` field by its
+ * input, so drive a cells field by URL rather than by control.
+ */
+function cellsGrid(name, field, values, hintEl, onChange) {
+  const of = (v) => (typeof v === "function" ? v(values) : v);
+  const count = Math.max(1, Number(of(field.cells.count)) || 1);
+  const heads = of(field.cells.heads) ?? [];
+  const named = field.label ?? name;
+
+  const grid = document.createElement("div");
+  grid.className = "w-cells";
+  grid.dataset.param = name;
+  grid.setAttribute("role", "group");
+  grid.setAttribute("aria-label", named);
+  grid.style.setProperty("--w-cells-n", String(count));
+  for (let i = 0; i < count; i += 1) {
+    const h = document.createElement("span");
+    h.className = "w-cell-head";
+    h.textContent = heads[i] ?? "";
+    grid.appendChild(h);
+  }
+  const inputs = [];
+  for (let i = 0; i < count; i += 1) {
+    const cell = document.createElement("input");
+    cell.type = "text";
+    cell.className = "w-cell";
+    cell.dataset.cell = String(i);
+    /* the head names the column, so the cell names itself by it — a screen
+       reader hears "y_pred A" rather than "y_pred, edit text" five times */
+    cell.setAttribute("aria-label", `${named} ${heads[i] ?? i + 1}`);
+    cell.spellcheck = false;
+    cell.autocomplete = "off";
+    inputs.push(cell);
+    grid.appendChild(cell);
+  }
+
+  const joined = () => inputs.map((c) => c.value.trim()).join(",");
+  /* the same live check the single field runs, over the joined text: nothing is
+     committed by it, so the hint can say "three numbers" while the figure keeps
+     the last row that worked */
+  const hint = () => {
+    if (!field.check || !hintEl) return;
+    const m = field.check(joined(), values);
+    hintEl.textContent = m ?? "";
+    hintEl.hidden = !m;
+  };
+  const paint = (v) => {
+    const parts = String(field.show ? field.show(v) : v).split(",");
+    inputs.forEach((cell, i) => { cell.value = (parts[i] ?? "").trim(); });
+    hint();
+  };
+  for (const cell of inputs) {
+    cell.addEventListener("input", hint);
+    /* commits on `change` — Enter, or leaving the cell — and not per keystroke,
+       for the reason the single field does: a half-typed value would otherwise
+       be a parameter, a URL and a reset of whatever walk is under way */
+    cell.addEventListener("change", () => {
+      const v = field.parse ? field.parse(joined()) : joined();
+      paint(v);
+      onChange(name, v);
+    });
+  }
+  return { grid, paint };
+}
+
 /* WHAT A TEXT FIELD DOES WHILE IT IS TYPED IN (widget 53, round 15, Kenneth:
    "can the text field be dynamic? so it expands as I try more? also could it
    validate while I'm typing?"). It grows with its text, never below its
@@ -182,6 +273,11 @@ export function gatingParams(spec) {
      way (round 16, widget 53: the positions a dim can take follow the rank) */
   for (const field of Object.values(spec)) {
     if (field.optionsFrom) [].concat(field.optionsFrom).forEach((n) => names.add(n));
+  }
+  /* a cells grid whose COLUMN COUNT follows another parameter (widget 54's
+     y_pred under Outputs) names it the same way, and gets the same rebuild */
+  for (const field of Object.values(spec)) {
+    if (field.cellsFrom) [].concat(field.cellsFrom).forEach((n) => names.add(n));
   }
   return names;
 }
@@ -463,6 +559,19 @@ function build(host, spec, values, onChange, api) {
       endRow();
       const group = document.createElement("div");
       group.className = "w-field w-bools";
+      /* THE RUN IN THE SAME N COLUMNS AS A CELLS GRID, when the run's FIRST
+         field declares the same `cells` count — `A: { type: 'bool', label: 'A',
+         cells: { count: 5 } }`. Opt-in, because `.w-bools` ships as a flex line
+         with a `--sp-5` gap and widget 54's mock measured five switches
+         46px off five equal columns: every checkbox row that does not ask for
+         columns keeps the line it has. Only the first field of the run is read,
+         as `row.label` already is — the rest need only be in the run. */
+      const runCells = cell.fields[0][1].cells;
+      if (runCells) {
+        const n = typeof runCells.count === "function" ? runCells.count(values) : runCells.count;
+        group.classList.add("w-bools--cols");
+        group.style.setProperty("--w-cells-n", String(Math.max(1, Number(n) || 1)));
+      }
       for (const [name, field] of cell.fields) {
         const id = `f-${name}`;
         /* EACH SWITCH IS A COLUMN, not a bare label. `.w-bools` is a flex ROW,
@@ -756,23 +865,36 @@ function build(host, spec, values, onChange, api) {
       };
     } else if (field.type === "text") {
       wrap.appendChild(label);
-      const input = textInput(name, field);
-      input.id = id;
-      input.classList.add("w-text");
       const hintEl = document.createElement("p");
       hintEl.className = "w-detail w-text-hint";
       hintEl.hidden = true;
-      const live = liveText(input, field, values, hintEl);
-      const paint = (v) => { input.value = field.show ? field.show(v) : String(v); live(); };
-      paint(values[name]);
-      input.addEventListener("change", () => {
-        const v = field.parse ? field.parse(input.value) : input.value;
-        paint(v);
-        onChange(name, v);
-      });
-      wrap.appendChild(input);
+      if (field.cells) {
+        const { grid, paint } = cellsGrid(name, field, values, hintEl, onChange);
+        paint(values[name]);
+        wrap.appendChild(grid);
+        setters[name] = paint;
+      } else {
+        const input = textInput(name, field);
+        input.id = id;
+        input.classList.add("w-text");
+        const live = liveText(input, field, values, hintEl);
+        const paint = (v) => { input.value = field.show ? field.show(v) : String(v); live(); };
+        paint(values[name]);
+        input.addEventListener("change", () => {
+          const v = field.parse ? field.parse(input.value) : input.value;
+          paint(v);
+          onChange(name, v);
+        });
+        wrap.appendChild(input);
+        setters[name] = paint;
+      }
       wrap.appendChild(hintEl);
-      setters[name] = paint;
+      /* 3.4f, THE FIFTH TIME. `params.js` documents `detail` as something any
+         field may carry, and `text` dropped it: the only two text fields that
+         existed were `expr` slots, which are `hidden` and carry their sentence
+         on the expr field instead, so nothing showed the gap until a text field
+         was declared on its own line with a description of what to type in it. */
+      ownDetail(wrap, field);
     } else if (field.type === "select") {
       wrap.appendChild(label);
       const select = document.createElement("select");
@@ -1050,6 +1172,20 @@ function build(host, spec, values, onChange, api) {
          sampler, and a reader has to know that before choosing, not after.
          Consecutive options sharing a `group` string form one row. */
       let run = null;
+      /* A FACE MAY CARRY A SECOND LINE — `qual`, under the name in `--fs-xs`
+         `--ink-3`. For a count that qualifies the kind rather than naming it:
+         widget 54's Binary / `2 classes` against Single-label / `>2 classes`,
+         which at 300px does not fit ON the face (the count in the face
+         truncates two of three by 38.9px, `_lab/loss-rail-mock.html`).
+
+         RESERVED PER RUN (3.4d). A row where any option has a qualifier gives
+         every button the two-line box, so the row is level; a run where none
+         does is untouched, which is every existing widget and both halves of a
+         grouped control whose groups differ. The face is still the accessible
+         name — the qualifier is presentational. */
+      const twoLine = new Set(
+        options.filter((o) => o.qual).map((o) => o.group)
+      );
       for (const o of options) {
         if (!run || run.key !== o.group) {
           run = { key: o.group, seg: document.createElement("div") };
@@ -1060,6 +1196,7 @@ function build(host, spec, values, onChange, api) {
              at 111px. An option marked `span: true` takes a full row, which is
              what lets four methods form a 2x2 under a full-width "None". */
           run.seg.className = field.style === "grid" ? "w-seg w-seg-grid" : "w-seg";
+          if (twoLine.has(o.group)) run.seg.classList.add("w-seg--two");
           run.seg.setAttribute("role", "group");
           run.seg.setAttribute("aria-label", o.group ?? field.label ?? name);
           /* A GROUP'S CAPTION SITS UNDER ITS ROW, as a note — unless the field
@@ -1098,7 +1235,18 @@ function build(host, spec, values, onChange, api) {
           sw.style.setProperty("--swatch", `var(--c-${o.token})`);
           b.appendChild(sw);
         }
-        b.appendChild(document.createTextNode(o.label));
+        if (o.qual) {
+          const nm = document.createElement("span");
+          nm.className = "w-seg-name";
+          nm.textContent = o.label;
+          const q = document.createElement("span");
+          q.className = "w-seg-qual";
+          q.textContent = o.qual;
+          b.append(nm, q);
+          b.setAttribute("aria-label", o.label);
+        } else {
+          b.appendChild(document.createTextNode(o.label));
+        }
         if (o.detail) b.title = o.detail;
         b.addEventListener("click", () => {
           mark(o.value);

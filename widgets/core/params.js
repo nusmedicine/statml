@@ -32,10 +32,19 @@
                   returns a message to show under the field while it is typed
                   in, or null; all optional. Widget 53's reshape argument,
                   2026-09-09: a dropdown of 22 sizes per slot was the long
-                  list Kenneth would not have.
+                  list Kenneth would not have. `cells: { count, heads }`
+                  renders the SAME one parameter as N equal columns under a
+                  head row (`count` and `heads` may be functions of the
+                  values, with `cellsFrom` naming the parameter a count
+                  follows): the cells are joined with "," for `parse` and
+                  `check`, and `show(v)` is split back across them, so the
+                  URL is unchanged and a value sits over the control that
+                  sets the same column (widget 54, 2026-09-11)
      select       dropdown — for many options, or unordered ones
      choice       slider over an ordered option list, with tick labels
-     segmented    connected button group, all options visible at rest
+     segmented    connected button group, all options visible at rest; an
+                  option may carry `qual`, a second line under its face, and
+                  every button in that row then takes the two-line height
      matrix       a labelled grid of cells, one option per cell, each shaded by a
                   magnitude the widget supplies
 
@@ -180,6 +189,11 @@ export function optionEntries(field, values = {}) {
           /* `segmented` with `style: "grid"` only: this option takes a full
              row rather than one cell */
           span: item.span,
+          /* `segmented` only: a second line under the face, for a count that
+             qualifies the name rather than naming it (widget 54's Binary /
+             `2 classes`). Every button in a row that has one takes the
+             two-line height, so the row stays level. */
+          qual: item.qual,
           /* `matrix` only. Where the option sits in the grid, and how dark the
              cell is drawn — 0 to 1. Carried on the option rather than in a
              parallel array, so a cell cannot come adrift from the value it

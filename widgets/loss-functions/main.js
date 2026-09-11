@@ -93,15 +93,19 @@
    `_lab/loss-binary-mock.html` drew every candidate at the real 550 stage and
    he picked §1 A, §2 B and §3 C.
 
-   11. THE COUNT IS THE NUMBER OF COLUMNS, and it is three parameters, not one:
-       one parameter has one default, and each page opens on its own example
-       (`outputs` 1 · 3, `singleClasses` 2 · 3, `multiClasses` 1 · 5). The
+   11. THE COUNT IS THE NUMBER OF COLUMNS, and only Regression has one. The
        tensor field keeps the row AS TYPED and `compute` reads the first k of
-       it, padding with 0 — so narrowing to one output and back returns the
-       row that was there. No page resizes: the mock measured the three
-       one-output stages at 494, 414 and 524, the several-output heights to the
-       pixel, because the control changes columns and not rows. At one class
-       the row-sum column is dropped, since a row of one has nothing to read.
+       it, padding with 0 — so narrowing to one output and back returns the row
+       that was there. No page resizes: the mock measured the one-output stage
+       at 494, the same as the three-output one, because the control changes
+       columns and not rows. The two `Classes` controls that once did the same
+       on the classification pages are gone under structure B (Kenneth,
+       2026-09-11): a single-label page is the notebook's three classes and a
+       multi-label page its five, the faces say so in their own second lines,
+       and the two-class case has a page of its own where both forms of it are
+       drawn side by side. So the row-sum column is back on Multi-label
+       unconditionally — 2.7476 under the head that prints 1.0000 one face
+       away, which is the contrast the widget exists for.
 
    12. THE FIELD FOLLOWS THE COUNT IN TWO PLACES, because core rebuilds the
        control block BEFORE it recomputes the state. `show` narrows to the
@@ -131,6 +135,38 @@
        and the 2 × 2 grid that fixes the width pairs Regression with
        Single-label, which is not how the four divide. The groups divide them
        the way the losses do (3.4g).
+
+   ---- the rail: the faces, and the two tensors as columns ------------------
+   Kenneth, 2026-09-11: "can you mock the rail input for y_pred? it's not
+   aligned to the target? not sure, like a grid to align?" and, on the faces,
+   his own ordering — Binary first, by prevalence.
+   `_lab/loss-rail-mock.html` drew every candidate at the real 300px rail and
+   he picked §1 D and §2 b, both of which needed a small core addition and both
+   of which were put to him as core before either was written.
+
+   16. THE TWO TENSORS ARE ONE GRID OF COLUMNS. Core's `text` field takes
+       `cells: { count, heads }` and renders the same one parameter as N equal
+       cells under a head row, so a value sits over the control that sets the
+       same class: 0.4 / 0.6 / 0.2px at three, five and two columns, against
+       173 / 79 / 177px when y_pred was one string whose numbers fell where
+       their own digits put them. It is still ONE canonical string — the cells
+       are joined for `parse` and split from `show` — so `?scores=5,0.5,0.1` is
+       unchanged, and a drag on the stage repaints every cell through the same
+       setter every other control uses.
+
+   17. THE HEAD NAMES THE COLUMN AND THE CONTROL HOLDS THE VALUE. On
+       Single-label the heads are A B C and the buttons under them are 0 · 1 ·
+       2, because the target there IS an index: a chip reading B would hide the
+       number the tensor holds. On Regression the heads are 1 2 3 — an output
+       is not a class, and a letter is this widget's word for a class on the
+       other three pages (3.7).
+
+   18. THE FIVE SWITCHES ARE A RUN OF FIVE COLUMNS. `.w-bools` ships as a flex
+       line with a `--sp-5` gap, which put the five letters 46px off the five
+       columns above them, so the switch under class D's score was not class
+       D's. A bool run whose first field declares the same `cells` count takes
+       the same N equal columns; every other checkbox row in the collection
+       keeps the line it has.
    ========================================================================= */
 
 import { defineWidget, readTokens, mathmlRenders } from "../core/index.js";
@@ -871,10 +907,14 @@ function rowNote(state, id) {
  * parameter moves, the field's own `show` has already run against the previous
  * count. The field is repainted here instead, once the new state exists.
  *
- * The `input` event is core's own door for a field that has changed width: it
- * re-runs `liveText`, which resizes the box and re-checks the hint, and commits
- * nothing — a value commits on `change`. And a field the reader is typing in is
- * left alone.
+ * The `input` event is core's own door for a field that has just been written
+ * from outside: it re-runs the field's own `check`, and commits nothing — a
+ * value commits on `change`. And a cell the reader is typing in is left alone.
+ *
+ * Only `outputs` can move a count now, so only the Regression pair can be one
+ * cell short; the other three pages are fixed and repaint through the setter
+ * like any other control. The sweep is kept over all four because a stale cell
+ * is a rail that lies about the figure, and the loop costs nothing.
  */
 const FIELD_ROWS = {
   regression: [["pred", "scores"], ["target", "target"]],
@@ -885,12 +925,20 @@ const FIELD_ROWS = {
 
 function syncTensorFields(state) {
   for (const [name, key] of FIELD_ROWS[state.kind] ?? []) {
-    const input = document.querySelector(`#widget input[data-param="${name}"]`);
-    if (!input || document.activeElement === input) continue;
-    const text = M.showVec(M.wire(state[key]));
-    if (input.value === text) continue;
-    input.value = text;
-    input.dispatchEvent(new Event("input"));
+    const group = document.querySelector(`#widget .w-cells[data-param="${name}"]`);
+    if (!group) continue;
+    const cells = [...group.querySelectorAll(".w-cell")];
+    const want = M.showVec(M.wire(state[key])).split(",").map((s) => s.trim());
+    let moved = false;
+    cells.forEach((cell, i) => {
+      const text = want[i] ?? "";
+      if (cell.value === text || document.activeElement === cell) return;
+      cell.value = text;
+      moved = true;
+    });
+    /* one event for the row, so the field's own hint is re-checked against what
+       the cells now hold and not against what they held a count ago */
+    if (moved) cells[0]?.dispatchEvent(new Event("input"));
   }
 }
 
@@ -975,9 +1023,8 @@ function renderCard(params) {
 /* ============================== the widget ================================= */
 
 const ON = (task) => ({ param: "task", equals: task });
-/* the four switches past the first, which only the several-class Multi-label
-   page has: a row of one class needs one switch and no row sum (decision 11) */
-const MANY = { all: [ON("multi-label"), { param: "multiClasses", equals: "5" }] };
+/* DECISION 17: the head row over each page's cells, and the count under it. */
+const HEADS = (kind) => M.headsFor(kind);
 
 /** The tensor field each page's bars belong to, for the drag and the field
     sync. `params` is a fixed list, so all four are declared and the three that
@@ -1011,13 +1058,22 @@ defineWidget({
       default: "regression",
     },
 
-    /* --- Regression -------------------------------------------------------- */
+    /* --- Regression -------------------------------------------------------- *
+     * DECISION 16: both tensors are rows of cells in the same columns, and on
+     * this page both rows are numbers — so the heads are 1 2 3 and not A B C
+     * (3.7: an output is not a class, and y_true here is float32 in the units
+     * of the prediction). The count follows `Outputs`, which is why the field
+     * declares `cellsFrom`. */
     pred: {
       type: "text",
       label: "y_pred",
       detail: M.STRINGS.predDetail,
       default: M.MSE_PRED,
-      size: 12,
+      cells: {
+        count: (values) => M.countOf(values, "outputs"),
+        heads: (values) => M.OUTPUT_HEADS.slice(0, M.countOf(values, "outputs")),
+      },
+      cellsFrom: "outputs",
       parse: (t) => M.parseRow(t, M.RANGE.regression),
       show: (v) => M.showRow(v, M.FIELD_N.pred, M.RANGE.regression),
       check: (t, values) => M.hintFor(t, M.countOf(values, "outputs"), "output"),
@@ -1028,7 +1084,11 @@ defineWidget({
       label: "y_true",
       detail: M.STRINGS.targetDetail,
       default: M.MSE_TRUE,
-      size: 12,
+      cells: {
+        count: (values) => M.countOf(values, "outputs"),
+        heads: (values) => M.OUTPUT_HEADS.slice(0, M.countOf(values, "outputs")),
+      },
+      cellsFrom: "outputs",
       parse: (t) => M.parseRow(t, M.RANGE.regression),
       show: (v) => M.showRow(v, M.FIELD_N.target, M.RANGE.regression),
       check: (t, values) => M.hintFor(t, M.countOf(values, "outputs"), "output"),
@@ -1045,34 +1105,28 @@ defineWidget({
       when: ON("regression"),
     },
 
-    /* --- Single-label ------------------------------------------------------ */
+    /* --- Single-label ------------------------------------------------------ *
+     * DECISION 17: THE HEAD ROW CARRIES THE LETTER AND THE BUTTONS CARRY THE
+     * INDEX, because the letter is the column and the index is the value. The
+     * page's whole claim is that this target is ONE class index stored as long,
+     * so the control shows that index and the head above it says which class
+     * the index names. */
     scores: {
       type: "text",
       label: "y_pred",
       detail: M.STRINGS.scoresDetail,
       default: M.CE_SCORES,
-      size: 12,
+      cells: { count: M.PAGE_N["single-label"], heads: HEADS("single-label") },
       parse: (t) => M.parseRow(t, M.RANGE["single-label"]),
       show: (v) => M.showRow(v, M.FIELD_N.scores, M.RANGE["single-label"]),
-      check: (t, values) => M.hintFor(t, M.countOf(values, "singleClasses"), "class"),
+      check: (t) => M.hintFor(t, M.PAGE_N["single-label"], "class"),
       when: ON("single-label"),
     },
-    singleClasses: {
-      type: "segmented",
-      label: M.STRINGS.classesLabel,
-      detail: M.STRINGS.singleDetail,
-      options: M.SINGLE_COUNTS,
-      default: M.COUNT_DEFAULT.singleClasses,
-      when: ON("single-label"),
-    },
-    /* the indices the label can take follow the class count, through core's own
-       door: a label of 2 at two classes returns to the default */
     label: {
       type: "segmented",
       label: "y_true",
       detail: M.STRINGS.labelDetail,
-      options: (values) => M.labelOptions(M.countOf(values, "singleClasses")),
-      optionsFrom: "singleClasses",
+      options: M.LABEL_OPTIONS,
       default: M.CE_LABEL,
       when: ON("single-label"),
     },
@@ -1083,18 +1137,10 @@ defineWidget({
       label: "y_pred",
       detail: M.STRINGS.logitsDetail,
       default: M.BCE_SCORES,
-      size: 18,
+      cells: { count: M.PAGE_N["multi-label"], heads: HEADS("multi-label") },
       parse: (t) => M.parseRow(t, M.RANGE["multi-label"]),
       show: (v) => M.showRow(v, M.FIELD_N.logits, M.RANGE["multi-label"]),
-      check: (t, values) => M.hintFor(t, M.countOf(values, "multiClasses"), "class"),
-      when: ON("multi-label"),
-    },
-    multiClasses: {
-      type: "segmented",
-      label: M.STRINGS.classesLabel,
-      detail: M.STRINGS.multiDetail,
-      options: M.MULTI_COUNTS,
-      default: M.COUNT_DEFAULT.multiClasses,
+      check: (t) => M.hintFor(t, M.PAGE_N["multi-label"], "class"),
       when: ON("multi-label"),
     },
     /* FIVE SWITCHES RATHER THAN ONE FIELD: the target here is a 0 or a 1 per
@@ -1102,18 +1148,28 @@ defineWidget({
        The row is named by a `section` and not by a `detail` on the first
        switch: `.w-bools` is a flex row and a detail belongs to the switch it
        sits under, so the sentence widened A's column and broke the five
-       letters onto three lines. */
+       letters onto three lines.
+
+       DECISION 18: the run declares the same five columns the cells above it
+       are laid out in, so each switch sits under the score for its own class.
+       Only the first field of a run is read for that, as for a row caption. */
     targetRow: {
       type: "section",
       label: "y_true",
       detail: M.STRINGS.boolsDetail,
       when: ON("multi-label"),
     },
-    A: { type: "bool", label: "A", default: M.BCE_Y[0], when: ON("multi-label") },
-    B: { type: "bool", label: "B", default: M.BCE_Y[1], when: MANY },
-    C: { type: "bool", label: "C", default: M.BCE_Y[2], when: MANY },
-    D: { type: "bool", label: "D", default: M.BCE_Y[3], when: MANY },
-    E: { type: "bool", label: "E", default: M.BCE_Y[4], when: MANY },
+    A: {
+      type: "bool",
+      label: "A",
+      default: M.BCE_Y[0],
+      cells: { count: M.PAGE_N["multi-label"] },
+      when: ON("multi-label"),
+    },
+    B: { type: "bool", label: "B", default: M.BCE_Y[1], when: ON("multi-label") },
+    C: { type: "bool", label: "C", default: M.BCE_Y[2], when: ON("multi-label") },
+    D: { type: "bool", label: "D", default: M.BCE_Y[3], when: ON("multi-label") },
+    E: { type: "bool", label: "E", default: M.BCE_Y[4], when: ON("multi-label") },
 
     /* --- Binary ------------------------------------------------------------ */
     binaryScores: {
@@ -1121,10 +1177,10 @@ defineWidget({
       label: "y_pred",
       detail: M.STRINGS.binaryScoresDetail,
       default: M.BIN_SCORES,
-      size: 12,
+      cells: { count: M.PAGE_N.binary, heads: HEADS("binary") },
       parse: (t) => M.parseRow(t, M.RANGE.binary),
       show: (v) => M.showRow(v, M.FIELD_N.binaryScores, M.RANGE.binary),
-      check: (t) => M.hintFor(t, 2, "class"),
+      check: (t) => M.hintFor(t, M.PAGE_N.binary, "class"),
       when: ON("binary"),
     },
     binaryLabel: {
@@ -1394,15 +1450,6 @@ function pageTile(state, done) {
       label: "p at the true class",
       value: on ? M.n4(state.p[state.label]) : "—",
       note: M.STRINGS.pTrueNote,
-    };
-  }
-  /* a row of one has no sum to read, on the stage or here (decision 11), so the
-     tile reads the one probability it would have summed */
-  if (!state.sumCol) {
-    return {
-      label: "p",
-      value: on ? M.n4(state.p[0]) : "—",
-      note: M.STRINGS.pOneNote,
     };
   }
   return {
