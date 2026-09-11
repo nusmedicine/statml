@@ -12263,6 +12263,39 @@ Taken on the recommendation: §4 the derived bar is named `z_B − z_A` on its
 own letter line and does not drag (it has no parameter; the map from the
 difference back to a pair is not unique).
 
+#### The structure question — 2026-09-11, his decision
+
+Kenneth, after seeing the extension: *"binary is within single/multiple
+label, but students may not appreciate that binary can be expressed in 2
+ways … exclude binary within single/multiple label? … in the notebook, it's
+expressed by function cross entropy, BCEwithlogitloss. not sure how to
+harmonize"*. `_lab/loss-structure-mock.html` (`7ccd7fe`, an Opus builder)
+drew three structures as rails and page maps: **A** as built (binary in three
+places, 7 states, tallest rail 526px); **B** binary on its own page only
+(one place, 5 states, 443px; every column of his three figures and cell
+29's two-output head with exactly one home); **C** by function as the
+notebook's sections (Loss = MSELoss · CrossEntropyLoss · BCEWithLogitsLoss
+first, the faces truncating in one row by 16.5px, the comparison drawn
+twice, Single-label renamed Multi-class). The harmonisation: under A and B
+the rail names the TASK (cell 30's table) and the stage header names the
+FUNCTION (the notebook's sections), both on screen on every page; C moves
+both into the rail. Sources named on the page: PyTorch's docs (CE for C
+classes; BCE for binary and multi-label), Bishop §4.3 and Goodfellow §6.2.2
+(a sigmoid for two classes, a softmax for K, one model), scikit-learn's
+three target types against PyTorch having no binary loss at all.
+
+**His decision: B, with his own wording for the three classification faces
+— "(1) single-label >2 classes, (2) multi-label >2 classes, (3) binary" —
+and a second ask:** *"can you mock the rail input for y_pred? it's not
+aligned to the target? not sure, like a grid to align?"* — the `y_pred` text
+field and the `y_true` control do not line up by class. So the `Classes`
+controls on Single-label and Multi-label go (the pages stay at the
+notebook's three and five), `Outputs` 1 · 3 stays on Regression, the
+Binary page is the one place both forms appear; the faces' wording and a
+grid for y_pred over y_true are the next mock (`_lab/loss-rail-mock.html`),
+which may need a small core addition (a `text` field rendered as N cells)
+— put to him before any core change.
+
 #### The mock-up — `_lab/tensor-mock.html`, 2026-09-08, awaiting picks
 
 Five sections, each a pick: **§1** how the `[2, 2, 5]` tensor is drawn — A the
