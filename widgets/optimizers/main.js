@@ -1002,7 +1002,7 @@ let grabbedFrom = null;
 widgetApi = defineWidget({
   slug: "optimizers",
   title: "Deep Learning - Optimizers",
-  status: "draft",
+  status: "shipped",
   subtitle: M.STRINGS.subtitle,
   layout: "side",
   /* decision 2 in `model.js`: the rate strip exists under a scheduler, so the

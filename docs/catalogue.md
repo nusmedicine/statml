@@ -9624,7 +9624,7 @@ epochs.
 | 52 | `training-loop` | Training with Validation | 4 | 05-4, the whole notebook | proposed, **measured** |
 | 53 | `tensors` | Tensors | 0 — before the four groups | 05-2 cells 1–69 | **SHIPPED 2026-09-09** on "tested ok" after twenty-nine rounds in two days; 37 states — 34 settled, two driven, one hit-driven |
 | 54 | `loss-functions` | Loss Function | 4 | 05-4 cells 30–40 | **PROPOSED 2026-09-10** on Kenneth's question about where sigmoid, softmax and the losses belong; three pages by task, cell 30's own table |
-| 55 | `optimizers` | Optimizer | 4 | 05-4 cells 41–44, 82–86 | **MEASURED 2026-09-11** on Kenneth's call for a new widget on a local/global landscape, taken ahead of 52; torch-checked; mock in progress |
+| 55 | `optimizers` | Optimizer | 4 | 05-4 cells 41–44, 82–86 | **SHIPPED 2026-09-11**, the day Kenneth asked for it: measured, torch-checked, mocked, seven picks, drafted, four audit rounds, 28 states, 568 of 571 MATCH fronted with the 3 t-sne light DIFFERs unchanged |
 
 Numbers are provisional — 46 is `wgcna`, a draft on its own branch. The order
 is the notebooks' own. Six is the honest count for four groups because the
@@ -13377,7 +13377,7 @@ dimension …", with the linear algebra "in three forms: element-wise
 operations, matrix multiplication, and reductions along a dimension"; the
 gallery blurb one sentence in the same form. Pushed with the headings.
 
-### Slot 55 · `optimizers` — Optimizer — MEASURED 2026-09-11, mock in progress
+### Slot 55 · `optimizers` — Optimizer — SHIPPED 2026-09-11, the same day it was asked for
 
 **Kenneth's ask, 2026-09-11, the evening 54 shipped.** He raised the
 optimizer section of 05-4 himself — *"SGD, Adam/AdamW. Not sure if it's
@@ -13578,6 +13578,10 @@ Settled rows applied without a pick: "the step is the learning rate times the gr
 **Round 3 of the audit, 2026-09-11 — "rule", and the descriptors (`_lab/optimizers-card-mock.html`).** Kenneth: *"can i check if rule is the accepted way of describing optimizers? also check if there are self evident comments that can be trimmed? or moved to the right panel as descriptor for the optimizer?"*, the formula card circled. Settled: *update rule* is standard and stays for the formula; the bare *rule* as a name for the optimizer is not — the legend mark is *The update step, to scale*, the map caption *the gradient at this point, and the update step made from it*, and the Optimizer detail ("the rule that turns the gradient into a step") is dropped as self-evident. His picks from the mock: **B, the optimizer's descriptor moves onto the card** as a sentence under the update rule explaining its symbols, with the scheduler's sentence under its call; **the rail trimmed** — the Optimizer, Momentum and Scheduler explanations gone from the rail (they are the card's), the Map line gone, the rate and Compare lines shortened; 179px shorter in the tallest state (1282 → 1103 in the mock's DOM), every drag instruction kept.
 
 **Round 4 of the audit, 2026-09-11, his catch again:** *"sigh, again, why do you add commentary in the text e.g. 'what each value does from Beyond the local minimum / SGD, momentum 0.9, RMSprop and Adam all end at the local minimum'. as principles stated, no commentary/editorializing."* The rate ladder's computed lines (decision 5 of the draft, one outcome sentence per value, built from the engine) were the widget announcing its own answer before the first step. Removed, with `ladderDetails`, `LR_DETAILS` and `outcomePhrase`; the Learning rate field carries no line; the verify now greps every option and field line for outcome verbs and fails on any.
+
+#### SHIPPED 2026-09-11
+
+On "tested ok, push it" the draft was pushed (7c3c1d3), then the status flipped in `main.js` and the manifest, the shooter `_lab/optimizers-shoot.html` (54's, slug and counts changed) recorded **28 states** — 18 settled (the empty default and at 500; the three starts; the four rules; lr 0.01; RMSprop 0.3; the momentum crossing at 120 with and without compare; Adam lr 1 at 60; the dragged start; StepLR and ReduceLROnPlateau from the plateau at lr 1; the relief at the measured view and turned; a Slow state at rest), 8 driven (Play 30 and 90, Fast 30, Slow Step at 10 and 60 frames inside the gradient beat and the move, relief 60, compare 60, StepLR 90), 2 interrupted (Slow Step → Medium Play 40; Play 40 → Reset → Step 20) — every one identical over two passes of three shots, **no RMSprop lr-1 state** (chaotic across engines). No `regions`, so no hit state is owed. The full suite, fronted at DPR 1.25 with the harness tab active: **571 states, 568 MATCH**, the 3 DIFFERs t-sne's light states as before. check and test green, read on their own.
 
 ### Questions for Kenneth, before any mock-up
 

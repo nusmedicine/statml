@@ -248,10 +248,10 @@ const base = (over = {}) => ({ ...DEFAULTS, ...over });
   check("the blurb in the manifest is the model's own",
     JSON.parse(read("widgets/manifest.json")).widgets
       .find((w) => w.slug === "optimizers").blurb === M.STRINGS.blurb);
-  check("the widget is a draft in both files",
-    /status: "draft"/.test(src)
+  check("the widget is declared shipped in both files (2026-09-11)",
+    /^\s*status: "shipped",$/m.test(src)
     && JSON.parse(read("widgets/manifest.json")).widgets
-      .find((w) => w.slug === "optimizers").status === "draft");
+      .find((w) => w.slug === "optimizers").status === "shipped");
 }
 
 /* --- 6 · the start: the face, the drag, and the round trip ----------------- */

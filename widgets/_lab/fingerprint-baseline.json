@@ -4749,6 +4749,271 @@
       },
       "px": "4baa92a6",
       "tx": "4e0153a1"
+    },
+    {
+      "$note": "the default, empty: SGD at 0.1 from Beyond the local minimum, the map and the two minima drawn and no path",
+      "slug": "optimizers",
+      "state": "?theme=light&shown=0",
+      "px": "55ef5a53",
+      "tx": "31c73a19"
+    },
+    {
+      "$note": "the default walked out: SGD at 0.1 from Beyond the local minimum, 500 steps",
+      "slug": "optimizers",
+      "state": "?theme=light&shown=500",
+      "px": "7fbeed2b",
+      "tx": "fff62fa7"
+    },
+    {
+      "$note": "SGD at 0.1 from On the plateau, 500 steps — the flat ground the step barely moves on",
+      "slug": "optimizers",
+      "state": "?theme=light&start=plateau&shown=500",
+      "px": "0c94e442",
+      "tx": "7516017d"
+    },
+    {
+      "$note": "SGD at 0.1 from At the edge of the global basin, 500 steps",
+      "slug": "optimizers",
+      "state": "?theme=light&start=edge&shown=500",
+      "px": "26e56482",
+      "tx": "193ff2a4"
+    },
+    {
+      "$note": "SGD with momentum 0.9 at 0.1 from Beyond the local minimum, 500 steps",
+      "slug": "optimizers",
+      "state": "?theme=light&momentum=0.9&shown=500",
+      "px": "04cd3e90",
+      "tx": "02744568"
+    },
+    {
+      "$note": "Adam at 0.1 from Beyond the local minimum, 500 steps — the rescale panel with the per-parameter step",
+      "slug": "optimizers",
+      "state": "?theme=light&optimizer=adam&shown=500",
+      "px": "9b1c1918",
+      "tx": "46f97562"
+    },
+    {
+      "$note": "RMSprop at 0.1 from Beyond the local minimum, 500 steps",
+      "slug": "optimizers",
+      "state": "?theme=light&optimizer=rmsprop&shown=500",
+      "px": "73ed3622",
+      "tx": "532058de"
+    },
+    {
+      "$note": "SGD at 0.01 from Beyond the local minimum, 500 steps — the step bar a hairline beside the gradient bar on the shared scale",
+      "slug": "optimizers",
+      "state": "?theme=light&lr=0.01&shown=500",
+      "px": "66d8691c",
+      "tx": "c2b0c4c4"
+    },
+    {
+      "$note": "RMSprop at 0.3 from Beyond the local minimum, 500 steps — the step is about the rate whatever the gradient",
+      "slug": "optimizers",
+      "state": "?theme=light&optimizer=rmsprop&lr=0.3&shown=500",
+      "px": "dea754bc",
+      "tx": "0e275c64"
+    },
+    {
+      "$note": "momentum 0.9 at 0.3, 120 steps — the crossing: the path carries through the local minimum to the global one",
+      "slug": "optimizers",
+      "state": "?theme=light&momentum=0.9&lr=0.3&shown=120",
+      "px": "b142d925",
+      "tx": "bb890798"
+    },
+    {
+      "$note": "the same crossing with Compare on — the other three optimizers' paths from the same start, dim, named at their ends",
+      "slug": "optimizers",
+      "state": "?theme=light&momentum=0.9&lr=0.3&compare=1&shown=120",
+      "px": "3b544360",
+      "tx": "f13679c9"
+    },
+    {
+      "$note": "Adam at 1, 60 steps — the other crossing",
+      "slug": "optimizers",
+      "state": "?theme=light&optimizer=adam&lr=1&shown=60",
+      "px": "f41e3b2d",
+      "tx": "2098f5e0"
+    },
+    {
+      "$note": "the marker dragged to (-3.12, 1.87), 300 steps — the fourth start face, and a link that reproduces it",
+      "slug": "optimizers",
+      "state": "?theme=light&start=dragged&x0=-3.12&y0=1.87&shown=300",
+      "px": "cbfb443b",
+      "tx": "0ad75f99"
+    },
+    {
+      "$note": "StepLR under momentum 0.9 at 1 from On the plateau, 500 steps — the rate strip under the loss strip",
+      "slug": "optimizers",
+      "state": "?theme=light&start=plateau&momentum=0.9&lr=1&scheduler=steplr&shown=500",
+      "px": "ee6e657f",
+      "tx": "9956ed64"
+    },
+    {
+      "$note": "ReduceLROnPlateau under momentum 0.9 at 1 from On the plateau, 500 steps — the rate cut every time the loss fails to fall",
+      "slug": "optimizers",
+      "state": "?theme=light&start=plateau&momentum=0.9&lr=1&scheduler=plateau&shown=500",
+      "px": "70cd9fab",
+      "tx": "091fa491"
+    },
+    {
+      "$note": "the relief at the measured viewpoint, momentum 0.9 at 0.3, 120 steps — the path lifted onto the surface",
+      "slug": "optimizers",
+      "state": "?theme=light&surface=relief&momentum=0.9&lr=0.3&shown=120",
+      "px": "b93c3eb1",
+      "tx": "bb890798"
+    },
+    {
+      "$note": "the relief turned to 300 and tilted to 35 — the same path from a low viewpoint, with the rim in front of it",
+      "slug": "optimizers",
+      "state": "?theme=light&surface=relief&momentum=0.9&lr=0.3&turn=300&tilt=35&shown=120",
+      "px": "bac92b5f",
+      "tx": "bb890798"
+    },
+    {
+      "$note": "Slow at rest, 20 steps — the gradient at a fixed length and the step to scale, with no beat in flight",
+      "slug": "optimizers",
+      "state": "?theme=light&speed=slow&shown=20",
+      "px": "81171f8a",
+      "tx": "6847f5e3"
+    },
+    {
+      "$note": "DRIVEN: Play from the default at Medium, 30 frames — the first steps out of the start",
+      "slug": "optimizers",
+      "state": "?theme=light",
+      "drive": {
+        "click": "run",
+        "frames": 30,
+        "dt": 32
+      },
+      "px": "4dc97efc",
+      "tx": "3e953ba7"
+    },
+    {
+      "$note": "DRIVEN: Play from the default at Medium, 90 frames — further down the same descent",
+      "slug": "optimizers",
+      "state": "?theme=light",
+      "drive": {
+        "click": "run",
+        "frames": 90,
+        "dt": 32
+      },
+      "px": "e85ac504",
+      "tx": "9005709c"
+    },
+    {
+      "$note": "DRIVEN: Play at Fast, 30 frames — one step a frame, the path alone and no gradient arrow",
+      "slug": "optimizers",
+      "state": "?theme=light&speed=fast",
+      "drive": {
+        "click": "run",
+        "frames": 30,
+        "dt": 32
+      },
+      "px": "adb00014",
+      "tx": "c9939f11"
+    },
+    {
+      "$note": "DRIVEN: Step at Slow stopped inside the gradient beat (10 frames of 32ms is 0.128 of a 2500ms step, under BEATS.gradient 0.3) — the gradient arrow drawn and the step not yet",
+      "slug": "optimizers",
+      "state": "?theme=light&speed=slow",
+      "drive": {
+        "click": "step",
+        "frames": 10,
+        "dt": 32
+      },
+      "px": "b325499d",
+      "tx": "c821946c"
+    },
+    {
+      "$note": "DRIVEN: Step at Slow stopped inside the move (60 frames is 0.768, past BEATS.step 0.55) — the point between two positions",
+      "slug": "optimizers",
+      "state": "?theme=light&speed=slow",
+      "drive": {
+        "click": "step",
+        "frames": 60,
+        "dt": 32
+      },
+      "px": "d655526b",
+      "tx": "5d668edd"
+    },
+    {
+      "$note": "DRIVEN: Play on the relief, momentum 0.9 at 0.3, 60 frames — the path drawn onto the surface as it goes",
+      "slug": "optimizers",
+      "state": "?theme=light&surface=relief&momentum=0.9&lr=0.3",
+      "drive": {
+        "click": "run",
+        "frames": 60,
+        "dt": 32
+      },
+      "px": "f9e1c703",
+      "tx": "31e27a51"
+    },
+    {
+      "$note": "DRIVEN: Play with Compare on, momentum 0.9 at 0.3, 60 frames — the four paths advancing together",
+      "slug": "optimizers",
+      "state": "?theme=light&compare=1&momentum=0.9&lr=0.3",
+      "drive": {
+        "click": "run",
+        "frames": 60,
+        "dt": 32
+      },
+      "px": "bafd0dae",
+      "tx": "fba8f880"
+    },
+    {
+      "$note": "DRIVEN: Play under StepLR from On the plateau at 1, 90 frames — the rate strip filling beside the loss strip",
+      "slug": "optimizers",
+      "state": "?theme=light&start=plateau&momentum=0.9&lr=1&scheduler=steplr",
+      "drive": {
+        "click": "run",
+        "frames": 90,
+        "dt": 32
+      },
+      "px": "83e232dc",
+      "tx": "f28dd9ad"
+    },
+    {
+      "$note": "INTERRUPTED: a Slow Step left in flight when the pace becomes Medium and Play takes over — the beat length changed under it, and the 40 frames that follow are Medium's",
+      "slug": "optimizers",
+      "state": "?theme=light&speed=slow",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 20
+          }
+        ],
+        "set": {
+          "speed": "medium"
+        },
+        "click": "run",
+        "frames": 40,
+        "dt": 32
+      },
+      "px": "183c4e06",
+      "tx": "9fb9f2b4"
+    },
+    {
+      "$note": "INTERRUPTED: Play for 40 frames, then Reset, then one Step — the figure is one step from the start and not forty",
+      "slug": "optimizers",
+      "state": "?theme=light",
+      "drive": {
+        "before": [
+          {
+            "click": "run",
+            "frames": 40
+          },
+          {
+            "click": "reset",
+            "frames": 2
+          }
+        ],
+        "click": "step",
+        "frames": 20,
+        "dt": 32
+      },
+      "px": "dd9c58ba",
+      "tx": "8120fe2b"
     }
   ]
 }
