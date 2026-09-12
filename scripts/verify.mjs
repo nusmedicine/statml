@@ -40,6 +40,7 @@ const SCRIPTS = [
   "widgets/_lab/composition-verify.mjs",        // the shape chains and prints widget 51 draws
   "widgets/_lab/loss-functions-verify.mjs",     // the three losses and the stage widget 54 draws
   "widgets/_lab/optimizers-verify.mjs",         // torch.optim's own update rules, and the stage widget 55 draws
+  "widgets/_lab/prs-verify.mjs",      // the region, the score, the threshold curve and the stage widget 59 draws
   "widgets/_lab/tensor-verify.mjs",   // the shape arithmetic widget 53 prints
   "widgets/_lab/tsne-verify.mjs",     // sklearn.manifold.TSNE
   "widgets/_lab/umap-verify.mjs",     // umap-learn 0.5.12

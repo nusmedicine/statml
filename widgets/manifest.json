@@ -861,6 +861,27 @@
       ],
       "arc": 57,
       "status": "shipped"
+    },
+    {
+      "slug": "polygenic-score",
+      "title": "Polygenic Risk Scores",
+      "blurb": "A polygenic score sums effect alleles weighted by GWAS effect sizes; its accuracy is assessed out of sample.",
+      "course": "PHM5003",
+      "topics": [
+        "polygenic risk score",
+        "linkage disequilibrium",
+        "clumping",
+        "lead SNP",
+        "effect allele",
+        "P-value threshold",
+        "best-fit threshold",
+        "overfitting",
+        "validation sample",
+        "ancestry",
+        "portability"
+      ],
+      "arc": 59,
+      "status": "draft"
     }
   ]
 }
