@@ -7925,6 +7925,13 @@ step 5's axis to the lesson's "mean phenotype" — or leave all as is.
 plot is (02-2's summary), and that PRSice's best-fit R² is chosen on the
 target (02-1's outputs cell). His call whether to add them.
 
+**His three calls, the same night:** (1) **A** — the tile is renamed
+"Gain from thresholding" with its note unchanged, and the verify now
+asserts no reader-facing string says overfitting; (2) "what does gwas
+widget use?" — `gwas` says "trait" seventeen times and "phenotype"
+never, so "trait" stays throughout the arc; (3) both sentences drafted
+for him to paste (in the session's reply; the notebooks are his).
+
 **PAGE 5 PLANNED 2026-09-12 — calibration, on Kenneth's question** ("can
 the PRS score be used to calculate risk for a patient? a colleague told me
 no… so what's the use of this score?", then "how is calibration done? will

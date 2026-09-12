@@ -35,9 +35,11 @@ THREE PICKS OWED BY KENNETH: the Overfitting tile, which today subtracts
 the R² with every SNP kept — the GAIN of thresholding, not the optimism
 PRSice warns about (recommended: best-fit minus the validation R² there,
 with a note that it is small and can be negative); "trait" against the
-lesson's "phenotype"; and two sentences for the notebooks). **NEXT: his
-picks and his round, then the ship; the ship's states owe a hit-driven
-one on the pin.**
+lesson's "phenotype"; and two sentences for the notebooks). His calls
+the same night: the tile renamed "Gain from thresholding"; "trait" kept
+because `gwas` says trait throughout; the two sentences drafted in the
+reply. **NEXT: his round on the round-three draft, then the ship; the
+ship's states owe a hit-driven one on the pin.**
 
 **The tree is clean.** Step 3's "countable first, then batched" change
 (his pick) landed and was read in the browser before the session ended:

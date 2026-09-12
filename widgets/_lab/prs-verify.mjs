@@ -1049,15 +1049,15 @@ const OPEN = build(base());
     check("a threshold the sweep has not reached prints no R² (2.11)",
       early["R² in the target sample"] === "—", early["R² in the target sample"]);
     check("…and no overfitting until every SNP has been scored too",
-      early.Overfitting === "—");
+      early["Gain from thresholding"] === "—");
     const swept = Object.fromEntries(W.readout({
       params: base({ page: "threshold" }), state, anim: anim("threshold", 11),
     }).map((t) => [t.label, t.value]));
     check("…and the finished sweep prints both samples and the overfitting",
       swept["R² in the target sample"] === "0.294"
       && swept["R² in the validation sample"] === "0.267"
-      && swept.Overfitting === "0.039",
-      `${swept["R² in the target sample"]} / ${swept["R² in the validation sample"]} / ${swept.Overfitting}`);
+      && swept["Gain from thresholding"] === "0.039",
+      `${swept["R² in the target sample"]} / ${swept["R² in the validation sample"]} / ${swept["Gain from thresholding"]}`);
 
     const q = Object.fromEntries(W.readout({
       params: base({ page: "quantile" }), state, anim: anim("quantile", 20),
@@ -1347,8 +1347,11 @@ const OPEN = build(base());
   check("…and the words that replace them are on the page",
     reader.some((s) => /best-fit/.test(s)) && reader.some((s) => /validation sample/.test(s))
     && reader.some((s) => /target sample/.test(s)) && reader.some((s) => /out of sample/.test(s)));
-  check("the overfitting readout is named, in PRSice's own word",
-    reader.some((s) => /^Overfitting$/.test(s)));
+  /* ROUND 3: the tile is the gain of thresholding and says so; "overfitting"
+     names a number the page does not print, so it is not on the page */
+  check("the gain tile is named as what it is, and nothing on the page says overfitting",
+    reader.some((s) => /^Gain from thresholding$/.test(s))
+    && !reader.some((s) => /overfit/i.test(s)));
 
   check("no reader-facing string says \"never\"", !reader.some((s) => /\bnever\b/i.test(s)),
     reader.filter((s) => /\bnever\b/i.test(s)).join(" | "));

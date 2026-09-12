@@ -1572,12 +1572,15 @@ defineWidget({
          number the visible data cannot support (2.11). */
       const reached = at < upTo ? rows[at] : null;
       const best = swept.length >= 2 ? M.bestThreshold(swept, "target") : null;
-      /* THE OVERFITTING TILE IS A PAIRED NUMBER, measured in ONE sample. The
-         draft printed the best-fit R² minus the validation R², a difference
-         between two separate samples of 319 whose spread is ±0.03 — over
-         sixteen seeds it came out positive on only six. The best-fit R² minus
-         the R² with every SNP kept is the same sample twice, and it is what
-         choosing the threshold bought: positive on sixteen of sixteen. */
+      /* THE GAIN TILE IS A PAIRED NUMBER, measured in ONE sample. The draft
+         printed the best-fit R² minus the validation R², a difference between
+         two separate samples of 319 whose spread is ±0.03 — over sixteen seeds
+         it came out positive on only six. The best-fit R² minus the R² with
+         every SNP kept is the same sample twice, and it is what choosing the
+         threshold bought: positive on sixteen of sixteen. Round 3 (2026-09-12)
+         found it labelled "Overfitting", which that number is not — the
+         optimism PRSice warns about is the noisy one — and Kenneth's pick was
+         to name it what it is rather than restore the noisy number. */
       const every = upTo >= rows.length ? rows[rows.length - 1] : null;
       return [
         {
@@ -1596,7 +1599,7 @@ defineWidget({
           note: "scored once, at the same threshold",
         },
         {
-          label: "Overfitting",
+          label: "Gain from thresholding",
           value: best && every ? M.n3(best.target - every.target) : "—",
           note: "best-fit R² minus R² with every SNP kept",
         },
