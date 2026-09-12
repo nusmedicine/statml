@@ -7750,7 +7750,23 @@ note). **One regression the lever caused: step 3 at the default keeps 160
 SNPs — the round-one texture arrived at the default. His pick: "countable
 first, then batched"** — the 40 strongest SNPs one a beat, then the rest
 as one batch with the strips switching to bars of totals; briefed to a
-builder.
+builder (in progress, uncommitted, when the session ended — HANDOVER's
+top block says what to check).
+
+**ROUND 3 PLANNED — Kenneth's plan for the next session (2026-09-12,
+night):** (1) step 1 gains a hover or indicator tying the haplotype
+block to the r² triangle (a triangle cell → the two SNPs' columns in
+the block and the rows where the alleles travel together; a block
+column → its row and column in the triangle; a static indicator at
+rest), and the triangle is drawn WHOLE and unshaded rather than clipped
+to the 250 kb window — mocked first in `_lab/prs-round3-mock.html`, a
+`regions` hit-test in the widget, a hit-driven state at ship; (2) an
+adversarial review of the whole widget for clarity and for alignment
+with what 02-1 and 02-2 teach (their order: clumping, the weighted sum,
+thresholding across P values, the inputs, the base's choice, the
+outputs, the vigintile plot with its CI formula, the summary's claims),
+findings as a table under this slot, design changes as picks, copy
+fixed directly. Then his round, then the ship.
 
 **PAGE 5 PLANNED 2026-09-12 — calibration, on Kenneth's question** ("can
 the PRS score be used to calculate risk for a patient? a colleague told me
