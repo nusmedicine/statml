@@ -6284,49 +6284,49 @@
       "slug": "mendelian-randomization",
       "state": "?theme=light&page=gwas&shown=0",
       "px": "85f29b05",
-      "tx": "dfbf69c2"
+      "tx": "b85c068a"
     },
     {
       "$note": "effects at 30 of 79, unharmonised",
       "slug": "mendelian-randomization",
       "state": "?theme=light&page=gwas&shown=30",
       "px": "e8fb423a",
-      "tx": "6de861af"
+      "tx": "2172da21"
     },
     {
       "$note": "effects finished, unharmonised: the flipped effects in red, the count in the reading line",
       "slug": "mendelian-randomization",
       "state": "?theme=light&page=gwas&shown=79",
       "px": "3aa95db9",
-      "tx": "f432e0d0"
+      "tx": "78a8e178"
     },
     {
       "$note": "effects finished, harmonised",
       "slug": "mendelian-randomization",
       "state": "?theme=light&page=gwas&shown=79&harmonise=on",
       "px": "cf4c9079",
-      "tx": "4b883660"
+      "tx": "7a69b0e8"
     },
     {
       "$note": "effects finished with SNP 5 pinned: its column on both strips, its harmonisation line",
       "slug": "mendelian-randomization",
       "state": "?theme=light&page=gwas&shown=79&snp=5",
-      "px": "95ef7c3e",
-      "tx": "f432e0d0"
+      "px": "7241bba4",
+      "tx": "78a8e178"
     },
     {
       "$note": "effects under relevance weak: wide intervals on the exposure strip, F under 10",
       "slug": "mendelian-randomization",
       "state": "?theme=light&page=gwas&shown=79&strength=weak",
       "px": "7fef412e",
-      "tx": "a52d8e21"
+      "tx": "75134c69"
     },
     {
       "$note": "effects under 60% pleiotropy",
       "slug": "mendelian-randomization",
       "state": "?theme=light&page=gwas&shown=79&pleio=0.6",
       "px": "55eca2b0",
-      "tx": "f432e0d0"
+      "tx": "78a8e178"
     },
     {
       "$note": "estimate opens empty",
@@ -6521,7 +6521,7 @@
         "dt": 32
       },
       "px": "e8fb423a",
-      "tx": "6de861af"
+      "tx": "2172da21"
     },
     {
       "$note": "DRIVEN: one Step on the effects: the first SNP's two effects",
@@ -6533,7 +6533,7 @@
         "dt": 32
       },
       "px": "6d377f48",
-      "tx": "b30b01af"
+      "tx": "bc690abd"
     },
     {
       "$note": "DRIVEN: Play on the estimate, mid-run",
@@ -6705,7 +6705,7 @@
         "dt": 32
       },
       "px": "1484f3dc",
-      "tx": "4b883660"
+      "tx": "7a69b0e8"
     },
     {
       "$note": "DRIVEN: Confounding set to none on the finished overview, mid-ease",
@@ -6771,8 +6771,8 @@
         "frames": 4,
         "dt": 32
       },
-      "px": "0bca5cfa",
-      "tx": "f432e0d0"
+      "px": "ea757416",
+      "tx": "78a8e178"
     },
     {
       "$note": "DRIVEN: HIT-DRIVEN (the run first, to the end): a click on the forest's eleventh row pins that SNP",

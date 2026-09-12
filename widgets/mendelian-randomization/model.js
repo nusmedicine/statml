@@ -475,8 +475,10 @@ export const STRINGS = {
 
   studySection: "The study",
   harmoniseLabel: "Harmonise",
-  harmoniseOff: "each GWAS reports effects for its own effect allele",
-  harmoniseOn: "all effects expressed for the BMI-raising allele",
+  /* the effect-allele wording, Kenneth 2026-09-13: a SNP has the same two
+     alleles in both studies; each study reports its effect for one of them */
+  harmoniseOff: "each GWAS reports its effect for its own effect allele",
+  harmoniseOn: "every CHD effect expressed for the BMI study's effect allele",
   estimatorLabel: "Estimator",
 
   /* the graph */
@@ -1125,13 +1127,13 @@ export function harmoniseReading(r, params, j) {
   const byH = S.byHat[j];
   const sign = (v) => `${v >= 0 ? "+" : "−"}${Math.abs(v).toFixed(3)}`;
   if (!S.flipped[j]) {
-    return `SNP ${j + 1} · both GWAS report for allele ${raise}: ${sign(bx)} on BMI, ${sign(byH)} on CHD; no change needed`;
+    return `SNP ${j + 1} · both studies' effect allele is ${raise}: ${sign(bx)} on BMI, ${sign(byH)} on CHD; no change needed`;
   }
   const byRaw = -byH;
   if (params.harmonise === "on") {
-    return `SNP ${j + 1} · the CHD GWAS reported ${sign(byRaw)} for allele ${other}; expressed for allele ${raise}, the BMI-raising allele, it is ${sign(byH)}`;
+    return `SNP ${j + 1} · the CHD GWAS reported ${sign(byRaw)} for effect allele ${other}; expressed for ${raise}, the BMI study's effect allele, it is ${sign(byH)}`;
   }
-  return `SNP ${j + 1} · BMI GWAS, effect allele ${raise}: ${sign(bx)} · CHD GWAS, effect allele ${other} (the other allele): ${sign(byRaw)}; unharmonised`;
+  return `SNP ${j + 1} · BMI GWAS, effect allele ${raise}: ${sign(bx)} · CHD GWAS, effect allele ${other}, the other allele: ${sign(byRaw)}; unharmonised`;
 }
 
 export function gwasReading(r, params) {

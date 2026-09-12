@@ -346,7 +346,7 @@ console.log("\n5 · geometry and the hit map");
         const offLine = M.harmoniseReading(st, base({ page: "gwas" }), flippedJ);
         const onLine = M.harmoniseReading(st, base({ page: "gwas", harmonise: "on" }), flippedJ);
         check("a flipped SNP's reading names the other allele unharmonised and the BMI-raising allele harmonised",
-          /\(the other allele\): [+−]\d\.\d{3}; unharmonised$/.test(offLine) && /expressed for allele [ACGT], the BMI-raising allele, it is [+−]\d\.\d{3}$/.test(onLine), offLine);
+          /, the other allele: [+−]\d\.\d{3}; unharmonised$/.test(offLine) && /expressed for [ACGT], the BMI study's effect allele, it is [+−]\d\.\d{3}$/.test(onLine), offLine);
         check("…with the two signs opposite", offLine.match(/([+−])\d\.\d{3}; unharmonised/)[1] !== onLine.match(/it is ([+−])/)[1]);
         check("…and an unflipped SNP's reading says no change is needed", /no change needed$/.test(M.harmoniseReading(st, base({ page: "gwas" }), plainJ)));
         check("every SNP has two different alleles", st.alleles.length === st.m && st.alleles.every(([a, b]) => a !== b && /^[ACGT]$/.test(a) && /^[ACGT]$/.test(b)));

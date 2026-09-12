@@ -1171,7 +1171,7 @@ defineWidget({
       return [
         { label: "SNPs", value: String(upTo), note: `of ${state.m} instruments` },
         {
-          label: "Reported on the other allele",
+          label: "Reported for the other allele",
           value: upTo === 0 ? "—" : params.harmonise === "on" ? "0" : String(state.order.slice(0, upTo).filter((j) => study.S.flipped[j]).length),
           note: upTo === 0 ? "outcome effects reported for the other allele" : params.harmonise === "on" ? "after harmonising" : `of ${upTo} so far, reported for the other allele`,
         },
