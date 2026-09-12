@@ -1969,13 +1969,13 @@ export function snpStats(region, j) {
 
 /* THE READING LINES, under the block while a subject is on screen. They are
    functions of live numbers, so `_lab/prs-verify.mjs` §11 calls them to put
-   them through the register sweep. "Travel together" is the lesson's own
-   sense of LD — variants "inherited together more often than expected by
+   them through the register sweep. "Inherited together" is the lesson's own
+   phrase for LD (the copy audit struck "travel together" as a figurative verb) — variants "inherited together more often than expected by
    chance" — and the rows clause is dropped while no row is drawn. */
 export const pairReading = (j, k, st) =>
   `SNP ${Math.min(j, k) + 1} and SNP ${Math.max(j, k) + 1} · ${intText(st.dist)} kb apart · `
   + `r² ${n2(st.r2)}`
-  + (st.rows > 0 ? ` · the two alleles travel together in ${st.together} of ${st.rows} rows` : "");
+  + (st.rows > 0 ? ` · the two alleles are inherited together in ${st.together} of ${st.rows} rows` : "");
 export const snpReading = (region, j, st) =>
   `SNP ${j + 1} at ${intText(st.pos)} kb${j === region.causal ? ", the causal SNP" : ""} · `
   + `r² above ${R_HIGH} with ${st.n} SNP${st.n === 1 ? "" : "s"}`

@@ -1353,7 +1353,7 @@ defineWidget({
         { token: "empirical", label: "One of the two alleles at a SNP" },
         { token: "value-high", label: "Linkage disequilibrium between a pair of SNPs, as r²" },
         { token: "reference", label: "The causal SNP's position, and its pairs in the triangle", mark: "tri" },
-        { token: "highlight", label: "The SNP or pair under the pointer or pinned by a click, and the rows where its alleles travel together" },
+        { token: "highlight", label: "The SNP or pair under the pointer or pinned by a click, and the rows where its alleles are inherited together" },
       ];
     }
     if (page === "clump") {

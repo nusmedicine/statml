@@ -7992,6 +7992,16 @@ writes its reading under the apex; a click pins it. One legend line
 added. Verify 298 (every column of the plot resolves to its SNP through
 `subjectAt` and core's `hitTest`; a pinned SNP's reading is painted).
 
+**COPY AUDIT over everything touched tonight (three passes and the
+mannerism pass), on his "commit, do a copy audit":** one finding — "the
+two alleles travel together" (the reading line and a legend entry) is
+a figurative verb; the lesson's own phrase is "inherited together", and
+it is now the one on the page. Everything else read as a literal fact in
+the field's terms: the captions, the window label, the two hand-offs,
+the Prevalence detail, "β̂ per effect allele", the SNP reading, the
+five new legend lines, the two renamed tiles, the three summaries.
+"Pinned" was kept as the plain word for what a click does.
+
 **PAGE 5 PLANNED 2026-09-12 — calibration, on Kenneth's question** ("can
 the PRS score be used to calculate risk for a patient? a colleague told me
 no… so what's the use of this score?", then "how is calibration done? will

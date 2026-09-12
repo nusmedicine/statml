@@ -1830,7 +1830,7 @@ const OPEN = build(base());
       `${st.together} against ${far.together}; r² ${st.r2.toFixed(2)} against ${far.r2.toFixed(2)}`);
     check("the reading lines say it in the field's words, at the default",
       M.pairReading(region.causal, lead, st)
-        === "SNP 10 and SNP 15 · 25 kb apart · r² 0.79 · the two alleles travel together in 38 of 40 rows"
+        === "SNP 10 and SNP 15 · 25 kb apart · r² 0.79 · the two alleles are inherited together in 38 of 40 rows"
       && M.snpReading(region, lead, M.snpStats(region, lead))
         === "SNP 10 at 45 kb · r² above 0.5 with 8 SNPs, the furthest 70 kb away",
       M.pairReading(region.causal, lead, st));
@@ -1847,10 +1847,10 @@ const OPEN = build(base());
     const withSnp = paintedAt(base({ page: "haplotypes", snps: "10" }),
       animAt("haplotypes", M.HAP_ROWS)).painted;
     check("at rest the block's foot line is drawn; pinned, the reading is drawn in its place",
-      rest.includes(foot) && !rest.some((t) => /travel together/.test(t))
+      rest.includes(foot) && !rest.some((t) => /inherited together/.test(t))
       && withPin.includes(M.pairReading(region.causal, lead, st)) && !withPin.includes(foot)
       && withSnp.includes(M.snpReading(region, lead, M.snpStats(region, lead))) && !withSnp.includes(foot),
-      withPin.find((t) => /travel together/.test(t)) ?? "");
+      withPin.find((t) => /inherited together/.test(t)) ?? "");
     check("…and the pin reaches the summary", /Pinned: SNP 10 and SNP 15/.test(
       W.summary({ params: base({ page: "haplotypes", snps: "10,15" }), state,
         anim: animAt("haplotypes", M.HAP_ROWS) })));
