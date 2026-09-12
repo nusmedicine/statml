@@ -355,7 +355,7 @@ widgetApi = defineWidget({
     sep: {
       type: "float",
       label: "Separation",
-      detail: "how far apart the two classes' scores sit",
+      detail: "how far apart the two classes' scores are",
       min: 0.2, max: 3, step: 0.1, default: 1.3,
     },
     balance: {
