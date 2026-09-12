@@ -54,8 +54,8 @@ copy audit plus the mannerism pass → "tested ok, push" → shooter
 full suite fronted → `check` AND `test` read on their own → commit →
 push. **The seed goes in a *The data* section under the page control**
 (his ruling on 59, and 3.4j's amendment); `gwas` and `hardy-weinberg`
-were moved the same night, in the commit after the 59 ship — COMMITTED,
-NOT PUSHED at the time of writing; push on his word.
+were moved the same night, in the commit after the 59 ship, and pushed
+on his word.
 
 **Reuse:** `widgets/fork-pipe-collider/main.js` for the DAG with
 clickable nodes (regions); `widgets/gwas/model.js` for a per-SNP scan;

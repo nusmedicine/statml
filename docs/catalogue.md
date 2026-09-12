@@ -8068,7 +8068,7 @@ replaced (3.4j is for a withheld answer, which a seed is not — the
 principle now carries the amendment); `hardy-weinberg`'s momentary
 whole-sample action stays under the drive row, as 3.4j has it. The rail
 is not hashed, so no fingerprint state moved; both verifies, check and
-test green. Not pushed — on his word.
+test green. Pushed on his word.
 
 **PAGE 5 PLANNED 2026-09-12 — calibration, on Kenneth's question** ("can
 the PRS score be used to calculate risk for a patient? a colleague told me
