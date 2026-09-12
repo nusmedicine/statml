@@ -56,6 +56,14 @@ and blurb → shooter, 60 states, ship. Two days, 2026-09-12 and 13.
 
 # WORKING ON THIS MACHINE
 
+- **After every push, read `gh run list --limit 1` and curl the live
+  manifest.** A 150 ms compute assertion in `prs-verify.mjs` held here and
+  failed on GitHub's runner from 2026-09-12 12:47Z, so every deploy failed
+  for a day (both ships included) and the runner showed only the twelve
+  `ok` lines after the FAIL. Fixed 431937f: timings are recorded, not
+  gated, and `scripts/verify.mjs` prints FAIL lines first. Never gate a
+  verify on the clock.
+
 - **Dev server:** `preview_start` with `widgets-alt3` → `node
   scripts/serve.mjs 8013` this session; 8010–8012 may belong to other
   sessions (8012 answered as another chat's server). Widget URLs are
