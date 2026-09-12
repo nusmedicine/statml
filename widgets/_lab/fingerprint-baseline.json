@@ -3556,7 +3556,7 @@
       "$note": "PLACEHOLDER, draft: Attention: the identity projection, so Q = K = V = X and a score is one embedding against another",
       "slug": "processing-layers",
       "state": "?theme=light&block=attention&projection=identity&shown=3",
-      "px": "1548dc2a",
+      "px": "0a01e395",
       "tx": "de204382"
     },
     {

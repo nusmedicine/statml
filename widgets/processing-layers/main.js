@@ -1941,7 +1941,7 @@ function pageCaption(params) {
        and `_lab/processing-layers-verify.mjs` asserts them. */
     case "attention":
       return params.projection === "identity"
-        ? "“cat” and “sat” weight each other above “The”, so every output sits within 0.48 of “sat”’s value row and no closer than 0.68 to “The”’s."
+        ? "“cat” and “sat” weight each other above “The”, so every output is within 0.48 of “sat”’s value row and no closer than 0.68 to “The”’s."
         : "Each weight stays within 0.06 of one third, so every output lands within 0.02 of the mean of the three value rows.";
     case "graph":
       return params.aggregate === "max"

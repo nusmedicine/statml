@@ -375,7 +375,7 @@ const near = (a, b, eps = 1e-9) => Math.abs(a - b) <= eps;
     const dist = (i, j) => Math.hypot(...I.V[j].map((v, c) => v - I.out[i][c]));
     const near2 = [0, 1, 2].map((i) => dist(i, 2));
     const far = [0, 1, 2].map((i) => dist(i, 0));
-    check("Identity: every output sits within 0.48 of “sat”’s value row",
+    check("Identity: every output is within 0.48 of “sat”’s value row",
       Math.max(...near2) <= 0.48, near2.map((v) => v.toFixed(3)).join(" "));
     check("Identity: every output is no closer than 0.68 to “The”’s value row",
       Math.min(...far) >= 0.68, far.map((v) => v.toFixed(3)).join(" "));
