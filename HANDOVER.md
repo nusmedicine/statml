@@ -12,7 +12,33 @@ DPR 1.25 (the 3 DIFFERs t-sne's light states, unchanged, still open).
 
 ---
 
-# SLOT 59 `polygenic-score` (06 / 02-1, 02-2, with LD as its first page) — MEASURED, MOCKED, PICKED, DRAFTED AND COPY-AUDITED 2026-09-12; NEXT IS HIS ROUND, THEN PAGE 5
+# SLOT 59 `polygenic-score` — ROUND TWO BUILT 2026-09-12 (`e81d647`); STEP 3'S BATCHING IN PROGRESS; NEXT IS HIS ROUND ON ROUND TWO, THEN THE SHIP
+
+**Round one, his three points (2026-09-12, evening):** the flat curves,
+clumping's invisibility, the page order — answered by measurement (the
+base study's size is the lever: base 1,500 → R² 0.085, 15,000 → 0.26,
+20,000 → 0.30 the ceiling) and a student's-seat review, recorded under
+the slot as *ROUND 1 — Kenneth*. **Round two:** `b6d9e19` the mock (eight
+sections; it imports the widget's own `model.js`), `8bdd40b` his eight
+picks (all recommendations), `e81d647` the build — SIX STEPS on one rail
+(numbered verbs two per row, a step line and hand-off on every stage),
+step 1 the haplotypes over the clipped r² triangle, step 2 the arcs and
+the slide to the baseline, the base study as SUMMARY STATISTICS with a
+Base study size control (1,500 · 15,000 · 150,000, default 15,000), seed
+41, the Overfitting tile as best-fit minus every-SNP R², the reading line,
+step 6 the calibration plot beside absolute risk against percentile
+(Prevalence, Risk threshold). Verify 245. **One regression:** step 3 at
+the default keeps 160 SNPs; his pick "countable first, then batched" (the
+40 strongest one a beat, the rest as one batch of totals) is with a
+builder. **NEXT:** read the batching in the browser → commit → his round
+on round two at `http://localhost:8012/widgets/polygenic-score/` → the
+copy audit's mannerism pass on the new strings → "tested ok, push" → the
+ship as on 56 and 57 (settled states pinned by `shown=` per step; a
+display-change state for the model/threshold; the six steps' runs). After
+59: 60 `mendelian-randomization`, the last of the arc. Nothing pushed
+since `96ddd2f`.
+
+## The slot's first day, kept as written
 
 The whole slot ran on 2026-09-12: `b0c6abe` the measure script (35
 checks; eight claims corrected — founders on a genealogy, 100 SNPs at 5 kb,
