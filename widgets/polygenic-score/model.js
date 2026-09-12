@@ -1231,25 +1231,28 @@ export const STRINGS = {
   recombDetail: "the chance per kilobase that a haplotype switches ancestor",
 
   clumpR2Label: "Clumping r²",
-  clumpR2Detail: "the r² at which a SNP counts as explained by the lead SNP and is dropped",
+  /* Copy audit 2026-09-12: the question-shaped details ("how many", "how
+     far", "which of") and "counts as explained" restated as what each
+     control is. */
+  clumpR2Detail: "the r² to the lead SNP at or above which a SNP is dropped",
 
   typedLabel: "Causal variant",
   typedDetail: "whether the causal SNP is one of the 100 on the array",
 
   causalLabel: "Causal SNPs",
-  causalDetail: "how many of the 1,000 SNPs carry an effect on the trait",
+  causalDetail: "the number of the 1,000 SNPs with an effect on the trait",
 
   h2Label: "Heritability",
   h2Detail: "the fraction of the trait's variance the causal SNPs explain together",
 
   targetLabel: "Target population",
-  targetDetail: "how far the target sample's ancestry is from the base study's",
+  targetDetail: "the distance between the target sample's ancestry and the base study's",
 
   thresholdLabel: "P threshold",
   thresholdDetail: "the P value in the base study below which a SNP is kept in the score",
 
   personLabel: "Person",
-  personDetail: "which of the 319 people in the target sample is scored",
+  personDetail: "the person in the target sample whose score is built",
 
   seedLabel: "Seed",
   seedDetail: "draws a different base study and different samples",

@@ -12,25 +12,48 @@ DPR 1.25 (the 3 DIFFERs t-sne's light states, unchanged, still open).
 
 ---
 
-# NEXT: SLOT 59 `polygenic-score` (06 / 02-1, 02-2, with LD as its first page) — MEASURE IN PROGRESS, THEN MOCK
+# SLOT 59 `polygenic-score` (06 / 02-1, 02-2, with LD as its first page) — MEASURED, MOCKED, PICKED, DRAFTED AND COPY-AUDITED 2026-09-12; NEXT IS HIS ROUND, THEN PAGE 5
 
-On Kenneth's "in the meantime can you start on next widget?" (2026-09-12,
-during 57's suite run) an Opus builder was briefed for
-`_lab/prs-measure.mjs`: haplotypes with LD as a founder mosaic, r² against
-distance, the region scan and PLINK-style clumping (how often the lead is
-the causal SNP), a genome of 2,000 independent SNPs with a base cohort and
-a target of 319, the threshold curve tuned on the target against a
-holdout (the selection optimism), portability at Fst 0.02 / 0.1 with tag
-loss, the vigintile plot's slope at matched and shifted targets, and the
-cost against the ~150 ms budget. Read `docs/catalogue.md` § *Slot 58* (the
-LD page's spec, folded in) and § *Slot 59* first, then the measure script
-and its `FIRST WRITTEN AS` comments, then mock from `_lab/gwas-mock.html`'s
-shell. The order that has now run seven times: measure → mock (the main
-session reads every section in the browser first) → picks → catalogue →
-draft → his round → copy audit (do the mannerism pass before he asks) →
-"tested ok, push" → push the draft → states pinned by `shown=` → shooter →
-status flip → full suite fronted → `check` AND `test` on their own → commit
-→ push.
+The whole slot ran on 2026-09-12: `b0c6abe` the measure script (35
+checks; eight claims corrected — founders on a genealogy, 100 SNPs at 5 kb,
+600 causal of 2,000 reproduces the lesson's threshold curve, the maximum
+is a plateau, portability is lost to tag decay not allele-frequency shift,
+base 1,500 × m 1,000 at 42 ms), `2f5c49d` the mock (two defects fixed
+after the browser read), `ad2182d` his picks (every recommendation, and
+two nomenclature rulings: no "tune"/"holdout" in copy — base GWAS, target
+sample, best-fit threshold, validation sample, out of sample; "overfitting"
+kept as PRSice's own word after his "we are not intentionally doing it,
+right?"), `bb7fd0a` the draft (four pages on one rail, 159-assertion
+verify), then the copy audit's seven lines. The draft is at
+`http://localhost:8012/widgets/polygenic-score/`; the catalogue's DRAFTED
+paragraph under slot 59 lists the builder's decisions and what is open.
+**NEXT: his round on the four-page draft; THEN page 5 — calibration and
+stratification (planned under slot 59 on his two questions: a percentile
+is not a risk; the cut is set by a criterion, not a hand-picked
+percentile) — mocked as one section from `_lab/prs-mock.html`'s shell,
+his picks, then built as round two; then "tested ok, push" → the ship as
+on 56 and 57.** After 59: 60 `mendelian-randomization`, the last of the
+arc.
+
+**Things learned on 59 that are not in the principles yet:**
+
+- **Nomenclature is a pick, not a pass.** "Tune" and "holdout" passed the
+  three-pass audit because they are plain words; Kenneth caught them as
+  machine learning's words in a genetics lesson. When a field has its own
+  nouns for the thing (base, target, validation, best-fit), the subtitle
+  and the readouts use those, and the audit's forbidden list grows by the
+  widget's field.
+- **A question from him during the build is a page.** "Can the score give
+  a patient's risk?" and "how do people stratify?" became page 5's two
+  sections before the draft had its round; write the plan under the slot
+  at once and build it after the round, not during.
+- **Sub-streams off one seed change what `seed=N` means.** Four
+  independent rng streams keep a page-1 control from moving the genome,
+  at the price that the widget's seed 1 is not the measure script's; the
+  default seed is then chosen to open on the mock's reading and the
+  script's own arrangement is asserted separately.
+- **Reader-facing verbs of arrival ("landed", "taken") are ours.** The
+  legend says "just added", "just chosen".
 
 **Things learned on 57 that are not in the principles yet:**
 

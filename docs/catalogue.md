@@ -7589,7 +7589,38 @@ two questions on nomenclature):**
 | 0 | title *Polygenic Risk Scores*; **his question: "I see the word tune — is this normal?"** — "tune" is machine learning's word; the field's are base GWAS, target sample, best-fit threshold, validation sample, out-of-sample. Subtitle **C**, in those terms: *A polygenic score is the sum of effect alleles weighted by base-GWAS effect sizes. Its accuracy is assessed out of sample and depends on the target sample sharing the base study's ancestry.* |
 | 3, words | **his question: "is overfitting the best term? we are not intentionally doing it, right?"** — it is PRSice's own word for this (the manual: the best-fit R² "remains unadjusted and is affected by overfitting") and Choi 2020's, and it names what happens, not an intent. Pick: **overfitting**; the curve's note *best-fit threshold in the target sample, then assessed in the validation sample*; the readout *Overfitting — best-fit R² minus validation R² at that threshold*. No "tuned", no "holdout" in reader-facing copy (the holdout token `--c-holdout` still colours the validation curve) |
 
-Four pages on one rail. Slug `polygenic-score`. NEXT: the draft.
+Four pages on one rail. Slug `polygenic-score`.
+
+**DRAFTED 2026-09-12 (`bb7fd0a`)** by an Opus builder from the picks, at
+`/lab/` only; the verify has 159 assertions and forbids "tune", "tuned",
+"tuning" and "holdout" in reader-facing strings. The builder's decisions
+worth keeping: four rng sub-streams off the top of the seed, so a region
+control cannot move the genome and a genome control cannot move the
+region; the region and the genome (base 1,500 × m 1,000, all eleven
+thresholds' scores, R², vigintiles and cumulative R²) built on every data
+change in 54 ms, so the P threshold and the person are display; a run per
+page (`anim.k` an object), a clump / a SNP / a threshold / a vigintile a
+beat, batched past a countable number (3.2 / 6.1 / 4.4 / 4.0 s at the
+default); page 1's first Play frame draws the tests and takes no clump;
+the causal mark arrives with the clump that accounts for it; the best-fit
+mark is the largest among the thresholds swept so far; the standardised
+score and percentile wait for the last SNP; page 2's unreached columns
+are not drawn faded, because a genotype is data and widgets start empty;
+page 4 follows the reader's threshold rather than the best-fit one; the
+default seed is 29, because with four sub-streams `seed=1` is not the
+measure script's `makeRng(1)`, and 29 opens on the mock's own reading (27
+SNPs under P < 0.05, 8 clumps, the lead 15 kb from the causal SNP at r²
+0.83, best-fit 0.05 with R² 0.086 in the target and 0.064 in the
+validation sample, overfitting 0.023); portability at this build size
+reads ratios 0.53 / 0.16 over 8 seeds. Read in the browser by the main
+session: the four pages empty and finished, page 4 at the distant target,
+Step on page 2, the eleven threshold ticks clear of each other — no
+defects. The copy audit found four question-shaped details ("how many",
+"how far", "which of", "counts as explained") and two legend verbs
+("taken", "landed"), rewritten. **Open for his round:** the rail on pages
+2–4 (~806px stacked) against stages of 424 / 316 / 300; page 2 at P = 1 is
+1,000 columns of 0.5px, a texture; the 02-1 and 02-2 notebooks do not yet
+link to it.
 
 **PAGE 5 PLANNED 2026-09-12 — calibration, on Kenneth's question** ("can
 the PRS score be used to calculate risk for a patient? a colleague told me

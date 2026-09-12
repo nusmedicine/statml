@@ -747,7 +747,7 @@ defineWidget({
         { token: "empirical", label: "A SNP's test", mark: "dot" },
         { token: "extreme", label: "Under P = 0.05", mark: "dot" },
         { token: "empirical", label: "In LD with a lead SNP, and dropped", mark: "dot" },
-        { token: "highlight", label: "The lead SNP just taken", mark: "dot" },
+        { token: "highlight", label: "The lead SNP just chosen", mark: "dot" },
         { token: "reference", label: "P = 0.05", mark: "dash" },
         { token: "reference", label: "The causal SNP's position", mark: "tri" },
         { token: "value-high", label: "r² between a pair of SNPs" },
@@ -771,7 +771,7 @@ defineWidget({
     }
     return [
       { token: "empirical", label: "Mean trait in a vigintile, with its 95% interval", mark: "dot" },
-      { token: "highlight", label: "The vigintile just landed", mark: "dot" },
+      { token: "highlight", label: "The vigintile just added", mark: "dot" },
       { token: "reference", label: M.STRINGS.meanLine, mark: "dash" },
     ];
   },
