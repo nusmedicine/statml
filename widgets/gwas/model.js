@@ -1318,10 +1318,12 @@ export const STRINGS = {
   familyEffectDetail: "the trait effect a sibship shares, in residual SD",
 
   modelLabel: "Model",
-  modelDetail: "the covariates each SNP is tested alongside",
+  /* Copy audit 2026-09-12: "tested alongside" and the question-shaped "how
+     many … are used" restated as what each control is. */
+  modelDetail: "the covariates included in each SNP's test",
 
   npcsLabel: "Principal components",
-  npcsDetail: "how many eigenvectors of the relationship matrix are used as covariates",
+  npcsDetail: "the number of eigenvectors of the relationship matrix included as covariates",
 
   seedLabel: "Seed",
   seedDetail: "draws a different cohort",
@@ -1339,7 +1341,7 @@ export const STRINGS = {
   scatterX: "PC1",
   scatterY: "PC2",
   grmCaption: "relatedness, every pair",
-  grmAxis: "300 people, both ways",
+  grmAxis: "300 × 300 people",
   noTest: "no SNP tested yet",
 
   /* THE VARIANCE STEP'S OWN LINE, in both of its states. Kenneth's pick
