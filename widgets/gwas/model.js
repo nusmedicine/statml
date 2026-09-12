@@ -1286,15 +1286,17 @@ export const NPCS = [
 export const STRINGS = {
   /* Kenneth's pick A of two, 2026-09-12: three claims, the third naming the
      two covariate sets the Model control offers. */
+  /* Second sentence reworded on his ask, 2026-09-12: "enter every test" and
+     "remove them" were figurative; what happens is confounding and adjustment. */
   subtitle:
     "A genome-wide association study tests every SNP against the trait separately. "
-    + "Ancestry differences between subpopulations enter every one of those tests, and "
-    + "principal components and the genetic relationship matrix remove them.",
+    + "When subpopulations differ in the trait, ancestry confounds every one of those tests; "
+    + "principal components and the genetic relationship matrix adjust for it.",
 
   /* the gallery card: one declarative sentence naming the concept, inside the
      card's 120 characters */
   blurb:
-    "Every SNP is tested against the trait; ancestry enters every test, and the mixed model removes it.",
+    "Every SNP is tested against the trait; ancestry confounds every test, and the mixed model adjusts for it.",
 
   pageLabel: "Page",
   pageDetail: "the cohort, or the association test",
