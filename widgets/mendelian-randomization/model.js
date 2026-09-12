@@ -441,7 +441,7 @@ export const STRINGS = {
   relevanceLabel: "Relevance",
   relevanceDetail: "how strongly the SNPs are associated with BMI: the size of the exposure GWAS",
   exclusionLabel: "Exclusion restriction",
-  exclusionDetail: "the share of SNPs associated with CHD by a path that is not BMI",
+  exclusionDetail: "the share of SNPs associated with CHD by a path that is not BMI: horizontal pleiotropy",
   independenceLabel: "Independence",
   independenceHolds: "the SNPs are not associated with the confounders",
   independenceBroken: "the confounders also shift which alleles people carry, as population stratification does",
@@ -508,8 +508,8 @@ export function verdict({ page, confounding, pleio, indep }) {
   const one = page === "trial";
   const g = one ? STRINGS.nodeSnp : STRINGS.nodeSnps;
   if (confounding === "none") return "no path through the confounders: nothing to route around";
-  if (pleio && indep) return "both forbidden arrows are drawn";
-  if (pleio) return `a second path from the ${g} to CHD is open`;
+  if (pleio && indep) return `both forbidden arrows are drawn: pleiotropy, and the confounders reaching the ${g}`;
+  if (pleio) return `a second path from the ${g} to CHD is open: horizontal pleiotropy`;
   if (indep) return `the confounders reach the ${g}: ${one ? "it sits" : "they sit"} on the open path`;
   return `the path through the confounders is open; the ${g} ${one ? "is" : "are"} not on it`;
 }
@@ -931,12 +931,20 @@ export function snpReading(study, j) {
 
 const inside = (v, b, se) => v > b - 1.96 * se && v < b + 1.96 * se;
 
-export function trialReading(trial, truth) {
+/** The odds ratio a log-odds effect per SD of BMI is, for the tiles' notes. */
+export const orText = (b) => `odds ratio ${Math.exp(b).toFixed(2)} per SD`;
+
+export function trialReading(trial, truth, cfg = {}) {
   const r = trial.ratio;
   const obs = trial.obs.b;
   let s = `the ratio ${n2(r.b)} (${n2(r.b - 1.96 * r.se)} to ${n2(r.b + 1.96 * r.se)}) against the observational ${n2(obs)}`;
   s += inside(obs, r.b, r.se) ? ", inside its interval" : ", outside its interval";
   if (truth) s += `; the true ${n2(THETA)} is ${inside(THETA, r.b, r.se) ? "inside" : "outside"}`;
+  /* decision 7: when this SNP breaks an assumption, the reading says the
+     broken path is in the number — the graph shows it, the line names it */
+  if (cfg.share > 0 && cfg.indep) s += "; both open paths are in this ratio";
+  else if (cfg.share > 0) s += "; the second path is in this ratio";
+  else if (cfg.indep && cfg.confounding !== "none") s += "; the confounders' path is in this ratio";
   return s;
 }
 

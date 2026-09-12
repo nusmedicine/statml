@@ -283,7 +283,7 @@ function drawTrial(ctx, colors, L, state, params, anim) {
     plot.note(M.STRINGS.trialSnpNote);
   }
   if (k >= 5) {
-    noteAt(ctx, colors, L.head.x + L.head.w, L.plot.y + L.plot.h + 40, M.trialReading(T, params.truth === "on"), L.head.w, { baseline: "top", tone: colors.ink1 });
+    noteAt(ctx, colors, L.head.x + L.head.w, L.plot.y + L.plot.h + 40, M.trialReading(T, params.truth === "on", state.cfg), L.head.w, { baseline: "top", tone: colors.ink1 });
   }
 
   ctx.save();
@@ -1050,7 +1050,7 @@ defineWidget({
         {
           label: M.STRINGS.tileRatio,
           value: upTo >= 5 ? M.n2(T.ratio.b) : "—",
-          note: upTo >= 5 ? `log odds per SD of BMI · ${M.ciText(T.ratio.b, T.ratio.se)}` : "log odds per SD of BMI",
+          note: upTo >= 5 ? `log odds per SD of BMI, ${M.orText(T.ratio.b)} · ${M.ciText(T.ratio.b, T.ratio.se)}` : "log odds per SD of BMI",
         },
         truthTile,
       ];
@@ -1077,7 +1077,7 @@ defineWidget({
     const tile = (label, k, b, se, extra = "") => ({
       label,
       value: done && on(k) ? M.n2(b) : "—",
-      note: !done ? "waits for the last SNP" : on(k) ? `${M.ciText(b, se)}${extra}` : "select it to read it",
+      note: !done ? "waits for the last SNP" : on(k) ? `${M.ciText(b, se)} · ${M.orText(b)}${extra}` : "select it to read it",
     });
     return [
       tile("IVW", "ivw", e.ivw.b, e.ivw.se),
