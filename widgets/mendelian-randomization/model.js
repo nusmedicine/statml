@@ -485,14 +485,15 @@ export const STRINGS = {
   tileRatio: "Ratio: stage 2 over stage 1",
 
   /* step 2 */
-  exposureCaption: "Exposure GWAS · n 339,152 · effect of each SNP on BMI, in SD per allele",
-  outcomeCaption: "Outcome GWAS · effect of the same SNPs on CHD, in log odds per allele",
+  /* short enough for the 280px beside the graph */
+  exposureCaption: "Exposure GWAS · n 339,152 · on BMI, SD per allele",
+  outcomeCaption: "Outcome GWAS · log odds per allele",
   exposureY: "on BMI",
   outcomeY: "on CHD",
-  stripsX: "SNPs, in the order the run takes them: strongest on BMI first",
+  stripsX: "SNPs, strongest on BMI first",
   flippedNote: "open marker: reported on the other allele",
   gwasScatterCaption: "each SNP's two effects, one against the other",
-  gwasScatterRaw: "unharmonised: half the outcome effects point the wrong way",
+  gwasScatterRaw: "unharmonised: half point the wrong way",
 
   /* steps 3 and 4 */
   scatterX: "SNP effect on BMI, in SD per allele",
@@ -797,14 +798,18 @@ export function layout(w, values) {
     const y1 = TOP;
     const y2 = y1 + STRIP_H + 46;
     const y3 = y2 + STRIP_H + 58;
+    /* the graph on this page too (Kenneth, 2026-09-13: on every page); the
+       strips and the scatter sit beside it, 280px wide */
+    const sx = DAG_W + 6 + AX_L;
     return {
       page, head, height: GWAS_H,
-      exposure: { x: AX_L, y: y1, w: w - AX_L - AX_R, h: STRIP_H },
-      outcome: { x: AX_L, y: y2, w: w - AX_L - AX_R, h: STRIP_H },
+      dag: dagLayout(6, TOP, 270),
+      exposure: { x: sx, y: y1, w: w - sx - AX_R, h: STRIP_H },
+      outcome: { x: sx, y: y2, w: w - sx - AX_R, h: STRIP_H },
       /* 56 below the plot, not 40: the axis label takes 22 and the reading
          line under it another 12, and at 40 the line sat on the canvas edge
          (found on the harmonisation reading, 2026-09-13) */
-      plot: { x: AX_L + 30, y: y3, w: w - AX_L - 30 - AX_R - 60, h: GWAS_H - y3 - 56 },
+      plot: { x: sx + 10, y: y3, w: w - sx - 10 - AX_R - 30, h: GWAS_H - y3 - 56 },
     };
   }
   if (page === "estimate") {

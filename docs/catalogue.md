@@ -8426,8 +8426,10 @@ forest plot": the forest has none; he meant the reverse — the graph on
 EVERY page "so students can see what is happening" — so the Forest page
 carries it too (the forest 270px beside it; the combined rows print short
 labels and drop to the interval's left where the right has no room; the
-count moved from the caption to the note). The Effects page is the one
-without it, asked.
+count moved from the caption to the note). The Effects page followed on his
+answer: the graph beside the two strips and the scatter at 280px, the
+captions shortened to fit (the sizes stay on them), the axis line "SNPs,
+strongest on BMI first". Every page carries the graph now.
 
 
 

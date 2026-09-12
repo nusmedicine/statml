@@ -545,6 +545,7 @@ function drawGwas(ctx, colors, L, state, params, anim, subject) {
   const last = upTo > 0 && upTo < state.m ? state.order[upTo - 1] : null;
   const m = state.m;
   const shown = subject != null && arrived.includes(subject) ? subject : null;
+  drawDag(ctx, colors, L.dag, { page: "gwas", cfg: state.cfg, strength: params.strength });
 
   /* the exposure strip */
   let bxMax = 0;
