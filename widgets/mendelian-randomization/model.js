@@ -364,16 +364,22 @@ export function slope(y, x) {
    The controls' options, each with what the engine reads from it.
    ====================================================================== */
 
+/* Kenneth's round (2026-09-12, late): the first page is THE IDEA, set apart
+   and unnumbered, and the three after it are the notebook's own workflow,
+   numbered 1 to 3. "One SNP as a trial" named the analogy rather than the
+   figure, and truncated in the grid. */
 export const PAGES = [
-  { value: "trial", label: "1 · One SNP as a trial" },
-  { value: "gwas", label: "2 · The two GWAS" },
-  { value: "estimate", label: "3 · Estimate" },
-  { value: "forest", label: "4 · The forest" },
+  { value: "trial", label: "The idea" },
+  { value: "gwas", label: "1 · The two GWAS" },
+  { value: "estimate", label: "2 · Estimate" },
+  { value: "forest", label: "3 · The forest" },
 ];
 export const PAGE_VALUES = PAGES.map((p) => p.value);
 export const pageOf = (values) =>
   (PAGE_VALUES.includes(values?.page) ? values.page : PAGE_VALUES[0]);
-export const stepNumber = (page) => PAGE_VALUES.indexOf(pageOf({ page })) + 1;
+export const WORKFLOW_STEPS = PAGES.length - 1;
+/** Where a workflow step sits in the three, one-based; 0 for the idea. */
+export const stepNumber = (page) => PAGE_VALUES.indexOf(pageOf({ page }));
 export const PIN_PAGES = ["estimate", "forest"];
 
 export const CONFOUNDING = [
@@ -424,7 +430,7 @@ export const STRINGS = {
     "Variants assigned at conception stand in for a randomised exposure; their two GWAS effects estimate the causal effect.",
 
   pageLabel: "Step",
-  pageDetail: "the four steps of a Mendelian randomization study",
+  pageDetail: "the idea, then the three steps of a Mendelian randomization study",
 
   dataSection: "The data",
   seedLabel: "Seed",
@@ -519,13 +525,14 @@ export function verdict({ page, confounding, pleio, indep }) {
    takes from the one before. */
 export const HANDOFFS = {
   trial: "one SNP, one cohort: the trial no confounder chose",
-  gwas: "from step 1: the same ratio, now for every SNP, from two studies",
-  estimate: "from step 2: the harmonised effects, combined",
-  forest: "from step 3: the same ratios, one row each",
+  gwas: "from the idea: the same ratio, now for every SNP, from two studies",
+  estimate: "from step 1: the harmonised effects, combined",
+  forest: "from step 2: the same ratios, one row each",
 };
 export const stepLine = (page) => {
   const n = stepNumber(page);
-  return `step ${n} of ${PAGES.length} · ${PAGES[n - 1].label.replace(/^\d+ · /, "")}`;
+  if (n === 0) return "the idea";
+  return `step ${n} of ${WORKFLOW_STEPS} · ${PAGES[n].label.replace(/^\d+ · /, "")}`;
 };
 
 /* Step 1's run is five beats and the Step button names the next one
