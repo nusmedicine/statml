@@ -239,18 +239,28 @@ read on their own → commit → push.
   Write any patch longer than a line to a scratch `.mjs` with the Write
   tool and run it; normalise line endings in it (the repo's files are CRLF).
 
-**OPEN: the t-sne light DIFFER.** Three states (`?theme=light&step=40`, its
-step-driven and its hit-driven siblings) DIFFER on BOTH hashes with the same
-latest hashes on every run since the afternoon of 2026-09-11 — now seven
-runs, including the 571-state run that shipped 55 — while the morning's
-composition-ship run had all 509 MATCH. They DIFFER identically on `6424dfe`
-served from a detached worktree (before that day's core change), and t-sne
-renders BYTE-IDENTICALLY in both trees in a plain tab. Not rebaselined
-(5.10). To settle it: serve `8b3602d` (the morning's clean run) from a
-worktree and run the harness there — if the three DIFFER there too, the
-environment moved and the baseline needs a decision with Kenneth; if they
-MATCH, bisect that day's commits in the harness, not in a tab. Told to him
-three times.
+**RESOLVED 2026-09-12: the t-sne DIFFER, re-recorded on Kenneth's call.**
+What the investigation established, in order: the three states are ALL of
+t-sne's states (theme=light is incidental); they first DIFFERed between
+16:15 (`d1e22b0`, "all 460 MATCH") and 18:56 (`5f7321c`, "the 3 t-sne
+states DIFFER at 688 wide") on **2026-09-10**, not on 09-11 — the later
+"clean" claims checked only the new widget's states; the app's package
+(Chrome 152.0.7977) was installed 09-09 19:16, before the last clean run,
+and the WebView2 runtime is not the pane's engine; the core change in
+`5f7321c` (option lists resolving to their first entry when the default is
+absent) does not touch t-sne — the rail resolves Groups 4, Samples 12,
+Perplexity 5; the readout does not depend on width (identical at 550, 711
+and 770); and **the harness at `d1e22b0` and at `8b3602d`, each with its own
+baseline, served from detached worktrees today, DIFFERs on the same three
+states with exactly the hashes HEAD produces.** So code, baseline,
+parameters, width and engine build are unchanged and the widget's computed
+numbers (tx too) moved: t-SNE is a 1,000-step optimisation over
+`Math.hypot`/`exp`/`log` distances and amplifies a last-bit change in any
+of them; what moved in the environment that evening was not identified.
+The three hashes are stable over three shots and identical on three trees.
+Kenneth chose to re-record them; the `$note` on each state carries the
+record. **Lesson for the record: a ship claim that reads "all N of the new
+widget's states MATCH" is not a full-suite claim; read the DIFFER count.**
 
 **Things learned on 55 that are not in the principles yet:**
 

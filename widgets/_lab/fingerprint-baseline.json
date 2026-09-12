@@ -1297,8 +1297,9 @@
     {
       "slug": "t-sne",
       "state": "?theme=light&step=40",
-      "px": "2a123bd7",
-      "tx": "a2d65f11"
+      "px": "d4afb604",
+      "tx": "117b9179",
+      "$note": "RE-RECORDED 2026-09-12 on Kenneth’s call: the previous hashes (recorded 2026-08-26) stopped reproducing between 16:15 and 18:56 on 2026-09-10 with no change to this widget, to core, to the parameters or to the app’s engine (harness runs at d1e22b0 and 8b3602d today give these same hashes); t-SNE is a 1,000-step optimisation over Math.hypot/exp/log distances and amplifies a last-bit change in any of them; what moved in the environment was not identified. Stable over three shots."
     },
     {
       "slug": "t-sne",
@@ -1308,8 +1309,9 @@
         "frames": 12,
         "dt": 32
       },
-      "px": "f0677cd7",
-      "tx": "65b9165f"
+      "px": "129b9c76",
+      "tx": "6ae1fa3d",
+      "$note": "RE-RECORDED 2026-09-12 on Kenneth’s call: the previous hashes (recorded 2026-08-26) stopped reproducing between 16:15 and 18:56 on 2026-09-10 with no change to this widget, to core, to the parameters or to the app’s engine (harness runs at d1e22b0 and 8b3602d today give these same hashes); t-SNE is a 1,000-step optimisation over Math.hypot/exp/log distances and amplifies a last-bit change in any of them; what moved in the environment was not identified. Stable over three shots."
     },
     {
       "slug": "t-sne",
@@ -1322,8 +1324,9 @@
         "frames": 2,
         "dt": 32
       },
-      "px": "d4c94107",
-      "tx": "e4cb4a1e"
+      "px": "aa0f9a8f",
+      "tx": "274ce721",
+      "$note": "RE-RECORDED 2026-09-12 on Kenneth’s call: the previous hashes (recorded 2026-08-26) stopped reproducing between 16:15 and 18:56 on 2026-09-10 with no change to this widget, to core, to the parameters or to the app’s engine (harness runs at d1e22b0 and 8b3602d today give these same hashes); t-SNE is a 1,000-step optimisation over Math.hypot/exp/log distances and amplifies a last-bit change in any of them; what moved in the environment was not identified. Stable over three shots."
     },
     {
       "slug": "umap",
