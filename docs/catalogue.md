@@ -7723,7 +7723,34 @@ recommendation):**
 | 6 | **step 6b beside 6a on one 296px stage**: absolute predicted risk against score percentile, **Risk threshold 20 · 30 · 40%, default 30%**; readouts the threshold, the percentile that crosses it, the people above it |
 | 7 | **the rail accepted, its two-line details trimmed** (Base study size, Heritability); it sets the page height, as on gwas |
 
-Six steps on one rail. NEXT: the round-two build on the draft.
+Six steps on one rail.
+
+**ROUND TWO BUILT 2026-09-12 (`e81d647`)**, verify 245 assertions. The
+builder's decisions on from the draft's: the base study is summary
+statistics; six steps; a step line and hand-off on every stage; step 2
+counts beats not clumps (three a clump); the 3,000-person base population
+is the one cohort still drawn person by person; Prevalence is data, the
+risk threshold display; step 6 follows the rail's P threshold; step 1's
+triangle arrives with the last haplotype; a beat floor keeps every run in
+3–7 s (low recombination leaves two clumps); `page=ld` is the one link
+that breaks (it became two steps) and falls back to the haplotypes;
+Person appears on step 6 too (a tile naming one person's risk needs the
+control that picks them). Seed 41 opens on: region 38 SNPs under P <
+0.05, 8 clumps, the lead 25 kb off the causal SNP at r² 0.79, first clump
+26 arcs; step 4 best-fit R² 0.294 target / 0.267 validation at P < 0.01,
+Overfitting 0.039; the lever 0.137 → 0.294 → 0.331; calibration matched
+slope 1.08 with 10 of 10 intervals, distant 0.43 with 3 of 10; the
+crossing 80.6 → 84.0 → 95.0. The crossing's ordering does NOT hold as a
+mean over seeds (a miscalibrated model pushes people either way), so the
+verify asserts it at the default seed and the slope over seeds. Compute
+111 ms worst. Read in the browser by the main session: three fixes (the
+crossing tile's value the bare percentile; the diagonal's label removed —
+it crossed the top decile's bar, the legend names it; one question-shaped
+note). **One regression the lever caused: step 3 at the default keeps 160
+SNPs — the round-one texture arrived at the default. His pick: "countable
+first, then batched"** — the 40 strongest SNPs one a beat, then the rest
+as one batch with the strips switching to bars of totals; briefed to a
+builder.
 
 **PAGE 5 PLANNED 2026-09-12 — calibration, on Kenneth's question** ("can
 the PRS score be used to calculate risk for a patient? a colleague told me
