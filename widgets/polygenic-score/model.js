@@ -2179,7 +2179,6 @@ export const STRINGS = {
   handScore: "from step 2: SNPs with no LD between them",
   handThreshold: "from step 3: a score for every person",
   handQuantile: "from step 4: the P threshold to score at",
-  handRisk: "from step 5: the score in the target sample",
 
   /* step 1, on the canvas */
   blockCaption: "haplotypes in the region, one row each",
@@ -2242,6 +2241,13 @@ export const RISK_STRINGS = {
   stepRisk: "Next decile",
   stepTitleRisk: "Draw the next decile of predicted risk",
   runTitleRisk: "Draw the remaining deciles",
+
+  /* Kenneth, 2026-09-12, after the round-3 review: the lesson's logistic
+     model carries clinical covariates and this one carries the score alone,
+     and nothing on the step said so. The hand-off is where a reader looks
+     first, so it says what came in AND that it is the model's only input —
+     and it lives here, not in STRINGS, because it names a risk. */
+  handRisk: "from step 5: the score, the risk model's only predictor",
 
   prevalenceLabel: "Prevalence",
   /* round 3: the one line that says what the disease IS — the trait's upper
@@ -2309,7 +2315,7 @@ export const HANDOFFS = {
   score: STRINGS.handScore,
   threshold: STRINGS.handThreshold,
   quantile: STRINGS.handQuantile,
-  risk: STRINGS.handRisk,
+  risk: RISK_STRINGS.handRisk,
 };
 
 /** `step 2 of 6 · Clump the SNPs`, with the number already in the label. */

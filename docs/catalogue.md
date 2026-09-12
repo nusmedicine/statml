@@ -7932,6 +7932,14 @@ widget use?" — `gwas` says "trait" seventeen times and "phenotype"
 never, so "trait" stays throughout the arc; (3) both sentences drafted
 for him to paste (in the session's reply; the notebooks are his).
 
+**His two follow-ups on the review's step 6.** The lesson's logistic
+model carries clinical covariates and the widget's carries the score
+alone; nothing on the step said so, and he asked for it. Step 6's
+hand-off now reads "from step 5: the score, the risk model's only
+predictor". And the notebook may link to the widget's calibration plot
+beside the drafted sentence without misleading: a calibration plot
+checks the probabilities whichever predictors produced them.
+
 **PAGE 5 PLANNED 2026-09-12 — calibration, on Kenneth's question** ("can
 the PRS score be used to calculate risk for a patient? a colleague told me
 no… so what's the use of this score?", then "how is calibration done? will
