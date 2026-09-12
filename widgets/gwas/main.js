@@ -736,7 +736,7 @@ defineWidget({
         + `subpopulations, beside their relationship matrix as a ${M.intText(M.N)} × `
         + `${M.intText(M.N)} image, one pixel a pair. The relatedness between two people runs `
         + `from ${M.n3(r.lo)} to ${M.n3(r.hi)}`
-        + `${state.co.nFam ? `, and ${M.intText(state.co.nFam)} sibships of four sit on the diagonal` : ""}.`;
+        + `${state.co.nFam ? `, and ${M.intText(state.co.nFam)} sibships of four are on the diagonal` : ""}.`;
     }
     const upTo = Math.min(anim?.k ?? 0, M.M_SNPS);
     const name = M.modelCaption(params);
