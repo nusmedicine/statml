@@ -888,6 +888,32 @@
       ],
       "arc": 59,
       "status": "shipped"
+    },
+    {
+      "slug": "mendelian-randomization",
+      "title": "Mendelian Randomization",
+      "blurb": "Variants assigned at conception stand in for a randomised exposure; their two GWAS effects estimate the causal effect.",
+      "course": "PHM5003",
+      "topics": [
+        "Mendelian randomization",
+        "instrumental variable",
+        "causal inference",
+        "confounding",
+        "two-sample MR",
+        "summary statistics",
+        "harmonisation",
+        "inverse variance weighted",
+        "MR Egger",
+        "weighted median",
+        "pleiotropy",
+        "exclusion restriction",
+        "population stratification",
+        "instrument strength",
+        "F statistic",
+        "forest plot"
+      ],
+      "arc": 60,
+      "status": "draft"
     }
   ]
 }

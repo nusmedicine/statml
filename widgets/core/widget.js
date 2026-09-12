@@ -928,6 +928,18 @@ export function defineWidget(config) {
   function resolveLabel(decl, fallback) {
     if (decl == null) return fallback;
     if (typeof decl === "string") return decl;
+    /* A LABEL MAY KEY ON THE ANIMATION'S OWN COUNTER: `{ anim: "trialBeat",
+       labels, default }` reads `anim[key]` instead of a parameter. Widget 60's
+       first step is four beats that are four different acts — the people, the
+       fit, the groups, the ratio — and 4.4b says the button names what THIS
+       press will do, which no parameter carries. The set is still declared,
+       so the width reservation covers every label; this function runs from
+       `updateAnimButtons`, which core calls after every completed unit, so
+       the label moves when the counter does. */
+    if (decl.anim != null) {
+      const entry = decl.labels?.[anim?.[decl.anim]];
+      return entry ?? decl.default ?? fallback;
+    }
     const field = spec[decl.param];
     if (field && !fieldShowing(field, values)) return decl.default ?? fallback;
     const entry = decl.labels?.[values[decl.param]];

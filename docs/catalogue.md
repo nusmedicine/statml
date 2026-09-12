@@ -8280,6 +8280,66 @@ the measure script's engine verbatim, `main.js` drawing the four steps
 from the mock, a verify script on `_lab/prs-verify.mjs`'s shape; then
 his round.
 
+#### DRAFTED 2026-09-12 — `widgets/mendelian-randomization/`, status draft
+
+Built from the mock the same evening: `model.js` carries the measure
+script's engine verbatim, the options, every reader-facing string, the
+geometry and the hit map; `main.js` draws the four steps. The verify
+script `_lab/mr-verify.mjs` runs 109 assertions: the estimators against
+closed forms; the lesson's shape over forty seeds on the widget's own
+build (IVW 0.45 ±0.054, Egger ±0.146, median ±0.054); each assumption
+moving the estimate the measured way; the cohort; the hit map at 550 and
+535px; the run with no clock; the painted text on every step at three
+points of its run; the register. Decisions taken while building, so they
+are not re-argued:
+
+- **Three sub-streams off one seed** (the cohort, the study, the median's
+  bootstrap), so a step-1 control cannot redraw the study.
+- **Harmonise and Estimator are display parameters**: the unharmonised
+  study is derived from the harmonised one by flipping the recorded signs,
+  and all three estimators are fitted to both. Harmonise opens OFF, so
+  step 3's first reading is the unharmonised one with the flipped effects
+  in red and IVW near zero — the case that fails, before the fix.
+- **The frame is fixed to the whole study** (2.5) on steps 2 and 3, so
+  points arrive into a frame that does not move.
+- **The estimate waits for the last SNP** (2.4): lines, combined rows and
+  tiles at the run's end only.
+- **The scatter's click targets are 4px cells, not boxes around points.**
+  A box a SNP overlaps its neighbours' in the lesson's cluster, and core's
+  `hitTest` takes the LAST box under a click — the verify's first run
+  found the hover ringing one SNP and the click pinning another at 43 of
+  79. Each cell names the SNP nearest its own centre within 9px and both
+  the hover and the click read the cell, so they cannot disagree.
+- **Step 1's SNP is one of the breakers**: when the exclusion restriction
+  is broken it carries a direct effect (ratio 0.83), when independence is
+  broken its allele is commoner where the confounders are high (0.73).
+- **The Step button keys on the beat**, through a twelve-line extension in
+  `widgets/core/widget.js`: a label declared `{ anim, labels, default }`
+  reads the animation's own counter instead of a parameter. Core calls
+  `resolveLabel` from `updateAnimButtons` after every completed unit, so
+  the label moves when the counter does, and the set is still declared for
+  the width reservation.
+
+**The full suite after the core change: 697 states, 682 MATCH, 15 gwas
+DIFFER — and the 15 are not this change's.** With the core edit stashed
+the same 15 differ with identical hashes; served from a worktree at
+04c770a (the 59 ship, 697/697) they all MATCH in this same pane. The
+harness's size column explains it: at 04c770a those 15 states — the
+default model's and the Cohort page's, whose rail was the shortest — were
+hashed at **688px** wide because the page did not scroll, while every
+model=pcs and model=grm state was hashed at **669** with a scrollbar. The
+Seed move in bb086f6 added a section to the rail and made the page tall
+enough to scroll on every state, so those 15 now render at 669 (and the
+Cohort page at 365px tall, not 375). That commit's "no fingerprint state
+moved" was reasoned, not run. Nothing was rebaselined: the 15 gwas states
+want re-recording at their new settled size, Kenneth's call as t-sne's
+were.
+
+**NEXT:** his round on the draft at
+`http://localhost:8014/widgets/mendelian-randomization/`; the gwas
+re-record on his word; then the copy audit, the shooter and the states.
+
+
 
 ### The open calls — put to Kenneth and answered, 2026-09-11
 
