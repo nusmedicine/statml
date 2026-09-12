@@ -71,7 +71,7 @@ const card = manifest.widgets.find((w) => w.slug === "mendelian-randomization");
 
 /* the state the widget opens on, through its own door */
 const DEFAULTS = {
-  page: "trial", seed: 1, confounding: "strong", truth: "off", colour: "off",
+  page: "trial", seed: 25, confounding: "strong", truth: "off", colour: "off",
   strength: "strong", pleio: "0", indep: "holds",
   harmonise: "off", estimator: "ivw", shown: 0, snp: "",
 };
@@ -79,11 +79,15 @@ const base = (over = {}) => ({ ...DEFAULTS, ...over });
 const PAGES = M.PAGE_VALUES;
 const W_STAGE = 550;
 
-const builds = new Map();
+/* one state a seed, and the READING the params name off it — every M.*
+   helper takes either, so a reading stands in for the state below */
+const states = new Map();
+function stateFor(seed = 1) {
+  if (!states.has(seed)) states.set(seed, M.build(makeRng(seed)));
+  return states.get(seed);
+}
 function build(params) {
-  const key = JSON.stringify(M.configFor(params)) + (params.seed ?? 1);
-  if (!builds.has(key)) builds.set(key, M.build(makeRng(params.seed ?? 1), M.configFor(params)));
-  return builds.get(key);
+  return M.readingOf(stateFor(params.seed ?? 1), params);
 }
 
 /* --- the widget itself, driven with no browser and no clock ---------------- */
@@ -166,7 +170,7 @@ const SEEDS = 40;
 function over(over, seeds = SEEDS) {
   const rows = [];
   for (let s = 1; s <= seeds; s += 1) {
-    const st = M.build(makeRng(s), M.configFor(base({ ...over, seed: s })));
+    const st = M.readingOf(M.build(makeRng(s)), base({ ...over, seed: s }));
     const h = st.harmonised;
     rows.push({
       ivw: h.est.ivw.b, ivwSe: h.est.ivw.se, egger: h.est.egger.b, eggerSe: h.est.egger.se, eggerA: h.est.egger.a,
@@ -185,7 +189,7 @@ check("the median's SE is near the lesson's 0.073", Math.abs(clean.medianSe - M.
 check("Egger's intercept sits at zero with every assumption holding", Math.abs(clean.eggerA) < 0.003, f(clean.eggerA, 4));
 check("the mean F is near the lesson's instruments' (about 125)", clean.F > 90 && clean.F < 170, f(clean.F, 0));
 check("unharmonised, IVW collapses toward zero", Math.abs(clean.raw) < 0.15, f(clean.raw));
-check("the default seed's clean IVW is within one SE of the truth (the mock's reason for seed 1)",
+check("the default seed's clean IVW is within one SE of the truth (seed 25 since round three)",
   Math.abs(build(base({ harmonise: "on" })).harmonised.est.ivw.b - M.THETA) < build(base()).harmonised.est.ivw.se,
   f(build(base()).harmonised.est.ivw.b));
 
@@ -236,6 +240,19 @@ console.log("\n4 · the cohort");
   const b = build(base({ confounding: "moderate" }));
   check("the instruments are the same draw whatever the confounding (decision 3)",
     a.harmonised.S.sx.every((v, j) => Math.abs(v - b.harmonised.S.sx[j]) < 1e-9));
+  /* round three: every reading shares its noise, so a SNP MOVES between
+     readings rather than being redrawn */
+  const p0 = build(base({ pleio: "0" }));
+  const p3 = build(base({ pleio: "0.3" }));
+  check("a SNP without a direct path has the identical CHD effect under 0% and 30% (the draws are unconditional)",
+    [...p3.harmonised.S.valid].every((v, j) => !v || Math.abs(p0.harmonised.S.byHat[j] - p3.harmonised.S.byHat[j]) < 1e-12));
+  check("…and its BMI effect is identical under every assumption",
+    [...p3.harmonised.S.bxHat].every((v, j) => Math.abs(v - p0.harmonised.S.bxHat[j]) < 1e-12)
+    && [...build(base({ indep: "broken" })).harmonised.S.bxHat].every((v, j) => Math.abs(v - p0.harmonised.S.bxHat[j]) > 0 || p0.harmonised.S.bxHat[j] === v));
+  check("readings are made once and kept", stateFor(1).reading(M.configFor(base())) === stateFor(1).reading(M.configFor(base())));
+  const W4 = await widget();
+  check("the four assumption controls are display parameters, so a change keeps the run",
+    ["confounding", "strength", "pleio", "indep"].every((k) => W4.params[k].display === true));
 }
 
 /* --- 5 · geometry and the hit map -------------------------------------------- */
@@ -389,7 +406,66 @@ console.log("\n6 · the run");
   /* shown applies on the first render only */
   const shown = A.init({ params: base({ page: "estimate", shown: 79 }), state: st, fromScratch: false });
   const replay = A.init({ params: base({ page: "estimate", shown: 79 }), state: st, fromScratch: true });
-  check("?shown=79 opens step 3 finished on the first render and not after Reset", shown.k.estimate === 79 && shown.done && replay.k.estimate === 0);
+  check("?shown=79 opens step 3 finished on the first render and not after Reset", shown.k.estimate === 79 && shown.done && shown.fin.estimate === 1 && replay.k.estimate === 0);
+  /* round three: the final beat — the lines grow in after the last SNP */
+  {
+    const a = A.init({ params: base({ page: "estimate" }), state: st, fromScratch: true });
+    a.mode = "run";
+    let ms = 0;
+    let g = 0;
+    let atLast = null;
+    while (A.advance(a, { dt: 16, params: base({ page: "estimate" }), state: st }) && g < 20000) {
+      ms += 16; g += 1;
+      if (a.k.estimate === 79 && atLast === null) atLast = ms;
+    }
+    check("Play on the estimate runs every SNP and then a final beat of about 600 ms before it is done",
+      a.k.estimate === 79 && a.done && a.fin.estimate >= 1 && ms - atLast > 500 && ms - atLast < 800, `${ms - atLast} ms after the last SNP`);
+    const b = A.init({ params: base({ page: "forest", shown: 78 }), state: st, fromScratch: false });
+    b.mode = "step";
+    g = 0;
+    while (A.advance(b, { dt: 30, params: base({ page: "forest" }), state: st }) && g < 1000) g += 1;
+    check("the press of Step that adds SNP 79 to the forest also plays the final beat", b.k.forest === 79 && b.fin.forest >= 1 && b.done);
+    check("the final beat is only the estimate's and the forest's", M.FIN_PAGES.join(" ") === "estimate forest" && !("gwas" in b.fin) && !("trial" in b.fin));
+  }
+  /* round three: the ease between two readings */
+  {
+    const p = base({ page: "estimate", shown: 79 });
+    const a = A.init({ params: p, state: st, fromScratch: false });
+    check("the run opens landed on its own reading", a.mix === 1 && a.viewKey === M.viewKey(p) && a.fromParams === null);
+    const q = base({ page: "estimate", shown: 79, pleio: "0.3" });
+    A.rebuild(a, { params: q, state: st });
+    check("a changed assumption asks core for an ease and keeps the run", a.easing === true && a.mix === 0 && a.k.estimate === 79 && a.fromParams.pleio === "0" && a.viewKey === M.viewKey(q));
+    a.easing = false;
+    a.mode = "ease";
+    let ms = 0;
+    let g = 0;
+    while (A.advance(a, { dt: 16, params: q, state: st }) && g < 1000) { ms += 16; g += 1; }
+    check("…which lands in about 450 ms", a.mix >= 1 && ms > 380 && ms < 520, `${ms} ms`);
+    A.rebuild(a, { params: base({ page: "forest", shown: 79, pleio: "0.3" }), state: st });
+    check("a page change is not eased", a.mix === 1 && a.fromParams === null && a.page === "forest");
+    const from = M.viewFor(st, base({ page: "estimate" }));
+    const to = M.viewFor(st, base({ page: "estimate", pleio: "0.3" }));
+    const v0 = M.lerpView(from, to, 0);
+    const v1 = M.lerpView(from, to, 1);
+    const vh = M.lerpView(from, to, 0.5);
+    check("the interpolated view is the old reading at 0 and the new at 1",
+      Math.abs(v0.study.est.ivw.b - from.study.est.ivw.b) < 1e-12 && Math.abs(v1.study.est.ivw.b - to.study.est.ivw.b) < 1e-12
+      && Math.abs(v0.study.S.byHat[3] - from.study.S.byHat[3]) < 1e-12 && Math.abs(v1.study.S.byHat[3] - to.study.S.byHat[3]) < 1e-12);
+    check("…halfway it is halfway, and the counts, indices and flags take the target's value",
+      Math.abs(vh.study.est.ivw.b - (from.study.est.ivw.b + to.study.est.ivw.b) / 2) < 1e-12
+      && vh.study.medianSnp === to.study.medianSnp && vh.study.forestOrder === to.study.forestOrder && vh.order === to.order
+      && vh.trial.centroids[1].n === to.trial.centroids[1].n && vh.m === 79);
+    check("a SNP's row slides between its two positions", (() => {
+      const j = to.study.forestOrder[0];
+      return Math.abs(vh.study.rowPos[j] - (from.study.rowPos[j] + to.study.rowPos[j]) / 2) < 1e-12;
+    })());
+    /* Harmonise is the same ease: the flipped effects slide across zero */
+    const u = M.viewFor(st, base({ page: "gwas" }));
+    const h = M.viewFor(st, base({ page: "gwas", harmonise: "on" }));
+    const mid = M.lerpView(u, h, 0.5);
+    const fj = [...h.study.S.flipped].findIndex((v) => v === 1);
+    check("halfway through harmonising, a flipped effect sits on zero", Math.abs(mid.study.S.byHat[fj]) < 1e-12 && M.viewKey(base({ page: "gwas" })) !== M.viewKey(base({ page: "gwas", harmonise: "on" })));
+  }
   check("…and is capped at the step's own total", A.init({ params: base({ page: "trial", shown: 79 }), state: st, fromScratch: false }).k.trial === 5);
   /* a display change keeps every step */
   anim = A.init({ params: base({ page: "gwas", shown: 30 }), state: st, fromScratch: false });
@@ -421,16 +497,21 @@ const painted = {};
       ["full, harmonised, truth, all, pinned", { harmonise: "on", truth: "on", estimator: "all", snp: "3", colour: "on" }, (st) => M.totalFor(page, st)],
       ["full, every assumption broken", { harmonise: "on", pleio: "0.6", indep: "broken", strength: "weak" }, (st) => M.totalFor(page, st)],
       ["full, Egger", { estimator: "egger" }, (st) => M.totalFor(page, st)],
+      ["full, mid final beat", { fin: 0.5 }, (st) => M.totalFor(page, st)],
+      ["full, mid ease from 0% to 30%", { pleio: "0.3", ease: { pleio: "0" } }, (st) => M.totalFor(page, st)],
       ["full, median", { estimator: "median" }, (st) => M.totalFor(page, st)],
     ]) {
-      const params = base({ page, ...over });
+      const { fin: finAt, ease, ...rest } = over;
+      const params = base({ page, ...rest });
       const st = build(params);
       const k = Object.fromEntries(PAGES.map((p) => [p, 0]));
       k[page] = kOf(st);
-      const anim = { k, beat: 0.5, trialBeat: k.trial, done: k[page] >= M.totalFor(page, st) };
+      const fin = Object.fromEntries(M.FIN_PAGES.map((p) => [p, finAt ?? (k[p] >= M.totalFor(p, st) ? 1 : 0)]));
+      const anim = { k, fin, beat: 0.5, trialBeat: k.trial, done: k[page] >= M.totalFor(page, st),
+        mix: ease ? 0.5 : 1, fromParams: ease ? { ...base({ page }), ...ease } : null, viewParams: {}, page };
       for (const W_ of [550, 535]) {
         const ctx = recorder();
-        W.draw({ ctx, colors: COLORS, w: W_, h: M.stageHeight(W_, params), params, state: st, anim, pointer: null });
+        W.draw({ ctx, colors: COLORS, w: W_, h: M.stageHeight(W_, params), params, state: stateFor(params.seed), anim, pointer: null });
         frames.push({ page, name, w: W_, h: M.stageHeight(W_, params), strings: ctx.painted });
       }
     }
@@ -452,6 +533,9 @@ const painted = {};
   const starts = (list, text) => list.some((s) => s === text || (s.endsWith("…") && text.startsWith(s.slice(0, -1).trimEnd())));
   check("step 1's last beat paints the ratio's caption and no earlier frame does",
     finished("trial", "full").includes(M.STRINGS.trialRatio) && !finished("trial", "half").includes(M.STRINGS.trialRatio) && finished("trial", "empty").includes(M.STRINGS.trialPeople));
+  check("mid the final beat and mid an ease nothing paints NaN and the reading line waits",
+    !finished("estimate", "full, mid final beat").some((s) => s.startsWith("IVW 0.")) && !finished("forest", "full, mid final beat").some((s) => /cross zero/.test(s))
+    && finished("estimate", "full, mid ease from 0% to 30%").length > 0);
   check("step 3 paints the estimator's caption only when every SNP is in (decision 3)",
     finished("estimate", "full").includes(M.STRINGS.captionIvw) && !finished("estimate", "half").includes(M.STRINGS.captionIvw) && finished("estimate", "half").includes(M.STRINGS.waitingNote));
   check("…and the observational line's tag with it", finished("estimate", "full").includes(M.STRINGS.observationalTag) && !finished("estimate", "empty").includes(M.STRINGS.observationalTag));

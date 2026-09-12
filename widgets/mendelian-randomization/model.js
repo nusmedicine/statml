@@ -177,13 +177,21 @@ export function summaryStats(rng, inst, cfg) {
        nearly constant across SNPs, which Egger absorbed as an intercept;
        the mechanism that breaks InSIDE is the term sitting in BOTH effects,
        and that needs it to vary. */
-    const c = strat > 0 ? rng.normal(0, strat) : 0;
+    /* EVERY DRAW HAPPENS WHATEVER THE SETTING (round three, 2026-09-13):
+       the confounder term, the direct effect's size and the heterogeneity
+       are drawn for every SNP and scaled by the setting, so the same seed
+       gives the same noise under every assumption and a SNP's point MOVES
+       when an assumption changes instead of jumping to a fresh draw. The
+       measure script draws them conditionally; the verify's §2 holds the
+       shape either way. */
+    const c = strat * rng.normal();
     const bxTrue = inst.bx[j] + gamma * c;
     /* Heterogeneity: a mean-zero direct effect on EVERY SNP — what the
        lesson's own scatter shows and what makes its intervals twice a clean
        simulation's. The one-signed direct effect on the pleiotropic share
        sits on top of it. */
-    const alpha = (valid[j] ? 0 : alphaMean * (0.5 + rng.next())) + (tau > 0 ? rng.normal(0, tau) : 0);
+    const aDraw = rng.next();
+    const alpha = (valid[j] ? 0 : alphaMean * (0.5 + aDraw)) + tau * rng.normal();
     const byTrue = theta * bxTrue + alpha + delta * c;
     const bStd = bxTrue * s;
     sx[j] = Math.sqrt(Math.max(1 - bStd * bStd, 1e-9) / nX) / s;
@@ -633,15 +641,54 @@ function analyse(S, rngBoot) {
   }
   const pad = (hi - lo) * 0.05 || 0.01;
   const frame = { x: [0, bxMax * 1.08], y: [lo - pad, hi + pad] };
-  return { S, est, W, forestOrder, medianSnp, frame, F: meanF(S) };
+  /* each SNP's row, so a row can slide when the order changes (the ease) */
+  const rowPos = new Float64Array(m);
+  forestOrder.forEach((j, row) => { rowPos[j] = row; });
+  return { S, est, W, forestOrder, rowPos, medianSnp, frame, F: meanF(S) };
 }
 
-export function build(rng, cfg) {
-  /* decision 3: the seeds first */
-  const sCohort = rng.int(1, 2 ** 30);
-  const sStudy = rng.int(1, 2 ** 30);
-  const sBoot = rng.int(1, 2 ** 30);
+/* THE ASSUMPTIONS ARE READINGS OF ONE STUDY (round three, 2026-09-13,
+   Kenneth's pick: "tween between changes"). `build` draws the seeds, the
+   instruments and the alleles once; a reading — the cohort and the two GWAS
+   under one setting of Confounding, Relevance, Exclusion restriction and
+   Independence — is made on first request and kept, so the four controls
+   are display parameters: the run survives a change, and the figure eases
+   from the old reading to the new one (widget 26's swing). About 4 ms a
+   reading; a seed change throws them all away. */
+export const cfgKey = (cfg) => `${cfg.confounding}|${cfg.nX}|${cfg.share}|${cfg.indep ? 1 : 0}`;
 
+export function build(rng) {
+  /* decision 3: the seeds first — four now, so the instruments and the
+     alleles are one draw shared by every reading */
+  const sCohort = rng.int(1, 2 ** 30);
+  const sInst = rng.int(1, 2 ** 30);
+  const sStats = rng.int(1, 2 ** 30);
+  const sBoot = rng.int(1, 2 ** 30);
+  const m = LESSON.m;
+  const rngInst = makeRng(sInst);
+  const inst = drawInstruments(rngInst, m);
+  /* Each SNP's two alleles, for the harmonisation reading (Kenneth,
+     2026-09-13: "students don't know what harmonisation is"). The first is
+     the BMI-raising allele the exposure GWAS reports on; the outcome GWAS
+     reports on the other one for the SNPs `summaryStats` flipped. */
+  const alleles = Array.from({ length: m }, () => ALLELE_PAIRS[rngInst.int(0, ALLELE_PAIRS.length - 1)]);
+  const readings = new Map();
+  const state = { m, inst, alleles, seeds: { sCohort, sStats, sBoot }, readings };
+  state.reading = (cfg) => {
+    const key = cfgKey(cfg);
+    let r = readings.get(key);
+    if (!r) {
+      r = makeReading(state, cfg, key);
+      readings.set(key, r);
+    }
+    return r;
+  };
+  return state;
+}
+
+function makeReading(state, cfg, key) {
+  const { sCohort, sStats, sBoot } = state.seeds;
+  const m = state.m;
   /* step 1 — decision 7: the one SNP is one of the breakers */
   const co = cohort(makeRng(sCohort), COHORT.n, COHORT.b, {
     gamma: cfg.gamma,
@@ -686,9 +733,7 @@ export function build(rng, cfg) {
   };
 
   /* steps 2 to 4 — decision 4: one draw, two readings */
-  const rngStudy = makeRng(sStudy);
-  const inst = drawInstruments(rngStudy, cfg.m);
-  const S = summaryStats(rngStudy, inst, {
+  const S = summaryStats(makeRng(sStats), state.inst, {
     nX: cfg.nX,
     share: cfg.share,
     strat: cfg.indep ? STRAT_SD : 0,
@@ -698,28 +743,77 @@ export function build(rng, cfg) {
     flipFrac: FLIP,
     harmonised: true,
   });
-  /* Each SNP's two alleles, for the harmonisation reading (Kenneth,
-     2026-09-13: "students don't know what harmonisation is"). The first is
-     the BMI-raising allele the exposure GWAS reports on; the outcome GWAS
-     reports on the other one for the SNPs `summaryStats` flipped. Drawn
-     AFTER the statistics so no earlier number moves. */
-  const alleles = Array.from({ length: cfg.m }, () => ALLELE_PAIRS[rngStudy.int(0, ALLELE_PAIRS.length - 1)]);
   const raw = { ...S, byHat: Float64Array.from(S.byHat, (v, j) => (S.flipped[j] ? -v : v)) };
   const harmonised = analyse(S, makeRng(sBoot));
   const unharmonised = analyse(raw, makeRng(sBoot));
-  /* the run's order: strongest instrument first */
-  const order = [...Array(cfg.m).keys()].sort((a, b) => S.bxHat[b] - S.bxHat[a]);
+  /* the run's order: strongest instrument first — and each SNP's column,
+     so a column can slide when the order changes (the ease) */
+  const order = [...Array(m).keys()].sort((a, b) => S.bxHat[b] - S.bxHat[a]);
+  const colPos = new Float64Array(m);
+  order.forEach((j, k) => { colPos[j] = k; });
   let nFlipped = 0;
-  for (let j = 0; j < cfg.m; j += 1) nFlipped += S.flipped[j];
+  for (let j = 0; j < m; j += 1) nFlipped += S.flipped[j];
 
-  return { cfg, trial, harmonised, unharmonised, order, alleles, m: cfg.m, nFlipped };
+  return { key, cfg, trial, harmonised, unharmonised, order, colPos, alleles: state.alleles, m, nFlipped };
 }
+
+/** The reading the controls name — of a state, or a reading handed straight
+    in (the verify script passes readings where the widget passes states). */
+export const readingOf = (x, params) => (typeof x?.reading === "function" ? x.reading(configFor(params)) : x);
 const ALLELE_PAIRS = [["A", "G"], ["C", "T"], ["A", "C"], ["G", "T"], ["A", "T"], ["C", "G"]];
 
 /** The reading of the study: the Harmonise control's on step 2, the
     harmonised one on every step after (decision 9c). */
-export const studyOf = (state, params) =>
-  (pageOf(params) === "gwas" && params.harmonise !== "on" ? state.unharmonised : state.harmonised);
+export const rawOn = (params) => pageOf(params) === "gwas" && params.harmonise !== "on";
+export const studyOf = (x, params) => {
+  const r = readingOf(x, params);
+  return rawOn(params) ? r.unharmonised : r.harmonised;
+};
+
+/* ==========================================================================
+   The view — what one paint draws — and the ease between two of them.
+   ====================================================================== */
+
+/** One flat object with everything `draw` reads, so two of them can be
+    interpolated leaf by leaf. */
+export function viewFor(x, params) {
+  const r = readingOf(x, params);
+  /* `hS` is the harmonised statistics whatever the page reads, for the
+     harmonisation line; held, not interpolated */
+  return { trial: r.trial, study: studyOf(r, params), hS: r.harmonised.S, order: r.order, colPos: r.colPos, cfg: r.cfg, nFlipped: r.nFlipped, m: r.m, alleles: r.alleles };
+}
+/** The key a view answers to; a change of key is what the ease crosses. */
+export const viewKey = (params) => `${cfgKey(configFor(params))}|${rawOn(params) ? "u" : "h"}`;
+export const VIEW_PARAMS = ["confounding", "strength", "pleio", "indep", "harmonise"];
+
+/* Leaves that are counts, indices, labels or flags take the target's value;
+   every other number moves. */
+const HOLD = new Set(["medianSnp", "n", "m", "G", "valid", "flipped", "forestOrder", "order", "key", "cfg", "alleles", "nFlipped", "F", "uLo", "uHi", "hS"]);
+export function lerpView(a, b, t, name = "") {
+  if (HOLD.has(name)) return b;
+  if (typeof b === "number") return typeof a === "number" ? a + (b - a) * t : b;
+  if (b instanceof Float64Array) {
+    if (!(a instanceof Float64Array) || a.length !== b.length) return b;
+    const out = new Float64Array(b.length);
+    for (let i = 0; i < b.length; i += 1) out[i] = a[i] + (b[i] - a[i]) * t;
+    return out;
+  }
+  if (Array.isArray(b)) {
+    if (b.length && typeof b[0] === "number") return b.map((v, i) => (typeof a?.[i] === "number" ? a[i] + (v - a[i]) * t : v));
+    return b.map((v, i) => lerpView(a?.[i], v, t, name));
+  }
+  if (b && typeof b === "object" && !ArrayBuffer.isView(b)) {
+    const out = {};
+    for (const k of Object.keys(b)) out[k] = lerpView(a?.[k], b[k], t, k);
+    return out;
+  }
+  return b;
+}
+export const EASE_MS = 450;
+export const easeOut = (t) => 1 - (1 - t) ** 3;
+/* the final beat: the lines and the combined rows grow in after the last SNP */
+export const FIN_MS = 600;
+export const FIN_PAGES = ["estimate", "forest"];
 
 /** How many units a step's run has: four beats on step 1, a SNP each after. */
 export const totalFor = (page, state) => (pageOf({ page }) === "trial" ? TRIAL_BEATS : state.m);
@@ -885,10 +979,11 @@ const inRect = (r, x, y) => x >= r.x && x < r.x + r.w && y >= r.y && y < r.y + r
     page, a point of the scatter, or a row of the forest; else null. */
 export function subjectAt(L, state, params, x, y) {
   if (!state) return null;
-  const study = studyOf(state, params);
+  const r = readingOf(state, params);
+  const study = studyOf(r, params);
   if (L.page === "gwas") {
     for (const strip of [L.exposure, L.outcome]) {
-      if (inRect(strip, x, y)) return state.order[Math.min(state.m - 1, Math.floor(((x - strip.x) / strip.w) * state.m))];
+      if (inRect(strip, x, y)) return r.order[Math.min(state.m - 1, Math.floor(((x - strip.x) / strip.w) * state.m))];
     }
     if (!inRect(L.plot, x, y)) return null;
     const [cx, cy] = cellCentre(L, x, y);
@@ -923,7 +1018,8 @@ export function pinnedSubject(params) {
 export function regionsFor(L, state, params) {
   if (!state || !PIN_PAGES.includes(L.page)) return [];
   const pinned = pinnedSubject(params);
-  const study = studyOf(state, params);
+  const r = readingOf(state, params);
+  const study = studyOf(r, params);
   const out = [];
   const cells = () => {
     const cols = Math.ceil(L.plot.w / CELL);
@@ -944,7 +1040,7 @@ export function regionsFor(L, state, params) {
     /* a column on each strip, and the scatter's cells */
     for (const strip of [L.exposure, L.outcome]) {
       for (let k = 0; k < state.m; k += 1) {
-        const j = state.order[k];
+        const j = r.order[k];
         out.push({
           x: strip.x + (k / state.m) * strip.w, y: strip.y, w: strip.w / state.m, h: strip.h,
           set: { snp: pinned === j ? "" : String(j + 1) },
@@ -1012,10 +1108,10 @@ export function trialReading(trial, truth, cfg = {}) {
 
 /** The harmonisation row for one SNP on the Effects page — the notebook's
     overview table, one SNP at a time: which allele each GWAS reports on, and
-    what harmonising does to the outcome effect. */
-export function harmoniseReading(state, params, j) {
-  const [raise, other] = state.alleles[j];
-  const S = state.harmonised.S;
+    what harmonising does to the outcome effect. Takes a reading or a view. */
+export function harmoniseReading(r, params, j) {
+  const [raise, other] = r.alleles[j];
+  const S = r.hS ?? r.harmonised?.S ?? readingOf(r, params).harmonised.S;
   const bx = S.bxHat[j];
   const byH = S.byHat[j];
   const sign = (v) => `${v >= 0 ? "+" : "−"}${Math.abs(v).toFixed(3)}`;
@@ -1029,11 +1125,11 @@ export function harmoniseReading(state, params, j) {
   return `SNP ${j + 1} · BMI GWAS on allele ${raise}: ${sign(bx)} · CHD GWAS on allele ${other}, the other one: ${sign(byRaw)}; unharmonised`;
 }
 
-export function gwasReading(state, params) {
-  if (pageOf(params) === "gwas" && params.harmonise !== "on") {
-    return `${state.nFlipped} of ${state.m} outcome effects carry the other allele's sign; harmonise before combining`;
+export function gwasReading(r, params) {
+  if (rawOn(params)) {
+    return `${r.nFlipped} of ${r.m} outcome effects carry the other allele's sign; harmonise before combining`;
   }
-  return `${state.m} SNPs, every effect read on the BMI-raising allele`;
+  return `${r.m} SNPs, every effect read on the BMI-raising allele`;
 }
 
 export function estimateReading(study, params, obs, truth) {

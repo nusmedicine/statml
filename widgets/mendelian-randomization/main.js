@@ -268,11 +268,11 @@ function drawDag(ctx, colors, D, { page, cfg, strength }) {
 
 /* ---- step 1: one SNP as a trial (decision 2) ------------------------------ */
 
-function drawTrial(ctx, colors, L, state, params, anim) {
-  const T = state.trial;
+function drawTrial(ctx, colors, L, V, params, anim) {
+  const T = V.trial;
   const k = anim?.k?.trial ?? 0;
   const frac = anim?.beat ?? 0;
-  drawDag(ctx, colors, L.dag, { page: "trial", cfg: state.cfg, strength: params.strength });
+  drawDag(ctx, colors, L.dag, { page: "trial", cfg: V.cfg, strength: params.strength });
 
   const plot = makePlot({ ctx, colors, rect: L.plot, xDomain: T.xDom, yDomain: T.yDom });
   plot.axisX({ label: M.STRINGS.trialX });
@@ -286,7 +286,7 @@ function drawTrial(ctx, colors, L, state, params, anim) {
     plot.note(M.STRINGS.trialSnpNote);
   }
   if (k >= 5) {
-    noteAt(ctx, colors, L.head.x + L.head.w, L.plot.y + L.plot.h + 40, M.trialReading(T, params.truth === "on", state.cfg), L.head.w, { baseline: "top", tone: colors.ink1 });
+    noteAt(ctx, colors, L.head.x + L.head.w, L.plot.y + L.plot.h + 40, M.trialReading(T, params.truth === "on", V.cfg), L.head.w, { baseline: "top", tone: colors.ink1 });
   }
 
   ctx.save();
@@ -463,6 +463,10 @@ function drawScatter(ctx, colors, rect, study, o) {
   /* the lines, once the estimate exists (decision 3) */
   if (o.lines) {
     const bxMax = study.frame.x[1];
+    /* the final beat: every line grows out from the origin over `grow`, and
+       the tags and the intercept mark wait for it to land */
+    const grow = o.grow ?? 1;
+    const xEnd = bxMax * M.easeOut(Math.min(1, grow));
     const lineAt = (b0, b1, color, width, dash, alpha = 1) => {
       ctx.save();
       ctx.globalAlpha = alpha;
@@ -471,7 +475,7 @@ function drawScatter(ctx, colors, rect, study, o) {
       ctx.setLineDash(dash ?? []);
       ctx.beginPath();
       ctx.moveTo(plot.sx(0), plot.sy(b0));
-      ctx.lineTo(plot.sx(bxMax), plot.sy(b0 + b1 * bxMax));
+      ctx.lineTo(plot.sx(xEnd), plot.sy(b0 + b1 * xEnd));
       ctx.stroke();
       ctx.restore();
     };
@@ -498,11 +502,11 @@ function drawScatter(ctx, colors, rect, study, o) {
       ctx.fillText(text, px, py);
       ctx.restore();
     };
-    tag(M.STRINGS.observationalTag, o.observational * bxMax, colors.ink1);
-    if (o.truth) tag(M.STRINGS.truthTag, M.THETA * bxMax, colors.ink2);
+    if (grow >= 1) tag(M.STRINGS.observationalTag, o.observational * bxMax, colors.ink1);
+    if (grow >= 1 && o.truth) tag(M.STRINGS.truthTag, M.THETA * bxMax, colors.ink2);
     /* decision 9b: Egger's intercept marked where it lives, on the axis at
        zero effect on BMI — the average direct effect the slope is freed from */
-    if (M.estimatorShows(sel, "egger")) {
+    if (grow >= 1 && M.estimatorShows(sel, "egger")) {
       const a = study.est.egger.a;
       const px = plot.sx(0) + 4;
       const y0 = plot.sy(0);
@@ -536,16 +540,16 @@ function drawScatter(ctx, colors, rect, study, o) {
 
 /* ---- step 2: the two GWAS ------------------------------------------------- */
 
-function drawGwas(ctx, colors, L, state, params, anim, subject) {
-  const study = M.studyOf(state, params);
+function drawGwas(ctx, colors, L, V, params, anim, subject) {
+  const study = V.study;
   const S = study.S;
   const raw = params.harmonise !== "on";
   const upTo = anim?.k?.gwas ?? 0;
-  const arrived = state.order.slice(0, upTo);
-  const last = upTo > 0 && upTo < state.m ? state.order[upTo - 1] : null;
-  const m = state.m;
+  const arrived = V.order.slice(0, upTo);
+  const last = upTo > 0 && upTo < V.m ? V.order[upTo - 1] : null;
+  const m = V.m;
   const shown = subject != null && arrived.includes(subject) ? subject : null;
-  drawDag(ctx, colors, L.dag, { page: "gwas", cfg: state.cfg, strength: params.strength });
+  drawDag(ctx, colors, L.dag, { page: "gwas", cfg: V.cfg, strength: params.strength });
 
   /* the exposure strip */
   let bxMax = 0;
@@ -573,8 +577,9 @@ function drawGwas(ctx, colors, L, state, params, anim, subject) {
   ctx.stroke();
   ctx.restore();
 
-  arrived.forEach((j, k) => {
-    const x = M.stripX(L.exposure, m, k);
+  arrived.forEach((j) => {
+    /* the column is the SNP's own, so it slides when the order changes */
+    const x = M.stripX(L.exposure, m, V.colPos[j]);
     const color = j === last || j === shown ? colors.highlight : colors.unknown;
     /* the subject's column, on both strips (decision 5, extended to this
        page for the harmonisation reading) */
@@ -624,9 +629,9 @@ function drawGwas(ctx, colors, L, state, params, anim, subject) {
      figure's count otherwise */
   const ry = L.plot.y + L.plot.h + 40;
   if (shown != null) {
-    noteAt(ctx, colors, L.head.x + L.head.w, ry, M.harmoniseReading(state, params, shown), L.head.w, { baseline: "top", tone: colors.highlight });
+    noteAt(ctx, colors, L.head.x + L.head.w, ry, M.harmoniseReading(V, params, shown), L.head.w, { baseline: "top", tone: colors.highlight });
   } else if (upTo >= m) {
-    noteAt(ctx, colors, L.head.x + L.head.w, ry, M.gwasReading(state, params), L.head.w, { baseline: "top", tone: raw ? colors.extreme : colors.ink1 });
+    noteAt(ctx, colors, L.head.x + L.head.w, ry, M.gwasReading(V, params), L.head.w, { baseline: "top", tone: raw ? colors.extreme : colors.ink1 });
   }
 }
 
@@ -639,23 +644,24 @@ function captionFor(estimator) {
   return M.STRINGS.captionIvw;
 }
 
-function drawEstimate(ctx, colors, L, state, params, anim, subject) {
+function drawEstimate(ctx, colors, L, V, params, anim, subject) {
   /* decision 9c: step 3 always reads the harmonised effects */
-  const study = M.studyOf(state, params);
+  const study = V.study;
   const upTo = anim?.k?.estimate ?? 0;
-  const done = upTo >= state.m;
-  const arrived = state.order.slice(0, upTo);
-  const last = upTo > 0 && !done ? state.order[upTo - 1] : null;
-  drawDag(ctx, colors, L.dag, { page: "estimate", cfg: state.cfg, strength: params.strength });
-  const nInvalid = state.m - Array.from(study.S.valid).reduce((a, b) => a + b, 0);
+  const done = upTo >= V.m;
+  const fin = anim?.fin?.estimate ?? 1;
+  const arrived = V.order.slice(0, upTo);
+  const last = upTo > 0 && !done ? V.order[upTo - 1] : null;
+  drawDag(ctx, colors, L.dag, { page: "estimate", cfg: V.cfg, strength: params.strength });
+  const nInvalid = V.m - Array.from(study.S.valid).reduce((a, b) => a + b, 0);
   let note;
   if (!done) note = M.STRINGS.waitingNote;
   else if (nInvalid) note = `${nInvalid} SNPs with a direct path, in red`;
-  else if (params.strength === "weak") note = `exposure GWAS n ${M.intText(state.cfg.nX)}`;
+  else if (params.strength === "weak") note = `exposure GWAS n ${M.intText(V.cfg.nX)}`;
   const shown = subject != null && arrived.includes(subject) ? subject : null;
   drawScatter(ctx, colors, L.plot, study, {
-    arrived, last, raw: false, lines: done, estimator: params.estimator, truth: params.truth === "on",
-    observational: state.trial.obs.b, markInvalid: nInvalid > 0, subject: shown, ownSlope: true,
+    arrived, last, raw: false, lines: done, grow: fin, estimator: params.estimator, truth: params.truth === "on",
+    observational: V.trial.obs.b, markInvalid: nInvalid > 0, subject: shown, ownSlope: true,
     caption: done ? captionFor(params.estimator) : M.STRINGS.gwasScatterCaption, note,
   });
   /* the reading line spans the canvas: the plot beside the graph is 276px
@@ -664,20 +670,21 @@ function drawEstimate(ctx, colors, L, state, params, anim, subject) {
   const y = L.plot.y + L.plot.h + 40;
   if (shown != null) {
     noteAt(ctx, colors, L.head.x + L.head.w, y, M.snpReading(study, shown), L.head.w, { baseline: "top", tone: colors.highlight });
-  } else if (done) {
-    noteAt(ctx, colors, L.head.x + L.head.w, y, M.estimateReading(study, params, state.trial.obs.b, params.truth === "on"), L.head.w, { baseline: "top", tone: colors.ink1 });
+  } else if (done && fin >= 1) {
+    noteAt(ctx, colors, L.head.x + L.head.w, y, M.estimateReading(study, params, V.trial.obs.b, params.truth === "on"), L.head.w, { baseline: "top", tone: colors.ink1 });
   }
 }
 
 /* ---- step 4: the forest (decision 6) ---------------------------------------- */
 
-function drawForest(ctx, colors, L, state, params, anim, subject) {
-  const study = M.studyOf(state, params);
-  const m = state.m;
+function drawForest(ctx, colors, L, V, params, anim, subject) {
+  const study = V.study;
+  const m = V.m;
   const upTo = anim?.k?.forest ?? 0;
   const done = upTo >= m;
+  const fin = anim?.fin?.forest ?? 1;
   const LIM = M.FOREST_LIM;
-  drawDag(ctx, colors, L.dag, { page: "forest", cfg: state.cfg, strength: params.strength });
+  drawDag(ctx, colors, L.dag, { page: "forest", cfg: V.cfg, strength: params.strength });
   const plot = makePlot({ ctx, colors, rect: L.plot, xDomain: [-LIM, LIM], yDomain: [0, 1] });
   plot.axisX({ ticks: [-3, -2, -1, 0, 1, 2, 3], format: (v) => v.toFixed(0), label: M.STRINGS.forestX });
   /* the count is the note, not the caption: beside the graph the plot is
@@ -700,7 +707,8 @@ function drawForest(ctx, colors, L, state, params, anim, subject) {
   ctx.textBaseline = "middle";
   for (let row = 0; row < upTo; row += 1) {
     const j = study.forestOrder[row];
-    const y = L.rowsTop + (row + 0.5) * L.pitch;
+    /* the row is the SNP's own, so it slides when the order changes */
+    const y = L.rowsTop + (study.rowPos[j] + 0.5) * L.pitch;
     const r = study.W.ratio[j];
     const lo = r - 1.96 * study.W.se[j];
     const hi = r + 1.96 * study.W.se[j];
@@ -724,7 +732,7 @@ function drawForest(ctx, colors, L, state, params, anim, subject) {
     }
     /* decision 9b: the row the weighted median takes, marked once every
        row is in and the median is on show */
-    if (done && j === study.medianSnp && M.estimatorShows(params.estimator, "median")) {
+    if (done && fin >= 1 && j === study.medianSnp && M.estimatorShows(params.estimator, "median")) {
       ctx.save();
       ctx.strokeStyle = colors.groupC;
       ctx.lineWidth = 2.5;
@@ -751,6 +759,8 @@ function drawForest(ctx, colors, L, state, params, anim, subject) {
   ctx.lineTo(L.plot.x + L.plot.w, Math.round(L.ruleY) + 0.5);
   ctx.stroke();
   if (done) {
+    /* the final beat: each combined interval grows out from its centre */
+    const g = M.easeOut(Math.min(1, fin));
     const comb = [
       ["ivw", M.STRINGS.combinedIvw, study.est.ivw.b, study.est.ivw.se],
       ["egger", M.STRINGS.combinedEgger, study.est.egger.b, study.est.egger.se],
@@ -764,13 +774,14 @@ function drawForest(ctx, colors, L, state, params, anim, subject) {
       ctx.strokeStyle = color;
       ctx.lineWidth = sel ? 2.5 : 1.5;
       ctx.beginPath();
-      ctx.moveTo(plot.sx(Math.max(-LIM, b - 1.96 * se)), y);
-      ctx.lineTo(plot.sx(Math.min(LIM, b + 1.96 * se)), y);
+      ctx.moveTo(plot.sx(Math.max(-LIM, b - 1.96 * se * g)), y);
+      ctx.lineTo(plot.sx(Math.min(LIM, b + 1.96 * se * g)), y);
       ctx.stroke();
       ctx.fillStyle = color;
       ctx.beginPath();
       ctx.arc(plot.sx(b), y, 3.5, 0, 2 * Math.PI);
       ctx.fill();
+      if (fin < 1) return;
       ctx.fillStyle = sel ? colors.ink1 : colors.ink2;
       const text = `${label} ${M.n2(b)} (${M.n2(b - 1.96 * se)} to ${M.n2(b + 1.96 * se)})`;
       const tw = ctx.measureText(text).width;
@@ -795,7 +806,7 @@ function drawForest(ctx, colors, L, state, params, anim, subject) {
   const ry = L.plot.y + L.plot.h + 40;
   if (subject != null && study.forestOrder.indexOf(subject) < upTo) {
     noteAt(ctx, colors, L.head.x + L.head.w, ry, M.snpReading(study, subject), L.head.w, { baseline: "top", tone: colors.highlight });
-  } else if (done) {
+  } else if (done && fin >= 1) {
     noteAt(ctx, colors, L.head.x + L.head.w, ry, M.forestReading(study, m, params), L.head.w, { baseline: "top", tone: colors.ink1 });
   }
 }
@@ -803,6 +814,25 @@ function drawForest(ctx, colors, L, state, params, anim, subject) {
 /* ========================================================================== */
 
 const ALL_STEPS = M.PAGE_VALUES;
+
+/* ---- the ease between two readings (model.js) ------------------------------ */
+
+const snapshotView = (params) => Object.fromEntries(M.VIEW_PARAMS.map((k) => [k, params[k]]));
+
+/** A run is finished when its last unit is in and, where there is one, the
+    final beat has landed. */
+function finished(page, k, fin, state) {
+  return k[page] >= M.totalFor(page, state) && (page in fin ? fin[page] >= 1 : true);
+}
+
+/** The view to draw: the current reading, or a point between the reading
+    the ease left and the one it is heading to. */
+function viewAt(state, params, anim) {
+  const to = M.viewFor(state, params);
+  if (!anim || anim.mix >= 1 || !anim.fromParams) return to;
+  const from = M.viewFor(state, { ...params, ...anim.fromParams });
+  return M.lerpView(from, to, M.easeOut(anim.mix));
+}
 
 defineWidget({
   slug: "mendelian-randomization",
@@ -841,7 +871,11 @@ defineWidget({
       label: M.STRINGS.seedLabel,
       min: 1,
       max: 200,
-      default: 1,
+      /* 25, not 1: with the noise drawn unconditionally (round three) seed 1
+         opens on a clean IVW of 0.39, one SE low; of thirty seeds scanned, 25
+         opens on 0.49 / 0.58 / 0.51 with a step-1 ratio of 0.48, and under
+         30% pleiotropy shows IVW 0.75, Egger 0.48, median 0.64 */
+      default: 25,
       detail: M.STRINGS.seedDetail,
     },
     confounding: {
@@ -850,6 +884,7 @@ defineWidget({
       detail: M.STRINGS.confoundingDetail,
       options: M.CONFOUNDING.map((c) => ({ value: c.value, label: c.label })),
       default: "strong",
+      display: true,
     },
     /* the reveal, in the arc's one position: after Seed (widget 26) */
     truth: {
@@ -883,6 +918,7 @@ defineWidget({
       detail: M.STRINGS.relevanceDetail,
       options: M.STRENGTH.map((s) => ({ value: s.value, label: s.label })),
       default: "strong",
+      display: true,
     },
     pleio: {
       type: "segmented",
@@ -890,6 +926,7 @@ defineWidget({
       detail: M.STRINGS.exclusionDetail,
       options: M.PLEIO.map((p) => ({ value: p.value, label: p.label })),
       default: "0",
+      display: true,
     },
     indep: {
       type: "segmented",
@@ -899,6 +936,7 @@ defineWidget({
         { value: "broken", label: "Broken", detail: M.STRINGS.independenceBroken },
       ],
       default: "holds",
+      display: true,
     },
 
     /* model.js decisions 4 and 9c: the same two GWAS, read on the same allele
@@ -980,8 +1018,10 @@ defineWidget({
     ];
   },
 
-  compute({ params, rng }) {
-    return M.build(rng, M.configFor(params));
+  /* one draw; every assumption is a reading of it, made on request
+     (model.js, "the assumptions are readings of one study") */
+  compute({ rng }) {
+    return M.build(rng);
   },
 
   animation: {
@@ -996,60 +1036,94 @@ defineWidget({
       const authored = fromScratch ? 0 : Math.max(0, params.shown ?? 0);
       const page = M.pageOf(params);
       k[page] = Math.min(M.totalFor(page, state), authored);
-      return { k, beat: 0, trialBeat: k.trial, done: k[page] >= M.totalFor(page, state) };
+      /* the final beat on the estimate and the forest: already landed for an
+         authored finished figure */
+      const fin = Object.fromEntries(M.FIN_PAGES.map((p) => [p, k[p] >= M.totalFor(p, state) ? 1 : 0]));
+      return {
+        k, fin, beat: 0, trialBeat: k.trial,
+        done: finished(page, k, fin, state),
+        /* the ease between two readings (model.js): landed, at the current view */
+        mix: 1, viewKey: M.viewKey(params), viewParams: snapshotView(params), fromParams: null, page,
+      };
     },
 
     advance: (anim, { dt, params, state }) => {
+      /* core runs an ease in its own mode; the run does not move under it */
+      if (anim.mode === "ease") {
+        anim.mix = Math.min(1, anim.mix + dt / M.EASE_MS);
+        return anim.mix < 1;
+      }
       const page = M.pageOf(params);
       const total = M.totalFor(page, state);
-      if (anim.k[page] >= total) {
-        anim.beat = 0;
-        anim.done = true;
-        return false;
+      if (anim.k[page] < total) {
+        anim.beat += dt / M.beatMs(page, state, anim.k[page]);
+        if (anim.beat < 1) return true;
+        if (anim.mode === "step") {
+          anim.beat = 0;
+          anim.k[page] = Math.min(total, anim.k[page] + 1);
+        } else {
+          const units = Math.floor(anim.beat);
+          anim.beat -= units;
+          anim.k[page] = Math.min(total, anim.k[page] + units);
+        }
+        anim.trialBeat = anim.k.trial;
+        if (anim.k[page] < total) return anim.mode !== "step";
       }
-      anim.beat += dt / M.beatMs(page, state, anim.k[page]);
-      if (anim.beat < 1) return true;
-      if (anim.mode === "step") {
-        anim.beat = 0;
-        anim.k[page] = Math.min(total, anim.k[page] + 1);
-      } else {
-        const units = Math.floor(anim.beat);
-        anim.beat -= units;
-        anim.k[page] = Math.min(total, anim.k[page] + units);
+      /* the last SNP is in: the final beat plays whatever the mode, so the
+         press that adds SNP 79 also draws the lines */
+      if (page in anim.fin && anim.fin[page] < 1) {
+        anim.fin[page] = Math.min(1, anim.fin[page] + dt / M.FIN_MS);
+        if (anim.fin[page] < 1) return true;
       }
-      anim.trialBeat = anim.k.trial;
-      if (anim.k[page] >= total) {
-        anim.beat = 0;
-        anim.done = true;
-        return false;
-      }
-      return anim.mode !== "step";
+      anim.beat = 0;
+      anim.done = true;
+      return false;
     },
 
-    /* A display change keeps every step's work (non-negotiable 3). */
+    /* A display change keeps every step's work (non-negotiable 3), and a
+       change of reading — an assumption, or Harmonise — asks core for the
+       frames to ease across it. A page change is not eased. */
     rebuild: (anim, { params, state }) => {
       for (const page of ALL_STEPS) anim.k[page] = Math.min(anim.k[page] ?? 0, M.totalFor(page, state));
       anim.trialBeat = anim.k.trial;
       const page = M.pageOf(params);
-      anim.done = anim.k[page] >= M.totalFor(page, state);
+      const key = M.viewKey(params);
+      if (page !== anim.page) {
+        anim.page = page;
+        anim.viewKey = key;
+        anim.viewParams = snapshotView(params);
+        anim.fromParams = null;
+        anim.mix = 1;
+      } else if (key !== anim.viewKey) {
+        /* an ease interrupted mid-flight starts from where the figure IS */
+        anim.fromParams = anim.mix < 1 && anim.fromParams ? anim.fromParams : anim.viewParams;
+        anim.viewParams = snapshotView(params);
+        anim.viewKey = key;
+        anim.mix = 0;
+        anim.easing = true;
+      }
+      anim.done = finished(page, anim.k, anim.fin, state);
     },
   },
 
   draw({ ctx, colors, w, params, state, anim, pointer }) {
     const L = M.layout(w, params);
     drawHead(ctx, colors, L.head, L.page);
-    if (L.page === "trial") return drawTrial(ctx, colors, L, state, params, anim);
+    /* the view: the current reading, or the ease's way between two */
+    const V = viewAt(state, params, anim);
+    if (L.page === "trial") return drawTrial(ctx, colors, L, V, params, anim);
     /* decision 5: the pointer wins while it is on a target, the pin holds
        otherwise */
     const subject = (pointer ? M.subjectAt(L, state, params, pointer.x, pointer.y) : null)
       ?? M.pinnedSubject(params);
-    if (L.page === "gwas") return drawGwas(ctx, colors, L, state, params, anim, subject);
-    if (L.page === "estimate") return drawEstimate(ctx, colors, L, state, params, anim, subject);
-    return drawForest(ctx, colors, L, state, params, anim, subject);
+    if (L.page === "gwas") return drawGwas(ctx, colors, L, V, params, anim, subject);
+    if (L.page === "estimate") return drawEstimate(ctx, colors, L, V, params, anim, subject);
+    return drawForest(ctx, colors, L, V, params, anim, subject);
   },
 
-  readout({ params, state, anim }) {
+  readout({ params, state: st, anim }) {
     const page = M.pageOf(params);
+    const state = M.readingOf(st, params);
     const upTo = anim?.k?.[page] ?? 0;
     const truth = params.truth === "on";
     const truthTile = {
@@ -1118,8 +1192,9 @@ defineWidget({
     ];
   },
 
-  summary({ params, state, anim }) {
+  summary({ params, state: st, anim }) {
     const page = M.pageOf(params);
+    const state = M.readingOf(st, params);
     const upTo = anim?.k?.[page] ?? 0;
     const cfg = state.cfg;
     const graph = M.verdict({ page, confounding: cfg.confounding, pleio: cfg.share > 0, indep: cfg.indep });

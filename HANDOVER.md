@@ -65,7 +65,10 @@ odds ratios in the tile notes; the first page is **Overview**, its own
 button above a Step head over **1 · Effects · 2 · Estimate · 3 · Forest**;
 the pleiotropy arc cleared of the verdict; harmonisation read per SNP on
 the Effects page by hover or pin (alleles named); no Page label; the graph on EVERY page (his ask), the
-Effects strips 280px beside it.
+Effects strips 280px beside it. **Round three (2026-09-13): the
+assumptions and Harmonise are display parameters over readings of one
+study, eased over 450 ms; the lines and combined rows grow in over a
+final beat; the default seed is 25.** Verify 150.
 
 **Then his round.** Expect the usual: copy (the three-pass audit plus the
 mannerism pass is still owed — `_lab/mr-verify.mjs` §8 already sweeps

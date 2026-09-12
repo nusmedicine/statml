@@ -8431,6 +8431,42 @@ answer: the graph beside the two strips and the scatter at 280px, the
 captions shortened to fit (the sizes stay on them), the axis line "SNPs,
 strongest on BMI first". Every page carries the graph now.
 
+#### Round three, 2026-09-13 — the transitions, on Kenneth's "opportunities for tweening"
+
+Reviewed page by page for jumps; three found and all three built on his pick:
+
+- **The assumptions are readings of one study, eased.** Changing Relevance,
+  Exclusion restriction, Independence or Confounding on a finished figure
+  used to empty it (a data change re-inits the run) and cost a five-second
+  Play to see IVW bend. The 79 SNPs are one draw whatever the assumption,
+  so the four controls are DISPLAY parameters now: `build` draws the seeds,
+  the instruments and the alleles once, a reading (the cohort and the two
+  GWAS under one setting) is made on first request and kept (about 7 ms),
+  the run survives the change, and the figure eases from the old reading to
+  the new over 450 ms — every point, line, centroid, column and forest row
+  sliding to where it now belongs (widget 26's swing). For that to be a
+  movement and not a jump to a fresh draw, the engine draws its noise
+  UNCONDITIONALLY (the confounder term, the direct effect's size, the
+  heterogeneity) and scales it by the setting; the measure script draws
+  conditionally, and the verify's shape checks hold either way. A page
+  change is not eased.
+- **Harmonise is the same ease:** the forty flipped effects slide across
+  zero on the strip and the scatter.
+- **The lines and the combined rows grow in over a final beat** of 600 ms
+  after the last SNP on the Estimate and Forest pages, out from the origin
+  and out from each interval's centre; the tags, the intercept mark, the
+  median mark and the reading line wait for it to land. The press of Step
+  that adds SNP 79 plays it too.
+
+Left instant by 4.4: the Estimator switch, the truth reveal, Colour by the
+confounders, page changes, the hover. **The default seed moved from 1 to
+25**: with the noise unconditional seed 1 opened on a clean IVW of 0.39, one
+SE low; of thirty seeds scanned, 25 opens on 0.49 / 0.58 / 0.51 with a
+step-1 ratio of 0.48, and under 30% pleiotropy shows IVW 0.75, Egger 0.48,
+median 0.64. Verify 150 assertions, including the ease's endpoints and
+halfway, the final beat's timing, and that a valid SNP's CHD effect is
+identical under 0% and 30%.
+
 
 
 
