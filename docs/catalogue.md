@@ -8387,6 +8387,19 @@ Two words leave this widget's coined-vocabulary sweep with their reason
 written beside them: "arm" (an arm of a trial) and "stage" (two-stage
 least squares). Verify 117 assertions green.
 
+His three follow-ups the same night, all done: **pleiotropy is named where
+the student meets it** — nowhere in the notebook before, once in the widget
+(the Egger detail); now the Exclusion restriction detail ends ": horizontal
+pleiotropy", the graph's verdict names it when the second path is open,
+and the idea page's reading line says when the broken path is in the ratio.
+He adds the word to the notebook at the assumptions list and in the Egger
+sentence. **The ratio is interpretable**: the ratio and estimator tiles'
+notes carry the odds ratio per SD (0.79 log odds is an odds ratio of 2.20).
+**The first page is The idea**, set apart and unnumbered ("one SNP as a
+trial" named the analogy and truncated in the grid), and the three after it
+are the notebook's workflow numbered 1 to 3; the step line reads "the idea"
+then "step n of 3".
+
 
 
 

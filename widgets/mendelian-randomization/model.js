@@ -521,7 +521,7 @@ export function verdict({ page, confounding, pleio, indep }) {
 }
 
 /* The step line and the hand-off each step carries (polygenic-score's
-   decision 8): "step 2 of 4 · The two GWAS", and a line saying what this step
+   decision 8): "step 1 of 3 · The two GWAS", and a line saying what this step
    takes from the one before. */
 export const HANDOFFS = {
   trial: "one SNP, one cohort: the trial no confounder chose",
