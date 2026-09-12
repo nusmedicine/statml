@@ -7768,6 +7768,60 @@ outputs, the vigintile plot with its CI formula, the summary's claims),
 findings as a table under this slot, design changes as picks, copy
 fixed directly. Then his round, then the ship.
 
+**ROUND THREE MOCKED — 2026-09-12, `_lab/prs-round3-mock.html`, on the
+widget's own engine at seed 41 and the defaults.** Four sections and one
+finding. **§1 the whole triangle:** A bare, B with the clumping window's
+reach as one dashed rule ("the clumping window · 250 kb") — the numbers
+say the deep half is ground: of the 1,225 pairs beyond 250 kb the
+largest r² is 0.087 and none clears 0.5; the stage grows from 431 to
+550px at 550 wide and to 619 at 690, both under the ~672px rail.
+Recommended B. **The finding:** the shipped triangle spaces its SNPs at
+w / 99 and the block at w / 100, so SNP 100's cell sits five pixels
+right of its column; the mock draws both at w / 100 and the build must
+too. **§2 the link:** at rest the causal SNP's row and column in the
+triangle as a dashed reference V (the same rule its block column
+wears); a block column under the pointer is outlined and its V drawn in
+`--c-highlight` with a reading under the block ("SNP 10 at 45 kb · r²
+above 0.5 with 8 SNPs, the furthest 70 kb away"); a triangle cell under
+the pointer is outlined with its two legs to the axis, both columns
+outlined, and the stretch between them banded in every row whose
+pairing is one of the two commonest (the sign of D decides which two),
+with the reading "SNP 10 and SNP 15 · 25 kb apart · r² 0.79 · the two
+alleles travel together in 38 of 40 rows" (the lesson's own words for
+LD are "inherited together"); the reading REPLACES the foot line so the
+stage does not move; the longest possible reading is 443px against
+490. A live canvas proves the hit arithmetic (a cell from the rotated
+frame: u = ⌊a − b⌋, v = ⌊a + b⌋). Two decisions for him on the pair
+overlay: band the whole stretch (a 250 kb pair paints half the block)
+or the two columns only; discordant rows unmarked rather than a third
+colour. **§3 the interaction model:** A hover only (`pointer: true`,
+hierarchical-clustering's precedent, nothing written), B click pins
+(`regions`, a hidden display parameter `snps` = "37" or "37,52", a
+hit-driven state at ship), C both — recommended C, the pin returning
+when the pointer leaves, clicking the pinned thing clearing it, live
+only once the run completes (the triangle is drawn at 40 rows). **§4
+step 3's axis, on his note sent during the round** ("the batch SNP
+looks weird as it just flatlines… rescaling the x-axis as we add more,
+a minimum window e.g. 150–200, then squish"): A today; B the axis is
+the kept count from the first frame, every SNP a column (3.06px at 160,
+0.49px at 1,000, 14px at 35 — the round-one picture); C his, a
+W-column window and past it the axis grows a column a SNP (mid-run at
+80 of 160 shown; at the finish C IS B); C′ the same at W = 150 (35
+SNPs leave 77% of the panel empty); D today's columns and totals with
+the sum walking through the batch as 120 compressed steps. Kept counts
+at seed 41 run 0 · 2 · 13 · 35 · 110 · 166 · 275 · 378 · 467 · 567 ·
+1,000 (base 1,500) and 51 · 82 · 120 · 160 · 215 · 266 · 350 · 421 ·
+516 · 598 · 1,000 (base 15,000), so the maximum is every SNP.
+**Recommended B:** the sum takes its big steps first because the axis
+is lowest P first, and the hundreds after add noise-sized steps — step
+4's plateau met one SNP at a time; dots become 0–2-unit bars below a
+4px column; the run is capped at 6 s (38 ms a SNP at 160, 6 at 1,000,
+on the rate clock); it deletes decisions 11 and 14, the batch beat, the
+totals bars and their labels. Against C: identical at the finish, and
+mid-run every drawn column slides on every beat. **NEXT: his picks on
+§1 (A/B), §2 (band the stretch or the columns), §3 (A/B/C), §4 (A–D),
+then the build, then the adversarial review (item 2 of the plan).**
+
 **PAGE 5 PLANNED 2026-09-12 — calibration, on Kenneth's question** ("can
 the PRS score be used to calculate risk for a patient? a colleague told me
 no… so what's the use of this score?", then "how is calibration done? will

@@ -11,7 +11,25 @@ is LOCAL. Push on his word.
 
 ---
 
-# NEXT SESSION — KENNETH'S PLAN (written 2026-09-12, night)
+# NEXT SESSION — KENNETH'S PLAN (written 2026-09-12, night; updated the same night after item 1's mock)
+
+**ROUND THREE IS MOCKED AND WAITING ON HIS PICKS.** `_lab/prs-round3-mock.html`
+(`http://localhost:8013/widgets/_lab/prs-round3-mock.html` on this
+machine's server, any port works) draws item 1 below on the widget's
+own engine at seed 41 — §1 the whole triangle (A bare / B with the
+clumping window's reach as a rule), §2 the block ↔ triangle link (the
+causal V at rest; a column's V; a cell's legs, columns and banded rows,
+with a live canvas), §3 the interaction model (A hover / B click pins /
+C both) — and §4 step 3's axis, on a note he sent mid-round: the batch
+column "flatlines". Five candidates there; recommended B, the axis is the
+kept count from the first frame and every SNP is a column. The
+catalogue's ROUND THREE MOCKED paragraph under slot 59 has every number
+and the recommendations. **One finding to fix in any build: the shipped
+triangle spaces SNPs at w / 99, the block at w / 100 — five pixels apart
+at the right edge.** When his picks arrive: build (step 1's overlay,
+`pointer: true` and/or `regions` with the hidden display param `snps`;
+step 3's axis if he takes B, which deletes decisions 11 and 14 and the
+batch code), the verify, then item 2.
 
 **The tree is clean.** Step 3's "countable first, then batched" change
 (his pick) landed and was read in the browser before the session ended:

@@ -1,0 +1,1078 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · polygenic-score round three — the whole triangle, the hover, and step 3's axis</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  /* The mock shell, verbatim from `_lab/prs-round2-mock.html` (which took it
+     from prs-mock and gwas-mock). Nothing here is a new visual decision. */
+  .lab { max-width: 1240px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 96ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); max-width: 400px; min-height: 26px; white-space: pre-line; }
+  #triRow > .cand { width: 550px; }
+  #linkRow > .cand { width: 550px; }
+  #liveRow > .cand { width: 550px; }
+  #axisRow > .cand { width: 550px; }
+  #axisEndsRow > .cand { width: 550px; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 96ch; }
+  .measure { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--ink-3); margin: 4px 0 0; max-width: 760px; white-space: pre-line; }
+  table.facts { border-collapse: collapse; font-size: var(--fs-sm); color: var(--ink-2); margin: var(--sp-2) 0 var(--sp-3); max-width: 110ch; }
+  table.facts th, table.facts td { border: 1px solid var(--grid); padding: 3px 8px; text-align: left; vertical-align: top; }
+  table.facts th { color: var(--ink-1); font-weight: 600; background: var(--surface-2); }
+  table.facts td b { color: var(--ink-1); }
+  .legend { display: flex; flex-wrap: wrap; gap: var(--sp-2) var(--sp-4); margin: 0 0 var(--sp-4);
+            font-size: var(--fs-xs); color: var(--ink-2); }
+  .legend span { display: flex; align-items: center; gap: 6px; }
+  .sw { width: 13px; height: 13px; border-radius: 50%; flex: 0 0 auto; }
+  .sw-emp { background: var(--c-empirical); }
+  .sw-high { background: var(--c-highlight); }
+  .sw-ga { background: var(--c-group-a); }
+  .sw-gb { background: var(--c-group-b); }
+  .sw-ref { width: 18px; height: 0; border-radius: 0; border-top: 2px dashed var(--c-reference); }
+  .sw-tri { width: 0; height: 0; border-radius: 0; border-left: 6px solid transparent;
+            border-right: 6px solid transparent; border-top: 9px solid var(--c-reference); }
+  .sw-vhi { background: var(--c-value-high); border-radius: 2px; }
+  .sw-surf { background: var(--surface-1); border: 1px solid var(--grid); border-radius: 2px; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>polygenic-score &middot; round three — the whole r&sup2; triangle, the hover that ties it to the haplotypes, and step 3's axis</h1>
+
+  <p class="note">
+    Kenneth's plan for the round (2026-09-12, night) and one note he sent while it was being drawn. <b>(1)</b> the
+    r&sup2; triangle on step 1 is clipped to the 250 kb clumping window; he wants the whole 100 &times; 100
+    half-matrix, unclipped. <b>(2)</b> a hover or indicator that ties the haplotype block to the triangle: a
+    cell of the triangle lights the two SNPs' columns in the block and the rows where the two alleles travel
+    together; a column of the block lights that SNP's row and column in the triangle; something stands in
+    for the hover when there is no pointer. <b>(3)</b> step 3's batch column "flatlines" — the sum runs level
+    for a quarter of the panel and then drops — and he asks for alternatives, such as an x axis that rescales
+    as SNPs are added, with a minimum window.
+  </p>
+  <p class="note">
+    <b>Where the numbers come from.</b> Everything on this page is computed live from
+    <code>../polygenic-score/model.js</code>, the shipped widget's own engine, at the widget's defaults and its
+    default seed 41 (<code>M.build(makeRng(41), M.configFor(defaults))</code>), so the region here is the region
+    the widget opens on: the causal SNP, the lead SNP 25 kb off it at r&sup2; 0.79, and step 3's 160 kept SNPs.
+  </p>
+  <p class="note" id="engineLine"></p>
+
+  <div class="legend">
+    <span><i class="sw sw-emp"></i>one of the two alleles at a SNP</span>
+    <span><i class="sw sw-vhi"></i>r&sup2; 1 between a pair of SNPs</span>
+    <span><i class="sw sw-surf"></i>r&sup2; 0</span>
+    <span><i class="sw sw-tri"></i>the causal SNP's position — its column in the block, and (proposed) its row and column in the triangle</span>
+    <span><i class="sw sw-high"></i>the SNP or the pair under the pointer, and the rows where its alleles travel together</span>
+    <span><i class="sw sw-ga"></i>step 3: the person's genotype</span>
+    <span><i class="sw sw-gb"></i>step 3: the base study's weight</span>
+  </div>
+
+  <h2>&sect;1 &middot; The whole triangle</h2>
+  <p class="note">
+    Today the triangle stops 50 SNPs deep — the 250 kb the clumping can act on — on the mock's argument that
+    the deeper half is r&sup2; &asymp; 0. Kenneth wants the whole thing. <b>A</b> the full half-matrix, nothing
+    on it; <b>B</b> the same with the clumping window's reach drawn across it as one dashed rule, so the
+    reader can see that everything clumping will look at is above the line and that what is below it is
+    ground. Both are drawn with the SNPs spaced at <code>w / 100</code> so a triangle cell sits exactly above
+    the midpoint of its two block columns — <b>the shipped triangle spaces them at <code>w / 99</code>, which
+    puts SNP 100 five pixels right of its own column</b>; the build fixes that whichever is picked.
+  </p>
+  <div class="row" id="triRow"></div>
+  <p class="measure" id="triMeasure"></p>
+  <p class="rec" id="recTri"></p>
+
+  <h2>&sect;2 &middot; The link between the block and the triangle</h2>
+  <p class="note">
+    Three stills at the widget's own 550px, then a live canvas. <b>At rest</b>, the causal SNP's row and
+    column in the triangle are drawn as the same dashed reference rule its column in the block already wears,
+    so the shape of "one SNP's pairs" — a V hanging from its position — is on screen before any pointer
+    arrives. <b>A column of the block under the pointer</b> outlines that column and draws its V in the
+    highlight colour, and the line under the block says what the V holds. <b>A cell of the triangle under
+    the pointer</b> outlines the cell, draws its two legs up to the two SNPs on the axis, outlines both
+    columns in the block, and bands the stretch between them in every row where the two alleles travel
+    together — the rows whose pairing is one of the two commonest, which is what r&sup2; counts. The line
+    under the block names the pair, the distance, the r&sup2; and the count of rows.
+  </p>
+  <div class="row" id="linkRow"></div>
+  <p class="measure" id="linkMeasure"></p>
+  <div class="row" id="liveRow"></div>
+  <p class="measure" id="liveMeasure"></p>
+  <p class="rec" id="recLink"></p>
+
+  <h2>&sect;3 &middot; Hover, click, or both — the interaction model</h2>
+  <p class="note">
+    Core offers two doors and they are different things. <code>pointer: true</code> hands <code>draw()</code>
+    the pointer's position and repaints on movement — an inspector, nothing written, the figure exactly as
+    before when the pointer leaves (hierarchical-clustering's distance matrix is the precedent). A
+    <code>regions</code> table resolves a click to ONE parameter and writes it, so the URL carries it, a lesson
+    link can open on it, and a hit-driven fingerprint state can pin it (t-sne, umap, fork-pipe-collider,
+    lm-adjustment).
+  </p>
+  <table class="facts">
+    <tr><th>model</th><th>what the reader gets</th><th>what it costs</th></tr>
+    <tr><td><b>A &middot; hover only</b></td>
+        <td>the linking while the pointer is on a column or a cell; the causal V at rest; nothing on a
+            projector without a mouse beyond the rest indicator</td>
+        <td>smallest build: <code>pointer: true</code>, the hit arithmetic, the overlay; no state to record</td></tr>
+    <tr><td><b>B &middot; click pins</b></td>
+        <td>a click on a column or a cell writes <code>snps=37</code> or <code>snps=37,52</code> to the URL; the
+            picture holds it until the next click; a lesson link can open on a pair; the readout tiles can
+            name it, since it is a parameter</td>
+        <td>a hidden display parameter, a <code>regions</code> table of 100 columns and 4,950 cells (rects on a
+            rotated cell are approximate at the edges, which at 5px a cell nobody can aim between anyway), a
+            hit-driven state at ship, and a way to clear it (clicking the pinned thing again)</td></tr>
+    <tr><td><b>C &middot; both</b></td>
+        <td>hover previews, a click pins, the pointer overrides the pin while it is on a target and the pin
+            returns when it leaves; with nothing pinned the rest indicator is the causal V</td>
+        <td>A plus B; the two overlays are one function called with one argument</td></tr>
+  </table>
+  <p class="rec" id="recModel"></p>
+
+  <h2>&sect;4 &middot; Step 3's axis — Kenneth's note on the flatline</h2>
+  <p class="note">
+    Today's step 3 draws the forty strongest SNPs one a beat and then the other 120 as one batch on one beat:
+    the strips become bars of totals and the sum is drawn as a single step across the wide column. The
+    result he saw: <b>the sum line runs level for a quarter of the panel and then drops to its end</b>, which
+    reads as "nothing happened for 120 SNPs" when the truth is 120 small steps. His proposal: rescale the x
+    axis as SNPs are added, with a minimum window, so every SNP is drawn. Five ways, each drawn from the same
+    person's 160 kept SNPs at the default (the person's score is 0.54; the sum stands at 0.89 after the
+    fortieth): <b>A</b> today; <b>B</b> the axis is the kept count from the first frame, every SNP a column,
+    no batch; <b>C</b> his — a window of W columns at unit width, and past W the axis grows one column a SNP
+    so everything drawn so far squeezes left (W = 40, shown mid-run at 80 of 160); <b>C&prime;</b> the same
+    with W = 150; <b>D</b> today's countable forty and totals bars, but the sum walks through the batch
+    column as a compressed staircase of the 120 steps instead of one flat step.
+  </p>
+  <div class="row" id="axisRow"></div>
+  <p class="measure" id="axisMeasure"></p>
+  <p class="note">
+    The ends of the range, because the kept count runs from 0 to 1,000 (every SNP, at P &le; 1): <b>B at 35
+    kept</b> (a 1,500-person base at P &lt; 0.01, the round-one texture), <b>B at 1,000</b>, and <b>C&prime; at
+    35</b>, where a 150-column window leaves three quarters of the panel empty.
+  </p>
+  <div class="row" id="axisEndsRow"></div>
+  <p class="measure" id="axisEndsMeasure"></p>
+  <p class="rec" id="recAxis"></p>
+
+  <h2>&sect;5 &middot; Every new or changed reader-facing string</h2>
+  <p class="note">
+    Field terms only, the register of the shipped steps. The reading lines are drawn where the block's foot
+    line is today and replace it while the pointer is on a target.
+  </p>
+  <div id="strings"></div>
+</main>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+import { makePlot } from "../core/canvas.js";
+import { makeRng } from "../core/rng.js";
+import * as M from "../polygenic-score/model.js";
+
+const T0 = performance.now();
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+
+/* ==========================================================================
+   The widget's own state, at its defaults and its default seed.
+   ====================================================================== */
+
+const SEED = 41;
+const DEFAULTS = {
+  recomb: "medium", clumpR2: "0.1", causalTyped: "typed", baseSize: "15000", causal: "300",
+  h2: "0.3", target: "same", prevalence: "20", threshold: "0.01", person: 1,
+};
+const tB0 = performance.now();
+const ST = M.build(makeRng(SEED), M.configFor(DEFAULTS));
+const ST_SMALL = M.build(makeRng(SEED), M.configFor({ ...DEFAULTS, baseSize: "1500" }));
+const T_BUILD = performance.now() - tB0;
+const REG = ST.region;
+const m = REG.hap.m;
+const HAP_ROWS = M.HAP_ROWS;
+
+const PS_160 = M.personScore(ST, { threshold: "0.01", person: 1 });
+const PS_1000 = M.personScore(ST, { threshold: "1", person: 1 });
+const PS_35 = M.personScore(ST_SMALL, { threshold: "0.01", person: 1 });
+
+/* ==========================================================================
+   Helpers, verbatim from the round-two mock.
+   ====================================================================== */
+
+const el = (tag, cls, text) => {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text != null) e.textContent = text;
+  return e;
+};
+const fmt = (v, d = 2) => (Number.isFinite(v) ? v.toFixed(d) : "-");
+const int = (v) => Math.round(v).toLocaleString("en-US");
+const probe = document.createElement("canvas").getContext("2d");
+function textW(s, font) { probe.font = font; return probe.measureText(s).width; }
+function fit(s, font, maxW) {
+  probe.font = font;
+  if (probe.measureText(s).width <= maxW) return s;
+  let out = s;
+  while (out.length > 1 && probe.measureText(`${out}…`).width > maxW) out = out.slice(0, -1);
+  return `${out.trimEnd()}…`;
+}
+const capFont = () => `600 ${T.fsSm} ${T.font}`;
+const noteFont = () => `${T.fsXs} ${T.font}`;
+
+function canvasIn(parent, w, h) {
+  const cv = document.createElement("canvas");
+  cv.width = Math.round(w * DPR);
+  cv.height = Math.round(h * DPR);
+  cv.style.width = `${w}px`;
+  cv.style.height = `${h}px`;
+  parent.appendChild(cv);
+  const ctx = cv.getContext("2d");
+  ctx.scale(DPR, DPR);
+  ctx.fillStyle = T.surface;
+  ctx.fillRect(0, 0, w, h);
+  return ctx;
+}
+function clear(ctx, w, h) {
+  ctx.save();
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  ctx.fillStyle = T.surface;
+  ctx.fillRect(0, 0, w, h);
+  ctx.restore();
+}
+function cand(parent, title, sub) {
+  const c = el("div", "cand");
+  if (title) c.appendChild(el("h3", null, title));
+  if (sub != null) c.appendChild(el("p", "sub", sub));
+  parent.appendChild(c);
+  return c;
+}
+const mline = (box, text) => { box.appendChild(el("p", "measure", text)); };
+
+function capAt(ctx, x, y, text, max) {
+  ctx.save();
+  ctx.font = capFont();
+  ctx.textAlign = "left";
+  ctx.textBaseline = "alphabetic";
+  const s = fit(text, capFont(), max);
+  ctx.strokeStyle = T.surface;
+  ctx.lineWidth = 3;
+  ctx.lineJoin = "round";
+  ctx.strokeText(s, x, y);
+  ctx.fillStyle = T.ink2;
+  ctx.fillText(s, x, y);
+  ctx.restore();
+  return textW(s, capFont());
+}
+function noteAlignedAt(ctx, x, y, text, max, { align = "right", baseline = "alphabetic", tone } = {}) {
+  ctx.save();
+  ctx.font = noteFont();
+  ctx.textAlign = align;
+  ctx.textBaseline = baseline;
+  const s = fit(text, noteFont(), max);
+  ctx.strokeStyle = T.surface;
+  ctx.lineWidth = 3;
+  ctx.lineJoin = "round";
+  ctx.strokeText(s, x, y);
+  ctx.fillStyle = tone ?? T.ink2;
+  ctx.fillText(s, x, y);
+  ctx.restore();
+  return textW(s, noteFont());
+}
+const noteAt = (ctx, xRight, y, text, max, tone) =>
+  noteAlignedAt(ctx, xRight, y, text, max, { tone });
+function tinyAt(ctx, x, y, text, align = "center", tone) {
+  ctx.save();
+  ctx.font = noteFont();
+  ctx.textAlign = align;
+  ctx.textBaseline = "top";
+  ctx.fillStyle = tone ?? T.ink3;
+  ctx.fillText(text, x, y);
+  ctx.restore();
+}
+function rgbOf(c) {
+  const s = String(c).trim();
+  if (s.startsWith("#")) {
+    const h = s.length === 4 ? s.slice(1).split("").map((x) => x + x).join("") : s.slice(1, 7);
+    return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
+  }
+  const mm = s.match(/-?\d+(\.\d+)?/g);
+  return mm && mm.length >= 3 ? [+mm[0], +mm[1], +mm[2]] : [128, 128, 128];
+}
+const mix = (a, b, t) => a.map((v, i) => Math.round(v + (b[i] - v) * t));
+function alphaOf(c, a) {
+  const [r, g, b] = rgbOf(c);
+  return `rgba(${r}, ${g}, ${b}, ${a})`;
+}
+
+/* ==========================================================================
+   §1 and §2 · the block, the whole triangle, and the overlays.
+
+   The geometry is shared by the block and the triangle: SNP j's column is
+   [x0 + j·cw, x0 + (j+1)·cw] with cw = w / m, its centre x0 + (j + ½)cw, and
+   the triangle's cell for the pair (k < j) is centred above the midpoint of
+   those two centres, at depth (j − k)·cw / 2. The widget's triangle uses
+   w / (m − 1) instead, which is the drift §1's note names.
+   ====================================================================== */
+
+const STAGE_W = 550;
+const X0 = 52;
+const PANEL_W = 490;
+const TOP = M.STEP_LINE_H;
+const BLOCK = { x: X0, y: TOP + M.HAP_TOP, w: PANEL_W, h: M.HAP_H };
+const TRI_TOP = TOP + M.HAP_TOP + M.HAP_H + M.HAP_FOOT + M.HAP_GAP;
+const FOOT_Y = BLOCK.y + BLOCK.h + 6;
+
+function geom(x0, yTop, w) {
+  const cw = w / m;
+  return {
+    x0, yTop, w, cw,
+    snpX: (j) => x0 + (j + 0.5) * cw,
+    cellC: (u, v) => [x0 + ((u + v + 1) / 2) * cw, yTop + ((v - u) / 2) * cw],
+    depth: ((m - 1) / 2) * cw,
+  };
+}
+
+/* the two images, drawn once each and reused by every still and the live canvas */
+const blockImg = (() => {
+  const off = document.createElement("canvas");
+  off.width = m;
+  off.height = HAP_ROWS;
+  const o = off.getContext("2d");
+  const img = o.createImageData(m, HAP_ROWS);
+  const one = rgbOf(T.empirical);
+  const zero = rgbOf(T.surface3 || T.surface2);
+  for (let i = 0; i < HAP_ROWS; i += 1) {
+    for (let j = 0; j < m; j += 1) {
+      const c = REG.hap.H[j][i] ? one : zero;
+      const p = (i * m + j) * 4;
+      img.data[p] = c[0]; img.data[p + 1] = c[1]; img.data[p + 2] = c[2]; img.data[p + 3] = 255;
+    }
+  }
+  o.putImageData(img, 0, 0);
+  return off;
+})();
+function triImg(depth) {
+  const off = document.createElement("canvas");
+  off.width = m;
+  off.height = m;
+  const o = off.getContext("2d");
+  const img = o.createImageData(m, m);
+  const base = rgbOf(T.surface);
+  const hi = rgbOf(T.valueHigh);
+  for (let v = 0; v < m; v += 1) {
+    for (let u = 0; u < m; u += 1) {
+      const p = (v * m + u) * 4;
+      if (v <= u || (depth != null && v - u > depth)) { img.data[p + 3] = 0; continue; }
+      const c = mix(base, hi, Math.max(0, Math.min(1, REG.R[v][u])));
+      img.data[p] = c[0]; img.data[p + 1] = c[1]; img.data[p + 2] = c[2]; img.data[p + 3] = 255;
+    }
+  }
+  o.putImageData(img, 0, 0);
+  return off;
+}
+const TRI_FULL = triImg(null);
+const TRI_CLIPPED = triImg(M.CLUMP_DEPTH);
+
+function drawBlock(ctx, rect, { rows = HAP_ROWS, foot = null } = {}) {
+  const capW = capAt(ctx, rect.x, rect.y - 10, M.STRINGS.blockCaption, rect.w * 0.62);
+  noteAt(ctx, rect.x + rect.w, rect.y - 10,
+    `${rows} of ${HAP_ROWS} drawn, from a pool of ${int(M.REGION.nHap)}`, rect.w - capW - 14);
+  ctx.save();
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(blockImg, 0, 0, m, rows, rect.x, rect.y, rect.w, rect.h * (rows / HAP_ROWS));
+  ctx.strokeStyle = T.grid;
+  ctx.lineWidth = 1;
+  ctx.strokeRect(rect.x + 0.5, rect.y + 0.5, rect.w - 1, rect.h - 1);
+  ctx.restore();
+  /* the causal SNP's column, as shipped */
+  const x = rect.x + ((REG.causal + 0.5) / m) * rect.w;
+  ctx.save();
+  ctx.strokeStyle = T.reference;
+  ctx.lineWidth = 1;
+  ctx.setLineDash([3, 3]);
+  ctx.beginPath();
+  ctx.moveTo(Math.round(x) + 0.5, rect.y);
+  ctx.lineTo(Math.round(x) + 0.5, rect.y + rect.h);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.lineJoin = "round";
+  ctx.beginPath();
+  ctx.moveTo(x - 4, rect.y - 8);
+  ctx.lineTo(x + 4, rect.y - 8);
+  ctx.lineTo(x, rect.y - 2);
+  ctx.closePath();
+  ctx.stroke();
+  ctx.restore();
+  const line = foot ?? `${M.STRINGS.blockNote} · ${m} SNPs over ${int(REG.span)} kb`;
+  tinyAt(ctx, rect.x + rect.w / 2, rect.y + rect.h + 6, fit(line, noteFont(), rect.w), "center",
+    foot ? T.ink1 : T.ink3);
+  return textW(line, noteFont());
+}
+
+function drawTri(ctx, g, { img = TRI_FULL, caption, note = M.STRINGS.triNote, windowLine = false }) {
+  capAt(ctx, g.x0, g.yTop - 10, caption, g.w * 0.7);
+  noteAt(ctx, g.x0 + g.w, g.yTop - 10, note, g.w * 0.28);
+  ctx.save();
+  ctx.imageSmoothingEnabled = false;
+  ctx.translate(g.x0, g.yTop);
+  ctx.transform(0.5 * g.cw, -0.5 * g.cw, 0.5 * g.cw, 0.5 * g.cw, 0, 0);
+  ctx.drawImage(img, 0, 0);
+  ctx.restore();
+  ctx.save();
+  ctx.strokeStyle = T.axis;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(g.x0, Math.round(g.yTop) + 0.5);
+  ctx.lineTo(g.x0 + g.w, Math.round(g.yTop) + 0.5);
+  ctx.stroke();
+  if (windowLine) {
+    /* the cells at exactly the window's depth lie on one horizontal line */
+    const d = M.CLUMP_DEPTH;
+    const y = Math.round(g.yTop + (d / 2) * g.cw) + 0.5;
+    const xa = g.x0 + ((d + 1) / 2) * g.cw;
+    const xb = g.x0 + ((2 * m - d - 1) / 2) * g.cw;
+    ctx.strokeStyle = T.ink3;
+    ctx.setLineDash([3, 3]);
+    ctx.beginPath();
+    ctx.moveTo(xa, y);
+    ctx.lineTo(xb, y);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    /* the label sits over the ground to the right of the rule's end, where the
+       triangle's sloping edge has already left the panel empty */
+    noteAlignedAt(ctx, g.x0 + g.w, y - 4, COPY.windowLabel, 170,
+      { align: "right", baseline: "alphabetic", tone: T.ink3 });
+  }
+  ctx.restore();
+}
+
+/** SNP j's row and column in the triangle: a V hanging from its position. */
+function drawV(ctx, g, j, { stroke, dash = null, width = 1 }) {
+  ctx.save();
+  ctx.strokeStyle = stroke;
+  ctx.lineWidth = width;
+  if (dash) ctx.setLineDash(dash);
+  ctx.beginPath();
+  const xj = g.snpX(j);
+  if (j > 0) {
+    const [ax, ay] = g.cellC(0, j);
+    ctx.moveTo(xj, g.yTop);
+    ctx.lineTo(ax - g.cw / 2, ay + g.cw / 2);
+  }
+  if (j < m - 1) {
+    const [bx, by] = g.cellC(j, m - 1);
+    ctx.moveTo(xj, g.yTop);
+    ctx.lineTo(bx + g.cw / 2, by + g.cw / 2);
+  }
+  ctx.stroke();
+  ctx.restore();
+}
+
+function outlineColumn(ctx, rect, j, stroke) {
+  const cw = rect.w / m;
+  ctx.save();
+  ctx.strokeStyle = stroke;
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(rect.x + j * cw, rect.y - 1, cw, rect.h + 2);
+  ctx.restore();
+}
+
+/** The pair's statistics: r² from the pool, and how many of the drawn rows
+    carry the pair in one of its two commonest forms (D ≥ 0: both derived or
+    both ancestral; D < 0: one of each). */
+function pairStats(j, k, rows = HAP_ROWS) {
+  const H = REG.hap.H;
+  const n = H[0].length;
+  let pa = 0;
+  let pb = 0;
+  let pab = 0;
+  for (let i = 0; i < n; i += 1) { pa += H[j][i]; pb += H[k][i]; pab += H[j][i] * H[k][i]; }
+  const D = pab / n - (pa / n) * (pb / n);
+  const coupled = D >= 0 ? (a, b) => a === b : (a, b) => a !== b;
+  const flags = [];
+  let together = 0;
+  for (let i = 0; i < rows; i += 1) {
+    const t = coupled(H[j][i], H[k][i]);
+    flags.push(t);
+    if (t) together += 1;
+  }
+  return {
+    r2: REG.R[j][k], D, together, flags,
+    dist: Math.abs(REG.hap.positions[j] - REG.hap.positions[k]),
+  };
+}
+function columnStats(j) {
+  let n = 0;
+  let reach = 0;
+  for (let k = 0; k < m; k += 1) {
+    if (k !== j && REG.R[j][k] > M.R_HIGH) {
+      n += 1;
+      reach = Math.max(reach, Math.abs(REG.hap.positions[j] - REG.hap.positions[k]));
+    }
+  }
+  return { n, reach, pos: REG.hap.positions[j], r2Causal: REG.R[j][REG.causal] };
+}
+
+const pairLine = (j, k, s) =>
+  `SNP ${Math.min(j, k) + 1} and SNP ${Math.max(j, k) + 1} · ${int(s.dist)} kb apart · r² ${fmt(s.r2, 2)} · `
+  + `the two alleles travel together in ${s.together} of ${HAP_ROWS} rows`;
+const columnLine = (j, s) =>
+  `SNP ${j + 1} at ${int(s.pos)} kb${j === REG.causal ? ", the causal SNP" : ""} · r² above ${M.R_HIGH} `
+  + `with ${s.n} SNP${s.n === 1 ? "" : "s"}, the furthest ${int(s.reach)} kb away`;
+
+/** The pair overlay: the cell, its two legs, both columns, the concordant rows. */
+function drawPair(ctx, g, block, j, k) {
+  const hi = Math.max(j, k);
+  const lo = Math.min(j, k);
+  const st = pairStats(hi, lo);
+  const cw = block.w / m;
+  const rh = block.h / HAP_ROWS;
+  ctx.save();
+  ctx.fillStyle = alphaOf(T.highlight, 0.38);
+  for (let i = 0; i < HAP_ROWS; i += 1) {
+    if (!st.flags[i]) continue;
+    ctx.fillRect(block.x + lo * cw, block.y + i * rh, (hi - lo + 1) * cw, rh);
+  }
+  ctx.restore();
+  outlineColumn(ctx, block, lo, T.highlight);
+  outlineColumn(ctx, block, hi, T.highlight);
+  const [cx, cy] = g.cellC(lo, hi);
+  ctx.save();
+  ctx.strokeStyle = T.highlight;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(cx, cy);
+  ctx.lineTo(g.snpX(lo), g.yTop);
+  ctx.moveTo(cx, cy);
+  ctx.lineTo(g.snpX(hi), g.yTop);
+  ctx.stroke();
+  ctx.lineWidth = 1.5;
+  const h = g.cw / 2 + 1;
+  ctx.beginPath();
+  ctx.moveTo(cx, cy - h);
+  ctx.lineTo(cx + h, cy);
+  ctx.lineTo(cx, cy + h);
+  ctx.lineTo(cx - h, cy);
+  ctx.closePath();
+  ctx.stroke();
+  ctx.restore();
+  return st;
+}
+
+function drawColumnHover(ctx, g, block, j) {
+  outlineColumn(ctx, block, j, T.highlight);
+  drawV(ctx, g, j, { stroke: T.highlight, width: 1.25 });
+  return columnStats(j);
+}
+
+/** One step-1 still: the head line, the block, the triangle, and one overlay. */
+function drawStep1(ctx, { windowLine = false, hover = null, foot = null, img = TRI_FULL, w = STAGE_W }) {
+  const panelW = w - X0 - M.AX_R;
+  const block = { x: X0, y: BLOCK.y, w: panelW, h: BLOCK.h };
+  const g = geom(X0, TRI_TOP, panelW);
+  tinyAt(ctx, X0, M.HEAD_Y, M.stepLine("haplotypes"), "left", T.highlight);
+  noteAt(ctx, X0 + panelW, M.HEAD_Y + 10, M.HANDOFFS.haplotypes, panelW * 0.6, T.ink3);
+  let line = foot;
+  let stats = null;
+  if (hover?.kind === "pair") {
+    stats = pairStats(Math.max(hover.j, hover.k), Math.min(hover.j, hover.k));
+    line = pairLine(hover.j, hover.k, stats);
+  } else if (hover?.kind === "column") {
+    stats = columnStats(hover.j);
+    line = columnLine(hover.j, stats);
+  }
+  const lineW = drawBlock(ctx, block, { foot: line });
+  drawTri(ctx, g, {
+    img,
+    caption: img === TRI_CLIPPED ? M.STRINGS.triCaption : COPY.triCaption,
+    windowLine,
+  });
+  /* the rest indicator: the causal SNP's V, in the reference colour */
+  drawV(ctx, g, REG.causal, { stroke: T.reference, dash: [3, 3] });
+  if (hover?.kind === "pair") drawPair(ctx, g, block, hover.j, hover.k);
+  if (hover?.kind === "column") drawColumnHover(ctx, g, block, hover.j);
+  return { height: TRI_TOP + g.depth + M.TRI_FOOT, depth: g.depth, lineW, stats, g, block };
+}
+
+const COPY = {
+  triCaption: "r² between every pair of SNPs in the region",
+  windowLabel: `the clumping window · ${M.CLUMP_KB} kb`,
+  legendHover: "The SNP or pair under the pointer, and the rows where its alleles travel together",
+  legendCausal: "The causal SNP's position, and its pairs in the triangle",
+};
+
+/* --- §1 -------------------------------------------------------------------- */
+
+const H_550 = Math.ceil(TRI_TOP + geom(X0, TRI_TOP, PANEL_W).depth + M.TRI_FOOT);
+const H_690 = Math.ceil(TRI_TOP + geom(X0, TRI_TOP, 690 - X0 - M.AX_R).depth + M.TRI_FOOT);
+const H_TODAY = Math.ceil(TRI_TOP + Math.ceil((M.CLUMP_DEPTH / 2) * (PANEL_W / (m - 1))) + M.TRI_FOOT);
+{
+  const row = document.getElementById("triRow");
+  const sub = `seed ${SEED}, the widget's default · 100 SNPs at 5 kb · 40 of 1,000 haplotypes\nstage 550 × ${H_550}`;
+  {
+    const box = cand(row, "A · the whole triangle", sub);
+    const ctx = canvasIn(box, STAGE_W, H_550);
+    const r = drawStep1(ctx, {});
+    mline(box, `triangle ${Math.round(r.depth)}px deep (was ${H_TODAY - TRI_TOP - M.TRI_FOOT}px clipped) · stage ${H_550}px (was ${H_TODAY})`);
+  }
+  {
+    const box = cand(row, "B · the whole triangle, the clumping window's reach as a rule", sub);
+    const ctx = canvasIn(box, STAGE_W, H_550);
+    drawStep1(ctx, { windowLine: true });
+    mline(box, `the rule sits ${Math.round((M.CLUMP_DEPTH / 2) * (PANEL_W / m))}px below the axis — every pair clumping can join is above it`);
+  }
+  /* the numbers the rule is drawn on */
+  let below = 0;
+  let belowHigh = 0;
+  let belowMax = 0;
+  let above = 0;
+  for (let j = 0; j < m; j += 1) {
+    for (let k = 0; k < j; k += 1) {
+      if (j - k > M.CLUMP_DEPTH) {
+        below += 1;
+        belowMax = Math.max(belowMax, REG.R[j][k]);
+        if (REG.R[j][k] > M.R_HIGH) belowHigh += 1;
+      } else above += 1;
+    }
+  }
+  document.getElementById("triMeasure").textContent =
+    `pairs within the 250 kb window: ${int(above)} · beyond it: ${int(below)}, of which ${belowHigh} above r² ${M.R_HIGH}; `
+    + `the largest r² beyond the window is ${fmt(belowMax, 3)}\n`
+    + `stage height: 550 wide → ${H_550}px (today ${H_TODAY}); 690 wide → ${H_690}px — the rail on step 1 is ~672px, so both fit under it`;
+  document.getElementById("recTri").innerHTML =
+    `<b>B.</b> The whole triangle is what he asked for and the numbers say why it is safe to show: of the `
+    + `${int(below)} pairs beyond the window the largest r² is ${fmt(belowMax, 2)} and ${belowHigh} clear ${M.R_HIGH}, so the `
+    + `deeper half is the ground the caption promises, and seeing it be ground is the point — a student who `
+    + `has only ever seen the clipped strip cannot know that LD runs out. The one rule earns its place because `
+    + `step 2 is about to act on exactly the pairs above it, and the hand-off between the two steps is then a `
+    + `line the reader has already looked at. <b>The cost</b> is ${H_550 - H_TODAY}px of stage at 550 and `
+    + `${H_690 - Math.ceil(TRI_TOP + Math.ceil((M.CLUMP_DEPTH / 2) * ((690 - X0 - M.AX_R) / (m - 1))) + M.TRI_FOOT)}px at 690, `
+    + `both still under the rail. <b>Against A:</b> nothing on the figure says where clumping's reach ends, and `
+    + `the hover in §2 cannot say it either. <b>And whichever is picked, the build spaces the triangle's SNPs `
+    + `at w / 100</b> so a cell sits above the midpoint of its two columns; today's w / 99 is out by five `
+    + `pixels at the right edge, which the hover would make visible.`;
+}
+
+/* --- §2 -------------------------------------------------------------------- */
+
+{
+  const row = document.getElementById("linkRow");
+  const lead = REG.idx[REG.lead];
+  const sub = (s) => `${s}\nstage 550 × ${H_550}`;
+  const outs = [];
+  {
+    const box = cand(row, "at rest — the causal SNP's row and column, dashed", sub("no pointer; the block's foot line as shipped"));
+    const ctx = canvasIn(box, STAGE_W, H_550);
+    drawStep1(ctx, { windowLine: true });
+  }
+  {
+    const box = cand(row, `a block column under the pointer — SNP ${lead + 1}, the lead SNP`, sub("the column outlined, its V in the highlight colour, the reading under the block"));
+    const ctx = canvasIn(box, STAGE_W, H_550);
+    const r = drawStep1(ctx, { windowLine: true, hover: { kind: "column", j: lead } });
+    outs.push(`column reading: "${columnLine(lead, r.stats)}" — ${Math.round(r.lineW)}px of ${PANEL_W}`);
+  }
+  {
+    const box = cand(row, `a triangle cell under the pointer — the causal SNP and the lead SNP`, sub("the cell, its two legs, both columns, and every row carrying the pair together"));
+    const ctx = canvasIn(box, STAGE_W, H_550);
+    const r = drawStep1(ctx, { windowLine: true, hover: { kind: "pair", j: REG.causal, k: lead } });
+    outs.push(`pair reading: "${pairLine(REG.causal, lead, r.stats)}" — ${Math.round(r.lineW)}px of ${PANEL_W}`);
+    outs.push(`D ${fmt(r.stats.D, 3)} so the coupled forms are ${r.stats.D >= 0 ? "both derived / both ancestral" : "one of each"}; `
+      + `${r.stats.together} of ${HAP_ROWS} rows carry them`);
+  }
+  /* a low-r² pair for the measure line: a pair 250 kb apart at the same SNP */
+  {
+    const far = Math.min(m - 1, REG.causal + 50);
+    const s = pairStats(far, REG.causal);
+    outs.push(`for contrast, SNP ${REG.causal + 1} with SNP ${far + 1}, ${int(s.dist)} kb away: r² ${fmt(s.r2, 2)}, together in ${s.together} of ${HAP_ROWS} rows`);
+  }
+  /* the longest reading line the region can produce, so the width is known */
+  let longest = 0;
+  let longestS = "";
+  for (let j = 1; j < m; j += 1) {
+    for (let k = 0; k < j; k += 1) {
+      const s = pairLine(j, k, { dist: (j - k) * 5, r2: 0.999, together: HAP_ROWS });
+      const w = textW(s, noteFont());
+      if (w > longest) { longest = w; longestS = s; }
+    }
+  }
+  outs.push(`the longest pair reading the region can produce is ${Math.round(longest)}px at --fs-xs, against ${PANEL_W}px under the block: "${longestS}"`);
+  document.getElementById("linkMeasure").textContent = outs.join("\n");
+}
+
+/* the live canvas */
+{
+  const row = document.getElementById("liveRow");
+  const box = cand(row, "live — move the pointer over the block or the triangle",
+    "the same drawing, driven by the pointer; the reading line changes with it\nthe cursor is a pointer over a column or a cell and default elsewhere");
+  const ctx = canvasIn(box, STAGE_W, H_550);
+  const cv = ctx.canvas;
+  const g = geom(X0, TRI_TOP, PANEL_W);
+  let hover = null;
+  const render = () => {
+    clear(ctx, STAGE_W, H_550);
+    drawStep1(ctx, { windowLine: true, hover });
+  };
+  const hitAt = (x, y) => {
+    if (x >= BLOCK.x && x < BLOCK.x + BLOCK.w && y >= BLOCK.y && y < BLOCK.y + BLOCK.h) {
+      return { kind: "column", j: Math.floor((x - BLOCK.x) / (BLOCK.w / m)) };
+    }
+    if (y >= g.yTop) {
+      const a = (x - g.x0) / g.cw;
+      const b = (y - g.yTop) / g.cw;
+      const u = Math.floor(a - b);
+      const v = Math.floor(a + b);
+      if (u >= 0 && v < m && v > u) return { kind: "pair", j: v, k: u };
+    }
+    return null;
+  };
+  const same = (p, q) => (p === null && q === null)
+    || (p && q && p.kind === q.kind && p.j === q.j && p.k === q.k);
+  cv.addEventListener("pointermove", (ev) => {
+    const r = cv.getBoundingClientRect();
+    const h = hitAt(ev.clientX - r.left, ev.clientY - r.top);
+    cv.style.cursor = h ? "pointer" : "default";
+    if (same(h, hover)) return;
+    hover = h;
+    render();
+  });
+  cv.addEventListener("pointerleave", () => { hover = null; cv.style.cursor = "default"; render(); });
+  render();
+  const t0 = performance.now();
+  for (let i = 0; i < 20; i += 1) render();
+  const per = (performance.now() - t0) / 20;
+  document.getElementById("liveMeasure").textContent =
+    `one repaint of the still with an overlay: ${fmt(per, 1)} ms warm (the two images are cached; the widget caches neither and redraws 4,000 + 4,950 cells a paint — the build caches both, keyed on the state)`;
+}
+
+document.getElementById("recLink").innerHTML =
+  `<b>All three, as drawn.</b> The rest indicator is what makes the hover teachable: a student sees the V `
+  + `under the causal SNP before touching anything, and the first hover on a column produces the same shape `
+  + `somewhere else, so "a SNP's row and column" is learnt from the figure and not from a caption. The pair `
+  + `overlay is the one that carries the idea — the bands are the rows on the same stretch of ancestor, and `
+  + `their count beside the r² is the closest the figure can come to defining r² without a formula. <b>Two `
+  + `things to decide on the pair overlay:</b> the bands cover the whole stretch between the columns, which `
+  + `at 25 kb is five columns and at 250 kb is fifty, so a distant pair paints half the block — the alternative `
+  + `is to band only the two columns themselves, which loses the "stretch" reading; and the discordant rows `
+  + `are left unmarked rather than marked in a second colour, because the block already carries two tones and `
+  + `a third would be colour carrying two groupings. <b>The reading line replaces the foot line</b> rather than `
+  + `adding a row, so the stage height does not move with the pointer; its longest possible text fits under `
+  + `the block with room to spare (the measure line above).`;
+
+document.getElementById("recModel").innerHTML =
+  `<b>C, hover previews and a click pins.</b> A alone serves the lecturer with a mouse and nobody else: a `
+  + `lesson link cannot open on a pair, and on the projector the figure returns to the causal V the moment the `
+  + `pointer leaves. B alone makes every look a click, which is the wrong gesture for scanning a hundred `
+  + `columns. Together they cost one extra function argument, because the overlay is the same drawing whether `
+  + `its subject came from the pointer or from the URL. <b>The parameter</b> is a hidden display one, `
+  + `<code>snps</code>, holding one SNP number or two ("37" or "37,52", the same numbers the reading line `
+  + `prints); display so a pin does not reset the run; hidden because the rail has no control worth the `
+  + `height, and the figure is its control. <b>Clicking the pinned column or cell clears it.</b> The `
+  + `<code>regions</code> table is the block's 100 columns and the triangle's 4,950 cells as their bounding `
+  + `squares; a cell is 4.9px across at 550 and the squares overlap by half at the corners, which is a miss of `
+  + `at most one cell where nobody can aim anyway. That table gives the widget its hit-driven state at ship: `
+  + `<code>?page=haplotypes&shown=40</code> then a hit on the lead SNP's column, and one on the causal-lead `
+  + `cell. <b>Before the run completes</b> the triangle is not drawn (decision 13: the r² is over the whole `
+  + `pool, not the rows on screen), so the hover and the click are live only once it is — the cursor says so.`;
+
+/* ==========================================================================
+   §4 · step 3's axis
+   ====================================================================== */
+
+const AX_W = 490;
+const AX_X = 52;
+const GENO = { x: AX_X, y: 40, w: AX_W, h: 28 };
+const WTS = { x: AX_X, y: 100, w: AX_W, h: 56 };
+const SUM = { x: AX_X, y: 196, w: AX_W, h: 96 };
+const AX_H = 330;
+
+/**
+ * One still of step 3's three strips.
+ *
+ *   mode "batch"       today: forty unit columns, then one wide column
+ *        "fixed"       B: the axis is the kept count from the first frame
+ *        "grow"        C: the axis is max(W, added) — squeezes as SNPs arrive
+ *        "compressed"  D: today's columns and bars, the sum walking through the batch
+ *   added              how many SNPs the run has added
+ */
+function drawStep3(ctx, st, { mode, added, W = 40 }) {
+  const n = st.n;
+  const ax = M.scoreAxis(AX_W, n);
+  let units;
+  let colX;
+  let colW;
+  if (mode === "batch" || mode === "compressed") {
+    units = ax.units;
+    colW = (i) => (i < M.SCORE_COUNTABLE ? ax.cw : ax.batchW / Math.max(1, n - M.SCORE_COUNTABLE));
+    colX = (i) => (i < M.SCORE_COUNTABLE
+      ? AX_X + i * ax.cw
+      : AX_X + ax.batchX + (i - M.SCORE_COUNTABLE) * colW(i));
+  } else {
+    const dom = mode === "fixed" ? n : Math.max(W, added);
+    units = dom;
+    const cw = AX_W / dom;
+    colW = () => cw;
+    colX = (i) => AX_X + i * cw;
+  }
+  const perCol = (i) => colW(i);
+  const shown = Math.min(added, n);
+  const batched = (mode === "batch" || mode === "compressed") && n > M.SCORE_COUNTABLE;
+  const countable = batched ? Math.min(shown, M.SCORE_COUNTABLE) : shown;
+  const batch = batched && shown >= n ? M.batchTotals(st) : null;
+  const newest = shown > 0 && shown < n ? shown - 1 : -1;
+  const batchX = AX_X + ax.batchX;
+
+  const rule = (rect) => {
+    if (!batched) return;
+    ctx.save();
+    ctx.strokeStyle = T.grid;
+    ctx.lineWidth = 1;
+    ctx.setLineDash([3, 3]);
+    ctx.beginPath();
+    ctx.moveTo(Math.round(batchX) + 0.5, rect.y);
+    ctx.lineTo(Math.round(batchX) + 0.5, rect.y + rect.h);
+    ctx.stroke();
+    ctx.restore();
+  };
+
+  /* genotypes: dots while a column can hold them, a bar of 0–2 units below 4px */
+  capAt(ctx, GENO.x, GENO.y - 8, M.STRINGS.genoCaption, GENO.w * 0.72);
+  noteAt(ctx, GENO.x + GENO.w, GENO.y - 8, `person ${st.person}`, GENO.w * 0.25);
+  rule(GENO);
+  ctx.save();
+  for (let i = 0; i < countable; i += 1) {
+    const cw = perCol(i);
+    const x = colX(i);
+    ctx.fillStyle = i === newest ? T.highlight : T.groupA;
+    if (cw >= 4) {
+      const r = Math.max(1.6, Math.min(5, cw / 2 - 1.2));
+      for (let gg = 0; gg < st.genotype[i]; gg += 1) {
+        ctx.beginPath();
+        ctx.arc(x + cw / 2, GENO.y + GENO.h - 4 - gg * (2 * r + 2), r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    } else {
+      const unit = (GENO.h - 4) / 2;
+      const h = unit * st.genotype[i];
+      ctx.fillRect(x, GENO.y + GENO.h - h, Math.max(0.5, cw - 0.5), h);
+    }
+  }
+  ctx.restore();
+  if (batch) {
+    const full = GENO.h - 4;
+    const h = full * (batch.n > 0 ? batch.alleles / (2 * batch.n) : 0);
+    ctx.save();
+    ctx.fillStyle = T.groupA;
+    ctx.fillRect(batchX + 3, GENO.y + GENO.h - h, ax.batchW - 6, h);
+    ctx.restore();
+    noteAt(ctx, GENO.x + GENO.w, GENO.y + 10, M.batchAlleleLabel(batch.n, batch.alleles), ax.batchW - 6 + 40);
+  }
+  ctx.save();
+  ctx.strokeStyle = T.grid;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(GENO.x, GENO.y + GENO.h + 0.5);
+  ctx.lineTo(GENO.x + GENO.w, GENO.y + GENO.h + 0.5);
+  ctx.stroke();
+  ctx.restore();
+
+  /* weights */
+  const bMax = Math.max(...st.beta.map((b) => Math.abs(b))) * 1.12;
+  const wPlot = makePlot({ ctx, colors: T, rect: WTS, xDomain: [0, units], yDomain: [-bMax, bMax] });
+  wPlot.caption(fit(batch ? M.STRINGS.weightCaptionBatch : M.STRINGS.weightCaption, capFont(), WTS.w * 0.62));
+  wPlot.note(M.STRINGS.weightNote);
+  rule(WTS);
+  const zeroY = Math.round(wPlot.sy(0)) + 0.5;
+  ctx.save();
+  ctx.strokeStyle = T.axis;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(WTS.x, zeroY);
+  ctx.lineTo(WTS.x + WTS.w, zeroY);
+  ctx.stroke();
+  for (let i = 0; i < countable; i += 1) {
+    const cw = perCol(i);
+    const bw = Math.max(0.6, cw - Math.min(2, cw * 0.3));
+    ctx.fillStyle = i === newest ? T.highlight : T.groupB;
+    const x = colX(i) + (cw - bw) / 2;
+    const y = wPlot.sy(st.beta[i]);
+    ctx.fillRect(x, Math.min(y, zeroY), bw, Math.abs(y - zeroY));
+  }
+  if (batch) {
+    const scale = Math.max(Math.abs(st.total), Math.abs(batch.contrib)) || 1;
+    const half = WTS.h / 2 - 2;
+    const h = half * Math.min(1, Math.abs(batch.contrib) / scale);
+    ctx.fillStyle = T.groupB;
+    ctx.fillRect(batchX + 3, batch.contrib < 0 ? zeroY : zeroY - h, ax.batchW - 6, h);
+    noteAt(ctx, GENO.x + GENO.w, batch.contrib < 0 ? zeroY - 4 : zeroY + 4 + 15,
+      M.batchWeightLabel(batch.contrib), ax.batchW - 6, T.ink2);
+  }
+  ctx.restore();
+  wPlot.axisY({ ticks: [-bMax * 0.75, 0, bMax * 0.75], format: (v) => v.toFixed(2) });
+
+  /* the running sum */
+  const lo = Math.min(0, ...st.cum) * 1.1;
+  const hi = Math.max(0, ...st.cum) * 1.1;
+  const sPlot = makePlot({ ctx, colors: T, rect: SUM, xDomain: [0, units], yDomain: [lo || -0.1, hi || 0.1] });
+  sPlot.caption(M.STRINGS.sumCaption);
+  sPlot.note(`${int(shown)} of ${int(n)} SNPs added`);
+  sPlot.grid([0]);
+  rule(SUM);
+  if (shown > 0) {
+    const pts = [[0, 0]];
+    const unitOf = (i) => (colX(i) + perCol(i) - AX_X) / (AX_W / units);
+    if (mode === "batch") {
+      for (let i = 0; i < countable; i += 1) pts.push([unitOf(i), st.cum[i]]);
+      if (batch) pts.push([units, st.total]);
+    } else {
+      for (let i = 0; i < shown; i += 1) pts.push([unitOf(i), st.cum[i]]);
+    }
+    const step = [pts[0]];
+    for (let i = 1; i < pts.length; i += 1) {
+      step.push([pts[i - 1][0], pts[i][1]]);
+      step.push(pts[i]);
+    }
+    sPlot.curve(step, { stroke: T.empirical, width: pts.length > 400 ? 1.5 : 2 });
+    const last = pts[pts.length - 1];
+    sPlot.dot(last[0], last[1], { fill: T.empirical, r: 3.5 });
+  }
+  sPlot.axisY({ format: (v) => v.toFixed(1) });
+  const ticks = batched ? [0, 10, 20, 30, 40]
+    : units <= 60 ? undefined
+      : [0, 0.25, 0.5, 0.75, 1].map((f) => Math.round(f * units));
+  sPlot.axisX({ label: M.STRINGS.sumX, ticks, format: (v) => v.toFixed(0) });
+  if (batched) {
+    tinyAt(ctx, batchX + ax.batchW / 2, SUM.y + SUM.h + 6, M.batchAxisLabel(n - M.SCORE_COUNTABLE), "center");
+  }
+  return { colW: perCol(0), units };
+}
+
+const MAX_RUN_MS = 7000;
+{
+  const row = document.getElementById("axisRow");
+  const st = PS_160;
+  const sub = (s) => `${s}\n160 SNPs kept · base 15,000 · P < 0.01 · person 1 · seed 41`;
+  const outs = [];
+  {
+    const box = cand(row, "A · today — forty columns, then one batch on one beat", sub("finished: the sum's last step is one flat run across the wide column"));
+    const ctx = canvasIn(box, STAGE_W, AX_H);
+    const r = drawStep3(ctx, st, { mode: "batch", added: st.n });
+    outs.push(`A: ${fmt(r.colW, 1)}px a column for forty, the batch ${fmt(AX_W * M.SCORE_BATCH_FRAC, 0)}px wide; 41 beats`);
+  }
+  {
+    const box = cand(row, "B · the axis is the kept count from the first frame", sub("finished: 160 columns, every SNP its own step"));
+    const ctx = canvasIn(box, STAGE_W, AX_H);
+    const r = drawStep3(ctx, st, { mode: "fixed", added: st.n });
+    outs.push(`B: ${fmt(r.colW, 2)}px a column at 160 (dots need 4px, so the genotype strip is bars of 0–2 units here); `
+      + `160 beats in ${MAX_RUN_MS / 1000} s is ${fmt(MAX_RUN_MS / st.n, 0)} ms a SNP`);
+  }
+  {
+    const box = cand(row, "C · his — a 40-column window, then the axis grows a column a SNP", sub("mid-run at 80 of 160: the eighty drawn so far have been squeezed into half the panel"));
+    const ctx = canvasIn(box, STAGE_W, AX_H);
+    const r = drawStep3(ctx, st, { mode: "grow", added: 80, W: 40 });
+    outs.push(`C at 80 added: ${fmt(r.colW, 2)}px a column; at the finish C is B exactly — the difference is the run, where every column already drawn moves left on every beat after the fortieth`);
+  }
+  {
+    const box = cand(row, "C′ · the same with a 150-column window", sub("mid-run at 80 of 160: unit columns are 3.3px from the first SNP"));
+    const ctx = canvasIn(box, STAGE_W, AX_H);
+    const r = drawStep3(ctx, st, { mode: "grow", added: 80, W: 150 });
+    outs.push(`C′ at 80 added: ${fmt(r.colW, 2)}px a column, and the first SNP was drawn at that width too`);
+  }
+  {
+    const box = cand(row, "D · today's columns and totals, the sum walking through the batch", sub("finished: the 120 batched steps compressed into the wide column, the strips as today"));
+    const ctx = canvasIn(box, STAGE_W, AX_H);
+    const r = drawStep3(ctx, st, { mode: "compressed", added: st.n });
+    outs.push(`D: the batch's 120 steps at ${fmt((AX_W * M.SCORE_BATCH_FRAC) / 120, 2)}px each, ${fmt(r.colW, 1)}px for the forty`);
+  }
+  document.getElementById("axisMeasure").textContent = outs.join("\n");
+}
+{
+  const row = document.getElementById("axisEndsRow");
+  const outs = [];
+  {
+    const box = cand(row, "B at 35 kept", "base 1,500 · P < 0.01 — the round-one picture, unchanged\nfinished");
+    const ctx = canvasIn(box, STAGE_W, AX_H);
+    const r = drawStep3(ctx, PS_35, { mode: "fixed", added: PS_35.n });
+    outs.push(`B at 35: ${fmt(r.colW, 1)}px a column, dots; 35 beats at ${fmt(Math.max(140, Math.min(1200, 3200 / 35)), 0)} ms is ${fmt(35 * Math.max(140, Math.min(1200, 3200 / 35)) / 1000, 1)} s`);
+  }
+  {
+    const box = cand(row, "B at 1,000 kept", "P ≤ 1, every SNP in the base study\nfinished");
+    const ctx = canvasIn(box, STAGE_W, AX_H);
+    const r = drawStep3(ctx, PS_1000, { mode: "fixed", added: PS_1000.n });
+    outs.push(`B at 1,000: ${fmt(r.colW, 2)}px a column — the strips are texture, the sum is a 1,000-step walk; 1,000 beats in ${MAX_RUN_MS / 1000} s is ${fmt(MAX_RUN_MS / 1000, 0)} ms a SNP, two or three a frame`);
+  }
+  {
+    const box = cand(row, "C′ at 35 kept", "a 150-column window with 35 SNPs in it\nfinished");
+    const ctx = canvasIn(box, STAGE_W, AX_H);
+    const r = drawStep3(ctx, PS_35, { mode: "grow", added: PS_35.n, W: 150 });
+    outs.push(`C′ at 35: ${fmt(r.colW, 2)}px a column and ${fmt(100 * (1 - 35 / 150), 0)}% of the panel empty`);
+  }
+  outs.push(`kept counts at seed 41 across the eleven thresholds — base 1,500: ${ST_SMALL.genome.rows.map((r) => r.nSnp).join(" · ")}; base 15,000: ${ST.genome.rows.map((r) => r.nSnp).join(" · ")}`);
+  document.getElementById("axisEndsMeasure").textContent = outs.join("\n");
+}
+
+document.getElementById("recAxis").innerHTML =
+  `<b>B — the axis is the kept count from the first frame, every SNP its own column, and no batch.</b> `
+  + `Read in the browser at all three counts: at 160 the sum is a staircase of 160 steps, at 1,000 it is a walk `
+  + `that takes its big steps early and then settles, and at 35 it is the round-one picture unchanged. That `
+  + `shape is not decoration, it is the order the axis already names: the SNPs are added lowest P first, so `
+  + `the strongest weights come first and the hundreds after them add steps the size of noise — which is the `
+  + `same fact step 4's plateau states, met here one SNP at a time. The flat run was a lie about the path and `
+  + `B tells the truth about it at every count. <b>What it gives up:</b> below a 4px column the genotype dots `
+  + `become bars of 0, 1 or 2 units (${fmt(AX_W / 160, 1)}px at 160) and at 1,000 both strips are texture — an honest `
+  + `texture, since a score over a thousand SNPs is one. <b>The run:</b> ${MAX_RUN_MS / 1000 - 1} s whatever the count, so `
+  + `${fmt((MAX_RUN_MS - 1000) / 160, 0)} ms a SNP at 160 and ${fmt((MAX_RUN_MS - 1000) / 1000, 0)} ms at 1,000 — two or three a frame, `
+  + `which the rate clock already handles (model.js, PACING); Next SNP stays one SNP. <b>What it deletes:</b> `
+  + `decisions 11 and 14, the batch beat, the totals bars and their three labels, the dashed rule, and the `
+  + `batch's caption switch — and <code>shown=</code> goes back to meaning a count of SNPs at every threshold. `
+  + `<b>Against C, his proposal:</b> at the finish C is B to the pixel; the difference is the run, where every `
+  + `beat past the window moves every column already drawn, so the reader's eye is asked to follow the newest `
+  + `step while the whole staircase slides left under it. And a window of 150 (C&prime;) costs the small counts `
+  + `the texture he liked in round one — 35 SNPs in a 150-column axis is three quarters of a panel empty. `
+  + `<b>Against D:</b> it keeps two regimes on one axis — forty columns with a scale and a wide one without — `
+  + `and the strips would still say totals while the sum says steps. <b>If he wants the countable forty kept `
+  + `at the finish</b>, D is the only way to have both, at the price above.`;
+
+/* ==========================================================================
+   §5 · the strings
+   ====================================================================== */
+{
+  const host = document.getElementById("strings");
+  const tb = el("table", "facts");
+  const hd = el("tr");
+  for (const h of ["where", "string", "note"]) hd.appendChild(el("th", null, h));
+  tb.appendChild(hd);
+  const add = (where, s, note) => {
+    const tr = el("tr");
+    tr.appendChild(el("td", null, where));
+    tr.appendChild(el("td", null, s));
+    tr.appendChild(el("td", null, note));
+    tb.appendChild(tr);
+  };
+  const lead = REG.idx[REG.lead];
+  add("caption · triangle", COPY.triCaption, `was “${M.STRINGS.triCaption}”`);
+  add("rule label · triangle (B)", COPY.windowLabel, "new");
+  add("reading · block column", columnLine(lead, columnStats(lead)), "new; replaces the foot line while the pointer is on a column");
+  add("reading · triangle cell", pairLine(REG.causal, lead, pairStats(Math.max(REG.causal, lead), Math.min(REG.causal, lead))), "new; replaces the foot line while the pointer is on a cell");
+  add("legend", COPY.legendHover, "new, --c-highlight");
+  add("legend", COPY.legendCausal, `was “The causal SNP's position” — the V is its pairs`);
+  add("summary · step 1 finished", "…with the r² between every pair underneath", "was “every pair within 250 kb”");
+  add("readout · tile 3 note", "the longest run of shared ancestor between two SNPs", "unchanged; the pair reading says the same thing for one pair");
+  host.appendChild(tb);
+}
+
+document.getElementById("engineLine").textContent =
+  `engine: model.js at seed ${SEED}, three builds (15,000 and 1,500 base) in ${fmt(T_BUILD, 0)} ms · `
+  + `region: causal SNP ${REG.causal + 1} at ${int(REG.causalPos)} kb, lead SNP ${REG.idx[REG.lead] + 1} at r² ${fmt(REG.leadR2, 2)}, `
+  + `${int(REG.pairsHigh)} of ${int(REG.pairsTotal)} pairs above r² ${M.R_HIGH}, the furthest ${int(REG.pairReach)} kb · `
+  + `page drawn in ${fmt(performance.now() - T0, 0)} ms`;
+</script>
+</body>
+</html>
