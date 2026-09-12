@@ -7557,6 +7557,40 @@ differently from the brief, each with a `FIRST WRITTEN AS` comment:
 8. The tuned-minus-holdout gap across two cohorts is cohort noise (0.015
    ± 0.009); the paired within-cohort gain is the clean number (4 above).
 
+**MOCKED 2026-09-12, `_lab/prs-mock.html` (`2f5c49d`)**, eight sections
+on the region (100 SNPs × 5 kb, seed 1: 28 SNPs under P < 0.05, 8 clumps,
+the lead NOT the causal SNP, 15 kb off at r² 0.83) and the small genome
+(base 1,500 × m 1,000 × 300 causal, 41 ms; the 2,000/600 genome 163 ms,
+over budget); the lesson's four figures in `_lab/figs/prs-*.png`. What
+the drawing found: the r² triangle's deeper half is r² ≈ 0, so it clips to
+the 250 kb clumping window at 124px (13 of 1,389 pairs over r² 0.1 lie
+beyond it); `--c-group-a` IS `--c-empirical`'s hue, so the weights take
+`--c-group-b`; page 2 at the small genome keeps 9 / 38 / 99 SNPs at the
+three thresholds, not 22; seed 1's four page-4 panels only read
+monotone (matched > nearby > distant) when each population draws from
+its own rng stream; the nearby ratio is 0.92 as a mean of ratios and 0.79
+as a ratio of means (the page uses the latter and says so); core's one
+drive row cannot be hidden on page 4. Two defects fixed after the main
+session read it: the threshold curve's notes off the dashed kept-count
+curve; the vigintile plot's mean-line label removed (every bin's interval
+at 319 people reaches the line) and named in the legend.
+
+**Kenneth's picks, 2026-09-12 (in three calls; every recommendation, and
+two questions on nomenclature):**
+
+| § | pick |
+|---|---|
+| 1 | **A**: the association plot over the r² triangle clipped to the 250 kb window, ~400px |
+| 2 | **A at P < 0.01**, weights on `--c-group-b`: the three strips (genotype, weight, running sum) over the cohort's distribution at 38 kept SNPs; the genotype × weight table on the formula card |
+| 3 | **A**: the target's curve and the validation sample's, the best-fit threshold marked, the kept count on a second axis; the P threshold display over a genome drawn once |
+| 4 | **A**: one vigintile panel under a Target population control (Same ancestry as the base · Nearby ancestry · Distant ancestry) |
+| 5 | runs on pages 1–3 (a clump, a SNP, a threshold per beat); **page 4's bins arrive in score order**, 20 beats, so the drive row does something on every page |
+| 6 | the P threshold a **slider over the lesson's 11 values**; page names **LD and clumping · The score · The threshold · The quantile plot**, two per row |
+| 0 | title *Polygenic Risk Scores*; **his question: "I see the word tune — is this normal?"** — "tune" is machine learning's word; the field's are base GWAS, target sample, best-fit threshold, validation sample, out-of-sample. Subtitle **C**, in those terms: *A polygenic score is the sum of effect alleles weighted by base-GWAS effect sizes. Its accuracy is assessed out of sample and depends on the target sample sharing the base study's ancestry.* |
+| 3, words | **his question: "is overfitting the best term? we are not intentionally doing it, right?"** — it is PRSice's own word for this (the manual: the best-fit R² "remains unadjusted and is affected by overfitting") and Choi 2020's, and it names what happens, not an intent. Pick: **overfitting**; the curve's note *best-fit threshold in the target sample, then assessed in the validation sample*; the readout *Overfitting — best-fit R² minus validation R² at that threshold*. No "tuned", no "holdout" in reader-facing copy (the holdout token `--c-holdout` still colours the validation curve) |
+
+Four pages on one rail. Slug `polygenic-score`. NEXT: the draft.
+
 ### Slot 60 · `mendelian-randomization`
 
 **The one thing:** each SNP gives a ratio — its effect on the outcome over
