@@ -8116,7 +8116,7 @@ values) so the cut follows the threshold rather than a hand-picked
 percentile. Readouts: the threshold, the percentile that crosses it, the
 number above it.
 
-### Slot 60 · `mendelian-randomization`
+### Slot 60 · `mendelian-randomization` — SHIPPED 2026-09-13
 
 **The one thing:** each SNP gives a ratio — its effect on the outcome over
 its effect on the exposure — and the causal estimate is those ratios
@@ -8508,6 +8508,26 @@ independence assumptions." and "Mendelian randomization uses genetic
 variants as instruments to estimate an exposure's causal effect on an
 outcome." (115 characters), in the model, the manifest and the stub's meta
 description. Verify 151.
+
+#### SHIPPED 2026-09-13, on Kenneth's "tested ok"
+
+60 fingerprint states recorded through `_lab/mr-shoot.html` (the copy
+proven 6/6 first, every state STABLE over three shots, every drive moved
+its figure), shot after the status flip: 40 settled pinned by `shown=`
+across the overview at each of its beats and under every control, the
+effects harmonised and not and pinned, the estimate under each estimator
+and each assumption and pinned, the forest under each estimator and
+pinned; 11 driven (Play mid-run and one Step on every page, Play past the
+last SNP into the final beat on the estimate and the forest); 7
+interrupted (Step then Play; Play, Reset, Step; a display change mid-run;
+an assumption changed on the finished estimate mid-ease; Harmonise
+switched mid-ease; Confounding to none on the finished overview mid-ease;
+a visit to the forest and back keeping the estimate's run); 2 HIT-DRIVEN
+with the run first (a click on the first column of the exposure strip, a
+click on the forest's eleventh row) — both at coordinates that hold at 550
+and 535px. Status shipped in `main.js`, the manifest and the verify; the
+full suite fronted at DPR 1.25: 757 states, 757 MATCH. `check` and `test` green, read on
+their own.
 
 
 

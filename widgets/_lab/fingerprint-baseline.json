@@ -6194,6 +6194,606 @@
       },
       "px": "115491f3",
       "tx": "0d336231"
+    },
+    {
+      "$note": "RECORDED 2026-09-13 at the ship through _lab/mr-shoot.html (the copy proven 6/6 first), every state STABLE over three shots, every drive moved its figure. the overview opens empty: the graph, the axes, no person",
+      "slug": "mendelian-randomization",
+      "state": "?theme=light&shown=0",
+      "px": "d25f3d09",
+      "tx": "6719cc66"
+    },
+    {
+      "$note": "overview after the observational fit",
+      "slug": "mendelian-randomization",
+      "state": "?theme=light&shown=2",
+      "px": "88015072",
+      "tx": "1c90504b"
+    },
+    {
+      "$note": "overview at stage 1: the genotype groups' mean BMI as guides",
+      "slug": "mendelian-randomization",
+      "state": "?theme=light&shown=3",
+      "px": "20586e1c",
+      "tx": "5e4ada40"
+    },
+    {
+      "$note": "overview at stage 2: the groups' mean CHD risk, the centroids at the crossings",
+      "slug": "mendelian-randomization",
+      "state": "?theme=light&shown=4",
+      "px": "b67c5de1",
+      "tx": "95503f5b"
+    },
+    {
+      "$note": "overview finished: the ratio line, the reading line, the five tiles",
+      "slug": "mendelian-randomization",
+      "state": "?theme=light&shown=5",
+      "px": "d2d0797f",
+      "tx": "70503a5e"
+    },
+    {
+      "$note": "overview finished with the true effect shown",
+      "slug": "mendelian-randomization",
+      "state": "?theme=light&shown=5&truth=on",
+      "px": "0aad473e",
+      "tx": "68a15cef"
+    },
+    {
+      "$note": "overview finished, coloured by the confounders",
+      "slug": "mendelian-randomization",
+      "state": "?theme=light&shown=5&colour=on",
+      "px": "7e650d2f",
+      "tx": "70503a5e"
+    },
+    {
+      "$note": "overview under the exclusion restriction broken: the arc drawn, the ratio biased, the reading names the direct path",
+      "slug": "mendelian-randomization",
+      "state": "?theme=light&shown=5&pleio=0.3",
+      "px": "01381e9f",
+      "tx": "80a2a69d"
+    },
+    {
+      "$note": "overview under independence broken: the confounder-to-SNP arrow",
+      "slug": "mendelian-randomization",
+      "state": "?theme=light&shown=5&indep=broken",
+      "px": "116abeb2",
+      "tx": "338f75f1"
+    },
+    {
+      "$note": "overview with no confounding: the fork's arrows absent, the observational slope unbiased",
+      "slug": "mendelian-randomization",
+      "state": "?theme=light&shown=5&confounding=none",
+      "px": "ca669e5b",
+      "tx": "bff2f07b"
+    },
+    {
+      "$note": "overview with relevance weak: the thin dashed SNP-to-BMI arrow",
+      "slug": "mendelian-randomization",
+      "state": "?theme=light&shown=5&strength=weak",
+      "px": "6948548b",
+      "tx": "70503a5e"
+    },
+    {
+      "$note": "overview at seed 7",
+      "slug": "mendelian-randomization",
+      "state": "?theme=light&shown=5&seed=7",
+      "px": "fc4e0783",
+      "tx": "4348393f"
+    },
+    {
+      "$note": "effects opens empty: the graph, two strips, the scatter's axes",
+      "slug": "mendelian-randomization",
+      "state": "?theme=light&page=gwas&shown=0",
+      "px": "85f29b05",
+      "tx": "dfbf69c2"
+    },
+    {
+      "$note": "effects at 30 of 79, unharmonised",
+      "slug": "mendelian-randomization",
+      "state": "?theme=light&page=gwas&shown=30",
+      "px": "e8fb423a",
+      "tx": "6de861af"
+    },
+    {
+      "$note": "effects finished, unharmonised: the flipped effects in red, the count in the reading line",
+      "slug": "mendelian-randomization",
+      "state": "?theme=light&page=gwas&shown=79",
+      "px": "3aa95db9",
+      "tx": "f432e0d0"
+    },
+    {
+      "$note": "effects finished, harmonised",
+      "slug": "mendelian-randomization",
+      "state": "?theme=light&page=gwas&shown=79&harmonise=on",
+      "px": "cf4c9079",
+      "tx": "4b883660"
+    },
+    {
+      "$note": "effects finished with SNP 5 pinned: its column on both strips, its harmonisation line",
+      "slug": "mendelian-randomization",
+      "state": "?theme=light&page=gwas&shown=79&snp=5",
+      "px": "95ef7c3e",
+      "tx": "f432e0d0"
+    },
+    {
+      "$note": "effects under relevance weak: wide intervals on the exposure strip, F under 10",
+      "slug": "mendelian-randomization",
+      "state": "?theme=light&page=gwas&shown=79&strength=weak",
+      "px": "7fef412e",
+      "tx": "a52d8e21"
+    },
+    {
+      "$note": "effects under 60% pleiotropy",
+      "slug": "mendelian-randomization",
+      "state": "?theme=light&page=gwas&shown=79&pleio=0.6",
+      "px": "55eca2b0",
+      "tx": "f432e0d0"
+    },
+    {
+      "$note": "estimate opens empty",
+      "slug": "mendelian-randomization",
+      "state": "?theme=light&page=estimate&shown=0",
+      "px": "4274a2d6",
+      "tx": "2165806e"
+    },
+    {
+      "$note": "estimate at 40 of 79: no line yet",
+      "slug": "mendelian-randomization",
+      "state": "?theme=light&page=estimate&shown=40",
+      "px": "75ae90da",
+      "tx": "2165806e"
+    },
+    {
+      "$note": "estimate finished, IVW",
+      "slug": "mendelian-randomization",
+      "state": "?theme=light&page=estimate&shown=79",
+      "px": "1c81d8d3",
+      "tx": "02e09369"
+    },
+    {
+      "$note": "estimate finished, MR Egger with the intercept marked",
+      "slug": "mendelian-randomization",
+      "state": "?theme=light&page=estimate&shown=79&estimator=egger",
+      "px": "2ea6493d",
+      "tx": "2fe8fa96"
+    },
+    {
+      "$note": "estimate finished, weighted median",
+      "slug": "mendelian-randomization",
+      "state": "?theme=light&page=estimate&shown=79&estimator=median",
+      "px": "4fb1ab46",
+      "tx": "7bee3750"
+    },
+    {
+      "$note": "estimate finished, All, the true effect shown",
+      "slug": "mendelian-randomization",
+      "state": "?theme=light&page=estimate&shown=79&estimator=all&truth=on",
+      "px": "1d4e1e82",
+      "tx": "038fe902"
+    },
+    {
+      "$note": "estimate under 30% pleiotropy, MR Egger: the direct-path SNPs in red, the intercept off zero",
+      "slug": "mendelian-randomization",
+      "state": "?theme=light&page=estimate&shown=79&pleio=0.3&estimator=egger",
+      "px": "e1a35625",
+      "tx": "dc584707"
+    },
+    {
+      "$note": "estimate under 60% pleiotropy, All",
+      "slug": "mendelian-randomization",
+      "state": "?theme=light&page=estimate&shown=79&pleio=0.6&estimator=all",
+      "px": "e940e6c8",
+      "tx": "a04a5a80"
+    },
+    {
+      "$note": "estimate under independence broken, All, the truth shown: all three off",
+      "slug": "mendelian-randomization",
+      "state": "?theme=light&page=estimate&shown=79&indep=broken&estimator=all&truth=on",
+      "px": "4cac3709",
+      "tx": "ad68cfed"
+    },
+    {
+      "$note": "estimate under relevance weak: every interval wide",
+      "slug": "mendelian-randomization",
+      "state": "?theme=light&page=estimate&shown=79&strength=weak",
+      "px": "338de6c8",
+      "tx": "9a046a88"
+    },
+    {
+      "$note": "estimate with no confounding, the truth shown: the observational slope on the truth",
+      "slug": "mendelian-randomization",
+      "state": "?theme=light&page=estimate&shown=79&confounding=none&truth=on",
+      "px": "cf96a403",
+      "tx": "fe7409b8"
+    },
+    {
+      "$note": "estimate finished with SNP 5 pinned: its ring, its own slope from the origin, its reading",
+      "slug": "mendelian-randomization",
+      "state": "?theme=light&page=estimate&shown=79&snp=5&estimator=all",
+      "px": "ab30b98d",
+      "tx": "3bedded5"
+    },
+    {
+      "$note": "estimate at seed 7, All",
+      "slug": "mendelian-randomization",
+      "state": "?theme=light&page=estimate&shown=79&seed=7&estimator=all",
+      "px": "341d6fda",
+      "tx": "487565ee"
+    },
+    {
+      "$note": "forest opens empty",
+      "slug": "mendelian-randomization",
+      "state": "?theme=light&page=forest&shown=0",
+      "px": "509ba9ab",
+      "tx": "c995502e"
+    },
+    {
+      "$note": "forest at 40 of 79",
+      "slug": "mendelian-randomization",
+      "state": "?theme=light&page=forest&shown=40",
+      "px": "503588ea",
+      "tx": "c995502e"
+    },
+    {
+      "$note": "forest finished, IVW row highlighted",
+      "slug": "mendelian-randomization",
+      "state": "?theme=light&page=forest&shown=79",
+      "px": "ca2f82fc",
+      "tx": "3b1d43a9"
+    },
+    {
+      "$note": "forest finished, weighted median: the median row marked",
+      "slug": "mendelian-randomization",
+      "state": "?theme=light&page=forest&shown=79&estimator=median",
+      "px": "09ec9a8d",
+      "tx": "d1cdc090"
+    },
+    {
+      "$note": "forest finished, All",
+      "slug": "mendelian-randomization",
+      "state": "?theme=light&page=forest&shown=79&estimator=all",
+      "px": "47eabca8",
+      "tx": "e4bcee95"
+    },
+    {
+      "$note": "forest under 30% pleiotropy, All",
+      "slug": "mendelian-randomization",
+      "state": "?theme=light&page=forest&shown=79&pleio=0.3&estimator=all",
+      "px": "fa5ddcd7",
+      "tx": "923d61b5"
+    },
+    {
+      "$note": "forest finished with SNP 5 pinned: its row named and lit",
+      "slug": "mendelian-randomization",
+      "state": "?theme=light&page=forest&shown=79&snp=5",
+      "px": "3c57eb7d",
+      "tx": "3b1d43a9"
+    },
+    {
+      "$note": "forest under independence broken",
+      "slug": "mendelian-randomization",
+      "state": "?theme=light&page=forest&shown=79&indep=broken",
+      "px": "41adcbf3",
+      "tx": "1dd4a99e"
+    },
+    {
+      "$note": "DRIVEN: Play on the overview, mid the first beat: the people filling in",
+      "slug": "mendelian-randomization",
+      "state": "?theme=light",
+      "drive": {
+        "click": "run",
+        "frames": 25,
+        "dt": 32
+      },
+      "px": "e9be8736",
+      "tx": "6719cc66"
+    },
+    {
+      "$note": "DRIVEN: Play on the overview, mid the stages: the centroids between the observational line and their own means",
+      "slug": "mendelian-randomization",
+      "state": "?theme=light",
+      "drive": {
+        "click": "run",
+        "frames": 75,
+        "dt": 32
+      },
+      "px": "1168f567",
+      "tx": "1c90504b"
+    },
+    {
+      "$note": "DRIVEN: one Step on the overview: the people drawn",
+      "slug": "mendelian-randomization",
+      "state": "?theme=light",
+      "drive": {
+        "click": "step",
+        "frames": 55,
+        "dt": 32
+      },
+      "px": "a8096308",
+      "tx": "6719cc66"
+    },
+    {
+      "$note": "DRIVEN: Play on the effects, mid-run",
+      "slug": "mendelian-randomization",
+      "state": "?theme=light&page=gwas",
+      "drive": {
+        "click": "run",
+        "frames": 60,
+        "dt": 32
+      },
+      "px": "e8fb423a",
+      "tx": "6de861af"
+    },
+    {
+      "$note": "DRIVEN: one Step on the effects: the first SNP's two effects",
+      "slug": "mendelian-randomization",
+      "state": "?theme=light&page=gwas",
+      "drive": {
+        "click": "step",
+        "frames": 6,
+        "dt": 32
+      },
+      "px": "6d377f48",
+      "tx": "b30b01af"
+    },
+    {
+      "$note": "DRIVEN: Play on the estimate, mid-run",
+      "slug": "mendelian-randomization",
+      "state": "?theme=light&page=estimate",
+      "drive": {
+        "click": "run",
+        "frames": 60,
+        "dt": 32
+      },
+      "px": "d984ce79",
+      "tx": "2165806e"
+    },
+    {
+      "$note": "DRIVEN: one Step on the estimate: the first SNP on the scatter",
+      "slug": "mendelian-randomization",
+      "state": "?theme=light&page=estimate",
+      "drive": {
+        "click": "step",
+        "frames": 6,
+        "dt": 32
+      },
+      "px": "5095c2be",
+      "tx": "2165806e"
+    },
+    {
+      "$note": "DRIVEN: Play on the estimate past the last SNP, mid the final beat: the lines growing",
+      "slug": "mendelian-randomization",
+      "state": "?theme=light&page=estimate",
+      "drive": {
+        "click": "run",
+        "frames": 165,
+        "dt": 32
+      },
+      "px": "701f061b",
+      "tx": "02e09369"
+    },
+    {
+      "$note": "DRIVEN: Play on the forest, mid-run",
+      "slug": "mendelian-randomization",
+      "state": "?theme=light&page=forest",
+      "drive": {
+        "click": "run",
+        "frames": 60,
+        "dt": 32
+      },
+      "px": "c803e616",
+      "tx": "c995502e"
+    },
+    {
+      "$note": "DRIVEN: Play on the forest past the last SNP, mid the final beat: the combined intervals growing",
+      "slug": "mendelian-randomization",
+      "state": "?theme=light&page=forest",
+      "drive": {
+        "click": "run",
+        "frames": 165,
+        "dt": 32
+      },
+      "px": "2f4150ae",
+      "tx": "3b1d43a9"
+    },
+    {
+      "$note": "DRIVEN: one Step on the forest: the first row",
+      "slug": "mendelian-randomization",
+      "state": "?theme=light&page=forest",
+      "drive": {
+        "click": "step",
+        "frames": 6,
+        "dt": 32
+      },
+      "px": "7057d98e",
+      "tx": "c995502e"
+    },
+    {
+      "$note": "DRIVEN: a Step on the overview, then Play takes over from it",
+      "slug": "mendelian-randomization",
+      "state": "?theme=light",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 20
+          }
+        ],
+        "click": "run",
+        "frames": 40,
+        "dt": 32
+      },
+      "px": "977af971",
+      "tx": "6719cc66"
+    },
+    {
+      "$note": "DRIVEN: Play on the effects, then Reset empties it, then one Step from the start",
+      "slug": "mendelian-randomization",
+      "state": "?theme=light&page=gwas",
+      "drive": {
+        "before": [
+          {
+            "click": "run",
+            "frames": 40
+          },
+          {
+            "click": "reset",
+            "frames": 2
+          }
+        ],
+        "click": "step",
+        "frames": 6,
+        "dt": 32
+      },
+      "px": "dc1dd42d",
+      "tx": "6719cc66"
+    },
+    {
+      "$note": "DRIVEN: a display change mid-run on the estimate: the estimator switched to MR Egger keeps the run's position",
+      "slug": "mendelian-randomization",
+      "state": "?theme=light&page=estimate",
+      "drive": {
+        "before": [
+          {
+            "click": "run",
+            "frames": 60
+          }
+        ],
+        "set": {
+          "estimator": "egger"
+        },
+        "frames": 4,
+        "dt": 32
+      },
+      "px": "455ae3b6",
+      "tx": "2165806e"
+    },
+    {
+      "$note": "DRIVEN: an assumption changed on the finished estimate, mid-ease: the points and lines between the two readings",
+      "slug": "mendelian-randomization",
+      "state": "?theme=light&page=estimate",
+      "drive": {
+        "before": [
+          {
+            "click": "run",
+            "frames": 180
+          }
+        ],
+        "set": {
+          "pleio": "0.3"
+        },
+        "frames": 6,
+        "dt": 32
+      },
+      "px": "c5da28d5",
+      "tx": "147d9bf6"
+    },
+    {
+      "$note": "DRIVEN: Harmonise switched on the finished effects, mid-ease: the flipped effects between their two signs",
+      "slug": "mendelian-randomization",
+      "state": "?theme=light&page=gwas",
+      "drive": {
+        "before": [
+          {
+            "click": "run",
+            "frames": 170
+          }
+        ],
+        "set": {
+          "harmonise": "on"
+        },
+        "frames": 6,
+        "dt": 32
+      },
+      "px": "1484f3dc",
+      "tx": "4b883660"
+    },
+    {
+      "$note": "DRIVEN: Confounding set to none on the finished overview, mid-ease",
+      "slug": "mendelian-randomization",
+      "state": "?theme=light",
+      "drive": {
+        "before": [
+          {
+            "click": "run",
+            "frames": 140
+          }
+        ],
+        "set": {
+          "confounding": "none"
+        },
+        "frames": 6,
+        "dt": 32
+      },
+      "px": "d4d72aea",
+      "tx": "bff2f07b"
+    },
+    {
+      "$note": "DRIVEN: a visit to the forest and back keeps the estimate's run where it was",
+      "slug": "mendelian-randomization",
+      "state": "?theme=light&page=estimate",
+      "drive": {
+        "before": [
+          {
+            "click": "run",
+            "frames": 60
+          },
+          {
+            "set": {
+              "page": "forest"
+            },
+            "frames": 2
+          }
+        ],
+        "set": {
+          "page": "estimate"
+        },
+        "frames": 2,
+        "dt": 32
+      },
+      "px": "765ccb66",
+      "tx": "2165806e"
+    },
+    {
+      "$note": "DRIVEN: HIT-DRIVEN (the run first, to the end): a click on the first column of the exposure strip pins the strongest SNP",
+      "slug": "mendelian-randomization",
+      "state": "?theme=light&page=gwas",
+      "drive": {
+        "before": [
+          {
+            "click": "run",
+            "frames": 170
+          }
+        ],
+        "hit": [
+          260,
+          84
+        ],
+        "frames": 4,
+        "dt": 32
+      },
+      "px": "0bca5cfa",
+      "tx": "f432e0d0"
+    },
+    {
+      "$note": "DRIVEN: HIT-DRIVEN (the run first, to the end): a click on the forest's eleventh row pins that SNP",
+      "slug": "mendelian-randomization",
+      "state": "?theme=light&page=forest",
+      "drive": {
+        "before": [
+          {
+            "click": "run",
+            "frames": 180
+          }
+        ],
+        "hit": [
+          390,
+          89
+        ],
+        "frames": 4,
+        "dt": 32
+      },
+      "px": "919435a4",
+      "tx": "3b1d43a9"
     }
   ]
 }

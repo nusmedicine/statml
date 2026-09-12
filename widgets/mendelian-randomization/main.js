@@ -845,7 +845,7 @@ function viewAt(state, params, anim) {
 defineWidget({
   slug: "mendelian-randomization",
   title: "Mendelian Randomization",
-  status: "draft",
+  status: "shipped",
   subtitle: M.STRINGS.subtitle,
   layout: "side",
   /* one geometry function, for the height the page reserves and for every rect

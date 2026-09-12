@@ -1,110 +1,58 @@
 # Handover
 
-**FIFTY-SIX WIDGETS SHIPPED — 54 on the gallery, `roc-auc` UNLISTED
-(Kenneth's call, 2026-08-30); ONE DRAFT: 60 `mendelian-randomization`.**
-The GWAS and PRS arc (PHM5003 week 6) is three shipped — 56
-`hardy-weinberg`, 57 `gwas`, 59 `polygenic-score` (2026-09-12) — and
-the fourth drafted the same night. `main` is **ahead of origin and unpushed since
-69cca83** (the MR measure script, the mock, the picks, the draft, the
-handover, the gwas re-record, this line).
+**FIFTY-SEVEN WIDGETS SHIPPED — 55 on the gallery, `roc-auc` UNLISTED
+(Kenneth's call, 2026-08-30); NO DRAFT.** The GWAS and PRS arc (PHM5003
+week 6) is complete: 56 `hardy-weinberg`, 57 `gwas`, 59
+`polygenic-score` (2026-09-12) and 60 `mendelian-randomization`
+(2026-09-13). `main` is pushed and clean at the 60 ship.
 
 ---
 
-# NEXT SESSION — KENNETH'S ROUND ON THE 60 DRAFT
+# NEXT SESSION
 
-**Where it stands.** Slot 60 ran plan → measure → mock → picks → draft in
-one day, 2026-09-12. Kenneth asked for the plan "step by step", so every
-call went through AskUserQuestion one round at a time; his picks are in
-the catalogue under slot 60 (search "Kenneth's calls on slot 60" and
-"picks from the mock"). The draft is committed as 3afadd7 with status
-`draft` in `main.js` and the manifest, at
-`http://localhost:8014/widgets/mendelian-randomization/` on this machine
-(`preview_start` with `widgets-alt4`; 8013 belonged to another chat).
-`_lab/mr-verify.mjs` runs 109 assertions green; `check` and `test` green.
+**Nothing is queued on the week-6 arc.** The standing debt is **slot 52
+`training-loop`** (PHM5005 05-4), owed since the DL arc — see the
+catalogue's slot 52 entry and `_lab/dl-loop-measure.mjs`, which already
+exists. The order that has now run nine times: measure → mock from the
+newest shell (`_lab/mr-mock.html`, which inlines its engine and builds
+rails through core's `buildControls`) → his picks by AskUserQuestion, one
+round at a time when he asks for it → catalogue → draft with a verify on
+`_lab/mr-verify.mjs`'s shape → rounds → the copy audit's FOUR passes
+(register, descriptors against buttons, mannerisms, PERSONIFICATION —
+the last is his 2026-09-13 catch; the verify's §8 carries the verb list)
+→ "tested ok, push" → shooter + states → status flip → full suite fronted
+→ `check` AND `test` read on their own → commit → push.
 
-**What the draft is.** Four steps on one rail: 1 one SNP as a trial (the
-causal-structures stage — the graph with two ghost arrows, the cohort, the
-observational fit, the three genotype centroids, the ratio line; four
-beats, the Step button naming each); 2 the two GWAS (two strips, strongest
-on BMI first, the scatter forming under them; Harmonise off by default
-with the flipped effects in red); 3 the estimate (IVW · MR Egger ·
-Weighted median · All, the observational line dotted as the reference,
-the truth on request, the pin by hover and click); 4 the forest (height
-follows the count; three combined rows). `model.js` opens with the
-decisions and the measurement; `main.js` with the drawing decisions.
+**Two things the 60 build added to the collection, worth reusing:**
 
-**Two things from the draft night worth knowing first:**
+- **A step label may key on the animation's own counter**
+  (`widgets/core/widget.js`, `resolveLabel`): `{ anim: "trialBeat", labels,
+  default }`. Widget 60's overview runs five acts under one Step button.
+- **Readings of one study, eased** (`widgets/mendelian-randomization/model.js`):
+  a data-shaped control becomes a display parameter by drawing the noise
+  once, unconditionally, and building each setting's reading on first
+  request; `lerpView` interpolates two readings leaf by leaf and core's
+  ease mode supplies the frames. The pattern for any widget whose controls
+  are re-readings of one draw.
 
-1. **The gwas baseline moved under bb086f6, not under this work.** The
-   full suite after the draft's core change read 697 states, 682 MATCH,
-   15 gwas DIFFER, all px-only. Proven not the core change's (identical
-   with it stashed) and proven bb086f6's by serving 04c770a from a
-   worktree in the same pane (27/27 MATCH there): at 04c770a the default
-   model's and Cohort page's states were hashed at **688px** wide because
-   their rail was too short to scroll the page, and the Seed move made
-   every rail tall enough, so those 15 now settle at **669** like the
-   rest. **Re-recorded at 669 on his word the same night** (three
-   identical runs, then all 27 MATCH); the catalogue's DRAFTED paragraph
-   has the full account. The full suite reads 697/697 again.
-2. **The core change** (`widgets/core/widget.js`, twelve lines in
-   `resolveLabel`): a step label declared `{ anim: "trialBeat", labels,
-   default }` reads the animation's counter. Needed because step 1's four
-   acts are what no parameter carries (4.4b). The suite proved it reaches
-   nothing else.
+**Kenneth still owes the notebook** three sentences (one per estimator,
+the F statistic, harmonising) and the word pleiotropy at the assumptions
+list and in the Egger sentence — check `03 - MR.ipynb` before the next
+push touches that arc.
 
-**Round two is in (his adversarial review, same night, catalogue § Slot 60
-"Round two"):** step 1 runs five beats named as the two stages with
-Stage 1, Stage 2 and Ratio tiles; a hovered SNP draws its own slope from
-the origin, Egger's intercept is tagged on the axis, the forest marks the
-median row; every step ends on a reading line; SNPs and Samples are cut
-(ten controls) and Harmonise is step 2's alone. **He is adding three
-sentences to the notebook** (one per estimator, the F statistic,
-harmonising) — check they landed before the ship. Verify 117. His three follow-ups after it: pleiotropy named on the rail,
-the verdict and the reading line (he adds the word to the notebook too);
-odds ratios in the tile notes; the first page is **Overview**, its own
-button above a Step head over **1 · Effects · 2 · Estimate · 3 · Forest**;
-the pleiotropy arc cleared of the verdict; harmonisation read per SNP on
-the Effects page by hover or pin (alleles named); no Page label; the graph on EVERY page (his ask), the
-Effects strips 280px beside it. **Round three (2026-09-13): the
-assumptions and Harmonise are display parameters over readings of one
-study, eased over 450 ms; the lines and combined rows grow in over a
-final beat; the default seed is 25.** Verify 150. **The copy audit is done** (2026-09-13,
-catalogue § Slot 60 "The copy audit"): descriptors match their buttons,
-register, a claim-before-the-run tile. A second pass on his catch
-("personification") restated every figurative string and the subtitle and
-blurb are his conventional-terminology picks; the verify sweep now refuses
-personifying verbs. Owed still: the shooter, the
-states, the status flip, the push.
+# HOW 60 WENT, kept as written
 
-**Then his round.** Expect the usual: copy (the three-pass audit and the
-mannerism pass are DONE — `_lab/mr-verify.mjs` §8 already sweeps
-"never", lesson words, the coined list, "landed/taken/arrives", and
-"tune/holdout"; "arm" is deliberately allowed on this widget as the
-field's word), the DAG's proportions at 200px beside a 276px scatter, the
-step-1 SNP note ("drawn stronger than any real BMI SNP"), whether the
-hover's reading line under the plot earns its place. **After "tested ok,
-push":** the shooter from `_lab/prs-shoot.html` with the slug changed
-(states: settled by `shown=` on all four steps — 4 on step 1, 79 on the
-others; the violations; `harmonise=on`; `estimator=`; `snps=20`; pins
-by `snp=`; driven Play and one Step on every step; interrupted: a display
-change mid-run, a visit to step 2 and back; HIT-DRIVEN with the run first
-on steps 3 and 4 — the cell hit map means a click at a point's own pixel
-names the SNP the hover names, asserted in verify §5), status flip in
-both files and the verify, full suite fronted, `check` AND `test` read on
-their own, commit, push.
-
-**What the measurement corrected, so nobody re-argues it** (all in
-`_lab/mr-measure.mjs`, 31 checks): the lesson's intervals need a
-mean-zero direct effect of SD 0.012 on every SNP; the median DRIFTS at 30%
-(six tenths of IVW's bias) so the claim is relative; the confounder→SNP
-term must have either sign per SNP and then breaks all three with Egger
-worst and a negative intercept; the weak/one-sample pull toward the
-observational value is an average over seeds; step 1 works on the
-liability scale and not on binary CHD. Seed 1 is the default because seed
-7's clean IVW is 2.3 SD low.
-
-**Reuse for the next arc:** nothing is queued after 60; slot 52
-`training-loop` (05-4) is the standing debt.
+Plan → measure (31 checks; four claims corrected) → mock (seven sections)
+→ picks → draft → gwas baseline re-recorded (bb086f6's Seed move had
+changed 15 states' settled width, not this work) → round two (his
+adversarial review: two stages named, estimators taught on the figure,
+ten controls, reading lines) → three follow-ups (pleiotropy named, odds
+ratios, Overview unnumbered) → three more (the arc's belly, Overview as
+its own button, 1 · Effects · 2 · Estimate · 3 · Forest) → harmonisation
+read per SNP, the graph on every page → round three (assumptions as
+readings of one study, eased; Harmonise the same ease; a final beat; seed
+25) → the copy audit → the personification pass and conventional subtitle
+and blurb → shooter, 60 states, ship. Two days, 2026-09-12 and 13.
 
 # WORKING ON THIS MACHINE
 

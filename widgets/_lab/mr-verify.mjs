@@ -38,7 +38,7 @@
    forbidden lists. "Arm" is allowed here and nowhere else in the arc: an arm
    of a trial is the field's word, and the subtitle Kenneth picked says it.
 
-   THE STATUS: both files say `draft`; this line flips at the ship.
+   THE STATUS: both files say `shipped` (flipped at the ship, 2026-09-13).
 
    Exits non-zero on failure.
    ========================================================================= */
@@ -683,7 +683,7 @@ console.log("\n8 · the register");
 
   /* the status */
   const declared = src.match(/^\s*status:\s*"([^"]*)"/m)?.[1];
-  check("both files say draft (this line flips at the ship)", declared === "draft" && card.status === "draft", `${declared} / ${card.status}`);
+  check("both files say shipped (flipped at the ship, 2026-09-13)", declared === "shipped" && card.status === "shipped", `${declared} / ${card.status}`);
 }
 
 console.log(`\n${ran} checks, ${failed} failed`);
