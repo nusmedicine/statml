@@ -1,0 +1,1100 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · mendelian-randomization — the mock</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  /* The mock shell, verbatim from `_lab/prs-round3-mock.html`. Nothing here is
+     a new visual decision. */
+  .lab { max-width: 1240px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 96ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; width: 550px; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); max-width: 550px; min-height: 26px; white-space: pre-line; }
+  #railRow > .cand { width: 300px; }
+  #titleRow > .cand { width: 550px; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 96ch; }
+  .measure { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--ink-3); margin: 4px 0 0; max-width: 760px; white-space: pre-line; }
+  table.facts { border-collapse: collapse; font-size: var(--fs-sm); color: var(--ink-2); margin: var(--sp-2) 0 var(--sp-3); max-width: 120ch; }
+  table.facts th, table.facts td { border: 1px solid var(--grid); padding: 3px 8px; text-align: left; vertical-align: top; }
+  table.facts th { color: var(--ink-1); font-weight: 600; background: var(--surface-2); }
+  table.facts td b { color: var(--ink-1); }
+  .legend { display: flex; flex-wrap: wrap; gap: var(--sp-2) var(--sp-4); margin: 0 0 var(--sp-4);
+            font-size: var(--fs-xs); color: var(--ink-2); }
+  .legend span { display: flex; align-items: center; gap: 6px; }
+  .sw { width: 13px; height: 13px; border-radius: 50%; flex: 0 0 auto; }
+  .sw-emp { background: var(--c-empirical); }
+  .sw-high { background: var(--c-highlight); }
+  .sw-gb { background: var(--c-group-b); }
+  .sw-gc { background: var(--c-group-c); }
+  .sw-ext { background: var(--c-extreme); }
+  .sw-unk { background: var(--c-unknown); }
+  .sw-ev { background: var(--c-event); }
+  .sw-nev { background: var(--c-nonevent); }
+  .sw-ref { width: 18px; height: 0; border-radius: 0; border-top: 2px dashed var(--c-reference); }
+  .sw-obs { width: 18px; height: 0; border-radius: 0; border-top: 2px dotted var(--ink-1); }
+  .stage-host { width: 550px; }
+  .rail-host { width: 300px; }
+  .pagehead { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>mendelian-randomization &middot; the mock</h1>
+
+  <p class="note">
+    <b>Kenneth's calls, 2026-09-12, asked step by step:</b> four steps on one rail; the two GWAS as summary
+    statistics at the lesson's own sizes with a visible cohort on step 1 only; the confounders unnamed; the
+    independence violation as one arrow from the confounders to the SNPs; harmonise as a toggle; SNP count
+    20 &middot; 40 &middot; 79 opening on 79; BMI in SD and coronary heart disease in log odds; step 1 the
+    causal-structures stage with the genotype centroids; an Estimator control IVW &middot; MR Egger &middot;
+    Weighted median &middot; All with all three combined rows on the forest; four violation controls;
+    heterogeneity named and not drawn; step 1's y axis CHD risk in log odds; half the outcome effects
+    flipped before harmonising.
+  </p>
+  <p class="note">
+    <b>Where the numbers come from.</b> The engine is <code>_lab/mr-measure.mjs</code>'s, copied here
+    verbatim (31 checks, 2026-09-12): summary statistics for 79 SNPs at n 339,152 on BMI and n 184,305 on
+    CHD with a third cases, a true effect of 0.45 log odds per SD, heterogeneity SD 0.012 on every SNP, and
+    strong confounding (observational slope 0.70). Step 1 draws 2,000 people with one SNP at 0.4 SD per
+    allele. Seed 7 throughout.
+  </p>
+  <p class="note" id="engineLine"></p>
+
+  <div class="legend">
+    <span><i class="sw sw-unk"></i>a person, or a SNP's two effects with their intervals</span>
+    <span><i class="sw sw-nev"></i><i class="sw sw-ev"></i>colour by the confounders, low to high</span>
+    <span><i class="sw sw-high"></i>the genotype centroids and the single-SNP ratio; the SNP just added; the pinned SNP; the selected estimator on the forest</span>
+    <span><i class="sw sw-emp"></i>the observational fit on step 1; IVW</span>
+    <span><i class="sw sw-gb"></i>MR Egger</span>
+    <span><i class="sw sw-gc"></i>weighted median</span>
+    <span><i class="sw sw-ref"></i>the true effect, revealed on request</span>
+    <span><i class="sw sw-obs"></i>the observational estimate, the reference the MR estimate is judged against</span>
+    <span><i class="sw sw-ext"></i>a non-causal path standing open</span>
+  </div>
+
+  <h2>&sect;0 &middot; The title and the subtitle</h2>
+  <p class="note">The lesson's title is <i>Mendelian Randomization Study</i>. Two subtitles, each stating the concept in the register of the shipped ones.</p>
+  <div class="row" id="titleRow"></div>
+
+  <h2>&sect;1 &middot; Step 1 — one SNP as a trial</h2>
+  <p class="note">
+    The causal-structures composition: the graph on the left, the cohort on the right. <b>A</b> the finished
+    step: 2,000 people, the observational fit through every one of them, the three genotype groups'
+    centroids and the line through them — the single-SNP ratio — with the true effect revealed. <b>B</b> the
+    same with Colour by the confounders on: the tint runs along the observational slope and is the same in
+    all three genotype groups, which is the randomisation. <b>C</b> mid-run, after the second beat: the people
+    and the observational fit, before the centroids. The run is four beats — the people, the observational
+    fit, the genotype groups, the ratio — and Step's label names the next one.
+  </p>
+  <div class="row" id="step1Row"></div>
+  <p class="measure" id="step1Measure"></p>
+  <p class="rec" id="recStep1"></p>
+
+  <h2>&sect;2 &middot; The graph, and the three arrows it must not have</h2>
+  <p class="note">
+    The DAG panel alone, at the width it has on steps 1 and 3. The fork's two arrows are red because the path
+    through the confounders is open and stays open — MR does not close it, it routes around it. The two
+    forbidden arrows are drawn as ghosts, click targets a press turns on. <b>A</b> every assumption holding;
+    <b>B</b> the exclusion restriction broken (a share of SNPs with a direct path); <b>C</b> independence
+    broken (the confounders reach the SNPs); <b>D</b> relevance weak (the SNPs-to-BMI arrow thin);
+    <b>E</b> no confounding at all — the fork's arrows are absent and the observational estimate is right.
+    The verdict line under each names the mechanism, as widget 26's does.
+  </p>
+  <div class="row" id="dagRow"></div>
+  <p class="rec" id="recDag"></p>
+
+  <h2>&sect;3 &middot; Step 2 — the two GWAS</h2>
+  <p class="note">
+    Two strips and the scatter forming under them. The exposure GWAS on top — each SNP's effect on BMI with
+    its interval, in the order the run takes them (strongest first) — the outcome GWAS below it on the same
+    columns, and the scatter of one against the other filling in as SNPs arrive. <b>A</b> mid-run at 30 of
+    79, harmonised. <b>B</b> the finished step with Harmonise OFF: the outcome GWAS reports half the SNPs on
+    its other allele, those effects wear an open marker and sit mirrored on the scatter, and the slope is
+    gone. <b>C</b> the finished step harmonised.
+  </p>
+  <div class="row" id="step2Row"></div>
+  <p class="measure" id="step2Measure"></p>
+  <p class="rec" id="recStep2"></p>
+
+  <h2>&sect;4 &middot; Step 3 — the estimate</h2>
+  <p class="note">
+    The lesson's scatter with the graph beside it, so the violations act where they are drawn. <b>A</b>
+    Estimator IVW, every assumption holding, the truth revealed: IVW full, Egger and the median faded, the
+    observational slope dotted as the reference. <b>B</b> Estimator All. <b>C</b> exclusion restriction broken
+    on 30% of SNPs, Estimator MR Egger: the pleiotropic SNPs marked, the intercept off zero, the slope
+    holding. <b>D</b> relevance weak (exposure GWAS 8,000) in one sample, Estimator IVW: every interval
+    wide and the estimate dragged toward the observational. <b>E</b> independence broken, Estimator All: all
+    three off. The readout under each is the step's tiles.
+  </p>
+  <div class="row" id="step3Row"></div>
+  <p class="measure" id="step3Measure"></p>
+  <p class="rec" id="recStep3"></p>
+
+  <h2>&sect;5 &middot; Step 4 — the forest</h2>
+  <p class="note">
+    Single-SNP ratios sorted, the combined estimates under the rule, exactly the lesson's figure. <b>A</b> 79
+    SNPs, Estimator IVW: the IVW row in the highlight colour, the other two in ink. <b>B</b> 20 SNPs, where
+    every row has room for its name. <b>C</b> 79 SNPs with one SNP pinned by a click: its row lit, and (on the
+    step-3 scatter, not shown) its point ringed — the prs hover-and-pin idiom, one subject on both figures.
+    Rows past &plusmn;3 are clipped to the frame and counted in the note, as the lesson's plot dropped one.
+  </p>
+  <div class="row" id="step4Row"></div>
+  <p class="measure" id="step4Measure"></p>
+  <p class="rec" id="recStep4"></p>
+
+  <h2>&sect;6 &middot; The rail, through core's own builder</h2>
+  <p class="note">
+    The widget's spec as it will be written, rendered by <code>buildControls</code> at 300px: <b>A</b> step 1
+    and <b>B</b> step 3, with the assumption-named violation controls; <b>C</b> step 3 with the mechanism
+    names instead (Pleiotropy share, Confounders to SNPs, Instrument strength). Seed sits in a <i>The data</i>
+    section directly under Step, his ruling on 59. Heights measured below.
+  </p>
+  <div class="row" id="railRow"></div>
+  <p class="measure" id="railMeasure"></p>
+  <p class="rec" id="recRail"></p>
+
+  <h2>&sect;7 &middot; The copy</h2>
+  <p class="note">Every reader-facing string the rail and the tiles carry, so they can be read in one place. The lesson's words where it has one: relevance, exclusion restriction, independence, instrumental variable, two-sample, harmonise, inverse variance weighted, MR Egger, weighted median.</p>
+  <div id="copyTable"></div>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+import { makePlot } from "../core/canvas.js";
+import { makeRng } from "../core/rng.js";
+
+const T0 = performance.now();
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+
+/* ==========================================================================
+   The engine — VERBATIM from `_lab/mr-measure.mjs` (the measured code is the
+   only code whose numbers are the measured numbers).
+   ====================================================================== */
+
+const LESSON = { nX: 339152, nY: 184305, caseFrac: 60801 / 184305 };
+const THETA = 0.45;
+const TAU = 0.012;
+const CONFOUNDING = {
+  none: { gamma: 0, delta: 0 },
+  moderate: { gamma: 0.3, delta: 0.3 },
+  strong: { gamma: 0.5, delta: 0.5 },
+};
+const STRENGTH = { strong: LESSON.nX, moderate: 60000, weak: 8000 };
+const ALPHA_MEAN = 0.03;
+const STRAT_SD = 0.04;
+const FLIP = 0.5;
+
+function obsCorrelation(theta, gamma, delta) {
+  const cov = theta + gamma * delta;
+  const varL = theta * theta + delta * delta + 2 * theta * gamma * delta + 1;
+  return cov / Math.sqrt(varL);
+}
+function drawInstruments(rng, m) {
+  const p = new Float64Array(m);
+  const bx = new Float64Array(m);
+  for (let j = 0; j < m; j += 1) {
+    p[j] = rng.uniform(0.1, 0.9);
+    bx[j] = Math.min(0.09, 0.017 + rng.exponential(1 / 0.011));
+  }
+  return { p, bx };
+}
+function summaryStats(rng, inst, cfg) {
+  const {
+    theta = THETA, nX = LESSON.nX, nY = LESSON.nY, caseFrac = LESSON.caseFrac,
+    share = 0, alphaMean = ALPHA_MEAN, strat = 0, gamma = 0, delta = 0,
+    oneSample = false, flipFrac = 0, harmonised = true, tau = TAU,
+  } = cfg;
+  const m = inst.p.length;
+  const bxHat = new Float64Array(m);
+  const sx = new Float64Array(m);
+  const byHat = new Float64Array(m);
+  const sy = new Float64Array(m);
+  const valid = new Uint8Array(m).fill(1);
+  const flipped = new Uint8Array(m);
+  const order = rng.shuffle([...Array(m).keys()]);
+  const k = Math.round(share * m);
+  for (let i = 0; i < k; i += 1) valid[order[i]] = 0;
+  const rho = oneSample ? obsCorrelation(theta, gamma, delta) : 0;
+  const nOut = oneSample ? nX : nY;
+  for (let j = 0; j < m; j += 1) {
+    const pq2 = 2 * inst.p[j] * (1 - inst.p[j]);
+    const s = Math.sqrt(pq2);
+    const c = strat > 0 ? rng.normal(0, strat) : 0;
+    const bxTrue = inst.bx[j] + gamma * c;
+    const alpha = (valid[j] ? 0 : alphaMean * (0.5 + rng.next())) + (tau > 0 ? rng.normal(0, tau) : 0);
+    const byTrue = theta * bxTrue + alpha + delta * c;
+    const bStd = bxTrue * s;
+    sx[j] = Math.sqrt(Math.max(1 - bStd * bStd, 1e-9) / nX) / s;
+    sy[j] = 1 / Math.sqrt(pq2 * nOut * caseFrac * (1 - caseFrac));
+    const z1 = rng.normal();
+    const z2 = rho * z1 + Math.sqrt(1 - rho * rho) * rng.normal();
+    bxHat[j] = bxTrue + sx[j] * z1;
+    byHat[j] = byTrue + sy[j] * z2;
+    if (rng.next() < flipFrac) {
+      flipped[j] = 1;
+      if (!harmonised) byHat[j] = -byHat[j];
+    }
+  }
+  return { bxHat, sx, byHat, sy, valid, flipped };
+}
+function ivw(S) {
+  const m = S.bxHat.length;
+  let sxy = 0; let sxx = 0;
+  for (let j = 0; j < m; j += 1) {
+    const w = 1 / (S.sy[j] * S.sy[j]);
+    sxy += w * S.bxHat[j] * S.byHat[j];
+    sxx += w * S.bxHat[j] * S.bxHat[j];
+  }
+  const b = sxy / sxx;
+  let rss = 0;
+  for (let j = 0; j < m; j += 1) {
+    const w = 1 / (S.sy[j] * S.sy[j]);
+    rss += w * (S.byHat[j] - b * S.bxHat[j]) ** 2;
+  }
+  const sigma = Math.sqrt(rss / (m - 1));
+  return { b, se: Math.sqrt(1 / sxx) * Math.max(1, sigma), sigma };
+}
+function egger(S) {
+  const m = S.bxHat.length;
+  let sw = 0; let swx = 0; let swy = 0;
+  for (let j = 0; j < m; j += 1) {
+    const w = 1 / (S.sy[j] * S.sy[j]);
+    sw += w; swx += w * S.bxHat[j]; swy += w * S.byHat[j];
+  }
+  const xbar = swx / sw; const ybar = swy / sw;
+  let sxx = 0; let sxy = 0;
+  for (let j = 0; j < m; j += 1) {
+    const w = 1 / (S.sy[j] * S.sy[j]);
+    sxx += w * (S.bxHat[j] - xbar) ** 2;
+    sxy += w * (S.bxHat[j] - xbar) * (S.byHat[j] - ybar);
+  }
+  const b = sxy / sxx;
+  const a = ybar - b * xbar;
+  let rss = 0;
+  for (let j = 0; j < m; j += 1) {
+    const w = 1 / (S.sy[j] * S.sy[j]);
+    rss += w * (S.byHat[j] - a - b * S.bxHat[j]) ** 2;
+  }
+  const sigma = Math.sqrt(rss / (m - 2));
+  const infl = Math.max(1, sigma);
+  return { b, a, se: Math.sqrt(1 / sxx) * infl, seA: Math.sqrt(1 / sw + (xbar * xbar) / sxx) * infl, sigma };
+}
+function weightedMedianOf(ratios, weights) {
+  const idx = [...ratios.keys()].sort((a, b) => ratios[a] - ratios[b]);
+  const r = idx.map((i) => ratios[i]);
+  const w = idx.map((i) => weights[i]);
+  const total = w.reduce((a, b) => a + b, 0);
+  const cum = [];
+  let acc = 0;
+  for (let i = 0; i < w.length; i += 1) { acc += w[i]; cum.push((acc - 0.5 * w[i]) / total); }
+  let below = -1;
+  for (let i = 0; i < cum.length; i += 1) if (cum[i] < 0.5) below = i;
+  if (below < 0) return r[0];
+  if (below >= r.length - 1) return r[r.length - 1];
+  return r[below] + ((r[below + 1] - r[below]) * (0.5 - cum[below])) / (cum[below + 1] - cum[below]);
+}
+function wald(S) {
+  const m = S.bxHat.length;
+  const ratio = new Float64Array(m);
+  const se = new Float64Array(m);
+  for (let j = 0; j < m; j += 1) { ratio[j] = S.byHat[j] / S.bxHat[j]; se[j] = S.sy[j] / Math.abs(S.bxHat[j]); }
+  return { ratio, se };
+}
+const sdOf = (v) => { const mu = v.reduce((a, b) => a + b, 0) / v.length; return Math.sqrt(v.reduce((a, b) => a + (b - mu) ** 2, 0) / (v.length - 1)); };
+function weightedMedian(S, rng, boots = 200) {
+  const { ratio, se } = wald(S);
+  const w = Array.from(se, (v) => 1 / (v * v));
+  const b = weightedMedianOf(Array.from(ratio), w);
+  const m = ratio.length;
+  const draws = [];
+  const rb = new Array(m); const wb = new Array(m);
+  for (let t = 0; t < boots; t += 1) {
+    for (let j = 0; j < m; j += 1) {
+      const bx = S.bxHat[j] + rng.normal(0, S.sx[j]);
+      const by = S.byHat[j] + rng.normal(0, S.sy[j]);
+      rb[j] = by / bx; wb[j] = (bx * bx) / (S.sy[j] * S.sy[j]);
+    }
+    draws.push(weightedMedianOf(rb, wb));
+  }
+  return { b, se: sdOf(draws) };
+}
+function meanF(S) {
+  let s = 0;
+  for (let j = 0; j < S.bxHat.length; j += 1) s += (S.bxHat[j] / S.sx[j]) ** 2;
+  return s / S.bxHat.length;
+}
+function cohort(rng, n, b, cfg) {
+  const { theta = THETA, gamma, delta, p = 0.5, strat = 0, alpha = 0 } = cfg;
+  const G = new Uint8Array(n); const X = new Float64Array(n); const L = new Float64Array(n); const U = new Float64Array(n);
+  const sdE = Math.sqrt(Math.max(0.05, 1 - gamma * gamma - b * b * 2 * p * (1 - p)));
+  for (let i = 0; i < n; i += 1) {
+    U[i] = rng.normal();
+    const pi = Math.min(0.95, Math.max(0.05, p + strat * U[i]));
+    G[i] = rng.bernoulli(pi) + rng.bernoulli(pi);
+    X[i] = b * G[i] + gamma * U[i] + sdE * rng.normal();
+    L[i] = theta * X[i] + delta * U[i] + alpha * G[i] + rng.normal();
+  }
+  return { G, X, L, U };
+}
+function slope(y, x) {
+  const n = y.length;
+  let mx = 0; let my = 0;
+  for (let i = 0; i < n; i += 1) { mx += x[i]; my += y[i]; }
+  mx /= n; my /= n;
+  let sxx = 0; let sxy = 0;
+  for (let i = 0; i < n; i += 1) { sxx += (x[i] - mx) ** 2; sxy += (x[i] - mx) * (y[i] - my); }
+  const bh = sxy / sxx;
+  let rss = 0;
+  for (let i = 0; i < n; i += 1) rss += (y[i] - my - bh * (x[i] - mx)) ** 2;
+  return { b: bh, se: Math.sqrt(rss / (n - 2) / sxx), mx, my };
+}
+
+/* ==========================================================================
+   The widget's state at its defaults, seed 7.
+   ====================================================================== */
+
+/* Seed 1, not 7: over 40 seeds the clean IVW is 0.445 (sd 0.060) and seed 7
+   gives 0.307, a draw 2.3 SD low — the wrong figure to open on. Seed 1 is
+   0.462. */
+const SEED = 1;
+function buildStudy(cfg) {
+  const rng = makeRng(SEED);
+  const inst = drawInstruments(rng, cfg.m ?? 79);
+  const S = summaryStats(rng, inst, cfg);
+  const est = { ivw: ivw(S), egger: egger(S), median: weightedMedian(S, makeRng(SEED + 1)) };
+  const W = wald(S);
+  /* the run's order: strongest instrument first */
+  const order = [...Array(S.bxHat.length).keys()].sort((a, b) => S.bxHat[b] - S.bxHat[a]);
+  return { S, est, W, order, F: meanF(S), cfg };
+}
+const tB0 = performance.now();
+const STRONG = CONFOUNDING.strong;
+const ST = buildStudy({ ...STRONG, flipFrac: FLIP, harmonised: true });
+const ST_RAW = buildStudy({ ...STRONG, flipFrac: FLIP, harmonised: false });
+const ST_PLEIO = buildStudy({ ...STRONG, share: 0.3 });
+const ST_WEAK1 = buildStudy({ ...STRONG, nX: STRENGTH.weak, oneSample: true });
+const ST_STRAT = buildStudy({ ...STRONG, strat: STRAT_SD });
+const ST_20 = buildStudy({ ...STRONG, m: 20 });
+const CO = cohort(makeRng(SEED), 2000, 0.4, STRONG);
+const T_BUILD = performance.now() - tB0;
+const OBS = slope(CO.L, CO.X);
+const GX = slope(CO.X, CO.G);
+const GL = slope(CO.L, CO.G);
+const RATIO = { b: GL.b / GX.b, se: GL.se / Math.abs(GX.b) };
+const OBS_LIAB = THETA + STRONG.gamma * STRONG.delta;
+
+/* ==========================================================================
+   Helpers, verbatim from the round-three mock.
+   ====================================================================== */
+
+const el = (tag, cls, text) => {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text != null) e.textContent = text;
+  return e;
+};
+const fmt = (v, d = 2) => (Number.isFinite(v) ? v.toFixed(d) : "-");
+const int = (v) => Math.round(v).toLocaleString("en-US");
+const capFont = () => `600 ${T.fsSm} ${T.font}`;
+const noteFont = () => `${T.fsXs} ${T.font}`;
+function canvasIn(parent, w, h) {
+  const cv = document.createElement("canvas");
+  cv.width = Math.round(w * DPR);
+  cv.height = Math.round(h * DPR);
+  cv.style.width = `${w}px`;
+  cv.style.height = `${h}px`;
+  parent.appendChild(cv);
+  const ctx = cv.getContext("2d");
+  ctx.scale(DPR, DPR);
+  ctx.fillStyle = T.surface;
+  ctx.fillRect(0, 0, w, h);
+  return ctx;
+}
+function cand(parent, title, sub) {
+  const c = el("div", "cand");
+  if (title) c.appendChild(el("h3", null, title));
+  if (sub != null) c.appendChild(el("p", "sub", sub));
+  parent.appendChild(c);
+  return c;
+}
+const mline = (box, text) => { box.appendChild(el("p", "measure", text)); };
+function readoutFor(host, tiles) {
+  const box = el("div", "w-readout");
+  for (const tile of tiles) {
+    const w = el("div");
+    w.appendChild(el("span", "w-stat-label", tile.label));
+    const v = el("span", "w-stat-value", tile.value);
+    if (tile.tone) v.style.color = tile.tone;
+    w.appendChild(v);
+    if (tile.note) w.appendChild(el("span", "w-stat-note", tile.note));
+    box.appendChild(w);
+  }
+  const wrap = el("div", "stage-host");
+  wrap.appendChild(box);
+  host.appendChild(wrap);
+  return box;
+}
+function rgbOf(c) {
+  const p = document.createElement("canvas").getContext("2d");
+  p.fillStyle = c; p.fillRect(0, 0, 1, 1);
+  return Array.from(p.getImageData(0, 0, 1, 1).data.slice(0, 3));
+}
+const mixRgb = (a, b, t) => { const c = a.map((v, i) => Math.round(v + (b[i] - v) * t)); return `rgb(${c[0]}, ${c[1]}, ${c[2]})`; };
+const NEV = rgbOf(T.nonevent); const EV = rgbOf(T.event);
+
+const STAGE_W = 550;
+
+/* ==========================================================================
+   The DAG — widget 26's drawing, with four nodes and two ghost arrows.
+   ====================================================================== */
+
+const DAG_W = 200;
+function dagLayout(x, y, h) {
+  const R = 20;
+  const bottom = y + h - 26;
+  return {
+    R, box: { x, y, w: DAG_W, h },
+    P: { g: [x + 28, bottom], x: [x + DAG_W / 2, bottom], y: [x + DAG_W - 28, bottom], u: [x + DAG_W * 0.68, y + 26] },
+  };
+}
+function arrowHead(ctx, bx, by, ux, uy, color) {
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.moveTo(bx + ux * 6, by + uy * 6);
+  ctx.lineTo(bx - uy * 4.5, by + ux * 4.5);
+  ctx.lineTo(bx + uy * 4.5, by - ux * 4.5);
+  ctx.fill();
+}
+function arrow(ctx, P, R, from, to, color, width, dash, alpha = 1) {
+  const [x1, y1] = P[from]; const [x2, y2] = P[to];
+  const L = Math.hypot(x2 - x1, y2 - y1);
+  const ux = (x2 - x1) / L; const uy = (y2 - y1) / L;
+  const ax = x1 + ux * (R + 3); const ay = y1 + uy * (R + 3);
+  const bx = x2 - ux * (R + 6); const by = y2 - uy * (R + 6);
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.strokeStyle = color; ctx.lineWidth = width; ctx.setLineDash(dash ?? []);
+  ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.stroke();
+  ctx.setLineDash([]);
+  arrowHead(ctx, bx, by, ux, uy, color);
+  ctx.restore();
+}
+/* The direct path SNPs → CHD bows under the bottom row, so it does not run
+   through BMI's node. */
+function arcArrow(ctx, P, R, color, width, dash, alpha = 1) {
+  const [x1, y1] = P.g; const [x2, y2] = P.y;
+  const cx = (x1 + x2) / 2; const cy = y1 + 46;
+  const ax = x1 + 6; const ay = y1 + R + 2;
+  const bx = x2 - 8; const by = y2 + R + 3;
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.strokeStyle = color; ctx.lineWidth = width; ctx.setLineDash(dash ?? []);
+  ctx.beginPath(); ctx.moveTo(ax, ay); ctx.quadraticCurveTo(cx, cy, bx, by); ctx.stroke();
+  ctx.setLineDash([]);
+  /* tangent at the end of the quadratic */
+  const tx = bx - cx; const ty = by - cy; const L = Math.hypot(tx, ty);
+  arrowHead(ctx, bx - (tx / L) * 6, by - (ty / L) * 6, tx / L, ty / L, color);
+  ctx.restore();
+}
+const NAMES1 = { g: "SNP", x: "BMI", y: "CHD", u: "confounders" };
+const NAMES = { g: "SNPs", x: "BMI", y: "CHD", u: "confounders" };
+
+function verdictFor(o) {
+  if (o.confounding === "none") return "no path through the confounders: nothing to route around";
+  if (o.pleio && o.indep) return "both forbidden arrows are drawn";
+  if (o.pleio) return `a second path from the ${o.names.g} to CHD is open`;
+  const one = o.names.g === "SNP";
+  if (o.indep) return `the confounders reach the ${o.names.g}: ${one ? "it sits" : "they sit"} on the open path`;
+  return `the path through the confounders is open; the ${o.names.g} ${one ? "is" : "are"} not on it`;
+}
+function drawDag(ctx, x, y, h, o) {
+  const names = o.names ?? NAMES;
+  const { P, R, box } = dagLayout(x, y, h);
+  ctx.save();
+  ctx.font = capFont(); ctx.fillStyle = T.ink2; ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+  ctx.fillText("The graph", box.x, box.y - 8);
+  const conf = o.confounding ?? "strong";
+  /* the fork: open, red, unless there is no confounding */
+  if (conf === "none") {
+    arrow(ctx, P, R, "u", "x", T.ink3, 1.25, [4, 4], 0.6);
+    arrow(ctx, P, R, "u", "y", T.ink3, 1.25, [4, 4], 0.6);
+  } else {
+    const wf = conf === "moderate" ? 1.75 : 2.5;
+    arrow(ctx, P, R, "u", "x", T.extreme, wf);
+    arrow(ctx, P, R, "u", "y", T.extreme, wf);
+  }
+  /* the pipe: relevance is the first arrow's weight */
+  const ws = o.strength === "weak" ? 1 : o.strength === "moderate" ? 1.75 : 2.5;
+  arrow(ctx, P, R, "g", "x", T.ink2, ws, o.strength === "weak" ? [3, 3] : null);
+  arrow(ctx, P, R, "x", "y", T.ink2, 1.75);
+  /* the two forbidden arrows: ghosts until turned on */
+  if (o.pleio) arcArrow(ctx, P, R, T.extreme, 2.5);
+  else arcArrow(ctx, P, R, T.ink3, 1.25, [3, 4], 0.45);
+  if (o.indep) arrow(ctx, P, R, "u", "g", T.extreme, 2.5);
+  else arrow(ctx, P, R, "u", "g", T.ink3, 1.25, [3, 4], 0.45);
+  /* nodes */
+  ctx.font = noteFont(); ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  for (const k of ["u", "g", "x", "y"]) {
+    const [nx, ny] = P[k];
+    ctx.fillStyle = T.surface; ctx.strokeStyle = T.ink3; ctx.lineWidth = 1;
+    ctx.beginPath();
+    /* the confounders node is a pill: "confounders" does not fit a circle
+       that "BMI" fits, and hyphenating it read as two words */
+    if (k === "u") ctx.roundRect(nx - 38, ny - 15, 76, 30, 15);
+    else ctx.arc(nx, ny, R, 0, 2 * Math.PI);
+    ctx.fill(); ctx.stroke();
+    ctx.fillStyle = T.ink1;
+    ctx.fillText(names[k], nx, ny + 1);
+  }
+  /* the verdict, left-aligned at the panel's edge (26's lesson about clipping) */
+  const v = verdictFor({ ...o, names });
+  ctx.font = noteFont(); ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+  ctx.fillStyle = o.pleio || o.indep ? T.extreme : T.ink2;
+  wrapText(ctx, v, box.x + 2, box.y + h + 16, DAG_W + 30, 14);
+  ctx.restore();
+}
+function wrapText(ctx, text, x, y, maxW, lh) {
+  const words = text.split(" ");
+  let line = ""; let yy = y;
+  for (const w of words) {
+    const test = line ? `${line} ${w}` : w;
+    if (ctx.measureText(test).width > maxW && line) { ctx.fillText(line, x, yy); line = w; yy += lh; }
+    else line = test;
+  }
+  if (line) ctx.fillText(line, x, yy);
+}
+
+/* ==========================================================================
+   §0 · title and subtitle
+   ====================================================================== */
+const TITLE = "Mendelian Randomization";
+const SUBTITLES = [
+  { key: "A", claims: "three claims",
+    text: "A variant that raises an exposure is assigned at conception, so the people who carry it are an arm "
+      + "of a trial no confounder chose. Each SNP's effect on the outcome divided by its effect on the exposure "
+      + "is one estimate of the causal effect, and many SNPs combined is the study's. Whether the estimate is "
+      + "right rests on three assumptions, each an arrow the graph must not have." },
+  { key: "B", claims: "two claims",
+    text: "Alleles are assigned at conception, so a SNP that raises an exposure sorts people into arms no "
+      + "confounder chose, and its effect on the outcome over its effect on the exposure estimates the causal "
+      + "effect. Combining many SNPs tightens the estimate; it is only right if the SNPs reach the outcome "
+      + "through the exposure and nothing else." },
+];
+{
+  const row = document.getElementById("titleRow");
+  for (const s of SUBTITLES) {
+    const box = el("div", "cand");
+    box.appendChild(el("p", "pagehead", `subtitle ${s.key}, ${s.claims} · ${s.text.length} characters`));
+    const host = el("div", "stage-host");
+    const heading = el("div", "w-heading");
+    heading.appendChild(el("h1", "w-title", TITLE));
+    heading.appendChild(el("p", "w-subtitle", s.text));
+    host.appendChild(heading);
+    box.appendChild(host);
+    row.appendChild(box);
+  }
+}
+
+/* ==========================================================================
+   §1 · step 1
+   ====================================================================== */
+const H1 = 370;
+function drawStep1(ctx, o) {
+  const w = STAGE_W;
+  drawDag(ctx, 6, 30, H1 - 100, { names: NAMES1, pleio: false, indep: false, strength: "strong", confounding: "strong" });
+  const rect = { x: DAG_W + 58, y: 30, w: w - DAG_W - 58 - 12, h: H1 - 90 };
+  const xs = Array.from(CO.X); const ys = Array.from(CO.L);
+  const pad = (v) => { const lo = Math.min(...v); const hi = Math.max(...v); const p = (hi - lo) * 0.06; return [lo - p, hi + p]; };
+  const xDom = pad(xs); const yDom = pad(ys);
+  const plot = makePlot({ ctx, colors: T, rect, xDomain: xDom, yDomain: yDom });
+  plot.axisX({ label: "BMI, in SD" });
+  plot.axisY({ label: "CHD risk, in log odds" });
+  const beat = o.beat ?? 4;
+  plot.caption(beat >= 4 ? "the line through the three genotype groups" : beat >= 3 ? "the three genotype groups" : beat >= 2 ? "CHD risk ~ BMI, every person" : "2,000 people");
+  ctx.save();
+  ctx.beginPath(); ctx.rect(rect.x, rect.y, rect.w, rect.h); ctx.clip();
+  ctx.globalAlpha = 0.45;
+  for (let i = 0; i < CO.X.length; i += 1) {
+    const u = Math.max(0, Math.min(1, (CO.U[i] + 1.65) / 3.3));
+    ctx.fillStyle = o.colour ? mixRgb(NEV, EV, u) : T.unknown;
+    ctx.beginPath(); ctx.arc(plot.sx(CO.X[i]), plot.sy(CO.L[i]), 2, 0, 2 * Math.PI); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+  const lineAt = (b0, b1, color, width, dash) => {
+    ctx.strokeStyle = color; ctx.lineWidth = width; ctx.setLineDash(dash ?? []);
+    ctx.beginPath(); ctx.moveTo(plot.sx(xDom[0]), plot.sy(b0 + b1 * xDom[0])); ctx.lineTo(plot.sx(xDom[1]), plot.sy(b0 + b1 * xDom[1])); ctx.stroke();
+    ctx.setLineDash([]);
+  };
+  if (o.truth && beat >= 2) lineAt(OBS.my - THETA * OBS.mx, THETA, T.reference, 1.5, [6, 5]);
+  if (beat >= 2) lineAt(OBS.my - OBS.b * OBS.mx, OBS.b, T.empirical, 2.5);
+  if (beat >= 3) {
+    /* the genotype centroids */
+    const cen = [0, 1, 2].map((g) => {
+      let sx = 0; let sy = 0; let n = 0;
+      for (let i = 0; i < CO.X.length; i += 1) if (CO.G[i] === g) { sx += CO.X[i]; sy += CO.L[i]; n += 1; }
+      return { mx: sx / n, my: sy / n, n };
+    });
+    if (beat >= 4) lineAt(OBS.my - RATIO.b * OBS.mx, RATIO.b, T.highlight, 2.5);
+    /* the centroids 0.4 SD apart: a word each collided, so each carries its
+       copy count alone and the note under the caption carries the sizes */
+    ctx.font = `600 ${T.fsXs} ${T.font}`; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    cen.forEach((c, g) => {
+      plot.dot(c.mx, c.my, { fill: T.highlight, r: 7 });
+      ctx.fillStyle = T.surface;
+      ctx.fillText(String(g), plot.sx(c.mx), plot.sy(c.my) + 0.5);
+    });
+    plot.note(`0 · 1 · 2 copies of the BMI-raising allele: ${cen.map((c) => int(c.n)).join(" · ")} people`);
+  }
+  ctx.restore();
+}
+{
+  const row = document.getElementById("step1Row");
+  const tiles = (beat, truth) => [
+    { label: "Observational slope", value: beat >= 2 ? fmt(OBS.b, 2) : "—", note: beat >= 2 ? `95% CI ${fmt(OBS.b - 1.96 * OBS.se, 2)} to ${fmt(OBS.b + 1.96 * OBS.se, 2)}` : "CHD risk on BMI, every person" },
+    { label: "Ratio for this SNP", value: beat >= 4 ? fmt(RATIO.b, 2) : "—", note: beat >= 4 ? `95% CI ${fmt(RATIO.b - 1.96 * RATIO.se, 2)} to ${fmt(RATIO.b + 1.96 * RATIO.se, 2)}` : "its effect on CHD over its effect on BMI" },
+    { label: "True effect", value: truth ? fmt(THETA, 2) : "—", note: truth ? "what the simulation was built with" : "revealed by the True effect control" },
+  ];
+  for (const [title, o] of [
+    ["A · the finished step, the truth revealed", { beat: 4, truth: true }],
+    ["B · Colour by the confounders", { beat: 4, truth: true, colour: true }],
+    ["C · mid-run, after the second beat", { beat: 2, truth: false }],
+  ]) {
+    const box = cand(row, title, `${STAGE_W} × ${H1}`);
+    drawStep1(canvasIn(box, STAGE_W, H1), o);
+    readoutFor(box, tiles(o.beat, o.truth));
+  }
+  document.getElementById("step1Measure").textContent =
+    `cohort: 2,000 people, one SNP at 0.4 SD per allele, p 0.5, strong confounding · observational slope ${fmt(OBS.b, 3)} ±${fmt(OBS.se, 3)} (population ${fmt(OBS_LIAB, 2)}) · `
+    + `ratio ${fmt(RATIO.b, 3)} ±${fmt(RATIO.se, 3)} · ΔBMI per allele ${fmt(GX.b, 3)} (z ${fmt(GX.b / GX.se, 1)}) · truth ${THETA}`;
+  document.getElementById("recStep1").innerHTML =
+    `<b>A with B as the Colour control.</b> The centroid labels name the count in each group, which is the trial's "arm sizes". `
+    + `Open question for you: the DAG's node reads <code>SNP</code> on this step and <code>SNPs</code> on the others — one SNP is what the step is about — or one name throughout (3.7).`;
+}
+
+/* ==========================================================================
+   §2 · the graph's states
+   ====================================================================== */
+{
+  const row = document.getElementById("dagRow");
+  for (const [title, o] of [
+    ["A · every assumption holding", {}],
+    ["B · exclusion restriction broken", { pleio: true }],
+    ["C · independence broken", { indep: true }],
+    ["D · relevance weak", { strength: "weak" }],
+    ["E · no confounding", { confounding: "none" }],
+  ]) {
+    const box = cand(row, title, "the panel at its width on steps 1 and 3");
+    box.style.width = "260px";
+    drawDag(canvasIn(box, 260, 240), 6, 30, 150, { names: NAMES, strength: "strong", confounding: "strong", ...o });
+  }
+  document.getElementById("recDag").innerHTML =
+    `<b>The ghosts are the argument.</b> A reader sees the two arrows the graph must not have before either exists, and a click draws one. `
+    + `The verdict names the mechanism, never a moral (2.9). <b>E</b> is the state 26's fork reaches by adjusting: with nothing on the fork the observational estimate is right, and MR has nothing to do — the readout on step 3 will show the two agreeing.`;
+}
+
+/* ==========================================================================
+   §3 · step 2 — the two GWAS
+   ====================================================================== */
+const H2 = 540;
+function drawStep2(ctx, st, o) {
+  const w = STAGE_W;
+  const upTo = o.upTo ?? st.S.bxHat.length;
+  const m = st.S.bxHat.length;
+  const L = 52; const Rm = 12;
+  const stripH = 96;
+  const y1 = 30; const y2 = y1 + stripH + 46; const y3 = y2 + stripH + 58;
+  const scH = H2 - y3 - 40;
+  const arrived = st.order.slice(0, upTo);
+  const col = (k) => L + ((k + 0.5) / m) * (w - L - Rm);
+  /* exposure strip */
+  const bxMax = Math.max(...st.S.bxHat) * 1.15;
+  const pE = makePlot({ ctx, colors: T, rect: { x: L, y: y1, w: w - L - Rm, h: stripH }, xDomain: [0, m], yDomain: [0, bxMax] });
+  pE.axisY({ ticks: [0, 0.04, 0.08], format: (v) => v.toFixed(2), label: "on BMI" });
+  pE.axisX({ ticks: [], label: "" });
+  pE.caption(`Exposure GWAS · n ${int(LESSON.nX)} · effect of each SNP on BMI, in SD per allele`);
+  pE.note(`${upTo} of ${m} SNPs`);
+  /* outcome strip */
+  const byAbs = Math.max(...Array.from(st.S.byHat, (v, j) => Math.abs(v) + 1.96 * st.S.sy[j])) * 1.05;
+  const pO = makePlot({ ctx, colors: T, rect: { x: L, y: y2, w: w - L - Rm, h: stripH }, xDomain: [0, m], yDomain: [-byAbs, byAbs] });
+  pO.axisY({ ticks: [-0.05, 0, 0.05], format: (v) => v.toFixed(2), label: "on CHD" });
+  pO.axisX({ ticks: [], label: `SNPs, in the order the run takes them (strongest on BMI first)` });
+  pO.caption(`Outcome GWAS · n ${int(LESSON.nY)} · effect of the same SNPs on CHD, in log odds per allele`);
+  if (!o.harmonised) pO.note("open marker: reported on the other allele", { tone: T.extreme });
+  ctx.save();
+  ctx.strokeStyle = T.grid; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(L, Math.round(pO.sy(0)) + 0.5); ctx.lineTo(w - Rm, Math.round(pO.sy(0)) + 0.5); ctx.stroke();
+  ctx.restore();
+  arrived.forEach((j, k) => {
+    const x = col(k);
+    const last = k === upTo - 1 && upTo < m;
+    const color = last ? T.highlight : T.unknown;
+    ctx.strokeStyle = color; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(x, pE.sy(st.S.bxHat[j] - 1.96 * st.S.sx[j])); ctx.lineTo(x, pE.sy(st.S.bxHat[j] + 1.96 * st.S.sx[j])); ctx.stroke();
+    ctx.fillStyle = color; ctx.beginPath(); ctx.arc(x, pE.sy(st.S.bxHat[j]), 2.2, 0, 2 * Math.PI); ctx.fill();
+    ctx.strokeStyle = color;
+    ctx.beginPath(); ctx.moveTo(x, pO.sy(st.S.byHat[j] - 1.96 * st.S.sy[j])); ctx.lineTo(x, pO.sy(st.S.byHat[j] + 1.96 * st.S.sy[j])); ctx.stroke();
+    ctx.beginPath(); ctx.arc(x, pO.sy(st.S.byHat[j]), 2.4, 0, 2 * Math.PI);
+    if (!o.harmonised && st.S.flipped[j]) { ctx.fillStyle = T.surface; ctx.fill(); ctx.strokeStyle = T.extreme; ctx.lineWidth = 1.25; ctx.stroke(); }
+    else { ctx.fillStyle = color; ctx.fill(); }
+  });
+  /* the scatter forming */
+  drawScatter(ctx, st, { x: L + 30, y: y3, w: w - L - 30 - Rm - 60, h: scH }, { upTo, arrived, harmonised: o.harmonised, estimator: "none", caption: o.harmonised ? "each SNP's two effects, one against the other" : "unharmonised: half the outcome effects point the wrong way", small: true });
+}
+function drawScatter(ctx, st, rect, o) {
+  const S = st.S;
+  const arrived = o.arrived ?? st.order;
+  const bxMax = Math.max(...S.bxHat) * 1.12;
+  let lo = 0; let hi = 0;
+  for (const j of arrived) { lo = Math.min(lo, S.byHat[j] - 1.96 * S.sy[j]); hi = Math.max(hi, S.byHat[j] + 1.96 * S.sy[j]); }
+  if (o.frameAll) for (let j = 0; j < S.byHat.length; j += 1) { lo = Math.min(lo, S.byHat[j] - 1.96 * S.sy[j]); hi = Math.max(hi, S.byHat[j] + 1.96 * S.sy[j]); }
+  const pad = (hi - lo) * 0.05 || 0.01;
+  const plot = makePlot({ ctx, colors: T, rect, xDomain: [0, bxMax], yDomain: [lo - pad, hi + pad] });
+  plot.axisX({ format: (v) => v.toFixed(2), label: "SNP effect on BMI, in SD per allele" });
+  plot.axisY({ format: (v) => v.toFixed(2), label: o.small ? "on CHD" : "SNP effect on CHD, in log odds per allele" });
+  if (o.caption) plot.caption(o.caption);
+  if (o.note) plot.note(o.note);
+  ctx.save();
+  ctx.beginPath(); ctx.rect(rect.x - 1, rect.y - 1, rect.w + 2, rect.h + 2); ctx.clip();
+  /* zero line */
+  ctx.strokeStyle = T.grid; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(rect.x, Math.round(plot.sy(0)) + 0.5); ctx.lineTo(rect.x + rect.w, Math.round(plot.sy(0)) + 0.5); ctx.stroke();
+  /* the SNPs: crosses, as the lesson draws them */
+  arrived.forEach((j, k) => {
+    const x = plot.sx(S.bxHat[j]); const y = plot.sy(S.byHat[j]);
+    const last = o.upTo != null && k === o.upTo - 1 && o.upTo < S.bxHat.length;
+    const pinned = o.pin === j;
+    const inval = o.markInvalid && !S.valid[j];
+    ctx.strokeStyle = T.ink3; ctx.lineWidth = 1; ctx.globalAlpha = 0.7;
+    ctx.beginPath();
+    ctx.moveTo(plot.sx(S.bxHat[j] - 1.96 * S.sx[j]), y); ctx.lineTo(plot.sx(S.bxHat[j] + 1.96 * S.sx[j]), y);
+    ctx.moveTo(x, plot.sy(S.byHat[j] - 1.96 * S.sy[j])); ctx.lineTo(x, plot.sy(S.byHat[j] + 1.96 * S.sy[j]));
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+    ctx.beginPath(); ctx.arc(x, y, last || pinned ? 4 : 2.6, 0, 2 * Math.PI);
+    if (!o.harmonised && S.flipped[j]) { ctx.fillStyle = T.surface; ctx.fill(); ctx.strokeStyle = T.extreme; ctx.lineWidth = 1.25; ctx.stroke(); }
+    else if (inval) { ctx.fillStyle = T.extreme; ctx.fill(); }
+    else { ctx.fillStyle = last || pinned ? T.highlight : T.ink1; ctx.fill(); }
+    if (pinned) { ctx.strokeStyle = T.highlight; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(x, y, 8, 0, 2 * Math.PI); ctx.stroke(); }
+  });
+  /* the lines */
+  const lineAt = (b0, b1, color, width, dash, alpha = 1) => {
+    ctx.save(); ctx.globalAlpha = alpha;
+    ctx.strokeStyle = color; ctx.lineWidth = width; ctx.setLineDash(dash ?? []);
+    ctx.beginPath(); ctx.moveTo(plot.sx(0), plot.sy(b0)); ctx.lineTo(plot.sx(bxMax), plot.sy(b0 + b1 * bxMax)); ctx.stroke();
+    ctx.restore();
+  };
+  if (o.estimator && o.estimator !== "none") {
+    const sel = o.estimator;
+    const a = (k) => (sel === "all" || sel === k ? 1 : 0.28);
+    const wd = (k) => (sel === "all" || sel === k ? 2.5 : 1.5);
+    if (o.observational) lineAt(0, o.observational, T.ink1, 1.5, [2, 4]);
+    if (o.truth) lineAt(0, THETA, T.reference, 1.5, [6, 5]);
+    lineAt(0, st.est.ivw.b, T.empirical, wd("ivw"), null, a("ivw"));
+    lineAt(st.est.egger.a, st.est.egger.b, T.groupB, wd("egger"), null, a("egger"));
+    lineAt(0, st.est.median.b, T.groupC, wd("median"), null, a("median"));
+    /* the labels at the right edge */
+    ctx.font = noteFont(); ctx.textAlign = "right"; ctx.textBaseline = "bottom";
+    const tag = (text, yv, color, alpha) => {
+      ctx.save(); ctx.globalAlpha = alpha; ctx.strokeStyle = T.surface; ctx.lineWidth = 3;
+      const px = plot.sx(bxMax) - 4; const py = plot.sy(yv) - 3;
+      ctx.strokeText(text, px, py); ctx.fillStyle = color; ctx.fillText(text, px, py); ctx.restore();
+    };
+    if (o.observational) tag("observational", o.observational * bxMax, T.ink1, 1);
+    if (o.truth) tag("true effect", THETA * bxMax, T.ink2, 1);
+  }
+  ctx.restore();
+  return plot;
+}
+{
+  const row = document.getElementById("step2Row");
+  for (const [title, st, o] of [
+    ["A · mid-run, 30 of 79 SNPs, harmonised", ST, { upTo: 30, harmonised: true }],
+    ["B · finished, Harmonise OFF", ST_RAW, { harmonised: false }],
+    ["C · finished, harmonised", ST, { harmonised: true }],
+  ]) {
+    const box = cand(row, title, `${STAGE_W} × ${H2}`);
+    drawStep2(canvasIn(box, STAGE_W, H2), st, o);
+    const n = o.upTo ?? 79;
+    readoutFor(box, [
+      { label: "SNPs", value: String(n), note: `of ${st.S.bxHat.length} instruments` },
+      { label: "Reported on the other allele", value: o.harmonised ? "0" : String(Array.from(st.S.flipped).reduce((a, b) => a + b, 0)), note: o.harmonised ? "after harmonising" : "outcome effects with the sign of the other allele" },
+      { label: "Mean F statistic", value: n === 79 ? fmt(st.F, 0) : "—", note: "strength of the SNPs on BMI; 10 is the usual floor" },
+    ]);
+  }
+  document.getElementById("step2Measure").textContent =
+    `harmonised: IVW ${fmt(ST.est.ivw.b, 3)} ±${fmt(ST.est.ivw.se, 3)} · unharmonised: IVW ${fmt(ST_RAW.est.ivw.b, 3)} ±${fmt(ST_RAW.est.ivw.se, 3)} · flipped ${Array.from(ST.S.flipped).reduce((a, b) => a + b, 0)} of 79 · F̄ ${fmt(ST.F, 0)}`;
+  document.getElementById("recStep2").innerHTML =
+    `<b>A, with the run in this order.</b> Strongest on BMI first makes the top strip a staircase and shows the outcome strip following it, roughly — which is the whole idea before any line is fitted. `
+    + `The scatter belongs on this step as well as the next: it is where the two GWAS meet, and the lesson's overview figure draws the pairing lines down to it. `
+    + `Harmonise is a display parameter (the same two GWAS, read on the same allele), so switching it keeps the run.`;
+}
+
+/* ==========================================================================
+   §4 · step 3 — the estimate
+   ====================================================================== */
+const H3 = 400;
+function drawStep3(ctx, st, o) {
+  drawDag(ctx, 6, 30, H3 - 130, { names: NAMES, strength: o.strength ?? "strong", confounding: "strong", pleio: !!o.pleio, indep: !!o.indep });
+  const rect = { x: DAG_W + 60, y: 30, w: STAGE_W - DAG_W - 60 - 14, h: H3 - 92 };
+  const obs = o.strength === "weak" && o.oneSample ? OBS_LIAB : OBS_LIAB;
+  drawScatter(ctx, st, rect, {
+    estimator: o.estimator, truth: o.truth, observational: obs, markInvalid: !!o.pleio, harmonised: true, frameAll: true, pin: o.pin,
+    caption: o.estimator === "all" ? "IVW, MR Egger, weighted median" : o.estimator === "ivw" ? "IVW: the slope through the origin" : o.estimator === "egger" ? "MR Egger: a slope and an intercept" : "the weighted median of the ratios",
+    note: o.pleio ? `${Array.from(st.S.valid).filter((v) => !v).length} SNPs with a direct path, in red` : o.strength === "weak" ? `exposure GWAS n ${int(STRENGTH.weak)}${o.oneSample ? ", one sample" : ""}` : undefined,
+  });
+}
+function tiles3(st, o) {
+  const e = st.est;
+  const sel = o.estimator;
+  const ci = (b, se) => `95% CI ${fmt(b - 1.96 * se, 2)} to ${fmt(b + 1.96 * se, 2)}`;
+  const on = (k) => sel === "all" || sel === k;
+  return [
+    { label: "IVW", value: on("ivw") ? fmt(e.ivw.b, 2) : "—", note: on("ivw") ? ci(e.ivw.b, e.ivw.se) : "select it to read it", tone: on("ivw") ? undefined : T.ink3 },
+    { label: "MR Egger", value: on("egger") ? fmt(e.egger.b, 2) : "—", note: on("egger") ? `${ci(e.egger.b, e.egger.se)} · intercept ${fmt(e.egger.a, 3)} ±${fmt(e.egger.seA, 3)}` : "select it to read it" },
+    { label: "Weighted median", value: on("median") ? fmt(e.median.b, 2) : "—", note: on("median") ? ci(e.median.b, e.median.se) : "select it to read it" },
+    { label: "Observational", value: fmt(OBS.b, 2), note: "CHD risk on BMI in the cohort, confounded" },
+    { label: "True effect", value: o.truth ? fmt(THETA, 2) : "—", note: o.truth ? "what the simulation was built with" : "revealed by the True effect control" },
+    { label: "Mean F statistic", value: fmt(st.F, 0), note: "10 is the usual floor" },
+  ];
+}
+{
+  const row = document.getElementById("step3Row");
+  for (const [title, st, o] of [
+    ["A · Estimator IVW, every assumption holding, the truth revealed", ST, { estimator: "ivw", truth: true }],
+    ["B · Estimator All", ST, { estimator: "all", truth: true }],
+    ["C · exclusion restriction broken on 30%, Estimator MR Egger", ST_PLEIO, { estimator: "egger", truth: true, pleio: true }],
+    ["D · relevance weak, one sample, Estimator IVW", ST_WEAK1, { estimator: "ivw", truth: true, strength: "weak", oneSample: true }],
+    ["E · independence broken, Estimator All", ST_STRAT, { estimator: "all", truth: true, indep: true }],
+  ]) {
+    const box = cand(row, title, `${STAGE_W} × ${H3}`);
+    drawStep3(canvasIn(box, STAGE_W, H3), st, o);
+    readoutFor(box, tiles3(st, o));
+  }
+  const l = (name, st) => `${name}: IVW ${fmt(st.est.ivw.b, 3)} ±${fmt(st.est.ivw.se, 3)} · Egger ${fmt(st.est.egger.b, 3)} ±${fmt(st.est.egger.se, 3)} (a ${fmt(st.est.egger.a, 4)} ±${fmt(st.est.egger.seA, 4)}) · median ${fmt(st.est.median.b, 3)} ±${fmt(st.est.median.se, 3)} · F̄ ${fmt(st.F, 0)}`;
+  document.getElementById("step3Measure").textContent = [l("clean", ST), l("pleiotropy 30%", ST_PLEIO), l("weak, one sample", ST_WEAK1), l("independence broken", ST_STRAT), l("20 SNPs", ST_20)].join("\n");
+  document.getElementById("recStep3").innerHTML =
+    `<b>The observational line as the reference.</b> It is dotted in ink and named at the right edge, the truth dashed in the reference grey when revealed: two lines the MR estimate is read against, and the reader sees which one it lands on. `
+    + `<b>C</b> marks the pleiotropic SNPs in red once the arrow is on — the SNPs whose direct path is drawn — which is the exclusion restriction made countable. `
+    + `<b>Open for you:</b> the Egger tile carries its intercept in the note; a fourth tile for the intercept alone would make it a claim of its own.`;
+}
+
+/* ==========================================================================
+   §5 · step 4 — the forest
+   ====================================================================== */
+function forestHeight(m) { return 60 + Math.min(12, Math.max(4.4, 340 / m)) * m + 3 * 14 + 60; }
+function drawForest(ctx, st, o) {
+  const S = st.S; const m = S.bxHat.length;
+  const pitch = Math.min(12, Math.max(4.4, 340 / m));
+  const L = m <= 24 ? 70 : 46; const Rm = 14;
+  const top = 34;
+  const rowsH = pitch * m;
+  const combH = 3 * 14;
+  const H = forestHeight(m);
+  const idx = [...Array(m).keys()].sort((a, b) => st.W.ratio[b] - st.W.ratio[a]);
+  const LIM = 3;
+  const rect = { x: L, y: top, w: STAGE_W - L - Rm, h: rowsH + combH + 22 };
+  const plot = makePlot({ ctx, colors: T, rect, xDomain: [-LIM, LIM], yDomain: [0, 1] });
+  plot.axisX({ ticks: [-3, -2, -1, 0, 1, 2, 3], format: (v) => v.toFixed(0), label: "MR effect of BMI on CHD, in log odds per SD" });
+  plot.caption(`each SNP's ratio with its 95% interval, ${m} SNPs`);
+  let clipped = 0;
+  const past = (lo, hi) => (lo < -LIM || hi > LIM ? 1 : 0);
+  ctx.save();
+  /* zero line */
+  ctx.strokeStyle = T.ink3; ctx.setLineDash([2, 3]); ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(Math.round(plot.sx(0)) + 0.5, top); ctx.lineTo(Math.round(plot.sx(0)) + 0.5, top + rowsH + combH + 22); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.font = `${Math.min(11, Math.max(8, pitch - 1))}px ${T.font}`; ctx.textAlign = "right"; ctx.textBaseline = "middle";
+  idx.forEach((j, k) => {
+    const y = top + (k + 0.5) * pitch;
+    const r = st.W.ratio[j]; const lo = r - 1.96 * st.W.se[j]; const hi = r + 1.96 * st.W.se[j];
+    clipped += past(lo, hi);
+    const pinned = o.pin === j;
+    const color = pinned ? T.highlight : T.ink3;
+    ctx.strokeStyle = color; ctx.lineWidth = pinned ? 2 : 1;
+    ctx.beginPath(); ctx.moveTo(plot.sx(Math.max(-LIM, lo)), y); ctx.lineTo(plot.sx(Math.min(LIM, hi)), y); ctx.stroke();
+    ctx.fillStyle = pinned ? T.highlight : T.ink1;
+    ctx.beginPath(); ctx.arc(plot.sx(Math.max(-LIM, Math.min(LIM, r))), y, pinned ? 3.5 : Math.min(2.6, pitch / 2 - 0.5), 0, 2 * Math.PI); ctx.fill();
+    if (pitch >= 9 || pinned) { ctx.fillStyle = pinned ? T.highlight : T.ink2; ctx.fillText(`SNP ${j + 1}`, L - 6, y); }
+  });
+  /* the rule and the combined rows */
+  const ry = top + rowsH + 6;
+  ctx.strokeStyle = T.axis; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(L, Math.round(ry) + 0.5); ctx.lineTo(STAGE_W - Rm, Math.round(ry) + 0.5); ctx.stroke();
+  const comb = [["ivw", "All · IVW", st.est.ivw.b, st.est.ivw.se], ["egger", "All · MR Egger", st.est.egger.b, st.est.egger.se], ["median", "All · weighted median", st.est.median.b, st.est.median.se]];
+  ctx.font = noteFont();
+  comb.forEach(([k, label, b, se], i) => {
+    const y = ry + 10 + i * 14;
+    const sel = o.estimator === "all" || o.estimator === k;
+    const color = sel ? T.highlight : T.ink2;
+    ctx.strokeStyle = color; ctx.lineWidth = sel ? 2.5 : 1.5;
+    ctx.beginPath(); ctx.moveTo(plot.sx(b - 1.96 * se), y); ctx.lineTo(plot.sx(b + 1.96 * se), y); ctx.stroke();
+    ctx.fillStyle = color; ctx.beginPath(); ctx.arc(plot.sx(b), y, 3.5, 0, 2 * Math.PI); ctx.fill();
+    /* the label and the number sit to the RIGHT of the interval: the left
+       margin is 46px at 79 rows, and "All · weighted median" is not */
+    ctx.fillStyle = sel ? T.ink1 : T.ink2;
+    const text = `${label}  ${fmt(b, 2)} (${fmt(b - 1.96 * se, 2)} to ${fmt(b + 1.96 * se, 2)})`;
+    const rx = plot.sx(b + 1.96 * se) + 8;
+    /* to the right of the interval where it fits, else to the left of it */
+    if (rx + ctx.measureText(text).width <= STAGE_W - Rm) { ctx.textAlign = "left"; ctx.fillText(text, rx, y); }
+    else { ctx.textAlign = "right"; ctx.fillText(text, plot.sx(b - 1.96 * se) - 8, y); }
+  });
+  ctx.restore();
+  if (clipped) plot.note(`${clipped} interval${clipped > 1 ? "s" : ""} past ±3, clipped to the frame`);
+  return H;
+}
+{
+  const row = document.getElementById("step4Row");
+  for (const [title, st, o] of [
+    ["A · 79 SNPs, Estimator IVW", ST, { estimator: "ivw" }],
+    ["B · 20 SNPs, Estimator IVW", ST_20, { estimator: "ivw" }],
+    ["C · 79 SNPs, one SNP pinned by a click, Estimator All", ST, { estimator: "all", pin: ST.order[3] }],
+  ]) {
+    const H = forestHeight(st.S.bxHat.length);
+    const box = cand(row, title, `${STAGE_W} × ${Math.round(H)}`);
+    drawForest(canvasIn(box, STAGE_W, H), st, o);
+  }
+  document.getElementById("step4Measure").textContent =
+    `79 rows at ${fmt(Math.max(4.4, 340 / 79), 1)}px pitch, ${Math.round(forestHeight(79))}px tall · 20 rows at 12px, ${Math.round(forestHeight(20))}px · single-SNP SE median ${fmt([...ST.W.se].sort((a, b) => a - b)[39], 2)} (the lesson's rows are ±1)`;
+  document.getElementById("recStep4").innerHTML =
+    `<b>The forest's height follows the count</b> (a function of the parameters, as bayesian's does), so 20 SNPs is a shorter figure with every row named and 79 is the lesson's wall. `
+    + `The three combined rows print their numbers beside them, which is what the lesson's figure withholds and its table supplies.`;
+}
+
+/* ==========================================================================
+   §6 · the rail, through core's own builder
+   ====================================================================== */
+const PAGES = [
+  { value: "trial", label: "1 · One SNP as a trial" },
+  { value: "gwas", label: "2 · The two GWAS" },
+  { value: "estimate", label: "3 · Estimate" },
+  { value: "forest", label: "4 · The forest" },
+];
+const COPY = {
+  page: { label: "Step", detail: "the four steps of a Mendelian randomization study" },
+  seed: { label: "Seed", detail: "draws a different cohort and different summary statistics" },
+  confounding: { label: "Confounding", detail: "how strongly the confounders move both BMI and CHD" },
+  truth: { label: "True effect", offDetail: "what would you conclude from the estimates alone?", onDetail: "the effect the simulation was built with" },
+  colour: { label: "Colour by the confounders", onDetail: "each person tinted by the confounders the graph cannot see" },
+  snps: { label: "SNPs", detail: "how many instruments the exposure GWAS supplies" },
+  samples: { label: "Samples", oneDetail: "both GWAS on the same people", twoDetail: "the outcome GWAS on different people" },
+  harmonise: { label: "Harmonise", offDetail: "each GWAS reports on its own effect allele", onDetail: "every effect read on the BMI-raising allele" },
+  estimator: { label: "Estimator" },
+  /* the assumption names */
+  relevance: { label: "Relevance", detail: "how strongly the SNPs are associated with BMI: the size of the exposure GWAS" },
+  exclusion: { label: "Exclusion restriction", detail: "the share of SNPs associated with CHD by a path that is not BMI" },
+  independence: { label: "Independence", offDetail: "the SNPs are not associated with the confounders", onDetail: "the confounders also shift which alleles people carry, as population stratification does" },
+  /* the mechanism names */
+  strength: { label: "Instrument strength", detail: "the size of the exposure GWAS, and so each SNP's F statistic" },
+  pleiotropy: { label: "Pleiotropy share", detail: "the share of SNPs with a direct path to CHD" },
+  strat: { label: "Confounders to SNPs", offDetail: "the SNPs are not associated with the confounders", onDetail: "the confounders also shift which alleles people carry, as population stratification does" },
+};
+function specFor(naming) {
+  const spec = {};
+  /* `style: "grid"`, as polygenic-score's Step control is declared: four
+     labels of this length do not fit one row at 300px, and truncated they
+     read "1 · One S…". */
+  spec.page = { type: "segmented", style: "grid", label: COPY.page.label, detail: COPY.page.detail, options: PAGES, default: "trial", display: true };
+  spec.dataSec = { type: "section", label: "The data" };
+  spec.seed = { type: "int", label: COPY.seed.label, min: 1, max: 200, default: SEED, detail: COPY.seed.detail };
+  spec.confounding = { type: "segmented", label: COPY.confounding.label, detail: COPY.confounding.detail, options: [{ value: "none", label: "None" }, { value: "moderate", label: "Moderate" }, { value: "strong", label: "Strong" }], default: "strong" };
+  spec.truth = { type: "segmented", label: COPY.truth.label, options: [{ value: "off", label: "Off", detail: COPY.truth.offDetail }, { value: "on", label: "On", detail: COPY.truth.onDetail }], default: "off", display: true };
+  spec.colour = { type: "segmented", label: COPY.colour.label, options: [{ value: "off", label: "Off" }, { value: "on", label: "On", detail: COPY.colour.onDetail }], default: "off", display: true, when: { param: "page", equals: "trial" } };
+  spec.graphSec = { type: "section", label: "The assumptions" };
+  if (naming === "assumption") {
+    spec.strength = { type: "segmented", label: COPY.relevance.label, detail: COPY.relevance.detail, options: [{ value: "strong", label: "Strong" }, { value: "moderate", label: "Moderate" }, { value: "weak", label: "Weak" }], default: "strong" };
+    spec.pleio = { type: "segmented", label: COPY.exclusion.label, detail: COPY.exclusion.detail, options: [{ value: "0", label: "Holds" }, { value: "0.3", label: "30% break it" }, { value: "0.6", label: "60% break it" }], default: "0" };
+    spec.indep = { type: "segmented", label: COPY.independence.label, options: [{ value: "holds", label: "Holds", detail: COPY.independence.offDetail }, { value: "broken", label: "Broken", detail: COPY.independence.onDetail }], default: "holds" };
+  } else {
+    spec.strength = { type: "segmented", label: COPY.strength.label, detail: COPY.strength.detail, options: [{ value: "strong", label: "Strong" }, { value: "moderate", label: "Moderate" }, { value: "weak", label: "Weak" }], default: "strong" };
+    spec.pleio = { type: "segmented", label: COPY.pleiotropy.label, detail: COPY.pleiotropy.detail, options: [{ value: "0", label: "None" }, { value: "0.3", label: "30%" }, { value: "0.6", label: "60%" }], default: "0" };
+    spec.indep = { type: "segmented", label: COPY.strat.label, options: [{ value: "off", label: "Off", detail: COPY.strat.offDetail }, { value: "on", label: "On", detail: COPY.strat.onDetail }], default: "off" };
+  }
+  spec.studySec = { type: "section", label: "The study", when: { param: "page", oneOf: ["gwas", "estimate", "forest"] } };
+  spec.snps = { type: "segmented", label: COPY.snps.label, detail: COPY.snps.detail, options: [{ value: "20", label: "20" }, { value: "40", label: "40" }, { value: "79", label: "79" }], default: "79", when: { param: "page", oneOf: ["gwas", "estimate", "forest"] } };
+  spec.samples = { type: "segmented", label: COPY.samples.label, options: [{ value: "one", label: "One", detail: COPY.samples.oneDetail }, { value: "two", label: "Two", detail: COPY.samples.twoDetail }], default: "two", when: { param: "page", oneOf: ["gwas", "estimate", "forest"] } };
+  spec.harmonise = { type: "segmented", label: COPY.harmonise.label, options: [{ value: "off", label: "Off", detail: COPY.harmonise.offDetail }, { value: "on", label: "On", detail: COPY.harmonise.onDetail }], default: "off", display: true, when: { param: "page", oneOf: ["gwas", "estimate", "forest"] } };
+  spec.estimator = { type: "segmented", label: COPY.estimator.label, options: [{ value: "ivw", label: "IVW", detail: "inverse variance weighted: the slope through the origin, each SNP weighted by the precision of its CHD effect" }, { value: "egger", label: "MR Egger", detail: "the same regression with an intercept, which reads directional pleiotropy" }, { value: "median", label: "Weighted median", detail: "the median of the single-SNP ratios, weighted by their precision" }, { value: "all", label: "All", detail: "the three together" }], default: "ivw", display: true, when: { param: "page", oneOf: ["estimate", "forest"] } };
+  return spec;
+}
+{
+  const { buildControls, buildActions } = await import("../core/controls.js");
+  const { resolveParams } = await import("../core/params.js");
+  const row = document.getElementById("railRow");
+  const DRIVE = { trial: "Fit the line", gwas: "Next SNP", estimate: "Next SNP", forest: "Next SNP" };
+  const heights = [];
+  for (const [title, naming, page] of [
+    ["A · step 1, assumption names", "assumption", "trial"],
+    ["B · step 3, assumption names", "assumption", "estimate"],
+    ["C · step 3, mechanism names", "mechanism", "estimate"],
+  ]) {
+    const sp = specFor(naming);
+    const box = cand(row, title, `core's own DOM at 300px\nvalues: the defaults on ${PAGES.find((p) => p.value === page).label}`);
+    const host = el("div", "w-split rail-host");
+    const rail = el("div", "w-rail");
+    host.appendChild(rail);
+    const values = resolveParams(sp, new URLSearchParams(`page=${page}`));
+    const cm = el("div", "w-controls");
+    rail.appendChild(cm);
+    buildControls(cm, sp, values, () => {});
+    const drive = el("div", "w-drive");
+    rail.appendChild(drive);
+    buildActions(drive, [
+      { key: "step", text: DRIVE[page], group: "pace", onClick: () => {} },
+      { key: "run", text: "Play", group: "pace", primary: true, onClick: () => {} },
+      { key: "reset", text: "Reset", onClick: () => {} },
+    ]);
+    box.appendChild(host);
+    heights.push([title, host]);
+  }
+  const measure = () => {
+    document.getElementById("railMeasure").textContent = heights.map(([t, h]) => `${t}: ${Math.round(h.getBoundingClientRect().height)}px`).join("\n");
+  };
+  measure();
+  if (document.fonts?.ready) document.fonts.ready.then(measure);
+  document.getElementById("recRail").innerHTML =
+    `<b>The assumption names (A, B).</b> The lesson teaches three assumptions by name and the widget's one thing is that each is an arrow; a control called <i>Exclusion restriction</i> whose options are Holds · 30% break it · 60% break it teaches the name while it is being used, and the mechanism is in the detail. `
+    + `The mechanism names (C) are what the field says in a methods section, and the catalogue used them; they read as three unrelated dials. `
+    + `<b>Step 1's drive:</b> the run is four beats, and Step's label names the next one (Fit the line · Split by genotype · Draw the ratio), 3.4d reserving the widest; on steps 2 to 4 it is Next SNP.`;
+}
+
+/* ==========================================================================
+   §7 · the copy
+   ====================================================================== */
+{
+  const host = document.getElementById("copyTable");
+  const t = el("table", "facts");
+  const tr = (cells, head = false) => { const r = el("tr"); for (const c of cells) r.appendChild(el(head ? "th" : "td", null, c)); t.appendChild(r); };
+  tr(["control", "label", "options", "detail"], true);
+  tr(["page", COPY.page.label, PAGES.map((p) => p.label).join(" · "), COPY.page.detail]);
+  tr(["seed", COPY.seed.label, "1 to 200", COPY.seed.detail]);
+  tr(["confounding", COPY.confounding.label, "None · Moderate · Strong", COPY.confounding.detail]);
+  tr(["truth", COPY.truth.label, "Off · On", `Off: ${COPY.truth.offDetail} — On: ${COPY.truth.onDetail}`]);
+  tr(["colour (step 1)", COPY.colour.label, "Off · On", COPY.colour.onDetail]);
+  tr(["strength", `${COPY.relevance.label} / ${COPY.strength.label}`, "Strong · Moderate · Weak", `${COPY.relevance.detail} / ${COPY.strength.detail}`]);
+  tr(["pleio", `${COPY.exclusion.label} / ${COPY.pleiotropy.label}`, "Holds · 30% break it · 60% break it / None · 30% · 60%", `${COPY.exclusion.detail} / ${COPY.pleiotropy.detail}`]);
+  tr(["indep", `${COPY.independence.label} / ${COPY.strat.label}`, "Holds · Broken / Off · On", COPY.independence.onDetail]);
+  tr(["snps (steps 2–4)", COPY.snps.label, "20 · 40 · 79", COPY.snps.detail]);
+  tr(["samples (steps 2–4)", COPY.samples.label, "One · Two", `One: ${COPY.samples.oneDetail} — Two: ${COPY.samples.twoDetail}`]);
+  tr(["harmonise (steps 2–4)", COPY.harmonise.label, "Off · On", `Off: ${COPY.harmonise.offDetail} — On: ${COPY.harmonise.onDetail}`]);
+  tr(["estimator (steps 3–4)", COPY.estimator.label, "IVW · MR Egger · Weighted median · All", "each option's detail is the method in one clause"]);
+  tr(["tiles, step 1", "Observational slope · Ratio for this SNP · True effect", "", "the ratio tile's note is the 95% CI; the truth tile reads — until revealed"]);
+  tr(["tiles, step 2", "SNPs · Reported on the other allele · Mean F statistic", "", "F reads — until every SNP has arrived"]);
+  tr(["tiles, steps 3–4", "IVW · MR Egger · Weighted median · Observational · True effect · Mean F statistic", "", "an unselected estimator's tile reads — with the note 'select it to read it'"]);
+  host.appendChild(t);
+}
+
+document.getElementById("engineLine").textContent =
+  `engine: six studies and the cohort built in ${fmt(T_BUILD, 0)} ms at seed ${SEED} · clean IVW ${fmt(ST.est.ivw.b, 3)} ±${fmt(ST.est.ivw.se, 3)}, Egger ${fmt(ST.est.egger.b, 3)} ±${fmt(ST.est.egger.se, 3)}, median ${fmt(ST.est.median.b, 3)} ±${fmt(ST.est.median.se, 3)}, F̄ ${fmt(ST.F, 0)} · page drawn in ${fmt(performance.now() - T0, 0)} ms`;
+</script>
+</body>
+</html>
