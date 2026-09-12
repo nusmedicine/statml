@@ -7684,6 +7684,47 @@ base-size lever on summary statistics, the page-1 split with the arcs as
 stills, the numbered verbs, the hand-offs, page 3's reading line, and page
 5's two figures.
 
+**ROUND TWO MOCKED 2026-09-12, `_lab/prs-round2-mock.html` (`b6d9e19`)** —
+it imports the widget's own `model.js`, so every number is the shipped
+engine's. What the drawing measured beyond the review: pairs over r² 0.5
+go 634 → 282 → 66 across the Recombination settings and their reach 180 →
+80 → 20 kb while the clump COUNT barely moves (8 → 8 → 23), so the
+readout promises the block's reach, not the count; the first clump draws
+27 arcs at r² 0.83 down to 0.10; `--c-value-high` IS `--c-extreme`'s
+value, so the arcs take the lead's own `--c-highlight` with alpha = r²;
+the summary-statistic base agrees with the per-person route within 0.82
+SD on every quantity (β̂'s spread 0.0460 against 0.0464, SNPs under P <
+0.05 98 against 105, best-fit R² 0.127 against 0.141) — first written as
+one cohort against twelve draws it read as a 4 SD failure; over 16 seeds
+the lever reads R² 0.106 → 0.261 → 0.290 and the vigintile range 1.29 →
+2.06 → 2.21 SD; **the Overfitting tile's sign is a coin flip above base
+1,500** (best-fit minus validation positive on 6 of 16 seeds at 15,000)
+while best-fit minus every-SNP is 0.026 and positive on 16 of 16; **the
+default seed must be 41** — the only one of 16 that opens positive at all
+three base sizes with the region's lead off the causal SNP (38 SNPs, 8
+clumps, 25 kb at r² 0.79); at prevalence 5% five deciles hold no case;
+at a 10% risk threshold the line catches 216 of 319 people; the six rails
+run 672 to 1,355px against stages of 426–554. Three defects fixed after
+the main session read it (truncated captions on the calibration and
+stratification panels, the diagonal's label and decile note over the
+bars, the bracket label over the ticks).
+
+**Kenneth's round-two picks, 2026-09-12 (eight, every one the
+recommendation):**
+
+| § | pick |
+|---|---|
+| 0 | **six numbered verbs, two per row**: 1 · See the haplotypes · 2 · Clump the SNPs · 3 · Build the score · 4 · Choose the threshold · 5 · Check the score · 6 · Calibrate the risk (145px); the step line and the hand-off ("from step 1: the 4 lead SNPs kept from the region") above each stage's caption; the control renamed *Step* |
+| 1 | **A**: the haplotypes (40 rows × 100 SNPs, the causal column marked) over the clipped r² triangle, 410px; Recombination moves to this step; the readout names the block's reach |
+| 2 | **arcs from the lead, then the absorbed SNPs slide to the baseline**: the association plot alone at 550 × 300, three beats a clump (the lead lights; the arcs draw, alpha = r²; the members slide to ticks on the axis), 24 beats, 6.2 s |
+| 3 | **Base study size 1,500 · 15,000 · 150,000, default 15,000**, the base as summary statistics; the **Overfitting tile becomes best-fit R² minus R² at P < 1** (within the target); **seed 41** the default |
+| 4 | **with the reading line** under the curves: "best-fit R² 0.294 in the target at P < 0.01; 0.267 in the validation sample at that threshold" |
+| 5 | **step 6a, one calibration panel under the Target population control; Prevalence 5 · 10 · 20%, default 20%**; the logistic model fitted in a 3,000-person base population; predicted against observed by decile with 95% intervals; readouts the calibration intercept and slope, and the person's probability beside their percentile |
+| 6 | **step 6b beside 6a on one 296px stage**: absolute predicted risk against score percentile, **Risk threshold 20 · 30 · 40%, default 30%**; readouts the threshold, the percentile that crosses it, the people above it |
+| 7 | **the rail accepted, its two-line details trimmed** (Base study size, Heritability); it sets the page height, as on gwas |
+
+Six steps on one rail. NEXT: the round-two build on the draft.
+
 **PAGE 5 PLANNED 2026-09-12 — calibration, on Kenneth's question** ("can
 the PRS score be used to calculate risk for a patient? a colleague told me
 no… so what's the use of this score?", then "how is calibration done? will
