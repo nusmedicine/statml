@@ -87,6 +87,10 @@ read per SNP, the graph on every page → round three (assumptions as
 readings of one study, eased; Harmonise the same ease; a final beat; seed
 25) → the copy audit → the personification pass and conventional subtitle
 and blurb → shooter, 60 states, ship. Two days, 2026-09-12 and 13.
+Post-ship, 806dd7c: the harmonise copy restated as *effect allele* on his
+correction (same two alleles in both studies; each study reports for one
+of them) — control details, the tile, the three per-SNP lines; eleven
+Effects states re-recorded.
 
 # WORKING ON THIS MACHINE
 

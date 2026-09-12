@@ -8530,7 +8530,21 @@ full suite fronted at DPR 1.25: 757 states, 757 MATCH. `check` and `test` green,
 their own.
 
 
-
+2026-09-13, evening, post-ship: **the harmonise wording says effect
+allele** (806dd7c), on Kenneth's correction that harmonising is not a
+choice of alleles — a SNP has the same two alleles in both studies, and
+each study reports its effect for one of them, its effect allele. The
+control's details ("each GWAS reports its effect for its own effect
+allele" / "every CHD effect expressed for the BMI study's effect allele"),
+the tile "Reported for the other allele", and the three per-SNP lines
+(unflipped "both studies' effect allele is A … no change needed"; raw
+flipped "BMI GWAS, effect allele C … CHD GWAS, effect allele T, the other
+allele … unharmonised"; harmonised "reported −0.005 for effect allele T;
+expressed for C, the BMI study's effect allele, it is +0.005") were
+rewritten together. Eleven Effects-page states moved (the tx, and the px
+where the line is painted) and were re-recorded through the shooter; the
+other forty-nine unchanged. The notebook's own harmonisation table uses
+the same words.
 
 ### The open calls — put to Kenneth and answered, 2026-09-11
 
