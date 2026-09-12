@@ -8147,6 +8147,103 @@ combined; the assumptions are the three arrows the DAG must NOT have.
   bias at the chosen n; that the DAG's three assumptions each map to one
   visible failure.
 
+#### Kenneth's calls on slot 60, 2026-09-12 — asked step by step, before the measure script
+
+1. **Four steps on one rail:** 1 one SNP as a trial · 2 the two GWAS · 3 the
+   estimate on the scatter · 4 the forest. (Not three with the forest under
+   the scatter; not five with the graph as its own step.)
+2. **The two GWAS are summary statistics** at the lesson's own sizes
+   (exposure n ≈ 339,000, outcome n = 184,305 with a third cases), the
+   polygenic-score `summaryBase` idiom. Individual-level simulation cannot
+   give 79 instruments the lesson's strength at any n a browser draws.
+   Step 1 alone keeps a visible cohort, with one SNP drawn strong enough to
+   be seen.
+3. **The confounders are unnamed**, the lesson's own label on its diagrams.
+4. **The independence violation is one arrow** from the confounders to the
+   variants, a ghost target a click turns on; population stratification is
+   named in the control's detail as the lesson's example. No ancestry node.
+5. **Harmonise is a toggle on step 2**: before it, a share of the outcome
+   effects are reported for the other allele and their points sit mirrored.
+6. **A SNP-count control, 20 · 40 · 79, opening on 79.**
+7. **BMI in SD and coronary heart disease in log odds**, the lesson's pair
+   and units; the estimate in log odds per SD.
+8. **Step 1 draws the causal-structures stage:** CHD liability against BMI
+   for the cohort, the observational fit through every point, then the
+   three genotype groups' centroids and the line through them as the
+   single-SNP ratio; Colour by the confounders (the control keeps its name,
+   3.7) shows them balanced across genotypes and not across BMI.
+9. **An Estimator control, IVW · MR Egger · Weighted median · All**, one
+   line at a time with the others faded, All drawing the lesson's figure;
+   opens on IVW. **The forest carries all three combined rows** under its
+   rule, the selected one highlighted.
+10. **Four violation controls:** Pleiotropy share none · 30% · 60% (one
+    direction); Instrument strength strong · moderate · weak (the exposure
+    GWAS's size, mean F printed); Samples one · two; Confounding none ·
+    moderate · strong (moves the observational reference, not the MR
+    estimate).
+
+**Alignment with `fork-pipe-collider` (widget 26), his second ask.** The MR
+graph is 26's two structures joined: the confounders' two arrows are its
+fork and variant → BMI → CHD is its pipe, so the three assumptions are
+statements about arrows — relevance is the pipe's first arrow existing and
+being strong, exclusion restriction is no second arrow from the variants to
+CHD, independence is no arrow between the confounders and the variants.
+Reused: the node-and-arrow drawing with red for an open non-causal path and
+dashed for a blocked one, the verdict line under the DAG, click targets on
+the figure from one geometry function, the True effect reveal after Seed,
+the Colour by the third variable control, the OLS. The subtitle can say what
+the two widgets share: adjusting for the confounder is the fix when it is
+measured, and MR is the fix when it is not.
+
+#### Measured, 2026-09-12 (`_lab/mr-measure.mjs`, 31 checks) — four claims corrected before the mock
+
+- **The lesson's shape needs heterogeneity.** A clean summary-level
+  simulation at the lesson's sizes gives IVW ±0.030, Egger ±0.081, median
+  ±0.045 — every interval half the lesson's (0.059 / 0.144 / 0.073). Its
+  instruments are heterogeneous (the scatter's far-off points; the
+  random-effects inflation its IVW carries, σ ≈ 1.9). A mean-zero direct
+  effect of SD 0.012 log odds per allele on EVERY SNP lands all three:
+  IVW 0.446 ±0.054, Egger 0.409 ±0.146, median 0.445 ±0.054, with Egger's
+  intercept at zero. This is the engine's baseline; the Pleiotropy share
+  control adds the one-signed effect on top. **Egger's slope sits at 0.41
+  under heterogeneity**, TwoSampleMR's own behaviour, so Egger is judged
+  against its own clean value.
+- **The median drifts at 30%; it does not hold.** A single-SNP ratio's SE
+  is ≈ 0.36 here (the lesson's forest, ±1 on every row), so with 30% of the
+  ratios piled high the median of the noisy rest moves by six tenths of
+  IVW's bias (0.60 vs 0.71 at a direct effect of 0.03). The claim the widget
+  can print is relative: the median moves less than IVW at every share, and
+  at 60% it is further off (0.86) than IVW was at 30% (0.71). Egger's slope
+  holds at both shares (0.39, 0.42) and its intercept leaves zero (0.011,
+  0.019).
+- **The confounder-to-variant arrow breaks all three, Egger worst, and its
+  intercept goes the wrong way.** FIRST WRITTEN AS a one-signed constant,
+  which Egger absorbed as an intercept. Drawn with either sign per SNP —
+  an allele-frequency difference has no preferred sign relative to the
+  BMI-raising allele — the term sits in both effects, InSIDE fails, and at
+  SD 0.04: IVW 0.75, Egger 1.19 with intercept −0.021 (|z| 6.7), median
+  0.78, and the instruments look STRONGER (F̄ 184 vs 126). With Confounding
+  at none the arrow moves nothing: it has nothing to carry.
+- **Instrument strength.** Exposure GWAS 339k / 60k / 8k → F̄ 126 / 23 / 4.
+  Two samples: IVW 0.45 → 0.43 → 0.34, toward null. One sample: 0.46 →
+  0.48 → 0.62, toward the observational 0.70. Strong · moderate · weak are
+  three different pictures.
+- **Harmonising:** half the outcome effects flipped → IVW 0.02; three
+  tenths → 0.20; harmonised, 0.45 either way.
+- **SNP count:** IVW ±0.14 / ±0.10 / ±0.05 at 20 / 40 / 79, all centred.
+- **Step 1 works on the liability scale and not on binary CHD.** At n 2,000
+  and 0.4 SD per allele the centroids separate (z 13), the ratio is 0.45
+  ±0.10 against an observational slope of 0.70, and the ratio's interval
+  excludes it in 75% of seeds; on binary CHD at 10% prevalence the ratio is
+  ±0.21 and excludes it in 17%, at any drawable n. Pleiotropy on that SNP
+  moves the ratio to 0.83, stratification to 0.73, and with no confounding
+  the ratio and the observational slope agree at 0.45.
+- **Time:** 2 ms for the summary statistics and three estimators with a
+  200-draw bootstrap; 0.2 ms for the cohort.
+
+**NEXT:** the mock from `_lab/prs-round3-mock.html`'s shell, importing the
+engine; his picks from it.
+
 ### The open calls — put to Kenneth and answered, 2026-09-11
 
 1. **Five or four.** Fold 58 into 59's first page, or let it stand.
