@@ -346,9 +346,9 @@ console.log("\n5 · geometry and the hit map");
         const offLine = M.harmoniseReading(st, base({ page: "gwas" }), flippedJ);
         const onLine = M.harmoniseReading(st, base({ page: "gwas", harmonise: "on" }), flippedJ);
         check("a flipped SNP's reading names the other allele unharmonised and the BMI-raising allele harmonised",
-          /the other one: [+−]\d\.\d{3}; unharmonised$/.test(offLine) && /read on [ACGT], the BMI-raising allele, it is [+−]\d\.\d{3}$/.test(onLine), offLine);
+          /\(the other allele\): [+−]\d\.\d{3}; unharmonised$/.test(offLine) && /expressed for allele [ACGT], the BMI-raising allele, it is [+−]\d\.\d{3}$/.test(onLine), offLine);
         check("…with the two signs opposite", offLine.match(/([+−])\d\.\d{3}; unharmonised/)[1] !== onLine.match(/it is ([+−])/)[1]);
-        check("…and an unflipped SNP's reading says nothing to flip", /nothing to flip$/.test(M.harmoniseReading(st, base({ page: "gwas" }), plainJ)));
+        check("…and an unflipped SNP's reading says no change is needed", /no change needed$/.test(M.harmoniseReading(st, base({ page: "gwas" }), plainJ)));
         check("every SNP has two different alleles", st.alleles.length === st.m && st.alleles.every(([a, b]) => a !== b && /^[ACGT]$/.test(a) && /^[ACGT]$/.test(b)));
       } else {
         check(`…${regions.length} regions, one a row, each a toggle of the pin`, regions.length === st.m && regions.every((r) => r.set.snp !== undefined));
@@ -557,9 +557,9 @@ const painted = {};
     && !finished("forest", "full").includes(M.STRINGS.medianRowTag));
   check("every step ends on its reading line, and no earlier frame carries it",
     finished("trial", "full").some((s) => s.startsWith("the ratio ")) && !finished("trial", "half").some((s) => s.startsWith("the ratio "))
-    && finished("gwas", "full").some((s) => /outcome effects carry|every effect read/.test(s)) && !finished("gwas", "half").some((s) => /outcome effects carry|every effect read/.test(s))
+    && finished("gwas", "full").some((s) => /outcome effects are reported|every effect expressed/.test(s)) && !finished("gwas", "half").some((s) => /outcome effects are reported|every effect expressed/.test(s))
     && finished("estimate", "full").some((s) => s.startsWith("IVW ") && /observational/.test(s)) && !finished("estimate", "half").some((s) => /observational \d/.test(s))
-    && finished("forest", "full").some((s) => /single-SNP intervals cross zero/.test(s)) && !finished("forest", "half").some((s) => /cross zero/.test(s)));
+    && finished("forest", "full").some((s) => /single-SNP intervals include zero/.test(s)) && !finished("forest", "half").some((s) => /include zero/.test(s)));
   check("the pinned SNP's reading wins over the finished figure's",
     finished("estimate", "full, harmonised, truth, all, pinned").some((s) => s.startsWith("SNP 3 ·"))
     && !finished("estimate", "full, harmonised, truth, all, pinned").some((s) => s.startsWith("IVW 0.")));
@@ -568,7 +568,7 @@ const painted = {};
   const broken = finished("estimate", "full, every assumption broken");
   check("the verdict is painted on the graph's two steps and reads the broken arrows",
     /* the trial's verdict wraps to two lines at the recorder's 6px a character */
-    broken.some((s) => s.startsWith("both forbidden arrows")) && finished("trial", "empty").some((s) => s.startsWith("the path through the confounders")),
+    broken.some((s) => s.startsWith("both excluded arrows")) && finished("trial", "empty").some((s) => s.startsWith("the confounding path")),
     broken.filter((s) => /arrow|path|confounders/.test(s)).join(" | "));
 }
 
@@ -633,6 +633,12 @@ console.log("\n8 · the register");
   const coined = reader.filter((s) => ours.test(s));
   check("no reader-facing string uses the collection's own vocabulary", coined.length === 0, coined.join(" | "));
   const arrival = /\b(landed|lands|taken|arrives?|arrived)\b/i;
+  /* Kenneth, 2026-09-13: "you still have some mannerisms like personification
+     — point the wrong way, confounder chose". A figure does not choose, wait,
+     reach, point, sit, stand or free anything. */
+  const person = /\b(chose|chosen|choose|waits?|waiting|reach|reaches|reaching|points? the|sits?|standing open|stand in|freed|route around)\b/i;
+  const personified = reader.filter((s) => person.test(s));
+  check("no reader-facing string personifies the figure", personified.length === 0, personified.join(" | "));
   check("no reader-facing string says landed, taken or arrives", !reader.some((s) => arrival.test(s)), reader.filter((s) => arrival.test(s)).join(" | "));
   const tuned = reader.filter((s) => /\btun(e|es|ed|ing)\b|holdout/i.test(s));
   check("no reader-facing string says tune or holdout", tuned.length === 0, tuned.join(" | "));
@@ -641,7 +647,7 @@ console.log("\n8 · the register");
   check("the three estimators are named as the lesson names them",
     M.ESTIMATORS.map((e) => e.label).join(" · ") === "IVW · MR Egger · Weighted median · All");
   check("the subtitle is the one Kenneth picked, verbatim",
-    M.STRINGS.subtitle.startsWith("A variant that raises an exposure is assigned at conception") && M.STRINGS.subtitle.endsWith("each an arrow the graph must not have."),
+    M.STRINGS.subtitle.startsWith("Mendelian randomization uses genetic variants as instrumental variables") && M.STRINGS.subtitle.endsWith("independence assumptions."),
     `${M.STRINGS.subtitle.length} chars`);
   check("the gallery blurb fits the card's 120", M.STRINGS.blurb.length <= 120, `${M.STRINGS.blurb.length} chars`);
   check("the blurb in the manifest is the model's own", card.blurb === M.STRINGS.blurb);

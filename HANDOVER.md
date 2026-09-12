@@ -70,7 +70,10 @@ assumptions and Harmonise are display parameters over readings of one
 study, eased over 450 ms; the lines and combined rows grow in over a
 final beat; the default seed is 25.** Verify 150. **The copy audit is done** (2026-09-13,
 catalogue § Slot 60 "The copy audit"): descriptors match their buttons,
-register, a claim-before-the-run tile. Owed still: the shooter, the
+register, a claim-before-the-run tile. A second pass on his catch
+("personification") restated every figurative string and the subtitle and
+blurb are his conventional-terminology picks; the verify sweep now refuses
+personifying verbs. Owed still: the shooter, the
 states, the status flip, the push.
 
 **Then his round.** Expect the usual: copy (the three-pass audit and the

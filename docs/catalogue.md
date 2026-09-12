@@ -8486,6 +8486,29 @@ run**: the "Reported on the other allele" tile printed 43 before the first
 SNP had arrived, and now counts the SNPs that have. The mannerism pass
 found nothing further. Verify 150.
 
+**It had missed personification** (Kenneth, 2026-09-13: "point the wrong
+way, confounder chose"). A second pass with that name for it found the
+subtitle and the blurb, the hand-off, the Overview's detail, three
+verdicts ("the confounders reach the SNPs", "nothing to route around", "a
+non-causal path standing open"), the tiles' "waits for the last SNP", two
+summaries ("waiting for its 2,000 people"), the legend's "freed from the
+origin", the harmonisation line's "the other one" and "nothing to flip",
+and the raw caption. All restated in conventional terms — balanced for
+confounders, associated with, includes, excludes, expressed for, fitted
+after — and the verify's register sweep now refuses a list of
+personifying verbs (chose, waits, reach, sits, stand in, freed, route
+around, "points the"). **The subtitle and the blurb are his picks A of
+three, in conventional terminology:** "Mendelian randomization uses
+genetic variants as instrumental variables for an exposure. Alleles are
+allocated at conception, so genotype groups are balanced for confounders,
+and a variant's effect on the outcome divided by its effect on the
+exposure estimates the causal effect. Combining variants gives the study
+estimate; its validity rests on the relevance, exclusion-restriction and
+independence assumptions." and "Mendelian randomization uses genetic
+variants as instruments to estimate an exposure's causal effect on an
+outcome." (115 characters), in the model, the manifest and the stub's meta
+description. Verify 151.
+
 
 
 

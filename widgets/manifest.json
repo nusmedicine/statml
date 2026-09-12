@@ -892,7 +892,7 @@
     {
       "slug": "mendelian-randomization",
       "title": "Mendelian Randomization",
-      "blurb": "Variants assigned at conception stand in for a randomised exposure; their two GWAS effects estimate the causal effect.",
+      "blurb": "Mendelian randomization uses genetic variants as instruments to estimate an exposure's causal effect on an outcome.",
       "course": "PHM5003",
       "topics": [
         "Mendelian randomization",

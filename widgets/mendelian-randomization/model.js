@@ -387,7 +387,7 @@ export function slope(y, x) {
    is selected — the one field-wide line mentioned the overview under the
    three step buttons, which sit apart from it. */
 export const PAGES = [
-  { value: "trial", label: "Overview", span: true, detail: "the idea: one SNP sorts a cohort into arms no confounder chose" },
+  { value: "trial", label: "Overview", span: true, detail: "the idea: genotype divides a cohort into groups that are independent of confounders" },
   { value: "gwas", label: "1 · Effects", group: "Step", detail: "each SNP's effect in the exposure GWAS and in the outcome GWAS, harmonised" },
   { value: "estimate", label: "2 · Estimate", group: "Step", detail: "the effects combined: IVW, MR Egger, the weighted median" },
   { value: "forest", label: "3 · Forest", group: "Step", detail: "each SNP's ratio, and the three combined estimates" },
@@ -425,7 +425,7 @@ export const ESTIMATORS = [
   { value: "ivw", label: "IVW",
     detail: "inverse variance weighted: the slope through the origin, each SNP weighted by the precision of its CHD effect" },
   { value: "egger", label: "MR Egger",
-    detail: "the same regression with an intercept, which reads directional pleiotropy" },
+    detail: "the same regression with an intercept, which estimates directional pleiotropy" },
   { value: "median", label: "Weighted median",
     detail: "the median of the single-SNP ratios, weighted by their precision" },
   { value: "all", label: "All", detail: "the three together" },
@@ -438,14 +438,16 @@ export const estimatorShows = (key, which) => key === "all" || key === which;
    ====================================================================== */
 
 export const STRINGS = {
-  /* Kenneth's pick A, 2026-09-12 */
+  /* Kenneth's pick A of three, 2026-09-13, in conventional terms — the
+     2026-09-12 subtitle ("an arm of a trial no confounder chose") personified,
+     his own catch */
   subtitle:
-    "A variant that raises an exposure is assigned at conception, so the people who carry it are an arm "
-    + "of a trial no confounder chose. Each SNP's effect on the outcome divided by its effect on the exposure "
-    + "is one estimate of the causal effect, and many SNPs combined is the study's. Whether the estimate is "
-    + "right rests on three assumptions, each an arrow the graph must not have.",
+    "Mendelian randomization uses genetic variants as instrumental variables for an exposure. Alleles are "
+    + "allocated at conception, so genotype groups are balanced for confounders, and a variant's effect on the "
+    + "outcome divided by its effect on the exposure estimates the causal effect. Combining variants gives the "
+    + "study estimate; its validity rests on the relevance, exclusion-restriction and independence assumptions.",
   blurb:
-    "Variants assigned at conception stand in for a randomised exposure; their two GWAS effects estimate the causal effect.",
+    "Mendelian randomization uses genetic variants as instruments to estimate an exposure's causal effect on an outcome.",
 
   /* an empty label is core's "no label row": the Overview button and the Step
      head name the control themselves (Kenneth, 2026-09-13) */
@@ -453,28 +455,28 @@ export const STRINGS = {
 
   dataSection: "The data",
   seedLabel: "Seed",
-  seedDetail: "draws a different cohort and different summary statistics",
+  seedDetail: "a different simulated cohort and different summary statistics",
   confoundingLabel: "Confounding",
   confoundingDetail: "the confounders' effect on BMI and on CHD",
   truthLabel: "True effect",
-  truthOff: "what would you conclude from the estimates alone?",
-  truthOn: "the effect the simulation was built with",
+  truthOff: "the simulated causal effect is hidden",
+  truthOn: "the simulated causal effect is shown",
   colourLabel: "Colour by the confounders",
-  colourOn: "each person tinted by the confounders, unmeasured on the graph",
+  colourOn: "each person coloured by confounder level, unmeasured in the analysis",
 
   assumptionsSection: "The assumptions",
   relevanceLabel: "Relevance",
   relevanceDetail: "the strength of the SNPs' association with BMI: the size of the exposure GWAS",
   exclusionLabel: "Exclusion restriction",
-  exclusionDetail: "the share of SNPs associated with CHD by a path that is not BMI: horizontal pleiotropy",
+  exclusionDetail: "the proportion of SNPs with a direct effect on CHD, not through BMI: horizontal pleiotropy",
   independenceLabel: "Independence",
   independenceHolds: "the SNPs are not associated with the confounders",
-  independenceBroken: "the confounders also shift which alleles people carry, as population stratification does",
+  independenceBroken: "allele frequencies are associated with the confounders, as under population stratification",
 
   studySection: "The study",
   harmoniseLabel: "Harmonise",
-  harmoniseOff: "each GWAS reports on its own effect allele",
-  harmoniseOn: "every effect read on the BMI-raising allele",
+  harmoniseOff: "each GWAS reports effects for its own effect allele",
+  harmoniseOn: "all effects expressed for the BMI-raising allele",
   estimatorLabel: "Estimator",
 
   /* the graph */
@@ -489,11 +491,11 @@ export const STRINGS = {
   trialX: "BMI, in SD",
   trialY: "CHD risk, in log odds",
   trialPeople: "2,000 people",
-  trialFit: "CHD risk ~ BMI, every person",
+  trialFit: "CHD risk ~ BMI, all persons",
   trialStage1: "stage 1: BMI by genotype",
   trialStage2: "stage 2: CHD risk by genotype",
   trialRatio: "the ratio: stage 2 over stage 1",
-  trialSnpNote: "one SNP, drawn stronger than any real BMI SNP so the groups can be seen",
+  trialSnpNote: "one SNP, simulated with a larger effect than any real BMI variant so the groups separate",
   tileStage1: "Stage 1: BMI per allele",
   tileStage2: "Stage 2: CHD risk per allele",
   tileRatio: "Ratio: stage 2 over stage 1",
@@ -505,9 +507,9 @@ export const STRINGS = {
   exposureY: "on BMI",
   outcomeY: "on CHD",
   stripsX: "SNPs, strongest on BMI first",
-  flippedNote: "open marker: reported on the other allele",
+  flippedNote: "open marker: reported for the other allele",
   gwasScatterCaption: "each SNP's two effects, one against the other",
-  gwasScatterRaw: "unharmonised: some effects point the wrong way",
+  gwasScatterRaw: "unharmonised: sign differs for some effects",
 
   /* steps 3 and 4 */
   scatterX: "SNP effect on BMI, in SD per allele",
@@ -517,7 +519,7 @@ export const STRINGS = {
   captionEgger: "MR Egger: a slope and an intercept",
   captionMedian: "the weighted median of the ratios",
   captionAll: "IVW, MR Egger, weighted median",
-  waitingNote: "the estimate waits for the last SNP",
+  waitingNote: "the estimators are fitted after the last SNP",
   observationalTag: "observational slope",
   truthTag: "true effect",
   interceptTag: "intercept: the average direct effect",
@@ -526,28 +528,28 @@ export const STRINGS = {
   combinedIvw: "IVW",
   combinedEgger: "MR Egger",
   combinedMedian: "median",
-  medianRowTag: "the middle ratio by weight",
+  medianRowTag: "the weighted median ratio",
 };
 
 /* The verdict under the graph names the mechanism, never a moral (2.9). */
 export function verdict({ page, confounding, pleio, indep }) {
   const one = page === "trial";
   const g = one ? STRINGS.nodeSnp : STRINGS.nodeSnps;
-  if (confounding === "none") return "no path through the confounders: nothing to route around";
-  if (pleio && indep) return `both forbidden arrows are drawn: pleiotropy, and the confounders reaching the ${g}`;
-  if (pleio) return `a second path from the ${g} to CHD is open: horizontal pleiotropy`;
-  if (indep) return `the confounders reach the ${g}: ${one ? "it sits" : "they sit"} on the open path`;
-  return `the path through the confounders is open; the ${g} ${one ? "is" : "are"} not on it`;
+  if (confounding === "none") return "no confounding path: the observational estimate is unbiased";
+  if (pleio && indep) return `both excluded arrows are present: horizontal pleiotropy, and ${g}–confounder association`;
+  if (pleio) return `a direct path from the ${g} to CHD is open: horizontal pleiotropy`;
+  if (indep) return `the ${g} ${one ? "is" : "are"} associated with the confounders and ${one ? "lies" : "lie"} on the open path`;
+  return `the confounding path is open; the ${g} ${one ? "is" : "are"} not on it`;
 }
 
 /* The step line and the hand-off each step carries (polygenic-score's
    decision 8): "step 1 of 3 · The two GWAS", and a line saying what this step
    takes from the one before. */
 export const HANDOFFS = {
-  trial: "one SNP, one cohort: the trial no confounder chose",
-  gwas: "from the overview: the same ratio, now for every SNP, from two studies",
+  trial: "one SNP, one cohort: allocation by genotype, independent of confounders",
+  gwas: "from the overview: the same ratio for every SNP, from two GWAS",
   estimate: "from step 1: the harmonised effects, combined",
-  forest: "from step 2: the same ratios, one row each",
+  forest: "from step 2: the single-SNP ratios, one per row",
 };
 export const stepLine = (page) => {
   const n = stepNumber(page);
@@ -576,7 +578,7 @@ export const STEP_LABELS = {
 export const STEP_TITLES = {
   param: "page",
   labels: {
-    trial: "Advance the cohort one act: the people, the observational fit, the two stages, the ratio",
+    trial: "Show the next part of the overview: the cohort, the observational fit, stage 1, stage 2, the ratio",
     gwas: "Add the next SNP's two effects",
     estimate: "Add the next SNP to the scatter",
     forest: "Add the next SNP's ratio to the forest",
@@ -586,10 +588,10 @@ export const STEP_TITLES = {
 export const RUN_TITLES = {
   param: "page",
   labels: {
-    trial: "Run all five: the people, the observational fit, the two stages, the ratio",
-    gwas: "Run every SNP through both GWAS",
-    estimate: "Run every SNP onto the scatter, then fit",
-    forest: "Run every SNP into the forest, then combine",
+    trial: "Run the overview: the cohort, the observational fit, stage 1, stage 2, the ratio",
+    gwas: "Add every SNP's effects from both GWAS",
+    estimate: "Add every SNP to the scatter, then fit the estimators",
+    forest: "Add every SNP's ratio to the forest, then the combined estimates",
   },
   default: "Run every SNP",
 };
@@ -1103,14 +1105,13 @@ export const orText = (b) => `odds ratio ${Math.exp(b).toFixed(2)} per SD`;
 export function trialReading(trial, truth, cfg = {}) {
   const r = trial.ratio;
   const obs = trial.obs.b;
-  let s = `the ratio ${n2(r.b)} (${n2(r.b - 1.96 * r.se)} to ${n2(r.b + 1.96 * r.se)}) against the observational ${n2(obs)}`;
-  s += inside(obs, r.b, r.se) ? ", inside its interval" : ", outside its interval";
-  if (truth) s += `; the true ${n2(THETA)} is ${inside(THETA, r.b, r.se) ? "inside" : "outside"}`;
+  let s = `the ratio ${n2(r.b)} (${n2(r.b - 1.96 * r.se)} to ${n2(r.b + 1.96 * r.se)}): the interval ${inside(obs, r.b, r.se) ? "includes" : "excludes"} the observational ${n2(obs)}`;
+  if (truth) s += ` and ${inside(THETA, r.b, r.se) ? "includes" : "excludes"} the true ${n2(THETA)}`;
   /* decision 7: when this SNP breaks an assumption, the reading says the
      broken path is in the number — the graph shows it, the line names it */
-  if (cfg.share > 0 && cfg.indep) s += "; both open paths are in this ratio";
-  else if (cfg.share > 0) s += "; the second path is in this ratio";
-  else if (cfg.indep && cfg.confounding !== "none") s += "; the confounders' path is in this ratio";
+  if (cfg.share > 0 && cfg.indep) s += "; this ratio includes both open paths";
+  else if (cfg.share > 0) s += "; this ratio includes the direct path";
+  else if (cfg.indep && cfg.confounding !== "none") s += "; this ratio includes the confounding path";
   return s;
 }
 
@@ -1124,27 +1125,27 @@ export function harmoniseReading(r, params, j) {
   const byH = S.byHat[j];
   const sign = (v) => `${v >= 0 ? "+" : "−"}${Math.abs(v).toFixed(3)}`;
   if (!S.flipped[j]) {
-    return `SNP ${j + 1} · both GWAS report on allele ${raise}: ${sign(bx)} on BMI, ${sign(byH)} on CHD; nothing to flip`;
+    return `SNP ${j + 1} · both GWAS report for allele ${raise}: ${sign(bx)} on BMI, ${sign(byH)} on CHD; no change needed`;
   }
   const byRaw = -byH;
   if (params.harmonise === "on") {
-    return `SNP ${j + 1} · the CHD GWAS reported ${sign(byRaw)} on allele ${other}; read on ${raise}, the BMI-raising allele, it is ${sign(byH)}`;
+    return `SNP ${j + 1} · the CHD GWAS reported ${sign(byRaw)} for allele ${other}; expressed for allele ${raise}, the BMI-raising allele, it is ${sign(byH)}`;
   }
-  return `SNP ${j + 1} · BMI GWAS on allele ${raise}: ${sign(bx)} · CHD GWAS on allele ${other}, the other one: ${sign(byRaw)}; unharmonised`;
+  return `SNP ${j + 1} · BMI GWAS, effect allele ${raise}: ${sign(bx)} · CHD GWAS, effect allele ${other} (the other allele): ${sign(byRaw)}; unharmonised`;
 }
 
 export function gwasReading(r, params) {
   if (rawOn(params)) {
-    return `${r.nFlipped} of ${r.m} outcome effects carry the other allele's sign; harmonise before combining`;
+    return `${r.nFlipped} of ${r.m} outcome effects are reported for the other allele; harmonise before combining`;
   }
-  return `${r.m} SNPs, every effect read on the BMI-raising allele`;
+  return `${r.m} SNPs, every effect expressed for the BMI-raising allele`;
 }
 
 export function estimateReading(study, params, obs, truth) {
   const e = study.est;
   const one = (name, b, se) => {
-    let s = `${name} ${n2(b)} (${n2(b - 1.96 * se)} to ${n2(b + 1.96 * se)}): the observational ${n2(obs)} is ${inside(obs, b, se) ? "inside" : "outside"}`;
-    if (truth) s += `, the true ${n2(THETA)} ${inside(THETA, b, se) ? "inside" : "outside"}`;
+    let s = `${name} ${n2(b)} (${n2(b - 1.96 * se)} to ${n2(b + 1.96 * se)}): the interval ${inside(obs, b, se) ? "includes" : "excludes"} the observational ${n2(obs)}`;
+    if (truth) s += ` and ${inside(THETA, b, se) ? "includes" : "excludes"} the true ${n2(THETA)}`;
     return s;
   };
   const key = params.estimator;
@@ -1163,5 +1164,5 @@ export function forestReading(study, m, params) {
   const key = params.estimator;
   const pick = key === "egger" ? ["MR Egger", e.egger] : key === "median" ? ["the weighted median", e.median] : ["IVW", e.ivw];
   const combinedCross = inside(0, pick[1].b, pick[1].se);
-  return `${cross} of ${m} single-SNP intervals cross zero; ${key === "all" ? "IVW's" : `${pick[0]}'s`} combined interval ${combinedCross ? "does too" : "does not"}`;
+  return `${cross} of ${m} single-SNP intervals include zero; the combined ${key === "all" ? "IVW" : pick[0]} interval ${combinedCross ? "includes it too" : "does not"}`;
 }

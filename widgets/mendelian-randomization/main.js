@@ -987,28 +987,28 @@ defineWidget({
     const page = M.pageOf(params);
     if (page === "trial") {
       return [
-        { token: "unknown", label: "A person: their BMI, and the CHD risk the simulation gives them", mark: "dot" },
+        { token: "unknown", label: "A person: BMI and simulated CHD risk", mark: "dot" },
         { token: "nonevent", label: "Confounders low, when coloured", mark: "dot" },
         { token: "event", label: "Confounders high, when coloured", mark: "dot" },
-        { token: "empirical", label: "CHD risk on BMI, every person: the observational fit", mark: "line" },
-        { token: "highlight", label: "Stage 1, each genotype group's mean BMI; stage 2, its mean CHD risk; the line through the three, whose slope is this SNP's ratio", mark: "line" },
-        { token: "reference", label: "The true effect, revealed on request", mark: "dash" },
-        { token: "extreme", label: "A non-causal path standing open", mark: "line" },
+        { token: "empirical", label: "The observational fit: CHD risk on BMI, all persons", mark: "line" },
+        { token: "highlight", label: "Stage 1: mean BMI per genotype group; stage 2: mean CHD risk per group; the line through the three, with slope equal to this SNP's ratio", mark: "line" },
+        { token: "reference", label: "The simulated causal effect, shown on request", mark: "dash" },
+        { token: "extreme", label: "An open non-causal path", mark: "line" },
       ];
     }
     if (page === "gwas") {
       return [
         { token: "unknown", label: "A SNP's effect with its 95% interval, in each GWAS and on the scatter", mark: "dot" },
-        { token: "highlight", label: "The SNP just added; or the one under the pointer or pinned by a click, whose alleles the line under the figure reads", mark: "dot" },
-        { token: "extreme", label: "An effect reported on the other allele, until harmonised", mark: "dot" },
+        { token: "highlight", label: "The SNP just added, or the one under the pointer or pinned by a click; its alleles are given in the line under the figure", mark: "dot" },
+        { token: "extreme", label: "An effect reported for the other allele, until harmonised", mark: "dot" },
       ];
     }
     const shared = [
       { token: "empirical", label: "IVW: the precision-weighted slope through the origin", mark: "line" },
-      { token: "group-b", label: "MR Egger: the same slope freed from the origin, its intercept the average direct effect", mark: "line" },
-      { token: "group-c", label: "Weighted median: the middle single-SNP ratio by weight", mark: "line" },
+      { token: "group-b", label: "MR Egger: the same regression with an intercept, which estimates the average direct effect", mark: "line" },
+      { token: "group-c", label: "Weighted median: the weighted median of the single-SNP ratios", mark: "line" },
       { token: "ink-1", label: "The observational slope: CHD risk on BMI in the cohort, confounded", mark: "dash" },
-      { token: "reference", label: "The true effect, revealed on request", mark: "dash" },
+      { token: "reference", label: "The simulated causal effect, shown on request", mark: "dash" },
     ];
     if (page === "estimate") {
       return [
@@ -1136,7 +1136,7 @@ defineWidget({
     const truthTile = {
       label: M.STRINGS.truthLabel,
       value: truth ? M.n2(M.THETA) : "—",
-      note: truth ? M.STRINGS.truthOn : "revealed by the True effect control",
+      note: truth ? "the simulated causal effect" : "shown by the True effect control",
     };
     if (page === "trial") {
       const T = state.trial;
@@ -1173,12 +1173,12 @@ defineWidget({
         {
           label: "Reported on the other allele",
           value: upTo === 0 ? "—" : params.harmonise === "on" ? "0" : String(state.order.slice(0, upTo).filter((j) => study.S.flipped[j]).length),
-          note: upTo === 0 ? "outcome effects with the sign of the other allele" : params.harmonise === "on" ? "after harmonising" : `of ${upTo} so far, with the sign of the other allele`,
+          note: upTo === 0 ? "outcome effects reported for the other allele" : params.harmonise === "on" ? "after harmonising" : `of ${upTo} so far, reported for the other allele`,
         },
         {
           label: "Mean F statistic",
           value: done ? M.n2(study.F).replace(/\.\d+$/, "") : "—",
-          note: done ? "strength of the SNPs on BMI; 10 is the usual floor" : "read once every SNP is in",
+          note: done ? "instrument strength; 10 is the conventional threshold" : "computed after the last SNP",
         },
       ];
     }
@@ -1187,7 +1187,7 @@ defineWidget({
     const tile = (label, k, b, se, extra = "") => ({
       label,
       value: done && on(k) ? M.n2(b) : "—",
-      note: !done ? "waits for the last SNP" : on(k) ? `${M.ciText(b, se)} · ${M.orText(b)}${extra}` : "select it to read it",
+      note: !done ? "fitted after the last SNP" : on(k) ? `${M.ciText(b, se)} · ${M.orText(b)}${extra}` : "select it to show it",
     });
     return [
       tile("IVW", "ivw", e.ivw.b, e.ivw.se),
@@ -1195,7 +1195,7 @@ defineWidget({
       tile("Weighted median", "median", e.median.b, e.median.se),
       { label: "Observational slope", value: M.n2(state.trial.obs.b), note: "CHD risk on BMI in the cohort, confounded" },
       truthTile,
-      { label: "Mean F statistic", value: done ? String(Math.round(study.F)) : "—", note: done ? "10 is the usual floor" : "read once every SNP is in" },
+      { label: "Mean F statistic", value: done ? String(Math.round(study.F)) : "—", note: done ? "10 is the conventional threshold" : "computed after the last SNP" },
     ];
   },
 
@@ -1208,7 +1208,7 @@ defineWidget({
     if (page === "trial") {
       const T = state.trial;
       const parts = [`The graph: ${graph}.`];
-      if (upTo === 0) parts.push("A scatter of CHD risk against BMI, waiting for its 2,000 people.");
+      if (upTo === 0) parts.push("A scatter of CHD risk against BMI, before its 2,000 people are drawn.");
       else parts.push(`A scatter of CHD risk against BMI for 2,000 people; the observational slope is ${M.n2(T.obs.b)}.`);
       if (upTo >= 3) parts.push(`Stage 1: ${M.n2(T.gx.b)} SD of BMI per copy of the allele.`);
       if (upTo >= 4) parts.push(`Stage 2: ${M.n2(T.gl.b)} log odds of CHD per copy.`);
@@ -1222,7 +1222,7 @@ defineWidget({
     }
     const est = done
       ? ` IVW ${M.n2(study.est.ivw.b)}, MR Egger ${M.n2(study.est.egger.b)}, weighted median ${M.n2(study.est.median.b)}; the observational slope is ${M.n2(state.trial.obs.b)}.`
-      : ` The estimate waits for the last SNP.`;
+      : ` The estimators are fitted after the last SNP.`;
     if (page === "estimate") return `The graph: ${graph}. The scatter of ${upTo} of ${state.m} SNPs' two effects.${est}`;
     return `A forest of ${upTo} of ${state.m} single-SNP ratios, sorted, with the combined estimates under the rule.${est}`;
   },
