@@ -7822,6 +7822,54 @@ mid-run every drawn column slides on every beat. **NEXT: his picks on
 §1 (A/B), §2 (band the stretch or the columns), §3 (A/B/C), §4 (A–D),
 then the build, then the adversarial review (item 2 of the plan).**
 
+**ROUND THREE PICKED AND BUILT — 2026-09-12, the same evening.** His four
+picks, every one the recommendation: §1 B (the whole triangle with the
+clumping window's reach as a rule), §2 the whole stretch banded, §3 C
+(hover previews, a click pins), §4 B (the axis is the kept count from
+the first frame). Built in the commit after the mock's, verify 291
+assertions (was 266), check green, test 24 green, read in the browser.
+**Step 1:** the triangle is the whole half-matrix at the block's own
+pitch (`snpPitch = w / m`; round two's w / (m − 1) put SNP 100 five
+pixels off its column — model.js decision 13), 243px deep at 550 and
+312 at 690, the stage 550 / 619px (was 431 / 458), still under the
+~672px rail; the rule "the clumping window · 250 kb" is on the empty
+figure too, since it belongs to the axis; the two images are cached on
+the region (a WeakMap keyed on the theme's colours) because the pointer
+repaints on every move. `pointer: true` and a `regions` table of the
+block's 100 columns and the triangle's 4,950 cells as inscribed squares
+half a pixel short a side, so every cell's centre lies in its own square
+and no other (asserted through core's own `hitTest` at all 4,950);
+`snps` is a hidden display text parameter parsed to "37" or "37,52",
+clicking the pinned thing clears it, the pointer overrides the pin while
+it is on a target (decision 15). At rest the causal SNP's V in dashed
+reference; a column's V in highlight; a pair's cell, legs, columns and
+the banded rows in the two commonest forms (the sign of D decides). The
+reading replaces the block's foot line: "SNP 10 and SNP 15 · 25 kb apart
+· r² 0.79 · the two alleles travel together in 38 of 40 rows" and "SNP
+10 at 45 kb · r² above 0.5 with 8 SNPs, the furthest 70 kb away", the
+rows clause dropped while no row is drawn; the pin reaches the summary.
+The legend gains the pointer's mark and names the causal V. **Step 3:**
+`scoreAxis` is the panel over the kept count (3.06px a column at 550,
+3.94 at 690, 0.49 at 1,000, 14 at 35); dots below a 4px column become
+bars of whole units (`SCORE_DOT_MIN`); the run is capped at
+`SCORE_RUN_MS` 6 s (37.5 ms a SNP at 160, 6 at 1,000, the nominal 140 at
+35 or fewer — the floor and the ceiling meet at 3.2–6 s); Next SNP is
+one SNP at every count; `shown=` counts SNPs, clamped; the quarter
+ticks end on the kept count unless its label would run off the canvas
+("1,000" is 30px against the 8 the panel leaves, so at every SNP the
+axis stops at 750 and the note carries the count — caught in the
+browser, the recorder's 6px a character then asserts it). Deleted:
+decisions 11 and 14's batch, `SCORE_COUNTABLE`, `snpsAdded`,
+`batchTotals`, `SCORE_BATCH_MS`, the three batch labels,
+`weightCaptionBatch`, and the batch's nine verify checks. **Open for his
+round:** the region table's 5,050 rects are rebuilt on every pointer
+move (core calls `regions` lazily; ~0.1 ms, measured in the mock); a
+click recomputes, as every display change here does (~110 ms). **NEXT:
+item 2 of the plan — the adversarial clarity and notebook-alignment
+review, findings as ROUND 3 under this slot; then his round; then the
+ship, with a hit-driven state on the pin (`?page=haplotypes&shown=40`
+then a hit at the causal–lead cell and one on the lead's column).**
+
 **PAGE 5 PLANNED 2026-09-12 — calibration, on Kenneth's question** ("can
 the PRS score be used to calculate risk for a patient? a colleague told me
 no… so what's the use of this score?", then "how is calibration done? will

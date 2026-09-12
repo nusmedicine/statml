@@ -129,22 +129,55 @@
        measurement follows the data: the pool fills a row a beat, and the
        triangle is what the finished pool says.
 
-   14. STEP 3 IS COUNTABLE FIRST, THEN BATCHED — Kenneth's pick, 2026-09-12.
-       The lever round two added made the default keep 160 SNPs where round one
-       kept 38, and 160 columns at four pixels each is not a thing anyone
-       counts (2.3). So `kept` is ordered by P ASCENDING, the first
-       SCORE_COUNTABLE of them are drawn one a beat exactly as before, and the
-       remainder arrive on one beat as three bars of totals.
+       IT IS THE WHOLE HALF-MATRIX — Kenneth's pick, round three (2026-09-12).
+       Round two clipped it to the 250 kb clumping window on the mock's
+       argument that the deeper half is r² ≈ 0; the round-three mock measured
+       that argument (beyond the window the largest r² in the region is 0.087
+       and no pair clears 0.5) and he wanted the ground SEEN rather than cut
+       off. The window's reach is drawn across it as one rule instead, so the
+       pairs step 2 can act on are the ones above a line the reader has looked
+       at. And the triangle's SNPs are spaced at w / m, the same pitch as the
+       block's columns, so a cell sits above the midpoint of the two columns
+       it joins — round two spaced them at w / (m − 1), which put SNP 100 five
+       pixels right of its own column.
 
-       THE ORDER IS BY EVIDENCE, NOT BY POSITION, and it is the ordering that
-       makes the split honest: the part the reader counts has to be the part
-       carrying the weight, or a truncated figure would be a figure of the
-       arbitrary. A score is a sum, so its value does not depend on the order —
-       only the picture does.
+   14. STEP 3 IS ONE COLUMN A SNP AT EVERY COUNT — Kenneth's pick, round three
+       (2026-09-12), replacing round two's "countable first, then batched".
+       The batch drew the sum as one flat step across a quarter of the panel,
+       which read as "nothing happened for 120 SNPs" when the truth was 120
+       small steps; his note was that it "just flatlines". So the x axis is
+       the kept count from the first frame, every SNP has its own column
+       (3px at 160, half a pixel at 1,000, 14px at 35 — the round-one picture
+       unchanged), and the run is capped at SCORE_RUN_MS whatever the count.
+
+       THE ORDER IS BY EVIDENCE, NOT BY POSITION, and it is what gives the
+       staircase its shape: `kept` is ordered by P ASCENDING, so the strongest
+       weights come first and the sum takes its big steps early and then
+       settles — step 4's plateau, met one SNP at a time. A score is a sum, so
+       its value does not depend on the order; only the picture does, and the
+       axis label says which order it is in.
 
        `kept` is sorted here rather than in `personScore` because the order is
        a property of the SNPs the threshold keeps, not of the person the sum is
        drawn for, and every reader of `kept` should see the same one.
+
+   15. THE BLOCK AND THE TRIANGLE ARE ONE FIGURE, AND THE READER CAN ASK IT
+       WHICH IS WHICH — Kenneth's ask, round three. A cell of the triangle is
+       a pair of SNPs; the two columns it joins are in the block above it, and
+       the rows where the pair's alleles travel together are what the r²
+       counts. So: the causal SNP's row and column in the triangle are drawn
+       at rest as a dashed V under its marked column; a block column under the
+       pointer is outlined and its V drawn; a triangle cell under the pointer
+       is outlined with its two legs up to the axis, both columns outlined,
+       and the stretch between them banded in every row whose pairing is one
+       of the two commonest (the sign of D says which two). The reading under
+       the block names it. A CLICK PINS THE SAME THING into `snps`, a hidden
+       display parameter ("37" or "37,52"), so a lesson link can open on a
+       pair and the pin holds when the pointer leaves; the pointer overrides
+       the pin while it is on a target. All of the geometry is here — the
+       column under a point, the cell under a point (the rotated frame
+       inverts to u = ⌊a − b⌋, v = ⌊a + b⌋), the region table — so the verify
+       can assert it with no DOM, which no pixel hash can.
    ========================================================================= */
 
 import { makeRng } from "../core/rng.js";
@@ -1480,67 +1513,15 @@ export function personRisk(state, params) {
 /** How many deciles of predicted risk step 6 draws. */
 export const RISK_DECILES = 10;
 
-/* DECISION 14: how many of step 3's SNPs are drawn one a beat before the rest
-   arrive together. Forty is the row count step 1 already uses and the number
-   of columns a 490px panel can still give five pixels each — past it a column
-   is a hairline and the strips stop being countable (2.3). */
-export const SCORE_COUNTABLE = 40;
-
-/**
- * How many SNPs `beats` beats of step 3 have added.
- *
- * Beats 1…40 are one SNP each; beat 41 is every SNP after the fortieth, so a
- * count past the countable forty is the whole kept set. At 40 or fewer kept
- * there is no batch beat and a beat is a SNP throughout.
- */
-export function snpsAdded(beats, nKept) {
-  if (nKept <= SCORE_COUNTABLE) return Math.max(0, Math.min(beats, nKept));
-  return beats > SCORE_COUNTABLE ? nKept : Math.max(0, Math.min(beats, SCORE_COUNTABLE));
-}
-
-/**
- * What the batch column draws: how many SNPs it holds, how many effect alleles
- * the person carries over them, and what they added to the score.
- *
- * The three bars are three TOTALS, which is what a column past the countable
- * forty can honestly be (2.3) — one bar cannot be a hundred and twenty
- * genotypes, and drawn as a hundred and twenty hairlines it would be neither.
- */
-export function batchTotals(st) {
-  const n = Math.max(0, st.n - SCORE_COUNTABLE);
-  let alleles = 0;
-  let contrib = 0;
-  for (let i = SCORE_COUNTABLE; i < st.n; i += 1) {
-    alleles += st.genotype[i];
-    contrib += st.contrib[i];
-  }
-  return { n, alleles, contrib };
-}
-
-/**
- * Step 3's x axis: forty unit columns and, past them, one wide column for
- * every remaining SNP.
- *
- * The batch column takes a quarter of the panel and the forty share the rest,
- * so a column is 11.8px at the 690px stage and 9.2px at 550 — narrower than
- * the 16.6px forty SNPs would get alone, and still wide enough for the two
- * genotype dots the strip stacks. `units` is the domain the three plots share,
- * in column widths, so `sx` maps a SNP index and the batch column alike.
- */
-export const SCORE_BATCH_FRAC = 0.25;
+/* DECISION 14: every kept SNP is a column, and the axis is the kept count from
+   the first frame. `cw` is what one SNP gets; the strips switch from dots to
+   bars of whole units below SCORE_DOT_MIN because two stacked dots need the
+   room and a hairline bar of 0, 1 or 2 units says the same thing at any width
+   (2.3). `units` is the domain the three plots share, in column widths. */
+export const SCORE_DOT_MIN = 4;
 export function scoreAxis(w, nKept) {
-  const batched = nKept > SCORE_COUNTABLE;
-  const cols = batched ? SCORE_COUNTABLE : nKept;
-  const batchW = batched ? w * SCORE_BATCH_FRAC : 0;
-  const cw = cols > 0 ? (w - batchW) / cols : w;
-  return {
-    batched,
-    cols,
-    cw,
-    batchW,
-    batchX: w - batchW,
-    units: cols + (batched && cw > 0 ? batchW / cw : 0),
-  };
+  const cols = Math.max(0, nKept);
+  return { cols, cw: cols > 0 ? w / cols : w, units: Math.max(cols, 1) };
 }
 
 /** How many beats a step's run holds. */
@@ -1549,12 +1530,8 @@ export function totalFor(page, state, params) {
   /* DECISION 9: three beats a clump — the lead lights, the arcs draw, the
      absorbed SNPs slide. */
   if (page === "clump") return CLUMP_BEATS * state.region.clumps.length;
-  /* DECISION 14: a beat a SNP while they are countable, then one beat for all
-     the rest. */
-  if (page === "score") {
-    const n = rowFor(state, params).nSnp;
-    return n > SCORE_COUNTABLE ? SCORE_COUNTABLE + 1 : n;
-  }
+  /* DECISION 14: a beat a SNP, however many the threshold keeps. */
+  if (page === "score") return rowFor(state, params).nSnp;
   if (page === "threshold") return THRESHOLDS.length;
   if (page === "risk") return RISK_DECILES;
   return 20;
@@ -1573,12 +1550,14 @@ export function totalFor(page, state, params) {
 export const BEAT_MS = {
   haplotypes: 100, clump: 260, score: 140, threshold: 400, quantile: 200, risk: 400,
 };
-/* DECISION 14: THE BATCH BEAT IS LONGER THAN A SNP'S, because what it does is
-   larger — three strips change what they are drawing on it. 600 ms is the beat
-   the brief asked for, and it is what set the SNP beat: forty at the round-one
-   160 ms plus this is 7.0 s, a hair outside the 3–7 s band the verify holds
-   every run to, so the SNP beat is 140 and the whole run is 6.2 s. */
-export const SCORE_BATCH_MS = 600;
+/* DECISION 14: A LONG RUN IS HURRIED, on step 3 alone. A beat a SNP at 140 ms
+   is 22 s for the default's 160 and over two minutes for every SNP in the base
+   study, so step 3's beat is the smaller of its nominal one and the one that
+   makes the whole run SCORE_RUN_MS — 38 ms a SNP at 160, 6 at 1,000, which the
+   rate clock below turns into two or three SNPs a frame. At 40 or fewer kept
+   the nominal beat is the smaller and nothing changes. The floor below still
+   applies, so the two limits meet at a run of 3.2 to 6 s at every count. */
+export const SCORE_RUN_MS = 6000;
 /* A SHORT RUN IS STRETCHED, NEVER A LONG ONE HURRIED. Low recombination leaves
    two clumps where the default leaves eight, and six beats at 260 ms is 1.6
    seconds — a run that is over before a room has looked up. The floor is a
@@ -1588,15 +1567,13 @@ export const SCORE_BATCH_MS = 600;
    whole run MIN_RUN_MS. The cap keeps a one-unit run from crawling. */
 export const MIN_RUN_MS = 3200;
 export const MAX_BEAT_MS = 1200;
-export function beatMs(page, state, params, at = 0) {
-  const nominal = BEAT_MS[page] ?? 200;
+export function beatMs(page, state, params) {
+  let nominal = BEAT_MS[page] ?? 200;
   if (!state) return nominal;
-  /* DECISION 14: step 3's last beat is the batch, and it is its own length —
-     the run has already reached the fortieth SNP by the time this reads. */
-  if (page === "score" && at >= SCORE_COUNTABLE
-    && totalFor(page, state, params) > SCORE_COUNTABLE) return SCORE_BATCH_MS;
   const beats = Math.ceil(totalFor(page, state, params) / perUnit(page, state, params));
   if (!(beats > 0)) return nominal;
+  /* DECISION 14: step 3's ceiling, then the floor every step has */
+  if (page === "score") nominal = Math.min(nominal, SCORE_RUN_MS / beats);
   return Math.max(nominal, Math.min(MAX_BEAT_MS, MIN_RUN_MS / beats));
 }
 
@@ -1605,11 +1582,9 @@ export function beatMs(page, state, params, at = 0) {
    eight of twenty. The cap is the number of beats the whole run takes, so Play
    is between three and seven seconds at every setting of every control.
 
-   STEP 3 CARRIES ITS BATCH IN `totalFor` INSTEAD (decision 14), not here. A
-   cap spreads the overflow evenly across every beat, which on step 3 would
-   have added four SNPs a beat from the first one and left nothing countable;
-   the split the reader needs is forty single SNPs and then the remainder, so
-   it is a property of the step's units and not of its pace.
+   STEP 3 IS NOT CAPPED HERE (decision 14): its unit is a SNP at every count,
+   and a long run is hurried by the beat rather than carrying several SNPs a
+   press, so Next SNP keeps meaning one.
 
    STEP IS ONE UNIT EVERYWHERE EXCEPT STEP 2, where it runs to the end of the
    clump in progress (decision 9) — a control's label names what this press
@@ -1710,18 +1685,18 @@ export function layout(w, values) {
   const head = (x, width) => ({ x, y: HEAD_Y, w: width });
   if (page === "haplotypes") {
     const triTop = top + HAP_TOP + HAP_H + HAP_FOOT + HAP_GAP;
-    /* The triangle is the clumping window and nothing wider: 50 SNPs either
-       way is the 250 kb `--clump-kb`, and the pairs beyond it are r² ≈ 0.
-       Its depth in pixels is half the window's own column pitch, so the panel
-       is taller in a wider frame — the same trade `linear-regularization`
-       makes for a square. */
-    const cell = panelW / (REGION.m - 1);
-    const triH = Math.ceil((CLUMP_DEPTH / 2) * cell);
+    /* DECISION 13: the whole half-matrix, m − 1 cells deep at half the column
+       pitch — 243px at the 550 stage, 312 at 690 — so the panel is taller in
+       a wider frame, the same trade `linear-regularization` makes for a
+       square. The pitch is the BLOCK'S, w / m, so a cell sits above the
+       midpoint of the two columns it joins. */
+    const block = { x: AX_L, y: top + HAP_TOP, w: panelW, h: HAP_H };
+    const triH = Math.ceil(((REGION.m - 1) / 2) * snpPitch(block));
     return {
       page,
       head: head(AX_L, panelW),
-      block: { x: AX_L, y: top + HAP_TOP, w: panelW, h: HAP_H },
-      tri: { x: AX_L, y: triTop, w: panelW, h: triH, depth: CLUMP_DEPTH },
+      block,
+      tri: { x: AX_L, y: triTop, w: panelW, h: triH },
       height: triTop + triH + TRI_FOOT,
     };
   }
@@ -1781,33 +1756,193 @@ export function layout(w, values) {
 export const stageHeight = (w, values) => layout(w, values).height;
 
 /* ==========================================================================
+   DECISION 15: the block ↔ triangle link — its geometry, its statistics and
+   its copy, all of it callable with no DOM.
+   ========================================================================== */
+
+/** One pitch for the block's columns and the triangle's SNPs. */
+export const snpPitch = (rect) => rect.w / REGION.m;
+export const snpCentreX = (rect, j) => rect.x + (j + 0.5) * snpPitch(rect);
+
+/** Where the pair (j, k) sits in the triangle: above the midpoint of its two
+    columns, |j − k| / 2 cells deep. */
+export function cellCentre(tri, j, k) {
+  const cw = snpPitch(tri);
+  return { x: tri.x + ((j + k + 1) / 2) * cw, y: tri.y + (Math.abs(j - k) / 2) * cw };
+}
+
+/** The block column under a point, or −1. */
+export function blockColumnAt(block, x, y) {
+  if (x < block.x || x >= block.x + block.w || y < block.y || y >= block.y + block.h) return -1;
+  return Math.min(REGION.m - 1, Math.floor((x - block.x) / snpPitch(block)));
+}
+
+/**
+ * The triangle cell under a point as [k, j] with k < j, or null.
+ *
+ * The image is drawn through (u, v) → (x₀ + cw(u + v)/2, y₀ + cw(v − u)/2),
+ * which inverts to u = a − b and v = a + b for a = (x − x₀)/cw and
+ * b = (y − y₀)/cw; the cell is the floor of each. Above the axis there is no
+ * cell, and on or above the diagonal (v ≤ u) there is none either.
+ */
+export function triCellAt(tri, x, y) {
+  if (y < tri.y) return null;
+  const cw = snpPitch(tri);
+  const a = (x - tri.x) / cw;
+  const b = (y - tri.y) / cw;
+  const u = Math.floor(a - b);
+  const v = Math.floor(a + b);
+  if (u < 0 || v >= REGION.m || v <= u) return null;
+  return [u, v];
+}
+
+/** What is under a point on step 1: one SNP, a pair, or nothing. */
+export function subjectAt(L, x, y) {
+  const j = blockColumnAt(L.block, x, y);
+  if (j >= 0) return { kind: "snp", snps: [j] };
+  const cell = triCellAt(L.tri, x, y);
+  return cell ? { kind: "pair", snps: cell } : null;
+}
+
+/* THE PIN. `snps` carries one SNP number or two, as the reading line prints
+   them (one-based, ascending, "37" or "37,52"); anything else parses to the
+   empty pin. Seven characters holds "99,100". */
+export const SNPS_MAX_LENGTH = 7;
+export function parseSnps(text) {
+  const seen = [];
+  for (const part of String(text ?? "").split(",")) {
+    const n = Number(part.trim());
+    if (Number.isInteger(n) && n >= 1 && n <= REGION.m && !seen.includes(n)) seen.push(n);
+  }
+  return seen.slice(0, 2).sort((a, b) => a - b).join(",");
+}
+/** The pinned SNPs, zero-based: [], [j] or [k, j]. */
+export const snpsOf = (params) =>
+  parseSnps(params?.snps).split(",").filter(Boolean).map((v) => Number(v) - 1);
+export const snpsText = (snps) => [...snps].sort((a, b) => a - b).map((j) => j + 1).join(",");
+/** The subject a pin names, in the shape `subjectAt` returns. */
+export function pinnedSubject(params) {
+  const snps = snpsOf(params);
+  if (!snps.length) return null;
+  return { kind: snps.length === 2 ? "pair" : "snp", snps };
+}
+
+/**
+ * The region table core resolves a click through: the block's m columns and
+ * the triangle's m(m − 1)/2 cells. A cell is a diamond and a region is a
+ * rectangle, so a cell's is the square inscribed in its bounding box less half
+ * a pixel a side — the centre of every cell then lies in its own square and
+ * no other, which is what the hit-driven state aims at. Clicking what is
+ * already pinned clears the pin.
+ */
+export function regionsFor(L, params) {
+  const current = parseSnps(params?.snps);
+  const toggle = (snps) => {
+    const text = snpsText(snps);
+    return text === current ? "" : text;
+  };
+  const out = [];
+  const bw = snpPitch(L.block);
+  for (let j = 0; j < REGION.m; j += 1) {
+    out.push({
+      x: L.block.x + j * bw, y: L.block.y, w: bw, h: L.block.h,
+      set: { snps: toggle([j]) }, label: `SNP ${j + 1}`,
+    });
+  }
+  const cw = snpPitch(L.tri);
+  const side = Math.max(1, cw - 0.5);
+  for (let j = 1; j < REGION.m; j += 1) {
+    for (let k = 0; k < j; k += 1) {
+      const c = cellCentre(L.tri, j, k);
+      out.push({
+        x: c.x - side / 2, y: c.y - side / 2, w: side, h: side,
+        set: { snps: toggle([k, j]) }, label: `SNPs ${k + 1} and ${j + 1}`,
+      });
+    }
+  }
+  return out;
+}
+
+/**
+ * A pair's statistics: r² from the pool, the sign of D, and how many of the
+ * rows on screen carry the pair in one of its two commonest forms — both
+ * derived or both ancestral when D ≥ 0, one of each when D < 0. Those rows
+ * are the ones on one stretch of ancestor across the pair, which is the thing
+ * r² measures; the count beside the r² is the nearest the figure comes to
+ * defining it without a formula.
+ */
+export function pairStats(region, j, k, rows = HAP_ROWS) {
+  const H = region.hap.H;
+  const n = H[0].length;
+  let pa = 0;
+  let pb = 0;
+  let pab = 0;
+  for (let i = 0; i < n; i += 1) {
+    pa += H[j][i];
+    pb += H[k][i];
+    pab += H[j][i] * H[k][i];
+  }
+  const D = pab / n - (pa / n) * (pb / n);
+  const flags = new Uint8Array(rows);
+  let together = 0;
+  for (let i = 0; i < rows; i += 1) {
+    const same = H[j][i] === H[k][i];
+    if (D >= 0 ? same : !same) {
+      flags[i] = 1;
+      together += 1;
+    }
+  }
+  return {
+    r2: region.R[j][k], D, together, rows, flags,
+    dist: Math.abs(region.hap.positions[j] - region.hap.positions[k]),
+  };
+}
+
+/** One SNP's statistics: its partners above R_HIGH, the furthest of them, and
+    its r² with the causal SNP. */
+export function snpStats(region, j) {
+  let n = 0;
+  let reach = 0;
+  for (let k = 0; k < REGION.m; k += 1) {
+    if (k !== j && region.R[j][k] > R_HIGH) {
+      n += 1;
+      reach = Math.max(reach, Math.abs(region.hap.positions[j] - region.hap.positions[k]));
+    }
+  }
+  return { n, reach, pos: region.hap.positions[j], r2Causal: region.R[j][region.causal] };
+}
+
+/* THE READING LINES, under the block while a subject is on screen. They are
+   functions of live numbers, so `_lab/prs-verify.mjs` §11 calls them to put
+   them through the register sweep. "Travel together" is the lesson's own
+   sense of LD — variants "inherited together more often than expected by
+   chance" — and the rows clause is dropped while no row is drawn. */
+export const pairReading = (j, k, st) =>
+  `SNP ${Math.min(j, k) + 1} and SNP ${Math.max(j, k) + 1} · ${intText(st.dist)} kb apart · `
+  + `r² ${n2(st.r2)}`
+  + (st.rows > 0 ? ` · the two alleles travel together in ${st.together} of ${st.rows} rows` : "");
+export const snpReading = (region, j, st) =>
+  `SNP ${j + 1} at ${intText(st.pos)} kb${j === region.causal ? ", the causal SNP" : ""} · `
+  + `r² above ${R_HIGH} with ${st.n} SNP${st.n === 1 ? "" : "s"}`
+  + (st.n > 0 ? `, the furthest ${intText(st.reach)} kb away` : "");
+/** The line a subject earns, over the rows drawn so far. */
+export function readingFor(region, subject, rows) {
+  if (!subject) return null;
+  if (subject.kind === "pair") {
+    const [k, j] = subject.snps;
+    return pairReading(j, k, pairStats(region, Math.max(j, k), Math.min(j, k), rows));
+  }
+  const [j] = subject.snps;
+  return snpReading(region, j, snpStats(region, j));
+}
+
+/* ==========================================================================
    Numbers on screen.
    ========================================================================== */
 
 export const n2 = (v) => (Number.isFinite(v) ? v.toFixed(2) : "—");
 export const n3 = (v) => (Number.isFinite(v) ? v.toFixed(3) : "—");
 export const intText = (v) => Math.round(v).toLocaleString("en-US");
-/* DECISION 14: step 3's batch column names itself three times, and each line
-   carries a live number rather than a literal. They are functions and not
-   entries in `STRINGS` because the register sweep reads that object's values
-   as strings; `_lab/prs-verify.mjs` §11 puts these three through it by calling
-   them.
-
-   THE ALLELE LINE HAS A SHORT FORM, and which one is drawn is MEASURED rather
-   than ellipsised: the count of SNPs is the half the x axis already names
-   under the same column, so dropping it costs the reader nothing and an
-   ellipsis in the middle of a number would cost them the count. Measured in
-   the browser at --fs-xs 11px the long form is 135px against 152px of room at
-   the narrowest stage the side layout reaches, so it is what a reader sees;
-   the short form is the fallback a wider count or another font would take. */
-export const batchAxisLabel = (n) => `the other ${intText(n)} SNPs`;
-export const batchAlleleLabel = (n, alleles) =>
-  `${intText(n)} SNPs · ${intText(alleles)} effect alleles`;
-export const batchAlleleShort = (alleles) => `${intText(alleles)} effect alleles`;
-/** What the batched SNPs added to this person's score, signed. */
-export const batchWeightLabel = (v) =>
-  `${v < 0 ? "−" : "+"}${n2(Math.abs(v))} to the score`;
-
 /** A P threshold as the reader sees it on its own tick. */
 export const tText = (t) => {
   const s = String(t);
@@ -2049,8 +2184,11 @@ export const STRINGS = {
   /* step 1, on the canvas */
   blockCaption: "haplotypes in the region, one row each",
   blockNote: "one tone an allele",
-  triCaption: "r² between every pair within 250 kb",
+  /* decision 13: the whole half-matrix, with the clumping window's reach as a
+     rule across it */
+  triCaption: "r² between every pair of SNPs in the region",
   triNote: "0 to 1",
+  windowLabel: `the clumping window · ${CLUMP_KB} kb`,
 
   /* step 2 */
   assocCaption: "every SNP in the region tested against the trait",
@@ -2063,10 +2201,6 @@ export const STRINGS = {
   /* step 3 */
   genoCaption: "the person's genotype, effect alleles carried",
   weightCaption: "the base study's weight for each SNP",
-  /* DECISION 14: the batch column's bar is what the remaining SNPs added to
-     the score, which is not a weight, so the caption that covers both columns
-     says so. It is only worn once the batch has landed. */
-  weightCaptionBatch: "each SNP's weight, and what the rest added",
   weightNote: "β̂, on the raw allele count",
   sumCaption: "the sum so far",
   /* The order is by P and the axis is where a reader can be told so (2.9). */

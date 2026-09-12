@@ -37,17 +37,23 @@
    threshold keeps, asserted against the engine's own column for several people
    at several thresholds, and against the running sum the figure draws.
 
-   STEP 3 IS COUNTABLE FIRST, THEN BATCHED (model.js decision 14), and the two
-   counts it holds are the thing to keep straight: the RUN counts beats, of
-   which there are 41 at the default, and the FIGURE counts SNPs, of which
-   there are 160. Every assertion that drives the widget uses `totalFor`, every
-   assertion that reads it uses the kept count, and `shown` is asserted to make
-   41 and 160 mean the same finished sum. The batch's three totals are summed
-   here over the engine's own kept list rather than read off the helper that
-   drew them — a figure asserted against the function that drew it asserts
-   nothing. And the order is the other half: the countable forty are the forty
-   with the lowest P, so the part a reader counts is the part carrying the
-   weight.
+   STEP 3 IS ONE COLUMN A SNP AT EVERY COUNT (model.js decision 14, round
+   three). The run counts beats and the figure counts SNPs and the two are the
+   same number; what has to hold instead is the pace — a beat a SNP at the
+   nominal 140 ms is 22 s for the default's 160, so the beat is capped by the
+   run and the assertions are on the cap: the run at 160 and at every SNP in
+   the base study is SCORE_RUN_MS, at 35 it is the nominal beat unchanged,
+   and one press of Step is one SNP past the fortieth as before it. The
+   column width at both stage widths is asserted against the dot minimum, so
+   the strip's switch from dots to bars is the arithmetic and not taste.
+
+   THE BLOCK ↔ TRIANGLE LINK (model.js decision 15, §12b). The pointer's cell
+   is found by inverting the rotated frame, and every one of the 4,950 cells
+   is asserted to round-trip through it from its own centre; the region table
+   a click goes through is checked with core's own `hitTest` at every cell
+   centre and every column, and the pin's parser against the forms a URL can
+   carry. The reading lines are built from live numbers, so they are called
+   here and put through the register sweep like the batch's lines once were.
 
    THE RISK MODEL (§6b). The logistic fit is asserted against three closed
    forms before anything is drawn from it, and then the calibration itself:
@@ -79,6 +85,7 @@ import { fileURLToPath } from "node:url";
 import * as M from "../polygenic-score/model.js";
 import { makeRng } from "../core/rng.js";
 import { resolveParams, toQuery } from "../core/params.js";
+import { hitTest } from "../core/canvas.js";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const read = (rel) => readFileSync(join(root, rel), "utf8");
@@ -883,10 +890,9 @@ const OPEN = build(base());
     check("step 3's run stays in band at every base study size and threshold",
       outScore.length === 0, outScore.join(" | "));
 
-    /* DECISION 14: THE DEFAULT'S OWN RUN, beat by beat. Forty SNP beats at
-       140 ms and one batch beat at 600 is 6.2 s — the 160 ms beat round two
-       shipped would have made it 7.0, a hair outside the band above, which is
-       what set the shorter beat. The last frame is the finished sum. */
+    /* DECISION 14: THE DEFAULT'S OWN RUN, a beat a SNP and the whole run held
+       to SCORE_RUN_MS. The last frame is the finished sum; one press of Step
+       is one SNP at every count. */
     {
       const p = base({ page: "score" });
       const s = build(p);
@@ -896,28 +902,36 @@ const OPEN = build(base());
       let f = 0;
       while (W.animation.advance(a, { dt: 16, params: p, state: s }) && f < 4000) f += 1;
       const sec = (f * 16) / 1000;
-      check("Play on step 3 runs 40 SNP beats and one batch beat, inside the band",
-        a.k.score === M.SCORE_COUNTABLE + 1 && a.done === true && sec >= 3 && sec <= 7,
+      check("Play on step 3 runs one beat a SNP, inside the band",
+        a.k.score === kept && a.done === true && sec >= 3 && sec <= 7,
         `${a.k.score} beats, ${sec.toFixed(1)} s`);
       check("…and the sum its last frame draws is the engine's own score for that person",
-        Math.abs(M.personScore(s, p).cum[M.snpsAdded(a.k.score, kept) - 1]
-          - M.rowFor(s, p).score[0]) < 1e-12,
+        Math.abs(M.personScore(s, p).cum[kept - 1] - M.rowFor(s, p).score[0]) < 1e-12,
         M.rowFor(s, p).score[0].toFixed(6));
-      check("…and the batch beat is longer than a SNP's, so it is seen",
-        M.beatMs("score", s, p, M.SCORE_COUNTABLE) === M.SCORE_BATCH_MS
-        && M.beatMs("score", s, p, 0) === M.BEAT_MS.score
-        && M.SCORE_BATCH_MS > M.BEAT_MS.score,
-        `${M.BEAT_MS.score} ms a SNP, ${M.SCORE_BATCH_MS} ms for the batch`);
-      /* one press of Step past the fortieth takes the whole batch */
+      check("…and the beat is the run's cap over the count, under the nominal beat",
+        Math.abs(M.beatMs("score", s, p) - M.SCORE_RUN_MS / kept) < 1e-9
+        && M.beatMs("score", s, p) < M.BEAT_MS.score,
+        `${M.beatMs("score", s, p).toFixed(1)} ms a SNP at ${kept}`);
+      const few = base({ page: "score", baseSize: "1500" });
+      const sFew = build(few);
+      const keptFew = M.rowFor(sFew, few).nSnp;
+      check("…while at 40 or fewer kept the beat is the nominal one, as in round one",
+        keptFew <= 40 && M.beatMs("score", sFew, few) === M.BEAT_MS.score,
+        `${keptFew} SNPs at ${M.beatMs("score", sFew, few)} ms`);
+      const all = base({ page: "score", threshold: "1" });
+      const sAll = build(all);
+      check("…and at every SNP in the base study the run is still the cap",
+        M.totalFor("score", sAll, all) === M.GENOME.m
+        && Math.abs(M.beatMs("score", sAll, all) * M.GENOME.m - M.SCORE_RUN_MS) < 1e-6,
+        `${M.beatMs("score", sAll, all).toFixed(1)} ms a SNP at ${M.GENOME.m}`);
+      /* one press of Step is one SNP, past the fortieth as before it */
       const one = W.animation.init({ params: p, state: s, fromScratch: true });
-      one.k.score = M.SCORE_COUNTABLE;
+      one.k.score = 40;
       one.mode = "step";
       let g = 0;
       while (W.animation.advance(one, { dt: 16, params: p, state: s }) && g < 200) g += 1;
-      check("…and one press of Step past the fortieth adds every SNP that is left",
-        one.k.score === M.SCORE_COUNTABLE + 1
-        && M.snpsAdded(one.k.score, kept) === kept,
-        `${M.snpsAdded(one.k.score, kept)} of ${kept} SNPs after ${g} frames`);
+      check("…and one press of Step past the fortieth adds one SNP", one.k.score === 41,
+        `${one.k.score} after ${g} frames`);
     }
 
     check("the authored head start reaches the longest run the widget has",
@@ -983,22 +997,19 @@ const OPEN = build(base());
     check("a head start past the end lands on the last unit",
       clamped.k.risk === M.RISK_DECILES && clamped.done === true);
 
-    /* DECISION 14: `shown` ON STEP 3 COUNTS SNPs WHILE THEY ARE COUNTABLE, and
-       past the fortieth the batch is all of them — so with 160 kept, both
-       `?shown=41` and `?shown=160` are the finished sum, and a value inside the
-       forty is the SNP it names. The clamp to the step's own total is what
-       makes the two agree. */
+    /* DECISION 14: `shown` ON STEP 3 COUNTS SNPs, clamped to the kept count,
+       so `?shown=160` is the finished sum, a value inside it is the SNP it
+       names, and a value past it lands on the end. */
     const kept3 = M.rowFor(state, base()).nSnp;
     const shownAt = (n) => W.animation.init({
       params: base({ page: "score", shown: n }), state, fromScratch: false,
     });
-    check("shown= on step 3 counts SNPs added, the batch counting as all the rest",
-      M.snpsAdded(shownAt(12).k.score, kept3) === 12
-      && M.snpsAdded(shownAt(41).k.score, kept3) === kept3
-      && M.snpsAdded(shownAt(160).k.score, kept3) === kept3
-      && shownAt(41).done === true && shownAt(160).done === true,
-      `12 → ${M.snpsAdded(shownAt(12).k.score, kept3)}, `
-      + `41 and ${kept3} → ${M.snpsAdded(shownAt(41).k.score, kept3)}`);
+    check("shown= on step 3 counts SNPs added, clamped to the kept count",
+      shownAt(12).k.score === 12 && shownAt(12).done === false
+      && shownAt(41).k.score === 41 && shownAt(41).done === false
+      && shownAt(kept3).k.score === kept3 && shownAt(kept3).done === true
+      && shownAt(999).k.score === kept3 && shownAt(999).done === true,
+      `12 → ${shownAt(12).k.score}, 41 → ${shownAt(41).k.score}, ${kept3} → ${shownAt(kept3).k.score}`);
   }
 
   /* the tiles: blank before the run, tracking the partial figure during it */
@@ -1219,25 +1230,27 @@ const OPEN = build(base());
   check("no two stacked or side-by-side panels overlap", apart);
   check("every step's stage carries a step line with room for it", headed,
     `${M.STEP_LINE_H}px`);
-  check("the mock's own geometry comes back at the narrowest canvas",
-    M.layout(550, { page: "haplotypes" }).tri.h === 124
-    && M.layout(550, { page: "haplotypes" }).height === 431,
+  check("the round-three mock's own geometry comes back at the narrowest canvas",
+    M.layout(550, { page: "haplotypes" }).tri.h === 243
+    && M.layout(550, { page: "haplotypes" }).height === 550,
     `triangle ${M.layout(550, { page: "haplotypes" }).tri.h}px of `
     + `${M.layout(550, { page: "haplotypes" }).height}`);
-  check("the six stages are 431, 321, 445, 358, 321 and 317px at 550",
+  check("the six stages are 550, 321, 445, 358, 321 and 317px at 550",
     PAGES.map((page) => M.layout(550, { page }).height).join(" ")
-    === "431 321 445 358 321 317",
+    === "550 321 445 358 321 317",
     PAGES.map((page) => M.layout(550, { page }).height).join(" "));
-  check("step 1's stage grows with the width, because its triangle is a fixed 250 kb",
+  check("step 1's stage grows with the width, because its triangle is a fixed 100 SNPs deep",
     M.layout(900, { page: "haplotypes" }).height > M.layout(550, { page: "haplotypes" }).height,
     `${M.layout(550, { page: "haplotypes" }).height} → `
     + `${M.layout(900, { page: "haplotypes" }).height}`);
   check("…and the other five do not, so only one stage moves under the reader",
     PAGES.slice(1).every((page) =>
       M.layout(900, { page }).height === M.layout(550, { page }).height));
-  check("the triangle is exactly the clumping window, in SNPs",
-    M.layout(690, { page: "haplotypes" }).tri.depth === M.CLUMP_KB / M.REGION.blockLen,
-    `${M.layout(690, { page: "haplotypes" }).tri.depth} SNPs either way`);
+  check("the clumping window's rule sits 50 SNPs deep, half a pitch a SNP",
+    M.CLUMP_DEPTH === M.CLUMP_KB / M.REGION.blockLen && M.CLUMP_DEPTH === 50
+    && Math.abs(M.cellCentre(M.layout(690, { page: "haplotypes" }).tri, 50, 0).y
+      - (M.layout(690, { page: "haplotypes" }).tri.y + 25 * (630 / 100))) < 1e-9,
+    `${M.CLUMP_DEPTH} SNPs`);
   check("step 6's two plots are square, so the diagonal is a diagonal",
     [550, 690, 900].every((w) => {
       const L = M.layout(w, { page: "risk" });
@@ -1309,11 +1322,16 @@ const OPEN = build(base());
     ...surfacesOf(PAGES),
     ...Object.values(M.STEP_LABELS.labels), ...Object.values(M.STEP_TITLES.labels),
     ...Object.values(M.RUN_TITLES.labels),
-    /* DECISION 14's three lines are built from live numbers, so they are
+    /* DECISION 15's reading lines are built from live numbers, so they are
        functions rather than entries in STRINGS and the sweep has to call them
-       or it would read the copy the batch column carries as no copy at all. */
-    M.batchAxisLabel(120), M.batchAlleleLabel(120, 130), M.batchAlleleShort(130),
-    M.batchWeightLabel(-0.35), M.batchWeightLabel(0.35),
+       — at the default's own region, over the drawn rows and over none. */
+    M.pairReading(14, 9, M.pairStats(state.region, 14, 9, M.HAP_ROWS)),
+    M.pairReading(14, 9, M.pairStats(state.region, 14, 9, 0)),
+    M.snpReading(state.region, 9, M.snpStats(state.region, 9)),
+    M.snpReading(state.region, state.region.causal, M.snpStats(state.region, state.region.causal)),
+    M.snpReading(state.region, 0, { n: 0, reach: 0, pos: 0, r2Causal: 0 }),
+    W.summary({ params: base({ page: "haplotypes", snps: "10,15" }), state,
+      anim: { k: { ...zero, haplotypes: full.haplotypes }, scanDone: true, done: true } }),
     card.blurb,
   ];
 
@@ -1605,12 +1623,180 @@ const OPEN = build(base());
      caption is there from the start. No string can say whether the CELLS are
      drawn, so this is counted off the transform the image goes through — the
      buffer is skipped entirely with no DOM, so the assertion is on the
-     geometry the drawing decides, which is `shown`. */
+     geometry the drawing decides. Round three: the WHOLE half-matrix, at the
+     block's own pitch, and the clumping window's reach drawn across it. */
   {
     const L = M.layout(690, { page: "haplotypes" });
     check("the triangle hangs from its own rule at the bottom of the block's gap",
-      L.tri.y > L.block.y + L.block.h && L.tri.depth === 50,
-      `block ends ${L.block.y + L.block.h}, triangle at ${L.tri.y}`);
+      L.tri.y > L.block.y + L.block.h, `block ends ${L.block.y + L.block.h}, triangle at ${L.tri.y}`);
+    check("…and is the whole half-matrix deep, at half the block's column pitch",
+      L.tri.h === Math.ceil(((M.REGION.m - 1) / 2) * (L.block.w / M.REGION.m))
+      && Math.abs(M.snpCentreX(L.tri, 99) - M.snpCentreX(L.block, 99)) < 1e-9,
+      `${L.tri.h}px at 690, SNP 100 at ${M.snpCentreX(L.tri, 99).toFixed(2)} in both`);
+    const h550 = M.stageHeight(550, { page: "haplotypes" });
+    check("…so the stage is 550px at the 550 stage and 619 at 690",
+      h550 === 550 && M.stageHeight(690, { page: "haplotypes" }) === 619,
+      `${h550} / ${M.stageHeight(690, { page: "haplotypes" })}`);
+    for (const w of [550, 690]) {
+      const done = paintedAt(base({ page: "haplotypes" }), animAt("haplotypes", M.HAP_ROWS), w).painted;
+      check(`the window's reach is labelled whole at ${w}, and the caption says every pair`,
+        done.includes(M.STRINGS.windowLabel) && done.includes(M.STRINGS.triCaption)
+        && M.STRINGS.triCaption === "r² between every pair of SNPs in the region",
+        done.find((t) => /clumping window/.test(t)) ?? "");
+    }
+    const empty = paintedAt(base({ page: "haplotypes" }), animAt("haplotypes", 0, false)).painted;
+    check("…and the label is on the empty figure too, since the rule is the axis's",
+      empty.includes(M.STRINGS.windowLabel));
+  }
+
+  /* --- 12b · DECISION 15: the block ↔ triangle link ----------------------------
+   * The cell under a point, the column under a point, the region table a click
+   * resolves through, the pin's parser, the pair's statistics and the reading
+   * lines — none of which a pixel hash can see, and all of which the figure
+   * lies about if they drift from the drawing by a column.
+   */
+  {
+    const params = base({ page: "haplotypes" });
+    const L = M.layout(690, params);
+    const m = M.REGION.m;
+    const state = build(params);
+    const region = state.region;
+
+    /* every cell round-trips from its own centre, and from four points inside
+       its diamond; the axis above and the diagonal are nobody's */
+    let bad = 0;
+    let badInner = 0;
+    let misaligned = 0;
+    const cw = M.snpPitch(L.tri);
+    for (let j = 1; j < m; j += 1) {
+      for (let k = 0; k < j; k += 1) {
+        const c = M.cellCentre(L.tri, j, k);
+        const hit = M.triCellAt(L.tri, c.x, c.y);
+        if (!hit || hit[0] !== k || hit[1] !== j) bad += 1;
+        for (const [dx, dy] of [[0.4, 0], [-0.4, 0], [0, 0.4], [0, -0.4]]) {
+          const h = M.triCellAt(L.tri, c.x + dx * cw / 2, c.y + dy * cw / 2);
+          if (!h || h[0] !== k || h[1] !== j) badInner += 1;
+        }
+        const mid = (M.snpCentreX(L.block, j) + M.snpCentreX(L.block, k)) / 2;
+        if (Math.abs(c.x - mid) > 1e-9) misaligned += 1;
+      }
+    }
+    check("every triangle cell is found from its own centre by inverting the rotated frame",
+      bad === 0, `${bad} of ${(m * (m - 1)) / 2} miss`);
+    check("…and from four points inside its diamond", badInner === 0, `${badInner} miss`);
+    check("…and sits above the midpoint of its two block columns", misaligned === 0,
+      `${misaligned} off`);
+    check("above the axis, and on the diagonal, there is no cell",
+      M.triCellAt(L.tri, L.tri.x + 100, L.tri.y - 1) === null
+      && M.triCellAt(L.tri, M.snpCentreX(L.tri, 40), L.tri.y + 0.1) === null
+      && M.triCellAt(L.tri, L.tri.x - 5, L.tri.y + 30) === null);
+    let badCol = 0;
+    for (let j = 0; j < m; j += 1) {
+      if (M.blockColumnAt(L.block, M.snpCentreX(L.block, j), L.block.y + 1) !== j) badCol += 1;
+    }
+    check("every block column is found from its centre", badCol === 0, `${badCol} miss`);
+    check("…and outside the block there is no column",
+      M.blockColumnAt(L.block, L.block.x + 10, L.block.y - 1) === -1
+      && M.blockColumnAt(L.block, L.block.x + L.block.w + 1, L.block.y + 10) === -1);
+    check("a point names one SNP in the block and a pair in the triangle",
+      M.subjectAt(L, M.snpCentreX(L.block, 9), L.block.y + 5)?.kind === "snp"
+      && M.subjectAt(L, M.snpCentreX(L.block, 9), L.block.y + 5)?.snps[0] === 9
+      && M.subjectAt(L, M.cellCentre(L.tri, 14, 9).x, M.cellCentre(L.tri, 14, 9).y)?.kind === "pair"
+      && M.subjectAt(L, L.tri.x, L.tri.y - 3) === null);
+
+    /* THE REGION TABLE, through core's own hit-test */
+    const regions = W.regions({ w: 690, params, state });
+    check("the region table is the block's columns and the triangle's cells",
+      regions.length === m + (m * (m - 1)) / 2
+      && regions.every((r) => Object.keys(r.set).length === 1 && "snps" in r.set),
+      `${regions.length} regions`);
+    let badHit = 0;
+    for (let j = 1; j < m; j += 1) {
+      for (let k = 0; k < j; k += 1) {
+        const c = M.cellCentre(L.tri, j, k);
+        const r = hitTest(regions, c.x, c.y);
+        if (!r || r.set.snps !== `${k + 1},${j + 1}`) badHit += 1;
+      }
+    }
+    check("…and a click at every cell's centre pins that pair, and nothing else",
+      badHit === 0, `${badHit} miss`);
+    let badColHit = 0;
+    for (let j = 0; j < m; j += 1) {
+      const r = hitTest(regions, M.snpCentreX(L.block, j), L.block.y + L.block.h / 2);
+      if (!r || r.set.snps !== `${j + 1}`) badColHit += 1;
+    }
+    check("…and a click on every column pins that SNP", badColHit === 0, `${badColHit} miss`);
+    const pinned = W.regions({ w: 690, params: base({ page: "haplotypes", snps: "10,15" }), state });
+    const c = M.cellCentre(L.tri, 14, 9);
+    check("clicking the pinned pair clears the pin, and any other click moves it",
+      hitTest(pinned, c.x, c.y).set.snps === ""
+      && hitTest(pinned, M.snpCentreX(L.block, 9), L.block.y + 3).set.snps === "10",
+      hitTest(pinned, c.x, c.y).set.snps);
+    check("the table is empty on every other step, and on core's load-time probe",
+      PAGES.filter((pg) => pg !== "haplotypes")
+        .every((pg) => W.regions({ w: 690, params: base({ page: pg }), state }).length === 0)
+      && W.regions({ w: 690, params, state: null }).length === 0);
+    check("the widget draws for the pointer and declares the pin as a hidden display text",
+      W.pointer === true && W.params.snps.type === "text" && W.params.snps.hidden === true
+      && W.params.snps.display === true && W.params.snps.default === ""
+      && W.params.snps.parse === M.parseSnps);
+
+    /* THE PIN'S PARSER: what a URL can carry */
+    check("the pin parses to its canonical form",
+      M.parseSnps("52,37") === "37,52" && M.parseSnps("37,37") === "37"
+      && M.parseSnps("0") === "" && M.parseSnps("101") === "" && M.parseSnps("a,3") === "3"
+      && M.parseSnps("1,2,3") === "1,2" && M.parseSnps("") === "" && M.parseSnps(undefined) === "",
+      [M.parseSnps("52,37"), M.parseSnps("37,37"), M.parseSnps("1,2,3")].join(" / "));
+    check("…and reads back zero-based, in the shape the pointer produces",
+      M.snpsOf({ snps: "37,52" }).join() === "36,51" && M.snpsText([51, 36]) === "37,52"
+      && M.pinnedSubject({ snps: "37,52" }).kind === "pair"
+      && M.pinnedSubject({ snps: "37" }).kind === "snp" && M.pinnedSubject({ snps: "" }) === null);
+    check("the URL round trip keeps a pin and drops an empty one",
+      resolveParams(W.params, new URLSearchParams("snps=52%2C37")).snps === "37,52"
+      && !toQuery(W.params, resolveParams(W.params, new URLSearchParams(""))).includes("snps"));
+
+    /* THE PAIR'S STATISTICS, at the default's own region */
+    const lead = region.idx[region.lead];
+    const st = M.pairStats(region, region.causal, lead, M.HAP_ROWS);
+    let flagged = 0;
+    for (const f of st.flags) flagged += f;
+    check("a pair's r² is the matrix's, and its rows are counted from its flags",
+      st.r2 === region.R[region.causal][lead] && flagged === st.together && st.rows === M.HAP_ROWS
+      && st.together <= M.HAP_ROWS && st.dist === Math.abs(region.causalPos - region.pos[region.lead]),
+      `r² ${st.r2.toFixed(2)}, ${st.together} of ${st.rows}`);
+    const far = M.pairStats(region, region.causal, Math.min(m - 1, region.causal + 50), M.HAP_ROWS);
+    check("…and the causal-lead pair travels together in more rows than a pair 250 kb apart",
+      st.together > far.together && st.r2 > far.r2,
+      `${st.together} against ${far.together}; r² ${st.r2.toFixed(2)} against ${far.r2.toFixed(2)}`);
+    check("the reading lines say it in the field's words, at the default",
+      M.pairReading(region.causal, lead, st)
+        === "SNP 10 and SNP 15 · 25 kb apart · r² 0.79 · the two alleles travel together in 38 of 40 rows"
+      && M.snpReading(region, lead, M.snpStats(region, lead))
+        === "SNP 10 at 45 kb · r² above 0.5 with 8 SNPs, the furthest 70 kb away",
+      M.pairReading(region.causal, lead, st));
+    check("…and drop the rows clause while no row is drawn",
+      !/rows/.test(M.readingFor(region, { kind: "pair", snps: [lead, region.causal] }, 0))
+      && /rows/.test(M.readingFor(region, { kind: "pair", snps: [lead, region.causal] }, 12))
+      && M.readingFor(region, null, 12) === null);
+
+    /* THE READING REPLACES THE FOOT LINE, and only while a subject is on screen */
+    const foot = `${M.STRINGS.blockNote} · 100 SNPs over 495 kb`;
+    const rest = paintedAt(params, animAt("haplotypes", M.HAP_ROWS)).painted;
+    const withPin = paintedAt(base({ page: "haplotypes", snps: "10,15" }),
+      animAt("haplotypes", M.HAP_ROWS)).painted;
+    const withSnp = paintedAt(base({ page: "haplotypes", snps: "10" }),
+      animAt("haplotypes", M.HAP_ROWS)).painted;
+    check("at rest the block's foot line is drawn; pinned, the reading is drawn in its place",
+      rest.includes(foot) && !rest.some((t) => /travel together/.test(t))
+      && withPin.includes(M.pairReading(region.causal, lead, st)) && !withPin.includes(foot)
+      && withSnp.includes(M.snpReading(region, lead, M.snpStats(region, lead))) && !withSnp.includes(foot),
+      withPin.find((t) => /travel together/.test(t)) ?? "");
+    check("…and the pin reaches the summary", /Pinned: SNP 10 and SNP 15/.test(
+      W.summary({ params: base({ page: "haplotypes", snps: "10,15" }), state,
+        anim: animAt("haplotypes", M.HAP_ROWS) })));
+    check("the legend names the pointer's mark and the causal SNP's pairs",
+      W.legend({ params }).some((e) => /under the pointer/.test(e.label) && e.token === "highlight")
+      && W.legend({ params }).some((e) => /its pairs in the triangle/.test(e.label)));
   }
 
   /* step 2: the empty figure, the tests, the lead, the clumping */
@@ -1663,11 +1849,7 @@ const OPEN = build(base());
     check("…and stays for the rest of the run", marksAt(region.clumps.length) === 1);
   }
 
-  /* step 3 — countable first, then batched (model.js decision 14).
-
-     THE COUNT ON THE FIGURE IS SNPs, THE COUNT IN THE RUN IS BEATS, and the
-     two differ past the fortieth SNP. Every assertion here that reads the
-     figure uses `kept`, and every assertion that drives it uses `total`. */
+  /* step 3 — one column a SNP (model.js decision 14, round three). */
   {
     const params = base({ page: "score" });
     const state3 = build(params);
@@ -1698,107 +1880,53 @@ const OPEN = build(base());
     check("…and the Person slider draws somebody else's row",
       other.filter((s) => s === "person 200").length === 2);
 
-    /* THE BATCH. At the default the P threshold keeps 160 SNPs, so the run is
-       forty beats and one more, and that last beat carries the other 120. */
-    check("the default keeps 160 SNPs and the run is 41 beats, 40 countable and one batch",
-      kept === 160 && total === M.SCORE_COUNTABLE + 1 && M.SCORE_COUNTABLE === 40,
-      `${kept} SNPs, ${total} beats`);
-    check("…so the fortieth beat has added 40 of them and the forty-first all 160",
-      M.snpsAdded(40, kept) === 40 && M.snpsAdded(41, kept) === kept
-      && M.snpsAdded(12, kept) === 12,
-      `${M.snpsAdded(40, kept)} → ${M.snpsAdded(41, kept)}`);
-    const at40 = paintedAt(params, animAt("score", M.SCORE_COUNTABLE)).painted;
-    check("…and the caption counts SNPs and not beats on both sides of it",
+    /* ONE COLUMN A SNP: the run is the kept count and the axis ends on it */
+    check("the default keeps 160 SNPs and the run is a beat each",
+      kept === 160 && total === kept, `${kept} SNPs, ${total} beats`);
+    const at40 = paintedAt(params, animAt("score", 40)).painted;
+    check("…and the caption counts SNPs on both sides of the fortieth",
       at40.some((s) => s === `40 of ${M.intText(kept)} SNPs added`)
       && done.some((s) => s === `${M.intText(kept)} of ${M.intText(kept)} SNPs added`),
       `${at40.find((s) => s.includes("added"))} → ${done.find((s) => s.includes("added"))}`);
-
-    /* THE THREE BARS ARE THREE TOTALS, summed here over the batched SNPs
-       rather than read off the engine's own helper — a figure asserted against
-       the function that drew it asserts nothing. */
-    const G = state3.genome;
-    const row = M.rowFor(state3, params);
-    let alleles = 0;
-    let contrib = 0;
-    for (const j of row.kept.slice(M.SCORE_COUNTABLE)) {
-      const g = G.target.G[j][0];
-      alleles += g;
-      contrib += g * G.betaHat[j];
-    }
-    const bt = M.batchTotals(st);
-    check("the batch's totals are the sums over the SNPs past the fortieth",
-      bt.n === kept - M.SCORE_COUNTABLE && bt.alleles === alleles
-      && Math.abs(bt.contrib - contrib) < 1e-12,
-      `${bt.n} SNPs, ${bt.alleles} alleles, ${bt.contrib.toFixed(4)}`);
-    check("…and the countable forty plus the batch is the person's whole score",
-      Math.abs(st.cum[M.SCORE_COUNTABLE - 1] + bt.contrib - st.total) < 1e-12,
-      `${st.cum[39].toFixed(4)} ${bt.contrib.toFixed(4)} → ${st.total.toFixed(4)}`);
-
-    /* THE BATCH'S OWN LINES, at both stage widths. The allele line drops the
-       SNP count rather than ellipsising when the room runs out, because the x
-       axis names that number under the same column either way.
-
-       THE RECORDER'S 6px A CHARACTER IS PESSIMISTIC BY DESIGN, and it is what
-       makes the fallback reachable here: measured in a browser the long form
-       is 135px and fits at every width the side layout reaches, so a reader
-       sees it at both. The assertion is that each form is drawn when it is the
-       one that fits — not that 550 is where the switch happens. */
-    const wide = paintedAt(params, animAt("score", total), 690).painted;
-    const narrow = paintedAt(params, animAt("score", total), 550).painted;
-    check("the batch column names itself on the axis, with the live count",
-      wide.includes(M.batchAxisLabel(kept - M.SCORE_COUNTABLE))
-      && narrow.includes(M.batchAxisLabel(kept - M.SCORE_COUNTABLE))
-      && M.batchAxisLabel(120) === "the other 120 SNPs",
-      M.batchAxisLabel(kept - M.SCORE_COUNTABLE));
-    check("the genotype bar carries the effect alleles carried over the batch",
-      wide.includes(M.batchAlleleLabel(bt.n, bt.alleles))
-      && narrow.includes(M.batchAlleleShort(bt.alleles)),
-      `${M.batchAlleleLabel(bt.n, bt.alleles)} / ${M.batchAlleleShort(bt.alleles)}`);
-    check("the weight bar carries what the batch added to the score, signed",
-      wide.includes(M.batchWeightLabel(bt.contrib))
-      && M.batchWeightLabel(-0.35).startsWith("−") && M.batchWeightLabel(0.35).startsWith("+"),
-      M.batchWeightLabel(bt.contrib));
-    check("…and the weight strip's caption stops calling that bar a weight",
-      wide.includes(M.STRINGS.weightCaptionBatch)
-      && at40.includes(M.STRINGS.weightCaption)
-      && !at40.includes(M.STRINGS.weightCaptionBatch),
-      M.STRINGS.weightCaptionBatch);
-    /* THE COLUMN'S AXIS LABEL IS THERE FROM THE FIRST FRAME and its two bars
-       are not: the label belongs to the axis, which a step opens on, and the
-       bars are data, which a step has to be run to (2.1). */
-    check("the batch's bars are not labelled before the batch is drawn",
-      !at40.some((s) => /effect alleles$|to the score$/.test(s))
-      && !empty.some((s) => /effect alleles$|to the score$/.test(s))
-      && empty.includes(M.batchAxisLabel(kept - M.SCORE_COUNTABLE)),
-      at40.filter((s) => /effect alleles$|to the score$/.test(s)).join(" | "));
-
-    /* AT 40 OR FEWER KEPT NOTHING CHANGES: a beat is a SNP, there is no batch
-       column, and the axis label is the only line the change left behind. */
-    const few = base({ page: "score", baseSize: "1500", threshold: "0.01" });
-    const sFew = build(few);
-    const keptFew = M.rowFor(sFew, few).nSnp;
-    check("a threshold keeping 40 or fewer runs a beat a SNP, as before",
-      keptFew <= M.SCORE_COUNTABLE && M.totalFor("score", sFew, few) === keptFew
-      && M.scoreAxis(630, keptFew).batched === false,
-      `${keptFew} SNPs, ${M.totalFor("score", sFew, few)} beats`);
-    const fewPainted = paintedAt(few, animAt("score", keptFew)).painted;
-    check("…and draws no batch column and no line belonging to one",
-      fewPainted.includes(M.STRINGS.weightCaption)
-      && !fewPainted.some((s) => /^the other |effect alleles$|to the score$/.test(s))
-      && fewPainted.some((s) => s === `${keptFew} of ${keptFew} SNPs added`),
-      fewPainted.find((s) => s.includes("added")) ?? "");
+    check("…the x axis's last tick is the kept count, and no line of the batch remains",
+      done.includes("160") && done.includes("40")
+      && !done.some((s) => /^the other |effect alleles$|to the score$|what the rest added/.test(s))
+      && done.includes(M.STRINGS.weightCaption),
+      done.filter((s) => /^\d+$/.test(s)).join(" "));
+    const all = base({ page: "score", threshold: "1" });
+    const sAll = build(all);
+    const doneAll = paintedAt(all, animAt("score", M.totalFor("score", sAll, all))).painted;
+    /* "1,000" centred on the panel's last pixel would run off the canvas, so
+       the end tick is dropped there and the note carries the count */
+    check("…and at every SNP in the base study the end tick is dropped and the note counts",
+      !doneAll.includes("1,000") && doneAll.includes("750")
+      && doneAll.some((s) => s === "1,000 of 1,000 SNPs added"),
+      doneAll.filter((s) => /^[\d,]+$/.test(s)).join(" "));
 
     /* THE X LAYOUT, measured at both widths (3.4a's arithmetic, not taste). */
     const ax690 = M.scoreAxis(M.layout(690, { page: "score" }).geno.w, kept);
     const ax550 = M.scoreAxis(M.layout(550, { page: "score" }).geno.w, kept);
-    check("the batch column is a quarter of the panel and the forty share the rest",
-      Math.abs(ax690.batchW - 157.5) < 0.01 && Math.abs(ax690.cw - 11.8125) < 0.01
-      && Math.abs(ax550.batchW - 122.5) < 0.01 && Math.abs(ax550.cw - 9.1875) < 0.01,
-      `690: ${ax690.cw.toFixed(2)}px a column, ${ax690.batchW.toFixed(1)}px batch; `
-      + `550: ${ax550.cw.toFixed(2)}px, ${ax550.batchW.toFixed(1)}px`);
-    check("…and a column is still wide enough for the two dots a genotype stacks",
-      Math.min(ax690.cw, ax550.cw) / 2 - 1.2 >= 2.5,
-      `${(ax550.cw / 2 - 1.2).toFixed(1)}px radius at 550`);
+    check("a column is the panel over the kept count",
+      Math.abs(ax690.cw - 3.9375) < 0.01 && Math.abs(ax550.cw - 3.0625) < 0.01
+      && ax690.units === kept && ax690.cols === kept,
+      `690: ${ax690.cw.toFixed(2)}px a column; 550: ${ax550.cw.toFixed(2)}px`);
+    check("…which is under the dot minimum at 160, so the genotype strip draws bars there",
+      ax550.cw < M.SCORE_DOT_MIN && ax690.cw < M.SCORE_DOT_MIN && M.SCORE_DOT_MIN === 4);
+    const few = base({ page: "score", baseSize: "1500", threshold: "0.01" });
+    const sFew = build(few);
+    const keptFew = M.rowFor(sFew, few).nSnp;
+    check("at 40 or fewer kept a column holds two dots, as in round one",
+      keptFew <= 40 && M.totalFor("score", sFew, few) === keptFew
+      && M.scoreAxis(M.layout(550, { page: "score" }).geno.w, keptFew).cw >= 2 * 2.5 + 2.4,
+      `${keptFew} SNPs at ${M.scoreAxis(490, keptFew).cw.toFixed(1)}px`);
+    const fewPainted = paintedAt(few, animAt("score", keptFew)).painted;
+    check("…and its finished figure counts them all",
+      fewPainted.includes(M.STRINGS.weightCaption)
+      && fewPainted.some((s) => s === `${keptFew} of ${keptFew} SNPs added`),
+      fewPainted.find((s) => s.includes("added")) ?? "");
+    check("a threshold keeping nothing still draws the empty strips",
+      paintedAt(base({ page: "score", baseSize: "1500", threshold: "5e-8" }), animAt("score", 0))
+        .painted.some((s) => s === "0 of 0 SNPs added"));
   }
 
   /* step 4 */
@@ -1883,9 +2011,6 @@ const OPEN = build(base());
       ["score", 12, (s) => s === M.STRINGS.sumCaption, (s) => /SNPs added$/.test(s)],
       ["score", 12, (s) => s.startsWith("the person's genotype"), (s) => /^person \d+$/.test(s)],
       ["score", 12, (s) => s.startsWith("the base study's weight"), (s) => s === M.STRINGS.weightNote],
-      /* and the longer caption the batch column brings with it */
-      ["score", M.SCORE_COUNTABLE + 1, (s) => s === M.STRINGS.weightCaptionBatch,
-        (s) => s === M.STRINGS.weightNote],
       ["score", 12, (s) => s.startsWith("every person in the target"), (s) => /^\d+ people$/.test(s)],
       ["quantile", 20, (s) => s.startsWith("mean trait by score"), (s) => /ancestry/.test(s)],
     ];

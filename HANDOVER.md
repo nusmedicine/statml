@@ -13,23 +13,20 @@ is LOCAL. Push on his word.
 
 # NEXT SESSION — KENNETH'S PLAN (written 2026-09-12, night; updated the same night after item 1's mock)
 
-**ROUND THREE IS MOCKED AND WAITING ON HIS PICKS.** `_lab/prs-round3-mock.html`
-(`http://localhost:8013/widgets/_lab/prs-round3-mock.html` on this
-machine's server, any port works) draws item 1 below on the widget's
-own engine at seed 41 — §1 the whole triangle (A bare / B with the
-clumping window's reach as a rule), §2 the block ↔ triangle link (the
-causal V at rest; a column's V; a cell's legs, columns and banded rows,
-with a live canvas), §3 the interaction model (A hover / B click pins /
-C both) — and §4 step 3's axis, on a note he sent mid-round: the batch
-column "flatlines". Five candidates there; recommended B, the axis is the
-kept count from the first frame and every SNP is a column. The
-catalogue's ROUND THREE MOCKED paragraph under slot 59 has every number
-and the recommendations. **One finding to fix in any build: the shipped
-triangle spaces SNPs at w / 99, the block at w / 100 — five pixels apart
-at the right edge.** When his picks arrive: build (step 1's overlay,
-`pointer: true` and/or `regions` with the hidden display param `snps`;
-step 3's axis if he takes B, which deletes decisions 11 and 14 and the
-batch code), the verify, then item 2.
+**ROUND THREE IS MOCKED, PICKED AND BUILT (2026-09-12, the same
+evening).** `_lab/prs-round3-mock.html` drew item 1 below and, on a note
+he sent mid-round ("the batch SNP looks weird as it just flatlines"),
+step 3's axis; his four picks were the four recommendations and the
+build landed in the commit after the mock's: step 1 draws the WHOLE r²
+triangle at the block's pitch with the clumping window's reach as a
+rule, answers the pointer (`pointer: true`) and pins a click into the
+hidden display parameter `snps` through a `regions` table (model.js
+decision 15 has the geometry; the verify asserts it at all 4,950 cells);
+step 3 is one column a SNP with the run capped at 6 s (decision 14
+rewritten; the batch code deleted). Verify 291. The catalogue's ROUND
+THREE PICKED AND BUILT paragraph under slot 59 has every number. **NEXT:
+item 2 below — the adversarial review — then his round, then the ship;
+the ship's states now owe a hit-driven one on the pin.**
 
 **The tree is clean.** Step 3's "countable first, then batched" change
 (his pick) landed and was read in the browser before the session ended:

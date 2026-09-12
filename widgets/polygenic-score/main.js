@@ -71,27 +71,28 @@
        square, because a calibration plot whose diagonal is not a diagonal is
        not one.
 
-   11. STEP 3 IS COUNTABLE FIRST, THEN BATCHED — Kenneth's pick, 2026-09-12,
-       after round two's Base study size control made the default keep 160 SNPs
-       where round one kept 38. The first 40 kept SNPs are drawn one a beat
-       exactly as before; the rest arrive on ONE beat, and on it the three
-       strips stop being per-SNP columns and become bars of totals — the effect
-       alleles carried over the batch, what those SNPs added to the score, and
-       the sum's own step to the finished score.
+   11. STEP 3 IS ONE COLUMN A SNP AT EVERY COUNT — Kenneth's pick, round
+       three (2026-09-12), after his note that the batch column "just
+       flatlines". Round two drew the forty strongest SNPs one a beat and the
+       rest as one batch on one beat, and the sum's last step ran level across
+       a quarter of the panel. Now the x axis is the kept count from the first
+       frame and every SNP has its own column; the genotype dots become bars
+       of whole units below a 4px column (`model.js` SCORE_DOT_MIN) and the
+       run is capped at six seconds (its decision 14). At 40 or fewer kept the
+       picture is round one's, unchanged.
 
-       STEP 3'S ORDER IS BY EVIDENCE, NOT BY POSITION. `model.js` sorts the
-       kept SNPs by P ascending (its decision 14), so the forty the reader
-       counts are the forty carrying the most weight — a truncated figure whose
-       countable part was chosen by chromosome position would teach the
-       arbitrary. The sum is the same number in any order; only the picture
-       depends on it, and the axis label says which order it is in.
+       THE X AXIS IS ONE COLUMN A SNP, and its label says the order: lowest P
+       first, so the big steps come early and the sum settles — step 4's
+       plateau met one SNP at a time.
 
-       THE X AXIS IS FORTY UNIT COLUMNS AND ONE WIDE ONE. The batch column
-       takes a quarter of the panel, which leaves the forty 11.8px each at the
-       690px stage and 9.2px at 550 — narrower than forty alone would get, wide
-       enough for the two dots a genotype column stacks. A dashed rule marks
-       where the countable columns stop, from the first frame, because it
-       belongs to the axis and not to the data.
+   13. THE BLOCK AND THE TRIANGLE ANSWER THE POINTER, AND A CLICK PINS THE
+       ANSWER — `model.js` decision 15. `pointer: true` gives `draw()` the
+       pointer, `regions` gives a click the same subject through the hidden
+       display parameter `snps`, and the overlay is one function called with
+       whichever of the two is present, the pointer winning while it is on a
+       target. The causal SNP's V is on the triangle at rest, so the shape of
+       "one SNP's row and column" is learnt from the figure before anything
+       is touched.
 
    12. THE DEFAULT SEED IS 41. Of sixteen seeds swept in the round-two mock it
        is the only one that opens with the target sample above the validation
@@ -222,20 +223,82 @@ function alphaOf(c, a) {
 }
 
 /**
- * One off-screen context, made on demand and reused.
+ * The two images step 1 paints, drawn once a region and reused.
  *
  * Both image panels — the haplotype block and the r² triangle — want one cell
  * one pixel and then a scale-up with smoothing off: interpolating 4,950 cells
- * into 490px would blur exactly the structure the panels are for. It is created
- * at the first draw rather than at import, so the figure's text can be swept
- * with no DOM at all (5.6: a check is scoped to a medium).
+ * into 490px would blur exactly the structure the panels are for. Round two
+ * rebuilt both buffers on every paint; with the pointer repainting on every
+ * move (decision 13) that is 9,000 cells a move, so they are cached on the
+ * region and rebuilt only when the theme's colours change. Made on the first
+ * draw rather than at import, so the figure's text can be swept with no DOM
+ * at all (5.6): with no `document` the images are null and the panels draw
+ * their frames and text alone.
  */
-let scratchCtx = null;
-function scratch() {
-  if (scratchCtx) return scratchCtx;
-  if (typeof document === "undefined") return null;
-  scratchCtx = document.createElement("canvas").getContext("2d", { willReadFrequently: true });
-  return scratchCtx;
+const IMAGES = new WeakMap();
+function imagesFor(region, colors) {
+  const key = [colors.empirical, colors.surface3 ?? colors.surface2, colors.surface, colors.valueHigh]
+    .join("|");
+  const hit = IMAGES.get(region);
+  if (hit && hit.key === key) return hit;
+  if (typeof document === "undefined") return { key, block: null, tri: null };
+  const m = region.hap.m;
+
+  const block = document.createElement("canvas");
+  block.width = m;
+  block.height = M.HAP_ROWS;
+  {
+    const o = block.getContext("2d");
+    const img = o.createImageData(m, M.HAP_ROWS);
+    const one = rgbOf(colors.empirical);
+    const zero = rgbOf(colors.surface3 ?? colors.surface2);
+    for (let i = 0; i < M.HAP_ROWS; i += 1) {
+      for (let j = 0; j < m; j += 1) {
+        const c = region.hap.H[j][i] ? one : zero;
+        const p = (i * m + j) * 4;
+        img.data[p] = c[0];
+        img.data[p + 1] = c[1];
+        img.data[p + 2] = c[2];
+        img.data[p + 3] = 255;
+      }
+    }
+    o.putImageData(img, 0, 0);
+  }
+
+  /* THE FULL REGION, NOT THE TESTED COLUMNS. `region.R` holds all 100 SNPs
+     whether or not the causal one is on the array: LD is a property of the
+     chromosome and not of the genotyping. The ramp runs from the surface to
+     `--c-value-high`: r² is non-negative and its zero is "these two SNPs say
+     nothing about each other", which has to be the ground rather than a
+     colour. Image row v is SNP j, column u is SNP k, and the cells on and
+     above the diagonal are written at alpha 0. */
+  const tri = document.createElement("canvas");
+  tri.width = m;
+  tri.height = m;
+  {
+    const o = tri.getContext("2d");
+    const img = o.createImageData(m, m);
+    const ground = rgbOf(colors.surface);
+    const hi = rgbOf(colors.valueHigh);
+    for (let v = 0; v < m; v += 1) {
+      for (let u = 0; u < m; u += 1) {
+        const p = (v * m + u) * 4;
+        if (v <= u) {
+          img.data[p + 3] = 0;
+          continue;
+        }
+        const t = Math.max(0, Math.min(1, region.R[v][u]));
+        img.data[p] = Math.round(ground[0] + (hi[0] - ground[0]) * t);
+        img.data[p + 1] = Math.round(ground[1] + (hi[1] - ground[1]) * t);
+        img.data[p + 2] = Math.round(ground[2] + (hi[2] - ground[2]) * t);
+        img.data[p + 3] = 255;
+      }
+    }
+    o.putImageData(img, 0, 0);
+  }
+  const out = { key, block, tri };
+  IMAGES.set(region, out);
+  return out;
 }
 
 /* ---- the step line and the hand-off (model.js decision 8) ---------------- */
@@ -254,37 +317,20 @@ function drawHead(ctx, colors, head, page) {
  * `drawn` rows of the pool as rows, the region's SNPs as columns, one allele a
  * tone. The shared stretches are a consequence of where each haplotype last
  * switched ancestor, so they read as vertical bands with nothing drawn to mark
- * them.
+ * them. `foot` replaces the block's own foot line while a subject is on screen
+ * (decision 13), so the stage never moves with the pointer.
  */
-function drawBlock(ctx, colors, rect, region, drawn) {
-  const hap = region.hap;
-  const m = hap.m;
+function drawBlock(ctx, colors, rect, region, drawn, { foot = null, img = null } = {}) {
+  const m = region.hap.m;
   const capW = capAt(ctx, colors, rect.x, rect.y - 10, M.STRINGS.blockCaption, rect.w * 0.62);
   noteAt(ctx, colors, rect.x + rect.w, rect.y - 10,
     `${M.intText(drawn)} of ${M.HAP_ROWS} drawn, from a pool of ${M.intText(M.REGION.nHap)}`,
     rect.w - capW - 14);
 
-  const buf = drawn > 0 ? scratch() : null;
-  if (buf) {
-    buf.canvas.width = m;
-    buf.canvas.height = M.HAP_ROWS;
-    const img = buf.createImageData(m, M.HAP_ROWS);
-    const one = rgbOf(colors.empirical);
-    const zero = rgbOf(colors.surface3 ?? colors.surface2);
-    for (let i = 0; i < drawn; i += 1) {
-      for (let j = 0; j < m; j += 1) {
-        const c = hap.H[j][i] ? one : zero;
-        const o = (i * m + j) * 4;
-        img.data[o] = c[0];
-        img.data[o + 1] = c[1];
-        img.data[o + 2] = c[2];
-        img.data[o + 3] = 255;
-      }
-    }
-    buf.putImageData(img, 0, 0);
+  if (img && drawn > 0) {
     ctx.save();
     ctx.imageSmoothingEnabled = false;
-    ctx.drawImage(buf.canvas, rect.x, rect.y, rect.w, rect.h);
+    ctx.drawImage(img, 0, 0, m, drawn, rect.x, rect.y, rect.w, rect.h * (drawn / M.HAP_ROWS));
     ctx.restore();
   }
 
@@ -296,7 +342,7 @@ function drawBlock(ctx, colors, rect, region, drawn) {
 
   /* DECISION 5: the causal SNP's column, with the same hollow mark step 2 uses
      for the same SNP. */
-  const x = rect.x + ((region.causal + 0.5) / m) * rect.w;
+  const x = M.snpCentreX(rect, region.causal);
   ctx.save();
   ctx.strokeStyle = colors.reference;
   ctx.lineWidth = 1;
@@ -315,63 +361,34 @@ function drawBlock(ctx, colors, rect, region, drawn) {
   ctx.stroke();
   ctx.restore();
 
+  const line = foot ?? `${M.STRINGS.blockNote} · ${M.REGION.m} SNPs over ${M.intText(region.span)} kb`;
   tinyAt(ctx, colors, rect.x + rect.w / 2, rect.y + rect.h + 6,
-    `${M.STRINGS.blockNote} · ${M.REGION.m} SNPs over ${M.intText(region.span)} kb`, "center");
+    fit(ctx, line, noteFont(colors), rect.w), "center", foot ? colors.ink1 : undefined);
 }
 
 /**
  * The half-matrix rotated onto its diagonal, so each pair sits above the
- * midpoint of the two SNPs it joins — the shape every LD figure has, clipped to
- * the clumping window, which is the only distance clumping can act on.
+ * midpoint of the two SNPs it joins — the shape every LD figure has — and the
+ * whole of it (model.js decision 13), with the clumping window's reach drawn
+ * across it as one rule from the first frame, because the rule belongs to the
+ * axis and not to the data.
  *
- * The image's own transform is (u, v) → (x0 + s(u+v)/2, yTop + s(v−u)/2), so
- * image row v is SNP j, column u is SNP k, and the cells above the diagonal are
- * written at alpha 0. The ramp runs from the surface to `--c-value-high`: r² is
- * non-negative and its zero is "these two SNPs say nothing about each other",
- * which has to be the ground rather than a colour.
- *
- * DECISION 13: it is drawn once the pool is complete. The r² is measured over
- * the whole pool rather than over the rows on screen, so revealing it against
- * the row count would tie two numbers that are not tied.
+ * The image's own transform is (u, v) → (x0 + s(u+v)/2, yTop + s(v−u)/2) with
+ * s the BLOCK'S column pitch, so SNP j's cells hang from its column's centre.
+ * It is drawn once the pool is complete: the r² is measured over the whole
+ * pool rather than over the rows on screen.
  */
-function drawTriangle(ctx, colors, rect, region, { shown }) {
+function drawTriangle(ctx, colors, rect, region, { shown, img = null }) {
   capAt(ctx, colors, rect.x, rect.y - 10, M.STRINGS.triCaption, rect.w * 0.7);
-  noteAt(ctx, colors, rect.x + rect.w, rect.y - 10, M.STRINGS.triNote, rect.w * 0.4);
-
-  /* THE FULL REGION, NOT THE TESTED COLUMNS. `region.R` holds all 100 SNPs
-     whether or not the causal one is on the array: LD is a property of the
-     chromosome and not of the genotyping, and the triangle's columns are then
-     evenly spaced, which is what keeps its x aligned with the kb axis. */
-  const R = region.R;
-  const m = R.length;
-  const s = rect.w / (m - 1);
-  const buf = shown ? scratch() : null;
-  if (buf) {
-    buf.canvas.width = m;
-    buf.canvas.height = m;
-    const img = buf.createImageData(m, m);
-    const ground = rgbOf(colors.surface);
-    const hi = rgbOf(colors.valueHigh);
-    for (let v = 0; v < m; v += 1) {
-      for (let u = 0; u < m; u += 1) {
-        const o = (v * m + u) * 4;
-        if (v <= u || v - u > rect.depth) {
-          img.data[o + 3] = 0;
-          continue;
-        }
-        const t = Math.max(0, Math.min(1, R[v][u]));
-        img.data[o] = Math.round(ground[0] + (hi[0] - ground[0]) * t);
-        img.data[o + 1] = Math.round(ground[1] + (hi[1] - ground[1]) * t);
-        img.data[o + 2] = Math.round(ground[2] + (hi[2] - ground[2]) * t);
-        img.data[o + 3] = 255;
-      }
-    }
-    buf.putImageData(img, 0, 0);
+  noteAt(ctx, colors, rect.x + rect.w, rect.y - 10, M.STRINGS.triNote, rect.w * 0.28);
+  const m = region.R.length;
+  const cw = M.snpPitch(rect);
+  if (shown && img) {
     ctx.save();
     ctx.imageSmoothingEnabled = false;
     ctx.translate(rect.x, rect.y);
-    ctx.transform(0.5 * s, -0.5 * s, 0.5 * s, 0.5 * s, 0, 0);
-    ctx.drawImage(buf.canvas, 0, 0);
+    ctx.transform(0.5 * cw, -0.5 * cw, 0.5 * cw, 0.5 * cw, 0, 0);
+    ctx.drawImage(img, 0, 0);
     ctx.restore();
   }
 
@@ -383,7 +400,102 @@ function drawTriangle(ctx, colors, rect, region, { shown }) {
   ctx.moveTo(rect.x, Math.round(rect.y) + 0.5);
   ctx.lineTo(rect.x + rect.w, Math.round(rect.y) + 0.5);
   ctx.stroke();
+
+  /* the window's reach: the cells exactly CLUMP_DEPTH apart lie on one
+     horizontal line, and the label sits over the ground to its right, where
+     the triangle's sloping edge has already left the panel empty */
+  const d = M.CLUMP_DEPTH;
+  const y = Math.round(rect.y + (d / 2) * cw) + 0.5;
+  ctx.strokeStyle = colors.ink3;
+  ctx.setLineDash([3, 3]);
+  ctx.beginPath();
+  ctx.moveTo(rect.x + ((d + 1) / 2) * cw, y);
+  ctx.lineTo(rect.x + ((2 * m - d - 1) / 2) * cw, y);
+  ctx.stroke();
   ctx.restore();
+  noteAt(ctx, colors, rect.x + rect.w, y - 4, M.STRINGS.windowLabel, 170, { tone: colors.ink3 });
+}
+
+/** SNP j's row and column in the triangle: a V hanging from its position. */
+function drawV(ctx, colors, tri, j, { stroke, dash = null, width = 1 }) {
+  const m = M.REGION.m;
+  const cw = M.snpPitch(tri);
+  const xj = M.snpCentreX(tri, j);
+  ctx.save();
+  ctx.strokeStyle = stroke;
+  ctx.lineWidth = width;
+  if (dash) ctx.setLineDash(dash);
+  ctx.beginPath();
+  if (j > 0) {
+    const a = M.cellCentre(tri, j, 0);
+    ctx.moveTo(xj, tri.y);
+    ctx.lineTo(a.x - cw / 2, a.y + cw / 2);
+  }
+  if (j < m - 1) {
+    const b = M.cellCentre(tri, m - 1, j);
+    ctx.moveTo(xj, tri.y);
+    ctx.lineTo(b.x + cw / 2, b.y + cw / 2);
+  }
+  ctx.stroke();
+  ctx.restore();
+}
+
+function outlineColumn(ctx, colors, block, j) {
+  const cw = M.snpPitch(block);
+  ctx.save();
+  ctx.strokeStyle = colors.highlight;
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(block.x + j * cw, block.y - 1, cw, block.h + 2);
+  ctx.restore();
+}
+
+/**
+ * The subject under the pointer or pinned by a click (decision 13): one SNP's
+ * column and its V, or a pair's cell, its two legs to the axis, both columns,
+ * and the stretch between them banded in every row where the two alleles
+ * travel together. The triangle's part of it waits for the triangle.
+ */
+function drawSubject(ctx, colors, L, region, subject, { drawn, triShown }) {
+  if (subject.kind === "pair") {
+    const k = Math.min(...subject.snps);
+    const j = Math.max(...subject.snps);
+    const st = M.pairStats(region, j, k, drawn);
+    const cw = M.snpPitch(L.block);
+    const rh = L.block.h / M.HAP_ROWS;
+    ctx.save();
+    ctx.fillStyle = alphaOf(colors.highlight, 0.38);
+    for (let i = 0; i < drawn; i += 1) {
+      if (st.flags[i]) ctx.fillRect(L.block.x + k * cw, L.block.y + i * rh, (j - k + 1) * cw, rh);
+    }
+    ctx.restore();
+    outlineColumn(ctx, colors, L.block, k);
+    outlineColumn(ctx, colors, L.block, j);
+    if (!triShown) return;
+    const c = M.cellCentre(L.tri, j, k);
+    const h = M.snpPitch(L.tri) / 2 + 1;
+    ctx.save();
+    ctx.strokeStyle = colors.highlight;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(c.x, c.y);
+    ctx.lineTo(M.snpCentreX(L.tri, k), L.tri.y);
+    ctx.moveTo(c.x, c.y);
+    ctx.lineTo(M.snpCentreX(L.tri, j), L.tri.y);
+    ctx.stroke();
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(c.x, c.y - h);
+    ctx.lineTo(c.x + h, c.y);
+    ctx.lineTo(c.x, c.y + h);
+    ctx.lineTo(c.x - h, c.y);
+    ctx.closePath();
+    ctx.stroke();
+    ctx.restore();
+    return;
+  }
+  const [j] = subject.snps;
+  outlineColumn(ctx, colors, L.block, j);
+  if (triShown) drawV(ctx, colors, L.tri, j, { stroke: colors.highlight, width: 1.25 });
 }
 
 /* ---- step 2: clumping, three beats a clump ------------------------------- */
@@ -564,71 +676,37 @@ function drawScore(ctx, colors, L, st, beats) {
      NaN into a bar's height and the bar is then drawn nowhere. */
   const ax = M.scoreAxis(L.geno.w, k);
   const cw = ax.cw;
-  const shownCols = Math.max(0, Math.min(beats, ax.cols));
-  const added = M.snpsAdded(beats, k);
-  /* the batch is on screen once the run has spent a beat past the forty */
-  const batch = ax.batched && added >= k ? M.batchTotals(st) : null;
-  const batchX = L.geno.x + ax.batchX;
+  const shown = Math.max(0, Math.min(beats, k));
   /* 4.3: the SNP just added is lit only while more are coming; on the finished
      sum the one mark in --c-highlight is the person's own line. */
-  const newest = shownCols > 0 && added < k ? shownCols - 1 : -1;
-  const xDomain = [0, Math.max(ax.units, 1)];
+  const newest = shown > 0 && shown < k ? shown - 1 : -1;
+  const xDomain = [0, ax.units];
+  const colX = (i) => L.geno.x + i * cw;
 
-  /* WHERE THE COUNTABLE COLUMNS STOP, drawn from the first frame on every
-     strip: it is part of the axis rather than part of the data, and a reader
-     who can see the batch column coming is not surprised by a bar on a scale
-     of its own when it lands. */
-  const rule = (rect) => {
-    if (!ax.batched) return;
-    ctx.save();
-    ctx.strokeStyle = colors.grid;
-    ctx.lineWidth = 1;
-    ctx.setLineDash([3, 3]);
-    ctx.beginPath();
-    ctx.moveTo(Math.round(batchX) + 0.5, rect.y);
-    ctx.lineTo(Math.round(batchX) + 0.5, rect.y + rect.h);
-    ctx.stroke();
-    ctx.restore();
-  };
-
-  /* the genotypes: 0, 1 or 2 marks in a column, so the count is the reading */
+  /* the genotypes: 0, 1 or 2 marks in a column, so the count is the reading —
+     dots while a column can hold two of them, bars of whole units below that
+     (model.js decision 14) */
   capAt(ctx, colors, L.geno.x, L.geno.y - 8, M.STRINGS.genoCaption, L.geno.w * 0.72);
   noteAt(ctx, colors, L.geno.x + L.geno.w, L.geno.y - 8, `person ${st.person}`, L.geno.w * 0.25);
-  rule(L.geno);
+  const dots = cw >= M.SCORE_DOT_MIN;
   const r = Math.max(1.6, Math.min(5, cw / 2 - 1.2));
+  const unit = (L.geno.h - 4) / 2;
   ctx.save();
-  for (let i = 0; i < shownCols; i += 1) {
-    const x = L.geno.x + (i + 0.5) * cw;
+  for (let i = 0; i < shown; i += 1) {
     ctx.fillStyle = i === newest ? colors.highlight : colors.groupA;
-    for (let g = 0; g < st.genotype[i]; g += 1) {
-      ctx.beginPath();
-      ctx.arc(x, L.geno.y + L.geno.h - 4 - g * (2 * r + 2), r, 0, Math.PI * 2);
-      ctx.fill();
+    if (dots) {
+      const x = colX(i) + cw / 2;
+      for (let g = 0; g < st.genotype[i]; g += 1) {
+        ctx.beginPath();
+        ctx.arc(x, L.geno.y + L.geno.h - 4 - g * (2 * r + 2), r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    } else {
+      const h = unit * st.genotype[i];
+      if (h > 0) ctx.fillRect(colX(i), L.geno.y + L.geno.h - h, Math.max(0.5, cw - 0.5), h);
     }
   }
   ctx.restore();
-  if (batch) {
-    /* ONE BAR, AND ITS CEILING IS THE SAME CEILING THE DOTS HAVE: two effect
-       alleles a SNP. So a bar at half height is a person carrying one allele
-       at half of them, which is what a column of one dot says beside it. */
-    const full = L.geno.h - 4;
-    const h = full * (batch.n > 0 ? batch.alleles / (2 * batch.n) : 0);
-    ctx.save();
-    ctx.fillStyle = colors.groupA;
-    ctx.fillRect(batchX + 3, L.geno.y + L.geno.h - h, ax.batchW - 6, h);
-    ctx.restore();
-    /* THE LINE MAY HANG 40px LEFT OF ITS OWN COLUMN, and no further. At its
-       baseline the only ink under it is the top of a column carrying two
-       effect alleles, which reaches L.geno.y + 9.9 at the widest stage — the
-       line has no descender, and it is haloed. The allowance is what makes the
-       long form fit at every width the side layout reaches; past it the short
-       form is drawn instead of an ellipsis (model.js). */
-    const long = M.batchAlleleLabel(batch.n, batch.alleles);
-    const room = ax.batchW - 6 + 40;
-    const label = widthOf(ctx, long, noteFont(colors)) <= room
-      ? long : M.batchAlleleShort(batch.alleles);
-    noteAt(ctx, colors, L.geno.x + L.geno.w, L.geno.y + 10, label, room);
-  }
   ctx.save();
   ctx.strokeStyle = colors.grid;
   ctx.lineWidth = 1;
@@ -643,11 +721,8 @@ function drawScore(ctx, colors, L, st, beats) {
   const wPlot = makePlot({
     ctx, colors, rect: L.weights, xDomain, yDomain: [-bMax, bMax],
   });
-  wPlot.caption(fit(ctx,
-    batch ? M.STRINGS.weightCaptionBatch : M.STRINGS.weightCaption,
-    capFont(colors), L.weights.w * 0.62));
+  wPlot.caption(fit(ctx, M.STRINGS.weightCaption, capFont(colors), L.weights.w * 0.62));
   wPlot.note(M.STRINGS.weightNote);
-  rule(L.weights);
   const zeroY = Math.round(wPlot.sy(0)) + 0.5;
   ctx.save();
   ctx.strokeStyle = colors.axis;
@@ -656,33 +731,14 @@ function drawScore(ctx, colors, L, st, beats) {
   ctx.moveTo(L.weights.x, zeroY);
   ctx.lineTo(L.weights.x + L.weights.w, zeroY);
   ctx.stroke();
-  const bw = Math.max(1.4, cw - 2);
-  for (let i = 0; i < shownCols; i += 1) {
+  const bw = Math.max(0.6, cw - Math.min(2, cw * 0.3));
+  for (let i = 0; i < shown; i += 1) {
     ctx.fillStyle = i === newest ? colors.highlight : colors.groupB;
-    const x = L.geno.x + (i + 0.5) * cw - bw / 2;
+    const x = colX(i) + (cw - bw) / 2;
     const y = wPlot.sy(st.beta[i]);
     ctx.fillRect(x, Math.min(y, zeroY), bw, Math.abs(y - zeroY));
   }
-  if (batch) {
-    /* THE BATCH BAR IS A CONTRIBUTION, NOT A WEIGHT, so it cannot share the β̂
-       scale beside it — the sum of a hundred and twenty terms is twenty times
-       the largest of them. Its own scale is the person's finished score, so
-       the bar reads as the share of that score the batched SNPs carry, and the
-       caption says what it is. The number carries the magnitude. */
-    const scale = Math.max(Math.abs(st.total), Math.abs(batch.contrib)) || 1;
-    const half = L.weights.h / 2 - 2;
-    const h = half * Math.min(1, Math.abs(batch.contrib) / scale);
-    ctx.fillStyle = colors.groupB;
-    ctx.fillRect(batchX + 3, batch.contrib < 0 ? zeroY : zeroY - h, ax.batchW - 6, h);
-  }
   ctx.restore();
-  if (batch) {
-    /* the line goes on the empty side of the zero line, so the bar it names
-       can be any height without meeting it */
-    noteAt(ctx, colors, L.geno.x + L.geno.w,
-      batch.contrib < 0 ? zeroY - 4 : zeroY + 4 + noteLine(colors),
-      M.batchWeightLabel(batch.contrib), ax.batchW - 6, { tone: colors.ink2 });
-  }
   wPlot.axisY({ ticks: [-bMax * 0.75, 0, bMax * 0.75], format: (v) => v.toFixed(2) });
 
   /* the running sum */
@@ -696,35 +752,36 @@ function drawScore(ctx, colors, L, st, beats) {
     yDomain: [lo || -0.1, hi || 0.1],
   });
   sPlot.caption(M.STRINGS.sumCaption);
-  sPlot.note(`${M.intText(added)} of ${M.intText(k)} SNPs added`);
+  sPlot.note(`${M.intText(shown)} of ${M.intText(k)} SNPs added`);
   sPlot.grid([0]);
-  rule(L.sum);
-  if (added > 0) {
-    /* a step, not a line: the sum changes at a SNP and holds between them, and
-       the batch is one step of its own across the wide column */
+  if (shown > 0) {
+    /* a step, not a line: the sum changes at a SNP and holds between them */
     const pts = [[0, 0]];
-    for (let i = 0; i < shownCols; i += 1) pts.push([i + 1, st.cum[i]]);
-    if (batch) pts.push([ax.units, st.total]);
+    for (let i = 0; i < shown; i += 1) pts.push([i + 1, st.cum[i]]);
     const step = [pts[0]];
     for (let i = 1; i < pts.length; i += 1) {
       step.push([pts[i - 1][0], pts[i][1]]);
       step.push(pts[i]);
     }
-    sPlot.curve(step, { stroke: colors.empirical, width: 2 });
-    const endX = pts[pts.length - 1][0];
-    sPlot.dot(endX, pts[pts.length - 1][1], { fill: colors.empirical, r: 3.5 });
+    sPlot.curve(step, { stroke: colors.empirical, width: k > 400 ? 1.5 : 2 });
+    const last = pts[pts.length - 1];
+    sPlot.dot(last[0], last[1], { fill: colors.empirical, r: 3.5 });
   }
   sPlot.axisY({ format: (v) => v.toFixed(1) });
+  /* past sixty SNPs the quarter ticks end on the kept count itself, which is
+     the number the axis is there to say — unless its label, centred on the
+     panel's last pixel, would run off the canvas: "1,000" is thirty pixels
+     wide against the eight the panel leaves, so at every SNP in the base
+     study the axis stops at three quarters and the note above carries the
+     count */
+  const endTick = widthOf(ctx, M.intText(k), noteFont(colors)) / 2 <= M.AX_R + 1;
   sPlot.axisX({
     label: M.STRINGS.sumX,
-    ticks: ax.batched ? [0, 10, 20, 30, 40] : undefined,
-    format: (v) => v.toFixed(0),
+    ticks: k > 60
+      ? [0, 0.25, 0.5, 0.75, ...(endTick ? [1] : [])].map((f) => Math.round(f * k))
+      : undefined,
+    format: (v) => M.intText(v),
   });
-  if (ax.batched) {
-    /* the wide column's own tick label, on the tick row under its middle */
-    tinyAt(ctx, colors, batchX + ax.batchW / 2, L.sum.y + L.sum.h + 6,
-      M.batchAxisLabel(k - M.SCORE_COUNTABLE), "center");
-  }
 
   /* the sample's scores, and where this person sits in them */
   const nb = 34;
@@ -744,12 +801,12 @@ function drawScore(ctx, colors, L, st, beats) {
   });
   dPlot.caption(fit(ctx, M.STRINGS.distCaption, capFont(colors), L.dist.w * 0.66));
   dPlot.note(`${M.intText(st.row.score.length)} people`);
-  if (added > 0) {
+  if (shown > 0) {
     dPlot.bars(counts, { lo: sLo, width: span / nb, fill: colors.empirical, opacity: 0.32 });
   }
   /* DECISION 7: the person's own line joins the distribution with the last SNP
-     of the sum — which past forty kept is the beat the batch comes on. */
-  if (k > 0 && added >= k) {
+     of the sum. */
+  if (k > 0 && shown >= k) {
     dPlot.vline(st.total, {
       stroke: colors.highlight,
       width: 2,
@@ -1057,6 +1114,15 @@ defineWidget({
      the figure draws in (5.8) */
   height: ({ w, ...values }) => M.stageHeight(w, values),
 
+  /* decision 13: step 1 answers the pointer, and a click pins the answer */
+  pointer: true,
+  regions({ w, params, state }) {
+    /* state is null on core's load-time probe, which runs before the first
+       render (t-sne's note); nothing is validated by it here either */
+    if (!state || M.pageOf(params) !== "haplotypes") return [];
+    return M.regionsFor(M.layout(w, params), params);
+  },
+
   params: {
     /* DECISION 2: the step is display, and the run is per step, so a visit
        elsewhere and back keeps all six. */
@@ -1210,12 +1276,23 @@ defineWidget({
        step the link names: rows filled, clumping beats, SNPs added, thresholds
        swept, vigintiles added, deciles drawn.
 
-       ON STEP 3 IT COUNTS SNPs ADDED WHILE THEY ARE COUNTABLE, and past the
-       fortieth the batch is all of them (decision 11): the value is clamped to
-       the step's own total, so at the default's 160 kept `?shown=41` and
-       `?shown=160` both land on the finished sum, and `?shown=12` lands on the
-       twelfth SNP. At 40 or fewer kept the count is the SNPs, throughout. */
+       ON STEP 3 IT COUNTS SNPs ADDED (decision 11), clamped to the step's own
+       total, so at the default's 160 kept `?shown=160` and anything past it
+       land on the finished sum and `?shown=12` lands on the twelfth SNP. */
     shown: { type: "int", min: 0, max: 1000, default: 0, hidden: true },
+
+    /* DECISION 13: the pin — one SNP number or two, as the reading line prints
+       them. Hidden, because the figure is its control; display, so a click
+       keeps the run; parsed to its canonical form so `?snps=52,37` and
+       `?snps=37,52` are one state. */
+    snps: {
+      type: "text",
+      hidden: true,
+      display: true,
+      default: "",
+      maxLength: M.SNPS_MAX_LENGTH,
+      parse: M.parseSnps,
+    },
   },
 
   legend: ({ params }) => {
@@ -1224,7 +1301,8 @@ defineWidget({
       return [
         { token: "empirical", label: "One of the two alleles at a SNP" },
         { token: "value-high", label: "r² between a pair of SNPs" },
-        { token: "reference", label: "The causal SNP's position", mark: "tri" },
+        { token: "reference", label: "The causal SNP's position, and its pairs in the triangle", mark: "tri" },
+        { token: "highlight", label: "The SNP or pair under the pointer or pinned by a click, and the rows where its alleles travel together" },
       ];
     }
     if (page === "clump") {
@@ -1350,13 +1428,27 @@ defineWidget({
     },
   },
 
-  draw({ ctx, colors, w, params, state, anim }) {
+  draw({ ctx, colors, w, params, state, anim, pointer }) {
     const L = M.layout(w, params);
     const upTo = anim?.k?.[L.page] ?? 0;
     drawHead(ctx, colors, L.head, L.page);
     if (L.page === "haplotypes") {
-      drawBlock(ctx, colors, L.block, state.region, Math.min(upTo, M.HAP_ROWS));
-      drawTriangle(ctx, colors, L.tri, state.region, { shown: upTo >= M.HAP_ROWS });
+      const region = state.region;
+      const drawn = Math.min(upTo, M.HAP_ROWS);
+      const triShown = upTo >= M.HAP_ROWS;
+      /* decision 13: the pointer wins while it is on a target, the pin holds
+         when it leaves */
+      const subject = (pointer ? M.subjectAt(L, pointer.x, pointer.y) : null)
+        ?? M.pinnedSubject(params);
+      const images = imagesFor(region, colors);
+      drawBlock(ctx, colors, L.block, region, drawn, {
+        foot: M.readingFor(region, subject, drawn), img: images.block,
+      });
+      drawTriangle(ctx, colors, L.tri, region, { shown: triShown, img: images.tri });
+      /* the rest indicator: the causal SNP's row and column, once there are
+         rows and columns to have */
+      if (triShown) drawV(ctx, colors, L.tri, region.causal, { stroke: colors.reference, dash: [3, 3] });
+      if (subject) drawSubject(ctx, colors, L, region, subject, { drawn, triShown });
       return;
     }
     if (L.page === "clump") {
@@ -1446,10 +1538,7 @@ defineWidget({
 
     if (page === "score") {
       const st = M.personScore(state, params);
-      /* model.js decision 14: the run counts beats, and past the countable
-         forty one beat is every SNP left — so what the tiles read is the SNPs
-         those beats have added. */
-      const added = M.snpsAdded(upTo, st.n);
+      const added = Math.min(upTo, st.n);
       const done = st.n > 0 && added >= st.n;
       const partial = added > 0 ? st.cum[added - 1] : 0;
       return [
@@ -1598,12 +1687,14 @@ defineWidget({
           + "own axis beneath it, before any haplotype is drawn.";
       }
       const drawn = Math.min(upTo, M.HAP_ROWS);
+      const pinned = M.readingFor(R, M.pinnedSubject(params), drawn);
       return `${M.intText(drawn)} of ${M.HAP_ROWS} haplotypes drawn over ${M.REGION.m} SNPs in `
         + `${M.intText(R.span)} kb, the shared stretches reading as vertical bands`
         + (drawn >= M.HAP_ROWS
-          ? `, with the r² between every pair within 250 kb underneath: ${M.intText(R.pairsHigh)} `
+          ? `, with the r² between every pair underneath: ${M.intText(R.pairsHigh)} `
             + `of ${M.intText(R.pairsTotal)} pairs are above r² ${M.R_HIGH}.`
-          : ".");
+          : ".")
+        + (pinned ? ` Pinned: ${pinned}.` : "");
     }
 
     if (page === "clump") {
@@ -1624,14 +1715,11 @@ defineWidget({
           + `the score distribution of ${M.intText(M.N_TARGET)} people, before any of the `
           + `${M.intText(st.n)} SNPs the P threshold keeps is added.`;
       }
-      const added = M.snpsAdded(upTo, st.n);
+      const added = Math.min(upTo, st.n);
       const partial = st.cum[added - 1];
       return `Person ${st.person}'s score after ${M.intText(added)} of `
         + `${M.intText(st.n)} SNPs is ${M.n2(partial)}, drawn as the genotype, the base study's `
-        + "weight and the running sum over each SNP in turn"
-        + (st.n > M.SCORE_COUNTABLE
-          ? `, the first ${M.SCORE_COUNTABLE} one at a time and the rest as one total.`
-          : ".");
+        + "weight and the running sum over each SNP in turn, lowest P first.";
     }
 
     if (page === "threshold") {
