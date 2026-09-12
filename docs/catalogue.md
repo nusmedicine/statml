@@ -7040,7 +7040,7 @@ of alleles and what tuning its threshold on the target costs; an instrument.
 | # | slug | notebook | misconception / prerequisite | evidence | status |
 |---|---|---|---|---|---|
 | 56 | `hardy-weinberg` **SHIPPED 2026-09-12**, the day after it was planned | 01-2 | an HWE failure is a genotyping error. **Measured on the lesson's own file: 2007 of the 2008 SNPs failing at 10⁻⁶ are heterozygote DEFICITS** — the Wahlund signature of pooling three populations, not of a miscalled genotype. Prerequisite for 57: the allele-frequency differences that break HWE in the pooled sample are the structure PCA finds | reported (Wahlund; Anderson 2010 recommends testing controls only because the deviation can be the association) | proposed — the cuttable slot |
-| 57 | `gwas` | 01-3, 01-4, 01-5, 01-6 | a SNP that differs between ancestries is a SNP for the trait ("the chopsticks gene"); a QQ plot lifting off the line means many associations, when it means one confounder in every test; PCs "throw away real signal". And the two-step: the variance estimated once, then a million tests that each cost one regression | documented (Hamer & Sirota 2000; Price 2006; Devlin & Roeder 1999; Yang 2011 on λ under polygenicity; Jiang 2019 for fastGWA) | proposed |
+| 57 | `gwas` **SHIPPED 2026-09-12**, the day it was measured | 01-3, 01-4, 01-5, 01-6 | a SNP that differs between ancestries is a SNP for the trait ("the chopsticks gene"); a QQ plot lifting off the line means many associations, when it means one confounder in every test; PCs "throw away real signal". And the two-step: the variance estimated once, then a million tests that each cost one regression | documented (Hamer & Sirota 2000; Price 2006; Devlin & Roeder 1999; Yang 2011 on λ under polygenicity; Jiang 2019 for fastGWA) | proposed |
 | 58 | `linkage-disequilibrium` | 02-1 step 1; 01-6's region plot; 03's independent instruments | every point under a peak is a finding, and the top one is the causal variant; for a score, ten correlated SNPs are ten pieces of evidence | reported (the lesson's own summary: "signals may arise from linkage disequilibrium rather than the causal variant") | **FOLDED into 59 as its first page, Kenneth's call 2026-09-11** — the section below stands as that page's spec |
 | 59 | `polygenic-score` | 02-1, 02-2 | the score is a probability of disease; a looser threshold is always more signal; the best-fit R² is the score's accuracy. **Measured: the lesson's R² 0.050 is the maximum over 1316 thresholds tested on the target itself**, which PRSice's own manual says "remains unadjusted and is affected by overfitting" | documented (Choi, Mak & O'Reilly 2020 tutorial's misconceptions section; Martin 2019 on portability; the lesson's own summary states the probability misconception) | proposed |
 | 60 | `mendelian-randomization` | 03 | the scatter of SNP effects is a correlation to be eyeballed, when its SLOPE THROUGH THE ORIGIN is the causal estimate and each point is one ratio; a SNP that also reaches the outcome another way (horizontal pleiotropy) is still a fine instrument; a weak instrument is merely imprecise | documented (Davies, Holmes & Davey Smith 2018 BMJ guide; Bowden 2015 for Egger; Sanderson 2022 primer, which the lesson links) | proposed |
@@ -7424,6 +7424,35 @@ with the 75 sibship squares, Step landing one SNP with the cursor.
 honest under 2.8, but a number that moves a lot early); dragging the
 Family effect slider under + PCs + GRM recomputes at ~230 ms an event; the
 01-3 to 01-6 notebooks do not yet link to it.
+
+**COPY AUDIT 2026-09-12 (`2126d61`, `374775a`).** The three-pass sweep
+found three lines: the Model detail "tested alongside", the Principal
+components detail "how many … are used", the matrix axis "300 people,
+both ways". Then his ask on the subtitle and blurb — "enter every test"
+and "remove them" were figurative — and his pick A of three in each: *When
+subpopulations differ in the trait, ancestry confounds every one of those
+tests; principal components and the genetic relationship matrix adjust
+for it.* and *Every SNP is tested against the trait; ancestry confounds
+every test, and the mixed model adjusts for it.*
+
+**SHIPPED 2026-09-12 on "tested ok, push"** — the draft pushed first
+(`374775a`), then the ship in one commit: the status flipped in the
+manifest, `main.js` and the verify's assertion; 27 fingerprint states
+through `_lab/gwas-shoot.html` (the copy proven 6/6): 16 settled on the
+Association-test page pinned by `shown=` (the empty default; all three
+models finished; the GRM model at seed 4 with the fallback line; 2 PCs;
+trait difference 0 and 2; no ancestry structure; weak structure; causal
+effect 0.05; sibships under + PCs, under + GRM, and with no shared effect;
+a partial 700; seed 7), 4 on the Cohort page (default, sibships, no
+structure, weak), 4 driven (Play 30 at the default, one Step, Play under
+the GRM model, Play 60 under + PCs), 3 interrupted (Step then Play; Play,
+Reset, Step; **Play then the model switched to + PCs mid-run** — a display
+change keeping the run's position, rule 3); every one STABLE over three
+shots and every drive moved its figure; no `regions`, so no hit state
+owed. The full suite fronted at DPR 1.25: **624 states, 621 MATCH, all 27
+of this widget's, the 3 DIFFERs t-sne's light states, unchanged and still
+open.** `check` and `test` green, each read on its own line. From measure
+to ship in one day, the second widget of the arc.
 
 ### Slot 58 · `linkage-disequilibrium` — FOLDED into 59 as its first page, Kenneth's call 2026-09-11
 

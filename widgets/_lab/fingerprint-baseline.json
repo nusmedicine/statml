@@ -5255,6 +5255,254 @@
       },
       "px": "6bafdc36",
       "tx": "d32f6b5e"
+    },
+    {
+      "$note": "opens empty: the threshold line, the axes, no SNP tested, the tiles blank",
+      "slug": "gwas",
+      "state": "?theme=light&shown=0",
+      "px": "27481044",
+      "tx": "db350a6b"
+    },
+    {
+      "$note": "SNP only, all 2,000 tested: the forest of false peaks, λ 4.83, one causal SNP lost",
+      "slug": "gwas",
+      "state": "?theme=light&shown=2000",
+      "px": "75aea82a",
+      "tx": "b715447d"
+    },
+    {
+      "$note": "+ 5 PCs: the three causal peaks alone, λ ≈ 1",
+      "slug": "gwas",
+      "state": "?theme=light&model=pcs&shown=2000",
+      "px": "8693ab52",
+      "tx": "350cac3e"
+    },
+    {
+      "$note": "+ 5 PCs + GRM at seed 1: the variance tiles filled, the matrix used (no fallback)",
+      "slug": "gwas",
+      "state": "?theme=light&model=grm&shown=2000",
+      "px": "952eb07a",
+      "tx": "f6291a77"
+    },
+    {
+      "$note": "+ 5 PCs + GRM at seed 4: the variance step found nothing, the fallback line",
+      "slug": "gwas",
+      "state": "?theme=light&model=grm&seed=4&shown=2000",
+      "px": "730bba39",
+      "tx": "4469c828"
+    },
+    {
+      "$note": "+ 2 PCs: the same correction with two components",
+      "slug": "gwas",
+      "state": "?theme=light&model=pcs&npcs=2&shown=2000",
+      "px": "38733205",
+      "tx": "08b96bb9"
+    },
+    {
+      "$note": "no trait difference under SNP only: the same ancestry, the QQ on the line",
+      "slug": "gwas",
+      "state": "?theme=light&shift=0&shown=2000",
+      "px": "f1564af0",
+      "tx": "1d620f07"
+    },
+    {
+      "$note": "a trait difference of 2 SD under SNP only: the inflation doubled",
+      "slug": "gwas",
+      "state": "?theme=light&shift=2&shown=2000",
+      "px": "46ae3622",
+      "tx": "d763ce66"
+    },
+    {
+      "$note": "no ancestry structure under SNP only: nothing to confound",
+      "slug": "gwas",
+      "state": "?theme=light&ancestry=none&shown=2000",
+      "px": "a710a6d0",
+      "tx": "350cac3e"
+    },
+    {
+      "$note": "weak ancestry structure under + PCs",
+      "slug": "gwas",
+      "state": "?theme=light&ancestry=weak&model=pcs&shown=2000",
+      "px": "633f534d",
+      "tx": "2fdb1b7d"
+    },
+    {
+      "$note": "a causal effect of 0.05 under + PCs: the peaks mostly under the line",
+      "slug": "gwas",
+      "state": "?theme=light&effect=0.05&model=pcs&shown=2000",
+      "px": "6d835cc7",
+      "tx": "7989f263"
+    },
+    {
+      "$note": "sibships of 4 with a family effect of 1 under + PCs: λ 1.78, the relatedness the components do not see",
+      "slug": "gwas",
+      "state": "?theme=light&families=sibships&model=pcs&shown=2000",
+      "px": "62badcb0",
+      "tx": "340cdc4b"
+    },
+    {
+      "$note": "sibships under + PCs + GRM: λ back to 1, the matrix used",
+      "slug": "gwas",
+      "state": "?theme=light&families=sibships&model=grm&shown=2000",
+      "px": "068598f0",
+      "tx": "04632322"
+    },
+    {
+      "$note": "sibships with no shared effect under + PCs: still inflated, because heritability is family resemblance",
+      "slug": "gwas",
+      "state": "?theme=light&families=sibships&familyEffect=0&model=pcs&shown=2000",
+      "px": "a7c49fb2",
+      "tx": "29cd8d5f"
+    },
+    {
+      "$note": "a partial scan settled at 700 of 2,000: the first chromosome and part of the second",
+      "slug": "gwas",
+      "state": "?theme=light&shown=700",
+      "px": "675fe739",
+      "tx": "ce35aaa7"
+    },
+    {
+      "$note": "another seed, SNP only",
+      "slug": "gwas",
+      "state": "?theme=light&seed=7&shown=2000",
+      "px": "33e7acfd",
+      "tx": "63fd314a"
+    },
+    {
+      "$note": "the Cohort page at the default: three clusters, the population blocks in the matrix",
+      "slug": "gwas",
+      "state": "?theme=light&page=cohort&shown=0",
+      "px": "4cb0b985",
+      "tx": "c9321a94"
+    },
+    {
+      "$note": "the Cohort page with sibships: the 75 squares on the diagonal",
+      "slug": "gwas",
+      "state": "?theme=light&page=cohort&families=sibships&shown=0",
+      "px": "1601872e",
+      "tx": "5b693640"
+    },
+    {
+      "$note": "the Cohort page with no ancestry structure: one cloud, a flat matrix",
+      "slug": "gwas",
+      "state": "?theme=light&page=cohort&ancestry=none&shown=0",
+      "px": "653a0c05",
+      "tx": "b7bf7f64"
+    },
+    {
+      "$note": "the Cohort page with weak structure",
+      "slug": "gwas",
+      "state": "?theme=light&page=cohort&ancestry=weak&shown=0",
+      "px": "b4b0285e",
+      "tx": "cf91a5c2"
+    },
+    {
+      "$note": "Play at the default, mid-run: the tests landing left to right, the cursor, λ as it goes",
+      "slug": "gwas",
+      "state": "?theme=light",
+      "drive": {
+        "click": "run",
+        "frames": 30,
+        "dt": 32
+      },
+      "px": "d43a6666",
+      "tx": "f52b73ec"
+    },
+    {
+      "$note": "one Step at the default: the first SNP tested and marked",
+      "slug": "gwas",
+      "state": "?theme=light",
+      "drive": {
+        "click": "step",
+        "frames": 20,
+        "dt": 32
+      },
+      "px": "fda9410b",
+      "tx": "c8759e76"
+    },
+    {
+      "$note": "Play under + PCs + GRM: the variance tiles filled on the first frame, then the tests",
+      "slug": "gwas",
+      "state": "?theme=light&model=grm",
+      "drive": {
+        "click": "run",
+        "frames": 30,
+        "dt": 32
+      },
+      "px": "d5cd9d41",
+      "tx": "bf0ca539"
+    },
+    {
+      "$note": "Play under + PCs, further in",
+      "slug": "gwas",
+      "state": "?theme=light&model=pcs",
+      "drive": {
+        "click": "run",
+        "frames": 60,
+        "dt": 32
+      },
+      "px": "d547d05e",
+      "tx": "bc1e1034"
+    },
+    {
+      "$note": "a Step landed, then Play takes over from it",
+      "slug": "gwas",
+      "state": "?theme=light",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 20
+          }
+        ],
+        "click": "run",
+        "frames": 30,
+        "dt": 32
+      },
+      "px": "0db61185",
+      "tx": "2766e98b"
+    },
+    {
+      "$note": "Play, then Reset empties it, then one Step from the start",
+      "slug": "gwas",
+      "state": "?theme=light",
+      "drive": {
+        "before": [
+          {
+            "click": "run",
+            "frames": 40
+          },
+          {
+            "click": "reset",
+            "frames": 2
+          }
+        ],
+        "click": "step",
+        "frames": 20,
+        "dt": 32
+      },
+      "px": "054733e7",
+      "tx": "8000fc77"
+    },
+    {
+      "$note": "a display change keeps the run: Play, then the model switched to + PCs mid-run — the same position under the other covariates",
+      "slug": "gwas",
+      "state": "?theme=light",
+      "drive": {
+        "before": [
+          {
+            "click": "run",
+            "frames": 40
+          }
+        ],
+        "set": {
+          "model": "pcs"
+        },
+        "frames": 6,
+        "dt": 32
+      },
+      "px": "c50d6dd2",
+      "tx": "187ec260"
     }
   ]
 }

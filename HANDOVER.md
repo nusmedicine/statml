@@ -1,17 +1,67 @@
 # Handover
 
-**FIFTY-FOUR WIDGETS — 52 on the gallery, `roc-auc` UNLISTED (Kenneth's
-call, 2026-08-30), NO DRAFT: `hardy-weinberg` (slot 56, PHM5003 06 / 01-2,
-the first of the GWAS and PRS arc) SHIPPED AND PUSHED 2026-09-12, the day
-after the arc was planned — measured, mocked, eight picks, drafted by an
-Opus builder, three browser fixes, one copy audit on his ask, 26
-fingerprint states stable over three shots, the full suite 594 of 597
-MATCH fronted at DPR 1.25 (the 3 DIFFERs t-sne's light states, unchanged,
-still open). `optimizers` (slot 55) shipped the day before.**
+**FIFTY-FIVE WIDGETS — 53 on the gallery, `roc-auc` UNLISTED (Kenneth's
+call, 2026-08-30), NO DRAFT: `gwas` (slot 57, PHM5003 06 / 01-3 to 01-6,
+the second of the GWAS and PRS arc) SHIPPED AND PUSHED 2026-09-12, from
+measure to ship in one day — 110-check measure script with five claims
+corrected, mocked, eight picks (all recommendations), drafted by an Opus
+builder, the copy audit and his subtitle/blurb rewording, 27 fingerprint
+states stable over three shots, the full suite 621 of 624 MATCH fronted at
+DPR 1.25 (the 3 DIFFERs t-sne's light states, unchanged, still open).
+`hardy-weinberg` (slot 56) shipped the same day, in the morning.**
 
 ---
 
-# SLOT 57 `gwas` (06 / 01-3 to 01-6) — MEASURED, MOCKED, PICKED AND DRAFTED 2026-09-12; NEXT IS HIS ROUND
+# NEXT: SLOT 59 `polygenic-score` (06 / 02-1, 02-2, with LD as its first page) — MEASURE IN PROGRESS, THEN MOCK
+
+On Kenneth's "in the meantime can you start on next widget?" (2026-09-12,
+during 57's suite run) an Opus builder was briefed for
+`_lab/prs-measure.mjs`: haplotypes with LD as a founder mosaic, r² against
+distance, the region scan and PLINK-style clumping (how often the lead is
+the causal SNP), a genome of 2,000 independent SNPs with a base cohort and
+a target of 319, the threshold curve tuned on the target against a
+holdout (the selection optimism), portability at Fst 0.02 / 0.1 with tag
+loss, the vigintile plot's slope at matched and shifted targets, and the
+cost against the ~150 ms budget. Read `docs/catalogue.md` § *Slot 58* (the
+LD page's spec, folded in) and § *Slot 59* first, then the measure script
+and its `FIRST WRITTEN AS` comments, then mock from `_lab/gwas-mock.html`'s
+shell. The order that has now run seven times: measure → mock (the main
+session reads every section in the browser first) → picks → catalogue →
+draft → his round → copy audit (do the mannerism pass before he asks) →
+"tested ok, push" → push the draft → states pinned by `shown=` → shooter →
+status flip → full suite fronted → `check` AND `test` on their own → commit
+→ push.
+
+**Things learned on 57 that are not in the principles yet:**
+
+- **A symmetric simulation can fail to reproduce the lesson's own picture.**
+  Three populations at equal Fst give two equal eigenvalues; the lesson's
+  GRM has 17.28 / 3.08. The nested topology (two close, one far) gives the
+  ratio, and the mock's PC scatter looks like 01-4's only because of it.
+  When the lesson has a real figure, measure the simulation against it.
+- **A model switch is a display change.** `model` and `npcs` are display
+  so the reader switches covariates and sees the same run at the same
+  position under the other model — the section's whole argument — and
+  `compute()` holds the scan the model names. A fingerprint state pins it
+  (Play, then `set model=pcs`).
+- **A promise the widget cannot keep goes in the copy as what happened.**
+  The variance step on unrelated people is not reliably zero at m = 2000
+  (a small GRM's off-diagonal spread), so the fallback line reads as
+  something that happened at this cohort, and the footer row is reserved
+  in both states so the figure does not jog.
+- **Opening on SNP only is opening on the question.** The Model control's
+  default is the uncorrected test, so the first run shows the forest of
+  false peaks and the correction is something the reader does.
+
+**Open on 57, none blocking:** the rail is ~790px against a ~500px figure
+column; λ after three SNPs is a median of three and moves a lot early in a
+run; dragging the Family effect slider under + PCs + GRM recomputes at
+~230 ms an event; the 01-3 to 01-6 notebooks do not yet link to it (prd
+§4 says how).
+
+---
+
+# SLOT 57 `gwas` (06 / 01-3 to 01-6) — SHIPPED 2026-09-12; the day's record
 
 `gwas` went from measure to draft in one day: `9619fd0` the measure script
 (110 checks; five claims corrected, the nested topology the largest),
@@ -20,12 +70,10 @@ read), `c5b7130` his eight picks (every one the recommendation), then the
 draft (the commit after `c5b7130`) at
 `http://localhost:8012/widgets/gwas/` — two pages, Cohort · Association
 test; the catalogue's DRAFTED paragraph under slot 57 lists the builder's
-decisions and what is open for his round. **NEXT: his round on the draft;
-then the three-pass copy audit (he asked for one on 56 — do it before he
-has to); then "tested ok" → shooter + states (settled states must pin
-`shown=`, 0–2000) → status flip → full suite fronted → `check` AND `test`
-on their own → commit → push on his word.** After 57: 59
-`polygenic-score` with LD as its first page, then 60.
+decisions. Then the copy audit (`2126d61`), his subtitle and blurb
+rewording (`374775a`), and "tested ok, push": the draft pushed, then
+SHIPPED in the commit after it — 27 states, 621 of 624 MATCH. The record
+is under slot 57 in the catalogue.
 
 The arc's order is the notebooks' own: 56 → **57 `gwas`** → 59
 `polygenic-score` (with LD as its first page) → 60 `mendelian-randomization`.

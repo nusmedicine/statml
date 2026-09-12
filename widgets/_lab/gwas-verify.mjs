@@ -656,8 +656,10 @@ const GRM = build(base({ model: "grm", npcs: "5" }));
   /* THIS ASSERTION FLIPS AT SHIP, in the same commit as the manifest and the
      widget: a draft recorded as shipped is what puts unfinished teaching
      material on the front page. */
-  check("the widget is declared a draft in both files",
-    /^\s*status: "draft",$/m.test(src) && card.status === "draft", card.status);
+  /* Flipped with the status on "tested ok, push", 2026-09-12, in the same
+     commit as the manifest and the fingerprint states. */
+  check("the widget is declared shipped in both files",
+    /^\s*status: "shipped",$/m.test(src) && card.status === "shipped", card.status);
   check("the card carries the slot's course and arc",
     card.course === "PHM5003" && card.arc === 57, `${card.course} ${card.arc}`);
 }
