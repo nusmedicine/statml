@@ -1,0 +1,2573 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · gwas — the structure, the mixed model, the Manhattan plot</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  /* The mock shell, copied from `_lab/hardy-weinberg-mock.html` (which took it
+     from `_lab/optimizers-mock.html`, which took it from `_lab/loss-rail-mock.html`):
+     `.lab`, `.note`, `.rec`, `table.facts`, `.measure`, `.pagehead`, `.legend`,
+     and the `.rail-host` that renders a candidate rail as the real core DOM at
+     300px. Nothing here is a new visual decision.
+
+     `--sp-6` IS NOT A TOKEN and the shell's `.lab` padding shorthand named it,
+     which invalidates the whole declaration — so every mock that copied the
+     shell has no page padding at all and 1240px of usable width. Written out
+     with `--sp-5` here so the page has the padding the shell meant to give it;
+     the width arithmetic below is stated against the 1240px content box that
+     leaves. */
+  .lab { max-width: 1240px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 96ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); max-width: 400px; min-height: 26px; white-space: pre-line; }
+
+  /* NOTHING AROUND A PANEL MAY DECIDE ITS COLUMN'S WIDTH — optimizers-mock's
+     rule, kept: the blurb above a canvas and the measured line under it are
+     both longer than the canvas, so every row pins its column to its own
+     canvas width. */
+  #titleRow > .cand { width: 550px; }
+  #skyRow > .cand { width: 550px; }
+  #qqRow > .cand { width: 240px; }
+  #cohortRowA > .cand { width: 550px; }
+  #cohortRowB > .cand { width: 300px; }
+  #varRow > .cand { width: 550px; }
+  #famRow > .cand { width: 550px; }
+  #walkRow > .cand { width: 550px; }
+  /* Three 300px rails are 900px of column; at the 16px gap that is 932, well
+     inside the page. The 8px gap hardy-weinberg's four rails needed is not
+     required here. */
+  #railRow > .cand { width: 300px; }
+
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 96ch; }
+  .measure { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--ink-3); margin: 4px 0 0; max-width: 700px; white-space: pre-line; }
+  table.facts { border-collapse: collapse; font-size: var(--fs-sm); color: var(--ink-2); margin: var(--sp-2) 0 var(--sp-3); max-width: 110ch; }
+  table.facts th, table.facts td { border: 1px solid var(--grid); padding: 3px 8px; text-align: left; vertical-align: top; }
+  table.facts th { color: var(--ink-1); font-weight: 600; background: var(--surface-2); }
+  table.facts td b { color: var(--ink-1); }
+  table.facts td.num { font-family: var(--font-mono); white-space: nowrap; }
+  .pagehead { font-size: var(--fs-xs); font-weight: 600; color: var(--c-highlight); margin: 0 0 4px;
+              text-transform: uppercase; letter-spacing: 0.04em; }
+
+  /* The page legend. Every swatch is a token, so a mark on a canvas and its
+     name in the list cannot drift apart. */
+  .legend { display: flex; flex-wrap: wrap; gap: var(--sp-2) var(--sp-4); margin: 0 0 var(--sp-4);
+            font-size: var(--fs-xs); color: var(--ink-2); }
+  .legend span { display: flex; align-items: center; gap: 6px; }
+  .sw { width: 13px; height: 13px; border-radius: 50%; flex: 0 0 auto; }
+  .sw-emp { background: var(--c-empirical); }
+  .sw-emp2 { background: var(--c-empirical); opacity: 0.45; }
+  .sw-extreme { background: var(--c-extreme); }
+  .sw-high { background: var(--c-highlight); }
+  .sw-theory { width: 18px; height: 0; border-radius: 0; border-top: 2px solid var(--c-theory); }
+  .sw-ref { width: 18px; height: 0; border-radius: 0; border-top: 2px dashed var(--c-reference); }
+  .sw-tri { width: 0; height: 0; border-radius: 0; border-left: 6px solid transparent;
+            border-right: 6px solid transparent; border-bottom: 9px solid var(--c-reference); }
+  .sw-c1 { background: var(--c-cluster-a); }
+  .sw-c2 { background: var(--c-cluster-b); }
+  .sw-c3 { background: var(--c-cluster-c); }
+  .sw-vlo { background: var(--c-value-low); }
+  .sw-vhi { background: var(--c-value-high); }
+
+  /* THE RAIL AT THE REAL 300px, IN THE SHELL'S OWN SPLIT CONTEXT — verbatim
+     from hardy-weinberg-mock, including why. `.w-split` is the ancestor four of
+     tokens.css's rules are written against (the one-column `.w-controls`, the
+     drive block's divider, its column direction, the `flex: 1 1 0` that drops
+     the run button's reserved width), so a rail measured outside it is not the
+     rail that ships. */
+  .lab .rail-host { display: block; width: 300px; }
+  .lab .rail-host .w-rail { border-top: 0; padding-top: 0; margin-top: 0; }
+  .lab .rail-host > .w-controls > .w-section:first-child { margin-top: 0; }
+
+  /* The heading and the readout at the stage's own width, in core's own DOM.
+     `.lab h1` and `.w-title` are both --fs-lg, so only the margin needs
+     resetting for the candidate heading to be the shipped one. */
+  .stage-host { width: 550px; }
+  .stage-host .w-heading h1 { margin: 0; }
+
+  /* The lesson's own figures, at a size that can be read beside the candidates
+     without taking a column from them. */
+  .figref { display: flex; gap: var(--sp-4); flex-wrap: wrap; margin: 0 0 var(--sp-3); }
+  .figref figure { margin: 0; }
+  .figref img { display: block; border: 1px solid var(--grid); background: var(--surface-1); }
+  .figref figcaption { font-size: var(--fs-xs); color: var(--ink-3); margin-top: 4px; max-width: 300px; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>gwas &middot; the structure, the mixed model, the Manhattan plot</h1>
+
+  <p class="note">
+    Slot 57 <code>gwas</code>, PHM5003 week 6. <b>The one thing:</b> a test of every SNP on a sample with
+    ancestry structure finds the structure at every SNP, and the mixed model is how it is taken out &mdash;
+    principal components for ancestry, the genetic relationship matrix for relatedness &mdash; before the
+    Manhattan plot and the QQ plot mean anything.
+  </p>
+  <p class="note">
+    <b>The measurement.</b> Every number and every point on this page is computed live by the code copied
+    verbatim out of <code>_lab/gwas-measure.mjs</code> &mdash; <code>simulateCohort</code>,
+    <code>grm</code>, <code>eigenSym</code>, <code>topEigen</code>, <code>pcs</code>,
+    <code>olsScan</code>, <code>weightedScan</code>, <code>glsScan</code>, <code>remlH2</code>,
+    <code>fastgwa</code>, <code>lambda</code>, <code>bonferroni</code>, <code>summarise</code>,
+    comments and all &mdash; drawn with the seeded <code>makeRng</code> from
+    <code>widgets/core/rng.js</code>. <b>Copied rather than imported:</b> that module runs its seven
+    measurement tables at the top level, so importing it into a page would execute about a minute of
+    <code>console.log</code> on load. The script itself is not touched.
+  </p>
+  <p class="note" id="engineLine"></p>
+
+  <div class="legend">
+    <span><i class="sw sw-emp"></i>a SNP's test, on one chromosome</span>
+    <span><i class="sw sw-emp2"></i>the next chromosome</span>
+    <span><i class="sw sw-extreme"></i>past the corrected threshold</span>
+    <span><i class="sw sw-ref"></i>the corrected threshold</span>
+    <span><i class="sw sw-tri"></i>a causal SNP's position</span>
+    <span><i class="sw sw-theory"></i>expected with no association</span>
+    <span><i class="sw sw-high"></i>the SNP being tested</span>
+    <span><i class="sw sw-c1"></i>subpopulation 1</span>
+    <span><i class="sw sw-c2"></i>subpopulation 2</span>
+    <span><i class="sw sw-c3"></i>subpopulation 3</span>
+    <span><i class="sw sw-vlo"></i>less related than the sample average</span>
+    <span><i class="sw sw-vhi"></i>more related</span>
+  </div>
+
+  <p class="note">
+    <b>The lesson's own three figures</b>, which the candidates below are measured against. They are the
+    shape the reader has already seen; a widget that draws a fourth shape makes them learn the picture
+    before they can read it.
+  </p>
+  <div class="figref">
+    <figure>
+      <img src="figs/gwas-manhattan.png" alt="" width="300">
+      <figcaption>01-6: 22 chromosomes in two alternating shades, the threshold as a horizontal line
+        labelled at the left, the peaks named.</figcaption>
+    </figure>
+    <figure>
+      <img src="figs/gwas-qq.png" alt="" width="220">
+      <figcaption>01-6: observed against theoretical &minus;log<sub>10</sub>P, the identity line, the tail
+        lifting off it and the body on it.</figcaption>
+    </figure>
+    <figure>
+      <img src="figs/gwas-pca.png" alt="" width="300">
+      <figcaption>01-4: PC1 against PC2, three subpopulations. Blue, yellow and red &mdash; which is
+        <code>--c-cluster-a</code>, <code>-b</code> and <code>-c</code> exactly.</figcaption>
+    </figure>
+  </div>
+
+  <h2>&sect;0 &middot; The title and the subtitle</h2>
+  <p class="note">
+    Both titles and both subtitles rendered in the shell's own <code>.w-heading</code> at the stage's
+    550px, with the character count measured against the 140&ndash;240 the recent subtitles hold (2.10).
+  </p>
+  <div class="row" id="titleRow"></div>
+  <p class="rec" id="recTitle"></p>
+
+  <h2>&sect;1 &middot; The Manhattan plot, and what has to be beside it</h2>
+  <p class="note">
+    The default cohort: 300 people in three subpopulations, 2,000 SNPs on 4 chromosomes of 500 at even
+    spacing, nested ancestry (two subpopulations F<sub>ST</sub> 0.005 apart, the third 0.05 from both), a
+    trait difference of 1 SD between the outer subpopulations, three causal SNPs each explaining 0.12 of
+    the trait's variance, no families, seed 1. <b>A</b> the Manhattan plot alone, drawn under two models.
+    <b>B</b> the Manhattan plot with the QQ plot beside it, drawn under all three.
+  </p>
+  <div class="row" id="skyRow"></div>
+  <p class="rec" id="recSky"></p>
+
+  <h2>&sect;2 &middot; What the QQ plot is for</h2>
+  <p class="note">
+    Three QQ plots from the same three tests. Under <i>SNP only</i> the points leave the line at the very
+    bottom and stay off it; under <i>+ 2 PCs</i> the body is back on the line and only the causal SNPs are
+    above it; and a cohort with no trait difference between subpopulations is on the line with the
+    structure still in the genotypes. The third panel is the control: it separates "the confounder is in
+    the trait" from "the sample has ancestry in it".
+  </p>
+  <div class="row" id="qqRow"></div>
+  <p class="measure" id="qqMeasure"></p>
+  <p class="rec" id="recQq"></p>
+
+  <h2>&sect;3 &middot; The cohort</h2>
+  <p class="note">
+    <b>A</b> the PC scatter drawn small beside the Manhattan plot, on one stage. <b>B</b> a second page
+    with the scatter at 300px and the genetic relationship matrix itself as a 300 &times; 300 image, one
+    pixel a pair, at Families = none and at Families = sibships of 4.
+  </p>
+  <div class="row" id="cohortRowA"></div>
+  <div class="row" id="cohortRowB"></div>
+  <p class="measure" id="cohortMeasure"></p>
+  <p class="rec" id="recCohort"></p>
+
+  <h2>&sect;4 &middot; The variance step, and the case where it finds nothing</h2>
+  <p class="note">
+    What the mixed model estimates once, before the first SNP is tested. <b>A</b> core's readout tiles.
+    <b>B</b> the tiles with V<sub>g</sub> against V<sub>e</sub> as a bar. Three states in each: the default
+    cohort at seed 1, the same settings at seed 4, and sibships of 4 with a family effect of 1 SD.
+  </p>
+  <div class="row" id="varRow"></div>
+  <p class="measure" id="varMeasure"></p>
+  <p class="rec" id="recVar"></p>
+
+  <h2>&sect;5 &middot; Families</h2>
+  <p class="note">
+    The same cohort with the 300 people arranged as 75 sibships of 4, each sibship sharing a trait effect
+    of 1 SD, tested under <i>+ 5 PCs</i> and then under <i>+ 5 PCs + GRM</i>. The principal components are
+    ancestry and nothing else; a sibship is a second confounder they do not see.
+  </p>
+  <div class="row" id="famRow"></div>
+  <p class="measure" id="famMeasure"></p>
+  <p class="rec" id="recFam"></p>
+
+  <h2>&sect;6 &middot; The two steps, as a run</h2>
+  <p class="note">
+    Three stills of one Play run on the default cohort under <i>+ 5 PCs</i>: after the variance step with
+    no SNP tested yet, after 200 SNPs, and after all 2,000. The expensive step happens once and the
+    Manhattan plot fills in left to right behind it.
+  </p>
+  <div class="row" id="walkRow"></div>
+  <p class="measure" id="walkMeasure"></p>
+  <p class="rec" id="recWalk"></p>
+
+  <h2>&sect;7 &middot; The whole rail, at 300px</h2>
+  <p class="note">
+    Core's own DOM inside a <code>.w-split</code>, measured after <code>document.fonts.ready</code>;
+    nothing under <code>widgets/core/</code> is touched by this page. <b>A</b> every field, at
+    Families = none. <b>B</b> the same rail at Families = sibships of 4, which is the state that adds the
+    Family effect slider. <b>C</b> trimmed: the causal effect fixed at 0.12 and the PC count fixed at 5.
+  </p>
+  <div class="row" id="railRow"></div>
+  <p class="measure" id="segFit"></p>
+  <p class="rec" id="recRail"></p>
+
+  <h2>&sect;8 &middot; Every reader-facing string</h2>
+  <p class="note">
+    Title, subtitle, page names, control labels and their <code>detail</code> lines, option labels,
+    readout labels and notes, canvas captions and notes, legend entries, and the line the widget prints
+    when the variance step finds nothing. A <code>detail</code> says what the control is and never what
+    will happen to the figure; no line names a lesson, a cell or a notebook.
+  </p>
+  <div id="strings"></div>
+</main>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+import { makePlot } from "../core/canvas.js";
+import { makeRng } from "../core/rng.js";
+
+const T0 = performance.now();
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+
+/* ==========================================================================
+   THE ENGINE, COPIED VERBATIM FROM `_lab/gwas-measure.mjs` (lines 98-1059),
+   comments included: they are the record of what each function models and of
+   the four expectations that measurement corrected. Nothing is added and
+   nothing is changed — the `export` keywords are left on because an inline
+   module script accepts them and a verbatim copy is easier to re-check than a
+   tidied one.
+
+   COPIED RATHER THAN IMPORTED because that module runs its seven measurement
+   tables at the top level: `import * as G from "./gwas-measure.mjs"` executes
+   every one of them on page load. The script is not edited.
+   ====================================================================== */
+
+/* ==========================================================================
+   Distributions: the tails the tests need, and the draws the cohort needs.
+   ========================================================================== */
+
+/* erfc, Numerical Recipes' Chebyshev fit, |error| < 1.2e-7 — copied from
+   hwe-measure.mjs, where it serves the same χ²(1) tail. */
+function erfc(x) {
+  const z = Math.abs(x);
+  const t = 1 / (1 + 0.5 * z);
+  const r =
+    t *
+    Math.exp(
+      -z * z -
+        1.26551223 +
+        t *
+          (1.00002368 +
+            t *
+              (0.37409196 +
+                t *
+                  (0.09678418 +
+                    t *
+                      (-0.18628806 +
+                        t *
+                          (0.27886807 +
+                            t *
+                              (-1.13520398 +
+                                t * (1.48851587 + t * (-0.82215223 + t * 0.17087277)))))))),
+    );
+  return x >= 0 ? r : 2 - r;
+}
+
+/** Upper tail of χ² with 1 df. */
+export const chi1Tail = (x) => (x <= 0 ? 1 : erfc(Math.sqrt(x / 2)));
+
+/** χ²(1) quantile: the x with chi1Tail(x) = alpha, by bisection. */
+export function chi1Inv(alpha) {
+  if (alpha >= 1) return 0;
+  let lo = 0;
+  let hi = 1000;
+  for (let i = 0; i < 80; i += 1) {
+    const mid = (lo + hi) / 2;
+    if (chi1Tail(mid) > alpha) lo = mid;
+    else hi = mid;
+  }
+  return (lo + hi) / 2;
+}
+
+/* Lanczos log-gamma, and the regularized incomplete beta by its continued
+   fraction — together they give the two-sided t tail exactly enough to count
+   hits at 2.5e-5, which the normal approximation on 294 df does not. */
+const LANCZOS = [
+  76.18009172947146, -86.50532032941677, 24.01409824083091, -1.231739572450155,
+  0.1208650973866179e-2, -0.5395239384953e-5,
+];
+function lgamma(x) {
+  let y = x;
+  const tmp0 = x + 5.5;
+  const tmp = tmp0 - (x + 0.5) * Math.log(tmp0);
+  let ser = 1.000000000190015;
+  for (let j = 0; j < 6; j += 1) ser += LANCZOS[j] / (y += 1);
+  return -tmp + Math.log((2.5066282746310005 * ser) / x);
+}
+
+function betacf(a, b, x) {
+  const FPMIN = 1e-300;
+  const qab = a + b;
+  const qap = a + 1;
+  const qam = a - 1;
+  let c = 1;
+  let d = 1 - (qab * x) / qap;
+  if (Math.abs(d) < FPMIN) d = FPMIN;
+  d = 1 / d;
+  let h = d;
+  for (let mm = 1; mm <= 300; mm += 1) {
+    const m2 = 2 * mm;
+    let aa = (mm * (b - mm) * x) / ((qam + m2) * (a + m2));
+    d = 1 + aa * d;
+    if (Math.abs(d) < FPMIN) d = FPMIN;
+    c = 1 + aa / c;
+    if (Math.abs(c) < FPMIN) c = FPMIN;
+    d = 1 / d;
+    h *= d * c;
+    aa = (-(a + mm) * (qab + mm) * x) / ((a + m2) * (qap + m2));
+    d = 1 + aa * d;
+    if (Math.abs(d) < FPMIN) d = FPMIN;
+    c = 1 + aa / c;
+    if (Math.abs(c) < FPMIN) c = FPMIN;
+    d = 1 / d;
+    const del = d * c;
+    h *= del;
+    if (Math.abs(del - 1) < 3e-16) break;
+  }
+  return h;
+}
+
+/** Regularized incomplete beta I_x(a, b). */
+export function betai(a, b, x) {
+  if (x <= 0) return 0;
+  if (x >= 1) return 1;
+  const bt = Math.exp(lgamma(a + b) - lgamma(a) - lgamma(b) + a * Math.log(x) + b * Math.log(1 - x));
+  if (x < (a + 1) / (a + b + 2)) return (bt * betacf(a, b, x)) / a;
+  return 1 - (bt * betacf(b, a, 1 - x)) / b;
+}
+
+/** Two-sided P for a t statistic on df degrees of freedom. */
+export function tTwoSided(t, df) {
+  if (!Number.isFinite(t)) return 1;
+  return betai(df / 2, 0.5, df / (df + t * t));
+}
+
+/** Gamma(shape, 1) — Marsaglia–Tsang, seeded. */
+export function gammaDraw(rng, shape) {
+  if (shape < 1) {
+    let u = 0;
+    while (u === 0) u = rng.next();
+    return gammaDraw(rng, shape + 1) * u ** (1 / shape);
+  }
+  const d = shape - 1 / 3;
+  const c = 1 / Math.sqrt(9 * d);
+  for (;;) {
+    let x = 0;
+    let v = 0;
+    do {
+      x = rng.normal(0, 1);
+      v = 1 + c * x;
+    } while (v <= 0);
+    v = v * v * v;
+    const u = rng.next();
+    if (u < 1 - 0.0331 * x * x * x * x) return d * v;
+    if (Math.log(u) < 0.5 * x * x + d * (1 - v + Math.log(v))) return d * v;
+  }
+}
+
+/** Beta(a, b) as X / (X + Y) with two Gamma draws. */
+export function betaDraw(rng, a, b) {
+  const x = gammaDraw(rng, a);
+  const y = gammaDraw(rng, b);
+  return x + y > 0 ? x / (x + y) : 0.5;
+}
+
+/* ==========================================================================
+   The cohort.
+   ========================================================================== */
+
+/**
+ * n individuals in k equal subpopulations, m SNPs, Balding–Nichols
+ * frequencies at the given Fst, and a trait.
+ *
+ * The trait is
+ *     y = μ_pop + Σ_causal √h2snp · z_j + Σ_bg √(h2bg/nbg) · z_j + f + ε
+ * with z the sample-standardised genotype, f the sibship effect N(0, sdFamily)
+ * and ε ~ N(0, σ²) where σ² = 1 − (#causal)·h2snp − h2bg. The residual SD is
+ * set that way, rather than fixed at 1, so that `h2snp` really is the fraction
+ * of the trait's variance one causal SNP explains — which is the number the
+ * widget's control will be labelled with. μ_pop is `shift` × that residual SD
+ * × (−1, 0, +1): the "diet" confounder, in units the reader can hold.
+ *
+ * Note that the population shift and the family effect ADD variance on top of
+ * that 1, so a causal SNP's marginal R² in the raw sample is smaller than
+ * h2snp — by a third at shift 1. Conditioning on the PCs gives it back, which
+ * is one of the things §6 measures.
+ */
+export function simulateCohort(rng, opts = {}) {
+  const {
+    n = 300,
+    k = 3,
+    m = 2000,
+    fst = 0.03,
+    shift = 1,
+    causal = null,
+    h2snp = 0.05,
+    h2bg = 0,
+    nbg = 200,
+    families = false,
+    sdFamily = 0,
+    topology = "star",
+    fstShallow = null,
+  } = opts;
+
+  const causalIdx = causal ?? [Math.floor(m * 0.1), Math.floor(m * 0.45), Math.floor(m * 0.8)];
+  const famSize = 4;
+  const nFam = families ? Math.floor(n / famSize) : 0;
+
+  /* who is in which subpopulation, and which sibship */
+  const pop = new Int32Array(n);
+  const famId = new Int32Array(n).fill(-1);
+  if (families) {
+    for (let f = 0; f < nFam; f += 1) {
+      const fpop = Math.min(k - 1, Math.floor((f * k) / nFam));
+      for (let c = 0; c < famSize; c += 1) {
+        const i = f * famSize + c;
+        pop[i] = fpop;
+        famId[i] = f;
+      }
+    }
+  } else {
+    for (let i = 0; i < n; i += 1) pop[i] = Math.min(k - 1, Math.floor((i * k) / n));
+  }
+
+  /* genotypes.
+
+     `topology` is "star" — every subpopulation diverges from the ancestor by
+     the same Fst — or "nested", where two of the three share a recent ancestor
+     and the third split earlier. §4 is why the option exists: a star gives two
+     eigenvalues of equal height and the lesson's GRM gives 17.28 and 3.08. */
+  const nested = topology === "nested" && k === 3;
+  const fstNear = fstShallow ?? fst / 10;
+  const G = new Array(m);
+  const a0 = (1 - fst) / fst;
+  const aNear = (1 - fstNear) / fstNear;
+  const clamp = (p) => Math.min(1 - 1e-6, Math.max(1e-6, p));
+  for (let j = 0; j < m; j += 1) {
+    const p0 = rng.uniform(0.1, 0.9);
+    const pk = new Float64Array(k);
+    if (nested) {
+      const pA = clamp(betaDraw(rng, p0 * a0, (1 - p0) * a0));
+      pk[2] = betaDraw(rng, p0 * a0, (1 - p0) * a0);
+      pk[0] = betaDraw(rng, pA * aNear, (1 - pA) * aNear);
+      pk[1] = betaDraw(rng, pA * aNear, (1 - pA) * aNear);
+    } else for (let s = 0; s < k; s += 1) pk[s] = betaDraw(rng, p0 * a0, (1 - p0) * a0);
+    const col = new Float64Array(n);
+    if (families) {
+      for (let f = 0; f < nFam; f += 1) {
+        const p = pk[pop[f * famSize]];
+        const gm = (rng.next() < p ? 1 : 0) + (rng.next() < p ? 1 : 0);
+        const gf = (rng.next() < p ? 1 : 0) + (rng.next() < p ? 1 : 0);
+        for (let c = 0; c < famSize; c += 1) {
+          col[f * famSize + c] =
+            (rng.next() < gm / 2 ? 1 : 0) + (rng.next() < gf / 2 ? 1 : 0);
+        }
+      }
+    } else {
+      for (let i = 0; i < n; i += 1) {
+        const p = pk[pop[i]];
+        col[i] = (rng.next() < p ? 1 : 0) + (rng.next() < p ? 1 : 0);
+      }
+    }
+    G[j] = col;
+  }
+
+  /* sample mean and SD per SNP, once */
+  const mean = new Float64Array(m);
+  const sd = new Float64Array(m);
+  for (let j = 0; j < m; j += 1) {
+    const col = G[j];
+    let s = 0;
+    for (let i = 0; i < n; i += 1) s += col[i];
+    const mu = s / n;
+    let v = 0;
+    for (let i = 0; i < n; i += 1) v += (col[i] - mu) ** 2;
+    mean[j] = mu;
+    sd[j] = Math.sqrt(v / n);
+  }
+
+  /* the background SNPs: nbg distinct non-causal indices */
+  const bgIdx = [];
+  if (h2bg > 0) {
+    const taken = new Set(causalIdx);
+    let guard = 0;
+    while (bgIdx.length < Math.min(nbg, m - causalIdx.length) && guard < 50 * m) {
+      const j = rng.int(0, m - 1);
+      guard += 1;
+      if (!taken.has(j)) {
+        taken.add(j);
+        bgIdx.push(j);
+      }
+    }
+  }
+
+  const resVar = Math.max(0.05, 1 - causalIdx.length * h2snp - h2bg);
+  const resSd = Math.sqrt(resVar);
+  const bCausal = Math.sqrt(h2snp);
+  const bBg = bgIdx.length ? Math.sqrt(h2bg / bgIdx.length) : 0;
+  const famEff = new Float64Array(Math.max(1, nFam));
+  for (let f = 0; f < nFam; f += 1) famEff[f] = rng.normal(0, sdFamily);
+
+  const y = new Float64Array(n);
+  for (let i = 0; i < n; i += 1) {
+    let v = shift * resSd * (pop[i] - (k - 1) / 2) * (k > 1 ? 2 / (k - 1) : 0);
+    for (const j of causalIdx) if (sd[j] > 0) v += bCausal * ((G[j][i] - mean[j]) / sd[j]);
+    for (const j of bgIdx) if (sd[j] > 0) v += bBg * ((G[j][i] - mean[j]) / sd[j]);
+    if (families && sdFamily > 0) v += famEff[famId[i]];
+    y[i] = v + rng.normal(0, resSd);
+  }
+
+  return { n, k, m, G, y, pop, famId, nFam, causalIdx, bgIdx, mean, sd, resSd, opts: { ...opts } };
+}
+
+/**
+ * The GRM as the lesson computes it:
+ *     K_ij = (1/M) Σ_l (X_il − 2p_l)(X_jl − 2p_l) / (2 p_l (1 − p_l))
+ * with p_l the SAMPLE allele frequency and monomorphic SNPs skipped.
+ */
+export function grm(G) {
+  const m = G.length;
+  const n = G[0].length;
+  const use = [];
+  const freq = new Float64Array(m);
+  for (let j = 0; j < m; j += 1) {
+    const col = G[j];
+    let s = 0;
+    for (let i = 0; i < n; i += 1) s += col[i];
+    const p = s / (2 * n);
+    freq[j] = p;
+    if (p > 0 && p < 1) use.push(j);
+  }
+  const M = use.length;
+  const Z = new Float64Array(n * M); // row-major: person i, SNP t
+  for (let t = 0; t < M; t += 1) {
+    const j = use[t];
+    const col = G[j];
+    const p = freq[j];
+    const s = Math.sqrt(2 * p * (1 - p));
+    for (let i = 0; i < n; i += 1) Z[i * M + t] = (col[i] - 2 * p) / s;
+  }
+  const K = Array.from({ length: n }, () => new Float64Array(n));
+  for (let i = 0; i < n; i += 1) {
+    const oi = i * M;
+    for (let j = 0; j <= i; j += 1) {
+      const oj = j * M;
+      let s = 0;
+      for (let t = 0; t < M; t += 1) s += Z[oi + t] * Z[oj + t];
+      const v = s / M;
+      K[i][j] = v;
+      K[j][i] = v;
+    }
+  }
+  return K;
+}
+
+/* ==========================================================================
+   Symmetric eigendecomposition.
+
+   Householder tridiagonalisation (tred2) then implicit-shift QL (tql2), the
+   EISPACK pair. Cyclic Jacobi is also here, unused by the measurements and
+   kept for §7's timing: the brief allowed Jacobi at n = 300 and the answer is
+   that it costs about ten times as much, which is the difference between a
+   compute() that fits the frame budget and one that does not.
+   ========================================================================== */
+
+function tred2(a, n, d, e) {
+  for (let i = n - 1; i >= 1; i -= 1) {
+    const l = i - 1;
+    let h = 0;
+    let scale = 0;
+    let g = 0;
+    if (l > 0) {
+      for (let kk = 0; kk <= l; kk += 1) scale += Math.abs(a[i][kk]);
+      if (scale === 0) {
+        e[i] = a[i][l];
+      } else {
+        for (let kk = 0; kk <= l; kk += 1) {
+          a[i][kk] /= scale;
+          h += a[i][kk] * a[i][kk];
+        }
+        let f = a[i][l];
+        g = f >= 0 ? -Math.sqrt(h) : Math.sqrt(h);
+        e[i] = scale * g;
+        h -= f * g;
+        a[i][l] = f - g;
+        f = 0;
+        for (let j = 0; j <= l; j += 1) {
+          a[j][i] = a[i][j] / h;
+          g = 0;
+          for (let kk = 0; kk <= j; kk += 1) g += a[j][kk] * a[i][kk];
+          for (let kk = j + 1; kk <= l; kk += 1) g += a[kk][j] * a[i][kk];
+          e[j] = g / h;
+          f += e[j] * a[i][j];
+        }
+        const hh = f / (h + h);
+        for (let j = 0; j <= l; j += 1) {
+          f = a[i][j];
+          g = e[j] - hh * f;
+          e[j] = g;
+          for (let kk = 0; kk <= j; kk += 1) a[j][kk] -= f * e[kk] + g * a[i][kk];
+        }
+      }
+    } else {
+      e[i] = a[i][l];
+    }
+    d[i] = h;
+  }
+  d[0] = 0;
+  e[0] = 0;
+  for (let i = 0; i < n; i += 1) {
+    const l = i - 1;
+    if (d[i] !== 0) {
+      for (let j = 0; j <= l; j += 1) {
+        let g = 0;
+        for (let kk = 0; kk <= l; kk += 1) g += a[i][kk] * a[kk][j];
+        for (let kk = 0; kk <= l; kk += 1) a[kk][j] -= g * a[kk][i];
+      }
+    }
+    d[i] = a[i][i];
+    a[i][i] = 1;
+    for (let j = 0; j <= l; j += 1) {
+      a[j][i] = 0;
+      a[i][j] = 0;
+    }
+  }
+}
+
+function tql2(d, e, z, n) {
+  for (let i = 1; i < n; i += 1) e[i - 1] = e[i];
+  e[n - 1] = 0;
+  for (let l = 0; l < n; l += 1) {
+    let iter = 0;
+    let mm = l;
+    do {
+      for (mm = l; mm < n - 1; mm += 1) {
+        const dd = Math.abs(d[mm]) + Math.abs(d[mm + 1]);
+        if (Math.abs(e[mm]) <= Number.EPSILON * dd) break;
+      }
+      if (mm !== l) {
+        iter += 1;
+        if (iter > 60) throw new Error("tql2: too many iterations");
+        let g = (d[l + 1] - d[l]) / (2 * e[l]);
+        let r = Math.hypot(g, 1);
+        g = d[mm] - d[l] + e[l] / (g + (g >= 0 ? Math.abs(r) : -Math.abs(r)));
+        let s = 1;
+        let c = 1;
+        let pp = 0;
+        let i = mm - 1;
+        for (; i >= l; i -= 1) {
+          let f = s * e[i];
+          const b = c * e[i];
+          r = Math.hypot(f, g);
+          e[i + 1] = r;
+          if (r === 0) {
+            d[i + 1] -= pp;
+            e[mm] = 0;
+            break;
+          }
+          s = f / r;
+          c = g / r;
+          g = d[i + 1] - pp;
+          r = (d[i] - g) * s + 2 * c * b;
+          pp = s * r;
+          d[i + 1] = g + pp;
+          g = c * r - b;
+          for (let kk = 0; kk < n; kk += 1) {
+            f = z[kk][i + 1];
+            z[kk][i + 1] = s * z[kk][i] + c * f;
+            z[kk][i] = c * z[kk][i] - s * f;
+          }
+        }
+        if (r === 0 && i >= l) continue;
+        d[l] -= pp;
+        e[l] = g;
+        e[mm] = 0;
+      }
+    } while (mm !== l);
+  }
+}
+
+/**
+ * Symmetric eigendecomposition. Returns { values, vectors, ut } with values
+ * descending, `vectors[t]` the t-th eigenvector as a column of length n, and
+ * `ut` the same thing row-major (row t = eigenvector t) for the rotation.
+ * The input is not modified.
+ */
+export function eigenSym(A) {
+  const n = A.length;
+  const z = A.map((row) => Float64Array.from(row));
+  const d = new Float64Array(n);
+  const e = new Float64Array(n);
+  tred2(z, n, d, e);
+  tql2(d, e, z, n);
+  const order = Array.from({ length: n }, (_, i) => i).sort((a, b) => d[b] - d[a]);
+  const values = new Float64Array(n);
+  const vectors = new Array(n);
+  const ut = new Float64Array(n * n);
+  for (let t = 0; t < n; t += 1) {
+    const src = order[t];
+    values[t] = d[src];
+    const v = new Float64Array(n);
+    for (let i = 0; i < n; i += 1) {
+      v[i] = z[i][src];
+      ut[t * n + i] = v[i];
+    }
+    vectors[t] = v;
+  }
+  return { values, vectors, ut };
+}
+
+/** Cyclic Jacobi, for the timing comparison in §7 only. */
+export function jacobiEigen(A) {
+  const n = A.length;
+  const a = A.map((row) => Float64Array.from(row));
+  const v = Array.from({ length: n }, (_, i) => {
+    const r = new Float64Array(n);
+    r[i] = 1;
+    return r;
+  });
+  for (let sweep = 0; sweep < 60; sweep += 1) {
+    let off = 0;
+    for (let p = 0; p < n - 1; p += 1) for (let q = p + 1; q < n; q += 1) off += a[p][q] * a[p][q];
+    if (off < 1e-22) break;
+    for (let p = 0; p < n - 1; p += 1) {
+      for (let q = p + 1; q < n; q += 1) {
+        if (Math.abs(a[p][q]) < 1e-15) continue;
+        const theta = (a[q][q] - a[p][p]) / (2 * a[p][q]);
+        const t = Math.sign(theta || 1) / (Math.abs(theta) + Math.sqrt(theta * theta + 1));
+        const c = 1 / Math.sqrt(t * t + 1);
+        const s = t * c;
+        for (let kk = 0; kk < n; kk += 1) {
+          const akp = a[kk][p];
+          const akq = a[kk][q];
+          a[kk][p] = c * akp - s * akq;
+          a[kk][q] = s * akp + c * akq;
+        }
+        for (let kk = 0; kk < n; kk += 1) {
+          const apk = a[p][kk];
+          const aqk = a[q][kk];
+          a[p][kk] = c * apk - s * aqk;
+          a[q][kk] = s * apk + c * aqk;
+        }
+        for (let kk = 0; kk < n; kk += 1) {
+          const vkp = v[kk][p];
+          const vkq = v[kk][q];
+          v[kk][p] = c * vkp - s * vkq;
+          v[kk][q] = s * vkp + c * vkq;
+        }
+      }
+    }
+  }
+  const d = Array.from({ length: n }, (_, i) => a[i][i]);
+  const order = Array.from({ length: n }, (_, i) => i).sort((x, yy) => d[yy] - d[x]);
+  return { values: Float64Array.from(order.map((i) => d[i])) };
+}
+
+/** The top `k` eigenvectors of the GRM, as covariate columns. */
+export function pcs(eig, k) {
+  return Array.from({ length: k }, (_, t) => eig.vectors[t]);
+}
+
+/**
+ * The top `k` eigenpairs by subspace iteration — K times a block, then
+ * Gram–Schmidt, repeated. Deterministic start (no rng, so it is a pure
+ * function of K). §7 times it against the full decomposition; §7 also records
+ * which of the k it can actually be trusted for, which is the two with a gap
+ * above the floor and no more.
+ */
+export function topEigen(K, k, iters = 30) {
+  const n = K.length;
+  let V = Array.from({ length: k }, (_, t) => {
+    const v = new Float64Array(n);
+    for (let i = 0; i < n; i += 1) v[i] = Math.cos((t + 1) * (i + 1) * 0.7391);
+    return v;
+  });
+  const orth = (B) => {
+    for (let t = 0; t < B.length; t += 1) {
+      for (let s = 0; s < t; s += 1) {
+        let d = 0;
+        for (let i = 0; i < n; i += 1) d += B[t][i] * B[s][i];
+        for (let i = 0; i < n; i += 1) B[t][i] -= d * B[s][i];
+      }
+      let nr = 0;
+      for (let i = 0; i < n; i += 1) nr += B[t][i] * B[t][i];
+      nr = Math.sqrt(nr) || 1;
+      for (let i = 0; i < n; i += 1) B[t][i] /= nr;
+    }
+    return B;
+  };
+  V = orth(V);
+  for (let it = 0; it < iters; it += 1) {
+    const W = V.map((v) => {
+      const w = new Float64Array(n);
+      for (let i = 0; i < n; i += 1) {
+        const row = K[i];
+        let s = 0;
+        for (let jj = 0; jj < n; jj += 1) s += row[jj] * v[jj];
+        w[i] = s;
+      }
+      return w;
+    });
+    V = orth(W);
+  }
+  const values = V.map((v) => {
+    let s = 0;
+    for (let i = 0; i < n; i += 1) {
+      const row = K[i];
+      let t = 0;
+      for (let jj = 0; jj < n; jj += 1) t += row[jj] * v[jj];
+      s += v[i] * t;
+    }
+    return s;
+  });
+  return { values, vectors: V };
+}
+
+/* ==========================================================================
+   The scans. One weighted engine; OLS is the engine with weights 1.
+   ========================================================================== */
+
+function cholesky(A) {
+  const p = A.length;
+  const L = Array.from({ length: p }, () => new Float64Array(p));
+  for (let i = 0; i < p; i += 1) {
+    for (let j = 0; j <= i; j += 1) {
+      let s = A[i][j];
+      for (let kk = 0; kk < j; kk += 1) s -= L[i][kk] * L[j][kk];
+      if (i === j) {
+        if (s <= 0) return null;
+        L[i][i] = Math.sqrt(s);
+      } else {
+        L[i][j] = s / L[j][j];
+      }
+    }
+  }
+  return L;
+}
+
+function cholInverse(L) {
+  const p = L.length;
+  /* invert L, then A⁻¹ = L⁻ᵀ L⁻¹ */
+  const Li = Array.from({ length: p }, () => new Float64Array(p));
+  for (let i = 0; i < p; i += 1) {
+    Li[i][i] = 1 / L[i][i];
+    for (let j = 0; j < i; j += 1) {
+      let s = 0;
+      for (let kk = j; kk < i; kk += 1) s += L[i][kk] * Li[kk][j];
+      Li[i][j] = -s / L[i][i];
+    }
+  }
+  const Ai = Array.from({ length: p }, () => new Float64Array(p));
+  for (let i = 0; i < p; i += 1) {
+    for (let j = 0; j <= i; j += 1) {
+      let s = 0;
+      for (let kk = i; kk < p; kk += 1) s += Li[kk][i] * Li[kk][j];
+      Ai[i][j] = s;
+      Ai[j][i] = s;
+    }
+  }
+  return Ai;
+}
+
+/**
+ * Per-SNP weighted least squares of y on [X, g], returning the SNP column's
+ * β, se and two-sided P on n − p − 1 df.
+ *
+ * X is the whole null design (intercept included); `winv` is the diagonal of
+ * V⁻¹ — all ones for OLS, 1/(h²d + 1 − h²) in the GRM's eigenbasis for GLS.
+ * The null projection is solved once and every SNP is then a one-column
+ * regression on the residualised outcome, which is what makes 2000 fits cheap.
+ */
+export function weightedScan(y, X, G, winv) {
+  const n = y.length;
+  const p = X.length;
+  const m = G.length;
+  const A = Array.from({ length: p }, () => new Float64Array(p));
+  for (let a = 0; a < p; a += 1) {
+    for (let b = 0; b <= a; b += 1) {
+      let s = 0;
+      for (let i = 0; i < n; i += 1) s += winv[i] * X[a][i] * X[b][i];
+      A[a][b] = s;
+      A[b][a] = s;
+    }
+  }
+  const L = cholesky(A);
+  if (!L) throw new Error("weightedScan: singular covariate matrix");
+  const Ai = cholInverse(L);
+
+  const by = new Float64Array(p);
+  for (let a = 0; a < p; a += 1) {
+    let s = 0;
+    for (let i = 0; i < n; i += 1) s += winv[i] * X[a][i] * y[i];
+    by[a] = s;
+  }
+  const cy = new Float64Array(p);
+  for (let a = 0; a < p; a += 1) {
+    let s = 0;
+    for (let b = 0; b < p; b += 1) s += Ai[a][b] * by[b];
+    cy[a] = s;
+  }
+  const yt = new Float64Array(n);
+  for (let i = 0; i < n; i += 1) {
+    let v = y[i];
+    for (let a = 0; a < p; a += 1) v -= X[a][i] * cy[a];
+    yt[i] = v;
+  }
+  let ssy = 0;
+  for (let i = 0; i < n; i += 1) ssy += winv[i] * yt[i] * yt[i];
+
+  const df = n - p - 1;
+  const beta = new Float64Array(m);
+  const se = new Float64Array(m);
+  const P = new Float64Array(m);
+  const bg = new Float64Array(p);
+  const cg = new Float64Array(p);
+  for (let j = 0; j < m; j += 1) {
+    const g = G[j];
+    for (let a = 0; a < p; a += 1) {
+      let s = 0;
+      const Xa = X[a];
+      for (let i = 0; i < n; i += 1) s += winv[i] * Xa[i] * g[i];
+      bg[a] = s;
+    }
+    for (let a = 0; a < p; a += 1) {
+      let s = 0;
+      for (let b = 0; b < p; b += 1) s += Ai[a][b] * bg[b];
+      cg[a] = s;
+    }
+    let den = 0;
+    let num = 0;
+    for (let i = 0; i < n; i += 1) {
+      let gt = g[i];
+      for (let a = 0; a < p; a += 1) gt -= X[a][i] * cg[a];
+      den += winv[i] * gt * gt;
+      num += winv[i] * gt * yt[i];
+    }
+    if (den <= 1e-12) {
+      beta[j] = 0;
+      se[j] = Infinity;
+      P[j] = 1;
+      continue;
+    }
+    const b = num / den;
+    const rss = Math.max(ssy - b * b * den, 1e-300);
+    const s2 = rss / df;
+    const s = Math.sqrt(s2 / den);
+    beta[j] = b;
+    se[j] = s;
+    P[j] = tTwoSided(b / s, df);
+  }
+  return { beta, se, P, df };
+}
+
+/** Per-SNP OLS of y on the SNP plus an intercept and the covariate columns. */
+export function olsScan(y, G, covariates = []) {
+  const n = y.length;
+  const ones = new Float64Array(n).fill(1);
+  const winv = new Float64Array(n).fill(1);
+  return weightedScan(y, [ones, ...covariates], G, winv);
+}
+
+/**
+ * Per-SNP GLS in the GRM's eigenbasis, with V = h²D + (1 − h²)I diagonal.
+ * yRot, XRot and GRot are already rotated by Uᵀ; the variance COMPONENT is
+ * fixed at the one REML estimated, and only the residual scale is re-estimated
+ * per SNP — which is fastGWA's "one variance for every SNP".
+ */
+export function glsScan(yRot, XRot, GRot, D, h2) {
+  const n = yRot.length;
+  const winv = new Float64Array(n);
+  for (let i = 0; i < n; i += 1) winv[i] = 1 / (h2 * D[i] + (1 - h2));
+  return weightedScan(yRot, XRot, GRot, winv);
+}
+
+/** Uᵀ applied to a set of columns. */
+export function rotate(ut, cols, n) {
+  return cols.map((c) => {
+    const out = new Float64Array(n);
+    for (let t = 0; t < n; t += 1) {
+      const o = t * n;
+      let s = 0;
+      for (let i = 0; i < n; i += 1) s += ut[o + i] * c[i];
+      out[t] = s;
+    }
+    return out;
+  });
+}
+
+/* ==========================================================================
+   The variance step.
+   ========================================================================== */
+
+/**
+ * REML for y = Xβ + g + ε with Var(g) = Vg·K and Var(ε) = Ve·I, profiled over
+ * h² = Vg / (Vg + Ve) on a grid and then refined by golden section.
+ *
+ * `eig` is eigenSym(K). Returns h², Vg, Ve, the restricted log-likelihood at
+ * the optimum and at h² = 0, the LRT of Vg = 0 and its P — halved, as GCTA
+ * does, because h² is on a boundary and the null distribution is the ½:½
+ * mixture of a point mass at 0 and χ²(1).
+ */
+export function remlH2(y, X, eig, opts = {}) {
+  const { grid = 100, hmax = 0.99 } = opts;
+  const n = y.length;
+  const p = X.length;
+  const D = eig.values;
+  const yR = rotate(eig.ut, [y], n)[0];
+  const XR = rotate(eig.ut, X, n);
+
+  function logLik(h2) {
+    const w = new Float64Array(n);
+    let sumLogW = 0;
+    for (let i = 0; i < n; i += 1) {
+      w[i] = h2 * D[i] + (1 - h2);
+      if (w[i] <= 0) return -Infinity;
+      sumLogW += Math.log(w[i]);
+    }
+    const A = Array.from({ length: p }, () => new Float64Array(p));
+    for (let a = 0; a < p; a += 1) {
+      for (let b = 0; b <= a; b += 1) {
+        let s = 0;
+        for (let i = 0; i < n; i += 1) s += (XR[a][i] * XR[b][i]) / w[i];
+        A[a][b] = s;
+        A[b][a] = s;
+      }
+    }
+    const L = cholesky(A);
+    if (!L) return -Infinity;
+    let logDetA = 0;
+    for (let a = 0; a < p; a += 1) logDetA += 2 * Math.log(L[a][a]);
+    const Ai = cholInverse(L);
+    const b = new Float64Array(p);
+    for (let a = 0; a < p; a += 1) {
+      let s = 0;
+      for (let i = 0; i < n; i += 1) s += (XR[a][i] * yR[i]) / w[i];
+      b[a] = s;
+    }
+    const beta = new Float64Array(p);
+    for (let a = 0; a < p; a += 1) {
+      let s = 0;
+      for (let c = 0; c < p; c += 1) s += Ai[a][c] * b[c];
+      beta[a] = s;
+    }
+    let rss = 0;
+    for (let i = 0; i < n; i += 1) {
+      let r = yR[i];
+      for (let a = 0; a < p; a += 1) r -= XR[a][i] * beta[a];
+      rss += (r * r) / w[i];
+    }
+    const s2 = rss / (n - p);
+    const ll = -0.5 * (sumLogW + logDetA + (n - p) * Math.log(s2));
+    return { ll, s2 };
+  }
+
+  const at = (h2) => {
+    const r = logLik(h2);
+    return r === -Infinity ? { ll: -Infinity, s2: NaN } : r;
+  };
+
+  let best = 0;
+  let bestLL = at(0).ll;
+  for (let i = 1; i <= grid; i += 1) {
+    const h2 = (hmax * i) / grid;
+    const ll = at(h2).ll;
+    if (ll > bestLL) {
+      bestLL = ll;
+      best = h2;
+    }
+  }
+  /* golden-section refinement inside the bracketing grid cell */
+  const step = hmax / grid;
+  let lo = Math.max(0, best - step);
+  let hi = Math.min(hmax, best + step);
+  const phi = (Math.sqrt(5) - 1) / 2;
+  let c = hi - phi * (hi - lo);
+  let d = lo + phi * (hi - lo);
+  let fc = at(c).ll;
+  let fd = at(d).ll;
+  for (let it = 0; it < 40 && hi - lo > 1e-6; it += 1) {
+    if (fc > fd) {
+      hi = d;
+      d = c;
+      fd = fc;
+      c = hi - phi * (hi - lo);
+      fc = at(c).ll;
+    } else {
+      lo = c;
+      c = d;
+      fc = fd;
+      d = lo + phi * (hi - lo);
+      fd = at(d).ll;
+    }
+  }
+  const cand = [best, (lo + hi) / 2];
+  let h2 = best;
+  let llBest = bestLL;
+  for (const h of cand) {
+    const r = at(h);
+    if (r.ll > llBest) {
+      llBest = r.ll;
+      h2 = h;
+    }
+  }
+  const fit = at(h2);
+  const null0 = at(0);
+  const s2 = fit.s2;
+  const lrt = Math.max(0, 2 * (llBest - null0.ll));
+  const P = lrt <= 0 ? 1 : 0.5 * chi1Tail(lrt);
+  return {
+    h2,
+    Vg: h2 * s2,
+    Ve: (1 - h2) * s2,
+    logLik: llBest,
+    logLik0: null0.ll,
+    lrt,
+    P,
+    yR,
+    XR,
+    D,
+  };
+}
+
+/**
+ * The two-step, with the fallback. REML once; if the LRT of Vg = 0 is not
+ * significant, GCTA prints that it will use linear regression and does — so
+ * this returns the OLS scan and says it fell back.
+ */
+export function fastgwa(y, G, covariates, eig, opts = {}) {
+  const { alpha = 0.05 } = opts;
+  const n = y.length;
+  const ones = new Float64Array(n).fill(1);
+  const X = [ones, ...covariates];
+  const re = remlH2(y, X, eig);
+  if (re.P > alpha) {
+    return { ...olsScan(y, G, covariates), reml: re, fellBack: true };
+  }
+  const GRot = rotate(eig.ut, G, n);
+  return { ...glsScan(re.yR, re.XR, GRot, re.D, re.h2), reml: re, fellBack: false };
+}
+
+/* ==========================================================================
+   Readings off a scan.
+   ========================================================================== */
+
+/** Genomic inflation factor: the median χ²(1) implied by P, over 0.4549. */
+export function lambda(P) {
+  const s = Array.from(P).sort((a, b) => a - b);
+  const mid = s.length % 2 ? s[(s.length - 1) / 2] : (s[s.length / 2 - 1] + s[s.length / 2]) / 2;
+  return chi1Inv(mid) / 0.4549364;
+}
+
+export const bonferroni = (m) => 0.05 / m;
+
+export function summarise(P, causalIdx, m) {
+  const thr = bonferroni(m);
+  const causal = new Set(causalIdx);
+  let hits = 0;
+  let fp = 0;
+  let hitCausal = 0;
+  let body = 0;
+  for (let j = 0; j < m; j += 1) {
+    if (P[j] < 0.05) body += 1;
+    if (P[j] < thr) {
+      hits += 1;
+      if (causal.has(j)) hitCausal += 1;
+      else fp += 1;
+    }
+  }
+  return {
+    lambda: lambda(P),
+    hits,
+    fp,
+    power: hitCausal / causalIdx.length,
+    frac05: body / m,
+  };
+}
+
+/** One cohort, its GRM and its eigendecomposition — the widget's compute(). */
+function build(seed, opts) {
+  const rng = makeRng(seed);
+  const co = simulateCohort(rng, opts);
+  const K = grm(co.G);
+  const eig = eigenSym(K);
+  return { co, K, eig };
+}
+
+const mean = (a) => a.reduce((x, y) => x + y, 0) / a.length;
+
+/* ==========================================================================
+   The widget's candidate parameters, and one place that turns them into a
+   cohort. Every panel on this page reads a cohort out of this block, so no
+   panel can be drawn from a setting the rail below does not offer.
+   ====================================================================== */
+
+const N = 300;
+const M = 2000;
+const NCHR = 4;
+const PER_CHR = M / NCHR;
+/* simulateCohort's own default for m = 2000 is [200, 900, 1600] — 10%, 45% and
+   80% of the genome — which on four chromosomes of 500 puts one causal SNP on
+   chromosome 1, one on 2 and one on 4. Written out rather than defaulted so the
+   page and the rail name the same three. */
+const CAUSAL = [200, 900, 1600];
+const THR = bonferroni(M);
+const THR_L = -Math.log10(THR);
+
+/* The default cohort. `topology: "nested"` and the pair of Fst values are §4 of
+   the measure script's finding: three equidistant subpopulations give two
+   eigenvalues of equal height, and the lesson's own GRM has 17.28 and 3.08. */
+const BASE = {
+  n: N, m: M, causal: CAUSAL,
+  topology: "nested", fst: 0.05, fstShallow: 0.005,
+  shift: 1, h2snp: 0.12, families: false, sdFamily: 0,
+};
+
+const COST = {};
+const ms = (a, b) => Math.round(b - a);
+
+/** Cohort, relationship matrix and the full eigendecomposition — what the
+    + GRM model needs. */
+function buildFull(name, seed, over = {}) {
+  const t0 = performance.now();
+  const co = simulateCohort(makeRng(seed), { ...BASE, ...over });
+  const t1 = performance.now();
+  const K = grm(co.G);
+  const t2 = performance.now();
+  const eig = eigenSym(K);
+  const t3 = performance.now();
+  COST[name] = { cohort: ms(t0, t1), grm: ms(t1, t2), eigen: ms(t2, t3), total: ms(t0, t3), full: true };
+  return { co, K, eig, seed, over };
+}
+/** Genotypes and a trait only — enough for a scan with no covariates. */
+function buildGeno(name, seed, over = {}) {
+  const t0 = performance.now();
+  const co = simulateCohort(makeRng(seed), { ...BASE, ...over });
+  COST[name] = { cohort: ms(t0, performance.now()), grm: 0, eigen: 0, total: ms(t0, performance.now()), full: false };
+  return { co, seed, over };
+}
+
+/* --- the cohorts this page draws ----------------------------------------- */
+
+const D = buildFull("default", 1);
+const tScan0 = performance.now();
+const SCAN = {
+  none: olsScan(D.co.y, D.co.G, []),
+  pc2: olsScan(D.co.y, D.co.G, pcs(D.eig, 2)),
+  pc5: olsScan(D.co.y, D.co.G, pcs(D.eig, 5)),
+};
+const tScan1 = performance.now();
+SCAN.grm = fastgwa(D.co.y, D.co.G, pcs(D.eig, 5), D.eig);
+const tScan2 = performance.now();
+COST.scans = { threeOls: ms(tScan0, tScan1), fastgwa: ms(tScan1, tScan2) };
+
+/* The control for §2: the same ancestry in the genotypes, no trait difference
+   between subpopulations. No relationship matrix is built for it — nothing is
+   tested against covariates here, which is the point of the panel. */
+const NUL = buildGeno("null", 1, { shift: 0 });
+const SCAN_NULL = olsScan(NUL.co.y, NUL.co.G, []);
+
+const FAM = buildFull("families", 1, { families: true, sdFamily: 1 });
+const FSCAN = { pc5: olsScan(FAM.co.y, FAM.co.G, pcs(FAM.eig, 5)) };
+FSCAN.grm = fastgwa(FAM.co.y, FAM.co.G, pcs(FAM.eig, 5), FAM.eig);
+
+/* SEED 4 AT THE DEFAULT SETTINGS, and it is here because seed 1 does not fall
+   back. §4 is the whole reason this cohort exists — the note there says what
+   the measurement changed. */
+const FB = buildFull("seed 4", 4);
+const FB_REML = remlH2(FB.co.y, [new Float64Array(N).fill(1), ...pcs(FB.eig, 5)], FB.eig);
+
+/* The three ancestry settings the rail offers, scanned SNP only — genotypes and
+   a trait, no relationship matrix, so the two extra cohorts cost one
+   simulateCohort each. */
+const ANCESTRY = {
+  none: { fst: 1e-6, fstShallow: 1e-6, topology: "star" },
+  weak: { fst: 0.02, fstShallow: 0.005 },
+  strong: { fst: 0.05, fstShallow: 0.005 },
+};
+const LADDER = {};
+for (const key of ["none", "weak"]) {
+  const c = buildGeno(`ancestry ${key}`, 1, ANCESTRY[key]);
+  LADDER[key] = summarise(olsScan(c.co.y, c.co.G, []).P, CAUSAL, M);
+}
+
+/* --- readings off the scans ---------------------------------------------- */
+
+const Q = {
+  none: summarise(SCAN.none.P, CAUSAL, M),
+  pc2: summarise(SCAN.pc2.P, CAUSAL, M),
+  pc5: summarise(SCAN.pc5.P, CAUSAL, M),
+  grm: summarise(SCAN.grm.P, CAUSAL, M),
+  nul: summarise(SCAN_NULL.P, CAUSAL, M),
+  fpc5: summarise(FSCAN.pc5.P, CAUSAL, M),
+  fgrm: summarise(FSCAN.grm.P, CAUSAL, M),
+};
+LADDER.strong = Q.none;
+
+const logP = (P) => Float64Array.from(P, (p) => -Math.log10(Math.max(p, 1e-300)));
+const LP = {
+  none: logP(SCAN.none.P), pc2: logP(SCAN.pc2.P), pc5: logP(SCAN.pc5.P), grm: logP(SCAN.grm.P),
+  nul: logP(SCAN_NULL.P), fpc5: logP(FSCAN.pc5.P), fgrm: logP(FSCAN.grm.P),
+};
+/* TWO WHOLE UNITS OF HEADROOM ABOVE THE TALLEST POINT, not one. The causal
+   SNPs' marks are drawn 2 to 8 pixels inside the top edge (see drawManhattan),
+   and one unit of headroom at this panel size is 11px — so the mark and the
+   peak it points at were 3px apart, measured in the browser. Two units is 20px
+   and the mark sits clear of every point. */
+const topOf = (...keys) => Math.max(6, Math.ceil(Math.max(...keys.map((k) => Math.max(...LP[k]))) + 2));
+/* ONE Y AXIS FOR THE THREE MODELS, not one each. The three panels are read
+   against each other, and a per-panel axis draws a genome of false peaks and
+   three true ones at the same height. */
+const TOP_MAIN = topOf("none", "pc5", "grm");
+const TOP_FAM = topOf("fpc5", "fgrm");
+
+/* ==========================================================================
+   Drawing. Every colour is a token read through `readTokens`, every font size
+   is --fs-xs or --fs-sm from the same place.
+   ====================================================================== */
+
+const el = (tag, cls, text) => {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text != null) e.textContent = text;
+  return e;
+};
+const fmt = (v, d = 2) => (Number.isFinite(v) ? v.toFixed(d) : "-");
+const int = (v) => Math.round(v).toLocaleString("en-US");
+/** A P as the reader would see it: four decimals until it needs an exponent. */
+const pfmt = (P) => (P < 1e-4 ? P.toExponential(1) : P.toFixed(4));
+const probe = document.createElement("canvas").getContext("2d");
+
+function textW(s, font) { probe.font = font; return probe.measureText(s).width; }
+/** Shorten a string to fit `maxW` in `font`. Captions are measured, never clipped. */
+function fit(s, font, maxW) {
+  probe.font = font;
+  if (probe.measureText(s).width <= maxW) return s;
+  let out = s;
+  while (out.length > 1 && probe.measureText(out + "…").width > maxW) out = out.slice(0, -1);
+  return out.trimEnd() + "…";
+}
+const capFont = () => `600 ${T.fsSm} ${T.font}`;
+const noteFont = () => `${T.fsXs} ${T.font}`;
+
+function canvasIn(parent, w, h) {
+  const cv = document.createElement("canvas");
+  cv.width = Math.round(w * DPR); cv.height = Math.round(h * DPR);
+  cv.style.width = `${w}px`; cv.style.height = `${h}px`;
+  parent.appendChild(cv);
+  const ctx = cv.getContext("2d");
+  ctx.scale(DPR, DPR);
+  ctx.fillStyle = T.surface; ctx.fillRect(0, 0, w, h);
+  return ctx;
+}
+function cand(parent, title, sub) {
+  const c = el("div", "cand");
+  if (title) c.appendChild(el("h3", null, title));
+  if (sub != null) c.appendChild(el("p", "sub", sub));
+  parent.appendChild(c);
+  return c;
+}
+const mline = (box, text) => { box.appendChild(el("p", "measure", text)); };
+
+/* The caption guard, copied from hardy-weinberg-mock: a caption drawn at a
+   stated place rather than through `plot.caption`, for the one panel that has
+   no plot area — the relationship matrix image. */
+function capAt(ctx, x, y, text, max) {
+  ctx.save();
+  ctx.font = capFont();
+  ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+  const s = fit(text, capFont(), max);
+  ctx.strokeStyle = T.surface; ctx.lineWidth = 3; ctx.strokeText(s, x, y);
+  ctx.fillStyle = T.ink2; ctx.fillText(s, x, y);
+  ctx.restore();
+  return textW(s, capFont());
+}
+function noteAt(ctx, xRight, y, text, max, tone) {
+  ctx.save();
+  ctx.font = noteFont();
+  ctx.textAlign = "right"; ctx.textBaseline = "alphabetic";
+  const s = fit(text, noteFont(), max);
+  ctx.strokeStyle = T.surface; ctx.lineWidth = 3; ctx.strokeText(s, xRight, y);
+  ctx.fillStyle = tone ?? T.ink2; ctx.fillText(s, xRight, y);
+  ctx.restore();
+}
+
+/* --- the Manhattan plot --------------------------------------------------- */
+
+const chrOf = (j) => Math.floor(j / PER_CHR);
+const CHR_TICKS = Array.from({ length: NCHR }, (_, c) => (c + 0.5) * PER_CHR);
+
+/**
+ * THE THRESHOLD LINE CARRIES NO LABEL ON THE LINE, AND THAT IS A MEASUREMENT.
+ *
+ * The lesson's own Manhattan plot prints `5e-08` at the top left, on the line —
+ * so that was the first version here, with three positions tried in order
+ * (right of the line, left of it, the middle) and the first clear one taken.
+ * This function is what measured it, and it is kept because the answer is the
+ * reason the label moved: at `SNP only` **every one of the three boxes holds a
+ * drawn point**, at 300px and at 496px alike. There are 96 SNPs above the line
+ * and 2,000 below it, and a label sitting on the line has nowhere on this
+ * figure to go. It is the panel the reader needs the threshold named on most.
+ *
+ * So the threshold is named in the panel's own note instead — `96 past
+ * 0.05 / 2,000`, on the caption row, which is the one row nothing is ever drawn
+ * on — and the line is left as a line. The count per box is printed under §7.
+ */
+function thresholdClearance(plot, rect, pts, text) {
+  const w = textW(text, noteFont()) + 8;
+  const h = 13;
+  const ly = plot.sy(THR_L) - 5;
+  return [
+    { key: "right", x: rect.x + rect.w - w - 2 },
+    { key: "left", x: rect.x + 2 },
+    { key: "middle", x: rect.x + (rect.w - w) / 2 },
+  ].map((b) => {
+    const y = ly - h + 2;
+    const n = pts.filter((p) => p.x >= b.x - 2 && p.x <= b.x + w + 2
+      && p.y >= y - 2 && p.y <= y + h + 2).length;
+    return `${b.key} ${n}`;
+  }).join(", ");
+}
+
+const PLACEMENTS = [];
+
+/**
+ * One Manhattan plot. `lp` is the whole genome's −log₁₀P; `upTo` is how many
+ * SNPs have been tested so far, which is the only thing the run in §6 changes.
+ */
+function drawManhattan(ctx, rect, lp, opts = {}) {
+  const {
+    caption, note, noteTone, upTo = M, testing = null, top = TOP_MAIN,
+    yLabel = "−log₁₀P", xLabel = "chromosome", r = 1.6,
+  } = opts;
+  const plot = makePlot({ ctx, colors: T, rect, xDomain: [0, M], yDomain: [0, top] });
+  if (caption) plot.caption(fit(caption, capFont(), rect.w + 22));
+  if (note) plot.note(fit(note, noteFont(), rect.w * 0.62), { tone: noteTone });
+
+  /* the threshold first, so the points sit over it */
+  const ty = Math.round(plot.sy(THR_L)) + 0.5;
+  ctx.save();
+  ctx.strokeStyle = T.reference; ctx.lineWidth = 1; ctx.setLineDash([5, 4]);
+  ctx.beginPath(); ctx.moveTo(rect.x, ty); ctx.lineTo(rect.x + rect.w, ty); ctx.stroke();
+  ctx.restore();
+
+  /* The points. Two passes of --c-empirical — which chromosome the SNP is on
+     decides the weight — then the ones past the line, drawn last in
+     --c-extreme so nothing covers them. Both coordinate lists are kept because
+     the threshold label's placement is tested against every point drawn. */
+  const past = [];
+  const body = [];
+  ctx.save();
+  for (const band of [0, 1]) {
+    ctx.globalAlpha = band ? 0.42 : 0.95;
+    ctx.fillStyle = T.empirical;
+    ctx.beginPath();
+    for (let j = 0; j < upTo; j += 1) {
+      if (chrOf(j) % 2 !== band) continue;
+      const y = plot.sy(Math.min(lp[j], top));
+      const x = plot.sx(j);
+      if (lp[j] >= THR_L) { past.push({ j, x, y }); continue; }
+      ctx.moveTo(x + r, y);
+      ctx.arc(x, y, r, 0, Math.PI * 2);
+      body.push({ x, y });
+    }
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = T.extreme;
+  ctx.beginPath();
+  for (const p of past) { ctx.moveTo(p.x + r + 0.4, p.y); ctx.arc(p.x, p.y, r + 0.4, 0, Math.PI * 2); }
+  ctx.fill();
+  ctx.restore();
+
+  /* THE TRUTH: where the three causal SNPs actually are, as hollow marks inside
+     the TOP edge of the plot area, pointing down at the column each one is in.
+     Under the axis was the first place they went and it is where the chromosome
+     tick labels are — 6px of clear air between the baseline and the tick row,
+     and a 6px mark. The top edge has the headroom instead: the y axis runs to
+     one whole unit above the tallest point, which is 11px at this panel size.
+     Outline rather than filled, because the answer is a reference and not one
+     of the tests. */
+  ctx.save();
+  ctx.strokeStyle = T.reference; ctx.lineWidth = 1.2; ctx.lineJoin = "round";
+  for (const j of CAUSAL) {
+    /* A CAUSAL SNP'S MARK ARRIVES WITH ITS OWN TEST, and never before one.
+       Drawn unconditionally, the first still of §6's run — the variance step
+       done, no SNP tested — printed all three marks, which is the widget
+       opening on its own answer (2.1) and a figure printing what the visible
+       data cannot support (2.11). `j < upTo` is the whole fix: at rest nothing
+       is marked, and during the run the truth reaches a column at the moment
+       the test does. */
+    if (j >= upTo) continue;
+    const x = plot.sx(j);
+    ctx.beginPath();
+    ctx.moveTo(x - 4, rect.y + 2); ctx.lineTo(x + 4, rect.y + 2); ctx.lineTo(x, rect.y + 8);
+    ctx.closePath();
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  PLACEMENTS.push(`${caption ?? "panel"} at ${rect.w}px → `
+    + `${thresholdClearance(plot, rect, past.concat(body), "0.05 / 2,000")}`);
+
+  plot.axisX({ ticks: CHR_TICKS, format: (v) => String(Math.round(v / PER_CHR - 0.5) + 1), label: xLabel });
+  plot.axisY({ label: yLabel });
+
+  /* WHICH SNP IS BEING TESTED, AS A CURSOR AND NOT AS A READING. The first
+     version drew a full-height rule in --c-highlight from the baseline to the
+     top of the plot area, and on an axis that runs to 19 that rule is the
+     tallest mark on the figure — it reads as a test that came back at −log₁₀P
+     19, at a SNP whose own value is about 1. A cursor may not be drawn as a
+     quantity on the quantity's own axis.
+
+     So: the SNP's own point, drawn large at its own height, and a short tick
+     under the baseline saying which column it is in. Drawn after the axes,
+     because the chromosome tick row starts 6px under the baseline and would
+     otherwise be painted over the tick. */
+  if (testing != null && testing >= 0 && testing < M) {
+    const x = Math.round(plot.sx(testing)) + 0.5;
+    ctx.save();
+    ctx.strokeStyle = T.highlight; ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(x, rect.y + rect.h + 1);
+    ctx.lineTo(x, rect.y + rect.h + 9);
+    ctx.stroke();
+    ctx.restore();
+    /* The point only once the test has landed. Ahead of `upTo` the SNP has no
+       −log₁₀P yet and drawing one would print a value the run has not computed
+       (2.11); the tick alone says where the run has got to. */
+    if (testing < upTo) plot.dot(testing, Math.min(lp[testing], top), { fill: T.highlight, r: 4 });
+  }
+  return plot;
+}
+
+/* --- the QQ plot ---------------------------------------------------------- */
+
+/* ONE CEILING FOR EVERY QQ PLOT ON THE PAGE, and it is below the tallest point.
+   The expected −log₁₀P of 2,000 tests runs to 3.6 and a causal SNP here comes
+   back at 11 to 17, so equal scales tall enough to hold the tail put the whole
+   BODY of the plot — the thing the reader is asked to read — in the bottom
+   fifth of the panel. The ceiling is 6: past the corrected threshold's 4.60,
+   so a point crossing the line is visible crossing it, and high enough that
+   nothing in the body is touched.
+
+   POINTS ABOVE THE CEILING ARE NOT DRAWN AT IT. Drawn at it they became a flat
+   run of 33 marks along the top edge of the SNP-only panels — a shape the data
+   does not have, and one that says 33 tests came back at exactly 6. The panel
+   prints how many are past the ceiling instead, at its own top right, and the
+   count is repeated in the measured line under each panel. The tail's real
+   height is what the Manhattan plot beside it is for. */
+const QQ_TOP = 6;
+const QQ_ABOVE = [];
+/** The panel's own line for the tests past its ceiling. */
+const aboveNote = (n) => `${n} above`;
+let QQ_MEASURE_TEXT = "";
+
+/** Observed against expected −log₁₀P, from the tests run so far. */
+function qqPoints(P, upTo = P.length) {
+  const s = Array.prototype.slice.call(P, 0, upTo).sort((a, b) => a - b);
+  const k = s.length;
+  const out = new Array(k);
+  for (let i = 0; i < k; i += 1) {
+    out[i] = [-Math.log10((i + 0.5) / k), -Math.log10(Math.max(s[i], 1e-300))];
+  }
+  return out;
+}
+
+/**
+ * `yLabel` is null wherever the QQ plot shares a canvas with the Manhattan
+ * plot: `axisY`'s rotated label is drawn 40px left of the plot area, which on a
+ * QQ plot at x = 376 is x = 336 — inside the Manhattan plot, which ends at 346.
+ * Measured, not guessed. The panel names its y quantity in the caption instead.
+ */
+function drawQQ(ctx, rect, P, opts = {}) {
+  const {
+    caption, note, noteTone, upTo = P.length, top = null, r = 1.3,
+    yLabel = null, xLabel = "expected −log₁₀P", axes = true, id = null,
+  } = opts;
+  const pts = qqPoints(P, upTo);
+  const hi = top ?? QQ_TOP;
+  const above = pts.filter((p) => p[1] > hi).length;
+  QQ_ABOVE.push({ id: id ?? caption ?? "QQ", n: above });
+  const plot = makePlot({ ctx, colors: T, rect, xDomain: [0, hi], yDomain: [0, hi] });
+  const capText = caption ? fit(caption, capFont(), rect.w) : null;
+  const noteText = note ? fit(note, noteFont(), rect.w * 0.6) : null;
+  if (capText) plot.caption(capText);
+  if (noteText) plot.note(noteText, { tone: noteTone });
+  /* the null: where the points lie when no SNP is associated and nothing is
+     confounding the tests */
+  plot.curve([[0, 0], [hi, hi]], { stroke: T.theory, width: 1.5 });
+  ctx.save();
+  ctx.fillStyle = T.empirical;
+  ctx.beginPath();
+  for (const [ex, ob] of pts) {
+    if (ob > hi) continue;
+    const x = plot.sx(ex); const y = plot.sy(ob);
+    ctx.moveTo(x + r, y); ctx.arc(x, y, r, 0, Math.PI * 2);
+  }
+  ctx.fill();
+  ctx.restore();
+  /* The count, inside the panel's top right — the corner the identity line
+     reaches only at its very end and no point on this page occupies, because
+     expected −log₁₀P for 2,000 tests stops at 3.6 of the ceiling's 6.
+     `plot.note` DROPS ITS OWN LINE INTO THAT CORNER when the caption leaves it
+     no room on the caption row (canvas.js), which the 120px panel in §3A does,
+     so the condition is restated here and this line goes under it. The plot
+     does not report which of the two places it chose. */
+  if (above > 0) {
+    const capW = capText ? textW(capText, capFont()) : 0;
+    const noteDropped = noteText && rect.w - textW(noteText, noteFont()) < capW + 14;
+    noteAt(ctx, rect.x + rect.w - 3, rect.y + (noteDropped ? 29 : 14),
+      aboveNote(above), rect.w * 0.5, T.ink3);
+  }
+  if (axes) {
+    plot.axisX({ label: xLabel });
+    plot.axisY(yLabel ? { label: yLabel } : {});
+  }
+  return { plot, above };
+}
+
+/* --- the PC scatter ------------------------------------------------------- */
+
+function drawPCA(ctx, rect, eig, pop, opts = {}) {
+  const { caption, note, r = 2.6, labels = true } = opts;
+  const a = eig.vectors[0];
+  const b = eig.vectors[1];
+  const padded = (v) => {
+    const lo = Math.min(...v); const hi = Math.max(...v);
+    const m = (hi - lo) * 0.08;
+    return [lo - m, hi + m];
+  };
+  const plot = makePlot({ ctx, colors: T, rect, xDomain: padded(a), yDomain: padded(b) });
+  if (caption) plot.caption(fit(caption, capFont(), rect.w + 20));
+  if (note) plot.note(fit(note, noteFont(), rect.w * 0.6));
+  for (let i = 0; i < pop.length; i += 1) plot.dot(a[i], b[i], { fill: T.clusters[pop[i]], r });
+  /* No tick values: an eigenvector's entries are on no scale the reader has,
+     and the reading is which points sit together. */
+  plot.axisX({ ticks: [], label: labels ? "PC1" : undefined });
+  plot.axisY({ ticks: [], label: labels ? "PC2" : undefined });
+  return plot;
+}
+
+/* --- the relationship matrix as an image ---------------------------------- */
+
+function rgbOf(c) {
+  const s = String(c).trim();
+  if (s.startsWith("#")) {
+    const h = s.length === 4 ? s.slice(1).split("").map((x) => x + x).join("") : s.slice(1, 7);
+    return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
+  }
+  const m = s.match(/-?\d+(\.\d+)?/g);
+  return m && m.length >= 3 ? [+m[0], +m[1], +m[2]] : [128, 128, 128];
+}
+const mix = (a, b, t) => a.map((v, i) => Math.round(v + (b[i] - v) * t));
+
+/* THE CAP IS SHARED BY BOTH STATES, at ±0.25. The off-diagonal entries without
+   families run about −0.13 to 0.17, with families to 0.67 at a sibling pair,
+   and the diagonal is about 1. A cap fitted to each panel would draw the
+   population blocks at two different strengths in the two panels, which is the
+   one comparison the pair exists to make; a cap at the sibling pairs' value
+   would leave the population blocks invisible. Both panels are drawn at ±0.25
+   and the measured line under each says what is clipped. */
+const GRM_CAP = 0.25;
+
+function drawGRMImage(ctx, rect, K, opts = {}) {
+  const { caption, note } = opts;
+  const n = K.length;
+  /* One cell one pixel in an off-screen image, then drawn up to the panel with
+     smoothing off: a 300 × 300 matrix in a 250px panel is 0.83 device pixels a
+     cell, and interpolating them would blur the block structure that is the
+     whole reading. */
+  const off = document.createElement("canvas");
+  off.width = n; off.height = n;
+  const octx = off.getContext("2d");
+  const img = octx.createImageData(n, n);
+  const lo = rgbOf(T.valueLow);
+  const hi = rgbOf(T.valueHigh);
+  const base = rgbOf(T.surface);
+  for (let i = 0; i < n; i += 1) {
+    for (let j = 0; j < n; j += 1) {
+      const v = Math.max(-1, Math.min(1, K[i][j] / GRM_CAP));
+      const c = v >= 0 ? mix(base, hi, v) : mix(base, lo, -v);
+      const o = (i * n + j) * 4;
+      img.data[o] = c[0]; img.data[o + 1] = c[1]; img.data[o + 2] = c[2]; img.data[o + 3] = 255;
+    }
+  }
+  octx.putImageData(img, 0, 0);
+  if (caption) capAt(ctx, rect.x, rect.y - 10, caption, rect.w + 30);
+  if (note) noteAt(ctx, rect.x + rect.w, rect.y - 10, note, rect.w * 0.55);
+  ctx.save();
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(off, rect.x, rect.y, rect.w, rect.h);
+  ctx.strokeStyle = T.grid; ctx.lineWidth = 1;
+  ctx.strokeRect(rect.x + 0.5, rect.y + 0.5, rect.w - 1, rect.h - 1);
+  ctx.restore();
+  ctx.save();
+  ctx.font = noteFont(); ctx.fillStyle = T.ink3;
+  ctx.textAlign = "center"; ctx.textBaseline = "top";
+  ctx.fillText("300 people, both ways", rect.x + rect.w / 2, rect.y + rect.h + 6);
+  ctx.restore();
+}
+
+function grmRange(K) {
+  let lo = Infinity; let hi = -Infinity; let dlo = Infinity; let dhi = -Infinity;
+  for (let i = 0; i < K.length; i += 1) {
+    for (let j = 0; j < K.length; j += 1) {
+      if (i === j) { dlo = Math.min(dlo, K[i][j]); dhi = Math.max(dhi, K[i][j]); }
+      else { lo = Math.min(lo, K[i][j]); hi = Math.max(hi, K[i][j]); }
+    }
+  }
+  return { lo, hi, dlo, dhi };
+}
+
+/* --- the readout tiles ---------------------------------------------------- */
+
+function readoutFor(host, tiles, caption) {
+  const box = el("div", "w-readout");
+  for (const tile of tiles) {
+    const w = el("div");
+    w.appendChild(el("span", "w-stat-label", tile.label));
+    const v = el("span", "w-stat-value", tile.value);
+    if (tile.tone) v.style.color = tile.tone;
+    w.appendChild(v);
+    if (tile.note) w.appendChild(el("span", "w-stat-note", tile.note));
+    box.appendChild(w);
+  }
+  const wrap = el("div", "stage-host");
+  if (caption) wrap.appendChild(el("p", "measure", caption));
+  wrap.appendChild(box);
+  host.appendChild(wrap);
+  return box;
+}
+
+/* ==========================================================================
+   §0 · the title and the subtitle
+   ====================================================================== */
+
+const TITLES = [
+  { key: "A", text: "Genome-Wide Association" },
+  { key: "B", text: "Genome-Wide Association Studies" },
+];
+const SUBTITLES = [
+  { key: "A", claims: "three claims",
+    text: "A genome-wide association study tests every SNP against the trait separately. "
+      + "Ancestry differences between subpopulations enter every one of those tests, and principal "
+      + "components and the genetic relationship matrix remove them." },
+  { key: "B", claims: "two claims",
+    text: "A genome-wide association study tests every SNP against the trait separately, so a "
+      + "difference between ancestries is found at every SNP at once. The mixed model estimates that "
+      + "structure once and takes it out of every test." },
+];
+{
+  const row = document.getElementById("titleRow");
+  SUBTITLES.forEach((s, i) => {
+    const box = el("div", "cand");
+    box.appendChild(el("p", "pagehead", `title ${TITLES[i].key} · subtitle ${s.key}, ${s.claims}`));
+    const host = el("div", "stage-host");
+    const heading = el("div", "w-heading");
+    heading.appendChild(el("h1", "w-title", TITLES[i].text));
+    heading.appendChild(el("p", "w-subtitle", s.text));
+    host.appendChild(heading);
+    box.appendChild(host);
+    box.appendChild(el("p", "measure",
+      `title ${TITLES[i].text.length} characters · subtitle ${s.text.length} characters · `
+      + `${s.text.split(/(?<=\.)\s+/).length} sentences`));
+    row.appendChild(box);
+  });
+}
+
+/* ==========================================================================
+   §1 · the Manhattan plot, and what has to be beside it
+   ====================================================================== */
+
+const MODELS = [
+  { key: "none", label: "SNP only", scan: () => SCAN.none, lp: () => LP.none, q: () => Q.none },
+  { key: "pc5", label: "+ 5 PCs", scan: () => SCAN.pc5, lp: () => LP.pc5, q: () => Q.pc5 },
+  { key: "grm", label: "+ 5 PCs + GRM", scan: () => SCAN.grm, lp: () => LP.grm, q: () => Q.grm },
+];
+/* THE MANHATTAN PLOT'S NOTE NAMES THE THRESHOLD, because the line cannot carry
+   its own label (see `thresholdClearance` above). λ is left off wherever the QQ
+   plot is on the same panel and already prints it — the same number twice on
+   one figure is one of them saying nothing. */
+const manNote = (q, withLambda = false) =>
+  `${withLambda ? `λ ${fmt(q.lambda)} · ` : ""}${q.hits} past 0.05 / 2,000`;
+/** How many of the first `k` tests are past the line — §6's running count. */
+const hitsTo = (P, k) => {
+  let n = 0;
+  for (let j = 0; j < k; j += 1) if (P[j] < THR) n += 1;
+  return n;
+};
+
+/* PANEL GEOMETRY, STATED ONCE AND MEASURED AGAINST THE AXIS PRIMITIVES.
+   550 of width is 46 of y-axis gutter, the Manhattan plot, a 30px gap, a SQUARE
+   QQ plot and 8 of right margin. The heights are set by `axisX`, which puts its
+   tick row at the baseline + 6 and its label at the baseline + 22: a 188px plot
+   starting at y 36 ends at 224, ticks at 230 and the label at 246, which is
+   inside 260 of canvas. The first version was 200px tall starting at 40 and its
+   axis label was drawn at 262 — two pixels off the bottom of the canvas. */
+const PANEL = { w: 550, h: 260 };
+const MAN_RECT = { x: 52, y: 36, w: 294, h: 188 };
+const QQ_RECT = { x: 376, y: 52, w: 166, h: 166 };
+const MAN_WIDE = { x: 52, y: 36, w: 490, h: 188 };
+
+{
+  const row = document.getElementById("skyRow");
+  const sub = "nested ancestry FST 0.005 / 0.05 · trait difference 1 SD\n"
+    + "3 causal SNPs at 0.12 · no families · seed 1 · one y axis for every panel";
+  {
+    const box = cand(row, "A · the Manhattan plot alone", sub);
+    for (const key of ["none", "pc5"]) {
+      const m = MODELS.find((x) => x.key === key);
+      const ctx = canvasIn(box, PANEL.w, PANEL.h);
+      drawManhattan(ctx, MAN_WIDE, m.lp(), { caption: m.label, note: manNote(m.q(), true) });
+    }
+    mline(box, `y axis 0 to ${TOP_MAIN} on both · the threshold is −log₁₀P ${fmt(THR_L)}\n`
+      + `SNP only: λ ${fmt(Q.none.lambda)} · ${Q.none.hits} past the line, ${Q.none.fp} of them at no `
+      + `causal SNP · ${Q.none.power * 3} of 3 causal SNPs found\n`
+      + `+ 5 PCs: λ ${fmt(Q.pc5.lambda)} · ${Q.pc5.hits} past the line, ${Q.pc5.fp} at no causal SNP · `
+      + `${Q.pc5.power * 3} of 3 causal SNPs found`);
+  }
+  {
+    const box = cand(row, "B · the Manhattan plot and the QQ plot, under all three models", sub);
+    for (const m of MODELS) {
+      const ctx = canvasIn(box, PANEL.w, PANEL.h);
+      drawManhattan(ctx, MAN_RECT, m.lp(), { caption: m.label, note: manNote(m.q()) });
+      drawQQ(ctx, QQ_RECT, m.scan().P, {
+        caption: "observed −log₁₀P", note: `λ ${fmt(m.q().lambda)}`, id: `§1B ${m.label}`,
+      });
+    }
+    mline(box, MODELS.map((m) => {
+      const q = m.q();
+      return `${m.label}: λ ${fmt(q.lambda)} · ${q.fp} at no causal SNP · ${q.power * 3}/3 causal found · `
+        + `${fmt(100 * q.frac05, 1)}% under P < 0.05`;
+    }).join("\n"));
+  }
+}
+
+/* ==========================================================================
+   §2 · what the QQ plot is for
+   ====================================================================== */
+
+{
+  const row = document.getElementById("qqRow");
+  const panels = [
+    { head: "SNP only", P: SCAN.none.P, q: Q.none, sub: "the default cohort\ntrait difference 1 SD" },
+    { head: "+ 2 PCs", P: SCAN.pc2.P, q: Q.pc2, sub: "the same cohort\nthe same trait" },
+    { head: "no trait difference", P: SCAN_NULL.P, q: Q.nul,
+      sub: "the same ancestry\ntrait difference 0 · SNP only" },
+  ];
+  for (const p of panels) {
+    const box = cand(row, p.head, p.sub);
+    const ctx = canvasIn(box, 240, 250);
+    drawQQ(ctx, { x: 52, y: 36, w: 174, h: 174 }, p.P, {
+      caption: p.head, note: `λ ${fmt(p.q.lambda)}`, r: 1.1, yLabel: "observed",
+      id: `§2 ${p.head}`,
+    });
+    mline(box, `λ ${fmt(p.q.lambda)}\n${fmt(100 * p.q.frac05, 1)}% under P < 0.05\n${p.q.fp} past the line`);
+  }
+  QQ_MEASURE_TEXT =
+    `Under the null 5% of SNPs fall under P < 0.05. SNP only puts ${fmt(100 * Q.none.frac05, 1)}% there, `
+    + `+ 2 PCs ${fmt(100 * Q.pc2.frac05, 1)}%, and the cohort with the same ancestry and no trait `
+    + `difference ${fmt(100 * Q.nul.frac05, 1)}% — so the lift is along the whole length and not only `
+    + `at the tail.`;
+}
+
+/* ==========================================================================
+   §3 · the cohort
+   ====================================================================== */
+
+const A3 = { w: 550, h: 380 };
+{
+  const rowA = document.getElementById("cohortRowA");
+  const box = cand(rowA, "A · the PC scatter on the same stage as the test",
+    "the default cohort · + 5 PCs\nthe scatter under the QQ plot, in the column beside the Manhattan plot");
+  const ctx = canvasIn(box, A3.w, A3.h);
+  drawManhattan(ctx, { x: 52, y: 36, w: 294, h: 296 }, LP.pc5, {
+    caption: "+ 5 PCs", note: manNote(Q.pc5),
+  });
+  drawQQ(ctx, { x: 400, y: 36, w: 120, h: 120 }, SCAN.pc5.P, {
+    caption: "observed −log₁₀P", note: `λ ${fmt(Q.pc5.lambda)}`, r: 1.0, id: "§3A + 5 PCs",
+  });
+  drawPCA(ctx, { x: 400, y: 224, w: 120, h: 120 }, D.eig, D.co.pop, { r: 1.9 });
+  mline(box, `the stage is ${A3.w} × ${A3.h} before the readout tiles, against §1B's ${PANEL.w} × ${PANEL.h}\n`
+    + `relationship-matrix eigenvalues ${Array.from(D.eig.values).slice(0, 4).map((v) => fmt(v)).join(" · ")} — `
+    + `ratio λ1/λ2 ${fmt(D.eig.values[0] / D.eig.values[1])} against the lesson's 5.6`);
+}
+{
+  const row = document.getElementById("cohortRowB");
+  {
+    const box = cand(row, "B · the scatter at 300px", "the default cohort\nno families");
+    const ctx = canvasIn(box, 300, 312);
+    drawPCA(ctx, { x: 54, y: 34, w: 222, h: 224 }, D.eig, D.co.pop, {
+      caption: "the first two principal components",
+    });
+    const idx = [0, 1, 2].map((k) => {
+      const who = [...D.co.pop].map((p, i) => (p === k ? i : -1)).filter((i) => i >= 0);
+      const m1 = who.reduce((a, i) => a + D.eig.vectors[0][i], 0) / who.length;
+      const m2 = who.reduce((a, i) => a + D.eig.vectors[1][i], 0) / who.length;
+      return `pop ${k + 1} (${who.length}) PC1 ${fmt(m1, 3)} PC2 ${fmt(m2, 3)}`;
+    });
+    mline(box, `${idx.join("\n")}`);
+  }
+  {
+    const box = cand(row, "B · relatedness, families = none", "the same cohort\n300 × 300 pairs, one pixel each");
+    const ctx = canvasIn(box, 300, 312);
+    drawGRMImage(ctx, { x: 25, y: 40, w: 250, h: 250 }, D.K, {
+      caption: "relatedness, every pair", note: "no families",
+    });
+    const r0 = grmRange(D.K);
+    mline(box, `off-diagonal ${fmt(r0.lo, 3)} to ${fmt(r0.hi, 3)}\ndiagonal ${fmt(r0.dlo, 2)} to ${fmt(r0.dhi, 2)}\n`
+      + `ramp capped at ±${GRM_CAP}`);
+  }
+  {
+    const box = cand(row, "B · the same, families = sibships of 4", "75 sibships of four\nthe same ancestry");
+    const ctx = canvasIn(box, 300, 312);
+    drawGRMImage(ctx, { x: 25, y: 40, w: 250, h: 250 }, FAM.K, {
+      caption: "relatedness, every pair", note: "sibships of 4",
+    });
+    const rf = grmRange(FAM.K);
+    mline(box, `off-diagonal ${fmt(rf.lo, 3)} to ${fmt(rf.hi, 3)}\ndiagonal ${fmt(rf.dlo, 2)} to ${fmt(rf.dhi, 2)}\n`
+      + `ramp capped at ±${GRM_CAP}`);
+  }
+}
+
+/* ==========================================================================
+   §4 · the variance step, and the case where it finds nothing
+   ====================================================================== */
+
+const FALLBACK_LINE = "The variance step found no genetic variance, so each SNP is tested by linear regression.";
+const GCTA_LINE = "the estimate of Vg is not statistically significant … the program will use "
+  + "linear regression for association test";
+
+const varTiles = (re) => [
+  { label: "Genetic variance", value: fmt(re.Vg, 3), note: "Vg, shared in proportion to relatedness" },
+  { label: "Residual variance", value: fmt(re.Ve, 3), note: "Ve, independent between people" },
+  { label: "Heritability", value: fmt(re.h2, 2), note: "Vg / (Vg + Ve)" },
+  { label: "P for Vg = 0", value: pfmt(re.P), note: "likelihood ratio test, halved at the boundary",
+    tone: re.P > 0.05 ? "var(--c-unknown)" : null },
+];
+
+const VAR_STATES = [
+  { head: "no families, seed 1", re: SCAN.grm.reml, fell: SCAN.grm.fellBack },
+  { head: "no families, seed 4 — the same settings", re: FB_REML, fell: FB_REML.P > 0.05 },
+  { head: "sibships of 4, family effect 1 SD", re: FSCAN.grm.reml, fell: FSCAN.grm.fellBack },
+];
+
+{
+  const row = document.getElementById("varRow");
+  {
+    const box = cand(row, "A · the readout tiles", "three states of the same four tiles\n+ 5 PCs in every one");
+    for (const s of VAR_STATES) {
+      readoutFor(box, varTiles(s.re), s.head);
+      if (s.fell) {
+        const p = el("p", "measure", FALLBACK_LINE);
+        p.style.color = "var(--ink-2)";
+        box.appendChild(p);
+      }
+    }
+  }
+  {
+    const box = cand(row, "B · the tiles with Vg against Ve as a bar", "the same three states");
+    for (const s of VAR_STATES) {
+      readoutFor(box, varTiles(s.re), s.head);
+      const ctx = canvasIn(box, 550, 116);
+      const top = Math.max(0.12, s.re.Vg + s.re.Ve) * 1.2;
+      const plot = makePlot({
+        ctx, colors: T, rect: { x: 52, y: 30, w: 294, h: 58 }, xDomain: [0, 2], yDomain: [0, top],
+      });
+      plot.bars([s.re.Vg, 0], { lo: 0, width: 1, fill: T.empirical });
+      plot.bars([0, s.re.Ve], { lo: 0, width: 1, fill: T.reference });
+      plot.axisX({ ticks: [0.5, 1.5], format: (v) => (v < 1 ? "Vg" : "Ve") });
+      plot.axisY({ label: "variance", format: (v) => v.toFixed(1) });
+      if (s.fell) noteAt(ctx, 540, 24, "Vg is not distinguishable from zero", 320, T.ink2);
+    }
+  }
+  document.getElementById("varMeasure").textContent = VAR_STATES.map((s) =>
+    `${s.head}: Vg ${fmt(s.re.Vg, 3)} · Ve ${fmt(s.re.Ve, 3)} · h² ${fmt(s.re.h2, 3)} · `
+    + `LRT ${fmt(s.re.lrt, 2)} · P ${pfmt(s.re.P)}`
+    + `${s.fell ? " → falls back to linear regression" : " → the relationship matrix is used"}`).join("\n");
+}
+
+/* ==========================================================================
+   §5 · families
+   ====================================================================== */
+
+{
+  const row = document.getElementById("famRow");
+  const box = cand(row, "families on: + 5 PCs, then + 5 PCs + GRM",
+    "75 sibships of 4 · family effect 1 SD\nthe same ancestry and the same three causal SNPs · seed 1");
+  const panels = [
+    { label: "+ 5 PCs", P: FSCAN.pc5.P, lp: LP.fpc5, q: Q.fpc5 },
+    { label: "+ 5 PCs + GRM", P: FSCAN.grm.P, lp: LP.fgrm, q: Q.fgrm },
+  ];
+  for (const p of panels) {
+    const ctx = canvasIn(box, PANEL.w, PANEL.h);
+    drawManhattan(ctx, MAN_RECT, p.lp, { caption: p.label, note: manNote(p.q), top: TOP_FAM });
+    drawQQ(ctx, QQ_RECT, p.P, {
+      caption: "observed −log₁₀P", note: `λ ${fmt(p.q.lambda)}`, id: `§5 ${p.label}`,
+    });
+  }
+  document.getElementById("famMeasure").textContent =
+    `+ 5 PCs: λ ${fmt(Q.fpc5.lambda)} · ${Q.fpc5.fp} past the line at no causal SNP · `
+    + `${fmt(100 * Q.fpc5.frac05, 1)}% under P < 0.05\n`
+    + `+ 5 PCs + GRM: λ ${fmt(Q.fgrm.lambda)} · ${Q.fgrm.fp} at no causal SNP · `
+    + `${fmt(100 * Q.fgrm.frac05, 1)}% under P < 0.05 · ĥ² ${fmt(FSCAN.grm.reml.h2, 2)}, `
+    + `LRT P ${pfmt(FSCAN.grm.reml.P)}\n`
+    + `y axis 0 to ${TOP_FAM} on both, its own and not §1's`;
+}
+
+/* ==========================================================================
+   §6 · the two steps, as a run
+   ====================================================================== */
+
+/* PACING. 2,000 tests at 60 frames a second: one SNP a frame is 33 seconds, so
+   a frame carries a batch. At 10 a frame the run is 200 frames — 3.3 s — and
+   one chromosome of 500 is 50 frames, 0.83 s, which is long enough to see a
+   band arrive and short enough that nobody waits for the fourth. Step is ONE
+   SNP, not a batch: Step is the beat that shows a single test landing, and a
+   batch of ten would make the highlighted SNP a lie about what just happened. */
+const BATCH = { slow: 4, medium: 10, fast: 25 };
+const STILLS = [0, 200, M];
+const lambdaTo = (k) => lambda(SCAN.pc5.P.slice(0, k));
+
+{
+  const row = document.getElementById("walkRow");
+  const box = cand(row, "three stills of one Play run, + 5 PCs",
+    "the default cohort · 10 SNPs a frame\nthe variance step first, then one test per SNP");
+  for (const k of STILLS) {
+    const ctx = canvasIn(box, PANEL.w, PANEL.h);
+    const cap = k === 0 ? "+ 5 PCs — the variance step, no SNP tested yet"
+      : `+ 5 PCs — ${int(k)} of ${int(M)} tested`;
+    drawManhattan(ctx, MAN_RECT, LP.pc5, {
+      caption: cap, upTo: k, testing: k > 0 && k < M ? k - 1 : null,
+      note: k ? `${hitsTo(SCAN.pc5.P, k)} past 0.05 / 2,000` : null,
+    });
+    drawQQ(ctx, QQ_RECT, SCAN.pc5.P, {
+      upTo: k, caption: "observed −log₁₀P",
+      note: k ? `λ ${fmt(lambdaTo(k))}` : null, id: `§6 after ${int(k)}`,
+    });
+  }
+  document.getElementById("walkMeasure").textContent =
+    `λ after 200 SNPs ${fmt(lambdaTo(200))} · after 2,000 ${fmt(Q.pc5.lambda)}\n`
+    + `run length at 60 fps — slow ${BATCH.slow}/frame: ${M / BATCH.slow} frames, `
+    + `${fmt(M / BATCH.slow / 60, 1)} s · medium ${BATCH.medium}/frame: ${M / BATCH.medium} frames, `
+    + `${fmt(M / BATCH.medium / 60, 1)} s · fast ${BATCH.fast}/frame: ${M / BATCH.fast} frames, `
+    + `${fmt(M / BATCH.fast / 60, 1)} s\n`
+    + `one chromosome of ${PER_CHR} SNPs at medium is ${PER_CHR / BATCH.medium} frames, `
+    + `${fmt(PER_CHR / BATCH.medium / 60, 2)} s`;
+}
+
+/* ==========================================================================
+   §7 · the rail
+   ====================================================================== */
+
+const field = (label, detail) => {
+  const f = el("div", "w-field");
+  if (label) { const l = el("label"); l.appendChild(el("span", null, label)); f.appendChild(l); }
+  if (detail != null) f.appendChild(el("p", "w-detail", detail));
+  return f;
+};
+const put = (f, node) => {
+  const d = f.querySelector(".w-detail");
+  if (d) f.insertBefore(node, d); else f.appendChild(node);
+};
+function segRun(f, opts, on, mode) {
+  const s = el("div", mode === "grid" ? "w-seg w-seg-grid" : "w-seg");
+  s.setAttribute("role", "group");
+  for (const o of opts) {
+    const label = typeof o === "string" ? o : o.label;
+    const b = el("button", (typeof o === "object" && o.span) ? "w-seg-btn w-seg-btn--span" : "w-seg-btn");
+    b.type = "button";
+    b.dataset.value = label;
+    b.textContent = label;
+    b.setAttribute("aria-pressed", String(label === on));
+    s.appendChild(b);
+  }
+  put(f, s);
+  return s;
+}
+/** Core's `float`/`int`: a label carrying its value, and a range. */
+function numberField(host, label, value, detail) {
+  const f = el("div", "w-field");
+  const l = el("label");
+  l.appendChild(el("span", null, label));
+  l.appendChild(el("span", "val", value));
+  f.appendChild(l);
+  const r = el("input");
+  r.type = "range"; r.min = "0"; r.max = "1"; r.step = "0.01"; r.value = "0.5";
+  f.appendChild(r);
+  if (detail) f.appendChild(el("p", "w-detail", detail));
+  host.appendChild(f);
+  return f;
+}
+function driveBlock(host) {
+  const d = el("div", "w-drive");
+  const g = el("div", "w-drive-group");
+  for (const [k, t] of [["step", "Step"], ["run", "Play"]]) {
+    const b = el("button", `w-btn${k === "run" ? " w-btn--primary" : ""}`, t);
+    b.type = "button"; b.dataset.key = k;
+    g.appendChild(b);
+  }
+  d.appendChild(g);
+  const r = el("button", "w-btn", "Reset");
+  r.type = "button"; r.dataset.key = "reset";
+  d.appendChild(r);
+  host.appendChild(d);
+  return d;
+}
+
+/* The copy the rail carries. One object, so §8's table and the rendered rail
+   are the same strings and cannot drift. */
+const COPY = {
+  /* `Page`, not `View` — widget 56 already calls this control Page, with the
+     same job on the same arc, and a control the arc repeats keeps one name
+     (3.7). The detail says what the two pages are rather than what the control
+     does to the screen. */
+  view: { label: "Page", detail: "the cohort, or the association test" },
+  ancestry: { label: "Ancestry structure",
+    detail: "the FST separating the three subpopulations: none, 0.005 and 0.02, or 0.005 and 0.05" },
+  shift: { label: "Trait difference between populations",
+    detail: "the difference in mean trait between the outer subpopulations, in residual SD" },
+  effect: { label: "Causal effect",
+    detail: "the fraction of the trait's variance each of the three causal SNPs explains" },
+  families: { label: "Families",
+    detail: "whether the 300 people are unrelated or arranged as 75 sibships of four" },
+  famEffect: { label: "Family effect",
+    detail: "the trait effect a sibship shares, in residual SD" },
+  model: { label: "Model", detail: "the covariates each SNP is tested alongside" },
+  npc: { label: "Principal components",
+    detail: "how many eigenvectors of the relationship matrix are used as covariates" },
+  seed: { label: "Seed", detail: "the random stream the cohort is drawn from" },
+};
+const OPTIONS = {
+  view: ["Cohort", "Association test"],
+  ancestry: ["None", "Weak", "Strong"],
+  shift: ["0", "0.5", "1", "2"],
+  effect: ["0.05", "0.12", "0.20"],
+  families: ["None", "Sibships of 4"],
+  model: ["SNP only", "+ PCs", "+ PCs + GRM"],
+  npc: ["2", "5"],
+};
+
+const RAILS = {};
+{
+  const row = document.getElementById("railRow");
+  const CANDS = [
+    { key: "A", head: "A · every field, families = none", families: false, trim: false },
+    { key: "B", head: "B · the same rail at families = sibships of 4", families: true, trim: false },
+    { key: "C", head: "C · trimmed: causal effect and PC count fixed", families: false, trim: true },
+  ];
+  for (const c of CANDS) {
+    const box = el("div", "cand");
+    box.appendChild(el("p", "pagehead", c.head));
+    const host = el("div", "w-split rail-host");
+    const rail = el("div", "w-controls");
+    host.appendChild(rail);
+
+    const vf = field(COPY.view.label, COPY.view.detail);
+    segRun(vf, OPTIONS.view.map((label) => ({ label })), "Association test", "grid");
+    rail.appendChild(vf);
+
+    rail.appendChild(el("div", "w-section", "The cohort"));
+    const af = field(COPY.ancestry.label, COPY.ancestry.detail);
+    segRun(af, OPTIONS.ancestry, "Strong");
+    rail.appendChild(af);
+    const sf = field(COPY.shift.label, COPY.shift.detail);
+    segRun(sf, OPTIONS.shift, "1");
+    rail.appendChild(sf);
+    if (!c.trim) {
+      const ef = field(COPY.effect.label, COPY.effect.detail);
+      segRun(ef, OPTIONS.effect, "0.12");
+      rail.appendChild(ef);
+    }
+    const ff = field(COPY.families.label, COPY.families.detail);
+    segRun(ff, OPTIONS.families.map((label) => ({ label })),
+      c.families ? "Sibships of 4" : "None", "grid");
+    rail.appendChild(ff);
+    if (c.families) numberField(rail, COPY.famEffect.label, "1.00", COPY.famEffect.detail);
+
+    rail.appendChild(el("div", "w-section", "The test"));
+    const mf = field(COPY.model.label, COPY.model.detail);
+    segRun(mf, OPTIONS.model.map((label) => ({ label, span: true })), "+ PCs", "grid");
+    rail.appendChild(mf);
+    if (!c.trim) {
+      const pf = field(COPY.npc.label, COPY.npc.detail);
+      segRun(pf, OPTIONS.npc, "5");
+      rail.appendChild(pf);
+    }
+
+    const drive = driveBlock(host);
+    /* `afterDrive: true` — core builds a second `.w-controls` block below the
+       drive row for it (widget.js), so the DOM here is the one that ships,
+       including the fact that `.w-split .w-controls` zeroes that block's own
+       top margin. */
+    const after = el("div", "w-controls w-controls--after");
+    host.appendChild(after);
+    numberField(after, COPY.seed.label, "1", COPY.seed.detail);
+
+    box.appendChild(host);
+    const measure = el("p", "measure");
+    box.appendChild(measure);
+    row.appendChild(box);
+    RAILS[c.key] = { host, rail, drive, after, measure };
+  }
+}
+
+/* ==========================================================================
+   §8 · every reader-facing string
+   ====================================================================== */
+
+{
+  const host = document.getElementById("strings");
+  const tb = el("table", "facts");
+  const head = el("tr");
+  for (const h of ["where", "string", "the line under it"]) head.appendChild(el("th", null, h));
+  tb.appendChild(head);
+  const add = (where, s, d) => {
+    const tr = el("tr");
+    tr.appendChild(el("td", null, where));
+    const c = el("td");
+    c.appendChild(el("b", null, s));
+    tr.appendChild(c);
+    tr.appendChild(el("td", null, d ?? ""));
+    tb.appendChild(tr);
+  };
+  add("title", TITLES[1].text, "candidate B, §0");
+  add("subtitle", SUBTITLES[0].text, "candidate A, §0");
+  add("page", OPTIONS.view.join(" · "), "the two pages, named");
+  for (const k of ["view", "ancestry", "shift", "effect", "families", "famEffect", "model", "npc", "seed"]) {
+    add("control", COPY[k].label, COPY[k].detail);
+  }
+  add("option · Ancestry structure", OPTIONS.ancestry.join(" · "),
+    "FST 0 · 0.005 and 0.02 · 0.005 and 0.05, as the control's own line says");
+  add("option · Trait difference", OPTIONS.shift.join(" · "), "residual SD between the outer subpopulations");
+  add("option · Causal effect", OPTIONS.effect.join(" · "), "of the trait's variance, each of three SNPs");
+  add("option · Families", OPTIONS.families.join(" · "), "");
+  add("option · Model", OPTIONS.model.join(" · "), "");
+  add("option · Principal components", OPTIONS.npc.join(" · "), "");
+  add("readout", "Genetic variance", "Vg, shared in proportion to relatedness");
+  add("readout", "Residual variance", "Ve, independent between people");
+  add("readout", "Heritability", "Vg / (Vg + Ve)");
+  add("readout", "P for Vg = 0", "likelihood ratio test, halved at the boundary");
+  add("the line when the variance step finds nothing", FALLBACK_LINE, "recommended");
+  add("the same line in GCTA's own words", GCTA_LINE, "the alternative — the program's log, quoted");
+  add("drive", "Step", "the next SNP");
+  add("drive", "Play", "the SNPs in order");
+  add("drive", "Reset", "clears the tests");
+  /* Read off the figures rather than typed: a string table that disagrees with
+     the string on the canvas is worse than no table. */
+  for (const m of MODELS) add("canvas caption", m.label, "the model, in the control's own words");
+  add("canvas note", manNote(Q.none, true), "on the Manhattan plot when it stands alone");
+  add("canvas note", manNote(Q.none), "on the Manhattan plot beside a QQ plot, which prints λ");
+  add("canvas caption", "observed −log₁₀P", "the QQ plot's y quantity, named in the caption");
+  add("canvas note", `λ ${fmt(Q.none.lambda)}`, "on the QQ plot");
+  add("canvas note", aboveNote(QQ_ABOVE.find((a) => a.n > 0)?.n ?? 0),
+    `on the QQ plot at its top right, the tests past the shared ceiling of ${QQ_TOP}; `
+    + "those points are not drawn, and the line is absent when the count is 0");
+  add("canvas threshold label", "0.05 / 2,000", "the corrected threshold, on its own line");
+  add("canvas axis", "chromosome · −log₁₀P", "the Manhattan plot");
+  add("canvas axis", "expected −log₁₀P", "the QQ plot");
+  add("canvas axis", "PC1 · PC2", "the scatter");
+  add("canvas caption", "the first two principal components", "the scatter");
+  add("canvas caption", "relatedness, every pair", "the relationship matrix");
+  add("canvas note", "no families · sibships of 4", "the relationship matrix, in the control's own words");
+  add("canvas axis", "300 people, both ways", "under the relationship matrix, which is square");
+  for (const [text, token] of [
+    ["a SNP's test, on one chromosome", "--c-empirical"],
+    ["the next chromosome", "--c-empirical, lighter"],
+    ["past the corrected threshold", "--c-extreme"],
+    ["the corrected threshold", "--c-reference"],
+    ["a causal SNP's position", "--c-reference, outline"],
+    ["expected with no association", "--c-theory"],
+    ["the SNP being tested", "--c-highlight"],
+    ["subpopulation 1 · 2 · 3", "--c-cluster-a/b/c"],
+    ["less related than the sample average · more related", "--c-value-low / --c-value-high"],
+  ]) add("legend", text, token);
+  host.appendChild(tb);
+}
+
+/* ==========================================================================
+   Measuring, then the copy. Everything below runs again after the fonts land,
+   because a rail measured before them is not the rail that ships.
+   ====================================================================== */
+
+const hOf = (n) => Math.round(n.getBoundingClientRect().height);
+function segFitOf(btn) {
+  const cs = getComputedStyle(btn);
+  probe.font = `${cs.fontStyle} ${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+  const r = btn.getBoundingClientRect();
+  const inner = r.width - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight)
+    - parseFloat(cs.borderLeftWidth) - parseFloat(cs.borderRightWidth);
+  return { label: btn.textContent, text: probe.measureText(btn.textContent).width, inner };
+}
+
+const STAGE_W = 550;
+const LOAD_MS = Math.round(performance.now() - T0);
+
+function writeCopy() {
+  /* --- what the page computed, stated before anything is argued from it -- */
+  const cohortLines = Object.entries(COST).filter(([k]) => k !== "scans")
+    .map(([k, c]) => `${k} ${c.total} ms`).join(" · ");
+  const nFull = Object.values(COST).filter((c) => c.full).length;
+  document.getElementById("engineLine").innerHTML =
+    `<b>Live on this page:</b> the corrected threshold is 0.05 / ${int(M)} = ${THR.toExponential(1)}, `
+    + `which is −log₁₀P ${fmt(THR_L)}. ${Object.keys(COST).length - 1} cohorts were simulated and `
+    + `${nFull} of them carry a relationship matrix and its full eigendecomposition; the whole page `
+    + `took <b>${LOAD_MS} ms</b> to compute and draw. Per cohort: ${cohortLines}. The default cohort's `
+    + `three ordinary-least-squares scans cost ${COST.scans.threeOls} ms together and the generalised `
+    + `least squares pass ${COST.scans.fastgwa} ms — the rotation into the eigenvectors' basis is most `
+    + `of that, which is the measure script's §7 finding that only the + GRM model pays for the full `
+    + `decomposition.`;
+
+  /* Every QQ plot on the page shares one ceiling, and what it costs is
+     counted rather than described. */
+  document.getElementById("qqMeasure").textContent = `${QQ_MEASURE_TEXT}
+`
+    + `Every QQ plot here shares a ceiling of ${QQ_TOP} on both axes — past the threshold's `
+    + `${fmt(THR_L)}, so a point crossing the line is seen crossing it. Points past the ceiling are not `
+    + `drawn; each panel prints its own count at the top right. Panel by panel: `
+    + `${QQ_ABOVE.map((a) => `${a.id} ${a.n}`).join(" · ")}.`;
+
+  /* --- §0 ---------------------------------------------------------------- */
+  document.getElementById("recTitle").innerHTML =
+    `<b>Title B, subtitle A.</b> <i>${TITLES[1].text}</i> is the field's own name for the method and `
+    + `the one the reader has already met; <i>${TITLES[0].text}</i> drops a word and with it the fact `
+    + `that the noun is a study design. On the subtitle: A is ${SUBTITLES[0].text.length} characters `
+    + `against B's ${SUBTITLES[1].text.length}, both inside the 140–240 band, and neither opens with a `
+    + `cleft, a self-reference or a closing verdict. <b>A's third claim names the two covariate sets</b>, `
+    + `which is the Model control and therefore the thing the reader is about to do. B's second claim `
+    + `is the two steps — estimate once, apply everywhere — and §6's run shows that without a sentence `
+    + `needing to say it. Take A, and let the run carry what B was going to claim.`;
+
+  /* --- §1 ---------------------------------------------------------------- */
+  const peaksLost = 3 - Q.none.power * 3;
+  document.getElementById("recSky").innerHTML =
+    `<b>B, the two plots together.</b> The Manhattan plot alone shows a genome of false peaks and it `
+    + `cannot show <i>λ</i>: the number the lesson reads, and the only one of the two readings that is `
+    + `a number rather than a shape. <b>Measured on this cohort:</b> SNP only gives λ `
+    + `<b>${fmt(Q.none.lambda)}</b> with <b>${Q.none.fp}</b> SNPs past the line that sit at no causal `
+    + `SNP; + 5 PCs gives λ <b>${fmt(Q.pc5.lambda)}</b> and <b>${Q.pc5.fp || "none"}</b>. `
+    + (peaksLost > 0
+      ? `<b>And SNP only loses ${peaksLost} of the 3 causal SNPs.</b> The middle one comes back at `
+        + `−log₁₀P ${fmt(LP.none[CAUSAL[1]])} against the line's ${fmt(THR_L)}, and + 5 PCs finds it at `
+        + `${fmt(LP.pc5[CAUSAL[1]])}. So the confounder does not only add peaks, it hides one — which `
+        + `is the answer to "PCs throw away real signal", and it is available only because the causal `
+        + `positions are drawn. `
+      : `Every causal SNP is found under both models at this cohort. `)
+    + `<b>+ 5 PCs + GRM is the third panel and it is nearly the second:</b> λ ${fmt(Q.pc5.lambda)} → `
+    + `${fmt(Q.grm.lambda)}, ${Q.pc5.hits} past the line → ${Q.grm.hits}. That is the case the widget `
+    + `has to be able to show — with unrelated people the relationship matrix has nothing left to `
+    + `correct once the components are in — and it is why §5 exists. <b>The panel is ${PANEL.w} × `
+    + `${PANEL.h}</b>: a ${MAN_RECT.w} × ${MAN_RECT.h} Manhattan plot, a `
+    + `${QQ_RECT.x - MAN_RECT.x - MAN_RECT.w}px gap and a ${QQ_RECT.w}px square QQ plot. Candidate A's `
+    + `single plot is ${MAN_WIDE.w}px wide, so the QQ costs the Manhattan plot `
+    + `${MAN_WIDE.w - MAN_RECT.w}px — ${fmt(100 * (MAN_WIDE.w - MAN_RECT.w) / MAN_WIDE.w, 0)}% of its `
+    + `width — and at ${MAN_RECT.w}px there are still ${fmt(MAN_RECT.w / NCHR, 0)}px a chromosome and `
+    + `${fmt(M / MAN_RECT.w, 1)} SNPs a pixel. <b>One y axis for all three panels</b>, 0 to `
+    + `${TOP_MAIN}: per-panel axes would draw ${Q.none.hits} peaks and ${Q.grm.hits} peaks at the same `
+    + `height.`;
+
+  /* --- §2 ---------------------------------------------------------------- */
+  document.getElementById("recQq").innerHTML =
+    `<b>Three panels, and the third is the one that earns the section.</b> The first two are the `
+    + `lesson's own pair: under <i>SNP only</i> the points leave the line at the bottom `
+    + `(${fmt(100 * Q.none.frac05, 1)}% of SNPs under P &lt; 0.05 against the 5% the null gives) and under `
+    + `<i>+ 2 PCs</i> the body is back on it (${fmt(100 * Q.pc2.frac05, 1)}%). <b>The third panel has `
+    + `the same ancestry in the genotypes and no trait difference</b>, and it is on the line: λ `
+    + `${fmt(Q.nul.lambda)}, ${fmt(100 * Q.nul.frac05, 1)}% under 0.05. Without it a reader can `
+    + `conclude that a structured sample inflates λ, which is false — what inflates λ is a trait that `
+    + `differs between the subpopulations the SNPs also differ between. That is the confounding claim `
+    + `and it takes two cohorts to make. <b>It costs no extra control:</b> the trait difference is `
+    + `already one, so the third panel is the reader setting it to 0. Recommend the pair on the stage `
+    + `and the third reached through the control, not drawn beside them.`;
+
+  /* --- §3 ---------------------------------------------------------------- */
+  const r0 = grmRange(D.K);
+  const rf = grmRange(FAM.K);
+  document.getElementById("recCohort").innerHTML =
+    `<b>B, a Cohort page — and the relationship matrix reads.</b> Off the diagonal it runs `
+    + `${fmt(r0.lo, 3)} to ${fmt(r0.hi, 3)} with no families and ${fmt(rf.lo, 3)} to ${fmt(rf.hi, 3)} `
+    + `with sibships of four, so a sibling pair is <b>${fmt(rf.hi / r0.hi, 1)}×</b> the strongest `
+    + `population-block entry and lands on the diagonal as 75 squares of four that nothing else in the `
+    + `widget can show. The population blocks are visible in both. <b>What B costs, plainly:</b> a `
+    + `second page, a <code>Page</code> control at the top of the rail, and a second set of `
+    + `fingerprint states. <b>What A costs:</b> the stage goes from ${PANEL.w} × ${PANEL.h} to `
+    + `${A3.w} × ${A3.h} to stack the scatter under the QQ plot, the scatter is 120px with 300 points `
+    + `in it, and the relationship matrix is not drawn at all — which leaves the GRM in the Model `
+    + `control as a word with no picture. The widget's own claim is that the matrix is what takes `
+    + `relatedness out, so the matrix should be visible once. Take B. <b>The ramp:</b> `
+    + `<code>--c-value-low</code> through the surface to <code>--c-value-high</code>, capped at `
+    + `±${GRM_CAP} in both panels so the two are comparable; the diagonal (${fmt(r0.dlo, 2)}–`
+    + `${fmt(r0.dhi, 2)}) and the sibling pairs sit at the ramp's end. tokens.css carries no diverging `
+    + `ramp of its own and this is the role that fits — one measured quantity coloured from its low `
+    + `end to its high end — on the condition that token states: no identity colouring in the same `
+    + `panel, which is why the matrix is not tinted by subpopulation and the scatter beside it is.`;
+
+  /* --- §4 ---------------------------------------------------------------- */
+  const fellCount = VAR_STATES.filter((s) => s.fell).length;
+  document.getElementById("recVar").innerHTML =
+    `<b>A, the tiles alone.</b> The bar in B draws two numbers that are already two tiles, and the `
+    + `reading it adds — which of V<sub>g</sub> and V<sub>e</sub> is larger — is the heritability tile, `
+    + `third in the row. <b>The finding this section had to be redrawn for:</b> at the default cohort `
+    + `and seed 1 the variance step <b>does not</b> fall back. It returns ĥ² `
+    + `${fmt(SCAN.grm.reml.h2, 2)} with P ${pfmt(SCAN.grm.reml.P)} on 300 unrelated people, because a `
+    + `2,000-SNP relationship matrix has an off-diagonal spread of about 0.02 — fifteen times a `
+    + `1.4-million-SNP one's — and three causal SNPs at 0.12 are ${fmt(3 * 0.12, 2)} of heritable `
+    + `variance for it to find. Seed 4 at the identical settings returns ĥ² ${fmt(FB_REML.h2, 2)}, `
+    + `P ${pfmt(FB_REML.P)}, and falls back; ${fellCount} of the three states drawn here does. `
+    + `<b>So the widget can promise the Manhattan plot will not move and cannot promise the variance `
+    + `readout prints zero.</b> Two consequences. The fallback line has to read as something that `
+    + `happened at this cohort, not as what the model always does with unrelated people — which is `
+    + `what <i>${FALLBACK_LINE}</i> says and what a line naming unrelated people would not. And the `
+    + `claim about the third model is carried by <b>λ</b>, not by the tiles: ${fmt(Q.pc5.lambda)} → `
+    + `${fmt(Q.grm.lambda)}, ${Q.pc5.hits} past the line → ${Q.grm.hits}, whether the step fell back `
+    + `or not. <b>Ours over GCTA's line:</b> the program's own sentence is ${GCTA_LINE.length} `
+    + `characters of a log and names <code>Vg</code> before any tile has introduced it. It belongs in `
+    + `the lesson beside its own output.`;
+
+  /* --- §5 ---------------------------------------------------------------- */
+  document.getElementById("recFam").innerHTML =
+    `<b>Both panels, and this is the section that makes the third model do something.</b> With 75 `
+    + `sibships of four sharing a trait effect of 1 SD, <i>+ 5 PCs</i> gives λ `
+    + `<b>${fmt(Q.fpc5.lambda)}</b> and ${Q.fpc5.fp} SNPs past the line at no causal SNP — the `
+    + `components are ancestry and nothing else, and a sibship is not ancestry. Adding the `
+    + `relationship matrix gives λ <b>${fmt(Q.fgrm.lambda)}</b> and ${Q.fgrm.fp}, with ĥ² `
+    + `${fmt(FSCAN.grm.reml.h2, 2)} and the variance test at P ${pfmt(FSCAN.grm.reml.P)} — no `
+    + `fallback, and not close to one. <b>Against §1's no-families pair</b> (λ ${fmt(Q.pc5.lambda)} → `
+    + `${fmt(Q.grm.lambda)}) that is the argument for the third model in one control: the matrix does `
+    + `nothing until there is relatedness for it to find. <b>One thing the widget cannot claim here:</b> `
+    + `sibships with no shared effect are already inflated — the measure script has λ 1.13 at `
+    + `sdFamily 0 — because a causal SNP's heritability is itself a family resemblance. The Family `
+    + `effect slider must therefore start above zero, or its first state contradicts the section.`;
+
+  /* --- §6 ---------------------------------------------------------------- */
+  document.getElementById("recWalk").innerHTML =
+    `<b>Ten SNPs a frame, ${M / BATCH.medium} frames, ${fmt(M / BATCH.medium / 60, 1)} s at 60 fps — `
+    + `and Step is one SNP, not one batch.</b> One test a frame would be ${fmt(M / 60, 0)} seconds, `
+    + `which nobody watches; twenty a frame is ${M / 20} frames and ${fmt(M / 20 / 60, 1)} s, which `
+    + `arrives before the reader has looked at the second chromosome. At ten, one chromosome of `
+    + `${PER_CHR} is ${PER_CHR / BATCH.medium} frames — ${fmt(PER_CHR / BATCH.medium / 60, 2)} s — so `
+    + `the four bands arrive at a rate that can be counted. Step reveals a single SNP because Step is `
+    + `the beat that shows one test landing, and a batch of ten would make the highlighted SNP a lie `
+    + `about what just happened. <b>The first still is the one that carries the claim:</b> the `
+    + `variance step is done, the tiles are filled, and not one SNP has been tested — the only frame `
+    + `in the run where the reader can see that the expensive part happened once. <b>λ is drawn as it `
+    + `goes:</b> ${fmt(lambdaTo(200))} after 200 SNPs against ${fmt(Q.pc5.lambda)} at the end, because `
+    + `λ is a median, so it is readable long before the run ends and it is still moving when it `
+    + `is — which is worth seeing on a number the lesson reads as a verdict.`;
+
+  /* --- §7 ---------------------------------------------------------------- */
+  const heights = {};
+  for (const [k, n] of Object.entries(RAILS)) {
+    const parts = [n.rail, n.after].flatMap((b) => [...b.children]).map((c) => {
+      const name = c.classList.contains("w-section")
+        ? c.textContent
+        : (c.querySelector("label span")?.textContent ?? "field");
+      return `${name} ${hOf(c)}`;
+    });
+    heights[k] = hOf(n.host);
+    n.measure.textContent = `params ${hOf(n.rail)} · drive ${hOf(n.drive)} · below the drive row `
+      + `${hOf(n.after)} · rail ${hOf(n.host)}px\n${parts.join(" · ")}`;
+  }
+
+  const gridBtns = [...RAILS.A.rail.querySelectorAll(".w-seg-grid .w-seg-btn")].map(segFitOf);
+  const rowBtns = [...RAILS.A.rail.querySelectorAll(".w-seg:not(.w-seg-grid) .w-seg-btn")].map(segFitOf);
+  const all = [...gridBtns, ...rowBtns];
+  const over = all.filter((m) => m.text > m.inner);
+  document.getElementById("segFit").textContent =
+    `Options in the two-column face: ${gridBtns.map((m) => `${m.label} ${fmt(m.text, 0)}/${fmt(m.inner, 0)}px`).join(" · ")}\n`
+    + `Options sharing one row: ${rowBtns.map((m) => `${m.label} ${fmt(m.text, 0)}/${fmt(m.inner, 0)}px`).join(" · ")}\n`
+    + (over.length
+      ? `OVER: ${over.map((m) => `${m.label} by ${fmt(m.text - m.inner, 1)}px`).join(", ")}`
+      : `nothing truncates; ${fmt(Math.min(...all.map((m) => m.inner - m.text)), 1)}px spare on the tightest`)
+    + `
+Points that would sit inside a threshold label drawn ON the line, by position — `
+    + `${PLACEMENTS.join(" | ")}`;
+
+  /* The stage the rail stands beside: §1B's panel, the readout tiles under it,
+     and the legend row. Measured off the readout this page actually built
+     rather than estimated. */
+  const readoutH = hOf(document.querySelector("#varRow .w-readout"));
+  const stageH = PANEL.h + readoutH + 34;
+  document.getElementById("recRail").innerHTML =
+    `<b>A, with C's trim held in reserve.</b> <b>Measured at 300px:</b> A is <b>${heights.A}px</b>, `
+    + `B — the same rail with Families set to sibships, the one state that adds the Family effect `
+    + `slider — is <b>${heights.B}px</b>, and C, with Causal effect and Principal components removed, `
+    + `is <b>${heights.C}px</b>. The trim buys <b>${heights.A - heights.C}px</b>. <b>Against the `
+    + `stage:</b> §1B's panel is ${STAGE_W} × ${PANEL.h}, the readout tiles measure ${readoutH}px and `
+    + `the legend row about 34, so the figure column is about <b>${stageH}px</b>. `
+    + (heights.A > stageH
+      ? `A is ${heights.A - stageH}px taller than that and C is ${heights.C - stageH}px taller, so the `
+        + `rail sets the page height either way and the trim buys ${heights.A - heights.C}px of a gap `
+        + `it does not close. `
+      : `A fits under it, so the figure sets the page height and the trim buys nothing that is not `
+        + `already free. `)
+    + `<b>What the trim costs:</b> Causal effect is the control that answers "would a real SNP show up `
+    + `at all" — at 0.05 a causal SNP clears the line about one time in four at this sample size and `
+    + `at 0.12 almost always, which is the difference between a widget that always finds its own `
+    + `planted answer and one that shows what power is. Principal components at 2 against 5 is the `
+    + `weaker of the two: the measurement found components 3 through 5 change nothing anywhere, which `
+    + `is worth one control and is the one to drop first. <b>The Family effect slider is carried on `
+    + `<code>when</code></b> (<code>when: { param: "families", equals: "sibships" }</code>, which `
+    + `<code>widgets/core/controls.js</code> already supports), so at Families = none there is no `
+    + `slider for an effect nothing on screen has — 3.4b applied to a field. <b><code>Seed</code> `
+    + `below the drive row</b> (<code>afterDrive: true</code>) buys no height and is still right: it `
+    + `is the one control that describes neither the cohort nor the test. <b>The three ancestry `
+    + `settings, measured under SNP only:</b> None gives λ ${fmt(LADDER.none.lambda)} with `
+    + `${LADDER.none.fp} SNPs past the line, Weak λ ${fmt(LADDER.weak.lambda)} with ${LADDER.weak.fp}, `
+    + `Strong λ ${fmt(LADDER.strong.lambda)} with ${LADDER.strong.fp} — three options that each say `
+    + `something different, which is the condition a segmented control has to meet.`;
+}
+
+if (document.fonts && document.fonts.ready) {
+  document.fonts.ready.then(writeCopy);
+}
+writeCopy();
+</script>
+</body>
+</html>
