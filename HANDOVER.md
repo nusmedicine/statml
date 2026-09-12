@@ -5,7 +5,7 @@
 `/lab/` only, in its second review round.** The GWAS and PRS arc (PHM5003
 week 6, planned 2026-09-11) is two shipped (56 `hardy-weinberg`, 57
 `gwas`, both 2026-09-12), one in review (59), one to come (60
-`mendelian-randomization`). `main` is 14 commits ahead of `origin/main`
+`mendelian-randomization`). `main` is 17 commits ahead of `origin/main`
 (`96ddd2f`, the 57 ship) — everything on 59 and the t-sne re-recording
 is LOCAL. Push on his word.
 
@@ -13,20 +13,17 @@ is LOCAL. Push on his word.
 
 # NEXT SESSION — KENNETH'S PLAN (written 2026-09-12, night)
 
-**First, check the tree.** A builder was mid-way through step 3's
-"countable first, then batched" change (his pick) when this handover was
-written: `widgets/polygenic-score/main.js` and `model.js` (and maybe
-`_lab/prs-verify.mjs`) are MODIFIED AND UNCOMMITTED. Run `node
-widgets/_lab/prs-verify.mjs`, `npm run check` and `npm test` and read
-each verdict on its own line. If green, read step 3 in the browser
-(`?page=score&shown=160` at the default: the 40 strongest SNPs one column
-each, then one batch column "the other 120 SNPs" with the strips as bars
-of totals, the sum landing on the person's score) and commit it as
-"polygenic-score: step 3 countable first, then batched — Kenneth's pick".
-If not green, `git diff` says how far the builder got; finish or revert
-(`git checkout -- widgets/polygenic-score widgets/_lab/prs-verify.mjs`)
-and re-brief from the catalogue's slot-59 record (search "countable
-first").
+**The tree is clean.** Step 3's "countable first, then batched" change
+(his pick) landed and was read in the browser before the session ended:
+the 40 strongest SNPs one column each, then one batch column "the other
+120 SNPs" with the strips as bars of totals and the sum landing on the
+person's score (`?page=score&shown=160` at the default; `shown=12` for the
+countable part). Verify 266 assertions. Two things the builder flagged
+for his round: the weight strip's batch bar is a CONTRIBUTION (Σβ̂x over
+the batch, on its own scale, "−0.35 to the score"), so that strip's
+caption changes once the batch lands; and `Next SNP`'s label still says
+one SNP on the forty-first press, which adds the whole batch — relabelling
+it needs a declarative map and a width reserve (3.4c/3.4d), not done.
 
 **Then his two items, in order:**
 
