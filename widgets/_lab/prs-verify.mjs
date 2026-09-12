@@ -1235,16 +1235,17 @@ const OPEN = build(base());
     && M.layout(550, { page: "haplotypes" }).height === 550,
     `triangle ${M.layout(550, { page: "haplotypes" }).tri.h}px of `
     + `${M.layout(550, { page: "haplotypes" }).height}`);
-  check("the six stages are 550, 321, 445, 358, 321 and 317px at 550",
+  check("the six stages are 550, 620, 445, 358, 321 and 317px at 550",
     PAGES.map((page) => M.layout(550, { page }).height).join(" ")
-    === "550 321 445 358 321 317",
+    === "550 620 445 358 321 317",
     PAGES.map((page) => M.layout(550, { page }).height).join(" "));
   check("step 1's stage grows with the width, because its triangle is a fixed 100 SNPs deep",
     M.layout(900, { page: "haplotypes" }).height > M.layout(550, { page: "haplotypes" }).height,
     `${M.layout(550, { page: "haplotypes" }).height} → `
     + `${M.layout(900, { page: "haplotypes" }).height}`);
-  check("…and the other five do not, so only one stage moves under the reader",
-    PAGES.slice(1).every((page) =>
+  check("…and so does step 2's, which carries the same triangle; the other four do not",
+    M.layout(900, { page: "clump" }).height > M.layout(550, { page: "clump" }).height
+    && PAGES.slice(2).every((page) =>
       M.layout(900, { page }).height === M.layout(550, { page }).height));
   check("the clumping window's rule sits 50 SNPs deep, half a pitch a SNP",
     M.CLUMP_DEPTH === M.CLUMP_KB / M.REGION.blockLen && M.CLUMP_DEPTH === 50
@@ -1735,10 +1736,52 @@ const OPEN = build(base());
       hitTest(pinned, c.x, c.y).set.snps === ""
       && hitTest(pinned, M.snpCentreX(L.block, 9), L.block.y + 3).set.snps === "10",
       hitTest(pinned, c.x, c.y).set.snps);
-    check("the table is empty on every other step, and on core's load-time probe",
-      PAGES.filter((pg) => pg !== "haplotypes")
+    check("the table is the cells alone on step 2, empty on steps 3 to 6 and on core's probe",
+      W.regions({ w: 690, params: base({ page: "clump" }), state }).length === (m * (m - 1)) / 2
+      && PAGES.filter((pg) => pg !== "haplotypes" && pg !== "clump")
         .every((pg) => W.regions({ w: 690, params: base({ page: pg }), state }).length === 0)
       && W.regions({ w: 690, params, state: null }).length === 0);
+
+    /* DECISION 15 ON STEP 2: the plot's SNPs sit over the triangle's columns,
+       the triangle and its caption are on the empty figure, the clump in
+       flight lights its lead's V and its members' cells, and nothing is lit
+       once it settles. */
+    {
+      const p2 = base({ page: "clump" });
+      const L2 = M.layout(690, p2);
+      let off = 0;
+      for (let j = 0; j < region.idx.length; j += 1) {
+        if (Math.abs(M.assocX(L2.assoc, region, j) - M.snpCentreX(L2.tri, region.idx[j])) > 1e-9) off += 1;
+      }
+      check("on step 2 every tested SNP is drawn over its own column of the triangle", off === 0,
+        `${off} of ${region.idx.length} off`);
+      check("…and the same holds when the causal SNP is not on the array",
+        (() => {
+          const pu = base({ page: "clump", causalTyped: "untyped" });
+          const ru = build(pu).region;
+          const Lu = M.layout(550, pu);
+          return ru.idx.length === m - 1 && ru.idx.every((jj, i) =>
+            Math.abs(M.assocX(Lu.assoc, ru, i) - M.snpCentreX(Lu.tri, jj)) < 1e-9);
+        })());
+      const empty2 = paintedAt(p2, animAt("clump", 0, false)).painted;
+      check("step 2 opens with the triangle's caption and the window's label under its plot",
+        empty2.includes(M.STRINGS.triCaptionClump) && empty2.includes(M.STRINGS.windowLabel)
+        && empty2.includes(M.STRINGS.alphaLabel));
+      const f1 = M.clumpInFlight(region, 1);
+      const f3 = M.clumpInFlight(region, M.CLUMP_BEATS);
+      check("the clump in flight is the lead and its members, in region SNP numbers, and none when settled",
+        f1 && f1.lead === region.idx[region.clumps[0].index]
+        && f1.members.length === region.clumps[0].members.length
+        && f1.members.every((k) => region.R[f1.lead][k] >= Number(region.clumpR2)
+          && Math.abs(k - f1.lead) <= M.CLUMP_DEPTH)
+        && f3 === null
+        && M.clumpInFlight(region, M.CLUMP_BEATS * region.clumps.length) === null,
+        f1 ? `lead ${f1.lead + 1}, ${f1.members.length} members` : "none");
+      check("the hand-off names what step 1 handed over, and the reading under the triangle drops its rows",
+        M.HANDOFFS.clump === "from step 1: the region's haplotypes and their r²"
+        && paintedAt(base({ page: "clump", snps: "10,15" }), animAt("clump", M.CLUMP_BEATS)).painted
+          .includes("SNP 10 and SNP 15 · 25 kb apart · r² 0.79"));
+    }
     check("the widget draws for the pointer and declares the pin as a hidden display text",
       W.pointer === true && W.params.snps.type === "text" && W.params.snps.hidden === true
       && W.params.snps.display === true && W.params.snps.default === ""

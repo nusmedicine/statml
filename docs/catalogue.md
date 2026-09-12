@@ -7960,8 +7960,27 @@ hand-off would read "from step 1: the region's haplotypes and their
 r²"; the triangle's caption "r² between every pair of SNPs, from step
 1". The haplotype block stays on step 1 (folding it in passes 750px).
 Recommended as drawn; alternatives: keep each settled lead's V faintly
-(eight Vs is clutter), or merge the two steps. **NEXT: his pick, then
-the build if taken, then his round and the ship.**
+(eight Vs is clutter), or merge the two steps. His pick: as drawn.
+
+**STEP 2 OVER THE TRIANGLE — BUILT the same night.** `layout("clump")`
+gains the triangle under the plot (`CLUMP_TRI_GAP` 34, `CLUMP_TRI_FOOT`
+22 for a reading line under the apex; the stage 620 at 550, 689 at
+690); the plot's x domain is `assocDomain` (half a SNP either side) and
+`assocX` gives the verify the alignment check, asserted for every
+tested SNP with the causal SNP on and off the array; `clumpInFlight`
+names the lead and its members in region SNP numbers, `drawClumpOnTriangle`
+draws the V and the outlined cells, the causal SNP's V arrives with its
+clump as the plot's mark does; `regions`, the pointer and the pin work
+on step 2 with no block (`subjectAt`, `regionsFor` and `drawSubject`
+are page-aware; the reading goes under the triangle with its rows
+clause dropped). Strings: the hand-off "from step 1: the region's
+haplotypes and their r²", the caption "r² between every pair of SNPs,
+from step 1", two legend lines added, the summaries name the triangle.
+Verify 296 (the alignment, the empty figure's caption and label, the
+clump in flight, the hand-off and the reading). **NEXT: his round on
+the round-three draft — all of it, since steps 1, 2 and 3 have changed
+tonight — then "tested ok, push" and the ship; the ship's states owe a
+hit-driven one on the pin (on step 1 and on step 2).**
 
 **PAGE 5 PLANNED 2026-09-12 — calibration, on Kenneth's question** ("can
 the PRS score be used to calculate risk for a patient? a colleague told me

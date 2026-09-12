@@ -378,8 +378,8 @@ function drawBlock(ctx, colors, rect, region, drawn, { foot = null, img = null }
  * It is drawn once the pool is complete: the r² is measured over the whole
  * pool rather than over the rows on screen.
  */
-function drawTriangle(ctx, colors, rect, region, { shown, img = null }) {
-  capAt(ctx, colors, rect.x, rect.y - 10, M.STRINGS.triCaption, rect.w * 0.7);
+function drawTriangle(ctx, colors, rect, region, { shown, img = null, caption = M.STRINGS.triCaption }) {
+  capAt(ctx, colors, rect.x, rect.y - 10, caption, rect.w * 0.7);
   noteAt(ctx, colors, rect.x + rect.w, rect.y - 10, M.STRINGS.triNote, rect.w * 0.28);
   const m = region.R.length;
   const cw = M.snpPitch(rect);
@@ -459,17 +459,19 @@ function drawSubject(ctx, colors, L, region, subject, { drawn, triShown }) {
   if (subject.kind === "pair") {
     const k = Math.min(...subject.snps);
     const j = Math.max(...subject.snps);
-    const st = M.pairStats(region, j, k, drawn);
-    const cw = M.snpPitch(L.block);
-    const rh = L.block.h / M.HAP_ROWS;
-    ctx.save();
-    ctx.fillStyle = alphaOf(colors.highlight, 0.38);
-    for (let i = 0; i < drawn; i += 1) {
-      if (st.flags[i]) ctx.fillRect(L.block.x + k * cw, L.block.y + i * rh, (j - k + 1) * cw, rh);
+    if (L.block) {
+      const st = M.pairStats(region, j, k, drawn);
+      const cw = M.snpPitch(L.block);
+      const rh = L.block.h / M.HAP_ROWS;
+      ctx.save();
+      ctx.fillStyle = alphaOf(colors.highlight, 0.38);
+      for (let i = 0; i < drawn; i += 1) {
+        if (st.flags[i]) ctx.fillRect(L.block.x + k * cw, L.block.y + i * rh, (j - k + 1) * cw, rh);
+      }
+      ctx.restore();
+      outlineColumn(ctx, colors, L.block, k);
+      outlineColumn(ctx, colors, L.block, j);
     }
-    ctx.restore();
-    outlineColumn(ctx, colors, L.block, k);
-    outlineColumn(ctx, colors, L.block, j);
     if (!triShown) return;
     const c = M.cellCentre(L.tri, j, k);
     const h = M.snpPitch(L.tri) / 2 + 1;
@@ -494,8 +496,32 @@ function drawSubject(ctx, colors, L, region, subject, { drawn, triShown }) {
     return;
   }
   const [j] = subject.snps;
-  outlineColumn(ctx, colors, L.block, j);
+  if (L.block) outlineColumn(ctx, colors, L.block, j);
   if (triShown) drawV(ctx, colors, L.tri, j, { stroke: colors.highlight, width: 1.25 });
+}
+
+/**
+ * The clump in flight, on the triangle (model.js decision 15): the lead's V,
+ * and the cells of the SNPs it absorbs outlined on it — the same SNPs the
+ * arcs above reach, each cell's colour the r² the arc's opacity carries.
+ */
+function drawClumpOnTriangle(ctx, colors, tri, flight) {
+  drawV(ctx, colors, tri, flight.lead, { stroke: colors.highlight, width: 1.25 });
+  const h = M.snpPitch(tri) / 2 + 1;
+  ctx.save();
+  ctx.strokeStyle = colors.highlight;
+  ctx.lineWidth = 1.5;
+  for (const k of flight.members) {
+    const c = M.cellCentre(tri, Math.max(flight.lead, k), Math.min(flight.lead, k));
+    ctx.beginPath();
+    ctx.moveTo(c.x, c.y - h);
+    ctx.lineTo(c.x + h, c.y);
+    ctx.lineTo(c.x, c.y + h);
+    ctx.lineTo(c.x - h, c.y);
+    ctx.closePath();
+    ctx.stroke();
+  }
+  ctx.restore();
 }
 
 /* ---- step 2: clumping, three beats a clump ------------------------------- */
@@ -512,8 +538,10 @@ function drawSubject(ctx, colors, L, region, subject, { drawn, triShown }) {
  * frame of Play (model.js decision 5).
  */
 function drawClump(ctx, colors, rect, region, { beats, frac, scanDone }) {
+  /* decision 15: half a SNP either side, so each SNP is over its own column
+     of the triangle underneath */
   const plot = makePlot({
-    ctx, colors, rect, xDomain: [0, region.span], yDomain: [0, region.top],
+    ctx, colors, rect, xDomain: M.assocDomain(region), yDomain: [0, region.top],
   });
 
   const nC = region.clumps.length;
@@ -653,6 +681,7 @@ function drawClump(ctx, colors, rect, region, { beats, frac, scanDone }) {
 
   plot.axisY({ label: M.STRINGS.assocY, format: (v) => v.toFixed(0) });
   plot.axisX({ label: M.STRINGS.assocX, format: (v) => v.toFixed(0) });
+  return { settled };
 }
 
 /* ---- step 3: the score --------------------------------------------------- */
@@ -1119,7 +1148,7 @@ defineWidget({
   regions({ w, params, state }) {
     /* state is null on core's load-time probe, which runs before the first
        render (t-sne's note); nothing is validated by it here either */
-    if (!state || M.pageOf(params) !== "haplotypes") return [];
+    if (!state || !REGION_STEPS.includes(M.pageOf(params))) return [];
     return M.regionsFor(M.layout(w, params), params);
   },
 
@@ -1312,8 +1341,10 @@ defineWidget({
         { token: "highlight", label: "The lead SNP just chosen", mark: "dot" },
         { token: "highlight", label: "An arc to a SNP within 250 kb in LD with it, darker at higher r²", mark: "line" },
         { token: "empirical", label: "A SNP in LD with it, dropped to the axis", mark: "line" },
+        { token: "value-high", label: "Linkage disequilibrium between a pair of SNPs, as r²" },
+        { token: "highlight", label: "The lead SNP's row and column in the triangle, and the cells of the SNPs in LD with it" },
         { token: "reference", label: "P = 0.05", mark: "dash" },
-        { token: "reference", label: "The causal SNP's position", mark: "tri" },
+        { token: "reference", label: "The causal SNP's position, and its pairs in the triangle", mark: "tri" },
       ];
     }
     if (page === "score") {
@@ -1452,11 +1483,32 @@ defineWidget({
       return;
     }
     if (L.page === "clump") {
-      drawClump(ctx, colors, L.assoc, state.region, {
+      const region = state.region;
+      const { settled } = drawClump(ctx, colors, L.assoc, region, {
         beats: upTo,
         frac: anim?.beat ?? 0,
         scanDone: Boolean(anim?.scanDone),
       });
+      /* decision 15: step 1's triangle, carried over whole; the causal SNP's
+         V arrives with its clump, as the plot's mark does (decision 5) */
+      const images = imagesFor(region, colors);
+      drawTriangle(ctx, colors, L.tri, region, {
+        shown: true, img: images.tri, caption: M.STRINGS.triCaptionClump,
+      });
+      if (settled >= region.causalAt && region.causalAt > 0) {
+        drawV(ctx, colors, L.tri, region.causal, { stroke: colors.reference, dash: [3, 3] });
+      }
+      const flight = M.clumpInFlight(region, upTo);
+      if (flight) drawClumpOnTriangle(ctx, colors, L.tri, flight);
+      const subject = (pointer ? M.subjectAt(L, pointer.x, pointer.y) : null)
+        ?? M.pinnedSubject(params);
+      if (subject) {
+        drawSubject(ctx, colors, L, region, subject, { drawn: 0, triShown: true });
+        /* no block here, so the reading goes under the triangle's apex and
+           its rows clause is dropped */
+        tinyAt(ctx, colors, L.tri.x + L.tri.w / 2, L.tri.y + L.tri.h + 6,
+          fit(ctx, M.readingFor(region, subject, 0), noteFont(colors), L.tri.w), "center", colors.ink1);
+      }
       return;
     }
     if (L.page === "score") {
@@ -1705,12 +1757,16 @@ defineWidget({
     if (page === "clump") {
       if (!anim?.scanDone) {
         return `An empty plot of −log₁₀P against position over ${M.intText(R.span)} kb, with the `
-          + "P = 0.05 line across it, before any of the region's 100 SNPs is tested.";
+          + "P = 0.05 line across it and the region's r² triangle from step 1 underneath, before "
+          + "any of the region's 100 SNPs is tested.";
       }
       const settled = Math.min(Math.floor(upTo / M.CLUMP_BEATS), R.clumps.length);
+      const pinned = M.readingFor(R, M.pinnedSubject(params), 0);
       return `${M.intText(R.hits)} of 100 SNPs in a ${M.intText(R.span)} kb region are under `
         + `P = 0.05, and ${M.intText(settled)} of ${M.intText(R.clumps.length)} lead SNPs have `
-        + "been chosen: each one is kept and the SNPs in LD with it are dropped to the axis.";
+        + "been chosen: each one is kept and the SNPs in LD with it are dropped to the axis, "
+        + "over the region's r² triangle from step 1."
+        + (pinned ? ` Pinned: ${pinned}.` : "");
     }
 
     if (page === "score") {

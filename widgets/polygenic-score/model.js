@@ -178,6 +178,19 @@
        column under a point, the cell under a point (the rotated frame
        inverts to u = ⌊a − b⌋, v = ⌊a + b⌋), the region table — so the verify
        can assert it with no DOM, which no pixel hash can.
+
+       AND STEP 2 CARRIES THE TRIANGLE TOO — Kenneth, the same night: "the
+       clumping is hard to correlate with the LD". The association plot keeps
+       its place and step 1's triangle hangs under it, columns aligned by
+       shifting the plot's x domain half a SNP (`assocDomain`) so position 5j
+       kb is over column j. While a clump is in flight the lead's V lights and
+       the cells of the SNPs it absorbs are outlined on it — the same SNPs the
+       arcs reach, in the triangle's own terms — and when the clump settles
+       the triangle goes quiet: the axis ticks are the record, and eight
+       faded Vs would be clutter. The causal SNP's V arrives with its clump,
+       as the plot's mark does (main.js decision 5). The hover and the pin
+       work there as on step 1, with no block, so the reading goes under the
+       triangle and its rows clause is dropped.
    ========================================================================= */
 
 import { makeRng } from "../core/rng.js";
@@ -1626,10 +1639,14 @@ export const HAP_FOOT = 26;
 export const HAP_GAP = 44;
 export const TRI_FOOT = 14;
 
-/* step 2 — the association plot alone, at the mock's own 550 × 300 */
+/* step 2 — the association plot at the mock's own 550 × 300, and under it
+   (decision 15) step 1's triangle: its caption row, and a foot with room for
+   a reading line under the apex */
 export const ASSOC_TOP = 46;
 export const ASSOC_H = 198;
 export const ASSOC_PANEL_H = 300;
+export const CLUMP_TRI_GAP = 34;
+export const CLUMP_TRI_FOOT = 22;
 /** DECISION 9: three beats a clump. */
 export const CLUMP_BEATS = 3;
 
@@ -1701,11 +1718,17 @@ export function layout(w, values) {
     };
   }
   if (page === "clump") {
+    /* decision 15: the triangle under the plot, at the same pitch, with a foot
+       tall enough for a reading line under its apex */
+    const assoc = { x: AX_L, y: top + ASSOC_TOP, w: panelW, h: ASSOC_H };
+    const triTop = top + ASSOC_PANEL_H + CLUMP_TRI_GAP;
+    const triH = Math.ceil(((REGION.m - 1) / 2) * snpPitch(assoc));
     return {
       page,
       head: head(AX_L, panelW),
-      assoc: { x: AX_L, y: top + ASSOC_TOP, w: panelW, h: ASSOC_H },
-      height: top + ASSOC_PANEL_H,
+      assoc,
+      tri: { x: AX_L, y: triTop, w: panelW, h: triH },
+      height: triTop + triH + CLUMP_TRI_FOOT,
     };
   }
   if (page === "score") {
@@ -1760,6 +1783,19 @@ export const stageHeight = (w, values) => layout(w, values).height;
    its copy, all of it callable with no DOM.
    ========================================================================== */
 
+/** Step 2's x domain: half a SNP either side of the region, so position 5j kb
+    sits over column j of the triangle under it (decision 15). */
+export function assocDomain(region) {
+  const half = region.hap.blockLen / 2;
+  return [-half, region.span + half];
+}
+/** Where the plot draws SNP j of the tested set, for the verify's alignment
+    check — the same arithmetic `makePlot.sx` performs. */
+export function assocX(rect, region, j) {
+  const [lo, hi] = assocDomain(region);
+  return rect.x + ((region.pos[j] - lo) / (hi - lo)) * rect.w;
+}
+
 /** One pitch for the block's columns and the triangle's SNPs. */
 export const snpPitch = (rect) => rect.w / REGION.m;
 export const snpCentreX = (rect, j) => rect.x + (j + 0.5) * snpPitch(rect);
@@ -1798,7 +1834,8 @@ export function triCellAt(tri, x, y) {
 
 /** What is under a point on step 1: one SNP, a pair, or nothing. */
 export function subjectAt(L, x, y) {
-  const j = blockColumnAt(L.block, x, y);
+  if (!L.tri) return null;
+  const j = L.block ? blockColumnAt(L.block, x, y) : -1;
   if (j >= 0) return { kind: "snp", snps: [j] };
   const cell = triCellAt(L.tri, x, y);
   return cell ? { kind: "pair", snps: cell } : null;
@@ -1836,18 +1873,21 @@ export function pinnedSubject(params) {
  * already pinned clears the pin.
  */
 export function regionsFor(L, params) {
+  if (!L.tri) return [];
   const current = parseSnps(params?.snps);
   const toggle = (snps) => {
     const text = snpsText(snps);
     return text === current ? "" : text;
   };
   const out = [];
-  const bw = snpPitch(L.block);
-  for (let j = 0; j < REGION.m; j += 1) {
-    out.push({
-      x: L.block.x + j * bw, y: L.block.y, w: bw, h: L.block.h,
-      set: { snps: toggle([j]) }, label: `SNP ${j + 1}`,
-    });
+  if (L.block) {
+    const bw = snpPitch(L.block);
+    for (let j = 0; j < REGION.m; j += 1) {
+      out.push({
+        x: L.block.x + j * bw, y: L.block.y, w: bw, h: L.block.h,
+        set: { snps: toggle([j]) }, label: `SNP ${j + 1}`,
+      });
+    }
   }
   const cw = snpPitch(L.tri);
   const side = Math.max(1, cw - 0.5);
@@ -1861,6 +1901,17 @@ export function regionsFor(L, params) {
     }
   }
   return out;
+}
+
+/** The clump in flight at `beats` of step 2, as the triangle draws it: the
+    lead and its members as REGION SNP numbers, or null while nothing is. */
+export function clumpInFlight(region, beats) {
+  const nC = region.clumps.length;
+  const settled = Math.min(Math.floor(beats / CLUMP_BEATS), nC);
+  const phase = settled < nC ? beats % CLUMP_BEATS : 0;
+  if (phase === 0) return null;
+  const cl = region.clumps[settled];
+  return { lead: region.idx[cl.index], members: cl.members.map((m) => region.idx[m]) };
 }
 
 /**
@@ -2175,7 +2226,7 @@ export const STRINGS = {
      SNPs, which is what clumping a base study leaves — so the hand-off from
      step 2 can say so without claiming the region's own SNPs travelled. */
   handHaplotypes: "the region's haplotype pool",
-  handClump: "from step 1: the region's haplotypes",
+  handClump: "from step 1: the region's haplotypes and their r²",
   handScore: "from step 2: SNPs with no LD between them",
   handThreshold: "from step 3: a score for every person",
   handQuantile: "from step 4: the P threshold to score at",
@@ -2190,6 +2241,8 @@ export const STRINGS = {
   triCaption: "linkage disequilibrium (r²) between every pair of SNPs",
   triNote: "0 to 1",
   windowLabel: `the clumping window · ${CLUMP_KB} kb`,
+  /* decision 15: the same triangle on step 2, named as carried over */
+  triCaptionClump: "r² between every pair of SNPs, from step 1",
 
   /* step 2 */
   assocCaption: "every SNP in the region tested against the trait",
