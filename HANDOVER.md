@@ -40,6 +40,40 @@ the F statistic, harmonising) and the word pleiotropy at the assumptions
 list and in the Egger sentence — check `03 - MR.ipynb` before the next
 push touches that arc.
 
+# OWED: A SIT / FALL / LIE PASS, one widget at a time, on Kenneth's word
+
+Kenneth, 2026-09-13, on the MR copy: "a calibrated plot sits on the
+diagonal — again personification". A grep of every reader-facing string
+(comments excluded) found nineteen figurative uses across sixteen shipped
+widgets; he chose to **leave them for now and check them again one by one
+at another time**. Each change moves a hash (a legend or tile the `tx`, a
+canvas caption the `px`), so each widget's affected states are re-recorded
+in the commit that changes it. Literal uses stay: the Galton board's ball
+falling, UMAP's "the data lie on a manifold", a rate or a loss that falls.
+
+| widget | string | plainer form |
+|---|---|---|
+| mendelian-randomization | "…are associated with the confounders and lie on the open path" | "…and are on the open path" |
+| gwas | "N sibships of four sit on the diagonal" | "…are on the diagonal" |
+| time-event | "disease sits above no-disease in every interval" | "the disease curve is above the no-disease curve in every interval" |
+| time-event | "each event would fall by the risk sets" | "each event would be split by the risk sets" |
+| power-and-error | "the line sits at z = …" / "the alternative sits … along" | "is at" |
+| matrix-factorization | "sit NEAR it" / "how far a dot falls outside" / "how far it sits from the mean" / legend "the cone every rebuilt sample lies in" | "are near it" / "is outside" / "is from the mean" / "the cone containing every rebuilt sample" |
+| lm-adjustment | "a property of the model it sits in" | "…it belongs to" |
+| lm-diagnostics | "should sit in a level band around zero"; the R² note "never falls as covariates are added" (also a "never") | "should form a level band"; "does not decrease as covariates are added" |
+| experimental-design | "the difference falls on both groups" | "applies to both groups" |
+| em-mixture | "one more sits between .2 and .8" / "N more sit between" | "is between" |
+| composition | "which layers sit at the beginning…"; "the box sits at the start of the network" | "come first…"; "is at the start" |
+| mds | "the sphere the centres sit on" | "the sphere the centres are on" |
+| optimizers | "the local minimum lies between here and the global one" | "is between" |
+| processing-layers | "every output sits within 0.48 of…" | "is within" |
+| roc-auc | "how far apart the two classes' scores sit" | "…scores are" |
+| support-layers | "one draw can sit far from that average"; "how far it sits from zero" | "can be far from"; "how far it is from zero" |
+
+The MR verify's §8 personification sweep is the model for each widget's
+verify once its strings are changed; the verb list there does not yet
+include sit / fall / lie, deliberately, until the pass is made.
+
 # HOW 60 WENT, kept as written
 
 Plan → measure (31 checks; four claims corrected) → mock (seven sections)
