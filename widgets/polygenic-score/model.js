@@ -2167,6 +2167,10 @@ export const STRINGS = {
   pageLabel: "Step",
   pageDetail: "the six steps of building a score and reading it",
 
+  /* Kenneth's round, 2026-09-12: the seed sits under Step in a section that is
+     the same on every step — a seed is set before Play (3.4e), and gwas and
+     hardy-weinberg's place for it under the drive row is theirs to follow */
+  dataSection: "The data",
   regionSection: "The region",
   baseSection: "The base study",
   targetSection: "The target",

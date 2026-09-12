@@ -1187,6 +1187,20 @@ defineWidget({
       display: true,
     },
 
+    /* Kenneth's round (2026-09-12): the seed under Step, in the one section that
+       is on every step, rather than under the drive row as gwas and
+       hardy-weinberg have it — a seed is set before Play, and 3.4e's block
+       under the drive row is for a control that only means something after. */
+    dataSec: { type: "section", label: M.STRINGS.dataSection },
+    seed: {
+      type: "int",
+      label: M.STRINGS.seedLabel,
+      detail: M.STRINGS.seedDetail,
+      min: 1,
+      max: 200,
+      default: 41,
+    },
+
     regionSec: {
       type: "section",
       label: M.STRINGS.regionSection,
@@ -1313,15 +1327,6 @@ defineWidget({
       when: { param: "page", equals: "risk" },
     },
 
-    seed: {
-      type: "int",
-      label: M.STRINGS.seedLabel,
-      detail: M.STRINGS.seedDetail,
-      min: 1,
-      max: 200,
-      default: 41,
-      afterDrive: true,
-    },
 
     /* Authoring escape hatch, first render only, counted in the unit of the
        step the link names: rows filled, clumping beats, SNPs added, thresholds
@@ -1620,6 +1625,13 @@ defineWidget({
       const done = st.n > 0 && added >= st.n;
       const partial = added > 0 ? st.cum[added - 1] : 0;
       return [
+        {
+          /* Kenneth's round: "where does the 160 come from?" — the count the
+             axis ends on, said where it appears, as step 4's tile says it */
+          label: "SNPs kept",
+          value: added > 0 ? M.intText(st.n) : "—",
+          note: `of the base study's ${M.intText(M.GENOME.m)}, at P below ${M.tText(Number(params.threshold))}`,
+        },
         {
           label: "Score",
           value: added > 0 ? M.n2(partial) : "—",

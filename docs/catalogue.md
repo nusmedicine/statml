@@ -8002,6 +8002,23 @@ the Prevalence detail, "β̂ per effect allele", the SNP reading, the
 five new legend lines, the two renamed tiles, the three summaries.
 "Pinned" was kept as the plain word for what a click does.
 
+**HIS ROUND, first two notes (2026-09-12, night).** (1) "The seed should
+be in the data section, above, like the other widgets" — mocked as §7
+of the round-three mock (four rails from core's own `buildControls` on
+the real spec: A under the drive row as `gwas` and `hardy-weinberg`
+have it, 585 / 1,073px on steps 1 / 3; B a *The data* section directly
+under Step as `t-sne` and `mixed-model` have it, 635 / 1,123px); his
+pick B, built: `dataSec` + Seed follow `page`, `afterDrive` gone, the
+after-drive block empty. A consistency item for the arc: `gwas` and
+`hardy-weinberg` keep their seed under the drive row until next touched.
+(2) "Where does the 160 come from? I only pick 300 or 600" — the kept
+count is the P threshold's (160 of the base study's 1,000 SNPs under
+P < 0.01 at 15,000 people; 51 at 5e-8, 1,000 at P ≤ 1), and Causal SNPs
+is the simulation's truth, which the score never sees; step 3 never
+said so. His pick: a fourth tile on step 3, "SNPs kept · 160 · of the
+base study's 1,000, at P below 0.01", blank before the first SNP (2.4
+— the verify caught it showing from the first frame). Verify 298.
+
 **PAGE 5 PLANNED 2026-09-12 — calibration, on Kenneth's question** ("can
 the PRS score be used to calculate risk for a patient? a colleague told me
 no… so what's the use of this score?", then "how is calibration done? will
