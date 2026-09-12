@@ -8331,9 +8331,10 @@ model=pcs and model=grm state was hashed at **669** with a scrollbar. The
 Seed move in bb086f6 added a section to the rail and made the page tall
 enough to scroll on every state, so those 15 now render at 669 (and the
 Cohort page at 365px tall, not 375). That commit's "no fingerprint state
-moved" was reasoned, not run. Nothing was rebaselined: the 15 gwas states
-want re-recording at their new settled size, Kenneth's call as t-sne's
-were.
+moved" was reasoned, not run. The 15 gwas states were RE-RECORDED at 669 on
+Kenneth's word the same night: three runs of the gwas set alone gave
+identical hashes, the baseline took them, and a fourth run read all 27
+MATCH before the commit (5.10).
 
 **NEXT:** his round on the draft at
 `http://localhost:8014/widgets/mendelian-randomization/`; the gwas

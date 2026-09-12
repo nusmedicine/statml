@@ -5263,14 +5263,14 @@
       "$note": "opens empty: the threshold line, the axes, no SNP tested, the tiles blank",
       "slug": "gwas",
       "state": "?theme=light&shown=0",
-      "px": "27481044",
+      "px": "bb90cad3",
       "tx": "db350a6b"
     },
     {
       "$note": "SNP only, all 2,000 tested: the forest of false peaks, λ 4.83, one causal SNP lost",
       "slug": "gwas",
       "state": "?theme=light&shown=2000",
-      "px": "75aea82a",
+      "px": "3b7c053f",
       "tx": "b715447d"
     },
     {
@@ -5305,21 +5305,21 @@
       "$note": "no trait difference under SNP only: the same ancestry, the QQ on the line",
       "slug": "gwas",
       "state": "?theme=light&shift=0&shown=2000",
-      "px": "f1564af0",
+      "px": "6b66c45e",
       "tx": "1d620f07"
     },
     {
       "$note": "a trait difference of 2 SD under SNP only: the inflation doubled",
       "slug": "gwas",
       "state": "?theme=light&shift=2&shown=2000",
-      "px": "46ae3622",
+      "px": "ba0dd82e",
       "tx": "d763ce66"
     },
     {
       "$note": "no ancestry structure under SNP only: nothing to confound",
       "slug": "gwas",
       "state": "?theme=light&ancestry=none&shown=2000",
-      "px": "a710a6d0",
+      "px": "4671215e",
       "tx": "350cac3e"
     },
     {
@@ -5361,42 +5361,42 @@
       "$note": "a partial scan settled at 700 of 2,000: the first chromosome and part of the second",
       "slug": "gwas",
       "state": "?theme=light&shown=700",
-      "px": "675fe739",
+      "px": "9fa8729a",
       "tx": "ce35aaa7"
     },
     {
       "$note": "another seed, SNP only",
       "slug": "gwas",
       "state": "?theme=light&seed=7&shown=2000",
-      "px": "33e7acfd",
+      "px": "a7ad0506",
       "tx": "63fd314a"
     },
     {
       "$note": "the Cohort page at the default: three clusters, the population blocks in the matrix",
       "slug": "gwas",
       "state": "?theme=light&page=cohort&shown=0",
-      "px": "4cb0b985",
+      "px": "415c2973",
       "tx": "c9321a94"
     },
     {
       "$note": "the Cohort page with sibships: the 75 squares on the diagonal",
       "slug": "gwas",
       "state": "?theme=light&page=cohort&families=sibships&shown=0",
-      "px": "1601872e",
+      "px": "f7e1b802",
       "tx": "5b693640"
     },
     {
       "$note": "the Cohort page with no ancestry structure: one cloud, a flat matrix",
       "slug": "gwas",
       "state": "?theme=light&page=cohort&ancestry=none&shown=0",
-      "px": "653a0c05",
+      "px": "2a1daaf7",
       "tx": "b7bf7f64"
     },
     {
       "$note": "the Cohort page with weak structure",
       "slug": "gwas",
       "state": "?theme=light&page=cohort&ancestry=weak&shown=0",
-      "px": "b4b0285e",
+      "px": "2ca4f5fa",
       "tx": "cf91a5c2"
     },
     {
@@ -5408,7 +5408,7 @@
         "frames": 30,
         "dt": 32
       },
-      "px": "d43a6666",
+      "px": "40a18dd6",
       "tx": "f52b73ec"
     },
     {
@@ -5420,7 +5420,7 @@
         "frames": 20,
         "dt": 32
       },
-      "px": "fda9410b",
+      "px": "19442fe1",
       "tx": "c8759e76"
     },
     {
@@ -5462,7 +5462,7 @@
         "frames": 30,
         "dt": 32
       },
-      "px": "0db61185",
+      "px": "f89c3673",
       "tx": "2766e98b"
     },
     {
@@ -5484,7 +5484,7 @@
         "frames": 20,
         "dt": 32
       },
-      "px": "054733e7",
+      "px": "fded9cc8",
       "tx": "8000fc77"
     },
     {

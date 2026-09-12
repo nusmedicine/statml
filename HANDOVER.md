@@ -4,13 +4,13 @@
 (Kenneth's call, 2026-08-30); ONE DRAFT: 60 `mendelian-randomization`.**
 The GWAS and PRS arc (PHM5003 week 6) is three shipped — 56
 `hardy-weinberg`, 57 `gwas`, 59 `polygenic-score` (2026-09-12) — and
-the fourth drafted the same night. `main` is **ahead of origin by five
+the fourth drafted the same night. `main` is **ahead of origin by seven
 commits, unpushed** (the MR measure script, the mock, the picks, the
 draft); the last push is 69cca83.
 
 ---
 
-# NEXT SESSION — KENNETH'S ROUND ON THE 60 DRAFT, AND THE GWAS RE-RECORD
+# NEXT SESSION — KENNETH'S ROUND ON THE 60 DRAFT
 
 **Where it stands.** Slot 60 ran plan → measure → mock → picks → draft in
 one day, 2026-09-12. Kenneth asked for the plan "step by step", so every
@@ -33,7 +33,7 @@ the truth on request, the pin by hover and click); 4 the forest (height
 follows the count; three combined rows). `model.js` opens with the
 decisions and the measurement; `main.js` with the drawing decisions.
 
-**Two things Kenneth has NOT yet seen and should be told first:**
+**Two things from the draft night worth knowing first:**
 
 1. **The gwas baseline moved under bb086f6, not under this work.** The
    full suite after the draft's core change read 697 states, 682 MATCH,
@@ -43,9 +43,9 @@ decisions and the measurement; `main.js` with the drawing decisions.
    model's and Cohort page's states were hashed at **688px** wide because
    their rail was too short to scroll the page, and the Seed move made
    every rail tall enough, so those 15 now settle at **669** like the
-   rest. Nothing rebaselined. **Ask him**, as with t-sne: re-record the 15
-   at 669 in a commit that says why. The catalogue's DRAFTED paragraph has
-   the full account.
+   rest. **Re-recorded at 669 on his word the same night** (three
+   identical runs, then all 27 MATCH); the catalogue's DRAFTED paragraph
+   has the full account. The full suite reads 697/697 again.
 2. **The core change** (`widgets/core/widget.js`, twelve lines in
    `resolveLabel`): a step label declared `{ anim: "trialBeat", labels,
    default }` reads the animation's counter. Needed because step 1's four
