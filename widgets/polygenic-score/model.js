@@ -2186,7 +2186,9 @@ export const STRINGS = {
   blockNote: "one tone an allele",
   /* decision 13: the whole half-matrix, with the clumping window's reach as a
      rule across it */
-  triCaption: "r² between every pair of SNPs in the region",
+  /* round 3: the lesson's one term for this is linkage disequilibrium, so the
+     caption names it and r² is its measure */
+  triCaption: "linkage disequilibrium (r²) between every pair of SNPs",
   triNote: "0 to 1",
   windowLabel: `the clumping window · ${CLUMP_KB} kb`,
 
@@ -2201,7 +2203,7 @@ export const STRINGS = {
   /* step 3 */
   genoCaption: "the person's genotype, effect alleles carried",
   weightCaption: "the base study's weight for each SNP",
-  weightNote: "β̂, on the raw allele count",
+  weightNote: "β̂ per effect allele",
   sumCaption: "the sum so far",
   /* The order is by P and the axis is where a reader can be told so (2.9). */
   sumX: "SNPs kept by the P threshold, lowest P first",
@@ -2242,7 +2244,9 @@ export const RISK_STRINGS = {
   runTitleRisk: "Draw the remaining deciles",
 
   prevalenceLabel: "Prevalence",
-  prevalenceDetail: "the share of the population that has the disease",
+  /* round 3: the one line that says what the disease IS — the trait's upper
+     tail, cut at the prevalence (decision 11) */
+  prevalenceDetail: "the trait's upper tail, counted as the disease",
 
   riskThreshLabel: "Risk threshold",
   riskThreshDetail: "the absolute risk above which the disease is acted on",

@@ -24,9 +24,20 @@ hidden display parameter `snps` through a `regions` table (model.js
 decision 15 has the geometry; the verify asserts it at all 4,950 cells);
 step 3 is one column a SNP with the run capped at 6 s (decision 14
 rewritten; the batch code deleted). Verify 291. The catalogue's ROUND
-THREE PICKED AND BUILT paragraph under slot 59 has every number. **NEXT:
-item 2 below — the adversarial review — then his round, then the ship;
-the ship's states now owe a hit-driven one on the pin.**
+THREE PICKED AND BUILT paragraph under slot 59 has every number. **Item
+2, the adversarial review, is DONE the same night**: the catalogue's
+ROUND 3 table under slot 59 (nineteen rows: five copy fixes applied —
+LD named on step 1's caption and legend, "in LD with" for "accounts
+for", step 2's tile "Lead SNPs under P = 0.05", "β̂ per effect allele",
+the Prevalence detail saying the disease is the trait's upper tail; four
+"beyond the lesson" rows with the sentence the notebook would need; and
+THREE PICKS OWED BY KENNETH: the Overfitting tile, which today subtracts
+the R² with every SNP kept — the GAIN of thresholding, not the optimism
+PRSice warns about (recommended: best-fit minus the validation R² there,
+with a note that it is small and can be negative); "trait" against the
+lesson's "phenotype"; and two sentences for the notebooks). **NEXT: his
+picks and his round, then the ship; the ship's states owe a hit-driven
+one on the pin.**
 
 **The tree is clean.** Step 3's "countable first, then batched" change
 (his pick) landed and was read in the browser before the session ended:

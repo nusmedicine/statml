@@ -1300,7 +1300,7 @@ defineWidget({
     if (page === "haplotypes") {
       return [
         { token: "empirical", label: "One of the two alleles at a SNP" },
-        { token: "value-high", label: "r² between a pair of SNPs" },
+        { token: "value-high", label: "Linkage disequilibrium between a pair of SNPs, as r²" },
         { token: "reference", label: "The causal SNP's position, and its pairs in the triangle", mark: "tri" },
         { token: "highlight", label: "The SNP or pair under the pointer or pinned by a click, and the rows where its alleles travel together" },
       ];
@@ -1310,8 +1310,8 @@ defineWidget({
         { token: "empirical", label: "A SNP's test", mark: "dot" },
         { token: "extreme", label: "Under P = 0.05", mark: "dot" },
         { token: "highlight", label: "The lead SNP just chosen", mark: "dot" },
-        { token: "highlight", label: "An arc to a SNP it accounts for, darker at higher r²", mark: "line" },
-        { token: "empirical", label: "A SNP it accounts for, dropped to the axis", mark: "line" },
+        { token: "highlight", label: "An arc to a SNP within 250 kb in LD with it, darker at higher r²", mark: "line" },
+        { token: "empirical", label: "A SNP in LD with it, dropped to the axis", mark: "line" },
         { token: "reference", label: "P = 0.05", mark: "dash" },
         { token: "reference", label: "The causal SNP's position", mark: "tri" },
       ];
@@ -1505,7 +1505,7 @@ defineWidget({
         {
           label: "SNPs in the first clump",
           value: full ? M.intText(R.firstClump) : "—",
-          note: "the lead SNP and the SNPs it accounts for",
+          note: "the lead SNP and the SNPs in LD with it",
         },
       ];
     }
@@ -1522,9 +1522,11 @@ defineWidget({
           note: "before clumping",
         },
         {
-          label: "Clumps kept",
+          /* round 3: every SNP is clumped and the P threshold comes on step 4,
+             so the tile counts leads under the line rather than "clumps kept" */
+          label: "Lead SNPs under P = 0.05",
           value: settled > 0 ? M.intText(sig) : "—",
-          note: "lead SNPs under P < 0.05",
+          note: "of the clumps chosen so far",
         },
         {
           label: "r² to the causal SNP",

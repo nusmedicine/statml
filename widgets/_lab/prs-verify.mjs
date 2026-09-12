@@ -1641,7 +1641,7 @@ const OPEN = build(base());
       const done = paintedAt(base({ page: "haplotypes" }), animAt("haplotypes", M.HAP_ROWS), w).painted;
       check(`the window's reach is labelled whole at ${w}, and the caption says every pair`,
         done.includes(M.STRINGS.windowLabel) && done.includes(M.STRINGS.triCaption)
-        && M.STRINGS.triCaption === "r² between every pair of SNPs in the region",
+        && M.STRINGS.triCaption === "linkage disequilibrium (r²) between every pair of SNPs",
         done.find((t) => /clumping window/.test(t)) ?? "");
     }
     const empty = paintedAt(base({ page: "haplotypes" }), animAt("haplotypes", 0, false)).painted;

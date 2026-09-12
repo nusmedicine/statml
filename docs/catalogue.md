@@ -7870,6 +7870,61 @@ review, findings as ROUND 3 under this slot; then his round; then the
 ship, with a hit-driven state on the pin (`?page=haplotypes&shown=40`
 then a hit at the causal–lead cell and one on the lead's column).**
 
+**ROUND 3 — the adversarial review, 2026-09-12: clarity, and alignment
+with what 02-1 and 02-2 teach.** The lesson's order (02-1 cell 0):
+clumping, with LD defined in words as variants "inherited together more
+often than expected by chance" and a diagram of lead SNPs, LD clumps
+within a window and retention; the weighted sum Σ βⱼXᵢⱼ with X the
+count of effect alleles; thresholding "to identify the threshold that
+best predicts the trait in the target population"; the inputs (summary
+statistics, target genotypes, covariates); the base's choice (correct
+phenotype, similar population); the `.summary` / `.snp` / `.best`
+outputs ("Threshold: Best P-value threshold", `PRS.R2`, `Num_SNP`).
+02-2: the quantile plot, vigintiles, mean phenotype with the
+qt(0.975, n − 1)·SEM interval, "Trend" and "Magnitude", the weak trend
+laid to an East Asian base against a mixed target; the summary's claims
+— relative not absolute, the logistic risk model on the standardised
+PRS, "calibrated risk estimates", transferability, equity. Read page by
+page as a student who has just read that cell:
+
+| step | finding | kind | done |
+|---|---|---|---|
+| 1 | r² is on the caption, the legend and the reading line and is never named as the measure of linkage disequilibrium, which is the only term the lesson uses; a student meets r² cold | copy | caption "linkage disequilibrium (r²) between every pair of SNPs", legend "Linkage disequilibrium between a pair of SNPs, as r²" |
+| 1 | the reading "the two alleles travel together in 38 of 40 rows" is the lesson's own sense of LD ("inherited together") drawn as a count — keep | — | — |
+| 1 | "Typed / Untyped" is the field's shorthand and the lesson never uses it | considered, kept | "On the array / Not on the array" was tried and refused by the URL rule (5.9: a value is a word its control shows, and no word tells those two labels apart); the detail already says what typed means |
+| 1 | haplotypes, recombination and the founder pool are the mechanism under the lesson's one sentence; nothing in the lesson names them | beyond the lesson | say so in the lesson: one sentence that LD is shared ancestry along the chromosome would let a student recognise step 1 |
+| 1, 2 | "the SNPs it accounts for" (a tile note and two legend entries) is our phrase; the lesson and the field say "in LD with" | copy | "the SNPs in LD with it"; the arc legend also names the window, "within 250 kb", which step 2 otherwise never states |
+| 2 | "Clumps kept · lead SNPs under P < 0.05" reads as if clumping needed P < 0.05; in the lesson (and in PRSice) every SNP is clumped and the P threshold comes after, as step 4 | copy | label "Lead SNPs under P = 0.05", note "of the clumps chosen so far" |
+| 2 | the arcs: their meaning is carried by the legend alone ("darker at higher r²"); the caption at the lead beat says "every SNP in LD with it" — clear once the legend is read, and the legend is on screen | — | — |
+| 3 | "β̂, on the raw allele count" — "raw allele count" is ours; the lesson's X is "the number of effect alleles (0, 1, or 2)" | copy | "β̂ per effect allele" |
+| 3 | the genotype strip's legend mark is a dot and at 160 SNPs the strip is bars (round three's dots-to-bars switch) | minor | left: the same colour, the same reading; a mark per width is not a legend's job |
+| 3 | the batch column and its flat line — Kenneth's own finding, fixed in round three | — | — |
+| 4 | **the Overfitting tile is not overfitting.** It reads best-fit R² minus the R² with every SNP kept — what choosing the threshold GAINED (the builder's comment says so: "what choosing the threshold bought"), chosen over the draft's best-fit R² minus the validation R² because that difference is noisy (positive on 6 of 16 seeds). PRSice's warning, the reason the word is on the page, is the optimism of choosing on the target — which IS the noisy number. A tile labelled Overfitting showing the gain from thresholding is a false claim | **pick** | see below |
+| 4 | "validation sample" and "assessed out of sample" are not in the lesson, whose `.summary` R² IS the target's best fit (PRSice's manual calls it overfit) | beyond the lesson | the lesson would need one sentence: PRSice's best-fit R² is chosen on the target and is optimistic; a held-out sample says how much |
+| 4 | "best-fit", "P threshold", "SNPs kept" match the `.summary` columns ("Threshold: Best P-value threshold", `Num_SNP`) | — | — |
+| 5 | "mean trait" against the lesson's "Mean Phenotype Level": the lesson uses "phenotype" throughout 02-2 and "trait or disease" in 02-1; the widget says "trait" in ten strings (heritability, causal SNPs, the vigintile plot, the mean line) | pick | see below |
+| 5 | the vigintile plot, the 95% interval and the three tiles (R², first-to-last vigintile, intervals excluding the mean) are 02-2's plot and its "Trend / Magnitude" reading; the Target population control is its own explanation of the weak trend | — | — |
+| 6 | nothing on screen says what the disease IS: the score was built for a trait, and step 6 asks about "the fraction that has the disease"; the model defines it as the trait's upper tail at the prevalence, and only the source comments say so | copy | Prevalence detail: "the trait's upper tail, counted as the disease" (the share is what the control's 5 · 10 · 20% say; a longer form wrapped to two lines, which his round-two pick 7 ruled out) |
+| 6 | calibration intercept and slope, the diagonal, deciles of predicted risk, the risk threshold and the crossing percentile all go past the lesson's summary, which says "calibration model" and "calibrated risk estimates" without a plot | beyond the lesson | the lesson would need one sentence: a calibration plot compares predicted risk with the observed fraction by decile, and sits on the diagonal when the probabilities are right |
+| 6 | the distant-ancestry miscalibration is the summary's "transferability" claim drawn; "recalibration with local GWAS data" is what the intercept and slope tiles measure the need for | — | — |
+| all | no reader-facing string uses "tune", "holdout", "never", the collection's vocabulary, or an arrival verb (the verify's sweep, re-run after the fixes) | — | — |
+
+**The picks for Kenneth.** (1) The Overfitting tile: **A** rename it to
+what it is, "Gain from thresholding · best-fit R² minus R² with every SNP
+kept"; **B** restore the honest number, "Overfitting · best-fit R² minus
+the validation R² at that threshold", with the note saying it is small
+and can be negative at 319 people — which is itself the lesson that a
+held-out sample is needed and that a difference of two R²s is noisy;
+**C** both, five tiles on step 4. Recommended **B**: the word is on the
+page because of PRSice's warning, and the warning is about optimism.
+(2) "trait" or "phenotype": the lesson's axis says phenotype and its
+prose says both; the widget's ten strings say trait. Recommended: keep
+"trait" (02-1's own word for what the score predicts) and change only
+step 5's axis to the lesson's "mean phenotype" — or leave all as is.
+(3) Two sentences for the notebooks, not the widget: what a calibration
+plot is (02-2's summary), and that PRSice's best-fit R² is chosen on the
+target (02-1's outputs cell). His call whether to add them.
+
 **PAGE 5 PLANNED 2026-09-12 — calibration, on Kenneth's question** ("can
 the PRS score be used to calculate risk for a patient? a colleague told me
 no… so what's the use of this score?", then "how is calibration done? will
