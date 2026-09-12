@@ -7615,6 +7615,28 @@ calibration (are the probabilities right) is not discrimination (does the
 score rank people, the AUC), and recalibration refits the intercept to the
 local prevalence and the slope to the score's local accuracy.
 
+**Stratification, added the same evening on his next question** ("how do
+people use it to stratify? arbitrarily?"). Not arbitrarily: the cut is set
+by a criterion — risk equivalence to a category already acted on (Khera
+2018's top 8% at threefold risk, the familial hypercholesterolaemia
+carriers' risk); a guideline's absolute-risk threshold (a 10-year
+cardiovascular risk of ~7.5% for statins), the cut being the percentile at
+which calibrated absolute risk crosses it and the reading being who is
+reclassified; risk-equivalent age for screening (the top 1% for breast
+cancer reaching an average 50-year-old's risk at ~40); or net benefit by
+decision-curve analysis. Top-decile-against-middle comparisons are effect
+sizes for reporting the gradient, not rules. **For page 5's mock:** a
+figure of absolute predicted risk against score percentile with a guideline
+threshold as the reference line, the percentile at which the curve
+crosses it and the fraction of the 319 above it, moving under the Target
+population control (the cut is not a fixed percentile; a base-calibrated
+model puts it in the wrong place in a distant ancestry until
+recalibrated); the calibration plot by decile beside it as the check; a
+Risk threshold control offered as a candidate (a few guideline-like
+values) so the cut follows the threshold rather than a hand-picked
+percentile. Readouts: the threshold, the percentile that crosses it, the
+number above it.
+
 ### Slot 60 · `mendelian-randomization`
 
 **The one thing:** each SNP gives a ratio — its effect on the outcome over
