@@ -7366,6 +7366,42 @@ its columns is identical to one on the full decomposition's, so a PC-only
 compute is ~70 ms; only the GRM model pays for the full decomposition.
 **n = 300 is the widget's ceiling at m = 2000.**
 
+**MOCKED 2026-09-12, `_lab/gwas-mock.html` (`1380f97`)**, nine sections
+on the nested-topology cohort (n 300, m 2000 on four chromosomes, Fst
+0.005 / 0.05, trait difference 1 SD, three causal SNPs at 0.12, seed 1);
+the lesson's three figures in `_lab/figs/gwas-*.png`. What the drawing
+found beyond the measurement: SNP only LOSES one of the three causal SNPs
+(−log₁₀P 2.09 against the line's 4.60; + 5 PCs finds it at 8.38) — the
+confounder hides a real hit as well as adding false ones, and it is
+visible only because the truth marks are drawn; the default cohort at
+seed 1 does NOT fall back (ĥ² 0.55, LRT P 0.0035; seed 4 does), so the
+fallback line is worded as something that happened at this cohort; the
+Bonferroni line cannot carry a label at SNP only (points sit in every
+candidate box) so the panel's note names it; the QQ needs one shared
+ceiling of 6 with the clipped points omitted and counted in a note ("33
+above"); the truth marks reach a column only when the test does (2.1);
+sibship pairs in the GRM image are 3.9× the strongest population block.
+Three defects fixed after the main session read it: the tested-SNP cursor
+(a full-height rule → the point and a tick under the axis), the clipped
+QQ points, the page control's name ("View" → "Page", 3.7).
+
+**Kenneth's picks, 2026-09-12 (eight, in two calls; every one the
+recommendation):**
+
+| § | pick |
+|---|---|
+| 0 | title *Genome-Wide Association Studies*; subtitle A: *A genome-wide association study tests every SNP against the trait separately. Ancestry differences between subpopulations enter every one of those tests, and principal components and the genetic relationship matrix remove them.* |
+| 1 | **B**: the Manhattan plot (294px) with the QQ (166px square) beside it, λ printed, one y axis 0–19, the Bonferroni line bare and named in the note |
+| 2 | the no-trait-difference control **reached through the Trait difference control**, nothing drawn beside the stage |
+| 3 | **B**: a **Cohort page** — the PC scatter at 300px beside the GRM as a 300 × 300 image, one pixel a pair, the `--c-value-low` → surface → `--c-value-high` ramp capped at ±0.25 |
+| 4 | **A**: four readout tiles (Genetic variance, Residual variance, Heritability, P for Vg = 0) and the fallback line in our words: *The variance step found no genetic variance, so each SNP is tested by linear regression.* |
+| 5 | Families: None · Sibships of 4; **Family effect slider 0–1 SD, shown with sibships, default 1** |
+| 6 | **10 SNPs a frame, Step is one SNP**: 200 frames, 3.3 s at Medium; the first frame after Play is the variance step with the tiles filled and no SNP tested; λ drawn as it goes |
+| 7 | **rail A, every field**: Page · Ancestry structure (None · Weak · Strong) · Trait difference between populations (0 · 0.5 · 1 · 2) · Causal effect (0.05 · 0.12 · 0.20) · Families · Family effect · Model (SNP only · + PCs · + PCs + GRM) · Principal components (2 · 5) · Step / Play / Reset · Seed below the drive row — 1068px against a ~390px figure column; the rail sets the page height |
+
+Two pages, Cohort · Association test, on one rail. Slug `gwas`. NEXT: the
+draft.
+
 ### Slot 58 · `linkage-disequilibrium` — FOLDED into 59 as its first page, Kenneth's call 2026-09-11
 
 **The one thing:** SNPs near each other on a chromosome are inherited
