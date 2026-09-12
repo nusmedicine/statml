@@ -7399,8 +7399,31 @@ recommendation):**
 | 6 | **10 SNPs a frame, Step is one SNP**: 200 frames, 3.3 s at Medium; the first frame after Play is the variance step with the tiles filled and no SNP tested; λ drawn as it goes |
 | 7 | **rail A, every field**: Page · Ancestry structure (None · Weak · Strong) · Trait difference between populations (0 · 0.5 · 1 · 2) · Causal effect (0.05 · 0.12 · 0.20) · Families · Family effect · Model (SNP only · + PCs · + PCs + GRM) · Principal components (2 · 5) · Step / Play / Reset · Seed below the drive row — 1068px against a ~390px figure column; the rail sets the page height |
 
-Two pages, Cohort · Association test, on one rail. Slug `gwas`. NEXT: the
-draft.
+Two pages, Cohort · Association test, on one rail. Slug `gwas`.
+
+**DRAFTED 2026-09-12** by an Opus builder from the picks, at `/lab/` only;
+the verify script has 160 assertions. The builder's decisions worth
+keeping: `model` and `npcs` are display, so a model switch keeps the
+reader's position in the run and `compute()` builds the scan the model
+names (SNP only 67 ms, + PCs 140, + PCs + GRM 230 at n 300 / m 2000); the
+full eigendecomposition is skipped where no test reads it, and the PC
+covariates come from it rather than from subspace iteration because λ
+differs in the second decimal on the one comparison the Model control
+exists to make; the model opens on SNP only so the first run shows the
+forest; the variance step's footer row is reserved in both states of the
+GRM model so the figure does not jog (the default cohort at seed 1 does
+not fall back); a SNP past the fixed 0–19 axis is drawn at the ceiling
+(32 of 648 settings, the tallest 30.4); the Manhattan caption is shorter
+than the mock's because core's note drops inside the panel where the third
+causal mark sits. Read in the browser by the main session before Kenneth:
+no defects found — the empty opening, the three models finished at the
+mock's numbers, families under + PCs (λ 1.78, 6 past), the Cohort page
+with the 75 sibship squares, Step landing one SNP with the cursor.
+**Open for his round:** the rail is 791px at families = none against a
+~500px figure column; λ after three SNPs reads 1.71 (a median of three —
+honest under 2.8, but a number that moves a lot early); dragging the
+Family effect slider under + PCs + GRM recomputes at ~230 ms an event; the
+01-3 to 01-6 notebooks do not yet link to it.
 
 ### Slot 58 · `linkage-disequilibrium` — FOLDED into 59 as its first page, Kenneth's call 2026-09-11
 

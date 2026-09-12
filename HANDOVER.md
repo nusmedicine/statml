@@ -11,7 +11,21 @@ still open). `optimizers` (slot 55) shipped the day before.**
 
 ---
 
-# NEXT: SLOT 57 `gwas` (06 / 01-3 to 01-6) — MEASURE, THEN MOCK
+# SLOT 57 `gwas` (06 / 01-3 to 01-6) — MEASURED, MOCKED, PICKED AND DRAFTED 2026-09-12; NEXT IS HIS ROUND
+
+`gwas` went from measure to draft in one day: `9619fd0` the measure script
+(110 checks; five claims corrected, the nested topology the largest),
+`1380f97` the mock (nine sections, three defects fixed after the browser
+read), `c5b7130` his eight picks (every one the recommendation), then the
+draft (the commit after `c5b7130`) at
+`http://localhost:8012/widgets/gwas/` — two pages, Cohort · Association
+test; the catalogue's DRAFTED paragraph under slot 57 lists the builder's
+decisions and what is open for his round. **NEXT: his round on the draft;
+then the three-pass copy audit (he asked for one on 56 — do it before he
+has to); then "tested ok" → shooter + states (settled states must pin
+`shown=`, 0–2000) → status flip → full suite fronted → `check` AND `test`
+on their own → commit → push on his word.** After 57: 59
+`polygenic-score` with LD as its first page, then 60.
 
 The arc's order is the notebooks' own: 56 → **57 `gwas`** → 59
 `polygenic-score` (with LD as its first page) → 60 `mendelian-randomization`.
