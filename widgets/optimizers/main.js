@@ -1344,7 +1344,7 @@ function whereAt(p, gone) {
 function startDetail(s) {
   const g = Math.hypot(...M.TRENCH.grad(s.at[0], s.at[1]));
   if (s.value === "beyond") {
-    return `(${s.at[0]}, ${s.at[1]}); the local minimum lies between here and the global one`;
+    return `(${s.at[0]}, ${s.at[1]}); the local minimum is between here and the global one`;
   }
   if (s.value === "plateau") return `(${s.at[0]}, ${s.at[1]}); on the plateau, where the gradient is ${M.n2(g)}`;
   return `(${s.at[0]}, ${s.at[1]}); inside the global basin, a valley steep across its width and shallow along its length`;
