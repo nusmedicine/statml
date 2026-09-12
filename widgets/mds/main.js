@@ -1186,7 +1186,7 @@ defineWidget({
       : `${n} samples in ${groups} groups of ${per}, their centres spread over a sphere in `
         + `three genes`;
     if (!params.measured) {
-      return `${stock}, drawn with the sphere the centres sit on so their depth can be seen. `
+      return `${stock}, drawn with the sphere the centres are on so their depth can be seen. `
         + `${view} No distances measured yet.`;
     }
     const stage = anim.k === 0 && !anim.moving
