@@ -992,7 +992,7 @@ defineWidget({
           : Math.abs(lift) < 0.05
             ? `${c.carrier} and ${c.plain} measure the same, so no split can bias this`
             : study.imbalance === 0
-              ? `level — the ${fmt(Math.abs(lift), 2)} difference falls on both groups`
+              ? `level — the ${fmt(Math.abs(lift), 2)} difference applies to both groups`
               : `${study.imbalance} apart, and ${c.carrier} − ${c.plain} is ${lift > 0 ? "+" : "−"}${fmt(Math.abs(lift), 2)}`,
       });
     } else {
