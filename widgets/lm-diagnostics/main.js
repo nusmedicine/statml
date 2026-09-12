@@ -213,7 +213,7 @@ defineWidget({
   status: "shipped",
   subtitle:
     "We can check how well a fitted model describes its data. Residuals " +
-    "should sit in a level band around zero, their quantiles on the normal " +
+    "should form a level band around zero, their quantiles on the normal " +
     "line; R² reports the variance explained, and adjusted R² allows for " +
     "the covariate count.",
   layout: "side",
@@ -426,7 +426,7 @@ defineWidget({
     }
     const P = state.path[params.junk];
     return [
-      { label: "R²", value: fmt(P.r2, 3), note: "never falls as covariates are added" },
+      { label: "R²", value: fmt(P.r2, 3), note: "does not decrease as covariates are added" },
       { label: "Adjusted R²", value: fmt(P.adjR2, 3), note: "allows for the number of covariates" },
       { label: "Covariates", value: String(1 + params.junk), note: `BMI plus ${params.junk} noise column${params.junk === 1 ? "" : "s"}, on ${SUB_N} simulated patients` },
     ];
