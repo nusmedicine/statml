@@ -64,7 +64,8 @@ the verdict and the reading line (he adds the word to the notebook too);
 odds ratios in the tile notes; the first page is **Overview**, its own
 button above a Step head over **1 · Effects · 2 · Estimate · 3 · Forest**;
 the pleiotropy arc cleared of the verdict; harmonisation read per SNP on
-the Effects page by hover or pin (alleles named); no Page label.
+the Effects page by hover or pin (alleles named); no Page label; the graph on the Forest page too (his
+ask: on every page), the Effects page pending his answer.
 
 **Then his round.** Expect the usual: copy (the three-pass audit plus the
 mannerism pass is still owed — `_lab/mr-verify.mjs` §8 already sweeps

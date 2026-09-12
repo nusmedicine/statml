@@ -8422,8 +8422,12 @@ flip" when they agree). The Page label is gone; the Overview button and the
 Step head name the control. Two reading lines had been sitting on the
 canvas edge (Effects, Forest); the verify now refuses any painted string
 within 11px of the bottom. His "do we need the causal graph with the
-forest plot": the forest has none; the graph stays beside the Estimate
-scatter, where the arrows move the lines.
+forest plot": the forest has none; he meant the reverse — the graph on
+EVERY page "so students can see what is happening" — so the Forest page
+carries it too (the forest 270px beside it; the combined rows print short
+labels and drop to the interval's left where the right has no room; the
+count moved from the caption to the note). The Effects page is the one
+without it, asked.
 
 
 

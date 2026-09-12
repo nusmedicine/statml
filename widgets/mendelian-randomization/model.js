@@ -507,10 +507,10 @@ export const STRINGS = {
   truthTag: "true effect",
   interceptTag: "intercept: the average direct effect",
   forestX: "MR effect of BMI on CHD, in log odds per SD",
-  forestCaption: "each SNP's ratio with its 95% interval",
-  combinedIvw: "All · IVW",
-  combinedEgger: "All · MR Egger",
-  combinedMedian: "All · weighted median",
+  forestCaption: "each SNP's ratio, 95% interval",
+  combinedIvw: "IVW",
+  combinedEgger: "MR Egger",
+  combinedMedian: "median",
   medianRowTag: "the middle ratio by weight",
 };
 
@@ -814,13 +814,19 @@ export function layout(w, values) {
       plot: { x: DAG_W + 60, y: TOP, w: w - DAG_W - 60 - 14, h: ESTIMATE_H - TOP - 62 },
     };
   }
+  /* Kenneth, 2026-09-13: the graph on this page too, "so students can see
+     what is happening" — the same panel the Overview and the Estimate carry,
+     the forest beside it. The forest is 270px wide beside it, so the
+     combined rows print short labels and drop to the interval's left where
+     the right has no room. */
   const m = LESSON.m;
   const pitch = forestPitch(m);
-  const L = pitch >= FOREST_NAMES_PITCH ? 70 : 46;
+  const L = DAG_W + 60;
   const rowsTop = TOP + 8;
   return {
     page, head, height: forestHeight(m), m, pitch, rowsTop,
     L,
+    dag: dagLayout(6, TOP, 270),
     plot: { x: L, y: TOP, w: w - L - 14, h: 8 + pitch * m + 6 + 3 * COMBINED_ROW_H + 8 },
     ruleY: rowsTop + pitch * m + 6,
   };

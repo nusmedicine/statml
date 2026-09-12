@@ -676,9 +676,12 @@ function drawForest(ctx, colors, L, state, params, anim, subject) {
   const upTo = anim?.k?.forest ?? 0;
   const done = upTo >= m;
   const LIM = M.FOREST_LIM;
+  drawDag(ctx, colors, L.dag, { page: "forest", cfg: state.cfg, strength: params.strength });
   const plot = makePlot({ ctx, colors, rect: L.plot, xDomain: [-LIM, LIM], yDomain: [0, 1] });
   plot.axisX({ ticks: [-3, -2, -1, 0, 1, 2, 3], format: (v) => v.toFixed(0), label: M.STRINGS.forestX });
-  plot.caption(`${M.STRINGS.forestCaption}, ${upTo} of ${m} SNPs`);
+  /* the count is the note, not the caption: beside the graph the plot is
+     270px and the caption with the count in it ran off the canvas */
+  plot.caption(M.STRINGS.forestCaption);
   let clipped = 0;
   ctx.save();
   /* the zero line */
@@ -768,20 +771,26 @@ function drawForest(ctx, colors, L, state, params, anim, subject) {
       ctx.arc(plot.sx(b), y, 3.5, 0, 2 * Math.PI);
       ctx.fill();
       ctx.fillStyle = sel ? colors.ink1 : colors.ink2;
-      const text = `${label}  ${M.n2(b)} (${M.n2(b - 1.96 * se)} to ${M.n2(b + 1.96 * se)})`;
-      const rx = plot.sx(b + 1.96 * se) + 8;
-      /* to the right of the interval where it fits, else to the left of it */
-      if (rx + ctx.measureText(text).width <= L.plot.x + L.plot.w) {
+      const text = `${label} ${M.n2(b)} (${M.n2(b - 1.96 * se)} to ${M.n2(b + 1.96 * se)})`;
+      const tw = ctx.measureText(text).width;
+      const rx = plot.sx(Math.min(LIM, b + 1.96 * se)) + 8;
+      const lx = plot.sx(Math.max(-LIM, b - 1.96 * se)) - 8;
+      /* to the right of the interval where it fits, else to its left where
+         THAT fits inside the plot, else from the plot's left edge */
+      if (rx + tw <= L.plot.x + L.plot.w) {
         ctx.textAlign = "left";
         ctx.fillText(text, rx, y);
-      } else {
+      } else if (lx - tw >= L.plot.x) {
         ctx.textAlign = "right";
-        ctx.fillText(text, plot.sx(b - 1.96 * se) - 8, y);
+        ctx.fillText(text, lx, y);
+      } else {
+        ctx.textAlign = "left";
+        ctx.fillText(text, L.plot.x, y);
       }
     });
   }
   ctx.restore();
-  if (clipped) plot.note(`${clipped} interval${clipped > 1 ? "s" : ""} past ±3, cut at the edge`);
+  plot.note(`${upTo} of ${m} SNPs${clipped ? `, ${clipped} cut at ±3` : ""}`);
   const ry = L.plot.y + L.plot.h + 40;
   if (subject != null && study.forestOrder.indexOf(subject) < upTo) {
     noteAt(ctx, colors, L.head.x + L.head.w, ry, M.snpReading(study, subject), L.head.w, { baseline: "top", tone: colors.highlight });
