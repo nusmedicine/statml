@@ -693,28 +693,28 @@
       "slug": "em-mixture",
       "state": "?theme=light&sampled=1&childMean=120&adultMean=170&n=100&seed=3&colour=resp&shown=160",
       "px": "4d4d66fb",
-      "tx": "a9270286"
+      "tx": "eb7ebc58"
     },
     {
       "$note": "The same fit rounded off at 0.5 — the default reading, and the one to dislodge.",
       "slug": "em-mixture",
       "state": "?theme=light&sampled=1&childMean=120&adultMean=170&n=100&seed=3&colour=cluster&shown=160",
       "px": "7514d5d9",
-      "tx": "a9270286"
+      "tx": "eb7ebc58"
     },
     {
       "$note": "The withheld labels, stacked children-first, so each column is a true mix.",
       "slug": "em-mixture",
       "state": "?theme=light&sampled=1&childMean=120&adultMean=170&n=100&seed=3&truth=1&shown=160",
       "px": "f3531dc3",
-      "tx": "a9270286"
+      "tx": "eb7ebc58"
     },
     {
       "$note": "The failing case: means 10cm apart, the components merge and the populations go wrong too.",
       "slug": "em-mixture",
       "state": "?theme=light&sampled=1&childMean=140&adultMean=150&n=100&seed=3&truth=1&shown=160",
       "px": "034be571",
-      "tx": "50252dba"
+      "tx": "764bb71c"
     },
     {
       "$note": "DRIVEN: first iteration, mid E-step — fill levels moving off half and half.",
@@ -740,14 +740,14 @@
         "dt": 32
       },
       "px": "27ce25c4",
-      "tx": "64a6d6a9"
+      "tx": "381b88e3"
     },
     {
       "$note": "Both spreads at 40: overlap made by widening rather than by closing in.",
       "slug": "em-mixture",
       "state": "?theme=light&sampled=1&childMean=120&childSd=40&adultMean=170&adultSd=40&n=100&seed=3&truth=1&shown=160",
       "px": "8babc3de",
-      "tx": "5e4250f5"
+      "tx": "5b83296f"
     },
     {
       "$note": "The populations stage: two curves, no sample drawn, no drive row.",

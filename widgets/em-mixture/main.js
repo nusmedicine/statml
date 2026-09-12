@@ -1044,8 +1044,8 @@ defineWidget({
           : `${shown.wrong} of ${N} in the wrong group`,
         note: !shown ? "nobody has been weighed yet"
           : shown.ambig === 0 ? "and every share is past .8 or under .2"
-          : shown.ambig === 1 ? "and one more sits between .2 and .8 — in no group really"
-          : `${shown.ambig} more sit between .2 and .8 — no group really`,
+          : shown.ambig === 1 ? "and one more is between .2 and .8 — in no group really"
+          : `${shown.ambig} more are between .2 and .8 — no group really`,
       },
     ];
   },
