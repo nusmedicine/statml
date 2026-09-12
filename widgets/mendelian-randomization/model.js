@@ -373,9 +373,9 @@ export function slope(y, x) {
    `groupHeads`, so one parameter still carries the page. */
 export const PAGES = [
   { value: "trial", label: "Overview", span: true },
-  { value: "gwas", label: "1 · The two GWAS", group: "Step" },
+  { value: "gwas", label: "1 · Effects", group: "Step" },
   { value: "estimate", label: "2 · Estimate", group: "Step" },
-  { value: "forest", label: "3 · The forest", group: "Step" },
+  { value: "forest", label: "3 · Forest", group: "Step" },
 ];
 export const PAGE_VALUES = PAGES.map((p) => p.value);
 export const pageOf = (values) =>

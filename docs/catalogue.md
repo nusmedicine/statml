@@ -8400,6 +8400,19 @@ trial" named the analogy and truncated in the grid), and the three after it
 are the notebook's workflow numbered 1 to 3; the step line reads "the idea"
 then "step n of 3".
 
+His next three, the same night: the pleiotropy arc's belly sat on the
+verdict (the arc is shallower and the verdict 8px lower); the first page is
+**Overview**, its own full-width button above a "Step" head over the
+three — core's option groups with `groupHeads`, one parameter still; and
+"The two GWAS" read as a title ("the two towers"), so the steps are
+**1 · Effects · 2 · Estimate · 3 · Forest**, sized to the rail's row of
+three, the hand-off line carrying the fuller name. His question whether
+Egger is "more accurate" got the trade in three lines: unbiased but two
+to three times wider with the assumptions holding, the only one centred
+under directional pleiotropy, the worst of the three under the
+confounder-to-SNP arrow — agreement across the methods is the evidence,
+which is why the lesson's table prints five.
+
 
 
 

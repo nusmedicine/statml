@@ -61,8 +61,9 @@ median row; every step ends on a reading line; SNPs and Samples are cut
 sentences to the notebook** (one per estimator, the F statistic,
 harmonising) — check they landed before the ship. Verify 117. His three follow-ups after it: pleiotropy named on the rail,
 the verdict and the reading line (he adds the word to the notebook too);
-odds ratios in the tile notes; the first page renamed **The idea**,
-unnumbered, the workflow numbered 1 to 3.
+odds ratios in the tile notes; the first page is **Overview**, its own
+button above a Step head over **1 · Effects · 2 · Estimate · 3 · Forest**;
+the pleiotropy arc cleared of the verdict.
 
 **Then his round.** Expect the usual: copy (the three-pass audit plus the
 mannerism pass is still owed — `_lab/mr-verify.mjs` §8 already sweeps
