@@ -8244,6 +8244,43 @@ measured, and MR is the fix when it is not.
 **NEXT:** the mock from `_lab/prs-round3-mock.html`'s shell, importing the
 engine; his picks from it.
 
+#### Kenneth's picks from the mock, 2026-09-12 (`_lab/mr-mock.html`, commit 3f1c0da)
+
+Every recommendation, asked in two rounds: **subtitle A** (three claims);
+**SNP on step 1, SNPs after** — the node's name changes with the step
+because the step changes it, and the verdict agrees in number; **step 1
+runs as four beats** (the people, the observational fit, the genotype
+groups, the ratio) with Step's label naming the next one — Fit the line ·
+Split by genotype · Draw the ratio — and Play running them, the same Step
+and Play the other steps carry, not 26's gate; **the rail's violation
+controls carry the assumption names** — Relevance: Strong · Moderate ·
+Weak; Exclusion restriction: Holds · 30% break it · 60% break it;
+Independence: Holds · Broken — the lesson's three words taught while
+being used, the mechanism in each detail; **Egger's intercept stays in
+the Egger tile's note**, six tiles on step 3; **step 2 as mocked** — two
+strips in strongest-first order with the scatter forming under them,
+Harmonise a display parameter so switching keeps the run; **the forest's
+height follows the count** — 79 rows at 4.4px unnamed with the pinned or
+hovered row named, 20 rows at 12px every one named, the three combined
+rows printing their numbers to whichever side has room.
+
+Three defects the browser read found in the mock and fixed before he saw
+it: the confounders node hyphenated in a circle (a pill now); the three
+centroid labels collided 0.4 SD apart (each dot carries its copy count and
+the note carries the sizes); the step-3 captions overran a 276px scatter.
+And the mock's seed moved from 7 to 1: over 40 seeds the clean IVW is
+0.445 (sd 0.060) and seed 7 gives 0.307.
+
+**Heterogeneity is named in the legend, not on the figure**: the step-3
+note slot is 276px wide and already spoken for by the pleiotropy count or
+the weak-instrument size, and the sentence did not fit beside any caption.
+
+**NEXT:** the draft — `widgets/mendelian-randomization/model.js` carrying
+the measure script's engine verbatim, `main.js` drawing the four steps
+from the mock, a verify script on `_lab/prs-verify.mjs`'s shape; then
+his round.
+
+
 ### The open calls — put to Kenneth and answered, 2026-09-11
 
 1. **Five or four.** Fold 58 into 59's first page, or let it stand.
