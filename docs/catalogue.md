@@ -7591,6 +7591,30 @@ two questions on nomenclature):**
 
 Four pages on one rail. Slug `polygenic-score`. NEXT: the draft.
 
+**PAGE 5 PLANNED 2026-09-12 — calibration, on Kenneth's question** ("can
+the PRS score be used to calculate risk for a patient? a colleague told me
+no… so what's the use of this score?", then "how is calibration done? will
+be useful as a separate page?"). The misconception it dislodges is the one
+the four pages withhold an answer to: **a percentile is a risk.** The
+figure: a disease outcome simulated from the trait as a liability with a
+threshold (the widget gains a prevalence), a logistic model of the outcome
+on the standardised score fitted in the base population, and the
+calibration plot — mean predicted risk against the observed fraction by
+decile of predicted risk, the diagonal as the reference — under the
+existing Target population control: on the diagonal for the matched
+target, off it for the distant one, over-predicting at the top because
+the score explains less there. Readouts: the calibration intercept, the
+calibration slope, and the person's predicted probability beside their
+percentile — the pair the widget has been withholding. No new control.
+Cost: a fifth page, a second set of states, ~a day of rounds. Touches the
+deferred `ppv-prevalence` entry and 02-2's own calibration paragraph. His
+call: **build the four-page draft, do his round, then mock page 5 as one
+section and add it in round two** (over adding it mid-build, keeping it in
+prose, or a separate widget). The distinction to keep on the page:
+calibration (are the probabilities right) is not discrimination (does the
+score rank people, the AUC), and recalibration refits the intercept to the
+local prevalence and the slope to the score's local accuracy.
+
 ### Slot 60 · `mendelian-randomization`
 
 **The one thing:** each SNP gives a ratio — its effect on the outcome over
