@@ -1958,22 +1958,22 @@
       "$note": "SETTLED: Comparing with bands and the shared null curve on.",
       "slug": "time-event",
       "state": "?theme=light&concept=groups&bands=1&shared=1&shown=0",
-      "px": "182b4d93",
-      "tx": "8cfa76f6"
+      "px": "63568d42",
+      "tx": "574ac14e"
     },
     {
       "$note": "SETTLED: effect none — what no difference looks like; the p tile holds.",
       "slug": "time-event",
       "state": "?theme=light&concept=groups&effect=none&shown=0",
-      "px": "b99948ba",
-      "tx": "7b5c0b77"
+      "px": "864e9a21",
+      "tx": "00ab0df7"
     },
     {
       "$note": "SETTLED: follow 5 — the study not run long enough; almost no events, the honesty surfaces.",
       "slug": "time-event",
       "state": "?theme=light&concept=groups&follow=5&shown=0",
       "px": "c4eba7ad",
-      "tx": "fdd5ae81"
+      "tx": "2a819c45"
     },
     {
       "$note": "SETTLED: the full model — card above the figure, forest with truth dots, disease+age+SNPs.",

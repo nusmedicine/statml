@@ -890,7 +890,7 @@ defineWidget({
           value: state.lr.p < 1e-4 ? "< 0.0001" : fmt(state.lr.p, 4),
           /* the derivation, in the literature's own sentence (Bland &
              Altman), with the numbers computed from the test itself */
-          note: `if the groups shared one curve, each event would fall by the risk sets — about ${Math.round(state.lr.exp[1])} in the disease group; ${state.lr.obs[1]} happened`,
+          note: `if the groups shared one curve, each event would be split by the risk sets — about ${Math.round(state.lr.exp[1])} in the disease group; ${state.lr.obs[1]} happened`,
         },
         {
           label: "Hazard ratio",
@@ -1396,8 +1396,8 @@ function drawGroups(ctx, colors, w, params, state, t, pointer) {
   if (binsDone && withEvents.length) {
     ctx.fillText(
       above === withEvents.length
-        ? "disease sits above no-disease in every interval"
-        : `disease sits above no-disease in ${above} of ${withEvents.length} intervals`,
+        ? "the disease curve is above no-disease in every interval"
+        : `the disease curve is above no-disease in ${above} of ${withEvents.length} intervals`,
       left,
       HR_TOP + 16,
     );
