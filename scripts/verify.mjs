@@ -30,6 +30,7 @@ const SCRIPTS = [
   // engines against a reference implementation
   "widgets/_lab/dbscan-verify.mjs",   // sklearn.cluster.DBSCAN
   "widgets/_lab/gd-verify.mjs",       // identities, and the curvatures widget 48 prints
+  "widgets/_lab/gwas-verify.mjs",     // the cohort, the three scans and the stage widget 57 draws
   "widgets/_lab/hardy-weinberg-verify.mjs",     // the HWE test and the samplers widget 56 draws
   "widgets/_lab/hc-verify.mjs",       // R hclust
   "widgets/_lab/kmeans-verify.mjs",   // sklearn.cluster.KMeans

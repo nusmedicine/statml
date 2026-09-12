@@ -840,6 +840,27 @@
       ],
       "arc": 56,
       "status": "shipped"
+    },
+    {
+      "slug": "gwas",
+      "title": "Genome-Wide Association Studies",
+      "blurb": "Every SNP is tested against the trait; ancestry enters every test, and the mixed model removes it.",
+      "course": "PHM5003",
+      "topics": [
+        "GWAS",
+        "association test",
+        "Manhattan plot",
+        "QQ plot",
+        "genomic inflation",
+        "population stratification",
+        "principal components",
+        "genetic relationship matrix",
+        "linear mixed model",
+        "fastGWA",
+        "Bonferroni threshold"
+      ],
+      "arc": 57,
+      "status": "draft"
     }
   ]
 }
