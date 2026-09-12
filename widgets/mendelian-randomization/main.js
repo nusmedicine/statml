@@ -536,7 +536,7 @@ function drawScatter(ctx, colors, rect, study, o) {
 
 /* ---- step 2: the two GWAS ------------------------------------------------- */
 
-function drawGwas(ctx, colors, L, state, params, anim) {
+function drawGwas(ctx, colors, L, state, params, anim, subject) {
   const study = M.studyOf(state, params);
   const S = study.S;
   const raw = params.harmonise !== "on";
@@ -544,6 +544,7 @@ function drawGwas(ctx, colors, L, state, params, anim) {
   const arrived = state.order.slice(0, upTo);
   const last = upTo > 0 && upTo < state.m ? state.order[upTo - 1] : null;
   const m = state.m;
+  const shown = subject != null && arrived.includes(subject) ? subject : null;
 
   /* the exposure strip */
   let bxMax = 0;
@@ -573,7 +574,17 @@ function drawGwas(ctx, colors, L, state, params, anim) {
 
   arrived.forEach((j, k) => {
     const x = M.stripX(L.exposure, m, k);
-    const color = j === last ? colors.highlight : colors.unknown;
+    const color = j === last || j === shown ? colors.highlight : colors.unknown;
+    /* the subject's column, on both strips (decision 5, extended to this
+       page for the harmonisation reading) */
+    if (j === shown) {
+      ctx.save();
+      ctx.fillStyle = colors.highlight;
+      ctx.globalAlpha = 0.12;
+      const cw = L.exposure.w / m;
+      ctx.fillRect(x - cw / 2, L.exposure.y, cw, L.outcome.y + L.outcome.h - L.exposure.y);
+      ctx.restore();
+    }
     ctx.strokeStyle = color;
     ctx.lineWidth = 1;
     ctx.beginPath();
@@ -605,11 +616,16 @@ function drawGwas(ctx, colors, L, state, params, anim) {
 
   /* the scatter forming under them */
   drawScatter(ctx, colors, L.plot, study, {
-    arrived, last, raw, small: true, lines: false,
+    arrived, last, raw, small: true, lines: false, subject: shown,
     caption: raw ? M.STRINGS.gwasScatterRaw : M.STRINGS.gwasScatterCaption,
   });
-  if (upTo >= m) {
-    noteAt(ctx, colors, L.head.x + L.head.w, L.plot.y + L.plot.h + 40, M.gwasReading(state, params), L.head.w, { baseline: "top", tone: raw ? colors.extreme : colors.ink1 });
+  /* the reading line: the subject's harmonisation row wins; the finished
+     figure's count otherwise */
+  const ry = L.plot.y + L.plot.h + 40;
+  if (shown != null) {
+    noteAt(ctx, colors, L.head.x + L.head.w, ry, M.harmoniseReading(state, params, shown), L.head.w, { baseline: "top", tone: colors.highlight });
+  } else if (upTo >= m) {
+    noteAt(ctx, colors, L.head.x + L.head.w, ry, M.gwasReading(state, params), L.head.w, { baseline: "top", tone: raw ? colors.extreme : colors.ink1 });
   }
 }
 
@@ -928,7 +944,7 @@ defineWidget({
     if (page === "gwas") {
       return [
         { token: "unknown", label: "A SNP's effect with its 95% interval, in each GWAS and on the scatter", mark: "dot" },
-        { token: "highlight", label: "The SNP just added", mark: "dot" },
+        { token: "highlight", label: "The SNP just added; or the one under the pointer or pinned by a click, whose alleles the line under the figure reads", mark: "dot" },
         { token: "extreme", label: "An effect reported on the other allele, until harmonised", mark: "dot" },
       ];
     }
@@ -1013,11 +1029,11 @@ defineWidget({
     const L = M.layout(w, params);
     drawHead(ctx, colors, L.head, L.page);
     if (L.page === "trial") return drawTrial(ctx, colors, L, state, params, anim);
-    if (L.page === "gwas") return drawGwas(ctx, colors, L, state, params, anim);
     /* decision 5: the pointer wins while it is on a target, the pin holds
        otherwise */
     const subject = (pointer ? M.subjectAt(L, state, params, pointer.x, pointer.y) : null)
       ?? M.pinnedSubject(params);
+    if (L.page === "gwas") return drawGwas(ctx, colors, L, state, params, anim, subject);
     if (L.page === "estimate") return drawEstimate(ctx, colors, L, state, params, anim, subject);
     return drawForest(ctx, colors, L, state, params, anim, subject);
   },

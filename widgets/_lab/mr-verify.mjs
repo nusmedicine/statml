@@ -282,6 +282,10 @@ console.log("\n5 · geometry and the hit map");
         if (page === "estimate") {
           x = sx(study.S.bxHat[j]);
           y = sy(study.S.byHat[j]);
+        } else if (page === "gwas") {
+          /* the SNP's column on the outcome strip */
+          x = M.stripX(L.outcome, st.m, st.order.indexOf(j));
+          y = L.outcome.y + L.outcome.h / 2;
         } else {
           const row = study.forestOrder.indexOf(j);
           x = L.plot.x + L.plot.w / 2;
@@ -290,15 +294,16 @@ console.log("\n5 · geometry and the hit map");
         const hover = M.subjectAt(L, st, params, x, y);
         const hit = hitTest(regions, x, y);
         const clicked = hit ? Number(hit.set.snp) - 1 : null;
-        /* the forest's rows are unambiguous; on the scatter a SNP under a
-           neighbour is that neighbour's, and what has to hold is that the
-           hover and the click name the SAME one, within PIN_R of the point */
-        if (page === "forest" && hover !== j) bad += 1;
+        /* the forest's rows and the strips' columns are unambiguous; on the
+           scatter a SNP under a neighbour is that neighbour's, and what has
+           to hold is that the hover and the click name the SAME one, within
+           PIN_R of the point */
+        if (page !== "estimate" && hover !== j) bad += 1;
         if (hover !== clicked) hitBad += 1;
         if (hover === null) far += 1;
         else if (page === "estimate" && Math.hypot(sx(study.S.bxHat[hover]) - x, sy(study.S.byHat[hover]) - y) > M.PIN_R + 1) far += 1;
       }
-      if (page === "forest") check(`forest at ${name}px: every row round-trips through subjectAt from its own centre`, bad === 0, `${bad} miss`);
+      if (page !== "estimate") check(`${page} at ${name}px: every ${page === "gwas" ? "column" : "row"} round-trips through subjectAt from its own centre`, bad === 0, `${bad} miss`);
       check(`${page} at ${name}px: the hover and core's hitTest name the same SNP at every SNP's pixel`, hitBad === 0, `${hitBad} disagree`);
       check(`…and the SNP named is within ${M.PIN_R}px of the pixel`, far === 0, `${far} far`);
       if (page === "estimate") {
@@ -316,6 +321,18 @@ console.log("\n5 · geometry and the hit map");
         }
         check(`…and at ${n} pointer positions across the plot`, dis === 0, `${dis} disagree`);
         check(`…${regions.length} cells name a SNP, none overlapping`, regions.length > st.m && regions.every((r) => r.w === M.CELL && r.h === M.CELL));
+      } else if (page === "gwas") {
+        check(`…a column a SNP on each strip and the scatter's cells (${regions.length} regions)`, regions.length > 2 * st.m && regions.every((r) => r.set.snp !== undefined));
+        /* the harmonisation reading, in its three forms */
+        const flippedJ = [...st.harmonised.S.flipped].findIndex((v) => v === 1);
+        const plainJ = [...st.harmonised.S.flipped].findIndex((v) => v === 0);
+        const offLine = M.harmoniseReading(st, base({ page: "gwas" }), flippedJ);
+        const onLine = M.harmoniseReading(st, base({ page: "gwas", harmonise: "on" }), flippedJ);
+        check("a flipped SNP's reading names the other allele unharmonised and the BMI-raising allele harmonised",
+          /the other one: [+−]\d\.\d{3}; unharmonised$/.test(offLine) && /read on [ACGT], the BMI-raising allele, it is [+−]\d\.\d{3}$/.test(onLine), offLine);
+        check("…with the two signs opposite", offLine.match(/([+−])\d\.\d{3}; unharmonised/)[1] !== onLine.match(/it is ([+−])/)[1]);
+        check("…and an unflipped SNP's reading says nothing to flip", /nothing to flip$/.test(M.harmoniseReading(st, base({ page: "gwas" }), plainJ)));
+        check("every SNP has two different alleles", st.alleles.length === st.m && st.alleles.every(([a, b]) => a !== b && /^[ACGT]$/.test(a) && /^[ACGT]$/.test(b)));
       } else {
         check(`…${regions.length} regions, one a row, each a toggle of the pin`, regions.length === st.m && regions.every((r) => r.set.snp !== undefined));
       }
@@ -507,6 +524,7 @@ console.log("\n8 · the register");
     /* decision 9b's reading lines are built from live numbers, so the sweep
        calls them in every form they take */
     M.trialReading(st.trial, false), M.trialReading(st.trial, true),
+    ...[0, 1, 2, 3, 4, 5].flatMap((j) => [M.harmoniseReading(st, base({ page: "gwas" }), j), M.harmoniseReading(st, base({ page: "gwas", harmonise: "on" }), j)]),
     M.gwasReading(st, base({ page: "gwas" })), M.gwasReading(st, base({ page: "gwas", harmonise: "on" })),
     ...["ivw", "egger", "median", "all"].flatMap((estimator) => [
       M.estimateReading(st.harmonised, base({ estimator }), st.trial.obs.b, false),

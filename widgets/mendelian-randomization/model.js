@@ -383,7 +383,7 @@ export const pageOf = (values) =>
 export const WORKFLOW_STEPS = PAGES.length - 1;
 /** Where a workflow step sits in the three, one-based; 0 for the idea. */
 export const stepNumber = (page) => PAGE_VALUES.indexOf(pageOf({ page }));
-export const PIN_PAGES = ["estimate", "forest"];
+export const PIN_PAGES = ["gwas", "estimate", "forest"];
 
 export const CONFOUNDING = [
   { value: "none", label: "None", gamma: 0, delta: 0 },
@@ -432,7 +432,9 @@ export const STRINGS = {
   blurb:
     "Variants assigned at conception stand in for a randomised exposure; their two GWAS effects estimate the causal effect.",
 
-  pageLabel: "Page",
+  /* an empty label is core's "no label row": the Overview button and the Step
+     head name the control themselves (Kenneth, 2026-09-13) */
+  pageLabel: "",
   pageDetail: "the overview, then the three steps of a Mendelian randomization study",
 
   dataSection: "The data",
@@ -695,6 +697,12 @@ export function build(rng, cfg) {
     flipFrac: FLIP,
     harmonised: true,
   });
+  /* Each SNP's two alleles, for the harmonisation reading (Kenneth,
+     2026-09-13: "students don't know what harmonisation is"). The first is
+     the BMI-raising allele the exposure GWAS reports on; the outcome GWAS
+     reports on the other one for the SNPs `summaryStats` flipped. Drawn
+     AFTER the statistics so no earlier number moves. */
+  const alleles = Array.from({ length: cfg.m }, () => ALLELE_PAIRS[rngStudy.int(0, ALLELE_PAIRS.length - 1)]);
   const raw = { ...S, byHat: Float64Array.from(S.byHat, (v, j) => (S.flipped[j] ? -v : v)) };
   const harmonised = analyse(S, makeRng(sBoot));
   const unharmonised = analyse(raw, makeRng(sBoot));
@@ -703,8 +711,9 @@ export function build(rng, cfg) {
   let nFlipped = 0;
   for (let j = 0; j < cfg.m; j += 1) nFlipped += S.flipped[j];
 
-  return { cfg, trial, harmonised, unharmonised, order, m: cfg.m, nFlipped };
+  return { cfg, trial, harmonised, unharmonised, order, alleles, m: cfg.m, nFlipped };
 }
+const ALLELE_PAIRS = [["A", "G"], ["C", "T"], ["A", "C"], ["G", "T"], ["A", "T"], ["C", "G"]];
 
 /** The reading of the study: the Harmonise control's on step 2, the
     harmonised one on every step after (decision 9c). */
@@ -854,10 +863,21 @@ const cellCentre = (L, x, y) => [
   L.plot.y + (Math.floor((y - L.plot.y) / CELL) + 0.5) * CELL,
 ];
 
-/** The SNP under the pointer on the estimate's scatter or the forest, or null. */
+const inRect = (r, x, y) => x >= r.x && x < r.x + r.w && y >= r.y && y < r.y + r.h;
+
+/** The SNP under the pointer: a column of either GWAS strip on the Effects
+    page, a point of the scatter, or a row of the forest; else null. */
 export function subjectAt(L, state, params, x, y) {
   if (!state) return null;
   const study = studyOf(state, params);
+  if (L.page === "gwas") {
+    for (const strip of [L.exposure, L.outcome]) {
+      if (inRect(strip, x, y)) return state.order[Math.min(state.m - 1, Math.floor(((x - strip.x) / strip.w) * state.m))];
+    }
+    if (!inRect(L.plot, x, y)) return null;
+    const [cx, cy] = cellCentre(L, x, y);
+    return nearestSnp(L, study, state.m, cx, cy);
+  }
   if (L.page === "estimate") {
     if (x < L.plot.x || x >= L.plot.x + L.plot.w || y < L.plot.y || y >= L.plot.y + L.plot.h) return null;
     const [cx, cy] = cellCentre(L, x, y);
@@ -889,7 +909,7 @@ export function regionsFor(L, state, params) {
   const pinned = pinnedSubject(params);
   const study = studyOf(state, params);
   const out = [];
-  if (L.page === "estimate") {
+  const cells = () => {
     const cols = Math.ceil(L.plot.w / CELL);
     const rows = Math.ceil(L.plot.h / CELL);
     for (let i = 0; i < cols; i += 1) {
@@ -903,6 +923,22 @@ export function regionsFor(L, state, params) {
         });
       }
     }
+  };
+  if (L.page === "gwas") {
+    /* a column on each strip, and the scatter's cells */
+    for (const strip of [L.exposure, L.outcome]) {
+      for (let k = 0; k < state.m; k += 1) {
+        const j = state.order[k];
+        out.push({
+          x: strip.x + (k / state.m) * strip.w, y: strip.y, w: strip.w / state.m, h: strip.h,
+          set: { snp: pinned === j ? "" : String(j + 1) },
+          label: `Pin SNP ${j + 1}`,
+        });
+      }
+    }
+    cells();
+  } else if (L.page === "estimate") {
+    cells();
   } else {
     for (let row = 0; row < state.m; row += 1) {
       const j = study.forestOrder[row];
@@ -956,6 +992,25 @@ export function trialReading(trial, truth, cfg = {}) {
   else if (cfg.share > 0) s += "; the second path is in this ratio";
   else if (cfg.indep && cfg.confounding !== "none") s += "; the confounders' path is in this ratio";
   return s;
+}
+
+/** The harmonisation row for one SNP on the Effects page — the notebook's
+    overview table, one SNP at a time: which allele each GWAS reports on, and
+    what harmonising does to the outcome effect. */
+export function harmoniseReading(state, params, j) {
+  const [raise, other] = state.alleles[j];
+  const S = state.harmonised.S;
+  const bx = S.bxHat[j];
+  const byH = S.byHat[j];
+  const sign = (v) => `${v >= 0 ? "+" : "−"}${Math.abs(v).toFixed(3)}`;
+  if (!S.flipped[j]) {
+    return `SNP ${j + 1} · both GWAS report on allele ${raise}: ${sign(bx)} on BMI, ${sign(byH)} on CHD; nothing to flip`;
+  }
+  const byRaw = -byH;
+  if (params.harmonise === "on") {
+    return `SNP ${j + 1} · the CHD GWAS reported ${sign(byRaw)} on allele ${other}; read on ${raise}, the BMI-raising allele, it is ${sign(byH)}`;
+  }
+  return `SNP ${j + 1} · BMI GWAS on allele ${raise}: ${sign(bx)} · CHD GWAS on allele ${other}, the other one: ${sign(byRaw)}; unharmonised`;
 }
 
 export function gwasReading(state, params) {
