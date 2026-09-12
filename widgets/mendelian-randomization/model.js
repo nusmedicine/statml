@@ -7,9 +7,11 @@
    THE NUMERICS ARE MOVED, NOT REWRITTEN. `drawInstruments`, `summaryStats`,
    `ivw`, `egger`, `weightedMedianOf`, `wald`, `weightedMedian`, `meanF`,
    `cohort` and `slope` are the ones `_lab/mr-measure.mjs` measured the design
-   with (31 checks, 2026-09-12), copied here verbatim — that script runs its
-   tables at top level and cannot be imported from, and the measured numbers
-   are only the widget's numbers while the code is the same code. Each
+   with (31 checks, 2026-09-12), copied here — that script runs its tables
+   at top level and cannot be imported from. ONE DEPARTURE, round three:
+   `summaryStats` draws its noise unconditionally so a SNP keeps its draw
+   across the assumptions (see the comment in it); `_lab/mr-verify.mjs` §2
+   asserts the lesson's shape over forty seeds on this code. Each
    `FIRST WRITTEN AS` comment is the record of a claim the measurement
    corrected, and they are kept where they are.
 
@@ -43,19 +45,21 @@
        sections at the widget's 550px and Kenneth picked from every one
        (catalogue § Slot 60, 2026-09-12).
 
-    2. FOUR STEPS, ONE RAIL, AND `page` IS A DISPLAY PARAMETER. The run is per
-       step, so leaving a step and coming back keeps what was built
-       (non-negotiable 3).
+    2. AN OVERVIEW AND THREE STEPS, ONE RAIL, AND `page` IS A DISPLAY
+       PARAMETER. The run is per page, so leaving a page and coming back
+       keeps what was built (non-negotiable 3).
 
-    3. THREE SUB-STREAMS, DRAWN FIRST. `build` takes three seeds off the top of
-       the rng it is handed — the cohort, the study, the median's bootstrap —
-       so a control on one step cannot redraw another's figure by consuming a
-       different number of draws (polygenic-score's decision 1).
+    3. FOUR SUB-STREAMS, DRAWN FIRST. `build` takes four seeds off the top of
+       the rng it is handed — the cohort, the instruments, the statistics,
+       the median's bootstrap — so a control cannot redraw a figure by
+       consuming a different number of draws (polygenic-score's decision 1),
+       and every reading (round three) shares the instruments and the alleles.
 
-    4. HARMONISE AND ESTIMATOR ARE DISPLAY PARAMETERS. The two GWAS are the
-       same two GWAS read on the same allele or not, so `build` derives the
-       unharmonised study from the harmonised one by flipping the signs it
-       recorded, and fits all three estimators to both. 2 ms.
+    4. HARMONISE, ESTIMATOR AND (SINCE ROUND THREE) THE FOUR ASSUMPTIONS ARE
+       DISPLAY PARAMETERS. The two GWAS are the same two GWAS read on the same
+       allele or not, so a reading derives the unharmonised study from the
+       harmonised one by flipping the signs it recorded, and fits all three
+       estimators to both. About 7 ms a reading, made on first request.
 
     5. THE FRAME IS FIXED TO THE WHOLE STUDY (2.5). The scatter's domain is
        computed over every SNP, not the ones that have arrived, so points
@@ -379,11 +383,14 @@ export function slope(y, x) {
 /* Kenneth's next note: the overview is ITS OWN BUTTON above a "Step" head and
    the three steps — two runs of one control, core's option `group` with
    `groupHeads`, so one parameter still carries the page. */
+/* Copy audit (2026-09-13): the line under the control reads the page that
+   is selected — the one field-wide line mentioned the overview under the
+   three step buttons, which sit apart from it. */
 export const PAGES = [
-  { value: "trial", label: "Overview", span: true },
-  { value: "gwas", label: "1 · Effects", group: "Step" },
-  { value: "estimate", label: "2 · Estimate", group: "Step" },
-  { value: "forest", label: "3 · Forest", group: "Step" },
+  { value: "trial", label: "Overview", span: true, detail: "the idea: one SNP sorts a cohort into arms no confounder chose" },
+  { value: "gwas", label: "1 · Effects", group: "Step", detail: "each SNP's effect in the exposure GWAS and in the outcome GWAS, harmonised" },
+  { value: "estimate", label: "2 · Estimate", group: "Step", detail: "the effects combined: IVW, MR Egger, the weighted median" },
+  { value: "forest", label: "3 · Forest", group: "Step", detail: "each SNP's ratio, and the three combined estimates" },
 ];
 export const PAGE_VALUES = PAGES.map((p) => p.value);
 export const pageOf = (values) =>
@@ -443,13 +450,12 @@ export const STRINGS = {
   /* an empty label is core's "no label row": the Overview button and the Step
      head name the control themselves (Kenneth, 2026-09-13) */
   pageLabel: "",
-  pageDetail: "the overview, then the three steps of a Mendelian randomization study",
 
   dataSection: "The data",
   seedLabel: "Seed",
   seedDetail: "draws a different cohort and different summary statistics",
   confoundingLabel: "Confounding",
-  confoundingDetail: "how strongly the confounders move both BMI and CHD",
+  confoundingDetail: "the confounders' effect on BMI and on CHD",
   truthLabel: "True effect",
   truthOff: "what would you conclude from the estimates alone?",
   truthOn: "the effect the simulation was built with",
@@ -458,7 +464,7 @@ export const STRINGS = {
 
   assumptionsSection: "The assumptions",
   relevanceLabel: "Relevance",
-  relevanceDetail: "how strongly the SNPs are associated with BMI: the size of the exposure GWAS",
+  relevanceDetail: "the strength of the SNPs' association with BMI: the size of the exposure GWAS",
   exclusionLabel: "Exclusion restriction",
   exclusionDetail: "the share of SNPs associated with CHD by a path that is not BMI: horizontal pleiotropy",
   independenceLabel: "Independence",
@@ -501,7 +507,7 @@ export const STRINGS = {
   stripsX: "SNPs, strongest on BMI first",
   flippedNote: "open marker: reported on the other allele",
   gwasScatterCaption: "each SNP's two effects, one against the other",
-  gwasScatterRaw: "unharmonised: half point the wrong way",
+  gwasScatterRaw: "unharmonised: some effects point the wrong way",
 
   /* steps 3 and 4 */
   scatterX: "SNP effect on BMI, in SD per allele",
@@ -512,7 +518,7 @@ export const STRINGS = {
   captionMedian: "the weighted median of the ratios",
   captionAll: "IVW, MR Egger, weighted median",
   waitingNote: "the estimate waits for the last SNP",
-  observationalTag: "observational",
+  observationalTag: "observational slope",
   truthTag: "true effect",
   interceptTag: "intercept: the average direct effect",
   forestX: "MR effect of BMI on CHD, in log odds per SD",
@@ -1068,10 +1074,12 @@ export function regionsFor(L, state, params) {
    Numbers and readings.
    ====================================================================== */
 
-export const n2 = (v) => (Number.isFinite(v) ? v.toFixed(2) : "—");
-export const n3 = (v) => (Number.isFinite(v) ? v.toFixed(3) : "—");
+/* a true minus sign, as the harmonisation line already prints */
+const minus = (s) => s.replace(/^-/, "−");
+export const n2 = (v) => (Number.isFinite(v) ? minus(v.toFixed(2)) : "—");
+export const n3 = (v) => (Number.isFinite(v) ? minus(v.toFixed(3)) : "—");
 export const intText = (v) => Math.round(v).toLocaleString("en-US");
-export const ciText = (b, se, d = 2) => `95% CI ${(b - 1.96 * se).toFixed(d)} to ${(b + 1.96 * se).toFixed(d)}`;
+export const ciText = (b, se, d = 2) => `95% CI ${minus((b - 1.96 * se).toFixed(d))} to ${minus((b + 1.96 * se).toFixed(d))}`;
 
 /** The line under the figure for one SNP, hovered or pinned. */
 export function snpReading(study, j) {

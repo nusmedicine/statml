@@ -68,10 +68,13 @@ the Effects page by hover or pin (alleles named); no Page label; the graph on EV
 Effects strips 280px beside it. **Round three (2026-09-13): the
 assumptions and Harmonise are display parameters over readings of one
 study, eased over 450 ms; the lines and combined rows grow in over a
-final beat; the default seed is 25.** Verify 150.
+final beat; the default seed is 25.** Verify 150. **The copy audit is done** (2026-09-13,
+catalogue § Slot 60 "The copy audit"): descriptors match their buttons,
+register, a claim-before-the-run tile. Owed still: the shooter, the
+states, the status flip, the push.
 
-**Then his round.** Expect the usual: copy (the three-pass audit plus the
-mannerism pass is still owed — `_lab/mr-verify.mjs` §8 already sweeps
+**Then his round.** Expect the usual: copy (the three-pass audit and the
+mannerism pass are DONE — `_lab/mr-verify.mjs` §8 already sweeps
 "never", lesson words, the coined list, "landed/taken/arrives", and
 "tune/holdout"; "arm" is deliberately allowed on this widget as the
 field's word), the DAG's proportions at 200px beside a 276px scatter, the

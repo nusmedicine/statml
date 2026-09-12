@@ -8467,6 +8467,25 @@ median 0.64. Verify 150 assertions, including the ease's endpoints and
 halfway, the final beat's timing, and that a valid SNP's CHD effect is
 identical under 0% and 30%.
 
+#### The copy audit, 2026-09-13 — three passes and the mannerism pass
+
+Every reader-facing string dumped in one list (subtitle, controls and
+their details, step labels, tooltips, hand-offs, step lines, four legends,
+the tiles empty and finished, the summaries, every reading line, every
+verdict, every caption and note) and read three times. **Descriptors
+against buttons**, Kenneth's own catch: the page control's one line said
+"the overview, then the three steps" under the three Step buttons while the
+Overview button sits above them, so each page now carries its own detail
+and the line reads the page selected. **Register**: two question-shaped
+details ("how strongly…") restated as what the control is; "half point the
+wrong way" replaced, since the reading line prints the count; the
+observational number named "Observational slope" on every surface where it
+had been "Observational" on one and "the observational estimate" on
+another; a true minus sign wherever a number prints. **A claim before the
+run**: the "Reported on the other allele" tile printed 43 before the first
+SNP had arrived, and now counts the SNPs that have. The mannerism pass
+found nothing further. Verify 150.
+
 
 
 

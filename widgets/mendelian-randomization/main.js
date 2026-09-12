@@ -1,6 +1,6 @@
 /* ============================================================================
-   Widget 60 · Mendelian randomization — one SNP as a trial, the two GWAS, the
-   estimate, the forest.
+   Widget 60 · Mendelian randomization — the overview (one SNP as a trial),
+   then the effects, the estimate, the forest.
 
    PHM5003 week 6 (03 - MR). `model.js` holds the engine, the geometry and the
    copy; this file draws them.
@@ -18,10 +18,10 @@
        two the graph must not have, drawn faint until a control or a click
        turns one on.
 
-    2. STEP 1 IS THE CAUSAL-STRUCTURES STAGE. The graph on the left, the cohort
-       on the right; the observational fit through every person, then the
-       three genotype groups' centroids and the line through them — one SNP's
-       ratio. Four beats, and the Step button names the next one.
+    2. THE OVERVIEW IS THE CAUSAL-STRUCTURES STAGE. The graph on the left, the
+       cohort on the right; the observational fit through every person, then
+       the two stages by genotype and the line through the three centroids —
+       one SNP's ratio. Five beats, and the Step button names the next one.
 
     3. NOTHING IS DRAWN BEFORE THE RUN REACHES IT (non-negotiable 4). Each step
        opens on its axes; the people, the SNPs, the lines and the combined rows
@@ -36,10 +36,18 @@
        decision 15). `pointer: true` repaints on movement with nothing written;
        `regions` writes the one hidden `snp` parameter; the overlay is one
        function called with whichever subject is present, the pointer winning
-       while it is on a target. One SNP, on the scatter and in the forest.
+       while it is on a target. One SNP, on the strips, the scatter and the
+       forest; on the strips its harmonisation row is the reading line.
 
-    6. THE FOREST'S HEIGHT FOLLOWS THE COUNT: 79 rows at 4.4px unnamed, the
-       pinned or hovered row named; 20 rows at 12px, every one named.
+    6. THE GRAPH IS ON EVERY PAGE (Kenneth, 2026-09-13), and the forest's 79
+       rows sit at 4.4px, the pinned or hovered row named.
+
+    8. THE VIEW IS THE THING DRAWN (round three). `viewAt` hands each page
+       either the current reading or a point on the ease between the reading
+       a change left and the one it is heading to; core supplies the frames
+       in its ease mode and the run does not move under them. The last SNP
+       is followed by a final beat that grows the lines and the combined
+       rows out; the tags and the reading line wait for it to land.
 
     7. HETEROGENEITY IS NAMED IN THE LEGEND, NOT DRAWN (Kenneth's call): every
        SNP's outcome effect carries a small direct effect of either sign, which
@@ -858,7 +866,6 @@ defineWidget({
     page: {
       type: "segmented",
       label: M.STRINGS.pageLabel,
-      detail: M.STRINGS.pageDetail,
       options: M.PAGES,
       groupHeads: true,
       default: "trial",
@@ -1000,7 +1007,7 @@ defineWidget({
       { token: "empirical", label: "IVW: the precision-weighted slope through the origin", mark: "line" },
       { token: "group-b", label: "MR Egger: the same slope freed from the origin, its intercept the average direct effect", mark: "line" },
       { token: "group-c", label: "Weighted median: the middle single-SNP ratio by weight", mark: "line" },
-      { token: "ink-1", label: "The observational estimate: CHD risk on BMI in the cohort, confounded", mark: "dash" },
+      { token: "ink-1", label: "The observational slope: CHD risk on BMI in the cohort, confounded", mark: "dash" },
       { token: "reference", label: "The true effect, revealed on request", mark: "dash" },
     ];
     if (page === "estimate") {
@@ -1165,8 +1172,8 @@ defineWidget({
         { label: "SNPs", value: String(upTo), note: `of ${state.m} instruments` },
         {
           label: "Reported on the other allele",
-          value: params.harmonise === "on" ? "0" : String(state.nFlipped),
-          note: params.harmonise === "on" ? "after harmonising" : "outcome effects with the sign of the other allele",
+          value: upTo === 0 ? "—" : params.harmonise === "on" ? "0" : String(state.order.slice(0, upTo).filter((j) => study.S.flipped[j]).length),
+          note: upTo === 0 ? "outcome effects with the sign of the other allele" : params.harmonise === "on" ? "after harmonising" : `of ${upTo} so far, with the sign of the other allele`,
         },
         {
           label: "Mean F statistic",
@@ -1186,7 +1193,7 @@ defineWidget({
       tile("IVW", "ivw", e.ivw.b, e.ivw.se),
       tile("MR Egger", "egger", e.egger.b, e.egger.se, ` · intercept ${M.n3(e.egger.a)} ±${M.n3(e.egger.seA)}`),
       tile("Weighted median", "median", e.median.b, e.median.se),
-      { label: "Observational", value: M.n2(state.trial.obs.b), note: "CHD risk on BMI in the cohort, confounded" },
+      { label: "Observational slope", value: M.n2(state.trial.obs.b), note: "CHD risk on BMI in the cohort, confounded" },
       truthTile,
       { label: "Mean F statistic", value: done ? String(Math.round(study.F)) : "—", note: done ? "10 is the usual floor" : "read once every SNP is in" },
     ];
