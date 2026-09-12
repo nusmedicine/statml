@@ -1,0 +1,2663 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · polygenic-score round two — the steps, the haplotypes, the base study's size, calibration</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  /* The mock shell, copied from `_lab/prs-mock.html` (which took it from
+     `_lab/gwas-mock.html`): `.lab`, `.note`, `.rec`, `table.facts`,
+     `.measure`, `.pagehead`, `.legend`, and the `.rail-host` that renders a
+     candidate rail as the real core DOM at 300px. Nothing here is a new visual
+     decision.
+
+     `--sp-6` IS NOT A TOKEN and the original shell's `.lab` padding shorthand
+     named it, which invalidated the whole declaration. Written out with
+     `--sp-5` here, as prs-mock did. */
+  .lab { max-width: 1240px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 96ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); max-width: 400px; min-height: 26px; white-space: pre-line; }
+
+  /* NOTHING AROUND A PANEL MAY DECIDE ITS COLUMN'S WIDTH — optimizers-mock's
+     rule, kept through prs-mock: the blurb above a canvas and the measured
+     line under it are both longer than the canvas, so every row pins its
+     column to its own canvas width. */
+  #stepRow > .cand { width: 300px; }
+  #stepCapRow > .cand { width: 550px; }
+  #hapRow > .cand { width: 550px; }
+  #hapRecombRow > .cand { width: 550px; }
+  #clumpRow > .cand { width: 550px; }
+  #baseCurveRow > .cand { width: 390px; }
+  #baseQuantRow > .cand { width: 390px; }
+  #baseSeedRow > .cand { width: 550px; }
+  #readRow > .cand { width: 550px; }
+  #calRow > .cand { width: 430px; }
+  #calThreeRow > .cand { width: 390px; }
+  #stratRow > .cand { width: 550px; }
+  #railRow > .cand { width: 300px; }
+
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 96ch; }
+  .measure { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--ink-3); margin: 4px 0 0; max-width: 760px; white-space: pre-line; }
+  table.facts { border-collapse: collapse; font-size: var(--fs-sm); color: var(--ink-2); margin: var(--sp-2) 0 var(--sp-3); max-width: 110ch; }
+  table.facts th, table.facts td { border: 1px solid var(--grid); padding: 3px 8px; text-align: left; vertical-align: top; }
+  table.facts th { color: var(--ink-1); font-weight: 600; background: var(--surface-2); }
+  table.facts td b { color: var(--ink-1); }
+  table.facts td.num { font-family: var(--font-mono); white-space: nowrap; }
+  .pagehead { font-size: var(--fs-xs); font-weight: 600; color: var(--c-highlight); margin: 0 0 4px;
+              text-transform: uppercase; letter-spacing: 0.04em; }
+
+  .legend { display: flex; flex-wrap: wrap; gap: var(--sp-2) var(--sp-4); margin: 0 0 var(--sp-4);
+            font-size: var(--fs-xs); color: var(--ink-2); }
+  .legend span { display: flex; align-items: center; gap: 6px; }
+  .sw { width: 13px; height: 13px; border-radius: 50%; flex: 0 0 auto; }
+  .sw-emp { background: var(--c-empirical); }
+  .sw-extreme { background: var(--c-extreme); }
+  .sw-high { background: var(--c-highlight); }
+  .sw-hold { background: var(--c-holdout); }
+  .sw-gb { background: var(--c-group-b); }
+  .sw-ref { width: 18px; height: 0; border-radius: 0; border-top: 2px dashed var(--c-reference); }
+  .sw-tri { width: 0; height: 0; border-radius: 0; border-left: 6px solid transparent;
+            border-right: 6px solid transparent; border-top: 9px solid var(--c-reference); }
+  .sw-vhi { background: var(--c-value-high); border-radius: 2px; }
+  .sw-surf { background: var(--surface-1); border: 1px solid var(--grid); border-radius: 2px; }
+
+  /* THE RAIL AT THE REAL 300px, IN THE SHELL'S OWN SPLIT CONTEXT — verbatim
+     from prs-mock, including why. `.w-split` is the ancestor four of
+     tokens.css's rules are written against, so a rail measured outside it is
+     not the rail that ships. */
+  .lab .rail-host { display: block; width: 300px; }
+  .lab .rail-host .w-rail { border-top: 0; padding-top: 0; margin-top: 0; }
+  .lab .rail-host > .w-controls > .w-section:first-child { margin-top: 0; }
+
+  .stage-host { width: 550px; }
+  .stage-host .w-heading h1 { margin: 0; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>polygenic-score &middot; round two — the steps in order, the haplotypes, the base study's size, and the risk</h1>
+
+  <p class="note">
+    Kenneth's round-one review of the four-page draft, 2026-09-12, made three points and asked for a
+    student's-eye pass. <b>(1)</b> the score is weak on this data and the curves look flat; <b>(2)</b> LD
+    clumping is not apparent — students need to see the haplotypes; <b>(3)</b> the page control does not
+    say which steps go in order. This page draws the answer to each, plus page 5 — calibration and
+    stratification — which he asked to have mocked as one section and added in round two.
+  </p>
+  <p class="note">
+    <b>Where the numbers come from.</b> Every figure and every number on this page is computed live from
+    <code>../polygenic-score/model.js</code> — <b>the shipped widget's own engine, imported rather than
+    copied</b>. That module has no top-level side effects and is the code the draft runs, so a measurement
+    here is the widget's measurement; <code>_lab/prs-measure.mjs</code> is still the file that cannot be
+    imported (it runs six tables at load), and it is not touched. What this page adds to the engine is
+    four functions the round needs and the widget does not have yet: <code>drawModel</code> (the truth
+    with no base cohort), <code>summaryBase</code> (β̂ and P from a base study SIZE), <code>logistic</code>
+    (Newton steps, asserted against three closed forms below) and the normal tail and quantile.
+  </p>
+  <p class="note" id="engineLine"></p>
+  <p class="note" id="assertLine"></p>
+
+  <div class="legend">
+    <span><i class="sw sw-emp"></i>the reader's own result — a SNP's test, the sum, R², an observed fraction</span>
+    <span><i class="sw sw-extreme"></i>past P &lt; 0.05</span>
+    <span><i class="sw sw-high"></i>the lead SNP just chosen, its arcs to the SNPs it takes, and the crossing point</span>
+    <span><i class="sw sw-hold"></i>the validation sample</span>
+    <span><i class="sw sw-ref"></i>P = 0.05, the diagonal, the risk threshold</span>
+    <span><i class="sw sw-tri"></i>the causal SNP's position</span>
+    <span><i class="sw sw-gb"></i>the base study's weight</span>
+    <span><i class="sw sw-vhi"></i>r² 1 between a pair of SNPs, in the triangle — the same value as “past P &lt; 0.05”, which is §2's finding</span>
+    <span><i class="sw sw-surf"></i>r² 0 between a pair of SNPs</span>
+  </div>
+
+  <h2>&sect;0 &middot; The page control as a sequence</h2>
+  <p class="note">
+    The draft's control is a 2 × 2 grid of four nouns, which reads as a menu of places rather than as an
+    order of work. The review's proposal is numbered verbs in one column. Page 1 splits in &sect;1, so the
+    five steps become six; both counts are drawn, and all four candidates are core's own DOM at the rail's
+    real 300px. Under them, the two ways a stage can say where the reader is.
+  </p>
+  <div class="row" id="stepRow"></div>
+  <p class="measure" id="stepMeasure"></p>
+  <div class="row" id="stepCapRow"></div>
+  <p class="measure" id="stepCapMeasure"></p>
+  <p class="rec" id="recStep"></p>
+
+  <h2>&sect;1 &middot; Page 1 splits: the haplotypes get their own page</h2>
+  <p class="note">
+    The mock's candidate B — the haplotype block — was passed over for the r² triangle, and the draft shows
+    clumping's result without its cause. Here the haplotypes are a page: 40 rows of the 1,000-haplotype
+    pool, the region's 100 SNPs as columns, the causal SNP's column marked, and the r² triangle underneath
+    clipped to the 250 kb clumping window. <b>A</b> block and triangle together; <b>B</b> the block alone,
+    with the triangle folded into the clumping page. Under both, the same block at the three
+    <i>Recombination</i> settings, which is the control that moves to this page.
+  </p>
+  <div class="row" id="hapRow"></div>
+  <div class="row" id="hapRecombRow"></div>
+  <p class="measure" id="hapMeasure"></p>
+  <p class="rec" id="recHap"></p>
+
+  <h2>&sect;2 &middot; Clumping as an action — arcs, and where the absorbed SNPs go</h2>
+  <p class="note">
+    The association plot alone, taller, and the run drawn as stills: every SNP tested; the first lead
+    chosen with an arc to each SNP it absorbs, each arc's opacity its r² to the lead; one beat later the
+    absorbed SNPs have left the cloud; and the finished figure. Two ways for a SNP to leave — slide to the
+    baseline, or shrink in place — and one alternative to the arcs: the bracket the lesson's own diagram
+    draws under a clump.
+  </p>
+  <div class="row" id="clumpRow"></div>
+  <p class="measure" id="clumpMeasure"></p>
+  <p class="rec" id="recClump"></p>
+
+  <h2>&sect;3 &middot; The base study's size — the lever the widget is missing</h2>
+  <p class="note">
+    The draft's base study is 1,500 simulated people, and that caps every curve after it. A real base is a
+    FILE OF SUMMARY STATISTICS — one β̂ and one P a SNP — so the widget can have any base size for free:
+    for SNP j with allele frequency p<sub>j</sub> and true effect β<sub>j</sub> on the standardised
+    genotype, β̂<sub>j</sub> ~ N(β<sub>j</sub>, se<sub>j</sub>²) with se<sub>j</sub> = √((1 −
+    β<sub>j</sub>²)/n) ≈ 1/√n, and P<sub>j</sub> from the two-sided normal tail. <b>The approximation</b>
+    is that a SNP's own variance explained is treated as its only departure from 1 and that the allele
+    frequency is the base study's true one rather than its realised one. The widget's score is built on
+    the raw allele count, so both β̂ and se are divided by √(2p<sub>j</sub>(1 − p<sub>j</sub>)). The first
+    measured line below is the check against the per-person route at n = 1,500.
+  </p>
+  <div class="row" id="baseCurveRow"></div>
+  <div class="row" id="baseQuantRow"></div>
+  <p class="measure" id="baseMeasure"></p>
+  <div class="row" id="baseSeedRow"></div>
+  <p class="measure" id="seedMeasure"></p>
+  <p class="rec" id="recBase"></p>
+
+  <h2>&sect;4 &middot; Page 3's reading line</h2>
+  <p class="note">
+    The review's finding from a student's seat: page 3 is the hardest page and has the least support. One
+    line under the curves, naming the two numbers at the best-fit threshold, against the panel as the draft
+    draws it.
+  </p>
+  <div class="row" id="readRow"></div>
+  <p class="measure" id="readMeasure"></p>
+  <p class="rec" id="recRead"></p>
+
+  <h2>&sect;5 &middot; Page 5a — calibration</h2>
+  <p class="note">
+    The question the four pages withhold an answer to: <b>a percentile is not a risk.</b> A disease is
+    simulated from the trait as a liability with a threshold at a <i>Prevalence</i>; a logistic model of
+    the outcome on the standardised score is fitted in a <b>base population of 3,000</b> drawn at the base
+    study's own allele frequencies — not in the target, which is the whole point — and applied to the
+    target with the base population's own mean and SD. The plot is mean predicted risk against the
+    observed fraction by decile of predicted risk, the diagonal as the reference, with a 95% interval on
+    each observed fraction because a decile of 319 people holds 32 of them. <b>A</b> one panel under the
+    existing <i>Target population</i> control; <b>B</b> the three populations side by side.
+  </p>
+  <div class="row" id="calRow"></div>
+  <div class="row" id="calThreeRow"></div>
+  <p class="measure" id="calMeasure"></p>
+  <p class="rec" id="recCal"></p>
+
+  <h2>&sect;6 &middot; Page 5b — stratification</h2>
+  <p class="note">
+    Not an arbitrary top decile: the cut is the percentile at which calibrated absolute risk crosses a
+    threshold somebody already acts on. Predicted risk against score percentile in the target, a
+    <i>Risk threshold</i> as the reference line, the crossing percentile marked and the number of the 319
+    above it. <b>A</b> the figure alone; <b>B</b> the figure beside 5a's calibration plot on one stage, so
+    the check and the consequence are read together.
+  </p>
+  <div class="row" id="stratRow"></div>
+  <p class="measure" id="stratMeasure"></p>
+  <p class="rec" id="recStrat"></p>
+
+  <h2>&sect;7 &middot; The rail, six pages, at 300px</h2>
+  <p class="note">
+    Core's own DOM inside a <code>.w-split</code>, measured after <code>document.fonts.ready</code>.
+    Each page shows only its own fields, which is <code>when</code> on the page parameter:
+    <i>Recombination</i> moves to page 1 and leaves page 2; <i>Base study size</i> joins
+    <i>The base study</i>; <i>Prevalence</i> and <i>Risk threshold</i> appear on page 6 alone.
+  </p>
+  <div class="row" id="railRow"></div>
+  <p class="measure" id="railMeasure"></p>
+  <p class="rec" id="recRail"></p>
+
+  <h2>&sect;8 &middot; Every new or changed reader-facing string</h2>
+  <p class="note">
+    Only what round two adds or rewrites; the strings the draft already ships and this round does not touch
+    are in <code>_lab/prs-mock.html</code> &sect;7 and in <code>widgets/polygenic-score/model.js</code>.
+    No line names a lesson, a cell or a notebook; no line carries a word this collection invented; a
+    <code>detail</code> says what its control is and never what will happen to the figure; and the two
+    nomenclature rulings hold — no "tune" and no "holdout".
+  </p>
+  <div id="strings"></div>
+</main>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+import { makePlot } from "../core/canvas.js";
+import { makeRng } from "../core/rng.js";
+import * as M from "../polygenic-score/model.js";
+
+const T0 = performance.now();
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+
+/* ==========================================================================
+   WHAT THE ENGINE DOES NOT HAVE YET.
+
+   Four small pieces, written here because round two needs them and the widget
+   does not carry them. Everything else — simulateHaplotypes, ldMatrix, clump,
+   drawTarget, score, keepAt, quantileBins, r2Score, mean, sd — is imported
+   from the widget's own `model.js` above.
+   ====================================================================== */
+
+/* --- the normal tail, for a P value from a z statistic -------------------- */
+
+/** Chebyshev erfc (Numerical Recipes `erfccheb`), relative error < 1e-10 —
+    good to the 5e-8 end of the threshold slider, where a t-distribution tail
+    would be indistinguishable at the base sizes drawn here. */
+function erfc(x) {
+  const z = Math.abs(x);
+  const t = 2 / (2 + z);
+  const ty = 4 * t - 2;
+  const cof = [-1.3026537197817094, 6.4196979235649026e-1, 1.9476473204185836e-2,
+    -9.561514786808631e-3, -9.46595344482036e-4, 3.66839497852761e-4, 4.2523324806907e-5,
+    -2.0278578112534e-5, -1.624290004647e-6, 1.303655835580e-6, 1.5626441722e-8,
+    -8.5238095915e-8, 6.529054439e-9, 5.059343495e-9, -9.91364156e-10, -2.27365122e-10,
+    9.6467911e-11, 2.394038e-12, -6.886027e-12, 8.94487e-13, 3.13092e-13,
+    -1.12708e-13, 3.81e-16, 7.106e-15];
+  let d = 0;
+  let dd = 0;
+  for (let j = cof.length - 1; j > 0; j -= 1) {
+    const tmp = d;
+    d = ty * d - dd + cof[j];
+    dd = tmp;
+  }
+  const ans = t * Math.exp(-z * z + 0.5 * (cof[0] + ty * d) - dd);
+  return x >= 0 ? ans : 2 - ans;
+}
+const normTail2 = (z) => erfc(Math.abs(z) / Math.SQRT2);
+const normCdf = (z) => 0.5 * erfc(-z / Math.SQRT2);
+
+/** Acklam's inverse normal CDF — the liability threshold a prevalence names,
+    and the 1.96 the interval on an observed fraction multiplies. */
+function normQuantile(p) {
+  const a = [-3.969683028665376e+01, 2.209460984245205e+02, -2.759285104469687e+02,
+    1.383577518672690e+02, -3.066479806614716e+01, 2.506628277459239e+00];
+  const b = [-5.447609879822406e+01, 1.615858368580409e+02, -1.556989798598866e+02,
+    6.680131188771972e+01, -1.328068155288572e+01];
+  const c = [-7.784894002430293e-03, -3.223964580411365e-01, -2.400758277161838e+00,
+    -2.549732539343734e+00, 4.374664141464968e+00, 2.938163982698783e+00];
+  const d = [7.784695709041462e-03, 3.224671290700398e-01, 2.445134137142996e+00,
+    3.754408661907416e+00];
+  if (p < 0.02425) {
+    const q = Math.sqrt(-2 * Math.log(p));
+    return (((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5])
+      / ((((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1);
+  }
+  if (p > 1 - 0.02425) return -normQuantile(1 - p);
+  const q = p - 0.5;
+  const r = q * q;
+  return (((((a[0] * r + a[1]) * r + a[2]) * r + a[3]) * r + a[4]) * r + a[5]) * q
+    / (((((b[0] * r + b[1]) * r + b[2]) * r + b[3]) * r + b[4]) * r + 1);
+}
+
+/* --- logistic regression, by Newton steps --------------------------------- */
+
+/**
+ * `X` is an array of column vectors, the intercept included by the caller.
+ * `offset` is added to the linear predictor and NOT fitted, which is what
+ * makes a calibration intercept an intercept: the model's own logit goes in as
+ * the offset and the fitted constant is how far the outcome sits from it.
+ *
+ * p is 1 or 2 here, so the Newton step is solved by Gauss–Jordan on a matrix
+ * of that size rather than by bringing in a decomposition. Asserted at the top
+ * of the page against three closed forms — the intercept-only fit, the 2 × 2
+ * log odds ratio, and an offset fitted on outcomes generated at that offset.
+ */
+function logistic(X, y, { offset = null, steps = 40 } = {}) {
+  const p = X.length;
+  const n = y.length;
+  const beta = new Float64Array(p);
+  for (let it = 0; it < steps; it += 1) {
+    const mu = new Float64Array(n);
+    const w = new Float64Array(n);
+    for (let i = 0; i < n; i += 1) {
+      let e = offset ? offset[i] : 0;
+      for (let a = 0; a < p; a += 1) e += X[a][i] * beta[a];
+      const m = 1 / (1 + Math.exp(-e));
+      mu[i] = m;
+      w[i] = Math.max(m * (1 - m), 1e-9);
+    }
+    const g = new Float64Array(p);
+    const H = Array.from({ length: p }, () => new Float64Array(p));
+    for (let a = 0; a < p; a += 1) {
+      let s = 0;
+      for (let i = 0; i < n; i += 1) s += X[a][i] * (y[i] - mu[i]);
+      g[a] = s;
+      for (let b = 0; b <= a; b += 1) {
+        let h = 0;
+        for (let i = 0; i < n; i += 1) h += w[i] * X[a][i] * X[b][i];
+        H[a][b] = h;
+        H[b][a] = h;
+      }
+    }
+    const A = H.map((r, i) => [...r, g[i]]);
+    for (let c = 0; c < p; c += 1) {
+      let piv = c;
+      for (let r = c + 1; r < p; r += 1) if (Math.abs(A[r][c]) > Math.abs(A[piv][c])) piv = r;
+      const tmp = A[c];
+      A[c] = A[piv];
+      A[piv] = tmp;
+      const d0 = A[c][c];
+      if (Math.abs(d0) < 1e-12) return { beta: Array.from(beta), converged: false };
+      for (let k = c; k <= p; k += 1) A[c][k] /= d0;
+      for (let r = 0; r < p; r += 1) {
+        if (r === c) continue;
+        const f = A[r][c];
+        for (let k = c; k <= p; k += 1) A[r][k] -= f * A[c][k];
+      }
+    }
+    let maxd = 0;
+    for (let a = 0; a < p; a += 1) {
+      beta[a] += A[a][p];
+      maxd = Math.max(maxd, Math.abs(A[a][p]));
+    }
+    if (maxd < 1e-10) return { beta: Array.from(beta), converged: true, iters: it + 1 };
+  }
+  return { beta: Array.from(beta), converged: false, iters: steps };
+}
+const expit = (e) => 1 / (1 + Math.exp(-e));
+
+/** Wilson's 95% interval for a fraction — the interval a decile of 32 people
+    needs before its distance from the diagonal can be read as anything. */
+function wilson(k, n) {
+  const z = 1.959964;
+  const ph = k / n;
+  const den = 1 + (z * z) / n;
+  const ctr = (ph + (z * z) / (2 * n)) / den;
+  const hw = (z * Math.sqrt((ph * (1 - ph)) / n + (z * z) / (4 * n * n))) / den;
+  return [Math.max(0, ctr - hw), Math.min(1, ctr + hw)];
+}
+
+/* --- the truth, and a base study of any size ------------------------------ */
+
+/**
+ * Allele frequencies and true effects, with NO base cohort drawn.
+ *
+ * The draw order is `model.js`'s own `simulateBase` minus the cohort and the
+ * scan, so the same rng gives the same p and the same betaTrue: the widget can
+ * swap to this without the genome moving under the other controls.
+ */
+function drawModel(rng, { m = 1000, nCausal = 300, h2 = 0.3 } = {}) {
+  const p = new Float64Array(m);
+  for (let j = 0; j < m; j += 1) p[j] = 0.05 + 0.9 * rng.next();
+  const idx = Array.from({ length: m }, (_, j) => j);
+  const causalIdx = rng.shuffle(idx).slice(0, nCausal);
+  const betaTrue = new Float64Array(m);
+  let ss = 0;
+  for (const j of causalIdx) {
+    const b = rng.normal(0, 1);
+    betaTrue[j] = b;
+    ss += b * b;
+  }
+  const scale = Math.sqrt(h2 / ss);
+  for (const j of causalIdx) betaTrue[j] *= scale;
+  return { p, betaTrue, causalIdx, nCausal, m, h2 };
+}
+
+/**
+ * WHAT A PRS ACTUALLY CONSUMES: one β̂ and one P a SNP, from a base study of
+ * `nBase` people that is never simulated person by person.
+ *
+ * On the standardised genotype the SNP's residual variance is 1 − βⱼ², so
+ * seⱼ = √((1 − βⱼ²)/n), which is 1/√n to three decimals at every effect size
+ * here. The widget scores the RAW allele count, so β̂ and se are both divided
+ * by √(2pⱼ(1 − pⱼ)); the ratio the P value comes from is the same either way.
+ */
+function summaryBase(rng, model, nBase) {
+  const m = model.p.length;
+  const betaHat = new Float64Array(m);
+  const P = new Float64Array(m);
+  for (let j = 0; j < m; j += 1) {
+    const pj = model.p[j];
+    const s = Math.sqrt(2 * pj * (1 - pj)) || 1;
+    const bStd = model.betaTrue[j];
+    const seStd = Math.sqrt(Math.max(1 - bStd * bStd, 1e-9) / nBase);
+    const hatStd = bStd + rng.normal(0, seStd);
+    betaHat[j] = hatStd / s;
+    P[j] = normTail2(hatStd / seStd);
+  }
+  return { betaHat, P };
+}
+
+/* ==========================================================================
+   The assertions, run before anything is drawn from these functions.
+   ====================================================================== */
+
+const ASSERTS = (() => {
+  const out = [];
+  const near = (name, got, want, tol) => out.push({
+    name, got, want, ok: Math.abs(got - want) <= tol,
+  });
+  near("Φ(1.96)", normCdf(1.96), 0.9750021049, 1e-9);
+  near("two-sided tail at z 5.4513", normTail2(5.4513) / 5e-8, 1, 2e-3);
+  near("Φ⁻¹(0.975)", normQuantile(0.975), 1.959963985, 1e-6);
+  near("Φ⁻¹(0.8)", normQuantile(0.8), 0.8416212336, 1e-6);
+  {
+    /* intercept-only: the MLE is log(k / (n − k)) exactly */
+    const n = 400;
+    const k = 120;
+    const y = Array.from({ length: n }, (_, i) => (i < k ? 1 : 0));
+    const f = logistic([new Float64Array(n).fill(1)], y);
+    near("logistic intercept, 120 of 400", f.beta[0], Math.log(k / (n - k)), 1e-9);
+  }
+  {
+    /* a binary covariate: the MLE is the 2 × 2 log odds ratio exactly */
+    const cells = [[30, 70], [10, 90]];
+    const y = [];
+    const x = [];
+    for (let i = 0; i < cells[0][0]; i += 1) { y.push(1); x.push(1); }
+    for (let i = 0; i < cells[0][1]; i += 1) { y.push(0); x.push(1); }
+    for (let i = 0; i < cells[1][0]; i += 1) { y.push(1); x.push(0); }
+    for (let i = 0; i < cells[1][1]; i += 1) { y.push(0); x.push(0); }
+    const f = logistic([new Float64Array(y.length).fill(1), Float64Array.from(x)], y);
+    near("logistic slope = log odds ratio", f.beta[1],
+      Math.log((cells[0][0] * cells[1][1]) / (cells[0][1] * cells[1][0])), 1e-9);
+  }
+  {
+    /* the offset branch: outcomes generated at a known logit must come back
+       with a calibration intercept of 0 and a calibration slope of 1 */
+    const n = 20000;
+    const rng = makeRng(7);
+    const off = [];
+    const y = [];
+    for (let i = 0; i < n; i += 1) {
+      const e = -2 + 2 * rng.normal(0, 1);
+      off.push(e);
+      y.push(rng.next() < expit(e) ? 1 : 0);
+    }
+    const ones = new Float64Array(n).fill(1);
+    near("calibration intercept on truth", logistic([ones], y, { offset: off }).beta[0], 0, 0.05);
+    near("calibration slope on truth",
+      logistic([ones, Float64Array.from(off)], y).beta[1], 1, 0.05);
+  }
+  return out;
+})();
+
+/* ==========================================================================
+   The page's own data. Everything is computed ONCE and reused.
+   ====================================================================== */
+
+const CFG = {
+  recomb: 0.005, clumpR2: 0.1, typed: true, nCausal: 300, h2: 0.3,
+  fst: 0, tagLoss: 0, r2tag: 0.5,
+};
+
+/** The widget's four sub-streams, off the top of one seed (model.js
+    decision 1): region, base, target, validation. */
+const subSeeds = (seed) => {
+  const r = makeRng(seed);
+  return [r.int(1, 1e9), r.int(1, 1e9), r.int(1, 1e9), r.int(1, 1e9)];
+};
+
+/* ---- page 1 and 2: the region, at the draft's own default seed ----------- */
+
+/* SEED 29 IS THE DRAFT'S DEFAULT and this is the region it opens on, so &sect;1
+   and &sect;2 are the picture Kenneth already has in the browser. The genome
+   sections below move to seed 41 and say why. */
+const REGION_SEED = 29;
+const tReg0 = performance.now();
+const RSEED = subSeeds(REGION_SEED)[0];
+const REG = M.buildRegion(makeRng(RSEED), CFG);
+const REG_LOW = M.buildRegion(makeRng(RSEED), { ...CFG, recomb: 0.002 });
+const REG_HIGH = M.buildRegion(makeRng(RSEED), { ...CFG, recomb: 0.02 });
+const T_REGION = performance.now() - tReg0;
+
+/* ---- pages 3 to 6: the genome, from a base study of any size ------------- */
+
+const SIZES = [1500, 15000, 150000];
+const SIZE_LABEL = { 1500: "1,500", 15000: "15,000", 150000: "150,000" };
+const DEFAULT_SIZE = 15000;
+const PREVALENCE = 0.2;
+const PREV_CANDIDATES = [0.05, 0.1, 0.2];
+const RISK_CANDIDATES = [0.2, 0.3, 0.4];
+const RISK_DEFAULT = 0.3;
+const N_BASE_COHORT = 3000;
+
+/**
+ * One seed's whole genome side: the truth, the target and validation samples,
+ * the three target populations, and every threshold's reading at each of the
+ * three base sizes.
+ */
+function genomeAt(seed, { allPops = true } = {}) {
+  const s = subSeeds(seed);
+  const model = drawModel(makeRng(s[1]), { m: 1000, nCausal: CFG.nCausal, h2: CFG.h2 });
+  /* EACH POPULATION DRAWS FROM ITS OWN rng AT THE SAME SEED, never from one
+     stream in turn — the first mock's §4 finding: three cohorts taken from one
+     stream differ by where they landed in it as well as by their setting.
+     `allPops: false` is the seed sweep, which needs only the matched target
+     and is run sixteen times. */
+  const pops = {};
+  for (const p of M.TARGETS) {
+    if (!allPops && p.value !== "same") continue;
+    pops[p.value] = M.drawTarget(makeRng(s[2]), model,
+      { n: M.N_TARGET, ancestryShift: p.fst, tagLoss: p.tagLoss, r2tag: p.r2tag });
+  }
+  const target = pops.same;
+  const validation = M.drawTarget(makeRng(s[3]), model,
+    { n: M.N_VALIDATION, ancestryShift: 0, tagLoss: 0, r2tag: 0.5 });
+  const ysd = M.sd(target.y);
+  const overall = M.mean(target.y);
+  const bases = {};
+  for (const nB of SIZES) {
+    /* the base study's own sub-stream, keyed by its size, so changing the size
+       does not move the target sample under it */
+    const sum = summaryBase(makeRng(s[1] ^ nB), model, nB);
+    const rows = M.THRESHOLDS.map((t) => {
+      const { keep, n } = M.keepAt(sum.P, t);
+      const sT = M.score(target.G, sum.betaHat, keep);
+      const bins = M.quantileBins(sT, target.y, 20);
+      return {
+        thresh: t,
+        nSnp: n,
+        keep,
+        score: sT,
+        bins,
+        range: (bins[19].mean - bins[0].mean) / ysd,
+        excl: M.binsExcludingMean(bins, overall),
+        target: n === 0 ? 0 : M.r2Score(sT, target.y),
+        validation: n === 0 ? 0 : M.r2Score(M.score(validation.G, sum.betaHat, keep), validation.y),
+      };
+    });
+    let bi = 0;
+    for (let i = 1; i < rows.length; i += 1) if (rows[i].target > rows[bi].target) bi = i;
+    bases[nB] = { sum, rows, bi, best: rows[bi], all: rows[rows.length - 1] };
+  }
+  return { seed, model, pops, target, validation, bases, ysd, overall };
+}
+
+/* THE RECOMMENDED DEFAULT SEED. With the base study on summary statistics the
+   draft's seed 29 no longer opens on a best-fit R² above the validation R² at
+   any of the three sizes — the measured line under §3 has the sweep. Seed 41
+   is the one seed of sixteen that opens positive at all three, with a region
+   whose lead SNP is 25 kb from the causal one. */
+const GENOME_SEED = 41;
+const tGen0 = performance.now();
+const G = genomeAt(GENOME_SEED);
+const T_GENOME = performance.now() - tGen0;
+const G29 = genomeAt(REGION_SEED, { allPops: false });
+const REG41 = M.buildRegion(makeRng(subSeeds(GENOME_SEED)[0]), CFG);
+
+/* --- does the summary route agree with the per-person one at n = 1,500? --- */
+
+/* BOTH ROUTES ARE DRAWN REPEATEDLY, and that is the whole shape of the check.
+   A single per-person base study against a single summary draw compares two
+   samples of one, and the first version of this block did exactly that: at this
+   seed the per-person cohort happened to put 131 SNPs under P < 0.05 against a
+   summary mean of 98, which reads as a broken approximation and is one cohort.
+   What has to agree is the DISTRIBUTION, so six base cohorts are drawn from the
+   one truth and compared with twelve summary draws from the same truth. */
+const tAgree0 = performance.now();
+const AGREE = (() => {
+  const s = subSeeds(GENOME_SEED);
+  const model = drawModel(makeRng(s[1]), { m: 1000, nCausal: CFG.nCausal, h2: CFG.h2 });
+  const tgt = M.drawTarget(makeRng(s[2]), model, { n: M.N_TARGET, ancestryShift: 0, tagLoss: 0, r2tag: 0.5 });
+  const val = M.drawTarget(makeRng(s[3]), model, { n: M.N_VALIDATION, ancestryShift: 0, tagLoss: 0, r2tag: 0.5 });
+  const trueRaw = Array.from({ length: model.p.length }, (_, j) =>
+    model.betaTrue[j] / (Math.sqrt(2 * model.p[j] * (1 - model.p[j])) || 1));
+  const errOf = (bh) => M.sd(Float64Array.from(Array.from(bh).map((v, j) => v - trueRaw[j])));
+  const readingOf = (bh, pv) => {
+    const rows = M.THRESHOLDS.map((t) => {
+      const { keep, n } = M.keepAt(pv, t);
+      return {
+        thresh: t,
+        nSnp: n,
+        target: n === 0 ? 0 : M.r2Score(M.score(tgt.G, bh, keep), tgt.y),
+      };
+    });
+    const best = rows.reduce((a, b) => (b.target > a.target ? b : a));
+    return {
+      err: errOf(bh),
+      n05: Array.from(pv).filter((v) => v < 0.05).length,
+      n01: Array.from(pv).filter((v) => v < 0.01).length,
+      at05: rows[4].target,
+      best: best.target,
+    };
+  };
+  const PER_DRAWS = 6;
+  const SUM_DRAWS = 12;
+  const per = [];
+  for (let i = 0; i < PER_DRAWS; i += 1) {
+    const co = M.drawCohort(makeRng(3100 + i), 1500, model.p, model.betaTrue, model.h2, null, 1);
+    const scan = M.olsScan(co.y, co.G);
+    per.push(readingOf(scan.beta, scan.P));
+  }
+  const sum = [];
+  for (let i = 0; i < SUM_DRAWS; i += 1) {
+    const b = summaryBase(makeRng(7000 + i), model, 1500);
+    sum.push(readingOf(b.betaHat, b.P));
+  }
+  const pair = (rows, k) => [M.mean(rows.map((d) => d[k])), M.sd(Float64Array.from(rows.map((d) => d[k])))];
+  return {
+    perDraws: PER_DRAWS,
+    sumDraws: SUM_DRAWS,
+    rows: [
+      ["sd(β̂ − β) on the raw scale", "err", 4],
+      ["SNPs at P < 0.05", "n05", 1],
+      ["SNPs at P < 0.01", "n01", 1],
+      ["R² at P < 0.05", "at05", 3],
+      ["best-fit R²", "best", 3],
+    ].map(([name, key, dp]) => ({ name, dp, per: pair(per, key), sum: pair(sum, key) })),
+  };
+})();
+const T_AGREE = performance.now() - tAgree0;
+
+/* --- the seed sweep, for the base-size claim and for the default ---------- */
+
+const SWEEP_SEEDS = [1, 2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 53];
+const tSweep0 = performance.now();
+const SWEEP = SWEEP_SEEDS.map((seed) => {
+  const g = seed === GENOME_SEED ? G : genomeAt(seed, { allPops: false });
+  const reg = M.buildRegion(makeRng(subSeeds(seed)[0]), CFG);
+  const row = { seed, reg, at: {} };
+  for (const nB of SIZES) {
+    const b = g.bases[nB].best;
+    row.at[nB] = {
+      r2: b.target,
+      val: b.validation,
+      thresh: b.thresh,
+      nSnp: b.nSnp,
+      range: b.range,
+      excl: b.excl,
+      over: b.target - b.validation,
+      within: b.target - g.bases[nB].all.target,
+    };
+  }
+  row.allPositive = SIZES.every((nB) => row.at[nB].over > 0);
+  return row;
+});
+const T_SWEEP = performance.now() - tSweep0;
+const sweepMean = (nB, k) => M.mean(SWEEP.map((r) => r.at[nB][k]));
+const sweepSd = (nB, k) => M.sd(Float64Array.from(SWEEP.map((r) => r.at[nB][k])));
+const sweepPos = (nB, k) => SWEEP.filter((r) => r.at[nB][k] > 0).length;
+
+/* ---- page 5: the risk model --------------------------------------------- */
+
+/* THE MODEL IS FITTED IN THE BASE POPULATION, NOT IN THE TARGET, which is what
+   makes the calibration plot a test rather than a tautology: a logistic model
+   fitted in the target sample lands on the diagonal in that sample by
+   construction. The base population here is 3,000 people drawn at the base
+   study's own allele frequencies with no tag decay — the one cohort on this
+   page that is simulated person by person, and the reason is that a logistic
+   fit needs individual outcomes. */
+const tCal0 = performance.now();
+const BASE_COHORT = M.drawTarget(makeRng(subSeeds(GENOME_SEED)[1] ^ 777), G.model,
+  { n: N_BASE_COHORT, ancestryShift: 0, tagLoss: 0, r2tag: 0.5 });
+
+function riskModel(nBase, prev) {
+  const { sum, best } = G.bases[nBase];
+  const s = M.score(BASE_COHORT.G, sum.betaHat, best.keep);
+  const mu = M.mean(s);
+  const sg = M.sd(s);
+  const z = Float64Array.from(s, (v) => (v - mu) / sg);
+  const liability = normQuantile(1 - prev);
+  const yD = Array.from(BASE_COHORT.y, (v) => (v > liability ? 1 : 0));
+  const f = logistic([new Float64Array(z.length).fill(1), z], yD);
+  return {
+    a: f.beta[0], b: f.beta[1], mu, sd: sg, liability, nBase, prev,
+    cases: yD.reduce((x, y2) => x + y2, 0),
+  };
+}
+
+/**
+ * One target sample read through a risk model fitted elsewhere: every person's
+ * predicted probability, the deciles of it against the fraction that actually
+ * has the disease, and the two calibration numbers.
+ */
+function calibrate(cohort, rm, k = 10) {
+  const { sum, best } = G.bases[rm.nBase];
+  const s = M.score(cohort.G, sum.betaHat, best.keep);
+  const eta = Array.from(s, (v) => rm.a + rm.b * ((v - rm.mu) / rm.sd));
+  const risk = eta.map(expit);
+  const yD = Array.from(cohort.y, (v) => (v > rm.liability ? 1 : 0));
+  const n = risk.length;
+  const order = risk.map((v, i) => i).sort((x, y2) => risk[x] - risk[y2]);
+  const bins = [];
+  for (let b = 0; b < k; b += 1) {
+    const lo = Math.floor((b * n) / k);
+    const hi = Math.floor(((b + 1) * n) / k);
+    const idx = order.slice(lo, hi);
+    const cases = idx.reduce((acc, i) => acc + yD[i], 0);
+    const [wl, wh] = wilson(cases, idx.length);
+    bins.push({
+      bin: b + 1, n: idx.length, cases,
+      pred: M.mean(idx.map((i) => risk[i])),
+      obs: cases / idx.length,
+      lo: wl, hi: wh,
+    });
+  }
+  const ones = new Float64Array(n).fill(1);
+  const slope = logistic([ones, Float64Array.from(eta)], yD).beta[1];
+  const inter = logistic([ones], yD, { offset: eta }).beta[0];
+  /* the percentile curve: every person by their rank in this sample */
+  const curve = order.map((i, r) => [(100 * r) / (n - 1), risk[i]]);
+  const covered = bins.filter((b) => b.lo <= b.pred && b.pred <= b.hi).length;
+  return {
+    bins, slope, inter, risk, yD, curve, covered, order,
+    cases: yD.reduce((a, b2) => a + b2, 0),
+    max: Math.max(...risk),
+    above: (t) => risk.filter((v) => v >= t).length,
+    crossing: (t) => {
+      const above = risk.filter((v) => v >= t).length;
+      return above === 0 ? 100 : 100 * (1 - above / n);
+    },
+  };
+}
+
+const RISK_MODEL = {};
+for (const nB of SIZES) RISK_MODEL[nB] = riskModel(nB, PREVALENCE);
+const CAL = {};
+for (const p of M.TARGETS) CAL[p.value] = calibrate(G.pops[p.value], RISK_MODEL[DEFAULT_SIZE]);
+/* the prevalence candidates, matched target, at the default base size */
+const CAL_PREV = PREV_CANDIDATES.map((prev) => ({
+  prev, cal: calibrate(G.pops.same, riskModel(DEFAULT_SIZE, prev)),
+}));
+/* the same figure at the other two base sizes, for the measured line */
+const CAL_SIZE = SIZES.map((nB) => ({
+  nBase: nB,
+  same: calibrate(G.pops.same, RISK_MODEL[nB]),
+  distant: calibrate(G.pops.distant, RISK_MODEL[nB]),
+}));
+const T_CAL = performance.now() - tCal0;
+
+/* ==========================================================================
+   Drawing. Every colour is a token read through `readTokens`, every font size
+   is --fs-xs or --fs-sm from the same place.
+   ====================================================================== */
+
+const el = (tag, cls, text) => {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text != null) e.textContent = text;
+  return e;
+};
+const fmt = (v, d = 2) => (Number.isFinite(v) ? v.toFixed(d) : "-");
+const int = (v) => Math.round(v).toLocaleString("en-US");
+const pct = (v, d = 0) => `${(100 * v).toFixed(d)}%`;
+const tfmt = (t) => (t >= 0.001 ? String(t) : t.toExponential(0).replace("e-", "e−"));
+const probe = document.createElement("canvas").getContext("2d");
+function textW(s, font) { probe.font = font; return probe.measureText(s).width; }
+function fit(s, font, maxW) {
+  probe.font = font;
+  if (probe.measureText(s).width <= maxW) return s;
+  let out = s;
+  while (out.length > 1 && probe.measureText(`${out}…`).width > maxW) out = out.slice(0, -1);
+  return `${out.trimEnd()}…`;
+}
+const capFont = () => `600 ${T.fsSm} ${T.font}`;
+const noteFont = () => `${T.fsXs} ${T.font}`;
+const NOTE_LINE = Math.round(parseFloat(T.fsXs) * 1.4) || 15;
+
+function canvasIn(parent, w, h) {
+  const cv = document.createElement("canvas");
+  cv.width = Math.round(w * DPR);
+  cv.height = Math.round(h * DPR);
+  cv.style.width = `${w}px`;
+  cv.style.height = `${h}px`;
+  parent.appendChild(cv);
+  const ctx = cv.getContext("2d");
+  ctx.scale(DPR, DPR);
+  ctx.fillStyle = T.surface;
+  ctx.fillRect(0, 0, w, h);
+  return ctx;
+}
+function cand(parent, title, sub) {
+  const c = el("div", "cand");
+  if (title) c.appendChild(el("h3", null, title));
+  if (sub != null) c.appendChild(el("p", "sub", sub));
+  parent.appendChild(c);
+  return c;
+}
+const mline = (box, text) => { box.appendChild(el("p", "measure", text)); };
+
+/* The caption guard, copied from prs-mock: a caption drawn at a stated place
+   rather than through `plot.caption`, for the panels that have no plot area. */
+function capAt(ctx, x, y, text, max) {
+  ctx.save();
+  ctx.font = capFont();
+  ctx.textAlign = "left";
+  ctx.textBaseline = "alphabetic";
+  const s = fit(text, capFont(), max);
+  ctx.strokeStyle = T.surface;
+  ctx.lineWidth = 3;
+  ctx.lineJoin = "round";
+  ctx.strokeText(s, x, y);
+  ctx.fillStyle = T.ink2;
+  ctx.fillText(s, x, y);
+  ctx.restore();
+  return textW(s, capFont());
+}
+function noteAlignedAt(ctx, x, y, text, max, { align = "right", baseline = "alphabetic", tone } = {}) {
+  ctx.save();
+  ctx.font = noteFont();
+  ctx.textAlign = align;
+  ctx.textBaseline = baseline;
+  const s = fit(text, noteFont(), max);
+  ctx.strokeStyle = T.surface;
+  ctx.lineWidth = 3;
+  ctx.lineJoin = "round";
+  ctx.strokeText(s, x, y);
+  ctx.fillStyle = tone ?? T.ink2;
+  ctx.fillText(s, x, y);
+  ctx.restore();
+  return textW(s, noteFont());
+}
+const noteAt = (ctx, xRight, y, text, max, tone) =>
+  noteAlignedAt(ctx, xRight, y, text, max, { tone });
+function tinyAt(ctx, x, y, text, align = "center", tone) {
+  ctx.save();
+  ctx.font = noteFont();
+  ctx.textAlign = align;
+  ctx.textBaseline = "top";
+  ctx.fillStyle = tone ?? T.ink3;
+  ctx.fillText(text, x, y);
+  ctx.restore();
+}
+/* THE CAPTION ROW, GUARDED — one caption and one note on the line above a plot,
+   with the note on a line of its own when it will not fit beside the caption.
+
+   `plot.note` already refuses to print THROUGH a caption: when the line is full
+   it drops the note inside the panel's top right instead. On §5's calibration
+   panel that is exactly where the tallest interval bar stands, so the note
+   landed on the data — the same collision, moved six pixels. The fallback here
+   is a line at the panel's own left edge above the caption, which is the one
+   part of the caption block nothing else uses. Returns where the note went and
+   whether the caption kept its full length, so the measured line under each
+   panel can say both. */
+function captionRow(ctx, rect, caption, note, { capMax = rect.w, gap = 14 } = {}) {
+  const full = Math.round(textW(caption, capFont()));
+  const capW = capAt(ctx, rect.x, rect.y - 8, caption, capMax);
+  const out = {
+    cap: Math.round(capW), capFull: full, truncated: Math.round(capW) < full,
+    where: "no note", note: 0, room: Math.round(rect.w - capW - gap),
+  };
+  if (!note) return out;
+  out.note = Math.round(textW(note, noteFont()));
+  if (out.note <= out.room) {
+    noteAt(ctx, rect.x + rect.w, rect.y - 8, note, out.room);
+    out.where = "caption row";
+  } else {
+    noteAlignedAt(ctx, rect.x, rect.y - 8 - NOTE_LINE, note, rect.w, { align: "left" });
+    out.where = "second line";
+  }
+  return out;
+}
+const capLine = (c) => `caption ${c.cap}px (${c.truncated ? `TRUNCATED from ${c.capFull}px` : "not truncated"})`
+  + (c.where === "no note" ? ", no note"
+    : ` · note ${c.note}px in ${c.room}px of room → the ${c.where}`);
+
+function rgbOf(c) {
+  const s = String(c).trim();
+  if (s.startsWith("#")) {
+    const h = s.length === 4 ? s.slice(1).split("").map((x) => x + x).join("") : s.slice(1, 7);
+    return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
+  }
+  const m = s.match(/-?\d+(\.\d+)?/g);
+  return m && m.length >= 3 ? [+m[0], +m[1], +m[2]] : [128, 128, 128];
+}
+const mix = (a, b, t) => a.map((v, i) => Math.round(v + (b[i] - v) * t));
+/** A token colour at an alpha, for a mark whose strength IS a number. */
+function alphaOf(c, a) {
+  const [r, g, b] = rgbOf(c);
+  return `rgba(${r}, ${g}, ${b}, ${a})`;
+}
+
+/* ==========================================================================
+   §0 · the page control as a sequence
+   ====================================================================== */
+
+const STEPS_4 = ["LD and clumping", "The score", "The threshold", "The quantile plot"];
+const STEPS_5 = ["1 · Clump the SNPs", "2 · Build the score", "3 · Choose the threshold",
+  "4 · Check the score", "5 · Calibrate the risk"];
+const STEPS_6 = ["1 · See the haplotypes", "2 · Clump the SNPs", "3 · Build the score",
+  "4 · Choose the threshold", "5 · Check the score", "6 · Calibrate the risk"];
+
+/* the rail machinery, copied from prs-mock's §6 */
+const field = (label, detail) => {
+  const f = el("div", "w-field");
+  if (label) {
+    const l = el("label");
+    l.appendChild(el("span", null, label));
+    f.appendChild(l);
+  }
+  if (detail != null) f.appendChild(el("p", "w-detail", detail));
+  return f;
+};
+const put = (f, node) => {
+  const d = f.querySelector(".w-detail");
+  if (d) f.insertBefore(node, d);
+  else f.appendChild(node);
+};
+function segRun(f, opts, on, mode) {
+  const s = el("div", mode === "grid" ? "w-seg w-seg-grid" : "w-seg");
+  s.setAttribute("role", "group");
+  for (const o of opts) {
+    const label = typeof o === "string" ? o : o.label;
+    const b = el("button", (typeof o === "object" && o.span) ? "w-seg-btn w-seg-btn--span" : "w-seg-btn");
+    b.type = "button";
+    b.dataset.value = label;
+    b.textContent = label;
+    b.setAttribute("aria-pressed", String(label === on));
+    s.appendChild(b);
+  }
+  put(f, s);
+  return s;
+}
+function numberField(host, label, value, detail) {
+  const f = el("div", "w-field");
+  const l = el("label");
+  l.appendChild(el("span", null, label));
+  l.appendChild(el("span", "val", value));
+  f.appendChild(l);
+  const r = el("input");
+  r.type = "range"; r.min = "0"; r.max = "1"; r.step = "0.01"; r.value = "0.5";
+  f.appendChild(r);
+  if (detail) f.appendChild(el("p", "w-detail", detail));
+  host.appendChild(f);
+  return f;
+}
+function choiceSlider(host, label, options, on, detail) {
+  const f = el("div", "w-field");
+  const l = el("label");
+  l.appendChild(el("span", null, label));
+  l.appendChild(el("span", "val", options[on]));
+  f.appendChild(l);
+  const r = el("input");
+  r.type = "range"; r.min = "0"; r.max = String(options.length - 1); r.step = "1";
+  r.value = String(on);
+  f.appendChild(r);
+  const ticks = el("div", "w-ticks");
+  for (const o of options) ticks.appendChild(el("span", null, o));
+  f.appendChild(ticks);
+  if (detail) f.appendChild(el("p", "w-detail", detail));
+  host.appendChild(f);
+  return f;
+}
+function driveBlock(host, stepLabel) {
+  const d = el("div", "w-drive");
+  const g = el("div", "w-drive-group");
+  for (const [k, t] of [["step", stepLabel], ["run", "Play"]]) {
+    const b = el("button", `w-btn${k === "run" ? " w-btn--primary" : ""}`, t);
+    b.type = "button";
+    b.dataset.key = k;
+    g.appendChild(b);
+  }
+  d.appendChild(g);
+  const r = el("button", "w-btn", "Reset");
+  r.type = "button";
+  r.dataset.key = "reset";
+  d.appendChild(r);
+  host.appendChild(d);
+  return d;
+}
+
+/* The copy round two adds or rewrites. One object, so §8's table and the
+   rendered rails are the same strings and cannot drift. */
+const COPY = {
+  page: { label: "Step", detail: "the six steps of building a score and reading it" },
+  pageNoun: { label: "Page", detail: "the four steps of building a score and assessing it" },
+  recomb: { label: "Recombination",
+    detail: "the chance per kilobase that a haplotype switches ancestor" },
+  clumpR2: { label: "Clumping r²",
+    detail: "the r² to the lead SNP at or above which a SNP is dropped" },
+  typed: { label: "Causal variant", detail: "whether the causal SNP is one of the 100 on the array" },
+  baseSize: { label: "Base study size",
+    detail: "the number of people in the base GWAS the effect sizes come from" },
+  causal: { label: "Causal SNPs", detail: "the number of the 1,000 SNPs with an effect on the trait" },
+  h2: { label: "Heritability",
+    detail: "the fraction of the trait's variance the causal SNPs explain together" },
+  pop: { label: "Target population",
+    detail: "the distance between the target sample's ancestry and the base study's" },
+  pThresh: { label: "P threshold",
+    detail: "the P value in the base study below which a SNP is kept in the score" },
+  person: { label: "Person", detail: "the person in the target sample whose score is built" },
+  prevalence: { label: "Prevalence", detail: "the share of the population that has the disease" },
+  riskThresh: { label: "Risk threshold",
+    detail: "the absolute risk above which the disease is acted on" },
+  seed: { label: "Seed", detail: "draws a different base study and different samples" },
+  regionSection: "The region",
+  baseSection: "The base study",
+  targetSection: "The target",
+  riskSection: "The risk",
+};
+const OPTIONS = {
+  recomb: ["Low", "Medium", "High"],
+  clumpR2: ["0.1", "0.5"],
+  typed: ["Typed", "Untyped"],
+  baseSize: SIZES.map((n) => SIZE_LABEL[n]),
+  causal: ["100", "300", "600"],
+  h2: ["0.1", "0.3", "0.5"],
+  pop: M.TARGETS.map((p) => p.label),
+  pThresh: M.THRESHOLDS.map(tfmt),
+  prevalence: PREV_CANDIDATES.map((p) => pct(p)),
+  riskThresh: RISK_CANDIDATES.map((p) => pct(p)),
+};
+
+const STEP_FRAGS = {};
+{
+  const row = document.getElementById("stepRow");
+  const make = (head, build) => {
+    const box = el("div", "cand");
+    box.appendChild(el("p", "pagehead", head));
+    const host = el("div", "w-split rail-host");
+    const rail = el("div", "w-controls");
+    host.appendChild(rail);
+    build(rail);
+    box.appendChild(host);
+    const measure = el("p", "measure");
+    box.appendChild(measure);
+    row.appendChild(box);
+    return { host, rail, measure };
+  };
+  STEP_FRAGS.A = make("A · the draft: four nouns, two per row", (rail) => {
+    const f = field(COPY.pageNoun.label, COPY.pageNoun.detail);
+    segRun(f, STEPS_4.map((label) => ({ label })), STEPS_4[0], "grid");
+    rail.appendChild(f);
+  });
+  STEP_FRAGS.B5 = make("B · five numbered verbs, one column", (rail) => {
+    const f = field(COPY.page.label, "the five steps of building a score and reading it");
+    segRun(f, STEPS_5.map((label) => ({ label, span: true })), STEPS_5[0], "grid");
+    rail.appendChild(f);
+  });
+  STEP_FRAGS.B6 = make("B′ · six numbered verbs, one column", (rail) => {
+    const f = field(COPY.page.label, COPY.page.detail);
+    segRun(f, STEPS_6.map((label) => ({ label, span: true })), STEPS_6[1], "grid");
+    rail.appendChild(f);
+  });
+  STEP_FRAGS.C = make("C · six numbered verbs, two per row", (rail) => {
+    const f = field(COPY.page.label, COPY.page.detail);
+    segRun(f, STEPS_6.map((label) => ({ label })), STEPS_6[1], "grid");
+    rail.appendChild(f);
+  });
+}
+
+/* --- the stage's own way of saying where the reader is -------------------- */
+
+const HANDOFF = `the ${REG.sigClumps} lead SNPs kept from the region`;
+const STEP_LINE = `step 2 of 6 · Clump the SNPs`;
+{
+  const row = document.getElementById("stepCapRow");
+  const H = 108;
+  {
+    const box = cand(row, "the step inside the caption row", "one line, the caption's own baseline");
+    const ctx = canvasIn(box, 550, H);
+    capAt(ctx, 24, 34, "step 2 of 6 — the lead SNP of each clump, and the SNPs in LD with it", 500);
+    noteAt(ctx, 526, 34, `${REG.hits} of 100 SNPs under P < 0.05`, 220);
+    ctx.save();
+    ctx.strokeStyle = T.grid;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(24, 48.5);
+    ctx.lineTo(526, 48.5);
+    ctx.stroke();
+    ctx.restore();
+    tinyAt(ctx, 24, 60, "the figure starts here", "left");
+    mline(box, `caption ${Math.round(textW("step 2 of 6 — the lead SNP of each clump, and the SNPs in LD with it", capFont()))}px + note `
+      + `${Math.round(textW(`${REG.hits} of 100 SNPs under P < 0.05`, noteFont()))}px in 502px of caption row`);
+  }
+  {
+    const box = cand(row, "a step line above the caption, with the hand-off",
+      "two lines: where you are, and what the last step left");
+    const ctx = canvasIn(box, 550, H);
+    tinyAt(ctx, 24, 14, STEP_LINE, "left", T.highlight);
+    noteAlignedAt(ctx, 526, 14, `from step 1: ${HANDOFF}`, 300, { align: "right", baseline: "top" });
+    capAt(ctx, 24, 48, "the lead SNP of each clump, and the SNPs in LD with it", 360);
+    noteAt(ctx, 526, 48, `${REG.hits} of 100 SNPs under P < 0.05`, 180);
+    ctx.save();
+    ctx.strokeStyle = T.grid;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(24, 62.5);
+    ctx.lineTo(526, 62.5);
+    ctx.stroke();
+    ctx.restore();
+    tinyAt(ctx, 24, 74, "the figure starts here", "left");
+    mline(box, `the step line costs ${NOTE_LINE + 6}px of stage · step ${Math.round(textW(STEP_LINE, noteFont()))}px `
+      + `and hand-off ${Math.round(textW(`from step 1: ${HANDOFF}`, noteFont()))}px in 502px`);
+  }
+}
+
+/* ==========================================================================
+   §1 · the haplotypes as their own page
+   ====================================================================== */
+
+const HAP_ROWS = 40;
+const HAP_H = 168;
+const HAP_FOOT = 26;
+const TRI_W = 490;
+const CLUMP_DEPTH = Math.round(M.CLUMP_KB / M.REGION.blockLen);
+const TRI_CLIP_H = Math.ceil((CLUMP_DEPTH / 2) * (TRI_W / (M.REGION.m - 1)));
+
+/**
+ * `rows` haplotypes of the pool as rows, the region's SNPs as columns, one
+ * allele a tone. The shared blocks are a consequence of where each haplotype
+ * last switched founder, so they read as vertical bands with nothing drawn to
+ * mark them. `causalCol` gets a rule down the block and a mark above it.
+ */
+function drawHaplotypes(ctx, rect, reg, rows, opts = {}) {
+  const { caption, note, causal = true, foot = true } = opts;
+  const hap = reg.hap;
+  const m = hap.m;
+  const off = document.createElement("canvas");
+  off.width = m;
+  off.height = rows;
+  const octx = off.getContext("2d");
+  const img = octx.createImageData(m, rows);
+  const one = rgbOf(T.empirical);
+  const zero = rgbOf(T.surface3 || T.surface2);
+  for (let i = 0; i < rows; i += 1) {
+    for (let j = 0; j < m; j += 1) {
+      const c = hap.H[j][i] ? one : zero;
+      const o = (i * m + j) * 4;
+      img.data[o] = c[0];
+      img.data[o + 1] = c[1];
+      img.data[o + 2] = c[2];
+      img.data[o + 3] = 255;
+    }
+  }
+  octx.putImageData(img, 0, 0);
+  if (caption) capAt(ctx, rect.x, rect.y - 10, caption, rect.w * 0.68);
+  if (note) noteAt(ctx, rect.x + rect.w, rect.y - 10, note, rect.w * 0.38);
+  ctx.save();
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(off, rect.x, rect.y, rect.w, rect.h);
+  ctx.strokeStyle = T.grid;
+  ctx.lineWidth = 1;
+  ctx.strokeRect(rect.x + 0.5, rect.y + 0.5, rect.w - 1, rect.h - 1);
+  ctx.restore();
+  if (causal) {
+    /* the causal SNP's column: a rule through the block and the same hollow
+       mark page 2 uses, so one shape means one thing on both pages */
+    const x = rect.x + ((reg.causal + 0.5) / m) * rect.w;
+    ctx.save();
+    ctx.strokeStyle = T.reference;
+    ctx.lineWidth = 1;
+    ctx.setLineDash([3, 3]);
+    ctx.beginPath();
+    ctx.moveTo(Math.round(x) + 0.5, rect.y);
+    ctx.lineTo(Math.round(x) + 0.5, rect.y + rect.h);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.lineJoin = "round";
+    ctx.beginPath();
+    ctx.moveTo(x - 4, rect.y - 8);
+    ctx.lineTo(x + 4, rect.y - 8);
+    ctx.lineTo(x, rect.y - 2);
+    ctx.closePath();
+    ctx.stroke();
+    ctx.restore();
+  }
+  if (foot) {
+    tinyAt(ctx, rect.x + rect.w / 2, rect.y + rect.h + 5,
+      `${rows} of ${int(M.REGION.nHap)} haplotypes · ${m} SNPs over ${int(reg.span)} kb`);
+  }
+}
+
+/**
+ * The half-matrix rotated onto its diagonal, clipped to the clumping window.
+ * Copied from prs-mock, including why the buffer is one pixel a cell: at 4,950
+ * cells into 490px, smoothing blurs exactly the block structure the panel is
+ * for.
+ */
+function drawTriangle(ctx, x0, yTop, w, R, opts = {}) {
+  const { depth = null, caption, note } = opts;
+  const m = R.length;
+  const s = w / (m - 1);
+  const off = document.createElement("canvas");
+  off.width = m;
+  off.height = m;
+  const octx = off.getContext("2d");
+  const img = octx.createImageData(m, m);
+  const base = rgbOf(T.surface);
+  const hi = rgbOf(T.valueHigh);
+  for (let v = 0; v < m; v += 1) {
+    for (let u = 0; u < m; u += 1) {
+      const o = (v * m + u) * 4;
+      if (v <= u || (depth != null && v - u > depth)) { img.data[o + 3] = 0; continue; }
+      const c = mix(base, hi, Math.max(0, Math.min(1, R[v][u])));
+      img.data[o] = c[0];
+      img.data[o + 1] = c[1];
+      img.data[o + 2] = c[2];
+      img.data[o + 3] = 255;
+    }
+  }
+  octx.putImageData(img, 0, 0);
+  if (caption) capAt(ctx, x0, yTop - 10, caption, w * 0.7);
+  if (note) noteAt(ctx, x0 + w, yTop - 10, note, w * 0.4);
+  ctx.save();
+  ctx.imageSmoothingEnabled = false;
+  ctx.translate(x0, yTop);
+  ctx.transform(0.5 * s, -0.5 * s, 0.5 * s, 0.5 * s, 0, 0);
+  ctx.drawImage(off, 0, 0);
+  ctx.restore();
+  ctx.save();
+  ctx.strokeStyle = T.axis;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(x0, Math.round(yTop) + 0.5);
+  ctx.lineTo(x0 + w, Math.round(yTop) + 0.5);
+  ctx.stroke();
+  ctx.restore();
+  return (depth != null ? depth : m - 1) * s * 0.5;
+}
+
+const HAP_A_H = 34 + HAP_H + HAP_FOOT + 44 + TRI_CLIP_H + 14;
+const HAP_B_H = 34 + HAP_H + HAP_FOOT + 10;
+const HAP_SUB = `100 SNPs at 5 kb · 1,000 haplotypes · 4 founders\nrecombination 0.005 per kb · seed ${REGION_SEED}, the draft's own default`;
+
+{
+  const row = document.getElementById("hapRow");
+  {
+    const box = cand(row, "A · the haplotypes over the r² triangle", HAP_SUB);
+    const ctx = canvasIn(box, 550, HAP_A_H);
+    drawHaplotypes(ctx, { x: 52, y: 34, w: 490, h: HAP_H }, REG, HAP_ROWS, {
+      caption: "haplotypes in the region, one row each",
+      note: "one tone an allele",
+    });
+    drawTriangle(ctx, 52, 34 + HAP_H + HAP_FOOT + 44, TRI_W, REG.R, {
+      depth: CLUMP_DEPTH,
+      caption: "r² between every pair within 250 kb",
+      note: "0 to 1",
+    });
+    mline(box, `stage 550 × ${HAP_A_H} · block ${HAP_ROWS} rows at ${fmt(HAP_H / HAP_ROWS, 1)}px, `
+      + `${M.REGION.m} columns at ${fmt(490 / M.REGION.m, 1)}px · triangle ${TRI_CLIP_H}px`);
+  }
+  {
+    const box = cand(row, "B · the haplotypes alone, the triangle on the clumping page", HAP_SUB);
+    const ctx = canvasIn(box, 550, HAP_B_H);
+    drawHaplotypes(ctx, { x: 52, y: 34, w: 490, h: HAP_H }, REG, HAP_ROWS, {
+      caption: "haplotypes in the region, one row each",
+      note: "one tone an allele",
+    });
+    mline(box, `stage 550 × ${HAP_B_H} · ${HAP_A_H - HAP_B_H}px shorter than A`);
+  }
+}
+{
+  const row = document.getElementById("hapRecombRow");
+  const SMALL_H = 96;
+  /* THE TRIANGLE GOES UNDER EACH BLOCK, at half the clumping window's depth.
+     Drawn without it the three blocks are hard to tell apart at 24 rows — the
+     bands differ in REACH, and reach is what a triangle shows and a block of
+     two tones does not. */
+  const SMALL_DEPTH = 25;
+  const SMALL_TRI = Math.ceil((SMALL_DEPTH / 2) * (490 / (M.REGION.m - 1)));
+  const STRIDE = SMALL_H + SMALL_TRI + 46;
+  const H = 30 + 3 * STRIDE + 4;
+  const box = cand(row, "the same pool at the three Recombination settings",
+    "the control that moves to this page\nthe bands lengthen as the switch rate falls");
+  const ctx = canvasIn(box, 550, H);
+  const setts = [
+    { reg: REG_LOW, label: "Low — 0.002 per kilobase" },
+    { reg: REG, label: "Medium — 0.005 per kilobase" },
+    { reg: REG_HIGH, label: "High — 0.020 per kilobase" },
+  ];
+  setts.forEach((s, i) => {
+    const y = 30 + i * STRIDE;
+    drawHaplotypes(ctx, { x: 52, y, w: 490, h: SMALL_H }, s.reg, 24, {
+      caption: s.label,
+      note: `${s.reg.clumps.length} clumps`,
+      foot: false,
+    });
+    drawTriangle(ctx, 52, y + SMALL_H + 14, 490, s.reg.R, { depth: SMALL_DEPTH });
+  });
+  mline(box, setts.map((s) => `${s.label.split(" —")[0]}: ${s.reg.hits} SNPs under P < 0.05, `
+    + `${s.reg.clumps.length} clumps, the first holds ${1 + s.reg.clumps[0].members.length}`).join("\n"));
+}
+
+/* ==========================================================================
+   §2 · clumping as an action
+   ====================================================================== */
+
+const CL_PANEL = { w: 550, h: 300 };
+const CL_RECT = { x: 52, y: 46, w: 490, h: 198 };
+const L05 = -Math.log10(0.05);
+const CL_TOP = Math.max(4, Math.ceil(Math.max(...REG.scan.logp) + 0.6));
+
+/**
+ * One still of the clumping run.
+ *
+ *   `shown`    how many clumps have been taken and settled
+ *   `arcsOn`   the clump whose arcs are drawn, one-based — the beat where the
+ *              lead has been chosen and nothing has left yet
+ *   `leaving`  the clump whose members are on their way out
+ *   `depart`   "slide" (members drop to the baseline) or "shrink" (members
+ *              stay where they are and go to a tick)
+ *   `bracket`  draw the lesson's bracket under the clump's span instead of the
+ *              arcs
+ */
+function drawClumpStill(ctx, opts = {}) {
+  const {
+    caption, note, shown = 0, arcsOn = 0, leaving = 0, depart = "slide",
+    bracket = false, scanDone = true, showCausal = false, arcTone = T.highlight,
+  } = opts;
+  const rect = CL_RECT;
+  let bracketLabel = null;
+  const plot = makePlot({
+    ctx, colors: T, rect, xDomain: [0, REG.span], yDomain: [0, CL_TOP],
+  });
+  plot.caption(fit(caption, capFont(), rect.w - 180));
+  if (note) plot.note(fit(note, noteFont(), 210));
+
+  const ty = Math.round(plot.sy(L05)) + 0.5;
+  ctx.save();
+  ctx.strokeStyle = T.reference;
+  ctx.lineWidth = 1;
+  ctx.setLineDash([5, 4]);
+  ctx.beginPath();
+  ctx.moveTo(rect.x, ty);
+  ctx.lineTo(rect.x + rect.w, ty);
+  ctx.stroke();
+  ctx.restore();
+  tinyAt(ctx, rect.x + 2, ty - 13, "P = 0.05", "left");
+
+  if (scanDone) {
+    /* what has happened so far: a settled clump's lead stays, its members have
+       left; the clump under `leaving` is mid-departure; everything else is an
+       untouched test */
+    const state = new Array(REG.idx.length).fill("open");
+    for (let c = 0; c < shown; c += 1) {
+      state[REG.clumps[c].index] = "lead";
+      for (const m of REG.clumps[c].members) state[m] = "gone";
+    }
+    if (leaving > 0) {
+      state[REG.clumps[leaving - 1].index] = "lead";
+      for (const m of REG.clumps[leaving - 1].members) state[m] = "leaving";
+    }
+    if (arcsOn > 0) state[REG.clumps[arcsOn - 1].index] = "chosen";
+
+    const px = (j) => plot.sx(REG.pos[j]);
+    const py = (j) => plot.sy(Math.min(REG.scan.logp[j], CL_TOP));
+
+    /* THE ARCS, UNDER THE POINTS AND OVER THE GRID. Each one joins the lead to
+       a SNP its r² takes, and its opacity IS that r². Quadratic, with the
+       control point lifted toward the top of the panel and clamped inside it.
+
+       THE TOKEN IS `--c-highlight`, NOT `--c-value-high`. The first draft used
+       value-high, on the argument that r² should keep the colour the previous
+       page's triangle paints it in — and drawn, the arcs came out the same
+       colour as the significant SNPs, because `--c-value-high` and
+       `--c-extreme` are both `--series-8`. Two meanings, one hue, on the one
+       panel the review says already carries too many. The arc belongs to the
+       lead SNP, the lead is `--c-highlight`, and the alpha is the r². */
+    if (arcsOn > 0 && !bracket) {
+      const cl = REG.clumps[arcsOn - 1];
+      const lx = px(cl.index);
+      const ly = py(cl.index);
+      ctx.save();
+      ctx.lineWidth = 1.2;
+      for (const m of cl.members) {
+        const mx = px(m);
+        const my = py(m);
+        const r2 = REG.Rs[cl.index][m];
+        ctx.strokeStyle = alphaOf(arcTone, 0.18 + 0.72 * Math.max(0, Math.min(1, r2)));
+        const cy = Math.max(rect.y + 6, Math.min(ly, my) - 52);
+        ctx.beginPath();
+        ctx.moveTo(lx, ly);
+        ctx.quadraticCurveTo((lx + mx) / 2, cy, mx, my);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+    if (bracket && arcsOn > 0) {
+      const cl = REG.clumps[arcsOn - 1];
+      const cols = [cl.index, ...cl.members];
+      const xs = cols.map((j) => px(j));
+      const lo = Math.min(...xs);
+      const hi = Math.max(...xs);
+      const by = rect.y + rect.h - 12.5;
+      ctx.save();
+      ctx.strokeStyle = arcTone;
+      ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      ctx.moveTo(lo, by - 6);
+      ctx.lineTo(lo, by);
+      ctx.lineTo(hi, by);
+      ctx.lineTo(hi, by - 6);
+      ctx.stroke();
+      ctx.restore();
+      /* THE LABEL GOES ABOVE THE BRACKET, not under it. The bracket sits just
+         above the x axis, so a line under it prints over the axis's own tick
+         labels — 100 and 200 at the default region. Centred over the span, or
+         left-aligned at the bracket's left end when the span is shorter than
+         the label. */
+      const text = `${cols.length} SNPs in one clump`;
+      const lw = textW(text, noteFont());
+      const centred = lw <= hi - lo;
+      bracketLabel = {
+        text, w: Math.round(lw), span: Math.round(hi - lo), align: centred ? "centred" : "left",
+        x: Math.round(centred ? (lo + hi) / 2 : lo), y: Math.round(by - 10),
+      };
+      noteAlignedAt(ctx, centred ? (lo + hi) / 2 : lo, by - 10, text, rect.w,
+        { align: centred ? "center" : "left", tone: T.ink2 });
+    }
+
+    const baseY = rect.y + rect.h;
+    ctx.save();
+    for (let j = 0; j < REG.idx.length; j += 1) {
+      const x = px(j);
+      const y = py(j);
+      const st = state[j];
+      if (st === "gone" || st === "leaving") {
+        /* WHERE AN ABSORBED SNP GOES. Fading was the draft's answer and it is
+           the weakest channel on a canvas; both of these are motion. */
+        if (depart === "slide") {
+          ctx.strokeStyle = alphaOf(T.empirical, st === "gone" ? 0.5 : 0.75);
+          ctx.lineWidth = 1.6;
+          ctx.beginPath();
+          ctx.moveTo(Math.round(x) + 0.5, baseY - (st === "gone" ? 5 : 9));
+          ctx.lineTo(Math.round(x) + 0.5, baseY);
+          ctx.stroke();
+        } else {
+          ctx.fillStyle = alphaOf(T.empirical, st === "gone" ? 0.45 : 0.7);
+          ctx.beginPath();
+          ctx.arc(x, y, st === "gone" ? 1 : 1.6, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        continue;
+      }
+      const past = REG.scan.P[j] < 0.05;
+      ctx.fillStyle = st === "chosen" ? T.highlight : past ? T.extreme : T.empirical;
+      ctx.beginPath();
+      ctx.arc(x, y, st === "chosen" ? 4.4 : st === "lead" ? 3.4 : 2.6, 0, Math.PI * 2);
+      ctx.fill();
+      if (st === "lead" || st === "chosen") {
+        ctx.lineWidth = 1.4;
+        ctx.strokeStyle = T.surface;
+        ctx.stroke();
+      }
+    }
+    ctx.restore();
+  }
+
+  if (showCausal) {
+    const x = plot.sx(REG.causalPos);
+    ctx.save();
+    ctx.strokeStyle = T.reference;
+    ctx.lineWidth = 1.2;
+    ctx.lineJoin = "round";
+    ctx.beginPath();
+    ctx.moveTo(x - 4, rect.y + 2);
+    ctx.lineTo(x + 4, rect.y + 2);
+    ctx.lineTo(x, rect.y + 8);
+    ctx.closePath();
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  plot.axisY({ label: "−log₁₀P", format: (v) => v.toFixed(0) });
+  plot.axisX({ label: "position (kb)", format: (v) => v.toFixed(0) });
+  return { bracketLabel, axisY: rect.y + rect.h };
+}
+
+const FIRST_CLUMP = 1 + REG.clumps[0].members.length;
+{
+  const row = document.getElementById("clumpRow");
+  const stills = [
+    {
+      head: "i · every SNP tested",
+      caption: "every SNP in the region tested against the trait",
+      note: `${REG.hits} of 100 under P < 0.05`,
+      opts: {},
+    },
+    {
+      head: "ii · the first lead, and what its r² takes",
+      caption: "the lowest P in the region, and every SNP in LD with it",
+      note: `${FIRST_CLUMP - 1} SNPs at r² ≥ 0.1 within 250 kb`,
+      opts: { arcsOn: 1 },
+    },
+    {
+      head: "iii · one beat later — the clump has left the cloud",
+      caption: "the lead SNP kept, the SNPs it accounts for dropped",
+      note: `1 of ${REG.clumps.length} clumps taken`,
+      opts: { leaving: 1, showCausal: REG.causalAt <= 1 },
+    },
+    {
+      head: "iv · after every clump",
+      caption: "the lead SNP of each clump, and the SNPs in LD with it",
+      note: `${REG.sigClumps} clumps under P < 0.05`,
+      opts: { shown: REG.clumps.length, showCausal: true },
+    },
+  ];
+  for (const s of stills) {
+    const box = cand(row, s.head, HAP_SUB);
+    const ctx = canvasIn(box, CL_PANEL.w, CL_PANEL.h);
+    drawClumpStill(ctx, { caption: s.caption, note: s.note, ...s.opts });
+    mline(box, `panel ${CL_PANEL.w} × ${CL_PANEL.h}, plot ${CL_RECT.w} × ${CL_RECT.h}`);
+  }
+  {
+    const box = cand(row, "ii′ · the same beat, absorbed SNPs shrinking in place",
+      "the alternative to sliding: the point stays at its own −log₁₀P");
+    const ctx = canvasIn(box, CL_PANEL.w, CL_PANEL.h);
+    drawClumpStill(ctx, {
+      caption: "the lead SNP kept, the SNPs it accounts for dropped",
+      note: `1 of ${REG.clumps.length} clumps taken`,
+      leaving: 1, depart: "shrink",
+    });
+    mline(box, `a dropped SNP goes from r 2.6 to r 1.0 in place; sliding moves it `
+      + `${Math.round(CL_RECT.h * 0.5)}px on average and leaves a 5px tick on the axis`);
+  }
+  {
+    const box = cand(row, "ii″ · the same arcs in --c-value-high, the triangle's own token",
+      "r² keeping the colour step 1 paints it in\nand colliding with --c-extreme, which is the same value");
+    const ctx = canvasIn(box, CL_PANEL.w, CL_PANEL.h);
+    drawClumpStill(ctx, {
+      caption: "the lowest P in the region, and every SNP in LD with it",
+      note: `${FIRST_CLUMP - 1} SNPs at r² ≥ 0.1 within 250 kb`,
+      arcsOn: 1, arcTone: T.valueHigh,
+    });
+    mline(box, `--c-value-high is ${T.valueHigh} and --c-extreme is ${T.extreme}`
+      + `${T.valueHigh.toLowerCase() === T.extreme.toLowerCase() ? " — THE SAME VALUE" : ""}; `
+      + `--c-highlight is ${T.highlight}`);
+  }
+  {
+    const box = cand(row, "ii‴ · a bracket under the clump instead of the arcs",
+      "the shape the lesson's own diagram draws");
+    const ctx = canvasIn(box, CL_PANEL.w, CL_PANEL.h);
+    const drawn = drawClumpStill(ctx, {
+      caption: "the lowest P in the region, and every SNP in LD with it",
+      note: `${FIRST_CLUMP - 1} SNPs at r² ≥ 0.1 within 250 kb`,
+      arcsOn: 1, bracket: true,
+    });
+    const cl = REG.clumps[0];
+    const xs = [cl.index, ...cl.members].map((j) => REG.pos[j]);
+    const bl = drawn.bracketLabel;
+    mline(box, `the first clump spans ${int(Math.max(...xs) - Math.min(...xs))} kb and holds `
+      + `${FIRST_CLUMP} SNPs, of which ${cl.members.filter((m) => REG.Rs[cl.index][m] >= 0.5).length} are at r² ≥ 0.5\n`
+      + `the label is ${bl.w}px over a ${bl.span}px bracket, so it is ${bl.align} at x ${bl.x}, `
+      + `baseline y ${bl.y} — above the bracket and ${drawn.axisY - bl.y}px clear of the x axis`);
+  }
+}
+
+/* ==========================================================================
+   §3 · the base study's size
+   ====================================================================== */
+
+const LX = (t) => Math.log10(t);
+const CURVE_PANEL = { w: 390, h: 286 };
+const CURVE_RECT = { x: 46, y: 46, w: 268, h: 190 };
+const CURVE_WIDE = { w: 550, h: 300 };
+const CURVE_WIDE_RECT = { x: 54, y: 48, w: 420, h: 196 };
+
+/** Page 3's two curves at one base study size, with the kept count behind them
+    on its own axis. `readLine` is §4's candidate. */
+function drawCurve(ctx, rect, bundle, opts = {}) {
+  const { caption, note, readLine = null, small = false } = opts;
+  const rows = bundle.rows;
+  const best = bundle.best;
+  const top = Math.max(0.12, Math.max(...rows.map((r) => Math.max(r.target, r.validation))) * 1.3);
+  const plot = makePlot({
+    ctx, colors: T, rect, xDomain: [LX(5e-8) - 0.4, 0.3], yDomain: [0, top],
+  });
+  plot.caption(fit(caption, capFont(), rect.w + 20));
+  plot.grid([0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35].filter((v) => v < top));
+  if (note) {
+    noteAlignedAt(ctx, rect.x, rect.y + 3, note, rect.w - 4, { align: "left", baseline: "top" });
+  }
+
+  /* the kept count on a second axis, behind both curves: not a result, the x
+     axis restated in SNPs */
+  const cPts = rows.map((r) => [LX(r.thresh), (r.nSnp / 1000) * top]);
+  plot.curve(cPts, { stroke: T.ink3, width: 1, dash: [3, 3] });
+  ctx.save();
+  ctx.font = noteFont();
+  ctx.fillStyle = T.ink3;
+  ctx.textAlign = "left";
+  ctx.textBaseline = "middle";
+  for (const frac of [0, 0.5, 1]) {
+    ctx.fillText(int(frac * 1000), rect.x + rect.w + 6, plot.sy(frac * top));
+  }
+  ctx.restore();
+  if (!small) {
+    ctx.save();
+    ctx.translate(rect.x + rect.w + 50, rect.y + rect.h / 2);
+    ctx.rotate(Math.PI / 2);
+    ctx.textAlign = "center";
+    ctx.textBaseline = "bottom";
+    ctx.font = `${T.fsSm} ${T.font}`;
+    ctx.fillStyle = T.ink2;
+    ctx.fillText("SNPs kept", 0, 0);
+    ctx.restore();
+  }
+
+  plot.curve(rows.map((r) => [LX(r.thresh), r.validation]), { stroke: T.holdout, width: 2 });
+  plot.curve(rows.map((r) => [LX(r.thresh), r.target]), { stroke: T.empirical, width: 2 });
+  for (const r of rows) {
+    plot.dot(LX(r.thresh), r.target, { fill: T.empirical, r: 2.4 });
+    plot.dot(LX(r.thresh), r.validation, { fill: T.holdout, r: 2.4 });
+  }
+  plot.dot(LX(best.thresh), best.target, { fill: T.highlight, r: 5 });
+
+  plot.axisY({ format: (v) => v.toFixed(2), label: "R²" });
+  plot.axisX({
+    /* at 268px of plot the six-tick set puts 0.001 and 0.01 35px apart with
+       28px labels, so the narrow panels drop 0.01 */
+    ticks: (small ? [5e-8, 1e-5, 1e-3, 0.1, 1] : [5e-8, 1e-5, 1e-3, 0.01, 0.1, 1]).map(LX),
+    format: (v) => tfmt(Number((10 ** v).toPrecision(1))),
+    label: "P threshold",
+  });
+  ctx.save();
+  ctx.strokeStyle = T.axis;
+  ctx.lineWidth = 1;
+  for (const r of rows) {
+    const x = Math.round(plot.sx(LX(r.thresh))) + 0.5;
+    ctx.beginPath();
+    ctx.moveTo(x, rect.y + rect.h);
+    ctx.lineTo(x, rect.y + rect.h + 3);
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  /* §4's reading line, under the axis label, at the panel's own left edge */
+  if (readLine) {
+    noteAlignedAt(ctx, rect.x - 34, rect.y + rect.h + 44, readLine, rect.w + 80,
+      { align: "left", baseline: "top", tone: T.ink2 });
+  }
+  return plot;
+}
+
+const QUANT_PANEL = { w: 390, h: 258 };
+const QUANT_RECT = { x: 46, y: 42, w: 322, h: 172 };
+
+function drawQuantiles(ctx, rect, bins, overall, opts = {}) {
+  const { caption, note, small = false } = opts;
+  const lo = Math.min(...bins.map((b) => b.lo));
+  const hi = Math.max(...bins.map((b) => b.hi));
+  const pad = (hi - lo) * 0.08;
+  const plot = makePlot({
+    ctx, colors: T, rect, xDomain: [0.3, 20.7], yDomain: [lo - pad, hi + pad],
+  });
+  plot.caption(fit(caption, capFont(), rect.w + 18));
+  if (note) plot.note(fit(note, noteFont(), rect.w * 0.55));
+  const my = Math.round(plot.sy(overall)) + 0.5;
+  ctx.save();
+  ctx.strokeStyle = T.reference;
+  ctx.lineWidth = 1;
+  ctx.setLineDash([5, 4]);
+  ctx.beginPath();
+  ctx.moveTo(rect.x, my);
+  ctx.lineTo(rect.x + rect.w, my);
+  ctx.stroke();
+  ctx.restore();
+  /* NO LABEL ON THE MEAN LINE — prs-mock's own correction: at 319 people every
+     bin's interval is long enough to cross it. The legend names it. */
+  ctx.save();
+  ctx.strokeStyle = T.empirical;
+  ctx.lineWidth = 1.4;
+  ctx.lineCap = "round";
+  for (const b of bins) {
+    const x = Math.round(plot.sx(b.bin)) + 0.5;
+    ctx.beginPath();
+    ctx.moveTo(x, plot.sy(b.lo));
+    ctx.lineTo(x, plot.sy(b.hi));
+    ctx.stroke();
+  }
+  ctx.restore();
+  for (const b of bins) plot.dot(b.bin, b.mean, { fill: T.empirical, r: small ? 2.4 : 3 });
+  plot.axisY({ format: (v) => v.toFixed(1), label: small ? undefined : "mean trait" });
+  plot.axisX({ ticks: [1, 5, 10, 15, 20], format: (v) => v.toFixed(0), label: "score vigintile" });
+}
+
+{
+  const row = document.getElementById("baseCurveRow");
+  for (const nB of SIZES) {
+    const bundle = G.bases[nB];
+    const b = bundle.best;
+    const box = cand(row, `base study of ${SIZE_LABEL[nB]} people`,
+      `seed ${GENOME_SEED} · 1,000 SNPs, 300 causal, h² 0.3\ntarget and validation samples of 319 each`);
+    const ctx = canvasIn(box, CURVE_PANEL.w, CURVE_PANEL.h);
+    drawCurve(ctx, CURVE_RECT, bundle, {
+      caption: "R² of the score against the P threshold",
+      small: true,
+    });
+    mline(box, `best fit P < ${tfmt(b.thresh)} over ${int(b.nSnp)} SNPs · R² ${fmt(b.target, 3)} target, `
+      + `${fmt(b.validation, 3)} validation`);
+  }
+}
+{
+  const row = document.getElementById("baseQuantRow");
+  for (const nB of SIZES) {
+    const b = G.bases[nB].best;
+    const box = cand(row, `the same three, page 4's figure`,
+      `at the best-fit threshold of the base above\nP < ${tfmt(b.thresh)}, ${int(b.nSnp)} SNPs`);
+    const ctx = canvasIn(box, QUANT_PANEL.w, QUANT_PANEL.h);
+    drawQuantiles(ctx, QUANT_RECT, b.bins, G.overall, {
+      caption: `mean trait by vigintile — base ${SIZE_LABEL[nB]}`,
+      small: true,
+    });
+    mline(box, `vigintile 1 to 20 spans ${fmt(b.range, 2)} SD of the trait · `
+      + `${b.excl} of 20 intervals clear of the sample mean`);
+  }
+}
+{
+  const row = document.getElementById("baseSeedRow");
+  {
+    const b29 = G29.bases[DEFAULT_SIZE];
+    const box = cand(row, `the draft's seed ${REGION_SEED} at the recommended base size`,
+      "what the current default opens on once the base is summary statistics");
+    const ctx = canvasIn(box, CURVE_WIDE.w, CURVE_WIDE.h);
+    drawCurve(ctx, CURVE_WIDE_RECT, b29, {
+      caption: `R² against the P threshold — base ${SIZE_LABEL[DEFAULT_SIZE]}, seed ${REGION_SEED}`,
+      note: "best-fit threshold in the target sample, then assessed in the validation sample",
+    });
+    mline(box, `seed ${REGION_SEED}: best fit ${fmt(b29.best.target, 3)} in the target at P < ${tfmt(b29.best.thresh)}, `
+      + `${fmt(b29.best.validation, 3)} in the validation sample — the validation sample reads `
+      + `${b29.best.validation > b29.best.target ? "HIGHER" : "lower"}`);
+  }
+  {
+    const b41 = G.bases[DEFAULT_SIZE];
+    const box = cand(row, `seed ${GENOME_SEED} at the recommended base size`,
+      "the seed the sweep below picks, and the reading it opens on");
+    const ctx = canvasIn(box, CURVE_WIDE.w, CURVE_WIDE.h);
+    drawCurve(ctx, CURVE_WIDE_RECT, b41, {
+      caption: `R² against the P threshold — base ${SIZE_LABEL[DEFAULT_SIZE]}, seed ${GENOME_SEED}`,
+      note: "best-fit threshold in the target sample, then assessed in the validation sample",
+    });
+    mline(box, `seed ${GENOME_SEED}: best fit ${fmt(b41.best.target, 3)} in the target at P < ${tfmt(b41.best.thresh)}, `
+      + `${fmt(b41.best.validation, 3)} in the validation sample · region ${REG41.hits} SNPs under P < 0.05, `
+      + `${REG41.clumps.length} clumps, the lead ${fmt(REG41.leadDist, 0)} kb from the causal SNP at r² ${fmt(REG41.leadR2, 2)}`);
+  }
+}
+
+/* ==========================================================================
+   §4 · page 3's reading line
+   ====================================================================== */
+
+const READ_LINE = (() => {
+  const b = G.bases[DEFAULT_SIZE].best;
+  return `best-fit R² ${fmt(b.target, 3)} in the target sample at P < ${tfmt(b.thresh)}; `
+    + `${fmt(b.validation, 3)} in the validation sample at that threshold`;
+})();
+{
+  const row = document.getElementById("readRow");
+  const bundle = G.bases[DEFAULT_SIZE];
+  {
+    const box = cand(row, "without the line — the panel as the draft draws it",
+      `base ${SIZE_LABEL[DEFAULT_SIZE]}, seed ${GENOME_SEED}`);
+    const ctx = canvasIn(box, CURVE_WIDE.w, CURVE_WIDE.h);
+    drawCurve(ctx, CURVE_WIDE_RECT, bundle, {
+      caption: "R² of the score against the P threshold",
+      note: "best-fit threshold in the target sample, then assessed in the validation sample",
+    });
+    mline(box, `stage ${CURVE_WIDE.w} × ${CURVE_WIDE.h}`);
+  }
+  {
+    const H = CURVE_WIDE.h + NOTE_LINE + 6;
+    const box = cand(row, "with one reading line under the axis",
+      "the two numbers the reader is meant to compare, in words");
+    const ctx = canvasIn(box, CURVE_WIDE.w, H);
+    drawCurve(ctx, CURVE_WIDE_RECT, bundle, {
+      caption: "R² of the score against the P threshold",
+      note: "best-fit threshold in the target sample, then assessed in the validation sample",
+      readLine: READ_LINE,
+    });
+    mline(box, `stage ${CURVE_WIDE.w} × ${H} — ${NOTE_LINE + 6}px more than without · the line is `
+      + `${Math.round(textW(READ_LINE, noteFont()))}px in ${CURVE_WIDE_RECT.w + 80}px`);
+  }
+}
+
+/* ==========================================================================
+   §5 · page 5a — calibration
+   ====================================================================== */
+
+const CAL_PANEL = { w: 430, h: 330 };
+const CAL_RECT = { x: 54, y: 42, w: 262, h: 240 };
+const CAL_SMALL = { w: 390, h: 300 };
+const CAL_SMALL_RECT = { x: 48, y: 40, w: 220, h: 220 };
+
+/**
+ * Mean predicted risk against the fraction that has the disease, by decile of
+ * predicted risk, with the diagonal as the reference and a 95% interval on
+ * every observed fraction.
+ *
+ * THE INTERVALS ARE NOT DECORATION. A decile of a 319-person sample holds 32
+ * people, so an observed fraction moves in steps of 1/32 and a point three
+ * steps off the diagonal is not evidence of anything. Drawn without them the
+ * panel reads as miscalibration wherever it is only small numbers.
+ */
+function drawCalibration(ctx, rect, cal, opts = {}) {
+  const { caption, note, small = false } = opts;
+  /* THE AXIS LEAVES ROOM FOR THE DIAGONAL'S OWN LABEL, and the amount is
+     measured rather than chosen. The label names the reference line at the end
+     the deciles do not reach; at 1.06 × the tallest mark the clear strip above
+     the intervals was 14px, which is two pixels short of one 11px line — the
+     label printed over the top decile's interval on every panel but the distant
+     one. The top is set from the label's own height instead. */
+  const raw = Math.max(...cal.bins.map((b) => Math.max(b.pred, b.hi)));
+  /* how far the diagonal has fallen 6px in from its end, plus 3px of air */
+  const labelDrop = (6 * rect.h) / rect.w + 3;
+  const strip = labelDrop + parseFloat(T.fsXs) + 6;
+  const top = Math.max(raw * 1.06, raw / Math.max(1 - strip / rect.h, 0.5));
+  const plot = makePlot({
+    ctx, colors: T, rect, xDomain: [0, top], yDomain: [0, top],
+  });
+  const cap = captionRow(ctx, rect, caption, note, { capMax: small ? rect.w : rect.w + 40 });
+  ctx.save();
+  ctx.strokeStyle = T.reference;
+  ctx.lineWidth = 1;
+  ctx.setLineDash([5, 4]);
+  ctx.beginPath();
+  ctx.moveTo(plot.sx(0), plot.sy(0));
+  ctx.lineTo(plot.sx(top), plot.sy(top));
+  ctx.stroke();
+  ctx.restore();
+  ctx.save();
+  ctx.strokeStyle = T.empirical;
+  ctx.lineWidth = 1.4;
+  ctx.lineCap = "round";
+  for (const b of cal.bins) {
+    const x = Math.round(plot.sx(b.pred)) + 0.5;
+    ctx.beginPath();
+    ctx.moveTo(x, plot.sy(b.lo));
+    ctx.lineTo(x, plot.sy(b.hi));
+    ctx.stroke();
+  }
+  ctx.restore();
+  for (const b of cal.bins) plot.dot(b.pred, b.obs, { fill: T.empirical, r: small ? 2.6 : 3.2 });
+  plot.axisY({ format: (v) => `${Math.round(100 * v)}%`, label: small ? undefined : "observed" });
+  plot.axisX({ format: (v) => `${Math.round(100 * v)}%`, label: "predicted risk" });
+  /* THE DIAGONAL'S OWN NAME, AT THE FAR END OF THE LINE. It sat across the
+     middle of the plot, which is where the interval bars cross the diagonal.
+     Every decile's bar stands at that decile's mean predicted risk, and the
+     highest of those is about half the axis — the axis is set by the tallest
+     interval, not by a prediction — so the far end of the diagonal is the one
+     stretch of it with nothing drawn against it. The measured line under each
+     panel prints the clearance. */
+  const LABEL = "predicted = observed";
+  const labelX = plot.sx(top) - 6;
+  const labelY = plot.sy(top) + labelDrop;
+  tinyAt(ctx, labelX, labelY, LABEL, "right", T.ink3);
+  const maxPred = Math.max(...cal.bins.map((b) => b.pred));
+  const lw = textW(LABEL, noteFont());
+  /* the highest point of any interval bar that stands under the label's own
+     span of x — the number the placement turns on */
+  const under = cal.bins.filter((b) => plot.sx(b.pred) >= labelX - lw - 2
+    && plot.sx(b.pred) <= labelX + 2);
+  return {
+    cap,
+    label: {
+      text: LABEL,
+      w: Math.round(lw),
+      x: Math.round(labelX),
+      left: Math.round(labelX - lw),
+      y: Math.round(labelY),
+      bottom: Math.round(labelY + parseFloat(T.fsXs) + 2),
+      barX: Math.round(plot.sx(maxPred)),
+      barFrac: maxPred / top,
+      underTop: under.length ? Math.round(Math.min(...under.map((b) => plot.sy(b.hi)))) : null,
+      underN: under.length,
+    },
+  };
+}
+
+{
+  const row = document.getElementById("calRow");
+  for (const p of M.TARGETS) {
+    const cal = CAL[p.value];
+    const box = cand(row, `A · one panel — ${p.label}`,
+      `base ${SIZE_LABEL[DEFAULT_SIZE]} · prevalence ${pct(PREVALENCE)} · seed ${GENOME_SEED}\n`
+      + `the model is fitted in ${int(N_BASE_COHORT)} base-population people`);
+    const ctx = canvasIn(box, CAL_PANEL.w, CAL_PANEL.h);
+    const d = drawCalibration(ctx, CAL_RECT, cal, {
+      caption: "predicted risk against the observed fraction",
+      note: `by decile, ${Math.round(M.N_TARGET / 10)} people each`,
+    });
+    mline(box, `${cal.cases} of ${M.N_TARGET} have the disease · intercept ${fmt(cal.inter, 2)} · `
+      + `slope ${fmt(cal.slope, 2)} · ${cal.covered} of 10 deciles' intervals cover the prediction\n`
+      + `top decile: ${pct(cal.bins[9].pred)} predicted against ${pct(cal.bins[9].obs)} observed\n`
+      + `${capLine(d.cap)}\n`
+      + `“${d.label.text}” ${d.label.w}px, right-aligned to x ${d.label.x} at y ${d.label.y}, so it runs `
+      + `from x ${d.label.left} to y ${d.label.bottom}; the furthest interval bar stands at x ${d.label.barX} `
+      + `(${fmt(d.label.barFrac, 2)} of the axis)\n`
+      + `${d.label.underN} bar${d.label.underN === 1 ? "" : "s"} under that span`
+      + (d.label.underTop == null ? "" : `, the tallest topping out at y ${d.label.underTop} — `
+        + `${d.label.underTop - d.label.bottom}px below the label`));
+  }
+}
+{
+  const row = document.getElementById("calThreeRow");
+  for (const p of M.TARGETS) {
+    const cal = CAL[p.value];
+    const box = cand(row, `B · three panels — ${p.label}`, "the same figures at the size three abreast costs");
+    const ctx = canvasIn(box, CAL_SMALL.w, CAL_SMALL.h);
+    const d = drawCalibration(ctx, CAL_SMALL_RECT, cal, {
+      caption: p.label,
+      note: "by decile",
+      small: true,
+    });
+    mline(box, `plot ${CAL_SMALL_RECT.w} × ${CAL_SMALL_RECT.h} · a decile's interval is `
+      + `${Math.round(CAL_SMALL_RECT.h * (cal.bins[9].hi - cal.bins[9].lo)
+        / Math.max(...cal.bins.map((b) => Math.max(b.pred, b.hi))))}px at the top decile\n`
+      + `${capLine(d.cap)}\n`
+      + `“${d.label.text}” runs from x ${d.label.left} to x ${d.label.x}, y ${d.label.y} to `
+      + `${d.label.bottom} · ${d.label.underN} bar${d.label.underN === 1 ? "" : "s"} under that span`
+      + (d.label.underTop == null ? "" : `, the tallest topping out at y ${d.label.underTop} — `
+        + `${d.label.underTop - d.label.bottom}px below the label`));
+  }
+}
+
+/* ==========================================================================
+   §6 · page 5b — stratification
+   ====================================================================== */
+
+const STRAT_PANEL = { w: 550, h: 300 };
+const STRAT_RECT = { x: 54, y: 46, w: 456, h: 196 };
+
+/** Absolute predicted risk against the person's percentile in this sample,
+    with the risk threshold as the reference and the crossing marked. */
+function drawStratification(ctx, rect, cal, threshold, opts = {}) {
+  const { caption, note, small = false } = opts;
+  const top = Math.max(cal.max * 1.12, threshold * 1.25);
+  const plot = makePlot({
+    ctx, colors: T, rect, xDomain: [0, 100], yDomain: [0, top],
+  });
+  const cap = captionRow(ctx, rect, caption, note);
+  const ty = Math.round(plot.sy(threshold)) + 0.5;
+  ctx.save();
+  ctx.strokeStyle = T.reference;
+  ctx.lineWidth = 1;
+  ctx.setLineDash([5, 4]);
+  ctx.beginPath();
+  ctx.moveTo(rect.x, ty);
+  ctx.lineTo(rect.x + rect.w, ty);
+  ctx.stroke();
+  ctx.restore();
+  tinyAt(ctx, rect.x + 2, ty - NOTE_LINE - 2, `${pct(threshold)} risk`, "left", T.ink3);
+  plot.curve(cal.curve, { stroke: T.empirical, width: 2 });
+  const above = cal.above(threshold);
+  if (above > 0 && above < cal.risk.length) {
+    const x = cal.crossing(threshold);
+    ctx.save();
+    ctx.strokeStyle = T.highlight;
+    ctx.lineWidth = 1.4;
+    ctx.beginPath();
+    ctx.moveTo(Math.round(plot.sx(x)) + 0.5, ty);
+    ctx.lineTo(Math.round(plot.sx(x)) + 0.5, rect.y + rect.h);
+    ctx.stroke();
+    ctx.restore();
+    plot.dot(x, threshold, { fill: T.highlight, r: 4.5 });
+    if (!small) {
+      noteAlignedAt(ctx, plot.sx(x) - 8, ty - 6,
+        `${int(above)} of ${int(cal.risk.length)} people above`, plot.sx(x) - 8 - rect.x,
+        { tone: T.ink2 });
+    }
+  }
+  plot.axisY({ format: (v) => `${Math.round(100 * v)}%`, label: small ? undefined : "predicted risk" });
+  plot.axisX({
+    ticks: [0, 25, 50, 75, 100],
+    format: (v) => v.toFixed(0),
+    label: "score percentile",
+  });
+  return { cap };
+}
+
+{
+  const row = document.getElementById("stratRow");
+  {
+    const box = cand(row, "A · the figure alone, at the three target populations",
+      `base ${SIZE_LABEL[DEFAULT_SIZE]} · prevalence ${pct(PREVALENCE)} · risk threshold ${pct(RISK_DEFAULT)}`);
+    const H = 26 + 3 * STRAT_PANEL.h;
+    const ctx = canvasIn(box, STRAT_PANEL.w, H);
+    /* THE POPULATION'S NAME IS THE NOTE, NOT THE END OF THE CAPTION. Hung off
+       the caption it made a 44-character line that the panel truncated to
+       "…same ancestry as th…"; the count that used to be the note is already on
+       the line's own label at the crossing. */
+    const caps = M.TARGETS.map((p, i) => {
+      const cal = CAL[p.value];
+      const rect = { ...STRAT_RECT, y: 26 + i * STRAT_PANEL.h + 46 };
+      return drawStratification(ctx, rect, cal, RISK_DEFAULT, {
+        caption: "predicted risk by score percentile",
+        note: p.label.toLowerCase(),
+      }).cap;
+    });
+    mline(box, M.TARGETS.map((p, i) => {
+      const cal = CAL[p.value];
+      return `${p.label.padEnd(26)} crossing at percentile ${fmt(cal.crossing(RISK_DEFAULT), 1)} · `
+        + `${int(cal.above(RISK_DEFAULT))} of ${M.N_TARGET} above · highest risk in the sample ${pct(cal.max)}\n`
+        + `${"".padEnd(26)} ${capLine(caps[i])}`;
+    }).join("\n"));
+  }
+  {
+    const box = cand(row, "B · the calibration check and the cut on one stage",
+      "5a beside 5b, at the one Target population the control names");
+    const H = 296;
+    const ctx = canvasIn(box, 550, H);
+    const cal = CAL.distant;
+    const dCal = drawCalibration(ctx, { x: 44, y: 44, w: 196, h: 196 }, cal, {
+      caption: "predicted against observed",
+      small: true,
+    });
+    const dStrat = drawStratification(ctx, { x: 326, y: 44, w: 196, h: 196 }, cal, RISK_DEFAULT, {
+      caption: "risk by percentile",
+      small: true,
+    });
+    mline(box, `stage 550 × ${H} · two plots of 196 × 196 at x 44 and x 326 · `
+      + `drawn at the distant target, where the two panels disagree most\n`
+      + `left panel: ${capLine(dCal.cap)} · “${dCal.label.text}” runs from x ${dCal.label.left} to `
+      + `x ${dCal.label.x}, y ${dCal.label.y} to ${dCal.label.bottom} · ${dCal.label.underN} bar`
+      + `${dCal.label.underN === 1 ? "" : "s"} under that span`
+      + (dCal.label.underTop == null ? "" : `, the tallest topping out at y ${dCal.label.underTop} — `
+        + `${dCal.label.underTop - dCal.label.bottom}px below the label`)
+      + `\nright panel: ${capLine(dStrat.cap)}`);
+  }
+}
+
+/* ==========================================================================
+   §7 · the rail, six pages
+   ====================================================================== */
+
+const RAILS = {};
+{
+  const row = document.getElementById("railRow");
+  const PAGES = [
+    { key: "1", head: "step 1 · See the haplotypes", step: "Next haplotype" },
+    { key: "2", head: "step 2 · Clump the SNPs", step: "Next clump" },
+    { key: "3", head: "step 3 · Build the score", step: "Next SNP" },
+    { key: "4", head: "step 4 · Choose the threshold", step: "Next threshold" },
+    { key: "5", head: "step 5 · Check the score", step: "Next vigintile" },
+    { key: "6", head: "step 6 · Calibrate the risk", step: "Next decile" },
+  ];
+  for (const p of PAGES) {
+    const box = el("div", "cand");
+    box.appendChild(el("p", "pagehead", p.head));
+    const host = el("div", "w-split rail-host");
+    const rail = el("div", "w-controls");
+    host.appendChild(rail);
+
+    const pf = field(COPY.page.label, COPY.page.detail);
+    segRun(pf, STEPS_6.map((label) => ({ label, span: true })), STEPS_6[Number(p.key) - 1], "grid");
+    rail.appendChild(pf);
+
+    if (p.key === "1" || p.key === "2") {
+      rail.appendChild(el("div", "w-section", COPY.regionSection));
+      const rf = field(COPY.recomb.label, COPY.recomb.detail);
+      segRun(rf, OPTIONS.recomb, "Medium");
+      rail.appendChild(rf);
+      if (p.key === "2") {
+        const cf = field(COPY.clumpR2.label, COPY.clumpR2.detail);
+        segRun(cf, OPTIONS.clumpR2, "0.1");
+        rail.appendChild(cf);
+      }
+      const tf = field(COPY.typed.label, COPY.typed.detail);
+      segRun(tf, OPTIONS.typed.map((label) => ({ label })), "Typed", "grid");
+      rail.appendChild(tf);
+    } else {
+      rail.appendChild(el("div", "w-section", COPY.baseSection));
+      const bf = field(COPY.baseSize.label, COPY.baseSize.detail);
+      segRun(bf, OPTIONS.baseSize, SIZE_LABEL[DEFAULT_SIZE]);
+      rail.appendChild(bf);
+      const cf = field(COPY.causal.label, COPY.causal.detail);
+      segRun(cf, OPTIONS.causal, "300");
+      rail.appendChild(cf);
+      const hf = field(COPY.h2.label, COPY.h2.detail);
+      segRun(hf, OPTIONS.h2, "0.3");
+      rail.appendChild(hf);
+
+      rail.appendChild(el("div", "w-section", COPY.targetSection));
+      const pop = field(COPY.pop.label, COPY.pop.detail);
+      segRun(pop, OPTIONS.pop.map((label) => ({ label, span: true })), M.TARGETS[0].label, "grid");
+      rail.appendChild(pop);
+      choiceSlider(rail, COPY.pThresh.label, OPTIONS.pThresh, 4, COPY.pThresh.detail);
+      if (p.key === "3") numberField(rail, COPY.person.label, "1", COPY.person.detail);
+      if (p.key === "6") {
+        rail.appendChild(el("div", "w-section", COPY.riskSection));
+        const pv = field(COPY.prevalence.label, COPY.prevalence.detail);
+        segRun(pv, OPTIONS.prevalence, pct(PREVALENCE));
+        rail.appendChild(pv);
+        const rt = field(COPY.riskThresh.label, COPY.riskThresh.detail);
+        segRun(rt, OPTIONS.riskThresh, pct(RISK_DEFAULT));
+        rail.appendChild(rt);
+      }
+    }
+
+    const drive = driveBlock(host, p.step);
+    const after = el("div", "w-controls w-controls--after");
+    host.appendChild(after);
+    numberField(after, COPY.seed.label, String(GENOME_SEED), COPY.seed.detail);
+
+    box.appendChild(host);
+    const measure = el("p", "measure");
+    box.appendChild(measure);
+    row.appendChild(box);
+    RAILS[p.key] = { host, rail, drive, after, measure };
+  }
+}
+
+/* the stage each rail stands beside, from the sections above */
+const STAGE_FIG = {
+  1: HAP_A_H,
+  2: CL_PANEL.h,
+  3: 424,
+  4: CURVE_WIDE.h + NOTE_LINE + 6,
+  5: 300,
+  6: 296,
+};
+
+/* ==========================================================================
+   §8 · every new or changed reader-facing string
+   ====================================================================== */
+
+const READOUTS = {
+  1: [
+    ["Haplotypes drawn", "of the 1,000 in the pool"],
+    ["SNPs in the region", `over ${int(REG.span)} kb`],
+    ["Pairs at r² above 0.8", "within 250 kb of each other"],
+  ],
+  2: [
+    ["SNPs under P < 0.05", "before clumping"],
+    ["Clumps kept", "lead SNPs under P < 0.05"],
+    ["r² to the causal SNP", "from the region's lead SNP"],
+  ],
+  6: [
+    ["Calibration intercept", "0 when the predicted risks are right on average"],
+    ["Calibration slope", "1 when a step in predicted risk is a step in observed risk"],
+    ["This person's risk", "predicted by the model fitted in the base population"],
+    ["Risk threshold crossed at", "the score percentile where predicted risk reaches it"],
+    ["People above the threshold", `of the ${int(M.N_TARGET)} in the target sample`],
+  ],
+};
+
+{
+  const host = document.getElementById("strings");
+  const tb = el("table", "facts");
+  const head = el("tr");
+  for (const h of ["where", "string", "the line under it"]) head.appendChild(el("th", null, h));
+  tb.appendChild(head);
+  const add = (where, s, d) => {
+    const tr = el("tr");
+    tr.appendChild(el("td", null, where));
+    const c = el("td");
+    c.appendChild(el("b", null, s));
+    tr.appendChild(c);
+    tr.appendChild(el("td", null, d ?? ""));
+    tb.appendChild(tr);
+  };
+  add("control · renamed", COPY.page.label, `${COPY.page.detail} — was “Page”, “the four steps of building a score and assessing it”`);
+  add("option · Step", STEPS_6.join(" · "), "six, because page 1 splits; the five-step set is in §0");
+  add("control · new", COPY.baseSize.label, COPY.baseSize.detail);
+  add("option · Base study size", OPTIONS.baseSize.join(" · "), "people in the base GWAS");
+  add("control · new", COPY.prevalence.label, COPY.prevalence.detail);
+  add("option · Prevalence", OPTIONS.prevalence.join(" · "), "the share of the population with the disease");
+  add("control · new", COPY.riskThresh.label, COPY.riskThresh.detail);
+  add("option · Risk threshold", OPTIONS.riskThresh.join(" · "), "absolute risk");
+  add("section · new", COPY.riskSection, "step 6 only");
+  add("control · moved", COPY.recomb.label, `${COPY.recomb.detail} — now on steps 1 and 2`);
+  add("drive · new", "Next haplotype", "step 1 — the pool fills a row a beat");
+  add("drive · new", "Next decile", "step 6 — one decile of predicted risk a beat");
+  add("drive · unchanged", "Next clump · Next SNP · Next threshold · Next vigintile", "steps 2 to 5");
+  add("stage · new", STEP_LINE, "the step, above the caption, on every page");
+  add("stage · new", `from step 1: ${HANDOFF}`, "the hand-off line, naming what the step before produced");
+  add("canvas caption", "haplotypes in the region, one row each", "step 1");
+  add("canvas note", "one tone an allele", "step 1");
+  add("canvas axis", `${HAP_ROWS} of ${int(M.REGION.nHap)} haplotypes · ${M.REGION.m} SNPs over ${int(REG.span)} kb`, "under the block");
+  add("canvas caption", "every SNP in the region tested against the trait", "step 2, before any clump");
+  add("canvas caption", "the lowest P in the region, and every SNP in LD with it", "step 2, the lead chosen");
+  add("canvas caption", "the lead SNP kept, the SNPs it accounts for dropped", "step 2, the clump taken");
+  add("canvas note", `${FIRST_CLUMP - 1} SNPs at r² ≥ 0.1 within 250 kb`, "step 2, on the clump being taken");
+  add("canvas note", `${FIRST_CLUMP} SNPs in one clump`, "step 2, the bracket candidate only");
+  add("canvas note", READ_LINE, "step 4, the reading line — §4");
+  add("canvas caption", "predicted risk against the observed fraction", "step 6");
+  add("canvas note", `by decile, ${Math.round(M.N_TARGET / 10)} people each`, "step 6");
+  add("canvas label", "predicted = observed", "step 6, at the far end of the diagonal");
+  add("canvas axis", "predicted risk · observed", "step 6, calibration");
+  add("canvas caption", "predicted risk by score percentile", "step 6, the cut");
+  add("canvas note", M.TARGETS.map((p) => p.label.toLowerCase()).join(" · "),
+    "step 6, the cut — the target population, on the caption row");
+  add("canvas label", `${pct(RISK_DEFAULT)} risk`, "step 6, on the threshold line");
+  add("canvas note", `${int(CAL.same.above(RISK_DEFAULT))} of ${int(M.N_TARGET)} people above`, "step 6, at the crossing");
+  add("canvas axis", "score percentile · predicted risk", "step 6, the cut");
+  for (const k of ["1", "2", "6"]) {
+    for (const [label, note] of READOUTS[k]) add(`readout · step ${k}`, label, note);
+  }
+  add("legend", "An arc from the lead SNP to a SNP it takes, darker at higher r²", "--c-highlight");
+  add("legend", "A decile of the target sample, with its 95% interval", "--c-empirical");
+  add("legend", "Predicted equals observed", "--c-reference");
+  add("legend", "The risk threshold", "--c-reference");
+  add("legend", "The percentile that crosses it", "--c-highlight");
+  host.appendChild(tb);
+}
+
+/* ==========================================================================
+   Measuring, then the copy. Everything below runs again after the fonts land,
+   because a rail measured before them is not the rail that ships.
+   ====================================================================== */
+
+const hOf = (n) => Math.round(n.getBoundingClientRect().height);
+function segFitOf(btn) {
+  const cs = getComputedStyle(btn);
+  probe.font = `${cs.fontStyle} ${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+  const r = btn.getBoundingClientRect();
+  const inner = r.width - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight)
+    - parseFloat(cs.borderLeftWidth) - parseFloat(cs.borderRightWidth);
+  return { label: btn.textContent, text: probe.measureText(btn.textContent).width, inner };
+}
+const LOAD_MS = Math.round(performance.now() - T0);
+
+function writeCopy() {
+  /* §7's measurement runs FIRST, because §0's recommendation turns on it: a
+     control's height is only a reason to trim it if the rail is what sets the
+     page height, and only the rail measurement knows that. */
+  const heights = {};
+  for (const [k, n] of Object.entries(RAILS)) {
+    const parts = [n.rail, n.after].flatMap((bx) => [...bx.children]).map((c) => {
+      const name = c.classList.contains("w-section")
+        ? c.textContent
+        : (c.querySelector("label span")?.textContent ?? "field");
+      return `${name} ${hOf(c)}`;
+    });
+    heights[k] = hOf(n.host);
+    n.measure.textContent = `params ${hOf(n.rail)} · drive ${hOf(n.drive)} · below the drive row `
+      + `${hOf(n.after)} · rail ${hOf(n.host)}px\n${parts.join(" · ")}`;
+  }
+  const readoutH = 96;
+  const stage = Object.fromEntries(Object.entries(STAGE_FIG)
+    .map(([k, v]) => [k, v + readoutH + 34]));
+  const over = Object.keys(heights).filter((k) => heights[k] > stage[k]);
+  const worst = Object.keys(heights).reduce((a, b) =>
+    (heights[b] - stage[b] > heights[a] - stage[a] ? b : a));
+
+  document.getElementById("engineLine").innerHTML =
+    `<b>Live on this page:</b> the region cost <b>${fmt(T_REGION, 0)} ms</b>, and it is drawn three more `
+    + `times for the recombination row. The whole genome side of one seed — the truth, three target `
+    + `samples, a validation sample and all eleven thresholds at all three base sizes — cost `
+    + `<b>${fmt(T_GENOME, 0)} ms</b>, against the draft's <b>per-person</b> base study of 1,500 people at `
+    + `about 42 ms for one base size alone: <b>summary statistics make <code>compute()</code> cheaper, not `
+    + `dearer</b>, because no base cohort is drawn. The ${SWEEP.length}-seed sweep took `
+    + `${fmt(T_SWEEP, 0)} ms and page 5's risk models — a base population of ${int(N_BASE_COHORT)} plus `
+    + `${3 + PREV_CANDIDATES.length + SIZES.length * 2} logistic fits — ${fmt(T_CAL, 0)} ms. The check of `
+    + `the summary route against the per-person one, ${AGREE.perDraws} base cohorts against `
+    + `${AGREE.sumDraws} summary draws, cost ${fmt(T_AGREE, 0)} ms. The whole page took `
+    + `<b>${LOAD_MS} ms</b> to compute and draw.`;
+
+  const bad = ASSERTS.filter((a) => !a.ok);
+  document.getElementById("assertLine").innerHTML =
+    `<b>The new functions, asserted before anything is drawn from them:</b> `
+    + ASSERTS.map((x) => `${x.name} ${x.got.toPrecision(6)} against ${x.want} ${x.ok ? "✓" : "✗"}`).join(" · ")
+    + (bad.length ? ` — <b>${bad.length} FAILED</b>` : " — all pass.");
+
+  /* --- §0 ---------------------------------------------------------------- */
+  const stepH = Object.fromEntries(Object.entries(STEP_FRAGS).map(([k, v]) => [k, hOf(v.host)]));
+  for (const [k, v] of Object.entries(STEP_FRAGS)) {
+    const btns = [...v.rail.querySelectorAll(".w-seg-btn")].map(segFitOf);
+    const over = btns.filter((b) => b.text > b.inner);
+    v.measure.textContent = `${stepH[k]}px`
+      + (over.length
+        ? `\nOVER: ${over.map((b) => `${b.label} by ${fmt(b.text - b.inner, 1)}px`).join(", ")}`
+        : `\nnothing truncates; ${fmt(Math.min(...btns.map((b) => b.inner - b.text)), 1)}px spare on the tightest`);
+  }
+  document.getElementById("stepMeasure").textContent =
+    `A (four nouns, two per row) ${stepH.A}px · B (five verbs, one column) ${stepH.B5}px · `
+    + `B′ (six verbs, one column) ${stepH.B6}px · C (six verbs, two per row) ${stepH.C}px\n`
+    + `B′ costs ${stepH.B6 - stepH.A}px against the draft's control and ${stepH.B6 - stepH.C}px against C`;
+  document.getElementById("stepCapMeasure").textContent =
+    `the hand-off names what the step before produced: step 1 → the haplotype pool · step 2 → `
+    + `"${HANDOFF}" · step 3 → the person's score · step 4 → the best-fit threshold · step 5 → the vigintiles`;
+
+  const fitsB6 = [...STEP_FRAGS.B6.rail.querySelectorAll(".w-seg-btn")]
+    .map(segFitOf).every((b) => b.text <= b.inner);
+  const fitsC = [...STEP_FRAGS.C.rail.querySelectorAll(".w-seg-btn")]
+    .map(segFitOf).every((b) => b.text <= b.inner);
+  const oneColumn = stepH.B6 <= 180 || over.length === 0;
+  document.getElementById("recStep").innerHTML =
+    `<b>${oneColumn ? "B′ — the six numbered verbs in one column" : "C — the six numbered verbs, two per row"}.</b> `
+    + `Measured at 300px: the draft's four nouns are <b>${stepH.A}px</b>, six verbs in one column `
+    + `<b>${stepH.B6}px</b>, six verbs two per row <b>${stepH.C}px</b>, and five verbs in one column `
+    + `<b>${stepH.B5}px</b>. B′'s labels ${fitsB6 ? "do not truncate" : "DO truncate"} and C's `
+    + `${fitsC ? "do not either" : "DO"} — but the per-candidate fit lines say B′ has 157px of slack on its `
+    + `tightest button and C has 8px, so C is at its limit and one longer step name breaks it. `
+    + (oneColumn
+      ? `B′ is inside the ~180px this control was budgeted, or the rail is not what sets the page height, `
+        + `so the column is free. `
+      : `<b>B′ is ${stepH.B6 - 180}px over the ~180px it was budgeted, and §7 says the rail is what sets `
+        + `the page height on ${over.length === 6 ? "every step" : `step${over.length > 1 ? "s" : ""} ${over.join(", ")}`}</b> — `
+        + `by ${heights[worst] - stage[worst]}px at the worst. ${stepH.B6 - stepH.C}px is not what fixes `
+        + `that, but it is ${fmt((100 * (stepH.B6 - stepH.C)) / heights[worst], 0)}% of the tallest rail for `
+        + `no loss of meaning: C keeps the numbers, the verbs and the order, and only gives up the single `
+        + `reading line. `)
+    + `<b>Why the numbers matter more than the column:</b> the reading is the ORDER, and a grid of nouns `
+    + `has no order at all — which is Kenneth's third point. A numbered grid has one, because the numbers `
+    + `say which way to read it. <b>Six and not five:</b> §1 `
+    + `splits page 1, so the haplotypes are a step of their own; the five-step set is drawn beside B′ so the `
+    + `choice is visible, and it is the one to use if §1 lands on candidate B. <b>The number is in the `
+    + `label, not beside it</b> — a separate numeral column is a second thing to align and it says nothing `
+    + `the label does not. <b>And the stage repeats it</b>: the step line above the caption costs `
+    + `${NOTE_LINE + 6}px of stage and carries the hand-off on the same row, which is the review's other `
+    + `complaint — nothing in the draft says how the pages chain. Putting the step inside the caption row `
+    + `instead saves that height but leaves no room for the hand-off, and the hand-off is the half that `
+    + `does the teaching.`;
+
+  /* --- §1 ---------------------------------------------------------------- */
+  /* WHAT THE BANDS ARE, MEASURED. Written first as the number of allele changes
+     along a haplotype, which came out 45.9 / 45.4 / 46.1 across the three
+     settings — no signal at all, and the reason is that neighbouring SNPs
+     mutated on different branches, so their alleles differ whether or not the
+     haplotype switched founder between them. The band is a CORRELATION, so the
+     number is r². */
+  const ldOf = (reg) => {
+    const R = reg.R;
+    const m = R.length;
+    let adj = 0;
+    for (let j = 1; j < m; j += 1) adj += R[j][j - 1];
+    let over1 = 0;
+    let over5 = 0;
+    let maxKb5 = 0;
+    for (let j = 0; j < m; j += 1) {
+      for (let k = 0; k < j; k += 1) {
+        if (R[j][k] > 0.1) over1 += 1;
+        if (R[j][k] > 0.5) {
+          over5 += 1;
+          const d = (j - k) * M.REGION.blockLen;
+          if (d > maxKb5) maxKb5 = d;
+        }
+      }
+    }
+    return { adj: adj / (m - 1), over1, over5, maxKb5 };
+  };
+  const ldLow = ldOf(REG_LOW);
+  const ldMed = ldOf(REG);
+  const ldHigh = ldOf(REG_HIGH);
+  document.getElementById("hapMeasure").textContent =
+    `A is ${HAP_A_H}px and B is ${HAP_B_H}px; the triangle alone is ${TRI_CLIP_H}px of A\n`
+    + [["Low", ldLow, REG_LOW], ["Medium", ldMed, REG], ["High", ldHigh, REG_HIGH]]
+      .map(([name, ld, reg]) => `${name.padEnd(7)} mean r² between neighbouring SNPs ${fmt(ld.adj, 2)} · `
+        + `${ld.over1} pairs over r² 0.1 · ${ld.over5} over 0.5, none further apart than ${ld.maxKb5} kb · `
+        + `${reg.hits} SNPs under P < 0.05 · ${reg.clumps.length} clumps, the first holding `
+        + `${1 + reg.clumps[0].members.length}`).join("\n");
+  document.getElementById("recHap").innerHTML =
+    `<b>A — the block over the triangle.</b> The review's point is that clumping's CAUSE is invisible, and `
+    + `the cause is two SNPs sitting on the same stretch of ancestor. The block shows it and the triangle `
+    + `measures it; putting them on one page is the only place in the widget where the reader can see that `
+    + `the dark cells of the triangle are the vertical bands of the block. <b>The Recombination control `
+    + `earns the page:</b> the pairs holding r² over 0.5 go ${ldLow.over5} → ${ldMed.over5} → `
+    + `${ldHigh.over5} across the three settings and the furthest of them reaches ${ldLow.maxKb5} → `
+    + `${ldMed.maxKb5} → ${ldHigh.maxKb5} kb, which is how far a band runs; the mean r² between `
+    + `NEIGHBOURING SNPs barely moves (${fmt(ldLow.adj, 2)} → ${fmt(ldMed.adj, 2)} → `
+    + `${fmt(ldHigh.adj, 2)}), because at 5 kb apart almost nothing recombines at any of these rates — the `
+    + `control changes the REACH of a band, not its start. The first clump holds `
+    + `${1 + REG_LOW.clumps[0].members.length} → ${1 + REG.clumps[0].members.length} → `
+    + `${1 + REG_HIGH.clumps[0].members.length} SNPs. <b>The clump COUNT is the wrong number to promise:</b> `
+    + `it reads ${REG_LOW.clumps.length} → ${REG.clumps.length} → ${REG_HIGH.clumps.length} at this seed, `
+    + `so Low and Medium are the same and only High separates — the block and the first clump's size are `
+    + `what move across all three, and the readout should say one of those. <b>Against B:</b> `
+    + `B is ${HAP_A_H - HAP_B_H}px shorter and hands the triangle to step 2, where it would sit under the `
+    + `association plot and make that page ${TRI_CLIP_H + 44}px taller — the same height, moved, and moved `
+    + `to the page that §2 needs the room on. <b>The causal column is marked on the block</b> with the same `
+    + `hollow mark step 2 uses for the same SNP, because one shape meaning one thing across pages is worth `
+    + `more than the surprise of seeing it early: on this page nothing has been tested yet, so the mark `
+    + `gives no answer away.`;
+
+  /* --- §2 ---------------------------------------------------------------- */
+  const cl0 = REG.clumps[0];
+  const r2s = cl0.members.map((m) => REG.Rs[cl0.index][m]).sort((a, b) => b - a);
+  document.getElementById("clumpMeasure").textContent =
+    `the first clump at the default draws ${cl0.members.length} arcs; r² to the lead runs `
+    + `${fmt(r2s[0], 2)} down to ${fmt(r2s[r2s.length - 1], 2)}, median ${fmt(r2s[Math.floor(r2s.length / 2)], 2)}\n`
+    + `arcs per clump, in order: ${REG.clumps.map((c) => c.members.length).join(" · ")}\n`
+    + `at Low recombination the first clump draws ${REG_LOW.clumps[0].members.length} arcs and at High `
+    + `${REG_HIGH.clumps[0].members.length}\n`
+    + `clump sizes including the lead: ${REG.clumps.map((c) => 1 + c.members.length).join(" · ")} of `
+    + `${M.REGION.m} SNPs`;
+  document.getElementById("recClump").innerHTML =
+    `<b>Arcs, and the absorbed SNPs slide to the baseline.</b> <b>The arcs:</b> the first clump draws `
+    + `<b>${cl0.members.length}</b> of them at the default, with r² from ${fmt(r2s[0], 2)} down to `
+    + `${fmt(r2s[r2s.length - 1], 2)} — so the opacity carries a real range and the panel says, without a `
+    + `word, that the clump is not a neighbourhood but a set of correlations. <b>They are drawn in `
+    + `<code>--c-highlight</code>, and that is a correction the drawing made.</b> The first version used `
+    + `<code>--c-value-high</code>, on the argument that r² should keep the colour step 1's triangle paints `
+    + `it in — candidate ii″ is what that looks like. <code>--c-value-high</code> and `
+    + `<code>--c-extreme</code> are both <code>--series-8</code>, the same ${T.valueHigh}, so the arcs come `
+    + `out the colour of the significant SNPs, on the one panel the review already calls overloaded. The `
+    + `arc belongs to the lead SNP, the lead is <code>--c-highlight</code>, and the alpha carries the r² — `
+    + `one meaning a hue, and the panel's four meanings become three. <b>Against the bracket:</b> a bracket says which SNPs are in `
+    + `the clump and nothing about why, and it is drawn in the one part of the panel — just above the x `
+    + `axis — where the SNPs with the largest P values live. It is the lesson's shape and the lesson has no `
+    + `y axis; this panel does. <b>Slide against shrink:</b> a SNP that shrinks in place is smaller and the `
+    + `reader has to notice a size; a SNP that slides to the baseline MOVES, which is the one channel a `
+    + `canvas has that a static figure does not, and it leaves the cloud visibly thinner — from `
+    + `${REG.hits} SNPs under P = 0.05 to ${REG.sigClumps} clumps. The ticks it leaves on the axis are `
+    + `also honest: the SNP was tested, it is just not in the score. <b>Three beats a clump, not one:</b> `
+    + `the lead lights, the arcs draw, the members leave. The draft's single beat did all three at once, `
+    + `which is why the mechanism was not apparent. At ${REG.clumps.length} clumps and three beats that is `
+    + `${REG.clumps.length * 3} beats — at 260 ms a beat, ${fmt((REG.clumps.length * 3 * 260) / 1000, 1)} s, `
+    + `inside the 3–7 s the verify allows. <b>The panel grows to ${CL_PANEL.w} × ${CL_PANEL.h}</b>, which `
+    + `is what the arcs need: at the draft's 160px plot height the control point of an arc is clamped to `
+    + `the top edge on most members and every arc draws the same shape.`;
+
+  /* --- §3 ---------------------------------------------------------------- */
+  const a = AGREE;
+  document.getElementById("baseMeasure").textContent =
+    `THE CHECK — the summary route against the per-person one, one truth, one target sample, n = 1,500;\n`
+    + `${a.perDraws} base cohorts drawn person by person against ${a.sumDraws} summary draws, mean ± SD:\n`
+    + a.rows.map((r) => `  ${r.name.padEnd(28)} per-person ${fmt(r.per[0], r.dp)} ± ${fmt(r.per[1], r.dp)}`
+      + `   summary ${fmt(r.sum[0], r.dp)} ± ${fmt(r.sum[1], r.dp)}`
+      + `   (${fmt(Math.abs(r.per[0] - r.sum[0]) / Math.max(Math.sqrt(r.per[1] ** 2 + r.sum[1] ** 2), 1e-9), 2)} SD apart)`).join("\n")
+    + `\n\nTHE LEVER, over ${SWEEP.length} seeds (best-fit threshold, target sample of 319):\n`
+    + SIZES.map((nB) => `  base ${SIZE_LABEL[nB].padStart(7)}:  R² ${fmt(sweepMean(nB, "r2"), 3)} ± ${fmt(sweepSd(nB, "r2"), 3)}`
+      + `  ·  vigintile range ${fmt(sweepMean(nB, "range"), 2)} SD  ·  ${fmt(sweepMean(nB, "excl"), 1)} of 20 intervals clear`
+      + `  ·  best-fit minus validation ${fmt(sweepMean(nB, "over"), 3)}, positive on ${sweepPos(nB, "over")}/${SWEEP.length}`
+      + `  ·  best-fit minus every-SNP ${fmt(sweepMean(nB, "within"), 3)}, positive on ${sweepPos(nB, "within")}/${SWEEP.length}`).join("\n");
+
+  document.getElementById("seedMeasure").textContent =
+    `THE SEED SWEEP — the region, and the best fit at each base size (target / validation):\n`
+    + SWEEP.map((r) => `  seed ${String(r.seed).padStart(2)}  region ${String(r.reg.hits).padStart(2)} SNPs `
+      + `${r.reg.clumps.length} clumps lead ${r.reg.leadIsCausal ? "IS causal   " : `${String(Math.round(r.reg.leadDist)).padStart(2)} kb r² ${fmt(r.reg.leadR2, 2)}`}  `
+      + SIZES.map((nB) => `${SIZE_LABEL[nB].padStart(7)} ${fmt(r.at[nB].r2, 3)}/${fmt(r.at[nB].val, 3)}`).join("  ")
+      + (r.allPositive ? "   ← positive at all three" : "")).join("\n");
+
+  const posAll = SWEEP.filter((r) => r.allPositive);
+  document.getElementById("recBase").innerHTML =
+    `<b>Base study size, segmented, three values, defaulting to ${SIZE_LABEL[DEFAULT_SIZE]}.</b> `
+    + `<b>The lever works and the check passes:</b> at n = 1,500 every one of the `
+    + `${a.rows.length} quantities in the line above agrees within `
+    + `${fmt(Math.max(...a.rows.map((r) => Math.abs(r.per[0] - r.sum[0])
+      / Math.max(Math.sqrt(r.per[1] ** 2 + r.sum[1] ** 2), 1e-9))), 1)} SD of the two routes' own spread — `
+    + `β̂ sits the same distance from the truth (${fmt(a.rows[0].sum[0], 4)} against `
+    + `${fmt(a.rows[0].per[0], 4)}), the same number of SNPs passes P &lt; 0.05 `
+    + `(${fmt(a.rows[1].sum[0], 0)} against ${fmt(a.rows[1].per[0], 0)}), and the best-fit R² is `
+    + `${fmt(a.rows[4].sum[0], 3)} ± ${fmt(a.rows[4].sum[1], 3)} against `
+    + `${fmt(a.rows[4].per[0], 3)} ± ${fmt(a.rows[4].per[1], 3)}. <b>The check had to be drawn on both `
+    + `sides to say that.</b> Written first as one base cohort against twelve summary draws, it read as a `
+    + `4 SD failure — and the per-person route's own spread across cohorts is ±${fmt(a.rows[1].per[1], 0)} `
+    + `SNPs at P &lt; 0.05, which is the whole discrepancy. One draw of a base does not reproduce another `
+    + `draw of a base either; what agrees is the distribution. `
+    + `<b>The answer to Kenneth's first point:</b> over ${SWEEP.length} seeds the best-fit R² goes `
+    + `${fmt(sweepMean(1500, "r2"), 3)} → ${fmt(sweepMean(15000, "r2"), 3)} → ${fmt(sweepMean(150000, "r2"), 3)} `
+    + `and the vigintile range ${fmt(sweepMean(1500, "range"), 2)} → ${fmt(sweepMean(15000, "range"), 2)} → `
+    + `${fmt(sweepMean(150000, "range"), 2)} SD, with intervals clear of the mean going `
+    + `${fmt(sweepMean(1500, "excl"), 1)} → ${fmt(sweepMean(15000, "excl"), 1)} → ${fmt(sweepMean(150000, "excl"), 1)} `
+    + `of 20. The flat curve is not the data, it is a base study of 1,500 people, and the reader can now `
+    + `move it. <b>${SIZE_LABEL[DEFAULT_SIZE]} is the default</b> because it is where the jump happens — `
+    + `${SIZE_LABEL[150000]} adds ${fmt(sweepMean(150000, "r2") - sweepMean(15000, "r2"), 3)} more, the `
+    + `heritability ceiling being 0.30 — and because it is the size of the base the lesson's own figure `
+    + `came from, so the widget stops apologising for it. Each option keeps its own rng sub-stream, so `
+    + `moving the size does not redraw the target sample under it. <b>It costs nothing:</b> the whole `
+    + `genome side is ${fmt(T_GENOME, 0)} ms with no base cohort drawn at all, against 42 ms for the `
+    + `draft's 1,500 people at one size. <b>And a warning the sweep found.</b> `
+    + `The <i>Overfitting</i> tile is the best-fit R² minus the validation R², a difference between two `
+    + `separate samples of 319, and its spread is ±${fmt(sweepSd(15000, "over"), 3)} at base `
+    + `${SIZE_LABEL[15000]} — it is positive on only ${sweepPos(15000, "over")} of ${SWEEP.length} seeds, `
+    + `against ${sweepPos(1500, "over")} of ${SWEEP.length} at base ${SIZE_LABEL[1500]}. <b>The paired `
+    + `number does not have that problem:</b> the best-fit R² minus the R² at P &lt; 1 — the one threshold `
+    + `that involves no choice — is measured in the SAME sample and reads `
+    + `${fmt(sweepMean(15000, "within"), 3)}, positive on ${sweepPos(15000, "within")} of ${SWEEP.length}. `
+    + `So the tile should be <i>best-fit R² minus the R² with every SNP kept, in the target sample</i>, `
+    + `which is what choosing the threshold bought and is exactly PRSice's unadjusted-R² caution. `
+    + `<b>The default seed moves to ${GENOME_SEED}</b>: of the ${SWEEP.length} seeds swept, `
+    + `${posAll.length} open with the target above the validation at all three base sizes `
+    + `(${posAll.map((r) => r.seed).join(", ")}), and ${GENOME_SEED} is the only one of those whose region `
+    + `also has the lead SNP OFF the causal one — ${fmt(REG41.leadDist, 0)} kb away at r² `
+    + `${fmt(REG41.leadR2, 2)}, which is step 2's whole case. The widget is a draft with no fingerprint `
+    + `states recorded, so the default costs nothing to move today and costs a rebaseline after it ships.`;
+
+  /* --- §4 ---------------------------------------------------------------- */
+  const b = G.bases[DEFAULT_SIZE].best;
+  document.getElementById("readMeasure").textContent =
+    `the line is ${READ_LINE.length} characters and ${Math.round(textW(READ_LINE, noteFont()))}px at `
+    + `--fs-xs, in ${CURVE_WIDE_RECT.w + 80}px of stage width\n`
+    + `it names ${tfmt(b.thresh)}, ${fmt(b.target, 3)} and ${fmt(b.validation, 3)} — the same three numbers `
+    + `as the readout tiles, which is the point: the tiles are three boxes and this is one sentence`;
+  document.getElementById("recRead").innerHTML =
+    `<b>With the line.</b> The review's finding was that step 4 is the hardest page with the least `
+    + `support, and the support it is missing is a sentence saying which two numbers to compare. `
+    + `<b>It costs ${NOTE_LINE + 6}px</b> and it is ${Math.round(textW(READ_LINE, noteFont()))}px wide in `
+    + `${CURVE_WIDE_RECT.w + 80}px, so it does not wrap and does not push the rail. <b>It is not a `
+    + `duplicate of the readout.</b> The tiles give the three numbers separately and the reader has to `
+    + `know that two of them belong together; the line is the comparison, written out. <b>It follows the `
+    + `threshold on the rail, not the best fit</b> — if the reader has moved off the best-fit threshold `
+    + `the line has to say so, or it is the figure claiming something the mark on it contradicts. `
+    + `<b>It sits under the x-axis label</b>, not inside the plot: inside, it crosses the kept-count curve `
+    + `at every base size drawn here.`;
+
+  /* --- §5 ---------------------------------------------------------------- */
+  document.getElementById("calMeasure").textContent =
+    `PREVALENCE, at the ${SIZE_LABEL[DEFAULT_SIZE]} base and the matched target:\n`
+    + CAL_PREV.map((c) => `  ${pct(c.prev).padStart(3)}: ${String(c.cal.cases).padStart(3)} of ${M.N_TARGET} `
+      + `have the disease, ${fmt(c.cal.cases / 10, 1)} a decile · intercept ${fmt(c.cal.inter, 2)} · `
+      + `slope ${fmt(c.cal.slope, 2)} · ${c.cal.covered} of 10 intervals cover the prediction · `
+      + `deciles with no case ${c.cal.bins.filter((x) => x.cases === 0).length}`).join("\n")
+    + `\n\nTARGET POPULATION, at prevalence ${pct(PREVALENCE)} and base ${SIZE_LABEL[DEFAULT_SIZE]}:\n`
+    + M.TARGETS.map((p) => {
+      const c = CAL[p.value];
+      return `  ${p.label.padEnd(26)} intercept ${fmt(c.inter, 2).padStart(5)} · slope ${fmt(c.slope, 2)} · `
+        + `covered ${c.covered}/10 · top decile ${pct(c.bins[9].pred)} predicted, ${pct(c.bins[9].obs)} observed`;
+    }).join("\n")
+    + `\n\nBASE STUDY SIZE, matched then distant, at prevalence ${pct(PREVALENCE)}:\n`
+    + CAL_SIZE.map((c) => `  base ${SIZE_LABEL[c.nBase].padStart(7)}: matched slope ${fmt(c.same.slope, 2)} `
+      + `covered ${c.same.covered}/10 · distant slope ${fmt(c.distant.slope, 2)} covered ${c.distant.covered}/10 `
+      + `· distant top decile ${pct(c.distant.bins[9].pred)} predicted, ${pct(c.distant.bins[9].obs)} observed`).join("\n");
+
+  const calSame = CAL.same;
+  const calFar = CAL.distant;
+  document.getElementById("recCal").innerHTML =
+    `<b>A — one panel under the Target population control the widget already has.</b> `
+    + `<b>The figure does what it was planned to do:</b> at the matched target the slope is `
+    + `${fmt(calSame.slope, 2)} and the intercept ${fmt(calSame.inter, 2)}, with `
+    + `<b>${calSame.covered} of 10</b> deciles' intervals covering the prediction — the panel sits on the `
+    + `diagonal. At the distant target the slope falls to <b>${fmt(calFar.slope, 2)}</b>, the intercept `
+    + `moves to <b>${fmt(calFar.inter, 2)}</b>, and only <b>${calFar.covered} of 10</b> intervals reach `
+    + `the prediction: the predicted risks are `
+    + `${calFar.inter > 0 ? "systematically too low" : "systematically too high"} — that is the intercept, `
+    + `and it is the score's own distribution shifting with the allele frequencies — and they `
+    + `${calFar.slope < 1 ? "move further than the observed risks do" : "move less than the observed risks do"} `
+    + `— that is the slope, and it is the score being less accurate here. Those are the two things `
+    + `recalibration refits, one each, and the panel now says which is which. <b>The ranking survives the `
+    + `move and the probabilities do not</b>: calibration is not discrimination, visible rather than `
+    + `stated. <b>Prevalence ${pct(PREVALENCE)} is the default</b>, and `
+    + `the measurement decides it: at ${pct(0.05)} the target sample holds ${CAL_PREV[0].cal.cases} cases `
+    + `and ${CAL_PREV[0].cal.bins.filter((x) => x.cases === 0).length} of the ten deciles contain no case at `
+    + `all, so the panel is a row of zeros with wide intervals; at ${pct(PREVALENCE)} it holds `
+    + `${CAL_PREV[2].cal.cases}, about ${fmt(CAL_PREV[2].cal.cases / 10, 0)} a decile, and `
+    + `${CAL_PREV[2].cal.covered} of the 10 deciles' intervals cover their prediction against `
+    + `${CAL_PREV[0].cal.covered} at ${pct(0.05)} — the matched panel only reads as calibrated at the `
+    + `higher prevalence. Offer ${PREV_CANDIDATES.map((p) => pct(p)).join(" · ")} `
+    + `and let a student see the low-prevalence panel fall apart — that IS the lesson about a rare outcome `
+    + `in a small sample. <b>The 95% intervals are not optional.</b> A decile of ${M.N_TARGET} people is `
+    + `${Math.round(M.N_TARGET / 10)} people, so an observed fraction moves in steps of `
+    + `${fmt(100 / Math.round(M.N_TARGET / 10), 1)} percentage points; without the interval a point two `
+    + `steps off the diagonal reads as miscalibration and is nothing. <b>Against B:</b> three panels `
+    + `abreast shrink the plot to ${CAL_SMALL_RECT.w}px, and a calibration plot has to be square or the `
+    + `diagonal is not a diagonal — at that size the three populations' top deciles differ by less than the `
+    + `interval half-width, so the comparison the three panels exist to make is smaller than the noise `
+    + `drawn beside it. One panel that redraws, under the control the reader already knows, is the same `
+    + `decision §4 of the first mock made about the vigintile plot, for the same reason. <b>The model is `
+    + `fitted in a base population of ${int(N_BASE_COHORT)}</b>, not in the target: fitted in the target it `
+    + `would sit on the diagonal by construction and the page would prove nothing. That cohort is the one `
+    + `thing on this page still simulated person by person, because a logistic fit needs outcomes.`;
+
+  /* --- §6 ---------------------------------------------------------------- */
+  document.getElementById("stratMeasure").textContent =
+    `AT EACH RISK THRESHOLD, base ${SIZE_LABEL[DEFAULT_SIZE]}, prevalence ${pct(PREVALENCE)}:\n`
+    + [0.1, ...RISK_CANDIDATES].map((t) => `  ${pct(t).padStart(4)}: `
+      + M.TARGETS.map((p) => `${p.value} ${String(CAL[p.value].above(t)).padStart(3)} above `
+        + `(pct ${fmt(CAL[p.value].crossing(t), 1)})`).join(" · ")).join("\n")
+    + `\nhighest predicted risk in each sample: `
+    + M.TARGETS.map((p) => `${p.value} ${pct(CAL[p.value].max)}`).join(" · ");
+  document.getElementById("recStrat").innerHTML =
+    `<b>B — the calibration plot and the cut on one stage, at ${296}px.</b> `
+    + `<b>The reading:</b> at a ${pct(RISK_DEFAULT)} risk threshold the crossing moves from percentile `
+    + `${fmt(CAL.same.crossing(RISK_DEFAULT), 1)} in a matched target `
+    + `(${CAL.same.above(RISK_DEFAULT)} of ${M.N_TARGET} people above it) to `
+    + `${fmt(CAL.distant.crossing(RISK_DEFAULT), 1)} in a distant one `
+    + `(${CAL.distant.above(RISK_DEFAULT)} people) — <b>the cut is not a fixed percentile</b>, which is the `
+    + `answer to "how do people stratify — arbitrarily?". <b>And the direction is the uncomfortable `
+    + `one:</b> the base-calibrated model puts `
+    + `${CAL.distant.above(RISK_DEFAULT) < CAL.same.above(RISK_DEFAULT) ? "FEWER" : "MORE"} of the distant `
+    + `sample over the line than of the matched one — ${CAL.distant.above(RISK_DEFAULT)} against `
+    + `${CAL.same.above(RISK_DEFAULT)} — while that sample's own top decile runs at `
+    + `${pct(CAL.distant.bins[9].obs)} observed risk. The panel beside it says why neither number is `
+    + `trustworthy until the model is recalibrated: the distant sample's calibration slope is `
+    + `${fmt(CAL.distant.slope, 2)} and ${CAL.distant.covered} of its 10 deciles' intervals reach the `
+    + `prediction. <b>B fits:</b> two 196 × 196 plots side by side make a `
+    + `${296}px stage, inside the ~420px the section budgeted and shorter than step 3's ${STAGE_FIG[3]}px. `
+    + `<b>Against A:</b> A gives each figure the full 550px and reads better on its own, but it separates `
+    + `the check from the consequence by a page, and the whole point of the pair is that the second is only `
+    + `worth reading if the first is on the diagonal. <b>The threshold set moves to `
+    + `${RISK_CANDIDATES.map((t) => pct(t)).join(" · ")}, defaulting to ${pct(RISK_DEFAULT)}</b>, and the `
+    + `numbers are why: at ${pct(0.1)} the line catches `
+    + `${CAL.same.above(0.1)} of ${M.N_TARGET} people in the matched target — two thirds of the sample is `
+    + `not a stratification — while ${pct(RISK_DEFAULT)} catches ${CAL.same.above(RISK_DEFAULT)}, about a `
+    + `fifth, which is the shape of a real cut. It sits at 1.5 × the prevalence, which is also how a `
+    + `guideline threshold relates to a background rate. <b>The readouts:</b> the threshold, the percentile `
+    + `that crosses it, and the number above it — three numbers, all of which move under the Target `
+    + `population control, which is what makes them worth printing.`;
+
+  /* --- §7 ---------------------------------------------------------------- */
+  document.getElementById("railMeasure").textContent =
+    Object.keys(heights).map((k) => `step ${k}: rail ${heights[k]}px · figure ${STAGE_FIG[k]}px `
+      + `+ readout ${readoutH}px + legend 34px = stage ${stage[k]}px · `
+      + `${heights[k] > stage[k] ? `the rail is ${heights[k] - stage[k]}px taller`
+        : `the figure is ${stage[k] - heights[k]}px taller`}`).join("\n")
+    + `\nthe readout row is taken as ${readoutH}px — the draft's own three-tile row; step 6 carries five `
+    + `tiles and will be taller`;
+  document.getElementById("recRail").innerHTML =
+    `<b>One rail, six steps, every field behind <code>when</code>.</b> Measured at 300px the six rails are `
+    + Object.keys(heights).map((k) => `<b>${heights[k]}</b>`).join(", ") + `px. `
+    + (over.length
+      ? `<b>The rail sets the page height on step${over.length > 1 ? "s" : ""} ${over.join(", ")}</b>, so a `
+        + `field trimmed there is height back and a field trimmed elsewhere is not. `
+      : `<b>Every rail fits under its own figure.</b> `)
+    + `<b>What moved:</b> <i>Recombination</i> is on steps 1 and 2 only — it draws the haplotypes and it `
+    + `decides how much clumping has to do — and <i>Clumping r²</i> is on step 2 alone. `
+    + `<i>Base study size</i> opens <i>The base study</i> section, above <i>Causal SNPs</i>, because it is `
+    + `the first thing about a base study a reader asks. <i>Prevalence</i> and <i>Risk threshold</i> are a `
+    + `new <i>${COPY.riskSection}</i> section on step 6 alone: they describe an outcome the first five `
+    + `steps do not have. <b>And the open item from round one is now the biggest thing on the page.</b> `
+    + `The draft's rail was about 806px against stages of 424 / 316 / 300; with two more steps and three `
+    + `more controls it is ${heights["6"]}px on step 6 against a ${stage["6"]}px stage — `
+    + `${heights[worst] - stage[worst]}px of rail with nothing beside it. The per-field line under each `
+    + `rail says where it goes: the step control is the largest single field, then <i>Target population</i> `
+    + `at 145px (three options, one a row, because the longest will not share), <i>P threshold</i> at 93px `
+    + `with its eleven tick labels, and <i>Base study size</i> and <i>Heritability</i> at 87px each — both `
+    + `of those are a two-line <code>detail</code>. <b>Three trims, measured, none of them enough alone:</b> `
+    + `two per row on the step control is ${stepH.B6 - stepH.C}px; shortening the two wrapped details to `
+    + `one line each is about 34px; and the base-study fields are identical on steps 3 to 6, so if any of `
+    + `them belongs anywhere it is on step 3 alone. <b>The question for the round is whether the rail `
+    + `should scroll</b> — it is a real answer and every widget in the collection has so far avoided it. `
+    + `<b>The drive row gets a `
+    + `noun on every step</b> — <i>Next haplotype</i> and <i>Next decile</i> are new — so the page-4 `
+    + `problem the first mock found (three buttons that do nothing) does not come back on the two new `
+    + `pages.`;
+}
+
+if (document.fonts && document.fonts.ready) {
+  document.fonts.ready.then(writeCopy);
+}
+writeCopy();
+</script>
+</body>
+</html>
