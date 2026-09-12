@@ -38,8 +38,13 @@ with a note that it is small and can be negative); "trait" against the
 lesson's "phenotype"; and two sentences for the notebooks). His calls
 the same night: the tile renamed "Gain from thresholding"; "trait" kept
 because `gwas` says trait throughout; the two sentences drafted in the
-reply. **NEXT: his round on the round-three draft, then the ship; the
-ship's states owe a hit-driven one on the pin.**
+reply. Then his "the clumping is hard to correlate with the LD": step 2
+over the triangle is MOCKED as §6 of the round-three mock (the plot's x
+domain shifted half a SNP so the columns align; the lead's V and the
+absorbed cells lit while a clump is in flight; 612px at 550). **NEXT:
+his pick on §6, the build if taken, then his round on the round-three
+draft, then the ship; the ship's states owe a hit-driven one on the
+pin.**
 
 **The tree is clean.** Step 3's "countable first, then batched" change
 (his pick) landed and was read in the browser before the session ended:

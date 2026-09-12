@@ -23,6 +23,8 @@
   #liveRow > .cand { width: 550px; }
   #axisRow > .cand { width: 550px; }
   #axisEndsRow > .cand { width: 550px; }
+  #clumpTriRow > .cand { width: 550px; }
+  #clumpTriLiveRow > .cand { width: 550px; }
   canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
   .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
          border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 96ch; }
@@ -170,6 +172,25 @@
     line is today and replace it while the pointer is on a target.
   </p>
   <div id="strings"></div>
+
+  <h2>&sect;6 &middot; Step 2 over the triangle — clumping tied to the LD it acts on</h2>
+  <p class="note">
+    Kenneth, after the round-3 review: "the clumping is hard to correlate with the LD". Today step 2 is
+    the association plot alone and the arcs carry r&sup2; as opacity, so a reader has to remember step 1's
+    triangle while looking at a different picture. The field's own figure for this is the regional plot
+    with the LD triangle hanging under it, SNPs at the same x — and both panels here already share the
+    region's coordinates. <b>Proposed:</b> step 2 keeps its plot and gains step 1's triangle beneath it,
+    columns aligned (the plot's x axis is shifted half a SNP so position 5j kb sits over column j); while
+    a clump is in flight the lead's row and column light in the triangle and the cells of the SNPs it
+    absorbs are outlined — the same SNPs the arcs reach, said in the triangle's own terms; when the clump
+    settles the triangle goes quiet and the axis ticks are the record. The haplotype block stays on step 1:
+    folding it in too would put step 2 past 750px. Four stills of the default's first clump, then the
+    finished run, then a live run.
+  </p>
+  <div class="row" id="clumpTriRow"></div>
+  <p class="measure" id="clumpTriMeasure"></p>
+  <div class="row" id="clumpTriLiveRow"></div>
+  <p class="rec" id="recClumpTri"></p>
 </main>
 
 <script type="module">
@@ -1067,6 +1088,251 @@ document.getElementById("recAxis").innerHTML =
   add("readout · tile 3 note", "the longest run of shared ancestor between two SNPs", "unchanged; the pair reading says the same thing for one pair");
   host.appendChild(tb);
 }
+
+/* ==========================================================================
+   §6 · step 2 over the triangle
+   ====================================================================== */
+
+const CT_ASSOC = { x: X0, y: TOP + M.ASSOC_TOP, w: PANEL_W, h: M.ASSOC_H };
+const CT_TRI_TOP = TOP + M.ASSOC_PANEL_H + 34;
+const CT_G = geom(X0, CT_TRI_TOP, PANEL_W);
+const CT_H = Math.ceil(CT_TRI_TOP + CT_G.depth + M.TRI_FOOT);
+const CT_H_690 = Math.ceil(TOP + M.ASSOC_PANEL_H + 34 + geom(X0, 0, 690 - X0 - M.AX_R).depth + M.TRI_FOOT);
+const CL_BEATS = M.CLUMP_BEATS;
+
+/**
+ * The widget's own drawClump, ported to the mock's helpers, with the x domain
+ * shifted half a SNP so position 5j kb is over column j of the triangle.
+ */
+function drawAssoc(ctx, rect, reg, { beats, frac, scanDone }) {
+  const half = reg.hap.blockLen / 2;
+  const plot = makePlot({
+    ctx, colors: T, rect, xDomain: [-half, reg.span + half], yDomain: [0, reg.top],
+  });
+  const nC = reg.clumps.length;
+  const settled = Math.min(Math.floor(beats / CL_BEATS), nC);
+  const phase = settled < nC ? beats % CL_BEATS : 0;
+  const active = phase > 0 ? settled : -1;
+  let sigPlaced = 0;
+  for (let c = 0; c < settled; c += 1) if (reg.clumps[c].p < M.REGION_ALPHA) sigPlaced += 1;
+  const caption = active >= 0 ? M.STRINGS.assocCaptionLead
+    : settled === 0 ? M.STRINGS.assocCaption : M.STRINGS.assocCaptionClumped;
+  const note = !scanDone ? null
+    : active >= 0 ? `${int(reg.clumps[active].members.length)} SNPs at r² ≥ ${reg.clumpR2}`
+      : settled === 0 ? `${int(reg.hits)} of ${M.REGION.m} SNPs under P < 0.05`
+        : `${int(sigPlaced)} ${sigPlaced === 1 ? "clump" : "clumps"} under P < 0.05`;
+  const noteW = note ? textW(note, noteFont()) : 0;
+  plot.caption(fit(caption, capFont(), note ? rect.w - noteW - 14 : rect.w + 22));
+  if (note) plot.note(note);
+
+  const ty = Math.round(plot.sy(M.ALPHA_L)) + 0.5;
+  ctx.save();
+  ctx.strokeStyle = T.reference;
+  ctx.lineWidth = 1;
+  ctx.setLineDash([5, 4]);
+  ctx.beginPath();
+  ctx.moveTo(rect.x, ty);
+  ctx.lineTo(rect.x + rect.w, ty);
+  ctx.stroke();
+  ctx.restore();
+  tinyAt(ctx, rect.x + 2, ty - 13, M.STRINGS.alphaLabel, "left");
+
+  if (scanDone) {
+    const px = (j) => plot.sx(reg.pos[j]);
+    const py = (j) => plot.sy(Math.min(reg.scan.logp[j], reg.top));
+    const baseY = rect.y + rect.h;
+    const slide = phase === 2 ? Math.max(0, Math.min(1, frac)) : 0;
+    const state = new Array(reg.idx.length).fill("open");
+    for (let c = 0; c < settled; c += 1) {
+      state[reg.clumps[c].index] = "lead";
+      for (const mm of reg.clumps[c].members) state[mm] = "gone";
+    }
+    if (active >= 0) {
+      state[reg.clumps[active].index] = "chosen";
+      for (const mm of reg.clumps[active].members) state[mm] = "leaving";
+    }
+    if (active >= 0) {
+      const cl = reg.clumps[active];
+      const lx = px(cl.index);
+      const ly = py(cl.index);
+      const strength = phase === 1 ? Math.max(0, Math.min(1, frac)) : 1;
+      ctx.save();
+      ctx.lineWidth = 1.2;
+      for (const mm of cl.members) {
+        const mx = px(mm);
+        const my = py(mm);
+        const r2 = reg.Rs[cl.index][mm];
+        ctx.strokeStyle = alphaOf(T.highlight, strength * (0.18 + 0.72 * Math.max(0, Math.min(1, r2))));
+        const cy = Math.max(rect.y + 6, Math.min(ly, my) - 52);
+        ctx.beginPath();
+        ctx.moveTo(lx, ly);
+        ctx.quadraticCurveTo((lx + mx) / 2, cy, mx, my);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+    ctx.save();
+    for (let j = 0; j < reg.idx.length; j += 1) {
+      const x = px(j);
+      const st = state[j];
+      if (st === "gone") {
+        ctx.strokeStyle = alphaOf(T.empirical, 0.5);
+        ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        ctx.moveTo(Math.round(x) + 0.5, baseY - 5);
+        ctx.lineTo(Math.round(x) + 0.5, baseY);
+        ctx.stroke();
+        continue;
+      }
+      if (st === "leaving") {
+        const y0 = py(j);
+        const y = y0 + (baseY - y0) * slide;
+        ctx.fillStyle = alphaOf(T.empirical, 0.75);
+        ctx.beginPath();
+        ctx.arc(x, y, 2.6 - 1.0 * slide, 0, Math.PI * 2);
+        ctx.fill();
+        continue;
+      }
+      const y = py(j);
+      const past = reg.scan.P[j] < M.REGION_ALPHA;
+      ctx.fillStyle = st === "chosen" ? T.highlight : past ? T.extreme : T.empirical;
+      ctx.beginPath();
+      ctx.arc(x, y, st === "chosen" ? 4.4 : st === "lead" ? 3.4 : 2.6, 0, Math.PI * 2);
+      ctx.fill();
+      if (st === "lead" || st === "chosen") {
+        ctx.lineWidth = 1.4;
+        ctx.strokeStyle = T.surface;
+        ctx.stroke();
+      }
+    }
+    ctx.restore();
+  }
+  if (settled >= reg.causalAt && reg.causalAt > 0) {
+    const x = plot.sx(reg.causalPos);
+    ctx.save();
+    ctx.strokeStyle = T.reference;
+    ctx.lineWidth = 1.2;
+    ctx.lineJoin = "round";
+    ctx.beginPath();
+    ctx.moveTo(x - 4, rect.y + 2);
+    ctx.lineTo(x + 4, rect.y + 2);
+    ctx.lineTo(x, rect.y + 8);
+    ctx.closePath();
+    ctx.stroke();
+    ctx.restore();
+  }
+  plot.axisY({ label: M.STRINGS.assocY, format: (v) => v.toFixed(0) });
+  plot.axisX({ label: M.STRINGS.assocX, format: (v) => v.toFixed(0) });
+  return { settled, phase, active };
+}
+
+/** The triangle's part of a clump in flight: the lead's V, and the cells of
+    the SNPs it absorbs outlined. */
+function drawClumpOnTri(ctx, g, reg, active) {
+  if (active < 0) return 0;
+  const cl = reg.clumps[active];
+  const lead = reg.idx[cl.index];
+  drawV(ctx, g, lead, { stroke: T.highlight, width: 1.25 });
+  const h = g.cw / 2 + 1;
+  ctx.save();
+  ctx.strokeStyle = T.highlight;
+  ctx.lineWidth = 1.5;
+  for (const mm of cl.members) {
+    const k = reg.idx[mm];
+    const c = g.cellC(Math.min(lead, k), Math.max(lead, k));
+    ctx.beginPath();
+    ctx.moveTo(c[0], c[1] - h);
+    ctx.lineTo(c[0] + h, c[1]);
+    ctx.lineTo(c[0], c[1] + h);
+    ctx.lineTo(c[0] - h, c[1]);
+    ctx.closePath();
+    ctx.stroke();
+  }
+  ctx.restore();
+  return cl.members.length;
+}
+
+function drawStep2Tri(ctx, reg, { beats, frac = 1, scanDone = true }) {
+  tinyAt(ctx, X0, M.HEAD_Y, M.stepLine("clump"), "left", T.highlight);
+  noteAt(ctx, X0 + PANEL_W, M.HEAD_Y + 10, "from step 1: the region's haplotypes and their r²", PANEL_W * 0.6, T.ink3);
+  const r = drawAssoc(ctx, CT_ASSOC, reg, { beats, frac, scanDone });
+  drawTri(ctx, CT_G, { img: TRI_FULL, caption: "r² between every pair of SNPs, from step 1", windowLine: true });
+  drawV(ctx, CT_G, reg.causal, { stroke: T.reference, dash: [3, 3] });
+  const n = drawClumpOnTri(ctx, CT_G, reg, r.active);
+  return { ...r, cells: n };
+}
+
+{
+  const row = document.getElementById("clumpTriRow");
+  const sub = (t) => `${t}\nstage 550 × ${CT_H} · seed 41, the default`;
+  const stills = [
+    ["the tests, before any clump", "beat 0 of the run: the first frame of Play", { beats: 0 }],
+    ["beat 1 · the lead SNP is chosen — its row and column light", "the lead's V in the triangle; the SNPs it will take are the outlined cells on it", { beats: 1, frac: 0 }],
+    ["beat 2 · the arcs, and the cells they answer to", "each arc's SNP is an outlined cell on the lead's V, its r² the cell's own colour", { beats: 1, frac: 1 }],
+    ["beat 3 · the absorbed SNPs slide to the axis (mid-slide)", "the V and the cells stay until the clump settles, then the triangle goes quiet", { beats: 2, frac: 0.5 }],
+    ["the finished run", `${REG.clumps.length} clumps; the axis ticks are the record of what LD absorbed`, { beats: CL_BEATS * REG.clumps.length }],
+  ];
+  const outs = [];
+  for (const [title, subline, opts] of stills) {
+    const box = cand(row, title, sub(subline));
+    const ctx = canvasIn(box, STAGE_W, CT_H);
+    const r = drawStep2Tri(ctx, REG, { beats: opts.beats, frac: opts.frac ?? 1, scanDone: true });
+    outs.push(`${title}: ${r.cells} cells outlined`);
+  }
+  /* the numbers */
+  const cl = REG.clumps[0];
+  const lead = REG.idx[cl.index];
+  let beyond = 0;
+  let inWindowBelow = 0;
+  for (let k = 0; k < M.REGION.m; k += 1) {
+    if (k === lead) continue;
+    const r2 = REG.R[lead][k];
+    const far = Math.abs(k - lead) > M.CLUMP_DEPTH;
+    if (r2 >= Number(REG.clumpR2) && far) beyond += 1;
+    if (r2 < Number(REG.clumpR2) && !far) inWindowBelow += 1;
+  }
+  document.getElementById("clumpTriMeasure").textContent =
+    `stage 550 × ${CT_H} (step 2 today is ${TOP + M.ASSOC_PANEL_H}); 690 wide → ${CT_H_690}; the rail on step 2 is ~700px\n`
+    + `the first clump: lead SNP ${lead + 1} at ${int(REG.pos[cl.index])} kb takes ${cl.members.length} SNPs at r² ≥ ${REG.clumpR2}; `
+    + `on its V, ${beyond} cells clear r² ${REG.clumpR2} beyond the 250 kb window (not taken — the rule says why) and `
+    + `${inWindowBelow} inside it sit under r² ${REG.clumpR2}\n`
+    + `alignment: SNP ${lead + 1} is at x = ${fmt(X0 + (lead + 0.5) * (PANEL_W / M.REGION.m), 1)} in the triangle and `
+    + `${fmt(X0 + ((REG.pos[cl.index] + 2.5) / (REG.span + 5)) * PANEL_W, 1)} on the plot's shifted axis`;
+}
+
+/* the live run: the mock's own clock, one beat every 700 ms, looping */
+{
+  const row = document.getElementById("clumpTriLiveRow");
+  const box = cand(row, "live — the run, one beat every 700 ms, looping",
+    "the widget would run it at its own 260 ms beat with the third beat tweened\nhover the triangle for step 1's reading");
+  const ctx = canvasIn(box, STAGE_W, CT_H);
+  const total = CL_BEATS * REG.clumps.length;
+  let beats = 0;
+  const render = () => {
+    clear(ctx, STAGE_W, CT_H);
+    drawStep2Tri(ctx, REG, { beats, frac: 1, scanDone: true });
+  };
+  render();
+  setInterval(() => {
+    beats = beats >= total ? 0 : beats + 1;
+    render();
+  }, 700);
+}
+
+document.getElementById("recClumpTri").innerHTML =
+  `<b>As drawn: the triangle under step 2's plot, lit only while a clump is in flight.</b> The lead's V is `
+  + `the answer to "why these SNPs": every arc ends on an outlined cell of that V, the cell's colour is the `
+  + `r² the arc's opacity was trying to say, and the dashed rule shows why a bright cell beyond 250 kb is `
+  + `left alone. Once a clump settles the triangle goes quiet, so after eight clumps the reader sees the `
+  + `plot's ticks and a clean triangle rather than eight faded Vs on top of each other. <b>The cost</b> is `
+  + `${CT_H - (TOP + M.ASSOC_PANEL_H)}px of stage at 550 (${CT_H} against today's ${TOP + M.ASSOC_PANEL_H}) and the same image `
+  + `drawn on two steps, which is the point — the hand-off can say "from step 1: the region's haplotypes `
+  + `and their r²" and mean it. <b>Alternatives:</b> keep each settled lead's V faintly (eight Vs is `
+  + `clutter, and the ticks already carry the record); or merge steps 1 and 2 into one stage (750px and a `
+  + `run twice as long, against a 672px rail). <b>The build:</b> step 2's layout gains the triangle `
+  + `(one geometry function, the cached image reused), the hover and the pin from step 1 come along `
+  + `because the hit arithmetic is in the model, and the fingerprint's driven states for step 2 would be `
+  + `re-recorded at ship — this widget is a draft, so nothing is baselined yet.`;
 
 document.getElementById("engineLine").textContent =
   `engine: model.js at seed ${SEED}, three builds (15,000 and 1,500 base) in ${fmt(T_BUILD, 0)} ms · `

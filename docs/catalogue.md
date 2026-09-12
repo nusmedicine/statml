@@ -7940,6 +7940,29 @@ predictor". And the notebook may link to the widget's calibration plot
 beside the drafted sentence without misleading: a calibration plot
 checks the probabilities whichever predictors produced them.
 
+**STEP 2 OVER THE TRIANGLE — MOCKED 2026-09-12, §6 of
+`_lab/prs-round3-mock.html`, on his "the clumping is hard to correlate
+with the LD" and his pick to mock it (over merging steps 1 and 2, or
+leaving step 2 alone).** The association plot keeps its place and step
+1's triangle hangs under it, columns aligned by shifting the plot's x
+domain half a SNP (−2.5 to 497.5 kb, so 5j kb is over column j: SNP 10
+at x 98.6 in the triangle and 98.5 on the plot). While a clump is in
+flight the lead's V lights in `--c-highlight` and the cells of the SNPs
+it absorbs are outlined on it — the same SNPs the arcs reach, in the
+triangle's own terms, each cell's colour the r² the arc's opacity was
+carrying; when the clump settles the triangle goes quiet and the axis
+ticks are the record. Stills of the default's first clump (lead SNP 10
+takes 26 SNPs at r² ≥ 0.1; on its V no cell clears 0.1 beyond the
+window at this seed, 33 inside it sit under 0.1) at beats 1, 2 and
+mid-slide, the finished run, and a live looping run. Stage 550 × 612
+(step 2 today is 321) and 681 at 690, under the ~700px rail. The
+hand-off would read "from step 1: the region's haplotypes and their
+r²"; the triangle's caption "r² between every pair of SNPs, from step
+1". The haplotype block stays on step 1 (folding it in passes 750px).
+Recommended as drawn; alternatives: keep each settled lead's V faintly
+(eight Vs is clutter), or merge the two steps. **NEXT: his pick, then
+the build if taken, then his round and the ship.**
+
 **PAGE 5 PLANNED 2026-09-12 — calibration, on Kenneth's question** ("can
 the PRS score be used to calculate risk for a patient? a colleague told me
 no… so what's the use of this score?", then "how is calibration done? will
