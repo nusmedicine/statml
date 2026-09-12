@@ -2312,7 +2312,7 @@ defineWidget({
       options: [
         { value: "pattern", label: "Pattern", detail: "the four steps a block applies, and the job each one does" },
         { value: "combinations", label: "Combinations", detail: "pairs of layers that are placed together, and why" },
-        { value: "position", label: "Position", detail: "which layers sit at the beginning, in the middle and at the end" },
+        { value: "position", label: "Position", detail: "which layers come at the beginning, in the middle and at the end" },
       ],
       default: "pattern",
       when: ON("ordering"),
@@ -2981,7 +2981,7 @@ defineWidget({
           label: "Position",
           value: p ? p.pos : "—",
           note: p
-            ? `${p.box} sits at the ${p.pos} of the network`
+            ? `${p.box} is at the ${p.pos} of the network`
             : "the beginning, the repeated middle, and the end",
         },
         {
