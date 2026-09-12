@@ -1835,7 +1835,10 @@ export function triCellAt(tri, x, y) {
 /** What is under a point on step 1: one SNP, a pair, or nothing. */
 export function subjectAt(L, x, y) {
   if (!L.tri) return null;
-  const j = L.block ? blockColumnAt(L.block, x, y) : -1;
+  /* step 1's block, or step 2's plot: both are the triangle's columns, since
+     the plot's SNPs are drawn over them (decision 15) */
+  const strip = L.block ?? L.assoc;
+  const j = strip ? blockColumnAt(strip, x, y) : -1;
   if (j >= 0) return { kind: "snp", snps: [j] };
   const cell = triCellAt(L.tri, x, y);
   return cell ? { kind: "pair", snps: cell } : null;
@@ -1880,11 +1883,12 @@ export function regionsFor(L, params) {
     return text === current ? "" : text;
   };
   const out = [];
-  if (L.block) {
-    const bw = snpPitch(L.block);
+  const strip = L.block ?? L.assoc;
+  if (strip) {
+    const bw = snpPitch(strip);
     for (let j = 0; j < REGION.m; j += 1) {
       out.push({
-        x: L.block.x + j * bw, y: L.block.y, w: bw, h: L.block.h,
+        x: strip.x + j * bw, y: strip.y, w: bw, h: strip.h,
         set: { snps: toggle([j]) }, label: `SNP ${j + 1}`,
       });
     }

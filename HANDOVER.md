@@ -42,7 +42,8 @@ reply. Then his "the clumping is hard to correlate with the LD": step 2
 over the triangle is MOCKED as §6 of the round-three mock (the plot's x
 domain shifted half a SNP so the columns align; the lead's V and the
 absorbed cells lit while a clump is in flight), his pick "as drawn", and
-BUILT in the commit after (620px at 550; verify 296). **NEXT: his round
+BUILT in the commit after (620px at 550; verify 296), then the plot's
+SNPs made hover and click targets on his ask (verify 298). **NEXT: his round
 on the whole round-three draft (steps 1, 2 and 3 all changed tonight),
 then "tested ok, push" and the ship; the ship's states owe a hit-driven
 one on the pin, on step 1 and on step 2.**

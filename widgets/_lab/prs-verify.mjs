@@ -1736,8 +1736,8 @@ const OPEN = build(base());
       hitTest(pinned, c.x, c.y).set.snps === ""
       && hitTest(pinned, M.snpCentreX(L.block, 9), L.block.y + 3).set.snps === "10",
       hitTest(pinned, c.x, c.y).set.snps);
-    check("the table is the cells alone on step 2, empty on steps 3 to 6 and on core's probe",
-      W.regions({ w: 690, params: base({ page: "clump" }), state }).length === (m * (m - 1)) / 2
+    check("the table is the plot's columns and the cells on step 2, empty on steps 3 to 6 and on core's probe",
+      W.regions({ w: 690, params: base({ page: "clump" }), state }).length === m + (m * (m - 1)) / 2
       && PAGES.filter((pg) => pg !== "haplotypes" && pg !== "clump")
         .every((pg) => W.regions({ w: 690, params: base({ page: pg }), state }).length === 0)
       && W.regions({ w: 690, params, state: null }).length === 0);
@@ -1763,6 +1763,20 @@ const OPEN = build(base());
           return ru.idx.length === m - 1 && ru.idx.every((jj, i) =>
             Math.abs(M.assocX(Lu.assoc, ru, i) - M.snpCentreX(Lu.tri, jj)) < 1e-9);
         })());
+      /* the plot's SNPs are hover and click targets, by column, over the plot */
+      let badPlot = 0;
+      const regions2 = W.regions({ w: 690, params: p2, state });
+      for (let j = 0; j < m; j += 1) {
+        const x = M.snpCentreX(L2.tri, j);
+        const sub = M.subjectAt(L2, x, L2.assoc.y + L2.assoc.h / 2);
+        const r = hitTest(regions2, x, L2.assoc.y + 10);
+        if (!sub || sub.kind !== "snp" || sub.snps[0] !== j || !r || r.set.snps !== `${j + 1}`) badPlot += 1;
+      }
+      check("on step 2 the plot's SNPs answer the pointer and a click, by column", badPlot === 0,
+        `${badPlot} miss`);
+      const ringed = paintedAt(base({ page: "clump", snps: "10" }), animAt("clump", 1)).painted;
+      check("…and a pinned SNP's reading is drawn under the triangle",
+        ringed.includes(M.snpReading(region, 9, M.snpStats(region, 9))));
       const empty2 = paintedAt(p2, animAt("clump", 0, false)).painted;
       check("step 2 opens with the triangle's caption and the window's label under its plot",
         empty2.includes(M.STRINGS.triCaptionClump) && empty2.includes(M.STRINGS.windowLabel)

@@ -537,7 +537,7 @@ function drawClumpOnTriangle(ctx, colors, tri, flight) {
  * `scanDone` is whether the tests are on screen at all, which is the first
  * frame of Play (model.js decision 5).
  */
-function drawClump(ctx, colors, rect, region, { beats, frac, scanDone }) {
+function drawClump(ctx, colors, rect, region, { beats, frac, scanDone, mark = -1 }) {
   /* decision 15: half a SNP either side, so each SNP is over its own column
      of the triangle underneath */
   const plot = makePlot({
@@ -660,6 +660,28 @@ function drawClump(ctx, colors, rect, region, { beats, frac, scanDone }) {
       }
     }
     ctx.restore();
+  }
+
+  /* decision 15: the SNP under the pointer or pinned, ringed where it is drawn
+     — at its test while it stands, on the axis once it has been dropped */
+  if (scanDone && mark >= 0) {
+    const j = region.idx.indexOf(mark);
+    if (j >= 0) {
+      const gone = (() => {
+        const settled = Math.min(Math.floor(beats / M.CLUMP_BEATS), region.clumps.length);
+        for (let c = 0; c < settled; c += 1) if (region.clumps[c].members.includes(j)) return true;
+        return false;
+      })();
+      const x = plot.sx(region.pos[j]);
+      const y = gone ? rect.y + rect.h - 2 : plot.sy(Math.min(region.scan.logp[j], region.top));
+      ctx.save();
+      ctx.strokeStyle = colors.highlight;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(x, y, 6, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
   }
 
   /* DECISION 5: where the causal SNP actually is, and never ahead of the clump
@@ -1343,6 +1365,7 @@ defineWidget({
         { token: "empirical", label: "A SNP in LD with it, dropped to the axis", mark: "line" },
         { token: "value-high", label: "Linkage disequilibrium between a pair of SNPs, as r²" },
         { token: "highlight", label: "The lead SNP's row and column in the triangle, and the cells of the SNPs in LD with it" },
+        { token: "highlight", label: "The SNP or pair under the pointer or pinned by a click, on the plot and in the triangle" },
         { token: "reference", label: "P = 0.05", mark: "dash" },
         { token: "reference", label: "The causal SNP's position, and its pairs in the triangle", mark: "tri" },
       ];
@@ -1484,10 +1507,13 @@ defineWidget({
     }
     if (L.page === "clump") {
       const region = state.region;
+      const subject = (pointer ? M.subjectAt(L, pointer.x, pointer.y) : null)
+        ?? M.pinnedSubject(params);
       const { settled } = drawClump(ctx, colors, L.assoc, region, {
         beats: upTo,
         frac: anim?.beat ?? 0,
         scanDone: Boolean(anim?.scanDone),
+        mark: subject?.kind === "snp" ? subject.snps[0] : -1,
       });
       /* decision 15: step 1's triangle, carried over whole; the causal SNP's
          V arrives with its clump, as the plot's mark does (decision 5) */
@@ -1500,8 +1526,6 @@ defineWidget({
       }
       const flight = M.clumpInFlight(region, upTo);
       if (flight) drawClumpOnTriangle(ctx, colors, L.tri, flight);
-      const subject = (pointer ? M.subjectAt(L, pointer.x, pointer.y) : null)
-        ?? M.pinnedSubject(params);
       if (subject) {
         drawSubject(ctx, colors, L, region, subject, { drawn: 0, triShown: true });
         /* no block here, so the reading goes under the triangle's apex and

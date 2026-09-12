@@ -7982,6 +7982,16 @@ the round-three draft — all of it, since steps 1, 2 and 3 have changed
 tonight — then "tested ok, push" and the ship; the ship's states owe a
 hit-driven one on the pin (on step 1 and on step 2).**
 
+**And the plot's SNPs answer the pointer too — his "can I hover on the
+SNPs on the upper graph?", the same night.** On step 2 the association
+plot is a strip of the triangle's columns (the SNPs are drawn over
+them), so `subjectAt` and `regionsFor` treat it as step 1 treats the
+block: hovering a SNP on the plot rings its dot where it is drawn (at
+its test, or on the axis once dropped), lights its V in the triangle and
+writes its reading under the apex; a click pins it. One legend line
+added. Verify 298 (every column of the plot resolves to its SNP through
+`subjectAt` and core's `hitTest`; a pinned SNP's reading is painted).
+
 **PAGE 5 PLANNED 2026-09-12 — calibration, on Kenneth's question** ("can
 the PRS score be used to calculate risk for a patient? a colleague told me
 no… so what's the use of this score?", then "how is calibration done? will
