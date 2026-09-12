@@ -554,11 +554,11 @@ console.log("\n8 · the register");
     && trialTiles(4)[2].value === M.n2(st.trial.gl.b) && trialTiles(4)[3].value === "—"
     && trialTiles(5)[3].value === M.n2(st.trial.ratio.b));
   check("…and the ratio tile is stage 2 over stage 1 to the digit", Math.abs(st.trial.ratio.b - st.trial.gl.b / st.trial.gx.b) < 1e-12);
-  check("the first page is the idea, unnumbered, and the step line counts the three after it",
-    M.PAGES[0].label === "The idea" && M.stepLine("trial") === "the idea"
+  check("the first page is the overview, unnumbered, and the step line counts the three after it",
+    M.PAGES[0].label === "Overview" && M.stepLine("trial") === "overview"
     && M.stepLine("gwas") === "step 1 of 3 · The two GWAS" && M.stepLine("forest") === "step 3 of 3 · The forest", M.stepLine("estimate"));
   check("every hand-off but the first names the page before it",
-    M.HANDOFFS.gwas.startsWith("from the idea:") && M.HANDOFFS.estimate.startsWith("from step 1:")
+    M.HANDOFFS.gwas.startsWith("from the overview:") && M.HANDOFFS.estimate.startsWith("from step 1:")
     && M.HANDOFFS.forest.startsWith("from step 2:") && !/^from /.test(M.HANDOFFS.trial));
 
   /* the URL round trip */

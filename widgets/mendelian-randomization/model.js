@@ -368,11 +368,14 @@ export function slope(y, x) {
    and unnumbered, and the three after it are the notebook's own workflow,
    numbered 1 to 3. "One SNP as a trial" named the analogy rather than the
    figure, and truncated in the grid. */
+/* Kenneth's next note: the overview is ITS OWN BUTTON above a "Step" head and
+   the three steps — two runs of one control, core's option `group` with
+   `groupHeads`, so one parameter still carries the page. */
 export const PAGES = [
-  { value: "trial", label: "The idea" },
-  { value: "gwas", label: "1 · The two GWAS" },
-  { value: "estimate", label: "2 · Estimate" },
-  { value: "forest", label: "3 · The forest" },
+  { value: "trial", label: "Overview", span: true },
+  { value: "gwas", label: "1 · The two GWAS", group: "Step" },
+  { value: "estimate", label: "2 · Estimate", group: "Step" },
+  { value: "forest", label: "3 · The forest", group: "Step" },
 ];
 export const PAGE_VALUES = PAGES.map((p) => p.value);
 export const pageOf = (values) =>
@@ -429,8 +432,8 @@ export const STRINGS = {
   blurb:
     "Variants assigned at conception stand in for a randomised exposure; their two GWAS effects estimate the causal effect.",
 
-  pageLabel: "Step",
-  pageDetail: "the idea, then the three steps of a Mendelian randomization study",
+  pageLabel: "Page",
+  pageDetail: "the overview, then the three steps of a Mendelian randomization study",
 
   dataSection: "The data",
   seedLabel: "Seed",
@@ -525,13 +528,13 @@ export function verdict({ page, confounding, pleio, indep }) {
    takes from the one before. */
 export const HANDOFFS = {
   trial: "one SNP, one cohort: the trial no confounder chose",
-  gwas: "from the idea: the same ratio, now for every SNP, from two studies",
+  gwas: "from the overview: the same ratio, now for every SNP, from two studies",
   estimate: "from step 1: the harmonised effects, combined",
   forest: "from step 2: the same ratios, one row each",
 };
 export const stepLine = (page) => {
   const n = stepNumber(page);
-  if (n === 0) return "the idea";
+  if (n === 0) return "overview";
   return `step ${n} of ${WORKFLOW_STEPS} · ${PAGES[n].label.replace(/^\d+ · /, "")}`;
 };
 

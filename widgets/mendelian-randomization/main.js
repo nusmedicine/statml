@@ -166,8 +166,11 @@ function arrow(ctx, D, from, to, color, width, dash, alpha = 1) {
 function arcArrow(ctx, D, color, width, dash, alpha = 1) {
   const [x1, y1] = D.P.g;
   const [x2, y2] = D.P.y;
+  /* Kenneth, round three: the arc's belly sat on the verdict's first line.
+     A control point 30 below the row puts the apex 15 below it, and the
+     verdict moved down 8 to meet it halfway. */
   const cx = (x1 + x2) / 2;
-  const cy = y1 + 46;
+  const cy = y1 + 30;
   const ax = x1 + 6;
   const ay = y1 + D.R + 2;
   const bx = x2 - 8;
@@ -259,7 +262,7 @@ function drawDag(ctx, colors, D, { page, cfg, strength }) {
   ctx.textAlign = "left";
   ctx.textBaseline = "alphabetic";
   ctx.fillStyle = pleio || indep ? colors.extreme : colors.ink2;
-  wrapText(ctx, v, D.box.x + 2, D.box.y + D.box.h + 16, M.DAG_W + 30, 14);
+  wrapText(ctx, v, D.box.x + 2, D.box.y + D.box.h + 24, M.DAG_W + 30, 14);
   ctx.restore();
 }
 
@@ -798,10 +801,10 @@ defineWidget({
     /* decision 2: the step is display, and the run is per step */
     page: {
       type: "segmented",
-      style: "grid",
       label: M.STRINGS.pageLabel,
       detail: M.STRINGS.pageDetail,
       options: M.PAGES,
+      groupHeads: true,
       default: "trial",
       display: true,
     },
