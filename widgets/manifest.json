@@ -878,7 +878,13 @@
         "overfitting",
         "validation sample",
         "ancestry",
-        "portability"
+        "portability",
+        "haplotype",
+        "base study size",
+        "summary statistics",
+        "calibration",
+        "absolute risk",
+        "risk stratification"
       ],
       "arc": 59,
       "status": "draft"

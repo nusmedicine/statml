@@ -1,77 +1,82 @@
 /* ============================================================================
-   Widget 59 · Polygenic scores — the region, the sum, the threshold, the
-   quantile plot.
+   Widget 59 · Polygenic scores — the haplotypes, the clumping, the sum, the
+   threshold, the quantile plot and the risk.
 
    PHM5003 week 6 (02-1, 02-2), carrying slot 58's LD-and-clumping material as
-   page 1. `model.js` holds the engine, the geometry and the copy; this file
-   draws them.
+   steps 1 and 2. `model.js` holds the engine, the geometry and the copy; this
+   file draws them.
 
    The one claim: a score is a weighted count of effect alleles, its weights
-   come from another study, and how well it predicts is a number that has to be
-   read on people it was not chosen on.
+   come from another study, how well it predicts is a number that has to be
+   read on people it was not chosen on, and a percentile becomes a risk only
+   after a model is fitted and checked.
 
    DECISIONS TAKEN WHILE BUILDING, so they are not re-argued:
 
-    1. THE MOCK IS THE PICTURE OF RECORD. `_lab/prs-mock.html` drew eight
-       sections and Kenneth picked from all of them (catalogue § Slot 59,
-       2026-09-12): the association plot over the r² triangle clipped to the
-       250 kb clumping window; the three strips over the target sample's score
-       distribution at P < 0.01, with the weights on `--c-group-b`; the two R²
-       curves with the best-fit threshold marked and the kept count on a second
-       axis; one vigintile panel under a Target population control; a run on
-       every page; the P threshold as a slider over the lesson's eleven values;
-       and subtitle C. His two nomenclature rulings came with them: no "tune"
-       and no "holdout" in anything a reader sees.
+    1. THE MOCKS ARE THE PICTURE OF RECORD. `_lab/prs-mock.html` drew eight
+       sections and Kenneth picked from all of them; `_lab/prs-round2-mock.html`
+       drew eight more after his review and he picked every recommendation
+       (catalogue § Slot 59, 2026-09-12). His two nomenclature rulings stand:
+       no "tune" and no "holdout" in anything a reader sees.
 
-    2. FOUR PAGES, ONE RAIL, AND `page` IS A DISPLAY PARAMETER. The run is per
-       page (`model.js` decision 4), so leaving a page and coming back keeps
-       what was built on both of them (non-negotiable 3).
+    2. SIX STEPS, ONE RAIL, AND `page` IS A DISPLAY PARAMETER. The run is per
+       step (`model.js` decision 4), so leaving a step and coming back keeps
+       what was built on all six (non-negotiable 3).
 
     3. THE P THRESHOLD AND THE PERSON ARE DISPLAY PARAMETERS TOO. The threshold
-       chooses among eleven readings of one base study, all of them computed
-       (`model.js` decision 3), and the person chooses which row of the target
-       sample the sum is drawn for. Neither draws a new cohort, so neither
-       throws the reader's work away — and the run on page 2 is a position in
-       the list of kept SNPs rather than in one person's arithmetic, so moving
-       the Person slider mid-run redraws the same SNPs for somebody else.
+       chooses among eleven readings of one base study — the curve, the
+       vigintiles AND the risk model, all of them computed (`model.js`
+       decisions 3 and 12) — and the person chooses which row of the target
+       sample the sum is drawn for. Neither draws a new cohort.
 
-    4. NOTHING IS DRAWN BEFORE THE RUN REACHES IT (non-negotiable 4). Each page
+    4. NOTHING IS DRAWN BEFORE THE RUN REACHES IT (non-negotiable 4). Each step
        opens on its axes and its reference lines — the P = 0.05 line, the
-       sample's mean trait — and everything else arrives: the tests and then the
-       clumps, the SNPs of the sum, the thresholds, the vigintiles. The mock
-       drew page 2's unreached columns faded; they are not drawn at all here,
-       because a genotype is data.
+       sample's mean trait, the diagonal, the risk threshold — and everything
+       else arrives: the haplotypes, then the tests and the clumps, the SNPs of
+       the sum, the thresholds, the vigintiles, the deciles.
 
-    5. THE CAUSAL SNP'S POSITION ARRIVES WITH THE CLUMP THAT ACCOUNTS FOR IT.
-       It is the answer to page 1's question, so it is a reference mark and not
-       one of the tests, and it is not on screen before the clumping reaches it
-       (2.1). `model.js` computes which beat that is.
+    5. THE CAUSAL SNP'S POSITION IS A REFERENCE, SO IT ARRIVES WHEN THE FIGURE
+       CAN ACCOUNT FOR IT. On step 2 that is the clump that holds it
+       (`model.js` computes which beat). On step 1 it is marked from the start,
+       because nothing has been tested there yet and the mark gives no answer
+       away — and one shape meaning one thing on both steps is worth more than
+       the surprise of meeting it early.
 
     6. THE BEST-FIT MARK IS THE LARGEST AMONG THE THRESHOLDS SWEPT, and it
-       needs two of them before it means anything. Printing the finished
-       maximum from the first frame would be the figure claiming what the
-       drawn data cannot support (2.11).
+       needs two of them before it means anything. The reading line under the
+       axis names the same two numbers the mark does, so the sentence and the
+       figure cannot disagree.
 
     7. THE STANDARDISED SCORE AND THE PERCENTILE WAIT FOR THE LAST SNP. A
        partial sum has no standing in a distribution of finished scores, so the
        two tiles that place the person read "—" until the sum is complete —
        which is also when the person's line joins the distribution.
 
-    8. THE R² TRIANGLE IS AN IMAGE, AND ITS BUFFER IS MADE ON DEMAND. One cell
-       one pixel in an off-screen canvas, drawn up through a 45° rotation with
-       smoothing off: interpolating 4,950 cells into 490px would blur exactly
-       the block structure the panel is for. The buffer is created at the first
-       draw rather than at import, so the figure's text can be swept with no
-       DOM (5.6: a check is scoped to a medium).
+    8. STEP 2'S THREE BEATS ARE THE ANSWER TO "CLUMPING IS NOT APPARENT". The
+       lead lights, an arc is drawn to every SNP its r² takes with the arc's
+       opacity carrying that r², and then those SNPs slide to the baseline and
+       stay there as ticks. The draft faded them, which is the weakest channel
+       a canvas has, and it showed clumping's result without its cause.
 
-    9. THE DEFAULT SEED IS 29, and it is chosen the way widget 33's was. It
-       opens page 1 on the region the mock drew — 27 SNPs under P < 0.05, eight
-       clumps, and a lead SNP 15 kb from the causal one at r² 0.83 — which is
-       the case the page exists to show, and it opens page 3 on a curve with an
-       interior maximum at 0.05 whose R² is 0.087 in the target sample against
-       0.064 in the validation sample. Over 50 seeds the lead is the causal SNP
-       56% of the time, so the widget promises neither: every readout is
-       computed from the region drawn, and the Seed slider is one press away.
+       THE ARCS ARE `--c-highlight`, NOT `--c-value-high`. The first draft of
+       the mock used value-high, so that r² kept the colour step 1's triangle
+       paints it in — and drawn, the arcs came out the colour of the
+       significant SNPs, because `--c-value-high` and `--c-extreme` are the
+       same value. The arc belongs to the lead SNP, the lead is
+       `--c-highlight`, and the alpha is the r².
+
+    9. STEP 6 DRAWS THE CHECK AND THE CONSEQUENCE SIDE BY SIDE. The calibration
+       plot is only worth reading because the stratification cut beside it is
+       only worth acting on when the plot sits on the diagonal. Both panels are
+       square, because a calibration plot whose diagonal is not a diagonal is
+       not one.
+
+   10. THE DEFAULT SEED IS 41. Of sixteen seeds swept in the round-two mock it
+       is the only one that opens with the target sample above the validation
+       sample at all three base study sizes AND has the region's lead SNP off
+       the causal one — 25 kb away at r² 0.79, which is step 2's whole case.
+       It opens step 4 on best-fit R² 0.294 in the target at P < 0.01 against
+       0.267 in the validation sample.
    ========================================================================= */
 
 import { defineWidget, makePlot } from "../core/index.js";
@@ -81,6 +86,7 @@ import * as M from "./model.js";
 
 const capFont = (colors) => `600 ${colors.fsSm} ${colors.font}`;
 const noteFont = (colors) => `${colors.fsXs} ${colors.font}`;
+const noteLine = (colors) => Math.round(parseFloat(colors.fsXs) * 1.4) || 15;
 
 /** The width one string takes in the font it is about to be drawn in. */
 function widthOf(ctx, s, font) {
@@ -114,13 +120,14 @@ function capAt(ctx, colors, x, y, text, maxW) {
   ctx.fillStyle = colors.ink2;
   ctx.fillText(s, x, y);
   ctx.restore();
+  return widthOf(ctx, s, capFont(colors));
 }
 
 /**
  * A short note, with the edge it hangs from and its baseline named.
  *
  * `plot.note` is the right-aligned, caption-baseline case and most panels here
- * use it. Page 3 needs the identical mark on the other edge: its caption fills
+ * use it. Step 4 needs the identical mark on the other edge: its caption fills
  * the caption row, and its top right corner belongs to the kept count and the
  * second axis's tick labels, so its panel note hangs from the top left.
  */
@@ -151,6 +158,31 @@ function tinyAt(ctx, colors, x, y, text, align = "left", tone) {
   ctx.restore();
 }
 
+/**
+ * A caption and its note on one row, with the note dropped to a LINE OF ITS OWN
+ * ABOVE when it will not fit beside — the mock's own guard.
+ *
+ * `plot.note` already refuses to print through a caption: when the line is full
+ * it drops the note inside the panel's top right instead. On step 6's
+ * calibration panel that is exactly where the tallest interval stands, so the
+ * note landed on the data — the same collision, moved six pixels. The line
+ * above the caption is the one part of the block nothing else uses.
+ */
+function captionRow(ctx, colors, rect, caption, note, { lineW = rect.w, gap = 14 } = {}) {
+  /* `lineW` is the width the caption ROW may use, which on step 6 is wider than
+     the 196px panel under it: the two squares are square because a calibration
+     plot's diagonal has to be one, and their captions name quantities that no
+     196px line can hold. */
+  const capW = capAt(ctx, colors, rect.x, rect.y - 8, caption, lineW);
+  if (!note) return;
+  const room = lineW - capW - gap;
+  const need = widthOf(ctx, note, noteFont(colors));
+  if (need <= room) noteAt(ctx, colors, rect.x + lineW, rect.y - 8, note, room);
+  else {
+    noteAt(ctx, colors, rect.x, rect.y - 8 - noteLine(colors), note, lineW, { align: "left" });
+  }
+}
+
 function rgbOf(c) {
   const s = String(c).trim();
   if (s.startsWith("#")) {
@@ -161,144 +193,137 @@ function rgbOf(c) {
   return m && m.length >= 3 ? [+m[0], +m[1], +m[2]] : [128, 128, 128];
 }
 
-/* ---- page 1: the association plot and the r² triangle -------------------- */
+/** A token colour at an alpha, for a mark whose strength IS a number. */
+function alphaOf(c, a) {
+  const [r, g, b] = rgbOf(c);
+  return `rgba(${r}, ${g}, ${b}, ${Math.max(0, Math.min(1, a)).toFixed(3)})`;
+}
 
 /**
- * The region's tests, and what clumping has done to them so far.
+ * One off-screen context, made on demand and reused.
  *
- * `shown` is how many clumps have been taken; `scanDone` is whether the tests
- * are on screen at all, which is the first beat of the run (model.js
- * decision 5).
+ * Both image panels — the haplotype block and the r² triangle — want one cell
+ * one pixel and then a scale-up with smoothing off: interpolating 4,950 cells
+ * into 490px would blur exactly the structure the panels are for. It is created
+ * at the first draw rather than at import, so the figure's text can be swept
+ * with no DOM at all (5.6: a check is scoped to a medium).
  */
-function drawAssoc(ctx, colors, rect, region, { shown, scanDone, finished }) {
-  const plot = makePlot({
-    ctx, colors, rect, xDomain: [0, region.span], yDomain: [0, region.top],
-  });
+let scratchCtx = null;
+function scratch() {
+  if (scratchCtx) return scratchCtx;
+  if (typeof document === "undefined") return null;
+  scratchCtx = document.createElement("canvas").getContext("2d", { willReadFrequently: true });
+  return scratchCtx;
+}
 
-  const placed = Math.min(shown, region.clumps.length);
-  let sigPlaced = 0;
-  for (let c = 0; c < placed; c += 1) {
-    if (region.clumps[c].p < M.REGION_ALPHA) sigPlaced += 1;
+/* ---- the step line and the hand-off (model.js decision 8) ---------------- */
+
+function drawHead(ctx, colors, head, page) {
+  const line = M.stepLine(page);
+  tinyAt(ctx, colors, head.x, head.y, line, "left", colors.highlight);
+  const used = widthOf(ctx, line, noteFont(colors));
+  noteAt(ctx, colors, head.x + head.w, head.y, M.HANDOFFS[M.pageOf({ page })],
+    Math.max(40, head.w - used - 14), { baseline: "top", tone: colors.ink3 });
+}
+
+/* ---- step 1: the haplotypes and the r² triangle -------------------------- */
+
+/**
+ * `drawn` rows of the pool as rows, the region's SNPs as columns, one allele a
+ * tone. The shared stretches are a consequence of where each haplotype last
+ * switched ancestor, so they read as vertical bands with nothing drawn to mark
+ * them.
+ */
+function drawBlock(ctx, colors, rect, region, drawn) {
+  const hap = region.hap;
+  const m = hap.m;
+  const capW = capAt(ctx, colors, rect.x, rect.y - 10, M.STRINGS.blockCaption, rect.w * 0.62);
+  noteAt(ctx, colors, rect.x + rect.w, rect.y - 10,
+    `${M.intText(drawn)} of ${M.HAP_ROWS} drawn, from a pool of ${M.intText(M.REGION.nHap)}`,
+    rect.w - capW - 14);
+
+  const buf = drawn > 0 ? scratch() : null;
+  if (buf) {
+    buf.canvas.width = m;
+    buf.canvas.height = M.HAP_ROWS;
+    const img = buf.createImageData(m, M.HAP_ROWS);
+    const one = rgbOf(colors.empirical);
+    const zero = rgbOf(colors.surface3 ?? colors.surface2);
+    for (let i = 0; i < drawn; i += 1) {
+      for (let j = 0; j < m; j += 1) {
+        const c = hap.H[j][i] ? one : zero;
+        const o = (i * m + j) * 4;
+        img.data[o] = c[0];
+        img.data[o + 1] = c[1];
+        img.data[o + 2] = c[2];
+        img.data[o + 3] = 255;
+      }
+    }
+    buf.putImageData(img, 0, 0);
+    ctx.save();
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(buf.canvas, rect.x, rect.y, rect.w, rect.h);
+    ctx.restore();
   }
-  const caption = placed === 0 ? M.STRINGS.assocCaption : M.STRINGS.assocCaptionClumped;
-  const note = !scanDone
-    ? null
-    : placed === 0
-      ? `${region.hits} of ${M.REGION.m} SNPs under P < 0.05`
-      : `${sigPlaced} ${sigPlaced === 1 ? "clump" : "clumps"} under P < 0.05`;
-  const noteW = note ? widthOf(ctx, note, noteFont(colors)) : 0;
-  plot.caption(fit(ctx, caption, capFont(colors), note ? rect.w - noteW - 14 : rect.w + 22));
-  if (note) plot.note(note);
 
-  /* the P = 0.05 line first, so the points sit over it; it is a reference and
-     is on screen before anything is tested */
-  const ty = Math.round(plot.sy(M.ALPHA_L)) + 0.5;
+  ctx.save();
+  ctx.strokeStyle = colors.grid;
+  ctx.lineWidth = 1;
+  ctx.strokeRect(rect.x + 0.5, rect.y + 0.5, rect.w - 1, rect.h - 1);
+  ctx.restore();
+
+  /* DECISION 5: the causal SNP's column, with the same hollow mark step 2 uses
+     for the same SNP. */
+  const x = rect.x + ((region.causal + 0.5) / m) * rect.w;
   ctx.save();
   ctx.strokeStyle = colors.reference;
   ctx.lineWidth = 1;
-  ctx.setLineDash([5, 4]);
+  ctx.setLineDash([3, 3]);
   ctx.beginPath();
-  ctx.moveTo(rect.x, ty);
-  ctx.lineTo(rect.x + rect.w, ty);
+  ctx.moveTo(Math.round(x) + 0.5, rect.y);
+  ctx.lineTo(Math.round(x) + 0.5, rect.y + rect.h);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.lineJoin = "round";
+  ctx.beginPath();
+  ctx.moveTo(x - 4, rect.y - 8);
+  ctx.lineTo(x + 4, rect.y - 8);
+  ctx.lineTo(x, rect.y - 2);
+  ctx.closePath();
   ctx.stroke();
   ctx.restore();
-  tinyAt(ctx, colors, rect.x + 2, ty - 13, M.STRINGS.alphaLabel);
 
-  if (scanDone) {
-    /* what clumping has done so far: "lead" for an index SNP already taken,
-       "dropped" for a SNP one of those clumps absorbed, "open" for the rest */
-    const state = new Array(region.idx.length).fill("open");
-    for (let c = 0; c < placed; c += 1) {
-      state[region.clumps[c].index] = "lead";
-      for (const m of region.clumps[c].members) state[m] = "dropped";
-    }
-    ctx.save();
-    for (let j = 0; j < region.idx.length; j += 1) {
-      const x = plot.sx(region.pos[j]);
-      const y = plot.sy(Math.min(region.scan.logp[j], region.top));
-      if (state[j] === "dropped") {
-        ctx.globalAlpha = 0.3;
-        ctx.fillStyle = colors.empirical;
-        ctx.beginPath();
-        ctx.arc(x, y, 2.4, 0, Math.PI * 2);
-        ctx.fill();
-        continue;
-      }
-      ctx.globalAlpha = 1;
-      /* 4.3: the cue for a clump that has JUST been taken is cleared when the
-         run stops, or a finished figure carries a highlight that reads as a
-         marked SNP rather than as a recent arrival. */
-      const isNewest = !finished && placed > 0 && j === region.clumps[placed - 1].index;
-      const past = region.scan.P[j] < M.REGION_ALPHA;
-      ctx.fillStyle = isNewest ? colors.highlight : past ? colors.extreme : colors.empirical;
-      ctx.beginPath();
-      ctx.arc(x, y, isNewest ? 4 : state[j] === "lead" ? 3.4 : 2.6, 0, Math.PI * 2);
-      ctx.fill();
-      if (state[j] === "lead") {
-        ctx.lineWidth = 1.4;
-        ctx.strokeStyle = colors.surface;
-        ctx.stroke();
-      }
-    }
-    ctx.restore();
-  }
-
-  /* DECISION 5: where the causal SNP actually is, as a hollow mark inside the
-     top edge pointing down at its column — and never ahead of the clump that
-     accounts for it. */
-  if (placed >= region.causalAt && region.causalAt > 0) {
-    const x = plot.sx(region.causalPos);
-    ctx.save();
-    ctx.strokeStyle = colors.reference;
-    ctx.lineWidth = 1.2;
-    ctx.lineJoin = "round";
-    ctx.beginPath();
-    ctx.moveTo(x - 4, rect.y + 2);
-    ctx.lineTo(x + 4, rect.y + 2);
-    ctx.lineTo(x, rect.y + 8);
-    ctx.closePath();
-    ctx.stroke();
-    ctx.restore();
-  }
-
-  plot.axisY({ label: M.STRINGS.assocY, format: (v) => v.toFixed(0) });
-  plot.axisX({ label: M.STRINGS.assocX, format: (v) => v.toFixed(0) });
-}
-
-/* DECISION 8: one cell one pixel, off screen, then drawn up with smoothing
-   off. The buffer is made at the first draw and kept. */
-let triBuf = null;
-function triBuffer() {
-  if (triBuf) return triBuf;
-  if (typeof document === "undefined") return null;
-  triBuf = document.createElement("canvas").getContext("2d", { willReadFrequently: true });
-  return triBuf;
+  tinyAt(ctx, colors, rect.x + rect.w / 2, rect.y + rect.h + 6,
+    `${M.STRINGS.blockNote} · ${M.REGION.m} SNPs over ${M.intText(region.span)} kb`, "center");
 }
 
 /**
- * The half-matrix, rotated onto its diagonal so each pair sits above the
- * midpoint of the two SNPs it joins — the shape every LD figure has, clipped
- * to the clumping window, which is the only distance clumping can act on.
+ * The half-matrix rotated onto its diagonal, so each pair sits above the
+ * midpoint of the two SNPs it joins — the shape every LD figure has, clipped to
+ * the clumping window, which is the only distance clumping can act on.
  *
  * The image's own transform is (u, v) → (x0 + s(u+v)/2, yTop + s(v−u)/2), so
- * image row v is SNP j, column u is SNP k, and the cells above the diagonal
- * are written at alpha 0. The ramp runs from the surface to
- * `--c-value-high`: r² is non-negative and its zero is "these two SNPs say
- * nothing about each other", which has to be the ground rather than a colour.
+ * image row v is SNP j, column u is SNP k, and the cells above the diagonal are
+ * written at alpha 0. The ramp runs from the surface to `--c-value-high`: r² is
+ * non-negative and its zero is "these two SNPs say nothing about each other",
+ * which has to be the ground rather than a colour.
+ *
+ * DECISION 13: it is drawn once the pool is complete. The r² is measured over
+ * the whole pool rather than over the rows on screen, so revealing it against
+ * the row count would tie two numbers that are not tied.
  */
-function drawTriangle(ctx, colors, rect, region, { scanDone }) {
+function drawTriangle(ctx, colors, rect, region, { shown }) {
   capAt(ctx, colors, rect.x, rect.y - 10, M.STRINGS.triCaption, rect.w * 0.7);
   noteAt(ctx, colors, rect.x + rect.w, rect.y - 10, M.STRINGS.triNote, rect.w * 0.4);
 
   /* THE FULL REGION, NOT THE TESTED COLUMNS. `region.R` holds all 100 SNPs
      whether or not the causal one is on the array: LD is a property of the
      chromosome and not of the genotyping, and the triangle's columns are then
-     evenly spaced, which is what keeps its x aligned with the kb axis of the
-     plot above it. */
+     evenly spaced, which is what keeps its x aligned with the kb axis. */
   const R = region.R;
   const m = R.length;
   const s = rect.w / (m - 1);
-  const buf = scanDone ? triBuffer() : null;
+  const buf = shown ? scratch() : null;
   if (buf) {
     buf.canvas.width = m;
     buf.canvas.height = m;
@@ -339,15 +364,178 @@ function drawTriangle(ctx, colors, rect, region, { scanDone }) {
   ctx.restore();
 }
 
-/* ---- page 2: the score --------------------------------------------------- */
+/* ---- step 2: clumping, three beats a clump ------------------------------- */
+
+/**
+ * The region's tests, and what clumping has done to them so far.
+ *
+ * `beats` counts in thirds of a clump (model.js decision 9): after 3c beats
+ * clump c−1 has settled and nothing is in flight; at 3c+1 clump c's lead is
+ * lit; at 3c+2 its arcs are drawn; and the third beat slides its SNPs to the
+ * baseline, tweened by `frac`.
+ *
+ * `scanDone` is whether the tests are on screen at all, which is the first
+ * frame of Play (model.js decision 5).
+ */
+function drawClump(ctx, colors, rect, region, { beats, frac, scanDone }) {
+  const plot = makePlot({
+    ctx, colors, rect, xDomain: [0, region.span], yDomain: [0, region.top],
+  });
+
+  const nC = region.clumps.length;
+  const settled = Math.min(Math.floor(beats / M.CLUMP_BEATS), nC);
+  const phase = settled < nC ? beats % M.CLUMP_BEATS : 0;
+  const active = phase > 0 ? settled : -1;
+  let sigPlaced = 0;
+  for (let c = 0; c < settled; c += 1) {
+    if (region.clumps[c].p < M.REGION_ALPHA) sigPlaced += 1;
+  }
+
+  const caption = active >= 0
+    ? M.STRINGS.assocCaptionLead
+    : settled === 0 ? M.STRINGS.assocCaption : M.STRINGS.assocCaptionClumped;
+  const note = !scanDone
+    ? null
+    : active >= 0
+      ? `${M.intText(region.clumps[active].members.length)} SNPs at r² ≥ ${region.clumpR2}`
+      : settled === 0
+        ? `${M.intText(region.hits)} of ${M.REGION.m} SNPs under P < 0.05`
+        : `${M.intText(sigPlaced)} ${sigPlaced === 1 ? "clump" : "clumps"} under P < 0.05`;
+  const noteW = note ? widthOf(ctx, note, noteFont(colors)) : 0;
+  plot.caption(fit(ctx, caption, capFont(colors), note ? rect.w - noteW - 14 : rect.w + 22));
+  if (note) plot.note(note);
+
+  /* the P = 0.05 line first, so the points sit over it; it is a reference and
+     is on screen before anything is tested */
+  const ty = Math.round(plot.sy(M.ALPHA_L)) + 0.5;
+  ctx.save();
+  ctx.strokeStyle = colors.reference;
+  ctx.lineWidth = 1;
+  ctx.setLineDash([5, 4]);
+  ctx.beginPath();
+  ctx.moveTo(rect.x, ty);
+  ctx.lineTo(rect.x + rect.w, ty);
+  ctx.stroke();
+  ctx.restore();
+  tinyAt(ctx, colors, rect.x + 2, ty - 13, M.STRINGS.alphaLabel);
+
+  if (scanDone) {
+    const px = (j) => plot.sx(region.pos[j]);
+    const py = (j) => plot.sy(Math.min(region.scan.logp[j], region.top));
+    const baseY = rect.y + rect.h;
+    /* the third beat's own progress: 0 while the arcs are being drawn, then
+       the slide */
+    const slide = phase === 2 ? Math.max(0, Math.min(1, frac)) : 0;
+
+    const state = new Array(region.idx.length).fill("open");
+    for (let c = 0; c < settled; c += 1) {
+      state[region.clumps[c].index] = "lead";
+      for (const m of region.clumps[c].members) state[m] = "gone";
+    }
+    if (active >= 0) {
+      state[region.clumps[active].index] = "chosen";
+      for (const m of region.clumps[active].members) state[m] = "leaving";
+    }
+
+    /* DECISION 8: the arcs, under the points and over the grid. Each one joins
+       the lead to a SNP its r² takes, and its opacity IS that r². */
+    if (active >= 0) {
+      const cl = region.clumps[active];
+      const lx = px(cl.index);
+      const ly = py(cl.index);
+      const strength = phase === 1 ? Math.max(0, Math.min(1, frac)) : 1;
+      ctx.save();
+      ctx.lineWidth = 1.2;
+      for (const m of cl.members) {
+        const mx = px(m);
+        const my = py(m);
+        const r2 = region.Rs[cl.index][m];
+        ctx.strokeStyle = alphaOf(colors.highlight,
+          strength * (0.18 + 0.72 * Math.max(0, Math.min(1, r2))));
+        const cy = Math.max(rect.y + 6, Math.min(ly, my) - 52);
+        ctx.beginPath();
+        ctx.moveTo(lx, ly);
+        ctx.quadraticCurveTo((lx + mx) / 2, cy, mx, my);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    ctx.save();
+    for (let j = 0; j < region.idx.length; j += 1) {
+      const x = px(j);
+      const st = state[j];
+      if (st === "gone") {
+        /* a SNP the score does not carry, still visibly tested: a tick on the
+           axis rather than a dot faded out */
+        ctx.strokeStyle = alphaOf(colors.empirical, 0.5);
+        ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        ctx.moveTo(Math.round(x) + 0.5, baseY - 5);
+        ctx.lineTo(Math.round(x) + 0.5, baseY);
+        ctx.stroke();
+        continue;
+      }
+      if (st === "leaving") {
+        const y0 = py(j);
+        const y = y0 + (baseY - y0) * slide;
+        ctx.fillStyle = alphaOf(colors.empirical, 0.75);
+        ctx.beginPath();
+        ctx.arc(x, y, 2.6 - 1.0 * slide, 0, Math.PI * 2);
+        ctx.fill();
+        continue;
+      }
+      const y = py(j);
+      const past = region.scan.P[j] < M.REGION_ALPHA;
+      ctx.fillStyle = st === "chosen" ? colors.highlight : past ? colors.extreme : colors.empirical;
+      ctx.beginPath();
+      ctx.arc(x, y, st === "chosen" ? 4.4 : st === "lead" ? 3.4 : 2.6, 0, Math.PI * 2);
+      ctx.fill();
+      if (st === "lead" || st === "chosen") {
+        ctx.lineWidth = 1.4;
+        ctx.strokeStyle = colors.surface;
+        ctx.stroke();
+      }
+    }
+    ctx.restore();
+  }
+
+  /* DECISION 5: where the causal SNP actually is, and never ahead of the clump
+     that accounts for it. */
+  if (settled >= region.causalAt && region.causalAt > 0) {
+    const x = plot.sx(region.causalPos);
+    ctx.save();
+    ctx.strokeStyle = colors.reference;
+    ctx.lineWidth = 1.2;
+    ctx.lineJoin = "round";
+    ctx.beginPath();
+    ctx.moveTo(x - 4, rect.y + 2);
+    ctx.lineTo(x + 4, rect.y + 2);
+    ctx.lineTo(x, rect.y + 8);
+    ctx.closePath();
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  plot.axisY({ label: M.STRINGS.assocY, format: (v) => v.toFixed(0) });
+  plot.axisX({ label: M.STRINGS.assocX, format: (v) => v.toFixed(0) });
+}
+
+/* ---- step 3: the score --------------------------------------------------- */
 
 /**
  * One person's score, as three strips over the same SNP axis with the target
  * sample's own distribution underneath. `upTo` is how many SNPs the sum has
- * reached, which is the only thing page 2's run changes.
+ * reached, which is the only thing step 3's run changes.
  */
-function drawScore(ctx, colors, L, st, upTo) {
+function drawScore(ctx, colors, L, st, shownUpTo) {
   const k = st.n;
+  /* A THRESHOLD CAN KEEP NOTHING, and then there is no column to draw however
+     far the run says it has got: 5 × 10⁻⁸ over a base study of 1,500 people
+     keeps no SNP at all. Clamping here rather than in the caller is what keeps
+     `st.beta[i]` from being read past its end — one undefined weight puts a
+     NaN into a bar's height and the bar is then drawn nowhere. */
+  const upTo = Math.min(shownUpTo, k);
   const cw = k > 0 ? L.geno.w / k : L.geno.w;
   /* 4.3: the SNP just added is lit only while more are coming; on the finished
      sum the one mark in --c-highlight is the person's own line. */
@@ -413,19 +601,19 @@ function drawScore(ctx, colors, L, st, upTo) {
     yDomain: [lo || -0.1, hi || 0.1],
   });
   sPlot.caption(M.STRINGS.sumCaption);
-  sPlot.note(`${M.intText(Math.min(upTo, k))} of ${M.intText(k)} SNPs added`);
+  sPlot.note(`${M.intText(upTo)} of ${M.intText(k)} SNPs added`);
   sPlot.grid([0]);
   if (upTo > 0) {
     /* a step, not a line: the sum changes at a SNP and holds between them */
     const pts = [[0, 0]];
-    for (let i = 0; i < Math.min(upTo, k); i += 1) pts.push([i + 1, st.cum[i]]);
+    for (let i = 0; i < upTo; i += 1) pts.push([i + 1, st.cum[i]]);
     const step = [];
     for (let i = 0; i < pts.length; i += 1) {
       if (i > 0) step.push([pts[i][0] - 1, pts[i][1]]);
       step.push(pts[i]);
     }
     sPlot.curve(step, { stroke: colors.empirical, width: 2 });
-    sPlot.dot(Math.min(upTo, k), st.cum[Math.min(upTo, k) - 1], { fill: colors.empirical, r: 3.5 });
+    sPlot.dot(upTo, st.cum[upTo - 1], { fill: colors.empirical, r: 3.5 });
   }
   sPlot.axisY({ format: (v) => v.toFixed(1) });
   sPlot.axisX({ label: M.STRINGS.sumX, format: (v) => v.toFixed(0) });
@@ -463,7 +651,7 @@ function drawScore(ctx, colors, L, st, upTo) {
   dPlot.axisX({ label: M.STRINGS.distX, format: (v) => v.toFixed(1) });
 }
 
-/* ---- page 3: the threshold curve ----------------------------------------- */
+/* ---- step 4: the threshold curve ----------------------------------------- */
 
 const LX = (t) => Math.log10(t);
 
@@ -474,7 +662,7 @@ function drawCurve(ctx, colors, rect, genome, upTo) {
     ctx, colors, rect, xDomain: [LX(5e-8) - 0.4, 0.3], yDomain: [0, top],
   });
   plot.caption(fit(ctx, M.STRINGS.curveCaption, capFont(colors), rect.w + 22));
-  plot.grid([0.02, 0.04, 0.06, 0.08, 0.1, 0.12, 0.14].filter((v) => v < top));
+  plot.grid([0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35].filter((v) => v < top));
 
   /* THIS PANEL'S NOTE GOES TOP LEFT. `plot.note` right-aligns on the caption's
      own baseline and drops inside the top right corner when the caption has
@@ -510,6 +698,7 @@ function drawCurve(ctx, colors, rect, genome, upTo) {
   ctx.fillText(M.STRINGS.keptAxis, 0, 0);
   ctx.restore();
 
+  let best = null;
   if (upTo > 0) {
     const swept = rows.slice(0, upTo);
     plot.curve(swept.map((r) => [LX(r.thresh), r.validation]), { stroke: colors.holdout, width: 2 });
@@ -522,7 +711,7 @@ function drawCurve(ctx, colors, rect, genome, upTo) {
     /* DECISION 6: the largest R² among the thresholds swept, once there are
        two of them to be largest among. */
     if (upTo >= 2) {
-      const best = M.bestThreshold(swept, "target");
+      best = M.bestThreshold(swept, "target");
       const bx = plot.sx(LX(best.thresh));
       const byMark = plot.sy(best.target);
       plot.dot(LX(best.thresh), best.target, { fill: colors.highlight, r: 5 });
@@ -537,7 +726,7 @@ function drawCurve(ctx, colors, rect, genome, upTo) {
       const roomRight = rect.x + rect.w - (bx + 8);
       let toLeft = (bx - rect.x) / rect.w > 0.6;
       if (toLeft ? need > roomLeft : need > roomRight) toLeft = !toLeft;
-      const line = Math.round(parseFloat(colors.fsXs) * 1.4) || 15;
+      const line = noteLine(colors);
       const by = Math.max(byMark - line, rect.y + 3 + 2 * (parseFloat(colors.fsXs) || 11));
       if (toLeft) noteAt(ctx, colors, bx - 8, by, text, roomLeft, { tone: colors.ink2 });
       else noteAt(ctx, colors, bx + 8, by, text, roomRight, { align: "left", tone: colors.ink2 });
@@ -562,9 +751,22 @@ function drawCurve(ctx, colors, rect, genome, upTo) {
     ctx.stroke();
   }
   ctx.restore();
+
+  /* THE READING LINE, under the axis label — the mock's §4. The review found
+     step 4 the hardest step with the least support, and the support it was
+     missing is one sentence saying which two numbers to compare. It names the
+     SAME best fit the mark does (decision 6), so the sentence and the figure
+     cannot disagree, and it waits for the second threshold for the same
+     reason the mark does. */
+  if (best) {
+    noteAt(ctx, colors, rect.x - 34, rect.y + rect.h + M.READ_LINE_DY,
+      `best-fit R² ${M.n3(best.target)} in the target at P < ${M.tText(best.thresh)}; `
+      + `${M.n3(best.validation)} in the validation sample there`,
+      rect.w + 92, { align: "left", baseline: "top" });
+  }
 }
 
-/* ---- page 4: the quantile plot ------------------------------------------- */
+/* ---- step 5: the quantile plot ------------------------------------------- */
 
 function drawQuantiles(ctx, colors, rect, genome, row, popLabel, upTo) {
   /* THE FRAME IS THE FINISHED FIGURE'S, not the arrived vigintiles' (2.5): an
@@ -617,7 +819,124 @@ function drawQuantiles(ctx, colors, rect, genome, row, popLabel, upTo) {
   plot.axisX({ ticks: [1, 5, 10, 15, 20], format: (v) => v.toFixed(0), label: M.STRINGS.quantX });
 }
 
+/* ---- step 6: calibration, and the cut ------------------------------------ */
+
+/**
+ * Mean predicted risk against the fraction that has the disease, by decile of
+ * predicted risk, with the diagonal as the reference and a 95% interval on
+ * every observed fraction.
+ */
+function drawCalibration(ctx, colors, rect, rm, upTo, lineW) {
+  /* THE AXIS LEAVES ROOM FOR THE DIAGONAL'S OWN LABEL, and the amount is
+     measured rather than chosen: the label names the reference line at the end
+     the deciles do not reach, and at 1.06 × the tallest mark the clear strip
+     above the intervals was two pixels short of one line, so the label printed
+     over the top decile's interval. The top is set from the label's height. */
+  const raw = rm ? Math.max(...rm.bins.map((b) => Math.max(b.pred, b.hi))) : 0.5;
+  const labelDrop = (6 * rect.h) / rect.w + 3;
+  const strip = labelDrop + (parseFloat(colors.fsXs) || 11) + 6;
+  const top = Math.max(raw * 1.06, raw / Math.max(1 - strip / rect.h, 0.5));
+  const plot = makePlot({ ctx, colors, rect, xDomain: [0, top], yDomain: [0, top] });
+  captionRow(ctx, colors, rect, M.RISK_STRINGS.calCaption,
+    rm ? M.RISK_STRINGS.calNote : M.RISK_STRINGS.emptyNote, { lineW });
+
+  ctx.save();
+  ctx.strokeStyle = colors.reference;
+  ctx.lineWidth = 1;
+  ctx.setLineDash([5, 4]);
+  ctx.beginPath();
+  ctx.moveTo(plot.sx(0), plot.sy(0));
+  ctx.lineTo(plot.sx(top), plot.sy(top));
+  ctx.stroke();
+  ctx.restore();
+  /* No label on the diagonal (main session, 2026-09-12, read in the browser):
+     a horizontal label beside a diagonal crosses it or the top decile's
+     interval bar at some seed whatever corner it takes; the legend's
+     reference-line entry names the line. */
+
+  if (rm) {
+    const shown = rm.bins.slice(0, Math.min(upTo, rm.bins.length));
+    ctx.save();
+    ctx.strokeStyle = colors.empirical;
+    ctx.lineWidth = 1.4;
+    ctx.lineCap = "round";
+    for (const b of shown) {
+      const x = Math.round(plot.sx(b.pred)) + 0.5;
+      ctx.beginPath();
+      ctx.moveTo(x, plot.sy(b.lo));
+      ctx.lineTo(x, plot.sy(b.hi));
+      ctx.stroke();
+    }
+    ctx.restore();
+    for (const b of shown) {
+      /* 4.3: the decile that has just landed, and nothing once they all have */
+      const newest = b.bin === shown.length && shown.length < rm.bins.length;
+      plot.dot(b.pred, b.obs, { fill: newest ? colors.highlight : colors.empirical, r: 3 });
+    }
+  }
+
+  plot.axisY({ format: (v) => `${Math.round(100 * v)}%` });
+  plot.axisX({ format: (v) => `${Math.round(100 * v)}%`, label: M.RISK_STRINGS.calX });
+}
+
+/** Absolute predicted risk against the person's score percentile, with the risk
+    threshold as the reference and the crossing marked. */
+function drawStratification(ctx, colors, rect, rm, threshold, popLabel, upTo, lineW) {
+  const top = Math.max((rm ? rm.max : 0.4) * 1.12, threshold * 1.25);
+  const plot = makePlot({ ctx, colors, rect, xDomain: [0, 100], yDomain: [0, top] });
+  captionRow(ctx, colors, rect, M.RISK_STRINGS.stratCaption, popLabel, { lineW });
+
+  const ty = Math.round(plot.sy(threshold)) + 0.5;
+  ctx.save();
+  ctx.strokeStyle = colors.reference;
+  ctx.lineWidth = 1;
+  ctx.setLineDash([5, 4]);
+  ctx.beginPath();
+  ctx.moveTo(rect.x, ty);
+  ctx.lineTo(rect.x + rect.w, ty);
+  ctx.stroke();
+  ctx.restore();
+  tinyAt(ctx, colors, rect.x + 2, ty - noteLine(colors) - 2,
+    `${Math.round(100 * threshold)}% risk`);
+
+  const reach = (100 * Math.min(upTo, M.RISK_DECILES)) / M.RISK_DECILES;
+  const drawn = rm ? rm.curve.filter((p) => p[0] <= reach + 1e-9) : [];
+  plot.curve(drawn, { stroke: colors.empirical, width: 2 });
+
+  const cross = rm ? M.crossingPercentile(rm, threshold) : null;
+  if (cross !== null && cross <= reach + 1e-9) {
+    const cx = Math.round(plot.sx(cross)) + 0.5;
+    ctx.save();
+    ctx.strokeStyle = colors.highlight;
+    ctx.lineWidth = 1.4;
+    ctx.beginPath();
+    ctx.moveTo(cx, ty);
+    ctx.lineTo(cx, rect.y + rect.h);
+    ctx.stroke();
+    ctx.restore();
+    plot.dot(cross, threshold, { fill: colors.highlight, r: 4.5 });
+    /* the count goes on whichever side of the drop has room for it */
+    const text = `${M.intText(M.peopleAbove(rm, threshold))} of ${M.intText(M.N_TARGET)} above`;
+    const need = widthOf(ctx, text, noteFont(colors));
+    const roomLeft = cx - 8 - rect.x;
+    const roomRight = rect.x + rect.w - (cx + 8);
+    if (need <= roomLeft) noteAt(ctx, colors, cx - 8, ty - 6, text, roomLeft, { tone: colors.ink2 });
+    else {
+      noteAt(ctx, colors, cx + 8, ty - 6, text, roomRight, { align: "left", tone: colors.ink2 });
+    }
+  }
+
+  plot.axisY({ format: (v) => `${Math.round(100 * v)}%` });
+  plot.axisX({
+    ticks: [0, 25, 50, 75, 100], format: (v) => v.toFixed(0), label: M.RISK_STRINGS.stratX,
+  });
+}
+
 /* ============================== the widget ================================= */
+
+const REGION_STEPS = ["haplotypes", "clump"];
+const GENOME_STEPS = ["score", "threshold", "quantile", "risk"];
+const ALL_STEPS = M.PAGE_VALUES;
 
 defineWidget({
   slug: "polygenic-score",
@@ -630,26 +949,32 @@ defineWidget({
   height: ({ w, ...values }) => M.stageHeight(w, values),
 
   params: {
-    /* DECISION 2: the page is display, and the run is per page, so a visit
-       elsewhere and back keeps both. */
+    /* DECISION 2: the step is display, and the run is per step, so a visit
+       elsewhere and back keeps all six. */
     page: {
       type: "segmented",
       style: "grid",
       label: M.STRINGS.pageLabel,
       detail: M.STRINGS.pageDetail,
       options: M.PAGES,
-      default: "ld",
+      default: "haplotypes",
       display: true,
     },
 
-    regionSec: { type: "section", label: M.STRINGS.regionSection },
+    regionSec: {
+      type: "section",
+      label: M.STRINGS.regionSection,
+      when: { param: "page", oneOf: REGION_STEPS },
+    },
+    /* Recombination is on both region steps: it draws the haplotypes AND it
+       decides how much clumping has to do. */
     recomb: {
       type: "segmented",
       label: M.STRINGS.recombLabel,
       detail: M.STRINGS.recombDetail,
       options: M.RECOMB,
       default: "medium",
-      when: { param: "page", equals: "ld" },
+      when: { param: "page", oneOf: REGION_STEPS },
     },
     clumpR2: {
       type: "segmented",
@@ -657,7 +982,7 @@ defineWidget({
       detail: M.STRINGS.clumpR2Detail,
       options: M.CLUMP_R2,
       default: "0.1",
-      when: { param: "page", equals: "ld" },
+      when: { param: "page", equals: "clump" },
     },
     causalTyped: {
       type: "segmented",
@@ -665,13 +990,23 @@ defineWidget({
       detail: M.STRINGS.typedDetail,
       options: M.TYPED,
       default: "typed",
-      when: { param: "page", equals: "ld" },
+      when: { param: "page", oneOf: REGION_STEPS },
     },
 
     baseSec: {
       type: "section",
       label: M.STRINGS.baseSection,
-      when: { param: "page", oneOf: ["score", "threshold", "quantile"] },
+      when: { param: "page", oneOf: GENOME_STEPS },
+    },
+    /* DECISION 6's control, first in the section because it is the first thing
+       about a base study a reader asks. */
+    baseSize: {
+      type: "segmented",
+      label: M.STRINGS.baseSizeLabel,
+      detail: M.STRINGS.baseSizeDetail,
+      options: M.BASE_SIZES,
+      default: "15000",
+      when: { param: "page", oneOf: GENOME_STEPS },
     },
     causal: {
       type: "segmented",
@@ -679,7 +1014,7 @@ defineWidget({
       detail: M.STRINGS.causalDetail,
       options: M.CAUSAL,
       default: "300",
-      when: { param: "page", oneOf: ["score", "threshold", "quantile"] },
+      when: { param: "page", oneOf: GENOME_STEPS },
     },
     h2: {
       type: "segmented",
@@ -687,13 +1022,13 @@ defineWidget({
       detail: M.STRINGS.h2Detail,
       options: M.H2,
       default: "0.3",
-      when: { param: "page", oneOf: ["score", "threshold", "quantile"] },
+      when: { param: "page", oneOf: GENOME_STEPS },
     },
 
     targetSec: {
       type: "section",
       label: M.STRINGS.targetSection,
-      when: { param: "page", oneOf: ["score", "threshold", "quantile"] },
+      when: { param: "page", oneOf: GENOME_STEPS },
     },
     target: {
       type: "segmented",
@@ -702,7 +1037,7 @@ defineWidget({
       detail: M.STRINGS.targetDetail,
       options: M.TARGETS.map((t) => ({ value: t.value, label: t.label, span: true })),
       default: "same",
-      when: { param: "page", oneOf: ["score", "threshold", "quantile"] },
+      when: { param: "page", oneOf: GENOME_STEPS },
     },
     /* DECISION 3: eleven readings of one base study, all of them computed. */
     threshold: {
@@ -712,8 +1047,10 @@ defineWidget({
       options: M.THRESHOLD_OPTIONS,
       default: "0.01",
       display: true,
-      when: { param: "page", oneOf: ["score", "threshold", "quantile"] },
+      when: { param: "page", oneOf: GENOME_STEPS },
     },
+    /* The person is on step 3 and step 6: step 6's tile names one person's
+       risk, and a tile that names a person needs the control that picks them. */
     person: {
       type: "int",
       label: M.STRINGS.personLabel,
@@ -722,7 +1059,32 @@ defineWidget({
       max: 319,
       default: 1,
       display: true,
-      when: { param: "page", equals: "score" },
+      when: { param: "page", oneOf: ["score", "risk"] },
+    },
+
+    riskSec: {
+      type: "section",
+      label: M.RISK_STRINGS.riskSection,
+      when: { param: "page", equals: "risk" },
+    },
+    /* model.js decision 11: the prevalence sets who has the disease, so it is
+       data; the risk threshold moves one line, so it is display. */
+    prevalence: {
+      type: "segmented",
+      label: M.RISK_STRINGS.prevalenceLabel,
+      detail: M.RISK_STRINGS.prevalenceDetail,
+      options: M.PREVALENCES,
+      default: "20",
+      when: { param: "page", equals: "risk" },
+    },
+    riskThreshold: {
+      type: "segmented",
+      label: M.RISK_STRINGS.riskThreshLabel,
+      detail: M.RISK_STRINGS.riskThreshDetail,
+      options: M.RISK_THRESHOLDS,
+      default: "30",
+      display: true,
+      when: { param: "page", equals: "risk" },
     },
 
     seed: {
@@ -731,29 +1093,37 @@ defineWidget({
       detail: M.STRINGS.seedDetail,
       min: 1,
       max: 200,
-      default: 29,
+      default: 41,
       afterDrive: true,
     },
 
     /* Authoring escape hatch, first render only, counted in the unit of the
-       page the link names: clumps taken, SNPs added, thresholds swept,
-       vigintiles landed. */
+       step the link names: rows filled, clumping beats, SNPs added, thresholds
+       swept, vigintiles added, deciles drawn. */
     shown: { type: "int", min: 0, max: 1000, default: 0, hidden: true },
   },
 
   legend: ({ params }) => {
-    if (params.page === "ld") {
+    const page = M.pageOf(params);
+    if (page === "haplotypes") {
+      return [
+        { token: "empirical", label: "One of the two alleles at a SNP" },
+        { token: "value-high", label: "r² between a pair of SNPs" },
+        { token: "reference", label: "The causal SNP's position", mark: "tri" },
+      ];
+    }
+    if (page === "clump") {
       return [
         { token: "empirical", label: "A SNP's test", mark: "dot" },
         { token: "extreme", label: "Under P = 0.05", mark: "dot" },
-        { token: "empirical", label: "In LD with a lead SNP, and dropped", mark: "dot" },
         { token: "highlight", label: "The lead SNP just chosen", mark: "dot" },
+        { token: "highlight", label: "An arc to a SNP it accounts for, darker at higher r²", mark: "line" },
+        { token: "empirical", label: "A SNP it accounts for, dropped to the axis", mark: "line" },
         { token: "reference", label: "P = 0.05", mark: "dash" },
         { token: "reference", label: "The causal SNP's position", mark: "tri" },
-        { token: "value-high", label: "r² between a pair of SNPs" },
       ];
     }
-    if (params.page === "score") {
+    if (page === "score") {
       return [
         { token: "group-a", label: "The person's genotype, in effect alleles", mark: "dot" },
         { token: "group-b", label: "The base study's weight" },
@@ -761,12 +1131,21 @@ defineWidget({
         { token: "highlight", label: "The SNP just added, and the person's score", mark: "dot" },
       ];
     }
-    if (params.page === "threshold") {
+    if (page === "threshold") {
       return [
         { token: "empirical", label: "R² in the target sample", mark: "line" },
         { token: "holdout", label: "R² in the validation sample", mark: "line" },
         { token: "highlight", label: "The best-fit threshold", mark: "dot" },
         { token: "ink-3", label: "SNPs kept, on the right axis", mark: "dash" },
+      ];
+    }
+    if (page === "risk") {
+      return [
+        { token: "empirical", label: "A decile of the target sample, with its 95% interval", mark: "dot" },
+        { token: "empirical", label: "Predicted risk by score percentile", mark: "line" },
+        { token: "reference", label: "Predicted equals observed", mark: "dash" },
+        { token: "reference", label: "The risk threshold", mark: "dash" },
+        { token: "highlight", label: "The percentile that crosses it", mark: "dot" },
       ];
     }
     return [
@@ -777,7 +1156,8 @@ defineWidget({
   },
 
   /* One region and one genome, both on every data change (model.js
-     decision 2), and every threshold's reading with them (decision 3). */
+     decision 2), and every threshold's reading with them (decisions 3 and
+     12). */
   compute({ params, rng }) {
     return M.build(rng, M.configFor(params));
   },
@@ -788,27 +1168,27 @@ defineWidget({
     runTitle: M.RUN_TITLES,
 
     init: ({ params, state, fromScratch }) => {
-      const k = { ld: 0, score: 0, threshold: 0, quantile: 0 };
-      /* An authored head start applies on the first render only, to the page
+      const k = Object.fromEntries(ALL_STEPS.map((p) => [p, 0]));
+      /* An authored head start applies on the first render only, to the step
          the link names — `?page=threshold&shown=11` for a lesson link. */
       const authored = fromScratch ? 0 : Math.max(0, params.shown ?? 0);
-      const page = params.page ?? "ld";
+      const page = M.pageOf(params);
       k[page] = Math.min(M.totalFor(page, state, params), authored);
       return {
         k,
         beat: 0,
-        /* model.js decision 5: page 1's tests are the first beat of its run. */
-        scanDone: k.ld > 0,
+        /* model.js decision 5: step 2's tests are the first beat of its run. */
+        scanDone: k.clump > 0,
         done: k[page] >= M.totalFor(page, state, params),
       };
     },
 
     advance: (anim, { dt, params, state }) => {
-      const page = params.page ?? "ld";
+      const page = M.pageOf(params);
       const total = M.totalFor(page, state, params);
-      if (page === "ld" && !anim.scanDone) {
+      if (page === "clump" && !anim.scanDone) {
         anim.scanDone = true;
-        /* Play spends its first frame on the tests and takes no clump; Step
+        /* Play spends its first frame on the tests and takes no beat; Step
            goes on to take the clump its label promises. */
         if (anim.mode === "run") return true;
       }
@@ -817,7 +1197,7 @@ defineWidget({
         anim.done = true;
         return false;
       }
-      anim.beat += dt / M.beatMs(page);
+      anim.beat += dt / M.beatMs(page, state, params);
       if (anim.beat < 1) return true;
       if (anim.mode === "step") {
         anim.beat = 0;
@@ -832,18 +1212,23 @@ defineWidget({
         anim.done = true;
         return false;
       }
-      return anim.mode !== "step";
+      /* model.js decision 9: one press of Step on step 2 runs to the end of
+         the clump it started, so the button's label names what it did. */
+      if (anim.mode === "step") {
+        return page === "clump" && anim.k[page] % M.CLUMP_BEATS !== 0;
+      }
+      return true;
     },
 
-    /* A display change keeps every page's work and re-derives what follows
-       from it: the P threshold changes how many SNPs page 2 has to add, so a
+    /* A display change keeps every step's work and re-derives what follows
+       from it: the P threshold changes how many SNPs step 3 has to add, so a
        sum that ran past the new count stops at it. */
     rebuild: (anim, { params, state }) => {
-      for (const page of ["ld", "score", "threshold", "quantile"]) {
-        anim.k[page] = Math.min(anim.k[page], M.totalFor(page, state, params));
+      for (const page of ALL_STEPS) {
+        anim.k[page] = Math.min(anim.k[page] ?? 0, M.totalFor(page, state, params));
       }
-      anim.scanDone = anim.scanDone || anim.k.ld > 0;
-      const page = params.page ?? "ld";
+      anim.scanDone = anim.scanDone || anim.k.clump > 0;
+      const page = M.pageOf(params);
       anim.done = anim.k[page] >= M.totalFor(page, state, params);
     },
   },
@@ -851,13 +1236,18 @@ defineWidget({
   draw({ ctx, colors, w, params, state, anim }) {
     const L = M.layout(w, params);
     const upTo = anim?.k?.[L.page] ?? 0;
-    if (L.page === "ld") {
-      drawAssoc(ctx, colors, L.assoc, state.region, {
-        shown: upTo,
+    drawHead(ctx, colors, L.head, L.page);
+    if (L.page === "haplotypes") {
+      drawBlock(ctx, colors, L.block, state.region, Math.min(upTo, M.HAP_ROWS));
+      drawTriangle(ctx, colors, L.tri, state.region, { shown: upTo >= M.HAP_ROWS });
+      return;
+    }
+    if (L.page === "clump") {
+      drawClump(ctx, colors, L.assoc, state.region, {
+        beats: upTo,
+        frac: anim?.beat ?? 0,
         scanDone: Boolean(anim?.scanDone),
-        finished: upTo >= state.region.clumps.length,
       });
-      drawTriangle(ctx, colors, L.tri, state.region, { scanDone: Boolean(anim?.scanDone) });
       return;
     }
     if (L.page === "score") {
@@ -868,19 +1258,54 @@ defineWidget({
       drawCurve(ctx, colors, L.curve, state.genome, upTo);
       return;
     }
+    if (L.page === "risk") {
+      const rm = M.riskFor(state, params);
+      const t = M.riskThresholdOf(params.riskThreshold).p;
+      drawCalibration(ctx, colors, L.cal, rm, upTo, L.strat.x - L.cal.x - 16);
+      drawStratification(ctx, colors, L.strat, rm, t,
+        M.targetOf(params.target).label.toLowerCase(), upTo, Math.round(w - 8 - L.strat.x));
+      return;
+    }
     drawQuantiles(ctx, colors, L.bins, state.genome, M.rowFor(state, params),
       M.targetOf(params.target).label, upTo);
   },
 
   readout({ params, state, anim }) {
-    const page = params.page ?? "ld";
+    const page = M.pageOf(params);
     const upTo = anim?.k?.[page] ?? 0;
 
-    if (page === "ld") {
+    if (page === "haplotypes") {
       const R = state.region;
-      const placed = Math.min(upTo, R.clumps.length);
+      const full = upTo >= M.HAP_ROWS;
+      return [
+        {
+          label: "Haplotypes drawn",
+          value: upTo > 0 ? M.intText(Math.min(upTo, M.HAP_ROWS)) : "—",
+          note: `of ${M.HAP_ROWS}, from a pool of ${M.intText(M.REGION.nHap)}`,
+        },
+        {
+          label: `Pairs above r² ${M.R_HIGH}`,
+          value: full ? M.intText(R.pairsHigh) : "—",
+          note: `of the ${M.intText(R.pairsTotal)} in the region`,
+        },
+        {
+          label: "The furthest of them",
+          value: full ? `${M.intText(R.pairReach)} kb` : "—",
+          note: "the longest run of shared ancestor between two SNPs",
+        },
+        {
+          label: "SNPs in the first clump",
+          value: full ? M.intText(R.firstClump) : "—",
+          note: "the lead SNP and the SNPs it accounts for",
+        },
+      ];
+    }
+
+    if (page === "clump") {
+      const R = state.region;
+      const settled = Math.min(Math.floor(upTo / M.CLUMP_BEATS), R.clumps.length);
       let sig = 0;
-      for (let c = 0; c < placed; c += 1) if (R.clumps[c].p < M.REGION_ALPHA) sig += 1;
+      for (let c = 0; c < settled; c += 1) if (R.clumps[c].p < M.REGION_ALPHA) sig += 1;
       return [
         {
           label: "SNPs under P < 0.05",
@@ -889,12 +1314,12 @@ defineWidget({
         },
         {
           label: "Clumps kept",
-          value: placed > 0 ? M.intText(sig) : "—",
+          value: settled > 0 ? M.intText(sig) : "—",
           note: "lead SNPs under P < 0.05",
         },
         {
           label: "r² to the causal SNP",
-          value: placed > 0 ? M.n2(R.leadR2) : "—",
+          value: settled > 0 ? M.n2(R.leadR2) : "—",
           note: R.typed
             ? "from the region's lead SNP"
             : "from the region's lead SNP; the causal variant is not on the array",
@@ -935,6 +1360,13 @@ defineWidget({
          number the visible data cannot support (2.11). */
       const reached = at < upTo ? rows[at] : null;
       const best = swept.length >= 2 ? M.bestThreshold(swept, "target") : null;
+      /* THE OVERFITTING TILE IS A PAIRED NUMBER, measured in ONE sample. The
+         draft printed the best-fit R² minus the validation R², a difference
+         between two separate samples of 319 whose spread is ±0.03 — over
+         sixteen seeds it came out positive on only six. The best-fit R² minus
+         the R² with every SNP kept is the same sample twice, and it is what
+         choosing the threshold bought: positive on sixteen of sixteen. */
+      const every = upTo >= rows.length ? rows[rows.length - 1] : null;
       return [
         {
           label: "SNPs kept",
@@ -953,8 +1385,56 @@ defineWidget({
         },
         {
           label: "Overfitting",
-          value: best ? M.n3(best.target - best.validation) : "—",
-          note: "best-fit R² minus the validation R² there",
+          value: best && every ? M.n3(best.target - every.target) : "—",
+          note: "best-fit R² minus R² with every SNP kept",
+        },
+      ];
+    }
+
+    if (page === "risk") {
+      const rm = M.riskFor(state, params);
+      const t = M.riskThresholdOf(params.riskThreshold).p;
+      const landed = Math.min(upTo, M.RISK_DECILES);
+      const full = rm && landed >= M.RISK_DECILES;
+      const person = M.personRisk(state, params);
+      const shownBins = rm ? rm.bins.slice(0, landed) : [];
+      const covered = shownBins.filter((b) => b.lo <= b.pred && b.pred <= b.hi).length;
+      const cross = rm ? M.crossingPercentile(rm, t) : null;
+      const reach = (100 * landed) / M.RISK_DECILES;
+      const pct = (v) => `${Math.round(100 * v)}%`;
+      return [
+        {
+          label: "Calibration intercept",
+          value: full ? M.n2(rm.inter) : "—",
+          note: "0 when the predicted risks are right on average",
+        },
+        {
+          label: "Calibration slope",
+          value: full ? M.n2(rm.slope) : "—",
+          note: "1 when a rise in predicted risk is the same rise in observed risk",
+        },
+        {
+          label: "Intervals covering the diagonal",
+          value: landed > 0 ? `${M.intText(covered)} of ${M.intText(landed)}` : "—",
+          note: `by decile of predicted risk, ${Math.round(M.N_TARGET / M.RISK_DECILES)} people each`,
+        },
+        {
+          label: "This person's risk",
+          value: rm && person.risk !== null && person.percentile <= reach
+            ? pct(person.risk) : "—",
+          note: person.percentile === null
+            ? "predicted by the model fitted in the base population"
+            : `person ${person.person}, at score percentile ${M.intText(person.percentile)}`,
+        },
+        {
+          label: "Percentile crossing the threshold",
+          value: full && cross !== null ? M.intText(cross) : "—",
+          note: `where predicted risk reaches ${pct(t)}`,
+        },
+        {
+          label: "People above it",
+          value: full ? M.intText(M.peopleAbove(rm, t)) : "—",
+          note: `of the ${M.intText(M.N_TARGET)} in the target sample`,
         },
       ];
     }
@@ -986,31 +1466,49 @@ defineWidget({
   },
 
   summary({ params, state, anim }) {
-    const page = params.page ?? "ld";
+    const page = M.pageOf(params);
     const upTo = anim?.k?.[page] ?? 0;
-    if (page === "ld") {
-      const R = state.region;
+    const R = state.region;
+
+    if (page === "haplotypes") {
+      if (upTo === 0) {
+        return `An empty block of ${M.HAP_ROWS} haplotype rows over the region's `
+          + `${M.REGION.m} SNPs, with the causal SNP's column marked and the r² triangle's `
+          + "own axis beneath it, before any haplotype is drawn.";
+      }
+      const drawn = Math.min(upTo, M.HAP_ROWS);
+      return `${M.intText(drawn)} of ${M.HAP_ROWS} haplotypes drawn over ${M.REGION.m} SNPs in `
+        + `${M.intText(R.span)} kb, the shared stretches reading as vertical bands`
+        + (drawn >= M.HAP_ROWS
+          ? `, with the r² between every pair within 250 kb underneath: ${M.intText(R.pairsHigh)} `
+            + `of ${M.intText(R.pairsTotal)} pairs are above r² ${M.R_HIGH}.`
+          : ".");
+    }
+
+    if (page === "clump") {
       if (!anim?.scanDone) {
         return `An empty plot of −log₁₀P against position over ${M.intText(R.span)} kb, with the `
           + "P = 0.05 line across it, before any of the region's 100 SNPs is tested.";
       }
-      const placed = Math.min(upTo, R.clumps.length);
+      const settled = Math.min(Math.floor(upTo / M.CLUMP_BEATS), R.clumps.length);
       return `${M.intText(R.hits)} of 100 SNPs in a ${M.intText(R.span)} kb region are under `
-        + `P = 0.05, and ${M.intText(placed)} of ${M.intText(R.clumps.length)} clumps have been `
-        + `taken. The r² between every pair within 250 kb is drawn underneath.`;
+        + `P = 0.05, and ${M.intText(settled)} of ${M.intText(R.clumps.length)} lead SNPs have `
+        + "been chosen: each one is kept and the SNPs in LD with it are dropped to the axis.";
     }
+
     if (page === "score") {
       const st = M.personScore(state, params);
       if (upTo === 0) {
-        return `An empty figure of one column a SNP — genotype, weight and running sum — over `
+        return "An empty figure of one column a SNP — genotype, weight and running sum — over "
           + `the score distribution of ${M.intText(M.N_TARGET)} people, before any of the `
           + `${M.intText(st.n)} SNPs the P threshold keeps is added.`;
       }
       const partial = st.cum[Math.min(upTo, st.n) - 1];
       return `Person ${st.person}'s score after ${M.intText(Math.min(upTo, st.n))} of `
         + `${M.intText(st.n)} SNPs is ${M.n2(partial)}, drawn as the genotype, the base study's `
-        + `weight and the running sum over each SNP in turn.`;
+        + "weight and the running sum over each SNP in turn.";
     }
+
     if (page === "threshold") {
       if (upTo === 0) {
         return "An empty plot of R² against the P threshold on a log axis, with the number of "
@@ -1022,13 +1520,35 @@ defineWidget({
         + `reads ${M.n3(last.target)} there and the validation sample ${M.n3(last.validation)}, `
         + `over ${M.intText(last.nSnp)} SNPs kept.`;
     }
+
+    if (page === "risk") {
+      const rm = M.riskFor(state, params);
+      const t = M.riskThresholdOf(params.riskThreshold).p;
+      if (!rm) {
+        return "Two empty square plots — predicted against observed risk, and predicted risk by "
+          + "score percentile — at a P threshold that keeps no SNP, so no model is fitted.";
+      }
+      if (upTo === 0) {
+        return "An empty calibration plot with the diagonal across it, beside an empty plot of "
+          + `predicted risk by score percentile with the ${Math.round(100 * t)}% line across it, `
+          + "before any decile is drawn.";
+      }
+      const landed = Math.min(upTo, M.RISK_DECILES);
+      return `${M.intText(landed)} of ${M.RISK_DECILES} deciles of predicted risk drawn against `
+        + `the fraction that has the disease, in a target sample of `
+        + `${M.targetOf(params.target).sample}; the calibration slope is ${M.n2(rm.slope)} and the intercept `
+        + `${M.n2(rm.inter)}, and the curve beside it reaches ${Math.round((100 * landed) / M.RISK_DECILES)} `
+        + "on the percentile axis.";
+    }
+
     const row = M.rowFor(state, params);
     if (upTo === 0) {
       return "An empty plot of mean trait against score vigintile, with the sample's own mean "
-        + "trait drawn across it, before any vigintile has landed.";
+        + "trait drawn across it, before any vigintile is added.";
     }
-    return `Mean trait by score vigintile in a ${M.targetOf(params.target).label.toLowerCase()} `
-      + `target sample, ${M.intText(Math.min(upTo, 20))} of 20 landed, each with a 95% interval `
-      + `around it and the sample's mean trait drawn across.`;
+    return `Mean trait by score vigintile in a target sample of `
+      + `${M.targetOf(params.target).sample}, ${M.intText(Math.min(upTo, 20))} of 20 added, each with a 95% interval `
+      + `around it and the sample's mean trait drawn across. The score's R² over them is `
+      + `${M.n3(row.binR2[Math.min(upTo, 20)])}.`;
   },
 });

@@ -64,6 +64,70 @@
        thins are on screen. Play spends its first frame on them and places no
        clump; Step goes on to place the clump its label promises — widget 57's
        variance step, in the same shape.
+
+   ROUND TWO, from Kenneth's review of the four-page draft and his eight picks
+   on `_lab/prs-round2-mock.html` (catalogue § Slot 59, 2026-09-12). His three
+   points were that the score is weak on this data, that clumping's CAUSE is
+   invisible, and that four nouns in a grid do not say which order to read them
+   in. Decisions 6 to 13 are the answers:
+
+    6. THE BASE STUDY IS SUMMARY STATISTICS, NOT A COHORT. What a PRS consumes
+       is one β̂ and one P a SNP, so `summaryBase` draws them directly:
+       β̂ⱼ ~ N(βⱼ, seⱼ²) on the standardised genotype with seⱼ = √((1 − βⱼ²)/n),
+       both divided by √(2pⱼ(1 − pⱼ)) for the raw allele count the score sums,
+       and P from the two-sided normal tail. That is what makes **Base study
+       size** a control the reader can move — the per-person route costs 28 ms
+       at 1,500 people and 415 ms at 20,000, and the summary route costs
+       nothing at any size. The mock checked the two against each other at
+       n = 1,500 and every quantity agreed inside 0.82 SD of the two routes'
+       own spread; `_lab/prs-verify.mjs` §5b keeps that check.
+
+    7. SIX STEPS, NOT FOUR PAGES. The region splits: the haplotypes are step 1
+       and clumping is step 2, because the draft drew clumping's RESULT and not
+       its cause. Calibration is step 6. The values `score`, `threshold` and
+       `quantile` are unchanged, so the draft's links still resolve; `page=ld`
+       is the one that breaks, and it is the value that became two steps.
+
+    8. EVERY STAGE SAYS WHERE IT IS AND WHAT IT WAS HANDED. A step line above
+       the caption — `step 2 of 6 · Clump the SNPs` in `--c-highlight` — with
+       the hand-off right-aligned on the same line naming what the step before
+       produced. It costs 21px of every stage, and it is the answer to "nothing
+       says how the pages chain".
+
+    9. STEP 2 COUNTS BEATS, NOT CLUMPS: three a clump, and the run is a
+       function of that one number. Beat 1 lights the lead, beat 2 draws an arc
+       to every SNP its r² takes, beat 3 slides those SNPs to the baseline. The
+       fraction inside the third beat tweens the slide. **Step advances to the
+       next multiple of three**, so one press is one whole clump and the
+       button's label is what that press does (4.4b) — and the reader stepping
+       still sees the arcs, because the three beats run at the beat rate.
+
+   10. THE BASE POPULATION IS THE ONE COHORT STILL DRAWN PERSON BY PERSON.
+       3,000 people at the base study's own allele frequencies, because a
+       logistic fit needs individual outcomes. It costs 52 ms, which is the
+       largest single cost in `compute`, and it is what makes step 6's
+       calibration a test rather than a tautology: a model fitted in the target
+       sample sits on the diagonal there by construction.
+
+   11. PREVALENCE IS DATA, THE RISK THRESHOLD IS DISPLAY. Prevalence sets the
+       liability threshold, so it changes who has the disease and therefore the
+       fitted model — it cannot be a display parameter without computing every
+       prevalence, which is three times the logistic fitting. The risk
+       threshold moves one line across already-computed risks, so it is
+       display.
+
+   12. STEP 6 FOLLOWS THE P THRESHOLD ON THE RAIL, like step 5. That needs a
+       risk model at each of the eleven thresholds, and the base population's
+       scores are accumulated ACROSS them rather than summed from scratch at
+       each — the kept sets are nested, so eleven scores over 3,000 people cost
+       4.6 ms that way against 7.3 ms independently and one pass over the SNPs
+       either way.
+
+   13. STEP 1'S TRIANGLE ARRIVES WITH THE LAST HAPLOTYPE. The r² is measured
+       over the whole pool, not over the rows drawn so far, so revealing it
+       against the row count would tie two numbers that are not tied. The
+       measurement follows the data: the pool fills a row a beat, and the
+       triangle is what the finished pool says.
    ========================================================================= */
 
 import { makeRng } from "../core/rng.js";
@@ -333,6 +397,151 @@ export function betaDraw(rng, a, b) {
   const x = gammaDraw(rng, a);
   const y = gammaDraw(rng, b);
   return x + y > 0 ? x / (x + y) : 0.5;
+}
+
+/* ==========================================================================
+   Round two's numerics: the normal tail, the normal quantile, a logistic fit
+   and a binomial interval.
+
+   All four came from `_lab/prs-round2-mock.html`, which asserted every one of
+   them against a closed form before drawing anything with it — Φ(1.96), the
+   5e−8 tail, Φ⁻¹(0.975), the intercept-only MLE log(k/(n−k)), the 2 × 2 log
+   odds ratio, and a calibration intercept of 0 and slope of 1 on outcomes
+   generated at a known logit. `_lab/prs-verify.mjs` §1b carries those
+   assertions.
+   ========================================================================== */
+
+/** Chebyshev erfc (Numerical Recipes `erfccheb`), relative error < 1e−10 —
+    good to the 5e−8 end of the threshold slider, where a t tail would be
+    indistinguishable at every base study size the control offers. */
+function erfc(x) {
+  const z = Math.abs(x);
+  const t = 2 / (2 + z);
+  const ty = 4 * t - 2;
+  const cof = [-1.3026537197817094, 6.4196979235649026e-1, 1.9476473204185836e-2,
+    -9.561514786808631e-3, -9.46595344482036e-4, 3.66839497852761e-4, 4.2523324806907e-5,
+    -2.0278578112534e-5, -1.624290004647e-6, 1.303655835580e-6, 1.5626441722e-8,
+    -8.5238095915e-8, 6.529054439e-9, 5.059343495e-9, -9.91364156e-10, -2.27365122e-10,
+    9.6467911e-11, 2.394038e-12, -6.886027e-12, 8.94487e-13, 3.13092e-13,
+    -1.12708e-13, 3.81e-16, 7.106e-15];
+  let d = 0;
+  let dd = 0;
+  for (let j = cof.length - 1; j > 0; j -= 1) {
+    const tmp = d;
+    d = ty * d - dd + cof[j];
+    dd = tmp;
+  }
+  const ans = t * Math.exp(-z * z + 0.5 * (cof[0] + ty * d) - dd);
+  return x >= 0 ? ans : 2 - ans;
+}
+
+/** The two-sided normal tail — the P value a summary statistic carries. */
+export const normTail2 = (z) => erfc(Math.abs(z) / Math.SQRT2);
+export const normCdf = (z) => 0.5 * erfc(-z / Math.SQRT2);
+
+/** Acklam's inverse normal CDF — the liability threshold a prevalence names. */
+export function normQuantile(p) {
+  const a = [-3.969683028665376e+01, 2.209460984245205e+02, -2.759285104469687e+02,
+    1.383577518672690e+02, -3.066479806614716e+01, 2.506628277459239e+00];
+  const b = [-5.447609879822406e+01, 1.615858368580409e+02, -1.556989798598866e+02,
+    6.680131188771972e+01, -1.328068155288572e+01];
+  const c = [-7.784894002430293e-03, -3.223964580411365e-01, -2.400758277161838e+00,
+    -2.549732539343734e+00, 4.374664141464968e+00, 2.938163982698783e+00];
+  const d = [7.784695709041462e-03, 3.224671290700398e-01, 2.445134137142996e+00,
+    3.754408661907416e+00];
+  if (p < 0.02425) {
+    const q = Math.sqrt(-2 * Math.log(p));
+    return (((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5])
+      / ((((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1);
+  }
+  if (p > 1 - 0.02425) return -normQuantile(1 - p);
+  const q = p - 0.5;
+  const r = q * q;
+  return (((((a[0] * r + a[1]) * r + a[2]) * r + a[3]) * r + a[4]) * r + a[5]) * q
+    / (((((b[0] * r + b[1]) * r + b[2]) * r + b[3]) * r + b[4]) * r + 1);
+}
+
+export const expit = (e) => 1 / (1 + Math.exp(-e));
+
+/**
+ * Logistic regression by Newton steps.
+ *
+ * `X` is an array of column vectors with the intercept included by the caller.
+ * `offset` is added to the linear predictor and NOT fitted, which is what makes
+ * a calibration intercept an intercept: the model's own logit goes in as the
+ * offset and the fitted constant is how far the outcome sits from it.
+ *
+ * p is 1 or 2 here, so the Newton step is solved by Gauss–Jordan on a matrix of
+ * that size rather than by bringing in a decomposition.
+ */
+export function logistic(X, y, { offset = null, steps = 40 } = {}) {
+  const p = X.length;
+  const n = y.length;
+  const beta = new Float64Array(p);
+  for (let it = 0; it < steps; it += 1) {
+    const mu = new Float64Array(n);
+    const w = new Float64Array(n);
+    for (let i = 0; i < n; i += 1) {
+      let e = offset ? offset[i] : 0;
+      for (let a = 0; a < p; a += 1) e += X[a][i] * beta[a];
+      const m = expit(e);
+      mu[i] = m;
+      w[i] = Math.max(m * (1 - m), 1e-9);
+    }
+    const g = new Float64Array(p);
+    const H = Array.from({ length: p }, () => new Float64Array(p));
+    for (let a = 0; a < p; a += 1) {
+      let s = 0;
+      for (let i = 0; i < n; i += 1) s += X[a][i] * (y[i] - mu[i]);
+      g[a] = s;
+      for (let b = 0; b <= a; b += 1) {
+        let h = 0;
+        for (let i = 0; i < n; i += 1) h += w[i] * X[a][i] * X[b][i];
+        H[a][b] = h;
+        H[b][a] = h;
+      }
+    }
+    const A = H.map((r, i) => [...r, g[i]]);
+    for (let c = 0; c < p; c += 1) {
+      let piv = c;
+      for (let r = c + 1; r < p; r += 1) if (Math.abs(A[r][c]) > Math.abs(A[piv][c])) piv = r;
+      const tmp = A[c];
+      A[c] = A[piv];
+      A[piv] = tmp;
+      const d0 = A[c][c];
+      if (Math.abs(d0) < 1e-12) return { beta: Array.from(beta), converged: false };
+      for (let k = c; k <= p; k += 1) A[c][k] /= d0;
+      for (let r = 0; r < p; r += 1) {
+        if (r === c) continue;
+        const f = A[r][c];
+        for (let k = c; k <= p; k += 1) A[r][k] -= f * A[c][k];
+      }
+    }
+    let maxd = 0;
+    for (let a = 0; a < p; a += 1) {
+      beta[a] += A[a][p];
+      maxd = Math.max(maxd, Math.abs(A[a][p]));
+    }
+    if (maxd < 1e-10) return { beta: Array.from(beta), converged: true, iters: it + 1 };
+  }
+  return { beta: Array.from(beta), converged: false, iters: steps };
+}
+
+/**
+ * Wilson's 95% interval for a fraction.
+ *
+ * A decile of a 319-person sample holds 32 people, so an observed fraction
+ * moves in steps of 1/32 and a point three steps off the diagonal is not
+ * evidence of anything. Without the interval the calibration panel reads as
+ * miscalibration wherever it is only small numbers.
+ */
+export function wilson(k, n) {
+  const z = 1.959964;
+  const ph = k / n;
+  const den = 1 + (z * z) / n;
+  const ctr = (ph + (z * z) / (2 * n)) / den;
+  const hw = (z * Math.sqrt((ph * (1 - ph)) / n + (z * z) / (4 * n * n))) / den;
+  return [Math.max(0, ctr - hw), Math.min(1, ctr + hw)];
 }
 
 /* ==========================================================================
@@ -654,6 +863,61 @@ export function simulateBase(rng, opts = {}) {
 }
 
 /**
+ * DECISION 6: the truth alone — allele frequencies and true effects, with no
+ * base cohort drawn.
+ *
+ * The draw order is `simulateBase`'s minus the cohort and the scan, so the same
+ * rng gives the same p and the same betaTrue and the two routes can be compared
+ * on one truth. `simulateBase` stays because the verify's agreement check needs
+ * the per-person route to compare against.
+ */
+export function drawModel(rng, { m = 1000, nCausal = 300, h2 = 0.3 } = {}) {
+  const p = new Float64Array(m);
+  for (let j = 0; j < m; j += 1) p[j] = 0.05 + 0.9 * rng.next();
+  const idx = Array.from({ length: m }, (_, j) => j);
+  const causalIdx = rng.shuffle(idx).slice(0, nCausal);
+  const betaTrue = new Float64Array(m);
+  let ss = 0;
+  for (const j of causalIdx) {
+    const b = rng.normal(0, 1);
+    betaTrue[j] = b;
+    ss += b * b;
+  }
+  const scale = Math.sqrt(h2 / ss);
+  for (const j of causalIdx) betaTrue[j] *= scale;
+  return { p, betaTrue, causalIdx, nCausal, m, h2 };
+}
+
+/**
+ * DECISION 6: what a PRS actually consumes — one β̂ and one P a SNP, from a base
+ * study of `nBase` people that is never simulated person by person.
+ *
+ * On the standardised genotype SNP j's residual variance is 1 − βⱼ², so
+ * seⱼ = √((1 − βⱼ²)/n), which is 1/√n to three decimals at every effect size
+ * here. The score sums the RAW allele count, so β̂ and se are both divided by
+ * √(2pⱼ(1 − pⱼ)); the ratio the P value comes from is the same either way.
+ *
+ * The approximation is that a SNP's own variance explained is its only
+ * departure from 1, and that the allele frequency is the base study's true one
+ * rather than its realised one.
+ */
+export function summaryBase(rng, model, nBase) {
+  const m = model.p.length;
+  const betaHat = new Float64Array(m);
+  const P = new Float64Array(m);
+  for (let j = 0; j < m; j += 1) {
+    const pj = model.p[j];
+    const s = Math.sqrt(2 * pj * (1 - pj)) || 1;
+    const bStd = model.betaTrue[j];
+    const seStd = Math.sqrt(Math.max(1 - bStd * bStd, 1e-9) / nBase);
+    const hatStd = bStd + rng.normal(0, seStd);
+    betaHat[j] = hatStd / s;
+    P[j] = normTail2(hatStd / seStd);
+  }
+  return { betaHat, P };
+}
+
+/**
  * A target cohort drawn against an existing base: allele frequencies shifted
  * by Balding–Nichols at `ancestryShift`, and a fraction `tagLoss` of the
  * causal SNPs observed only through a tag at r² `r2tag`.
@@ -792,17 +1056,23 @@ export const REGION_BETA = 0.25;
 export const CLUMP_KB = 250;
 /** The same window in SNPs, which is what the r² triangle is clipped to. */
 export const CLUMP_DEPTH = Math.round(CLUMP_KB / REGION.blockLen);
+/** The r² step 1's readout counts pairs above — the level at which two SNPs
+    are carrying nearly the same information about the trait. */
+export const R_HIGH = 0.5;
 /** The display cut the panel's line names and the readouts count against. */
 export const REGION_ALPHA = 0.05;
 export const ALPHA_L = -Math.log10(REGION_ALPHA);
 
-/* Pages 2–4's genome, at the size measurement 7 arrived at: base 3,000 over
-   2,000 SNPs is 141–161 ms, the whole budget for a draw the reader makes on
-   every data change; 1,500 over 1,000 keeps the curve's shape at a third of
-   the cost. */
-export const GENOME = { nBase: 1500, m: 1000 };
+/* Steps 3–6's genome, at the size measurement 7 arrived at: 2,000 SNPs is
+   141–161 ms, the whole budget for a draw the reader makes on every data
+   change; 1,000 keeps the curve's shape at a third of the cost. The base
+   study's own size is now a control (decision 6) and costs nothing, because
+   no base cohort is drawn. */
+export const GENOME = { m: 1000 };
 export const N_TARGET = 319;
 export const N_VALIDATION = 319;
+/** DECISION 10: the one cohort still simulated person by person. */
+export const BASE_POP_N = 3000;
 
 /**
  * One region: haplotypes, the r² matrix, 500 people, one hidden causal SNP,
@@ -860,8 +1130,30 @@ export function buildRegion(rng, cfg) {
   let hits = 0;
   for (let j = 0; j < scan.P.length; j += 1) if (scan.P[j] < REGION_ALPHA) hits += 1;
 
+  /* STEP 1'S OWN READING, over every pair of the region's own SNPs. The mock
+     measured the clump COUNT as the wrong number to promise — it reads 8 → 8 →
+     23 across the three recombination rates, so Low and Medium are the same —
+     while the pairs over r² 0.5 go 634 → 282 → 66 and the furthest of them
+     reaches 180 → 80 → 20 kb. What the control moves is how far a shared
+     stretch of ancestor runs, so that is what the readout names. */
+  let pairsHigh = 0;
+  let pairReach = 0;
+  for (let j = 0; j < R.length; j += 1) {
+    for (let k = 0; k < j; k += 1) {
+      if (R[j][k] > R_HIGH) {
+        pairsHigh += 1;
+        const d = (j - k) * hap.blockLen;
+        if (d > pairReach) pairReach = d;
+      }
+    }
+  }
+
   return {
     hap, R, Rs, idx, pos, scan, clumps, spans, lead, causal, causalCol, causalPos, causalAt,
+    pairsHigh,
+    pairReach,
+    pairsTotal: (R.length * (R.length - 1)) / 2,
+    firstClump: clumps.length ? 1 + clumps[0].members.length : 0,
     typed: cfg.typed,
     clumpR2: cfg.clumpR2,
     span: hap.positions[hap.m - 1],
@@ -875,31 +1167,155 @@ export function buildRegion(rng, cfg) {
 }
 
 /**
- * Pages 2–4: the base study, the target sample, the validation sample, and
- * everything the eleven thresholds imply — the kept count, both R², the
- * vigintile bins of the target and the R² over the people those bins hold.
+ * DECISION 10, 11 and 12: one risk model a threshold, fitted in the base
+ * population, and the target sample read through it.
+ *
+ * The disease is the trait as a liability with a cut at the prevalence, so
+ * `prev` decides who has it and the model has to be refitted when it moves —
+ * which is why Prevalence is a data parameter. The logistic model is of the
+ * outcome on the STANDARDISED score, standardised by the base population's own
+ * mean and SD, because that is what a published risk model carries.
+ *
+ * The calibration intercept is fitted with the model's own logit as an offset,
+ * so it reads how far the outcome sits from the prediction; the calibration
+ * slope is the coefficient of that logit fitted freely. On the truth they are
+ * 0 and 1.
+ */
+function buildRiskModels(betaHat, P, basePop, target, rows, prev) {
+  const liability = normQuantile(1 - prev);
+  const yBase = Array.from(basePop.y, (v) => (v > liability ? 1 : 0));
+  const yT = Array.from(target.y, (v) => (v > liability ? 1 : 0));
+  const nB = basePop.y.length;
+  const nT = target.y.length;
+  const onesB = new Float64Array(nB).fill(1);
+  const onesT = new Float64Array(nT).fill(1);
+
+  /* DECISION 12: the kept sets are nested, so the base population's score at
+     one threshold is its score at the last plus the SNPs that fell between
+     them — one pass over the SNPs for all eleven. */
+  const order = Array.from({ length: P.length }, (_, j) => j).sort((a, b) => P[a] - P[b]);
+  const sBase = new Float64Array(nB);
+  let next = 0;
+
+  return rows.map((row) => {
+    while (next < order.length && P[order[next]] < row.thresh) {
+      const j = order[next];
+      const b = betaHat[j];
+      const col = basePop.G[j];
+      for (let i = 0; i < nB; i += 1) sBase[i] += b * col[i];
+      next += 1;
+    }
+    /* A threshold that keeps nothing has no score to fit on, and 5 × 10⁻⁸ over
+       a base study of 1,500 people keeps nothing. The step draws its axes and
+       says so rather than fitting a model to a column of zeros. */
+    if (row.nSnp === 0) return null;
+    const mu = mean(sBase);
+    const sg = sd(sBase) || 1;
+    const z = Float64Array.from(sBase, (v) => (v - mu) / sg);
+    const fit = logistic([onesB, z], yBase);
+    const a = fit.beta[0];
+    const b1 = fit.beta[1];
+
+    const eta = Float64Array.from(row.score, (v) => a + b1 * ((v - mu) / sg));
+    const risk = Array.from(eta, expit);
+    const idx = risk.map((v, i) => i).sort((x, y2) => risk[x] - risk[y2]);
+    const bins = [];
+    for (let b = 0; b < RISK_DECILES; b += 1) {
+      const lo = Math.floor((b * nT) / RISK_DECILES);
+      const hi = Math.floor(((b + 1) * nT) / RISK_DECILES);
+      const inBin = idx.slice(lo, hi);
+      const cases = inBin.reduce((acc, i) => acc + yT[i], 0);
+      const [wl, wh] = wilson(cases, inBin.length);
+      bins.push({
+        bin: b + 1,
+        n: inBin.length,
+        cases,
+        pred: mean(inBin.map((i) => risk[i])),
+        obs: cases / inBin.length,
+        lo: wl,
+        hi: wh,
+      });
+    }
+    const slope = logistic([onesT, eta], yT).beta[1];
+    const inter = logistic([onesT], yT, { offset: eta }).beta[0];
+    return {
+      a,
+      b: b1,
+      mu,
+      sd: sg,
+      liability,
+      prev,
+      risk,
+      order: idx,
+      bins,
+      slope,
+      inter,
+      covered: bins.filter((x) => x.lo <= x.pred && x.pred <= x.hi).length,
+      cases: yT.reduce((x, y2) => x + y2, 0),
+      baseCases: yBase.reduce((x, y2) => x + y2, 0),
+      max: Math.max(...risk),
+      /* THE CURVE IS ORDERED BY SCORE, NOT BY PREDICTED RISK, and the two are
+         the same order only while the fitted slope is positive. Ordering it by
+         risk and labelling the axis "score percentile" would be a claim the
+         figure could not keep at a slope of the other sign, so the rank the
+         axis names is the rank it is drawn from. The deciles above stay
+         deciles of PREDICTED RISK, which is what a calibration plot bins on. */
+      curve: Array.from({ length: nT }, (_, i) => i)
+        .sort((x, y2) => row.score[x] - row.score[y2])
+        .map((i, r) => [(100 * r) / (nT - 1), risk[i]]),
+    };
+  });
+}
+
+/** How many of the target sample the model puts at or above a risk. */
+export const peopleAbove = (rm, t) => (rm ? rm.risk.filter((v) => v >= t).length : 0);
+
+/**
+ * The score percentile at which predicted risk reaches a threshold, or null
+ * when the whole sample is one side of it — a line nobody crosses has no
+ * crossing, and printing 0 or 100 there would be the figure claiming a reading
+ * the data does not carry (2.11).
+ */
+export function crossingPercentile(rm, t) {
+  if (!rm) return null;
+  const above = peopleAbove(rm, t);
+  if (above === 0 || above === rm.risk.length) return null;
+  return 100 * (1 - above / rm.risk.length);
+}
+
+/**
+ * Steps 3–6: the base study's summary statistics, the target sample, the
+ * validation sample, the base population, and everything the eleven thresholds
+ * imply — the kept count, both R², the vigintile bins of the target, the R²
+ * over the people those bins hold, and the risk model.
  *
  * THE CURVE IS COMPUTED FOR EVERY THRESHOLD, ONCE. The P threshold is a
  * display parameter (decision 3), so what the reader slides over has to be
- * there already; and page 4's own reading of a partial figure — the R² over
+ * there already; and step 5's own reading of a partial figure — the R² over
  * the vigintiles landed so far — is a cumulative sum over the same bins.
  */
-export function buildGenome(rngBase, rngTarget, rngValidation, cfg) {
-  const model = simulateBase(rngBase, {
-    nBase: GENOME.nBase, m: GENOME.m, hCausal: cfg.nCausal / GENOME.m, h2: cfg.h2,
-  });
+export function buildGenome(rngs, cfg) {
+  const model = drawModel(rngs.truth, { m: GENOME.m, nCausal: cfg.nCausal, h2: cfg.h2 });
+  /* DECISION 6: the base study is β̂ and P, drawn from its own sub-stream keyed
+     by its size, so moving Base study size does not redraw the target sample
+     under it. */
+  const { betaHat, P: basePv } = summaryBase(rngs.summary, model, cfg.nBase);
   const tOpts = { ancestryShift: cfg.fst, tagLoss: cfg.tagLoss, r2tag: cfg.r2tag };
-  const target = drawTarget(rngTarget, model, { n: N_TARGET, ...tOpts });
-  const validation = drawTarget(rngValidation, model, { n: N_VALIDATION, ...tOpts });
+  const target = drawTarget(rngs.target, model, { n: N_TARGET, ...tOpts });
+  const validation = drawTarget(rngs.validation, model, { n: N_VALIDATION, ...tOpts });
+  /* DECISION 10: the base population, at the base study's own allele
+     frequencies with every causal SNP seen directly — a model fitted in the
+     target sample would sit on the diagonal there by construction. */
+  const basePop = drawTarget(rngs.basePop, model, { n: BASE_POP_N });
 
   const overall = mean(target.y);
   const ysd = sd(target.y);
   const rows = THRESHOLDS.map((thresh) => {
-    const { keep, n } = keepAt(model.P, thresh);
+    const { keep, n } = keepAt(basePv, thresh);
     const kept = [];
-    for (let j = 0; j < model.P.length; j += 1) if (keep[j]) kept.push(j);
-    const sT = score(target.G, model.betaHat, keep);
-    const sV = score(validation.G, model.betaHat, keep);
+    for (let j = 0; j < basePv.length; j += 1) if (keep[j]) kept.push(j);
+    const sT = score(target.G, betaHat, keep);
+    const sV = score(validation.G, betaHat, keep);
     const r2T = n === 0 ? 0 : r2Score(sT, target.y);
     const r2V = n === 0 ? 0 : r2Score(sV, validation.y);
     const bins = quantileBins(sT, target.y, 20);
@@ -936,19 +1352,48 @@ export function buildGenome(rngBase, rngTarget, rngValidation, cfg) {
   let bestIdx = 0;
   for (let i = 1; i < rows.length; i += 1) if (rows[i].target > rows[bestIdx].target) bestIdx = i;
 
-  return { ...model, target, validation, rows, bestIdx, overall, ysd };
+  const risk = buildRiskModels(betaHat, basePv, basePop, target, rows, cfg.prevalence);
+
+  return {
+    ...model,
+    betaHat,
+    P: basePv,
+    nBase: cfg.nBase,
+    target,
+    validation,
+    basePop,
+    rows,
+    risk,
+    bestIdx,
+    overall,
+    ysd,
+  };
 }
 
 /**
  * Everything the widget draws, from the seeded rng and the resolved controls.
  *
- * DECISION 1: four sub-streams, their seeds taken off the top of the rng core
- * hands in, so a control on one page cannot move another page's data.
+ * DECISION 1: five sub-streams, their seeds taken off the top of the rng core
+ * hands in, so a control on one step cannot move another step's data. The
+ * fifth is round two's base population; taking it after the first four leaves
+ * those four exactly where they were.
+ *
+ * The base study's own stream is keyed by its SIZE, so moving Base study size
+ * redraws the summary statistics and nothing else — the truth, the target
+ * sample and the validation sample stay where they are, which is what makes
+ * the control a lever on one quantity rather than a reshuffle.
  */
 export function build(rng, cfg) {
-  const seeds = [rng.int(1, 1e9), rng.int(1, 1e9), rng.int(1, 1e9), rng.int(1, 1e9)];
+  const seeds = [];
+  for (let i = 0; i < 5; i += 1) seeds.push(rng.int(1, 1e9));
   const region = buildRegion(makeRng(seeds[0]), cfg);
-  const genome = buildGenome(makeRng(seeds[1]), makeRng(seeds[2]), makeRng(seeds[3]), cfg);
+  const genome = buildGenome({
+    truth: makeRng(seeds[1]),
+    summary: makeRng(seeds[1] ^ cfg.nBase),
+    target: makeRng(seeds[2]),
+    validation: makeRng(seeds[3]),
+    basePop: makeRng(seeds[4]),
+  }, cfg);
   return { cfg, region, genome };
 }
 
@@ -990,35 +1435,82 @@ export function personScore(state, params) {
   };
 }
 
-/** How many beats a page's run holds. */
+/** The risk model the P threshold names, or null where nothing is kept. */
+export const riskFor = (state, params) =>
+  state.genome.risk[Math.max(0, THRESHOLDS.indexOf(Number(params.threshold)))];
+
+/**
+ * One person's predicted risk, beside the score percentile step 3 gives them —
+ * the pair the first five steps withhold.
+ *
+ * The percentile is read off the SCORE and not off the risk, so the number here
+ * is the number step 3 prints for the same person.
+ */
+export function personRisk(state, params) {
+  const rm = riskFor(state, params);
+  const row = rowFor(state, params);
+  const i = Math.min(Math.max(Math.round(params.person) - 1, 0), N_TARGET - 1);
+  if (!rm) return { person: i + 1, risk: null, percentile: null };
+  let below = 0;
+  for (const v of row.score) if (v < row.score[i]) below += 1;
+  return { person: i + 1, risk: rm.risk[i], percentile: (100 * below) / row.score.length };
+}
+
+/** How many deciles of predicted risk step 6 draws. */
+export const RISK_DECILES = 10;
+
+/** How many beats a step's run holds. */
 export function totalFor(page, state, params) {
-  if (page === "ld") return state.region.clumps.length;
+  if (page === "haplotypes") return HAP_ROWS;
+  /* DECISION 9: three beats a clump — the lead lights, the arcs draw, the
+     absorbed SNPs slide. */
+  if (page === "clump") return CLUMP_BEATS * state.region.clumps.length;
   if (page === "score") return rowFor(state, params).nSnp;
   if (page === "threshold") return THRESHOLDS.length;
+  if (page === "risk") return RISK_DECILES;
   return 20;
 }
 
-/* PACING. One beat a unit, and the beat is the page's own: eleven thresholds
-   and eight-and-some clumps are not the same length of run as thirty-eight
-   SNPs, so a single interval would make one page crawl and another flick past.
+/* PACING. One beat a unit, and the beat is the step's own: eleven thresholds
+   and twenty-four clumping beats are not the same length of run as thirty-eight
+   SNPs, so a single interval would make one step crawl and another flick past.
    The measured totals at the defaults are in `_lab/prs-verify.mjs`, which
-   fails any page whose Play lands outside 3 to 7 seconds.
+   fails any step whose Play lands outside 3 to 7 seconds.
 
    THE FRACTION IS KEPT ACROSS FRAMES (widget 55's clock): `beat` fills over
-   the page's own interval and the run advances by whatever whole units have
+   the step's own interval and the run advances by whatever whole units have
    accumulated, so the pace stays a RATE rather than becoming one unit a frame
    on a slow machine. */
-export const BEAT_MS = { ld: 400, score: 160, threshold: 400, quantile: 200 };
-export const beatMs = (page) => BEAT_MS[page] ?? 200;
+export const BEAT_MS = {
+  haplotypes: 100, clump: 260, score: 160, threshold: 400, quantile: 200, risk: 400,
+};
+/* A SHORT RUN IS STRETCHED, NEVER A LONG ONE HURRIED. Low recombination leaves
+   two clumps where the default leaves eight, and six beats at 260 ms is 1.6
+   seconds — a run that is over before a room has looked up. The floor is a
+   declared property of the SETTING, computed the same way on every frame, not
+   the animation deciding about its own pace mid-run (4.1): a run of n beats
+   gets whichever is slower, the step's own beat or the beat that makes the
+   whole run MIN_RUN_MS. The cap keeps a one-unit run from crawling. */
+export const MIN_RUN_MS = 3200;
+export const MAX_BEAT_MS = 1200;
+export function beatMs(page, state, params) {
+  const nominal = BEAT_MS[page] ?? 200;
+  if (!state) return nominal;
+  const beats = Math.ceil(totalFor(page, state, params) / perUnit(page, state, params));
+  if (!(beats > 0)) return nominal;
+  return Math.max(nominal, Math.min(MAX_BEAT_MS, MIN_RUN_MS / beats));
+}
 
-/* A BEAT CARRIES A BATCH once the units stop being countable (2.3) — on page 2
-   at the same threshold the columns stop being countable, and on page 1 where
-   a strict clumping r² leaves fifty-eight clumps of one SNP rather than eight
-   of twenty. The cap is the number of beats the whole run takes, so Play is
-   between three and seven seconds at every setting of every control; Step is
-   always ONE unit, because a control's label names what this press will do and
-   it says Next clump, Next SNP. */
-export const RUN_BEATS = { ld: 17, score: 40 };
+/* A BEAT CARRIES A BATCH once the units stop being countable (2.3) — on step 3
+   at a loose threshold the columns stop being countable, and on step 2 where a
+   strict clumping r² leaves fifty-eight clumps of one SNP rather than eight of
+   twenty. The cap is the number of beats the whole run takes, so Play is
+   between three and seven seconds at every setting of every control.
+
+   STEP IS ONE UNIT EVERYWHERE EXCEPT STEP 2, where it runs to the end of the
+   clump in progress (decision 9) — a control's label names what this press
+   will do (4.4b), and on step 2 it says Next clump while the unit is a beat. */
+export const RUN_BEATS = { clump: 24, score: 40 };
 export function perUnit(page, state, params) {
   const cap = RUN_BEATS[page];
   if (!cap) return 1;
@@ -1040,13 +1532,29 @@ export function perUnit(page, state, params) {
 export const AX_L = 52;
 export const AX_R = 8;
 
-/* page 1 */
-export const ASSOC_TOP = 34;
-export const ASSOC_H = 160;
-export const ASSOC_GAP = 66;
-export const TRI_FOOT = 12;
+/* DECISION 8: the step line, above every stage's caption row. One --fs-xs line
+   plus the air under it, and every panel below it starts that much lower. */
+export const STEP_LINE_H = 21;
+/** The step line's own baseline, with `textBaseline: "top"`. */
+export const HEAD_Y = 14;
 
-/* page 2 */
+/* step 1 — 40 rows of the pool, then the triangle under them. The block's
+   height and the gap are the mock's §1 candidate A at 550px: 410px of stage. */
+export const HAP_ROWS = 40;
+export const HAP_TOP = 34;
+export const HAP_H = 168;
+export const HAP_FOOT = 26;
+export const HAP_GAP = 44;
+export const TRI_FOOT = 14;
+
+/* step 2 — the association plot alone, at the mock's own 550 × 300 */
+export const ASSOC_TOP = 46;
+export const ASSOC_H = 198;
+export const ASSOC_PANEL_H = 300;
+/** DECISION 9: three beats a clump. */
+export const CLUMP_BEATS = 3;
+
+/* step 3 */
 export const GENO_Y = 38;
 export const GENO_H = 30;
 export const W_Y = 90;
@@ -1057,29 +1565,47 @@ export const DIST_Y = 336;
 export const DIST_H = 44;
 export const SCORE_PANEL_H = 424;
 
-/* page 3 — the right margin holds the SNPs-kept tick column and its label */
+/* step 4 — the right margin holds the SNPs-kept tick column and its label, and
+   the panel is 21px taller than the draft's for the reading line under the
+   axis (the mock's §4) */
 export const TH_L = 54;
 export const TH_R = 66;
 export const TH_TOP = 40;
 export const TH_H = 210;
-export const THRESH_PANEL_H = 316;
+export const READ_LINE_DY = 46;
+export const THRESH_PANEL_H = 337;
 
-/* page 4 */
+/* step 5 */
 export const Q_L = 54;
 export const Q_R = 16;
 export const Q_TOP = 40;
 export const Q_H = 196;
 export const QUANT_PANEL_H = 300;
 
+/* step 6 — two square plots side by side, the mock's §6 candidate B */
+export const RISK_TOP = 44;
+export const RISK_SIDE = 196;
+export const RISK_L = 44;
+/* room between the two squares for the right one's own tick labels */
+export const RISK_GAP = 90;
+
 /**
- * Every rect a page draws in, and its own height, from the width and the
+ * Every rect a step draws in, and its own height, from the width and the
  * parameters alone — the same function `height` and `draw` both call (5.8).
+ *
+ * EVERY STAGE CARRIES THE STEP LINE, so every panel's y is offset by
+ * `STEP_LINE_H` and every height includes it. One constant, added once here,
+ * rather than a different top margin written into six branches.
  */
 export function layout(w, values) {
-  const page = values.page ?? "ld";
-  if (page === "ld") {
-    const panelW = Math.max(220, Math.round(w - AX_L - AX_R));
-    const triTop = ASSOC_TOP + ASSOC_H + ASSOC_GAP;
+  const page = pageOf(values);
+  const top = STEP_LINE_H;
+  const panelW = Math.max(220, Math.round(w - AX_L - AX_R));
+  /* The step line runs the width of whatever the step draws under it, so it is
+     part of the geometry and not a margin guessed in the drawing code. */
+  const head = (x, width) => ({ x, y: HEAD_Y, w: width });
+  if (page === "haplotypes") {
+    const triTop = top + HAP_TOP + HAP_H + HAP_FOOT + HAP_GAP;
     /* The triangle is the clumping window and nothing wider: 50 SNPs either
        way is the 250 kb `--clump-kb`, and the pairs beyond it are r² ≈ 0.
        Its depth in pixels is half the window's own column pitch, so the panel
@@ -1089,33 +1615,61 @@ export function layout(w, values) {
     const triH = Math.ceil((CLUMP_DEPTH / 2) * cell);
     return {
       page,
-      assoc: { x: AX_L, y: ASSOC_TOP, w: panelW, h: ASSOC_H },
+      head: head(AX_L, panelW),
+      block: { x: AX_L, y: top + HAP_TOP, w: panelW, h: HAP_H },
       tri: { x: AX_L, y: triTop, w: panelW, h: triH, depth: CLUMP_DEPTH },
       height: triTop + triH + TRI_FOOT,
     };
   }
-  if (page === "score") {
-    const panelW = Math.max(220, Math.round(w - AX_L - AX_R));
+  if (page === "clump") {
     return {
       page,
-      geno: { x: AX_L, y: GENO_Y, w: panelW, h: GENO_H },
-      weights: { x: AX_L, y: W_Y, w: panelW, h: W_H },
-      sum: { x: AX_L, y: SUM_Y, w: panelW, h: SUM_H },
-      dist: { x: AX_L, y: DIST_Y, w: panelW, h: DIST_H },
-      height: SCORE_PANEL_H,
+      head: head(AX_L, panelW),
+      assoc: { x: AX_L, y: top + ASSOC_TOP, w: panelW, h: ASSOC_H },
+      height: top + ASSOC_PANEL_H,
+    };
+  }
+  if (page === "score") {
+    return {
+      page,
+      head: head(AX_L, panelW),
+      geno: { x: AX_L, y: top + GENO_Y, w: panelW, h: GENO_H },
+      weights: { x: AX_L, y: top + W_Y, w: panelW, h: W_H },
+      sum: { x: AX_L, y: top + SUM_Y, w: panelW, h: SUM_H },
+      dist: { x: AX_L, y: top + DIST_Y, w: panelW, h: DIST_H },
+      height: top + SCORE_PANEL_H,
     };
   }
   if (page === "threshold") {
     return {
       page,
-      curve: { x: TH_L, y: TH_TOP, w: Math.max(220, Math.round(w - TH_L - TH_R)), h: TH_H },
-      height: THRESH_PANEL_H,
+      head: head(TH_L, Math.max(220, Math.round(w - TH_L - AX_R))),
+      curve: {
+        x: TH_L, y: top + TH_TOP, w: Math.max(220, Math.round(w - TH_L - TH_R)), h: TH_H,
+      },
+      height: top + THRESH_PANEL_H,
+    };
+  }
+  if (page === "risk") {
+    /* BOTH PLOTS STAY SQUARE, because a calibration plot whose diagonal is not
+       a diagonal is not a calibration plot. The side is capped at the mock's
+       196 so the stage stays 296px at every width the side layout reaches, and
+       shrinks only if the frame is narrower than that allows. */
+    const side = Math.max(120, Math.min(RISK_SIDE, Math.floor((w - RISK_L - 86 - 16) / 2)));
+    const left = Math.max(RISK_L, Math.round((w - (2 * side + RISK_GAP)) / 2));
+    return {
+      page,
+      head: head(RISK_L, Math.max(220, Math.round(w - 20 - RISK_L))),
+      cal: { x: left, y: top + RISK_TOP, w: side, h: side },
+      strat: { x: left + side + RISK_GAP, y: top + RISK_TOP, w: side, h: side },
+      height: top + RISK_TOP + side + 56,
     };
   }
   return {
     page: "quantile",
-    bins: { x: Q_L, y: Q_TOP, w: Math.max(220, Math.round(w - Q_L - Q_R)), h: Q_H },
-    height: QUANT_PANEL_H,
+    head: head(Q_L, Math.max(220, Math.round(w - Q_L - Q_R))),
+    bins: { x: Q_L, y: top + Q_TOP, w: Math.max(220, Math.round(w - Q_L - Q_R)), h: Q_H },
+    height: top + QUANT_PANEL_H,
   };
 }
 
@@ -1146,12 +1700,63 @@ export const tText = (t) => {
    not on the page.
    ========================================================================== */
 
+/* DECISION 7: six numbered verbs, two a row. A grid of nouns is a menu of
+   places; the numbers are what say which way to read it.
+
+   THE URL VALUES. Five of the six are a word on the control's own face
+   (5.9). `quantile` is the sixth: it was this step's own displayed name in
+   round one ("The quantile plot"), it is the field's word for the figure, and
+   keeping it means the draft's `?page=quantile` links still resolve — where
+   renaming it "check" would break them and collide with step 3's own noun.
+   `page=ld` is the one value round two breaks, and it is the value that became
+   two steps. */
 export const PAGES = [
-  { value: "ld", label: "LD and clumping" },
-  { value: "score", label: "The score" },
-  { value: "threshold", label: "The threshold" },
-  { value: "quantile", label: "The quantile plot" },
+  { value: "haplotypes", label: "1 · See the haplotypes" },
+  { value: "clump", label: "2 · Clump the SNPs" },
+  { value: "score", label: "3 · Build the score" },
+  { value: "threshold", label: "4 · Choose the threshold" },
+  { value: "quantile", label: "5 · Check the score" },
+  { value: "risk", label: "6 · Calibrate the risk" },
 ];
+export const PAGE_VALUES = PAGES.map((p) => p.value);
+export const pageOf = (values) =>
+  (PAGE_VALUES.includes(values?.page) ? values.page : PAGE_VALUES[0]);
+/** Where a step sits in the six, one-based — what the step line prints. */
+export const stepNumber = (page) => PAGE_VALUES.indexOf(pageOf({ page })) + 1;
+
+/* DECISION 6: the base study's size, the lever round one was missing. Measured
+   over 16 seeds the best-fit R² goes 0.106 → 0.261 → 0.290 and the vigintile
+   range 1.29 → 2.06 → 2.21 SD; 15,000 is the default because it is where the
+   jump happens and it is the size of the base the field's own cholesterol
+   scores come from. */
+export const BASE_SIZES = [
+  { value: "1500", label: "1,500", n: 1500 },
+  { value: "15000", label: "15,000", n: 15000 },
+  { value: "150000", label: "150,000", n: 150000 },
+];
+export const baseSizeOf = (key) => BASE_SIZES.find((b) => b.value === key) ?? BASE_SIZES[1];
+
+/* DECISION 11: the prevalence sets the liability cut, so it decides who has the
+   disease. Measured: at 5% five of the ten deciles hold no case at all and the
+   panel is a row of zeros with wide intervals; at 20% a decile holds about six
+   and the matched panel reads as calibrated. */
+export const PREVALENCES = [
+  { value: "5", label: "5%", p: 0.05 },
+  { value: "10", label: "10%", p: 0.1 },
+  { value: "20", label: "20%", p: 0.2 },
+];
+export const prevalenceOf = (key) => PREVALENCES.find((p) => p.value === key) ?? PREVALENCES[2];
+
+/* The absolute risks a guideline-like cut is drawn at. Measured: at 10% the
+   line catches 216 of the 319 in a matched target, which is not a
+   stratification; 30% catches about a fifth. */
+export const RISK_THRESHOLDS = [
+  { value: "20", label: "20%", p: 0.2 },
+  { value: "30", label: "30%", p: 0.3 },
+  { value: "40", label: "40%", p: 0.4 },
+];
+export const riskThresholdOf = (key) =>
+  RISK_THRESHOLDS.find((r) => r.value === key) ?? RISK_THRESHOLDS[1];
 
 /* The three recombination rates, measured over 50 seeds: at 0.002 the region
    holds LD out past 200 kb, at 0.005 a SNP has several neighbours over r² 0.1
@@ -1195,10 +1800,34 @@ export const H2 = [
    the raw-scale weight is mis-sized. The loss is in the tags. Fst 0.02 with
    half the causal SNPs seen at r² 0.5 gives about 0.7, and Fst 0.1 with all of
    them at r² 0.2 gives about 0.2 — Martin 2019's African-target figure. */
+/* `sample` is the label in the middle of a sentence: "a target sample of the
+   base study's own ancestry" reads where "a Same ancestry as the base target
+   sample" does not. The control and the canvas keep `label`. */
 export const TARGETS = [
-  { value: "same", label: "Same ancestry as the base", fst: 0, tagLoss: 0, r2tag: 0.5 },
-  { value: "nearby", label: "Nearby ancestry", fst: 0.02, tagLoss: 0.5, r2tag: 0.5 },
-  { value: "distant", label: "Distant ancestry", fst: 0.1, tagLoss: 1, r2tag: 0.2 },
+  {
+    value: "same",
+    label: "Same ancestry as the base",
+    sample: "the base study's own ancestry",
+    fst: 0,
+    tagLoss: 0,
+    r2tag: 0.5,
+  },
+  {
+    value: "nearby",
+    label: "Nearby ancestry",
+    sample: "a nearby ancestry",
+    fst: 0.02,
+    tagLoss: 0.5,
+    r2tag: 0.5,
+  },
+  {
+    value: "distant",
+    label: "Distant ancestry",
+    sample: "a distant ancestry",
+    fst: 0.1,
+    tagLoss: 1,
+    r2tag: 0.2,
+  },
 ];
 export const targetOf = (key) => TARGETS.find((t) => t.value === key) ?? TARGETS[0];
 
@@ -1220,12 +1849,15 @@ export const STRINGS = {
   blurb:
     "A polygenic score sums effect alleles weighted by GWAS effect sizes; its accuracy is assessed out of sample.",
 
-  pageLabel: "Page",
-  pageDetail: "the four steps of building a score and assessing it",
+  pageLabel: "Step",
+  pageDetail: "the six steps of building a score and reading it",
 
   regionSection: "The region",
   baseSection: "The base study",
   targetSection: "The target",
+
+  baseSizeLabel: "Base study size",
+  baseSizeDetail: "the number of people in the base GWAS",
 
   recombLabel: "Recombination",
   recombDetail: "the chance per kilobase that a haplotype switches ancestor",
@@ -1243,7 +1875,10 @@ export const STRINGS = {
   causalDetail: "the number of the 1,000 SNPs with an effect on the trait",
 
   h2Label: "Heritability",
-  h2Detail: "the fraction of the trait's variance the causal SNPs explain together",
+  /* One line at 300px — Kenneth's pick 7, which trimmed the two details that
+     wrapped. The longer form was "the fraction of the trait's variance the
+     causal SNPs explain together". */
+  h2Detail: "the trait's variance the causal SNPs explain",
 
   targetLabel: "Target population",
   targetDetail: "the distance between the target sample's ancestry and the base study's",
@@ -1257,30 +1892,50 @@ export const STRINGS = {
   seedLabel: "Seed",
   seedDetail: "draws a different base study and different samples",
 
-  /* the drive row, one noun a page (3.4c) */
+  /* the drive row, one noun a step (3.4c) */
+  stepHaplotypes: "Next haplotype",
   stepLd: "Next clump",
   stepScore: "Next SNP",
   stepThreshold: "Next threshold",
   stepQuantile: "Next vigintile",
-  stepTitleLd: "Take the next clump: its lead SNP, and the SNPs in LD with it",
+  stepTitleHaplotypes: "Draw the next haplotype of the pool",
+  stepTitleLd: "Choose the next lead SNP, and drop the SNPs in LD with it",
   stepTitleScore: "Add the next SNP to the sum",
   stepTitleThreshold: "Score both samples at the next P threshold",
   stepTitleQuantile: "Draw the next vigintile of the score",
+  runTitleHaplotypes: "Draw the rest of the haplotypes",
   runTitleLd: "Clump the rest of the region",
   runTitleScore: "Add the remaining SNPs in order",
   runTitleThreshold: "Sweep the remaining P thresholds",
   runTitleQuantile: "Draw the remaining vigintiles",
 
-  /* page 1, on the canvas */
-  assocCaption: "one region, every SNP tested against the trait",
+  /* DECISION 8: the step line and the hand-off, above every caption row. The
+     hand-off names what the step before produced; step 1 has no step before
+     it, so it names what this one draws. Steps 3 to 6 work on independent
+     SNPs, which is what clumping a base study leaves — so the hand-off from
+     step 2 can say so without claiming the region's own SNPs travelled. */
+  handHaplotypes: "the region's haplotype pool",
+  handClump: "from step 1: the region's haplotypes",
+  handScore: "from step 2: SNPs with no LD between them",
+  handThreshold: "from step 3: a score for every person",
+  handQuantile: "from step 4: the P threshold to score at",
+  handRisk: "from step 5: the score in the target sample",
+
+  /* step 1, on the canvas */
+  blockCaption: "haplotypes in the region, one row each",
+  blockNote: "one tone an allele",
+  triCaption: "r² between every pair within 250 kb",
+  triNote: "0 to 1",
+
+  /* step 2 */
+  assocCaption: "every SNP in the region tested against the trait",
+  assocCaptionLead: "the lowest P in the region, and every SNP in LD with it",
   assocCaptionClumped: "the lead SNP of each clump, and the SNPs in LD with it",
   assocX: "position (kb)",
   assocY: "−log₁₀P",
   alphaLabel: "P = 0.05",
-  triCaption: "r² between every pair within 250 kb",
-  triNote: "0 to 1",
 
-  /* page 2 */
+  /* step 3 */
   genoCaption: "the person's genotype, effect alleles carried",
   weightCaption: "the base study's weight for each SNP",
   weightNote: "β̂, on the raw allele count",
@@ -1289,50 +1944,110 @@ export const STRINGS = {
   distCaption: "every person in the target sample, by score",
   distX: "score",
 
-  /* page 3 */
+  /* step 4 */
   curveCaption: "R² of the score against the P threshold",
   curveNote: "best-fit threshold in the target sample, then assessed in the validation sample",
   curveX: "P threshold",
   curveY: "R²",
   keptAxis: "SNPs kept",
 
-  /* page 4 */
+  /* step 5 */
   quantCaption: "mean trait by score vigintile, with 95% intervals",
   quantX: "score vigintile",
   quantY: "mean trait",
   meanLine: "The sample's mean trait",
 };
 
-/** The step label a page wears, as the declarative map core reserves against. */
+/* ==========================================================================
+   Step 6's copy, kept apart from the rest.
+
+   Every line about a RISK lives here, and `_lab/prs-verify.mjs` §11 uses that
+   split: the score itself is not a risk and no string on steps 1 to 5 may call
+   it one, while step 6 is where a calibrated model turns it into one. A single
+   sweep over one object could not say that.
+   ========================================================================== */
+
+export const RISK_STRINGS = {
+  riskSection: "The risk",
+
+  /* the drive row, step 6's own nouns — here rather than in STRINGS because
+     the verify's no-risk sweep reads STRINGS as the steps that must not call a
+     score a risk, and these two name a predicted one */
+  stepRisk: "Next decile",
+  stepTitleRisk: "Draw the next decile of predicted risk",
+  runTitleRisk: "Draw the remaining deciles",
+
+  prevalenceLabel: "Prevalence",
+  prevalenceDetail: "the share of the population that has the disease",
+
+  riskThreshLabel: "Risk threshold",
+  riskThreshDetail: "the absolute risk above which the disease is acted on",
+
+  calCaption: "predicted risk against the observed fraction",
+  /* 319 people in ten deciles is 32 a decile; the verify asserts the number
+     against N_TARGET rather than letting a literal drift. */
+  calNote: "by decile, 32 people each",
+  calX: "predicted risk",
+  diagonalLabel: "predicted = observed",
+
+  stratCaption: "predicted risk by score percentile",
+  stratX: "score percentile",
+
+  emptyNote: "no SNP is kept at this P threshold",
+};
+
+/** The step label a step wears, as the declarative map core reserves against. */
 export const STEP_LABELS = {
   param: "page",
   labels: {
-    ld: STRINGS.stepLd,
+    haplotypes: STRINGS.stepHaplotypes,
+    clump: STRINGS.stepLd,
     score: STRINGS.stepScore,
     threshold: STRINGS.stepThreshold,
     quantile: STRINGS.stepQuantile,
+    risk: RISK_STRINGS.stepRisk,
   },
-  default: STRINGS.stepLd,
+  default: STRINGS.stepHaplotypes,
 };
 export const STEP_TITLES = {
   param: "page",
   labels: {
-    ld: STRINGS.stepTitleLd,
+    haplotypes: STRINGS.stepTitleHaplotypes,
+    clump: STRINGS.stepTitleLd,
     score: STRINGS.stepTitleScore,
     threshold: STRINGS.stepTitleThreshold,
     quantile: STRINGS.stepTitleQuantile,
+    risk: RISK_STRINGS.stepTitleRisk,
   },
-  default: STRINGS.stepTitleLd,
+  default: STRINGS.stepTitleHaplotypes,
 };
 export const RUN_TITLES = {
   param: "page",
   labels: {
-    ld: STRINGS.runTitleLd,
+    haplotypes: STRINGS.runTitleHaplotypes,
+    clump: STRINGS.runTitleLd,
     score: STRINGS.runTitleScore,
     threshold: STRINGS.runTitleThreshold,
     quantile: STRINGS.runTitleQuantile,
+    risk: RISK_STRINGS.runTitleRisk,
   },
-  default: STRINGS.runTitleLd,
+  default: STRINGS.runTitleHaplotypes,
+};
+
+/** The hand-off line each step carries (decision 8). */
+export const HANDOFFS = {
+  haplotypes: STRINGS.handHaplotypes,
+  clump: STRINGS.handClump,
+  score: STRINGS.handScore,
+  threshold: STRINGS.handThreshold,
+  quantile: STRINGS.handQuantile,
+  risk: STRINGS.handRisk,
+};
+
+/** `step 2 of 6 · Clump the SNPs`, with the number already in the label. */
+export const stepLine = (page) => {
+  const n = stepNumber(page);
+  return `step ${n} of ${PAGES.length} · ${PAGES[n - 1].label.replace(/^\d+ · /, "")}`;
 };
 
 /** The region and the genome the controls describe, resolved once. */
@@ -1342,10 +2057,12 @@ export function configFor(params) {
     recomb: recombOf(params.recomb).rate,
     clumpR2: Number(params.clumpR2),
     typed: params.causalTyped !== "untyped",
+    nBase: baseSizeOf(params.baseSize).n,
     nCausal: Number(params.causal),
     h2: Number(params.h2),
     fst: t.fst,
     tagLoss: t.tagLoss,
     r2tag: t.r2tag,
+    prevalence: prevalenceOf(params.prevalence).p,
   };
 }
