@@ -1,68 +1,86 @@
 # Handover
 
 **FIFTY-SIX WIDGETS SHIPPED — 54 on the gallery, `roc-auc` UNLISTED
-(Kenneth's call, 2026-08-30); NO DRAFT.** The GWAS and PRS arc (PHM5003
-week 6) is three shipped — 56 `hardy-weinberg`, 57 `gwas`, 59
-`polygenic-score` (2026-09-12, all three) — and one to come: **60
-`mendelian-randomization`**, the last of the arc. `main` is pushed and
-clean at the 59 ship.
+(Kenneth's call, 2026-08-30); ONE DRAFT: 60 `mendelian-randomization`.**
+The GWAS and PRS arc (PHM5003 week 6) is three shipped — 56
+`hardy-weinberg`, 57 `gwas`, 59 `polygenic-score` (2026-09-12) — and
+the fourth drafted the same night. `main` is **ahead of origin by five
+commits, unpushed** (the MR measure script, the mock, the picks, the
+draft); the last push is 69cca83.
 
 ---
 
-# NEXT SESSION — SLOT 60 `mendelian-randomization`
+# NEXT SESSION — KENNETH'S ROUND ON THE 60 DRAFT, AND THE GWAS RE-RECORD
 
-**What it is.** PHM5003 week 6, notebook `03 - MR.ipynb` (extract the
-cells with node, `JSON.parse` of the ipynb; the scratchpad copies are
-gone with the session). The lesson: MR as the natural randomised trial
-(alleles assigned at conception; the RCT diagram beside the MR diagram,
-two attached PNGs); the three assumptions in the lesson's own words —
-relevance (associated with the exposure), exclusion restriction
-(associated with the outcome only through the exposure), independence
-(not associated with confounders); the two-sample workflow (exposure
-GWAS, outcome GWAS, harmonise, estimate by IVW, MR-Egger, weighted
-median); the worked example BMI → coronary heart disease with
-`TwoSampleMR` on `ieu-a-2` (BMI) and `ieu-a-7` (CHD), `harmonise_data`,
-`mr()`, `mr_scatter_plot` (β on the outcome against β on the exposure
-with intervals, the fitted lines), `mr_singlesnp` and `mr_forest_plot`
-(each SNP's ratio and the combined estimate at the bottom); the summary's
-claims (instrumental variables; drug-target prioritisation; the
-challenges: instrument validity and strength, population
-stratification, lifelong-exposure interpretation, over-interpretation
-from noisy instruments). **The lesson's own numbers** are the target
-shape: 79 SNPs, IVW 0.446 (SE 0.059), Egger 0.502 (SE 0.144), weighted
-median 0.387 — read them off the notebook's saved outputs and check
-them before designing to them. The catalogue's slot 60 entry (search
-"Slot 60") has the design sketch: the DAG live with the two violations
-as toggles (`fork-pipe-collider`'s idiom), the two GWAS on a simulated
-population, the scatter with IVW / Egger / median, the forest of
-single-SNP ratios, the confounded observational estimate as the
-reference, pleiotropy and instrument strength as the cases that fail.
+**Where it stands.** Slot 60 ran plan → measure → mock → picks → draft in
+one day, 2026-09-12. Kenneth asked for the plan "step by step", so every
+call went through AskUserQuestion one round at a time; his picks are in
+the catalogue under slot 60 (search "Kenneth's calls on slot 60" and
+"picks from the mock"). The draft is committed as 3afadd7 with status
+`draft` in `main.js` and the manifest, at
+`http://localhost:8014/widgets/mendelian-randomization/` on this machine
+(`preview_start` with `widgets-alt4`; 8013 belonged to another chat).
+`_lab/mr-verify.mjs` runs 109 assertions green; `check` and `test` green.
 
-**The order, which has now run eight times:** measure script
-(`_lab/mr-measure.mjs` — bias of IVW versus Egger versus the median as
-the pleiotropic fraction rises; weak-instrument bias at the chosen n;
-that each assumption maps to one visible failure; and that the
-simulation reproduces the lesson's shape — a symmetric simulation can
-fail to, see 57) → mock from the newest mock's shell
-(`_lab/prs-round3-mock.html`, which imports the widget's own `model.js`
-and renders rails through core's `buildControls`) → his picks by
-AskUserQuestion → catalogue → draft (verify script from
-`_lab/prs-verify.mjs`'s shape: engine, geometry, copy, the painted text
-sweep, the register with its forbidden lists) → rounds → the three-pass
-copy audit plus the mannerism pass → "tested ok, push" → shooter
-(`_lab/prs-shoot.html` with the slug changed) + states → status flip →
-full suite fronted → `check` AND `test` read on their own → commit →
-push. **The seed goes in a *The data* section under the page control**
-(his ruling on 59, and 3.4j's amendment); `gwas` and `hardy-weinberg`
-were moved the same night, in the commit after the 59 ship, and pushed
-on his word.
+**What the draft is.** Four steps on one rail: 1 one SNP as a trial (the
+causal-structures stage — the graph with two ghost arrows, the cohort, the
+observational fit, the three genotype centroids, the ratio line; four
+beats, the Step button naming each); 2 the two GWAS (two strips, strongest
+on BMI first, the scatter forming under them; Harmonise off by default
+with the flipped effects in red); 3 the estimate (IVW · MR Egger ·
+Weighted median · All, the observational line dotted as the reference,
+the truth on request, the pin by hover and click); 4 the forest (height
+follows the count; three combined rows). `model.js` opens with the
+decisions and the measurement; `main.js` with the drawing decisions.
 
-**Reuse:** `widgets/fork-pipe-collider/main.js` for the DAG with
-clickable nodes (regions); `widgets/gwas/model.js` for a per-SNP scan;
-`widgets/polygenic-score/model.js` for summary statistics from a base
-size (`summaryBase`) and the hover-and-pin idiom (`pointer: true` +
-`regions` + a hidden display text parameter, decision 15); the lesson's
-scatter and forest are the field's figures, so mock them as they are.
+**Two things Kenneth has NOT yet seen and should be told first:**
+
+1. **The gwas baseline moved under bb086f6, not under this work.** The
+   full suite after the draft's core change read 697 states, 682 MATCH,
+   15 gwas DIFFER, all px-only. Proven not the core change's (identical
+   with it stashed) and proven bb086f6's by serving 04c770a from a
+   worktree in the same pane (27/27 MATCH there): at 04c770a the default
+   model's and Cohort page's states were hashed at **688px** wide because
+   their rail was too short to scroll the page, and the Seed move made
+   every rail tall enough, so those 15 now settle at **669** like the
+   rest. Nothing rebaselined. **Ask him**, as with t-sne: re-record the 15
+   at 669 in a commit that says why. The catalogue's DRAFTED paragraph has
+   the full account.
+2. **The core change** (`widgets/core/widget.js`, twelve lines in
+   `resolveLabel`): a step label declared `{ anim: "trialBeat", labels,
+   default }` reads the animation's counter. Needed because step 1's four
+   acts are what no parameter carries (4.4b). The suite proved it reaches
+   nothing else.
+
+**Then his round.** Expect the usual: copy (the three-pass audit plus the
+mannerism pass is still owed — `_lab/mr-verify.mjs` §8 already sweeps
+"never", lesson words, the coined list, "landed/taken/arrives", and
+"tune/holdout"; "arm" is deliberately allowed on this widget as the
+field's word), the DAG's proportions at 200px beside a 276px scatter, the
+step-1 SNP note ("drawn stronger than any real BMI SNP"), whether the
+hover's reading line under the plot earns its place. **After "tested ok,
+push":** the shooter from `_lab/prs-shoot.html` with the slug changed
+(states: settled by `shown=` on all four steps — 4 on step 1, 79 on the
+others; the violations; `harmonise=on`; `estimator=`; `snps=20`; pins
+by `snp=`; driven Play and one Step on every step; interrupted: a display
+change mid-run, a visit to step 2 and back; HIT-DRIVEN with the run first
+on steps 3 and 4 — the cell hit map means a click at a point's own pixel
+names the SNP the hover names, asserted in verify §5), status flip in
+both files and the verify, full suite fronted, `check` AND `test` read on
+their own, commit, push.
+
+**What the measurement corrected, so nobody re-argues it** (all in
+`_lab/mr-measure.mjs`, 31 checks): the lesson's intervals need a
+mean-zero direct effect of SD 0.012 on every SNP; the median DRIFTS at 30%
+(six tenths of IVW's bias) so the claim is relative; the confounder→SNP
+term must have either sign per SNP and then breaks all three with Egger
+worst and a negative intercept; the weak/one-sample pull toward the
+observational value is an average over seeds; step 1 works on the
+liability scale and not on binary CHD. Seed 1 is the default because seed
+7's clean IVW is 2.3 SD low.
+
+**Reuse for the next arc:** nothing is queued after 60; slot 52
+`training-loop` (05-4) is the standing debt.
 
 # WORKING ON THIS MACHINE
 
