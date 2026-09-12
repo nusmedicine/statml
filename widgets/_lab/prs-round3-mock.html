@@ -24,6 +24,7 @@
   #axisRow > .cand { width: 550px; }
   #axisEndsRow > .cand { width: 550px; }
   #clumpTriRow > .cand { width: 550px; }
+  #seedRailRow > .cand { width: 300px; }
   #clumpTriLiveRow > .cand { width: 550px; }
   canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
   .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
@@ -191,6 +192,21 @@
   <p class="measure" id="clumpTriMeasure"></p>
   <div class="row" id="clumpTriLiveRow"></div>
   <p class="rec" id="recClumpTri"></p>
+
+  <h2>&sect;7 &middot; Where the seed sits on the rail</h2>
+  <p class="note">
+    Kenneth, on his round: "I think the seed should be in the data section? usually above? like the other
+    widgets?" In this arc, <code>gwas</code> and <code>hardy-weinberg</code> put Seed LAST, under the drive
+    row (<code>afterDrive</code>), and so does this widget; <code>t-sne</code> and <code>mixed-model</code>
+    put it in a <i>The data</i> section at the top. Principle 3.4e fixes the drive row as the last thing in
+    the rail and reserves the block under it for a control that only means something AFTER a run (widget
+    10's withheld answer); a seed is set before pressing Play. Four rails, every one core's own DOM built
+    from the widget's real parameter spec at 300px: <b>A</b> today, on steps 1 and 3; <b>B</b> a
+    <i>The data</i> section holding Seed directly under Step, the one section that is on every step.
+  </p>
+  <div class="row" id="seedRailRow"></div>
+  <p class="measure" id="seedRailMeasure"></p>
+  <p class="rec" id="recSeedRail"></p>
 </main>
 
 <script type="module">
@@ -1333,6 +1349,80 @@ document.getElementById("recClumpTri").innerHTML =
   + `(one geometry function, the cached image reused), the hover and the pin from step 1 come along `
   + `because the hit arithmetic is in the model, and the fingerprint's driven states for step 2 would be `
   + `re-recorded at ship — this widget is a draft, so nothing is baselined yet.`;
+
+/* ==========================================================================
+   §7 · the seed's place on the rail — the real spec through core's builder
+   ====================================================================== */
+{
+  const { buildControls, buildActions } = await import("../core/controls.js");
+  const { resolveParams } = await import("../core/params.js");
+  let text = await (await fetch("../polygenic-score/main.js", { cache: "no-store" })).text();
+  const abs = (rel) => JSON.stringify(new URL(rel, location.href).href);
+  text = text.replace(/^import \{ defineWidget, makePlot \} from "\.\.\/core\/index\.js";$/m,
+    `import { makePlot } from ${abs("../core/canvas.js")}; const __cfg = {}; const defineWidget = (c) => Object.assign(__cfg, c);`);
+  text = text.replace(/^import \* as M from "\.\/model\.js";$/m, `import * as M from ${abs("../polygenic-score/model.js")};`);
+  text += "\nexport { __cfg };\n";
+  const url = URL.createObjectURL(new Blob([text], { type: "text/javascript" }));
+  const { __cfg } = await import(url);
+  const spec = __cfg.params;
+
+  const specB = {};
+  specB.page = spec.page;
+  specB.dataSec = { type: "section", label: "The data" };
+  specB.seed = { ...spec.seed, afterDrive: false };
+  for (const [k, f] of Object.entries(spec)) if (k !== "page" && k !== "seed") specB[k] = f;
+
+  const row = document.getElementById("seedRailRow");
+  const DRIVE = { haplotypes: "Next haplotype", score: "Next SNP" };
+  const heights = [];
+  for (const [title, sp, page] of [
+    ["A · today, step 1 — Seed under the drive row", spec, "haplotypes"],
+    ["B · a The data section under Step, step 1", specB, "haplotypes"],
+    ["A · today, step 3", spec, "score"],
+    ["B · step 3", specB, "score"],
+  ]) {
+    const box = cand(row, title, `core's own DOM, the widget's real spec at 300px\nvalues: the defaults on ${page === "haplotypes" ? "step 1" : "step 3"}`);
+    const host = el("div", "w-split rail-host");
+    const rail = el("div", "w-rail");
+    host.appendChild(rail);
+    const values = resolveParams(sp, new URLSearchParams(`page=${page}`));
+    const main = {};
+    const after = {};
+    for (const [k, f] of Object.entries(sp)) (f.afterDrive ? after : main)[k] = f;
+    const cm = el("div", "w-controls");
+    rail.appendChild(cm);
+    buildControls(cm, main, values, () => {});
+    const drive = el("div", "w-drive");
+    rail.appendChild(drive);
+    buildActions(drive, [
+      { key: "step", text: DRIVE[page], group: "pace", onClick: () => {} },
+      { key: "run", text: "Replay", group: "pace", onClick: () => {} },
+      { key: "reset", text: "Reset", onClick: () => {} },
+    ]);
+    const ca = el("div", "w-controls w-controls--after");
+    rail.appendChild(ca);
+    if (Object.keys(after).length) buildControls(ca, after, values, () => {});
+    box.appendChild(host);
+    heights.push([title, host]);
+  }
+  const measure = () => {
+    document.getElementById("seedRailMeasure").textContent = heights
+      .map(([t, h]) => `${t}: ${Math.round(h.getBoundingClientRect().height)}px`).join("\n");
+  };
+  measure();
+  if (document.fonts?.ready) document.fonts.ready.then(measure);
+
+  document.getElementById("recSeedRail").innerHTML =
+    `<b>B.</b> A seed is set before Play, and 3.4e's block under the drive row is for the one control that `
+    + `only means something after a run — which a seed is not. Putting it in a <i>The data</i> section `
+    + `directly under Step gives the rail one section that is the same on all six steps, so a reader who `
+    + `changes step finds the seed where it was, and the detail "draws a different base study and `
+    + `different samples" reads as a description of the data rather than of a button. <b>The cost</b> is `
+    + `nothing on the widget (a section entry and one flag) and a consistency item for the arc: `
+    + `<code>gwas</code> and <code>hardy-weinberg</code> put Seed under the drive row and would follow when `
+    + `next touched, his call. <b>Against A:</b> it is what the arc's two shipped widgets do, so leaving it `
+    + `keeps the three alike today.`;
+}
 
 document.getElementById("engineLine").textContent =
   `engine: model.js at seed ${SEED}, three builds (15,000 and 1,500 base) in ${fmt(T_BUILD, 0)} ms · `
