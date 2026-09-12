@@ -8060,6 +8060,16 @@ on the diagonal, and a model carried to another ancestry usually does
 not, which is why recalibration is needed. **After 59: slot 60
 `mendelian-randomization`, the last of the arc.**
 
+**The seed's place, made consistent the same night on his "fix the seed
+placement in gwas and hardy-weinberg":** both moved to a *The data*
+section directly under the page control, `afterDrive` gone; their
+verifies' "the seed sits below the drive row (3.4j)" assertions
+replaced (3.4j is for a withheld answer, which a seed is not — the
+principle now carries the amendment); `hardy-weinberg`'s momentary
+whole-sample action stays under the drive row, as 3.4j has it. The rail
+is not hashed, so no fingerprint state moved; both verifies, check and
+test green. Not pushed — on his word.
+
 **PAGE 5 PLANNED 2026-09-12 — calibration, on Kenneth's question** ("can
 the PRS score be used to calculate risk for a patient? a colleague told me
 no… so what's the use of this score?", then "how is calibration done? will

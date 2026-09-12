@@ -365,7 +365,11 @@ const GRM = build(base({ model: "grm", npcs: "5" }));
     && W.params.familyEffect.when?.equals === "sibships");
   check("the PC count shows under the two models that use components",
     W.params.npcs.when?.oneOf?.join() === "pcs,grm");
-  check("the seed sits below the drive row (3.4j)", W.params.seed.afterDrive === true);
+  /* 3.4j is for a withheld answer, which a seed is not; Kenneth's ruling on 59
+     (2026-09-12) puts the seed in a The data section under the page control */
+  check("the seed sits in The data section directly under the page control, above the drive row",
+    !W.params.seed.afterDrive && Object.keys(W.params).slice(0, 3).join() === "page,dataSec,seed"
+    && W.params.dataSec.type === "section" && W.params.dataSec.label === "The data");
   check("the widget opens on SNP only, so the first run is the forest (2.1)",
     W.params.model.default === "snp");
   check("…and empty, with the head start hidden",

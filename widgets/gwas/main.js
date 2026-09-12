@@ -459,6 +459,20 @@ defineWidget({
       display: true,
     },
 
+    /* Kenneth's ruling on 59 (2026-09-12): the seed sits under the page control
+       in a section that is the same on every page — a seed is set before Play,
+       and 3.4j's block under the drive row is for a withheld answer, which a
+       seed is not. */
+    dataSec: { type: "section", label: M.STRINGS.dataSection },
+    seed: {
+      type: "int",
+      label: M.STRINGS.seedLabel,
+      detail: M.STRINGS.seedDetail,
+      min: 1,
+      max: 200,
+      default: 1,
+    },
+
     cohortSec: { type: "section", label: M.STRINGS.cohortSection },
     ancestry: {
       type: "segmented",
@@ -524,15 +538,6 @@ defineWidget({
       when: { param: "model", oneOf: ["pcs", "grm"] },
     },
 
-    seed: {
-      type: "int",
-      label: M.STRINGS.seedLabel,
-      detail: M.STRINGS.seedDetail,
-      min: 1,
-      max: 200,
-      default: 1,
-      afterDrive: true,
-    },
 
     /* Authoring escape hatch, first render only: SNPs already tested. */
     shown: { type: "int", min: 0, max: 2000, default: 0, hidden: true },

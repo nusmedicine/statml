@@ -329,6 +329,16 @@ function build(params, seed) {
   }
 }
 
+/* --- 3b · the seed's place on the rail (Kenneth's ruling on 59, 2026-09-12) --- */
+{
+  const W = await widget();
+  check("the seed sits in The data section directly under the page control, above the drive row",
+    !W.params.seed.afterDrive && Object.keys(W.params).slice(0, 3).join() === "page,dataSec,seed"
+    && W.params.dataSec.label === "The data");
+  check("…and the momentary whole-figure action stays under the drive row, as 3.4j has it",
+    W.params.whole.afterDrive === true);
+}
+
 /* --- 4 · the arrival: pure, seeded, and its last frame is the table -------- */
 {
   const shape = (s) => [
@@ -581,7 +591,6 @@ function build(params, seed) {
     W.params.error.when?.oneOf?.join() === "heterozygotes,homozygotes");
   check("the allele frequency and the view are One SNP's own",
     W.params.p.when?.equals === "one" && W.params.view.when?.equals === "one");
-  check("the seed sits below the drive row (3.4j)", W.params.seed.afterDrive === true);
   check("the widget opens empty, with the head start hidden (2.1)",
     W.params.shown.hidden === true && W.params.shown.default === 0);
   check("the animation reveals k and never recomputes (non-negotiable 2)",

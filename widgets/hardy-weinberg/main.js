@@ -457,6 +457,20 @@ widgetApi = defineWidget({
       display: true,
     },
 
+    /* Kenneth's ruling on 59 (2026-09-12): the seed sits under the page control
+       in a section that is the same on every page — a seed is set before Play,
+       and 3.4j's block under the drive row is for a withheld answer, which a
+       seed is not. */
+    dataSec: { type: "section", label: M.STRINGS.dataSection },
+    seed: {
+      type: "int",
+      label: M.STRINGS.seedLabel,
+      detail: M.STRINGS.seedDetail,
+      min: 1,
+      max: 200,
+      default: 1,
+    },
+
     sampleSec: { type: "section", label: M.STRINGS.sampleSection },
     /* Two short names share a row; the two long ones take a row each, which is
        the mock's rail C without a name reaching the edge of its face. */
@@ -544,15 +558,6 @@ widgetApi = defineWidget({
       display: true,
       afterDrive: true,
       when: { param: "page", equals: "one" },
-    },
-    seed: {
-      type: "int",
-      label: M.STRINGS.seedLabel,
-      detail: M.STRINGS.seedDetail,
-      min: 1,
-      max: 200,
-      default: 1,
-      afterDrive: true,
     },
 
     /* Authoring escape hatch, first render only: individuals already genotyped. */

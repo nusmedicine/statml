@@ -813,6 +813,18 @@ values"), directly after Seed** (or directly under the gate that creates the
 thing to reveal). A student meeting their sixth widget should not meet a
 third control for the same idea.
 
+**Amended (2026-09-12): the seed is not an answer, and it goes ABOVE.**
+`gwas` and `hardy-weinberg` shipped with Seed under the drive row on a reading
+of this principle, and `polygenic-score` followed them until Kenneth's round:
+"the seed should be in the data section, above, like the other widgets". A
+seed is set before Play, which is exactly what 3.4e's block above the buttons
+is for; the block below is for the one control that only means something
+after a run. **Seed sits in a *The data* section directly under the page
+control**, the one section that is the same on every page, so a reader who
+changes page finds it where it was. All three arc widgets now do this; the
+momentary whole-figure action on `hardy-weinberg` stays below the buttons,
+because it is what this principle is about.
+
 What this amendment does NOT touch is the half that was the real lesson: **a
 revealed answer is a reference behind something, not a layer on its own** —
 it stays conditioned on there being a result to reveal, and it must never sit

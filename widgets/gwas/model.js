@@ -1300,6 +1300,7 @@ export const STRINGS = {
 
   pageLabel: "Page",
   pageDetail: "the cohort, or the association test",
+  dataSection: "The data",
 
   cohortSection: "The cohort",
   testSection: "The test",

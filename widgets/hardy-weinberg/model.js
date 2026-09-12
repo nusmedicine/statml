@@ -550,6 +550,7 @@ export const STRINGS = {
 
   pageLabel: "Page",
   pageDetail: "one SNP, or 2,000 SNPs",
+  dataSection: "The data",
 
   sampleSection: "The sample",
   testSection: "The test",
