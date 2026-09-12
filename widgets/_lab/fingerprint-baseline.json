@@ -888,7 +888,7 @@
       "slug": "power-and-error",
       "state": "?theme=light&axis=z&n=40&shown=0",
       "px": "c82bf449",
-      "tx": "21ad5a3e"
+      "tx": "b6c98ca9"
     },
     {
       "$note": "alpha 0.001 against a small effect — alpha chosen, beta inherited, and beta is nearly all of it.",

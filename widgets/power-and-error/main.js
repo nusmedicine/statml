@@ -895,7 +895,7 @@ defineWidget({
         label: "False positive rate α",
         value: alpha.label,
         note: view.isZ
-          ? `the line sits at z = ${alpha.z.toFixed(2)} — nothing but α moves it`
+          ? `the line is at z = ${alpha.z.toFixed(2)} — nothing but α moves it`
           : `α is fixed; the difference needed to clear it is ${view.crit.toFixed(2)} and shrinks with n`,
       },
       {
@@ -926,7 +926,7 @@ defineWidget({
     const view = viewOf(state, params);
     const base =
       (view.isZ
-        ? `Standardised axis: both curves are one standard error wide and the alternative sits ${state.lambda.toFixed(2)} along. `
+        ? `Standardised axis: both curves are one standard error wide and the alternative is ${state.lambda.toFixed(2)} along. `
         : `Raw difference axis: both curves are ${state.se.toFixed(3)} wide and centred on 0 and ${state.d.toFixed(1)} SD. `) +
       `Effect ${state.d.toFixed(1)} SD at n = ${state.n} per group. ` +
       `Threshold α = ${alpha.label} puts the line at ${view.crit.toFixed(2)}, ` +
