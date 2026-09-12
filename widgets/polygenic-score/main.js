@@ -71,7 +71,29 @@
        square, because a calibration plot whose diagonal is not a diagonal is
        not one.
 
-   10. THE DEFAULT SEED IS 41. Of sixteen seeds swept in the round-two mock it
+   11. STEP 3 IS COUNTABLE FIRST, THEN BATCHED — Kenneth's pick, 2026-09-12,
+       after round two's Base study size control made the default keep 160 SNPs
+       where round one kept 38. The first 40 kept SNPs are drawn one a beat
+       exactly as before; the rest arrive on ONE beat, and on it the three
+       strips stop being per-SNP columns and become bars of totals — the effect
+       alleles carried over the batch, what those SNPs added to the score, and
+       the sum's own step to the finished score.
+
+       STEP 3'S ORDER IS BY EVIDENCE, NOT BY POSITION. `model.js` sorts the
+       kept SNPs by P ascending (its decision 14), so the forty the reader
+       counts are the forty carrying the most weight — a truncated figure whose
+       countable part was chosen by chromosome position would teach the
+       arbitrary. The sum is the same number in any order; only the picture
+       depends on it, and the axis label says which order it is in.
+
+       THE X AXIS IS FORTY UNIT COLUMNS AND ONE WIDE ONE. The batch column
+       takes a quarter of the panel, which leaves the forty 11.8px each at the
+       690px stage and 9.2px at 550 — narrower than forty alone would get, wide
+       enough for the two dots a genotype column stacks. A dashed rule marks
+       where the countable columns stop, from the first frame, because it
+       belongs to the axis and not to the data.
+
+   12. THE DEFAULT SEED IS 41. Of sixteen seeds swept in the round-two mock it
        is the only one that opens with the target sample above the validation
        sample at all three base study sizes AND has the region's lead SNP off
        the causal one — 25 kb away at r² 0.79, which is step 2's whole case.
@@ -525,28 +547,57 @@ function drawClump(ctx, colors, rect, region, { beats, frac, scanDone }) {
 
 /**
  * One person's score, as three strips over the same SNP axis with the target
- * sample's own distribution underneath. `upTo` is how many SNPs the sum has
- * reached, which is the only thing step 3's run changes.
+ * sample's own distribution underneath.
+ *
+ * `beats` is how far step 3's run has got, and model.js decision 14 is what a
+ * beat means: one SNP for the first forty, and then one beat for every SNP
+ * after them. Past forty the three strips stop being forty-column figures with
+ * a hairline each and become forty columns and one column of totals — the
+ * countable part first, then the batch.
  */
-function drawScore(ctx, colors, L, st, shownUpTo) {
+function drawScore(ctx, colors, L, st, beats) {
   const k = st.n;
   /* A THRESHOLD CAN KEEP NOTHING, and then there is no column to draw however
      far the run says it has got: 5 × 10⁻⁸ over a base study of 1,500 people
      keeps no SNP at all. Clamping here rather than in the caller is what keeps
      `st.beta[i]` from being read past its end — one undefined weight puts a
      NaN into a bar's height and the bar is then drawn nowhere. */
-  const upTo = Math.min(shownUpTo, k);
-  const cw = k > 0 ? L.geno.w / k : L.geno.w;
+  const ax = M.scoreAxis(L.geno.w, k);
+  const cw = ax.cw;
+  const shownCols = Math.max(0, Math.min(beats, ax.cols));
+  const added = M.snpsAdded(beats, k);
+  /* the batch is on screen once the run has spent a beat past the forty */
+  const batch = ax.batched && added >= k ? M.batchTotals(st) : null;
+  const batchX = L.geno.x + ax.batchX;
   /* 4.3: the SNP just added is lit only while more are coming; on the finished
      sum the one mark in --c-highlight is the person's own line. */
-  const newest = upTo > 0 && upTo < k ? upTo - 1 : -1;
+  const newest = shownCols > 0 && added < k ? shownCols - 1 : -1;
+  const xDomain = [0, Math.max(ax.units, 1)];
+
+  /* WHERE THE COUNTABLE COLUMNS STOP, drawn from the first frame on every
+     strip: it is part of the axis rather than part of the data, and a reader
+     who can see the batch column coming is not surprised by a bar on a scale
+     of its own when it lands. */
+  const rule = (rect) => {
+    if (!ax.batched) return;
+    ctx.save();
+    ctx.strokeStyle = colors.grid;
+    ctx.lineWidth = 1;
+    ctx.setLineDash([3, 3]);
+    ctx.beginPath();
+    ctx.moveTo(Math.round(batchX) + 0.5, rect.y);
+    ctx.lineTo(Math.round(batchX) + 0.5, rect.y + rect.h);
+    ctx.stroke();
+    ctx.restore();
+  };
 
   /* the genotypes: 0, 1 or 2 marks in a column, so the count is the reading */
   capAt(ctx, colors, L.geno.x, L.geno.y - 8, M.STRINGS.genoCaption, L.geno.w * 0.72);
   noteAt(ctx, colors, L.geno.x + L.geno.w, L.geno.y - 8, `person ${st.person}`, L.geno.w * 0.25);
+  rule(L.geno);
   const r = Math.max(1.6, Math.min(5, cw / 2 - 1.2));
   ctx.save();
-  for (let i = 0; i < upTo; i += 1) {
+  for (let i = 0; i < shownCols; i += 1) {
     const x = L.geno.x + (i + 0.5) * cw;
     ctx.fillStyle = i === newest ? colors.highlight : colors.groupA;
     for (let g = 0; g < st.genotype[i]; g += 1) {
@@ -556,6 +607,28 @@ function drawScore(ctx, colors, L, st, shownUpTo) {
     }
   }
   ctx.restore();
+  if (batch) {
+    /* ONE BAR, AND ITS CEILING IS THE SAME CEILING THE DOTS HAVE: two effect
+       alleles a SNP. So a bar at half height is a person carrying one allele
+       at half of them, which is what a column of one dot says beside it. */
+    const full = L.geno.h - 4;
+    const h = full * (batch.n > 0 ? batch.alleles / (2 * batch.n) : 0);
+    ctx.save();
+    ctx.fillStyle = colors.groupA;
+    ctx.fillRect(batchX + 3, L.geno.y + L.geno.h - h, ax.batchW - 6, h);
+    ctx.restore();
+    /* THE LINE MAY HANG 40px LEFT OF ITS OWN COLUMN, and no further. At its
+       baseline the only ink under it is the top of a column carrying two
+       effect alleles, which reaches L.geno.y + 9.9 at the widest stage — the
+       line has no descender, and it is haloed. The allowance is what makes the
+       long form fit at every width the side layout reaches; past it the short
+       form is drawn instead of an ellipsis (model.js). */
+    const long = M.batchAlleleLabel(batch.n, batch.alleles);
+    const room = ax.batchW - 6 + 40;
+    const label = widthOf(ctx, long, noteFont(colors)) <= room
+      ? long : M.batchAlleleShort(batch.alleles);
+    noteAt(ctx, colors, L.geno.x + L.geno.w, L.geno.y + 10, label, room);
+  }
   ctx.save();
   ctx.strokeStyle = colors.grid;
   ctx.lineWidth = 1;
@@ -568,10 +641,13 @@ function drawScore(ctx, colors, L, st, shownUpTo) {
   /* the weights: one signed bar a SNP, around a zero line */
   const bMax = k > 0 ? Math.max(...st.beta.map((b) => Math.abs(b))) * 1.12 : 1;
   const wPlot = makePlot({
-    ctx, colors, rect: L.weights, xDomain: [0, Math.max(k, 1)], yDomain: [-bMax, bMax],
+    ctx, colors, rect: L.weights, xDomain, yDomain: [-bMax, bMax],
   });
-  wPlot.caption(fit(ctx, M.STRINGS.weightCaption, capFont(colors), L.weights.w * 0.62));
+  wPlot.caption(fit(ctx,
+    batch ? M.STRINGS.weightCaptionBatch : M.STRINGS.weightCaption,
+    capFont(colors), L.weights.w * 0.62));
   wPlot.note(M.STRINGS.weightNote);
+  rule(L.weights);
   const zeroY = Math.round(wPlot.sy(0)) + 0.5;
   ctx.save();
   ctx.strokeStyle = colors.axis;
@@ -581,13 +657,32 @@ function drawScore(ctx, colors, L, st, shownUpTo) {
   ctx.lineTo(L.weights.x + L.weights.w, zeroY);
   ctx.stroke();
   const bw = Math.max(1.4, cw - 2);
-  for (let i = 0; i < upTo; i += 1) {
+  for (let i = 0; i < shownCols; i += 1) {
     ctx.fillStyle = i === newest ? colors.highlight : colors.groupB;
     const x = L.geno.x + (i + 0.5) * cw - bw / 2;
     const y = wPlot.sy(st.beta[i]);
     ctx.fillRect(x, Math.min(y, zeroY), bw, Math.abs(y - zeroY));
   }
+  if (batch) {
+    /* THE BATCH BAR IS A CONTRIBUTION, NOT A WEIGHT, so it cannot share the β̂
+       scale beside it — the sum of a hundred and twenty terms is twenty times
+       the largest of them. Its own scale is the person's finished score, so
+       the bar reads as the share of that score the batched SNPs carry, and the
+       caption says what it is. The number carries the magnitude. */
+    const scale = Math.max(Math.abs(st.total), Math.abs(batch.contrib)) || 1;
+    const half = L.weights.h / 2 - 2;
+    const h = half * Math.min(1, Math.abs(batch.contrib) / scale);
+    ctx.fillStyle = colors.groupB;
+    ctx.fillRect(batchX + 3, batch.contrib < 0 ? zeroY : zeroY - h, ax.batchW - 6, h);
+  }
   ctx.restore();
+  if (batch) {
+    /* the line goes on the empty side of the zero line, so the bar it names
+       can be any height without meeting it */
+    noteAt(ctx, colors, L.geno.x + L.geno.w,
+      batch.contrib < 0 ? zeroY - 4 : zeroY + 4 + noteLine(colors),
+      M.batchWeightLabel(batch.contrib), ax.batchW - 6, { tone: colors.ink2 });
+  }
   wPlot.axisY({ ticks: [-bMax * 0.75, 0, bMax * 0.75], format: (v) => v.toFixed(2) });
 
   /* the running sum */
@@ -597,26 +692,39 @@ function drawScore(ctx, colors, L, st, shownUpTo) {
     ctx,
     colors,
     rect: L.sum,
-    xDomain: [0, Math.max(k, 1)],
+    xDomain,
     yDomain: [lo || -0.1, hi || 0.1],
   });
   sPlot.caption(M.STRINGS.sumCaption);
-  sPlot.note(`${M.intText(upTo)} of ${M.intText(k)} SNPs added`);
+  sPlot.note(`${M.intText(added)} of ${M.intText(k)} SNPs added`);
   sPlot.grid([0]);
-  if (upTo > 0) {
-    /* a step, not a line: the sum changes at a SNP and holds between them */
+  rule(L.sum);
+  if (added > 0) {
+    /* a step, not a line: the sum changes at a SNP and holds between them, and
+       the batch is one step of its own across the wide column */
     const pts = [[0, 0]];
-    for (let i = 0; i < upTo; i += 1) pts.push([i + 1, st.cum[i]]);
-    const step = [];
-    for (let i = 0; i < pts.length; i += 1) {
-      if (i > 0) step.push([pts[i][0] - 1, pts[i][1]]);
+    for (let i = 0; i < shownCols; i += 1) pts.push([i + 1, st.cum[i]]);
+    if (batch) pts.push([ax.units, st.total]);
+    const step = [pts[0]];
+    for (let i = 1; i < pts.length; i += 1) {
+      step.push([pts[i - 1][0], pts[i][1]]);
       step.push(pts[i]);
     }
     sPlot.curve(step, { stroke: colors.empirical, width: 2 });
-    sPlot.dot(upTo, st.cum[upTo - 1], { fill: colors.empirical, r: 3.5 });
+    const endX = pts[pts.length - 1][0];
+    sPlot.dot(endX, pts[pts.length - 1][1], { fill: colors.empirical, r: 3.5 });
   }
   sPlot.axisY({ format: (v) => v.toFixed(1) });
-  sPlot.axisX({ label: M.STRINGS.sumX, format: (v) => v.toFixed(0) });
+  sPlot.axisX({
+    label: M.STRINGS.sumX,
+    ticks: ax.batched ? [0, 10, 20, 30, 40] : undefined,
+    format: (v) => v.toFixed(0),
+  });
+  if (ax.batched) {
+    /* the wide column's own tick label, on the tick row under its middle */
+    tinyAt(ctx, colors, batchX + ax.batchW / 2, L.sum.y + L.sum.h + 6,
+      M.batchAxisLabel(k - M.SCORE_COUNTABLE), "center");
+  }
 
   /* the sample's scores, and where this person sits in them */
   const nb = 34;
@@ -636,11 +744,12 @@ function drawScore(ctx, colors, L, st, shownUpTo) {
   });
   dPlot.caption(fit(ctx, M.STRINGS.distCaption, capFont(colors), L.dist.w * 0.66));
   dPlot.note(`${M.intText(st.row.score.length)} people`);
-  if (upTo > 0) {
+  if (added > 0) {
     dPlot.bars(counts, { lo: sLo, width: span / nb, fill: colors.empirical, opacity: 0.32 });
   }
-  /* DECISION 7: the person's own line lands with the last SNP of the sum */
-  if (k > 0 && upTo >= k) {
+  /* DECISION 7: the person's own line joins the distribution with the last SNP
+     of the sum — which past forty kept is the beat the batch comes on. */
+  if (k > 0 && added >= k) {
     dPlot.vline(st.total, {
       stroke: colors.highlight,
       width: 2,
@@ -1099,7 +1208,13 @@ defineWidget({
 
     /* Authoring escape hatch, first render only, counted in the unit of the
        step the link names: rows filled, clumping beats, SNPs added, thresholds
-       swept, vigintiles added, deciles drawn. */
+       swept, vigintiles added, deciles drawn.
+
+       ON STEP 3 IT COUNTS SNPs ADDED WHILE THEY ARE COUNTABLE, and past the
+       fortieth the batch is all of them (decision 11): the value is clamped to
+       the step's own total, so at the default's 160 kept `?shown=41` and
+       `?shown=160` both land on the finished sum, and `?shown=12` lands on the
+       twelfth SNP. At 40 or fewer kept the count is the SNPs, throughout. */
     shown: { type: "int", min: 0, max: 1000, default: 0, hidden: true },
   },
 
@@ -1197,7 +1312,9 @@ defineWidget({
         anim.done = true;
         return false;
       }
-      anim.beat += dt / M.beatMs(page, state, params);
+      /* the beat's length can depend on where the run has got: step 3's last
+         beat is the batch, and it is longer than a SNP's (model.js 14). */
+      anim.beat += dt / M.beatMs(page, state, params, anim.k[page]);
       if (anim.beat < 1) return true;
       if (anim.mode === "step") {
         anim.beat = 0;
@@ -1329,12 +1446,16 @@ defineWidget({
 
     if (page === "score") {
       const st = M.personScore(state, params);
-      const done = st.n > 0 && upTo >= st.n;
-      const partial = upTo > 0 ? st.cum[Math.min(upTo, st.n) - 1] : 0;
+      /* model.js decision 14: the run counts beats, and past the countable
+         forty one beat is every SNP left — so what the tiles read is the SNPs
+         those beats have added. */
+      const added = M.snpsAdded(upTo, st.n);
+      const done = st.n > 0 && added >= st.n;
+      const partial = added > 0 ? st.cum[added - 1] : 0;
       return [
         {
           label: "Score",
-          value: upTo > 0 ? M.n2(partial) : "—",
+          value: added > 0 ? M.n2(partial) : "—",
           note: "Σ β̂ⱼ xⱼ over the SNPs kept",
         },
         {
@@ -1503,10 +1624,14 @@ defineWidget({
           + `the score distribution of ${M.intText(M.N_TARGET)} people, before any of the `
           + `${M.intText(st.n)} SNPs the P threshold keeps is added.`;
       }
-      const partial = st.cum[Math.min(upTo, st.n) - 1];
-      return `Person ${st.person}'s score after ${M.intText(Math.min(upTo, st.n))} of `
+      const added = M.snpsAdded(upTo, st.n);
+      const partial = st.cum[added - 1];
+      return `Person ${st.person}'s score after ${M.intText(added)} of `
         + `${M.intText(st.n)} SNPs is ${M.n2(partial)}, drawn as the genotype, the base study's `
-        + "weight and the running sum over each SNP in turn.";
+        + "weight and the running sum over each SNP in turn"
+        + (st.n > M.SCORE_COUNTABLE
+          ? `, the first ${M.SCORE_COUNTABLE} one at a time and the rest as one total.`
+          : ".");
     }
 
     if (page === "threshold") {

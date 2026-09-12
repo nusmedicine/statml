@@ -37,6 +37,18 @@
    threshold keeps, asserted against the engine's own column for several people
    at several thresholds, and against the running sum the figure draws.
 
+   STEP 3 IS COUNTABLE FIRST, THEN BATCHED (model.js decision 14), and the two
+   counts it holds are the thing to keep straight: the RUN counts beats, of
+   which there are 41 at the default, and the FIGURE counts SNPs, of which
+   there are 160. Every assertion that drives the widget uses `totalFor`, every
+   assertion that reads it uses the kept count, and `shown` is asserted to make
+   41 and 160 mean the same finished sum. The batch's three totals are summed
+   here over the engine's own kept list rather than read off the helper that
+   drew them — a figure asserted against the function that drew it asserts
+   nothing. And the order is the other half: the countable forty are the forty
+   with the lowest P, so the part a reader counts is the part carrying the
+   weight.
+
    THE RISK MODEL (§6b). The logistic fit is asserted against three closed
    forms before anything is drawn from it, and then the calibration itself:
    fitted in the base population and read in a matched target it lands on the
@@ -442,6 +454,20 @@ const OPEN = build(base());
   }
   check("Σ β̂ⱼ xⱼ over the SNPs kept is the engine's own score", identical,
     `worst difference ${worst.toExponential(1)}`);
+  /* DECISION 14: THE ORDER IS BY EVIDENCE. Step 3 draws the first forty kept
+     SNPs one a beat, so which forty those are is a decision the figure makes —
+     by P ascending, the SNPs carrying the most weight. The score is a sum and
+     does not move; only the picture does, which is why the assertion above
+     still holds term by term. */
+  {
+    const bad = rows.filter((r) =>
+      !r.kept.every((j, i) => i === 0 || G.P[r.kept[i - 1]] <= G.P[j]));
+    check("the SNPs a threshold keeps are ordered by P ascending, at every threshold",
+      bad.length === 0, bad.map((r) => M.tText(r.thresh)).join(" "));
+    check("…and the strongest forty are all under the tightest threshold that holds them",
+      at(0.01).kept.slice(0, 40).every((j) => G.P[j] <= G.P[at(0.01).kept[40]]),
+      `P ${G.P[at(0.01).kept[39]].toExponential(1)} → ${G.P[at(0.01).kept[40]].toExponential(1)}`);
+  }
   const st = M.personScore(OPEN, base({ page: "score" }));
   check("…and the running sum the figure draws ends on it",
     Math.abs(st.cum[st.cum.length - 1] - st.total) < 1e-12, st.total.toFixed(6));
@@ -857,6 +883,43 @@ const OPEN = build(base());
     check("step 3's run stays in band at every base study size and threshold",
       outScore.length === 0, outScore.join(" | "));
 
+    /* DECISION 14: THE DEFAULT'S OWN RUN, beat by beat. Forty SNP beats at
+       140 ms and one batch beat at 600 is 6.2 s — the 160 ms beat round two
+       shipped would have made it 7.0, a hair outside the band above, which is
+       what set the shorter beat. The last frame is the finished sum. */
+    {
+      const p = base({ page: "score" });
+      const s = build(p);
+      const kept = M.rowFor(s, p).nSnp;
+      const a = W.animation.init({ params: p, state: s, fromScratch: true });
+      a.mode = "run";
+      let f = 0;
+      while (W.animation.advance(a, { dt: 16, params: p, state: s }) && f < 4000) f += 1;
+      const sec = (f * 16) / 1000;
+      check("Play on step 3 runs 40 SNP beats and one batch beat, inside the band",
+        a.k.score === M.SCORE_COUNTABLE + 1 && a.done === true && sec >= 3 && sec <= 7,
+        `${a.k.score} beats, ${sec.toFixed(1)} s`);
+      check("…and the sum its last frame draws is the engine's own score for that person",
+        Math.abs(M.personScore(s, p).cum[M.snpsAdded(a.k.score, kept) - 1]
+          - M.rowFor(s, p).score[0]) < 1e-12,
+        M.rowFor(s, p).score[0].toFixed(6));
+      check("…and the batch beat is longer than a SNP's, so it is seen",
+        M.beatMs("score", s, p, M.SCORE_COUNTABLE) === M.SCORE_BATCH_MS
+        && M.beatMs("score", s, p, 0) === M.BEAT_MS.score
+        && M.SCORE_BATCH_MS > M.BEAT_MS.score,
+        `${M.BEAT_MS.score} ms a SNP, ${M.SCORE_BATCH_MS} ms for the batch`);
+      /* one press of Step past the fortieth takes the whole batch */
+      const one = W.animation.init({ params: p, state: s, fromScratch: true });
+      one.k.score = M.SCORE_COUNTABLE;
+      one.mode = "step";
+      let g = 0;
+      while (W.animation.advance(one, { dt: 16, params: p, state: s }) && g < 200) g += 1;
+      check("…and one press of Step past the fortieth adds every SNP that is left",
+        one.k.score === M.SCORE_COUNTABLE + 1
+        && M.snpsAdded(one.k.score, kept) === kept,
+        `${M.snpsAdded(one.k.score, kept)} of ${kept} SNPs after ${g} frames`);
+    }
+
     check("the authored head start reaches the longest run the widget has",
       W.params.shown.max >= M.GENOME.m, `shown max ${W.params.shown.max}`);
 
@@ -919,6 +982,23 @@ const OPEN = build(base());
     });
     check("a head start past the end lands on the last unit",
       clamped.k.risk === M.RISK_DECILES && clamped.done === true);
+
+    /* DECISION 14: `shown` ON STEP 3 COUNTS SNPs WHILE THEY ARE COUNTABLE, and
+       past the fortieth the batch is all of them — so with 160 kept, both
+       `?shown=41` and `?shown=160` are the finished sum, and a value inside the
+       forty is the SNP it names. The clamp to the step's own total is what
+       makes the two agree. */
+    const kept3 = M.rowFor(state, base()).nSnp;
+    const shownAt = (n) => W.animation.init({
+      params: base({ page: "score", shown: n }), state, fromScratch: false,
+    });
+    check("shown= on step 3 counts SNPs added, the batch counting as all the rest",
+      M.snpsAdded(shownAt(12).k.score, kept3) === 12
+      && M.snpsAdded(shownAt(41).k.score, kept3) === kept3
+      && M.snpsAdded(shownAt(160).k.score, kept3) === kept3
+      && shownAt(41).done === true && shownAt(160).done === true,
+      `12 → ${M.snpsAdded(shownAt(12).k.score, kept3)}, `
+      + `41 and ${kept3} → ${M.snpsAdded(shownAt(41).k.score, kept3)}`);
   }
 
   /* the tiles: blank before the run, tracking the partial figure during it */
@@ -1229,6 +1309,11 @@ const OPEN = build(base());
     ...surfacesOf(PAGES),
     ...Object.values(M.STEP_LABELS.labels), ...Object.values(M.STEP_TITLES.labels),
     ...Object.values(M.RUN_TITLES.labels),
+    /* DECISION 14's three lines are built from live numbers, so they are
+       functions rather than entries in STRINGS and the sweep has to call them
+       or it would read the copy the batch column carries as no copy at all. */
+    M.batchAxisLabel(120), M.batchAlleleLabel(120, 130), M.batchAlleleShort(130),
+    M.batchWeightLabel(-0.35), M.batchWeightLabel(0.35),
     card.blurb,
   ];
 
@@ -1578,18 +1663,25 @@ const OPEN = build(base());
     check("…and stays for the rest of the run", marksAt(region.clumps.length) === 1);
   }
 
-  /* step 3 */
+  /* step 3 — countable first, then batched (model.js decision 14).
+
+     THE COUNT ON THE FIGURE IS SNPs, THE COUNT IN THE RUN IS BEATS, and the
+     two differ past the fortieth SNP. Every assertion here that reads the
+     figure uses `kept`, and every assertion that drives it uses `total`. */
   {
     const params = base({ page: "score" });
-    const total = M.totalFor("score", build(params), params);
+    const state3 = build(params);
+    const total = M.totalFor("score", state3, params);
+    const st = M.personScore(state3, params);
+    const kept = st.n;
     const empty = paintedAt(params, animAt("score", 0)).painted;
     check("step 3 opens with no SNP added and no person's line",
-      empty.some((s) => s === `0 of ${M.intText(total)} SNPs added`)
+      empty.some((s) => s === `0 of ${M.intText(kept)} SNPs added`)
       && empty.filter((t) => t === "person 1").length === 1,
       empty.find((s) => s.includes("added")) ?? "");
     const mid = paintedAt(params, animAt("score", 12)).painted;
     check("…the sum counts what it has added (2.8)",
-      mid.some((s) => s === `12 of ${M.intText(total)} SNPs added`),
+      mid.some((s) => s === `12 of ${M.intText(kept)} SNPs added`),
       mid.find((s) => s.includes("added")) ?? "");
     check("…and names the three strips and the sample underneath",
       mid.includes(M.STRINGS.genoCaption) && mid.includes(M.STRINGS.weightCaption)
@@ -1605,6 +1697,108 @@ const OPEN = build(base());
     const other = paintedAt(base({ page: "score", person: 200 }), animAt("score", total)).painted;
     check("…and the Person slider draws somebody else's row",
       other.filter((s) => s === "person 200").length === 2);
+
+    /* THE BATCH. At the default the P threshold keeps 160 SNPs, so the run is
+       forty beats and one more, and that last beat carries the other 120. */
+    check("the default keeps 160 SNPs and the run is 41 beats, 40 countable and one batch",
+      kept === 160 && total === M.SCORE_COUNTABLE + 1 && M.SCORE_COUNTABLE === 40,
+      `${kept} SNPs, ${total} beats`);
+    check("…so the fortieth beat has added 40 of them and the forty-first all 160",
+      M.snpsAdded(40, kept) === 40 && M.snpsAdded(41, kept) === kept
+      && M.snpsAdded(12, kept) === 12,
+      `${M.snpsAdded(40, kept)} → ${M.snpsAdded(41, kept)}`);
+    const at40 = paintedAt(params, animAt("score", M.SCORE_COUNTABLE)).painted;
+    check("…and the caption counts SNPs and not beats on both sides of it",
+      at40.some((s) => s === `40 of ${M.intText(kept)} SNPs added`)
+      && done.some((s) => s === `${M.intText(kept)} of ${M.intText(kept)} SNPs added`),
+      `${at40.find((s) => s.includes("added"))} → ${done.find((s) => s.includes("added"))}`);
+
+    /* THE THREE BARS ARE THREE TOTALS, summed here over the batched SNPs
+       rather than read off the engine's own helper — a figure asserted against
+       the function that drew it asserts nothing. */
+    const G = state3.genome;
+    const row = M.rowFor(state3, params);
+    let alleles = 0;
+    let contrib = 0;
+    for (const j of row.kept.slice(M.SCORE_COUNTABLE)) {
+      const g = G.target.G[j][0];
+      alleles += g;
+      contrib += g * G.betaHat[j];
+    }
+    const bt = M.batchTotals(st);
+    check("the batch's totals are the sums over the SNPs past the fortieth",
+      bt.n === kept - M.SCORE_COUNTABLE && bt.alleles === alleles
+      && Math.abs(bt.contrib - contrib) < 1e-12,
+      `${bt.n} SNPs, ${bt.alleles} alleles, ${bt.contrib.toFixed(4)}`);
+    check("…and the countable forty plus the batch is the person's whole score",
+      Math.abs(st.cum[M.SCORE_COUNTABLE - 1] + bt.contrib - st.total) < 1e-12,
+      `${st.cum[39].toFixed(4)} ${bt.contrib.toFixed(4)} → ${st.total.toFixed(4)}`);
+
+    /* THE BATCH'S OWN LINES, at both stage widths. The allele line drops the
+       SNP count rather than ellipsising when the room runs out, because the x
+       axis names that number under the same column either way.
+
+       THE RECORDER'S 6px A CHARACTER IS PESSIMISTIC BY DESIGN, and it is what
+       makes the fallback reachable here: measured in a browser the long form
+       is 135px and fits at every width the side layout reaches, so a reader
+       sees it at both. The assertion is that each form is drawn when it is the
+       one that fits — not that 550 is where the switch happens. */
+    const wide = paintedAt(params, animAt("score", total), 690).painted;
+    const narrow = paintedAt(params, animAt("score", total), 550).painted;
+    check("the batch column names itself on the axis, with the live count",
+      wide.includes(M.batchAxisLabel(kept - M.SCORE_COUNTABLE))
+      && narrow.includes(M.batchAxisLabel(kept - M.SCORE_COUNTABLE))
+      && M.batchAxisLabel(120) === "the other 120 SNPs",
+      M.batchAxisLabel(kept - M.SCORE_COUNTABLE));
+    check("the genotype bar carries the effect alleles carried over the batch",
+      wide.includes(M.batchAlleleLabel(bt.n, bt.alleles))
+      && narrow.includes(M.batchAlleleShort(bt.alleles)),
+      `${M.batchAlleleLabel(bt.n, bt.alleles)} / ${M.batchAlleleShort(bt.alleles)}`);
+    check("the weight bar carries what the batch added to the score, signed",
+      wide.includes(M.batchWeightLabel(bt.contrib))
+      && M.batchWeightLabel(-0.35).startsWith("−") && M.batchWeightLabel(0.35).startsWith("+"),
+      M.batchWeightLabel(bt.contrib));
+    check("…and the weight strip's caption stops calling that bar a weight",
+      wide.includes(M.STRINGS.weightCaptionBatch)
+      && at40.includes(M.STRINGS.weightCaption)
+      && !at40.includes(M.STRINGS.weightCaptionBatch),
+      M.STRINGS.weightCaptionBatch);
+    /* THE COLUMN'S AXIS LABEL IS THERE FROM THE FIRST FRAME and its two bars
+       are not: the label belongs to the axis, which a step opens on, and the
+       bars are data, which a step has to be run to (2.1). */
+    check("the batch's bars are not labelled before the batch is drawn",
+      !at40.some((s) => /effect alleles$|to the score$/.test(s))
+      && !empty.some((s) => /effect alleles$|to the score$/.test(s))
+      && empty.includes(M.batchAxisLabel(kept - M.SCORE_COUNTABLE)),
+      at40.filter((s) => /effect alleles$|to the score$/.test(s)).join(" | "));
+
+    /* AT 40 OR FEWER KEPT NOTHING CHANGES: a beat is a SNP, there is no batch
+       column, and the axis label is the only line the change left behind. */
+    const few = base({ page: "score", baseSize: "1500", threshold: "0.01" });
+    const sFew = build(few);
+    const keptFew = M.rowFor(sFew, few).nSnp;
+    check("a threshold keeping 40 or fewer runs a beat a SNP, as before",
+      keptFew <= M.SCORE_COUNTABLE && M.totalFor("score", sFew, few) === keptFew
+      && M.scoreAxis(630, keptFew).batched === false,
+      `${keptFew} SNPs, ${M.totalFor("score", sFew, few)} beats`);
+    const fewPainted = paintedAt(few, animAt("score", keptFew)).painted;
+    check("…and draws no batch column and no line belonging to one",
+      fewPainted.includes(M.STRINGS.weightCaption)
+      && !fewPainted.some((s) => /^the other |effect alleles$|to the score$/.test(s))
+      && fewPainted.some((s) => s === `${keptFew} of ${keptFew} SNPs added`),
+      fewPainted.find((s) => s.includes("added")) ?? "");
+
+    /* THE X LAYOUT, measured at both widths (3.4a's arithmetic, not taste). */
+    const ax690 = M.scoreAxis(M.layout(690, { page: "score" }).geno.w, kept);
+    const ax550 = M.scoreAxis(M.layout(550, { page: "score" }).geno.w, kept);
+    check("the batch column is a quarter of the panel and the forty share the rest",
+      Math.abs(ax690.batchW - 157.5) < 0.01 && Math.abs(ax690.cw - 11.8125) < 0.01
+      && Math.abs(ax550.batchW - 122.5) < 0.01 && Math.abs(ax550.cw - 9.1875) < 0.01,
+      `690: ${ax690.cw.toFixed(2)}px a column, ${ax690.batchW.toFixed(1)}px batch; `
+      + `550: ${ax550.cw.toFixed(2)}px, ${ax550.batchW.toFixed(1)}px`);
+    check("…and a column is still wide enough for the two dots a genotype stacks",
+      Math.min(ax690.cw, ax550.cw) / 2 - 1.2 >= 2.5,
+      `${(ax550.cw / 2 - 1.2).toFixed(1)}px radius at 550`);
   }
 
   /* step 4 */
@@ -1689,6 +1883,9 @@ const OPEN = build(base());
       ["score", 12, (s) => s === M.STRINGS.sumCaption, (s) => /SNPs added$/.test(s)],
       ["score", 12, (s) => s.startsWith("the person's genotype"), (s) => /^person \d+$/.test(s)],
       ["score", 12, (s) => s.startsWith("the base study's weight"), (s) => s === M.STRINGS.weightNote],
+      /* and the longer caption the batch column brings with it */
+      ["score", M.SCORE_COUNTABLE + 1, (s) => s === M.STRINGS.weightCaptionBatch,
+        (s) => s === M.STRINGS.weightNote],
       ["score", 12, (s) => s.startsWith("every person in the target"), (s) => /^\d+ people$/.test(s)],
       ["quantile", 20, (s) => s.startsWith("mean trait by score"), (s) => /ancestry/.test(s)],
     ];

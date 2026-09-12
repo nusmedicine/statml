@@ -128,6 +128,23 @@
        against the row count would tie two numbers that are not tied. The
        measurement follows the data: the pool fills a row a beat, and the
        triangle is what the finished pool says.
+
+   14. STEP 3 IS COUNTABLE FIRST, THEN BATCHED — Kenneth's pick, 2026-09-12.
+       The lever round two added made the default keep 160 SNPs where round one
+       kept 38, and 160 columns at four pixels each is not a thing anyone
+       counts (2.3). So `kept` is ordered by P ASCENDING, the first
+       SCORE_COUNTABLE of them are drawn one a beat exactly as before, and the
+       remainder arrive on one beat as three bars of totals.
+
+       THE ORDER IS BY EVIDENCE, NOT BY POSITION, and it is the ordering that
+       makes the split honest: the part the reader counts has to be the part
+       carrying the weight, or a truncated figure would be a figure of the
+       arbitrary. A score is a sum, so its value does not depend on the order —
+       only the picture does.
+
+       `kept` is sorted here rather than in `personScore` because the order is
+       a property of the SNPs the threshold keeps, not of the person the sum is
+       drawn for, and every reader of `kept` should see the same one.
    ========================================================================= */
 
 import { makeRng } from "../core/rng.js";
@@ -1314,6 +1331,10 @@ export function buildGenome(rngs, cfg) {
     const { keep, n } = keepAt(basePv, thresh);
     const kept = [];
     for (let j = 0; j < basePv.length; j += 1) if (keep[j]) kept.push(j);
+    /* DECISION 14: strongest evidence first, so step 3's countable forty are
+       the forty that carry the most weight. The index breaks a tie, so the
+       order is the same in any engine. */
+    kept.sort((a, b) => basePv[a] - basePv[b] || a - b);
     const sT = score(target.G, betaHat, keep);
     const sV = score(validation.G, betaHat, keep);
     const r2T = n === 0 ? 0 : r2Score(sT, target.y);
@@ -1459,13 +1480,81 @@ export function personRisk(state, params) {
 /** How many deciles of predicted risk step 6 draws. */
 export const RISK_DECILES = 10;
 
+/* DECISION 14: how many of step 3's SNPs are drawn one a beat before the rest
+   arrive together. Forty is the row count step 1 already uses and the number
+   of columns a 490px panel can still give five pixels each — past it a column
+   is a hairline and the strips stop being countable (2.3). */
+export const SCORE_COUNTABLE = 40;
+
+/**
+ * How many SNPs `beats` beats of step 3 have added.
+ *
+ * Beats 1…40 are one SNP each; beat 41 is every SNP after the fortieth, so a
+ * count past the countable forty is the whole kept set. At 40 or fewer kept
+ * there is no batch beat and a beat is a SNP throughout.
+ */
+export function snpsAdded(beats, nKept) {
+  if (nKept <= SCORE_COUNTABLE) return Math.max(0, Math.min(beats, nKept));
+  return beats > SCORE_COUNTABLE ? nKept : Math.max(0, Math.min(beats, SCORE_COUNTABLE));
+}
+
+/**
+ * What the batch column draws: how many SNPs it holds, how many effect alleles
+ * the person carries over them, and what they added to the score.
+ *
+ * The three bars are three TOTALS, which is what a column past the countable
+ * forty can honestly be (2.3) — one bar cannot be a hundred and twenty
+ * genotypes, and drawn as a hundred and twenty hairlines it would be neither.
+ */
+export function batchTotals(st) {
+  const n = Math.max(0, st.n - SCORE_COUNTABLE);
+  let alleles = 0;
+  let contrib = 0;
+  for (let i = SCORE_COUNTABLE; i < st.n; i += 1) {
+    alleles += st.genotype[i];
+    contrib += st.contrib[i];
+  }
+  return { n, alleles, contrib };
+}
+
+/**
+ * Step 3's x axis: forty unit columns and, past them, one wide column for
+ * every remaining SNP.
+ *
+ * The batch column takes a quarter of the panel and the forty share the rest,
+ * so a column is 11.8px at the 690px stage and 9.2px at 550 — narrower than
+ * the 16.6px forty SNPs would get alone, and still wide enough for the two
+ * genotype dots the strip stacks. `units` is the domain the three plots share,
+ * in column widths, so `sx` maps a SNP index and the batch column alike.
+ */
+export const SCORE_BATCH_FRAC = 0.25;
+export function scoreAxis(w, nKept) {
+  const batched = nKept > SCORE_COUNTABLE;
+  const cols = batched ? SCORE_COUNTABLE : nKept;
+  const batchW = batched ? w * SCORE_BATCH_FRAC : 0;
+  const cw = cols > 0 ? (w - batchW) / cols : w;
+  return {
+    batched,
+    cols,
+    cw,
+    batchW,
+    batchX: w - batchW,
+    units: cols + (batched && cw > 0 ? batchW / cw : 0),
+  };
+}
+
 /** How many beats a step's run holds. */
 export function totalFor(page, state, params) {
   if (page === "haplotypes") return HAP_ROWS;
   /* DECISION 9: three beats a clump — the lead lights, the arcs draw, the
      absorbed SNPs slide. */
   if (page === "clump") return CLUMP_BEATS * state.region.clumps.length;
-  if (page === "score") return rowFor(state, params).nSnp;
+  /* DECISION 14: a beat a SNP while they are countable, then one beat for all
+     the rest. */
+  if (page === "score") {
+    const n = rowFor(state, params).nSnp;
+    return n > SCORE_COUNTABLE ? SCORE_COUNTABLE + 1 : n;
+  }
   if (page === "threshold") return THRESHOLDS.length;
   if (page === "risk") return RISK_DECILES;
   return 20;
@@ -1482,8 +1571,14 @@ export function totalFor(page, state, params) {
    accumulated, so the pace stays a RATE rather than becoming one unit a frame
    on a slow machine. */
 export const BEAT_MS = {
-  haplotypes: 100, clump: 260, score: 160, threshold: 400, quantile: 200, risk: 400,
+  haplotypes: 100, clump: 260, score: 140, threshold: 400, quantile: 200, risk: 400,
 };
+/* DECISION 14: THE BATCH BEAT IS LONGER THAN A SNP'S, because what it does is
+   larger — three strips change what they are drawing on it. 600 ms is the beat
+   the brief asked for, and it is what set the SNP beat: forty at the round-one
+   160 ms plus this is 7.0 s, a hair outside the 3–7 s band the verify holds
+   every run to, so the SNP beat is 140 and the whole run is 6.2 s. */
+export const SCORE_BATCH_MS = 600;
 /* A SHORT RUN IS STRETCHED, NEVER A LONG ONE HURRIED. Low recombination leaves
    two clumps where the default leaves eight, and six beats at 260 ms is 1.6
    seconds — a run that is over before a room has looked up. The floor is a
@@ -1493,24 +1588,33 @@ export const BEAT_MS = {
    whole run MIN_RUN_MS. The cap keeps a one-unit run from crawling. */
 export const MIN_RUN_MS = 3200;
 export const MAX_BEAT_MS = 1200;
-export function beatMs(page, state, params) {
+export function beatMs(page, state, params, at = 0) {
   const nominal = BEAT_MS[page] ?? 200;
   if (!state) return nominal;
+  /* DECISION 14: step 3's last beat is the batch, and it is its own length —
+     the run has already reached the fortieth SNP by the time this reads. */
+  if (page === "score" && at >= SCORE_COUNTABLE
+    && totalFor(page, state, params) > SCORE_COUNTABLE) return SCORE_BATCH_MS;
   const beats = Math.ceil(totalFor(page, state, params) / perUnit(page, state, params));
   if (!(beats > 0)) return nominal;
   return Math.max(nominal, Math.min(MAX_BEAT_MS, MIN_RUN_MS / beats));
 }
 
-/* A BEAT CARRIES A BATCH once the units stop being countable (2.3) — on step 3
-   at a loose threshold the columns stop being countable, and on step 2 where a
-   strict clumping r² leaves fifty-eight clumps of one SNP rather than eight of
-   twenty. The cap is the number of beats the whole run takes, so Play is
-   between three and seven seconds at every setting of every control.
+/* A BEAT CARRIES A BATCH once the units stop being countable (2.3) — on step 2
+   where a strict clumping r² leaves fifty-eight clumps of one SNP rather than
+   eight of twenty. The cap is the number of beats the whole run takes, so Play
+   is between three and seven seconds at every setting of every control.
+
+   STEP 3 CARRIES ITS BATCH IN `totalFor` INSTEAD (decision 14), not here. A
+   cap spreads the overflow evenly across every beat, which on step 3 would
+   have added four SNPs a beat from the first one and left nothing countable;
+   the split the reader needs is forty single SNPs and then the remainder, so
+   it is a property of the step's units and not of its pace.
 
    STEP IS ONE UNIT EVERYWHERE EXCEPT STEP 2, where it runs to the end of the
    clump in progress (decision 9) — a control's label names what this press
    will do (4.4b), and on step 2 it says Next clump while the unit is a beat. */
-export const RUN_BEATS = { clump: 24, score: 40 };
+export const RUN_BEATS = { clump: 24 };
 export function perUnit(page, state, params) {
   const cap = RUN_BEATS[page];
   if (!cap) return 1;
@@ -1683,6 +1787,27 @@ export const stageHeight = (w, values) => layout(w, values).height;
 export const n2 = (v) => (Number.isFinite(v) ? v.toFixed(2) : "—");
 export const n3 = (v) => (Number.isFinite(v) ? v.toFixed(3) : "—");
 export const intText = (v) => Math.round(v).toLocaleString("en-US");
+/* DECISION 14: step 3's batch column names itself three times, and each line
+   carries a live number rather than a literal. They are functions and not
+   entries in `STRINGS` because the register sweep reads that object's values
+   as strings; `_lab/prs-verify.mjs` §11 puts these three through it by calling
+   them.
+
+   THE ALLELE LINE HAS A SHORT FORM, and which one is drawn is MEASURED rather
+   than ellipsised: the count of SNPs is the half the x axis already names
+   under the same column, so dropping it costs the reader nothing and an
+   ellipsis in the middle of a number would cost them the count. Measured in
+   the browser at --fs-xs 11px the long form is 135px against 152px of room at
+   the narrowest stage the side layout reaches, so it is what a reader sees;
+   the short form is the fallback a wider count or another font would take. */
+export const batchAxisLabel = (n) => `the other ${intText(n)} SNPs`;
+export const batchAlleleLabel = (n, alleles) =>
+  `${intText(n)} SNPs · ${intText(alleles)} effect alleles`;
+export const batchAlleleShort = (alleles) => `${intText(alleles)} effect alleles`;
+/** What the batched SNPs added to this person's score, signed. */
+export const batchWeightLabel = (v) =>
+  `${v < 0 ? "−" : "+"}${n2(Math.abs(v))} to the score`;
+
 /** A P threshold as the reader sees it on its own tick. */
 export const tText = (t) => {
   const s = String(t);
@@ -1938,9 +2063,14 @@ export const STRINGS = {
   /* step 3 */
   genoCaption: "the person's genotype, effect alleles carried",
   weightCaption: "the base study's weight for each SNP",
+  /* DECISION 14: the batch column's bar is what the remaining SNPs added to
+     the score, which is not a weight, so the caption that covers both columns
+     says so. It is only worn once the batch has landed. */
+  weightCaptionBatch: "each SNP's weight, and what the rest added",
   weightNote: "β̂, on the raw allele count",
   sumCaption: "the sum so far",
-  sumX: "SNPs kept by the P threshold",
+  /* The order is by P and the axis is where a reader can be told so (2.9). */
+  sumX: "SNPs kept by the P threshold, lowest P first",
   distCaption: "every person in the target sample, by score",
   distX: "score",
 
