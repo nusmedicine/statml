@@ -636,7 +636,7 @@ console.log("\n8 · the register");
   /* Kenneth, 2026-09-13: "you still have some mannerisms like personification
      — point the wrong way, confounder chose". A figure does not choose, wait,
      reach, point, sit, stand or free anything. */
-  const person = /\b(chose|chosen|choose|waits?|waiting|reach|reaches|reaching|points? the|sits?|standing open|stand in|freed|route around)\b/i;
+  const person = /\b(chose|chosen|choose|waits?|waiting|reach|reaches|reaching|points? the|sits?|sitting|lies?|lying|falls?|falling|standing open|stand in|freed|route around)\b/i;
   const personified = reader.filter((s) => person.test(s));
   check("no reader-facing string personifies the figure", personified.length === 0, personified.join(" | "));
   check("no reader-facing string says landed, taken or arrives", !reader.some((s) => arrival.test(s)), reader.filter((s) => arrival.test(s)).join(" | "));

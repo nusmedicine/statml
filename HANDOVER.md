@@ -40,39 +40,39 @@ the F statistic, harmonising) and the word pleiotropy at the assumptions
 list and in the Egger sentence — check `03 - MR.ipynb` before the next
 push touches that arc.
 
-# OWED: A SIT / FALL / LIE PASS, one widget at a time, on Kenneth's word
+# THE SIT / FALL / LIE PASS — DONE 2026-09-13, fifteen commits, one a widget
 
-Kenneth, 2026-09-13, on the MR copy: "a calibrated plot sits on the
-diagonal — again personification". A grep of every reader-facing string
-(comments excluded) found nineteen figurative uses across sixteen shipped
-widgets; he chose to **leave them for now and check them again one by one
-at another time**. Each change moves a hash (a legend or tile the `tx`, a
-canvas caption the `px`), so each widget's affected states are re-recorded
-in the commit that changes it. Literal uses stay: the Galton board's ball
-falling, UMAP's "the data lie on a manifold", a rate or a loss that falls.
+Kenneth's call the same evening the pass was owed ("ok maybe now we can go
+back to fixing the front facing text"). A comment-stripped scan of every
+string literal in `widgets/*/*.js` (script kept in the session, the
+regex `\b(sits?|sitting|sat|falls?|falling|fell|lies?|lying|lay)\b`)
+found twenty-two figurative strings in fifteen widgets; he approved the
+plain forms as a set and each widget got its own commit (0a52ec0 …
+909965e) carrying its strings and its own moved states. **Kept as
+literal:** the Galton ball falling, mlp's "as the loss falls", optimizers'
+"the learning rate falls tenfold", UMAP's "the data lie on a manifold", and
+the token “sat” in processing-layers.
 
-| widget | string | plainer form |
-|---|---|---|
-| mendelian-randomization | "…are associated with the confounders and lie on the open path" | "…and are on the open path" |
-| gwas | "N sibships of four sit on the diagonal" | "…are on the diagonal" |
-| time-event | "disease sits above no-disease in every interval" | "the disease curve is above the no-disease curve in every interval" |
-| time-event | "each event would fall by the risk sets" | "each event would be split by the risk sets" |
-| power-and-error | "the line sits at z = …" / "the alternative sits … along" | "is at" |
-| matrix-factorization | "sit NEAR it" / "how far a dot falls outside" / "how far it sits from the mean" / legend "the cone every rebuilt sample lies in" | "are near it" / "is outside" / "is from the mean" / "the cone containing every rebuilt sample" |
-| lm-adjustment | "a property of the model it sits in" | "…it belongs to" |
-| lm-diagnostics | "should sit in a level band around zero"; the R² note "never falls as covariates are added" (also a "never") | "should form a level band"; "does not decrease as covariates are added" |
-| experimental-design | "the difference falls on both groups" | "applies to both groups" |
-| em-mixture | "one more sits between .2 and .8" / "N more sit between" | "is between" |
-| composition | "which layers sit at the beginning…"; "the box sits at the start of the network" | "come first…"; "is at the start" |
-| mds | "the sphere the centres sit on" | "the sphere the centres are on" |
-| optimizers | "the local minimum lies between here and the global one" | "is between" |
-| processing-layers | "every output sits within 0.48 of…" | "is within" |
-| roc-auc | "how far apart the two classes' scores sit" | "…scores are" |
-| support-layers | "one draw can sit far from that average"; "how far it sits from zero" | "can be far from"; "how far it is from zero" |
+One full harness run after the wording, fronted at DPR 1.25: 757 states,
+28 DIFFER in ten widgets, every one a string from the list — `tx` where a
+note or legend moved, `px` where a painted caption did (matrix-
+factorization moved both). Spliced per slug from that one run, then a
+second full run read 757 MATCH before the push. Five widgets moved no
+state: gwas's sibship caption is painted by no recorded state, and
+lm-adjustment's subtitle, mds's unmeasured summary, optimizers' and
+roc-auc's control details are on the head or the rail, which the harness
+does not hash. Two verifies followed their captions (processing-layers,
+support-layers), and the MR verify's personification sweep now includes
+sit / lie / fall.
 
-The MR verify's §8 personification sweep is the model for each widget's
-verify once its strings are changed; the verb list there does not yet
-include sit / fall / lie, deliberately, until the pass is made.
+**A run made with the pane HIDDEN is not evidence, even at DPR 1.25.** The
+first confirming run went the whole way with `document.visibilityState`
+"hidden" (the pane was displayed but the document was not) and read 27
+DIFFER, all pixel-only, all in the DOM-heavy widgets the wording never
+touched (tensors, processing-layers, support-layers, composition's skip and
+routing pages, hardy-weinberg), plus two hit-driven states; the same tree
+re-run visible read 757 MATCH. Read `visibilityState` on each poll and
+discard a run that was hidden at any point.
 
 # HOW 60 WENT, kept as written
 

@@ -8546,6 +8546,20 @@ where the line is painted) and were re-recorded through the shooter; the
 other forty-nine unchanged. The notebook's own harmonisation table uses
 the same words.
 
+2026-09-13, evening, across the collection: **the sit / fall / lie pass.**
+Born on this widget (his "a calibrated plot sits on the diagonal — again
+personification", then "check the widgets for sits, falls, lies"), owed
+for an hour, then done on his "maybe now we can go back to fixing the
+front facing text". Twenty-two figurative strings in fifteen widgets
+(composition, em-mixture, experimental-design, gwas, lm-adjustment,
+lm-diagnostics, matrix-factorization, mds, mendelian-randomization,
+optimizers, power-and-error, processing-layers, roc-auc, support-layers,
+time-event) restated as is / are / applies to / belongs to / form /
+containing / split by; lm-diagnostics' "never falls" was also the register's
+"never". One commit a widget, 28 states re-recorded from one harness run,
+a second run 757 MATCH. Literal uses kept: a ball falls, a loss falls, a
+learning rate falls, data lie on a manifold. HANDOVER has the record.
+
 ### The open calls — put to Kenneth and answered, 2026-09-11
 
 1. **Five or four.** Fold 58 into 59's first page, or let it stand.
