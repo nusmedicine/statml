@@ -5506,6 +5506,694 @@
       },
       "px": "c50d6dd2",
       "tx": "187ec260"
+    },
+    {
+      "$note": "RECORDED 2026-09-12 at the ship through _lab/prs-shoot.html (the copy proven 6/6 first), every state STABLE over three shots. step 1 opens empty: the block's frame, the causal column marked, the triangle's axis, the window rule",
+      "slug": "polygenic-score",
+      "state": "?theme=light&shown=0",
+      "px": "1ca9908b",
+      "tx": "87f87898"
+    },
+    {
+      "$note": "step 1 at 12 of 40 haplotypes, the triangle not yet drawn",
+      "slug": "polygenic-score",
+      "state": "?theme=light&shown=12",
+      "px": "81e93250",
+      "tx": "2774a5f1"
+    },
+    {
+      "$note": "step 1 finished: 40 haplotypes over the whole r² triangle, the causal SNP's V at rest",
+      "slug": "polygenic-score",
+      "state": "?theme=light&shown=40",
+      "px": "fe670541",
+      "tx": "b23ca408"
+    },
+    {
+      "$note": "step 1 with the causal–lead pair pinned: both columns, the banded rows, the cell and its legs, the reading under the block",
+      "slug": "polygenic-score",
+      "state": "?theme=light&shown=40&snps=10,15",
+      "px": "62dfe04c",
+      "tx": "b23ca408"
+    },
+    {
+      "$note": "step 1 with the lead SNP pinned: its column and its V",
+      "slug": "polygenic-score",
+      "state": "?theme=light&shown=40&snps=10",
+      "px": "e69e5913",
+      "tx": "b23ca408"
+    },
+    {
+      "$note": "step 1 at low recombination: long shared stretches, LD out past 200 kb",
+      "slug": "polygenic-score",
+      "state": "?theme=light&recomb=low&shown=40",
+      "px": "f420d6f4",
+      "tx": "df6deed3"
+    },
+    {
+      "$note": "step 1 at high recombination: short stretches, a sparse triangle",
+      "slug": "polygenic-score",
+      "state": "?theme=light&recomb=high&shown=40",
+      "px": "417d6da5",
+      "tx": "b72cb2ce"
+    },
+    {
+      "$note": "step 1 with the causal variant not on the array: the same block and triangle",
+      "slug": "polygenic-score",
+      "state": "?theme=light&causalTyped=untyped&shown=40",
+      "px": "fe670541",
+      "tx": "d37a59a1"
+    },
+    {
+      "$note": "step 1 at another seed",
+      "slug": "polygenic-score",
+      "state": "?theme=light&seed=7&shown=40",
+      "px": "fbb3f3f2",
+      "tx": "d9dbf310"
+    },
+    {
+      "$note": "step 2 opens on its axes, the P = 0.05 line and the triangle from step 1, no SNP tested",
+      "slug": "polygenic-score",
+      "state": "?theme=light&page=clump&shown=0",
+      "px": "a44a1894",
+      "tx": "e00ccc0f"
+    },
+    {
+      "$note": "step 2 at beat 1: the lead SNP chosen, its V and its members' cells lit in the triangle",
+      "slug": "polygenic-score",
+      "state": "?theme=light&page=clump&shown=1",
+      "px": "eb5a7094",
+      "tx": "f728c048"
+    },
+    {
+      "$note": "step 2 at beat 2: the arcs from the lead, the cells outlined beneath",
+      "slug": "polygenic-score",
+      "state": "?theme=light&page=clump&shown=2",
+      "px": "b5dfde88",
+      "tx": "f728c048"
+    },
+    {
+      "$note": "step 2 finished: 8 lead SNPs, the ticks on the axis, the causal mark and its V",
+      "slug": "polygenic-score",
+      "state": "?theme=light&page=clump&shown=24",
+      "px": "e8033a50",
+      "tx": "0d336231"
+    },
+    {
+      "$note": "step 2 finished with the causal–lead pair pinned: the cell, its legs, the reading under the apex",
+      "slug": "polygenic-score",
+      "state": "?theme=light&page=clump&shown=24&snps=10,15",
+      "px": "af05e3b7",
+      "tx": "0d336231"
+    },
+    {
+      "$note": "step 2 finished at clumping r² 0.5: many more clumps",
+      "slug": "polygenic-score",
+      "state": "?theme=light&page=clump&clumpR2=0.5&shown=999",
+      "px": "f5cf6ac5",
+      "tx": "2046038b"
+    },
+    {
+      "$note": "step 2 finished at low recombination: two clumps take the region",
+      "slug": "polygenic-score",
+      "state": "?theme=light&page=clump&recomb=low&shown=999",
+      "px": "53706465",
+      "tx": "5d05ce5c"
+    },
+    {
+      "$note": "step 2 finished with the causal variant untyped: the lead is a tag",
+      "slug": "polygenic-score",
+      "state": "?theme=light&page=clump&causalTyped=untyped&shown=999",
+      "px": "b25bcccb",
+      "tx": "2bdb2bb0"
+    },
+    {
+      "$note": "step 3 opens empty: three strips, the distribution's axes, 0 of 160",
+      "slug": "polygenic-score",
+      "state": "?theme=light&page=score&shown=0",
+      "px": "530a476e",
+      "tx": "18664bcf"
+    },
+    {
+      "$note": "step 3 at 12 of 160 SNPs, the twelfth lit",
+      "slug": "polygenic-score",
+      "state": "?theme=light&page=score&shown=12",
+      "px": "06f3321f",
+      "tx": "25791cbd"
+    },
+    {
+      "$note": "step 3 finished at the default: 160 columns, the person's line in the distribution, four tiles",
+      "slug": "polygenic-score",
+      "state": "?theme=light&page=score&shown=160",
+      "px": "9b82a38e",
+      "tx": "f580ecbc"
+    },
+    {
+      "$note": "step 3 finished on a 1,500-person base: 35 SNPs at 14px, dots",
+      "slug": "polygenic-score",
+      "state": "?theme=light&page=score&baseSize=1500&shown=999",
+      "px": "3fbd223f",
+      "tx": "1d498a5d"
+    },
+    {
+      "$note": "step 3 finished on a 150,000-person base: 249 SNPs",
+      "slug": "polygenic-score",
+      "state": "?theme=light&page=score&baseSize=150000&shown=999",
+      "px": "d5d9e9ea",
+      "tx": "eb3ab25e"
+    },
+    {
+      "$note": "step 3 finished at P ≤ 1: every one of the 1,000 SNPs, the end tick dropped",
+      "slug": "polygenic-score",
+      "state": "?theme=light&page=score&threshold=1&shown=999",
+      "px": "73782309",
+      "tx": "66641d67"
+    },
+    {
+      "$note": "step 3 at a threshold that keeps nothing: the empty strips, 0 of 0",
+      "slug": "polygenic-score",
+      "state": "?theme=light&page=score&baseSize=1500&threshold=5e-8&shown=0",
+      "px": "fdd8a611",
+      "tx": "8684b822"
+    },
+    {
+      "$note": "step 3 finished for person 200",
+      "slug": "polygenic-score",
+      "state": "?theme=light&page=score&person=200&shown=999",
+      "px": "d586c631",
+      "tx": "37fcd9fe"
+    },
+    {
+      "$note": "step 3 finished in a distant-ancestry target",
+      "slug": "polygenic-score",
+      "state": "?theme=light&page=score&target=distant&shown=999",
+      "px": "b70efc77",
+      "tx": "5c6b4cad"
+    },
+    {
+      "$note": "step 4 opens on both axes and its note, no curve",
+      "slug": "polygenic-score",
+      "state": "?theme=light&page=threshold&shown=0",
+      "px": "8aaa9ce6",
+      "tx": "09e08008"
+    },
+    {
+      "$note": "step 4 swept to the fifth threshold",
+      "slug": "polygenic-score",
+      "state": "?theme=light&page=threshold&shown=5",
+      "px": "d85db79b",
+      "tx": "0b59aca9"
+    },
+    {
+      "$note": "step 4 finished at the default: best-fit at P < 0.01, the reading line, the gain tile",
+      "slug": "polygenic-score",
+      "state": "?theme=light&page=threshold&shown=11",
+      "px": "93756591",
+      "tx": "1088def7"
+    },
+    {
+      "$note": "step 4 on a 1,500-person base: the flat curve",
+      "slug": "polygenic-score",
+      "state": "?theme=light&page=threshold&baseSize=1500&shown=11",
+      "px": "baabe004",
+      "tx": "8133d9cc"
+    },
+    {
+      "$note": "step 4 on a 150,000-person base",
+      "slug": "polygenic-score",
+      "state": "?theme=light&page=threshold&baseSize=150000&shown=11",
+      "px": "4335243a",
+      "tx": "4f77eece"
+    },
+    {
+      "$note": "step 4 in a nearby-ancestry target",
+      "slug": "polygenic-score",
+      "state": "?theme=light&page=threshold&target=nearby&shown=11",
+      "px": "ad6a1d73",
+      "tx": "195ec5f0"
+    },
+    {
+      "$note": "step 4 in a distant-ancestry target: the curve falls",
+      "slug": "polygenic-score",
+      "state": "?theme=light&page=threshold&target=distant&shown=11",
+      "px": "7de401bf",
+      "tx": "9c83b3a2"
+    },
+    {
+      "$note": "step 4 with 100 causal SNPs",
+      "slug": "polygenic-score",
+      "state": "?theme=light&page=threshold&causal=100&shown=11",
+      "px": "cbb5a2a4",
+      "tx": "8ea63227"
+    },
+    {
+      "$note": "step 4 at heritability 0.5",
+      "slug": "polygenic-score",
+      "state": "?theme=light&page=threshold&h2=0.5&shown=11",
+      "px": "489f3f44",
+      "tx": "a85994bb"
+    },
+    {
+      "$note": "step 4 finished with the slider at P < 0.1: the tiles read that threshold",
+      "slug": "polygenic-score",
+      "state": "?theme=light&page=threshold&threshold=0.1&shown=11",
+      "px": "93756591",
+      "tx": "4bba9272"
+    },
+    {
+      "$note": "step 4 at another seed",
+      "slug": "polygenic-score",
+      "state": "?theme=light&page=threshold&seed=7&shown=11",
+      "px": "d82edf17",
+      "tx": "57801125"
+    },
+    {
+      "$note": "step 5 opens on its axes and the mean line",
+      "slug": "polygenic-score",
+      "state": "?theme=light&page=quantile&shown=0",
+      "px": "b6c8bd95",
+      "tx": "370b2718"
+    },
+    {
+      "$note": "step 5 at 7 of 20 vigintiles",
+      "slug": "polygenic-score",
+      "state": "?theme=light&page=quantile&shown=7",
+      "px": "c58c8128",
+      "tx": "ef533e23"
+    },
+    {
+      "$note": "step 5 finished at the default: the vigintile plot with its intervals",
+      "slug": "polygenic-score",
+      "state": "?theme=light&page=quantile&shown=20",
+      "px": "4f90c1ef",
+      "tx": "a55fa863"
+    },
+    {
+      "$note": "step 5 in a nearby-ancestry target",
+      "slug": "polygenic-score",
+      "state": "?theme=light&page=quantile&target=nearby&shown=20",
+      "px": "aaf38a9c",
+      "tx": "fe2952e4"
+    },
+    {
+      "$note": "step 5 in a distant-ancestry target: the trend flattens",
+      "slug": "polygenic-score",
+      "state": "?theme=light&page=quantile&target=distant&shown=20",
+      "px": "cc2fb58f",
+      "tx": "058a9421"
+    },
+    {
+      "$note": "step 5 on a 1,500-person base",
+      "slug": "polygenic-score",
+      "state": "?theme=light&page=quantile&baseSize=1500&shown=20",
+      "px": "6f5881a9",
+      "tx": "5f37ffee"
+    },
+    {
+      "$note": "step 5 on a 150,000-person base",
+      "slug": "polygenic-score",
+      "state": "?theme=light&page=quantile&baseSize=150000&shown=20",
+      "px": "97959f49",
+      "tx": "08afc002"
+    },
+    {
+      "$note": "step 6 opens on two empty square plots, the diagonal and the risk threshold",
+      "slug": "polygenic-score",
+      "state": "?theme=light&page=risk&shown=0",
+      "px": "114fdced",
+      "tx": "25ba48e1"
+    },
+    {
+      "$note": "step 6 finished at the default: the calibration plot on the diagonal, the crossing percentile",
+      "slug": "polygenic-score",
+      "state": "?theme=light&page=risk&shown=10",
+      "px": "96560069",
+      "tx": "892c264b"
+    },
+    {
+      "$note": "step 6 in a nearby-ancestry target",
+      "slug": "polygenic-score",
+      "state": "?theme=light&page=risk&target=nearby&shown=10",
+      "px": "d57057de",
+      "tx": "c2b72769"
+    },
+    {
+      "$note": "step 6 in a distant-ancestry target: off the diagonal",
+      "slug": "polygenic-score",
+      "state": "?theme=light&page=risk&target=distant&shown=10",
+      "px": "8ff76c02",
+      "tx": "8f16eca2"
+    },
+    {
+      "$note": "step 6 at 5% prevalence",
+      "slug": "polygenic-score",
+      "state": "?theme=light&page=risk&prevalence=5&shown=10",
+      "px": "ebb9367e",
+      "tx": "c5d810fb"
+    },
+    {
+      "$note": "step 6 at 10% prevalence",
+      "slug": "polygenic-score",
+      "state": "?theme=light&page=risk&prevalence=10&shown=10",
+      "px": "f005ce63",
+      "tx": "586dcbf9"
+    },
+    {
+      "$note": "step 6 with the risk threshold at 20%",
+      "slug": "polygenic-score",
+      "state": "?theme=light&page=risk&riskThreshold=20&shown=10",
+      "px": "dd55fda2",
+      "tx": "2fb0fd28"
+    },
+    {
+      "$note": "step 6 with the risk threshold at 40%",
+      "slug": "polygenic-score",
+      "state": "?theme=light&page=risk&riskThreshold=40&shown=10",
+      "px": "b3dcf206",
+      "tx": "87af93da"
+    },
+    {
+      "$note": "step 6 finished for person 200",
+      "slug": "polygenic-score",
+      "state": "?theme=light&page=risk&person=200&shown=10",
+      "px": "96560069",
+      "tx": "dd5f442e"
+    },
+    {
+      "$note": "step 6 at a threshold that keeps nothing: no model fitted",
+      "slug": "polygenic-score",
+      "state": "?theme=light&page=risk&baseSize=1500&threshold=5e-8&shown=0",
+      "px": "f33dc718",
+      "tx": "3a5745a2"
+    },
+    {
+      "$note": "DRIVEN: Play on step 1, mid-run: the pool filling a row a beat",
+      "slug": "polygenic-score",
+      "state": "?theme=light",
+      "drive": {
+        "click": "run",
+        "frames": 30,
+        "dt": 32
+      },
+      "px": "1220027c",
+      "tx": "4c77cc09"
+    },
+    {
+      "$note": "DRIVEN: one Step on step 1: the first haplotype drawn",
+      "slug": "polygenic-score",
+      "state": "?theme=light",
+      "drive": {
+        "click": "step",
+        "frames": 20,
+        "dt": 32
+      },
+      "px": "ba3e1909",
+      "tx": "14b65411"
+    },
+    {
+      "$note": "DRIVEN: Play on step 2, mid-run: a clump in flight, its arcs and its V",
+      "slug": "polygenic-score",
+      "state": "?theme=light&page=clump",
+      "drive": {
+        "click": "run",
+        "frames": 40,
+        "dt": 32
+      },
+      "px": "f1f56e5b",
+      "tx": "0c7f0253"
+    },
+    {
+      "$note": "DRIVEN: one Step on step 2: the first clump taken to the end of its three beats",
+      "slug": "polygenic-score",
+      "state": "?theme=light&page=clump",
+      "drive": {
+        "click": "step",
+        "frames": 30,
+        "dt": 32
+      },
+      "px": "d57761bb",
+      "tx": "0c7f0253"
+    },
+    {
+      "$note": "DRIVEN: Play on step 3, mid-run: the sum climbing one column a SNP",
+      "slug": "polygenic-score",
+      "state": "?theme=light&page=score",
+      "drive": {
+        "click": "run",
+        "frames": 60,
+        "dt": 32
+      },
+      "px": "2ce3fb47",
+      "tx": "5cc38634"
+    },
+    {
+      "$note": "DRIVEN: one Step on step 3: the first SNP added and lit",
+      "slug": "polygenic-score",
+      "state": "?theme=light&page=score",
+      "drive": {
+        "click": "step",
+        "frames": 20,
+        "dt": 32
+      },
+      "px": "2e7e7c72",
+      "tx": "781a5fd9"
+    },
+    {
+      "$note": "DRIVEN: Play on step 3 at every SNP: several SNPs a frame on the rate clock",
+      "slug": "polygenic-score",
+      "state": "?theme=light&page=score&threshold=1",
+      "drive": {
+        "click": "run",
+        "frames": 60,
+        "dt": 32
+      },
+      "px": "f9f033c2",
+      "tx": "dc80df13"
+    },
+    {
+      "$note": "DRIVEN: Play on step 4, mid-sweep",
+      "slug": "polygenic-score",
+      "state": "?theme=light&page=threshold",
+      "drive": {
+        "click": "run",
+        "frames": 40,
+        "dt": 32
+      },
+      "px": "948b6d49",
+      "tx": "09e08008"
+    },
+    {
+      "$note": "DRIVEN: Play on step 5, mid-run: vigintiles arriving",
+      "slug": "polygenic-score",
+      "state": "?theme=light&page=quantile",
+      "drive": {
+        "click": "run",
+        "frames": 40,
+        "dt": 32
+      },
+      "px": "2602cdf6",
+      "tx": "9dc7cd9b"
+    },
+    {
+      "$note": "DRIVEN: Play on step 6, mid-run: deciles arriving",
+      "slug": "polygenic-score",
+      "state": "?theme=light&page=risk",
+      "drive": {
+        "click": "run",
+        "frames": 40,
+        "dt": 32
+      },
+      "px": "84301863",
+      "tx": "0240612c"
+    },
+    {
+      "$note": "DRIVEN: a Step on step 1, then Play takes over from it",
+      "slug": "polygenic-score",
+      "state": "?theme=light",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 20
+          }
+        ],
+        "click": "run",
+        "frames": 30,
+        "dt": 32
+      },
+      "px": "75589011",
+      "tx": "4c565ac7"
+    },
+    {
+      "$note": "DRIVEN: Play on step 1, then Reset empties it, then one Step from the start",
+      "slug": "polygenic-score",
+      "state": "?theme=light",
+      "drive": {
+        "before": [
+          {
+            "click": "run",
+            "frames": 40
+          },
+          {
+            "click": "reset",
+            "frames": 2
+          }
+        ],
+        "click": "step",
+        "frames": 20,
+        "dt": 32
+      },
+      "px": "1068abd7",
+      "tx": "69e6129a"
+    },
+    {
+      "$note": "DRIVEN: a display change keeps the run: Play on step 3, then the P threshold moved to 0.1",
+      "slug": "polygenic-score",
+      "state": "?theme=light&page=score",
+      "drive": {
+        "before": [
+          {
+            "click": "run",
+            "frames": 60
+          }
+        ],
+        "set": {
+          "threshold": "0.1"
+        },
+        "frames": 6,
+        "dt": 32
+      },
+      "px": "2dd0ec4e",
+      "tx": "88b4ca8e"
+    },
+    {
+      "$note": "DRIVEN: Play on step 4, then the slider moved mid-sweep: the tiles follow, the sweep keeps its place",
+      "slug": "polygenic-score",
+      "state": "?theme=light&page=threshold",
+      "drive": {
+        "before": [
+          {
+            "click": "run",
+            "frames": 40
+          }
+        ],
+        "set": {
+          "threshold": "0.05"
+        },
+        "frames": 6,
+        "dt": 32
+      },
+      "px": "948b6d49",
+      "tx": "46d28be4"
+    },
+    {
+      "$note": "DRIVEN: Play on step 1, a visit to step 2 and back: step 1's rows are still there (non-negotiable 3)",
+      "slug": "polygenic-score",
+      "state": "?theme=light",
+      "drive": {
+        "before": [
+          {
+            "click": "run",
+            "frames": 60
+          },
+          {
+            "set": {
+              "page": "clump"
+            },
+            "frames": 2
+          }
+        ],
+        "set": {
+          "page": "haplotypes"
+        },
+        "frames": 2,
+        "dt": 32
+      },
+      "px": "ed3d37f5",
+      "tx": "8e5f5ed2"
+    },
+    {
+      "$note": "HIT-DRIVEN (the run first, to the end): a click on the causal–lead cell of step 1's triangle pins the pair",
+      "slug": "polygenic-score",
+      "state": "?theme=light",
+      "drive": {
+        "before": [
+          {
+            "click": "run",
+            "frames": 140
+          }
+        ],
+        "hit": [
+          111,
+          305
+        ],
+        "frames": 4,
+        "dt": 32
+      },
+      "px": "62dfe04c",
+      "tx": "b23ca408"
+    },
+    {
+      "$note": "HIT-DRIVEN (the run first, to the end): a click on the lead SNP's column in the block pins that SNP",
+      "slug": "polygenic-score",
+      "state": "?theme=light",
+      "drive": {
+        "before": [
+          {
+            "click": "run",
+            "frames": 140
+          }
+        ],
+        "hit": [
+          99,
+          139
+        ],
+        "frames": 4,
+        "dt": 32
+      },
+      "px": "e69e5913",
+      "tx": "b23ca408"
+    },
+    {
+      "$note": "HIT-DRIVEN (the run first, to the end): a click on a cell of step 2's triangle pins the pair",
+      "slug": "polygenic-score",
+      "state": "?theme=light&page=clump",
+      "drive": {
+        "before": [
+          {
+            "click": "run",
+            "frames": 210
+          }
+        ],
+        "hit": [
+          111,
+          367
+        ],
+        "frames": 4,
+        "dt": 32
+      },
+      "px": "af05e3b7",
+      "tx": "0d336231"
+    },
+    {
+      "$note": "HIT-DRIVEN (the run first, to the end): a click on the lead SNP in step 2's plot pins it, ringed",
+      "slug": "polygenic-score",
+      "state": "?theme=light&page=clump",
+      "drive": {
+        "before": [
+          {
+            "click": "run",
+            "frames": 210
+          }
+        ],
+        "hit": [
+          99,
+          166
+        ],
+        "frames": 4,
+        "dt": 32
+      },
+      "px": "115491f3",
+      "tx": "0d336231"
     }
   ]
 }

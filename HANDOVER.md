@@ -1,254 +1,120 @@
 # Handover
 
-**FIFTY-FIVE WIDGETS SHIPPED — 53 on the gallery, `roc-auc` UNLISTED
-(Kenneth's call, 2026-08-30); ONE DRAFT: `polygenic-score` (slot 59), at
-`/lab/` only, in its second review round.** The GWAS and PRS arc (PHM5003
-week 6, planned 2026-09-11) is two shipped (56 `hardy-weinberg`, 57
-`gwas`, both 2026-09-12), one in review (59), one to come (60
-`mendelian-randomization`). `main` is 17 commits ahead of `origin/main`
-(`96ddd2f`, the 57 ship) — everything on 59 and the t-sne re-recording
-is LOCAL. Push on his word.
+**FIFTY-SIX WIDGETS SHIPPED — 54 on the gallery, `roc-auc` UNLISTED
+(Kenneth's call, 2026-08-30); NO DRAFT.** The GWAS and PRS arc (PHM5003
+week 6) is three shipped — 56 `hardy-weinberg`, 57 `gwas`, 59
+`polygenic-score` (2026-09-12, all three) — and one to come: **60
+`mendelian-randomization`**, the last of the arc. `main` is pushed and
+clean at the 59 ship.
 
 ---
 
-# NEXT SESSION — KENNETH'S PLAN (written 2026-09-12, night; updated the same night after item 1's mock)
+# NEXT SESSION — SLOT 60 `mendelian-randomization`
 
-**ROUND THREE IS MOCKED, PICKED AND BUILT (2026-09-12, the same
-evening).** `_lab/prs-round3-mock.html` drew item 1 below and, on a note
-he sent mid-round ("the batch SNP looks weird as it just flatlines"),
-step 3's axis; his four picks were the four recommendations and the
-build landed in the commit after the mock's: step 1 draws the WHOLE r²
-triangle at the block's pitch with the clumping window's reach as a
-rule, answers the pointer (`pointer: true`) and pins a click into the
-hidden display parameter `snps` through a `regions` table (model.js
-decision 15 has the geometry; the verify asserts it at all 4,950 cells);
-step 3 is one column a SNP with the run capped at 6 s (decision 14
-rewritten; the batch code deleted). Verify 291. The catalogue's ROUND
-THREE PICKED AND BUILT paragraph under slot 59 has every number. **Item
-2, the adversarial review, is DONE the same night**: the catalogue's
-ROUND 3 table under slot 59 (nineteen rows: five copy fixes applied —
-LD named on step 1's caption and legend, "in LD with" for "accounts
-for", step 2's tile "Lead SNPs under P = 0.05", "β̂ per effect allele",
-the Prevalence detail saying the disease is the trait's upper tail; four
-"beyond the lesson" rows with the sentence the notebook would need; and
-THREE PICKS OWED BY KENNETH: the Overfitting tile, which today subtracts
-the R² with every SNP kept — the GAIN of thresholding, not the optimism
-PRSice warns about (recommended: best-fit minus the validation R² there,
-with a note that it is small and can be negative); "trait" against the
-lesson's "phenotype"; and two sentences for the notebooks). His calls
-the same night: the tile renamed "Gain from thresholding"; "trait" kept
-because `gwas` says trait throughout; the two sentences drafted in the
-reply. Then his "the clumping is hard to correlate with the LD": step 2
-over the triangle is MOCKED as §6 of the round-three mock (the plot's x
-domain shifted half a SNP so the columns align; the lead's V and the
-absorbed cells lit while a clump is in flight), his pick "as drawn", and
-BUILT in the commit after (620px at 550; verify 296), then the plot's
-SNPs made hover and click targets on his ask (verify 298). His round
-began the same night: Seed moved into a *The data* section under Step
-(his pick on §7 of the mock; `gwas` and `hardy-weinberg` still have it
-under the drive row — a consistency item), and step 3 gained a "SNPs
-kept" tile on his "where does the 160 come from?". **NEXT: his round
-on the whole round-three draft (steps 1, 2 and 3 all changed tonight),
-then "tested ok, push" and the ship; the ship's states owe a hit-driven
-one on the pin, on step 1 and on step 2.**
+**What it is.** PHM5003 week 6, notebook `03 - MR.ipynb` (extract the
+cells with node, `JSON.parse` of the ipynb; the scratchpad copies are
+gone with the session). The lesson: MR as the natural randomised trial
+(alleles assigned at conception; the RCT diagram beside the MR diagram,
+two attached PNGs); the three assumptions in the lesson's own words —
+relevance (associated with the exposure), exclusion restriction
+(associated with the outcome only through the exposure), independence
+(not associated with confounders); the two-sample workflow (exposure
+GWAS, outcome GWAS, harmonise, estimate by IVW, MR-Egger, weighted
+median); the worked example BMI → coronary heart disease with
+`TwoSampleMR` on `ieu-a-2` (BMI) and `ieu-a-7` (CHD), `harmonise_data`,
+`mr()`, `mr_scatter_plot` (β on the outcome against β on the exposure
+with intervals, the fitted lines), `mr_singlesnp` and `mr_forest_plot`
+(each SNP's ratio and the combined estimate at the bottom); the summary's
+claims (instrumental variables; drug-target prioritisation; the
+challenges: instrument validity and strength, population
+stratification, lifelong-exposure interpretation, over-interpretation
+from noisy instruments). **The lesson's own numbers** are the target
+shape: 79 SNPs, IVW 0.446 (SE 0.059), Egger 0.502 (SE 0.144), weighted
+median 0.387 — read them off the notebook's saved outputs and check
+them before designing to them. The catalogue's slot 60 entry (search
+"Slot 60") has the design sketch: the DAG live with the two violations
+as toggles (`fork-pipe-collider`'s idiom), the two GWAS on a simulated
+population, the scatter with IVW / Egger / median, the forest of
+single-SNP ratios, the confounded observational estimate as the
+reference, pleiotropy and instrument strength as the cases that fail.
 
-**The tree is clean.** Step 3's "countable first, then batched" change
-(his pick) landed and was read in the browser before the session ended:
-the 40 strongest SNPs one column each, then one batch column "the other
-120 SNPs" with the strips as bars of totals and the sum landing on the
-person's score (`?page=score&shown=160` at the default; `shown=12` for the
-countable part). Verify 266 assertions. Two things the builder flagged
-for his round: the weight strip's batch bar is a CONTRIBUTION (Σβ̂x over
-the batch, on its own scale, "−0.35 to the score"), so that strip's
-caption changes once the batch lands; and `Next SNP`'s label still says
-one SNP on the forty-first press, which adds the whole batch — relabelling
-it needs a declarative map and a width reserve (3.4c/3.4d), not done.
+**The order, which has now run eight times:** measure script
+(`_lab/mr-measure.mjs` — bias of IVW versus Egger versus the median as
+the pleiotropic fraction rises; weak-instrument bias at the chosen n;
+that each assumption maps to one visible failure; and that the
+simulation reproduces the lesson's shape — a symmetric simulation can
+fail to, see 57) → mock from the newest mock's shell
+(`_lab/prs-round3-mock.html`, which imports the widget's own `model.js`
+and renders rails through core's `buildControls`) → his picks by
+AskUserQuestion → catalogue → draft (verify script from
+`_lab/prs-verify.mjs`'s shape: engine, geometry, copy, the painted text
+sweep, the register with its forbidden lists) → rounds → the three-pass
+copy audit plus the mannerism pass → "tested ok, push" → shooter
+(`_lab/prs-shoot.html` with the slug changed) + states → status flip →
+full suite fronted → `check` AND `test` read on their own → commit →
+push. **The seed goes in a *The data* section under the page control**
+(his ruling on 59); `gwas` and `hardy-weinberg` still have theirs under
+the drive row and follow when next touched.
 
-**Then his two items, in order:**
+**Reuse:** `widgets/fork-pipe-collider/main.js` for the DAG with
+clickable nodes (regions); `widgets/gwas/model.js` for a per-SNP scan;
+`widgets/polygenic-score/model.js` for summary statistics from a base
+size (`summaryBase`) and the hover-and-pin idiom (`pointer: true` +
+`regions` + a hidden display text parameter, decision 15); the lesson's
+scatter and forest are the field's figures, so mock them as they are.
 
-1. **Step 1, the haplotypes: a hover or indicator that ties the haplotype
-   block to the r² triangle, and the WHOLE triangle, unshaded.** Today the
-   triangle is clipped to the 250 kb clumping window (124px of the full
-   246px) on the mock's argument that the deeper half is r² ≈ 0; he wants
-   the full 100 × 100 half-matrix shown, without the clip. And a
-   correspondence: hovering a cell of the triangle (SNP i, SNP j) should
-   light the two columns in the haplotype block and, ideally, the rows
-   where the two alleles travel together — the shared stretch the r²
-   measures; or hovering a column of the block lights that SNP's row and
-   column in the triangle. This is a `regions` hit-test on the canvas
-   (core's `hitTest`; the hardy-weinberg and gwas widgets declare none, so
-   the newest example is `widgets/t-sne/main.js`'s `regions` and the
-   hit-driven fingerprint states it carries — a widget with `regions`
-   owes a hit-driven state at ship). **Mock it first** as one or two
-   sections in a `_lab/prs-round3-mock.html` from the round-two mock's
-   shell (`_lab/prs-round2-mock.html`, which imports the widget's own
-   `model.js`): the full triangle at 550 wide (246px), the hover linking
-   (a triangle cell → two block columns + the concordant rows; a block
-   column → the triangle's row and column), and a static indicator for
-   the no-hover state (e.g. the causal SNP's row and column in the
-   triangle drawn as thin rules, matching its marked column in the
-   block). Measure the stage height (the block 170px + the full triangle
-   246px + captions ≈ 460 + the step line). His picks, then build.
-2. **After that, an adversarial review of the whole widget for CLARITY
-   and for ALIGNMENT WITH WHAT THE NOTEBOOK TEACHES.** The notebook is
-   `../jupyterbook/phm5003/notebook/06 - GWAS and PRS/02-1 - PRS -
-   Scoring.ipynb` and `02-2 - PRS - Plotting.ipynb` (extract the cells
-   with node, `JSON.parse` of the ipynb; the scratchpad extraction from
-   2026-09-11 is gone with the session). What the lesson teaches, in its
-   order: clumping (the lesson's own diagram: lead SNPs, LD clumps,
-   retention; PRSice defaults r² 0.1 within 250 kb), the weighted score Σ
-   βⱼxᵢⱼ, thresholding across P values ("to identify the threshold that
-   best predicts the trait in the target population"), the inputs (base
-   summary statistics, target genotypes, covariates), the choice of base
-   (correct phenotype, similar population), the `.summary` / `.snp` /
-   `.best` outputs, the vigintile plot with its 95% CI formula, and the
-   summary's claims (relative not absolute, the logistic risk model,
-   transferability across ancestries, equity). The review asks, page by
-   page and as an adversary: does a student who has just read that cell
-   recognise this figure; does every term on screen appear in the lesson
-   or the field (base, target, best-fit, validation — the lesson says
-   "target population" and "best P-value threshold"); where does the
-   widget claim something the lesson does not (the summary-statistic
-   base, the validation sample, overfitting, calibration, stratification
-   — pages 4–6 go past the lesson's text into its summary's claims and
-   into 02-2's logistic paragraph; say so where the lesson would need a
-   sentence); and where is the widget unclear (the step-2 arcs' meaning,
-   the batch column, the Overfitting tile's definition, step 6's two
-   plots). Write the findings as a table under the slot in the catalogue
-   (ROUND 3), put the ones that need a design change to him as picks, fix
-   the copy ones directly. The three-pass copy audit plus the mannerism
-   pass applies to every string touched.
+# WORKING ON THIS MACHINE
 
-**Then:** his round → "tested ok, push" → the ship as on 56 and 57: push
-the draft first; settled states pinned by `shown=` on every step (steps
-1–6 empty and finished, the three base sizes on steps 4 and 5, the three
-targets on 5 and 6, the prevalences and risk thresholds on 6, seed
-variants), driven states per step (Play mid-run; step 2 mid-arc; step 3
-at the batch), interrupted ones (Step then Play; Play, Reset, Step; Play
-then a display change — the threshold, the step), and a hit-driven state
-for the new hover; the shooter from `_lab/gwas-shoot.html` with the slug
-changed; the status flip in `main.js`, the manifest and the verify; the
-full suite fronted (the tab ACTIVE; 624 states today, all MATCH); `check`
-AND `test` on their own; commit; push. After 59: slot 60.
+- **Dev server:** `preview_start` with `widgets-alt3` → `node
+  scripts/serve.mjs 8013` this session; 8010–8012 may belong to other
+  sessions (8012 answered as another chat's server). Widget URLs are
+  `http://localhost:<port>/widgets/<slug>/`.
+- **Git on Dropbox:** `git add` one file at a time with `sleep 8`
+  retries; commit with `git -c gc.auto=0 commit` — the automatic repack
+  after a commit fails on Dropbox's file lock ("unable to rename
+  temporary file … .rev"), harmless to the commit but noisy, and it
+  leaves a `.tmp-*` file in `.git/objects/pack/`. `git fsck
+  --connectivity-only` was clean after it.
+- **Heredocs in the Bash tool break on some quoting**; write scripts to
+  the scratchpad with the Write tool and run them.
+- **The shooter and the harness frame is 900 × 1200**: the widget's
+  canvas is 550 CSS px wide there in the side layout, 535 when the page
+  is tall enough for a scrollbar — aim hit coordinates at cell centres
+  that hold at both (`?theme=light` with the run first). `check` refuses
+  a driven state that also pins `shown=`; reach a finished figure through
+  `before: [{ click: "run", frames: N }]` (140 frames at 32 ms for step
+  1's 4 s, 210 for step 2's 6.2 s).
+- **A hit state that "clears" a pin is inert**: the pointer is still on
+  the target, so the hover redraws what the click removed. Record pins,
+  not clears.
+- **The pane's DPR is 1.25 only while displayed**; the shooter waits for
+  it. A `resize_window` to 900 × 1200 keeps DPR 1.25.
+- **`check` refuses a tile that is not blank before the run** (2.4) —
+  the SNPs-kept tile shipped blank until the first SNP for that reason.
 
-# WHERE 59 STANDS (2026-09-12)
+# THINGS LEARNED ON 59'S ROUND THREE, NOT YET IN THE PRINCIPLES
 
-**Built** (`e81d647` plus the batching in progress): six steps on one
-rail — *Step* control, numbered verbs two per row, a step line and a
-hand-off above every caption. 1 · See the haplotypes (40 rows × 100 SNPs
-over the r² triangle; Recombination and Causal variant; fills a row a
-beat; readouts the pairs over r² 0.5, their furthest distance, the first
-clump's size). 2 · Clump the SNPs (the association plot alone; three beats
-a clump — the lead lights, arcs to every SNP it absorbs with alpha = r²,
-the absorbed SNPs slide to ticks on the axis; Clumping r²). 3 · Build the
-score (genotype dots, the base study's weights in `--c-group-b`, the
-running sum, the sample's score distribution; Person). 4 · Choose the
-threshold (R² in the target and validation samples against the P
-threshold, the best-fit mark, the reading line; the Overfitting tile =
-best-fit R² minus R² with every SNP kept). 5 · Check the score (the
-vigintile plot under Target population). 6 · Calibrate the risk (a
-disease from the trait as a liability at the Prevalence; a logistic model
-on the standardised score fitted in a 3,000-person base population; the
-calibration plot by decile beside absolute risk against score percentile
-with the Risk threshold; readouts the intercept, slope, intervals
-covering, the person's risk beside their percentile, the crossing
-percentile, the people above). The base study is SUMMARY STATISTICS with
-a Base study size control (1,500 · 15,000 · 150,000, default 15,000); the
-default seed is 41; every string in the field's terms (base GWAS, target
-sample, validation sample, best-fit threshold, overfitting — no
-"tune"/"holdout", the verify forbids them). Verify 245 assertions; compute
-111 ms worst; runs 4–6.4 s.
-
-**Seed 41 opens on:** region 38 SNPs under P < 0.05, 8 clumps, the lead
-25 kb off the causal SNP at r² 0.79; step 4 best-fit R² 0.294 in the
-target at P < 0.01, 0.267 in the validation sample; the lever 0.137 →
-0.294 → 0.331; calibration matched slope 1.08 with 10 of 10 intervals,
-distant 0.43 with 3 of 10; the crossing at 30% risk 80.6 → 84.0 → 95.0
-percentile.
-
-**Open, none blocking:** the rail is taller than every stage (672–1,355px
-at 300px against stages of 426–554; accepted, with the two-line details
-trimmed); `page=ld` links break (the step split) and fall back to the
-haplotypes; the crossing's ordering matched < nearby < distant does not
-hold as a mean over seeds (asserted at the default seed only); the 02-1
-and 02-2 notebooks do not yet link to any of the arc's widgets.
-
-**The record** is `docs/catalogue.md` § *Slot 59 · `polygenic-score`*:
-MEASURED (eight corrected claims), MOCKED, the picks, DRAFTED, ROUND 1 —
-Kenneth (his three points and the student's-seat review), ROUND TWO
-MOCKED, his eight round-two picks, ROUND TWO BUILT, and PAGE 5 PLANNED
-(calibration and stratification, on his two questions). The mocks are
-`_lab/prs-mock.html` and `_lab/prs-round2-mock.html`; the measure script
-`_lab/prs-measure.mjs` (35 checks; it runs its tables AND calls
-`process.exit` at top level, so import it dynamically with `process.exit`
-disabled, or copy its functions).
-
-# WORKING ON THIS MACHINE (adds to *Working on Windows* below)
-
-- **Dev server:** `preview_start` with `widgets-alt2` → `node
-  scripts/serve.mjs 8012`; 8010 and 8011 are other sessions'. Widget URLs
-  are `http://localhost:8012/widgets/<slug>/`.
-- **The Bash tool's `cd … && git add` loop fails on Dropbox's object
-  race**; use `for i in 1..10; do git add "$f" && break || sleep 8; done`
-  per file, and a multi-file commit stages one file at a time. An add
-  that fails eight times at 4 s succeeds at 10 s waits.
-- **The Bash background runner reports exit 127 for a server it started
-  fine**; start a second server with PowerShell `Start-Process node
-  -ArgumentList "scripts/serve.mjs","8013" -WindowStyle Hidden`, and stop
-  it by `Get-NetTCPConnection -LocalPort 8013` → `Stop-Process`.
-- **The browser pane is 760px wide this week and screenshots are of the
-  pane**; a widget at 760 stacks its rail above the figure. Shift
-  `document.body.style.marginTop` to bring a region into the 694px
-  viewport (screenshots of a scrolled page are black), and WAIT ~1 s after
-  the shift or the screenshot is of the previous position. `zoom` is not
-  supported in the pane. `resize_window` to 1280 gives a scaled-down
-  screenshot that is unreadable; use it only for DOM measurements.
-- **The fingerprint harness needs its tab ACTIVE**, not just the pane
-  visible; a blank tab opened by `tabs_create` steals focus and the run
-  stops. Poll with 10 s waits (a batch holds 25 actions ≈ 3.5 min); 624
-  states take ~4.5 min.
-- **A settled fingerprint state on a widget that declares `shown` must
-  pin `shown=`**; `check` refuses "neither shown= nor drive".
-- **Measure scripts that run tables at top level break `import`**; the
-  round-two mock imports the widget's own `model.js` instead (no side
-  effects), which also makes every mock number the shipped engine's.
-
-# THINGS LEARNED ON 56, 57 AND 59 NOT YET IN THE PRINCIPLES
-
-- **Nomenclature is a pick, not a pass.** "Tune" and "holdout" passed
-  three audits as plain words; Kenneth caught them as machine learning's
-  words in a genetics lesson. Use the field's nouns (base, target,
-  validation, best-fit, overfitting — PRSice's own) and grow the verify's
-  forbidden list per widget.
-- **A flat curve is a question about the simulation before it is a
-  question about the data.** The lesson's data was right; the simulated
-  base of 1,500 capped every curve. The answer was a control (Base study
-  size), and it needed the base as summary statistics to be cheap.
-- **The result without the mechanism does not teach.** Clumping drawn as
-  fading points showed what happened, not why; the haplotype block and
-  the arcs (alpha = r²) are the cause and the action. Fading is the
-  weakest channel a canvas has.
-- **A grid of nouns is a menu; numbered verbs are a procedure.** The step
-  line and the hand-off ("from step 1: the region's haplotypes") are what
-  tell a student the pages chain.
-- **A question from him mid-build is a page.** "Can the score give a
-  patient's risk?" and "how do people stratify?" became step 6 before
-  round one had run; plan it under the slot at once, build it after the
-  round.
-- **A symmetric simulation can fail to reproduce the lesson's own
-  picture** (gwas: equal Fst gave two equal eigenvalues; the nested
-  topology gave the lesson's 17.3 / 3.1). When the lesson has a figure,
-  measure the simulation against it.
-- **Sub-streams off one seed change what `seed=N` means**; choose the
-  default seed to open on the mock's reading and assert the measure
-  script's own arrangement separately.
-- **Read ship claims by their DIFFER count.** "All N of the new widget's
-  states MATCH" is not a full-suite claim; the t-sne DIFFER hid behind
-  such claims for two days (resolved 2026-09-12: an environment move on
-  2026-09-10 with no code change, proven by running the harness on the
-  last all-green commit from a worktree; re-recorded on his call).
-- **Reader-facing verbs of arrival are ours** ("landed", "taken");
-  the legend says "added", "chosen".
+- **A hover is an inspector and a click is a parameter, and one drawing
+  serves both.** `pointer: true` repaints on movement with nothing
+  written; `regions` writes ONE hidden display parameter; the overlay is
+  one function called with whichever subject is present, the pointer
+  winning while it is on a target. The URL then carries the pin, a
+  lesson link can open on it, and the hit-driven state hashes identically
+  to the `snps=` state — the proof that a click and a link agree.
+- **Two panels that share an axis must share a pitch.** The triangle
+  spaced SNPs at w / (m − 1) and the block at w / m for two rounds; five
+  pixels apart at the right edge, invisible until a hover tied them.
+- **A batch that draws as a flat line is a lie about the path.** Every
+  SNP its own column at every count, the run capped by time, the strips
+  switching from dots to bars below 4px — one regime, and the order
+  (lowest P first) gives the staircase a shape that teaches.
+- **A tile's label is a claim.** "Overfitting" showing the gain of
+  thresholding was false; Kenneth chose to name the number what it is.
+- **The lesson's own phrase beats ours.** "Inherited together" for
+  "travel together"; "linkage disequilibrium (r²)" named once where the
+  student first meets r².
+- **Read the running session's commits before committing.** A parallel
+  session landed the step-3 batching while this one was verifying it.
 
 ---
 

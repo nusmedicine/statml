@@ -73,7 +73,8 @@
    sweep so that the SCORE is never called a risk while step 6, where a fitted
    model turns it into one, may say so.
 
-   THE STATUS. Both files say `draft` and this assertion says so; it flips at
+   THE STATUS. Both files say `shipped` (flipped at the ship, 2026-09-12) and this
+   assertion says so; it flipped at
    ship, in the same commit as the manifest and the widget.
 
    Exits non-zero on failure.
@@ -1488,8 +1489,8 @@ const OPEN = build(base());
   /* THIS ASSERTION FLIPS AT SHIP, in the same commit as the manifest and the
      widget: a draft recorded as shipped is what puts unfinished teaching
      material on the front page. */
-  check("the widget is declared draft in both files",
-    /^\s*status: "draft",$/m.test(src) && card.status === "draft", card.status);
+  check("the widget is declared shipped in both files",
+    /^\s*status: "shipped",$/m.test(src) && card.status === "shipped", card.status);
   check("the card carries the slot's course and arc",
     card.course === "PHM5003" && card.arc === 59, `${card.course} ${card.arc}`);
   check("the title agrees across the three files",

@@ -8019,6 +8019,47 @@ said so. His pick: a fourth tile on step 3, "SNPs kept · 160 · of the
 base study's 1,000, at P below 0.01", blank before the first SNP (2.4
 — the verify caught it showing from the first frame). Verify 298.
 
+**SHIPPED 2026-09-12 — "tested ok, push" on the round-three draft.** The
+draft pushed first (6f20131, 28 commits since the 57 ship), then the
+ship: 73 fingerprint states recorded through `_lab/prs-shoot.html` (the
+copy proven 6/6 first, every state STABLE over three shots, every drive
+moved its figure) — 54 settled pinned by `shown=` (steps 1–6 empty and
+finished; step 1 at 12 rows, the pair and the SNP pinned by URL, the
+three recombination rates, the untyped causal variant, seed 7; step 2
+at beats 1 and 2, finished, pinned, at r² 0.5, low recombination,
+untyped; step 3 at 12, 160, 35, 249 and 1,000 SNPs, keeping nothing,
+person 200, the distant target; step 4 at 5 and 11 thresholds, the
+three base sizes, the three targets, 100 causal, h² 0.5, the slider at
+0.1, seed 7; step 5 at 7 and 20 vigintiles, the three targets, the
+three base sizes; step 6 finished under the three targets, the three
+prevalences, the three risk thresholds, person 200, and with no model),
+10 driven (Play mid-run on all six steps, one Step on 1, 2 and 3, Play
+at every SNP), 5 interrupted (Step then Play; Play, Reset, Step; Play
+on step 3 then the threshold moved; Play on step 4 then the slider
+moved; Play on step 1, a visit to step 2 and back — the rows kept), and
+4 HIT-DRIVEN (the run first, to the end, since `check` refuses a driven
+state that pins `shown=`; then a click on the causal–lead cell and on
+the lead's column on step 1, and on a cell and on the plot's lead SNP
+on step 2) — the two pinned-by-click states hash identically to their
+`snps=` URL twins, which is the proof that a click and a link agree. A
+seventy-fourth state, clicking the pinned cell again to clear it, was
+recorded and DROPPED: the pointer is still on the cell, so the hover
+redraws the pair and the picture is the pinned one hash for hash — a
+state that tests nothing. Status shipped in main.js, the manifest and
+the verify's assertion; the full suite fronted at DPR 1.25: 697 states,
+697 MATCH, the t-sne states included. check and test green, read on
+their own. **The two notebook sentences he asked for, drafted in the
+session and not written to the notebooks:** for 02-1 under the outputs
+cell — the best P-value threshold is chosen on the target population
+itself, so `PRS.R2` is optimistic (PRSice's documentation calls it
+overfit) and an independent validation sample is needed to measure it
+honestly; for 02-2 under the logistic model — a calibration plot groups
+individuals by decile of predicted risk and plots the mean predicted
+risk against the fraction who have the disease; a calibrated model sits
+on the diagonal, and a model carried to another ancestry usually does
+not, which is why recalibration is needed. **After 59: slot 60
+`mendelian-randomization`, the last of the arc.**
+
 **PAGE 5 PLANNED 2026-09-12 — calibration, on Kenneth's question** ("can
 the PRS score be used to calculate risk for a patient? a colleague told me
 no… so what's the use of this score?", then "how is calibration done? will
