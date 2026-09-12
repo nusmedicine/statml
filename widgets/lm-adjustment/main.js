@@ -254,7 +254,7 @@ defineWidget({
   subtitle:
     "A linear model can hold several covariates at once, and fitting it " +
     "estimates their coefficients together. Each coefficient is then read " +
-    "with the others held constant — a property of the model it sits in, " +
+    "with the others held constant — a property of the model it belongs to, " +
     "not of the variable, so it moves when the model changes.",
   layout: "side",
   height: ({ concept }) => HEIGHT(concept, concept === "collinear"),
