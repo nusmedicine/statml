@@ -7510,6 +7510,53 @@ read on people it was not tuned on.
   chosen LD/frequency shift; that the quantile trend is visible at the
   matched setting at n = 319.
 
+**MEASURED 2026-09-12, `_lab/prs-measure.mjs` (35 checks), on Kenneth's
+"start on the next widget" during 57's suite run.** Eight claims came out
+differently from the brief, each with a `FIRST WRITTEN AS` comment:
+
+1. **A founder mosaic with independent founder alleles cannot make LD**
+   (mean r² caps near 1/(k − 1), 0.06 at eight founders). The founders are
+   built on a random genealogy — each SNP a mutation on one branch — and
+   allele frequencies are branch sizes, not U(0.1, 0.9).
+2. **60 SNPs at 25 kb cannot teach tagging** (a causal SNP has no neighbour
+   over r² 0.8; the lead is the causal SNP 92% of the time). The region is
+   **100 SNPs at 5 kb, 495 kb**, array density: at the default recombination
+   the lead is the causal SNP **56%** of the time, the causal SNP is in the
+   lead's clump 100%, 37 SNPs pass P < 0.05 before clumping and 7.6 clumps
+   remain; with the causal variant untyped, the lead sits 24 kb away at r²
+   0.81. r² against distance at three recombination rates is in the script.
+3. **Spread, not heritability, decides the threshold curve's shape.** 100
+   causal SNPs of 2,000 peak at 10⁻³ with R² 0.10 already at 5 × 10⁻⁸ — the
+   opposite of the lesson's curve; **600 causal of 2,000 at h² 0.3**
+   reproduces it (5 × 10⁻⁸ → 0 SNPs, R² 0.0015; 10⁻³ → 22, 0.042; 0.05 →
+   199, 0.096; 0.5 → 1,102, 0.100; 1 → 0.098).
+4. **The maximum is a plateau, not a peak**: over thresholds 0.05–1 the
+   mean curve moves 0.005 in R² while one cohort's tuning gain is 0.014,
+   and the maximum landed on eight different thresholds over 30 seeds. The
+   lesson's own curve is the same shape (0.0497 at 0.404 against 0.046 at
+   0.5). At n = 319: tuned R² 0.113, holdout at that threshold 0.098; the
+   paired within-cohort tuning gain 0.0142 ± 0.0021 and its transfer to
+   the holdout **negative** (−0.010 ± 0.004); at n = 3,000 the gain is
+   0.002.
+5. **An allele-frequency shift alone costs almost nothing** (ratio 0.91 at
+   Fst 0.1). All the portability loss in this model is tag decay, so a
+   Target population control must move tag loss, not only Fst: near (Fst
+   0.02, half the causal SNPs tagged at r² 0.5) → ratio 0.72; far (Fst
+   0.1, all tagged at r² 0.2) → **0.21**, Martin 2019's African-target
+   figure; 0.50 at half tagged at r² 0.2, the East Asian figure.
+6. **The matched vigintile plot is not reliably steeper than the lesson's**:
+   range 1.26 SD (seed SD 0.27), 4.3 of 20 bins' intervals excluding the
+   overall mean at n = 319 — the lesson's 1.4-SD range is a high draw, and
+   its few separated bins are what n = 319 gives, not a defect. The far
+   target: range 0.60 SD, 1.6 bins.
+7. **Cost:** page 1 is 5 ms; the genome at base 3,000 + 319 + 319 with m
+   2,000 is 141–161 ms, over the budget; **base 1,500 × m 1,000 × 300
+   causal is 42 ms** and keeps the shape (peak at 0.2, gain 0.012). The
+   threshold curve itself is 2 ms, so **the P threshold is a display
+   parameter over a genome drawn once.**
+8. The tuned-minus-holdout gap across two cohorts is cohort noise (0.015
+   ± 0.009); the paired within-cohort gain is the clean number (4 above).
+
 ### Slot 60 · `mendelian-randomization`
 
 **The one thing:** each SNP gives a ratio — its effect on the outcome over
