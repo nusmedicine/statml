@@ -7622,6 +7622,68 @@ defects. The copy audit found four question-shaped details ("how many",
 1,000 columns of 0.5px, a texture; the 02-1 and 02-2 notebooks do not yet
 link to it.
 
+### ROUND 1 — Kenneth (2026-09-12, on the four-page draft)
+
+His three points: (1) "the PRS isn't good for this set — did I choose the
+correct data? students may not see the point if the curves are flat"; (2)
+"the LD clumping is not very apparent — is there any animation or
+highlighting that is useful? students need to see the haplotypes to
+understand clumping"; (3) "from the page controls it's unclear which
+steps go in order"; and "do a review from a student's perspective about
+clarity of the process and the presentation, with UX/UI and pedagogical
+principles."
+
+**(1) is the base study's size, not the data.** Measured the same evening
+(m 1,000, 300 causal, h² 0.3, target 319, three seeds): base 1,500 → R²
+0.085, vigintile range 1.1 SD, 4 of 20 bins separated from the mean; base
+5,000 → 0.22, 2.0 SD, 7 bins; base 20,000 → 0.30, the heritability
+ceiling, 2.4 SD, 10 bins. The lesson's data is right — real, and its weak
+trend a true finding about portability — but the widget's simulated base
+is 1,500 people and that caps every curve. **The lever the widget is
+missing is Base study size**, and it needs the base simulated as SUMMARY
+STATISTICS (β̂ⱼ around βⱼ with the standard error a base of that size
+gives, P from the normal tail) — what a PRS actually consumes and what the
+lesson's base file is — because the per-person simulation costs 415 ms at
+20,000. With it the score is seen to climb toward the heritability as the
+base grows, the lesson's ~15,000-person cholesterol base is explained
+rather than apologised for, and the ancestry loss on page 4 reads as a
+second, separate limit.
+
+**(2)** The mock's candidate B (haplotypes) was passed over for the
+triangle; the draft shows clumping's RESULT (points fade) without its
+CAUSE (shared blocks), and fading is the weakest visual channel on a
+canvas. Proposed: split page 1 into *haplotypes and LD* (rows × SNPs with
+the causal column marked, the r² triangle under, Recombination breaking
+the bands) and *clumping* (the association plot alone, taller); make the
+run show the mechanism — arcs from the chosen lead to every SNP it
+absorbs, each arc's opacity its r², then the absorbed points sliding to
+the baseline rather than fading.
+
+**(3)** A 2 × 2 grid of four nouns reads as a menu. Proposed: numbered
+verbs in one column — *1 · Clump the SNPs · 2 · Build the score · 3 ·
+Choose the threshold · 4 · Check the score* (5 · Calibrate the risk; six
+with the split) — the step carried into each stage's caption ("step 2 of
+6") with a hand-off line naming the previous step's output.
+
+**The rest of the review, from a student's seat:** the opening state gives
+no instruction and page 1's empty caption already says "every SNP tested"
+(say "no SNP tested yet"; the button label is the instruction); nothing
+says how the pages chain (the readouts should hand over — clumps kept →
+SNPs kept at the threshold → the best-fit threshold → the vigintiles);
+page 1's colour carries four meanings (a test, a dropped test, past P =
+0.05, the lead) and the arcs free one; page 2 at P = 1 is a texture of
+1,000 half-pixel columns; page 3 is the hardest page with the least
+support and wants one reading line under the curves ("best-fit R² 0.086
+in the target at P < 0.05; 0.064 in the validation sample at that
+threshold"); the rail is taller than every stage; the runs' feedback (the
+lit SNP, the growing sum, the curves drawn as they go) is the clearest
+thing in the widget and stays; and after four pages a student still
+cannot answer "is my score a risk?" — page 5. **His word: "go ahead with
+the round two mockup"** — `_lab/prs-round2-mock.html`, sections for the
+base-size lever on summary statistics, the page-1 split with the arcs as
+stills, the numbered verbs, the hand-offs, page 3's reading line, and page
+5's two figures.
+
 **PAGE 5 PLANNED 2026-09-12 — calibration, on Kenneth's question** ("can
 the PRS score be used to calculate risk for a patient? a colleague told me
 no… so what's the use of this score?", then "how is calibration done? will
