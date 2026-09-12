@@ -540,7 +540,7 @@ export function verdict({ page, confounding, pleio, indep }) {
   if (confounding === "none") return "no confounding path: the observational estimate is unbiased";
   if (pleio && indep) return `both excluded arrows are present: horizontal pleiotropy, and ${g}–confounder association`;
   if (pleio) return `a direct path from the ${g} to CHD is open: horizontal pleiotropy`;
-  if (indep) return `the ${g} ${one ? "is" : "are"} associated with the confounders and ${one ? "lies" : "lie"} on the open path`;
+  if (indep) return `the ${g} ${one ? "is" : "are"} associated with the confounders and ${one ? "is" : "are"} on the open path`;
   return `the confounding path is open; the ${g} ${one ? "is" : "are"} not on it`;
 }
 

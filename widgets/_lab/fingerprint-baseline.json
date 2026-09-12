@@ -6255,7 +6255,7 @@
       "$note": "overview under independence broken: the confounder-to-SNP arrow",
       "slug": "mendelian-randomization",
       "state": "?theme=light&shown=5&indep=broken",
-      "px": "116abeb2",
+      "px": "7d1af3cf",
       "tx": "338f75f1"
     },
     {
@@ -6388,7 +6388,7 @@
       "$note": "estimate under independence broken, All, the truth shown: all three off",
       "slug": "mendelian-randomization",
       "state": "?theme=light&page=estimate&shown=79&indep=broken&estimator=all&truth=on",
-      "px": "4cac3709",
+      "px": "a996f431",
       "tx": "ad68cfed"
     },
     {
@@ -6472,7 +6472,7 @@
       "$note": "forest under independence broken",
       "slug": "mendelian-randomization",
       "state": "?theme=light&page=forest&shown=79&indep=broken",
-      "px": "41adcbf3",
+      "px": "839c7fe6",
       "tx": "1dd4a99e"
     },
     {
