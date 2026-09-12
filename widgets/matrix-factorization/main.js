@@ -237,7 +237,7 @@ defineWidget({
       entries.push({ token: "group-a", label: "a sample, coloured by the pattern it mostly runs on", mark: "dot" });
       if (askedFor(params) === 2) {
         entries.push(nmf
-          ? { token: "highlight", label: "the cone every rebuilt sample lies in", mark: "area" }
+          ? { token: "highlight", label: "the cone containing every rebuilt sample", mark: "area" }
           : { token: "highlight", label: "the plane every sample is projected onto", mark: "area" });
       }
       if (!nmf) entries.push({ token: "reference", label: "the mean, which PCA subtracts first", mark: "dot" });
@@ -698,11 +698,11 @@ function drawGeometry(ctx, colors, w, h, params, state, snap) {
     lines = [
       "Each signature is a ray out of the origin,",
       "and every sample is rebuilt as a non-negative",
-      "mix of them — so every rebuilt sample lies in",
+      "mix of them — so every rebuilt sample is inside",
       "the cone they span.",
       "",
-      "The measured samples sit NEAR it. How far a dot",
-      "falls outside is the part of it W × H could not",
+      "The measured samples are NEAR it. How far a dot",
+      "is outside is the part of it W × H could not",
       "explain, which is the residual in the readout.",
       "",
       "Nothing may be subtracted, so the origin is",
@@ -714,7 +714,7 @@ function drawGeometry(ctx, colors, w, h, params, state, snap) {
       "directions through the MIDDLE of the cloud.",
       "",
       "A sample's coordinate along one is how far it",
-      "sits from the mean, and which side — so it",
+      "is from the mean, and which side — so it",
       "carries a sign. That is the freedom NMF gives",
       "up, and the reason its factors are rays out of",
       "the origin instead of axes through the middle.",

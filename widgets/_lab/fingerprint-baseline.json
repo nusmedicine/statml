@@ -2630,8 +2630,8 @@
       "$note": "NMF geometry: two signatures as rays from the origin, and the cone the samples lie in.",
       "slug": "matrix-factorization",
       "state": "?theme=light&shown=17&programmes=3&rank=2&view=geometry",
-      "px": "7a20d196",
-      "tx": "540cbc05"
+      "px": "181eb32c",
+      "tx": "30f57119"
     },
     {
       "$note": "PCA settled at three components: the centred matrix, both factors signed, and a lower residual than NMF's.",
@@ -2644,7 +2644,7 @@
       "$note": "PCA geometry: components as double-headed axes through the mean, and the plane they span.",
       "slug": "matrix-factorization",
       "state": "?theme=light&shown=17&method=pca&programmes=3&components=2&view=geometry",
-      "px": "6cf2a6c3",
+      "px": "838f6387",
       "tx": "8df4b07b"
     },
     {
