@@ -589,7 +589,7 @@ const allNear = (a, b, eps = 1e-9) => a.length === b.length && a.every((v, i) =>
 
   check("rows 12 and 13: the training captions carry the scale and the measured spread",
     has("so the output sum matches the input sum on average.")
-    && has("One draw can sit far from that average: at p = 0.8 the spread of the output sum is about twice the ")
+    && has("One draw can be far from that average: at p = 0.8 the spread of the output sum is about twice the ")
     && has("input sum, and about one draw in ten loses every cell."));
 
   check("rows 14 and 15: the evaluation captions name the absent mask and what the scaling bought",

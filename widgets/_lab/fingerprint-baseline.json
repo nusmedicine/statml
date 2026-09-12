@@ -3806,7 +3806,7 @@
       "slug": "support-layers",
       "state": "?theme=light&block=activation&fn=gelu&shown=5",
       "px": "6c1bd46f",
-      "tx": "617fde49"
+      "tx": "64f48b28"
     },
     {
       "slug": "support-layers",
@@ -3833,7 +3833,7 @@
       "$note": "Dropout: training at p = 0.5, all ten cells decided and the survivors scaled by 2.00",
       "slug": "support-layers",
       "state": "?theme=light&block=dropout&shown=10",
-      "px": "631b78c8",
+      "px": "550d3443",
       "tx": "95d4912a"
     },
     {
@@ -3847,14 +3847,14 @@
       "$note": "Dropout: p = 0.8 at seed 10, the draw the mean output sum of 0.524 was measured on",
       "slug": "support-layers",
       "state": "?theme=light&block=dropout&p=0.8&seed=10&shown=10",
-      "px": "21d094d8",
+      "px": "1110b1ff",
       "tx": "5c163ba3"
     },
     {
       "$note": "Dropout: p = 0.2, one cell in five and a 1.25 scaling",
       "slug": "support-layers",
       "state": "?theme=light&block=dropout&p=0.2&shown=10",
-      "px": "1abfa72e",
+      "px": "0faabe0b",
       "tx": "c298423f"
     },
     {
@@ -3889,7 +3889,7 @@
       "$note": "Dropout: empty, the input tensor and the mask before the first cell is decided",
       "slug": "support-layers",
       "state": "?theme=light&block=dropout&shown=0",
-      "px": "4260e3fc",
+      "px": "04cad567",
       "tx": "0b7ce1f9"
     },
     {
@@ -3949,7 +3949,7 @@
         "frames": 14,
         "dt": 32
       },
-      "px": "32d50e79",
+      "px": "ebfc8a0b",
       "tx": "0b7ce1f9"
     },
     {
@@ -3967,7 +3967,7 @@
         "frames": 14,
         "dt": 32
       },
-      "px": "0fd1dad7",
+      "px": "f6a6a8c3",
       "tx": "ca06d024"
     },
     {

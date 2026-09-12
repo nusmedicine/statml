@@ -1080,7 +1080,7 @@ function pageCaptions(params) {
         : [
           `The survivors are scaled by 1 / (1 − ${params.p}) = ${(1 / (1 - Number(params.p))).toFixed(2)}, `
           + "so the output sum matches the input sum on average.",
-          "One draw can sit far from that average: at p = 0.8 the spread of the output sum is about twice the "
+          "One draw can be far from that average: at p = 0.8 the spread of the output sum is about twice the "
           + "input sum, and about one draw in ten loses every cell.",
         ];
     default:
@@ -1188,7 +1188,7 @@ function cardFor(params) {
         note: chosen.key === "relu"
           ? "ReLU sets every negative input to zero, so a unit whose input stays negative passes nothing on."
           : chosen.key === "gelu"
-            ? "Φ is the standard normal cumulative distribution, so GELU scales an input by how far it sits "
+            ? "Φ is the standard normal cumulative distribution, so GELU scales an input by how far it is "
               + "above the middle of that distribution."
             : chosen.key === "silu"
               ? "σ is the sigmoid, so SiLU scales an input by a number between 0 and 1 that rises with it."
