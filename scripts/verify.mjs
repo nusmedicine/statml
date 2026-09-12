@@ -71,6 +71,11 @@ for (const rel of SCRIPTS) {
   } else {
     failed += 1;
     console.error(`  FAIL ${rel}  (exit ${r.status})`);
+    /* THE FAILING LINES FIRST, THEN THE TAIL. A script that fails one check of
+       298 prints it two hundred lines above its summary, and the tail alone
+       hid a timing assertion from a day of failed deploys (2026-09-12). */
+    const failing = lines.filter((l) => /FAIL/.test(l) && !l.startsWith("  FAIL "));
+    for (const l of failing.slice(0, 12)) console.error(`       ! ${l}`);
     for (const l of lines.slice(-12)) console.error(`         ${l}`);
   }
 }
