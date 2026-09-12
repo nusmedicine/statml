@@ -8340,6 +8340,54 @@ MATCH before the commit (5.10).
 `http://localhost:8014/widgets/mendelian-randomization/`; the gwas
 re-record on his word; then the copy audit, the shooter and the states.
 
+#### Round two, 2026-09-12 — Kenneth's adversarial review, from the student's side
+
+His three questions: does it need a concept page for instrumental
+variables and the two-stage method the notebook uses; are there too many
+parameters the notebook does not cover, and should the notebook grow or
+the widget shrink; and will students know what to look at when IVW,
+Egger and the median are not explained. The review's answers, every one
+taken (asked in one round):
+
+- **No concept page; step 1 IS the two-stage method, and now says so.**
+  The line through the three genotype centroids is two-stage least
+  squares. The run is five beats — the people, the observational fit,
+  Stage 1: BMI by genotype (each group's mean BMI as a vertical guide),
+  Stage 2: CHD by genotype (each group's mean CHD risk as a horizontal
+  guide, the centroid rising to the crossing), the ratio — and the tiles
+  print Stage 1 (SD of BMI per allele), Stage 2 (log odds per allele) and
+  their quotient, each at its own beat.
+- **The estimators are taught on the figure.** A hovered or pinned SNP
+  draws its own ratio as the slope of the line from the origin through
+  its point, so IVW reads as the one slope fitting them all; Egger's
+  intercept is marked on the axis at zero effect on BMI, tagged as the
+  average direct effect; the forest marks the row the weighted median's
+  weight crosses at, tagged as the middle ratio by weight.
+- **Every step ends on one computed reading line** under the figure: the
+  ratio against the observational slope (and the truth when revealed) on
+  step 1; the flipped count or the harmonised count on step 2; the
+  selected estimator's interval against the observational slope and the
+  truth on step 3; how many single-SNP intervals cross zero and whether
+  the combined one does on step 4. The hovered SNP's reading wins while
+  the pointer is on it.
+- **The rail is ten controls.** SNPs (fixed at the lesson's 79) and
+  Samples (fixed at two) are cut: the count only widened intervals, which
+  Relevance already does, and the one-sample direction is a lottery seed
+  by seed. Harmonise shows on step 2 alone; steps 3 and 4 always read the
+  harmonised effects, so a student who jumps to step 3 meets a right
+  estimate, not IVW near zero with a red note.
+- **The notebook takes three sentences** the widget cannot fit, Kenneth's
+  own addition: one per estimator (IVW the precision-weighted slope
+  through the origin; MR Egger allowing an intercept that reads
+  directional pleiotropy; the weighted median taking the middle ratio and
+  holding while under half the SNPs are invalid), the F statistic with
+  its floor of 10, and what harmonising does.
+
+Two words leave this widget's coined-vocabulary sweep with their reason
+written beside them: "arm" (an arm of a trial) and "stage" (two-stage
+least squares). Verify 117 assertions green.
+
+
 
 
 ### The open calls — put to Kenneth and answered, 2026-09-11

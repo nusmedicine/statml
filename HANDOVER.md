@@ -52,6 +52,15 @@ decisions and the measurement; `main.js` with the drawing decisions.
    acts are what no parameter carries (4.4b). The suite proved it reaches
    nothing else.
 
+**Round two is in (his adversarial review, same night, catalogue § Slot 60
+"Round two"):** step 1 runs five beats named as the two stages with
+Stage 1, Stage 2 and Ratio tiles; a hovered SNP draws its own slope from
+the origin, Egger's intercept is tagged on the axis, the forest marks the
+median row; every step ends on a reading line; SNPs and Samples are cut
+(ten controls) and Harmonise is step 2's alone. **He is adding three
+sentences to the notebook** (one per estimator, the F statistic,
+harmonising) — check they landed before the ship. Verify 117.
+
 **Then his round.** Expect the usual: copy (the three-pass audit plus the
 mannerism pass is still owed — `_lab/mr-verify.mjs` §8 already sweeps
 "never", lesson words, the coined list, "landed/taken/arrives", and

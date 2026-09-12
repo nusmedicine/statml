@@ -74,6 +74,29 @@
     8. THE STEP-1 SNP IS DRAWN STRONGER THAN ANY REAL BMI SNP — 0.4 SD per
        allele where the largest real one is 0.08 — and the caption says so.
        At a real effect nothing separates at a cohort a browser can draw.
+
+    9. ROUND TWO, KENNETH'S ADVERSARIAL REVIEW (2026-09-12, evening): "think
+       from the student's perspective". Four calls, every one taken:
+       (a) THE TWO-STAGE METHOD IS STEP 1, NAMED. The line through the three
+           genotype centroids IS two-stage least squares — stage one is BMI
+           by genotype, stage two is CHD risk by genotype, the ratio is the
+           slope — so the beats say so and the tiles print the two stages
+           and their quotient. No concept page: the lesson links to the
+           widget, not the reverse.
+       (b) THE ESTIMATORS ARE TAUGHT ON THE FIGURE. A hovered SNP draws its
+           own slope from the origin, so IVW reads as the one slope fitting
+           every SNP's; Egger's intercept is marked on the axis as the
+           average direct effect; the forest marks the middle row by weight
+           as what the median takes; and every step ends on one computed
+           reading line saying what to look at.
+       (c) THE RAIL IS TEN CONTROLS, NOT TWELVE. SNPs (fixed at the lesson's
+           79) and Samples (fixed at two) are cut — the count only widened
+           intervals, which Relevance already does, and the one-sample
+           direction is a lottery seed by seed. Harmonise lives on step 2
+           alone; steps 3 and 4 always read the harmonised effects, so the
+           estimate is never wrong by default.
+       (d) THE NOTEBOOK TAKES THREE SENTENCES the widget cannot fit: one per
+           estimator, the F statistic, what harmonising does.
    ========================================================================= */
 
 import { makeRng } from "../core/rng.js";
@@ -351,7 +374,6 @@ export const PAGE_VALUES = PAGES.map((p) => p.value);
 export const pageOf = (values) =>
   (PAGE_VALUES.includes(values?.page) ? values.page : PAGE_VALUES[0]);
 export const stepNumber = (page) => PAGE_VALUES.indexOf(pageOf({ page })) + 1;
-export const STUDY_PAGES = ["gwas", "estimate", "forest"];
 export const PIN_PAGES = ["estimate", "forest"];
 
 export const CONFOUNDING = [
@@ -374,13 +396,6 @@ export const PLEIO = [
   { value: "0.6", label: "60% break it", share: 0.6 },
 ];
 export const pleioOf = (key) => PLEIO.find((p) => p.value === key) ?? PLEIO[0];
-
-export const SNP_COUNTS = [
-  { value: "20", label: "20", m: 20 },
-  { value: "40", label: "40", m: 40 },
-  { value: "79", label: "79", m: 79 },
-];
-export const snpCountOf = (key) => SNP_COUNTS.find((s) => s.value === key) ?? SNP_COUNTS[2];
 
 export const ESTIMATORS = [
   { value: "ivw", label: "IVW",
@@ -432,11 +447,6 @@ export const STRINGS = {
   independenceBroken: "the confounders also shift which alleles people carry, as population stratification does",
 
   studySection: "The study",
-  snpsLabel: "SNPs",
-  snpsDetail: "how many instruments the exposure GWAS supplies",
-  samplesLabel: "Samples",
-  samplesOne: "both GWAS on the same people",
-  samplesTwo: "the outcome GWAS on different people",
   harmoniseLabel: "Harmonise",
   harmoniseOff: "each GWAS reports on its own effect allele",
   harmoniseOn: "every effect read on the BMI-raising allele",
@@ -450,14 +460,18 @@ export const STRINGS = {
   nodeChd: "CHD",
   nodeConfounders: "confounders",
 
-  /* step 1 */
+  /* step 1 — decision 9a: the beats are the two stages */
   trialX: "BMI, in SD",
   trialY: "CHD risk, in log odds",
   trialPeople: "2,000 people",
   trialFit: "CHD risk ~ BMI, every person",
-  trialGroups: "the three genotype groups",
-  trialRatio: "the line through the three genotype groups",
+  trialStage1: "stage 1: BMI by genotype",
+  trialStage2: "stage 2: CHD risk by genotype",
+  trialRatio: "the ratio: stage 2 over stage 1",
   trialSnpNote: "one SNP, drawn stronger than any real BMI SNP so the groups can be seen",
+  tileStage1: "Stage 1: BMI per allele",
+  tileStage2: "Stage 2: CHD risk per allele",
+  tileRatio: "Ratio: stage 2 over stage 1",
 
   /* step 2 */
   exposureCaption: "Exposure GWAS · n 339,152 · effect of each SNP on BMI, in SD per allele",
@@ -480,11 +494,13 @@ export const STRINGS = {
   waitingNote: "the estimate waits for the last SNP",
   observationalTag: "observational",
   truthTag: "true effect",
+  interceptTag: "intercept: the average direct effect",
   forestX: "MR effect of BMI on CHD, in log odds per SD",
   forestCaption: "each SNP's ratio with its 95% interval",
   combinedIvw: "All · IVW",
   combinedEgger: "All · MR Egger",
   combinedMedian: "All · weighted median",
+  medianRowTag: "the middle ratio by weight",
 };
 
 /* The verdict under the graph names the mechanism, never a moral (2.9). */
@@ -512,16 +528,17 @@ export const stepLine = (page) => {
   return `step ${n} of ${PAGES.length} · ${PAGES[n - 1].label.replace(/^\d+ · /, "")}`;
 };
 
-/* Step 1's run is four beats and the Step button names the next one
-   (Kenneth's pick, 2026-09-12); on the study steps every press is one SNP. */
-export const TRIAL_BEAT_LABELS = ["Draw the people", "Fit the line", "Split by genotype", "Draw the ratio"];
+/* Step 1's run is five beats and the Step button names the next one
+   (Kenneth's pick, 2026-09-12; decision 9a names the two stages); on the
+   study steps every press is one SNP. */
+export const TRIAL_BEAT_LABELS = ["Draw the people", "Fit the observational line", "Stage 1: BMI by genotype", "Stage 2: CHD by genotype", "Draw the ratio"];
 export const STEP_LABELS = {
   param: "page",
   labels: {
     trial: {
       anim: "trialBeat",
       labels: Object.fromEntries(TRIAL_BEAT_LABELS.map((l, i) => [i, l])),
-      default: TRIAL_BEAT_LABELS[3],
+      default: TRIAL_BEAT_LABELS[4],
     },
     gwas: "Next SNP",
     estimate: "Next SNP",
@@ -532,7 +549,7 @@ export const STEP_LABELS = {
 export const STEP_TITLES = {
   param: "page",
   labels: {
-    trial: "Advance the cohort one act: the people, the fit, the groups, the ratio",
+    trial: "Advance the cohort one act: the people, the observational fit, the two stages, the ratio",
     gwas: "Add the next SNP's two effects",
     estimate: "Add the next SNP to the scatter",
     forest: "Add the next SNP's ratio to the forest",
@@ -542,7 +559,7 @@ export const STEP_TITLES = {
 export const RUN_TITLES = {
   param: "page",
   labels: {
-    trial: "Run all four: the people, the fit, the groups, the ratio",
+    trial: "Run all five: the people, the observational fit, the two stages, the ratio",
     gwas: "Run every SNP through both GWAS",
     estimate: "Run every SNP onto the scatter, then fit",
     forest: "Run every SNP into the forest, then combine",
@@ -554,19 +571,21 @@ export const RUN_TITLES = {
    The state: three sub-streams, one build.
    ====================================================================== */
 
-export const TRIAL_BEATS = 4;
+export const TRIAL_BEATS = 5;
 
+/* decision 9c: the lesson's 79 instruments and its two-sample design are
+   fixed, not controls */
 export function configFor(params) {
   const conf = confoundingOf(params.confounding);
   return {
-    m: snpCountOf(params.snps).m,
+    m: LESSON.m,
     nX: strengthOf(params.strength).nX,
     share: pleioOf(params.pleio).share,
     indep: params.indep === "broken",
     gamma: conf.gamma,
     delta: conf.delta,
     confounding: conf.value,
-    oneSample: params.samples === "one",
+    oneSample: false,
   };
 }
 
@@ -578,6 +597,18 @@ function analyse(S, rngBoot) {
   const m = S.bxHat.length;
   /* the forest: largest ratio at the top, the lesson's own order */
   const forestOrder = [...Array(m).keys()].sort((a, b) => W.ratio[b] - W.ratio[a]);
+  /* decision 9b: the row the weighted median takes — walking the rows from
+     the smallest ratio with weight 1/se², the first whose running weight
+     reaches half. `weightedMedianOf` interpolates between this row and the
+     one before it; this is the row a reader can point at. */
+  const asc = [...forestOrder].reverse();
+  const total = asc.reduce((a, j) => a + 1 / (W.se[j] * W.se[j]), 0);
+  let acc = 0;
+  let medianSnp = asc[asc.length - 1];
+  for (const j of asc) {
+    acc += 1 / (W.se[j] * W.se[j]);
+    if (acc - 0.5 / (W.se[j] * W.se[j]) >= 0.5 * total) { medianSnp = j; break; }
+  }
   /* decision 5: the frame over every SNP */
   let lo = 0;
   let hi = 0;
@@ -589,7 +620,7 @@ function analyse(S, rngBoot) {
   }
   const pad = (hi - lo) * 0.05 || 0.01;
   const frame = { x: [0, bxMax * 1.08], y: [lo - pad, hi + pad] };
-  return { S, est, W, forestOrder, frame, F: meanF(S) };
+  return { S, est, W, forestOrder, medianSnp, frame, F: meanF(S) };
 }
 
 export function build(rng, cfg) {
@@ -665,8 +696,10 @@ export function build(rng, cfg) {
   return { cfg, trial, harmonised, unharmonised, order, m: cfg.m, nFlipped };
 }
 
-/** The reading of the study the Harmonise control names. */
-export const studyOf = (state, params) => (params.harmonise === "on" ? state.harmonised : state.unharmonised);
+/** The reading of the study: the Harmonise control's on step 2, the
+    harmonised one on every step after (decision 9c). */
+export const studyOf = (state, params) =>
+  (pageOf(params) === "gwas" && params.harmonise !== "on" ? state.unharmonised : state.harmonised);
 
 /** How many units a step's run has: four beats on step 1, a SNP each after. */
 export const totalFor = (page, state) => (pageOf({ page }) === "trial" ? TRIAL_BEATS : state.m);
@@ -676,7 +709,7 @@ export const totalFor = (page, state) => (pageOf({ page }) === "trial" ? TRIAL_B
    ====================================================================== */
 
 /* Step 1's beats: the people fall in over the first, the rest are short. */
-export const TRIAL_BEAT_MS = [1600, 600, 700, 600];
+export const TRIAL_BEAT_MS = [1600, 600, 700, 700, 600];
 /* A SNP a beat, the run capped near five seconds at 79. */
 export const SNP_BEAT_MAX_MS = 140;
 export const SNP_RUN_MS = 5000;
@@ -757,7 +790,7 @@ export function layout(w, values) {
       plot: { x: DAG_W + 60, y: TOP, w: w - DAG_W - 60 - 14, h: ESTIMATE_H - TOP - 62 },
     };
   }
-  const m = snpCountOf(values.snps).m;
+  const m = LESSON.m;
   const pitch = forestPitch(m);
   const L = pitch >= FOREST_NAMES_PITCH ? 70 : 46;
   const rowsTop = TOP + 8;
@@ -887,6 +920,55 @@ export function snpReading(study, j) {
   const S = study.S;
   const r = study.W.ratio[j];
   const se = study.W.se[j];
-  const flipped = S.flipped[j] && study === undefined;
-  return `SNP ${j + 1} · on BMI ${n3(S.bxHat[j])} · on CHD ${n3(S.byHat[j])} · ratio ${n2(r)} (${n2(r - 1.96 * se)} to ${n2(r + 1.96 * se)})${flipped ? "" : ""}`;
+  return `SNP ${j + 1} · on BMI ${n3(S.bxHat[j])} · on CHD ${n3(S.byHat[j])} · ratio ${n2(r)} (${n2(r - 1.96 * se)} to ${n2(r + 1.96 * se)})`;
+}
+
+/* ==========================================================================
+   The reading line at each run's end (decision 9b): one computed sentence
+   under the figure saying what to look at. Built from live numbers, so the
+   verify script calls these and sweeps them.
+   ====================================================================== */
+
+const inside = (v, b, se) => v > b - 1.96 * se && v < b + 1.96 * se;
+
+export function trialReading(trial, truth) {
+  const r = trial.ratio;
+  const obs = trial.obs.b;
+  let s = `the ratio ${n2(r.b)} (${n2(r.b - 1.96 * r.se)} to ${n2(r.b + 1.96 * r.se)}) against the observational ${n2(obs)}`;
+  s += inside(obs, r.b, r.se) ? ", inside its interval" : ", outside its interval";
+  if (truth) s += `; the true ${n2(THETA)} is ${inside(THETA, r.b, r.se) ? "inside" : "outside"}`;
+  return s;
+}
+
+export function gwasReading(state, params) {
+  if (pageOf(params) === "gwas" && params.harmonise !== "on") {
+    return `${state.nFlipped} of ${state.m} outcome effects carry the other allele's sign; harmonise before combining`;
+  }
+  return `${state.m} SNPs, every effect read on the BMI-raising allele`;
+}
+
+export function estimateReading(study, params, obs, truth) {
+  const e = study.est;
+  const one = (name, b, se) => {
+    let s = `${name} ${n2(b)} (${n2(b - 1.96 * se)} to ${n2(b + 1.96 * se)}): the observational ${n2(obs)} is ${inside(obs, b, se) ? "inside" : "outside"}`;
+    if (truth) s += `, the true ${n2(THETA)} ${inside(THETA, b, se) ? "inside" : "outside"}`;
+    return s;
+  };
+  const key = params.estimator;
+  if (key === "egger") return one("MR Egger", e.egger.b, e.egger.se) + `; intercept ${n3(e.egger.a)}`;
+  if (key === "median") return one("weighted median", e.median.b, e.median.se);
+  if (key === "all") {
+    return `IVW ${n2(e.ivw.b)} · MR Egger ${n2(e.egger.b)} · median ${n2(e.median.b)}, against the observational ${n2(obs)}${truth ? ` and the true ${n2(THETA)}` : ""}`;
+  }
+  return one("IVW", e.ivw.b, e.ivw.se);
+}
+
+export function forestReading(study, m, params) {
+  let cross = 0;
+  for (let j = 0; j < m; j += 1) if (inside(0, study.W.ratio[j], study.W.se[j])) cross += 1;
+  const e = study.est;
+  const key = params.estimator;
+  const pick = key === "egger" ? ["MR Egger", e.egger] : key === "median" ? ["the weighted median", e.median] : ["IVW", e.ivw];
+  const combinedCross = inside(0, pick[1].b, pick[1].se);
+  return `${cross} of ${m} single-SNP intervals cross zero; ${key === "all" ? "IVW's" : `${pick[0]}'s`} combined interval ${combinedCross ? "does too" : "does not"}`;
 }

@@ -72,7 +72,7 @@ const card = manifest.widgets.find((w) => w.slug === "mendelian-randomization");
 /* the state the widget opens on, through its own door */
 const DEFAULTS = {
   page: "trial", seed: 1, confounding: "strong", truth: "off", colour: "off",
-  strength: "strong", pleio: "0", indep: "holds", snps: "79", samples: "two",
+  strength: "strong", pleio: "0", indep: "holds",
   harmonise: "off", estimator: "ivw", shown: 0, snp: "",
 };
 const base = (over = {}) => ({ ...DEFAULTS, ...over });
@@ -208,15 +208,11 @@ console.log("\n3 · the assumptions, over forty seeds");
   const none = over({ indep: "broken", confounding: "none" });
   check("with no confounding the arrow has nothing to carry", Math.abs(none.ivw - M.THETA) < 0.04, f(none.ivw));
   const weak2 = over({ strength: "weak" });
-  const weak1 = over({ strength: "weak", samples: "one" });
   const mod = over({ strength: "moderate" });
   check("relevance weak: the mean F falls under 10", weak2.F < 10, f(weak2.F, 1));
   check("…moderate sits between 10 and 40", mod.F > 10 && mod.F < 40, f(mod.F, 1));
-  check("…weak in two samples pulls IVW toward null", weak2.ivw < clean.ivw - 0.05, f(weak2.ivw));
-  check("…weak in one sample pulls IVW toward the observational value", weak1.ivw > clean.ivw + 0.05, f(weak1.ivw));
-  const s20 = over({ snps: "20" });
-  check("20 SNPs widen IVW's interval by half or more", s20.ivwSe > 1.5 * clean.ivwSe, `${f(s20.ivwSe)} vs ${f(clean.ivwSe)}`);
-  check("…and still centre on the truth", Math.abs(s20.ivw - M.THETA) < 0.05, f(s20.ivw));
+  check("…and weak pulls IVW toward null — the two-sample design is fixed (decision 9c)", weak2.ivw < clean.ivw - 0.05, f(weak2.ivw));
+  check("the study is the lesson's 79 instruments in two samples, no control", M.configFor(base()).m === 79 && M.configFor(base()).oneSample === false);
 }
 
 /* --- 4 · step 1's cohort ------------------------------------------------------ */
@@ -248,9 +244,24 @@ console.log("\n5 · geometry and the hit map");
   const heights = Object.fromEntries(PAGES.map((p) => [p, M.stageHeight(W_STAGE, base({ page: p }))]));
   check("the four steps reserve their own heights", heights.trial === M.TRIAL_H && heights.gwas === M.GWAS_H && heights.estimate === M.ESTIMATE_H && heights.forest === M.forestHeight(79),
     Object.values(heights).join(" · "));
-  check("the forest is shorter at 20 SNPs and every row is named there",
-    M.stageHeight(W_STAGE, base({ page: "forest", snps: "20" })) < heights.forest && M.forestPitch(20) >= M.FOREST_NAMES_PITCH && M.forestPitch(79) < M.FOREST_NAMES_PITCH,
-    `${M.stageHeight(W_STAGE, base({ page: "forest", snps: "20" }))} · pitch ${f(M.forestPitch(20), 1)} / ${f(M.forestPitch(79), 1)}`);
+  check("the forest's 79 rows sit under the naming pitch, so only the pinned row is named",
+    M.forestPitch(79) < M.FOREST_NAMES_PITCH && M.forestPitch(79) >= M.FOREST_ROW_MIN, `pitch ${f(M.forestPitch(79), 1)}`);
+  /* decision 9b: the median row is the first, from the smallest ratio, whose
+     running weight reaches half — recomputed here from the ratios alone */
+  {
+    const st = build(base());
+    const s = st.harmonised;
+    const asc = [...s.forestOrder].reverse();
+    const w = asc.map((j) => 1 / (s.W.se[j] ** 2));
+    const total = w.reduce((a, b) => a + b, 0);
+    let acc = 0;
+    let row = null;
+    for (let i = 0; i < asc.length; i += 1) { acc += w[i]; if (acc - 0.5 * w[i] >= 0.5 * total) { row = asc[i]; break; } }
+    check("the forest's median row is the one the weighted median's weight crosses at", s.medianSnp === row, `SNP ${s.medianSnp + 1}`);
+    check("…and its ratio is within one row of the weighted median's value",
+      Math.abs(s.W.ratio[s.medianSnp] - s.est.median.b) <= Math.abs(s.W.ratio[asc[asc.indexOf(s.medianSnp) - 1]] - s.W.ratio[s.medianSnp]) + 1e-9,
+      `${f(s.W.ratio[s.medianSnp])} vs ${f(s.est.median.b)}`);
+  }
   check("the height is the layout's own (5.8)", PAGES.every((p) => M.layout(W_STAGE, base({ page: p })).height === heights[p]));
 
   for (const [W, name] of [[550, "550"], [535, "535"]]) {
@@ -334,15 +345,16 @@ console.log("\n6 · the run");
   let anim = A.init({ params: base(), state: st, fromScratch: true });
   check("step 1 opens on beat 0 and the Step button names the first act", anim.k.trial === 0 && M.STEP_LABELS.labels.trial.labels[anim.trialBeat] === "Draw the people");
   const labels = [];
-  for (let i = 0; i < 4; i += 1) {
+  for (let i = 0; i < 5; i += 1) {
     anim.mode = "step";
     let more = true;
     let guard = 0;
     while (more && guard < 100) { more = A.advance(anim, { dt: 50, params: base(), state: st }); guard += 1; }
     labels.push(M.STEP_LABELS.labels.trial.labels[anim.trialBeat] ?? M.STEP_LABELS.labels.trial.default);
   }
-  check("four presses of Step run the four beats and the label follows", anim.k.trial === 4 && anim.done && labels.join(" · ") === "Fit the line · Split by genotype · Draw the ratio · Draw the ratio", labels.join(" · "));
-  check("the fourth beat is the last: advance stops and done is set", A.advance(anim, { dt: 50, params: base(), state: st }) === false && anim.done);
+  check("five presses of Step run the five beats and the label names each act (decision 9a)",
+    anim.k.trial === 5 && anim.done && labels.join(" · ") === "Fit the observational line · Stage 1: BMI by genotype · Stage 2: CHD by genotype · Draw the ratio · Draw the ratio", labels.join(" · "));
+  check("the fifth beat is the last: advance stops and done is set", A.advance(anim, { dt: 50, params: base(), state: st }) === false && anim.done);
   /* Play on a study step: a SNP a beat, the run capped near five seconds */
   anim = A.init({ params: base({ page: "gwas" }), state: st, fromScratch: true });
   anim.mode = "run";
@@ -361,15 +373,21 @@ console.log("\n6 · the run");
   const shown = A.init({ params: base({ page: "estimate", shown: 79 }), state: st, fromScratch: false });
   const replay = A.init({ params: base({ page: "estimate", shown: 79 }), state: st, fromScratch: true });
   check("?shown=79 opens step 3 finished on the first render and not after Reset", shown.k.estimate === 79 && shown.done && replay.k.estimate === 0);
-  check("…and is capped at the step's own total", A.init({ params: base({ page: "trial", shown: 79 }), state: st, fromScratch: false }).k.trial === 4);
+  check("…and is capped at the step's own total", A.init({ params: base({ page: "trial", shown: 79 }), state: st, fromScratch: false }).k.trial === 5);
   /* a display change keeps every step */
   anim = A.init({ params: base({ page: "gwas", shown: 30 }), state: st, fromScratch: false });
-  anim.k.trial = 4;
+  anim.k.trial = 5;
   A.rebuild(anim, { params: base({ page: "gwas", harmonise: "on" }), state: st });
-  check("a display change keeps the run on every step (non-negotiable 3)", anim.k.gwas === 30 && anim.k.trial === 4 && anim.trialBeat === 4);
-  const st20 = build(base({ snps: "20" }));
-  A.rebuild(anim, { params: base({ page: "gwas", snps: "20" }), state: st20 });
-  check("…and clamps to a smaller count", anim.k.gwas === 20 && anim.done);
+  check("a display change keeps the run on every step (non-negotiable 3)", anim.k.gwas === 30 && anim.k.trial === 5 && anim.trialBeat === 5);
+  /* decision 9c: Harmonise is step 2's alone */
+  check("Harmonise shows on step 2 only, and steps 3 and 4 read the harmonised effects whatever it says",
+    W.params.harmonise.when.equals === "gwas"
+    && M.studyOf(st, base({ page: "estimate", harmonise: "off" })) === st.harmonised
+    && M.studyOf(st, base({ page: "forest", harmonise: "off" })) === st.harmonised
+    && M.studyOf(st, base({ page: "gwas", harmonise: "off" })) === st.unharmonised);
+  check("the rail is ten controls: SNPs and Samples are gone", !("snps" in W.params) && !("samples" in W.params)
+    && Object.values(W.params).filter((fld) => fld.type !== "section" && !fld.hidden).length === 10,
+    String(Object.values(W.params).filter((fld) => fld.type !== "section" && !fld.hidden).length));
 }
 
 /* --- 7 · the painted text ------------------------------------------------------- */
@@ -384,8 +402,9 @@ const painted = {};
       ["half", {}, (st) => Math.floor(M.totalFor(page, st) / 2)],
       ["full", {}, (st) => M.totalFor(page, st)],
       ["full, harmonised, truth, all, pinned", { harmonise: "on", truth: "on", estimator: "all", snp: "3", colour: "on" }, (st) => M.totalFor(page, st)],
-      ["full, every assumption broken", { harmonise: "on", pleio: "0.6", indep: "broken", strength: "weak", samples: "one" }, (st) => M.totalFor(page, st)],
-      ["full, 20 SNPs", { snps: "20", harmonise: "on" }, (st) => M.totalFor(page, st)],
+      ["full, every assumption broken", { harmonise: "on", pleio: "0.6", indep: "broken", strength: "weak" }, (st) => M.totalFor(page, st)],
+      ["full, Egger", { estimator: "egger" }, (st) => M.totalFor(page, st)],
+      ["full, median", { estimator: "median" }, (st) => M.totalFor(page, st)],
     ]) {
       const params = base({ page, ...over });
       const st = build(params);
@@ -419,8 +438,26 @@ const painted = {};
     finished("forest", "full").some((s) => s.startsWith(M.STRINGS.combinedIvw)) && !finished("forest", "half").some((s) => s.startsWith(M.STRINGS.combinedIvw)));
   check("the pinned SNP's reading line is painted on steps 3 and 4 and names it",
     finished("estimate", "full, harmonised, truth, all, pinned").some((s) => s.startsWith("SNP 3 ·")) && finished("forest", "full, harmonised, truth, all, pinned").some((s) => s.startsWith("SNP 3 ·")));
-  check("the forest names every row at 20 SNPs and none at 79",
-    finished("forest", "full, 20 SNPs").filter((s) => /^SNP \d+$/.test(s)).length === 20 && finished("forest", "full").filter((s) => /^SNP \d+$/.test(s)).length === 0);
+  check("the forest names no row at 79 but the pinned one",
+    finished("forest", "full").filter((s) => /^SNP \d+$/.test(s)).length === 0
+    && finished("forest", "full, harmonised, truth, all, pinned").filter((s) => /^SNP \d+$/.test(s)).length === 1);
+  /* decision 9b: the teaching marks and the reading lines */
+  check("Egger's intercept is tagged on the axis under Egger and All, and not under IVW",
+    finished("estimate", "full, Egger").some((s) => s.startsWith(M.STRINGS.interceptTag))
+    && finished("estimate", "full, harmonised, truth, all, pinned").some((s) => s.startsWith(M.STRINGS.interceptTag))
+    && !finished("estimate", "full").some((s) => s.startsWith(M.STRINGS.interceptTag)));
+  check("the forest marks the median row under Weighted median and All, and not under IVW",
+    finished("forest", "full, median").includes(M.STRINGS.medianRowTag)
+    && finished("forest", "full, harmonised, truth, all, pinned").includes(M.STRINGS.medianRowTag)
+    && !finished("forest", "full").includes(M.STRINGS.medianRowTag));
+  check("every step ends on its reading line, and no earlier frame carries it",
+    finished("trial", "full").some((s) => s.startsWith("the ratio ")) && !finished("trial", "half").some((s) => s.startsWith("the ratio "))
+    && finished("gwas", "full").some((s) => /outcome effects carry|every effect read/.test(s)) && !finished("gwas", "half").some((s) => /outcome effects carry|every effect read/.test(s))
+    && finished("estimate", "full").some((s) => s.startsWith("IVW ") && /observational/.test(s)) && !finished("estimate", "half").some((s) => /observational \d/.test(s))
+    && finished("forest", "full").some((s) => /single-SNP intervals cross zero/.test(s)) && !finished("forest", "half").some((s) => /cross zero/.test(s)));
+  check("the pinned SNP's reading wins over the finished figure's",
+    finished("estimate", "full, harmonised, truth, all, pinned").some((s) => s.startsWith("SNP 3 ·"))
+    && !finished("estimate", "full, harmonised, truth, all, pinned").some((s) => s.startsWith("IVW 0.")));
   check("the step line and the hand-off are painted on every step",
     PAGES.every((p) => finished(p, "empty").includes(M.stepLine(p)) && starts(finished(p, "empty"), M.HANDOFFS[p])));
   const broken = finished("estimate", "full, every assumption broken");
@@ -467,15 +504,26 @@ console.log("\n8 · the register");
     ...surfaces,
     ...painted.frames.flatMap((fr) => fr.strings.map((p) => p.s)),
     M.snpReading(st.harmonised, 0), M.snpReading(st.unharmonised, 78),
+    /* decision 9b's reading lines are built from live numbers, so the sweep
+       calls them in every form they take */
+    M.trialReading(st.trial, false), M.trialReading(st.trial, true),
+    M.gwasReading(st, base({ page: "gwas" })), M.gwasReading(st, base({ page: "gwas", harmonise: "on" })),
+    ...["ivw", "egger", "median", "all"].flatMap((estimator) => [
+      M.estimateReading(st.harmonised, base({ estimator }), st.trial.obs.b, false),
+      M.estimateReading(st.harmonised, base({ estimator }), st.trial.obs.b, true),
+      M.forestReading(st.harmonised, st.m, base({ estimator })),
+    ]),
     card.blurb, card.title,
   ];
   check("no reader-facing string says \"never\"", !reader.some((s) => /\bnever\b/i.test(s)), reader.filter((s) => /\bnever\b/i.test(s)).join(" | "));
   check("no reader-facing string names a lesson, notebook, cell or course",
     !reader.some((s) => /\b(notebook|lesson|cell \d|chapter|PHM\d)\b/i.test(s)), reader.filter((s) => /\b(notebook|lesson|cell \d|chapter|PHM\d)\b/i.test(s)).join(" | "));
   /* the collection's own vocabulary is ours and not the textbook's — Kenneth,
-     2026-09-11: "what is card, rung?". "Arm" is NOT on this widget's list: an
-     arm of a trial is the field's word and the subtitle says it. */
-  const ours = /\b(cards?|rungs?|ladders?|rails?|stages?|faces?|piles?|ramps?|budgets?|arrivals?|walks?|wells?|plains?|trenches?|frames?|skylines?|strips?|beats?|ghosts?)\b/i;
+     2026-09-11: "what is card, rung?". Two words are NOT on this widget's
+     list: "arm", because an arm of a trial is the field's word and the
+     subtitle says it; and "stage", because two-STAGE least squares is the
+     method's name and Kenneth's review asked for the two stages by name. */
+  const ours = /\b(cards?|rungs?|ladders?|rails?|faces?|piles?|ramps?|budgets?|arrivals?|walks?|wells?|plains?|trenches?|frames?|skylines?|strips?|beats?|ghosts?)\b/i;
   const coined = reader.filter((s) => ours.test(s));
   check("no reader-facing string uses the collection's own vocabulary", coined.length === 0, coined.join(" | "));
   const arrival = /\b(landed|lands|taken|arrives?|arrived)\b/i;
@@ -492,9 +540,20 @@ console.log("\n8 · the register");
   check("the gallery blurb fits the card's 120", M.STRINGS.blurb.length <= 120, `${M.STRINGS.blurb.length} chars`);
   check("the blurb in the manifest is the model's own", card.blurb === M.STRINGS.blurb);
   check("the meta description is the blurb, verbatim", read("widgets/mendelian-randomization/index.html").includes(`content="${M.STRINGS.blurb}"`));
-  check("the step label is one label a step on the study steps and four acts on the first (4.4b)",
+  check("the step label is one label a step on the study steps and five acts on the first (4.4b)",
     M.STEP_LABELS.param === "page" && ["gwas", "estimate", "forest"].every((p) => M.STEP_LABELS.labels[p] === "Next SNP")
-    && M.STEP_LABELS.labels.trial.anim === "trialBeat" && Object.keys(M.STEP_LABELS.labels.trial.labels).length === 4);
+    && M.STEP_LABELS.labels.trial.anim === "trialBeat" && Object.keys(M.STEP_LABELS.labels.trial.labels).length === 5 && M.TRIAL_BEATS === 5);
+  /* decision 9a: the two stages on the tiles, each at its own beat */
+  const trialTiles = (k) => W.readout({ params: base(), state: st, anim: { k: { trial: k, gwas: 0, estimate: 0, forest: 0 }, beat: 0, trialBeat: k, done: k >= 5 } });
+  check("step 1's tiles are the observational slope, stage 1, stage 2, their ratio and the truth",
+    trialTiles(5).map((t) => t.label).join(" | ") === `Observational slope | ${M.STRINGS.tileStage1} | ${M.STRINGS.tileStage2} | ${M.STRINGS.tileRatio} | True effect`,
+    trialTiles(5).map((t) => t.label).join(" | "));
+  check("…each filled at its own beat and blank before it (2.4)",
+    trialTiles(2).map((t) => t.value).join(" ") === `${M.n2(st.trial.obs.b)} — — — —`
+    && trialTiles(3)[1].value === M.n2(st.trial.gx.b) && trialTiles(3)[2].value === "—"
+    && trialTiles(4)[2].value === M.n2(st.trial.gl.b) && trialTiles(4)[3].value === "—"
+    && trialTiles(5)[3].value === M.n2(st.trial.ratio.b));
+  check("…and the ratio tile is stage 2 over stage 1 to the digit", Math.abs(st.trial.ratio.b - st.trial.gl.b / st.trial.gx.b) < 1e-12);
   check("the step line counts this step of four, and names it", M.stepLine("gwas") === "step 2 of 4 · The two GWAS" && M.stepLine("forest") === "step 4 of 4 · The forest");
   check("every hand-off but the first names the step before it",
     PAGES.slice(1).every((p, i) => M.HANDOFFS[p].startsWith(`from step ${i + 1}:`)) && !/^from step/.test(M.HANDOFFS.trial));
@@ -504,8 +563,8 @@ console.log("\n8 · the register");
   const v = resolveParams(spec, new URLSearchParams("page=estimate&shown=79&snp=5&harmonise=on&pleio=0.3"));
   check("a lesson link resolves through core's own parser", v.page === "estimate" && v.shown === 79 && v.snp === "5" && v.harmonise === "on" && v.pleio === "0.3");
   check("…and a bad pin is dropped", resolveParams(spec, new URLSearchParams("snp=800")).snp === "" && resolveParams(spec, new URLSearchParams("snp=abc")).snp === "");
-  const q = toQuery(spec, resolveParams(spec, new URLSearchParams("page=forest&snps=20")));
-  check("the shareable link carries the page and the count", /page=forest/.test(q) && /snps=20/.test(q), q);
+  const q = toQuery(spec, resolveParams(spec, new URLSearchParams("page=forest&estimator=all")));
+  check("the shareable link carries the page and the estimator", /page=forest/.test(q) && /estimator=all/.test(q), q);
 
   /* the status */
   const declared = src.match(/^\s*status:\s*"([^"]*)"/m)?.[1];

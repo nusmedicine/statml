@@ -274,12 +274,16 @@ function drawTrial(ctx, colors, L, state, params, anim) {
   const plot = makePlot({ ctx, colors, rect: L.plot, xDomain: T.xDom, yDomain: T.yDom });
   plot.axisX({ label: M.STRINGS.trialX });
   plot.axisY({ label: M.STRINGS.trialY });
-  const caption = k >= 4 ? M.STRINGS.trialRatio : k >= 3 ? M.STRINGS.trialGroups : k >= 2 ? M.STRINGS.trialFit : M.STRINGS.trialPeople;
+  /* decision 9a: the beats are the two stages */
+  const caption = k >= 5 ? M.STRINGS.trialRatio : k >= 4 ? M.STRINGS.trialStage2 : k >= 3 ? M.STRINGS.trialStage1 : k >= 2 ? M.STRINGS.trialFit : M.STRINGS.trialPeople;
   plot.caption(caption);
   if (k >= 3) {
     plot.note(`0 · 1 · 2 copies of the BMI-raising allele: ${T.centroids.map((c) => M.intText(c.n)).join(" · ")} people`);
   } else if (k >= 1) {
     plot.note(M.STRINGS.trialSnpNote);
+  }
+  if (k >= 5) {
+    noteAt(ctx, colors, L.head.x + L.head.w, L.plot.y + L.plot.h + 40, M.trialReading(T, params.truth === "on"), L.head.w, { baseline: "top", tone: colors.ink1 });
   }
 
   ctx.save();
@@ -324,9 +328,32 @@ function drawTrial(ctx, colors, L, state, params, anim) {
   if (k >= 1) {
     lineAt(T.obs.my - T.obs.b * T.obs.mx, T.obs.b, colors.empirical, 2.5, null, k >= 2 ? 1 : frac);
   }
-  /* beat 3: the genotype centroids; beat 4: the line through them */
+  /* beat 3, stage 1: each group's mean BMI as a vertical guide; beat 4,
+     stage 2: each group's mean CHD risk as a horizontal guide, the centroid
+     at the crossing; beat 5: the line through the three, whose slope is
+     stage 2 over stage 1 */
+  const guide = (x0, y0, x1, y1, alpha) => {
+    ctx.save();
+    ctx.globalAlpha = alpha * 0.55;
+    ctx.strokeStyle = colors.highlight;
+    ctx.lineWidth = 1;
+    ctx.setLineDash([3, 4]);
+    ctx.beginPath();
+    ctx.moveTo(x0, y0);
+    ctx.lineTo(x1, y1);
+    ctx.stroke();
+    ctx.restore();
+  };
+  if (k >= 2) {
+    const a1 = k >= 3 ? 1 : frac;
+    T.centroids.forEach((c) => guide(plot.sx(c.mx), L.plot.y, plot.sx(c.mx), L.plot.y + L.plot.h, a1));
+  }
   if (k >= 3) {
-    lineAt(T.obs.my - T.ratio.b * T.obs.mx, T.ratio.b, colors.highlight, 2.5, null, k >= 4 ? 1 : frac);
+    const a2 = k >= 4 ? 1 : frac;
+    T.centroids.forEach((c) => guide(L.plot.x, plot.sy(c.my), L.plot.x + L.plot.w, plot.sy(c.my), a2));
+  }
+  if (k >= 4) {
+    lineAt(T.obs.my - T.ratio.b * T.obs.mx, T.ratio.b, colors.highlight, 2.5, null, k >= 5 ? 1 : frac);
   }
   if (k >= 2) {
     ctx.globalAlpha = k >= 3 ? 1 : frac;
@@ -334,9 +361,14 @@ function drawTrial(ctx, colors, L, state, params, anim) {
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     T.centroids.forEach((c, g) => {
-      plot.dot(c.mx, c.my, { fill: colors.highlight, r: 7 });
+      /* at stage 1 the group sits on the observational line at its own mean
+         BMI; at stage 2 it rises or falls to its own mean CHD risk */
+      const yStage1 = T.obs.my + T.obs.b * (c.mx - T.obs.mx);
+      const t = k >= 4 ? 1 : k >= 3 ? frac : 0;
+      const y = yStage1 + (c.my - yStage1) * t;
+      plot.dot(c.mx, y, { fill: colors.highlight, r: 7 });
       ctx.fillStyle = colors.surface;
-      ctx.fillText(String(g), plot.sx(c.mx), plot.sy(c.my) + 0.5);
+      ctx.fillText(String(g), plot.sx(c.mx), plot.sy(y) + 0.5);
     });
     ctx.globalAlpha = 1;
   }
@@ -407,6 +439,21 @@ function drawScatter(ctx, colors, rect, study, o) {
       ctx.beginPath();
       ctx.arc(x, y, 8, 0, 2 * Math.PI);
       ctx.stroke();
+      /* decision 9b: the SNP's own ratio is the slope of the line from the
+         origin through its point — drawn to the frame's edge */
+      if (o.ownSlope && S.bxHat[j] > 0) {
+        const r = S.byHat[j] / S.bxHat[j];
+        const xEnd = study.frame.x[1];
+        ctx.save();
+        ctx.strokeStyle = colors.highlight;
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([5, 4]);
+        ctx.beginPath();
+        ctx.moveTo(plot.sx(0), plot.sy(0));
+        ctx.lineTo(plot.sx(xEnd), plot.sy(r * xEnd));
+        ctx.stroke();
+        ctx.restore();
+      }
     }
   });
 
@@ -450,6 +497,35 @@ function drawScatter(ctx, colors, rect, study, o) {
     };
     tag(M.STRINGS.observationalTag, o.observational * bxMax, colors.ink1);
     if (o.truth) tag(M.STRINGS.truthTag, M.THETA * bxMax, colors.ink2);
+    /* decision 9b: Egger's intercept marked where it lives, on the axis at
+       zero effect on BMI — the average direct effect the slope is freed from */
+    if (M.estimatorShows(sel, "egger")) {
+      const a = study.est.egger.a;
+      const px = plot.sx(0) + 4;
+      const y0 = plot.sy(0);
+      const y1 = plot.sy(a);
+      ctx.save();
+      ctx.strokeStyle = colors.groupB;
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.moveTo(px, y0);
+      ctx.lineTo(px, y1);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(px - 4, y1);
+      ctx.lineTo(px + 4, y1);
+      ctx.stroke();
+      ctx.font = noteFont(colors);
+      ctx.textAlign = "left";
+      ctx.textBaseline = a >= 0 ? "bottom" : "top";
+      ctx.strokeStyle = colors.surface;
+      ctx.lineWidth = 3;
+      const label = `${M.STRINGS.interceptTag} ${M.n3(a)}`;
+      ctx.strokeText(label, px + 8, y1 + (a >= 0 ? -2 : 2));
+      ctx.fillStyle = colors.groupB;
+      ctx.fillText(label, px + 8, y1 + (a >= 0 ? -2 : 2));
+      ctx.restore();
+    }
   }
   ctx.restore();
   return plot;
@@ -481,7 +557,7 @@ function drawGwas(ctx, colors, L, state, params, anim) {
   const pO = makePlot({ ctx, colors, rect: L.outcome, xDomain: [0, m], yDomain: [-byAbs * 1.05, byAbs * 1.05] });
   pO.axisY({ ticks: [-0.05, 0, 0.05], format: (v) => v.toFixed(2), label: M.STRINGS.outcomeY });
   pO.axisX({ ticks: [], label: M.STRINGS.stripsX });
-  pO.caption(`${M.STRINGS.outcomeCaption.replace("Outcome GWAS", `Outcome GWAS · n ${M.intText(state.cfg.oneSample ? state.cfg.nX : M.LESSON.nY)}`)}`);
+  pO.caption(M.STRINGS.outcomeCaption.replace("Outcome GWAS", `Outcome GWAS · n ${M.intText(M.LESSON.nY)}`));
   if (raw) pO.note(M.STRINGS.flippedNote, { tone: colors.extreme });
   ctx.save();
   ctx.strokeStyle = colors.grid;
@@ -529,6 +605,9 @@ function drawGwas(ctx, colors, L, state, params, anim) {
     arrived, last, raw, small: true, lines: false,
     caption: raw ? M.STRINGS.gwasScatterRaw : M.STRINGS.gwasScatterCaption,
   });
+  if (upTo >= m) {
+    noteAt(ctx, colors, L.head.x + L.head.w, L.plot.y + L.plot.h + 40, M.gwasReading(state, params), L.head.w, { baseline: "top", tone: raw ? colors.extreme : colors.ink1 });
+  }
 }
 
 /* ---- step 3: the estimate ------------------------------------------------- */
@@ -541,8 +620,8 @@ function captionFor(estimator) {
 }
 
 function drawEstimate(ctx, colors, L, state, params, anim, subject) {
+  /* decision 9c: step 3 always reads the harmonised effects */
   const study = M.studyOf(state, params);
-  const raw = params.harmonise !== "on";
   const upTo = anim?.k?.estimate ?? 0;
   const done = upTo >= state.m;
   const arrived = state.order.slice(0, upTo);
@@ -550,20 +629,23 @@ function drawEstimate(ctx, colors, L, state, params, anim, subject) {
   drawDag(ctx, colors, L.dag, { page: "estimate", cfg: state.cfg, strength: params.strength });
   const nInvalid = state.m - Array.from(study.S.valid).reduce((a, b) => a + b, 0);
   let note;
-  let noteTone;
   if (!done) note = M.STRINGS.waitingNote;
-  else if (raw && state.nFlipped) { note = `${state.nFlipped} effects with the sign of the other allele`; noteTone = colors.extreme; }
   else if (nInvalid) note = `${nInvalid} SNPs with a direct path, in red`;
-  else if (params.strength === "weak") note = `exposure GWAS n ${M.intText(state.cfg.nX)}${state.cfg.oneSample ? ", one sample" : ""}`;
+  else if (params.strength === "weak") note = `exposure GWAS n ${M.intText(state.cfg.nX)}`;
+  const shown = subject != null && arrived.includes(subject) ? subject : null;
   drawScatter(ctx, colors, L.plot, study, {
-    arrived, last, raw, lines: done, estimator: params.estimator, truth: params.truth === "on",
-    observational: state.trial.obs.b, markInvalid: nInvalid > 0, subject: subject != null && arrived.includes(subject) ? subject : null,
-    caption: done ? captionFor(params.estimator) : M.STRINGS.gwasScatterCaption, note, noteTone,
+    arrived, last, raw: false, lines: done, estimator: params.estimator, truth: params.truth === "on",
+    observational: state.trial.obs.b, markInvalid: nInvalid > 0, subject: shown, ownSlope: true,
+    caption: done ? captionFor(params.estimator) : M.STRINGS.gwasScatterCaption, note,
   });
   /* the reading line spans the canvas: the plot beside the graph is 276px
-     and the line is not */
-  if (subject != null && arrived.includes(subject)) {
-    noteAt(ctx, colors, L.head.x + L.head.w, L.plot.y + L.plot.h + 40, M.snpReading(study, subject), L.head.w, { baseline: "top", tone: colors.highlight });
+     and the line is not. The pointer's SNP wins; the finished figure's
+     reading holds otherwise (decision 9b). */
+  const y = L.plot.y + L.plot.h + 40;
+  if (shown != null) {
+    noteAt(ctx, colors, L.head.x + L.head.w, y, M.snpReading(study, shown), L.head.w, { baseline: "top", tone: colors.highlight });
+  } else if (done) {
+    noteAt(ctx, colors, L.head.x + L.head.w, y, M.estimateReading(study, params, state.trial.obs.b, params.truth === "on"), L.head.w, { baseline: "top", tone: colors.ink1 });
   }
 }
 
@@ -617,6 +699,26 @@ function drawForest(ctx, colors, L, state, params, anim, subject) {
       ctx.fillStyle = isSubject ? colors.highlight : colors.ink2;
       ctx.fillText(`SNP ${j + 1}`, L.L - 6, y);
     }
+    /* decision 9b: the row the weighted median takes, marked once every
+       row is in and the median is on show */
+    if (done && j === study.medianSnp && M.estimatorShows(params.estimator, "median")) {
+      ctx.save();
+      ctx.strokeStyle = colors.groupC;
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.moveTo(L.plot.x + L.plot.w - 2, y - Math.max(3, L.pitch / 2));
+      ctx.lineTo(L.plot.x + L.plot.w - 2, y + Math.max(3, L.pitch / 2));
+      ctx.stroke();
+      ctx.font = noteFont(colors);
+      ctx.textAlign = "right";
+      ctx.textBaseline = "middle";
+      ctx.strokeStyle = colors.surface;
+      ctx.lineWidth = 3;
+      ctx.strokeText(M.STRINGS.medianRowTag, L.plot.x + L.plot.w - 8, y);
+      ctx.fillStyle = colors.groupC;
+      ctx.fillText(M.STRINGS.medianRowTag, L.plot.x + L.plot.w - 8, y);
+      ctx.restore();
+    }
   }
   /* the rule and the combined rows, once every SNP is in (decision 3) */
   ctx.strokeStyle = colors.axis;
@@ -661,8 +763,11 @@ function drawForest(ctx, colors, L, state, params, anim, subject) {
   }
   ctx.restore();
   if (clipped) plot.note(`${clipped} interval${clipped > 1 ? "s" : ""} past ±3, cut at the edge`);
+  const ry = L.plot.y + L.plot.h + 40;
   if (subject != null && study.forestOrder.indexOf(subject) < upTo) {
-    noteAt(ctx, colors, L.head.x + L.head.w, L.plot.y + L.plot.h + 40, M.snpReading(study, subject), L.head.w, { baseline: "top", tone: colors.highlight });
+    noteAt(ctx, colors, L.head.x + L.head.w, ry, M.snpReading(study, subject), L.head.w, { baseline: "top", tone: colors.highlight });
+  } else if (done) {
+    noteAt(ctx, colors, L.head.x + L.head.w, ry, M.forestReading(study, m, params), L.head.w, { baseline: "top", tone: colors.ink1 });
   }
 }
 
@@ -767,26 +872,9 @@ defineWidget({
       default: "holds",
     },
 
-    studySec: { type: "section", label: M.STRINGS.studySection, when: { param: "page", oneOf: M.STUDY_PAGES } },
-    snps: {
-      type: "segmented",
-      label: M.STRINGS.snpsLabel,
-      detail: M.STRINGS.snpsDetail,
-      options: M.SNP_COUNTS.map((s) => ({ value: s.value, label: s.label })),
-      default: "79",
-      when: { param: "page", oneOf: M.STUDY_PAGES },
-    },
-    samples: {
-      type: "segmented",
-      label: M.STRINGS.samplesLabel,
-      options: [
-        { value: "one", label: "One", detail: M.STRINGS.samplesOne },
-        { value: "two", label: "Two", detail: M.STRINGS.samplesTwo },
-      ],
-      default: "two",
-      when: { param: "page", oneOf: M.STUDY_PAGES },
-    },
-    /* model.js decision 4: the same two GWAS, read on the same allele or not */
+    /* model.js decisions 4 and 9c: the same two GWAS, read on the same allele
+       or not — on step 2 alone; the steps after always read them harmonised */
+    studySec: { type: "section", label: M.STRINGS.studySection, when: { param: "page", equals: "gwas" } },
     harmonise: {
       type: "segmented",
       label: M.STRINGS.harmoniseLabel,
@@ -796,7 +884,7 @@ defineWidget({
       ],
       default: "off",
       display: true,
-      when: { param: "page", oneOf: M.STUDY_PAGES },
+      when: { param: "page", equals: "gwas" },
     },
     estimator: {
       type: "segmented",
@@ -829,7 +917,7 @@ defineWidget({
         { token: "nonevent", label: "Confounders low, when coloured", mark: "dot" },
         { token: "event", label: "Confounders high, when coloured", mark: "dot" },
         { token: "empirical", label: "CHD risk on BMI, every person: the observational fit", mark: "line" },
-        { token: "highlight", label: "The three genotype groups' centroids, and the line through them: this SNP's ratio", mark: "line" },
+        { token: "highlight", label: "Stage 1, each genotype group's mean BMI; stage 2, its mean CHD risk; the line through the three, whose slope is this SNP's ratio", mark: "line" },
         { token: "reference", label: "The true effect, revealed on request", mark: "dash" },
         { token: "extreme", label: "A non-causal path standing open", mark: "line" },
       ];
@@ -842,23 +930,24 @@ defineWidget({
       ];
     }
     const shared = [
-      { token: "empirical", label: "IVW", mark: "line" },
-      { token: "group-b", label: "MR Egger, with its intercept", mark: "line" },
-      { token: "group-c", label: "Weighted median", mark: "line" },
+      { token: "empirical", label: "IVW: the precision-weighted slope through the origin", mark: "line" },
+      { token: "group-b", label: "MR Egger: the same slope freed from the origin, its intercept the average direct effect", mark: "line" },
+      { token: "group-c", label: "Weighted median: the middle single-SNP ratio by weight", mark: "line" },
       { token: "ink-1", label: "The observational estimate: CHD risk on BMI in the cohort, confounded", mark: "dash" },
       { token: "reference", label: "The true effect, revealed on request", mark: "dash" },
-      { token: "highlight", label: "The SNP under the pointer or pinned by a click, on the scatter and in the forest", mark: "dot" },
     ];
     if (page === "estimate") {
       return [
         { token: "unknown", label: "A SNP's two effects with their intervals; every SNP also carries a small direct effect of either sign", mark: "dot" },
-        { token: "extreme", label: "A SNP with a direct path to CHD, when the exclusion restriction is broken; an effect on the other allele, until harmonised", mark: "dot" },
+        { token: "extreme", label: "A SNP with a direct path to CHD, when the exclusion restriction is broken", mark: "dot" },
         ...shared,
+        { token: "highlight", label: "The SNP under the pointer or pinned by a click, and its own ratio as the slope from the origin", mark: "dot" },
       ];
     }
     return [
       { token: "unknown", label: "A SNP's ratio with its 95% interval", mark: "dot" },
       ...shared,
+      { token: "highlight", label: "The SNP under the pointer or pinned by a click, here and on the scatter", mark: "dot" },
     ];
   },
 
@@ -941,6 +1030,7 @@ defineWidget({
     };
     if (page === "trial") {
       const T = state.trial;
+      /* decision 9a: the two stages and their quotient, each at its beat */
       return [
         {
           label: "Observational slope",
@@ -948,9 +1038,19 @@ defineWidget({
           note: upTo >= 2 ? M.ciText(T.obs.b, T.obs.se) : "CHD risk on BMI, every person",
         },
         {
-          label: "Ratio for this SNP",
-          value: upTo >= 4 ? M.n2(T.ratio.b) : "—",
-          note: upTo >= 4 ? M.ciText(T.ratio.b, T.ratio.se) : "its effect on CHD over its effect on BMI",
+          label: M.STRINGS.tileStage1,
+          value: upTo >= 3 ? M.n2(T.gx.b) : "—",
+          note: upTo >= 3 ? `SD of BMI per copy of the allele · ${M.ciText(T.gx.b, T.gx.se)}` : "SD of BMI per copy of the allele",
+        },
+        {
+          label: M.STRINGS.tileStage2,
+          value: upTo >= 4 ? M.n2(T.gl.b) : "—",
+          note: upTo >= 4 ? `log odds per copy of the allele · ${M.ciText(T.gl.b, T.gl.se)}` : "log odds per copy of the allele",
+        },
+        {
+          label: M.STRINGS.tileRatio,
+          value: upTo >= 5 ? M.n2(T.ratio.b) : "—",
+          note: upTo >= 5 ? `log odds per SD of BMI · ${M.ciText(T.ratio.b, T.ratio.se)}` : "log odds per SD of BMI",
         },
         truthTile,
       ];
@@ -999,13 +1099,15 @@ defineWidget({
       const parts = [`The graph: ${graph}.`];
       if (upTo === 0) parts.push("A scatter of CHD risk against BMI, waiting for its 2,000 people.");
       else parts.push(`A scatter of CHD risk against BMI for 2,000 people; the observational slope is ${M.n2(T.obs.b)}.`);
-      if (upTo >= 4) parts.push(`The line through the three genotype groups gives this SNP's ratio, ${M.n2(T.ratio.b)}.`);
+      if (upTo >= 3) parts.push(`Stage 1: ${M.n2(T.gx.b)} SD of BMI per copy of the allele.`);
+      if (upTo >= 4) parts.push(`Stage 2: ${M.n2(T.gl.b)} log odds of CHD per copy.`);
+      if (upTo >= 5) parts.push(`The ratio, stage 2 over stage 1, is ${M.n2(T.ratio.b)}.`);
       return parts.join(" ");
     }
     const study = M.studyOf(state, params);
     const done = upTo >= state.m;
     if (page === "gwas") {
-      return `Two GWAS, ${upTo} of ${state.m} SNPs in: each SNP's effect on BMI over its effect on CHD, and the scatter of one against the other${params.harmonise === "on" ? "" : ", unharmonised"}.`;
+      return `Two GWAS, ${upTo} of ${state.m} SNPs in: each SNP's effect on BMI and its effect on CHD, and the scatter of one against the other${params.harmonise === "on" ? "" : ", unharmonised"}.`;
     }
     const est = done
       ? ` IVW ${M.n2(study.est.ivw.b)}, MR Egger ${M.n2(study.est.egger.b)}, weighted median ${M.n2(study.est.median.b)}; the observational slope is ${M.n2(state.trial.obs.b)}.`
