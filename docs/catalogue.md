@@ -8413,6 +8413,18 @@ under directional pleiotropy, the worst of the three under the
 confounder-to-SNP arrow — agreement across the methods is the evidence,
 which is why the lesson's table prints five.
 
+2026-09-13, morning: **harmonisation is shown per SNP** on the Effects
+page — each SNP carries its two alleles, a hover or click on a column of
+either GWAS strip or a point of the scatter names it, and the line under
+the figure reads the notebook's overview table for that SNP (which allele
+each GWAS reports on; what harmonising does to the CHD effect; "nothing to
+flip" when they agree). The Page label is gone; the Overview button and the
+Step head name the control. Two reading lines had been sitting on the
+canvas edge (Effects, Forest); the verify now refuses any painted string
+within 11px of the bottom. His "do we need the causal graph with the
+forest plot": the forest has none; the graph stays beside the Estimate
+scatter, where the arrows move the lines.
+
 
 
 

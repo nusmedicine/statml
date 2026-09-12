@@ -761,7 +761,9 @@ export const FOREST_ROW_MIN = 4.4;
 export const forestPitch = (m) => Math.min(FOREST_ROW_MAX, Math.max(FOREST_ROW_MIN, 340 / m));
 export const FOREST_NAMES_PITCH = 9;
 export const COMBINED_ROW_H = 14;
-export const forestHeight = (m) => Math.round(TOP + 8 + forestPitch(m) * m + 6 + 3 * COMBINED_ROW_H + 8 + 46);
+/* 62 under the rows, not 46: the axis label takes 22 and the reading line
+   under it another 12 (the verify's bottom-edge check, 2026-09-13) */
+export const forestHeight = (m) => Math.round(TOP + 8 + forestPitch(m) * m + 6 + 3 * COMBINED_ROW_H + 8 + 62);
 
 export function dagLayout(x, y, h) {
   const R = 20;
@@ -799,7 +801,10 @@ export function layout(w, values) {
       page, head, height: GWAS_H,
       exposure: { x: AX_L, y: y1, w: w - AX_L - AX_R, h: STRIP_H },
       outcome: { x: AX_L, y: y2, w: w - AX_L - AX_R, h: STRIP_H },
-      plot: { x: AX_L + 30, y: y3, w: w - AX_L - 30 - AX_R - 60, h: GWAS_H - y3 - 40 },
+      /* 56 below the plot, not 40: the axis label takes 22 and the reading
+         line under it another 12, and at 40 the line sat on the canvas edge
+         (found on the harmonisation reading, 2026-09-13) */
+      plot: { x: AX_L + 30, y: y3, w: w - AX_L - 30 - AX_R - 60, h: GWAS_H - y3 - 56 },
     };
   }
   if (page === "estimate") {

@@ -431,7 +431,7 @@ const painted = {};
       for (const W_ of [550, 535]) {
         const ctx = recorder();
         W.draw({ ctx, colors: COLORS, w: W_, h: M.stageHeight(W_, params), params, state: st, anim, pointer: null });
-        frames.push({ page, name, w: W_, strings: ctx.painted });
+        frames.push({ page, name, w: W_, h: M.stageHeight(W_, params), strings: ctx.painted });
       }
     }
   }
@@ -442,6 +442,10 @@ const painted = {};
   check("no painted string carries NaN, undefined, null or Infinity", nan.length === 0, [...new Set(nan)].slice(0, 5).join(" | "));
   const over = frames.flatMap((fr) => fr.strings.filter((p) => p.k === "fillText" && (p.align === "left" || p.align === "start") && p.x >= 0 && p.x + p.s.length * 6 > fr.w + 20 && !/^-?\d/.test(p.s)).map((p) => `${fr.page}/${fr.name}: ${p.s}`));
   check("no left-anchored string starts inside the canvas and runs past its right edge", over.length === 0, over.slice(0, 4).join(" | "));
+  /* a string hung from the canvas edge is invisible, and no width check sees
+     it: the Effects page's reading line sat at exactly the canvas height */
+  const below = frames.flatMap((fr) => fr.strings.filter((p) => p.k === "fillText" && p.y > fr.h - 11).map((p) => `${fr.page}/${fr.name}: ${p.s.slice(0, 40)} at y ${Math.round(p.y)} of ${fr.h}`));
+  check("no painted string sits within 11px of the canvas bottom", below.length === 0, below.slice(0, 3).join(" | "));
   const finished = (page, name) => frames.find((fr) => fr.page === page && fr.name === name && fr.w === 550).strings.map((p) => p.s);
   /* the recorder's 6px a character is wider than the font, so a right-hung
      note may be shortened with an ellipsis here and not on the page */
