@@ -4,9 +4,9 @@
 (Kenneth's call, 2026-08-30); ONE DRAFT: 60 `mendelian-randomization`.**
 The GWAS and PRS arc (PHM5003 week 6) is three shipped — 56
 `hardy-weinberg`, 57 `gwas`, 59 `polygenic-score` (2026-09-12) — and
-the fourth drafted the same night. `main` is **ahead of origin by seven
-commits, unpushed** (the MR measure script, the mock, the picks, the
-draft); the last push is 69cca83.
+the fourth drafted the same night. `main` is **ahead of origin and unpushed since
+69cca83** (the MR measure script, the mock, the picks, the draft, the
+handover, the gwas re-record, this line).
 
 ---
 
