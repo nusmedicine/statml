@@ -6,7 +6,12 @@ week 6) is complete: 56 `hardy-weinberg`, 57 `gwas`, 59
 `polygenic-score` (2026-09-12) and 60 `mendelian-randomization`
 (2026-09-13). `main` is pushed and clean at 890a558: the 60 ship, its
 effect-allele wording round, and the sit / fall / lie pass across fifteen
-widgets (all 2026-09-13). Session closed on Kenneth's word.
+widgets (all 2026-09-13). Session closed on Kenneth's word. **A later
+session the same day built nothing**: it was questions about the arc's
+widgets, and it ended in Kenneth revising the 01-2 QC notebook to test
+HWE within each population — see § *THE HWE QUESTIONS* below, which
+records what was measured on the lesson's own file so the next touch on
+`hardy-weinberg` reads his revised notebook first.
 
 ---
 
@@ -44,52 +49,60 @@ estimates the causal effect as a SLOPE, then b / se / pval as that slope's
 report; "all five slopes are positive", IVW 0.45 ≈ odds ratio 1.6 per SD of
 BMI — an SD, not a variance, because the BMI GWAS standardised its trait),
 the three methods as a markdown table with `<br>` line breaks and the
-IVW and Egger formulas as inline `$…# Handover
-
-**FIFTY-SEVEN WIDGETS SHIPPED — 55 on the gallery, `roc-auc` UNLISTED
-(Kenneth's call, 2026-08-30); NO DRAFT.** The GWAS and PRS arc (PHM5003
-week 6) is complete: 56 `hardy-weinberg`, 57 `gwas`, 59
-`polygenic-score` (2026-09-12) and 60 `mendelian-randomization`
-(2026-09-13). `main` is pushed and clean at 890a558: the 60 ship, its
-effect-allele wording round, and the sit / fall / lie pass across fifteen
-widgets (all 2026-09-13). Session closed on Kenneth's word.
-
----
-
-# NEXT SESSION
-
-**Nothing is queued on the week-6 arc.** The standing debt is **slot 52
-`training-loop`** (PHM5005 05-4), owed since the DL arc — see the
-catalogue's slot 52 entry and `_lab/dl-loop-measure.mjs`, which already
-exists. The order that has now run nine times: measure → mock from the
-newest shell (`_lab/mr-mock.html`, which inlines its engine and builds
-rails through core's `buildControls`) → his picks by AskUserQuestion, one
-round at a time when he asks for it → catalogue → draft with a verify on
-`_lab/mr-verify.mjs`'s shape → rounds → the copy audit's FOUR passes
-(register, descriptors against buttons, mannerisms, PERSONIFICATION —
-the last is his 2026-09-13 catch; the verify's §8 carries the verb list)
-→ "tested ok, push" → shooter + states → status flip → full suite fronted
-→ `check` AND `test` read on their own → commit → push.
-
-**Two things the 60 build added to the collection, worth reusing:**
-
-- **A step label may key on the animation's own counter**
-  (`widgets/core/widget.js`, `resolveLabel`): `{ anim: "trialBeat", labels,
-  default }`. Widget 60's overview runs five acts under one Step button.
-- **Readings of one study, eased** (`widgets/mendelian-randomization/model.js`):
-  a data-shaped control becomes a display parameter by drawing the noise
-  once, unconditionally, and building each setting's reading on first
-  request; `lerpView` interpolates two readings leaf by leaf and core's
-  ease mode supplies the frames. The pattern for any widget whose controls
-  are re-readings of one draw.
-
- math (display `$` does not
+IVW and Egger formulas as inline `$…$` math (display `$` does not
 render inside a table cell; no `|` inside the math), a harmonisation
 table ("same two alleles, each study reports for its own effect allele"),
 the F statistic and pleiotropy sentences; for the PRS notebooks (02-1,
 02-2) the calibration sentences with "a calibrated plot is on the
 diagonal", not "sits". When the arc is next touched, read the notebook
 first — the widget's words must match his.
+
+# THE HWE QUESTIONS — 2026-09-13 evening, no code in this repo changed
+
+Kenneth asked how the de Finetti triangle is derived, then why the
+lesson's pooled sample of three populations "preserves" HWE. It does
+not; the answer was measured on `iomics.bed` with a Python script kept
+in the session (PLINK's exact test reimplemented, checked against the
+file's 2008), and the numbers are now under the catalogue's § *Three
+things the lesson's own output files say*, item 2. In one line: **within
+Chinese, Malay and Indian separately, NO SNP fails at 10⁻⁶, mean F is
+zero, and all 2008 pooled failures pass in every group** — their median
+allele-frequency range across the three populations is 0.53 against 0.13
+for a typical common SNP. rs260690 in EDAR is the example that carries
+it (A1 frequency 0.02 / 0.28 / 0.88; pooled 22% heterozygotes against
+47% predicted, each group on its own prediction).
+
+**His decision: revise 01-2 to do it properly, not a note.** The cells he
+is adding, all Bash-kernel, no `awk`: three `grep ",C$" … | cut -d, -f1 >
+keep_C.txt` lists from the RACE column of `iomics_measurements.csv`;
+`--hardy` runs with `--keep-fam keep_C.txt` beside the pooled one, read
+with `sort -g -k9,9 file.hwe | head` (not `head` alone — the top of
+chromosome 1 is monomorphic); `--hwe 1e-6 --write-snplist` per population;
+the intersection of the three pass lists (his choice among six that were
+timed on 2.5M names: `sort A B | uniq -d` twice, `comm`, `grep -Fxf`,
+`awk`, Python sets, an R file with tidyverse `map(read_lines) %>%
+reduce(intersect)` — the R one is untested here, this machine's R has no
+tidyverse); then `--extract hwe_pass_CMI.snplist` in place of `--hwe` in
+the filtering cell. Practice checked against Turner's QC protocol
+("necessary to test within each group"), UK Biobank (marker QC on a
+European-ancestry subset), the CCDG pipeline (within homogeneous subsets,
+remove on failure in any), Marees 2018, PLINK's `--hwe` (founders and
+controls by default). The one refinement told to him: the big cohorts
+group by genetic ancestry from PCA, and the RACE label stands in for it
+here because 01-4 shows the labels and clusters coincide.
+
+**Two things this may change in the repo later, neither owed now:** the
+`hardy-weinberg` widget's copy and its catalogue misconception line were
+written against the pooled notebook; once his revision lands, read it and
+check the widget's Two-pooled reading and Many-SNPs page still say what
+his cells show. And the five unlabelled people (in the .fam, not in the
+measurements file; four have no phenotype) take no part in the
+within-population tests and stay in the filtered set — fine, told to him.
+
+Also answered: the array's variant names (`kgp` 1.61M, `rs` 686k, `exm`
+202k, `Exome_Asian_chr…` 25k, 122 others such as `200610_403`, an Illumina
+design ID in MC1R, monomorphic here) — a PLINK name is a label, not an
+identifier.
 
 # THE SIT / FALL / LIE PASS — DONE 2026-09-13, fifteen commits, one a widget
 

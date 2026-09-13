@@ -7095,6 +7095,22 @@ built against what actually ran and not against what the headings claim.
    "genotyping errors, population stratification, inbreeding" as causes
    and does not say which one this is. The three PCA clusters in 01-4 are
    the answer, two lessons later. Slot 56 exists to make that link.
+   **Measured within population 2026-09-13** (PLINK's exact test
+   reimplemented on `iomics.bed`, reproducing the file's 2008 exactly;
+   RACE from `iomics_measurements.csv`, 110 C / 105 M / 103 I, five
+   unlabelled): on common SNPs (MAF ≥ 0.05 in the group) the pooled
+   sample has 68.0% heterozygote deficits, mean F 0.035, 2007 failures at
+   10⁻⁶ and 12.7% below 0.05; Chinese 45.6% / −0.004 / 0 / 3.3%, Malay
+   47.6% / 0.001 / 0 / 3.6%, Indian 51.0% / 0.007 / 0 / 3.9%. **All 2008
+   pooled failures pass at 10⁻⁶ in every population**; their median
+   allele-frequency range across the three groups is 0.53 against 0.13
+   for a typical common SNP. So a within-population filter removes
+   nothing here, and the pooled one removed the 2008 most
+   ancestry-differentiated SNPs (rs260690 in EDAR: A1 0.02 / 0.28 / 0.88,
+   pooled 22% heterozygotes against 47% predicted). Kenneth is revising
+   01-2 to test within population (`--keep-fam`, the intersection of the
+   three pass lists, `--extract` in place of `--hwe`); the widget's copy
+   should be read against his revision when next touched.
 3. **The PRS R² is a tuned maximum.** `cholesterol_prs.prsice` holds 1316
    thresholds from 5 × 10⁻⁸ (22 SNPs, R² 0.0013, P 0.52) through 0.05
    (11,553 SNPs, R² 0.036) to the best at 0.404 (56,054 SNPs, R² 0.0497,
