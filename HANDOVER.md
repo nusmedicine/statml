@@ -4,7 +4,9 @@
 (Kenneth's call, 2026-08-30); NO DRAFT.** The GWAS and PRS arc (PHM5003
 week 6) is complete: 56 `hardy-weinberg`, 57 `gwas`, 59
 `polygenic-score` (2026-09-12) and 60 `mendelian-randomization`
-(2026-09-13). `main` is pushed and clean at the 60 ship.
+(2026-09-13). `main` is pushed and clean at 890a558: the 60 ship, its
+effect-allele wording round, and the sit / fall / lie pass across fifteen
+widgets (all 2026-09-13). Session closed on Kenneth's word.
 
 ---
 
@@ -35,10 +37,59 @@ the last is his 2026-09-13 catch; the verify's §8 carries the verb list)
   ease mode supplies the frames. The pattern for any widget whose controls
   are re-readings of one draw.
 
-**Kenneth still owes the notebook** three sentences (one per estimator,
-the F statistic, harmonising) and the word pleiotropy at the assumptions
-list and in the Egger sentence — check `03 - MR.ipynb` before the next
-push touches that arc.
+**Kenneth is editing the notebooks himself; nothing in this repo waits on
+it.** Text was written for him in the closing session, all of it in the
+chat, none in the repo: for `03 - MR.ipynb` the results cell (each method
+estimates the causal effect as a SLOPE, then b / se / pval as that slope's
+report; "all five slopes are positive", IVW 0.45 ≈ odds ratio 1.6 per SD of
+BMI — an SD, not a variance, because the BMI GWAS standardised its trait),
+the three methods as a markdown table with `<br>` line breaks and the
+IVW and Egger formulas as inline `$…# Handover
+
+**FIFTY-SEVEN WIDGETS SHIPPED — 55 on the gallery, `roc-auc` UNLISTED
+(Kenneth's call, 2026-08-30); NO DRAFT.** The GWAS and PRS arc (PHM5003
+week 6) is complete: 56 `hardy-weinberg`, 57 `gwas`, 59
+`polygenic-score` (2026-09-12) and 60 `mendelian-randomization`
+(2026-09-13). `main` is pushed and clean at 890a558: the 60 ship, its
+effect-allele wording round, and the sit / fall / lie pass across fifteen
+widgets (all 2026-09-13). Session closed on Kenneth's word.
+
+---
+
+# NEXT SESSION
+
+**Nothing is queued on the week-6 arc.** The standing debt is **slot 52
+`training-loop`** (PHM5005 05-4), owed since the DL arc — see the
+catalogue's slot 52 entry and `_lab/dl-loop-measure.mjs`, which already
+exists. The order that has now run nine times: measure → mock from the
+newest shell (`_lab/mr-mock.html`, which inlines its engine and builds
+rails through core's `buildControls`) → his picks by AskUserQuestion, one
+round at a time when he asks for it → catalogue → draft with a verify on
+`_lab/mr-verify.mjs`'s shape → rounds → the copy audit's FOUR passes
+(register, descriptors against buttons, mannerisms, PERSONIFICATION —
+the last is his 2026-09-13 catch; the verify's §8 carries the verb list)
+→ "tested ok, push" → shooter + states → status flip → full suite fronted
+→ `check` AND `test` read on their own → commit → push.
+
+**Two things the 60 build added to the collection, worth reusing:**
+
+- **A step label may key on the animation's own counter**
+  (`widgets/core/widget.js`, `resolveLabel`): `{ anim: "trialBeat", labels,
+  default }`. Widget 60's overview runs five acts under one Step button.
+- **Readings of one study, eased** (`widgets/mendelian-randomization/model.js`):
+  a data-shaped control becomes a display parameter by drawing the noise
+  once, unconditionally, and building each setting's reading on first
+  request; `lerpView` interpolates two readings leaf by leaf and core's
+  ease mode supplies the frames. The pattern for any widget whose controls
+  are re-readings of one draw.
+
+ math (display `$` does not
+render inside a table cell; no `|` inside the math), a harmonisation
+table ("same two alleles, each study reports for its own effect allele"),
+the F statistic and pleiotropy sentences; for the PRS notebooks (02-1,
+02-2) the calibration sentences with "a calibrated plot is on the
+diagonal", not "sits". When the arc is next touched, read the notebook
+first — the widget's words must match his.
 
 # THE SIT / FALL / LIE PASS — DONE 2026-09-13, fifteen commits, one a widget
 
