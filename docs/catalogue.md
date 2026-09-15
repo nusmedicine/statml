@@ -15836,6 +15836,25 @@ and it is now out of sight until the reader asks for it.
 
 ### Slot 65 · `unet` — Architecture - Basic (Segmentation) — TWO PAGES since 2026-09-13, MOCKED 2026-09-15
 
+**ROUND 3 (2026-09-15, late), his two points and his pick "A and C"
+(`_lab/unet-round3-mock.html`):** (1) "are the dimension blocks aligned to the
+diagram by level?" — the card listed stages in walk order, so enc_l and cat_l
+never shared a line → **A**, the shapes on the skip lines (the encoder's
+output where the skip starts, the concatenation where it ends; under the
+encoder slab and over the bracket where the line is too short), plus **C**,
+the card as a LEVEL TABLE (level · encoder in → encoder out + up =
+concatenation → decoder out, then the bottleneck row and the head), cells
+printing as stages are added and the highlighted stage lit; B, a level
+column beside the U, was measured out (it runs past the edge at 746 and
+loses its alignment at 550). (2) "the connectors seem to float, esp. the
+bottleneck" → the U is now his figure's own construction, TWO SLABS A LEVEL
+on the way down (the pooled input and the DoubleConv output), so every
+arrow starts and ends on a slab; and "can the bottleneck be centred?" → it
+is, at every setting: the construction is symmetric when the input slab and
+the head are the same width, and one arrow (the bottleneck row's, or the
+head's) takes up the difference otherwise. The verify holds every pool and
+up arrow on its slabs and the bottleneck within 6px of the U's midpoint.
+
 **ROUND 2 (2026-09-15, the same evening), his four points on the draft and
 four picks (`_lab/unet-round2-mock.html`):** (1) "the diagram does not show a
 u-shape" → the U is laid out as his figure's STAIRCASE, each encoder level one

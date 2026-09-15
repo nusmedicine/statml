@@ -56,6 +56,7 @@ export function stagesFor(depth, base, input) {
   return st;
 }
 export const shapeOf = (s) => [BATCH, s.C, s.H, s.H];
+export const chw = (C, H) => `${C} × ${H} × ${H}`;
 export const stageNames = (depth) => stagesFor(Number(depth), 4, 16).map((s) => s.name);
 
 /** cell 33's parameters: DoubleConv is two bias-free 3 × 3 convs with a
@@ -147,56 +148,94 @@ export function computeU(params) {
 }
 
 /* --- the U's geometry ------------------------------------------------------- *
- * Kenneth's figure's rule — a slab's height follows H × W and its width C —
- * laid out as his figure's staircase (round 2, "the diagram does not show a
- * u-shape"): each encoder level starts one step further right, each decoder
- * level ends one step further left, the bottleneck sits at the bottom
- * between them, and the skips shorten toward it.                              */
+ * Kenneth's figure's own construction (round 3, 2026-09-15: "the connectors
+ * seem to float"). Two slabs a level on the way down — the pooled input and
+ * the DoubleConv output, a conv arrow between — so the pool arrow drops
+ * straight from one slab onto the next level's input slab directly under it.
+ * The bottleneck row is the last pooled map and the bottleneck; the up arrow
+ * rises from the bottleneck's right end into the up half of the deepest
+ * concatenation, and each shallower up arrow from the decoder slab below. So
+ * every arrow starts and ends on a slab.
+ *
+ * A slab's height follows H × W and its width C. The channel scale `cw` is the
+ * largest that fits the width, and THE BOTTLENECK IS CENTRED (round 3, "can the
+ * bottleneck be centred?"): the bottleneck row's conv arrow is lengthened until
+ * the bottleneck's centre is the U's midpoint. The decoder is placed from the
+ * bottleneck, so only that one arrow can move, and it does.                      */
 export const LEVEL_H = 150;
-export const ROW_GAP = 26;
-export const BOTTLE_W = 84;
-export const SLAB_MIN = 6;
+export const ROW_GAP = 30;
+export const SLAB_MIN = 5;
 export const ROW_MIN = 10;
-export const U_TOP = 64;
+export const ARROW = 22;          // a conv arrow, and the gap it spans
+export const U_TOP = 80;          // under the highlighted shape line, clear of a concatenation's bracket
 export const CAPTION_Y = 24;
 export const NOTE_Y = 40;
 export const SHAPE_Y = 56;
-export const stepOf = (w) => Math.max(36, Math.min(60, 36 + (w - 550) * 0.11));
+export const LEFT_LABEL = 46;     // "enc1" left of the first slab
+export const RIGHT_LABEL = 84;    // "dec1 · head" right of the head
+export const HEAD_W = 5;
+
+function uBuild(state, x0, cw, bottomArrow, headArrow = ARROW) {
+  const { depth, base, input } = state;
+  const C = (l) => base * 2 ** (l - 1);
+  const H = (l) => Math.max(1, input >> (l - 1));
+  const w = (c) => Math.max(SLAB_MIN, c * cw);
+  const b = {};
+  b.input = { x: x0, level: 1, w: w(IN_CH) };
+  b.enc1 = { x: x0 + w(IN_CH) + ARROW, level: 1, w: w(C(1)) };
+  for (let l = 1; l <= depth; l += 1) {
+    const e = b[`enc${l}`];
+    b[`pool${l}`] = { x: e.x, level: l + 1, w: e.w };
+    if (l < depth) b[`enc${l + 1}`] = { x: e.x + e.w + ARROW, level: l + 1, w: w(C(l + 1)) };
+  }
+  const pd = b[`pool${depth}`];
+  b.bottleneck = { x: pd.x + pd.w + bottomArrow, level: depth + 1, w: w(C(depth + 1)) };
+  let below = b.bottleneck;
+  for (let l = depth; l >= 1; l -= 1) {
+    const half = w(C(l));
+    const upX = below.x + below.w - half;
+    b[`up${l}`] = { x: upX, level: l, w: half };
+    b[`cat${l}`] = { x: upX - half, level: l, w: 2 * half };
+    b[`dec${l}`] = { x: upX + half + ARROW, level: l, w: half };
+    below = b[`dec${l}`];
+  }
+  b.head = { x: b.dec1.x + b.dec1.w + headArrow, level: 1, w: HEAD_W };
+  return { b, right: b.head.x + b.head.w };
+}
 
 export function uLayout(w, state) {
-  const { depth, base, input, stages } = state;
-  const step = stepOf(w);
-  const cw = BOTTLE_W / (base * 2 ** depth);
-  const levelH = (H) => Math.max(ROW_MIN, LEVEL_H * H / input);
+  const { depth, input } = state;
+  const x0 = PAD + LEFT_LABEL;
+  const room = w - x0 - PAD - RIGHT_LABEL;
+  let cw = 6;
+  let built = null;
+  for (let i = 0; i < 80; i += 1) {
+    /* the bottleneck row's arrow that centres the bottleneck */
+    const trial = uBuild(state, x0, cw, ARROW);
+    const bn = trial.b.bottleneck;
+    const centre = bn.x + bn.w / 2;
+    const extra = (trial.right - centre) - (centre - x0);
+    /* the right side longer: lengthen the bottleneck row's arrow; the left side
+       longer (wide slabs, where the three-channel input outgrows the head): lengthen
+       the head's arrow */
+    built = extra > 0 ? uBuild(state, x0, cw, ARROW + extra) : extra < 0 ? uBuild(state, x0, cw, ARROW, ARROW - extra) : trial;
+    if (built.right - x0 <= room) break;
+    cw *= 0.93;
+  }
   const rows = [];
   let y = U_TOP;
   for (let l = 1; l <= depth + 1; l += 1) {
     const H = Math.max(1, input >> (l - 1));
-    rows.push({ y, h: levelH(H), H });
-    y += levelH(H) + ROW_GAP;
+    const h = Math.max(ROW_MIN, LEVEL_H * H / input);
+    rows.push({ y, h, H });
+    y += h + ROW_GAP;
   }
-  const slabW = (C) => Math.max(SLAB_MIN, C * cw);
   const boxes = {};
-  for (const s of stages) {
-    const row = rows[s.level - 1];
-    const sw = slabW(s.C);
-    const encX = PAD + 40 + (s.level - 1) * step;
-    const decRight = w - PAD - 40 - (s.level - 1) * step;
-    let x = null;
-    if (s.kind === "enc") x = encX;
-    else if (s.kind === "bottleneck") x = w / 2 - sw / 2;
-    else if (s.kind === "dec") x = decRight - sw;
-    else if (s.kind === "cat") x = decRight - slabW(s.C / 2) - 8 - sw;
-    else if (s.kind === "up") x = decRight - slabW(s.C) - 8 - slabW(s.C);   // the right half of its concatenation
-    else if (s.kind === "head") x = w - PAD - 22;
-    if (x != null) boxes[s.name] = { x, y: row.y, w: sw, h: row.h };
-    if (s.kind === "pool") {
-      const from = rows[s.level - 1];
-      boxes[s.name] = { x: encX + slabW(base * 2 ** (s.level - 1)) / 2 + 6, y: from.y + from.h + 2, w: 44, h: ROW_GAP - 4, arrow: true };
-    }
+  for (const [k, v] of Object.entries(built.b)) {
+    const row = rows[v.level - 1];
+    boxes[k] = { x: v.x, y: row.y, w: v.w, h: row.h, level: v.level };
   }
-  const height = y - ROW_GAP + 34;
-  return { rows, boxes, slabW, height };
+  return { rows, boxes, x0, right: built.right, cw, height: y - ROW_GAP + 34 };
 }
 
 /* --- the operation band's geometry ------------------------------------------ */
@@ -223,7 +262,7 @@ export function bandHeight(kind, cin, cout) {
   return Math.max(column(cin), column(cout)) + 8;
 }
 
-export const uHeight = (w, params) => uLayout(w, { ...readU(params), stages: stagesFor(...Object.values(readU(params))) }).height;
+export const uHeight = (w, params) => uLayout(w, readU(params)).height;
 export const unetHeight = (w, params) => uHeight(w, params) + BAND_GAP + BAND_H;
 
 /* --- Dice ------------------------------------------------------------------- */

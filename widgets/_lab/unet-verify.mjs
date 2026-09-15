@@ -200,15 +200,28 @@ section("§4 the geometry at 550 and 770");
             const b = L.boxes[s.name];
             assert(b && b.x >= M.PAD && b.x + b.w <= w - M.PAD, `${s.name} inside at ${w} (depth ${depth}, base ${base}, input ${input})`);
           }
-          const enc = state.stages.filter((s) => s.kind === "enc").map((s) => L.boxes[s.name].x);
-          assert(enc.every((x, i) => i === 0 || x > enc[i - 1]), "the encoder steps right going down");
-          const decs = state.stages.filter((s) => s.kind === "dec").map((s) => ({ l: s.level, r: L.boxes[s.name].x + L.boxes[s.name].w }));
-          assert(decs.every((d) => decs.every((e) => d.l >= e.l || d.r > e.r)), "each shallower decoder level ends further right");
-          const slabs = state.stages.filter((s) => s.kind !== "pool").map((s) => L.boxes[s.name].w);
-          assert(L.boxes.bottleneck.w === Math.max(...slabs), "the bottleneck is the widest slab");
-          const catX = L.boxes[`cat${depth}`];
-          const upX = L.boxes[`up${depth}`];
-          assert(close(upX.x + upX.w, catX.x + catX.w, 1e-9), "the up slab is the right half of its concatenation");
+          const B = L.boxes;
+          const tag = `at ${w} (depth ${depth}, base ${base}, input ${input})`;
+          assert(L.right <= w - M.PAD - M.RIGHT_LABEL + 1e-9 && L.x0 - M.LEFT_LABEL >= M.PAD, `the U and its labels fit ${tag}`);
+          /* every arrow starts and ends on a slab (round 3, "the connectors seem to float") */
+          const within = (x, box) => x >= box.x - 1e-9 && x <= box.x + box.w + 1e-9;
+          for (let l = 1; l <= Number(depth); l += 1) {
+            const e = B[`enc${l}`];
+            const p = B[`pool${l}`];
+            assert(p.level === l + 1 && within(p.x + p.w / 2, e), `pool${l}'s arrow drops from enc${l} onto its slab ${tag}`);
+            const u = B[`up${l}`];
+            const below = l === Number(depth) ? B.bottleneck : B[`dec${l + 1}`];
+            assert(within(u.x + u.w / 2, below), `up${l}'s arrow rises from the slab below ${tag}`);
+            const c = B[`cat${l}`];
+            assert(close(u.x + u.w, c.x + c.w, 1e-9) && close(u.w * 2, c.w, 1e-9), `up${l} is the right half of cat${l} ${tag}`);
+            assert(c.x > e.x + e.w, `the skip at level ${l} runs left to right ${tag}`);
+            assert(close(c.y, e.y) && close(B[`dec${l}`].y, e.y), `enc${l}, cat${l} and dec${l} share a row ${tag}`);
+          }
+          /* the bottleneck is centred under the U (round 3) */
+          const centre = B.bottleneck.x + B.bottleneck.w / 2;
+          assert(Math.abs(centre - (L.x0 + L.right) / 2) <= 6, `the bottleneck is centred: ${centre.toFixed(1)} against ${((L.x0 + L.right) / 2).toFixed(1)} ${tag}`);
+          const enc = state.stages.filter((s) => s.kind === "enc").map((s) => B[s.name].x);
+          assert(enc.every((x, i) => i === 0 || x > enc[i - 1]), `the encoder steps right going down ${tag}`);
           assert(M.unetHeight(w, { depth, base, input }) === L.height + M.BAND_GAP + M.BAND_H, "the page height is the U's and the band's");
         }
       }

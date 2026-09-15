@@ -1,5 +1,17 @@
 # Handover
 
+**SLOT 65 `unet` ROUND 3 BUILT 2026-09-15 (late)**, his pick "A and C" from
+`_lab/unet-round3-mock.html` and "can the bottleneck be centred?": the U is
+his figure's construction (two slabs a level down, every arrow on a slab,
+the bottleneck centred), the shapes sit on the skip lines, and the card is a
+level table. Verify 4,549 checks (the arrows on their slabs, the centring),
+`check` and `test` green. Read at 746 and 566: the table's rows match the
+U's levels, and dispatched clicks on pool1, up1, cat1, dec2, the bottleneck
+and the head each chose that block. The catalogue's slot 65 entry has the
+round. **NEXT: his read of round 3**, then the copy audit, "tested ok", the
+shooter and states (settled, one driven, and a HIT state), status flip,
+suite, commit, push.
+
 **SLOT 65 `unet` ROUND 2 BUILT 2026-09-15 (evening)**, on his four points
 about the draft: the U laid out as a staircase; a click on a block (or the
 Block dropdown) draws that block's operation in a band under the U on a

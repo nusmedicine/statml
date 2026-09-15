@@ -118,101 +118,146 @@ function revealOf(anim) {
 /* ============================== the U ===================================== */
 
 const U_CAPTION = "U-Net: the encoder down, the decoder up, and the skips across";
-const U_NOTE = "A block's height follows H × W and its width the channels. Click a block to see its operation.";
+const U_NOTE = "Shapes are channels × height × width, for a batch of 10. Click a block to see its operation.";
 const BOTTLENECK_1 = "a 1 × 1 map: no height or width is left to pool";
+
+/** ONE HIGHLIGHT AT A TIME: the stage arriving while a press is in flight,
+    otherwise the chosen block once it has been added */
+function litOf(reveal, stages, block) {
+  if (reveal.current === reveal.n && reveal.n < stages.length) return reveal.current;
+  return stages.findIndex((s, i) => s.name === block && i < reveal.n);
+}
 
 function drawU(ctx, colors, w, state, reveal, block) {
   const { stages } = state;
   const L = M.uLayout(w, state);
+  const B = L.boxes;
   caption(ctx, colors, U_CAPTION, M.PAD, M.CAPTION_Y);
   note(ctx, colors, U_NOTE, M.PAD, M.NOTE_Y);
   const enc = colors.groupA;
   const dec = colors.groupB;
+  const lit = litOf(reveal, stages, block);
+  const byName = Object.fromEntries(stages.map((s, i) => [s.name, i]));
+  const alpha = (name) => reveal.alphaOf(byName[name]);
+  const isLit = (name) => byName[name] === lit;
+  const mid = (b) => b.y + b.h / 2;
+  const depth = state.depth;
 
-  /* ONE HIGHLIGHT AT A TIME: the stage arriving while a press is in flight,
-     otherwise the chosen block once it has been added */
-  const flying = reveal.current === reveal.n ? reveal.current : -1;
-  const chosenIdx = stages.findIndex((s, i) => s.name === block && i < reveal.n);
-  const lit = flying >= 0 ? flying : chosenIdx;
+  /* THE FRAME: every slab outlined and every level named from the start */
+  for (const [name, b] of Object.entries(B)) {
+    if (name.startsWith("up")) continue;
+    frame(ctx, b.x, b.y, b.w, b.h, colors.grid);
+  }
+  ctx.save();
+  ctx.fillStyle = wash(colors.ink3, 0.35);
+  ctx.fillRect(B.input.x, B.input.y, B.input.w, B.input.h);
+  ctx.restore();
+  for (let l = 1; l <= depth; l += 1) {
+    const first = l === 1 ? B.input : B[`pool${l - 1}`];
+    note(ctx, colors, `enc${l}`, first.x - 6, mid(first) + 4, colors.ink2, { align: "right", mono: true });
+    const last = l === 1 ? B.head : B[`dec${l}`];
+    note(ctx, colors, l === 1 ? "dec1 · head" : `dec${l}`, last.x + last.w + 6, mid(last) + 4, colors.ink2, { mono: true });
+  }
+  note(ctx, colors, "bottleneck", B.bottleneck.x + B.bottleneck.w + 6, mid(B.bottleneck) + 4, colors.ink2, { mono: true });
 
-  stages.forEach((s, i) => {
-    const a = reveal.alphaOf(i);
-    const on = i === lit;
+  const fill = (b, tone, a, strong) => {
+    ctx.fillStyle = wash(tone, strong ? 0.55 : 0.35);
+    ctx.fillRect(b.x, b.y, b.w, b.h);
+    void a;
+  };
+
+  stages.forEach((s) => {
+    const a = alpha(s.name);
+    if (a <= 0) return;
+    const b = B[s.name];
+    const on = isLit(s.name);
     const tone = (base) => (on ? colors.highlight : base);
-    const b = L.boxes[s.name];
-    const row = L.rows[s.level - 1];
-
-    if (s.kind === "pool") {
-      const below = L.rows[s.level];
-      const x = b.x + 8;
-      ctx.save();
-      ctx.globalAlpha = a > 0 ? a : 0.35;
-      arrow(ctx, x, row.y + row.h + 3, x, below.y - 3, a > 0 ? tone(colors.dims[0]) : colors.grid, { width: on ? 2 : 1.2 });
-      if (a > 0) note(ctx, colors, s.name, x + 6, (row.y + row.h + below.y) / 2 + 4, tone(colors.ink3), { mono: true });
-      ctx.restore();
-      return;
-    }
-    /* the outline of every slab from the start: the frame the walk fills */
-    if (a <= 0) {
-      if (s.kind !== "up") frame(ctx, b.x, b.y, b.w, b.h, colors.grid);
-      return;
-    }
     ctx.save();
     ctx.globalAlpha = a;
-    if (s.kind === "up") {
-      const below = L.rows[s.level];
-      ctx.fillStyle = wash(dec, on ? 0.55 : 0.35);
-      ctx.fillRect(b.x, b.y, b.w, b.h);
-      frame(ctx, b.x, b.y, b.w, b.h, tone(dec), on ? 2 : 1);
+    if (s.kind === "enc") {
+      const from = s.level === 1 ? B.input : B[`pool${s.level - 1}`];
+      arrow(ctx, from.x + from.w + 2, mid(b), b.x - 2, mid(b), colors.dims[1]);
+      fill(b, enc, a, on);
+      frame(ctx, b.x, b.y, b.w, b.h, tone(enc), on ? 2 : 1);
+    } else if (s.kind === "pool") {
+      const from = B[`enc${s.level}`];
       const x = b.x + b.w / 2;
-      arrow(ctx, x, below.y - 3, x, b.y + b.h + 3, tone(colors.dims[0]), { width: on ? 2 : 1.2 });
-      note(ctx, colors, s.name, x - 6, below.y - 8, tone(colors.ink3), { mono: true, align: "right" });
-    } else {
-      const base = s.kind === "enc" || s.kind === "bottleneck" ? enc : s.kind === "head" ? colors.empirical : dec;
-      if (s.kind === "cat") {
-        ctx.fillStyle = wash(enc, 0.35);
-        ctx.fillRect(b.x, b.y, b.w / 2, b.h);
-        ctx.fillStyle = wash(dec, 0.35);
-        ctx.fillRect(b.x + b.w / 2, b.y, b.w / 2, b.h);
-      } else {
-        ctx.fillStyle = wash(base, on ? 0.55 : 0.35);
-        ctx.fillRect(b.x, b.y, b.w, b.h);
-      }
-      frame(ctx, b.x, b.y, b.w, b.h, tone(base), on ? 2 : 1);
-      if (s.kind === "cat") {
-        ctx.strokeStyle = tone(colors.dims[1]);
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        ctx.moveTo(b.x, b.y - 4); ctx.lineTo(b.x, b.y - 8); ctx.lineTo(b.x + b.w, b.y - 8); ctx.lineTo(b.x + b.w, b.y - 4);
-        ctx.stroke();
-        const e = L.boxes[`enc${s.level}`];
-        arrow(ctx, e.x + e.w + 4, e.y + e.h / 2, b.x - 3, b.y + b.h / 2, tone(colors.ink3), { dash: [2, 3] });
-      }
-      if (s.kind === "enc") note(ctx, colors, s.name, b.x - 6, b.y + b.h / 2 + 4, tone(colors.ink2), { align: "right", mono: true });
-      if (s.kind === "dec") {
-        const c = L.boxes[`cat${s.level}`];
-        arrow(ctx, c.x + c.w + 1, c.y + c.h / 2, b.x - 1, b.y + b.h / 2, tone(colors.dims[1]));
-        note(ctx, colors, s.name, b.x + b.w / 2, b.y + b.h + 12, tone(colors.ink2), { mono: true, align: "center" });
-      }
-      if (s.kind === "bottleneck") note(ctx, colors, s.name, b.x + b.w / 2, b.y + b.h + 14, tone(colors.ink2), { align: "center", mono: true });
-      if (s.kind === "head") {
-        const d = L.boxes.dec1;
-        arrow(ctx, d.x + d.w + 1, d.y + 8, b.x - 1, b.y + 8, tone(colors.dims[1]));
-        note(ctx, colors, s.name, b.x + b.w / 2, b.y - 6, tone(colors.ink2), { mono: true, align: "center" });
-      }
+      arrow(ctx, x, from.y + from.h + 2, x, b.y - 2, tone(colors.dims[0]), { width: on ? 2 : 1.2 });
+      fill(b, enc, a, on);
+      frame(ctx, b.x, b.y, b.w, b.h, tone(enc), on ? 2 : 1);
+    } else if (s.kind === "bottleneck") {
+      const from = B[`pool${depth}`];
+      arrow(ctx, from.x + from.w + 2, mid(b), b.x - 2, mid(b), colors.dims[1]);
+      fill(b, enc, a, on);
+      frame(ctx, b.x, b.y, b.w, b.h, tone(enc), on ? 2 : 1);
+    } else if (s.kind === "up") {
+      const from = s.level === depth ? B.bottleneck : B[`dec${s.level + 1}`];
+      const x = b.x + b.w / 2;
+      arrow(ctx, x, from.y - 2, x, b.y + b.h + 2, tone(colors.dims[0]), { width: on ? 2 : 1.2 });
+      fill(b, dec, a, on);
+      frame(ctx, b.x, b.y, b.w, b.h, tone(dec), on ? 2 : 1);
+    } else if (s.kind === "cat") {
+      const e = B[`enc${s.level}`];
+      arrow(ctx, e.x + e.w + 3, mid(b), b.x - 3, mid(b), colors.ink3, { dash: [2, 3], width: 1 });
+      ctx.fillStyle = wash(enc, 0.35);
+      ctx.fillRect(b.x, b.y, b.w / 2, b.h);
+      frame(ctx, b.x, b.y, b.w, b.h, tone(dec), on ? 2 : 1);
+      ctx.strokeStyle = tone(colors.dims[1]);
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(b.x, b.y - 4); ctx.lineTo(b.x, b.y - 8); ctx.lineTo(b.x + b.w, b.y - 8); ctx.lineTo(b.x + b.w, b.y - 4);
+      ctx.stroke();
+    } else if (s.kind === "dec") {
+      const c = B[`cat${s.level}`];
+      arrow(ctx, c.x + c.w + 2, mid(b), b.x - 2, mid(b), colors.dims[1]);
+      fill(b, dec, a, on);
+      frame(ctx, b.x, b.y, b.w, b.h, tone(dec), on ? 2 : 1);
+    } else if (s.kind === "head") {
+      const d = B.dec1;
+      arrow(ctx, d.x + d.w + 2, mid(b), b.x - 2, mid(b), colors.dims[1]);
+      fill(b, colors.empirical, a, on);
+      frame(ctx, b.x, b.y, b.w, b.h, tone(colors.empirical), on ? 2 : 1);
     }
     ctx.restore();
-    if (s.kind === "bottleneck" && s.H === 1) {
-      note(ctx, colors, BOTTLENECK_1, w / 2, b.y + b.h + 30, colors.extreme, { align: "center" });
-    }
   });
-  /* the up slab is the right half of its concatenation, drawn after it, so
-     its highlight is framed again on top */
+  /* the up slab is the right half of its concatenation, framed after it */
   if (stages[lit]?.kind === "up") {
-    const b = L.boxes[stages[lit].name];
+    const b = B[stages[lit].name];
     frame(ctx, b.x, b.y, b.w, b.h, colors.highlight, 2);
   }
-  /* the shape of the highlighted stage */
+
+  /* THE SHAPES ON THE SKIP LINES (round 3, A): the encoder's output where the
+     skip starts and the concatenation where it ends, read along one row. Where
+     the line is too short for both, the encoder's goes under its slab and the
+     concatenation's over its bracket. */
+  ctx.save();
+  ctx.font = `${colors.fsXs} ${colors.mono}`;
+  const width = (str) => ctx.measureText(str).width;
+  ctx.restore();
+  for (let l = 1; l <= depth; l += 1) {
+    const st = stages[byName[`enc${l}`]];
+    const e = B[`enc${l}`];
+    const c = B[`cat${l}`];
+    const eStr = M.chw(st.C, st.H);
+    const cStr = M.chw(2 * st.C, st.H);
+    const roomy = c.x - (e.x + e.w) >= width(eStr) + width(cStr) + 24;
+    if (alpha(`enc${l}`) > 0) {
+      if (roomy) note(ctx, colors, eStr, e.x + e.w + 6, mid(e) - 5, enc, { mono: true });
+      else note(ctx, colors, eStr, e.x + e.w / 2 + 8, e.y + e.h + 13, enc, { mono: true });
+    }
+    if (alpha(`cat${l}`) > 0) {
+      if (roomy) note(ctx, colors, cStr, c.x - 6, mid(c) - 5, colors.ink1, { mono: true, align: "right" });
+      else note(ctx, colors, cStr, c.x + c.w / 2, c.y - 12, colors.ink1, { mono: true, align: "center" });
+    }
+  }
+  const bn = stages[byName.bottleneck];
+  if (alpha("bottleneck") > 0) {
+    const b = B.bottleneck;
+    note(ctx, colors, M.chw(bn.C, bn.H), b.x + b.w / 2, b.y + b.h + 13, enc, { mono: true, align: "center" });
+    if (bn.H === 1) note(ctx, colors, BOTTLENECK_1, w / 2, b.y + b.h + 28, colors.extreme, { align: "center" });
+  }
+
+  /* the highlighted stage's shape, with its batch */
   const shown = stages[lit];
   if (shown) note(ctx, colors, `${shown.name}: ${shapeText(M.shapeOf(shown))}`, w / 2, M.SHAPE_Y, colors.highlight, { align: "center", mono: true });
   return L;
@@ -567,11 +612,12 @@ const DICE_CARD_NOTE = "A is the set of pixels in the ground truth and B the set
   + "only the object's pixels, so an empty prediction scores 0 at any size; accuracy counts the background "
   + "too, so on a small object it stays near 1. As a loss, the network's probabilities pᵢ stand in for the "
   + "prediction's 0s and 1s, and tᵢ is the ground truth.";
-const U_CARD_NOTE = "One line a stage, in the order the network runs: [batch, channels, height, width]. "
-  + "A convolution keeps height and width and sets the channels; max-pool halves height and width; the "
-  + "transposed convolution doubles them; the concatenation adds the encoder's channels to the decoder's.";
+const U_CARD_NOTE = "One row a level of the U, as channels × height × width for a batch of 10. The encoder's output "
+  + "crosses the skip and has the shape of the upsampled maps it joins, so the concatenation doubles the "
+  + "channels and keeps the height and width. A convolution sets the channels; max-pool halves the height "
+  + "and width; the transposed convolution doubles them.";
 
-function renderCard(params, state, n) {
+function renderCard(params, state, n, lit = -1) {
   const figure = document.querySelector("#widget .w-figure");
   if (!figure || !figure.parentNode) return;
   if (!cardHost) {
@@ -580,7 +626,7 @@ function renderCard(params, state, n) {
     figure.parentNode.insertBefore(cardHost, figure);
   }
   const dice = M.isDice(params);
-  const key = dice ? "dice" : `unet:${state.depth}:${state.base}:${state.input}:${n}`;
+  const key = dice ? "dice" : `unet:${state.depth}:${state.base}:${state.input}:${n}:${lit}`;
   if (key === cardKey) return;
   cardKey = key;
   if (dice) {
@@ -590,14 +636,39 @@ function renderCard(params, state, n) {
       + `</div><p class="w-math-note">${DICE_CARD_NOTE}</p>`;
     return;
   }
-  /* plain rows, not `.w-math-eq`: that class reserves a gutter for an equation */
-  const reached = state.stages.slice(0, n);
-  const rowStyle = "display:inline-block;width:19em;white-space:nowrap;font-family:var(--font-mono);font-size:var(--fs-xs);color:var(--ink-1)";
-  const rows = reached.length
-    ? reached.map((s) => `<div style="${rowStyle}"><span style="display:inline-block;width:6.5em;color:var(--ink-3)">${s.name}</span>${shapeText(M.shapeOf(s))}</div>`).join("")
-    : `<div style="font-size:var(--fs-xs);color:var(--ink-3)">no stage added yet</div>`;
-  cardHost.innerHTML = `<div style="display:flex;flex-wrap:wrap;row-gap:2px;column-gap:1em">${rows}</div>`
-    + `<p class="w-math-note">${U_CARD_NOTE}</p>`;
+  /* THE LEVEL TABLE (round 3, C): a row a level of the U, so the encoder's
+     output, the upsampled maps and their concatenation sit on one line — the
+     skip's condition is that the first two are the same shape. A cell prints
+     once its stage has been added; the highlighted stage's cell is lit. */
+  const st = Object.fromEntries(state.stages.map((s, i) => [s.name, { ...s, i }]));
+  const litName = state.stages[lit]?.name;
+  const cell = (name, C, H, cls = "") => {
+    const s = st[name];
+    const reached = name === "input" || (s && s.i < n);
+    const on = name === litName;
+    const style = `padding:2px 8px;white-space:nowrap;${cls}`
+      + (on ? "color:var(--c-highlight);font-weight:600;" : reached ? "color:var(--ink-1);" : "color:var(--ink-3);");
+    return `<td style="${style}">${reached ? M.chw(C, H) : "—"}</td>`;
+  };
+  const op = (sym) => `<td style="padding:2px 2px;color:var(--ink-3)">${sym}</td>`;
+  const encB = "border-left:3px solid var(--c-group-a);";
+  const decB = "border-left:3px solid var(--c-group-b);";
+  const th = (t) => `<th style="text-align:left;font-weight:600;color:var(--ink-2);padding:2px 8px;font-family:var(--font)">${t}</th>`;
+  const { depth, base, input } = state;
+  const C = (l) => base * 2 ** (l - 1);
+  const H = (l) => Math.max(1, input >> (l - 1));
+  let rows = "";
+  for (let l = 1; l <= depth; l += 1) {
+    const inCell = l === 1 ? cell("input", M.IN_CH, input, encB) : cell(`pool${l - 1}`, C(l - 1), H(l), encB);
+    rows += `<tr><td style="padding:2px 8px;color:var(--ink-3)">${l}</td>${inCell}${op("→")}${cell(`enc${l}`, C(l), H(l), encB)}`
+      + `${op("+")}${cell(`up${l}`, C(l), H(l), decB)}${op("=")}${cell(`cat${l}`, 2 * C(l), H(l))}${op("→")}${cell(`dec${l}`, C(l), H(l), decB)}</tr>`;
+  }
+  rows += `<tr><td style="padding:2px 8px;color:var(--ink-3)">${depth + 1}</td>${cell(`pool${depth}`, C(depth), H(depth + 1), encB)}${op("→")}`
+    + `${cell("bottleneck", C(depth + 1), H(depth + 1), encB)}<td colspan="6" style="padding:2px 8px;color:var(--ink-3);font-family:var(--font)">the bottleneck</td></tr>`;
+  rows += `<tr><td></td><td colspan="7" style="padding:2px 8px;color:var(--ink-3);font-family:var(--font)">the head, after dec1</td>${op("→")}${cell("head", M.NUM_CLASSES, input, "border-left:3px solid var(--c-empirical);")}</tr>`;
+  cardHost.innerHTML = `<div style="overflow-x:auto"><table style="border-collapse:collapse;font-family:var(--font-mono);font-size:var(--fs-xs)">`
+    + `<tr>${th("level")}${th("encoder in")}<th></th>${th("encoder out")}<th></th>${th("up")}<th></th>${th("concatenation")}<th></th>${th("decoder out")}</tr>`
+    + `${rows}</table></div><p class="w-math-note">${U_CARD_NOTE}</p>`;
 }
 
 /* ============================== the widget ================================= */
@@ -733,6 +804,7 @@ defineWidget({
     const L = M.uLayout(w, st);
     return st.stages.map((s) => {
       const b = L.boxes[s.name];
+      if (!b) throw new Error(`no box for ${s.name}`);
       /* a thin slab is widened to a 12px target; the up slab is the right half
          of its concatenation, and core's hit-test takes the LAST match, so it
          is listed last and wins that half */
@@ -781,7 +853,7 @@ defineWidget({
 
   draw({ ctx, colors, w, params, state, anim }) {
     const reveal = revealOf(anim);
-    renderCard(params, state, anim?.n ?? 0);
+    renderCard(params, state, anim?.n ?? 0, state.page === "unet" ? litOf(reveal, state.stages, params.block) : -1);
     if (state.page === "dice") {
       drawDice(ctx, colors, w, state, reveal);
       return;
