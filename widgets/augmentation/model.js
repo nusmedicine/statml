@@ -12,8 +12,6 @@ export const N = 512;
 export const PAD = 14;
 export const DRAWS = 12;
 export const EPOCHS = 8;
-export const DRAW_MS = 300;
-export const LINE_MS = 350;
 const DEG = Math.PI / 180;
 
 /* ================================ the smear =================================
@@ -378,6 +376,26 @@ export function computePipeline(params, rng) {
   };
 }
 
+/** The sample a press starts from: the output of the line before, or the image as saved. */
+export function beforeStep(state, step) {
+  if (step.line > 0) return state.linesOf(step.epoch)[step.line - 1];
+  const sm = smear("off");
+  return { image: sm.raw, mask: sm.mask, ops: [] };
+}
+
+/** What a press's line does in its epoch: a spatial operation in the file's axes, a γ, noise, or nothing. */
+export function stepChange(state, step) {
+  const l = LINES[step.line];
+  if (!state.train || !l.random || !firedIn(step.line, state.epochs[step.epoch])) return { kind: "none" };
+  const ep = state.epochs[step.epoch];
+  if (l.random === "flip0") return { kind: "spatial", f: E.fileOp({ kind: "flip", axis: 0 }), zeros: false };
+  if (l.random === "flip1") return { kind: "spatial", f: E.fileOp({ kind: "flip", axis: 1 }), zeros: false };
+  if (l.random === "rot90") return { kind: "spatial", f: E.fileOp({ kind: "rot90", k: ep.k }), zeros: false };
+  if (l.random === "affine") return { kind: "spatial", f: E.fileOp(ep.affine), zeros: true };
+  if (l.random === "contrast") return { kind: "contrast", gamma: ep.gamma };
+  return { kind: "noise" };
+}
+
 /**
  * Line i of the list after s presses: "absent" (not in the validation list),
  * "pending", "done" (run in this epoch) or "cached" (served by CacheDataset);
@@ -393,10 +411,133 @@ export function lineStatus(state, s, i) {
   return { status: "pending", current: false };
 }
 
+/**
+ * The list as drawn after s presses, with press s+1 in motion when `moving`:
+ * the epoch shown, each line's status, the line just run and the line running.
+ * A press that starts an epoch shows THAT epoch — its lines before the first
+ * random one cached, the rest pending — so the list and the moving sample are
+ * the same epoch.
+ */
+export function listAt(state, s, moving) {
+  const next = moving && s < state.total ? state.steps[s] : null;
+  const cur = s > 0 ? state.steps[s - 1] : null;
+  if (next && (!cur || next.epoch !== cur.epoch)) {
+    const e = next.epoch;
+    const status = LINES.map((l, i) => {
+      if (!state.train && l.random) return "absent";
+      return e > 0 && (i < FIRST_RANDOM || !state.train) ? "cached" : "pending";
+    });
+    return { epoch: e, status, done: -1, running: next.line };
+  }
+  return {
+    epoch: cur ? cur.epoch : 0,
+    status: LINES.map((_, i) => lineStatus(state, s, i).status),
+    done: cur && lineStatus(state, s, cur.line).current ? cur.line : -1,
+    running: next ? next.line : -1,
+  };
+}
+
 /** What a press is about to do on the Pipeline page after n presses: the next line, or the next epoch. */
 export function pipelinePhase(state, n) {
   if (n >= state.total || n === 0) return "line";
   return state.steps[n].epoch > state.steps[n - 1].epoch ? "epoch" : "line";
+}
+
+/* ================================= the tween ================================
+   Kenneth, round one (2026-09-15): "can add tweening animation?". A draw, or a
+   line of the list, is shown IN MOTION: the transform from nothing to its drawn
+   value, applied to the image it starts from. A mirror squashes to a line and
+   opens mirrored; a quarter turn rotates counter-clockwise, as MONAI's k does
+   under [C, H, W]; an affine's angle, shift and scale ease in together; contrast
+   moves γ from 1; noise raises σ from 0. Every spatial frame is a warp — the
+   engine's own grid with interpolated arguments — sampled at the panel's device
+   pixels (3–5 ms a frame), and the engine's exact result replaces it when the
+   motion ends; the verify holds each tween's last frame to that result. The
+   frames between are a depiction of the motion: MONAI computes no in-between. */
+
+export const TWEEN_MS = 800;
+export const QUIET_MS = 300;
+
+/** A spatial file-orientation operation at fraction e of the way from nothing, as a warp. */
+export function tweenWarp(f, e) {
+  if (f.kind === "warp") {
+    return {
+      kind: "warp",
+      rotate: e * f.rotate,
+      translate: [e * f.translate[0], e * f.translate[1]],
+      scale: [1 + e * (f.scale[0] - 1), 1 + e * (f.scale[1] - 1)],
+    };
+  }
+  if (f.kind === "turn") {
+    /* a positive warp rotate turns the content counter-clockwise (measured), and
+       `quarters` counts clockwise, so k counter-clockwise quarters is 4 − quarters */
+    return { kind: "warp", rotate: (e * ((4 - f.quarters) % 4) * Math.PI) / 2, translate: [0, 0], scale: [1, 1] };
+  }
+  /* a mirror is a squash through zero along its axis: the input read at a
+     factor 1 / (1 − 2e), which is −1 at the end and has no finite value halfway */
+  const s = 1 - 2 * e;
+  const k = Math.abs(s) < 1e-3 ? Infinity : 1 / s;
+  return { kind: "warp", rotate: 0, translate: [0, 0], scale: f.axis === 0 ? [k, 1] : [1, k] };
+}
+
+/**
+ * An image through a warp, sampled at px × px points: the panel's device
+ * pixels. RGBA bytes. `tint` draws a one-channel image as opacity in that
+ * [r, g, b]; outside the input is zeros (opaque black) when `zeros`, else
+ * transparent. Bilinear, with zeros past the edge, as the engine's warp.
+ */
+export function renderWarp(src, px, wp, { zeros = false, tint = null } = {}) {
+  const out = new Uint8ClampedArray(px * px * 4);
+  const { w, h, c } = src;
+  const n = w * h;
+  const cx = (w - 1) / 2;
+  const cy = (h - 1) / 2;
+  const cs = Math.cos(wp.rotate);
+  const sn = Math.sin(wp.rotate);
+  const stepX = w / px;
+  const stepY = h / px;
+  for (let v = 0; v < px; v += 1) {
+    const oy = (v + 0.5) * stepY - 0.5;
+    for (let u = 0; u < px; u += 1) {
+      const ox = (u + 0.5) * stepX - 0.5;
+      const qx = wp.scale[0] * (ox - cx) + wp.translate[0];
+      const qy = wp.scale[1] * (oy - cy) + wp.translate[1];
+      const x = cs * qx - sn * qy + cx;
+      const y = sn * qx + cs * qy + cy;
+      const o = 4 * (v * px + u);
+      if (!(x > -1 && x < w && y > -1 && y < h)) {
+        if (zeros && !tint) out[o + 3] = 255;
+        continue;
+      }
+      const x0 = Math.floor(x);
+      const y0 = Math.floor(y);
+      const fx = x - x0;
+      const fy = y - y0;
+      const at = (ch, xx, yy) => (xx >= 0 && xx < w && yy >= 0 && yy < h ? src.d[ch * n + yy * w + xx] : 0);
+      const sample = (ch) => (at(ch, x0, y0) * (1 - fx) + at(ch, x0 + 1, y0) * fx) * (1 - fy)
+        + (at(ch, x0, y0 + 1) * (1 - fx) + at(ch, x0 + 1, y0 + 1) * fx) * fy;
+      if (tint) {
+        out[o] = tint[0];
+        out[o + 1] = tint[1];
+        out[o + 2] = tint[2];
+        out[o + 3] = 255 * sample(0);
+      } else {
+        for (let ch = 0; ch < 3; ch += 1) out[o + ch] = 255 * sample(c === 3 ? ch : 0);
+        out[o + 3] = 255;
+      }
+    }
+  }
+  return out;
+}
+
+/** How long press n takes: a draw or line that changes the picture moves for TWEEN_MS, one that does not for QUIET_MS. */
+export function durationAt(state, n) {
+  if (state.page === "pipeline") {
+    const st = state.steps[n];
+    if (!st || !state.train) return QUIET_MS;
+    return LINES[st.line].random && firedIn(st.line, state.epochs[st.epoch]) ? TWEEN_MS : QUIET_MS;
+  }
+  return state.draws[n]?.fired ? TWEEN_MS : QUIET_MS;
 }
 
 /* ================================= geometry =================================

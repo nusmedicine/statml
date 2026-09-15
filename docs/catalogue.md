@@ -15640,12 +15640,49 @@ lines).
 9. **Noise's difference × 20 saturates** at a widened std (σ 0.04 × 20); at cell
    19's 0.01 it is a grey speckle.
 
-**NEXT: his round one** at `/widgets/augmentation/` (Transforms) and
-`/widgets/augmentation/?topic=pipeline`; then the copy audit's four passes, "tested
-ok", a shooter and states (settled, one driven; no regions, so no hit state),
-status flip in the manifest AND `main.js`, the full suite fronted, `check` and
-`test` read alone, commit, push — after he has changed cell 19's LoadImaged, which
-the widget's axis wording assumes.
+#### ROUND ONE 2026-09-15 (night) — his two comments, both done in the main session
+
+**(1) "can add tweening animation?"** A draw, and a line of the Pipeline list, is now
+shown in motion from the image it starts with: a mirror squashes to a line and
+opens mirrored, a quarter turn rotates counter-clockwise (k's own direction under
+[C, H, W]), an affine's angle, shift and scale ease in together with the zeros
+growing, contrast moves γ from 1, noise raises σ from 0 (a blend, which is exactly
+σ at e). Spatial frames are warps — the engine's own grid with interpolated
+arguments (`tweenWarp`) — sampled at the panel's device pixels (`renderWarp`,
+3–5 ms a frame); the engine's exact result replaces the last frame, and the verify
+holds every tween's end to that result (< 1e-6), its start to no change, a quarter
+turn halfway to +45° counter-clockwise, and the outline's end to the finished
+outline. A press that changes the picture moves for 800 ms (`TWEEN_MS`), one that
+does not for 300 (`QUIET_MS`). The bands follow the draw in motion: the affine dots
+slide from no change to their values, the γ curve morphs, the σ dot rises and the
+difference fades in. On the Pipeline page the running line carries a dashed rule,
+a press that starts an epoch shows that epoch's list with its cached lines
+(`listAt`), and the call under the list is the running line's.
+
+**(2) "i can't really see the contrast and noise..maybe the defaults were too
+light?"** Measured on the smear first: cell 19's std 0.01 gives a σ averaging 1.2
+grey levels and moves no pixel by more than 10; a γ from (0.7, 1.5) moves the red
+cells 11 levels on average, (0.5, 2.0) 21 and MONAI's own class default (0.5, 4.5)
+57; std 0.1, MONAI's default, averages 12.5 — and prob 0.3 and 0.15 leave most draws
+unapplied. **His pick (one AskUserQuestion): stronger values with prob 1 on those
+two pages** — `gamma=(0.5, 2.0)`, `std=0.1`, `prob=1`; cell 19's values stay in every
+list, and flip, rotate and affine keep cell 19's. Seen in the browser after the
+change: γ 1.69 plainly darkens the red cells; noise at σ 0.024 was still faint,
+because averaging 512 pixels into a 319-device-pixel panel cancels about 40 % of
+pixel noise — so an IMAGE is now shown by the pixel under each device pixel (its
+real values at their own amplitude) while a mask stays averaged (it has no noise,
+and averaging only smooths its edge).
+
+Verify 3,897 checks (§3b the tween, the list in motion); `check` and `test` green;
+every page read in the browser with no console error, mid-motion frames captured
+for a flip, a half turn, an affine with the mask left out of keys, and a line
+crossing into epoch 2.
+
+**NEXT: his read of round one**; then the copy audit's four passes, "tested ok", a
+shooter and states (settled, one driven — now mid-motion; no regions, so no hit
+state), status flip in the manifest AND `main.js`, the full suite fronted, `check`
+and `test` read alone, commit, push — after he has changed cell 19's LoadImaged,
+which the widget's axis wording assumes.
 
 *The entry below is the plan as first written and cut on 2026-09-13, kept as
 written.*

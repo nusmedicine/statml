@@ -57,7 +57,8 @@ const BASE = {
   topic: "transforms", transform: "flip", keys: "image,label", cell: "off",
   flip_prob: "0.5", spatial_axis: "0", rotate_prob: "0.5", max_k: "3", affine_prob: "0.25", rotate_range: "10",
   translate_h: "8", translate_w: "8", scale_h: "0.1", scale_w: "0.1", mode: "nearest",
-  contrast_prob: "0.3", gamma_low: "0.7", gamma_high: "1.5", noise_prob: "0.15", std: "0.01", split: "training",
+  /* contrast and noise open stronger than cell 19 (Kenneth's round-one pick) */
+  contrast_prob: "1", gamma_low: "0.5", gamma_high: "2", noise_prob: "1", std: "0.1", split: "training",
 };
 
 /* §1 ---------------------------------------------------------------------- */
@@ -236,6 +237,81 @@ section("§3 the draws and the list");
       const spatial = [ep.flip0, ep.flip1, ep.k > 0, Boolean(ep.affine)].filter(Boolean).length;
       assert(fin.ops.length === spatial && fin.mask.d.every((v) => v === 0 || v === 1), `training epoch ${k + 1}: ${spatial} spatial lines applied, the mask 0/1 after AsDiscreted`);
     }
+  }
+}
+
+/* §3b --------------------------------------------------------------------- */
+section("§3b the tween: its ends, and its pace");
+{
+  const off = M.smear("off");
+  const maxDiff = (a, b) => {
+    if (a.w !== b.w || a.h !== b.h) return Infinity;
+    let m = 0;
+    for (let i = 0; i < a.d.length; i += 1) m = Math.max(m, Math.abs(a.d[i] - b.d[i]));
+    return m;
+  };
+  const ops = [
+    { kind: "flip", axis: 0 }, { kind: "flip", axis: 1 },
+    { kind: "rot90", k: 1 }, { kind: "rot90", k: 2 }, { kind: "rot90", k: 3 },
+    { kind: "affine", rotate: 0.15, translate: [-6, 5], scale: [1.08, 0.93] },
+  ];
+  for (const op of ops) {
+    const f = E.fileOp(op);
+    const start = M.tweenWarp(f, 0);
+    assert(start.rotate === 0 && start.translate.every((v) => v === 0) && start.scale.every((v) => v === 1),
+      `${JSON.stringify(op)}: the motion starts at no change`);
+    /* the last frame, as a warp through the engine, is the engine's own result */
+    const end = E.applyOp(off.mask, M.tweenWarp(f, 1), "bilinear");
+    const exact = E.applyOp(off.mask, f, "bilinear");
+    assert(maxDiff(end, exact) < 1e-6, `${JSON.stringify(op)}: the motion ends on the engine's result (max ${maxDiff(end, exact).toExponential(1)})`);
+    /* the outline in motion ends where the finished outline is */
+    const a = M.outlineOf(off.wbc, [M.tweenWarp(f, 1)]);
+    const b = M.outlineOf(off.wbc, [f]);
+    const far = a.reduce((m, p, i) => Math.max(m, Math.hypot(p[0] - b[i][0], p[1] - b[i][1])), 0);
+    assert(far < 1e-6, `${JSON.stringify(op)}: the outline in motion ends on the finished outline (${far.toExponential(1)} px)`);
+  }
+  {
+    /* a quarter turn in motion turns counter-clockwise, as k does under [C, H, W]:
+       halfway, the white cell's centre has turned +45° on screen */
+    const f = E.fileOp({ kind: "rot90", k: 1 });
+    const c = (M.N - 1) / 2;
+    const [x, y] = E.mapPoint([off.wbc.x - 0.5, off.wbc.y - 0.5], M.tweenWarp(f, 0.5), M.N, M.N);
+    const before = Math.atan2(off.wbc.y - 0.5 - c, off.wbc.x - 0.5 - c);
+    const after = Math.atan2(y - c, x - c);
+    const turned = ((((before - after) * 180) / Math.PI) + 360) % 360;
+    assert(Math.abs(turned - 45) < 1e-6, `k = 1 halfway: the cell's centre turned ${turned.toFixed(3)}° counter-clockwise on screen`);
+  }
+  {
+    /* the frame renderer at the image's own size and no change reproduces the image */
+    const bytes = M.renderWarp(off.image, M.N, { rotate: 0, translate: [0, 0], scale: [1, 1] });
+    let m = 0;
+    for (let i = 0; i < M.N * M.N; i += 1) {
+      for (let ch = 0; ch < 3; ch += 1) m = Math.max(m, Math.abs(bytes[4 * i + ch] - 255 * off.image.d[ch * M.N * M.N + i]));
+    }
+    assert(m <= 0.5, `renderWarp at no change reproduces the image to ${m.toFixed(2)} of 255`);
+    const mid = M.renderWarp(off.image, 64, M.tweenWarp(E.fileOp({ kind: "flip", axis: 0 }), 0.5));
+    assert(mid.every((v) => v === 0), "a mirror halfway draws nothing: the image has no height");
+  }
+  {
+    const t = M.computeTransforms({ ...BASE, transform: "affine" }, makeRng(106));
+    assert(t.draws.every((d, i) => M.durationAt(t, i) === (d.fired ? M.TWEEN_MS : M.QUIET_MS)), "a draw that is applied moves for TWEEN_MS, one that is not for QUIET_MS");
+    const p = M.computePipeline({ ...BASE, topic: "pipeline" }, makeRng(106));
+    assert(p.steps.every((st, i) => M.durationAt(p, i) === (M.stepChange(p, st).kind === "none" ? M.QUIET_MS : M.TWEEN_MS)),
+      "a line that changes the sample moves for TWEEN_MS, any other for QUIET_MS");
+    const v = M.computePipeline({ ...BASE, topic: "pipeline", split: "validation" }, makeRng(106));
+    assert(v.steps.every((st) => M.stepChange(v, st).kind === "none"), "no line of the validation list changes the sample in motion");
+    const before = M.beforeStep(p, { epoch: 1, line: M.FIRST_RANDOM });
+    assert(before === p.linesOf(1)[M.FIRST_RANDOM - 1], "an epoch's first random line starts from the cached output of the line before it");
+    /* the list in motion is the epoch the sample is in */
+    const boundary = p.steps.findIndex((st) => st.epoch === 1);
+    const moving = M.listAt(p, boundary, true);
+    const settled = M.listAt(p, boundary, false);
+    assert(moving.epoch === 1 && moving.running === M.FIRST_RANDOM && moving.status.slice(0, M.FIRST_RANDOM).every((v) => v === "cached"),
+      "a press that starts epoch 2 shows epoch 2's list, its first random line running");
+    assert(settled.epoch === 0 && settled.done === M.LAST && settled.running === -1, "at rest before that press, the list is epoch 1's, AsDiscreted just run");
+    const vEnd = M.listAt(v, v.total, false);
+    assert(vEnd.done === -1 && vEnd.status.every((st, i) => (M.LINES[i].random ? st === "absent" : st === "cached")),
+      "the validation list's last epoch: every line cached or absent, none lit as just run");
   }
 }
 

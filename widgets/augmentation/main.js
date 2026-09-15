@@ -56,8 +56,11 @@ import * as M from "./model.js";
 
 /* --- primitives ------------------------------------------------------------ */
 
-const easeOut = (t) => 1 - (1 - t) ** 3;
+/* a transform in motion starts and ends at rest */
+const easeInOut = (t) => (t < 0.5 ? 4 * t ** 3 : 1 - (-2 * t + 2) ** 3 / 2);
 const signed = (v, d) => (v < 0 ? `−${Math.abs(v).toFixed(d)}` : v.toFixed(d));
+const hexRgb = (hex) => [1, 3, 5].map((k) => parseInt(hex.slice(k, k + 2), 16));
+const devicePx = (size) => Math.max(1, Math.round(size * (globalThis.devicePixelRatio || 1)));
 const DEG = Math.PI / 180;
 
 function txt(ctx, colors, s, x, y, o = {}) {
@@ -90,13 +93,19 @@ function dot(ctx, x, y, color, r = 3) {
   ctx.restore();
 }
 
-/* AN IMAGE ON THE CANVAS. The engine's 512 × 512 arrays are averaged down to
-   the panel's DEVICE pixels here, in JavaScript, and drawn 1 : 1: the
-   browser's own downscaling of a large bitmap is not guaranteed to give the
-   same pixels twice, and the fingerprint hashes pixels. Kept per image and
-   size, so a frame redraws a bitmap and computes nothing. A mask is drawn in
-   the ground truth's colour with its value as the opacity, so a bilinear
-   mask's fractions show as partial colour. */
+/* AN IMAGE ON THE CANVAS. The engine's 512 × 512 arrays are brought to the
+   panel's DEVICE pixels here, in JavaScript, and drawn 1 : 1: the browser's own
+   downscaling of a large bitmap is not guaranteed to give the same pixels
+   twice, and the fingerprint hashes pixels. Kept per image and size, so a frame
+   redraws a bitmap and computes nothing.
+
+   AN IMAGE IS SAMPLED, A MASK AVERAGED (round one, 2026-09-15, "i can't really
+   see the contrast and noise"): averaging 512 pixels into a 255 px panel's 319
+   cancels about 40 % of pixel noise before it reaches the screen, so an image
+   shows the pixel under each device pixel — real values at their own
+   amplitude. A mask has no noise, and averaging it only smooths its edge; it is
+   drawn in the ground truth's colour with its value as the opacity, so a
+   bilinear mask's fractions show as partial colour. */
 const bitmaps = new WeakMap();
 function bitmapOf(im, px, tint) {
   let per = bitmaps.get(im);
@@ -111,6 +120,22 @@ function bitmapOf(im, px, tint) {
   c.height = px;
   const g = c.getContext("2d");
   const id = g.createImageData(px, px);
+  if (!tint && im.c === 3) {
+    const n3 = im.w * im.h;
+    for (let v = 0; v < px; v += 1) {
+      const y = Math.min(im.h - 1, Math.floor(((v + 0.5) * im.h) / px));
+      for (let u = 0; u < px; u += 1) {
+        const i = y * im.w + Math.min(im.w - 1, Math.floor(((u + 0.5) * im.w) / px));
+        const o = 4 * (v * px + u);
+        for (let ch = 0; ch < 3; ch += 1) id.data[o + ch] = Math.max(0, Math.min(255, Math.round(255 * im.d[ch * n3 + i])));
+        id.data[o + 3] = 255;
+      }
+    }
+    g.putImageData(id, 0, 0);
+    c.bytes = id.data;
+    per.set(key, c);
+    return c;
+  }
   const acc = new Float32Array(px * px * 3);
   const cnt = new Float32Array(px * px);
   const n = im.w * im.h;
@@ -145,12 +170,47 @@ function bitmapOf(im, px, tint) {
     }
   }
   g.putImageData(id, 0, 0);
+  /* the bytes too: a contrast in motion reshapes them each frame */
+  c.bytes = id.data;
   per.set(key, c);
   return c;
 }
 function paintImage(ctx, im, x, y, size, tint = null) {
-  const px = Math.max(1, Math.round(size * (globalThis.devicePixelRatio || 1)));
-  ctx.drawImage(bitmapOf(im, px, tint), x, y, size, size);
+  ctx.drawImage(bitmapOf(im, devicePx(size), tint), x, y, size, size);
+}
+
+/* A FRAME OF MOTION: RGBA bytes at a panel's device pixels, put on one canvas
+   kept per size and drawn 1 : 1. drawImage copies at the call, so the image
+   and its mask can share the canvas in turn. */
+const scratch = new Map();
+function blit(ctx, bytes, x, y, size) {
+  const px = devicePx(size);
+  let c = scratch.get(px);
+  if (!c) {
+    c = document.createElement("canvas");
+    c.width = px;
+    c.height = px;
+    scratch.set(px, c);
+  }
+  c.getContext("2d").putImageData(new ImageData(bytes, px, px), 0, 0);
+  ctx.drawImage(c, x, y, size, size);
+}
+
+/* γ in motion on an image already scaled to 0–1: each byte through v^γ, which
+   is AdjustContrast on a 0–1 image. Applied to the panel's averaged bytes, so a
+   frame costs a table; the exact result replaces it when the motion ends. */
+function gammaBytes(im, size, gamma) {
+  const src = bitmapOf(im, devicePx(size)).bytes;
+  const lut = new Uint8ClampedArray(256);
+  for (let v = 0; v < 256; v += 1) lut[v] = Math.round(255 * (v / 255) ** gamma);
+  const out = new Uint8ClampedArray(src.length);
+  for (let i = 0; i < src.length; i += 4) {
+    out[i] = lut[src[i]];
+    out[i + 1] = lut[src[i + 1]];
+    out[i + 2] = lut[src[i + 2]];
+    out[i + 3] = 255;
+  }
+  return out;
 }
 
 /* An outline in the file's coordinates, scaled to a panel, under a halo in the
@@ -181,24 +241,24 @@ function outline(ctx, colors, pts, x, y, size, { color, width = 1.5, dash = null
   ctx.stroke();
   ctx.restore();
 }
-function imagePanel(ctx, colors, im, x, y, size, lines = [], alpha = 1) {
-  ctx.save();
-  ctx.globalAlpha = alpha;
-  paintImage(ctx, im, x, y, size);
-  ctx.restore();
-  lines.forEach((l) => outline(ctx, colors, l.pts, x, y, size, { ...l, alpha: (l.alpha ?? 1) * alpha }));
+/** A panel: its pixels from `paint`, the outlines over them, a frame. */
+function panel(ctx, colors, x, y, size, paint, lines = []) {
+  paint();
+  lines.forEach((l) => outline(ctx, colors, l.pts, x, y, size, l));
   frame(ctx, x, y, size, size, colors.grid);
 }
-function maskPanel(ctx, colors, m, x, y, size, alpha = 1) {
-  ctx.save();
-  if (alpha >= 1) {
+const imagePanel = (ctx, colors, im, x, y, size, lines = []) =>
+  panel(ctx, colors, x, y, size, () => paintImage(ctx, im, x, y, size), lines);
+/** A mask panel: the surface, then the mask in the ground truth's colour from `paint` or the image. */
+function maskPanel(ctx, colors, m, x, y, size, bytes = null) {
+  panel(ctx, colors, x, y, size, () => {
+    ctx.save();
     ctx.fillStyle = colors.surface;
     ctx.fillRect(x, y, size, size);
-  }
-  ctx.globalAlpha = alpha;
-  paintImage(ctx, m, x, y, size, colors.reference);
-  ctx.restore();
-  frame(ctx, x, y, size, size, colors.grid);
+    ctx.restore();
+    if (bytes) blit(ctx, bytes, x, y, size);
+    else paintImage(ctx, m, x, y, size, colors.reference);
+  });
 }
 
 /* ============================ the Transforms page ========================= */
@@ -231,23 +291,72 @@ function shortText(kind, d) {
 /* the mask's outline for a sample: where the mask IS, which under keys=["image"] is where it was */
 const maskLine = (smp) => M.outlineOf(smp.wbc, smp.stale === null ? smp.ops : []);
 
-function paintAugmented(ctx, colors, L, state, params, i, alpha) {
-  const smp = state.sample(i, params.cell);
+/* the faint outlines of the affine draws before draw i, where their masks are */
+function earlierLines(colors, state, wbc, i) {
   const lines = [];
-  if (state.kind === "affine" && state.withLabel) {
-    for (let j = 0; j < i; j += 1) {
-      if (state.draws[j].fired) lines.push({ pts: M.outlineOf(smp.wbc, M.fileOpsOf(state.draws[j])), color: colors.empirical, width: 1, alpha: 0.5 });
-    }
+  if (state.kind !== "affine" || !state.withLabel) return lines;
+  for (let j = 0; j < i; j += 1) {
+    if (state.draws[j].fired) lines.push({ pts: M.outlineOf(wbc, M.fileOpsOf(state.draws[j])), color: colors.empirical, width: 1, alpha: 0.5 });
   }
-  if (smp.stale !== null) {
-    lines.push({ pts: M.outlineOf(smp.wbc, []), color: colors.reference, width: 2 });
-    lines.push({ pts: M.outlineOf(smp.wbc, smp.ops), color: colors.highlight, width: 1.3, dash: [4, 3] });
+  return lines;
+}
+
+/* the outlines on an augmented image: the mask where it is, and under
+   keys=["image"] also where the white cell went — `ops` carries the cell */
+function cellLines(colors, wbc, ops, withLabel) {
+  if (withLabel) return [{ pts: M.outlineOf(wbc, ops), color: colors.reference }];
+  return [
+    { pts: M.outlineOf(wbc, []), color: colors.reference, width: 2 },
+    { pts: M.outlineOf(wbc, ops), color: colors.highlight, width: 1.3, dash: [4, 3] },
+  ];
+}
+
+/** Draw i, finished: the engine's exact result. */
+function paintAugmented(ctx, colors, L, state, params, i) {
+  const smp = state.sample(i, params.cell);
+  const spatial = M.isSpatial(state.kind);
+  const lines = [...earlierLines(colors, state, smp.wbc, i), ...cellLines(colors, smp.wbc, smp.ops, !spatial || state.withLabel)];
+  imagePanel(ctx, colors, smp.image, L.x1, L.imgY, L.s, lines);
+  maskPanel(ctx, colors, smp.mask, L.x1, L.maskY, L.s);
+}
+
+/**
+ * Draw i IN MOTION at eased fraction e, from the original: a spatial draw as
+ * its warp at e, the mask moving with the image when "label" is in keys;
+ * contrast as γ at 1 + e(γ − 1); noise as the noise at e of its σ, which is a
+ * blend of the original and the noisy sample. A draw that does not fire shows
+ * the original, which is what MONAI returns.
+ */
+function paintTween(ctx, colors, L, state, params, i, e) {
+  const sm = M.smear(params.cell);
+  const d = state.draws[i];
+  const kind = state.kind;
+  const { x1, imgY, maskY, s } = L;
+  const early = earlierLines(colors, state, sm.wbc, i);
+  if (d.fired && M.isSpatial(kind)) {
+    const wp = M.tweenWarp(M.fileOpsOf(d)[0], e);
+    const px = devicePx(s);
+    panel(ctx, colors, x1, imgY, s, () => blit(ctx, M.renderWarp(sm.image, px, wp, { zeros: kind === "affine" }), x1, imgY, s),
+      [...early, ...cellLines(colors, sm.wbc, [wp], state.withLabel)]);
+    maskPanel(ctx, colors, sm.mask, x1, maskY, s, state.withLabel ? M.renderWarp(sm.mask, px, wp, { tint: hexRgb(colors.reference) }) : null);
+    return;
+  }
+  const lines = cellLines(colors, sm.wbc, [], true);
+  if (d.fired && kind === "contrast") {
+    panel(ctx, colors, x1, imgY, s, () => blit(ctx, gammaBytes(sm.image, s, 1 + e * (d.gamma - 1)), x1, imgY, s), lines);
+  } else if (d.fired && kind === "noise") {
+    const noisy = state.sample(i, params.cell).image;
+    panel(ctx, colors, x1, imgY, s, () => {
+      paintImage(ctx, sm.image, x1, imgY, s);
+      ctx.save();
+      ctx.globalAlpha = e;
+      paintImage(ctx, noisy, x1, imgY, s);
+      ctx.restore();
+    }, lines);
   } else {
-    lines.push({ pts: maskLine(smp), color: colors.reference });
+    imagePanel(ctx, colors, sm.image, x1, imgY, s, [...early, ...lines]);
   }
-  imagePanel(ctx, colors, smp.image, L.x1, L.imgY, L.s, lines, alpha);
-  maskPanel(ctx, colors, smp.mask, L.x1, L.maskY, L.s, alpha);
-  return smp;
+  maskPanel(ctx, colors, sm.mask, x1, maskY, s);
 }
 
 function drawGrid(ctx, colors, w, params, state, n) {
@@ -276,11 +385,20 @@ function drawGrid(ctx, colors, w, params, state, n) {
     M.PAD, B.tallyY, colors.ink1);
 }
 
-function drawRanges(ctx, colors, w, params, state, n) {
+/* The draws a band shows: the finished ones, and the one in motion at eased
+   fraction e. The newest applied draw is lit — the one in motion while there
+   is one, so its dot or curve travels from "no change" to its value. */
+function bandDraws(state, n, flight) {
+  const shown = state.draws.slice(0, n).map((d, i) => ({ d, i, e: 1 }));
+  if (flight && state.draws[flight.i].fired) shown.push({ d: state.draws[flight.i], i: flight.i, e: flight.e });
+  const lit = shown.filter((s) => s.d.fired).map((s) => s.i).pop();
+  return { shown, lit };
+}
+
+function drawRanges(ctx, colors, w, params, state, n, flight) {
   const B = M.bandLayout(w, params);
-  const shown = state.draws.slice(0, n);
-  const lastFired = shown.map((d, i) => (d.fired ? i : -1)).filter((i) => i >= 0).pop();
-  const pointTone = (i) => (i === lastFired ? colors.highlight : colors.empirical);
+  const { shown, lit } = bandDraws(state, n, flight);
+  const pointTone = (i) => (i === lit ? colors.highlight : colors.empirical);
   const r = Number(params.rotate_range);
   note(ctx, colors, "rotate, degrees", M.PAD, B.lineY + 4, colors.ink2);
   ctx.save();
@@ -294,7 +412,9 @@ function drawRanges(ctx, colors, w, params, state, n) {
   note(ctx, colors, "0", B.lineX + B.lineW / 2, B.lineY + 16, colors.ink3, { align: "center" });
   note(ctx, colors, String(r), B.lineX + B.lineW, B.lineY + 16, colors.ink3, { align: "right" });
   const along = (v, range) => (range > 0 ? (v + range) / (2 * range) : 0.5);
-  shown.forEach((d, i) => { if (d.fired) dot(ctx, B.lineX + along(d.op.rotate / DEG, r) * B.lineW, B.lineY, pointTone(i), i === lastFired ? 4 : 3); });
+  shown.forEach(({ d, i, e }) => {
+    if (d.fired) dot(ctx, B.lineX + along((e * d.op.rotate) / DEG, r) * B.lineW, B.lineY, pointTone(i), i === lit ? 4 : 3);
+  });
 
   const box = (bx, label, rows, cols, center, valOf, ticks, rowTicks) => {
     note(ctx, colors, label, bx, B.boxY - 8, colors.ink2);
@@ -315,10 +435,10 @@ function drawRanges(ctx, colors, w, params, state, n) {
     note(ctx, colors, "height", bx - 6, B.boxY + B.bs / 2 + 3, colors.ink3, { align: "right" });
     note(ctx, colors, ticks[0], bx, B.boxY + B.bs + 14, colors.ink3);
     note(ctx, colors, ticks[1], bx + B.bs, B.boxY + B.bs + 14, colors.ink3, { align: "right" });
-    shown.forEach((d, i) => {
+    shown.forEach(({ d, i, e }) => {
       if (!d.fired) return;
-      const [vh, vw] = valOf(d);
-      dot(ctx, bx + along(vw - center, cols) * B.bs, B.boxY + along(vh - center, rows) * B.bs, pointTone(i), i === lastFired ? 4 : 3);
+      const [vh, vw] = valOf(d).map((v) => center + e * (v - center));
+      dot(ctx, bx + along(vw - center, cols) * B.bs, B.boxY + along(vh - center, rows) * B.bs, pointTone(i), i === lit ? 4 : 3);
     });
   };
   const th = Number(params.translate_h);
@@ -328,7 +448,7 @@ function drawRanges(ctx, colors, w, params, state, n) {
   box(B.boxX[0], "translate, px", th, tw, 0, (d) => d.op.translate, [signed(-tw, 0), String(tw)], [signed(-th, 0), String(th)]);
   box(B.boxX[1], "scale", sh, sw, 1, (d) => d.op.scale, [(1 - sw).toFixed(1), (1 + sw).toFixed(1)], [(1 - sh).toFixed(1), (1 + sh).toFixed(1)]);
   if (n) {
-    const fired = shown.filter((d) => d.fired).length;
+    const fired = state.draws.slice(0, n).filter((d) => d.fired).length;
     note(ctx, colors, `applied in ${fired} of ${n} draws; a dot is one applied draw's argument, on the range it is drawn from`, M.PAD, B.tallyY, colors.ink1);
   }
   if (B.mag) drawMagnifier(ctx, colors, w, B, state, params, n);
@@ -374,7 +494,7 @@ function drawMagnifier(ctx, colors, w, B, state, params, n) {
     M.PAD, top + 14 + size + 48, colors.ink1);
 }
 
-function drawCurve(ctx, colors, w, params, state, n) {
+function drawCurve(ctx, colors, w, params, state, n, flight) {
   const B = M.bandLayout(w, params);
   const [lo, hi] = M.gammaRange(params);
   const x0 = M.PAD + 26;
@@ -411,10 +531,14 @@ function drawCurve(ctx, colors, w, params, state, n) {
     ctx.restore();
   };
   curve(1, colors.reference, 1);
-  const shown = state.draws.slice(0, n);
-  const fired = shown.filter((d) => d.fired);
-  fired.slice(0, -1).forEach((d) => curve(d.gamma, colors.empirical, 1, 0.7));
-  if (fired.length) curve(fired[fired.length - 1].gamma, colors.highlight, 2);
+  const { shown, lit } = bandDraws(state, n, flight);
+  shown.forEach(({ d, i, e }) => {
+    if (!d.fired) return;
+    const g = 1 + e * (d.gamma - 1);
+    if (i === lit) curve(g, colors.highlight, 2);
+    else curve(g, colors.empirical, 1, 0.7);
+  });
+  const fired = state.draws.slice(0, n).filter((d) => d.fired);
   note(ctx, colors, "0", x0, y0 + S + 13, colors.ink3, { align: "center" });
   note(ctx, colors, "1", x0 + S, y0 + S + 13, colors.ink3, { align: "center" });
   note(ctx, colors, "value before", x0 + S / 2, y0 + S + 26, colors.ink3, { align: "center" });
@@ -429,17 +553,24 @@ function drawCurve(ctx, colors, w, params, state, n) {
   if (n) note(ctx, colors, `applied in ${fired.length} of ${n} draws; a curve is one applied draw`, tx, y0 + 54, colors.ink1);
 }
 
-function drawNoise(ctx, colors, w, params, state, n) {
+function drawNoise(ctx, colors, w, params, state, n, flight) {
   const B = M.bandLayout(w, params);
   const S = B.size;
   const y0 = B.top + 8;
-  const shown = state.draws.slice(0, n);
-  const lastFired = shown.map((d, i) => (d.fired ? i : -1)).filter((i) => i >= 0).pop();
-  if (lastFired === undefined) {
+  const { shown, lit } = bandDraws(state, n, flight);
+  if (lit === undefined) {
     frame(ctx, M.PAD, y0, S, S, colors.grid);
   } else {
-    const smp = state.sample(lastFired, params.cell);
-    imagePanel(ctx, colors, smp.diff, M.PAD, y0, S);
+    /* the difference of the lit draw at its fraction: after − before scales
+       with σ, so each value moves from 0.5, no change, by e of the way */
+    const { e } = shown.find((s) => s.i === lit);
+    const src = bitmapOf(state.sample(lit, params.cell).diff, devicePx(S)).bytes;
+    const bytes = new Uint8ClampedArray(src.length);
+    for (let k = 0; k < src.length; k += 4) {
+      for (let ch = 0; ch < 3; ch += 1) bytes[k + ch] = 127.5 + e * (src[k + ch] - 127.5);
+      bytes[k + 3] = 255;
+    }
+    panel(ctx, colors, M.PAD, y0, S, () => blit(ctx, bytes, M.PAD, y0, S));
   }
   note(ctx, colors, "after − before, × 20", M.PAD, y0 + S + 14, colors.ink1);
   note(ctx, colors, "mid-grey is no change", M.PAD, y0 + S + 28, colors.ink3);
@@ -457,9 +588,11 @@ function drawNoise(ctx, colors, w, params, state, n) {
   ctx.restore();
   note(ctx, colors, "0", lx, ly + 16, colors.ink3);
   note(ctx, colors, String(std), lx + lw, ly + 16, colors.ink3, { align: "right" });
-  shown.forEach((d, i) => { if (d.fired) dot(ctx, lx + (d.sigma / std) * lw, ly, i === lastFired ? colors.highlight : colors.empirical, i === lastFired ? 4 : 3); });
+  shown.forEach(({ d, i, e }) => {
+    if (d.fired) dot(ctx, lx + ((e * d.sigma) / std) * lw, ly, i === lit ? colors.highlight : colors.empirical, i === lit ? 4 : 3);
+  });
   if (n) {
-    const fired = shown.filter((d) => d.fired).length;
+    const fired = state.draws.slice(0, n).filter((d) => d.fired).length;
     note(ctx, colors, `applied in ${fired} of ${n} draws; σ is drawn from 0 to std`, lx, ly + 44, colors.ink1);
     note(ctx, colors, `std = ${std} is ${(255 * std).toFixed(1)} grey levels of 255`, lx, ly + 60, colors.ink3);
   }
@@ -471,24 +604,31 @@ function drawTransforms(ctx, colors, w, params, state, anim) {
   const t = anim?.t ?? 0;
   const kind = state.kind;
   const sm = M.smear(params.cell);
+  const drawing = t > 0 && n < M.DRAWS ? n + 1 : n;
   caption(ctx, colors, `${M.CLASS[kind]} on one training image and its mask`, M.PAD, 20);
   note(ctx, colors, "Original", L.x0, L.imgY - 8, colors.ink2, { weight: "600" });
-  note(ctx, colors, n ? `Augmented, draw ${n} of ${M.DRAWS}` : "Augmented", L.x1, L.imgY - 8, colors.ink2, { weight: "600" });
+  note(ctx, colors, drawing ? `Augmented, draw ${drawing} of ${M.DRAWS}` : "Augmented", L.x1, L.imgY - 8, colors.ink2, { weight: "600" });
   imagePanel(ctx, colors, sm.image, L.x0, L.imgY, L.s, [{ pts: M.outlineOf(sm.wbc, []), color: colors.reference }]);
   note(ctx, colors, "mask", L.x0, L.maskY - 6, colors.ink3);
   note(ctx, colors, "mask", L.x1, L.maskY - 6, colors.ink3);
   maskPanel(ctx, colors, sm.mask, L.x0, L.maskY, L.s);
 
-  if (n) {
-    paintAugmented(ctx, colors, L, state, params, n - 1, 1);
+  /* a draw in motion replaces the last one: every draw starts from the original */
+  const flight = t > 0 && n < M.DRAWS ? { i: n, e: easeInOut(t) } : null;
+  if (flight) {
+    paintTween(ctx, colors, L, state, params, flight.i, flight.e);
+  } else if (n) {
+    paintAugmented(ctx, colors, L, state, params, n - 1);
   } else {
     frame(ctx, L.x1, L.imgY, L.s, L.s, colors.grid);
     frame(ctx, L.x1, L.maskY, L.s, L.s, colors.grid);
     note(ctx, colors, "Press Draw to apply the call", L.x1 + L.s / 2, L.imgY + L.s / 2, colors.ink3, { align: "center" });
   }
-  if (t > 0 && n < M.DRAWS) paintAugmented(ctx, colors, L, state, params, n, easeOut(t));
 
-  if (n) {
+  if (flight) {
+    const d = state.draws[flight.i];
+    note(ctx, colors, drawText(kind, d, params), M.PAD, L.line1, d.fired ? colors.ink1 : colors.ink3);
+  } else if (n) {
     const d = state.draws[n - 1];
     const smp = state.sample(n - 1, params.cell);
     note(ctx, colors, drawText(kind, d, params), M.PAD, L.line1, d.fired ? colors.ink1 : colors.ink3);
@@ -504,9 +644,9 @@ function drawTransforms(ctx, colors, w, params, state, anim) {
   }
 
   if (kind === "flip" || kind === "rotate") drawGrid(ctx, colors, w, params, state, n);
-  else if (kind === "affine") drawRanges(ctx, colors, w, params, state, n);
-  else if (kind === "contrast") drawCurve(ctx, colors, w, params, state, n);
-  else drawNoise(ctx, colors, w, params, state, n);
+  else if (kind === "affine") drawRanges(ctx, colors, w, params, state, n, flight);
+  else if (kind === "contrast") drawCurve(ctx, colors, w, params, state, n, flight);
+  else drawNoise(ctx, colors, w, params, state, n, flight);
 }
 
 /* ============================== the Pipeline page ========================= */
@@ -548,15 +688,25 @@ function drawPipeline(ctx, colors, w, params, state, anim) {
   const s = Math.min(anim?.n ?? 0, state.total);
   const t = anim?.t ?? 0;
   const cur = s > 0 ? state.steps[s - 1] : null;
-  const epoch = cur ? cur.epoch : 0;
+  const moving = t > 0 && s < state.total;
+  const view = M.listAt(state, s, moving);
+  const epoch = view.epoch;
   const list = state.train ? "train_transforms" : "val_test_transforms";
-  caption(ctx, colors, cur ? `${list}, epoch ${epoch + 1} of ${M.EPOCHS}` : `${list}, before the first epoch`, M.PAD, 20);
+  caption(ctx, colors, cur || moving ? `${list}, epoch ${epoch + 1} of ${M.EPOCHS}` : `${list}, before the first epoch`, M.PAD, 20);
 
   const listW = P.sx - M.PAD - 14;
   const statusX = M.PAD + 150;
   M.LINES.forEach((l, i) => {
     const y = P.top + i * P.row;
-    const st = M.lineStatus(state, s, i);
+    const st = { status: view.status[i], current: i === view.done };
+    /* the line whose motion is on the sample now */
+    if (i === view.running) {
+      ctx.save();
+      ctx.strokeStyle = colors.highlight;
+      ctx.setLineDash([3, 3]);
+      ctx.strokeRect(M.PAD + 0.5, y + 0.5, listW - 1, P.row - 1);
+      ctx.restore();
+    }
     if (st.current) {
       ctx.save();
       ctx.fillStyle = colors.surface2;
@@ -583,20 +733,43 @@ function drawPipeline(ctx, colors, w, params, state, anim) {
     if (text) note(ctx, colors, text, statusX, y + 14, fired ? colors.ink1 : colors.ink3, { weight: fired ? "600" : "" });
   });
 
-  const lines = state.linesOf(epoch);
-  const at = cur ? lines[cur.line] : { image: M.smear("off").raw, ops: [] };
   const wbc = M.PLACEMENTS.off;
-  imagePanel(ctx, colors, at.image, P.sx, P.top, P.s, [{ pts: M.outlineOf(wbc, at.ops), color: colors.reference }]);
+  const line = (ops) => [{ pts: M.outlineOf(wbc, ops), color: colors.reference }];
   if (t > 0 && s < state.total) {
+    /* THE LINE IN MOTION, from the sample it starts with: a fired spatial line
+       as its warp, contrast as γ from 1, and any other line — noise, the
+       scaling, a line that did not fire — as a blend to its output */
     const nx = state.steps[s];
-    const nxt = state.linesOf(nx.epoch)[nx.line];
-    imagePanel(ctx, colors, nxt.image, P.sx, P.top, P.s, [{ pts: M.outlineOf(wbc, nxt.ops), color: colors.reference }], easeOut(t));
+    const e = easeInOut(t);
+    const before = M.beforeStep(state, nx);
+    const after = state.linesOf(nx.epoch)[nx.line];
+    const change = M.stepChange(state, nx);
+    if (change.kind === "spatial") {
+      const wp = M.tweenWarp(change.f, e);
+      const bytes = M.renderWarp(before.image, devicePx(P.s), wp, { zeros: change.zeros });
+      panel(ctx, colors, P.sx, P.top, P.s, () => blit(ctx, bytes, P.sx, P.top, P.s), line([...before.ops, wp]));
+    } else if (change.kind === "contrast") {
+      panel(ctx, colors, P.sx, P.top, P.s, () => blit(ctx, gammaBytes(before.image, P.s, 1 + e * (change.gamma - 1)), P.sx, P.top, P.s), line(before.ops));
+    } else {
+      panel(ctx, colors, P.sx, P.top, P.s, () => {
+        paintImage(ctx, before.image, P.sx, P.top, P.s);
+        ctx.save();
+        ctx.globalAlpha = e;
+        paintImage(ctx, after.image, P.sx, P.top, P.s);
+        ctx.restore();
+      }, line(after.ops));
+    }
+  } else {
+    const at = cur ? state.linesOf(epoch)[cur.line] : { image: M.smear("off").raw, ops: [] };
+    imagePanel(ctx, colors, at.image, P.sx, P.top, P.s, line(at.ops));
   }
   note(ctx, colors, cur ? "the sample after the line just run," : "the image as saved", P.sx, P.top + P.s + 14, colors.ink3);
   if (cur) note(ctx, colors, "the mask's outline on it", P.sx, P.top + P.s + 28, colors.ink3);
 
-  if (cur) code(ctx, colors, M.LINES[cur.line].call, M.PAD, P.detailY, colors.ink2);
-  const detail = detailOf(state, cur);
+  /* the call of the line on the sample: the one running, else the one just run */
+  const named = moving ? state.steps[s] : cur;
+  if (named) code(ctx, colors, M.LINES[named.line].call, M.PAD, P.detailY, colors.ink2);
+  const detail = detailOf(state, named);
   if (detail) note(ctx, colors, detail, M.PAD, P.detailY + 16, colors.ink1);
 
   note(ctx, colors, "The same image, epoch by epoch", M.PAD, P.stripY, colors.ink2, { weight: "600" });
@@ -681,11 +854,19 @@ defineWidget({
     scale_h: slot(opts(["0", "0.1", "0.2", "0.3"]), "0.1", "height"),
     scale_w: slot(opts(["0", "0.1", "0.2", "0.3"]), "0.1", "width"),
     mode: slot([{ value: "nearest", label: '"nearest"' }, { value: "bilinear", label: '"bilinear"' }], "nearest", "label"),
-    contrast_prob: slot(opts(M.PROBS), "0.3"),
-    gamma_low: slot(opts(["0.3", "0.5", "0.7", "1"]), "0.7", "low"),
-    gamma_high: slot(opts(["1", "1.5", "2", "3"]), "1.5", "high"),
-    noise_prob: slot(opts(M.PROBS), "0.15"),
-    std: slot(opts(["0.01", "0.05", "0.1"]), "0.01"),
+    /* CONTRAST AND NOISE OPEN STRONGER THAN CELL 19 (Kenneth, round one: "i
+       can't really see the contrast and noise..maybe the defaults were too
+       light?"; his pick 2026-09-15). Measured on the smear: cell 19's std 0.01
+       gives a σ averaging 1.2 grey levels and moves no pixel by more than 10,
+       and a γ from (0.7, 1.5) moves the red cells 11 levels on average; with
+       prob 0.3 and 0.15 most draws are not applied at all. These pages open
+       on prob 1, gamma (0.5, 2.0) — 21 levels — and std 0.1, MONAI's own
+       default, 12.5 levels; cell 19's values stay in every list. */
+    contrast_prob: slot(opts(M.PROBS), "1"),
+    gamma_low: slot(opts(["0.3", "0.5", "0.7", "1"]), "0.5", "low"),
+    gamma_high: slot(opts(["1", "1.5", "2", "3"]), "2", "high"),
+    noise_prob: slot(opts(M.PROBS), "1"),
+    std: slot(opts(["0.01", "0.05", "0.1"]), "0.1"),
 
     callSec: { type: "section", label: "The call", when: ON("transforms") },
     flipA: { type: "expr", open: "RandFlipd(keys=", close: ",", slots: ["keys"], when: IS("flip") },
@@ -796,7 +977,8 @@ defineWidget({
         anim.done = true;
         return false;
       }
-      anim.t += dt / (state.page === "pipeline" ? M.LINE_MS : M.DRAW_MS);
+      /* a press that changes the picture moves for longer than one that does not */
+      anim.t += dt / M.durationAt(state, anim.n);
       if (anim.t < 1) return true;
       anim.t = 0;
       anim.n += 1;
