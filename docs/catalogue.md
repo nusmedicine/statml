@@ -8767,9 +8767,57 @@ p·c·m / (p·Cₜ + 2(1 − p)), the CCF solved from it, the binomial likelihoo
   the clusters and MATH as the lesson computes them; the same mutations on the
   CCF axis. One clone is an option, and its MATH is not zero.
 
-**Measure first:** a Gaussian mixture chosen by BIC, as `mclust` does, on one
-clone at the lesson's spread of depths — the claim that it splits one peak into
-several clusters is inferred from a single figure.
+#### MEASURED 2026-09-16 — `_lab/vaf-measure.mjs`, 18 checks, seeded, no data file
+
+Its four constants come from the lesson through `_lab/cancer-plan-measure.mjs`:
+the depth at a non-synonymous mutation (median 88, IQR 49–161), cell 24's
+purities, MATH's formula, and cell 23's printed range.
+
+- **The model reproduces cell 17's three readings** — 0.5 clonal at purity 1,
+  0.35 at purity 0.7, 0.25 on one of four copies — so the copy-number control
+  carries the lesson's own cases, and 2 + 0 with both copies mutated is its
+  VAF ~ 1 panel.
+- **Three arrangements the first page can draw side by side all read VAF
+  0.250:** half the sample is normal cells; half the tumour cells carry it; it
+  sits on one of four copies in every tumour cell. Nineteen arrangements in the
+  swept grid read 0.25 ± 0.004. One equation, three unknowns, and no depth
+  separates them — that is the page.
+- **Depth is the width of the peak, not its place.** A clonal mutation at
+  purity 0.7 reads 0.194–0.516 at depth 31 and 0.308–0.392 at 500, and reads
+  below 0.25 in 10.1% of mutations at depth 31 against 1.7% at 88.
+- **A Gaussian mixture picked by BIC splits one clone**, which is what
+  `mclust` does in cell 22. At 300 mutations and purity 0.7, 21 of 30
+  single-clone tumours are given two clusters — 8 of 30 at 120 mutations — and
+  the tumour that does carry one subclone is given three clusters more often
+  than two. Page 2's default is therefore 300 mutations, not 120.
+- **MATH ranks sequencing as much as biology.** Median over 60 tumours of 300
+  mutations:
+
+  | tumour | purity | median depth 31 | 88 (the file's) | 500 |
+  |---|---|---|---|---|
+  | one clone | 0.70 | 23.7 | 14.0 | 5.9 |
+  | one clone | 0.35 | **39.9** | 22.5 | 9.4 |
+  | clone + subclone at CCF 0.5 | 0.70 | 49.1 | **40.7** | 18.7 |
+  | clone + subclone at CCF 0.5 | 0.35 | 60.5 | 49.1 | 31.4 |
+  | clone + two subclones | 0.70 | 57.8 | 49.4 | 43.1 |
+  | clone + two subclones | 0.35 | 69.2 | 56.4 | 44.4 |
+
+  **The claim this section was written with — that low purity alone carries one
+  clone into a subclone's range — is false** at a matched depth: 22.5 against
+  40.7, the ranges apart. Purity and depth together do it (39.9 against 40.7),
+  and a genuine subclone read deeply scores 18.7, below one clone read
+  shallowly. A fixed depth is also not a stage: every VAF is then a multiple of
+  1/d and the first grid printed a degenerate spread, five identical values.
+- **CCF at the wrong purity.** On a tumour at purity 0.7 with 180 clonal
+  mutations of 300: solved at 0.7, 134 reach CCF 0.9; at 1.0, four do; at 0.55,
+  181. And at the true purity the cut still loses a quarter of the clonal
+  mutations, because the estimate carries the read noise — so the page prints
+  the cut or prints none.
+- **The sum rule needs large subclones, or a second sample.** Three clusters
+  have two shapes and four have six. At a trunk of 0.9, two equal subclones
+  leave both shapes open until they reach 0.5 each. His figure's four samples
+  leave exactly the linear tree; its surgery sample alone leaves two. Page 3's
+  control is which samples you have.
 
 ### Slot 68 · `clonal-architecture` — cuttable, or 67's last page
 
