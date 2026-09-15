@@ -15616,7 +15616,9 @@ accuracy; or (b) **deferred** until a source/target pair with graded overlap
 exists. (a) is recommended: it keeps his figure and builds the one claim that
 measured.
 
-### Slot 64 · `grad-cam` — Explainability
+### Slot 64 · `grad-cam` — Explainability — SHIPPED 2026-09-15
+
+**Shipped on "push to gallery", 2026-09-15**, at the end of five review rounds in one day. What shipped is NOT the plan below: the cell with a nucleus against its membrane alone, a 3 × 3 "L" orientation marker on every image and NO planted shortcut (his calls, in that order); his own Grad-CAM diagram as the figure (forward along the top, backward along the bottom), one Step of five presses, four controls in two sections (The model: Seed with a preview of the two classes — a new core block type; The heatmap: Layer, Class, Test image), the formula card as MathML, the readout printing heat on the cell against heat on the marker. Five states recorded from one fronted suite run (772 existing states MATCH after the core change) and confirmed by a second; verify 72 checks. The entries below are the plan and the rounds as they were written.
 
 **Host.** 06-2 cells 122–139: the three approaches (saliency, activation,
 class activation maps), Grad-CAM's four steps — gradients of the class score
@@ -15703,6 +15705,88 @@ image, the object's footprint 16.7% on average:
    conv gives a 4 × 4 CAM that is unmistakably blocky, at a cost the M1 budget
    can absorb at 16 × 16. `layer` conv1 · conv2 · conv3 is the recommendation,
    `layer2` and `layer3` being cell 137's own pair.
+
+#### MOCKED, PICKED AND DRAFTED 2026-09-15 — `_lab/gradcam-mock.html`, Kenneth's picks
+
+**Measured first, in two more runs** (`_lab/gradcam-measure.mjs`, on a
+three-block engine written for the widget — `widgets/grad-cam/engine.js`,
+gradients checked at 8e-8). The budget is 16 × 16 (24 × 24 is 4.1 s a net);
+the cheaper net, conv 8/12/16 for 20 epochs on 200 images, trains in 0.8 s
+and the shortcut wins HARDER on it than on 8/16/32. HANDOVER's brief to reuse
+widget 61's cell met Grad-CAM's own arithmetic: with two classes and a
+global-average head the two rows of the linear layer are near-opposites, so a
+class defined by an ABSENCE (no nucleus, no granules, no body) has a heatmap
+that is ReLU of the negative of the other's — off the object. Eleven cell
+variants were measured (nucleus vs none, vs granules, bright nucleus, round
+vs elongated, nucleus position, size, count, ghost, ghost with nucleus, two
+interiors) and each failed one of three tests: not learned at 16 × 16 in
+0.8 s; one class's heatmap off the cell; or the mark unable to beat a 0.93
+membrane. DISC vs RING passed all three (clean 100 → 60, heat 85 / 68 / 36 %
+on a 15 % footprint, both classes) and was the recommendation.
+
+**His picks, two AskUserQuestions:** the figure is **B, his own diagram as
+the notebook draws it** — picked as A (the gallery then the method band,
+682px) and revised the same evening, "it aligns with the notebook diagram":
+forward along the top (the image, the network, the chosen layer's maps, the
+head, the score), backward along the bottom right to left (the score's
+gradient on each map, the averages, the weighted sum, ReLU, the heatmap on
+the image under the image), 468px at every width; so 64 imports nothing
+from `depict.js`, and the motif's first importer is now 63 or 65; the drive is **one
+Step of five presses, no gate** (Forward pass · Gradients · Average ·
+Weighted sum · ReLU, upsample, the label keyed on the animation's counter);
+the caveat is an **Image control, Clean · Watermarked**, with both accuracies
+always in the readout; and the task, against the recommendation and after a
+second round of variants, is **the cell with a nucleus against its membrane
+alone** — a ghost. **Tuned on his pick:** the mark 5 × 5 at 1.4 (brighter
+than the membrane, a tenth of the image; at 3 × 3 the net keeps the cell) and
+the ghost's interior 0.08, darker than the field, so the ghost class has
+evidence of its own. Three seeds: clean 100 → 77 with the mark on every cell,
+51 on watermarked images (the mark decides), the ghost's heatmap 1.5 × chance
+at every layer, the cell's 2.2 × and 5 × on its nucleus. What does not close,
+and is printed rather than hidden: the ghost's heatmap is weaker than the
+cell's, and the losing stage is 77 %, not chance.
+
+**The draft** (`widgets/grad-cam/`, manifest status draft): `engine.js` (the
+L-block CNN, born here for 63 to import), `model.js` (the task, the fixed
+held-out set of eight drawn from a seed of its own so the same image is read
+under every model, the readings — every layer × both classes × clean and
+watermarked, computed once in `compute` — and every rectangle of the diagram),
+`main.js` (six controls in two sections, DATA retrains, DISPLAY keeps the
+presses; the formula card with cell 130's two equations; the readout:
+predicted class, accuracy clean · watermarked, heat on the cell · in the
+corner); `_lab/gradcam-verify.mjs` registered in `npm test` (the engine, the
+trained claims with timings recorded and not gated, Grad-CAM's identities,
+the stage, the copy). No regions: the layer is the control.
+
+**Round one, 2026-09-15 (his first look).** Two mark controls both said
+"watermark" and a marked ghost read as a bug; renamed. And a model trained
+with NO marks flipped 42 % of marked held-out images — a 5 × 5 square is an
+unseen artefact on a 16 × 16 image, a distribution shift and not shortcut
+learning — so **the mark is now always in the training data** and the
+control chooses whether it tells the class: *Marked images in training:
+Both classes · Half the cells · All cells*. Measured, three seeds: both →
+the model reads the mark as nothing (marked ghosts 100 % right, 0 % of
+conv2's heat in the corner); half → clean 100 but a marked ghost is right
+17 % of the time and 55 % of the heat is in the corner; all → clean 72, the
+corner 66 %. That is the stage that loses, and the middle setting is the
+one to teach: every clean metric is perfect and the model is reading the
+sticker.
+
+**Round two, 2026-09-15 (his second look): "the mark is very distracting …
+i'm not sure if we want to force a spurious thing … mock before doing
+anything".** `_lab/gradcam-round2-mock.html` measured it: the shortcut wins
+ONLY at 16 × 16 with the 5 × 5 square (a 3 × 3 mark leaves 97 % of marked
+ghosts right; at 24 × 24, 1.7 s a retrain, nothing wins; a batch effect in
+the field brightness does not win either), while a 3 × 3 "L" on every image
+is read as nothing and the heat stays on the cell. His picks: **B, the
+shortcut behind a button** — the widget opens on a sound model with the L
+orientation marker (bottom-left, at the membrane's brightness) on every
+image, four controls; "Plant a shortcut" (a DATA `bool` with `style:
+"action"`; opening retrains) reveals Marked images in training: Half the
+cells · All cells, and This image: As it is · Mark added. The readout has
+two forms, planted and not. The sticker is the literature's own example
+(Lapuschkin 2019's PASCAL VOC watermark; DeGrave 2021's laterality markers),
+and it is now out of sight until the reader asks for it.
 
 ### Slot 65 · `unet` — Architecture - Basic (Segmentation) — TWO PAGES since 2026-09-13
 

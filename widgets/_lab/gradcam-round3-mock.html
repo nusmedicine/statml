@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · grad-cam — round 3</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1240px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 96ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); min-height: 26px; white-space: pre-line; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 96ch; }
+  .rail-host { width: 300px; }
+  /* the mock's own preview block, what a core `preview` field would render */
+  .w-preview { display: flex; gap: var(--sp-3); align-items: flex-start; margin: var(--sp-2) 0 var(--sp-3); }
+  .w-preview figure { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .w-preview canvas { border: 1px solid var(--c-group-a); }
+  .w-preview figcaption { font-size: var(--fs-xs); color: var(--ink-2); }
+  .w-preview p { font-size: var(--fs-xs); color: var(--ink-3); margin: 0; max-width: 20ch; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>grad-cam &middot; round 3 &mdash; showing the two classes</h1>
+  <p class="note">
+    <b>Your ask:</b> under <i>The model</i> in the rail, examples of what is being predicted, a cell against a ghost.
+    Two placements, both drawn with the held-out images the widget itself uses. <b>A</b> is in the rail; it needs a
+    new block type in core (`preview`: a row of small figures with captions, no value, no URL, like `section`), so
+    it costs a full fingerprint run. <b>B</b> is on the stage, in the empty space under the score, and costs nothing
+    outside this widget. The rail is what you SET and the stage is what you SEE (3.4a), which argues for B; the
+    examples are about the model, which argues for A.
+  </p>
+  <div class="row" id="row"></div>
+  <p class="rec" id="rec"></p>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+import { makeRng } from "../core/rng.js";
+import * as E from "../grad-cam/engine.js";
+import * as M from "../grad-cam/model.js";
+import { buildControls, buildActions } from "../core/controls.js";
+import { resolveParams } from "../core/params.js";
+
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+const mix = (a, b, t) => {
+  const pa = [1, 3, 5].map((i) => parseInt(a.slice(i, i + 2), 16));
+  const pb = [1, 3, 5].map((i) => parseInt(b.slice(i, i + 2), 16));
+  const c = pa.map((v, i) => Math.round(v + (pb[i] - v) * Math.max(0, Math.min(1, t))));
+  return `rgb(${c[0]}, ${c[1]}, ${c[2]})`;
+};
+const set = E.makeSet(M.TASK, 4, M.S, makeRng(M.TEST_SEED), { marker: true });
+const imgOf = (i) => set.x.slice(i * M.S * M.S, (i + 1) * M.S * M.S);
+function paint(ctx, x, y, size, img) {
+  const c = size / M.S;
+  for (let j = 0; j < M.S; j += 1) for (let i = 0; i < M.S; i += 1) {
+    ctx.fillStyle = mix(T.surface2, T.ink1, img[j * M.S + i]);
+    ctx.fillRect(x + i * c, y + j * c, Math.ceil(c), Math.ceil(c));
+  }
+  ctx.strokeStyle = T.groupA; ctx.lineWidth = 1; ctx.strokeRect(x + 0.5, y + 0.5, size - 1, size - 1);
+}
+const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+function cand(title, sub, w) { const box = el("div", "cand"); box.style.width = `${w}px`; box.appendChild(el("h3", null, title)); box.appendChild(el("p", "sub", sub)); document.getElementById("row").appendChild(box); return box; }
+function canvasIn(box, w, h, cls) { const c = document.createElement("canvas"); if (cls) c.className = cls; c.width = Math.round(w * DPR); c.height = Math.round(h * DPR); c.style.width = `${w}px`; c.style.height = `${h}px`; box.appendChild(c); const ctx = c.getContext("2d"); ctx.scale(DPR, DPR); return ctx; }
+
+/* A · the rail, with a preview block under The model */
+{
+  const box = cand("A · in the rail, under The model", "core's DOM at 300px, plus a `preview` block core does not have yet: two 48px examples with their class names, and one line", 320);
+  const spec = {
+    modelSec: { type: "section", label: "The model" },
+    seed: { type: "int", label: "Seed", min: 1, max: 200, default: 1 },
+    heatSec: { type: "section", label: "The heatmap" },
+    layer: { type: "segmented", label: "Layer", detail: "the convolutional layer whose feature maps the heatmap is computed from", options: ["conv1", "conv2", "conv3"].map((v) => ({ value: v, label: v })), default: "conv2", display: true },
+    cls: { type: "segmented", label: "Class", detail: "the class c whose score yᶜ is differentiated", options: [{ value: "pred", label: "Predicted" }, { value: "other", label: "The other" }], default: "pred", display: true },
+    image: { type: "choice", label: "Test image", detail: "which of the held-out images the figure is about", options: Array.from({ length: 8 }, (_, i) => ({ value: `${i + 1}`, label: `${i + 1}` })), default: "1", display: true },
+  };
+  const host = el("div", "w-split rail-host");
+  const rail = el("div", "w-rail");
+  host.appendChild(rail);
+  const cm = el("div", "w-controls");
+  rail.appendChild(cm);
+  buildControls(cm, spec, resolveParams(spec, new URLSearchParams("")), () => {});
+  /* the preview block, inserted after the Seed control */
+  const prev = el("div", "w-preview");
+  for (const [i, name] of [[0, "Cell"], [1, "Ghost"]]) {
+    const fig = el("figure");
+    const ctx = canvasIn(fig, 48, 48);
+    paint(ctx, 0, 0, 48, imgOf(i));
+    fig.appendChild(el("figcaption", null, name));
+    prev.appendChild(fig);
+  }
+  prev.appendChild(el("p", null, "the two classes the network is trained to tell apart; the L is an orientation marker on every image"));
+  const seedField = cm.children[1];
+  seedField.after(prev);
+  const drive = el("div", "w-drive");
+  rail.appendChild(drive);
+  buildActions(drive, [{ key: "step", text: "Forward pass", group: "pace", onClick: () => {} }, { key: "run", text: "Play", group: "pace", primary: true, onClick: () => {} }, { key: "reset", text: "Reset", onClick: () => {} }]);
+  box.appendChild(host);
+}
+
+/* B · on the stage, under the score */
+{
+  const box = cand("B · on the stage, in the empty space under the score", "the diagram's own layout at 550 (the boxes are where its parts sit); two 40px examples with their names, right of the gradient stack", 550);
+  const L = M.diagramLayout(550);
+  const ctx = canvasIn(box, 550, L.height);
+  ctx.strokeStyle = T.grid; ctx.lineWidth = 1;
+  const ghost = (x, y, w, h, label) => { ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1); ctx.fillStyle = T.ink3; ctx.font = `${T.fsXs} ${T.font}`; ctx.fillText(label, x, y - 4); };
+  ghost(L.img.x, L.img.y, M.IMG, M.IMG, "the image");
+  ghost(L.box.x, L.box.y, M.BOX_W, M.BOX_H, "CNN");
+  ghost(L.stack.x, L.stack.y, M.THUMB, M.STACK_H, "Aᵏ");
+  ghost(L.head.x, L.head.y, L.headW, M.CELL, "GAP · Linear");
+  ghost(L.score.x, L.topMid - 14, 60, 40, "yᶜ");
+  ghost(L.grads.x, L.grads.y, M.THUMB, M.STACK_H, "∂yᶜ/∂Aᵏ");
+  ghost(L.alpha.x, L.alpha.y, M.ALPHA_W, M.STACK_H, "αₖ");
+  ghost(L.sum.x, L.sum.y, M.BIG, M.BIG, "Σ");
+  ghost(L.relu.x, L.relu.y, M.BIG, M.BIG, "ReLU");
+  ghost(L.heat.x, L.heat.y, M.IMG, M.IMG, "the heatmap");
+  /* the examples: right of the gradient stack, on the bottom row */
+  const ex = L.grads.x + M.THUMB + 40;
+  ctx.fillStyle = T.ink2; ctx.font = `600 ${T.fsXs} ${T.font}`;
+  ctx.fillText("The two classes", ex, L.grads.y - 8);
+  for (const [i, name] of [[0, "Cell"], [1, "Ghost"]]) {
+    const x = ex + i * 52;
+    paint(ctx, x, L.grads.y, 40, imgOf(i));
+    ctx.fillStyle = T.ink2; ctx.font = `${T.fsXs} ${T.font}`;
+    ctx.fillText(name, x, L.grads.y + 40 + 12);
+  }
+  ctx.fillStyle = T.ink3; ctx.font = `${T.fsXs} ${T.font}`;
+  ctx.fillText("the L is an orientation marker", ex, L.grads.y + 40 + 28);
+  ctx.fillText("on every image", ex, L.grads.y + 40 + 42);
+}
+document.getElementById("rec").innerHTML =
+  `<b>A.</b> The examples answer "what is the model?", which is what the section is called and what Seed changes; `
+  + `a reader meets them before the first press, and 3.1 says the rail's order is the instruction. The cost is a `
+  + `core block type — <code>preview</code>, a row of figures with captions and one line, drawn by the widget through `
+  + `a callback so core holds no picture — and a full suite run, which is what any core change costs. <b>B</b> needs `
+  + `no core change and the space is there, but it puts a "what the classes are" panel inside the method's picture, `
+  + `where the reader is following arrows, and it says the same thing on every press.`;
+</script>
+</main>
+</body>
+</html>

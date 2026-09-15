@@ -1,0 +1,356 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · grad-cam — round 2</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  /* The mock shell, verbatim from `_lab/gradcam-mock.html`. */
+  .lab { max-width: 1240px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 96ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; width: 550px; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); max-width: 550px; min-height: 26px; white-space: pre-line; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 96ch; }
+  .measure { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--ink-3); margin: 4px 0 0; max-width: 900px; white-space: pre-line; }
+  table.facts { border-collapse: collapse; font-size: var(--fs-sm); color: var(--ink-2); margin: var(--sp-2) 0 var(--sp-3); max-width: 120ch; }
+  table.facts th, table.facts td { border: 1px solid var(--grid); padding: 3px 8px; text-align: left; vertical-align: top; }
+  table.facts th { color: var(--ink-1); font-weight: 600; background: var(--surface-2); }
+  table.facts td b { color: var(--ink-1); }
+  table.facts td.num { font-family: var(--font-mono); font-size: var(--fs-xs); text-align: right; }
+  table.facts tr.pass td b { color: var(--c-highlight); }
+  .rail-host { width: 300px; }
+  ol.demo { font-size: var(--fs-sm); color: var(--ink-2); max-width: 70ch; margin: 0 0 var(--sp-2); padding-left: 1.4em; }
+  ol.demo li { margin: 0 0 4px; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>grad-cam &middot; round 2 &mdash; the mark, the image size, and whether to plant a shortcut at all</h1>
+
+  <p class="note">
+    <b>Your three points, 2026-09-15.</b> The mark is distracting; could it be a small orientation marker, or the
+    image larger, so it does not dominate. If every image carried the mark, the lesson could simply be that
+    Grad-CAM finds the right part of the image, without forcing a spurious feature. And simplify, from the reader's
+    side and the lesson's side. <b>&sect;1</b> measures what a smaller mark and a larger image cost.
+    <b>&sect;2</b> is the marker's look, drawn at the widget's own size. <b>&sect;3</b> is three shapes of the
+    widget, each as its rail and its class demo. Every heatmap below is a trained one, trained in this tab.
+  </p>
+  <p class="note" id="engineLine">training &hellip;</p>
+
+  <h2>&sect;1 &middot; What the measurement says before any picture</h2>
+  <p class="note">
+    <b>The size of the mark and the size of the image are one decision, because the shortcut has to be EASIER than
+    the cell to win.</b> Cell against ghost is an easy task (100 % at 20 epochs), so only a blunt cue beats it.
+    Three seeds, the small net, the mark on every training cell and no ghost:
+  </p>
+  <table class="facts">
+    <tr><th>image</th><th>mark</th><th>clean accuracy</th><th>a marked ghost called a ghost</th><th>conv2 heat in the corner, marked ghosts</th><th>training time</th></tr>
+    <tr class="pass"><td>16 &times; 16</td><td>5 &times; 5 at 1.4 (today)</td><td class="num"><b>72</b></td><td class="num"><b>0 %</b></td><td class="num"><b>66 %</b></td><td class="num">0.8 s</td></tr>
+    <tr><td>16 &times; 16</td><td>3 &times; 3 at 1.4</td><td class="num">100</td><td class="num">97 %</td><td class="num">1 %</td><td class="num">0.8 s</td></tr>
+    <tr><td>16 &times; 16, noisy low-contrast cell</td><td>3 &times; 3 at 1.4</td><td class="num">84</td><td class="num">45 %</td><td class="num">14 %</td><td class="num">0.8 s</td></tr>
+    <tr><td>20 &times; 20</td><td>5 &times; 5 at 1.4</td><td class="num" id="m20clean">&hellip;</td><td class="num" id="m20ghost">&hellip;</td><td class="num" id="m20corner">&hellip;</td><td class="num">1.2 s</td></tr>
+    <tr><td>24 &times; 24</td><td>5 &times; 5 at 1.4</td><td class="num">100</td><td class="num">100 %</td><td class="num">0 %</td><td class="num">1.7 s</td></tr>
+    <tr><td>24 &times; 24</td><td>4 &times; 4, 3 &times; 3 at 1.4</td><td class="num">100</td><td class="num">100 %</td><td class="num">0 %</td><td class="num">1.7 s</td></tr>
+    <tr><td>16 &times; 16, a batch effect instead: cells on a field brighter by 0.06 &ndash; 0.10</td><td>none</td><td class="num">100</td><td class="num">100 % (ghost on the bright field)</td><td class="num">&mdash;</td><td class="num">0.8 s</td></tr>
+    <tr><td>16 &times; 16, cells on a field brighter by 0.16</td><td>none</td><td class="num">100</td><td class="num">58 %</td><td class="num">&mdash;</td><td class="num">0.8 s</td></tr>
+  </table>
+  <p class="note">
+    So a small marker cannot be the shortcut on this task, a larger image makes every shortcut lose, and a
+    subtler cue (a batch effect in the field's brightness, the other classic case) does not win either. <b>What
+    a small marker CAN do is sit on every image and be ignored:</b> with a 3 &times; 3 marker on every training
+    image the heat stays on the cell (62 % of it at 16, 67 % at 24, on a 30 % footprint), which is the picture
+    your second point asks for.
+  </p>
+
+  <h2>&sect;2 &middot; The marker's look, at the widget's own size</h2>
+  <p class="note">
+    The held-out image as the diagram draws it (104px), a cell and a ghost, 16 &times; 16 and 24 &times; 24, with
+    four marks: today's 5 &times; 5 square, a 3 &times; 3 square, a 3 &times; 3 &ldquo;L&rdquo; (an orientation
+    marker), a 2 &times; 2 dot. Under each 16 image, the conv2 heatmap of a model trained with that marker on every
+    image; the mark is at the brightness the net sees (1.4 draws as white).
+  </p>
+  <div class="row" id="lookRow"></div>
+  <p class="rec" id="recLook"></p>
+
+  <h2>&sect;3 &middot; Three shapes of the widget</h2>
+  <p class="note">
+    Each is a rail through <code>buildControls</code> at 300px and a class demo in three or four moves. The
+    figure is the diagram you picked in every case; what changes is what is trained and what the rail asks.
+  </p>
+  <div class="row" id="railRow"></div>
+  <p class="rec" id="recRail"></p>
+
+  <h2>&sect;4 &middot; The literature behind the sticker, for the lesson's own words</h2>
+  <p class="note">
+    The planted mark is not an invention: it is the two best-known real cases, and the notebook's own word
+    (&ldquo;watermarks&rdquo;, 06-1 cell 4). <b>Lapuschkin et al. 2019</b> (Nature Communications, the Clever Hans
+    paper): a fifth of the PASCAL VOC horse images carry a copyright watermark in the lower left corner; the
+    classifier reads the tag, fails when it is removed, and calls any image with the tag a horse. <b>DeGrave,
+    Janizek &amp; Lee 2021</b> (Nature Machine Intelligence): COVID-19 chest-radiograph classifiers read laterality
+    markers, arrows and annotations that differed between the positive and negative sources, and their saliency
+    maps said so. Both are the demo in &sect;3 B and C: add the tag to the wrong class and the model follows the
+    tag. A is what remains if the widget teaches only where a sound model looks.
+  </p>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+import { makeRng } from "../core/rng.js";
+import * as E from "../grad-cam/engine.js";
+
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+const STAGE_W = 550;
+const PAD = 14;
+const IMG = 104;
+const CHANS = [8, 12, 16];
+const EPOCHS = 20;
+const N = 200;
+const CELL = { nuclei: 1 };
+const GHOST = { nuclei: 0, ghost: true, inside: 0.08 };
+const sleep = () => new Promise((r) => setTimeout(r, 0));
+
+const mix = (a, b, t) => {
+  const pa = [1, 3, 5].map((i) => parseInt(a.slice(i, i + 2), 16));
+  const pb = [1, 3, 5].map((i) => parseInt(b.slice(i, i + 2), 16));
+  const c = pa.map((v, i) => Math.round(v + (pb[i] - v) * Math.max(0, Math.min(1, t))));
+  return `rgb(${c[0]}, ${c[1]}, ${c[2]})`;
+};
+function txt(ctx, s, x, y, o = {}) {
+  const { color = T.ink2, align = "left", size = T.fsSm, weight = "", mono = false } = o;
+  ctx.save(); ctx.fillStyle = color; ctx.textAlign = align;
+  ctx.font = `${weight} ${size} ${mono ? T.mono : T.font}`.trim();
+  ctx.fillText(s, x, y); ctx.restore();
+}
+const note = (ctx, s, x, y, tone, o = {}) => txt(ctx, s, x, y, { color: tone ?? T.ink3, size: T.fsXs, ...o });
+const caption = (ctx, s, x, y) => txt(ctx, s, x, y, { color: T.ink2, weight: "600" });
+function drawMap(ctx, x, y, size, n, arr, hi, frame) {
+  const c = size / n;
+  ctx.save(); ctx.fillStyle = T.surface2; ctx.fillRect(x, y, size, size);
+  for (let j = 0; j < n; j += 1) for (let i = 0; i < n; i += 1) {
+    ctx.fillStyle = mix(T.surface2, T.ink1, arr[j * n + i] / hi);
+    ctx.fillRect(x + i * c, y + j * c, Math.ceil(c), Math.ceil(c));
+  }
+  ctx.restore();
+  ctx.save(); ctx.strokeStyle = frame ?? T.axis; ctx.lineWidth = 1; ctx.strokeRect(x + 0.5, y + 0.5, size - 1, size - 1); ctx.restore();
+}
+function drawHeat(ctx, x, y, size, n, img, up) {
+  drawMap(ctx, x, y, size, n, img, Math.max(1, ...img), T.groupA);
+  const c = size / n;
+  ctx.save(); ctx.globalAlpha = 0.55;
+  for (let j = 0; j < n; j += 1) for (let i = 0; i < n; i += 1) {
+    ctx.fillStyle = mix(T.valueLow, T.valueHigh, up[j * n + i]);
+    ctx.fillRect(x + i * c, y + j * c, Math.ceil(c), Math.ceil(c));
+  }
+  ctx.restore();
+}
+
+/* --- the marks, as glyphs on an image --------------------------------------- */
+const MARKS = {
+  "5 × 5 square": (S) => { const p = []; for (let y = 0; y < 5; y += 1) for (let x = 0; x < 5; x += 1) p.push([y, x]); return p; },
+  "3 × 3 square": (S) => { const p = []; for (let y = 0; y < 3; y += 1) for (let x = 0; x < 3; x += 1) p.push([y, x]); return p; },
+  "3 × 3 L": (S) => [[0, 0], [1, 0], [2, 0], [2, 1], [2, 2]],
+  "2 × 2 dot": (S) => [[0, 0], [0, 1], [1, 0], [1, 1]],
+};
+function withMark(img, S, key, value = 1.4) {
+  const out = img.slice();
+  for (const [y, x] of MARKS[key](S)) out[(y + 1) * S + (x + 1)] = value;
+  return out;
+}
+
+/* --- training ---------------------------------------------------------------- */
+const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+function cand(row, title, sub, w = STAGE_W) {
+  const box = el("div", "cand"); box.style.width = `${w}px`;
+  box.appendChild(el("h3", null, title)); box.appendChild(el("p", "sub", sub)); row.appendChild(box); return box;
+}
+function canvasIn(box, w, h) {
+  const c = document.createElement("canvas");
+  c.width = Math.round(w * DPR); c.height = Math.round(h * DPR); c.style.width = `${w}px`; c.style.height = `${h}px`;
+  box.appendChild(c); const ctx = c.getContext("2d"); ctx.scale(DPR, DPR); return ctx;
+}
+
+const line = document.getElementById("engineLine");
+const MODELS = [
+  { key: "m16marker", S: 16, opts: { cueRates: [1, 1], cueValue: 1.0, cueSize: 3 }, label: "16, a 3 × 3 marker on every image" },
+  { key: "m16short", S: 16, opts: { cueRates: [1, 0], cueValue: 1.4, cueSize: 5 }, label: "16, the 5 × 5 mark on every cell" },
+  { key: "m20short", S: 20, opts: { cueRates: [1, 0], cueValue: 1.4, cueSize: 5 }, label: "20, the 5 × 5 mark on every cell" },
+  { key: "m24marker", S: 24, opts: { cueRates: [1, 1], cueValue: 1.0, cueSize: 3 }, label: "24, a 3 × 3 marker on every image" },
+];
+const models = {};
+for (const m of MODELS) {
+  line.textContent = `training ${m.label} …`;
+  await sleep();
+  const rng = makeRng(101);
+  const tr = E.makeSet([CELL, GHOST], N, m.S, rng, m.opts);
+  const clean = E.makeSet([CELL, GHOST], 60, m.S, makeRng(6000), m.opts);
+  const marked = E.makeSet([CELL, GHOST], 60, m.S, makeRng(6000), { ...m.opts, cueAll: true });
+  const net = E.makeNet(m.S, CHANS, 2, rng);
+  const t0 = performance.now();
+  const { w } = E.train(net, tr, { epochs: EPOCHS, rng });
+  const ms = performance.now() - t0;
+  let ghostsRight = 0;
+  let corner = 0;
+  for (let i = 1; i < 40; i += 2) {
+    E.forward(net, w, marked.x, i * m.S * m.S);
+    const pred = E.argmax(w);
+    if (pred === 1) ghostsRight += 1;
+    const g = E.gradcam(net, w, marked.x, i * m.S * m.S, pred, 1);
+    corner += E.heatShare(g.up, m.S, marked.masks[i], m.opts.cueSize).corner;
+  }
+  models[m.key] = { ...m, net, w, clean, marked, ms, acc: { clean: E.evaluate(net, w, clean), marked: E.evaluate(net, w, marked) }, ghostsRight: ghostsRight / 20, corner: corner / 20 };
+}
+line.innerHTML = `<b>Trained here, one seed:</b> ` + MODELS.map((m) => `${m.label}: clean ${Math.round(100 * models[m.key].acc.clean)} %, marked ghosts right ${Math.round(100 * models[m.key].ghostsRight)} %, ${(models[m.key].ms / 1000).toFixed(2)} s`).join("; ") + ".";
+document.getElementById("m20clean").textContent = `${Math.round(100 * models.m20short.acc.clean)}`;
+document.getElementById("m20ghost").textContent = `${Math.round(100 * models.m20short.ghostsRight)} %`;
+document.getElementById("m20corner").textContent = `${Math.round(100 * models.m20short.corner)} %`;
+
+/* §2 ---------------------------------------------------------------------------- */
+{
+  const row = document.getElementById("lookRow");
+  for (const S of [16, 24]) {
+    const m = S === 16 ? models.m16marker : models.m24marker;
+    const box = cand(row, `${S} × ${S}`, S === 16
+      ? "the cell and the ghost of the held-out set, image 1 and 2; under each, its conv2 heatmap under the model trained with the 3 × 3 marker on every image"
+      : "the same two images at 24; training 1.7 s a retrain against 0.8 s; the conv2 map is 12 × 12 against 8 × 8");
+    const keys = Object.keys(MARKS);
+    const h = 40 + 2 * (IMG + 30) + 2 * (IMG + 30) + 10;
+    const ctx = canvasIn(box, STAGE_W, h);
+    caption(ctx, `${S} × ${S}, drawn at 104px`, PAD, 20);
+    const base = [E.makeSet([CELL, GHOST], 2, S, makeRng(6000), {}), 0];
+    const set = base[0];
+    let y = 40;
+    for (const cls of [0, 1]) {
+      const img = set.x.slice(cls * S * S, (cls + 1) * S * S);
+      keys.forEach((key, k) => {
+        const x = PAD + k * (IMG + 22);
+        const marked = withMark(img, S, key, k === 0 ? 1.4 : 1.0);
+        drawMap(ctx, x, y, IMG, S, marked, Math.max(1, ...marked), T.groupA);
+        note(ctx, key, x, y + IMG + 14);
+        /* the heat under a model that saw a marker on every image (3 × 3 at 1.0 — the L and the dot are read by the same model, which is honest for the look and approximate for the heat) */
+        E.forward(m.net, m.w, marked, 0);
+        const pred = E.argmax(m.w);
+        const g = E.gradcam(m.net, m.w, marked, 0, pred, 1);
+        drawHeat(ctx, x, y + IMG + 24, IMG, S, marked, g.up);
+        const sh = E.heatShare(g.up, S, set.masks[cls], 3);
+        note(ctx, `${["Cell", "Ghost"][pred]} ${m.w.prob[pred].toFixed(2)} · ${Math.round(100 * sh.object)}% on the cell`, x, y + 2 * IMG + 38, T.ink2);
+      });
+      y += 2 * IMG + 60;
+    }
+  }
+  document.getElementById("recLook").innerHTML =
+    `<b>If a marker stays, the 3 × 3 “L” on every image.</b> It reads as an orientation marker rather than a `
+    + `sticker, it is a fiftieth of the image where the 5 × 5 square is a tenth, a model trained with it on every `
+    + `image reads it as nothing (the heat stays on the cell), and it costs no retraining time. <b>24 × 24 is the `
+    + `better picture</b> — the membrane is a pixel wide and the conv2 map is 12 × 12 — at 1.7 s a retrain against `
+    + `0.8 s, and with NO shortcut that wins at that size. So the choice of image size is the choice of §3: a `
+    + `planted shortcut needs 16 × 16 and the 5 × 5 square; a widget without one can be 24 × 24 with the small marker.`;
+}
+
+/* §3 ---------------------------------------------------------------------------- */
+{
+  const { buildControls, buildActions } = await import("../core/controls.js");
+  const { resolveParams } = await import("../core/params.js");
+  const row = document.getElementById("railRow");
+  const reading = {
+    readSec: { type: "section", label: "The reading" },
+    layer: { type: "segmented", label: "Layer", detail: "the convolutional layer whose feature maps the heatmap is computed from",
+      options: [{ value: "conv1", label: "conv1" }, { value: "conv2", label: "conv2" }, { value: "conv3", label: "conv3" }], default: "conv2", display: true },
+    cls: { type: "segmented", label: "Class", detail: "the class c whose score yᶜ is differentiated",
+      options: [{ value: "pred", label: "Predicted" }, { value: "other", label: "The other" }], default: "pred", display: true },
+    image: { type: "choice", label: "Test image", detail: "which of the held-out images the figure is about",
+      options: Array.from({ length: 8 }, (_, i) => ({ value: `${i + 1}`, label: `${i + 1}` })), default: "1", display: true },
+  };
+  const specs = {
+    A: {
+      title: "A · Where a sound model looks (no shortcut)",
+      sub: "24 × 24, a 3 × 3 orientation marker on every image; four controls; nothing is planted",
+      spec: { ...reading, seed: { type: "int", label: "Seed", min: 1, max: 200, default: 1 } },
+      demo: [
+        "Test image 1, Play: the heat is on the cell, not on the marker. Clean accuracy 100 %.",
+        "Layer conv1 · conv3: the same place at three resolutions; the notebook's which-layer paragraph.",
+        "Test image 2, a ghost: the heat on the membrane. Class, The other: the same image asked for the wrong class.",
+        "What is lost: the notebook's caveat — correlation, not causation — has no picture, and 06-1's question about watermarks is answered only in words.",
+      ],
+    },
+    B: {
+      title: "B · The shortcut behind a gate",
+      sub: "as A by default; one button plants the sticker and opens its two controls; opening retrains (0.8 s) and restarts the presses",
+      spec: {
+        ...reading,
+        seed: { type: "int", label: "Seed", min: 1, max: 200, default: 1 },
+        plant: { type: "gate", label: "Plant a shortcut", labelOff: "Remove the shortcut", detail: "put a bright square on some training images and see what the model learns from it", default: false },
+        marks: { type: "segmented", label: "Marked images in training", detail: "half the cells and no ghost, or every cell and no ghost", options: [{ value: "half", label: "Half the cells" }, { value: "all", label: "All cells" }], default: "half", when: { param: "plant" } },
+        mark: { type: "segmented", label: "This image", detail: "the held-out image as it is, or with the square added whichever class it is", options: [{ value: "clean", label: "As it is" }, { value: "added", label: "Mark added" }], default: "clean", display: true, when: { param: "plant" } },
+      },
+      demo: [
+        "As A, steps 1–3: where a sound model looks.",
+        "Plant a shortcut. Half the cells: clean accuracy still 100 %. Test image 2, Mark added: Cell 0.96, the heat on the square. As it is: Ghost.",
+        "All cells: clean accuracy 72 %. The model learned the sticker instead of the cell.",
+        "What it costs: 16 × 16 and the 5 × 5 square, because nothing smaller wins; but the square is only on screen once the reader asks for it.",
+      ],
+    },
+    C: {
+      title: "C · The shortcut always on (today)",
+      sub: "16 × 16, the 5 × 5 square in every training set; the control says whether it tells the class",
+      spec: {
+        dataSec: { type: "section", label: "The training data" },
+        marks: { type: "segmented", label: "Marked images in training", detail: "which training images carry the bright square: half of each class, so it says nothing; half the cells; every cell", options: [{ value: "both", label: "Both classes" }, { value: "half", label: "Half the cells" }, { value: "all", label: "All cells" }], default: "both" },
+        seed: { type: "int", label: "Seed", min: 1, max: 200, default: 1 },
+        ...reading,
+        mark: { type: "segmented", label: "This image", detail: "the held-out image as it is, or with the square added whichever class it is", options: [{ value: "clean", label: "As it is" }, { value: "added", label: "Mark added" }], default: "clean", display: true },
+      },
+      demo: [
+        "Both classes, test image 2, Mark added: Ghost 1.00 — a sticker the model has seen on everything means nothing.",
+        "Half the cells: Cell 0.96, the heat on the square; clean accuracy still 100 %.",
+        "All cells: clean 72 %.",
+        "What it costs: the square is on every image from the first frame, and two controls carry the word “mark”.",
+      ],
+    },
+  };
+  const hosts = [];
+  for (const [k, d] of Object.entries(specs)) {
+    const box = cand(row, d.title, d.sub, 320);
+    const host = el("div", "w-split rail-host");
+    const rail = el("div", "w-rail");
+    host.appendChild(rail);
+    const values = resolveParams(d.spec, new URLSearchParams(k === "B" ? "plant=1" : ""));
+    const cm = el("div", "w-controls");
+    rail.appendChild(cm);
+    buildControls(cm, d.spec, values, () => {});
+    const drive = el("div", "w-drive");
+    rail.appendChild(drive);
+    buildActions(drive, [
+      { key: "step", text: "Forward pass", group: "pace", onClick: () => {} },
+      { key: "run", text: "Play", group: "pace", primary: true, onClick: () => {} },
+      { key: "reset", text: "Reset", onClick: () => {} },
+    ]);
+    box.appendChild(host);
+    const ol = el("ol", "demo");
+    for (const s of d.demo) ol.appendChild(el("li", null, s));
+    box.appendChild(ol);
+    hosts.push([k, host]);
+  }
+  document.getElementById("recRail").innerHTML =
+    `<b>B, the shortcut behind a gate, at 16 × 16 with the 3 × 3 “L” as the everyday marker and the 5 × 5 square `
+    + `only once the gate is open.</b> Your instinct not to force a spurious feature is right for the OPENING: `
+    + `the widget should open on a sound model and a clean image, and the first three moves of the demo are `
+    + `Grad-CAM finding the cell. But the planted sticker is the notebook's own example and the two best-known `
+    + `real cases (§4), and it is the only picture the caveat has; a gate keeps it out of sight until the reader `
+    + `asks, and 3.4b is written for exactly this — a stage the reader has not entered shows none of its `
+    + `controls. The cost is the image size: the square wins only at 16 × 16, so A's 24 × 24 is given up. If the `
+    + `caveat can live in words, A at 24 × 24 is the simplest widget on this page and the cleanest picture, and `
+    + `the shortcut goes to the lesson text. C is what you have now; it opens on the sticker.`;
+}
+</script>
+</main>
+</body>
+</html>

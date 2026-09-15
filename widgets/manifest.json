@@ -935,6 +935,25 @@
       ],
       "arc": 61,
       "status": "shipped"
+    },
+    {
+      "slug": "grad-cam",
+      "title": "Deep Learning - Grad-CAM",
+      "blurb": "Grad-CAM weights a layer's feature maps by the class score's mean gradient on each; the sum, after ReLU, is the heatmap.",
+      "course": "PHM5005",
+      "topics": [
+        "Grad-CAM",
+        "explainability",
+        "class activation map",
+        "saliency",
+        "feature map",
+        "gradient",
+        "shortcut learning",
+        "convolutional neural network",
+        "deep learning"
+      ],
+      "arc": 64,
+      "status": "shipped"
     }
   ]
 }

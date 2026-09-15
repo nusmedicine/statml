@@ -1,0 +1,914 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · grad-cam — mock</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  /* The mock shell, verbatim from `_lab/cnn-round6-mock.html`. Nothing here is
+     a new visual decision. */
+  .lab { max-width: 1240px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 96ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; width: 550px; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); max-width: 550px; min-height: 26px; white-space: pre-line; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 96ch; }
+  .measure { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--ink-3); margin: 4px 0 0; max-width: 900px; white-space: pre-line; }
+  table.facts { border-collapse: collapse; font-size: var(--fs-sm); color: var(--ink-2); margin: var(--sp-2) 0 var(--sp-3); max-width: 120ch; }
+  table.facts th, table.facts td { border: 1px solid var(--grid); padding: 3px 8px; text-align: left; vertical-align: top; }
+  table.facts th { color: var(--ink-1); font-weight: 600; background: var(--surface-2); }
+  table.facts td b { color: var(--ink-1); }
+  table.facts td.num { font-family: var(--font-mono); font-size: var(--fs-xs); text-align: right; }
+  table.facts tr.pass td b { color: var(--c-highlight); }
+  .legend { display: flex; flex-wrap: wrap; gap: var(--sp-2) var(--sp-4); margin: 0 0 var(--sp-4);
+            font-size: var(--fs-xs); color: var(--ink-2); }
+  .legend span { display: flex; align-items: center; gap: 6px; }
+  .sw { width: 13px; height: 13px; border-radius: 50%; flex: 0 0 auto; }
+  .sw-emp { background: var(--c-empirical); }
+  .sw-high { background: var(--c-highlight); }
+  .sw-ga { background: var(--c-group-a); }
+  .sw-gb { background: var(--c-group-b); }
+  .sw-ramp { width: 26px; border-radius: 2px; background: linear-gradient(90deg, var(--surface-2), var(--ink-1)); }
+  .sw-div { width: 26px; border-radius: 2px; background: linear-gradient(90deg, var(--c-value-low), var(--surface-2), var(--c-value-high)); }
+  .sw-heat { width: 26px; border-radius: 2px; background: linear-gradient(90deg, var(--surface-2), var(--c-value-high)); }
+  .rail-host { width: 300px; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>grad-cam &middot; mock</h1>
+
+  <p class="note">
+    <b>What this page answers.</b> Slot 64, the second widget of the image arc, before a line of it is written.
+    <b>&sect;1</b> &mdash; which two-class task the net is trained on: your pick after two rounds of measurement is
+    <b>widget 61's cell against its membrane alone</b>, and the run that tuned it is under the table.
+    <b>&sect;2</b> &mdash; the figure: your Grad-CAM diagram under the feature-map gallery 61 shipped, or your
+    diagram alone. <b>&sect;3</b> &mdash; the drive: one Step through the method's own steps.
+    <b>&sect;4</b> &mdash; the evidence: how the caveat is drawn rather than said. <b>&sect;5</b> &mdash; the rail.
+  </p>
+  <p class="note">
+    <b>Every map on this page is a trained one.</b> The engine is <code>_lab/gradcam-engine.mjs</code>, a
+    three-block form of the planning script's net (conv 3 &times; 3 &rarr; ReLU &rarr; max-pool, three times,
+    then global average pooling and a linear layer; gradients checked against finite differences at 8e-8), and it
+    trains here, in this tab, on load. The gallery's columns come from <code>cnn-architecture/depict.js</code>
+    unchanged, which is what 64 is meant to be: the motif's first importer.
+  </p>
+  <p class="note" id="engineLine">training &hellip;</p>
+
+  <div class="legend">
+    <span><i class="sw sw-ramp"></i>a feature map A<sup>k</sup>, low to high</span>
+    <span><i class="sw sw-div"></i>a gradient &part;y<sup>c</sup>/&part;A<sup>k</sup>: lowers the score, zero, raises it</span>
+    <span><i class="sw sw-heat"></i>the heatmap after ReLU: how much a position raises the class score</span>
+    <span><i class="sw sw-ga"></i>the image</span>
+    <span><i class="sw sw-gb"></i>the linear layer</span>
+    <span><i class="sw sw-high"></i>the layer chosen, and the step being drawn</span>
+  </div>
+
+  <h2>&sect;1 &middot; The task the net is trained on</h2>
+  <p class="note">
+    <b>What the widget needs from it.</b> Three things at once: the net learns the task without a shortcut
+    (clean accuracy high at watermark 0 %); the planted mark takes over when it is on every image of one class
+    (clean accuracy at chance at 100 %); and the heatmap of a model WITHOUT the shortcut lands on the object
+    &mdash; for BOTH classes, since the reader picks the test image and half of them are the other class.
+    The last is where the cell fails, and the reason is Grad-CAM's own arithmetic: with two classes and a
+    global-average head, the two rows of the linear layer are near-opposites, so a class that is defined by the
+    ABSENCE of a feature (no nucleus; no granules) has a heatmap that is ReLU of the negative of the other's
+    &mdash; empty where the evidence is, and scattered elsewhere.
+  </p>
+  <p class="note">
+    Measured in node on three seeds (<code>_lab/gradcam-measure.mjs</code>), 16 &times; 16, 200 training images.
+    &ldquo;on the object&rdquo; is the share of the heatmap's mass inside the object's footprint, at watermark 0 %,
+    for images of the class the mark is planted on; the footprint is 15 % of the image for a shape and 30 % for a
+    cell, so 45 % is 3 &times; chance. The last column is the same for the OTHER class's own images.
+  </p>
+  <table class="facts">
+    <tr><th>task</th><th>net</th><th>time</th><th>clean, 0 %</th><th>clean, 100 %</th><th>on the object, blocks 1 / 2 / 3</th><th>the other class, on its object</th></tr>
+    <tr class="pass"><td><b>A &middot; DISC against RING</b>, the mark at 1.4</td><td>8/12/16, 20 epochs</td><td class="num">0.78 s</td><td class="num">100.0</td><td class="num"><b>60.3</b></td><td class="num">85 / 68 / 36</td><td class="num">on the ring: measured below, this seed</td></tr>
+    <tr><td>A, the larger net</td><td>8/16/32, 30 epochs</td><td class="num">1.94 s</td><td class="num">100.0</td><td class="num">65.0</td><td class="num">71 / 69 / 36</td><td class="num">&mdash;</td></tr>
+    <tr><td>A with the mark at 1.0</td><td>8/16/32, 30 epochs</td><td class="num">1.93 s</td><td class="num">100.0</td><td class="num">92.3 &mdash; the mark does not win</td><td class="num">71 / 69 / 36</td><td class="num">&mdash;</td></tr>
+    <tr><td><b>B &middot; the cell, nucleus against none</b>, the mark on the plain cell</td><td>8/12/16, 20 epochs</td><td class="num">0.78 s</td><td class="num">94.3</td><td class="num">50.0</td><td class="num">79 / 87 / 64</td><td class="num"><b>6 / 14 / 10</b> &mdash; off the cell</td></tr>
+    <tr><td>B with the mark on the nucleus class</td><td>8/16/32, 30 epochs</td><td class="num">1.95 s</td><td class="num">97.3</td><td class="num">50.3</td><td class="num"><b>4 / 9 / 32</b> &mdash; off the cell</td><td class="num">&mdash;</td></tr>
+    <tr><td>the cell, nucleus against granules</td><td>8/16/32, 30 epochs</td><td class="num">1.93 s</td><td class="num">94.3</td><td class="num">50.0</td><td class="num">70 / 83 / 59 (granules)</td><td class="num">16 / 28 / 14 (nucleus)</td></tr>
+    <tr><td>the cell, bright nucleus against granules</td><td>8/16/32, 30 epochs</td><td class="num">1.94 s</td><td class="num"><b>85.0</b> &mdash; not learned</td><td class="num">50.0</td><td class="num">64 / 66 / 42</td><td class="num">30 / 41 / 17</td></tr>
+    <tr><td colspan="7"><b>The variant run, on your &ldquo;measure another cell variant first&rdquo;</b> &mdash; two-class cells built so that both classes would carry a feature of their own; cheaper net, three seeds, both classes read on their own clean images</td></tr>
+    <tr><td>the cell, round against elongated (2.2 : 1, same area)</td><td>8/12/16, 20 epochs</td><td class="num">0.79 s</td><td class="num"><b>81.0</b> &mdash; not learned</td><td class="num">50.3</td><td class="num">36 / 29 / 48</td><td class="num">24 / 27 / 30</td></tr>
+    <tr><td>the cell, central against eccentric nucleus</td><td>8/12/16, 20 epochs</td><td class="num">0.79 s</td><td class="num"><b>62.7</b> &mdash; not learned</td><td class="num">50.0</td><td class="num">28 / 23 / 43</td><td class="num">32 / 27 / 33</td></tr>
+    <tr><td><b>C &middot; the cell, small against large nucleus</b></td><td>8/12/16, 20 epochs</td><td class="num">0.79 s</td><td class="num">91.3</td><td class="num">50.0</td><td class="num">74 / 85 / 68</td><td class="num"><b>12 / 18 / 35</b> &mdash; off the cell</td></tr>
+    <tr><td>the cell, one against two nuclei</td><td>8/12/16, 20 epochs</td><td class="num">0.79 s</td><td class="num"><b>72.3</b> &mdash; not learned</td><td class="num">50.0</td><td class="num">48 / 52 / 38</td><td class="num">24 / 28 / 35</td></tr>
+    <tr><td><b>D &middot; the cell against its membrane alone</b> (a ghost)</td><td>8/12/16, 20 epochs</td><td class="num">0.79 s</td><td class="num">99.7</td><td class="num"><b>98.0</b> &mdash; the mark does not win</td><td class="num">84 / 85 / 56</td><td class="num"><b>16 / 25 / 35</b> &mdash; off the ghost</td></tr>
+    <tr><td>the cell with a nucleus against the ghost</td><td>8/12/16, 20 epochs</td><td class="num">0.78 s</td><td class="num">100.0</td><td class="num"><b>97.0</b> &mdash; the mark does not win</td><td class="num">78 / 81 / 56</td><td class="num"><b>17 / 27 / 39</b> &mdash; off the ghost</td></tr>
+    <tr><td colspan="7"><b>The tuning run, on your pick of the ghost</b> &mdash; the cell with a nucleus against its membrane alone; the mark's value raised above the membrane (1.4) and its size varied; the ghost's interior darkened below the field so the ghost class has evidence of its own. The last column is the ghost's own heatmap on the ghost.</td></tr>
+    <tr><td>interior 0.24 (the field), the mark 3 &times; 3</td><td>8/12/16, 20 epochs</td><td class="num">0.78 s</td><td class="num">100.0</td><td class="num">78.7</td><td class="num">78 / 81 / 56</td><td class="num">17 / 27 / 39</td></tr>
+    <tr><td>interior 0.24, the mark 4 &times; 4</td><td>8/12/16, 20 epochs</td><td class="num">0.78 s</td><td class="num">100.0</td><td class="num">55.3</td><td class="num">78 / 81 / 56</td><td class="num">17 / 27 / 39</td></tr>
+    <tr><td>interior 0.16, the mark 4 &times; 4</td><td>8/12/16, 20 epochs</td><td class="num">0.78 s</td><td class="num">100.0</td><td class="num">73.7</td><td class="num">73 / 75 / 53</td><td class="num">31 / 39 / 46</td></tr>
+    <tr><td>interior 0.08, the mark 4 &times; 4</td><td>8/12/16, 20 epochs</td><td class="num">0.78 s</td><td class="num">100.0</td><td class="num">89.0</td><td class="num">71 / 73 / 52</td><td class="num">47 / 51 / 50</td></tr>
+    <tr><td>interior 0.16, the mark 5 &times; 5</td><td>8/12/16, 20 epochs</td><td class="num">0.78 s</td><td class="num">100.0</td><td class="num">68.0</td><td class="num">73 / 75 / 53</td><td class="num">31 / 39 / 46</td></tr>
+    <tr class="pass"><td><b>interior 0.08, the mark 5 &times; 5 at 1.4 &mdash; THE PICK</b></td><td>8/12/16, 20 epochs</td><td class="num">0.78 s</td><td class="num">100.0</td><td class="num"><b>76.7</b>, watermarked 51.3</td><td class="num">71 / 73 / 52, nucleus 7 / 15 / 13 of 3 %</td><td class="num"><b>47 / 51 / 50</b></td></tr>
+    <tr><td>any task at 24 &times; 24</td><td>8/16/32, 30 epochs</td><td class="num">4.1 s</td><td colspan="4">out of budget; the cell's membrane would be a pixel wide there</td></tr>
+  </table>
+  <p class="note">
+    Below, the pick, the same cell with the field showing through the ghost, and the DISC / RING reference are each
+    trained here at watermark 0 % and 100 % (one seed). Left to right: six training images from the 100 % set,
+    the mark on the cued class; then a clean test image of each class with the 0 % model's heatmap at the three
+    layers; then the cued-class image with the mark, under the 100 % model, and the same image clean.
+  </p>
+  <div class="row" id="taskRow"></div>
+  <p class="rec" id="recTask"></p>
+
+  <h2>&sect;2 &middot; The figure</h2>
+  <p class="note">
+    Both are drawn at 550, the width the stage is reviewed at, on the pick's model at watermark 0 %, a cell
+    test image, the layer <code>conv2</code> (cell 137's <code>layer2</code>), the predicted class, every step
+    shown. <b>A</b> puts your Grad-CAM diagram under the gallery 61 shipped: the top band is the whole network on
+    this image with the chosen layer's column marked, and the bottom band is the method, left to right in its own
+    order &mdash; the maps, their gradients, the averages, the weighted sum, ReLU, the heatmap on the image.
+    <b>B</b> is your diagram alone, laid out as you drew it: forward along the top, backward along the bottom.
+  </p>
+  <div class="row" id="figRow"></div>
+  <p class="measure" id="figMeasure"></p>
+  <p class="rec" id="recFig"></p>
+
+  <h2>&sect;3 &middot; The drive: one Step through the method</h2>
+  <p class="note">
+    The widget opens on the image and the empty network. Each press is one of the notebook's numbered steps, and
+    the button says which it is about to do (4.4b, widget 60's device): <b>Forward pass</b> &mdash; the maps fill
+    and the score prints; <b>Gradients</b> &mdash; &part;y<sup>c</sup>/&part;A<sup>k</sup> lands beside every map;
+    <b>Average</b> &mdash; each gradient map collapses to its &alpha;<sub>k</sub>; <b>Weighted sum</b> &mdash;
+    &Sigma; &alpha;<sub>k</sub> A<sup>k</sup>, signed; <b>ReLU, upsample</b> &mdash; the negative part goes and the
+    rest is drawn on the image. Play runs the five and stops. The band below is shown after each press; the
+    gallery above it does not change after the first.
+  </p>
+  <div class="row" id="stepRow"></div>
+  <p class="rec" id="recStep"></p>
+
+  <h2>&sect;4 &middot; The evidence: the caveat drawn, not said</h2>
+  <p class="note">
+    The notebook's caveat is <i>correlation with decision-making, not causal reasoning</i>, and the planning
+    measurement found the picture that shows it: a bright mark lights the fine layer's heatmap WHETHER OR NOT the
+    model uses it, because the CAM is weighted by the activations. So the widget must not let a hot corner on a
+    watermarked image stand as proof of shortcut learning. The honest pairing is the heatmap on a CLEAN image
+    beside the accuracy on clean images. Two ways to put that on the stage:
+  </p>
+  <p class="note">
+    <b>A.</b> An <i>Image</i> control, Clean &middot; Watermarked, that swaps the test image the whole figure is
+    about; the readout always prints both accuracies. <b>B.</b> A third band that always shows both readings at
+    the chosen layer &mdash; the same test image clean and watermarked, each with its heatmap and its prediction
+    &mdash; with the two accuracies and the heat shares under them. Drawn below for the 0 % model and the 100 %
+    model.
+  </p>
+  <div class="row" id="evidRow"></div>
+  <p class="rec" id="recEvid"></p>
+
+  <h2>&sect;5 &middot; The rail</h2>
+  <p class="note">
+    The spec as it would be written, rendered by <code>buildControls</code> at 300px. Two sections: what the
+    training data is (the watermark's rate, the seed &mdash; both DATA, each retrains), and what is read off the
+    trained model (the layer, the class, the test image, clean or watermarked &mdash; all DISPLAY, none retrains
+    and none resets the steps). The heat shares and the two accuracies are the readout under the drive row.
+  </p>
+  <div class="row" id="railRow"></div>
+  <p class="measure" id="railMeasure"></p>
+  <p class="rec" id="recRail"></p>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+import { shapeText } from "../core/torch.js";
+import { makeRng } from "../core/rng.js";
+import * as E from "../grad-cam/engine.js";
+import * as D from "../cnn-architecture/depict.js";
+
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+const STAGE_W = 550;
+const PAD = D.PAD;
+
+/* ==========================================================================
+   THE ENGINE, at the configuration the measurement recommends.
+   ====================================================================== */
+const CFG = { S: 16, chans: [8, 12, 16], epochs: 20, n: 200 };
+const LAYER_NAMES = ["conv1", "conv2", "conv3"];
+const TASKS = [
+  { key: "holen", title: "THE PICK · the cell against its membrane alone, interior 0.08, the mark 5 × 5 at 1.4", opts: { cueValue: 1.4, cueSize: 5 }, cueClass: 0, names: ["Cell", "Ghost"], object: "the cell" },
+  { key: "ghostn", title: "the same with the field showing through the ghost (0.24)", opts: { cueValue: 1.4, cueSize: 5 }, cueClass: 0, names: ["Cell", "Ghost"], object: "the cell" },
+  { key: "shapes", title: "for reference · DISC against RING, the mark 3 × 3 at 1.4", opts: { cueValue: 1.4 }, cueClass: 0, names: ["Disc", "Ring"], object: "the shape" },
+];
+const PICK = "holen";
+
+const sleep = () => new Promise((r) => setTimeout(r, 0));
+
+function trainModel(task, rate, seed = 101) {
+  const rng = makeRng(seed);
+  const S = CFG.S;
+  const tr = E.makeSet(task.key, CFG.n, S, rng, { ...task.opts, cueRate: rate });
+  const teClean = E.makeSet(task.key, 60, S, makeRng(6000), task.opts);
+  const teCued = E.makeSet(task.key, 60, S, makeRng(6000), { ...task.opts, cueAll: true });
+  const net = E.makeNet(S, CFG.chans, 2, rng);
+  const t0 = performance.now();
+  const { w } = E.train(net, tr, { epochs: CFG.epochs, rng });
+  const ms = performance.now() - t0;
+  return {
+    task, rate, net, w, tr, teClean, teCued, ms,
+    acc: { train: E.evaluate(net, w, tr), clean: E.evaluate(net, w, teClean), cued: E.evaluate(net, w, teCued) },
+  };
+}
+
+/* the forward pass on one image, every activation kept for the gallery */
+function readImage(model, set, i) {
+  const { net, w } = model;
+  const S = net.S;
+  const off = i * S * S;
+  E.forward(net, w, set.x, off);
+  const pred = E.argmax(w);
+  return {
+    set, i, off, pred, prob: w.prob.slice(), logits: w.logits.slice(), g: w.g.slice(),
+    img: set.x.slice(off, off + S * S),
+    acts: w.bl.map((b) => b.a.slice()),
+    pools: w.bl.map((b) => b.p.slice()),
+  };
+}
+
+const camOf = (model, read, cls, block) => E.gradcam(model.net, model.w, read.set.x, read.off, cls, block);
+
+/* ==========================================================================
+   THE GALLERY, through depict.js — what 64 would hand the motif.
+   ====================================================================== */
+function depictNet(net) {
+  const stages = [{ kind: "input", name: "Input", C: 1, H: net.S, changed: null }];
+  const layers = [];
+  net.blocks.forEach((b, i) => {
+    layers.push({ k: 3, s: 1, p: 1 });
+    stages.push({ kind: "conv", name: `conv${i + 1}`, C: b.C, H: b.H, changed: "C", multi: i > 0 });
+    layers.push({ k: 2, s: 2, p: 0 });
+    stages.push({ kind: "pool", name: `pool${i + 1}`, C: b.C, H: b.Ho, changed: "HW" });
+  });
+  return { stages, layers, headIn: net.Cl, classes: net.K };
+}
+function depictMaps(net, read) {
+  const stages = [[read.img]];
+  net.blocks.forEach((b, i) => {
+    const four = (arr, H) => Array.from({ length: D.SHOWN }, (_, c) => arr.slice(c * H * H, (c + 1) * H * H));
+    stages.push(four(read.acts[i], b.H));
+    stages.push(four(read.pools[i], b.Ho));
+  });
+  return { stages, head: read.g.slice(0, D.SHOWN), scores: read.logits };
+}
+const galleryStages = (model, read) => D.stagesOf(depictNet(model.net), depictMaps(model.net, read), { head: "GAP", linear: "Linear" });
+
+/* ==========================================================================
+   PRIMITIVES, the shipped widget's.
+   ====================================================================== */
+const wash = (hex, a) => {
+  const p = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+  return `rgba(${p[0]},${p[1]},${p[2]},${a})`;
+};
+const mix = (a, b, t) => {
+  const pa = [1, 3, 5].map((i) => parseInt(a.slice(i, i + 2), 16));
+  const pb = [1, 3, 5].map((i) => parseInt(b.slice(i, i + 2), 16));
+  const c = pa.map((v, i) => Math.round(v + (pb[i] - v) * Math.max(0, Math.min(1, t))));
+  return `rgb(${c[0]}, ${c[1]}, ${c[2]})`;
+};
+const maxOf = (a) => a.reduce((m, v) => Math.max(m, Math.abs(v)), 0) || 1;
+const pct = (v) => `${Math.round(100 * v)}%`;
+const sgn = (v, d = 3) => (v < 0 ? `−${Math.abs(v).toFixed(d)}` : `+${v.toFixed(d)}`);
+
+function txt(ctx, s, x, y, o = {}) {
+  const { color = T.ink2, align = "left", size = T.fsSm, baseline = "alphabetic", mono = false, weight = "" } = o;
+  ctx.save();
+  ctx.fillStyle = color;
+  ctx.textAlign = align;
+  ctx.textBaseline = baseline;
+  ctx.font = `${weight} ${size} ${mono ? T.mono : T.font}`.trim();
+  ctx.fillText(s, x, y);
+  ctx.restore();
+}
+const caption = (ctx, s, x, y) => txt(ctx, s, x, y, { color: T.ink2, weight: "600" });
+const note = (ctx, s, x, y, tone, o = {}) => txt(ctx, s, x, y, { color: tone ?? T.ink3, size: T.fsXs, ...o });
+function clamped(ctx, s, x, y, w, o = {}) {
+  ctx.save();
+  ctx.font = `${o.size ?? T.fsXs} ${o.mono ? T.mono : T.font}`;
+  const width = ctx.measureText(s).width;
+  ctx.restore();
+  const x0 = Math.max(PAD, Math.min(x, w - PAD - width));
+  txt(ctx, s, x0, y, { size: T.fsXs, ...o });
+}
+
+/** a map on the grey ramp, nearest-neighbour, scaled by `hi` */
+function drawMap(ctx, x, y, size, n, arr, o = {}) {
+  const hi = o.max ?? 1;
+  const c = size / n;
+  ctx.save();
+  ctx.fillStyle = T.surface2;
+  ctx.fillRect(x, y, size, size);
+  for (let j = 0; j < n; j += 1) {
+    for (let i = 0; i < n; i += 1) {
+      ctx.fillStyle = mix(T.surface2, T.ink1, arr[j * n + i] / hi);
+      ctx.fillRect(x + i * c, y + j * c, Math.ceil(c), Math.ceil(c));
+    }
+  }
+  ctx.restore();
+  ctx.save();
+  ctx.strokeStyle = o.frame ?? T.axis;
+  ctx.lineWidth = o.width ?? 1;
+  ctx.strokeRect(x + 0.5, y + 0.5, size - 1, size - 1);
+  ctx.restore();
+}
+/** a signed map: low → surface → high, scaled by `hi` */
+function drawSigned(ctx, x, y, size, n, arr, hi, o = {}) {
+  const c = size / n;
+  ctx.save();
+  ctx.fillStyle = T.surface2;
+  ctx.fillRect(x, y, size, size);
+  for (let j = 0; j < n; j += 1) {
+    for (let i = 0; i < n; i += 1) {
+      const v = arr[j * n + i] / hi;
+      ctx.fillStyle = v >= 0 ? mix(T.surface2, T.valueHigh, v) : mix(T.surface2, T.valueLow, -v);
+      ctx.fillRect(x + i * c, y + j * c, Math.ceil(c), Math.ceil(c));
+    }
+  }
+  ctx.restore();
+  ctx.save();
+  ctx.strokeStyle = o.frame ?? T.axis;
+  ctx.lineWidth = o.width ?? 1;
+  ctx.strokeRect(x + 0.5, y + 0.5, size - 1, size - 1);
+  ctx.restore();
+}
+/** the heatmap on the image: the lesson's own overlay, cold to hot, at half strength */
+function drawHeat(ctx, x, y, size, n, img, up, o = {}) {
+  drawMap(ctx, x, y, size, n, img, { max: Math.max(1, maxOf(img)), frame: T.groupA });
+  if (!up) return;
+  const c = size / n;
+  ctx.save();
+  ctx.globalAlpha = o.alpha ?? 0.55;
+  for (let j = 0; j < n; j += 1) {
+    for (let i = 0; i < n; i += 1) {
+      ctx.fillStyle = mix(T.valueLow, T.valueHigh, up[j * n + i]);
+      ctx.fillRect(x + i * c, y + j * c, Math.ceil(c), Math.ceil(c));
+    }
+  }
+  ctx.restore();
+}
+function arrow(ctx, x0, y0, x1, y1, o = {}) {
+  ctx.save();
+  ctx.strokeStyle = ctx.fillStyle = o.color ?? T.ink3;
+  ctx.lineWidth = o.width ?? 1;
+  ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+  const a = Math.atan2(y1 - y0, x1 - x0);
+  ctx.beginPath();
+  ctx.moveTo(x1, y1);
+  ctx.lineTo(x1 - 6 * Math.cos(a - 0.4), y1 - 6 * Math.sin(a - 0.4));
+  ctx.lineTo(x1 - 6 * Math.cos(a + 0.4), y1 - 6 * Math.sin(a + 0.4));
+  ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+function opBox(ctx, x, y, w, h, label) {
+  ctx.save();
+  ctx.strokeStyle = T.axis;
+  ctx.lineWidth = 1;
+  ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+  ctx.restore();
+  txt(ctx, label, x + w / 2, y + h / 2, { align: "center", baseline: "middle", color: T.ink2, weight: "600", size: T.fsXs });
+}
+
+/* ==========================================================================
+   §2 A · THE GALLERY BAND + THE METHOD BAND.
+   ====================================================================== */
+const GAL_CAPTION = "The network on this image, one column a layer, four channels of each";
+function drawGalleryBand(ctx, w, model, read, chosenIdx, o = {}) {
+  const stages = galleryStages(model, read);
+  const lay = D.galleryLayout(w, stages);
+  caption(ctx, GAL_CAPTION, PAD, 24);
+  note(ctx, "Every map is the trained network's own; the marked column is the layer the heatmap is read from.", PAD, 40);
+  const alphaOf = (i) => (o.reveal === undefined ? 1 : (i <= o.reveal ? 1 : 0));
+
+  /* the wiring, faint */
+  ctx.save();
+  for (let c = 1; c < stages.length; c += 1) {
+    if (alphaOf(c) <= 0) continue;
+    for (let ch = 0; ch < lay.cols[c].thumbs.length; ch += 1) {
+      for (const l of D.fanIn(lay, c, ch)) {
+        ctx.globalAlpha = l.lit ? 0.22 : 0.08;
+        ctx.strokeStyle = T.empirical;
+        ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(l.from[0], l.from[1]); ctx.lineTo(l.to[0], l.to[1]); ctx.stroke();
+      }
+    }
+  }
+  ctx.restore();
+
+  stages.forEach((s, i) => {
+    if (alphaOf(i) <= 0) return;
+    const col = lay.cols[i];
+    col.thumbs.forEach((t) => {
+      if (s.spatial) {
+        const arr = s.maps[Math.min(t.channel, s.maps.length - 1)];
+        drawMap(ctx, t.x, t.y, t.size, s.H, arr, { max: i === 0 ? Math.max(1, maxOf(arr)) : maxOf(arr), frame: i === 0 ? T.groupA : T.empirical });
+      } else {
+        const vals = s.values ?? [];
+        const hi = maxOf(vals);
+        const v = vals[t.channel] ?? 0;
+        ctx.fillStyle = s.kind === "linear" ? wash(T.groupB, 0.2 + 0.7 * Math.abs(v) / hi) : mix(T.surface2, T.ink1, Math.abs(v) / hi);
+        ctx.fillRect(t.x, t.y, t.size, Math.ceil(t.h));
+        ctx.strokeStyle = s.kind === "linear" ? T.groupB : T.empirical;
+        ctx.lineWidth = 1;
+        ctx.strokeRect(t.x + 0.5, t.y + 0.5, t.size - 1, t.h - 1);
+        if (s.kind === "linear") {
+          clamped(ctx, model.task.names[t.channel], t.x + t.size + 5, t.y + t.h / 2 + 4, w,
+            { color: t.channel === read.pred ? T.ink1 : T.ink3, weight: t.channel === read.pred ? "600" : "" });
+        }
+      }
+    });
+    if (i === chosenIdx) {
+      const f = col.thumbs[0];
+      const l = col.thumbs[col.thumbs.length - 1];
+      ctx.save();
+      ctx.strokeStyle = T.highlight;
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(f.x - 3.5, f.y - 3.5, f.size + 7, l.y + l.size - f.y + 7);
+      ctx.restore();
+    }
+    clamped(ctx, s.name, col.x, lay.top - 8, w, { color: i === chosenIdx ? T.highlight : T.ink2, mono: true, weight: i === chosenIdx ? "600" : "" });
+    clamped(ctx, shapeText(s.shape), col.x, lay.lineY(col.labelRow, 0), w, { color: T.ink2, mono: true });
+    if (i > 0 && s.shown < s.C) clamped(ctx, `+${s.C - s.shown} more`, col.x, lay.lineY(col.labelRow, 1), w, { color: T.ink3 });
+  });
+  note(ctx, `A ${model.net.S} × ${model.net.S} test image; the score is the linear layer's output through softmax.`, PAD, lay.height - 12);
+  return { lay, stages, height: lay.height };
+}
+
+/* the method band: A^k · ∂y/∂A^k · α · Σ · ReLU · the heatmap on the image */
+const THUMB = 40;
+const VG = 6;
+const BIG = 64;
+const IMG = 104;
+function drawMethodBand(ctx, w, y0, model, read, block, cls, shown, o = {}) {
+  const net = model.net;
+  const S = net.S;
+  const b = net.blocks[block];
+  const H = b.H;
+  const cam = camOf(model, read, cls, block);
+  const className = model.task.names[cls];
+  const stackH = D.SHOWN * THUMB + (D.SHOWN - 1) * VG;
+  const top = y0 + 54;
+  const mid = top + stackH / 2;
+  const at = (n) => shown >= n;
+  const dim = (n) => (shown === n ? T.highlight : T.ink2);
+
+  caption(ctx, `Grad-CAM for “${className}” at ${LAYER_NAMES[block]} ${shapeText([b.C, H, H])}`, PAD, y0 + 18);
+  note(ctx, o.subtitle ?? "The gradient of the score on each map, its mean, the weighted sum, ReLU, the upsample.", PAD, y0 + 32);
+
+  /* column x positions, spread over the width */
+  const xs = { A: PAD, G: PAD + THUMB + 44, al: PAD + 2 * THUMB + 56, sum: 0, relu: 0, img: w - PAD - IMG };
+  xs.relu = xs.img - 26 - BIG;
+  xs.sum = xs.relu - 26 - BIG;
+  const alphaX = xs.al;
+  /* the α column is 44 wide; the sum column follows it if room allows */
+  const hiAct = Math.max(...Array.from({ length: D.SHOWN }, (_, c) => maxOf(cam.acts.slice(c * H * H, (c + 1) * H * H))));
+  const hiGrad = Math.max(...Array.from({ length: D.SHOWN }, (_, c) => maxOf(cam.grads.slice(c * H * H, (c + 1) * H * H))));
+
+  for (let c = 0; c < D.SHOWN; c += 1) {
+    const y = top + c * (THUMB + VG);
+    const act = cam.acts.slice(c * H * H, (c + 1) * H * H);
+    drawMap(ctx, xs.A, y, THUMB, H, act, { max: hiAct, frame: T.empirical });
+    if (at(2)) {
+      const gr = cam.grads.slice(c * H * H, (c + 1) * H * H);
+      drawSigned(ctx, xs.G, y, THUMB, H, gr, hiGrad, { frame: shown === 2 ? T.highlight : T.axis });
+    }
+    if (at(3)) {
+      txt(ctx, sgn(cam.alpha[c]), alphaX + 44, y + THUMB / 2 + 1, { align: "right", baseline: "middle", mono: true, size: T.fsXs, color: shown === 3 ? T.highlight : T.ink1 });
+    }
+  }
+  /* labels over the stacks */
+  txt(ctx, "Aᵏ", xs.A + THUMB / 2, top - 6, { align: "center", mono: true, size: T.fsXs, color: T.ink2 });
+  note(ctx, "4 of the", xs.A, top + stackH + 14);
+  note(ctx, `${b.C} maps`, xs.A, top + stackH + 28);
+  if (at(2)) {
+    txt(ctx, "∂yᶜ/∂Aᵏ", xs.G + THUMB / 2, top - 6, { align: "center", mono: true, size: T.fsXs, color: dim(2) });
+    note(ctx, "gradient", xs.G, top + stackH + 14, dim(2));
+    note(ctx, "of yᶜ", xs.G, top + stackH + 28, dim(2), { mono: true });
+  }
+  if (at(3)) {
+    txt(ctx, "αₖ", alphaX + 22, top - 6, { align: "center", mono: true, size: T.fsXs, color: dim(3) });
+    note(ctx, "mean of", alphaX, top + stackH + 14, dim(3));
+    note(ctx, `${H * H} cells`, alphaX, top + stackH + 28, dim(3));
+  }
+  /* the two single maps */
+  const bigY = mid - BIG / 2;
+  if (at(4)) {
+    arrow(ctx, alphaX + 52, mid, xs.sum - 6, mid, { color: dim(4) });
+    drawSigned(ctx, xs.sum, bigY, BIG, H, cam.sum, maxOf(cam.sum), { frame: shown === 4 ? T.highlight : T.axis });
+    txt(ctx, "Σ αₖ Aᵏ", xs.sum + BIG / 2, top - 6, { align: "center", mono: true, size: T.fsXs, color: dim(4) });
+    note(ctx, `over all ${b.C} maps`, xs.sum, bigY + BIG + 14, dim(4));
+    note(ctx, "signed", xs.sum, bigY + BIG + 28, dim(4));
+  }
+  if (at(5)) {
+    arrow(ctx, xs.sum + BIG + 6, mid, xs.relu - 6, mid, { color: dim(5) });
+    drawSigned(ctx, xs.relu, bigY, BIG, H, cam.cam, 1, { frame: shown === 5 ? T.highlight : T.axis });
+    txt(ctx, "ReLU", xs.relu + BIG / 2, top - 6, { align: "center", mono: true, size: T.fsXs, color: dim(5) });
+    note(ctx, "negative → 0", xs.relu, bigY + BIG + 14, dim(5));
+    note(ctx, `${H} × ${H}, peak 1`, xs.relu, bigY + BIG + 28, dim(5));
+    arrow(ctx, xs.relu + BIG + 6, mid, xs.img - 6, mid, { color: dim(5) });
+  }
+  /* the image, always; the heat from step 5 */
+  const imgY = mid - IMG / 2;
+  drawHeat(ctx, xs.img, imgY, IMG, S, read.img, at(5) ? cam.up : null);
+  txt(ctx, at(5) ? `× ${S / H} onto the image` : "the image", xs.img + IMG / 2, top - 6, { align: "center", size: T.fsXs, color: at(5) ? dim(5) : T.ink2 });
+  const share = E.heatShare(cam.up, S, read.set.masks[read.i]);
+  const rx = xs.img + IMG;
+  if (at(5)) {
+    note(ctx, `${pct(share.object)} of the heat on ${model.task.object}`, rx, imgY + IMG + 14, T.ink2, { align: "right" });
+    note(ctx, `${pct(share.corner)} in the corner`, rx, imgY + IMG + 28, T.ink2, { align: "right" });
+  } else {
+    note(ctx, `predicted ${model.task.names[read.pred]} ${read.prob[read.pred].toFixed(2)}`, rx, imgY + IMG + 14, T.ink2, { align: "right" });
+  }
+  return { height: 54 + Math.max(stackH, IMG) + 46, cam, share };
+}
+
+function figureA(ctx, w, model, read, block, cls, shown, o = {}) {
+  const gal = drawGalleryBand(ctx, w, model, read, 1 + 2 * block, { reveal: shown >= 1 ? undefined : 0 });
+  const band = drawMethodBand(ctx, w, gal.height + 6, model, read, block, cls, shown, o);
+  return gal.height + 6 + band.height;
+}
+
+/* ==========================================================================
+   §2 B · KENNETH'S DIAGRAM ALONE.
+   ====================================================================== */
+function figureB(ctx, w, model, read, block, cls) {
+  const net = model.net;
+  const S = net.S;
+  const b = net.blocks[block];
+  const H = b.H;
+  const cam = camOf(model, read, cls, block);
+  caption(ctx, `Grad-CAM for “${model.task.names[cls]}” at ${LAYER_NAMES[block]}`, PAD, 24);
+  note(ctx, "Forward along the top: the image, the network, the chosen layer's maps, the linear layer, the score. Backward along the bottom: the gradients, their averages, the weighted sum, ReLU, the heatmap.", PAD, 40);
+  const IMG_S = 96;
+  const topY = 70;
+  const imgX = PAD;
+  drawMap(ctx, imgX, topY, IMG_S, S, read.img, { max: Math.max(1, maxOf(read.img)), frame: T.groupA });
+  note(ctx, "the image", imgX, topY + IMG_S + 14);
+  const midTop = topY + IMG_S / 2;
+  arrow(ctx, imgX + IMG_S + 6, midTop, imgX + IMG_S + 40, midTop);
+  opBox(ctx, imgX + IMG_S + 44, midTop - 14, 44, 28, "CNN");
+  arrow(ctx, imgX + IMG_S + 94, midTop, imgX + IMG_S + 124, midTop);
+  const stackX = imgX + IMG_S + 160;
+  const T2 = 30;
+  const stackH = D.SHOWN * T2 + (D.SHOWN - 1) * 4;
+  const stackY = midTop - stackH / 2;
+  const hiAct = Math.max(...Array.from({ length: D.SHOWN }, (_, c) => maxOf(cam.acts.slice(c * H * H, (c + 1) * H * H))));
+  for (let c = 0; c < D.SHOWN; c += 1) {
+    drawMap(ctx, stackX, stackY + c * (T2 + 4), T2, H, cam.acts.slice(c * H * H, (c + 1) * H * H), { max: hiAct, frame: T.empirical });
+  }
+  txt(ctx, "Aᵏ", stackX + T2 / 2, stackY - 8, { align: "center", mono: true, size: T.fsXs, color: T.highlight });
+  note(ctx, `${LAYER_NAMES[block]} ${shapeText([b.C, H, H])}`, stackX - 10, stackY + stackH + 14, T.ink2, { mono: true });
+  arrow(ctx, stackX + T2 + 6, midTop, stackX + T2 + 40, midTop);
+  const fcX = stackX + T2 + 46;
+  for (let k = 0; k < 4; k += 1) {
+    ctx.fillStyle = wash(T.groupB, 0.35);
+    ctx.fillRect(fcX + k * 13, midTop - 6, 12, 12);
+    ctx.strokeStyle = T.groupB;
+    ctx.strokeRect(fcX + k * 13 + 0.5, midTop - 5.5, 11, 11);
+  }
+  note(ctx, "GAP · Linear", fcX, midTop - 14, T.ink2);
+  arrow(ctx, fcX + 58, midTop, fcX + 90, midTop);
+  const scoreX = fcX + 96;
+  txt(ctx, "yᶜ", scoreX, midTop + 4, { mono: true, color: T.ink1, weight: "600" });
+  note(ctx, `${model.task.names[read.pred]} ${read.prob[read.pred].toFixed(2)}`, scoreX + 22, midTop + 4, T.ink1);
+
+  /* backward, along the bottom */
+  const botY = topY + IMG_S + 84;
+  const midBot = botY + IMG_S / 2;
+  const gX = stackX;
+  const hiGrad = Math.max(...Array.from({ length: D.SHOWN }, (_, c) => maxOf(cam.grads.slice(c * H * H, (c + 1) * H * H))));
+  const gY = midBot - stackH / 2;
+  for (let c = 0; c < D.SHOWN; c += 1) {
+    drawSigned(ctx, gX, gY + c * (T2 + 4), T2, H, cam.grads.slice(c * H * H, (c + 1) * H * H), hiGrad);
+    txt(ctx, sgn(cam.alpha[c]), gX + T2 + 44, gY + c * (T2 + 4) + T2 / 2 + 1, { align: "right", baseline: "middle", mono: true, size: T.fsXs, color: T.ink1 });
+  }
+  txt(ctx, "∂yᶜ/∂Aᵏ", gX + T2 / 2, gY - 8, { align: "center", mono: true, size: T.fsXs, color: T.ink2 });
+  txt(ctx, "αₖ", gX + T2 + 30, gY - 8, { align: "center", mono: true, size: T.fsXs, color: T.ink2 });
+  note(ctx, "average gradients", gX - 6, gY + stackH + 14, T.ink2);
+  /* the score's gradient comes down the right side */
+  ctx.save();
+  ctx.strokeStyle = T.ink3;
+  ctx.beginPath(); ctx.moveTo(scoreX + 8, midTop + 10); ctx.lineTo(scoreX + 8, midBot); ctx.stroke();
+  ctx.restore();
+  arrow(ctx, scoreX + 8, midBot, gX + T2 + 56, midBot);
+  /* to the left: Σ, ReLU, the heatmap */
+  const M2 = 38;
+  const sumX = gX - 24 - M2;
+  arrow(ctx, gX - 6, midBot, sumX + M2 + 6, midBot);
+  drawSigned(ctx, sumX, midBot - M2 / 2, M2, H, cam.sum, maxOf(cam.sum));
+  txt(ctx, "Σ αₖ Aᵏ", sumX + M2 / 2, midBot - M2 / 2 - 8, { align: "center", mono: true, size: T.fsXs, color: T.ink2 });
+  const reluX = sumX - 24 - M2;
+  arrow(ctx, sumX - 6, midBot, reluX + M2 + 6, midBot);
+  drawSigned(ctx, reluX, midBot - M2 / 2, M2, H, cam.cam, 1);
+  txt(ctx, "ReLU", reluX + M2 / 2, midBot - M2 / 2 - 8, { align: "center", mono: true, size: T.fsXs, color: T.ink2 });
+  arrow(ctx, reluX - 6, midBot, imgX + IMG_S + 6, midBot);
+  drawHeat(ctx, imgX, botY, IMG_S, S, read.img, cam.up);
+  note(ctx, "the heatmap on the image", imgX, botY + IMG_S + 14);
+  const share = E.heatShare(cam.up, S, read.set.masks[read.i]);
+  note(ctx, `${pct(share.object)} of the heat on ${model.task.object}`, imgX, botY + IMG_S + 28, T.ink2);
+  return botY + IMG_S + 40;
+}
+
+/* ==========================================================================
+   §4 · THE EVIDENCE BAND: the same test image clean and watermarked.
+   ====================================================================== */
+function evidenceBand(ctx, w, y0, model, i, block) {
+  const S = model.net.S;
+  const rc = readImage(model, model.teClean, i);
+  const rq = readImage(model, model.teCued, i);
+  caption(ctx, `The same image, clean and watermarked, at ${LAYER_NAMES[block]} — a model trained at watermark ${pct(model.rate)}`, PAD, y0 + 18);
+  note(ctx, "Each heatmap is for that image's own predicted class; the accuracy is on 60 test images of each kind.", PAD, y0 + 32);
+  const IM = 88;
+  const top = y0 + 58;
+  const draw = (read, x, label) => {
+    const cam = camOf(model, read, read.pred, block);
+    drawHeat(ctx, x, top, IM, S, read.img, cam.up);
+    const share = E.heatShare(cam.up, S, read.set.masks[read.i]);
+    note(ctx, label, x, top - 6, T.ink2, { weight: "600" });
+    note(ctx, `${model.task.names[read.pred]} ${read.prob[read.pred].toFixed(2)}`, x, top + IM + 14, T.ink1);
+    note(ctx, `${pct(share.object)} on ${model.task.object}`, x, top + IM + 28);
+    note(ctx, `${pct(share.corner)} in the corner`, x, top + IM + 42);
+    return share;
+  };
+  draw(rc, PAD, "Clean");
+  draw(rq, PAD + IM + 30, "Watermarked");
+  const rx = PAD + 2 * IM + 70;
+  txt(ctx, "Accuracy on clean test images", rx, top + 12, { size: T.fsXs, color: T.ink3 });
+  txt(ctx, pct(model.acc.clean), rx, top + 34, { size: T.fsMd, color: T.ink1, weight: "600", mono: true });
+  txt(ctx, "Accuracy on watermarked test images", rx, top + 60, { size: T.fsXs, color: T.ink3 });
+  txt(ctx, pct(model.acc.cued), rx, top + 82, { size: T.fsMd, color: T.ink1, weight: "600", mono: true });
+  return 58 + IM + 54;
+}
+
+/* ==========================================================================
+   §1 · THE TASK STRIP.
+   ====================================================================== */
+function taskStrip(ctx, w, m0, m100) {
+  const S = m0.net.S;
+  const task = m0.task;
+  caption(ctx, task.title, PAD, 20);
+  const IM = 44;
+  let x = PAD;
+  const y = 56;
+  note(ctx, "training images, 100 % model", x, y - 8);
+  for (let i = 0; i < 6; i += 1) {
+    const img = m100.tr.x.slice(i * S * S, (i + 1) * S * S);
+    drawMap(ctx, x, y, IM, S, img, { max: Math.max(1, maxOf(img)), frame: m100.tr.cued[i] ? T.highlight : T.groupA });
+    note(ctx, task.names[m100.tr.y[i]], x, y + IM + 12);
+    x += IM + 6;
+  }
+  /* clean test image of each class under the 0 % model, three layers */
+  const camsRow = (model, read, x0, y0, label) => {
+    if (label) note(ctx, label, x0, y0 - 8);
+    drawMap(ctx, x0, y0, IM, S, read.img, { max: Math.max(1, maxOf(read.img)), frame: T.groupA });
+    note(ctx, `${task.names[read.pred]} ${read.prob[read.pred].toFixed(2)}`, x0, y0 + IM + 12, T.ink1);
+    for (let b = 0; b < 3; b += 1) {
+      const cam = camOf(model, read, read.pred, b);
+      const xx = x0 + (b + 1) * (IM + 4);
+      drawHeat(ctx, xx, y0, IM, S, read.img, cam.up);
+      const sh = E.heatShare(cam.up, S, read.set.masks[read.i]);
+      note(ctx, LAYER_NAMES[b], xx, y0 + IM + 12);
+      note(ctx, `${pct(sh.object)} on ${task.object === "the cell" ? "it" : "it"}`, xx, y0 + IM + 24, T.ink2);
+    }
+  };
+  const rowW = 4 * (IM + 4);
+  const y2 = y + IM + 34;
+  camsRow(m0, readImage(m0, m0.teClean, 0), PAD, y2, `clean test images, one of each class, under the 0 % model — the share of the heat on ${task.object} under each`);
+  camsRow(m0, readImage(m0, m0.teClean, 1), PAD + rowW + 24, y2, null);
+  const y3 = y2 + IM + 46;
+  camsRow(m100, readImage(m100, m100.teCued, task.cueClass), PAD, y3, `the cued class under the 100 % model: watermarked, then the same image clean`);
+  camsRow(m100, readImage(m100, m100.teClean, task.cueClass), PAD + rowW + 24, y3, null);
+  return y3 + IM + 42;
+}
+
+/* ==========================================================================
+   THE PAGE.
+   ====================================================================== */
+const el = (tag, cls, text) => {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text != null) e.textContent = text;
+  return e;
+};
+function cand(row, title, sub, w = STAGE_W) {
+  const box = el("div", "cand");
+  box.style.width = `${w}px`;
+  box.appendChild(el("h3", null, title));
+  box.appendChild(el("p", "sub", sub));
+  row.appendChild(box);
+  return box;
+}
+function canvasIn(box, w, h) {
+  const c = document.createElement("canvas");
+  c.width = Math.round(w * DPR);
+  c.height = Math.round(h * DPR);
+  c.style.width = `${w}px`;
+  c.style.height = `${h}px`;
+  box.appendChild(c);
+  const ctx = c.getContext("2d");
+  ctx.scale(DPR, DPR);
+  return ctx;
+}
+/** draw once to measure, then draw for real at the measured height */
+function shoot(box, w, fn, h0 = 900) {
+  const probe = document.createElement("canvas");
+  probe.width = w * DPR; probe.height = h0 * DPR;
+  const pctx = probe.getContext("2d");
+  pctx.scale(DPR, DPR);
+  const h = Math.ceil(fn(pctx));
+  const ctx = canvasIn(box, w, h);
+  fn(ctx);
+  return h;
+}
+
+const line = document.getElementById("engineLine");
+const models = {};
+let totalMs = 0;
+for (const task of TASKS) {
+  for (const rate of [0, 1]) {
+    line.textContent = `training ${task.title} at watermark ${pct(rate)} …`;
+    await sleep();
+    const m = trainModel(task, rate);
+    totalMs += m.ms;
+    models[`${task.key}:${rate}`] = m;
+  }
+}
+line.innerHTML = `<b>Trained here:</b> ${2 * TASKS.length} nets (${TASKS.length} tasks × watermark 0 % and 100 %) at ${CFG.S} × ${CFG.S}, ${CFG.n} images, ${CFG.epochs} epochs, conv ${CFG.chans.join("/")} — `
+  + `${(totalMs / (2 * TASKS.length) / 1000).toFixed(2)} s a net in this tab, one seed. `
+  + TASKS.map((t, i) => `${["pick", "field", "reference"][i]}: clean ${pct(models[`${t.key}:0`].acc.clean)} → ${pct(models[`${t.key}:1`].acc.clean)} at 100 %`).join("; ") + ".";
+
+/* §1 */
+{
+  const row = document.getElementById("taskRow");
+  for (const task of TASKS) {
+    const m0 = models[`${task.key}:0`];
+    const m1 = models[`${task.key}:1`];
+    const box = cand(row, task.title,
+      `0 % model: train ${pct(m0.acc.train)}, clean ${pct(m0.acc.clean)}, watermarked ${pct(m0.acc.cued)}\n100 % model: train ${pct(m1.acc.train)}, clean ${pct(m1.acc.clean)}, watermarked ${pct(m1.acc.cued)}`);
+    shoot(box, STAGE_W, (ctx) => taskStrip(ctx, STAGE_W, m0, m1));
+  }
+  document.getElementById("recTask").innerHTML =
+    `<b>Your pick, tuned: the cell with a nucleus against its membrane alone, the ghost's interior at 0.08, the `
+    + `mark 5 × 5 at 1.4.</b> Two levers closed the two gaps as far as they close. The mark must be brighter than `
+    + `the membrane (1.4 against 0.93; a watermark burnt in above the tissue's range is what the lesson names) and `
+    + `big enough to beat an easy task: at 3 × 3 the net keeps the cell, at 5 × 5 — a tenth of the image — clean `
+    + `accuracy drops from 100 to 77 and the mark decides every watermarked image (51 %). The ghost's interior `
+    + `darker than the field gives the ghost class evidence of its own, and its heatmap goes from 27 % of the mass `
+    + `on a 30 % footprint (off it) to 51 % (1.5 ×); the cell's is 2.2 × on the cell and 5 × on its nucleus. What `
+    + `does not close: the ghost's heatmap is weaker than the cell's, and the losing stage is 77 %, not chance — `
+    + `both honest on the figure, and both printed in the readout. The two classes are named <i>Cell</i> and `
+    + `<i>Ghost</i>; the training-image row above shows what each is.`;
+}
+
+/* §2 */
+const MODEL = models[`${PICK}:0`];
+const READ = readImage(MODEL, MODEL.teClean, 0);
+{
+  const row = document.getElementById("figRow");
+  const boxA = cand(row, "A · the gallery band, then the method band", "550 wide; conv2, the predicted class, every step shown\nthe gallery is depict.js's, unchanged");
+  const hA = shoot(boxA, STAGE_W, (ctx) => figureA(ctx, STAGE_W, MODEL, READ, 1, READ.pred, 5));
+  const boxB = cand(row, "B · the diagram alone", "550 wide; the same model, image, layer and class\nforward along the top, backward along the bottom");
+  const hB = shoot(boxB, STAGE_W, (ctx) => figureB(ctx, STAGE_W, MODEL, READ, 1, READ.pred));
+  const bandH = 54 + Math.max(4 * THUMB + 3 * VG, IMG) + 46;
+  document.getElementById("figMeasure").textContent = `A: ${hA}px at 550 (the gallery ${hA - 6 - bandH}px, the method band ${bandH}px)   B: ${hB}px at 550
+61 shipped at 883px; a side layout puts the rail beside either.`;
+  document.getElementById("recFig").innerHTML =
+    `<b>Kenneth's pick: B</b> — picked as A first, revised the same evening: "it aligns with the notebook diagram". `
+    + `The recommendation as written follows. `
+    + `<b>A.</b> The layer choice is the notebook's own question (<i>which layer to examine?</i>), and B answers it `
+    + `with a label while A answers it with the picture: the marked column moves, its thumbnails get coarser, and the `
+    + `method band under it reads the maps of that column. A also shows the reader that every map is a TRAINED one `
+    + `— 61's were named operators, and this is the first widget where the same gallery holds learned filters, which `
+    + `is worth the height. The method band keeps your diagram's parts in its order, left to right: maps, gradients, `
+    + `averages, sum, ReLU, heatmap. B is the shape to fall back to if the stage must be short; it is what the `
+    + `notebook draws, and it would take the same drive.`;
+}
+
+/* §3 */
+{
+  const row = document.getElementById("stepRow");
+  const labels = ["Forward pass", "Gradients", "Average", "Weighted sum", "ReLU, upsample"];
+  const subs = [
+    "press 1: the maps and the score; the method band holds the chosen layer's maps and the image",
+    "press 2: ∂yᶜ/∂Aᵏ beside each map, signed",
+    "press 3: each gradient map's mean, one number a map",
+    "press 4: Σ αₖ Aᵏ over all the layer's maps, still signed",
+    "press 5: ReLU, then the 8 × 8 result drawn ×2 on the image",
+  ];
+  for (let s = 1; s <= 5; s += 1) {
+    const box = cand(row, `after “${labels[s - 1]}”`, subs[s - 1]);
+    shoot(box, STAGE_W, (ctx) => drawMethodBand(ctx, STAGE_W, 0, MODEL, READ, 1, READ.pred, s).height);
+  }
+  document.getElementById("recStep").innerHTML =
+    `<b>Five presses, one Step, no gate.</b> The widget's noun is a step of the method, and the label names the `
+    + `step it is about to draw. <code>shown</code> counts presses (0–5) and <code>?shown=5</code> publishes the `
+    + `finished figure. A change to the layer, the class or the image is a DISPLAY change and keeps the count; a `
+    + `change to the watermark rate or the seed retrains and starts over. The first press is the forward pass `
+    + `because the stage should not open on maps the reader has not asked for (2.1); the four that follow are the `
+    + `notebook's own numbering.`;
+}
+
+/* §4 */
+{
+  const row = document.getElementById("evidRow");
+  for (const rate of [0, 1]) {
+    const m = models[`${PICK}:${rate}`];
+    const box = cand(row, `B · both readings, the model trained at ${pct(rate)}`, rate === 0
+      ? "the corner lights at conv1 on the watermarked image though this model ignores it — the caveat"
+      : "the corner is the evidence, and clean accuracy is what says so");
+    shoot(box, STAGE_W, (ctx) => evidenceBand(ctx, STAGE_W, 0, m, 0, 0));
+    const box2 = cand(row, `… the same at conv2`, "");
+    shoot(box2, STAGE_W, (ctx) => evidenceBand(ctx, STAGE_W, 0, m, 0, 1));
+  }
+  document.getElementById("recEvid").innerHTML =
+    `<b>A, with the accuracies always in the readout — and B's pair as the readout's own two tiles is worth `
+    + `trying in the build.</b> The whole figure following one image keeps the method band honest (one image, `
+    + `one class, one layer), and the <i>Image</i> control is the reader's own experiment: switch to Watermarked at `
+    + `0 % and watch conv1's corner light for a model that scores 100 % clean; switch the layer and watch what `
+    + `happens to it. The readout prints clean and watermarked accuracy whatever is shown, so a hot corner is never `
+    + `read without the number that says whether it is used. B as a third band is 180px the stage does not need `
+    + `if the readout carries the numbers.`;
+}
+
+/* §5 */
+{
+  const { buildControls, buildActions } = await import("../core/controls.js");
+  const { resolveParams } = await import("../core/params.js");
+  const spec = {
+    dataSec: { type: "section", label: "The training data" },
+    cue: {
+      type: "segmented", label: "Watermark",
+      detail: "the share of the cell images that carry a bright square in the top-left corner during training",
+      options: [{ value: "0", label: "0%" }, { value: "50", label: "50%" }, { value: "100", label: "100%" }],
+      default: "0",
+    },
+    seed: { type: "int", label: "Seed", min: 1, max: 200, default: 1 },
+    readSec: { type: "section", label: "The reading" },
+    layer: {
+      type: "segmented", label: "Layer",
+      detail: "the convolutional layer whose feature maps the heatmap is computed from",
+      options: [{ value: "conv1", label: "conv1" }, { value: "conv2", label: "conv2" }, { value: "conv3", label: "conv3" }],
+      default: "conv2", display: true,
+    },
+    cls: {
+      type: "segmented", label: "Class",
+      detail: "the class c whose score yᶜ is differentiated",
+      options: [{ value: "pred", label: "Predicted" }, { value: "other", label: "The other" }],
+      default: "pred", display: true,
+    },
+    image: {
+      type: "choice", label: "Test image",
+      detail: "which of the held-out images the figure is about",
+      options: Array.from({ length: 8 }, (_, i) => ({ value: `${i + 1}`, label: `${i + 1}` })),
+      default: "1", display: true,
+    },
+    mark: {
+      type: "segmented", label: "Image",
+      detail: "the test image as it is, or with the bright square added",
+      options: [{ value: "clean", label: "Clean" }, { value: "cued", label: "Watermarked" }],
+      default: "clean", display: true,
+    },
+  };
+  const row = document.getElementById("railRow");
+  const box = cand(row, "the rail", "core's own DOM at 300px; values: the defaults", 320);
+  const host = el("div", "w-split rail-host");
+  const rail = el("div", "w-rail");
+  host.appendChild(rail);
+  const values = resolveParams(spec, new URLSearchParams(""));
+  const cm = el("div", "w-controls");
+  rail.appendChild(cm);
+  buildControls(cm, spec, values, () => {});
+  const drive = el("div", "w-drive");
+  rail.appendChild(drive);
+  buildActions(drive, [
+    { key: "step", text: "Forward pass", group: "pace", onClick: () => {} },
+    { key: "run", text: "Play", group: "pace", primary: true, onClick: () => {} },
+    { key: "reset", text: "Reset", onClick: () => {} },
+  ]);
+  box.appendChild(host);
+  const measure = () => {
+    document.getElementById("railMeasure").textContent = `the rail: ${Math.round(host.getBoundingClientRect().height)}px; the stage (A): see §2`;
+  };
+  measure();
+  if (document.fonts?.ready) document.fonts.ready.then(measure);
+  document.getElementById("recRail").innerHTML =
+    `<b>Six controls in two sections, the drive under them, the readout under the drive.</b> Watermark is `
+    + `segmented because its three values are three different models the reader compares (3.3), and Seed is the `
+    + `arc's usual int. Layer is the notebook's own control and conv2 is its default — cell 137's `
+    + `<code>layer2</code>, and the fine layer's heatmap is the least readable of the three. Class is where the misconception lives (<i>the heatmap is a `
+    + `property of the image</i>): the same image, the other class, a different picture. Test image and Image are `
+    + `the reader's experiment from §4. The readout: predicted class and its probability, accuracy on clean and on `
+    + `watermarked test images, the heat's share on the shape and in the corner — the number the caveat needs.`;
+}
+</script>
+</main>
+</body>
+</html>

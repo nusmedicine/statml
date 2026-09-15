@@ -1,28 +1,71 @@
 # Handover
 
-**FIFTY-EIGHT WIDGETS SHIPPED — 56 on the gallery, `roc-auc` UNLISTED (Kenneth's
-call, 2026-08-30); NO DRAFT.** The image arc (PHM5005 06-1 to 06-3) is
-planned as four widgets and its first, **61 `cnn-architecture`, SHIPPED
-2026-09-15** on "go ahead and push to gallery": fifteen states recorded by
-`_lab/cnn-shoot.html` (every state shot three times, every drive moved its
-figure, the copy proof 6 / 6), the full suite **772 / 772 MATCH** fronted at
-DPR 1.25 with `visibilityState` visible on every poll, `check` and `test`
-read alone. Slot 52 `training-loop` is DISCARDED (his call, 2026-09-13).
-Session closed on his word after the push: the ship is **51d26bb** (`8ef642b..51d26bb`), and this line rides in the follow-up.
+**SLOT 64 `grad-cam` SHIPPED AND PUSHED 2026-09-15** on "push to gallery":
+five states recorded from one fronted suite run (the 772 existing states
+MATCH with the core `preview` block in place, so the core change is proven),
+confirmed by a second fronted run, status flipped in the manifest and
+`main.js`, `check` and `test` read alone, one commit, pushed. The rounds
+below are the record of how the plan became what shipped — five rounds in
+one day, each on his look: the mark controls renamed; the mark put into
+training; then the shortcut behind a gate with an L marker; then the shortcut
+REMOVED and the cell kept clear of the marker; then the copy audit, the two
+rail sections, MathML, the title, and the classes preview in the rail (a
+core block type, `preview`). **NEXT: slot 63 `pretrained`** (rescoped to the
+forgetting trade-off; it imports `widgets/grad-cam/engine.js`), then 65
+`unet` with its Dice page. `depict.js`'s first importer is now 63 or 65.
 
-**NEXT: slot 64 `grad-cam`** (06-2 cells 122–139; measured 2026-09-13 in
-`_lab/dl-image-measure.mjs` M3 — a 3 × 3 cue, the CAM read on a CLEAN image,
-a third conv for the coarse layer; the catalogue's slot 64 entry). It is the
-first importer of `widgets/cnn-architecture/depict.js` (the gallery) and
-should reuse the cell image and the named kernels; the plain-JS CNN engine
-is born there (budget: 16 × 16, 200 images, 30 epochs, 1.1 s). Then 63
-`pretrained` (rescoped to the forgetting trade-off), then 65 `unet` with its
-Dice page. The order that has now run ten times: measure → mock from the
-newest shell → his picks by AskUserQuestion → catalogue → draft with a
-verify → rounds (a mock for every design question; small fixes in the main
-session) → the copy audit as a table he approves as a set → "tested ok" →
-shooter + states → status flip → full suite fronted → `check` AND `test`
-read alone → commit → push → `gh run list` and the live manifest.
+**FIFTY-NINE WIDGETS SHIPPED — 57 on the gallery, `roc-auc` UNLISTED; NO
+DRAFT.**
+
+**His four picks (two AskUserQuestions, one revision):** the figure is B —
+his own Grad-CAM diagram as the notebook draws it, forward along the top
+(image, CNN, the chosen layer's maps, the head, the score) and backward along
+the bottom right to left (gradients, α, weighted sum, ReLU, the heatmap under
+the image), 468px; he picked A (61's gallery then the band) first and revised
+it the same evening, "it aligns with the notebook diagram" — so 64 imports
+NOTHING from `depict.js`, and the motif's first importer is now 63 or 65;
+one Step of FIVE presses, no gate
+(Forward pass · Gradients · Average · Weighted sum · ReLU, upsample — the
+label keyed on `anim.phase`); the caveat is an Image control, Clean ·
+Watermarked, both accuracies always in the readout; and the task, AGAINST the
+recommendation and after a second round of variants, is **widget 61's cell
+with a nucleus against its membrane alone (a ghost)**. Eleven cell variants
+failed one of three tests (not learned at 16 × 16 in 0.8 s; one class an
+ABSENCE, its heatmap off the cell — the linear layer's two rows are
+near-opposites under a GAP head; the mark unable to beat a 0.93 membrane);
+DISC vs RING passed all three and was recommended. His pick was tuned to pass
+as far as it passes: the mark 5 × 5 at 1.4, the ghost's interior 0.08. Three
+seeds: clean 100 → 77 with the mark on every cell, 51 on watermarked images,
+the ghost's heatmap 1.5 × chance, the cell's 2.2 × (5 × on its nucleus). The
+losing stage is 77 %, not chance, and the ghost's heatmap is weaker than the
+cell's — both printed, neither hidden.
+
+**Verified in the browser (2026-09-15, fronted, DPR 1.25), on the A build
+and again on the B build:** five presses run and the readout prints (image 1
+at conv2: Cell 1.00, 71 % of the heat on a 34 % cell, 2 % in the corner); a
+DISPLAY change (Image, Layer) keeps the presses and writes the URL; a DATA
+change (Watermark 100 %) retrains in 0.8 s, resets the presses and prints
+80 % · 50 %; light theme read. The A build's gallery regions were proven by
+dispatched PointerEvents; B declares none. **The emulated-viewport click
+mapping in the Browser pane is not the widget:** clicks by `ref` landed off
+target under `resize_window` and read as a page reset; DOM `.click()` and
+dispatched PointerEvents are what proved the contract.
+
+**NEXT:** Kenneth reads the draft and the rounds begin (a mock for every
+design question; small fixes in the main session), then the copy audit as a
+table, "tested ok", a shooter (`_lab/cnn-shoot.html`'s shape, from the
+CURRENT harness functions) and states — settled, one driven; no regions, so
+no hit state — status flip in the manifest AND `main.js`, full suite
+fronted, `check` and `test` read alone, commit, push. Two things to raise in
+round one: the fine layer's heatmap on the ghost is at chance (measured, and
+the reason conv2 is the default), and whether the readout's "Heat on the
+cell · in the corner" should name the watermark's corner as 10 % of the
+image (it does, in the note). Then 63 `pretrained` (imports
+`grad-cam/engine.js`), then 65 `unet` with its Dice page. The order that has
+now run ten times: measure → mock from the newest shell → his picks by
+AskUserQuestion → catalogue → draft with a verify → rounds → the copy audit
+→ "tested ok" → shooter + states → status flip → full suite fronted → `check`
+AND `test` read alone → commit → push → `gh run list` and the live manifest.
 
 **Core gap left open, not this widget's:** Reset does not rebuild a gated
 control block (`power-and-error` has it too) — the section and its control

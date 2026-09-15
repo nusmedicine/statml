@@ -19,6 +19,9 @@
      gate         full-width button that reveals a stage; a bool on the wire
      section      a labelled divider between groups of controls; NOT a parameter,
                   carries no value and never reaches the URL
+     preview      a row of small figures with captions and one line, drawn by
+                  the widget through `paint(ctx, index, size)`; carries no value,
+                  like `section`. Widget 64 shows the two classes under The model
      readback     a small case table naming which of a few labelled outcomes the
                   controls above it produce; NOT a parameter, sets nothing
      expr         several parameters rendered as the slots of ONE line of code,
@@ -67,7 +70,7 @@
 
 /* Spec entries that declare POSITION in the control block and nothing else.
    They carry no value, never reach `values`, and never reach the URL. */
-const NON_PARAM_TYPES = new Set(["section", "readback", "expr"]);
+const NON_PARAM_TYPES = new Set(["section", "readback", "expr", "preview"]);
 /* the types whose value must be one of a list — a list that may follow another
    parameter (`optionsFrom`) and so may not hold the field's own default */
 const OPTION_TYPES = new Set(["select", "choice", "segmented", "matrix"]);

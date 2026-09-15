@@ -23,6 +23,7 @@
    ========================================================================= */
 
 import { optionEntries } from "./params.js";
+import { onThemeChange } from "./env.js";
 
 /**
  * Group consecutive checkboxes into one cell.
@@ -303,6 +304,11 @@ function toCells(spec, values) {
       cells.push({ kind: "readback", entry });
       continue;
     }
+    if (entry[1].type === "preview") {
+      bools = null;
+      cells.push({ kind: "preview", entry });
+      continue;
+    }
     if (entry[1].type === "expr") {
       bools = null;
       cells.push({ kind: "expr", entry });
@@ -380,6 +386,53 @@ function build(host, spec, values, onChange, api) {
         d.textContent = field.detail;
         host.appendChild(d);
       }
+      continue;
+    }
+
+    /* A ROW OF EXAMPLES, and it sets nothing. Widget 64 (2026-09-15, Kenneth's
+       ask: "under model, could we show examples of what we are trying to
+       predict") shows the two classes the network is trained on under The
+       model, before the first press. Core holds no picture: the widget's
+       `paint(ctx, index, size)` draws each figure, and it is called again when
+       the theme changes, since a canvas keeps the colours it was painted in. */
+    if (cell.kind === "preview") {
+      endRow();
+      const [, field] = cell.entry;
+      const block = document.createElement("div");
+      block.className = "w-preview";
+      const size = field.size ?? 48;
+      const dpr = window.devicePixelRatio || 1;
+      const paints = [];
+      (field.items ?? []).forEach((item, index) => {
+        const fig = document.createElement("figure");
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.round(size * dpr);
+        canvas.height = Math.round(size * dpr);
+        canvas.style.width = `${size}px`;
+        canvas.style.height = `${size}px`;
+        canvas.setAttribute("role", "img");
+        canvas.setAttribute("aria-label", item.caption ?? "");
+        const paint = () => {
+          const ctx = canvas.getContext("2d");
+          ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+          ctx.clearRect(0, 0, size, size);
+          field.paint?.(ctx, index, size);
+        };
+        paint();
+        paints.push(paint);
+        fig.appendChild(canvas);
+        const cap = document.createElement("figcaption");
+        cap.textContent = item.caption ?? "";
+        fig.appendChild(cap);
+        block.appendChild(fig);
+      });
+      if (field.note) {
+        const n = document.createElement("p");
+        n.textContent = field.note;
+        block.appendChild(n);
+      }
+      onThemeChange(() => paints.forEach((fn) => fn()));
+      host.appendChild(block);
       continue;
     }
 

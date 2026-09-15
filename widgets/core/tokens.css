@@ -540,6 +540,19 @@ body[data-embed="1"] .w-root { border: none; border-radius: 0; }
   color: var(--ink-1);
 }
 .w-section:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
+/* A preview block: a row of small figures with captions and one line, full
+   row like a section. The figures are the widget's own canvases. */
+.w-preview {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: var(--sp-3);
+  align-items: flex-start;
+  margin: 0 0 var(--sp-2);
+}
+.w-preview figure { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.w-preview canvas { display: block; border: 1px solid var(--c-group-a); }
+.w-preview figcaption { font-size: var(--fs-xs); color: var(--ink-2); }
+.w-preview p { font-size: var(--fs-xs); color: var(--ink-3); margin: 0; }
 /* `.w-controls` is a grid, so an item's margins ADD to the row gap: 12 + 24
    above the heading against 12 + 4 below it. The asymmetry is what binds a
    heading to the group under it rather than floating between two. */

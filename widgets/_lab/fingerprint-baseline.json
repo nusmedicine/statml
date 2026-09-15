@@ -6951,6 +6951,46 @@
       },
       "px": "73b415bb",
       "tx": "edc0c068"
+    },
+    {
+      "$note": "the opening: the image and the empty diagram, nothing pressed",
+      "slug": "grad-cam",
+      "state": "?theme=light&shown=0",
+      "px": "be0cae1e",
+      "tx": "915f23e8"
+    },
+    {
+      "$note": "three presses in: the maps, the gradients and the averages; the weighted sum not yet",
+      "slug": "grad-cam",
+      "state": "?theme=light&shown=3",
+      "px": "c0c560aa",
+      "tx": "f9e754b4"
+    },
+    {
+      "$note": "the finished figure on the default cell at conv2",
+      "slug": "grad-cam",
+      "state": "?theme=light&shown=5",
+      "px": "a8783559",
+      "tx": "695a41f4"
+    },
+    {
+      "$note": "a ghost, read at conv3 for the other class - the coarse 4 x 4 map and the wrong class's picture",
+      "slug": "grad-cam",
+      "state": "?theme=light&shown=5&image=2&layer=conv3&cls=other",
+      "px": "421032b5",
+      "tx": "5de48f68"
+    },
+    {
+      "$note": "DRIVEN - the first press caught mid-way, the chosen layer's maps arriving at part alpha",
+      "slug": "grad-cam",
+      "state": "?theme=light",
+      "drive": {
+        "click": "step",
+        "frames": 12,
+        "dt": 32
+      },
+      "px": "2871fcc7",
+      "tx": "915f23e8"
     }
   ]
 }
