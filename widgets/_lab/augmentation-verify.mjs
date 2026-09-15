@@ -54,9 +54,9 @@ const section = (s) => console.log(`\n${s}`);
 
 /* the widget's default arguments: cell 19's values, as main.js declares them */
 const BASE = {
-  topic: "transforms", transform: "flip", keys: "image,label", cell: "off",
+  topic: "transforms", transform: "flip", keys: "image,label", cell: "off-centre",
   flip_prob: "0.5", spatial_axis: "0", rotate_prob: "0.5", max_k: "3", affine_prob: "0.25", rotate_range: "10",
-  translate_h: "8", translate_w: "8", scale_h: "0.1", scale_w: "0.1", mode: "nearest",
+  translate_height: "8", translate_width: "8", scale_height: "0.1", scale_width: "0.1", mode: "nearest",
   /* contrast and noise open stronger than cell 19 (Kenneth's round-one pick) */
   contrast_prob: "1", gamma_low: "0.5", gamma_high: "2", noise_prob: "1", std: "0.1", split: "training",
 };
@@ -120,12 +120,12 @@ section("§1 the engine against MONAI 1.6.0");
 section("§2 the claims on the widget's smear");
 {
   const t0 = performance.now();
-  const off = M.smear("off");
+  const off = M.smear("off-centre");
   const ms = performance.now() - t0;
   const centred = M.smear("centred");
   const area = (m) => m.d.reduce((s, v) => s + (v >= 0.5 ? 1 : 0), 0);
   assert(area(off.mask) === 15380 && area(centred.mask) === 15373, `the white cell is ${area(off.mask)} px off-centre and ${area(centred.mask)} centred (measured 15,380 and 15,373)`);
-  assert(M.smear("off") === off, "the smear is built once per placement");
+  assert(M.smear("off-centre") === off, "the smear is built once per placement");
   let lo = Infinity;
   let hi = -Infinity;
   for (const v of off.image.d) { lo = Math.min(lo, v); hi = Math.max(hi, v); }
@@ -193,7 +193,7 @@ section("§3 the draws and the list");
     assert(none.every((d) => !d.fired) && all.every((d) => d.fired), `${kind}: prob 0 fires none of ${M.DRAWS}, prob 1 fires all`);
   }
   {
-    const p = { ...BASE, transform: "affine", affine_prob: "1", rotate_range: "20", translate_h: "32", translate_w: "8", scale_h: "0.3", scale_w: "0.1" };
+    const p = { ...BASE, transform: "affine", affine_prob: "1", rotate_range: "20", translate_height: "32", translate_width: "8", scale_height: "0.3", scale_width: "0.1" };
     const ok = M.computeTransforms(p, makeRng(3)).draws.every(({ op }) => Math.abs(op.rotate) <= 20 * Math.PI / 180
       && Math.abs(op.translate[0]) <= 32 && Math.abs(op.translate[1]) <= 8
       && Math.abs(op.scale[0] - 1) <= 0.3 && Math.abs(op.scale[1] - 1) <= 0.1);
@@ -230,7 +230,7 @@ section("§3 the draws and the list");
     assert(M.lineStatus(train, s, M.LAST).status === "pending", "AsDiscreted, after the random lines, runs again in epoch 2");
     assert(M.LINES.every((l, i) => !l.random || M.lineStatus(val, 3, i).status === "absent"), "the validation list has no random line");
     const e = val.linesOf(0)[M.LAST];
-    assert(e.image === M.smear("off").image && e.ops.length === 0, "a validation sample is the scaled image, untouched");
+    assert(e.image === M.smear("off-centre").image && e.ops.length === 0, "a validation sample is the scaled image, untouched");
     for (let k = 0; k < M.EPOCHS; k += 1) {
       const fin = train.linesOf(k)[M.LAST];
       const ep = train.epochs[k];
@@ -243,7 +243,7 @@ section("§3 the draws and the list");
 /* §3b --------------------------------------------------------------------- */
 section("§3b the tween: its ends, and its pace");
 {
-  const off = M.smear("off");
+  const off = M.smear("off-centre");
   const maxDiff = (a, b) => {
     if (a.w !== b.w || a.h !== b.h) return Infinity;
     let m = 0;
@@ -319,7 +319,7 @@ section("§3b the tween: its ends, and its pace");
     assert(vNames === "LoadImaged,EnsureChannelFirstd,EnsureTyped,ScaleIntensityd,SpatialPadd,AsDiscreted",
       `val_test_transforms lists its own six lines: ${vNames}`);
     assert(p.list.length === M.LINES.length, "train_transforms lists all twelve lines");
-    const scaled = M.smear("off").image;
+    const scaled = M.smear("off-centre").image;
     assert(Array.from({ length: M.EPOCHS }, (_, e) => v.linesOf(e)[M.LAST]).every((fin) => fin.image === scaled && fin.ops.length === 0),
       "every validation epoch's sample is the scaled image, untouched");
     const before = M.beforeStep(p, { epoch: 1, line: M.FIRST_RANDOM });
@@ -391,11 +391,17 @@ section("§5 the copy");
     /\bwell\b/i, /\bplain\b/i, /\btrench\b/i, /\bframe\b/i, /\bchose\b/i, /\bwants?\b/i,
     /\barrives?\b/i, /\bfollows?\b/i, /\bagree\b/i, /\bpresses\b/i, /\bstages?\b/i, /\bcrosses\b/i, /\bjoins\b/i, /\bskips\b/i,
     /\bwaits?\b/i, /\breach(es)?\b/i, /\bstands?\b/i, /\bsay\b/i, /\bsees?\b/i, /\blooks?\b/i, /\bnotebook\b/i, /\bcell 19\b/i,
+    /* the copy audit of 2026-09-16: the listing's own "line", "call" in prose,
+       personifying verbs, and the outcome verbs a detail must not use */
+    /\blines?\b/i, /\bthe call\b/i, /\bgoes through\b/i, /\bstayed\b/i, /\bchance\b/i, /\bpoints? the\b/i, /\bfreed\b/i,
+    /\broute around\b/i, /\bends at\b/i, /\ball end\b/i, /\bkeep going\b/i,
   ];
-  for (const s of strings) {
-    if (s.length < 12 || /^[\w-]+$/.test(s)) continue;
+  for (const raw of strings) {
+    /* a template's ${…} is code, not words: `cur.line` is not the listing's "line" */
+    const s = raw.replace(/\$\{[^}]*\}/g, " ");
+    if (s.trim().length < 12 || /^[\w-]+$/.test(s)) continue;
     if (/^<|var\(--/.test(s)) continue;
-    for (const re of struck) assert(!re.test(s), `struck word ${re} in "${s.slice(0, 60)}"`);
+    for (const re of struck) assert(!re.test(s), `struck word ${re} in "${raw.slice(0, 60)}"`);
   }
   console.log(`  ${strings.length} string literals read`);
 }

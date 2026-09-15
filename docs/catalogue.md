@@ -15708,11 +15708,62 @@ names and that every validation epoch's sample is the scaled image, untouched.
 
 Verify 3,873 checks; `check` and `test` green; no console error.
 
-**NEXT: his read of round two**; then the copy audit's four passes, "tested ok", a
-shooter and states (settled, one driven — now mid-press; no regions, so no hit
-state), status flip in the manifest AND `main.js`, the full suite fronted, `check`
-and `test` read alone, commit, push — after he has changed cell 19's LoadImaged,
-which the widget's axis wording assumes.
+#### THE COPY AUDIT 2026-09-16 — on "tested ok, do the copy audit"; applied on "apply all", subtitle A, blurb A
+
+Every reader-facing string dumped from `main.js` (comments stripped) with the
+manifest blurb, the stub's meta description and every URL name and value, and read
+in the four passes — register, descriptors against their controls, mannerisms,
+personification — plus the URL rule (5.9). Thirty-one rows, presented as one table
+with two options each for the subtitle and the blurb; his answer "apply all",
+subtitle A, blurb A. What the passes found, by kind:
+
+- **Our own words.** "line" — the Pipeline listing's term, on the drive (Next line),
+  two tiles (Line, Random lines applied), four statuses and notes — became
+  *transform* and *pipeline*, the lesson's words; "call" in prose ("apply the
+  call") became *transform*; the section "The list" became "The split".
+- **Personification and figurative verbs.** "the image goes through", "the mask
+  stayed in place", "every epoch trains on", "Zeros fill what the image no longer
+  covers", "the object the mask marks", "every epoch gives the same sample".
+- **Register.** "by itself", "Keep going", "the chance that", "a draw" as a noun
+  for a value, "value before / after" on a γ curve (now input / output intensity),
+  "quarter turns" where the lesson says "90° rotations", "mid-grey is no change".
+- **An announcement before the fact.** The magnifier's empty state said "a draw
+  with mode "bilinear" resamples the mask here"; now "no applied draw yet".
+- **The subtitle** was 330 characters against 2.10's 140–240 and personified the
+  epoch: now "Data augmentation applies new random transforms to each training image
+  in every epoch. A spatial transform is applied to the image and its mask
+  together. Only the fixed transforms are applied to validation and test images."
+  (222). **The blurb** listed the Transform control's five buttons (2.10, no control
+  enumeration): now "Data augmentation applies spatial and intensity transforms
+  with random parameters to each training image every epoch." (117), in the
+  manifest and the stub.
+- **URL words** (nothing published, so free to rename): `translate_h`, `translate_w`,
+  `scale_h`, `scale_w` → `translate_height`, `translate_width`, `scale_height`,
+  `scale_width`, the words the slots show; `cell=off` → `cell=off-centre`, the
+  button's word (the smear's placement key renamed with it in the model and the
+  verify).
+
+Kept after reading: the title; Topic, Transforms, Pipeline; the five Transform
+buttons; The transform, The call and The image; the code in the call lines;
+Original and Augmented; "from the cache"; "epoch 2 starts from the cached output of
+SpatialPadd"; "The same image, epoch by epoch"; Next epoch and Draw; the flip,
+affine and contrast draw lines; the magnifier's window labels. No control detail
+predicts an outcome.
+
+**After applying:** a fillText sweep at the harness's 535 px canvas found one new
+overrun — the bilinear line — now two lines at the semicolon, its wording as
+approved; every other long line measured inside (the stale-mask line ends at 493,
+the rotate tally at 422, the contrast tally at 521). The verify's copy sweep now
+also refuses *line(s)*, *the call*, *goes through*, *stayed*, *chance*, *points the*,
+*freed*, *route around*, *ends at*, *all end* and *keep going*, and reads a
+template's `${…}` as code rather than words (its first run caught `cur.line`).
+Verify 4,622 checks; `check` green; `test` 28 scripts green; no console error.
+
+**NEXT: the ship, on his word to push** — a shooter and states (settled, one driven
+mid-press; no regions, so no hit state), status flip in the manifest AND `main.js`,
+the full suite fronted, `check` and `test` read alone, commit, push, `gh run list`
+and the live manifest. The axis wording assumes he has added
+`reader="PILReader", reverse_indexing=False` to cell 19's LoadImaged lines.
 
 *The entry below is the plan as first written and cut on 2026-09-13, kept as
 written.*

@@ -264,21 +264,20 @@ function maskPanel(ctx, colors, m, x, y, size, bytes = null, a = 1) {
 
 /* ============================ the Transforms page ========================= */
 
-const QUARTERS = { 1: "a quarter turn", 2: "a half turn", 3: "three quarter turns" };
 const probOf = (params, kind) => params[`${kind}_prob`];
 
 /** The draw's arguments as one line, in the call's own order and units. */
 function drawText(kind, d, params) {
   if (!d.fired) return `not applied: prob = ${probOf(params, kind)}`;
   if (kind === "flip") return `applied: spatial_axis=${d.op.axis} flips the image ${d.op.axis === 0 ? "top to bottom" : "left to right"}`;
-  if (kind === "rotate") return `applied: k = ${d.op.k}, ${QUARTERS[d.op.k]} counter-clockwise`;
+  if (kind === "rotate") return `applied: k = ${d.op.k}, a ${90 * d.op.k}° rotation counter-clockwise`;
   if (kind === "affine") {
     const { rotate, translate, scale } = d.op;
     return `applied: rotate ${signed(rotate / DEG, 1)}°, translate (${signed(translate[0], 1)}, ${signed(translate[1], 1)}) px, `
       + `scale (${scale[0].toFixed(2)}, ${scale[1].toFixed(2)})`;
   }
   if (kind === "contrast") return `applied: γ = ${d.gamma.toFixed(2)}`;
-  return `applied: σ = ${d.sigma.toFixed(4)}, a standard deviation of ${(255 * d.sigma).toFixed(1)} grey levels of 255`;
+  return `applied: σ = ${d.sigma.toFixed(4)}, ${(255 * d.sigma).toFixed(1)} of 255 grey levels`;
 }
 function shortText(kind, d) {
   if (!d.fired) return "not applied";
@@ -388,7 +387,7 @@ function drawGrid(ctx, colors, w, params, state, n) {
     return;
   }
   const c = [1, 2, 3].map((k) => fired.filter((d) => d.op.k === k).length);
-  note(ctx, colors, `k = 1: ${c[0]} · k = 2: ${c[1]} · k = 3: ${c[2]} · not applied: ${n - fired.length}; each k is a quarter turn counter-clockwise`,
+  note(ctx, colors, `k = 1: ${c[0]} · k = 2: ${c[1]} · k = 3: ${c[2]} · not applied: ${n - fired.length}; each k is a 90° rotation counter-clockwise`,
     M.PAD, B.tallyY, colors.ink1);
 }
 
@@ -448,15 +447,15 @@ function drawRanges(ctx, colors, w, params, state, n, flight) {
       dot(ctx, bx + along(vw - center, cols) * B.bs, B.boxY + along(vh - center, rows) * B.bs, pointTone(i), i === lit ? 4 : 3);
     });
   };
-  const th = Number(params.translate_h);
-  const tw = Number(params.translate_w);
-  const sh = Number(params.scale_h);
-  const sw = Number(params.scale_w);
+  const th = Number(params.translate_height);
+  const tw = Number(params.translate_width);
+  const sh = Number(params.scale_height);
+  const sw = Number(params.scale_width);
   box(B.boxX[0], "translate, px", th, tw, 0, (d) => d.op.translate, [signed(-tw, 0), String(tw)], [signed(-th, 0), String(th)]);
   box(B.boxX[1], "scale", sh, sw, 1, (d) => d.op.scale, [(1 - sw).toFixed(1), (1 + sw).toFixed(1)], [(1 - sh).toFixed(1), (1 + sh).toFixed(1)]);
   if (n) {
     const fired = state.draws.slice(0, n).filter((d) => d.fired).length;
-    note(ctx, colors, `applied in ${fired} of ${n} draws; a dot is one applied draw's argument, on the range it is drawn from`, M.PAD, B.tallyY, colors.ink1);
+    note(ctx, colors, `applied in ${fired} of ${n} draws; each dot is one applied draw's value within its range`, M.PAD, B.tallyY, colors.ink1);
   }
   if (B.mag) drawMagnifier(ctx, colors, w, B, state, params, n);
 }
@@ -466,7 +465,7 @@ function drawMagnifier(ctx, colors, w, B, state, params, n) {
   caption(ctx, colors, "The mask's edge, 20 × 20 pixels", M.PAD, top + 4);
   const last = n > 0 ? state.sample(n - 1, params.cell) : null;
   if (!last || !state.draws[n - 1].fired) {
-    note(ctx, colors, n ? "the last draw was not applied, so the mask was not resampled" : "a draw with mode \"bilinear\" resamples the mask here",
+    note(ctx, colors, n ? "the last draw was not applied, so the mask was not resampled" : "no applied draw yet",
       M.PAD, top + 24, colors.ink3);
     return;
   }
@@ -497,7 +496,7 @@ function drawMagnifier(ctx, colors, w, B, state, params, n) {
     code(ctx, colors, label, x, y + size + 14, colors.ink1);
     note(ctx, colors, sub, x, y + size + 29, colors.ink3);
   });
-  note(ctx, colors, `of the white blood cell's ${edge.area.toLocaleString("en-US")} pixels; Dice after AsDiscreted against nearest ${edge.dice.toFixed(4)}`,
+  note(ctx, colors, `the white blood cell covers ${edge.area.toLocaleString("en-US")} pixels; Dice between AsDiscreted and nearest: ${edge.dice.toFixed(4)}`,
     M.PAD, top + 14 + size + 48, colors.ink1);
 }
 
@@ -548,16 +547,16 @@ function drawCurve(ctx, colors, w, params, state, n, flight) {
   const fired = state.draws.slice(0, n).filter((d) => d.fired);
   note(ctx, colors, "0", x0, y0 + S + 13, colors.ink3, { align: "center" });
   note(ctx, colors, "1", x0 + S, y0 + S + 13, colors.ink3, { align: "center" });
-  note(ctx, colors, "value before", x0 + S / 2, y0 + S + 26, colors.ink3, { align: "center" });
+  note(ctx, colors, "input intensity", x0 + S / 2, y0 + S + 26, colors.ink3, { align: "center" });
   ctx.save();
   ctx.translate(M.PAD + 8, y0 + S / 2);
   ctx.rotate(-Math.PI / 2);
-  note(ctx, colors, "value after", 0, 0, colors.ink3, { align: "center" });
+  note(ctx, colors, "output intensity", 0, 0, colors.ink3, { align: "center" });
   ctx.restore();
   const tx = x0 + S + 28;
-  note(ctx, colors, `the band: γ from ${lo} to ${hi}`, tx, y0 + 14, colors.ink2);
+  note(ctx, colors, `shaded: γ from ${lo} to ${hi}`, tx, y0 + 14, colors.ink2);
   note(ctx, colors, "the diagonal: γ = 1, no change", tx, y0 + 30, colors.ink2);
-  if (n) note(ctx, colors, `applied in ${fired.length} of ${n} draws; a curve is one applied draw`, tx, y0 + 54, colors.ink1);
+  if (n) note(ctx, colors, `applied in ${fired.length} of ${n} draws; each curve is one applied draw`, tx, y0 + 54, colors.ink1);
 }
 
 function drawNoise(ctx, colors, w, params, state, n, flight) {
@@ -579,8 +578,8 @@ function drawNoise(ctx, colors, w, params, state, n, flight) {
     }
     panel(ctx, colors, M.PAD, y0, S, () => blit(ctx, bytes, M.PAD, y0, S));
   }
-  note(ctx, colors, "after − before, × 20", M.PAD, y0 + S + 14, colors.ink1);
-  note(ctx, colors, "mid-grey is no change", M.PAD, y0 + S + 28, colors.ink3);
+  note(ctx, colors, "augmented − original, × 20", M.PAD, y0 + S + 14, colors.ink1);
+  note(ctx, colors, "grey: no change", M.PAD, y0 + S + 28, colors.ink3);
   const std = Number(params.std);
   const lx = M.PAD + S + 30;
   const lw = w - M.PAD - lx;
@@ -601,7 +600,7 @@ function drawNoise(ctx, colors, w, params, state, n, flight) {
   if (n) {
     const fired = state.draws.slice(0, n).filter((d) => d.fired).length;
     note(ctx, colors, `applied in ${fired} of ${n} draws; σ is drawn from 0 to std`, lx, ly + 44, colors.ink1);
-    note(ctx, colors, `std = ${std} is ${(255 * std).toFixed(1)} grey levels of 255`, lx, ly + 60, colors.ink3);
+    note(ctx, colors, `std = ${std} is ${(255 * std).toFixed(1)} of 255 grey levels`, lx, ly + 60, colors.ink3);
   }
 }
 
@@ -639,7 +638,7 @@ function drawTransforms(ctx, colors, w, params, state, anim) {
   } else {
     frame(ctx, L.x1, L.imgY, L.s, L.s, colors.grid);
     frame(ctx, L.x1, L.maskY, L.s, L.s, colors.grid);
-    note(ctx, colors, "Press Draw to apply the call", L.x1 + L.s / 2, L.imgY + L.s / 2, colors.ink3, { align: "center" });
+    note(ctx, colors, "Press Draw to apply the transform", L.x1 + L.s / 2, L.imgY + L.s / 2, colors.ink3, { align: "center" });
   }
 
   if (press) {
@@ -650,13 +649,14 @@ function drawTransforms(ctx, colors, w, params, state, anim) {
     const smp = state.sample(n - 1, params.cell);
     note(ctx, colors, drawText(kind, d, params), M.PAD, L.line1, d.fired ? colors.ink1 : colors.ink3);
     if (smp.stale !== null) {
-      note(ctx, colors, `keys=["image"]: the mask stayed in place; Dice of the mask against the white blood cell ${smp.stale.toFixed(2)}`,
+      note(ctx, colors, `keys=["image"]: the mask is not transformed; Dice between the mask and the white blood cell: ${smp.stale.toFixed(2)}`,
         M.PAD, L.line2, colors.ink1);
     } else if (d.fired && kind === "affine" && state.labelMode === "bilinear") {
       const edge = M.maskEdge(smp);
       frame(ctx, L.x1 + (edge.wx / M.N) * L.s, L.maskY + (edge.wy / M.N) * L.s, (M.MAG_CELLS / M.N) * L.s + 2, (M.MAG_CELLS / M.N) * L.s + 2, colors.highlight);
-      note(ctx, colors, `mode "bilinear" for the label: ${edge.between} mask values between 0 and 1; the box is the window below`,
-        M.PAD, L.line2, colors.ink1);
+      /* two lines: one runs past a 535 px canvas */
+      note(ctx, colors, `mode "bilinear" for the label: ${edge.between} mask values between 0 and 1;`, M.PAD, L.line2, colors.ink1);
+      note(ctx, colors, "the square marks the pixels magnified below", M.PAD, L.line2 + 15, colors.ink1);
     }
   }
 
@@ -673,8 +673,8 @@ function lineText(state, epoch, i, st) {
   if (st.status === "cached") return "from the cache";
   if (st.status !== "done") return "";
   if (!l.random) {
-    if (i === M.LAST) return state.train ? "run every epoch" : "run, then cached";
-    return "run, then cached";
+    if (i === M.LAST) return state.train ? "applied every epoch" : "applied, then cached";
+    return "applied, then cached";
   }
   const ep = state.epochs[epoch];
   if (!M.firedIn(i, ep)) return "not applied";
@@ -686,13 +686,13 @@ function lineText(state, epoch, i, st) {
 }
 
 function detailOf(state, cur) {
-  if (!cur) return "The image as saved, before the first line runs.";
-  if (!state.train && cur.epoch > 0) return "Every line of this list is cached: the sample is epoch 1's.";
+  if (!cur) return "The image file, before any transform is applied.";
+  if (!state.train && cur.epoch > 0) return "Every transform in this pipeline is cached: the sample is the same as in epoch 1.";
   const l = M.LINES[cur.line];
   const ep = state.epochs[cur.epoch];
   if (l.random === "affine" && ep.affine) {
     const { rotate, translate, scale } = ep.affine;
-    return `drew rotate ${signed(rotate / DEG, 1)}°, translate (${signed(translate[0], 1)}, ${signed(translate[1], 1)}) px, `
+    return `drawn: rotate ${signed(rotate / DEG, 1)}°, translate (${signed(translate[0], 1)}, ${signed(translate[1], 1)}) px, `
       + `scale (${scale[0].toFixed(2)}, ${scale[1].toFixed(2)})`;
   }
   if (cur.epoch > 0 && cur.line === M.FIRST_RANDOM) return `epoch ${cur.epoch + 1} starts from the cached output of SpatialPadd`;
@@ -741,11 +741,11 @@ function drawPipeline(ctx, colors, w, params, state, anim) {
   });
   if (!state.train) {
     const y = P.top + state.list.length * P.row + 20;
-    note(ctx, colors, "No random transform is in this list,", M.PAD + 10, y, colors.ink2);
-    note(ctx, colors, "so every epoch gives the same sample.", M.PAD + 10, y + 15, colors.ink2);
+    note(ctx, colors, "This pipeline has no random transform,", M.PAD + 10, y, colors.ink2);
+    note(ctx, colors, "so the sample is the same in every epoch.", M.PAD + 10, y + 15, colors.ink2);
   }
 
-  const wbc = M.PLACEMENTS.off;
+  const wbc = M.PLACEMENTS["off-centre"];
   const line = (ops) => [{ pts: M.outlineOf(wbc, ops), color: colors.reference }];
   const press = moving ? M.pressAt(state, s, t) : null;
   if (press?.part === "out") {
@@ -782,11 +782,11 @@ function drawPipeline(ctx, colors, w, params, state, anim) {
       }, line(after.ops));
     }
   } else {
-    const at = cur ? state.linesOf(epoch)[cur.line] : { image: M.smear("off").raw, ops: [] };
+    const at = cur ? state.linesOf(epoch)[cur.line] : { image: M.smear("off-centre").raw, ops: [] };
     imagePanel(ctx, colors, at.image, P.sx, P.top, P.s, line(at.ops));
   }
-  note(ctx, colors, cur ? "the sample after the line just run," : "the image as saved", P.sx, P.top + P.s + 14, colors.ink3);
-  if (cur) note(ctx, colors, "the mask's outline on it", P.sx, P.top + P.s + 28, colors.ink3);
+  note(ctx, colors, cur ? "the sample after the last transform," : "the image file", P.sx, P.top + P.s + 14, colors.ink3);
+  if (cur) note(ctx, colors, "with the mask's outline", P.sx, P.top + P.s + 28, colors.ink3);
 
   /* the call of the line on the sample: the one running, else the one just run */
   const named = moving ? state.steps[s] : cur;
@@ -818,10 +818,10 @@ const slot = (options, def, label = "") => ({ type: "select", label, hidden: tru
 const phaseOf = (state, n) => (state.page === "pipeline" ? M.pipelinePhase(state, n) : "draw");
 const totalOf = (state) => (state.page === "pipeline" ? state.total : M.DRAWS);
 
-const STEP_LABELS = { draw: "Draw", line: "Next line", epoch: "Next epoch" };
+const STEP_LABELS = { draw: "Draw", line: "Next transform", epoch: "Next epoch" };
 const STEP_TITLES = {
-  draw: "Apply the call to the original image once more",
-  line: "Run the sample through the next line of the list",
+  draw: "Apply the transform to the original image with a new draw",
+  line: "Apply the next transform in the pipeline to the sample",
   epoch: "Start the next epoch from the same image",
 };
 
@@ -829,11 +829,11 @@ defineWidget({
   slug: "augmentation",
   status: "draft",
   title: "Deep Learning - Image Augmentation",
+  /* Kenneth's pick A of the copy audit, 2026-09-16 */
   subtitle:
-    "Data augmentation applies random transforms to each training image every time it is loaded, so every "
-    + "epoch trains on a different version of the same image. A spatial transform must move the image and its "
-    + "mask together; an intensity transform changes the image alone. Validation and test images receive the "
-    + "fixed transforms only.",
+    "Data augmentation applies new random transforms to each training image in every epoch. A spatial "
+    + "transform is applied to the image and its mask together. Only the fixed transforms are applied to "
+    + "validation and test images.",
   layout: "side",
   height: ({ w, ...values }) => M.pageHeight(w, values),
 
@@ -850,7 +850,7 @@ defineWidget({
     transform: {
       type: "segmented",
       label: "Transform",
-      detail: "one random transform, applied to the image by itself",
+      detail: "one augment transform, applied to the original image on its own",
       options: [
         { value: "flip", label: "Flip" },
         { value: "rotate", label: "Rotate" },
@@ -871,10 +871,10 @@ defineWidget({
     max_k: slot(opts(["1", "2", "3"]), "3"),
     affine_prob: slot(opts(M.PROBS), "0.25"),
     rotate_range: slot(opts(["0", "5", "10", "20", "45"], (v) => `${v}.0`), "10"),
-    translate_h: slot(opts(["0", "8", "32", "64"]), "8", "height"),
-    translate_w: slot(opts(["0", "8", "32", "64"]), "8", "width"),
-    scale_h: slot(opts(["0", "0.1", "0.2", "0.3"]), "0.1", "height"),
-    scale_w: slot(opts(["0", "0.1", "0.2", "0.3"]), "0.1", "width"),
+    translate_height: slot(opts(["0", "8", "32", "64"]), "8", "height"),
+    translate_width: slot(opts(["0", "8", "32", "64"]), "8", "width"),
+    scale_height: slot(opts(["0", "0.1", "0.2", "0.3"]), "0.1", "height"),
+    scale_width: slot(opts(["0", "0.1", "0.2", "0.3"]), "0.1", "width"),
     mode: slot([{ value: "nearest", label: '"nearest"' }, { value: "bilinear", label: '"bilinear"' }], "nearest", "label"),
     /* CONTRAST AND NOISE OPEN STRONGER THAN CELL 19 (Kenneth, round one: "i
        can't really see the contrast and noise..maybe the defaults were too
@@ -895,53 +895,53 @@ defineWidget({
     flipB: { type: "expr", open: "prob=", close: ",", slots: ["flip_prob"], when: IS("flip") },
     flipC: {
       type: "expr", open: "spatial_axis=", close: ")", slots: ["spatial_axis"], when: IS("flip"),
-      detail: "Mirrors the image, and the mask when \"label\" is in keys: axis 0 top to bottom, axis 1 left to right.",
+      detail: "Flips the image, and the mask when \"label\" is in keys: spatial_axis 0 flips top to bottom, 1 left to right.",
     },
     rotA: { type: "expr", open: "RandRotate90d(keys=", close: ",", slots: ["keys"], when: IS("rotate") },
     rotB: { type: "expr", open: "prob=", close: ",", slots: ["rotate_prob"], when: IS("rotate") },
     rotC: {
       type: "expr", open: "max_k=", close: ")", slots: ["max_k"], when: IS("rotate"),
-      detail: "Turns the image, and the mask when \"label\" is in keys, by k quarter turns counter-clockwise, k drawn from 1 to max_k.",
+      detail: "Rotates the image, and the mask when \"label\" is in keys, by k × 90° counter-clockwise, with k drawn from 1 to max_k.",
     },
     affA: { type: "expr", open: "RandAffined(keys=", close: ",", slots: ["keys"], when: IS("affine") },
     affB: { type: "expr", open: "prob=", close: ",", slots: ["affine_prob"], when: IS("affine") },
     affC: { type: "expr", open: "rotate_range=np.deg2rad(", close: "),", slots: ["rotate_range"], when: IS("affine") },
-    affD: { type: "expr", open: "translate_range=(", close: "),", slots: ["translate_h", "translate_w"], when: IS("affine") },
-    affE: { type: "expr", open: "scale_range=(", close: "),", slots: ["scale_h", "scale_w"], when: IS("affine") },
+    affD: { type: "expr", open: "translate_range=(", close: "),", slots: ["translate_height", "translate_width"], when: IS("affine") },
+    affE: { type: "expr", open: "scale_range=(", close: "),", slots: ["scale_height", "scale_width"], when: IS("affine") },
     affF: {
       type: "expr", open: "mode=(\"bilinear\", ", close: "), padding_mode=\"zeros\")", slots: ["mode"], when: IS("affine"),
-      detail: "Rotates by an angle drawn within ± rotate_range, shifts each axis by a draw within ± translate_range "
-        + "pixels, and scales each axis by 1 plus a draw within ± scale_range; a scale above 1 makes the content "
-        + "smaller. Zeros fill what the image no longer covers.",
+      detail: "Rotates by an angle drawn from ± rotate_range, translates each axis by a value drawn from ± "
+        + "translate_range pixels and scales each axis by 1 plus a value drawn from ± scale_range; a scale above 1 "
+        + "shrinks the image. Pixels outside the transformed image are set to 0.",
     },
     conA: { type: "expr", open: "RandAdjustContrastd(keys=[\"image\"], prob=", close: ",", slots: ["contrast_prob"], when: IS("contrast") },
     conB: {
       type: "expr", open: "gamma=(", close: "))", slots: ["gamma_low", "gamma_high"], when: IS("contrast"),
-      detail: "Rescales the image to 0–1, raises it to a power γ drawn between the two numbers, and scales it back.",
+      detail: "Rescales intensities to 0–1, raises them to the power γ, drawn between the two values of gamma, and rescales them back.",
     },
     noiseA: { type: "expr", open: "RandGaussianNoised(keys=[\"image\"], prob=", close: ",", slots: ["noise_prob"], when: IS("noise") },
     noiseB: {
       type: "expr", open: "mean=0.0, std=", close: ")", slots: ["std"], when: IS("noise"),
-      detail: "Adds Gaussian noise with a standard deviation drawn between 0 and std to every value of the image.",
+      detail: "Adds Gaussian noise with a standard deviation drawn between 0 and std to every pixel of the image.",
     },
 
     imgSec: { type: "section", label: "The image", when: ON("transforms") },
     cell: {
       type: "segmented",
       label: "White blood cell",
-      detail: "where the white blood cell, the object the mask marks, is in the image",
-      options: [{ value: "off", label: "Off-centre" }, { value: "centred", label: "Centred" }],
-      default: "off",
+      detail: "the position of the white blood cell, the object in the mask",
+      options: [{ value: "off-centre", label: "Off-centre" }, { value: "centred", label: "Centred" }],
+      default: "off-centre",
       display: true,
       when: ON("transforms"),
     },
 
     /* --- Pipeline -------------------------------------------------------- */
-    pSec: { type: "section", label: "The list", when: ON("pipeline") },
+    pSec: { type: "section", label: "The split", when: ON("pipeline") },
     split: {
       type: "segmented",
       label: "Split",
-      detail: "which list of transforms the image goes through: train_transforms or val_test_transforms",
+      detail: "the pipeline applied to the image: train_transforms or val_test_transforms",
       options: [{ value: "training", label: "Training" }, { value: "validation", label: "Validation/Test" }],
       default: "training",
       when: ON("pipeline"),
@@ -952,7 +952,7 @@ defineWidget({
        Rotate draws every k, Affine applies five of twelve, and the first
        epoch fires three of the six random lines, the affine among them — a
        typical share. Seed 1 opened Flip on a draw that was not applied. */
-    seed: { type: "int", label: "Seed", detail: "the random draws: one seed gives the same draws every time", min: 1, max: 200, default: 106 },
+    seed: { type: "int", label: "Seed", detail: "fixes the random draws, so a seed repeats them", min: 1, max: 200, default: 106 },
 
     /* Authoring escape hatch, first render only: draws, or presses on the list. */
     shown: { type: "int", min: 0, max: 61, default: 0, hidden: true },
@@ -962,12 +962,12 @@ defineWidget({
     if (params.topic === "pipeline") {
       return [
         { token: "reference", label: "The mask's outline, on the sample", mark: "line" },
-        { token: "highlight", label: "The line just run", mark: "bar" },
+        { token: "highlight", label: "The transform just applied", mark: "bar" },
       ];
     }
     const kind = params.transform;
-    const out = [{ token: "reference", label: "The mask's outline, on the image; the mask", mark: "line" }];
-    if (M.isSpatial(kind) && !M.labelIn(params)) out.push({ token: "highlight", label: "Where the white blood cell is after the draw", mark: "dash" });
+    const out = [{ token: "reference", label: "The mask, and its outline on the image", mark: "line" }];
+    if (M.isSpatial(kind) && !M.labelIn(params)) out.push({ token: "highlight", label: "The white blood cell after the draw", mark: "dash" });
     if (kind === "affine" && M.labelIn(params)) out.push({ token: "empirical", label: "The mask's outline after earlier draws", mark: "line" });
     if (kind === "affine" || kind === "contrast" || kind === "noise") {
       /* the contrast band draws a draw as its curve, the other two as a dot */
@@ -984,7 +984,7 @@ defineWidget({
     stepLabel: { anim: "phase", labels: STEP_LABELS, default: "Draw" },
     stepTitle: { anim: "phase", labels: STEP_TITLES, default: STEP_TITLES.draw },
     runLabel: "Play",
-    runTitle: "Keep going to the twelfth draw, or the last epoch",
+    runTitle: "Continue to the twelfth draw, or to the last epoch",
 
     init: ({ params, state, fromScratch }) => {
       const total = totalOf(state);
@@ -1024,12 +1024,12 @@ defineWidget({
         ? "the same image, with new random draws each epoch"
         : "the same image and the same sample each epoch";
       const randomTile = (value, note) => (state.train
-        ? { label: "Random lines applied", value, note }
-        : { label: "Random lines", value: "none", note: "val_test_transforms has no random transform" });
+        ? { label: "Random transforms applied", value, note }
+        : { label: "Random transforms", value: "none", note: "val_test_transforms has no random transform" });
       if (!cur) {
         return [
           { label: "Epoch", value: "—", note: epochNote },
-          { label: "Line", value: "—", note: `${state.list.length} lines in ${listName}` },
+          { label: "Transform", value: "—", note: `${state.list.length} transforms in ${listName}` },
           randomTile("—", "of the six, in this epoch"),
         ];
       }
@@ -1040,11 +1040,11 @@ defineWidget({
       return [
         { label: "Epoch", value: `${cur.epoch + 1} of ${M.EPOCHS}`, note: epochNote },
         {
-          label: "Line",
+          label: "Transform",
           value: `${state.list.indexOf(cur.line) + 1} of ${state.list.length}`,
           note: `${M.LINES[cur.line].cls}${st.status === "cached" ? ", from the cache" : ""}`,
         },
-        randomTile(`${fired} of 6`, "in this epoch, up to the line just run"),
+        randomTile(`${fired} of 6`, "in this epoch, up to the transform just applied"),
       ];
     }
     const kind = state.kind;
@@ -1053,16 +1053,16 @@ defineWidget({
     const fired = shown.filter((d) => d.fired).length;
     const last = n ? state.draws[n - 1] : null;
     const tiles = [
-      { label: "Draws", value: `${n} of ${M.DRAWS}`, note: "each draw applies the call to the original image" },
-      { label: "Applied", value: n ? `${fired} of ${n}` : "—", note: `prob = ${probOf(params, kind)}: the chance that a draw transforms the image` },
+      { label: "Draws", value: `${n} of ${M.DRAWS}`, note: "each draw applies the transform to the original image" },
+      { label: "Applied", value: n ? `${fired} of ${n}` : "—", note: `prob = ${probOf(params, kind)}: the probability that a draw is applied` },
       { label: "Last draw", value: last ? shortText(kind, last) : "—", note: last ? drawText(kind, last, params) : "no draw yet" },
     ];
     if (M.isSpatial(kind) && !M.labelIn(params)) {
       const smp = last && last.fired ? state.sample(n - 1, params.cell) : null;
       tiles.push({
-        label: "Mask against the cell",
+        label: "Dice of the mask",
         value: smp ? smp.stale.toFixed(2) : "—",
-        note: "Dice of the mask left in place against the white blood cell after the last applied draw",
+        note: "between the untransformed mask and the white blood cell, after the last applied draw",
       });
     }
     return tiles;

@@ -29,8 +29,9 @@ const DEG = Math.PI / 180;
    centred round mask maps onto itself — so the place is a control. Off-centre is
    his pair figure's arrangement and the default. Radius 70 is 5.9 % of the
    image. */
+/* keyed by the words the White blood cell control shows, since they are its URL values (5.9) */
 export const PLACEMENTS = {
-  off: { x: 184, y: 312, r: 70 },
+  "off-centre": { x: 184, y: 312, r: 70 },
   centred: { x: 255.5, y: 255.5, r: 70 },
 };
 
@@ -52,7 +53,7 @@ const segDist = (px, py, ax, ay, bx, by) => {
 const smears = new Map();
 
 export function smear(place) {
-  const key = PLACEMENTS[place] ? place : "off";
+  const key = PLACEMENTS[place] ? place : "off-centre";
   if (smears.has(key)) return smears.get(key);
   const wbc = PLACEMENTS[key];
   const rng = makeRng(5005);
@@ -167,10 +168,10 @@ function drawsFor(params, rng) {
     if (kind === "rotate") return { fired, op: { kind: "rot90", k: 1 + Math.floor(rng.next() * Number(params.max_k)) } };
     if (kind === "affine") {
       const r = Number(params.rotate_range) * DEG;
-      const th = Number(params.translate_h);
-      const tw = Number(params.translate_w);
-      const sh = Number(params.scale_h);
-      const sw = Number(params.scale_w);
+      const th = Number(params.translate_height);
+      const tw = Number(params.translate_width);
+      const sh = Number(params.scale_height);
+      const sw = Number(params.scale_width);
       return {
         fired,
         op: {
@@ -351,7 +352,7 @@ export function computePipeline(params, rng) {
     /* every line's output in epoch e, built on first request (about 50 ms) */
     linesOf(e) {
       if (memo.has(e)) return memo.get(e);
-      const sm = smear("off");
+      const sm = smear("off-centre");
       const ep = epochs[e];
       const out = [];
       let image = sm.raw;
@@ -385,7 +386,7 @@ export function computePipeline(params, rng) {
 /** The sample a press starts from: the output of the line before, or the image as saved. */
 export function beforeStep(state, step) {
   if (step.line > 0) return state.linesOf(step.epoch)[step.line - 1];
-  const sm = smear("off");
+  const sm = smear("off-centre");
   return { image: sm.raw, mask: sm.mask, ops: [] };
 }
 
