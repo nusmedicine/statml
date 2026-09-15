@@ -21,3 +21,5 @@ scale: ScaleIntensity on [2, 4, 6] -> [0.0, 0.5, 1.0]
 cache: after caching one sample and 5 fetches, the transform before RandFlipd ran 1 time(s) and the one after it 5 time(s)
 jpg mask (quality 75): 445 pixels strictly between 0 and 255; AsDiscrete(0.5) marks 1066 foreground against 797 true (+33.8%); a threshold of 127.5 marks 797; the largest background value is 37
 jpg mask (quality 95): 338 pixels strictly between 0 and 255; AsDiscrete(0.5) marks 996 foreground against 797 true (+25.0%); a threshold of 127.5 marks 797; the largest background value is 6
+order xy = x-first (cell 19 as written): spatial_axis=0 flips left-right; Rotate90 k=1 turns clockwise; affine rotate +0.3 turns counter-clockwise (-17.2 deg); translate (+3, 0) moves the content x -3.0, y +0.0; scale (1.5, 1) changes the block's spread x 2.58 -> 1.71, y 1.71 -> 1.71
+order yx = [C, H, W] (reader=PILReader, reverse_indexing=False): spatial_axis=0 flips top-bottom; Rotate90 k=1 turns counter-clockwise; affine rotate +0.3 turns clockwise (+17.3 deg); translate (+3, 0) moves the content x +0.0, y -3.0; scale (1.5, 1) changes the block's spread x 2.58 -> 2.58, y 1.71 -> 1.12

@@ -15577,8 +15577,23 @@ into it); the axis section made a 2 × 2 (one transposed panel could not show
 | 5 axis | the same arrays mirrored left–right as saved and top–bottom as cell 27 plots them | **his call**: (1) he adds `reader="PILReader", reverse_indexing=False` to cell 19's two `LoadImaged` lines, the widget says what cell 15 says, and the pin re-runs in that order (the turns reverse too); (2) MONAI's default wording; (3) the transposed orientation. Recommended 1 |
 | 6 rails | A labelled controls (1224 px) · B the call as code, core's `expr`, each argument a slot (946 px) · the Pipeline page (387 px) | **B**; both share one defect, *Rotate 90* cut to "Rotate …" in five buttons at 300 px — a copy-audit choice |
 
-**NEXT: his picks on the mock** (the two calls are his: the white cell's place and
-the axis wording), then the draft.
+**His picks on the mock, one AskUserQuestion, 2026-09-15 (night) — every
+recommendation:** figures **B · C** (Transforms two columns and two rows with the
+outline on the augmented image; Pipeline the listing beside one sample with the
+epochs strip); a **White cell** display control, Off-centre · Centred, default
+off-centre; **he adds the reader argument** to cell 19 — `LoadImaged(keys=["image",
+"label"], reader="PILReader", reverse_indexing=False)` in both lists, told to him
+the same night with the check that cells 27 and 55 (`permute(1,2,0)`), cell 15's
+`[C,H,W]` and cell 14's direct PIL plot all become consistent and nothing else in
+06-3 reads the axis order — so the widget follows `[C, H, W]`: `spatial_axis=0`
+flips top–bottom, and the pin is re-run in that order before the draft; the rail
+is **the call as code** (core's `expr`). Taken as drawn without a question: the
+per-transform depictions of § 2 with Noise iii, the magnifier band when the label's
+mode is bilinear.
+
+**NEXT: re-pin in `[C, H, W]` order** (the reader argument reverses Rotate90's and
+the affine's turn on screen and puts `translate` and `scale` in (y, x) order — to
+be measured on MONAI through a non-square file, not derived), **then the draft.**
 
 *The entry below is the plan as first written and cut on 2026-09-13, kept as
 written.*

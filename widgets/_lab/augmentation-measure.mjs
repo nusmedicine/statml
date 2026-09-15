@@ -211,6 +211,24 @@ function discrete(im, t = 0.5) {
   return out;
 }
 
+/**
+ * MONAI'S ARGUMENTS IN A READER'S ORDER. The engine works in the file's
+ * orientation; MONAI's spatial axes are the array's, and which file axis is
+ * axis 0 depends on how the image was loaded. `xy` is cell 19 as written
+ * (MONAI's readers load x-first); `yx` is `reader="PILReader",
+ * reverse_indexing=False`, Kenneth's pick of 2026-09-15 and the widget's order.
+ * Both measured through a non-square file in the pin (`through_file`): under yx
+ * axis 0 is y, Rotate90's k = 1 turns counter-clockwise, a positive affine rotate
+ * turns clockwise, and `translate` and `scale` are (y, x).
+ */
+const monai = (order) => ({
+  flip: (im, axis) => flip(im, order === "xy" ? axis : 1 - axis),
+  rot90: (im, k) => rot90(im, order === "xy" ? k : 4 - (((k % 4) + 4) % 4)),
+  affine: (im, { rotate = 0, translate = [0, 0], scale = [1, 1] }, mode) => (order === "xy"
+    ? affine(im, { rotate, translate, scale }, mode)
+    : affine(im, { rotate: -rotate, translate: [translate[1], translate[0]], scale: [scale[1], scale[0]] }, mode)),
+});
+
 /** 06-3 cell 19's random lines, one sample's draws. */
 const LESSON = {
   flip0: 0.5, flip1: 0.5, rot90: 0.5, maxK: 3,
@@ -294,6 +312,37 @@ console.log(`\nE · the engine against MONAI ${PIN.monai} (torch ${PIN.torch})`)
   }
   const thr = discrete({ w: 5, h: 1, c: 1, d: Float32Array.from([0.49, 0.5, 0.51, 1, 255]) }, 0.5);
   ok(Array.from(thr.d).join() === PIN.threshold.join(), `threshold: AsDiscrete(0.5) gives [${Array.from(thr.d)}], as MONAI's pin`);
+
+  // Through a non-square file, both reader orders: the engine in file orientation
+  // with each order's mapping must give what MONAI gave, read back into the file.
+  const TF = PIN.through_file;
+  const pic = make(TF.width, TF.height);
+  TF.file.forEach((row, y) => row.forEach((v, x) => { pic.d[y * TF.width + x] = v; }));
+  const maxDiff = (im, rows) => {
+    if (rows.length !== im.h || rows[0].length !== im.w) return Infinity;
+    let m = 0;
+    rows.forEach((row, y) => row.forEach((v, x) => { m = Math.max(m, Math.abs(im.d[y * im.w + x] - v)); }));
+    return m;
+  };
+  const P = { rotate: 0.3, translate: [3, -2], scale: [1.1, 0.9] };
+  for (const order of ["xy", "yx"]) {
+    const M = monai(order);
+    const got = TF.orders[order];
+    const a = got.arrays;
+    const d = {
+      flip0: maxDiff(M.flip(pic, 0), a.flip0),
+      flip1: maxDiff(M.flip(pic, 1), a.flip1),
+      rot1: maxDiff(M.rot90(pic, 1), a.rot1),
+      affine: maxDiff(M.affine(pic, P, "bilinear"), a.affine),
+      nearest: maxDiff(M.affine(pic, P, "nearest"), a.affine_nearest),
+    };
+    // float32 against the dump's seven decimals: a moved value differs by ~1e-8, a wrong one by ~0.1
+    const e = (v) => v.toExponential(1);
+    ok(d.flip0 < 1e-6 && d.flip1 < 1e-6 && d.rot1 < 1e-6 && d.affine < 1e-5 && d.nearest < 1e-6,
+      `through a ${TF.height} × ${TF.width} file, order ${order} (${got.label}): flips ${e(d.flip0)}/${e(d.flip1)}, ` +
+      `rot90 ${e(d.rot1)}, affine bilinear ${e(d.affine)}, nearest ${e(d.nearest)}; ` +
+      `MONAI: axis 0 ${got.flip0}, k=1 ${got.rot1}, +rotate ${got.rotate_turn}`);
+  }
 }
 
 /* ---------------------------------------------------------------------------

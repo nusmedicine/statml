@@ -354,6 +354,75 @@ for q in (75, 95):
         f"a threshold of 127.5 marks {fg127}; the largest background value is {jpg[q]['max_background']:.0f}")
 data["jpg_mask"] = jpg
 
+# ---------------------------------------------------------------------------
+# 9. THROUGH A FILE, BOTH READER ORDERS. Kenneth's pick 2026-09-15: he adds
+#    reader="PILReader", reverse_indexing=False to cell 19's LoadImaged, so the
+#    widget follows [C, H, W]. Every direction is re-measured through a
+#    NON-SQUARE picture (an axis swap cannot hide in it), each result read back
+#    into the file's orientation (x right, y down) for the engine to reproduce.
+# ---------------------------------------------------------------------------
+FH, FW = 28, 36
+yy, xx = np.mgrid[0:FH, 0:FW]
+pic = ((xx * 5 + yy * 11) % 13) / 12.0 * 0.5
+pic[4:10, 22:31] = 1.0  # a bright block, up and right of centre
+Image.fromarray((pic * 255).round().astype(np.uint8), mode="L").save(os.path.join(tmp, "pic.png"))
+file_px = np.asarray(Image.open(os.path.join(tmp, "pic.png")), dtype=np.float64) / 255.0
+
+
+def block_stats(a):
+    """Centroid (x, y) and spread (sd x, sd y) of the values above 0.9, in file orientation."""
+    ys_, xs_ = np.nonzero(a > 0.9)
+    return float(xs_.mean()), float(ys_.mean()), float(xs_.std()), float(ys_.std())
+
+
+orders = {}
+for key, label, kw in (("xy", "x-first (cell 19 as written)", {}),
+                       ("yx", "[C, H, W] (reader=PILReader, reverse_indexing=False)",
+                        {"reader": "PILReader", "reverse_indexing": False})):
+    loaded = EnsureChannelFirstd(keys=["image"])(LoadImaged(keys=["image"], **kw)({"image": os.path.join(tmp, "pic.png")}))["image"]
+    arr = torch.as_tensor(np_(loaded) / 255.0, dtype=torch.float32)
+    to_file = (lambda t: np_(t)[0].T) if key == "xy" else (lambda t: np_(t)[0])
+    assert np.allclose(to_file(arr), file_px, atol=1e-6), f"{key}: reading back does not give the file"
+    ops = {
+        "flip0": Flip(spatial_axis=0)(arr),
+        "flip1": Flip(spatial_axis=1)(arr),
+        "rot1": Rotate90(k=1, spatial_axes=(0, 1))(arr),
+        "affine": Affine(rotate_params=0.3, translate_params=(3.0, -2.0), scale_params=(1.1, 0.9),
+                         padding_mode="zeros", mode="bilinear", image_only=True)(arr),
+        "affine_nearest": Affine(rotate_params=0.3, translate_params=(3.0, -2.0), scale_params=(1.1, 0.9),
+                                 padding_mode="zeros", mode="nearest", image_only=True)(arr),
+    }
+    files = {k: to_file(v) for k, v in ops.items()}
+    cx0, cy0, sx0, sy0 = block_stats(file_px)
+    fx, fy, _, _ = block_stats(files["flip0"])
+    flip0_is = "left-right" if abs(fx - (FW - 1 - cx0)) < 0.01 and abs(fy - cy0) < 0.01 else \
+               "top-bottom" if abs(fy - (FH - 1 - cy0)) < 0.01 and abs(fx - cx0) < 0.01 else "?"
+    rx, ry, _, _ = block_stats(files["rot1"])
+    cw = (FH - 1 - cy0, cx0)   # (x, y) -> (H-1-y, x)
+    ccw = (cy0, FW - 1 - cx0)  # (x, y) -> (y, W-1-x)
+    rot_is = "clockwise" if np.hypot(rx - cw[0], ry - cw[1]) < 0.01 else \
+             "counter-clockwise" if np.hypot(rx - ccw[0], ry - ccw[1]) < 0.01 else "?"
+    turn = centroid_turn = None
+    a_rot = to_file(Affine(rotate_params=0.3, padding_mode="zeros", mode="nearest", image_only=True)(arr))
+    ax, ay, _, _ = block_stats(a_rot)
+    ccx, ccy = (FW - 1) / 2, (FH - 1) / 2
+    d_ang = np.degrees(np.arctan2(ay - ccy, ax - ccx) - np.arctan2(cy0 - ccy, cx0 - ccx))
+    turn = "counter-clockwise" if d_ang < 0 else "clockwise"  # y points down on screen
+    t_only = to_file(Affine(translate_params=(3.0, 0.0), padding_mode="zeros", mode="nearest", image_only=True)(arr))
+    tx_, ty_, _, _ = block_stats(t_only)
+    s_only = to_file(Affine(scale_params=(1.5, 1.0), padding_mode="zeros", mode="nearest", image_only=True)(arr))
+    _, _, ssx, ssy = block_stats(s_only)
+    say(f"order {key} = {label}: spatial_axis=0 flips {flip0_is}; Rotate90 k=1 turns {rot_is}; "
+        f"affine rotate +0.3 turns {turn} ({d_ang:+.1f} deg); translate (+3, 0) moves the content "
+        f"x {tx_ - cx0:+.1f}, y {ty_ - cy0:+.1f}; scale (1.5, 1) changes the block's spread "
+        f"x {sx0:.2f} -> {ssx:.2f}, y {sy0:.2f} -> {ssy:.2f}")
+    orders[key] = {
+        "label": label, "flip0": flip0_is, "rot1": rot_is, "rotate_turn": turn,
+        "translate_3_0": [tx_ - cx0, ty_ - cy0],
+        "arrays": {k: r7(v) for k, v in files.items()},
+    }
+data["through_file"] = {"height": FH, "width": FW, "file": r7(file_px), "orders": orders}
+
 with open(OUT_TXT, "w", encoding="utf-8", newline="\n") as fh:
     fh.write("\n".join(lines) + "\n")
 with open(OUT_JSON, "w", encoding="utf-8", newline="\n") as fh:
