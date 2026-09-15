@@ -294,12 +294,34 @@ section("§3b the tween: its ends, and its pace");
   }
   {
     const t = M.computeTransforms({ ...BASE, transform: "affine" }, makeRng(106));
-    assert(t.draws.every((d, i) => M.durationAt(t, i) === (d.fired ? M.TWEEN_MS : M.QUIET_MS)), "a draw that is applied moves for TWEEN_MS, one that is not for QUIET_MS");
+    assert(t.draws.every((d, i) => M.durationAt(t, i) === M.FADE_MS + (d.fired ? M.TWEEN_MS : 0)),
+      "every draw fades back to the original first, and an applied one then moves for TWEEN_MS");
     const p = M.computePipeline({ ...BASE, topic: "pipeline" }, makeRng(106));
-    assert(p.steps.every((st, i) => M.durationAt(p, i) === (M.stepChange(p, st).kind === "none" ? M.QUIET_MS : M.TWEEN_MS)),
-      "a line that changes the sample moves for TWEEN_MS, any other for QUIET_MS");
+    const startsEpoch = (i) => i > 0 && p.steps[i].epoch > p.steps[i - 1].epoch;
+    assert(p.steps.every((st, i) => M.durationAt(p, i)
+      === ((startsEpoch(i) ? M.FADE_MS : 0) + (M.stepChange(p, st).kind === "none" ? 0 : M.TWEEN_MS) || M.QUIET_MS)),
+      "a training epoch's first press fades to the cached sample; a line that changes the sample moves for TWEEN_MS; any other holds QUIET_MS");
     const v = M.computePipeline({ ...BASE, topic: "pipeline", split: "validation" }, makeRng(106));
-    assert(v.steps.every((st) => M.stepChange(v, st).kind === "none"), "no line of the validation list changes the sample in motion");
+    assert(v.steps.every((st, i) => M.stepChange(v, st).kind === "none" && M.durationAt(v, i) === M.QUIET_MS),
+      "no press of the validation list fades or moves the sample");
+    /* the parts of a press, in order */
+    const parts = [0, 0.05, 0.12, 0.2, 0.5, 0.999].map((f) => M.pressAt(t, 0, f));
+    const fade = M.FADE_MS / M.durationAt(t, 0);
+    assert(parts[0].part === "out" && parts[0].a === 1 && M.pressAt(t, 0, fade * 0.75).part === "in" && M.pressAt(t, 0, fade).part === "move",
+      `a draw's press: out, then in, then the motion from ${(100 * fade).toFixed(0)} % of it`);
+    const e0 = M.pressAt(t, 0, fade).e;
+    const e1 = M.pressAt(t, 0, 1 - 1e-9).e;
+    assert(!t.draws[0].fired || (e0 < 1e-6 && e1 > 1 - 1e-6), "the motion runs from no change to the drawn value");
+    assert(parts.every((q) => (q.part === "move" ? q.e >= 0 && q.e <= 1 : q.a >= 0 && q.a <= 1)), "every opacity and fraction lies in [0, 1]");
+
+    /* the validation list is val_test_transforms as cell 19 writes it, and no epoch changes its sample */
+    const vNames = v.list.map((i) => M.LINES[i].cls).join(",");
+    assert(vNames === "LoadImaged,EnsureChannelFirstd,EnsureTyped,ScaleIntensityd,SpatialPadd,AsDiscreted",
+      `val_test_transforms lists its own six lines: ${vNames}`);
+    assert(p.list.length === M.LINES.length, "train_transforms lists all twelve lines");
+    const scaled = M.smear("off").image;
+    assert(Array.from({ length: M.EPOCHS }, (_, e) => v.linesOf(e)[M.LAST]).every((fin) => fin.image === scaled && fin.ops.length === 0),
+      "every validation epoch's sample is the scaled image, untouched");
     const before = M.beforeStep(p, { epoch: 1, line: M.FIRST_RANDOM });
     assert(before === p.linesOf(1)[M.FIRST_RANDOM - 1], "an epoch's first random line starts from the cached output of the line before it");
     /* the list in motion is the epoch the sample is in */

@@ -56,8 +56,6 @@ import * as M from "./model.js";
 
 /* --- primitives ------------------------------------------------------------ */
 
-/* a transform in motion starts and ends at rest */
-const easeInOut = (t) => (t < 0.5 ? 4 * t ** 3 : 1 - (-2 * t + 2) ** 3 / 2);
 const signed = (v, d) => (v < 0 ? `−${Math.abs(v).toFixed(d)}` : v.toFixed(d));
 const hexRgb = (hex) => [1, 3, 5].map((k) => parseInt(hex.slice(k, k + 2), 16));
 const devicePx = (size) => Math.max(1, Math.round(size * (globalThis.devicePixelRatio || 1)));
@@ -241,24 +239,27 @@ function outline(ctx, colors, pts, x, y, size, { color, width = 1.5, dash = null
   ctx.stroke();
   ctx.restore();
 }
-/** A panel: its pixels from `paint`, the outlines over them, a frame. */
-function panel(ctx, colors, x, y, size, paint, lines = []) {
+/** A panel: its pixels from `paint` at opacity a, the outlines over them, a frame at full strength. */
+function panel(ctx, colors, x, y, size, paint, lines = [], a = 1) {
+  ctx.save();
+  ctx.globalAlpha = a;
   paint();
-  lines.forEach((l) => outline(ctx, colors, l.pts, x, y, size, l));
+  ctx.restore();
+  lines.forEach((l) => outline(ctx, colors, l.pts, x, y, size, { ...l, alpha: (l.alpha ?? 1) * a }));
   frame(ctx, x, y, size, size, colors.grid);
 }
-const imagePanel = (ctx, colors, im, x, y, size, lines = []) =>
-  panel(ctx, colors, x, y, size, () => paintImage(ctx, im, x, y, size), lines);
-/** A mask panel: the surface, then the mask in the ground truth's colour from `paint` or the image. */
-function maskPanel(ctx, colors, m, x, y, size, bytes = null) {
+const imagePanel = (ctx, colors, im, x, y, size, lines = [], a = 1) =>
+  panel(ctx, colors, x, y, size, () => paintImage(ctx, im, x, y, size), lines, a);
+/** A mask panel: the surface, then the mask at opacity a in the ground truth's colour, from bytes or the image. */
+function maskPanel(ctx, colors, m, x, y, size, bytes = null, a = 1) {
+  ctx.save();
+  ctx.fillStyle = colors.surface;
+  ctx.fillRect(x, y, size, size);
+  ctx.restore();
   panel(ctx, colors, x, y, size, () => {
-    ctx.save();
-    ctx.fillStyle = colors.surface;
-    ctx.fillRect(x, y, size, size);
-    ctx.restore();
     if (bytes) blit(ctx, bytes, x, y, size);
     else paintImage(ctx, m, x, y, size, colors.reference);
-  });
+  }, [], a);
 }
 
 /* ============================ the Transforms page ========================= */
@@ -311,13 +312,19 @@ function cellLines(colors, wbc, ops, withLabel) {
   ];
 }
 
-/** Draw i, finished: the engine's exact result. */
-function paintAugmented(ctx, colors, L, state, params, i) {
+/** Draw i, finished: the engine's exact result, at opacity a while it fades out. */
+function paintAugmented(ctx, colors, L, state, params, i, a = 1) {
   const smp = state.sample(i, params.cell);
   const spatial = M.isSpatial(state.kind);
   const lines = [...earlierLines(colors, state, smp.wbc, i), ...cellLines(colors, smp.wbc, smp.ops, !spatial || state.withLabel)];
-  imagePanel(ctx, colors, smp.image, L.x1, L.imgY, L.s, lines);
-  maskPanel(ctx, colors, smp.mask, L.x1, L.maskY, L.s);
+  imagePanel(ctx, colors, smp.image, L.x1, L.imgY, L.s, lines, a);
+  maskPanel(ctx, colors, smp.mask, L.x1, L.maskY, L.s, null, a);
+}
+
+/** The original in the Augmented column at opacity a: the image a draw starts from, fading in. */
+function paintStart(ctx, colors, L, sm, a) {
+  imagePanel(ctx, colors, sm.image, L.x1, L.imgY, L.s, cellLines(colors, sm.wbc, [], true), a);
+  maskPanel(ctx, colors, sm.mask, L.x1, L.maskY, L.s, null, a);
 }
 
 /**
@@ -613,9 +620,19 @@ function drawTransforms(ctx, colors, w, params, state, anim) {
   note(ctx, colors, "mask", L.x1, L.maskY - 6, colors.ink3);
   maskPanel(ctx, colors, sm.mask, L.x0, L.maskY, L.s);
 
-  /* a draw in motion replaces the last one: every draw starts from the original */
-  const flight = t > 0 && n < M.DRAWS ? { i: n, e: easeInOut(t) } : null;
-  if (flight) {
+  /* A PRESS: the last result fades out, the original fades in, then the draw
+     moves from it — every draw starts from the original */
+  const press = t > 0 && n < M.DRAWS ? M.pressAt(state, n, t) : null;
+  const flight = press?.part === "move" ? { i: n, e: press.e } : null;
+  if (press?.part === "out") {
+    if (n) paintAugmented(ctx, colors, L, state, params, n - 1, press.a);
+    else {
+      frame(ctx, L.x1, L.imgY, L.s, L.s, colors.grid);
+      frame(ctx, L.x1, L.maskY, L.s, L.s, colors.grid);
+    }
+  } else if (press?.part === "in") {
+    paintStart(ctx, colors, L, sm, press.a);
+  } else if (flight) {
     paintTween(ctx, colors, L, state, params, flight.i, flight.e);
   } else if (n) {
     paintAugmented(ctx, colors, L, state, params, n - 1);
@@ -625,8 +642,8 @@ function drawTransforms(ctx, colors, w, params, state, anim) {
     note(ctx, colors, "Press Draw to apply the call", L.x1 + L.s / 2, L.imgY + L.s / 2, colors.ink3, { align: "center" });
   }
 
-  if (flight) {
-    const d = state.draws[flight.i];
+  if (press) {
+    const d = state.draws[n];
     note(ctx, colors, drawText(kind, d, params), M.PAD, L.line1, d.fired ? colors.ink1 : colors.ink3);
   } else if (n) {
     const d = state.draws[n - 1];
@@ -653,7 +670,6 @@ function drawTransforms(ctx, colors, w, params, state, anim) {
 
 function lineText(state, epoch, i, st) {
   const l = M.LINES[i];
-  if (st.status === "absent") return "not in this list";
   if (st.status === "cached") return "from the cache";
   if (st.status !== "done") return "";
   if (!l.random) {
@@ -696,8 +712,10 @@ function drawPipeline(ctx, colors, w, params, state, anim) {
 
   const listW = P.sx - M.PAD - 14;
   const statusX = M.PAD + 150;
-  M.LINES.forEach((l, i) => {
-    const y = P.top + i * P.row;
+  /* the lines of the list chosen: every line of train_transforms, or the six of val_test_transforms */
+  state.list.forEach((i, row) => {
+    const l = M.LINES[i];
+    const y = P.top + row * P.row;
     const st = { status: view.status[i], current: i === view.done };
     /* the line whose motion is on the sample now */
     if (i === view.running) {
@@ -717,30 +735,34 @@ function drawPipeline(ctx, colors, w, params, state, anim) {
     }
     const live = st.status === "done";
     code(ctx, colors, l.cls, M.PAD + 10, y + 14, live ? colors.ink1 : colors.ink3);
-    if (st.status === "absent") {
-      ctx.save();
-      ctx.font = `${colors.fsXs} ${colors.mono}`;
-      const tw = ctx.measureText(l.cls).width;
-      ctx.strokeStyle = colors.ink3;
-      ctx.beginPath();
-      ctx.moveTo(M.PAD + 10, y + 10);
-      ctx.lineTo(M.PAD + 10 + tw, y + 10);
-      ctx.stroke();
-      ctx.restore();
-    }
     const text = lineText(state, epoch, i, st);
     const fired = live && l.random && M.firedIn(i, state.epochs[epoch]);
     if (text) note(ctx, colors, text, statusX, y + 14, fired ? colors.ink1 : colors.ink3, { weight: fired ? "600" : "" });
   });
+  if (!state.train) {
+    const y = P.top + state.list.length * P.row + 20;
+    note(ctx, colors, "No random transform is in this list,", M.PAD + 10, y, colors.ink2);
+    note(ctx, colors, "so every epoch gives the same sample.", M.PAD + 10, y + 15, colors.ink2);
+  }
 
   const wbc = M.PLACEMENTS.off;
   const line = (ops) => [{ pts: M.outlineOf(wbc, ops), color: colors.reference }];
-  if (t > 0 && s < state.total) {
+  const press = moving ? M.pressAt(state, s, t) : null;
+  if (press?.part === "out") {
+    /* a training epoch's first press: the last epoch's sample fades out ... */
+    const prev = state.steps[s - 1];
+    const shown = state.linesOf(prev.epoch)[prev.line];
+    imagePanel(ctx, colors, shown.image, P.sx, P.top, P.s, line(shown.ops), press.a);
+  } else if (press?.part === "in") {
+    /* ... and the cached sample the new epoch starts from fades in */
+    const start = M.beforeStep(state, state.steps[s]);
+    imagePanel(ctx, colors, start.image, P.sx, P.top, P.s, line(start.ops), press.a);
+  } else if (press) {
     /* THE LINE IN MOTION, from the sample it starts with: a fired spatial line
        as its warp, contrast as γ from 1, and any other line — noise, the
        scaling, a line that did not fire — as a blend to its output */
     const nx = state.steps[s];
-    const e = easeInOut(t);
+    const { e } = press;
     const before = M.beforeStep(state, nx);
     const after = state.linesOf(nx.epoch)[nx.line];
     const change = M.stepChange(state, nx);
@@ -997,11 +1019,18 @@ defineWidget({
     if (state.page === "pipeline") {
       const s = Math.min(anim?.n ?? 0, state.total);
       const cur = s > 0 ? state.steps[s - 1] : null;
+      const listName = state.train ? "train_transforms" : "val_test_transforms";
+      const epochNote = state.train
+        ? "the same image, with new random draws each epoch"
+        : "the same image and the same sample each epoch";
+      const randomTile = (value, note) => (state.train
+        ? { label: "Random lines applied", value, note }
+        : { label: "Random lines", value: "none", note: "val_test_transforms has no random transform" });
       if (!cur) {
         return [
-          { label: "Epoch", value: "—", note: `the same image, sampled again in each of ${M.EPOCHS} epochs` },
-          { label: "Line", value: "—", note: `${M.LINES.length} lines in train_transforms, the random ones in the middle` },
-          { label: "Random lines applied", value: "—", note: "of the six, in this epoch" },
+          { label: "Epoch", value: "—", note: epochNote },
+          { label: "Line", value: "—", note: `${state.list.length} lines in ${listName}` },
+          randomTile("—", "of the six, in this epoch"),
         ];
       }
       const ep = state.epochs[cur.epoch];
@@ -1009,11 +1038,13 @@ defineWidget({
       let fired = 0;
       for (let i = M.FIRST_RANDOM; i <= cur.line; i += 1) if (M.LINES[i].random && M.firedIn(i, ep)) fired += 1;
       return [
-        { label: "Epoch", value: `${cur.epoch + 1} of ${M.EPOCHS}`, note: "the same image, sampled again each epoch" },
-        { label: "Line", value: `${cur.line + 1} of ${M.LINES.length}`, note: `${M.LINES[cur.line].cls}${st.status === "cached" ? ", from the cache" : ""}` },
-        state.train
-          ? { label: "Random lines applied", value: `${fired} of 6`, note: "in this epoch, up to the line just run" }
-          : { label: "Random lines applied", value: "none", note: "val_test_transforms has no random line" },
+        { label: "Epoch", value: `${cur.epoch + 1} of ${M.EPOCHS}`, note: epochNote },
+        {
+          label: "Line",
+          value: `${state.list.indexOf(cur.line) + 1} of ${state.list.length}`,
+          note: `${M.LINES[cur.line].cls}${st.status === "cached" ? ", from the cache" : ""}`,
+        },
+        randomTile(`${fired} of 6`, "in this epoch, up to the line just run"),
       ];
     }
     const kind = state.kind;

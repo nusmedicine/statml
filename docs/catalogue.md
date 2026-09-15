@@ -15678,8 +15678,38 @@ every page read in the browser with no console error, mid-motion frames captured
 for a flip, a half turn, an affine with the mask left out of keys, and a line
 crossing into epoch 2.
 
-**NEXT: his read of round one**; then the copy audit's four passes, "tested ok", a
-shooter and states (settled, one driven — now mid-motion; no regions, so no hit
+#### ROUND TWO 2026-09-16 — "ok looks better", and two points
+
+**(1) "during transforms, a new image comes in abruptly. do you think a fade would
+help or it may confuse students"** — the recommendation given and built: a fade
+THROUGH THE EMPTY PANEL before the motion. Every draw applies the call to the
+original, so the last result fades out (150 ms), the original fades in (150 ms), and
+the draw moves from it; a training epoch's first press does the same with the
+cached sample. Not a crossfade between the two images, which would put two cells
+in one picture and read as a mix of images — MixUp, an augmentation of its own —
+and not the last draw played backwards, which would read as transforms that stack.
+`pressAt` gives each press's part (out · in · move) and `durationAt` its length
+(`FADE_MS` + `TWEEN_MS` for an applied draw, `FADE_MS` alone for one that is not).
+Read in the browser on a hand-stepped frame clock (the harness's own method): the
+fade-out, the fade-in of the original and the turn from it on Rotate, and the
+epoch-2 press on the Pipeline page.
+
+**(2) "i thought we do not do any augmentations on validation/test data?"**, then
+mid-turn "oh i saw not in the list under validation/test...so this means only fixed
+transformations are used not augmentations?" — yes, and the draft's depiction was
+the cause: under Validation/Test it drew the training list with the six random lines
+struck through as "not in this list", the Line tile counted 12 and the Epoch note
+said "sampled again each epoch", which together read as a list with augmentations
+switched off. Now the list is `val_test_transforms` as cell 19 writes it — its six
+fixed lines and nothing else (`state.list`) — with "No random transform is in this
+list, so every epoch gives the same sample." under it; Line counts 6; the Epoch note
+is "the same image and the same sample each epoch"; the verify asserts the six
+names and that every validation epoch's sample is the scaled image, untouched.
+
+Verify 3,873 checks; `check` and `test` green; no console error.
+
+**NEXT: his read of round two**; then the copy audit's four passes, "tested ok", a
+shooter and states (settled, one driven — now mid-press; no regions, so no hit
 state), status flip in the manifest AND `main.js`, the full suite fronted, `check`
 and `test` read alone, commit, push — after he has changed cell 19's LoadImaged,
 which the widget's axis wording assumes.

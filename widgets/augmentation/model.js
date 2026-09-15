@@ -339,6 +339,12 @@ export function computePipeline(params, rng) {
   return {
     page: "pipeline",
     train,
+    /* THE LINES OF THE LIST SHOWN, as indices into LINES (round two, Kenneth:
+       "i thought we do not do any augmentations on validation/test data?"):
+       val_test_transforms is cell 19's six fixed lines and nothing else; the
+       draft drew the training list with the random lines struck through, which
+       read as a list with augmentations switched off. */
+    list: LINES.map((l, i) => (train || !l.random ? i : -1)).filter((i) => i >= 0),
     epochs,
     steps,
     total: steps.length,
@@ -458,6 +464,17 @@ export function pipelinePhase(state, n) {
 export const TWEEN_MS = 800;
 export const QUIET_MS = 300;
 
+/* THE FADE BEFORE THE MOTION (Kenneth, round two: "a new image comes in
+   abruptly. do you think a fade would help or it may confuse students"). A draw
+   applies the call to the ORIGINAL, so the panel goes back to the original
+   before it moves — and an epoch goes back to the cached sample. The last result
+   fades OUT to the empty panel and the starting image fades IN: never a blend of
+   the two, which would put two cells in one picture and read as a mix of images
+   (MixUp, which is an augmentation of its own), and never the last transform
+   played backwards, which would read as transforms that stack. */
+export const FADE_MS = 300;
+const easeInOut = (t) => (t < 0.5 ? 4 * t ** 3 : 1 - (-2 * t + 2) ** 3 / 2);
+
 /** A spatial file-orientation operation at fraction e of the way from nothing, as a warp. */
 export function tweenWarp(f, e) {
   if (f.kind === "warp") {
@@ -530,14 +547,39 @@ export function renderWarp(src, px, wp, { zeros = false, tint = null } = {}) {
   return out;
 }
 
-/** How long press n takes: a draw or line that changes the picture moves for TWEEN_MS, one that does not for QUIET_MS. */
-export function durationAt(state, n) {
+/** Whether press n changes the picture in motion: an applied draw, or a random line that fired. */
+function movesAt(state, n) {
   if (state.page === "pipeline") {
     const st = state.steps[n];
-    if (!st || !state.train) return QUIET_MS;
-    return LINES[st.line].random && firedIn(st.line, state.epochs[st.epoch]) ? TWEEN_MS : QUIET_MS;
+    return Boolean(st && state.train && LINES[st.line].random && firedIn(st.line, state.epochs[st.epoch]));
   }
-  return state.draws[n]?.fired ? TWEEN_MS : QUIET_MS;
+  return Boolean(state.draws[n]?.fired);
+}
+
+/** Whether press n first returns the panel to the image it starts from: every draw, and a training epoch's first press. */
+function fadesAt(state, n) {
+  if (state.page === "pipeline") return state.train && n > 0 && n < state.total && state.steps[n].epoch > state.steps[n - 1].epoch;
+  return n < DRAWS;
+}
+
+/** How long press n takes: the fade, then the motion; a press with neither holds for QUIET_MS. */
+export function durationAt(state, n) {
+  return (fadesAt(state, n) ? FADE_MS : 0) + (movesAt(state, n) ? TWEEN_MS : 0) || QUIET_MS;
+}
+
+/**
+ * Where press n is at fraction t of its duration: fading OUT what was shown
+ * (opacity a), fading IN the image it starts from (opacity a), or MOVING at
+ * eased fraction e.
+ */
+export function pressAt(state, n, t) {
+  const fade = fadesAt(state, n) ? FADE_MS / durationAt(state, n) : 0;
+  if (t < fade / 2) return { part: "out", a: 1 - t / (fade / 2) };
+  if (t < fade) return { part: "in", a: (t - fade / 2) / (fade / 2) };
+  /* a motion eases in and out; a line that does not move — the scaling, a
+     random line that did not fire — reaches its output at an even pace */
+  const r = fade < 1 ? (t - fade) / (1 - fade) : 1;
+  return { part: "move", e: movesAt(state, n) ? easeInOut(r) : r };
 }
 
 /* ================================= geometry =================================
