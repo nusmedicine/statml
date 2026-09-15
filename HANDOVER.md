@@ -8,8 +8,7 @@ planned as four widgets and its first, **61 `cnn-architecture`, SHIPPED
 figure, the copy proof 6 / 6), the full suite **772 / 772 MATCH** fronted at
 DPR 1.25 with `visibilityState` visible on every poll, `check` and `test`
 read alone. Slot 52 `training-loop` is DISCARDED (his call, 2026-09-13).
-Session closed on his word after the push; the commit is the one this file
-rides in, with a follow-up carrying its hash.
+Session closed on his word after the push: the ship is **51d26bb** (`8ef642b..51d26bb`), and this line rides in the follow-up.
 
 **NEXT: slot 64 `grad-cam`** (06-2 cells 122–139; measured 2026-09-13 in
 `_lab/dl-image-measure.mjs` M3 — a 3 × 3 cue, the CAM read on a CLEAN image,
