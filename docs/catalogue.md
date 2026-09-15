@@ -15264,7 +15264,7 @@ that went are pointed at rather than re-proposed.
 | # | slug | title (the notebook's own heading) | host | state |
 |---|---|---|---|---|
 | 61 | `cnn-architecture` | Architecture - Basic | 06-1 cell 2 (convolution, pooling, receptive field growth) and cell 1's parameter argument; 06-2 cell 23 (components and order, calculating dimensions, Flatten against GAP), cell 25's `SimpleCNN` | proposed, **measured**: the receptive field is 10 px on the notebook's own net; **first to build, mock next** |
-| 62 | `augmentation` | Preprocessing · Load/Transform | 06-2 cell 1 §3 and `dl-workflow-preprocess.png`; 06-3 cells 15–19 and `dl-image-segment-augment-pair.png` | **CUT 2026-09-13**, Kenneth's pick; the unpaired flip (Dice 0.07) goes to 65's Dice page as a caption |
+| 62 | `augmentation` | Preprocessing · Load/Transform | 06-2 cell 1 §3 and `dl-workflow-preprocess.png`; 06-3 cells 15–19, 27–29 and `dl-image-segment-augment-pair.png` | **REVIVED 2026-09-15** on Kenneth's "students have a hard time visualizing these transformations"; picked the same day: Transforms · Pipeline on a generated blood smear, three cases that fail, pinned to MONAI installed here; **measure next**. (CUT 2026-09-13, his pick then; the unpaired-flip caption planned for 65's Dice page was never added) |
 | 63 | `pretrained` | Using Pretrained Models | 06-2 cells 55–56 (`dl-imaging-training.png`), 61–121 (scratch, fine-tuning, transfer learning) | **RESCOPED 2026-09-13**, Kenneth's pick: his figure as drawn, and one trained stage — fine-tuning's learning rate against forgetting, steps fixed; third to build |
 | 64 | `grad-cam` | Explainability · Grad-CAM | 06-2 cells 122–139 (`dl-image-explain-gradcam.png`); 06-1 cell 4 | proposed, **measured — holds** with a 3 × 3 cue and the CAM read on a clean image; second to build, the engine is born here |
 | 65 | `unet` | Architecture - Basic (Segmentation) · Training · Evaluation | 06-3 cells 30–37 (`dl-image-segment-unet.png`), 57–64; **and 66's host** (cell 6's bins, cells 38–56) as its second page | **SHIPPED 2026-09-15**: two pages, U-Net · Dice loss; one network trained ahead at six settings, the operation of a block drawn from its own maps |
@@ -15427,7 +15427,140 @@ and W move together and a rule each would say they can part.
   pixels: ~3,400 image-epochs a second at 16 × 16. Gradients checked against
   finite differences at 4.6e-9.
 
-### Slot 62 · `augmentation` — Preprocessing · Load/Transform — the cuttable one
+### Slot 62 · `augmentation` — Preprocessing · Load/Transform — REVIVED AND PICKED 2026-09-15
+
+**Revived 2026-09-15 on Kenneth's ask:** *"let's plan for a widget about image
+augmentation to support PHM5005 notebooks on DL for Image Data. students have a
+hard time visualizing these transformations."* The cut of 2026-09-13 (the entry
+below, kept as written) judged the slot by its one claim with a case that
+fails. The new brief is the transforms themselves, which the lesson gives as
+code with a comment on each argument and no picture of what the argument does.
+The caption that was to carry the unpaired flip on 65's Dice page was never
+added, so no widget in the collection shows it.
+
+**Host, re-read from the Master copies.** 06-3 cell 15 (*Load/Transform*: the
+Fixed / Augment table, the *Syntax* block with a comment on every argument,
+*Composition*, and *Loading*'s four Dataset classes), cell 19
+(`train_transforms` and `val_test_transforms` with the lesson's values), cells
+27–29 (`show_image_label`: image, mask and overlay for nine samples of one
+batch); 06-2 cell 1 §3 (`dl-workflow-preprocess.png`, and *horizontal flipping
+may not be appropriate for images with left/right context*); 06-1 cells 6–7
+(torchvision's and MONAI's transform examples). The data, KRD-WBC, is 600
+images at 512 × 512 with the masks stored as JPG (06-3 cell 3). Cell 19 imports
+`RandZoomd` and does not use it.
+
+**What MONAI 1.6.0 does with cell 19's arguments — read from the source
+(`raw.githubusercontent.com/Project-MONAI/MONAI/1.6.0/…`) 2026-09-15, then RUN
+the same night: every line below held on MONAI itself** (`_lab/augmentation-monai.py`,
+MEASURED below).
+
+| cell 19 | what one sample draws | what the code does not show |
+|---|---|---|
+| each `prob` | one draw per transform (`RandomizableTransform`) | no random transform fires on 5.58% of samples (0.5³ · 0.75 · 0.7 · 0.85); 7.5% come out identical to the input |
+| `RandFlipd(spatial_axis=0)`, `RandFlipd(spatial_axis=1)`, `RandRotate90d(max_k=3)` | k = `randint(max_k) + 1`, so 1, 2 or 3 | all eight orientations of the square occur, and not equally: identity, the half turn and each axis flip at 1/6, the two quarter turns and the two diagonal reflections at 1/12 (10⁶ simulated draws, `scratchpad/orient.mjs`, to move into the measure script) |
+| `rotate_range=np.deg2rad(10.0)` | angle `uniform(-f, f)`, so U(−10°, 10°) | written in radians |
+| `translate_range=(8, 8)` | each axis U(−8, 8) px, drawn separately | 8 px is 1.6% of the 512 px image |
+| `scale_range=(0.1, 0.1)` | each axis U(−0.1, 0.1) **+ 1.0**, drawn separately | a stretch, not a zoom; and `Resample` computes the output "using values from `img`, locations from `grid`" with `grid = affine @ grid`, so the affine maps output to input and a drawn 1.08 makes the content 1/1.08 as wide |
+| the affine's order | "applied in rotate, shear, translate, scale order" | the grid is R · T · S applied to the output's coordinates |
+| `padding_mode="zeros"` | — | zeros fill whatever a rotation, shift or shrink uncovers |
+| `mode=("bilinear", "nearest")` | per key: image bilinear, label nearest | — |
+| `RandAdjustContrastd(gamma=(0.7, 1.5))` | γ U(0.7, 1.5) on `((x − min) / (range + 1e-7)) ** γ · range + min`, min and max over the whole image | a curve |
+| `RandGaussianNoised(std=0.01)` | `sample_std=True` by default, so σ itself is U(0, 0.01), then N(0, σ) per value | at most 2.6 grey levels in 255: nothing to see at the lesson's value |
+| `CacheDataset` | caches "the outcomes before the first `Randomizable` `Transform`" | `AsDiscreted`, below the random lines, runs every epoch |
+
+**Two notebook points, told to Kenneth 2026-09-15 — not the widget's.**
+(1) MONAI reads a 2D image x-first: `PILReader(reverse_indexing=True)` by default
+"swaps axis 0 and 1 after loading" (ITKReader returns the same order), so cell
+19's tensors are `[C, W, H]` and `spatial_axis=0` mirrors the file left–right.
+Cell 27's `permute(1,2,0)` treats the tensor as `[C, H, W]`, so cell 29's plots
+are transposed, and in those plots the axis-0 flip does look vertical, which is
+why *flip vertical (0)* matches what students see. Training is unaffected (both
+flips at 0.5). The widget has to name the axes, so the wording is his call — open
+for the mock. (2) The masks are JPG and nothing rescales the label before
+`AsDiscreted(threshold=0.5)`, so on a 0–255 mask any compression value of 1 or
+more becomes foreground. **The mechanism was run the same night** on a synthetic
+disc (radius 16 in 64 × 64) saved as JPG and read back through `LoadImaged`:
+`AsDiscrete(0.5)` marked **+33.8%** foreground at quality 75 and **+25.0%** at
+95, and a threshold of 127.5 marked the true 797 exactly. KRD-WBC's own masks
+are unread (their values and JPG quality are unknown), so the size of the
+effect on the lesson is not measured.
+
+**His picks, one AskUserQuestion, 2026-09-15 — every recommendation:**
+
+| question | pick |
+|---|---|
+| pages | **Transforms · Pipeline**, in cell 15's order. *Transforms*: the five Augment rows one at a time, the rail that transform's MONAI arguments with cell 19's values as defaults (wide enough to go past realistic); the figure his pair figure — Original (image, mask) → Augmented (image, mask), the mask's outline over the augmented image; a Draw makes one sample and prints the draw, and the draws accumulate. *Pipeline*: cell 19's `train_transforms` listing, each line with the sample after it and whether it fired, the fixed lines marked cached once; Step one epoch, the same image through the chain again; a Split control runs `val_test_transforms`. Not taken: Pipeline only, Transforms only, a third page for the Fixed transforms |
+| image | **a generated blood smear** at 512 × 512 — one white cell with a lobed nucleus among red cells, the white cell the mask; asymmetric so every flip and turn shows. Not taken: his pair figure's discs and star, widget 61's greyscale cell |
+| cases that fail | **mask left out of `keys`** (the stale mask; a flip gave Dice 0.07 on a disc), **bilinear on the mask** (fractions on the edge in a magnifier; `AsDiscreted` at 0.5 returns it within a pixel of nearest, 0.996), **the Validation/Test split** (fixed lines only, the same sample every epoch). Not taken: the left/right flip on a second image |
+| MONAI check | **install MONAI here** — `pip install --no-deps monai`, the notebook's own line, beside the torch 2.14 CPU already installed — so the verify runs MONAI's transforms on the widget's arrays and compares |
+
+**Trains nothing**, and makes no claim that augmentation raises a score: that
+would need a trained stage where augmentation can lose, which is not measured
+and not the brief. **One departure from his pair figure to declare:** it tilts
+the frame, and MONAI returns the same square with zeros in the corners; the
+widget draws what MONAI returns.
+
+#### MEASURED 2026-09-15 (night) — `_lab/augmentation-monai.py` and `_lab/augmentation-measure.mjs`
+
+**The pin, run on MONAI 1.6.0 / torch 2.14 CPU / Pillow 12.3** (findings in
+`_lab/augmentation-monai.txt`, arrays in `augmentation-monai.json`): a
+3-row × 5-column PNG loads as `(1, 5, 3)` with `value[0, x, y] == file[y, x]`,
+and cell 27's `permute(1, 2, 0)` draws it transposed; `spatial_axis=0` mirrors
+x; `Rotate90` k = 1 is a **clockwise** quarter turn in file orientation while a
+positive affine `rotate` turns the content **counter-clockwise**; `RandRotate90d`
+draws k = 1, 2, 3 at 987 / 1008 / 1005 of 3000; a +4 px `translate` moves the
+content −4 px and a `scale` of 2 makes it half as wide; `RandAffined`'s 4000
+applied matrices are uniform on ±10°, ±8 px and [0.9, 1.1] with the two scales
+uncorrelated (−0.026); the contrast formula holds to 5e-8; `RandGaussianNoised`'s
+per-draw σ has mean 0.0050 and quartiles 0.0025 / 0.005 / 0.0074 (uniform on
+0–0.01); `AsDiscrete(0.5)` maps 0.5 to 1; a `CacheDataset` ran the transform
+before `RandFlipd` once and the one after it on all five fetches.
+
+**One MONAI trap, found by the pin failing:** `RandAffined` randomizes its
+parameters twice per key (the grid is built from one draw, then `RandAffine` is
+called with `randomize=True` and draws again without using it), so the
+`rotate_params`, `translate_params` and `scale_params` readable after a call are
+NOT the transform applied — the first comparison failed by 1.0 on all four
+draws. The applied matrix is `rand_affine_grid.get_transformation_matrix()`.
+
+**The engine** (plain JS in the measure script, to lift into
+`widgets/augmentation/engine.js`) reproduces all of it: ten `Affine` arrays
+(bilinear within 2.1e-6, nearest exact) and four `RandAffined` draws (image
+within 1.2e-6, label exact).
+
+**The smear** (512 × 512, 15 red cells with pallor, one white cell of radius 70
+with a three-lobed nucleus and 46 granules, `ScaleIntensity`'d as cell 19 does
+first; generated in about 100 ms) read by eye on a contact sheet: a blood film,
+every transform visibly doing what the pin says. The white cell is 5.9% of the
+image, cell 6's *large* bin; radius 62 would put it in *medium*, the lesson's
+commonest.
+
+| finding | numbers |
+|---|---|
+| orientations from cell 19's flips and turns | identity, half turn, each axis mirror 1 in 6; the two quarter turns and two diagonal mirrors 1 in 12; nothing random fires 5.58%, the sample equals the input 7.40% |
+| **the mask left out of `keys` — off-centre cell** | Dice 0.000 axis-0 flip, 0.104 axis-1 flip, 0.026 / 0.000 / 0.026 for k = 1 / 2 / 3; 0.86–0.90 for the affine at any extreme; the chain with its probabilities: mean 0.224, 77.5% of samples under 0.5 |
+| **the same mistake — cell centred** | every flip and turn 0.99 (a centred round mask maps onto itself); the affine 0.88–0.996; the chain's mean 0.977, no sample under 0.5 |
+| what RandAffined shows at cell 19's extremes | the zeros: 7.3% of the image at 10°, 17.2% at scale (1.1, 1.1), 3.1% at (8, 8), 18.4% all three; the white cell's centre moves only 8–16 px (4–8 CSS px on a 256 px panel) |
+| bilinear on the mask | a one-pixel ring of 560–563 fractional values (3.6% of the cell); after `AsDiscreted(0.5)` 28–45 pixels differ from nearest, Dice 0.9985–0.9991 — a magnifier's finding |
+| contrast | γ 0.7: red cells 183 → 201, cytoplasm 189 → 206 grey levels; γ 1.5: 159 and 164 |
+| noise | σ 0.005 (the median draw) 1.3 grey levels, 0.01 2.6, 0.03 7.7, 0.05 12.8 — nothing to see at cell 19's value |
+| cost | an affine sample 11 ms; a listing with every intermediate 52–54 ms; 24 epochs 1.3 s — build a reading per epoch on first request, or thumbnails at 256 |
+
+**Open for the mock** (now with the numbers): the axis wording (the file's
+orientation, or the notebook's transposed plots — his call); the cell's place,
+since the unpaired case is Dice 0.00 off-centre and 0.99 centred (keep the
+off-centre cell and print the Dice, or offer the position as a control); how the
+draws accumulate per transform (outlines for the affine, a tally for flip and
+rotate 90, a family of γ curves, and what the noise page shows when cell 19's
+own σ is invisible); where the magnifier sits; the Pipeline page's thumbnails at
+550; the white cell's radius (70 large, 62 medium).
+
+**NEXT: the mock** — lean, from the newest shell, the engine inlined (a sample
+costs 11–54 ms, so Draw and Next epoch can run live without training anything)
+→ his picks → draft.
+
+*The entry below is the plan as first written and cut on 2026-09-13, kept as
+written.*
 
 **Host.** 06-2 cell 1 §3 and `dl-workflow-preprocess.png` — three columns
 Training · Validation · Test, the rows Fixed · Learned · Augment, the learned

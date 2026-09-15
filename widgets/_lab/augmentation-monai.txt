@@ -1,0 +1,23 @@
+MONAI 1.6.0, torch 2.14.0+cpu, numpy 2.5.2
+reader: a 3-row x 5-column PNG loads as grey (1, 5, 3), RGB (3, 5, 3); value[0, x, y] == file[y, x] for every pixel: True
+reader: readers that accept .png, in registration order: ['PILReader'] (the last is tried first)
+reader: cell 27's permute(1,2,0) gives an array of shape (5, 3) for a file of 3 rows x 5 columns, so matplotlib draws it transposed: True
+flip: spatial_axis=0 reverses x (a left-right mirror in file orientation): True; spatial_axis=1 reverses y (top-bottom): True
+rot90: k=1 sends the file's corners {'top-left': 'top-right', 'top-right': 'bottom-right', 'bottom-left': 'top-left', 'bottom-right': 'bottom-left'}; that is a quarter turn clockwise in file orientation
+rot90: RandRotate90d(prob=1, max_k=3) over 3000 draws gave k=1,2,3 counts {1: 987, 2: 1008, 3: 1005}
+affine: the blob starts at (x, y) = (24.00, 16.00), centre 16.0
+affine: rotate_params=+0.5 rad moves it to (23.03, 12.17), a turn counter-clockwise in file orientation (expected radius 8, angle -28.5 deg)
+affine: translate_params=(+4, 0) moves it to x = 20.00: the content moves -4 px in x
+affine: scale_params=(2, 1) moves it to x = 20.00 (offset 8 -> 4.00): a factor of 2 makes the content half as wide (smaller)
+affine: 10 arrays dumped (32 x 32, zeros padding) for the engine to reproduce
+randaffined: drawn (rotate deg, translate px, scale) = (-4.18, (+0.68, -4.35), (0.948, 1.091)); (-1.94, (-5.49, +1.40), (0.977, 0.959)); (-2.28, (-4.29, +4.90), (1.042, 1.070)); (+0.84, (+5.89, -5.29), (0.956, 1.003))
+randaffined: the label stays 0/1 under mode=('bilinear','nearest'): True
+randaffined: 4000 applied matrices, rotate deg in [-10.00, 10.00] (sd 5.77, uniform sd 5.77); translate in [-8.00, 7.99]; scale in [0.900, 1.100], two scale values a draw; corr(scale x, scale y) -0.026
+contrast: gamma 0.7: [0.1, 0.35, 0.6, 0.85, 0.95] -> [0.1, 0.4609, 0.6863, 0.8787, 0.95]; max |MONAI - ((x-min)/range)^g*range+min| = 4.48e-08
+contrast: gamma 1.5: [0.1, 0.35, 0.6, 0.85, 0.95] -> [0.1, 0.2356, 0.4835, 0.8045, 0.95]; max |MONAI - ((x-min)/range)^g*range+min| = 5.25e-08
+noise: RandGaussianNoised(std=0.01), 2000 draws on zeros: per-draw sd min 0.0000, mean 0.0050, max 0.0102 (U(0, 0.01) has mean 0.005); quartiles [0.0025, 0.005, 0.0074]
+threshold: AsDiscrete(threshold=0.5) on [0.49, 0.5, 0.51, 1, 255] -> [0.0, 1.0, 1.0, 1.0, 1.0]
+scale: ScaleIntensity on [2, 4, 6] -> [0.0, 0.5, 1.0]
+cache: after caching one sample and 5 fetches, the transform before RandFlipd ran 1 time(s) and the one after it 5 time(s)
+jpg mask (quality 75): 445 pixels strictly between 0 and 255; AsDiscrete(0.5) marks 1066 foreground against 797 true (+33.8%); a threshold of 127.5 marks 797; the largest background value is 37
+jpg mask (quality 95): 338 pixels strictly between 0 and 255; AsDiscrete(0.5) marks 996 foreground against 797 true (+25.0%); a threshold of 127.5 marks 797; the largest background value is 6
