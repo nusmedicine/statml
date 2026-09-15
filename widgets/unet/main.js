@@ -494,7 +494,7 @@ function drawBand(ctx, colors, w, top, state, params, reached) {
   ctx.restore();
   if (!reached) {
     caption(ctx, colors, "The operation of a block", M.PAD, top + M.BAND_CAP);
-    note(ctx, colors, `${name} has not been added yet. Press Next stage, then click a block on the network.`, M.PAD, top + M.BAND_NOTE);
+    note(ctx, colors, `${name} has not been added yet. Press Next layer, then click a block on the network.`, M.PAD, top + M.BAND_NOTE);
     return;
   }
   const netLine = NET_LINE(T);
@@ -692,9 +692,9 @@ function renderCard(params, state, n, lit = -1) {
 
 const ON = (topic) => ({ param: "topic", equals: topic });
 
-const STEP_LABELS = { stage: "Next stage" };
+const STEP_LABELS = { stage: "Next layer" };
 const STEP_TITLES = {
-  stage: "Add the next stage of the network and print the shape it outputs",
+  stage: "Add the next layer of the network and print the shape it outputs",
 };
 const phaseOf = () => "stage";
 
@@ -809,7 +809,7 @@ defineWidget({
       { token: "empirical", label: "The head: one logit per pixel, and the predicted mask", mark: "bar" },
       { token: "value-high", label: "A positive weight" },
       { token: "value-low", label: "A negative weight" },
-      { token: "highlight", label: "The stage just added, the chosen block, and the position its operation is shown at" },
+      { token: "highlight", label: "The layer just added, the chosen block, and the position its operation is shown at" },
     ]),
 
   compute: ({ params }) => (M.isDice(params) ? M.computeDice(params) : M.computeU(params)),
@@ -843,10 +843,10 @@ defineWidget({
   },
 
   animation: {
-    stepLabel: { anim: "phase", labels: STEP_LABELS, default: "Next stage" },
+    stepLabel: { anim: "phase", labels: STEP_LABELS, default: "Next layer" },
     stepTitle: { anim: "phase", labels: STEP_TITLES, default: STEP_TITLES.stage },
     runLabel: "Play",
-    runTitle: "Add the remaining stages in order",
+    runTitle: "Add the remaining layers in order",
 
     init: ({ params, state, fromScratch }) => {
       const n = fromScratch ? 0 : Math.max(0, Math.min(state.total, Number(params.shown) || 0));
@@ -898,7 +898,7 @@ defineWidget({
     const last = n > 0 ? state.stages[n - 1] : null;
     const bottle = state.stages.find((s) => s.kind === "bottleneck");
     return [
-      { label: "Stages added", value: `${n} of ${state.total}`, note: last ? `${last.name}: ${last.op}` : "the input, not yet through a block" },
+      { label: "Layers added", value: `${n} of ${state.total}`, note: last ? `${last.name}: ${last.op}` : "the input, not yet through a block" },
       { label: "Bottleneck", value: shapeText(M.shapeOf(bottle)), note: `${bottle.H} × ${bottle.H}, ${bottle.C} channels` },
       { label: "Parameters", value: fmt(state.params), note: "the DoubleConv blocks, the transposed convolutions and the head, at this depth and base" },
       {

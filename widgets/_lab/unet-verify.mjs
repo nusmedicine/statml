@@ -251,7 +251,7 @@ section("§5 the copy");
     /\bnever\b/i, /\bsits?\b/i, /\bsitting\b/i, /\bfalls?\b/i, /\blies?\b/i, /\bwalk\b/i, /\bcard\b/i, /\brung\b/i,
     /\bwell\b/i, /\bplain\b/i, /\btrench\b/i, /\bframe\b/i, /\bchose\b/i, /\bwants?\b/i,
     /* the copy audit of 2026-09-15: personified verbs and our own words */
-    /\barrives?\b/i, /\bfollows?\b/i, /\bagree\b/i, /\bpresses\b/i, /\bcrosses\b/i, /\bjoins\b/i, /\bskips\b/i, /\bwaits?\b/i, /\breach(es)?\b/i, /\bstands?\b/i, /\bsay\b/i,
+    /\barrives?\b/i, /\bfollows?\b/i, /\bagree\b/i, /\bpresses\b/i, /\bstages?\b/i, /\bcrosses\b/i, /\bjoins\b/i, /\bskips\b/i, /\bwaits?\b/i, /\breach(es)?\b/i, /\bstands?\b/i, /\bsay\b/i,
   ];
   for (const s of strings) {
     if (s.length < 12 || /^[\w-]+$/.test(s)) continue;
