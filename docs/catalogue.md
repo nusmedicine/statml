@@ -12,7 +12,7 @@ answer can be checked against what was assumed.
 
 | looking for | go to |
 |---|---|
-| what to build next | Kenneth’s call. The image arc under PHM5005 (slots 61–66) has 61 `cnn-architecture`, 64 `grad-cam`, 65 `unet` and 62 `augmentation` shipped, 63 `pretrained` measured and mocked and on KIV (his call 2026-09-15), 66 folded into 65; slot 52 `training-loop` (05-4) is still owed under § *The deep learning arc*; the GWAS and PRS arc (56, 57, 59, 60) and the high-throughput arc are complete |
+| what to build next | Kenneth’s call. The image arc under PHM5005 (slots 61–66) has 61 `cnn-architecture`, 64 `grad-cam`, 65 `unet` and 62 `augmentation` shipped, 63 `pretrained` measured and mocked and on KIV (his call 2026-09-15), 66 folded into 65; slot 52 `training-loop` (05-4) was discarded 2026-09-13, his call when the image arc was planned; the GWAS and PRS arc (56, 57, 59, 60) and the high-throughput arc are complete |
 | how a widget got its shape | § *Widget N*, in order |
 | the four-method reconnaissance | § *Widget 19*, under the PCA sections |
 | the arcs, and what is deliberately not a widget | the arc sections below |

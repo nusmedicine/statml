@@ -7,6 +7,7 @@ trimming HANDOVER never loses anything.
 |---|---|---|
 | `HANDOVER-2026-08-26.md` | commit `235ffca`, 2026-08-26 | HANDOVER had reached 152 KB and 2,874 lines, most of it per-widget histories for widgets 14–20 that [the catalogue](../catalogue.md) already holds. The live file was cut to the things a new session must act on; this is what it looked like before. |
 | `catalogue-2026-08-26.md` | commit `235ffca`, 2026-08-26 | Taken at the same moment so the two can be read against each other. The live catalogue was **not** cut — see below. |
+| `HANDOVER-2026-09-16.md` | commit `72b6f83`, 2026-09-16 (byte-identical to HANDOVER.md there) | HANDOVER had grown back to 238 KB and 3,528 lines, most of it per-widget session records for widgets 22–65 that the catalogue already holds. The live file was cut to 1,627 lines: current state, the order of work, the machine, the lessons not yet in the principles, the open items, and the reference sections that CLAUDE.md, README, `scripts/` and the `_lab/` comments point at. The catalogue was not cut and not copied. |
 
 ## Why the catalogue was not compacted
 
