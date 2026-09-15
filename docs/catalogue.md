@@ -15490,7 +15490,53 @@ scale 1.1):
   or the second band here. The recommendation stands — 62 is the cut
   candidate, and if kept its argument is `paired` and nothing else.
 
-### Slot 63 · `pretrained` — Using Pretrained Models — RESCOPED 2026-09-13
+### Slot 63 · `pretrained` — Using Pretrained Models — RESCOPED 2026-09-13, MEASURED AND MOCKED 2026-09-15, KIV
+
+**KIV on Kenneth's call, 2026-09-15** ("keep this as KIV for now, and we
+work on u-net; if there is time to revisit this — the class starts in a few
+days — we'll see if it's worthwhile"). His question before that: whether
+the trained stage is necessary at all. The answer given: the figure alone
+is his PNG with parameter counts and has no stage that can lose; the
+forgetting stage is the one claim in the section that measured; so build
+as mocked or cut, and a figure-only widget is not worth a slot. **What is
+kept:** `_lab/pretrained-measure.mjs` (findings in its header) and
+`_lab/pretrained-mock.html` (trains live in the tab, about 2 s on load).
+The four picks were put and dismissed unanswered; the recommendations
+stand on the mock page.
+
+**MEASURED 2026-09-15, on 64's engine unchanged.** The source had to
+change: nucleus · granules · plain · ghost reached 59% in budget, and a
+large nucleus · granules · a ghost · a thick-membraned ghost reach 92–95%
+in 0.8 s on the 8/12/16 net. The target is **round against elongated**,
+the one of three that fine-tuning learns in 64 steps (small against large
+nucleus 75%; one against two nuclei not learned). At a fixed **64 steps**
+of batch 16, three-seed means, 1e-3 is higher on the target AND lower on
+the source than 1e-4 in every cell — near 86/49 · 80/52 · 75/41 · 86/50
+against 51/72 · 50/67 · 62/52 · 61/63 (target/source at n = 16 · 32 · 64 ·
+128); far 56/54 · 76/42 · 78/25 · 70/44 against 49/53 · 50/78 · 50/66 ·
+50/67. Per seed, 1e-3 retains less in 22 of 24 seed-cells and scores
+higher on the target in 20 of 24; the failures are ties where 1e-4 also
+learned. At 128 steps 1e-4's retention has fallen to where 1e-3's has
+been since step 16, so 64 is the budget. Browser cost: pretraining 0.87 s,
+a fine-tuning run 0.30 s. From scratch matches fine-tuning on this target
+and the frozen backbone trails, so the figure claims nothing about which
+strategy scores higher.
+
+**MOCKED 2026-09-15** (`_lab/pretrained-mock.html`), the recommendations:
+the figure as B — the three columns only, the model as the rail's
+`preview` of the four source classes — because a figure that changes
+shape when the gate opens moves under the reader (A, as drawn, is 160px
+taller); the trained stage as A — two strips, accuracy on the new task
+and on the source task through its original classifier, BOTH learning
+rates always drawn in `--c-group-a` / `--c-group-b` with no Learning rate
+control, chance and the pretrained accuracy as `--c-reference` rules (B
+was one plane, target across and source up, which loses WHEN the source
+is lost; C the strips with a control and the other rate ghosted); Domain
+kept; the rail Seed + preview, a `gate` "Fine-tune on a new task" / "Hide
+the fine-tuning" (display, `?tune=1`), then The new task: preview · Domain
+· Training images; the drive "Train 8 steps" · Play · Reset with eight
+presses to the budget. No Strategy control: it would only move a
+highlight (3.5).
 
 **Rescoped on Kenneth's pick, 2026-09-13**, to what measured: his figure
 (`dl-imaging-training.png`) drawn as it is — backbone and classifier, the two

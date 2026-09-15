@@ -1,5 +1,21 @@
 # Handover
 
+**SLOT 63 `pretrained` MEASURED, MOCKED AND PUT ON KIV 2026-09-15** — his
+call, with the class starting in a few days: "keep this as KIV for now, and
+we work on u-net". The measurement (`_lab/pretrained-measure.mjs`, findings
+in its header) and the mock (`_lab/pretrained-mock.html`, trains live in the
+tab) are committed; the catalogue's slot 63 entry has the MEASURED and
+MOCKED sections and the recommendations. His question before the call was
+whether the trained stage is necessary at all; the answer was build as
+mocked or cut, since a figure-only widget has no stage that can lose.
+**NEXT: slot 65 `unet`**, two pages U-Net · Dice, which trains nothing (the
+catalogue's slot 65 and 66 entries carry the measurements from 2026-09-13);
+mock first, kept lean. Two lessons from 63's day worth keeping: a mock that
+trains in the browser is a choice, not a necessity — it showed one seed's
+tie that the means hid, but a static mock from the node script's curves
+costs less and he asked whether it was worth it; and the `--seeds` per-seed
+pass/fail print is the check a one-seed widget needs.
+
 **SLOT 64 `grad-cam` SHIPPED AND PUSHED 2026-09-15** on "push to gallery":
 five states recorded from one fronted suite run (the 772 existing states
 MATCH with the core `preview` block in place, so the core change is proven),

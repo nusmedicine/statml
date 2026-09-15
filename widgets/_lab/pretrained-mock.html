@@ -1,0 +1,720 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · pretrained — mock</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  /* The mock shell, verbatim from `_lab/gradcam-mock.html`. */
+  .lab { max-width: 1240px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 96ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; width: 550px; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); max-width: 550px; min-height: 26px; white-space: pre-line; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 96ch; }
+  .measure { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--ink-3); margin: 4px 0 0; max-width: 900px; white-space: pre-line; }
+  table.facts { border-collapse: collapse; font-size: var(--fs-sm); color: var(--ink-2); margin: var(--sp-2) 0 var(--sp-3); max-width: 120ch; }
+  table.facts th, table.facts td { border: 1px solid var(--grid); padding: 3px 8px; text-align: left; vertical-align: top; }
+  table.facts th { color: var(--ink-1); font-weight: 600; background: var(--surface-2); }
+  table.facts td b { color: var(--ink-1); }
+  table.facts td.num { font-family: var(--font-mono); font-size: var(--fs-xs); text-align: right; }
+  table.facts tr.pass td b { color: var(--c-highlight); }
+  .legend { display: flex; flex-wrap: wrap; gap: var(--sp-2) var(--sp-4); margin: 0 0 var(--sp-4);
+            font-size: var(--fs-xs); color: var(--ink-2); }
+  .legend span { display: flex; align-items: center; gap: 6px; }
+  .sw { width: 13px; height: 13px; border-radius: 50%; flex: 0 0 auto; }
+  .sw-prior { background: var(--c-prior); }
+  .sw-unknown { background: var(--c-unknown); }
+  .sw-emp { background: var(--c-empirical); }
+  .sw-high { background: var(--c-highlight); }
+  .sw-ga { background: var(--c-group-a); }
+  .sw-gb { background: var(--c-group-b); }
+  .sw-ref { width: 22px; height: 0; border-top: 1px dashed var(--c-reference); border-radius: 0; }
+  .rail-host { width: 300px; }
+  .rail-host .w-readout { margin-top: var(--sp-3); }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>pretrained &middot; mock</h1>
+
+  <p class="note">
+    <b>What this page answers.</b> Slot 63, the third widget of the image arc, rescoped on 2026-09-13 to your
+    figure and ONE trained stage: fine-tuning's learning rate against forgetting, the number of optimizer steps
+    fixed. <b>&sect;1</b> &mdash; what the pretraining task and the new task are, measured today on the engine
+    widget 64 shipped. <b>&sect;2</b> &mdash; the figure, your diagram drawn as it is, with this engine's parameter
+    counts. <b>&sect;3</b> &mdash; the trained stage, three ways to draw two learning rates. <b>&sect;4</b> &mdash;
+    the whole open stage, to judge the height. <b>&sect;5</b> &mdash; the rail, the drive and the readout.
+  </p>
+  <p class="note">
+    <b>Every curve on this page is trained here, in this tab, on load</b> &mdash; <code>grad-cam/engine.js</code>
+    unchanged, plus three things the widget's own <code>model.js</code> will add over it: a set of more than two
+    classes, a fresh head on a copied backbone, and training for a fixed number of steps with a reading every
+    eight. One seed; the measured tables below are three.
+  </p>
+  <p class="note" id="engineLine">training &hellip;</p>
+
+  <div class="legend">
+    <span><i class="sw sw-prior"></i>pretrained weights, kept from the source task</span>
+    <span><i class="sw sw-unknown"></i>weights drawn at random, not trained yet</span>
+    <span><i class="sw sw-emp"></i>trainable on the new task: the bracket</span>
+    <span><i class="sw sw-ga"></i>learning rate 1e-4</span>
+    <span><i class="sw sw-gb"></i>learning rate 1e-3</span>
+    <span><i class="sw sw-ref"></i>a fixed benchmark: chance, and the pretrained accuracy</span>
+    <span><i class="sw sw-high"></i>the strategy the trained stage is about</span>
+  </div>
+
+  <h2>&sect;1 &middot; The tasks, measured (<code>_lab/pretrained-measure.mjs</code>)</h2>
+  <p class="note">
+    <b>The source.</b> Four kinds of widget 61's cell, each with a feature of its own &mdash; <b>Nucleus &middot;
+    Granules &middot; Ghost &middot; Thick membrane</b> &mdash; 200 images at 16 &times; 16, 20 epochs, the net
+    64 shipped (conv 8/12/16, 2,768 parameters): <b>0.8 s, 92&ndash;95 % on held-out images</b> over three seeds. The
+    first draft (nucleus &middot; granules &middot; plain &middot; ghost) reached 59 % in the same budget and 84 % only
+    at 800 images and 4.7 s; a source that is barely learned has no retention to lose gradually, so the classes
+    were changed before the target was measured.
+  </p>
+  <p class="note">
+    <b>The target.</b> A two-class distinction the source never labelled, fine-tuned from the source backbone
+    with a fresh two-class head for a fixed <b>64 steps</b> of batch 16 (an epoch budget makes the learning rate
+    partly a &ldquo;how much training&rdquo; dial, the planning script's finding). Three candidates; <b>round
+    against elongated</b> is the one that is learned. The far domain is the same cells with contrast inverted.
+    Read: target accuracy / source retention at 64 steps, mean of three seeds, the pretrained source at 93.7 %.
+  </p>
+  <table class="facts">
+    <tr><th>target</th><th>domain</th><th>lr</th><th>n = 16</th><th>32</th><th>64</th><th>128</th><th>reads</th></tr>
+    <tr class="pass"><td rowspan="4"><b>round against elongated</b></td><td rowspan="2">near</td><td>1e-4</td><td class="num">51 / 72</td><td class="num">50 / 67</td><td class="num">62 / 52</td><td class="num">61 / 63</td><td rowspan="2"><b>1e-3 higher on the target and lower on the source at every n</b></td></tr>
+    <tr class="pass"><td>1e-3</td><td class="num"><b>86</b> / 49</td><td class="num"><b>80</b> / 52</td><td class="num"><b>75</b> / 41</td><td class="num"><b>86</b> / 50</td></tr>
+    <tr class="pass"><td rowspan="2">far</td><td>1e-4</td><td class="num">49 / 53</td><td class="num">50 / 78</td><td class="num">50 / 66</td><td class="num">50 / 67</td><td rowspan="2">the same, and 1e-3 forgets more in the far domain (25 % at n = 64: chance for four classes)</td></tr>
+    <tr class="pass"><td>1e-3</td><td class="num"><b>56</b> / 54</td><td class="num"><b>76</b> / 42</td><td class="num"><b>78</b> / 25</td><td class="num"><b>70</b> / 44</td></tr>
+    <tr><td>small against large nucleus</td><td>near</td><td>1e-3</td><td class="num">72 / 45</td><td class="num">78 / 45</td><td class="num">73 / 36</td><td class="num">74 / 44</td><td>learned to 75 %; the trade-off holds but the target strip stays low</td></tr>
+    <tr><td>one against two nuclei</td><td>near</td><td>1e-3</td><td class="num">49 / 45</td><td class="num">59 / 53</td><td class="num">57 / 41</td><td class="num">61 / 46</td><td>not learned in 64 steps</td></tr>
+    <tr><td colspan="8"><b>For the record, not the stage</b> (round against elongated, near, 64 steps): from scratch at 1e-3 scores 85 / 81 / 84 / 82 and the frozen backbone 51 / 65 / 70 / 62. Pretraining on four synthetic cell classes is worth nothing against scratch on this target, the planning script's finding again, so the figure claims nothing about which strategy scores higher and the trained stage lives under Fine-tuning alone.</td></tr>
+  </table>
+  <p class="note">
+    <b>What fixed steps cost.</b> At 128 steps the source retention of 1e-4 has fallen to where 1e-3's has been
+    since step 16 (near, n = 32: 67 / 48 against 86 / 56), and the ordering is a matter of when you read. At 64
+    steps it is clean in every cell, and the reader sees the reason on the strips: 1e-3 loses the source in the
+    first sixteen steps, 1e-4 loses it a little every step.
+  </p>
+  <p class="note">
+    <b>One seed at a time.</b> The widget shows one seed, so the per-seed check matters more than the means: at 64
+    steps, 1e-3 retains LESS of the source than 1e-4 in <b>22 of 24</b> seed-cells (near and far, four n, three
+    seeds) and scores higher on the target in 20 of 24; the four target failures are cells where 1e-4 also learned
+    the target (88 against 87), a tie rather than a reversal. The seed trained on this page is one of those: near,
+    n = 32, both rates reach about 90 % on the new task and 1e-3 keeps 68 % of the source against 1e-4's 87 %.
+    The Seed control is where the reader finds the seed that fails (2.6).
+  </p>
+  <p class="rec" id="recTask"></p>
+
+  <h2>&sect;2 &middot; The figure, before the gate</h2>
+  <p class="note">
+    Your diagram, drawn at 550 with the parameter counts of THIS engine: the backbone 2,700, the classifier 68
+    for four classes and 34 once replaced for two. Fill says where the weights come from (pretrained, or drawn at
+    random) and the bracket says what the new task trains. <b>A</b> is the figure as drawn: the model at the top,
+    the three columns under it. <b>B</b> keeps the three columns only, since the rail's preview already shows the
+    model's four classes, and is 160px shorter.
+  </p>
+  <div class="row" id="figRow"></div>
+  <p class="rec" id="recFig"></p>
+
+  <h2>&sect;3 &middot; The trained stage: two learning rates</h2>
+  <p class="note">
+    The stage behind the gate, drawn here at 32 of 64 steps so the mid-state shows. <b>A</b>: two strips, accuracy
+    on the new task and accuracy on the source task through its original head, against steps, BOTH learning rates
+    always drawn (the two arms of a comparison you decided, 2.7: the comparison is the argument and it should
+    not go through the reader's memory). <b>B</b>: the same two numbers as one plane, target across and source
+    up, a path per learning rate, the pretrained model at the top-left and the ideal at the top-right.
+    <b>C</b>: A with a Learning rate control, the chosen rate solid and the other ghosted once run.
+  </p>
+  <div class="row" id="stripRow"></div>
+  <p class="rec" id="recStrip"></p>
+
+  <h2>&sect;4 &middot; The whole open stage</h2>
+  <p class="note">
+    B's figure with A's strips under it, the Fine-tuning column marked, at the end of the 64 steps. The same in
+    the far domain beside it, to see what Domain changes.
+  </p>
+  <div class="row" id="stageRow"></div>
+  <p class="measure" id="stageMeasure"></p>
+  <p class="rec" id="recStage"></p>
+
+  <h2>&sect;5 &middot; The rail, the drive, the readout</h2>
+  <p class="note">
+    Rendered by core's <code>buildControls</code> at 300px, shut and open. <b>The pretrained model</b>: Seed
+    (DATA, retrains the source in 0.8 s) and a preview of the four source classes. Then the gate, a real
+    parameter (<code>?tune=1</code>), display, so closing and reopening it keeps the steps. <b>The new task</b>,
+    behind it: a preview of the two target classes in the chosen domain, Domain (DATA), Training images (DATA).
+    No Strategy control: the figure draws all three columns and the trained stage is fine-tuning's, so a control
+    would only move a highlight (3.5). No Learning rate control in A; C adds one. The drive: <b>Train 8 steps</b>
+    (one reading; eight presses to the budget), Play, Reset. The readout, under the drive: three lines.
+  </p>
+  <div class="row" id="railRow"></div>
+  <p class="measure" id="railMeasure"></p>
+  <p class="rec" id="recRail"></p>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+import { makeRng } from "../core/rng.js";
+import * as E from "../grad-cam/engine.js";
+import { buildControls, buildActions } from "../core/controls.js";
+import { resolveParams } from "../core/params.js";
+
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+const PAD = 14;
+const W = 550;
+
+/* ==========================================================================
+   THE ENGINE, the measurement's configuration.
+   ====================================================================== */
+const S = 16;
+const CHANS = [8, 12, 16];
+const N_SRC = 200;
+const SRC_EPOCHS = 20;
+const N_VAL = 60;
+const STEPS = 64;
+const MARK = 8;
+const N_TARGET = 32;
+const LRS = [1e-4, 1e-3];
+const SOURCE = {
+  names: ["Nucleus", "Granules", "Ghost", "Thick membrane"],
+  specs: [
+    { nuclei: 1, nR: [4.2, 5.4] },
+    { nuclei: 0, granules: true },
+    { nuclei: 0, ghost: true, inside: 0.08 },
+    { nuclei: 0, ghost: true, inside: 0.08, ringScale: 1.8 },
+  ],
+};
+const TARGET = { names: ["Round", "Elongated"], specs: E.CELL_TASKS.elong };
+
+function makeMulti(specs, n, rng, { invert = false } = {}) {
+  const K = specs.length;
+  const area = S * S;
+  const x = new Float64Array(n * area);
+  const y = new Int32Array(n);
+  for (let i = 0; i < n; i += 1) {
+    const k = i % K;
+    const one = E.makeSet([specs[k], specs[k]], 1, S, rng, { marker: true });
+    for (let j = 0; j < area; j += 1) x[i * area + j] = invert ? 1 - one.x[j] : one.x[j];
+    y[i] = k;
+  }
+  return { x, y, n, S };
+}
+const copyBlocks = (net) => ({ ...net, blocks: net.blocks.map((b) => ({ ...b, W: b.W.slice(), b: b.b.slice() })) });
+function withHead(net, K, rng) {
+  const k = 1 / Math.sqrt(net.Cl);
+  const Wh = new Float64Array(K * net.Cl);
+  const bh = new Float64Array(K);
+  for (let i = 0; i < Wh.length; i += 1) Wh[i] = rng.uniform(-k, k);
+  for (let i = 0; i < K; i += 1) bh[i] = rng.uniform(-k, k);
+  return { ...net, K, Wh, bh };
+}
+const backboneCount = (net) => net.blocks.reduce((s, b) => s + b.W.length + b.b.length, 0);
+const headCount = (net) => net.Wh.length + net.bh.length;
+
+function trainSteps(net, set, { steps, lr, rng, valSet, srcHead, srcVal }) {
+  const w = E.makeWork(net);
+  const opt = E.makeOpt(net);
+  const area = S * S;
+  const order = Array.from({ length: set.n }, (_, i) => i);
+  let pos = set.n;
+  const marks = [];
+  const read = (step) => {
+    const back = { ...net, K: srcHead.K, Wh: srcHead.Wh, bh: srcHead.bh };
+    marks.push({ step, target: E.evaluate(net, w, valSet), source: E.evaluate(back, E.makeWork(back), srcVal) });
+  };
+  read(0);
+  for (let step = 1; step <= steps; step += 1) {
+    const idx = [];
+    for (let j = 0; j < 16; j += 1) {
+      if (pos >= set.n) { rng.shuffle(order); pos = 0; }
+      idx.push(order[pos]);
+      pos += 1;
+    }
+    for (const i of idx) {
+      E.forward(net, w, set.x, i * area);
+      E.backwardCE(net, w, set.x, i * area, set.y[i], opt.grads, 1 / idx.length);
+    }
+    E.adamStep(opt, lr);
+    if (step % MARK === 0) read(step);
+  }
+  return marks;
+}
+
+const sleep = () => new Promise((r) => setTimeout(r, 0));
+const t0 = performance.now();
+const rng = makeRng(1);
+const srcTrain = makeMulti(SOURCE.specs, N_SRC, rng);
+const srcVal = makeMulti(SOURCE.specs, N_VAL, makeRng(999));
+const pre = E.makeNet(S, CHANS, 4, rng);
+const { w: preW } = E.train(pre, srcTrain, { epochs: SRC_EPOCHS, rng });
+const preMs = performance.now() - t0;
+const srcAcc = E.evaluate(pre, preW, srcVal);
+const srcHead = { K: 4, Wh: pre.Wh.slice(), bh: pre.bh.slice() };
+await sleep();
+/* the runs: domain × lr, n = 32 */
+const runs = {};
+let tuneMs = 0;
+for (const [dname, invert] of [["near", false], ["far", true]]) {
+  const full = makeMulti(TARGET.specs, 128, makeRng(2000), { invert });
+  const tr = { x: full.x.subarray(0, N_TARGET * S * S), y: full.y.subarray(0, N_TARGET), n: N_TARGET, S };
+  const va = makeMulti(TARGET.specs, N_VAL, makeRng(3000), { invert });
+  runs[dname] = { va, tr, byLr: {} };
+  for (const lr of LRS) {
+    const r = makeRng(4000 + N_TARGET);
+    const net = withHead(copyBlocks(pre), 2, r);
+    const t1 = performance.now();
+    runs[dname].byLr[lr] = trainSteps(net, tr, { steps: STEPS, lr, rng: r, valSet: va, srcHead, srcVal });
+    tuneMs += performance.now() - t1;
+    await sleep();
+  }
+}
+document.getElementById("recTask").innerHTML =
+  `<b>The source is the four cells above, the target is round against elongated, and the budget is 64 steps.</b> `
+  + `Each was the one candidate that measured: the first source was barely learned, two of three targets are not `
+  + `learned in the budget, and at 128 steps the ordering on the source depends on when it is read. What the stage `
+  + `then shows is the notebook's own sentence — <i>reduced the rate 10× to minimize forgetting</i> — as two `
+  + `curves: 1e-3 learns the new task and loses the source in the first sixteen steps; 1e-4 keeps the source and, `
+  + `at most n, has not learned the new task when the budget ends.`;
+document.getElementById("engineLine").innerHTML =
+  `<b>Trained here:</b> the source in ${preMs.toFixed(0)} ms, ${(100 * srcAcc).toFixed(0)} % on ${N_VAL} held-out images; `
+  + `four fine-tuning runs (near · far × 1e-4 · 1e-3, n = ${N_TARGET}, ${STEPS} steps read every ${MARK}) in ${tuneMs.toFixed(0)} ms together, `
+  + `${(tuneMs / 4).toFixed(0)} ms each. A compute() on a Domain or n change is two runs, ${(tuneMs / 2).toFixed(0)} ms; on a Seed change add the ${preMs.toFixed(0)} ms of pretraining.`;
+
+/* ==========================================================================
+   PRIMITIVES
+   ====================================================================== */
+const mix = (a, b, t) => {
+  const pa = [1, 3, 5].map((i) => parseInt(a.slice(i, i + 2), 16));
+  const pb = [1, 3, 5].map((i) => parseInt(b.slice(i, i + 2), 16));
+  const c = pa.map((v, i) => Math.round(v + (pb[i] - v) * Math.max(0, Math.min(1, t))));
+  return `rgb(${c[0]}, ${c[1]}, ${c[2]})`;
+};
+const wash = (hex, a) => {
+  const p = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+  return `rgba(${p[0]},${p[1]},${p[2]},${a})`;
+};
+const pct = (v) => `${Math.round(100 * v)}%`;
+const fmt = (n) => n.toLocaleString("en-US");
+function txt(ctx, s, x, y, o = {}) {
+  const { color = T.ink2, align = "left", size = T.fsSm, baseline = "alphabetic", mono = false, weight = "" } = o;
+  ctx.save();
+  ctx.fillStyle = color;
+  ctx.textAlign = align;
+  ctx.textBaseline = baseline;
+  ctx.font = `${weight} ${size} ${mono ? T.mono : T.font}`.trim();
+  ctx.fillText(s, x, y);
+  ctx.restore();
+}
+const caption = (ctx, s, x, y) => txt(ctx, s, x, y, { color: T.ink2, weight: "600" });
+const note = (ctx, s, x, y, tone, o = {}) => txt(ctx, s, x, y, { color: tone ?? T.ink3, size: T.fsXs, ...o });
+function frame(ctx, x, y, w, h, stroke, width = 1, dash = null) {
+  ctx.save();
+  ctx.strokeStyle = stroke;
+  ctx.lineWidth = width;
+  if (dash) ctx.setLineDash(dash);
+  ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+  ctx.restore();
+}
+function arrow(ctx, x0, y0, x1, y1, color = T.ink3) {
+  ctx.save();
+  ctx.strokeStyle = ctx.fillStyle = color;
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+  const a = Math.atan2(y1 - y0, x1 - x0);
+  ctx.beginPath();
+  ctx.moveTo(x1, y1);
+  ctx.lineTo(x1 - 6 * Math.cos(a - 0.4), y1 - 6 * Math.sin(a - 0.4));
+  ctx.lineTo(x1 - 6 * Math.cos(a + 0.4), y1 - 6 * Math.sin(a + 0.4));
+  ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+function paintImage(ctx, x, y, size, img, fr = T.groupA) {
+  const c = size / S;
+  for (let j = 0; j < S; j += 1) for (let i = 0; i < S; i += 1) {
+    ctx.fillStyle = mix(T.surface2, T.ink1, img[j * S + i]);
+    ctx.fillRect(x + i * c, y + j * c, Math.ceil(c), Math.ceil(c));
+  }
+  frame(ctx, x, y, size, size, fr);
+}
+const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+function cand(rowId, title, sub, w = W) { const box = el("div", "cand"); box.style.width = `${w}px`; box.appendChild(el("h3", null, title)); box.appendChild(el("p", "sub", sub)); document.getElementById(rowId).appendChild(box); return box; }
+function canvasIn(box, w, h) { const c = document.createElement("canvas"); c.width = Math.round(w * DPR); c.height = Math.round(h * DPR); c.style.width = `${w}px`; c.style.height = `${h}px`; box.appendChild(c); const ctx = c.getContext("2d"); ctx.scale(DPR, DPR); return ctx; }
+
+/* ==========================================================================
+   §2 · THE FIGURE. One box-drawing function; `full` adds the model at the top.
+   ====================================================================== */
+const BB = backboneCount(pre);          // 2700
+const HEAD4 = headCount(pre);           // 68
+const HEAD2 = 2 * pre.Cl + 2;           // 34
+const COLS = [
+  { title: "From scratch", pre: false, replace: false, trainBackbone: true, trains: BB + HEAD2 },
+  { title: "Fine-tuning", pre: true, replace: true, trainBackbone: true, trains: BB + HEAD2 },
+  { title: "Transfer learning", pre: true, replace: true, trainBackbone: false, trains: HEAD2 },
+];
+const COL_X = [120, 290, 460];
+const BOX_W = 100;
+const BACK_H = 50;
+const HEAD_H = 20;
+
+function box(ctx, x, y, w, h, fill, label, o = {}) {
+  ctx.save();
+  ctx.fillStyle = wash(fill, o.alpha ?? 0.35);
+  ctx.fillRect(x, y, w, h);
+  ctx.restore();
+  frame(ctx, x, y, w, h, o.frame ?? fill, o.width ?? 1);
+  txt(ctx, label, x + w / 2, y + h / 2 + 1, { align: "center", baseline: "middle", size: T.fsXs, weight: "600", color: T.ink1 });
+}
+function bracket(ctx, x, y0, y1, color) {
+  ctx.save();
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(x + 6, y0 + 0.5); ctx.lineTo(x, y0 + 0.5); ctx.lineTo(x, y1 - 0.5); ctx.lineTo(x + 6, y1 - 0.5);
+  ctx.stroke();
+  ctx.translate(x - 6, (y0 + y1) / 2);
+  ctx.rotate(-Math.PI / 2);
+  txt(ctx, "Trainable", 0, 0, { align: "center", baseline: "middle", size: T.fsXs, weight: "600", color });
+  ctx.restore();
+}
+/** draws the figure from `top`; returns the height used. `mark` names a column to frame in highlight. */
+function drawFigure(ctx, top, { full = true, mark = -1, counts = true } = {}) {
+  let y = top;
+  if (full) {
+    const cx = W / 2;
+    txt(ctx, "Model", cx, y + 10, { align: "center", weight: "600", color: T.ink1 });
+    box(ctx, cx - BOX_W / 2, y + 18, BOX_W, BACK_H, T.prior, "Backbone");
+    box(ctx, cx - BOX_W / 2, y + 18 + BACK_H + 4, BOX_W, HEAD_H, T.prior, "Classifier");
+    note(ctx, `${fmt(BB)} parameters`, cx + BOX_W / 2 + 10, y + 18 + BACK_H / 2 + 4, T.ink3);
+    note(ctx, `${fmt(HEAD4)}, four classes`, cx + BOX_W / 2 + 10, y + 18 + BACK_H + 4 + HEAD_H / 2 + 4, T.ink3);
+    note(ctx, "pretrained on", cx - BOX_W / 2 - 10, y + 18 + BACK_H / 2 - 2, T.ink3, { align: "right" });
+    note(ctx, "the source task", cx - BOX_W / 2 - 10, y + 18 + BACK_H / 2 + 10, T.ink3, { align: "right" });
+    const ay = y + 18 + BACK_H + 4 + HEAD_H + 4;
+    for (let k = 0; k < 4; k += 1) arrow(ctx, cx - 24 + 16 * k, ay, cx - 24 + 16 * k, ay + 12);
+    const ty = ay + 20;
+    ctx.save();
+    ctx.strokeStyle = T.empirical;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(cx, ty); ctx.lineTo(cx, ty + 14);
+    ctx.moveTo(COL_X[0], ty + 14); ctx.lineTo(COL_X[2], ty + 14);
+    ctx.stroke();
+    ctx.restore();
+    for (const x of COL_X) arrow(ctx, x, ty + 14, x, ty + 30, T.empirical);
+    y = ty + 44;
+  }
+  /* the columns */
+  const titleY = y + 10;
+  const row1 = titleY + 24;
+  const row2 = row1 + 22;
+  const backY = row2 + 16;
+  const headY = backY + BACK_H + 4;
+  const countY = headY + HEAD_H + 16;
+  note(ctx, "Pretrained", PAD, row1 - 6, T.ink2);
+  note(ctx, "weights", PAD, row1 + 6, T.ink2);
+  note(ctx, "Replace", PAD, row2 - 6, T.ink2);
+  note(ctx, "classifier", PAD, row2 + 6, T.ink2);
+  COLS.forEach((c, i) => {
+    const x = COL_X[i];
+    const on = mark === i;
+    if (on) {
+      ctx.save();
+      ctx.fillStyle = wash(T.highlight, 0.06);
+      ctx.fillRect(x - BOX_W / 2 - 18, titleY - 14, BOX_W + 26, countY - titleY + 24);
+      ctx.restore();
+      frame(ctx, x - BOX_W / 2 - 18, titleY - 14, BOX_W + 26, countY - titleY + 24, T.highlight);
+    }
+    txt(ctx, c.title, x, titleY, { align: "center", weight: "600", color: on ? T.highlight : T.ink1 });
+    txt(ctx, c.pre ? "+" : "−", x, row1 + 1, { align: "center", baseline: "middle", weight: "700", color: T.ink1, size: T.fsMd });
+    txt(ctx, c.replace ? "+" : "−", x, row2 + 1, { align: "center", baseline: "middle", weight: "700", color: T.ink1, size: T.fsMd });
+    box(ctx, x - BOX_W / 2, backY, BOX_W, BACK_H, c.pre ? T.prior : T.unknown, "Backbone");
+    box(ctx, x - BOX_W / 2, headY, BOX_W, HEAD_H, c.replace || !c.pre ? T.unknown : T.prior, "Classifier");
+    bracket(ctx, x - BOX_W / 2 - 10, c.trainBackbone ? backY : headY, headY + HEAD_H, T.empirical);
+    arrow(ctx, x, headY + HEAD_H + 3, x, headY + HEAD_H + 13);
+    if (counts) note(ctx, `trains ${fmt(c.trains)} of ${fmt(BB + HEAD2)}`, x, countY + 6, T.ink2, { align: "center", mono: true });
+  });
+  return countY + 16 - top;
+}
+
+{
+  const box1 = cand("figRow", "A · the figure as drawn", `the model at the top, the three columns under it; ${fmt(BB)} + ${fmt(HEAD4)} pretrained, the replaced classifier ${fmt(HEAD2)}`);
+  const ctx = canvasIn(box1, W, 430);
+  caption(ctx, "Three ways to train a pretrained model on a new task", PAD, 24);
+  note(ctx, "Where the weights come from, which classifier is on, and what the new task trains.", PAD, 40);
+  const h = drawFigure(ctx, 50, { full: true });
+  box1.querySelector(".sub").textContent += `\nstage ${50 + h}px`;
+}
+{
+  const box1 = cand("figRow", "B · the three columns only", "the model is the rail's preview (four classes) and the readout's source accuracy");
+  const ctx = canvasIn(box1, W, 270);
+  caption(ctx, "Three ways to train a pretrained model on a new task", PAD, 24);
+  note(ctx, "Where the weights come from, which classifier is on, and what the new task trains.", PAD, 40);
+  const h = drawFigure(ctx, 50, { full: false });
+  box1.querySelector(".sub").textContent += `\nstage ${50 + h}px`;
+}
+document.getElementById("recFig").innerHTML =
+  `<b>A.</b> The notebook's figure is the whole thing: the model at the top is what the three columns are copies `
+  + `of, and a reader with the notebook open recognises it at once. It costs 160px, and the trained stage goes under `
+  + `it, so the open stage is about 640px. <b>B</b> is the same information once the rail's preview shows the model, `
+  + `and keeps the open stage under 480px. The figure has to be one or the other in both states, since a figure that `
+  + `changes shape when the gate opens moves under the reader. <b>B</b> is the recommendation; A if the figure `
+  + `should be on the stage exactly as the notebook has it.`;
+
+/* ==========================================================================
+   §3 · THE STRIPS.
+   ====================================================================== */
+const LR_TONE = { [1e-4]: T.groupA, [1e-3]: T.groupB };
+const LR_LABEL = { [1e-4]: "1e-4", [1e-3]: "1e-3" };
+
+function strip(ctx, x, y, w, h, title, series, { shown = STEPS, refs = [], ghost = null } = {}) {
+  /* axes: steps 0..STEPS across, accuracy 0..1 up */
+  const x0 = x + 30;
+  const x1 = x + w - 54;          // room for an end label, "1e-4 88%"
+  const y0 = y + 16;
+  const y1 = y + h - 18;
+  const sx = (s) => x0 + (x1 - x0) * s / STEPS;
+  const sy = (v) => y1 - (y1 - y0) * v;
+  caption(ctx, title, x, y + 6);
+  ctx.save();
+  ctx.strokeStyle = T.axis;
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(x0 + 0.5, y0); ctx.lineTo(x0 + 0.5, y1 + 0.5); ctx.lineTo(x1, y1 + 0.5); ctx.stroke();
+  ctx.restore();
+  for (const v of [0, 0.5, 1]) note(ctx, `${Math.round(100 * v)}`, x0 - 4, sy(v) + 4, T.ink3, { align: "right", mono: true });
+  for (const s of [0, 32]) note(ctx, `${s}`, sx(s), y1 + 12, T.ink3, { align: "center", mono: true });
+  note(ctx, "64 steps", sx(64), y1 + 12, T.ink3, { align: "center", mono: true });
+  for (const r of refs) {
+    ctx.save();
+    ctx.strokeStyle = T.reference;
+    ctx.setLineDash([3, 3]);
+    ctx.beginPath(); ctx.moveTo(x0, sy(r.v) + 0.5); ctx.lineTo(x1, sy(r.v) + 0.5); ctx.stroke();
+    ctx.restore();
+    note(ctx, r.label, x1, sy(r.v) - 4, T.reference, { align: "right" });
+  }
+  /* the end labels: the second is pushed clear of the first when the two
+     arms finish within a line of each other */
+  const labelYs = [];
+  for (const [lr, marks] of Object.entries(series)) {
+    const alpha = ghost && ghost !== Number(lr) ? 0.25 : 1;
+    const tone = LR_TONE[lr];
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.strokeStyle = tone;
+    ctx.fillStyle = tone;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    let last = null;
+    marks.forEach((m, i) => {
+      if (m.step > shown) return;
+      const px = sx(m.step);
+      const py = sy(m.v);
+      if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+      last = [px, py, m.v];
+    });
+    ctx.stroke();
+    marks.forEach((m) => { if (m.step <= shown) { ctx.beginPath(); ctx.arc(sx(m.step), sy(m.v), 2.2, 0, 2 * Math.PI); ctx.fill(); } });
+    if (last) {
+      let ly = last[1] + 4;
+      for (const other of labelYs) if (Math.abs(ly - other) < 12) ly = other + (ly >= other ? 12 : -12);
+      labelYs.push(ly);
+      note(ctx, `${LR_LABEL[lr]} ${pct(last[2])}`, last[0] + 5, ly, tone, { mono: true });
+    }
+    ctx.restore();
+  }
+}
+const seriesOf = (dname, key) => Object.fromEntries(LRS.map((lr) => [lr, runs[dname].byLr[lr].map((m) => ({ step: m.step, v: m[key] }))]));
+function drawStrips(ctx, top, dname, { shown = STEPS, ghost = null } = {}) {
+  const gap = 18;
+  const sw = (W - 2 * PAD - gap) / 2;
+  strip(ctx, PAD, top, sw, 150, "Accuracy on the new task", seriesOf(dname, "target"),
+    { shown, ghost, refs: [{ v: 0.5, label: "chance" }] });
+  strip(ctx, PAD + sw + gap, top, sw, 150, "Accuracy on the source task", seriesOf(dname, "source"),
+    { shown, ghost, refs: [{ v: srcAcc, label: "pretrained" }, { v: 0.25, label: "chance" }] });
+  return 150;
+}
+
+{
+  const box1 = cand("stripRow", "A · two strips, both learning rates", `near domain, n = ${N_TARGET}, drawn at 32 of ${STEPS} steps; a dot is a reading, every ${MARK} steps`);
+  const ctx = canvasIn(box1, W, 200);
+  caption(ctx, "Fine-tuning at two learning rates, read every 8 steps", PAD, 24);
+  note(ctx, "Left, held-out images of the new task; right, the source task through its original classifier.", PAD, 40);
+  drawStrips(ctx, 50, "near", { shown: 32 });
+}
+{
+  const box1 = cand("stripRow", "B · the trade-off as one plane", "target accuracy across, source accuracy up; a path per learning rate, a dot a reading");
+  const ctx = canvasIn(box1, W, 260);
+  caption(ctx, "Fine-tuning at two learning rates, read every 8 steps", PAD, 24);
+  note(ctx, "Across: accuracy on the new task. Up: accuracy on the source task. The pretrained model starts at the top-left.", PAD, 40);
+  const x0 = PAD + 30; const x1 = W - PAD - 60; const y0 = 56; const y1 = 236;
+  const sx = (v) => x0 + (x1 - x0) * v; const sy = (v) => y1 - (y1 - y0) * v;
+  ctx.save(); ctx.strokeStyle = T.axis; ctx.beginPath(); ctx.moveTo(x0 + 0.5, y0); ctx.lineTo(x0 + 0.5, y1 + 0.5); ctx.lineTo(x1, y1 + 0.5); ctx.stroke(); ctx.restore();
+  for (const v of [0, 0.5, 1]) { note(ctx, `${Math.round(100 * v)}`, x0 - 4, sy(v) + 4, T.ink3, { align: "right", mono: true }); note(ctx, `${Math.round(100 * v)}`, sx(v), y1 + 12, T.ink3, { align: "center", mono: true }); }
+  note(ctx, "new task", x1, y1 + 12, T.ink3, { align: "right" });
+  ctx.save(); ctx.strokeStyle = T.reference; ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.moveTo(sx(0.5) + 0.5, y0); ctx.lineTo(sx(0.5) + 0.5, y1); ctx.moveTo(x0, sy(srcAcc) + 0.5); ctx.lineTo(x1, sy(srcAcc) + 0.5); ctx.stroke(); ctx.restore();
+  note(ctx, "chance", sx(0.5) + 4, y1 - 6, T.reference);
+  note(ctx, "pretrained", x1 + 4, sy(srcAcc) + 4, T.reference);
+  const planeYs = [];
+  for (const lr of LRS) {
+    const marks = runs.near.byLr[lr].filter((m) => m.step <= 32);
+    ctx.save(); ctx.strokeStyle = ctx.fillStyle = LR_TONE[lr]; ctx.lineWidth = 1.5;
+    ctx.beginPath(); marks.forEach((m, i) => { if (i === 0) ctx.moveTo(sx(m.target), sy(m.source)); else ctx.lineTo(sx(m.target), sy(m.source)); }); ctx.stroke();
+    marks.forEach((m) => { ctx.beginPath(); ctx.arc(sx(m.target), sy(m.source), 2.4, 0, 2 * Math.PI); ctx.fill(); });
+    const l = marks[marks.length - 1];
+    let ly = sy(l.source) + 4;
+    for (const other of planeYs) if (Math.abs(ly - other) < 12) ly = other + 12;
+    planeYs.push(ly);
+    note(ctx, `${LR_LABEL[lr]} at 32 steps`, sx(l.target) + 6 > x1 - 70 ? sx(l.target) - 6 : sx(l.target) + 6, ly,
+      LR_TONE[lr], { mono: true, align: sx(l.target) + 6 > x1 - 70 ? "right" : "left" });
+    ctx.restore();
+  }
+}
+{
+  const box1 = cand("stripRow", "C · A with a Learning rate control", "1e-3 chosen: solid; 1e-4 ghosted once it has been run, as widget 55 ghosts the optimizers it has shown");
+  const ctx = canvasIn(box1, W, 200);
+  caption(ctx, "Fine-tuning at 1e-3, read every 8 steps", PAD, 24);
+  note(ctx, "Left, held-out images of the new task; right, the source task through its original classifier.", PAD, 40);
+  drawStrips(ctx, 50, "near", { shown: 32, ghost: 1e-3 });
+}
+document.getElementById("recStrip").innerHTML =
+  `<b>A.</b> The claim is a comparison and both arms are on the stage at once; the dots make each reading a `
+  + `countable thing (2.3) and the step count is the animation's own counter, so a press adds a dot to four `
+  + `curves. It needs no Learning rate control, because the control would only choose which arm to look at. `
+  + `<b>B</b> is the same two numbers and shows the trade-off as a direction — 1e-3 runs right and down, 1e-4 `
+  + `creeps down — but it loses the step axis, and a reader cannot see WHEN the source was lost, which is the `
+  + `thing the strips show (the first sixteen steps). <b>C</b> keeps a control the arc repeats (55's Learning rate) `
+  + `at the cost of the comparison going through the ghost. <b>A</b> is the recommendation; B could be the readout's `
+  + `sentence rather than a figure.`;
+
+/* ==========================================================================
+   §4 · THE WHOLE OPEN STAGE.
+   ====================================================================== */
+for (const [dname, title] of [["near", "near domain"], ["far", "far domain: contrast inverted"]]) {
+  const box1 = cand("stageRow", `B's figure + A's strips, ${title}`, `the Fine-tuning column marked; n = ${N_TARGET}, all ${STEPS} steps run`);
+  const ctx = canvasIn(box1, W, 470);
+  caption(ctx, "Three ways to train a pretrained model on a new task", PAD, 24);
+  note(ctx, "Where the weights come from, which classifier is on, and what the new task trains.", PAD, 40);
+  const h = drawFigure(ctx, 50, { full: false, mark: 1 });
+  const top = 50 + h + 14;
+  caption(ctx, "Fine-tuning at two learning rates, read every 8 steps", PAD, top - 2);
+  const hs = drawStrips(ctx, top + 8, dname, { shown: STEPS });
+  box1.querySelector(".sub").textContent += `\nstage ${top + 8 + hs + 8}px`;
+  /* the target's two classes are the rail's preview, not the stage's: drawn
+     at the top right they met the third column's title */
+}
+document.getElementById("stageMeasure").textContent =
+  `near: ${LRS.map((lr) => { const m = runs.near.byLr[lr][STEPS / MARK]; return `${LR_LABEL[lr]} target ${pct(m.target)} source ${pct(m.source)}`; }).join(" · ")}\n`
+  + `far:  ${LRS.map((lr) => { const m = runs.far.byLr[lr][STEPS / MARK]; return `${LR_LABEL[lr]} target ${pct(m.target)} source ${pct(m.source)}`; }).join(" · ")}\n`
+  + `(one seed; the three-seed means are in §1's table)`;
+document.getElementById("recStage").innerHTML =
+  `Under 480px with B's figure, about 640 with A's. The figure stays as it is when the gate opens and the `
+  + `Fine-tuning column takes the highlight, so the reader knows which column the strips are about. Two things to `
+  + `decide: whether Domain earns its place — it moves forgetting (§1's table) but makes the far strips noisier at one `
+  + `seed — and whether the readout prints the difference between the two rates or only the four numbers.`;
+
+/* ==========================================================================
+   §5 · THE RAIL.
+   ====================================================================== */
+const srcImgs = Array.from({ length: 4 }, (_, k) => srcVal.x.slice(k * S * S, (k + 1) * S * S));
+const tgtImgs = (dname) => Array.from({ length: 2 }, (_, k) => runs[dname].va.x.slice(k * S * S, (k + 1) * S * S));
+function railSpec(open) {
+  return {
+    modelSec: { type: "section", label: "The pretrained model" },
+    seed: { type: "int", label: "Seed", min: 1, max: 200, default: 1 },
+    classes: {
+      type: "preview", size: 44,
+      items: SOURCE.names.map((caption) => ({ caption })),
+      note: "the four classes the backbone and its classifier were trained on",
+      paint: (ctx, k, size) => paintImage(ctx, 0, 0, size, srcImgs[k]),
+    },
+    tune: {
+      type: "gate",
+      label: "Fine-tune on a new task",
+      labelOff: "Hide the fine-tuning",
+      detail: "replace the classifier and train every layer on a task the backbone has not seen, at two learning rates",
+      default: open,
+      display: true,
+    },
+    taskSec: { type: "section", label: "The new task", when: { param: "tune" } },
+    target: {
+      type: "preview", size: 44,
+      items: TARGET.names.map((caption) => ({ caption })),
+      note: "two classes the pretraining never labelled, in the chosen domain",
+      paint: (ctx, k, size) => paintImage(ctx, 0, 0, size, tgtImgs("near")[k]),
+      when: { param: "tune" },
+    },
+    domain: {
+      type: "segmented", label: "Domain",
+      detail: "the rendering of the new task's images: the pretraining images' own, or with contrast inverted",
+      options: [{ value: "near", label: "Near" }, { value: "far", label: "Far" }],
+      default: "near",
+      when: { param: "tune" },
+    },
+    n: {
+      type: "choice", label: "Training images",
+      detail: "how many images of the new task the 64 steps draw their batches from",
+      options: ["16", "32", "64", "128"].map((v) => ({ value: v, label: v })),
+      default: "32",
+      when: { param: "tune" },
+    },
+  };
+}
+function readoutTile(label, value, noteText) {
+  const wrap = el("div");
+  wrap.appendChild(el("span", "w-stat-label", label));
+  wrap.appendChild(el("span", "w-stat-value", value));
+  if (noteText) wrap.appendChild(el("span", "w-stat-note", noteText));
+  return wrap;
+}
+for (const open of [false, true]) {
+  const box1 = cand("railRow", open ? "open · ?tune=1" : "shut · the default", open ? "the gate names the way back; the section it reveals is beneath it; the drive row after" : "two controls and a preview; no drive row (a gate hides step / run / reset while shut)", 320);
+  const spec = railSpec(open);
+  const host = el("div", "w-split rail-host");
+  const rail = el("div", "w-rail");
+  host.appendChild(rail);
+  const cm = el("div", "w-controls");
+  rail.appendChild(cm);
+  const values = resolveParams(spec, new URLSearchParams(open ? "tune=1" : ""));
+  buildControls(cm, spec, values, () => {});
+  if (open) {
+    const drive = el("div", "w-drive");
+    rail.appendChild(drive);
+    buildActions(drive, [
+      { key: "step", text: "Train 8 steps", group: "pace", onClick: () => {} },
+      { key: "run", text: "Play", group: "pace", primary: true, onClick: () => {} },
+      { key: "reset", text: "Reset", onClick: () => {} },
+    ]);
+    const ro = el("div", "w-readout");
+    const m4 = runs.near.byLr[1e-4][4];
+    const m3 = runs.near.byLr[1e-3][4];
+    ro.appendChild(readoutTile("Source task, pretrained", pct(srcAcc), `${N_VAL} held-out images of four classes; chance 25%`));
+    ro.appendChild(readoutTile("After 32 steps at 1e-4", `${pct(m4.target)} · ${pct(m4.source)}`, "new task · source task"));
+    ro.appendChild(readoutTile("After 32 steps at 1e-3", `${pct(m3.target)} · ${pct(m3.source)}`, "new task · source task"));
+    rail.appendChild(ro);
+  } else {
+    const ro = el("div", "w-readout");
+    ro.appendChild(readoutTile("Source task, pretrained", pct(srcAcc), `${N_VAL} held-out images of four classes; chance 25%`));
+    ro.appendChild(readoutTile("Trainable parameters", `${fmt(BB + HEAD2)} of ${fmt(BB + HEAD2)}`, "from scratch and fine-tuning; transfer learning trains the classifier's 34"));
+    rail.appendChild(ro);
+  }
+  box1.appendChild(host);
+  box1.querySelector(".sub").textContent += `\nrail ${rail.getBoundingClientRect().height.toFixed(0)}px`;
+}
+document.getElementById("railMeasure").textContent =
+  "Reader-facing strings on this page are candidates for the copy audit, not copy; the register pass comes at the draft.";
+document.getElementById("recRail").innerHTML =
+  `The step label is the widget's noun — an optimizer step — and eight is what one reading costs; Play runs the `
+  + `eight readings and stops at 64 (the mid-state above is press four). The gate is the only control between the `
+  + `figure and the trained stage. Seed is the one DATA control before the gate; behind it Domain and Training `
+  + `images retrain the fine-tuning (two runs, ${(tuneMs / 2).toFixed(0)} ms) and reset the presses.`;
+</script>
+</main>
+</body>
+</html>
