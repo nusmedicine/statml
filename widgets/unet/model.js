@@ -134,6 +134,26 @@ export function trainedStage(name) {
   if (!m) return name;
   return `${m[1]}${Math.min(Number(m[2]), TRAIN.depth)}`;
 }
+/**
+ * THE COUNTS OF THE NETWORK ABOVE (round 7, Kenneth: "where did 4 channels come
+ * from?"). The band draws the small trained network, whose enc1 takes 1 channel
+ * and gives 4; the U above, at the lesson's settings, takes 3 and gives 16. So
+ * every count in the band carries the drawn network's beside it. `cin` and
+ * `cout` are the chosen block's input and output channels in the U above.
+ */
+export function drawnCounts(stages, name) {
+  const s = stages.find((st) => st.name === name);
+  if (!s) return null;
+  if (s.kind === "enc") return { cin: s.level === 1 ? IN_CH : s.C / 2, cout: s.C };
+  if (s.kind === "pool") return { cin: s.C, cout: s.C };
+  if (s.kind === "bottleneck") return { cin: s.C / 2, cout: s.C };
+  if (s.kind === "up") return { cin: 2 * s.C, cout: s.C };
+  if (s.kind === "cat") return { cin: s.C / 2, cout: s.C };
+  if (s.kind === "dec") return { cin: 2 * s.C, cout: s.C };
+  return { cin: stages.find((st) => st.name === "dec1").C, cout: NUM_CLASSES };
+}
+/** a count, with the network above's beside it when they differ */
+export const countText = (c, above) => (above != null && above !== c ? `${c} ch · ${above} above` : `${c} ch`);
 /** a position on a map of side H, scaled from the image's */
 export const unitAt = (v, H) => Math.min(H - 1, Math.max(0, Math.floor(v * H / TRAIN.S)));
 
@@ -241,14 +261,15 @@ export function uLayout(w, state) {
 /* --- the operation band's geometry ------------------------------------------ */
 
 export const BAND_GAP = 18;
-export const BAND_H = 300;
+export const BAND_H = 314;
 export const MAP_S = 34;
 export const CW = 30;             // a printed value's cell: "−0.50" at 9px mono
 export const BAND_CAP = 16;
 export const BAND_NOTE = 32;
 export const BAND_NET = 46;
-export const HEAD_Y = 64;
-export const BODY_Y = 72;
+export const CH_Y = 62;          // the channel counts, on their own row (round 7)
+export const HEAD_Y = 78;
+export const BODY_Y = 86;
 export const SHOWN = 4;
 export const GRID_ROWS = 2;       // input channels whose window and slice are printed
 export const HEAD_MAP = 56;
