@@ -1,0 +1,920 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · augmentation — mock</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1600px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 100ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); min-height: 26px; white-space: pre-line; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 100ch; }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+       border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 100ch; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>augmentation &middot; mock</h1>
+  <p class="note">
+    <b>Your picks, 2026-09-15:</b> two pages, <i>Transforms</i> &middot; <i>Pipeline</i>; a generated blood smear;
+    the cases that fail are the mask left out of <code>keys</code>, bilinear on the mask and the Validation/Test split;
+    the engine held to MONAI. <b>Everything drawn here is computed</b> by the engine that reproduces MONAI 1.6.0's own
+    arrays (<code>_lab/augmentation-measure.mjs</code>, inlined): a 512 &times; 512 smear, cell 19's arguments, seeded draws.
+    The mock shows filled states so they can be judged; the widget opens empty. On-canvas strings are candidates for the
+    copy audit, not copy. Each section ends with a recommendation; the blue-ruled boxes are questions only you can answer.
+  </p>
+
+  <h2>1 &middot; The Transforms page: the figure</h2>
+  <p class="note">
+    One RandAffined draw inside cell 19's ranges &mdash; rotate +9.1&deg;, translate (&minus;6.5, 7.2) px, scale (1.08, 0.95)
+    &mdash; drawn three ways. Your pair figure tilts the frame; MONAI returns the same square with zeros where the frame
+    uncovers, so all three draw what MONAI returns. The mask is the ground truth, in <code>--c-reference</code> as on
+    widget 65's Dice page.
+  </p>
+  <div class="row" id="figRow"></div>
+  <p class="rec" id="recFig"></p>
+
+  <h2>2 &middot; What a Draw adds, per transform</h2>
+  <p class="note">
+    Twelve draws of each of cell 19's five augment lines at its own arguments, on one seed. A Draw applies ONE
+    transform to the smear; the page keeps what was drawn so the reader sees the argument as a range and
+    <code>prob</code> as a count.
+  </p>
+  <div class="row" id="drawRow"></div>
+  <p class="rec" id="recDraw"></p>
+
+  <h2>3 &middot; The cases that fail</h2>
+  <p class="note">
+    <b>(a) The mask left out of <code>keys</code>.</b> <code>RandFlipd(keys=["image"], spatial_axis=0)</code>: the image
+    flips, the mask stays. Measured: Dice 0.000 when the white cell is off-centre and 0.991 when it is centred, because a
+    centred round mask maps onto itself. <b>(b) Bilinear on the mask</b>, after section 1's draw: a one-pixel ring of
+    fractions that only a magnifier shows, and that <code>AsDiscreted(threshold=0.5)</code> returns to within a few
+    dozen pixels of nearest.
+  </p>
+  <div class="row" id="failRow"></div>
+  <p class="q" id="qFail"></p>
+  <p class="rec" id="recFail"></p>
+
+  <h2>4 &middot; The Pipeline page: cell 19's listing</h2>
+  <p class="note">
+    One epoch's sample through <code>train_transforms</code>: the first flip fires, the second does not, RandRotate90d
+    draws k = 2, RandAffined fires with section 1's draw, RandAdjustContrastd draws &gamma; 1.27, RandGaussianNoised does
+    not fire. The fixed lines run once and are cached by <code>CacheDataset</code>; everything from the first random line
+    down runs every epoch, AsDiscreted included (measured on MONAI).
+  </p>
+  <div class="row" id="pipeRow"></div>
+  <p class="rec" id="recPipe"></p>
+
+  <h2>5 &middot; Which way is <code>spatial_axis=0</code>? &mdash; your call</h2>
+  <p class="note">
+    Measured on MONAI 1.6.0: its readers load a 2D image x-first, so with cell 19 as written <code>spatial_axis=0</code>
+    mirrors the saved image left&ndash;right, and cell 27's <code>permute(1, 2, 0)</code> draws every sample transposed
+    &mdash; in which the same flip looks top&ndash;bottom, as cell 15's comment says. Adding one argument,
+    <code>LoadImaged(keys=["image", "label"], reader="PILReader", reverse_indexing=False)</code>, was run the same night:
+    the arrays load <code>[C, H, W]</code>, cell 27's plots equal the files, and <code>spatial_axis=0</code> flips
+    top&ndash;bottom &mdash; the comment and the plots both right.
+  </p>
+  <div class="row" id="axisRow"></div>
+  <p class="q" id="qAxis"></p>
+
+  <h2>6 &middot; The rails</h2>
+  <p class="note">
+    Rendered by core's <code>buildControls</code> at 300px. The Transforms page twice &mdash; labelled controls, and the
+    call as a line of code with its arguments as slots (core's <code>expr</code>, widget 53's) &mdash; with Affine chosen;
+    then the Pipeline page.
+  </p>
+  <div class="row" id="railRow"></div>
+  <p class="rec" id="recRail"></p>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+import { makeRng } from "../core/rng.js";
+import { buildControls, buildActions } from "../core/controls.js";
+import { resolveParams } from "../core/params.js";
+
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+const PAD = 14;
+const W = 550;
+const N = 512;
+const DEG = Math.PI / 180;
+
+/* ==========================================================================
+   THE ENGINE — copied from _lab/augmentation-measure.mjs, which holds it to
+   MONAI's arrays. An image is { w, h, c, d }, d[ch·h·w + y·w + x], x right and
+   y down; MONAI's spatial axis 0 is x (its readers load x-first).
+   ====================================================================== */
+const make = (w, h, c = 1) => ({ w, h, c, d: new Float32Array(w * h * c) });
+const copy = (im) => ({ ...im, d: im.d.slice() });
+function flip(im, axis) {
+  const { w, h, c } = im;
+  const out = make(w, h, c);
+  for (let ch = 0; ch < c; ch += 1) {
+    const o = ch * w * h;
+    for (let y = 0; y < h; y += 1) for (let x = 0; x < w; x += 1) {
+      out.d[o + y * w + x] = im.d[o + (axis === 0 ? y : h - 1 - y) * w + (axis === 0 ? w - 1 - x : x)];
+    }
+  }
+  return out;
+}
+function rot90(im, k) {
+  let cur = im;
+  for (let i = 0; i < ((k % 4) + 4) % 4; i += 1) {
+    const { w, h, c } = cur;
+    const out = make(h, w, c);
+    for (let ch = 0; ch < c; ch += 1) {
+      const oi = ch * w * h;
+      for (let y = 0; y < h; y += 1) for (let x = 0; x < w; x += 1) out.d[oi + x * h + (h - 1 - y)] = cur.d[oi + y * w + x];
+    }
+    cur = out;
+  }
+  return cur;
+}
+const roundHalfEven = (v) => { const f = Math.floor(v); const r = v - f; return r > 0.5 ? f + 1 : r < 0.5 ? f : (f % 2 === 0 ? f : f + 1); };
+function affine(im, { rotate = 0, translate = [0, 0], scale = [1, 1] }, mode = "bilinear") {
+  const { w, h, c } = im;
+  const out = make(w, h, c);
+  const cx = (w - 1) / 2, cy = (h - 1) / 2, cs = Math.cos(rotate), sn = Math.sin(rotate);
+  for (let y = 0; y < h; y += 1) for (let x = 0; x < w; x += 1) {
+    const px = scale[0] * (x - cx) + translate[0], py = scale[1] * (y - cy) + translate[1];
+    const vx = cs * px - sn * py + cx, vy = sn * px + cs * py + cy;
+    for (let ch = 0; ch < c; ch += 1) {
+      const o = ch * w * h;
+      if (mode === "nearest") {
+        const ix = roundHalfEven(vx), iy = roundHalfEven(vy);
+        out.d[o + y * w + x] = ix >= 0 && ix < w && iy >= 0 && iy < h ? im.d[o + iy * w + ix] : 0;
+      } else {
+        const x0 = Math.floor(vx), y0 = Math.floor(vy), fx = vx - x0, fy = vy - y0;
+        const g = (xx, yy) => (xx >= 0 && xx < w && yy >= 0 && yy < h ? im.d[o + yy * w + xx] : 0);
+        out.d[o + y * w + x] = (g(x0, y0) * (1 - fx) + g(x0 + 1, y0) * fx) * (1 - fy) + (g(x0, y0 + 1) * (1 - fx) + g(x0 + 1, y0 + 1) * fx) * fy;
+      }
+    }
+  }
+  return out;
+}
+function contrast(im, gamma) {
+  let lo = Infinity, hi = -Infinity;
+  for (const v of im.d) { if (v < lo) lo = v; if (v > hi) hi = v; }
+  const range = hi - lo, out = copy(im);
+  for (let i = 0; i < out.d.length; i += 1) out.d[i] = ((im.d[i] - lo) / (range + 1e-7)) ** gamma * range + lo;
+  return out;
+}
+function noise(im, sigma, rng) { const out = copy(im); for (let i = 0; i < out.d.length; i += 1) out.d[i] += rng.normal(0, sigma); return out; }
+function discrete(im, t = 0.5) { const out = copy(im); for (let i = 0; i < out.d.length; i += 1) out.d[i] = im.d[i] >= t ? 1 : 0; return out; }
+function scaleIntensity(im) {
+  let lo = Infinity, hi = -Infinity;
+  for (const v of im.d) { if (v < lo) lo = v; if (v > hi) hi = v; }
+  const out = copy(im);
+  for (let i = 0; i < out.d.length; i += 1) out.d[i] = (im.d[i] - lo) / (hi - lo);
+  return out;
+}
+const dice = (a, b) => { let i2 = 0, sa = 0, sb = 0; for (let i = 0; i < a.d.length; i += 1) { const u = a.d[i] >= 0.5, v = b.d[i] >= 0.5; sa += u; sb += v; i2 += u && v; } return sa + sb === 0 ? 1 : (2 * i2) / (sa + sb); };
+
+/* THE SMEAR — the measure's generator; channel values are data, like 65's image. */
+const BG = [0.95, 0.91, 0.92], RBC_RIM = [0.87, 0.56, 0.61], RBC_PALLOR = [0.94, 0.79, 0.81];
+const CYTO = [0.80, 0.72, 0.86], GRANULE = [0.64, 0.50, 0.73], NUCLEUS = [0.33, 0.17, 0.47];
+const cover = (d, r) => Math.max(0, Math.min(1, r - d + 0.5));
+const segDist = (px, py, ax, ay, bx, by) => { const vx = bx - ax, vy = by - ay; const t = Math.max(0, Math.min(1, ((px - ax) * vx + (py - ay) * vy) / (vx * vx + vy * vy))); return Math.hypot(px - (ax + t * vx), py - (ay + t * vy)); };
+function smear(wbc) {
+  const rng = makeRng(5005);
+  const rbcs = [];
+  for (let tries = 0; tries < 4000 && rbcs.length < 15; tries += 1) {
+    const r = 34 + 6 * rng.next(), x = -24 + (N + 48) * rng.next(), y = -24 + (N + 48) * rng.next();
+    if (Math.hypot(x - wbc.x, y - wbc.y) < wbc.r + r - 6) continue;
+    if (rbcs.some((b) => Math.hypot(x - b.x, y - b.y) < (r + b.r) * 0.92)) continue;
+    rbcs.push({ x, y, r });
+  }
+  const lobes = [[-26, -8, 21], [4, -28, 19], [24, 6, 20]].map(([dx, dy, r]) => ({ x: wbc.x + dx, y: wbc.y + dy, r }));
+  const bridges = [[0, 1, 8], [1, 2, 7]];
+  const granules = [];
+  for (let tries = 0; tries < 3000 && granules.length < 46; tries += 1) {
+    const ang = 2 * Math.PI * rng.next(), rad = (wbc.r - 6) * Math.sqrt(rng.next());
+    const x = wbc.x + rad * Math.cos(ang), y = wbc.y + rad * Math.sin(ang);
+    if (lobes.some((l) => Math.hypot(x - l.x, y - l.y) < l.r + 4)) continue;
+    granules.push({ x, y, r: 2.2 });
+  }
+  const image = make(N, N, 3), mask = make(N, N, 1);
+  for (let y = 0; y < N; y += 1) for (let x = 0; x < N; x += 1) {
+    const px = x + 0.5, py = y + 0.5;
+    let col = BG.slice();
+    for (const b of rbcs) {
+      const d = Math.hypot(px - b.x, py - b.y), a = cover(d, b.r);
+      if (a <= 0) continue;
+      const t = Math.max(0, Math.min(1, (d / b.r - 0.35) / 0.5));
+      col = col.map((v, i) => v + (RBC_PALLOR[i] + (RBC_RIM[i] - RBC_PALLOR[i]) * t - v) * a);
+    }
+    const dw = Math.hypot(px - wbc.x, py - wbc.y), aw = cover(dw, wbc.r);
+    if (aw > 0) {
+      col = col.map((v, i) => v + (CYTO[i] - v) * aw);
+      for (const g of granules) { const ag = cover(Math.hypot(px - g.x, py - g.y), g.r); if (ag > 0) col = col.map((v, i) => v + (GRANULE[i] - v) * ag); }
+      let an = 0;
+      for (const l of lobes) an = Math.max(an, cover(Math.hypot(px - l.x, py - l.y), l.r));
+      for (const [i, j, hw] of bridges) an = Math.max(an, cover(segDist(px, py, lobes[i].x, lobes[i].y, lobes[j].x, lobes[j].y), hw));
+      if (an > 0) col = col.map((v, i) => v + (NUCLEUS[i] - v) * an);
+    }
+    for (let ch = 0; ch < 3; ch += 1) image.d[ch * N * N + y * N + x] = col[ch];
+    mask.d[y * N + x] = dw <= wbc.r ? 1 : 0;
+  }
+  return { image: scaleIntensity(image), mask, wbc };
+}
+
+/* Where a point of the saved image lands after each spatial operation — the
+   inverse of the grid each one reads — so the mask's outline is drawn as a
+   vector at any size. `ops` is the list the listing applies, in order. */
+function forward(p, ops) {
+  let [x, y] = p;
+  const c = (N - 1) / 2;
+  for (const op of ops) {
+    if (op.kind === "flip") { if (op.axis === 0) x = N - 1 - x; else y = N - 1 - y; }
+    if (op.kind === "rot") for (let i = 0; i < op.k; i += 1) [x, y] = [N - 1 - y, x];
+    if (op.kind === "affine") {
+      const { rotate, translate, scale } = op.p;
+      const vx = x - c, vy = y - c, cs = Math.cos(rotate), sn = Math.sin(rotate);
+      const wx = cs * vx + sn * vy, wy = -sn * vx + cs * vy;
+      x = (wx - translate[0]) / scale[0] + c;
+      y = (wy - translate[1]) / scale[1] + c;
+    }
+  }
+  return [x, y];
+}
+const outlineOf = (wbc, ops = []) => Array.from({ length: 160 }, (_, i) => {
+  const a = (2 * Math.PI * i) / 160;
+  return forward([wbc.x - 0.5 + wbc.r * Math.cos(a), wbc.y - 0.5 + wbc.r * Math.sin(a)], ops);
+});
+function applyOps(sm, ops) {
+  let im = sm.image, m = sm.mask;
+  for (const op of ops) {
+    if (op.kind === "flip") { im = flip(im, op.axis); m = flip(m, op.axis); }
+    if (op.kind === "rot") { im = rot90(im, op.k); m = rot90(m, op.k); }
+    if (op.kind === "affine") { im = affine(im, op.p, "bilinear"); m = affine(m, op.p, "nearest"); }
+  }
+  return { image: im, mask: m };
+}
+
+/* --- drawing primitives (the unet mock's) --------------------------------- */
+function txt(ctx, s, x, y, o = {}) {
+  const { color = T.ink2, align = "left", size = T.fsSm, baseline = "alphabetic", mono = false, weight = "" } = o;
+  ctx.save(); ctx.fillStyle = color; ctx.textAlign = align; ctx.textBaseline = baseline;
+  ctx.font = `${weight} ${size} ${mono ? T.mono : T.font}`.trim(); ctx.fillText(s, x, y); ctx.restore();
+}
+const caption = (ctx, s, x, y) => txt(ctx, s, x, y, { color: T.ink2, weight: "600" });
+const note = (ctx, s, x, y, tone, o = {}) => txt(ctx, s, x, y, { color: tone ?? T.ink3, size: T.fsXs, ...o });
+const code = (ctx, s, x, y, tone, o = {}) => txt(ctx, s, x, y, { color: tone ?? T.ink1, size: T.fsXs, mono: true, ...o });
+function frame(ctx, x, y, w, h, stroke = T.grid, width = 1, dash = null) {
+  ctx.save(); ctx.strokeStyle = stroke; ctx.lineWidth = width; if (dash) ctx.setLineDash(dash);
+  ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1); ctx.restore();
+}
+function arrow(ctx, x0, y0, x1, y1, color = T.ink3) {
+  ctx.save(); ctx.strokeStyle = ctx.fillStyle = color; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+  const a = Math.atan2(y1 - y0, x1 - x0);
+  ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x1 - 6 * Math.cos(a - 0.4), y1 - 6 * Math.sin(a - 0.4)); ctx.lineTo(x1 - 6 * Math.cos(a + 0.4), y1 - 6 * Math.sin(a + 0.4)); ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+function cand(rowId, title, sub, w = W) { const box = el("div", "cand"); box.style.width = `${w}px`; box.appendChild(el("h3", null, title)); box.appendChild(el("p", "sub", sub)); document.getElementById(rowId).appendChild(box); return box; }
+function canvasIn(box, w, h) { const c = document.createElement("canvas"); c.width = Math.round(w * DPR); c.height = Math.round(h * DPR); c.style.width = `${w}px`; c.style.height = `${h}px`; box.appendChild(c); const ctx = c.getContext("2d"); ctx.scale(DPR, DPR); return ctx; }
+const wash = (color, a) => {
+  const m = color.match(/^#([0-9a-f]{6})$/i);
+  if (!m) return color;
+  const p = [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16));
+  return `rgba(${p[0]},${p[1]},${p[2]},${a})`;
+};
+
+/* An engine image to a canvas, then halved step by step to the panel's size so
+   a 512 px picture does not alias into a 60 px thumbnail. */
+const bitmaps = new WeakMap();
+function bitmap(im, tint = null) {
+  const key = tint ? null : im;
+  if (key && bitmaps.has(key)) return bitmaps.get(key);
+  const c = document.createElement("canvas"); c.width = im.w; c.height = im.h;
+  const g = c.getContext("2d"), id = g.createImageData(im.w, im.h), n = im.w * im.h;
+  const rgb = tint ? [1, 3, 5].map((i) => parseInt(tint.slice(i, i + 2), 16)) : null;
+  for (let i = 0; i < n; i += 1) {
+    if (rgb) {
+      const v = Math.max(0, Math.min(1, im.d[i]));
+      id.data[4 * i] = rgb[0]; id.data[4 * i + 1] = rgb[1]; id.data[4 * i + 2] = rgb[2]; id.data[4 * i + 3] = Math.round(255 * v);
+    } else {
+      for (let ch = 0; ch < 3; ch += 1) id.data[4 * i + ch] = Math.max(0, Math.min(255, Math.round(255 * im.d[(im.c === 3 ? ch : 0) * n + i])));
+      id.data[4 * i + 3] = 255;
+    }
+  }
+  g.putImageData(id, 0, 0);
+  if (key) bitmaps.set(key, c);
+  return c;
+}
+function drawScaled(ctx, src, x, y, size) {
+  let cur = src;
+  while (cur.width / 2 >= size * DPR) {
+    const nc = document.createElement("canvas"); nc.width = Math.round(cur.width / 2); nc.height = Math.round(cur.height / 2);
+    const g = nc.getContext("2d"); g.imageSmoothingQuality = "high"; g.drawImage(cur, 0, 0, nc.width, nc.height); cur = nc;
+  }
+  ctx.save(); ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = "high"; ctx.drawImage(cur, x, y, size, size); ctx.restore();
+}
+function outline(ctx, pts, x, y, size, o = {}) {
+  const { color = T.reference, width = 1.5, dash = null, alpha = 1 } = o;
+  const s = size / N;
+  ctx.save();
+  ctx.beginPath(); ctx.rect(x, y, size, size); ctx.clip();
+  ctx.beginPath();
+  pts.forEach(([px, py], i) => (i ? ctx.lineTo : ctx.moveTo).call(ctx, x + (px + 0.5) * s, y + (py + 0.5) * s));
+  ctx.closePath();
+  /* a halo in the surface colour under the line: the image under an outline is
+     data of every shade, and a line in one colour disappears on some of it */
+  if (dash) ctx.setLineDash(dash);
+  // faint accumulated outlines take no halo: eleven halos stack into a dark band
+  if (alpha >= 1) { ctx.globalAlpha = 0.85; ctx.strokeStyle = T.surface; ctx.lineWidth = width + 2; ctx.stroke(); }
+  ctx.globalAlpha = alpha; ctx.strokeStyle = color; ctx.lineWidth = width; ctx.stroke();
+  ctx.restore();
+}
+/** An image panel: the picture, optional outlines, a frame. */
+function imagePanel(ctx, im, x, y, size, outlines = []) {
+  drawScaled(ctx, bitmap(im), x, y, size);
+  outlines.forEach((o) => outline(ctx, o.pts, x, y, size, o));
+  frame(ctx, x, y, size, size, T.grid);
+}
+/** A mask panel: the surface, the mask in the ground truth's colour, a frame. */
+function maskPanel(ctx, m, x, y, size) {
+  ctx.save(); ctx.fillStyle = T.surface; ctx.fillRect(x, y, size, size); ctx.restore();
+  drawScaled(ctx, bitmap(m, T.reference), x, y, size);
+  frame(ctx, x, y, size, size, T.grid);
+}
+const fmt = (v, d = 1) => (v < 0 ? "−" : "") + Math.abs(v).toFixed(d);
+const drawText = (p) => `rotate ${fmt(p.rotate / DEG)}°, translate (${fmt(p.translate[0])}, ${fmt(p.translate[1])}) px, scale (${p.scale[0].toFixed(2)}, ${p.scale[1].toFixed(2)})`;
+
+/* ==========================================================================
+   THE STAGE
+   ====================================================================== */
+const OFF = smear({ x: 184, y: 312, r: 70 });
+const CENTRED = smear({ x: 255.5, y: 255.5, r: 70 });
+const P1 = { rotate: 9.1 * DEG, translate: [-6.5, 7.2], scale: [1.08, 0.95] };
+const A1 = applyOps(OFF, [{ kind: "affine", p: P1 }]);
+const O1 = outlineOf(OFF.wbc, [{ kind: "affine", p: P1 }]);
+
+/* §1 · THE FIGURE ----------------------------------------------------------- */
+{
+  const line = "RandAffined(keys=[\"image\", \"label\"], prob=0.25, …)";
+  // A · your pair figure as one row
+  {
+    const box = cand("figRow", "A · your pair figure, one row", "Original (image, mask) → Augmented (image, mask); four panels");
+    const s = 112, gap = 8, arrowW = 42;
+    const h = 220;
+    const ctx = canvasIn(box, W, h);
+    caption(ctx, "The white cell under one RandAffined draw", PAD, 20);
+    const y = 52;
+    const xs = [PAD, PAD + s + gap, PAD + 2 * s + gap + arrowW, PAD + 3 * s + 2 * gap + arrowW];
+    note(ctx, "Original", xs[0], y - 16, T.ink2, { weight: "600" });
+    note(ctx, "Augmented", xs[2], y - 16, T.ink2, { weight: "600" });
+    imagePanel(ctx, OFF.image, xs[0], y, s);
+    maskPanel(ctx, OFF.mask, xs[1], y, s);
+    arrow(ctx, xs[1] + s + 6, y + s / 2, xs[2] - 6, y + s / 2, T.ink2);
+    imagePanel(ctx, A1.image, xs[2], y, s);
+    maskPanel(ctx, A1.mask, xs[3], y, s);
+    ["image", "mask", "image", "mask"].forEach((t, i) => note(ctx, t, xs[i] + s / 2, y + s + 14, T.ink3, { align: "center" }));
+    code(ctx, line, PAD, y + s + 38, T.ink2);
+    note(ctx, `drew ${drawText(P1)}`, PAD, y + s + 54, T.ink1);
+    box.querySelector(".sub").textContent += `\nstage ${h}px; panels ${s}px, 0.22 CSS px an image pixel`;
+  }
+  // B · 2 × 2
+  {
+    const box = cand("figRow", "B · two columns, two rows", "Original | Augmented across; image over mask; the mask's outline on the augmented image");
+    const s = 255, gap = 12;
+    const h = 36 + 18 + s + 18 + s + 44;
+    const ctx = canvasIn(box, W, h);
+    caption(ctx, "The white cell under one RandAffined draw", PAD, 20);
+    const x0 = PAD, x1 = PAD + s + gap;
+    let y = 50;
+    note(ctx, "Original", x0, y - 6, T.ink2, { weight: "600" });
+    note(ctx, "Augmented", x1, y - 6, T.ink2, { weight: "600" });
+    y += 4;
+    imagePanel(ctx, OFF.image, x0, y, s);
+    imagePanel(ctx, A1.image, x1, y, s, [{ pts: O1, color: T.reference, width: 1.5 }]);
+    y += s + 18;
+    note(ctx, "mask", x0, y - 5, T.ink3);
+    note(ctx, "mask", x1, y - 5, T.ink3);
+    maskPanel(ctx, OFF.mask, x0, y, s);
+    maskPanel(ctx, A1.mask, x1, y, s);
+    code(ctx, line, PAD, y + s + 18, T.ink2);
+    note(ctx, `drew ${drawText(P1)}`, PAD, y + s + 34, T.ink1);
+    box.querySelector(".sub").textContent += `\nstage ${h}px; panels ${s}px, 0.50 CSS px an image pixel`;
+  }
+  // C · overlay pair
+  {
+    const box = cand("figRow", "C · two overlays, masks as insets", "cell 29's overlay: the image with the mask's outline; each mask small underneath");
+    const s = 255, gap = 12, m = 84;
+    const h = 36 + 18 + s + 14 + m + 44;
+    const ctx = canvasIn(box, W, h);
+    caption(ctx, "The white cell under one RandAffined draw", PAD, 20);
+    const x0 = PAD, x1 = PAD + s + gap;
+    let y = 54;
+    note(ctx, "Original", x0, y - 10, T.ink2, { weight: "600" });
+    note(ctx, "Augmented", x1, y - 10, T.ink2, { weight: "600" });
+    imagePanel(ctx, OFF.image, x0, y, s, [{ pts: outlineOf(OFF.wbc), color: T.reference, width: 1.5 }]);
+    imagePanel(ctx, A1.image, x1, y, s, [{ pts: O1, color: T.reference, width: 1.5 }]);
+    y += s + 14;
+    maskPanel(ctx, OFF.mask, x0, y, m);
+    maskPanel(ctx, A1.mask, x1, y, m);
+    note(ctx, "mask", x0 + m + 8, y + 12, T.ink3);
+    note(ctx, "mask", x1 + m + 8, y + 12, T.ink3);
+    code(ctx, line, PAD, y + m + 18, T.ink2);
+    note(ctx, `drew ${drawText(P1)}`, PAD, y + m + 34, T.ink1);
+    box.querySelector(".sub").textContent += `\nstage ${h}px`;
+  }
+  document.getElementById("recFig").innerHTML =
+    `<b>B.</b> It is your pair figure turned a quarter: the same four pictures, big enough to read. At 0.5 CSS px an image `
+    + `pixel the zeros RandAffined leaves are a visible wedge and the white cell's 8&ndash;16 px move is 4&ndash;8 CSS px; `
+    + `A's 112 px panels make that move 2&ndash;4 CSS px. The outline on the augmented image is the pairing check a student can `
+    + `read without comparing two panels, and it is what section 3's stale mask needs. C keeps the check but shrinks the `
+    + `mask to a thumbnail, which undersells the mask as half of every training sample.`;
+}
+
+/* §2 · WHAT A DRAW ADDS ------------------------------------------------------ */
+{
+  const rng = makeRng(62);
+  // Flip and Rotate 90: a grid of twelve samples
+  const grid = (title, sub, draws, label, tally) => {
+    const box = cand("drawRow", title, sub);
+    const cols = 6, gap = 6, s = Math.floor((W - 2 * PAD - (cols - 1) * gap) / cols);
+    const h = 40 + 2 * (s + 20) + 30;
+    const ctx = canvasIn(box, W, h);
+    caption(ctx, sub.split(";")[0], PAD, 20);
+    draws.forEach((d, i) => {
+      const x = PAD + (i % cols) * (s + gap), y = 34 + Math.floor(i / cols) * (s + 20);
+      imagePanel(ctx, d.im, x, y, s, [{ pts: d.pts, color: T.reference, width: 1.2 }]);
+      const lab = label(d);
+      note(ctx, lab, x + s / 2, y + s + 13, lab === "—" ? T.ink3 : T.ink1, { align: "center" });
+    });
+    note(ctx, tally, PAD, h - 12, T.ink1);
+    box.querySelector(".sub").textContent += `\nstage ${h}px`;
+  };
+  {
+    const draws = Array.from({ length: 12 }, () => {
+      const on = rng.next() < 0.5;
+      const ops = on ? [{ kind: "flip", axis: 0 }] : [];
+      return { on, im: on ? flip(OFF.image, 0) : OFF.image, pts: outlineOf(OFF.wbc, ops) };
+    });
+    const n = draws.filter((d) => d.on).length;
+    grid("Flip", "RandFlipd(prob=0.5, spatial_axis=0); twelve draws", draws, (d) => (d.on ? "flipped" : "—"),
+      `flipped in ${n} of 12 draws; prob = 0.5`);
+  }
+  {
+    const draws = Array.from({ length: 12 }, () => {
+      const k = rng.next() < 0.5 ? 1 + Math.floor(rng.next() * 3) : 0;
+      return { k, im: k ? rot90(OFF.image, k) : OFF.image, pts: outlineOf(OFF.wbc, k ? [{ kind: "rot", k }] : []) };
+    });
+    const c = [0, 1, 2, 3].map((k) => draws.filter((d) => d.k === k).length);
+    grid("Rotate 90", "RandRotate90d(prob=0.5, max_k=3); twelve draws", draws, (d) => (d.k ? `k = ${d.k}` : "—"),
+      `k = 1: ${c[1]} · k = 2: ${c[2]} · k = 3: ${c[3]} · not rotated: ${c[0]}; each k a quarter turn clockwise`);
+  }
+  // Affine: outlines of every draw, and each argument's draws on its own range
+  {
+    const box = cand("drawRow", "Affine", "RandAffined, cell 19's ranges; the outlines of twelve draws, the last one strong");
+    const s = 255, gap = 12;
+    const h = 40 + s + 44;
+    const ctx = canvasIn(box, W, h);
+    caption(ctx, "RandAffined(prob=0.25, …); twelve draws", PAD, 20);
+    const draws = Array.from({ length: 12 }, () => {
+      const on = rng.next() < 0.25;
+      const p = { rotate: rng.uniform(-10, 10) * DEG, translate: [rng.uniform(-8, 8), rng.uniform(-8, 8)], scale: [1 + rng.uniform(-0.1, 0.1), 1 + rng.uniform(-0.1, 0.1)] };
+      return { on, p };
+    });
+    // the page shows the ranges, so every draw is applied here; prob's count is printed beside
+    const last = draws[draws.length - 1];
+    const lastIm = affine(OFF.image, last.p, "bilinear");
+    const y = 34;
+    imagePanel(ctx, lastIm, PAD, y, s, [
+      ...draws.slice(0, -1).map((d) => ({ pts: outlineOf(OFF.wbc, [{ kind: "affine", p: d.p }]), color: T.empirical, width: 1, alpha: 0.55 })),
+      { pts: outlineOf(OFF.wbc, [{ kind: "affine", p: last.p }]), color: T.highlight, width: 2 },
+    ]);
+    // the three ranges
+    const rx = PAD + s + gap + 8, rw = W - PAD - rx;
+    const dot = (x, y2, strong) => { ctx.save(); ctx.fillStyle = strong ? T.highlight : T.empirical; ctx.globalAlpha = strong ? 1 : 0.7; ctx.beginPath(); ctx.arc(x, y2, strong ? 4 : 3, 0, 2 * Math.PI); ctx.fill(); ctx.restore(); };
+    // rotate: a line from −10° to 10°
+    let yy = y + 10;
+    note(ctx, "rotate, degrees", rx, yy, T.ink2);
+    yy += 22;
+    ctx.save(); ctx.strokeStyle = T.axis; ctx.beginPath(); ctx.moveTo(rx, yy); ctx.lineTo(rx + rw, yy); ctx.stroke(); ctx.restore();
+    note(ctx, "−10", rx, yy + 16, T.ink3); note(ctx, "0", rx + rw / 2, yy + 16, T.ink3, { align: "center" }); note(ctx, "10", rx + rw, yy + 16, T.ink3, { align: "right" });
+    draws.forEach((d, i) => dot(rx + ((d.p.rotate / DEG + 10) / 20) * rw, yy, i === draws.length - 1));
+    // translate and scale: two boxes
+    yy += 44;
+    const bw = (rw - 18) / 2;
+    const boxPlot = (bx, label, lo, hi, xOf, yOf, ticks) => {
+      note(ctx, label, bx, yy, T.ink2);
+      const by = yy + 8;
+      frame(ctx, bx, by, bw, bw, T.axis);
+      ctx.save(); ctx.strokeStyle = T.grid; ctx.setLineDash([2, 3]); ctx.beginPath(); ctx.moveTo(bx + bw / 2, by); ctx.lineTo(bx + bw / 2, by + bw); ctx.moveTo(bx, by + bw / 2); ctx.lineTo(bx + bw, by + bw / 2); ctx.stroke(); ctx.restore();
+      draws.forEach((d, i) => dot(bx + ((xOf(d) - lo) / (hi - lo)) * bw, by + bw - ((yOf(d) - lo) / (hi - lo)) * bw, i === draws.length - 1));
+      note(ctx, ticks[0], bx, by + bw + 14, T.ink3); note(ctx, ticks[1], bx + bw, by + bw + 14, T.ink3, { align: "right" });
+    };
+    boxPlot(rx, "translate x, y (px)", -8, 8, (d) => d.p.translate[0], (d) => d.p.translate[1], ["−8", "8"]);
+    boxPlot(rx + bw + 18, "scale x, y", 0.9, 1.1, (d) => d.p.scale[0], (d) => d.p.scale[1], ["0.9", "1.1"]);
+    const fired = draws.filter((d) => d.on).length;
+    note(ctx, `last draw: ${drawText(last.p)}`, PAD, y + s + 18, T.ink1);
+    note(ctx, `prob = 0.25: the transform fired on ${fired} of these 12; all 12 are drawn so the ranges show`, PAD, y + s + 34, T.ink3);
+    box.querySelector(".sub").textContent += `\nstage ${h}px`;
+  }
+  // Contrast: the γ curves
+  {
+    const box = cand("drawRow", "Contrast", "RandAdjustContrastd, γ from U(0.7, 1.5) on ((x − min)/range)^γ; the curves of the draws that fired");
+    const s = 255, gap = 12;
+    const h = 40 + s + 44;
+    const ctx = canvasIn(box, W, h);
+    caption(ctx, "RandAdjustContrastd(prob=0.3, gamma=(0.7, 1.5)); twelve draws", PAD, 20);
+    const draws = Array.from({ length: 12 }, () => ({ on: rng.next() < 0.3, g: rng.uniform(0.7, 1.5) }));
+    const fired = draws.filter((d) => d.on);
+    const last = fired[fired.length - 1] ?? { g: 1.27 };
+    const y = 34, px0 = PAD + 26, pw = s - 34, py0 = y + 4, ph = s - 34;
+    const X = (v) => px0 + v * pw, Y = (v) => py0 + ph - v * ph;
+    ctx.save(); ctx.fillStyle = T.empirical; ctx.globalAlpha = 0.16; ctx.beginPath();
+    for (let i = 0; i <= 40; i += 1) { const v = i / 40; (i ? ctx.lineTo : ctx.moveTo).call(ctx, X(v), Y(v ** 0.7)); }
+    for (let i = 40; i >= 0; i -= 1) { const v = i / 40; ctx.lineTo(X(v), Y(v ** 1.5)); }
+    ctx.closePath(); ctx.fill(); ctx.restore();
+    frame(ctx, px0, py0, pw, ph, T.axis);
+    const curve = (g, color, width, alpha = 1) => { ctx.save(); ctx.globalAlpha = alpha; ctx.strokeStyle = color; ctx.lineWidth = width; ctx.beginPath(); for (let i = 0; i <= 60; i += 1) { const v = i / 60; (i ? ctx.lineTo : ctx.moveTo).call(ctx, X(v), Y(v ** g)); } ctx.stroke(); ctx.restore(); };
+    curve(1, T.reference, 1);
+    fired.slice(0, -1).forEach((d) => curve(d.g, T.empirical, 1, 0.7));
+    curve(last.g, T.highlight, 2);
+    note(ctx, "0", px0, py0 + ph + 13, T.ink3, { align: "center" }); note(ctx, "1", px0 + pw, py0 + ph + 13, T.ink3, { align: "center" });
+    note(ctx, "value before", px0 + pw / 2, py0 + ph + 26, T.ink3, { align: "center" });
+    ctx.save(); ctx.translate(PAD + 8, py0 + ph / 2); ctx.rotate(-Math.PI / 2); note(ctx, "value after", 0, 0, T.ink3, { align: "center" }); ctx.restore();
+    const im = contrast(OFF.image, last.g);
+    imagePanel(ctx, im, PAD + s + gap, y, s);
+    note(ctx, `fired on ${fired.length} of 12 (prob = 0.3); the band is γ 0.7 to 1.5, the diagonal γ = 1; last γ ${last.g.toFixed(2)}`, PAD, y + s + 18, T.ink1);
+    note(ctx, "γ below 1 lifts the middle values, above 1 lowers them; the lowest and highest values stay", PAD, y + s + 34, T.ink3);
+    box.querySelector(".sub").textContent += `\nstage ${h}px`;
+  }
+  // Noise: three depictions of an invisible draw
+  {
+    const box = cand("drawRow", "Noise", "RandGaussianNoised(std=0.01): σ itself from U(0, 0.01); three ways to show a draw of σ 0.0074");
+    const s = 164, gap = 15;
+    const h = 40 + s + 58;
+    const ctx = canvasIn(box, W, h);
+    caption(ctx, "RandGaussianNoised(prob=0.15, mean=0.0, std=0.01)", PAD, 20);
+    const sigma = 0.0074;
+    const nz = noise(OFF.image, sigma, makeRng(9));
+    const y = 34;
+    // i · as drawn
+    imagePanel(ctx, nz, PAD, y, s);
+    note(ctx, "i · the sample as drawn", PAD, y + s + 14, T.ink1);
+    note(ctx, "1.9 grey levels: nothing to see", PAD, y + s + 28, T.ink3);
+    // ii · a 24 × 24 patch at 7 px a pixel, before | after
+    const px = 2 * s / 48 + 0;
+    const cx0 = 120, cy0 = 240, cell = s / 24;
+    const x2 = PAD + s + gap;
+    const half = s / 2 - 2;
+    for (let j = 0; j < 24; j += 1) for (let i = 0; i < 12; i += 1) {
+      for (const [im, ox] of [[OFF.image, 0], [nz, half + 4]]) {
+        const idx = (cy0 + j) * N + cx0 + i;
+        const r = Math.round(255 * Math.max(0, Math.min(1, im.d[idx]))), g = Math.round(255 * Math.max(0, Math.min(1, im.d[N * N + idx]))), b = Math.round(255 * Math.max(0, Math.min(1, im.d[2 * N * N + idx])));
+        ctx.fillStyle = `rgb(${r},${g},${b})`;
+        ctx.fillRect(x2 + ox + i * (half / 12), y + j * cell, half / 12 + 0.5, cell + 0.5);
+      }
+    }
+    frame(ctx, x2, y, half, s, T.grid); frame(ctx, x2 + half + 4, y, half, s, T.grid);
+    note(ctx, "ii · 12 × 24 pixels, before | after", x2, y + s + 14, T.ink1);
+    note(ctx, "the same 1.9 levels, magnified", x2, y + s + 28, T.ink3);
+    // iii · the difference × 20 around mid-grey
+    const diff = make(N, N, 3);
+    for (let i = 0; i < diff.d.length; i += 1) diff.d[i] = 0.5 + 20 * (nz.d[i] - OFF.image.d[i]);
+    const x3 = PAD + 2 * (s + gap);
+    imagePanel(ctx, diff, x3, y, s);
+    note(ctx, "iii · after − before, × 20", x3, y + s + 14, T.ink1);
+    note(ctx, "mid-grey is no change", x3, y + s + 28, T.ink3);
+    note(ctx, "σ 0.0074 is 1.9 grey levels of 255; cell 19's largest, 0.01, is 2.6", PAD, y + s + 48, T.ink1);
+    box.querySelector(".sub").textContent += `\nstage ${h}px`;
+  }
+  document.getElementById("recDraw").innerHTML =
+    `<b>Flip and Rotate 90: the grid of samples</b>, because the argument is discrete and the count is the lesson &mdash; `
+    + `prob as <i>7 of 12</i>, max_k as three kinds of turn. <b>Affine: the outlines and the three ranges</b>; each argument is `
+    + `its own uniform range, and a dot per draw shows both the range and that the two scales are drawn separately (the `
+    + `stretch). All twelve are applied so the range fills in, and prob's count is printed beside rather than skipping `
+    + `three quarters of the draws. <b>Contrast: the curve</b>, which is what γ is. <b>Noise: iii, the difference &times; 20</b>, `
+    + `labelled as such: i is honest and shows nothing, ii shows the speckle on 288 pixels and needs its own legend; iii shows `
+    + `where the noise is (everywhere, including the background) and the readout prints the grey levels. The Noise page keeps `
+    + `its std slider wide enough (to 0.1) that the sample itself shows speckle, as section 6's rail has it.`;
+}
+
+/* §3 · THE CASES THAT FAIL --------------------------------------------------- */
+{
+  {
+    const box = cand("failRow", "(a) The mask left out of keys", "RandFlipd(keys=[\"image\"], prob=1, spatial_axis=0); the mask where it was, and where the cell is now");
+    const s = 255, gap = 12;
+    const h = 40 + s + 64;
+    const ctx = canvasIn(box, W, h);
+    caption(ctx, "keys=[\"image\"]: the image flips and the mask does not", PAD, 20);
+    const y = 34;
+    [[OFF, PAD, "white cell off-centre"], [CENTRED, PAD + s + gap, "white cell centred"]].forEach(([sm, x, label]) => {
+      const flipped = flip(sm.image, 0);
+      imagePanel(ctx, flipped, x, y, s, [
+        { pts: outlineOf(sm.wbc, [{ kind: "flip", axis: 0 }]), color: T.highlight, width: 1.2, dash: [4, 3] },
+        { pts: outlineOf(sm.wbc), color: T.reference, width: 2 },
+      ]);
+      const d = dice(sm.mask, flip(sm.mask, 0));
+      note(ctx, label, x, y + s + 14, T.ink2, { weight: "600" });
+      note(ctx, `Dice of the mask against the cell: ${d.toFixed(2)}`, x, y + s + 29, d < 0.5 ? T.extreme : T.ink1);
+    });
+    note(ctx, "solid: the mask, left in place · dashed: where the white cell is after the flip", PAD, y + s + 50, T.ink3);
+    box.querySelector(".sub").textContent += `\nstage ${h}px`;
+  }
+  {
+    const box = cand("failRow", "(b) Bilinear on the mask", "section 1's draw; a 20 × 20 window on the mask's edge, 8 px a pixel");
+    const s = 164, gap = 15;
+    const h = 40 + s + 64;
+    const ctx = canvasIn(box, W, h);
+    caption(ctx, "The mask's edge, magnified", PAD, 20);
+    const bil = affine(OFF.mask, P1, "bilinear");
+    const near = A1.mask;
+    const disc = discrete(bil, 0.5);
+    // a window on the right-hand edge of the transformed outline
+    const right = O1.reduce((a, b) => (b[0] > a[0] ? b : a));
+    const wx = Math.round(right[0]) - 10, wy = Math.round(right[1]) - 10;
+    let between = 0; for (const v of bil.d) if (v > 1e-6 && v < 1 - 1e-6) between += 1;
+    let differ = 0; for (let i = 0; i < disc.d.length; i += 1) if (disc.d[i] !== near.d[i]) differ += 1;
+    const y = 34;
+    const cells = [
+      [near, "nearest", "only 0 and 1"],
+      [bil, "bilinear", `${between} between 0 and 1`],
+      [disc, "bilinear → AsDiscreted", `${differ} differ from nearest`],
+    ];
+    cells.forEach(([m, label, sub], k) => {
+      const x = PAD + k * (s + gap), c = s / 20;
+      ctx.save(); ctx.fillStyle = T.surface; ctx.fillRect(x, y, s, s); ctx.restore();
+      for (let j = 0; j < 20; j += 1) for (let i = 0; i < 20; i += 1) {
+        const v = m.d[(wy + j) * N + wx + i];
+        if (v <= 0) continue;
+        ctx.save(); ctx.fillStyle = T.reference; ctx.globalAlpha = Math.min(1, v); ctx.fillRect(x + i * c, y + j * c, c, c); ctx.restore();
+      }
+      ctx.save(); ctx.strokeStyle = T.grid; ctx.globalAlpha = 0.6; ctx.lineWidth = 0.5; ctx.beginPath();
+      for (let i = 1; i < 20; i += 1) { ctx.moveTo(x + i * c, y); ctx.lineTo(x + i * c, y + s); ctx.moveTo(x, y + i * c); ctx.lineTo(x + s, y + i * c); }
+      ctx.stroke(); ctx.restore();
+      frame(ctx, x, y, s, s, T.axis);
+      code(ctx, label, x, y + s + 14, T.ink1);
+      note(ctx, sub, x, y + s + 29, T.ink3);
+    });
+    note(ctx, `of the white cell's ${near.d.reduce((a, v) => a + (v >= 0.5), 0).toLocaleString()} pixels; Dice after AsDiscreted against nearest ${dice(disc, near).toFixed(4)}`, PAD, y + s + 50, T.ink1);
+    box.querySelector(".sub").textContent += `\nstage ${h}px; window at (${wx}, ${wy})`;
+  }
+  document.getElementById("qFail").innerHTML =
+    `<b>Your call: where is the white cell?</b> The mistake in (a) costs Dice 0.00 off-centre and 0.99 centred. `
+    + `<b>1</b> &mdash; keep one smear with the cell off-centre (your pair figure's arrangement) and print the Dice; `
+    + `<b>2</b> &mdash; a <i>White cell</i> control, Off-centre &middot; Centred, so the reader finds that the same line is `
+    + `harmless on one image and ruinous on another; <b>3</b> &mdash; centred only, if KRD-WBC's cells are centred and you `
+    + `want the widget to look like the lesson's data (I have not seen the images).`;
+  document.getElementById("recFail").innerHTML =
+    `<b>(a): 2</b>, a display control on the Transforms page, because it is a stage where the mistake both loses and `
+    + `does not: on a centred round cell the stale mask still covers the cell (0.99), so the same pipeline would train `
+    + `without a visible fault, and off-centre every flipped sample's mask is on the wrong cells; the default off-centre. `
+    + `<b>(b): the magnifier as a band under the figure</b>, three windows in a row, since nothing else at 512 px shows a `
+    + `one-pixel ring; it appears when <i>mode</i> for the label is bilinear, and its window is a small box drawn on the `
+    + `augmented mask so the reader sees where it is. The honest line under it: the ring is real and AsDiscreted removes `
+    + `nearly all of it.`;
+}
+
+/* §4 · THE PIPELINE ---------------------------------------------------------- */
+{
+  const LINES = [
+    { name: "LoadImaged", args: "keys=[\"image\", \"label\"]", fixed: true },
+    { name: "EnsureChannelFirstd", args: "keys=[\"image\", \"label\"]", fixed: true },
+    { name: "EnsureTyped", args: "keys=[\"image\", \"label\"]", fixed: true },
+    { name: "ScaleIntensityd", args: "keys=[\"image\"]", fixed: true },
+    { name: "SpatialPadd", args: "spatial_size=(512, 512)", fixed: true },
+    { name: "RandFlipd", args: "prob=0.5, spatial_axis=0", op: { kind: "flip", axis: 0 }, fired: true, drew: "flipped" },
+    { name: "RandFlipd", args: "prob=0.5, spatial_axis=1", op: { kind: "flip", axis: 1 }, fired: false, drew: "not applied" },
+    { name: "RandRotate90d", args: "prob=0.5, max_k=3", op: { kind: "rot", k: 2 }, fired: true, drew: "k = 2" },
+    { name: "RandAffined", args: "prob=0.25, …", op: { kind: "affine", p: P1 }, fired: true, drew: "fired", detail: `drew ${drawText(P1)}` },
+    { name: "RandAdjustContrastd", args: "prob=0.3, gamma=(0.7, 1.5)", gamma: 1.27, fired: true, drew: "γ 1.27" },
+    { name: "RandGaussianNoised", args: "prob=0.15, std=0.01", fired: false, drew: "not applied" },
+    { name: "AsDiscreted", args: "keys=[\"label\"], threshold=0.5", fixed: true, after: true },
+  ];
+  // every line's sample, in order
+  const states = [];
+  {
+    let im = OFF.image, m = OFF.mask; const ops = [];
+    for (const L of LINES) {
+      if (L.op && L.fired) { ops.push(L.op); ({ image: im, mask: m } = applyOps({ image: im, mask: m }, [L.op])); }
+      if (L.gamma && L.fired) im = contrast(im, L.gamma);
+      if (L.name === "AsDiscreted") m = discrete(m, 0.5);
+      states.push({ im, m, pts: outlineOf(OFF.wbc, ops.slice()) });
+    }
+  }
+  // A · thumbnails per line
+  {
+    const box = cand("pipeRow", "A · a thumbnail pair on every random line", "the sample after each line; the fixed lines one row each");
+    const rowFixed = 17, s = 50, rowRand = s + 8;
+    const h = 40 + 5 * rowFixed + 12 + 7 * rowRand + 20;
+    const ctx = canvasIn(box, W, h);
+    caption(ctx, "train_transforms, one epoch", PAD, 20);
+    let y = 40;
+    const xName = PAD + 12, xDrew = 300, xImg = W - PAD - 2 * s - 6;
+    LINES.forEach((L, i) => {
+      if (L.fixed && !L.after) {
+        code(ctx, `${L.name}(${L.args})`, xName, y + 11, T.ink3);
+        y += rowFixed;
+        if (i === 4) {
+          ctx.save(); ctx.strokeStyle = T.grid; ctx.beginPath(); ctx.moveTo(PAD + 4, 30); ctx.lineTo(PAD + 4, y - 3); ctx.stroke(); ctx.restore();
+          note(ctx, "cached once", xDrew, y - 6, T.ink3);
+          y += 12;
+        }
+        return;
+      }
+      code(ctx, L.name, xName, y + 16, L.fired || L.after ? T.ink1 : T.ink3);
+      code(ctx, L.args, xName, y + 30, T.ink3);
+      if (!L.after) note(ctx, L.drew, xDrew, y + 22, L.fired ? T.ink1 : T.ink3, { weight: L.fired ? "600" : "" });
+      const st = states[i];
+      imagePanel(ctx, st.im, xImg, y + 2, s, [{ pts: st.pts, color: T.reference, width: 1 }]);
+      maskPanel(ctx, st.m, xImg + s + 6, y + 2, s);
+      y += rowRand;
+    });
+    note(ctx, "every epoch, from the first random line down", xDrew, 40 + 5 * rowFixed + 12 + 7 * rowRand + 6, T.ink3);
+    box.querySelector(".sub").textContent += `\nstage ${h}px; thumbnails ${s}px`;
+  }
+  // C · the listing beside one large sample
+  const listing = (title, sub, split) => {
+    const box = cand("pipeRow", title, sub);
+    const s = 222, row = 21;
+    const h = 40 + 12 * row + 26 + 82 + 26;
+    const ctx = canvasIn(box, W, h);
+    caption(ctx, split === "train" ? "train_transforms, epoch 3, after line 9" : "val_test_transforms, every epoch", PAD, 20);
+    const xName = PAD + 12, xDrew = PAD + 196, reached = 8;
+    let y = 36;
+    LINES.forEach((L, i) => {
+      const absent = split !== "train" && !L.fixed;
+      const current = split === "train" && i === reached;
+      if (current) { ctx.save(); ctx.fillStyle = T.surface2; ctx.fillRect(PAD, y, W - 2 * PAD - s - 12, row); ctx.fillStyle = T.highlight; ctx.fillRect(PAD, y, 3, row); ctx.restore(); }
+      const tone = absent ? T.ink3 : i > reached && split === "train" ? T.ink3 : T.ink1;
+      code(ctx, L.name, xName, y + 14, tone);
+      if (absent) note(ctx, "not in this list", xDrew, y + 14, T.ink3);
+      else if (L.fixed) note(ctx, L.after ? (split === "train" ? "runs every epoch" : "") : i === 0 ? "cached once" : "", xDrew, y + 14, T.ink3);
+      else if (i <= reached) note(ctx, L.drew, xDrew, y + 14, L.fired ? T.ink1 : T.ink3, { weight: L.fired ? "600" : "" });
+      if (absent) {
+        ctx.save(); ctx.font = `${T.fsXs} ${T.mono}`; const tw = ctx.measureText(L.name).width;
+        ctx.strokeStyle = T.ink3; ctx.globalAlpha = 0.6; ctx.beginPath(); ctx.moveTo(xName, y + 10); ctx.lineTo(xName + tw, y + 10); ctx.stroke(); ctx.restore();
+      }
+      y += row;
+    });
+    const st = split === "train" ? states[reached] : { im: OFF.image, pts: outlineOf(OFF.wbc) };
+    const px = W - PAD - s;
+    imagePanel(ctx, st.im, px, 36, s, [{ pts: st.pts, color: T.reference, width: 1.5 }]);
+    note(ctx, "the sample, the mask's outline on it", px, 36 + s + 14, T.ink3);
+    if (split === "train" && LINES[reached].detail) note(ctx, `RandAffined ${LINES[reached].detail}`, PAD, 36 + 12 * row + 8, T.ink1);
+    // epochs strip
+    const ey = 36 + 12 * row + 26;
+    note(ctx, split === "train" ? "the same image, epochs 1 to 8" : "the same image, epochs 1 to 8: one sample", PAD, ey, T.ink2, { weight: "600" });
+    const es = 60, egap = (W - 2 * PAD - 8 * es) / 7;
+    const rng = makeRng(split === "train" ? 21 : 1);
+    for (let e = 0; e < 8; e += 1) {
+      let sample = { im: OFF.image, pts: outlineOf(OFF.wbc) };
+      if (split === "train") {
+        const ops = [];
+        if (rng.next() < 0.5) ops.push({ kind: "flip", axis: 0 });
+        if (rng.next() < 0.5) ops.push({ kind: "flip", axis: 1 });
+        if (rng.next() < 0.5) ops.push({ kind: "rot", k: 1 + Math.floor(rng.next() * 3) });
+        if (rng.next() < 0.25) ops.push({ kind: "affine", p: { rotate: rng.uniform(-10, 10) * DEG, translate: [rng.uniform(-8, 8), rng.uniform(-8, 8)], scale: [1 + rng.uniform(-0.1, 0.1), 1 + rng.uniform(-0.1, 0.1)] } });
+        let { image } = applyOps(OFF, ops);
+        if (rng.next() < 0.3) image = contrast(image, rng.uniform(0.7, 1.5));
+        sample = { im: image, pts: outlineOf(OFF.wbc, ops) };
+      }
+      imagePanel(ctx, sample.im, PAD + e * (es + egap), ey + 10, es, [{ pts: sample.pts, color: T.reference, width: 1 }]);
+    }
+    box.querySelector(".sub").textContent += `\nstage ${h}px; sample ${s}px`;
+  };
+  listing("C · the listing beside one sample", "Step walks the sample down the lines: Next line … then Next epoch", "train");
+  listing("C · the same, Split = Validation/Test", "val_test_transforms: the fixed lines only", "val");
+  document.getElementById("recPipe").innerHTML =
+    `<b>C.</b> The listing is what cell 19 is, and one sample at 222 px keeps the zeros and the turns readable; Step walks `
+    + `the sample one line down (<i>Next line</i>), so <code>Compose</code>'s "the output of T1 is the input to T2" is the `
+    + `motion, and after AsDiscreted the label becomes <i>Next epoch</i> (widget 60's step label keyed on the animation). `
+    + `The strip under it is the epochs so far &mdash; the same file, a different sample each time &mdash; and under `
+    + `Validation/Test the random lines are struck and the strip is one picture eight times. A's thumbnails at 50 px `
+    + `lose the zeros and the move, and its 522 px spends most of the height on lines that did nothing.`;
+}
+
+/* §5 · THE AXIS ---------------------------------------------------------------- */
+{
+  const box = cand("axisRow", "The same flip, two orientations", "top: the image as saved; bottom: the same two arrays as cell 27 plots MONAI's default x-first tensor");
+  const s = 200, arrowW = 60;
+  const h = 40 + 2 * (s + 50) + 20;
+  const ctx = canvasIn(box, W, h);
+  caption(ctx, "RandFlipd(spatial_axis=0), with cell 19's LoadImaged as written", PAD, 20);
+  const transpose = (im) => { const out = make(im.h, im.w, im.c); for (let ch = 0; ch < im.c; ch += 1) for (let y = 0; y < im.h; y += 1) for (let x = 0; x < im.w; x += 1) out.d[ch * im.w * im.h + x * im.h + y] = im.d[ch * im.w * im.h + y * im.w + x]; return out; };
+  const f = flip(OFF.image, 0);
+  const x0 = PAD, x1 = PAD + s + arrowW;
+  [[OFF.image, f, "as saved: mirrored left–right"], [transpose(OFF.image), transpose(f), "as cell 27 plots them: flipped top–bottom"]].forEach(([a, b, label], r) => {
+    const y = 50 + r * (s + 50);
+    note(ctx, label, x0, y - 8, T.ink1, { weight: "600" });
+    imagePanel(ctx, a, x0, y, s);
+    imagePanel(ctx, b, x1, y, s);
+    arrow(ctx, x0 + s + 10, y + s / 2, x1 - 10, y + s / 2, T.ink2);
+    note(ctx, "before", x0, y + s + 14, T.ink3);
+    note(ctx, "after the flip", x1, y + s + 14, T.ink3);
+  });
+  note(ctx, "the bottom row is the top row transposed: every sample in cell 29 is drawn that way", PAD, h - 10, T.ink3);
+  document.getElementById("qAxis").innerHTML =
+    `<b>Your call.</b> <b>1</b> &mdash; you add <code>reader="PILReader", reverse_indexing=False</code> to both `
+    + `<code>LoadImaged</code> lines in cell 19: the notebook's comments and plots are then both right, and the widget says `
+    + `what the comment says (axis 0 flips top&ndash;bottom) on the image as saved. The engine switches to [C, H, W] with it, `
+    + `and the pin re-runs with the argument (it also reverses RandRotate90's and the affine's turn, so every direction is `
+    + `re-measured, not assumed). <b>2</b> &mdash; the notebook stays: the widget follows MONAI's default (axis 0 mirrors `
+    + `left&ndash;right) and cell 15's comment disagrees with it. <b>3</b> &mdash; the notebook stays and the widget draws `
+    + `the transposed orientation cell 29 shows. <b>I recommend 1</b>: it is one argument, and both 2 and 3 leave one of the `
+    + `two places a student looks saying something false.`;
+}
+
+/* §6 · THE RAILS ----------------------------------------------------------------- */
+{
+  const TOPIC = { type: "segmented", label: "Topic", options: [{ value: "transforms", label: "Transforms" }, { value: "pipeline", label: "Pipeline" }], default: "transforms" };
+  const TRANSFORM = { type: "segmented", label: "Transform", options: ["Flip", "Rotate 90", "Affine", "Contrast", "Noise"].map((v) => ({ value: v.toLowerCase().replace(" ", ""), label: v })), default: "affine" };
+  const specs = {
+    labelled: {
+      topic: TOPIC,
+      tSec: { type: "section", label: "The transform" },
+      transform: TRANSFORM,
+      aSec: { type: "section", label: "RandAffined" },
+      keys: { type: "segmented", label: "keys", detail: "the arrays the transform is applied to", options: [{ value: "both", label: "image, label" }, { value: "image", label: "image" }], default: "both" },
+      prob: { type: "choice", label: "prob", detail: "the chance the transform is applied to a sample", options: ["0", "0.25", "0.5", "0.75", "1"].map((v) => ({ value: v, label: v })), default: "0.25" },
+      rotate: { type: "choice", label: "rotate_range", detail: "the angle is drawn between minus and plus this; the code passes radians", options: ["0", "5", "10", "20", "45"].map((v) => ({ value: v, label: `${v}°` })), default: "10" },
+      translate: { type: "choice", label: "translate_range", detail: "each of x and y is shifted by a draw between minus and plus this", options: ["0", "8", "32", "64"].map((v) => ({ value: v, label: `${v} px` })), default: "8" },
+      scale: { type: "choice", label: "scale_range", detail: "each of x and y is scaled by 1 plus a draw between minus and plus this", options: ["0", "0.1", "0.2", "0.3"].map((v) => ({ value: v, label: v })), default: "0.1" },
+      mode: { type: "segmented", label: "mode for the label", detail: "how the mask's new values are computed from its old ones", options: [{ value: "nearest", label: "nearest" }, { value: "bilinear", label: "bilinear" }], default: "nearest" },
+      padding: { type: "segmented", label: "padding_mode", detail: "what fills the pixels the transform uncovers", options: [{ value: "zeros", label: "zeros" }, { value: "border", label: "border" }, { value: "reflection", label: "reflection" }], default: "zeros" },
+      cSec: { type: "section", label: "The image" },
+      cell: { type: "segmented", label: "White cell", options: [{ value: "off", label: "Off-centre" }, { value: "centred", label: "Centred" }], default: "off" },
+      seed: { type: "int", label: "Seed", min: 1, max: 200, default: 1 },
+    },
+    code: {
+      topic: TOPIC,
+      tSec: { type: "section", label: "The transform" },
+      transform: TRANSFORM,
+      aSec: { type: "section", label: "The call" },
+      k: { type: "select", label: "keys", hidden: true, options: [{ value: "both", label: "[\"image\", \"label\"]" }, { value: "image", label: "[\"image\"]" }], default: "both" },
+      p: { type: "select", label: "prob", hidden: true, options: ["0", "0.25", "0.5", "1"].map((v) => ({ value: v, label: v })), default: "0.25" },
+      r: { type: "select", label: "rotate_range", hidden: true, options: ["0", "5", "10", "20", "45"].map((v) => ({ value: v, label: `${v}.0` })), default: "10" },
+      tx: { type: "select", label: "translate x", hidden: true, options: ["0", "8", "32"].map((v) => ({ value: v, label: v })), default: "8" },
+      ty: { type: "select", label: "translate y", hidden: true, options: ["0", "8", "32"].map((v) => ({ value: v, label: v })), default: "8" },
+      sx: { type: "select", label: "scale x", hidden: true, options: ["0", "0.1", "0.2"].map((v) => ({ value: v, label: v })), default: "0.1" },
+      sy: { type: "select", label: "scale y", hidden: true, options: ["0", "0.1", "0.2"].map((v) => ({ value: v, label: v })), default: "0.1" },
+      lm: { type: "select", label: "label mode", hidden: true, options: [{ value: "nearest", label: "\"nearest\"" }, { value: "bilinear", label: "\"bilinear\"" }], default: "nearest" },
+      e1: { type: "expr", open: "RandAffined(keys=", close: ",", slots: ["k"] },
+      e2: { type: "expr", open: "  prob=", close: ",", slots: ["p"] },
+      e3: { type: "expr", open: "  rotate_range=np.deg2rad(", close: "),", slots: ["r"] },
+      e4: { type: "expr", open: "  translate_range=(", close: "),", slots: ["tx", "ty"] },
+      e5: { type: "expr", open: "  scale_range=(", close: "),", slots: ["sx", "sy"] },
+      e6: { type: "expr", open: "  mode=(\"bilinear\", ", close: "))", slots: ["lm"] },
+      cSec: { type: "section", label: "The image" },
+      cell: { type: "segmented", label: "White cell", options: [{ value: "off", label: "Off-centre" }, { value: "centred", label: "Centred" }], default: "off" },
+      seed: { type: "int", label: "Seed", min: 1, max: 200, default: 1 },
+    },
+    pipeline: {
+      topic: { ...TOPIC, default: "pipeline" },
+      sSec: { type: "section", label: "The split" },
+      split: { type: "segmented", label: "Split", detail: "which list of transforms the sample goes through", options: [{ value: "train", label: "Training" }, { value: "val", label: "Validation/Test" }], default: "train" },
+      seed: { type: "int", label: "Seed", min: 1, max: 200, default: 1 },
+    },
+  };
+  const titles = { labelled: "Transforms page · A, labelled controls", code: "Transforms page · B, the call as code", pipeline: "Pipeline page" };
+  const drives = { labelled: ["Draw", "Play"], code: ["Draw", "Play"], pipeline: ["Next line", "Play"] };
+  for (const [key, spec] of Object.entries(specs)) {
+    const box = cand("railRow", titles[key], key === "pipeline" ? "Split as DATA (the list changes); the drive walks lines, then epochs" : "Transform as DISPLAY (the smear stays); the arguments DATA; Seed moves the draws", 320);
+    const host = el("div", "w-split rail-host");
+    const rail = el("div", "w-rail");
+    host.appendChild(rail);
+    const cm = el("div", "w-controls");
+    rail.appendChild(cm);
+    const values = resolveParams(spec, new URLSearchParams(""));
+    buildControls(cm, spec, values, () => {});
+    const drive = el("div", "w-drive");
+    rail.appendChild(drive);
+    buildActions(drive, [
+      { key: "step", text: drives[key][0], group: "pace", onClick: () => {} },
+      { key: "run", text: drives[key][1], group: "pace", primary: true, onClick: () => {} },
+      { key: "reset", text: "Reset", onClick: () => {} },
+    ]);
+    box.appendChild(host);
+    box.querySelector(".sub").textContent += `\nrail ${rail.getBoundingClientRect().height.toFixed(0)}px`;
+  }
+  document.getElementById("recRail").innerHTML =
+    `<b>B, the call as code</b>, if it reads as well in the browser as it does here: the students write exactly this line, `
+    + `and a slot away from its default is marked, so the rail shows at a glance what differs from cell 19. Each transform `
+    + `gets its own call (RandFlipd's two arguments, RandAdjustContrastd's gamma pair, RandGaussianNoised's std), and a `
+    + `<code>detail</code> under the block says what the changed argument does. A is the fallback if the code lines crowd at `
+    + `300px. Ranges go past cell 19's values (45°, 32 px, 0.3) so a sample can stop looking like a blood film. `
+    + `<i>Transform</i> is a display control so switching keeps the smear; every argument is data and restarts the draws. `
+    + `One defect both rails share: five buttons at 300px cut <i>Rotate 90</i> to "Rotate …"; the build needs shorter faces `
+    + `(<i>rot90</i> is torch's and numpy's own name) or the class names in a list, which is a copy-audit choice.`;
+}
+</script>
+</main>
+</body>
+</html>

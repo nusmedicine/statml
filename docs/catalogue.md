@@ -15555,9 +15555,30 @@ rotate 90, a family of γ curves, and what the noise page shows when cell 19's
 own σ is invisible); where the magnifier sits; the Pipeline page's thumbnails at
 550; the white cell's radius (70 large, 62 medium).
 
-**NEXT: the mock** — lean, from the newest shell, the engine inlined (a sample
-costs 11–54 ms, so Draw and Next epoch can run live without training anything)
-→ his picks → draft.
+#### MOCKED 2026-09-15 (night) — `_lab/augmentation-mock.html`
+
+Six sections from `unet-round3-mock.html`'s shell, every picture computed by
+the measured engine (inlined) on the 512 px smear, the rails through core's
+`buildControls` at 300. Read in the browser pane (dark theme, DPR 1.25) before he
+saw it; fixed there: outlines take a halo in the surface colour (a grey line
+vanished on the stained cytoplasm) except the faint accumulated ones (eleven
+halos stacked into a band); the γ band from `--surface-2` to a wash of
+`--c-empirical` (invisible in dark); the magnifier's labels shortened (they ran
+into each other); RandAffined's drawn values moved under the sample (they ran
+into it); the axis section made a 2 × 2 (one transposed panel could not show
+"top–bottom" without the plotted original beside it).
+
+| § | candidates | recommendation, as the page argues it |
+|---|---|---|
+| 1 figure | A his pair figure in one row (112 px panels) · B two columns Original · Augmented, image over mask, the outline on the augmented image (255 px) · C two overlays with the masks as insets | **B**: 0.5 CSS px an image pixel keeps the zeros and the 8–16 px move visible; the outline is the pairing check |
+| 2 draws | Flip and Rotate 90 as a grid of twelve samples with a tally; Affine as twelve outlines plus each argument's draws on its own range (rotate on a line, translate and scale in boxes); Contrast as the γ curves in the U(0.7, 1.5) band beside the sample; Noise three ways (as drawn · a magnified patch · after − before × 20) | as drawn, with Noise **iii** (the difference × 20, labelled) and the std range wide enough (0.1) to show on the sample itself |
+| 3 fail | (a) the flipped image with the stale mask, off-centre Dice 0.00 beside centred 0.99; (b) three 20 × 20 windows on the mask's edge: nearest · bilinear (552 values between 0 and 1) · bilinear → AsDiscreted (34 differ) | (a) a **White cell** display control, Off-centre · Centred, default off-centre — **his call**, with "off-centre only" and "centred only" the alternatives; (b) the windows as a band under the figure when the label's mode is bilinear |
+| 4 pipeline | A a thumbnail pair on every random line (50 px) · C the listing beside one 222 px sample, Step walking it down the lines, an epochs strip under it; C again under Split = Validation/Test with the random lines struck | **C**, *Next line* then *Next epoch* on widget 60's animation-keyed label |
+| 5 axis | the same arrays mirrored left–right as saved and top–bottom as cell 27 plots them | **his call**: (1) he adds `reader="PILReader", reverse_indexing=False` to cell 19's two `LoadImaged` lines, the widget says what cell 15 says, and the pin re-runs in that order (the turns reverse too); (2) MONAI's default wording; (3) the transposed orientation. Recommended 1 |
+| 6 rails | A labelled controls (1224 px) · B the call as code, core's `expr`, each argument a slot (946 px) · the Pipeline page (387 px) | **B**; both share one defect, *Rotate 90* cut to "Rotate …" in five buttons at 300 px — a copy-audit choice |
+
+**NEXT: his picks on the mock** (the two calls are his: the white cell's place and
+the axis wording), then the draft.
 
 *The entry below is the plan as first written and cut on 2026-09-13, kept as
 written.*
