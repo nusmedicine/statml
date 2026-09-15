@@ -24,17 +24,18 @@
 
     3. A CLICK ON A BLOCK DRAWS ITS OPERATION (round 2: "could I see a
        depiction of the operation, like the CNN widget?"), in a band under the
-       U, on the maps of a TRAINED network: `engine.js`'s depth-2, base-4
-       U-Net on a 16 × 16 image, trained once for 5 epochs (his pick over an
-       untrained pass, whose mask was noise). The band's network is fixed; the
-       U prints the shapes of the rail's Depth, Base channels and Input, and a
-       deeper block's operation is drawn on the trained network's block of the
-       same kind, which the band names. Block is a display parameter, so a
-       click keeps the stages already added; the dropdown is the keyboard path
-       to the same choice (3.6).
+       U, on the maps of a TRAINED network. ONE NETWORK ON THE PAGE (2026-09-15,
+       "go with depth 3 base 4 input 16, train on 3 channels", then Depth
+       2 · 3 · 4 and Base channels 4 · 8 so students see the architecture
+       change): the U, the level table and the band are the chosen network
+       on a 16 × 16 colour image, every count and size the same. The six
+       networks are trained ahead by `engine.js` in `_lab/unet-table.mjs` and
+       read from `table.js`, because base 8 froze the page for 4.5–10 s when it
+       trained here. Block is a display parameter, so a click keeps the stages
+       already added; the dropdown is the keyboard path to the same choice (3.6).
 
-    4. A 1 × 1 BOTTLENECK IS THE CASE THAT FAILS (2.6): depth 4 on a 16 × 16
-       input, named in `--c-extreme`.
+    4. A 1 × 1 BOTTLENECK: depth 4 on the 16 × 16 image pools to one cell, and
+       the diagram names it in `--c-extreme`.
 
     5. DICE IS ONE PANEL WITH THE PREDICTION DRAGGED ON IT (round 2: "drag and
        drop the prediction, don't use sliders"). The truth, the prediction and
@@ -263,7 +264,10 @@ function drawU(ctx, colors, w, state, reveal, block) {
   return L;
 }
 
-/* ========================= the operation band ============================= */
+/* ========================= the operation band ============================= *
+ * Drawn from the chosen network's own trained maps and numbers (`table.js`), so
+ * every count and size here is the diagram's. A map in the table is a
+ * thumbnail with its range; the numbers at the position are exact.            */
 
 function drawMap(ctx, colors, x, y, size, n, arr, frameTone) {
   const c = size / n;
@@ -304,17 +308,22 @@ const signedFill = (colors) => (v) => wash(v >= 0 ? colors.valueHigh : colors.va
 const opLabel = (ctx, colors, s, x, y) =>
   txt(ctx, colors, s, x, y, { align: "center", baseline: "middle", color: colors.ink2, weight: "600", size: colors.fsSm });
 
-/** up to four maps in a column, the channel count above; returns its height */
-function mapsColumn(ctx, colors, x, top, arr, C, H, frameTone, { align = "left", mark = null, above = null } = {}) {
-  const shown = Math.min(M.SHOWN, C);
-  note(ctx, colors, M.countText(C, above), align === "right" ? x + M.MAP_S : x, top + M.CH_Y, colors.ink2, { mono: true, align });
+/** up to four maps (thumbnails) in a column, the channel count above. `mark`
+    frames `s` cells from (r, c) on the first map, clipped to the map. */
+function mapsColumn(ctx, colors, x, top, thumbs, C, frameTone, { align = "left", mark = null } = {}) {
+  const shown = Math.min(M.SHOWN, thumbs.length);
+  note(ctx, colors, `${C} ch`, align === "right" ? x + M.MAP_S : x, top + M.CH_Y, colors.ink2, { mono: true, align });
   for (let c = 0; c < shown; c += 1) {
+    const q = thumbs[c];
     const y = top + M.BODY_Y + c * (M.MAP_S + 4);
-    drawMap(ctx, colors, x, y, M.MAP_S, H, arr.subarray(c * H * H, (c + 1) * H * H), frameTone);
+    drawMap(ctx, colors, x, y, M.MAP_S, q.n, M.mapOf(q), frameTone);
     if (mark && c === 0) {
-      const px = M.MAP_S / H;
-      const sz = Math.max(3, Math.ceil(mark.s * px));
-      frame(ctx, x + mark.c * px, y + mark.r * px, sz, sz, colors.highlight, 2);
+      const px = M.MAP_S / q.n;
+      const r0 = Math.max(0, mark.r);
+      const c0 = Math.max(0, mark.c);
+      const r1 = Math.min(q.n, mark.r + mark.s);
+      const c1 = Math.min(q.n, mark.c + mark.s);
+      frame(ctx, x + c0 * px, y + r0 * px, Math.max(3, (c1 - c0) * px), Math.max(3, (r1 - r0) * px), colors.highlight, 2);
     }
   }
   if (C > shown) note(ctx, colors, `+ ${C - shown}`, x, top + M.BODY_Y + shown * (M.MAP_S + 4) + 8, colors.ink3);
@@ -325,150 +334,141 @@ function bandTitle(ctx, colors, top, cap, sub, netLine) {
   note(ctx, colors, netLine, M.PAD, top + M.BAND_NET, colors.ink2);
 }
 
-function bandConv(ctx, colors, w, top, rec, name, netLine) {
-  const T = M.trainedNet();
-  const { x, H } = rec;
-  const cin = x.length / (H * H);
-  const cout = rec.out.length / (H * H);
-  const r = Math.min(H - 2, Math.max(1, M.unitAt(T.unit.r, H)));
-  const c = Math.min(H - 2, Math.max(1, M.unitAt(T.unit.c, H)));
-  const block = rec.block;
+/* the input a stage reads, as the table's thumbnails: the previous stage's output */
+function inputOf(T, st, name) {
+  const s = st.find((x) => x.name === name);
+  if (s.kind === "enc") return s.level === 1 ? { C: T.cin, maps: T.image } : { C: T.stages[`pool${s.level - 1}`].C, maps: T.stages[`pool${s.level - 1}`].maps };
+  if (s.kind === "pool") return { C: T.stages[`enc${s.level}`].C, maps: T.stages[`enc${s.level}`].maps };
+  if (s.kind === "bottleneck") return { C: T.stages[`pool${T.depth}`].C, maps: T.stages[`pool${T.depth}`].maps };
+  if (s.kind === "up") {
+    const below = s.level === T.depth ? T.stages.bottleneck : T.stages[`dec${s.level + 1}`];
+    return { C: below.C, maps: below.maps };
+  }
+  if (s.kind === "dec") return { C: T.stages[`cat${s.level}`].C, maps: T.stages[`cat${s.level}`].maps };
+  return { C: T.stages.dec1.C, maps: T.stages.dec1.maps };
+}
+
+function bandConv(ctx, colors, w, top, T, st, name, netLine) {
+  const S = T.stages[name];
+  const A = S.at;
+  const input = inputOf(T, st, name);
+  const { r, c } = A;
   bandTitle(ctx, colors, top, `${name}: DoubleConv, (Conv 3 × 3 → BatchNorm → ReLU) twice`,
     `The first convolution at row ${r}, column ${c}, into output channel 0. The second repeats it on the result.`, netLine);
-  mapsColumn(ctx, colors, M.PAD, top, x, cin, H, colors.groupA, { mark: { r: r - 1, c: c - 1, s: 3 }, above: ABOVE?.cin });
+  mapsColumn(ctx, colors, M.PAD, top, input.maps, input.C, colors.groupA, { mark: { r: r - 1, c: c - 1, s: 3 } });
   const gx = M.PAD + M.MAP_S + 18;
   const kx = gx + 3 * M.CW + 22;
   note(ctx, colors, "window", gx, top + M.HEAD_Y, colors.ink3);
   note(ctx, colors, "kernel slice", kx, top + M.HEAD_Y, colors.ink3);
-  const drawn = Math.min(M.GRID_ROWS, cin);
-  const W = block.c1.W.v;
-  for (let ch = 0; ch < drawn; ch += 1) {
-    const win = [];
-    const sl = [];
-    for (let ky = 0; ky < 3; ky += 1) {
-      for (let kxx = 0; kxx < 3; kxx += 1) {
-        win.push(x[ch * H * H + (r + ky - 1) * H + (c + kxx - 1)]);
-        sl.push(W[ch * 9 + ky * 3 + kxx]);
-      }
-    }
+  A.windows.forEach((win, ch) => {
     const y = top + M.BODY_Y + ch * (3 * M.CW + 10);
     cellGrid(ctx, colors, gx, y, 3, win, { fill: (v) => wash(colors.groupA, 0.08 + 0.4 * Math.min(1, Math.abs(v))) });
     opLabel(ctx, colors, "⊙", gx + 3 * M.CW + 11, y + 1.5 * M.CW);
-    cellGrid(ctx, colors, kx, y, 3, sl, { fill: signedFill(colors) });
-  }
-  if (cin > drawn) {
-    note(ctx, colors, `+ ${cin - drawn} more channels, each with its own window and slice`, gx, top + M.BODY_Y + drawn * (3 * M.CW + 10) + 2, colors.ink3);
+    cellGrid(ctx, colors, kx, y, 3, A.slices[ch], { fill: signedFill(colors) });
+  });
+  const drawn = A.windows.length;
+  if (input.C > drawn) {
+    const more = input.C - drawn;
+    note(ctx, colors, `+ ${more} more ${more === 1 ? "channel" : "channels"}, each with its own window and slice`, gx, top + M.BODY_Y + drawn * (3 * M.CW + 10) + 2, colors.ink3);
   }
   const sx = kx + 3 * M.CW + 18;
-  const z = rec.z1[r * H + c];
-  const mu = block.n1.rm[0];
-  const sd = Math.sqrt(block.n1.rv[0] + 1e-5);
-  const nrm = rec.n1[r * H + c];
-  const lines = [["sum over channels", f2(z)], ["BatchNorm", f2(nrm)], ["ReLU", f2(rec.a1[r * H + c])]];
+  const lines = [["sum over channels", f2(A.z)], ["BatchNorm", f2(A.bn)], ["ReLU", f2(A.relu)]];
   lines.forEach(([l, v], i) => {
     const y = top + M.BODY_Y + 12 + i * 30;
     note(ctx, colors, l, sx, y, colors.ink2);
     txt(ctx, colors, v, sx, y + 14, { mono: true, color: i === 2 ? colors.highlight : colors.ink1, size: colors.fsXs, weight: "600" });
   });
-  /* under the three lines, inside the column the output maps leave at 550 */
   note(ctx, colors, "BatchNorm = γ × (z − mean) / sd + β", sx, top + M.BODY_Y + 112, colors.ink3);
-  note(ctx, colors, `${f2(block.n1.gamma.v[0])} × (z − ${f2(mu)}) / ${f2(sd)} + ${f2(block.n1.beta.v[0])}`,
-    sx, top + M.BODY_Y + 126, colors.ink3, { mono: true });
+  note(ctx, colors, `${f2(A.gamma)} × (z − ${f2(A.mean)}) / ${f2(A.sd)} + ${f2(A.beta)}`, sx, top + M.BODY_Y + 126, colors.ink3, { mono: true });
   note(ctx, colors, "mean and sd kept from training", sx, top + M.BODY_Y + 140, colors.ink3);
-  mapsColumn(ctx, colors, w - M.PAD - M.MAP_S, top, rec.out, cout, H, colors.groupA, { align: "right", mark: { r, c, s: 1 }, above: ABOVE?.cout });
+  mapsColumn(ctx, colors, w - M.PAD - M.MAP_S, top, S.maps, S.C, colors.groupA, { align: "right", mark: { r, c, s: 1 } });
 }
-function bandPool(ctx, colors, w, top, rec, name, netLine) {
-  const T = M.trainedNet();
-  const { x, C, H, out } = rec;
-  const h = H >> 1;
-  const r = M.unitAt(T.unit.r, h);
-  const c = M.unitAt(T.unit.c, h);
+function bandPool(ctx, colors, w, top, T, st, name, netLine) {
+  const S = T.stages[name];
+  const A = S.at;
+  const input = inputOf(T, st, name);
+  const H = S.H * 2;
   bandTitle(ctx, colors, top, `${name}: MaxPool 2 × 2, the largest of each window kept`,
-    `Channel 0, output row ${r}, column ${c}. Height and width halve, ${H} × ${H} to ${h} × ${h}; the channels stay ${C}.`, netLine);
-  mapsColumn(ctx, colors, M.PAD, top, x, C, H, colors.groupA, { mark: { r: 2 * r, c: 2 * c, s: 2 }, above: ABOVE?.cin });
-  const win = [];
-  for (let j = 0; j < 2; j += 1) for (let i = 0; i < 2; i += 1) win.push(x[(2 * r + j) * H + 2 * c + i]);
-  const mx = Math.max(...win);
-  const best = win.indexOf(mx);
+    `Channel 0, output row ${A.r}, column ${A.c}. Height and width halve, ${H} × ${H} to ${S.H} × ${S.H}; the channels stay ${S.C}.`, netLine);
+  mapsColumn(ctx, colors, M.PAD, top, input.maps, input.C, colors.groupA, { mark: { r: 2 * A.r, c: 2 * A.c, s: 2 } });
+  const best = A.window.indexOf(Math.max(...A.window));
   const gx = M.PAD + M.MAP_S + 40;
   note(ctx, colors, "window", gx, top + M.HEAD_Y, colors.ink3);
-  cellGrid(ctx, colors, gx, top + M.BODY_Y, 2, win, { fill: (v) => wash(colors.groupA, 0.08 + 0.4 * Math.min(1, v)), hi: [Math.floor(best / 2), best % 2] });
+  cellGrid(ctx, colors, gx, top + M.BODY_Y, 2, A.window, { fill: (v) => wash(colors.groupA, 0.08 + 0.4 * Math.min(1, v)), hi: [Math.floor(best / 2), best % 2] });
   opLabel(ctx, colors, "max", gx + 2 * M.CW + 24, top + M.BODY_Y + M.CW);
-  cellGrid(ctx, colors, gx + 2 * M.CW + 48, top + M.BODY_Y + M.CW / 2, 1, [mx], { tone: colors.highlight });
-  mapsColumn(ctx, colors, w - M.PAD - M.MAP_S, top, out, C, h, colors.groupA, { align: "right", mark: { r, c, s: 1 }, above: ABOVE?.cout });
+  cellGrid(ctx, colors, gx + 2 * M.CW + 48, top + M.BODY_Y + M.CW / 2, 1, [A.max], { tone: colors.highlight });
+  mapsColumn(ctx, colors, w - M.PAD - M.MAP_S, top, S.maps, S.C, colors.groupA, { align: "right", mark: { r: A.r, c: A.c, s: 1 } });
 }
-function bandUp(ctx, colors, w, top, rec, name, netLine) {
-  const { x, h, out, layer } = rec;
-  const H = 2 * h;
-  const cin = layer.cin;
-  const cout = layer.cout;
-  /* the largest cell of input channel 0: at the object's edge the bottleneck's
-     ReLU output is often 0, and a zero cell scatters nothing but the bias */
-  let best = 0;
-  for (let i = 1; i < h * h; i += 1) if (x[i] > x[best]) best = i;
-  const r = Math.floor(best / h);
-  const c = best % h;
+function bandUp(ctx, colors, w, top, T, st, name, netLine) {
+  const S = T.stages[name];
+  const A = S.at;
+  const input = inputOf(T, st, name);
+  const h = S.H / 2;
   bandTitle(ctx, colors, top, `${name}: ConvTranspose 2 × 2, stride 2, one cell to a 2 × 2 patch`,
-    `Input channel 0 at row ${r}, column ${c}, into output channel 0. Height and width double, ${h} × ${h} to ${H} × ${H}.`, netLine);
-  mapsColumn(ctx, colors, M.PAD, top, x, cin, h, colors.groupB, { mark: { r, c, s: 1 }, above: ABOVE?.cin });
-  const xv = x[r * h + c];
+    `Input channel ${A.ch} at row ${A.r}, column ${A.c}, into output channel 0. Height and width double, ${h} × ${h} to ${S.H} × ${S.H}.`, netLine);
+  mapsColumn(ctx, colors, M.PAD, top, input.maps, input.C, colors.groupB, { mark: { r: A.r, c: A.c, s: 1 } });
   const gx = M.PAD + M.MAP_S + 34;
   const y = top + M.BODY_Y;
   note(ctx, colors, "cell", gx, top + M.HEAD_Y, colors.ink3);
-  cellGrid(ctx, colors, gx, y + M.CW / 2, 1, [xv], { fill: () => wash(colors.groupB, 0.3) });
+  cellGrid(ctx, colors, gx, y + M.CW / 2, 1, [A.cell], { fill: () => wash(colors.groupB, 0.3) });
   opLabel(ctx, colors, "×", gx + M.CW + 14, y + M.CW);
   const kx = gx + M.CW + 28;
   note(ctx, colors, "kernel", kx, top + M.HEAD_Y, colors.ink3);
-  const ker = [0, 1, 2, 3].map((k) => layer.W.v[k]);
-  cellGrid(ctx, colors, kx, y, 2, ker, { fill: signedFill(colors) });
+  cellGrid(ctx, colors, kx, y, 2, A.kernel, { fill: signedFill(colors) });
   opLabel(ctx, colors, "+ b", kx + 2 * M.CW + 16, y + M.CW);
   const px = kx + 2 * M.CW + 34;
   note(ctx, colors, "patch", px, top + M.HEAD_Y, colors.ink3);
-  cellGrid(ctx, colors, px, y, 2, ker.map((k) => xv * k + layer.b.v[0]), { tone: colors.highlight, fill: () => wash(colors.groupB, 0.15) });
-  note(ctx, colors, `The other ${cin - 1} input channels add their own patches to the same four cells.`, gx, y + 2 * M.CW + 18, colors.ink3);
-  mapsColumn(ctx, colors, w - M.PAD - M.MAP_S, top, out, cout, H, colors.groupB, { align: "right", mark: { r: 2 * r, c: 2 * c, s: 2 }, above: ABOVE?.cout });
+  cellGrid(ctx, colors, px, y, 2, A.kernel.map((k) => A.cell * k + A.bias), { tone: colors.highlight, fill: () => wash(colors.groupB, 0.15) });
+  note(ctx, colors, `The other ${A.cin - 1} input channels add their own patches to the same four cells.`, gx, y + 2 * M.CW + 18, colors.ink3);
+  mapsColumn(ctx, colors, w - M.PAD - M.MAP_S, top, S.maps, S.C, colors.groupB, { align: "right", mark: { r: 2 * A.r, c: 2 * A.c, s: 2 } });
 }
-function bandCat(ctx, colors, w, top, rec, name, netLine) {
-  const { up, enc, C, H, out } = rec;
+function bandCat(ctx, colors, w, top, T, st, name, netLine) {
+  const S = T.stages[name];
+  const lvl = Number(name.slice(3));
+  const C = S.C / 2;
+  const H = S.H;
+  const up = T.stages[`up${lvl}`];
+  const enc = T.stages[`enc${lvl}`];
   bandTitle(ctx, colors, top, `${name}: torch.cat(dim=1), the upsampled maps beside the encoder's`,
     `Channels add, ${C} + ${C} = ${2 * C}; height and width stay ${H} × ${H}. The encoder's maps arrive unchanged.`, netLine);
   const x1 = M.PAD;
-  mapsColumn(ctx, colors, x1, top, up, C, H, colors.groupB, { above: ABOVE?.cin });
+  mapsColumn(ctx, colors, x1, top, up.maps, C, colors.groupB);
   note(ctx, colors, "up", x1, top + M.HEAD_Y, colors.ink3);
   opLabel(ctx, colors, "+", x1 + M.MAP_S + 38, top + M.BODY_Y + 2 * (M.MAP_S + 4) - 2);
   const x2 = x1 + M.MAP_S + 76;
-  mapsColumn(ctx, colors, x2, top, enc, C, H, colors.groupA, { above: ABOVE?.cin });
+  mapsColumn(ctx, colors, x2, top, enc.maps, C, colors.groupA);
   note(ctx, colors, "skip", x2, top + M.HEAD_Y, colors.ink3);
   opLabel(ctx, colors, "→", x2 + M.MAP_S + 42, top + M.BODY_Y + 2 * (M.MAP_S + 4) - 2);
   const x3 = x2 + M.MAP_S + 84;
-  note(ctx, colors, M.countText(2 * C, ABOVE?.cout), x3, top + M.CH_Y, colors.ink2, { mono: true });
+  note(ctx, colors, `${2 * C} ch`, x3, top + M.CH_Y, colors.ink2, { mono: true });
   note(ctx, colors, "the upsampled channels first", x3, top + M.HEAD_Y, colors.ink3);
-  const shown = Math.min(8, 2 * C);
-  for (let ch = 0; ch < shown; ch += 1) {
-    drawMap(ctx, colors, x3 + (ch % 4) * (M.MAP_S + 4), top + M.BODY_Y + Math.floor(ch / 4) * (M.MAP_S + 4), M.MAP_S, H,
-      out.subarray(ch * H * H, (ch + 1) * H * H), ch < C ? colors.groupB : colors.groupA);
-  }
-  if (2 * C > shown) note(ctx, colors, `+ ${2 * C - shown}`, x3, top + M.BODY_Y + 2 * (M.MAP_S + 4) + 8, colors.ink3);
+  S.maps.forEach((q, ch) => {
+    drawMap(ctx, colors, x3 + (ch % 4) * (M.MAP_S + 4), top + M.BODY_Y + Math.floor(ch / 4) * (M.MAP_S + 4), M.MAP_S, q.n,
+      M.mapOf(q), ch < C ? colors.groupB : colors.groupA);
+  });
+  if (2 * C > S.maps.length) note(ctx, colors, `+ ${2 * C - S.maps.length}`, x3, top + M.BODY_Y + 2 * (M.MAP_S + 4) + 8, colors.ink3);
 }
-function bandHead(ctx, colors, w, top, rec, name, netLine) {
-  const T = M.trainedNet();
-  const { x, z, p } = rec;
-  const H = M.TRAIN.S;
-  const cin = x.length / (H * H);
-  const { r, c } = T.unit;
-  const head = T.net.head;
+function bandHead(ctx, colors, w, top, T, st, name, netLine) {
+  const S = T.stages.head;
+  const A = S.at;
+  const input = inputOf(T, st, name);
+  const cin = A.pixel.length;
   bandTitle(ctx, colors, top, `${name}: Conv 1 × 1, then sigmoid and the threshold at 0.5`,
-    `Row ${r}, column ${c}: the ${cin} channel values at that pixel, each times its weight, plus the bias.`, netLine);
-  mapsColumn(ctx, colors, M.PAD, top, x, cin, H, colors.groupB, { mark: { r, c, s: 1 }, above: ABOVE?.cin });
+    `Row ${A.r}, column ${A.c}: the ${cin} channel values at that pixel, each times its weight, plus the bias.`, netLine);
+  mapsColumn(ctx, colors, M.PAD, top, input.maps, input.C, colors.groupB, { mark: { r: A.r, c: A.c, s: 1 } });
+  /* eight channels at base 8 go in two columns, so the band keeps its height */
+  const cols = M.headCols(cin);
+  const cell = (k) => [vxOf(k), top + M.BODY_Y + Math.floor(k / cols) * M.CW];
   const vx = M.PAD + M.MAP_S + 34;
+  const vxOf = (k) => vx + (k % cols) * M.CW;
   note(ctx, colors, "pixel", vx, top + M.HEAD_Y, colors.ink3);
-  for (let ch = 0; ch < cin; ch += 1) cellGrid(ctx, colors, vx, top + M.BODY_Y + ch * M.CW, 1, [x[ch * H * H + r * H + c]], { fill: () => wash(colors.groupB, 0.3) });
-  opLabel(ctx, colors, "⊙", vx + M.CW + 14, top + M.BODY_Y + (cin * M.CW) / 2);
-  const wx = vx + M.CW + 28;
+  A.pixel.forEach((v, ch) => { const [x, y] = cell(ch); cellGrid(ctx, colors, x, y, 1, [v], { fill: () => wash(colors.groupB, 0.3) }); });
+  opLabel(ctx, colors, "⊙", vx + cols * M.CW + 14, top + M.BODY_Y + (Math.ceil(cin / cols) * M.CW) / 2);
+  const wx = vx + cols * M.CW + 28;
   note(ctx, colors, "weights", wx, top + M.HEAD_Y, colors.ink3);
-  for (let ch = 0; ch < cin; ch += 1) cellGrid(ctx, colors, wx, top + M.BODY_Y + ch * M.CW, 1, [head.Wh.v[ch]], { fill: signedFill(colors) });
-  const sx = wx + M.CW + 22;
-  const lines = [[`sum + bias ${f2(head.bh.v[0])}`, f2(z[r * H + c])], ["sigmoid", p[r * H + c].toFixed(3)], ["over 0.5", p[r * H + c] > 0.5 ? "object" : "background"]];
+  A.weights.forEach((v, ch) => cellGrid(ctx, colors, wx + (ch % cols) * M.CW, top + M.BODY_Y + Math.floor(ch / cols) * M.CW, 1, [v], { fill: signedFill(colors) }));
+  const sx = wx + cols * M.CW + 22;
+  const lines = [[`sum + bias ${f2(A.bias)}`, f2(A.z)], ["sigmoid", A.p.toFixed(3)], ["over 0.5", A.p > 0.5 ? "object" : "background"]];
   lines.forEach(([l, v], i) => {
     const y = top + M.BODY_Y + 12 + i * 30;
     note(ctx, colors, l, sx, y, colors.ink2);
@@ -476,46 +476,36 @@ function bandHead(ctx, colors, w, top, rec, name, netLine) {
   });
   const size = M.HEAD_MAP;
   const ox = w - M.PAD - 3 * size - 20;
-  const mask = p.map((v) => (v > 0.5 ? 1 : 0));
-  [["sigmoid", p], ["mask", mask], ["truth", T.truth]].forEach(([label, arr], k) => {
+  [["sigmoid", S.maps[0], colors.empirical], ["mask", T.mask, colors.empirical], ["truth", T.truth, colors.reference]].forEach(([label, q, tone], k) => {
     const mx = ox + k * (size + 10);
     note(ctx, colors, label, mx, top + M.HEAD_Y, colors.ink3);
-    drawMap(ctx, colors, mx, top + M.BODY_Y, size, H, arr, k === 2 ? colors.reference : colors.empirical);
+    drawMap(ctx, colors, mx, top + M.BODY_Y, size, q.n, M.mapOf(q), tone);
   });
-  frame(ctx, ox + size + 10 + c * (size / H), top + M.BODY_Y + r * (size / H), Math.ceil(size / H), Math.ceil(size / H), colors.highlight, 2);
+  frame(ctx, ox + size + 10 + A.c * (size / S.H), top + M.BODY_Y + A.r * (size / S.H), Math.ceil(size / S.H), Math.ceil(size / S.H), colors.highlight, 2);
 }
 
-const NET_LINE = (T) => `On a small trained network (depth ${M.TRAIN.depth}, base ${M.TRAIN.base}, a 16 × 16 image), held-out Dice ${T.dice.toFixed(2)}.`;
-/* the chosen block's channel counts in the U above, read by every band's labels */
-let ABOVE = null;
+const NET_LINE = (T) => `Trained on ${M.TABLE_N} 16 × 16 colour images for ${M.TABLE_EPOCHS} epochs; the maps are its own at this depth and base.`;
 
 function drawBand(ctx, colors, w, top, state, params, reached) {
-  const T = M.trainedNet();
-  const drawnName = params.block;
-  const name = M.trainedStage(drawnName);
+  const T = state.trained;
+  const name = params.block;
   ctx.save();
   ctx.strokeStyle = colors.grid;
   ctx.beginPath(); ctx.moveTo(M.PAD, top - M.BAND_GAP / 2 + 0.5); ctx.lineTo(w - M.PAD, top - M.BAND_GAP / 2 + 0.5); ctx.stroke();
   ctx.restore();
   if (!reached) {
     caption(ctx, colors, "The operation of a block", M.PAD, top + M.BAND_CAP);
-    note(ctx, colors, `${drawnName} has not been added yet. Press Next stage, then click a block on the network.`, M.PAD, top + M.BAND_NOTE);
+    note(ctx, colors, `${name} has not been added yet. Press Next stage, then click a block on the network.`, M.PAD, top + M.BAND_NOTE);
     return;
   }
-  const netLine = name === drawnName ? NET_LINE(T)
-    : `Drawn on ${name} of a small trained network (depth ${M.TRAIN.depth}, base ${M.TRAIN.base}, 16 × 16), the same operation.`;
-  ABOVE = M.drawnCounts(state.stages, drawnName);
-  const kind = name.replace(/\d+$/, "");
-  const rec = T.rec[name];
-  const net = T.net;
-  const lvl = Number(name.match(/\d+$/)?.[0] ?? 0);
-  if (kind === "enc" || kind === "dec" || name === "bottleneck") {
-    const block = kind === "enc" ? net.enc[lvl - 1] : kind === "dec" ? net.decs[net.depth - lvl] : net.bottleneck;
-    bandConv(ctx, colors, w, top, { ...rec, block }, drawnName, netLine);
-  } else if (kind === "pool") bandPool(ctx, colors, w, top, rec, drawnName, netLine);
-  else if (kind === "up") bandUp(ctx, colors, w, top, { ...rec, layer: net.ups[net.depth - lvl] }, drawnName, netLine);
-  else if (kind === "cat") bandCat(ctx, colors, w, top, rec, drawnName, netLine);
-  else bandHead(ctx, colors, w, top, rec, drawnName, netLine);
+  const netLine = NET_LINE(T);
+  const st = state.stages;
+  const kind = st.find((s) => s.name === name)?.kind;
+  if (kind === "enc" || kind === "dec" || kind === "bottleneck") bandConv(ctx, colors, w, top, T, st, name, netLine);
+  else if (kind === "pool") bandPool(ctx, colors, w, top, T, st, name, netLine);
+  else if (kind === "up") bandUp(ctx, colors, w, top, T, st, name, netLine);
+  else if (kind === "cat") bandCat(ctx, colors, w, top, T, st, name, netLine);
+  else bandHead(ctx, colors, w, top, T, st, name, netLine);
 }
 
 /* ============================== Dice ====================================== */
@@ -731,28 +721,23 @@ defineWidget({
 
     /* --- U-Net ----------------------------------------------------------- */
     netSec: { type: "section", label: "The network", when: ON("unet") },
+    /* THE NETWORK IS CHOSEN HERE, and every figure below is that network: the U,
+       the level table and the operation panel read the same trained U-Net on a
+       16 × 16 colour image (Kenneth's picks, 2026-09-15). */
     depth: {
-      type: "choice",
+      type: "segmented",
       label: "Depth",
-      detail: "how many times the encoder halves the image before the bottleneck",
+      detail: "how many times the encoder halves the 16 × 16 image before the bottleneck",
       options: M.DEPTHS.map((v) => ({ value: v, label: v })),
-      default: "4",
+      default: "3",
       when: ON("unet"),
     },
     base: {
-      type: "choice",
+      type: "segmented",
       label: "Base channels",
       detail: "the channels of the first block; each level doubles them",
       options: M.BASES.map((v) => ({ value: v, label: v })),
-      default: "16",
-      when: ON("unet"),
-    },
-    input: {
-      type: "choice",
-      label: "Input",
-      detail: "the side of the input image, in pixels",
-      options: M.INPUTS.map((v) => ({ value: v, label: v })),
-      default: "512",
+      default: "4",
       when: ON("unet"),
     },
     opSec: { type: "section", label: "The operation", when: ON("unet") },
@@ -918,9 +903,9 @@ defineWidget({
       { label: "Bottleneck", value: shapeText(M.shapeOf(bottle)), note: bottle.H === 1 ? "a 1 × 1 map; a deeper network could pool no further" : `${bottle.H} × ${bottle.H}, ${bottle.C} channels` },
       { label: "Parameters", value: fmt(state.params), note: "the DoubleConv blocks, the transposed convolutions and the head, at this depth and base" },
       {
-        label: "Trained network",
-        value: `Dice ${state.trained.dice.toFixed(2)}`,
-        note: `the operations are drawn on a depth-${M.TRAIN.depth}, base-${M.TRAIN.base} U-Net trained here on ${M.TRAIN.n} 16 × 16 images for ${M.TRAIN.epochs} epochs; Dice on ${M.TRAIN.nTest} held-out images`,
+        label: "Training time",
+        value: `${(state.trained.ms / 1000).toFixed(1)} s`,
+        note: `${M.TABLE_EPOCHS} epochs on ${M.TABLE_N} 16 × 16 colour images, in JavaScript on one CPU thread`,
       },
     ];
   },

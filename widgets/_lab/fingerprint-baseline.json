@@ -6993,37 +6993,37 @@
       "tx": "915f23e8"
     },
     {
-      "$note": "unet · the empty stage: every slab outlined, the band's note, the lesson's net",
+      "$note": "unet · the empty stage at depth 3, base 4: every slab outlined, the band's note",
       "slug": "unet",
       "state": "?theme=light&shown=0",
       "px": "0",
       "tx": "0"
     },
     {
-      "$note": "unet · nine stages added, the band on enc1 (the default block)",
+      "$note": "unet · nine stages added, the panel on enc1",
       "slug": "unet",
       "state": "?theme=light&shown=9",
       "px": "0",
       "tx": "0"
     },
     {
-      "$note": "unet · depth 2, base 4, input 16, every stage added, the band on dec1",
+      "$note": "unet · depth 2, base 4, every stage added, the panel on dec1",
       "slug": "unet",
-      "state": "?theme=light&depth=2&base=4&input=16&shown=12&block=dec1",
+      "state": "?theme=light&depth=2&shown=12&block=dec1",
       "px": "0",
       "tx": "0"
     },
     {
-      "$note": "unet · the case that fails, the band on up4 drawn on the trained up2",
+      "$note": "unet · depth 4, base 8, every stage added (a 1 × 1 bottleneck), the panel on up4",
       "slug": "unet",
-      "state": "?theme=light&input=16&shown=22&block=up4",
+      "state": "?theme=light&depth=4&base=8&shown=22&block=up4",
       "px": "0",
       "tx": "0"
     },
     {
-      "$note": "unet · the head's band: the logit, the sigmoid, the mask against the truth",
+      "$note": "unet · depth 3, base 8, every stage added, the panel on the head (eight channels in two columns)",
       "slug": "unet",
-      "state": "?theme=light&depth=2&shown=12&block=head",
+      "state": "?theme=light&base=8&shown=17&block=head",
       "px": "0",
       "tx": "0"
     },

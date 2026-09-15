@@ -31,35 +31,46 @@ export const SMOOTH = 1e-5;           // MONAI DiceLoss smooth_nr and smooth_dr
 /**
  * One to three blobs on a dark field with noise, the planning script's
  * "not small" case: the mask is the blobs, the image a soft rendering of them.
+ * `cin` channels (Kenneth, 2026-09-15: "train on 3 channels"): each blob has
+ * its own colour, a brightness a channel, so the image is a colour image as the
+ * lesson's are, and the mask is the same for every channel. With `cin` 1 the
+ * draws are the one-channel images the earlier rounds trained on.
  */
-export function makeCase(S, rng) {
-  const img = F(S * S);
+export function makeCase(S, rng, cin = 1) {
+  const img = F(cin * S * S);
   const mask = F(S * S);
   const nb = 1 + Math.floor(rng.next() * 3);
   const blobs = [];
   for (let k = 0; k < nb; k += 1) {
     const r = 1.4 + rng.next() * (S / 6 - 1.4);
-    blobs.push([r + 1 + rng.next() * (S - 2 * r - 2), r + 1 + rng.next() * (S - 2 * r - 2), r]);
+    const colour = cin === 1 ? [0.6] : Array.from({ length: cin }, () => 0.25 + 0.6 * rng.next());
+    blobs.push([r + 1 + rng.next() * (S - 2 * r - 2), r + 1 + rng.next() * (S - 2 * r - 2), r, colour]);
   }
   for (let y = 0; y < S; y += 1) {
     for (let x = 0; x < S; x += 1) {
       let best = Infinity;
-      for (const [cx, cy, r] of blobs) best = Math.min(best, Math.hypot(x + 0.5 - cx, y + 0.5 - cy) - r);
+      const soft = F(cin);
+      for (const [cx, cy, r, colour] of blobs) {
+        const d = Math.hypot(x + 0.5 - cx, y + 0.5 - cy) - r;
+        best = Math.min(best, d);
+        const v = 1 / (1 + Math.exp(d / 0.7));
+        for (let c = 0; c < cin; c += 1) soft[c] = Math.max(soft[c], colour[c] * v);
+      }
       mask[y * S + x] = best <= 0 ? 1 : 0;
-      img[y * S + x] = 0.6 / (1 + Math.exp(best / 0.7)) + 0.2 * rng.normal();
+      for (let c = 0; c < cin; c += 1) img[c * S * S + y * S + x] = soft[c] + 0.2 * rng.normal();
     }
   }
   return { img, mask };
 }
-export function makeData(S, n, rng) {
-  const x = F(n * S * S);
+export function makeData(S, n, rng, cin = 1) {
+  const x = F(n * cin * S * S);
   const t = F(n * S * S);
   for (let i = 0; i < n; i += 1) {
-    const c = makeCase(S, rng);
-    x.set(c.img, i * S * S);
+    const c = makeCase(S, rng, cin);
+    x.set(c.img, i * cin * S * S);
     t.set(c.mask, i * S * S);
   }
-  return { x, t, n, S };
+  return { x, t, n, S, cin };
 }
 
 /* --- parameters --------------------------------------------------------------- */
@@ -98,9 +109,9 @@ function upLayer(cin, cout, rng) {
  * `depth` encoder levels, `base` channels at the first; one input channel,
  * one output logit a pixel.
  */
-export function makeUNet(depth, base, S, rng) {
+export function makeUNet(depth, base, S, rng, inChannels = 1) {
   const enc = [];
-  let cin = 1;
+  let cin = inChannels;
   for (let l = 1; l <= depth; l += 1) {
     const c = base * 2 ** (l - 1);
     enc.push(doubleConv(cin, c, rng));
@@ -120,7 +131,7 @@ export function makeUNet(depth, base, S, rng) {
   const bh = param(1);
   uniform(Wh, base, rng);
   uniform(bh, base, rng);
-  const net = { depth, base, S, enc, bottleneck, ups, decs, head: { Wh, bh } };
+  const net = { depth, base, S, cin: inChannels, enc, bottleneck, ups, decs, head: { Wh, bh } };
   net.params = [];
   const addD = (d) => net.params.push(d.c1.W, d.n1.gamma, d.n1.beta, d.c2.W, d.n2.gamma, d.n2.beta);
   enc.forEach(addD);
@@ -533,10 +544,10 @@ export function train(net, data, { epochs, batch = 8, lr = 1e-3, rng, step = 0 }
     let L = 0;
     let steps = 0;
     for (let s = 0; s + batch <= n; s += batch) {
-      const x = F(batch * HW);
+      const x = F(batch * net.cin * HW);
       const y = F(batch * HW);
       for (let j = 0; j < batch; j += 1) {
-        x.set(data.x.subarray(order[s + j] * HW, (order[s + j] + 1) * HW), j * HW);
+        x.set(data.x.subarray(order[s + j] * net.cin * HW, (order[s + j] + 1) * net.cin * HW), j * net.cin * HW);
         y.set(data.t.subarray(order[s + j] * HW, (order[s + j] + 1) * HW), j * HW);
       }
       const rec = forward(net, x, batch, { train: true });
@@ -558,7 +569,7 @@ export function evaluateDice(net, data) {
   const HW = S * S;
   let sum = 0;
   for (let i = 0; i < n; i += 1) {
-    const rec = forward(net, data.x.subarray(i * HW, (i + 1) * HW), 1);
+    const rec = forward(net, data.x.subarray(i * net.cin * HW, (i + 1) * net.cin * HW), 1);
     let I = 0;
     let A = 0;
     let Bc = 0;
@@ -577,9 +588,9 @@ export function evaluateDice(net, data) {
 /* --- the gradient check -------------------------------------------------------------- */
 
 /** max relative error of every parameter's analytic gradient, training mode */
-export function gradCheck(rng, { depth = 1, base = 2, S = 4, B = 2 } = {}) {
-  const net = makeUNet(depth, base, S, rng);
-  const data = makeData(S, B, rng);
+export function gradCheck(rng, { depth = 1, base = 2, S = 4, B = 2, cin = 1 } = {}) {
+  const net = makeUNet(depth, base, S, rng, cin);
+  const data = makeData(S, B, rng, cin);
   const HW = S * S;
   /* BatchNorm's running statistics move on every training forward; the loss
      does not read them, so the check is unaffected, but restore them anyway */

@@ -15836,6 +15836,19 @@ and it is now out of sight until the reader asks for it.
 
 ### Slot 65 · `unet` — Architecture - Basic (Segmentation) — TWO PAGES since 2026-09-13, MOCKED 2026-09-15
 
+**ROUND 8 (2026-09-15, night), ONE NETWORK, his asks "can you train the actual channels in the diagram and store them in lookup table? so there is no discrepancy?", "go with depth 3 base 4 input 16, train on 3 channels" and "ok maybe give some choices", picks Depth 2 · 3 · 4 × Base channels 4 · 8 and a readout of parameters and training time only:** round 7's two networks are gone. The U, the level table and the operation band are one U-Net on a 16 × 16 colour image (3 channels), chosen by two segmented controls (default depth 3, base 4); Input is gone. The six networks are TRAINED AHEAD by the widget's own engine at its own seed (`_lab/unet-table.mjs` writes `widgets/unet/table.js`, 140 KB raw, 38 KB gzip) and the page reads them, because base 8 trained in the page froze it for 4.5–10 s with no way to say so (compute is synchronous); switching now takes 26 ms. Each setting stores the image, truth and mask, four thumbnails a stage (eight for a concatenation) quantised to 0–255 with the map's range, and the exact numbers the band prints at its position. The verify retrains depth 2 and 3 at base 4 and requires the table to equal them field for field (training time excepted), and checks the band's arithmetic at the stored positions. Measured when the table was written:
+
+| depth · base | parameters | training | held-out Dice (recorded, not shown) |
+|---|---|---|---|
+| 2 · 4 | 7,549 | 1.4 s | 0.829 |
+| 3 · 4 | 30,541 | 1.9 s | 0.846 |
+| 4 · 4 | 122,093 | 2.6 s | 0.845 |
+| 2 · 8 | 29,625 | 4.6 s | 0.812 |
+| 3 · 8 | 121,177 | 6.8 s | 0.842 |
+| 4 · 8 | 486,553 | 9.8 s | 0.615 |
+
+Depth 4 pools 16 to a 1 × 1 bottleneck, which the readout names. The up band shows the largest input cell over all channels, because channel 0 was zero at depth 4, base 8. The head band draws two columns at 8 channels. The lookup test at the lesson's sizes (`_lab/unet-lookup-test.py`, not committed with its 64 px JSON) is what showed a 512 × 512 map cannot show the band's position, which led here.
+
 **ROUND 7 (2026-09-15, late), his question "where did 4 channels come from?" at the default settings, and his pick option 1:** the operation band draws the small trained network (enc1 1 → 4 channels) while the U above draws the lesson's (3 → 16), so every channel count in the band now carries the drawn network's beside it when they differ ("4 ch · 16 above", "1 ch · 3 above"; drawnCounts in model.js), on its own row, and the small-network line is in stronger ink ("On a small trained network (depth 2, base 4, a 16 × 16 image)…"). Also answered: a colour image is 3 channels, and enc1's first convolution maps 3 to 16, each kernel with one slice per colour channel.
 
 **ROUND 6 (2026-09-15, late), accuracy dropped on his pick ("drop accuracy only"):** segmentation reports Dice and IoU, and precision and recall stay for the Half and Twice sizes; the accuracy line, its sentence under the tiles and its readout tile are gone, the formula note no longer mentions it, and the subtitle and the gallery blurb now describe the Dice loss ("counting only the object's pixels; precision and recall say whether a mask too large or too small is what lowers it").

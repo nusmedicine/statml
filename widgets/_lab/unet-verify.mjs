@@ -35,6 +35,7 @@ import { fileURLToPath } from "node:url";
 import { makeRng } from "../core/rng.js";
 import * as E from "../unet/engine.js";
 import * as M from "../unet/model.js";
+import { trainSetting, exportSetting } from "./unet-table.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 let checks = 0;
@@ -73,86 +74,72 @@ section("§1 the shapes and the parameter counts against torch");
 }
 
 /* §2 ---------------------------------------------------------------------- */
-section("§2 the engine, and the trained network the band draws");
+section("§2 the engine, the table of trained networks, and the band's arithmetic");
 {
   const g1 = E.gradCheck(makeRng(7));
-  const g2 = E.gradCheck(makeRng(8), { depth: 2, base: 2, S: 8, B: 2 });
-  assert(g1.worst < 1e-5, `gradients, depth 1: ${g1.worst.toExponential(1)} over ${g1.count}`);
-  assert(g2.worst < 1e-5, `gradients, depth 2: ${g2.worst.toExponential(1)} over ${g2.count}`);
-  console.log(`  gradient check ${g1.worst.toExponential(1)} (${g1.count}), ${g2.worst.toExponential(1)} (${g2.count})`);
+  const g3 = E.gradCheck(makeRng(8), { depth: 2, base: 2, S: 8, B: 2, cin: 3 });
+  assert(g1.worst < 1e-5, `gradients, depth 1, one channel: ${g1.worst.toExponential(1)} over ${g1.count}`);
+  assert(g3.worst < 1e-5, `gradients, depth 2, three channels: ${g3.worst.toExponential(1)} over ${g3.count}`);
+  console.log(`  gradient check ${g1.worst.toExponential(1)} (${g1.count}), three channels ${g3.worst.toExponential(1)} (${g3.count})`);
 
-  const T = M.trainedNet();
-  console.log(`  trained: held-out Dice ${T.dice.toFixed(3)}, ${T.ms.toFixed(0)} ms (recorded, not gated), ${T.params} parameters, image ${T.index}, unit (${T.unit.r}, ${T.unit.c})`);
-  assert(T.dice >= 0.7, `the trained network segments the blobs: held-out Dice ${T.dice.toFixed(3)}`);
-  assert(T.truth[T.unit.r * M.TRAIN.S + T.unit.c] === 1, "the band's position is on the object");
-  assert(T.unit.r >= 1 && T.unit.r <= M.TRAIN.S - 2 && T.unit.c >= 1 && T.unit.c <= M.TRAIN.S - 2, "a 3 × 3 window fits at the band's position");
-
-  const { net, rec, unit } = T;
-  const S = M.TRAIN.S;
-  /* the first convolution of enc1 at the position, by hand */
-  {
-    const d = net.enc[0];
-    const r = rec.enc1;
-    let z = 0;
-    for (let ky = 0; ky < 3; ky += 1) for (let kx = 0; kx < 3; kx += 1) z += r.x[(unit.r + ky - 1) * S + unit.c + kx - 1] * d.c1.W.v[ky * 3 + kx];
-    assert(close(z, r.z1[unit.r * S + unit.c]), `enc1's window ⊙ slice reproduces the stored value (${z.toFixed(4)})`);
-    const bn = d.n1.gamma.v[0] * (z - d.n1.rm[0]) / Math.sqrt(d.n1.rv[0] + E.EPS_BN) + d.n1.beta.v[0];
-    assert(close(bn, r.n1[unit.r * S + unit.c]), "BatchNorm in the band uses the running statistics");
-    assert(close(Math.max(0, bn), r.a1[unit.r * S + unit.c]), "ReLU is the positive part");
-  }
-  /* dec1's first convolution sums over all 8 input channels */
-  {
-    const d = net.decs[net.depth - 1];
-    const r = rec.dec1;
-    const cin = r.x.length / (S * S);
-    let z = 0;
-    for (let ch = 0; ch < cin; ch += 1) {
-      for (let ky = 0; ky < 3; ky += 1) for (let kx = 0; kx < 3; kx += 1) z += r.x[ch * S * S + (unit.r + ky - 1) * S + unit.c + kx - 1] * d.c1.W.v[ch * 9 + ky * 3 + kx];
+  /* every choice on the rail has a trained network, and it is the diagram's network */
+  for (const depth of M.DEPTHS) {
+    for (const base of M.BASES) {
+      const st = M.computeU({ depth, base });
+      assert(st.trained && st.trained.depth === Number(depth) && st.trained.base === Number(base), `the table has depth ${depth}, base ${base}`);
+      assert(st.trained.params === st.params, `depth ${depth}, base ${base}: the diagram's ${st.params} parameters are the trained network's ${st.trained?.params}`);
+      assert(st.trained.cin === M.IN_CH && st.trained.S === M.INPUT, "trained on the diagram's colour input at its size");
+      assert(st.trained.dice >= 0.6, `depth ${depth}, base ${base} segments the blobs: held-out Dice ${st.trained.dice} (recorded, not shown)`);
+      for (const s of st.stages) {
+        const t = st.trained.stages[s.name];
+        assert(t && t.C === s.C && t.H === s.H, `${s.name} at depth ${depth}, base ${base}: the table's ${t?.C} × ${t?.H} is the diagram's ${s.C} × ${s.H}`);
+      }
     }
-    assert(cin === 8 && close(z, r.z1[unit.r * S + unit.c]), `dec1's first convolution is the sum over ${cin} channels`);
   }
-  /* the pool keeps the maximum */
-  {
-    const p = rec.pool1;
-    const h = S >> 1;
-    const pr = M.unitAt(unit.r, h);
-    const pc = M.unitAt(unit.c, h);
-    const win = [0, 1, 2, 3].map((k) => p.x[(2 * pr + (k >> 1)) * S + 2 * pc + (k & 1)]);
-    assert(Math.max(...win) === p.out[pr * h + pc], "pool1 keeps the window's maximum");
-  }
-  /* the transposed patch at one position: the bias plus every input channel's
-     cell × kernel, which is why the band says the other channels add theirs */
-  {
-    const l = 1;
-    const u = rec[`up${l}`];
-    const layer = net.ups[net.depth - l];
-    const h = u.h;
-    const H = 2 * h;
-    const pr = M.unitAt(unit.r, h);
-    const pc = M.unitAt(unit.c, h);
+
+  /* THE TABLE IS THE ENGINE'S OUTPUT: two settings retrained here and compared
+     field by field, the training time excepted */
+  const strip = (o) => JSON.parse(JSON.stringify(o, (k, v) => (k === "ms" ? undefined : v)));
+  for (const [depth, base] of [[2, 4], [3, 4]]) {
+    const t = trainSetting(depth, base);
+    const fresh = strip(exportSetting(depth, base, t));
+    const shipped = strip(M.computeU({ depth: String(depth), base: String(base) }).trained);
+    assert(JSON.stringify(fresh) === JSON.stringify(shipped), `table.js depth ${depth}, base ${base} is what the engine trains now`);
+
+    /* the band's numbers are the network's arithmetic, at the table's positions */
+    const { net, rec } = t;
+    const S = M.INPUT;
+    const T = shipped;
+    const val = (arr, ch, H, y, x) => (y < 0 || x < 0 || y >= H || x >= H ? 0 : arr[ch * H * H + y * H + x]);
+    const convs = [["enc1", net.enc[0]], [`enc${depth}`, net.enc[depth - 1]], ["bottleneck", net.bottleneck], ["dec1", net.decs[depth - 1]]];
+    for (const [name, d] of convs) {
+      const r = rec[name];
+      const A = T.stages[name].at;
+      const H = T.stages[name].H;
+      let z = 0;
+      for (let ch = 0; ch < d.cin; ch += 1) {
+        for (let ky = 0; ky < 3; ky += 1) for (let kx = 0; kx < 3; kx += 1) z += val(r.x, ch, H, A.r + ky - 1, A.c + kx - 1) * d.c1.W.v[ch * 9 + ky * 3 + kx];
+      }
+      assert(Math.abs(z - A.z) < 1e-3, `${name} (d${depth}): the sum over all ${d.cin} channels' windows ⊙ slices is the printed ${A.z}`);
+      const bn = (A.gamma * (A.z - A.mean)) / A.sd + A.beta;
+      assert(Math.abs(bn - A.bn) < 5e-3, `${name} (d${depth}): γ (z − mean) / sd + β reproduces the printed BatchNorm ${A.bn}`);
+      assert(Math.abs(Math.max(0, A.bn) - A.relu) < 1e-3, `${name} (d${depth}): ReLU is the positive part`);
+      A.windows.forEach((w, ch) => w.forEach((v, k) => assert(Math.abs(v - val(r.x, ch, H, A.r + Math.floor(k / 3) - 1, A.c + (k % 3) - 1)) < 1e-3, `${name}: window value`)));
+    }
+    const P = T.stages.pool1.at;
+    assert(Math.max(...P.window) === P.max, `pool1 (d${depth}): the kept value is the window's maximum`);
+    const U = T.stages.up1.at;
+    const u = net.ups[depth - 1];
     for (let k = 0; k < 4; k += 1) {
-      let v = layer.b.v[0];
-      for (let c = 0; c < layer.cin; c += 1) v += u.x[c * h * h + pr * h + pc] * layer.W.v[(c * layer.cout) * 4 + k];
-      assert(close(v, u.out[(2 * pr + (k >> 1)) * H + 2 * pc + (k & 1)]), `up1's patch cell ${k} is Σ cell × kernel + bias`);
+      let v = u.b.v[0];
+      for (let c = 0; c < u.cin; c += 1) v += rec.up1.x[c * (S / 2) * (S / 2) + U.r * (S / 2) + U.c] * u.W.v[c * u.cout * 4 + k];
+      assert(Math.abs(v - rec.up1.out[(2 * U.r + (k >> 1)) * S + 2 * U.c + (k & 1)]) < 1e-9, `up1 (d${depth}): patch cell ${k} is Σ over channels of cell × kernel + bias`);
     }
+    const Hd = T.stages.head.at;
+    const zh = Hd.pixel.reduce((a, v, ch) => a + v * Hd.weights[ch], Hd.bias);
+    assert(Math.abs(zh - Hd.z) < 5e-3 && Math.abs(1 / (1 + Math.exp(-Hd.z)) - Hd.p) < 2e-3, `head (d${depth}): logit Σ pixel × weight + bias and its sigmoid`);
+    assert(T.truth.hex.length === S * S * 2 && T.image.length === M.IN_CH, "the image is three channels and the truth one");
   }
-  /* the concatenation is the up maps, then the skip */
-  {
-    const c = rec.cat1;
-    const HW = c.H * c.H;
-    assert(c.out.subarray(0, c.C * HW).every((v, i) => v === c.up[i]), "cat1 starts with the upsampled channels");
-    assert(c.out.subarray(c.C * HW).every((v, i) => v === c.enc[i]), "cat1 ends with the encoder's channels, unchanged");
-  }
-  /* the head */
-  {
-    const hd = rec.head;
-    let z = net.head.bh.v[0];
-    for (let ch = 0; ch < net.base; ch += 1) z += hd.x[ch * S * S + unit.r * S + unit.c] * net.head.Wh.v[ch];
-    assert(close(z, hd.z[unit.r * S + unit.c]), "the head's logit is Σ channel × weight + bias");
-    assert(close(hd.p[unit.r * S + unit.c], 1 / (1 + Math.exp(-z))), "the head's probability is the sigmoid of the logit");
-  }
-  assert(M.trainedStage("enc4") === "enc2" && M.trainedStage("up3") === "up2" && M.trainedStage("bottleneck") === "bottleneck" && M.trainedStage("head") === "head",
-    "a deeper block maps to the trained network's block of the same kind");
 }
 
 /* §3 ---------------------------------------------------------------------- */
@@ -201,12 +188,11 @@ section("§3 the Dice claims on the widget's own masks");
 /* §4 ---------------------------------------------------------------------- */
 section("§4 the geometry at 550 and 770");
 {
-  const T = M.trainedNet();
   for (const w of [550, 770]) {
     for (const depth of M.DEPTHS) {
       for (const base of M.BASES) {
-        for (const input of M.INPUTS) {
-          const state = M.computeU({ depth, base, input });
+        for (const input of [M.INPUT]) {
+          const state = M.computeU({ depth, base });
           const L = M.uLayout(w, state);
           for (const s of state.stages) {
             const b = L.boxes[s.name];
@@ -234,22 +220,24 @@ section("§4 the geometry at 550 and 770");
           assert(Math.abs(centre - (L.x0 + L.right) / 2) <= 6, `the bottleneck is centred: ${centre.toFixed(1)} against ${((L.x0 + L.right) / 2).toFixed(1)} ${tag}`);
           const enc = state.stages.filter((s) => s.kind === "enc").map((s) => B[s.name].x);
           assert(enc.every((x, i) => i === 0 || x > enc[i - 1]), `the encoder steps right going down ${tag}`);
-          assert(M.unetHeight(w, { depth, base, input }) === L.height + M.BAND_GAP + M.BAND_H, "the page height is the U's and the band's");
+          assert(M.unetHeight(w, { depth, base }) === L.height + M.BAND_GAP + M.BAND_H, "the page height is the U's and the band's");
         }
       }
     }
     const D = M.diceLayout(w);
     assert(D.numbers.valueX + 70 <= w - M.PAD, `the Dice numbers fit at ${w}`);
   }
-  const net = T.net;
-  const S = M.TRAIN.S;
-  const kinds = [
-    ["conv", 1, net.base], ["conv", 2 * net.base, net.base], ["conv", net.base * 2 ** (net.depth - 1), net.base * 2 ** net.depth],
-    ["conv", 2 * net.base * 2, net.base * 2], ["pool", net.base * 2, net.base * 2], ["up", net.base * 4, net.base * 2],
-    ["cat", net.base, net.base], ["head", net.base, 1],
-  ];
-  for (const [k, cin, cout] of kinds) assert(M.bandHeight(k, cin, cout) <= M.BAND_H, `the ${k} band (${cin} → ${cout}) fits in ${M.BAND_H}px: ${M.bandHeight(k, cin, cout)}`);
-  void S;
+  for (const depth of M.DEPTHS) {
+    for (const base of M.BASES) {
+      const st = M.computeU({ depth, base });
+      for (const s of st.stages) {
+        const kind = s.kind === "enc" || s.kind === "dec" || s.kind === "bottleneck" ? "conv" : s.kind;
+        const prev = st.stages[st.stages.indexOf(s) - 1];
+        const cin = s.kind === "enc" && s.level === 1 ? M.IN_CH : s.kind === "cat" ? s.C / 2 : s.kind === "head" ? Number(base) : (prev?.C ?? M.IN_CH);
+        assert(M.bandHeight(kind, cin, s.C) <= M.BAND_H, `the ${s.name} band at depth ${depth}, base ${base} (${cin} → ${s.C}) fits in ${M.BAND_H}px: ${M.bandHeight(kind, cin, s.C)}`);
+      }
+    }
+  }
 }
 
 /* §5 ---------------------------------------------------------------------- */

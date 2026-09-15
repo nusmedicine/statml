@@ -1,5 +1,7 @@
 # Handover
 
+**SLOT 65 `unet` ROUND 8 BUILT 2026-09-15 (night): ONE NETWORK.** The U, the level table and the operation band are one trained U-Net on a 16 × 16 colour image, Depth 2 · 3 · 4 × Base channels 4 · 8 (his picks), read from a table of six networks trained ahead by the widget's engine (`_lab/unet-table.mjs` → `widgets/unet/table.js`, 38 KB gzip; regenerate with `node widgets/_lab/unet-table.mjs` after any engine change, or the verify fails). The readout is Parameters and Training time only. Verify 2,819 checks, `check` and `test` green; the 8 fingerprint states are still placeholders. The catalogue's slot 65 entry has the round and the measurements. **NEXT: his read of round 8**, then the copy audit, "tested ok", the shooter and states (settled, one driven, a HIT state), status flip, suite, commit, push.
+
 **SLOT 65 `unet` ROUND 5 (Dice shapes as picture buttons, a core `icon` on segmented options, full suite 777 existing states MATCH with the 8 unet placeholders DIFFER) BUILT 2026-09-15.** **SLOT 65 `unet` ROUND 4 (Dice page: no Step or Play, the counts follow the drag; Object Medium · Large) BUILT 2026-09-15 on round 3 below.** **SLOT 65 `unet` ROUND 3 BUILT 2026-09-15 (late)**, his pick "A and C" from
 `_lab/unet-round3-mock.html` and "can the bottleneck be centred?": the U is
 his figure's construction (two slabs a level down, every arrow on a slab,

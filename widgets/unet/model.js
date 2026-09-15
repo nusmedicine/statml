@@ -6,17 +6,15 @@
    THE U-NET PAGE computes the stage list of PHM5005 06-3 cell 33's `UNet2D`
    in walk order — enc1 · pool1 · … · bottleneck · up_l · cat_l · dec_l · head
    — each with its shape, and the parameter count cell 33's modules add up to
-   (held against torch in `_lab/unet-torch.txt`). Round 2 (Kenneth,
-   2026-09-15) adds a TRAINED network for the operation band: `engine.js`'s
-   depth-2, base-4 U-Net on 16 × 16 images, trained once and cached, whose
-   maps the band draws for the block the reader chose.
+   (held against torch in `_lab/unet-torch.txt`). The network is chosen by
+   Depth and Base channels on a 16 × 16 colour image, and the operation band
+   draws that same network's trained maps and numbers, read from `table.js`.
 
    THE DICE PAGE computes a disc at one of three sizes, a prediction of a
    chosen shape moved by the reader's drag, and the numbers cell 38 names.
    ========================================================================= */
 
-import { makeRng } from "../core/index.js";
-import * as E from "./engine.js";
+import { TABLE, SPEC as TABLE_SPEC } from "./table.js";
 
 export const PAD = 14;
 
@@ -25,9 +23,6 @@ export const PAD = 14;
 export const BATCH = 10;          // cell 37's trace input: a batch of 10
 export const IN_CH = 3;           // three channels, the lesson's images
 export const NUM_CLASSES = 1;     // binary: one logit a pixel
-export const DEPTHS = ["2", "3", "4"];
-export const BASES = ["4", "8", "16"];
-export const INPUTS = ["16", "64", "128", "512"];
 
 /**
  * The stages in walk order. `kind` is what the drawing does with it; `level`
@@ -58,6 +53,8 @@ export function stagesFor(depth, base, input) {
 export const shapeOf = (s) => [BATCH, s.C, s.H, s.H];
 export const chw = (C, H) => `${C} × ${H} × ${H}`;
 export const stageNames = (depth) => stagesFor(Number(depth), 4, 16).map((s) => s.name);
+/** a position on a map of side H, scaled from the image's */
+export const unitAt = (v, H) => Math.min(H - 1, Math.max(0, Math.floor((v * H) / TABLE_SPEC.S)));
 
 /** cell 33's parameters: DoubleConv is two bias-free 3 × 3 convs with a
     BatchNorm each; the transposed convolution and the head carry a bias */
@@ -80,91 +77,38 @@ export function paramCount(depth, base) {
   return n;
 }
 
-/* --- the trained network ------------------------------------------------------- *
- * One network for every setting of the rail: the band shows what an operation
- * DOES, and a depth-2, base-4 U-Net on a 16 × 16 image is the size whose
- * numbers can be printed and which trains in about a second
- * (`_lab/unet-measure.mjs`: 200 images, 5 epochs, held-out Dice 0.76–0.80 over
- * three seeds; 120 images failed on two of three). Trained on first request
- * and cached: it depends on nothing the reader sets, so the cache is the pure
- * function's memo, not state.                                                  */
-export const TRAIN = { depth: 2, base: 4, S: 16, n: 200, nTest: 60, epochs: 5, batch: 8, seed: 1, testSeed: 9000 };
-let trained = null;
-export function trainedNet() {
-  if (trained) return trained;
-  const rng = makeRng(TRAIN.seed);
-  const data = E.makeData(TRAIN.S, TRAIN.n, rng);
-  const test = E.makeData(TRAIN.S, TRAIN.nTest, makeRng(TRAIN.testSeed));
-  const net = E.makeUNet(TRAIN.depth, TRAIN.base, TRAIN.S, rng);
-  const t0 = performance.now();
-  const { losses } = E.train(net, data, { epochs: TRAIN.epochs, batch: TRAIN.batch, rng });
-  const ms = performance.now() - t0;
-  const dice = E.evaluateDice(net, test);
-  /* the image the band is about: the first held-out image with one blob of
-     a middling size, so a window at its edge shows the object and the field */
-  const HW = TRAIN.S * TRAIN.S;
-  let index = 0;
-  for (let i = 0; i < test.n; i += 1) {
-    let area = 0;
-    for (let k = 0; k < HW; k += 1) area += test.t[i * HW + k];
-    if (area >= 24 && area <= 50) { index = i; break; }
-  }
-  const img = test.x.slice(index * HW, (index + 1) * HW);
-  const truth = test.t.slice(index * HW, (index + 1) * HW);
-  const rec = E.forward(net, img, 1);
-  const unit = edgeUnit(truth, TRAIN.S);
-  trained = { net, losses, ms, dice, index, img, truth, rec, unit, params: E.parameterCount(net) };
-  return trained;
+/* --- the trained networks ------------------------------------------------------ *
+ * ONE NETWORK ON THE PAGE (Kenneth, 2026-09-15: "go with depth 3 base 4 input 16,
+ * train on 3 channels", then "give some choices so students can see what happens
+ * if we change the architecture", then Depth 2 · 3 · 4 and Base channels 4 · 8).
+ * The diagram, the level table and the operation panel are the same network at
+ * every choice: a U-Net on a 16 × 16 colour image.
+ *
+ * THE SIX NETWORKS ARE TRAINED AHEAD, by `engine.js` at its own seed, in
+ * `_lab/unet-table.mjs`, and read from `table.js` (38 KB gzip). Trained in the
+ * page, base 8 froze it for 4.5–10 s on first pick, and core's compute is
+ * synchronous; `_lab/unet-verify.mjs` retrains two settings and holds the table
+ * to them. A thumbnail is a map quantised to 0–255 with its range; `mapOf`
+ * turns one back into values the band draws.                                      */
+export const DEPTHS = ["2", "3", "4"];
+export const BASES = ["4", "8"];
+export const INPUT = TABLE_SPEC.S;
+export const TABLE_N = TABLE_SPEC.n;
+export const TABLE_EPOCHS = TABLE_SPEC.epochs;
+export const tableKey = (depth, base) => `d${depth}b${base}`;
+export function mapOf(q) {
+  const n = q.n;
+  const out = new Float64Array(n * n);
+  for (let i = 0; i < n * n; i += 1) out[i] = q.lo + ((q.hi - q.lo) * parseInt(q.hex.substr(2 * i, 2), 16)) / 255;
+  return out;
 }
-/** the object pixel furthest right along the row through the object's centre:
-    a position on the edge, inside the border so a 3 × 3 window fits */
-export function edgeUnit(mask, S) {
-  let sy = 0;
-  let n = 0;
-  for (let y = 0; y < S; y += 1) for (let x = 0; x < S; x += 1) if (mask[y * S + x]) { sy += y; n += 1; }
-  const r = Math.min(S - 2, Math.max(1, Math.round(sy / Math.max(1, n))));
-  let c = 1;
-  for (let x = 0; x < S; x += 1) if (mask[r * S + x]) c = x;
-  return { r, c: Math.min(S - 2, Math.max(1, c)) };
-}
-/** the trained network's block that a drawn block's operation is shown on: the
-    same kind, at the trained network's nearest level */
-export function trainedStage(name) {
-  const m = name.match(/^([a-z]+)(\d+)$/);
-  if (!m) return name;
-  return `${m[1]}${Math.min(Number(m[2]), TRAIN.depth)}`;
-}
-/**
- * THE COUNTS OF THE NETWORK ABOVE (round 7, Kenneth: "where did 4 channels come
- * from?"). The band draws the small trained network, whose enc1 takes 1 channel
- * and gives 4; the U above, at the lesson's settings, takes 3 and gives 16. So
- * every count in the band carries the drawn network's beside it. `cin` and
- * `cout` are the chosen block's input and output channels in the U above.
- */
-export function drawnCounts(stages, name) {
-  const s = stages.find((st) => st.name === name);
-  if (!s) return null;
-  if (s.kind === "enc") return { cin: s.level === 1 ? IN_CH : s.C / 2, cout: s.C };
-  if (s.kind === "pool") return { cin: s.C, cout: s.C };
-  if (s.kind === "bottleneck") return { cin: s.C / 2, cout: s.C };
-  if (s.kind === "up") return { cin: 2 * s.C, cout: s.C };
-  if (s.kind === "cat") return { cin: s.C / 2, cout: s.C };
-  if (s.kind === "dec") return { cin: 2 * s.C, cout: s.C };
-  return { cin: stages.find((st) => st.name === "dec1").C, cout: NUM_CLASSES };
-}
-/** a count, with the network above's beside it when they differ */
-export const countText = (c, above) => (above != null && above !== c ? `${c} ch · ${above} above` : `${c} ch`);
-/** a position on a map of side H, scaled from the image's */
-export const unitAt = (v, H) => Math.min(H - 1, Math.max(0, Math.floor(v * H / TRAIN.S)));
 
-export const readU = (p) => ({ depth: Number(p.depth), base: Number(p.base), input: Number(p.input) });
+export const readU = (p) => ({ depth: Number(p.depth), base: Number(p.base), input: INPUT });
 export function computeU(params) {
   const { depth, base, input } = readU(params);
   const stages = stagesFor(depth, base, input);
-  return {
-    page: "unet", depth, base, input, stages,
-    params: paramCount(depth, base), total: stages.length, trained: trainedNet(),
-  };
+  const trained = TABLE[tableKey(depth, base)];
+  return { page: "unet", depth, base, input, stages, params: paramCount(depth, base), total: stages.length, trained };
 }
 
 /* --- the U's geometry ------------------------------------------------------- *
@@ -275,10 +219,12 @@ export const GRID_ROWS = 2;       // input channels whose window and slice are p
 export const HEAD_MAP = 56;
 /** the height one band needs, by kind and channels: the verify holds each
     under BAND_H so the stage does not jog when the block changes */
+/** the head band's pixel and weight cells: one column, two past five channels */
+export const headCols = (cin) => (cin > 5 ? 2 : 1);
 export function bandHeight(kind, cin, cout) {
   const column = (C) => BODY_Y + Math.min(SHOWN, C) * (MAP_S + 4) + (C > SHOWN ? 12 : 0);
   if (kind === "conv") return Math.max(column(cin), column(cout), BODY_Y + Math.min(GRID_ROWS, cin) * (3 * CW + 10) + 14) + 8;
-  if (kind === "head") return Math.max(column(cin), BODY_Y + cin * CW, BODY_Y + HEAD_MAP) + 8;
+  if (kind === "head") return Math.max(column(cin), BODY_Y + Math.ceil(cin / headCols(cin)) * CW, BODY_Y + HEAD_MAP) + 8;
   if (kind === "cat") return column(cin) + 8;
   return Math.max(column(cin), column(cout)) + 8;
 }
