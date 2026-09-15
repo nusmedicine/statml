@@ -240,7 +240,6 @@ section("§4 the geometry at 550 and 770");
     }
     const D = M.diceLayout(w);
     assert(D.numbers.valueX + 70 <= w - M.PAD, `the Dice numbers fit at ${w}`);
-    assert(D.why.x + D.why.chars * 6 <= w - M.PAD, `the accuracy sentence fits at ${w}, at a blunt 6px a character`);
   }
   const net = T.net;
   const S = M.TRAIN.S;

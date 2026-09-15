@@ -1,7 +1,7 @@
 /* ============================================================================
    Widget 65 · U-Net and Dice — the encoder–decoder with skips, drawn to scale
    from its shapes, with each block's operation on a trained network; and
-   what overlap measures that pixel accuracy does not.
+   the Dice loss, which scores a mask on its overlap with the truth.
 
    PHM5005 06-3: Architecture - Basic (cells 30–37, `UNet2D`) and Training /
    Evaluation (cells 38, 50–56: `DiceCELoss`, `DiceMetric`). `engine.js`
@@ -596,7 +596,6 @@ function drawDice(ctx, colors, w, state, reveal) {
   });
   const done = true;
   const lines = [
-    ["accuracy", done ? pct(m.acc) : "—"],
     ["Dice", done ? m.dice.toFixed(3) : "—"],
     ["IoU", done ? m.iou.toFixed(3) : "—"],
     ["precision · recall", done ? `${m.prec.toFixed(2)} · ${m.rec.toFixed(2)}` : "—"],
@@ -606,11 +605,8 @@ function drawDice(ctx, colors, w, state, reveal) {
     note(ctx, colors, label, L.numbers.x, L.numbers.y + k * M.LINE, colors.ink2);
     txt(ctx, colors, v, L.numbers.valueX, L.numbers.y + k * M.LINE, { mono: true, color: colors.ink1, size: colors.fsXs, weight: "600" });
   });
-  /* WHY ACCURACY STAYS HIGH, with this figure's own counts */
-  const total = M.G * M.G;
-  const wrong = m.A + m.B - 2 * m.AB;
-  note(ctx, colors, `accuracy counts all ${fmt(total)} pixels: ${fmt(total - wrong)} are right,`, L.why.x, L.why.y, colors.ink3);
-  note(ctx, colors, `${fmt(m.neither)} of them in neither mask, the background`, L.why.x, L.why.y + 14, colors.ink3);
+  /* NO ACCURACY (round 6, Kenneth: "drop accuracy only"): segmentation reports
+     Dice and IoU, and precision and recall stay for the Half and Twice sizes */
 }
 
 /* ============================= the formula card ============================ */
@@ -637,9 +633,8 @@ const DICE_EQ = [
   },
 ];
 const DICE_CARD_NOTE = "A is the set of pixels in the ground truth and B the set in the prediction. Dice and IoU count "
-  + "only the object's pixels, so an empty prediction scores 0 at any size; accuracy counts the background "
-  + "too, so it stays high whenever the object is a small part of the image. As a loss, the network's probabilities pᵢ stand in for the "
-  + "prediction's 0s and 1s, and tᵢ is the ground truth.";
+  + "only the object's pixels, so an empty prediction scores 0 at any size. As a loss, the network's "
+  + "probabilities pᵢ stand in for the prediction's 0s and 1s, and tᵢ is the ground truth.";
 const U_CARD_NOTE = "One row a level of the U, as channels × height × width for a batch of 10. The encoder's output "
   + "crosses the skip and has the shape of the upsampled maps it joins, so the concatenation doubles the "
   + "channels and keeps the height and width. A convolution sets the channels; max-pool halves the height "
@@ -716,9 +711,9 @@ defineWidget({
   subtitle:
     "A U-Net halves the image and doubles the channels at each level of its encoder, then reverses "
     + "both up its decoder, where each level concatenates the encoder's features of the same size "
-    + "before a convolution. Dice scores a predicted mask by its overlap with the truth, which pixel "
-    + "accuracy does not: a prediction that misses the object entirely is still right at most "
-    + "pixels.",
+    + "before a convolution. The Dice loss scores a predicted mask by its overlap with the ground "
+    + "truth, counting only the object's pixels; precision and recall say whether a mask too large or "
+    + "too small is what lowers it.",
   layout: "side",
   height: ({ w, ...values }) => M.pageHeight(w, values),
 
@@ -907,7 +902,6 @@ defineWidget({
       const done = true;
       const { m } = state;
       return [
-        { label: "Accuracy", value: done ? pct(m.acc) : "—", note: `right pixels over all ${M.G * M.G}` },
         { label: "Dice · IoU", value: done ? `${m.dice.toFixed(3)} · ${m.iou.toFixed(3)}` : "—", note: "overlap over the mean size · overlap over the union" },
         { label: "Precision · recall", value: done ? `${m.prec.toFixed(2)} · ${m.rec.toFixed(2)}` : "—", note: "of the predicted pixels, in the truth · of the truth's pixels, predicted" },
         { label: "Dice loss", value: done ? (1 - m.dice).toFixed(3) : "—", note: "1 − Dice: 0 when the masks agree, 1 when they share no pixel" },

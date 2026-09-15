@@ -366,9 +366,7 @@ export function diceLayout(w) {
   const tx = PAD + PANEL + 20;
   const tiles = [0, 1, 2].map((k) => ({ x: tx, y: 52 + k * (TILE_H + TILE_GAP), w: TILE_W, h: TILE_H }));
   const numbers = { x: tx + TILE_W + 14, y: 64, valueX: tx + TILE_W + 14 + 112 };
-  /* the accuracy sentence, under the tiles: beside the numbers it ran past a 550 stage */
-  const why = { x: tx, y: 52 + 3 * (TILE_H + TILE_GAP) + 8, chars: 52 };
-  return { panel, tiles, numbers, why, height: 52 + PANEL + 44 };
+  return { panel, tiles, numbers, height: 52 + PANEL + 44 };
 }
 export const diceHeight = (w) => diceLayout(w).height;
 export const panelHit = (L, x, y) => x >= L.panel.x && x <= L.panel.x + L.panel.w && y >= L.panel.y && y <= L.panel.y + L.panel.h;

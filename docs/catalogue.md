@@ -15836,6 +15836,8 @@ and it is now out of sight until the reader asks for it.
 
 ### Slot 65 · `unet` — Architecture - Basic (Segmentation) — TWO PAGES since 2026-09-13, MOCKED 2026-09-15
 
+**ROUND 6 (2026-09-15, late), accuracy dropped on his pick ("drop accuracy only"):** segmentation reports Dice and IoU, and precision and recall stay for the Half and Twice sizes; the accuracy line, its sentence under the tiles and its readout tile are gone, the formula note no longer mentions it, and the subtitle and the gallery blurb now describe the Dice loss ("counting only the object's pixels; precision and recall say whether a mask too large or too small is what lowers it").
+
 **ROUND 5 (2026-09-15, late), the Dice page's shapes, his picks from
 `_lab/unet-dice-shapes-mock.html`:** the Topic button reads **Dice loss**; the
 ground truth is a **Disc · Rectangle (2 : 1) · Triangle** at the object's area

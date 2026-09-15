@@ -958,7 +958,7 @@
     {
       "slug": "unet",
       "title": "Deep Learning - U-Net and Dice",
-      "blurb": "A U-Net drawn to scale from its shapes, the skips across; and Dice, the overlap a mask is scored by, against accuracy.",
+      "blurb": "A U-Net drawn to scale from its shapes, the skips across; and the Dice loss, scored on the overlap of two masks.",
       "course": "PHM5005",
       "topics": [
         "U-Net",
