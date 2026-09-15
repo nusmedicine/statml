@@ -700,7 +700,7 @@ const phaseOf = () => "stage";
 
 defineWidget({
   slug: "unet",
-  status: "draft",
+  status: "shipped",
   title: "Deep Learning - U-Net and Dice",
   /* Kenneth's pick A (2026-09-15): the purpose first, image segmentation, then
      how the U-Net and the Dice loss serve it; the per-level detail trimmed */

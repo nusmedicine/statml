@@ -968,11 +968,11 @@
         "concatenation",
         "Dice",
         "IoU",
-        "stratified split",
+        "image segmentation",
         "deep learning"
       ],
       "arc": 65,
-      "status": "draft"
+      "status": "shipped"
     }
   ]
 }

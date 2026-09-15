@@ -6993,53 +6993,68 @@
       "tx": "915f23e8"
     },
     {
-      "$note": "unet · the empty stage at depth 3, base 4: every slab outlined, the band's note",
+      "$note": "unet · nothing added at depth 3, base 4: every slab outlined, the band's note",
       "slug": "unet",
       "state": "?theme=light&shown=0",
-      "px": "0",
-      "tx": "0"
+      "px": "7a75c5ec",
+      "tx": "dd4774a4"
     },
     {
-      "$note": "unet · nine stages added, the panel on enc1",
+      "$note": "unet · nine layers added, the panel on enc1",
       "slug": "unet",
       "state": "?theme=light&shown=9",
-      "px": "0",
-      "tx": "0"
+      "px": "c4942067",
+      "tx": "11400bb5"
     },
     {
-      "$note": "unet · depth 2, base 4, every stage added, the panel on dec1",
+      "$note": "unet · depth 2, base 4, every layer added, the panel on dec1",
       "slug": "unet",
       "state": "?theme=light&depth=2&shown=12&block=dec1",
-      "px": "0",
-      "tx": "0"
+      "px": "f187476f",
+      "tx": "9b8cb413"
     },
     {
-      "$note": "unet · depth 4, base 8, every stage added (a 1 × 1 bottleneck), the panel on up4",
+      "$note": "unet · depth 4, base 8, every layer added (a 1 × 1 bottleneck), the panel on up4",
       "slug": "unet",
       "state": "?theme=light&depth=4&base=8&shown=22&block=up4",
-      "px": "0",
-      "tx": "0"
+      "px": "13c7f6bd",
+      "tx": "1c28d23f"
     },
     {
-      "$note": "unet · depth 3, base 8, every stage added, the panel on the head (eight channels in two columns)",
+      "$note": "unet · depth 3, base 8, every layer added, the panel on the head (eight channels in two columns)",
       "slug": "unet",
       "state": "?theme=light&base=8&shown=17&block=head",
-      "px": "0",
-      "tx": "0"
+      "px": "e73ba706",
+      "tx": "f559637c"
     },
     {
-      "$note": "unet · Dice, the default medium object and drag, the counts live",
+      "$note": "unet · Dice, the default medium disc and prediction, the counts",
       "slug": "unet",
       "state": "?theme=light&topic=dice&shown=0",
-      "px": "0",
-      "tx": "0"
+      "px": "0828ad43",
+      "tx": "7496130d"
     },
     {
       "$note": "unet · Dice, a large triangle against a rectangle of half the area, dragged",
       "slug": "unet",
       "state": "?theme=light&topic=dice&size=large&truth=triangle&prediction=rectangle&predictionsize=half&across=-3&down=2&shown=0",
-      "px": "0",
-      "tx": "0"
+      "px": "12324270",
+      "tx": "7f2d2a1e"
+    },
+    {
+      "$note": "unet · HIT - nothing added at depth 3, base 4, and a click on dec2's slab choosing its panel (the note to press Next layer)",
+      "slug": "unet",
+      "state": "?theme=light",
+      "drive": {
+        "hit": [
+          360,
+          298
+        ],
+        "frames": 2,
+        "dt": 32
+      },
+      "px": "2d2b3cdd",
+      "tx": "dd4774a4"
     },
     {
       "$note": "unet · DRIVEN - the first press caught mid-way, enc1 arriving at part alpha",
@@ -7050,8 +7065,8 @@
         "frames": 8,
         "dt": 32
       },
-      "px": "0",
-      "tx": "0"
+      "px": "73575f21",
+      "tx": "dd4774a4"
     }
   ]
 }
