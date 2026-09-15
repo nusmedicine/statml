@@ -15836,6 +15836,28 @@ and it is now out of sight until the reader asks for it.
 
 ### Slot 65 · `unet` — Architecture - Basic (Segmentation) — TWO PAGES since 2026-09-13, MOCKED 2026-09-15
 
+**COPY AUDIT (2026-09-15, night), on his "remove the red line, then do copy audit":** the red "a 1 × 1 map: no height or width is left to pool" under the bottleneck is gone, and the Bottleneck tile reads "1 × 1, 128 channels" like the other depths (the rail offers no network that fails to fit, and the shape already says 1 × 1). The audit read every painted string over all blocks at depth 2 base 4 and depth 4 base 8, every Dice button, the readouts, legend, rail, subtitle and blurb. Changed:
+
+| was | now | why |
+|---|---|---|
+| The encoder's maps arrive unchanged. | The encoder's maps are copied unchanged. | personified verb |
+| Drag the prediction and the counts follow it. | Drag the prediction to move it; the counts update as it moves. | personified verb |
+| 0 when the masks agree | 0 when the masks are identical | personified verb |
+| probabilities pᵢ stand in for the prediction's 0s and 1s | probabilities pᵢ replace the prediction's 0s and 1s | struck before on MR |
+| The encoder's output crosses the skip and has the shape of the upsampled maps it joins | … is carried along the skip connection and has the shape of the upsampled maps it is concatenated with | personified verbs |
+| U-Net: the encoder down, the decoder up, and the skips across | U-Net: the encoder, the decoder, and the skip connections between them | shorthand for the term |
+| one logit a pixel · One row a level | one logit per pixel · One row per level | register |
+| Run the remaining presses in order | Add the remaining stages in order | our word |
+| mean and sd kept from training | running mean and sd from training | the conventional term |
+| the maps are its own at this depth and base | the maps are this network's outputs at this depth and base | vague |
+| one cell to a 2 × 2 patch · the same four cells · label "cell" | each input pixel to a 2 × 2 patch · the same four output pixels · "pixel" | our word |
+| the upsampled maps beside the encoder's | the upsampled maps and the encoder's joined along the channels | figurative |
+| the prediction in place | the prediction centred on the ground truth | vague |
+| subtitle: precision and recall say whether a mask too large or too small is what lowers it | precision is lower when the predicted mask is too large, and recall when it is too small | personified verb |
+| blurb: A U-Net drawn to scale from its shapes, the skips across; … | A U-Net downsamples, then upsamples with skip connections; the Dice loss scores a mask's overlap with the ground truth. | a blurb states the concept |
+
+Two more. **Precision of an empty prediction printed 0.00**, which is 0 ÷ 0; it prints a dash now. **The link words are the control's words** (5.9): `truth=triangle|rectangle`, `prediction=…|none`, `predictionsize=half|same|twice` (was `pred`, `psize`, `rect`, `tri`, and `double` under a button reading Twice), and the drag writes `across` and `down` (was `dx`, `dy`), the words the figure prints. Nothing of the widget had been pushed, so no shared link breaks. The verify's word sweep adds arrive, follow, agree, presses, wait, reach, stand, say, crosses, joins and skips. **Open, his call:** "stage" (Next stage, Stages added, the stage just added) is our word; the neighbouring widgets say "Next layer", which fits the pool and up blocks but not the concatenation.
+
 **ROUND 8 (2026-09-15, night), ONE NETWORK, his asks "can you train the actual channels in the diagram and store them in lookup table? so there is no discrepancy?", "go with depth 3 base 4 input 16, train on 3 channels" and "ok maybe give some choices", picks Depth 2 · 3 · 4 × Base channels 4 · 8 and a readout of parameters and training time only:** round 7's two networks are gone. The U, the level table and the operation band are one U-Net on a 16 × 16 colour image (3 channels), chosen by two segmented controls (default depth 3, base 4); Input is gone. The six networks are TRAINED AHEAD by the widget's own engine at its own seed (`_lab/unet-table.mjs` writes `widgets/unet/table.js`, 140 KB raw, 38 KB gzip) and the page reads them, because base 8 trained in the page froze it for 4.5–10 s with no way to say so (compute is synchronous); switching now takes 26 ms. Each setting stores the image, truth and mask, four thumbnails a stage (eight for a concatenation) quantised to 0–255 with the map's range, and the exact numbers the band prints at its position. The verify retrains depth 2 and 3 at base 4 and requires the table to equal them field for field (training time excepted), and checks the band's arithmetic at the stored positions. Measured when the table was written:
 
 | depth · base | parameters | training | held-out Dice (recorded, not shown) |
@@ -15845,7 +15867,7 @@ and it is now out of sight until the reader asks for it.
 | 4 · 4 | 122,093 | 2.6 s | 0.845 |
 | 2 · 8 | 29,625 | 4.6 s | 0.812 |
 | 3 · 8 | 121,177 | 6.8 s | 0.842 |
-| 4 · 8 | 486,553 | 9.8 s | 0.615 |
+| 4 · 8 | 486,553 | 9.7 s | 0.615 |
 
 Depth 4 pools 16 to a 1 × 1 bottleneck, which the readout names. The up band shows the largest input cell over all channels, because channel 0 was zero at depth 4, base 8. The head band draws two columns at 8 channels. The lookup test at the lesson's sizes (`_lab/unet-lookup-test.py`, not committed with its 64 px JSON) is what showed a 512 × 512 map cannot show the band's position, which led here.
 

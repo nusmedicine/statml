@@ -251,15 +251,15 @@ export const SHIFT_MAX = 40;
    a different shape is not also a different size. The prediction's size is its
    own control — half, the same or twice the truth's area — which is what the
    1 px dilate and erode tried to show, at a size that is visible. */
-export const SHAPES = ["disc", "rect", "tri"];
+export const SHAPES = ["disc", "rectangle", "triangle"];
 export const PRED_SHAPES = [...SHAPES, "none"];
-export const PRED_SIZES = { half: 0.5, same: 1, double: 2 };
+export const PRED_SIZES = { half: 0.5, same: 1, twice: 2 };
 export const PRED_SIZE_KEYS = Object.keys(PRED_SIZES);
 
 /** is the point (px, py), measured from the shape's centre, inside it */
 export function insideShape(shape, area, px, py) {
   if (shape === "disc") return Math.hypot(px, py) <= Math.sqrt(area / Math.PI);
-  if (shape === "rect") {
+  if (shape === "rectangle") {
     /* whole columns and rows, half-open, so it covers the area it is drawn at:
        a pixel-centre test on the real width rounded both sides up, 13 % over */
     const cols = Math.max(1, Math.round(Math.sqrt(2 * area)));
@@ -307,8 +307,8 @@ export function metrics(a, b) {
 }
 
 export const readDice = (p) => ({
-  size: p.size, truthShape: p.truth, predShape: p.pred, predSize: p.psize,
-  dx: Number(p.dx), dy: Number(p.dy),
+  size: p.size, truthShape: p.truth, predShape: p.prediction, predSize: p.predictionsize,
+  dx: Number(p.across), dy: Number(p.down),
 });
 export function computeDice(params) {
   const { size, truthShape, predShape, predSize, dx, dy } = readDice(params);

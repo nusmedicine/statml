@@ -34,8 +34,9 @@
        trained here. Block is a display parameter, so a click keeps the stages
        already added; the dropdown is the keyboard path to the same choice (3.6).
 
-    4. A 1 × 1 BOTTLENECK: depth 4 on the 16 × 16 image pools to one cell, and
-       the diagram names it in `--c-extreme`.
+    4. A 1 × 1 BOTTLENECK: depth 4 on the 16 × 16 image pools to one cell. It
+       carried a red warning until 2026-09-15, when Kenneth had it removed: the
+       rail offers no network that fails to fit, and the shape already says 1 × 1.
 
     5. DICE IS ONE PANEL WITH THE PREDICTION DRAGGED ON IT (round 2: "drag and
        drop the prediction, don't use sliders"). The truth, the prediction and
@@ -118,9 +119,8 @@ function revealOf(anim) {
 
 /* ============================== the U ===================================== */
 
-const U_CAPTION = "U-Net: the encoder down, the decoder up, and the skips across";
+const U_CAPTION = "U-Net: the encoder, the decoder, and the skip connections between them";
 const U_NOTE = "Shapes are channels × height × width, for a batch of 10. Click a block to see its operation.";
-const BOTTLENECK_1 = "a 1 × 1 map: no height or width is left to pool";
 
 /** ONE HIGHLIGHT AT A TIME: the stage arriving while a press is in flight,
     otherwise the chosen block once it has been added */
@@ -255,7 +255,6 @@ function drawU(ctx, colors, w, state, reveal, block) {
   if (alpha("bottleneck") > 0) {
     const b = B.bottleneck;
     note(ctx, colors, M.chw(bn.C, bn.H), b.x + b.w / 2, b.y + b.h + 13, enc, { mono: true, align: "center" });
-    if (bn.H === 1) note(ctx, colors, BOTTLENECK_1, w / 2, b.y + b.h + 28, colors.extreme, { align: "center" });
   }
 
   /* the highlighted stage's shape, with its batch */
@@ -380,7 +379,7 @@ function bandConv(ctx, colors, w, top, T, st, name, netLine) {
   });
   note(ctx, colors, "BatchNorm = γ × (z − mean) / sd + β", sx, top + M.BODY_Y + 112, colors.ink3);
   note(ctx, colors, `${f2(A.gamma)} × (z − ${f2(A.mean)}) / ${f2(A.sd)} + ${f2(A.beta)}`, sx, top + M.BODY_Y + 126, colors.ink3, { mono: true });
-  note(ctx, colors, "mean and sd kept from training", sx, top + M.BODY_Y + 140, colors.ink3);
+  note(ctx, colors, "running mean and sd from training", sx, top + M.BODY_Y + 140, colors.ink3);
   mapsColumn(ctx, colors, w - M.PAD - M.MAP_S, top, S.maps, S.C, colors.groupA, { align: "right", mark: { r, c, s: 1 } });
 }
 function bandPool(ctx, colors, w, top, T, st, name, netLine) {
@@ -404,12 +403,12 @@ function bandUp(ctx, colors, w, top, T, st, name, netLine) {
   const A = S.at;
   const input = inputOf(T, st, name);
   const h = S.H / 2;
-  bandTitle(ctx, colors, top, `${name}: ConvTranspose 2 × 2, stride 2, one cell to a 2 × 2 patch`,
+  bandTitle(ctx, colors, top, `${name}: ConvTranspose 2 × 2, stride 2, each input pixel to a 2 × 2 patch`,
     `Input channel ${A.ch} at row ${A.r}, column ${A.c}, into output channel 0. Height and width double, ${h} × ${h} to ${S.H} × ${S.H}.`, netLine);
   mapsColumn(ctx, colors, M.PAD, top, input.maps, input.C, colors.groupB, { mark: { r: A.r, c: A.c, s: 1 } });
   const gx = M.PAD + M.MAP_S + 34;
   const y = top + M.BODY_Y;
-  note(ctx, colors, "cell", gx, top + M.HEAD_Y, colors.ink3);
+  note(ctx, colors, "pixel", gx, top + M.HEAD_Y, colors.ink3);
   cellGrid(ctx, colors, gx, y + M.CW / 2, 1, [A.cell], { fill: () => wash(colors.groupB, 0.3) });
   opLabel(ctx, colors, "×", gx + M.CW + 14, y + M.CW);
   const kx = gx + M.CW + 28;
@@ -419,7 +418,7 @@ function bandUp(ctx, colors, w, top, T, st, name, netLine) {
   const px = kx + 2 * M.CW + 34;
   note(ctx, colors, "patch", px, top + M.HEAD_Y, colors.ink3);
   cellGrid(ctx, colors, px, y, 2, A.kernel.map((k) => A.cell * k + A.bias), { tone: colors.highlight, fill: () => wash(colors.groupB, 0.15) });
-  note(ctx, colors, `The other ${A.cin - 1} input channels add their own patches to the same four cells.`, gx, y + 2 * M.CW + 18, colors.ink3);
+  note(ctx, colors, `The other ${A.cin - 1} input channels add their own patches to the same four output pixels.`, gx, y + 2 * M.CW + 18, colors.ink3);
   mapsColumn(ctx, colors, w - M.PAD - M.MAP_S, top, S.maps, S.C, colors.groupB, { align: "right", mark: { r: 2 * A.r, c: 2 * A.c, s: 2 } });
 }
 function bandCat(ctx, colors, w, top, T, st, name, netLine) {
@@ -429,8 +428,8 @@ function bandCat(ctx, colors, w, top, T, st, name, netLine) {
   const H = S.H;
   const up = T.stages[`up${lvl}`];
   const enc = T.stages[`enc${lvl}`];
-  bandTitle(ctx, colors, top, `${name}: torch.cat(dim=1), the upsampled maps beside the encoder's`,
-    `Channels add, ${C} + ${C} = ${2 * C}; height and width stay ${H} × ${H}. The encoder's maps arrive unchanged.`, netLine);
+  bandTitle(ctx, colors, top, `${name}: torch.cat(dim=1), the upsampled maps and the encoder's joined along the channels`,
+    `Channels add, ${C} + ${C} = ${2 * C}; height and width stay ${H} × ${H}. The encoder's maps are copied unchanged.`, netLine);
   const x1 = M.PAD;
   mapsColumn(ctx, colors, x1, top, up.maps, C, colors.groupB);
   note(ctx, colors, "up", x1, top + M.HEAD_Y, colors.ink3);
@@ -484,7 +483,7 @@ function bandHead(ctx, colors, w, top, T, st, name, netLine) {
   frame(ctx, ox + size + 10 + A.c * (size / S.H), top + M.BODY_Y + A.r * (size / S.H), Math.ceil(size / S.H), Math.ceil(size / S.H), colors.highlight, 2);
 }
 
-const NET_LINE = (T) => `Trained on ${M.TABLE_N} 16 × 16 colour images for ${M.TABLE_EPOCHS} epochs; the maps are its own at this depth and base.`;
+const NET_LINE = (T) => `Trained on ${M.TABLE_N} 16 × 16 colour images for ${M.TABLE_EPOCHS} epochs; the maps are this network's outputs at this depth and base.`;
 
 function drawBand(ctx, colors, w, top, state, params, reached) {
   const T = state.trained;
@@ -510,10 +509,10 @@ function drawBand(ctx, colors, w, top, state, params, reached) {
 
 /* ============================== Dice ====================================== */
 
-const SHAPE_LABELS = { disc: "Disc", rect: "Rectangle", tri: "Triangle", none: "None" };
-const SHAPE_NOUNS = { disc: "disc", rect: "rectangle", tri: "triangle" };
+const SHAPE_LABELS = { disc: "Disc", rectangle: "Rectangle", triangle: "Triangle", none: "None" };
+const SHAPE_NOUNS = { disc: "disc", rectangle: "rectangle", triangle: "triangle" };
 const SIZE_LABELS = { medium: "Medium", large: "Large" };
-const PRED_SIZE_LABELS = { half: "Half", same: "Same", double: "Twice" };
+const PRED_SIZE_LABELS = { half: "Half", same: "Same", twice: "Twice" };
 
 /* the picture on a shape button (core's segmented `icon`, round 5, his pick A):
    the truth's shapes in the truth's colour, the prediction's in the prediction's */
@@ -526,8 +525,8 @@ function paintShapeIcon(ctx, shape, size, role) {
   ctx.lineWidth = 1.2;
   ctx.beginPath();
   if (shape === "disc") ctx.arc(size / 2, size / 2, size * 0.4, 0, 2 * Math.PI);
-  else if (shape === "rect") ctx.rect(size * 0.08, size * 0.3, size * 0.84, size * 0.42);
-  else if (shape === "tri") {
+  else if (shape === "rectangle") ctx.rect(size * 0.08, size * 0.3, size * 0.84, size * 0.42);
+  else if (shape === "triangle") {
     ctx.moveTo(size / 2, size * 0.1);
     ctx.lineTo(size * 0.94, size * 0.86);
     ctx.lineTo(size * 0.06, size * 0.86);
@@ -543,7 +542,9 @@ function paintShapeIcon(ctx, shape, size, role) {
   ctx.stroke();
   ctx.restore();
 }
-const DICE_NOTE = "The ground truth and the prediction on the image. Drag the prediction and the counts follow it.";
+/** precision is 0 ÷ 0 when the prediction has no pixels, so it prints as a dash */
+const precRec = (m) => `${m.B ? m.prec.toFixed(2) : "—"} · ${m.rec.toFixed(2)}`;
+const DICE_NOTE = "The ground truth and the prediction on the image. Drag the prediction to move it; the counts update as it moves.";
 
 function drawDice(ctx, colors, w, state, reveal) {
   const L = M.diceLayout(w);
@@ -571,7 +572,7 @@ function drawDice(ctx, colors, w, state, reveal) {
   frame(ctx, p.x, p.y, p.w, p.h, colors.axis);
   note(ctx, colors, "the image, the ground truth and the prediction", p.x, p.y + p.h + 14, colors.ink2);
   note(ctx, colors, state.predShape === "none" ? "the prediction is empty"
-    : state.dx || state.dy ? `the prediction moved ${state.dx} across, ${state.dy} down` : "the prediction in place", p.x, p.y + p.h + 28, colors.ink3);
+    : state.dx || state.dy ? `the prediction moved ${state.dx} across, ${state.dy} down` : "the prediction centred on the ground truth", p.x, p.y + p.h + 28, colors.ink3);
 
   const tiles = [
     ["|A|  truth", m.A, colors.reference],
@@ -588,12 +589,11 @@ function drawDice(ctx, colors, w, state, reveal) {
     txt(ctx, colors, `${v} px`, t.x + 8, t.y + 38, { mono: true, color: colors.ink1, weight: "600" });
     ctx.restore();
   });
-  const done = true;
   const lines = [
-    ["Dice", done ? m.dice.toFixed(3) : "—"],
-    ["IoU", done ? m.iou.toFixed(3) : "—"],
-    ["precision · recall", done ? `${m.prec.toFixed(2)} · ${m.rec.toFixed(2)}` : "—"],
-    ["Dice loss, 1 − Dice", done ? (1 - m.dice).toFixed(3) : "—"],
+    ["Dice", m.dice.toFixed(3)],
+    ["IoU", m.iou.toFixed(3)],
+    ["precision · recall", precRec(m)],
+    ["Dice loss, 1 − Dice", (1 - m.dice).toFixed(3)],
   ];
   lines.forEach(([label, v], k) => {
     note(ctx, colors, label, L.numbers.x, L.numbers.y + k * M.LINE, colors.ink2);
@@ -628,9 +628,9 @@ const DICE_EQ = [
 ];
 const DICE_CARD_NOTE = "A is the set of pixels in the ground truth and B the set in the prediction. Dice and IoU count "
   + "only the object's pixels, so an empty prediction scores 0 at any size. As a loss, the network's "
-  + "probabilities pᵢ stand in for the prediction's 0s and 1s, and tᵢ is the ground truth.";
-const U_CARD_NOTE = "One row a level of the U, as channels × height × width for a batch of 10. The encoder's output "
-  + "crosses the skip and has the shape of the upsampled maps it joins, so the concatenation doubles the "
+  + "probabilities pᵢ replace the prediction's 0s and 1s, and tᵢ is the ground truth.";
+const U_CARD_NOTE = "One row per level of the U, as channels × height × width for a batch of 10. The encoder's output "
+  + "is carried along the skip connection and has the shape of the upsampled maps it is concatenated with, so the concatenation doubles the "
   + "channels and keeps the height and width. A convolution sets the channels; max-pool halves the height "
   + "and width; the transposed convolution doubles them.";
 
@@ -706,8 +706,8 @@ defineWidget({
     "A U-Net halves the image and doubles the channels at each level of its encoder, then reverses "
     + "both up its decoder, where each level concatenates the encoder's features of the same size "
     + "before a convolution. The Dice loss scores a predicted mask by its overlap with the ground "
-    + "truth, counting only the object's pixels; precision and recall say whether a mask too large or "
-    + "too small is what lowers it.",
+    + "truth, counting only the object's pixels; precision is lower when the predicted mask is too large, "
+    + "and recall when it is too small.",
   layout: "side",
   height: ({ w, ...values }) => M.pageHeight(w, values),
 
@@ -771,7 +771,7 @@ defineWidget({
       when: ON("dice"),
     },
     predSec: { type: "section", label: "The prediction", when: ON("dice") },
-    pred: {
+    prediction: {
       type: "segmented",
       label: "Prediction",
       detail: "the predicted mask's shape; drag it on the figure to move it",
@@ -779,17 +779,17 @@ defineWidget({
       default: "disc",
       when: ON("dice"),
     },
-    psize: {
+    predictionsize: {
       type: "segmented",
       label: "Prediction size",
       detail: "the predicted mask's area: half, the same as, or twice the ground truth's",
       options: M.PRED_SIZE_KEYS.map((v) => ({ value: v, label: PRED_SIZE_LABELS[v] })),
       default: "same",
-      when: { all: [ON("dice"), { param: "pred", oneOf: M.SHAPES }] },
+      when: { all: [ON("dice"), { param: "prediction", oneOf: M.SHAPES }] },
     },
     /* where the drag has moved the prediction: display, so a drag keeps the count */
-    dx: { type: "int", min: -M.SHIFT_MAX, max: M.SHIFT_MAX, default: 2, hidden: true, display: true },
-    dy: { type: "int", min: -M.SHIFT_MAX, max: M.SHIFT_MAX, default: 1, hidden: true, display: true },
+    across: { type: "int", min: -M.SHIFT_MAX, max: M.SHIFT_MAX, default: 2, hidden: true, display: true },
+    down: { type: "int", min: -M.SHIFT_MAX, max: M.SHIFT_MAX, default: 1, hidden: true, display: true },
 
     /* Authoring escape hatch, first render only: stages added, or tiles counted. */
     shown: { type: "int", min: 0, max: 22, default: 0, hidden: true },
@@ -806,7 +806,7 @@ defineWidget({
       { token: "group-b", label: "The decoder's features", mark: "bar" },
       { token: "dim-a", label: "Height and width change here: max-pool down, transposed convolution up", mark: "line" },
       { token: "dim-b", label: "Channels change here: a convolution, and the concatenation's bracket", mark: "line" },
-      { token: "empirical", label: "The head: one logit a pixel, and the predicted mask", mark: "bar" },
+      { token: "empirical", label: "The head: one logit per pixel, and the predicted mask", mark: "bar" },
       { token: "value-high", label: "A positive weight" },
       { token: "value-low", label: "A negative weight" },
       { token: "highlight", label: "The stage just added, the chosen block, and the position its operation is shown at" },
@@ -832,13 +832,13 @@ defineWidget({
   },
 
   drag: {
-    params: ["dx", "dy"],
+    params: ["across", "down"],
     cursor: "grab",
-    hit: ({ x, y, w, params }) => M.isDice(params) && params.pred !== "none" && M.panelHit(M.diceLayout(w), x, y),
+    hit: ({ x, y, w, params }) => M.isDice(params) && params.prediction !== "none" && M.panelHit(M.diceLayout(w), x, y),
     value: ({ dx, dy, start, w }) => {
       const cell = M.diceLayout(w).panel.w / M.G;
       const clamp = (v) => Math.max(-M.SHIFT_MAX, Math.min(M.SHIFT_MAX, Math.round(v)));
-      return { dx: clamp(start.dx + dx / cell), dy: clamp(start.dy + dy / cell) };
+      return { across: clamp(start.across + dx / cell), down: clamp(start.down + dy / cell) };
     },
   },
 
@@ -846,7 +846,7 @@ defineWidget({
     stepLabel: { anim: "phase", labels: STEP_LABELS, default: "Next stage" },
     stepTitle: { anim: "phase", labels: STEP_TITLES, default: STEP_TITLES.stage },
     runLabel: "Play",
-    runTitle: "Run the remaining presses in order",
+    runTitle: "Add the remaining stages in order",
 
     init: ({ params, state, fromScratch }) => {
       const n = fromScratch ? 0 : Math.max(0, Math.min(state.total, Number(params.shown) || 0));
@@ -888,19 +888,18 @@ defineWidget({
   readout({ params, state, anim }) {
     const n = anim?.n ?? 0;
     if (state.page === "dice") {
-      const done = true;
       const { m } = state;
       return [
-        { label: "Dice · IoU", value: done ? `${m.dice.toFixed(3)} · ${m.iou.toFixed(3)}` : "—", note: "overlap over the mean size · overlap over the union" },
-        { label: "Precision · recall", value: done ? `${m.prec.toFixed(2)} · ${m.rec.toFixed(2)}` : "—", note: "of the predicted pixels, in the truth · of the truth's pixels, predicted" },
-        { label: "Dice loss", value: done ? (1 - m.dice).toFixed(3) : "—", note: "1 − Dice: 0 when the masks agree, 1 when they share no pixel" },
+        { label: "Dice · IoU", value: `${m.dice.toFixed(3)} · ${m.iou.toFixed(3)}`, note: "overlap over the mean size · overlap over the union" },
+        { label: "Precision · recall", value: precRec(m), note: "of the predicted pixels, in the truth · of the truth's pixels, predicted" },
+        { label: "Dice loss", value: (1 - m.dice).toFixed(3), note: "1 − Dice: 0 when the masks are identical, 1 when they share no pixel" },
       ];
     }
     const last = n > 0 ? state.stages[n - 1] : null;
     const bottle = state.stages.find((s) => s.kind === "bottleneck");
     return [
       { label: "Stages added", value: `${n} of ${state.total}`, note: last ? `${last.name}: ${last.op}` : "the input, not yet through a block" },
-      { label: "Bottleneck", value: shapeText(M.shapeOf(bottle)), note: bottle.H === 1 ? "a 1 × 1 map; a deeper network could pool no further" : `${bottle.H} × ${bottle.H}, ${bottle.C} channels` },
+      { label: "Bottleneck", value: shapeText(M.shapeOf(bottle)), note: `${bottle.H} × ${bottle.H}, ${bottle.C} channels` },
       { label: "Parameters", value: fmt(state.params), note: "the DoubleConv blocks, the transposed convolutions and the head, at this depth and base" },
       {
         label: "Training time",

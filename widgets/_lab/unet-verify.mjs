@@ -145,9 +145,9 @@ section("§2 the engine, the table of trained networks, and the band's arithmeti
 /* §3 ---------------------------------------------------------------------- */
 section("§3 the Dice claims on the widget's own masks");
 {
-  const read = (size, truth, pred, psize = "same", dx = 0, dy = 0) => M.computeDice({ size, truth, pred, psize, dx, dy }).m;
+  const read = (size, truth, pred, psize = "same", dx = 0, dy = 0) => M.computeDice({ size, truth, prediction: pred, predictionsize: psize, across: dx, down: dy }).m;
   assert(Object.keys(M.SIZES).join(",") === "medium,large", "the object sizes are medium and large (round 4)");
-  assert(M.SHAPES.join(",") === "disc,rect,tri" && M.PRED_SHAPES.includes("none"), "the shapes are disc, rectangle and triangle, and the prediction may be none (round 5)");
+  assert(M.SHAPES.join(",") === "disc,rectangle,triangle" && M.PRED_SHAPES.includes("none"), "the shapes are disc, rectangle and triangle, and the prediction may be none (round 5)");
   for (const size of M.SIZE_KEYS) {
     const want = M.SIZES[size].share;
     for (const shape of M.SHAPES) {
@@ -160,7 +160,7 @@ section("§3 the Dice claims on the widget's own masks");
       const none = read(size, shape, "none");
       assert(none.dice === 0 && none.B === 0 && close(none.acc, 1 - share), `${size} ${shape}, no prediction: Dice 0, accuracy ${none.acc.toFixed(3)} = the background's share`);
       const half = read(size, shape, shape, "half");
-      const dbl = read(size, shape, shape, "double");
+      const dbl = read(size, shape, shape, "twice");
       assert(half.prec === 1 && Math.abs(half.rec - 0.5) < 0.08, `${size} ${shape}, half the area: precision 1, recall ${half.rec.toFixed(2)}`);
       assert(dbl.rec === 1 && Math.abs(dbl.prec - 0.5) < 0.08, `${size} ${shape}, twice the area: recall 1, precision ${dbl.prec.toFixed(2)}`);
     }
@@ -175,14 +175,14 @@ section("§3 the Dice claims on the widget's own masks");
   /* the accuracy sentence's two numbers */
   assert(off.neither + off.AB === Math.round(off.acc * M.G * M.G) && off.A + off.B - 2 * off.AB === M.G * M.G - (off.neither + off.AB),
     "right pixels = both + neither, wrong = |A| + |B| − 2|A ∩ B|");
-  for (const m of [off, read("medium", "tri", "rect", "half", 2, 1), read("large", "rect", "disc", "double", -3, 4)]) {
+  for (const m of [off, read("medium", "triangle", "rectangle", "half", 2, 1), read("large", "rectangle", "disc", "twice", -3, 4)]) {
     assert(close(m.dice, m.A + m.B ? (2 * m.AB) / (m.A + m.B) : 0), "Dice is 2|A∩B| / (|A|+|B|)");
     assert(close(m.iou, m.dice / (2 - m.dice)), "IoU = Dice / (2 − Dice)");
   }
   const a = read("medium", "disc", "disc", "same", 1, 0);
   const b = read("medium", "disc", "disc", "same", 3, 0);
   assert(a.B === b.B && b.AB < a.AB, "a drag moves the prediction without changing its size, and the overlap falls");
-  console.log(`  medium disc dragged clear: accuracy ${off.acc.toFixed(3)}, Dice 0; triangle for disc ${read("medium", "disc", "tri").dice.toFixed(2)}, rectangle for disc ${read("medium", "disc", "rect").dice.toFixed(2)}`);
+  console.log(`  medium disc dragged clear: accuracy ${off.acc.toFixed(3)}, Dice 0; triangle for disc ${read("medium", "disc", "triangle").dice.toFixed(2)}, rectangle for disc ${read("medium", "disc", "rectangle").dice.toFixed(2)}`);
 }
 
 /* §4 ---------------------------------------------------------------------- */
@@ -250,6 +250,8 @@ section("§5 the copy");
   const struck = [
     /\bnever\b/i, /\bsits?\b/i, /\bsitting\b/i, /\bfalls?\b/i, /\blies?\b/i, /\bwalk\b/i, /\bcard\b/i, /\brung\b/i,
     /\bwell\b/i, /\bplain\b/i, /\btrench\b/i, /\bframe\b/i, /\bchose\b/i, /\bwants?\b/i,
+    /* the copy audit of 2026-09-15: personified verbs and our own words */
+    /\barrives?\b/i, /\bfollows?\b/i, /\bagree\b/i, /\bpresses\b/i, /\bcrosses\b/i, /\bjoins\b/i, /\bskips\b/i, /\bwaits?\b/i, /\breach(es)?\b/i, /\bstands?\b/i, /\bsay\b/i,
   ];
   for (const s of strings) {
     if (s.length < 12 || /^[\w-]+$/.test(s)) continue;
