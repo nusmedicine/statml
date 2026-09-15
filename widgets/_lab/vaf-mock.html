@@ -1,0 +1,791 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · tumor-heterogeneity — mock</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1600px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 100ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); min-height: 26px; white-space: pre-line; }
+  .cand .body { font-size: var(--fs-sm); color: var(--ink-1); line-height: 1.5; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 100ch; }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+       border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 100ch; }
+  #checks { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--ink-2); white-space: pre-line;
+            padding: var(--sp-3); background: var(--surface-2); border: 1px solid var(--grid); max-width: 100ch; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>tumor-heterogeneity &middot; mock</h1>
+  <p class="note">
+    <b>Your picks, 2026-09-16:</b> one widget of three pages &mdash; <i>One mutation</i> &middot; <i>Many mutations</i>
+    &middot; <i>Clonal architecture</i> &mdash; on a simulated stage shaped by the lesson's own MAF. <b>Every number
+    drawn here is computed on the page</b> by <code>_lab/vaf-model.js</code>, which is also what
+    <code>_lab/vaf-measure.mjs</code> imports, so the mock cannot illustrate a number the measurement does not produce;
+    the last section reruns the measured claims in the browser. Depth, purity and MATH come from
+    <code>_lab/cancer-plan-measure.mjs</code> reading <code>brca_maf.rda</code>. The mock draws filled states so they can
+    be judged; the widget opens empty. On-canvas strings are candidates for the copy audit, not copy. Each section ends
+    with a recommendation; the blue-ruled boxes are questions only you can answer.
+  </p>
+
+  <h2>0 &middot; The subtitle</h2>
+  <p class="note">Three claims that read written, in the register of the shipped ones. Nothing here describes the widget.</p>
+  <div class="row" id="subRow"></div>
+  <p class="rec" id="recSub"></p>
+
+  <h2>1 &middot; The first page's stage: what a sample IS</h2>
+  <p class="note">
+    The same sample three ways &mdash; purity 0.70, the mutation in every tumour cell, a diploid region, which cell 17
+    reads as VAF 0.35. Your figure draws a handful of large cells; a sample at 70% purity needs enough of them to be a
+    proportion.
+  </p>
+  <div class="row" id="stageRow"></div>
+  <p class="rec" id="recStage"></p>
+
+  <h2>2 &middot; The reads</h2>
+  <p class="note">
+    The same 88 reads (the lesson's median depth) drawn two ways, with the expected VAF marked. A read is one draw from
+    the sample's alleles, so reads arrive one at a time under Step and in a batch under Draw.
+  </p>
+  <div class="row" id="readRow"></div>
+  <p class="rec" id="recRead"></p>
+
+  <h2>3 &middot; One reading, three arrangements &mdash; the page's argument</h2>
+  <p class="note">
+    All three read <b>VAF 0.250</b>: half the sample is normal cells; half the tumour cells carry it; it sits on one of
+    four copies in every tumour cell. Nineteen arrangements in the swept grid read 0.25 &plusmn; 0.004. One equation,
+    three unknowns &mdash; and no depth separates them.
+  </p>
+  <div class="row" id="trioRow"></div>
+  <p class="q" id="qTrio"></p>
+  <p class="rec" id="recTrio"></p>
+
+  <h2>4 &middot; The second page: many mutations at once</h2>
+  <p class="note">
+    300 mutations of one tumour at purity 0.70 and the lesson's depths: 180 in every tumour cell, 120 in half of them.
+    The clusters are what a Gaussian mixture picked by BIC returns &mdash; <code>mclust</code>'s rule, which cell 22
+    calls. Measured: at 300 mutations it gives a tumour with ONE clone two clusters in 21 of 30 runs.
+  </p>
+  <div class="row" id="manyRow"></div>
+  <p class="rec" id="recMany"></p>
+
+  <h2>5 &middot; From VAF to cancer cell fraction</h2>
+  <p class="note">
+    The same 300 mutations divided by cell 25's denominator. At the true purity the clonal peak lands on 1; taken as
+    pure, it lands at 0.59 and the page's own cut empties.
+  </p>
+  <div class="row" id="ccfRow"></div>
+  <p class="q" id="qCcf"></p>
+  <p class="rec" id="recCcf"></p>
+
+  <h2>6 &middot; The third page: which trees the fractions allow</h2>
+  <p class="note">
+    Your RETCHER figure's four samples, its three clusters' mean CCF. Two shapes are possible with three clusters; the
+    rule is that no parent's children may sum past it. Measured: the first three samples rule out branching, the surgery
+    sample alone allows both, and the four together leave the linear tree only.
+  </p>
+  <div class="row" id="treeRow"></div>
+  <p class="q" id="qTree"></p>
+  <p class="rec" id="recTree"></p>
+
+  <h2>7 &middot; The rail</h2>
+  <p class="note">Rendered by core's <code>buildControls</code> at 300px, one block per page.</p>
+  <div class="row" id="railRow"></div>
+  <p class="rec" id="recRail"></p>
+
+  <h2>8 &middot; What this page checks</h2>
+  <p class="note">The measured claims, recomputed in the browser from the same module the measure script uses.</p>
+  <div id="checks">running…</div>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+import { buildControls } from "../core/controls.js";
+import { resolveParams } from "../core/params.js";
+import * as M from "./vaf-model.js";
+
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+const W = 550;
+const PAD = 14;
+const f2 = (x) => x.toFixed(2);
+const f3 = (x) => x.toFixed(3);
+
+/* ---------------------------------------------------------------- shell */
+function el(tag, cls, text) { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
+function cand(rowId, title, sub, w = W) {
+  const box = el("div", "cand");
+  box.style.width = `${w}px`;
+  box.appendChild(el("h3", null, title));
+  box.appendChild(el("p", "sub", sub));
+  document.getElementById(rowId).appendChild(box);
+  return box;
+}
+function canvasIn(box, w, h) {
+  const c = document.createElement("canvas");
+  c.width = Math.round(w * DPR); c.height = Math.round(h * DPR);
+  c.style.width = `${w}px`; c.style.height = `${h}px`;
+  box.appendChild(c);
+  const ctx = c.getContext("2d");
+  ctx.scale(DPR, DPR);
+  return ctx;
+}
+const wash = (color, a) => {
+  const m = color.match(/^#([0-9a-f]{6})$/i);
+  if (!m) return color;
+  const p = [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16));
+  return `rgba(${p[0]},${p[1]},${p[2]},${a})`;
+};
+function label(ctx, s, x, y, { size = 12, colour = T.ink2, align = "left", mono = false, weight = "" } = {}) {
+  ctx.save();
+  ctx.font = `${weight ? weight + " " : ""}${size}px ${mono ? T.mono : T.font}`;
+  ctx.fillStyle = colour;
+  ctx.textAlign = align;
+  ctx.textBaseline = "alphabetic";
+  ctx.fillText(s, x, y);
+  ctx.restore();
+}
+
+/* ---------------------------------------------------------------- the sample
+   A field of cells: normal cells carry two wild-type copies, tumour cells the
+   copy state's copies, and the ones inside the cancer cell fraction carry the
+   mutation on `m` of them. Colour separates tumour from normal (the two arms
+   of the mixture); the mutation is a mark, never a third colour. */
+function cellField(ctx, x, y, w, h, opts) {
+  const { purity, ccf, state = "1+1", m = 1, cols = 10, rows = 6, r = 12 } = opts;
+  const st = M.stateOf(state);
+  const n = cols * rows;
+  const nTumour = Math.round(n * purity);
+  const nCarry = Math.round(nTumour * ccf);
+  const px = w / cols, py = h / rows;
+  for (let i = 0; i < n; i += 1) {
+    const cx = x + (i % cols) * px + px / 2;
+    const cy = y + Math.floor(i / cols) * py + py / 2;
+    const tumour = i < nTumour;
+    const carries = i < nCarry;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.fillStyle = tumour ? wash(T.groupA, 0.16) : T.surface3;
+    ctx.fill();
+    ctx.strokeStyle = tumour ? wash(T.groupA, 0.75) : wash(T.ink3, 0.55);
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    const copies = tumour ? st.total : 2;
+    const len = copies > 2 ? r * 1.0 : r * 1.25;
+    for (let c = 0; c < copies; c += 1) {
+      const oy = cy + (c - (copies - 1) / 2) * (copies > 2 ? 4.4 : 6);
+      ctx.beginPath();
+      ctx.moveTo(cx - len / 2, oy);
+      ctx.lineTo(cx + len / 2, oy);
+      ctx.strokeStyle = T.ink3;
+      ctx.lineWidth = 1.2;
+      ctx.stroke();
+      if (carries && c < m) {
+        ctx.beginPath();
+        ctx.arc(cx, oy, 2.6, 0, Math.PI * 2);
+        ctx.fillStyle = T.highlight;
+        ctx.fill();
+      }
+    }
+  }
+  return { nTumour, nCarry, n };
+}
+
+/* The alleles of the whole sample as one bar: what the denominator is. */
+function alleleBar(ctx, x, y, w, h, opts) {
+  const { purity, ccf, state = "1+1", m = 1 } = opts;
+  const st = M.stateOf(state);
+  const tumourCopies = purity * st.total;
+  const normalCopies = (1 - purity) * 2;
+  const mut = purity * ccf * m;
+  const total = tumourCopies + normalCopies;
+  let cx = x;
+  const seg = (frac, fill, stroke) => {
+    const ww = (frac / total) * w;
+    ctx.fillStyle = fill; ctx.fillRect(cx, y, ww, h);
+    ctx.strokeStyle = stroke; ctx.lineWidth = 1; ctx.strokeRect(cx + 0.5, y + 0.5, ww - 1, h - 1);
+    cx += ww;
+    return ww;
+  };
+  const wm = seg(mut, wash(T.highlight, 0.85), T.highlight);
+  seg(tumourCopies - mut, wash(T.groupA, 0.16), wash(T.groupA, 0.6));
+  seg(normalCopies, T.surface3, T.grid);
+  return { vaf: mut / total, wm };
+}
+
+/* Reads: each one a draw from those alleles. */
+function pileup(ctx, x, y, w, alt, depth, { perRow = 22, rh = 9, gap = 3 } = {}) {
+  const cw = (w - (perRow - 1) * 2) / perRow;
+  for (let i = 0; i < depth; i += 1) {
+    const rx = x + (i % perRow) * (cw + 2);
+    const ry = y + Math.floor(i / perRow) * (rh + gap);
+    ctx.fillStyle = i < alt ? T.highlight : T.ink3;
+    ctx.globalAlpha = i < alt ? 1 : 0.45;
+    ctx.fillRect(rx, ry, cw, rh);
+    ctx.globalAlpha = 1;
+  }
+  return y + Math.ceil(depth / perRow) * (rh + gap);
+}
+
+function vafBar(ctx, x, y, w, h, vaf, expected, { showScale = true } = {}) {
+  ctx.fillStyle = T.surface3;
+  ctx.fillRect(x, y, w, h);
+  ctx.fillStyle = wash(T.highlight, 0.85);
+  ctx.fillRect(x, y, w * vaf, h);
+  ctx.strokeStyle = T.grid; ctx.lineWidth = 1; ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+  if (expected != null) {
+    ctx.beginPath();
+    ctx.moveTo(x + w * expected, y - 4);
+    ctx.lineTo(x + w * expected, y + h + 4);
+    ctx.strokeStyle = T.theory; ctx.lineWidth = 2; ctx.stroke();
+  }
+  if (showScale) for (const t of [0, 0.25, 0.5, 0.75, 1]) label(ctx, t.toFixed(2), x + w * t, y + h + 15, { size: 10, colour: T.ink3, align: t === 0 ? "left" : t === 1 ? "right" : "center", mono: true });
+}
+
+/* ---------------------------------------------------------------- histogram */
+function histogram(ctx, x, y, w, h, muts, opts = {}) {
+  const { max = 1, bins = 50, colourBy = "truth", clusters = null, cut = null, axis = "VAF", ticks = [0, 0.25, 0.5, 0.75, 1] } = opts;
+  const counts = Array.from({ length: bins }, () => ({ clonal: 0, sub: 0 }));
+  for (const mu of muts) {
+    const v = opts.value ? opts.value(mu) : mu.vaf;
+    const b = Math.min(bins - 1, Math.max(0, Math.floor((v / max) * bins)));
+    counts[b][mu.clonal ? "clonal" : "sub"] += 1;
+  }
+  const top = Math.max(...counts.map((c) => c.clonal + c.sub), 1);
+  const bw = w / bins;
+  for (let b = 0; b < bins; b += 1) {
+    const c = counts[b];
+    let yy = y + h;
+    const draw = (n, fill) => { const hh = (n / top) * (h - 4); ctx.fillStyle = fill; ctx.fillRect(x + b * bw + 0.5, yy - hh, bw - 1, hh); yy -= hh; };
+    if (colourBy === "truth") { draw(c.clonal, wash(T.groupA, 0.85)); draw(c.sub, wash(T.groupB, 0.85)); }
+    else draw(c.clonal + c.sub, wash(T.empirical, 0.85));
+  }
+  ctx.strokeStyle = T.axis; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(x, y + h + 0.5); ctx.lineTo(x + w, y + h + 0.5); ctx.stroke();
+  for (const t of ticks) {
+    const tx = x + (t / max) * w;
+    ctx.beginPath(); ctx.moveTo(tx, y + h); ctx.lineTo(tx, y + h + 4); ctx.strokeStyle = T.axis; ctx.stroke();
+    label(ctx, t.toFixed(2), tx, y + h + 16, { size: 10, colour: T.ink3, align: "center", mono: true });
+  }
+  label(ctx, axis, x + w / 2, y + h + 31, { size: 11, colour: T.ink2, align: "center" });
+  if (cut != null) {
+    const cx = x + (cut / max) * w;
+    ctx.save(); ctx.setLineDash([4, 3]);
+    ctx.beginPath(); ctx.moveTo(cx, y); ctx.lineTo(cx, y + h); ctx.strokeStyle = T.reference; ctx.lineWidth = 1.5; ctx.stroke();
+    ctx.restore();
+  }
+  if (clusters) {
+    /* Found clusters as ENCLOSURE above the bars, never as a second colour
+       (§ Widget 42). One level each, because assigned spans overlap and at one
+       level the brackets read as a single rule. */
+    clusters.forEach((cl, i) => {
+      const x0 = x + (Math.max(0, cl.lo) / max) * w, x1 = x + (Math.min(max, cl.hi) / max) * w;
+      const yy = y - 8 - i * 12;
+      ctx.strokeStyle = T.ink2; ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(x0, yy + 5); ctx.lineTo(x0, yy); ctx.lineTo(x1, yy); ctx.lineTo(x1, yy + 5);
+      ctx.stroke();
+      if (cl.mu != null) {
+        ctx.beginPath();
+        ctx.moveTo(x + (cl.mu / max) * w, yy); ctx.lineTo(x + (cl.mu / max) * w, yy + 5);
+        ctx.strokeStyle = T.ink2; ctx.stroke();
+      }
+      label(ctx, `${i + 1}`, (x0 + x1) / 2, yy - 3, { size: 10, colour: T.ink2, align: "center", mono: true });
+    });
+  }
+}
+
+/* A component's bracket is its mean ± one standard deviation, not the range of
+   the points assigned to it: assigned ranges overlap heavily and the widest of
+   them covers the whole axis, which reads as one rule rather than as clusters. */
+function clusterSpans(muts, value = (m) => m.vaf) {
+  const xs = muts.map(value);
+  const { K, fit } = M.pickK(xs);
+  const spans = [];
+  for (let k = 0; k < K; k += 1) {
+    const n = fit.assign.filter((a) => a === k).length;
+    if (n) spans.push({ lo: fit.mu[k] - fit.sd[k], hi: fit.mu[k] + fit.sd[k], mu: fit.mu[k], n });
+  }
+  spans.sort((a, b) => a.mu - b.mu);
+  return { K, spans };
+}
+
+/* ---------------------------------------------------------------- 0 · subtitle */
+{
+  const SUBS = [
+    ["A", "Sequencing reads alleles, not cells. A mutation carried by every tumour cell fills half the reads in a pure "
+      + "diploid sample, and less when normal cells dilute it or the region has extra copies. The cancer cell fraction is "
+      + "the variant allele frequency with the purity and the copy number divided out."],
+    ["B", "A tumour is a mixture of cell populations, and its mutations are read as variant allele frequencies. Purity and "
+      + "copy number set where a mutation carried by every tumour cell falls, sequencing depth sets how wide its peak is, "
+      + "and the cancer cell fraction is what is left once both are divided out."],
+    ["C", "The variant allele frequency of a mutation is the share of reads that carry it. It depends on the purity of the "
+      + "sample and the copy number of the region as well as on the fraction of tumour cells carrying the mutation, so "
+      + "the three are separated before a mutation is called clonal or subclonal."],
+  ];
+  for (const [k, s] of SUBS) {
+    const box = cand("subRow", `${k} · ${s.length} characters`, "", 520);
+    box.appendChild(el("p", "body", s));
+  }
+  document.getElementById("recSub").innerHTML =
+    "<b>A.</b> It opens on the fact the first page exists for &mdash; reads are alleles, not cells &mdash; then names "
+    + "the two things that move the reading, then defines the cancer cell fraction as the correction. B spends its "
+    + "first clause on the word <i>mixture</i>, which the figure says without help; C's middle sentence lists three "
+    + "things without saying what any of them does.";
+}
+
+/* ---------------------------------------------------------------- 1 · the stage */
+{
+  const base = { purity: 0.7, ccf: 1, state: "1+1", m: 1 };
+  const expected = M.vafExpected(0.7, 1, 1, 2);
+
+  // A — his figure's scale: a handful of large cells
+  {
+    const box = cand("stageRow", "A · your figure's scale, ten cells", "one cell is a tenth of the sample, so 0.35 and 0.75 are not drawable", 270);
+    const ctx = canvasIn(box, 270, 200);
+    const got = cellField(ctx, 10, 20, 250, 150, { ...base, cols: 5, rows: 2, r: 22 });
+    label(ctx, `${got.nTumour} of ${got.n} cells are tumour`, 10, 190, { size: 11 });
+  }
+  // B — a field of sixty
+  {
+    const box = cand("stageRow", "B · sixty cells", "purity is countable; the mutation is a mark, not a colour", 270);
+    const ctx = canvasIn(box, 270, 200);
+    const got = cellField(ctx, 8, 16, 254, 156, { ...base, cols: 10, rows: 6, r: 11 });
+    label(ctx, `${got.nTumour} of ${got.n} cells are tumour`, 8, 190, { size: 11 });
+  }
+  // C — the alleles as one bar
+  {
+    const box = cand("stageRow", "C · the alleles, as one bar", "the denominator drawn literally; no cells", 270);
+    const ctx = canvasIn(box, 270, 200);
+    const got = alleleBar(ctx, 10, 60, 250, 40, base);
+    label(ctx, "mutated copies", 10, 50, { size: 11, colour: T.highlight });
+    label(ctx, "tumour, wild type", 10 + got.wm + 6, 50, { size: 11, colour: T.ink2 });
+    label(ctx, "normal cells", 260, 118, { size: 11, colour: T.ink2, align: "right" });
+    label(ctx, `VAF ${f3(got.vaf)}`, 10, 130, { size: 12, colour: T.ink1, mono: true });
+  }
+  // the recommendation drawn at the full width, with reads under it
+  {
+    const box = cand("stageRow", "B at the real width, with the reads under it", "purity 0.70, the mutation in every tumour cell, diploid — cell 17's 0.35");
+    const ctx = canvasIn(box, W, 348);
+    label(ctx, "The sample", PAD, 18, { size: 12, colour: T.ink1 });
+    const got = cellField(ctx, PAD, 26, W - 2 * PAD, 156, { ...base, cols: 10, rows: 6, r: 11 });
+    label(ctx, `${got.nTumour} of ${got.n} cells are tumour cells, and every one of them carries the mutation on one of its two copies`, PAD, 200, { size: 11 });
+    const alt = Math.round(88 * 0.35);
+    label(ctx, "88 reads", PAD, 226, { size: 12, colour: T.ink1 });
+    label(ctx, `${alt} carry the mutation`, W - PAD, 226, { size: 11, colour: T.ink2, align: "right" });
+    pileup(ctx, PAD, 234, W - 2 * PAD, alt, 88);
+    vafBar(ctx, PAD, 288, W - 2 * PAD, 16, alt / 88, expected);
+    label(ctx, `VAF ${f3(alt / 88)}`, PAD, 340, { size: 11, colour: T.ink1, mono: true });
+    label(ctx, `expected ${f3(expected)}`, W - PAD, 340, { size: 11, colour: T.theory, align: "right", mono: true });
+  }
+  document.getElementById("recStage").innerHTML =
+    "<b>B.</b> Sixty cells make purity a count the reader can check (42 of 60 here), which is what A cannot do at ten "
+    + "&mdash; and the lesson's cases are proportions, not single cells. The mutation stays a mark inside the cell, so "
+    + "colour carries one grouping only. C is the denominator drawn literally and is worth keeping as the strip under "
+    + "the field rather than as the stage, because it is the thing the arithmetic divides by.";
+}
+
+/* ---------------------------------------------------------------- 2 · the reads */
+{
+  const alt = Math.round(88 * 0.35);
+  {
+    const box = cand("readRow", "A · a pileup", "88 reads, alt marked; the picture a caller shows", 270);
+    const ctx = canvasIn(box, 270, 150);
+    pileup(ctx, 10, 20, 250, alt, 88, { perRow: 16, rh: 8, gap: 3 });
+    vafBar(ctx, 10, 110, 250, 14, alt / 88, 0.35, { showScale: false });
+    label(ctx, `${alt} of 88 reads`, 10, 14, { size: 11 });
+  }
+  {
+    const box = cand("readRow", "B · two piles", "the collection's accumulator: one mark per read", 270);
+    const ctx = canvasIn(box, 270, 150);
+    const colW = 90;
+    const stack = (x0, n, colour, name) => {
+      for (let i = 0; i < n; i += 1) {
+        const row = Math.floor(i / 6), col = i % 6;
+        ctx.fillStyle = colour;
+        ctx.fillRect(x0 + col * 13, 108 - row * 7, 10, 5);
+      }
+      label(ctx, `${name} ${n}`, x0, 128, { size: 11, colour: T.ink2 });
+    };
+    stack(30, alt, T.highlight, "variant");
+    stack(150, 88 - alt, T.ink3, "reference");
+    label(ctx, "each read is one draw from the sample's alleles", 10, 14, { size: 11 });
+  }
+  document.getElementById("recRead").innerHTML =
+    "<b>A.</b> The pileup is what a read actually is &mdash; one row per read over the locus &mdash; and it holds the "
+    + "depth as a shape, so the Depth control changes the picture and not only a number. B's two piles are the "
+    + "collection's accumulator idiom, but two stacks of ticks is a bar chart of a fraction the bar under it already "
+    + "prints. Step adds one read to the pileup, Draw fills it.";
+}
+
+/* ---------------------------------------------------------------- 3 · the trio */
+{
+  const rowsOf = (ctx, x, y, w, arrangement, i) => {
+    const st = M.stateOf(arrangement.state);
+    const v = M.vafExpected(arrangement.purity, arrangement.ccf, arrangement.m, st.total);
+    cellField(ctx, x, y, w * 0.56, 46, { purity: arrangement.purity, ccf: arrangement.ccf, state: arrangement.state, m: arrangement.m, cols: 12, rows: 2, r: 9 });
+    vafBar(ctx, x + w * 0.6, y + 14, w * 0.4 - 10, 16, v, null, { showScale: i === 2 });
+    label(ctx, arrangement.label, x, y + 60, { size: 11, colour: T.ink2 });
+    label(ctx, `VAF ${f3(v)}`, x + w - 10, y + 12, { size: 11, colour: T.ink1, align: "right", mono: true });
+    return v;
+  };
+  {
+    const box = cand("trioRow", "A · the three at once, as rows", "one stage each, the bars on one scale");
+    const ctx = canvasIn(box, W, 250);
+    label(ctx, "Three samples, one reading", PAD, 18, { size: 12, colour: T.ink1 });
+    M.TRIO.forEach((a, i) => rowsOf(ctx, PAD, 30 + i * 74, W - 2 * PAD, a, i));
+  }
+  {
+    const box = cand("trioRow", "B · one stage, the arrangement as a control", "the bar holds still while the cells change", 270);
+    const ctx = canvasIn(box, 270, 250);
+    label(ctx, "Arrangement", 10, 16, { size: 11, colour: T.ink2 });
+    ["normal cells", "a subclone", "extra copies"].forEach((s, i) => {
+      const x0 = 10 + i * 84;
+      ctx.fillStyle = i === 1 ? wash(T.highlight, 0.18) : T.surface2;
+      ctx.strokeStyle = i === 1 ? T.highlight : T.grid;
+      ctx.lineWidth = 1;
+      ctx.fillRect(x0, 22, 80, 22); ctx.strokeRect(x0 + 0.5, 22.5, 79, 21);
+      label(ctx, s, x0 + 40, 37, { size: 10, colour: T.ink1, align: "center" });
+    });
+    cellField(ctx, 10, 54, 250, 120, { purity: 1, ccf: 0.5, state: "1+1", m: 1, cols: 10, rows: 5, r: 11 });
+    vafBar(ctx, 10, 190, 250, 16, 0.25, null);
+    label(ctx, "VAF 0.250", 10, 235, { size: 11, colour: T.ink1, mono: true });
+  }
+  {
+    const box = cand("trioRow", "C · the set of arrangements as a map", "purity against cancer cell fraction; the curve is VAF 0.25", 270);
+    const ctx = canvasIn(box, 270, 276);
+    const x0 = 40, y0 = 30, w = 200, h = 170;
+    ctx.strokeStyle = T.axis; ctx.lineWidth = 1;
+    ctx.strokeRect(x0 + 0.5, y0 + 0.5, w, h);
+    ctx.beginPath();
+    for (let i = 0; i <= 100; i += 1) {
+      const p = 0.25 + (i / 100) * 0.75;
+      const c = 0.5 / p; // vaf = p·c/2 = 0.25
+      if (c > 1) continue;
+      const px = x0 + ((p - 0.25) / 0.75) * w, py = y0 + h - c * h;
+      if (ctx.__started) ctx.lineTo(px, py); else { ctx.moveTo(px, py); ctx.__started = true; }
+    }
+    ctx.strokeStyle = T.theory; ctx.lineWidth = 2; ctx.stroke(); ctx.__started = false;
+    for (const [p, c] of [[0.5, 1], [1, 0.5]]) {
+      ctx.beginPath();
+      ctx.arc(x0 + ((p - 0.25) / 0.75) * w, y0 + h - c * h, 4, 0, Math.PI * 2);
+      ctx.fillStyle = T.highlight; ctx.fill();
+    }
+    label(ctx, "0.25", x0, y0 + h + 15, { size: 10, colour: T.ink3, align: "center", mono: true });
+    label(ctx, "1.00", x0 + w, y0 + h + 15, { size: 10, colour: T.ink3, align: "center", mono: true });
+    label(ctx, "purity", x0 + w / 2, y0 + h + 32, { size: 11, align: "center" });
+    ctx.save(); ctx.translate(14, y0 + h / 2); ctx.rotate(-Math.PI / 2);
+    label(ctx, "cancer cell fraction", 0, 0, { size: 11, align: "center" });
+    ctx.restore();
+    label(ctx, "every point reads VAF 0.25", x0, 20, { size: 11, colour: T.ink2 });
+    label(ctx, "the third unknown, copy number, is a", 10, 256, { size: 10, colour: T.ink3 });
+    label(ctx, "different curve for each state", 10, 268, { size: 10, colour: T.ink3 });
+  }
+  document.getElementById("qTrio").innerHTML =
+    "<b>Your call:</b> does the first page show the three arrangements <i>at once</i> (A), so the equality is on the "
+    + "screen, or <i>one at a time</i> under a control (B), so the reader makes them equal themselves? A is a figure; "
+    + "B is a control that carries the idea, and it is the only one that keeps the cells at a size where the copies are "
+    + "legible.";
+  document.getElementById("recTrio").innerHTML =
+    "<b>A, with B's control kept for the rest of the page.</b> The claim is an equality between three things, and an "
+    + "equality drawn one at a time is remembered as three separate readings. C is the honest general statement &mdash; "
+    + "a whole curve of arrangements &mdash; but it drops the cells, and copy number cannot ride on it.";
+}
+
+/* ---------------------------------------------------------------- 4 · many mutations */
+const MANY = M.tumour({ clones: [{ ccf: 1, share: 0.6 }, { ccf: 0.5, share: 0.4 }], purity: 0.7, n: 300, seed: 99 });
+{
+  const { K, spans } = clusterSpans(MANY);
+  const mathScore = M.MATH(MANY.map((m) => m.vaf));
+  {
+    const box = cand("manyRow", "A · a histogram, one colour", "what 300 mutations look like; MATH printed", 270);
+    const ctx = canvasIn(box, 270, 230);
+    histogram(ctx, 20, 20, 230, 140, MANY, { colourBy: "one" });
+    label(ctx, `MATH ${mathScore.toFixed(1)}`, 20, 212, { size: 12, colour: T.ink1, mono: true });
+  }
+  {
+    const box = cand("manyRow", "B · cell 23's figure", "a density with its rug, the clusters above", 270);
+    const ctx = canvasIn(box, 270, 230);
+    // density
+    const xs = MANY.map((m) => m.vaf);
+    const x0 = 20, w = 230, y0 = 60, h = 100;
+    const bw = 0.03;
+    ctx.beginPath();
+    for (let i = 0; i <= 120; i += 1) {
+      const v = i / 120;
+      let d = 0;
+      for (const s of xs) d += Math.exp(-((v - s) ** 2) / (2 * bw * bw));
+      d /= xs.length * bw * Math.sqrt(2 * Math.PI);
+      const px = x0 + v * w, py = y0 + h - (d / 6) * h;
+      if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    }
+    ctx.strokeStyle = T.ink2; ctx.lineWidth = 1.5; ctx.stroke();
+    // rug, coloured by the cluster mclust found
+    const { fit } = M.pickK(xs);
+    xs.forEach((v, i) => {
+      ctx.fillStyle = T.clusters[fit.assign[i] % T.clusters.length];
+      ctx.fillRect(x0 + v * w, y0 + h + 3, 1.5, 7);
+    });
+    spans.forEach((sp, i) => {
+      ctx.strokeStyle = T.clusters[i % T.clusters.length]; ctx.lineWidth = 6;
+      ctx.beginPath(); ctx.moveTo(x0 + sp.lo * w, 30 + i * 9); ctx.lineTo(x0 + sp.hi * w, 30 + i * 9); ctx.stroke();
+    });
+    label(ctx, `${K} clusters, MATH ${mathScore.toFixed(1)}`, x0, 200, { size: 11, colour: T.ink1, mono: true });
+    label(ctx, "VAF", x0 + w / 2, 190, { size: 11, align: "center" });
+  }
+  {
+    const box = cand("manyRow", "C · truth in colour, the clusters as brackets", "clonal and subclonal are the colours; what mclust found is enclosure");
+    const ctx = canvasIn(box, W, 280);
+    label(ctx, "300 mutations of one tumour, purity 0.70", PAD, 18, { size: 12, colour: T.ink1 });
+    histogram(ctx, PAD + 6, 72, W - 2 * PAD - 12, 140, MANY, { colourBy: "truth", clusters: spans });
+    const clonal = MANY.filter((m) => m.clonal).length;
+    label(ctx, `in every tumour cell: ${clonal}`, PAD + 6, 262, { size: 11, colour: T.groupA });
+    label(ctx, `in half of them: ${300 - clonal}`, PAD + 190, 262, { size: 11, colour: T.groupB });
+    label(ctx, `clusters found: ${K}   MATH ${mathScore.toFixed(1)}`, W - PAD - 6, 262, { size: 11, colour: T.ink1, align: "right", mono: true });
+  }
+  document.getElementById("recMany").innerHTML =
+    `<b>C.</b> The tumour has two clones and the mixture returns ${K} clusters on this seed, which is the page's whole `
+    + "point &mdash; and it can only be seen if the truth and the finding are drawn in different channels: colour for "
+    + "which clone a mutation belongs to, a bracket for what the algorithm grouped (§ <i>Widget 42</i>: colour never "
+    + "carries two groupings). A hides the truth; B is cell 23's own figure and colours the rug by cluster, which is "
+    + "exactly the pairing that rule forbids &mdash; worth keeping as the figure the lesson prints, not as the widget's.";
+}
+
+/* ---------------------------------------------------------------- 5 · CCF */
+{
+  const ccfAt = (p) => MANY.map((m) => ({ ...m, vaf: M.ccfFrom(m.vaf, p, 1, 2) }));
+  const atTrue = ccfAt(0.7), atOne = ccfAt(1);
+  const keep = (set) => set.filter((m) => m.vaf >= 0.9).length;
+  {
+    const box = cand("ccfRow", "A · the same mutations, the axis switched", "VAF above, cancer cell fraction below, one cut at 0.9");
+    const ctx = canvasIn(box, W, 340);
+    label(ctx, "Variant allele frequency", PAD, 18, { size: 12, colour: T.ink1 });
+    histogram(ctx, PAD + 6, 30, W - 2 * PAD - 12, 100, MANY, { colourBy: "truth" });
+    label(ctx, "Cancer cell fraction, purity 0.70", PAD, 206, { size: 12, colour: T.ink1 });
+    label(ctx, `${keep(atTrue)} of 300 mutations at CCF ≥ 0.9`, W - PAD, 206, { size: 11, colour: T.ink1, align: "right", mono: true });
+    histogram(ctx, PAD + 6, 218, W - 2 * PAD - 12, 100, atTrue, { colourBy: "truth", max: 1.4, cut: 0.9, ticks: [0, 0.5, 0.9, 1.4], axis: "CCF" });
+  }
+  {
+    const box = cand("ccfRow", "the case that fails: the sample taken as pure", "the same reads, purity assumed 1.00", 270);
+    const ctx = canvasIn(box, 270, 340);
+    label(ctx, "Cancer cell fraction, purity 1.00", 10, 18, { size: 12, colour: T.ink1 });
+    histogram(ctx, 20, 40, 230, 120, atOne, { colourBy: "truth", max: 1.4, cut: 0.9, ticks: [0, 0.5, 0.9, 1.4], axis: "CCF" });
+    label(ctx, `${keep(atOne)} of 300 at CCF ≥ 0.9`, 20, 216, { size: 11, colour: T.ink1, mono: true });
+    label(ctx, "every mutation now reads subclonal", 20, 234, { size: 11, colour: T.extreme });
+    label(ctx, "and at the true purity a cut at 0.9", 20, 266, { size: 11, colour: T.ink2 });
+    label(ctx, `still loses ${MANY.filter((m) => m.clonal).length - keep(atTrue.filter((m) => m.clonal))} of the ${MANY.filter((m) => m.clonal).length}`, 20, 282, { size: 11, colour: T.ink2 });
+    label(ctx, "clonal mutations, because the", 20, 298, { size: 11, colour: T.ink2 });
+    label(ctx, "estimate carries the read noise", 20, 314, { size: 11, colour: T.ink2 });
+  }
+  document.getElementById("qCcf").innerHTML =
+    "<b>Your call:</b> is the cancer cell fraction a second panel under the VAF (as drawn), or the SAME panel with the "
+    + "axis switched by a control? Two panels show the move; one panel makes the reader press something and keeps the "
+    + "page short enough for the cluster brackets.";
+  document.getElementById("recCcf").innerHTML =
+    "<b>One panel, switched by a control</b>, with the purity the correction uses as its own control beside it &mdash; "
+    + "so &ldquo;taken as pure&rdquo; is a state the reader can reach rather than a second figure. The cut at 0.9 is "
+    + "drawn only on the CCF axis, and the readout prints what it keeps.";
+}
+
+/* ---------------------------------------------------------------- 6 · trees */
+{
+  const SAMPLES = Object.entries(M.RETCHER);
+  const SHAPES = M.trees(3);
+  const cols = [T.groupA, T.groupB, T.groupC];
+  const linesPanel = (ctx, x, y, w, h) => {
+    ctx.strokeStyle = T.axis; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(x + 0.5, y); ctx.lineTo(x + 0.5, y + h); ctx.lineTo(x + w, y + h); ctx.stroke();
+    for (const t of [0, 0.5, 1]) {
+      const ty = y + h - t * h;
+      label(ctx, t.toFixed(1), x - 4, ty + 4, { size: 10, colour: T.ink3, align: "right", mono: true });
+      ctx.beginPath(); ctx.moveTo(x - 2, ty); ctx.lineTo(x, ty); ctx.strokeStyle = T.axis; ctx.stroke();
+    }
+    SAMPLES.forEach(([name], i) => label(ctx, name, x + (i + 0.5) * (w / SAMPLES.length), y + h + 14, { size: 10, colour: T.ink2, align: "center" }));
+    for (let k = 0; k < 3; k += 1) {
+      ctx.beginPath();
+      SAMPLES.forEach(([, ccf], i) => {
+        const px = x + (i + 0.5) * (w / SAMPLES.length), py = y + h - ccf[k] * h;
+        if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+      });
+      ctx.strokeStyle = cols[k]; ctx.lineWidth = 2; ctx.stroke();
+      SAMPLES.forEach(([, ccf], i) => {
+        const px = x + (i + 0.5) * (w / SAMPLES.length), py = y + h - ccf[k] * h;
+        ctx.beginPath(); ctx.arc(px, py, 3.5, 0, Math.PI * 2); ctx.fillStyle = cols[k]; ctx.fill();
+      });
+    }
+    label(ctx, "cluster mean CCF", x + 4, y - 6, { size: 11, colour: T.ink2 });
+  };
+  const nodeTree = (ctx, x, y, tree, ok) => {
+    const pos = [[x + 30, y + 14], tree[0] === 0 ? [x + 30, y + 54] : [x + 30, y + 54], tree[1] === 0 ? [x + 66, y + 94] : [x + 30, y + 94]];
+    if (tree[1] === 0) { pos[1] = [x + 8, y + 54]; pos[2] = [x + 56, y + 54]; }
+    const link = (a, b) => { ctx.beginPath(); ctx.moveTo(pos[a][0], pos[a][1] + 11); ctx.lineTo(pos[b][0], pos[b][1] - 11); ctx.strokeStyle = T.ink3; ctx.lineWidth = 1.5; ctx.stroke(); };
+    link(0, 1); link(tree[1], 2);
+    [0, 1, 2].forEach((k) => {
+      ctx.beginPath(); ctx.arc(pos[k][0], pos[k][1], 11, 0, Math.PI * 2);
+      ctx.fillStyle = wash(cols[k], 0.8); ctx.fill();
+      label(ctx, String(k + 1), pos[k][0], pos[k][1] + 4, { size: 11, colour: T.surface, align: "center", mono: true });
+    });
+    label(ctx, ok ? "fits all four" : "ruled out", x + 32, y + 118, { size: 11, colour: ok ? T.ink1 : T.extreme, align: "center" });
+    label(ctx, M.treeName(tree), x + 32, y + 134, { size: 10, colour: T.ink3, align: "center", mono: true });
+  };
+  const nestBar = (ctx, x, y, w, ccf, tree) => {
+    const h = 16;
+    ctx.fillStyle = T.surface3; ctx.fillRect(x, y, w, h);
+    ctx.fillStyle = wash(cols[0], 0.45); ctx.fillRect(x, y, w * ccf[0], h);
+    const kids = M.childrenOf(tree, 0);
+    let cx = x;
+    let overlap = 0;
+    for (const k of kids) {
+      const kw = w * ccf[k];
+      if (cx + kw > x + w * ccf[0] + 0.01) overlap = cx + kw - (x + w * ccf[0]);
+      ctx.fillStyle = wash(cols[k], 0.75);
+      ctx.fillRect(cx, y + 3, kw, h - 6);
+      // a grandchild sits inside its parent
+      for (const g of M.childrenOf(tree, k)) {
+        ctx.fillStyle = wash(cols[g], 0.9);
+        ctx.fillRect(cx, y + 6, w * ccf[g], h - 12);
+      }
+      cx += kw;
+    }
+    if (overlap > 0.5) {
+      ctx.save();
+      ctx.strokeStyle = T.extreme; ctx.lineWidth = 1.5;
+      ctx.strokeRect(x + w * ccf[0] + 0.5, y - 1.5, overlap, h + 3);
+      ctx.restore();
+    }
+    ctx.strokeStyle = T.grid; ctx.lineWidth = 1; ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+    return overlap;
+  };
+  {
+    const box = cand("treeRow", "A · the lines, and the two shapes", "his left panel, and each shape checked against every sample");
+    const ctx = canvasIn(box, W, 300);
+    linesPanel(ctx, PAD + 26, 30, 300, 150);
+    SHAPES.forEach((t, i) => {
+      const ok = SAMPLES.every(([, ccf]) => M.fitsSumRule(t, ccf));
+      nodeTree(ctx, 372 + i * 92, 30, t, ok);
+    });
+    label(ctx, "The rule: no parent's children may sum past it.", PAD, 232, { size: 11, colour: T.ink2 });
+    SAMPLES.forEach(([name, ccf], i) => {
+      const fit = SHAPES.filter((t) => M.fitsSumRule(t, ccf)).length;
+      label(ctx, `${name}: ${ccf[1].toFixed(2)} + ${ccf[2].toFixed(2)} = ${(ccf[1] + ccf[2]).toFixed(2)} against ${ccf[0].toFixed(2)} → ${fit} of 2 shapes`, PAD, 250 + i * 14, { size: 10, colour: fit === 1 ? T.ink1 : T.ink3, mono: true });
+    });
+  }
+  {
+    const box = cand("treeRow", "B · the cells themselves", "each sample as its tumour cells; a child sits inside its parent", 270);
+    const ctx = canvasIn(box, 270, 300);
+    const BRANCHING = SHAPES.find((t) => M.childrenOf(t, 0).length === 2);
+    const LINEAR = SHAPES.find((t) => M.childrenOf(t, 0).length === 1);
+    label(ctx, `2 and 3 under 1 (${M.treeName(BRANCHING)})`, 10, 16, { size: 11, colour: T.ink1 });
+    SAMPLES.forEach(([name, ccf], i) => {
+      const over = nestBar(ctx, 10, 26 + i * 34, 250, ccf, BRANCHING);
+      label(ctx, `${name}${over > 0.5 ? " — they do not fit" : ""}`, 10, 26 + i * 34 + 28, { size: 10, colour: over > 0.5 ? T.extreme : T.ink3 });
+    });
+    label(ctx, `1 → 2 → 3 (${M.treeName(LINEAR)})`, 10, 176, { size: 11, colour: T.ink1 });
+    SAMPLES.forEach(([name, ccf], i) => {
+      nestBar(ctx, 10, 186 + i * 28, 250, ccf, LINEAR);
+      label(ctx, name, 10, 186 + i * 28 + 24, { size: 10, colour: T.ink3 });
+    });
+  }
+  document.getElementById("qTree").innerHTML =
+    "<b>Your call:</b> is the third page about the RULE (A: the lines, the two shapes, the arithmetic under them) or "
+    + "about the CELLS (B: each sample drawn as its tumour cells, and a branching pair that does not fit inside its "
+    + "parent)? B is the reason the rule is true; A is what a paper prints.";
+  document.getElementById("recTree").innerHTML =
+    "<b>A for the page, B as the drawing inside it.</b> His figure is the lines and the tree, so the page opens there; "
+    + "but a tree is ruled out because two subclones would need more cells than the trunk has, and that is only visible "
+    + "in B. Drawn together: the lines on the left, the shape on the right, and the chosen shape's cells as the bar "
+    + "under each sample &mdash; where the overlap is marked in <code>--c-extreme</code> at the sample that rules it out.";
+}
+
+/* ---------------------------------------------------------------- 7 · the rail */
+{
+  const SPECS = [
+    ["One mutation", {
+      data: { type: "section", label: "The sample" },
+      purity: { type: "choice", label: "Tumour purity", options: [0.35, 0.5, 0.7, 1], default: 0.7, detail: "the fraction of cells in the sample that are tumour cells" },
+      ccf: { type: "choice", label: "Tumour cells carrying it", options: [0.25, 0.5, 0.75, 1], default: 1, detail: "the cancer cell fraction the reads are being asked about" },
+      state: { type: "choice", label: "Copy number", options: ["1 + 1", "2 + 0", "1 + 0", "2 + 1", "3 + 1"], default: "1 + 1", detail: "major + minor copies in a tumour cell, as an ASCAT segment reports them" },
+      copies: { type: "int", label: "Mutated copies", min: 1, max: 3, default: 1, detail: "how many of the tumour cell's copies carry the mutation" },
+      depth: { type: "choice", label: "Read depth", options: [31, 88, 161, 500], default: 88, detail: "reads covering the position" },
+      /* Seed sits in its own section under the drive row — the ruling from
+         § *Widget 59*, which gwas and hardy-weinberg are to follow when next
+         touched. */
+      draw: { type: "section", label: "The reads", afterDrive: true },
+      seed: { type: "int", label: "Seed", min: 1, max: 200, default: 1, detail: "draws different reads" },
+    }],
+    ["Many mutations", {
+      data: { type: "section", label: "The tumour" },
+      clones: { type: "choice", label: "Clones", options: ["One", "One and a subclone", "One and two subclones"], default: "One and a subclone", detail: "how many populations the mutations come from" },
+      muts: { type: "choice", label: "Mutations", options: [120, 300, 1000], default: 300, detail: "somatic mutations called in the tumour" },
+      purity2: { type: "choice", label: "Tumour purity", options: [0.35, 0.5, 0.7, 1], default: 0.7 },
+      depth2: { type: "choice", label: "Read depth", options: [31, 88, 161, 500], default: 88 },
+      look: { type: "section", label: "How to read it", afterDrive: true },
+      axis: { type: "segmented", label: "Axis", options: ["VAF", "Cancer cell fraction"], default: "VAF" },
+      assumed: { type: "choice", label: "Purity used for the correction", options: ["the sample's", "1.00"], default: "the sample's", when: { param: "axis", equals: "Cancer cell fraction" } },
+      clusters: { type: "bool", label: "Clusters found", default: true, detail: "a Gaussian mixture, the number chosen by BIC" },
+    }],
+    ["Clonal architecture", {
+      data: { type: "section", label: "The samples" },
+      taken: { type: "choice", label: "Samples used", options: ["the first", "the first two", "all four"], default: "all four", detail: "biopsies of the same patient, each with its own cancer cell fractions" },
+      shape: { type: "segmented", label: "Shape", options: ["1 → 2 → 3", "2 and 3 under 1"], default: "1 → 2 → 3" },
+      cells: { type: "bool", label: "Draw the cells", default: true, detail: "each sample's tumour cells under its fractions" },
+    }],
+  ];
+  for (const [name, spec] of SPECS) {
+    const box = cand("railRow", name, "core buildControls at 300px", 300);
+    const mount = el("div");
+    mount.style.width = "300px";
+    box.appendChild(mount);
+    try {
+      const values = resolveParams(spec, new URLSearchParams(""));
+      buildControls(mount, spec, values, () => {});
+    } catch (e) {
+      box.appendChild(el("p", "body", `buildControls: ${e.message}`));
+    }
+  }
+  document.getElementById("recRail").innerHTML =
+    "The rail reads what you are looking at, then what you do to it, then how to look at the result (§ <i>Widget 41</i> "
+    + "round 3). <b>Mutated copies appears only where the copy state allows more than one</b>, and the correction's "
+    + "purity only on the cancer-cell-fraction axis, both through core's <code>when</code>. Open question: whether page "
+    + "2's Clones control names the truth (<i>One and a subclone</i>) or leaves it unlabelled &mdash; naming it is what "
+    + "makes the cluster count a finding rather than a fact.";
+}
+
+/* ---------------------------------------------------------------- 8 · checks */
+{
+  const out = [];
+  let bad = 0;
+  const ck = (label, cond, note = "") => { out.push(`${cond ? "ok  " : "FAIL"} ${label}${note ? " — " + note : ""}`); if (!cond) bad += 1; };
+  ck("cell 17's readings", M.vafExpected(1, 1, 1, 2) === 0.5 && Math.abs(M.vafExpected(0.7, 1, 1, 2) - 0.35) < 1e-12 && Math.abs(M.vafExpected(1, 1, 1, 4) - 0.25) < 1e-12,
+    "0.5 clonal at purity 1, 0.35 at 0.7, 0.25 on one of four copies");
+  ck("the trio all read 0.250", M.TRIO.every((t) => Math.abs(M.vafExpected(t.purity, t.ccf, t.m, M.stateOf(t.state).total) - 0.25) < 1e-12));
+  const clonal = MANY.filter((m) => m.clonal).length;
+  ck("the drawn tumour is the measured one", MANY.length === 300 && clonal === 182, `${clonal} clonal of 300, seed 99`);
+  const mth = M.MATH(MANY.map((m) => m.vaf));
+  ck("its MATH is inside cell 23's printed range", mth > 17.9 && mth < 68.9, `MATH ${mth.toFixed(2)}`);
+  const one = M.tumour({ clones: [{ ccf: 1, share: 1 }], purity: 0.7, n: 300, seed: 17 });
+  ck("one clone is given more than one cluster on the measured seed", M.pickK(one.map((m) => m.vaf)).K > 1, `K = ${M.pickK(one.map((m) => m.vaf)).K}`);
+  ck("one clone's MATH is not zero", M.MATH(one.map((m) => m.vaf)) > 8, `MATH ${M.MATH(one.map((m) => m.vaf)).toFixed(2)} with no subclone at all`);
+  const keepTrue = MANY.filter((m) => M.ccfFrom(m.vaf, 0.7, 1, 2) >= 0.9).length;
+  const keepOne = MANY.filter((m) => M.ccfFrom(m.vaf, 1, 1, 2) >= 0.9).length;
+  ck("purity 1 empties the clonal peak", keepOne < keepTrue / 4, `${keepOne} against ${keepTrue}`);
+  const allFour = M.trees(3).filter((t) => Object.values(M.RETCHER).every((c) => M.fitsSumRule(t, c)));
+  ck("four samples leave one tree", allFour.length === 1, M.treeName(allFour[0]));
+  ck("the surgery sample alone leaves two", M.trees(3).filter((t) => M.fitsSumRule(t, M.RETCHER["P2.surgery"])).length === 2);
+  document.getElementById("checks").textContent = `${out.join("\n")}\n\n${out.length} checks, ${bad} failed`;
+}
+</script>
+</main>
+</body>
+</html>
