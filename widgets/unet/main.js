@@ -695,7 +695,7 @@ defineWidget({
     topic: {
       type: "segmented",
       label: "Topic",
-      options: [{ value: "unet", label: "U-Net" }, { value: "dice", label: "Dice" }],
+      options: [{ value: "unet", label: "U-Net" }, { value: "dice", label: "Dice loss" }],
       default: "unet",
     },
 

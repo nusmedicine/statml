@@ -1,0 +1,366 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · unet — Dice shapes</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1400px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 100ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); min-height: 26px; white-space: pre-line; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 100ch; }
+  .pair { display: flex; gap: var(--sp-3); align-items: flex-start; }
+  .rail-host { width: 300px; }
+  table.facts { border-collapse: collapse; font-size: var(--fs-sm); color: var(--ink-2); margin: var(--sp-2) 0 var(--sp-3); }
+  table.facts th, table.facts td { border: 1px solid var(--grid); padding: 3px 10px; text-align: right; }
+  table.facts th { color: var(--ink-1); background: var(--surface-2); }
+  table.facts td:first-child, table.facts th:first-child { text-align: left; }
+  /* the icon buttons of variant A: what a core `segmented` option with an icon would render */
+  .iconseg { display: flex; border: 1px solid var(--grid); border-radius: 8px; overflow: hidden; }
+  .iconseg button { flex: 1; background: transparent; border: 0; border-right: 1px solid var(--grid); color: var(--ink-2);
+                    padding: 6px 4px; font: inherit; font-size: var(--fs-xs); display: flex; flex-direction: column; align-items: center; gap: 3px; cursor: pointer; }
+  .iconseg button:last-child { border-right: 0; }
+  .iconseg button[aria-pressed="true"] { background: var(--surface-2); color: var(--ink-1); font-weight: 600; }
+  .fieldlab { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-3) 0 6px; }
+  .fielddet { font-size: var(--fs-xs); color: var(--ink-3); margin: 4px 0 0; }
+  .sec { font-weight: 600; color: var(--ink-1); font-size: var(--fs-sm); margin: var(--sp-3) 0 0; padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>unet &middot; Dice shapes</h1>
+  <p class="note">
+    <b>Your three points on the Dice page.</b> (1) Why accuracy is high on a total miss: it counts the background,
+    which is 95 % of the image, so 3,670 of 4,096 pixels are still right. The mock adds that sentence to the readout.
+    (2) Different <b>shapes</b> — a rectangle, a triangle — for the ground truth and the prediction; dilated and eroded
+    by 1 px are not visible on a medium or large object, and the random placement goes. (3) The Topic button now
+    reads <b>Dice loss</b>, changed in the widget.
+  </p>
+  <p class="note">
+    <b>What replaces the old list.</b> The ground truth takes a shape: Disc · Rectangle · Triangle, each at the
+    object's area (5 % or 20 % of the image). The prediction takes a shape from the same three, and a <b>size</b>:
+    Half the area · Same · Twice the area, which keeps what dilate and erode taught (over- against
+    under-segmentation) at a size a student can see. The prediction is still dragged. Every number below is
+    counted on the 64 &times; 64 masks this page draws.
+  </p>
+  <table class="facts" id="facts"></table>
+
+  <h2>A &middot; picture buttons in the rail</h2>
+  <p class="note">
+    Two rows of three buttons, each a small drawing of the shape above its name: <i>Ground truth</i> and
+    <i>Prediction</i>, then a segmented <i>Prediction size</i>. Everything visible at rest, one click each. Needs a
+    small core addition: a segmented option that paints an icon, the way the <code>preview</code> block paints its
+    figures.
+  </p>
+  <div class="row" id="rowA"></div>
+  <p class="rec" id="recA"></p>
+
+  <h2>B &middot; a truth &times; prediction grid</h2>
+  <p class="note">
+    Core's <code>matrix</code> control, the one widget 14 uses for its pairs: rows are the truth's shape, columns the
+    prediction's, one click picks the pair, and each cell is shaded by the Dice the pair scores when centred on each
+    other. The diagonal is the matching shapes. Size stays a segmented row under it. No core change.
+  </p>
+  <div class="row" id="rowB"></div>
+  <p class="rec" id="recB"></p>
+
+  <h2>C &middot; shapes on the figure</h2>
+  <p class="note">
+    Two small palettes beside the panel, the truth's shapes and the prediction's, clicked on the figure; the rail
+    keeps Object size and Prediction size, and the same choice as two segmented controls for the keyboard (3.6).
+  </p>
+  <div class="row" id="rowC"></div>
+  <p class="rec" id="recC"></p>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+import { buildControls } from "../core/controls.js";
+import { resolveParams } from "../core/params.js";
+
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+const PAD = 14;
+const G = 64;
+const CX = 30.5;
+const CY = 33.5;
+
+const wash = (hex, a) => {
+  const p = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+  return `rgba(${p[0]},${p[1]},${p[2]},${a})`;
+};
+function txt(ctx, s, x, y, o = {}) {
+  const { color = T.ink2, align = "left", size = T.fsSm, baseline = "alphabetic", mono = false, weight = "" } = o;
+  ctx.save(); ctx.fillStyle = color; ctx.textAlign = align; ctx.textBaseline = baseline;
+  ctx.font = `${weight} ${size} ${mono ? T.mono : T.font}`.trim(); ctx.fillText(s, x, y); ctx.restore();
+}
+const note = (ctx, s, x, y, tone, o = {}) => txt(ctx, s, x, y, { color: tone ?? T.ink3, size: T.fsXs, ...o });
+function frame(ctx, x, y, w, h, stroke, width = 1) {
+  ctx.save(); ctx.strokeStyle = stroke; ctx.lineWidth = width; ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1); ctx.restore();
+}
+const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+function cand(rowId, title, sub, w) { const box = el("div", "cand"); box.style.width = `${w}px`; box.appendChild(el("h3", null, title)); box.appendChild(el("p", "sub", sub)); document.getElementById(rowId).appendChild(box); return box; }
+function canvasIn(host, w, h) { const c = document.createElement("canvas"); c.width = Math.round(w * DPR); c.height = Math.round(h * DPR); c.style.width = `${w}px`; c.style.height = `${h}px`; host.appendChild(c); const ctx = c.getContext("2d"); ctx.scale(DPR, DPR); return ctx; }
+
+/* ==========================================================================
+   THE SHAPES, at a given area, centred at (cx, cy).
+   ====================================================================== */
+const SHARE = { medium: 0.05, large: 0.20 };
+const SHAPES = ["disc", "rect", "tri"];
+const SHAPE_NAME = { disc: "Disc", rect: "Rectangle", tri: "Triangle" };
+const SIZES = [["half", 0.5, "Half the area"], ["same", 1, "Same"], ["double", 2, "Twice the area"]];
+function inside(shape, area, px, py) {
+  if (shape === "disc") return Math.hypot(px, py) <= Math.sqrt(area / Math.PI);
+  if (shape === "rect") {
+    const w = Math.sqrt(2 * area);
+    const h = Math.sqrt(area / 2);
+    return Math.abs(px) <= w / 2 && Math.abs(py) <= h / 2;
+  }
+  /* an equilateral triangle, point up, its centroid at the centre */
+  const s = Math.sqrt((4 * area) / Math.sqrt(3));
+  const hgt = (Math.sqrt(3) / 2) * s;
+  const y0 = -2 * hgt / 3;           // apex
+  const y1 = hgt / 3;                // base
+  if (py < y0 || py > y1) return false;
+  const half = ((py - y0) / hgt) * (s / 2);
+  return Math.abs(px) <= half;
+}
+function mask(shape, area, dx = 0, dy = 0) {
+  const m = new Uint8Array(G * G);
+  for (let y = 0; y < G; y += 1) for (let x = 0; x < G; x += 1) {
+    if (inside(shape, area, x + 0.5 - CX - dx, y + 0.5 - CY - dy)) m[y * G + x] = 1;
+  }
+  return m;
+}
+function metrics(a, b) {
+  let A = 0, B = 0, AB = 0, nn = 0;
+  for (let i = 0; i < G * G; i += 1) { A += a[i]; B += b[i]; AB += a[i] & b[i]; if (!a[i] && !b[i]) nn += 1; }
+  return { A, B, AB, acc: (AB + nn) / (G * G), dice: A + B ? 2 * AB / (A + B) : 0, iou: A + B - AB ? AB / (A + B - AB) : 0, prec: B ? AB / B : 0, rec: A ? AB / A : 0 };
+}
+const areaOf = (size) => SHARE[size] * G * G;
+const read = (size, truth, pred, k = 1, dx = 0, dy = 0) => metrics(mask(truth, areaOf(size)), mask(pred, areaOf(size) * k, dx, dy));
+
+/* the facts table: centred, medium object */
+{
+  const t = document.getElementById("facts");
+  let html = `<tr><th>medium object, centred</th>${SHAPES.map((p) => `<th>prediction ${SHAPE_NAME[p].toLowerCase()}</th>`).join("")}<th>same shape, half the area</th><th>same shape, twice the area</th></tr>`;
+  for (const tr of SHAPES) {
+    const cells = SHAPES.map((p) => { const m = read("medium", tr, p); return `<td>Dice ${m.dice.toFixed(2)}</td>`; }).join("");
+    const h = read("medium", tr, tr, 0.5);
+    const d = read("medium", tr, tr, 2);
+    html += `<tr><td>truth ${SHAPE_NAME[tr].toLowerCase()}</td>${cells}<td>Dice ${h.dice.toFixed(2)} · P ${h.prec.toFixed(2)} R ${h.rec.toFixed(2)}</td><td>Dice ${d.dice.toFixed(2)} · P ${d.prec.toFixed(2)} R ${d.rec.toFixed(2)}</td></tr>`;
+  }
+  const miss = read("medium", "disc", "disc", 1, 21, 1);
+  html += `<tr><td colspan="6" style="text-align:left">a total miss, medium disc: accuracy ${(100 * miss.acc).toFixed(1)} %, Dice ${miss.dice.toFixed(2)} — ${G * G - Math.round(miss.acc * G * G)} wrong pixels of ${G * G}</td></tr>`;
+  t.innerHTML = html;
+}
+
+/* ==========================================================================
+   THE PANEL, one layout for all three variants.
+   ====================================================================== */
+function drawIcon(ctx, shape, x, y, s, tone, filled = true) {
+  ctx.save();
+  ctx.fillStyle = filled ? wash(tone, 0.7) : "transparent";
+  ctx.strokeStyle = tone;
+  ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  if (shape === "disc") ctx.arc(x + s / 2, y + s / 2, s * 0.42, 0, 2 * Math.PI);
+  else if (shape === "rect") ctx.rect(x + s * 0.1, y + s * 0.3, s * 0.8, s * 0.4);
+  else { ctx.moveTo(x + s / 2, y + s * 0.1); ctx.lineTo(x + s * 0.93, y + s * 0.85); ctx.lineTo(x + s * 0.07, y + s * 0.85); ctx.closePath(); }
+  ctx.fill(); ctx.stroke();
+  ctx.restore();
+}
+function drawPanel(ctx, W, cfg, { palettes = false } = {}) {
+  const { size, truth, pred, k, dx, dy } = cfg;
+  const tm = mask(truth, areaOf(size));
+  const pm = mask(pred, areaOf(size) * k, dx, dy);
+  const m = metrics(tm, pm);
+  txt(ctx, `Dice on a ${SHAPE_NAME[truth].toLowerCase()}, ${Math.round(100 * SHARE[size])} % of the image`, PAD, 24, { weight: "600" });
+  note(ctx, "The ground truth and the prediction on the image. Drag the prediction and the counts follow it.", PAD, 40);
+  const px = PAD;
+  const py = 52;
+  const ps = 190;
+  const c = ps / G;
+  ctx.save();
+  ctx.fillStyle = T.surface2; ctx.fillRect(px, py, ps, ps);
+  for (let j = 0; j < G; j += 1) for (let i = 0; i < G; i += 1) {
+    const q = j * G + i;
+    ctx.fillStyle = wash(T.ink1, tm[q] ? 0.2 : 0.05);
+    ctx.fillRect(px + i * c, py + j * c, Math.ceil(c), Math.ceil(c));
+    if (!tm[q] && !pm[q]) continue;
+    ctx.fillStyle = tm[q] && pm[q] ? wash(T.highlight, 0.75) : tm[q] ? wash(T.reference, 0.6) : wash(T.empirical, 0.6);
+    ctx.fillRect(px + i * c, py + j * c, Math.ceil(c), Math.ceil(c));
+  }
+  ctx.restore();
+  frame(ctx, px, py, ps, ps, T.axis);
+  let tx = px + ps + 20;
+  if (palettes) {
+    /* C: the two palettes, a column each */
+    const s = 30;
+    note(ctx, "truth", tx, py + 10, T.ink2);
+    note(ctx, "prediction", tx + 44, py + 10, T.ink2);
+    SHAPES.forEach((shape, i) => {
+      const y = py + 18 + i * (s + 8);
+      frame(ctx, tx, y, s, s, shape === truth ? T.highlight : T.grid, shape === truth ? 2 : 1);
+      drawIcon(ctx, shape, tx + 3, y + 3, s - 6, T.reference);
+      frame(ctx, tx + 44, y, s, s, shape === pred ? T.highlight : T.grid, shape === pred ? 2 : 1);
+      drawIcon(ctx, shape, tx + 47, y + 3, s - 6, T.empirical);
+    });
+    tx += 120;
+  }
+  const tiles = [["|A|  truth", m.A, T.reference], ["|B|  prediction", m.B, T.empirical], ["|A ∩ B|  both", m.AB, T.highlight]];
+  tiles.forEach(([label, v, tone], i) => {
+    const y = py + i * 56;
+    ctx.save(); ctx.fillStyle = wash(tone, 0.12); ctx.fillRect(tx, y, 104, 46); ctx.restore();
+    frame(ctx, tx, y, 104, 46, tone);
+    note(ctx, label, tx + 8, y + 16, T.ink2);
+    txt(ctx, `${v} px`, tx + 8, y + 38, { mono: true, color: T.ink1, weight: "600" });
+  });
+  const nx = tx + 118;
+  const lines = [["accuracy", `${(100 * m.acc).toFixed(1)}%`], ["Dice", m.dice.toFixed(3)], ["IoU", m.iou.toFixed(3)], ["precision · recall", `${m.prec.toFixed(2)} · ${m.rec.toFixed(2)}`], ["Dice loss, 1 − Dice", (1 - m.dice).toFixed(3)]];
+  lines.forEach(([l, v], i) => { note(ctx, l, nx, py + 12 + i * 16, T.ink2); txt(ctx, v, nx + 108, py + 12 + i * 16, { mono: true, color: T.ink1, size: T.fsXs, weight: "600" }); });
+  /* (1) the accuracy sentence */
+  const wrong = m.A + m.B - 2 * m.AB;
+  note(ctx, `accuracy counts every pixel: ${G * G - wrong} of ${G * G} are right,`, nx, py + 12 + 5 * 16 + 8, T.ink3);
+  note(ctx, `because the ${G * G - m.A - m.B + m.AB} background pixels in neither mask count too`, nx, py + 12 + 6 * 16 + 8, T.ink3);
+  note(ctx, "the image, the ground truth and the prediction", px, py + ps + 14, T.ink2);
+  return m;
+}
+
+/* ==========================================================================
+   A · picture buttons in the rail.
+   ====================================================================== */
+function iconSeg(label, detail, shapes, chosen, tone) {
+  const wrap = el("div");
+  wrap.appendChild(el("div", "fieldlab", label));
+  const seg = el("div", "iconseg");
+  for (const s of shapes) {
+    const b = el("button");
+    b.setAttribute("aria-pressed", String(s === chosen));
+    const cv = document.createElement("canvas");
+    cv.style.border = "0"; cv.style.background = "transparent";
+    const ctx = canvasIn(b, 30, 24);
+    cv.remove();
+    drawIcon(ctx, s, 3, 0, 24, tone);
+    b.appendChild(el("span", null, SHAPE_NAME[s]));
+    b.querySelector("canvas").style.border = "0";
+    b.querySelector("canvas").style.background = "transparent";
+    seg.appendChild(b);
+  }
+  wrap.appendChild(seg);
+  if (detail) wrap.appendChild(el("p", "fielddet", detail));
+  return wrap;
+}
+function sizeSpec() {
+  return {
+    objSec: { type: "section", label: "The object" },
+    size: { type: "segmented", label: "Object size", detail: "the share of the image the ground truth covers", options: [{ value: "medium", label: "5 %" }, { value: "large", label: "20 %" }], default: "medium" },
+  };
+}
+{
+  const cfg = { size: "medium", truth: "tri", pred: "disc", k: 1, dx: 4, dy: -2 };
+  const box = cand("rowA", "A · the rail and the stage at 746", "truth a triangle, the prediction a disc of the same area, dragged 4 across and 2 up", 1080);
+  const pair = el("div", "pair");
+  const rail = el("div", "rail-host");
+  const cm = el("div", "w-controls");
+  rail.appendChild(cm);
+  const spec = sizeSpec();
+  buildControls(cm, spec, resolveParams(spec, new URLSearchParams("")), () => {});
+  rail.appendChild(el("div", "sec", "The ground truth and the prediction"));
+  rail.appendChild(iconSeg("Ground truth", "the object's shape", SHAPES, cfg.truth, T.reference));
+  rail.appendChild(iconSeg("Prediction", "the predicted mask's shape; drag it on the figure to move it", SHAPES, cfg.pred, T.empirical));
+  const spec2 = { k: { type: "segmented", label: "Prediction size", detail: "the predicted mask's area against the ground truth's", options: SIZES.map(([v, , l]) => ({ value: v, label: l })), default: "same" } };
+  const cm2 = el("div", "w-controls");
+  buildControls(cm2, spec2, resolveParams(spec2, new URLSearchParams("")), () => {});
+  rail.appendChild(cm2);
+  pair.appendChild(rail);
+  const ctx = canvasIn(pair, 746, 300);
+  drawPanel(ctx, 746, cfg);
+  box.appendChild(pair);
+  box.querySelector(".sub").textContent += `\nrail ${rail.getBoundingClientRect().height.toFixed(0)}px`;
+}
+document.getElementById("recA").innerHTML =
+  `A is the most direct: the choice is a picture, so the rail says what the figure will show before the figure `
+  + `does, and nothing is hidden in a list. It costs a core addition (a segmented option that paints an icon) and `
+  + `a full fingerprint run, which any core change costs.`;
+
+/* ==========================================================================
+   B · the truth × prediction grid.
+   ====================================================================== */
+{
+  const cfg = { size: "medium", truth: "rect", pred: "tri", k: 1, dx: 0, dy: 0 };
+  const box = cand("rowB", "B · the rail and the stage at 746", "truth a rectangle, the prediction a triangle, centred", 1080);
+  const pair = el("div", "pair");
+  const rail = el("div", "rail-host");
+  const cm = el("div", "w-controls");
+  rail.appendChild(cm);
+  const names = SHAPES.map((s) => SHAPE_NAME[s]);
+  const spec = {
+    ...sizeSpec(),
+    predSec: { type: "section", label: "The ground truth and the prediction" },
+    pair: {
+      type: "matrix", label: "Truth × prediction",
+      rows: names, cols: names, token: "highlight",
+      options: SHAPES.flatMap((tr, r) => SHAPES.map((p, c) => ({
+        value: `${tr}-${p}`, label: `${SHAPE_NAME[tr]} truth, ${SHAPE_NAME[p].toLowerCase()} prediction`,
+        detail: `${SHAPE_NAME[tr]} truth, ${SHAPE_NAME[p].toLowerCase()} prediction · Dice ${read("medium", tr, p).dice.toFixed(2)} when centred`,
+        row: r, col: c, shade: read("medium", tr, p).dice,
+      }))),
+      default: "rect-tri",
+    },
+    k: { type: "segmented", label: "Prediction size", detail: "the predicted mask's area against the ground truth's", options: SIZES.map(([v, , l]) => ({ value: v, label: l })), default: "same" },
+  };
+  buildControls(cm, spec, resolveParams(spec, new URLSearchParams("")), () => {});
+  pair.appendChild(rail);
+  const ctx = canvasIn(pair, 746, 300);
+  drawPanel(ctx, 746, cfg);
+  box.appendChild(pair);
+  box.querySelector(".sub").textContent += `\nrail ${rail.getBoundingClientRect().height.toFixed(0)}px`;
+}
+document.getElementById("recB").innerHTML =
+  `B shows all nine pairs at once and its shading is a result: the diagonal is darkest, and a student can see `
+  + `that a triangle predicted for a rectangle scores less than a rectangle predicted for a disc before trying `
+  + `either. It needs no core change. But the shading also gives away the answer before the drag (2.1), and a grid `
+  + `of words is a heavier control than two rows of pictures.`;
+
+/* ==========================================================================
+   C · shapes on the figure.
+   ====================================================================== */
+{
+  const cfg = { size: "large", truth: "disc", pred: "rect", k: 0.5, dx: 6, dy: 3 };
+  const box = cand("rowC", "C · the rail and the stage at 746", "truth a large disc, the prediction a rectangle of half the area, dragged", 1080);
+  const pair = el("div", "pair");
+  const rail = el("div", "rail-host");
+  const cm = el("div", "w-controls");
+  rail.appendChild(cm);
+  const spec = {
+    ...sizeSpec(),
+    predSec: { type: "section", label: "The ground truth and the prediction" },
+    truth: { type: "segmented", label: "Ground truth", options: SHAPES.map((s) => ({ value: s, label: SHAPE_NAME[s] })), default: "disc" },
+    pred: { type: "segmented", label: "Prediction", detail: "click a shape beside the figure, or here; drag the prediction to move it", options: SHAPES.map((s) => ({ value: s, label: SHAPE_NAME[s] })), default: "rect" },
+    k: { type: "segmented", label: "Prediction size", options: SIZES.map(([v, , l]) => ({ value: v, label: l })), default: "half" },
+  };
+  buildControls(cm, spec, resolveParams(spec, new URLSearchParams("")), () => {});
+  pair.appendChild(rail);
+  const ctx = canvasIn(pair, 746, 300);
+  drawPanel(ctx, 746, cfg, { palettes: true });
+  box.appendChild(pair);
+  box.querySelector(".sub").textContent += `\nrail ${rail.getBoundingClientRect().height.toFixed(0)}px`;
+}
+document.getElementById("recC").innerHTML =
+  `C keeps the hand on the figure — pick a shape, then drag it — but duplicates the choice in two places and `
+  + `squeezes the numbers to the right. <b>Recommendation: A.</b> Pictures say shape faster than words, the rail `
+  + `stays the one place choices are made, and the figure stays the place things move.`;
+</script>
+</main>
+</body>
+</html>
