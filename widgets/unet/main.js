@@ -523,8 +523,8 @@ const SHAPE_LABELS = {
   random: "Same area at random",
   empty: "Empty",
 };
-const SIZE_LABELS = { small: "Small", medium: "Medium", large: "Large" };
-const DICE_NOTE = "The ground truth and the prediction on the image. Drag the prediction; the pixels in both are counted.";
+const SIZE_LABELS = { medium: "Medium", large: "Large" };
+const DICE_NOTE = "The ground truth and the prediction on the image. Drag the prediction and the counts follow it.";
 
 function drawDice(ctx, colors, w, state, reveal) {
   const L = M.diceLayout(w);
@@ -560,10 +560,7 @@ function drawDice(ctx, colors, w, state, reveal) {
   ];
   tiles.forEach(([label, v, tone], k) => {
     const t = L.tiles[k];
-    const a = reveal.alphaOf(k);
-    if (a <= 0) { frame(ctx, t.x, t.y, t.w, t.h, colors.grid); return; }
     ctx.save();
-    ctx.globalAlpha = a;
     ctx.fillStyle = wash(tone, 0.12);
     ctx.fillRect(t.x, t.y, t.w, t.h);
     frame(ctx, t.x, t.y, t.w, t.h, tone);
@@ -571,7 +568,7 @@ function drawDice(ctx, colors, w, state, reveal) {
     txt(ctx, colors, `${v} px`, t.x + 8, t.y + 38, { mono: true, color: colors.ink1, weight: "600" });
     ctx.restore();
   });
-  const done = reveal.n >= 3;
+  const done = true;
   const lines = [
     ["accuracy", done ? pct(m.acc) : "—"],
     ["Dice", done ? m.dice.toFixed(3) : "—"],
@@ -610,7 +607,7 @@ const DICE_EQ = [
 ];
 const DICE_CARD_NOTE = "A is the set of pixels in the ground truth and B the set in the prediction. Dice and IoU count "
   + "only the object's pixels, so an empty prediction scores 0 at any size; accuracy counts the background "
-  + "too, so on a small object it stays near 1. As a loss, the network's probabilities pᵢ stand in for the "
+  + "too, so it stays high whenever the object is a small part of the image. As a loss, the network's probabilities pᵢ stand in for the "
   + "prediction's 0s and 1s, and tᵢ is the ground truth.";
 const U_CARD_NOTE = "One row a level of the U, as channels × height × width for a batch of 10. The encoder's output "
   + "crosses the skip and has the shape of the upsampled maps it joins, so the concatenation doubles the "
@@ -675,14 +672,11 @@ function renderCard(params, state, n, lit = -1) {
 
 const ON = (topic) => ({ param: "topic", equals: topic });
 
-const STEP_LABELS = { stage: "Next stage", a: "Count the truth", b: "Count the prediction", ab: "Count the overlap" };
+const STEP_LABELS = { stage: "Next stage" };
 const STEP_TITLES = {
   stage: "Add the next stage of the network and print the shape it outputs",
-  a: "Count the pixels of the ground truth, |A|",
-  b: "Count the pixels of the prediction, |B|",
-  ab: "Count the pixels in both, |A ∩ B|, and print the numbers",
 };
-const phaseOf = (n, state) => (state.page === "dice" ? ["a", "b", "ab"][Math.min(2, n)] : "stage");
+const phaseOf = () => "stage";
 
 defineWidget({
   slug: "unet",
@@ -692,8 +686,8 @@ defineWidget({
     "A U-Net halves the image and doubles the channels at each level of its encoder, then reverses "
     + "both up its decoder, where each level concatenates the encoder's features of the same size "
     + "before a convolution. Dice scores a predicted mask by its overlap with the truth, which pixel "
-    + "accuracy does not: a prediction that misses a small object entirely is still right at nearly "
-    + "every pixel.",
+    + "accuracy does not: a prediction that misses the object entirely is still right at most "
+    + "pixels.",
   layout: "side",
   height: ({ w, ...values }) => M.pageHeight(w, values),
 
@@ -748,9 +742,9 @@ defineWidget({
     size: {
       type: "segmented",
       label: "Object",
-      detail: "the share of the image the ground truth covers: about 1 %, 5 % or 20 %",
+      detail: "the share of the image the ground truth covers: about 5 % or 20 %",
       options: M.SIZE_KEYS.map((v) => ({ value: v, label: SIZE_LABELS[v] })),
-      default: "small",
+      default: "medium",
       when: ON("dice"),
     },
     predSec: { type: "section", label: "The prediction", when: ON("dice") },
@@ -832,6 +826,10 @@ defineWidget({
 
     init: ({ params, state, fromScratch }) => {
       const n = fromScratch ? 0 : Math.max(0, Math.min(state.total, Number(params.shown) || 0));
+      /* THE DICE PAGE IS INERT (round 4: "omit the step/play buttons and calculate
+         dynamically as we move the prediction"): core takes Step and Play out of
+         the row, and the count follows the drag */
+      if (state.page === "dice") return { n: 0, t: 0, phase: "stage", done: true, inert: true };
       return { n, t: 0, phase: phaseOf(n, state), done: n >= state.total };
     },
 
@@ -866,7 +864,7 @@ defineWidget({
   readout({ params, state, anim }) {
     const n = anim?.n ?? 0;
     if (state.page === "dice") {
-      const done = n >= 3;
+      const done = true;
       const { m } = state;
       return [
         { label: "Accuracy", value: done ? pct(m.acc) : "—", note: `right pixels over all ${M.G * M.G}` },

@@ -1,6 +1,6 @@
 # Handover
 
-**SLOT 65 `unet` ROUND 3 BUILT 2026-09-15 (late)**, his pick "A and C" from
+**SLOT 65 `unet` ROUND 4 (Dice page: no Step or Play, the counts follow the drag; Object Medium · Large) BUILT 2026-09-15 on round 3 below.** **SLOT 65 `unet` ROUND 3 BUILT 2026-09-15 (late)**, his pick "A and C" from
 `_lab/unet-round3-mock.html` and "can the bottleneck be centred?": the U is
 his figure's construction (two slabs a level down, every arrow on a slab,
 the bottleneck centred), the shapes sit on the skip lines, and the card is a

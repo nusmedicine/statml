@@ -7028,16 +7028,16 @@
       "tx": "0"
     },
     {
-      "$note": "unet · Dice, small object, the default drag, counted",
+      "$note": "unet · Dice, the default medium object and drag, the counts live",
       "slug": "unet",
-      "state": "?theme=light&topic=dice&shown=3",
+      "state": "?theme=light&topic=dice&shown=0",
       "px": "0",
       "tx": "0"
     },
     {
-      "$note": "unet · Dice, medium object dilated and dragged, two tiles counted",
+      "$note": "unet · Dice, the large object dilated and dragged",
       "slug": "unet",
-      "state": "?theme=light&topic=dice&size=medium&shape=dilate&dx=-3&dy=2&shown=2",
+      "state": "?theme=light&topic=dice&size=large&shape=dilate&dx=-3&dy=2&shown=0",
       "px": "0",
       "tx": "0"
     },

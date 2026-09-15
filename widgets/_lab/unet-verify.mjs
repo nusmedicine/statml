@@ -162,28 +162,29 @@ section("§3 the Dice claims on the widget's own masks");
   for (const size of M.SIZE_KEYS) {
     const truth = M.disc(M.CENTRE[0], M.CENTRE[1], M.SIZES[size].r);
     const share = truth.reduce((a, v) => a + v, 0) / (M.G * M.G);
-    const want = { small: 0.01, medium: 0.05, large: 0.20 }[size];
+    const want = { medium: 0.05, large: 0.20 }[size];
     assert(Math.abs(share - want) < 0.004, `the ${size} object covers ${(100 * share).toFixed(2)}% of the image`);
     const same = read(size, "same");
     assert(same.dice === 1 && same.acc === 1, `${size}, same shape in place: Dice 1`);
     const empty = read(size, "empty");
     assert(empty.dice === 0 && close(empty.acc, 1 - share), `${size}, empty: Dice 0, accuracy ${empty.acc.toFixed(3)}`);
   }
-  const off = read("small", "same", 9, 0);
-  assert(off.AB === 0 && off.acc > 0.975, `small, dragged clear: accuracy ${off.acc.toFixed(3)} with Dice 0`);
+  const off = read("medium", "same", 18, 0);
+  assert(off.AB === 0 && off.acc > 0.89, `medium, dragged clear: accuracy ${off.acc.toFixed(3)} with Dice 0`);
+  assert(Object.keys(M.SIZES).join(",") === "medium,large", "the object sizes are medium and large (round 4)");
   const dil = read("medium", "dilate");
   const ero = read("medium", "erode");
   assert(dil.rec === 1 && dil.prec < 0.8, `dilated: recall 1, precision ${dil.prec.toFixed(2)}`);
   assert(ero.prec === 1 && ero.rec < 0.75, `eroded: precision 1, recall ${ero.rec.toFixed(2)}`);
   assert(Math.abs(dil.dice - ero.dice) < 0.05, `dilated and eroded within 0.05 Dice (${dil.dice.toFixed(3)} · ${ero.dice.toFixed(3)})`);
-  for (const m of [dil, ero, off, read("small", "same", 2, 1), read("large", "random", 0, 0, 3)]) {
+  for (const m of [dil, ero, off, read("medium", "same", 2, 1), read("large", "random", 0, 0, 3)]) {
     assert(close(m.dice, m.A + m.B ? (2 * m.AB) / (m.A + m.B) : 0), "Dice is 2|A∩B| / (|A|+|B|)");
     assert(close(m.iou, m.dice / (2 - m.dice)), "IoU = Dice / (2 − Dice)");
   }
-  const a = read("small", "same", 1, 0);
-  const b = read("small", "same", 3, 0);
+  const a = read("medium", "same", 1, 0);
+  const b = read("medium", "same", 3, 0);
   assert(a.B === b.B && b.AB < a.AB, "a drag moves the prediction without changing its size, and the overlap falls");
-  console.log(`  small dragged clear: accuracy ${off.acc.toFixed(3)}, Dice 0; dilated ${dil.dice.toFixed(3)}, eroded ${ero.dice.toFixed(3)}`);
+  console.log(`  medium dragged clear: accuracy ${off.acc.toFixed(3)}, Dice 0; dilated ${dil.dice.toFixed(3)}, eroded ${ero.dice.toFixed(3)}`);
 }
 
 /* §4 ---------------------------------------------------------------------- */

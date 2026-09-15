@@ -15836,6 +15836,17 @@ and it is now out of sight until the reader asks for it.
 
 ### Slot 65 · `unet` — Architecture - Basic (Segmentation) — TWO PAGES since 2026-09-13, MOCKED 2026-09-15
 
+**ROUND 4 (2026-09-15, late), the Dice page, three points:** (1) "omit the
+step/play buttons and calculate dynamically as we move the prediction" → the
+Dice page's animation is `inert`, so core hides Step and Play there (Reset
+stays) and the tiles and numbers follow the drag; the U-Net page keeps its
+walk. (2) "small is too small, maybe just medium and large" → Object is
+Medium (5 %) · Large (20 %), Medium the default; the subtitle and the card's
+note no longer lean on a small object (a medium object with the prediction
+dragged clear still scores accuracy 89.6 %, Dice 0). (3) "do we have
+different shape?" was a question, answered in the chat: the prediction has
+five shapes, the object is always a disc; object shapes not added.
+
 **ROUND 3 (2026-09-15, late), his two points and his pick "A and C"
 (`_lab/unet-round3-mock.html`):** (1) "are the dimension blocks aligned to the
 diagram by level?" — the card listed stages in walk order, so enc_l and cat_l

@@ -268,8 +268,9 @@ export const unetHeight = (w, params) => uHeight(w, params) + BAND_GAP + BAND_H;
 /* --- Dice ------------------------------------------------------------------- */
 
 export const G = 64;
+/* medium and large only (Kenneth, round 4: "small is too small"): a 1 % disc
+   is about eleven pixels across on the panel */
 export const SIZES = {
-  small: { r: 3.75, share: "1 %" },
   medium: { r: 8.1, share: "5 %" },
   large: { r: 16.2, share: "20 %" },
 };
@@ -362,7 +363,7 @@ export function computeDice(params) {
   const P = SHAPES.find((p) => p.key === shape) ?? SHAPES[0];
   const shaped = P.make(truth, makeRng(seed));
   const prediction = shift(shaped, dx, dy);
-  return { page: "dice", size, shape, dx, dy, truth, prediction, m: metrics(truth, prediction), total: 3 };
+  return { page: "dice", size, shape, dx, dy, truth, prediction, m: metrics(truth, prediction), total: 0 };
 }
 
 /* --- Dice's geometry --------------------------------------------------------- */
