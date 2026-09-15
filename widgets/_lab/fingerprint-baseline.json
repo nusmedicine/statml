@@ -6794,6 +6794,163 @@
       },
       "px": "919435a4",
       "tx": "3b1d43a9"
+    },
+    {
+      "$note": "the defaults with every layer in - two blocks, base 32, kernel 3, global average pooling, a 28px image. shown counts columns before the gate, so 6 is the six columns and the receptive field not yet asked for",
+      "slug": "cnn-architecture",
+      "state": "?theme=light&shown=6",
+      "px": "7edb7249",
+      "tx": "edc0c068"
+    },
+    {
+      "$note": "three blocks, whose third carries no pool - seven columns, and the receptive field reaches 18 of 28",
+      "slug": "cnn-architecture",
+      "state": "?theme=light&blocks=3&shown=7",
+      "px": "1d3954db",
+      "tx": "ab29cbc6"
+    },
+    {
+      "$note": "kernel 5 at three blocks - the widest network the controls reach, and the detail band's 5 x 5 window and kernel",
+      "slug": "cnn-architecture",
+      "state": "?theme=light&blocks=3&k=5&shown=7",
+      "px": "95579d1d",
+      "tx": "95b550e5"
+    },
+    {
+      "$note": "the Flatten head - 28,233 parameters against 585, the head column a 12px strip of 49 values against four cells, and [3136] with +3,087 more printed under it",
+      "slug": "cnn-architecture",
+      "state": "?theme=light&head=flatten&shown=6",
+      "px": "85443b46",
+      "tx": "788603bf"
+    },
+    {
+      "$note": "a 64px image - the same columns, with the printed shapes and the head count moved, and every cell of a map under 2px",
+      "slug": "cnn-architecture",
+      "state": "?theme=light&input=64&shown=6",
+      "px": "19abf568",
+      "tx": "95110815"
+    },
+    {
+      "$note": "one block, base 16 - the smallest network the controls reach, four columns",
+      "slug": "cnn-architecture",
+      "state": "?theme=light&blocks=1&base=16&shown=4",
+      "px": "0c2b7a23",
+      "tx": "a91e6a7c"
+    },
+    {
+      "$note": "the head column clicked - the four values global average pooling hands the linear layer, and the map they are averages of",
+      "slug": "cnn-architecture",
+      "state": "?theme=light&shown=6&pos=1020153",
+      "px": "580ed3de",
+      "tx": "356e80ff"
+    },
+    {
+      "$note": "BEHIND THE GATE, MID-WALK - patch=1 puts every column in at once and shown counts cells of the chosen map, so 25 is the marked unit on cell 24 of pool2 (row 3, column 3), the map drawn only that far, and the windows back to the image on it",
+      "slug": "cnn-architecture",
+      "state": "?theme=light&patch=1&shown=25",
+      "px": "68c77d92",
+      "tx": "edc0c068"
+    },
+    {
+      "$note": "BEHIND THE GATE, ON conv2, MID-WALK - cell 99 of a 14 x 14 map (row 7, column 1), which is the cross-channel detail band: four windows on pool1's four channels, the Membrane kernel's four slices, the sum, the bias and ReLU",
+      "slug": "cnn-architecture",
+      "state": "?theme=light&patch=1&layer=conv2&shown=100",
+      "px": "23fb3f47",
+      "tx": "6a05a12f"
+    },
+    {
+      "$note": "BEHIND THE GATE, ON conv1 - the Layer control moved one column back: a 3 x 3 patch of the image, against pool2's 10 x 10",
+      "slug": "cnn-architecture",
+      "state": "?theme=light&patch=1&layer=conv1&shown=0",
+      "px": "c653ca6f",
+      "tx": "d5df8575"
+    },
+    {
+      "$note": "DRIVEN, before the gate - one press caught mid-beat, conv1 arriving at part alpha",
+      "slug": "cnn-architecture",
+      "state": "?theme=light",
+      "drive": {
+        "click": "step",
+        "frames": 10,
+        "dt": 32
+      },
+      "px": "8eb468e5",
+      "tx": "94742169"
+    },
+    {
+      "$note": "DRIVEN, before the gate - Play three columns in, 60 frames of the 132 the six columns take at 32ms",
+      "slug": "cnn-architecture",
+      "state": "?theme=light",
+      "drive": {
+        "click": "run",
+        "frames": 60,
+        "dt": 32
+      },
+      "px": "96aaf602",
+      "tx": "cf1bdb49"
+    },
+    {
+      "$note": "DRIVEN, behind the gate - the gate button pressed through its own control (data-param, the reader's path), then one Step: the marked unit on the first cell of pool2 and the map drawn only there",
+      "slug": "cnn-architecture",
+      "state": "?theme=light",
+      "drive": {
+        "before": [
+          {
+            "set": {
+              "patch": true
+            }
+          }
+        ],
+        "click": "step",
+        "frames": 6,
+        "dt": 32
+      },
+      "px": "2788dd33",
+      "tx": "edc0c068"
+    },
+    {
+      "$note": "DRIVEN, INTERRUPTED, behind the gate - the gate pressed, Play run 40 frames (1,280 ms at 60 ms a cell is twenty-one cells of the forty-nine), then Step takes over mid walk",
+      "slug": "cnn-architecture",
+      "state": "?theme=light",
+      "drive": {
+        "before": [
+          {
+            "set": {
+              "patch": true
+            }
+          },
+          {
+            "click": "run",
+            "frames": 40
+          }
+        ],
+        "click": "step",
+        "frames": 6,
+        "dt": 32
+      },
+      "px": "66a43f27",
+      "tx": "edc0c068"
+    },
+    {
+      "$note": "HIT-DRIVEN on a cell of a drawn channel - Play run into the columns, then a click at [370, 171], which galleryLayout puts on pool2 channel 2, row 3, column 6 at the harness 535px canvas: a 2px target, and the region geometry no pixel hash can see",
+      "slug": "cnn-architecture",
+      "state": "?theme=light",
+      "drive": {
+        "before": [
+          {
+            "click": "run",
+            "frames": 140
+          }
+        ],
+        "hit": [
+          370,
+          171
+        ],
+        "frames": 2,
+        "dt": 32
+      },
+      "px": "73b415bb",
+      "tx": "edc0c068"
     }
   ]
 }

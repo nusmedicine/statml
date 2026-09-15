@@ -1,0 +1,1029 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · cnn-architecture — the mock</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  /* The mock shell, verbatim from `_lab/mr-mock.html` (which took it from
+     `_lab/prs-round3-mock.html`). Nothing here is a new visual decision. */
+  .lab { max-width: 1240px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 96ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; width: 550px; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); max-width: 550px; min-height: 26px; white-space: pre-line; }
+  #railRow > .cand { width: 300px; }
+  #titleRow > .cand { width: 550px; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 96ch; }
+  .measure { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--ink-3); margin: 4px 0 0; max-width: 760px; white-space: pre-line; }
+  table.facts { border-collapse: collapse; font-size: var(--fs-sm); color: var(--ink-2); margin: var(--sp-2) 0 var(--sp-3); max-width: 120ch; }
+  table.facts th, table.facts td { border: 1px solid var(--grid); padding: 3px 8px; text-align: left; vertical-align: top; }
+  table.facts th { color: var(--ink-1); font-weight: 600; background: var(--surface-2); }
+  table.facts td b { color: var(--ink-1); }
+  .legend { display: flex; flex-wrap: wrap; gap: var(--sp-2) var(--sp-4); margin: 0 0 var(--sp-4);
+            font-size: var(--fs-xs); color: var(--ink-2); }
+  .legend span { display: flex; align-items: center; gap: 6px; }
+  .sw { width: 13px; height: 13px; border-radius: 50%; flex: 0 0 auto; }
+  .sw-emp { background: var(--c-empirical); }
+  .sw-high { background: var(--c-highlight); }
+  .sw-ga { background: var(--c-group-a); }
+  .sw-gb { background: var(--c-group-b); }
+  .sw-ext { background: var(--c-extreme); }
+  .sw-ref { width: 18px; height: 0; border-radius: 0; border-top: 2px dashed var(--c-reference); }
+  .sw-da { width: 18px; height: 0; border-radius: 0; border-top: 2px solid var(--c-dim-a); }
+  .sw-db { width: 18px; height: 0; border-radius: 0; border-top: 2px solid var(--c-dim-b); }
+  .stage-host { width: 550px; }
+  .rail-host { width: 300px; }
+  .pagehead { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>cnn-architecture &middot; the mock</h1>
+
+  <p class="note">
+    <b>The slot, from the catalogue.</b> 06-1 cell 2's three ideas (the kernel shared across positions,
+    pooling, receptive field growth) and cell 1's parameter argument; 06-2 cell 23 (components and order,
+    calculating dimensions, Flatten against global average pooling) and cell 25's <code>SimpleCNN</code>.
+    The widget trains nothing: every number on this page is arithmetic over shapes.
+  </p>
+  <p class="note">
+    <b>Where the numbers come from.</b> Shapes run through core's own <code>outSize</code>. A convolution
+    costs <code>in&middot;out&middot;k&middot;k + out</code> and a linear layer <code>in&middot;out + out</code>.
+    The receptive field is <code>r_out = r_in + (k &minus; 1)&middot;jump</code> with
+    <code>jump_out = jump&middot;stride</code>; the square drawn back on the input comes from the backward
+    recursion <code>lo &rarr; lo&middot;s &minus; p</code>, <code>hi &rarr; hi&middot;s &minus; p + k &minus; 1</code>,
+    which is the same number arrived at from the other end and is what lets the overrun be drawn.
+    Convolutions are stride 1 with padding <code>(k &minus; 1)/2</code>; pooling is <code>k = 2</code>, stride 2.
+  </p>
+  <p class="note" id="engineLine"></p>
+  <p class="note" id="checkLine"></p>
+
+  <div class="legend">
+    <span><i class="sw sw-emp"></i>a feature map — what the network computed from the image</span>
+    <span><i class="sw sw-gb"></i>the layer's weights: the kernel, and the linear head</span>
+    <span><i class="sw sw-high"></i>the chosen unit and the patch of the input it is computed from</span>
+    <span><i class="sw sw-ext"></i>the part of the patch that falls outside the image</span>
+    <span><i class="sw sw-ref"></i>a dense layer on the same image, the benchmark</span>
+    <span><i class="sw sw-da"></i>height and width changed here</span>
+    <span><i class="sw sw-db"></i>channels changed here</span>
+  </div>
+
+  <h2>&sect;0 &middot; The title and the subtitle</h2>
+  <p class="note">
+    The arc's titles are <i>Deep Learning - Processing Layers</i> and <i>Deep Learning - Composition</i>, so this
+    one is <i>Deep Learning - CNN Architecture</i>. Two subtitles, each stating the concept in the register of
+    the shipped ones (2.10): concept first, the field's own terms, no description of the dashboard.
+  </p>
+  <div class="row" id="titleRow"></div>
+  <p class="rec" id="recTitle"></p>
+
+  <h2>&sect;1 &middot; The stack, drawn to scale</h2>
+  <p class="note">
+    The same network in three geometries &mdash; two blocks, base 32, global average pooling, input 28.
+    <b>A</b> your U-Net figure's convention: flat rectangles left to right, height following H and width
+    following C, the shape printed under each and a 2px rule in the dimension hue under the size that just
+    changed. <b>B</b> your conv2d figure's convention: an H &times; W face with depth C, one solid per stage.
+    <b>C</b> the architecture figure's own column: labelled boxes Conv &middot; ReLU &middot; Pool stacked, the
+    shape beside each, as composition's Building page draws a Sequential. The second row is the same three at
+    three blocks, and A again at input 64.
+  </p>
+  <div class="row" id="stackRow"></div>
+  <div class="row" id="stackRow2"></div>
+  <p class="measure" id="stackMeasure"></p>
+  <p class="rec" id="recStack"></p>
+
+  <h2>&sect;2 &middot; The receptive field</h2>
+  <p class="note">
+    The input at the left as a 28 &times; 28 grid of pixels (a seeded blob and noise, a grey ramp, no literal
+    colours), one unit chosen on a later stage, and the patch of the input it is computed from drawn back on
+    the image. <b>A</b> the patch on the input only. <b>B</b> the patch on every stage between, which is what
+    Step reveals one layer at a time. The second row is the case that fails: <code>k = 5</code> at three
+    blocks, where the patch is wider than the image.
+  </p>
+  <div class="row" id="rfRow"></div>
+  <div class="row" id="rfRow2"></div>
+  <p class="measure" id="rfMeasure"></p>
+  <p class="rec" id="recRf"></p>
+
+  <h2>&sect;3 &middot; The head</h2>
+  <p class="note">
+    Flatten against global average pooling on the same feature map, with the weight count as a bar of
+    proportional length, and under them the line the slot exists for. <b>A</b> at input 28, <b>B</b> at input
+    64 &mdash; Flatten's count moves and the other does not.
+  </p>
+  <div class="row" id="headRow"></div>
+  <p class="measure" id="headMeasure"></p>
+  <p class="rec" id="recHead"></p>
+
+  <h2>&sect;4 &middot; The rail, through core's own builder</h2>
+  <p class="note">
+    The spec as it will be written, rendered by <code>buildControls</code> at 300px. <b>A</b> with sections;
+    <b>B</b> one flat list. Every <code>detail</code> says what the control is, never what pressing it will do.
+  </p>
+  <div class="row" id="railRow"></div>
+  <p class="measure" id="railMeasure"></p>
+  <p class="rec" id="recRail"></p>
+
+  <h2>&sect;5 &middot; The readout tiles</h2>
+  <p class="note">Two wordings of the three tiles, at the defaults.</p>
+  <div class="row" id="tileRow"></div>
+  <p class="rec" id="recTiles"></p>
+
+  <h2>&sect;6 &middot; The copy</h2>
+  <div id="copyTable"></div>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+import { outSize, shapeText } from "../core/torch.js";
+
+const T0 = performance.now();
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+
+/* ==========================================================================
+   The engine. Arithmetic only — shapes, parameter counts, receptive fields.
+   No training, no randomness except the input texture's own LCG.
+   ====================================================================== */
+
+const CLASSES = 9;       /* PathMNIST's nine colon-tissue classes */
+const DENSE_UNITS = 1000;
+
+/**
+ * Build the notebook's net. One block is Conv(k, pad) → ReLU → MaxPool 2, and
+ * `convs` puts a second Conv → ReLU before the pool (cell 25's SimpleCNN).
+ * Cell 25's third block carries no pool, which is why `blocks: 3` drops it.
+ */
+function buildNet({ blocks = 2, base = 32, k = 3, head = "gap", input = 28, convs = 1 } = {}) {
+  const pad = (k - 1) / 2;
+  const stages = [{ kind: "input", name: "Input", C: 3, H: input, params: 0, changed: null }];
+  const layers = [];            /* {k, s, p} per shape-changing layer */
+  let C = 3; let H = input; let convParams = 0;
+  for (let b = 0; b < blocks; b += 1) {
+    const out = base * 2 ** b;
+    for (let c = 0; c < convs; c += 1) {
+      const cin = c === 0 ? C : out;
+      const p = cin * out * k * k + out;
+      convParams += p;
+      H = outSize(H, k, 1, pad);
+      layers.push({ k, s: 1, p: pad });
+      stages.push({ kind: "conv", name: `conv${b + 1}${convs > 1 ? "ab"[c] : ""}`, C: out, H, params: p, changed: "C" });
+    }
+    C = out;
+    const pooled = !(blocks === 3 && b === 2);
+    if (pooled) {
+      H = outSize(H, 2, 2, 0);
+      layers.push({ k: 2, s: 2, p: 0 });
+      stages.push({ kind: "pool", name: `pool${b + 1}`, C, H, params: 0, changed: "HW" });
+    }
+  }
+  const flatIn = C * H * H;
+  const headIn = head === "flatten" ? flatIn : C;
+  const headParams = headIn * CLASSES + CLASSES;
+  /* receptive field, forward */
+  let r = 1; let j = 1;
+  const rf = [{ r, j }];
+  for (const L of layers) { r += (L.k - 1) * j; j *= L.s; rf.push({ r, j }); }
+  return {
+    cfg: { blocks, base, k, head, input, convs },
+    stages, layers, C, H, flatIn, headIn, headParams,
+    convParams, total: convParams + headParams, r, jump: j, rf,
+    dense: input * input * 3 * DENSE_UNITS + DENSE_UNITS,
+  };
+}
+
+/** Walk one unit of the last stage back through the layers. Returns the
+    [lo, hi] window at every stage, unclipped, so an overrun is visible. */
+function cone(net, idx) {
+  const spans = new Array(net.layers.length + 1);
+  let lo = idx; let hi = idx;
+  spans[net.layers.length] = [lo, hi];
+  for (let i = net.layers.length - 1; i >= 0; i -= 1) {
+    const L = net.layers[i];
+    lo = lo * L.s - L.p;
+    hi = hi * L.s - L.p + L.k - 1;
+    spans[i] = [lo, hi];
+  }
+  return spans;
+}
+
+const DEFAULT = buildNet();
+const FLATTEN = buildNet({ head: "flatten" });
+const B3 = buildNet({ blocks: 3 });
+const IN64 = buildNet({ input: 64 });
+const IN64F = buildNet({ input: 64, head: "flatten" });
+const K5B3 = buildNet({ blocks: 3, k: 5 });
+/* cell 25's own third block is two convs at jump 4 on top of the measured 10 */
+const CELL25_RF = DEFAULT.r + 2 * (3 - 1) * DEFAULT.jump;
+
+/* The measured numbers this page must reproduce before it draws anything
+   (catalogue § Slot 61, MEASURED 2026-09-13). */
+const CHECKS = [
+  ["conv1", DEFAULT.stages[1].params, 896],
+  ["conv2", DEFAULT.stages[3].params, 18496],
+  ["Flatten head", FLATTEN.headParams, 28233],
+  ["GAP head", DEFAULT.headParams, 585],
+  ["Flatten total", FLATTEN.total, 47625],
+  ["GAP total", DEFAULT.total, 19977],
+  ["receptive field", DEFAULT.r, 10],
+  ["cell 25 three blocks", CELL25_RF, 26],
+  ["dense 28", DEFAULT.dense, 2353000],
+  ["dense 256", 256 * 256 * 3 * DENSE_UNITS + DENSE_UNITS, 196609000],
+];
+const FAILED = CHECKS.filter(([, got, want]) => got !== want);
+
+/* ==========================================================================
+   Helpers, verbatim from the round-three and MR mocks.
+   ====================================================================== */
+
+const el = (tag, cls, text) => {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text != null) e.textContent = text;
+  return e;
+};
+const int = (v) => Math.round(v).toLocaleString("en-US");
+const fmt = (v, d = 2) => (Number.isFinite(v) ? v.toFixed(d) : "-");
+const capFont = () => `600 ${T.fsSm} ${T.font}`;
+const noteFont = () => `${T.fsXs} ${T.font}`;
+const monoFont = () => `${T.fsXs} ${T.mono}`;
+function canvasIn(parent, w, h) {
+  const cv = document.createElement("canvas");
+  cv.width = Math.round(w * DPR);
+  cv.height = Math.round(h * DPR);
+  cv.style.width = `${w}px`;
+  cv.style.height = `${h}px`;
+  parent.appendChild(cv);
+  const ctx = cv.getContext("2d");
+  ctx.scale(DPR, DPR);
+  ctx.fillStyle = T.surface;
+  ctx.fillRect(0, 0, w, h);
+  return ctx;
+}
+function cand(parent, title, sub, width) {
+  const c = el("div", "cand");
+  if (width) c.style.width = `${width}px`;
+  if (title) c.appendChild(el("h3", null, title));
+  if (sub != null) c.appendChild(el("p", "sub", sub));
+  parent.appendChild(c);
+  return c;
+}
+function rgbOf(c) {
+  const p = document.createElement("canvas").getContext("2d");
+  p.fillStyle = c; p.fillRect(0, 0, 1, 1);
+  return Array.from(p.getImageData(0, 0, 1, 1).data.slice(0, 3));
+}
+const mixRgb = (a, b, t) => { const c = a.map((v, i) => Math.round(v + (b[i] - v) * t)); return `rgb(${c[0]}, ${c[1]}, ${c[2]})`; };
+const RAMP_LO = rgbOf(T.surface2); const RAMP_HI = rgbOf(T.ink1);
+const grey = (t) => mixRgb(RAMP_LO, RAMP_HI, Math.max(0, Math.min(1, t)));
+
+const STAGE_W = 550;
+
+function caption(ctx, x, y, text) {
+  ctx.save();
+  ctx.font = capFont(); ctx.fillStyle = T.ink2; ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+  ctx.fillText(text, x, y);
+  ctx.restore();
+}
+function note(ctx, x, y, text, tone) {
+  ctx.save();
+  ctx.font = noteFont(); ctx.fillStyle = tone ?? T.ink3; ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+  ctx.fillText(text, x, y);
+  ctx.restore();
+}
+function arrowRight(ctx, x1, x2, y, colour) {
+  ctx.save();
+  ctx.strokeStyle = colour ?? T.ink3; ctx.fillStyle = colour ?? T.ink3; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(x1, y); ctx.lineTo(x2 - 4, y); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x2, y); ctx.lineTo(x2 - 5, y - 3); ctx.lineTo(x2 - 5, y + 3); ctx.fill();
+  ctx.restore();
+}
+function arrowDown(ctx, x, y1, y2, colour) {
+  ctx.save();
+  ctx.strokeStyle = colour ?? T.ink3; ctx.fillStyle = colour ?? T.ink3; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(x, y1); ctx.lineTo(x, y2 - 4); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x, y2); ctx.lineTo(x - 3, y2 - 5); ctx.lineTo(x + 3, y2 - 5); ctx.fill();
+  ctx.restore();
+}
+
+/**
+ * The shape printed under a rect, with a 2px rule in the dimension hue under
+ * the size that just changed. `--c-dim-a` is H and W together — they are ONE
+ * quantity on this figure, the spatial size — and `--c-dim-b` is C. That is a
+ * departure from the last-dimension-first counting the tokens describe, and it
+ * is deliberate: a rule per spatial axis would say the two can move apart, and
+ * under a square kernel with square pooling they never do.
+ */
+function shapeUnder(ctx, cx, y, shape, changed) {
+  const text = shapeText(shape);
+  ctx.save();
+  ctx.font = monoFont(); ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+  const w = ctx.measureText(text).width;
+  const x0 = Math.max(8, cx - w / 2);   /* a label centred on a 3px rectangle would start off the canvas */
+  ctx.fillStyle = T.ink2;
+  ctx.fillText(text, x0, y);
+  if (changed) {
+    /* measure the run of characters the rule belongs under */
+    const cText = `${shape[0]}`;
+    const preC = "[";
+    const preHW = `[${shape[0]}, `;
+    const hwText = `${shape[1]}, ${shape[2]}`;
+    const a = changed === "C" ? ctx.measureText(preC).width : ctx.measureText(preHW).width;
+    const b = changed === "C" ? ctx.measureText(cText).width : ctx.measureText(hwText).width;
+    ctx.strokeStyle = changed === "C" ? T.dims[1] : T.dims[0];
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(x0 + a, y + 3.5); ctx.lineTo(x0 + a + b, y + 3.5); ctx.stroke();
+  }
+  ctx.restore();
+  return w;
+}
+
+/* ==========================================================================
+   §0 · title and subtitle
+   ====================================================================== */
+const TITLE = "Deep Learning - CNN Architecture";
+const SUBTITLES = [
+  { key: "A", claims: "three claims",
+    text: "A convolutional layer applies one kernel at every position, so its parameter count follows the "
+      + "kernel and the channels rather than the size of the image. Each output unit is computed from a "
+      + "bounded patch of the input, its receptive field. The head decides whether the total depends on the "
+      + "image size at all." },
+  { key: "B", claims: "two claims",
+    text: "Sharing one kernel across all positions makes a convolutional layer's parameter count independent "
+      + "of the image size, and each output unit is computed from a square patch of the input. Flatten and "
+      + "global average pooling differ in whether the head grows with that size." },
+];
+{
+  const row = document.getElementById("titleRow");
+  for (const s of SUBTITLES) {
+    const box = el("div", "cand");
+    box.appendChild(el("p", "pagehead", `subtitle ${s.key}, ${s.claims} · ${s.text.length} characters`));
+    const host = el("div", "stage-host");
+    const heading = el("div", "w-heading");
+    heading.appendChild(el("h1", "w-title", TITLE));
+    heading.appendChild(el("p", "w-subtitle", s.text));
+    host.appendChild(heading);
+    box.appendChild(host);
+    row.appendChild(box);
+  }
+  document.getElementById("recTitle").innerHTML =
+    `<b>B.</b> Three claims is the budget's ceiling and A spends the third on <i>the head decides</i>, which is `
+    + `the one claim the reader cannot check until they have pressed something; B folds it into the second `
+    + `sentence by naming the two heads, so every claim is on the opening figure. Both are inside 2.10's `
+    + `140–240 characters (A ${SUBTITLES[0].text.length}, B ${SUBTITLES[1].text.length}); A is over, which is the other reason.`;
+}
+
+/* ==========================================================================
+   §1 · the stack, three geometries
+   ====================================================================== */
+const A_TALL = 186;         /* the input rect's height, whatever the input is */
+const A_H = 292;            /* the canvas */
+const A_MINW = 6;
+const A_GAPMIN = 15;
+
+function stackItems(net) {
+  const items = net.stages.map((s) => ({ ...s, sort: "map" }));
+  items.push({ kind: "headmark", name: net.cfg.head === "flatten" ? "Flatten" : "Global average pooling", C: net.headIn, H: 1, sort: "head" });
+  items.push({ kind: "linear", name: `Linear(${net.headIn}, ${CLASSES})`, C: CLASSES, H: 1, params: net.headParams, sort: "head" });
+  return items;
+}
+function layoutA(net, W) {
+  const items = stackItems(net);
+  const hUnit = A_TALL / net.cfg.input;
+  const L = 12; const R = 12;
+  let wUnit = 1.0;
+  const wOf = (it) => (it.sort === "head" ? (it.kind === "linear" ? 44 : 22) : Math.max(A_MINW, it.C * wUnit));
+  let gap = 0;
+  for (let guard = 0; guard < 40; guard += 1) {
+    const tot = items.reduce((a, it) => a + wOf(it), 0);
+    gap = (W - L - R - tot) / (items.length - 1);
+    if (gap >= A_GAPMIN || wUnit <= 0.2) break;
+    wUnit *= 0.9;
+  }
+  const total = items.reduce((a, it) => a + wOf(it), 0);
+  return { items, hUnit, wUnit, gap, L, wOf, total };
+}
+function drawStackA(ctx, net, W) {
+  const lay = layoutA(net, W);
+  const midY = 40 + A_TALL / 2;
+  caption(ctx, lay.L, 24, `Height follows H, width follows C — ${net.cfg.blocks} block${net.cfg.blocks > 1 ? "s" : ""}, base ${net.cfg.base}, input ${net.cfg.input}`);
+  let x = lay.L;
+  lay.items.forEach((it, i) => {
+    const w = lay.wOf(it);
+    if (it.sort === "map") {
+      const h = Math.max(7, it.H * lay.hUnit);
+      const y = midY - h / 2;
+      ctx.save();
+      ctx.globalAlpha = 0.5; ctx.fillStyle = T.empirical; ctx.fillRect(x, y, w, h);
+      ctx.globalAlpha = 1;
+      ctx.strokeStyle = T.empirical; ctx.lineWidth = 1; ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+      ctx.restore();
+      /* two label rows, alternating: the left-hand rectangles are 3-64px wide and one row of 90px labels collided (read in the browser 2026-09-13) */
+      shapeUnder(ctx, x + w / 2, midY + A_TALL / 2 + 20 + (i % 2) * 15, [it.C, it.H, it.H], it.changed);
+    } else if (it.kind === "headmark") {
+      ctx.save();
+      ctx.strokeStyle = T.ink3; ctx.lineWidth = 1;
+      ctx.strokeRect(x + 0.5, midY - 9.5, w - 1, 19);
+      ctx.font = noteFont(); ctx.fillStyle = T.ink2; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillText(net.cfg.head === "flatten" ? "F" : "GAP", x + w / 2, midY + 1);
+      ctx.restore();
+      ctx.save();
+      ctx.font = monoFont(); ctx.fillStyle = T.ink2; ctx.textAlign = "center"; ctx.textBaseline = "alphabetic";
+      ctx.fillText(shapeText([net.headIn]), x + w / 2, midY + A_TALL / 2 + 20);
+      ctx.font = noteFont(); ctx.fillStyle = T.ink3;
+      ctx.fillText(net.cfg.head === "flatten" ? "Flatten" : "Average", x + w / 2, midY + A_TALL / 2 + 36);
+      ctx.restore();
+    } else {
+      ctx.save();
+      ctx.globalAlpha = 0.5; ctx.fillStyle = T.groupB; ctx.fillRect(x, midY - 13, w, 26);
+      ctx.globalAlpha = 1;
+      ctx.strokeStyle = T.groupB; ctx.lineWidth = 1; ctx.strokeRect(x + 0.5, midY - 12.5, w - 1, 25);
+      ctx.restore();
+      ctx.save();
+      ctx.font = monoFont(); ctx.fillStyle = T.ink2; ctx.textAlign = "center"; ctx.textBaseline = "alphabetic";
+      ctx.fillText(shapeText([CLASSES]), x + w / 2, midY + A_TALL / 2 + 20);
+      ctx.font = noteFont(); ctx.fillStyle = T.ink3;
+      ctx.fillText("Linear", x + w / 2, midY + A_TALL / 2 + 36);
+      ctx.restore();
+    }
+    if (i < lay.items.length - 1) arrowRight(ctx, x + w + 3, x + w + lay.gap - 3, midY);
+    x += w + lay.gap;
+  });
+  note(ctx, lay.L, A_H - 12, `${int(net.total)} parameters in all · receptive field ${net.r} px of ${net.cfg.input}`);
+  return lay;
+}
+
+/* B — the isometric solid, as the conv2d figure draws one. */
+function layoutB(net, W) {
+  const items = net.stages;
+  const faceUnit = 100 / net.cfg.input;
+  const dUnit = 0.58;
+  const dxOf = (C) => C * dUnit * 0.7;
+  const foot = (s) => Math.max(18, s.H * faceUnit) + dxOf(s.C);
+  const L = 14; const R = 14;
+  const tot = items.reduce((a, s) => a + foot(s), 0);
+  const gap = (W - L - R - tot) / (items.length - 1);
+  /* The fit that matters is not the width alone. The depth of the LAST solid
+     is C channels, and once it passes its own H × W face the picture is mostly
+     depth — the spatial size the figure exists to show becomes its smallest
+     part. Both numbers are reported. */
+  const lastS = items[items.length - 1];
+  const lastFace = Math.max(18, lastS.H * faceUnit);
+  const lastDepth = dxOf(lastS.C);
+  return { items, faceUnit, dUnit, dxOf, foot, gap, L, tot, lastFace, lastDepth, fits: gap >= 16 && lastDepth <= lastFace };
+}
+function drawStackB(ctx, net, W, H) {
+  const lay = layoutB(net, W);
+  const midY = 52 + 100 / 2;
+  caption(ctx, lay.L, 24, `An H × W face with depth C — ${net.cfg.blocks} block${net.cfg.blocks > 1 ? "s" : ""}, base ${net.cfg.base}, input ${net.cfg.input}`);
+  let x = lay.L;
+  for (let i = 0; i < lay.items.length; i += 1) {
+    const s = lay.items[i];
+    const face = Math.max(18, s.H * lay.faceUnit);
+    const dx = lay.dxOf(s.C); const dy = dx * 0.62;
+    const y = midY - face / 2;
+    ctx.save();
+    ctx.strokeStyle = T.empirical; ctx.lineWidth = 1;
+    /* top */
+    ctx.globalAlpha = 0.28; ctx.fillStyle = T.empirical;
+    ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + dx, y - dy); ctx.lineTo(x + dx + face, y - dy); ctx.lineTo(x + face, y); ctx.closePath(); ctx.fill(); ctx.globalAlpha = 1; ctx.stroke();
+    /* right */
+    ctx.globalAlpha = 0.38; ctx.fillStyle = T.empirical;
+    ctx.beginPath(); ctx.moveTo(x + face, y); ctx.lineTo(x + face + dx, y - dy); ctx.lineTo(x + face + dx, y + face - dy); ctx.lineTo(x + face, y + face); ctx.closePath(); ctx.fill(); ctx.globalAlpha = 1; ctx.stroke();
+    /* front */
+    ctx.globalAlpha = 0.5; ctx.fillStyle = T.empirical;
+    ctx.fillRect(x, y, face, face); ctx.globalAlpha = 1; ctx.strokeRect(x + 0.5, y + 0.5, face - 1, face - 1);
+    ctx.restore();
+    shapeUnder(ctx, x + (face + dx) / 2, midY + 100 / 2 + 26, [s.C, s.H, s.H], s.changed);
+    note(ctx, x, midY + 100 / 2 + 42, s.name);
+    if (i < lay.items.length - 1) arrowRight(ctx, x + face + dx + 2, x + face + dx + lay.gap - 2, midY);
+    x += face + dx + lay.gap;
+  }
+  note(ctx, lay.L, H - 12,
+    `${Math.round(lay.tot)}px of solid, ${Math.round(lay.gap)}px between · the last solid is ${Math.round(lay.lastDepth)}px deep against a ${Math.round(lay.lastFace)}px face`,
+    lay.fits ? T.ink3 : T.extreme);
+  return lay;
+}
+
+/* C — the notebook's own column. */
+const C_BOX_W = 156; const C_BOX_H = 22; const C_PITCH = 31;
+function columnRows(net) {
+  const rows = [{ label: "Input", shape: [3, net.cfg.input, net.cfg.input], tone: "map" }];
+  const pad = (net.cfg.k - 1) / 2;
+  let C = 3; let H = net.cfg.input;
+  for (let b = 0; b < net.cfg.blocks; b += 1) {
+    const out = net.cfg.base * 2 ** b;
+    H = outSize(H, net.cfg.k, 1, pad);
+    rows.push({ label: `Conv2d(${C}, ${out}, ${net.cfg.k}, padding=${pad})`, shape: [out, H, H], tone: "weight" });
+    rows.push({ label: "ReLU", shape: [out, H, H], tone: "plain" });
+    C = out;
+    if (!(net.cfg.blocks === 3 && b === 2)) {
+      H = outSize(H, 2, 2, 0);
+      rows.push({ label: "MaxPool2d(2)", shape: [C, H, H], tone: "map" });
+    }
+  }
+  if (net.cfg.head === "flatten") rows.push({ label: "Flatten", shape: [C * H * H], tone: "map" });
+  else rows.push({ label: "AdaptiveAvgPool2d(1)", shape: [C], tone: "map" });
+  rows.push({ label: `Linear(${net.headIn}, ${CLASSES})`, shape: [CLASSES], tone: "weight" });
+  return rows;
+}
+function columnHeight(net) { return 44 + columnRows(net).length * C_PITCH + 24; }
+function drawStackC(ctx, net, W, H) {
+  const rows = columnRows(net);
+  const x = 18;
+  caption(ctx, x, 24, `The layers in order — ${net.cfg.blocks} block${net.cfg.blocks > 1 ? "s" : ""}, base ${net.cfg.base}, input ${net.cfg.input}`);
+  rows.forEach((r, i) => {
+    const y = 40 + i * C_PITCH;
+    const colour = r.tone === "weight" ? T.groupB : r.tone === "map" ? T.empirical : T.ink3;
+    ctx.save();
+    ctx.globalAlpha = r.tone === "plain" ? 0.16 : 0.42; ctx.fillStyle = colour;
+    ctx.fillRect(x, y, C_BOX_W, C_BOX_H); ctx.globalAlpha = 1;
+    ctx.strokeStyle = colour; ctx.lineWidth = 1; ctx.strokeRect(x + 0.5, y + 0.5, C_BOX_W - 1, C_BOX_H - 1);
+    ctx.font = noteFont(); ctx.fillStyle = T.ink1; ctx.textAlign = "left"; ctx.textBaseline = "middle";
+    ctx.fillText(r.label, x + 7, y + C_BOX_H / 2 + 0.5);
+    ctx.restore();
+    ctx.save();
+    ctx.font = monoFont(); ctx.fillStyle = T.ink2; ctx.textAlign = "left"; ctx.textBaseline = "middle";
+    ctx.fillText(shapeText(r.shape), x + C_BOX_W + 14, y + C_BOX_H / 2 + 0.5);
+    ctx.restore();
+    if (i < rows.length - 1) arrowDown(ctx, x + C_BOX_W / 2, y + C_BOX_H + 1, y + C_PITCH - 1);
+  });
+  note(ctx, x, H - 10, `${rows.length} boxes, ${Math.round(columnHeight(net))}px tall`);
+}
+
+{
+  const row = document.getElementById("stackRow");
+  const row2 = document.getElementById("stackRow2");
+  const m = [];
+  /* A, default */
+  {
+    const box = cand(row, "A · flat rectangles, height H and width C", `${STAGE_W} × ${A_H}`);
+    const lay = drawStackA(canvasIn(box, STAGE_W, A_H), DEFAULT, STAGE_W);
+    m.push(`A, 2 blocks: ${lay.items.length} items, ${Math.round(lay.total)}px of rectangle, ${Math.round(lay.gap)}px gaps, width unit ${fmt(lay.wUnit, 2)}px a channel, height unit ${fmt(lay.hUnit, 2)}px a row`);
+  }
+  /* B, default */
+  {
+    const H = 232;
+    const box = cand(row, "B · isometric solids, a face and a depth", `${STAGE_W} × ${H}`);
+    const lay = drawStackB(canvasIn(box, STAGE_W, H), DEFAULT, STAGE_W, H);
+    m.push(`B, 2 blocks: ${Math.round(lay.tot)}px of solid, ${Math.round(lay.gap)}px gaps, last solid ${Math.round(lay.lastDepth)}px deep on a ${Math.round(lay.lastFace)}px face — ${lay.fits ? "fits" : "does not"}`);
+  }
+  /* C, default */
+  {
+    const H = columnHeight(DEFAULT);
+    const box = cand(row, "C · the notebook's column of layers", `${STAGE_W} × ${H}`);
+    drawStackC(canvasIn(box, STAGE_W, H), DEFAULT, STAGE_W, H);
+    m.push(`C, 2 blocks: ${columnRows(DEFAULT).length} boxes, ${H}px tall, ${C_BOX_W + 14 + 70}px of width used of ${STAGE_W}`);
+  }
+  /* second row: the fit questions */
+  {
+    const box = cand(row2, "A · three blocks", `${STAGE_W} × ${A_H}`);
+    const lay = drawStackA(canvasIn(box, STAGE_W, A_H), B3, STAGE_W);
+    m.push(`A, 3 blocks: ${lay.items.length} items, ${Math.round(lay.total)}px of rectangle, ${Math.round(lay.gap)}px gaps, width unit ${fmt(lay.wUnit, 2)}px — ${lay.gap >= A_GAPMIN ? "fits" : "OVER"}`);
+  }
+  {
+    const box = cand(row2, "A · input 64", `${STAGE_W} × ${A_H}`);
+    const lay = drawStackA(canvasIn(box, STAGE_W, A_H), IN64, STAGE_W);
+    m.push(`A, input 64: height unit ${fmt(lay.hUnit, 2)}px a row (28 gives ${fmt(A_TALL / 28, 2)}); the smallest rectangle is ${Math.round(Math.max(7, IN64.stages[IN64.stages.length - 1].H * lay.hUnit))}px tall. At a FIXED ${fmt(A_TALL / 28, 2)}px a row the input rectangle would be ${Math.round(64 * (A_TALL / 28))}px`);
+  }
+  {
+    const H = 232;
+    const box = cand(row2, "B · three blocks — where it stops working", `${STAGE_W} × ${H}`);
+    const lay = drawStackB(canvasIn(box, STAGE_W, H), B3, STAGE_W, H);
+    m.push(`B, 3 blocks: ${Math.round(lay.tot)}px of solid against ${STAGE_W - 28}px of stage, gaps down to ${Math.round(lay.gap)}px, last solid ${Math.round(lay.lastDepth)}px deep on a ${Math.round(lay.lastFace)}px face (${fmt(lay.lastDepth / lay.lastFace, 1)}× the face) — ${lay.fits ? "fits" : "does not"}`);
+  }
+  {
+    const H = columnHeight(B3);
+    const box = cand(row2, "C · three blocks", `${STAGE_W} × ${H}`);
+    drawStackC(canvasIn(box, STAGE_W, H), B3, STAGE_W, H);
+    m.push(`C, 3 blocks: ${columnRows(B3).length} boxes, ${H}px tall; with Flatten at 3 blocks ${columnHeight(buildNet({ blocks: 3, head: "flatten" }))}px`);
+  }
+  document.getElementById("stackMeasure").textContent = m.join("\n");
+  document.getElementById("recStack").innerHTML =
+    `<b>A.</b> It is the only one of the three whose PICTURE changes when the shape does: the rectangle halves `
+    + `at every pool and widens at every convolution, so the reader sees <i>contract spatial, expand channels</i> `
+    + `without reading a number. It fits three blocks with ${Math.round(layoutA(B3, STAGE_W).gap)}px between rectangles and it is the `
+    + `convention your U-Net figure already uses, which 65 will want again. `
+    + `<b>B is out on arithmetic:</b> at three blocks the six solids take ${Math.round(layoutB(B3, STAGE_W).tot)}px of ${STAGE_W - 28}px, `
+    + `which drops the gaps to ${Math.round(layoutB(B3, STAGE_W).gap)}px (${Math.round(layoutB(DEFAULT, STAGE_W).gap)}px at two), and the last solid is `
+    + `${Math.round(layoutB(B3, STAGE_W).lastDepth)}px deep against a ${Math.round(layoutB(B3, STAGE_W).lastFace)}px face — ${fmt(layoutB(B3, STAGE_W).lastDepth / layoutB(B3, STAGE_W).lastFace, 1)}× the face, so the H × W the figure is drawn to show has become its smallest part. `
+    + `<b>C is out on meaning:</b> every box is the same size whatever the shape, so the figure that teaches the `
+    + `order teaches nothing about the sizes — and 51 already draws a Sequential that way. `
+    + `<b>One thing to settle:</b> at input 64 A rescales, so 28 and 64 draw the same picture and only the printed `
+    + `shapes differ. A fixed scale would make the input rectangle ${Math.round(64 * (A_TALL / 28))}px tall. `
+    + `The alternative is to draw the 64 image at the same px-per-row and let the stage grow, which costs 240px of height.`;
+}
+
+/* ==========================================================================
+   §2 · the receptive field
+   ====================================================================== */
+/* A tiny LCG, so the texture is the same on every render and in every state.
+   Nothing else on this page is random. */
+function texture(n, seed) {
+  let s = seed >>> 0;
+  const rnd = () => { s = (Math.imul(s, 1664525) + 1013904223) >>> 0; return s / 4294967296; };
+  const cx = n * 0.42; const cy = n * 0.46; const sig = n * 0.17;
+  const cx2 = n * 0.70; const cy2 = n * 0.28; const sig2 = n * 0.10;
+  const v = new Float64Array(n * n);
+  for (let y = 0; y < n; y += 1) {
+    for (let x = 0; x < n; x += 1) {
+      const d = ((x - cx) ** 2 + (y - cy) ** 2) / (2 * sig * sig);
+      const d2 = ((x - cx2) ** 2 + (y - cy2) ** 2) / (2 * sig2 * sig2);
+      v[y * n + x] = Math.max(0, Math.min(1, 0.10 + 0.72 * Math.exp(-d) + 0.34 * Math.exp(-d2) + 0.18 * (rnd() - 0.5)));
+    }
+  }
+  return v;
+}
+const TEX28 = texture(28, 20260913);
+
+function drawImage(ctx, x, y, size, n, tex) {
+  const c = size / n;
+  for (let j = 0; j < n; j += 1) {
+    for (let i = 0; i < n; i += 1) {
+      ctx.fillStyle = grey(tex[j * n + i]);
+      ctx.fillRect(x + i * c, y + j * c, Math.ceil(c), Math.ceil(c));
+    }
+  }
+  ctx.save();
+  ctx.strokeStyle = T.axis; ctx.lineWidth = 1; ctx.strokeRect(x + 0.5, y + 0.5, size - 1, size - 1);
+  ctx.restore();
+}
+function drawGrid(ctx, x, y, size, n) {
+  ctx.save();
+  ctx.fillStyle = T.surface2; ctx.fillRect(x, y, size, size);
+  const c = size / n;
+  ctx.strokeStyle = T.grid; ctx.lineWidth = 0.5;
+  if (c >= 4) {
+    for (let i = 1; i < n; i += 1) {
+      ctx.beginPath(); ctx.moveTo(x + i * c, y); ctx.lineTo(x + i * c, y + size); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x, y + i * c); ctx.lineTo(x + size, y + i * c); ctx.stroke();
+    }
+  }
+  ctx.strokeStyle = T.axis; ctx.lineWidth = 1; ctx.strokeRect(x + 0.5, y + 0.5, size - 1, size - 1);
+  ctx.restore();
+}
+/** A window [lo, hi] of an n-grid, clipped to it, with the overrun in the
+    failure colour so the case that fails is drawn rather than described. */
+function windowBox(ctx, x, y, size, n, lo, hi, o = {}) {
+  const c = size / n;
+  const cl = Math.max(0, lo); const ch = Math.min(n - 1, hi);
+  const over = lo < 0 || hi > n - 1;
+  ctx.save();
+  if (ch >= cl) {
+    const bx = x + cl * c; const by = y + cl * c;
+    const bw = (ch - cl + 1) * c;
+    if (o.fill) { ctx.globalAlpha = 0.22; ctx.fillStyle = T.highlight; ctx.fillRect(bx, by, bw, bw); ctx.globalAlpha = 1; }
+    ctx.strokeStyle = over ? T.extreme : T.highlight; ctx.lineWidth = o.width ?? 2;
+    ctx.strokeRect(bx + 0.5, by + 0.5, bw - 1, bw - 1);
+  }
+  if (over) {
+    /* the full window, dashed, so the part outside the image is visible */
+    ctx.strokeStyle = T.extreme; ctx.lineWidth = 1; ctx.setLineDash([3, 3]);
+    ctx.strokeRect(x + lo * c + 0.5, y + lo * c + 0.5, (hi - lo + 1) * c - 1, (hi - lo + 1) * c - 1);
+    ctx.setLineDash([]);
+  }
+  ctx.restore();
+  return over;
+}
+function markUnit(ctx, x, y, size, n, idx) {
+  const c = size / n;
+  ctx.save();
+  ctx.fillStyle = T.highlight;
+  ctx.fillRect(x + idx * c, y + idx * c, Math.max(3, c), Math.max(3, c));
+  ctx.strokeStyle = T.highlight; ctx.lineWidth = 1.5;
+  ctx.strokeRect(x + idx * c - 2.5, y + idx * c - 2.5, Math.max(3, c) + 5, Math.max(3, c) + 5);
+  ctx.restore();
+}
+
+const RF_H = 278;
+function drawRf(ctx, net, o) {
+  const n = net.cfg.input;
+  const IMG = 168; const IMG_X = 14; const IMG_Y = 54;
+  const stages = net.stages;
+  const last = stages.length - 1;
+  const idx = Math.floor(stages[last].H / 2);
+  const spans = cone(net, idx);
+  const inSpan = spans[0];
+  const r = inSpan[1] - inSpan[0] + 1;
+  const over = inSpan[0] < 0 || inSpan[1] > n - 1;
+
+  caption(ctx, IMG_X, 24, o.title);
+  note(ctx, IMG_X, 40, o.sub);
+
+  drawImage(ctx, IMG_X, IMG_Y, IMG, n, TEX28);
+  windowBox(ctx, IMG_X, IMG_Y, IMG, n, inSpan[0], inSpan[1], { fill: true, width: 2 });
+  note(ctx, IMG_X, IMG_Y + IMG + 16, `Input  ${shapeText([3, n, n])}`);
+  note(ctx, IMG_X, IMG_Y + IMG + 30,
+    over ? `${r} px across, wider than the ${n} px image` : `${r} of ${n} px across`,
+    over ? T.extreme : T.highlight);
+
+  /* the later stages, one square grid each */
+  const rest = stages.slice(1);
+  const availX = IMG_X + IMG + 20;
+  const availW = STAGE_W - 14 - availX;
+  const step = availW / rest.length;
+  const foot = Math.min(76, step - 12);
+  rest.forEach((s, i) => {
+    const gx = availX + i * step;
+    const gy = IMG_Y + (IMG - foot) / 2;
+    drawGrid(ctx, gx, gy, foot, s.H);
+    const span = spans[i + 1];
+    if (o.nested && i < rest.length - 1) windowBox(ctx, gx, gy, foot, s.H, span[0], span[1], { fill: false, width: 1.5 });
+    if (i === rest.length - 1) markUnit(ctx, gx, gy, foot, s.H, idx);
+    ctx.save();
+    ctx.font = noteFont(); ctx.fillStyle = T.ink2; ctx.textAlign = "center"; ctx.textBaseline = "alphabetic";
+    ctx.fillText(s.name, gx + foot / 2, gy - 8);
+    ctx.font = monoFont(); ctx.fillStyle = T.ink3;
+    ctx.fillText(shapeText([s.C, s.H, s.H]), gx + foot / 2, gy + foot + 14);
+    if (o.nested) {
+      const w = Math.min(s.H, span[1]) - Math.max(0, span[0]) + 1;
+      ctx.fillStyle = T.highlight;
+      ctx.fillText(`${w} × ${w}`, gx + foot / 2, gy + foot + 28);
+    }
+    ctx.restore();
+    if (i > 0) arrowRight(ctx, gx - 11, gx - 3, IMG_Y + IMG / 2);
+    else arrowRight(ctx, IMG_X + IMG + 5, gx - 3, IMG_Y + IMG / 2);
+  });
+  note(ctx, IMG_X, RF_H - 12,
+    `r ${net.rf.map((v) => v.r).join(" → ")}  ·  jump ${net.rf[net.rf.length - 1].j}  ·  ${int(net.total)} parameters`);
+  return { idx, r, over, spans, foot, step };
+}
+
+{
+  const rows = [document.getElementById("rfRow"), document.getElementById("rfRow2")];
+  const m = [];
+  const cases = [
+    [0, "A · the patch on the input only", DEFAULT, { nested: false, title: "One unit of the last feature map, and what it is computed from", sub: "two blocks, base 32, kernel 3" }],
+    [0, "B · the patch on every stage between", DEFAULT, { nested: true, title: "One unit of the last feature map, and what it is computed from", sub: "two blocks, base 32, kernel 3 — each stage's window drawn" }],
+    [1, "A · kernel 5, three blocks — the case that fails", K5B3, { nested: false, title: "The patch is wider than the image", sub: "three blocks, base 32, kernel 5" }],
+    [1, "B · kernel 5, three blocks, every stage", K5B3, { nested: true, title: "The patch is wider than the image", sub: "three blocks, base 32, kernel 5 — each stage's window drawn" }],
+  ];
+  for (const [ri, title, net, o] of cases) {
+    const box = cand(rows[ri], title, `${STAGE_W} × ${RF_H}`);
+    const out = drawRf(canvasIn(box, STAGE_W, RF_H), net, o);
+    m.push(`${title.slice(0, 1)} ${net.cfg.k === 5 ? "k5/3 blocks" : "default"}: unit ${out.idx} of ${net.stages[net.stages.length - 1].H}, input window [${out.spans[0][0]}, ${out.spans[0][1]}] = ${out.r} px${out.over ? " OVER the image" : ""} · grids ${Math.round(out.foot)}px on a ${fmt(out.step, 1)}px step`);
+  }
+  m.push(`r chain, default: ${DEFAULT.rf.map((v) => v.r).join(" → ")} (jump ${DEFAULT.jump}) · k5/3 blocks: ${K5B3.rf.map((v) => v.r).join(" → ")} (jump ${K5B3.jump})`);
+  m.push(`cell 25's third block of two convs on top of the measured 10: ${CELL25_RF} of 28`);
+  document.getElementById("rfMeasure").textContent = m.join("\n");
+  document.getElementById("recRf").innerHTML =
+    `<b>B.</b> A alone states the number; B shows where it came from, and it is the only version Step has `
+    + `anything to reveal &mdash; one window a press, back from the unit to the image, which is the widget's `
+    + `animation. A is what B looks like at the first press, so B contains A rather than competing with it. `
+    + `<b>The overrun:</b> the window is clipped to the image with a solid rule and the full window drawn `
+    + `dashed outside it, both in the failure colour, and the note reads <i>32 px across, wider than the `
+    + `28 px image</i>. The in-bounds note is <i>10 of 28 px across</i>, the same sentence with a denominator. `
+    + `<b>What this costs:</b> the four later stages get ${Math.round(drawRfFoot())}px each, so 28 cells are `
+    + `${fmt(drawRfFoot() / 28, 1)}px and the grid lines are dropped under 4px &mdash; the window is still exact.`;
+  function drawRfFoot() {
+    const availX = 14 + 168 + 20;
+    const availW = STAGE_W - 14 - availX;
+    return Math.min(76, availW / (DEFAULT.stages.length - 1) - 12);
+  }
+}
+
+/* ==========================================================================
+   §3 · the head
+   ====================================================================== */
+const HEAD_H = 300;
+const BAR_MAX = 288; const BAR_MIN = 26;
+function drawHead(ctx, net28) {
+  const flat = buildNet({ ...net28.cfg, head: "flatten" });
+  const gap = buildNet({ ...net28.cfg, head: "gap" });
+  const big = Math.max(flat.headParams, gap.headParams);
+  const X = 16;
+  caption(ctx, X, 24, `The head, on a ${shapeText([flat.C, flat.H, flat.H])} feature map — input ${net28.cfg.input}`);
+
+  const rows = [
+    { name: "Flatten", net: flat, vec: flat.flatIn, y: 48, tone: T.groupA },
+    { name: "Global average pooling", net: gap, vec: gap.C, y: 138, tone: T.groupB },
+  ];
+  for (const r of rows) {
+    /* the map */
+    const mapS = 54;
+    drawGrid(ctx, X, r.y, mapS, r.net.H);
+    ctx.save();
+    ctx.font = monoFont(); ctx.fillStyle = T.ink3; ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+    ctx.fillText(shapeText([r.net.C, r.net.H, r.net.H]), X, r.y + mapS + 13);
+    ctx.restore();
+    arrowRight(ctx, X + mapS + 4, X + mapS + 24, r.y + mapS / 2);
+    /* the vector */
+    const vx = X + mapS + 28;
+    ctx.save();
+    ctx.globalAlpha = 0.5; ctx.fillStyle = T.empirical; ctx.fillRect(vx, r.y + 8, 16, mapS - 16); ctx.globalAlpha = 1;
+    ctx.strokeStyle = T.empirical; ctx.lineWidth = 1; ctx.strokeRect(vx + 0.5, r.y + 8.5, 15, mapS - 17);
+    ctx.font = monoFont(); ctx.fillStyle = T.ink2; ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+    ctx.fillText(shapeText([r.vec]), vx - 4, r.y + mapS + 13);
+    ctx.font = noteFont(); ctx.fillStyle = T.ink1;
+    ctx.fillText(r.name, X, r.y - 6);
+    ctx.restore();
+    arrowRight(ctx, vx + 20, vx + 40, r.y + mapS / 2);
+    /* the bar */
+    const bx = vx + 44;
+    const bw = Math.max(BAR_MIN, (r.net.headParams / big) * BAR_MAX);
+    ctx.save();
+    ctx.globalAlpha = 0.55; ctx.fillStyle = r.tone; ctx.fillRect(bx, r.y + 12, bw, 22); ctx.globalAlpha = 1;
+    ctx.strokeStyle = r.tone; ctx.lineWidth = 1; ctx.strokeRect(bx + 0.5, r.y + 12.5, bw - 1, 21);
+    ctx.font = capFont(); ctx.fillStyle = T.ink1; ctx.textAlign = "left"; ctx.textBaseline = "middle";
+    ctx.fillText(int(r.net.headParams), bx + bw + 8, r.y + 23);
+    ctx.font = noteFont(); ctx.fillStyle = T.ink3; ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+    ctx.fillText(`Linear(${r.net.headIn}, ${CLASSES})  ·  ${int(r.net.total)} parameters in the network`, bx, r.y + 48);
+    ctx.restore();
+  }
+  /* the minimum-width rule, stated where it is paid */
+  note(ctx, X, 226, `The shorter bar is ${fmt((gap.headParams / flat.headParams) * 100, 1)}% of the longer, so it is drawn at a floor of ${BAR_MIN}px with its number beside it.`);
+
+  /* the dense comparison */
+  const dy = 254;
+  ctx.save();
+  ctx.strokeStyle = T.reference; ctx.lineWidth = 2; ctx.setLineDash([6, 4]);
+  ctx.beginPath(); ctx.moveTo(X, dy - 14); ctx.lineTo(STAGE_W - 16, dy - 14); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.font = capFont(); ctx.fillStyle = T.ink1; ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+  ctx.fillText(`One dense layer from this image to ${int(DENSE_UNITS)} units:  ${int(flat.dense)}`, X, dy + 4);
+  ctx.font = noteFont(); ctx.fillStyle = T.ink2;
+  ctx.fillText(`This network:  ${int(gap.total)} with global average pooling, ${int(flat.total)} with Flatten`, X, dy + 20);
+  ctx.restore();
+  return { flat, gap };
+}
+{
+  const row = document.getElementById("headRow");
+  const m = [];
+  for (const [title, cfg] of [["A · input 28", { input: 28 }], ["B · input 64", { input: 64 }]]) {
+    const net = buildNet(cfg);
+    const box = cand(row, title, `${STAGE_W} × ${HEAD_H}`);
+    const out = drawHead(canvasIn(box, STAGE_W, HEAD_H), net);
+    m.push(`${title}: map ${shapeText([out.flat.C, out.flat.H, out.flat.H])} · Flatten head ${int(out.flat.headParams)} (total ${int(out.flat.total)}) · GAP head ${int(out.gap.headParams)} (total ${int(out.gap.total)}) · dense ${int(out.flat.dense)}`);
+  }
+  m.push(`Flatten's head grows ${fmt(IN64F.headParams / FLATTEN.headParams, 2)}× from input 28 to 64; the GAP head does not move (${int(DEFAULT.headParams)} at both). Bars: ${BAR_MAX}px for the longer, floor ${BAR_MIN}px.`);
+  m.push(`dense at 256 × 256 × 3 → ${int(DENSE_UNITS)}: ${int(256 * 256 * 3 * DENSE_UNITS + DENSE_UNITS)}`);
+  document.getElementById("headMeasure").textContent = m.join("\n");
+  document.getElementById("recHead").innerHTML =
+    `<b>Both, as one figure that redraws under the <i>input</i> control</b> &mdash; not two panels. `
+    + `The whole claim is that one number moves and the other does not, and adjacency (2.7) says the reader `
+    + `should see that by changing the control, not by comparing two pictures. `
+    + `<b>The proportional bar keeps its floor:</b> at ${fmt((DEFAULT.headParams / FLATTEN.headParams) * 100, 1)}% of the longer bar a true-length GAP bar is `
+    + `${Math.round((DEFAULT.headParams / FLATTEN.headParams) * BAR_MAX)}px, which reads as nothing; the floor is ${BAR_MIN}px and the count is printed beside `
+    + `every bar, so the number is never inferred from the length. `
+    + `<b>The dense line sits under a reference rule,</b> because it is the benchmark the network is judged `
+    + `against and it is ${fmt(FLATTEN.dense / DEFAULT.total, 0)}× the whole network &mdash; a bar for it would be off the stage, which is the point and `
+    + `is better said in the number.`;
+}
+
+/* ==========================================================================
+   §4 · the rail, through core's own builder
+   ====================================================================== */
+const COPY = {
+  blocks: { label: "Blocks", detail: "how many Conv → ReLU → MaxPool blocks the network has" },
+  base: { label: "First channels", detail: "output channels of the first convolution; each block doubles it" },
+  k: { label: "Kernel size", detail: "the side of the square kernel, with padding (k − 1) / 2" },
+  head: { label: "Head",
+    flatten: "every cell of the feature map is one input to the linear layer",
+    gap: "each channel is averaged over its positions, one input per channel" },
+  input: { label: "Image size", detail: "the side of the input image, in pixels" },
+};
+function spec(sectioned) {
+  const s = {};
+  if (sectioned) s.netSec = { type: "section", label: "The network" };
+  s.blocks = { type: "choice", label: COPY.blocks.label, detail: COPY.blocks.detail,
+    options: [{ value: "1", label: "1" }, { value: "2", label: "2" }, { value: "3", label: "3" }], default: "2" };
+  s.base = { type: "choice", label: COPY.base.label, detail: COPY.base.detail,
+    options: [{ value: "16", label: "16" }, { value: "32", label: "32" }], default: "32" };
+  s.k = { type: "choice", label: COPY.k.label, detail: COPY.k.detail,
+    options: [{ value: "3", label: "3" }, { value: "5", label: "5" }], default: "3" };
+  if (sectioned) s.headSec = { type: "section", label: "The head" };
+  s.head = { type: "segmented", label: COPY.head.label,
+    options: [{ value: "flatten", label: "Flatten", detail: COPY.head.flatten },
+      { value: "gap", label: "GAP", detail: COPY.head.gap }], default: "gap" };
+  if (sectioned) s.imgSec = { type: "section", label: "The image" };
+  s.input = { type: "choice", label: COPY.input.label, detail: COPY.input.detail,
+    options: [{ value: "28", label: "28" }, { value: "64", label: "64" }], default: "28" };
+  return s;
+}
+{
+  const { buildControls, buildActions } = await import("../core/controls.js");
+  const { resolveParams } = await import("../core/params.js");
+  const row = document.getElementById("railRow");
+  const hosts = [];
+  for (const [title, sectioned] of [["A · with sections", true], ["B · one list", false]]) {
+    const sp = spec(sectioned);
+    const box = cand(row, title, "core's own DOM at 300px\nvalues: the defaults");
+    const host = el("div", "w-split rail-host");
+    const rail = el("div", "w-rail");
+    host.appendChild(rail);
+    const values = resolveParams(sp, new URLSearchParams(""));
+    const cm = el("div", "w-controls");
+    rail.appendChild(cm);
+    buildControls(cm, sp, values, () => {});
+    const drive = el("div", "w-drive");
+    rail.appendChild(drive);
+    buildActions(drive, [
+      { key: "step", text: "Next layer", group: "pace", onClick: () => {} },
+      { key: "run", text: "Play", group: "pace", primary: true, onClick: () => {} },
+      { key: "reset", text: "Reset", onClick: () => {} },
+    ]);
+    box.appendChild(host);
+    hosts.push([title, host]);
+  }
+  const measure = () => {
+    document.getElementById("railMeasure").textContent = hosts
+      .map(([t, h]) => `${t}: ${Math.round(h.getBoundingClientRect().height)}px`)
+      .join("\n")
+      + `\nthe stage, tallest state: A at three blocks ${A_H}px (§1), the receptive field ${RF_H}px (§2), the head ${HEAD_H}px (§3)`;
+  };
+  measure();
+  if (document.fonts?.ready) document.fonts.ready.then(measure);
+  document.getElementById("recRail").innerHTML =
+    `<b>A.</b> The five controls are three kinds of thing &mdash; what the network is, what the head is, and `
+    + `what it is fed &mdash; and 3.4g says the shape should carry that before the reader has clicked anything. `
+    + `<b>Head is segmented and the other four are choices</b> because Head is the one control with two named `
+    + `alternatives that the figure answers differently; the rest are ladders of a number. `
+    + `<b>Step is <i>Next layer</i></b>, core's own label on composition's Dimensions page, because the widget's `
+    + `noun is a layer (3.4c). No seed: nothing in this widget is random except the input texture, which is fixed.`;
+}
+
+/* ==========================================================================
+   §5 · the readout tiles
+   ====================================================================== */
+function readoutFor(host, tiles) {
+  const box = el("div", "w-readout");
+  for (const tile of tiles) {
+    const w = el("div");
+    w.appendChild(el("span", "w-stat-label", tile.label));
+    const v = el("span", "w-stat-value", tile.value);
+    if (tile.tone) v.style.color = tile.tone;
+    w.appendChild(v);
+    if (tile.note) w.appendChild(el("span", "w-stat-note", tile.note));
+    box.appendChild(w);
+  }
+  const wrap = el("div", "stage-host");
+  wrap.appendChild(box);
+  host.appendChild(wrap);
+}
+const TILES_A = [
+  { label: "Parameters", value: int(DEFAULT.total), note: "this network, every layer" },
+  { label: "Receptive field", value: `${DEFAULT.r} px`, note: `of the ${DEFAULT.cfg.input} px image` },
+  { label: "Dense comparison", value: int(DEFAULT.dense), note: `one dense layer to ${int(DENSE_UNITS)} units` },
+];
+const TILES_B = [
+  { label: "Parameters in this network", value: int(DEFAULT.total), note: `convolutions ${int(DEFAULT.convParams)} · head ${int(DEFAULT.headParams)}` },
+  { label: "Receptive field", value: `${DEFAULT.r} of ${DEFAULT.cfg.input} px`, note: "what one unit of the last feature map is computed from" },
+  { label: "A dense layer instead", value: int(DEFAULT.dense), note: `this image to ${int(DENSE_UNITS)} units` },
+];
+{
+  const row = document.getElementById("tileRow");
+  for (const [title, tiles] of [["A", TILES_A], ["B", TILES_B]]) {
+    const box = cand(row, `${title} · the three tiles`, "at the defaults");
+    readoutFor(box, tiles);
+  }
+  document.getElementById("recTiles").innerHTML =
+    `<b>B.</b> The receptive field is meaningless without its denominator, and B puts it in the value where it `
+    + `cannot be missed; A leaves the reader to pair two lines. B's parameter note splits convolutions from head, `
+    + `which is the quantity the Head control moves &mdash; the tile then reports what the control did (2.8) `
+    + `rather than only a total. <b>Neither says what the number means</b>, which is 2.9: the figure carries the `
+    + `comparison and the reader draws the conclusion.`;
+}
+
+/* ==========================================================================
+   §6 · the copy
+   ====================================================================== */
+{
+  const host = document.getElementById("copyTable");
+  const t = el("table", "facts");
+  const tr = (cells, head = false) => { const r = el("tr"); for (const c of cells) r.appendChild(el(head ? "th" : "td", null, c)); t.appendChild(r); };
+  tr(["control", "label", "options", "detail"], true);
+  tr(["blocks", COPY.blocks.label, "1 · 2 · 3", COPY.blocks.detail]);
+  tr(["base", COPY.base.label, "16 · 32", COPY.base.detail]);
+  tr(["k", COPY.k.label, "3 · 5", COPY.k.detail]);
+  tr(["head", COPY.head.label, "Flatten · GAP", `Flatten: ${COPY.head.flatten} — GAP: ${COPY.head.gap}`]);
+  tr(["input", COPY.input.label, "28 · 64", COPY.input.detail]);
+  tr(["drive", "Next layer · Play · Reset", "", "one layer a press; the shape prints and the window on the input grows"]);
+  tr(["tiles", TILES_B.map((x) => x.label).join(" · "), "", "the receptive field carries its denominator in the value"]);
+  tr(["canvas captions", "Height follows H, width follows C · One unit of the last feature map, and what it is computed from · The head, on a [64, 7, 7] feature map", "", "no lesson or cell reference on any of them"]);
+  tr(["the failure note", "N px across, wider than the M px image", "", "the in-bounds form is 'N of M px across' — one sentence, one denominator"]);
+  host.appendChild(t);
+}
+
+document.getElementById("engineLine").textContent =
+  `engine: shapes and counts only · default net ${DEFAULT.stages.map((s) => shapeText([s.C, s.H, s.H])).join(" → ")} `
+  + `→ GAP → Linear(${DEFAULT.headIn}, ${CLASSES}) · conv1 ${int(DEFAULT.stages[1].params)} · conv2 ${int(DEFAULT.stages[3].params)} · `
+  + `Flatten head ${int(FLATTEN.headParams)} total ${int(FLATTEN.total)} · GAP head ${int(DEFAULT.headParams)} total ${int(DEFAULT.total)} · `
+  + `receptive field ${DEFAULT.rf.map((v) => v.r).join(" → ")} (jump ${DEFAULT.jump}) · `
+  + `dense 28·28·3 → 1000 ${int(DEFAULT.dense)}, 256·256·3 → 1000 ${int(256 * 256 * 3 * DENSE_UNITS + DENSE_UNITS)} · `
+  + `page drawn in ${fmt(performance.now() - T0, 0)} ms`;
+
+document.getElementById("checkLine").textContent = FAILED.length
+  ? `CHECK FAILED: ${FAILED.map(([n, got, want]) => `${n} ${got} ≠ ${want}`).join(" · ")}`
+  : `check: all ${CHECKS.length} measured numbers reproduce (${CHECKS.map(([n]) => n).join(", ")}).`;
+document.getElementById("checkLine").style.color = FAILED.length ? "var(--c-extreme)" : "var(--ink-2)";
+</script>
+</body>
+</html>

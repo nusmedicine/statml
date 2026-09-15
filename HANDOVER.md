@@ -1,24 +1,77 @@
 # Handover
 
-**FIFTY-SEVEN WIDGETS SHIPPED — 55 on the gallery, `roc-auc` UNLISTED
-(Kenneth's call, 2026-08-30); NO DRAFT.** The GWAS and PRS arc (PHM5003
-week 6) is complete: 56 `hardy-weinberg`, 57 `gwas`, 59
-`polygenic-score` (2026-09-12) and 60 `mendelian-randomization`
-(2026-09-13). `main` is pushed and clean at 890a558: the 60 ship, its
-effect-allele wording round, and the sit / fall / lie pass across fifteen
-widgets (all 2026-09-13). Session closed on Kenneth's word. **A later
-session the same day built nothing**: it was questions about the arc's
-widgets, and it ended in Kenneth revising the 01-2 QC notebook to test
-HWE within each population — see § *THE HWE QUESTIONS* below, which
-records what was measured on the lesson's own file so the next touch on
-`hardy-weinberg` reads his revised notebook first.
+**FIFTY-EIGHT WIDGETS SHIPPED — 56 on the gallery, `roc-auc` UNLISTED (Kenneth's
+call, 2026-08-30); NO DRAFT.** The image arc (PHM5005 06-1 to 06-3) is
+planned as four widgets and its first, **61 `cnn-architecture`, SHIPPED
+2026-09-15** on "go ahead and push to gallery": fifteen states recorded by
+`_lab/cnn-shoot.html` (every state shot three times, every drive moved its
+figure, the copy proof 6 / 6), the full suite **772 / 772 MATCH** fronted at
+DPR 1.25 with `visibilityState` visible on every poll, `check` and `test`
+read alone. Slot 52 `training-loop` is DISCARDED (his call, 2026-09-13).
+Session closed on his word after the push; the commit is the one this file
+rides in, with a follow-up carrying its hash.
+
+**NEXT: slot 64 `grad-cam`** (06-2 cells 122–139; measured 2026-09-13 in
+`_lab/dl-image-measure.mjs` M3 — a 3 × 3 cue, the CAM read on a CLEAN image,
+a third conv for the coarse layer; the catalogue's slot 64 entry). It is the
+first importer of `widgets/cnn-architecture/depict.js` (the gallery) and
+should reuse the cell image and the named kernels; the plain-JS CNN engine
+is born there (budget: 16 × 16, 200 images, 30 epochs, 1.1 s). Then 63
+`pretrained` (rescoped to the forgetting trade-off), then 65 `unet` with its
+Dice page. The order that has now run ten times: measure → mock from the
+newest shell → his picks by AskUserQuestion → catalogue → draft with a
+verify → rounds (a mock for every design question; small fixes in the main
+session) → the copy audit as a table he approves as a set → "tested ok" →
+shooter + states → status flip → full suite fronted → `check` AND `test`
+read alone → commit → push → `gh run list` and the live manifest.
+
+**Core gap left open, not this widget's:** Reset does not rebuild a gated
+control block (`power-and-error` has it too) — the section and its control
+stay in the DOM after Reset while the parameter, the URL and the figure
+reset. A `widget.js` reset-path fix; full suite when taken.
 
 ---
 
+# THE IMAGE ARC — PLANNED AND MEASURED 2026-09-13, KENNETH'S PICKS PENDING
+
+**Kenneth's ask, 2026-09-13 evening:** widgets for PHM5005 *DL for Image Data*
+(06-1 Overview, 06-2 Classification, 06-3 Segmentation), and **slot 52
+`training-loop` DISCARDED** in the same message (catalogue row and heading
+say so). Nothing is committed: the tree holds the catalogue's new
+§ *The image arc* (six slots 61–66, each with a MEASURED section), the two
+measure scripts `_lab/dl-image-measure.mjs` and `_lab/dl-seg-measure.mjs`,
+and his fifteen 06 figures in `_lab/figs/` (fetched from the notebooks' own
+Dropbox links). He was about to reboot when this was written; the session may
+or may not resume.
+
+**The six, and what measuring did to them:**
+
+| # | slug | after measurement |
+|---|---|---|
+| 61 | `cnn-architecture` | holds; the receptive field is 10 px on the notebook's own two-block net, Flatten 47,625 against GAP 19,977, the dense layer 196.6 M |
+| 62 | `augmentation` | the cut candidate; its one claim is the UNPAIRED flip (Dice 0.07); nearest/bilinear on the mask has no losing state once discretised |
+| 63 | `pretrained` | **the three-strategy stage did not reproduce** — scratch won every cell on synthetic shapes; the forgetting trade-off (lr 1e-3 better target, worse retention, every n) DID; rescope to that or defer, his pick |
+| 64 | `grad-cam` | holds with a 3 × 3 cue (2 × 2 does nothing at 16 × 16) and the CAM read on a CLEAN image (a cued image lights the corner even for a model that ignores it); a third conv for the coarse layer |
+| 65 | `unet` | **trains nothing**: the skip bought convergence speed, not the boundary (+0.17 Dice at epoch 5, +0.006 at 30), and 30 epochs is 5–7 s; the U drawn to scale with the shapes walked |
+| 66 | `dice` | holds; a miss scores 97.9% accuracy on a 1% object; threshold has no losing state on a symmetric map; random 80/10/10 empties a bin 27.5% of shuffles |
+
+**The engine budget** (63, 64 only): 16 × 16, 200 images, 30 epochs = 1.1 s.
+
+**HIS PICKS, after the reboot (one AskUserQuestion):** FOUR widgets — 62
+cut, 66 folded into 65 as its Dice page; 63 rescoped to the forgetting
+trade-off; one widget a section; order **61 · 64 · 63 · 65**. The catalogue's
+slot table and § *Questions* carry them.
+
+**61 MOCKED AND PICKED the same evening** (`_lab/cnn-mock.html`; the catalogue's MOCKED section under slot 61 has the seven picks — every recommendation taken, the subtitle rewritten on his one correction to name neither head, and the layout ONE STAGE OF THREE BANDS beside the rail). **THE DRAFT IS BUILT (2026-09-14, early)** in `widgets/cnn-architecture/` (main.js, model.js, index.html) at manifest status draft, with `_lab/cnn-verify.mjs` (60 checks, registered) and nine placeholder states (px and tx both "0"); `test` 25/25, `check` green. Read in the browser at 640 and 900 wide before he saw it; four fixes made in the main session: the bar-floor commentary the mock painted is gone (2.9), band 1's foot shortened to "Normalization and dropout leave the shape unchanged." (it met the head labels at 535), band 2's image 8px lower and its foot 12px deeper so the dashed overrun window clears the sub-caption and the Input label (stage 906 → 926; the verify's assertion moved with it). **Round 1 (2026-09-14 morning), his ask "can it show the patches moving?", his pick BOTH:** a click on any cell of a stage grid places the unit (a hidden data parameter `pos`; core allows ONE parameter per region, so `pos` encodes stage and cell — `−(stage+1)` for a stack rectangle, `stage·4096 + row·H + col` for a cell, −1 the centre; `unit` stays as the readable form read only at `pos`'s default), and once the layers are in Play sweeps the unit one cell a beat along its row (`anim.s`; `shown` counts both kinds of beat, max 71; the step label keys on `anim.phase`: Next layer / Next unit; a patch partly outside the image is dashed in highlight, the k = 5 overrun stays extreme). Verify 89 checks, `test` 25/25, `check` green, 13 placeholder states. Read in the browser: the sweep, the border note "10 px across, 3 columns outside the image", the label flip. **Open question put to him: the URL value `pos=16411` is not readable copy; a text-typed `pos` such as `pool2:3,6` would be.** **Round 2 (2026-09-14), his adjustment — "add layers and see how they are connected" and "a play for showing how patches sweep the image in a complete manner from top to bottom" — both picks the recommendation:** a CONE of four 1px lines (`--c-highlight` at 0.35) from the window on each stage to the window on the next, appearing with the layer's beat and moving with the patch, the arrows in band 2 gone; Play sweeps the chosen stage's WHOLE map in reading order after the layers at a fixed `SWEEP_MS` 6000 (several cells a frame on big maps; 188 frames at the harness clock), Step one cell, the sweep from the top-left, a click mid-sweep continuing the raster from that cell; `shown` max 4101. Verify 101 checks, `test` 25/25, `check` green, placeholder states re-cut (settled shown=15 and 53, one driven, two hit). Read in the browser: the frustum reads as his figure. **Round 3 (2026-09-14), his screenshot at three blocks: (1) the unit stuck on pool2 when a block was added — a bug, fixed by writing the RELATIVE last-stage form on a click on the last stage; (2) "research nicer depictions, mock options"; (3) "I don't see the results of the operations … a section before to show details (like the blocks widget)"; and the standing brief: a MOTIF reusable by later PHM5005 lessons.** Mock `_lab/cnn-depiction-mock.html` (four depictions with REAL maps from four named kernels; three detail placements; three animation storyboards; an API sketch). His picks: the feature-map GALLERY (CNN Explainer's idiom), the detail band UNDER it following the chosen stage, Play SLIDES THE KERNEL and Step has three phases (Next layer · Next position · Next unit), the motif in `widgets/cnn-architecture/depict.js` until mature, then core. **The widget is being REBUILT to that shape** (an Opus builder); the rail, tiles and head band stay. **The rebuild is built and read (2026-09-14):** `depict.js` (the motif, no colours/fonts/copy), `model.js` (arithmetic, the four named kernels, the maps), `main.js` (13 decisions); the gallery + detail band + head is 927px at 550 / 991 at 770; `pos` encodes stage·channel·cell with reserved 63/62/61 for the relative last-map/head/linear; three phases Next layer (700ms) · Next position (60ms easing to a 10s budget) · Next unit (6s a map); verify 137 checks, `test` 25/25, `check` green, 12 placeholder states. One fix in the main session: the gallery foot note met the last label row (GAL_LABELS 78 → 92, the verify's pinned heights 913/977 → 927/991). Confirmed at three blocks: the unit follows conv3 (18 of 28 px). **Round 4 (his two questions):** yes, a click selects the TARGET map and the lines/windows/detail follow from it; and pool2 → GAP and GAP → Linear had no lines — fixed in the main session: every revealed column's wiring draws faintly (0.10) with the chosen map's lit, `fanIn` treats the head column as one-to-one (kind "head", not "gap") and Linear as dense (every line lit); verify 138. **Round 5 (2026-09-14), his screenshot and five points — "looks great":** the drive relooked (a GATE, his pick A: stage 1 reveals the layers, a parameter-writing button opens stage 2 with a Layer choice and one Step through Next position · Next unit), a CELL image in place of the blob (his pick; 28× edge contrast against 2.1×), Flatten as a STRIP in the gallery's head column, the head band showing ONLY THE CHOSEN HEAD (his pick, against the recommendation), and point 3 — targets not responding — diagnosed as dead CONTENT (Flatten's four drawn values are corner pixels, the nine scores 0.00) with the fix in the build. Mock `_lab/cnn-round5-mock.html`. **The round-5 build is BUILT and read (2026-09-14):** the gate is a `bool` with `style: "action"` (`type: "gate"` hides the whole drive row while shut, so stage 1 would have had no Next layer), `display: true` so opening it keeps the columns (3.4b), `animation.rebuild` hands over; behind it `Layer` (a choice of the feature-map names, `optionsFrom: blocks`) owns the column and `pos` the cell, and `unit` is gone; the cell image (contrast 27.4× at 28, 28.1× at 64); Flatten a 49-cell strip; the head band one head + the other's printed line (210px; stage 837 at 550 / 901 at 770); the Linear detail over every value with the largest lit; a live bug found and fixed on the way (head cells were addressed by channel, so Linear cells 5–9 decoded as another column). Verify 176, `test` 25/25, `check` green, 15 placeholder states. **Core gap, pre-existing (power-and-error has it too): Reset does not rebuild the control block, so the gated section stays in the DOM after Reset while the parameter, the URL and the figure reset** — a `widget.js` reset-path fix, full suite when taken. **Round 6 (2026-09-15), his two questions — "why does the patch scan twice?" and "the second conv2 should have different kernels? for higher order features?":** mock `_lab/cnn-round6-mock.html`; measured: a second-layer kernel over ReLU'd maps needs its BIAS to select anything; his picks, both the recommendation — conv2 = Membrane · Granule · Body · Nucleus (4 × 3 × 3 + bias over every pool1 channel; conv3 repeats them rescaled), the detail band 2 × 2 windows + 2 × 2 slices + sum + bias + ReLU (stage 837 → 869), and ONE scan behind the gate on the position clock with one label Next unit. **The round-6 build is BUILT and read (2026-09-15):** `CONV2_KERNELS` Membrane · Granule · Body · Nucleus with their biases (enrichment 3.67 / 12.39 / 7.92 / 4.76; without the bias 2.30 / 1.88 / 2.63), conv3 the same four over pool2 scaled to pool1's largest value (a literal repeat left Granule empty); the multi detail band 534px (band 2 225; stage 869 at 550 / 917 at 770, one-block nets stay 837); at k 5 the band draws the 3 × 3 centre of each slice and says the ring of zeros adds nothing; ONE phase behind the gate (`anim.s`, Next unit, the position clock, the fill counted in rectangles by the verify); verify 204, `test` 25/25, `check` green (772 states). The two round mocks (5, 6) import exports the engine no longer has and will not run; they are records, not tools. **Round 7 (2026-09-15), two points from his screenshot, both done in the main session:** the cross-channel band's per-block channel names read as conv1's kernels standing in for conv2's — a header row over each block now says "pool1, the four channels read" and "Membrane, one slice per channel" (band 2 225 → 239, stage 869 → 883 / 917 → 931, the verify's pins moved); and the head bar was drawn to full width whichever head was chosen — it is now on ONE scale, full width the larger head's count, so GAP's bar is 585 / 28,233 of Flatten's (≈ 6px, a 4px floor). Verify 204, `test` 25/25, `check` green. **The copy audit (2026-09-15), four passes, presented as a table and applied on "apply all":** eleven strings — the blurb and the meta ("reads" → "is computed from"), the gate's detail (what the thing IS), both Step titles, the conv2 band's block header ("drawn", not "read") and its zero-slice note ("gives that input channel no weight", not "ignores"), the head detail's Linear line, the Linear sub-line ("of the four channels drawn" — only four of 196 are drawn), "one draw before training", the group-a legend ("the values a window covers"), First channels' detail ("the count"); and the channel index now counts from 0 to match the printed `conv1[0, 14, 14]`. The verify's three string assertions moved with them. **SHIPPED 2026-09-15** on "go ahead and push to gallery": status flipped in the manifest, the widget and the verify ("both files say shipped"); `_lab/cnn-shoot.html` built from the CURRENT harness functions (mr-shoot's copy predated the action-button branch of `setParam`, which the gate needs — an old copy would have hashed two states with the gate shut and called them STABLE); 15 states recorded, all STABLE; the full suite 772 / 772 MATCH fronted; `check` and `test` green; committed and pushed. The section above says what is next. The
+order that has run nine times is under § NEXT SESSION below; it applies
+unchanged. Commit the planning (catalogue, the two scripts, the figures) once
+he has read it — one commit, `git add` a file at a time on Dropbox.
+
 # NEXT SESSION
 
-**Nothing is queued on the week-6 arc.** The standing debt is **slot 52
-`training-loop`** (PHM5005 05-4), owed since the DL arc — see the
+**Superseded 2026-09-13: slot 52 is DISCARDED and the image arc above is
+what comes next; the ORDER below still applies.** (As written: the standing
+debt was **slot 52 `training-loop`** (PHM5005 05-4), owed since the DL arc — see the
 catalogue's slot 52 entry and `_lab/dl-loop-measure.mjs`, which already
 exists. The order that has now run nine times: measure → mock from the
 newest shell (`_lab/mr-mock.html`, which inlines its engine and builds

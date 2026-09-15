@@ -914,6 +914,27 @@
       ],
       "arc": 60,
       "status": "shipped"
+    },
+    {
+      "slug": "cnn-architecture",
+      "title": "Deep Learning - CNN Architecture",
+      "blurb": "One kernel is shared across every position, and each output unit is computed from a square patch of the input.",
+      "course": "PHM5005",
+      "topics": [
+        "convolutional neural network",
+        "kernel",
+        "feature map",
+        "channels",
+        "pooling",
+        "receptive field",
+        "weight sharing",
+        "parameter count",
+        "Flatten",
+        "global average pooling",
+        "deep learning"
+      ],
+      "arc": 61,
+      "status": "shipped"
     }
   ]
 }

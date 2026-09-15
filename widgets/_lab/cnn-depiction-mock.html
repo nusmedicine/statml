@@ -1,0 +1,1351 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · cnn-architecture — the depiction, round 3</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  /* The mock shell, verbatim from `_lab/cnn-mock.html`. Nothing here is a new
+     visual decision. */
+  .lab { max-width: 1240px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 96ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; width: 550px; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); max-width: 550px; min-height: 26px; white-space: pre-line; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 96ch; }
+  .measure { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--ink-3); margin: 4px 0 0; max-width: 900px; white-space: pre-line; }
+  table.facts { border-collapse: collapse; font-size: var(--fs-sm); color: var(--ink-2); margin: var(--sp-2) 0 var(--sp-3); max-width: 120ch; }
+  table.facts th, table.facts td { border: 1px solid var(--grid); padding: 3px 8px; text-align: left; vertical-align: top; }
+  table.facts th { color: var(--ink-1); font-weight: 600; background: var(--surface-2); }
+  table.facts td b { color: var(--ink-1); }
+  .legend { display: flex; flex-wrap: wrap; gap: var(--sp-2) var(--sp-4); margin: 0 0 var(--sp-4);
+            font-size: var(--fs-xs); color: var(--ink-2); }
+  .legend span { display: flex; align-items: center; gap: 6px; }
+  .sw { width: 13px; height: 13px; border-radius: 50%; flex: 0 0 auto; }
+  .sw-emp { background: var(--c-empirical); }
+  .sw-high { background: var(--c-highlight); }
+  .sw-ga { background: var(--c-group-a); }
+  .sw-gb { background: var(--c-group-b); }
+  .sw-ext { background: var(--c-extreme); }
+  .sw-ramp { width: 26px; border-radius: 2px; background: linear-gradient(90deg, var(--surface-2), var(--ink-1)); }
+  pre.api { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--ink-1); background: var(--surface-2);
+            border: 1px solid var(--grid); border-left: 3px solid var(--c-highlight); padding: var(--sp-3);
+            max-width: 110ch; overflow-x: auto; line-height: 1.5; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>cnn-architecture &middot; the depiction, round 3</h1>
+
+  <p class="note">
+    <b>What this page answers.</b> Three of your four points: a nicer depiction of the architecture (2), a detail
+    section that shows the result of each operation (3), and the missing link at the third block (1). The fourth
+    &mdash; a motif the later lessons can reuse &mdash; is &sect;4, an API sketch rather than a drawing.
+  </p>
+  <p class="note">
+    <b>The engine is real.</b> The 28 &times; 28 input is the draft's own <code>texture</code>: a blob, a smaller
+    blob, and noise, on a grey ramp. Four named 3 &times; 3 kernels run over it &mdash; horizontal edge, vertical
+    edge, blur, centre-surround &mdash; then ReLU, then 2 &times; 2 max pooling; four more named kernels run over
+    the pooled maps, then ReLU and pooling again. Every feature map on this page is that arithmetic, drawn
+    nearest-neighbour on the same grey ramp and scaled by its own largest value. Nothing is trained: the kernels
+    are named operators, not learned filters, and the page says so wherever it draws one.
+  </p>
+  <p class="note">
+    <b>Four channels of thirty-two.</b> A convolution here computes four maps where the network computes 32 or 64,
+    and each second-block map runs one kernel over the pooled map of the same index. The real layer reads every
+    input channel. Both facts are printed on the figures that depend on them.
+  </p>
+  <p class="note" id="engineLine"></p>
+  <p class="note" id="checkLine"></p>
+  <p class="note" id="nodeLine"></p>
+
+  <div class="legend">
+    <span><i class="sw sw-ramp"></i>a feature map, low to high</span>
+    <span><i class="sw sw-emp"></i>the map the network computed</span>
+    <span><i class="sw sw-ga"></i>the input the layer reads</span>
+    <span><i class="sw sw-gb"></i>the layer's weights: the kernel, and the linear layer</span>
+    <span><i class="sw sw-high"></i>the chosen unit, and the window it reads</span>
+    <span><i class="sw sw-ext"></i>a window that runs past the edge of the map</span>
+  </div>
+
+  <h2>&sect;1 &middot; The architecture depiction</h2>
+  <p class="note">
+    The same network four ways &mdash; input 28 &times; 28 drawn as one grey channel, conv1 32, pool, conv2 64,
+    pool, global average pooling, Linear 9 &mdash; each carrying the feature maps' real content.
+    <b>A</b> a gallery of feature maps, a column per stage (the CNN Explainer arrangement, Wang et al. 2020).
+    <b>B</b> slabs in a shallow isometric, one channel's map on the front face and depth following the channel
+    count (your conv2d figure's convention, and NN-SVG's LeNet).
+    <b>C</b> the draft's own flat rectangles &mdash; height following H, width following C, your U-Net figure's
+    convention &mdash; with a map drawn inside each rectangle.
+    <b>D</b> the chain of labelled boxes <code>torchvista.trace_model</code> prints, a shape on every edge and a
+    thumbnail beside each box.
+  </p>
+  <div class="row" id="depA"></div>
+  <div class="row" id="depB"></div>
+  <div class="row" id="depC"></div>
+  <div class="row" id="depD"></div>
+  <p class="measure" id="depMeasure"></p>
+  <div id="depTable"></div>
+  <p class="rec" id="recDep"></p>
+
+  <h2>&sect;2 &middot; The detail section</h2>
+  <p class="note">
+    The chosen layer's operation on this image's own pixels, in the band widget 49 uses: window, kernel, product
+    sum, the one cell it lands in. Three placements &mdash; <b>A</b> a band under the architecture that follows
+    the chosen stage, <b>B</b> a page of its own before the architecture, <b>C</b> an overlay opened by clicking
+    a map.
+  </p>
+  <div class="row" id="detA"></div>
+  <div class="row" id="detB"></div>
+  <div class="row" id="detC"></div>
+  <p class="measure" id="detMeasure"></p>
+  <p class="rec" id="recDet"></p>
+
+  <h2>&sect;3 &middot; The animation</h2>
+  <p class="note">
+    What Step and Play show once the maps carry content. Three storyboards, one drawn frame each.
+  </p>
+  <div class="row" id="animRow"></div>
+  <p class="measure" id="animMeasure"></p>
+  <p class="rec" id="recAnim"></p>
+
+  <h2>&sect;4 &middot; The reusable motif</h2>
+  <p class="note">
+    What the later architectures would pass in, if the depiction is written once. Not a drawing: the shape of the
+    data the drawing reads.
+  </p>
+  <pre class="api" id="apiBlock"></pre>
+  <p class="rec" id="recApi"></p>
+
+  <h2>&sect;5 &middot; The third block has no window and no cone</h2>
+  <p class="note" id="bugNote"></p>
+  <div class="row" id="bugRow"></div>
+  <p class="measure" id="bugMeasure"></p>
+  <p class="rec" id="recBug"></p>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+import { shapeText } from "../core/torch.js";
+
+const T0 = performance.now();
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+
+/* ==========================================================================
+   THE ENGINE. Small, and real: the draft's texture, four named kernels, ReLU,
+   max pooling, again, then an average and nine scores. Every map drawn on this
+   page comes out of here.
+   ====================================================================== */
+
+/** The draft's own input, copied from `cnn-architecture/model.js` with the
+    seeded LCG the first mock used in place of core's rng. */
+function texture(n, seed) {
+  let s = seed >>> 0;
+  const rnd = () => { s = (Math.imul(s, 1664525) + 1013904223) >>> 0; return s / 4294967296; };
+  const cx = n * 0.42; const cy = n * 0.46; const sig = n * 0.17;
+  const cx2 = n * 0.70; const cy2 = n * 0.28; const sig2 = n * 0.10;
+  const v = new Float64Array(n * n);
+  for (let y = 0; y < n; y += 1) {
+    for (let x = 0; x < n; x += 1) {
+      const d = ((x - cx) ** 2 + (y - cy) ** 2) / (2 * sig * sig);
+      const d2 = ((x - cx2) ** 2 + (y - cy2) ** 2) / (2 * sig2 * sig2);
+      v[y * n + x] = Math.max(0, Math.min(1,
+        0.10 + 0.72 * Math.exp(-d) + 0.34 * Math.exp(-d2) + 0.18 * (rnd() - 0.5)));
+    }
+  }
+  return v;
+}
+
+const N0 = 28;
+const TEX = texture(N0, 20260913);
+const BLOB = { cx: N0 * 0.42, cy: N0 * 0.46, sig: N0 * 0.17 };
+
+/* FIXED NAMED KERNELS, so every map has content a reader can name. They are
+   operators out of image processing, not learned filters, and no figure on this
+   page calls them trained. */
+const B9 = 1 / 9;
+const KERNELS = [
+  { name: "Horizontal edge", short: "H edge", k: [[1, 2, 1], [0, 0, 0], [-1, -2, -1]] },
+  { name: "Vertical edge", short: "V edge", k: [[1, 0, -1], [2, 0, -2], [1, 0, -1]] },
+  { name: "Blur", short: "Blur", k: [[B9, B9, B9], [B9, B9, B9], [B9, B9, B9]] },
+  { name: "Centre-surround", short: "Centre", k: [[0, -1, 0], [-1, 4, -1], [0, -1, 0]] },
+];
+/* Each second-block map is one named kernel over the pooled map of the SAME
+   index, so a reader can follow one channel from the image to the last map.
+   The order is rotated so no channel meets the same kernel twice. */
+const CONV2_ORDER = [2, 3, 0, 1];
+
+function conv3(src, n, K) {
+  const out = new Float64Array(n * n);
+  for (let y = 0; y < n; y += 1) {
+    for (let x = 0; x < n; x += 1) {
+      let a = 0;
+      for (let j = -1; j <= 1; j += 1) {
+        for (let i = -1; i <= 1; i += 1) {
+          const yy = y + j; const xx = x + i;
+          const p = (yy < 0 || yy >= n || xx < 0 || xx >= n) ? 0 : src[yy * n + xx];
+          a += p * K[j + 1][i + 1];
+        }
+      }
+      out[y * n + x] = a;
+    }
+  }
+  return out;
+}
+const relu = (a) => a.map((v) => Math.max(0, v));
+function pool2(src, n) {
+  const m = n >> 1;
+  const out = new Float64Array(m * m);
+  for (let y = 0; y < m; y += 1) {
+    for (let x = 0; x < m; x += 1) {
+      out[y * m + x] = Math.max(
+        src[(2 * y) * n + 2 * x], src[(2 * y) * n + 2 * x + 1],
+        src[(2 * y + 1) * n + 2 * x], src[(2 * y + 1) * n + 2 * x + 1],
+      );
+    }
+  }
+  return out;
+}
+const maxOf = (a) => a.reduce((m, v) => Math.max(m, v), 0) || 1;
+const meanOf = (a) => a.reduce((s, v) => s + v, 0) / a.length;
+
+const CONV1 = KERNELS.map((K) => relu(conv3(TEX, 28, K.k)));
+const POOL1 = CONV1.map((m) => pool2(m, 28));
+const CONV2 = POOL1.map((m, i) => relu(conv3(m, 14, KERNELS[CONV2_ORDER[i]].k)));
+const POOL2 = CONV2.map((m) => pool2(m, 14));
+const GAPV = POOL2.map(meanOf);
+/* Nine scores from the four channels this page computes. The weights are one
+   draw from PyTorch's own bound for a Linear layer, 1/sqrt(in_features), and
+   nothing is trained. */
+const LIN_W = (() => {
+  let s = 990517 >>> 0;
+  const rnd = () => { s = (Math.imul(s, 1664525) + 1013904223) >>> 0; return s / 4294967296; };
+  const b = 1 / Math.sqrt(4);
+  return Array.from({ length: 9 }, () => Array.from({ length: 4 }, () => (rnd() * 2 - 1) * b));
+})();
+const SCORES = LIN_W.map((w) => w.reduce((a, v, i) => a + v * GAPV[i], 0));
+
+const COMPUTE_MS = performance.now() - T0;
+
+/* --- the check the kernels have to pass ----------------------------------- */
+const FLAT = new Float64Array(28 * 28).fill(0.5);
+const FLAT_H = conv3(FLAT, 28, KERNELS[0].k);
+let flatMax = 0;
+for (let y = 1; y < 27; y += 1) for (let x = 1; x < 27; x += 1) flatMax = Math.max(flatMax, Math.abs(FLAT_H[y * 28 + x]));
+const RAW_H = conv3(TEX, 28, KERNELS[0].k);
+let ring = 0; let rc = 0; let corner = 0; let cc = 0;
+for (let y = 0; y < 28; y += 1) {
+  for (let x = 0; x < 28; x += 1) {
+    const r = Math.hypot(x - BLOB.cx, y - BLOB.cy) / BLOB.sig;
+    if (r > 0.8 && r < 1.4) { ring += Math.abs(RAW_H[y * 28 + x]); rc += 1; }
+    if (y < 6 && x < 6) { corner += Math.abs(RAW_H[y * 28 + x]); cc += 1; }
+  }
+}
+const EDGE_MEAN = ring / rc;
+const CORNER_MEAN = corner / cc;
+const CHECK_OK = flatMax === 0 && EDGE_MEAN > 2 * CORNER_MEAN;
+
+/* The same arithmetic run in node before this page was written, so the numbers
+   on screen are not the only place they have been produced. */
+const NODE_CHECK =
+  "node: flat max |h| (interior of a constant field) = 0.000000000000 · blob-edge mean |h| = 0.4654 over 95 cells "
+  + "· flat-corner mean |h| = 0.2149 over 36 cells · ratio = 2.17 · max |h| = 0.9721";
+
+/* ==========================================================================
+   Helpers, from the first mock.
+   ====================================================================== */
+const el = (tag, cls, text) => {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text != null) e.textContent = text;
+  return e;
+};
+const int = (v) => Math.round(v).toLocaleString("en-US");
+const fmt = (v, d = 2) => (Number.isFinite(v) ? v.toFixed(d) : "-");
+const capFont = () => `600 ${T.fsSm} ${T.font}`;
+const noteFont = () => `${T.fsXs} ${T.font}`;
+const monoFont = () => `${T.fsXs} ${T.mono}`;
+
+function canvasIn(parent, w, h) {
+  const cv = document.createElement("canvas");
+  cv.width = Math.round(w * DPR);
+  cv.height = Math.round(h * DPR);
+  cv.style.width = `${w}px`;
+  cv.style.height = `${h}px`;
+  parent.appendChild(cv);
+  const ctx = cv.getContext("2d");
+  ctx.scale(DPR, DPR);
+  ctx.fillStyle = T.surface;
+  ctx.fillRect(0, 0, w, h);
+  return ctx;
+}
+function cand(parent, title, sub) {
+  const c = el("div", "cand");
+  if (title) c.appendChild(el("h3", null, title));
+  if (sub != null) c.appendChild(el("p", "sub", sub));
+  parent.appendChild(c);
+  return c;
+}
+function rgbOf(c) {
+  const p = document.createElement("canvas").getContext("2d");
+  p.fillStyle = c; p.fillRect(0, 0, 1, 1);
+  return Array.from(p.getImageData(0, 0, 1, 1).data.slice(0, 3));
+}
+const mixRgb = (a, b, t) => { const c = a.map((v, i) => Math.round(v + (b[i] - v) * t)); return `rgb(${c[0]}, ${c[1]}, ${c[2]})`; };
+const RAMP_LO = rgbOf(T.surface2); const RAMP_HI = rgbOf(T.ink1);
+const grey = (t) => mixRgb(RAMP_LO, RAMP_HI, Math.max(0, Math.min(1, t)));
+
+const STAGE_W = 550;
+const PAD = 14;
+
+function caption(ctx, x, y, text) {
+  ctx.save();
+  ctx.font = capFont(); ctx.fillStyle = T.ink2; ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+  ctx.fillText(text, x, y);
+  ctx.restore();
+}
+function note(ctx, x, y, text, tone, align) {
+  ctx.save();
+  ctx.font = noteFont(); ctx.fillStyle = tone ?? T.ink3; ctx.textAlign = align ?? "left"; ctx.textBaseline = "alphabetic";
+  ctx.fillText(text, x, y);
+  ctx.restore();
+}
+function mono(ctx, x, y, text, tone, align) {
+  ctx.save();
+  ctx.font = monoFont(); ctx.fillStyle = tone ?? T.ink2; ctx.textAlign = align ?? "left"; ctx.textBaseline = "alphabetic";
+  ctx.fillText(text, x, y);
+  ctx.restore();
+}
+function arrowRight(ctx, x1, x2, y, colour) {
+  ctx.save();
+  ctx.strokeStyle = colour ?? T.ink3; ctx.fillStyle = colour ?? T.ink3; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(x1, y); ctx.lineTo(x2 - 4, y); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x2, y); ctx.lineTo(x2 - 5, y - 3); ctx.lineTo(x2 - 5, y + 3); ctx.fill();
+  ctx.restore();
+}
+function arrowDown(ctx, x, y1, y2, colour) {
+  ctx.save();
+  ctx.strokeStyle = colour ?? T.ink3; ctx.fillStyle = colour ?? T.ink3; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(x, y1); ctx.lineTo(x, y2 - 4); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x, y2); ctx.lineTo(x - 3, y2 - 5); ctx.lineTo(x + 3, y2 - 5); ctx.fill();
+  ctx.restore();
+}
+
+/** A map drawn nearest-neighbour on the grey ramp, scaled by its own largest
+    value, with a hairline frame in the role the caller names. */
+function drawMap(ctx, x, y, size, n, arr, o = {}) {
+  const c = size / n;
+  const hi = o.max ?? maxOf(arr);
+  for (let j = 0; j < n; j += 1) {
+    for (let i = 0; i < n; i += 1) {
+      ctx.fillStyle = grey(arr[j * n + i] / hi);
+      ctx.fillRect(x + i * c, y + j * c, Math.ceil(c), Math.ceil(c));
+    }
+  }
+  ctx.save();
+  ctx.globalAlpha = o.alpha ?? 1;
+  ctx.strokeStyle = o.frame ?? T.axis; ctx.lineWidth = 1;
+  ctx.strokeRect(x + 0.5, y + 0.5, size - 1, size - 1);
+  ctx.restore();
+  return { x, y, size, n, c };
+}
+/** An empty grid, for a stage that carries no content on this figure. */
+function drawGrid(ctx, x, y, size, n) {
+  ctx.save();
+  ctx.fillStyle = T.surface2; ctx.fillRect(x, y, size, size);
+  const c = size / n;
+  if (c >= 4) {
+    ctx.strokeStyle = T.grid; ctx.lineWidth = 0.5;
+    for (let i = 1; i < n; i += 1) {
+      ctx.beginPath(); ctx.moveTo(x + i * c, y); ctx.lineTo(x + i * c, y + size); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x, y + i * c); ctx.lineTo(x + size, y + i * c); ctx.stroke();
+    }
+  }
+  ctx.strokeStyle = T.axis; ctx.lineWidth = 1; ctx.strokeRect(x + 0.5, y + 0.5, size - 1, size - 1);
+  ctx.restore();
+  return { x, y, size, n, c };
+}
+/** A [lo, hi] × [lo, hi] window on a drawn map, clipped, with the part outside
+    drawn dashed in the failure colour. */
+function windowBox(ctx, box, rows, cols, o = {}) {
+  const { x, y, c, n } = box;
+  const r0 = Math.max(0, rows[0]); const r1 = Math.min(n - 1, rows[1]);
+  const c0 = Math.max(0, cols[0]); const c1 = Math.min(n - 1, cols[1]);
+  const over = rows[0] < 0 || rows[1] > n - 1 || cols[0] < 0 || cols[1] > n - 1;
+  ctx.save();
+  if (r1 >= r0 && c1 >= c0) {
+    const bx = x + c0 * c; const by = y + r0 * c;
+    const bw = (c1 - c0 + 1) * c; const bh = (r1 - r0 + 1) * c;
+    if (o.fill) { ctx.globalAlpha = 0.22; ctx.fillStyle = o.colour ?? T.highlight; ctx.fillRect(bx, by, bw, bh); ctx.globalAlpha = 1; }
+    ctx.strokeStyle = over ? T.extreme : (o.colour ?? T.highlight); ctx.lineWidth = o.width ?? 2;
+    ctx.strokeRect(bx + 0.5, by + 0.5, bw - 1, bh - 1);
+  }
+  if (over) {
+    ctx.strokeStyle = T.extreme; ctx.lineWidth = 1; ctx.setLineDash([3, 3]);
+    ctx.strokeRect(x + cols[0] * c + 0.5, y + rows[0] * c + 0.5,
+      (cols[1] - cols[0] + 1) * c - 1, (rows[1] - rows[0] + 1) * c - 1);
+    ctx.setLineDash([]);
+  }
+  ctx.restore();
+  return over;
+}
+function markCell(ctx, box, row, col, colour) {
+  const { x, y, c } = box;
+  const s = Math.max(3, c);
+  ctx.save();
+  ctx.fillStyle = colour ?? T.highlight;
+  ctx.fillRect(x + col * c, y + row * c, s, s);
+  ctx.strokeStyle = colour ?? T.highlight; ctx.lineWidth = 1.5;
+  ctx.strokeRect(x + col * c - 2.5, y + row * c - 2.5, s + 5, s + 5);
+  ctx.restore();
+}
+/** A value cell with its number, the idiom widget 49 uses for an arithmetic band. */
+function valueCell(ctx, x, y, w, h, text, o = {}) {
+  ctx.save();
+  ctx.globalAlpha = o.empty ? 0.35 : 0.5;
+  ctx.fillStyle = o.hue ?? T.empirical;
+  ctx.fillRect(x, y, w, h);
+  ctx.globalAlpha = 1;
+  ctx.strokeStyle = o.hue ?? T.empirical; ctx.lineWidth = 1;
+  ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+  if (text != null) {
+    ctx.font = monoFont(); ctx.fillStyle = T.ink1; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText(text, x + w / 2, y + h / 2 + 0.5);
+  }
+  ctx.restore();
+}
+function opGlyph(ctx, x, y, h, glyph) {
+  ctx.save();
+  ctx.font = capFont(); ctx.fillStyle = T.ink2; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  ctx.fillText(glyph, x, y + h / 2);
+  ctx.restore();
+}
+
+/* --- the network's shapes, for the labels --------------------------------- */
+const STAGES = [
+  { name: "Input", C: 3, H: 28, maps: null, shown: 1, note: "1 of 3 channels" },
+  { name: "conv1", C: 32, H: 28, maps: CONV1, shown: 4, note: "4 of 32 channels" },
+  { name: "pool1", C: 32, H: 14, maps: POOL1, shown: 4, note: "4 of 32 channels" },
+  { name: "conv2", C: 64, H: 14, maps: CONV2, shown: 4, note: "4 of 64 channels" },
+  { name: "pool2", C: 64, H: 7, maps: POOL2, shown: 4, note: "4 of 64 channels" },
+];
+const SHAPE_OF = (s) => shapeText([s.C, s.H, s.H]);
+const MAXES = STAGES.map((s) => (s.maps ? s.maps.map(maxOf) : [1]));
+const texMax = maxOf(TEX);
+
+/* ==========================================================================
+   §1 A · the feature-map gallery
+   ====================================================================== */
+const GAL = {
+  thumb: [70, 56, 28, 28, 14],     /* one per stage: 2.5, 2.0, 2.0, 2.0, 2.0 px a cell */
+  vgap: 8,
+  headCell: 12,
+  top: 58,
+  colH: 4 * 56 + 3 * 8,            /* the tallest column, conv1 */
+};
+function galleryLayout(w) {
+  const widths = [...GAL.thumb, GAL.headCell, GAL.headCell];
+  const total = widths.reduce((a, v) => a + v, 0);
+  const gap = (w - 2 * PAD - total) / (widths.length - 1);
+  const xs = []; let x = PAD;
+  for (const wd of widths) { xs.push(x); x += wd + gap; }
+  return { widths, xs, gap, total, midY: GAL.top + GAL.colH / 2 };
+}
+const GAL_H = 384;
+/**
+ * `reveal` is how many stages are in (5 is all of them, plus the head at 6 and
+ * 7); `grow` fades the arriving column. `lit` names the conv2 map whose fan-in
+ * is drawn.
+ */
+function drawGallery(ctx, w, o = {}) {
+  const lay = galleryLayout(w);
+  const reveal = o.reveal ?? 7;
+  const grow = o.grow ?? 1;
+  const lit = o.lit ?? 1;
+  caption(ctx, PAD, 24, o.title ?? "One column a stage, four channels of each");
+  note(ctx, PAD, 40, o.sub ?? "the kernels are named operators, not learned filters");
+
+  const alphaOf = (i) => (i < reveal ? 1 : i === reveal ? grow : 0);
+
+  /* the fan-in lines, under the thumbnails */
+  if (alphaOf(3) > 0 && o.fan !== false) {
+    const fx = lay.xs[3];
+    const fy = GAL.top + (GAL.colH - (4 * 28 + 3 * GAL.vgap)) / 2 + lit * (28 + GAL.vgap) + 14;
+    const px = lay.xs[2] + GAL.thumb[2];
+    const py0 = GAL.top + (GAL.colH - (4 * 28 + 3 * GAL.vgap)) / 2;
+    ctx.save();
+    for (let i = 0; i < 4; i += 1) {
+      ctx.globalAlpha = (i === lit ? 0.95 : 0.16) * alphaOf(3);
+      ctx.strokeStyle = T.empirical; ctx.lineWidth = i === lit ? 1.5 : 1;
+      ctx.beginPath();
+      ctx.moveTo(px, py0 + i * (28 + GAL.vgap) + 14);
+      ctx.lineTo(fx, fy);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  STAGES.forEach((s, si) => {
+    const a = alphaOf(si);
+    if (a <= 0) return;
+    const size = GAL.thumb[si];
+    const count = si === 0 ? 1 : 4;
+    const blockH = count * size + (count - 1) * GAL.vgap;
+    const y0 = GAL.top + (GAL.colH - blockH) / 2;
+    ctx.save();
+    ctx.globalAlpha = a;
+    for (let i = 0; i < count; i += 1) {
+      const y = y0 + i * (size + GAL.vgap);
+      const arr = si === 0 ? TEX : s.maps[i];
+      const box = drawMap(ctx, lay.xs[si], y, size, s.H, arr,
+        { max: si === 0 ? texMax : MAXES[si][i], frame: si === 0 ? T.groupA : T.empirical });
+      if (si > 0 && i === lit && o.markLit !== false) {
+        ctx.save(); ctx.strokeStyle = T.highlight; ctx.lineWidth = 1.5;
+        ctx.strokeRect(box.x - 2.5, box.y - 2.5, size + 5, size + 5); ctx.restore();
+      }
+      if (si > 0 && o.names !== false) {
+        mono(ctx, lay.xs[si] + size + 4, y + 8, KERNELS[si <= 2 ? i : CONV2_ORDER[i]].short, T.ink3);
+      }
+    }
+    mono(ctx, lay.xs[si], GAL.top + GAL.colH + 18, s.name, T.ink2);
+    mono(ctx, lay.xs[si], GAL.top + GAL.colH + 32, SHAPE_OF(s), T.ink3);
+    if (si > 0) note(ctx, lay.xs[si], GAL.top + GAL.colH + 46, `+${s.C - 4} more`, T.ink3);
+    ctx.restore();
+    if (si < STAGES.length - 1) {
+      ctx.save(); ctx.globalAlpha = Math.min(a, alphaOf(si + 1));
+      arrowRight(ctx, lay.xs[si] + size + 4, lay.xs[si + 1] - 4, lay.midY);
+      ctx.restore();
+    }
+  });
+
+  /* the head: a column of single cells, then nine scores */
+  const gA = alphaOf(5);
+  if (gA > 0) {
+    ctx.save(); ctx.globalAlpha = gA;
+    const x = lay.xs[5];
+    const blockH = 4 * GAL.headCell + 3 * 4;
+    const y0 = lay.midY - blockH / 2;
+    for (let i = 0; i < 4; i += 1) {
+      const y = y0 + i * (GAL.headCell + 4);
+      ctx.fillStyle = grey(GAPV[i] / maxOf(GAPV));
+      ctx.fillRect(x, y, GAL.headCell, GAL.headCell);
+      ctx.strokeStyle = T.empirical; ctx.lineWidth = 1;
+      ctx.strokeRect(x + 0.5, y + 0.5, GAL.headCell - 1, GAL.headCell - 1);
+    }
+    mono(ctx, x, GAL.top + GAL.colH + 18, "GAP", T.ink2);
+    mono(ctx, x, GAL.top + GAL.colH + 32, shapeText([64]), T.ink3);
+    note(ctx, x, GAL.top + GAL.colH + 46, "+60 more", T.ink3);
+    arrowRight(ctx, lay.xs[4] + GAL.thumb[4] + 4, x - 4, lay.midY);
+    ctx.restore();
+  }
+  const lA = alphaOf(6);
+  if (lA > 0) {
+    ctx.save(); ctx.globalAlpha = lA;
+    const x = lay.xs[6];
+    const blockH = 9 * GAL.headCell + 8 * 3;
+    const y0 = lay.midY - blockH / 2;
+    const hi = Math.max(...SCORES.map(Math.abs));
+    for (let i = 0; i < 9; i += 1) {
+      const y = y0 + i * (GAL.headCell + 3);
+      ctx.globalAlpha = lA * (0.25 + 0.75 * Math.abs(SCORES[i]) / hi);
+      ctx.fillStyle = T.groupB;
+      ctx.fillRect(x, y, GAL.headCell, GAL.headCell);
+      ctx.globalAlpha = lA;
+      ctx.strokeStyle = T.groupB; ctx.lineWidth = 1;
+      ctx.strokeRect(x + 0.5, y + 0.5, GAL.headCell - 1, GAL.headCell - 1);
+    }
+    mono(ctx, x - 6, GAL.top + GAL.colH + 18, "Linear", T.ink2);
+    mono(ctx, x - 6, GAL.top + GAL.colH + 32, shapeText([9]), T.ink3);
+    arrowRight(ctx, lay.xs[5] + GAL.headCell + 4, x - 4, lay.midY);
+    ctx.restore();
+  }
+  if (o.foot !== false) {
+    note(ctx, PAD, GAL_H - 12,
+      `conv2 reads every one of its 32 input channels; four are drawn, and the outlined map is `
+      + `${KERNELS[CONV2_ORDER[lit]].name.toLowerCase()} over the pool1 map the solid line comes from.`);
+  }
+  return lay;
+}
+
+/* ==========================================================================
+   §1 B · isometric slabs
+   ====================================================================== */
+const ISO_H = 268;
+const ISO_FACE = 78 / 28;          /* px a cell on the front face */
+const ISO_DEPTH_CAP = 40;
+const isoDepth = (C) => Math.max(6, Math.min(ISO_DEPTH_CAP, C * 0.55));
+function isoLayout(w, stages) {
+  const feet = stages.map((s) => Math.max(18, s.H * ISO_FACE) + isoDepth(s.C));
+  const total = feet.reduce((a, v) => a + v, 0) + 2 * 14;   /* the two head columns */
+  const gap = (w - 2 * PAD - total) / (stages.length + 1);
+  const xs = []; let x = PAD;
+  stages.forEach((s, i) => { xs.push(x); x += feet[i] + gap; });
+  return { feet, xs, gap, total, headX: [x, x + 14 + gap] };
+}
+function drawIso(ctx, w, stages, o = {}) {
+  const lay = isoLayout(w, stages);
+  const midY = 72 + 78 / 2;
+  caption(ctx, PAD, 24, o.title ?? "A face of H × W, a depth of C");
+  note(ctx, PAD, 40, o.sub ?? "the front face carries channel 1 of that stage; depth is capped at 40 px");
+  stages.forEach((s, i) => {
+    const face = Math.max(18, s.H * ISO_FACE);
+    const dx = isoDepth(s.C); const dy = dx * 0.6;
+    const x = lay.xs[i];
+    const y = midY - face / 2;
+    ctx.save();
+    ctx.strokeStyle = T.empirical; ctx.lineWidth = 1;
+    ctx.globalAlpha = 0.26; ctx.fillStyle = T.empirical;
+    ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + dx, y - dy); ctx.lineTo(x + dx + face, y - dy); ctx.lineTo(x + face, y); ctx.closePath(); ctx.fill();
+    ctx.globalAlpha = 1; ctx.stroke();
+    ctx.globalAlpha = 0.34; ctx.fillStyle = T.empirical;
+    ctx.beginPath(); ctx.moveTo(x + face, y); ctx.lineTo(x + face + dx, y - dy); ctx.lineTo(x + face + dx, y + face - dy); ctx.lineTo(x + face, y + face); ctx.closePath(); ctx.fill();
+    ctx.globalAlpha = 1; ctx.stroke();
+    ctx.restore();
+    const arr = s.maps ? s.maps[0] : TEX;
+    const box = drawMap(ctx, x, y, face, s.H, arr,
+      { max: s.maps ? maxOf(s.maps[0]) : texMax, frame: s.maps ? T.empirical : T.groupA });
+    mono(ctx, x, midY + 78 / 2 + 26, s.name, T.ink2);
+    mono(ctx, x, midY + 78 / 2 + 40, SHAPE_OF(s), T.ink3);
+    if (i === 0 && o.patch !== false) {
+      /* the kernel's window on the input, projected to the cell it lands in */
+      windowBox(ctx, box, [12, 14], [10, 12], { fill: true, width: 1.5 });
+      const nb = { x: lay.xs[1], y: midY - Math.max(18, stages[1].H * ISO_FACE) / 2, c: ISO_FACE, n: stages[1].H };
+      ctx.save();
+      ctx.strokeStyle = T.highlight; ctx.lineWidth = 1; ctx.setLineDash([3, 3]);
+      const corners = [[10, 12], [13, 12], [10, 15], [13, 15]];
+      for (const [cc0, rr0] of corners) {
+        ctx.beginPath();
+        ctx.moveTo(box.x + cc0 * box.c, box.y + rr0 * box.c);
+        ctx.lineTo(nb.x + 11 * ISO_FACE, nb.y + 13 * ISO_FACE);
+        ctx.stroke();
+      }
+      ctx.setLineDash([]);
+      ctx.restore();
+      markCell(ctx, { x: nb.x, y: nb.y, c: ISO_FACE, n: stages[1].H }, 13, 11);
+    }
+    if (i < stages.length - 1) arrowRight(ctx, x + face + dx + 3, lay.xs[i + 1] - 3, midY);
+  });
+  /* the head, two thin columns */
+  ctx.save();
+  const hx = lay.headX;
+  ctx.strokeStyle = T.empirical; ctx.lineWidth = 1;
+  ctx.strokeRect(hx[0] + 0.5, midY - 22.5, 13, 45);
+  mono(ctx, hx[0] - 6, midY + 78 / 2 + 26, "GAP", T.ink2);
+  ctx.strokeStyle = T.groupB;
+  ctx.strokeRect(hx[1] + 0.5, midY - 14.5, 13, 29);
+  mono(ctx, hx[1] - 10, midY + 78 / 2 + 26, "Linear", T.ink2);
+  ctx.restore();
+  const lastFace = Math.max(18, stages[stages.length - 1].H * ISO_FACE);
+  const lastDepth = isoDepth(stages[stages.length - 1].C);
+  const fits = lay.gap >= 14 && lastDepth <= lastFace;
+  note(ctx, PAD, ISO_H - 12,
+    `${Math.round(lay.total)} px of solid, ${Math.round(lay.gap)} px between · the last slab is `
+    + `${Math.round(lastDepth)} px deep against a ${Math.round(lastFace)} px face`,
+    fits ? T.ink3 : T.extreme);
+  return { ...lay, lastFace, lastDepth, fits };
+}
+
+/* ==========================================================================
+   §1 C · flat rectangles, filled
+   ====================================================================== */
+const FLAT_H_PX = 292;
+const FLAT_TALL = 186;
+function flatLayout(w, stages) {
+  const hUnit = FLAT_TALL / 28;
+  let wUnit = 1;
+  const wOf = (s, u) => Math.max(6, s.C * u);
+  let gap = 0;
+  const items = [...stages.map((s) => ({ ...s, sort: "map" })),
+    { name: "GAP", sort: "head", W: 22 }, { name: "Linear", sort: "head", W: 44 }];
+  for (let guard = 0; guard < 40; guard += 1) {
+    const tot = items.reduce((a, it) => a + (it.sort === "head" ? it.W : wOf(it, wUnit)), 0);
+    gap = (w - 2 * PAD - tot) / (items.length - 1);
+    if (gap >= 15 || wUnit <= 0.2) break;
+    wUnit *= 0.9;
+  }
+  let x = PAD;
+  for (const it of items) {
+    it.w = it.sort === "head" ? it.W : wOf(it, wUnit);
+    it.h = it.sort === "head" ? 26 : Math.max(7, it.H * hUnit);
+    it.x = x;
+    x += it.w + gap;
+  }
+  return { items, hUnit, wUnit, gap, midY: 40 + FLAT_TALL / 2 };
+}
+function drawFlat(ctx, w, stages, o = {}) {
+  const lay = flatLayout(w, stages);
+  caption(ctx, PAD, 24, o.title ?? "Height follows H, width follows C, with the map drawn inside");
+  const insets = [];
+  lay.items.forEach((it, i) => {
+    const y = lay.midY - it.h / 2;
+    if (it.sort === "map") {
+      ctx.save();
+      ctx.globalAlpha = 0.28; ctx.fillStyle = T.empirical; ctx.fillRect(it.x, y, it.w, it.h);
+      ctx.globalAlpha = 1;
+      ctx.strokeStyle = it.maps ? T.empirical : T.groupA; ctx.lineWidth = 1;
+      ctx.strokeRect(it.x + 0.5, y + 0.5, it.w - 1, it.h - 1);
+      ctx.restore();
+      /* THE MAP AT ITS TRUE ASPECT, which is the largest square the rectangle
+         holds. Stretching a square map into a 32 × 186 rectangle is 5.8 : 1. */
+      const inset = Math.min(it.w, it.h);
+      insets.push([it.name, inset]);
+      if (inset >= 8) {
+        drawMap(ctx, it.x + (it.w - inset) / 2, lay.midY - inset / 2, inset, it.H,
+          it.maps ? it.maps[0] : TEX,
+          { max: it.maps ? maxOf(it.maps[0]) : texMax, frame: T.axis });
+      }
+      mono(ctx, it.x, lay.midY + FLAT_TALL / 2 + 20 + (i % 2) * 14, SHAPE_OF(it), T.ink2);
+    } else {
+      ctx.save();
+      ctx.globalAlpha = 0.5; ctx.fillStyle = it.name === "Linear" ? T.groupB : T.empirical;
+      ctx.fillRect(it.x, lay.midY - 13, it.w, 26);
+      ctx.globalAlpha = 1;
+      ctx.strokeStyle = it.name === "Linear" ? T.groupB : T.empirical; ctx.lineWidth = 1;
+      ctx.strokeRect(it.x + 0.5, lay.midY - 12.5, it.w - 1, 25);
+      ctx.restore();
+      mono(ctx, it.x, lay.midY + FLAT_TALL / 2 + 20 + (i % 2) * 14, it.name, T.ink2);
+    }
+    if (i < lay.items.length - 1) arrowRight(ctx, it.x + it.w + 3, it.x + it.w + lay.gap - 3, lay.midY);
+  });
+  /* the cone for one unit, between two rectangles */
+  const a = lay.items[1]; const b = lay.items[2];
+  const ai = Math.min(a.w, a.h); const bi = Math.min(b.w, b.h);
+  ctx.save();
+  ctx.strokeStyle = T.highlight; ctx.lineWidth = 1; ctx.globalAlpha = 0.6;
+  const ax = a.x + (a.w - ai) / 2 + (ai / 28) * 12;
+  const ay = lay.midY - ai / 2 + (ai / 28) * 12;
+  const aw = (ai / 28) * 2;
+  const bx = b.x + (b.w - bi) / 2 + (bi / 14) * 6;
+  const by = lay.midY - bi / 2 + (bi / 14) * 6;
+  const bw = Math.max(2, bi / 14);
+  for (const [dx0, dy0, dx1, dy1] of [[0, 0, 0, 0], [aw, 0, bw, 0], [0, aw, 0, bw], [aw, aw, bw, bw]]) {
+    ctx.beginPath(); ctx.moveTo(ax + dx0, ay + dy0); ctx.lineTo(bx + dx1, by + dy1); ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+  ctx.strokeRect(ax - 0.5, ay - 0.5, aw + 1, aw + 1);
+  ctx.strokeRect(bx - 0.5, by - 0.5, bw + 1, bw + 1);
+  ctx.restore();
+  const stretch = FLAT_TALL / Math.max(6, 32 * lay.wUnit);
+  note(ctx, PAD, FLAT_H_PX - 12,
+    `the map inside conv1's rectangle is ${Math.round(Math.min(lay.items[1].w, lay.items[1].h))} px square; `
+    + `stretched to the rectangle it would be ${fmt(stretch, 1)} : 1`);
+  return { ...lay, insets, stretch };
+}
+
+/* ==========================================================================
+   §1 D · the box graph
+   ====================================================================== */
+const BOX_ROWS = [
+  { label: "Input", shape: [3, 28, 28], tone: "map", map: () => TEX, n: 28 },
+  { label: "Conv2d(3, 32, 3, padding=1)", shape: [32, 28, 28], tone: "weight", map: () => CONV1[0], n: 28 },
+  { label: "ReLU", shape: [32, 28, 28], tone: "plain", map: () => CONV1[0], n: 28 },
+  { label: "MaxPool2d(2)", shape: [32, 14, 14], tone: "map", map: () => POOL1[0], n: 14 },
+  { label: "Conv2d(32, 64, 3, padding=1)", shape: [64, 14, 14], tone: "weight", map: () => CONV2[0], n: 14 },
+  { label: "ReLU", shape: [64, 14, 14], tone: "plain", map: () => CONV2[0], n: 14 },
+  { label: "MaxPool2d(2)", shape: [64, 7, 7], tone: "map", map: () => POOL2[0], n: 7 },
+  { label: "AdaptiveAvgPool2d(1)", shape: [64, 1, 1], tone: "map", map: null, n: 1 },
+  { label: "Flatten", shape: [64], tone: "map", map: null, n: 1 },
+  { label: "Linear(64, 9)", shape: [9], tone: "weight", map: null, n: 1 },
+];
+const BOX_W = 200; const BOX_H = 24; const BOX_PITCH = 40; const BOX_DETAIL = 100;
+const boxHeight = () => 44 + BOX_ROWS.length * BOX_PITCH + BOX_DETAIL + 26;
+function drawBoxGraph(ctx, w, open = 1) {
+  caption(ctx, PAD, 24, "The layers in order, with one output map beside each");
+  let y = 40;
+  BOX_ROWS.forEach((r, i) => {
+    const colour = r.tone === "weight" ? T.groupB : r.tone === "map" ? T.empirical : T.ink3;
+    ctx.save();
+    ctx.globalAlpha = r.tone === "plain" ? 0.16 : 0.42; ctx.fillStyle = colour;
+    ctx.fillRect(PAD, y, BOX_W, BOX_H); ctx.globalAlpha = 1;
+    ctx.strokeStyle = colour; ctx.lineWidth = i === open ? 2 : 1;
+    ctx.strokeRect(PAD + 0.5, y + 0.5, BOX_W - 1, BOX_H - 1);
+    ctx.font = noteFont(); ctx.fillStyle = T.ink1; ctx.textAlign = "left"; ctx.textBaseline = "middle";
+    ctx.fillText(r.label, PAD + 7, y + BOX_H / 2 + 0.5);
+    ctx.restore();
+    if (r.map) {
+      drawMap(ctx, PAD + BOX_W + 190, y - 4, 32, r.n, r.map(),
+        { max: maxOf(r.map()), frame: i === 0 ? T.groupA : T.empirical });
+    }
+    if (i < BOX_ROWS.length - 1) {
+      arrowDown(ctx, PAD + BOX_W / 2, y + BOX_H + 1, y + BOX_PITCH - 1);
+      mono(ctx, PAD + BOX_W + 14, y + BOX_H + 12, shapeText(BOX_ROWS[i + 1].shape), T.ink2);
+    }
+    y += BOX_PITCH;
+    if (i === open) {
+      /* the chosen layer's detail, opened under its box */
+      ctx.save();
+      ctx.strokeStyle = T.highlight; ctx.lineWidth = 1; ctx.setLineDash([4, 3]);
+      ctx.strokeRect(PAD + 0.5, y - 6.5, BOX_W + 220, BOX_DETAIL - 8);
+      ctx.setLineDash([]);
+      ctx.restore();
+      drawConvBandInto(ctx, PAD + 8, y - 2, { compact: true });
+      y += BOX_DETAIL;
+    }
+  });
+  note(ctx, PAD, boxHeight() - 12,
+    `${BOX_ROWS.length} boxes at a ${BOX_PITCH} px pitch, ${Math.round(boxHeight())} px tall with one layer open`);
+}
+
+/* ==========================================================================
+   §2 · the detail band — the arithmetic on this image's own pixels
+   ====================================================================== */
+/* The window this page prints, chosen on the blob's upper edge so the
+   horizontal-edge kernel has something to report. */
+const WIN_R = 18; const WIN_C = 12;
+const winValues = (src, n, r, c) => [-1, 0, 1].map((j) => [-1, 0, 1].map((i) => {
+  const yy = r + j; const xx = c + i;
+  return (yy < 0 || yy >= n || xx < 0 || xx >= n) ? 0 : src[yy * n + xx];
+}));
+const CONV_K = 0;
+const WIN = winValues(TEX, 28, WIN_R, WIN_C);
+const PRODUCTS = WIN.flatMap((row, j) => row.map((v, i) => v * KERNELS[CONV_K].k[j][i]));
+const CONV_SUM = PRODUCTS.reduce((a, v) => a + v, 0);
+
+const CELL_W = 40; const CELL_H = 22; const LBL = 15;
+const BAND_CONV_H = 150;
+/**
+ * Window · kernel · sum · the cell it lands in, the band widget 49 draws, on
+ * this image's real numbers. `compact` drops the two maps, for the box graph's
+ * opened row.
+ */
+function drawConvBandInto(ctx, x0, y0, o = {}) {
+  const compact = o.compact ?? false;
+  let x = x0;
+  if (!compact) {
+    mono(ctx, x, y0 + 10, "Input " + shapeText([28, 28]), T.ink2);
+    const box = drawMap(ctx, x, y0 + LBL, 66, 28, TEX, { max: texMax, frame: T.groupA });
+    windowBox(ctx, box, [WIN_R - 1, WIN_R + 1], [WIN_C - 1, WIN_C + 1], { fill: true, width: 2 });
+    x += 66 + 14;
+  }
+  mono(ctx, x, y0 + 10, "Window " + shapeText([3, 3]), T.ink2);
+  for (let j = 0; j < 3; j += 1) {
+    for (let i = 0; i < 3; i += 1) {
+      valueCell(ctx, x + i * CELL_W, y0 + LBL + j * CELL_H, CELL_W, CELL_H, WIN[j][i].toFixed(2), { hue: T.groupA });
+    }
+  }
+  ctx.save();
+  ctx.strokeStyle = T.highlight; ctx.lineWidth = 1.5;
+  ctx.strokeRect(x - 0.5, y0 + LBL - 0.5, 3 * CELL_W + 1, 3 * CELL_H + 1);
+  ctx.restore();
+  x += 3 * CELL_W;
+  opGlyph(ctx, x + 11, y0 + LBL, 3 * CELL_H, "∗");
+  x += 22;
+  mono(ctx, x, y0 + 10, KERNELS[CONV_K].name + " " + shapeText([3, 3]), T.ink2);
+  for (let j = 0; j < 3; j += 1) {
+    for (let i = 0; i < 3; i += 1) {
+      const v = KERNELS[CONV_K].k[j][i];
+      valueCell(ctx, x + i * (CELL_W - 6), y0 + LBL + j * CELL_H, CELL_W - 6, CELL_H,
+        Number.isInteger(v) ? `${v}` : v.toFixed(2), { hue: T.groupB });
+    }
+  }
+  x += 3 * (CELL_W - 6);
+  opGlyph(ctx, x + 11, y0 + LBL, 3 * CELL_H, "=");
+  x += 22;
+  mono(ctx, x, y0 + 10, `conv1[0, ${WIN_R}, ${WIN_C}]`, T.ink2);
+  valueCell(ctx, x, y0 + LBL + CELL_H, CELL_W + 4, CELL_H, CONV_SUM.toFixed(2), { hue: T.empirical });
+  const endX = x + CELL_W + 4;
+  if (!compact) {
+    mono(ctx, endX + 14, y0 + 10, "conv1 " + shapeText([28, 28]), T.ink2);
+    const ob = drawMap(ctx, endX + 14, y0 + LBL, 66, 28, CONV1[CONV_K], { max: MAXES[1][CONV_K], frame: T.empirical });
+    markCell(ctx, ob, WIN_R, WIN_C);
+    mono(ctx, x0, y0 + LBL + 3 * CELL_H + 16,
+      PRODUCTS.map((p) => p.toFixed(2)).join(" + ").replace(/\+ -/g, "− ") + ` = ${CONV_SUM.toFixed(2)}`, T.ink2);
+    mono(ctx, x0, y0 + LBL + 3 * CELL_H + 30,
+      `ReLU keeps ${Math.max(0, CONV_SUM).toFixed(2)}`, T.ink3);
+  }
+  return endX;
+}
+/** 2 × 2 window → the largest of the four, on the same map. */
+const POOL_R = 10; const POOL_C = 5;
+const POOL_WIN = [[CONV1[0][(2 * POOL_R) * 28 + 2 * POOL_C], CONV1[0][(2 * POOL_R) * 28 + 2 * POOL_C + 1]],
+  [CONV1[0][(2 * POOL_R + 1) * 28 + 2 * POOL_C], CONV1[0][(2 * POOL_R + 1) * 28 + 2 * POOL_C + 1]]];
+const POOL_MAX = Math.max(...POOL_WIN.flat());
+function drawPoolBandInto(ctx, x0, y0) {
+  let x = x0;
+  mono(ctx, x, y0 + 10, "conv1 " + shapeText([28, 28]), T.ink2);
+  const box = drawMap(ctx, x, y0 + LBL, 66, 28, CONV1[0], { max: MAXES[1][0], frame: T.groupA });
+  windowBox(ctx, box, [2 * POOL_R, 2 * POOL_R + 1], [2 * POOL_C, 2 * POOL_C + 1], { fill: true, width: 2 });
+  x += 66 + 14;
+  mono(ctx, x, y0 + 10, "Window " + shapeText([2, 2]), T.ink2);
+  for (let j = 0; j < 2; j += 1) {
+    for (let i = 0; i < 2; i += 1) {
+      valueCell(ctx, x + i * CELL_W, y0 + LBL + j * CELL_H, CELL_W, CELL_H, POOL_WIN[j][i].toFixed(2), { hue: T.groupA });
+    }
+  }
+  x += 2 * CELL_W;
+  opGlyph(ctx, x + 18, y0 + LBL, 2 * CELL_H, "max");
+  x += 40;
+  mono(ctx, x, y0 + 10, `pool1[0, ${POOL_R}, ${POOL_C}]`, T.ink2);
+  valueCell(ctx, x, y0 + LBL + CELL_H / 2, CELL_W + 4, CELL_H, POOL_MAX.toFixed(2), { hue: T.empirical });
+  x += CELL_W + 18;
+  mono(ctx, x, y0 + 10, "pool1 " + shapeText([14, 14]), T.ink2);
+  const ob = drawMap(ctx, x, y0 + LBL, 66, 14, POOL1[0], { max: MAXES[2][0], frame: T.empirical });
+  markCell(ctx, ob, POOL_R, POOL_C);
+  mono(ctx, x0, y0 + LBL + 2 * CELL_H + 28,
+    `max(${POOL_WIN.flat().map((v) => v.toFixed(2)).join(", ")}) = ${POOL_MAX.toFixed(2)}   ·   pooling has no weights`, T.ink2);
+  return x + 66;
+}
+
+/* ==========================================================================
+   §3 · the animation frames
+   ====================================================================== */
+const SWEEP_MS = 6000;
+const CELLS = { "28": 784, "14": 196, "7": 49 };
+const RATES = [8, 16, 30, 60, 131];
+
+function drawSlideFrame(ctx, w, done) {
+  caption(ctx, PAD, 24, "The kernel at one position, and the map filled to there");
+  note(ctx, PAD, 40, "the window slides in reading order; the output cell it lands in fills behind it");
+  const n = 28;
+  const size = 186;
+  const box = drawMap(ctx, PAD, 58, size, n, TEX, { max: texMax, frame: T.groupA });
+  const r = Math.floor(done / n); const c = done % n;
+  windowBox(ctx, box, [r - 1, r + 1], [c - 1, c + 1], { fill: true, width: 2 });
+  mono(ctx, PAD, 58 + size + 16, "Input " + shapeText([3, 28, 28]), T.ink2);
+  /* the output map, filled only where the walk has been */
+  const ox = PAD + size + 40;
+  const partial = new Float64Array(n * n);
+  for (let i = 0; i <= done && i < n * n; i += 1) partial[i] = CONV1[0][i];
+  ctx.save();
+  ctx.fillStyle = T.surface2; ctx.fillRect(ox, 58, size, size);
+  ctx.restore();
+  const cell = size / n;
+  for (let i = 0; i <= done && i < n * n; i += 1) {
+    ctx.fillStyle = grey(CONV1[0][i] / MAXES[1][0]);
+    ctx.fillRect(ox + (i % n) * cell, 58 + Math.floor(i / n) * cell, Math.ceil(cell), Math.ceil(cell));
+  }
+  ctx.save();
+  ctx.strokeStyle = T.empirical; ctx.lineWidth = 1; ctx.strokeRect(ox + 0.5, 58.5, size - 1, size - 1);
+  ctx.restore();
+  markCell(ctx, { x: ox, y: 58, c: cell, n }, r, c);
+  mono(ctx, ox, 58 + size + 16, "conv1 " + shapeText([32, 28, 28]), T.ink2);
+  note(ctx, ox, 58 + size + 30, `${done + 1} of ${n * n} positions computed`, T.highlight);
+}
+
+function drawFieldFrame(ctx, w) {
+  caption(ctx, PAD, 24, "One unit of the last feature map, and the patch of the input it reads");
+  note(ctx, PAD, 40, "the marked unit moves through its own map; the patch on the image moves with it");
+  const img = 150;
+  const box = drawMap(ctx, PAD, 58, img, 28, TEX, { max: texMax, frame: T.groupA });
+  const stagesRF = STAGES.slice(1);
+  const availX = PAD + img + 20;
+  const step = (STAGE_W - PAD - availX) / stagesRF.length;
+  const foot = Math.min(70, step - 12);
+  /* the window, walked back from the unit through the four layers */
+  const layers = [{ k: 3, s: 1, p: 1 }, { k: 2, s: 2, p: 0 }, { k: 3, s: 1, p: 1 }, { k: 2, s: 2, p: 0 }];
+  const back = (idx) => {
+    const spans = new Array(layers.length + 1);
+    let lo = idx; let hi = idx;
+    spans[layers.length] = [lo, hi];
+    for (let i = layers.length - 1; i >= 0; i -= 1) {
+      lo = lo * layers[i].s - layers[i].p;
+      hi = hi * layers[i].s - layers[i].p + layers[i].k - 1;
+      spans[i] = [lo, hi];
+    }
+    return spans;
+  };
+  const spans = back(2);
+  windowBox(ctx, box, spans[0], spans[0], { fill: true, width: 2 });
+  stagesRF.forEach((s, i) => {
+    const gx = availX + i * step;
+    const gy = 58 + (img - foot) / 2;
+    const g = drawMap(ctx, gx, gy, foot, s.H, s.maps[0], { max: MAXES[i + 1][0], frame: T.empirical });
+    if (i < stagesRF.length - 1) windowBox(ctx, g, spans[i + 1], spans[i + 1], { fill: false, width: 1.2 });
+    else markCell(ctx, g, 2, 2);
+    mono(ctx, gx, gy - 8, s.name, T.ink3);
+    mono(ctx, gx, gy + foot + 14, `${s.H}×${s.H}`, T.ink3);
+    arrowRight(ctx, gx - 12, gx - 3, 58 + img / 2);
+  });
+  note(ctx, PAD, 58 + img + 22, `Input ${shapeText([3, 28, 28])}  ·  the patch is `
+    + `${spans[0][1] - spans[0][0] + 1} of 28 px across`, T.highlight);
+}
+
+/* ==========================================================================
+   §5 · the bug, at three blocks
+   ====================================================================== */
+const B3_STAGES = [
+  { name: "Input", C: 3, H: 28, maps: null },
+  { name: "conv1", C: 32, H: 28, maps: CONV1 },
+  { name: "pool1", C: 32, H: 14, maps: POOL1 },
+  { name: "conv2", C: 64, H: 14, maps: CONV2 },
+  { name: "pool2", C: 64, H: 7, maps: POOL2 },
+  { name: "conv3", C: 128, H: 7, maps: null },
+];
+const BUG_H = 214;
+function drawBug(ctx, w, rebased) {
+  caption(ctx, PAD, 24, rebased
+    ? "After: the unit returns to the last stage, and conv3 carries the window"
+    : "Before: the unit is still on pool2, and conv3 is drawn with nothing");
+  const img = 120;
+  const box = drawMap(ctx, PAD, 48, img, 28, TEX, { max: texMax, frame: T.groupA });
+  const rest = B3_STAGES.slice(1);
+  const availX = PAD + img + 18;
+  const step = (w - PAD - availX) / rest.length;
+  const foot = Math.min(62, step - 12);
+  const layers = [{ k: 3, s: 1, p: 1 }, { k: 2, s: 2, p: 0 }, { k: 3, s: 1, p: 1 }, { k: 2, s: 2, p: 0 }, { k: 3, s: 1, p: 1 }];
+  const marked = rebased ? 5 : 4;            /* conv3 after the fix, pool2 before it */
+  const back = (stage, idx) => {
+    const spans = new Array(stage + 1);
+    let lo = idx; let hi = idx;
+    spans[stage] = [lo, hi];
+    for (let i = stage - 1; i >= 0; i -= 1) {
+      lo = lo * layers[i].s - layers[i].p;
+      hi = hi * layers[i].s - layers[i].p + layers[i].k - 1;
+      spans[i] = [lo, hi];
+    }
+    return spans;
+  };
+  const spans = back(marked, 3);
+  windowBox(ctx, box, spans[0], spans[0], { fill: true, width: 2 });
+  const boxes = [box];
+  rest.forEach((s, i) => {
+    const gx = availX + i * step;
+    const gy = 48 + (img - foot) / 2;
+    const g = s.maps
+      ? drawMap(ctx, gx, gy, foot, s.H, s.maps[0], { max: maxOf(s.maps[0]), frame: T.empirical })
+      : drawGrid(ctx, gx, gy, foot, s.H);
+    boxes.push(g);
+    mono(ctx, gx, gy - 8, s.name, T.ink3);
+    arrowRight(ctx, gx - 12, gx - 3, 48 + img / 2);
+  });
+  /* the cone, corner to corner, one entry a pair of stages */
+  ctx.save();
+  ctx.strokeStyle = T.highlight; ctx.lineWidth = 1; ctx.globalAlpha = 0.35;
+  for (let i = 0; i < marked; i += 1) {
+    const a = boxes[i]; const b = boxes[i + 1];
+    const ax = a.x + Math.max(0, spans[i][0]) * a.c;
+    const ay = a.y + Math.max(0, spans[i][0]) * a.c;
+    const aw = (Math.min(a.n - 1, spans[i][1]) - Math.max(0, spans[i][0]) + 1) * a.c;
+    const isLast = i + 1 === marked;
+    const bx = b.x + (isLast ? 3 : Math.max(0, spans[i + 1][0])) * b.c;
+    const by = b.y + (isLast ? 3 : Math.max(0, spans[i + 1][0])) * b.c;
+    const bw = isLast ? Math.max(3, b.c) : (Math.min(b.n - 1, spans[i + 1][1]) - Math.max(0, spans[i + 1][0]) + 1) * b.c;
+    for (const [p, q, r, s2] of [[0, 0, 0, 0], [aw, 0, bw, 0], [0, aw, 0, bw], [aw, aw, bw, bw]]) {
+      ctx.beginPath(); ctx.moveTo(ax + p, ay + q); ctx.lineTo(bx + r, by + s2); ctx.stroke();
+    }
+  }
+  ctx.restore();
+  for (let i = 1; i < marked; i += 1) windowBox(ctx, boxes[i], spans[i], spans[i], { fill: false, width: 1.2 });
+  markCell(ctx, boxes[marked], 3, 3);
+  note(ctx, PAD, BUG_H - 12, rebased
+    ? `the marked unit is on conv3, the window reaches ${spans[0][1] - spans[0][0] + 1} of 28 px`
+    : `the marked unit is on pool2, conv3 is drawn with no window and no lines into it`,
+    rebased ? T.ink3 : T.extreme);
+  return spans;
+}
+
+/* ==========================================================================
+   Draw everything.
+   ====================================================================== */
+const M = [];
+
+/* --- §1 ---------------------------------------------------------------- */
+{
+  const boxA = cand(document.getElementById("depA"), "A · feature-map gallery", `${STAGE_W} × ${GAL_H}`);
+  const lay = drawGallery(canvasIn(boxA, STAGE_W, GAL_H), STAGE_W);
+  M.push(`A gallery: 7 columns, thumbnails ${GAL.thumb.join(" / ")} px (${GAL.thumb.map((t, i) => fmt(t / STAGES[i].H, 2)).join(" / ")} px a cell), `
+    + `${fmt(lay.gap, 1)} px between columns, tallest column ${GAL.colH} px, canvas ${GAL_H} px`);
+
+  const boxB = cand(document.getElementById("depB"), "B · isometric slabs", `${STAGE_W} × ${ISO_H}`);
+  const isoLay = drawIso(canvasIn(boxB, STAGE_W, ISO_H), STAGE_W, STAGES);
+  M.push(`B slabs, 2 blocks: ${Math.round(isoLay.total)} px of solid, ${fmt(isoLay.gap, 1)} px between, `
+    + `last slab ${Math.round(isoLay.lastDepth)} px deep on a ${Math.round(isoLay.lastFace)} px face — ${isoLay.fits ? "fits" : "does not fit"}`);
+
+  const B3 = [...STAGES, { name: "conv3", C: 128, H: 7, maps: POOL2 }];
+  const boxB3 = cand(document.getElementById("depB"), "B · the same at three blocks", `${STAGE_W} × ${ISO_H}`);
+  const isoLay3 = drawIso(canvasIn(boxB3, STAGE_W, ISO_H), STAGE_W, B3,
+    { title: "Three blocks, the same geometry", sub: "conv3 is drawn with pool2's map: this page computes two blocks" });
+  M.push(`B slabs, 3 blocks: ${Math.round(isoLay3.total)} px of solid of ${STAGE_W - 2 * PAD} px, ${fmt(isoLay3.gap, 1)} px between, `
+    + `last slab ${Math.round(isoLay3.lastDepth)} px deep on a ${Math.round(isoLay3.lastFace)} px face `
+    + `(${fmt(isoLay3.lastDepth / isoLay3.lastFace, 1)} × the face) — ${isoLay3.fits ? "fits" : "does not fit"}`);
+
+  const boxC = cand(document.getElementById("depC"), "C · flat rectangles, the map inside", `${STAGE_W} × ${FLAT_H_PX}`);
+  const flatLay = drawFlat(canvasIn(boxC, STAGE_W, FLAT_H_PX), STAGE_W, STAGES);
+  M.push(`C rectangles: width unit ${fmt(flatLay.wUnit, 2)} px a channel, ${fmt(flatLay.gap, 1)} px between; `
+    + `the largest square each rectangle holds is ${flatLay.insets.map(([n2, v]) => `${n2} ${Math.round(v)}`).join(" / ")} px — `
+    + `the input's is ${Math.round(flatLay.insets[0][1])} px, which carries no image. Stretched, conv1's map would be ${fmt(flatLay.stretch, 1)} : 1`);
+
+  const boxD = cand(document.getElementById("depD"), "D · the box graph, one layer open", `${STAGE_W} × ${Math.round(boxHeight())}`);
+  drawBoxGraph(canvasIn(boxD, STAGE_W, boxHeight()), STAGE_W, 1);
+  M.push(`D boxes: ${BOX_ROWS.length} rows at ${BOX_PITCH} px, ${Math.round(boxHeight())} px tall with one layer open, `
+    + `${Math.round(boxHeight() - BOX_DETAIL)} px closed; at three blocks 13 rows and ${Math.round(boxHeight() + 3 * BOX_PITCH)} px`);
+
+  document.getElementById("depMeasure").textContent = M.join("\n");
+
+  /* the four questions, as a table */
+  const host = document.getElementById("depTable");
+  const t = el("table", "facts");
+  const tr = (cells, head = false) => { const r = el("tr"); for (const c of cells) r.appendChild(el(head ? "th" : "td", null, c)); t.appendChild(r); };
+  tr(["", "sizes", "connection between stages", "result of the operation", "where a unit's patch is", "height, 3 blocks", "height, input 64"], true);
+  tr(["A gallery", "printed under each column, and the thumbnail shrinks at each pool",
+    "lines from one map to the maps it reads", "every thumbnail is the computed map",
+    "a window on each column, the same walk the draft has", `${GAL_H} px (two more columns fit the width)`,
+    `${GAL_H} px; the thumbnails hold their size and the printed shape changes`]);
+  tr(["B slabs", "the face follows H, the depth follows C", "one arrow, plus the dotted patch projection",
+    "one channel on the front face; the other 31 are hidden", "the dotted lines to one output cell",
+    `${ISO_H} px, but the width runs out`, `${ISO_H} px if the face rescales`]);
+  tr(["C rectangles", "height follows H, width follows C", "an arrow, and the cone between two rectangles",
+    "a square inside each rectangle, and the input's is 6 px", "the cone, at 1–2 px a window",
+    `${FLAT_H_PX} px`, `${FLAT_H_PX} px, rescaled`]);
+  tr(["D boxes", "printed on every edge; every box is the same size", "the chain itself, and the shape on the edge",
+    "a thumbnail beside each box", "nothing draws it", `${Math.round(boxHeight() + 3 * BOX_PITCH)} px`, `${Math.round(boxHeight())} px`]);
+  host.appendChild(t);
+
+  document.getElementById("recDep").innerHTML =
+    `<b>A, the feature-map gallery.</b> It is the only one of the four that answers all four questions at once, `
+    + `and the only one where the answer to <i>what did the operation produce</i> is the picture rather than a `
+    + `caption: every thumbnail is a computed map, so a reader can name what the horizontal-edge kernel did to `
+    + `the blob without reading a word. <b>The measured reasons.</b> Its columns are `
+    + `${GAL.thumb.join(" / ")} px, so a pooling column is visibly half the one before it and the sizes are `
+    + `carried by the picture as well as by the printed shape; the fan-in lines say <i>this map reads those `
+    + `maps</i>, which is the link your point 1 is about, drawn rather than implied; and it costs ${GAL_H} px, `
+    + `against ${Math.round(boxHeight())} px for D and a width overrun for B. `
+    + `<b>B is out on arithmetic, and already at two blocks:</b> pool2's slab is `
+    + `${Math.round(isoLay.lastDepth)} px deep against a ${Math.round(isoLay.lastFace)} px face, `
+    + `${fmt(isoLay.lastDepth / isoLay.lastFace, 1)} × the face. At three blocks its slabs take ${Math.round(isoLay3.total)} px of `
+    + `${STAGE_W - 2 * PAD} px, the gaps fall to ${fmt(isoLay3.gap, 1)} px, and the last slab is `
+    + `${fmt(isoLay3.lastDepth / isoLay3.lastFace, 1)} × as deep as its face — the H × W the figure exists to `
+    + `show becomes its smallest part. It also shows one channel of 32, which is the thing this round is `
+    + `trying to fix. <b>C is out on a measurement:</b> the largest square the input's rectangle holds is `
+    + `${Math.round(flatLay.insets[0][1])} px, because three channels is `
+    + `${Math.round(flatLay.items[0].w)} px wide — the one rectangle that must carry the image is the one that `
+    + `cannot. Stretching instead is ${fmt(flatLay.stretch, 1)} : 1, which is not the map any more. `
+    + `<b>D is out on the receptive field:</b> nothing in a box chain draws where a unit's patch is, and the `
+    + `boxes are the same size whatever the shape. It is still worth keeping as the printed form of the net, `
+    + `which is what the <code>torchvista</code> cell in the notebook already gives the reader. `
+    + `<b>The motif question — A again.</b> A U-Net is the gallery folded: the encoder's columns left to right, `
+    + `the decoder's columns back, and a skip is a line from an encoder column to the decoder column it `
+    + `concatenates into, which is the fan-in line the gallery already draws. A backbone with a replaced head `
+    + `is the same columns with a bracket over the frozen ones. A sequence model is the same columns with the `
+    + `time axis down the column instead of channels. None of those needs a new drawing primitive.`;
+}
+
+/* --- §2 ---------------------------------------------------------------- */
+{
+  const DA_H = 2 * BAND_CONV_H;
+  const boxA = cand(document.getElementById("detA"), "A · a band under the architecture, following the chosen stage",
+    `${STAGE_W} × ${DA_H} — the convolution above, the pooling below`);
+  const ctxA = canvasIn(boxA, STAGE_W, DA_H);
+  caption(ctxA, PAD, 22, "conv1, one output cell");
+  drawConvBandInto(ctxA, PAD, 32);
+  caption(ctxA, PAD, BAND_CONV_H + 22, "pool1, one output cell");
+  drawPoolBandInto(ctxA, PAD, BAND_CONV_H + 32);
+
+  const DB_H = 300;
+  const boxB = cand(document.getElementById("detB"), "B · a page of its own, before the architecture", `${STAGE_W} × ${DB_H}`);
+  const ctxB = canvasIn(boxB, STAGE_W, DB_H);
+  /* the page control, drawn as the segmented control would sit in the rail */
+  ctxB.save();
+  ctxB.strokeStyle = T.axis; ctxB.lineWidth = 1;
+  ctxB.strokeRect(PAD + 0.5, 16.5, 200, 24);
+  ctxB.fillStyle = T.surface3; ctxB.fillRect(PAD + 1, 17, 100, 22);
+  ctxB.font = noteFont(); ctxB.fillStyle = T.ink1; ctxB.textAlign = "center"; ctxB.textBaseline = "middle";
+  ctxB.fillText("Layer", PAD + 51, 28.5);
+  ctxB.fillStyle = T.ink3;
+  ctxB.fillText("Architecture", PAD + 151, 28.5);
+  ctxB.restore();
+  note(ctxB, PAD + 216, 32, "the page control, in the rail");
+  caption(ctxB, PAD, 62, "One kernel, one window, one output cell");
+  drawConvBandInto(ctxB, PAD, 72);
+  caption(ctxB, PAD, 226, "Kernel");
+  ["Horizontal edge", "Vertical edge", "Blur", "Centre-surround"].forEach((n2, i) => {
+    const x = PAD + i * 128;
+    ctxB.save();
+    ctxB.strokeStyle = i === 0 ? T.groupB : T.axis; ctxB.lineWidth = i === 0 ? 2 : 1;
+    ctxB.strokeRect(x + 0.5, 234.5, 120, 24);
+    ctxB.font = noteFont(); ctxB.fillStyle = i === 0 ? T.ink1 : T.ink2;
+    ctxB.textAlign = "center"; ctxB.textBaseline = "middle";
+    ctxB.fillText(n2, x + 60, 246.5);
+    ctxB.restore();
+  });
+  note(ctxB, PAD, 282, "the architecture is a second page, so nothing on this one says what it is for");
+
+  const boxC = cand(document.getElementById("detC"), "C · an overlay, opened by clicking a map", `${STAGE_W} × ${GAL_H}`);
+  const ctxC = canvasIn(boxC, STAGE_W, GAL_H);
+  drawGallery(ctxC, STAGE_W, { foot: false, names: false });
+  ctxC.save();
+  ctxC.globalAlpha = 0.55; ctxC.fillStyle = T.surface; ctxC.fillRect(0, 96, STAGE_W, 180); ctxC.globalAlpha = 1;
+  ctxC.strokeStyle = T.highlight; ctxC.lineWidth = 2; ctxC.strokeRect(8.5, 100.5, STAGE_W - 17, 168);
+  ctxC.fillStyle = T.surface; ctxC.fillRect(10, 102, STAGE_W - 20, 165);
+  ctxC.restore();
+  caption(ctxC, PAD + 6, 120, "conv1, horizontal edge — one output cell");
+  drawConvBandInto(ctxC, PAD + 6, 130);
+  note(ctxC, PAD, GAL_H - 12, "the panel covers four of the seven columns, and the map that was clicked is under it");
+
+  const galH = GAL_H; const detH = BAND_CONV_H; const headH = 300; const gap = 18;
+  const totalA = galH + gap + detH + gap + headH;
+  document.getElementById("detMeasure").textContent = [
+    `A band: input map 66 px, window 3 × ${CELL_W} px, kernel 3 × ${CELL_W - 6} px, sum cell ${CELL_W + 4} px, output map 66 px — `
+      + `${Math.round(66 + 14 + 3 * CELL_W + 22 + 3 * (CELL_W - 6) + 22 + CELL_W + 4 + 14 + 66 + 2 * PAD)} px of ${STAGE_W}`,
+    `A band height: ${BAND_CONV_H} px for the convolution, ${BAND_CONV_H} px for the pooling (one is drawn at a time)`,
+    `stage, gallery + detail band + head: ${galH} + ${gap} + ${detH} + ${gap} + ${headH} = ${totalA} px against a rail of about 750 px`,
+    `the draft's three bands at 550 today: 292 + 18 + 298 + 18 + 300 = 926 px — the gallery replaces bands 1 and 2, so A is ${926 - totalA} px shorter`,
+    `B page: the band alone is ${BAND_CONV_H} px, so a Layer page is ${BAND_CONV_H + 120} px and the Architecture page is ${galH + gap + headH} px`,
+    `C overlay: the panel is ${STAGE_W - 20} × 165 px and covers ${Math.round(165 / GAL.colH * 100)}% of the column block`,
+  ].join("\n");
+
+  document.getElementById("recDet").innerHTML =
+    `<b>A, the band under the architecture.</b> Adjacency is the argument (2.7): the thing that produced the `
+    + `number should sit next to the number, and the cell the band computes is lit in the map directly above `
+    + `it, one press apart. <b>The measured reason it is affordable:</b> the gallery plus the band plus the `
+    + `head is ${totalA} px, which is ${926 - totalA} px SHORTER than the three bands the draft draws today `
+    + `(926 px at 550), because the gallery does the work bands 1 and 2 were splitting. The band itself is `
+    + `${Math.round(66 + 14 + 3 * CELL_W + 22 + 3 * (CELL_W - 6) + 22 + CELL_W + 4 + 14 + 66 + 2 * PAD)} px `
+    + `wide of ${STAGE_W}, so it fits at the narrow stage with the input map, the window, the kernel, the sum `
+    + `and the output map all on one line — the same order widget 49's convolutional page uses, which a `
+    + `student has already met. <b>B costs the adjacency:</b> a Layer page and an Architecture page cannot be `
+    + `read against each other, and the reader has to remember the kernel while looking at the stack. It is `
+    + `the right shape only if the band grows past what a band can hold. <b>C loses the figure it explains:</b> `
+    + `the panel covers ${Math.round(165 / GAL.colH * 100)}% of the column block, including the map that was `
+    + `clicked, so the one connection the overlay is meant to make is the one it hides.`;
+}
+
+/* --- §3 ---------------------------------------------------------------- */
+{
+  const row = document.getElementById("animRow");
+  const boxA = cand(row, "(a) Step = one layer", `${STAGE_W} × ${GAL_H}\nthe new column fades in computed; the detail band shows that layer on one cell`);
+  drawGallery(canvasIn(boxA, STAGE_W, GAL_H), STAGE_W,
+    { reveal: 3, grow: 0.45, title: "Three stages in, the fourth arriving", sub: "one press a stage; the maps arrive already computed", foot: false });
+
+  const boxB = cand(row, "(b) Play inside a layer = the kernel sliding", `${STAGE_W} × 300\nthe window walks the input and the output map fills behind it`);
+  drawSlideFrame(canvasIn(boxB, STAGE_W, 300), STAGE_W, 402);
+
+  const boxC = cand(row, "(c) Play = the receptive-field sweep, which the draft has", `${STAGE_W} × 250\nthe marked unit moves through its own map and the patch moves with it`);
+  drawFieldFrame(canvasIn(boxC, STAGE_W, 250), STAGE_W);
+
+  const rateRows = RATES.map((r) => `${String(r).padStart(3)} cells/s: 7 × 7 ${fmt(49 / r, 1)} s · 14 × 14 ${fmt(196 / r, 1)} s · 28 × 28 ${fmt(784 / r, 1)} s · one cell ${Math.round(1000 / r)} ms`);
+  document.getElementById("animMeasure").textContent = [
+    "how long a whole map takes, at five rates:",
+    ...rateRows,
+    `the draft's own sweep is a fixed ${SWEEP_MS} ms a map whatever its size, so 28 × 28 runs at ${Math.round(784 / (SWEEP_MS / 1000))} cells/s — `
+      + `${fmt(SWEEP_MS / 784, 1)} ms a cell, under one frame at 60 Hz, so several cells land per frame and it reads as a wipe`,
+    `a window that is to be read as a window needs about 60 ms on screen, which is ${Math.round(1000 / 60)} cells/s: `
+      + `7 × 7 in ${fmt(49 / 16.7, 1)} s, 14 × 14 in ${fmt(196 / 16.7, 1)} s, 28 × 28 in ${fmt(784 / 16.7, 1)} s`,
+  ].join("\n");
+
+  document.getElementById("recAnim").innerHTML =
+    `<b>Two phases, and (b) is the one Play owns; (c) becomes the second press of Step.</b> `
+    + `The measured reason is the rate. A sliding window has to be on screen long enough to be seen as a `
+    + `window — about 60 ms, or ${Math.round(1000 / 60)} cells a second — and at that rate a 7 × 7 map takes `
+    + `${fmt(49 / 16.7, 1)} s, a 14 × 14 map ${fmt(196 / 16.7, 1)} s and a 28 × 28 map ${fmt(784 / 16.7, 1)} s. `
+    + `The draft's fixed ${SWEEP_MS} ms a map puts 28 × 28 at ${Math.round(784 / (SWEEP_MS / 1000))} cells a `
+    + `second, which is under a frame a cell: it reads as a wipe, not a slide. <b>So the slide is offered on `
+    + `the small maps and the wipe is what the big ones get</b>, and the label says which: the sweep stays at `
+    + `a fixed time a map, and the note under the map prints <i>N of 784 positions computed</i> so the count `
+    + `is honest whichever it reads as. <b>The three labels.</b> The layers phase is <i>Next layer</i>, which `
+    + `the draft already has. The kernel's slide is <i>Next position</i> &mdash; widget 49's own word for the `
+    + `same motion, so a student meets one name for it. The receptive-field sweep keeps <i>Next unit</i>. `
+    + `Play runs whichever phase the figure is in, and the phases run in that order: layers, then positions on `
+    + `the chosen map, then units. <b>(a) is not a choice</b> &mdash; it is what Step does before either sweep `
+    + `starts, and the only decision in it is that a column arrives already computed rather than filling in, `
+    + `because filling in is what (b) is for and doing both at once would say they are the same motion.`;
+}
+
+/* --- §4 ---------------------------------------------------------------- */
+document.getElementById("apiBlock").textContent = `// widgets/cnn-architecture/depict.js — written in THIS widget, imported by the next.
+// Widget 55 took widget 48's relief that way, and core stays untouched: a change
+// under widgets/core/ has to clear the whole fingerprint suite, and this module
+// is going to move under 64, 63 and 65 while their figures are being settled.
+// It goes to core on the third importer, which is this repo's own trigger (5.8).
+
+// --- what a network IS, for a drawing ---------------------------------------
+stage = {
+  name:    "conv1",                  // printed under the column
+  kind:    "conv",                   // conv | pool | act | gap | linear | upsample | concat | attention
+  shape:   [32, 28, 28],             // [C, H, W]; [C] for a vector stage
+  shown:   4,                        // thumbnails drawn; the rest print as "+28 more"
+  maps:    Float64Array[] | null,    // one per shown channel, or null for a stage with no picture
+  op:      { k: 3, s: 1, p: 1 },     // what backward() walks; null for a stage that changes no shape
+  column:  0,                        // which column of the layout — see depict()
+}
+edge = { from: "pool1", to: "conv2", kind: "straight" }   // straight | skip | concat
+
+// --- the drawing -------------------------------------------------------------
+layout   = galleryLayout(w, stages, { columns, thumbMin, vgap })   // x, y, size per thumbnail
+depict(ctx, layout, { reveal, grow, marked, fanIn })               // the gallery of §1 A
+detailBand(ctx, x, y, stage, cell)                                 // the band of §2 A
+receptiveField(stages, { stage, row, col })                        // [lo, hi] per earlier stage
+                                                                   // — the draft's backwardWindow, taking
+                                                                   //   a stage list rather than a net
+
+// --- what the later lessons pass in ------------------------------------------
+// 65 U-Net:   stages carry column 0..4 down and 4..0 back up, so galleryLayout
+//             lays out two rows; every up stage gets kind "upsample", and the
+//             skip is edge { from: "enc2", to: "dec2", kind: "concat" } — the
+//             same line depict() already draws for fan-in, drawn across.
+// 63 backbone: one stages list, and a bracket over the run whose "frozen" flag
+//             is set; the head's stages are the tail of the same list, so the
+//             split is a property of the stages and not a second figure.
+// sequences:  shape is [T, C]; the thumbnail is a strip rather than a square and
+//             the column's stack is the time axis. galleryLayout already stacks
+//             a column, so the only new thing is the strip's aspect.
+// What this deliberately does NOT hold: colours, fonts, captions, or any copy.
+// Those stay in each widget, because the same picture says a different thing in
+// each lesson and 5.9 covers every string.`;
+
+document.getElementById("recApi").innerHTML =
+  `<b>In the widget, not in core, until a third widget imports it.</b> A change under `
+  + `<code>widgets/core/</code> is the only kind that can reach a widget nobody is looking at, so it costs a `
+  + `full fingerprint suite; this module will move while 64, 63 and 65 are being drawn, and each move would `
+  + `pay that. Widget 55 imported widget 48's relief from the widget that wrote it for the same reason. `
+  + `<b>The split is the same one widget 49 already made:</b> the arithmetic and the layout are shared, the `
+  + `drawing and every string are not.`;
+
+/* --- §5 ---------------------------------------------------------------- */
+{
+  document.getElementById("bugNote").innerHTML =
+    `A change of <code>blocks</code> adds a stage to the network, and <code>pos</code> still names the stage `
+    + `the reader picked before the change, so the new last stage is drawn with no window and no lines into `
+    + `it. The same holds for <code>k</code> and <code>input</code>, which change how many units a stage has. `
+    + `The fix is that a change to the network returns the marked unit to the new last stage, which is what `
+    + `<code>pos</code>'s own default already means &mdash; the change has to clear it rather than keep it.`;
+  const row = document.getElementById("bugRow");
+  const boxA = cand(row, "Before", `${STAGE_W} × ${BUG_H}`);
+  const sBefore = drawBug(canvasIn(boxA, STAGE_W, BUG_H), STAGE_W, false);
+  const boxB = cand(row, "After", `${STAGE_W} × ${BUG_H}`);
+  const sAfter = drawBug(canvasIn(boxB, STAGE_W, BUG_H), STAGE_W, true);
+  document.getElementById("bugMeasure").textContent = [
+    `before: marked stage 4 (pool2), input window [${sBefore[0][0]}, ${sBefore[0][1]}] = ${sBefore[0][1] - sBefore[0][0] + 1} px, `
+      + `stage 5 (conv3) has no window and no lines`,
+    `after: marked stage 5 (conv3), input window [${sAfter[0][0]}, ${sAfter[0][1]}] = ${sAfter[0][1] - sAfter[0][0] + 1} px, `
+      + `five cone entries instead of four`,
+  ].join("\n");
+  document.getElementById("recBug").innerHTML =
+    `<b>The rebase belongs to the network key, not to the click.</b> <code>model.js</code> already computes `
+    + `<code>netKey</code> from blocks, base, k, head and input; when it changes, <code>pos</code> goes back `
+    + `to <code>POS_CENTRE</code> and <code>unit</code> to 0, and everything else about the figure is left `
+    + `alone. That keeps invariant 1: the parameter is still the only record of where the unit is, and the `
+    + `reader's last click survives every display change &mdash; it is only the network changing under it `
+    + `that moves it.`;
+}
+
+/* --- the engine and check lines ------------------------------------------ */
+document.getElementById("engineLine").textContent =
+  `engine: ${STAGES.map((s) => SHAPE_OF(s)).join(" → ")} → GAP [64] → Linear(64, 9) · four channels computed at each stage · `
+  + `kernels ${KERNELS.map((k) => k.name).join(", ")} · conv2 runs `
+  + `${CONV2_ORDER.map((i) => KERNELS[i].short).join(", ")} over pool1 channels 1–4 · `
+  + `map maxima conv1 ${MAXES[1].map((v) => fmt(v, 2)).join(" / ")}, pool2 ${MAXES[4].map((v) => fmt(v, 2)).join(" / ")} · `
+  + `global average ${GAPV.map((v) => fmt(v, 3)).join(" / ")} · `
+  + `computed in ${fmt(COMPUTE_MS, 1)} ms, page drawn in ${fmt(performance.now() - T0, 0)} ms`;
+
+const checkEl = document.getElementById("checkLine");
+checkEl.textContent = CHECK_OK
+  ? `check: the horizontal-edge kernel gives max |h| = ${flatMax.toFixed(12)} on a constant field, and on this `
+    + `image it gives ${fmt(EDGE_MEAN, 4)} on the blob's edge against ${fmt(CORNER_MEAN, 4)} in a flat corner `
+    + `— ${fmt(EDGE_MEAN / CORNER_MEAN, 2)} ×.`
+  : `CHECK FAILED: flat max |h| ${flatMax.toFixed(12)}, edge ${fmt(EDGE_MEAN, 4)}, corner ${fmt(CORNER_MEAN, 4)}`;
+checkEl.style.color = CHECK_OK ? "var(--ink-2)" : "var(--c-extreme)";
+
+document.getElementById("nodeLine").textContent = NODE_CHECK
+  + " — the input carries noise of 0.18, so the edge maps carry it too; without the noise the same ratio is 3.88.";
+</script>
+</body>
+</html>

@@ -11225,7 +11225,7 @@ epochs.
 | 49 | `processing-layers` | Deep Learning - Processing Layers | 2 | 05-3 cells 1–28 | **SHIPPED 2026-09-10**, the same day it was planned: mock, draft, five review rounds, a copy round, 29 states, 433 MATCH |
 | 50 | `support-layers` | Deep Learning - Support Layers | 2 | 05-3 cells 29–60 | **SHIPPED 2026-09-10**, the same day as its sibling: mock, draft, one review round, a copy round with one core line, 27 states, 460 MATCH |
 | 51 | `composition` | Composing Layers and Controlling Flow | 3 | 05-3 cells 61–101 | **PLANNED 2026-09-10**, seven pages, the diagram leading |
-| 52 | `training-loop` | Training with Validation | 4 | 05-4, the whole notebook | proposed, **measured** |
+| 52 | `training-loop` | Training with Validation | 4 | 05-4, the whole notebook | **DISCARDED 2026-09-13**, Kenneth's call when the image arc was planned; measured, never mocked |
 | 53 | `tensors` | Tensors | 0 — before the four groups | 05-2 cells 1–69 | **SHIPPED 2026-09-09** on "tested ok" after twenty-nine rounds in two days; 37 states — 34 settled, two driven, one hit-driven |
 | 54 | `loss-functions` | Loss Function | 4 | 05-4 cells 30–40 | **PROPOSED 2026-09-10** on Kenneth's question about where sigmoid, softmax and the losses belong; three pages by task, cell 30's own table |
 | 55 | `optimizers` | Optimizer | 4 | 05-4 cells 41–44, 82–86 | **SHIPPED 2026-09-11**, the day Kenneth asked for it: measured, torch-checked, mocked, seven picks, drafted, four audit rounds, 28 states, 568 of 571 MATCH fronted with the 3 t-sne light DIFFERs unchanged |
@@ -13437,7 +13437,12 @@ scope problem has somewhere to start:
 | **six** — the same plus Ordering | Routing alone | the same, minus the subunit | **declined** |
 | Ordering folded into Building as the diagram's first view | one page, not the figure | the Combination view goes | **declined** |
 
-### Slot 52 · `training-loop` — Training with Validation — MEASURED 2026-09-07
+### Slot 52 · `training-loop` — Training with Validation — MEASURED 2026-09-07, DISCARDED 2026-09-13
+
+**Discarded on Kenneth's word, 2026-09-13**, in the message that asked for the
+image arc ("we can discard the plan for training-loop"). The measurement and
+`_lab/dl-loop-measure.mjs` stay as the record; nothing in the repo links to the
+slot. The entry below is kept as written.
 
 **Host.** 05-4 end to end: the stratified 60/20/20 split (cells 12–15),
 `DataLoader` batches of 16 (17–21), the MLP 2 → 64 → 64 → 2 (61),
@@ -15198,6 +15203,692 @@ On "tested ok, push it" the draft was pushed (7c3c1d3), then the status flipped 
 4. **The optimizer picker** on slot 48 — now, later, or never. **Answered 2026-09-11: never; slot 55 instead.**
 5. **Pinning slot 52** — run the torch check in Colab from dumped weights, or
    install torch here (a network question; ask before it is worked around).
+
+## The image arc — PROPOSED 2026-09-13, from `06-1` to `06-3`
+
+**Kenneth's ask, 2026-09-13:** widgets for *DL for Image Data* — `06-1 Overview`
+(8 cells, all markdown), `06-2 Classification` (140 cells), `06-3 Segmentation`
+(82 cells) — and slot 52 `training-loop` **discarded** in the same message. The
+three notebooks were read in full from the Master copies on this machine, which
+carry no outputs, so every number below is measured, not read; hosts are cell
+indices in those files. His fifteen figures were fetched from the notebooks'
+own links into `_lab/figs/` (`dl-image-*.png`, `dl-imaging-training.png`,
+`dl-workflow-*.png`, the two `.gif`s are from mlnotebook, not his). Two measure
+scripts were written first — `_lab/dl-image-measure.mjs` (a plain-JS CNN
+engine: cost, the three training strategies, Grad-CAM with a planted cue) and
+`_lab/dl-seg-measure.mjs` (Dice against pixel accuracy, the size-bin split,
+paired augmentation, a tiny U-Net with and without its skip) — and their
+findings are under each slot.
+
+**What the lesson runs.** 06-2 trains three ResNet-18s on PathMNIST (28 × 28
+RGB, nine colon-tissue classes) in Colab — from scratch, fine-tuned at 1e-4,
+and a frozen backbone under a new MLP head at 1e-3 — and ends with Grad-CAM on
+`layer2` and `layer3`. 06-3 splits 600 KRD-WBC microscopy images 80/10/10,
+loads image/mask pairs through MONAI's dictionary transforms, trains a
+hand-written `UNet2D` (base 16, four levels) and MONAI's `SegResNet` with
+`DiceCELoss`, and scores Dice. None of that can run in a browser with zero
+dependencies. What can: a two-layer CNN on 16 × 16 synthetic shapes, and a
+two-level U-Net on 16 × 16 blobs — measured below — which is the same trade
+widget 37 made for the MLP and widgets 48 and 55 for the optimizer: the
+lesson's idea on a stage small enough to draw every number of.
+
+### What is already covered — read before proposing a seventh slot
+
+| existing widget | what it already does for this week | so the arc must not |
+|---|---|---|
+| 49 `processing-layers` | the convolution: one output value as window ⊛ kernel, `k` / `stride` / `pad` and the `⌊(in + 2p − k)/s⌋ + 1` card, the transposed convolution scattering one cell into a patch | draw a kernel sliding again, or teach the output-size formula a second time |
+| 50 `support-layers` | pooling as its own page, max beside average, no parameters | re-teach what a window keeps |
+| 51 `composition` | skip as addition (the residual block), branching with `concat · add · average` and the shapes that each accepts or rejects | re-teach what concatenation does to a shape; it may say WHY U-Net concatenates |
+| 53 `tensors` | the image batch `[N, C, H, W]` with a frame per sample | re-teach the four dimensions |
+| 54 `loss-functions` | cross-entropy against `BCEWithLogitsLoss`, softmax over the row against sigmoid per class, the −log p curve; Dice named as a caption and left out | draw a classification loss; 66 draws the one 54 left out |
+| 55 `optimizers` | Adam, the learning rate, `StepLR` and `ReduceLROnPlateau` | animate an optimizer |
+| 35 `metrics` | accuracy, precision, recall, F1 and the confusion matrix at one threshold | re-teach a classification metric or the confusion matrix (06-2 cells 51, 81, 100, 121 are 35's figure at nine classes) |
+| 38 `shap` | explaining a prediction, on tabular data, additive over features | claim Grad-CAM is a Shapley value; 64 says what it is instead |
+| 13 `generalization` | the split and why a test set exists | re-teach the split; 66 adds what stratifying by MASK SIZE changes |
+
+What no existing widget touches: why the same kernel is used everywhere and
+what that saves against a dense layer; how far back into the image one output
+unit can see; what a pretrained backbone is worth and what freezing it costs;
+where a class score's gradient lands on the image; why the decoder needs the
+encoder's features and not only its own; and what overlap measures that pixel
+accuracy does not.
+
+### The six slots — FOUR after Kenneth's picks, 2026-09-13
+
+**His picks, one AskUserQuestion, 2026-09-13 (after the reboot):** *four* —
+62 cut and 66 folded into 65 as its second page; 63 **rescoped** to the
+forgetting trade-off (the recommendation); **one widget a section**; the
+build order **61 · 64 · 63 · 65**. The table keeps all six rows so the two
+that went are pointed at rather than re-proposed.
+
+| # | slug | title (the notebook's own heading) | host | state |
+|---|---|---|---|---|
+| 61 | `cnn-architecture` | Architecture - Basic | 06-1 cell 2 (convolution, pooling, receptive field growth) and cell 1's parameter argument; 06-2 cell 23 (components and order, calculating dimensions, Flatten against GAP), cell 25's `SimpleCNN` | proposed, **measured**: the receptive field is 10 px on the notebook's own net; **first to build, mock next** |
+| 62 | `augmentation` | Preprocessing · Load/Transform | 06-2 cell 1 §3 and `dl-workflow-preprocess.png`; 06-3 cells 15–19 and `dl-image-segment-augment-pair.png` | **CUT 2026-09-13**, Kenneth's pick; the unpaired flip (Dice 0.07) goes to 65's Dice page as a caption |
+| 63 | `pretrained` | Using Pretrained Models | 06-2 cells 55–56 (`dl-imaging-training.png`), 61–121 (scratch, fine-tuning, transfer learning) | **RESCOPED 2026-09-13**, Kenneth's pick: his figure as drawn, and one trained stage — fine-tuning's learning rate against forgetting, steps fixed; third to build |
+| 64 | `grad-cam` | Explainability · Grad-CAM | 06-2 cells 122–139 (`dl-image-explain-gradcam.png`); 06-1 cell 4 | proposed, **measured — holds** with a 3 × 3 cue and the CAM read on a clean image; second to build, the engine is born here |
+| 65 | `unet` | Architecture - Basic (Segmentation) · Training · Evaluation | 06-3 cells 30–37 (`dl-image-segment-unet.png`), 57–64; **and 66's host** (cell 6's bins, cells 38–56) as its second page | proposed, **measured — trains nothing**: the skip bought speed, not the boundary; **two pages, U-Net · Dice**, Kenneth's pick; last to build |
+| 66 | `dice` | Training · Evaluation (Segmentation) | 06-3 cell 6 (the size bins, `dl-image-segment-split.png`), cells 38–56 (Dice loss, `DiceMetric`, sigmoid → 0.5, `show_prediction`) | **FOLDED into 65 as its Dice page 2026-09-13**, Kenneth's pick; the measurement holds (a miss scores 97.9% accuracy; threshold has no losing state on a symmetric map) |
+
+Six is the honest count for three notebooks because 06-2 carries three ideas
+that are three different figures (a stack of shapes, a backbone with a head that
+is or is not trainable, and a heatmap made from gradients) and 06-3 carries two
+(a U and an overlap). The one that could go without losing a section is 62:
+its claim is the thinnest (a transform is a draw, and the mask follows the
+image), and its paired half can be a caption on 66. The order is the notebooks'
+own, 61 → 66, with one exception argued under *The engine*.
+
+**The engine, and where it lives.** 63 and 64 train a network in `compute()`
+(65 was planned to, and the measurement under it says why it no longer does). The plain-JS CNN (conv 3 × 3, ReLU, max-pool, GAP, linear, Adam)
+is written once, in the first of them to be built, and imported by the others
+the way 55 imported 48's relief. **64 is the smallest use of it** (one two-class
+net, no source task), so the recommendation is to build 64 before 63 even
+though 63 comes first in the notebook, and let 63 import. 61, 62, 65 and 66
+train nothing. The budget the engine has to live in is measured under 61:
+16 × 16 images, 200 of them, 30 epochs, 1.1 s.
+
+**Pinning.** torch is not installed here and the lesson runs in Colab. The
+three trained slots are pinned the way 37 was: dump the images and the initial
+weights the widget produced, train from those exact arrays in torch, compare —
+a notebook handed to Kenneth to run. The two scripts' gradients are checked
+against finite differences, which is what can be done on this machine.
+
+### Slot 61 · `cnn-architecture` — Architecture - Basic — SHIPPED 2026-09-15
+
+**Shipped on "go ahead and push to gallery", 2026-09-15**, after seven review rounds and a copy audit over two days (2026-09-14/15): fifteen states recorded by `_lab/cnn-shoot.html` (each shot three times, every drive moved its figure, the copy proof 6 / 6), the status flipped in the manifest, the widget and the verify, the full suite run fronted at DPR 1.25 (the count is in HANDOVER), `check` and `test` read alone, one commit, pushed. What shipped is the ROUND-6 SHAPE, not the plan below: a feature-map gallery of a procedural cell through four named first-layer kernels and four biased cross-channel second-layer kernels, a detail band under it following the chosen unit, the head band on one scale, and a gated second stage in which the marked unit walks its map once with its receptive field drawn back to the image. The motif is `widgets/cnn-architecture/depict.js`, to move to core once the U-Net and the backbone widgets use it unchanged. The entry below is the plan as first written; the DRAFTED block under it is the record of how it became this.
+
+**Host.** 06-2 cell 23 end to end: the three-column figure
+`dl-image-architecture-basic.png` (Minimal · + normalization · + dropout, `× N`,
+then Linear), the *expand channels / contract spatial* pair of figures
+(`dl-image-conv2d.png`, `dl-image-pool2d.png`), the dimension formulas, the
+worked 28 × 28 × 3 → 7 × 7 × 64, and the two heads — Flatten + `Linear(3136, K)`
+against GAP + `Linear(64, K)`; cell 25's `SimpleCNN` (three blocks, base 32,
+GAP, `Linear(128, K)`). And 06-1 cell 2's three ideas — the kernel shared across
+positions, pooling, and *receptive field growth* `r_L = r_{L−1} + (k − 1)` — with
+cell 1's arithmetic: a 256 × 256 RGB image into 1,000 dense units is *almost
+200 million parameters*.
+
+**The misconceptions.** *Inferred, and the one this slot exists for:* a CNN is
+an MLP that happens to be fed pixels — the students arrive from 05-1's MLP and
+widget 37, where every input reaches every unit. The corrective is two numbers
+on one figure: what a 3 × 3 kernel costs against a dense layer on the same
+image, and how far back into the image one output unit can see. *Reported:*
+deeper layers see the whole image (they see their receptive field, which on
+cell 25's own net is smaller than 28 after block 1 and larger than the image
+after block 3 — measured below). *Inferred:* Flatten + Linear and GAP + Linear
+are interchangeable heads (they differ by a factor of 49 in parameters on the
+notebook's own numbers, and GAP is what lets a network take an image of another
+size).
+
+**The shape.** Kenneth's stack, drawn to scale: the input as a slab
+28 × 28 × 3, then each block's stages as slabs whose height and width follow
+`H × W` and whose depth follows `C` — the figure's own axes — with the shape
+printed on the edge (the dimension-hue rule from 51: a rule in `--c-dim-a…d`
+under the size that is about to change). Under the stack, the head: Flatten or
+GAP, then Linear to `K`. **The reader picks one unit** on any stage (a click; a
+`regions` hit, so it is a parameter and a hit-driven state) and its receptive
+field is drawn back onto the input as a highlighted square, the way
+`dl-image-receptive.png` draws a cortical cell's field on the visual field.
+Step = one layer added: the slab appears, its shape prints, the field on the
+input grows. The readout is the parameter count per layer and the total, the
+receptive field in pixels, and one line the whole slot is for: *a dense layer
+from this image to 1,000 units: N parameters* beside *this network: n*.
+
+**Controls.** `blocks` 1 · 2 · 3 (cell 25's three; **data**); `base` 16 · 32
+(cell 23's *e.g. 16 or 32*; **data**); `k` 3 · 5 (**data**; 5 makes the field
+outgrow the image a block earlier, the case that fails); `head` Flatten · GAP
+(**data**, the figure's own two options, the parameter count moving 49×);
+`input` 28 · 64 (**data** — the notebook's 28 and a size at which Flatten's
+count explodes and GAP's does not move, which is cell 23's *adapts to different
+spatial sizes*). No seed: nothing here is random. `unit` is the click. Formula
+card: cell 23's two formulas, convolution with the padding term and pooling
+without (one each, 5.8 satisfied by their being different), and the receptive
+field recursion from 06-1. **Normalization and dropout are not drawn**: the
+figure's second and third columns add them, and 50 has both; a caption says
+they leave the shape alone.
+
+**What it echoes.** `dl-image-architecture-basic.png` (the column, `× N`,
+Linear under), `dl-image-conv2d.png` / `dl-image-pool2d.png` (a window on every
+input channel feeding one output channel — the slab depth is the channel count).
+**Departure to declare:** the figure draws one block three ways; the widget
+draws one way at one to three blocks, because the shape is the same in all
+three columns and the shape is the argument.
+
+#### MOCKED 2026-09-13 — `_lab/cnn-mock.html`, and Kenneth's picks the same evening
+
+Seven sections from `mr-mock.html`'s shell, every candidate drawn at 550 and
+the rail through core's `buildControls` at 300; the engine is arithmetic only
+and the page prints its own check line (all ten measured numbers reproduce).
+Read in the browser before he saw it; one defect fixed there — geometry A's
+shape labels collided under the 3–64px rectangles at the left, so they
+alternate between two rows and the first is clamped to the margin.
+
+**His picks, two AskUserQuestions, every recommendation taken but one:**
+
+| § | pick | the reason recorded on the mock |
+|---|---|---|
+| 1 stack | **A, flat rectangles** — height follows H, width follows C, his U-Net figure's convention | the only geometry whose picture moves when the shape does; B's six solids take 481 of 522px at three blocks with the last 52px deep on a 25px face; C's boxes are all one size and 51 already draws a Sequential that way |
+| 1 input 64 | **rescale** — 28 and 64 draw the same picture, the printed shapes and the head count move | a fixed 6.64px a row makes the 64 input 425px tall; the claim at 64 is in the numbers (Flatten's head 5.22×, GAP's unchanged) |
+| 2 field | **B, the window on every stage** — 1 × 1, 2 × 2, 4 × 4, 8 × 8, then 10 of 28 on the image | Step reveals one stage a press, back from the unit to the image; A is B after the first press. The overrun (k = 5, three blocks: 32 of 28) is a solid clipped rule with the full window dashed outside the image, both `--c-extreme` |
+| 3 head | **one figure that redraws under `input`** | the claim is that one number moves and the other does not (2.7); the GAP bar is floored at 26px with the count printed beside every bar; the dense line under a `--c-reference` rule, 118× the network |
+| 4 rail | **A, with sections** The network · The head · The image | three kinds of thing (3.4g); `head` segmented, the other four `choice` ladders; Step is *Next layer*; no seed. 745px against a 292–300px stage |
+| 5 tiles | **B** — *Parameters in this network* 19,977 (convolutions 19,392 · head 585); *Receptive field* 10 of 28 px; *A dense layer instead* 2,353,000 | the denominator in the value; the note splits what the Head control moves |
+| 0 subtitle | **B's shape without naming Flatten and GAP** — his one correction; three alternatives put to him and he took the first: *A convolutional layer applies the same small kernel at every position, so its parameter count does not grow with the image. Each output unit is computed from a square patch of the input, its receptive field, which widens with every layer.* | the register: the concept, not the dashboard |
+| layout | **one stage, three bands** — stack over receptive field over head, about 900px beside the 745px rail; one Step serves the first two bands (a press adds a layer to the stack and the window on the input grows with it); a click on a stage picks the unit | the third question, put after the mock because the mock drew the three as sections; 3.4a: the rail is what makes a tall stage the right shape |
+
+**Geometry of record (the mock's, the draft copies its constants):** stage
+292 (§1) / 278 (§2) / 300 (§3) at 550; A's height unit 6.64px a row at input
+28, width unit 1px a channel, rectangles 264px + 44px gaps at two blocks and
+392 + 19 at three (`A_TALL` 186, `A_MINW` 6, `A_GAPMIN` 15); §2's input
+image at 168px (6px a pixel), four later stages at 71.5px on an 83.5px step
+(five at 54.8 on 66.8 with three blocks), grid lines dropped under 4px a
+cell; §3's bars 288px for the longer, 26px floor. Three things the mock
+settled without a pick: `blocks` 3 drops the third block's pool (cell 25's
+own shape); one conv a block (the measured 47,625 / 19,977), cell 25's two
+convs reported as the 26-of-28 line; the dimension rule is `--c-dim-a` for
+H·W together and `--c-dim-b` for C — a departure from the tokens' counting
+from the last dimension, because under a square kernel and square pooling H
+and W move together and a rule each would say they can part.
+
+#### DRAFTED 2026-09-14, and round 1 the same morning
+
+**The draft** (an Opus builder; `main.js`, `model.js`, `index.html`, `_lab/cnn-verify.mjs` with 60 checks, nine placeholder states) was read in the browser at 640 and 900 wide before Kenneth saw it. Four fixes in the main session: the mock's bar-floor sentence had been painted on the widget and is gone (2.9); band 1's foot is "Normalization and dropout leave the shape unchanged." because the longer line met the head labels at the side layout's 535px; band 2's image is 8px lower and its foot 12px deeper so the dashed overrun window clears the sub-caption and the Input label (stage 906 → 926, the verify's assertion moved with it).
+
+**Round 1 — "can it show the patches moving?"** His pick, from three offered: **both** — a click on any cell of a stage grid places the unit there (a second hidden data parameter `pos`, the row-major index, −1 the centre; the region sets `unit` and `pos` together), and once the layers are in, Play sweeps the unit one cell a beat along its row to the row's end, the nested windows and the patch on the image jumping by `jump` pixels — the number the r chain prints, drawn. A patch partly outside the image at the border is the padding and is dashed in `--c-highlight`; `--c-extreme` stays for a window wider than the image. The Step label keys on the animation's phase (widget 60's device): *Next layer*, then *Next unit*. `shown` counts both kinds of beat, so every swept state is a URL. The sweep is one row, not the map: 784 beats on conv1 would be nine minutes at the collection's pace.
+
+**Round 2 — "we may need to adjust: 1) we can add layers and see how they are connected; 2) we have a play for showing how patches sweep the image in a complete manner from top to bottom."** Two picks, both the recommendation: the connection is **a cone of lines** between consecutive stages — the four corners of the window on the earlier stage to the unit on the later one, his receptive-field figure's frustum — appearing with the layer's beat and moving with the patch, the arrows between the grids gone; and **Play sweeps the whole map** of the chosen stage in reading order after the layers are in, at a fixed six seconds for any map (122 ms a cell at 7 × 7, 7.7 ms at 28 × 28 — several cells a frame on the big maps), Step one cell, the sweep starting at the top-left regardless of the clicked unit and a click mid-sweep continuing the raster from that cell. Round 1's one-row sweep is superseded. Round 1's `pos=16411` URL value stands as an open question (a text-typed `pos` reading `pool2:3,6` would be copy).
+
+**Round 3 — his screenshot at three blocks and input 64, and three points (2026-09-14):** *(1) "when I add another block, there is no link or animation to the final one"* — a bug: the chosen unit was on pool2 and stayed there when `blocks` went to 3, because `pos` is a parameter and nothing rebases it; conv3 drew with no window and no cone. Core has no rebase hook (checked: `when` gates visibility only). The fix is the widget's: the default already means *the last stage*, so a click on the last stage — a rectangle or one of its cells — writes the RELATIVE form (a reserved stage index meaning last), and a block added carries the unit to the new last stage; only a unit pinned on an earlier stage survives a network change, which is what pinning means. *(2) "can you research any other nicer depiction of the architecture? you can mock up options"* and *(3) "when animating, i don't see the results of the operations … anything that makes pedagogical sense. even a section before to show details (like the blocks widget)"*, with the standing brief *"we want to see how to build something that the same motif can be used for other lessons later in PHM5005"* — a mock round: `_lab/cnn-depiction-mock.html`, four depictions of the same net with REAL feature maps from fixed named kernels (horizontal edge, vertical edge, blur, centre-surround; ReLU; max-pool) — the feature-map gallery (CNN Explainer, Wang et al. 2020), perspective slabs with the kernel projected slab to slab (NN-SVG's LeNet style, his conv2d figure), his flat rectangles filled with a channel's map, and the box graph `torchvista` prints — plus three placements of a detail section in widget 49's idiom (a band under the architecture that follows the chosen stage; a page before; an overlay), three animation storyboards (layer reveal; the kernel sliding with the output filling in; the receptive-field sweep), and an API sketch for the shared motif a U-Net, a backbone/head split and a sequence model would reuse. **His picks (one AskUserQuestion, 2026-09-14):** the **gallery** (A: one column a stage, four named channels of each, `+28 more`, fan-in lines, pooling columns half the size, 384px — B fails on slab depth, C on a 6px input rectangle, D draws no receptive field); the detail **band under** the architecture following the chosen stage (870px with the head band, under today's 926); **Play slides the kernel** over the chosen layer's input with the output map filling behind it (about 17 positions a second reads as a window) and **Step has three phases** — Next layer · Next position · Next unit, the receptive-field sweep the third; and the motif **in this widget first — "we'll test it here first, when mature, will move to core for deep learning widgets"** (`widgets/cnn-architecture/depict.js`, imported by 65 and 63 the way 55 imported 48's relief). The stack of rectangles and the grid band go; the gallery carries sizes, connections, results and the receptive field, and the cone is drawn on it. The texture's noise drops so the named kernels' maps read (the mock measured the edge contrast capped at 2.2× by noise 0.18).
+
+**Round 4 (his two questions):** the click selects the TARGET map (yes); pool2 → GAP and GAP → Linear had no lines — fixed in the main session (every revealed column's wiring faint, the chosen lit; a head cell one line per channel, a Linear score every line).
+
+**Round 5 — "looks great", and five points (2026-09-14):** (1) relook the drive: a GATE between revealing the layers and walking the patches, or the architecture at once with Play for the patches only — "mock up for me to see"; (2) another example image, "maybe a cell or something? this looks like an amorphous blob"; (3) "some of the outputs don't activate and show the link" (his arrow on the Linear column); (4) Flatten and GAP look the same in the gallery's head column; (5) show both heads below, or follow the selector? A mock round for 1, 2, 4, 5 — `_lab/cnn-round5-mock.html` (three drive shapes drawn as the real rail; four procedural images — a cell, a blood smear, a tissue patch, a sharp figure — each with its four conv1 maps and its measured edge contrast; three head-column depictions; the head band both / chosen / none); **3, investigated in the browser:** the targets exist in every column and a click on a Linear cell writes `pos` and switches the detail band — what reads as dead is the CONTENT: under Flatten the four drawn values are the first four cells of pool2's channel 0 (corner pixels, 0.02 / 0.00 / 0.00 / 0.00) and the nine scores print 0.00; under GAP they are the four means and the scores are ±0.05. The fix for the next build: Flatten draws four informative cells (the centre of the map, or the four largest), the scores are computed over EVERY value the network holds (four channels × 49, or the four means) with the weights at torch's bound, and are drawn as bars scaled to their own largest with the largest lit; the chosen score cell is marked in the gallery. **His picks (one AskUserQuestion):** (1) **A, gated** — stage 1 Next layer · Play · Reset reveals the layers; a button under the drive row opens stage 2 by writing a parameter (`power-and-error`'s shape, so a link reproduces it and the rail never keys on the animation), and the block that appears holds a visible Layer choice and one relabelling Step (Next position · Next unit) with Play sliding the kernel then walking the unit; (2) **A, the cell** (28× edge contrast, holds at 64; all four kernels find different things; a BloodMNIST tile); (4) **A, Flatten as a 12px strip** of 49 cells with `+3,087 more`, GAP four cells; (5) **B, only the chosen head** in the head band, the other's count as one printed line — his one departure from the recommendation (A, both always). Building.
+
+**Round 6 (2026-09-15), his two questions:** *"why does the patch scan twice?"* — the two phases behind the gate (the kernel over the chosen layer's input, then the marked unit over its map) travel the same path on the image, since the kernel's window is the innermost window of the receptive field; the answer is ONE scan — the marked unit walks its map once, the output filling behind it, the detail band, windows, cone and patch moving together, one label Next unit. *"the second conv2 should have different kernels? for higher order features?"* — yes: conv2 reused the four first-layer operators on one channel each, which contradicts the drawn wiring and tells the first-layer story twice; a second layer's kernels are combinations over every input channel (4 × 3 × 3), and what each responds to on the cell must be MEASURED before it is named. Mock `_lab/cnn-round6-mock.html`: six cross-channel candidates with their enrichment per cell region, the best four drawn as conv2's column and as four kernel slices, conv3 under the same principle, and the merged single scan storyboarded with its pace. **The measurement, and his picks (2026-09-15):** every input channel is non-negative after ReLU, so a sum of positive weights is a brightness and four of six candidates were most enriched on the membrane (the brightest structure, a fifth of the picture; a corner cannot be an AND of two ReLU'd edge maps at all); the separator is the BIAS, which `buildNet` already counts — with one, **Membrane · Granule · Body · Nucleus** (4 × 3 × 3 + bias over every pool1 channel) clear 3× at 3.7 / 12.4 / 7.9 / 4.8, two of them using only two input channels, which the slice picture draws. conv3 repeats the four rescaled: at 7 × 7 every candidate reaches its own ceiling and the measurement cannot tell them apart. The detail band for a second-layer cell is four windows and four slices in 2 × 2, the sum, the bias, ReLU — 534px of 550, band 2 193 → 225, stage 837 → 869. **One scan**: the marked unit walks its map once on the position clock (60 ms a cell rising so any map finishes inside 10 s; pool2 2.9 s, conv1 10 s), the output filling behind it, one label Next unit; the kernel's window is the innermost receptive-field window at all 1,225 cells. Both picks the recommendation. Building.
+
+#### MEASURED 2026-09-13 — `_lab/dl-image-measure.mjs` M1 — the arithmetic, and the engine's budget
+
+- **The notebook's net at 28 × 28 × 3, K = 9:** conv1 896, conv2 18,496, then
+  Flatten + `Linear(3136, 9)` 28,233 for **47,625** in all, against GAP +
+  `Linear(64, 9)` 585 for **19,977**. The head is 59% of the Flatten model
+  and 3% of the GAP one; GAP removes 58% of the parameters. The dense
+  alternative: 28·28·3 → 1,000 is 2.35 million; 256·256·3 → 1,000 is
+  **196,609,000**, cell 1's *almost 200 million*.
+- **Receptive field** (`r_out = r_in + (k − 1)·jump`): 1 → conv1 **3** →
+  pool1 4 (jump 2) → conv2 **8** → pool2 **10** (jump 4). So each of the 49
+  cells of the 7 × 7 × 64 map covers 10 × 10 pixels — 12.8% of the image, cells
+  4 px apart and overlapping. *Deeper layers see the whole image* is false on
+  the notebook's own net, which is the page's number; with cell 25's third
+  block (two more convs at jump 4) it is 26, and with `k = 5` the field passes
+  28 a block earlier — the case that fails.
+- **The engine's budget, for 63 and 64:** the two-layer CNN at 16 × 16 trains
+  200 images for 30 epochs in **1.1 s** in node (37 ms an epoch); 400 images or
+  24 × 24 is 2.2–2.4 s and both together 4.8 s. Cost is linear in images and
+  pixels: ~3,400 image-epochs a second at 16 × 16. Gradients checked against
+  finite differences at 4.6e-9.
+
+### Slot 62 · `augmentation` — Preprocessing · Load/Transform — the cuttable one
+
+**Host.** 06-2 cell 1 §3 and `dl-workflow-preprocess.png` — three columns
+Training · Validation · Test, the rows Fixed · Learned · Augment, the learned
+transform's dashed arrows from the training column to the other two, the
+augment dot on the training column only — with its warning that *horizontal
+flipping may not be appropriate for images with left/right context*; 06-3 cells
+15–19: the transforms table (Fixed for every split, Augment for train only), the
+guideline *for masks use nearest interpolation and discretize to 0/1*, and
+`dl-image-segment-augment-pair.png`, the image and mask rotated together.
+
+**The misconceptions.** *Reported by both notebooks, which is why the figure
+exists:* augmentation is applied to every split (the figure's augment dot is on
+one column). *Inferred:* the normalization mean and sd are computed per split
+(they are learned on training and applied to all three — the dashed arrows).
+*Reported by 06-3's guideline:* a mask is resampled like its image (bilinear
+puts values between 0 and 1 into a 0/1 mask, and thresholding them moves the
+boundary; measured below). *Inferred:* the augmented set is a bigger file (it
+is a draw per epoch; the same image never comes twice).
+
+**The shape.** Kenneth's figure as the stage: one image and its mask in the
+training column, the validation and test columns beside; Step draws ONE
+augmented sample from the seeded `rng` through the chosen transforms (flip,
+rotate 90, affine with 06-3 cell 19's own ranges — 10°, 8 px, 0.1 scale —
+contrast, noise), the mask following the image when `paired` is on and staying
+put when it is off; the validation and test columns never move. The learned row
+is the per-channel mean and sd printed once on training and copied across. A
+`Dice` readout between the transformed mask and where the object now is, which
+is 1 when paired and falls with the angle when not.
+
+**Controls.** `transforms` as a checklist of the five (**data**); `paired`
+on · off (**data**); `mask` Nearest · Bilinear (**data**: the between-values
+count and the area change print); `seed`; the drive Step = one draw, Play = a
+run of draws. Formula card: none — this is a table page; the transforms table
+is the card. `Fixed` transforms are captions (load, channel-first, scale to
+0–1).
+
+**Why cuttable.** Every claim here is one sentence the lesson already states,
+and the figure that would carry it — the mask drifting off its object — is a
+single picture that 66 can show in a caption. It earns its slot only if the
+per-epoch draw (the same training image a different way each Step) is judged
+worth animating; the split-column figure is otherwise static.
+
+#### MEASURED 2026-09-13 — `_lab/dl-seg-measure.mjs` M3
+
+A 32 × 32 disc of radius 6, off-centre, under 06-3 cell 19's own affine (10°,
+scale 1.1):
+
+- **Bilinear resampling turns 44% of the object into fractions** — 59 pixels
+  strictly between 0 and 1, 5.8% of the image — and nearest keeps two values.
+  But thresholding the bilinear mask at 0.5 gives Dice **0.996** against the
+  nearest one and the same area (135 against 134). So `mask` Nearest ·
+  Bilinear has **no losing state once the label is discretised**, which 06-3's
+  own pipeline does (`AsDiscreted(threshold=0.5)` in every split). It is a
+  caption, not a control.
+- **Not pairing is the picture.** Image transformed, mask left where it was:
+  Dice between the object's true position and the stale mask is 0.912 at 10°,
+  0.809 at 20°, 0.564 at 45°, and **0.071 under a horizontal flip** — the most
+  innocuous transform on the list, with no error and no visible artefact. That
+  one panel is the slot's claim, and it is one panel: it can be 66's caption
+  or the second band here. The recommendation stands — 62 is the cut
+  candidate, and if kept its argument is `paired` and nothing else.
+
+### Slot 63 · `pretrained` — Using Pretrained Models — RESCOPED 2026-09-13
+
+**Rescoped on Kenneth's pick, 2026-09-13**, to what measured: his figure
+(`dl-imaging-training.png`) drawn as it is — backbone and classifier, the two
++/− rows, the trainable bracket, the parameter count each strategy trains —
+and ONE trained stage behind a gate: **fine-tuning's learning rate against
+forgetting**, target accuracy on one strip and source retention on the other,
+the number of optimizer STEPS fixed rather than epochs. The three strategies
+stay on the figure as what is trainable and what it costs, and the widget
+claims nothing about which scores higher. `domain` Near · Far stays (it moved
+forgetting, 56.5 against 66.8 at n = 128); `n` stays as the step count's other
+half; `strategy` becomes the figure's three columns with the trained stage
+under Fine-tuning only. The entry below is the plan as first written, and the
+MEASURED section under it is why.
+
+**Host.** 06-2 cell 55 (*Using torchvision models*: non-pretrained with
+`num_classes`, pretrained with the 1000-way head replaced; `dl-imaging-training.png`
+— the backbone and the classifier, then three columns From scratch · Fine-tuning ·
+Transfer learning with two rows of +/− for *pretrained weights* and *replace
+classifier* and a bracket for what is trainable), cell 56's ResNet, and the three
+training runs — from scratch at 1e-3 (66–81), fine-tuning at 1e-4 *to minimize
+forgetting* (84–100), transfer learning with the backbone frozen and an MLP head
+at 1e-3 (101–121). Cell 55's own pros and cons: fine-tuning risks *catastrophic
+forgetting* and needs a lower learning rate; transfer is *fast, stable on small
+datasets* and *limited if the domain is far*.
+
+**The misconceptions.** *Reported, in the lesson's own cons:* fine-tuning at
+the ordinary learning rate is safe (it overwrites what was pretrained — measured
+below as the source task's accuracy after fine-tuning at 1e-3 against 1e-4);
+pretrained weights help regardless of domain (the far-domain arm). *Inferred:*
+transfer learning and fine-tuning are one thing under two names (they differ in
+what is trainable, the figure's bracket, and in what the run costs); a frozen
+backbone cannot learn a new task (it learns the head, which is enough when the
+target is small and near). *Inferred:* a pretrained model must have seen the
+target classes (its 1000 ImageNet classes contain no colon tissue; what
+transfers is the feature extractor).
+
+**The shape.** Kenneth's figure is the stage and the rail. Left, the backbone
+and the classifier as his two boxes, shaded by whether they are trainable, with
+the parameter count of each and *trainable* summed; the three strategies as a
+segmented control in the figure's own three words. Right, a strip of validation
+accuracy over epochs for the chosen strategy, with the other two strategies'
+curves ghosted once they have been run — the comparison is the argument. Two
+stages behind a gate (3.4b): **Pretrain** trains the backbone on the source task
+(four shapes, drawn small on the left with the source accuracy), then **Adapt**
+trains on the target with the chosen strategy. Step = one epoch; Play to the
+budget. The readout: validation accuracy on the target, trainable parameters,
+and — after Adapt — the source task's accuracy through the adapted backbone,
+which is the forgetting number.
+
+**Controls.** `strategy` From scratch · Fine-tuning · Transfer learning
+(**data**, the figure's words); `n` target training images 16 · 32 · 64 · 128
+(**data**; the small-data claim); `domain` Near · Far (**data**; the far arm is
+the same target shapes with contrast inverted); `lr` for fine-tuning 1e-4 · 1e-3
+(**data**, only shown when fine-tuning — 3.4b); `seed`. A `head` MLP · Linear
+control is **not** offered until a measurement shows one wins somewhere; the
+lesson uses an MLP head for transfer and a linear one for fine-tuning without
+saying why.
+
+**The stage that has to lose in every direction.** A control over three
+strategies is a claim that each is right somewhere. Measured below: whether
+transfer wins at small n, fine-tuning at larger n, and scratch or fine-tuning in
+the far domain; and whether 1e-3 fine-tuning forgets. If one strategy dominates
+the stage is wrong, not the control.
+
+#### MEASURED 2026-09-13 — `_lab/dl-image-measure.mjs` M2 — the three-strategy stage did NOT reproduce
+
+Source task DISC · RING · BAR · CROSS (400 images at 16 × 16, conv 12/24, 30
+epochs, validation 86%); target TRIANGLE against SQUARE as outlines with
+matched perimeter (a first draft's shapes differed in total brightness, which
+GAP reads in one number and scratch hit 92% at n = 16); a far domain by
+inverting the contrast; three seeds; epoch 30:
+
+| near domain | n = 16 | 32 | 64 | 128 |
+|---|---|---|---|---|
+| from scratch 1e-3 | **73.8** | **86.3** | **91.0** | **97.8** |
+| fine-tuning 1e-4 | 57.0 | 52.7 | 60.0 | 58.8 |
+| fine-tuning 1e-3 | 58.8 | 63.3 | 73.3 | 79.5 |
+| transfer (frozen) 1e-3 | 57.7 | 53.3 | 68.8 | 67.5 |
+
+**Scratch wins every cell, near and far, and at 100 epochs too.** The
+pretrained features do not carry triangle-against-square, and starting from
+them is worse than starting from noise. The one target that reproduced the
+notebook's ordering was the source's **own four classes under a fresh head**
+(fine-tuning 1e-3 44.5 / 65.5 / 82.5 / 82.2 against scratch 31.8 / 48.3 / 70.3 /
+77.5; frozen transfer 3–5 points above scratch at n ≥ 32 — pretraining worth
+about a doubling of the training set). So the machinery is right and the
+*features* are the variable: a frozen backbone helps exactly as far as the
+target's classes are built from the source's, and synthetic shapes make that
+overlap all or nothing. **A three-strategy widget needs a real pretrained
+backbone or a source/target pair with graded overlap** — a design question,
+not a slider. ImageNet weights cannot ship here (zero dependencies, and a
+ResNet-18 is 45 MB).
+
+**One arm is ready, and it is the lesson's own warning.** Catastrophic
+forgetting — the backbone after target fine-tuning, scored through its
+original source head (pretrained 86.0%):
+
+| | n = 16 | 32 | 64 | 128 |
+|---|---|---|---|---|
+| near, lr 1e-4 | 86.2 | 86.5 | 81.5 | 77.7 |
+| near, lr 1e-3 | 82.5 | 84.3 | 77.8 | 66.8 |
+| far, lr 1e-3 | 76.8 | 76.5 | 79.5 | 56.5 |
+
+Monotone in steps, worse at 1e-3 than 1e-4 in every cell (by 2–18 points),
+worse in the far domain — and **1e-3 is the better target accuracy at every n
+and the worse source retention at every n**, a genuine trade-off that loses in
+both directions. Cell 84's *reduced the rate 10× to minimize forgetting* is
+measurable on this stage.
+
+**Confound to carry into any build:** fine-tuning at 1e-4 is last almost
+everywhere because 30 epochs on 16 images is **30 optimizer steps**, and thirty
+steps at 1e-4 move a fresh head by nothing. A widget comparing learning rates
+must fix the number of steps, not epochs, or `lr` is partly a *how much
+training* dial.
+
+**So the recommendation changes.** 63 is either (a) **rescoped**: Kenneth's
+figure drawn as it is — backbone and classifier, the two +/− rows, the
+trainable bracket and the parameter counts each strategy trains — with ONE
+trained stage behind a gate, fine-tuning's learning rate against forgetting
+(target accuracy on one strip, source retention on the other, the number of
+steps fixed), and the three strategies as a diagram that claims nothing about
+accuracy; or (b) **deferred** until a source/target pair with graded overlap
+exists. (a) is recommended: it keeps his figure and builds the one claim that
+measured.
+
+### Slot 64 · `grad-cam` — Explainability
+
+**Host.** 06-2 cells 122–139: the three approaches (saliency, activation,
+class activation maps), Grad-CAM's four steps — gradients of the class score
+with respect to a layer's feature maps, global-average-pooled into `α_k`, the
+weighted sum, ReLU, upsample — `dl-image-explain-gradcam.png` (image → CNN →
+`A^k` → FC → `y_c`; `∂y^c/∂A^k` → average gradients `α_k` → `Σ α_k A^k` → ReLU
+→ the heatmap over the image), the *which layer* paragraph (earlier fine and
+low-level, deeper coarse and semantic; `layer2` and `layer3` in cell 137), and
+the caveats: *correlation with decision-making, not causal reasoning*;
+resolution limited by the feature map. 06-1 cell 4's question: *does the model
+rely on meaningful features or spurious ones (background noise, watermarks)?*
+
+**The misconceptions.** *Reported by the lesson's caveat:* the heatmap shows
+what caused the prediction, or where the disease is (it shows which positions
+of a layer's maps raised the class score; a model that learned a watermark
+lights the watermark). *Inferred:* a hot region means the model is right (the
+planted-cue arm scores at chance on clean images with a confident heatmap in
+the corner). *Inferred:* the heatmap is a property of the image (it is a
+property of the model, the layer and the class — `c` and `layer` are both
+controls and the picture changes under each).
+
+**The shape.** Kenneth's figure laid out as he draws it: the test image at the
+left, the feature maps of the chosen layer as a stack of small grids, the class
+score at the right; under it the gradient maps in `--c-group-b`, the `α_k`
+as one number per map, the weighted sum, ReLU, and the heatmap over the image at
+the bottom left in the lesson's own colours (red/yellow hot, blue cold, which is
+`--c-value-high` → `--c-value-low` here). Step = one of the four steps of the
+method, each drawn on the figure: the gradients land on the maps, they collapse
+to `α_k`, the maps sum, the negative part goes. `compute()` trains the
+two-class CNN on DISC against RING with the cue planted at the chosen rate, then
+scores the test set and computes the CAM for the shown image at both layers.
+
+**Controls.** `cue` 0 · 50 · 100% (**data**: a bright 2 × 2 mark in one corner
+of the DISC training images at that rate — the watermark the lesson names);
+`layer` conv1 · conv2 (**display**: the same trained model, read at a different
+depth; the map resolution is the figure); `class` the predicted class · the
+other (**display**: `c` in `y^c`); `image` the test image shown (**display**);
+`seed`. Readout: predicted class and its probability, accuracy on clean test
+images and on cued ones, and the share of the heat on the object against the
+share in the corner — the number the caveat needs.
+
+**The stage that loses.** At `cue` 0 the heat is on the object and clean
+accuracy is high; at 100 the model scores every cued image and near chance on
+clean ones, and the heat is in the corner — the same method, honest both times,
+because it reports the model and not the truth. Measured below.
+
+#### MEASURED 2026-09-13 — `_lab/dl-image-measure.mjs` M3 — holds, with three corrections
+
+DISC against RING at 16 × 16, 300 training images, conv 8/16, 30 epochs, three
+seeds. Accuracy on **clean** test images (no cue anywhere) and **cued** ones
+(the mark on every image):
+
+| cue rate on DISC | clean | cued |
+|---|---|---|
+| 0% | 99.7 | 93.5 |
+| 50% | 99.3 | 97.8 |
+| 100%, 3 × 3 mark | **67.8** | 80.3 |
+| 100%, 2 × 2 mark | 99.3 | 99.0 |
+
+CAM mass on clean images, mean of 150 — the corner window is 6.25% of the
+image, the object's footprint 16.7% on average:
+
+| cue rate | conv1 corner / object | conv2 corner / object |
+|---|---|---|
+| 0% | 4.2 / **46.3** | 2.5 / 45.3 |
+| 100% | 5.6 / **24.1** | 5.9 / 25.6 |
+
+1. **The cue must be 3 × 3.** The 2 × 2 mark the plan wrote does nothing —
+   four pixels of a 16 × 16 image survive two max-pools as one cell of the
+   final map, and the shape is the easier route. The mark's size is a design
+   parameter, and it rescales with the input.
+2. **The CAM on a CUED image cannot be the evidence.** At cue 0% — a model that
+   demonstrably ignores the corner — conv1's CAM still puts 17.3% of its mass
+   there when the mark is present, because `ReLU(Σ α_k A^k)` is weighted by
+   the activations and a bright anomaly lights up whether or not the classifier
+   uses it. That is Grad-CAM's own caveat, measured. **The widget pairs the CAM
+   on a clean image with clean accuracy**: at 0% the heat is 2.8× enriched on
+   the object and clean accuracy is 99.7; at 100% the heat halves on the object
+   and clean accuracy is 67.8. The cued image is shown too, with its corner lit
+   at every cue rate — which is the lesson's *correlation, not causation* drawn
+   rather than said.
+3. **Two convs give a 2× step in resolution** (256 CAM cells against 64), which
+   is visible but not the notebook's *coarse but semantic* contrast; a third
+   conv gives a 4 × 4 CAM that is unmistakably blocky, at a cost the M1 budget
+   can absorb at 16 × 16. `layer` conv1 · conv2 · conv3 is the recommendation,
+   `layer2` and `layer3` being cell 137's own pair.
+
+### Slot 65 · `unet` — Architecture - Basic (Segmentation) — TWO PAGES since 2026-09-13
+
+**Kenneth's pick, 2026-09-13: 66 `dice` is this widget's second page.** The
+rail is `topic`, segmented, **data**: **U-Net · Dice** — the notebook's
+*Architecture - Basic* and its *Training / Evaluation*. The U-Net page is
+the entry below with the trained stage removed (its MEASURED section says
+why); the Dice page is slot 66's entry, whose Split band and the unpaired-flip
+caption from 62 come with it. Two pages at three or four controls each keep
+the rail under the stage on both. Last of the four to build.
+
+**Host.** 06-3 cells 30–37: the encoder (DoubleConv then 2 × 2 max-pool, H and
+W halving, channels doubling), the bottleneck, the decoder (transposed
+convolution k = 2 s = 2 doubling H and W, **concatenation** with the encoder's
+features at the same size, DoubleConv), the 1 × 1 head; cell 31's *Details*
+with every shape at `base_ch`; cell 33's `UNet2D`; `dl-image-segment-unet.png`
+— Dimension up the page, Features across, enc1–enc4 down the left and dec4–dec1
+up the right, the dotted skips, MaxPool red down, TransposedConv blue up,
+Concatenate as a bracket. Cells 57–64 name the variants (`SegResNet`,
+`AttentionUnet`, `SwinUNETR`) and train `SegResNet`.
+
+**The misconceptions.** *Inferred, and the slot's reason:* the decoder recovers
+the boundary by upsampling (the bottleneck is 1/16 of the image; what puts the
+edge back is the encoder's features arriving over the skip — measured below as
+Dice on the edge ring with and without the skip). *Reported by 49's own line:*
+a transposed convolution undoes pooling. *Inferred:* U-Net's skip is 51's skip
+(51's adds; this concatenates, and cell 31 says why — concatenation *preserves*
+the encoder's features rather than mixing them).
+
+**The shape.** Kenneth's U, drawn to scale from the shapes: slabs whose height
+follows `H × W` and width follows `C`, the figure's own axes, the skips dotted
+across, the concat bracket over the two slabs it joins. Step = one stage, enc1
+to head, the shape printing on each — the same walk 51's Building page takes
+through a `Sequential`. Then a second stage behind a gate, **Train**, on 16 × 16
+blobs: image, truth and prediction as 06-3 cell 55's three panels (truth in
+`--c-reference`, prediction in `--c-empirical`), the skip switchable, Dice on
+the strip.
+
+**Controls.** `depth` 2 · 3 · 4 (**data**; 4 is the notebook's, and at 16 × 16
+input a depth of 4 reaches a 1 × 1 bottleneck, which is the case that fails and
+prints as such); `base` 4 · 8 · 16 (**data**; 16 is cell 33's); `input`
+64 · 128 · 512 for the shapes (**data**; 512 is the lesson's); `skip` Concat ·
+None (**data**, the trained stage's argument); `seed`. Formula card: the shape
+lines of cell 31 for the chosen depth. `merge` Concat · Add is **not** a control
+— 51 owns it — unless the measurement finds add loses the edge and concat keeps
+it, in which case it is the strongest control on the page and 51 is linked.
+
+#### MEASURED 2026-09-13 — `_lab/dl-seg-measure.mjs` M4 — the trained stage does NOT earn its gate
+
+A two-level U-Net in plain JS (conv 3 × 3 with bias, ReLU, max-pool, a
+**learned** transposed convolution k = 2 s = 2, concat, 1 × 1 head; **no
+batch-norm**, so one component short of cell 33's `DoubleConv`; gradients
+checked against finite differences at 2.7e-7), 200 training blobs at 16 × 16,
+batch 8, Adam 1e-3, three seeds:
+
+| | Dice e5 | e15 | e30 | edge-ring Dice e5 | e15 | e30 |
+|---|---|---|---|---|---|---|
+| concat skip | 0.775 | 0.841 | 0.843 | 0.741 | 0.818 | 0.818 |
+| no skip | 0.603 | 0.823 | 0.837 | 0.602 | 0.799 | 0.814 |
+
+- **The skip buys speed, not the boundary.** +0.17 Dice at epoch 5 and +0.006
+  at epoch 30, inside seed noise; the edge ring moves by the same amount as the
+  whole object (+0.14 at epoch 5). The claim the plan wanted — *the skip puts
+  the edge back* — is **not supported at this scale**, and a widget drawing it
+  would claim more than was measured. What is supported is *the decoder learns
+  faster with the encoder's features than without*, which is a weaker claim
+  about training and not about architecture.
+- **Cost blows the budget.** 166–238 ms an epoch at base 4, so 30 epochs is
+  5–7 s; base 8 or 32 × 32 is ~30 s. Only base 4 at 8–12 epochs fits under the
+  ~2 s `compute()` ceiling, and time grows faster than the arithmetic
+  (buffers leaving L1).
+- **`DiceCELoss` was worse than Dice alone on small objects** (1–3% of
+  pixels): 0.230 against 0.623 at epoch 5, with 34% of validation images
+  predicted all-background — the cheapest early move for mean BCE at 2%
+  positives — recovering to 0.691 against 0.711 by epoch 30. Cell 38's *more
+  stable, especially with class imbalance* did not reproduce here; not a
+  refutation (no batch-norm, one resolution, three seeds) but a reason not to
+  build a control on it.
+
+**So the recommendation changes: 65 trains nothing.** It is Kenneth's U drawn
+to scale with the shapes walked stage by stage, the concat bracket and the
+transposed convolution as 49 already draws it — the same kind of widget as 51's
+Building page. `skip` and `seed` go; `depth`, `base` and `input` stay,
+and the 1 × 1 bottleneck at depth 4 on a small input is the case that fails.
+The engine is then shared by 63 and 64 only, and neither needs a decoder.
+
+### Slot 66 · `dice` — Training · Evaluation (Segmentation)
+
+**Host.** 06-3 cell 38 (*segmentation is evaluated by overlap, not just
+per-pixel accuracy*; `DiceLoss` *may be unstable for very small objects*;
+`DiceCELoss`; post-processing sigmoid → 0.5), cell 44's set-up, cells 50–56
+(`DiceMetric`, `show_prediction`: image, ground truth in Blues, prediction in
+Reds), and cell 6's split — the mask-size bins normal / small < 1% / medium
+1–5% / large > 5% and `dl-image-segment-split.png`. Also 54's caption, which
+named Dice and left it for a widget with the right data shape.
+
+**The misconceptions.** *Reported by cell 38 itself:* pixel accuracy is a
+segmentation metric (an empty prediction on a 1% lesion is 99% accurate and
+Dice 0 — measured below). *Inferred:* Dice and IoU are the same number (they
+are monotone in each other and differ by up to a factor of two). *Inferred:*
+the threshold is 0.5 because probabilities are (Dice against threshold is
+measured; the maximum need not be at 0.5). *Reported by cell 6:* a random
+80/10/10 split of paired data is fine (it can leave the smallest bin out of a
+60-case test set — measured).
+
+**The shape.** Cell 55's three panels — image, truth, prediction — at one
+size, then the overlap counted as 2.3 asks: `|A|`, `|B|`, `|A ∩ B|` as tiles,
+and the four numbers under them (accuracy, Dice, IoU, and precision / recall as
+one line). The prediction is the reader's: a soft probability map thresholded
+at `threshold`, and offset by drag. Step reveals the count. A second page,
+**Split**, draws cell 6's bins as a histogram of mask fraction over 600 cases
+and the 60-case test split under it, random against stratified, with the bin
+that went missing lit in `--c-extreme`.
+
+**Controls.** `size` Small · Medium · Large (**data**; cell 6's own bins, at
+1%, 5% and 20% of pixels); `prediction` a drag of the mask (**data**, two
+parameters `dx`, `dy` as 55's drag writes two); `threshold` 0.1 … 0.9
+(**data**); `split` Random · Stratified (**data**, Split page); `seed`.
+Readout: the four metrics; on Split the per-bin counts in test. Formula card:
+`Dice = 2|A ∩ B| / (|A| + |B|)` and `IoU = |A ∩ B| / |A ∪ B|`, with accuracy's
+line under to show what it counts. **Dice as a loss is a caption**: the soft
+form is the same fraction with probabilities in place of 0/1, and the
+instability on small objects is one sentence with 65's measurement behind it.
+
+#### MEASURED 2026-09-13 — `_lab/dl-seg-measure.mjs` M1, M2
+
+**Dice against pixel accuracy** on a 64 × 64 grid, discs at 1% (44 px), 5%
+(208 px) and 20% (820 px):
+
+| object | prediction | accuracy | Dice | IoU |
+|---|---|---|---|---|
+| 1% | empty | 0.989 | 0 | 0 |
+| 1% | shifted 8 px (no overlap) | **0.979** | 0 | 0 |
+| 1% | shifted 1 px | 0.996 | 0.818 | 0.692 |
+| 5% | empty | 0.949 | 0 | 0 |
+| 5% | dilated 1 px | 0.983 | 0.860 (precision 0.754, recall 1) | 0.754 |
+| 5% | eroded 1 px | 0.985 | 0.831 (precision 1, recall 0.712) | 0.712 |
+| 20% | empty | 0.800 | 0 | 0 |
+| 20% | random mask, same area | 0.678 | 0.195 | 0.108 |
+
+- Sharper than the plan's line: a prediction that **misses the 1% object
+  entirely scores 97.9% accuracy**, above what an empty prediction scores on
+  the 20% object (80.0%). Accuracy measures the object's size, not the
+  prediction. That is the stage's opening pair.
+- Dilate and erode give near-equal Dice with opposite failures (precision
+  0.75 / recall 1 against precision 1 / recall 0.71), which is why the
+  precision / recall line stays on the readout beside Dice.
+- **Threshold: 0.5 is the maximum at every size on the measured map**
+  (`sigmoid((r − d)/1.5)`, symmetric about the edge), broad at 20% (0.82 →
+  0.78 across 0.1–0.9) and sharp at 1% (0.46 → 0). A symmetric map cannot lose
+  at 0.5, so a `threshold` control on it has no losing state; it earns its
+  place only on a map whose maximum is elsewhere — a biased map (a network
+  that under-calls small objects, which M4's small-object runs did) or a
+  calibration claim. **Until such a map is drawn, threshold is a display of the
+  count moving, not a decision**, and the plan should say so or drop it.
+
+**The size bins and the split**, 600 cases (normal 83, small 20, medium 403,
+large 94), 200 shuffles: a random 80/10/10 leaves some bin **empty in
+validation or test 27.5% of the time**; the small bin is 0–6 in a 60-case test
+set against a fixed 2 when stratified, and the large bin swings 3–16 against 9.
+Cell 6's claim holds, with the quieter half worth a caption: a test Dice from a
+random split is partly a report on which cases the shuffle drew.
+
+**Dice loss stays a caption**, with M4's finding under it: on small objects
+Dice alone trained more steadily than Dice + BCE here.
+
+### Questions for Kenneth — ANSWERED 2026-09-13 by one AskUserQuestion
+
+1 → **four**, 62 cut and 66 folded into 65 (not the recommendation, which was
+five). 2 → **rescoped** to forgetting. 3 → **one a section**. 4 → **61 · 64 ·
+63 · 65**. The questions as put, kept as written:
+
+1. **Six, five or four.** 62 `augmentation` is the cut candidate; the second
+   would be folding 66's Dice page into 65 as its trained stage's readout,
+   which makes 65 large. The recommendation is six, built 61 · 64 · 63 · 65 ·
+   66 · 62, with 62 last so it can be dropped when the arc is judged.
+2. **One widget a section, or one a notebook.** Three multi-page widgets
+   (`image-overview`, `image-classification`, `image-segmentation`) would put
+   four or five pages on each rail; 49/50's split was taken because five
+   options is where a rail stops fitting beside its stage. The recommendation
+   is a widget a section, as the DL arc was built.
+3. **Build order.** The notebooks' order is 61 → 66; the engine argues 64 before
+   63. The recommendation is 61 first (no engine, the shapes vocabulary every
+   later page prints), then 64.
+4. **Where the trained U-Net lives.** In 65 behind a gate (recommended: the
+   skip's effect is 65's own claim), or in 66 where Dice is scored.
 
 ## Two arcs, not one — now three
 

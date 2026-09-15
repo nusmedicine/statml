@@ -1,0 +1,1362 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · cnn-architecture — round 5</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  /* The mock shell, verbatim from `_lab/cnn-depiction-mock.html`, which took it
+     from `_lab/cnn-mock.html`. Nothing here is a new visual decision. */
+  .lab { max-width: 1240px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 96ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; width: 550px; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); max-width: 550px; min-height: 26px; white-space: pre-line; }
+  .railcand { width: 300px; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 96ch; }
+  .measure { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--ink-3); margin: 4px 0 0; max-width: 900px; white-space: pre-line; }
+  table.facts { border-collapse: collapse; font-size: var(--fs-sm); color: var(--ink-2); margin: var(--sp-2) 0 var(--sp-3); max-width: 120ch; }
+  table.facts th, table.facts td { border: 1px solid var(--grid); padding: 3px 8px; text-align: left; vertical-align: top; }
+  table.facts th { color: var(--ink-1); font-weight: 600; background: var(--surface-2); }
+  table.facts td b { color: var(--ink-1); }
+  table.facts td.num { font-family: var(--font-mono); font-size: var(--fs-xs); }
+  .legend { display: flex; flex-wrap: wrap; gap: var(--sp-2) var(--sp-4); margin: 0 0 var(--sp-4);
+            font-size: var(--fs-xs); color: var(--ink-2); }
+  .legend span { display: flex; align-items: center; gap: 6px; }
+  .sw { width: 13px; height: 13px; border-radius: 50%; flex: 0 0 auto; }
+  .sw-emp { background: var(--c-empirical); }
+  .sw-high { background: var(--c-highlight); }
+  .sw-ga { background: var(--c-group-a); }
+  .sw-gb { background: var(--c-group-b); }
+  .sw-ext { background: var(--c-extreme); }
+  .sw-ramp { width: 26px; border-radius: 2px; background: linear-gradient(90deg, var(--surface-2), var(--ink-1)); }
+  .rail-host { width: 300px; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>cnn-architecture &middot; round 5</h1>
+
+  <p class="note">
+    <b>What this page answers.</b> Four of your five points: the shape of Play and Step (1), a readable example
+    image (2), Flatten against global average pooling in the architecture (4), and whether the head figure
+    below should show both heads or one (5). Point 3, the targets that do not answer a click, is a bug and is
+    being fixed separately.
+  </p>
+  <p class="note">
+    <b>The engine is real, and the geometry is the shipping one.</b> Four named 3 &times; 3 kernels &mdash;
+    horizontal edge, vertical edge, blur, centre-surround &mdash; run over the image, then ReLU, then
+    2 &times; 2 max pooling, then four more over the pooled maps. Every feature map on this page is that
+    arithmetic. The columns, the thumbnails, the fan-in lines, the receptive-field windows and the head figure
+    are drawn through <code>cnn-architecture/depict.js</code> and <code>model.js</code> themselves, so a width
+    that does not fit here does not fit in the widget either.
+  </p>
+  <p class="note">
+    <b>Four channels of thirty-two.</b> A convolution here computes four maps where the network computes 32 or
+    64, and each second-block map runs one kernel over the pooled map of the same index.
+  </p>
+  <p class="note" id="engineLine"></p>
+  <p class="note" id="checkLine"></p>
+
+  <div class="legend">
+    <span><i class="sw sw-ramp"></i>a feature map, low to high</span>
+    <span><i class="sw sw-emp"></i>the map the network computed</span>
+    <span><i class="sw sw-ga"></i>the input the layer reads</span>
+    <span><i class="sw sw-gb"></i>the layer's weights: the kernel, and the linear layer</span>
+    <span><i class="sw sw-high"></i>the marked unit, and the patch it reads</span>
+    <span><i class="sw sw-ext"></i>a patch wider than the whole image</span>
+  </div>
+
+  <h2>&sect;1 &middot; The drive</h2>
+  <p class="note">
+    Three shapes of the same widget. Each is drawn twice: the <b>rail</b>, through core's own
+    <code>buildControls</code> and <code>buildActions</code> at 300&nbsp;px, and a <b>storyboard</b> of what Step
+    and Play do, three presses down the page at 0.44 of the stage's own size.
+    <b>A</b> two stages behind a gate: reveal the layers, then follow one unit.
+    <b>B</b> the architecture complete from the start, and Play belongs to the patches.
+    <b>C</b> one Step in three phases, which is what is built today.
+  </p>
+  <div class="row" id="driveA"></div>
+  <div class="row" id="driveB"></div>
+  <div class="row" id="driveC"></div>
+  <p class="measure" id="driveMeasure"></p>
+  <div id="driveTable"></div>
+  <p class="rec" id="recDrive"></p>
+
+  <h2>&sect;2 &middot; The example image</h2>
+  <p class="note">
+    The input today is a Gaussian blob, a smaller blob and noise of 0.18. Four candidates against it, each
+    procedural and seeded, each drawn at 28 &times; 28 with its four conv1 maps beside it, and again at
+    64 &times; 64 with the horizontal-edge map. Every generator is written in coordinates of
+    <code>n / 28</code>, so the same picture is drawn at both sizes and only the sampling changes.
+  </p>
+  <p class="note">
+    <b>How the contrast is measured.</b> Each generator returns a region label as well as a value, from the
+    noise-free geometry. <b>Boundary</b> is a pixel with a four-neighbour in a different region;
+    <b>flat</b> is a pixel whose 5 &times; 5 neighbourhood is one region. The number printed is the mean
+    |response| of a kernel over each set, and their ratio. Blur has no edge response to measure &mdash; its
+    output is the local mean, so its magnitude follows the brightness of wherever it is &mdash; so blur is
+    reported instead as the difference between object and field after blurring, which is what makes a shape
+    readable in that map.
+  </p>
+  <div class="row" id="imgRow"></div>
+  <p class="measure" id="imgMeasure"></p>
+  <div id="imgTable"></div>
+  <p class="rec" id="recImg"></p>
+
+  <h2>&sect;3 &middot; Flatten against global average pooling in the gallery</h2>
+  <p class="note">
+    The head column draws four cells for both heads today, so the two read the same. Three depictions, each
+    drawn in the real gallery at 550 with the head column as Flatten, and the same column as global average
+    pooling directly under it at the same x.
+    <b>A</b> Flatten as a strip of single values, global average pooling as four cells.
+    <b>B</b> pool2's four maps unrolled into four rows of 49.
+    <b>C</b> a column whose height follows the count.
+  </p>
+  <div class="row" id="headColRow"></div>
+  <p class="measure" id="headColMeasure"></p>
+  <p class="rec" id="recHeadCol"></p>
+
+  <h2>&sect;4 &middot; The head figure below</h2>
+  <p class="note">
+    Band 3 draws both heads' parameter counts as bars with the chosen one marked.
+    <b>A</b> both, always &mdash; as built.
+    <b>B</b> the chosen head only, the other's count printed under it.
+    <b>C</b> no third band: the counts stay in the readout tiles and in the detail band.
+  </p>
+  <div class="row" id="headBandRow"></div>
+  <p class="measure" id="headBandMeasure"></p>
+  <p class="rec" id="recHeadBand"></p>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+import { shapeText } from "../core/torch.js";
+import * as M from "../cnn-architecture/model.js";
+import * as D from "../cnn-architecture/depict.js";
+
+const T0 = performance.now();
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+
+/* ==========================================================================
+   THE IMAGES. Five generators, each returning a value and a region label in
+   coordinates of n / 28, so the same picture is drawn at 28 and at 64. The
+   label is what the boundary and the flat set are measured from, and it never
+   reaches the drawing.
+   ====================================================================== */
+
+const lcg = (seed) => {
+  let s = seed >>> 0;
+  return () => { s = (Math.imul(s, 1664525) + 1013904223) >>> 0; return s / 4294967296; };
+};
+const clamp01 = (v) => Math.max(0, Math.min(1, v));
+
+/** Today's input: a blob, a smaller blob, and noise of 0.18. */
+function blobImage(n, seed) {
+  const r = lcg(seed);
+  const v = new Float64Array(n * n); const label = new Int8Array(n * n);
+  const cx = n * 0.42; const cy = n * 0.46; const sig = n * 0.17;
+  const cx2 = n * 0.70; const cy2 = n * 0.28; const sig2 = n * 0.10;
+  for (let y = 0; y < n; y += 1) {
+    for (let x = 0; x < n; x += 1) {
+      const d = ((x - cx) ** 2 + (y - cy) ** 2) / (2 * sig * sig);
+      const d2 = ((x - cx2) ** 2 + (y - cy2) ** 2) / (2 * sig2 * sig2);
+      const clean = 0.10 + 0.72 * Math.exp(-d) + 0.34 * Math.exp(-d2);
+      v[y * n + x] = clamp01(clean + 0.18 * (r() - 0.5));
+      label[y * n + x] = clean > 0.5 ? 1 : 0;
+    }
+  }
+  return { v, label };
+}
+
+/** A · one cell: body, membrane ring, nucleus off centre, three granules. */
+function cellImage(n, seed) {
+  const r = lcg(seed);
+  const v = new Float64Array(n * n); const label = new Int8Array(n * n);
+  const u = n / 28;
+  const cx = 13.5 * u; const cy = 14 * u; const R = 9.2 * u; const ring = 1.1 * u;
+  const nx = 16.0 * u; const ny = 11.5 * u; const nR = 4.1 * u;
+  const gran = [[9.5, 18.5], [17.5, 19.0], [8.5, 10.0]].map(([a, b]) => [a * u, b * u, 1.35 * u]);
+  for (let y = 0; y < n; y += 1) {
+    for (let x = 0; x < n; x += 1) {
+      const d = Math.hypot(x + 0.5 - cx, y + 0.5 - cy);
+      let val = 0.24; let lab = 0;
+      if (d < R) { val = 0.60; lab = 1; }
+      if (d < R && d > R - ring) { val = 0.93; lab = 2; }
+      if (Math.hypot(x + 0.5 - nx, y + 0.5 - ny) < nR) { val = 0.30; lab = 3; }
+      for (let g = 0; g < gran.length; g += 1) {
+        if (Math.hypot(x + 0.5 - gran[g][0], y + 0.5 - gran[g][1]) < gran[g][2]) { val = 0.97; lab = 4 + g; }
+      }
+      v[y * n + x] = clamp01(val + 0.05 * (r() - 0.5));
+      label[y * n + x] = lab;
+    }
+  }
+  return { v, label };
+}
+
+/** B · a blood smear: four round cells on a light field, one with a nucleus. */
+function smearImage(n, seed) {
+  const r = lcg(seed);
+  const v = new Float64Array(n * n); const label = new Int8Array(n * n);
+  const u = n / 28;
+  const cells = [[8.0, 9.0, 5.4, 0.46, true], [19.0, 10.5, 4.2, 0.52, false],
+    [13.0, 20.0, 4.8, 0.49, false], [22.5, 20.5, 3.2, 0.55, false]]
+    .map(([a, b, c, g, nuc]) => [a * u, b * u, c * u, g, nuc]);
+  for (let y = 0; y < n; y += 1) {
+    for (let x = 0; x < n; x += 1) {
+      let val = 0.86; let lab = 0;
+      for (let i = 0; i < cells.length; i += 1) {
+        const [a, b, rad, g, nuc] = cells[i];
+        const d = Math.hypot(x + 0.5 - a, y + 0.5 - b);
+        if (d < rad) { val = g; lab = 1 + i; }
+        if (nuc && d < rad * 0.5) { val = 0.22; lab = 9; }
+      }
+      v[y * n + x] = clamp01(val + 0.04 * (r() - 0.5));
+      label[y * n + x] = lab;
+    }
+  }
+  return { v, label };
+}
+
+/** C · a tissue patch: eight jittered Voronoi cells with bright boundaries. */
+function tissueImage(n, seed) {
+  const r = lcg(seed);
+  const v = new Float64Array(n * n); const label = new Int8Array(n * n);
+  const u = n / 28;
+  /* THE POLYGON COUNT IS FIXED, so at 64 the cells are larger rather than more
+     numerous — the same picture, sampled finer. The boundary width follows n
+     for the same reason: at a fixed 1 px it would be half as thick a share of
+     the picture at 64 and the walls would thin out. */
+  const seeds = [[6, 6], [17, 5], [25, 9], [9, 15], [20, 16], [5, 24], [15, 25], [25, 23]]
+    .map(([a, b]) => [(a + (r() - 0.5) * 2) * u, (b + (r() - 0.5) * 2) * u]);
+  const fills = seeds.map(() => 0.32 + 0.22 * r());
+  const wall = 0.55 * u;
+  for (let y = 0; y < n; y += 1) {
+    for (let x = 0; x < n; x += 1) {
+      let d1 = Infinity; let d2 = Infinity; let k = 0;
+      for (let i = 0; i < seeds.length; i += 1) {
+        const d = Math.hypot(x + 0.5 - seeds[i][0], y + 0.5 - seeds[i][1]);
+        if (d < d1) { d2 = d1; d1 = d; k = i; } else if (d < d2) { d2 = d; }
+      }
+      const onWall = (d2 - d1) < wall;
+      v[y * n + x] = clamp01((onWall ? 0.92 : fills[k]) + 0.04 * (r() - 0.5));
+      label[y * n + x] = onWall ? 20 : k;
+    }
+  }
+  return { v, label };
+}
+
+/** D · a rectangle and a disc, hard edges, no noise. */
+function figureImage(n) {
+  const v = new Float64Array(n * n); const label = new Int8Array(n * n);
+  const u = n / 28;
+  for (let y = 0; y < n; y += 1) {
+    for (let x = 0; x < n; x += 1) {
+      let val = 0.14; let lab = 0;
+      if (x >= 3 * u && x < 12 * u && y >= 4 * u && y < 21 * u) { val = 0.84; lab = 1; }
+      if (Math.hypot(x + 0.5 - 20 * u, y + 0.5 - 17 * u) < 6 * u) { val = 0.97; lab = 2; }
+      v[y * n + x] = val;
+      label[y * n + x] = lab;
+    }
+  }
+  return { v, label };
+}
+
+/* ==========================================================================
+   THE ENGINE, from `_lab/cnn-depiction-mock.html`.
+   ====================================================================== */
+const B9 = 1 / 9;
+const KERNELS = [
+  { name: "Horizontal edge", short: "H edge", k: [[1, 2, 1], [0, 0, 0], [-1, -2, -1]] },
+  { name: "Vertical edge", short: "V edge", k: [[1, 0, -1], [2, 0, -2], [1, 0, -1]] },
+  { name: "Blur", short: "Blur", k: [[B9, B9, B9], [B9, B9, B9], [B9, B9, B9]] },
+  { name: "Centre-surround", short: "Centre", k: [[0, -1, 0], [-1, 4, -1], [0, -1, 0]] },
+];
+const CONV2_ORDER = [2, 3, 0, 1];
+
+function conv3(src, n, K) {
+  const out = new Float64Array(n * n);
+  for (let y = 0; y < n; y += 1) {
+    for (let x = 0; x < n; x += 1) {
+      let a = 0;
+      for (let j = -1; j <= 1; j += 1) {
+        for (let i = -1; i <= 1; i += 1) {
+          const yy = y + j; const xx = x + i;
+          const p = (yy < 0 || yy >= n || xx < 0 || xx >= n) ? 0 : src[yy * n + xx];
+          a += p * K[j + 1][i + 1];
+        }
+      }
+      out[y * n + x] = a;
+    }
+  }
+  return out;
+}
+const relu = (a) => a.map((v) => Math.max(0, v));
+function pool2(src, n) {
+  const m = n >> 1;
+  const out = new Float64Array(m * m);
+  for (let y = 0; y < m; y += 1) {
+    for (let x = 0; x < m; x += 1) {
+      out[y * m + x] = Math.max(
+        src[(2 * y) * n + 2 * x], src[(2 * y) * n + 2 * x + 1],
+        src[(2 * y + 1) * n + 2 * x], src[(2 * y + 1) * n + 2 * x + 1],
+      );
+    }
+  }
+  return out;
+}
+const maxOf = (a) => a.reduce((m, v) => Math.max(m, Math.abs(v)), 0) || 1;
+const meanOf = (a) => a.reduce((s, v) => s + v, 0) / a.length;
+
+/** Every map of the two-block net, for one image. */
+function runNet(tex, n) {
+  const conv1 = KERNELS.map((K) => relu(conv3(tex, n, K.k)));
+  const pool1 = conv1.map((m) => pool2(m, n));
+  const n1 = n >> 1;
+  const conv2 = pool1.map((m, i) => relu(conv3(m, n1, KERNELS[CONV2_ORDER[i]].k)));
+  const pooled2 = conv2.map((m) => pool2(m, n1));
+  const gapv = pooled2.map(meanOf);
+  let s = 990517 >>> 0;
+  const rnd = () => { s = (Math.imul(s, 1664525) + 1013904223) >>> 0; return s / 4294967296; };
+  const b = 1 / Math.sqrt(4);
+  const w = Array.from({ length: 9 }, () => Array.from({ length: 4 }, () => (rnd() * 2 - 1) * b));
+  const scores = w.map((wr) => wr.reduce((a, v, i) => a + v * gapv[i], 0));
+  return { conv1, pool1, conv2, pool2: pooled2, gapv, scores };
+}
+
+/* --- the contrast measurement -------------------------------------------- */
+function masks(label, n) {
+  const b = []; const f = [];
+  for (let y = 2; y < n - 2; y += 1) {
+    for (let x = 2; x < n - 2; x += 1) {
+      const i = y * n + x;
+      const edge = label[i] !== label[i - 1] || label[i] !== label[i + 1]
+        || label[i] !== label[i - n] || label[i] !== label[i + n];
+      if (edge) { b.push(i); continue; }
+      let same = true;
+      for (let j = -2; j <= 2 && same; j += 1) {
+        for (let q = -2; q <= 2; q += 1) {
+          if (label[(y + j) * n + x + q] !== label[i]) { same = false; break; }
+        }
+      }
+      if (same) f.push(i);
+    }
+  }
+  return { b, f };
+}
+const meanAbs = (arr, idx) => idx.reduce((a, i) => a + Math.abs(arr[i]), 0) / Math.max(1, idx.length);
+
+/** The four kernels' boundary-to-flat contrast, and blur's object-to-field. */
+function contrastOf(img, n) {
+  const { b, f } = masks(img.label, n);
+  const per = KERNELS.map((K) => {
+    const m = conv3(img.v, n, K.k);
+    const mb = meanAbs(m, b); const mf = meanAbs(m, f);
+    return { short: K.short, mb, mf, ratio: mf < 1e-9 ? null : mb / mf };
+  });
+  const blurred = conv3(img.v, n, KERNELS[2].k);
+  const mean = (idx) => idx.reduce((a, i) => a + blurred[i], 0) / Math.max(1, idx.length);
+  const shape = Math.abs(mean(f.filter((i) => img.label[i] !== 0)) - mean(f.filter((i) => img.label[i] === 0)));
+  return { per, shape, nb: b.length, nf: f.length };
+}
+
+const CASES = [
+  { key: "blob", title: "Today · a blob and noise", gen: (n) => blobImage(n, 20260913) },
+  { key: "cell", title: "A · a cell", gen: (n) => cellImage(n, 20260914) },
+  { key: "smear", title: "B · a blood smear", gen: (n) => smearImage(n, 20260914) },
+  { key: "tissue", title: "C · a tissue patch", gen: (n) => tissueImage(n, 20260914) },
+  { key: "figure", title: "D · a rectangle and a disc", gen: (n) => figureImage(n) },
+];
+const MEASURED = CASES.map((c) => ({
+  ...c,
+  at28: { img: c.gen(28), ...contrastOf(c.gen(28), 28) },
+  at64: { img: c.gen(64), ...contrastOf(c.gen(64), 64) },
+}));
+
+/* THE IMAGE THE REST OF THE PAGE USES, so §1, §3 and §4 are drawn on the one
+   §2 recommends rather than on the one the draft has. */
+const CHOSEN = MEASURED.find((c) => c.key === "cell");
+const N0 = 28;
+const TEX = CHOSEN.at28.img.v;
+const NET_MAPS = runNet(TEX, N0);
+
+/* ==========================================================================
+   The shipping geometry: the widget's own net, stages and layouts.
+   ====================================================================== */
+const CFG = { blocks: 2, base: 32, k: 3, head: "gap", input: 28 };
+const NET = M.buildNet(CFG);
+const NET_FLAT = M.buildNet({ ...CFG, head: "flatten" });
+const STAGES = M.stagesFor(NET, null, { head: "GAP", linear: "Linear" });
+STAGES[0].maps = [TEX];
+STAGES[1].maps = NET_MAPS.conv1;
+STAGES[2].maps = NET_MAPS.pool1;
+STAGES[3].maps = NET_MAPS.conv2;
+STAGES[4].maps = NET_MAPS.pool2;
+STAGES[5].values = NET_MAPS.gapv;
+STAGES[6].values = NET_MAPS.scores;
+/* which named kernel produced each drawn channel of each column */
+const KIDX = [null, [0, 1, 2, 3], [0, 1, 2, 3], CONV2_ORDER, CONV2_ORDER, null, null];
+
+/* what Play costs, from `model.js`'s own constants */
+const LAST = D.lastSpatial(STAGES);
+const CELLS_LAST = STAGES[LAST].H * STAGES[LAST].H;
+const MS_LAYERS = NET.units * M.UNIT_MS;
+const MS_POSITIONS = M.slidePlan(CELLS_LAST).total;
+const MS_UNITS = CELLS_LAST * M.cellMsOf(CELLS_LAST);
+
+const COMPUTE_MS = performance.now() - T0;
+
+/* ==========================================================================
+   Helpers, from the previous mock.
+   ====================================================================== */
+const el = (tag, cls, text) => {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text != null) e.textContent = text;
+  return e;
+};
+const int = (v) => Math.round(v).toLocaleString("en-US");
+const fmt = (v, d = 2) => (Number.isFinite(v) ? v.toFixed(d) : "-");
+const secs = (ms) => `${(ms / 1000).toFixed(1)} s`;
+const capFont = () => `600 ${T.fsSm} ${T.font}`;
+const noteFont = () => `${T.fsXs} ${T.font}`;
+const monoFont = () => `${T.fsXs} ${T.mono}`;
+
+function canvasIn(parent, w, h) {
+  const cv = document.createElement("canvas");
+  cv.width = Math.round(w * DPR);
+  cv.height = Math.round(h * DPR);
+  cv.style.width = `${w}px`;
+  cv.style.height = `${h}px`;
+  parent.appendChild(cv);
+  const ctx = cv.getContext("2d");
+  ctx.scale(DPR, DPR);
+  ctx.fillStyle = T.surface;
+  ctx.fillRect(0, 0, w, h);
+  return ctx;
+}
+function cand(parent, title, sub, cls) {
+  const c = el("div", cls ? `cand ${cls}` : "cand");
+  if (title) c.appendChild(el("h3", null, title));
+  if (sub != null) c.appendChild(el("p", "sub", sub));
+  parent.appendChild(c);
+  return c;
+}
+function rgbOf(c) {
+  const p = document.createElement("canvas").getContext("2d");
+  p.fillStyle = c; p.fillRect(0, 0, 1, 1);
+  return Array.from(p.getImageData(0, 0, 1, 1).data.slice(0, 3));
+}
+const mixRgb = (a, b, t) => {
+  const c = a.map((v, i) => Math.round(v + (b[i] - v) * t));
+  return `rgb(${c[0]}, ${c[1]}, ${c[2]})`;
+};
+const RAMP_LO = rgbOf(T.surface2); const RAMP_HI = rgbOf(T.ink1);
+const grey = (t) => mixRgb(RAMP_LO, RAMP_HI, Math.max(0, Math.min(1, t)));
+const wash = (hex, a) => {
+  const p = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+  return `rgba(${p[0]},${p[1]},${p[2]},${a})`;
+};
+
+const STAGE_W = 550;
+const PAD = D.PAD;
+
+function caption(ctx, x, y, text) {
+  ctx.save();
+  ctx.font = capFont(); ctx.fillStyle = T.ink2; ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+  ctx.fillText(text, x, y);
+  ctx.restore();
+}
+function note(ctx, x, y, text, tone, align) {
+  ctx.save();
+  ctx.font = noteFont(); ctx.fillStyle = tone ?? T.ink3; ctx.textAlign = align ?? "left"; ctx.textBaseline = "alphabetic";
+  ctx.fillText(text, x, y);
+  ctx.restore();
+}
+function mono(ctx, x, y, text, tone, align) {
+  ctx.save();
+  ctx.font = monoFont(); ctx.fillStyle = tone ?? T.ink2; ctx.textAlign = align ?? "left"; ctx.textBaseline = "alphabetic";
+  ctx.fillText(text, x, y);
+  ctx.restore();
+}
+function arrowRight(ctx, x1, x2, y, colour) {
+  ctx.save();
+  ctx.strokeStyle = colour ?? T.ink3; ctx.fillStyle = colour ?? T.ink3; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(x1, y); ctx.lineTo(x2 - 4, y); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x2, y); ctx.lineTo(x2 - 5, y - 3); ctx.lineTo(x2 - 5, y + 3); ctx.fill();
+  ctx.restore();
+}
+
+/** A map drawn nearest-neighbour on the grey ramp, scaled by its own largest value. */
+function drawMap(ctx, x, y, size, n, arr, o = {}) {
+  const cap = o.cap ?? 64;
+  const steps = Math.max(1, Math.min(n, cap));
+  const c = size / steps;
+  const hi = o.max ?? maxOf(arr);
+  const upto = o.upto ?? Infinity;
+  ctx.save();
+  ctx.fillStyle = T.surface2; ctx.fillRect(x, y, size, size);
+  for (let j = 0; j < steps; j += 1) {
+    const cj = Math.floor((j * n) / steps);
+    for (let i = 0; i < steps; i += 1) {
+      const ci = Math.floor((i * n) / steps);
+      if (cj * n + ci > upto) continue;
+      ctx.fillStyle = grey(arr[cj * n + ci] / hi);
+      ctx.fillRect(x + i * c, y + j * c, Math.ceil(c), Math.ceil(c));
+    }
+  }
+  ctx.restore();
+  ctx.save();
+  ctx.strokeStyle = o.frame ?? T.axis; ctx.lineWidth = 1;
+  ctx.strokeRect(x + 0.5, y + 0.5, size - 1, size - 1);
+  ctx.restore();
+  return { x, y, size, n, c: size / n };
+}
+function valueCell(ctx, x, y, w, h, text, o = {}) {
+  ctx.save();
+  ctx.fillStyle = wash(o.hue ?? T.empirical, o.empty ? 0.14 : 0.42);
+  ctx.fillRect(x, y, w, h);
+  ctx.strokeStyle = o.hue ?? T.empirical; ctx.lineWidth = o.lit ? 2 : 1;
+  ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+  ctx.restore();
+  if (text != null) {
+    ctx.save();
+    ctx.font = monoFont(); ctx.fillStyle = T.ink1; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText(text, x + w / 2, y + h / 2 + 0.5);
+    ctx.restore();
+  }
+}
+
+/* ==========================================================================
+   THE GALLERY, on the shipping layout. Round 3's drawing, rewritten to read
+   `depict.js`'s own rectangles so §1 and §3 measure the widget's fit.
+   ====================================================================== */
+function windowBox(ctx, lay, col, channel, rows, cols, o = {}) {
+  const n = lay.cols[col].n;
+  const over = rows[0] < 0 || rows[1] > n - 1 || cols[0] < 0 || cols[1] > n - 1;
+  const wide = D.isWide(lay, col, rows, cols);
+  const tone = wide ? T.extreme : T.highlight;
+  const solid = D.clipRect(lay, col, channel, rows, cols);
+  const full = D.fullRect(lay, col, channel, rows, cols);
+  ctx.save();
+  if (solid.w > 0 && solid.h > 0) {
+    if (o.fill) { ctx.fillStyle = wash(T.highlight, 0.22); ctx.fillRect(solid.x, solid.y, solid.w, solid.h); }
+    ctx.strokeStyle = tone; ctx.lineWidth = o.width ?? 2;
+    ctx.strokeRect(solid.x + 0.5, solid.y + 0.5, solid.w - 1, solid.h - 1);
+  }
+  if (over) {
+    ctx.strokeStyle = tone; ctx.lineWidth = 1; ctx.setLineDash([3, 3]);
+    ctx.strokeRect(full.x + 0.5, full.y + 0.5, full.w - 1, full.h - 1);
+    ctx.setLineDash([]);
+  }
+  ctx.restore();
+}
+function markUnit(ctx, lay, col, channel, row, column) {
+  const m = D.unitRect(lay, col, channel, row, column);
+  ctx.save();
+  ctx.fillStyle = T.highlight; ctx.fillRect(m.x, m.y, m.w, m.h);
+  ctx.strokeStyle = T.highlight; ctx.lineWidth = 1.5;
+  ctx.strokeRect(m.x - 2.5, m.y - 2.5, m.w + 5, m.h + 5);
+  ctx.restore();
+}
+
+const GAL_H = D.galleryLayout(STAGE_W, STAGES).height;
+
+/**
+ * @param o.reveal   how many columns past the image are in (0 is empty)
+ * @param o.field    { stage, channel, row, col, filled } — the marked unit
+ * @param o.headDraw a function drawing the head column, for §3
+ */
+function drawGallery(ctx, w, o = {}) {
+  const lay = D.galleryLayout(w, STAGES);
+  const reveal = o.reveal ?? NET.units;
+  const lit = o.field ? o.field.channel : (o.lit ?? 1);
+  caption(ctx, PAD, 24, o.title ?? "One column a layer, four of its channels drawn");
+  note(ctx, PAD, 40, o.sub ?? "the kernels are named image operators, not learned filters");
+  const alphaOf = (i) => (i === 0 ? 1 : i <= reveal ? 1 : 0);
+
+  /* the wiring */
+  ctx.save();
+  for (let c = 1; c < STAGES.length; c += 1) {
+    if (alphaOf(c) <= 0) continue;
+    const nCh = lay.cols[c].thumbs.length;
+    for (let ch = 0; ch < nCh; ch += 1) {
+      const isChosen = o.field && c === o.field.stage && ch === o.field.channel;
+      if (o.field && c === o.field.stage && !isChosen) continue;
+      for (const l of D.fanIn(lay, c, ch)) {
+        ctx.globalAlpha = isChosen ? (l.lit ? 0.95 : 0.16) : 0.1;
+        ctx.strokeStyle = T.empirical;
+        ctx.lineWidth = isChosen && l.lit ? 1.5 : 1;
+        ctx.beginPath(); ctx.moveTo(l.from[0], l.from[1]); ctx.lineTo(l.to[0], l.to[1]); ctx.stroke();
+      }
+    }
+  }
+  ctx.restore();
+
+  /* the thumbnails */
+  STAGES.forEach((s, i) => {
+    if (alphaOf(i) <= 0) return;
+    const col = lay.cols[i];
+    if (i === 5 && o.headDraw) { o.headDraw(ctx, lay, col); } else {
+      col.thumbs.forEach((t) => {
+        if (s.spatial) {
+          const arr = s.maps[Math.min(t.channel, s.maps.length - 1)];
+          const upto = o.field && i === o.field.stage && t.channel === o.field.channel
+            && o.field.filled != null ? o.field.filled : Infinity;
+          drawMap(ctx, t.x, t.y, t.size, s.H, arr,
+            { frame: i === 0 ? T.groupA : T.empirical, upto });
+        } else {
+          const vals = s.values ?? [];
+          const hi = maxOf(vals);
+          const v = vals[t.channel] ?? 0;
+          ctx.save();
+          ctx.fillStyle = s.kind === "linear" ? wash(T.groupB, 0.2 + 0.7 * Math.abs(v) / hi)
+            : grey(Math.abs(v) / hi);
+          ctx.fillRect(t.x, t.y, t.size, t.size);
+          ctx.strokeStyle = s.kind === "linear" ? T.groupB : T.empirical; ctx.lineWidth = 1;
+          ctx.strokeRect(t.x + 0.5, t.y + 0.5, t.size - 1, t.size - 1);
+          ctx.restore();
+        }
+        if (i >= 1 && s.spatial && lay.showNames && KIDX[i]) {
+          note(ctx, col.nameX, t.y + t.size / 2 + 4, KERNELS[KIDX[i][t.channel]].short, T.ink3);
+        }
+      });
+    }
+    if (i === (o.field?.stage ?? -1)) {
+      const t = col.thumbs[Math.min(lit, col.thumbs.length - 1)];
+      ctx.save();
+      ctx.strokeStyle = T.highlight; ctx.lineWidth = 1.5;
+      ctx.strokeRect(t.x - 2.5, t.y - 2.5, t.size + 5, t.size + 5);
+      ctx.restore();
+    }
+  });
+
+  /* the patch, back through every revealed column */
+  if (o.field && o.field.stage >= 1 && STAGES[o.field.stage].spatial) {
+    const f = o.field;
+    const rf = D.receptiveField(STAGES, f.stage, f.row, f.col);
+    ctx.save();
+    ctx.strokeStyle = wash(T.highlight, 0.35); ctx.lineWidth = 1;
+    for (const cone of D.coneOf(lay, STAGES, f.stage, f.channel, f.row, f.col)) {
+      for (const [x1, y1, x2, y2] of D.coneLines(cone)) {
+        ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+      }
+    }
+    ctx.restore();
+    windowBox(ctx, lay, 0, 0, rf.rows[0], rf.cols[0], { fill: true, width: 2 });
+    for (let i = 1; i <= f.stage; i += 1) {
+      const ch = Math.min(f.channel, lay.cols[i].thumbs.length - 1);
+      if (i < f.stage) windowBox(ctx, lay, i, ch, rf.rows[i], rf.cols[i], { width: 1.5 });
+      else markUnit(ctx, lay, i, ch, f.row, f.col);
+    }
+  }
+
+  /* the printed lines */
+  STAGES.forEach((s, i) => {
+    if (alphaOf(i) <= 0) return;
+    /* §3 draws the head column itself and prints its own name and shape */
+    if (i === 5 && o.headDraw) return;
+    const col = lay.cols[i];
+    mono(ctx, Math.min(col.x, w - PAD - 40), lay.top - 8, s.name, T.ink2);
+    mono(ctx, Math.min(col.x, w - PAD - 60), lay.lineY(col.labelRow, 0), shapeText(s.shape), T.ink3);
+    if (i > 0 && s.shown < s.C) {
+      note(ctx, Math.min(col.x, w - PAD - 50), lay.lineY(col.labelRow, 1), `+${int(s.C - s.shown)} more`, T.ink3);
+    }
+  });
+  if (o.foot !== false) note(ctx, PAD, lay.footY, o.foot ?? "The three colour channels of the image are drawn as one grey square.");
+  return lay;
+}
+
+/* ==========================================================================
+   §1 · the rail, through core's own builder
+   ====================================================================== */
+const { buildControls, buildActions } = await import("../core/controls.js");
+const { resolveParams } = await import("../core/params.js");
+
+const LAYER_OPTIONS = STAGES.slice(1, LAST + 1)
+  .map((s) => ({ value: s.name, label: s.name }));
+
+/**
+ * The spec of one candidate. `gated` adds the gate and hides the second
+ * stage's controls behind it; `patches` says whether the second stage's
+ * controls are showing.
+ */
+function specOf(kind) {
+  const s = {
+    netSec: { type: "section", label: "The network" },
+    blocks: { type: "choice", label: "Blocks", detail: "how many Conv → ReLU → MaxPool blocks the network has",
+      options: [{ value: "1", label: "1" }, { value: "2", label: "2" }, { value: "3", label: "3" }], default: "2" },
+    base: { type: "choice", label: "First channels", detail: "output channels of the first convolution; each block doubles it",
+      options: [{ value: "16", label: "16" }, { value: "32", label: "32" }], default: "32" },
+    k: { type: "choice", label: "Kernel size", detail: "the side of the square kernel, with padding (k − 1) / 2",
+      options: [{ value: "3", label: "3" }, { value: "5", label: "5" }], default: "3" },
+    headSec: { type: "section", label: "The head" },
+    head: { type: "segmented", label: "Head",
+      options: [{ value: "flatten", label: "Flatten", detail: "every cell of the feature map is one input to the linear layer" },
+        { value: "gap", label: "GAP", detail: "each channel is averaged over its positions, one input per channel" }],
+      default: "gap" },
+    imgSec: { type: "section", label: "The image" },
+    input: { type: "choice", label: "Image size", detail: "the side of the input image, in pixels",
+      options: [{ value: "28", label: "28" }, { value: "64", label: "64" }], default: "28" },
+  };
+  if (kind === "A") {
+    s.patch = { type: "gate", label: "Follow one unit", labelOff: "Hide the patch",
+      detail: "mark one unit of a feature map and the patch of the image it is computed from",
+      default: false, display: true };
+    s.fieldSec = { type: "section", label: "The receptive field", when: { param: "patch" } };
+    s.layer = { type: "choice", label: "Layer", detail: "which feature map the marked unit belongs to",
+      options: LAYER_OPTIONS, default: "pool2", when: { param: "patch" } };
+  }
+  if (kind === "B") {
+    s.fieldSec = { type: "section", label: "The receptive field" };
+    s.layer = { type: "choice", label: "Layer", detail: "which feature map the marked unit belongs to",
+      options: LAYER_OPTIONS, default: "pool2" };
+  }
+  return s;
+}
+
+function railIn(parent, kind, values, oneStep = false) {
+  const host = el("div", "w-split rail-host");
+  const rail = el("div", "w-rail");
+  host.appendChild(rail);
+  const sp = specOf(kind);
+  const v = { ...resolveParams(sp, new URLSearchParams("")), ...values };
+  const cm = el("div", "w-controls");
+  rail.appendChild(cm);
+  buildControls(cm, sp, v, () => {});
+  const drive = el("div", "w-drive");
+  rail.appendChild(drive);
+  const buttons = [];
+  if (kind === "A" && !v.patch) {
+    buttons.push({ key: "step", text: "Next layer", group: "pace", onClick: () => {} });
+  } else if (kind === "C") {
+    buttons.push({ key: "step", text: "Next layer", group: "pace", onClick: () => {} });
+  } else if (oneStep) {
+    /* the same stage with ONE step button that renames itself, which is what
+       core has today: the four-button row is the thing to measure against */
+    buttons.push({ key: "step", text: "Next position", group: "pace", onClick: () => {} });
+  } else {
+    buttons.push({ key: "step", text: "Next position", group: "pace", onClick: () => {} });
+    buttons.push({ key: "step2", text: "Next unit", group: "pace", onClick: () => {} });
+  }
+  buttons.push({ key: "run", text: "Play", group: "pace", primary: true, onClick: () => {} });
+  buttons.push({ key: "reset", text: "Reset", onClick: () => {} });
+  buildActions(drive, buttons);
+  parent.appendChild(host);
+  return host;
+}
+
+/* --- the storyboards ------------------------------------------------------ */
+const SB_SCALE = 0.44;
+const SB_ROW = Math.round(GAL_H * SB_SCALE) + 12;
+const SB_H = 3 * SB_ROW + 16;
+const SB_TEXT_X = Math.round(STAGE_W * SB_SCALE) + 20;
+
+/** Three presses down the page: the gallery, scaled, with a line beside each. */
+function storyboard(ctx, frames) {
+  frames.forEach((f, i) => {
+    const y = 8 + i * SB_ROW;
+    ctx.save();
+    ctx.translate(0, y);
+    ctx.scale(SB_SCALE, SB_SCALE);
+    drawGallery(ctx, STAGE_W, { ...f.opts, title: f.title, sub: f.sub, foot: false });
+    ctx.restore();
+    ctx.save();
+    ctx.strokeStyle = T.grid; ctx.lineWidth = 1;
+    ctx.strokeRect(0.5, y + 0.5, Math.round(STAGE_W * SB_SCALE), Math.round(GAL_H * SB_SCALE) - 1);
+    ctx.restore();
+    caption(ctx, SB_TEXT_X, y + 22, f.press);
+    let ly = y + 40;
+    for (const line of f.lines) { note(ctx, SB_TEXT_X, ly, line, T.ink2); ly += 15; }
+  });
+}
+
+const FIELD_MID = { stage: LAST, channel: 1, row: 3, col: 3 };
+
+{
+  /* A · gated, two stages */
+  const rowA = document.getElementById("driveA");
+  const a1 = cand(rowA, "A · the rail, before the gate opens", "core's DOM at 300px\nvalues: the defaults", "railcand");
+  const hostA1 = railIn(a1, "A", { patch: false });
+  const a2 = cand(rowA, "A · the rail, after the gate opens", "the gate writes ?patch=1\nthe second stage's controls follow it", "railcand");
+  const hostA2 = railIn(a2, "A", { patch: true });
+  const a2b = cand(rowA, "A · the same stage, one step button", "Next position, then Next unit,\nunder one button that renames itself", "railcand");
+  const hostA2b = railIn(a2b, "A", { patch: true }, true);
+  const a3 = cand(rowA, "A · the storyboard", `${STAGE_W} × ${SB_H} — three presses`);
+  storyboard(canvasIn(a3, STAGE_W, SB_H), [
+    { press: "Press 1 · Next layer",
+      title: "One column a layer, four of its channels drawn", sub: "conv1 is in",
+      opts: { reveal: 1 },
+      lines: ["The figure opens with the image alone.", "Each press adds one column and its four maps.",
+        "Play adds the remaining columns and stops."] },
+    { press: `Press ${NET.units} · the layers are in`,
+      title: "The network, every column", sub: "the gate opens the second stage",
+      opts: { reveal: NET.units },
+      lines: ["The gate is pressable from the start,", "so a reader who wants the patches first",
+        "presses it and the layers arrive before them."] },
+    { press: "After the gate · Next position",
+      title: "One output value, position by position", sub: "the map fills behind the window",
+      opts: { reveal: NET.units, field: { ...FIELD_MID, filled: 3 * 7 + 3 } },
+      lines: ["The kernel moves over the chosen layer's input.", "Next unit then moves the marked unit and",
+        "the patch of the image it is computed from."] },
+  ]);
+
+  /* B · the architecture at once */
+  const rowB = document.getElementById("driveB");
+  const b1 = cand(rowB, "B · the rail", "one stage, from the first frame", "railcand");
+  const hostB = railIn(b1, "B", {});
+  const b2 = cand(rowB, "B · the storyboard", `${STAGE_W} × ${SB_H} — three presses`);
+  storyboard(canvasIn(b2, STAGE_W, SB_H), [
+    { press: "First frame · nothing pressed",
+      title: "The network, every column", sub: "the architecture arrives complete",
+      opts: { reveal: NET.units },
+      lines: ["Every column, its maps and its wiring are in", "before the reader presses anything.",
+        "What is lost is the reveal: 2.1 says a widget", "starts empty, and this one starts finished."] },
+    { press: "Press 1 · Next position",
+      title: "One output value, position by position", sub: "the map fills behind the window",
+      opts: { reveal: NET.units, field: { ...FIELD_MID, filled: 12 } },
+      lines: ["The first press is already the patches.", `Play reaches them at 0 s rather than ${secs(MS_LAYERS)}.`] },
+    { press: "Press 2 · Next unit",
+      title: "One unit, and the patch of the image it reads", sub: "the marked unit moves through its own map",
+      opts: { reveal: NET.units, field: FIELD_MID },
+      lines: ["The receptive field is the whole animation,", "so one Play runs the positions and then the units."] },
+  ]);
+
+  /* C · as built */
+  const rowC = document.getElementById("driveC");
+  const c1 = cand(rowC, "C · the rail, as built", "one Step, relabelled by phase", "railcand");
+  const hostC = railIn(c1, "C", {});
+  const c2 = cand(rowC, "C · the storyboard", `${STAGE_W} × ${SB_H} — three presses`);
+  storyboard(canvasIn(c2, STAGE_W, SB_H), [
+    { press: "Press 1 · Next layer",
+      title: "One column a layer, four of its channels drawn", sub: "conv1 is in",
+      opts: { reveal: 1 },
+      lines: ["The same first press as A."] },
+    { press: `Press ${NET.units + 1} · Next position`,
+      title: "One output value, position by position", sub: "the step button has renamed itself",
+      opts: { reveal: NET.units, field: { ...FIELD_MID, filled: 3 * 7 + 3 } },
+      lines: [`The patches are ${NET.units} presses away from empty,`,
+        "and the button renames itself on arrival,", "which is the only signal that the phase changed."] },
+    { press: `Press ${NET.units + 1 + CELLS_LAST} · Next unit`,
+      title: "One unit, and the patch of the image it reads", sub: "the third phase",
+      opts: { reveal: NET.units, field: FIELD_MID },
+      lines: ["Three phases under one button, and the rail", "looks identical in all three."] },
+  ]);
+
+  const measure = () => {
+    document.getElementById("driveMeasure").textContent = [
+      `A rail, gate shut: ${Math.round(hostA1.getBoundingClientRect().height)}px · gate open: `
+        + `${Math.round(hostA2.getBoundingClientRect().height)}px `
+        + `(+${Math.round(hostA2.getBoundingClientRect().height - hostA1.getBoundingClientRect().height)}px)`,
+      `A rail, gate open with one step button: ${Math.round(hostA2b.getBoundingClientRect().height)}px `
+        + `(${Math.round(hostA2.getBoundingClientRect().height - hostA2b.getBoundingClientRect().height)}px less than the four-button row)`,
+      `B rail: ${Math.round(hostB.getBoundingClientRect().height)}px · C rail: ${Math.round(hostC.getBoundingClientRect().height)}px`,
+      `drive rows, at 300px: ${[["A shut", hostA1], ["A open, two steps", hostA2], ["A open, one step", hostA2b], ["B", hostB], ["C", hostC]]
+        .map(([n, h]) => `${n} ${Math.round(h.querySelector(".w-drive").getBoundingClientRect().height)}px`).join(" · ")}`,
+      `stage at 550: gallery ${Math.round(GAL_H)} + detail ${Math.round(M.detailHeight(STAGE_W, STAGES))} + head 300, `
+        + `with two ${M.BAND_GAP}px gaps = ${Math.round(M.stageHeight(STAGE_W, CFG))}px`,
+      `Play, from empty, on the default network: layers ${NET.units} × ${M.UNIT_MS} ms = ${secs(MS_LAYERS)} · `
+        + `positions ${CELLS_LAST} × ${M.SLIDE_MS0} ms = ${secs(MS_POSITIONS)} · units ${secs(MS_UNITS)} — `
+        + `${secs(MS_LAYERS + MS_POSITIONS + MS_UNITS)} in all`,
+      `presses from empty to the first patch: A ${NET.units + 1} (or Play, then the gate, then 1) · B 1 · C ${NET.units + 1}`,
+      `seconds of Play before anything moves over the image: A and C ${secs(MS_LAYERS)} · B 0.0 s`,
+    ].join("\n");
+  };
+  measure();
+  if (document.fonts?.ready) document.fonts.ready.then(measure);
+
+  const t = el("table", "facts");
+  const tr = (cells, head = false) => {
+    const r = el("tr");
+    for (const c of cells) r.appendChild(el(head ? "th" : "td", null, c));
+    t.appendChild(r);
+  };
+  tr(["", "starts", "what Play runs", "drive row", "core additions needed"], true);
+  tr(["A gated", "empty: the image alone", "stage 1 the layers; stage 2 the positions then the units",
+    "Next layer · Play · Reset, then Next position · Play · Reset",
+    "none: the gate and when: are already in core, and the step keeps renaming itself"]);
+  tr(["B at once", "the finished architecture", "the positions, then the units",
+    "Next position / Next unit · Play · Reset", "none"]);
+  tr(["C as built", "empty: the image alone", "all three phases in order",
+    "Next layer / Next position / Next unit · Play · Reset", "none"]);
+  document.getElementById("driveTable").appendChild(t);
+
+  document.getElementById("recDrive").innerHTML =
+    `<b>A, the gate — with one correction to how it opens.</b> Your instinct is right and it is `
+    + `principle 3.4b: revealing the architecture and following one unit are two activities, and a reader in `
+    + `the first one should not be looking at the controls of the second. <b>The correction:</b> a gate that `
+    + `opened by itself when the last column arrived would be keyed on the animation, and the animation is not `
+    + `a parameter (invariant 1) — the same link would open in stage 1 for you and in stage 2 for a student `
+    + `who had pressed Play. So the gate is a button the reader presses, <code>?patch=1</code>, exactly as `
+    + `<code>power-and-error</code>'s <i>Simulate to check</i> is. It is pressable from the first frame; `
+    + `pressing it early is honest, because the phases are ordered anyway and the layers arrive first. `
+    + `<b>The measured reasons.</b> The gate is what gives <i>Next position</i> and <i>Next unit</i> a place to `
+    + `live: today all three phases share one button that renames itself, so the rail is identical in a state `
+    + `${NET.units} presses from the patches and in the state that is showing them, and the only notice a `
+    + `reader gets that the widget changed subject is a word on a button. The two rails here differ by the `
+    + `measured height printed above, and the shut one carries no control the reader cannot use yet. `
+    + `<b>One step button, not two.</b> The third rail above is the same open stage with <i>Next position</i> `
+    + `and <i>Next unit</i> back under one button; the four-button row costs the height printed above, and `
+    + `3.4c's measurement says a step label has about 130 px once Play and Reset are paid for. So the gate `
+    + `does the separating and the step keeps renaming itself — which also means A asks nothing of core: the `
+    + `<code>gate</code> field and <code>when:</code> are already there for <code>power-and-error</code>. `
+    + `<b>B is the fallback, not the pick.</b> It reaches the patches in one press against `
+    + `${NET.units + 1}, and its Play starts moving at 0 s against ${secs(MS_LAYERS)} — real gains. What it `
+    + `costs is 2.1: the widget opens on a finished architecture, which is the answer to <i>what does a CNN `
+    + `look like</i> handed over before the reader has done anything, and the column-by-column arrival is `
+    + `where the shape printed under each column comes from. A keeps both: the layers are still built, and `
+    + `the patches are one button away rather than ${NET.units} presses away. <b>C is what is built</b>, and `
+    + `its single fault is the one you found: the rail says nothing about which of three activities is `
+    + `running.`;
+}
+
+/* ==========================================================================
+   §2 · the example image
+   ====================================================================== */
+{
+  const row = document.getElementById("imgRow");
+  const IMG_BIG = 140; const MAP_S = 84; const GAPX = 6;
+  const SMALL = 84;
+  const CAND_H = 396;
+  for (const c of MEASURED) {
+    const maps28 = runNet(c.at28.img.v, 28);
+    const h64 = relu(conv3(c.at64.img.v, 64, KERNELS[0].k));
+    const box = cand(row, c.title, `${STAGE_W} × ${CAND_H} — 28 × 28 with its four conv1 maps, then 64 × 64`);
+    const ctx = canvasIn(box, STAGE_W, CAND_H);
+    caption(ctx, PAD, 24, "The image, and what each kernel finds in it");
+    note(ctx, PAD, 40, "every map is that kernel over this image, then ReLU");
+    drawMap(ctx, PAD, 54, IMG_BIG, 28, c.at28.img.v, { frame: T.groupA });
+    mono(ctx, PAD, 54 + IMG_BIG + 14, `Input ${shapeText([3, 28, 28])}`, T.ink2);
+    KERNELS.forEach((K, i) => {
+      const x = PAD + IMG_BIG + 12 + i * (MAP_S + GAPX);
+      const y = 54 + (IMG_BIG - MAP_S) / 2;
+      drawMap(ctx, x, y, MAP_S, 28, maps28.conv1[i], { frame: T.empirical });
+      mono(ctx, x, y + MAP_S + 14, K.short, T.ink2);
+      const r = c.at28.per[i];
+      mono(ctx, x, y + MAP_S + 27, i === 2
+        ? `shape ${fmt(c.at28.shape)}`
+        : (r.ratio === null ? "no noise" : `${fmt(r.ratio, 1)} ×`), r.ratio !== null && r.ratio < 3 && i !== 2 ? T.extreme : T.ink3);
+    });
+    const y2 = 54 + IMG_BIG + 44;
+    caption(ctx, PAD, y2 + 16, "The same picture at 64 × 64");
+    note(ctx, PAD, y2 + 30, "the generator is written in coordinates of n / 28, so only the sampling changes");
+    drawMap(ctx, PAD, y2 + 40, SMALL, 64, c.at64.img.v, { frame: T.groupA });
+    mono(ctx, PAD, y2 + 40 + SMALL + 14, `Input ${shapeText([3, 64, 64])}`, T.ink2);
+    drawMap(ctx, PAD + SMALL + 12, y2 + 40, SMALL, 64, h64, { frame: T.empirical });
+    mono(ctx, PAD + SMALL + 12, y2 + 40 + SMALL + 14, "H edge", T.ink2);
+    const rr = c.at64.per[0];
+    note(ctx, PAD + 2 * SMALL + 32, y2 + 54,
+      `boundary ${fmt(c.at64.per[0].mb)} against flat ${fmt(c.at64.per[0].mf)}`, T.ink2);
+    note(ctx, PAD + 2 * SMALL + 32, y2 + 70,
+      rr.ratio === null ? "no noise: the flat response is 0" : `${fmt(rr.ratio, 1)} × at 64, against ${fmt(c.at28.per[0].ratio, 1)} × at 28`,
+      T.ink2);
+    note(ctx, PAD + 2 * SMALL + 32, y2 + 86,
+      `${c.at64.nb} boundary pixels, ${c.at64.nf} flat`, T.ink3);
+    note(ctx, PAD, CAND_H - 12,
+      `28 × 28: ${c.at28.nb} boundary pixels against ${c.at28.nf} flat · `
+      + `horizontal edge ${fmt(c.at28.per[0].mb)} on the boundary, ${fmt(c.at28.per[0].mf)} on the flat`);
+  }
+
+  const lines = MEASURED.map((c) => {
+    const s = (m) => m.per.map((r, i) => `${r.short} ${r.ratio === null ? "  no noise" : `${fmt(r.ratio, 1).padStart(6)} ×`}`).join("  ");
+    return `${c.title.padEnd(28)} 28: ${s(c.at28)}  blur shape ${fmt(c.at28.shape)}\n`
+      + `${"".padEnd(28)} 64: ${s(c.at64)}  blur shape ${fmt(c.at64.shape)}`;
+  });
+  document.getElementById("imgMeasure").textContent =
+    "mean |response| on the boundary divided by mean |response| on a flat region:\n" + lines.join("\n");
+
+  const t = el("table", "facts");
+  const tr = (cells, head = false) => {
+    const r = el("tr");
+    cells.forEach((c, i) => {
+      const cell = el(head ? "th" : "td", i > 0 && !head ? "num" : null, c);
+      r.appendChild(cell);
+    });
+    t.appendChild(r);
+  };
+  tr(["image at 28 × 28", "H edge", "V edge", "Centre", "blur, object vs field", "which maps read"], true);
+  const READS = {
+    blob: "only blur; the edge maps carry as much noise as edge",
+    cell: "all four: the membrane is a ring in both edge maps, the granules are the centre-surround map",
+    smear: "all four; the cells' outlines are the edge maps and the field is flat",
+    tissue: "the edge maps and the centre-surround map; the blur map is close to uniform",
+    figure: "all four, and the edge maps are exactly two rules and two arcs",
+  };
+  for (const c of MEASURED) {
+    tr([c.title,
+      c.at28.per[0].ratio === null ? "no noise" : `${fmt(c.at28.per[0].ratio, 1)} ×`,
+      c.at28.per[1].ratio === null ? "no noise" : `${fmt(c.at28.per[1].ratio, 1)} ×`,
+      c.at28.per[3].ratio === null ? "no noise" : `${fmt(c.at28.per[3].ratio, 1)} ×`,
+      fmt(c.at28.shape),
+      READS[c.key]]);
+  }
+  document.getElementById("imgTable").appendChild(t);
+
+  const cellC = MEASURED.find((c) => c.key === "cell");
+  const blobC = MEASURED.find((c) => c.key === "blob");
+  const tissueC = MEASURED.find((c) => c.key === "tissue");
+  const figC = MEASURED.find((c) => c.key === "figure");
+  const smearC = MEASURED.find((c) => c.key === "smear");
+  document.getElementById("recImg").innerHTML =
+    `<b>A, the cell.</b> <b>The measured reason the blob reads as amorphous:</b> its horizontal-edge response `
+    + `on the blob's own boundary is ${fmt(blobC.at28.per[0].ratio, 1)} × what it is on a flat patch at 28, and `
+    + `${fmt(blobC.at64.per[0].ratio, 1)} × at 64 — a Gaussian has no boundary, so what the edge kernels find `
+    + `is mostly the 0.18 of noise, and it finds it everywhere. The cell is `
+    + `${fmt(cellC.at28.per[0].ratio, 1)} × and ${fmt(cellC.at64.per[0].ratio, 1)} ×, which is `
+    + `${fmt(cellC.at28.per[0].ratio / blobC.at28.per[0].ratio, 0)} times the separation at 28 and it holds at `
+    + `64 instead of falling. <b>All four named kernels have something to find in it, and they find different `
+    + `things:</b> the membrane is a bright ring, so the horizontal-edge map is two arcs above and below and `
+    + `the vertical-edge map is two arcs left and right — the pair that makes <i>this kernel finds horizontal, `
+    + `that one finds vertical</i> visible rather than asserted; the nucleus is a second, softer boundary `
+    + `inside the first; and the three granules are single bright spots, which is the centre-surround kernel's `
+    + `own case at ${fmt(cellC.at28.per[3].ratio, 1)} ×. The blur map keeps the cell as a shape while the `
+    + `granules go, which is what pooling then does to it. <b>It is also the right subject:</b> the arc's `
+    + `lessons are PathMNIST, BloodMNIST and a white-cell segmentation set, and one cell with a nucleus and `
+    + `granules is a BloodMNIST tile. <b>B is the close second and loses on one number:</b> its blur ratio is `
+    + `${fmt(smearC.at28.per[2].ratio, 1)}, below 1, because the field is lighter than the cells — blur's `
+    + `output is the local mean, so on a light field the flat response is larger than the boundary response `
+    + `and the map reads as a pale square with four dim discs. Four cells also puts four boundaries in a `
+    + `28 × 28 tile, and at 7 × 7 in pool2 they merge. <b>C is the best edge picture and the worst everything `
+    + `else:</b> ${fmt(tissueC.at28.per[0].ratio, 1)} × at 28 and ${fmt(tissueC.at64.per[0].ratio, 1)} × at 64, `
+    + `the highest here, but its object-to-field difference after blurring is ${fmt(tissueC.at28.shape)} — every `
+    + `polygon has nearly the same fill, so the blur map is a flat grey and one channel of four says nothing. `
+    + `<b>D is the cleanest case and not a teaching image:</b> with no noise the flat response is exactly `
+    + `${fmt(figC.at28.per[0].mf, 3)}, so the ratio has no denominator, and a rectangle has nothing to do with `
+    + `the lesson it sits in. It is worth keeping as a second image behind the <code>Image size</code> control `
+    + `if you want one, but not as the default.`;
+}
+
+/* ==========================================================================
+   §3 · Flatten against global average pooling in the gallery
+   ====================================================================== */
+{
+  const row = document.getElementById("headColRow");
+  const LAY = D.galleryLayout(STAGE_W, STAGES);
+  const HEAD_COL = LAY.cols[5];
+  const FLAT_N = NET_FLAT.headIn;          // 3136
+  const GAP_N = NET.headIn;                // 64
+  const SHOWN_FLAT = 49;
+  const STRIP_W = 12;
+  const STRIP_CELL = (LAY.colH - 20) / SHOWN_FLAT;
+  const UNROLL_CELL = 4;
+  const UNROLL_PER_ROW = Math.floor(HEAD_COL.w / UNROLL_CELL);
+  const UNROLL_ROWS = Math.ceil(SHOWN_FLAT / UNROLL_PER_ROW);
+  const UNROLL_END_TO_END = SHOWN_FLAT * UNROLL_CELL;
+  const ROOM = HEAD_COL.w + LAY.gap;
+  const HEIGHT_GAP = (GAP_N / FLAT_N) * LAY.colH;
+  const HEIGHT_FLOOR = 8;
+
+  /* the four values pool2 hands the head, and the first 49 of channel 1 */
+  const CH0 = NET_MAPS.pool2[0];
+  const flatVals = Array.from({ length: SHOWN_FLAT }, (_, i) => CH0[i] ?? 0);
+  const flatHi = maxOf(flatVals);
+  const gapHi = maxOf(NET_MAPS.gapv);
+
+  const gapCells = (ctx, lay, col) => {
+    col.thumbs.forEach((t) => {
+      ctx.save();
+      ctx.fillStyle = grey(Math.abs(NET_MAPS.gapv[t.channel]) / gapHi);
+      ctx.fillRect(t.x, t.y, t.size, t.size);
+      ctx.strokeStyle = T.empirical; ctx.lineWidth = 1;
+      ctx.strokeRect(t.x + 0.5, t.y + 0.5, t.size - 1, t.size - 1);
+      ctx.restore();
+    });
+  };
+
+  const DRAW = {
+    A: (ctx, lay, col) => {
+      const y0 = lay.top + 4;
+      for (let i = 0; i < SHOWN_FLAT; i += 1) {
+        ctx.save();
+        ctx.fillStyle = grey(flatVals[i] / flatHi);
+        ctx.fillRect(col.x, y0 + i * STRIP_CELL, STRIP_W, Math.ceil(STRIP_CELL));
+        ctx.restore();
+      }
+      ctx.save();
+      ctx.strokeStyle = T.empirical; ctx.lineWidth = 1;
+      ctx.strokeRect(col.x + 0.5, y0 + 0.5, STRIP_W - 1, SHOWN_FLAT * STRIP_CELL - 1);
+      ctx.setLineDash([2, 2]);
+      ctx.beginPath();
+      ctx.moveTo(col.x, y0 + SHOWN_FLAT * STRIP_CELL + 5);
+      ctx.lineTo(col.x + STRIP_W, y0 + SHOWN_FLAT * STRIP_CELL + 5);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.restore();
+    },
+    B: (ctx, lay, col) => {
+      const blockH = 4 * UNROLL_ROWS * UNROLL_CELL + 3 * 6;
+      let y = lay.top + (lay.colH - blockH) / 2;
+      for (let ch = 0; ch < 4; ch += 1) {
+        const src = NET_MAPS.pool2[ch];
+        const hi = maxOf(src);
+        for (let i = 0; i < SHOWN_FLAT; i += 1) {
+          const r = Math.floor(i / UNROLL_PER_ROW);
+          const c = i % UNROLL_PER_ROW;
+          ctx.save();
+          ctx.fillStyle = grey(src[i] / hi);
+          ctx.fillRect(col.x + c * UNROLL_CELL, y + r * UNROLL_CELL, UNROLL_CELL, UNROLL_CELL);
+          ctx.restore();
+        }
+        ctx.save();
+        ctx.strokeStyle = T.empirical; ctx.lineWidth = 1;
+        ctx.strokeRect(col.x + 0.5, y + 0.5, UNROLL_PER_ROW * UNROLL_CELL - 1, UNROLL_ROWS * UNROLL_CELL - 1);
+        ctx.restore();
+        y += UNROLL_ROWS * UNROLL_CELL + 6;
+      }
+    },
+    C: (ctx, lay, col) => {
+      const y0 = lay.top + 4;
+      const h = lay.colH - 8;
+      ctx.save();
+      ctx.fillStyle = wash(T.empirical, 0.42);
+      ctx.fillRect(col.x, y0, STRIP_W, h);
+      ctx.strokeStyle = T.empirical; ctx.lineWidth = 1;
+      ctx.strokeRect(col.x + 0.5, y0 + 0.5, STRIP_W - 1, h - 1);
+      ctx.restore();
+      mono(ctx, col.x, y0 - 4, int(FLAT_N), T.ink1);
+    },
+  };
+  const DRAW_GAP = {
+    A: gapCells,
+    B: gapCells,
+    C: (ctx, lay, col, y0) => {
+      const h = Math.max(HEIGHT_FLOOR, HEIGHT_GAP);
+      ctx.save();
+      ctx.fillStyle = wash(T.empirical, 0.42);
+      ctx.fillRect(col.x, y0, STRIP_W, h);
+      ctx.strokeStyle = T.empirical; ctx.lineWidth = 1;
+      ctx.strokeRect(col.x + 0.5, y0 + 0.5, STRIP_W - 1, Math.max(1, h - 1));
+      ctx.restore();
+    },
+  };
+
+  const FOOT = 92;
+  const CAND_H = Math.round(GAL_H + FOOT);
+  const TITLES = {
+    A: "A · Flatten as a strip of values",
+    B: "B · pool2's maps unrolled into rows",
+    C: "C · a column whose height follows the count",
+  };
+  const SUBS = {
+    A: `the first ${SHOWN_FLAT} of channel 1 at ${fmt(STRIP_CELL, 2)} px a cell in a ${STRIP_W} px strip`,
+    B: `${SHOWN_FLAT} cells a channel at ${UNROLL_CELL} px, wrapped every ${UNROLL_PER_ROW}`,
+    C: `${int(FLAT_N)} against ${GAP_N}, as ${Math.round(LAY.colH - 8)} px against ${fmt(HEIGHT_GAP, 1)} px`,
+  };
+  for (const key of ["A", "B", "C"]) {
+    const box = cand(row, TITLES[key], `${STAGE_W} × ${CAND_H}\n${SUBS[key]}`);
+    const ctx = canvasIn(box, STAGE_W, CAND_H);
+    drawGallery(ctx, STAGE_W, {
+      title: "The head column as Flatten",
+      sub: "pool2's four maps are the column to its left",
+      headDraw: DRAW[key],
+      foot: false,
+    });
+    /* the head column printed as Flatten, over the drawing */
+    mono(ctx, HEAD_COL.x, LAY.top - 8, "Flatten", T.ink2);
+    mono(ctx, HEAD_COL.x - 8, LAY.lineY(HEAD_COL.labelRow, 0), shapeText([FLAT_N]), T.ink3);
+    if (key !== "C") {
+      note(ctx, HEAD_COL.x - 6, LAY.lineY(HEAD_COL.labelRow, 1), `+${int(FLAT_N - SHOWN_FLAT)} more`, T.ink3);
+    }
+    /* the same column as global average pooling, at the same x */
+    const gy = GAL_H + 26;
+    caption(ctx, PAD, GAL_H + 16, "The same column as global average pooling");
+    ctx.save();
+    ctx.strokeStyle = T.grid; ctx.lineWidth = 1; ctx.setLineDash([3, 3]);
+    ctx.beginPath(); ctx.moveTo(PAD, GAL_H + 6.5); ctx.lineTo(STAGE_W - PAD, GAL_H + 6.5); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.restore();
+    if (key === "C") {
+      DRAW_GAP.C(ctx, LAY, HEAD_COL, gy + 10);
+      mono(ctx, HEAD_COL.x, gy + 6, `${GAP_N}`, T.ink1);
+    } else {
+      const fake = {
+        ...HEAD_COL,
+        thumbs: HEAD_COL.thumbs.map((t, i) => ({ ...t, y: gy + 8 + i * (t.size + 4) })),
+      };
+      DRAW_GAP[key](ctx, LAY, fake);
+    }
+    mono(ctx, HEAD_COL.x - 8, gy + 74, "GAP", T.ink2);
+    mono(ctx, HEAD_COL.x - 14, gy + 87, shapeText([GAP_N]), T.ink3);
+    note(ctx, PAD, CAND_H - 12, key === "B"
+      ? `${SHOWN_FLAT} cells end to end at ${UNROLL_CELL} px is ${UNROLL_END_TO_END} px; the column has ${fmt(ROOM, 1)} px`
+      : `the head column is ${HEAD_COL.w} px wide with ${fmt(LAY.gap, 1)} px of gap after it`,
+      key === "B" ? T.extreme : T.ink3);
+  }
+
+  document.getElementById("headColMeasure").textContent = [
+    `gallery at ${STAGE_W}: ${LAY.cols.length} columns, gap ${fmt(LAY.gap, 2)} px, column block ${Math.round(LAY.colH)} px, `
+      + `head column x ${fmt(HEAD_COL.x, 1)} px, box ${HEAD_COL.w} px, cell ${HEAD_COL.size} px, right edge ${fmt(LAY.right, 1)} of ${STAGE_W - PAD}`,
+    `A strip: ${STRIP_W} px wide, ${SHOWN_FLAT} cells at ${fmt(STRIP_CELL, 2)} px = ${fmt(SHOWN_FLAT * STRIP_CELL, 1)} px tall — `
+      + `fits the ${HEAD_COL.w} px box with ${HEAD_COL.w - STRIP_W} px spare, and the printed line is "+${int(FLAT_N - SHOWN_FLAT)} more"`,
+    `B unrolled: end to end ${SHOWN_FLAT} × ${UNROLL_CELL} px = ${UNROLL_END_TO_END} px against ${fmt(ROOM, 1)} px of room — `
+      + `${fmt(UNROLL_END_TO_END / ROOM, 1)} × over. Wrapped every ${UNROLL_PER_ROW} it fits as a `
+      + `${UNROLL_PER_ROW * UNROLL_CELL} × ${UNROLL_ROWS * UNROLL_CELL} px block a channel, which is ${UNROLL_ROWS - 1} breaks per channel`,
+    `C height: Flatten ${Math.round(LAY.colH - 8)} px for ${int(FLAT_N)}, so ${GAP_N} is ${fmt(HEIGHT_GAP, 2)} px — `
+      + `drawn at a ${HEIGHT_FLOOR} px floor, which is ${fmt(HEIGHT_FLOOR / HEIGHT_GAP, 1)} × its true length`,
+    `all three leave the Linear column at x ${fmt(LAY.cols[6].x, 1)} px untouched; only B needs width the layout does not have`,
+  ].join("\n");
+
+  document.getElementById("recHeadCol").innerHTML =
+    `<b>A, the strip.</b> It is the only one of the three where the picture says what the two heads actually `
+    + `differ in: Flatten is one long list of values and global average pooling is one value a channel, so a `
+    + `strip of ${SHOWN_FLAT} cells against four cells at the same x is the difference, drawn. `
+    + `<b>The measured reason it is affordable:</b> the strip is ${STRIP_W} px wide in a ${HEAD_COL.w} px box `
+    + `and ${fmt(SHOWN_FLAT * STRIP_CELL, 1)} px tall inside a ${Math.round(LAY.colH)} px column block, so it `
+    + `costs no width at all and the Linear column stays at x ${fmt(LAY.cols[6].x, 1)}. Its cells are `
+    + `${fmt(STRIP_CELL, 2)} px, above the 2 px floor the hit map already uses, so every drawn value can be its `
+    + `own target. <b>B does not fit, and it is arithmetic:</b> 49 cells end to end at ${UNROLL_CELL} px is `
+    + `${UNROLL_END_TO_END} px where the column has ${fmt(ROOM, 1)} px — ${fmt(UNROLL_END_TO_END / ROOM, 1)} × `
+    + `over. Wrapping it every ${UNROLL_PER_ROW} cells does fit, and that is the second problem: a `
+    + `${UNROLL_PER_ROW} × ${UNROLL_ROWS} block of cells beside a column of 7 × 7 feature maps reads as another `
+    + `feature map, which is the opposite of what Flatten does. <b>C is out on 2.11:</b> ${GAP_N} of `
+    + `${int(FLAT_N)} is ${fmt(HEIGHT_GAP, 2)} px at this column height, so the drawing needs a floor, and a `
+    + `${HEIGHT_FLOOR} px floor states ${fmt(HEIGHT_FLOOR / HEIGHT_GAP, 1)} × the true ratio. A picture that `
+    + `has to be corrected by the number printed beside it is not carrying the argument. <b>One addition A `
+    + `implies:</b> the strip's printed line is <code>[3136]</code> and <code>+${int(FLAT_N - SHOWN_FLAT)} `
+    + `more</code>, against <code>[64]</code> and <code>+60 more</code> — the two shapes under two visibly `
+    + `different columns, which is what point 4 asked for.`;
+}
+
+/* ==========================================================================
+   §4 · the head figure below
+   ====================================================================== */
+{
+  const row = document.getElementById("headBandRow");
+  const lay = M.headLayout(STAGE_W, NET);
+  const A_H = 300;
+  const B_H = 210;
+
+  function headRow(ctx, hr, y, chosen) {
+    ctx.save();
+    ctx.fillStyle = T.surface2;
+    ctx.fillRect(lay.mapX, y, lay.mapS, lay.mapS);
+    ctx.strokeStyle = T.empirical; ctx.lineWidth = 1;
+    ctx.strokeRect(lay.mapX + 0.5, y + 0.5, lay.mapS - 1, lay.mapS - 1);
+    ctx.restore();
+    mono(ctx, lay.mapX, y + lay.mapS + 13, shapeText([hr.net.C, hr.net.H, hr.net.H]), T.ink3);
+    ctx.save();
+    ctx.font = `${chosen ? "600 " : ""}${T.fsXs} ${T.font}`;
+    ctx.fillStyle = chosen ? T.ink1 : T.ink2;
+    ctx.textBaseline = "alphabetic";
+    ctx.fillText(hr.name, lay.mapX, y - 6);
+    ctx.restore();
+    ctx.save();
+    ctx.fillStyle = wash(T.empirical, 0.5);
+    ctx.fillRect(lay.vecX, y + 8, 16, lay.mapS - 16);
+    ctx.strokeStyle = T.empirical; ctx.lineWidth = 1;
+    ctx.strokeRect(lay.vecX + 0.5, y + 8.5, 15, lay.mapS - 17);
+    ctx.restore();
+    mono(ctx, lay.vecX - 4, y + lay.mapS + 13, shapeText([hr.vec]), T.ink2);
+    ctx.save();
+    ctx.fillStyle = wash(T.groupB, chosen ? 0.55 : 0.28);
+    ctx.fillRect(lay.barX, y + 12, hr.bar, 22);
+    ctx.strokeStyle = T.groupB; ctx.lineWidth = chosen ? 2 : 1;
+    ctx.strokeRect(lay.barX + 0.5, y + 12.5, hr.bar - 1, 21);
+    ctx.font = `600 ${T.fsSm} ${T.font}`; ctx.fillStyle = T.ink1; ctx.textBaseline = "middle";
+    ctx.fillText(int(hr.net.headParams), lay.barX + hr.bar + 8, y + 23);
+    ctx.restore();
+    note(ctx, lay.barX, y + 48,
+      `Linear(${hr.net.headIn}, ${M.CLASSES})  ·  ${int(hr.net.total)} parameters in the network`);
+  }
+  function denseRule(ctx, dy, both) {
+    ctx.save();
+    ctx.strokeStyle = T.reference; ctx.lineWidth = 2; ctx.setLineDash([6, 4]);
+    ctx.beginPath(); ctx.moveTo(PAD, dy - 14); ctx.lineTo(STAGE_W - PAD, dy - 14); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.font = `600 ${T.fsSm} ${T.font}`; ctx.fillStyle = T.ink1; ctx.textBaseline = "alphabetic";
+    ctx.fillText(`One dense layer from this image to ${int(M.DENSE_UNITS)} units:  ${int(NET.dense)}`, PAD, dy + 4);
+    ctx.restore();
+    if (both) {
+      note(ctx, PAD, dy + 20,
+        `This network:  ${int(lay.gap.total)} with global average pooling, ${int(lay.flat.total)} with Flatten`, T.ink2);
+    }
+  }
+
+  const boxA = cand(row, "A · both heads, always — as built", `${STAGE_W} × ${A_H}`);
+  const ctxA = canvasIn(boxA, STAGE_W, A_H);
+  caption(ctxA, PAD, 24, `The head, on a ${shapeText([lay.flat.C, lay.flat.H, lay.flat.H])} feature map`);
+  lay.rows.forEach((hr) => headRow(ctxA, hr, hr.y, hr.head === CFG.head));
+  denseRule(ctxA, lay.denseY, true);
+
+  const boxB = cand(row, "B · the chosen head only", `${STAGE_W} × ${B_H}`);
+  const ctxB = canvasIn(boxB, STAGE_W, B_H);
+  caption(ctxB, PAD, 24, `The head, on a ${shapeText([lay.flat.C, lay.flat.H, lay.flat.H])} feature map`);
+  const chosen = lay.rows.find((r) => r.head === CFG.head);
+  const other = lay.rows.find((r) => r.head !== CFG.head);
+  headRow(ctxB, { ...chosen, bar: lay.barMax }, 48, true);
+  note(ctxB, PAD, 134,
+    `${other.name} on the same feature map:  ${int(other.net.headParams)} parameters, `
+    + `${int(other.net.total)} in the network`, T.ink2);
+  denseRule(ctxB, 164, false);
+  note(ctxB, PAD, B_H - 12,
+    "the chosen head fills the bar, so the two counts are read from the printed numbers alone", T.ink3);
+
+  const trueShort = lay.shortTrue;
+  document.getElementById("headBandMeasure").textContent = [
+    `A: ${A_H} px — two rows at y ${lay.rows.map((r) => r.y).join(" and ")}, the dense rule at ${lay.denseY}`,
+    `B: ${B_H} px — one row at 48, the other head's line at 134, the dense rule at 164 (${A_H - B_H} px shorter)`,
+    `C: 0 px, and ${A_H + M.BAND_GAP} px off the stage once the band gap goes`,
+    `the bars at ${STAGE_W}: bar room ${Math.round(lay.barMax)} px · Flatten ${int(lay.flat.headParams)} draws `
+      + `${Math.round(lay.rows[0].bar)} px · global average pooling ${int(lay.gap.headParams)} draws `
+      + `${Math.round(lay.rows[1].bar)} px, its true length being ${fmt(trueShort, 2)} px`,
+    `so the drawn pair is ${fmt(lay.rows[0].bar / lay.rows[1].bar, 1)} : 1 where the counts are `
+      + `${fmt(lay.flat.headParams / lay.gap.headParams, 1)} : 1 — the floor of ${M.BAR_MIN} px is `
+      + `${fmt(M.BAR_MIN / trueShort, 1)} × the short bar's true length`,
+    `stage at ${STAGE_W} today: ${Math.round(GAL_H)} + 18 + ${Math.round(M.detailHeight(STAGE_W, STAGES))} + 18 + ${A_H} px`,
+  ].join("\n");
+
+  document.getElementById("recHeadBand").innerHTML =
+    `<b>A, both heads, always — and drop the bar floor.</b> The comparison is the claim: 06-2 cell 23 asks `
+    + `which head to use, and the answer is a ratio between two numbers, so both numbers have to be on screen `
+    + `at once (2.7). <b>B turns the argument into a memory task:</b> the reader presses Head, the band `
+    + `redraws, and the comparison now happens between what is on screen and what was on screen a moment ago. `
+    + `That is the one thing an adjacent pair exists to avoid, and it buys ${A_H - B_H} px of a stage that `
+    + `is already ${Math.round(GAL_H + 18 + M.detailHeight(STAGE_W, STAGES) + 18 + A_H)} px. <b>C is worth `
+    + `${A_H + M.BAND_GAP} px</b> and costs the dense-layer benchmark as well, which is the number the whole `
+    + `parameter argument turns on; the readout tile prints the chosen network's total, and a tile cannot hold `
+    + `a rule saying <i>and a dense layer would be this</i>. <b>The measured fault in A, which is your point `
+    + `5 pulling in the other direction:</b> at ${STAGE_W} the Flatten bar is `
+    + `${Math.round(lay.rows[0].bar)} px and the global-average-pooling bar is `
+    + `${Math.round(lay.rows[1].bar)} px, so the picture says ${fmt(lay.rows[0].bar / lay.rows[1].bar, 1)} : 1 `
+    + `where the counts say ${fmt(lay.flat.headParams / lay.gap.headParams, 1)} : 1. That is the `
+    + `${M.BAR_MIN} px floor, and the short bar's true length is ${fmt(trueShort, 2)} px. 2.11 says the figure `
+    + `prints only what the visible data supports, so the floor should come down to about 4 px: a 6 px bar `
+    + `beside a ${Math.round(lay.rows[0].bar)} px one is still visible, and it is the honest picture of a head `
+    + `that costs ${fmt(lay.flat.headParams / lay.gap.headParams, 0)} times less.`;
+}
+
+/* --- the engine and check lines ------------------------------------------ */
+document.getElementById("engineLine").textContent =
+  `engine: ${STAGES.map((s) => shapeText(s.shape)).join(" → ")} · four channels computed at each stage · `
+  + `kernels ${KERNELS.map((k) => k.name).join(", ")} · conv2 runs `
+  + `${CONV2_ORDER.map((i) => KERNELS[i].short).join(", ")} over pool1 channels 1–4 · `
+  + `image: ${CHOSEN.title} · global average ${NET_MAPS.gapv.map((v) => fmt(v, 3)).join(" / ")} · `
+  + `five images and ten contrast passes computed in ${fmt(COMPUTE_MS, 1)} ms, page drawn in `
+  + `${fmt(performance.now() - T0, 0)} ms`;
+
+/* The check every kernel has to pass: no response on a constant field. */
+const FLAT_FIELD = new Float64Array(28 * 28).fill(0.5);
+let flatMax = 0;
+for (const K of [KERNELS[0], KERNELS[1], KERNELS[3]]) {
+  const m = conv3(FLAT_FIELD, 28, K.k);
+  for (let y = 1; y < 27; y += 1) for (let x = 1; x < 27; x += 1) flatMax = Math.max(flatMax, Math.abs(m[y * 28 + x]));
+}
+const CHECK_OK = flatMax === 0 && CHOSEN.at28.per[0].ratio > 10;
+const checkEl = document.getElementById("checkLine");
+checkEl.textContent = CHECK_OK
+  ? `check: the three edge kernels give max |response| = ${flatMax.toFixed(12)} on a constant field, and on the `
+    + `chosen image the horizontal-edge kernel gives ${fmt(CHOSEN.at28.per[0].mb, 4)} on a boundary against `
+    + `${fmt(CHOSEN.at28.per[0].mf, 4)} on a flat patch — ${fmt(CHOSEN.at28.per[0].ratio, 1)} ×.`
+  : `CHECK FAILED: flat max |response| ${flatMax.toFixed(12)}, boundary-to-flat ${fmt(CHOSEN.at28.per[0].ratio, 2)}`;
+checkEl.style.color = CHECK_OK ? "var(--ink-2)" : "var(--c-extreme)";
+</script>
+</body>
+</html>

@@ -1,0 +1,1059 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · cnn-architecture — round 6</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  /* The mock shell, verbatim from `_lab/cnn-round5-mock.html`. Nothing here is
+     a new visual decision. */
+  .lab { max-width: 1240px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 96ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; width: 550px; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); max-width: 550px; min-height: 26px; white-space: pre-line; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 96ch; }
+  .measure { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--ink-3); margin: 4px 0 0; max-width: 900px; white-space: pre-line; }
+  table.facts { border-collapse: collapse; font-size: var(--fs-sm); color: var(--ink-2); margin: var(--sp-2) 0 var(--sp-3); max-width: 120ch; }
+  table.facts th, table.facts td { border: 1px solid var(--grid); padding: 3px 8px; text-align: left; vertical-align: top; }
+  table.facts th { color: var(--ink-1); font-weight: 600; background: var(--surface-2); }
+  table.facts td b { color: var(--ink-1); }
+  table.facts td.num { font-family: var(--font-mono); font-size: var(--fs-xs); text-align: right; }
+  table.facts tr.pass td b { color: var(--c-highlight); }
+  .legend { display: flex; flex-wrap: wrap; gap: var(--sp-2) var(--sp-4); margin: 0 0 var(--sp-4);
+            font-size: var(--fs-xs); color: var(--ink-2); }
+  .legend span { display: flex; align-items: center; gap: 6px; }
+  .sw { width: 13px; height: 13px; border-radius: 50%; flex: 0 0 auto; }
+  .sw-emp { background: var(--c-empirical); }
+  .sw-high { background: var(--c-highlight); }
+  .sw-ga { background: var(--c-group-a); }
+  .sw-gb { background: var(--c-group-b); }
+  .sw-ramp { width: 26px; border-radius: 2px; background: linear-gradient(90deg, var(--surface-2), var(--ink-1)); }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>cnn-architecture &middot; round 6</h1>
+
+  <p class="note">
+    <b>What this page answers.</b> Your two questions of 2026-09-15.
+    <b>&sect;1</b> &mdash; the second convolution reads every channel the first one produced, so its kernels are
+    combinations of them rather than the same four operators run again. Six candidate combinations are built,
+    measured against where the cell actually is, and four are chosen on the measurement.
+    <b>&sect;2</b> &mdash; the patch scans twice because the walk over the kernel's positions and the walk of the
+    marked unit are two phases of one press. They are the same walk over the same cells, and this section merges
+    them into one.
+  </p>
+  <p class="note">
+    <b>The engine is the shipping one.</b> The image, conv1's four named operators, ReLU and the pooling all come
+    from <code>cnn-architecture/model.js</code>; the columns, the windows, the receptive field and the cone come
+    from <code>depict.js</code>. Only the conv2 kernels proposed here are new arithmetic, and they are run through
+    the same pipeline. Every figure is drawn at 550, which is the width the stage is reviewed at.
+  </p>
+  <p class="note" id="engineLine"></p>
+
+  <div class="legend">
+    <span><i class="sw sw-ramp"></i>a feature map, low to high</span>
+    <span><i class="sw sw-emp"></i>the map the network computed</span>
+    <span><i class="sw sw-ga"></i>the input the layer reads</span>
+    <span><i class="sw sw-gb"></i>the layer's weights: the kernel</span>
+    <span><i class="sw sw-high"></i>the marked unit, and the patch it reads</span>
+  </div>
+
+  <h2>&sect;1 &middot; conv2 as combinations of conv1's maps</h2>
+  <p class="note">
+    <b>What is built today, and why it says the first layer twice.</b> Each conv2 map runs one of the same four
+    named operators over ONE pool1 channel. The wiring says a convolution reads every input channel &mdash; the
+    figure draws the faint lines for it &mdash; and the arithmetic behind it reads one. So the second block shows
+    the reader a horizontal edge of a horizontal edge, which is the first layer's lesson with an extra step.
+  </p>
+  <p class="note">
+    <b>What a cross-channel kernel is.</b> One conv2 output map carries a 4 &times; 3 &times; 3 weight: a 3 &times; 3
+    slice per input channel. The four slices are applied to the four pool1 channels at the same position, the
+    results are added, the bias is added, and ReLU follows. The parameter count already pays for the bias &mdash;
+    <code>buildNet</code> counts <code>C &middot; out &middot; k &middot; k + out</code> &mdash; and the measurement
+    below is the reason it is spent: with four non-negative input channels, a sum of positive weights is a
+    brightness, and the brightest structure carries the largest response until a threshold is subtracted.
+  </p>
+  <p class="note">
+    <b>How a candidate is measured.</b> The candidate runs through the shipping pipeline &mdash; conv1, ReLU,
+    pool1, this kernel, ReLU &mdash; and its response is attributed to the parts of the cell that
+    <code>cellParts</code> defines: field, cell body, membrane, nucleus rim, nucleus, granules. A 3 &times; 3
+    operator answers a boundary one pixel wide of it on both sides, so the three boundary classes are dilated by
+    one pixel before anything is counted; at the 14 &times; 14 grid a cell takes the label its four image pixels
+    hold in majority. <b>Enrichment</b> is the share of the map's response mass in a part divided by that part's
+    share of the area, so 1.00 is no preference. The largest it can be is one over the area share, which is
+    printed beside it: the membrane band is a fifth of the picture, so 4.6 is all there is.
+  </p>
+  <div class="row" id="galRow"></div>
+  <p class="measure" id="galMeasure"></p>
+
+  <h3>The six candidates, and the four chosen</h3>
+  <p class="note">
+    Each row is one candidate's best part, its enrichment, and the ceiling that part's area allows. The full table
+    of all six parts is under it.
+  </p>
+  <div id="candTable"></div>
+  <div class="row" id="kernRow"></div>
+  <p class="measure" id="kernMeasure"></p>
+  <div id="chosenTable"></div>
+  <p class="rec" id="recKernels"></p>
+
+  <h3>The detail band for a conv2 cell</h3>
+  <p class="note">
+    The band draws one output value's arithmetic. For a conv2 cell that is four windows, four kernel slices, the
+    sum and the output map &mdash; and the four windows are the four input maps, so the single input thumbnail the
+    band draws today has nothing left to say. Shapes measured at 550 and at the 535 the fingerprint frame draws at.
+  </p>
+  <div class="row" id="detailRow"></div>
+  <p class="measure" id="widthMeasure"></p>
+  <p class="rec" id="recDetail"></p>
+
+  <h3>conv3, the third block</h3>
+  <p class="note">
+    Same principle: four kernels over pool2's four channels, chosen by the same measurement. The four conv2
+    channels are on very different scales, so each is divided by its own largest value before the search &mdash;
+    otherwise a weight would be carrying the scale rather than the combination.
+  </p>
+  <div id="conv3Table"></div>
+  <p class="rec" id="recConv3"></p>
+
+  <h2>&sect;2 &middot; One scan, not two</h2>
+  <p class="note">
+    <b>Why it scans twice today.</b> Behind the gate, one press of Step is three phases. Phase 2 walks the kernel
+    over the chosen layer's input, position by position, with the output map filling in behind the window. Phase 3
+    then walks the marked unit over every cell of that same map, with the nested receptive-field windows, the cone
+    and the patch on the image moving with it. <b>Both walks visit the same cells of the same map in reading
+    order</b>, and the window phase 2 draws on the immediate source is the innermost window of phase 3's receptive
+    field &mdash; the same two numbers, since one step of the backward recursion
+    <code>lo &rarr; lo&middot;s &minus; p</code> IS the kernel's own window. So the second walk redraws the first
+    walk's picture and adds the outer windows to it.
+  </p>
+  <p class="note" id="rfCheck"></p>
+  <p class="note">
+    <b>The merge.</b> One walk: the marked unit moves a cell at a time in reading order; the output map fills up to
+    that cell; the detail band shows that cell's arithmetic; the windows, the cone and the patch move with it. One
+    press is one cell, one label, one clock. Three frames of it below &mdash; the first cell, the middle cell and
+    the last &mdash; on pool2, whose 49 cells are large enough to read.
+  </p>
+  <p class="note">
+    <b>What was drawn twice, and what the merge costs.</b> Shown twice: the cell order, the window on the
+    immediate source, and the output value arriving. Lost: nothing on the figure, and two things in the drive.
+    The two phases had two paces, so a reader could watch the positions slowly and the units quickly; one walk
+    has one pace. And the window in the merged frame carries both readings at once &mdash; it is the kernel's own
+    window and the innermost square of the receptive field &mdash; where the two phases showed each reading on
+    its own. Gained: the fill and the marked unit are one counter rather than two, so the map behind the unit is
+    always drawn exactly as far as the unit has walked.
+  </p>
+  <p class="note">
+    <b>The step label.</b> One label, <b>Next unit</b>. The label keyed on the animation's phase goes with the
+    phase it named, which is 4.4b's rule: a label answers what this press will do, and every press now does the
+    same thing.
+  </p>
+  <div class="row" id="frameRow"></div>
+  <p class="measure" id="scanMeasure"></p>
+  <div id="clockTable"></div>
+  <p class="rec" id="recScan"></p>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+import { shapeText } from "../core/torch.js";
+import { makeRng } from "../core/rng.js";
+import * as M from "../cnn-architecture/model.js";
+import * as D from "../cnn-architecture/depict.js";
+
+const T0 = performance.now();
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+const STAGE_W = 550;
+const FRAME_W = 535;          // what the fingerprint frame draws the stage at
+const PAD = D.PAD;
+
+/* ==========================================================================
+   THE PIPELINE UP TO pool1, from the shipping engine.
+   ====================================================================== */
+const CFG = { blocks: 2, base: 32, k: 3, head: "gap", input: 28 };
+const NET = M.buildNet(CFG);
+const MAPS = M.computeMaps(NET, makeRng(1));
+const N0 = 28;
+const N1 = 14;
+const N2 = 7;
+const TEX = MAPS.stages[0][0];
+const CONV1 = MAPS.stages[1];
+const POOL1 = MAPS.stages[2];
+const IN_NAMES = M.KERNELS.map((k) => k.short);
+
+/* ==========================================================================
+   THE CROSS-CHANNEL CONVOLUTION, which is the one piece of arithmetic this
+   page adds. `W[c]` is the 3 × 3 slice for input channel c, or null for a
+   channel this output ignores; `bias` is the layer's own bias term.
+   ====================================================================== */
+function convSum(srcs, n, W, bias = 0) {
+  const out = new Float64Array(n * n);
+  for (let y = 0; y < n; y += 1) {
+    for (let x = 0; x < n; x += 1) {
+      let a = bias;
+      for (let c = 0; c < srcs.length; c += 1) {
+        const K = W[c];
+        if (!K) continue;
+        for (let j = 0; j < 3; j += 1) {
+          for (let i = 0; i < 3; i += 1) {
+            const yy = y + j - 1;
+            const xx = x + i - 1;
+            if (yy < 0 || yy >= n || xx < 0 || xx >= n) continue;
+            a += srcs[c][yy * n + xx] * K[j][i];
+          }
+        }
+      }
+      out[y * n + x] = Math.max(0, a);
+    }
+  }
+  return out;
+}
+function pool2of(src, n) {
+  const m = n >> 1;
+  const out = new Float64Array(m * m);
+  for (let y = 0; y < m; y += 1) {
+    for (let x = 0; x < m; x += 1) {
+      out[y * m + x] = Math.max(
+        src[(2 * y) * n + 2 * x], src[(2 * y) * n + 2 * x + 1],
+        src[(2 * y + 1) * n + 2 * x], src[(2 * y + 1) * n + 2 * x + 1],
+      );
+    }
+  }
+  return out;
+}
+const maxOf = (a) => a.reduce((m, v) => Math.max(m, Math.abs(v)), 0) || 1;
+const meanOf = (a) => a.reduce((s, v) => s + v, 0) / a.length;
+
+/* the shapes a candidate is written from */
+const C1 = [[0, 0, 0], [0, 1, 0], [0, 0, 0]];
+const ring = (rim, mid) => [[rim, rim, rim], [rim, mid, rim], [rim, rim, rim]];
+const CS = [[0, -1, 0], [-1, 4, -1], [0, -1, 0]].map((r) => r.map((v) => v / 4));
+const sc = (K, s) => (K ? K.map((r) => r.map((v) => v * s)) : null);
+const Z = null;
+
+/* ==========================================================================
+   THE REGIONS. `cellParts` gives the part each image pixel belongs to; the
+   nucleus is split into its rim and its inside, because a kernel that finds a
+   dark region inside a bright one answers at the rim.
+   ====================================================================== */
+const REGIONS = ["field", "cell body", "membrane", "nucleus rim", "nucleus", "granules"];
+const BOUNDARY = [5, 2, 3];
+const PRIORITY = [5, 2, 3, 4, 1, 0];
+function labels28() {
+  const p = M.cellParts(N0);
+  const out = new Int8Array(N0 * N0);
+  for (let i = 0; i < N0 * N0; i += 1) {
+    const v = p[i];
+    if (v >= 4) out[i] = 5;
+    else if (v === 2) out[i] = 2;
+    else if (v === 3) {
+      out[i] = [i - 1, i + 1, i - N0, i + N0]
+        .some((q) => q >= 0 && q < N0 * N0 && p[q] !== 3) ? 3 : 4;
+    } else out[i] = v === 1 ? 1 : 0;
+  }
+  /* the one-pixel dilation of the boundary classes: an edge operator's answer
+     to the membrane lands on both sides of it, and without this the response
+     of every edge kernel is counted as though it had missed */
+  const dil = Int8Array.from(out);
+  for (let i = 0; i < N0 * N0; i += 1) {
+    if (out[i] !== 0 && out[i] !== 1 && out[i] !== 4) continue;
+    for (const q of [i - 1, i + 1, i - N0, i + N0]) {
+      if (q >= 0 && q < N0 * N0 && BOUNDARY.includes(out[q])) dil[i] = out[q];
+    }
+  }
+  return dil;
+}
+function labelsAt(n) {
+  const src = labels28();
+  const f = N0 / n;
+  const out = new Int8Array(n * n);
+  for (let y = 0; y < n; y += 1) {
+    for (let x = 0; x < n; x += 1) {
+      const c = new Array(REGIONS.length).fill(0);
+      for (let j = 0; j < f; j += 1) {
+        for (let i = 0; i < f; i += 1) c[src[(y * f + j) * N0 + (x * f + i)]] += 1;
+      }
+      let bestN = -1;
+      let best = 0;
+      for (const p of PRIORITY) if (c[p] > bestN) { bestN = c[p]; best = p; }
+      out[y * n + x] = best;
+    }
+  }
+  return out;
+}
+const areaShares = (lab, n) => REGIONS.map((_, r) => {
+  let a = 0;
+  for (let i = 0; i < n * n; i += 1) if (lab[i] === r) a += 1;
+  return a / (n * n);
+});
+function enrich(map, lab, n) {
+  const area = areaShares(lab, n);
+  const mass = new Array(REGIONS.length).fill(0);
+  let total = 0;
+  let max = 0;
+  for (let i = 0; i < n * n; i += 1) {
+    mass[lab[i]] += map[i];
+    total += map[i];
+    max = Math.max(max, map[i]);
+  }
+  let live = 0;
+  for (let i = 0; i < n * n; i += 1) if (map[i] > 0.05 * max) live += 1;
+  const rows = REGIONS.map((name, r) => ({
+    name,
+    area: area[r],
+    share: total > 0 ? mass[r] / total : 0,
+    enr: total > 0 && area[r] > 0 ? (mass[r] / total) / area[r] : 0,
+    ceiling: area[r] > 0 ? 1 / area[r] : 0,
+  }));
+  const best = rows.reduce((a, b) => (b.enr > a.enr ? b : a), rows[0]);
+  return { rows, best, max, total, live };
+}
+
+/* ==========================================================================
+   THE SIX CANDIDATES, in the order they were proposed.
+   ====================================================================== */
+const CANDIDATES = [
+  { id: "1", plan: "Corner", say: "H edge and V edge, both at the window's centre",
+    W: [C1, C1, Z, Z], bias: 0 },
+  { id: "2", plan: "Membrane", say: "H edge and V edge through a ring: rim +0.25, centre −0.5",
+    W: [ring(0.25, -0.5), ring(0.25, -0.5), Z, Z], bias: 0 },
+  { id: "3", plan: "Granule", say: "centre-surround over Blur",
+    W: [Z, Z, CS, Z], bias: 0 },
+  { id: "4", plan: "Body", say: "Blur up, both edge channels down — the cell body",
+    W: [sc(C1, -0.5), sc(C1, -0.5), C1, Z], bias: 0 },
+  { id: "5", plan: "Nucleus", say: "Blur through a ring: rim +0.13, centre −1",
+    W: [Z, Z, ring(0.125, -1), Z], bias: 0 },
+  { id: "6", plan: "Corner, offset", say: "H edge above or below, V edge left or right",
+    W: [[[0, 0.5, 0], [0, 0, 0], [0, 0.5, 0]], [[0, 0, 0], [0.5, 0, 0.5], [0, 0, 0]], Z, Z], bias: 0 },
+];
+
+/* The same six with the threshold the measurement asked for. A bias is what
+   makes a second-layer feature selective: every input channel is non-negative
+   after ReLU, so a sum of positive weights is a brightness and the brightest
+   structure — the membrane — wins until a threshold is subtracted. */
+const THRESHOLDED = [
+  { id: "1b", plan: "Membrane", say: "H edge + V edge at 0.25, Centre at 1, threshold −0.8",
+    W: [sc(C1, 0.25), sc(C1, 0.25), Z, C1], bias: -0.8 },
+  { id: "3b", plan: "Granule", say: "Blur over the whole window: centre 0.5, rim 0.13, threshold −1",
+    W: [Z, Z, ring(0.125, 0.5), Z], bias: -1.0 },
+  { id: "4b", plan: "Body", say: "Blur at 1, Centre at −0.5, threshold −0.45 — the cell body",
+    W: [Z, Z, C1, sc(C1, -0.5)], bias: -0.45 },
+  { id: "5b", plan: "Nucleus", say: "Blur ring rim +0.13 centre −1, Centre at −0.5",
+    W: [Z, Z, ring(0.125, -1), sc(C1, -0.5)], bias: 0 },
+];
+
+const LAB1 = labelsAt(N1);
+const AREA1 = areaShares(LAB1, N1);
+const measureOn = (list, srcs, n, lab) => list.map((c) => {
+  const map = convSum(srcs, n, c.W, c.bias);
+  return { ...c, map, e: enrich(map, lab, n) };
+});
+const MEASURED = measureOn(CANDIDATES, POOL1, N1, LAB1);
+const MEASURED_T = measureOn(THRESHOLDED, POOL1, N1, LAB1);
+
+/* The four the measurement chose, in the order the figure draws them. */
+const CHOSEN = ["1b", "3b", "4b", "5b"].map((id) => MEASURED_T.find((c) => c.id === id));
+const CONV2 = CHOSEN.map((c) => c.map);
+const POOL2 = CONV2.map((m) => pool2of(m, N1));
+
+/* what the second block draws TODAY: the same four operators, rotated */
+const TODAY2 = MAPS.stages[3];
+const TODAY_POOL2 = MAPS.stages[4];
+
+/* ==========================================================================
+   Helpers, from the previous mock.
+   ====================================================================== */
+const el = (tag, cls, text) => {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text != null) e.textContent = text;
+  return e;
+};
+const fmt = (v, d = 2) => (Number.isFinite(v) ? v.toFixed(d) : "-");
+const pc = (v) => `${(100 * v).toFixed(1)}%`;
+const secs = (ms) => `${(ms / 1000).toFixed(1)} s`;
+const capFont = () => `600 ${T.fsSm} ${T.font}`;
+const noteFont = () => `${T.fsXs} ${T.font}`;
+const monoFont = () => `${T.fsXs} ${T.mono}`;
+
+function canvasIn(parent, w, h) {
+  const cv = document.createElement("canvas");
+  cv.width = Math.round(w * DPR);
+  cv.height = Math.round(h * DPR);
+  cv.style.width = `${w}px`;
+  cv.style.height = `${h}px`;
+  parent.appendChild(cv);
+  const ctx = cv.getContext("2d");
+  ctx.scale(DPR, DPR);
+  ctx.fillStyle = T.surface;
+  ctx.fillRect(0, 0, w, h);
+  return ctx;
+}
+function cand(parent, title, sub, width = STAGE_W) {
+  const c = el("div", "cand");
+  c.style.width = `${width}px`;
+  if (title) c.appendChild(el("h3", null, title));
+  if (sub != null) c.appendChild(el("p", "sub", sub));
+  parent.appendChild(c);
+  return c;
+}
+function rgbOf(c) {
+  const p = document.createElement("canvas").getContext("2d");
+  p.fillStyle = c; p.fillRect(0, 0, 1, 1);
+  return Array.from(p.getImageData(0, 0, 1, 1).data.slice(0, 3));
+}
+const mixRgb = (a, b, t) => {
+  const c = a.map((v, i) => Math.round(v + (b[i] - v) * t));
+  return `rgb(${c[0]}, ${c[1]}, ${c[2]})`;
+};
+const RAMP_LO = rgbOf(T.surface2);
+const RAMP_HI = rgbOf(T.ink1);
+const grey = (t) => mixRgb(RAMP_LO, RAMP_HI, Math.max(0, Math.min(1, t)));
+const wash = (hex, a) => {
+  const p = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+  return `rgba(${p[0]},${p[1]},${p[2]},${a})`;
+};
+function caption(ctx, x, y, text) {
+  ctx.save();
+  ctx.font = capFont(); ctx.fillStyle = T.ink2; ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+  ctx.fillText(text, x, y);
+  ctx.restore();
+}
+function note(ctx, x, y, text, tone, align) {
+  ctx.save();
+  ctx.font = noteFont(); ctx.fillStyle = tone ?? T.ink3; ctx.textAlign = align ?? "left"; ctx.textBaseline = "alphabetic";
+  ctx.fillText(text, x, y);
+  ctx.restore();
+}
+function mono(ctx, x, y, text, tone, align) {
+  ctx.save();
+  ctx.font = monoFont(); ctx.fillStyle = tone ?? T.ink2; ctx.textAlign = align ?? "left"; ctx.textBaseline = "alphabetic";
+  ctx.fillText(text, x, y);
+  ctx.restore();
+}
+function arrowRight(ctx, x1, x2, y, colour) {
+  ctx.save();
+  ctx.strokeStyle = colour ?? T.ink3; ctx.fillStyle = colour ?? T.ink3; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(x1, y); ctx.lineTo(x2 - 4, y); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x2, y); ctx.lineTo(x2 - 5, y - 3); ctx.lineTo(x2 - 5, y + 3); ctx.fill();
+  ctx.restore();
+}
+function drawMap(ctx, x, y, size, n, arr, o = {}) {
+  const c = size / n;
+  const hi = o.max ?? maxOf(arr);
+  const upto = o.upto ?? Infinity;
+  ctx.save();
+  ctx.fillStyle = T.surface2; ctx.fillRect(x, y, size, size);
+  for (let j = 0; j < n; j += 1) {
+    for (let i = 0; i < n; i += 1) {
+      if (j * n + i > upto) continue;
+      ctx.fillStyle = grey(arr[j * n + i] / hi);
+      ctx.fillRect(x + i * c, y + j * c, Math.ceil(c), Math.ceil(c));
+    }
+  }
+  ctx.restore();
+  ctx.save();
+  ctx.strokeStyle = o.frame ?? T.axis; ctx.lineWidth = 1;
+  ctx.strokeRect(x + 0.5, y + 0.5, size - 1, size - 1);
+  ctx.restore();
+}
+function valueCell(ctx, x, y, w, h, text, o = {}) {
+  ctx.save();
+  ctx.fillStyle = wash(o.hue ?? T.empirical, o.empty ? 0.14 : 0.42);
+  ctx.fillRect(x, y, w, h);
+  ctx.strokeStyle = o.hue ?? T.empirical; ctx.lineWidth = o.lit ? 2 : 1;
+  ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+  ctx.restore();
+  if (text != null) {
+    ctx.save();
+    ctx.font = monoFont(); ctx.fillStyle = T.ink1; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText(text, x + w / 2, y + h / 2 + 0.5);
+    ctx.restore();
+  }
+}
+function table(parent, head, rows, rowCls) {
+  const t = el("table", "facts");
+  const hr = el("tr");
+  head.forEach((h) => hr.appendChild(el("th", null, h)));
+  t.appendChild(hr);
+  rows.forEach((r, i) => {
+    const tr = el("tr", rowCls ? rowCls(r, i) : null);
+    r.forEach((v, j) => {
+      const td = el("td", j === 0 ? null : "num");
+      if (typeof v === "string" && v.startsWith("*")) td.appendChild(el("b", null, v.slice(1)));
+      else td.textContent = v;
+      tr.appendChild(td);
+    });
+    t.appendChild(tr);
+  });
+  parent.appendChild(t);
+  return t;
+}
+
+/* ==========================================================================
+   THE GALLERY, on the shipping layout, with the second block's maps and names
+   supplied by the caller.
+   ====================================================================== */
+function stagesWith(conv2, pooled2, names) {
+  const st = M.stagesFor(NET, null, { head: "GAP", linear: "Linear" });
+  st[0].maps = [TEX];
+  st[1].maps = CONV1;
+  st[2].maps = POOL1;
+  st[3].maps = conv2;
+  st[4].maps = pooled2;
+  const gapv = pooled2.map(meanOf);
+  let s = 990517 >>> 0;
+  const rnd = () => { s = (Math.imul(s, 1664525) + 1013904223) >>> 0; return s / 4294967296; };
+  const b = 1 / Math.sqrt(4);
+  const w = Array.from({ length: 9 }, () => Array.from({ length: 4 }, () => (rnd() * 2 - 1) * b));
+  st[5].values = gapv;
+  st[6].values = w.map((wr) => wr.reduce((a, v, i) => a + v * gapv[i], 0));
+  st.names = names;
+  return st;
+}
+const NAMES_TODAY = [null, IN_NAMES, IN_NAMES,
+  M.LATER_ORDER.map((i) => IN_NAMES[i]), M.LATER_ORDER.map((i) => IN_NAMES[i]), null, null];
+const CHOSEN_NAMES = CHOSEN.map((c) => c.plan);
+const NAMES_NEW = [null, IN_NAMES, IN_NAMES, CHOSEN_NAMES, CHOSEN_NAMES, null, null];
+
+const ST_TODAY = stagesWith(TODAY2, TODAY_POOL2, NAMES_TODAY);
+const ST_NEW = stagesWith(CONV2, POOL2, NAMES_NEW);
+
+function windowBox(ctx, lay, col, channel, rows, cols, o = {}) {
+  const n = lay.cols[col].n;
+  const over = rows[0] < 0 || rows[1] > n - 1 || cols[0] < 0 || cols[1] > n - 1;
+  const wide = D.isWide(lay, col, rows, cols);
+  const tone = wide ? T.extreme : T.highlight;
+  const solid = D.clipRect(lay, col, channel, rows, cols);
+  const full = D.fullRect(lay, col, channel, rows, cols);
+  ctx.save();
+  if (solid.w > 0 && solid.h > 0) {
+    if (o.fill) { ctx.fillStyle = wash(T.highlight, 0.22); ctx.fillRect(solid.x, solid.y, solid.w, solid.h); }
+    ctx.strokeStyle = tone; ctx.lineWidth = o.width ?? 2;
+    ctx.strokeRect(solid.x + 0.5, solid.y + 0.5, solid.w - 1, solid.h - 1);
+  }
+  if (over) {
+    ctx.strokeStyle = tone; ctx.lineWidth = 1; ctx.setLineDash([3, 3]);
+    ctx.strokeRect(full.x + 0.5, full.y + 0.5, full.w - 1, full.h - 1);
+    ctx.setLineDash([]);
+  }
+  ctx.restore();
+}
+function markUnit(ctx, lay, col, channel, row, column) {
+  const m = D.unitRect(lay, col, channel, row, column);
+  ctx.save();
+  ctx.fillStyle = T.highlight; ctx.fillRect(m.x, m.y, m.w, m.h);
+  ctx.strokeStyle = T.highlight; ctx.lineWidth = 1.5;
+  ctx.strokeRect(m.x - 2.5, m.y - 2.5, m.w + 5, m.h + 5);
+  ctx.restore();
+}
+
+/**
+ * @param o.field  { stage, channel, row, col, filled } — the marked unit
+ */
+function drawGallery(ctx, w, stages, o = {}) {
+  const lay = D.galleryLayout(w, stages);
+  caption(ctx, PAD, 24, o.title ?? "One column a layer, four of its channels drawn");
+  note(ctx, PAD, 40, o.sub ?? "");
+
+  ctx.save();
+  for (let c = 1; c < stages.length; c += 1) {
+    const nCh = lay.cols[c].thumbs.length;
+    for (let ch = 0; ch < nCh; ch += 1) {
+      const isChosen = o.field && c === o.field.stage && ch === o.field.channel;
+      if (o.field && c === o.field.stage && !isChosen) continue;
+      for (const l of D.fanIn(lay, c, ch)) {
+        ctx.globalAlpha = isChosen ? (l.lit ? 0.95 : 0.16) : 0.1;
+        ctx.strokeStyle = T.empirical;
+        ctx.lineWidth = isChosen && l.lit ? 1.5 : 1;
+        ctx.beginPath(); ctx.moveTo(l.from[0], l.from[1]); ctx.lineTo(l.to[0], l.to[1]); ctx.stroke();
+      }
+    }
+  }
+  ctx.restore();
+
+  stages.forEach((s, i) => {
+    const col = lay.cols[i];
+    col.thumbs.forEach((t) => {
+      if (s.spatial) {
+        const arr = s.maps[Math.min(t.channel, s.maps.length - 1)];
+        const upto = o.field && i === o.field.stage && t.channel === o.field.channel
+          && o.field.filled != null ? o.field.filled : Infinity;
+        drawMap(ctx, t.x, t.y, t.size, s.H, arr, { frame: i === 0 ? T.groupA : T.empirical, upto });
+      } else {
+        const vals = s.values ?? [];
+        const hi = maxOf(vals);
+        const v = vals[t.channel] ?? 0;
+        ctx.save();
+        ctx.fillStyle = s.kind === "linear" ? wash(T.groupB, 0.2 + 0.7 * Math.abs(v) / hi)
+          : grey(Math.abs(v) / hi);
+        ctx.fillRect(t.x, t.y, t.size, t.size);
+        ctx.strokeStyle = s.kind === "linear" ? T.groupB : T.empirical; ctx.lineWidth = 1;
+        ctx.strokeRect(t.x + 0.5, t.y + 0.5, t.size - 1, t.size - 1);
+        ctx.restore();
+      }
+      const nm = stages.names?.[i];
+      if (nm && lay.showNames) note(ctx, col.nameX, t.y + t.size / 2 + 4, nm[t.channel], T.ink3);
+    });
+  });
+
+  if (o.field && o.field.stage >= 1 && stages[o.field.stage].spatial) {
+    const f = o.field;
+    const rf = D.receptiveField(stages, f.stage, f.row, f.col);
+    ctx.save();
+    ctx.strokeStyle = wash(T.highlight, 0.35); ctx.lineWidth = 1;
+    for (const cone of D.coneOf(lay, stages, f.stage, f.channel, f.row, f.col)) {
+      for (const [x1, y1, x2, y2] of D.coneLines(cone)) {
+        ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+      }
+    }
+    ctx.restore();
+    windowBox(ctx, lay, 0, 0, rf.rows[0], rf.cols[0], { fill: true, width: 2 });
+    for (let i = 1; i <= f.stage; i += 1) {
+      const ch = Math.min(f.channel, lay.cols[i].thumbs.length - 1);
+      if (i < f.stage) windowBox(ctx, lay, i, ch, rf.rows[i], rf.cols[i], { width: 1.5 });
+      else markUnit(ctx, lay, i, ch, f.row, f.col);
+    }
+  }
+
+  stages.forEach((s, i) => {
+    const col = lay.cols[i];
+    mono(ctx, Math.min(col.x, w - PAD - 40), lay.top - 8, s.name, T.ink2);
+    mono(ctx, Math.min(col.x, w - PAD - 60), lay.lineY(col.labelRow, 0), shapeText(s.shape), T.ink3);
+  });
+  if (o.foot) note(ctx, PAD, lay.footY, o.foot);
+  return lay;
+}
+
+/* ==========================================================================
+   §1 · the two galleries
+   ====================================================================== */
+const galRow = document.getElementById("galRow");
+const GAL_H = D.galleryLayout(STAGE_W, ST_TODAY).height;
+{
+  const a = cand(galRow, "Today — the same four operators, one pool1 channel each",
+    "conv2 runs H edge over the H edge map, V edge over the V edge map, and so on.");
+  drawGallery(canvasIn(a, STAGE_W, GAL_H), STAGE_W, ST_TODAY, {
+    title: "Every channel is drawn, and one is read",
+    sub: "the second block's kernels are the first block's, in another order",
+    foot: "The three colour channels of the image are drawn as one grey square.",
+  });
+  const b = cand(galRow, "Proposed — four kernels over all four pool1 channels",
+    "each conv2 map is a 4 × 3 × 3 weight and one bias, summed over the four channels, then ReLU.");
+  drawGallery(canvasIn(b, STAGE_W, GAL_H), STAGE_W, ST_NEW, {
+    title: "Every channel is drawn, and every one is read",
+    sub: "the second block's kernels combine the first block's four maps",
+    foot: "The three colour channels of the image are drawn as one grey square.",
+  });
+}
+
+/* ==========================================================================
+   §1 · the four kernels, as their slices
+   ====================================================================== */
+const KERN_W = 500;
+const SL_CW = 30;
+const SL_CH = 18;
+function drawSlices(ctx, x, y, c) {
+  note(ctx, x, y - 16, `${c.plan} — ${c.say}`, T.ink2);
+  let cx = x;
+  c.W.forEach((K, ch) => {
+    note(ctx, cx, y - 3, IN_NAMES[ch], T.ink3);
+    for (let j = 0; j < 3; j += 1) {
+      for (let i = 0; i < 3; i += 1) {
+        const v = K ? K[j][i] : 0;
+        valueCell(ctx, cx + i * SL_CW, y + j * SL_CH, SL_CW - 2, SL_CH - 2,
+          v === 0 ? "0" : fmt(v), { hue: T.groupB, empty: v === 0 });
+      }
+    }
+    cx += 3 * SL_CW + 10;
+    if (ch < 3) {
+      note(ctx, cx - 8, y + 1.5 * SL_CH + 4, "+", T.ink2);
+    }
+  });
+  mono(ctx, cx + 2, y + 1.5 * SL_CH + 4, c.bias === 0 ? "bias 0" : `bias ${fmt(c.bias)}`, T.ink2);
+  return y + 3 * SL_CH + 26;
+}
+{
+  const c = cand(document.getElementById("kernRow"),
+    "The four chosen, one row a kernel: its 3 × 3 slice on each input channel",
+    "a slice of zeros is an input channel that contributes nothing to this output, which is itself something a convolution can learn.",
+    KERN_W);
+  const h = 30 + CHOSEN.length * (3 * SL_CH + 26);
+  const ctx = canvasIn(c, KERN_W, h);
+  let y = 46;
+  for (const k of CHOSEN) y = drawSlices(ctx, PAD, y, k);
+}
+
+/* ==========================================================================
+   §1 · the tables
+   ====================================================================== */
+const THRESH = 3;
+const verdict = (e) => (e.best.enr >= THRESH ? `*${e.best.name}` : "nothing clean");
+{
+  const rows = [...MEASURED, ...MEASURED_T].map((c) => [
+    `${c.id} · ${c.plan}: ${c.say}`,
+    c.e.best.name,
+    fmt(c.e.best.enr),
+    fmt(c.e.best.ceiling, 1),
+    `${c.e.live}`,
+    fmt(c.e.max, 3),
+    c.e.best.enr >= THRESH ? "yes" : "no",
+  ]);
+  table(document.getElementById("candTable"),
+    ["candidate", "most enriched in", "enrichment", "ceiling", "live cells", "max", "≥ 3×"],
+    rows, (r) => (r[6] === "yes" ? "pass" : null));
+
+  const per = [];
+  for (const c of CHOSEN) {
+    per.push([`*${c.plan}`, ...c.e.rows.map((r) => fmt(r.enr))]);
+  }
+  per.push(["area share", ...AREA1.map((a) => pc(a))]);
+  table(document.getElementById("chosenTable"),
+    ["the four chosen · enrichment by part", ...REGIONS], per);
+}
+
+/* ==========================================================================
+   §1 · the detail band for a conv2 cell
+   ====================================================================== */
+const DET_CW = 30;                 // the cell the band already uses at k = 5
+const DET_CH = 16;
+const DET_KW = 26;
+const BLK_GAP = 6;
+const LBL_H = 14;
+function detailWidth(w, o) {
+  const cw = o.cw ?? DET_CW;
+  const kw = o.kw ?? DET_KW;
+  const ch = o.ch ?? DET_CH;
+  const win = o.across * 3 * cw + (o.across - 1) * BLK_GAP;
+  const ker = o.across * 3 * kw + (o.across - 1) * BLK_GAP;
+  const cells = win + 22 + ker + 22 + (cw + 4);
+  const inW = o.inMaps === 0 ? 0 : (o.inMaps > 1 ? 33 : 66);
+  const room = w - 2 * PAD - cells - 14 - (o.inMaps ? 14 + inW : 0);
+  const size = Math.max(40, Math.min(66, room));
+  const total = 2 * PAD + (o.inMaps ? inW + 14 : 0) + cells + 14 + size;
+  const rows = Math.ceil(4 / o.across);
+  const cellsBottom = 59 + rows * (3 * ch + LBL_H);
+  const height = Math.max(cellsBottom, 59 + size + 26) + 16 + 14 + 12;
+  return { win, ker, cells, size, total, height, fits: total <= w };
+}
+/* `cw` 40 / `kw` 34 is the value cell the band draws at k = 3 today; 30 / 26 is
+   the one it already draws at k = 5, where five values a row have to fit. */
+const SHAPES = [
+  { name: "four windows and four slices in one row, k=3 cells", across: 4, inMaps: 1, cw: 40, kw: 34, ch: 22 },
+  { name: "four windows and four slices in one row, k=5 cells", across: 4, inMaps: 1 },
+  { name: "windows 2 × 2, slices 2 × 2, one input map", across: 2, inMaps: 1 },
+  { name: "windows 2 × 2, slices 2 × 2, no input map", across: 2, inMaps: 0 },
+  { name: "four window-and-slice pairs stacked, k=3 cells", across: 1, inMaps: 1, cw: 40, kw: 34, ch: 22 },
+  { name: "four window-and-slice pairs stacked, k=5 cells", across: 1, inMaps: 1 },
+];
+const ONE_ROW = detailWidth(STAGE_W, SHAPES[0]).total;
+const BEST = { across: 2, inMaps: 0 };
+
+const argmaxOf = (a) => a.reduce((b, v, i) => (v > a[b] ? i : b), 0);
+function drawDetail(ctx, w, chosen, ch) {
+  const map = CONV2[ch];
+  const idx = argmaxOf(Array.from(map));
+  const r = Math.floor(idx / N1);
+  const c = idx % N1;
+  const geom = detailWidth(w, { across: 2, inMaps: 0 });
+  caption(ctx, PAD, 22, `conv2 · ${chosen.plan} · cell [${r}, ${c}]`);
+  note(ctx, PAD, 36, "the window on each of the four input maps, its own 3 × 3 slice, the sum, the bias, ReLU");
+  const top = 59;
+  let x = PAD;
+  const wins = [];
+  for (let k = 0; k < 4; k += 1) {
+    const bx = x + (k % 2) * (3 * DET_CW + BLK_GAP);
+    const by = top + Math.floor(k / 2) * (3 * DET_CH + LBL_H);
+    note(ctx, bx, by + 10, IN_NAMES[k], T.ink3);
+    const win = M.windowAt(POOL1[k], N1, r, c, 3);
+    wins.push(win);
+    for (let j = 0; j < 3; j += 1) {
+      for (let i = 0; i < 3; i += 1) {
+        valueCell(ctx, bx + i * DET_CW, by + LBL_H + j * DET_CH, DET_CW - 2, DET_CH - 2,
+          fmt(win[j][i]), { hue: T.groupA });
+      }
+    }
+  }
+  x += geom.win;
+  const midY = top + (2 * (3 * DET_CH + LBL_H)) / 2;
+  arrowRight(ctx, x + 4, x + 18, midY, T.ink3);
+  note(ctx, x + 11, midY - 6, "×", T.ink2, "center");
+  x += 22;
+  let total = chosen.bias;
+  for (let k = 0; k < 4; k += 1) {
+    const bx = x + (k % 2) * (3 * DET_KW + BLK_GAP);
+    const by = top + Math.floor(k / 2) * (3 * DET_CH + LBL_H);
+    note(ctx, bx, by + 10, IN_NAMES[k], T.ink3);
+    const K = chosen.W[k];
+    for (let j = 0; j < 3; j += 1) {
+      for (let i = 0; i < 3; i += 1) {
+        const v = K ? K[j][i] : 0;
+        total += v * wins[k][j][i];
+        valueCell(ctx, bx + i * DET_KW, by + LBL_H + j * DET_CH, DET_KW - 2, DET_CH - 2,
+          v === 0 ? "0" : fmt(v), { hue: T.groupB, empty: v === 0 });
+      }
+    }
+  }
+  x += geom.ker;
+  arrowRight(ctx, x + 4, x + 18, midY, T.ink3);
+  note(ctx, x + 11, midY - 6, "Σ", T.ink2, "center");
+  x += 22;
+  valueCell(ctx, x, midY - DET_CH / 2, DET_CW + 4, DET_CH, fmt(Math.max(0, total)),
+    { hue: T.empirical, lit: true });
+  x += DET_CW + 4 + 14;
+  drawMap(ctx, x, top, geom.size, N1, map, { frame: T.empirical });
+  const mrect = { x: x + (c / N1) * geom.size, y: top + (r / N1) * geom.size, s: geom.size / N1 };
+  ctx.save();
+  ctx.strokeStyle = T.highlight; ctx.lineWidth = 1.5;
+  ctx.strokeRect(mrect.x - 1.5, mrect.y - 1.5, mrect.s + 3, mrect.s + 3);
+  ctx.restore();
+  mono(ctx, x, top + geom.size + 13, shapeText([4, N1, N1]), T.ink3);
+  const py = Math.max(top + 2 * (3 * DET_CH + LBL_H), top + geom.size + 26) + 16;
+  note(ctx, PAD, py,
+    `four dot products, then the bias ${fmt(chosen.bias)}, then ReLU: ${fmt(Math.max(0, total))}`, T.ink2);
+  return geom;
+}
+{
+  const c = cand(document.getElementById("detailRow"),
+    "The recommended shape, drawn at 550",
+    "windows 2 × 2, slices 2 × 2, no single input map — the four windows are the four input maps.");
+  const geom = detailWidth(STAGE_W, { across: 2, inMaps: 0 });
+  const ctx = canvasIn(c, STAGE_W, geom.height);
+  drawDetail(ctx, STAGE_W, CHOSEN[0], 0);
+  const c2 = cand(document.getElementById("detailRow"), "The same shape on the Granule kernel",
+    "its H edge and V edge slices are zero, so two of the four windows are multiplied by nothing.");
+  drawDetail(canvasIn(c2, STAGE_W, geom.height), STAGE_W, CHOSEN[1], 1);
+}
+
+/* ==========================================================================
+   §1 · conv3, the same principle over pool2
+   ====================================================================== */
+const LAB2 = labelsAt(N2);
+const AREA2 = areaShares(LAB2, N2);
+const SCALE2 = POOL2.map((m) => maxOf(m));
+const POOL2N = POOL2.map((m, i) => m.map((v) => v / SCALE2[i]));
+function searchAt(srcs, n, lab, area, target) {
+  const vals = [-1, -0.5, 0, 0.5, 1];
+  const rims = [-0.125, 0, 0.125];
+  const biases = [0, -0.1, -0.3];
+  let best = null;
+  for (const a of vals) {
+    for (const b of vals) {
+      for (const cc of vals) {
+        for (const d of vals) {
+          for (const ra of rims) {
+            for (const bias of biases) {
+              if (a === 0 && b === 0 && cc === 0 && d === 0 && ra === 0) continue;
+              const W = [ring(ra, a), ring(0, b), ring(0, cc), ring(0, d)];
+              const map = convSum(srcs, n, W, bias);
+              const e = enrich(map, lab, n);
+              const floor = Math.max(2, Math.round(area[target] * n * n));
+              if (e.live < floor || e.live > 0.5 * n * n) continue;
+              if (!best || e.rows[target].enr > best.e.rows[target].enr) best = { W, bias, e, map };
+            }
+          }
+        }
+      }
+    }
+  }
+  return best;
+}
+{
+  const rows = REGIONS.map((name, r) => {
+    if (AREA2[r] <= 0) return [name, "—", "—", "—", "not present at 7 × 7"];
+    const b = searchAt(POOL2N, N2, LAB2, AREA2, r);
+    if (!b) return [name, "—", fmt(1 / AREA2[r], 1), "—", "nothing drawable"];
+    const w = b.W.map((K, i) => `${CHOSEN_NAMES[i]} ${fmt(K[1][1], 2)}`
+      + (K[0][0] !== 0 ? ` (rim ${fmt(K[0][0], 3)})` : "")).join(", ");
+    return [name, fmt(b.e.rows[r].enr), fmt(1 / AREA2[r], 1), `${b.e.live}`, `${w}; bias ${fmt(b.bias)}`];
+  });
+  table(document.getElementById("conv3Table"),
+    ["the part conv3 is asked for", "best enrichment", "ceiling", "live cells", "the kernel that reaches it"],
+    rows);
+}
+
+/* ==========================================================================
+   §2 · the merged scan
+   ====================================================================== */
+const SCAN_STAGE = 4;             // pool2
+const SCAN_CH = 0;
+const SCAN_H = ST_NEW[SCAN_STAGE].H;
+const SCAN_CELLS = SCAN_H * SCAN_H;
+const STRIP_H = 96;
+
+function drawFrame(parent, idx) {
+  const r = Math.floor(idx / SCAN_H);
+  const c = idx % SCAN_H;
+  const box = cand(parent, `Cell ${idx + 1} of ${SCAN_CELLS}`,
+    idx === 0 ? "the first press: nothing of the map is drawn but this cell"
+      : idx === SCAN_CELLS - 1 ? "the last press: the map is complete and the unit is at the end"
+        : "mid walk: the map is drawn up to the unit, and everything else moves with it");
+  const ctx = canvasIn(box, STAGE_W, GAL_H + STRIP_H);
+  const lay = drawGallery(ctx, STAGE_W, ST_NEW, {
+    title: "One walk: the unit, the windows, the cone and the fill",
+    sub: "the map fills up to the cell the unit is on",
+    field: { stage: SCAN_STAGE, channel: SCAN_CH, row: r, col: c, filled: idx },
+  });
+  /* the strip: this cell's own arithmetic, which is what the detail band shows */
+  const y0 = GAL_H + 8;
+  const src = CONV2[SCAN_CH];
+  const win = M.poolWindowAt(src, N1, r, c);
+  caption(ctx, PAD, y0 + 14, `pool2 · the 2 × 2 it reads, and its largest value`);
+  let x = PAD;
+  for (let j = 0; j < 2; j += 1) {
+    for (let i = 0; i < 2; i += 1) {
+      valueCell(ctx, x + i * 44, y0 + 24 + j * 20, 42, 18, fmt(win[j][i]), { hue: T.groupA });
+    }
+  }
+  x += 92;
+  arrowRight(ctx, x, x + 22, y0 + 44, T.ink3);
+  note(ctx, x + 11, y0 + 38, "max", T.ink2, "center");
+  x += 30;
+  valueCell(ctx, x, y0 + 34, 46, 18, fmt(Math.max(win[0][0], win[0][1], win[1][0], win[1][1])),
+    { hue: T.empirical, lit: true });
+  note(ctx, PAD, y0 + 78, "this window is the innermost of the receptive field above", T.ink3);
+  return lay;
+}
+const frameRow = document.getElementById("frameRow");
+[0, Math.floor(SCAN_CELLS / 2), SCAN_CELLS - 1].forEach((i) => drawFrame(frameRow, i));
+
+/* ==========================================================================
+   The measures.
+   ====================================================================== */
+/* the kernel's window IS the innermost receptive-field window, at every cell */
+let agree = 0;
+let checked = 0;
+for (let stage = 1; stage <= 4; stage += 1) {
+  const H = ST_NEW[stage].H;
+  const op = ST_NEW[stage].op;
+  for (let r = 0; r < H; r += 1) {
+    for (let c = 0; c < H; c += 1) {
+      const rf = D.receptiveField(ST_NEW, stage, r, c);
+      const wr = [r * op.s - op.p, r * op.s - op.p + op.k - 1];
+      const wc = [c * op.s - op.p, c * op.s - op.p + op.k - 1];
+      checked += 1;
+      if (rf.rows[stage - 1][0] === wr[0] && rf.rows[stage - 1][1] === wr[1]
+        && rf.cols[stage - 1][0] === wc[0] && rf.cols[stage - 1][1] === wc[1]) agree += 1;
+    }
+  }
+}
+document.getElementById("rfCheck").textContent =
+  `Checked on the arithmetic behind the frames: the kernel's window on the immediate source equals the `
+  + `innermost window of the receptive field at ${agree} of ${checked} cells of conv1, pool1, conv2 and pool2. `
+  + `The merged walk therefore draws one window where the two phases drew two.`;
+
+const probe = document.createElement("canvas").getContext("2d");
+probe.font = noteFont();
+const nameFit = CHOSEN_NAMES.map((n) => `${n} ${probe.measureText(n).width.toFixed(0)}px`).join(" · ");
+const layNew = D.galleryLayout(STAGE_W, ST_NEW);
+/* what a wider name column would cost: every spatial column past the image
+   carries one, and the width it takes comes out of the six gaps */
+const NAME_COLS = ST_NEW.filter((s, i) => i > 0 && s.spatial).length;
+const GAPS = ST_NEW.length - 1;
+const widest = Math.max(...CHOSEN_NAMES.map((n) => probe.measureText(n).width));
+/* the room a name actually has is the reservation past the thumbnail plus the
+   gap to the next column, since a name only eats into the gap */
+const nameRoom = layNew.nameW - 4 + layNew.gap;
+const afford = layNew.nameW + (layNew.gap - 10) * GAPS / NAME_COLS;
+document.getElementById("galMeasure").textContent =
+  `gallery at 550: ${Math.round(GAL_H)}px tall, name column ${Math.round(layNew.nameW)}px, `
+  + `gap ${layNew.gap.toFixed(1)}px, names drawn ${layNew.showNames ? "yes" : "no"}\n`
+  + `the four names measured: ${nameFit}  (conv1's own: `
+  + `${IN_NAMES.map((n) => `${n} ${probe.measureText(n).width.toFixed(0)}px`).join(" · ")})\n`
+  + `the widest is ${widest.toFixed(0)}px; a name has ${nameRoom.toFixed(0)}px before the next column `
+  + `(${Math.round(layNew.nameW)}px reserved, less the 4px offset, plus the ${layNew.gap.toFixed(1)}px gap), `
+  + `so the four ${widest <= nameRoom ? "fit" : "do not fit"} at 550. Widening the reservation itself stops `
+  + `at ${afford.toFixed(0)}px, where the columns come within 10px of each other.\n`
+  + `pool1 channel maxima ${POOL1.map((m) => fmt(maxOf(m), 2)).join(" · ")} · `
+  + `conv2 maxima ${CONV2.map((m) => fmt(maxOf(m), 3)).join(" · ")}`;
+
+document.getElementById("kernMeasure").textContent =
+  `region areas at 14 × 14: ${REGIONS.map((n, i) => `${n} ${pc(AREA1[i])}`).join(" · ")}\n`
+  + `the threshold used: a name is kept only where the enrichment is 3× or more; the ceiling column is `
+  + `1 ÷ area share, which is all a part of that size allows.`;
+
+document.getElementById("widthMeasure").textContent =
+  SHAPES.map((s) => {
+    const at550 = detailWidth(STAGE_W, s);
+    const at535 = detailWidth(FRAME_W, s);
+    return `${s.name.padEnd(52)} width ${String(Math.round(at550.total)).padStart(4)} at 550 `
+      + `${at550.fits ? "fits" : `over by ${Math.round(at550.total - STAGE_W)}`} · `
+      + `${String(Math.round(at535.total)).padStart(4)} at 535 `
+      + `${at535.fits ? "fits" : `over by ${Math.round(at535.total - FRAME_W)}`} · `
+      + `band 2 ${Math.round(at550.height)}px`;
+  }).join("\n")
+  + `\nband 2 today ${Math.round(M.bands(STAGE_W, NET, ST_NEW).two)}px · `
+  + `the whole stage today ${Math.round(M.bands(STAGE_W, NET, ST_NEW).height)}px`;
+
+{
+  const rows = [["conv1", 1], ["pool1", 2], ["conv2", 3], ["pool2", 4]].map(([nm, st]) => {
+    const H = ST_NEW[st].H;
+    const cells = H * H;
+    const plan = M.slidePlan(cells);
+    return [nm, `${H} × ${H}`, `${cells}`, secs(plan.total),
+      `${fmt(M.slideMsAt(plan, 0), 0)} → ${fmt(M.slideMsAt(plan, cells - 1), 1)}`,
+      secs(M.SWEEP_MS), `${fmt(M.cellMsOf(cells), 1)}`];
+  });
+  table(document.getElementById("clockTable"),
+    ["map", "shape", "beats — one a cell", "one scan on the position clock",
+      "ms a cell, first → last", "one scan on the unit clock", "ms a cell"], rows);
+}
+document.getElementById("scanMeasure").textContent =
+  `the position clock: ${M.SLIDE_MS0} ms at the first cell, the rate rising so the whole map finishes inside `
+  + `${secs(M.SLIDE_BUDGET)}\n`
+  + `the unit clock: ${secs(M.SWEEP_MS)} for the whole map, whatever the map — 49 cells at `
+  + `${fmt(M.cellMsOf(49), 0)} ms and 784 at ${fmt(M.cellMsOf(784), 1)} ms\n`
+  + `a 60 Hz frame is 16.7 ms, so the unit clock puts ${(16.7 / M.cellMsOf(784)).toFixed(1)} cells of conv1 in `
+  + `one frame and holds a cell of pool2 for ${(M.cellMsOf(49) / 16.7).toFixed(1)} frames`;
+
+document.getElementById("engineLine").textContent =
+  `Engine: image 28 × 28, conv1 four named operators, pool1 14 × 14, conv2 four cross-channel kernels, `
+  + `pool2 7 × 7. Built in ${Math.round(performance.now() - T0)} ms.`;
+
+/* ==========================================================================
+   The recommendations.
+   ====================================================================== */
+const passers = [...MEASURED].filter((c) => c.e.best.enr >= THRESH).length;
+document.getElementById("recKernels").textContent =
+  `Recommendation. Give conv2 four cross-channel kernels and name them for what they are measured to find: `
+  + `${CHOSEN.map((c) => `${c.plan} ${fmt(c.e.best.enr)}×`).join(", ")}. `
+  + `Of the six candidates as first written, ${passers} reached 3× — the rest are dominated by the membrane, `
+  + `because every input channel is non-negative after ReLU and a sum of positive weights is a brightness. `
+  + `The bias is what separates them, and the parameter count already pays for it.`;
+
+document.getElementById("recDetail").textContent =
+  `Recommendation. Draw the four windows as a 2 × 2 and the four slices as a 2 × 2, at the value cell the band `
+  + `already uses at k = 5 (30 × 16), and drop the single input thumbnail: the four windows are the four input `
+  + `maps. It is ${Math.round(detailWidth(STAGE_W, BEST).total)}px of 550 and `
+  + `${Math.round(detailWidth(FRAME_W, BEST).total)}px of the 535 the fingerprint frame draws at, and band 2 `
+  + `goes from ${Math.round(M.bands(STAGE_W, NET, ST_NEW).two)}px to `
+  + `${Math.round(detailWidth(STAGE_W, BEST).height)}px. Four windows and four slices side by side at the `
+  + `k = 3 cell need ${Math.round(ONE_ROW)}px, which is over by ${Math.round(ONE_ROW - STAGE_W)}; stacking the `
+  + `four pairs as four rows fits at ${Math.round(detailWidth(STAGE_W, SHAPES[4]).total)}px but takes band 2 to `
+  + `${Math.round(detailWidth(STAGE_W, SHAPES[4]).height)}px, which 3.4k then reserves for every column.`;
+
+document.getElementById("recConv3").textContent =
+  `Recommendation. conv3 repeats conv2's four kernels, rescaled to pool2's range. At 7 × 7 a part of the cell `
+  + `is between two and twelve cells, so every combination reaches its own ceiling and the measurement cannot `
+  + `tell them apart: the third block's honest picture is the same four names at a coarser scale.`;
+
+document.getElementById("recScan").textContent =
+  `Recommendation. One walk, one press a cell, one label — Next unit — on the position clock: `
+  + `${M.SLIDE_MS0} ms at the first cell and a rate that finishes any map inside ${secs(M.SLIDE_BUDGET)}. `
+  + `pool2 is ${SCAN_CELLS} beats and ${secs(M.slidePlan(SCAN_CELLS).total)} of Play; conv1 is 784 beats and `
+  + `${secs(M.slidePlan(784).total)}. The unit clock's fixed six seconds is the wrong one for a single walk: `
+  + `it holds a cell of pool2 for ${fmt(M.cellMsOf(49), 0)} ms, twice what a window needs to be read, and gives `
+  + `a cell of conv1 ${fmt(M.cellMsOf(784), 1)} ms, which is under half a frame.`;
+</script>
+</body>
+</html>
