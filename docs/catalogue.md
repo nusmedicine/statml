@@ -15834,7 +15834,36 @@ two forms, planted and not. The sticker is the literature's own example
 (Lapuschkin 2019's PASCAL VOC watermark; DeGrave 2021's laterality markers),
 and it is now out of sight until the reader asks for it.
 
-### Slot 65 · `unet` — Architecture - Basic (Segmentation) — TWO PAGES since 2026-09-13
+### Slot 65 · `unet` — Architecture - Basic (Segmentation) — TWO PAGES since 2026-09-13, MOCKED 2026-09-15
+
+**MOCKED 2026-09-15 (`_lab/unet-mock.html`, static — nothing trains), his
+three picks the same evening:** the **U as mocked** — his figure's own rule,
+a slab's height follows H × W and its width follows C, the encoder's slabs
+in `--c-group-a` down the left and the decoder's in `--c-group-b` up the
+right, the concatenation drawn as the two halves side by side under a
+`--c-dim-b` bracket with the transposed convolution's output AS the right
+half (his figure), the skips dotted across, pool and up arrows in
+`--c-dim-a`, the head a thin `--c-empirical` slab; Step is one stage in
+walk order (enc1 · pool1 · … · bottleneck · up4 · concat · dec4 · … · head),
+the current stage framed in `--c-highlight` with its shape printed, and
+the formula card under the figure is cell 31's shape lines for the stages
+reached, name and shape in three columns; Depth 2 · 3 · 4, Base channels
+4 · 8 · 16, Input 16 · 64 · 128 · 512, all DATA, **16 the case that
+fails** (a 1 × 1 bottleneck, drawn at floor height and named in
+`--c-extreme`); nothing imported from `depict.js`, since the U is slabs
+and no map is computed. The **prediction as BOTH** a named list — Empty ·
+Shifted 1 px · Off the object · Dilated 1 px · Eroded 1 px · Same area at
+random, each a measured failure — and a drag that moves the chosen
+prediction (two parameters, as 55's drag writes two). The **split as a
+band** on the Dice page behind a Split control Random · Stratified, Seed
+moving the shuffle, the bin the random split left empty lit in
+`--c-extreme`. No threshold control (0.5 cannot lose on a symmetric map).
+The Dice page's walk is three presses, one tile each — |A|, |B|, |A ∩ B| —
+and the four numbers print only when the third is counted (2.4). Measured
+on the mock's own masks (64 × 64): a 1 % object with the prediction off it
+scores accuracy 97.8 %, Dice 0; a 5 % object dilated 1 px scores Dice 0.855
+with precision 0.75 · recall 1.00, eroded 1 px Dice 0.823 with precision
+1.00 · recall 0.70.
 
 **Kenneth's pick, 2026-09-13: 66 `dice` is this widget's second page.** The
 rail is `topic`, segmented, **data**: **U-Net · Dice** — the notebook's

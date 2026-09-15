@@ -1,5 +1,30 @@
 # Handover
 
+**SLOT 65 `unet` DRAFT BUILT 2026-09-15**, the same evening 63 went to KIV:
+mocked (`_lab/unet-mock.html`, static), his three picks by AskUserQuestion
+(the U as mocked; the prediction as BOTH a named list and a drag; the split
+as a band with a Split control), the catalogue's MOCKED section, then
+`widgets/unet/` (main.js, model.js, index.html) at manifest status draft,
+`_lab/unet-verify.mjs` (4,564 checks, registered in `scripts/verify.mjs`:
+the shapes and parameter counts against torch's own `UNet2D` in
+`_lab/unet-torch.txt` from `_lab/unet-torch.py` — base 16 is 1,942,577
+parameters; the Dice claims on the widget's masks; the split; the geometry
+at 550 and 770; the copy) and seven placeholder states (px and tx both
+"0"). Read in the browser at 818 (stacked) and 1240 (side): both pages
+draw, no console errors; two Step presses read "2 of 22" with nothing in
+the URL; a dispatched drag on the prediction panel wrote `dx=13&dy=9`
+through core's drag door and, as a data change, reset the count. `check`
+and `test` green. **NEXT: Kenneth reads the draft** at
+`/widgets/unet/` (U-Net) and `/widgets/unet/?topic=dice` (Dice) and the
+rounds begin; then the copy audit as a table, "tested ok", a shooter,
+states (settled, one driven; no regions, so no hit state), status flip in
+the manifest AND main.js, `check` and `test` read alone, commit, push.
+Things to raise in round one: the drag resets the count (invariant 3, a
+data change), so a moved prediction is counted again in three presses;
+the Dice page's default seed 1 draws every bin, and the empty bin is at
+21 of 200 seeds (the readout names it); and whether the large object's
+"off the object" prediction, which runs off the image, reads as intended.
+
 **SLOT 63 `pretrained` MEASURED, MOCKED AND PUT ON KIV 2026-09-15** — his
 call, with the class starting in a few days: "keep this as KIV for now, and
 we work on u-net". The measurement (`_lab/pretrained-measure.mjs`, findings

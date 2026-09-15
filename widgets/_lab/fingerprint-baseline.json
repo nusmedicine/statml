@@ -6991,6 +6991,60 @@
       },
       "px": "2871fcc7",
       "tx": "915f23e8"
+    },
+    {
+      "$note": "unet · the empty stage, the lesson's net (depth 4, base 16, input 512)",
+      "slug": "unet",
+      "state": "?theme=light&shown=0",
+      "px": "0",
+      "tx": "0"
+    },
+    {
+      "$note": "unet · the walk on the bottleneck, press 9 of 22",
+      "slug": "unet",
+      "state": "?theme=light&shown=9",
+      "px": "0",
+      "tx": "0"
+    },
+    {
+      "$note": "unet · every stage reached at depth 2, base 4, input 64",
+      "slug": "unet",
+      "state": "?theme=light&depth=2&base=4&input=64&shown=12",
+      "px": "0",
+      "tx": "0"
+    },
+    {
+      "$note": "unet · the case that fails: depth 4 on a 16 x 16 input, the 1 x 1 bottleneck named",
+      "slug": "unet",
+      "state": "?theme=light&input=16&shown=9",
+      "px": "0",
+      "tx": "0"
+    },
+    {
+      "$note": "unet · Dice, the opening pair: a small object with the prediction off it, counted",
+      "slug": "unet",
+      "state": "?theme=light&topic=dice&shown=3",
+      "px": "0",
+      "tx": "0"
+    },
+    {
+      "$note": "unet · Dice, a medium object dilated and moved, stratified split, two tiles counted",
+      "slug": "unet",
+      "state": "?theme=light&topic=dice&size=medium&pred=dilate&dx=2&dy=-1&split=strat&shown=2",
+      "px": "0",
+      "tx": "0"
+    },
+    {
+      "$note": "unet · DRIVEN - the first press caught mid-way, enc1 arriving at part alpha",
+      "slug": "unet",
+      "state": "?theme=light",
+      "drive": {
+        "click": "step",
+        "frames": 8,
+        "dt": 32
+      },
+      "px": "0",
+      "tx": "0"
     }
   ]
 }

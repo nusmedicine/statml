@@ -954,6 +954,25 @@
       ],
       "arc": 64,
       "status": "shipped"
+    },
+    {
+      "slug": "unet",
+      "title": "Deep Learning - U-Net and Dice",
+      "blurb": "A U-Net drawn to scale from its shapes, the skips across; and Dice, the overlap a mask is scored by, against accuracy.",
+      "course": "PHM5005",
+      "topics": [
+        "U-Net",
+        "segmentation",
+        "encoder-decoder",
+        "skip connection",
+        "concatenation",
+        "Dice",
+        "IoU",
+        "stratified split",
+        "deep learning"
+      ],
+      "arc": 65,
+      "status": "draft"
     }
   ]
 }

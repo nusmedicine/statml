@@ -1,0 +1,649 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · unet — mock</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  /* The mock shell, verbatim from `_lab/gradcam-mock.html`. */
+  .lab { max-width: 1240px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 96ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; width: 550px; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); max-width: 550px; min-height: 26px; white-space: pre-line; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 96ch; }
+  .measure { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--ink-3); margin: 4px 0 0; max-width: 900px; white-space: pre-line; }
+  .legend { display: flex; flex-wrap: wrap; gap: var(--sp-2) var(--sp-4); margin: 0 0 var(--sp-4);
+            font-size: var(--fs-xs); color: var(--ink-2); }
+  .legend span { display: flex; align-items: center; gap: 6px; }
+  .sw { width: 13px; height: 13px; border-radius: 50%; flex: 0 0 auto; }
+  .sw-ga { background: var(--c-group-a); }
+  .sw-gb { background: var(--c-group-b); }
+  .sw-da { background: var(--c-dim-a); }
+  .sw-db { background: var(--c-dim-b); }
+  .sw-high { background: var(--c-highlight); }
+  .sw-ref { background: var(--c-reference); }
+  .sw-emp { background: var(--c-empirical); }
+  .sw-ext { background: var(--c-extreme); }
+  .rail-host { width: 300px; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>unet &middot; mock</h1>
+
+  <p class="note">
+    <b>What this page answers.</b> Slot 65, the last widget of the image arc: two pages, <b>U-Net</b> and
+    <b>Dice</b>, your pick of 2026-09-13, and it trains nothing (the catalogue's slot 65 entry: the skip bought
+    speed, not the boundary, and 30 epochs is 5&ndash;7 s). This page is static &mdash; nothing runs on load except the
+    arithmetic of a mask. <b>&sect;1</b> &mdash; the U, your figure drawn to scale from the shapes, at two depths and
+    two inputs, with the walk. <b>&sect;2</b> &mdash; the Dice page: image, truth and prediction as cell 55's three
+    panels, the overlap counted, the four numbers. <b>&sect;3</b> &mdash; the split band, cell 6's bins.
+    <b>&sect;4</b> &mdash; the two rails.
+  </p>
+
+  <div class="legend">
+    <span><i class="sw sw-ga"></i>the encoder's features (the contracting path)</span>
+    <span><i class="sw sw-gb"></i>the decoder's features (the expanding path)</span>
+    <span><i class="sw sw-da"></i>height and width change here: max-pool down, transposed convolution up</span>
+    <span><i class="sw sw-db"></i>channels change here: a convolution, and the concatenation's bracket</span>
+    <span><i class="sw sw-high"></i>the stage the walk is on</span>
+    <span><i class="sw sw-ref"></i>the ground truth</span>
+    <span><i class="sw sw-emp"></i>the prediction</span>
+    <span><i class="sw sw-ext"></i>a bin the split left empty</span>
+  </div>
+
+  <h2>&sect;1 &middot; The U, to scale</h2>
+  <p class="note">
+    Your figure's own rule: a slab's <b>height follows H &times; W</b> and its <b>width follows C</b>, so every level
+    halves the one and doubles the other, and the bottleneck is the short wide slab at the bottom. Drawn at 550 with
+    the shapes printed on the slabs the walk has reached. <b>A</b> is the notebook's net: depth 4, base 16, input
+    512, the walk on the bottleneck (press 9 of 19). <b>B</b> is depth 2, base 4, input 64, complete. <b>C</b> is the
+    case that fails: depth 4 on a 16 &times; 16 input reaches a 1 &times; 1 bottleneck, and the figure says so where it
+    happens. Step is one stage &mdash; enc1 &middot; pool1 &middot; &hellip; &middot; bottleneck &middot; up4 &middot;
+    concat &middot; dec4 &middot; &hellip; &middot; head &mdash; the walk widget 51's Building page takes through a
+    Sequential; Play runs it. The formula card under the figure is cell 31's shape lines for the chosen depth.
+  </p>
+  <div class="row" id="uRow"></div>
+  <p class="rec" id="recU"></p>
+
+  <h2>&sect;2 &middot; The Dice page</h2>
+  <p class="note">
+    Cell 55's three panels at one size &mdash; the image, the ground truth, the prediction &mdash; then the overlap
+    counted the way 2.3 asks: |A|, |B| and |A &cap; B| as tiles, and under them accuracy, Dice, IoU and precision /
+    recall. The object is a disc at cell 6's own bins (small &lt; 1 %, medium 1&ndash;5 %, large &gt; 5 %). The prediction
+    is the reader's, and two ways to give it: <b>A</b>, a list of named predictions &mdash; Empty &middot; Shifted
+    &middot; Off the object &middot; Dilated &middot; Eroded &middot; Same area at random &mdash; each a failure the
+    measurement found (an empty prediction on a 1 % object scores 99 % accuracy; dilate and erode give near-equal
+    Dice with opposite precision and recall); or <b>B</b>, a drag of the mask (two parameters, as widget 55's drag
+    writes two). No threshold control: on a symmetric probability map 0.5 cannot lose, so it would show the count
+    moving and decide nothing.
+  </p>
+  <div class="row" id="diceRow"></div>
+  <p class="measure" id="diceMeasure"></p>
+  <p class="rec" id="recDice"></p>
+
+  <h2>&sect;3 &middot; The split band</h2>
+  <p class="note">
+    Cell 6's bins on 600 cases: a histogram of mask fraction with the cut-offs at 1 % and 5 %, and under it the
+    60-case test set two ways, a random 80 / 10 / 10 and a stratified one, one dot a case coloured by bin, with a
+    bin the random split left empty lit. Measured: random leaves some bin empty in validation or test 27.5 % of
+    shuffles; stratified never. Drawn here from one seed where it happens. The question is whether this earns a
+    band on the Dice page (it is 66's Split page, folded in) or stays a caption.
+  </p>
+  <div class="row" id="splitRow"></div>
+  <p class="rec" id="recSplit"></p>
+
+  <h2>&sect;4 &middot; The two rails</h2>
+  <p class="note">
+    Rendered by core's <code>buildControls</code> at 300px. <b>U-Net</b>: Depth 2 &middot; 3 &middot; 4, Base
+    channels 4 &middot; 8 &middot; 16, Input 16 &middot; 64 &middot; 128 &middot; 512 (all DATA; 16 is the failing case,
+    512 the lesson's); the drive Next stage &middot; Play &middot; Reset. <b>Dice</b>: Object Small &middot; Medium
+    &middot; Large, Prediction (A's list), Seed; the drive Count &middot; Play &middot; Reset, one press a tile.
+  </p>
+  <div class="row" id="railRow"></div>
+  <p class="rec" id="recRail"></p>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+import { makeRng } from "../core/rng.js";
+import { shapeText } from "../core/torch.js";
+import { buildControls, buildActions } from "../core/controls.js";
+import { resolveParams } from "../core/params.js";
+
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+const PAD = 14;
+const W = 550;
+
+/* --- primitives ------------------------------------------------------------ */
+const wash = (hex, a) => {
+  const p = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+  return `rgba(${p[0]},${p[1]},${p[2]},${a})`;
+};
+function txt(ctx, s, x, y, o = {}) {
+  const { color = T.ink2, align = "left", size = T.fsSm, baseline = "alphabetic", mono = false, weight = "" } = o;
+  ctx.save();
+  ctx.fillStyle = color;
+  ctx.textAlign = align;
+  ctx.textBaseline = baseline;
+  ctx.font = `${weight} ${size} ${mono ? T.mono : T.font}`.trim();
+  ctx.fillText(s, x, y);
+  ctx.restore();
+}
+const caption = (ctx, s, x, y) => txt(ctx, s, x, y, { color: T.ink2, weight: "600" });
+const note = (ctx, s, x, y, tone, o = {}) => txt(ctx, s, x, y, { color: tone ?? T.ink3, size: T.fsXs, ...o });
+function frame(ctx, x, y, w, h, stroke, width = 1, dash = null) {
+  ctx.save();
+  ctx.strokeStyle = stroke;
+  ctx.lineWidth = width;
+  if (dash) ctx.setLineDash(dash);
+  ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+  ctx.restore();
+}
+function arrow(ctx, x0, y0, x1, y1, color = T.ink3, o = {}) {
+  ctx.save();
+  ctx.strokeStyle = ctx.fillStyle = color;
+  ctx.lineWidth = o.width ?? 1;
+  if (o.dash) ctx.setLineDash(o.dash);
+  ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+  ctx.setLineDash([]);
+  const a = Math.atan2(y1 - y0, x1 - x0);
+  ctx.beginPath();
+  ctx.moveTo(x1, y1);
+  ctx.lineTo(x1 - 6 * Math.cos(a - 0.4), y1 - 6 * Math.sin(a - 0.4));
+  ctx.lineTo(x1 - 6 * Math.cos(a + 0.4), y1 - 6 * Math.sin(a + 0.4));
+  ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+function cand(rowId, title, sub, w = W) { const box = el("div", "cand"); box.style.width = `${w}px`; box.appendChild(el("h3", null, title)); box.appendChild(el("p", "sub", sub)); document.getElementById(rowId).appendChild(box); return box; }
+function canvasIn(box, w, h) { const c = document.createElement("canvas"); c.width = Math.round(w * DPR); c.height = Math.round(h * DPR); c.style.width = `${w}px`; c.style.height = `${h}px`; box.appendChild(c); const ctx = c.getContext("2d"); ctx.scale(DPR, DPR); return ctx; }
+
+/* ==========================================================================
+   §1 · THE U. `unetStages` is what the widget's model.js would compute: the
+   stage list with a shape each, in walk order.
+   ====================================================================== */
+function unetStages(depth, base, input, cin = 3) {
+  const st = [];
+  let H = input;
+  let C = cin;
+  const enc = [];
+  for (let i = 1; i <= depth; i += 1) {
+    C = base * 2 ** (i - 1);
+    st.push({ kind: "enc", name: `enc${i}`, level: i, C, H, op: "DoubleConv" });
+    enc.push({ C, H });
+    H = Math.max(1, H >> 1);
+    st.push({ kind: "pool", name: `pool${i}`, level: i, C, H, op: "MaxPool 2" });
+  }
+  C = base * 2 ** depth;
+  st.push({ kind: "bottleneck", name: "bottleneck", level: depth + 1, C, H, op: "DoubleConv" });
+  for (let i = depth; i >= 1; i -= 1) {
+    const e = enc[i - 1];
+    st.push({ kind: "up", name: `up${i}`, level: i, C: e.C, H: e.H, op: "ConvTranspose 2, stride 2" });
+    st.push({ kind: "cat", name: `concat`, level: i, C: 2 * e.C, H: e.H, op: "cat(enc, up), dim 1" });
+    st.push({ kind: "dec", name: `dec${i}`, level: i, C: e.C, H: e.H, op: "DoubleConv" });
+  }
+  st.push({ kind: "head", name: "head", level: 1, C: 1, H: input, op: "Conv 1 × 1" });
+  return st;
+}
+
+/**
+ * Lay the U out: encoder slabs down the left, decoder up the right, one row a
+ * level. A slab's height follows H (relative to the input's, `HS` at level 1)
+ * and its width follows C (relative to the base, `CW` a base channel); the
+ * floors keep a 1 × 1 bottleneck and a 4-channel slab visible.
+ */
+function uLayout(st, depth, base, input, { top, HS = 150, bottleW = 84 }) {
+  const cw = bottleW / (base * 2 ** depth);           // px a channel: the bottleneck is `bottleW`
+  const levelH = (H) => Math.max(10, HS * H / input);
+  const rows = [];
+  let y = top;
+  for (let l = 1; l <= depth + 1; l += 1) {
+    const H = Math.max(1, input >> (l - 1));
+    rows.push({ y, h: levelH(H), H });
+    y += levelH(H) + 26;
+  }
+  const slabW = (C) => Math.max(6, C * cw);
+  const boxes = {};
+  const cx = W / 2;
+  for (const s of st) {
+    const row = rows[s.level - 1];
+    const w = slabW(s.C);
+    let x;
+    /* the decoder's row, right to left: dec at the outer edge, the concat
+       (the encoder's half then the upsampled half) left of it, and the
+       transposed convolution's output IS the concat's right half, as
+       Kenneth's figure draws it */
+    const decX = W - PAD - 52 - (depth - s.level) * 12 - slabW(s.C);
+    if (s.kind === "enc") x = PAD + 44 + (depth - s.level) * 12;
+    else if (s.kind === "pool") x = null;            // an arrow, not a slab
+    else if (s.kind === "bottleneck") x = cx - w / 2;
+    else if (s.kind === "dec") x = decX;
+    else if (s.kind === "cat") x = decX - 8 - w;
+    else if (s.kind === "up") x = decX - 8 - slabW(2 * s.C) + slabW(s.C);
+    else if (s.kind === "head") x = W - PAD - 24;
+    if (x != null) boxes[s.name + (s.kind === "cat" ? s.level : "")] = { x, y: row.y, w, h: row.h };
+  }
+  return { rows, boxes, slabW, cw, height: y + 8 };
+}
+
+function drawU(ctx, st, depth, base, input, { top, shown }) {
+  const L = uLayout(st, depth, base, input, { top });
+  const vis = (i) => i < shown;
+  const cur = shown - 1;
+  const keyOf = (s) => s.name + (s.kind === "cat" ? s.level : "");
+  st.forEach((s, i) => {
+    if (!vis(i)) return;
+    const row = L.rows[s.level - 1];
+    const on = i === cur;
+    if (s.kind === "pool" || s.kind === "up") {
+      /* an arrow between rows, dim-a: height and width change */
+      const from = s.kind === "pool" ? L.boxes[`enc${s.level}`] : (s.level === depth ? L.boxes.bottleneck : L.boxes[`dec${s.level + 1}`]);
+      const b = s.kind === "up" ? L.boxes[`up${s.level}`] : null;
+      const rowBelow = L.rows[s.level];
+      if (s.kind === "pool") {
+        const x = from.x + from.w / 2 + 14;
+        arrow(ctx, x, from.y + from.h + 3, x, rowBelow.y - 3, on ? T.highlight : T.dims[0], { width: on ? 2 : 1.2 });
+        note(ctx, s.name, x + 6, (from.y + from.h + rowBelow.y) / 2 + 4, on ? T.highlight : T.ink3, { mono: true });
+      } else {
+        ctx.save();
+        ctx.fillStyle = wash(T.groupB, on ? 0.55 : 0.35);
+        ctx.fillRect(b.x, b.y, b.w, b.h);
+        ctx.restore();
+        frame(ctx, b.x, b.y, b.w, b.h, on ? T.highlight : T.groupB, on ? 2 : 1);
+        const x = b.x + b.w / 2;
+        arrow(ctx, x, rowBelow.y - 3, x, b.y + b.h + 3, on ? T.highlight : T.dims[0], { width: on ? 2 : 1.2 });
+        note(ctx, s.name, x + 6, rowBelow.y - 8, on ? T.highlight : T.ink3, { mono: true });
+      }
+      return;
+    }
+    const b = L.boxes[keyOf(s)];
+    const tone = s.kind === "enc" || s.kind === "bottleneck" ? T.groupA : s.kind === "head" ? T.empirical : T.groupB;
+    ctx.save();
+    if (s.kind === "cat") {
+      /* the two halves, the encoder's then the upsampled decoder's */
+      ctx.fillStyle = wash(T.groupA, 0.35);
+      ctx.fillRect(b.x, b.y, b.w / 2, b.h);
+      ctx.fillStyle = wash(T.groupB, 0.35);
+      ctx.fillRect(b.x + b.w / 2, b.y, b.w / 2, b.h);
+    } else {
+      ctx.fillStyle = wash(tone, on ? 0.55 : 0.35);
+      ctx.fillRect(b.x, b.y, b.w, b.h);
+    }
+    ctx.restore();
+    frame(ctx, b.x, b.y, b.w, b.h, on ? T.highlight : tone, on ? 2 : 1);
+    if (s.kind === "cat") {
+      /* the bracket over the two slabs it joins, dim-b: channels add */
+      ctx.save();
+      ctx.strokeStyle = on ? T.highlight : T.dims[1];
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(b.x, b.y - 4); ctx.lineTo(b.x, b.y - 8); ctx.lineTo(b.x + b.w, b.y - 8); ctx.lineTo(b.x + b.w, b.y - 4);
+      ctx.stroke();
+      ctx.restore();
+      /* the skip: dotted from the encoder slab across */
+      const e = L.boxes[`enc${s.level}`];
+      arrow(ctx, e.x + e.w + 4, e.y + e.h / 2, b.x - 3, b.y + b.h / 2, on ? T.highlight : T.ink3, { dash: [2, 3] });
+    }
+    if (s.kind === "enc") note(ctx, s.name, b.x - 6, b.y + b.h / 2 + 4, on ? T.highlight : T.ink2, { align: "right", mono: true });
+    if (s.kind === "dec") {
+      /* the conv arrow from the concat into dec, dim-b, and the name */
+      const c = L.boxes[`concat${s.level}`];
+      arrow(ctx, c.x + c.w + 1, c.y + c.h / 2, b.x - 1, b.y + b.h / 2, on ? T.highlight : T.dims[1]);
+      note(ctx, s.name, b.x + b.w / 2, b.y + b.h + 12, on ? T.highlight : T.ink2, { mono: true, align: "center" });
+    }
+    if (s.kind === "bottleneck") note(ctx, "bottleneck", b.x + b.w / 2, b.y + b.h + 14, on ? T.highlight : T.ink2, { align: "center", mono: true });
+    if (s.kind === "head") {
+      const d = L.boxes.dec1;
+      arrow(ctx, d.x + d.w + 1, d.y + 8, b.x - 1, b.y + 8, on ? T.highlight : T.dims[1]);
+      note(ctx, "head", b.x + b.w / 2, b.y - 6, on ? T.highlight : T.ink2, { mono: true, align: "center" });
+    }
+    /* the shape, printed on the slab's row at the current stage; every
+       reached stage keeps its shape in the card under the figure */
+    if (on) {
+      const sh = shapeText([10, s.C, s.H, s.H]);
+      const sx = s.kind === "enc" ? b.x + b.w + 8 : s.kind === "head" || s.kind === "dec" ? b.x + b.w - 40 : b.x + b.w / 2;
+      const al = s.kind === "enc" ? "left" : s.kind === "head" || s.kind === "dec" ? "right" : "center";
+      note(ctx, `${s.name}: ${sh}`, Math.max(PAD + 60, Math.min(W - PAD - 60, sx)), b.y - 12, T.highlight, { align: al, mono: true });
+      if (s.H === 1) note(ctx, "a 1 × 1 map: the bottleneck has no spatial extent left to pool", cx(), b.y + b.h + 28, T.extreme, { align: "center" });
+    }
+  });
+  function cx() { return W / 2; }
+  return L;
+}
+
+function uCard(ctx, st, shown, y) {
+  /* the formula card as text lines: cell 31's shape lines for the reached stages */
+  /* name and shape only: with the operation the line is 45 characters and two
+     columns overlapped at 550; the operations are the figure's legend */
+  const lines = st.slice(0, shown).map((s) => `${s.name.padEnd(10)} ${shapeText([10, s.C, s.H, s.H])}`);
+  const cols = 3;
+  const per = Math.ceil(lines.length / cols);
+  for (let i = 0; i < lines.length; i += 1) {
+    const c = Math.floor(i / per);
+    note(ctx, lines[i], PAD + c * (W - 2 * PAD) / cols, y + (i % per) * 13, T.ink2, { mono: true });
+  }
+  return per * 13;
+}
+
+for (const cfg of [
+  { key: "A", depth: 4, base: 16, input: 512, shown: 9, title: "A · the notebook's net, the walk on the bottleneck", sub: "depth 4, base 16, input 512; press 9 of 19" },
+  { key: "B", depth: 2, base: 4, input: 64, shown: 11, title: "B · depth 2, complete", sub: "depth 2, base 4, input 64; every stage reached, the card under the figure full" },
+  { key: "C", depth: 4, base: 16, input: 16, shown: 9, title: "C · the case that fails", sub: "depth 4 on a 16 × 16 input: the bottleneck is 1 × 1" },
+]) {
+  const st = unetStages(cfg.depth, cfg.base, cfg.input);
+  const box = cand("uRow", cfg.title, cfg.sub);
+  const probe = document.createElement("canvas").getContext("2d");
+  const L0 = uLayout(st, cfg.depth, cfg.base, cfg.input, { top: 62 });
+  const cardH = Math.ceil(Math.min(cfg.shown, st.length) / 3) * 13 + 24;
+  const h = L0.height + 40 + cardH;
+  const ctx = canvasIn(box, W, h);
+  caption(ctx, "U-Net: the encoder down, the decoder up, and the skips across", PAD, 24);
+  note(ctx, "A slab's height follows H × W and its width follows C. Step adds one stage and prints its shape.", PAD, 40);
+  const L = drawU(ctx, st, cfg.depth, cfg.base, cfg.input, { top: 62, shown: cfg.shown });
+  frame(ctx, PAD, L.height + 8, W - 2 * PAD, cardH, T.grid);
+  note(ctx, `the stages reached, ${Math.min(cfg.shown, st.length)} of ${st.length}`, PAD + 6, L.height + 22, T.ink3);
+  uCard(ctx, st, cfg.shown, L.height + 38);
+  box.querySelector(".sub").textContent += `\nstage ${h}px`;
+}
+document.getElementById("recU").innerHTML =
+  `The slabs are to scale in both axes, which is what makes the U a U: enc1 is tall and thin, the bottleneck short `
+  + `and wide, and the concatenation is visibly two slabs side by side, the encoder's in blue and the upsampled `
+  + `decoder's in yellow, under one bracket. Depth changes the picture; base and input change the shapes printed on `
+  + `it, since the figure is relative. A 1 × 1 bottleneck is drawn as a floor-height slab and named as the case that `
+  + `fails. The card under the figure is cell 31's lines for the stages reached, so it grows with the walk. Nothing `
+  + `is imported from depict.js: the U is slabs, not feature maps, and no map is computed.`;
+
+/* ==========================================================================
+   §2 · THE DICE PAGE. The measure script's masks on a 64 × 64 grid.
+   ====================================================================== */
+const G = 64;
+const disc = (cx, cy, r) => {
+  const m = new Uint8Array(G * G);
+  for (let y = 0; y < G; y += 1) for (let x = 0; x < G; x += 1) if (Math.hypot(x + 0.5 - cx, y + 0.5 - cy) <= r) m[y * G + x] = 1;
+  return m;
+};
+const shift = (m, dx, dy) => {
+  const o = new Uint8Array(G * G);
+  for (let y = 0; y < G; y += 1) for (let x = 0; x < G; x += 1) {
+    const sx = x - dx; const sy = y - dy;
+    if (sx >= 0 && sx < G && sy >= 0 && sy < G) o[y * G + x] = m[sy * G + sx];
+  }
+  return o;
+};
+const morph = (m, grow) => {
+  const o = new Uint8Array(G * G);
+  for (let y = 0; y < G; y += 1) for (let x = 0; x < G; x += 1) {
+    let any = false; let all = true;
+    for (let dy = -1; dy <= 1; dy += 1) for (let dx = -1; dx <= 1; dx += 1) {
+      const xx = x + dx; const yy = y + dy;
+      const v = xx >= 0 && xx < G && yy >= 0 && yy < G ? m[yy * G + xx] : 0;
+      if (v) any = true; else all = false;
+    }
+    o[y * G + x] = grow ? (any ? 1 : 0) : (all ? 1 : 0);
+  }
+  return o;
+};
+const randomSame = (m, rng) => {
+  const n = m.reduce((a, v) => a + v, 0);
+  const o = new Uint8Array(G * G);
+  const idx = Array.from({ length: G * G }, (_, i) => i);
+  rng.shuffle(idx);
+  for (let i = 0; i < n; i += 1) o[idx[i]] = 1;
+  return o;
+};
+function metrics(a, b) {
+  let A = 0; let B = 0; let AB = 0; let tn = 0;
+  for (let i = 0; i < G * G; i += 1) { A += a[i]; B += b[i]; AB += a[i] & b[i]; if (!a[i] && !b[i]) tn += 1; }
+  return {
+    A, B, AB,
+    acc: (AB + tn) / (G * G),
+    dice: A + B ? 2 * AB / (A + B) : 0,
+    iou: A + B - AB ? AB / (A + B - AB) : 0,
+    prec: B ? AB / B : 0,
+    rec: A ? AB / A : 0,
+  };
+}
+const SIZES = { small: { r: 3.75, label: "Small, 1 %" }, medium: { r: 8.1, label: "Medium, 5 %" }, large: { r: 16.2, label: "Large, 20 %" } };
+const PREDS = [
+  { key: "empty", label: "Empty", make: () => new Uint8Array(G * G) },
+  { key: "shift1", label: "Shifted 1 px", make: (m) => shift(m, 1, 0) },
+  { key: "off", label: "Off the object", make: (m) => shift(m, 8, 0) },
+  { key: "dilate", label: "Dilated 1 px", make: (m) => morph(m, true) },
+  { key: "erode", label: "Eroded 1 px", make: (m) => morph(m, false) },
+  { key: "random", label: "Same area at random", make: (m) => randomSame(m, makeRng(3)) },
+];
+function paintMask(ctx, x, y, size, truth, pred, o = {}) {
+  const c = size / G;
+  ctx.save();
+  ctx.fillStyle = T.surface2;
+  ctx.fillRect(x, y, size, size);
+  /* a faint image under every panel: the object a little brighter than the field */
+  for (let j = 0; j < G; j += 1) for (let i = 0; i < G; i += 1) {
+    const v = truth[j * G + i];
+    ctx.fillStyle = wash(T.ink1, v ? 0.22 : 0.06);
+    ctx.fillRect(x + i * c, y + j * c, Math.ceil(c), Math.ceil(c));
+  }
+  if (o.truth) { ctx.fillStyle = wash(T.reference, 0.6); for (let j = 0; j < G; j += 1) for (let i = 0; i < G; i += 1) if (truth[j * G + i]) ctx.fillRect(x + i * c, y + j * c, Math.ceil(c), Math.ceil(c)); }
+  if (o.pred) { ctx.fillStyle = wash(T.empirical, 0.6); for (let j = 0; j < G; j += 1) for (let i = 0; i < G; i += 1) if (pred[j * G + i]) ctx.fillRect(x + i * c, y + j * c, Math.ceil(c), Math.ceil(c)); }
+  ctx.restore();
+  frame(ctx, x, y, size, size, T.axis);
+}
+function drawDice(ctx, sizeKey, predKey, { shownTiles = 3 }) {
+  const truth = disc(30.5, 33.5, SIZES[sizeKey].r);
+  const P = PREDS.find((p) => p.key === predKey);
+  const pred = P.make(truth);
+  const m = metrics(truth, pred);
+  caption(ctx, `Dice on a ${SIZES[sizeKey].label.toLowerCase()} object, the prediction ${P.label.toLowerCase()}`, PAD, 24);
+  note(ctx, "Left to right: the image, the ground truth on it, the prediction on it. Then the overlap, counted.", PAD, 40);
+  const size = 150;
+  const gap = (W - 2 * PAD - 3 * size) / 2;
+  const y = 52;
+  ["Image", "Ground truth", "Prediction"].forEach((t, k) => {
+    const x = PAD + k * (size + gap);
+    paintMask(ctx, x, y, size, truth, pred, { truth: k === 1, pred: k === 2 });
+    note(ctx, t, x, y + size + 14, T.ink2);
+  });
+  /* the count: three tiles */
+  const ty = y + size + 30;
+  const tiles = [
+    ["|A| truth", m.A, T.reference], ["|B| prediction", m.B, T.empirical], ["|A ∩ B| both", m.AB, T.highlight],
+  ];
+  const tw = 100;
+  tiles.forEach(([lab, v, tone], k) => {
+    if (k >= shownTiles) { frame(ctx, PAD + k * (tw + 12), ty, tw, 46, T.grid); return; }
+    ctx.save(); ctx.fillStyle = wash(tone, 0.12); ctx.fillRect(PAD + k * (tw + 12), ty, tw, 46); ctx.restore();
+    frame(ctx, PAD + k * (tw + 12), ty, tw, 46, tone);
+    note(ctx, lab, PAD + k * (tw + 12) + 8, ty + 16, T.ink2);
+    txt(ctx, `${v} px`, PAD + k * (tw + 12) + 8, ty + 38, { mono: true, color: T.ink1, weight: "600" });
+  });
+  /* the four numbers */
+  const nx = PAD + 3 * (tw + 12) + 8;
+  const done = shownTiles >= 3;
+  const lines = [
+    ["accuracy", done ? `${(100 * m.acc).toFixed(1)} %` : "—", `(|A ∩ B| + neither) / ${G * G}`],
+    ["Dice", done ? m.dice.toFixed(3) : "—", "2 |A ∩ B| / (|A| + |B|)"],
+    ["IoU", done ? m.iou.toFixed(3) : "—", "|A ∩ B| / |A ∪ B|"],
+    ["precision · recall", done ? `${m.prec.toFixed(2)} · ${m.rec.toFixed(2)}` : "—", "|A ∩ B| / |B| · |A ∩ B| / |A|"],
+  ];
+  lines.forEach(([lab, v, f], k) => {
+    note(ctx, lab, nx, ty + 12 + k * 14, T.ink2);
+    txt(ctx, v, nx + 92, ty + 12 + k * 14, { mono: true, color: T.ink1, size: T.fsXs, weight: "600" });
+  });
+  const fy = ty + 46 + 22;
+  lines.forEach(([lab, , f], k) => note(ctx, `${lab} = ${f}`, PAD, fy + k * 14, T.ink3, { mono: true }));
+  return { m, height: fy + 4 * 14 + 10 };
+}
+const diceCases = [
+  ["A · Small object, Off the object — the opening pair", "small", "off", "accuracy 97.9 % and Dice 0: a prediction that misses the object entirely"],
+  ["A · Medium object, Dilated 1 px", "medium", "dilate", "near-equal Dice to Eroded, opposite precision and recall"],
+  ["A · Medium object, Eroded 1 px", "medium", "erode", "the other half of the pair"],
+  ["A · the walk, one tile a press", "small", "shift1", "press 2 of 3: |A| and |B| counted, |A ∩ B| not yet, so the numbers wait"],
+];
+const measures = [];
+diceCases.forEach(([title, sz, pk, sub], i) => {
+  const box = cand("diceRow", title, sub);
+  const ctx = canvasIn(box, W, 366);
+  const { m, height } = drawDice(ctx, sz, pk, { shownTiles: i === 3 ? 2 : 3 });
+  box.querySelector(".sub").textContent += `\nstage ${height}px`;
+  measures.push(`${SIZES[sz].label} · ${PREDS.find((p) => p.key === pk).label}: |A| ${m.A} |B| ${m.B} |A∩B| ${m.AB}  accuracy ${(100 * m.acc).toFixed(1)}  Dice ${m.dice.toFixed(3)}  IoU ${m.iou.toFixed(3)}  precision ${m.prec.toFixed(2)} recall ${m.rec.toFixed(2)}`);
+});
+{
+  const box = cand("diceRow", "B · the prediction as a drag", "the same three panels; the prediction is the truth's mask moved by (dx, dy), and the tiles count as it moves");
+  const ctx = canvasIn(box, W, 366);
+  const { height } = drawDice(ctx, "small", "shift1", { shownTiles: 3 });
+  note(ctx, "drag the prediction: dx = 1, dy = 0", PAD + 2 * (150 + (W - 2 * PAD - 450) / 2), 52 + 150 + 28, T.highlight);
+  box.querySelector(".sub").textContent += `\nstage ${height}px`;
+}
+document.getElementById("diceMeasure").textContent = measures.join("\n");
+document.getElementById("recDice").innerHTML =
+  `<b>A</b> is the recommendation: each option is a failure with a name and a measured number, Empty and Off the `
+  + `object are the two that carry the page's claim (99 % and 98 % accuracy, Dice 0), and Dilated against Eroded is `
+  + `the pair Dice cannot tell apart. A drag (<b>B</b>) makes every position a state and most of them say the same `
+  + `thing; it also cannot reach Dilated or Eroded, which are the precision / recall argument. The walk is three `
+  + `presses, one tile each, and the four numbers print only when |A ∩ B| is counted (2.4). Seed moves the random `
+  + `prediction and nothing else.`;
+
+/* ==========================================================================
+   §3 · THE SPLIT BAND. 600 cases as the measure script drew them.
+   ====================================================================== */
+function makeCases(rng) {
+  const cases = [];
+  for (let i = 0; i < 600; i += 1) {
+    if (rng.next() < 0.15) { cases.push({ f: 0, bin: 0 }); continue; }
+    let f = Math.exp(Math.log(0.03) + 0.9 * rng.normal());
+    f = Math.max(0.001, Math.min(0.30, f));
+    cases.push({ f, bin: f < 0.01 ? 1 : f < 0.05 ? 2 : 3 });
+  }
+  return cases;
+}
+const BIN_NAMES = ["normal", "small < 1 %", "medium 1–5 %", "large > 5 %"];
+function randomTest(cases, rng) {
+  const idx = cases.map((_, i) => i);
+  rng.shuffle(idx);
+  return idx.slice(0, 60).map((i) => cases[i]);
+}
+function stratifiedTest(cases, rng) {
+  const out = [];
+  for (let b = 0; b < 4; b += 1) {
+    const of = cases.filter((c) => c.bin === b);
+    const idx = of.map((_, i) => i);
+    rng.shuffle(idx);
+    const n = Math.round(of.length * 0.1);
+    for (let i = 0; i < n; i += 1) out.push(of[idx[i]]);
+  }
+  return out;
+}
+/* a seed where the random split leaves a bin empty */
+let seed = 1;
+let cases; let randT; let stratT;
+for (; seed < 500; seed += 1) {
+  const rng = makeRng(seed);
+  cases = makeCases(rng);
+  randT = randomTest(cases, makeRng(seed + 1000));
+  stratT = stratifiedTest(cases, makeRng(seed + 2000));
+  const counts = [0, 0, 0, 0];
+  for (const c of randT) counts[c.bin] += 1;
+  if (counts.includes(0)) break;
+}
+{
+  const box = cand("splitRow", "The split band: cell 6's bins, and a 60-case test set two ways", `seed ${seed}: the first seed whose random test set leaves a bin empty`);
+  const ctx = canvasIn(box, W, 250);
+  caption(ctx, "Mask fraction over 600 cases, and which cases a test split draws", PAD, 24);
+  note(ctx, "Above, the histogram with the cut-offs. Below, the 60-case test set, one dot a case, random then stratified.", PAD, 40);
+  /* histogram on a log axis, 0.1 % .. 30 %, normals as a bar at the left */
+  const x0 = PAD + 60; const x1 = W - PAD; const hy = 130; const hh = 70;
+  const lx = (f) => x0 + (x1 - x0) * (Math.log10(f) - Math.log10(0.001)) / (Math.log10(0.3) - Math.log10(0.001));
+  const bins = new Array(30).fill(0);
+  let normals = 0;
+  for (const c of cases) { if (c.bin === 0) { normals += 1; continue; } const k = Math.min(29, Math.floor(30 * (Math.log10(c.f) - Math.log10(0.001)) / (Math.log10(0.3) - Math.log10(0.001)))); bins[k] += 1; }
+  const mx = Math.max(...bins, normals);
+  ctx.save();
+  ctx.fillStyle = wash(T.ink2, 0.5);
+  bins.forEach((v, k) => { const bx = x0 + k * (x1 - x0) / 30; ctx.fillRect(bx, hy - hh * v / mx, (x1 - x0) / 30 - 1, hh * v / mx); });
+  ctx.fillRect(PAD + 10, hy - hh * normals / mx, 30, hh * normals / mx);
+  ctx.restore();
+  note(ctx, "normal", PAD + 25, hy + 12, T.ink3, { align: "center" });
+  for (const [f, lab] of [[0.01, "1 %"], [0.05, "5 %"]]) {
+    ctx.save(); ctx.strokeStyle = T.reference; ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.moveTo(lx(f) + 0.5, hy - hh - 6); ctx.lineTo(lx(f) + 0.5, hy); ctx.stroke(); ctx.restore();
+    note(ctx, lab, lx(f) + 3, hy - hh - 8, T.reference);
+  }
+  for (const [f, lab] of [[0.001, "0.1 %"], [0.3, "30 %"]]) note(ctx, lab, lx(f), hy + 12, T.ink3, { align: f < 0.01 ? "left" : "right", mono: true });
+  const counts = (t) => { const c = [0, 0, 0, 0]; for (const k of t) c[k.bin] += 1; return c; };
+  const rowDots = (t, y, label) => {
+    const c = counts(t);
+    note(ctx, label, PAD, y + 4, T.ink2);
+    const tones = [T.ink3, T.clusters[0], T.clusters[1], T.clusters[3]];
+    const sorted = [...t].sort((a, b) => a.bin - b.bin);
+    const dx0 = PAD + 118;
+    sorted.forEach((k, i) => { ctx.save(); ctx.fillStyle = tones[k.bin]; ctx.beginPath(); ctx.arc(dx0 + i * 6.4 + 3, y, 2.6, 0, 2 * Math.PI); ctx.fill(); ctx.restore(); });
+    const line = BIN_NAMES.map((n, b) => `${n} ${c[b]}`).join(" · ");
+    note(ctx, line, dx0, y + 18, c.includes(0) ? T.extreme : T.ink3);
+    if (c.includes(0)) note(ctx, `no ${BIN_NAMES[c.indexOf(0)].split(" ")[0]} case in the test set`, x1, y + 4, T.extreme, { align: "right", weight: "600" });
+  };
+  rowDots(randT, hy + 46, "random 80/10/10");
+  rowDots(stratT, hy + 90, "stratified by bin");
+  box.querySelector(".sub").textContent += "\nband 250px";
+}
+document.getElementById("recSplit").innerHTML =
+  `Keep it as a band under the Dice page's figure, behind a <i>Split</i> control Random · Stratified with Seed `
+  + `moving the shuffle: it is his figure (cell 6's Criteria → Stratify → Split) with the number he does not state, `
+  + `and the empty bin is a countable failure that a caption cannot show. If the page must stay short, the band `
+  + `becomes one sentence under the readout with the 27.5 % in it.`;
+
+/* ==========================================================================
+   §4 · THE RAILS.
+   ====================================================================== */
+const specs = {
+  unet: {
+    netSec: { type: "section", label: "The network" },
+    depth: { type: "choice", label: "Depth", detail: "how many times the encoder halves the image before the bottleneck", options: ["2", "3", "4"].map((v) => ({ value: v, label: v })), default: "4" },
+    base: { type: "choice", label: "Base channels", detail: "the channels of the first block; each level doubles them", options: ["4", "8", "16"].map((v) => ({ value: v, label: v })), default: "16" },
+    input: { type: "choice", label: "Input", detail: "the side of the input image, in pixels", options: ["16", "64", "128", "512"].map((v) => ({ value: v, label: v })), default: "512" },
+  },
+  dice: {
+    objSec: { type: "section", label: "The object" },
+    size: { type: "segmented", label: "Object", detail: "the share of the image the ground truth covers", options: [{ value: "small", label: "Small" }, { value: "medium", label: "Medium" }, { value: "large", label: "Large" }], default: "small" },
+    predSec: { type: "section", label: "The prediction" },
+    pred: { type: "select", label: "Prediction", detail: "what the model predicted, relative to the ground truth", options: PREDS.map((p) => ({ value: p.key, label: p.label })), default: "off" },
+    seed: { type: "int", label: "Seed", min: 1, max: 200, default: 1 },
+    splitSec: { type: "section", label: "The split" },
+    split: { type: "segmented", label: "Split", detail: "how the 60-case test set is drawn from the 600", options: [{ value: "random", label: "Random" }, { value: "strat", label: "Stratified" }], default: "random" },
+  },
+};
+for (const [key, spec] of Object.entries(specs)) {
+  const box = cand("railRow", key === "unet" ? "U-Net page" : "Dice page", key === "unet" ? "three DATA controls; the drive Next stage · Play · Reset" : "Object and Prediction as DATA; Seed moves the random prediction and the shuffle; the drive Count · Play · Reset", 320);
+  const host = el("div", "w-split rail-host");
+  const rail = el("div", "w-rail");
+  host.appendChild(rail);
+  const cm = el("div", "w-controls");
+  rail.appendChild(cm);
+  const values = resolveParams(spec, new URLSearchParams(""));
+  buildControls(cm, spec, values, () => {});
+  const drive = el("div", "w-drive");
+  rail.appendChild(drive);
+  buildActions(drive, [
+    { key: "step", text: key === "unet" ? "Next stage" : "Count", group: "pace", onClick: () => {} },
+    { key: "run", text: "Play", group: "pace", primary: true, onClick: () => {} },
+    { key: "reset", text: "Reset", onClick: () => {} },
+  ]);
+  box.appendChild(host);
+  box.querySelector(".sub").textContent += `\nrail ${rail.getBoundingClientRect().height.toFixed(0)}px`;
+}
+document.getElementById("recRail").innerHTML =
+  `The page control is the arc's <i>Topic</i>, segmented, U-Net · Dice, above both rails as 51 and 44 have it. `
+  + `Neither page has a seed that does nothing at rest: U-Net has none, and Dice's seed moves a prediction the reader `
+  + `chose at random and the split's shuffle. Reader-facing strings here are candidates for the copy audit, not copy.`;
+</script>
+</main>
+</body>
+</html>
