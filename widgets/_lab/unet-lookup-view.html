@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · unet — can the lookup maps be seen?</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1400px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-4) 0 var(--sp-2); }
+  p.note { color: var(--ink-2); max-width: 100ch; font-size: var(--fs-sm); margin: 0 0 var(--sp-3); }
+  table { border-collapse: collapse; }
+  td, th { padding: 4px 8px; vertical-align: top; font-size: var(--fs-xs); color: var(--ink-2); text-align: left; }
+  th { color: var(--ink-1); }
+  .maps { display: flex; gap: 4px; }
+  canvas { display: block; border: 1px solid var(--grid); }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Can the lookup table's maps be seen?</h1>
+  <p class="note">
+    Real feature maps from the notebook's U-Net trained in torch (<code>_lab/unet-lookup-test.py</code>) at four settings,
+    four channels of each stage. Left of each cell: the 16 × 16 thumbnail the lookup file would ship, drawn in the
+    operation panel's 34 px box. Right: the same maps at 64 × 64 in a 64 px box, for comparison. Top row: the input
+    image's three colour channels.
+  </p>
+  <div id="host"></div>
+<script type="module">
+import { readTokens } from "../core/env.js";
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+const mix = (a, b, t) => {
+  const pa = [1, 3, 5].map((i) => parseInt(a.slice(i, i + 2), 16));
+  const pb = [1, 3, 5].map((i) => parseInt(b.slice(i, i + 2), 16));
+  return `rgb(${pa.map((v, i) => Math.round(v + (pb[i] - v) * t)).join(",")})`;
+};
+function draw(m, box) {
+  const c = document.createElement("canvas");
+  c.width = Math.round(box * DPR); c.height = Math.round(box * DPR);
+  c.style.width = `${box}px`; c.style.height = `${box}px`;
+  const ctx = c.getContext("2d"); ctx.scale(DPR, DPR);
+  const s = m.side; const cell = box / s;
+  for (let j = 0; j < s; j += 1) for (let i = 0; i < s; i += 1) {
+    const v = parseInt(m.hex.substr(2 * (j * s + i), 2), 16) / 255;
+    ctx.fillStyle = mix(T.surface2, T.ink1, v);
+    ctx.fillRect(i * cell, j * cell, Math.ceil(cell), Math.ceil(cell));
+  }
+  return c;
+}
+const STAGES = (d) => ["enc1", "pool1", `enc${d}`, "bottleneck", `up${d}`, `dec${d}`, "dec1"];
+const host = document.getElementById("host");
+for (const tag of ["d2-b4-i16", "d2-b4-i64", "d4-b16-i128", "d4-b16-i512"]) {
+  const [a, b] = await Promise.all([fetch(`unet-lookup-test/${tag}.json`).then((r) => r.json()), fetch(`unet-lookup-test/${tag}-64.json`).then((r) => r.json())]);
+  host.appendChild(Object.assign(document.createElement("h2"), { textContent: `depth ${a.depth}, base ${a.base}, input ${a.input}` }));
+  const t = document.createElement("table");
+  const row = (label, left, right) => {
+    const tr = document.createElement("tr");
+    const th = document.createElement("th"); th.textContent = label; tr.appendChild(th);
+    for (const [maps, box] of [[left, 34], [right, 64]]) {
+      const td = document.createElement("td");
+      const div = document.createElement("div"); div.className = "maps";
+      maps.forEach((m) => div.appendChild(draw(m, box)));
+      td.appendChild(div); tr.appendChild(td);
+    }
+    t.appendChild(tr);
+  };
+  row("image (R, G, B) · truth", [...a.image, a.truth], [...b.image, b.truth]);
+  for (const st of STAGES(a.depth)) {
+    const s = a.stages[st]; const s64 = b.stages[st];
+    if (!s) continue;
+    row(`${st}: ${s.C} × ${s.H} × ${s.H}`, s.maps.slice(0, 4), s64.maps.slice(0, 4));
+  }
+  row("sigmoid · mask", [a.sigmoid, a.mask], [b.mask]);
+  host.appendChild(t);
+}
+</script>
+</main>
+</body>
+</html>

@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · unet — the small U-Net, one network</title>
+<link rel="stylesheet" href="../core/tokens.css">
+</head>
+<body>
+<main id="widget"></main>
+<script type="module">
+/* The shipped widget, unchanged, with the trained network's depth set from
+   `?train=` before the widget loads, so the diagram (set by the URL to the
+   same depth, base 4, input 16) and the operation panel are one network.
+   `main.js` imports `./model.js`, the same module instance as this one. */
+import * as M from "../unet/model.js";
+const q = new URLSearchParams(location.search);
+M.TRAIN.depth = Number(q.get("train") || 2);
+await import("../unet/main.js");
+</script>
+</body>
+</html>
