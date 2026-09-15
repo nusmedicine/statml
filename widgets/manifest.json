@@ -958,7 +958,7 @@
     {
       "slug": "unet",
       "title": "Deep Learning - U-Net and Dice",
-      "blurb": "A U-Net downsamples, then upsamples with skip connections; the Dice loss scores a mask's overlap with the ground truth.",
+      "blurb": "A U-Net segments an image by classifying every pixel; the Dice loss scores the predicted mask against the ground truth.",
       "course": "PHM5005",
       "topics": [
         "U-Net",

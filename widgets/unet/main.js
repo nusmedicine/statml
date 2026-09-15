@@ -702,12 +702,13 @@ defineWidget({
   slug: "unet",
   status: "draft",
   title: "Deep Learning - U-Net and Dice",
+  /* Kenneth's pick A (2026-09-15): the purpose first, image segmentation, then
+     how the U-Net and the Dice loss serve it; the per-level detail trimmed */
   subtitle:
-    "A U-Net halves the image and doubles the channels at each level of its encoder, then reverses "
-    + "both up its decoder, where each level concatenates the encoder's features of the same size "
-    + "before a convolution. The Dice loss scores a predicted mask by its overlap with the ground "
-    + "truth, counting only the object's pixels; precision is lower when the predicted mask is too large, "
-    + "and recall when it is too small.",
+    "Image segmentation assigns a class to every pixel of an image. A U-Net does this with an "
+    + "encoder that downsamples the image and a decoder that upsamples it back to full size, "
+    + "concatenating the encoder's features at each level. The Dice loss scores the predicted "
+    + "mask by its overlap with the ground truth.",
   layout: "side",
   height: ({ w, ...values }) => M.pageHeight(w, values),
 
