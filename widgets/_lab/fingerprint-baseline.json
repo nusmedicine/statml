@@ -7035,9 +7035,9 @@
       "tx": "0"
     },
     {
-      "$note": "unet · Dice, the large object dilated and dragged",
+      "$note": "unet · Dice, a large triangle against a rectangle of half the area, dragged",
       "slug": "unet",
-      "state": "?theme=light&topic=dice&size=large&shape=dilate&dx=-3&dy=2&shown=0",
+      "state": "?theme=light&topic=dice&size=large&truth=tri&pred=rect&psize=half&dx=-3&dy=2&shown=0",
       "px": "0",
       "tx": "0"
     },

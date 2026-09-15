@@ -47,7 +47,7 @@
        when |A ∩ B| is counted (2.4).
    ========================================================================= */
 
-import { defineWidget, shapeText, mathmlRenders } from "../core/index.js";
+import { defineWidget, shapeText, mathmlRenders, readTokens } from "../core/index.js";
 import * as M from "./model.js";
 
 /* --- primitives ------------------------------------------------------------ */
@@ -516,20 +516,45 @@ function drawBand(ctx, colors, w, top, state, params, reached) {
 
 /* ============================== Dice ====================================== */
 
-const SHAPE_LABELS = {
-  same: "Same shape",
-  dilate: "Dilated 1 px",
-  erode: "Eroded 1 px",
-  random: "Same area at random",
-  empty: "Empty",
-};
+const SHAPE_LABELS = { disc: "Disc", rect: "Rectangle", tri: "Triangle", none: "None" };
+const SHAPE_NOUNS = { disc: "disc", rect: "rectangle", tri: "triangle" };
 const SIZE_LABELS = { medium: "Medium", large: "Large" };
+const PRED_SIZE_LABELS = { half: "Half", same: "Same", double: "Twice" };
+
+/* the picture on a shape button (core's segmented `icon`, round 5, his pick A):
+   the truth's shapes in the truth's colour, the prediction's in the prediction's */
+function paintShapeIcon(ctx, shape, size, role) {
+  const colors = readTokens();
+  const tone = role === "truth" ? colors.reference : colors.empirical;
+  ctx.save();
+  ctx.strokeStyle = shape === "none" ? colors.ink3 : tone;
+  ctx.fillStyle = wash(tone, 0.7);
+  ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  if (shape === "disc") ctx.arc(size / 2, size / 2, size * 0.4, 0, 2 * Math.PI);
+  else if (shape === "rect") ctx.rect(size * 0.08, size * 0.3, size * 0.84, size * 0.42);
+  else if (shape === "tri") {
+    ctx.moveTo(size / 2, size * 0.1);
+    ctx.lineTo(size * 0.94, size * 0.86);
+    ctx.lineTo(size * 0.06, size * 0.86);
+    ctx.closePath();
+  } else {
+    ctx.setLineDash([2, 2]);
+    ctx.rect(size * 0.15, size * 0.15, size * 0.7, size * 0.7);
+    ctx.stroke();
+    ctx.restore();
+    return;
+  }
+  ctx.fill();
+  ctx.stroke();
+  ctx.restore();
+}
 const DICE_NOTE = "The ground truth and the prediction on the image. Drag the prediction and the counts follow it.";
 
 function drawDice(ctx, colors, w, state, reveal) {
   const L = M.diceLayout(w);
   const { truth, prediction, m } = state;
-  caption(ctx, colors, `Dice on a ${SIZE_LABELS[state.size].toLowerCase()} object, ${M.SIZES[state.size].share} of the image`, M.PAD, M.CAPTION_Y);
+  caption(ctx, colors, `Dice on a ${SHAPE_NOUNS[state.truthShape]}, ${M.SIZES[state.size].label} of the image`, M.PAD, M.CAPTION_Y);
   note(ctx, colors, DICE_NOTE, M.PAD, M.NOTE_Y);
   const p = L.panel;
   const c = p.w / M.G;
@@ -551,7 +576,8 @@ function drawDice(ctx, colors, w, state, reveal) {
   ctx.restore();
   frame(ctx, p.x, p.y, p.w, p.h, colors.axis);
   note(ctx, colors, "the image, the ground truth and the prediction", p.x, p.y + p.h + 14, colors.ink2);
-  note(ctx, colors, state.dx || state.dy ? `the prediction moved ${state.dx} across, ${state.dy} down` : "the prediction in place", p.x, p.y + p.h + 28, colors.ink3);
+  note(ctx, colors, state.predShape === "none" ? "the prediction is empty"
+    : state.dx || state.dy ? `the prediction moved ${state.dx} across, ${state.dy} down` : "the prediction in place", p.x, p.y + p.h + 28, colors.ink3);
 
   const tiles = [
     ["|A|  truth", m.A, colors.reference],
@@ -580,6 +606,11 @@ function drawDice(ctx, colors, w, state, reveal) {
     note(ctx, colors, label, L.numbers.x, L.numbers.y + k * M.LINE, colors.ink2);
     txt(ctx, colors, v, L.numbers.valueX, L.numbers.y + k * M.LINE, { mono: true, color: colors.ink1, size: colors.fsXs, weight: "600" });
   });
+  /* WHY ACCURACY STAYS HIGH, with this figure's own counts */
+  const total = M.G * M.G;
+  const wrong = m.A + m.B - 2 * m.AB;
+  note(ctx, colors, `accuracy counts all ${fmt(total)} pixels: ${fmt(total - wrong)} are right,`, L.why.x, L.why.y, colors.ink3);
+  note(ctx, colors, `${fmt(m.neither)} of them in neither mask, the background`, L.why.x, L.why.y + 14, colors.ink3);
 }
 
 /* ============================= the formula card ============================ */
@@ -741,27 +772,36 @@ defineWidget({
     objSec: { type: "section", label: "The object", when: ON("dice") },
     size: {
       type: "segmented",
-      label: "Object",
+      label: "Object size",
       detail: "the share of the image the ground truth covers: about 5 % or 20 %",
       options: M.SIZE_KEYS.map((v) => ({ value: v, label: SIZE_LABELS[v] })),
       default: "medium",
       when: ON("dice"),
     },
-    predSec: { type: "section", label: "The prediction", when: ON("dice") },
-    shape: {
-      type: "select",
-      label: "Shape",
-      detail: "the prediction's shape relative to the ground truth; drag it on the figure to move it",
-      options: M.SHAPE_KEYS.map((v) => ({ value: v, label: SHAPE_LABELS[v] })),
-      default: "same",
+    truth: {
+      type: "segmented",
+      label: "Ground truth",
+      detail: "the object's shape",
+      options: M.SHAPES.map((v) => ({ value: v, label: SHAPE_LABELS[v], icon: (ctx, sz) => paintShapeIcon(ctx, v, sz, "truth") })),
+      default: "disc",
       when: ON("dice"),
     },
-    seed: {
-      type: "int",
-      label: "Seed",
-      detail: "which random pixels the prediction covers",
-      min: 1, max: 200, default: 1,
-      when: { all: [ON("dice"), { param: "shape", equals: "random" }] },
+    predSec: { type: "section", label: "The prediction", when: ON("dice") },
+    pred: {
+      type: "segmented",
+      label: "Prediction",
+      detail: "the predicted mask's shape; drag it on the figure to move it",
+      options: M.PRED_SHAPES.map((v) => ({ value: v, label: SHAPE_LABELS[v], icon: (ctx, sz) => paintShapeIcon(ctx, v, sz, "pred") })),
+      default: "disc",
+      when: ON("dice"),
+    },
+    psize: {
+      type: "segmented",
+      label: "Prediction size",
+      detail: "the predicted mask's area: half, the same as, or twice the ground truth's",
+      options: M.PRED_SIZE_KEYS.map((v) => ({ value: v, label: PRED_SIZE_LABELS[v] })),
+      default: "same",
+      when: { all: [ON("dice"), { param: "pred", oneOf: M.SHAPES }] },
     },
     /* where the drag has moved the prediction: display, so a drag keeps the count */
     dx: { type: "int", min: -M.SHIFT_MAX, max: M.SHIFT_MAX, default: 2, hidden: true, display: true },
@@ -810,7 +850,7 @@ defineWidget({
   drag: {
     params: ["dx", "dy"],
     cursor: "grab",
-    hit: ({ x, y, w, params }) => M.isDice(params) && M.panelHit(M.diceLayout(w), x, y),
+    hit: ({ x, y, w, params }) => M.isDice(params) && params.pred !== "none" && M.panelHit(M.diceLayout(w), x, y),
     value: ({ dx, dy, start, w }) => {
       const cell = M.diceLayout(w).panel.w / M.G;
       const clamp = (v) => Math.max(-M.SHIFT_MAX, Math.min(M.SHIFT_MAX, Math.round(v)));

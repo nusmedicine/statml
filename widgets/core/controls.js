@@ -1239,6 +1239,18 @@ function build(host, spec, values, onChange, api) {
       const twoLine = new Set(
         options.filter((o) => o.qual).map((o) => o.group)
       );
+      /* A FACE MAY CARRY A PICTURE — `icon: (ctx, size) => void` on an option,
+         painted on a small canvas over the name. For a choice whose options ARE
+         shapes: widget 65's ground truth and prediction are a disc, a rectangle
+         or a triangle, and a drawing says which faster than the word (Kenneth's
+         pick A, `_lab/unet-dice-shapes-mock.html`, 2026-09-15). Core holds no
+         picture, as with `preview`: the widget paints, and core repaints on a
+         theme change because a canvas keeps the colours it was painted in.
+         Reserved per run like `qual`: a row with any icon gives every button
+         the picture's box, and a row with none is untouched. */
+      const iconRun = new Set(options.filter((o) => o.icon).map((o) => o.group));
+      const iconSize = field.iconSize ?? 22;
+      const iconPaints = [];
       for (const o of options) {
         if (!run || run.key !== o.group) {
           run = { key: o.group, seg: document.createElement("div") };
@@ -1250,6 +1262,7 @@ function build(host, spec, values, onChange, api) {
              what lets four methods form a 2x2 under a full-width "None". */
           run.seg.className = field.style === "grid" ? "w-seg w-seg-grid" : "w-seg";
           if (twoLine.has(o.group)) run.seg.classList.add("w-seg--two");
+          if (iconRun.has(o.group)) run.seg.classList.add("w-seg--icon");
           run.seg.setAttribute("role", "group");
           run.seg.setAttribute("aria-label", o.group ?? field.label ?? name);
           /* A GROUP'S CAPTION SITS UNDER ITS ROW, as a note — unless the field
@@ -1288,7 +1301,29 @@ function build(host, spec, values, onChange, api) {
           sw.style.setProperty("--swatch", `var(--c-${o.token})`);
           b.appendChild(sw);
         }
-        if (o.qual) {
+        if (o.icon) {
+          const dpr = window.devicePixelRatio || 1;
+          const cv = document.createElement("canvas");
+          cv.className = "w-seg-icon";
+          cv.width = Math.round(iconSize * dpr);
+          cv.height = Math.round(iconSize * dpr);
+          cv.style.width = `${iconSize}px`;
+          cv.style.height = `${iconSize}px`;
+          cv.setAttribute("aria-hidden", "true");
+          const paint = () => {
+            const ctx = cv.getContext("2d");
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+            ctx.clearRect(0, 0, iconSize, iconSize);
+            o.icon(ctx, iconSize);
+          };
+          paint();
+          iconPaints.push(paint);
+          const nm = document.createElement("span");
+          nm.className = "w-seg-name";
+          nm.textContent = o.label;
+          b.append(cv, nm);
+          b.setAttribute("aria-label", o.label);
+        } else if (o.qual) {
           const nm = document.createElement("span");
           nm.className = "w-seg-name";
           nm.textContent = o.label;
@@ -1308,6 +1343,7 @@ function build(host, spec, values, onChange, api) {
         buttons.set(o.value, b);
         run.seg.appendChild(b);
       }
+      if (iconPaints.length) onThemeChange(() => iconPaints.forEach((fn) => fn()));
       ownDetail(wrap, field);
       wrap.appendChild(detail);
       mark(values[name]);

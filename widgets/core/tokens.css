@@ -1449,6 +1449,20 @@ p.w-text-hint { max-width: none; text-align: left; }
   white-space: normal;
   line-height: 1.25;
 }
+/* A PICTURE OVER THE NAME (`icon` on an option — controls.js). Same rule as the
+   qualifier: the class is on the run, so a row with any icon is level and a
+   row with none is untouched. */
+.w-seg--icon .w-seg-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 5px 4px 4px;
+  white-space: normal;
+  line-height: 1.2;
+  font-size: var(--fs-xs);
+}
+.w-seg--icon .w-seg-icon { display: block; }
 .w-seg-name,
 .w-seg-qual { display: block; }
 .w-seg-qual {

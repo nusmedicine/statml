@@ -158,33 +158,44 @@ section("§2 the engine, and the trained network the band draws");
 /* §3 ---------------------------------------------------------------------- */
 section("§3 the Dice claims on the widget's own masks");
 {
-  const read = (size, shape, dx = 0, dy = 0, seed = 1) => M.computeDice({ size, shape, dx, dy, seed }).m;
-  for (const size of M.SIZE_KEYS) {
-    const truth = M.disc(M.CENTRE[0], M.CENTRE[1], M.SIZES[size].r);
-    const share = truth.reduce((a, v) => a + v, 0) / (M.G * M.G);
-    const want = { medium: 0.05, large: 0.20 }[size];
-    assert(Math.abs(share - want) < 0.004, `the ${size} object covers ${(100 * share).toFixed(2)}% of the image`);
-    const same = read(size, "same");
-    assert(same.dice === 1 && same.acc === 1, `${size}, same shape in place: Dice 1`);
-    const empty = read(size, "empty");
-    assert(empty.dice === 0 && close(empty.acc, 1 - share), `${size}, empty: Dice 0, accuracy ${empty.acc.toFixed(3)}`);
-  }
-  const off = read("medium", "same", 18, 0);
-  assert(off.AB === 0 && off.acc > 0.89, `medium, dragged clear: accuracy ${off.acc.toFixed(3)} with Dice 0`);
+  const read = (size, truth, pred, psize = "same", dx = 0, dy = 0) => M.computeDice({ size, truth, pred, psize, dx, dy }).m;
   assert(Object.keys(M.SIZES).join(",") === "medium,large", "the object sizes are medium and large (round 4)");
-  const dil = read("medium", "dilate");
-  const ero = read("medium", "erode");
-  assert(dil.rec === 1 && dil.prec < 0.8, `dilated: recall 1, precision ${dil.prec.toFixed(2)}`);
-  assert(ero.prec === 1 && ero.rec < 0.75, `eroded: precision 1, recall ${ero.rec.toFixed(2)}`);
-  assert(Math.abs(dil.dice - ero.dice) < 0.05, `dilated and eroded within 0.05 Dice (${dil.dice.toFixed(3)} · ${ero.dice.toFixed(3)})`);
-  for (const m of [dil, ero, off, read("medium", "same", 2, 1), read("large", "random", 0, 0, 3)]) {
+  assert(M.SHAPES.join(",") === "disc,rect,tri" && M.PRED_SHAPES.includes("none"), "the shapes are disc, rectangle and triangle, and the prediction may be none (round 5)");
+  for (const size of M.SIZE_KEYS) {
+    const want = M.SIZES[size].share;
+    for (const shape of M.SHAPES) {
+      const t = M.shapeMask(shape, want * M.G * M.G);
+      const share = t.reduce((a, v) => a + v, 0) / (M.G * M.G);
+      /* one shape a size: every shape within 12 % of the area it is drawn at */
+      assert(Math.abs(share - want) / want < 0.12, `the ${size} ${shape} covers ${(100 * share).toFixed(2)}% (drawn at ${100 * want}%)`);
+      const same = read(size, shape, shape);
+      assert(same.dice === 1 && same.acc === 1, `${size} ${shape}, the same shape in place: Dice 1`);
+      const none = read(size, shape, "none");
+      assert(none.dice === 0 && none.B === 0 && close(none.acc, 1 - share), `${size} ${shape}, no prediction: Dice 0, accuracy ${none.acc.toFixed(3)} = the background's share`);
+      const half = read(size, shape, shape, "half");
+      const dbl = read(size, shape, shape, "double");
+      assert(half.prec === 1 && Math.abs(half.rec - 0.5) < 0.08, `${size} ${shape}, half the area: precision 1, recall ${half.rec.toFixed(2)}`);
+      assert(dbl.rec === 1 && Math.abs(dbl.prec - 0.5) < 0.08, `${size} ${shape}, twice the area: recall 1, precision ${dbl.prec.toFixed(2)}`);
+    }
+    for (const a of M.SHAPES) {
+      for (const b of M.SHAPES) {
+        if (a !== b) assert(read(size, a, b).dice < 0.9, `${size}: a ${b} predicted for a ${a}, centred, scores under 0.9`);
+      }
+    }
+  }
+  const off = read("medium", "disc", "disc", "same", 18, 0);
+  assert(off.AB === 0 && off.acc > 0.89, `medium disc dragged clear: accuracy ${off.acc.toFixed(3)} with Dice 0`);
+  /* the accuracy sentence's two numbers */
+  assert(off.neither + off.AB === Math.round(off.acc * M.G * M.G) && off.A + off.B - 2 * off.AB === M.G * M.G - (off.neither + off.AB),
+    "right pixels = both + neither, wrong = |A| + |B| − 2|A ∩ B|");
+  for (const m of [off, read("medium", "tri", "rect", "half", 2, 1), read("large", "rect", "disc", "double", -3, 4)]) {
     assert(close(m.dice, m.A + m.B ? (2 * m.AB) / (m.A + m.B) : 0), "Dice is 2|A∩B| / (|A|+|B|)");
     assert(close(m.iou, m.dice / (2 - m.dice)), "IoU = Dice / (2 − Dice)");
   }
-  const a = read("medium", "same", 1, 0);
-  const b = read("medium", "same", 3, 0);
+  const a = read("medium", "disc", "disc", "same", 1, 0);
+  const b = read("medium", "disc", "disc", "same", 3, 0);
   assert(a.B === b.B && b.AB < a.AB, "a drag moves the prediction without changing its size, and the overlap falls");
-  console.log(`  medium dragged clear: accuracy ${off.acc.toFixed(3)}, Dice 0; dilated ${dil.dice.toFixed(3)}, eroded ${ero.dice.toFixed(3)}`);
+  console.log(`  medium disc dragged clear: accuracy ${off.acc.toFixed(3)}, Dice 0; triangle for disc ${read("medium", "disc", "tri").dice.toFixed(2)}, rectangle for disc ${read("medium", "disc", "rect").dice.toFixed(2)}`);
 }
 
 /* §4 ---------------------------------------------------------------------- */
@@ -229,6 +240,7 @@ section("§4 the geometry at 550 and 770");
     }
     const D = M.diceLayout(w);
     assert(D.numbers.valueX + 70 <= w - M.PAD, `the Dice numbers fit at ${w}`);
+    assert(D.why.x + D.why.chars * 6 <= w - M.PAD, `the accuracy sentence fits at ${w}, at a blunt 6px a character`);
   }
   const net = T.net;
   const S = M.TRAIN.S;

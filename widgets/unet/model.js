@@ -271,69 +271,52 @@ export const G = 64;
 /* medium and large only (Kenneth, round 4: "small is too small"): a 1 % disc
    is about eleven pixels across on the panel */
 export const SIZES = {
-  medium: { r: 8.1, share: "5 %" },
-  large: { r: 16.2, share: "20 %" },
+  medium: { share: 0.05, label: "5 %" },
+  large: { share: 0.20, label: "20 %" },
 };
 export const SIZE_KEYS = Object.keys(SIZES);
 export const CENTRE = [30.5, 33.5];
 export const SHIFT_MAX = 40;
 
-export const disc = (cx, cy, r) => {
+/* THE SHAPES (round 5, Kenneth: "a rectangle, triangle or something else").
+   Each is drawn at a given AREA about the centre, so a disc, a 2 : 1 rectangle
+   and an equilateral triangle of one size cover the same number of pixels, and
+   a different shape is not also a different size. The prediction's size is its
+   own control — half, the same or twice the truth's area — which is what the
+   1 px dilate and erode tried to show, at a size that is visible. */
+export const SHAPES = ["disc", "rect", "tri"];
+export const PRED_SHAPES = [...SHAPES, "none"];
+export const PRED_SIZES = { half: 0.5, same: 1, double: 2 };
+export const PRED_SIZE_KEYS = Object.keys(PRED_SIZES);
+
+/** is the point (px, py), measured from the shape's centre, inside it */
+export function insideShape(shape, area, px, py) {
+  if (shape === "disc") return Math.hypot(px, py) <= Math.sqrt(area / Math.PI);
+  if (shape === "rect") {
+    /* whole columns and rows, half-open, so it covers the area it is drawn at:
+       a pixel-centre test on the real width rounded both sides up, 13 % over */
+    const cols = Math.max(1, Math.round(Math.sqrt(2 * area)));
+    const rows = Math.max(1, Math.round(area / cols));
+    return px >= -cols / 2 && px < cols / 2 && py >= -rows / 2 && py < rows / 2;
+  }
+  /* an equilateral triangle, apex up, its centroid at the centre */
+  const s = Math.sqrt((4 * area) / Math.sqrt(3));
+  const height = (Math.sqrt(3) / 2) * s;
+  const apex = (-2 * height) / 3;
+  if (py < apex || py > height / 3) return false;
+  return Math.abs(px) <= ((py - apex) / height) * (s / 2);
+}
+/** a shape's mask on the G × G grid, its centre moved by (dx, dy) pixels */
+export function shapeMask(shape, area, dx = 0, dy = 0) {
   const m = new Uint8Array(G * G);
+  if (shape === "none") return m;
   for (let y = 0; y < G; y += 1) {
     for (let x = 0; x < G; x += 1) {
-      if (Math.hypot(x + 0.5 - cx, y + 0.5 - cy) <= r) m[y * G + x] = 1;
+      if (insideShape(shape, area, x + 0.5 - CENTRE[0] - dx, y + 0.5 - CENTRE[1] - dy)) m[y * G + x] = 1;
     }
   }
   return m;
-};
-export const shift = (m, dx, dy) => {
-  const o = new Uint8Array(G * G);
-  for (let y = 0; y < G; y += 1) {
-    for (let x = 0; x < G; x += 1) {
-      const sx = x - dx;
-      const sy = y - dy;
-      if (sx >= 0 && sx < G && sy >= 0 && sy < G) o[y * G + x] = m[sy * G + sx];
-    }
-  }
-  return o;
-};
-export const morph = (m, grow) => {
-  const o = new Uint8Array(G * G);
-  for (let y = 0; y < G; y += 1) {
-    for (let x = 0; x < G; x += 1) {
-      let any = false;
-      let all = true;
-      for (let dy = -1; dy <= 1; dy += 1) {
-        for (let dx = -1; dx <= 1; dx += 1) {
-          const xx = x + dx;
-          const yy = y + dy;
-          const v = xx >= 0 && xx < G && yy >= 0 && yy < G ? m[yy * G + xx] : 0;
-          if (v) any = true; else all = false;
-        }
-      }
-      o[y * G + x] = grow ? (any ? 1 : 0) : (all ? 1 : 0);
-    }
-  }
-  return o;
-};
-export const randomSame = (m, rng) => {
-  const n = m.reduce((a, v) => a + v, 0);
-  const o = new Uint8Array(G * G);
-  const idx = Array.from({ length: G * G }, (_, i) => i);
-  rng.shuffle(idx);
-  for (let i = 0; i < n; i += 1) o[idx[i]] = 1;
-  return o;
-};
-/** the prediction's shape; its position is the reader's drag */
-export const SHAPES = [
-  { key: "same", make: (m) => m.slice() },
-  { key: "dilate", make: (m) => morph(m, true) },
-  { key: "erode", make: (m) => morph(m, false) },
-  { key: "random", make: (m, rng) => randomSame(m, rng) },
-  { key: "empty", make: () => new Uint8Array(G * G) },
-];
-export const SHAPE_KEYS = SHAPES.map((p) => p.key);
+}
 
 export function metrics(a, b) {
   let A = 0;
@@ -356,14 +339,19 @@ export function metrics(a, b) {
   };
 }
 
-export const readDice = (p) => ({ size: p.size, shape: p.shape, dx: Number(p.dx), dy: Number(p.dy), seed: Number(p.seed) });
+export const readDice = (p) => ({
+  size: p.size, truthShape: p.truth, predShape: p.pred, predSize: p.psize,
+  dx: Number(p.dx), dy: Number(p.dy),
+});
 export function computeDice(params) {
-  const { size, shape, dx, dy, seed } = readDice(params);
-  const truth = disc(CENTRE[0], CENTRE[1], SIZES[size].r);
-  const P = SHAPES.find((p) => p.key === shape) ?? SHAPES[0];
-  const shaped = P.make(truth, makeRng(seed));
-  const prediction = shift(shaped, dx, dy);
-  return { page: "dice", size, shape, dx, dy, truth, prediction, m: metrics(truth, prediction), total: 0 };
+  const { size, truthShape, predShape, predSize, dx, dy } = readDice(params);
+  const area = SIZES[size].share * G * G;
+  const truth = shapeMask(truthShape, area);
+  const prediction = shapeMask(predShape, area * (PRED_SIZES[predSize] ?? 1), dx, dy);
+  return {
+    page: "dice", size, truthShape, predShape, predSize, dx, dy,
+    truth, prediction, m: metrics(truth, prediction), total: 0,
+  };
 }
 
 /* --- Dice's geometry --------------------------------------------------------- */
@@ -371,14 +359,16 @@ export function computeDice(params) {
 export const PANEL = 190;
 export const TILE_W = 110;
 export const TILE_H = 46;
-export const TILE_GAP = 10;
+export const TILE_GAP = 8;
 export const LINE = 16;
 export function diceLayout(w) {
   const panel = { x: PAD, y: 52, w: PANEL, h: PANEL };
   const tx = PAD + PANEL + 20;
   const tiles = [0, 1, 2].map((k) => ({ x: tx, y: 52 + k * (TILE_H + TILE_GAP), w: TILE_W, h: TILE_H }));
   const numbers = { x: tx + TILE_W + 14, y: 64, valueX: tx + TILE_W + 14 + 112 };
-  return { panel, tiles, numbers, height: 52 + PANEL + 44 };
+  /* the accuracy sentence, under the tiles: beside the numbers it ran past a 550 stage */
+  const why = { x: tx, y: 52 + 3 * (TILE_H + TILE_GAP) + 8, chars: 52 };
+  return { panel, tiles, numbers, why, height: 52 + PANEL + 44 };
 }
 export const diceHeight = (w) => diceLayout(w).height;
 export const panelHit = (L, x, y) => x >= L.panel.x && x <= L.panel.x + L.panel.w && y >= L.panel.y && y <= L.panel.y + L.panel.h;

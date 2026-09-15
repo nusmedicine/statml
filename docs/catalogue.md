@@ -15836,6 +15836,27 @@ and it is now out of sight until the reader asks for it.
 
 ### Slot 65 · `unet` — Architecture - Basic (Segmentation) — TWO PAGES since 2026-09-13, MOCKED 2026-09-15
 
+**ROUND 5 (2026-09-15, late), the Dice page's shapes, his picks from
+`_lab/unet-dice-shapes-mock.html`:** the Topic button reads **Dice loss**; the
+ground truth is a **Disc · Rectangle (2 : 1) · Triangle** at the object's area
+and the prediction the same three or **None**, both as PICTURE BUTTONS (pick
+A) — a core addition, an `icon` painter on a segmented option (controls.js,
+params.js carries it, tokens.css `.w-seg--icon`), proven harmless by a
+fronted full suite, 777 existing states MATCH; the prediction's size is
+**Half · Same · Twice** the truth's area (hidden when the prediction is None),
+replacing the 1 px dilate and erode and the random prediction, which is gone
+with its seed; and an accuracy sentence under the tiles gives the figure's
+own count ("accuracy counts all 4,096 pixels: 3,670 are right, 3,457 of them
+in neither mask"). Measured centred, medium: a triangle predicted for a disc
+scores Dice 0.81, a rectangle for a disc 0.75; half the area gives precision 1
+and recall about 0.5, twice the reverse. His two questions answered in the
+chat: the notebook's DiceCELoss(sigmoid=True) and DiceMetric
+(include_background=True, ignore_empty=True) exclude no background — with one
+sigmoid channel there is no background channel, the Dice half counts the
+object's pixels and the BCE half every pixel, and ignore_empty skips images
+with no object; segmentation reports Dice (and IoU), sometimes precision and
+recall as PPV and sensitivity, and rarely pixel accuracy.
+
 **ROUND 4 (2026-09-15, late), the Dice page, three points:** (1) "omit the
 step/play buttons and calculate dynamically as we move the prediction" → the
 Dice page's animation is `inert`, so core hides Step and Play there (Reset

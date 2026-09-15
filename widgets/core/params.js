@@ -197,6 +197,9 @@ export function optionEntries(field, values = {}) {
              `2 classes`). Every button in a row that has one takes the
              two-line height, so the row stays level. */
           qual: item.qual,
+          /* `segmented` only: a painter for a picture over the face, called as
+             icon(ctx, size); widget 65's shape buttons */
+          icon: item.icon,
           /* `matrix` only. Where the option sits in the grid, and how dark the
              cell is drawn — 0 to 1. Carried on the option rather than in a
              parallel array, so a cell cannot come adrift from the value it
