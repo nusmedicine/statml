@@ -12,7 +12,7 @@ answer can be checked against what was assumed.
 
 | looking for | go to |
 |---|---|
-| what to build next | Kenneth’s call. The image arc under PHM5005 (slots 61–66) has 61 `cnn-architecture`, 64 `grad-cam`, 65 `unet` and 62 `augmentation` shipped, 63 `pretrained` measured and mocked and on KIV (his call 2026-09-15), 66 folded into 65; slot 52 `training-loop` (05-4) was discarded 2026-09-13, his call when the image arc was planned; the GWAS and PRS arc (56, 57, 59, 60) and the high-throughput arc are complete |
+| what to build next | Kenneth’s call. **The cancer mutation arc (PHM5003 week 7, slots 67–71) was PROPOSED 2026-09-16** and waits for his picks — § *The cancer mutation arc*. The image arc under PHM5005 (slots 61–66) has 61 `cnn-architecture`, 64 `grad-cam`, 65 `unet` and 62 `augmentation` shipped, 63 `pretrained` measured and mocked and on KIV (his call 2026-09-15), 66 folded into 65; slot 52 `training-loop` (05-4) was discarded 2026-09-13, his call when the image arc was planned; the GWAS and PRS arc (56, 57, 59, 60) and the high-throughput arc are complete |
 | how a widget got its shape | § *Widget N*, in order |
 | the four-method reconnaissance | § *Widget 19*, under the PCA sections |
 | the arcs, and what is deliberately not a widget | the arc sections below |
@@ -8595,6 +8595,353 @@ learning rate falls, data lie on a manifold. HANDOVER has the record.
 
 **NEXT:** `_lab/hwe-measure.mjs`, then the 56 mock from the newest mock's
 shell, then his picks.
+
+---
+
+## The cancer mutation arc — PROPOSED 2026-09-16, from PHM5003 week 7
+
+**Kenneth's ask, 2026-09-16:** the next set of widgets, for `07 - Cancer
+Mutation Analysis`. The likeliest concepts, in his words: *assessing
+heterogeneity, e.g. VAF … possibly clonal architecture (mentioned in the
+notebook but did not run any)*; *identifying cancer driver genes with
+oncodrive*; *identifying cancer gene signatures with NMF*.
+
+**All six notebooks were read in full the same day, with their outputs**, from
+`../jupyterbook/phm5003/notebook/07 - Cancer Mutation Analysis/`: 01-1 (GDC
+download, 21 cells), 01-2 (summarising, 26), 01-3 (analysing, 45), 01-4
+(signatures, 36), 02-1 (annotating one patient's VCF, 7), 02-2 (that patient,
+12). His figures are cell attachments — `cancer-hetero.png` (01-2 cell 17),
+`cancer-retcher.png` (cell 25), `cancer-signature.png` (01-4 cell 0),
+`mutsig-titv.png` (cell 3), `mutsig-nmf.png` (cell 20); copy the ones a mock
+uses into `_lab/figs/` when that mock is built. **The lesson's own data were
+read too:** `brca_maf.rda` (89,568 mutations in 968 tumours; 140 columns,
+among them `t_ref_count`, `t_alt_count`, `Protein_position` and an 11-base
+`CONTEXT`) and `brca_clinical.rda`, exported with base R 4.5.2 by
+`_lab/cancer-plan-export.R`. `_lab/cancer-plan-measure.mjs` reprints every
+number in this section. maftools, NMF and mclust are not installed; installing
+them from Bioconductor is a network call, so it is his question and not a thing
+to build around.
+
+The week is one argument, in the notebooks' order: *summarise a cohort's
+somatic mutations → how many of a tumour's cells carry each one → which genes
+were selected → which processes made the mutations*. 02-1 and 02-2 run the
+same functions on one patient.
+
+### What is already covered — read before proposing a slot
+
+| existing widget | what it already does for this week | so the arc must not |
+|---|---|---|
+| 41 `matrix-factorization` | NMF as V ≈ W × H with non-negative factors; rank as a control; agreement between random starts, the quantity 01-4's cophenetic step measures. Its entry names 01-4 as a second host, and its rail already uses 01-4's words (signatures, how much of each) | re-teach the factorization, the update or choosing the rank. The signatures slot imports `widgets/matrix-factorization/model.js` |
+| 10 `em-mixture` | fitting a mixture of normal curves by EM, the algorithm inside `mclust` (01-2 cell 22) | animate EM on VAFs. The heterogeneity slot draws the clusters and asks what they are |
+| 11 `probability-mechanisms` | the binomial, and the hypergeometric that is Fisher's exact test's null | derive either. Alt reads at a locus are a binomial count at that depth |
+| 6 `multiple-testing` | Benjamini-Hochberg | re-derive 01-3 cell 16's `fdr` column |
+| 12 `odds-and-risk` | the odds ratio of a 2 × 2 | re-teach 01-3 cell 9's table |
+| 26 `fork-pipe-collider`, 28 `lm-adjustment` | a confounder, and adjusting for it | re-teach confounding; slot 71 would be an instance |
+| 31 `time-event` | Kaplan-Meier and the hazard ratio | host `mafSurvival` (01-3 cells 32–37) |
+| 43 `enrichment` | testing a gene set | host maftools' `pathways` (01-3 cells 26–31), which counts mutated samples per pathway and runs no test |
+
+What no existing widget touches: a sequencing read as a draw from a mixture of
+normal and tumour cells; purity and copy number in a VAF's denominator; a tree
+constrained by fractions of cells; a test of *where* along a protein the
+mutations fall; a mutation's trinucleotide context as its category; one tumour
+dominating a decomposition; a nearest reference used as a name.
+
+### Four slots for the three asks, and a fifth not asked for
+
+| # | slug (provisional) | title | host | misconception | evidence | status |
+|---|---|---|---|---|---|---|
+| 67 | `variant-allele-frequency` | Tumor Heterogeneity | 01-2 cells 17–25 | a VAF below 0.5 is a subclone, and a cluster of VAFs is a clone. **Measured: 965 of 967 tumours have a median VAF below 0.5, and a tumour with one clone reads MATH 15–25 from sampling alone** | reported (Dentro, Wedge & Van Loo 2017; the lesson's cells 17 and 24 state both caveats) | proposed |
+| 68 | `clonal-architecture` | Clonal Architecture | 01-2 cell 25 and `cancer-retcher.png`; nothing run | the clusters' CCFs give the tree. **Measured on his figure: the sum rule rules out branching at three of its four samples, and the surgery sample alone fits both trees** | documented for the rule (Nik-Zainal et al. 2012, the pigeonhole principle); the misconception inferred | proposed — **cuttable, or 67's last page** |
+| 69 | `driver-genes` | Cancer Driver Genes | 01-3 cells 12–25 | a gene `oncodrive` does not call is a passenger; a smaller FDR is a stronger driver. **Measured: TP53, CDH1, GATA3 and MAP3K1, four of the six most mutated genes, are absent from cell 16's table** | documented (Tamborero et al. 2013; TCGA 2012 names all four as significantly mutated) | proposed |
+| 70 | `mutational-signatures` | Mutational Signatures | 01-4 | an extracted signature is a process across the cohort, and its best COSMIC match names the cause. **Measured: Signature_1 is one tumour** | reported (Koh et al. 2021 on attribution) | proposed |
+| 71 | `somatic-interactions` | Somatic Interactions | 01-3 cells 4–11, 35 | two genes rarely mutated together share a pathway (cell 4's reading). **Measured: TP53–CDH1's odds ratio 0.153 is 0.407 within histology** | documented (Canisius, Martens & Wessels 2016; van de Haar et al. 2019) | **not asked for** — measured, cuttable |
+
+**Every citation in this section is to re-read before copy quotes it**; they
+were named from memory while planning, and the numbers beside them were not.
+
+Four is the honest count for three asks: heterogeneity is two ideas with two
+figures (a VAF and a tree), and the second is the one he marked *possibly*. 71
+is listed because the measurement found a confounded reading in the lesson's
+own table, not because it was asked for, and it is the first to cut. The order
+is the notebooks' own, 67 → 68 → 69 → 70.
+
+**Slug rulings.** *Name the method or the data shape* (the 2026-08-28
+renames): `variant-allele-frequency` is what 67 measures, `driver-genes` what
+69 finds, `mutational-signatures` 01-4's own noun. His ask says *cancer gene
+signatures*; 01-4 says *mutational signatures*, and 01-3 cell 38's *gene
+signatures* (`survGroup`, not run) are something else, so the title takes
+01-4's term. If 68 folds into 67, the slug could be `tumor-heterogeneity`,
+cell 17's heading in its own spelling.
+
+### What the lesson's own output says — for Kenneth, his to fix
+
+1. **01-3's p-values are not against this cohort's silent mutations.** Cell
+   12's step 5 says the background is built from them; cell 15 printed *"Not
+   enough genes to build background. Using predefined values. (Mean = 0.279;
+   SD = 0.13)"*. All seven z-scores in cell 16 are (score − 0.279) / 0.13 to
+   the printed digit, each p is the normal upper tail, and each FDR is
+   Benjamini-Hochberg over 799 genes. The same cell warns that Oncodrive is
+   superseded by OncodriveCLUSTL.
+2. **01-3 cell 16 leaves out four of the six most mutated genes, and cell 19
+   says why without connecting the two.** TP53: 348 mutations on 121 residues,
+   40% truncating or splice-site. CDH1: 85%, 120 placed on 92 residues. GATA3:
+   91%. MAP3K1: 77%, 118 placed on 101 residues. PIK3CA: none truncating, 68%
+   at three residues (H1047 136, E545 74, E542 42). Clustering finds the
+   pattern of gain of function; loss of function spreads along the protein,
+   which is cell 19's own sentence.
+3. **01-2 cell 20 reads `plotVaf` at purity 1**, where a VAF below 0.5 is
+   subclonal. 965 of the 967 tumours with a non-synonymous mutation have a
+   median VAF below 0.5 (median of the medians 0.243, IQR 0.18–0.31). At the
+   purities in cell 24's six example rows, 0.65 to 0.79, a clonal heterozygous
+   mutation sits at 0.33 to 0.40; PIK3CA's median in cell 19 is about 0.32.
+4. **01-2 cell 17, VAF ~ 1:** "a homozygous deletion where both copies of a
+   genomic region are lost" leaves no tumour reads at the locus. A VAF near 1
+   is the wild-type allele lost (loss of heterozygosity), which is what the
+   figure's VAF = 1 panels draw. And VAF ~ 0.5 "present in a majority of the
+   tumor cells": at purity 1, 0.5 needs every tumour cell heterozygous.
+5. **01-4 cell 3:** "a high Ti/Tv ratio may indicate a mutation signature
+   associated with oxidative damage". Oxidative damage (8-oxoguanine) makes
+   C>A transversions (COSMIC SBS18), which lower Ti/Tv.
+6. **01-4 cell 19:** the cophenetic correlation measures how consistently
+   repeated NMF runs cluster the samples, not "how closely clustering …
+   represents the original mutation frequencies". § *Widget 41* reads it the
+   same way.
+7. **01-4's Signature_1 is one tumour** — TCGA-AN-A046, with 5,841 of the
+   cohort's 82,747 SNVs. Slot 70 has the measurement.
+8. **01-3 cell 38 reads the two-gene `mafSurvival` as patients with both
+   mutations.** Its Mutant group (cell 37, N 367) is the tumours with either:
+   328 with PIK3CA plus 82 with MAP3K1, less the 43 with both (cell 35's
+   table).
+
+### Slot 67 · `variant-allele-frequency` — Tumor Heterogeneity
+
+**Host.** 01-2 cell 17: the VAF formula, the three simplified cases and
+`cancer-hetero.png` (VAF = 1 in two panels, 0.5, and below 0.5 as 75% and 25%
+of cells), then copy number and purity as the caveats. Cells 18–20: `plotVaf`
+over the ten most mutated genes. Cells 21–23: `inferHeterogeneity`, `mclust`
+clusters on one tumour's VAFs with its MATH score. Cells 24–25: purity by
+method, allele-specific copy number, the expected VAF
+p·c·m / (p·Cₜ + 2(1 − p)), the CCF solved from it, the binomial likelihood.
+
+**The misconceptions.**
+
+1. *Inferred:* a VAF is the share of tumour cells carrying the mutation. It is
+   the share of reads; a heterozygous mutation in every cell reads 0.5, which
+   is what his figure exists to say.
+2. *Reported:* a VAF below 0.5 is subclonal. Finding 3: read at purity 1,
+   nearly every tumour's typical mutation is subclonal. Dentro, Wedge & Van
+   Loo (2017) put purity and copy number before any clustering; cells 17 and
+   24 list both.
+3. *Inferred:* a cluster of VAFs is a clone, and MATH measures subclonal
+   diversity. Measured: MATH is 100 × 1.4826 × MAD / median (all ten of cell
+   23's titles reproduce to the digit). The median depth at a non-synonymous
+   mutation is 88 (IQR 49–161, 10th percentile 31). A tumour with one clone,
+   heterozygous and diploid, at purity 0.7 reads VAF 0.35 with binomial SD
+   0.051 — MATH ≈ 15 from sampling alone — and ≈ 25 at depth 31 or at purity
+   0.35 (normal approximation). Cell 23 prints 17.9 to 68.9. Its first panel,
+   TCGA-AN-A046, draws four clusters over two peaks (the VAFs peak at
+   0.10–0.15 and 0.25–0.30), two of the four under the first.
+
+**The shape, for the mock.** Two pages in the lesson's order.
+
+- *One mutation:* his figure as the stage — a sample as cells, normal and
+  tumour, each drawn with its copies and mutation marks as `cancer-hetero.png`
+  draws them — and reads drawn from it one at a time (a pile), the VAF filling
+  as alt over total. Controls: Purity, Cancer cell fraction, Copy number
+  (1 + 1, 2 + 0, 2 + 1, 3 + 1), Mutated copies where the copy number allows
+  more than one, Depth. Readout: the observed VAF, cell 25's expected VAF, and
+  the CCF solved back. The case that fails (2.6): the CCF solved at purity 1
+  for a sample at 0.5.
+- *Many mutations:* one tumour's mutations from a clone and a subclone at the
+  chosen purity and depth, drawn as cell 23 draws them (a density over a rug);
+  the clusters and MATH as the lesson computes them; the same mutations on the
+  CCF axis. One clone is an option, and its MATH is not zero.
+
+**Measure first:** a Gaussian mixture chosen by BIC, as `mclust` does, on one
+clone at the lesson's spread of depths — the claim that it splits one peak into
+several clusters is inferred from a single figure.
+
+### Slot 68 · `clonal-architecture` — cuttable, or 67's last page
+
+**Host.** 01-2 cell 25's closing paragraph (CCFs clustered to "reconstruct the
+clonal architecture") and `cancer-retcher.png`: three clusters' mean CCF across
+four samples of one patient, with the tree 1 → 2 → 3 beside them. The notebook
+runs no tool.
+
+**The misconception.** *Inferred:* the clusters' CCFs give the tree directly.
+**The rule that orders them** is the pigeonhole principle (Nik-Zainal et al.
+2012): two subclones whose CCFs sum past their parent's cannot be siblings, so
+one lies inside the other. **On his figure's numbers:**
+
+| sample | CCF 1 / 2 / 3 | 2 + 3 | linear 1 → 2 → 3 | 2 and 3 siblings under 1 |
+|---|---|---|---|---|
+| P2.1st | 0.729 / 0.534 / 0.512 | 1.046 | fits | ruled out |
+| P2.2st | 0.826 / 0.597 / 0.353 | 0.950 | fits | ruled out |
+| P2.3st | 0.926 / 0.767 / 0.348 | 1.115 | fits | ruled out |
+| P2.surgery | 0.806 / 0.476 / 0.304 | 0.780 | fits | fits |
+
+The surgery sample alone leaves the tree undetermined; the earlier samples
+decide it. A second reading, also inferred: a clone's CCF counts its
+descendants' cells, so at P2.2st the cells carrying cluster 1 and nothing later
+are 0.826 − 0.597 = 0.229.
+
+**The shape, for the mock.** His two panels side by side: the CCF lines across
+samples, and the candidate trees checked sample by sample, the cells drawn
+nested in the circle idiom of `cancer-hetero.png`. Controls: which samples are
+used, and the clusters' CCFs. Small enough to be a page of 67.
+
+### Slot 69 · `driver-genes` — Cancer Driver Genes
+
+**Host.** 01-3 cell 12 (drivers against passengers; OncodriveCLUST's five
+steps), cells 13–18 (`oncodrive(minMut = 5)`, the table, `plotOncodrive`),
+cells 19–25 (gain against loss of function, clustered against widespread, the
+PIK3CA and TP53 lollipops).
+
+**The misconceptions.**
+
+1. *Documented:* `oncodrive` finds the driver genes, so a gene it does not
+   call is a passenger. It tests positional clustering alone (finding 2).
+   Tamborero et al. (2013) present clustering as one signal of positive
+   selection beside recurrence and functional impact; TCGA's 2012 breast paper
+   names TP53, CDH1, GATA3 and MAP3K1 among its significantly mutated genes.
+2. *Inferred:* a smaller FDR is a stronger or more frequent driver. Cell 16:
+   NDUFS1 (9 mutations, all I623R) and RPL22 (6, all K15fs) head the table at
+   FDR 5.8 × 10⁻⁶, PIK3CA (369) at 3.5 × 10⁻³, and DPEP1 and FAM102A reach
+   3.5 × 10⁻³ with two residues hit twice each. The score is the share of a
+   gene's mutations in clusters, discounted by distance from each cluster's
+   peak (0.804 for PIK3CA's 342 of 369); it is 1 when every mutation sits at
+   one residue, and the count enters only as `minMut`.
+
+**The shape, for the mock.** Two pages.
+
+- *One gene:* the protein as a line of residues, the lollipop of cells 21 and
+  24. Step walks cell 12's five steps: mutations arrive and stack on their
+  residues; residues above the chance expectation are marked; marked residues
+  close together merge into clusters; each cluster is scored; the gene's score
+  lands on the background distribution. Gene: a hotspot oncogene shaped like
+  PIK3CA, a tumour suppressor shaped like TP53, a small gene with every
+  mutation at one residue shaped like NDUFS1, a long passenger.
+- *The cohort:* `plotOncodrive`'s scatter over hundreds of simulated genes,
+  each gene's true kind in colour and the called set as enclosure (§ *Widget
+  42*: colour never carries two groupings), so the suppressors under the line
+  are visible without a caption.
+
+**Measure first:** maftools' own `oncodrive`, `parse_prot` and `cluster_prot`,
+so the score reproduces cell 16's seven values before a widget draws one.
+maftools is not installed and its source is a network fetch — his approval.
+
+**An ask for the mock, not a pick made here:** a recurrence test beside the
+clustering one (a gene's mutation count against its length), which calls the
+spread suppressors and misses the small hotspot genes. It is the stage where
+each method loses (§ *Widget 43*'s rule), and it is not in the notebook.
+
+### Slot 70 · `mutational-signatures` — Mutational Signatures
+
+**Host.** 01-4 end to end: cell 0 (`cancer-signature.png`, M ≈ S · W, a
+tumour's column of W as its mix, 70 / 20 / 10), cells 3–7 (transitions and
+transversions, `plotTiTv`), cells 10–18 (the 96 trinucleotide contexts, APOBEC
+enrichment in 289 of 968 tumours, one tumour's 96 bars), cells 19–21 (the
+cophenetic plot, five signatures extracted), cells 22–34 (cosine similarity
+against COSMIC legacy and SBS, the heatmaps, `plotSignatures`).
+
+**Not 41 again.** 41 owns the factorization and the rank. This slot owns what
+01-4 adds: how a mutation becomes one of 96 categories, a tumour as a mix of
+signatures, and naming a signature by its nearest reference. § *Widget 41*'s
+open item — *the stage is generic; it could be the 96-context shape* — is
+answered here rather than in 41.
+
+**The misconceptions.**
+
+1. *Prerequisite for the decomposition page:* a mutation's category is its
+   base change. It is the change read from the pyrimidine of the pair — a G>A
+   is a C>T on the other strand, so there are six substitutions and not
+   twelve — with the base on each side, 6 × 16 = 96. Measured: the lesson's MAF
+   places 82,747 SNVs in the 96 channels once the 20 FLAG genes are left out,
+   as `rmFlags = 20` does, and cell 14's tumour (TCGA-BH-A18G, 1,302 SNVs)
+   reproduces in every channel.
+2. *Reported:* an extracted signature is a process at work across the cohort.
+   **Measured: Signature_1, the POLE match (cosine 0.939 to COSMIC_10), is one
+   tumour.** TCGA-AN-A046 has 5,841 of the cohort's 82,747 SNVs (the median
+   tumour has 42) and 1,495 of its 2,658 T[C>A]T. Its own largest channels,
+   T[C>T]G 0.337 and T[C>A]T 0.256, are the signature's; cell 21 prints
+   T[C>A]T 0.254. Rank-5 KL NMF on the lesson's catalogue with its
+   `pConstant = 0.1`, from two random starts, returns a signature at cosine
+   1.000 to that tumour both times, the tumour holding 61% and 59% of the
+   signature's mutations; with it and TCGA-AC-A23H removed, no signature is
+   within cosine 0.46 of it. The APOBEC signature is the contrast: cosine
+   0.992 and 0.995 to TCGA-AC-A23H with every tumour in, that tumour holding
+   17% of it, and still 0.990 with the tumour removed, its largest holder then
+   5.1%.
+3. *Documented:* the best COSMIC match names the cause. Cells 24 and 30 print
+   the counterexamples. Signature_4 matches COSMIC_1 (5-methylcytosine
+   deamination, 0.868) in legacy and SBS6 (defective mismatch repair, 0.832)
+   in SBS, where SBS1 scores 0.765; Signatures 4 and 5 both match SBS6; the
+   flat Signature_3 scores 0.886 against COSMIC_3 and 0.803, 0.775 and 0.745
+   against COSMIC_8, 4 and 5. A best match is a ranking, and flat references
+   are close to one another. Koh et al. (2021) review attribution and flat
+   signatures.
+
+**The shape, for the mock.** Three pages in the notebook's order.
+
+- *Catalogue:* mutations arrive and fall into the 96 bars (a pile); a purine
+  change is drawn turning into its pyrimidine partner as it lands. The six
+  substitution bands are cell 6's Ti/Tv read off the same bars.
+- *Signatures:* a simulated cohort built from planted processes, drawn as
+  `cancer-signature.png` draws M, S and W, with S's columns as 96-bar profiles
+  and W's as each tumour's mix. A hypermutated-tumour control is the case that
+  fails: on, one extracted signature becomes that tumour. Solve runs 41's KL
+  update; the rank points to 41 rather than rebuilding its argument.
+- *Matching:* each extracted signature beside its nearest reference and the
+  runner-up, cosine printed, a flat pair among them.
+
+**Ask:** the reference profiles — synthetic look-alikes, or COSMIC's own
+vectors, whose licence has to be read before a public repository carries them.
+
+### Slot 71 · `somatic-interactions` — not asked for, measured, cuttable
+
+**Host.** 01-3 cell 4 (co-occurring genes "could have synergistic effect",
+exclusive genes "working in the same redundant pathway"), cell 9 (the 2 × 2,
+Fisher's test, the odds ratio), cells 10–11 and 35 (`somaticInteractions`).
+
+**The misconception.** *Documented:* the odds ratio between two genes'
+mutations is a statement about their biology. **Measured on the lesson's MAF**,
+where the ten printed 2 × 2 tables reproduce exactly: TP53–CDH1's odds ratio
+0.153 is 0.407 within histology — CDH1 is mutated in 67.5% of lobular and 2.5%
+of ductal tumours, TP53 in 7.9% and 40.3%. ZFHX4–RYR2's 3.8 is 2.3 within
+quartiles of mutation count; both genes' carriers have a median of 83
+non-synonymous mutations against 31 and 32. GATA3–TP53 (0.126) holds under
+both (0.109 and 0.140); breast cancer subtype, the likelier third variable
+there, is not in the lesson's clinical table. Canisius, Martens & Wessels (2016) show uneven
+mutation rates producing co-occurrence by chance; van de Haar et al. (2019)
+review tumour type as the confounder.
+
+**Why it is last.** Most of its machinery is covered — the odds ratio, Fisher's
+test, confounding, stratifying — so the widget is one stratified 2 × 2 on cell
+8's `primary_diagnosis` annotation. It earns its slot only if he wants cell 4's
+reading contested on screen.
+
+### What in 07 is not a widget
+
+- **The oncoplot** (01-3 cells 5–8) and `plotmafSummary` (01-2 cell 16):
+  summaries with no wrong reading to correct.
+- **`pathways`** (01-3 cells 26–31): counts of mutated samples per pathway.
+- **`mafSurvival`** (01-3 cells 32–37): 31's figure. Finding 8 is the
+  lesson's to fix, not a widget's.
+- **`drugInteractions`** (01-3 cells 39–44, 02-2 cells 8–10): a database
+  lookup.
+- **01-1 and 02-1**: querying GDC, the MAF and VCF formats, ANNOVAR.
+
+### The open calls — put to Kenneth 2026-09-16
+
+1. 67 and 68: one widget with the tree as its last page, two widgets, or 67
+   alone.
+2. 70: a new widget importing 41's engine, a third tab on 41, or 41 linked from
+   01-4 with nothing new built.
+3. 71: after the three he asked for, now, or not at all.
+4. The stages: simulated tumours, genes and cohorts shaped by the lesson's MAF,
+   or the lesson's TCGA-BRCA numbers embedded.
+
+**NEXT:** his picks, then 67's measure script and mock.
 
 ---
 
