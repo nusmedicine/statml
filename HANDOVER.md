@@ -1,5 +1,28 @@
 # Handover
 
+**SLOT 65 `unet` SHIPPED AND PUSHED 2026-09-15; SESSION CLOSED** on "tested ok, push to gallery, write handover and close this session". The ship is **66208c7**; this block rides in the follow-up commit.
+
+**FIFTY-NINE WIDGETS IN THE MANIFEST — 58 on the gallery, `roc-auc` UNLISTED; NO DRAFT on main** (`wgcna` is still a draft on its own branch and worktree).
+
+**What shipped.** "Deep Learning - U-Net and Dice", two pages on a Topic button:
+- **U-Net** is one trained network on a 16 × 16 colour image, chosen by Depth 2 · 3 · 4 and Base channels 4 · 8. The U is drawn to scale on Kenneth's figure's construction, with a level table and an operation panel for the chosen block, all from the same network's maps and numbers. The readout is Layers added, Bottleneck, Parameters and Training time.
+- **Dice loss** is one panel. The prediction is dragged on it, truth and prediction are Disc · Rectangle · Triangle picture buttons, the prediction can be None or Half · Same · Twice the area, and Dice, IoU, precision · recall and the Dice loss update with the drag.
+
+**How it was verified.** Nine fingerprint states from `_lab/unet-shoot.html`: seven settled, one hit on dec2's slab, one driven. Each was stable over three shots, after the copy reproduced six known states. The fronted full suite read **all 786 states identical**. `check`, `test` and `build` are green, and the unet verify has 4,299 checks.
+
+**Things the next session must know about this widget:**
+- **The six networks are a generated file.** `widgets/unet/table.js` comes from `node widgets/_lab/unet-table.mjs`. After ANY change to `widgets/unet/engine.js`, regenerate it, or the verify's retrain-and-compare fails. Training times in the table are as measured on this machine and change on regeneration; the readout prints them.
+- **Link words are the control's words:** `topic=dice`, `size`, `truth=disc|rectangle|triangle`, `prediction=…|none`, `predictionsize=half|same|twice`, and the drag writes `across` and `down`. They are public now; renaming breaks shared links.
+- **The shooter's hit point** (360, 298) is dec2's slab at the harness's 900 px frame. A geometry change to `uLayout` moves it, and the shooter throws if it lands on no region.
+- **`_lab/unet-lookup-test/*.json`** (1.7 MB, untracked) is the lookup test's raw output. Its summary is committed; the rest can be deleted.
+- **Core gained one thing this session:** a segmented option may carry an `icon` painter (`controls.js`, `params.js`, `tokens.css` `.w-seg--icon`), proven by the full suite at the time it landed and again at the ship.
+
+**The review, in brief** (the catalogue's slot 65 entry has every round, newest first): draft that trained nothing → a staircase U with a click-a-block operation band on a small trained network, and a one-panel draggable Dice → his figure's connected U with the bottleneck centred and a level table → Dice without Step or Play, Medium · Large → shapes as picture buttons → accuracy dropped → two networks confused him ("where do the 4 channels come from?") → **one network, trained ahead at six settings**, after testing what a lookup could show → the red 1 × 1 warning removed, a copy audit, "stage" became "layer", subtitle version A.
+
+**NEXT: Kenneth's call.** The image arc's four picks are 61, 64 and 65 shipped, and 63 `pretrained` measured, mocked and on KIV ("if there is time to revisit this … then we'll see if it's worthwhile"). Its measurement and mock are committed; the catalogue's slot 63 entry has them.
+
+## The record before the ship, kept as written
+
 **SLOT 65 `unet` COPY AUDIT DONE 2026-09-15 (night)** on round 8 below: the red 1 × 1 warning removed, fifteen strings restated, precision of an empty prediction a dash, and the Dice link words renamed to the control's words (`prediction`, `predictionsize`, `triangle`, `rectangle`, `twice`, `across`, `down`). The catalogue's slot 65 entry has the table. Verify 4,196 checks. The word "stage" became "layer" on his call (Next layer, Layers added). NEXT: his read, "tested ok", then shooter and states, status flip, suite, commit, push.
 
 **SLOT 65 `unet` ROUND 8 BUILT 2026-09-15 (night): ONE NETWORK.** The U, the level table and the operation band are one trained U-Net on a 16 × 16 colour image, Depth 2 · 3 · 4 × Base channels 4 · 8 (his picks), read from a table of six networks trained ahead by the widget's engine (`_lab/unet-table.mjs` → `widgets/unet/table.js`, 38 KB gzip; regenerate with `node widgets/_lab/unet-table.mjs` after any engine change, or the verify fails). The readout is Parameters and Training time only. Verify 2,819 checks, `check` and `test` green; the 8 fingerprint states are still placeholders. The catalogue's slot 65 entry has the round and the measurements. **NEXT: his read of round 8**, then the copy audit, "tested ok", the shooter and states (settled, one driven, a HIT state), status flip, suite, commit, push.
