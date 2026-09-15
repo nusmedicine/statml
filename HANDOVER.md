@@ -4,7 +4,7 @@
 five states recorded from one fronted suite run (the 772 existing states
 MATCH with the core `preview` block in place, so the core change is proven),
 confirmed by a second fronted run, status flipped in the manifest and
-`main.js`, `check` and `test` read alone, one commit, pushed. The rounds
+`main.js`, `check` and `test` read alone, one commit, pushed: the ship is **ab697f4** (`a2a45ee..ab697f4`), and this line rides in the follow-up. Session CLOSED on his word. The rounds
 below are the record of how the plan became what shipped — five rounds in
 one day, each on his look: the mark controls renamed; the mark put into
 training; then the shortcut behind a gate with an L marker; then the shortcut
