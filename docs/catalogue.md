@@ -15836,6 +15836,35 @@ and it is now out of sight until the reader asks for it.
 
 ### Slot 65 · `unet` — Architecture - Basic (Segmentation) — TWO PAGES since 2026-09-13, MOCKED 2026-09-15
 
+**ROUND 2 (2026-09-15, the same evening), his four points on the draft and
+four picks (`_lab/unet-round2-mock.html`):** (1) "the diagram does not show a
+u-shape" → the U is laid out as his figure's STAIRCASE, each encoder level one
+step further right and each decoder level one step further left, every slab
+outlined from the start; (2) "when I click on blocks, could I see a depiction
+of the operation, like the CNN widget?" → a click (or the Block dropdown,
+display) draws the block's operation in a band under the U — DoubleConv's
+window ⊙ kernel slice for two input channels, the sum, BatchNorm with its γ,
+running mean, running sd and β printed, ReLU; MaxPool's window and its
+maximum; ConvTranspose's cell × kernel + bias patch; the concatenation's
+two stacks; the head's pixel ⊙ weights, logit, sigmoid, and the mask beside
+the truth — on the maps of a **TRAINED** network, his pick over an untrained
+pass (whose mask was noise): `widgets/unet/engine.js`, a depth-2, base-4
+U-Net with BatchNorm on 16 × 16 blobs, DiceCELoss, Adam, 200 images × 5
+epochs, about 1.3 s, held-out Dice 0.80 (`_lab/unet-measure.mjs`: 0.76–0.80
+over three seeds; 120 images failed on two of three), gradients checked at
+1.9e-7 and 7.4e-7. A deeper drawn block's operation is drawn on the trained
+network's block of the same kind, and the band says so. (3) "drag and drop
+the prediction, don't use sliders; we may not need the separate truth and
+predicted locations" → ONE panel, the truth, the prediction and the pixels in
+both in three colours, the prediction dragged (two hidden display parameters,
+so a drag keeps the count), the list now its shape only: Same shape ·
+Dilated 1 px · Eroded 1 px · Same area at random · Empty. (4) "just
+illustrate this loss function; don't need the split" → the split band is CUT
+and Dice loss = 1 − Dice joins the numbers, the readout and the formula card.
+Superseded by round 2: the three-panel Dice page, the named Shifted and Off
+the object predictions, the Moved across and Moved down sliders, and the
+split band with its Split control.
+
 **MOCKED 2026-09-15 (`_lab/unet-mock.html`, static — nothing trains), his
 three picks the same evening:** the **U as mocked** — his figure's own rule,
 a slab's height follows H × W and its width follows C, the encoder's slabs

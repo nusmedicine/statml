@@ -1,0 +1,696 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · unet — round 2</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1240px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 96ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; width: 550px; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); max-width: 550px; min-height: 26px; white-space: pre-line; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 96ch; }
+  .measure { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--ink-3); margin: 4px 0 0; max-width: 900px; white-space: pre-line; }
+  .rail-host { width: 300px; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>unet &middot; round 2</h1>
+  <p class="note">
+    <b>Your four points on the draft, 2026-09-15.</b> (1) The diagram is not a U. (2) A click on a block should
+    depict its operation, as widget 61's band does, so the widget helps a student see the operations and the
+    dimensions. (3) Dice: drag the prediction, no sliders, and one panel rather than three. (4) The split band
+    goes; the page illustrates the loss. And the question under (2) and (4): <b>no U-Net runs in the draft.</b>
+    The U-Net page prints shapes from arithmetic and the Dice page counts a mask the reader placed. What this
+    page adds is a <b>forward pass</b> of a small untrained U-Net on a 16 &times; 16 toy image &mdash; base 4, seeded
+    weights, milliseconds &mdash; so every number in the operation band is a real one. Training one was measured at
+    5&ndash;7 s for a result the skip did not change, and stays out.
+  </p>
+  <p class="note" id="engineLine">running the forward pass &hellip;</p>
+
+  <h2>&sect;1 &middot; The U as a U</h2>
+  <p class="note">
+    The encoder's blocks step in toward the centre as they go down, the decoder's step out as they come up, and
+    the bottleneck is at the bottom between them &mdash; your figure's staircase. The slabs keep the draft's rule
+    (height follows H &times; W, width follows C) and the skips run across the U, shortest at the bottom. Drawn at
+    550 and 770, depth 4 and depth 2. The step between levels grows with the width, so the U opens at 770.
+  </p>
+  <div class="row" id="uRow"></div>
+  <p class="rec" id="recU"></p>
+
+  <h2>&sect;2 &middot; A click on a block: the operation, with real numbers</h2>
+  <p class="note">
+    The clicked block is framed on the U and a band under it depicts what that block does to one position, on the
+    maps the forward pass computed: the block's input maps (four channels drawn, the count printed), the
+    operation on one unit, and the output maps. Five kinds of block, five depictions: <b>DoubleConv</b> (a 3 &times; 3
+    window from every input channel, one kernel slice each, the sum and bias, then BatchNorm and ReLU; the
+    second conv is named, not drawn), <b>MaxPool</b> (a 2 &times; 2 window, the largest kept), <b>ConvTranspose</b>
+    (one input cell scattered to a 2 &times; 2 patch through the 2 &times; 2 kernel), <b>concat</b> (the encoder's
+    channels and the upsampled channels side by side, the count doubling, the size unchanged) and the <b>head</b>
+    (one pixel's channels through a 1 &times; 1 conv to a logit, the sigmoid, the threshold). The input here is
+    16 &times; 16 and base 4, so the numbers are drawable; the shapes printed on the U stay those of the chosen
+    Input and Base channels.
+  </p>
+  <div class="row" id="opRow"></div>
+  <p class="rec" id="recOp"></p>
+
+  <h2>&sect;3 &middot; Dice: one panel, the prediction dragged</h2>
+  <p class="note">
+    One panel: the image, the ground truth on it, the prediction on it, the pixels in both in a third colour, and
+    the prediction moves under the pointer. The rail keeps the prediction's <b>shape</b> as a list &mdash; Same
+    shape &middot; Dilated 1 px &middot; Eroded 1 px &middot; Same area at random &middot; Empty &mdash; and its
+    <b>position</b> is the drag alone; the two offsets are hidden parameters the drag writes and the readout prints.
+    No sliders, no split band. The count and the four numbers follow the panel, and a Dice loss line joins the
+    card: 1 &minus; Dice.
+  </p>
+  <div class="row" id="diceRow"></div>
+  <p class="measure" id="diceMeasure"></p>
+  <p class="rec" id="recDice"></p>
+
+  <h2>&sect;4 &middot; The two rails</h2>
+  <div class="row" id="railRow"></div>
+  <p class="rec" id="recRail"></p>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+import { makeRng } from "../core/rng.js";
+import { shapeText } from "../core/torch.js";
+import { buildControls, buildActions } from "../core/controls.js";
+import { resolveParams } from "../core/params.js";
+import * as M from "../unet/model.js";
+
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+const PAD = 14;
+
+/* --- primitives ------------------------------------------------------------ */
+const wash = (hex, a) => {
+  const p = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+  return `rgba(${p[0]},${p[1]},${p[2]},${a})`;
+};
+const mix = (a, b, t) => {
+  const pa = [1, 3, 5].map((i) => parseInt(a.slice(i, i + 2), 16));
+  const pb = [1, 3, 5].map((i) => parseInt(b.slice(i, i + 2), 16));
+  const c = pa.map((v, i) => Math.round(v + (pb[i] - v) * Math.max(0, Math.min(1, t))));
+  return `rgb(${c[0]}, ${c[1]}, ${c[2]})`;
+};
+function txt(ctx, s, x, y, o = {}) {
+  const { color = T.ink2, align = "left", size = T.fsSm, baseline = "alphabetic", mono = false, weight = "" } = o;
+  ctx.save();
+  ctx.fillStyle = color;
+  ctx.textAlign = align;
+  ctx.textBaseline = baseline;
+  ctx.font = `${weight} ${size} ${mono ? T.mono : T.font}`.trim();
+  ctx.fillText(s, x, y);
+  ctx.restore();
+}
+const caption = (ctx, s, x, y) => txt(ctx, s, x, y, { color: T.ink2, weight: "600" });
+const note = (ctx, s, x, y, tone, o = {}) => txt(ctx, s, x, y, { color: tone ?? T.ink3, size: T.fsXs, ...o });
+function frame(ctx, x, y, w, h, stroke, width = 1) {
+  ctx.save(); ctx.strokeStyle = stroke; ctx.lineWidth = width; ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1); ctx.restore();
+}
+function arrow(ctx, x0, y0, x1, y1, color = T.ink3, o = {}) {
+  ctx.save();
+  ctx.strokeStyle = ctx.fillStyle = color;
+  ctx.lineWidth = o.width ?? 1;
+  if (o.dash) ctx.setLineDash(o.dash);
+  ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+  ctx.setLineDash([]);
+  const a = Math.atan2(y1 - y0, x1 - x0);
+  ctx.beginPath(); ctx.moveTo(x1, y1);
+  ctx.lineTo(x1 - 6 * Math.cos(a - 0.4), y1 - 6 * Math.sin(a - 0.4));
+  ctx.lineTo(x1 - 6 * Math.cos(a + 0.4), y1 - 6 * Math.sin(a + 0.4));
+  ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+function cand(rowId, title, sub, w = 550) { const box = el("div", "cand"); box.style.width = `${w}px`; box.appendChild(el("h3", null, title)); box.appendChild(el("p", "sub", sub)); document.getElementById(rowId).appendChild(box); return box; }
+function canvasIn(box, w, h) { const c = document.createElement("canvas"); c.width = Math.round(w * DPR); c.height = Math.round(h * DPR); c.style.width = `${w}px`; c.style.height = `${h}px`; box.appendChild(c); const ctx = c.getContext("2d"); ctx.scale(DPR, DPR); return ctx; }
+const f2 = (v) => (v < 0 ? `−${Math.abs(v).toFixed(2)}` : v.toFixed(2));
+
+/* ==========================================================================
+   THE FORWARD PASS: a depth-d U-Net on one image, every intermediate kept.
+   Untrained: He-normal weights from the seeded rng. BatchNorm in training
+   mode on a batch of one: each channel is centred and scaled by its own
+   mean and standard deviation over H × W (γ = 1, β = 0).
+   ====================================================================== */
+const S = 16;
+const BASE = 4;
+const DEPTH = 2;
+const F = (n) => new Float64Array(n);
+function conv3(x, ic, oc, H, w, b) {
+  const out = F(oc * H * H);
+  for (let o = 0; o < oc; o += 1) {
+    const ob = o * H * H;
+    out.fill(b[o], ob, ob + H * H);
+    for (let c = 0; c < ic; c += 1) {
+      const wb = (o * ic + c) * 9;
+      const xb = c * H * H;
+      for (let ky = 0; ky < 3; ky += 1) for (let kx = 0; kx < 3; kx += 1) {
+        const wv = w[wb + ky * 3 + kx];
+        for (let y = 0; y < H; y += 1) {
+          const yy = y + ky - 1; if (yy < 0 || yy >= H) continue;
+          for (let xx = 0; xx < H; xx += 1) {
+            const xs = xx + kx - 1; if (xs < 0 || xs >= H) continue;
+            out[ob + y * H + xx] += wv * x[xb + yy * H + xs];
+          }
+        }
+      }
+    }
+  }
+  return out;
+}
+function bn(x, C, HW) {
+  const out = F(x.length);
+  const stats = [];
+  for (let c = 0; c < C; c += 1) {
+    let mu = 0; for (let i = 0; i < HW; i += 1) mu += x[c * HW + i]; mu /= HW;
+    let v = 0; for (let i = 0; i < HW; i += 1) v += (x[c * HW + i] - mu) ** 2; v /= HW;
+    const sd = Math.sqrt(v + 1e-5);
+    for (let i = 0; i < HW; i += 1) out[c * HW + i] = (x[c * HW + i] - mu) / sd;
+    stats.push({ mu, sd });
+  }
+  return { out, stats };
+}
+const relu = (x) => x.map((v) => (v > 0 ? v : 0));
+function pool(x, C, H) {
+  const h = H >> 1;
+  const out = F(C * h * h);
+  const idx = new Int32Array(C * h * h);
+  for (let c = 0; c < C; c += 1) for (let y = 0; y < h; y += 1) for (let xx = 0; xx < h; xx += 1) {
+    let best = -Infinity; let bi = 0;
+    for (let j = 0; j < 2; j += 1) for (let i = 0; i < 2; i += 1) {
+      const p = c * H * H + (2 * y + j) * H + 2 * xx + i;
+      if (x[p] > best) { best = x[p]; bi = p; }
+    }
+    out[c * h * h + y * h + xx] = best; idx[c * h * h + y * h + xx] = bi;
+  }
+  return { out, idx };
+}
+function up(x, ic, oc, h, w, b) {
+  const H = 2 * h;
+  const out = F(oc * H * H);
+  for (let o = 0; o < oc; o += 1) out.fill(b[o], o * H * H, (o + 1) * H * H);
+  for (let c = 0; c < ic; c += 1) for (let y = 0; y < h; y += 1) for (let xx = 0; xx < h; xx += 1) {
+    const xv = x[c * h * h + y * h + xx];
+    for (let o = 0; o < oc; o += 1) {
+      const wb = (c * oc + o) * 4; const ob = o * H * H;
+      out[ob + 2 * y * H + 2 * xx] += w[wb] * xv;
+      out[ob + 2 * y * H + 2 * xx + 1] += w[wb + 1] * xv;
+      out[ob + (2 * y + 1) * H + 2 * xx] += w[wb + 2] * xv;
+      out[ob + (2 * y + 1) * H + 2 * xx + 1] += w[wb + 3] * xv;
+    }
+  }
+  return out;
+}
+function unetForward(img, depth, base, rng) {
+  const he = (n, fanIn) => { const a = F(n); for (let i = 0; i < n; i += 1) a[i] = rng.normal() * Math.sqrt(2 / fanIn); return a; };
+  const dconv = (x, cin, cout, H) => {
+    const w1 = he(cout * cin * 9, cin * 9); const b1 = F(cout);
+    const z1 = conv3(x, cin, cout, H, w1, b1);
+    const n1 = bn(z1, cout, H * H);
+    const a1 = relu(n1.out);
+    const w2 = he(cout * cout * 9, cout * 9); const b2 = F(cout);
+    const z2 = conv3(a1, cout, cout, H, w2, b2);
+    const n2 = bn(z2, cout, H * H);
+    const a2 = relu(n2.out);
+    return { x, cin, cout, H, w1, b1, z1, bn1: n1, a1, z2, bn2: n2, out: a2 };
+  };
+  const rec = {};
+  let x = img; let cin = 1; let H = S;
+  const enc = [];
+  for (let l = 1; l <= depth; l += 1) {
+    const cout = base * 2 ** (l - 1);
+    rec[`enc${l}`] = dconv(x, cin, cout, H);
+    enc.push(rec[`enc${l}`]);
+    const p = pool(rec[`enc${l}`].out, cout, H);
+    rec[`pool${l}`] = { x: rec[`enc${l}`].out, C: cout, H, out: p.out, idx: p.idx };
+    x = p.out; cin = cout; H >>= 1;
+  }
+  rec.bottleneck = dconv(x, cin, base * 2 ** depth, H);
+  x = rec.bottleneck.out; cin = base * 2 ** depth;
+  for (let l = depth; l >= 1; l -= 1) {
+    const e = enc[l - 1];
+    const w = he(cin * e.cout * 4, cin * 4); const b = F(e.cout);
+    const u = up(x, cin, e.cout, H, w, b);
+    rec[`up${l}`] = { x, cin, cout: e.cout, h: H, w, b, out: u };
+    H *= 2;
+    const cat = F(2 * e.cout * H * H);
+    cat.set(u, 0); cat.set(e.out, e.cout * H * H);
+    rec[`cat${l}`] = { up: u, enc: e.out, C: e.cout, H, out: cat };
+    rec[`dec${l}`] = dconv(cat, 2 * e.cout, e.cout, H);
+    x = rec[`dec${l}`].out; cin = e.cout;
+  }
+  const wh = he(cin, cin); const bh = F(1);
+  const z = F(H * H);
+  for (let i = 0; i < H * H; i += 1) { let s = bh[0]; for (let c = 0; c < cin; c += 1) s += wh[c] * x[c * H * H + i]; z[i] = s; }
+  const p = z.map((v) => 1 / (1 + Math.exp(-v)));
+  rec.head = { x, cin, H, w: wh, b: bh, z, p, mask: p.map((v) => (v > 0.5 ? 1 : 0)) };
+  return rec;
+}
+/* the toy image: one blob on a dark field with a little noise */
+function toyImage(rng) {
+  const img = F(S * S); const msk = F(S * S);
+  const cx = 6.5 + rng.uniform(0, 3); const cy = 6.5 + rng.uniform(0, 3); const r = 3.2;
+  for (let y = 0; y < S; y += 1) for (let x = 0; x < S; x += 1) {
+    const d = Math.hypot(x + 0.5 - cx, y + 0.5 - cy) - r;
+    msk[y * S + x] = d <= 0 ? 1 : 0;
+    img[y * S + x] = Math.max(0, Math.min(1, 0.15 + 0.6 / (1 + Math.exp(d / 0.7)) + 0.06 * rng.normal()));
+  }
+  return { img, msk };
+}
+const t0 = performance.now();
+const rng = makeRng(3);
+const toy = toyImage(rng);
+const R = unetForward(toy.img, DEPTH, BASE, rng);
+const fwdMs = performance.now() - t0;
+document.getElementById("engineLine").innerHTML =
+  `<b>Run here:</b> a depth-${DEPTH} U-Net, base ${BASE}, on a 16 × 16 image with seeded weights: ${fwdMs.toFixed(1)} ms for the forward pass, `
+  + `every stage's maps kept. The head predicts ${R.head.mask.reduce((a, v) => a + v, 0)} of 256 pixels as object (untrained, so a shape of the weights, not of the blob).`;
+
+/* ==========================================================================
+   §1 · THE U AS A U.
+   ====================================================================== */
+const LEVEL_H = 150; const ROW_GAP = 26; const BOTTLE_W = 84;
+function uLayout(w, depth, base, input) {
+  const stepX = 36 + (w - 550) * 0.11;          // 36 at 550, 60 at 770
+  const cw = BOTTLE_W / (base * 2 ** depth);
+  const slabW = (C) => Math.max(6, C * cw);
+  const levelH = (H) => Math.max(10, LEVEL_H * H / input);
+  const rows = []; let y = 62;
+  for (let l = 1; l <= depth + 1; l += 1) { const H = Math.max(1, input >> (l - 1)); rows.push({ y, h: levelH(H), H }); y += levelH(H) + ROW_GAP; }
+  const st = M.stagesFor(depth, base, input);
+  const boxes = {};
+  for (const s of st) {
+    const row = rows[s.level - 1]; const sw = slabW(s.C); let x = null;
+    const encX = PAD + 40 + (s.level - 1) * stepX;
+    /* the decoder mirrors the encoder: dec's right edge steps in as the level deepens */
+    const decRight = w - PAD - 40 - (s.level - 1) * stepX;
+    if (s.kind === "enc") x = encX;
+    else if (s.kind === "bottleneck") x = w / 2 - sw / 2;
+    else if (s.kind === "dec") x = decRight - sw;
+    else if (s.kind === "cat") x = decRight - slabW(s.C / 2) - 8 - sw;
+    else if (s.kind === "up") x = decRight - slabW(s.C) - 8 - slabW(2 * s.C) + slabW(s.C);
+    else if (s.kind === "head") x = w - PAD - 22;
+    if (x != null) boxes[s.name] = { x, y: row.y, w: sw, h: row.h };
+  }
+  return { rows, boxes, st, height: y - ROW_GAP + 34 };
+}
+function drawU(ctx, w, depth, base, input, { mark = null } = {}) {
+  const L = uLayout(w, depth, base, input);
+  caption(ctx, "U-Net: the encoder down, the decoder up, and the skips across", PAD, 24);
+  note(ctx, "A block's height follows H × W and its width the channels. Click a block to see its operation.", PAD, 40);
+  for (const s of L.st) {
+    const on = s.name === mark;
+    const tone = (c) => (on ? T.highlight : c);
+    if (s.kind === "pool") {
+      const from = L.boxes[`enc${s.level}`]; const below = L.rows[s.level];
+      const x = from.x + from.w / 2 + 14;
+      arrow(ctx, x, from.y + from.h + 3, x, below.y - 3, tone(T.dims[0]), { width: on ? 2 : 1.2 });
+      note(ctx, s.name, x + 6, (from.y + from.h + below.y) / 2 + 4, tone(T.ink3), { mono: true });
+      continue;
+    }
+    const b = L.boxes[s.name];
+    if (s.kind === "up") {
+      const below = L.rows[s.level];
+      ctx.save(); ctx.fillStyle = wash(T.groupB, 0.35); ctx.fillRect(b.x, b.y, b.w, b.h); ctx.restore();
+      frame(ctx, b.x, b.y, b.w, b.h, tone(T.groupB), on ? 2 : 1);
+      const x = b.x + b.w / 2;
+      arrow(ctx, x, below.y - 3, x, b.y + b.h + 3, tone(T.dims[0]), { width: on ? 2 : 1.2 });
+      note(ctx, s.name, x - 6, below.y - 8, tone(T.ink3), { mono: true, align: "right" });
+      continue;
+    }
+    const base0 = s.kind === "enc" || s.kind === "bottleneck" ? T.groupA : s.kind === "head" ? T.empirical : T.groupB;
+    ctx.save();
+    if (s.kind === "cat") { ctx.fillStyle = wash(T.groupA, 0.35); ctx.fillRect(b.x, b.y, b.w / 2, b.h); ctx.fillStyle = wash(T.groupB, 0.35); ctx.fillRect(b.x + b.w / 2, b.y, b.w / 2, b.h); }
+    else { ctx.fillStyle = wash(base0, on ? 0.55 : 0.35); ctx.fillRect(b.x, b.y, b.w, b.h); }
+    ctx.restore();
+    frame(ctx, b.x, b.y, b.w, b.h, tone(base0), on ? 2 : 1);
+    if (s.kind === "cat") {
+      ctx.save(); ctx.strokeStyle = tone(T.dims[1]); ctx.lineWidth = 1.5; ctx.beginPath();
+      ctx.moveTo(b.x, b.y - 4); ctx.lineTo(b.x, b.y - 8); ctx.lineTo(b.x + b.w, b.y - 8); ctx.lineTo(b.x + b.w, b.y - 4); ctx.stroke(); ctx.restore();
+      const e = L.boxes[`enc${s.level}`];
+      arrow(ctx, e.x + e.w + 4, e.y + e.h / 2, b.x - 3, b.y + b.h / 2, tone(T.ink3), { dash: [2, 3] });
+    }
+    if (s.kind === "enc") note(ctx, s.name, b.x - 6, b.y + b.h / 2 + 4, tone(T.ink2), { align: "right", mono: true });
+    if (s.kind === "dec") { const c = L.boxes[`cat${s.level}`]; arrow(ctx, c.x + c.w + 1, c.y + c.h / 2, b.x - 1, b.y + b.h / 2, tone(T.dims[1])); note(ctx, s.name, b.x + b.w / 2, b.y + b.h + 12, tone(T.ink2), { mono: true, align: "center" }); }
+    if (s.kind === "bottleneck") note(ctx, s.name, b.x + b.w / 2, b.y + b.h + 14, tone(T.ink2), { align: "center", mono: true });
+    if (s.kind === "head") { const d = L.boxes.dec1; arrow(ctx, d.x + d.w + 1, d.y + 8, b.x - 1, b.y + 8, tone(T.dims[1])); note(ctx, s.name, b.x + b.w / 2, b.y - 6, tone(T.ink2), { mono: true, align: "center" }); }
+    if (on) note(ctx, `${s.name}: ${shapeText(M.shapeOf(s))}`, w / 2, 54, T.highlight, { align: "center", mono: true });
+  }
+  return L;
+}
+for (const cfg of [
+  { w: 550, depth: 4, base: 16, input: 512, mark: "cat3", title: "A · at 550, depth 4", sub: "the lesson's net; cat3 clicked" },
+  { w: 770, depth: 4, base: 16, input: 512, mark: "enc2", title: "A · at 770, depth 4", sub: "the side layout's widest stage; the step between levels is 60px here, 36 at 550" },
+  { w: 550, depth: 2, base: 4, input: 16, mark: "bottleneck", title: "A · at 550, depth 2", sub: "the net the operation band runs: depth 2, base 4, input 16" },
+]) {
+  const box = cand("uRow", cfg.title, cfg.sub, cfg.w);
+  const L0 = uLayout(cfg.w, cfg.depth, cfg.base, cfg.input);
+  const ctx = canvasIn(box, cfg.w, L0.height);
+  drawU(ctx, cfg.w, cfg.depth, cfg.base, cfg.input, { mark: cfg.mark });
+  box.querySelector(".sub").textContent += `\nstage ${L0.height}px`;
+}
+document.getElementById("recU").innerHTML =
+  `The staircase is the U: each encoder level starts one step further right and each decoder level ends one `
+  + `step further left, so the skips shorten toward the bottleneck as in your figure. The slabs keep their scale. `
+  + `At 770 the step is 60px and the U opens; at 550 it is 36px and still reads. The clicked block is framed in `
+  + `highlight with its shape printed at the top, and the band of §2 follows it under the figure.`;
+
+/* ==========================================================================
+   §2 · THE OPERATION BAND, on the forward pass's own numbers.
+   ====================================================================== */
+const SHOWN = 4;
+function drawMap(ctx, x, y, size, n, arr, { frameTone = T.axis, signed = false } = {}) {
+  const c = size / n;
+  let hi = 0; for (let i = 0; i < n * n; i += 1) hi = Math.max(hi, Math.abs(arr[i]));
+  hi = hi || 1;
+  ctx.save(); ctx.fillStyle = T.surface2; ctx.fillRect(x, y, size, size);
+  for (let j = 0; j < n; j += 1) for (let i = 0; i < n; i += 1) {
+    const v = arr[j * n + i] / hi;
+    ctx.fillStyle = signed ? (v >= 0 ? mix(T.surface2, T.valueHigh, v) : mix(T.surface2, T.valueLow, -v)) : mix(T.surface2, T.ink1, v);
+    ctx.fillRect(x + i * c, y + j * c, Math.ceil(c), Math.ceil(c));
+  }
+  ctx.restore();
+  frame(ctx, x, y, size, size, frameTone);
+}
+/* a grid of printed values; `CW` wide enough for "−0.50" at 9px mono */
+const CW = 30;
+const signedFill = (v) => (v >= 0 ? wash(T.valueHigh, 0.45 * Math.min(1, Math.abs(v))) : wash(T.valueLow, 0.45 * Math.min(1, Math.abs(v))));
+function cellGrid(ctx, x, y, n, values, { tone = T.ink1, fill = null, hi = null, cw = CW } = {}) {
+  for (let j = 0; j < n; j += 1) for (let i = 0; i < n; i += 1) {
+    const v = values[j * n + i];
+    if (fill) { ctx.save(); ctx.fillStyle = fill(v); ctx.fillRect(x + i * cw, y + j * cw, cw, cw); ctx.restore(); }
+    frame(ctx, x + i * cw, y + j * cw, cw, cw, T.grid);
+    txt(ctx, f2(v), x + i * cw + cw / 2, y + j * cw + cw / 2 + 1, { align: "center", baseline: "middle", mono: true, size: "9px", color: tone });
+  }
+  if (hi) frame(ctx, x + hi[1] * cw, y + hi[0] * cw, cw, cw, T.highlight, 2);
+}
+const opLabel = (ctx, s, x, y) => txt(ctx, s, x, y, { align: "center", baseline: "middle", color: T.ink2, weight: "600", size: T.fsSm });
+const MAP_S = 34;
+const HEAD_Y = 50;       // the column labels' row, under the caption and its note
+const BODY_Y = 58;       // where maps and grids start
+/** a column of up to four maps, its channel count above it */
+function mapsColumn(ctx, x, top, arr, C, H, frameTone, { align = "left", mark = null } = {}) {
+  const shown = Math.min(SHOWN, C);
+  note(ctx, `${C} ch`, align === "right" ? x + MAP_S : x, top + HEAD_Y, T.ink2, { mono: true, align });
+  for (let c = 0; c < shown; c += 1) {
+    const y = top + BODY_Y + c * (MAP_S + 4);
+    drawMap(ctx, x, y, MAP_S, H, arr.subarray(c * H * H, (c + 1) * H * H), { frameTone });
+    if (mark && c === 0) {
+      const px = MAP_S / H;
+      frame(ctx, x + mark.c * px, y + mark.r * px, Math.max(3, Math.ceil(mark.s * px)), Math.max(3, Math.ceil(mark.s * px)), T.highlight, 2);
+    }
+  }
+  if (C > shown) note(ctx, `+ ${C - shown}`, x, top + BODY_Y + shown * (MAP_S + 4) + 8, T.ink3);
+  return BODY_Y + shown * (MAP_S + 4) + (C > shown ? 12 : 0);
+}
+const UNIT = { r: 5, c: 8 };
+const at = (v, H) => Math.min(H - 1, Math.max(0, Math.round(v * H / S)));
+function bandHead0(ctx, top, cap, sub) {
+  caption(ctx, cap, PAD, top + 16);
+  note(ctx, sub, PAD, top + 32);
+}
+
+function bandConv(ctx, w, top, rec, name) {
+  const { x, cin, cout, H, w1, b1, z1, bn1 } = rec;
+  const r = Math.min(H - 2, Math.max(1, at(UNIT.r, H)));
+  const c = Math.min(H - 2, Math.max(1, at(UNIT.c, H)));
+  bandHead0(ctx, top, `${name}: DoubleConv, (Conv 3 × 3 → BatchNorm → ReLU) twice`,
+    `The first convolution at row ${r}, column ${c}, into output channel 0. The second repeats it on the result.`);
+  const hIn = mapsColumn(ctx, PAD, top, x, cin, H, T.groupA, { mark: { r: r - 1, c: c - 1, s: 3 } });
+  const gx = PAD + MAP_S + 18;
+  const kx = gx + 3 * CW + 22;
+  note(ctx, "window", gx, top + HEAD_Y, T.ink3);
+  note(ctx, "kernel slice", kx, top + HEAD_Y, T.ink3);
+  const drawn = Math.min(2, cin);
+  const o = 0;
+  for (let ch = 0; ch < drawn; ch += 1) {
+    const win = []; const sl = [];
+    for (let ky = 0; ky < 3; ky += 1) for (let kxx = 0; kxx < 3; kxx += 1) {
+      win.push(x[ch * H * H + (r + ky - 1) * H + (c + kxx - 1)]);
+      sl.push(w1[(o * cin + ch) * 9 + ky * 3 + kxx]);
+    }
+    const y = top + BODY_Y + ch * (3 * CW + 10);
+    cellGrid(ctx, gx, y, 3, win, { fill: (v) => wash(T.groupA, 0.08 + 0.4 * Math.min(1, Math.abs(v))) });
+    opLabel(ctx, "⊙", gx + 3 * CW + 11, y + 1.5 * CW);
+    cellGrid(ctx, kx, y, 3, sl, { fill: signedFill });
+  }
+  const moreY = top + BODY_Y + drawn * (3 * CW + 10) + 2;
+  if (cin > drawn) note(ctx, `+ ${cin - drawn} more channels, each its own window and slice`, gx, moreY, T.ink3);
+  const sx = kx + 3 * CW + 18;
+  const st = bn1.stats[o];
+  const z = z1[o * H * H + r * H + c];
+  const n = (z - st.mu) / st.sd;
+  const lines = [["sum + bias", f2(z)], ["BatchNorm", f2(n)], ["ReLU", f2(Math.max(0, n))]];
+  lines.forEach(([l, v], i) => {
+    const y = top + BODY_Y + 12 + i * 30;
+    note(ctx, l, sx, y, T.ink2);
+    txt(ctx, v, sx, y + 14, { mono: true, color: i === 2 ? T.highlight : T.ink1, size: T.fsXs, weight: "600" });
+  });
+  note(ctx, `(z − ${f2(st.mu)}) / ${f2(st.sd)}`, sx + 44, top + BODY_Y + 56, T.ink3, { mono: true });
+  const ox = w - PAD - MAP_S;
+  const hOut = mapsColumn(ctx, ox, top, rec.out, cout, H, T.groupA, { align: "right", mark: { r, c, s: 1 } });
+  return top + Math.max(hIn, hOut, moreY - top + 12) + 8;
+}
+function bandPool(ctx, w, top, rec, name) {
+  const { x, C, H, out } = rec;
+  const h = H >> 1;
+  const r = at(UNIT.r, h); const c = at(UNIT.c, h);
+  bandHead0(ctx, top, `${name}: MaxPool 2 × 2, the largest of each window kept`,
+    `Channel 0, output row ${r}, column ${c}. Height and width halve, ${H} × ${H} to ${h} × ${h}; the channels stay ${C}.`);
+  const hIn = mapsColumn(ctx, PAD, top, x, C, H, T.groupA, { mark: { r: 2 * r, c: 2 * c, s: 2 } });
+  const win = [];
+  for (let j = 0; j < 2; j += 1) for (let i = 0; i < 2; i += 1) win.push(x[(2 * r + j) * H + 2 * c + i]);
+  const mx = Math.max(...win);
+  const best = win.indexOf(mx);
+  const gx = PAD + MAP_S + 40;
+  note(ctx, "window", gx, top + HEAD_Y, T.ink3);
+  cellGrid(ctx, gx, top + BODY_Y, 2, win, { fill: (v) => wash(T.groupA, 0.08 + 0.4 * Math.min(1, v)), hi: [Math.floor(best / 2), best % 2] });
+  opLabel(ctx, "max", gx + 2 * CW + 24, top + BODY_Y + CW);
+  cellGrid(ctx, gx + 2 * CW + 48, top + BODY_Y + CW / 2, 1, [mx], { tone: T.highlight });
+  const ox = w - PAD - MAP_S;
+  const hOut = mapsColumn(ctx, ox, top, out, C, h, T.groupA, { align: "right", mark: { r, c, s: 1 } });
+  return top + Math.max(hIn, hOut) + 8;
+}
+function bandUp(ctx, w, top, rec, name) {
+  const { x, cin, cout, h, w: kw, b, out } = rec;
+  const H = 2 * h;
+  const r = at(UNIT.r, h); const c = at(UNIT.c, h);
+  bandHead0(ctx, top, `${name}: ConvTranspose 2 × 2, stride 2, one cell to a 2 × 2 patch`,
+    `Input channel 0 at row ${r}, column ${c}, into output channel 0. Height and width double, ${h} × ${h} to ${H} × ${H}.`);
+  const hIn = mapsColumn(ctx, PAD, top, x, cin, h, T.groupB, { mark: { r, c, s: 1 } });
+  const xv = x[r * h + c];
+  const gx = PAD + MAP_S + 34;
+  const y = top + BODY_Y;
+  note(ctx, "cell", gx, top + HEAD_Y, T.ink3);
+  cellGrid(ctx, gx, y + CW / 2, 1, [xv], { fill: () => wash(T.groupB, 0.3) });
+  opLabel(ctx, "×", gx + CW + 14, y + CW);
+  const kx = gx + CW + 28;
+  note(ctx, "kernel", kx, top + HEAD_Y, T.ink3);
+  const ker = [0, 1, 2, 3].map((k) => kw[k]);
+  cellGrid(ctx, kx, y, 2, ker, { fill: signedFill });
+  opLabel(ctx, "+ b", kx + 2 * CW + 16, y + CW);
+  const px = kx + 2 * CW + 34;
+  note(ctx, "patch", px, top + HEAD_Y, T.ink3);
+  const patch = [0, 1, 2, 3].map((k) => xv * ker[k] + b[0]);
+  cellGrid(ctx, px, y, 2, patch, { tone: T.highlight, fill: () => wash(T.groupB, 0.15) });
+  note(ctx, `The other ${cin - 1} input channels add their own patches to the same four cells.`, gx, y + 2 * CW + 18, T.ink3);
+  const ox = w - PAD - MAP_S;
+  const hOut = mapsColumn(ctx, ox, top, out, cout, H, T.groupB, { align: "right", mark: { r: 2 * r, c: 2 * c, s: 2 } });
+  return top + Math.max(hIn, hOut) + 8;
+}
+function bandCat(ctx, w, top, rec, name) {
+  const { up: u, enc: e, C, H, out } = rec;
+  bandHead0(ctx, top, `${name}: torch.cat(dim=1), the upsampled maps beside the encoder's`,
+    `Channels add, ${C} + ${C} = ${2 * C}; height and width stay ${H} × ${H}. The encoder's maps arrive unchanged.`);
+  const x1 = PAD;
+  const h1 = mapsColumn(ctx, x1, top, u, C, H, T.groupB);
+  note(ctx, "up", x1 + MAP_S + 6, top + HEAD_Y, T.ink3);
+  opLabel(ctx, "+", x1 + MAP_S + 26, top + BODY_Y + 2 * (MAP_S + 4) - 2);
+  const x2 = x1 + MAP_S + 52;
+  mapsColumn(ctx, x2, top, e, C, H, T.groupA);
+  note(ctx, "skip", x2 + MAP_S + 6, top + HEAD_Y, T.ink3);
+  opLabel(ctx, "→", x2 + MAP_S + 34, top + BODY_Y + 2 * (MAP_S + 4) - 2);
+  const x3 = x2 + MAP_S + 66;
+  note(ctx, `${2 * C} ch, the two stacks one after the other`, x3, top + HEAD_Y, T.ink2, { mono: true });
+  const shown = Math.min(8, 2 * C);
+  for (let ch = 0; ch < shown; ch += 1) {
+    const col = ch % 4; const row = Math.floor(ch / 4);
+    drawMap(ctx, x3 + col * (MAP_S + 4), top + BODY_Y + row * (MAP_S + 4), MAP_S, H, out.subarray(ch * H * H, (ch + 1) * H * H), { frameTone: ch < C ? T.groupB : T.groupA });
+  }
+  return top + h1 + 8;
+}
+function bandHead(ctx, w, top, rec, name) {
+  const { x, cin, H, w: wh, b, z, p, mask } = rec;
+  const r = UNIT.r; const c = UNIT.c;
+  bandHead0(ctx, top, `${name}: Conv 1 × 1, then sigmoid and the threshold at 0.5`,
+    `Row ${r}, column ${c}: the ${cin} channel values at that pixel, each times its weight, plus the bias.`);
+  const hIn = mapsColumn(ctx, PAD, top, x, cin, H, T.groupB, { mark: { r, c, s: 1 } });
+  const vals = Array.from({ length: cin }, (_, ch) => x[ch * H * H + r * H + c]);
+  const vx = PAD + MAP_S + 34;
+  note(ctx, "pixel", vx, top + HEAD_Y, T.ink3);
+  vals.forEach((v, ch) => cellGrid(ctx, vx, top + BODY_Y + ch * CW, 1, [v], { fill: () => wash(T.groupB, 0.3) }));
+  opLabel(ctx, "⊙", vx + CW + 14, top + BODY_Y + cin * CW / 2);
+  const wx = vx + CW + 28;
+  note(ctx, "weights", wx, top + HEAD_Y, T.ink3);
+  vals.forEach((_, ch) => cellGrid(ctx, wx, top + BODY_Y + ch * CW, 1, [wh[ch]], { fill: signedFill }));
+  const sx = wx + CW + 22;
+  const lines = [[`sum + bias ${f2(b[0])}`, f2(z[r * H + c])], ["sigmoid", p[r * H + c].toFixed(3)], ["> 0.5", mask[r * H + c] ? "object" : "background"]];
+  lines.forEach(([l, v], i) => {
+    const y = top + BODY_Y + 12 + i * 30;
+    note(ctx, l, sx, y, T.ink2);
+    txt(ctx, v, sx, y + 14, { mono: true, color: i === 2 ? T.highlight : T.ink1, size: T.fsXs, weight: "600" });
+  });
+  const size = 56;
+  const ox = w - PAD - 2 * size - 10;
+  note(ctx, "sigmoid", ox, top + HEAD_Y, T.ink3);
+  drawMap(ctx, ox, top + BODY_Y, size, H, p, { frameTone: T.empirical });
+  note(ctx, "mask", ox + size + 10, top + HEAD_Y, T.ink3);
+  drawMap(ctx, ox + size + 10, top + BODY_Y, size, H, mask, { frameTone: T.empirical });
+  frame(ctx, ox + size + 10 + c * (size / H), top + BODY_Y + r * (size / H), Math.ceil(size / H), Math.ceil(size / H), T.highlight, 2);
+  return top + Math.max(hIn, BODY_Y + cin * CW, BODY_Y + size) + 8;
+}
+const BANDS = [
+  ["enc1", "DoubleConv on the image (1 channel in, 4 out)", (ctx, w, top) => bandConv(ctx, w, top, R.enc1, "enc1")],
+  ["pool1", "MaxPool", (ctx, w, top) => bandPool(ctx, w, top, R.pool1, "pool1")],
+  ["up1", "ConvTranspose 2 × 2 stride 2", (ctx, w, top) => bandUp(ctx, w, top, R.up1, "up1")],
+  ["cat1", "the concatenation", (ctx, w, top) => bandCat(ctx, w, top, R.cat1, "cat1")],
+  ["dec1", "DoubleConv on the concatenation (8 channels in, 4 out)", (ctx, w, top) => bandConv(ctx, w, top, R.dec1, "dec1")],
+  ["head", "the 1 × 1 head", (ctx, w, top) => bandHead(ctx, w, top, R.head, "head")],
+];
+for (const [name, title, fn] of BANDS) {
+  const box = cand("opRow", `click ${name} · ${title}`, "the band under the U, at 550, on the forward pass's numbers");
+  const probe = document.createElement("canvas").getContext("2d");
+  const h = fn(probe, 550, 0);
+  const ctx = canvasIn(box, 550, h);
+  fn(ctx, 550, 0);
+  box.querySelector(".sub").textContent += `\nband ${h}px`;
+}
+document.getElementById("recOp").innerHTML =
+  `Every band reads the same way: the block's input maps at the left, the operation on one position in the `
+  + `middle, the output maps at the right with that position marked, and the shape change in the caption. The `
+  + `forward pass makes the numbers real, at 16 × 16 and base 4; the U above keeps printing the shapes of the `
+  + `chosen Input and Base channels, and the band says which size it is drawn at. With the band, Step and Play `
+  + `keep their meaning (add a stage) and a click chooses which stage the band is about — the same split widget `
+  + `61 made between its gallery and its detail band. The cost is one more thing in the widget: a click region per `
+  + `slab (one parameter, the stage's name), and the untrained forward pass in compute(), which is milliseconds.`;
+
+/* ==========================================================================
+   §3 · DICE AS ONE PANEL.
+   ====================================================================== */
+function drawOnePanel(ctx, w, size, pred, dx, dy, { count = 3 } = {}) {
+  const truth = M.disc(M.CENTRE[0], M.CENTRE[1], M.SIZES[size].r);
+  const P = M.PREDS.find((p) => p.key === pred);
+  const shaped = pred === "same" ? truth.slice() : P.make(truth, makeRng(3), size);
+  const prediction = M.shift(shaped, dx, dy);
+  const m = M.metrics(truth, prediction);
+  caption(ctx, `Dice on a ${size} object (${M.SIZES[size].share} of the image)`, PAD, 24);
+  note(ctx, "The ground truth and the prediction on the image; drag the prediction. Then the overlap, counted.", PAD, 40);
+  const psz = 190; const px = PAD; const py = 52;
+  const c = psz / M.G;
+  ctx.save(); ctx.fillStyle = T.surface2; ctx.fillRect(px, py, psz, psz);
+  for (let j = 0; j < M.G; j += 1) for (let i = 0; i < M.G; i += 1) {
+    const t = truth[j * M.G + i]; const p = prediction[j * M.G + i];
+    ctx.fillStyle = wash(T.ink1, t ? 0.22 : 0.06); ctx.fillRect(px + i * c, py + j * c, Math.ceil(c), Math.ceil(c));
+    if (t && p) ctx.fillStyle = wash(T.highlight, 0.7);
+    else if (t) ctx.fillStyle = wash(T.reference, 0.6);
+    else if (p) ctx.fillStyle = wash(T.empirical, 0.6);
+    else continue;
+    ctx.fillRect(px + i * c, py + j * c, Math.ceil(c), Math.ceil(c));
+  }
+  ctx.restore();
+  frame(ctx, px, py, psz, psz, T.axis);
+  note(ctx, "the image, the truth and the prediction", px, py + psz + 14, T.ink2);
+  note(ctx, dx || dy ? `the prediction moved ${dx} across, ${dy} down` : "the prediction where the model put it", px, py + psz + 28, T.ink3);
+  /* tiles to the right of the panel */
+  const tx = px + psz + 20;
+  const tiles = [["|A|  truth", m.A, T.reference], ["|B|  prediction", m.B, T.empirical], ["|A ∩ B|  both", m.AB, T.highlight]];
+  tiles.forEach(([l, v, tone], k) => {
+    const y = py + k * 56;
+    if (k >= count) { frame(ctx, tx, y, 110, 46, T.grid); return; }
+    ctx.save(); ctx.fillStyle = wash(tone, 0.12); ctx.fillRect(tx, y, 110, 46); ctx.restore();
+    frame(ctx, tx, y, 110, 46, tone);
+    note(ctx, l, tx + 8, y + 16, T.ink2);
+    txt(ctx, `${v} px`, tx + 8, y + 38, { mono: true, color: T.ink1, weight: "600" });
+  });
+  const nx = tx + 124;
+  const done = count >= 3;
+  const lines = [["accuracy", done ? `${(100 * m.acc).toFixed(1)} %` : "—"], ["Dice", done ? m.dice.toFixed(3) : "—"], ["IoU", done ? m.iou.toFixed(3) : "—"], ["precision · recall", done ? `${m.prec.toFixed(2)} · ${m.rec.toFixed(2)}` : "—"], ["Dice loss = 1 − Dice", done ? (1 - m.dice).toFixed(3) : "—"]];
+  lines.forEach(([l, v], k) => { note(ctx, l, nx, py + 12 + k * 16, T.ink2); txt(ctx, v, nx + 112, py + 12 + k * 16, { mono: true, color: T.ink1, size: T.fsXs, weight: "600" }); });
+  return { m, height: py + psz + 44 };
+}
+const diceCases = [
+  ["small object, same shape, dragged 3 across and 2 down", "small", "same", 3, 2, 3],
+  ["medium object, dilated, in place", "medium", "dilate", 0, 0, 3],
+  ["small object, dragged clear of it — the opening pair, one tile counted", "small", "same", 9, 0, 1],
+];
+const dm = [];
+for (const [title, size, pred, dx, dy, count] of diceCases) {
+  const box = cand("diceRow", title, "one panel; the tiles and the numbers beside it");
+  const ctx = canvasIn(box, 550, 300);
+  const { m, height } = drawOnePanel(ctx, 550, size, pred, dx, dy, { count });
+  box.querySelector(".sub").textContent += `\nstage ${height}px`;
+  dm.push(`${title}: |A| ${m.A} |B| ${m.B} |A∩B| ${m.AB} accuracy ${(100 * m.acc).toFixed(1)} Dice ${m.dice.toFixed(3)} loss ${(1 - m.dice).toFixed(3)}`);
+}
+document.getElementById("diceMeasure").textContent = dm.join("\n");
+document.getElementById("recDice").innerHTML =
+  `One panel is enough once the overlap has its own colour: the truth in grey, the prediction in blue, and the `
+  + `pixels in both in violet, which is the thing Dice counts, so the reader sees |A ∩ B| shrink as they drag. The `
+  + `list keeps the shapes a drag cannot make (dilated, eroded, random, empty) and "Shifted" and "Off the object" `
+  + `go, since the drag makes them. The page is 296px tall against the draft's 562. Dice loss joins the card as `
+  + `1 − Dice, with the soft form named in the note: the same fraction with probabilities in place of 0 and 1.`;
+
+/* ==========================================================================
+   §4 · THE RAILS.
+   ====================================================================== */
+const specs = {
+  unet: {
+    netSec: { type: "section", label: "The network" },
+    depth: { type: "choice", label: "Depth", detail: "how many times the encoder halves the image before the bottleneck", options: ["2", "3", "4"].map((v) => ({ value: v, label: v })), default: "4" },
+    base: { type: "choice", label: "Base channels", detail: "the channels of the first block; each level doubles them", options: ["4", "8", "16"].map((v) => ({ value: v, label: v })), default: "16" },
+    input: { type: "choice", label: "Input", detail: "the side of the input image, in pixels", options: ["16", "64", "128", "512"].map((v) => ({ value: v, label: v })), default: "512" },
+    opSec: { type: "section", label: "The operation" },
+    stage: { type: "select", label: "Block", detail: "the block whose operation is drawn under the network; a click on a block chooses it too", options: M.stagesFor(4, 16, 512).map((s) => ({ value: s.name, label: s.name })), default: "enc1" },
+  },
+  dice: {
+    objSec: { type: "section", label: "The object" },
+    size: { type: "segmented", label: "Object", detail: "the share of the image the ground truth covers: about 1 %, 5 % or 20 %", options: [{ value: "small", label: "Small" }, { value: "medium", label: "Medium" }, { value: "large", label: "Large" }], default: "small" },
+    predSec: { type: "section", label: "The prediction" },
+    pred: { type: "select", label: "Shape", detail: "the prediction's shape relative to the ground truth; drag it on the figure to place it", options: [["same", "Same shape"], ["dilate", "Dilated 1 px"], ["erode", "Eroded 1 px"], ["random", "Same area at random"], ["empty", "Empty"]].map(([v, l]) => ({ value: v, label: l })), default: "same" },
+    seed: { type: "int", label: "Seed", min: 1, max: 200, default: 1 },
+  },
+};
+for (const [key, spec] of Object.entries(specs)) {
+  const box = cand("railRow", key === "unet" ? "U-Net page" : "Dice page", key === "unet" ? "three DATA controls and the block the band is about (a click sets it too); Next stage · Play · Reset" : "shape and object as DATA; the position is the drag; Count · Play · Reset", 320);
+  const host = el("div", "w-split rail-host"); const rail = el("div", "w-rail"); host.appendChild(rail);
+  const cm = el("div", "w-controls"); rail.appendChild(cm);
+  buildControls(cm, spec, resolveParams(spec, new URLSearchParams("")), () => {});
+  const drive = el("div", "w-drive"); rail.appendChild(drive);
+  buildActions(drive, [
+    { key: "step", text: key === "unet" ? "Next stage" : "Count", group: "pace", onClick: () => {} },
+    { key: "run", text: "Play", group: "pace", primary: true, onClick: () => {} },
+    { key: "reset", text: "Reset", onClick: () => {} },
+  ]);
+  box.appendChild(host);
+  box.querySelector(".sub").textContent += `\nrail ${rail.getBoundingClientRect().height.toFixed(0)}px`;
+}
+document.getElementById("recRail").innerHTML =
+  `The U-Net rail gains one control, Block, which the click on the figure also sets (3.6: a click is a control `
+  + `and keeps its keyboard path); it is DISPLAY, so choosing a block keeps the stages the reader has added. The `
+  + `Dice rail loses the two sliders and the split; the drag writes two hidden parameters and the readout prints `
+  + `them, so a copied link still lands on the same picture.`;
+</script>
+</main>
+</body>
+</html>

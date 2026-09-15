@@ -1,5 +1,25 @@
 # Handover
 
+**SLOT 65 `unet` ROUND 2 BUILT 2026-09-15 (evening)**, on his four points
+about the draft: the U laid out as a staircase; a click on a block (or the
+Block dropdown) draws that block's operation in a band under the U on a
+TRAINED network (`widgets/unet/engine.js`: depth 2, base 4, BatchNorm,
+DiceCELoss, 200 16 × 16 images × 5 epochs in about 1.3 s, held-out Dice
+0.80, gradients checked); Dice as one panel with the prediction dragged; the
+split band cut and Dice loss added. Mock `_lab/unet-round2-mock.html`, his
+four picks all the recommendation, measure `_lab/unet-measure.mjs`, verify
+3,303 checks (now also holds the band's numbers to the network's own
+arithmetic), eight placeholder states, `check` and `test` green. Read in the
+browser: the staircase at depth 4 and 2; clicks on the bottleneck slab
+choose it and keep the stages; up4's band on up2 with its patch; the head's
+mask beside the truth; the Dice drag writes `dx`/`dy` and keeps the count.
+**The browser console holds one stale "reading 'page' of null" entry from
+the first round-2 load** (fixed: core probes `regions` before the first
+compute, so `regions` derives its own state); the widget renders completely
+after it. **NEXT: his read of round 2**, then the copy audit, "tested ok",
+the shooter and states (settled, one driven, and a HIT state now that it
+declares regions), status flip, suite, commit, push.
+
 **SLOT 65 `unet` DRAFT BUILT 2026-09-15**, the same evening 63 went to KIV:
 mocked (`_lab/unet-mock.html`, static), his three picks by AskUserQuestion
 (the U as mocked; the prediction as BOTH a named list and a drag; the split

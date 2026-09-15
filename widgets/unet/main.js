@@ -1,49 +1,50 @@
 /* ============================================================================
    Widget 65 · U-Net and Dice — the encoder–decoder with skips, drawn to scale
-   from its shapes; and what overlap measures that pixel accuracy does not.
+   from its shapes, with each block's operation on a trained network; and
+   what overlap measures that pixel accuracy does not.
 
-   PHM5005 06-3: Architecture - Basic (cells 30–37, `UNet2D`), Training /
-   Evaluation (cells 38, 50–56: `DiceMetric`, `show_prediction`) and the split
-   (cell 6's bins). `model.js` holds the arithmetic and the geometry; this file
-   the colours, the strings and the animation.
+   PHM5005 06-3: Architecture - Basic (cells 30–37, `UNet2D`) and Training /
+   Evaluation (cells 38, 50–56: `DiceCELoss`, `DiceMetric`). `engine.js`
+   trains the small network, `model.js` holds the arithmetic and the
+   geometry, and this file the colours, the strings and the animation.
 
-   DECISIONS, so they are not re-argued (`_lab/unet-mock.html`, Kenneth's
-   picks 2026-09-15):
+   DECISIONS, so they are not re-argued (`_lab/unet-mock.html`, then
+   `_lab/unet-round2-mock.html`, Kenneth's picks 2026-09-15):
 
-    1. TWO PAGES, U-Net · Dice, under the arc's Topic control (his pick of
-       2026-09-13: slot 66 is this widget's second page). Each page's controls
-       show only on it (`when`), as widget 51's do.
+    1. TWO PAGES, U-Net · Dice, under the Topic control. Each page's controls
+       show only on it (`when`).
 
-    2. THE WIDGET TRAINS NOTHING. The planning measurement found the skip
-       bought convergence speed and not the boundary, and 30 epochs cost 5–7 s;
-       so the U is drawn from its shapes and Dice is counted on a mask the
-       reader chose. Everything is arithmetic, and the one seeded draw is the
-       Dice page's random prediction and its shuffle.
+    2. THE U IS A STAIRCASE, TO SCALE (round 2: "the diagram does not show a
+       u-shape"). A slab's height follows H × W and its width C; each encoder
+       level starts one step further right and each decoder level ends one
+       step further left; the concatenation is the two halves under a
+       `--c-dim-b` bracket with the transposed convolution's output as its
+       right half; the skips are dotted across. Every slab is outlined from
+       the start (2.5, the frame) and Step fills one stage in walk order.
 
-    3. THE U IS TO SCALE, his figure's own rule: a slab's height follows H × W
-       and its width follows C, the encoder's slabs step in down the left in
-       `--c-group-a` and the decoder's step out up the right in `--c-group-b`,
-       the concatenation is the two halves side by side under a `--c-dim-b`
-       bracket with the transposed convolution's output as its right half, the
-       skips are dotted across, and the arrows that change height and width
-       are `--c-dim-a`. Step adds one stage in walk order and prints its
-       shape; the formula card is the shape lines of the stages reached.
+    3. A CLICK ON A BLOCK DRAWS ITS OPERATION (round 2: "could I see a
+       depiction of the operation, like the CNN widget?"), in a band under the
+       U, on the maps of a TRAINED network: `engine.js`'s depth-2, base-4
+       U-Net on a 16 × 16 image, trained once for 5 epochs (his pick over an
+       untrained pass, whose mask was noise). The band's network is fixed; the
+       U prints the shapes of the rail's Depth, Base channels and Input, and a
+       deeper block's operation is drawn on the trained network's block of the
+       same kind, which the band names. Block is a display parameter, so a
+       click keeps the stages already added; the dropdown is the keyboard path
+       to the same choice (3.6).
 
     4. A 1 × 1 BOTTLENECK IS THE CASE THAT FAILS (2.6): depth 4 on a 16 × 16
-       input. It is drawn at floor height and named in `--c-extreme`.
+       input, named in `--c-extreme`.
 
-    5. THE PREDICTION IS BOTH A LIST AND A DRAG (his pick): a named list of
-       measured failures — Empty · Shifted 1 px · Off the object · Dilated 1 px
-       · Eroded 1 px · Same area at random — moved by a drag of the prediction
-       panel that writes `dx` and `dy` in one transaction. No threshold
-       control: on a symmetric map 0.5 cannot lose.
+    5. DICE IS ONE PANEL WITH THE PREDICTION DRAGGED ON IT (round 2: "drag and
+       drop the prediction, don't use sliders"). The truth, the prediction and
+       the pixels in both each have a colour; the list chooses the
+       prediction's shape and the drag its position, written as two hidden
+       display parameters so a drag keeps the count. No threshold control, no
+       split band (round 2: "just illustrate this loss function").
 
-    6. THE COUNT IS THREE PRESSES, one tile each — |A|, |B|, |A ∩ B| — and the
-       four numbers print only when the third is counted (2.4).
-
-    7. THE SPLIT IS A BAND on the Dice page (his pick), behind a Split control
-       Random · Stratified with Seed moving the shuffle; a bin the split left
-       empty is lit in `--c-extreme`.
+    6. THE COUNT IS THREE PRESSES, one tile each, and the numbers print only
+       when |A ∩ B| is counted (2.4).
    ========================================================================= */
 
 import { defineWidget, shapeText, mathmlRenders } from "../core/index.js";
@@ -53,10 +54,17 @@ import * as M from "./model.js";
 
 const fmt = (n) => n.toLocaleString("en-US");
 const pct = (v) => `${(100 * v).toFixed(1)}%`;
+const f2 = (v) => (v < 0 ? `−${Math.abs(v).toFixed(2)}` : v.toFixed(2));
 const easeOut = (t) => 1 - (1 - t) ** 3;
 const wash = (hex, a) => {
   const p = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
   return `rgba(${p[0]},${p[1]},${p[2]},${a})`;
+};
+const mix = (a, b, t) => {
+  const pa = [1, 3, 5].map((i) => parseInt(a.slice(i, i + 2), 16));
+  const pb = [1, 3, 5].map((i) => parseInt(b.slice(i, i + 2), 16));
+  const c = pa.map((v, i) => Math.round(v + (pb[i] - v) * Math.max(0, Math.min(1, t))));
+  return `rgb(${c[0]}, ${c[1]}, ${c[2]})`;
 };
 
 function txt(ctx, colors, s, x, y, o = {}) {
@@ -100,7 +108,7 @@ function arrow(ctx, x0, y0, x1, y1, color, o = {}) {
   ctx.restore();
 }
 
-/* --- what the presses have revealed ---------------------------------------- */
+/* `anim.n` presses complete, the one at index `anim.n` in flight at `anim.t` */
 function revealOf(anim) {
   const n = anim?.n ?? 0;
   const t = anim?.t ?? 0;
@@ -110,48 +118,61 @@ function revealOf(anim) {
 /* ============================== the U ===================================== */
 
 const U_CAPTION = "U-Net: the encoder down, the decoder up, and the skips across";
-const U_NOTE = "A block's height follows its map's height and width, and its width the channels. Each press adds one stage and prints its shape.";
+const U_NOTE = "A block's height follows H × W and its width the channels. Click a block to see its operation.";
 const BOTTLENECK_1 = "a 1 × 1 map: no height or width is left to pool";
 
-function drawU(ctx, colors, w, state, reveal) {
-  const { depth, stages } = state;
+function drawU(ctx, colors, w, state, reveal, block) {
+  const { stages } = state;
   const L = M.uLayout(w, state);
   caption(ctx, colors, U_CAPTION, M.PAD, M.CAPTION_Y);
   note(ctx, colors, U_NOTE, M.PAD, M.NOTE_Y);
-  const encTone = colors.groupA;
-  const decTone = colors.groupB;
+  const enc = colors.groupA;
+  const dec = colors.groupB;
+
+  /* ONE HIGHLIGHT AT A TIME: the stage arriving while a press is in flight,
+     otherwise the chosen block once it has been added */
+  const flying = reveal.current === reveal.n ? reveal.current : -1;
+  const chosenIdx = stages.findIndex((s, i) => s.name === block && i < reveal.n);
+  const lit = flying >= 0 ? flying : chosenIdx;
 
   stages.forEach((s, i) => {
     const a = reveal.alphaOf(i);
-    if (a <= 0) return;
-    const on = i === reveal.current;
+    const on = i === lit;
     const tone = (base) => (on ? colors.highlight : base);
-    ctx.save();
-    ctx.globalAlpha = a;
+    const b = L.boxes[s.name];
     const row = L.rows[s.level - 1];
 
     if (s.kind === "pool") {
-      const from = L.boxes[`enc${s.level}`];
       const below = L.rows[s.level];
-      const x = from.x + from.w / 2 + 14;
-      arrow(ctx, x, from.y + from.h + 3, x, below.y - 3, tone(colors.dims[0]), { width: on ? 2 : 1.2 });
-      note(ctx, colors, s.name, x + 6, (from.y + from.h + below.y) / 2 + 4, tone(colors.ink3), { mono: true });
-    } else if (s.kind === "up") {
-      const b = L.boxes[s.name];
+      const x = b.x + 8;
+      ctx.save();
+      ctx.globalAlpha = a > 0 ? a : 0.35;
+      arrow(ctx, x, row.y + row.h + 3, x, below.y - 3, a > 0 ? tone(colors.dims[0]) : colors.grid, { width: on ? 2 : 1.2 });
+      if (a > 0) note(ctx, colors, s.name, x + 6, (row.y + row.h + below.y) / 2 + 4, tone(colors.ink3), { mono: true });
+      ctx.restore();
+      return;
+    }
+    /* the outline of every slab from the start: the frame the walk fills */
+    if (a <= 0) {
+      if (s.kind !== "up") frame(ctx, b.x, b.y, b.w, b.h, colors.grid);
+      return;
+    }
+    ctx.save();
+    ctx.globalAlpha = a;
+    if (s.kind === "up") {
       const below = L.rows[s.level];
-      ctx.fillStyle = wash(decTone, on ? 0.55 : 0.35);
+      ctx.fillStyle = wash(dec, on ? 0.55 : 0.35);
       ctx.fillRect(b.x, b.y, b.w, b.h);
-      frame(ctx, b.x, b.y, b.w, b.h, tone(decTone), on ? 2 : 1);
+      frame(ctx, b.x, b.y, b.w, b.h, tone(dec), on ? 2 : 1);
       const x = b.x + b.w / 2;
       arrow(ctx, x, below.y - 3, x, b.y + b.h + 3, tone(colors.dims[0]), { width: on ? 2 : 1.2 });
-      note(ctx, colors, s.name, x + 6, below.y - 8, tone(colors.ink3), { mono: true });
+      note(ctx, colors, s.name, x - 6, below.y - 8, tone(colors.ink3), { mono: true, align: "right" });
     } else {
-      const b = L.boxes[s.name];
-      const base = s.kind === "enc" || s.kind === "bottleneck" ? encTone : s.kind === "head" ? colors.empirical : decTone;
+      const base = s.kind === "enc" || s.kind === "bottleneck" ? enc : s.kind === "head" ? colors.empirical : dec;
       if (s.kind === "cat") {
-        ctx.fillStyle = wash(encTone, 0.35);
+        ctx.fillStyle = wash(enc, 0.35);
         ctx.fillRect(b.x, b.y, b.w / 2, b.h);
-        ctx.fillStyle = wash(decTone, 0.35);
+        ctx.fillStyle = wash(dec, 0.35);
         ctx.fillRect(b.x + b.w / 2, b.y, b.w / 2, b.h);
       } else {
         ctx.fillStyle = wash(base, on ? 0.55 : 0.35);
@@ -179,81 +200,314 @@ function drawU(ctx, colors, w, state, reveal) {
         arrow(ctx, d.x + d.w + 1, d.y + 8, b.x - 1, b.y + 8, tone(colors.dims[1]));
         note(ctx, colors, s.name, b.x + b.w / 2, b.y - 6, tone(colors.ink2), { mono: true, align: "center" });
       }
-      if (on) {
-        const line = `${s.name}: ${shapeText(M.shapeOf(s))}`;
-        const anchor = s.kind === "enc" ? b.x + b.w + 8 : s.kind === "head" || s.kind === "dec" ? b.x + b.w - 40 : b.x + b.w / 2;
-        const align = s.kind === "enc" ? "left" : s.kind === "head" || s.kind === "dec" ? "right" : "center";
-        note(ctx, colors, line, Math.max(M.PAD + 60, Math.min(w - M.PAD - 60, anchor)), b.y - 12, colors.highlight, { align, mono: true });
-        if (s.H === 1) note(ctx, colors, BOTTLENECK_1, w / 2, b.y + b.h + 28, colors.extreme, { align: "center" });
-      }
     }
     ctx.restore();
+    if (s.kind === "bottleneck" && s.H === 1) {
+      note(ctx, colors, BOTTLENECK_1, w / 2, b.y + b.h + 30, colors.extreme, { align: "center" });
+    }
   });
-  /* the case that fails stays named once its row is on screen */
-  const bIdx = stages.findIndex((s) => s.kind === "bottleneck");
-  const bottle = stages[bIdx];
-  if (bottle.H === 1 && reveal.alphaOf(bIdx) >= 1 && reveal.current !== bIdx) {
-    const b = L.boxes.bottleneck;
-    note(ctx, colors, BOTTLENECK_1, w / 2, b.y + b.h + 28, colors.extreme, { align: "center" });
+  /* the up slab is the right half of its concatenation, drawn after it, so
+     its highlight is framed again on top */
+  if (stages[lit]?.kind === "up") {
+    const b = L.boxes[stages[lit].name];
+    frame(ctx, b.x, b.y, b.w, b.h, colors.highlight, 2);
   }
+  /* the shape of the highlighted stage */
+  const shown = stages[lit];
+  if (shown) note(ctx, colors, `${shown.name}: ${shapeText(M.shapeOf(shown))}`, w / 2, M.SHAPE_Y, colors.highlight, { align: "center", mono: true });
+  return L;
+}
+
+/* ========================= the operation band ============================= */
+
+function drawMap(ctx, colors, x, y, size, n, arr, frameTone) {
+  const c = size / n;
+  let hi = 0;
+  for (let i = 0; i < n * n; i += 1) hi = Math.max(hi, Math.abs(arr[i]));
+  hi = hi || 1;
+  ctx.save();
+  ctx.fillStyle = colors.surface2;
+  ctx.fillRect(x, y, size, size);
+  for (let j = 0; j < n; j += 1) {
+    for (let i = 0; i < n; i += 1) {
+      ctx.fillStyle = mix(colors.surface2, colors.ink1, arr[j * n + i] / hi);
+      ctx.fillRect(x + i * c, y + j * c, Math.ceil(c), Math.ceil(c));
+    }
+  }
+  ctx.restore();
+  frame(ctx, x, y, size, size, frameTone);
+}
+function cellGrid(ctx, colors, x, y, n, values, { tone, fill = null, hi = null } = {}) {
+  const cw = M.CW;
+  for (let j = 0; j < n; j += 1) {
+    for (let i = 0; i < n; i += 1) {
+      const v = values[j * n + i];
+      if (fill) {
+        ctx.save();
+        ctx.fillStyle = fill(v);
+        ctx.fillRect(x + i * cw, y + j * cw, cw, cw);
+        ctx.restore();
+      }
+      frame(ctx, x + i * cw, y + j * cw, cw, cw, colors.grid);
+      txt(ctx, colors, f2(v), x + i * cw + cw / 2, y + j * cw + cw / 2 + 1,
+        { align: "center", baseline: "middle", mono: true, size: "9px", color: tone ?? colors.ink1 });
+    }
+  }
+  if (hi) frame(ctx, x + hi[1] * cw, y + hi[0] * cw, cw, cw, colors.highlight, 2);
+}
+const signedFill = (colors) => (v) => wash(v >= 0 ? colors.valueHigh : colors.valueLow, 0.45 * Math.min(1, Math.abs(v)));
+const opLabel = (ctx, colors, s, x, y) =>
+  txt(ctx, colors, s, x, y, { align: "center", baseline: "middle", color: colors.ink2, weight: "600", size: colors.fsSm });
+
+/** up to four maps in a column, the channel count above; returns its height */
+function mapsColumn(ctx, colors, x, top, arr, C, H, frameTone, { align = "left", mark = null } = {}) {
+  const shown = Math.min(M.SHOWN, C);
+  note(ctx, colors, `${C} ch`, align === "right" ? x + M.MAP_S : x, top + M.HEAD_Y, colors.ink2, { mono: true, align });
+  for (let c = 0; c < shown; c += 1) {
+    const y = top + M.BODY_Y + c * (M.MAP_S + 4);
+    drawMap(ctx, colors, x, y, M.MAP_S, H, arr.subarray(c * H * H, (c + 1) * H * H), frameTone);
+    if (mark && c === 0) {
+      const px = M.MAP_S / H;
+      const sz = Math.max(3, Math.ceil(mark.s * px));
+      frame(ctx, x + mark.c * px, y + mark.r * px, sz, sz, colors.highlight, 2);
+    }
+  }
+  if (C > shown) note(ctx, colors, `+ ${C - shown}`, x, top + M.BODY_Y + shown * (M.MAP_S + 4) + 8, colors.ink3);
+}
+function bandTitle(ctx, colors, top, cap, sub, netLine) {
+  caption(ctx, colors, cap, M.PAD, top + M.BAND_CAP);
+  note(ctx, colors, sub, M.PAD, top + M.BAND_NOTE);
+  note(ctx, colors, netLine, M.PAD, top + M.BAND_NET, colors.ink3);
+}
+
+function bandConv(ctx, colors, w, top, rec, name, netLine) {
+  const T = M.trainedNet();
+  const { x, H } = rec;
+  const cin = x.length / (H * H);
+  const cout = rec.out.length / (H * H);
+  const r = Math.min(H - 2, Math.max(1, M.unitAt(T.unit.r, H)));
+  const c = Math.min(H - 2, Math.max(1, M.unitAt(T.unit.c, H)));
+  const block = rec.block;
+  bandTitle(ctx, colors, top, `${name}: DoubleConv, (Conv 3 × 3 → BatchNorm → ReLU) twice`,
+    `The first convolution at row ${r}, column ${c}, into output channel 0. The second repeats it on the result.`, netLine);
+  mapsColumn(ctx, colors, M.PAD, top, x, cin, H, colors.groupA, { mark: { r: r - 1, c: c - 1, s: 3 } });
+  const gx = M.PAD + M.MAP_S + 18;
+  const kx = gx + 3 * M.CW + 22;
+  note(ctx, colors, "window", gx, top + M.HEAD_Y, colors.ink3);
+  note(ctx, colors, "kernel slice", kx, top + M.HEAD_Y, colors.ink3);
+  const drawn = Math.min(M.GRID_ROWS, cin);
+  const W = block.c1.W.v;
+  for (let ch = 0; ch < drawn; ch += 1) {
+    const win = [];
+    const sl = [];
+    for (let ky = 0; ky < 3; ky += 1) {
+      for (let kxx = 0; kxx < 3; kxx += 1) {
+        win.push(x[ch * H * H + (r + ky - 1) * H + (c + kxx - 1)]);
+        sl.push(W[ch * 9 + ky * 3 + kxx]);
+      }
+    }
+    const y = top + M.BODY_Y + ch * (3 * M.CW + 10);
+    cellGrid(ctx, colors, gx, y, 3, win, { fill: (v) => wash(colors.groupA, 0.08 + 0.4 * Math.min(1, Math.abs(v))) });
+    opLabel(ctx, colors, "⊙", gx + 3 * M.CW + 11, y + 1.5 * M.CW);
+    cellGrid(ctx, colors, kx, y, 3, sl, { fill: signedFill(colors) });
+  }
+  if (cin > drawn) {
+    note(ctx, colors, `+ ${cin - drawn} more channels, each with its own window and slice`, gx, top + M.BODY_Y + drawn * (3 * M.CW + 10) + 2, colors.ink3);
+  }
+  const sx = kx + 3 * M.CW + 18;
+  const z = rec.z1[r * H + c];
+  const mu = block.n1.rm[0];
+  const sd = Math.sqrt(block.n1.rv[0] + 1e-5);
+  const nrm = rec.n1[r * H + c];
+  const lines = [["sum over channels", f2(z)], ["BatchNorm", f2(nrm)], ["ReLU", f2(rec.a1[r * H + c])]];
+  lines.forEach(([l, v], i) => {
+    const y = top + M.BODY_Y + 12 + i * 30;
+    note(ctx, colors, l, sx, y, colors.ink2);
+    txt(ctx, colors, v, sx, y + 14, { mono: true, color: i === 2 ? colors.highlight : colors.ink1, size: colors.fsXs, weight: "600" });
+  });
+  /* under the three lines, inside the column the output maps leave at 550 */
+  note(ctx, colors, "BatchNorm = γ × (z − mean) / sd + β", sx, top + M.BODY_Y + 112, colors.ink3);
+  note(ctx, colors, `${f2(block.n1.gamma.v[0])} × (z − ${f2(mu)}) / ${f2(sd)} + ${f2(block.n1.beta.v[0])}`,
+    sx, top + M.BODY_Y + 126, colors.ink3, { mono: true });
+  note(ctx, colors, "mean and sd kept from training", sx, top + M.BODY_Y + 140, colors.ink3);
+  mapsColumn(ctx, colors, w - M.PAD - M.MAP_S, top, rec.out, cout, H, colors.groupA, { align: "right", mark: { r, c, s: 1 } });
+}
+function bandPool(ctx, colors, w, top, rec, name, netLine) {
+  const T = M.trainedNet();
+  const { x, C, H, out } = rec;
+  const h = H >> 1;
+  const r = M.unitAt(T.unit.r, h);
+  const c = M.unitAt(T.unit.c, h);
+  bandTitle(ctx, colors, top, `${name}: MaxPool 2 × 2, the largest of each window kept`,
+    `Channel 0, output row ${r}, column ${c}. Height and width halve, ${H} × ${H} to ${h} × ${h}; the channels stay ${C}.`, netLine);
+  mapsColumn(ctx, colors, M.PAD, top, x, C, H, colors.groupA, { mark: { r: 2 * r, c: 2 * c, s: 2 } });
+  const win = [];
+  for (let j = 0; j < 2; j += 1) for (let i = 0; i < 2; i += 1) win.push(x[(2 * r + j) * H + 2 * c + i]);
+  const mx = Math.max(...win);
+  const best = win.indexOf(mx);
+  const gx = M.PAD + M.MAP_S + 40;
+  note(ctx, colors, "window", gx, top + M.HEAD_Y, colors.ink3);
+  cellGrid(ctx, colors, gx, top + M.BODY_Y, 2, win, { fill: (v) => wash(colors.groupA, 0.08 + 0.4 * Math.min(1, v)), hi: [Math.floor(best / 2), best % 2] });
+  opLabel(ctx, colors, "max", gx + 2 * M.CW + 24, top + M.BODY_Y + M.CW);
+  cellGrid(ctx, colors, gx + 2 * M.CW + 48, top + M.BODY_Y + M.CW / 2, 1, [mx], { tone: colors.highlight });
+  mapsColumn(ctx, colors, w - M.PAD - M.MAP_S, top, out, C, h, colors.groupA, { align: "right", mark: { r, c, s: 1 } });
+}
+function bandUp(ctx, colors, w, top, rec, name, netLine) {
+  const { x, h, out, layer } = rec;
+  const H = 2 * h;
+  const cin = layer.cin;
+  const cout = layer.cout;
+  /* the largest cell of input channel 0: at the object's edge the bottleneck's
+     ReLU output is often 0, and a zero cell scatters nothing but the bias */
+  let best = 0;
+  for (let i = 1; i < h * h; i += 1) if (x[i] > x[best]) best = i;
+  const r = Math.floor(best / h);
+  const c = best % h;
+  bandTitle(ctx, colors, top, `${name}: ConvTranspose 2 × 2, stride 2, one cell to a 2 × 2 patch`,
+    `Input channel 0 at row ${r}, column ${c}, into output channel 0. Height and width double, ${h} × ${h} to ${H} × ${H}.`, netLine);
+  mapsColumn(ctx, colors, M.PAD, top, x, cin, h, colors.groupB, { mark: { r, c, s: 1 } });
+  const xv = x[r * h + c];
+  const gx = M.PAD + M.MAP_S + 34;
+  const y = top + M.BODY_Y;
+  note(ctx, colors, "cell", gx, top + M.HEAD_Y, colors.ink3);
+  cellGrid(ctx, colors, gx, y + M.CW / 2, 1, [xv], { fill: () => wash(colors.groupB, 0.3) });
+  opLabel(ctx, colors, "×", gx + M.CW + 14, y + M.CW);
+  const kx = gx + M.CW + 28;
+  note(ctx, colors, "kernel", kx, top + M.HEAD_Y, colors.ink3);
+  const ker = [0, 1, 2, 3].map((k) => layer.W.v[k]);
+  cellGrid(ctx, colors, kx, y, 2, ker, { fill: signedFill(colors) });
+  opLabel(ctx, colors, "+ b", kx + 2 * M.CW + 16, y + M.CW);
+  const px = kx + 2 * M.CW + 34;
+  note(ctx, colors, "patch", px, top + M.HEAD_Y, colors.ink3);
+  cellGrid(ctx, colors, px, y, 2, ker.map((k) => xv * k + layer.b.v[0]), { tone: colors.highlight, fill: () => wash(colors.groupB, 0.15) });
+  note(ctx, colors, `The other ${cin - 1} input channels add their own patches to the same four cells.`, gx, y + 2 * M.CW + 18, colors.ink3);
+  mapsColumn(ctx, colors, w - M.PAD - M.MAP_S, top, out, cout, H, colors.groupB, { align: "right", mark: { r: 2 * r, c: 2 * c, s: 2 } });
+}
+function bandCat(ctx, colors, w, top, rec, name, netLine) {
+  const { up, enc, C, H, out } = rec;
+  bandTitle(ctx, colors, top, `${name}: torch.cat(dim=1), the upsampled maps beside the encoder's`,
+    `Channels add, ${C} + ${C} = ${2 * C}; height and width stay ${H} × ${H}. The encoder's maps arrive unchanged.`, netLine);
+  const x1 = M.PAD;
+  mapsColumn(ctx, colors, x1, top, up, C, H, colors.groupB);
+  note(ctx, colors, "up", x1 + M.MAP_S + 6, top + M.HEAD_Y, colors.ink3);
+  opLabel(ctx, colors, "+", x1 + M.MAP_S + 26, top + M.BODY_Y + 2 * (M.MAP_S + 4) - 2);
+  const x2 = x1 + M.MAP_S + 52;
+  mapsColumn(ctx, colors, x2, top, enc, C, H, colors.groupA);
+  note(ctx, colors, "skip", x2 + M.MAP_S + 6, top + M.HEAD_Y, colors.ink3);
+  opLabel(ctx, colors, "→", x2 + M.MAP_S + 34, top + M.BODY_Y + 2 * (M.MAP_S + 4) - 2);
+  const x3 = x2 + M.MAP_S + 66;
+  note(ctx, colors, `${2 * C} ch, the upsampled channels first`, x3, top + M.HEAD_Y, colors.ink2, { mono: true });
+  const shown = Math.min(8, 2 * C);
+  for (let ch = 0; ch < shown; ch += 1) {
+    drawMap(ctx, colors, x3 + (ch % 4) * (M.MAP_S + 4), top + M.BODY_Y + Math.floor(ch / 4) * (M.MAP_S + 4), M.MAP_S, H,
+      out.subarray(ch * H * H, (ch + 1) * H * H), ch < C ? colors.groupB : colors.groupA);
+  }
+  if (2 * C > shown) note(ctx, colors, `+ ${2 * C - shown}`, x3, top + M.BODY_Y + 2 * (M.MAP_S + 4) + 8, colors.ink3);
+}
+function bandHead(ctx, colors, w, top, rec, name, netLine) {
+  const T = M.trainedNet();
+  const { x, z, p } = rec;
+  const H = M.TRAIN.S;
+  const cin = x.length / (H * H);
+  const { r, c } = T.unit;
+  const head = T.net.head;
+  bandTitle(ctx, colors, top, `${name}: Conv 1 × 1, then sigmoid and the threshold at 0.5`,
+    `Row ${r}, column ${c}: the ${cin} channel values at that pixel, each times its weight, plus the bias.`, netLine);
+  mapsColumn(ctx, colors, M.PAD, top, x, cin, H, colors.groupB, { mark: { r, c, s: 1 } });
+  const vx = M.PAD + M.MAP_S + 34;
+  note(ctx, colors, "pixel", vx, top + M.HEAD_Y, colors.ink3);
+  for (let ch = 0; ch < cin; ch += 1) cellGrid(ctx, colors, vx, top + M.BODY_Y + ch * M.CW, 1, [x[ch * H * H + r * H + c]], { fill: () => wash(colors.groupB, 0.3) });
+  opLabel(ctx, colors, "⊙", vx + M.CW + 14, top + M.BODY_Y + (cin * M.CW) / 2);
+  const wx = vx + M.CW + 28;
+  note(ctx, colors, "weights", wx, top + M.HEAD_Y, colors.ink3);
+  for (let ch = 0; ch < cin; ch += 1) cellGrid(ctx, colors, wx, top + M.BODY_Y + ch * M.CW, 1, [head.Wh.v[ch]], { fill: signedFill(colors) });
+  const sx = wx + M.CW + 22;
+  const lines = [[`sum + bias ${f2(head.bh.v[0])}`, f2(z[r * H + c])], ["sigmoid", p[r * H + c].toFixed(3)], ["over 0.5", p[r * H + c] > 0.5 ? "object" : "background"]];
+  lines.forEach(([l, v], i) => {
+    const y = top + M.BODY_Y + 12 + i * 30;
+    note(ctx, colors, l, sx, y, colors.ink2);
+    txt(ctx, colors, v, sx, y + 14, { mono: true, color: i === 2 ? colors.highlight : colors.ink1, size: colors.fsXs, weight: "600" });
+  });
+  const size = M.HEAD_MAP;
+  const ox = w - M.PAD - 3 * size - 20;
+  const mask = p.map((v) => (v > 0.5 ? 1 : 0));
+  [["sigmoid", p], ["mask", mask], ["truth", T.truth]].forEach(([label, arr], k) => {
+    const mx = ox + k * (size + 10);
+    note(ctx, colors, label, mx, top + M.HEAD_Y, colors.ink3);
+    drawMap(ctx, colors, mx, top + M.BODY_Y, size, H, arr, k === 2 ? colors.reference : colors.empirical);
+  });
+  frame(ctx, ox + size + 10 + c * (size / H), top + M.BODY_Y + r * (size / H), Math.ceil(size / H), Math.ceil(size / H), colors.highlight, 2);
+}
+
+const NET_LINE = (T) => `On the trained network: depth ${M.TRAIN.depth}, base ${M.TRAIN.base}, a 16 × 16 image, held-out Dice ${T.dice.toFixed(2)}.`;
+
+function drawBand(ctx, colors, w, top, state, params, reached) {
+  const T = M.trainedNet();
+  const drawnName = params.block;
+  const name = M.trainedStage(drawnName);
+  ctx.save();
+  ctx.strokeStyle = colors.grid;
+  ctx.beginPath(); ctx.moveTo(M.PAD, top - M.BAND_GAP / 2 + 0.5); ctx.lineTo(w - M.PAD, top - M.BAND_GAP / 2 + 0.5); ctx.stroke();
+  ctx.restore();
+  if (!reached) {
+    caption(ctx, colors, "The operation of a block", M.PAD, top + M.BAND_CAP);
+    note(ctx, colors, `${drawnName} has not been added yet. Press Next stage, then click a block on the network.`, M.PAD, top + M.BAND_NOTE);
+    return;
+  }
+  const netLine = name === drawnName ? NET_LINE(T)
+    : `Drawn on ${name} of the trained network (depth ${M.TRAIN.depth}, base ${M.TRAIN.base}, 16 × 16), the same operation.`;
+  const kind = name.replace(/\d+$/, "");
+  const rec = T.rec[name];
+  const net = T.net;
+  const lvl = Number(name.match(/\d+$/)?.[0] ?? 0);
+  if (kind === "enc" || kind === "dec" || name === "bottleneck") {
+    const block = kind === "enc" ? net.enc[lvl - 1] : kind === "dec" ? net.decs[net.depth - lvl] : net.bottleneck;
+    bandConv(ctx, colors, w, top, { ...rec, block }, drawnName, netLine);
+  } else if (kind === "pool") bandPool(ctx, colors, w, top, rec, drawnName, netLine);
+  else if (kind === "up") bandUp(ctx, colors, w, top, { ...rec, layer: net.ups[net.depth - lvl] }, drawnName, netLine);
+  else if (kind === "cat") bandCat(ctx, colors, w, top, rec, drawnName, netLine);
+  else bandHead(ctx, colors, w, top, rec, drawnName, netLine);
 }
 
 /* ============================== Dice ====================================== */
 
-const PRED_LABELS = {
-  empty: "Empty",
-  shift: "Shifted 1 px",
-  off: "Off the object",
+const SHAPE_LABELS = {
+  same: "Same shape",
   dilate: "Dilated 1 px",
   erode: "Eroded 1 px",
   random: "Same area at random",
+  empty: "Empty",
 };
 const SIZE_LABELS = { small: "Small", medium: "Medium", large: "Large" };
-const BIN_NAMES = ["normal", "small", "medium", "large"];
-const BIN_LABELS = ["normal", "small < 1 %", "medium 1–5 %", "large > 5 %"];
-const DICE_NOTE = "Left to right: the image, the ground truth on it, the prediction on it. Then the overlap, counted.";
-const BAND_CAPTION = "Which cases a 60-case test set draws from 600";
-const BAND_NOTE = "Mask fraction on a log axis with the bins' cut-offs; below, the test set, one dot a case";
-
-function paintPanel(ctx, colors, p, truth, pred, which) {
-  const c = p.w / M.G;
-  ctx.save();
-  ctx.fillStyle = colors.surface2;
-  ctx.fillRect(p.x, p.y, p.w, p.h);
-  /* the image: the object a little brighter than its field */
-  for (let j = 0; j < M.G; j += 1) {
-    for (let i = 0; i < M.G; i += 1) {
-      ctx.fillStyle = wash(colors.ink1, truth[j * M.G + i] ? 0.22 : 0.06);
-      ctx.fillRect(p.x + i * c, p.y + j * c, Math.ceil(c), Math.ceil(c));
-    }
-  }
-  const overlay = which === "truth" ? truth : which === "pred" ? pred : null;
-  if (overlay) {
-    ctx.fillStyle = wash(which === "truth" ? colors.reference : colors.empirical, 0.6);
-    for (let j = 0; j < M.G; j += 1) {
-      for (let i = 0; i < M.G; i += 1) {
-        if (overlay[j * M.G + i]) ctx.fillRect(p.x + i * c, p.y + j * c, Math.ceil(c), Math.ceil(c));
-      }
-    }
-  }
-  ctx.restore();
-  frame(ctx, p.x, p.y, p.w, p.h, which === "pred" ? colors.empirical : colors.axis);
-}
+const DICE_NOTE = "The ground truth and the prediction on the image. Drag the prediction; the pixels in both are counted.";
 
 function drawDice(ctx, colors, w, state, reveal) {
   const L = M.diceLayout(w);
   const { truth, prediction, m } = state;
-  caption(ctx, colors, `Dice on a ${SIZE_LABELS[state.size].toLowerCase()} object (${M.SIZES[state.size].share} of the image), the prediction ${PRED_LABELS[state.pred].toLowerCase()}`, M.PAD, M.CAPTION_Y);
+  caption(ctx, colors, `Dice on a ${SIZE_LABELS[state.size].toLowerCase()} object, ${M.SIZES[state.size].share} of the image`, M.PAD, M.CAPTION_Y);
   note(ctx, colors, DICE_NOTE, M.PAD, M.NOTE_Y);
-  [["Image", "image"], ["Ground truth", "truth"], ["Prediction", "pred"]].forEach(([label, which], k) => {
-    const p = L.panels[k];
-    paintPanel(ctx, colors, p, truth, prediction, which);
-    note(ctx, colors, label, p.x, p.y + p.h + 14, colors.ink2);
-  });
-  /* the drag's numbers are the rail's two sliders; under the panel they met
-     its label */
+  const p = L.panel;
+  const c = p.w / M.G;
+  ctx.save();
+  ctx.fillStyle = colors.surface2;
+  ctx.fillRect(p.x, p.y, p.w, p.h);
+  for (let j = 0; j < M.G; j += 1) {
+    for (let i = 0; i < M.G; i += 1) {
+      const k = j * M.G + i;
+      const t = truth[k];
+      const q = prediction[k];
+      ctx.fillStyle = wash(colors.ink1, t ? 0.2 : 0.05);
+      ctx.fillRect(p.x + i * c, p.y + j * c, Math.ceil(c), Math.ceil(c));
+      if (!t && !q) continue;
+      ctx.fillStyle = t && q ? wash(colors.highlight, 0.75) : t ? wash(colors.reference, 0.6) : wash(colors.empirical, 0.6);
+      ctx.fillRect(p.x + i * c, p.y + j * c, Math.ceil(c), Math.ceil(c));
+    }
+  }
+  ctx.restore();
+  frame(ctx, p.x, p.y, p.w, p.h, colors.axis);
+  note(ctx, colors, "the image, the ground truth and the prediction", p.x, p.y + p.h + 14, colors.ink2);
+  note(ctx, colors, state.dx || state.dy ? `the prediction moved ${state.dx} across, ${state.dy} down` : "the prediction in place", p.x, p.y + p.h + 28, colors.ink3);
 
-  /* the count: three tiles, one a press */
   const tiles = [
     ["|A|  truth", m.A, colors.reference],
     ["|B|  prediction", m.B, colors.empirical],
@@ -278,53 +532,12 @@ function drawDice(ctx, colors, w, state, reveal) {
     ["Dice", done ? m.dice.toFixed(3) : "—"],
     ["IoU", done ? m.iou.toFixed(3) : "—"],
     ["precision · recall", done ? `${m.prec.toFixed(2)} · ${m.rec.toFixed(2)}` : "—"],
+    ["Dice loss, 1 − Dice", done ? (1 - m.dice).toFixed(3) : "—"],
   ];
   lines.forEach(([label, v], k) => {
     note(ctx, colors, label, L.numbers.x, L.numbers.y + k * M.LINE, colors.ink2);
-    txt(ctx, colors, v, L.numbers.x + 96, L.numbers.y + k * M.LINE, { mono: true, color: colors.ink1, size: colors.fsXs, weight: "600" });
+    txt(ctx, colors, v, L.numbers.valueX, L.numbers.y + k * M.LINE, { mono: true, color: colors.ink1, size: colors.fsXs, weight: "600" });
   });
-
-  /* the split band */
-  const B = L.band;
-  caption(ctx, colors, BAND_CAPTION, M.PAD, B.captionY);
-  note(ctx, colors, BAND_NOTE, M.PAD, B.noteY);
-  const { bins, normals } = state.hist;
-  const mx = Math.max(...bins, normals);
-  const bw = (B.histX1 - B.histX0) / M.HIST_BINS;
-  ctx.save();
-  ctx.fillStyle = wash(colors.ink2, 0.5);
-  bins.forEach((v, k) => ctx.fillRect(B.histX0 + k * bw, B.histBase - B.histH * v / mx, bw - 1, B.histH * v / mx));
-  ctx.fillRect(M.PAD + 10, B.histBase - B.histH * normals / mx, 30, B.histH * normals / mx);
-  ctx.restore();
-  note(ctx, colors, "normal", M.PAD + 25, B.histBase + 12, colors.ink3, { align: "center" });
-  const lx = (f) => B.histX0 + (B.histX1 - B.histX0) * M.logPos(f);
-  M.CUTS.forEach((f) => {
-    ctx.save();
-    ctx.strokeStyle = colors.reference;
-    ctx.setLineDash([3, 3]);
-    ctx.beginPath(); ctx.moveTo(lx(f) + 0.5, B.histBase - B.histH - 6); ctx.lineTo(lx(f) + 0.5, B.histBase); ctx.stroke();
-    ctx.restore();
-    note(ctx, colors, `${Math.round(100 * f)} %`, lx(f) + 3, B.histBase - B.histH - 8, colors.reference);
-  });
-  note(ctx, colors, "0.1 %", lx(M.HIST_LO), B.histBase + 12, colors.ink3, { mono: true });
-  note(ctx, colors, "30 %", lx(M.HIST_HI), B.histBase + 12, colors.ink3, { mono: true, align: "right" });
-
-  const tones = [colors.ink3, colors.clusters[0], colors.clusters[1], colors.clusters[3]];
-  note(ctx, colors, state.split === "strat" ? "stratified by bin" : "random 80/10/10", M.PAD, B.dotsY + 4, colors.ink2);
-  const sorted = [...state.test].sort((a, b) => a.bin - b.bin);
-  sorted.forEach((k, i) => {
-    ctx.save();
-    ctx.fillStyle = tones[k.bin];
-    ctx.beginPath();
-    ctx.arc(B.dotsX0 + i * B.dotStep + 3, B.dotsY, 2.6, 0, 2 * Math.PI);
-    ctx.fill();
-    ctx.restore();
-  });
-  const counts = BIN_LABELS.map((n, b) => `${n} ${state.counts[b]}`).join(" · ");
-  note(ctx, colors, counts, B.dotsX0, B.countsY, state.empty >= 0 ? colors.extreme : colors.ink3);
-  if (state.empty >= 0) {
-    note(ctx, colors, `no ${BIN_NAMES[state.empty]} case in the test set`, B.histX1, B.dotsY + 4, colors.extreme, { align: "right", weight: "600" });
-  }
 }
 
 /* ============================= the formula card ============================ */
@@ -344,19 +557,21 @@ const DICE_EQ = [
     text: "IoU = |A ∩ B| / |A ∪ B|",
   },
   {
-    math: "<math><mrow><mi>accuracy</mi><mo>=</mo><mfrac><mrow><mo>|</mo><mi>A</mi><mo>∩</mo><mi>B</mi><mo>|</mo><mo>+</mo><mi>neither</mi></mrow>"
-      + "<mrow><mi>all</mi><mo> </mo><mi>pixels</mi></mrow></mfrac></mrow></math>",
-    text: "accuracy = (|A ∩ B| + neither) / all pixels",
+    math: "<math><mrow><msub><mi>L</mi><mi>Dice</mi></msub><mo>=</mo><mn>1</mn><mo>−</mo>"
+      + "<mfrac><mrow><mn>2</mn><mo>∑</mo><msub><mi>p</mi><mi>i</mi></msub><msub><mi>t</mi><mi>i</mi></msub></mrow>"
+      + "<mrow><mo>∑</mo><msub><mi>p</mi><mi>i</mi></msub><mo>+</mo><mo>∑</mo><msub><mi>t</mi><mi>i</mi></msub></mrow></mfrac></mrow></math>",
+    text: "L_Dice = 1 − 2 Σ pᵢtᵢ / (Σ pᵢ + Σ tᵢ)",
   },
 ];
-const DICE_CARD_NOTE = "A is the set of pixels in the ground truth, B the set in the prediction. Dice and IoU count only "
-  + "the object's pixels, so an empty prediction scores 0 whatever the object's size; accuracy counts the "
-  + "background too, so on a small object it stays near 1.";
+const DICE_CARD_NOTE = "A is the set of pixels in the ground truth and B the set in the prediction. Dice and IoU count "
+  + "only the object's pixels, so an empty prediction scores 0 at any size; accuracy counts the background "
+  + "too, so on a small object it stays near 1. As a loss, the network's probabilities pᵢ stand in for the "
+  + "prediction's 0s and 1s, and tᵢ is the ground truth.";
 const U_CARD_NOTE = "One line a stage, in the order the network runs: [batch, channels, height, width]. "
   + "A convolution keeps height and width and sets the channels; max-pool halves height and width; the "
   + "transposed convolution doubles them; the concatenation adds the encoder's channels to the decoder's.";
 
-function renderCard(params, state, reveal) {
+function renderCard(params, state, n) {
   const figure = document.querySelector("#widget .w-figure");
   if (!figure || !figure.parentNode) return;
   if (!cardHost) {
@@ -365,23 +580,22 @@ function renderCard(params, state, reveal) {
     figure.parentNode.insertBefore(cardHost, figure);
   }
   const dice = M.isDice(params);
-  const key = dice ? "dice" : `unet:${state.depth}:${state.base}:${state.input}:${reveal.n}`;
+  const key = dice ? "dice" : `unet:${state.depth}:${state.base}:${state.input}:${n}`;
   if (key === cardKey) return;
   cardKey = key;
-  const eqStyle = "min-height:0;margin:0;display:inline-block;padding-right:2.4em";
   if (dice) {
+    const eqStyle = "min-height:0;margin:0;display:inline-block;padding-right:2.4em";
     cardHost.innerHTML = `<div style="display:flex;flex-wrap:wrap;align-items:baseline;row-gap:4px">`
       + DICE_EQ.map((eq) => `<div class="w-math-eq" style="${eqStyle}">${MATHML ? eq.math : eq.text}</div>`).join("")
       + `</div><p class="w-math-note">${DICE_CARD_NOTE}</p>`;
     return;
   }
-  /* plain rows, not `.w-math-eq`: that class reserves a gutter and an indent
-     for an equation, and here each row is a name and a shape in mono */
-  const reached = state.stages.slice(0, reveal.n);
+  /* plain rows, not `.w-math-eq`: that class reserves a gutter for an equation */
+  const reached = state.stages.slice(0, n);
   const rowStyle = "display:inline-block;width:19em;white-space:nowrap;font-family:var(--font-mono);font-size:var(--fs-xs);color:var(--ink-1)";
   const rows = reached.length
     ? reached.map((s) => `<div style="${rowStyle}"><span style="display:inline-block;width:6.5em;color:var(--ink-3)">${s.name}</span>${shapeText(M.shapeOf(s))}</div>`).join("")
-    : `<div style="font-size:var(--fs-xs);color:var(--ink-3)">no stage reached yet</div>`;
+    : `<div style="font-size:var(--fs-xs);color:var(--ink-3)">no stage added yet</div>`;
   cardHost.innerHTML = `<div style="display:flex;flex-wrap:wrap;row-gap:2px;column-gap:1em">${rows}</div>`
     + `<p class="w-math-note">${U_CARD_NOTE}</p>`;
 }
@@ -390,19 +604,12 @@ function renderCard(params, state, reveal) {
 
 const ON = (topic) => ({ param: "topic", equals: topic });
 
-/* the label names what THIS press does (4.4b); once the last press is made
-   the button is disabled and keeps the last name, on either page */
-const STEP_LABELS = {
-  stage: "Next stage",
-  a: "Count the truth",
-  b: "Count the prediction",
-  ab: "Count the overlap",
-};
+const STEP_LABELS = { stage: "Next stage", a: "Count the truth", b: "Count the prediction", ab: "Count the overlap" };
 const STEP_TITLES = {
   stage: "Add the next stage of the network and print the shape it outputs",
   a: "Count the pixels of the ground truth, |A|",
   b: "Count the pixels of the prediction, |B|",
-  ab: "Count the pixels in both, |A ∩ B|, and print the four numbers",
+  ab: "Count the pixels in both, |A ∩ B|, and print the numbers",
 };
 const phaseOf = (n, state) => (state.page === "dice" ? ["a", "b", "ab"][Math.min(2, n)] : "stage");
 
@@ -453,6 +660,17 @@ defineWidget({
       default: "512",
       when: ON("unet"),
     },
+    opSec: { type: "section", label: "The operation", when: ON("unet") },
+    block: {
+      type: "select",
+      label: "Block",
+      detail: "the block whose operation is drawn under the network; a click on a block chooses it too",
+      options: (values) => M.stageNames(values.depth).map((n) => ({ value: n, label: n })),
+      optionsFrom: "depth",
+      default: "enc1",
+      display: true,
+      when: ON("unet"),
+    },
 
     /* --- Dice ------------------------------------------------------------ */
     objSec: { type: "section", label: "The object", when: ON("dice") },
@@ -465,71 +683,70 @@ defineWidget({
       when: ON("dice"),
     },
     predSec: { type: "section", label: "The prediction", when: ON("dice") },
-    pred: {
+    shape: {
       type: "select",
-      label: "Prediction",
-      detail: "what the model predicted, relative to the ground truth",
-      options: M.PRED_KEYS.map((v) => ({ value: v, label: PRED_LABELS[v] })),
-      default: "off",
+      label: "Shape",
+      detail: "the prediction's shape relative to the ground truth; drag it on the figure to move it",
+      options: M.SHAPE_KEYS.map((v) => ({ value: v, label: SHAPE_LABELS[v] })),
+      default: "same",
       when: ON("dice"),
     },
-    dx: {
+    seed: {
       type: "int",
-      label: "Moved across",
-      detail: "pixels the prediction is moved to the right; drag the prediction panel to set both",
-      min: -M.SHIFT_MAX, max: M.SHIFT_MAX, default: 0,
-      when: ON("dice"),
+      label: "Seed",
+      detail: "which random pixels the prediction covers",
+      min: 1, max: 200, default: 1,
+      when: { all: [ON("dice"), { param: "shape", equals: "random" }] },
     },
-    dy: {
-      type: "int",
-      label: "Moved down",
-      detail: "pixels the prediction is moved down",
-      min: -M.SHIFT_MAX, max: M.SHIFT_MAX, default: 0,
-      when: ON("dice"),
-    },
-    splitSec: { type: "section", label: "The split", when: ON("dice") },
-    split: {
-      type: "segmented",
-      label: "Split",
-      detail: "how the 60-case test set is drawn from the 600 cases",
-      options: [{ value: "random", label: "Random" }, { value: "strat", label: "Stratified" }],
-      default: "random",
-      when: ON("dice"),
-    },
-    seed: { type: "int", label: "Seed", min: 1, max: 200, default: 1, when: ON("dice") },
+    /* where the drag has moved the prediction: display, so a drag keeps the count */
+    dx: { type: "int", min: -M.SHIFT_MAX, max: M.SHIFT_MAX, default: 2, hidden: true, display: true },
+    dy: { type: "int", min: -M.SHIFT_MAX, max: M.SHIFT_MAX, default: 1, hidden: true, display: true },
 
-    /* Authoring escape hatch, first render only: stages reached, or tiles counted. */
+    /* Authoring escape hatch, first render only: stages added, or tiles counted. */
     shown: { type: "int", min: 0, max: 22, default: 0, hidden: true },
   },
 
   legend: ({ params }) => (M.isDice(params)
     ? [
-      { token: "reference", label: "The ground truth, A", mark: "bar" },
-      { token: "empirical", label: "The prediction, B", mark: "bar" },
-      { token: "highlight", label: "The pixels in both, A ∩ B" },
-      { token: "cluster-a", label: "A small case in the test set" },
-      { token: "cluster-b", label: "A medium case" },
-      { token: "cluster-d", label: "A large case" },
-      { token: "extreme", label: "A bin the split left empty" },
+      { token: "reference", label: "The ground truth only", mark: "bar" },
+      { token: "empirical", label: "The prediction only", mark: "bar" },
+      { token: "highlight", label: "The pixels in both, A ∩ B", mark: "bar" },
     ]
     : [
       { token: "group-a", label: "The encoder's features, and the bottleneck", mark: "bar" },
       { token: "group-b", label: "The decoder's features", mark: "bar" },
       { token: "dim-a", label: "Height and width change here: max-pool down, transposed convolution up", mark: "line" },
       { token: "dim-b", label: "Channels change here: a convolution, and the concatenation's bracket", mark: "line" },
-      { token: "empirical", label: "The head: one logit a pixel", mark: "bar" },
-      { token: "highlight", label: "The stage just added, and its shape" },
-      { token: "extreme", label: "A bottleneck with nothing left to pool" },
+      { token: "empirical", label: "The head: one logit a pixel, and the predicted mask", mark: "bar" },
+      { token: "value-high", label: "A positive weight" },
+      { token: "value-low", label: "A negative weight" },
+      { token: "highlight", label: "The stage just added, the chosen block, and the position its operation is shown at" },
     ]),
 
-  compute: ({ params, rng }) => (M.isDice(params) ? M.computeDice(params, rng) : M.computeU(params)),
+  compute: ({ params }) => (M.isDice(params) ? M.computeDice(params) : M.computeU(params)),
+
+  regions: ({ w, params, state }) => {
+    if (M.isDice(params)) return [];
+    /* core validates the region table at load, before the first compute, so
+       the state is derived here when it is not handed in yet */
+    const st = state?.page === "unet" ? state : M.computeU(params);
+    const L = M.uLayout(w, st);
+    return st.stages.map((s) => {
+      const b = L.boxes[s.name];
+      /* a thin slab is widened to a 12px target; the up slab is the right half
+         of its concatenation, and core's hit-test takes the LAST match, so it
+         is listed last and wins that half */
+      const pad = Math.max(0, (12 - b.w) / 2);
+      return { x: b.x - pad, y: b.y, w: b.w + 2 * pad, h: b.h, set: { block: s.name }, label: s.name, order: s.kind === "up" ? 1 : 0 };
+    }).sort((a, b) => a.order - b.order).map(({ order, ...r }) => r);
+  },
 
   drag: {
     params: ["dx", "dy"],
     cursor: "grab",
-    hit: ({ x, y, w, params }) => M.isDice(params) && M.panelCell(M.diceLayout(w), x, y) != null,
+    hit: ({ x, y, w, params }) => M.isDice(params) && M.panelHit(M.diceLayout(w), x, y),
     value: ({ dx, dy, start, w }) => {
-      const cell = M.diceLayout(w).panel / M.G;
+      const cell = M.diceLayout(w).panel.w / M.G;
       const clamp = (v) => Math.max(-M.SHIFT_MAX, Math.min(M.SHIFT_MAX, Math.round(v)));
       return { dx: clamp(start.dx + dx / cell), dy: clamp(start.dy + dy / cell) };
     },
@@ -563,12 +780,15 @@ defineWidget({
   },
 
   draw({ ctx, colors, w, params, state, anim }) {
-    /* `anim.n` presses are complete and the one at index `anim.n` is in flight
-       at `anim.t`: drawn at its progress, and listed on the card when it lands */
     const reveal = revealOf(anim);
-    renderCard(params, state, { n: anim?.n ?? 0 });
-    if (state.page === "dice") drawDice(ctx, colors, w, state, reveal);
-    else drawU(ctx, colors, w, state, reveal);
+    renderCard(params, state, anim?.n ?? 0);
+    if (state.page === "dice") {
+      drawDice(ctx, colors, w, state, reveal);
+      return;
+    }
+    const L = drawU(ctx, colors, w, state, reveal, params.block);
+    const idx = state.stages.findIndex((s) => s.name === params.block);
+    drawBand(ctx, colors, w, L.height + M.BAND_GAP, state, params, idx >= 0 && idx < reveal.n);
   },
 
   readout({ params, state, anim }) {
@@ -580,19 +800,20 @@ defineWidget({
         { label: "Accuracy", value: done ? pct(m.acc) : "—", note: `right pixels over all ${M.G * M.G}` },
         { label: "Dice · IoU", value: done ? `${m.dice.toFixed(3)} · ${m.iou.toFixed(3)}` : "—", note: "overlap over the mean size · overlap over the union" },
         { label: "Precision · recall", value: done ? `${m.prec.toFixed(2)} · ${m.rec.toFixed(2)}` : "—", note: "of the predicted pixels, in the truth · of the truth's pixels, predicted" },
-        {
-          label: "Test set by bin",
-          value: state.counts.join(" · "),
-          note: state.empty >= 0 ? `normal · small · medium · large; no ${BIN_NAMES[state.empty]} case was drawn` : "normal · small · medium · large; every bin is in the test set",
-        },
+        { label: "Dice loss", value: done ? (1 - m.dice).toFixed(3) : "—", note: "1 − Dice: 0 when the masks agree, 1 when they share no pixel" },
       ];
     }
     const last = n > 0 ? state.stages[n - 1] : null;
     const bottle = state.stages.find((s) => s.kind === "bottleneck");
     return [
-      { label: "Stages reached", value: `${n} of ${state.total}`, note: last ? `${last.name}: ${last.op}` : "the input, not yet through a block" },
+      { label: "Stages added", value: `${n} of ${state.total}`, note: last ? `${last.name}: ${last.op}` : "the input, not yet through a block" },
       { label: "Bottleneck", value: shapeText(M.shapeOf(bottle)), note: bottle.H === 1 ? "a 1 × 1 map; a deeper network could pool no further" : `${bottle.H} × ${bottle.H}, ${bottle.C} channels` },
       { label: "Parameters", value: fmt(state.params), note: "the DoubleConv blocks, the transposed convolutions and the head, at this depth and base" },
+      {
+        label: "Trained network",
+        value: `Dice ${state.trained.dice.toFixed(2)}`,
+        note: `the operations are drawn on a depth-${M.TRAIN.depth}, base-${M.TRAIN.base} U-Net trained here on ${M.TRAIN.n} 16 × 16 images for ${M.TRAIN.epochs} epochs; Dice on ${M.TRAIN.nTest} held-out images`,
+      },
     ];
   },
 });
