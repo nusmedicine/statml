@@ -7069,58 +7069,135 @@
       "tx": "dd4774a4"
     },
     {
-      "$note": "augmentation · DRAFT placeholder · Transforms, Flip, nothing drawn",
+      "$note": "augmentation · Transforms, Flip, nothing drawn: the empty Augmented column and its note",
       "slug": "augmentation",
       "state": "?theme=light&shown=0",
-      "px": "0",
-      "tx": "0"
+      "px": "f3b1f750",
+      "tx": "bb5118bf"
     },
     {
-      "$note": "augmentation · DRAFT placeholder · Transforms, Flip, twelve draws",
+      "$note": "augmentation · Transforms, Flip, twelve draws: the grid of samples and the tally",
       "slug": "augmentation",
       "state": "?theme=light&shown=12",
-      "px": "0",
-      "tx": "0"
+      "px": "e15777c7",
+      "tx": "2a919019"
     },
     {
-      "$note": "augmentation · DRAFT placeholder · Transforms, Flip with the mask left out of keys, twelve draws",
+      "$note": "augmentation · Transforms, Flip with the mask left out of keys, the first draw: Dice 0.10 off-centre",
       "slug": "augmentation",
-      "state": "?theme=light&keys=image&shown=12",
-      "px": "0",
-      "tx": "0"
+      "state": "?theme=light&keys=image&shown=1",
+      "px": "64d01e87",
+      "tx": "66025d26"
     },
     {
-      "$note": "augmentation · DRAFT placeholder · Transforms, Affine with the label bilinear, twelve draws",
+      "$note": "augmentation · Transforms, the same with the white blood cell centred: Dice 0.99",
+      "slug": "augmentation",
+      "state": "?theme=light&keys=image&cell=centred&shown=1",
+      "px": "bff0fb9d",
+      "tx": "aed27471"
+    },
+    {
+      "$note": "augmentation · Transforms, Rotate, twelve draws: every k in the grid",
+      "slug": "augmentation",
+      "state": "?theme=light&transform=rotate&shown=12",
+      "px": "2ead3cfc",
+      "tx": "170f554b"
+    },
+    {
+      "$note": "augmentation · Transforms, Affine at prob 1 with the label bilinear, twelve draws: the ranges and the magnified edge",
       "slug": "augmentation",
       "state": "?theme=light&transform=affine&affine_prob=1&mode=bilinear&shown=12",
-      "px": "0",
-      "tx": "0"
+      "px": "c8603a97",
+      "tx": "2b42ef2b"
     },
     {
-      "$note": "augmentation · DRAFT placeholder · Transforms, Contrast, twelve draws",
+      "$note": "augmentation · Transforms, Contrast, twelve draws: the gamma curves",
       "slug": "augmentation",
       "state": "?theme=light&transform=contrast&shown=12",
-      "px": "0",
-      "tx": "0"
+      "px": "c55c779e",
+      "tx": "c28210c0"
     },
     {
-      "$note": "augmentation · DRAFT placeholder · Pipeline, epoch 3 part-way",
+      "$note": "augmentation · Transforms, Noise, twelve draws: the difference and the sigma line",
+      "slug": "augmentation",
+      "state": "?theme=light&transform=noise&shown=12",
+      "px": "f319508f",
+      "tx": "fa3cc5c4"
+    },
+    {
+      "$note": "augmentation · Pipeline, training, epoch 3 part-way",
       "slug": "augmentation",
       "state": "?theme=light&topic=pipeline&shown=30",
-      "px": "0",
-      "tx": "0"
+      "px": "4e02e748",
+      "tx": "367917a8"
     },
     {
-      "$note": "augmentation · DRAFT placeholder · DRIVEN - the first draw caught mid-way",
+      "$note": "augmentation · Pipeline, Validation/Test, epoch 3: the six fixed transforms, all cached",
+      "slug": "augmentation",
+      "state": "?theme=light&topic=pipeline&split=validation&shown=8",
+      "px": "f179eaf2",
+      "tx": "00c42634"
+    },
+    {
+      "$note": "augmentation · DRIVEN - the first Draw mid-motion: the flip squashing through its line",
       "slug": "augmentation",
       "state": "?theme=light",
       "drive": {
         "click": "step",
-        "frames": 4,
-        "dt": 32
+        "frames": 20
       },
-      "px": "0",
-      "tx": "0"
+      "px": "e4fba43a",
+      "tx": "bb5118bf"
+    },
+    {
+      "$note": "augmentation · INTERRUPTED - the second Draw fading the first result out",
+      "slug": "augmentation",
+      "state": "?theme=light",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 40
+          }
+        ],
+        "click": "step",
+        "frames": 3
+      },
+      "px": "b1214bc8",
+      "tx": "0a242625"
+    },
+    {
+      "$note": "augmentation · INTERRUPTED - the Pipeline's first RandFlipd mid-motion after five fixed transforms",
+      "slug": "augmentation",
+      "state": "?theme=light&topic=pipeline",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 12
+          },
+          {
+            "click": "step",
+            "frames": 12
+          },
+          {
+            "click": "step",
+            "frames": 12
+          },
+          {
+            "click": "step",
+            "frames": 12
+          },
+          {
+            "click": "step",
+            "frames": 12
+          }
+        ],
+        "click": "step",
+        "frames": 12
+      },
+      "px": "2201a4a6",
+      "tx": "51ccffb9"
     }
   ]
 }

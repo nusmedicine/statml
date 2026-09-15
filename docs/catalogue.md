@@ -12,7 +12,7 @@ answer can be checked against what was assumed.
 
 | looking for | go to |
 |---|---|
-| what to build next | § *The GWAS and PRS arc* under PHM5003 — PROPOSED 2026-09-11 from week 6, four widgets on Kenneth’s picks the same evening (56 `hardy-weinberg`, 57 `gwas`, 59 `polygenic-score` with LD as its first page, 60 `mendelian-randomization`, in the notebooks’ order), three findings read from the lesson’s own output files; NEXT is 56’s measure script and mock; slot 52 `training-loop` (05-4) is still owed under § *The deep learning arc*; the high-throughput arc is complete |
+| what to build next | Kenneth’s call. The image arc under PHM5005 (slots 61–66) has 61 `cnn-architecture`, 64 `grad-cam`, 65 `unet` and 62 `augmentation` shipped, 63 `pretrained` measured and mocked and on KIV (his call 2026-09-15), 66 folded into 65; slot 52 `training-loop` (05-4) is still owed under § *The deep learning arc*; the GWAS and PRS arc (56, 57, 59, 60) and the high-throughput arc are complete |
 | how a widget got its shape | § *Widget N*, in order |
 | the four-method reconnaissance | § *Widget 19*, under the PCA sections |
 | the arcs, and what is deliberately not a widget | the arc sections below |
@@ -15264,7 +15264,7 @@ that went are pointed at rather than re-proposed.
 | # | slug | title (the notebook's own heading) | host | state |
 |---|---|---|---|---|
 | 61 | `cnn-architecture` | Architecture - Basic | 06-1 cell 2 (convolution, pooling, receptive field growth) and cell 1's parameter argument; 06-2 cell 23 (components and order, calculating dimensions, Flatten against GAP), cell 25's `SimpleCNN` | proposed, **measured**: the receptive field is 10 px on the notebook's own net; **first to build, mock next** |
-| 62 | `augmentation` | Preprocessing · Load/Transform | 06-2 cell 1 §3 and `dl-workflow-preprocess.png`; 06-3 cells 15–19, 27–29 and `dl-image-segment-augment-pair.png` | **REVIVED 2026-09-15** on Kenneth's "students have a hard time visualizing these transformations"; picked the same day: Transforms · Pipeline on a generated blood smear, three cases that fail, pinned to MONAI installed here; **measure next**. (CUT 2026-09-13, his pick then; the unpaired-flip caption planned for 65's Dice page was never added) |
+| 62 | `augmentation` | Preprocessing · Load/Transform | 06-2 cell 1 §3 and `dl-workflow-preprocess.png`; 06-3 cells 15–19, 27–29 and `dl-image-segment-augment-pair.png` | **SHIPPED 2026-09-16**: two pages, Transforms · Pipeline, on a generated blood smear, the engine pinned to MONAI 1.6.0; revived 2026-09-15 on Kenneth's "students have a hard time visualizing these transformations" (CUT 2026-09-13, his pick then; the unpaired-flip caption planned for 65's Dice page was never added) |
 | 63 | `pretrained` | Using Pretrained Models | 06-2 cells 55–56 (`dl-imaging-training.png`), 61–121 (scratch, fine-tuning, transfer learning) | **RESCOPED 2026-09-13**, Kenneth's pick: his figure as drawn, and one trained stage — fine-tuning's learning rate against forgetting, steps fixed; third to build |
 | 64 | `grad-cam` | Explainability · Grad-CAM | 06-2 cells 122–139 (`dl-image-explain-gradcam.png`); 06-1 cell 4 | proposed, **measured — holds** with a 3 × 3 cue and the CAM read on a clean image; second to build, the engine is born here |
 | 65 | `unet` | Architecture - Basic (Segmentation) · Training · Evaluation | 06-3 cells 30–37 (`dl-image-segment-unet.png`), 57–64; **and 66's host** (cell 6's bins, cells 38–56) as its second page | **SHIPPED 2026-09-15**: two pages, U-Net · Dice loss; one network trained ahead at six settings, the operation of a block drawn from its own maps |
@@ -15427,7 +15427,7 @@ and W move together and a rule each would say they can part.
   pixels: ~3,400 image-epochs a second at 16 × 16. Gradients checked against
   finite differences at 4.6e-9.
 
-### Slot 62 · `augmentation` — Preprocessing · Load/Transform — REVIVED AND PICKED 2026-09-15
+### Slot 62 · `augmentation` — Preprocessing · Load/Transform — SHIPPED 2026-09-16 (revived and picked 2026-09-15)
 
 **Revived 2026-09-15 on Kenneth's ask:** *"let's plan for a widget about image
 augmentation to support PHM5005 notebooks on DL for Image Data. students have a
@@ -15759,11 +15759,35 @@ also refuses *line(s)*, *the call*, *goes through*, *stayed*, *chance*, *points 
 template's `${…}` as code rather than words (its first run caught `cur.line`).
 Verify 4,622 checks; `check` green; `test` 28 scripts green; no console error.
 
-**NEXT: the ship, on his word to push** — a shooter and states (settled, one driven
-mid-press; no regions, so no hit state), status flip in the manifest AND `main.js`,
-the full suite fronted, `check` and `test` read alone, commit, push, `gh run list`
-and the live manifest. The axis wording assumes he has added
-`reader="PILReader", reverse_indexing=False` to cell 19's LoadImaged lines.
+#### SHIPPED 2026-09-16 — on "push to gallery"
+
+Status `shipped` in the manifest and in `main.js`, after a mock, a draft, two review
+rounds and a copy audit over two days. **13 fingerprint states**, recorded by
+`_lab/augmentation-shoot.html` (the unet shooter with its slug filter changed;
+three shots each, all STABLE): ten settled (Flip empty and at 12 draws, the mask
+left out of keys off-centre and centred, Rotate, Affine at prob 1 with a bilinear
+mask, Contrast, Noise, the training pipeline at 30 presses, Validation/Test at 8),
+one driven (the first Draw 20 frames in, the flip squashing through its line) and
+two interrupted (a second Draw 3 frames in, fading the first result out; the
+Pipeline's first RandFlipd mid-motion after five fixed transforms). No regions, so
+no hit state. The full suite ran fronted at DPR 1.25: **all 799 states
+identical**. `check` green (60 widgets, 799 states); `test` 28 scripts green, the
+verify at 4,651 checks.
+
+**Found by the shooter and fixed before recording:** the Noise page reported NEVER
+SETTLED. Its page height depended on the canvas width, so the frame's scrollbar
+flipped the layout between two widths on every pass. Panel and thumbnail sizes
+are now capped at their 535 px values (`figureLayout`, `thumbSize` and
+`pipelineLayout` in `model.js`), so the scrollbar's 15 px no longer moves the
+height, and the verify asserts the same height at 535, 550, 755 and 770.
+
+**Owed by Kenneth in the notebook:** `reader="PILReader", reverse_indexing=False` on
+cell 19's LoadImaged lines. The widget's axis wording (spatial_axis=0 flips top to
+bottom, a positive rotate turns clockwise, translate and scale as (height, width))
+holds only with that argument. **Still unmeasured:** the lesson's own masks. They
+are JPG and nothing rescales the label before `AsDiscreted(threshold=0.5)` (finding
+(2) above, +25.0% to +33.8% foreground on the synthetic disc); KRD-WBC's masks
+were not read.
 
 *The entry below is the plan as first written and cut on 2026-09-13, kept as
 written.*

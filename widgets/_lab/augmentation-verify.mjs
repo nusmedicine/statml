@@ -350,7 +350,12 @@ section("§4 the geometry");
     { ...BASE, transform: "noise" },
     { ...BASE, topic: "pipeline" },
   ];
-  for (const w of [550, 770]) {
+  /* a scrollbar takes 15 px; a height that answers to it flips the page between two layouts (2026-09-16) */
+  for (const p of pages) {
+    assert([535, 550, 755, 770].every((w) => M.pageHeight(w, p) === M.pageHeight(550, p)),
+      `${p.topic === "pipeline" ? "pipeline" : p.transform}: the page's height is the same at 535, 550, 755 and 770 px`);
+  }
+  for (const w of [535, 550, 770]) {
     for (const p of pages) {
       const h = M.pageHeight(w, p);
       const tag = `${w} px, ${p.topic === "pipeline" ? "pipeline" : `${p.transform}${p.mode === "bilinear" ? " bilinear" : ""}${p.keys === "image" ? " keys image" : ""}`}`;

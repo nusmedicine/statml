@@ -827,7 +827,7 @@ const STEP_TITLES = {
 
 defineWidget({
   slug: "augmentation",
-  status: "draft",
+  status: "shipped",
   title: "Deep Learning - Image Augmentation",
   /* Kenneth's pick A of the copy audit, 2026-09-16 */
   subtitle:

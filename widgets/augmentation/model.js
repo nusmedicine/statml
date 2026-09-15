@@ -594,15 +594,22 @@ const CURVE = 176;
 export const MAG_CELLS = 20;
 const MAG = 164;
 
+/* EVERY SIZE THE PAGE'S HEIGHT READS IS CAPPED AT ITS VALUE AT 535 PX, the
+   side layout's width under a scrollbar, so a scrollbar cannot change the
+   height it answers to. Measured 2026-09-16 when the shooter could not settle
+   the Noise page: at a 900 × 1200 frame, 255 px panels made the document 1,211
+   tall, its scrollbar narrowed the canvas to 535 and the panels to 247, the
+   document fell to 1,200, the scrollbar went, and the page flipped between the
+   two every 200 ms. */
 export function figureLayout(w) {
-  const s = Math.min(255, Math.floor((w - 2 * PAD - COL_GAP) / 2));
+  const s = Math.min(247, Math.floor((w - 2 * PAD - COL_GAP) / 2));
   const imgY = 54;
   const maskY = imgY + s + 24;
   const line1 = maskY + s + 20;
   return { s, x0: PAD, x1: PAD + s + COL_GAP, imgY, maskY, line1, line2: line1 + 16, bandY: line1 + 38 };
 }
 
-export const thumbSize = (w) => Math.min(82, Math.floor((w - 2 * PAD - (THUMB_COLS - 1) * THUMB_GAP) / THUMB_COLS));
+export const thumbSize = (w) => Math.min(79, Math.floor((w - 2 * PAD - (THUMB_COLS - 1) * THUMB_GAP) / THUMB_COLS));
 
 export function bandLayout(w, params) {
   const L = figureLayout(w);
@@ -644,7 +651,7 @@ export function pipelineLayout(w) {
   const detailY = listBottom + 20;
   const stripY = detailY + 48;
   const thumb = Math.floor((w - 2 * PAD - (EPOCHS - 1) * 8) / EPOCHS);
-  const ts = Math.min(60, thumb);
+  const ts = Math.min(56, thumb);
   return { row, s, top, sx: w - PAD - s, detailY, stripY, ts, stripGap: (w - 2 * PAD - EPOCHS * ts) / (EPOCHS - 1), height: stripY + 12 + ts + 24 };
 }
 
