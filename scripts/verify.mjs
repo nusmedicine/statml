@@ -41,6 +41,7 @@ const SCRIPTS = [
   "widgets/_lab/cnn-verify.mjs",                // the counts, the receptive field and the stage widget 61 draws
   "widgets/_lab/gradcam-verify.mjs",            // the engine, the trained claims, Grad-CAM's arithmetic and the stage widget 64 draws
   "widgets/_lab/unet-verify.mjs",               // the shapes and counts against torch, the Dice claims and the stage widget 65 draws
+  "widgets/_lab/augmentation-verify.mjs",       // the engine against MONAI 1.6.0, the smear's claims and the stage widget 62 draws
   "widgets/_lab/loss-functions-verify.mjs",     // the three losses and the stage widget 54 draws
   "widgets/_lab/optimizers-verify.mjs",         // torch.optim's own update rules, and the stage widget 55 draws
   "widgets/_lab/prs-verify.mjs",      // the region, the score, the threshold curve and the stage widget 59 draws

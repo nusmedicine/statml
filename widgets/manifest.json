@@ -973,6 +973,25 @@
       ],
       "arc": 65,
       "status": "shipped"
+    },
+    {
+      "slug": "augmentation",
+      "title": "Deep Learning - Image Augmentation",
+      "blurb": "Augmentation applies random flips, rotations, affine transforms, contrast and noise to each training image every epoch.",
+      "course": "PHM5005",
+      "topics": [
+        "data augmentation",
+        "MONAI",
+        "RandFlipd",
+        "RandRotate90d",
+        "RandAffined",
+        "Compose",
+        "CacheDataset",
+        "segmentation",
+        "deep learning"
+      ],
+      "arc": 62,
+      "status": "draft"
     }
   ]
 }

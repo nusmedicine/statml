@@ -7067,6 +7067,60 @@
       },
       "px": "73575f21",
       "tx": "dd4774a4"
+    },
+    {
+      "$note": "augmentation · DRAFT placeholder · Transforms, Flip, nothing drawn",
+      "slug": "augmentation",
+      "state": "?theme=light&shown=0",
+      "px": "0",
+      "tx": "0"
+    },
+    {
+      "$note": "augmentation · DRAFT placeholder · Transforms, Flip, twelve draws",
+      "slug": "augmentation",
+      "state": "?theme=light&shown=12",
+      "px": "0",
+      "tx": "0"
+    },
+    {
+      "$note": "augmentation · DRAFT placeholder · Transforms, Flip with the mask left out of keys, twelve draws",
+      "slug": "augmentation",
+      "state": "?theme=light&keys=image&shown=12",
+      "px": "0",
+      "tx": "0"
+    },
+    {
+      "$note": "augmentation · DRAFT placeholder · Transforms, Affine with the label bilinear, twelve draws",
+      "slug": "augmentation",
+      "state": "?theme=light&transform=affine&affine_prob=1&mode=bilinear&shown=12",
+      "px": "0",
+      "tx": "0"
+    },
+    {
+      "$note": "augmentation · DRAFT placeholder · Transforms, Contrast, twelve draws",
+      "slug": "augmentation",
+      "state": "?theme=light&transform=contrast&shown=12",
+      "px": "0",
+      "tx": "0"
+    },
+    {
+      "$note": "augmentation · DRAFT placeholder · Pipeline, epoch 3 part-way",
+      "slug": "augmentation",
+      "state": "?theme=light&topic=pipeline&shown=30",
+      "px": "0",
+      "tx": "0"
+    },
+    {
+      "$note": "augmentation · DRAFT placeholder · DRIVEN - the first draw caught mid-way",
+      "slug": "augmentation",
+      "state": "?theme=light",
+      "drive": {
+        "click": "step",
+        "frames": 4,
+        "dt": 32
+      },
+      "px": "0",
+      "tx": "0"
     }
   ]
 }

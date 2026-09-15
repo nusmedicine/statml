@@ -15591,9 +15591,61 @@ is **the call as code** (core's `expr`). Taken as drawn without a question: the
 per-transform depictions of § 2 with Noise iii, the magnifier band when the label's
 mode is bilinear.
 
-**NEXT: re-pin in `[C, H, W]` order** (the reader argument reverses Rotate90's and
-the affine's turn on screen and puts `translate` and `scale` in (y, x) order — to
-be measured on MONAI through a non-square file, not derived), **then the draft.**
+**Re-pinned the same night** through a 28 × 36 file in both reader orders (the
+MEASURED facts above now hold for `[C, H, W]` too: axis 0 top–bottom, k = 1
+counter-clockwise, a positive rotate clockwise, translate and scale (height,
+width)); the engine's order mapping reproduces MONAI in both.
+
+#### DRAFTED 2026-09-15 (night) — `widgets/augmentation/`, manifest status draft
+
+Built in the main session from the mock and the measure: `engine.js` (the
+measured engine lifted verbatim, plus `fileOp`, the ONE restatement of a MONAI
+call in the file's axes that the pixels and the outline both read), `model.js`
+(the smear, the draws, the listing, CacheDataset's steps, the geometry; no DOM),
+`main.js`, `index.html`; `_lab/augmentation-verify.mjs` registered in
+`scripts/verify.mjs` (3,869 checks: §1 the engine against the pin in both orders,
+§2 the smear's claims and the outline covering the resampled mask at Dice > 0.99
+for flips, turns and two affines, §3 the draws, the default seed's reading and
+CacheDataset's boundary, §4 the geometry at 550 and 770, §5 the copy); seven
+placeholder states (px and tx both "0"). `check` and `test` green (28 scripts).
+Read in the browser pane at 746 px (stacked) and at an emulated 1280 (side, canvas
+770): every page draws with no console error, and a fillText sweep found no NaN
+and no string past the canvas on Affine bilinear, Flip with keys image, and the
+Pipeline at epoch 4 — one overrun fixed there (the note under the sample, now two
+lines).
+
+**Decisions the draft made, for his round one:**
+1. **Flip is the default transform** (cell 19's first line), and **Seed 106**: the
+   first 200 seeds measured for the opening reading — Flip's first draw applied
+   and five of twelve, every k on Rotate, five of twelve on Affine, and a first
+   epoch firing three of six random lines with the affine among them (seed 1
+   opened Flip on a draw that was not applied). §3 asserts it.
+2. **A draw that does not fire adds nothing** — no dot, no curve — a departure from
+   the mock, which drew all twelve affine draws so the ranges filled: MONAI draws no
+   arguments for a sample it returns unchanged. The prob slot fills the range.
+3. **Transform is a data change**: switching starts that transform's twelve draws
+   from empty (2.1); White blood cell is display and redraws the same draws.
+4. **The Pipeline page always uses the off-centre cell**, since the White blood
+   cell control is shown on the Transforms page only and a hidden value must not
+   change a figure.
+5. **The Transform faces are Flip · Rotate · Affine · Contrast · Noise** — "Rotate
+   90" was cut to "Rotate …" at 300 px in the mock; the call below names
+   RandRotate90d.
+6. **Values print in the call's order**: an affine draw reads `translate (h, w)`
+   and `scale (h, w)`, the range boxes label height and width.
+7. **The panels stay 255 px** on a wide canvas (at 770 the figure leaves room on
+   the right) — growing them makes a Transforms page over 1,100 px.
+8. **Below 880 px (stacked layout) the call's lines sit side by side**, as core
+   lays fields in a row there; in the side rail they stack as code.
+9. **Noise's difference × 20 saturates** at a widened std (σ 0.04 × 20); at cell
+   19's 0.01 it is a grey speckle.
+
+**NEXT: his round one** at `/widgets/augmentation/` (Transforms) and
+`/widgets/augmentation/?topic=pipeline`; then the copy audit's four passes, "tested
+ok", a shooter and states (settled, one driven; no regions, so no hit state),
+status flip in the manifest AND `main.js`, the full suite fronted, `check` and
+`test` read alone, commit, push — after he has changed cell 19's LoadImaged, which
+the widget's axis wording assumes.
 
 *The entry below is the plan as first written and cut on 2026-09-13, kept as
 written.*
