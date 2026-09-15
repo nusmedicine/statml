@@ -1,0 +1,409 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · unet — round 3</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1600px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 100ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); min-height: 26px; white-space: pre-line; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 100ch; }
+  table.lvl { border-collapse: collapse; font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--ink-1);
+              background: var(--surface-1); border: 1px solid var(--grid); margin-bottom: 6px; }
+  table.lvl th { font-family: var(--font); font-weight: 600; color: var(--ink-2); text-align: left; padding: 4px 10px; border-bottom: 1px solid var(--grid); }
+  table.lvl td { padding: 3px 10px; white-space: nowrap; }
+  table.lvl td.name { color: var(--ink-3); }
+  table.lvl td.arrow { color: var(--ink-3); padding: 3px 2px; }
+  table.lvl td.enc { border-left: 3px solid var(--c-group-a); }
+  table.lvl td.dec { border-left: 3px solid var(--c-group-b); }
+  table.lvl tr.bottle td { border-top: 1px dashed var(--grid); }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>unet &middot; round 3</h1>
+  <p class="note">
+    <b>Your two points on round 2.</b> (1) The dimensions are not aligned with the diagram by level: the card lists
+    the stages in the order the network runs them, three columns wide, so enc1 and cat1 never sit on one line and
+    a student cannot see the skip's channels add. (2) The connectors float, the bottleneck worst: each level had
+    ONE slab on a fixed step, so the pool arrow dropped into empty space and the bottleneck sat at the centre, away
+    from the arrows into and out of it.
+  </p>
+  <p class="note">
+    <b>The layout, one answer for both variants below: your figure's own construction.</b> Two slabs a level on
+    the way down, the pooled input and the DoubleConv output with a conv arrow between; the pool arrow drops
+    straight from the output slab onto the next level's input slab, directly under it; the bottleneck row is the
+    last pooled map and the bottleneck, and the up arrow rises from the bottleneck's right end into the up half of
+    the concatenation; on the way up each level is the concatenation, a conv arrow and the decoder slab, and the
+    next up arrow rises from that slab. Every arrow now starts and ends on a slab. Widths stay proportional to
+    the channels, scaled so the whole U fits the room it is given. Drawn at depth 4, base 8, input 128 &mdash; your
+    screenshot's settings.
+  </p>
+
+  <h2>A &middot; the shapes on the diagram, at each slab</h2>
+  <p class="note">
+    Each slab carries its own shape as channels &times; H &times; W (the batch of 10 is said once, in the caption), under
+    the slab at the top levels and beside it where the rows are short. The skip line and the concatenation are on
+    one row, so enc<sub>l</sub>'s <code>8 &times; 128 &times; 128</code> and cat<sub>l</sub>'s
+    <code>16 &times; 128 &times; 128</code> are read along the same line.
+  </p>
+  <div class="row" id="rowA"></div>
+  <p class="rec" id="recA"></p>
+
+  <h2>B &middot; a level column beside the diagram</h2>
+  <p class="note">
+    The diagram carries names only; a column to its right has one line a level at the same height as that level's
+    row: <code>enc<sub>l</sub> ⇢ cat<sub>l</sub> → dec<sub>l</sub></code> with their shapes, and the bottleneck's line
+    at its row. At 746 it fits beside the U; at 550 the U takes the width and the column cannot, so it moves under
+    the U as a table in the same level order (shown second).
+  </p>
+  <div class="row" id="rowB"></div>
+  <p class="rec" id="recB"></p>
+
+  <h2>C &middot; the card as a level table, the diagram unchanged</h2>
+  <p class="note">
+    The card above the figure becomes a table: a row a level, the encoder's input and output on the left, the skip,
+    the upsampled maps, the concatenation and the decoder's output on the right, the bottleneck in its own row. The
+    diagram is A's layout with names only. Rows fill in as Next stage adds stages.
+  </p>
+  <div class="row" id="rowC"></div>
+  <p class="rec" id="recC"></p>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+const PAD = 14;
+
+const wash = (hex, a) => {
+  const p = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+  return `rgba(${p[0]},${p[1]},${p[2]},${a})`;
+};
+function txt(ctx, s, x, y, o = {}) {
+  const { color = T.ink2, align = "left", size = T.fsSm, baseline = "alphabetic", mono = false, weight = "" } = o;
+  ctx.save();
+  ctx.fillStyle = color; ctx.textAlign = align; ctx.textBaseline = baseline;
+  ctx.font = `${weight} ${size} ${mono ? T.mono : T.font}`.trim();
+  ctx.fillText(s, x, y);
+  ctx.restore();
+}
+const note = (ctx, s, x, y, tone, o = {}) => txt(ctx, s, x, y, { color: tone ?? T.ink3, size: T.fsXs, ...o });
+function frame(ctx, x, y, w, h, stroke, width = 1) {
+  ctx.save(); ctx.strokeStyle = stroke; ctx.lineWidth = width; ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1); ctx.restore();
+}
+function arrow(ctx, x0, y0, x1, y1, color, o = {}) {
+  ctx.save();
+  ctx.strokeStyle = ctx.fillStyle = color;
+  ctx.lineWidth = o.width ?? 1.2;
+  if (o.dash) ctx.setLineDash(o.dash);
+  ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+  ctx.setLineDash([]);
+  const a = Math.atan2(y1 - y0, x1 - x0);
+  ctx.beginPath(); ctx.moveTo(x1, y1);
+  ctx.lineTo(x1 - 6 * Math.cos(a - 0.4), y1 - 6 * Math.sin(a - 0.4));
+  ctx.lineTo(x1 - 6 * Math.cos(a + 0.4), y1 - 6 * Math.sin(a + 0.4));
+  ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+function cand(rowId, title, sub, w) { const box = el("div", "cand"); box.style.width = `${w}px`; box.appendChild(el("h3", null, title)); box.appendChild(el("p", "sub", sub)); document.getElementById(rowId).appendChild(box); return box; }
+function canvasIn(box, w, h) { const c = document.createElement("canvas"); c.width = Math.round(w * DPR); c.height = Math.round(h * DPR); c.style.width = `${w}px`; c.style.height = `${h}px`; box.appendChild(c); const ctx = c.getContext("2d"); ctx.scale(DPR, DPR); return ctx; }
+const shp = (C, H) => `${C} × ${H} × ${H}`;
+
+/* ==========================================================================
+   THE CONNECTED LAYOUT: Kenneth's figure's construction.
+   ====================================================================== */
+const A = 22;            // a conv arrow's length, and the gap it spans
+/* the bottleneck row's arrow: the deepest skip is this long, so it scales with the room */
+const aBottomFor = (room) => Math.max(90, Math.min(190, room * 0.32));
+const ROW_GAP = 30;
+const LEVEL_H = 150;
+const ROW_MIN = 10;
+const SLAB_MIN = 5;
+
+function build(depth, base, input, x0, room, cw) {
+  const C = (l) => base * 2 ** (l - 1);             // channels at level l
+  const H = (l) => Math.max(1, input >> (l - 1));    // side at level l
+  const w = (c) => Math.max(SLAB_MIN, c * cw);
+  const A_BOTTOM = aBottomFor(room);
+  const s = {};
+  /* down */
+  s.input = { x: x0, level: 1, C: 3, H: input, kind: "in" };
+  s.enc1 = { x: x0 + w(3) + A, level: 1, C: C(1), H: H(1), kind: "enc" };
+  for (let l = 2; l <= depth; l += 1) {
+    const e = s[`enc${l - 1}`];
+    s[`pool${l - 1}`] = { x: e.x + w(e.C) - w(C(l - 1)), level: l, C: C(l - 1), H: H(l), kind: "pool" };
+    s[`enc${l}`] = { x: s[`pool${l - 1}`].x + w(C(l - 1)) + A, level: l, C: C(l), H: H(l), kind: "enc" };
+  }
+  const ed = s[`enc${depth}`];
+  s[`pool${depth}`] = { x: ed.x + w(ed.C) - w(C(depth)), level: depth + 1, C: C(depth), H: H(depth + 1), kind: "pool" };
+  s.bottleneck = { x: s[`pool${depth}`].x + w(C(depth)) + A_BOTTOM, level: depth + 1, C: C(depth + 1), H: H(depth + 1), kind: "bottleneck" };
+  /* up */
+  let below = s.bottleneck;
+  for (let l = depth; l >= 1; l -= 1) {
+    const upW = w(C(l));
+    const upX = below.x + w(below.C) - upW;
+    s[`cat${l}`] = { x: upX - upW, level: l, C: 2 * C(l), H: H(l), kind: "cat", halfW: upW };
+    s[`up${l}`] = { x: upX, level: l, C: C(l), H: H(l), kind: "up" };
+    s[`dec${l}`] = { x: upX + upW + A, level: l, C: C(l), H: H(l), kind: "dec" };
+    below = s[`dec${l}`];
+  }
+  s.head = { x: s.dec1.x + w(C(1)) + A, level: 1, C: 1, H: input, kind: "head" };
+  for (const k of Object.keys(s)) s[k].w = k.startsWith("cat") ? 2 * s[k].halfW : w(s[k].C);
+  const right = s.head.x + s.head.w;
+  /* rows */
+  const rows = [];
+  let y = 0;
+  for (let l = 1; l <= depth + 1; l += 1) {
+    const h = Math.max(ROW_MIN, LEVEL_H * H(l) / input);
+    rows.push({ y, h });
+    y += h + ROW_GAP;
+  }
+  return { s, rows, right, height: y - ROW_GAP };
+}
+/** the largest channel width that fits the room */
+function fit(depth, base, input, x0, room) {
+  let cw = 4;
+  for (let i = 0; i < 60; i += 1) {
+    const L = build(depth, base, input, x0, room, cw);
+    if (L.right - x0 <= room) return { ...L, cw };
+    cw *= 0.92;
+  }
+  return { ...build(depth, base, input, x0, room, cw), cw };
+}
+
+/** draw the U with names; `shapes` "slab" puts each shape at its slab */
+function drawU(ctx, L, top, depth, { shapes = null, chosen = null } = {}) {
+  const { s, rows } = L;
+  const Y = (l) => top + rows[l - 1].y;
+  const Hh = (l) => rows[l - 1].h;
+  const tone = (k, base) => (k === chosen ? T.highlight : base);
+  const slab = (k, fill, stroke) => {
+    const b = s[k];
+    ctx.save(); ctx.fillStyle = wash(fill, 0.35); ctx.fillRect(b.x, Y(b.level), b.w, Hh(b.level)); ctx.restore();
+    frame(ctx, b.x, Y(b.level), b.w, Hh(b.level), tone(k, stroke), k === chosen ? 2 : 1);
+  };
+  /* down */
+  slab("input", T.ink3, T.axis);
+  for (let l = 1; l <= depth; l += 1) {
+    const inKey = l === 1 ? "input" : `pool${l - 1}`;
+    if (l > 1) slab(inKey, T.groupA, T.groupA);
+    slab(`enc${l}`, T.groupA, T.groupA);
+    const i = s[inKey];
+    arrow(ctx, i.x + i.w + 2, Y(l) + Hh(l) / 2, s[`enc${l}`].x - 2, Y(l) + Hh(l) / 2, T.dims[1]);
+    /* the pool arrow: straight down from the output slab onto the slab below */
+    const e = s[`enc${l}`];
+    const p = s[`pool${l}`];
+    const ax = p.x + p.w / 2;
+    arrow(ctx, ax, Y(l) + Hh(l) + 2, ax, Y(l + 1) - 2, tone(`pool${l}`, T.dims[0]));
+  }
+  slab(`pool${depth}`, T.groupA, T.groupA);
+  slab("bottleneck", T.groupA, T.groupA);
+  const pd = s[`pool${depth}`];
+  arrow(ctx, pd.x + pd.w + 2, Y(depth + 1) + Hh(depth + 1) / 2, s.bottleneck.x - 2, Y(depth + 1) + Hh(depth + 1) / 2, T.dims[1]);
+  /* up */
+  for (let l = depth; l >= 1; l -= 1) {
+    const c = s[`cat${l}`];
+    const y = Y(l);
+    const h = Hh(l);
+    ctx.save();
+    ctx.fillStyle = wash(T.groupA, 0.35); ctx.fillRect(c.x, y, c.halfW, h);
+    ctx.fillStyle = wash(T.groupB, 0.35); ctx.fillRect(c.x + c.halfW, y, c.halfW, h);
+    ctx.restore();
+    frame(ctx, c.x, y, c.w, h, tone(`cat${l}`, T.groupB), `cat${l}` === chosen ? 2 : 1);
+    ctx.save(); ctx.strokeStyle = tone(`cat${l}`, T.dims[1]); ctx.lineWidth = 1.5; ctx.beginPath();
+    ctx.moveTo(c.x, y - 4); ctx.lineTo(c.x, y - 8); ctx.lineTo(c.x + c.w, y - 8); ctx.lineTo(c.x + c.w, y - 4); ctx.stroke(); ctx.restore();
+    /* the up arrow: straight up from the slab below into the up half */
+    const u = s[`up${l}`];
+    const src = l === depth ? s.bottleneck : s[`dec${l + 1}`];
+    const ux = u.x + u.w / 2;
+    arrow(ctx, ux, Y(src.level) - 2, ux, y + h + 2, tone(`up${l}`, T.dims[0]));
+    /* the skip: from the encoder output to the concatenation's left edge, on the row's centre line */
+    const e = s[`enc${l}`];
+    arrow(ctx, e.x + e.w + 3, y + h / 2, c.x - 3, y + h / 2, T.ink3, { dash: [2, 3], width: 1 });
+    slab(`dec${l}`, T.groupB, T.groupB);
+    const d = s[`dec${l}`];
+    arrow(ctx, c.x + c.w + 2, y + h / 2, d.x - 2, y + h / 2, T.dims[1]);
+  }
+  slab("head", T.empirical, T.empirical);
+  arrow(ctx, s.dec1.x + s.dec1.w + 2, Y(1) + Hh(1) / 2, s.head.x - 2, Y(1) + Hh(1) / 2, T.dims[1]);
+
+  /* names: the encoder level left of its row, the decoder level right of it */
+  for (let l = 1; l <= depth; l += 1) {
+    const first = l === 1 ? s.input : s[`pool${l - 1}`];
+    note(ctx, `enc${l}`, first.x - 6, Y(l) + Hh(l) / 2 + 4, T.ink2, { align: "right", mono: true });
+    const last = l === 1 ? s.head : s[`dec${l}`];
+    note(ctx, l === 1 ? "dec1 · head" : `dec${l}`, last.x + last.w + 6, Y(l) + Hh(l) / 2 + 4, T.ink2, { mono: true });
+  }
+  note(ctx, "bottleneck", s.bottleneck.x + s.bottleneck.w + 8, Y(depth + 1) + Hh(depth + 1) / 2 + 4, T.ink2, { mono: true });
+
+  if (shapes === "slab") {
+    const tall = (l) => Hh(l) >= 40;
+    const put = (k, place) => {
+      const b = s[k];
+      const y = Y(b.level);
+      const h = Hh(b.level);
+      const str = shp(b.C, b.H);
+      if (place === "under") note(ctx, str, b.x + b.w / 2, y + h + 13, T.groupA, { align: "center", mono: true });
+      else if (place === "above") note(ctx, str, b.x + b.w / 2, y - 12, T.ink1, { align: "center", mono: true });
+    };
+    for (let l = 1; l <= depth; l += 1) {
+      /* the skip's two ends on one line, above the row: what arrives and what it joins */
+      const e = s[`enc${l}`];
+      const c = s[`cat${l}`];
+      const y = Y(l) - 12;
+      note(ctx, shp(e.C, e.H), e.x + e.w + 6, Y(l) + Hh(l) / 2 - 5, T.groupA, { mono: true });
+      /* where the line is too short for both shapes, the concatenation's goes under it */
+      ctx.save(); ctx.font = `${T.fsXs} ${T.mono}`;
+      const need = ctx.measureText(shp(e.C, e.H)).width + ctx.measureText(shp(c.C, c.H)).width + 24;
+      ctx.restore();
+      const under = c.x - (e.x + e.w) < need;
+      note(ctx, shp(c.C, c.H), c.x - 6, Y(l) + Hh(l) / 2 + (under ? 14 : -5), T.ink1, { mono: true, align: "right" });
+      void y; void tall;
+    }
+    put("bottleneck", "under");
+  }
+  return L;
+}
+
+/* ==========================================================================
+   A · shapes on the diagram.
+   ====================================================================== */
+for (const W of [746, 550]) {
+  const depth = 4; const base = 8; const input = 128;
+  const x0 = PAD + 46;
+  const L = fit(depth, base, input, x0, W - x0 - PAD - 70);
+  const top = 72;
+  const h = top + L.height + 40;
+  const box = cand("rowA", `A at ${W}`, `every arrow starts and ends on a slab; the skip line carries the encoder's shape at its start and the concatenation's at its end`, W);
+  const ctx = canvasIn(box, W, h);
+  txt(ctx, "U-Net: the encoder down, the decoder up, and the skips across", PAD, 24, { weight: "600" });
+  note(ctx, "Shapes are channels × height × width, for a batch of 10. Click a block to see its operation.", PAD, 40);
+  drawU(ctx, L, top, depth, { shapes: "slab", chosen: "enc4" });
+  box.querySelector(".sub").textContent += `\nstage ${h}px, U ${Math.round(L.right - x0)}px wide`;
+}
+document.getElementById("recA").innerHTML =
+  `A keeps everything on one picture: along each skip line a student reads the encoder's <code>8 × 128 × 128</code> `
+  + `at the start and the concatenation's <code>16 × 128 × 128</code> at the end, on the same row. It costs twelve `
+  + `strings on the figure, and at the two lowest levels of a depth-4 net the rows are short, so the strings sit `
+  + `close to the arrows.`;
+
+/* ==========================================================================
+   B · a level column beside the diagram.
+   ====================================================================== */
+function levelLines(depth, base, input) {
+  const C = (l) => base * 2 ** (l - 1);
+  const H = (l) => Math.max(1, input >> (l - 1));
+  const lines = [];
+  for (let l = 1; l <= depth; l += 1) {
+    lines.push({ level: l, parts: [[`enc${l}`, shp(C(l), H(l)), T.groupA], ["⇢", "", T.ink3], [`cat${l}`, shp(2 * C(l), H(l)), T.ink1], ["→", "", T.ink3], [`dec${l}`, shp(C(l), H(l)), T.groupB]] });
+  }
+  lines.push({ level: depth + 1, parts: [["bottleneck", shp(C(depth + 1), H(depth + 1)), T.groupA]] });
+  return lines;
+}
+function drawLine(ctx, parts, x, y) {
+  let cx = x;
+  ctx.save();
+  ctx.font = `${T.fsXs} ${T.mono}`;
+  for (const [name, str, tone] of parts) {
+    if (!str) { note(ctx, name, cx, y, tone, { mono: true }); cx += ctx.measureText(name).width + 8; continue; }
+    note(ctx, name, cx, y, T.ink3, { mono: true });
+    note(ctx, str, cx, y + 13, tone, { mono: true });
+    cx += Math.max(ctx.measureText(name).width, ctx.measureText(str).width) + 10;
+  }
+  ctx.restore();
+  return cx;
+}
+{
+  const W = 746; const depth = 4; const base = 8; const input = 128;
+  const x0 = PAD + 46;
+  const colW = 300;
+  const L = fit(depth, base, input, x0, W - x0 - PAD - colW - 100);
+  const top = 72;
+  const h = top + L.height + 40;
+  const box = cand("rowB", "B at 746", "the U in the left 60%; the level column at the same heights as the rows", W);
+  const ctx = canvasIn(box, W, h);
+  txt(ctx, "U-Net: the encoder down, the decoder up, and the skips across", PAD, 24, { weight: "600" });
+  note(ctx, "Shapes are channels × height × width, for a batch of 10. Click a block to see its operation.", PAD, 40);
+  drawU(ctx, L, top, depth, { chosen: "enc4" });
+  const cx = Math.max(W - PAD - colW, L.right + 90);   // clear of the U's last label
+  ctx.save(); ctx.strokeStyle = T.grid; ctx.beginPath(); ctx.moveTo(cx - 12.5, top - 10); ctx.lineTo(cx - 12.5, top + L.height + 20); ctx.stroke(); ctx.restore();
+  note(ctx, "at each level: the skip joins, then the decoder", cx, top - 2, T.ink2);
+  for (const line of levelLines(depth, base, input)) {
+    const r = L.rows[line.level - 1];
+    const y = top + r.y + r.h / 2 - 2;
+    drawLine(ctx, line.parts, cx, Math.max(top + 12, y));
+  }
+  box.querySelector(".sub").textContent += `\nstage ${h}px`;
+}
+{
+  const W = 550; const depth = 4; const base = 8; const input = 128;
+  const x0 = PAD + 46;
+  const L = fit(depth, base, input, x0, W - x0 - PAD - 70);
+  const top = 72;
+  const tableTop = top + L.height + 44;
+  const lines = levelLines(depth, base, input);
+  const h = tableTop + lines.length * 34 + 16;
+  const box = cand("rowB", "B at 550", "the column cannot fit beside the U, so it moves under it, in level order", W);
+  const ctx = canvasIn(box, W, h);
+  txt(ctx, "U-Net: the encoder down, the decoder up, and the skips across", PAD, 24, { weight: "600" });
+  note(ctx, "Shapes are channels × height × width, for a batch of 10. Click a block to see its operation.", PAD, 40);
+  drawU(ctx, L, top, depth, { chosen: "enc4" });
+  lines.forEach((line, i) => drawLine(ctx, line.parts, PAD, tableTop + i * 34));
+  box.querySelector(".sub").textContent += `\nstage ${h}px`;
+}
+document.getElementById("recB").innerHTML =
+  `B lines each level's shapes up with that level's row and leaves the diagram clean, but it does not fit: `
+  + `at 746 the column, placed clear of the U's last label, runs past the right edge (above), and at 550 it has `
+  + `to move under the U and loses the alignment it exists for. Measured out, not recommended.`;
+
+/* ==========================================================================
+   C · the card as a level table.
+   ====================================================================== */
+{
+  const W = 746; const depth = 4; const base = 8; const input = 128;
+  const Cc = (l) => base * 2 ** (l - 1);
+  const Hc = (l) => Math.max(1, input >> (l - 1));
+  const box = cand("rowC", "C at 746", "the card, then the diagram with names only", W);
+  const t = el("table", "lvl");
+  t.innerHTML = `<tr><th>level</th><th>encoder in</th><th></th><th>encoder out</th><th></th><th>up</th><th></th><th>concatenation</th><th></th><th>decoder out</th></tr>`;
+  for (let l = 1; l <= depth; l += 1) {
+    const inShp = l === 1 ? shp(3, input) : shp(Cc(l - 1), Hc(l));
+    t.innerHTML += `<tr><td class="name">${l}</td><td class="enc">${inShp}</td><td class="arrow">→</td><td class="enc">${shp(Cc(l), Hc(l))}</td>`
+      + `<td class="arrow">⇢</td><td class="dec">${shp(Cc(l), Hc(l))}</td><td class="arrow">+</td><td>${shp(2 * Cc(l), Hc(l))}</td>`
+      + `<td class="arrow">→</td><td class="dec">${shp(Cc(l), Hc(l))}</td></tr>`;
+  }
+  t.innerHTML += `<tr class="bottle"><td class="name">${depth + 1}</td><td class="enc">${shp(Cc(depth), Hc(depth + 1))}</td><td class="arrow">→</td><td class="enc">${shp(Cc(depth + 1), Hc(depth + 1))}</td><td colspan="6" class="name">the bottleneck</td></tr>`;
+  box.appendChild(t);
+  const x0 = PAD + 46;
+  const L = fit(depth, base, input, x0, W - x0 - PAD - 70);
+  const top = 50;
+  const h = top + L.height + 40;
+  const ctx = canvasIn(box, W, h);
+  txt(ctx, "U-Net: the encoder down, the decoder up, and the skips across", PAD, 24, { weight: "600" });
+  drawU(ctx, L, top, depth, { chosen: "enc4" });
+  box.querySelector(".sub").textContent += `\ntable ${t.getBoundingClientRect().height.toFixed(0)}px + stage ${h}px`;
+}
+document.getElementById("recC").innerHTML =
+  `C is the most complete reading of the dimensions — the up column and the encoder-out column are the same shape `
+  + `on every row, which is the skip's condition, and the concatenation is their sum — and it works at any width. `
+  + `But it is a second picture above the first: the eye goes table, diagram, table.`
+  + `<br><br><b>Recommendation: the connected layout with A.</b> The shapes a student needs to compare are on the `
+  + `skip line they are comparing along; B is cleaner at 746 but breaks at 550; C can stay as the card if you want `
+  + `the full table as well.`;
+</script>
+</main>
+</body>
+</html>
