@@ -12,7 +12,7 @@ answer can be checked against what was assumed.
 
 | looking for | go to |
 |---|---|
-| what to build next | Kenneth’s call. **The cancer mutation arc (PHM5003 week 7, slots 67–71) was PROPOSED 2026-09-16** and waits for his picks — § *The cancer mutation arc*. The image arc under PHM5005 (slots 61–66) has 61 `cnn-architecture`, 64 `grad-cam`, 65 `unet` and 62 `augmentation` shipped, 63 `pretrained` measured and mocked and on KIV (his call 2026-09-15), 66 folded into 65; slot 52 `training-loop` (05-4) was discarded 2026-09-13, his call when the image arc was planned; the GWAS and PRS arc (56, 57, 59, 60) and the high-throughput arc are complete |
+| what to build next | **The cancer mutation arc (PHM5003 week 7), PROPOSED AND PICKED 2026-09-16: three widgets, 67 `tumor-heterogeneity` (with 68's tree as its last page) → 69 `driver-genes` → 70 `mutational-signatures`, 71 held back** — § *The cancer mutation arc*, where the next step is 67's measure script. The image arc under PHM5005 (slots 61–66) has 61 `cnn-architecture`, 64 `grad-cam`, 65 `unet` and 62 `augmentation` shipped, 63 `pretrained` measured and mocked and on KIV (his call 2026-09-15), 66 folded into 65; slot 52 `training-loop` (05-4) was discarded 2026-09-13, his call when the image arc was planned; the GWAS and PRS arc (56, 57, 59, 60) and the high-throughput arc are complete |
 | how a widget got its shape | § *Widget N*, in order |
 | the four-method reconnaissance | § *Widget 19*, under the PCA sections |
 | the arcs, and what is deliberately not a widget | the arc sections below |
@@ -8651,10 +8651,10 @@ dominating a decomposition; a nearest reference used as a name.
 | # | slug (provisional) | title | host | misconception | evidence | status |
 |---|---|---|---|---|---|---|
 | 67 | `variant-allele-frequency` | Tumor Heterogeneity | 01-2 cells 17–25 | a VAF below 0.5 is a subclone, and a cluster of VAFs is a clone. **Measured: 965 of 967 tumours have a median VAF below 0.5, and a tumour with one clone reads MATH 15–25 from sampling alone** | reported (Dentro, Wedge & Van Loo 2017; the lesson's cells 17 and 24 state both caveats) | proposed |
-| 68 | `clonal-architecture` | Clonal Architecture | 01-2 cell 25 and `cancer-retcher.png`; nothing run | the clusters' CCFs give the tree. **Measured on his figure: the sum rule rules out branching at three of its four samples, and the surgery sample alone fits both trees** | documented for the rule (Nik-Zainal et al. 2012, the pigeonhole principle); the misconception inferred | proposed — **cuttable, or 67's last page** |
+| 68 | `clonal-architecture` | Clonal Architecture | 01-2 cell 25 and `cancer-retcher.png`; nothing run | the clusters' CCFs give the tree. **Measured on his figure: the sum rule rules out branching at three of its four samples, and the surgery sample alone fits both trees** | documented for the rule (Nik-Zainal et al. 2012, the pigeonhole principle); the misconception inferred | **FOLDED into 67 as its last page, Kenneth's pick 2026-09-16** — the section below stands as that page's spec |
 | 69 | `driver-genes` | Cancer Driver Genes | 01-3 cells 12–25 | a gene `oncodrive` does not call is a passenger; a smaller FDR is a stronger driver. **Measured: TP53, CDH1, GATA3 and MAP3K1, four of the six most mutated genes, are absent from cell 16's table** | documented (Tamborero et al. 2013; TCGA 2012 names all four as significantly mutated) | proposed |
-| 70 | `mutational-signatures` | Mutational Signatures | 01-4 | an extracted signature is a process across the cohort, and its best COSMIC match names the cause. **Measured: Signature_1 is one tumour** | reported (Koh et al. 2021 on attribution) | proposed |
-| 71 | `somatic-interactions` | Somatic Interactions | 01-3 cells 4–11, 35 | two genes rarely mutated together share a pathway (cell 4's reading). **Measured: TP53–CDH1's odds ratio 0.153 is 0.407 within histology** | documented (Canisius, Martens & Wessels 2016; van de Haar et al. 2019) | **not asked for** — measured, cuttable |
+| 70 | `mutational-signatures` | Mutational Signatures | 01-4 | an extracted signature is a process across the cohort, and its best COSMIC match names the cause. **Measured: Signature_1 is one tumour** | reported (Koh et al. 2021 on attribution) | proposed — **a new widget importing 41's engine, his pick 2026-09-16** |
+| 71 | `somatic-interactions` | Somatic Interactions | 01-3 cells 4–11, 35 | two genes rarely mutated together share a pathway (cell 4's reading). **Measured: TP53–CDH1's odds ratio 0.153 is 0.407 within histology** | documented (Canisius, Martens & Wessels 2016; van de Haar et al. 2019) | **not asked for** — kept proposed, **his call after 67–70 are built** |
 
 **Every citation in this section is to re-read before copy quotes it**; they
 were named from memory while planning, and the numbers beside them were not.
@@ -8662,16 +8662,26 @@ were named from memory while planning, and the numbers beside them were not.
 Four is the honest count for three asks: heterogeneity is two ideas with two
 figures (a VAF and a tree), and the second is the one he marked *possibly*. 71
 is listed because the measurement found a confounded reading in the lesson's
-own table, not because it was asked for, and it is the first to cut. The order
-is the notebooks' own, 67 → 68 → 69 → 70.
+own table, not because it was asked for, and it is the first to cut.
+
+**Kenneth's picks, 2026-09-16, one `AskUserQuestion`, all four
+recommendations:** **three widgets** — 68 folds into 67 as its last page, so 67
+is *One mutation · Many mutations · Clonal architecture*; 70 is a new widget
+importing 41's engine rather than a third tab on 41; 71 waits until 67, 69 and
+70 are built; and **every stage is simulated and shaped by the lesson's MAF**,
+as the earlier arcs' are, rather than the lesson's own numbers embedded. The
+order is the notebooks' own, 67 → 69 → 70.
 
 **Slug rulings.** *Name the method or the data shape* (the 2026-08-28
 renames): `variant-allele-frequency` is what 67 measures, `driver-genes` what
 69 finds, `mutational-signatures` 01-4's own noun. His ask says *cancer gene
 signatures*; 01-4 says *mutational signatures*, and 01-3 cell 38's *gene
 signatures* (`survGroup`, not run) are something else, so the title takes
-01-4's term. If 68 folds into 67, the slug could be `tumor-heterogeneity`,
-cell 17's heading in its own spelling.
+01-4's term. **68 folded into 67 on his pick, so 67 is one widget about one
+thing**: the slug `tumor-heterogeneity` and the title *Tumor Heterogeneity*,
+cell 17's own heading and spelling, with `variant-allele-frequency` left in
+this record as the name the slot was planned under. To confirm with him at the
+mock, since a slug is a public URL.
 
 ### What the lesson's own output says — for Kenneth, his to fix
 
@@ -8931,17 +8941,23 @@ reading contested on screen.
   lookup.
 - **01-1 and 02-1**: querying GDC, the MAF and VCF formats, ANNOVAR.
 
-### The open calls — put to Kenneth 2026-09-16
+### The open calls — put to Kenneth and answered, 2026-09-16
 
-1. 67 and 68: one widget with the tree as its last page, two widgets, or 67
-   alone.
-2. 70: a new widget importing 41's engine, a third tab on 41, or 41 linked from
-   01-4 with nothing new built.
-3. 71: after the three he asked for, now, or not at all.
-4. The stages: simulated tumours, genes and cohorts shaped by the lesson's MAF,
-   or the lesson's TCGA-BRCA numbers embedded.
+1. **67 and 68:** one widget with the tree as its last page, two widgets, or 67
+   alone. Recommended the fold; **he chose the fold.**
+2. **70:** a new widget importing 41's engine, a third tab on 41, or 41 linked
+   from 01-4 with nothing new built. **The new widget.**
+3. **71:** after the three he asked for, now, or not at all. **After the
+   others**, so the catalogue keeps the slot and the measurement.
+4. **The stages:** simulated and shaped by the lesson's MAF, or the lesson's
+   TCGA-BRCA numbers embedded. **Simulated**, which also leaves the
+   open-access-data question unasked for now.
 
-**NEXT:** his picks, then 67's measure script and mock.
+Still open, and each belongs to its own mock rather than to this section: 67's
+slug; whether 69 draws a recurrence test beside the clustering one; and where
+70's reference profiles come from.
+
+**NEXT:** 67's measure script, then its mock from the newest mock's shell.
 
 ---
 
