@@ -422,12 +422,39 @@ const defaults = async () => resolveParams(await spec(), new URLSearchParams("")
   check("a scenario needing more than every tumor cell is ruled out",
     over && over.c > 1, over ? `m${over.m} would need ${M.n2(over.c)}` : "none");
 
-  /* The panel's height follows the rows it will draw, and the count is derived
-     from the parameters alone because `height` runs before `compute`. */
-  for (const [st, knows, want] of [["1+1", "both", 1], ["2+1", "both", 3], ["3+1", "both", 4], ["3+1", "nothing", 2]]) {
-    check(`${st} at "${knows}" reserves ${want} row${want > 1 ? "s" : ""}`,
-      M.scenarioRows({ state: st, knows }) === want
-      && M.scenariosFor(0.3, cfgOf({ state: st }), knows).rows.length === want);
+  /* THE HEIGHT RESERVES EXACTLY THE ROWS THE PANEL DRAWS, which since
+     2026-09-16 is the scenarios that FIT and not every one the level could
+     consider — the caption promised fits and the panel listed the rest as
+     well (Kenneth: "information overload"). Swept rather than pinned to four
+     counts, because the number now depends on the reading: `height` runs
+     before `compute`, so what it may read is the parameters, and the reading
+     is a pure function of those.  */
+  {
+    let off = 0;
+    let zero = 0;
+    let most = 0;
+    let n = 0;
+    for (const purity of M.PURITY_OPTIONS) {
+      for (const ccf of ["0.25", "0.50", "0.75", "1.00"]) {
+        for (const st of M.COPY_STATES) {
+          for (const copies of st.copies.map(String)) {
+            for (const k of M.KNOWLEDGE) {
+              const params = { ...(await defaults()), page: "one", purity, ccf, state: st.key, copies, knows: k.key };
+              const cfg = M.configOne(params);
+              const drawn = M.scenariosFor(cfg.expected, cfg, k.key).fits.length;
+              n += 1;
+              if (M.scenarioRows(params) !== drawn) off += 1;
+              if (drawn === 0) zero += 1;
+              most = Math.max(most, drawn);
+            }
+          }
+        }
+      }
+    }
+    check("the panel reserves exactly the rows it draws, at every setting",
+      off === 0, `${n} settings, ${off} off, at most ${most} rows`);
+    check("…including the settings where nothing fits and it draws none",
+      zero > 0, `${zero} of ${n}`);
   }
 }
 

@@ -323,6 +323,21 @@ export function verdictFor(vaf, cfg, level) {
   return "split";
 }
 
+/**
+ * WHICH ASSUMPTION IS ACTUALLY WRONG, so the figure can name it instead of
+ * saying "the assumption" and leaving the reader to work out which (Kenneth,
+ * 2026-09-16: "is this diploid assumption only?"). It is checkable rather than
+ * inferred: an assumed purity of 1 is wrong when the sample is not pure, and an
+ * assumed diploid genome is wrong when the copies do not come to two.
+ */
+export function assumptionsWrong(cfg, level) {
+  const known = knowsOf(level).key;
+  const out = [];
+  if (known === "nothing" && cfg.purity < 1) out.push("pure");
+  if (known !== "both" && cfg.state.total !== 2) out.push("diploid");
+  return out;
+}
+
 export function reportedScenario(vaf, cfg, level) {
   const { rows } = scenariosFor(vaf, cfg, level);
   return rows.find((r) => r.ok && r.truth) ?? rows.find((r) => r.ok) ?? rows[0];
@@ -350,7 +365,13 @@ export function scenariosFor(vaf, cfg, level) {
   } else {
     for (const g of ASSUMED_DIPLOID) push(stateOf(g.key), "major", g.m);
   }
-  return { rows, purity, known };
+  /* ONLY WHAT FITS REACHES THE FIGURE. The caption says "Scenarios that fit"
+     and the panel listed the ones that do not as well, each with a fraction
+     past 1 and a line underneath explaining what that meant — three hops from
+     "1.18" to "more than every tumor cell" (Kenneth, 2026-09-16: "still
+     confusing … it's information overload for me"). `rows` is what could be
+     considered; `fits` is what the figure draws. */
+  return { rows, fits: rows.filter((r) => r.ok), purity, known };
 }
 
 /* ---- page 2: many mutations ---------------------------------------------- */
@@ -619,9 +640,11 @@ const ROW_H = 44;
 /** How many scenarios the panel will list, without building them: the height
     is computed before `compute` runs, so it can only read the parameters. */
 export function scenarioRows(params) {
-  if (knowsOf(params.knows).key !== "both") return 2; // an assumed diploid: m = 1 or 2
-  const st = stateOf(params.state);
-  return hostsOf(st).reduce((n, h) => n + h.copies, 0);
+  /* The panel draws only the scenarios that FIT, and how many that is depends
+     on the reading — which is itself a pure function of the parameters, so the
+     height can still be computed before `compute` runs. */
+  const cfg = configOne(params);
+  return scenariosFor(cfg.expected, cfg, params.knows).fits.length;
 }
 
 export function layout(w, params) {
@@ -773,8 +796,13 @@ export const STRINGS = {
      asked what it referred to (2026-09-16), which is the whole answer: it means
      the analysis has ruled out the very sample he made, and saying his fraction
      beside the ones it does offer is what makes that land. */
-  truthMissing: (pct) => `The sample you built — ${pct} of tumor cells carry it — is ruled out by the assumption`,
-  overOne: "A fraction past 1 would need more than every tumor cell",
+  /* Named rather than "the assumption", and only the ones that are actually
+     wrong. The reader's own sample is the one thing on the figure they already
+     know, so what it needs to say is why it is not there. */
+  assumedPure: "a pure sample",
+  assumedDiploid: "a diploid genome",
+  nothingFits: (what, many) => `No scenario fits this reading — ${what} ${many ? "were" : "was"} assumed`,
+  notHere: (pct, what, many) => `The sample you built — ${pct} of tumor cells — is not here: ${what} ${many ? "were" : "was"} assumed`,
   /* The formula card's notes. Each names its letters and then says what the
      line divides by what — the general logic, in the lesson's own terms. */
   noteOne: "p is the fraction of cells in the sample that are tumor cells, c the fraction of those "

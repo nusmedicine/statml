@@ -409,12 +409,16 @@ function drawOne(ctx, colors, L, params, state, anim) {
       : M.STRINGS.givenBoth(M.n2(cfg.purity), cfg.state.label);
   text(ctx, `${M.STRINGS.scenariosCaption} — ${assuming}`, L.rows.x, L.rows.y - 12,
     { font: capFont(colors), fill: colors.ink1 });
-  const hosts = M.hostsOf(fit.rows[0]?.state ?? cfg.state).length;
-  fit.rows.forEach((row, i) => {
+  /* ONLY WHAT FITS IS DRAWN. The caption promises scenarios that fit, and the
+     panel used to list the ones that do not as well — each with a fraction past
+     1 and a line underneath to explain what that meant, which is three hops
+     from "1.18" to "more than every tumor cell" (Kenneth, 2026-09-16: "still
+     confusing … information overload"). What is left is the answer and, when
+     the reader's own sample is not among it, one line naming the assumption
+     that excludes it — by name, not as "the assumption". */
+  const hosts = M.hostsOf(fit.fits[0]?.state ?? cfg.state).length;
+  fit.fits.forEach((row, i) => {
     const y = L.rows.y + i * L.rowH;
-    /* The cell this scenario would be: the analysis's own state and count, so
-       an assumed diploid draws a plain heterozygote or a lost copy and the
-       allele-specific level draws the reader's own state on either chromosome. */
     /* THE READER'S OWN CELL IS A RULE DOWN THE ROW, not a phrase competing with
        the note for width: `--c-reference` is the token for the truth where one
        exists, and page 3 already marks the reader's choice by enclosure. */
@@ -426,47 +430,43 @@ function drawOne(ctx, colors, L, params, state, anim) {
       ctx.fillRect(L.rows.x - 6, y - 3, 3, L.cellR * 2 + 6);
       ctx.restore();
     }
+    /* The cell this scenario would be: the analysis's own state and count, so
+       an assumed diploid draws a plain heterozygote or a lost copy and the
+       allele-specific level draws the reader's own state on either chromosome. */
     drawScenarioCell(ctx, colors, L.rows.x + L.cellR, y + L.cellR, L.cellR, row);
     const barX = L.rows.x + L.cellR * 2 + 10;
     const barW = L.rows.w * 0.22;
     ctx.fillStyle = colors.surface3;
     ctx.fillRect(barX, y + L.cellR - 7, barW, 14);
-    if (row.ok) {
-      ctx.fillStyle = wash(colors.groupA, 0.85);
-      ctx.fillRect(barX, y + L.cellR - 7, barW * Math.min(1, row.c), 14);
-    }
+    ctx.fillStyle = wash(colors.groupA, 0.85);
+    ctx.fillRect(barX, y + L.cellR - 7, barW * Math.min(1, row.c), 14);
     ctx.strokeStyle = colors.grid;
     ctx.lineWidth = 1;
     ctx.strokeRect(barX + 0.5, y + L.cellR - 6.5, barW - 1, 13);
     /* WHICH CHROMOSOME, but only where there is a choice to name. Two rows that
        differ by host are the same count and the same fraction, so without this
-       they read as the figure repeating itself — which is how the copy states
-       read before they were told apart (his question of 2026-09-16). The word
-       "copies" goes when the phrase arrives, because the phrase carries it and
-       the line has 324px. */
-    const many = hosts > 1;
-    const which = many ? `${row.m} of ${row.state.total} on the ${hostCopies(row)}-copy chromosome`
+       they read as the figure repeating itself. */
+    const which = hosts > 1
+      ? `${row.m} of ${row.state.total} on the ${hostCopies(row)}-copy chromosome`
       : `${row.m} of ${row.state.total} copies`;
-    const note = row.ok
-      ? `${which} — ${M.pctText(row.c)} of tumor cells carry it`
-      : `${which} — would need ${M.n2(row.c)}`;
-    text(ctx, note, barX + barW + 10, y + L.cellR + 4, {
-      font: noteFont(colors), fill: row.ok ? colors.ink2 : colors.extreme,
-    });
+    text(ctx, `${which} — ${M.pctText(row.c)} of tumor cells carry it`,
+      barX + barW + 10, y + L.cellR + 4, { font: noteFont(colors), fill: colors.ink2 });
   });
-  /* The reason a scenario is out, said ONCE under the panel rather than on
-     every row that is: repeated, it did not fit the line and read as noise. */
-  let below = L.rows.y + fit.rows.length * L.rowH + 4;
-  if (fit.rows.some((r) => !r.ok)) {
-    text(ctx, M.STRINGS.overOne, L.rows.x, below, { font: noteFont(colors), fill: colors.extreme });
-    below += 16;
-  }
-  if (!fit.rows.some((r) => r.ok && r.truth)) {
-    text(ctx, M.STRINGS.truthMissing(M.pctText(cfg.ccf)), L.rows.x, below,
+
+  /* One line under the panel, and only when there is something to say: which
+     assumption leaves the reader's own sample out. */
+  const wrong = M.assumptionsWrong(cfg, params.knows)
+    .map((w) => (w === "pure" ? M.STRINGS.assumedPure : M.STRINGS.assumedDiploid));
+  const named = wrong.length === 2 ? `${wrong[0]} and ${wrong[1]}` : wrong[0];
+  const below = L.rows.y + fit.fits.length * L.rowH + 4;
+  if (!fit.fits.length) {
+    text(ctx, M.STRINGS.nothingFits(named, wrong.length > 1), L.rows.x, below,
+      { font: noteFont(colors), fill: colors.extreme });
+  } else if (!fit.fits.some((r) => r.truth) && named) {
+    text(ctx, M.STRINGS.notHere(M.pctText(cfg.ccf), named, wrong.length > 1), L.rows.x, below,
       { font: noteFont(colors), fill: colors.extreme });
   }
 }
-
 /** How many copies the chromosome this scenario's mutation arose on has. */
 const hostCopies = (row) => (row.host === "major" ? row.state.major : row.state.minor);
 
