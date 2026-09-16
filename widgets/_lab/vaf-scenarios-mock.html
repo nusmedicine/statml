@@ -518,16 +518,44 @@ function conclude(level, vaf, truth) {
       }
     }
   }
-  table("levelTable", ["you know", "it assumes", "calls a CLONAL mutation subclonal", "the truth is not among its candidates"],
-    LEVELS.map((L) => [L.label, L.assumed,
-      `${((100 * tally[L.key].wrong) / tally[L.key].n).toFixed(1)}% of ${tally[L.key].n}`,
-      `${((100 * tally[L.key].missed) / tally[L.key].n).toFixed(1)}%`]), [null, null, "num", "num"]);
+  /* SPLIT BY WHETHER THE REGION IS ALTERED, because pooling the five copy
+     states hides the whole finding: purity does not "help a bit" everywhere,
+     it settles the diploid case completely and does nothing at all where the
+     copy number is not 2. */
+  const groups = [
+    ["a diploid region (1 + 1)", (st) => st.key === "1+1"],
+    ["an altered region", (st) => st.key !== "1+1"],
+    ["both pooled", () => true],
+  ];
+  const rows = [];
+  for (const [gName, keep] of groups) {
+    for (const L of LEVELS) {
+      let wrong = 0; let missed = 0; let n = 0;
+      for (const p of M.PURITY_OPTIONS.map(Number)) {
+        for (const st of M.COPY_STATES.filter(keep)) {
+          for (let mT = 1; mT <= st.major; mT += 1) {
+            const v = M.vafExpected(p, 1, mT, st.total);
+            const fits = conclude(L.key, v, { p, st }).filter((r) => r.ok);
+            n += 1;
+            if (!fits.some((r) => Math.abs(r.c - 1) < 1e-6)) missed += 1;
+            if (fits.length && fits.every((r) => r.c < 0.9)) wrong += 1;
+          }
+        }
+      }
+      rows.push([gName, L.label, L.assumed, `${((100 * wrong) / n).toFixed(1)}% of ${n}`, `${((100 * missed) / n).toFixed(1)}%`]);
+    }
+  }
+  table("levelTable", ["where the mutation is", "you know", "it assumes", "calls a CLONAL mutation subclonal", "the truth is not among its candidates"],
+    rows, [null, null, null, "num", "num"]);
   document.getElementById("recLevel").textContent =
-    "This is the strongest thing on the page and it is your idea. Knowing nothing gives ONE answer, confidently, "
-    + "and it is wrong for 86.1% of clonal mutations — it calls 63.9% of them subclonal, which is misconception 2 "
-    + "of the plan, produced rather than asserted. Knowing both gives SEVERAL candidates and the truth is among "
-    + "them every time. More information does not mean fewer candidates; it means honest ones. That is cell 24's "
-    + "argument, watchable, and it also gives the copy-number control something to do that the panel alone did not.";
+    "Three levels, and the table says why the middle one is not a redundant step. PURITY SETTLES THE DIPLOID CASE "
+    + "COMPLETELY — 75% wrong becomes 0% — AND DOES NOTHING AT ALL WHERE THE COPY NUMBER IS NOT 2: 62.5% called "
+    + "subclonal before and 62.5% after. So the three levels are not “bad, better, best”; each fixes a "
+    + "different thing, and the reader finds out WHICH problem each measurement solves. Pooling them (the third "
+    + "block) makes purity look weakly useful everywhere, which is the wrong lesson and is what the first draft of "
+    + "this page said. Caveat: the sweep weights the five copy states equally, so it over-represents altered "
+    + "regions against a real genome; how much the copy-number level matters in practice depends on how much of "
+    + "the tumour genome is altered, which is not measured here.";
 }
 
 /* ---------- 8 · the rail again, with a knowledge control ------------------ */
