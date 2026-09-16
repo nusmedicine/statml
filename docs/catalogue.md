@@ -8956,18 +8956,71 @@ MathML sees), the axis ease at both ends and mid-flight, the copy caps, and a
 extent and asserts nothing lands outside the canvas — it caught page 2's y-axis
 label drawn off the canvas, which is what the 44px gutter there is for.
 
-**Its link words, public once it ships:** `page=one|many|tree`, `purity`, `ccf`,
+**Its link words, public once it ships:** `page=one|many|clonal`, `purity`, `ccf`,
 `state=1+1|2+0|1+0|2+1|3+1`, `copies`, `depth`, `clones=one|two|three`,
 `mutations`, `axis=vaf|ccf`, `assumed=sample|pure`, `clusters`, `taken=1|2|4`,
 `shape=linear|branching`, `showcells`, `seed`, `all`. `showcells` is named that
 and not `cells` because widget 54's grid rail declares a `cells` property on a
-field and its verify proves no other widget has one.
+field and its verify proves no other widget has one. `page=clonal` is named
+for the control that reaches it — "Clonal architecture" — and not for the
+figure it draws; it was `page=tree` until the copy audit below.
 
-**What the draft leaves open:** his round; the three-pass copy audit; page 3's
-shape switch could tween (cluster 3 sliding out of cluster 2 to beside it),
-offered and not taken; then the ship sequence — the shooter, the states, the
-status flip in the manifest, `main.js` and the verify, the full suite, `check`
-and `test` read alone, and the push on his word.
+#### AUDITED 2026-09-16 — the copy, and the page control that clipped — `d3715bd`
+
+**The defect the audit found first was not copy.** At the 300px rail a
+segmented row divides into three 99px buttons, and "Clonal architecture"
+measures 114 and "Many mutations" 101 once it is the selected one — both
+ellipsised, on the control the whole widget navigates by. Measured in the pane,
+not judged from a screenshot, which had shown only one of the two. `style:
+"grid"` with `span: true` on the third option gives the first two 148px and the
+third the full 298. Shortening the names was the other way out, and the names
+are the lesson's own order.
+
+**Then 148 reader-facing strings as one table, four rows put to him.** Three
+passes found nothing: no lesson or notebook reference anywhere, no outcome
+commentary in any control detail (each says what its control IS), and no coined
+vocabulary beyond the two struck below — "pileup" stays, it is the field's word.
+His picks:
+
+1. **One spelling, `tumor`.** Seventeen strings said *tumour* under a title
+   that said *Tumor*, the two visible together as the H1 over the first
+   control. The lesson's own headings are American — 01-2 cell 24 is "Tumor
+   Purity", and the 07 notebooks run 36 to 15 — and the one other shipped
+   widget that uses the word, `mixed-model`, says "Tumor size by week, in
+   mice". The manifest topic went with them; comments are exempt (CLAUDE.md)
+   and `counts.tumour` is an identifier, so the pass ran inside string literals
+   only.
+2. **The subtitle, rephrased on his own phrase** — *"how about '..sequencing
+   reads from ....'"*. "falls" is on the struck list of the sit/fall/lie pass
+   of 2026-09-13 and this widget was written after it, so the audit caught what
+   the pass could not. What replaces it earns its extra line: *"the fraction of
+   sequencing reads from a sample that carry them"* says what the frequency is
+   a fraction OF, which is page 1's whole correction — a VAF is a share of
+   READS, not of cells — stated before the figure makes it.
+3. **`page=tree` became `page=clonal`**, above. `shape=linear|branching` was
+   examined and kept: those are the field's terms for clonal evolution, not
+   ours, even though the buttons read "1 → 2 → 3" and "2 and 3 under 1".
+4. **Three smaller rewrites, all taken.** "Tumour cells carrying it" was
+   detailed *"the cancer cell fraction the reads are being asked about"* and now
+   says what the parameter is, *"the fraction of tumor cells that carry the
+   mutation"*; the legend's "cut" became "threshold", ours against the field's;
+   and the mixture no longer *keeps* components — the readout note is
+   "components in the mixture with the lowest BIC", matching the control
+   detail's "chosen by BIC".
+
+**The sweep is in the verify, and it was proven rather than assumed.** Every
+string literal in both files, comments masked and `${…}` blanked, against the
+physical verbs, a model acting, our own shorthand, a lesson reference and the
+other spelling — 127 strings, none carrying one. Run over the pre-fix sources
+from HEAD it reports all 21 hits this round fixed, which is what makes a pass
+mean anything. § *Widget 42*'s lesson, in a smaller key: a check nobody has
+watched fail is not yet a check.
+
+**What the draft leaves open:** his round continues; page 3's shape switch could
+tween (cluster 3 sliding out of cluster 2 to beside it), offered and not taken;
+then the ship sequence — the shooter, the states, the status flip in the
+manifest, `main.js` and the verify, the full suite, `check` and `test` read
+alone, and the push on his word.
 
 ### Slot 68 · `clonal-architecture` — cuttable, or 67's last page
 
