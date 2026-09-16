@@ -13,13 +13,15 @@
 import * as W from "../tumor-heterogeneity/model.js";
 
 export {
-  vafExpected, ccfFrom, COPY_STATES, stateOf, median, MATH, pickK, fitGMM, DEPTH_SD, arrangementsFor,
+  vafExpected, ccfFrom, COPY_STATES, stateOf, median, MATH, pickK, fitGMM, DEPTH_SD,
+  scenariosFor, configOne, hostsOf, KNOWLEDGE,
 } from "../tumor-heterogeneity/model.js";
 
-/* Three arrangements that all read VAF 0.250 — the mock's § 3. The widget
-   SOLVES for these from whatever the reader has read (`arrangementsFor`), so
-   the fixed trio is the lab's own and is checked against the widget's solver
-   by `_lab/vaf-measure.mjs`. */
+/* Three arrangements that all read VAF 0.250 — the mock's § 3, and the
+   measurement that decided page 1's shape. The widget drew them as rows until
+   2026-09-16, when the panel became the lesson's own question instead; the
+   trio stays because the CLAIM it makes is still the page's — one reading,
+   several tumours — and `_lab/vaf-measure.mjs` still checks the arithmetic. */
 export const TRIO = [
   { label: "half the cells in the sample are normal", purity: 0.5, ccf: 1, m: 1, state: "1+1" },
   { label: "half the tumour cells carry it", purity: 1, ccf: 0.5, m: 1, state: "1+1" },

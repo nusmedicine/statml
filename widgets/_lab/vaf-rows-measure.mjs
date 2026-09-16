@@ -1,6 +1,14 @@
 /* Research for Kenneth's question of 2026-09-16: are all three "other
    arrangements" worth showing, given how often one of them is a red notice?
 
+   IT CARRIES THE PANEL AS IT STOOD WHEN THE PAGE STOPPED USING IT — widened to
+   every mutated-copy count and matching within the noise at the reader's depth,
+   which is what this research produced. The figures the catalogue quotes under
+   "AUDITED"/"the arrangements" (copies drawn 13.7%, all three 12.1%) are from
+   the NARROW first version, before that round; §A below reprints the later
+   one. The panel itself went the same day, when the presentation was
+   simplified to the lesson's own question — catalogue slot 67 says why.
+
        node widgets/_lab/vaf-rows-measure.mjs
 
    Nothing here asserts; it prints what the three rows can and cannot do. */
@@ -8,6 +16,42 @@ import * as M from "../tumor-heterogeneity/model.js";
 import { makeRng } from "../core/rng.js";
 
 const pct = (a, b) => `${((100 * a) / b).toFixed(1)}%`;
+
+/* THE PANEL THIS SCRIPT STUDIES, KEPT HERE BECAUSE THE WIDGET NO LONGER HAS IT.
+   It shipped from 2026-09-16 until the same day's later round, when Kenneth
+   asked for the presentation to be simplified and the panel changed to the
+   lesson's own question — which scenarios fit, with purity and copy number as
+   given. The measurements below are the record of what this version did, so
+   they have to keep running; the catalogue's slot 67 says why it went.
+
+   It asked which SINGLE cause could explain a reading, holding the other two
+   unknowns at their neutral value and solving the third. */
+const COPY_ARRANGEMENTS = M.COPY_STATES
+  .filter((s) => s.key !== "1+1")
+  .flatMap((s) => s.copies.map((m) => ({ state: s, copies: m, vaf: m / s.total })))
+  .sort((a, b) => a.vaf - b.vaf || a.state.total - b.state.total);
+const COPY_READINGS = [...new Set(COPY_ARRANGEMENTS.map((a) => a.vaf))].sort((a, b) => a - b);
+/** One binomial standard deviation of the reading at this depth. */
+export const readNoise = (vaf, depth) => Math.sqrt(Math.max(0, vaf * (1 - vaf)) / Math.max(1, depth));
+export function arrangementsFor(vaf, depth = Number(M.DEPTH_DEFAULT)) {
+  const rows = [];
+  const purity = 2 * vaf;
+  rows.push(purity <= 1
+    ? { kind: "purity", purity, ccf: 1, state: M.stateOf("1+1"), copies: 1, vaf, ok: true }
+    : { kind: "purity", ok: false });
+  const ccf = 2 * vaf;
+  rows.push(ccf <= 1
+    ? { kind: "ccf", purity: 1, ccf, state: M.stateOf("1+1"), copies: 1, vaf, ok: true }
+    : { kind: "ccf", ok: false });
+  const near = COPY_ARRANGEMENTS
+    .map((a) => ({ ...a, err: Math.abs(a.vaf - vaf) }))
+    .sort((a, b) => a.err - b.err)[0];
+  rows.push(near && near.err <= readNoise(vaf, depth)
+    ? { kind: "copies", purity: 1, ccf: 1, state: near.state, copies: near.copies, vaf: near.vaf, ok: true }
+    : { kind: "copies", ok: false });
+  return rows;
+}
+void COPY_READINGS;
 const KINDS = ["purity", "ccf", "copies"];
 
 console.log("=".repeat(78));
@@ -19,7 +63,7 @@ console.log("=".repeat(78));
   const copiesOk = [];
   for (let v = 0.005; v < 1; v += 0.005) {
     n += 1;
-    const rows = M.arrangementsFor(v);
+    const rows = arrangementsFor(v);
     for (const r of rows) if (r.ok) have[r.kind] += 1;
     if (rows.find((r) => r.kind === "copies").ok) copiesOk.push(v);
   }
@@ -56,7 +100,7 @@ console.log("=".repeat(78));
               });
               const one = M.buildReads(makeRng(seed), cfg);
               const v = M.vafAt(one, one.depth);
-              const rows = M.arrangementsFor(v);
+              const rows = arrangementsFor(v);
               const ok = rows.filter((r) => r.ok);
               cells += 1;
               for (const r of ok) tally[r.kind] += 1;
@@ -93,7 +137,7 @@ console.log("=".repeat(78));
     const seen = new Set();
     for (let k = 1; k <= one.depth; k += 1) {
       const v = M.vafAt(one, k);
-      const key = M.arrangementsFor(v).map((r) => (r.ok ? "1" : "0")).join("");
+      const key = arrangementsFor(v).map((r) => (r.ok ? "1" : "0")).join("");
       seen.add(key);
       if (prev !== null && key !== prev) flips += 1;
       prev = key;
@@ -112,7 +156,7 @@ console.log("=".repeat(78));
   let worst = 0;
   let worstAt = null;
   for (let v = 0.005; v < 1; v += 0.0005) {
-    const row = M.arrangementsFor(v).find((r) => r.kind === "copies");
+    const row = arrangementsFor(v).find((r) => r.kind === "copies");
     if (!row.ok) continue;
     const shown = M.vafExpected(1, 1, 1, row.state.total);
     if (Math.abs(shown - v) > worst) { worst = Math.abs(shown - v); worstAt = { v, shown, state: row.state.label }; }
@@ -168,7 +212,7 @@ console.log("=".repeat(78));
   let n = 0;
   for (let v = 0.505; v < 1.0; v += 0.005) {
     n += 1;
-    if (M.arrangementsFor(v).find((r) => r.kind === "copies").ok) narrowHave += 1;
+    if (arrangementsFor(v).find((r) => r.kind === "copies").ok) narrowHave += 1;
     if (copiesWide(v)) wideHave += 1;
   }
   console.log(`  purity alone above 0.5:      never (it would need purity past 1)`);
@@ -197,7 +241,7 @@ console.log("=".repeat(78));
               const cfg = M.configOne({ purity, ccf, state: st.key, copies: String(copies), depth });
               const one = M.buildReads(makeRng(seed), cfg);
               const v = M.vafAt(one, one.depth);
-              const rows = M.arrangementsFor(v);
+              const rows = arrangementsFor(v);
               const nNarrow = rows.filter((r) => r.ok).length;
               const wide = Boolean(copiesWide(v));
               const nWide = rows.filter((r) => r.ok && r.kind !== "copies").length + (wide ? 1 : 0);
@@ -233,7 +277,7 @@ console.log("=".repeat(78));
     let flips = 0;
     let prev = null;
     for (let k = 1; k <= one.depth; k += 1) {
-      const key = M.arrangementsFor(M.vafAt(one, k)).map((r) => (r.ok ? "1" : "0")).join("");
+      const key = arrangementsFor(M.vafAt(one, k)).map((r) => (r.ok ? "1" : "0")).join("");
       if (prev !== null && key !== prev) flips += 1;
       prev = key;
     }

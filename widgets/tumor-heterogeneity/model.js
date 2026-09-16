@@ -27,11 +27,14 @@
     3. SIXTY CELLS, because purity is a proportion. Ten cells cannot draw 0.35
        or 0.75, and his figure's four cannot draw 0.70 (mock § 1).
 
-    4. THE ALTERNATIVE ARRANGEMENTS ARE COMPUTED FROM THE READER'S VAF, not
-       fixed: the page's claim is that the SAME reading has other explanations,
-       so the rows have to follow whatever the reader has set. Where no
-       arrangement of a kind reads that VAF the row says so — at VAF 0.6 there
-       is no diploid clonal sample, because purity cannot pass 1 (2.6).
+    4. PAGE 1 ASKS THE LESSON'S OWN QUESTION, and how much the analysis is
+       told is a control. Cell 25 §3 fits c and m with p and Cₜ given, and cell
+       24 — "Refining Estimates (Optional)" — treats those two as information
+       you bring. So the panel lists the scenarios a reading leaves standing at
+       the reader's level of knowledge, and marks the cell they actually built.
+       It asked which SINGLE cause could explain the reading until 2026-09-16;
+       `_lab/vaf-rows-measure.mjs` carries that version and the catalogue says
+       why it went.
 
     5. THE MIXTURE IS FITTED ON THE VAF AXIS AND DRAWN ON WHICHEVER AXIS IS
        SHOWN. `mclust` in cell 22 clusters VAFs; switching the axis is a
@@ -199,73 +202,92 @@ export const cellCounts = (cfg, n = CELLS) => {
   return { tumour, carrying: Math.round(tumour * cfg.ccf) };
 };
 
-/* DECISION 4: the other arrangements that read the same as the reader's own.
-   Each varies ONE thing from a 1 + 1 sample and is solved for it, and a row
-   that no value can reach is RULED OUT rather than absent — page 3 marks an
-   impossible tree the same way, and it is an inference either way.
+/* DECISION 4, REBUILT 2026-09-16 on his round. The panel used to ask which
+   SINGLE cause could explain the reading, with nothing measured. It now asks
+   the lesson's own question — cell 25 §3 fits c and m with p and Cₜ given —
+   and HOW MUCH IT IS GIVEN IS A CONTROL, his own idea, because cell 24 is
+   titled "Refining Estimates (Optional)" and opens: "So far, we have
+   interpreted VAFs under simple assumptions: 100% tumor purity, diploid genome
+   with no amplifications or deletions".
 
-   REVISED 2026-09-16 on Kenneth's question, "we try to show all the possible
-   combinations? sometimes i see red notices" — measured in
-   `_lab/vaf-rows-measure.mjs`, which is the record of why all three stayed:
+   THE MEASUREMENT SETTLED THREE LEVELS RATHER THAN TWO
+   (`_lab/vaf-scenarios-measure.mjs`, over every clonal mutation page 1 can
+   build, by how often the analysis calls it subclonal):
 
-    a. THEY ANSWER THE EXPECTED VAF, NOT THE READING. Which arrangements could
-       produce a tumour is a property of the tumour; the draw's noise is a
-       separate idea, and the depth control is what teaches it. Following the
-       reading made the set of rows change 55 times over 500 reads — motion
-       that meant nothing, which is what he was seeing.
+                       a diploid region      an altered region
+     knowing nothing        75.0%                  81.3%
+     knowing purity          0.0%                  62.5%
+     knowing both            0.0%                   0.0%
 
-    b. COPY NUMBER IS DISCRETE AND THE OTHER TWO ARE NOT. Purity and the cancer
-       cell fraction solve exactly and cover every VAF up to one half; copy
-       number alone reads only m / Cₜ. That asymmetry is the page's own point,
-       so the ruled-out note states the readings it CAN make.
+   PURITY SETTLES A DIPLOID REGION COMPLETELY AND DOES NOT SETTLE AN ALTERED
+   ONE — 75.0% wrong becomes 0.0%, while 81.3% becomes 62.5%, still wrong more
+   often than not. So the levels are not bad/better/best with a redundant
+   middle: each fixes a different thing, and the middle one is where the reader
+   finds out which. Pooling the copy states hides it, reading as "purity helps
+   a bit everywhere", which is the wrong lesson. */
+export const KNOWLEDGE = [
+  { key: "none", label: "Nothing" },
+  { key: "purity", label: "Purity" },
+  { key: "both", label: "Purity and copy number" },
+];
+export const knowsOf = (key) => KNOWLEDGE.find((k) => k.key === key) ?? KNOWLEDGE[KNOWLEDGE.length - 1];
 
-    c. EVERY MUTATED-COPY COUNT, not just one. The list used to try m = 1 only,
-       which ruled out the lesson's own VAF ~ 1 case — 2 + 0 with both copies
-       mutated reads 1.000 (01-2 cell 17). Above one half neither purity nor
-       the cancer cell fraction can EVER explain a reading, since each would
-       need a value past 1, so copy number is the only row left there and it
-       was the one switched off.
+/* WHICH CHROMOSOME THE MUTATION AROSE ON. It is not in the equation at all —
+   `vafExpected` takes the TOTAL — so it changes the picture and never the
+   number, which makes it the one parameter on this page a reading can never
+   see. Only a state whose counts differ and whose minor survives offers a
+   choice: 2 + 1 and 3 + 1, and there only while one copy carries it. His pick
+   of 2026-09-16 was that it belongs in the panel and not in the rail, because
+   it is an explanation of the reading rather than a knob for building a
+   sample. */
+export function hostsOf(state) {
+  const out = [{ host: "major", copies: state.major }];
+  if (state.minor > 0 && state.minor !== state.major) out.push({ host: "minor", copies: state.minor });
+  return out;
+}
 
-    d. HOW CLOSE COUNTS IS THE NOISE AT THIS DEPTH. A discrete arrangement
-       explains the reading when it is within one binomial standard deviation
-       at the reader's own depth, so reading deeper rules arrangements out —
-       which is the page's claim that depth is what separates them, made
-       operative rather than merely stated. */
+/* A TOTAL OF 2 IS NOT AN ALLELE-SPECIFIC CALL. Cell 24 names two routes to copy
+   number: GISTIC2, which gives a segment's total, and ASCAT, which gives major
+   and minor. Told only "diploid", an analysis cannot tell 1 + 1 from 2 + 0, so
+   one mutated copy and two are both open to it — which is why the assumed
+   levels enumerate over the TOTAL and only the allele-specific level caps the
+   count at the chromosome the mutation arose on. */
+const ASSUMED_DIPLOID = [
+  { m: 1, key: "1+1" },
+  { m: 2, key: "2+0" },
+];
 
-/* 1 + 1 is left out: it is the baseline the other two rows already hold, so
-   including it made all three rows the same arrangement at VAF 0.5. Ties go to
-   the fewest copies, which puts copy-neutral loss of heterozygosity (2 + 0 with
-   one mutated copy, reading 0.5 exactly as a plain heterozygote does) ahead of
-   3 + 1 with two. */
-export const COPY_ARRANGEMENTS = COPY_STATES
-  .filter((s) => s.key !== "1+1")
-  .flatMap((s) => s.copies.map((m) => ({ state: s, copies: m, vaf: m / s.total })))
-  .sort((a, b) => a.vaf - b.vaf || a.state.total - b.state.total);
-/** The distinct readings copy number alone can make — what the ruled-out note
-    names, derived so it cannot drift from the list above. */
-export const COPY_READINGS = [...new Set(COPY_ARRANGEMENTS.map((a) => a.vaf))].sort((a, b) => a - b);
-
-/** How far a discrete arrangement may be from the reading and still explain
-    it: one binomial standard deviation of the reading at this depth. */
-export const readNoise = (vaf, depth) => Math.sqrt(Math.max(0, vaf * (1 - vaf)) / Math.max(1, depth));
-
-export function arrangementsFor(vaf, depth = Number(DEPTH_DEFAULT)) {
+/**
+ * What the analysis concludes from a reading, knowing what its level says.
+ * ONE method throughout — enumerate the multiplicity, solve the fraction, and
+ * keep the fractions that are fractions — with an assumed value wherever it was
+ * not told one, so no level is a straw man. A row is marked when it is the
+ * reader's own cell, which is how the figure shows that knowing nothing can
+ * leave the truth out of its own candidates.
+ */
+export function scenariosFor(vaf, cfg, level) {
+  const known = knowsOf(level).key;
+  const purity = known === "none" ? 1 : cfg.purity;
   const rows = [];
-  const purity = 2 * vaf;
-  rows.push(purity <= 1
-    ? { kind: "purity", purity, ccf: 1, state: stateOf("1+1"), copies: 1, vaf, ok: true }
-    : { kind: "purity", ok: false });
-  const ccf = 2 * vaf;
-  rows.push(ccf <= 1
-    ? { kind: "ccf", purity: 1, ccf, state: stateOf("1+1"), copies: 1, vaf, ok: true }
-    : { kind: "ccf", ok: false });
-  const near = COPY_ARRANGEMENTS
-    .map((a) => ({ ...a, err: Math.abs(a.vaf - vaf) }))
-    .sort((a, b) => a.err - b.err)[0];
-  rows.push(near && near.err <= readNoise(vaf, depth)
-    ? { kind: "copies", purity: 1, ccf: 1, state: near.state, copies: near.copies, vaf: near.vaf, ok: true }
-    : { kind: "copies", ok: false });
-  return rows;
+  const push = (state, host, m) => {
+    const c = ccfFrom(vaf, purity, m, state.total);
+    rows.push({
+      state, host, m, c, purity,
+      ok: c > 0 && c <= 1 + 1e-9,
+      truth: state.total === cfg.state.total && m === cfg.copies && Math.abs(c - cfg.ccf) < 1e-9,
+    });
+  };
+  if (known === "both") {
+    for (const h of hostsOf(cfg.state)) for (let m = 1; m <= h.copies; m += 1) push(cfg.state, h.host, m);
+    /* ORDERED BY MULTIPLICITY, the major chromosome first, so the two rows that
+       differ ONLY in which chromosome the mutation arose on sit next to each
+       other with the same fraction printed twice. That adjacency is the whole
+       argument for drawing the minor case at all. */
+    rows.sort((a, b) => a.m - b.m || (a.host === "major" ? -1 : 1));
+  } else {
+    for (const g of ASSUMED_DIPLOID) push(stateOf(g.key), "major", g.m);
+  }
+  return { rows, purity, known };
 }
 
 /* ---- page 2: many mutations ---------------------------------------------- */
@@ -513,6 +535,15 @@ export const shapesFitting = (ccf) => SHAPES.filter((s) => fitsSumRule(s, ccf));
 
 const PAD = 14;
 
+const ROW_H = 44;
+/** How many scenarios the panel will list, without building them: the height
+    is computed before `compute` runs, so it can only read the parameters. */
+export function scenarioRows(params) {
+  if (knowsOf(params.knows).key !== "both") return 2; // an assumed diploid: m = 1 or 2
+  const st = stateOf(params.state);
+  return hostsOf(st).reduce((n, h) => n + h.copies, 0);
+}
+
 export function layout(w, params) {
   const page = params.page;
   const inner = w - 2 * PAD;
@@ -528,8 +559,20 @@ export function layout(w, params) {
     const cells = { x: PAD, y: 26, w: inner, h: 190 };
     const reads = { x: PAD, y: 270, w: inner, h: 56 };
     const bar = { x: PAD, y: 346, w: inner, h: 16 };
-    const rows = { x: PAD, y: 430, w: inner, h: 3 * 44 };
-    return { page, cells, reads, bar, rows, rowH: 44, height: rows.y + rows.h + 14 };
+    /* HOW MANY SCENARIO ROWS THERE ARE FOLLOWS THE STATE AND THE LEVEL — one
+       per multiplicity the analysis can consider, plus the minor chromosome
+       where it survives. An assumed diploid gives two; 3 + 1 with an
+       allele-specific call gives four. The height reads the count rather than a
+       fixed three, and the extra line is the room the "not among them" note
+       needs when a level misses the reader's own cell. */
+    const n = scenarioRows(params);
+    const rows = { x: PAD, y: 430, w: inner, h: n * ROW_H };
+    return {
+      page, cells, reads, bar, rows, rowH: ROW_H, cellR: 15,
+      /* two lines under the panel: the reason a scenario is ruled out, and
+         whether the reader's own cell is among those left */
+      height: rows.y + rows.h + 42,
+    };
   }
   if (page === "many") {
     /* The clusters are brackets ABOVE the bars, one level each, so the stage
@@ -610,19 +653,17 @@ export const STRINGS = {
 
   cellsCaption: "The sample",
   readsCaption: "The reads",
-  rowsCaption: "Other arrangements that read the same",
-  /* Ruled out, not missing — page 3's word for the same idea, and each says
-     what it would take. The copy-number one names the readings copy number can
-     make, because that list IS the reason and it is short enough to print. */
-  noPurity: "Ruled out — it would need a purity past 1",
-  noCcf: "Ruled out — it would need more than every tumor cell",
-  get noCopies() {
-    const r = COPY_READINGS.map((v) => n2(v));
-    return "Ruled out — copy number alone reads " + r.slice(0, -1).join(", ") + " or " + r[r.length - 1];
-  },
-  purityRow: "normal cells dilute it",
-  ccfRow: "only some tumor cells carry it",
-  copiesRow: "it is on one of several copies",
+  knowsLabel: "You know",
+  knowsDetail: "what the analysis is given; the rest is assumed",
+  truthSection: "The sample you built",
+  seqSection: "How you sequenced it",
+  analysisSection: "What you bring to the analysis",
+  scenariosCaption: "Scenarios that fit",
+  assumingPure: "assuming a pure sample and a diploid genome",
+  assumingDiploid: "assuming a diploid genome",
+  truthLegend: "The sample you built",
+  truthMissing: "The sample you built is not among them",
+  overOne: "A fraction past 1 would need more than every tumor cell",
   /* The formula card's notes. Each names its letters and then says what the
      line divides by what — the general logic, in the lesson's own terms. */
   noteOne: "p is the fraction of cells in the sample that are tumor cells, c the fraction of those "

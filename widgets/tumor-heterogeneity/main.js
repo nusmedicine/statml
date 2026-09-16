@@ -381,69 +381,125 @@ function drawOne(ctx, colors, L, params, state, anim) {
      a reading, and there is no reading yet (2.4). Each row is the sample's
      ALLELES rather than its cells: at a row's height the cells are 5px across,
      and the alleles are what the arithmetic divides by anyway. */
-  text(ctx, M.STRINGS.rowsCaption, L.rows.x, L.rows.y - 12, { font: capFont(colors), fill: colors.ink1 });
   if (!(k > 0)) {
+    text(ctx, M.STRINGS.scenariosCaption, L.rows.x, L.rows.y - 12, { font: capFont(colors), fill: colors.ink1 });
     text(ctx, "—", L.rows.x, L.rows.y + 14, { font: noteFont(colors), fill: colors.ink3 });
     return;
   }
-  /* THE ROWS ANSWER THE EXPECTED VAF, not the reading (model decision 4a).
-     Which arrangements could have produced this tumour does not depend on
-     which reads happened to land, and following the reading had the set of
-     rows changing 55 times over 500 reads. They still wait for a read,
-     because the page must not open on its own answer (4).
+  /* WHAT THE ANALYSIS CONCLUDES, at the level of knowledge the reader has given
+     it (model decision 4). One row per multiplicity it can consider, each with
+     the cell it would be and the cancer cell fraction it implies; a fraction
+     past 1 is ruled out. The reader's own cell is marked, so a level that
+     leaves it out says so on its face — which is cell 24's whole argument.
 
-     Depth is passed because it decides how close a DISCRETE arrangement has
-     to be to count: one binomial standard deviation of the reading here. */
-  const rows = M.arrangementsFor(cfg.expected, cfg.depth);
-  const labels = { purity: M.STRINGS.purityRow, ccf: M.STRINGS.ccfRow, copies: M.STRINGS.copiesRow };
-  const missing = { purity: M.STRINGS.noPurity, ccf: M.STRINGS.noCcf, copies: M.STRINGS.noCopies };
-  rows.forEach((row, i) => {
+     It answers the EXPECTED VAF, not the reading: which scenarios could have
+     produced this tumour does not depend on which reads happened to land, and
+     following the reading had the set changing 55 times over 500 reads. The
+     rows still wait for a read, so the page does not open on its own answer. */
+  const fit = M.scenariosFor(cfg.expected, cfg, params.knows);
+  const assuming = fit.known === "none" ? M.STRINGS.assumingPure
+    : fit.known === "purity" ? M.STRINGS.assumingDiploid
+      : `purity ${M.n2(cfg.purity)}, copy number ${cfg.state.label}`;
+  text(ctx, `${M.STRINGS.scenariosCaption} — ${assuming}`, L.rows.x, L.rows.y - 12,
+    { font: capFont(colors), fill: colors.ink1 });
+  const hosts = M.hostsOf(fit.rows[0]?.state ?? cfg.state).length;
+  fit.rows.forEach((row, i) => {
     const y = L.rows.y + i * L.rowH;
-    if (!row.ok) {
-      text(ctx, missing[row.kind], L.rows.x, y + 16, { font: noteFont(colors), fill: colors.extreme });
-      return;
+    /* The cell this scenario would be: the analysis's own state and count, so
+       an assumed diploid draws a plain heterozygote or a lost copy and the
+       allele-specific level draws the reader's own state on either chromosome. */
+    /* THE READER'S OWN CELL IS A RULE DOWN THE ROW, not a phrase competing with
+       the note for width: `--c-reference` is the token for the truth where one
+       exists, and page 3 already marks the reader's choice by enclosure. */
+    if (row.truth) {
+      ctx.save();
+      ctx.fillStyle = wash(colors.reference, 0.09);
+      ctx.fillRect(L.rows.x - 6, y - 3, L.rows.w + 6, L.cellR * 2 + 6);
+      ctx.fillStyle = colors.reference;
+      ctx.fillRect(L.rows.x - 6, y - 3, 3, L.cellR * 2 + 6);
+      ctx.restore();
     }
-    const alleles = { x: L.rows.x, y, w: L.rows.w * 0.42, h: 14 };
-    drawAlleleBar(ctx, colors, alleles, row);
-    const barRect = { x: L.rows.x + L.rows.w * 0.52, y, w: L.rows.w * 0.32, h: 14 };
-    /* EACH ROW PRINTS ITS OWN READING. Printing the reader’s beside a copy
-       number that does not read it was a caption saying "the same" over an
-       arrangement that was merely near: the two continuous rows land on the
-       expected VAF exactly, and the copy-number one lands within the noise,
-       and the reader can see which is which. */
-    drawVafBar(ctx, colors, barRect, row.vaf, null, { scale: false });
-    text(ctx, `VAF ${M.n3(row.vaf)}`, L.rows.x + L.rows.w, y + 11, {
-      font: `${colors.fsXs} ${colors.mono}`, fill: colors.ink1, align: "right",
+    drawScenarioCell(ctx, colors, L.rows.x + L.cellR, y + L.cellR, L.cellR, row);
+    const barX = L.rows.x + L.cellR * 2 + 10;
+    const barW = L.rows.w * 0.22;
+    ctx.fillStyle = colors.surface3;
+    ctx.fillRect(barX, y + L.cellR - 7, barW, 14);
+    if (row.ok) {
+      ctx.fillStyle = wash(colors.groupA, 0.85);
+      ctx.fillRect(barX, y + L.cellR - 7, barW * Math.min(1, row.c), 14);
+    }
+    ctx.strokeStyle = colors.grid;
+    ctx.lineWidth = 1;
+    ctx.strokeRect(barX + 0.5, y + L.cellR - 6.5, barW - 1, 13);
+    /* WHICH CHROMOSOME, but only where there is a choice to name. Two rows that
+       differ by host are the same count and the same fraction, so without this
+       they read as the figure repeating itself — which is how the copy states
+       read before they were told apart (his question of 2026-09-16). The word
+       "copies" goes when the phrase arrives, because the phrase carries it and
+       the line has 324px. */
+    const many = hosts > 1;
+    const which = many ? `${row.m} of ${row.state.total} on the ${hostCopies(row)}-copy chromosome`
+      : `${row.m} of ${row.state.total} copies`;
+    const note = row.ok
+      ? `${which} — ${M.pctText(row.c)} of tumor cells carry it`
+      : `${which} — would need ${M.n2(row.c)}`;
+    text(ctx, note, barX + barW + 10, y + L.cellR + 4, {
+      font: noteFont(colors), fill: row.ok ? colors.ink2 : colors.extreme,
     });
-    const desc = row.kind === "purity" ? `purity ${M.n2(row.purity)}`
-      : row.kind === "ccf" ? `${M.pctText(row.ccf)} of the tumor cells`
-        : `copy number ${row.state.label}${row.copies > 1 ? ` with ${row.copies} mutated` : ""}`;
-    text(ctx, `${labels[row.kind]} — ${desc}`, L.rows.x, y + 30, { font: noteFont(colors), fill: colors.ink2 });
   });
+  /* The reason a scenario is out, said ONCE under the panel rather than on
+     every row that is: repeated, it did not fit the line and read as noise. */
+  let below = L.rows.y + fit.rows.length * L.rowH + 4;
+  if (fit.rows.some((r) => !r.ok)) {
+    text(ctx, M.STRINGS.overOne, L.rows.x, below, { font: noteFont(colors), fill: colors.extreme });
+    below += 16;
+  }
+  if (!fit.rows.some((r) => r.ok && r.truth)) {
+    text(ctx, M.STRINGS.truthMissing, L.rows.x, below, { font: noteFont(colors), fill: colors.extreme });
+  }
 }
 
-/** The sample's alleles in one bar: mutated copies, tumour wild-type copies,
-    then the normal cells' two copies each — cell 25's denominator, drawn. */
-function drawAlleleBar(ctx, colors, rect, cfg) {
-  const tumourCopies = cfg.purity * cfg.state.total;
-  const normalCopies = (1 - cfg.purity) * 2;
-  const mutated = cfg.purity * cfg.ccf * cfg.copies;
-  const total = tumourCopies + normalCopies;
-  let x = rect.x;
-  for (const [share, fill, stroke] of [
-    [mutated, wash(colors.highlight, 0.85), colors.highlight],
-    [tumourCopies - mutated, wash(colors.groupA, 0.16), wash(colors.groupA, 0.6)],
-    [normalCopies, colors.surface3, colors.grid],
-  ]) {
-    const w = (share / total) * rect.w;
-    if (w <= 0) continue;
-    ctx.fillStyle = fill;
-    ctx.fillRect(x, rect.y, w, rect.h);
-    ctx.strokeStyle = stroke;
-    ctx.lineWidth = 1;
-    ctx.strokeRect(x + 0.5, rect.y + 0.5, w - 1, rect.h - 1);
-    x += w;
-  }
+/** How many copies the chromosome this scenario's mutation arose on has. */
+const hostCopies = (row) => (row.host === "major" ? row.state.major : row.state.minor);
+
+/**
+ * One scenario's cell: the copies of the chromosome the mutation arose on drawn
+ * solid and the other's dashed, his pick D, with the mutation on `m` of the
+ * solid ones. The layout never moves between hosts — only which block is solid
+ * — so the two rows that differ by host read as one arrangement with the
+ * mutation on the other chromosome.
+ */
+function drawScenarioCell(ctx, colors, cx, cy, r, row) {
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.fillStyle = wash(colors.groupA, 0.16);
+  ctx.fill();
+  ctx.strokeStyle = wash(colors.groupA, 0.75);
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  const { mark, lines } = M.cellMarks(r, row.state.total);
+  let placed = 0;
+  lines.forEach(({ dy, len }, c) => {
+    const inMajorBlock = c < row.state.major;
+    const own = row.host === "major" ? inMajorBlock : !inMajorBlock;
+    const oy = cy + dy;
+    ctx.save();
+    if (!own) ctx.setLineDash([3, 2]);
+    ctx.beginPath();
+    ctx.moveTo(cx - len / 2, oy);
+    ctx.lineTo(cx + len / 2, oy);
+    ctx.strokeStyle = colors.ink3;
+    ctx.lineWidth = own ? 1.6 : 1.2;
+    ctx.stroke();
+    ctx.restore();
+    if (own && placed < row.m) {
+      placed += 1;
+      ctx.beginPath();
+      ctx.arc(cx, oy, mark, 0, Math.PI * 2);
+      ctx.fillStyle = colors.highlight;
+      ctx.fill();
+    }
+  });
 }
 
 /* ---- page 2 -------------------------------------------------------------- */
@@ -739,7 +795,15 @@ widgetApi = defineWidget({
       display: true,
     },
 
-    sampleSec: { type: "section", label: M.STRINGS.sampleSection, when: { param: "page", oneOf: ["one", "many"] } },
+    /* THREE GROUPS, his pick of 2026-09-16 over a measured/inferred split:
+       the reader SETS purity, so calling it "measured" in the rail says two
+       things at once — the truth of the sample, and separately what the
+       analysis was told. Naming the truth, the sequencing and the analysis
+       keeps those apart, and it is what makes "which are the free parameters"
+       answerable. Page 2 keeps its own heading, since it has no analysis
+       control and a section with no visible field renders a bare heading. */
+    truthSec: { type: "section", label: M.STRINGS.truthSection, when: { param: "page", equals: "one" } },
+    sampleSec: { type: "section", label: M.STRINGS.sampleSection, when: { param: "page", equals: "many" } },
     purity: {
       type: "choice",
       label: M.STRINGS.purityLabel,
@@ -779,6 +843,7 @@ widgetApi = defineWidget({
       default: "1",
       when: { all: [{ param: "page", equals: "one" }, { param: "state", oneOf: ["2+0", "2+1", "3+1"] }] },
     },
+    seqSec: { type: "section", label: M.STRINGS.seqSection, when: { param: "page", equals: "one" } },
     depth: {
       type: "choice",
       label: M.STRINGS.depthLabel,
@@ -786,6 +851,20 @@ widgetApi = defineWidget({
       options: M.DEPTH_OPTIONS,
       default: M.DEPTH_DEFAULT,
       when: { param: "page", oneOf: ["one", "many"] },
+    },
+    /* Cell 24, "Refining Estimates (Optional)", as a control: what the analysis
+       is told, and what it therefore has to assume. Display, because it changes
+       what is concluded from the reads and never the reads themselves. */
+    analysisSec: { type: "section", label: M.STRINGS.analysisSection, when: { param: "page", equals: "one" } },
+    knows: {
+      type: "segmented",
+      style: "grid",
+      label: M.STRINGS.knowsLabel,
+      detail: M.STRINGS.knowsDetail,
+      options: M.KNOWLEDGE.map((k) => ({ value: k.key, label: k.label, span: k.key === "both" })),
+      default: "both",
+      display: true,
+      when: { param: "page", equals: "one" },
     },
     clones: {
       type: "segmented",
@@ -920,6 +999,7 @@ widgetApi = defineWidget({
       { token: "highlight", label: "The mutation, and the reads that carry it", mark: "bar" },
       { token: "ink-3", label: "Reads that carry the reference allele", mark: "bar" },
       { token: "theory", label: "The variant allele frequency the model expects", mark: "line" },
+      { token: "reference", label: M.STRINGS.truthLegend, mark: "bar" },
     ];
   },
 

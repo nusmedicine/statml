@@ -127,6 +127,9 @@
 <script type="module">
 import { readTokens } from "../core/env.js";
 import * as M from "../tumor-heterogeneity/model.js";
+/* §5's panel A is the version that shipped before this page changed it, so it
+   comes from the script that still studies it rather than from the widget. */
+import { arrangementsFor } from "./vaf-rows-measure.mjs";
 
 const T = readTokens();
 const DPR = window.devicePixelRatio || 1;
@@ -371,9 +374,11 @@ document.getElementById("q1").textContent =
       "holds two unknowns neutral\nand solves the third", 470);
     const ctx = canvasIn(box, 470, 130);
     label(ctx, "Other arrangements that read the same", 12, 18, 12, T.ink1);
-    const rows = M.arrangementsFor(vaf, 88);
+    const rows = arrangementsFor(vaf, 88);
     const names = ["normal cells dilute it", "only some tumor cells carry it", "it is on one of several copies"];
-    const miss = [M.STRINGS.noPurity, M.STRINGS.noCcf, M.STRINGS.noCopies];
+    const miss = ["Ruled out — it would need a purity past 1",
+      "Ruled out — it would need more than every tumor cell",
+      "Ruled out — copy number alone reads 0.25, 0.33, 0.50, 0.67, 0.75 or 1.00"];
     rows.forEach((r0, i) => {
       const y = 44 + i * 28;
       if (!r0.ok) { label(ctx, miss[i], 12, y, 10, T.extreme ?? T.ink3); return; }
@@ -548,9 +553,9 @@ function conclude(level, vaf, truth) {
   table("levelTable", ["where the mutation is", "you know", "it assumes", "calls a CLONAL mutation subclonal", "the truth is not among its candidates"],
     rows, [null, null, null, "num", "num"]);
   document.getElementById("recLevel").textContent =
-    "Three levels, and the table says why the middle one is not a redundant step. PURITY SETTLES THE DIPLOID CASE "
-    + "COMPLETELY — 75% wrong becomes 0% — AND DOES NOTHING AT ALL WHERE THE COPY NUMBER IS NOT 2: 62.5% called "
-    + "subclonal before and 62.5% after. So the three levels are not “bad, better, best”; each fixes a "
+    "Three levels, and the table says why the middle one is not a redundant step. PURITY SETTLES A DIPLOID "
+    + "REGION COMPLETELY — 75% wrong becomes 0% — AND DOES NOT SETTLE AN ALTERED ONE: 81.3% called subclonal "
+    + "before and 62.5% after, still wrong more often than not. So the three levels are not “bad, better, best”; each fixes a "
     + "different thing, and the reader finds out WHICH problem each measurement solves. Pooling them (the third "
     + "block) makes purity look weakly useful everywhere, which is the wrong lesson and is what the first draft of "
     + "this page said. Caveat: the sweep weights the five copy states equally, so it over-represents altered "

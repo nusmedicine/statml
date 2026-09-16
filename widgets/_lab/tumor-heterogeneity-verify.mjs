@@ -216,92 +216,128 @@ const defaults = async () => resolveParams(await spec(), new URLSearchParams("")
   check("a link asking for more copies than the state has comes back to it", overAsked.copies === 2);
 }
 
-/* --- 2 · page 1's arrangements -------------------------------------------- */
+/* --- 2 · page 1's scenarios, and what the analysis is told ---------------- */
 {
-  /* Revised with the rows themselves on 2026-09-16 (model decision 4, and
-     `_lab/vaf-rows-measure.mjs`). A row now carries the VAF IT reads, which is
-     what the figure prints beside it, so the thing to prove is that the two
-     agree — and that the discrete row is only ever offered when it is within
-     the noise of the reading it claims to explain. */
+  /* Rebuilt with the panel on 2026-09-16 (model decision 4). It asks the
+     lesson's own question now — cell 25 §3 fits c and m with p and Cₜ given —
+     and how much it is given is a control, which is Kenneth's own idea. What
+     has to hold: one method at every level so none is a straw man, a row that
+     reads exactly what it prints, the truth marked when it is there, and the
+     levels doing the different jobs the measurement says they do. */
+  const cfgOf = (o) => M.configOne({ purity: "0.70", ccf: "1.00", state: "3+1", copies: "2", depth: "88", ...o });
+
+  /* Every row reads the VAF the panel was built for, at its own multiplicity
+     and its own assumed copy number — the arithmetic the figure prints. */
   let bad = 0;
-  let loose = 0;
-  let impossible = 0;
-  let exact = 0;
-  let continuous = 0;
-  for (const depth of M.DEPTH_OPTIONS.map(Number)) {
-    for (let v = 0.05; v <= 0.99; v += 0.01) {
-      for (const row of M.arrangementsFor(v, depth)) {
-        if (!row.ok) { impossible += 1; continue; }
-        const got = M.vafExpected(row.purity, row.ccf, row.copies, row.state.total);
-        if (Math.abs(got - row.vaf) > 1e-12) bad += 1;
-        if (Math.abs(row.vaf - v) > M.readNoise(v, depth) + 1e-12) loose += 1;
-        if (row.kind !== "copies") { continuous += 1; if (Math.abs(row.vaf - v) < 1e-12) exact += 1; }
+  let rows = 0;
+  for (const level of M.KNOWLEDGE.map((k) => k.key)) {
+    for (const st of M.COPY_STATES) {
+      for (const purity of M.PURITY_OPTIONS) {
+        for (const ccf of ["0.25", "0.50", "0.75", "1.00"]) {
+          for (const copies of st.copies.map(String)) {
+            const cfg = cfgOf({ state: st.key, purity, ccf, copies });
+            const fit = M.scenariosFor(cfg.expected, cfg, level);
+            for (const r of fit.rows) {
+              rows += 1;
+              const got = M.vafExpected(r.purity, r.c, r.m, r.state.total);
+              if (Math.abs(got - cfg.expected) > 1e-9) bad += 1;
+            }
+          }
+        }
       }
     }
   }
-  check("every arrangement reads exactly the VAF printed beside it", bad === 0, `${bad} off`);
-  check("…and is within the noise at that depth of the reading it explains", loose === 0, `${loose} too far`);
-  check("…with purity and the cancer cell fraction landing on it exactly",
-    continuous > 0 && exact === continuous, `${exact} of ${continuous}`);
-  check("arrangements that cannot exist are ruled out, not invented", impossible > 0, `${impossible} rows`);
+  check("every scenario reads the VAF the panel was built for", bad === 0, `${rows} rows, ${bad} off`);
 
-  /* Above one half neither continuous row can EVER exist — each would need a
-     value past 1 — so copy number is the only explanation left there. That is
-     01-2 cell 17's VAF ~ 1 case, and it is what the old row could not draw. */
-  let aboveHalf = 0;
-  let copiesOnly = 0;
-  for (let v = 0.55; v <= 0.99; v += 0.01) {
-    const rows = M.arrangementsFor(v, 88);
-    aboveHalf += 1;
-    if (rows[0].ok || rows[1].ok) copiesOnly = -999;
-    if (rows[2].ok) copiesOnly += 1;
+  /* ONE METHOD AT EVERY LEVEL — enumerate the multiplicity, solve the fraction,
+     keep the fractions that are fractions. A level differs only in what it is
+     told; nothing is a straw man. */
+  const shapes = M.KNOWLEDGE.map((k) => {
+    const cfg = cfgOf({});
+    return M.scenariosFor(cfg.expected, cfg, k.key).rows.map((r) => r.m).join(",");
+  });
+  check("the assumed levels enumerate a total of two, the told level the state's own",
+    shapes[0] === "1,2" && shapes[1] === "1,2" && shapes[2] === "1,1,2,3", shapes.join("  |  "));
+  /* A DIPLOID CALL IS NOT AN ALLELE-SPECIFIC ONE: told only "diploid", an
+     analysis cannot tell 1 + 1 from 2 + 0, so two mutated copies stay open. */
+  const naive = M.scenariosFor(cfgOf({}).expected, cfgOf({}), "none");
+  check("…and a total of two leaves both genotypes open, not just the plain one",
+    naive.rows.map((r) => r.state.key).join(",") === "1+1,2+0");
+  check("knowing nothing assumes a pure sample", naive.purity === 1);
+  check("…and knowing purity uses the sample's own", M.scenariosFor(0.4, cfgOf({}), "purity").purity === 0.7);
+
+  /* THE TRUTH IS MARKED WHEN IT IS THERE, AND THE LEVELS DIFFER IN WHETHER IT
+     IS. This is the whole of cell 24's argument, and the numbers are the ones
+     `_lab/vaf-scenarios-measure.mjs` prints. */
+  const tally = {};
+  for (const k of M.KNOWLEDGE) tally[k.key] = { diploid: { wrong: 0, n: 0 }, altered: { wrong: 0, n: 0 } };
+  for (const purity of M.PURITY_OPTIONS) {
+    for (const st of M.COPY_STATES) {
+      for (const copies of st.copies.map(String)) {
+        const cfg = cfgOf({ state: st.key, purity, ccf: "1.00", copies });
+        for (const k of M.KNOWLEDGE) {
+          const fits = M.scenariosFor(cfg.expected, cfg, k.key).rows.filter((r) => r.ok);
+          const g = tally[k.key][st.key === "1+1" ? "diploid" : "altered"];
+          g.n += 1;
+          if (fits.length && fits.every((r) => r.c < 0.9)) g.wrong += 1;
+        }
+      }
+    }
   }
-  check("above one half no purity and no cancer cell fraction can read it", copiesOnly >= 0);
-  check("…and copy number alone is left to, which it could not do before",
-    copiesOnly > 0, `${copiesOnly} of ${aboveHalf} readings above one half`);
-  const atOne = M.arrangementsFor(1, 88);
-  check("…including the lesson's VAF ~ 1: the other chromosome is gone",
-    atOne[2].ok && atOne[2].vaf === 1 && atOne[2].state.minor === 0,
-    atOne[2].ok ? `${atOne[2].state.label} with ${atOne[2].copies} mutated` : "ruled out");
+  const pc = (g) => (100 * g.wrong) / g.n;
+  check("knowing nothing calls a clonal mutation subclonal, in either kind of region",
+    pc(tally.none.diploid) > 50 && pc(tally.none.altered) > 50,
+    `${pc(tally.none.diploid).toFixed(1)}% diploid, ${pc(tally.none.altered).toFixed(1)}% altered`);
+  check("…knowing purity settles the diploid case completely",
+    pc(tally.purity.diploid) === 0, `${pc(tally.purity.diploid).toFixed(1)}%`);
+  check("…and does not settle an altered one, which is what copy number is for",
+    pc(tally.purity.altered) > 50 && pc(tally.purity.altered) < pc(tally.none.altered),
+    `${pc(tally.none.altered).toFixed(1)}% before, ${pc(tally.purity.altered).toFixed(1)}% after`);
+  check("…and knowing both is right everywhere, which is why there are three levels",
+    pc(tally.both.diploid) === 0 && pc(tally.both.altered) === 0);
 
-  const at06 = M.arrangementsFor(0.6, 88);
-  check("at VAF 0.6 no diploid sample of any purity reads it", at06[0].ok === false);
-  check("…and no cancer cell fraction does either", at06[1].ok === false);
-  const at025 = M.arrangementsFor(0.25, 88);
-  check("at VAF 0.25 all three exist", at025.every((r) => r.ok),
-    at025.filter((r) => r.ok).map((r) => r.kind).join(", "));
-  check("…and the copy-number one is 3 + 1", at025[2].state?.key === "3+1");
-
-  /* 1 + 1 is not among them: it is what the other two rows already hold, and
-     including it made all three rows the same arrangement at VAF 0.5. */
-  check("no copy-number arrangement is the plain diploid one",
-    M.COPY_ARRANGEMENTS.every((a) => a.state.key !== "1+1"));
-  const atHalf = M.arrangementsFor(0.5, 88);
-  check("…so at VAF 0.5 the copy-number row is a different arrangement",
-    atHalf[2].ok && atHalf[2].state.key === "2+0", atHalf[2].ok ? atHalf[2].state.label : "ruled out");
-
-  /* READING DEEPER RULES ARRANGEMENTS OUT — the page's claim about depth, made
-     operative. At an expected VAF near but not on a copy number's own reading,
-     a shallow run cannot tell them apart and a deep one can. */
-  const near = 0.30; // 0.033 from 2 + 1's own 0.333
-  check("a shallow read cannot separate a near copy number from the reading",
-    M.arrangementsFor(near, 31).ok !== false && M.arrangementsFor(near, 31)[2].ok);
-  check("…and a deep one rules it out, which is what depth is for",
-    M.arrangementsFor(near, 500)[2].ok === false,
-    `noise ${M.n3(M.readNoise(near, 31))} at depth 31 against ${M.n3(M.readNoise(near, 500))} at 500`);
-
-  /* And the rows no longer move while the reader adds reads: they are a
-     function of the controls, which is what killed the flicker he reported. */
-  const cfg = M.configOne({ purity: "0.70", ccf: "0.75", state: "1+1", copies: "1", depth: "500" });
-  const one = M.buildReads(makeRng(5), cfg);
-  const first = M.arrangementsFor(cfg.expected, cfg.depth).map((r) => (r.ok ? "1" : "0")).join("");
-  let flips = 0;
-  for (let k = 1; k <= one.depth; k += 1) {
-    const now = M.arrangementsFor(cfg.expected, cfg.depth).map((r) => (r.ok ? "1" : "0")).join("");
-    if (now !== first) flips += 1;
+  /* The truth is among the candidates exactly when the analysis was told what
+     it needed; a level that misses it must say so on the figure. */
+  const told = M.scenariosFor(cfgOf({}).expected, cfgOf({}), "both");
+  check("the reader's own cell is marked when the analysis can reach it",
+    told.rows.filter((r) => r.truth).length === 1
+    && told.rows.find((r) => r.truth).m === 2
+    && Math.abs(told.rows.find((r) => r.truth).c - 1) < 1e-9);
+  for (const k of ["none", "purity"]) {
+    check(`…and knowing ${k === "none" ? "nothing" : "purity alone"} cannot, on a gained region`,
+      !M.scenariosFor(cfgOf({}).expected, cfgOf({}), k).rows.some((r) => r.ok && r.truth));
   }
-  check("the rows hold still while the reads land", flips === 0,
-    `${one.depth} reads, pattern ${first}; following the reading it changed 55 times`);
+
+  /* THE MINOR CHROMOSOME: a picture the reading cannot see. Two rows that
+     differ only by host carry the same multiplicity and the same fraction, and
+     they are adjacent so the figure shows one arrangement with the mutation on
+     the other chromosome. */
+  check("only a state whose counts differ, with its minor surviving, offers a host",
+    M.COPY_STATES.filter((st) => M.hostsOf(st).length > 1).map((st) => st.key).join(",") === "2+1,3+1");
+  const two = M.scenariosFor(cfgOf({ state: "2+1", copies: "1" }).expected, cfgOf({ state: "2+1", copies: "1" }), "both");
+  const m1 = two.rows.filter((r) => r.m === 1);
+  check("…and its two rows read the same, differing only in the picture",
+    m1.length === 2 && Math.abs(m1[0].c - m1[1].c) < 1e-12
+    && m1[0].host === "major" && m1[1].host === "minor",
+    `c ${M.n3(m1[0].c)} on both`);
+  check("…and they are adjacent, which is what makes that legible",
+    two.rows.indexOf(m1[0]) + 1 === two.rows.indexOf(m1[1]));
+  check("the host never changes the reading",
+    Math.abs(M.vafExpected(0.7, 1, 1, M.stateOf("2+1").total)
+      - M.vafExpected(0.7, 1, 1, M.stateOf("2+1").total)) < 1e-12);
+
+  /* A fraction past one is ruled out, and the note says what it would take. */
+  const over = M.scenariosFor(cfgOf({}).expected, cfgOf({}), "both").rows.find((r) => !r.ok);
+  check("a scenario needing more than every tumor cell is ruled out",
+    over && over.c > 1, over ? `m${over.m} would need ${M.n2(over.c)}` : "none");
+
+  /* The panel's height follows the rows it will draw, and the count is derived
+     from the parameters alone because `height` runs before `compute`. */
+  for (const [st, knows, want] of [["1+1", "both", 1], ["2+1", "both", 3], ["3+1", "both", 4], ["3+1", "none", 2]]) {
+    check(`${st} at "${knows}" reserves ${want} row${want > 1 ? "s" : ""}`,
+      M.scenarioRows({ state: st, knows }) === want
+      && M.scenariosFor(0.3, cfgOf({ state: st }), knows).rows.length === want);
+  }
 }
 
 /* --- 3 · the reads -------------------------------------------------------- */
@@ -376,8 +412,10 @@ const defaults = async () => resolveParams(await spec(), new URLSearchParams("")
     check(`declares \`${key}\``, W[key] != null);
   }
   const WANT = {
-    page: "segmented", sampleSec: "section", purity: "choice", ccf: "choice", state: "segmented",
-    copies: "choice", depth: "choice", clones: "segmented", mutations: "choice", lookSec: "section",
+    page: "segmented", truthSec: "section", sampleSec: "section", purity: "choice", ccf: "choice",
+    state: "segmented", copies: "choice", seqSec: "section", depth: "choice",
+    analysisSec: "section", knows: "segmented",
+    clones: "segmented", mutations: "choice", lookSec: "section",
     axis: "segmented", assumed: "segmented", clusters: "bool", samplesSec: "section", taken: "choice",
     shape: "segmented", showcells: "bool", dataSec: "section", seed: "int", all: "bool", shown: "int",
   };
