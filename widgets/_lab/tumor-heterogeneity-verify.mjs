@@ -306,6 +306,38 @@ const defaults = async () => resolveParams(await spec(), new URLSearchParams("")
   const state = W.compute({ params, rng: makeRng(1) });
   const anim = W.animation.init({ params, state, fromScratch: true });
   check("pages 2 and 3 take Step and Play out of the row", anim.inert === true);
+
+  /* The axis ease: core supplies the frames, the widget asks once in rebuild
+     and clears the request by landing (§ core/widget.js, the display path). */
+  const eased = W.animation.init({ params: { ...values, page: "one" }, state, fromScratch: true });
+  eased.mode = "run";
+  for (let i = 0; i < 20; i += 1) W.animation.advance(eased, { dt: 32, params: { ...values, page: "one" }, state });
+  const readsBefore = eased.k;
+  W.animation.rebuild(eased, { params: { ...params, axis: "ccf" }, state });
+  check("switching the axis asks core for frames", eased.easing === true);
+  check("…and keeps the reads the reader has drawn", eased.k === readsBefore, `${eased.k} reads`);
+  eased.mode = "ease";
+  let frames = 0;
+  while (W.animation.advance(eased, { dt: 32, params: { ...params, axis: "ccf" }, state }) && frames < 200) frames += 1;
+  check("…and lands on the fraction", eased.mix === 1, `${frames} frames, ${(frames * 32)}ms against EASE_MS ${M.EASE_MS}`);
+  /* Turned round mid-flight, an ease starts from where the figure IS. */
+  const back = W.animation.init({ params: { ...params, axis: "ccf" }, state, fromScratch: true });
+  back.mode = "ease";
+  W.animation.rebuild(back, { params: { ...params, axis: "vaf" }, state });
+  W.animation.advance(back, { dt: 32, params: { ...params, axis: "vaf" }, state });
+  check("…and an ease turned round leaves from where it is", back.mix < 1 && back.mix > 0.7, M.n3(back.mix));
+
+  /* What the ease interpolates: one set of mutations read twice, so nothing
+     may overtake anything on the way (it is a rescaling, not a reshuffle). */
+  const many = W.compute({ params, rng: makeRng(4) });
+  const a = M.axisAt(many.many, many.manyCfg, 0);
+  const b = M.axisAt(many.many, many.manyCfg, 1);
+  const mid = M.axisAt(many.many, many.manyCfg, 0.5);
+  check("the ease's ends are the two axes themselves",
+    a.values.every((v, i) => v === many.many.muts[i].vaf) && b.values.every((v, i) => Math.abs(v - M.ccfFrom(many.many.muts[i].vaf, many.manyCfg.assumed, 1, 2)) < 1e-12));
+  const order = (vals) => vals.map((v, i) => [v, i]).sort((x, y) => x[0] - y[0]).map(([, i]) => i).join();
+  check("…and no mutation overtakes another on the way", order(mid.values) === order(a.values));
+  check("…with the axis' own range carried with them", mid.max > a.max && mid.max < b.max, `${M.n2(a.max)} → ${M.n2(mid.max)} → ${M.n2(b.max)}`);
   const authored = W.animation.init({ ...{ params: { ...values, shown: 20 }, state }, fromScratch: false });
   check("`?shown=` applies on the first render only", authored.k === 20);
 }

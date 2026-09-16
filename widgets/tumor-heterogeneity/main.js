@@ -251,8 +251,17 @@ function drawCells(ctx, colors, rect, cfg, { n = M.CELLS } = {}) {
 
 /* ---- the reads ----------------------------------------------------------- */
 
-/** A pileup: one mark per read, the variant ones filled. */
-function drawPileup(ctx, colors, rect, one, k) {
+/**
+ * A pileup: one mark per read, the variant ones filled.
+ *
+ * THE NEWEST READS FADE IN, AND ONLY WHILE PLAY IS RUNNING. A read is an
+ * arrival, so it deserves the pile's own landing cue (4.3) — but a STEP adds
+ * its read at full strength, because core stops the frame clock after a step
+ * and a cue that cannot finish freezes half-drawn (4.3 again, and the trap
+ * `hardy-weinberg` records). The bar underneath is NOT eased: it is a fraction
+ * of counted reads, and a count does not slide.
+ */
+function drawPileup(ctx, colors, rect, one, k, fade = null) {
   const depth = one.depth;
   const perRow = depth <= 40 ? 20 : depth <= 100 ? 22 : depth <= 200 ? 40 : 50;
   const rowsN = Math.ceil(depth / perRow);
@@ -262,7 +271,8 @@ function drawPileup(ctx, colors, rect, one, k) {
     const rx = rect.x + (i % perRow) * (cw + 2);
     const ry = rect.y + Math.floor(i / perRow) * (rh + 3);
     const variant = one.reads[i] === 1;
-    ctx.globalAlpha = variant ? 1 : 0.45;
+    const fresh = fade && i >= fade.from ? fade.t : 1;
+    ctx.globalAlpha = (variant ? 1 : 0.45) * fresh;
     ctx.fillStyle = variant ? colors.highlight : colors.ink3;
     ctx.fillRect(rx, ry, cw, rh);
     ctx.globalAlpha = 1;
@@ -326,7 +336,11 @@ function drawOne(ctx, colors, L, params, state, anim) {
   text(ctx, `${M.intText(k)} of ${M.intText(state.one.depth)}`, L.reads.x + L.reads.w, L.reads.y - 10, {
     font: noteFont(colors), fill: colors.ink2, align: "right",
   });
-  drawPileup(ctx, colors, L.reads, state.one, k);
+  const running = anim?.mode === "run" && !anim?.done && k > 0 && k < state.one.depth;
+  const fade = running
+    ? { from: Math.max(0, k - M.batchFor(state.one.depth)), t: 0.25 + 0.75 * M.easeOut(anim.beat ?? 0) }
+    : null;
+  drawPileup(ctx, colors, L.reads, state.one, k, fade);
   drawVafBar(ctx, colors, L.bar, vaf, cfg.expected);
   const readY = L.bar.y + L.bar.h + 32;
   text(ctx, k > 0 ? `VAF ${M.n3(vaf)}` : "VAF —", L.bar.x, readY, {
@@ -395,8 +409,11 @@ function drawAlleleBar(ctx, colors, rect, cfg) {
 
 /* ---- page 2 -------------------------------------------------------------- */
 
-function drawMany(ctx, colors, L, params, state) {
-  const axis = M.onAxis(state.many, state.manyCfg, params.axis);
+function drawMany(ctx, colors, L, params, state, anim) {
+  /* The mix is where the ease has got to: 0 the reads as they came, 1 the
+     fraction. At rest it is whichever axis the control names. */
+  const mix = anim?.mix ?? (params.axis === "ccf" ? 1 : 0);
+  const axis = M.axisAt(state.many, state.manyCfg, M.easeOut(mix));
   const bins = 50;
   const counts = Array.from({ length: bins }, () => [0, 0]);
   axis.values.forEach((v, i) => {
@@ -427,8 +444,10 @@ function drawMany(ctx, colors, L, params, state) {
     }
   }
 
-  if (axis.cut != null) {
+  /* The cut belongs to the fraction, so it arrives with it. */
+  if (axis.cut != null && axis.mix > 0) {
     ctx.save();
+    ctx.globalAlpha = axis.mix;
     ctx.setLineDash([4, 3]);
     ctx.beginPath();
     ctx.moveTo(plot.sx(axis.cut), L.hist.y);
@@ -442,7 +461,7 @@ function drawMany(ctx, colors, L, params, state) {
   /* DECISION 6: the mixture's components as enclosure, one level each, fitted
      on the VAF axis and carried onto whichever axis is drawn. */
   if (params.clusters) {
-    const toAxis = (v) => (params.axis === "vaf" ? v : M.ccfFrom(v, state.manyCfg.assumed, 1, 2));
+    const toAxis = (v) => M.lerp(v, M.ccfFrom(v, state.manyCfg.assumed, 1, 2), M.easeOut(mix));
     state.many.fit.spans.forEach((sp, i) => {
       const x0 = plot.sx(Math.max(0, toAxis(sp.lo)));
       const x1 = plot.sx(Math.min(axis.max, toAxis(sp.hi)));
@@ -829,15 +848,26 @@ widgetApi = defineWidget({
         done: k >= state.one.depth,
         /* Decision 2: pages 2 and 3 land finished. */
         inert: params.page !== "one",
+        /* Where page 2's axis has got to, and which axis it is heading for. */
+        mix: params.axis === "ccf" ? 1 : 0,
+        axis: params.axis,
       };
     },
 
     advance: (anim, { dt, state }) => {
+      /* Core's ease mode: the frames for the axis, and nothing else moves in
+         them (widget 60's shape). */
+      if (anim.mode === "ease") {
+        const target = anim.axis === "ccf" ? 1 : 0;
+        const step = dt / M.EASE_MS;
+        anim.mix = target > anim.mix ? Math.min(target, anim.mix + step) : Math.max(target, anim.mix - step);
+        return anim.mix !== target;
+      }
       const end = state.one.depth;
       if (anim.k >= end) { anim.beat = 0; anim.done = true; return false; }
-      anim.beat += dt / 90;
+      anim.beat += dt / M.UNIT_MS;
       if (anim.beat < 1) return true;
-      const batch = Math.max(1, Math.ceil(end / 66));
+      const batch = M.batchFor(end);
       const units = anim.mode === "step" ? 1 : Math.floor(anim.beat);
       anim.beat = anim.mode === "step" ? 0 : anim.beat - units;
       anim.k = Math.min(end, anim.k + units * batch);
@@ -854,6 +884,15 @@ widgetApi = defineWidget({
       anim.k = Math.min(anim.k, state.one.depth);
       anim.inert = params.page !== "one";
       anim.done = anim.k >= state.one.depth;
+      /* The axis moved: ask core for frames once, and ease from wherever the
+         figure IS — an ease turned round mid-flight starts there, not at the
+         end it was heading for. A page change is not eased. */
+      if (params.axis !== anim.axis) {
+        anim.axis = params.axis;
+        if (params.page === "many") anim.easing = true;
+        else anim.mix = params.axis === "ccf" ? 1 : 0;
+      }
+      if (params.page !== "many" && !anim.easing) anim.mix = params.axis === "ccf" ? 1 : 0;
     },
   },
 
@@ -864,7 +903,7 @@ widgetApi = defineWidget({
     const card = cardForPage(params, state, anim);
     renderCard(params.page, card.rows, card.note);
     const L = M.layout(w, params);
-    if (L.page === "many") { drawMany(ctx, colors, L, params, state); return; }
+    if (L.page === "many") { drawMany(ctx, colors, L, params, state, anim); return; }
     if (L.page === "tree") { drawTreePage(ctx, colors, L, params, state); return; }
     drawOne(ctx, colors, L, params, state, anim);
   },

@@ -173,6 +173,10 @@ export function buildReads(rng, cfg) {
 }
 export const altAt = (one, k) => (k <= 0 ? 0 : one.running[Math.min(k, one.depth) - 1]);
 export const vafAt = (one, k) => (k <= 0 ? NaN : altAt(one, k) / Math.min(k, one.depth));
+/* One unit of the reveal, so that every depth fills in a few seconds. The
+   animation adds this many reads a beat and the figure fades this many in. */
+export const batchFor = (depth) => Math.max(1, Math.ceil(depth / 66));
+export const UNIT_MS = 90;
 
 /* How many of the drawn cells are tumour cells, and how many carry it. Both
    the figure and the note under it read this one function (5.8). */
@@ -308,6 +312,32 @@ export function onAxis(many, cfg, axis) {
   if (axis === "vaf") return { values: many.muts.map((m) => m.vaf), max: 1, cut: null, label: "Variant allele frequency", ticks: [0, 0.25, 0.5, 0.75, 1] };
   const values = many.muts.map((m) => ccfFrom(m.vaf, cfg.assumed, 1, 2));
   return { values, max: 1.4, cut: CUT, label: "Cancer cell fraction", ticks: [0, 0.5, CUT, 1.4] };
+}
+
+/* THE AXIS IS EASED BECAUSE IT IS ONE SET OF MUTATIONS READ TWICE. 4.4 says a
+   display change almost never deserves a transition; this is the exception the
+   page exists for — dividing by purity and copy number moves every mutation
+   along the axis, and a jump reads as a different set of mutations. Widget 60's
+   pattern: two readings of one draw, interpolated, with core's ease mode
+   supplying the frames (`anim.easing`, set in `rebuild`). */
+export const EASE_MS = 420;
+export const easeOut = (t) => 1 - (1 - Math.min(1, Math.max(0, t))) ** 3;
+export const lerp = (a, b, t) => a + (b - a) * t;
+
+/** The view at a mix: 0 is the reads as they came, 1 is the fraction. */
+export function axisAt(many, cfg, mix) {
+  const a = onAxis(many, cfg, "vaf");
+  if (mix <= 0) return { ...a, mix: 0 };
+  const b = onAxis(many, cfg, "ccf");
+  if (mix >= 1) return { ...b, mix: 1 };
+  return {
+    values: a.values.map((v, i) => lerp(v, b.values[i], mix)),
+    max: lerp(a.max, b.max, mix),
+    cut: b.cut,
+    label: mix < 0.5 ? a.label : b.label,
+    ticks: mix < 0.5 ? a.ticks : b.ticks,
+    mix,
+  };
 }
 
 /* ---- page 3: his RETCHER figure ------------------------------------------ */
