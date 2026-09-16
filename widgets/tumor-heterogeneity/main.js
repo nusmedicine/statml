@@ -210,11 +210,8 @@ function wash(color, a) {
  * state's copies, and the ones inside the cancer cell fraction carry the
  * mutation on `copies` of them (model decision 3).
  */
-function drawCells(ctx, colors, rect, cfg, { cols = M.CELL_COLS, n = M.CELLS } = {}) {
-  const rows = Math.ceil(n / cols);
-  const px = rect.w / cols;
-  const py = rect.h / rows;
-  const r = Math.min(px, py) * 0.42;
+function drawCells(ctx, colors, rect, cfg, { n = M.CELLS } = {}) {
+  const { cols, rows, px, py, r } = M.cellGrid(rect, n);
   const { tumour, carrying } = M.cellCounts(cfg, n);
   for (let i = 0; i < n; i += 1) {
     const cx = rect.x + (i % cols) * px + px / 2;
@@ -228,9 +225,12 @@ function drawCells(ctx, colors, rect, cfg, { cols = M.CELL_COLS, n = M.CELLS } =
     ctx.strokeStyle = isTumour ? wash(colors.groupA, 0.75) : wash(colors.ink3, 0.55);
     ctx.lineWidth = 1;
     ctx.stroke();
+    /* The copies fill the cell: four of them need the whole diameter, two can
+       be spread. Both follow the radius, so a bigger cell shows more rather
+       than the same drawing enlarged. */
     const copies = isTumour ? cfg.state.total : 2;
-    const len = copies > 2 ? r * 1.0 : r * 1.25;
-    const gap = copies > 2 ? Math.min(4.4, (r * 1.6) / copies) : 6;
+    const len = copies > 2 ? r * 1.15 : r * 1.35;
+    const gap = Math.max(3.4, Math.min(r * 0.42, (r * 1.55) / copies));
     for (let c = 0; c < copies; c += 1) {
       const oy = cy + (c - (copies - 1) / 2) * gap;
       ctx.beginPath();
@@ -241,7 +241,7 @@ function drawCells(ctx, colors, rect, cfg, { cols = M.CELL_COLS, n = M.CELLS } =
       ctx.stroke();
       if (carries && c < cfg.copies) {
         ctx.beginPath();
-        ctx.arc(cx, oy, Math.max(1.8, r * 0.24), 0, Math.PI * 2);
+        ctx.arc(cx, oy, Math.max(2.2, r * 0.27), 0, Math.PI * 2);
         ctx.fillStyle = colors.highlight;
         ctx.fill();
       }

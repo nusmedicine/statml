@@ -62,7 +62,25 @@ export const DEPTH_DEFAULT = "88";
 export const PURITY_OPTIONS = ["0.35", "0.50", "0.70", "1.00"];
 
 export const CELLS = 60;
-export const CELL_COLS = 10;
+
+/* HOW BIG A CELL IS, and it is measured rather than chosen. The first build
+   fixed ten columns and drew each cell at 42% of the pitch, which on a
+   522 × 150 field is a 21px cell in a 52px column — mostly gap (Kenneth,
+   2026-09-16: "can the cells be drawn larger … you can reduce spacing").
+   The grid is now whichever column count makes the cell biggest, with a fixed
+   3px gap: 15 columns of 4 rows there, and a 29px cell. */
+export const CELL_GAP = 3;
+export function cellGrid(rect, n = CELLS) {
+  let best = null;
+  for (let cols = 3; cols <= n; cols += 1) {
+    const rows = Math.ceil(n / cols);
+    const px = rect.w / cols;
+    const py = rect.h / rows;
+    const r = Math.min(px, py) / 2 - CELL_GAP;
+    if (!best || r > best.r) best = { cols, rows, px, py, r };
+  }
+  return best;
+}
 
 /* 01-2 cell 24's allele-specific states, major + minor as ASCAT reports them. */
 export const COPY_STATES = [
@@ -316,10 +334,14 @@ export function layout(w, params) {
      top of the arrangements' (the browser found both). ROW_H is the height one
      arrangement takes, and the page's height follows from it (5.8). */
   if (page === "one") {
-    const cells = { x: PAD, y: 26, w: inner, h: 150 };
-    const reads = { x: PAD, y: 230, w: inner, h: 56 };
-    const bar = { x: PAD, y: 306, w: inner, h: 16 };
-    const rows = { x: PAD, y: 390, w: inner, h: 3 * 44 };
+    /* 190px of field rather than 150: at 150 the grid that fits sixty cells is
+       15 columns of 4 and a 29px cell, at 190 it is 12 of 5 and a 32px cell —
+       and what has to be legible inside one is up to four copies with a mark
+       on them (Kenneth, 2026-09-16). */
+    const cells = { x: PAD, y: 26, w: inner, h: 190 };
+    const reads = { x: PAD, y: 270, w: inner, h: 56 };
+    const bar = { x: PAD, y: 346, w: inner, h: 16 };
+    const rows = { x: PAD, y: 430, w: inner, h: 3 * 44 };
     return { page, cells, reads, bar, rows, rowH: 44, height: rows.y + rows.h + 14 };
   }
   if (page === "many") {
