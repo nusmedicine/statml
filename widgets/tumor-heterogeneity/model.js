@@ -441,19 +441,24 @@ export const stageHeight = (w, values) => layout(w, values).height;
 /* ---- copy ---------------------------------------------------------------- */
 
 export const STRINGS = {
-  /* His pick, 2026-09-16, subtitle B. */
-  subtitle: "A tumour is a mixture of cell populations, and its mutations are read as variant "
-    + "allele frequencies. Purity and copy number set where a mutation carried by every tumour "
-    + "cell falls, sequencing depth sets how wide its peak is, and the cancer cell fraction is "
-    + "what is left once both are divided out.",
+  /* His pick, 2026-09-16, subtitle B, rephrased on his "sequencing reads from"
+     the same day: "falls" is on the struck list of the sit/fall/lie pass, and
+     what replaces it says what the frequency is a fraction OF. Page 1 exists to
+     correct that a VAF is a share of READS and not a share of cells, so the
+     subtitle states it before the figure does. */
+  subtitle: "A tumor is a mixture of cell populations, and its mutations are read as variant "
+    + "allele frequencies — the fraction of sequencing reads from a sample that carry them. "
+    + "Purity and copy number set that fraction for a mutation carried by every tumor cell, "
+    + "sequencing depth sets how wide its peak is, and the cancer cell fraction is what is left "
+    + "once both are divided out.",
 
   pageLabel: "Page",
-  pageDetail: "one mutation, a tumour's mutations together, or several samples of one patient",
+  pageDetail: "one mutation, a tumor's mutations together, or several samples of one patient",
   sampleSection: "The sample",
-  purityLabel: "Tumour purity",
-  purityDetail: "the fraction of cells in the sample that are tumour cells",
-  ccfLabel: "Tumour cells carrying it",
-  ccfDetail: "the cancer cell fraction the reads are being asked about",
+  purityLabel: "Tumor purity",
+  purityDetail: "the fraction of cells in the sample that are tumor cells",
+  ccfLabel: "Tumor cells carrying it",
+  ccfDetail: "the fraction of tumor cells that carry the mutation",
   stateLabel: "Copy number",
   stateDetail: "copies of one inherited chromosome + copies of the other, as an allele-specific caller reports them",
   copiesLabel: "Mutated copies",
@@ -466,11 +471,11 @@ export const STRINGS = {
   allLabel: "Draw every read",
   allDetail: "fills the pileup at the current depth",
 
-  tumourSection: "The tumour",
+  tumourSection: "The tumor",
   clonesLabel: "Populations",
   clonesDetail: "the cell populations the mutations come from",
   mutationsLabel: "Mutations",
-  mutationsDetail: "somatic mutations called in the tumour",
+  mutationsDetail: "somatic mutations called in the tumor",
   lookSection: "How to read it",
   axisLabel: "Axis",
   axisDetail: "the reads as they came, or with purity and copy number divided out",
@@ -485,7 +490,7 @@ export const STRINGS = {
   shapeLabel: "Shape",
   shapeDetail: "which cluster is inside which",
   cellsLabel: "Draw the cells",
-  cellsDetail: "each sample's tumour cells under its fractions",
+  cellsDetail: "each sample's tumor cells under its fractions",
 
   cellsCaption: "The sample",
   readsCaption: "The reads",
@@ -494,11 +499,11 @@ export const STRINGS = {
   noCcf: "no cancer cell fraction reads this in a diploid region",
   noCopies: "no copy state in the list reads this at purity 1",
   purityRow: "normal cells dilute it",
-  ccfRow: "only some tumour cells carry it",
-  copiesRow: "it sits on one of several copies",
+  ccfRow: "only some tumor cells carry it",
+  copiesRow: "it is on one of several copies",
   /* The formula card's notes. Each names its letters and then says what the
      line divides by what — the general logic, in the lesson's own terms. */
-  noteOne: "p is the fraction of cells in the sample that are tumour cells, c the fraction of those "
+  noteOne: "p is the fraction of cells in the sample that are tumor cells, c the fraction of those "
     + "cells carrying the mutation, m the copies carrying it in such a cell, and Cₜ all the copies "
     + "there. The reading divides variant reads by reads; the model divides the mutated copies in "
     + "the sample by every copy at that position, normal cells included.",
@@ -526,10 +531,15 @@ export const STRINGS = {
   ruledOut: "Ruled out",
 };
 
+/* TWO COLUMNS AND A SPANNING THIRD, because three page names do not fit one
+   rail row: at a 300px rail a segmented row gives each 99px, and "Clonal
+   architecture" needs 114 and "Many mutations" 101 when it is the selected one
+   (measured in the pane, 2026-09-16). Shortening the names was the other way
+   out, and the names are the lesson's own order; the grid keeps them. */
 export const PAGES = [
   { value: "one", label: "One mutation" },
   { value: "many", label: "Many mutations" },
-  { value: "tree", label: "Clonal architecture" },
+  { value: "clonal", label: "Clonal architecture", span: true },
 ];
 export const AXES = [
   { value: "vaf", label: "VAF" },

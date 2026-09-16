@@ -121,7 +121,7 @@ const worked = (num, den, result) => (MATHML
 
 function cardForPage(params, state, anim) {
   const S = M.STRINGS;
-  if (params.page === "tree") {
+  if (params.page === "clonal") {
     const shape = M.shapeOf(params.shape);
     /* The sample that decides: the one that rules this shape out if any does,
        and otherwise the one whose children come closest to their parent. */
@@ -340,7 +340,7 @@ function drawOne(ctx, colors, L, params, state, anim) {
 
   text(ctx, M.STRINGS.cellsCaption, L.cells.x, L.cells.y - 8, { font: capFont(colors), fill: colors.ink1 });
   const counts = drawCells(ctx, colors, L.cells, cfg);
-  const cellNote = `${counts.tumour} of ${M.CELLS} cells are tumour cells, ${counts.carrying} of them carrying the mutation`;
+  const cellNote = `${counts.tumour} of ${M.CELLS} cells are tumor cells, ${counts.carrying} of them carrying the mutation`;
   text(ctx, cellNote, L.cells.x, L.cells.y + L.cells.h + 18, { font: noteFont(colors), fill: colors.ink2 });
 
   text(ctx, M.STRINGS.readsCaption, L.reads.x, L.reads.y - 10, { font: capFont(colors), fill: colors.ink1 });
@@ -388,7 +388,7 @@ function drawOne(ctx, colors, L, params, state, anim) {
       font: `${colors.fsXs} ${colors.mono}`, fill: colors.ink1, align: "right",
     });
     const desc = row.kind === "purity" ? `purity ${M.n2(row.purity)}`
-      : row.kind === "ccf" ? `${M.pctText(row.ccf)} of the tumour cells`
+      : row.kind === "ccf" ? `${M.pctText(row.ccf)} of the tumor cells`
         : `copy number ${row.state.label}`;
     text(ctx, `${labels[row.kind]} — ${desc}`, L.rows.x, y + 30, { font: noteFont(colors), fill: colors.ink2 });
   });
@@ -648,6 +648,7 @@ widgetApi = defineWidget({
        clusters and back. */
     page: {
       type: "segmented",
+      style: "grid",
       label: M.STRINGS.pageLabel,
       detail: M.STRINGS.pageDetail,
       options: M.PAGES,
@@ -753,7 +754,7 @@ widgetApi = defineWidget({
       when: { param: "page", equals: "many" },
     },
 
-    samplesSec: { type: "section", label: M.STRINGS.samplesSection, when: { param: "page", equals: "tree" } },
+    samplesSec: { type: "section", label: M.STRINGS.samplesSection, when: { param: "page", equals: "clonal" } },
     taken: {
       type: "choice",
       label: M.STRINGS.takenLabel,
@@ -761,7 +762,7 @@ widgetApi = defineWidget({
       options: M.TAKEN_OPTIONS.map((t) => t.key),
       default: "4",
       display: true,
-      when: { param: "page", equals: "tree" },
+      when: { param: "page", equals: "clonal" },
     },
     shape: {
       type: "segmented",
@@ -770,7 +771,7 @@ widgetApi = defineWidget({
       options: M.SHAPES.map((s) => ({ value: s.key, label: s.label })),
       default: "linear",
       display: true,
-      when: { param: "page", equals: "tree" },
+      when: { param: "page", equals: "clonal" },
     },
     /* Named `showcells` and not `cells`: widget 54's grid rail declares a
        `cells` property on a field, and its verify proves no other widget
@@ -782,7 +783,7 @@ widgetApi = defineWidget({
       detail: M.STRINGS.cellsDetail,
       default: true,
       display: true,
-      when: { param: "page", equals: "tree" },
+      when: { param: "page", equals: "clonal" },
     },
 
     /* Kenneth's ruling on 59: the seed sits in its own section under the drive
@@ -816,13 +817,13 @@ widgetApi = defineWidget({
   legend: ({ params }) => {
     if (params.page === "many") {
       return [
-        { token: "group-a", label: "Mutations in every tumour cell", mark: "bar" },
+        { token: "group-a", label: "Mutations in every tumor cell", mark: "bar" },
         { token: "group-b", label: "Mutations in some of them", mark: "bar" },
         ...(params.clusters ? [{ token: "ink-2", label: "A cluster the mixture found, at its mean ± one standard deviation", mark: "line" }] : []),
-        ...(params.axis === "ccf" ? [{ token: "reference", label: "The cut at a cancer cell fraction of 0.9", mark: "line" }] : []),
+        ...(params.axis === "ccf" ? [{ token: "reference", label: "The threshold at a cancer cell fraction of 0.9", mark: "line" }] : []),
       ];
     }
-    if (params.page === "tree") {
+    if (params.page === "clonal") {
       return [
         { token: "group-a", label: "Cluster 1", mark: "line" },
         { token: "group-b", label: "Cluster 2", mark: "line" },
@@ -831,7 +832,7 @@ widgetApi = defineWidget({
       ];
     }
     return [
-      { token: "group-a", label: "Tumour cells", mark: "dot" },
+      { token: "group-a", label: "Tumor cells", mark: "dot" },
       { token: "ink-3", label: "Copies of the chromosome the mutation is on, solid; copies of the other, dashed", mark: "line" },
       { token: "highlight", label: "The mutation, and the reads that carry it", mark: "bar" },
       { token: "ink-3", label: "Reads that carry the reference allele", mark: "bar" },
@@ -921,7 +922,7 @@ widgetApi = defineWidget({
     renderCard(params.page, card.rows, card.note);
     const L = M.layout(w, params);
     if (L.page === "many") { drawMany(ctx, colors, L, params, state, anim); return; }
-    if (L.page === "tree") { drawTreePage(ctx, colors, L, params, state); return; }
+    if (L.page === "clonal") { drawTreePage(ctx, colors, L, params, state); return; }
     drawOne(ctx, colors, L, params, state, anim);
   },
 
@@ -930,16 +931,16 @@ widgetApi = defineWidget({
       const axis = M.onAxis(state.many, state.manyCfg, params.axis);
       const past = axis.cut == null ? null : axis.values.filter((v) => v >= axis.cut).length;
       return [
-        { label: "Clusters found", value: String(state.many.fit.K), note: "components a Gaussian mixture keeps at the lowest BIC" },
+        { label: "Clusters found", value: String(state.many.fit.K), note: "components in the mixture with the lowest BIC" },
         { label: "MATH", value: state.many.math.toFixed(1), note: "the width of the VAF distribution over its median" },
         {
-          label: params.axis === "ccf" ? "At a fraction of 0.9 or more" : "Populations in the tumour",
+          label: params.axis === "ccf" ? "At a fraction of 0.9 or more" : "Populations in the tumor",
           value: past == null ? String(state.manyCfg.clones.length) : M.intText(past),
           note: past == null ? "what the mutations were drawn from" : `of ${M.intText(state.manyCfg.n)} mutations`,
         },
       ];
     }
-    if (params.page === "tree") {
+    if (params.page === "clonal") {
       const shape = M.shapeOf(params.shape);
       const fits = state.used.every((s) => M.fitsSumRule(shape, s.ccf));
       /* A shape fits the evidence when it fits EVERY sample used, so the count
@@ -970,10 +971,10 @@ widgetApi = defineWidget({
       const axis = M.onAxis(state.many, state.manyCfg, params.axis);
       return `A histogram of ${M.intText(state.manyCfg.n)} mutations on the ${axis.label.toLowerCase()} axis, `
         + `from ${state.manyCfg.clones.length} cell population${state.manyCfg.clones.length > 1 ? "s" : ""} at purity `
-        + `${M.n2(state.manyCfg.purity)}. A Gaussian mixture keeps ${state.many.fit.K} component`
-        + `${state.many.fit.K > 1 ? "s" : ""}, and MATH is ${state.many.math.toFixed(1)}.`;
+        + `${M.n2(state.manyCfg.purity)}. A Gaussian mixture of ${state.many.fit.K} component`
+        + `${state.many.fit.K > 1 ? "s" : ""} has the lowest BIC, and MATH is ${state.many.math.toFixed(1)}.`;
     }
-    if (params.page === "tree") {
+    if (params.page === "clonal") {
       const shape = M.shapeOf(params.shape);
       const failing = state.used.find((s) => !M.fitsSumRule(shape, s.ccf));
       return `Three clusters' mean cancer cell fraction across ${state.used.length} sample`
@@ -982,7 +983,7 @@ widgetApi = defineWidget({
     }
     const k = Math.min(anim?.k ?? 0, state.one.depth);
     const cfg = state.cfg;
-    const cells = `${Math.round(M.CELLS * cfg.purity)} of ${M.CELLS} cells are tumour cells, `
+    const cells = `${Math.round(M.CELLS * cfg.purity)} of ${M.CELLS} cells are tumor cells, `
       + `${M.pctText(cfg.ccf)} of them carrying the mutation on ${cfg.copies} of ${cfg.state.total} copies`;
     if (k === 0) return `A sample of ${M.CELLS} cells in which ${cells}, with an empty pileup of ${M.intText(state.one.depth)} reads below it.`;
     return `A sample of ${M.CELLS} cells in which ${cells}. `

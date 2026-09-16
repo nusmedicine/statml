@@ -367,7 +367,7 @@ const defaults = async () => resolveParams(await spec(), new URLSearchParams("")
   const W = await widget();
   const values = await defaults();
   const cells = [];
-  for (const page of ["one", "many", "tree"]) {
+  for (const page of ["one", "many", "clonal"]) {
     for (const purity of M.PURITY_OPTIONS) {
       for (const depth of M.DEPTH_OPTIONS) {
         for (const state of M.COPY_STATES.map((s) => s.key)) {
@@ -380,7 +380,7 @@ const defaults = async () => resolveParams(await spec(), new URLSearchParams("")
     cells.push({ ...values, page: "many", clones, axis, assumed, mutations: "120" });
   }
   for (const taken of ["1", "2", "4"]) for (const shape of ["linear", "branching"]) {
-    cells.push({ ...values, page: "tree", taken, shape });
+    cells.push({ ...values, page: "clonal", taken, shape });
   }
   let bad = 0;
   let painted = 0;
@@ -445,7 +445,7 @@ const defaults = async () => resolveParams(await spec(), new URLSearchParams("")
     card2.includes(`= ${many.many.math.toFixed(1)}`), card2.slice(-70));
 
   /* Page 3: the rule, and the sample that decides it. */
-  const { state: tree } = drawWith({ ...values, page: "tree", shape: "branching" });
+  const { state: tree } = drawWith({ ...values, page: "clonal", shape: "branching" });
   const card3 = cardText();
   check("page 3's card states the sum rule", /Σ over the children of a cluster: c ≤ c of the parent/.test(card3), card3.slice(0, 60));
   const decided = tree.used.find((s) => !M.fitsSumRule(M.shapeOf("branching"), s.ccf));
@@ -453,7 +453,7 @@ const defaults = async () => resolveParams(await spec(), new URLSearchParams("")
   check("…and the arithmetic of the sample that rules the shape out",
     card3.includes(`${M.n2(tight.sum)} > ${M.n2(tight.parent)}`) && card3.includes(decided.key),
     `${decided.key}: ${M.n2(tight.sum)} > ${M.n2(tight.parent)}`);
-  const linear = drawWith({ ...values, page: "tree", shape: "linear" });
+  const linear = drawWith({ ...values, page: "clonal", shape: "linear" });
   void linear;
   check("…and the tightest one when the shape fits", /≤/.test(cardText()), cardText().slice(-40));
   check("the card is rebuilt when the page changes", cardText() !== card2 && cardText() !== full);
@@ -466,13 +466,13 @@ const defaults = async () => resolveParams(await spec(), new URLSearchParams("")
   const W_PX = 550; // the harness's canvas at FRAME_W 900 (HANDOVER § THE BIG ONE)
   let worst = null;
   const cells = [];
-  for (const page of ["one", "many", "tree"]) {
+  for (const page of ["one", "many", "clonal"]) {
     for (const state of M.COPY_STATES.map((s) => s.key)) {
       for (const depth of M.DEPTH_OPTIONS) cells.push({ ...values, page, state, depth, copies: 2 });
     }
   }
   for (const clones of ["one", "two", "three"]) for (const axis of ["vaf", "ccf"]) cells.push({ ...values, page: "many", clones, axis });
-  for (const taken of ["1", "2", "4"]) for (const shape of ["linear", "branching"]) cells.push({ ...values, page: "tree", taken, shape });
+  for (const taken of ["1", "2", "4"]) for (const shape of ["linear", "branching"]) cells.push({ ...values, page: "clonal", taken, shape });
   for (const params of cells) {
     const height = W.height({ w: W_PX, ...params });
     const state = W.compute({ params, rng: makeRng(params.seed) });
@@ -494,6 +494,42 @@ const defaults = async () => resolveParams(await spec(), new URLSearchParams("")
     L.cells.y + L.cells.h + 24 <= L.reads.y - 10
     && L.reads.y + L.reads.h < L.bar.y
     && L.bar.y + L.bar.h + 34 <= L.rows.y - 12);
+}
+
+/* --- the copy, against the words this collection has struck ---------------
+   The copy audit of 2026-09-16 (catalogue § *Slot 67*). A sweep, not a set of
+   fixed strings, because the words are struck for every string the widget will
+   ever grow — an audit does not cover copy written after it.
+
+   "tumor" and not "tumour" is Kenneth's pick of the same day: the lesson's own
+   headings are American ("Tumor Purity", 01-2 cell 24) and so is the one other
+   shipped widget that uses the word. Source comments are exempt (CLAUDE.md),
+   so the scan masks them before it reads a literal. */
+{
+  const src = [read("widgets/tumor-heterogeneity/main.js"), read("widgets/tumor-heterogeneity/model.js")]
+    .join("\n")
+    .replace(/\/\*[\s\S]*?\*\//g, " ")
+    .replace(/(^|[^:"'`\\])\/\/[^\n]*/gm, "$1");
+  const strings = [...src.matchAll(/(["'`])((?:\\.|(?!\1)[^\\])*)\1/g)]
+    .map((m) => m[2].replace(/\$\{[^}]*\}/g, " "))   // a template's ${…} is code, not words
+    .filter((t) => /[a-z]{3}/i.test(t) && !/^<|var\(--/.test(t) && t.trim().length >= 12);
+  const struck = [
+    /* the sit/fall/lie pass of 2026-09-13 */
+    ["a physical verb for a value", /\b(sits?|sitting|sat|lies|lying|falls?|falling|fell|walks?|walking)\b/i],
+    /* no personification: a model does not keep, want or choose */
+    ["a model acting", /\b(keeps?|wants?|thinks?|believes?|decides?|chooses?|chose|knows?|tries|refuses?|prefers?)\b/i],
+    /* our shorthand, not the field's: a threshold is a threshold */
+    ["our own shorthand", /\b(cut|card|rung|trench|the plain)\b/i],
+    /* no lesson references on a reader-facing string (prd §4; check asserts it too) */
+    ["a lesson reference", /\b(notebook|lesson|cell \d|chapter)\b/i],
+    /* Kenneth's pick, 2026-09-16 */
+    ["the other spelling", /\btumour/i],
+  ];
+  const hits = [];
+  for (const t of strings) {
+    for (const [why, re] of struck) if (re.test(t)) hits.push(`${why}: "${t.slice(0, 56)}"`);
+  }
+  check(`${strings.length} reader-facing strings carry no struck word`, hits.length === 0, hits.join(" | "));
 }
 
 console.log(`\n${ran} checks, ${failed} failed`);
