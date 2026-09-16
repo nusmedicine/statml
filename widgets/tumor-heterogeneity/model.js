@@ -199,25 +199,71 @@ export const cellCounts = (cfg, n = CELLS) => {
   return { tumour, carrying: Math.round(tumour * cfg.ccf) };
 };
 
-/* DECISION 4: the other arrangements that read the reader's own VAF. Each is
-   solved for its one free unknown, and a row that cannot exist says so. */
-export function arrangementsFor(vaf) {
+/* DECISION 4: the other arrangements that read the same as the reader's own.
+   Each varies ONE thing from a 1 + 1 sample and is solved for it, and a row
+   that no value can reach is RULED OUT rather than absent — page 3 marks an
+   impossible tree the same way, and it is an inference either way.
+
+   REVISED 2026-09-16 on Kenneth's question, "we try to show all the possible
+   combinations? sometimes i see red notices" — measured in
+   `_lab/vaf-rows-measure.mjs`, which is the record of why all three stayed:
+
+    a. THEY ANSWER THE EXPECTED VAF, NOT THE READING. Which arrangements could
+       produce a tumour is a property of the tumour; the draw's noise is a
+       separate idea, and the depth control is what teaches it. Following the
+       reading made the set of rows change 55 times over 500 reads — motion
+       that meant nothing, which is what he was seeing.
+
+    b. COPY NUMBER IS DISCRETE AND THE OTHER TWO ARE NOT. Purity and the cancer
+       cell fraction solve exactly and cover every VAF up to one half; copy
+       number alone reads only m / Cₜ. That asymmetry is the page's own point,
+       so the ruled-out note states the readings it CAN make.
+
+    c. EVERY MUTATED-COPY COUNT, not just one. The list used to try m = 1 only,
+       which ruled out the lesson's own VAF ~ 1 case — 2 + 0 with both copies
+       mutated reads 1.000 (01-2 cell 17). Above one half neither purity nor
+       the cancer cell fraction can EVER explain a reading, since each would
+       need a value past 1, so copy number is the only row left there and it
+       was the one switched off.
+
+    d. HOW CLOSE COUNTS IS THE NOISE AT THIS DEPTH. A discrete arrangement
+       explains the reading when it is within one binomial standard deviation
+       at the reader's own depth, so reading deeper rules arrangements out —
+       which is the page's claim that depth is what separates them, made
+       operative rather than merely stated. */
+
+/* 1 + 1 is left out: it is the baseline the other two rows already hold, so
+   including it made all three rows the same arrangement at VAF 0.5. Ties go to
+   the fewest copies, which puts copy-neutral loss of heterozygosity (2 + 0 with
+   one mutated copy, reading 0.5 exactly as a plain heterozygote does) ahead of
+   3 + 1 with two. */
+export const COPY_ARRANGEMENTS = COPY_STATES
+  .filter((s) => s.key !== "1+1")
+  .flatMap((s) => s.copies.map((m) => ({ state: s, copies: m, vaf: m / s.total })))
+  .sort((a, b) => a.vaf - b.vaf || a.state.total - b.state.total);
+/** The distinct readings copy number alone can make — what the ruled-out note
+    names, derived so it cannot drift from the list above. */
+export const COPY_READINGS = [...new Set(COPY_ARRANGEMENTS.map((a) => a.vaf))].sort((a, b) => a - b);
+
+/** How far a discrete arrangement may be from the reading and still explain
+    it: one binomial standard deviation of the reading at this depth. */
+export const readNoise = (vaf, depth) => Math.sqrt(Math.max(0, vaf * (1 - vaf)) / Math.max(1, depth));
+
+export function arrangementsFor(vaf, depth = Number(DEPTH_DEFAULT)) {
   const rows = [];
   const purity = 2 * vaf;
   rows.push(purity <= 1
-    ? { kind: "purity", purity, ccf: 1, state: stateOf("1+1"), copies: 1, ok: true }
+    ? { kind: "purity", purity, ccf: 1, state: stateOf("1+1"), copies: 1, vaf, ok: true }
     : { kind: "purity", ok: false });
   const ccf = 2 * vaf;
   rows.push(ccf <= 1
-    ? { kind: "ccf", purity: 1, ccf, state: stateOf("1+1"), copies: 1, ok: true }
+    ? { kind: "ccf", purity: 1, ccf, state: stateOf("1+1"), copies: 1, vaf, ok: true }
     : { kind: "ccf", ok: false });
-  /* At purity 1 and one mutated copy, VAF = 1/Cₜ, so a copy state reads this
-     VAF only if the lesson's own list holds one at 1/VAF. */
-  const wanted = COPY_STATES.filter((s) => s.total > 1)
-    .map((s) => ({ s, err: Math.abs(1 / s.total - vaf) }))
+  const near = COPY_ARRANGEMENTS
+    .map((a) => ({ ...a, err: Math.abs(a.vaf - vaf) }))
     .sort((a, b) => a.err - b.err)[0];
-  rows.push(wanted && wanted.err < 0.02
-    ? { kind: "copies", purity: 1, ccf: 1, state: wanted.s, copies: 1, ok: true }
+  rows.push(near && near.err <= readNoise(vaf, depth)
+    ? { kind: "copies", purity: 1, ccf: 1, state: near.state, copies: near.copies, vaf: near.vaf, ok: true }
     : { kind: "copies", ok: false });
   return rows;
 }
@@ -556,10 +602,16 @@ export const STRINGS = {
 
   cellsCaption: "The sample",
   readsCaption: "The reads",
-  rowsCaption: "The same reading, other arrangements",
-  noPurity: "no diploid sample of any purity reads this",
-  noCcf: "no cancer cell fraction reads this in a diploid region",
-  noCopies: "no copy state in the list reads this at purity 1",
+  rowsCaption: "Other arrangements that read the same",
+  /* Ruled out, not missing — page 3's word for the same idea, and each says
+     what it would take. The copy-number one names the readings copy number can
+     make, because that list IS the reason and it is short enough to print. */
+  noPurity: "Ruled out — it would need a purity past 1",
+  noCcf: "Ruled out — it would need more than every tumor cell",
+  get noCopies() {
+    const r = COPY_READINGS.map((v) => n2(v));
+    return "Ruled out — copy number alone reads " + r.slice(0, -1).join(", ") + " or " + r[r.length - 1];
+  },
   purityRow: "normal cells dilute it",
   ccfRow: "only some tumor cells carry it",
   copiesRow: "it is on one of several copies",

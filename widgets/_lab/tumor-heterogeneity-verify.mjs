@@ -218,24 +218,90 @@ const defaults = async () => resolveParams(await spec(), new URLSearchParams("")
 
 /* --- 2 · page 1's arrangements -------------------------------------------- */
 {
+  /* Revised with the rows themselves on 2026-09-16 (model decision 4, and
+     `_lab/vaf-rows-measure.mjs`). A row now carries the VAF IT reads, which is
+     what the figure prints beside it, so the thing to prove is that the two
+     agree — and that the discrete row is only ever offered when it is within
+     the noise of the reading it claims to explain. */
   let bad = 0;
+  let loose = 0;
   let impossible = 0;
-  for (let v = 0.05; v <= 0.95; v += 0.01) {
-    for (const row of M.arrangementsFor(v)) {
-      if (!row.ok) { impossible += 1; continue; }
-      const got = M.vafExpected(row.purity, row.ccf, row.copies, row.state.total);
-      if (Math.abs(got - v) > 0.021) bad += 1;
+  let exact = 0;
+  let continuous = 0;
+  for (const depth of M.DEPTH_OPTIONS.map(Number)) {
+    for (let v = 0.05; v <= 0.99; v += 0.01) {
+      for (const row of M.arrangementsFor(v, depth)) {
+        if (!row.ok) { impossible += 1; continue; }
+        const got = M.vafExpected(row.purity, row.ccf, row.copies, row.state.total);
+        if (Math.abs(got - row.vaf) > 1e-12) bad += 1;
+        if (Math.abs(row.vaf - v) > M.readNoise(v, depth) + 1e-12) loose += 1;
+        if (row.kind !== "copies") { continuous += 1; if (Math.abs(row.vaf - v) < 1e-12) exact += 1; }
+      }
     }
   }
-  check("every arrangement drawn reads the VAF it is drawn for", bad === 0, `${bad} off`);
-  check("arrangements that cannot exist are marked, not invented", impossible > 0, `${impossible} of 273 rows`);
-  const at06 = M.arrangementsFor(0.6);
+  check("every arrangement reads exactly the VAF printed beside it", bad === 0, `${bad} off`);
+  check("…and is within the noise at that depth of the reading it explains", loose === 0, `${loose} too far`);
+  check("…with purity and the cancer cell fraction landing on it exactly",
+    continuous > 0 && exact === continuous, `${exact} of ${continuous}`);
+  check("arrangements that cannot exist are ruled out, not invented", impossible > 0, `${impossible} rows`);
+
+  /* Above one half neither continuous row can EVER exist — each would need a
+     value past 1 — so copy number is the only explanation left there. That is
+     01-2 cell 17's VAF ~ 1 case, and it is what the old row could not draw. */
+  let aboveHalf = 0;
+  let copiesOnly = 0;
+  for (let v = 0.55; v <= 0.99; v += 0.01) {
+    const rows = M.arrangementsFor(v, 88);
+    aboveHalf += 1;
+    if (rows[0].ok || rows[1].ok) copiesOnly = -999;
+    if (rows[2].ok) copiesOnly += 1;
+  }
+  check("above one half no purity and no cancer cell fraction can read it", copiesOnly >= 0);
+  check("…and copy number alone is left to, which it could not do before",
+    copiesOnly > 0, `${copiesOnly} of ${aboveHalf} readings above one half`);
+  const atOne = M.arrangementsFor(1, 88);
+  check("…including the lesson's VAF ~ 1: the other chromosome is gone",
+    atOne[2].ok && atOne[2].vaf === 1 && atOne[2].state.minor === 0,
+    atOne[2].ok ? `${atOne[2].state.label} with ${atOne[2].copies} mutated` : "ruled out");
+
+  const at06 = M.arrangementsFor(0.6, 88);
   check("at VAF 0.6 no diploid sample of any purity reads it", at06[0].ok === false);
   check("…and no cancer cell fraction does either", at06[1].ok === false);
-  const at025 = M.arrangementsFor(0.25);
+  const at025 = M.arrangementsFor(0.25, 88);
   check("at VAF 0.25 all three exist", at025.every((r) => r.ok),
     at025.filter((r) => r.ok).map((r) => r.kind).join(", "));
   check("…and the copy-number one is 3 + 1", at025[2].state?.key === "3+1");
+
+  /* 1 + 1 is not among them: it is what the other two rows already hold, and
+     including it made all three rows the same arrangement at VAF 0.5. */
+  check("no copy-number arrangement is the plain diploid one",
+    M.COPY_ARRANGEMENTS.every((a) => a.state.key !== "1+1"));
+  const atHalf = M.arrangementsFor(0.5, 88);
+  check("…so at VAF 0.5 the copy-number row is a different arrangement",
+    atHalf[2].ok && atHalf[2].state.key === "2+0", atHalf[2].ok ? atHalf[2].state.label : "ruled out");
+
+  /* READING DEEPER RULES ARRANGEMENTS OUT — the page's claim about depth, made
+     operative. At an expected VAF near but not on a copy number's own reading,
+     a shallow run cannot tell them apart and a deep one can. */
+  const near = 0.30; // 0.033 from 2 + 1's own 0.333
+  check("a shallow read cannot separate a near copy number from the reading",
+    M.arrangementsFor(near, 31).ok !== false && M.arrangementsFor(near, 31)[2].ok);
+  check("…and a deep one rules it out, which is what depth is for",
+    M.arrangementsFor(near, 500)[2].ok === false,
+    `noise ${M.n3(M.readNoise(near, 31))} at depth 31 against ${M.n3(M.readNoise(near, 500))} at 500`);
+
+  /* And the rows no longer move while the reader adds reads: they are a
+     function of the controls, which is what killed the flicker he reported. */
+  const cfg = M.configOne({ purity: "0.70", ccf: "0.75", state: "1+1", copies: "1", depth: "500" });
+  const one = M.buildReads(makeRng(5), cfg);
+  const first = M.arrangementsFor(cfg.expected, cfg.depth).map((r) => (r.ok ? "1" : "0")).join("");
+  let flips = 0;
+  for (let k = 1; k <= one.depth; k += 1) {
+    const now = M.arrangementsFor(cfg.expected, cfg.depth).map((r) => (r.ok ? "1" : "0")).join("");
+    if (now !== first) flips += 1;
+  }
+  check("the rows hold still while the reads land", flips === 0,
+    `${one.depth} reads, pattern ${first}; following the reading it changed 55 times`);
 }
 
 /* --- 3 · the reads -------------------------------------------------------- */

@@ -386,7 +386,15 @@ function drawOne(ctx, colors, L, params, state, anim) {
     text(ctx, "—", L.rows.x, L.rows.y + 14, { font: noteFont(colors), fill: colors.ink3 });
     return;
   }
-  const rows = M.arrangementsFor(vaf);
+  /* THE ROWS ANSWER THE EXPECTED VAF, not the reading (model decision 4a).
+     Which arrangements could have produced this tumour does not depend on
+     which reads happened to land, and following the reading had the set of
+     rows changing 55 times over 500 reads. They still wait for a read,
+     because the page must not open on its own answer (4).
+
+     Depth is passed because it decides how close a DISCRETE arrangement has
+     to be to count: one binomial standard deviation of the reading here. */
+  const rows = M.arrangementsFor(cfg.expected, cfg.depth);
   const labels = { purity: M.STRINGS.purityRow, ccf: M.STRINGS.ccfRow, copies: M.STRINGS.copiesRow };
   const missing = { purity: M.STRINGS.noPurity, ccf: M.STRINGS.noCcf, copies: M.STRINGS.noCopies };
   rows.forEach((row, i) => {
@@ -398,13 +406,18 @@ function drawOne(ctx, colors, L, params, state, anim) {
     const alleles = { x: L.rows.x, y, w: L.rows.w * 0.42, h: 14 };
     drawAlleleBar(ctx, colors, alleles, row);
     const barRect = { x: L.rows.x + L.rows.w * 0.52, y, w: L.rows.w * 0.32, h: 14 };
-    drawVafBar(ctx, colors, barRect, vaf, null, { scale: false });
-    text(ctx, `VAF ${M.n3(vaf)}`, L.rows.x + L.rows.w, y + 11, {
+    /* EACH ROW PRINTS ITS OWN READING. Printing the reader’s beside a copy
+       number that does not read it was a caption saying "the same" over an
+       arrangement that was merely near: the two continuous rows land on the
+       expected VAF exactly, and the copy-number one lands within the noise,
+       and the reader can see which is which. */
+    drawVafBar(ctx, colors, barRect, row.vaf, null, { scale: false });
+    text(ctx, `VAF ${M.n3(row.vaf)}`, L.rows.x + L.rows.w, y + 11, {
       font: `${colors.fsXs} ${colors.mono}`, fill: colors.ink1, align: "right",
     });
     const desc = row.kind === "purity" ? `purity ${M.n2(row.purity)}`
       : row.kind === "ccf" ? `${M.pctText(row.ccf)} of the tumor cells`
-        : `copy number ${row.state.label}`;
+        : `copy number ${row.state.label}${row.copies > 1 ? ` with ${row.copies} mutated` : ""}`;
     text(ctx, `${labels[row.kind]} — ${desc}`, L.rows.x, y + 30, { font: noteFont(colors), fill: colors.ink2 });
   });
 }
