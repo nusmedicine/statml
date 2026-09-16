@@ -339,8 +339,25 @@ export function assumptionsWrong(cfg, level) {
 }
 
 export function reportedScenario(vaf, cfg, level) {
+  /* THE FIRST THAT FITS, AND NOTHING THAT KNOWS WHICH IS TRUE. This used to
+     prefer the reader's own cell, which is knowledge the analysis does not
+     have: at "Nothing" with a 1 + 1 sample it showed a fraction of 1.00 beside
+     a call of "Cannot tell", because 0.50 fits the reading exactly as well and
+     the tile had quietly picked the right one (Kenneth, 2026-09-16: "why CCF is
+     1 but cannot tell"). The first fit is the fewest copies, which an analysis
+     can choose without being told anything. */
   const { rows } = scenariosFor(vaf, cfg, level);
-  return rows.find((r) => r.ok && r.truth) ?? rows.find((r) => r.ok) ?? rows[0];
+  return rows.find((r) => r.ok) ?? rows[0];
+}
+
+/** The span of the fractions that fit — one number when one scenario does, a
+    range when several do. What the tile reports, since a single number where
+    the reading supports several is a claim the reading does not make. */
+export function fractionSpan(vaf, cfg, level) {
+  const { fits } = scenariosFor(vaf, cfg, level);
+  if (!fits.length) return null;
+  const cs = fits.map((r) => r.c);
+  return { lo: Math.min(...cs), hi: Math.max(...cs), n: fits.length };
 }
 
 export function scenariosFor(vaf, cfg, level) {

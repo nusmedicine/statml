@@ -382,21 +382,44 @@ const defaults = async () => resolveParams(await spec(), new URLSearchParams("")
         Boolean(M.STRINGS.callValue[key]) && Boolean(M.STRINGS.callNote[key]));
     }
 
-    /* The call and the fraction beside it come from the SAME scenarios, so the
-       tile can never sit on the other side of the threshold from its own call:
-       solving the tile from the draw instead did exactly that in 2.7% of
-       settings (measured 2026-09-16). */
+    /* THE FRACTION TILE SHOWS THE SPAN OF WHAT FITS, and the call is its visible
+       consequence. Solving the tile from the draw put 0.92 beside "subclonal" in
+       2.7% of settings; showing ONE fitting scenario put 1.00 beside "Cannot
+       tell", because that one was the sample the reader built and the analysis
+       could not have singled it out (Kenneth, 2026-09-16). Held both ways: the
+       span agrees with the call, and the tile reports every scenario that fits
+       rather than choosing among them. */
     let clash = 0;
+    let narrower = 0;
     sweep((cfg) => {
       for (const k of M.KNOWLEDGE) {
-        const said = M.reportedScenario(cfg.expected, cfg, k.key);
+        const span = M.fractionSpan(cfg.expected, cfg, k.key);
+        const fits = M.scenariosFor(cfg.expected, cfg, k.key).fits;
         const v = M.verdictFor(cfg.expected, cfg, k.key);
-        if (v === "clonal" && said.c < M.CUT) clash += 1;
-        if (v === "subclonal" && said.c >= M.CUT) clash += 1;
+        if (!span) continue;
+        if (v === "clonal" && !(span.lo >= M.CUT)) clash += 1;
+        if (v === "subclonal" && !(span.hi < M.CUT)) clash += 1;
+        if (v === "split" && !(span.lo < M.CUT && span.hi >= M.CUT)) clash += 1;
+        if (span.n !== fits.length) narrower += 1;
       }
     });
-    check("…and the fraction beside it never sits the other side of the threshold",
+    check("…the fraction's span agrees with the call in every setting",
       clash === 0, clash + " disagreements");
+    check("…and it reports every scenario that fits, not one it has chosen",
+      narrower === 0, narrower + " narrower than the reading allows");
+
+    /* The exact case that leaked: a clonal mutation on one of two copies in a
+       pure sample, told nothing. It reads 0.500, and so does 2 + 0 with both
+       copies mutated in half the cells, so the tile must span both. */
+    const leak = cfgOf({ purity: "1.00", ccf: "1.00", state: "1+1", copies: "1" });
+    const ls = M.fractionSpan(leak.expected, leak, "nothing");
+    check("…including the case that showed 1.00 beside Cannot tell",
+      Math.abs(ls.lo - 0.5) < 1e-9 && Math.abs(ls.hi - 1) < 1e-9
+      && M.verdictFor(leak.expected, leak, "nothing") === "split",
+      M.n2(ls.lo) + "–" + M.n2(ls.hi));
+    check("…which the copy number resolves: told both, 1 + 1 is clonal",
+      M.verdictFor(leak.expected, leak, "both") === "clonal"
+      && M.fractionSpan(leak.expected, leak, "both").n === 1);
   }
 
   /* THE MINOR CHROMOSOME: a picture the reading cannot see. Two rows that

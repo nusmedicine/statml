@@ -1194,18 +1194,25 @@ widgetApi = defineWidget({
        above, which prints the reading against what the model expects, and by
        the pileup; it does not need telling twice at the cost of a figure that
        contradicts itself. */
-    const said = M.reportedScenario(cfg.expected, cfg, params.knows);
+    const span = M.fractionSpan(cfg.expected, cfg, params.knows);
     const call = M.verdictFor(cfg.expected, cfg, params.knows);
-    const ccf = k > 0 ? said.c : NaN;
+    const given = M.knowsOf(params.knows).key === "nothing" ? "at purity 1.00" : `at purity ${M.n2(cfg.purity)}`;
+    /* A RANGE WHEN SEVERAL SCENARIOS FIT (his pick, 2026-09-16). One number
+       there was the reader's own scenario, which the analysis could not have
+       singled out, so "1.00" beside "Cannot tell" read as a contradiction. The
+       range makes the call its visible consequence: it straddles 0.9. */
+    const spanText = !span ? "—"
+      : Math.abs(span.hi - span.lo) < 0.005 ? M.n2(span.lo)
+        : `${M.n2(span.lo)}–${M.n2(span.hi)}`;
     return [
       { label: "Reads carrying it", value: k > 0 ? `${M.intText(M.altAt(state.one, k))} / ${M.intText(k)}` : "—", note: `of ${M.intText(state.one.depth)} at this depth` },
       { label: "Variant allele frequency", value: k > 0 ? M.n3(vaf) : "—", note: `the model expects ${M.n3(cfg.expected)}` },
       {
         label: "Cancer cell fraction",
-        value: k > 0 && said.ok ? M.n2(ccf) : "—",
-        note: M.knowsOf(params.knows).key === "both"
-          ? `at this purity, ${said.m} of ${said.state.total} copies`
-          : `at purity ${M.n2(said.purity)}, ${said.m} of ${said.state.total} copies`,
+        value: k > 0 ? spanText : "—",
+        note: !span ? "no scenario fits this reading"
+          : span.n === 1 ? `${given}, one scenario fits`
+            : `${given}, ${span.n} scenarios fit`,
       },
       /* WHAT THE ANALYSIS IS FOR (cell 17), and the reason the corrections are
          worth making: the fraction is the number, this is the call. */
