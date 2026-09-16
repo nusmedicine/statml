@@ -47,7 +47,7 @@
  */
 import {
   mulberry32, binomial, median, quantile, drawDepth, DEPTH_MEDIAN,
-  vafExpected, ccfFrom, COPY_STATES, TRIO, stateOf, tumour, MATH, pickK,
+  vafExpected, ccfFrom, COPY_STATES, TRIO, stateOf, tumour, MATH, pickK, arrangementsFor,
   trees, fitsSumRule, treeName, RETCHER,
 } from "./vaf-model.js";
 
@@ -92,6 +92,15 @@ ck("a clonal one and a subclonal one are among them",
 for (const t of TRIO) console.log(`  side by side: ${t.label} → VAF ${f3(vafExpected(t.purity, t.ccf, t.m, stateOf(t.state).total))}`);
 ck("the three the first page can draw all read 0.250",
   TRIO.every((t) => Math.abs(vafExpected(t.purity, t.ccf, t.m, stateOf(t.state).total) - 0.25) < 1e-12));
+/* The widget solves for these rather than carrying them, so the lab's fixed
+   trio and the page's solver have to agree at 0.25. */
+const solved = arrangementsFor(0.25);
+ck("the widget's own solver finds the same three",
+  solved.every((r) => r.ok)
+  && Math.abs(solved[0].purity - TRIO[0].purity) < 1e-9
+  && Math.abs(solved[1].ccf - TRIO[1].ccf) < 1e-9
+  && solved[2].state.key === TRIO[2].state,
+  solved.map((r) => r.kind).join(", "));
 
 // ---------------------------------------------------------------- §3 depth
 console.log("\n§3 Depth — the width of the peak, not its place");

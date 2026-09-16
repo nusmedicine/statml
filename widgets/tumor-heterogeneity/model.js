@@ -1,0 +1,418 @@
+/* ============================================================================
+   Widget 67 · Tumor Heterogeneity — the stage, the arithmetic and the copy.
+   `main.js` draws them; `_lab/vaf-model.js` re-exports this file so the mock
+   and `_lab/vaf-measure.mjs` cannot drift from what the widget runs.
+
+   PHM5003 07 / 01-2 cells 17–25. Three pages, from Kenneth's picks of
+   2026-09-16 (catalogue § *The cancer mutation arc*, slot 67):
+
+     One mutation          a sample of cells, the reads drawn from it, and the
+                           other arrangements that read the same VAF
+     Many mutations        one tumour's mutations on the VAF axis or the
+                           cancer cell fraction axis, with the clusters a
+                           Gaussian mixture returns
+     Clonal architecture   his RETCHER figure: four samples, three clusters,
+                           and which trees their fractions allow
+
+   DECISIONS TAKEN WHILE BUILDING, so they are not re-argued:
+
+    1. THE PAGE IS A DISPLAY PARAMETER, as widget 56's is: one `compute()`
+       builds all three pages, so a visit to the clusters and back does not
+       throw away the reads the reader has been adding (3.2, invariant 3).
+
+    2. THE READS ARE THE ANIMATION, and only on page 1. Pages 2 and 3 land
+       finished, so `anim.inert` takes Step and Play out of the row there
+       (4.5, widget 56's Many SNPs page).
+
+    3. SIXTY CELLS, because purity is a proportion. Ten cells cannot draw 0.35
+       or 0.75, and his figure's four cannot draw 0.70 (mock § 1).
+
+    4. THE ALTERNATIVE ARRANGEMENTS ARE COMPUTED FROM THE READER'S VAF, not
+       fixed: the page's claim is that the SAME reading has other explanations,
+       so the rows have to follow whatever the reader has set. Where no
+       arrangement of a kind reads that VAF the row says so — at VAF 0.6 there
+       is no diploid clonal sample, because purity cannot pass 1 (2.6).
+
+    5. THE MIXTURE IS FITTED ON THE VAF AXIS AND DRAWN ON WHICHEVER AXIS IS
+       SHOWN. `mclust` in cell 22 clusters VAFs; switching the axis is a
+       display change (3.2), and refitting on the corrected values would make
+       the axis control a data control.
+
+    6. A CLUSTER IS DRAWN AS ENCLOSURE AND THE TRUTH AS COLOUR (§ *Widget 42*).
+       The bracket is the component's mean ± one standard deviation, not the
+       range of the points assigned to it: assigned ranges overlap, and at one
+       level they read as a single rule (found in the mock).
+
+    7. PAGE 3'S NUMBERS ARE HIS FIGURE'S. `cancer-retcher.png` prints four
+       samples' cluster mean CCFs; nothing there is simulated, so nothing on
+       that page is a data parameter.
+   ========================================================================= */
+
+/* ---- the lesson's own numbers -------------------------------------------- */
+
+/* `_lab/cancer-plan-measure.mjs`, on brca_maf.rda: the depth at a
+   non-synonymous mutation is median 88 with IQR 49–161. A FIXED depth is not a
+   stage — every VAF is then a multiple of 1/d — so a depth setting is the
+   MEDIAN of a lognormal with the file's own spread. */
+export const DEPTH_SD = (Math.log(161) - Math.log(49)) / (2 * 0.6745);
+export const DEPTH_OPTIONS = ["31", "88", "161", "500"];
+export const DEPTH_DEFAULT = "88";
+
+/* 01-2 cell 24's six printed consensus purities run 0.65 to 0.79. */
+export const PURITY_OPTIONS = ["0.35", "0.50", "0.70", "1.00"];
+
+export const CELLS = 60;
+export const CELL_COLS = 10;
+
+/* 01-2 cell 24's allele-specific states, major + minor as ASCAT reports them. */
+export const COPY_STATES = [
+  { key: "1+1", label: "1 + 1", total: 2, copies: [1] },
+  { key: "2+0", label: "2 + 0", total: 2, copies: [1, 2] },
+  { key: "1+0", label: "1 + 0", total: 1, copies: [1] },
+  { key: "2+1", label: "2 + 1", total: 3, copies: [1, 2] },
+  { key: "3+1", label: "3 + 1", total: 4, copies: [1, 2, 3] },
+];
+export const stateOf = (key) => COPY_STATES.find((s) => s.key === key) ?? COPY_STATES[0];
+
+/* 01-2 cell 25, the model the whole widget is built on:
+     VAF = p·c·m / (p·Cₜ + 2(1 − p))     and     c = VAF·(p·Cₜ + 2(1 − p)) / (p·m)
+   p purity, c cancer cell fraction, m mutated copies, Cₜ copies per tumour cell. */
+export const vafExpected = (p, c, m, C) => (p * c * m) / (p * C + (1 - p) * 2);
+export const ccfFrom = (vaf, p, m, C) => (vaf * (p * C + (1 - p) * 2)) / (p * m);
+
+/* ---- small numbers ------------------------------------------------------- */
+
+export const n2 = (x) => (Number.isFinite(x) ? x.toFixed(2) : "—");
+export const n3 = (x) => (Number.isFinite(x) ? x.toFixed(3) : "—");
+export const intText = (x) => Math.round(x).toLocaleString("en-US");
+export const pctText = (x) => `${Math.round(x * 100)}%`;
+export const median = (a) => {
+  const s = [...a].sort((x, y) => x - y);
+  const n = s.length;
+  if (!n) return NaN;
+  return n % 2 ? s[(n - 1) / 2] : (s[n / 2 - 1] + s[n / 2]) / 2;
+};
+/* Mroz & Rocco's MATH, as maftools prints it in cell 23's titles: all ten
+   reproduce to the digit (`_lab/cancer-plan-measure.mjs`). */
+export const MATH = (v) => {
+  const m = median(v);
+  return (100 * 1.4826 * median(v.map((x) => Math.abs(x - m)))) / m;
+};
+
+/* ---- page 1: the sample, and the reads drawn from it ---------------------- */
+
+export function configOne(params) {
+  const purity = Number(params.purity);
+  const ccf = Number(params.ccf);
+  const st = stateOf(params.state);
+  const copies = Math.min(Number(params.copies), st.total);
+  const depth = Number(params.depth);
+  return { purity, ccf, state: st, copies, depth, expected: vafExpected(purity, ccf, copies, st.total) };
+}
+
+/** One read at a time, each an allele drawn from the sample. */
+export function buildReads(rng, cfg) {
+  const reads = [];
+  for (let i = 0; i < cfg.depth; i += 1) reads.push(rng.next() < cfg.expected ? 1 : 0);
+  let alt = 0;
+  const running = reads.map((r) => { alt += r; return alt; });
+  return { reads, running, alt, depth: cfg.depth };
+}
+export const altAt = (one, k) => (k <= 0 ? 0 : one.running[Math.min(k, one.depth) - 1]);
+export const vafAt = (one, k) => (k <= 0 ? NaN : altAt(one, k) / Math.min(k, one.depth));
+
+/* How many of the drawn cells are tumour cells, and how many carry it. Both
+   the figure and the note under it read this one function (5.8). */
+export const cellCounts = (cfg, n = CELLS) => {
+  const tumour = Math.round(n * cfg.purity);
+  return { tumour, carrying: Math.round(tumour * cfg.ccf) };
+};
+
+/* DECISION 4: the other arrangements that read the reader's own VAF. Each is
+   solved for its one free unknown, and a row that cannot exist says so. */
+export function arrangementsFor(vaf) {
+  const rows = [];
+  const purity = 2 * vaf;
+  rows.push(purity <= 1
+    ? { kind: "purity", purity, ccf: 1, state: stateOf("1+1"), copies: 1, ok: true }
+    : { kind: "purity", ok: false });
+  const ccf = 2 * vaf;
+  rows.push(ccf <= 1
+    ? { kind: "ccf", purity: 1, ccf, state: stateOf("1+1"), copies: 1, ok: true }
+    : { kind: "ccf", ok: false });
+  /* At purity 1 and one mutated copy, VAF = 1/Cₜ, so a copy state reads this
+     VAF only if the lesson's own list holds one at 1/VAF. */
+  const wanted = COPY_STATES.filter((s) => s.total > 1)
+    .map((s) => ({ s, err: Math.abs(1 / s.total - vaf) }))
+    .sort((a, b) => a.err - b.err)[0];
+  rows.push(wanted && wanted.err < 0.02
+    ? { kind: "copies", purity: 1, ccf: 1, state: wanted.s, copies: 1, ok: true }
+    : { kind: "copies", ok: false });
+  return rows;
+}
+
+/* ---- page 2: many mutations ---------------------------------------------- */
+
+/* The label is the COUNT, because a segmented option is read on its own face:
+   "And a subclone" beside "One" reads as a sentence with its subject missing. */
+export const CLONE_SETS = [
+  { key: "one", label: "One", clones: [{ ccf: 1, share: 1 }] },
+  { key: "two", label: "Two", clones: [{ ccf: 1, share: 0.6 }, { ccf: 0.5, share: 0.4 }] },
+  { key: "three", label: "Three", clones: [{ ccf: 1, share: 0.5 }, { ccf: 0.6, share: 0.3 }, { ccf: 0.3, share: 0.2 }] },
+];
+export const clonesOf = (key) => CLONE_SETS.find((c) => c.key === key) ?? CLONE_SETS[1];
+export const MUTATION_OPTIONS = ["120", "300", "1000"];
+
+export function configMany(params) {
+  return {
+    clones: clonesOf(params.clones).clones,
+    n: Number(params.mutations),
+    purity: Number(params.purity2),
+    depthMedian: Number(params.depth2),
+    assumed: params.assumed === "pure" ? 1 : Number(params.purity2),
+  };
+}
+
+const drawDepth = (rng, med) => Math.max(8, Math.round(Math.exp(Math.log(med) + DEPTH_SD * rng.normal())));
+
+export function buildMany(rng, cfg) {
+  const muts = [];
+  for (let i = 0; i < cfg.n; i += 1) {
+    let u = rng.next();
+    let pick = cfg.clones[0];
+    for (const c of cfg.clones) { if (u < c.share) { pick = c; break; } u -= c.share; }
+    const depth = drawDepth(rng, cfg.depthMedian);
+    const p = vafExpected(cfg.purity, pick.ccf, 1, 2);
+    let alt = 0;
+    for (let r = 0; r < depth; r += 1) if (rng.next() < p) alt += 1;
+    muts.push({ vaf: alt / depth, depth, ccfTrue: pick.ccf, clonal: pick.ccf >= 0.999 });
+  }
+  const fit = pickK(muts.map((m) => m.vaf));
+  return { muts, fit, math: MATH(muts.map((m) => m.vaf)) };
+}
+
+/* One-dimensional Gaussian mixture by EM, the number of components chosen by
+   BIC — `mclust`'s rule, which cell 22 calls through inferHeterogeneity.
+   BIC = 2·loglik − k·ln n, higher better, mclust's sign convention.
+   Measured: at 300 mutations it gives a tumour with ONE clone two components
+   in 21 of 30 runs, which is what page 2 exists to show. */
+export function fitGMM(x, K, iters = 200) {
+  const n = x.length;
+  const s = [...x].sort((a, b) => a - b);
+  const q = (p) => { const h = (n - 1) * p, lo = Math.floor(h); return s[lo] + (h - lo) * ((s[lo + 1] ?? s[lo]) - s[lo]); };
+  const mu = Array.from({ length: K }, (_, k) => s[Math.floor(((k + 0.5) / K) * n)]);
+  const sd = new Array(K).fill(Math.max(0.01, (q(0.75) - q(0.25)) / (1.349 * K)));
+  const w = new Array(K).fill(1 / K);
+  const R = Array.from({ length: n }, () => new Array(K).fill(0));
+  const pdf = (v, m0, s0) => Math.exp(-((v - m0) ** 2) / (2 * s0 * s0)) / (s0 * Math.sqrt(2 * Math.PI));
+  let loglik = -Infinity;
+  for (let it = 0; it < iters; it += 1) {
+    let ll = 0;
+    for (let i = 0; i < n; i += 1) {
+      let tot = 0;
+      for (let k = 0; k < K; k += 1) { R[i][k] = w[k] * pdf(x[i], mu[k], sd[k]); tot += R[i][k]; }
+      if (!(tot > 0)) { tot = 1e-300; R[i].fill(1 / K); }
+      for (let k = 0; k < K; k += 1) R[i][k] /= tot;
+      ll += Math.log(tot);
+    }
+    for (let k = 0; k < K; k += 1) {
+      let nk = 0, m0 = 0, v0 = 0;
+      for (let i = 0; i < n; i += 1) { nk += R[i][k]; m0 += R[i][k] * x[i]; }
+      m0 /= Math.max(nk, 1e-12);
+      for (let i = 0; i < n; i += 1) v0 += R[i][k] * (x[i] - m0) ** 2;
+      w[k] = nk / n; mu[k] = m0; sd[k] = Math.max(0.005, Math.sqrt(v0 / Math.max(nk, 1e-12)));
+    }
+    if (Math.abs(ll - loglik) < 1e-8) { loglik = ll; break; }
+    loglik = ll;
+  }
+  const assign = x.map((v) => {
+    let best = 0, bv = -Infinity;
+    for (let k = 0; k < K; k += 1) { const p = w[k] * pdf(v, mu[k], sd[k]); if (p > bv) { bv = p; best = k; } }
+    return best;
+  });
+  return { loglik, mu, sd, w, assign, bic: 2 * loglik - (3 * K - 1) * Math.log(n) };
+}
+export function pickK(x, maxK = 5) {
+  let best = null;
+  let bestK = 1;
+  for (let K = 1; K <= maxK; K += 1) {
+    const f = fitGMM(x, K);
+    if (!best || f.bic > best.bic) { best = f; bestK = K; }
+  }
+  /* DECISION 6: a component's bracket is its mean ± one standard deviation. */
+  const spans = [];
+  for (let k = 0; k < bestK; k += 1) {
+    const n = best.assign.filter((a) => a === k).length;
+    if (n) spans.push({ mu: best.mu[k], sd: best.sd[k], lo: best.mu[k] - best.sd[k], hi: best.mu[k] + best.sd[k], n });
+  }
+  spans.sort((a, b) => a.mu - b.mu);
+  return { K: bestK, fit: best, spans };
+}
+
+export const CUT = 0.9;
+/** The mutations on whichever axis is shown, and the cut that reads them. */
+export function onAxis(many, cfg, axis) {
+  if (axis === "vaf") return { values: many.muts.map((m) => m.vaf), max: 1, cut: null, label: "Variant allele frequency", ticks: [0, 0.25, 0.5, 0.75, 1] };
+  const values = many.muts.map((m) => ccfFrom(m.vaf, cfg.assumed, 1, 2));
+  return { values, max: 1.4, cut: CUT, label: "Cancer cell fraction", ticks: [0, 0.5, CUT, 1.4] };
+}
+
+/* ---- page 3: his RETCHER figure ------------------------------------------ */
+
+/* 01-2 cell 25's figure: four samples of one patient, three clusters' mean
+   cancer cell fraction. DECISION 7: measured from the figure, not simulated. */
+export const SAMPLES = [
+  { key: "P2.1st", ccf: [0.729, 0.534, 0.512] },
+  { key: "P2.2st", ccf: [0.826, 0.597, 0.353] },
+  { key: "P2.3st", ccf: [0.926, 0.767, 0.348] },
+  { key: "P2.surgery", ccf: [0.806, 0.476, 0.304] },
+];
+export const TAKEN_OPTIONS = [
+  { key: "1", label: "The first", n: 1 },
+  { key: "2", label: "The first two", n: 2 },
+  { key: "4", label: "All four", n: 4 },
+];
+export const takenOf = (key) => TAKEN_OPTIONS.find((t) => t.key === key) ?? TAKEN_OPTIONS[2];
+
+/* Clusters ordered by cancer cell fraction, descending; cluster 1 is the trunk
+   and every later cluster's parent is an earlier one, so three clusters have
+   two shapes. A shape fits a sample when no parent's children sum past it —
+   the pigeonhole principle (Nik-Zainal et al. 2012). */
+export const SHAPES = [
+  { key: "linear", label: "1 → 2 → 3", parents: [0, 1] },
+  { key: "branching", label: "2 and 3 under 1", parents: [0, 0] },
+];
+export const shapeOf = (key) => SHAPES.find((s) => s.key === key) ?? SHAPES[0];
+export const childrenOf = (shape, node) => shape.parents
+  .map((p, i) => [p, i + 1])
+  .filter(([p]) => p === node)
+  .map(([, c]) => c);
+export const fitsSumRule = (shape, ccf) => ccf.every((_, node) => childrenOf(shape, node)
+  .reduce((s, c) => s + ccf[c], 0) <= ccf[node] + 1e-12);
+/** The node whose children come closest to passing it: the one constraint
+    worth printing beside a sample, since the others are slacker. */
+export function tightestNode(shape, ccf) {
+  let best = null;
+  ccf.forEach((_, node) => {
+    const kids = childrenOf(shape, node);
+    if (!kids.length) return;
+    const sum = kids.reduce((s, c) => s + ccf[c], 0);
+    const ratio = sum / ccf[node];
+    if (!best || ratio > best.ratio) best = { node, kids, sum, parent: ccf[node], ratio };
+  });
+  return best;
+}
+export const shapesFitting = (ccf) => SHAPES.filter((s) => fitsSumRule(s, ccf));
+
+/* ---- layout -------------------------------------------------------------- */
+
+const PAD = 14;
+
+export function layout(w, params) {
+  const page = params.page;
+  const inner = w - 2 * PAD;
+  /* Every row below is measured, not guessed: the first build drew the note
+     under the cells on top of the reads' caption and the VAF's own reading on
+     top of the arrangements' (the browser found both). ROW_H is the height one
+     arrangement takes, and the page's height follows from it (5.8). */
+  if (page === "one") {
+    const cells = { x: PAD, y: 26, w: inner, h: 150 };
+    const reads = { x: PAD, y: 230, w: inner, h: 56 };
+    const bar = { x: PAD, y: 306, w: inner, h: 16 };
+    const rows = { x: PAD, y: 390, w: inner, h: 3 * 44 };
+    return { page, cells, reads, bar, rows, rowH: 44, height: rows.y + rows.h + 14 };
+  }
+  if (page === "many") {
+    /* The clusters are brackets ABOVE the bars, one level each, so the stage
+       reserves three levels between the caption and the plot. The left gutter
+       is 44px because core draws a y-axis LABEL rotated about x − 40, and at
+       the first build it was painted off the canvas (the verify caught it). */
+    const hist = { x: PAD + 44, y: 86, w: inner - 56, h: 190 };
+    return { page, hist, height: hist.y + hist.h + 60 };
+  }
+  const lines = { x: PAD + 30, y: 34, w: Math.round(inner * 0.56), h: 150 };
+  const trees = { x: lines.x + lines.w + 26, y: 34, w: inner - lines.w - 52, h: 150 };
+  const bars = { x: PAD, y: lines.y + lines.h + 54, w: inner, h: 4 * 34 };
+  return { page, lines, trees, bars, height: bars.y + bars.h + 12 };
+}
+export const stageHeight = (w, values) => layout(w, values).height;
+
+/* ---- copy ---------------------------------------------------------------- */
+
+export const STRINGS = {
+  /* His pick, 2026-09-16, subtitle B. */
+  subtitle: "A tumour is a mixture of cell populations, and its mutations are read as variant "
+    + "allele frequencies. Purity and copy number set where a mutation carried by every tumour "
+    + "cell falls, sequencing depth sets how wide its peak is, and the cancer cell fraction is "
+    + "what is left once both are divided out.",
+
+  pageLabel: "Page",
+  pageDetail: "one mutation, a tumour's mutations together, or several samples of one patient",
+  sampleSection: "The sample",
+  purityLabel: "Tumour purity",
+  purityDetail: "the fraction of cells in the sample that are tumour cells",
+  ccfLabel: "Tumour cells carrying it",
+  ccfDetail: "the cancer cell fraction the reads are being asked about",
+  stateLabel: "Copy number",
+  stateDetail: "major + minor copies in a tumour cell, as an allele-specific caller reports them",
+  copiesLabel: "Mutated copies",
+  copiesDetail: "how many of the tumour cell's copies carry the mutation",
+  depthLabel: "Read depth",
+  depthDetail: "reads covering the position",
+  readsSection: "The reads",
+  seedLabel: "Seed",
+  seedDetail: "draws different reads",
+  allLabel: "Draw every read",
+  allDetail: "fills the pileup at the current depth",
+
+  tumourSection: "The tumour",
+  clonesLabel: "Populations",
+  clonesDetail: "the cell populations the mutations come from",
+  mutationsLabel: "Mutations",
+  mutationsDetail: "somatic mutations called in the tumour",
+  lookSection: "How to read it",
+  axisLabel: "Axis",
+  axisDetail: "the reads as they came, or with purity and copy number divided out",
+  assumedLabel: "Purity used",
+  assumedDetail: "the purity the correction divides by",
+  clustersLabel: "Clusters found",
+  clustersDetail: "a Gaussian mixture, the number of components chosen by BIC",
+
+  samplesSection: "The samples",
+  takenLabel: "Samples used",
+  takenDetail: "biopsies of one patient, each with its own cancer cell fractions",
+  shapeLabel: "Shape",
+  shapeDetail: "which cluster is inside which",
+  cellsLabel: "Draw the cells",
+  cellsDetail: "each sample's tumour cells under its fractions",
+
+  cellsCaption: "The sample",
+  readsCaption: "The reads",
+  rowsCaption: "The same reading, other arrangements",
+  noPurity: "no diploid sample of any purity reads this",
+  noCcf: "no cancer cell fraction reads this in a diploid region",
+  noCopies: "no copy state in the list reads this at purity 1",
+  purityRow: "normal cells dilute it",
+  ccfRow: "only some tumour cells carry it",
+  copiesRow: "it sits on one of several copies",
+  linesCaption: "Cluster mean cancer cell fraction",
+  rulePrefix: "No parent's children may sum past it",
+  /* Both are read on the face of a 100px tree, so both are short enough to
+     sit there: the first build overran into its neighbour. */
+  fits: "Fits",
+  ruledOut: "Ruled out",
+};
+
+export const PAGES = [
+  { value: "one", label: "One mutation" },
+  { value: "many", label: "Many mutations" },
+  { value: "tree", label: "Clonal architecture" },
+];
+export const AXES = [
+  { value: "vaf", label: "VAF" },
+  { value: "ccf", label: "Cancer cell fraction" },
+];
+export const ASSUMED = [
+  { value: "sample", label: "The sample's" },
+  { value: "pure", label: "1.00" },
+];

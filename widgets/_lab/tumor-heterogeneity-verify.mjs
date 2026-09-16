@@ -1,0 +1,379 @@
+/* ============================================================================
+   Assertions on widget 67's engine, contract and geometry.
+
+       node widgets/_lab/tumor-heterogeneity-verify.mjs
+
+   Imports `widgets/tumor-heterogeneity/model.js` — the shipping code, not a
+   copy (5.8) — and drives `main.js` in node by stubbing its one import, so
+   `compute`, `animation` and `readout` are the page's own.
+
+   What needs a reader most:
+
+   THE MODEL IS THE LESSON'S. 01-2 cell 17 states three readings and cell 25
+   states the formula they come from. If those drift, every page is drawing a
+   number the lesson does not have.
+
+   THE ARRANGEMENTS MUST READ THE SAME VAF. Page 1's whole claim is an
+   equality, and it is computed rather than authored, so it is asserted over a
+   sweep rather than at one setting — including the settings where a row
+   cannot exist and has to say so (2.6).
+
+   THE GEOMETRY. `height` and `draw` share one layout precisely so this script
+   can drive `draw` through a recording context and check that nothing is
+   painted outside the canvas the page reserved. A figure that overruns still
+   hashes consistently for ever.
+
+   THE CAPABILITIES BY NAME. A rewrite that deletes a parameter leaves every
+   behavioural assertion passing, so the spec is asserted key by key
+   (HANDOVER § *Driving the animation in node*).
+
+   THE STATUS. The manifest and `main.js` both say `draft` and this says so;
+   all three flip in one commit at ship.
+
+   Exits non-zero on failure.
+   ========================================================================= */
+
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import * as M from "../tumor-heterogeneity/model.js";
+import { makeRng } from "../core/rng.js";
+import { resolveParams } from "../core/params.js";
+
+const root = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
+const read = (rel) => readFileSync(join(root, rel), "utf8");
+const abs = (rel) => JSON.stringify(pathToFileURL(join(dirname(fileURLToPath(import.meta.url)), rel)).href);
+
+let failed = 0;
+let ran = 0;
+const pad = (s, n) => String(s).padEnd(n);
+function check(name, ok, detail = "") {
+  ran += 1;
+  if (!ok) failed += 1;
+  console.log(`  ${ok ? "ok  " : "FAIL"}  ${pad(name, 74)} ${detail}`);
+}
+
+/* --- the widget's own config, with core stubbed --------------------------- */
+let cached = null;
+async function widget() {
+  if (cached) return cached;
+  let text = read("widgets/tumor-heterogeneity/main.js");
+  text = text.replace(/^import \{ defineWidget, makePlot \} from "\.\.\/core\/index\.js";$/m,
+    "const __cfg = {}; const defineWidget = (c) => { Object.assign(__cfg, c); return c; };"
+    + " const makePlot = (o) => __plot(o);");
+  text = text.replace(/^import \* as M from "\.\/model\.js";$/m,
+    `import * as M from ${abs("../tumor-heterogeneity/model.js")};`);
+  text += "\nexport { __cfg };\n";
+  /* `makePlot` is core's, and core's wants a real context; the recording plot
+     below gives the widget the four calls it uses. */
+  text = `const __plot = globalThis.__plotStub;\n${text}`;
+  cached = (await import(`data:text/javascript;base64,${Buffer.from(text, "utf8").toString("base64")}`)).__cfg;
+  return cached;
+}
+
+/** A canvas context that records the extent of everything painted. */
+function recorder() {
+  const box = { x0: Infinity, y0: Infinity, x1: -Infinity, y1: -Infinity };
+  const seen = [];
+  const mark = (x, y) => {
+    if (!Number.isFinite(x) || !Number.isFinite(y)) { box.bad = true; return; }
+    box.x0 = Math.min(box.x0, x); box.y0 = Math.min(box.y0, y);
+    box.x1 = Math.max(box.x1, x); box.y1 = Math.max(box.y1, y);
+  };
+  const ctx = {
+    save() {}, restore() {}, beginPath() {}, closePath() {}, stroke() {}, fill() {},
+    setLineDash() {}, translate() {}, rotate() {}, scale() {}, clip() {},
+    measureText: (s) => ({ width: String(s).length * 5.6 }),
+    fillRect: (x, y, w, h) => { mark(x, y); mark(x + w, y + h); },
+    strokeRect: (x, y, w, h) => { mark(x, y); mark(x + w, y + h); },
+    clearRect: () => {},
+    moveTo: mark, lineTo: mark,
+    arc: (x, y, r) => { mark(x - r, y - r); mark(x + r, y + r); },
+    fillText: (s, x, y) => {
+      seen.push({ s: String(s), x, y });
+      const w = String(s).length * 5.6;
+      const left = ctx.textAlign === "center" ? x - w / 2 : ctx.textAlign === "right" ? x - w : x;
+      mark(left, y - 10); mark(left + w, y + 3);
+    },
+    strokeText() {},
+    createLinearGradient: () => ({ addColorStop() {} }),
+    textAlign: "left", textBaseline: "alphabetic", font: "", fillStyle: "", strokeStyle: "", lineWidth: 1, globalAlpha: 1,
+  };
+  return { ctx, box, seen };
+}
+
+/** The four calls the widget makes on core's plot, recorded. */
+globalThis.__plotStub = ({ ctx, rect, xDomain, yDomain }) => {
+  const sx = (v) => rect.x + ((v - xDomain[0]) / (xDomain[1] - xDomain[0])) * rect.w;
+  const sy = (v) => rect.y + rect.h - ((v - yDomain[0]) / (yDomain[1] - yDomain[0])) * rect.h;
+  return {
+    sx,
+    sy,
+    caption: (s) => ctx.fillText(s, rect.x, rect.y - 8),
+    note: (s) => ctx.fillText(s, rect.x + rect.w, rect.y - 8),
+    axisX: ({ ticks = [], format = (v) => String(v), label } = {}) => {
+      ticks.forEach((t) => ctx.fillText(format(t), sx(t), rect.y + rect.h + 16));
+      if (label) ctx.fillText(label, rect.x + rect.w / 2, rect.y + rect.h + 32);
+    },
+    /* Placed exactly as `core/canvas.js` places them: tick labels right-aligned
+       at x − 8, and the axis label rotated about x − 40, which is the gutter a
+       plot rect has to leave. */
+    axisY: ({ ticks = [], format = (v) => String(v), label } = {}) => {
+      const align = ctx.textAlign;
+      ctx.textAlign = "right";
+      ticks.forEach((t) => ctx.fillText(format(t), rect.x - 8, sy(t)));
+      ctx.textAlign = align;
+      if (label) { ctx.moveTo(rect.x - 46, rect.y); ctx.lineTo(rect.x - 34, rect.y + rect.h); }
+    },
+  };
+};
+
+const COLORS = Object.fromEntries([
+  "surface", "surface2", "surface3", "ink1", "ink2", "ink3", "grid", "axis", "empirical", "theory",
+  "smoothed", "highlight", "reference", "groupA", "groupB", "groupC", "extreme", "unknown", "holdout",
+].map((k) => [k, "#123456"]));
+Object.assign(COLORS, { font: "sans-serif", mono: "monospace", fsXs: "11px", fsSm: "13px", fsMd: "15px", fsFig: "13px" });
+
+const spec = () => widget().then((w) => w.params);
+const defaults = async () => resolveParams(await spec(), new URLSearchParams(""));
+
+/* --- 1 · the model, against cells 17 and 25 -------------------------------- */
+{
+  check("a clonal heterozygous mutation at purity 1 reads 0.5", M.vafExpected(1, 1, 1, 2) === 0.5);
+  check("cell 17's purity 0.7 example reads 0.35", Math.abs(M.vafExpected(0.7, 1, 1, 2) - 0.35) < 1e-12);
+  check("cell 17's amplification reads 0.25", Math.abs(M.vafExpected(1, 1, 1, 4) - 0.25) < 1e-12);
+  check("the wild-type copy lost reads 1.0", Math.abs(M.vafExpected(1, 1, 2, 2) - 1) < 1e-12);
+  let worst = 0;
+  for (const p of [0.35, 0.5, 0.7, 1]) {
+    for (const st of M.COPY_STATES) {
+      for (const m of st.copies) {
+        for (const c of [0.2, 0.5, 0.75, 1]) {
+          const back = M.ccfFrom(M.vafExpected(p, c, m, st.total), p, m, st.total);
+          worst = Math.max(worst, Math.abs(back - c));
+        }
+      }
+    }
+  }
+  check("cell 25's two formulas invert each other", worst < 1e-12, `worst ${worst.toExponential(1)}`);
+}
+
+/* --- 2 · page 1's arrangements -------------------------------------------- */
+{
+  let bad = 0;
+  let impossible = 0;
+  for (let v = 0.05; v <= 0.95; v += 0.01) {
+    for (const row of M.arrangementsFor(v)) {
+      if (!row.ok) { impossible += 1; continue; }
+      const got = M.vafExpected(row.purity, row.ccf, row.copies, row.state.total);
+      if (Math.abs(got - v) > 0.021) bad += 1;
+    }
+  }
+  check("every arrangement drawn reads the VAF it is drawn for", bad === 0, `${bad} off`);
+  check("arrangements that cannot exist are marked, not invented", impossible > 0, `${impossible} of 273 rows`);
+  const at06 = M.arrangementsFor(0.6);
+  check("at VAF 0.6 no diploid sample of any purity reads it", at06[0].ok === false);
+  check("…and no cancer cell fraction does either", at06[1].ok === false);
+  const at025 = M.arrangementsFor(0.25);
+  check("at VAF 0.25 all three exist", at025.every((r) => r.ok),
+    at025.filter((r) => r.ok).map((r) => r.kind).join(", "));
+  check("…and the copy-number one is 3 + 1", at025[2].state?.key === "3+1");
+}
+
+/* --- 3 · the reads -------------------------------------------------------- */
+{
+  const cfg = M.configOne({ purity: "0.70", ccf: "1.00", state: "1+1", copies: 1, depth: "88" });
+  const a = M.buildReads(makeRng(7), cfg);
+  const b = M.buildReads(makeRng(7), cfg);
+  check("the reads are seeded", a.reads.join("") === b.reads.join(""));
+  check("the pileup holds the depth", a.reads.length === 88 && a.depth === 88);
+  check("the running count is the running count",
+    a.running[87] === a.reads.reduce((s, r) => s + r, 0) && M.altAt(a, 88) === a.alt);
+  check("the last frame of the reveal is the finished reading",
+    M.vafAt(a, 88) === a.alt / 88, M.n3(M.vafAt(a, 88)));
+  let sum = 0;
+  for (let s = 1; s <= 60; s += 1) sum += M.buildReads(makeRng(s), cfg).alt / 88;
+  check("the reads land on the model's own expectation", Math.abs(sum / 60 - cfg.expected) < 0.02,
+    `mean VAF ${(sum / 60).toFixed(3)} against ${M.n3(cfg.expected)}`);
+  const cells = M.cellCounts(cfg);
+  check("sixty cells carry the purity as a count", cells.tumour === 42 && cells.carrying === 42, `${cells.tumour} tumour cells`);
+}
+
+/* --- 4 · page 2: the mixture, and MATH ------------------------------------ */
+{
+  const cfgOne = M.configMany({ clones: "one", mutations: "300", purity2: "0.70", depth2: "88", assumed: "sample" });
+  const one = M.buildMany(makeRng(3), cfgOne);
+  check("one clone is given more than one cluster", one.fit.K > 1, `K = ${one.fit.K}`);
+  check("its MATH is not zero", one.math > 8 && one.math < 22, one.math.toFixed(1));
+  const cfgTwo = M.configMany({ clones: "two", mutations: "300", purity2: "0.70", depth2: "88", assumed: "sample" });
+  const two = M.buildMany(makeRng(3), cfgTwo);
+  check("a real subclone scores higher than one clone", two.math > one.math + 10,
+    `${two.math.toFixed(1)} against ${one.math.toFixed(1)}`);
+  check("the brackets are ordered by their own means",
+    two.fit.spans.every((s, i) => i === 0 || s.mu >= two.fit.spans[i - 1].mu));
+  check("a bracket is the component's mean ± one standard deviation",
+    two.fit.spans.every((s) => Math.abs((s.hi - s.lo) / 2 - s.sd) < 1e-12));
+  const shallow = M.buildMany(makeRng(3), { ...cfgOne, depthMedian: 31 });
+  check("shallow reads raise MATH with no subclone present", shallow.math > one.math + 5,
+    `${shallow.math.toFixed(1)} at median depth 31 against ${one.math.toFixed(1)} at 88`);
+  const axisV = M.onAxis(two, cfgTwo, "vaf");
+  const axisC = M.onAxis(two, cfgTwo, "ccf");
+  check("the axis control divides, and does not refit",
+    axisC.values.every((v, i) => Math.abs(v - M.ccfFrom(axisV.values[i], cfgTwo.assumed, 1, 2)) < 1e-12));
+  const pure = M.onAxis(two, { ...cfgTwo, assumed: 1 }, "ccf");
+  const keptTrue = axisC.values.filter((v) => v >= M.CUT).length;
+  const keptPure = pure.values.filter((v) => v >= M.CUT).length;
+  check("taking the sample as pure empties the clonal peak", keptPure < keptTrue / 4,
+    `${keptPure} against ${keptTrue} at the true purity`);
+}
+
+/* --- 5 · page 3: the sum rule --------------------------------------------- */
+{
+  const all = M.SHAPES.filter((s) => M.SAMPLES.every((u) => M.fitsSumRule(s, u.ccf)));
+  check("his four samples leave one shape", all.length === 1 && all[0].key === "linear");
+  const surgery = M.SAMPLES[3];
+  check("the surgery sample alone leaves both", M.shapesFitting(surgery.ccf).length === 2);
+  check("the first sample rules branching out",
+    M.shapesFitting(M.SAMPLES[0].ccf).map((s) => s.key).join() === "linear");
+  const tightBranch = M.tightestNode(M.shapeOf("branching"), M.SAMPLES[0].ccf);
+  check("the tightest constraint on a branching shape is the trunk's",
+    tightBranch.node === 0 && Math.abs(tightBranch.sum - 1.046) < 1e-9, `${M.n2(tightBranch.sum)} against ${M.n2(tightBranch.parent)}`);
+  const tightLinear = M.tightestNode(M.shapeOf("linear"), M.SAMPLES[0].ccf);
+  check("…and on a linear one it is cluster 2's, not the trunk's", tightLinear.node === 1,
+    `${M.n2(tightLinear.sum)} against ${M.n2(tightLinear.parent)}`);
+  check("equal subclones must pass half the trunk before the rule bites",
+    M.shapesFitting([0.9, 0.45, 0.45]).length === 2 && M.shapesFitting([0.9, 0.5, 0.5]).length === 1);
+}
+
+/* --- 6 · the contract, by name -------------------------------------------- */
+{
+  const W = await widget();
+  for (const key of ["slug", "title", "status", "subtitle", "layout", "height", "params", "legend", "compute", "animation", "draw", "readout", "summary"]) {
+    check(`declares \`${key}\``, W[key] != null);
+  }
+  const WANT = {
+    page: "segmented", sampleSec: "section", purity: "choice", ccf: "choice", state: "segmented",
+    copies: "int", depth: "choice", clones: "segmented", mutations: "choice", lookSec: "section",
+    axis: "segmented", assumed: "segmented", clusters: "bool", samplesSec: "section", taken: "choice",
+    shape: "segmented", showcells: "bool", dataSec: "section", seed: "int", all: "bool", shown: "int",
+  };
+  for (const [name, type] of Object.entries(WANT)) check(`${name} is ${type}`, W.params[name]?.type === type);
+  check("no parameters beyond those",
+    Object.keys(W.params).sort().join() === Object.keys(WANT).sort().join());
+  for (const name of ["page", "axis", "assumed", "clusters", "taken", "shape", "showcells", "all"]) {
+    check(`${name} is a display parameter`, W.params[name].display === true);
+  }
+  for (const name of ["purity", "ccf", "state", "copies", "depth", "clones", "mutations", "seed"]) {
+    check(`${name} is a data parameter`, !W.params[name].display);
+  }
+  check("the widget is still a draft", W.status === "draft");
+  check("the manifest agrees",
+    JSON.parse(read("widgets/manifest.json")).widgets
+      .find((w) => w.slug === "tumor-heterogeneity")?.status === "draft");
+}
+
+/* --- 7 · the animation, driven in node ------------------------------------ */
+{
+  const W = await widget();
+  const values = await defaults();
+  for (const depth of M.DEPTH_OPTIONS) {
+    const params = { ...values, depth };
+    const state = W.compute({ params, rng: makeRng(params.seed) });
+    const anim = W.animation.init({ params, state, fromScratch: true });
+    let frames = 0;
+    anim.mode = "run";
+    while (W.animation.advance(anim, { dt: 32, params, state }) && frames < 20000) frames += 1;
+    check(`depth ${depth}: Play reaches the last read`, anim.k === state.one.depth && anim.done,
+      `${frames} frames, ${(frames * 32 / 1000).toFixed(1)} s`);
+    const stepAnim = W.animation.init({ params, state, fromScratch: true });
+    stepAnim.mode = "step";
+    W.animation.advance(stepAnim, { dt: 200, params, state });
+    check(`depth ${depth}: one step adds one unit`, stepAnim.k === Math.max(1, Math.ceil(state.one.depth / 66)),
+      `k = ${stepAnim.k}`);
+  }
+  const params = { ...values, page: "many" };
+  const state = W.compute({ params, rng: makeRng(1) });
+  const anim = W.animation.init({ params, state, fromScratch: true });
+  check("pages 2 and 3 take Step and Play out of the row", anim.inert === true);
+  const authored = W.animation.init({ ...{ params: { ...values, shown: 20 }, state }, fromScratch: false });
+  check("`?shown=` applies on the first render only", authored.k === 20);
+}
+
+/* --- 8 · every readout and summary, over a grid ---------------------------- */
+{
+  const W = await widget();
+  const values = await defaults();
+  const cells = [];
+  for (const page of ["one", "many", "tree"]) {
+    for (const purity of M.PURITY_OPTIONS) {
+      for (const depth of M.DEPTH_OPTIONS) {
+        for (const state of M.COPY_STATES.map((s) => s.key)) {
+          cells.push({ ...values, page, purity, depth, state, copies: 2 });
+        }
+      }
+    }
+  }
+  for (const clones of ["one", "two", "three"]) for (const axis of ["vaf", "ccf"]) for (const assumed of ["sample", "pure"]) {
+    cells.push({ ...values, page: "many", clones, axis, assumed, mutations: "120" });
+  }
+  for (const taken of ["1", "2", "4"]) for (const shape of ["linear", "branching"]) {
+    cells.push({ ...values, page: "tree", taken, shape });
+  }
+  let bad = 0;
+  let painted = 0;
+  const notes = [];
+  for (const params of cells) {
+    const state = W.compute({ params, rng: makeRng(params.seed) });
+    const anim = W.animation.init({ params, state, fromScratch: true });
+    anim.mode = "run";
+    for (let i = 0; i < 400 && W.animation.advance(anim, { dt: 32, params, state }); i += 1) painted += 0;
+    const strings = [
+      ...W.readout({ params, state, anim }).flatMap((t) => [t.label, t.value, t.note]),
+      W.summary({ params, state, anim }),
+      ...W.legend({ params }).map((e) => e.label),
+    ];
+    for (const s of strings) {
+      if (s == null || /NaN|undefined|Infinity/.test(String(s))) { bad += 1; notes.push(`${params.page}: ${s}`); }
+    }
+  }
+  check(`no NaN or undefined in ${cells.length} cells' readouts, summaries and legends`, bad === 0, notes.slice(0, 2).join(" | "));
+}
+
+/* --- 9 · the geometry: nothing painted outside the canvas ------------------ */
+{
+  const W = await widget();
+  const values = await defaults();
+  const W_PX = 550; // the harness's canvas at FRAME_W 900 (HANDOVER § THE BIG ONE)
+  let worst = null;
+  const cells = [];
+  for (const page of ["one", "many", "tree"]) {
+    for (const state of M.COPY_STATES.map((s) => s.key)) {
+      for (const depth of M.DEPTH_OPTIONS) cells.push({ ...values, page, state, depth, copies: 2 });
+    }
+  }
+  for (const clones of ["one", "two", "three"]) for (const axis of ["vaf", "ccf"]) cells.push({ ...values, page: "many", clones, axis });
+  for (const taken of ["1", "2", "4"]) for (const shape of ["linear", "branching"]) cells.push({ ...values, page: "tree", taken, shape });
+  for (const params of cells) {
+    const height = W.height({ w: W_PX, ...params });
+    const state = W.compute({ params, rng: makeRng(params.seed) });
+    const anim = W.animation.init({ params, state, fromScratch: true });
+    anim.k = state.one.depth;
+    const { ctx, box } = recorder();
+    W.draw({ ctx, colors: COLORS, w: W_PX, h: height, params, state, anim });
+    const over = Math.max(0, box.x1 - W_PX, -box.x0, box.y1 - height, -box.y0);
+    if (!worst || over > worst.over) worst = { over, params, box, height };
+  }
+  check("nothing is painted outside the canvas the page reserves, at 550px",
+    worst.over <= 1.5,
+    `worst ${worst.over.toFixed(1)}px on ${worst.params.page} (x ${worst.box.x0.toFixed(0)}–${worst.box.x1.toFixed(0)}, y ${worst.box.y0.toFixed(0)}–${worst.box.y1.toFixed(0)} in ${W_PX}×${worst.height})`);
+
+  /* And the layout's own rows may not overlap: the first build drew the note
+     under the cells across the reads' caption. */
+  const L = M.layout(W_PX, { ...values, page: "one" });
+  check("page 1's rows do not overlap",
+    L.cells.y + L.cells.h + 24 <= L.reads.y - 10
+    && L.reads.y + L.reads.h < L.bar.y
+    && L.bar.y + L.bar.h + 34 <= L.rows.y - 12);
+}
+
+console.log(`\n${ran} checks, ${failed} failed`);
+process.exit(failed ? 1 : 0);

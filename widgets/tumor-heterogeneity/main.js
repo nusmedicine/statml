@@ -1,0 +1,773 @@
+/* ============================================================================
+   Widget 67 · Tumor Heterogeneity — PHM5003 07 / 01-2 cells 17–25.
+
+   `model.js` carries the stage, the arithmetic and the copy, and the decisions
+   taken while building; this file draws them. Three pages, from Kenneth's
+   picks of 2026-09-16: One mutation · Many mutations · Clonal architecture.
+
+   The drawing rules this file keeps to:
+
+     · Colour separates tumour cells from normal cells, and the mutation is a
+       MARK inside a cell — colour carries one grouping (§ *Widget 42*).
+     · On page 2 the colours are the truth (which population a mutation came
+       from) and the mixture's components are drawn as brackets, for the same
+       reason.
+     · The expected VAF is `--c-theory`: it is the claim the reads are checked
+       against. The reads themselves are `--c-highlight` where they carry the
+       variant, because that is the one thing to look at.
+   ========================================================================= */
+
+import { defineWidget, makePlot } from "../core/index.js";
+import * as M from "./model.js";
+
+/* Set by `defineWidget`, read only by `clearDrawAll` — the momentary action. */
+let widgetApi = null;
+
+const capFont = (colors) => `600 ${colors.fsSm} ${colors.font}`;
+const noteFont = (colors) => `${colors.fsXs} ${colors.font}`;
+
+function text(ctx, s, x, y, { font, fill, align = "left", baseline = "alphabetic" }) {
+  ctx.save();
+  ctx.font = font;
+  ctx.fillStyle = fill;
+  ctx.textAlign = align;
+  ctx.textBaseline = baseline;
+  ctx.fillText(s, x, y);
+  ctx.restore();
+}
+
+/** A colour with an alpha, for a wash behind a mark. */
+function wash(color, a) {
+  const m = String(color).match(/^#([0-9a-f]{6})$/i);
+  if (!m) return color;
+  const p = [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16));
+  return `rgba(${p[0]},${p[1]},${p[2]},${a})`;
+}
+
+/* ---- the sample, as cells ------------------------------------------------ */
+
+/**
+ * Sixty cells: normal cells carry two wild-type copies, tumour cells the copy
+ * state's copies, and the ones inside the cancer cell fraction carry the
+ * mutation on `copies` of them (model decision 3).
+ */
+function drawCells(ctx, colors, rect, cfg, { cols = M.CELL_COLS, n = M.CELLS } = {}) {
+  const rows = Math.ceil(n / cols);
+  const px = rect.w / cols;
+  const py = rect.h / rows;
+  const r = Math.min(px, py) * 0.42;
+  const { tumour, carrying } = M.cellCounts(cfg, n);
+  for (let i = 0; i < n; i += 1) {
+    const cx = rect.x + (i % cols) * px + px / 2;
+    const cy = rect.y + Math.floor(i / cols) * py + py / 2;
+    const isTumour = i < tumour;
+    const carries = i < carrying;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.fillStyle = isTumour ? wash(colors.groupA, 0.16) : colors.surface3;
+    ctx.fill();
+    ctx.strokeStyle = isTumour ? wash(colors.groupA, 0.75) : wash(colors.ink3, 0.55);
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    const copies = isTumour ? cfg.state.total : 2;
+    const len = copies > 2 ? r * 1.0 : r * 1.25;
+    const gap = copies > 2 ? Math.min(4.4, (r * 1.6) / copies) : 6;
+    for (let c = 0; c < copies; c += 1) {
+      const oy = cy + (c - (copies - 1) / 2) * gap;
+      ctx.beginPath();
+      ctx.moveTo(cx - len / 2, oy);
+      ctx.lineTo(cx + len / 2, oy);
+      ctx.strokeStyle = colors.ink3;
+      ctx.lineWidth = 1.2;
+      ctx.stroke();
+      if (carries && c < cfg.copies) {
+        ctx.beginPath();
+        ctx.arc(cx, oy, Math.max(1.8, r * 0.24), 0, Math.PI * 2);
+        ctx.fillStyle = colors.highlight;
+        ctx.fill();
+      }
+    }
+  }
+  return { tumour, carrying };
+}
+
+/* ---- the reads ----------------------------------------------------------- */
+
+/** A pileup: one mark per read, the variant ones filled. */
+function drawPileup(ctx, colors, rect, one, k) {
+  const depth = one.depth;
+  const perRow = depth <= 40 ? 20 : depth <= 100 ? 22 : depth <= 200 ? 40 : 50;
+  const rowsN = Math.ceil(depth / perRow);
+  const rh = Math.max(3, Math.min(9, (rect.h - (rowsN - 1) * 3) / rowsN));
+  const cw = (rect.w - (perRow - 1) * 2) / perRow;
+  for (let i = 0; i < k; i += 1) {
+    const rx = rect.x + (i % perRow) * (cw + 2);
+    const ry = rect.y + Math.floor(i / perRow) * (rh + 3);
+    const variant = one.reads[i] === 1;
+    ctx.globalAlpha = variant ? 1 : 0.45;
+    ctx.fillStyle = variant ? colors.highlight : colors.ink3;
+    ctx.fillRect(rx, ry, cw, rh);
+    ctx.globalAlpha = 1;
+  }
+  /* The empty rows of the pileup are drawn as the space the depth reserves, so
+     the picture does not jump as reads arrive (2.5). */
+  ctx.save();
+  ctx.strokeStyle = wash(colors.grid, 0.8);
+  ctx.lineWidth = 1;
+  for (let i = k; i < depth; i += 1) {
+    const rx = rect.x + (i % perRow) * (cw + 2);
+    const ry = rect.y + Math.floor(i / perRow) * (rh + 3);
+    ctx.strokeRect(rx + 0.5, ry + 0.5, Math.max(1, cw - 1), Math.max(1, rh - 1));
+  }
+  ctx.restore();
+}
+
+/** The reading itself, with the model's expectation marked on it. */
+function drawVafBar(ctx, colors, rect, vaf, expected, { scale = true } = {}) {
+  ctx.fillStyle = colors.surface3;
+  ctx.fillRect(rect.x, rect.y, rect.w, rect.h);
+  if (Number.isFinite(vaf)) {
+    ctx.fillStyle = wash(colors.highlight, 0.85);
+    ctx.fillRect(rect.x, rect.y, rect.w * vaf, rect.h);
+  }
+  ctx.strokeStyle = colors.grid;
+  ctx.lineWidth = 1;
+  ctx.strokeRect(rect.x + 0.5, rect.y + 0.5, rect.w - 1, rect.h - 1);
+  if (expected != null) {
+    ctx.beginPath();
+    ctx.moveTo(rect.x + rect.w * expected, rect.y - 4);
+    ctx.lineTo(rect.x + rect.w * expected, rect.y + rect.h + 4);
+    ctx.strokeStyle = colors.theory;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+  if (scale) {
+    for (const t of [0, 0.25, 0.5, 0.75, 1]) {
+      text(ctx, t.toFixed(2), rect.x + rect.w * t, rect.y + rect.h + 14, {
+        font: `${colors.fsXs} ${colors.mono}`,
+        fill: colors.ink3,
+        align: t === 0 ? "left" : t === 1 ? "right" : "center",
+      });
+    }
+  }
+}
+
+/* ---- page 1 -------------------------------------------------------------- */
+
+function drawOne(ctx, colors, L, params, state, anim) {
+  const cfg = state.cfg;
+  const k = Math.min(anim?.k ?? 0, state.one.depth);
+  const vaf = M.vafAt(state.one, k);
+
+  text(ctx, M.STRINGS.cellsCaption, L.cells.x, L.cells.y - 8, { font: capFont(colors), fill: colors.ink1 });
+  const counts = drawCells(ctx, colors, L.cells, cfg);
+  const cellNote = `${counts.tumour} of ${M.CELLS} cells are tumour cells, ${counts.carrying} of them carrying the mutation`;
+  text(ctx, cellNote, L.cells.x, L.cells.y + L.cells.h + 18, { font: noteFont(colors), fill: colors.ink2 });
+
+  text(ctx, M.STRINGS.readsCaption, L.reads.x, L.reads.y - 10, { font: capFont(colors), fill: colors.ink1 });
+  text(ctx, `${M.intText(k)} of ${M.intText(state.one.depth)}`, L.reads.x + L.reads.w, L.reads.y - 10, {
+    font: noteFont(colors), fill: colors.ink2, align: "right",
+  });
+  drawPileup(ctx, colors, L.reads, state.one, k);
+  drawVafBar(ctx, colors, L.bar, vaf, cfg.expected);
+  const readY = L.bar.y + L.bar.h + 32;
+  text(ctx, k > 0 ? `VAF ${M.n3(vaf)}` : "VAF —", L.bar.x, readY, {
+    font: `${colors.fsSm} ${colors.mono}`, fill: colors.ink1,
+  });
+  text(ctx, `expected ${M.n3(cfg.expected)}`, L.bar.x + L.bar.w, readY, {
+    font: `${colors.fsSm} ${colors.mono}`, fill: colors.theory, align: "right",
+  });
+
+  /* DECISION 4: the other arrangements that read what the reader has read.
+     Nothing is drawn until a read has landed — the rows are a statement about
+     a reading, and there is no reading yet (2.4). Each row is the sample's
+     ALLELES rather than its cells: at a row's height the cells are 5px across,
+     and the alleles are what the arithmetic divides by anyway. */
+  text(ctx, M.STRINGS.rowsCaption, L.rows.x, L.rows.y - 12, { font: capFont(colors), fill: colors.ink1 });
+  if (!(k > 0)) {
+    text(ctx, "—", L.rows.x, L.rows.y + 14, { font: noteFont(colors), fill: colors.ink3 });
+    return;
+  }
+  const rows = M.arrangementsFor(vaf);
+  const labels = { purity: M.STRINGS.purityRow, ccf: M.STRINGS.ccfRow, copies: M.STRINGS.copiesRow };
+  const missing = { purity: M.STRINGS.noPurity, ccf: M.STRINGS.noCcf, copies: M.STRINGS.noCopies };
+  rows.forEach((row, i) => {
+    const y = L.rows.y + i * L.rowH;
+    if (!row.ok) {
+      text(ctx, missing[row.kind], L.rows.x, y + 16, { font: noteFont(colors), fill: colors.extreme });
+      return;
+    }
+    const alleles = { x: L.rows.x, y, w: L.rows.w * 0.42, h: 14 };
+    drawAlleleBar(ctx, colors, alleles, row);
+    const barRect = { x: L.rows.x + L.rows.w * 0.52, y, w: L.rows.w * 0.32, h: 14 };
+    drawVafBar(ctx, colors, barRect, vaf, null, { scale: false });
+    text(ctx, `VAF ${M.n3(vaf)}`, L.rows.x + L.rows.w, y + 11, {
+      font: `${colors.fsXs} ${colors.mono}`, fill: colors.ink1, align: "right",
+    });
+    const desc = row.kind === "purity" ? `purity ${M.n2(row.purity)}`
+      : row.kind === "ccf" ? `${M.pctText(row.ccf)} of the tumour cells`
+        : `copy number ${row.state.label}`;
+    text(ctx, `${labels[row.kind]} — ${desc}`, L.rows.x, y + 30, { font: noteFont(colors), fill: colors.ink2 });
+  });
+}
+
+/** The sample's alleles in one bar: mutated copies, tumour wild-type copies,
+    then the normal cells' two copies each — cell 25's denominator, drawn. */
+function drawAlleleBar(ctx, colors, rect, cfg) {
+  const tumourCopies = cfg.purity * cfg.state.total;
+  const normalCopies = (1 - cfg.purity) * 2;
+  const mutated = cfg.purity * cfg.ccf * cfg.copies;
+  const total = tumourCopies + normalCopies;
+  let x = rect.x;
+  for (const [share, fill, stroke] of [
+    [mutated, wash(colors.highlight, 0.85), colors.highlight],
+    [tumourCopies - mutated, wash(colors.groupA, 0.16), wash(colors.groupA, 0.6)],
+    [normalCopies, colors.surface3, colors.grid],
+  ]) {
+    const w = (share / total) * rect.w;
+    if (w <= 0) continue;
+    ctx.fillStyle = fill;
+    ctx.fillRect(x, rect.y, w, rect.h);
+    ctx.strokeStyle = stroke;
+    ctx.lineWidth = 1;
+    ctx.strokeRect(x + 0.5, rect.y + 0.5, w - 1, rect.h - 1);
+    x += w;
+  }
+}
+
+/* ---- page 2 -------------------------------------------------------------- */
+
+function drawMany(ctx, colors, L, params, state) {
+  const axis = M.onAxis(state.many, state.manyCfg, params.axis);
+  const bins = 50;
+  const counts = Array.from({ length: bins }, () => [0, 0]);
+  axis.values.forEach((v, i) => {
+    const b = Math.min(bins - 1, Math.max(0, Math.floor((v / axis.max) * bins)));
+    counts[b][state.many.muts[i].clonal ? 0 : 1] += 1;
+  });
+  const top = Math.max(1, ...counts.map((c) => c[0] + c[1])) * 1.1;
+  const plot = makePlot({ ctx, colors, rect: L.hist, xDomain: [0, axis.max], yDomain: [0, top] });
+
+  /* The caption is drawn at the top of the canvas rather than through
+     `plot.caption`, which sits 8px above the plot — where the clusters'
+     brackets are. */
+  text(ctx, `${M.intText(state.manyCfg.n)} mutations, purity ${M.n2(state.manyCfg.purity)}`,
+    L.hist.x - 6, 20, { font: capFont(colors), fill: colors.ink1 });
+  text(ctx, `MATH ${state.many.math.toFixed(1)}`, L.hist.x + L.hist.w + 6, 20, {
+    font: `${colors.fsSm} ${colors.mono}`, fill: colors.ink2, align: "right",
+  });
+
+  const bw = L.hist.w / bins;
+  for (let b = 0; b < bins; b += 1) {
+    let base = L.hist.y + L.hist.h;
+    for (const [n, fill] of [[counts[b][0], colors.groupA], [counts[b][1], colors.groupB]]) {
+      if (!n) continue;
+      const h = (n / top) * L.hist.h;
+      ctx.fillStyle = wash(fill, 0.85);
+      ctx.fillRect(L.hist.x + b * bw + 0.5, base - h, Math.max(1, bw - 1), h);
+      base -= h;
+    }
+  }
+
+  if (axis.cut != null) {
+    ctx.save();
+    ctx.setLineDash([4, 3]);
+    ctx.beginPath();
+    ctx.moveTo(plot.sx(axis.cut), L.hist.y);
+    ctx.lineTo(plot.sx(axis.cut), L.hist.y + L.hist.h);
+    ctx.strokeStyle = colors.reference;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  /* DECISION 6: the mixture's components as enclosure, one level each, fitted
+     on the VAF axis and carried onto whichever axis is drawn. */
+  if (params.clusters) {
+    const toAxis = (v) => (params.axis === "vaf" ? v : M.ccfFrom(v, state.manyCfg.assumed, 1, 2));
+    state.many.fit.spans.forEach((sp, i) => {
+      const x0 = plot.sx(Math.max(0, toAxis(sp.lo)));
+      const x1 = plot.sx(Math.min(axis.max, toAxis(sp.hi)));
+      const y = L.hist.y - 8 - i * 12;
+      ctx.save();
+      ctx.strokeStyle = colors.ink2;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(x0, y + 5); ctx.lineTo(x0, y); ctx.lineTo(x1, y); ctx.lineTo(x1, y + 5);
+      ctx.moveTo(plot.sx(toAxis(sp.mu)), y); ctx.lineTo(plot.sx(toAxis(sp.mu)), y + 5);
+      ctx.stroke();
+      ctx.restore();
+      text(ctx, `${i + 1}`, (x0 + x1) / 2, y - 3, {
+        font: `${colors.fsXs} ${colors.mono}`, fill: colors.ink2, align: "center",
+      });
+    });
+  }
+
+  plot.axisX({ ticks: axis.ticks, format: (v) => M.n2(v), label: axis.label });
+  plot.axisY({ label: "Mutations" });
+}
+
+/* ---- page 3 -------------------------------------------------------------- */
+
+function drawTreePage(ctx, colors, L, params, state) {
+  const used = state.used;
+  const shape = M.shapeOf(params.shape);
+  const cols = [colors.groupA, colors.groupB, colors.groupC];
+
+  /* the CCF lines, his figure's left panel */
+  const plot = makePlot({ ctx, colors, rect: L.lines, xDomain: [0, M.SAMPLES.length], yDomain: [0, 1] });
+  plot.caption(M.STRINGS.linesCaption);
+  for (let c = 0; c < 3; c += 1) {
+    ctx.beginPath();
+    used.forEach((s, i) => {
+      const x = plot.sx(i + 0.5);
+      const y = plot.sy(s.ccf[c]);
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    });
+    ctx.strokeStyle = cols[c];
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    used.forEach((s, i) => {
+      ctx.beginPath();
+      ctx.arc(plot.sx(i + 0.5), plot.sy(s.ccf[c]), 3.5, 0, Math.PI * 2);
+      ctx.fillStyle = cols[c];
+      ctx.fill();
+    });
+  }
+  plot.axisY({ ticks: [0, 0.5, 1], format: (v) => M.n2(v) });
+  plot.axisX({
+    ticks: used.map((_, i) => i + 0.5),
+    format: (v) => used[Math.floor(v)].key,
+  });
+
+  /* the two shapes, the chosen one marked */
+  const box = L.trees;
+  M.SHAPES.forEach((s, i) => {
+    const x = box.x + i * (box.w / 2);
+    const w = box.w / 2;
+    const cx = x + w / 2;
+    const fits = used.every((u) => M.fitsSumRule(s, u.ccf));
+    const chosen = s.key === shape.key;
+    if (chosen) {
+      ctx.save();
+      ctx.fillStyle = wash(colors.highlight, 0.1);
+      ctx.strokeStyle = colors.highlight;
+      ctx.lineWidth = 1;
+      ctx.fillRect(x + 2, box.y - 6, w - 4, box.h + 4);
+      ctx.strokeRect(x + 2.5, box.y - 5.5, w - 5, box.h + 3);
+      ctx.restore();
+    }
+    const pos = s.key === "linear"
+      ? [[cx, box.y + 22], [cx, box.y + 58], [cx, box.y + 94]]
+      : [[cx, box.y + 22], [cx - 22, box.y + 70], [cx + 22, box.y + 70]];
+    ctx.save();
+    ctx.strokeStyle = colors.ink3;
+    ctx.lineWidth = 1.5;
+    s.parents.forEach((p, ci) => {
+      ctx.beginPath();
+      ctx.moveTo(pos[p][0], pos[p][1] + 11);
+      ctx.lineTo(pos[ci + 1][0], pos[ci + 1][1] - 11);
+      ctx.stroke();
+    });
+    ctx.restore();
+    pos.forEach((p, ci) => {
+      ctx.beginPath();
+      ctx.arc(p[0], p[1], 11, 0, Math.PI * 2);
+      ctx.fillStyle = wash(cols[ci], 0.85);
+      ctx.fill();
+      text(ctx, String(ci + 1), p[0], p[1] + 4, {
+        font: `${colors.fsXs} ${colors.mono}`, fill: colors.surface, align: "center",
+      });
+    });
+    /* Both labels sit INSIDE the highlight, which is why the box reaches four
+       pixels past them rather than through them. */
+    text(ctx, s.label, cx, box.y + box.h - 30, { font: noteFont(colors), fill: colors.ink2, align: "center" });
+    text(ctx, fits ? M.STRINGS.fits : M.STRINGS.ruledOut, cx, box.y + box.h - 12, {
+      font: capFont(colors), fill: fits ? colors.ink1 : colors.extreme, align: "center",
+    });
+  });
+
+  /* the cells of each sample under the chosen shape */
+  if (!params.showcells) return;
+  text(ctx, `${M.STRINGS.rulePrefix} — ${shape.label}`, L.bars.x, L.bars.y - 14, {
+    font: capFont(colors), fill: colors.ink1,
+  });
+  const rowH = L.bars.h / M.SAMPLES.length;
+  used.forEach((s, i) => {
+    const y = L.bars.y + i * rowH;
+    const h = 16;
+    /* Two subclones under one trunk can reach 1.1 times the trunk's own width,
+       and the overflow is drawn where it would fall — so the bar takes 56% of
+       the row and the arithmetic starts at 70%, clear of the widest overflow. */
+    const w = L.bars.w * 0.56;
+    ctx.fillStyle = colors.surface3;
+    ctx.fillRect(L.bars.x, y, w, h);
+    ctx.fillStyle = wash(cols[0], 0.45);
+    ctx.fillRect(L.bars.x, y, w * s.ccf[0], h);
+    let cx = L.bars.x;
+    let overlap = 0;
+    for (const kid of M.childrenOf(shape, 0)) {
+      const kw = w * s.ccf[kid];
+      if (cx + kw > L.bars.x + w * s.ccf[0] + 0.01) overlap = cx + kw - (L.bars.x + w * s.ccf[0]);
+      ctx.fillStyle = wash(cols[kid], 0.75);
+      ctx.fillRect(cx, y + 3, kw, h - 6);
+      for (const g of M.childrenOf(shape, kid)) {
+        ctx.fillStyle = wash(cols[g], 0.9);
+        ctx.fillRect(cx, y + 6, w * s.ccf[g], h - 12);
+      }
+      cx += kw;
+    }
+    ctx.strokeStyle = colors.grid;
+    ctx.lineWidth = 1;
+    ctx.strokeRect(L.bars.x + 0.5, y + 0.5, w - 1, h - 1);
+    if (overlap > 0.5) {
+      ctx.save();
+      ctx.strokeStyle = colors.extreme;
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(L.bars.x + w * s.ccf[0] + 0.5, y - 1.5, overlap, h + 3);
+      ctx.restore();
+    }
+    /* The arithmetic sits to the right of the bar, so it is measured against
+       the room it has: the sample, then the ONE constraint that comes closest
+       to failing — under 1 → 2 → 3 the root's is slack and cluster 2's is the
+       one worth reading. */
+    const tight = M.tightestNode(shape, s.ccf);
+    const fails = tight.sum > tight.parent + 1e-12;
+    text(ctx, `${s.key}  ${M.n2(tight.sum)} ${fails ? ">" : "≤"} ${M.n2(tight.parent)}`, L.bars.x + L.bars.w * 0.7, y + 12, {
+      font: `${colors.fsXs} ${colors.mono}`, fill: fails ? colors.extreme : colors.ink2,
+    });
+  });
+}
+
+/* ---- the momentary action ------------------------------------------------ */
+
+function clearDrawAll() {
+  if (widgetApi?.setParam) queueMicrotask(() => widgetApi.setParam("all", false));
+}
+
+/* ---- the widget ---------------------------------------------------------- */
+
+widgetApi = defineWidget({
+  slug: "tumor-heterogeneity",
+  title: "Tumor Heterogeneity",
+  status: "draft",
+  subtitle: M.STRINGS.subtitle,
+  layout: "side",
+  height: ({ w, ...values }) => M.stageHeight(w, values),
+
+  params: {
+    /* Decision 1: the page is display, so the reads survive a visit to the
+       clusters and back. */
+    page: {
+      type: "segmented",
+      label: M.STRINGS.pageLabel,
+      detail: M.STRINGS.pageDetail,
+      options: M.PAGES,
+      default: "one",
+      display: true,
+    },
+
+    sampleSec: { type: "section", label: M.STRINGS.sampleSection, when: { param: "page", oneOf: ["one", "many"] } },
+    purity: {
+      type: "choice",
+      label: M.STRINGS.purityLabel,
+      detail: M.STRINGS.purityDetail,
+      options: M.PURITY_OPTIONS,
+      default: "0.70",
+      when: { param: "page", oneOf: ["one", "many"] },
+    },
+    ccf: {
+      type: "choice",
+      label: M.STRINGS.ccfLabel,
+      detail: M.STRINGS.ccfDetail,
+      options: ["0.25", "0.50", "0.75", "1.00"],
+      default: "1.00",
+      when: { param: "page", equals: "one" },
+    },
+    state: {
+      type: "segmented",
+      style: "grid",
+      label: M.STRINGS.stateLabel,
+      detail: M.STRINGS.stateDetail,
+      options: M.COPY_STATES.map((s) => ({ value: s.key, label: s.label })),
+      default: "1+1",
+      when: { param: "page", equals: "one" },
+    },
+    copies: {
+      type: "int",
+      label: M.STRINGS.copiesLabel,
+      detail: M.STRINGS.copiesDetail,
+      min: 1,
+      max: 3,
+      default: 1,
+      when: { all: [{ param: "page", equals: "one" }, { param: "state", oneOf: ["2+0", "2+1", "3+1"] }] },
+    },
+    depth: {
+      type: "choice",
+      label: M.STRINGS.depthLabel,
+      detail: M.STRINGS.depthDetail,
+      options: M.DEPTH_OPTIONS,
+      default: M.DEPTH_DEFAULT,
+      when: { param: "page", oneOf: ["one", "many"] },
+    },
+    clones: {
+      type: "segmented",
+      label: M.STRINGS.clonesLabel,
+      detail: M.STRINGS.clonesDetail,
+      options: M.CLONE_SETS.map((c) => ({ value: c.key, label: c.label })),
+      default: "two",
+      when: { param: "page", equals: "many" },
+    },
+    mutations: {
+      type: "choice",
+      label: M.STRINGS.mutationsLabel,
+      detail: M.STRINGS.mutationsDetail,
+      options: M.MUTATION_OPTIONS,
+      default: "300",
+      when: { param: "page", equals: "many" },
+    },
+
+    /* A section and its fields must agree about the drive row: a section marked
+       `afterDrive` whose fields are not renders an empty heading under the
+       buttons and the fields above them (read in the browser, 2026-09-16).
+       "How to read it" is not a withheld answer, so it stays in place; the
+       seed and the momentary action belong below the row. */
+    lookSec: { type: "section", label: M.STRINGS.lookSection, when: { param: "page", equals: "many" } },
+    axis: {
+      type: "segmented",
+      label: M.STRINGS.axisLabel,
+      detail: M.STRINGS.axisDetail,
+      options: M.AXES,
+      default: "vaf",
+      display: true,
+      when: { param: "page", equals: "many" },
+    },
+    assumed: {
+      type: "segmented",
+      label: M.STRINGS.assumedLabel,
+      detail: M.STRINGS.assumedDetail,
+      options: M.ASSUMED,
+      default: "sample",
+      display: true,
+      when: { all: [{ param: "page", equals: "many" }, { param: "axis", equals: "ccf" }] },
+    },
+    clusters: {
+      type: "bool",
+      label: M.STRINGS.clustersLabel,
+      detail: M.STRINGS.clustersDetail,
+      default: true,
+      display: true,
+      when: { param: "page", equals: "many" },
+    },
+
+    samplesSec: { type: "section", label: M.STRINGS.samplesSection, when: { param: "page", equals: "tree" } },
+    taken: {
+      type: "choice",
+      label: M.STRINGS.takenLabel,
+      detail: M.STRINGS.takenDetail,
+      options: M.TAKEN_OPTIONS.map((t) => t.key),
+      default: "4",
+      display: true,
+      when: { param: "page", equals: "tree" },
+    },
+    shape: {
+      type: "segmented",
+      label: M.STRINGS.shapeLabel,
+      detail: M.STRINGS.shapeDetail,
+      options: M.SHAPES.map((s) => ({ value: s.key, label: s.label })),
+      default: "linear",
+      display: true,
+      when: { param: "page", equals: "tree" },
+    },
+    /* Named `showcells` and not `cells`: widget 54's grid rail declares a
+       `cells` property on a field, and its verify proves no other widget
+       has one — a parameter of that name reads as an opt-in to a rail
+       shape this widget does not use. */
+    showcells: {
+      type: "bool",
+      label: M.STRINGS.cellsLabel,
+      detail: M.STRINGS.cellsDetail,
+      default: true,
+      display: true,
+      when: { param: "page", equals: "tree" },
+    },
+
+    /* Kenneth's ruling on 59: the seed sits in its own section under the drive
+       row. The momentary action joins it, as widget 56's does. */
+    dataSec: { type: "section", label: M.STRINGS.readsSection, afterDrive: true, when: { param: "page", oneOf: ["one", "many"] } },
+    seed: {
+      type: "int",
+      label: M.STRINGS.seedLabel,
+      detail: M.STRINGS.seedDetail,
+      min: 1,
+      max: 200,
+      default: 1,
+      afterDrive: true,
+      when: { param: "page", oneOf: ["one", "many"] },
+    },
+    all: {
+      type: "bool",
+      style: "action",
+      label: M.STRINGS.allLabel,
+      detail: M.STRINGS.allDetail,
+      default: false,
+      display: true,
+      afterDrive: true,
+      when: { param: "page", equals: "one" },
+    },
+
+    /* Authoring escape hatch, first render only: reads already drawn. */
+    shown: { type: "int", min: 0, max: 500, default: 0, hidden: true },
+  },
+
+  legend: ({ params }) => {
+    if (params.page === "many") {
+      return [
+        { token: "group-a", label: "Mutations in every tumour cell", mark: "bar" },
+        { token: "group-b", label: "Mutations in some of them", mark: "bar" },
+        ...(params.clusters ? [{ token: "ink-2", label: "A cluster the mixture found, at its mean ± one standard deviation", mark: "line" }] : []),
+        ...(params.axis === "ccf" ? [{ token: "reference", label: "The cut at a cancer cell fraction of 0.9", mark: "line" }] : []),
+      ];
+    }
+    if (params.page === "tree") {
+      return [
+        { token: "group-a", label: "Cluster 1", mark: "line" },
+        { token: "group-b", label: "Cluster 2", mark: "line" },
+        { token: "group-c", label: "Cluster 3", mark: "line" },
+        { token: "extreme", label: "Cells the shape would need and the sample does not have", mark: "line" },
+      ];
+    }
+    return [
+      { token: "group-a", label: "Tumour cells", mark: "dot" },
+      { token: "highlight", label: "The mutation, and the reads that carry it", mark: "bar" },
+      { token: "ink-3", label: "Reads that carry the reference allele", mark: "bar" },
+      { token: "theory", label: "The variant allele frequency the model expects", mark: "line" },
+    ];
+  },
+
+  /* Decision 1: every page is built on every data change, in a fixed order. */
+  compute({ params, rng }) {
+    const cfg = M.configOne(params);
+    const one = M.buildReads(rng, cfg);
+    const manyCfg = M.configMany({ ...params, purity2: params.purity, depth2: params.depth });
+    const many = M.buildMany(rng, manyCfg);
+    const used = M.SAMPLES.slice(0, M.takenOf(params.taken).n);
+    return { cfg, one, manyCfg, many, used };
+  },
+
+  animation: {
+    /* Decision 2: the reads are the animation, and a unit is a fixed number of
+       them, so every depth fills in a few seconds (3.4c names the noun). */
+    stepLabel: { param: "depth", labels: { 31: "Add one read", 88: "Add two reads", 161: "Add three reads", 500: "Add eight reads" }, default: "Add one read" },
+    stepTitle: "Draw one more read from the sample's alleles",
+    runTitle: "Draw reads until the pileup is full",
+
+    init: ({ params, state, fromScratch }) => {
+      const authored = params.all ? state.one.depth : Math.max(0, params.shown ?? 0);
+      const k = fromScratch ? 0 : Math.min(state.one.depth, authored);
+      return {
+        k,
+        beat: 0,
+        done: k >= state.one.depth,
+        /* Decision 2: pages 2 and 3 land finished. */
+        inert: params.page !== "one",
+      };
+    },
+
+    advance: (anim, { dt, state }) => {
+      const end = state.one.depth;
+      if (anim.k >= end) { anim.beat = 0; anim.done = true; return false; }
+      anim.beat += dt / 90;
+      if (anim.beat < 1) return true;
+      const batch = Math.max(1, Math.ceil(end / 66));
+      const units = anim.mode === "step" ? 1 : Math.floor(anim.beat);
+      anim.beat = anim.mode === "step" ? 0 : anim.beat - units;
+      anim.k = Math.min(end, anim.k + units * batch);
+      if (anim.k >= end) { anim.beat = 0; anim.done = true; return false; }
+      return anim.mode !== "step";
+    },
+
+    rebuild: (anim, { params, state }) => {
+      if (params.all) {
+        anim.k = state.one.depth;
+        anim.beat = 0;
+        clearDrawAll();
+      }
+      anim.k = Math.min(anim.k, state.one.depth);
+      anim.inert = params.page !== "one";
+      anim.done = anim.k >= state.one.depth;
+    },
+  },
+
+  draw({ ctx, colors, w, params, state, anim }) {
+    const L = M.layout(w, params);
+    if (L.page === "many") { drawMany(ctx, colors, L, params, state); return; }
+    if (L.page === "tree") { drawTreePage(ctx, colors, L, params, state); return; }
+    drawOne(ctx, colors, L, params, state, anim);
+  },
+
+  readout({ params, state, anim }) {
+    if (params.page === "many") {
+      const axis = M.onAxis(state.many, state.manyCfg, params.axis);
+      const past = axis.cut == null ? null : axis.values.filter((v) => v >= axis.cut).length;
+      return [
+        { label: "Clusters found", value: String(state.many.fit.K), note: "components a Gaussian mixture keeps at the lowest BIC" },
+        { label: "MATH", value: state.many.math.toFixed(1), note: "the width of the VAF distribution over its median" },
+        {
+          label: params.axis === "ccf" ? "At a fraction of 0.9 or more" : "Populations in the tumour",
+          value: past == null ? String(state.manyCfg.clones.length) : M.intText(past),
+          note: past == null ? "what the mutations were drawn from" : `of ${M.intText(state.manyCfg.n)} mutations`,
+        },
+      ];
+    }
+    if (params.page === "tree") {
+      const shape = M.shapeOf(params.shape);
+      const fits = state.used.every((s) => M.fitsSumRule(shape, s.ccf));
+      /* A shape fits the evidence when it fits EVERY sample used, so the count
+         is the shapes surviving the first sample intersected with the rest. */
+      const both = state.used
+        .map((s) => M.shapesFitting(s.ccf))
+        .reduce((keep, fitting) => keep.filter((s) => fitting.includes(s)), [...M.SHAPES]).length;
+      const failing = state.used.find((s) => !M.fitsSumRule(shape, s.ccf));
+      return [
+        { label: "This shape", value: fits ? "Fits" : "Ruled out", note: failing ? `by ${failing.key}` : `on ${state.used.length} sample${state.used.length > 1 ? "s" : ""}` },
+        { label: "Shapes that fit", value: `${both} of ${M.SHAPES.length}`, note: "given the samples used" },
+        { label: "Samples used", value: String(state.used.length), note: "biopsies of one patient" },
+      ];
+    }
+    const k = Math.min(anim?.k ?? 0, state.one.depth);
+    const vaf = M.vafAt(state.one, k);
+    const cfg = state.cfg;
+    const ccf = k > 0 ? M.ccfFrom(vaf, cfg.purity, cfg.copies, cfg.state.total) : NaN;
+    return [
+      { label: "Reads carrying it", value: k > 0 ? `${M.intText(M.altAt(state.one, k))} / ${M.intText(k)}` : "—", note: `of ${M.intText(state.one.depth)} at this depth` },
+      { label: "Variant allele frequency", value: k > 0 ? M.n3(vaf) : "—", note: `the model expects ${M.n3(cfg.expected)}` },
+      { label: "Cancer cell fraction", value: k > 0 ? M.n2(ccf) : "—", note: "the reading with this purity and copy number divided out" },
+    ];
+  },
+
+  summary({ params, state, anim }) {
+    if (params.page === "many") {
+      const axis = M.onAxis(state.many, state.manyCfg, params.axis);
+      return `A histogram of ${M.intText(state.manyCfg.n)} mutations on the ${axis.label.toLowerCase()} axis, `
+        + `from ${state.manyCfg.clones.length} cell population${state.manyCfg.clones.length > 1 ? "s" : ""} at purity `
+        + `${M.n2(state.manyCfg.purity)}. A Gaussian mixture keeps ${state.many.fit.K} component`
+        + `${state.many.fit.K > 1 ? "s" : ""}, and MATH is ${state.many.math.toFixed(1)}.`;
+    }
+    if (params.page === "tree") {
+      const shape = M.shapeOf(params.shape);
+      const failing = state.used.find((s) => !M.fitsSumRule(shape, s.ccf));
+      return `Three clusters' mean cancer cell fraction across ${state.used.length} sample`
+        + `${state.used.length > 1 ? "s" : ""} of one patient, against the shape ${shape.label}, which `
+        + `${failing ? `is ruled out by ${failing.key}` : "fits every sample used"}.`;
+    }
+    const k = Math.min(anim?.k ?? 0, state.one.depth);
+    const cfg = state.cfg;
+    const cells = `${Math.round(M.CELLS * cfg.purity)} of ${M.CELLS} cells are tumour cells, `
+      + `${M.pctText(cfg.ccf)} of them carrying the mutation on ${cfg.copies} of ${cfg.state.total} copies`;
+    if (k === 0) return `A sample of ${M.CELLS} cells in which ${cells}, with an empty pileup of ${M.intText(state.one.depth)} reads below it.`;
+    return `A sample of ${M.CELLS} cells in which ${cells}. `
+      + `${M.intText(M.altAt(state.one, k))} of the ${M.intText(k)} reads drawn so far carry the mutation, `
+      + `a variant allele frequency of ${M.n3(M.vafAt(state.one, k))} against the ${M.n3(cfg.expected)} the model expects.`;
+  },
+});

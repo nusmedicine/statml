@@ -992,6 +992,24 @@
       ],
       "arc": 62,
       "status": "shipped"
+    },
+    {
+      "slug": "tumor-heterogeneity",
+      "title": "Tumor Heterogeneity",
+      "blurb": "A variant allele frequency is a share of reads: purity and copy number decide what a mutation reads.",
+      "course": "PHM5003",
+      "topics": [
+        "variant allele frequency",
+        "tumour purity",
+        "copy number",
+        "cancer cell fraction",
+        "subclone",
+        "MATH score",
+        "clonal architecture",
+        "cancer"
+      ],
+      "arc": 67,
+      "status": "draft"
     }
   ]
 }
