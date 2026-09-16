@@ -9103,10 +9103,145 @@ caption saying "The same reading". Each row now prints its own, and the caption
 is "Other arrangements that read the same", since *the same reading* was the
 part that was not true.
 
-**What the draft leaves open:** his round continues; page 1's all-ruled-out
-state (1.4% of settings) draws three "Ruled out" lines and leaves the reader to
-draw the conclusion — that no SINGLE cause explains the reading, so the sample
-is a combination — which could be said in a line and was not put to him; then
+#### PAGE 1 REBUILT AROUND WHAT THE ANALYSIS IS TOLD, 2026-09-16 — `5a13141`, `3e161cf`, `3a3a92c`, `99446d3`
+
+Four rounds in one afternoon, and the last three came from his questions rather
+than from the plan. Researched in `_lab/vaf-scenarios-measure.mjs` and mocked in
+`_lab/vaf-scenarios-mock.html` (eight sections) before anything was built, on
+his *"mock before implementing"*.
+
+**The structure the page had never shown, and the lesson states outright.** Cell
+24 measures purity and copy number; cell 25 calls c and m *"(unknown)"*; and the
+chromosome the mutation arose on is not in the equation at all —
+`vafExpected` takes the TOTAL. The widget drew the first four as identical
+sliders, which is what hid it. Two measured, two inferred, one the reading can
+never see.
+
+**His five picks.** The minor chromosome as a PANEL ROW and not a control (it is
+live in 2 of 5 states and only at one mutated copy, and every cell in a sample
+carries the mutation on the same chromosome, so drawing both at once would state
+something false). The panel asking the LESSON'S OWN QUESTION — which (c, m) fit,
+with p and Cₜ given — replacing the single-cause rows, whose machinery moved to
+`_lab/vaf-rows-measure.mjs`. And the rail in THREE GROUPS, *The sample you
+built · How you sequenced it · What you bring to the analysis*, over a
+measured/inferred split he had picked an hour earlier and then overturned: the
+reader SETS purity, so calling it "measured" says two things at once.
+
+**And then his own idea, which turned out to be the strongest thing on the
+page**: *"i recall in the notebook we can include copy number information or
+infer it? so we can use this additional info to constrain the scenarios"* — and
+cell 24 is titled **Refining Estimates (Optional)** and opens *"So far, we have
+interpreted VAFs under simple assumptions: 100% tumor purity, diploid genome
+with no amplifications or deletions"*. So **how much the analysis is told is a
+control**: Nothing · Purity · Purity and copy number, one method throughout so
+no level is a straw man. Over every clonal mutation page 1 can build, by how
+often the analysis calls it subclonal:
+
+| told | a diploid region | an altered region |
+|---|---|---|
+| nothing | 75.0% | 81.3% |
+| purity | **0.0%** | 62.5% |
+| purity and copy number | **0.0%** | **0.0%** |
+
+**Purity settles a diploid region completely and does not settle an altered
+one**, which is what decided three levels over two — the middle one is where the
+reader finds out WHICH problem each measurement solves. Pooling the copy states
+hides it, reading as "purity helps a bit everywhere". *(A claim of "does nothing
+at all" was put to him from a variant where the naive level considered one
+multiplicity only; under the one consistent method that shipped it is 81.3% →
+62.5%, and the correction is in the model's comment, the mock and the verify.)*
+
+**A TOTAL OF 2 IS NOT AN ALLELE-SPECIFIC CALL**, which is cell 24's
+GISTIC2-against-ASCAT distinction falling out without a fourth level: told only
+"diploid", an analysis cannot tell 1 + 1 from 2 + 0, so the assumed levels
+enumerate over the total and only the told level caps the count at the
+chromosome the mutation arose on.
+
+#### THE CALL, AND THE QUESTIONS THAT PRODUCED IT
+
+Three of his questions in a row were the page failing to explain itself, and
+each produced a fix:
+
+1. *"what does the phrase 'the sample you built is not among them' refer to?"*
+   It pointed at an ABSENCE — no row marked, and the reader left to notice that
+   the row which would have been marked was missing. It names the number now.
+2. *"are we creating samples that are not possible to infer from? are these
+   unrealistic and we need to constrain them?"* **No, and nothing needs
+   constraining** — over the 144 samples page 1 can build, told both, the
+   reader's own cell is among the scenarios 144 times out of 144, now asserted.
+   The shortfall is the assumption's, never the sample's, so the line says
+   "ruled out by the assumption".
+3. *"if the purpose is to determine if it's likely to be clonal or subclonal …
+   should we state the conclusion in the widget?"* **Yes**, and his first
+   inference was the other way round: a scenario is ruled out when its fraction
+   passes 1, which means the reading is too HIGH for that multiplicity and more
+   copies carry it — an early event. What is true, and is the better reason to
+   state the call, is that told nothing the reported fraction is LOWER than the
+   truth 69.4% of the time. **An uncorrected analysis manufactures the subclonal
+   look.**
+
+So page 1 now ends where cell 17 says the analysis is going — a fourth readout
+tile, **Clonal · Subclonal · Cannot tell**:
+
+| told | right | wrong | cannot tell |
+|---|---|---|---|
+| nothing | 73.6% | **20.1%** | 6.3% |
+| purity | 72.2% | 13.9% | 13.2% |
+| purity and copy number | 80.6% | **0.0%** | 19.4% |
+
+Told nothing the call is confident and wrong one time in five; told both it is
+right or honestly unsure and never wrong. And **cannot-tell RISES with
+knowledge**, because what a measurement removes is the confident wrong answer.
+A two-way tile would have lied in 19.4% of cases — § *Widget 59*, a tile's label
+is a claim.
+
+**One coherence fix each round paid for.** The card, the readout tile and the
+panel were solving at three different purities: the card printed 0.78 under a
+note saying it was solved at purity 1, beside a panel saying 52%.
+`reportedScenario` is the one answer all three read. Solving the tile from the
+DRAW instead put 0.92 beside a verdict of "subclonal" in 2.7% of settings, and a
+panel that followed the draw was measured and rejected — a row's status would
+flip 4.9 times and the call 8.5 times over a run of 88 reads.
+
+#### THE DEFAULTS HE ASKED ABOUT, MEASURED — `_lab/vaf-depth-check.R`
+
+**The depths were sound and unrecorded.** Re-measured against the lesson's own
+file under its own filter (depth is ref + alt; the twenty FLAG genes out, as
+`rmFlags = 20`), over 68,625 mutations: **31 is the 10.7th percentile, 88 the
+50.2nd, 161 the 75.0th and 500 the 97.7th** — three exact landmarks and a round
+number a quarter of a percentile off one (p97.5 is 488). The code had named only
+the median and the IQR; it now carries all four and the landmarks the set passes
+over (p25 49, p90 274, p95 372).
+
+**The 0.9 threshold had no comment at all**, in a file where everything else
+carries its provenance. The lesson gives no number — cell 25 says only "≈ 1" —
+so 0.9 is the widget's. Swept over the 144 samples it is **not a sensitive
+choice**: the call is identical at 0.80, 0.85, 0.90 and 0.95, because the
+fraction control offers 0.25, 0.50, 0.75 and 1.00 and only 1.00 is clonal at any
+line in that range. At exactly 1.00 it breaks (1.4% wrong). The cost is recorded
+too: the reader cannot build a mutation sitting ON the line and watch the call
+teeter.
+
+#### THE COPY AUDIT OF PAGE 1'S NEW STRINGS
+
+175 reader-facing strings. Three passes found nothing, and the struck-word sweep
+caught two while they were being written ("tumour" in the card's new line, and
+"cut" where this collection says threshold). Two rows stood: **the caption left
+out half its own premise** at the purity level, naming the assumption and never
+the purity it had been handed — the three now read in one shape, what was given
+and then what was assumed; and **`knows=none` was not the control's word**, so
+it is `knows=nothing`, which also separates two different `none`s that were in
+one file. `knows=both` stays, there being no one word for "Purity and copy
+number".
+
+**Its link words, updated:** `knows=nothing|purity|both` joins the list, and
+`copies` now reaches the minor chromosome only through the panel, never the
+rail.
+
+**What the draft leaves open:** his round continues; page 2 and page 3 have not
+been read against the knowledge control, which is a page-1 idea that page 2's
+purity correction could also carry; the threshold's insensitivity means no
+mutation can be built sitting ON the line, offered as a note and not taken; then
 the ship sequence — the shooter, the states, the status flip in the
 manifest, `main.js` and the verify, the full suite, `check` and `test` read
 alone, and the push on his word.
