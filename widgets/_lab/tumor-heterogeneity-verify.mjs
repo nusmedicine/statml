@@ -712,11 +712,11 @@ const defaults = async () => resolveParams(await spec(), new URLSearchParams("")
      figure named what m counts and never what it encodes. 01-2 cell 25 states
      both orders of m, so a copy pass that drops either loses the answer. */
   check("…and says which order of events m stands for",
-    /m is one when the mutation came after the copy number changed/.test(full)
-    && /more when it came before and was copied with it/.test(full));
+    /m is one when the mutation arose after the copy number changed/.test(full)
+    && /more when it arose before and was copied with it/.test(full));
   check("the mutated-copy control says it too, where the question was asked",
-    /came after the copy number changed/.test(M.STRINGS.copiesDetail)
-    && /came before/.test(M.STRINGS.copiesDetail), M.STRINGS.copiesDetail);
+    /arose after the copy number changed/.test(M.STRINGS.copiesDetail)
+    && /arose before/.test(M.STRINGS.copiesDetail), M.STRINGS.copiesDetail);
   /* And both orders stay reachable: one mutated copy is the usual case the
      lesson names, and `major` of them is his reading, on every gained state. */
   for (const st of M.COPY_STATES.filter((x) => x.major > 1)) {
@@ -1031,6 +1031,12 @@ const defaults = async () => resolveParams(await spec(), new URLSearchParams("")
     ["a lesson reference", /\b(notebook|lesson|cell \d|chapter)\b/i],
     /* Kenneth's pick, 2026-09-16 */
     ["the other spelling", /\btumour/i],
+    /* SECOND PERSON AND NARRATION, struck by him the same day: "The sample you
+       built", "How you sequenced it", "What you bring to the analysis", and
+       the card's "Here it is solved … comes back as". The collection names
+       things; it does not address the reader or narrate the arithmetic. */
+    ["the reader addressed", /\b(you|your|yours)\b/i],
+    ["narration", /\b(here it is|comes back as|worth on its own|as they came|copied too)\b/i],
   ];
   const hits = [];
   for (const t of strings) {

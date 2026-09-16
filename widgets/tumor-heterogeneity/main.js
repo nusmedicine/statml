@@ -189,15 +189,28 @@ function cardForPage(params, state, anim) {
       M.n3(cfg.expected),
     )],
   ];
-  /* SOLVED WITH WHAT THE ANALYSIS WAS GIVEN, not with the truth: at "Nothing"
-     the card printed 0.78 — the sample's own purity divided out — under a note
-     saying it was solved at purity 1, and beside a panel saying 52%. */
-  const said = M.reportedScenario(cfg.expected, cfg, params.knows);
-  const factor = M.ccfFrom(1, said.purity, said.m, said.state.total);
+  /* THE CARD SOLVES WHAT THE TILE REPORTS (Kenneth, 2026-09-16: "line the card
+     up with the tile"). It solved ONE scenario from the READING, so at "Nothing"
+     it printed 0.528 × 2.00 = 1.06 beside a tile reading 0.50–1.00 — two correct
+     numbers that read as a disagreement, one of them a fraction past 1. It now
+     inverts the model's own expected VAF, the row directly above, at what the
+     analysis was given, for every multiplicity that fits: the round trip from
+     the sample to the reading and back, with the scenarios it leaves.
+
+     Every scenario at one level shares its purity and its copy total — they
+     differ only in m and in which chromosome — so the factor is printed once
+     and divided by each m in turn. Rows that differ only by chromosome carry
+     the same m and the same fraction, so they are listed once. */
+  const fit = M.scenariosFor(cfg.expected, cfg, params.knows);
+  const factor = M.ccfFrom(1, fit.purity, 1, fit.rows[0].state.total);
+  const byM = [...new Map(fit.fits.map((r) => [r.m, r])).values()].sort((a, b) => a.m - b.m);
+  const solved = byM.map((r) => `${M.n2(r.c)} at m = ${r.m}`).join(", ");
   rows.push([S.labelFraction, MATHML ? CCF_MATH : CCF_PLAIN,
     k > 0
-      ? numbers(`= ${M.n3(vaf)} × ${M.n2(factor)} = ${M.n2(M.ccfFrom(vaf, said.purity, said.m, said.state.total))}`)
-      : numbers(`= VAF × ${M.n2(factor)}`)]);
+      ? numbers(byM.length
+        ? `= ${M.n3(cfg.expected)} × ${M.n2(factor)} ÷ m = ${solved}`
+        : `= ${M.n3(cfg.expected)} × ${M.n2(factor)} ÷ m, past 1 at every m`)
+      : numbers(`= VAF × ${M.n2(factor)} ÷ m`)]);
   /* The level's own line follows the letters, so the card says what the panel
      below it is solving with. `renderCard` keys its memo on the note, so this
      rebuilds the card when the level changes and nothing else does. */

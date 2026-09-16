@@ -338,18 +338,6 @@ export function assumptionsWrong(cfg, level) {
   return out;
 }
 
-export function reportedScenario(vaf, cfg, level) {
-  /* THE FIRST THAT FITS, AND NOTHING THAT KNOWS WHICH IS TRUE. This used to
-     prefer the reader's own cell, which is knowledge the analysis does not
-     have: at "Nothing" with a 1 + 1 sample it showed a fraction of 1.00 beside
-     a call of "Cannot tell", because 0.50 fits the reading exactly as well and
-     the tile had quietly picked the right one (Kenneth, 2026-09-16: "why CCF is
-     1 but cannot tell"). The first fit is the fewest copies, which an analysis
-     can choose without being told anything. */
-  const { rows } = scenariosFor(vaf, cfg, level);
-  return rows.find((r) => r.ok) ?? rows[0];
-}
-
 /** The span of the fractions that fit — one number when one scenario does, a
     range when several do. What the tile reports, since a single number where
     the reading supports several is a claim the reading does not make. */
@@ -757,7 +745,7 @@ export const STRINGS = {
      other order, the chromosome lost and the survivor duplicated first, the
      mutation arising afterwards on one of the two copies. 01-2 cell 25 states
      it of m and calls one the usual case, which is why the control opens there. */
-  copiesDetail: "copies of that chromosome carrying it — one if the mutation came after the copy number changed, more if it came before and was copied too",
+  copiesDetail: "copies of that chromosome carrying it: one if the mutation arose after the copy number changed, more if it arose before and was copied with it",
   depthLabel: "Read depth",
   depthDetail: "reads covering the position",
   readsSection: "The reads",
@@ -773,7 +761,7 @@ export const STRINGS = {
   mutationsDetail: "somatic mutations called in the tumor",
   lookSection: "How to read it",
   axisLabel: "Axis",
-  axisDetail: "the reads as they came, or with purity and copy number divided out",
+  axisDetail: "the variant allele frequency, or the cancer cell fraction with purity and copy number divided out",
   assumedLabel: "Purity used",
   assumedDetail: "the purity the correction divides by",
   clustersLabel: "Clusters found",
@@ -793,20 +781,28 @@ export const STRINGS = {
      walkthrough belongs in the lesson, and this is what the card can carry.
      Each says what the fraction is solved WITH, because that is the step the
      level changes and the panel's rows are its answers. */
+  /* Literal, one fact each. "Here it is solved", "what the reading is worth on
+     its own" and "comes back as" narrated the arithmetic instead of stating it
+     (the audit of 2026-09-16). */
   levelNote: {
-    nothing: "Here it is solved at purity 1 and two copies, which is what the reading is worth "
-      + "on its own: the normal cells' reads are counted as tumor reads, so a diluted reading "
-      + "comes back as fewer cells carrying the mutation.",
-    purity: "Here it is solved at the sample's own purity, so the dilution divides out, and still "
-      + "at two copies — which is right wherever the genome is diploid and wrong wherever it is not.",
-    both: "Here it is solved at the sample's own purity and its own copy number, so the copies "
-      + "carrying the mutation are the last unknown, and each value of m gives one fraction.",
+    nothing: "The fraction is solved at purity 1 and two copies, so reads from normal cells count "
+      + "as tumor reads and lower it.",
+    purity: "The fraction is solved at the sample's purity, which removes the dilution, and at two "
+      + "copies, which holds only where the genome is diploid.",
+    both: "The fraction is solved at the sample's purity and copy number, which leaves m as the "
+      + "only unknown: each value of m gives one fraction.",
   },
-  knowsLabel: "You know",
+  knowsLabel: "Given",
   knowsDetail: "what the analysis is given; the rest is assumed",
-  truthSection: "The sample you built",
-  seqSection: "How you sequenced it",
-  analysisSection: "What you bring to the analysis",
+  /* PLAIN NOUNS, the collection's register: "The data" 18 times across the
+     shipped widgets, "The model" 10, "The inference", "The truth". These were
+     "The sample you built", "How you sequenced it" and "What you bring to the
+     analysis" for one afternoon — second-person narration, which Kenneth struck
+     as a mannerism (2026-09-16). The three nouns still keep the truth, the
+     assay and the analysis apart, which was the reason for three groups. */
+  truthSection: "The sample",
+  seqSection: "The sequencing",
+  analysisSection: "The analysis",
   scenariosCaption: "Scenarios that fit",
   /* One shape at all three levels: what the analysis was GIVEN, then what it
      had to assume. At "Purity" this said only "assuming a diploid genome" and
@@ -822,7 +818,9 @@ export const STRINGS = {
     split: `the scenarios that fit straddle ${CUT}`,
     none: "no scenario fits this reading",
   },
-  truthLegend: "The sample you built",
+  /* The rule marks the one scenario that is true — `--c-reference` is the token
+     for the truth where one exists — so it is named for what it marks. */
+  truthLegend: "The true scenario",
   /* IT HAS TO NAME THE READER'S OWN NUMBER. "The sample you built is not among
      them" points at an absence — no row is marked, and the reader has to notice
      that the row which WOULD have been marked is missing. Kenneth read it and
@@ -842,14 +840,14 @@ export const STRINGS = {
   assumedPure: "purity 1",
   assumedDiploid: "two copies",
   nothingFits: (what, verb) => `No scenario fits this reading — ${what} ${verb} assumed`,
-  notHere: (pct, what, verb) => `The sample you built — ${pct} of tumor cells — is not here: ${what} ${verb} assumed`,
+  notHere: (pct, what, verb) => `The true scenario — ${pct} of tumor cells — is not listed: ${what} ${verb} assumed`,
   /* The formula card's notes. Each names its letters and then says what the
      line divides by what — the general logic, in the lesson's own terms. */
   noteOne: "p is the fraction of cells in the sample that are tumor cells, c the fraction of those "
     + "cells carrying the mutation, m the copies carrying it in such a cell, and Cₜ all the copies "
     + "there. The reading divides variant reads by reads; the model divides the mutated copies in "
     + "the sample by every copy at that position, normal cells included. m is one when the "
-    + "mutation came after the copy number changed and more when it came before and was copied "
+    + "mutation arose after the copy number changed and more when it arose before and was copied "
     + "with it, which is how a mutation is timed against a gain.",
   noteMany: "The same model, solved for c: at a fixed purity and copy number it is the reading "
     + "multiplied by one number. Each cluster is one component of a Gaussian mixture, the number of "
