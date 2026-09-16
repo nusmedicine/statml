@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · tumor-heterogeneity — the cell</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1500px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 100ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); min-height: 26px; white-space: pre-line; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 100ch; }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+       border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 100ch; }
+  table { border-collapse: collapse; font-size: var(--fs-sm); margin: var(--sp-2) 0; }
+  th, td { border: 1px solid var(--grid); padding: 4px 10px; text-align: left; }
+  th { color: var(--ink-2); font-weight: 600; }
+  td.num { font-family: var(--font-mono); }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>tumor-heterogeneity &middot; what a cell holds</h1>
+  <p class="note">
+    <b>Your three questions, 2026-09-16.</b> <b>(1)</b> <code>2 + 0</code> is two copies of ONE inherited chromosome
+    and none of the other &mdash; copy-neutral loss of heterozygosity, so a cell with the same two copies a
+    <code>1 + 1</code> cell has, but both from one parent. <b>(2)</b> <code>3 + 1</code> with two mutated copies is a
+    real cell: the mutation arose on the chromosome that was later duplicated, so two of its three copies carry it.
+    <b>(3)</b> The figure does NOT distinguish the pair today, which is why <code>2 + 0</code> and <code>1 + 1</code>
+    draw the same picture. That is this page.
+    Every cell here is drawn at the widget's own size (radius <span id="rr"></span>px at the 550px stage) and again at
+    3&times;, by the widget's own <code>cellMarks</code>.
+  </p>
+
+  <h2>0 &middot; What the states are, and what the mutation may sit on</h2>
+  <p class="note">
+    A somatic mutation arises on ONE chromosome, so the copies carrying it are copies of that chromosome: at most
+    <i>major</i> of them. The widget capped them at the TOTAL until today, which let <code>2 + 1</code> be asked for
+    three mutated copies and <code>1 + 1</code> for two &mdash; both now impossible.
+  </p>
+  <div id="table"></div>
+
+  <h2>1 &middot; Four ways to show the pair</h2>
+  <p class="note">
+    Each block draws all five states, with the mutation on as many copies as the state allows. The mark is the widget's
+    own, one size in every state.
+  </p>
+  <div class="row" id="candRow"></div>
+  <p class="q" id="q"></p>
+  <p class="rec" id="rec"></p>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+import * as M from "../tumor-heterogeneity/model.js";
+
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+const R = M.cellGrid({ x: 14, y: 26, w: 522, h: 190 }).r;
+document.getElementById("rr").textContent = R.toFixed(1);
+
+const el = (tag, cls, text) => { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; };
+function cand(title, sub, w) {
+  const box = el("div", "cand");
+  box.style.width = `${w}px`;
+  box.appendChild(el("h3", null, title));
+  box.appendChild(el("p", "sub", sub));
+  document.getElementById("candRow").appendChild(box);
+  return box;
+}
+function canvasIn(box, w, h) {
+  const c = document.createElement("canvas");
+  c.width = Math.round(w * DPR); c.height = Math.round(h * DPR);
+  c.style.width = `${w}px`; c.style.height = `${h}px`;
+  box.appendChild(c);
+  const ctx = c.getContext("2d");
+  ctx.scale(DPR, DPR);
+  return ctx;
+}
+const wash = (color, a) => {
+  const m = String(color).match(/^#([0-9a-f]{6})$/i);
+  if (!m) return color;
+  const p = [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16));
+  return `rgba(${p[0]},${p[1]},${p[2]},${a})`;
+};
+const label = (ctx, s, x, y, size = 11, colour = T.ink2, align = "left") => {
+  ctx.save(); ctx.font = `${size}px ${T.font}`; ctx.fillStyle = colour; ctx.textAlign = align; ctx.fillText(s, x, y); ctx.restore();
+};
+
+/* ---------- the four candidates ------------------------------------------ */
+/* Each draws ONE cell: `state` is a COPY_STATES entry, `m` the mutated copies. */
+
+function shell(ctx, cx, cy, r) {
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.fillStyle = wash(T.groupA, 0.16);
+  ctx.fill();
+  ctx.strokeStyle = wash(T.groupA, 0.75);
+  ctx.lineWidth = 1;
+  ctx.stroke();
+}
+function copyLine(ctx, cx, oy, len, { ghost = false, mark = 0 } = {}) {
+  ctx.save();
+  if (ghost) { ctx.setLineDash([2.5, 2.5]); ctx.globalAlpha = 0.5; }
+  ctx.beginPath();
+  ctx.moveTo(cx - len / 2, oy);
+  ctx.lineTo(cx + len / 2, oy);
+  ctx.strokeStyle = T.ink3;
+  ctx.lineWidth = 1.2;
+  ctx.stroke();
+  ctx.restore();
+  if (mark) {
+    ctx.beginPath();
+    ctx.arc(cx, oy, mark, 0, Math.PI * 2);
+    ctx.fillStyle = T.highlight;
+    ctx.fill();
+  }
+}
+
+/* A — as the widget draws it now: one stack, no pair shown. */
+function drawA(ctx, cx, cy, r, state, m) {
+  shell(ctx, cx, cy, r);
+  const { mark, lines } = M.cellMarks(r, state.total);
+  lines.forEach(({ dy, len }, i) => copyLine(ctx, cx, cy + dy, len, { mark: i < m ? mark : 0 }));
+}
+
+/* B — one stack, the two chromosomes grouped, and what was lost left as a
+   dashed ghost so the state is readable from the cell alone. */
+function drawB(ctx, cx, cy, r, state, m, { ghost = true } = {}) {
+  shell(ctx, cx, cy, r);
+  const slots = state.major + Math.max(state.minor, ghost ? 1 : state.minor);
+  const { mark, lines } = M.cellMarks(r, slots);
+  const GROUP = Math.min(4, r * 0.22);
+  lines.forEach(({ dy, len }, i) => {
+    const isMajor = i < state.major;
+    const shift = isMajor ? -GROUP / 2 : GROUP / 2;
+    const lost = !isMajor && i - state.major >= state.minor;
+    copyLine(ctx, cx, cy + dy + shift, len, { ghost: lost, mark: isMajor && i < m ? mark : 0 });
+  });
+}
+
+/* C — two columns: one chromosome's copies on the left, the other's on the
+   right, each copy a short vertical bar. */
+function drawC(ctx, cx, cy, r, state, m) {
+  shell(ctx, cx, cy, r);
+  const h = r * 1.25;
+  const bar = Math.max(2.4, r * 0.17);
+  const groups = [
+    { n: state.major, mutated: m, x: cx - r * 0.42 },
+    { n: state.minor, mutated: 0, x: cx + r * 0.42 },
+  ];
+  for (const g of groups) {
+    const pitch = Math.min(bar * 2.1, (r * 0.78) / Math.max(1, g.n));
+    for (let i = 0; i < g.n; i += 1) {
+      const x = g.x + (i - (g.n - 1) / 2) * pitch;
+      ctx.fillStyle = i < g.mutated ? T.highlight : T.ink3;
+      ctx.globalAlpha = i < g.mutated ? 1 : 0.75;
+      ctx.fillRect(x - bar / 2, cy - h / 2, bar, h);
+      ctx.globalAlpha = 1;
+    }
+    if (g.n === 0) {
+      ctx.save();
+      ctx.setLineDash([2.5, 2.5]);
+      ctx.globalAlpha = 0.45;
+      ctx.strokeStyle = T.ink3;
+      ctx.strokeRect(g.x - bar / 2, cy - h / 2, bar, h);
+      ctx.restore();
+    }
+  }
+}
+
+/* C2 — C's chromosomes, but the mutation is a BAND ACROSS one, not the whole
+   copy coloured: a point mutation rather than a mutated chromosome. */
+function drawC2(ctx, cx, cy, r, state, m) {
+  shell(ctx, cx, cy, r);
+  const h = r * 1.25;
+  const bar = Math.max(2.6, r * 0.18);
+  const band = Math.max(2.6, r * 0.2);
+  const groups = [
+    { n: state.major, mutated: m, x: cx - r * 0.42 },
+    { n: state.minor, mutated: 0, x: cx + r * 0.42 },
+  ];
+  for (const g of groups) {
+    const pitch = Math.min(bar * 2.1, (r * 0.78) / Math.max(1, g.n));
+    for (let i = 0; i < g.n; i += 1) {
+      const x = g.x + (i - (g.n - 1) / 2) * pitch;
+      ctx.globalAlpha = 0.75;
+      ctx.fillStyle = T.ink3;
+      ctx.fillRect(x - bar / 2, cy - h / 2, bar, h);
+      ctx.globalAlpha = 1;
+      if (i < g.mutated) {
+        ctx.fillStyle = T.highlight;
+        ctx.fillRect(x - bar * 0.9, cy - band / 2, bar * 1.8, band);
+      }
+    }
+    if (g.n === 0) {
+      ctx.save();
+      ctx.setLineDash([2.5, 2.5]);
+      ctx.globalAlpha = 0.45;
+      ctx.strokeStyle = T.ink3;
+      ctx.strokeRect(g.x - bar / 2, cy - h / 2, bar, h);
+      ctx.restore();
+    }
+  }
+}
+
+/* D — the widget's stack, with the minor chromosome's copy drawn open rather
+   than solid: the pair is told by the mark on the line, not by position. */
+function drawD(ctx, cx, cy, r, state, m) {
+  shell(ctx, cx, cy, r);
+  const { mark, lines } = M.cellMarks(r, state.total);
+  lines.forEach(({ dy, len }, i) => {
+    const isMajor = i < state.major;
+    const oy = cy + dy;
+    ctx.save();
+    if (!isMajor) ctx.setLineDash([3, 2]);
+    ctx.beginPath();
+    ctx.moveTo(cx - len / 2, oy);
+    ctx.lineTo(cx + len / 2, oy);
+    ctx.strokeStyle = T.ink3;
+    ctx.lineWidth = isMajor ? 1.6 : 1.2;
+    ctx.stroke();
+    ctx.restore();
+    if (isMajor && i < m) {
+      ctx.beginPath();
+      ctx.arc(cx, oy, mark, 0, Math.PI * 2);
+      ctx.fillStyle = T.highlight;
+      ctx.fill();
+    }
+  });
+}
+
+/* ---------- the states table --------------------------------------------- */
+{
+  const t = el("table");
+  t.innerHTML = "<tr><th>state</th><th>what the cell holds</th><th>mutated copies it allows</th>"
+    + "<th>VAF at purity 0.70, in every tumour cell</th></tr>"
+    + M.COPY_STATES.map((s) => {
+      const holds = s.minor === 0
+        ? `${s.major} cop${s.major > 1 ? "ies" : "y"} of one chromosome, the other lost`
+        : `${s.major} of one chromosome, ${s.minor} of the other`;
+      const vafs = s.copies.map((m) => M.vafExpected(0.7, 1, m, s.total).toFixed(3)).join(", ");
+      return `<tr><td class="num">${s.label}</td><td>${holds}</td><td class="num">${s.copies.join(", ")}</td><td class="num">${vafs}</td></tr>`;
+    }).join("");
+  document.getElementById("table").appendChild(t);
+}
+
+/* ---------- the candidates ------------------------------------------------ */
+const DRAWERS = [
+  ["A · as it is drawn today", "one stack; 2 + 0 and 1 + 1 are the same picture", drawA],
+  ["B · grouped, with the lost copy ghosted", "the pair is a gap; a dashed line is a chromosome that is gone", drawB],
+  ["C · two columns of chromosomes", "one chromosome's copies left, the other's right; a mutated copy is coloured", drawC],
+  ["C2 · the same, the mutation a band", "a point on the chromosome rather than the whole copy", drawC2],
+  ["D · the minor chromosome drawn open", "same stack, the other chromosome dashed", drawD],
+];
+/* Each state is a row: for every number of mutated copies it allows, the cell
+   magnified beside the cell at the size the widget really draws it, because a
+   depiction that only works magnified is not a depiction (§ *Widget 61*). */
+const BIG = 2 * R;
+const GROUP_W = 2 * BIG + 2 * R + 26;
+for (const [title, sub, fn] of DRAWERS) {
+  const w = 62 + 3 * GROUP_W;
+  const box = cand(title, sub, w);
+  const rowH = 2 * BIG + 34;
+  const ctx = canvasIn(box, w, M.COPY_STATES.length * rowH + 24);
+  M.COPY_STATES.forEach((s, i) => {
+    const cy = 20 + i * rowH + BIG;
+    label(ctx, s.label, 10, cy + 4, 12, T.ink1);
+    s.copies.forEach((m, j) => {
+      const x0 = 62 + j * GROUP_W;
+      fn(ctx, x0 + BIG, cy, BIG, s, m);
+      fn(ctx, x0 + 2 * BIG + 14 + R, cy, R, s, m);
+      label(ctx, `${m} mutated`, x0 + BIG, cy + BIG + 16, 10, T.ink3, "center");
+    });
+  });
+  label(ctx, `each pair: magnified, then at the widget's own ${R.toFixed(0)}px radius`,
+    10, M.COPY_STATES.length * rowH + 18, 10, T.ink3);
+}
+
+document.getElementById("q").innerHTML =
+  "<b>Your call:</b> should a cell show which copies are the same chromosome at all? It costs room inside a 32px "
+  + "cell, and the lesson's own figure (<code>cancer-hetero.png</code>) draws two plain lines. But with nothing "
+  + "distinguishing them, <code>2 + 0</code> and <code>1 + 1</code> are the same drawing, and 2 + 0's whole point is "
+  + "that one chromosome was lost and the other doubled.";
+document.getElementById("rec").innerHTML =
+  "<b>C2</b> — and this page overturned its own recommendation. B was written up first: keep the lesson's stack of "
+  + "horizontal copies, group the pair, ghost what was lost. Drawn at the widget's own 16px radius, that grouping is a "
+  + "3.5px gap and does not survive — 1 + 1 and 2 + 0 still read alike, which is the whole question. Two columns do "
+  + "survive it, because a column is a COUNT and counting two against one needs no fine spacing. C2 rather than C "
+  + "because a whole coloured chromosome reads as a mutated chromosome, where a band across one reads as a point "
+  + "mutation — which is what the lesson's own figure draws as a dot. D distinguishes the pair only where the minor "
+  + "copy exists, so 2 + 0 and 1 + 0, the two states this question is about, lose the point entirely.";
+</script>
+</main>
+</body>
+</html>

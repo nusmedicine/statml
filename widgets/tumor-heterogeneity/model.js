@@ -117,15 +117,27 @@ export function cellGrid(rect, n = CELLS) {
   return best;
 }
 
-/* 01-2 cell 24's allele-specific states, major + minor as ASCAT reports them. */
+/* 01-2 cell 24's allele-specific states, major + minor as ASCAT reports them:
+   the copies of ONE inherited chromosome and the copies of the other. 2 + 0 is
+   copy-neutral loss of heterozygosity — two copies of one chromosome and the
+   other gone — which is a different cell from 1 + 1 even though both hold two
+   copies (Kenneth, 2026-09-16).
+
+   A SOMATIC MUTATION ARISES ON ONE CHROMOSOME, so the copies carrying it are
+   copies of that chromosome: at most `major` of them, and never a copy of the
+   other one as well. That is why 1 + 1 cannot have two mutated copies — it
+   would be the same mutation arising twice — and why 2 + 1 stops at two. */
 export const COPY_STATES = [
-  { key: "1+1", label: "1 + 1", total: 2, copies: [1] },
-  { key: "2+0", label: "2 + 0", total: 2, copies: [1, 2] },
-  { key: "1+0", label: "1 + 0", total: 1, copies: [1] },
-  { key: "2+1", label: "2 + 1", total: 3, copies: [1, 2] },
-  { key: "3+1", label: "3 + 1", total: 4, copies: [1, 2, 3] },
-];
+  { key: "1+1", label: "1 + 1", major: 1, minor: 1 },
+  { key: "2+0", label: "2 + 0", major: 2, minor: 0 },
+  { key: "1+0", label: "1 + 0", major: 1, minor: 0 },
+  { key: "2+1", label: "2 + 1", major: 2, minor: 1 },
+  { key: "3+1", label: "3 + 1", major: 3, minor: 1 },
+].map((s) => ({ ...s, total: s.major + s.minor, copies: Array.from({ length: s.major }, (_, i) => i + 1) }));
 export const stateOf = (key) => COPY_STATES.find((s) => s.key === key) ?? COPY_STATES[0];
+/** How many copies may carry the mutation in this state: one per copy of the
+    chromosome it arose on, so the list is 1…major. */
+export const copyOptions = (key) => stateOf(key).copies.map(String);
 
 /* 01-2 cell 25, the model the whole widget is built on:
      VAF = p·c·m / (p·Cₜ + 2(1 − p))     and     c = VAF·(p·Cₜ + 2(1 − p)) / (p·m)
@@ -158,7 +170,9 @@ export function configOne(params) {
   const purity = Number(params.purity);
   const ccf = Number(params.ccf);
   const st = stateOf(params.state);
-  const copies = Math.min(Number(params.copies), st.total);
+  /* Capped by `major`, not by the total: the mutation sits on copies of one
+     chromosome. A link carrying more comes back to what the state allows. */
+  const copies = Math.min(Math.max(1, Number(params.copies) || 1), st.major);
   const depth = Number(params.depth);
   return { purity, ccf, state: st, copies, depth, expected: vafExpected(purity, ccf, copies, st.total) };
 }

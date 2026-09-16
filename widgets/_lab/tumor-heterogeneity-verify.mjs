@@ -167,6 +167,26 @@ const defaults = async () => resolveParams(await spec(), new URLSearchParams("")
     }
   }
   check("cell 25's two formulas invert each other", worst < 1e-12, `worst ${worst.toExponential(1)}`);
+
+  /* A SOMATIC MUTATION ARISES ON ONE CHROMOSOME, so the copies carrying it are
+     copies of that chromosome — at most `major`. The widget capped them at the
+     TOTAL until 2026-09-16, which let 2 + 1 be asked for three mutated copies
+     and 1 + 1 for two, neither of which is a cell (Kenneth's question). */
+  check("every state is major + minor, and they add to its total",
+    M.COPY_STATES.every((s) => s.major + s.minor === s.total));
+  check("2 + 0 is two copies of one chromosome and none of the other",
+    M.stateOf("2+0").major === 2 && M.stateOf("2+0").minor === 0);
+  check("the mutated copies offered are one per copy of the chromosome it arose on",
+    M.COPY_STATES.every((s) => M.copyOptions(s.key).join() === s.copies.join()
+      && s.copies[s.copies.length - 1] === s.major));
+  check("1 + 1 cannot carry the mutation twice", M.copyOptions("1+1").join() === "1");
+  check("2 + 1 stops at two mutated copies", M.copyOptions("2+1").join() === "1,2");
+  check("3 + 1 allows three, which is the state Kenneth asked about",
+    M.copyOptions("3+1").join() === "1,2,3"
+    && Math.abs(M.configOne({ purity: "0.70", ccf: "1.00", state: "3+1", copies: "2", depth: "88" }).expected - 0.412) < 0.001,
+    "two of four copies reads VAF 0.412 at purity 0.70");
+  const overAsked = M.configOne({ purity: "0.70", ccf: "1.00", state: "2+1", copies: "3", depth: "88" });
+  check("a link asking for more copies than the state has comes back to it", overAsked.copies === 2);
 }
 
 /* --- 2 · page 1's arrangements -------------------------------------------- */
@@ -264,7 +284,7 @@ const defaults = async () => resolveParams(await spec(), new URLSearchParams("")
   }
   const WANT = {
     page: "segmented", sampleSec: "section", purity: "choice", ccf: "choice", state: "segmented",
-    copies: "int", depth: "choice", clones: "segmented", mutations: "choice", lookSec: "section",
+    copies: "choice", depth: "choice", clones: "segmented", mutations: "choice", lookSec: "section",
     axis: "segmented", assumed: "segmented", clusters: "bool", samplesSec: "section", taken: "choice",
     shape: "segmented", showcells: "bool", dataSec: "section", seed: "int", all: "bool", shown: "int",
   };

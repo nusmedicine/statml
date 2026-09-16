@@ -670,13 +670,18 @@ widgetApi = defineWidget({
       default: "1+1",
       when: { param: "page", equals: "one" },
     },
+    /* The list is a function of the copy state — core's `optionsFrom` — because
+       how many copies may carry the mutation is a property of the state: one
+       per copy of the chromosome it arose on. A slider ran to three in every
+       state and let 2 + 1 be asked for three mutated copies, which no cell
+       has (Kenneth, 2026-09-16). */
     copies: {
-      type: "int",
+      type: "choice",
       label: M.STRINGS.copiesLabel,
       detail: M.STRINGS.copiesDetail,
-      min: 1,
-      max: 3,
-      default: 1,
+      options: (v) => M.copyOptions(v.state),
+      optionsFrom: "state",
+      default: "1",
       when: { all: [{ param: "page", equals: "one" }, { param: "state", oneOf: ["2+0", "2+1", "3+1"] }] },
     },
     depth: {
