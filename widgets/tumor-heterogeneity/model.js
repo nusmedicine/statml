@@ -662,7 +662,13 @@ export const STRINGS = {
   assumingPure: "assuming a pure sample and a diploid genome",
   assumingDiploid: "assuming a diploid genome",
   truthLegend: "The sample you built",
-  truthMissing: "The sample you built is not among them",
+  /* IT HAS TO NAME THE READER'S OWN NUMBER. "The sample you built is not among
+     them" points at an absence — no row is marked, and the reader has to notice
+     that the row which WOULD have been marked is missing. Kenneth read it and
+     asked what it referred to (2026-09-16), which is the whole answer: it means
+     the analysis has ruled out the very sample he made, and saying his fraction
+     beside the ones it does offer is what makes that land. */
+  truthMissing: (pct) => `The sample you built — ${pct} of tumor cells carry it — is not among them`,
   overOne: "A fraction past 1 would need more than every tumor cell",
   /* The formula card's notes. Each names its letters and then says what the
      line divides by what — the general logic, in the lesson's own terms. */

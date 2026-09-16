@@ -455,7 +455,8 @@ function drawOne(ctx, colors, L, params, state, anim) {
     below += 16;
   }
   if (!fit.rows.some((r) => r.ok && r.truth)) {
-    text(ctx, M.STRINGS.truthMissing, L.rows.x, below, { font: noteFont(colors), fill: colors.extreme });
+    text(ctx, M.STRINGS.truthMissing(M.pctText(cfg.ccf)), L.rows.x, below,
+      { font: noteFont(colors), fill: colors.extreme });
   }
 }
 
