@@ -570,7 +570,15 @@ export const STRINGS = {
   stateLabel: "Copy number",
   stateDetail: "copies of one inherited chromosome + copies of the other, as an allele-specific caller reports them",
   copiesLabel: "Mutated copies",
-  copiesDetail: "how many copies of that chromosome carry the mutation",
+  /* THE COUNT IS A TIMING, and saying only what it counts is what confused
+     Kenneth on 2026-09-16: "there is 1 mutated copy but copy number is 2 + 0?
+     isn't the mutation copied when the copy number increases?" Both orders are
+     real cells. 2 + 0 with two mutated copies is his reading — the mutation was
+     already there and the duplication carried it — and 2 + 0 with one is the
+     other order, the chromosome lost and the survivor duplicated first, the
+     mutation arising afterwards on one of the two copies. 01-2 cell 25 states
+     it of m and calls one the usual case, which is why the control opens there. */
+  copiesDetail: "copies of that chromosome carrying it — one if the mutation came after the copy number changed, more if it came before and was copied too",
   depthLabel: "Read depth",
   depthDetail: "reads covering the position",
   readsSection: "The reads",
@@ -620,7 +628,9 @@ export const STRINGS = {
   noteOne: "p is the fraction of cells in the sample that are tumor cells, c the fraction of those "
     + "cells carrying the mutation, m the copies carrying it in such a cell, and Cₜ all the copies "
     + "there. The reading divides variant reads by reads; the model divides the mutated copies in "
-    + "the sample by every copy at that position, normal cells included.",
+    + "the sample by every copy at that position, normal cells included. m is one when the "
+    + "mutation came after the copy number changed and more when it came before and was copied "
+    + "with it, which is how a mutation is timed against a gain.",
   noteMany: "The same model, solved for c: at a fixed purity and copy number it is the reading "
     + "multiplied by one number. Each cluster is one component of a Gaussian mixture, the number of "
     + "them chosen by BIC — mutations at similar frequencies. MAD is the median absolute deviation, "

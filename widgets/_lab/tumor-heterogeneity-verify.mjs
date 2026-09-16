@@ -527,6 +527,24 @@ const defaults = async () => resolveParams(await spec(), new URLSearchParams("")
     full.includes(`(0.70 × 1.00 × 1) / (0.70 × 2 + 2 × 0.30) = ${M.n3(state.cfg.expected)}`), full.slice(60, 140));
   check("…and the fraction solved from the reading", /c = VAF × \(p Cₜ \+ 2\(1 − p\)\) \/ \(p m\)/.test(full));
   check("…with every letter named underneath", /p is the fraction of cells/.test(full));
+  /* THE MUTATED-COPY COUNT IS A TIMING, and both places that can say so must.
+     Kenneth read 2 + 0 with one mutated copy as impossible on 2026-09-16 —
+     "isn't the mutation copied when the copy number increases?" — because the
+     figure named what m counts and never what it encodes. 01-2 cell 25 states
+     both orders of m, so a copy pass that drops either loses the answer. */
+  check("…and says which order of events m stands for",
+    /m is one when the mutation came after the copy number changed/.test(full)
+    && /more when it came before and was copied with it/.test(full));
+  check("the mutated-copy control says it too, where the question was asked",
+    /came after the copy number changed/.test(M.STRINGS.copiesDetail)
+    && /came before/.test(M.STRINGS.copiesDetail), M.STRINGS.copiesDetail);
+  /* And both orders stay reachable: one mutated copy is the usual case the
+     lesson names, and `major` of them is his reading, on every gained state. */
+  for (const st of M.COPY_STATES.filter((x) => x.major > 1)) {
+    check(`${st.label} offers both the mutation before the gain and after it`,
+      M.copyOptions(st.key).includes("1") && M.copyOptions(st.key).includes(String(st.major)),
+      M.copyOptions(st.key).join(", "));
+  }
 
   /* Page 2: the same model solved for c, and MATH as cell 23's title. */
   const { state: many } = drawWith({ ...values, page: "many" });
