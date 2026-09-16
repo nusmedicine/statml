@@ -1,0 +1,434 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · tumor-heterogeneity — free parameters and matching scenarios</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1500px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 104ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); min-height: 40px; white-space: pre-line; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 104ch; }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+       border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 104ch; }
+  table { border-collapse: collapse; font-size: var(--fs-sm); margin: var(--sp-2) 0; }
+  th, td { border: 1px solid var(--grid); padding: 4px 10px; text-align: left; vertical-align: top; }
+  th { color: var(--ink-2); font-weight: 600; }
+  td.num { font-family: var(--font-mono); }
+  td.no { color: var(--c-extreme); }
+  td.yes { color: var(--ink-2); }
+  .rail { width: 300px; border: 1px solid var(--grid); background: var(--surface-1); padding: var(--sp-3); font-size: var(--fs-sm); }
+  .rail .sec { font-weight: 600; color: var(--ink-1); margin: var(--sp-3) 0 2px; }
+  .rail .sec:first-child { margin-top: 0; }
+  .rail .ctl { margin: 0 0 var(--sp-2); }
+  .rail .nm { display: flex; justify-content: space-between; color: var(--ink-1); }
+  .rail .dt { color: var(--ink-3); font-size: var(--fs-xs); }
+  .rail .bar { height: 4px; background: var(--grid); border-radius: 2px; margin: 3px 0; position: relative; }
+  .rail .bar i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--c-group-a); border-radius: 2px; }
+  .tag { font-family: var(--font-mono); font-size: 10px; padding: 0 4px; border-radius: 3px; margin-left: 6px; }
+  .tag.meas { background: var(--surface-3); color: var(--ink-2); }
+  .tag.inf { background: var(--surface-3); color: var(--c-highlight); }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>tumor-heterogeneity &middot; free parameters, and which scenarios match</h1>
+  <p class="note">
+    <b>Your two asks, 2026-09-16:</b> add the minor-chromosome case, and
+    &ldquo;simplify the presentation so we are clear what are free parameters, and what scenarios match&rdquo;.
+    Everything below is computed on this page by the widget's own <code>model.js</code>, and the numbers are
+    reproduced from <code>_lab/vaf-scenarios-measure.mjs</code>. Cells are drawn at the widget's real size
+    (radius <span id="rr"></span>px at the 550px stage) and again at 3&times;.
+  </p>
+
+  <h2>1 &middot; What the equation can and cannot see</h2>
+  <p class="note">
+    This is the whole of the research in one table. <b>Cell 25 names p and C<sub>t</sub> as measured and c and m as
+    unknown</b> &mdash; the widget currently draws all four as identical sliders, which is what hides the structure.
+    And the chromosome the mutation arose on is not in the equation at all.
+  </p>
+  <div id="paramTable"></div>
+  <p class="q" id="q1"></p>
+
+  <h2>2 &middot; The minor-chromosome case, drawn</h2>
+  <p class="note">
+    A somatic mutation arises on ONE inherited chromosome. The widget always puts it on the one with
+    <i>major</i> copies; it could equally be on the other. <b>It changes the picture and not the number</b>, which
+    makes it the cleanest example on the page of something the reading cannot tell you.
+    Only <code>2 + 1</code> and <code>3 + 1</code> have a choice to make &mdash; <code>2 + 0</code> and
+    <code>1 + 0</code> have nothing left of the other chromosome, and <code>1 + 1</code> is symmetric.
+  </p>
+  <div class="row" id="hostRow"></div>
+  <div id="hostTable"></div>
+
+  <h2>3 &middot; Where the host chromosome goes &mdash; three candidates</h2>
+  <p class="note">
+    It is live in 2 of 5 states and, within those, only while one copy carries the mutation &mdash; so a control of
+    its own is mostly dimmed. Each candidate below is drawn as the rail or stage would carry it.
+  </p>
+  <div class="row" id="hostWhereRow"></div>
+  <p class="rec" id="recHost"></p>
+
+  <h2>4 &middot; The rail: showing what is measured and what is inferred</h2>
+  <p class="note">
+    Three ways to make the split visible. All three carry the same controls in the same order; they differ in how
+    much furniture they spend saying which is which.
+  </p>
+  <div class="row" id="railRow"></div>
+  <p class="rec" id="recRail"></p>
+
+  <h2>5 &middot; The panel: which scenarios match?</h2>
+  <p class="note">
+    Two different questions, and the page can only really ask one of them well. <b>A</b> is what is on the stage
+    today; <b>B</b> is the lesson's own method (cell 25 &sect;3 fits c and m with p and C<sub>t</sub> given).
+    Both panels below are computed for the same reading.
+  </p>
+  <div class="row" id="panelRow"></div>
+  <div id="panelTable"></div>
+  <p class="rec" id="recPanel"></p>
+
+  <h2>6 &middot; How often each question leaves more than one answer</h2>
+  <div id="ambigTable"></div>
+  <p class="q" id="q6"></p>
+</main>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+import * as M from "../tumor-heterogeneity/model.js";
+
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+const R = M.cellGrid({ x: 14, y: 26, w: 522, h: 190 }).r;
+document.getElementById("rr").textContent = R.toFixed(1);
+const f2 = (x) => x.toFixed(2);
+const f3 = (x) => x.toFixed(3);
+
+const el = (tag, cls, text) => { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; };
+function cand(host, title, sub, w) {
+  const box = el("div", "cand");
+  box.style.width = `${w}px`;
+  box.appendChild(el("h3", null, title));
+  box.appendChild(el("p", "sub", sub));
+  document.getElementById(host).appendChild(box);
+  return box;
+}
+function canvasIn(box, w, h) {
+  const c = document.createElement("canvas");
+  c.width = Math.round(w * DPR); c.height = Math.round(h * DPR);
+  c.style.width = `${w}px`; c.style.height = `${h}px`;
+  box.appendChild(c);
+  const ctx = c.getContext("2d");
+  ctx.scale(DPR, DPR);
+  return ctx;
+}
+const wash = (color, a) => {
+  const m = String(color).match(/^#([0-9a-f]{6})$/i);
+  if (!m) return color;
+  const p = [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16));
+  return `rgba(${p[0]},${p[1]},${p[2]},${a})`;
+};
+const label = (ctx, s, x, y, size = 11, colour = T.ink2, align = "left") => {
+  ctx.save(); ctx.font = `${size}px ${T.font}`; ctx.fillStyle = colour; ctx.textAlign = align; ctx.fillText(s, x, y); ctx.restore();
+};
+function table(host, head, rows, cls = []) {
+  const t = el("table");
+  const tr = el("tr");
+  for (const h of head) tr.appendChild(el("th", null, h));
+  t.appendChild(tr);
+  for (const r of rows) {
+    const x = el("tr");
+    r.forEach((v, i) => x.appendChild(el("td", cls[i] ?? null, String(v))));
+    t.appendChild(x);
+  }
+  document.getElementById(host).appendChild(t);
+}
+
+/* ---------- the cell, exactly as the widget draws it (pick D) -------------- */
+/* `host` is which inherited chromosome the mutation arose on: the one with
+   `major` copies, or the one with `minor`. The SOLID lines are that one's. */
+function drawCell(ctx, cx, cy, r, state, m, host = "major") {
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.fillStyle = wash(T.groupA, 0.16);
+  ctx.fill();
+  ctx.strokeStyle = wash(T.groupA, 0.75);
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  const { mark, lines } = M.cellMarks(r, state.total);
+  /* The layout never moves: the first `major` lines are that chromosome's
+     copies and the rest the other's. Only WHICH block is solid changes, so the
+     reader sees one arrangement with the mutation on the other chromosome. */
+  let placed = 0;
+  lines.forEach(({ dy, len }, c) => {
+    const isMajorBlock = c < state.major;
+    const own = host === "major" ? isMajorBlock : !isMajorBlock;
+    const oy = cy + dy;
+    ctx.save();
+    if (!own) ctx.setLineDash([3, 2]);
+    ctx.beginPath();
+    ctx.moveTo(cx - len / 2, oy);
+    ctx.lineTo(cx + len / 2, oy);
+    ctx.strokeStyle = T.ink3;
+    ctx.lineWidth = own ? 1.6 : 1.2;
+    ctx.stroke();
+    ctx.restore();
+    if (own && placed < m) {
+      placed += 1;
+      ctx.beginPath();
+      ctx.arc(cx, oy, mark, 0, Math.PI * 2);
+      ctx.fillStyle = T.highlight;
+      ctx.fill();
+    }
+  });
+}
+
+/* ---------- 1 · the parameters -------------------------------------------- */
+table("paramTable",
+  ["parameter", "what the widget calls it", "who fixes it", "in the equation?", "what the reading tells you"],
+  [
+    ["p", "Tumor purity", "MEASURED — cell 24, consensus purity (CPE)", "yes", "nothing; you bring it"],
+    ["Cₜ", "Copy number", "MEASURED — cell 24, allele-specific CNV (ASCAT)", "yes", "nothing; you bring it"],
+    ["c", "Tumor cells carrying it", "UNKNOWN — cell 25: “(unknown)”", "yes", "this is what you are after"],
+    ["m", "Mutated copies", "UNKNOWN — cell 25: “(unknown)”", "yes", "constrained, rarely pinned"],
+    ["host", "— (not offered today)", "UNKNOWN", "NO", "nothing, ever"],
+    ["depth", "Read depth", "the assay", "no — it sets the spread", "how sharp the reading is"],
+  ], [null, null, null, null, null]);
+document.querySelectorAll("#paramTable tr").forEach((tr, i) => {
+  if (i === 5) tr.querySelectorAll("td")[3].className = "no";
+});
+document.getElementById("q1").textContent =
+  "The reading is ONE number and the unknowns are two and a half — c, m, and a host that never enters. "
+  + "That is why the page shows scenarios rather than an answer. The question for you is whether the rail should "
+  + "say which row is which (section 4), and which of the two questions the panel should ask (section 5).";
+
+/* ---------- 2 · the minor case -------------------------------------------- */
+{
+  const pairs = M.COPY_STATES.filter((s) => s.minor > 0 && s.minor !== s.major);
+  for (const st of pairs) {
+    const box = cand("hostRow", st.label, `one mutated copy\non either chromosome`, 300);
+    const ctx = canvasIn(box, 300, 212);
+    const BIG = R * 3;
+    [["on the " + st.major + "-copy one", "major", 78], ["on the " + st.minor + "-copy one", "minor", 222]].forEach(([cap, host, cx]) => {
+      drawCell(ctx, cx, 80, BIG, st, 1, host);
+      drawCell(ctx, cx, 162, R, st, 1, host);
+      label(ctx, cap, cx, 198, 10, T.ink3, "center");
+    });
+    label(ctx, `both read VAF ${f3(M.vafExpected(0.7, 1, 1, st.total))} at purity 0.70`, 150, 16, 11, T.ink1, "center");
+    label(ctx, "3×", 10, 84, 9, T.ink3);
+    label(ctx, "real", 10, 166, 9, T.ink3);
+  }
+  const rows = M.COPY_STATES.map((st) => {
+    const hosts = [`${st.major}-copy: m = ${Array.from({ length: st.major }, (_, i) => i + 1).join(", ")}`];
+    if (st.minor > 0 && st.minor !== st.major) hosts.push(`${st.minor}-copy: m = ${Array.from({ length: st.minor }, (_, i) => i + 1).join(", ")}`);
+    return [
+      st.label,
+      st.minor === 0 ? "gone" : st.minor === st.major ? "same count — no choice" : "yes",
+      hosts.join("   |   "),
+      st.minor > 0 && st.minor !== st.major ? "+1 picture, +0 readings" : "—",
+    ];
+  });
+  table("hostTable", ["copy number", "is there a second chromosome to choose?", "mutated copies each host allows", "what the minor case adds"], rows, [null, null, "num", null]);
+}
+
+/* ---------- 3 · where the host goes --------------------------------------- */
+{
+  /* A — its own control in the rail */
+  {
+    const box = cand("hostWhereRow", "A · a control of its own",
+      "live in 2 of 5 states, and\nonly while m = 1 there", 300);
+    const r = el("div", "rail");
+    r.innerHTML = `
+      <div class="sec">The sample</div>
+      <div class="ctl"><div class="nm"><span>Copy number</span><span>2 + 1</span></div>
+        <div class="dt">copies of one inherited chromosome + copies of the other</div></div>
+      <div class="ctl"><div class="nm"><span>The mutation is on</span><span>the 2-copy one</span></div>
+        <div class="bar"><i style="width:50%"></i></div>
+        <div class="dt">which inherited chromosome it arose on — the reading is the same either way</div></div>
+      <div class="ctl"><div class="nm"><span>Mutated copies</span><span>1</span></div>
+        <div class="dt">copies of that chromosome carrying it</div></div>`;
+    box.appendChild(r);
+  }
+  /* B — a row in the matching panel */
+  {
+    const box = cand("hostWhereRow", "B · a row in the panel",
+      "appears beside the other\narrangements that read the same", 460);
+    const ctx = canvasIn(box, 460, 150);
+    const st = M.stateOf("2+1");
+    label(ctx, "Other arrangements that read the same", 12, 18, 12, T.ink1);
+    label(ctx, "…", 12, 40, 11, T.ink3);
+    label(ctx, "normal cells dilute it — purity 0.52", 12, 58, 10, T.ink2);
+    label(ctx, "only some tumor cells carry it — 52% of the tumor cells", 12, 78, 10, T.ink2);
+    drawCell(ctx, 24, 106, R, st, 1, "minor");
+    label(ctx, "it arose on the other chromosome — 2 + 1, the 1-copy one", 44, 110, 10, T.ink2);
+    label(ctx, "VAF 0.259", 448, 110, 10, T.ink1, "right");
+    ctx.save(); ctx.strokeStyle = wash(T.highlight, 0.9); ctx.lineWidth = 1.5;
+    ctx.strokeRect(8, 92, 444, 32); ctx.restore();
+  }
+  /* C — both cells drawn in the sample */
+  {
+    const box = cand("hostWhereRow", "C · both pictures in the sample",
+      "no control; the sample shows\nboth cells it could be", 300);
+    const ctx = canvasIn(box, 300, 150);
+    const st = M.stateOf("2+1");
+    label(ctx, "The sample", 12, 16, 11, T.ink1);
+    for (let i = 0; i < 12; i += 1) {
+      const cx = 24 + (i % 6) * 46;
+      const cy = 46 + Math.floor(i / 6) * 46;
+      drawCell(ctx, cx, cy, R, st, 1, i % 2 ? "minor" : "major");
+    }
+    label(ctx, "half drawn each way — but a sample does not", 12, 122, 10, T.ink3);
+    label(ctx, "hold both, so this states something false", 12, 136, 10, T.extreme ?? T.ink3);
+  }
+  document.getElementById("recHost").textContent =
+    "The page's own reading: B. The host is not a knob the reader turns to build a sample — it is an alternative "
+    + "explanation of the reading they already have, which is exactly what the panel is for, and B puts it there "
+    + "at the one moment it is true (m = 1 on an asymmetric state). A spends a permanent rail row on something live "
+    + "in 2 of 5 states. C is wrong: every cell in one sample carries the mutation on the same chromosome, so "
+    + "drawing both at once says a thing that is not so.";
+}
+
+/* ---------- 4 · the rail --------------------------------------------------- */
+{
+  const CTL = [
+    ["Tumor purity", "0.70", "the fraction of cells in the sample that are tumor cells", "meas", 70],
+    ["Copy number", "2 + 1", "copies of one inherited chromosome + copies of the other", "meas", null],
+    ["Tumor cells carrying it", "1.00", "the fraction of tumor cells that carry the mutation", "inf", 100],
+    ["Mutated copies", "1", "copies of that chromosome carrying it", "inf", 0],
+    ["Read depth", "88", "reads covering the position", "meas", 40],
+  ];
+  const ctlHtml = (c, tag) => `
+    <div class="ctl"><div class="nm"><span>${c[0]}${tag ? `<span class="tag ${c[3]}">${c[3] === "meas" ? "measured" : "inferred"}</span>` : ""}</span><span>${c[1]}</span></div>
+      ${c[4] != null ? `<div class="bar"><i style="width:${c[4]}%"></i></div>` : ""}
+      <div class="dt">${c[2]}</div></div>`;
+
+  {
+    const box = cand("railRow", "A · two sections", "the split is the heading;\nno extra ink per row", 300);
+    const r = el("div", "rail");
+    r.innerHTML = `<div class="sec">What the assays measured</div>`
+      + ctlHtml(CTL[0]) + ctlHtml(CTL[1]) + ctlHtml(CTL[4])
+      + `<div class="sec">What you are inferring</div>`
+      + ctlHtml(CTL[2]) + ctlHtml(CTL[3]);
+    box.appendChild(r);
+  }
+  {
+    const box = cand("railRow", "B · one section, a tag per row", "keeps the lesson's order;\nfive tags of furniture", 300);
+    const r = el("div", "rail");
+    r.innerHTML = `<div class="sec">The sample</div>` + CTL.map((c) => ctlHtml(c, true)).join("");
+    box.appendChild(r);
+  }
+  {
+    const box = cand("railRow", "C · as it is today", "no split at all —\nfour unknowns look alike", 300);
+    const r = el("div", "rail");
+    r.innerHTML = `<div class="sec">The sample</div>` + CTL.map((c) => ctlHtml(c)).join("");
+    box.appendChild(r);
+  }
+  document.getElementById("recRail").textContent =
+    "The page's own reading: A. The split IS the teaching — cell 24 measures purity and copy number and cell 25 "
+    + "calls c and m unknown — and a section heading says it once for free, where B repeats it five times and "
+    + "still leaves the reader to notice the pattern. A also reorders the rail so read depth joins the measured "
+    + "group, which is where it belongs and is not where it sits today.";
+}
+
+/* ---------- 5 · the panel -------------------------------------------------- */
+{
+  const p = 0.7;
+  const st = M.stateOf("3+1");
+  const vaf = M.vafExpected(p, 1, 2, st.total); // 0.412
+  {
+    const box = cand("panelRow", "A · as it is today: which single cause?",
+      "holds two unknowns neutral\nand solves the third", 470);
+    const ctx = canvasIn(box, 470, 130);
+    label(ctx, "Other arrangements that read the same", 12, 18, 12, T.ink1);
+    const rows = M.arrangementsFor(vaf, 88);
+    const names = ["normal cells dilute it", "only some tumor cells carry it", "it is on one of several copies"];
+    const miss = [M.STRINGS.noPurity, M.STRINGS.noCcf, M.STRINGS.noCopies];
+    rows.forEach((r0, i) => {
+      const y = 44 + i * 28;
+      if (!r0.ok) { label(ctx, miss[i], 12, y, 10, T.extreme ?? T.ink3); return; }
+      ctx.fillStyle = wash(T.highlight, 0.85);
+      ctx.fillRect(12, y - 10, 120 * r0.vaf, 12);
+      ctx.strokeStyle = T.grid; ctx.strokeRect(12.5, y - 9.5, 119, 11);
+      const d = r0.kind === "purity" ? `purity ${f2(r0.purity)}`
+        : r0.kind === "ccf" ? `${Math.round(r0.ccf * 100)}% of the tumor cells`
+          : `copy number ${r0.state.label}${r0.copies > 1 ? ` with ${r0.copies} mutated` : ""}`;
+      label(ctx, `${names[i]} — ${d}`, 140, y, 10, T.ink2);
+      label(ctx, `VAF ${f3(r0.vaf)}`, 458, y, 10, T.ink1, "right");
+    });
+    label(ctx, "assumes nothing is measured — which is not the lesson's situation", 12, 126, 10, T.ink3);
+  }
+  {
+    const box = cand("panelRow", "B · the lesson's method: which (c, m)?",
+      "purity and copy number GIVEN;\neach m implies one c", 470);
+    const ctx = canvasIn(box, 470, 130);
+    label(ctx, `Scenarios that fit — purity ${f2(p)}, copy number ${st.label}`, 12, 18, 12, T.ink1);
+    let y = 44;
+    for (let m = 1; m <= st.major; m += 1) {
+      const c = M.ccfFrom(vaf, p, m, st.total);
+      const ok = c <= 1 + 1e-9;
+      if (ok) {
+        ctx.fillStyle = wash(T.groupA, 0.85);
+        ctx.fillRect(12, y - 10, 120 * c, 12);
+      }
+      ctx.strokeStyle = T.grid; ctx.strokeRect(12.5, y - 9.5, 119, 11);
+      label(ctx, ok
+        ? `${m} mutated cop${m > 1 ? "ies" : "y"} of ${st.total} → ${Math.round(c * 100)}% of tumor cells carry it`
+        : `${m} mutated copy of ${st.total} → would need ${f2(c)} of the tumor cells`,
+      140, y, 10, ok ? T.ink2 : (T.extreme ?? T.ink3));
+      y += 28;
+    }
+    label(ctx, "two scenarios fit; the reading cannot choose between them", 12, 126, 10, T.ink3);
+  }
+  const rows = [];
+  for (let m = 1; m <= st.major; m += 1) {
+    const c = M.ccfFrom(vaf, p, m, st.total);
+    rows.push([m, f3(c), c <= 1 + 1e-9 ? "fits" : "ruled out — more than every tumor cell",
+      m === 2 ? "the cell the reader built" : ""]);
+  }
+  table("panelTable", ["m", "the cancer cell fraction it implies", "verdict", ""], rows, ["num", "num", null, null]);
+  document.getElementById("recPanel").textContent =
+    "The page's own reading: B, and it is a bigger change than it looks. A answers the misconception (a VAF is not "
+    + "a cancer cell fraction) by pretending nothing is measured, which is not the situation cell 24 sets up. B asks "
+    + "the question an analyst actually asks, its rows are always real candidates rather than ruled-out lines, and "
+    + "it is the discrete form of the likelihood in cell 25 §3 — so page 1 ends where page 2 begins. The cost is "
+    + "that the purity and copy-number misconception is then made by the CONTROLS (move purity, watch the fraction "
+    + "move) rather than by a panel.";
+}
+
+/* ---------- 6 · how ambiguous each question is ---------------------------- */
+{
+  let one = 0; let more = 0; let cells = 0;
+  for (const p of M.PURITY_OPTIONS.map(Number)) {
+    for (const st of M.COPY_STATES) {
+      for (const cT of [0.25, 0.5, 0.75, 1]) {
+        for (let mT = 1; mT <= st.major; mT += 1) {
+          const v = M.vafExpected(p, cT, mT, st.total);
+          let n = 0;
+          for (let m = 1; m <= st.major; m += 1) if (M.ccfFrom(v, p, m, st.total) <= 1 + 1e-9) n += 1;
+          cells += 1;
+          if (n === 1) one += 1; else more += 1;
+        }
+      }
+    }
+  }
+  table("ambigTable", ["question", "rows it draws", "how often it leaves more than one answer"], [
+    ["A — which single cause, nothing measured", "always 3 (some ruled out)", "all three fit in 12.1% of readings; two in 78.2%"],
+    ["B — which (c, m), purity and copy number given", "one per multiplicity, 1 to 3", `${((100 * more) / cells).toFixed(1)}% of ${cells} settings`],
+    ["the host chromosome", "one extra row at m = 1 on 2 + 1 and 3 + 1", "always — the reading never sees it"],
+  ]);
+  document.getElementById("q6").textContent =
+    "B leaves more than one answer 61.1% of the time, so it is not a panel that trivially resolves — it is the "
+    + "ambiguity the lesson's likelihood exists to handle, stated in whole multiplicities.";
+}
+</script>
+</body>
+</html>
