@@ -100,6 +100,28 @@
   <h2>6 &middot; How often each question leaves more than one answer</h2>
   <div id="ambigTable"></div>
   <p class="q" id="q6"></p>
+
+  <h2>7 &middot; Your own idea: what you KNOW as a control</h2>
+  <p class="note">
+    &ldquo;i recall in the notebook we can include copy number information or infer it? so we can use this additional
+    info to constrain the scenarios&rdquo; &mdash; and cell 24 is titled <b>Refining Estimates (Optional)</b> and opens
+    <i>&ldquo;So far, we have interpreted VAFs under simple assumptions: 100% tumor purity, diploid genome with no
+    amplifications or deletions&hellip; To obtain better estimates, we can incorporate these factors.&rdquo;</i>
+    So the notebook already treats purity and copy number as information you bring. As a control it makes cell 24's
+    whole argument watchable, and it is stronger than either panel in &sect;5.
+  </p>
+  <div class="row" id="levelRow"></div>
+  <div id="levelTable"></div>
+  <p class="rec" id="recLevel"></p>
+
+  <h2>8 &middot; What that does to the rail</h2>
+  <p class="note">
+    It also changes the split you picked in &sect;4. <b>Measured / inferred</b> calls purity &ldquo;measured&rdquo;
+    while the reader is also SETTING it, which is the confusion itself. With a knowledge control the honest split is
+    <b>the truth you built</b>, <b>how you sequenced it</b>, and <b>what you brought to the analysis</b>.
+  </p>
+  <div class="row" id="rail2Row"></div>
+  <p class="q" id="q8"></p>
 </main>
 
 <script type="module">
@@ -428,6 +450,128 @@ document.getElementById("q1").textContent =
   document.getElementById("q6").textContent =
     "B leaves more than one answer 61.1% of the time, so it is not a panel that trivially resolves — it is the "
     + "ambiguity the lesson's likelihood exists to handle, stated in whole multiplicities.";
+}
+
+/* ---------- 7 · what you KNOW, as a control ------------------------------- */
+const LEVELS = [
+  { key: "none", label: "Nothing", assumed: "purity 1.00, diploid" },
+  { key: "purity", label: "Purity", assumed: "diploid" },
+  { key: "both", label: "Purity and copy number", assumed: "nothing" },
+];
+/** What an analysis concludes from a reading, knowing only what its level says. */
+function conclude(level, vaf, truth) {
+  if (level === "none") {
+    const c = M.ccfFrom(vaf, 1, 1, 2);
+    return [{ m: 1, total: 2, c, ok: c <= 1 + 1e-9 }];
+  }
+  if (level === "purity") {
+    return [1, 2].map((m) => {
+      const c = M.ccfFrom(vaf, truth.p, m, 2);
+      return { m, total: 2, c, ok: c <= 1 + 1e-9 };
+    });
+  }
+  return Array.from({ length: truth.st.major }, (_, i) => i + 1).map((m) => {
+    const c = M.ccfFrom(vaf, truth.p, m, truth.st.total);
+    return { m, total: truth.st.total, c, ok: c <= 1 + 1e-9 };
+  });
+}
+{
+  /* The worked case: a CLONAL mutation on a gained region in a 70%-pure sample.
+     Every level reads the same 0.412; only what it can do with it differs. */
+  const truth = { p: 0.7, st: M.stateOf("3+1"), m: 2, c: 1 };
+  const vaf = M.vafExpected(truth.p, truth.c, truth.m, truth.st.total);
+  for (const L of LEVELS) {
+    const rows = conclude(L.key, vaf, truth);
+    const fits = rows.filter((r) => r.ok);
+    const has = fits.some((r) => Math.abs(r.c - 1) < 1e-6);
+    const box = cand("levelRow", `You know: ${L.label}`,
+      `assumes ${L.assumed}\nreading ${f3(vaf)}`, 320);
+    const ctx = canvasIn(box, 320, 150);
+    label(ctx, "Scenarios that fit", 12, 18, 12, T.ink1);
+    rows.forEach((r, i) => {
+      const y = 44 + i * 26;
+      if (r.ok) { ctx.fillStyle = wash(T.groupA, 0.85); ctx.fillRect(12, y - 10, 80 * Math.min(1, r.c), 12); }
+      ctx.strokeStyle = T.grid; ctx.strokeRect(12.5, y - 9.5, 79, 11);
+      const isTruth = r.ok && Math.abs(r.c - 1) < 1e-6 && r.total === truth.st.total;
+      label(ctx, r.ok
+        ? `${r.m} of ${r.total} copies → ${Math.round(r.c * 100)}% carry it${isTruth ? "   ← the truth" : ""}`
+        : `${r.m} of ${r.total} → would need ${f2(r.c)}, ruled out`,
+      100, y, 10, r.ok ? (isTruth ? T.ink1 : T.ink2) : (T.extreme ?? T.ink3));
+    });
+    label(ctx, has ? "the truth is among them" : "THE TRUTH IS NOT AMONG THEM",
+      12, 138, 10, has ? T.ink2 : (T.extreme ?? T.ink3));
+  }
+  /* And over every clonal mutation the page can build. */
+  const tally = {};
+  for (const L of LEVELS) tally[L.key] = { wrong: 0, missed: 0, n: 0 };
+  for (const p of M.PURITY_OPTIONS.map(Number)) {
+    for (const st of M.COPY_STATES) {
+      for (let mT = 1; mT <= st.major; mT += 1) {
+        const v = M.vafExpected(p, 1, mT, st.total);
+        for (const L of LEVELS) {
+          const fits = conclude(L.key, v, { p, st }).filter((r) => r.ok);
+          const t = tally[L.key];
+          t.n += 1;
+          if (!fits.some((r) => Math.abs(r.c - 1) < 1e-6)) t.missed += 1;
+          if (fits.length && fits.every((r) => r.c < 0.9)) t.wrong += 1;
+        }
+      }
+    }
+  }
+  table("levelTable", ["you know", "it assumes", "calls a CLONAL mutation subclonal", "the truth is not among its candidates"],
+    LEVELS.map((L) => [L.label, L.assumed,
+      `${((100 * tally[L.key].wrong) / tally[L.key].n).toFixed(1)}% of ${tally[L.key].n}`,
+      `${((100 * tally[L.key].missed) / tally[L.key].n).toFixed(1)}%`]), [null, null, "num", "num"]);
+  document.getElementById("recLevel").textContent =
+    "This is the strongest thing on the page and it is your idea. Knowing nothing gives ONE answer, confidently, "
+    + "and it is wrong for 86.1% of clonal mutations — it calls 63.9% of them subclonal, which is misconception 2 "
+    + "of the plan, produced rather than asserted. Knowing both gives SEVERAL candidates and the truth is among "
+    + "them every time. More information does not mean fewer candidates; it means honest ones. That is cell 24's "
+    + "argument, watchable, and it also gives the copy-number control something to do that the panel alone did not.";
+}
+
+/* ---------- 8 · the rail again, with a knowledge control ------------------ */
+{
+  const ctl = (nm, val, dt, pctW) => `
+    <div class="ctl"><div class="nm"><span>${nm}</span><span>${val}</span></div>
+      ${pctW != null ? `<div class="bar"><i style="width:${pctW}%"></i></div>` : ""}
+      <div class="dt">${dt}</div></div>`;
+  {
+    const box = cand("rail2Row", "§4's pick, with the new control added",
+      "“measured” now says two\nthings at once", 300);
+    const r = el("div", "rail");
+    r.innerHTML = `<div class="sec">What the assays measured</div>`
+      + ctl("Tumor purity", "0.70", "the fraction of cells in the sample that are tumor cells", 70)
+      + ctl("Copy number", "3 + 1", "copies of one inherited chromosome + copies of the other", null)
+      + ctl("Read depth", "88", "reads covering the position", 40)
+      + `<div class="sec">What you are inferring</div>`
+      + ctl("Tumor cells carrying it", "1.00", "the fraction of tumor cells that carry the mutation", 100)
+      + ctl("Mutated copies", "2", "copies of that chromosome carrying it", 50)
+      + `<div class="sec">?</div>`
+      + ctl("What you know", "Purity and copy number", "what the analysis brings to the reading", null);
+    box.appendChild(r);
+  }
+  {
+    const box = cand("rail2Row", "The truth / the sequencing / the analysis",
+      "each heading says what the\ncontrols under it decide", 300);
+    const r = el("div", "rail");
+    r.innerHTML = `<div class="sec">The sample you built</div>`
+      + ctl("Tumor purity", "0.70", "the fraction of cells in the sample that are tumor cells", 70)
+      + ctl("Copy number", "3 + 1", "copies of one inherited chromosome + copies of the other", null)
+      + ctl("Tumor cells carrying it", "1.00", "the fraction of tumor cells that carry the mutation", 100)
+      + ctl("Mutated copies", "2", "copies of that chromosome carrying it", 50)
+      + `<div class="sec">How you sequenced it</div>`
+      + ctl("Read depth", "88", "reads covering the position", 40)
+      + `<div class="sec">What the analysis knows</div>`
+      + ctl("You know", "Purity and copy number", "the rest it has to assume", null);
+    box.appendChild(r);
+  }
+  document.getElementById("q8").textContent =
+    "The second is the honest one: the reader SETS purity, so calling it “measured” in the rail says two "
+    + "things at once — it is both the truth of the sample and, separately, something the analysis may or may not "
+    + "have been told. Splitting them is what makes “which are the free parameters” answerable: the sample's "
+    + "four are the truth, the knowledge control says which of them the analysis is given, and what is left over is "
+    + "what the stage has to infer.";
 }
 </script>
 </body>
