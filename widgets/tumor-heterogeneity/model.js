@@ -56,7 +56,23 @@
 /* `_lab/cancer-plan-measure.mjs`, on brca_maf.rda: the depth at a
    non-synonymous mutation is median 88 with IQR 49–161. A FIXED depth is not a
    stage — every VAF is then a multiple of 1/d — so a depth setting is the
-   MEDIAN of a lognormal with the file's own spread. */
+   MEDIAN of a lognormal with the file's own spread.
+
+   WHERE THE FOUR OPTIONS COME FROM, which nothing recorded until Kenneth asked
+   on 2026-09-16. Re-measured in `_lab/vaf-depth-check.R` against the lesson's
+   own file, under the lesson's own filter — depth is ref + alt, which is what
+   `plotVaf` divides, and the first twenty maftools FLAG genes are left out as
+   `rmFlags = 20` does — over 68,625 mutations:
+
+     31   the 10.7th percentile      88   the 50.2nd
+     161  the 75.0th                500   the 97.7th
+
+   So three are exact landmarks of the file and the fourth is a round number a
+   quarter of a percentile off one (p97.5 is 488). It spans an order of
+   magnitude, which is what the control has to do: depth sets the width of the
+   peak, not its place. The landmarks it passes over are p25 (49), p90 (274)
+   and p95 (372). The log-sd it draws with, 0.882 from the IQR, is the robust
+   estimate of the file's own 0.850. */
 export const DEPTH_SD = (Math.log(161) - Math.log(49)) / (2 * 0.6745);
 export const DEPTH_OPTIONS = ["31", "88", "161", "500"];
 export const DEPTH_DEFAULT = "88";
@@ -226,7 +242,7 @@ export const cellCounts = (cfg, n = CELLS) => {
    finds out which. Pooling the copy states hides it, reading as "purity helps
    a bit everywhere", which is the wrong lesson. */
 export const KNOWLEDGE = [
-  { key: "none", label: "Nothing" },
+  { key: "nothing", label: "Nothing" },
   { key: "purity", label: "Purity" },
   { key: "both", label: "Purity and copy number" },
 ];
@@ -314,7 +330,7 @@ export function reportedScenario(vaf, cfg, level) {
 
 export function scenariosFor(vaf, cfg, level) {
   const known = knowsOf(level).key;
-  const purity = known === "none" ? 1 : cfg.purity;
+  const purity = known === "nothing" ? 1 : cfg.purity;
   const rows = [];
   const push = (state, host, m) => {
     const c = ccfFrom(vaf, purity, m, state.total);
@@ -435,6 +451,23 @@ export function pickK(x, maxK = 5) {
   return { K: bestK, fit: best, spans };
 }
 
+/* WHERE THE LINE BETWEEN CLONAL AND SUBCLONAL IS DRAWN, and it had no note
+   until Kenneth asked on 2026-09-16. THE LESSON GIVES NO NUMBER: cell 25 says
+   only that a cancer cell fraction "≈ 1" is read as clonal and below it as
+   subclonal. 0.9 is this widget's, used in two places — the line page 2 draws
+   on the fraction axis, and the call page 1 makes.
+
+   IT IS NOT A SENSITIVE CHOICE HERE, which is the thing worth knowing. Swept
+   over the 144 samples page 1 can build, the call comes out identically at
+   0.80, 0.85, 0.90 and 0.95 — 80.6% right and none wrong when the analysis is
+   told both — because the cancer cell fraction control offers 0.25, 0.50, 0.75
+   and 1.00, and only 1.00 is clonal at any line in that range. At exactly 1.00
+   it breaks (1.4% wrong), since a fraction of one then has to clear a bar set
+   at one.
+
+   The cost of that insensitivity is that the reader cannot build a mutation
+   sitting ON the line and watch the call teeter; the page argues about what is
+   measured rather than about where the convention sits. */
 export const CUT = 0.9;
 /** The mutations on whichever axis is shown, and the cut that reads them. */
 export function onAxis(many, cfg, axis) {
@@ -705,7 +738,7 @@ export const STRINGS = {
      Each says what the fraction is solved WITH, because that is the step the
      level changes and the panel's rows are its answers. */
   levelNote: {
-    none: "Here it is solved at purity 1 and two copies, which is what the reading is worth "
+    nothing: "Here it is solved at purity 1 and two copies, which is what the reading is worth "
       + "on its own: the normal cells' reads are counted as tumor reads, so a diluted reading "
       + "comes back as fewer cells carrying the mutation.",
     purity: "Here it is solved at the sample's own purity, so the dilution divides out, and still "
@@ -719,8 +752,12 @@ export const STRINGS = {
   seqSection: "How you sequenced it",
   analysisSection: "What you bring to the analysis",
   scenariosCaption: "Scenarios that fit",
+  /* One shape at all three levels: what the analysis was GIVEN, then what it
+     had to assume. At "Purity" this said only "assuming a diploid genome" and
+     never named the purity it had been handed — the audit of 2026-09-16. */
   assumingPure: "assuming a pure sample and a diploid genome",
-  assumingDiploid: "assuming a diploid genome",
+  assumingDiploid: (p) => `purity ${p}, assuming a diploid genome`,
+  givenBoth: (p, state) => `purity ${p}, copy number ${state}`,
   callLabel: "Clonal or subclonal",
   callValue: { clonal: "Clonal", subclonal: "Subclonal", split: "Cannot tell", none: "—" },
   callNote: {

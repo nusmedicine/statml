@@ -404,9 +404,9 @@ function drawOne(ctx, colors, L, params, state, anim) {
      following the reading had the set changing 55 times over 500 reads. The
      rows still wait for a read, so the page does not open on its own answer. */
   const fit = M.scenariosFor(cfg.expected, cfg, params.knows);
-  const assuming = fit.known === "none" ? M.STRINGS.assumingPure
-    : fit.known === "purity" ? M.STRINGS.assumingDiploid
-      : `purity ${M.n2(cfg.purity)}, copy number ${cfg.state.label}`;
+  const assuming = fit.known === "nothing" ? M.STRINGS.assumingPure
+    : fit.known === "purity" ? M.STRINGS.assumingDiploid(M.n2(cfg.purity))
+      : M.STRINGS.givenBoth(M.n2(cfg.purity), cfg.state.label);
   text(ctx, `${M.STRINGS.scenariosCaption} — ${assuming}`, L.rows.x, L.rows.y - 12,
     { font: capFont(colors), fill: colors.ink1 });
   const hosts = M.hostsOf(fit.rows[0]?.state ?? cfg.state).length;

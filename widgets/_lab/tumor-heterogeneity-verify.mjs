@@ -260,7 +260,7 @@ const defaults = async () => resolveParams(await spec(), new URLSearchParams("")
     shapes[0] === "1,2" && shapes[1] === "1,2" && shapes[2] === "1,1,2,3", shapes.join("  |  "));
   /* A DIPLOID CALL IS NOT AN ALLELE-SPECIFIC ONE: told only "diploid", an
      analysis cannot tell 1 + 1 from 2 + 0, so two mutated copies stay open. */
-  const naive = M.scenariosFor(cfgOf({}).expected, cfgOf({}), "none");
+  const naive = M.scenariosFor(cfgOf({}).expected, cfgOf({}), "nothing");
   check("…and a total of two leaves both genotypes open, not just the plain one",
     naive.rows.map((r) => r.state.key).join(",") === "1+1,2+0");
   check("knowing nothing assumes a pure sample", naive.purity === 1);
@@ -286,13 +286,13 @@ const defaults = async () => resolveParams(await spec(), new URLSearchParams("")
   }
   const pc = (g) => (100 * g.wrong) / g.n;
   check("knowing nothing calls a clonal mutation subclonal, in either kind of region",
-    pc(tally.none.diploid) > 50 && pc(tally.none.altered) > 50,
-    `${pc(tally.none.diploid).toFixed(1)}% diploid, ${pc(tally.none.altered).toFixed(1)}% altered`);
+    pc(tally.nothing.diploid) > 50 && pc(tally.nothing.altered) > 50,
+    `${pc(tally.nothing.diploid).toFixed(1)}% diploid, ${pc(tally.nothing.altered).toFixed(1)}% altered`);
   check("…knowing purity settles the diploid case completely",
     pc(tally.purity.diploid) === 0, `${pc(tally.purity.diploid).toFixed(1)}%`);
   check("…and does not settle an altered one, which is what copy number is for",
-    pc(tally.purity.altered) > 50 && pc(tally.purity.altered) < pc(tally.none.altered),
-    `${pc(tally.none.altered).toFixed(1)}% before, ${pc(tally.purity.altered).toFixed(1)}% after`);
+    pc(tally.purity.altered) > 50 && pc(tally.purity.altered) < pc(tally.nothing.altered),
+    `${pc(tally.nothing.altered).toFixed(1)}% before, ${pc(tally.purity.altered).toFixed(1)}% after`);
   check("…and knowing both is right everywhere, which is why there are three levels",
     pc(tally.both.diploid) === 0 && pc(tally.both.altered) === 0);
 
@@ -329,7 +329,7 @@ const defaults = async () => resolveParams(await spec(), new URLSearchParams("")
     told.rows.filter((r) => r.truth).length === 1
     && told.rows.find((r) => r.truth).m === 2
     && Math.abs(told.rows.find((r) => r.truth).c - 1) < 1e-9);
-  for (const k of ["none", "purity"]) {
+  for (const k of ["nothing", "purity"]) {
     check(`…and knowing ${k === "none" ? "nothing" : "purity alone"} cannot, on a gained region`,
       !M.scenariosFor(cfgOf({}).expected, cfgOf({}), k).rows.some((r) => r.ok && r.truth));
   }
@@ -367,10 +367,10 @@ const defaults = async () => resolveParams(await spec(), new URLSearchParams("")
     check("told purity and copy number, the call is never wrong",
       tally.both.wrong === 0, tally.both.n + " samples, " + tally.both.wrong + " wrong");
     check("…told nothing it is wrong often enough to matter",
-      pcOf("wrong", "none") > 15, say("wrong", "none"));
+      pcOf("wrong", "nothing") > 15, say("wrong", "nothing"));
     check("…and a call of cannot-tell rises with what the analysis is given",
-      pcOf("split", "none") < pcOf("split", "purity") && pcOf("split", "purity") < pcOf("split", "both"),
-      [say("split", "none"), say("split", "purity"), say("split", "both")].join(" → "));
+      pcOf("split", "nothing") < pcOf("split", "purity") && pcOf("split", "purity") < pcOf("split", "both"),
+      [say("split", "nothing"), say("split", "purity"), say("split", "both")].join(" → "));
 
     /* Three answers, each reachable, and each with its own value and note. */
     const seen = new Set();
@@ -424,7 +424,7 @@ const defaults = async () => resolveParams(await spec(), new URLSearchParams("")
 
   /* The panel's height follows the rows it will draw, and the count is derived
      from the parameters alone because `height` runs before `compute`. */
-  for (const [st, knows, want] of [["1+1", "both", 1], ["2+1", "both", 3], ["3+1", "both", 4], ["3+1", "none", 2]]) {
+  for (const [st, knows, want] of [["1+1", "both", 1], ["2+1", "both", 3], ["3+1", "both", 4], ["3+1", "nothing", 2]]) {
     check(`${st} at "${knows}" reserves ${want} row${want > 1 ? "s" : ""}`,
       M.scenarioRows({ state: st, knows }) === want
       && M.scenariosFor(0.3, cfgOf({ state: st }), knows).rows.length === want);
