@@ -225,26 +225,13 @@ function drawCells(ctx, colors, rect, cfg, { n = M.CELLS } = {}) {
     ctx.strokeStyle = isTumour ? wash(colors.groupA, 0.75) : wash(colors.ink3, 0.55);
     ctx.lineWidth = 1;
     ctx.stroke();
-    /* THE SPACING AND THE MARK ARE ONE CALCULATION, because they are the same
-       constraint: the mark sits ON a copy, so two marks touch as soon as the
-       mark is wider than the space between copies. At 2 + 1 with two of them
-       mutated the first version drew a 8.6px mark in a 6.7px gap and the two
-       met (Kenneth, 2026-09-16). The copies are spread over the room inside
-       the cell, and the mark is then whatever fits between them with clearance
-       to spare. Each line is also clipped to the circle's own chord at its
-       height, so nothing pokes out of a cell. */
+    /* `cellMarks` solves the four-copy case first and uses that mark in every
+       state, so the mutation is one size whatever the copy number is, and no
+       copy or mark reaches the cell's border (model, CELL_RIM). */
     const copies = isTumour ? cfg.state.total : 2;
-    const span = r * 1.5;
-    const gap = copies > 1 ? Math.min(span / (copies - 1), r * 0.62) : 0;
-    /* One copy has no neighbour to clear, so it keeps the full mark. */
-    const dotR = copies > 1
-      ? Math.max(1.8, Math.min(r * 0.3, (gap - 2.6) / 2))
-      : r * 0.3;
-    for (let c = 0; c < copies; c += 1) {
-      const dy = (c - (copies - 1) / 2) * gap;
+    const { mark, lines } = M.cellMarks(r, copies);
+    lines.forEach(({ dy, len }, c) => {
       const oy = cy + dy;
-      const chord = 2 * Math.sqrt(Math.max(1, r * r - dy * dy)) - 3;
-      const len = Math.min(copies > 2 ? r * 1.15 : r * 1.35, chord);
       ctx.beginPath();
       ctx.moveTo(cx - len / 2, oy);
       ctx.lineTo(cx + len / 2, oy);
@@ -253,11 +240,11 @@ function drawCells(ctx, colors, rect, cfg, { n = M.CELLS } = {}) {
       ctx.stroke();
       if (carries && c < cfg.copies) {
         ctx.beginPath();
-        ctx.arc(cx, oy, dotR, 0, Math.PI * 2);
+        ctx.arc(cx, oy, mark, 0, Math.PI * 2);
         ctx.fillStyle = colors.highlight;
         ctx.fill();
       }
-    }
+    });
   }
   return { tumour, carrying };
 }

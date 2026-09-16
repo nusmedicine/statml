@@ -70,6 +70,41 @@ export const CELLS = 60;
    The grid is now whichever column count makes the cell biggest, with a fixed
    3px gap: 15 columns of 4 rows there, and a 29px cell. */
 export const CELL_GAP = 3;
+
+/* WHAT A CELL HOLDS, MEASURED FROM THE WORST STATE FIRST. The mark sits ON a
+   copy, so the copy spacing and the mark size are one constraint, and sizing
+   them per state made the mark change size as the copy number changed — at one
+   copy it read as a nucleus rather than as a mutation, and at four the outer
+   copies touched the cell's own border (Kenneth, 2026-09-16).
+
+   So: solve the four-copy case, which is the tightest, and use that mark
+   everywhere. With N copies at spacing g inside a radius rIn, the outermost
+   mark reaches ((N − 1)/2)·g + mark, and two marks clear each other when
+   g ≥ 2·mark + CLEARANCE. Both bind at once when
+
+       mark = (rIn − (N − 1)·CLEARANCE/2) / N
+
+   and every state then spreads its own copies as far as that mark allows, up
+   to a cap so two copies do not sit at opposite poles of the cell. Each line
+   is clipped to the chord of rIn at its own height, so nothing reaches the
+   border. */
+export const CELL_RIM = (r) => Math.max(2, r * 0.13);
+export const MARK_CLEARANCE = 2;
+export const MAX_COPIES = 4; // 3 + 1, the largest state in COPY_STATES
+
+export function cellMarks(r, copies) {
+  const rIn = r - CELL_RIM(r);
+  const mark = Math.max(1.4, (rIn - ((MAX_COPIES - 1) * MARK_CLEARANCE) / 2) / MAX_COPIES);
+  const room = copies > 1 ? (rIn - mark) / ((copies - 1) / 2) : 0;
+  const gap = Math.min(room, r * 0.62);
+  const lines = [];
+  for (let c = 0; c < copies; c += 1) {
+    const dy = (c - (copies - 1) / 2) * gap;
+    const chord = 2 * Math.sqrt(Math.max(1, rIn * rIn - dy * dy));
+    lines.push({ dy, len: Math.min(copies > 2 ? r * 1.15 : r * 1.35, chord) });
+  }
+  return { mark, gap, lines, rIn };
+}
 export function cellGrid(rect, n = CELLS) {
   let best = null;
   for (let cols = 3; cols <= n; cols += 1) {
