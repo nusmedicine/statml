@@ -1,12 +1,27 @@
 # Handover
 
-**SIXTY WIDGETS IN THE MANIFEST — 59 on the gallery, `roc-auc` UNLISTED; NO DRAFT on main** (`wgcna` is still a draft on its own branch and worktree, another session's). The live site is <https://nusmedicine.github.io/statml/>.
+**SIXTY-ONE WIDGETS IN THE MANIFEST — 59 on the gallery, `roc-auc` UNLISTED, and `tumor-heterogeneity` a DRAFT at `/lab/`** (`wgcna` is still a draft on its own branch and worktree, another session's). The live site is <https://nusmedicine.github.io/statml/>, and it is **14 commits behind `main`**, this handover included: everything below is local.
 
-**SESSION CLOSED 2026-09-16.** Slot 62 `augmentation` SHIPPED AND PUSHED on "push to gallery, compact, write handover and close this session". The ship is **72b6f83** (`aeaca9f..72b6f83`); its deploy ran green in 2m22s and the live manifest reads `augmentation` shipped. This handover, the compaction and one catalogue correction (slot 52 is discarded, not owed) ride in the follow-up commit.
+**SESSION CLOSED 2026-09-16 (the second session that day).** Slot 67 `tumor-heterogeneity` was planned, measured, mocked, picked, drafted and taken through seven rounds of his questions, all local, **nothing pushed**: `58324d9..c9a762e`, thirteen commits from the arc plan to his pick D. This handover, the catalogue's slot 67 draft record and the compaction ride in the follow-up commit. `check`, the widget's 126-check verify and all 29 verify scripts are green at the close.
 
-**NEXT: Kenneth's call; nothing is picked.** The image arc (PHM5005 06, slots 61–66) has 61 `cnn-architecture`, 64 `grad-cam`, 65 `unet` and 62 `augmentation` shipped; 63 `pretrained` is measured, mocked and on KIV (his call 2026-09-15, "keep this as KIV for now"), its measure script and mock committed and the catalogue's slot 63 entry carrying both; 66 folded into 65 as its Dice page. Slot 52 `training-loop` was discarded on 2026-09-13. The GWAS and PRS arc and the high-throughput arc are complete. Ask rather than choose; prd §11 exists to be pointed at.
+**NEXT: his round on the draft**, at `http://localhost:8012/widgets/tumor-heterogeneity/` while that server lives (this session held `widgets-alt2`; 8010–8013 were all taken at the close, so a new session takes `widgets-alt4` on 8014) — then the three-pass copy audit, then the ship sequence (step 8 below). After 67 the arc's order is 69 `driver-genes` → 70 `mutational-signatures`, with 71 `somatic-interactions` his call once those are built; **69's measure script needs maftools, which is not installed here, and installing from Bioconductor is a network call to put to him** rather than to build around. The image arc (PHM5005 06) has 61, 64, 65 and 62 shipped and 63 `pretrained` on KIV; slot 52 `training-loop` was discarded on 2026-09-13; the GWAS and PRS arc and the high-throughput arc are complete.
 
 > **Compacted 2026-09-16 from 3,528 lines.** The full previous file is [docs/archive/HANDOVER-2026-09-16.md](docs/archive/HANDOVER-2026-09-16.md): every per-widget session record cut from here (widgets 22 to 65, the tensors review, the cleanup pass, the suite's history, the image arc's planning) is there, and in [docs/catalogue.md](docs/catalogue.md) under its widget. Kept here: current state, the order of work, the machine, the lessons not yet in the principles, the open items, and every reference section another file points at (*Working on Windows*, *The canvas text sweep*, *Driving the animation in node*, the fingerprint harness, *THE BIG ONE*, *Order of work*, *NEVER BASELINE BY PLACEHOLDER-AND-DIFF*, the traps). A source comment naming a HANDOVER section that is no longer here resolves in the archive. **HANDOVER is current state and the next task; the catalogue is the record.**
+
+## Slot 67 `tumor-heterogeneity` — DRAFT on main, local, awaiting his round
+
+**What the draft is.** "Tumor Heterogeneity" for PHM5003 07 / 01-2 cells 17–25, three pages in the lesson's order — *One mutation · Many mutations · Clonal architecture* (slot 68's tree folded in as the last page, his pick). Page 1 is sixty cells at the sample's purity with the mutation drawn inside them, the reads as a pileup Step fills one at a time, the VAF bar carrying cell 25's expected value, and the three other arrangements that read the same VAF as rows beneath. Page 2 is one histogram with the truth in colour and the mixture's components as brackets, the axis switching between VAF and cancer cell fraction with the purity used for the correction beside it. Page 3 is his RETCHER figure's four samples, the two tree shapes with the one the sum rule leaves marked, and each sample's cells as a nested bar a branching pair overflows. The catalogue's § *Slot 67* has the measure, the mock, the picks, all seven rounds and the link words.
+
+**Things the next session must know about this widget:**
+
+- **A somatic mutation arises on ONE chromosome**, so `COPY_STATES` carry `major` and `minor` and the mutated-copies control is a choice whose options are a function of the state (core's `optionsFrom`): 2 + 1 offers one or two, not three. A link asking for more comes back to the state's default. Changing `copyOptions()` changes what old links mean.
+- **The cells' geometry is solved, not tuned.** `cellMarks()` in `model.js` derives one mark size from the tightest state (3 + 1, four copies) and every state uses it; `cellGrid()` picks the column count that makes the cell biggest at a fixed 3px gap. Both were his rounds, both are asserted at three stage widths. A per-state constant reintroduces the nucleus-looking 1 + 0 cell.
+- **The two inherited chromosomes are told apart by weight, his pick D:** the copies the mutation can sit on solid, the other chromosome's dashed, marks only on the solid ones. `_lab/vaf-cell-mock.html` records the four depictions, its own recommendation (C2, two columns) and his overrule at the top.
+- **Page 2's axis is eased through core's display-change door** (`anim.easing` set in `rebuild`, widget 60's shape), and the VAF bar deliberately is not — a count does not slide. Page 2 also reserves a 44px gutter for core's rotated y-label, which the verify's painted-extent check is what found.
+- **It is a draft, so it owes no fingerprint states**; the baseline holds placeholders. The status lives in `widgets/manifest.json`, in `main.js` and in the verify, and all three flip together at the ship.
+- **Nothing links to it yet and nothing should** until it ships — it is at `/lab/` only, and `/lab/` is not pushed either.
+
+**Open on it:** his round; the three-pass copy audit; page 3's shape switch could tween (cluster 3 sliding out of cluster 2 to beside it), offered and not taken.
 
 ## Slot 62 `augmentation` — shipped 2026-09-16
 
@@ -42,7 +57,7 @@
 
 ## How a widget goes, from ask to ship
 
-The order has run on every widget since 49, unchanged through 62:
+The order has run on every widget since 49, unchanged through 67 — which is at step 6:
 
 1. **Read the lesson first.** The Master notebook and its figures are the spec (*Reading the PHM5005 notebooks* below); plan in the catalogue under the slot.
 2. **Measure** in `_lab/<slug>-measure.mjs`, and against the library itself where it is installed (torch, MONAI, scikit-learn). Quote no library message or number without running it.
@@ -74,6 +89,15 @@ Consolidated on 2026-09-16 from the session notes it replaces; *Working on Windo
 ## Things learned, not yet in the principles
 
 Each block below is carried as written by the session that learned it, newest first. `docs/design-principles.md` holds none of them yet (grepped 2026-09-16); moving them there is Kenneth's call.
+
+### From 67 `tumor-heterogeneity` (2026-09-16)
+
+- **Geometry inside a repeated small figure is solved from the tightest case and reused everywhere.** Two rounds went on marks and spacing that were two independent numbers: the mark that fitted at two copies met its neighbour at three, and a mark scaled per state read as a nucleus where a cell had one copy. One solved size, used by every state, ended it.
+- **A parameter whose legal values depend on another is a dynamic-options choice, not a slider.** The mutated-copies slider ran to three in every copy state, so a link could ask for a cell that does not exist; `options: (v) => …` with `optionsFrom` is core's door, and a value the new list does not hold returns to the default through the same path a region write takes.
+- **A mock may overturn its own written recommendation, and he may overrule the mock.** Keep both in the page: what it argued, and the pick. The record of a rejected argument is what stops it being re-argued.
+- **A painted-extent check is worth writing once per widget.** Record every `fillRect`, `arc` and `fillText` extent while driving the widget and assert nothing lands outside the canvas: it caught a y-axis label drawn off the left edge that no text sweep and no screenshot reported.
+- **A section and its fields must agree about the drive row.** A section marked `afterDrive` whose fields are not renders an empty heading under the buttons with its fields above them.
+- **A parameter name can collide with another widget's verify guard.** `cells` tripped widget 54's proof that no other widget declares `cells` on a field; the fix is the rename (`showcells`), not a weaker check.
 
 ### From 62 `augmentation` (2026-09-15/16)
 

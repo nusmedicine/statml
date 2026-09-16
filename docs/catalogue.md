@@ -12,7 +12,7 @@ answer can be checked against what was assumed.
 
 | looking for | go to |
 |---|---|
-| what to build next | **The cancer mutation arc (PHM5003 week 7), PROPOSED AND PICKED 2026-09-16: three widgets, 67 `tumor-heterogeneity` (with 68's tree as its last page) → 69 `driver-genes` → 70 `mutational-signatures`, 71 held back** — § *The cancer mutation arc*, where the next step is 67's measure script. The image arc under PHM5005 (slots 61–66) has 61 `cnn-architecture`, 64 `grad-cam`, 65 `unet` and 62 `augmentation` shipped, 63 `pretrained` measured and mocked and on KIV (his call 2026-09-15), 66 folded into 65; slot 52 `training-loop` (05-4) was discarded 2026-09-13, his call when the image arc was planned; the GWAS and PRS arc (56, 57, 59, 60) and the high-throughput arc are complete |
+| what to build next | **The cancer mutation arc (PHM5003 week 7), PROPOSED AND PICKED 2026-09-16: three widgets, 67 `tumor-heterogeneity` (with 68's tree as its last page) → 69 `driver-genes` → 70 `mutational-signatures`, 71 held back** — § *The cancer mutation arc*, where 67 is DRAFTED through seven rounds and waiting on his round, and 69 is next after it. The image arc under PHM5005 (slots 61–66) has 61 `cnn-architecture`, 64 `grad-cam`, 65 `unet` and 62 `augmentation` shipped, 63 `pretrained` measured and mocked and on KIV (his call 2026-09-15), 66 folded into 65; slot 52 `training-loop` (05-4) was discarded 2026-09-13, his call when the image arc was planned; the GWAS and PRS arc (56, 57, 59, 60) and the high-throughput arc are complete |
 | how a widget got its shape | § *Widget N*, in order |
 | the four-method reconnaissance | § *Widget 19*, under the PCA sections |
 | the arcs, and what is deliberately not a widget | the arc sections below |
@@ -8843,6 +8843,131 @@ tumour cells as a bar where a branching pair visibly does not fit. The three
 sections not put to him stand at their recommendations: sixty cells for the
 stage, a pileup for the reads, and truth-in-colour with the mixture's clusters
 as brackets on page 2.
+
+#### DRAFTED 2026-09-16 — `widgets/tumor-heterogeneity/`, status `draft`, then seven rounds the same day
+
+**The draft** (`e45bab4`), three pages at `/lab/` only, `model.js` carrying the
+stage, the arithmetic, the copy and the decisions taken while building, and
+`main.js` drawing them:
+
+- *One mutation* — sixty cells at the sample's purity with the mutation as a
+  mark inside them, the reads as a pileup that Step fills one at a time, the VAF
+  bar with cell 25's expected value on it, and under it the three OTHER
+  arrangements that read whatever the reader has read. They are solved from the
+  VAF rather than authored, so a row that cannot exist says so: at VAF 0.6 no
+  diploid sample of any purity reads it.
+- *Many mutations* — one histogram, truth in colour and the mixture's components
+  as brackets at mean ± one standard deviation, the axis switching between VAF
+  and cancer cell fraction with the purity used for the correction beside it
+  (taken as pure empties the clonal peak), MATH and the cluster count in tiles.
+- *Clonal architecture* — his RETCHER figure's four samples, the two shapes with
+  the one the sum rule leaves marked, and each sample's tumour cells as a nested
+  bar where a branching pair overflows the trunk in `--c-extreme`.
+
+The seed and the momentary *Draw every read* sit under the drive row (widget
+59's ruling); pages 2 and 3 are inert, so Step and Play leave the row in place.
+The three heights are 576 / 336 / 386 and none of them reads the width — the
+NEVER SETTLED trap slot 62 paid for.
+
+**The rounds, in his order, all 2026-09-16.**
+
+1. **The formula card** — *"could you include the mathml formulas so students
+   can see how it's calculated and the general logic?"* (`9d2e6bd`). Widget 14's
+   machinery as widgets 27 and 64 use it: `mathmlRenders()` probed once, a
+   plain-text fallback for every line, the card mounted lazily from `draw()` and
+   memoised on its own numbers. Each page states the general form in 01-2 cell
+   25's own letters and then the same line with this figure's numbers — page 1
+   the reading and the model and the fraction solved back, page 2 the model
+   solved for c and MATH over this tumour's median and deviation, page 3 the sum
+   rule over a cluster's children with the sample that decides the shape. A note
+   under each names every letter. Two layout traps `tokens.css` already records:
+   a line holding a fraction is taller than its line-height (2.4 here), and
+   `.w-math-eq`'s 8.3em hanging indent is widget 14's, so the label sits in a
+   gutter with continuations wrapping inside their own box.
+2. **Bigger cells** — *"can the cells be drawn larger? you can reduce spacing
+   between cells"* (`2950cef`). The grid was ten fixed columns at 42% of the
+   pitch, a 21px cell in a 52px column. `cellGrid()` now takes whichever column
+   count makes the cell biggest at a fixed 3px gap: 12 columns of 5 and a 32px
+   cell at the 550px stage, 15 of 4 at 770.
+3. **The copies stop touching** — *"the space between two allele is too close,
+   they are touching each other"* (`8be67ff`). The spacing and the mark were two
+   independent numbers, so at three copies an 8.6px mark sat in a 6.7px gap.
+   They became one calculation.
+4. **One mark size, and nothing on the border** — *"the size of
+   chromosome/allele maybe can be standardized … some of the chromosomes/alleles
+   touch the cell border"* (`83d9f32`). `cellMarks()` solves the tightest state
+   first: with N copies at spacing g inside radius rIn, the outermost mark
+   reaches ((N − 1)/2)g + mark and two marks clear each other at g ≥ 2·mark + 2,
+   so both bind at mark = (rIn − (N − 1)) / N. That one mark is used in every
+   state (2.73px at the 550px stage, where it had run 4.8px down to 2.7px and
+   read as a nucleus at 1 + 0), each state spreads its copies as far as the mark
+   allows capped at 0.62r, each line is clipped to the chord of rIn at its own
+   height, and rIn is the radius less max(2, 0.13r) — the margin that was
+   missing.
+5. **Two tweens** — *"check if there are opportunities for tweening animation
+   where appropriate"* (`25f5984`). The axis on page 2 is eased through core's
+   display-change door (`anim.easing` asked once in `rebuild`, widget 60's
+   shape): every mutation slides from the reads as they came to the fraction
+   with purity and copy number divided out, the domain grows with them, the
+   brackets ride the same map, and the cut at 0.9 fades in because it belongs to
+   the fraction. 4.4 says almost no display change deserves a transition; the
+   argument here is that a jump reads as a different set of mutations rather
+   than the same ones rescaled, and the verify holds it to that. The newest
+   reads also fade in while Play runs, the pile's landing cue at 4.3 — a STEP
+   lands at full strength, because core stops the frame clock after a step and a
+   cue that cannot finish freezes half-drawn. The VAF bar is deliberately NOT
+   eased: it is a fraction of counted reads, and easing it would print a number
+   the reads do not support.
+6. **The mutated copies are capped by the chromosome they arose on** — his
+   question, *"i thought 2+0 means 2 copies of mutation on same chromosome? …
+   do we distinguish pairs of chromosomes?"* (`a5e2500`). A somatic mutation
+   arises on ONE chromosome, so the copies carrying it are copies of that
+   chromosome: at most `major`, never one of the other as well. `COPY_STATES`
+   carry major and minor rather than a total, and the mutated-copies control is
+   a choice whose options are a function of the state (core's `optionsFrom`), so
+   2 + 1 offers one or two where a slider offered three — VAF 0.778, a cell that
+   does not exist — and a link carrying more comes back to what the state
+   allows. His second question answered from the model: 3 + 1 with two mutated
+   copies is a real cell (the mutation arose on the chromosome later duplicated)
+   and reads VAF 0.412 at purity 0.70.
+7. **The two inherited chromosomes are told apart, his pick D** (`c9a762e`).
+   His first and third questions were a design question, so
+   `_lab/vaf-cell-mock.html`: five states by every mutated-copy count they
+   allow, each drawn magnified and at the widget's own 16px radius, in four
+   depictions — as it was drawn then (1 + 1 and 2 + 0 the same picture),
+   grouped with the lost copy ghosted, two columns of chromosomes, and the same
+   with the mutation as a band. **The page overturned its own written
+   recommendation**: grouping is a 3.5px gap at the real size and does not
+   survive, two columns do, because a column is a count. Kenneth overruled the
+   page in turn — *"use D to align to notebook style"* — because the lesson's
+   figure draws chromosomes as horizontal lines. So the copies the mutation can
+   sit on are solid and the other chromosome's are dashed, marks land on the
+   solid ones, and 1 + 1 is one solid and one dashed where 2 + 0 is two solid.
+   The mock keeps its own recommendation as the record of what it argued.
+
+**How it is verified.** `_lab/tumor-heterogeneity-verify.mjs`, 126 checks,
+registered in `scripts/verify.mjs`: the model against the cells drawn (17 of 25
+states), the arrangements sweep, the seeded reads, the mixture and MATH, the sum
+rule, the contract key by key, the animation driven in node, a no-NaN sweep over
+243 parameter cells, the formula card page by page through a document stub with
+`mathmlRenders` false (so the strings checked are the fallback a reader without
+MathML sees), the axis ease at both ends and mid-flight, the copy caps, and a
+**painted-extent check** that records every `fillRect`, `arc` and `fillText`
+extent and asserts nothing lands outside the canvas — it caught page 2's y-axis
+label drawn off the canvas, which is what the 44px gutter there is for.
+
+**Its link words, public once it ships:** `page=one|many|tree`, `purity`, `ccf`,
+`state=1+1|2+0|1+0|2+1|3+1`, `copies`, `depth`, `clones=one|two|three`,
+`mutations`, `axis=vaf|ccf`, `assumed=sample|pure`, `clusters`, `taken=1|2|4`,
+`shape=linear|branching`, `showcells`, `seed`, `all`. `showcells` is named that
+and not `cells` because widget 54's grid rail declares a `cells` property on a
+field and its verify proves no other widget has one.
+
+**What the draft leaves open:** his round; the three-pass copy audit; page 3's
+shape switch could tween (cluster 3 sliding out of cluster 2 to beside it),
+offered and not taken; then the ship sequence — the shooter, the states, the
+status flip in the manifest, `main.js` and the verify, the full suite, `check`
+and `test` read alone, and the push on his word.
 
 ### Slot 68 · `clonal-architecture` — cuttable, or 67's last page
 
