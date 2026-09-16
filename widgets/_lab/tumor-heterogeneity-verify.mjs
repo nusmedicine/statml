@@ -296,6 +296,32 @@ const defaults = async () => resolveParams(await spec(), new URLSearchParams("")
   check("…and knowing both is right everywhere, which is why there are three levels",
     pc(tally.both.diploid) === 0 && pc(tally.both.altered) === 0);
 
+  /* EVERY SAMPLE THE READER CAN BUILD IS INFERABLE, once the analysis is told
+     what cell 24 says to measure. Kenneth asked whether the page lets him build
+     samples nothing could be inferred from, and whether they wanted
+     constraining (2026-09-16): it does not, and they do not. What varies is
+     whether the analysis was TOLD enough — the shortfall is the assumption's,
+     never the sample's, and that is the whole of cell 24's argument. The
+     impossible cells were constrained in an earlier round: 1 + 1 cannot carry
+     the mutation twice, and 2 + 1 stops at two. */
+  {
+    let missing = 0;
+    let n = 0;
+    for (const purity of M.PURITY_OPTIONS) {
+      for (const ccf of ["0.25", "0.50", "0.75", "1.00"]) {
+        for (const st of M.COPY_STATES) {
+          for (const copies of st.copies.map(String)) {
+            const cfg = cfgOf({ purity, ccf, state: st.key, copies });
+            n += 1;
+            if (!M.scenariosFor(cfg.expected, cfg, "both").rows.some((r) => r.ok && r.truth)) missing += 1;
+          }
+        }
+      }
+    }
+    check("every sample the reader can build is among the scenarios, told both",
+      missing === 0, `${n} samples, ${missing} unreachable`);
+  }
+
   /* The truth is among the candidates exactly when the analysis was told what
      it needed; a level that misses it must say so on the figure. */
   const told = M.scenariosFor(cfgOf({}).expected, cfgOf({}), "both");

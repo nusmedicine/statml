@@ -265,6 +265,19 @@ const ASSUMED_DIPLOID = [
  * reader's own cell, which is how the figure shows that knowing nothing can
  * leave the truth out of its own candidates.
  */
+/**
+ * The one scenario the analysis would report if pressed for a single answer:
+ * the reader's own cell where the level can reach it, else the first that fits.
+ * THE CARD, THE READOUT AND THE PANEL ALL READ THIS, because three numbers on
+ * one screen solved at three different purities is what the level control
+ * otherwise produces — the card said 0.78 under a note saying it was solved at
+ * purity 1, while the panel said 52% (found in the browser, 2026-09-16).
+ */
+export function reportedScenario(vaf, cfg, level) {
+  const { rows } = scenariosFor(vaf, cfg, level);
+  return rows.find((r) => r.ok && r.truth) ?? rows.find((r) => r.ok) ?? rows[0];
+}
+
 export function scenariosFor(vaf, cfg, level) {
   const known = knowsOf(level).key;
   const purity = known === "none" ? 1 : cfg.purity;
@@ -653,6 +666,19 @@ export const STRINGS = {
 
   cellsCaption: "The sample",
   readsCaption: "The reads",
+  /* ONE LINE ON THE CARD PER LEVEL, his pick of 2026-09-16 — the long
+     walkthrough belongs in the lesson, and this is what the card can carry.
+     Each says what the fraction is solved WITH, because that is the step the
+     level changes and the panel's rows are its answers. */
+  levelNote: {
+    none: "Here it is solved at purity 1 and two copies, which is what the reading is worth "
+      + "on its own: the normal cells' reads are counted as tumor reads, so a diluted reading "
+      + "comes back as fewer cells carrying the mutation.",
+    purity: "Here it is solved at the sample's own purity, so the dilution divides out, and still "
+      + "at two copies — which is right wherever the genome is diploid and wrong wherever it is not.",
+    both: "Here it is solved at the sample's own purity and its own copy number, so the copies "
+      + "carrying the mutation are the last unknown, and each value of m gives one fraction.",
+  },
   knowsLabel: "You know",
   knowsDetail: "what the analysis is given; the rest is assumed",
   truthSection: "The sample you built",
@@ -668,7 +694,7 @@ export const STRINGS = {
      asked what it referred to (2026-09-16), which is the whole answer: it means
      the analysis has ruled out the very sample he made, and saying his fraction
      beside the ones it does offer is what makes that land. */
-  truthMissing: (pct) => `The sample you built — ${pct} of tumor cells carry it — is not among them`,
+  truthMissing: (pct) => `The sample you built — ${pct} of tumor cells carry it — is ruled out by the assumption`,
   overOne: "A fraction past 1 would need more than every tumor cell",
   /* The formula card's notes. Each names its letters and then says what the
      line divides by what — the general logic, in the lesson's own terms. */

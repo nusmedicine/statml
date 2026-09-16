@@ -189,12 +189,19 @@ function cardForPage(params, state, anim) {
       M.n3(cfg.expected),
     )],
   ];
-  const factor = M.ccfFrom(1, p, cfg.copies, cfg.state.total);
+  /* SOLVED WITH WHAT THE ANALYSIS WAS GIVEN, not with the truth: at "Nothing"
+     the card printed 0.78 — the sample's own purity divided out — under a note
+     saying it was solved at purity 1, and beside a panel saying 52%. */
+  const said = M.reportedScenario(cfg.expected, cfg, params.knows);
+  const factor = M.ccfFrom(1, said.purity, said.m, said.state.total);
   rows.push([S.labelFraction, MATHML ? CCF_MATH : CCF_PLAIN,
     k > 0
-      ? numbers(`= ${M.n3(vaf)} × ${M.n2(factor)} = ${M.n2(M.ccfFrom(vaf, p, cfg.copies, cfg.state.total))}`)
+      ? numbers(`= ${M.n3(vaf)} × ${M.n2(factor)} = ${M.n2(M.ccfFrom(vaf, said.purity, said.m, said.state.total))}`)
       : numbers(`= VAF × ${M.n2(factor)}`)]);
-  return { rows, note: S.noteOne };
+  /* The level's own line follows the letters, so the card says what the panel
+     below it is solving with. `renderCard` keys its memo on the note, so this
+     rebuilds the card when the level changes and nothing else does. */
+  return { rows, note: `${S.noteOne} ${S.levelNote[M.knowsOf(params.knows).key]}` };
 }
 
 const capFont = (colors) => `600 ${colors.fsSm} ${colors.font}`;
@@ -1174,11 +1181,19 @@ widgetApi = defineWidget({
     const k = Math.min(anim?.k ?? 0, state.one.depth);
     const vaf = M.vafAt(state.one, k);
     const cfg = state.cfg;
-    const ccf = k > 0 ? M.ccfFrom(vaf, cfg.purity, cfg.copies, cfg.state.total) : NaN;
+    /* The same scenario the card and the panel report, so the three agree. */
+    const said = M.reportedScenario(cfg.expected, cfg, params.knows);
+    const ccf = k > 0 ? M.ccfFrom(vaf, said.purity, said.m, said.state.total) : NaN;
     return [
       { label: "Reads carrying it", value: k > 0 ? `${M.intText(M.altAt(state.one, k))} / ${M.intText(k)}` : "—", note: `of ${M.intText(state.one.depth)} at this depth` },
       { label: "Variant allele frequency", value: k > 0 ? M.n3(vaf) : "—", note: `the model expects ${M.n3(cfg.expected)}` },
-      { label: "Cancer cell fraction", value: k > 0 ? M.n2(ccf) : "—", note: "the reading with this purity and copy number divided out" },
+      {
+        label: "Cancer cell fraction",
+        value: k > 0 ? M.n2(ccf) : "—",
+        note: M.knowsOf(params.knows).key === "both"
+          ? `at this purity, ${said.m} of ${said.state.total} copies`
+          : `at purity ${M.n2(said.purity)}, ${said.m} of ${said.state.total} copies`,
+      },
     ];
   },
 
