@@ -458,12 +458,17 @@ function drawOne(ctx, colors, L, params, state, anim) {
   const wrong = M.assumptionsWrong(cfg, params.knows)
     .map((w) => (w === "pure" ? M.STRINGS.assumedPure : M.STRINGS.assumedDiploid));
   const named = wrong.length === 2 ? `${wrong[0]} and ${wrong[1]}` : wrong[0];
+  /* "purity 1 was assumed", but "two copies were" — the verb follows the words */
+  const verb = named === M.STRINGS.assumedPure ? "was" : "were";
   const below = L.rows.y + fit.fits.length * L.rowH + 4;
-  if (!fit.fits.length) {
-    text(ctx, M.STRINGS.nothingFits(named, wrong.length > 1), L.rows.x, below,
+  /* `scenarioNote` decides, so the height that reserved the line and the draw
+     that paints it cannot disagree. */
+  const note = M.scenarioNote(params);
+  if (note === "nothing") {
+    text(ctx, M.STRINGS.nothingFits(named, verb), L.rows.x, below,
       { font: noteFont(colors), fill: colors.extreme });
-  } else if (!fit.fits.some((r) => r.truth) && named) {
-    text(ctx, M.STRINGS.notHere(M.pctText(cfg.ccf), named, wrong.length > 1), L.rows.x, below,
+  } else if (note === "notHere") {
+    text(ctx, M.STRINGS.notHere(M.pctText(cfg.ccf), named, verb), L.rows.x, below,
       { font: noteFont(colors), fill: colors.extreme });
   }
 }

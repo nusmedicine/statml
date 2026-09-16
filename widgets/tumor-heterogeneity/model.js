@@ -639,6 +639,18 @@ const PAD = 14;
 const ROW_H = 44;
 /** How many scenarios the panel will list, without building them: the height
     is computed before `compute` runs, so it can only read the parameters. */
+/** Whether the panel draws a line under its rows — nothing fits, or the
+    reader's own sample is left out by an assumption that is wrong. Read by
+    the height, so only the space a line needs is reserved, and by `draw`, so
+    the two cannot disagree about whether it is there. */
+export function scenarioNote(params) {
+  const cfg = configOne(params);
+  const { fits } = scenariosFor(cfg.expected, cfg, params.knows);
+  if (!fits.length) return "nothing";
+  if (!fits.some((r) => r.truth) && assumptionsWrong(cfg, params.knows).length) return "notHere";
+  return null;
+}
+
 export function scenarioRows(params) {
   /* The panel draws only the scenarios that FIT, and how many that is depends
      on the reading — which is itself a pure function of the parameters, so the
@@ -672,9 +684,13 @@ export function layout(w, params) {
     const rows = { x: PAD, y: 430, w: inner, h: n * ROW_H };
     return {
       page, cells, reads, bar, rows, rowH: ROW_H, cellR: 15,
-      /* two lines under the panel: the reason a scenario is ruled out, and
-         whether the reader's own cell is among those left */
-      height: rows.y + rows.h + 42,
+      /* ROOM FOR A NOTE ONLY WHEN THERE IS ONE. It reserved 42px under the rows
+         always — two lines, from when the panel explained ruled-out rows — and
+         once only the fits were drawn that left 56px of empty canvas under a
+         panel with nothing to add (Kenneth, 2026-09-16: "compact"). The last
+         row already carries its own space below the cell, so without a note the
+         page ends a margin after it. */
+      height: rows.y + rows.h + (scenarioNote(params) ? 22 : 6),
     };
   }
   if (page === "many") {
@@ -799,10 +815,17 @@ export const STRINGS = {
   /* Named rather than "the assumption", and only the ones that are actually
      wrong. The reader's own sample is the one thing on the figure they already
      know, so what it needs to say is why it is not there. */
-  assumedPure: "a pure sample",
-  assumedDiploid: "a diploid genome",
-  nothingFits: (what, many) => `No scenario fits this reading — ${what} ${many ? "were" : "was"} assumed`,
-  notHere: (pct, what, many) => `The sample you built — ${pct} of tumor cells — is not here: ${what} ${many ? "were" : "was"} assumed`,
+  /* THE CARD'S OWN WORDS, and short enough to fit. With both assumptions wrong
+     "a pure sample and a diploid genome were assumed" measured 539px against a
+     528px line, and ran 52px off the canvas under the recorder — found only
+     once the extent sweep began painting a note at all (2026-09-16). "purity 1
+     and two copies" is what the card already says the fraction is solved at,
+     so the note and the card now name the assumption the same way. The verb
+     follows the PHRASE, not the count: "two copies" alone still takes "were". */
+  assumedPure: "purity 1",
+  assumedDiploid: "two copies",
+  nothingFits: (what, verb) => `No scenario fits this reading — ${what} ${verb} assumed`,
+  notHere: (pct, what, verb) => `The sample you built — ${pct} of tumor cells — is not here: ${what} ${verb} assumed`,
   /* The formula card's notes. Each names its letters and then says what the
      line divides by what — the general logic, in the lesson's own terms. */
   noteOne: "p is the fraction of cells in the sample that are tumor cells, c the fraction of those "

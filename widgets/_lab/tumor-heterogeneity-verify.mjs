@@ -745,6 +745,25 @@ const defaults = async () => resolveParams(await spec(), new URLSearchParams("")
     for (const mutations of M.MUTATION_OPTIONS) cells.push({ ...values, page: "many", purity, axis, mutations });
   }
   for (const taken of ["1", "2", "4"]) for (const shape of ["linear", "branching"]) cells.push({ ...values, page: "clonal", taken, shape });
+  /* PAGE 1 AT EVERY LEVEL OF KNOWLEDGE, every state and every mutated-copy
+     count. The cells above leave \`knows\` at its default, where the reader's own
+     sample is always among the scenarios — so no line was ever drawn under the
+     panel, and when the height stopped reserving room it did not need
+     (2026-09-16) the tightest case, a note in 22px, had never been painted by
+     this check at all. */
+  let noted = 0;
+  for (const knows of M.KNOWLEDGE.map((k) => k.key)) {
+    for (const purity of M.PURITY_OPTIONS) {
+      for (const st of M.COPY_STATES) {
+        for (const copies of st.copies.map(String)) {
+          const p = { ...values, page: "one", knows, purity, state: st.key, copies };
+          if (M.scenarioNote(p)) noted += 1;
+          cells.push(p);
+        }
+      }
+    }
+  }
+  check("the sweep paints the panel's note, not only the panels without one", noted > 0, `${noted} cells with a note`);
   for (const params of cells) {
     const height = W.height({ w: W_PX, ...params });
     const state = W.compute({ params, rng: makeRng(params.seed) });
