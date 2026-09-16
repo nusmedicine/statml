@@ -227,18 +227,29 @@ function drawCells(ctx, colors, rect, cfg, { n = M.CELLS } = {}) {
     ctx.stroke();
     /* `cellMarks` solves the four-copy case first and uses that mark in every
        state, so the mutation is one size whatever the copy number is, and no
-       copy or mark reaches the cell's border (model, CELL_RIM). */
-    const copies = isTumour ? cfg.state.total : 2;
-    const { mark, lines } = M.cellMarks(r, copies);
+       copy or mark reaches the cell's border (model, CELL_RIM).
+
+       THE TWO INHERITED CHROMOSOMES ARE TOLD APART, his pick D from
+       `_lab/vaf-cell-mock.html`: the copies the mutation could be on are drawn
+       solid and the other chromosome's are open, which keeps the lesson
+       figure's horizontal copies while making 2 + 0 — two copies of one
+       chromosome — a different picture from 1 + 1. The marks land on the solid
+       copies only, because a mutation arises on one chromosome. */
+    const state = isTumour ? cfg.state : M.stateOf("1+1");
+    const { mark, lines } = M.cellMarks(r, state.total);
     lines.forEach(({ dy, len }, c) => {
       const oy = cy + dy;
+      const own = c < state.major;
+      ctx.save();
+      if (!own) ctx.setLineDash([3, 2]);
       ctx.beginPath();
       ctx.moveTo(cx - len / 2, oy);
       ctx.lineTo(cx + len / 2, oy);
       ctx.strokeStyle = colors.ink3;
-      ctx.lineWidth = 1.2;
+      ctx.lineWidth = own ? 1.6 : 1.2;
       ctx.stroke();
-      if (carries && c < cfg.copies) {
+      ctx.restore();
+      if (isTumour && carries && own && c < cfg.copies) {
         ctx.beginPath();
         ctx.arc(cx, oy, mark, 0, Math.PI * 2);
         ctx.fillStyle = colors.highlight;
@@ -821,6 +832,7 @@ widgetApi = defineWidget({
     }
     return [
       { token: "group-a", label: "Tumour cells", mark: "dot" },
+      { token: "ink-3", label: "Copies of the chromosome the mutation is on, solid; copies of the other, dashed", mark: "line" },
       { token: "highlight", label: "The mutation, and the reads that carry it", mark: "bar" },
       { token: "ink-3", label: "Reads that carry the reference allele", mark: "bar" },
       { token: "theory", label: "The variant allele frequency the model expects", mark: "line" },
