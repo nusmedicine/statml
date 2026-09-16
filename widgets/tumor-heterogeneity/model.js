@@ -395,6 +395,28 @@ export const STRINGS = {
   purityRow: "normal cells dilute it",
   ccfRow: "only some tumour cells carry it",
   copiesRow: "it sits on one of several copies",
+  /* The formula card's notes. Each names its letters and then says what the
+     line divides by what — the general logic, in the lesson's own terms. */
+  noteOne: "p is the fraction of cells in the sample that are tumour cells, c the fraction of those "
+    + "cells carrying the mutation, m the copies carrying it in such a cell, and Cₜ all the copies "
+    + "there. The reading divides variant reads by reads; the model divides the mutated copies in "
+    + "the sample by every copy at that position, normal cells included.",
+  noteMany: "The same model, solved for c: at a fixed purity and copy number it is the reading "
+    + "multiplied by one number. Each cluster is one component of a Gaussian mixture, the number of "
+    + "them chosen by BIC — mutations at similar frequencies. MAD is the median absolute deviation, "
+    + "and 1.4826 scales it to a standard deviation.",
+  noteTree: "A cluster's cells are a subset of its parent's, so the children of a cluster cannot "
+    + "need more cells than the parent has. Two clusters that would are one inside the other rather "
+    + "than side by side.",
+  labelReading: "the reading",
+  labelModel: "the model",
+  labelSample: "this sample",
+  labelFraction: "cancer cell fraction",
+  labelAtPurity: "at this purity",
+  labelMath: "MATH",
+  labelThese: "these mutations",
+  labelRule: "the rule",
+
   linesCaption: "Cluster mean cancer cell fraction",
   rulePrefix: "No parent's children may sum past it",
   /* Both are read on the face of a 100px tree, so both are short enough to

@@ -17,11 +17,170 @@
        variant, because that is the one thing to look at.
    ========================================================================= */
 
-import { defineWidget, makePlot } from "../core/index.js";
+import { defineWidget, makePlot, mathmlRenders } from "../core/index.js";
 import * as M from "./model.js";
 
 /* Set by `defineWidget`, read only by `clearDrawAll` — the momentary action. */
 let widgetApi = null;
+
+/* ---- the formula card ----------------------------------------------------
+   Kenneth's ask, 2026-09-16: "include the MathML formulas so students can see
+   how it's calculated and the general logic". Widget 14's machinery, as
+   widgets 27 and 64 use it: probe that MathML LAYS OUT (an interface test
+   lies), mount `.w-math` lazily from `draw()` because module scope runs before
+   the shell exists, and memoise on the numbers so a frame that changes nothing
+   rewrites nothing.
+
+   Each page states its own arithmetic: the general form first, in 01-2 cell
+   25's own letters, then the same line with this figure's numbers in it. Every
+   number here is read from the state the figure drew, never recomputed (5.8).
+
+   `.w-math-eq` reserves 6.93em and hangs an 8.3em indent, both written for
+   widget 14's sum; each row overrides them with `min-height:0` and a label
+   gutter, which is what widgets 40 and 45 do. */
+const MATHML = mathmlRenders();
+
+const mi = (s) => `<mi>${s}</mi>`;
+const mn = (x) => `<mn>${x}</mn>`;
+const mo = (s) => `<mo>${s}</mo>`;
+/* A LINE THAT HOLDS A FRACTION IS TALLER THAN ITS LINE-HEIGHT — `tokens.css`
+   says so at `.w-link-eq`, where 1.55 let two wrapped lines close up on each
+   other. These rows each hold an `<mfrac>` at 1.45em, so they set their own
+   line-height rather than inheriting the card's, and the label sits in a
+   gutter instead of under the 8.3em hanging indent written for widget 14. */
+/* The label is a gutter of its own, and everything after it wraps INSIDE a
+   second box — otherwise a continuation starts under the label rather than
+   after it, which is the alignment `.w-math-eq`'s hanging indent exists to
+   give widget 14's sum. */
+const row = (label, ...parts) =>
+  `<div class="w-math-eq" style="min-height:0;padding-left:0;text-indent:0;margin:0;`
+  + `display:flex;align-items:baseline;gap:10px;line-height:2.4">`
+  + `<span style="color:var(--ink-3);font-size:var(--fs-xs);white-space:nowrap;`
+  + `line-height:1.4;flex:0 0 9.5em;text-align:right">${label}</span>`
+  + `<span style="display:flex;flex-wrap:wrap;align-items:center;gap:2px 10px">`
+  + parts.filter(Boolean).map((p) => `<span>${p}</span>`).join("")
+  + `</span></div>`;
+
+/* VAF = p·c·m / (p·Cₜ + 2(1 − p)), 01-2 cell 25 */
+const MODEL_MATH = `<math><mrow>${mi("VAF")}${mo("=")}<mfrac>`
+  + `<mrow>${mi("p")}${mo("&#x2062;")}${mi("c")}${mo("&#x2062;")}${mi("m")}</mrow>`
+  + `<mrow>${mi("p")}${mo("&#x2062;")}<msub>${mi("C")}${mi("t")}</msub>${mo("+")}${mn(2)}`
+  + `${mo("(")}${mn(1)}${mo("&#x2212;")}${mi("p")}${mo(")")}</mrow></mfrac></mrow></math>`;
+const MODEL_PLAIN = "VAF = p c m / (p Cₜ + 2(1 − p))";
+
+/* c = VAF (p·Cₜ + 2(1 − p)) / (p·m), the same model solved for the fraction */
+const CCF_MATH = `<math><mrow>${mi("c")}${mo("=")}${mi("VAF")}${mo("&#xD7;")}<mfrac>`
+  + `<mrow>${mi("p")}${mo("&#x2062;")}<msub>${mi("C")}${mi("t")}</msub>${mo("+")}${mn(2)}`
+  + `${mo("(")}${mn(1)}${mo("&#x2212;")}${mi("p")}${mo(")")}</mrow>`
+  + `<mrow>${mi("p")}${mo("&#x2062;")}${mi("m")}</mrow></mfrac></mrow></math>`;
+const CCF_PLAIN = "c = VAF × (p Cₜ + 2(1 − p)) / (p m)";
+
+/* The definition, 01-2 cell 17 — with this reading's own counts in it once a
+   read has landed. */
+const readingMath = (alt, k, vaf) => `<math><mrow>${mi("VAF")}${mo("=")}`
+  + `<mfrac><mtext>variant reads</mtext><mtext>reads</mtext></mfrac>`
+  + (k > 0 ? `${mo("=")}<mfrac>${mn(alt)}${mn(k)}</mfrac>${mo("=")}${mn(vaf)}` : "")
+  + `</mrow></math>`;
+const READING_PLAIN = "VAF = variant reads / reads";
+
+const MATH_SCORE_MATH = `<math><mrow>${mi("MATH")}${mo("=")}${mn(100)}${mo("&#xD7;")}${mn("1.4826")}`
+  + `${mo("&#xD7;")}<mfrac><mrow><mi>MAD</mi>${mo("(")}${mi("VAF")}${mo(")")}</mrow>`
+  + `<mrow><mi>median</mi>${mo("(")}${mi("VAF")}${mo(")")}</mrow></mfrac></mrow></math>`;
+const MATH_SCORE_PLAIN = "MATH = 100 × 1.4826 × MAD(VAF) / median(VAF)";
+
+const RULE_MATH = `<math><mrow><munder>${mo("&#x2211;")}<mtext>children</mtext></munder>`
+  + `${mi("c")}${mo("&#x2264;")}<msub>${mi("c")}<mtext>parent</mtext></msub></mrow></math>`;
+const RULE_PLAIN = "Σ over the children of a cluster: c ≤ c of the parent";
+
+/** One line of arithmetic with this figure's own numbers in it. */
+const numbers = (s) => (MATHML
+  ? `<math><mrow><mtext>${s}</mtext></mrow></math>`
+  : `<span style="font-family:var(--font-mono)">${s}</span>`);
+
+let mathHost = null;
+let mathKey = null;
+function renderCard(page, rows, note) {
+  if (!mathHost) {
+    const figure = document.querySelector("#widget .w-figure");
+    if (!figure || !figure.parentNode) return;
+    mathHost = document.createElement("div");
+    mathHost.className = "w-math";
+    figure.parentNode.insertBefore(mathHost, figure);
+  }
+  const key = `${page}|${rows.map((r) => r.join("~")).join("|")}|${note}`;
+  if (key === mathKey) return;
+  mathKey = key;
+  mathHost.innerHTML = rows.map(([label, ...parts]) => row(label, ...parts)).join("")
+    + `<p class="w-math-note">${note}</p>`;
+}
+
+/** A fraction of this figure's own numbers, and what it comes to. */
+const worked = (num, den, result) => (MATHML
+  ? `<math><mrow><mfrac><mtext>${num}</mtext><mtext>${den}</mtext></mfrac>${mo("=")}${mn(result)}</mrow></math>`
+  : `<span style="font-family:var(--font-mono)">(${num}) / (${den}) = ${result}</span>`);
+
+function cardForPage(params, state, anim) {
+  const S = M.STRINGS;
+  if (params.page === "tree") {
+    const shape = M.shapeOf(params.shape);
+    /* The sample that decides: the one that rules this shape out if any does,
+       and otherwise the one whose children come closest to their parent. */
+    const decided = state.used.find((s) => !M.fitsSumRule(shape, s.ccf))
+      ?? state.used.reduce((a, b) => (M.tightestNode(shape, b.ccf).ratio > M.tightestNode(shape, a.ccf).ratio ? b : a));
+    const tight = M.tightestNode(shape, decided.ccf);
+    const sum = tight.kids.map((k) => M.n2(decided.ccf[k])).join(" + ");
+    const fails = tight.sum > tight.parent + 1e-12;
+    const line = `${sum} = ${M.n2(tight.sum)} ${fails ? ">" : "≤"} ${M.n2(tight.parent)}`;
+    return {
+      rows: [
+        [S.labelRule, MATHML ? RULE_MATH : RULE_PLAIN],
+        [decided.key, numbers(line)],
+      ],
+      note: S.noteTree,
+    };
+  }
+  if (params.page === "many") {
+    const cfg = state.manyCfg;
+    const factor = M.ccfFrom(1, cfg.assumed, 1, 2);
+    const vafs = state.many.muts.map((m) => m.vaf);
+    const mid = M.median(vafs);
+    const mad = M.median(vafs.map((v) => Math.abs(v - mid)));
+    return {
+      rows: [
+        [S.labelFraction, MATHML ? CCF_MATH : CCF_PLAIN,
+          numbers(`= VAF × ${M.n2(factor)}   at purity ${M.n2(cfg.assumed)}, one copy of two`)],
+        [S.labelMath, MATHML ? MATH_SCORE_MATH : MATH_SCORE_PLAIN,
+          numbers(`= 100 × 1.4826 × ${M.n3(mad)} / ${M.n3(mid)} = ${state.many.math.toFixed(1)}`)],
+      ],
+      note: S.noteMany,
+    };
+  }
+  const cfg = state.cfg;
+  const k = Math.min(anim?.k ?? 0, state.one.depth);
+  const alt = M.altAt(state.one, k);
+  const vaf = M.vafAt(state.one, k);
+  const reading = MATHML
+    ? readingMath(alt, k, M.n3(vaf))
+    : `${READING_PLAIN}${k > 0 ? ` = ${alt} / ${k} = ${M.n3(vaf)}` : ""}`;
+  const p = cfg.purity;
+  /* The general form and this sample's own numbers share a row, so the card
+     stays three lines: two display equations stacked took 265px on widget 64
+     and pushed the figure down. */
+  const rows = [
+    [S.labelReading, reading],
+    [S.labelModel, MATHML ? MODEL_MATH : MODEL_PLAIN, worked(
+      `${M.n2(p)} × ${M.n2(cfg.ccf)} × ${cfg.copies}`,
+      `${M.n2(p)} × ${cfg.state.total} + 2 × ${M.n2(1 - p)}`,
+      M.n3(cfg.expected),
+    )],
+  ];
+  const factor = M.ccfFrom(1, p, cfg.copies, cfg.state.total);
+  rows.push([S.labelFraction, MATHML ? CCF_MATH : CCF_PLAIN,
+    k > 0
+      ? numbers(`= ${M.n3(vaf)} × ${M.n2(factor)} = ${M.n2(M.ccfFrom(vaf, p, cfg.copies, cfg.state.total))}`)
+      : numbers(`= VAF × ${M.n2(factor)}`)]);
+  return { rows, note: S.noteOne };
+}
 
 const capFont = (colors) => `600 ${colors.fsSm} ${colors.font}`;
 const noteFont = (colors) => `${colors.fsXs} ${colors.font}`;
@@ -700,6 +859,11 @@ widgetApi = defineWidget({
   },
 
   draw({ ctx, colors, w, params, state, anim }) {
+    /* The card is mounted from here, never at module scope: `buildShell`
+       creates `.w-figure` inside `defineWidget`, so a module-scope query
+       returns null and the reader gets a blank page. */
+    const card = cardForPage(params, state, anim);
+    renderCard(params.page, card.rows, card.note);
     const L = M.layout(w, params);
     if (L.page === "many") { drawMany(ctx, colors, L, params, state); return; }
     if (L.page === "tree") { drawTreePage(ctx, colors, L, params, state); return; }

@@ -54,13 +54,25 @@ function check(name, ok, detail = "") {
 }
 
 /* --- the widget's own config, with core stubbed --------------------------- */
+/* The formula card mounts itself into the page, so node needs somewhere to
+   mount it: the stub keeps the node, and `cardHtml()` reads what the card last
+   wrote. `mathmlRenders` is stubbed false, as the browser's fallback path — so
+   every string asserted here is the one a reader without MathML sees. */
+let cardNode = null;
+globalThis.document = {
+  createElement: () => ({ className: "", innerHTML: "" }),
+  querySelector: () => ({ parentNode: { insertBefore: (node) => { cardNode = node; } } }),
+};
+const cardHtml = () => (cardNode ? cardNode.innerHTML : "");
+const cardText = () => cardHtml().replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+
 let cached = null;
 async function widget() {
   if (cached) return cached;
   let text = read("widgets/tumor-heterogeneity/main.js");
-  text = text.replace(/^import \{ defineWidget, makePlot \} from "\.\.\/core\/index\.js";$/m,
+  text = text.replace(/^import \{ defineWidget, makePlot, mathmlRenders \} from "\.\.\/core\/index\.js";$/m,
     "const __cfg = {}; const defineWidget = (c) => { Object.assign(__cfg, c); return c; };"
-    + " const makePlot = (o) => __plot(o);");
+    + " const makePlot = (o) => __plot(o); const mathmlRenders = () => false;");
   text = text.replace(/^import \* as M from "\.\/model\.js";$/m,
     `import * as M from ${abs("../tumor-heterogeneity/model.js")};`);
   text += "\nexport { __cfg };\n";
@@ -326,16 +338,73 @@ const defaults = async () => resolveParams(await spec(), new URLSearchParams("")
     const anim = W.animation.init({ params, state, fromScratch: true });
     anim.mode = "run";
     for (let i = 0; i < 400 && W.animation.advance(anim, { dt: 32, params, state }); i += 1) painted += 0;
+    const { ctx } = recorder();
+    W.draw({ ctx, colors: COLORS, w: 550, h: W.height({ w: 550, ...params }), params, state, anim });
     const strings = [
       ...W.readout({ params, state, anim }).flatMap((t) => [t.label, t.value, t.note]),
       W.summary({ params, state, anim }),
       ...W.legend({ params }).map((e) => e.label),
+      cardText(),
     ];
     for (const s of strings) {
       if (s == null || /NaN|undefined|Infinity/.test(String(s))) { bad += 1; notes.push(`${params.page}: ${s}`); }
     }
   }
-  check(`no NaN or undefined in ${cells.length} cells' readouts, summaries and legends`, bad === 0, notes.slice(0, 2).join(" | "));
+  check(`no NaN or undefined in ${cells.length} cells' readouts, summaries, legends and cards`, bad === 0, notes.slice(0, 2).join(" | "));
+}
+
+/* --- 8b · the formula card, page by page ---------------------------------- */
+{
+  const W = await widget();
+  const values = await defaults();
+  const drawWith = (params, k = null) => {
+    const state = W.compute({ params, rng: makeRng(params.seed) });
+    const anim = W.animation.init({ params, state, fromScratch: true });
+    if (k != null) anim.k = k;
+    const { ctx } = recorder();
+    W.draw({ ctx, colors: COLORS, w: 550, h: W.height({ w: 550, ...params }), params, state, anim });
+    return { state, anim };
+  };
+
+  /* Page 1, before a read has landed and after: the definition stands from the
+     start, and the counts appear only once there is a reading to report (2.4). */
+  drawWith({ ...values, page: "one" }, 0);
+  const empty = cardText();
+  check("page 1's card states the definition before any read", /VAF = variant reads \/ reads/.test(empty), empty.slice(0, 48));
+  check("…and reports no count yet", !/= \d+ \/ \d+ =/.test(empty));
+  const { state } = drawWith({ ...values, page: "one" }, 88);
+  const full = cardText();
+  const alt = M.altAt(state.one, 88);
+  check("…and carries this reading's own counts once they exist",
+    full.includes(`= ${alt} / 88 = ${M.n3(M.vafAt(state.one, 88))}`), full.slice(0, 60));
+  check("…the model in cell 25's letters", full.includes("VAF = p c m / (p Cₜ + 2(1 − p))"));
+  check("…the model with this sample's numbers",
+    full.includes(`(0.70 × 1.00 × 1) / (0.70 × 2 + 2 × 0.30) = ${M.n3(state.cfg.expected)}`), full.slice(60, 140));
+  check("…and the fraction solved from the reading", /c = VAF × \(p Cₜ \+ 2\(1 − p\)\) \/ \(p m\)/.test(full));
+  check("…with every letter named underneath", /p is the fraction of cells/.test(full));
+
+  /* Page 2: the same model solved for c, and MATH as cell 23's title. */
+  const { state: many } = drawWith({ ...values, page: "many" });
+  const card2 = cardText();
+  check("page 2's card states the correction", card2.includes("c = VAF × (p Cₜ + 2(1 − p)) / (p m)"));
+  check("…and what it multiplies by at this purity", /= VAF × 2\.86 at purity 0\.70/.test(card2), card2.slice(0, 90));
+  check("…states MATH as it is computed", card2.includes("MATH = 100 × 1.4826 × MAD(VAF) / median(VAF)"));
+  check("…and the same line with this tumour's numbers",
+    card2.includes(`= ${many.many.math.toFixed(1)}`), card2.slice(-70));
+
+  /* Page 3: the rule, and the sample that decides it. */
+  const { state: tree } = drawWith({ ...values, page: "tree", shape: "branching" });
+  const card3 = cardText();
+  check("page 3's card states the sum rule", /Σ over the children of a cluster: c ≤ c of the parent/.test(card3), card3.slice(0, 60));
+  const decided = tree.used.find((s) => !M.fitsSumRule(M.shapeOf("branching"), s.ccf));
+  const tight = M.tightestNode(M.shapeOf("branching"), decided.ccf);
+  check("…and the arithmetic of the sample that rules the shape out",
+    card3.includes(`${M.n2(tight.sum)} > ${M.n2(tight.parent)}`) && card3.includes(decided.key),
+    `${decided.key}: ${M.n2(tight.sum)} > ${M.n2(tight.parent)}`);
+  const linear = drawWith({ ...values, page: "tree", shape: "linear" });
+  void linear;
+  check("…and the tightest one when the shape fits", /≤/.test(cardText()), cardText().slice(-40));
+  check("the card is rebuilt when the page changes", cardText() !== card2 && cardText() !== full);
 }
 
 /* --- 9 · the geometry: nothing painted outside the canvas ------------------ */
