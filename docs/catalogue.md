@@ -9016,9 +9016,98 @@ from HEAD it reports all 21 hits this round fixed, which is what makes a pass
 mean anything. § *Widget 42*'s lesson, in a smaller key: a check nobody has
 watched fail is not yet a check.
 
-**What the draft leaves open:** his round continues; page 3's shape switch could
-tween (cluster 3 sliding out of cluster 2 to beside it), offered and not taken;
-then the ship sequence — the shooter, the states, the status flip in the
+#### TWO MORE TWEENS, 2026-09-16 — `e3deb7d`
+
+*"yes do the tween for page 3, also page 2 when changing sample parameters
+(purity, depth, mutations)"*.
+
+**Page 3** glides cluster 3 out of cluster 2 to beside it, his own description.
+`barRects()` gives one rect per cluster under a shape and the two layouts are
+interpolated, so the picture states the arithmetic: the trunk and cluster 2 are
+identical under both shapes and cluster 3 is the same WIDTH in both, so what
+moves is only where it sits. The overflow is read off the rects AS DRAWN, so
+the red box grows while cluster 3 travels (0.0 → 0.0 → 10.0 → 36.7 → 63.4px)
+rather than appearing whole at the end — the moment the sum rule is about, made
+watchable. One highlight box slid between the panels, not two cross-fading. It
+runs on a single scalar like the axis ease, so a switch turned round mid-glide
+leaves from where the figure is, and off page 3 it lands.
+
+**Page 2's bars morph, and the design question was whether to move the bars or
+the mutations.** Measured: purity and the mutation count keep every mutation's
+identity (300 of 300 keep their clone and depth; the count is prefix-stable at
+300 of 300 and 120 of 120), but READ DEPTH does not — a mutation's depth decides
+how many values it draws from the stream, so changing it re-deals everything
+after the first (158 of 300, which is chance). Sliding mutations under a depth
+change would assert an identity that is not there, so the bar heights carry the
+morph: they claim only that the distribution went from this shape to that one.
+Widget 53's round-27 rule read the other way round. A different seed or a
+different set of populations is a different tumour and lands with none.
+
+**Three bugs the checks found, none of them the tweens.** A null could reach the
+bracket selection. **The verify's plot stub diverged from core in BOTH axes** —
+core's `axisX` and `axisY` skip a tick outside the domain and the stub drew
+every one, under a comment claiming it placed them "exactly as
+`core/canvas.js` places them"; that is how a destination tick above a still-
+growing domain was reported as the widget painting 1,215px off the canvas. And
+the settled extent sweep was **not settled**: the carry lives across draws, so
+sweeping page 2's cells in a row had each starting a morph out of the one
+before. § *Widget 42*'s lesson again, in a third key — an instrument that does
+not match the thing it measures invents its own failures.
+
+Plus one real defect no settled state had shown: **a cluster's mean tick was not
+clamped to the axis** where its `lo` and `hi` both were. The settled sweep now
+covers page 2 at every purity and mutation count, which it never had.
+
+#### PAGE 1'S ARRANGEMENTS, MEASURED AND REBUILT, 2026-09-16 — `_lab/vaf-rows-measure.mjs`, `05866e9`
+
+His question: *"we try to show all the possible combinations? sometimes i see
+red notices. could you research if it's useful to show all three …? if not,
+then do we just show the most relevant ones?"* The answer is that all three
+earn their place, but the third was not doing the same job as the other two.
+
+**What the measurement found.** Purity and the cancer cell fraction solve
+exactly and cover every VAF up to one half — each drawn in 90.2% of readings.
+Copy number is DISCRETE: at purity 1 with one mutated copy it reads 1/Cₜ, so the
+lesson's list gives 0.250, 0.333, 0.500 and nothing between, and it was drawn in
+13.7%. All three together, 12.1%. The red notices he was seeing were **sampling
+noise**: the rows followed the OBSERVED VAF, so at his own screenshot's setting
+the set changed **55 times over 500 reads**. And the copies row failed exactly
+where the lesson's headline case lives — it tried m = 1 only, so it ruled out
+cell 17's VAF ~ 1 panel, where 2 + 0 with both copies mutated reads 1.000. Above
+one half neither continuous row can EVER exist (each would need a value past 1),
+so copy number is the only explanation there and it was the one switched off:
+8.2% of readings were three red lines and nothing else.
+
+**His four picks.** (1) The rows answer the EXPECTED VAF — zero flicker, since
+it is a function of the controls and not of the draw; they still wait for the
+first read, so the page does not open on its own answer. (2) EVERY mutated-copy
+count, so 0.667, 0.750 and 1.000 are reachable; over the 576 settings page 1 can
+reach, "no row at all" falls from 8.2% to 1.4% and 33.7% show all three. 1 + 1
+is deliberately left out of that list — it is the baseline the other two rows
+hold, and including it made all three rows the same arrangement at VAF 0.5 —
+and ties go to the fewest copies, which puts copy-neutral loss of heterozygosity
+(2 + 0 with one mutated copy, reading 0.5 exactly as a plain heterozygote does)
+ahead of 3 + 1 with two. (3) **"Ruled out" and the reason**, in red, which is
+page 3's word for the same idea, the copy-number one naming the readings copy
+number CAN make, derived from the list. (4) How close counts is **the noise at
+this depth**, one binomial standard deviation — the change that finally gives
+the depth control something to do besides widen the pileup: at purity 0.70 with
+2 + 0 and both copies mutated the copy-number row stands at depths 31, 88 and
+161 and is ruled out at 500. Reading deeper rules an arrangement out, which is
+what the page had been claiming about depth all along.
+
+**And the bug the measurement turned up:** every row printed the READER's VAF.
+The copy-number row was accepted within 0.02 and then labelled with a number it
+does not read — at VAF 0.230 a 3 + 1 arrangement, which reads 0.250, under a
+caption saying "The same reading". Each row now prints its own, and the caption
+is "Other arrangements that read the same", since *the same reading* was the
+part that was not true.
+
+**What the draft leaves open:** his round continues; page 1's all-ruled-out
+state (1.4% of settings) draws three "Ruled out" lines and leaves the reader to
+draw the conclusion — that no SINGLE cause explains the reading, so the sample
+is a combination — which could be said in a line and was not put to him; then
+the ship sequence — the shooter, the states, the status flip in the
 manifest, `main.js` and the verify, the full suite, `check` and `test` read
 alone, and the push on his word.
 
