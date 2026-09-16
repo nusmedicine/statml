@@ -8819,6 +8819,31 @@ purities, MATH's formula, and cell 23's printed range.
   leave exactly the linear tree; its surgery sample alone leaves two. Page 3's
   control is which samples you have.
 
+#### MOCKED 2026-09-16 — `_lab/vaf-mock.html` — and his picks the same day
+
+Eight sections at the real 550 px, every number computed on the page by
+`_lab/vaf-model.js`, which `_lab/vaf-measure.mjs` imports as well: § *Widget
+41*'s lesson, that a mock computing its own stage can disagree with the
+measurement it illustrates. The page reruns nine of the measured claims in the
+browser and prints them. Read in the pane before he saw it; eight defects
+fixed there, **the real one being the two tree shapes labelled the wrong way
+round** in both the node drawing and the nested bars (the labels are derived
+from the tree now), and the cluster brackets moved to each component's mean ±
+one standard deviation, one level each — at one level, over assigned ranges
+that overlap, they read as a single rule rather than as clusters.
+
+**His picks, one `AskUserQuestion`:** subtitle **B** (*a tumour is a mixture of
+cell populations …*), his one departure from the recommendations; the three
+arrangements **at once, as rows**, with the switch kept as a control for the
+rest of the page; the cancer cell fraction on the **same panel with the axis
+switched**, the purity used for the correction beside it so *taken as pure* is
+a state the reader reaches; and the third page as **the rule with the cells
+drawn inside it** — his CCF lines and the two shapes, and under each sample the
+tumour cells as a bar where a branching pair visibly does not fit. The three
+sections not put to him stand at their recommendations: sixty cells for the
+stage, a pileup for the reads, and truth-in-colour with the mixture's clusters
+as brackets on page 2.
+
 ### Slot 68 · `clonal-architecture` — cuttable, or 67's last page
 
 **Host.** 01-2 cell 25's closing paragraph (CCFs clustered to "reconstruct the
