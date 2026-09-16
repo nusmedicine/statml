@@ -338,6 +338,36 @@ export const EASE_MS = 420;
 export const easeOut = (t) => 1 - (1 - Math.min(1, Math.max(0, t))) ** 3;
 export const lerp = (a, b, t) => a + (b - a) * t;
 
+/* THE HISTOGRAM IS BUILT HERE, not in the drawing, because page 2's data
+   morph interpolates it and the verify has to hold both of its ends (Kenneth,
+   2026-09-16: "page 2 when changing sample parameters"). A bin is two counts,
+   clonal and subclonal, so the truth stays in colour through the morph. */
+export const HIST_BINS = 50;
+export function histOf(values, muts, max, bins = HIST_BINS) {
+  const counts = Array.from({ length: bins }, () => [0, 0]);
+  values.forEach((v, i) => {
+    const b = Math.min(bins - 1, Math.max(0, Math.floor((v / max) * bins)));
+    counts[b][muts[i].clonal ? 0 : 1] += 1;
+  });
+  return counts;
+}
+export const histTop = (counts) => Math.max(1, ...counts.map((c) => c[0] + c[1])) * 1.1;
+export const lerpHist = (a, b, t) => a.map((c, i) => [lerp(c[0], b[i][0], t), lerp(c[1], b[i][1], t)]);
+
+/* WHY THE BARS AND NOT THE MUTATIONS. Purity and the mutation count keep every
+   mutation's identity — mutation i is the same mutation, re-read — but READ
+   DEPTH does not: a mutation's depth decides how many values it draws from the
+   stream, so changing it re-deals everything after the first (measured: 158 of
+   300 keep their clone, which is chance). Sliding mutations under a depth
+   change would therefore assert an identity that is not there. The bar heights
+   carry no such claim: they say the distribution went from this shape to that
+   one, which is what happened under all three. Widget 53's round-27 rule, read
+   the other way round.
+
+   The tiles and the arithmetic do NOT interpolate. They report the data the
+   reader has just asked for, and the picture catches up — the same ruling that
+   keeps the VAF bar on page 1 un-eased. */
+
 /** The view at a mix: 0 is the reads as they came, 1 is the fraction. */
 export function axisAt(many, cfg, mix) {
   const a = onAxis(many, cfg, "vaf");
@@ -380,12 +410,44 @@ export const SHAPES = [
   { key: "branching", label: "2 and 3 under 1", parents: [0, 0] },
 ];
 export const shapeOf = (key) => SHAPES.find((s) => s.key === key) ?? SHAPES[0];
+/** Where a shape sits on the glide's one scalar. Two shapes, so it is 0 or 1;
+    a third would need a different mechanism, and the verify says so. */
+export const shapeIndex = (key) => Math.max(0, SHAPES.findIndex((s) => s.key === key));
 export const childrenOf = (shape, node) => shape.parents
   .map((p, i) => [p, i + 1])
   .filter(([p]) => p === node)
   .map(([, c]) => c);
 export const fitsSumRule = (shape, ccf) => ccf.every((_, node) => childrenOf(shape, node)
   .reduce((s, c) => s + ccf[c], 0) <= ccf[node] + 1e-12);
+/* PAGE 3'S BARS AS ONE RECT PER CLUSTER, so the shape switch can glide
+   between two layouts rather than cut (Kenneth, 2026-09-16: "do the tween for
+   page 3"). Cluster 1 is the trunk at full height; the shape decides where 2
+   and 3 go. Only cluster 3 actually moves — under 1 → 2 → 3 it is nested
+   inside cluster 2, and under 2 and 3 under 1 it is beside it, the same width
+   in both — so the glide IS his "cluster 3 sliding out of cluster 2". */
+export function barRects(shape, ccf, { x, y, w, h }) {
+  const rects = [{ x, y, w: w * ccf[0], h }];
+  let cx = x;
+  for (const kid of childrenOf(shape, 0)) {
+    const kw = w * ccf[kid];
+    rects[kid] = { x: cx, y: y + 3, w: kw, h: h - 6 };
+    for (const g of childrenOf(shape, kid)) rects[g] = { x: cx, y: y + 6, w: w * ccf[g], h: h - 12 };
+    cx += kw;
+  }
+  return rects;
+}
+export const lerpRect = (a, b, t) => ({
+  x: lerp(a.x, b.x, t), y: lerp(a.y, b.y, t), w: lerp(a.w, b.w, t), h: lerp(a.h, b.h, t),
+});
+export const lerpRects = (a, b, t) => a.map((r, i) => lerpRect(r, b[i], t));
+/** How far the children reach past the trunk, read off whatever is DRAWN — so
+    the overflow grows as cluster 3 slides out, which is the moment the rule is
+    about, rather than appearing whole at the end. */
+export const overflowOf = (rects) => Math.max(
+  0,
+  Math.max(rects[1].x + rects[1].w, rects[2].x + rects[2].w) - (rects[0].x + rects[0].w),
+);
+
 /** The node whose children come closest to passing it: the one constraint
     worth printing beside a sample, since the others are slacker. */
 export function tightestNode(shape, ccf) {

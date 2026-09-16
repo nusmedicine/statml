@@ -17,11 +17,26 @@
        variant, because that is the one thing to look at.
    ========================================================================= */
 
-import { defineWidget, makePlot, mathmlRenders } from "../core/index.js";
+import { defineWidget, makePlot, mathmlRenders, niceTicks } from "../core/index.js";
 import * as M from "./model.js";
 
 /* Set by `defineWidget`, read only by `clearDrawAll` — the momentary action. */
 let widgetApi = null;
+
+const reducedMotion = () => (typeof matchMedia === "function"
+  && matchMedia("(prefers-reduced-motion: reduce)").matches);
+
+/* WHAT PAGE 2'S LAST DRAW LEFT, so a data change can move from the figure that
+   is on screen to the one the new parameters ask for (widget 53's `carry`).
+   It holds what was DRAWN and not the destination, which is what makes a second
+   change mid-morph leave from where the figure is rather than jumping to the
+   end it was heading for — the same rule the axis ease follows.
+
+   The params beside the counts are the ones the bins depend on: a morph is only
+   honest when the bin edges and the mutations are the same population, so the
+   axis, the purity the correction divides by, the seed and the clone set must
+   all match. That leaves exactly purity, read depth and the mutation count. */
+let carryMany = null;
 
 /* ---- the formula card ----------------------------------------------------
    Kenneth's ask, 2026-09-16: "include the MathML formulas so students can see
@@ -425,13 +440,18 @@ function drawMany(ctx, colors, L, params, state, anim) {
      fraction. At rest it is whichever axis the control names. */
   const mix = anim?.mix ?? (params.axis === "ccf" ? 1 : 0);
   const axis = M.axisAt(state.many, state.manyCfg, M.easeOut(mix));
-  const bins = 50;
-  const counts = Array.from({ length: bins }, () => [0, 0]);
-  axis.values.forEach((v, i) => {
-    const b = Math.min(bins - 1, Math.max(0, Math.floor((v / axis.max) * bins)));
-    counts[b][state.many.muts[i].clonal ? 0 : 1] += 1;
-  });
-  const top = Math.max(1, ...counts.map((c) => c[0] + c[1])) * 1.1;
+  const bins = M.HIST_BINS;
+
+  /* THE DATA MORPH. The bars the new parameters ask for, and — while one is in
+     flight — the bars that were on screen when they changed, interpolated. The
+     y axis grows with them, but its TICKS are the destination's throughout, so
+     a label appears as the axis reaches it instead of the set reshuffling every
+     frame. */
+  const want = M.histOf(axis.values, state.many.muts, axis.max, bins);
+  const wantTop = M.histTop(want);
+  const mt = anim?.histFrom ? M.easeOut(anim.histT ?? 1) : 1;
+  const counts = anim?.histFrom ? M.lerpHist(anim.histFrom, want, mt) : want;
+  const top = anim?.histFrom ? M.lerp(anim.topFrom, wantTop, mt) : wantTop;
   const plot = makePlot({ ctx, colors, rect: L.hist, xDomain: [0, axis.max], yDomain: [0, top] });
 
   /* The caption is drawn at the top of the canvas rather than through
@@ -447,7 +467,7 @@ function drawMany(ctx, colors, L, params, state, anim) {
   for (let b = 0; b < bins; b += 1) {
     let base = L.hist.y + L.hist.h;
     for (const [n, fill] of [[counts[b][0], colors.groupA], [counts[b][1], colors.groupB]]) {
-      if (!n) continue;
+      if (n <= 0) continue;
       const h = (n / top) * L.hist.h;
       ctx.fillStyle = wash(fill, 0.85);
       ctx.fillRect(L.hist.x + b * bw + 0.5, base - h, Math.max(1, bw - 1), h);
@@ -471,36 +491,83 @@ function drawMany(ctx, colors, L, params, state, anim) {
 
   /* DECISION 6: the mixture's components as enclosure, one level each, fitted
      on the VAF axis and carried onto whichever axis is drawn. */
-  if (params.clusters) {
-    const toAxis = (v) => M.lerp(v, M.ccfFrom(v, state.manyCfg.assumed, 1, 2), M.easeOut(mix));
-    state.many.fit.spans.forEach((sp, i) => {
+  const toAxis = (v) => M.lerp(v, M.ccfFrom(v, state.manyCfg.assumed, 1, 2), M.easeOut(mix));
+  /* THE BRACKETS THROUGH A MORPH. Re-fitting the same number of components is
+     the same clusters moved, so they glide. A different number is not, and two
+     sets drawn at once would read as their sum — augmentation's lesson about a
+     blend reading as a third thing — so they wipe instead: out over the first
+     half, in over the second, never both. */
+  const spansWant = state.many.fit.spans;
+  const spansFrom = anim?.spansFrom ?? null;
+  const paired = Boolean(spansFrom) && spansFrom.length === spansWant.length;
+  let spans = spansWant;
+  let spanAlpha = 1;
+  if (paired) {
+    spans = spansWant.map((sp, i) => ({
+      lo: M.lerp(spansFrom[i].lo, sp.lo, mt),
+      hi: M.lerp(spansFrom[i].hi, sp.hi, mt),
+      mu: M.lerp(spansFrom[i].mu, sp.mu, mt),
+    }));
+  } else if (spansFrom) {
+    spans = mt < 0.5 ? spansFrom : spansWant;
+    spanAlpha = Math.abs(mt * 2 - 1);
+  }
+  if (params.clusters && spanAlpha > 0.01) {
+    spans.forEach((sp, i) => {
       const x0 = plot.sx(Math.max(0, toAxis(sp.lo)));
       const x1 = plot.sx(Math.min(axis.max, toAxis(sp.hi)));
       const y = L.hist.y - 8 - i * 12;
       ctx.save();
+      ctx.globalAlpha = spanAlpha;
       ctx.strokeStyle = colors.ink2;
       ctx.lineWidth = 1;
       ctx.beginPath();
       ctx.moveTo(x0, y + 5); ctx.lineTo(x0, y); ctx.lineTo(x1, y); ctx.lineTo(x1, y + 5);
-      ctx.moveTo(plot.sx(toAxis(sp.mu)), y); ctx.lineTo(plot.sx(toAxis(sp.mu)), y + 5);
+      /* Held to the axis as `lo` and `hi` are: at purity 0.35 the correction
+         multiplies by 5.7 and a mean can land past 1.4, and canvas does not
+         clip. Found by the mid-tween extent sweep, 2026-09-16. */
+      const xm = plot.sx(Math.min(axis.max, Math.max(0, toAxis(sp.mu))));
+      ctx.moveTo(xm, y); ctx.lineTo(xm, y + 5);
       ctx.stroke();
       ctx.restore();
+      ctx.save();
+      ctx.globalAlpha = spanAlpha;
       text(ctx, `${i + 1}`, (x0 + x1) / 2, y - 3, {
         font: `${colors.fsXs} ${colors.mono}`, fill: colors.ink2, align: "center",
       });
+      ctx.restore();
     });
   }
 
   plot.axisX({ ticks: axis.ticks, format: (v) => M.n2(v), label: axis.label });
-  plot.axisY({ label: "Mutations" });
+  plot.axisY({ label: "Mutations", ticks: niceTicks(0, wantTop, 4) });
+
+  /* What this draw leaves for the next data change to move from: the bars as
+     DRAWN, so an interrupted morph carries on from the figure on screen. */
+  carryMany = {
+    page: params.page,
+    axis: params.axis,
+    assumed: params.assumed,
+    seed: params.seed,
+    clones: params.clones,
+    counts,
+    top,
+    spans,
+  };
 }
 
 /* ---- page 3 -------------------------------------------------------------- */
 
-function drawTreePage(ctx, colors, L, params, state) {
+function drawTreePage(ctx, colors, L, params, state, anim) {
   const used = state.used;
   const shape = M.shapeOf(params.shape);
   const cols = [colors.groupA, colors.groupB, colors.groupC];
+  /* WHERE THE SHAPE GLIDE HAS GOT TO. 0 is SHAPES[0], 1 is SHAPES[1]; at rest
+     it is whichever the control names. Only the PICTURE glides — the caption,
+     the arithmetic and the readout tiles state the shape the reader has just
+     chosen, immediately, because a printed number that lags the data is a
+     number the data does not support (page 1's VAF bar, the same ruling). */
+  const sMix = M.easeOut(anim?.shapeMix ?? M.shapeIndex(params.shape));
 
   /* the CCF lines, his figure's left panel */
   const plot = makePlot({ ctx, colors, rect: L.lines, xDomain: [0, M.SAMPLES.length], yDomain: [0, 1] });
@@ -535,14 +602,18 @@ function drawTreePage(ctx, colors, L, params, state) {
     const w = box.w / 2;
     const cx = x + w / 2;
     const fits = used.every((u) => M.fitsSumRule(s, u.ccf));
-    const chosen = s.key === shape.key;
-    if (chosen) {
+    /* One box, slid between the panels rather than two boxes cross-fading: at
+       rest it is on the chosen tree, and mid-glide it is between them, which is
+       what a reader following it expects to see. Drawn on the first pass only
+       so it never lands on top of a tree. */
+    if (i === 0) {
+      const bx = box.x + sMix * (box.w / 2);
       ctx.save();
       ctx.fillStyle = wash(colors.highlight, 0.1);
       ctx.strokeStyle = colors.highlight;
       ctx.lineWidth = 1;
-      ctx.fillRect(x + 2, box.y - 6, w - 4, box.h + 4);
-      ctx.strokeRect(x + 2.5, box.y - 5.5, w - 5, box.h + 3);
+      ctx.fillRect(bx + 2, box.y - 6, w - 4, box.h + 4);
+      ctx.strokeRect(bx + 2.5, box.y - 5.5, w - 5, box.h + 3);
       ctx.restore();
     }
     const pos = s.key === "linear"
@@ -590,21 +661,20 @@ function drawTreePage(ctx, colors, L, params, state) {
     const w = L.bars.w * 0.56;
     ctx.fillStyle = colors.surface3;
     ctx.fillRect(L.bars.x, y, w, h);
-    ctx.fillStyle = wash(cols[0], 0.45);
-    ctx.fillRect(L.bars.x, y, w * s.ccf[0], h);
-    let cx = L.bars.x;
-    let overlap = 0;
-    for (const kid of M.childrenOf(shape, 0)) {
-      const kw = w * s.ccf[kid];
-      if (cx + kw > L.bars.x + w * s.ccf[0] + 0.01) overlap = cx + kw - (L.bars.x + w * s.ccf[0]);
-      ctx.fillStyle = wash(cols[kid], 0.75);
-      ctx.fillRect(cx, y + 3, kw, h - 6);
-      for (const g of M.childrenOf(shape, kid)) {
-        ctx.fillStyle = wash(cols[g], 0.9);
-        ctx.fillRect(cx, y + 6, w * s.ccf[g], h - 12);
-      }
-      cx += kw;
-    }
+    /* HIS TWEEN: cluster 3 slides out of cluster 2 to beside it. One rect per
+       cluster under each shape, interpolated — the trunk and cluster 2 hold
+       still in both, so what moves is cluster 3, and the overflow read off the
+       rects as drawn grows under it as it goes. */
+    const geom = { x: L.bars.x, y, w, h };
+    const rects = M.lerpRects(
+      M.barRects(M.SHAPES[0], s.ccf, geom), M.barRects(M.SHAPES[1], s.ccf, geom), sMix,
+    );
+    const overlap = M.overflowOf(rects);
+    /* Painted parent first so a nested child stays on top of it. */
+    [0, 1, 2].forEach((c) => {
+      ctx.fillStyle = wash(cols[c], c === 0 ? 0.45 : c === 1 ? 0.75 : 0.9);
+      ctx.fillRect(rects[c].x, rects[c].y, rects[c].w, rects[c].h);
+    });
     ctx.strokeStyle = colors.grid;
     ctx.lineWidth = 1;
     ctx.strokeRect(L.bars.x + 0.5, y + 0.5, w - 1, h - 1);
@@ -612,7 +682,7 @@ function drawTreePage(ctx, colors, L, params, state) {
       ctx.save();
       ctx.strokeStyle = colors.extreme;
       ctx.lineWidth = 1.5;
-      ctx.strokeRect(L.bars.x + w * s.ccf[0] + 0.5, y - 1.5, overlap, h + 3);
+      ctx.strokeRect(rects[0].x + rects[0].w + 0.5, y - 1.5, overlap, h + 3);
       ctx.restore();
     }
     /* The arithmetic sits to the right of the bar, so it is measured against
@@ -860,6 +930,15 @@ widgetApi = defineWidget({
     init: ({ params, state, fromScratch }) => {
       const authored = params.all ? state.one.depth : Math.max(0, params.shown ?? 0);
       const k = fromScratch ? 0 : Math.min(state.one.depth, authored);
+      /* A DATA CHANGE ON PAGE 2 MAY DESERVE A TRANSITION — core's second ease
+         door, the one widget 53 opened. The new mutations are a re-reading of
+         the same tumour when only purity, the read depth or how many mutations
+         were called has moved; a different seed or a different set of cell
+         populations is a different tumour and lands without one. */
+      const morph = Boolean(carryMany) && params.page === "many" && carryMany.page === "many"
+        && carryMany.axis === params.axis && carryMany.assumed === params.assumed
+        && carryMany.seed === params.seed && carryMany.clones === params.clones
+        && !reducedMotion();
       return {
         k,
         beat: 0,
@@ -869,6 +948,17 @@ widgetApi = defineWidget({
         /* Where page 2's axis has got to, and which axis it is heading for. */
         mix: params.axis === "ccf" ? 1 : 0,
         axis: params.axis,
+        /* Page 2's data morph: the bars it starts from, and how far along. */
+        histFrom: morph ? carryMany.counts : null,
+        topFrom: morph ? carryMany.top : 0,
+        spansFrom: morph ? carryMany.spans : null,
+        histT: 0,
+        easing: morph,
+        /* Page 3's shape: 0 is SHAPES[0], 1 is SHAPES[1], and it eases toward
+           whichever the control names — one scalar, exactly like `mix`, so a
+           switch turned round mid-glide leaves from where the figure is. */
+        shapeMix: M.shapeIndex(params.shape),
+        shape: params.shape,
       };
     },
 
@@ -876,10 +966,28 @@ widgetApi = defineWidget({
       /* Core's ease mode: the frames for the axis, and nothing else moves in
          them (widget 60's shape). */
       if (anim.mode === "ease") {
-        const target = anim.axis === "ccf" ? 1 : 0;
         const step = dt / M.EASE_MS;
-        anim.mix = target > anim.mix ? Math.min(target, anim.mix + step) : Math.max(target, anim.mix - step);
-        return anim.mix !== target;
+        const toward = (at, target) => (target > at ? Math.min(target, at + step) : Math.max(target, at - step));
+        let moving = false;
+
+        const axisTarget = anim.axis === "ccf" ? 1 : 0;
+        anim.mix = toward(anim.mix, axisTarget);
+        if (anim.mix !== axisTarget) moving = true;
+
+        const shapeTarget = M.shapeIndex(anim.shape);
+        anim.shapeMix = toward(anim.shapeMix, shapeTarget);
+        if (anim.shapeMix !== shapeTarget) moving = true;
+
+        /* The bars' clock runs one way: `init` sets where it starts from, and a
+           change landing mid-morph re-inits from the figure on screen. Cleared
+           on landing so nothing downstream reads a finished morph as a live
+           one; the value at 1 is the destination either way. */
+        if (anim.histFrom) {
+          anim.histT = Math.min(1, anim.histT + step);
+          if (anim.histT < 1) moving = true;
+          else { anim.histFrom = null; anim.spansFrom = null; }
+        }
+        return moving;
       }
       const end = state.one.depth;
       if (anim.k >= end) { anim.beat = 0; anim.done = true; return false; }
@@ -911,6 +1019,20 @@ widgetApi = defineWidget({
         else anim.mix = params.axis === "ccf" ? 1 : 0;
       }
       if (params.page !== "many" && !anim.easing) anim.mix = params.axis === "ccf" ? 1 : 0;
+      /* Leaving page 2 lands its morph rather than leaving it in flight: a
+         transition nobody is watching has nothing to show, and coming back to
+         a figure still halfway between two sets of parameters would be a
+         figure of neither. The same ruling as the shape, below. */
+      if (params.page !== "many") { anim.histFrom = null; anim.spansFrom = null; }
+      /* The shape moved: the same door as the axis, on the same page-3 terms.
+         Off page 3 it lands, so a reader who switches shape from elsewhere and
+         then arrives finds the figure already there. */
+      if (params.shape !== anim.shape) {
+        anim.shape = params.shape;
+        if (params.page === "clonal" && !reducedMotion()) anim.easing = true;
+        else anim.shapeMix = M.shapeIndex(params.shape);
+      }
+      if (params.page !== "clonal" && !anim.easing) anim.shapeMix = M.shapeIndex(params.shape);
     },
   },
 
@@ -922,7 +1044,7 @@ widgetApi = defineWidget({
     renderCard(params.page, card.rows, card.note);
     const L = M.layout(w, params);
     if (L.page === "many") { drawMany(ctx, colors, L, params, state, anim); return; }
-    if (L.page === "clonal") { drawTreePage(ctx, colors, L, params, state); return; }
+    if (L.page === "clonal") { drawTreePage(ctx, colors, L, params, state, anim); return; }
     drawOne(ctx, colors, L, params, state, anim);
   },
 

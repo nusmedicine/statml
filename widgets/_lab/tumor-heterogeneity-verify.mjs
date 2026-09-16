@@ -66,12 +66,26 @@ globalThis.document = {
 const cardHtml = () => (cardNode ? cardNode.innerHTML : "");
 const cardText = () => cardHtml().replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
 
+/** Draw page 2 for real, which is what leaves `carryMany` behind — the module
+    holds it privately, so the only honest way to test the morph's rule is to
+    put a figure on screen the way the reader does. */
+function drawWithMany(W, params) {
+  const state = W.compute({ params, rng: makeRng(params.seed) });
+  const anim = W.animation.init({ params, state, fromScratch: true });
+  const { ctx } = recorder();
+  W.draw({ ctx, colors: COLORS, w: 550, h: W.height({ w: 550, ...params }), params, state, anim });
+  return { state, anim };
+}
+
 let cached = null;
 async function widget() {
   if (cached) return cached;
   let text = read("widgets/tumor-heterogeneity/main.js");
-  text = text.replace(/^import \{ defineWidget, makePlot, mathmlRenders \} from "\.\.\/core\/index\.js";$/m,
-    "const __cfg = {}; const defineWidget = (c) => { Object.assign(__cfg, c); return c; };"
+  /* `niceTicks` is pure arithmetic over a domain, so the widget gets the real
+     one; everything else core exports here needs a canvas and is stubbed. */
+  text = text.replace(/^import \{ defineWidget, makePlot, mathmlRenders, niceTicks \} from "\.\.\/core\/index\.js";$/m,
+    `import { niceTicks } from ${abs("../core/canvas.js")};`
+    + " const __cfg = {}; const defineWidget = (c) => { Object.assign(__cfg, c); return c; };"
     + " const makePlot = (o) => __plot(o); const mathmlRenders = () => false;");
   text = text.replace(/^import \* as M from "\.\/model\.js";$/m,
     `import * as M from ${abs("../tumor-heterogeneity/model.js")};`);
@@ -124,7 +138,13 @@ globalThis.__plotStub = ({ ctx, rect, xDomain, yDomain }) => {
     caption: (s) => ctx.fillText(s, rect.x, rect.y - 8),
     note: (s) => ctx.fillText(s, rect.x + rect.w, rect.y - 8),
     axisX: ({ ticks = [], format = (v) => String(v), label } = {}) => {
-      ticks.forEach((t) => ctx.fillText(format(t), sx(t), rect.y + rect.h + 16));
+      /* The same skip core makes, for the same reason: mid-ease the axis holds
+         the ticks it is heading for while the domain is still growing into
+         them, and core draws only the ones that have arrived. */
+      ticks.forEach((t) => {
+        if (t < xDomain[0] - 1e-9 || t > xDomain[1] + 1e-9) return;
+        ctx.fillText(format(t), sx(t), rect.y + rect.h + 16);
+      });
       if (label) ctx.fillText(label, rect.x + rect.w / 2, rect.y + rect.h + 32);
     },
     /* Placed exactly as `core/canvas.js` places them: tick labels right-aligned
@@ -133,7 +153,14 @@ globalThis.__plotStub = ({ ctx, rect, xDomain, yDomain }) => {
     axisY: ({ ticks = [], format = (v) => String(v), label } = {}) => {
       const align = ctx.textAlign;
       ctx.textAlign = "right";
-      ticks.forEach((t) => ctx.fillText(format(t), rect.x - 8, sy(t)));
+      /* Core SKIPS a tick outside the domain (canvas.js, `axisY`), which is how
+         a destination tick above a domain still growing simply does not draw.
+         The stub drew them all and reported the widget painting off the top of
+         the canvas — a divergence in the instrument, not in the figure. */
+      ticks.forEach((t) => {
+        if (t < yDomain[0] - 1e-9 || t > yDomain[1] + 1e-9) return;
+        ctx.fillText(format(t), rect.x - 8, sy(t));
+      });
       ctx.textAlign = align;
       if (label) { ctx.moveTo(rect.x - 46, rect.y); ctx.lineTo(rect.x - 34, rect.y + rect.h); }
     },
@@ -472,12 +499,23 @@ const defaults = async () => resolveParams(await spec(), new URLSearchParams("")
     }
   }
   for (const clones of ["one", "two", "three"]) for (const axis of ["vaf", "ccf"]) cells.push({ ...values, page: "many", clones, axis });
+  /* Page 2 at every purity and every mutation count: the sweep above holds the
+     purity at its default, and the mid-tween check below reached 0.35 first. */
+  for (const purity of M.PURITY_OPTIONS) for (const axis of ["vaf", "ccf"]) {
+    for (const mutations of M.MUTATION_OPTIONS) cells.push({ ...values, page: "many", purity, axis, mutations });
+  }
   for (const taken of ["1", "2", "4"]) for (const shape of ["linear", "branching"]) cells.push({ ...values, page: "clonal", taken, shape });
   for (const params of cells) {
     const height = W.height({ w: W_PX, ...params });
     const state = W.compute({ params, rng: makeRng(params.seed) });
     const anim = W.animation.init({ params, state, fromScratch: true });
     anim.k = state.one.depth;
+    /* SETTLED MEANS SETTLED. The widget carries page 2's last figure across
+       draws, so sweeping the cells in a row had each one starting a morph out
+       of the one before it and this sweep stopped measuring finished figures.
+       Mid-flight is swept on its own, below. */
+    anim.histFrom = null;
+    anim.spansFrom = null;
     const { ctx, box } = recorder();
     W.draw({ ctx, colors: COLORS, w: W_PX, h: height, params, state, anim });
     const over = Math.max(0, box.x1 - W_PX, -box.x0, box.y1 - height, -box.y0);
@@ -485,7 +523,8 @@ const defaults = async () => resolveParams(await spec(), new URLSearchParams("")
   }
   check("nothing is painted outside the canvas the page reserves, at 550px",
     worst.over <= 1.5,
-    `worst ${worst.over.toFixed(1)}px on ${worst.params.page} (x ${worst.box.x0.toFixed(0)}–${worst.box.x1.toFixed(0)}, y ${worst.box.y0.toFixed(0)}–${worst.box.y1.toFixed(0)} in ${W_PX}×${worst.height})`);
+    `worst ${worst.over.toFixed(1)}px on ${worst.params.page} (x ${worst.box.x0.toFixed(0)}–${worst.box.x1.toFixed(0)}, y ${worst.box.y0.toFixed(0)}–${worst.box.y1.toFixed(0)} in ${W_PX}×${worst.height})`
+      + ` purity=${worst.params.purity} axis=${worst.params.axis} muts=${worst.params.mutations} clones=${worst.params.clones}`);
 
   /* And the layout's own rows may not overlap: the first build drew the note
      under the cells across the reads' caption. */
@@ -494,6 +533,191 @@ const defaults = async () => resolveParams(await spec(), new URLSearchParams("")
     L.cells.y + L.cells.h + 24 <= L.reads.y - 10
     && L.reads.y + L.reads.h < L.bar.y
     && L.bar.y + L.bar.h + 34 <= L.rows.y - 12);
+}
+
+/* --- the two tweens Kenneth asked for on 2026-09-16 ------------------------
+   Page 3's shape switch, and page 2 under a change to purity, read depth or the
+   mutation count. Both are held to their ENDS — a transition that does not land
+   exactly on the figure the parameters ask for is a figure nobody can check —
+   and to the rule about WHICH changes earn one. */
+{
+  const W = await widget();
+  const values = await defaults();
+
+  /* ---- page 3: cluster 3 slides out of cluster 2 to beside it ---- */
+  check("the shape glide's one scalar has exactly two ends to run between",
+    M.SHAPES.length === 2 && M.shapeIndex("linear") === 0 && M.shapeIndex("branching") === 1);
+
+  const geom = { x: 10, y: 20, w: 200, h: 16 };
+  const ccf = M.SAMPLES[0].ccf;
+  const A = M.barRects(M.SHAPES[0], ccf, geom);
+  const B = M.barRects(M.SHAPES[1], ccf, geom);
+  const sameRect = (a, b) => Math.abs(a.x - b.x) < 1e-9 && Math.abs(a.y - b.y) < 1e-9
+    && Math.abs(a.w - b.w) < 1e-9 && Math.abs(a.h - b.h) < 1e-9;
+  check("the glide's ends are the two shapes' own layouts",
+    M.lerpRects(A, B, 0).every((r, i) => sameRect(r, A[i]))
+    && M.lerpRects(A, B, 1).every((r, i) => sameRect(r, B[i])));
+  check("…and only cluster 3 moves: the trunk and cluster 2 hold still in both",
+    sameRect(A[0], B[0]) && sameRect(A[1], B[1]) && !sameRect(A[2], B[2]),
+    `cluster 3 x ${A[2].x} → ${B[2].x}`);
+  check("…at one width throughout, so it slides rather than grows",
+    Math.abs(A[2].w - B[2].w) < 1e-9, `${A[2].w.toFixed(2)}px`);
+  /* The overflow is read off the rects as DRAWN, so the rule's own moment — the
+     children reaching past the parent — happens DURING the slide, not after. */
+  const over = [0, 0.25, 0.5, 0.75, 1].map((t) => M.overflowOf(M.lerpRects(A, B, t)));
+  check("…and the overflow grows with it rather than appearing at the end",
+    over[0] === 0 && over.every((v, i) => i === 0 || v >= over[i - 1]) && over[4] > 1,
+    over.map((v) => v.toFixed(1)).join(" → "));
+
+  const clonal = { ...values, page: "clonal" };
+  const st3 = W.compute({ params: clonal, rng: makeRng(clonal.seed) });
+  const sh = W.animation.init({ params: clonal, state: st3, fromScratch: true });
+  check("the shape opens on the shape the control names", sh.shapeMix === 0);
+  W.animation.rebuild(sh, { params: { ...clonal, shape: "branching" }, state: st3 });
+  check("switching the shape asks core for frames", sh.easing === true);
+  sh.mode = "ease";
+  let f3 = 0;
+  while (W.animation.advance(sh, { dt: 32, params: { ...clonal, shape: "branching" }, state: st3 }) && f3 < 200) f3 += 1;
+  check("…and lands exactly on the other shape", sh.shapeMix === 1, `${f3} frames`);
+  /* Turned round mid-glide it leaves from where the figure is, as the axis does. */
+  const back3 = W.animation.init({ params: { ...clonal, shape: "branching" }, state: st3, fromScratch: true });
+  back3.mode = "ease";
+  W.animation.rebuild(back3, { params: clonal, state: st3 });
+  W.animation.advance(back3, { dt: 32, params: clonal, state: st3 });
+  check("…and a glide turned round leaves from where it is",
+    back3.shapeMix < 1 && back3.shapeMix > 0.7, M.n3(back3.shapeMix));
+  /* Off page 3 there is nothing to watch, so it lands rather than glides. */
+  const off = W.animation.init({ params: { ...values, page: "one" }, state: st3, fromScratch: true });
+  W.animation.rebuild(off, { params: { ...values, page: "one", shape: "branching" }, state: st3 });
+  check("…and a shape changed off page 3 lands with no frames",
+    !off.easing && off.shapeMix === 1);
+
+  /* ---- page 2: the bars morph, and only for the sample's own parameters ---- */
+  const many = { ...values, page: "many" };
+  const stM = W.compute({ params: many, rng: makeRng(many.seed) });
+  const axis = M.onAxis(stM.many, stM.manyCfg, "vaf");
+  const hA = M.histOf(axis.values, stM.many.muts, axis.max);
+  const total = (h) => h.reduce((t, c) => t + c[0] + c[1], 0);
+  check("every mutation lands in exactly one bin", total(hA) === stM.manyCfg.n, `${total(hA)} of ${stM.manyCfg.n}`);
+
+  const stB = W.compute({ params: { ...many, purity: "0.35" }, rng: makeRng(many.seed) });
+  const axisB = M.onAxis(stB.many, stB.manyCfg, "vaf");
+  const hB = M.histOf(axisB.values, stB.many.muts, axisB.max);
+  const same = (x, y) => x.every((c, i) => Math.abs(c[0] - y[i][0]) < 1e-9 && Math.abs(c[1] - y[i][1]) < 1e-9);
+  check("the morph's ends are the two histograms themselves",
+    same(M.lerpHist(hA, hB, 0), hA) && same(M.lerpHist(hA, hB, 1), hB));
+  check("…and it holds the mutation count all the way across",
+    [0.25, 0.5, 0.75].every((t) => Math.abs(total(M.lerpHist(hA, hB, t)) - stM.manyCfg.n) < 1e-9));
+  /* A bin that is empty at both ends stays empty: the morph moves the bars that
+     exist and never invents one between them. */
+  check("…and a bin empty at both ends is empty throughout",
+    hA.every((c, i) => !(c[0] + c[1] === 0 && hB[i][0] + hB[i][1] === 0)
+      || M.lerpHist(hA, hB, 0.5)[i][0] + M.lerpHist(hA, hB, 0.5)[i][1] === 0));
+
+  /* WHICH CHANGES EARN ONE, driven through `draw` because that is what leaves
+     the figure the morph starts from. Purity, depth and the mutation count are
+     the same tumour re-read; a seed or a different set of populations is not. */
+  const morphFor = (change) => {
+    drawWithMany(W, many);                       // the figure on screen
+    const next = { ...many, ...change };
+    const st = W.compute({ params: next, rng: makeRng(next.seed) });
+    return W.animation.init({ params: next, state: st, fromScratch: true });
+  };
+  for (const [what, change] of [
+    ["purity", { purity: "0.35" }],
+    ["read depth", { depth: "500" }],
+    ["the mutation count", { mutations: "1000" }],
+  ]) {
+    const a = morphFor(change);
+    check(`changing ${what} morphs the bars from the figure on screen`,
+      Boolean(a.histFrom) && a.easing === true && a.histT === 0,
+      `${a.histFrom ? a.histFrom.length : 0} bins carried`);
+  }
+  for (const [what, change] of [
+    ["the seed", { seed: 2 }],
+    ["the populations", { clones: "three" }],
+  ]) {
+    const a = morphFor(change);
+    check(`…and changing ${what} lands with none — it is a different tumour`,
+      !a.histFrom && !a.easing);
+  }
+  const offPage = (() => {
+    drawWithMany(W, many);
+    const next = { ...values, page: "one", purity: "0.35" };
+    const st = W.compute({ params: next, rng: makeRng(next.seed) });
+    return W.animation.init({ params: next, state: st, fromScratch: true });
+  })();
+  check("…and so does a change made away from page 2", !offPage.histFrom && !offPage.easing);
+  /* And a morph left in flight lands when the reader leaves the page, so
+     coming back never shows a figure halfway between two sets of parameters. */
+  const left = morphFor({ purity: "0.35" });
+  W.animation.rebuild(left, { params: { ...values, page: "one", purity: "0.35" }, state: stB });
+  check("…and leaving page 2 mid-morph lands it", !left.histFrom && !left.spansFrom);
+
+  /* A BAR MAY NOT OUTGROW ITS PLOT MID-MORPH. The height is the count over the
+     top, and both are interpolated — if the top were held at either end, a
+     300 → 1000 change would paint over the caption on the way. It holds by
+     construction (every bin is under the max, and the max carries a tenth of
+     headroom), which is exactly the kind of thing that stops holding when
+     somebody changes one of the two. */
+  {
+    const topA = M.histTop(hA);
+    const topB = M.histTop(hB);
+    let worstFill = 0;
+    for (let t = 0; t <= 1.0001; t += 0.05) {
+      const h = M.lerpHist(hA, hB, t);
+      const top = M.lerp(topA, topB, t);
+      for (const c of h) worstFill = Math.max(worstFill, (c[0] + c[1]) / top);
+    }
+    check("no bar outgrows its plot at any point in the morph",
+      worstFill <= 1, `tallest bar fills ${(worstFill * 100).toFixed(1)}% of the plot`);
+  }
+
+  /* AND NOTHING LANDS OFF THE CANVAS MID-FLIGHT. The settled extents are swept
+     elsewhere; a transition draws geometry no settled state ever does, and that
+     is where a slide that overshoots would hide. */
+  {
+    const W_PX = 550;
+    let worstOver = null;
+    const mid = (params, fix) => {
+      const st = W.compute({ params, rng: makeRng(params.seed) });
+      const a = W.animation.init({ params, state: st, fromScratch: true });
+      fix(a, st);
+      const height = W.height({ w: W_PX, ...params });
+      const { ctx, box } = recorder();
+      W.draw({ ctx, colors: COLORS, w: W_PX, h: height, params, state: st, anim: a });
+      const over = Math.max(0, box.x1 - W_PX, -box.x0, box.y1 - height, -box.y0);
+      if (!worstOver || over > worstOver.over) worstOver = { over, params, height, box };
+    };
+    for (const t of [0.15, 0.35, 0.5, 0.65, 0.85]) {
+      for (const taken of ["1", "2", "4"]) {
+        mid({ ...values, page: "clonal", taken }, (a) => { a.shapeMix = t; a.shape = "branching"; });
+      }
+      for (const axis of ["vaf", "ccf"]) {
+        mid({ ...many, axis, purity: "0.35" }, (a) => {
+          a.histFrom = hA; a.topFrom = M.histTop(hA); a.histT = t; a.spansFrom = null;
+        });
+      }
+      /* both clocks at once: a shape switched while the bars are still moving */
+      mid({ ...many, purity: "0.35" }, (a) => {
+        a.histFrom = hA; a.topFrom = M.histTop(hA); a.histT = t; a.mix = t;
+      });
+    }
+    check("nothing is painted outside the canvas mid-tween either",
+      worstOver.over <= 0.5, `worst ${worstOver.over.toFixed(1)}px on ${worstOver.params.page}`
+        + ` axis=${worstOver.params.axis} taken=${worstOver.params.taken}`
+        + ` box x ${worstOver.box.x0.toFixed(1)}–${worstOver.box.x1.toFixed(1)}`
+        + ` y ${worstOver.box.y0.toFixed(1)}–${worstOver.box.y1.toFixed(1)} in 550×${worstOver.height}`);
+  }
+
+  /* The clock: one length for every transition in the widget, and it lands. */
+  const run = morphFor({ purity: "0.35" });
+  run.mode = "ease";
+  let f2 = 0;
+  while (W.animation.advance(run, { dt: 32, params: { ...many, purity: "0.35" }, state: stB }) && f2 < 200) f2 += 1;
+  check("the bars' morph lands and clears what it moved from",
+    run.histT === 1 && run.histFrom === null && run.spansFrom === null,
+    `${f2} frames, ${f2 * 32}ms against EASE_MS ${M.EASE_MS}`);
 }
 
 /* --- the copy, against the words this collection has struck ---------------
@@ -512,7 +736,8 @@ const defaults = async () => resolveParams(await spec(), new URLSearchParams("")
     .replace(/(^|[^:"'`\\])\/\/[^\n]*/gm, "$1");
   const strings = [...src.matchAll(/(["'`])((?:\\.|(?!\1)[^\\])*)\1/g)]
     .map((m) => m[2].replace(/\$\{[^}]*\}/g, " "))   // a template's ${…} is code, not words
-    .filter((t) => /[a-z]{3}/i.test(t) && !/^<|var\(--/.test(t) && t.trim().length >= 12);
+    /* markup, a design token and a CSS media query are not copy */
+    .filter((t) => /[a-z]{3}/i.test(t) && !/^<|var\(--|^\([a-z-]+:/.test(t) && t.trim().length >= 12);
   const struck = [
     /* the sit/fall/lie pass of 2026-09-13 */
     ["a physical verb for a value", /\b(sits?|sitting|sat|lies|lying|falls?|falling|fell|walks?|walking)\b/i],
