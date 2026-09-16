@@ -273,6 +273,40 @@ const ASSUMED_DIPLOID = [
  * otherwise produces — the card said 0.78 under a note saying it was solved at
  * purity 1, while the panel said 52% (found in the browser, 2026-09-16).
  */
+/* THE CALL, which is what the analysis is FOR. Cell 17: "VAFs can be used to
+   infer tumor heterogeneity indicating whether mutations are present in all
+   cancer cells (clonal) or only a subset (subclonal)", and cell 25 puts the
+   line at a cancer cell fraction near 1 — `CUT`, the same 0.9 page 2 draws.
+
+   IT HAS THREE ANSWERS, NOT TWO. The scenarios that fit can straddle the cut,
+   and then the reading genuinely cannot choose; a tile that said "clonal"
+   there would be a claim the data does not carry (§ *Widget 59*, a tile's
+   label is a claim). Measured over the 144 samples page 1 can build:
+
+                        right    WRONG    cannot tell
+     knowing nothing    73.6%    20.1%        6.3%
+     knowing purity     72.2%    13.9%       13.2%
+     knowing both       80.6%     0.0%       19.4%
+
+   Told nothing the call is confident and wrong one time in five; told both it
+   is right or honestly unsure and NEVER wrong. And "cannot tell" RISES with
+   knowledge, because what goes is the confident wrong answer.
+
+   Kenneth's question of 2026-09-16 was whether a reading that cannot fit the
+   assumption means the mutation is subclonal. It is the other way round: a
+   scenario is ruled out when its fraction passes 1, which means the reading is
+   too HIGH for that multiplicity and more copies carry it — an early event.
+   What is true, and is why the call is worth stating, is that told nothing the
+   reported fraction is LOWER than the truth 69.4% of the time: an uncorrected
+   analysis manufactures the subclonal look. */
+export function verdictFor(vaf, cfg, level) {
+  const fits = scenariosFor(vaf, cfg, level).rows.filter((r) => r.ok);
+  if (!fits.length) return "none";
+  if (fits.every((r) => r.c >= CUT)) return "clonal";
+  if (fits.every((r) => r.c < CUT)) return "subclonal";
+  return "split";
+}
+
 export function reportedScenario(vaf, cfg, level) {
   const { rows } = scenariosFor(vaf, cfg, level);
   return rows.find((r) => r.ok && r.truth) ?? rows.find((r) => r.ok) ?? rows[0];
@@ -687,6 +721,14 @@ export const STRINGS = {
   scenariosCaption: "Scenarios that fit",
   assumingPure: "assuming a pure sample and a diploid genome",
   assumingDiploid: "assuming a diploid genome",
+  callLabel: "Clonal or subclonal",
+  callValue: { clonal: "Clonal", subclonal: "Subclonal", split: "Cannot tell", none: "—" },
+  callNote: {
+    clonal: `every scenario that fits is at ${CUT} or more`,
+    subclonal: `no scenario that fits reaches ${CUT}`,
+    split: `the scenarios that fit straddle ${CUT}`,
+    none: "no scenario fits this reading",
+  },
   truthLegend: "The sample you built",
   /* IT HAS TO NAME THE READER'S OWN NUMBER. "The sample you built is not among
      them" points at an absence — no row is marked, and the reader has to notice

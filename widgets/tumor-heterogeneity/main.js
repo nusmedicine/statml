@@ -1181,18 +1181,33 @@ widgetApi = defineWidget({
     const k = Math.min(anim?.k ?? 0, state.one.depth);
     const vaf = M.vafAt(state.one, k);
     const cfg = state.cfg;
-    /* The same scenario the card and the panel report, so the three agree. */
+    /* THE FRACTION AND THE CALL COME FROM THE SAME SCENARIOS THE PANEL DRAWS,
+       which are read off the EXPECTED VAF. Solving the tile from the draw
+       instead put 0.92 beside a verdict of "subclonal" in 2.7% of settings —
+       the noise having crossed the cut — and it disagreed with the panel's own
+       first row (0.55 against 52%). The draw's own story is told by the tile
+       above, which prints the reading against what the model expects, and by
+       the pileup; it does not need telling twice at the cost of a figure that
+       contradicts itself. */
     const said = M.reportedScenario(cfg.expected, cfg, params.knows);
-    const ccf = k > 0 ? M.ccfFrom(vaf, said.purity, said.m, said.state.total) : NaN;
+    const call = M.verdictFor(cfg.expected, cfg, params.knows);
+    const ccf = k > 0 ? said.c : NaN;
     return [
       { label: "Reads carrying it", value: k > 0 ? `${M.intText(M.altAt(state.one, k))} / ${M.intText(k)}` : "—", note: `of ${M.intText(state.one.depth)} at this depth` },
       { label: "Variant allele frequency", value: k > 0 ? M.n3(vaf) : "—", note: `the model expects ${M.n3(cfg.expected)}` },
       {
         label: "Cancer cell fraction",
-        value: k > 0 ? M.n2(ccf) : "—",
+        value: k > 0 && said.ok ? M.n2(ccf) : "—",
         note: M.knowsOf(params.knows).key === "both"
           ? `at this purity, ${said.m} of ${said.state.total} copies`
           : `at purity ${M.n2(said.purity)}, ${said.m} of ${said.state.total} copies`,
+      },
+      /* WHAT THE ANALYSIS IS FOR (cell 17), and the reason the corrections are
+         worth making: the fraction is the number, this is the call. */
+      {
+        label: M.STRINGS.callLabel,
+        value: k > 0 ? M.STRINGS.callValue[call] : "—",
+        note: k > 0 ? M.STRINGS.callNote[call] : `the threshold is a fraction of ${M.CUT}`,
       },
     ];
   },

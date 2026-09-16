@@ -334,6 +334,71 @@ const defaults = async () => resolveParams(await spec(), new URLSearchParams("")
       !M.scenariosFor(cfgOf({}).expected, cfgOf({}), k).rows.some((r) => r.ok && r.truth));
   }
 
+  /* THE CALL — the one tile on this page that makes a judgement, so it is the
+     one that has to be held hardest (§ *Widget 59*: a tile's label is a claim).
+     Told everything it must never be wrong; told nothing it must be wrong often
+     enough to be worth the reader's attention; and "cannot tell" must RISE with
+     knowledge, because what a measurement removes is the confident wrong call. */
+  {
+    const tally = {};
+    for (const k of M.KNOWLEDGE) tally[k.key] = { right: 0, wrong: 0, split: 0, n: 0 };
+    const sweep = (fn) => {
+      for (const purity of M.PURITY_OPTIONS) {
+        for (const ccf of ["0.25", "0.50", "0.75", "1.00"]) {
+          for (const st of M.COPY_STATES) {
+            for (const copies of st.copies.map(String)) fn(cfgOf({ purity, ccf, state: st.key, copies }));
+          }
+        }
+      }
+    };
+    sweep((cfg) => {
+      const truth = cfg.ccf >= M.CUT ? "clonal" : "subclonal";
+      for (const k of M.KNOWLEDGE) {
+        const v = M.verdictFor(cfg.expected, cfg, k.key);
+        const t = tally[k.key];
+        t.n += 1;
+        if (v === "split") t.split += 1;
+        else if (v === truth) t.right += 1;
+        else t.wrong += 1;
+      }
+    });
+    const pcOf = (x, k) => (100 * tally[k][x]) / tally[k].n;
+    const say = (x, k) => pcOf(x, k).toFixed(1) + "%";
+    check("told purity and copy number, the call is never wrong",
+      tally.both.wrong === 0, tally.both.n + " samples, " + tally.both.wrong + " wrong");
+    check("…told nothing it is wrong often enough to matter",
+      pcOf("wrong", "none") > 15, say("wrong", "none"));
+    check("…and a call of cannot-tell rises with what the analysis is given",
+      pcOf("split", "none") < pcOf("split", "purity") && pcOf("split", "purity") < pcOf("split", "both"),
+      [say("split", "none"), say("split", "purity"), say("split", "both")].join(" → "));
+
+    /* Three answers, each reachable, and each with its own value and note. */
+    const seen = new Set();
+    sweep((cfg) => { for (const k of M.KNOWLEDGE) seen.add(M.verdictFor(cfg.expected, cfg, k.key)); });
+    check("the call has three answers and the reader can reach all of them",
+      seen.has("clonal") && seen.has("subclonal") && seen.has("split"), [...seen].join(", "));
+    for (const key of ["clonal", "subclonal", "split", "none"]) {
+      check("…the " + key + " answer has a value and a note",
+        Boolean(M.STRINGS.callValue[key]) && Boolean(M.STRINGS.callNote[key]));
+    }
+
+    /* The call and the fraction beside it come from the SAME scenarios, so the
+       tile can never sit on the other side of the threshold from its own call:
+       solving the tile from the draw instead did exactly that in 2.7% of
+       settings (measured 2026-09-16). */
+    let clash = 0;
+    sweep((cfg) => {
+      for (const k of M.KNOWLEDGE) {
+        const said = M.reportedScenario(cfg.expected, cfg, k.key);
+        const v = M.verdictFor(cfg.expected, cfg, k.key);
+        if (v === "clonal" && said.c < M.CUT) clash += 1;
+        if (v === "subclonal" && said.c >= M.CUT) clash += 1;
+      }
+    });
+    check("…and the fraction beside it never sits the other side of the threshold",
+      clash === 0, clash + " disagreements");
+  }
+
   /* THE MINOR CHROMOSOME: a picture the reading cannot see. Two rows that
      differ only by host carry the same multiplicity and the same fraction, and
      they are adjacent so the figure shows one arrangement with the mutation on
