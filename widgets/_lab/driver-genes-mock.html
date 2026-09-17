@@ -1,0 +1,588 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · driver-genes — mock</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1600px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 104ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); min-height: 26px; white-space: pre-line; }
+  .cand .under { font-size: 11px; font-family: var(--font-mono); color: var(--ink-2); margin: var(--sp-1) 0 0; white-space: pre-line; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 104ch; }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+       border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 104ch; }
+  table { border-collapse: collapse; font-size: var(--fs-sm); margin: var(--sp-2) 0; max-width: 130ch; }
+  th, td { border: 1px solid var(--grid); padding: 4px 10px; text-align: left; vertical-align: top; }
+  th { color: var(--ink-2); font-weight: 600; }
+  td.num { font-family: var(--font-mono); white-space: nowrap; }
+  #checks { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--ink-2); white-space: pre-line;
+            padding: var(--sp-3); background: var(--surface-2); border: 1px solid var(--grid); max-width: 104ch; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>driver-genes &middot; mock</h1>
+  <p class="note">
+    Slot 69, for 01-3 cells 12&ndash;25. <b>Every number drawn here is computed on this page</b> by
+    <code>_lab/driver-genes-model.js</code>: maftools 2.26.0's <code>oncodrive</code> ported line for line and checked
+    against maftools on all 4,655 genes of the lesson's MAF (<code>_lab/driver-genes-measure.mjs</code>), and a
+    simulated cohort calibrated to that MAF. The mock draws filled states so they can be judged; the widget opens empty.
+    On-canvas strings are candidates for the copy audit, not copy. Each section ends with a recommendation; the
+    grey-ruled boxes are the questions only you can answer. <span id="seedNote"></span>
+  </p>
+
+  <h2>0 &middot; What the measurement found</h2>
+  <div id="findings"></div>
+
+  <h2>1 &middot; Page 1, <i>One gene</i>: cell 12's five steps on one gene</h2>
+  <p class="note">
+    An oncogene shaped like PIK3CA in the lesson's file: 1,068 residues, 359 mutations, its hotspots where PIK3CA's
+    are. Each step is one press of Step. The top panel is the whole protein as a lollipop (a round head is missense, a
+    square head truncating); the bottom panel is a close-up of one cluster, because the rule that merges residues works
+    at 5 residues, which is 2 pixels on the whole protein.
+  </p>
+  <div class="row" id="stepsRow"></div>
+  <p class="rec" id="recSteps"></p>
+
+  <h2>2 &middot; The four genes the page offers, each at its last step</h2>
+  <p class="note">
+    Each is simulated with the length, count, hotspots and truncating share of a gene in the lesson's file, counted
+    once per tumour; <code>_lab/driver-genes-measure.mjs</code> &sect;5 checks each shape's median score is within
+    0.1 of its gene's. The small oncogene has 26 mutations and the oncogene 359.
+  </p>
+  <div class="row" id="kindsRow"></div>
+  <p class="q" id="qNames"></p>
+  <p class="rec" id="recNames"></p>
+
+  <h2>3 &middot; Page 2, <i>The cohort</i>: cell 18's plot, with each gene's kind known</h2>
+  <p class="note">
+    One simulated cohort: <span id="cohortSize"></span> genes, nine of them drivers shaped like the lesson's (PIK3CA,
+    AKT1, KRAS; TP53, CDH1, GATA3, MAP3K1, PTEN, NF1), the rest passengers whose counts and residues are calibrated to
+    the file. Axes as <code>plotOncodrive(useFraction = TRUE)</code>: the fraction of mutations in clusters across,
+    &minus;log<sub>10</sub> FDR up, size the number of clusters. Colour is the kind the simulation gave each gene; a
+    ring is a call at FDR &le; 0.05. <b>The same cohort, read two ways</b>: B is A with each mutation recorded a second
+    time at the rate the lesson's MAF repeats records.
+  </p>
+  <div class="row" id="cohortRow"></div>
+  <p class="q" id="qRecords"></p>
+  <p class="rec" id="recRecords"></p>
+
+  <h2>4 &middot; A count test beside the clustering score?</h2>
+  <p class="note">
+    The notebook runs none. maftools' own (<code>pvalMethod = "poisson"</code>) is two-sided with the cluster count as a
+    covariate, so 19 of its 32 calls on the lesson's file are genes with <i>fewer</i> mutations than expected. B is a
+    one-sided test of our own: is a gene's count above what its length predicts at the cohort's rate? On the lesson's
+    file, counted once, it calls <b>207 of 4,566 genes</b> &mdash; every suppressor, and long genes such as RYR2, LRP2,
+    FAT3 and CSMD3.
+  </p>
+  <div class="row" id="countRow"></div>
+  <p class="q" id="qCount"></p>
+  <p class="rec" id="recCount"></p>
+
+  <h2>5 &middot; The rail</h2>
+  <p class="note">Rendered by core's <code>buildControls</code> at 300px. The drive row (Step &middot; Play &middot; Reset) is core's and not drawn here.</p>
+  <div class="row" id="railRow"></div>
+  <p class="rec" id="recRail"></p>
+
+  <h2>6 &middot; What this page checks</h2>
+  <p class="note">The claims above, recomputed in the browser from the module the measure script imports.</p>
+  <div id="checks">running…</div>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+import { buildControls } from "../core/controls.js";
+import { resolveParams } from "../core/params.js";
+import * as M from "./driver-genes-model.js";
+
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+const W = 550;
+const SEED = Number(new URLSearchParams(location.search).get("seed") || 1);
+const f2 = (x) => x.toFixed(2);
+const f3 = (x) => x.toFixed(3);
+const SUP = { "-": "⁻", 0: "⁰", 1: "¹", 2: "²", 3: "³", 4: "⁴", 5: "⁵", 6: "⁶", 7: "⁷", 8: "⁸", 9: "⁹" };
+const sci = (v) => { if (v >= 0.001) return v.toFixed(3); const e = Math.floor(Math.log10(v)); return `${(v / 10 ** e).toFixed(1)} × 10${String(e).split("").map((c) => SUP[c]).join("")}`; };
+
+/* ---------------------------------------------------------------- shell */
+function el(tag, cls, text) { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
+function cand(rowId, title, sub, w = W) {
+  const box = el("div", "cand");
+  box.style.width = `${w}px`;
+  box.appendChild(el("h3", null, title));
+  box.appendChild(el("p", "sub", sub));
+  document.getElementById(rowId).appendChild(box);
+  return box;
+}
+function canvasIn(box, w, h) {
+  const c = document.createElement("canvas");
+  c.width = Math.round(w * DPR); c.height = Math.round(h * DPR);
+  c.style.width = `${w}px`; c.style.height = `${h}px`;
+  box.appendChild(c);
+  const ctx = c.getContext("2d");
+  ctx.scale(DPR, DPR);
+  return ctx;
+}
+const wash = (color, a) => {
+  const m = String(color).match(/^#([0-9a-f]{6})$/i);
+  if (!m) return color;
+  const p = [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16));
+  return `rgba(${p[0]},${p[1]},${p[2]},${a})`;
+};
+function label(ctx, s, x, y, { size = 11, colour = T.ink2, align = "left", mono = false, weight = "", baseline = "alphabetic" } = {}) {
+  ctx.save();
+  ctx.font = `${weight ? weight + " " : ""}${size}px ${mono ? T.mono : T.font}`;
+  ctx.fillStyle = colour; ctx.textAlign = align; ctx.textBaseline = baseline;
+  ctx.fillText(s, x, y);
+  ctx.restore();
+}
+function line(ctx, x1, y1, x2, y2, colour, width = 1, dash = null) {
+  ctx.save(); ctx.strokeStyle = colour; ctx.lineWidth = width; if (dash) ctx.setLineDash(dash);
+  ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); ctx.restore();
+}
+
+/* ---------------------------------------------------------------- one gene */
+function tally(gene) {
+  const at = new Map();
+  for (const m of gene.mutations) {
+    const e = at.get(m.pos) || { pos: m.pos, n: 0, miss: 0, trunc: 0 };
+    e.n += 1; if (m.cls === "truncating") e.trunc += 1; else e.miss += 1;
+    at.set(m.pos, e);
+  }
+  return [...at.values()].sort((a, b) => a.pos - b.pos);
+}
+function head(ctx, x, y, r, truncating, fill) {
+  ctx.save(); ctx.fillStyle = fill;
+  if (truncating) ctx.fillRect(x - r, y - r, 2 * r, 2 * r);
+  else { ctx.beginPath(); ctx.arc(x, y, r, 0, 2 * Math.PI); ctx.fill(); }
+  ctx.restore();
+}
+/** The cluster the close-up follows: the one with the most residues hit, then the most mutations. */
+function focusOf(sc) {
+  if (!sc.res) return null;
+  return [...sc.res.clusters].sort((a, b) => (b.parts.length - a.parts.length) || (b.N - a.N))[0];
+}
+const STEPS = ["Mutations land on residues", "Residues above chance", "Clusters", "Each cluster scored", "The gene's score against the background"];
+
+/** The whole protein: stems on a square-root scale so a residue hit once stays visible beside one hit 131 times. */
+function drawProtein(ctx, gene, sc, step, focus, { x0 = 52, x1 = 534, top = 34, base = 150 } = {}) {
+  const res = tally(gene);
+  const maxN = Math.max(...res.map((r) => r.n));
+  const X = (p) => x0 + ((p - 0.5) / gene.L) * (x1 - x0);
+  const Y = (n) => base - Math.sqrt(n / maxN) * (base - top);
+  // ticks in priority order; one is dropped when it would sit within 11px of a kept one
+  const wanted = [maxN, ...(step >= 2 && Number.isFinite(sc.th) ? [sc.th] : []), 1, 10, 50, 100].filter((t) => t <= maxN);
+  const ticks = [];
+  for (const t of wanted) if (!ticks.some((k) => Math.abs(Y(k) - Y(t)) < 11)) ticks.push(t);
+  for (const t of ticks) {
+    line(ctx, x0 - 4, Y(t), x0, Y(t), T.axis);
+    label(ctx, String(t), x0 - 7, Y(t) + 3.5, { size: 10, colour: T.ink3, align: "right", mono: true });
+  }
+  label(ctx, "mutations at the residue", x0, top - 12, { size: 10, colour: T.ink3 });
+  if (step >= 2 && Number.isFinite(sc.th)) {
+    line(ctx, x0, Y(sc.th), x1, Y(sc.th), T.highlight, 1, [4, 3]);
+    label(ctx, `threshold ${sc.th}`, x0 + 4, Y(sc.th) - 4, { size: 10, colour: T.highlight });
+  }
+  for (const r of res) line(ctx, X(r.pos), base, X(r.pos), Y(r.n), wash(T.ink3, 0.8), 1);
+  for (const r of res) {
+    const hot = step >= 2 && r.n >= sc.th;
+    const fill = hot ? T.highlight : step >= 2 ? wash(T.ink2, 0.45) : T.ink2;
+    head(ctx, X(r.pos), Y(r.n), hot ? 3.2 : 2.4, r.trunc > r.miss, fill);
+  }
+  ctx.fillStyle = T.surface3; ctx.fillRect(x0, base + 3, x1 - x0, 8);
+  ctx.strokeStyle = T.axis; ctx.strokeRect(x0 + 0.5, base + 3.5, x1 - x0 - 1, 7);
+  const tickAt = [1, ...[0.25, 0.5, 0.75].map((f) => Math.round((f * gene.L) / 50) * 50), gene.L];
+  for (const t of tickAt) label(ctx, String(t), X(t), base + 24, { size: 10, colour: T.ink3, align: "center", mono: true });
+  if (focus) {
+    const a = X(focus.lo), b = X(focus.hi);
+    ctx.save(); ctx.strokeStyle = T.ink1; ctx.lineWidth = 1; ctx.strokeRect(a - 2, base + 1, Math.max(4, b - a + 4), 12); ctx.restore();
+  }
+  if (step >= 3 && sc.res) {
+    for (const c of sc.res.clusters) {
+      const a = X(c.start) - 1, b = Math.max(X(c.end) + 1, a + 3);
+      line(ctx, a, base + 34, b, base + 34, T.ink1, 3);
+    }
+    label(ctx, `${sc.res.count} cluster${sc.res.count === 1 ? "" : "s"}`, x1, base + 50, { size: 10, colour: T.ink2, align: "right" });
+  }
+}
+
+/** The close-up: one cluster's residues, a column each. */
+function drawCloseUp(ctx, gene, sc, step, cl, win, { x0 = 52, x1 = 534, top = 268, base = 340 } = {}) {
+  const at = new Map(tally(gene).map((r) => [r.pos, r]));
+  const cols = win.hi - win.lo + 1, cw = (x1 - x0) / cols;
+  const CX = (p) => x0 + (p - win.lo) * cw;
+  let maxN = 1;
+  for (let p = win.lo; p <= win.hi; p += 1) maxN = Math.max(maxN, at.get(p)?.n || 0);
+  const Y = (n) => base - Math.sqrt(n / maxN) * (base - top);
+  label(ctx, `close-up · residues ${win.lo}–${win.hi}`, x0, top - 44, { size: 10, colour: T.ink3 });
+  if (step >= 3 && cl) {
+    ctx.fillStyle = T.surface3;
+    ctx.fillRect(CX(cl.start), top - 32, (cl.end - cl.start + 1) * cw, base - top + 32);
+    label(ctx, `cluster ${cl.start}–${cl.end}`, CX(cl.start) + 3, top - 22, { size: 10, colour: T.ink1 });
+  }
+  if (step >= 2 && Number.isFinite(sc.th)) {
+    line(ctx, x0, Y(sc.th), x1, Y(sc.th), T.highlight, 1, [4, 3]);
+  }
+  for (let p = win.lo; p <= win.hi; p += 1) {
+    const r = at.get(p);
+    if (!r) continue;
+    const hot = step >= 2 && r.n >= sc.th;
+    ctx.fillStyle = hot ? T.highlight : step >= 2 ? wash(T.ink3, 0.55) : T.ink3;
+    ctx.fillRect(CX(p) + 2, Y(r.n), cw - 4, base - Y(r.n));
+    label(ctx, String(r.n), CX(p) + cw / 2, Y(r.n) - 3, { size: 9, colour: T.ink2, align: "center", mono: true });
+  }
+  line(ctx, x0, base, x1, base, T.axis);
+  for (let p = win.lo; p <= win.hi; p += 1) if (p % 5 === 0) label(ctx, String(p), CX(p) + cw / 2, base + 12, { size: 9, colour: T.ink3, align: "center", mono: true });
+  if (step >= 4 && cl) {
+    label(ctx, "distance", x0 - 4, base + 26, { size: 9, colour: T.ink3, align: "right" });
+    label(ctx, "part", x0 - 4, base + 39, { size: 9, colour: T.ink3, align: "right" });
+    for (const part of cl.parts) {
+      const cx = CX(part.pos) + cw / 2;
+      if (part.distance === 0) label(ctx, "peak", cx, Y(part.N) - 15, { size: 9, colour: T.ink1, align: "center", weight: "600" });
+      label(ctx, String(part.distance), cx, base + 26, { size: 9, colour: T.ink2, align: "center", mono: true });
+      label(ctx, part.part.toFixed(3).replace(/^0/, ""), cx, base + 39, { size: 9, colour: T.ink1, align: "center", mono: true });
+    }
+    label(ctx, `part = (mutations at the residue ÷ ${gene.mutations.length}) ÷ √2^distance;  cluster score = ${[...cl.parts].sort((a, b) => a.pos - b.pos).map((p) => p.part.toFixed(3).replace(/^0/, "")).join(" + ")} = ${f3(cl.score)}`, x0, base + 56, { size: 10, colour: T.ink1 });
+  }
+}
+
+/** The background the score is compared with: a normal with the predefined mean and sd. */
+function drawBackground(ctx, score, { x0 = 52, x1 = 534, top = 258, base = 366 } = {}) {
+  const lo = -0.1, hi = 1.1;
+  const X = (s) => x0 + ((s - lo) / (hi - lo)) * (x1 - x0);
+  const pdf = (s) => Math.exp(-0.5 * ((s - M.BACKGROUND.mean) / M.BACKGROUND.sd) ** 2);
+  const Y = (d) => base - d * (base - top);
+  ctx.save();
+  ctx.beginPath(); ctx.moveTo(X(lo), base);
+  for (let s = lo; s <= hi + 1e-9; s += 0.005) ctx.lineTo(X(s), Y(pdf(s)));
+  ctx.lineTo(X(hi), base); ctx.closePath(); ctx.fillStyle = wash(T.reference, 0.18); ctx.fill();
+  if (score != null) {
+    ctx.beginPath(); ctx.moveTo(X(score), base);
+    for (let s = score; s <= hi + 1e-9; s += 0.005) ctx.lineTo(X(s), Y(pdf(s)));
+    ctx.lineTo(X(hi), base); ctx.closePath(); ctx.fillStyle = wash(T.extreme, 0.55); ctx.fill();
+  }
+  ctx.beginPath();
+  for (let s = lo; s <= hi + 1e-9; s += 0.005) { const x = X(s), y = Y(pdf(s)); if (s === lo) ctx.moveTo(x, y); else ctx.lineTo(x, y); }
+  ctx.strokeStyle = T.ink3; ctx.lineWidth = 1; ctx.stroke();
+  ctx.restore();
+  line(ctx, x0, base, x1, base, T.axis);
+  for (const t of [0, 0.25, 0.5, 0.75, 1]) label(ctx, String(t), X(t), base + 13, { size: 10, colour: T.ink3, align: "center", mono: true });
+  label(ctx, "the background: a normal curve with mean 0.279 and sd 0.13", x0, top - 16, { size: 10, colour: T.ink3 });
+  if (score != null) {
+    line(ctx, X(score), top - 4, X(score), base, T.highlight, 2);
+    label(ctx, `score ${f3(score)}`, X(score) + (score > 0.8 ? -5 : 5), top + 6, { size: 11, colour: T.highlight, align: score > 0.8 ? "right" : "left", weight: "600" });
+    const z = M.zOf(score);
+    label(ctx, `z = (${f3(score)} − 0.279) ÷ 0.13 = ${f2(z)}      p = ${sci(M.upperTail(z))}`, x0, base + 30, { size: 11, colour: T.ink1 });
+  }
+}
+
+function geneFigure(box, gene, step, { h = 410 } = {}) {
+  const ctx = canvasIn(box, W, h);
+  const sc = M.scoreGene(gene);
+  const cl = focusOf(sc);
+  const win = cl ? { lo: Math.max(1, Math.min(cl.start - 3, cl.coreStart - 8)), hi: Math.min(gene.L, Math.max(cl.end + 3, cl.coreEnd + 8)) } : null;
+  drawProtein(ctx, gene, sc, step, win);
+  if (step <= 4) {
+    if (cl) drawCloseUp(ctx, gene, sc, step, cl, win);
+    else if (step >= 2) {
+      label(ctx, `No residue has ${sc.th} mutations, the threshold at ${sc.n} mutations on ${gene.L} residues.`, 52, 262, { size: 11, colour: T.ink1 });
+      label(ctx, "The gene returns no cluster, so it is not in the table and is not tested.", 52, 280, { size: 11, colour: T.ink1 });
+    }
+  } else if (sc.res) drawBackground(ctx, sc.res.score);
+  else {
+    label(ctx, `No residue has ${sc.th} mutations: no cluster, no score, not in the table.`, 52, 226, { size: 11, colour: T.ink1 });
+    drawBackground(ctx, null);
+  }
+  return sc;
+}
+
+/* Labels for the planted genes: beside the point where there is room, else
+   moved up or down with a leader line back to it, never left floating. */
+function placeLabels(ctx, items, { x0, x1, top, base }) {
+  const boxes = [];
+  ctx.save(); ctx.font = `10px ${T.font}`;
+  const sorted = [...items].sort((a, b) => a.y - b.y);
+  for (const it of sorted) {
+    const w = ctx.measureText(it.text).width;
+    let chosen = null;
+    for (const dy of [0, -13, 13, -26, 26, -39, 39, -52, 52]) {
+      for (const side of it.x > x0 + 110 ? ["left", "right"] : ["right", "left"]) {
+        const lx = side === "left" ? it.x - it.r - 6 - w : it.x + it.r + 6;
+        const ly = it.y + dy;
+        const box = { x: lx - 2, y: ly - 10, w: w + 4, h: 13 };
+        if (box.x < x0 || box.x + box.w > x1 + 12 || box.y < top - 12 || box.y + box.h > base + 2) continue;
+        if (boxes.some((b) => b.x < box.x + box.w && box.x < b.x + b.w && b.y < box.y + box.h && box.y < b.y + b.h)) continue;
+        chosen = { lx, ly, side, box, dy };
+        break;
+      }
+      if (chosen) break;
+    }
+    if (!chosen) continue;
+    boxes.push(chosen.box);
+    if (chosen.dy !== 0) line(ctx, chosen.side === "left" ? chosen.lx + w + 2 : chosen.lx - 2, chosen.ly - 3.5, it.x, it.y, T.ink3, 0.75);
+    label(ctx, it.text, chosen.lx, chosen.ly, { size: 10, colour: T.ink1 });
+  }
+  ctx.restore();
+}
+
+/* ---------------------------------------------------------------- 0 · findings */
+{
+  const rows = [
+    ["Your cell 16 reproduces", "All seven rows, every column, on maftools 2.26.0. The JS port matches maftools on all 4,655 genes with 5+ mutations: every threshold, the 3,856 left out, and all 799 scores and FDRs.", "—"],
+    ["The count only admits a gene", "Past <code>minMut = 5</code> the score is the share of a gene's mutations at residues hit at least the threshold (2 for 4,652 genes; 3 for PIK3CA and GATA3; 5 for TP53), each divided by √2 per residue from its cluster's peak. NDUFS1 (9) and RPL22 (6) score 1 and rank 1–2; PIK3CA (369) scores 0.804 and ranks 7.", "page 1; &ldquo;a smaller FDR is a stronger driver&rdquo;"],
+    ["Suppressors are tested, not called", "TP53 0.49 (fdr 0.79), GATA3 0.60, PTEN 0.51, CDH1 0.38, MAP3K1 0.28. NF1 (40 mutations) has no residue hit twice and is not in the table; neither are 3,856 of the 4,655.", "&ldquo;not called means passenger&rdquo;"],
+    ["Step 5's background never ran", "GDC writes a silent change as <code>p.D395=</code>; maftools reads a residue from 2 of 21,620. Read correctly, 76 genes return a cluster, still under the 100 it needs. The fallback 0.279 / 0.13 are &ldquo;estimated from COSMIC synonymous variants&rdquo; (maftools' help).", "<b>your notebook</b>, cell 12"],
+    ["The MAF repeats records", "18 tumours have 2–3 aliquots and <code>isTCGA = T</code> merges them; 238 two-base changes are two rows. Counted once per tumour the table has 478 genes and loses DPEP1 (its R130W pair is one patient's primary and metastasis); with two-base changes once, 415 and FAM102A (E109V + E109* is one event). 387 of the 799 genes are in the table only on residues one tumour hit.", "<b>your notebook</b>, cells 2 and 16; §3 here"],
+    ["maftools' count test is not usable", "<code>pvalMethod = \"poisson\"</code> is two-sided with the cluster count as a covariate: 19 of its 32 calls have fewer mutations than expected, CDH1 among them.", "§4 here"],
+  ];
+  const t = el("table");
+  t.innerHTML = `<tr><th>finding</th><th>measured</th><th>bears on</th></tr>` + rows.map((r) => `<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td></tr>`).join("");
+  document.getElementById("findings").appendChild(t);
+  document.getElementById("seedNote").textContent = `Cohort seed ${SEED} (?seed=N to change it).`;
+}
+
+/* ---------------------------------------------------------------- 1 · the steps */
+const ONCO = M.drawShaped(M.SHAPES.PIK3CA, M.mulberry32(SEED), { name: "PIK3CA" });
+{
+  const sc = M.scoreGene(ONCO);
+  const cl = focusOf(sc);
+  const subs = [
+    `${ONCO.mutations.length} mutations, stacked on their residues`,
+    `threshold ${sc.th}: the smallest count with binomial P < 0.01\nat ${sc.n} mutations on ${ONCO.L} residues (P(${sc.th}) = ${M.dbinom(sc.th, sc.n, 1 / ONCO.L).toFixed(4)}, P(${sc.th - 1}) = ${M.dbinom(sc.th - 1, sc.n, 1 / ONCO.L).toFixed(4)})`,
+    `marked residues fewer than 5 apart merge; each cluster widens\nby up to 5 residues onto residues below the threshold`,
+    `the close-up's cluster scores ${f3(cl.score)}; ${sc.res.count} clusters sum to ${f3(sc.res.score)}`,
+    `the score against the background: z and a one-sided p;\nwhether the gene is called waits for the FDR over every tested gene (page 2)`,
+  ];
+  STEPS.forEach((name, i) => {
+    const box = cand("stepsRow", `Step ${i + 1} · ${name}`, subs[i]);
+    geneFigure(box, ONCO, i + 1);
+  });
+  document.getElementById("recSteps").innerHTML =
+    "<b>Five presses, in cell 12's order and under its headings.</b> The close-up follows the cluster with the most "
+    + "residues (the helical cluster here, where the peak and its neighbours show the √2 discount) and would follow a "
+    + "click on any cluster's bar under the protein. Stems use a square-root scale so the threshold of "
+    + `${sc.th} is a visible line beside a residue hit ${Math.max(...tally(ONCO).map((r) => r.n))} times; <code>lollipopPlot</code> is linear and draws one `
+    + "pin per protein change, where oncodrive counts the residue. The FDR needs the other genes, so it is page 2's.";
+}
+
+/* ---------------------------------------------------------------- 2 · the kinds */
+const KIND_GENES = [];
+{
+  const kinds = [
+    ["Oncogene", "PIK3CA", () => M.drawShaped(M.SHAPES.PIK3CA, M.mulberry32(SEED), { name: "PIK3CA" })],
+    ["Tumour suppressor", "TP53", () => M.drawShaped(M.SHAPES.TP53, M.mulberry32(SEED), { name: "TP53" })],
+    ["Small oncogene", "AKT1", () => M.drawShaped(M.SHAPES.AKT1, M.mulberry32(SEED), { name: "AKT1" })],
+    ["Passenger", "a gene with 7 mutations on 749 residues", null],
+  ];
+  // the passenger: the first seed whose passenger returns no cluster, as 94% do
+  let pSeed = SEED, passenger;
+  for (;; pSeed += 1) { passenger = M.drawPassenger(M.mulberry32(pSeed), { L: 749, n: 7 }); if (!M.scoreGene(passenger).res) break; }
+  kinds[3][2] = () => passenger;
+  for (const [kind, like, make] of kinds) {
+    const gene = make();
+    const sc = M.scoreGene(gene);
+    const trunc = gene.mutations.filter((m) => m.cls === "truncating").length;
+    const box = cand("kindsRow", kind, `shaped like ${like}${kind === "Passenger" ? ` (seed ${pSeed})` : ""}\n${gene.mutations.length} mutations on ${gene.L} residues, ${Math.round((100 * trunc) / gene.mutations.length)}% truncating`);
+    geneFigure(box, gene, 5);
+    box.appendChild(el("p", "under", sc.res
+      ? `threshold ${sc.th} · ${sc.res.count} cluster${sc.res.count === 1 ? "" : "s"} · ${sc.res.inClusters} of ${sc.n} in clusters (${f2(sc.res.inClusters / sc.n)}) · score ${f3(sc.res.score)}`
+      : `threshold ${sc.th} · no cluster · not tested`));
+    KIND_GENES.push({ kind, like, gene, sc });
+  }
+  document.getElementById("qNames").innerHTML =
+    "<b>Your call:</b> are the four genes named by <b>kind</b> (Oncogene · Tumour suppressor · Small oncogene · "
+    + "Passenger) or by the <b>gene each is shaped on</b> (PIK3CA · TP53 · AKT1 · a passenger)? Names tie the page to "
+    + "cells 21 and 24's lollipops; but these are simulated genes, so a named PIK3CA scores "
+    + `${f3(KIND_GENES[0].sc.res.score)} here where cell 16 prints 0.804.`;
+  document.getElementById("recNames").innerHTML =
+    "<b>By kind, with the gene each is shaped on in the control's detail.</b> The kind is what the page is about "
+    + "(clustered gain of function against spread loss of function, cell 19), and page 2 colours by the same four words. "
+    + "The small oncogene is the lesson's second misconception on its own: 26 mutations, scored "
+    + `${f3(KIND_GENES[2].sc.res.score)}, above the oncogene's ${f3(KIND_GENES[0].sc.res.score)} with 359.`;
+}
+
+/* ---------------------------------------------------------------- 3 · the cohort */
+const KIND_COLOUR = { oncogene: T.groupA, suppressor: T.groupB, passenger: T.ink3 };
+function drawCohortPlot(box, genes, table, { h = 430, xKey = "fraction", yKey = "fdr", calledKey = "called", xLabel = "Fraction of mutations in clusters", xDomain = [0, 1], xTicks = [0, 0.2, 0.4, 0.6, 0.8, 1], xOf = (g) => g.fraction, sizeOf = (g) => g.clusters, yCap = null } = {}) {
+  const ctx = canvasIn(box, W, h);
+  const x0 = 52, x1 = 534, top = 44, base = h - 92;
+  const ys = table.map((g) => -Math.log10(Math.max(g[yKey], 1e-300)));
+  const yMax = yCap ?? Math.max(6, Math.ceil(Math.max(...ys)));
+  const X = (v) => x0 + ((Math.min(xDomain[1], Math.max(xDomain[0], v)) - xDomain[0]) / (xDomain[1] - xDomain[0])) * (x1 - x0);
+  const Y = (v) => base - (Math.min(yMax, v) / yMax) * (base - top);
+  for (let t = 0; t <= yMax; t += yMax > 8 ? 2 : 1) { line(ctx, x0, Y(t), x1, Y(t), T.grid); label(ctx, String(t), x0 - 6, Y(t) + 3.5, { size: 10, colour: T.ink3, align: "right", mono: true }); }
+  for (const t of xTicks) label(ctx, String(t), X(t), base + 14, { size: 10, colour: T.ink3, align: "center", mono: true });
+  line(ctx, x0, base, x1, base, T.axis);
+  label(ctx, xLabel, (x0 + x1) / 2, base + 30, { size: 11, colour: T.ink2, align: "center" });
+  ctx.save(); ctx.translate(14, (top + base) / 2); ctx.rotate(-Math.PI / 2); label(ctx, "−log₁₀ FDR", 0, 0, { size: 11, colour: T.ink2, align: "center" }); ctx.restore();
+  const cut = -Math.log10(0.05);
+  line(ctx, x0, Y(cut), x1, Y(cut), T.ink2, 1, [5, 4]);
+  label(ctx, "FDR 0.05", x1, Y(cut) - 4, { size: 10, colour: T.ink2, align: "right" });
+  const r = (g) => 2 + 1.3 * Math.sqrt(Math.max(1, sizeOf(g)));
+  const order = [...table].sort((a, b) => (a.kind === "passenger" ? 0 : 1) - (b.kind === "passenger" ? 0 : 1));
+  for (const g of order) {
+    const x = X(xOf(g)), y = Y(-Math.log10(Math.max(g[yKey], 1e-300)));
+    ctx.beginPath(); ctx.arc(x, y, r(g), 0, 2 * Math.PI);
+    ctx.fillStyle = g.kind === "passenger" ? wash(T.ink3, 0.45) : wash(KIND_COLOUR[g.kind], 0.9);
+    ctx.fill();
+  }
+  for (const g of order) {
+    if (!g[calledKey]) continue;
+    const x = X(xOf(g)), y = Y(-Math.log10(Math.max(g[yKey], 1e-300)));
+    ctx.beginPath(); ctx.arc(x, y, r(g) + 3, 0, 2 * Math.PI); ctx.strokeStyle = T.ink1; ctx.lineWidth = 1.25; ctx.stroke();
+  }
+  placeLabels(ctx, order.filter((g) => g.kind !== "passenger").map((g) => ({
+    text: g.name, x: X(xOf(g)), y: Y(-Math.log10(Math.max(g[yKey], 1e-300))) + 3.5, r: r(g) + (g[calledKey] ? 3 : 0),
+  })), { x0, x1, top, base });
+  // legend
+  let lx = x0;
+  for (const [k, name] of [["oncogene", "Oncogene"], ["suppressor", "Tumour suppressor"], ["passenger", "Passenger"]]) {
+    ctx.beginPath(); ctx.arc(lx + 4, 18, 4, 0, 2 * Math.PI); ctx.fillStyle = k === "passenger" ? wash(T.ink3, 0.6) : KIND_COLOUR[k]; ctx.fill();
+    label(ctx, name, lx + 12, 22, { size: 11, colour: T.ink2 }); lx += 26 + ctx.measureText(name).width + 30;
+  }
+  ctx.beginPath(); ctx.arc(lx + 5, 18, 6, 0, 2 * Math.PI); ctx.strokeStyle = T.ink1; ctx.lineWidth = 1.25; ctx.stroke();
+  label(ctx, "called", lx + 15, 22, { size: 11, colour: T.ink2 });
+  return { ctx, base };
+}
+function notTestedLine(ctx, genes, base, what = "no residue at the threshold") {
+  const at5 = genes.filter((g) => g.mutations.length >= 5);
+  const out = at5.filter((g) => !g.tested);
+  const drivers = out.filter((g) => g.kind !== "passenger").map((g) => g.name);
+  label(ctx, `Not in the table: ${out.length.toLocaleString()} of ${at5.length.toLocaleString()} genes with 5+ mutations, ${what}${drivers.length ? ` — ${drivers.join(", ")} among them` : ""}`, 52, base + 52, { size: 10.5, colour: T.ink1 });
+}
+const COHORT_A = M.drawCohort(SEED);
+const TABLE_A = M.oncodriveTable(COHORT_A);
+const COHORT_B = M.drawCohort(SEED, { repeats: M.REPEAT_RATE });
+const TABLE_B = M.oncodriveTable(COHORT_B);
+const callsOf = (table) => table.filter((g) => g.called);
+const describe = (table) => {
+  const c = callsOf(table);
+  const pass = c.filter((g) => g.kind === "passenger");
+  return `${table.length} genes tested · ${c.length} called: ${c.filter((g) => g.kind !== "passenger").map((g) => g.name).join(", ")}`
+    + `${pass.length ? `, and ${pass.length} passenger${pass.length > 1 ? "s" : ""} (${pass.map((g) => `${g.mutations.length} mutations${g.mutations.some((m) => m.repeat) ? ", one recorded twice" : ""}, score ${f2(g.score)}`).join("; ")})` : ""}`
+    + `\nno suppressor called: ${table.filter((g) => g.kind === "suppressor").map((g) => `${g.name} ${f2(g.score)}`).join(", ")}`;
+};
+{
+  document.getElementById("cohortSize").textContent = COHORT_A.filter((g) => g.mutations.length >= 5).length.toLocaleString();
+  const a = cand("cohortRow", "A · Each mutation once", "one record per tumour and event\n(the lesson's file counted once: 415 genes tested)");
+  const pa = drawCohortPlot(a, COHORT_A, TABLE_A);
+  notTestedLine(pa.ctx, COHORT_A, pa.base);
+  a.appendChild(el("p", "under", describe(TABLE_A)));
+  const b = cand("cohortRow", "B · Repeats, as the MAF lists them", `each mutation recorded a second time with chance ${M.REPEAT_RATE}\n(the lesson's file as listed: 799 genes tested)`);
+  const pb = drawCohortPlot(b, COHORT_B, TABLE_B);
+  notTestedLine(pb.ctx, COHORT_B, pb.base);
+  b.appendChild(el("p", "under", describe(TABLE_B)));
+  document.getElementById("qRecords").innerHTML =
+    "<b>Your call:</b> which records does the cohort have? <b>A</b>, each mutation once; <b>B</b>, repeats as the "
+    + "lesson's MAF lists them, so the plot is as crowded as cell 18 and small passengers are called on one tumour's "
+    + "records, as DPEP1 is; or <b>C</b>, a control switching between A and B on the same cohort, so the reader sees the "
+    + "tested genes double and those calls appear. B and C teach a property of the file as much as of the method; C is "
+    + "not in the notebook.";
+  document.getElementById("recRecords").innerHTML =
+    "<b>A.</b> The second misconception stands without the repeats: the small oncogenes sit above the one with 359 "
+    + "mutations, and in the lesson's file counted once NDUFS1 (9) and RPL22 (6) still top the table at score 1. B would "
+    + "have the page teach an artefact of how the MAF was assembled; that belongs in your notebook's cell 2, where a "
+    + "<code>distinct()</code> before <code>read.maf</code> removes it.";
+}
+
+/* ---------------------------------------------------------------- 4 · a count test */
+{
+  const rate = COHORT_A.totalMutations / COHORT_A.totalResidues;
+  const rows = M.countTest(COHORT_A, { rate });
+  const a = cand("countRow", "A · The clustering score only", "the cohort of §3 A, as cell 18 draws it");
+  const pa = drawCohortPlot(a, COHORT_A, TABLE_A);
+  notTestedLine(pa.ctx, COHORT_A, pa.base);
+  const called = rows.filter((g) => g.countCalled);
+  a.appendChild(el("p", "under", `oncodrive calls ${callsOf(TABLE_A).length}: ${callsOf(TABLE_A).map((g) => g.kind === "passenger" ? "a passenger" : g.name).join(", ")}; suppressors 0 of 6`));
+  const b = cand("countRow", "B · A count test beside it", `one-sided Poisson: count against length × ${rate.toExponential(2)} a residue\nall ${rows.length.toLocaleString()} genes with 5+ mutations tested`);
+  drawCohortPlot(b, COHORT_A, rows, {
+    yKey: "countFdr", calledKey: "countCalled", xLabel: "Mutations ÷ expected from length (log scale)",
+    xDomain: [-2, 5], xTicks: [-2, -1, 0, 1, 2, 3, 4, 5], xOf: (g) => Math.log2(g.mutations.length / g.expected), sizeOf: () => 1, yCap: 12,
+  });
+  const byKind = (k) => called.filter((g) => g.kind === k).length;
+  b.appendChild(el("p", "under", `calls ${called.length}: oncogenes ${byKind("oncogene")} of 3, suppressors ${byKind("suppressor")} of 6, passengers ${byKind("passenger")}`
+    + `\nnot called: ${rows.filter((g) => g.kind !== "passenger" && !g.countCalled).map((g) => g.name).join(", ") || "no driver"}; x ticks are log₂; −log₁₀ FDR above 12 drawn at 12`));
+  document.getElementById("qCount").innerHTML =
+    "<b>Your call:</b> does page 2 put a count test beside oncodrive's score? B calls every suppressor A misses, "
+    + `and ${byKind("passenger")} passengers with them, because a passenger's rate varies from gene to gene and one cohort rate cannot `
+    + "say which genes mutate faster; a count test that works models each gene's own rate (MutSigCV and its successors), "
+    + "which is beyond the notebook.";
+  document.getElementById("recCount").innerHTML =
+    "<b>No count test.</b> The notebook runs none, maftools' own is unusable, and B's lesson is a second method's failure. "
+    + "Page 2 shows oncodrive's by colour instead: the suppressors are drivers the simulation made, sitting under the "
+    + "line. If you want the contrast later, it is a page of its own with a gene-level background, not a toggle here.";
+}
+
+/* ---------------------------------------------------------------- 5 · the rail */
+{
+  const SPECS = [
+    ["One gene", {
+      data: { type: "section", label: "The gene" },
+      gene: { type: "choice", label: "Gene", options: ["Oncogene", "Tumour suppressor", "Small oncogene", "Passenger"], default: "Oncogene", detail: "simulated with the length, count and hotspots of a gene in a breast cancer cohort" },
+      draw: { type: "section", label: "The mutations", afterDrive: true },
+      seed: { type: "int", label: "Seed", min: 1, max: 200, default: 1, detail: "draws different mutations" },
+    }],
+    ["The cohort", {
+      data: { type: "section", label: "The cohort" },
+      seed2: { type: "int", label: "Seed", min: 1, max: 200, default: 1, detail: "draws a different cohort" },
+      look: { type: "section", label: "How to read it", afterDrive: true },
+      axis: { type: "segmented", label: "Across", options: ["Fraction in clusters", "Score"], default: "Fraction in clusters", detail: "what plotOncodrive draws, or what the test uses" },
+      kinds: { type: "bool", label: "Colour by kind", default: true },
+    }],
+  ];
+  for (const [name, spec] of SPECS) {
+    const box = cand("railRow", name, "core buildControls at 300px", 300);
+    const mount = el("div");
+    mount.style.width = "300px";
+    box.appendChild(mount);
+    try {
+      const values = resolveParams(spec, new URLSearchParams(""));
+      buildControls(mount, spec, values, () => {});
+    } catch (e) {
+      box.appendChild(el("p", "under", `buildControls: ${e.message}`));
+    }
+  }
+  document.getElementById("recRail").innerHTML =
+    "Page 1: the gene, then Step through the five steps, then the seed under the drive row (§ <i>Widget 59</i>'s "
+    + "ruling). Page 2: the cohort, then how to read it. <b>Across</b> is offered because cell 18's x-axis is the "
+    + "fraction in clusters and the test uses the score; they differ wherever a cluster spans several residues "
+    + `(the oncogene: ${f2(KIND_GENES[0].sc.res.inClusters / KIND_GENES[0].sc.n)} against ${f2(KIND_GENES[0].sc.res.score)}). `
+    + "Opening colour-blind (Colour by kind off) would make the reader find the suppressors; opening coloured makes the "
+    + "misconception visible at once. A tile row under each figure (score, z, p; tested, called) is core's and not drawn.";
+}
+
+/* ---------------------------------------------------------------- 6 · checks */
+{
+  const out = [];
+  let bad = 0;
+  const ck = (label, cond, note = "") => { out.push(`${cond ? "ok  " : "FAIL"} ${label}${note ? " — " + note : ""}`); if (!cond) bad += 1; };
+  const sc = M.scoreGene(ONCO);
+  const cl = focusOf(sc);
+  ck("step 4's parts sum to the close-up's cluster score", Math.abs(cl.parts.reduce((s, p) => s + p.part, 0) - cl.score) < 1e-12);
+  ck("the clusters sum to the gene's score", Math.abs(sc.res.clusters.reduce((s, c) => s + c.score, 0) - sc.res.score) < 1e-12, f3(sc.res.score));
+  ck("the threshold is the smallest count with binomial P below 0.01", M.dbinom(sc.th, sc.n, 1 / ONCO.L) < 0.01 && (sc.th === 2 || M.dbinom(sc.th - 1, sc.n, 1 / ONCO.L) >= 0.01), `th ${sc.th}`);
+  ck("the small oncogene outscores the oncogene", KIND_GENES[2].sc.res.score > KIND_GENES[0].sc.res.score, `${f3(KIND_GENES[2].sc.res.score)} with ${KIND_GENES[2].sc.n} against ${f3(KIND_GENES[0].sc.res.score)} with ${KIND_GENES[0].sc.n}`);
+  ck("the drawn passenger is not tested", !KIND_GENES[3].sc.res);
+  const supA = TABLE_A.filter((g) => g.kind === "suppressor" && g.called).length;
+  ck("A calls no suppressor", supA === 0);
+  const extraB = callsOf(TABLE_B).filter((g) => g.kind === "passenger" && !callsOf(TABLE_A).some((a) => a.name === g.name));
+  ck("B's extra passenger calls each carry a repeated record", extraB.every((g) => g.mutations.some((m) => m.repeat)), `${extraB.length} extra`);
+  ck("B tests about twice as many genes as A, as the file does (799 against 415)", TABLE_B.length / TABLE_A.length > 1.6 && TABLE_B.length / TABLE_A.length < 2.4, `${TABLE_B.length} against ${TABLE_A.length}`);
+  const rows = M.countTest(COHORT_A, { rate: COHORT_A.totalMutations / COHORT_A.totalResidues });
+  ck("the count test calls all six suppressors and more than 100 passengers", rows.filter((g) => g.kind === "suppressor" && g.countCalled).length === 6 && rows.filter((g) => g.kind === "passenger" && g.countCalled).length > 100);
+  document.getElementById("checks").textContent = `${out.join("\n")}\n\n${out.length} checks, ${bad} failed`;
+}
+</script>
+</main>
+</body>
+</html>

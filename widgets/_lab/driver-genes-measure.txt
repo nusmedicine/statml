@@ -1,0 +1,103 @@
+§1 the port against maftools 2.26.0, gene by gene
+  ok   threshold equals get_threshold for all 4655 genes — 0 differ
+  ok   null exactly where maftools leaves a gene out (3856 genes) — 0 differ
+  ok   cluster count and mutations in clusters equal for all 799 tested genes — 0 differ
+  ok   every score equal to maftools' clusterScores — largest difference 4.7e-16
+  ok   every z equal to maftools'
+  ok   every p within the erfc's accuracy of maftools' 1 − pnorm(z) — largest relative difference 9.2e-8
+  ok   every FDR the same, Benjamini-Hochberg over the table's rows — largest relative difference 9.1e-8
+  tie: CBFB cluster 67–76, peaks 73/70: maftools 0.1527, nearest peak 0.2256; the gene not called either way (score 0.5185)
+  tie: MAP3K1 cluster 317–319, peaks 317/319: maftools 0.0339, nearest peak 0.0339; the gene not called either way (score 0.2801)
+  tie: TP53 cluster 274–287, peaks 282/280/278: maftools 0.0462, nearest peak 0.0697; the gene not called either way (score 0.4873)
+
+§2 what decides the score, on the lesson's genes
+  called: NDUFS1 (9 mutations, score 1.000), RPL22 (6 mutations, score 1.000), AKT1 (27 mutations, score 0.926), KRAS (6 mutations, score 0.833), DPEP1 (5 mutations, score 0.800), FAM102A (5 mutations, score 0.800), PIK3CA (369 mutations, score 0.804)
+  a gene joining the table is called from score 0.707 (z 3.29); the fixed background makes that line the same for every cohort of this size
+  a score cannot pass 1: every mutation at one residue gives z 5.546, p 1.46e-8, whatever the count — 2 genes tie at the top
+  thresholds over all 4655 genes: th 2: 4652, th 3: 2, th 5: 1
+    5 mutations on 400 residues: th 2
+    9 mutations on 741 residues: th 2
+    30 mutations on 1000 residues: th 2
+    100 mutations on 1000 residues: th 2
+    369 mutations on 1068 residues: th 3
+    348 mutations on 393 residues: th 5
+    127 mutations on 444 residues: th 3
+    1000 mutations on 393 residues: th 8
+  genes with 5–9 mutations: 3461, of which 438 (13%) return a cluster and are tested; median length 738
+  genes with 10–19 mutations: 996, of which 257 (26%) return a cluster and are tested; median length 1372
+  genes with 20–49 mutations: 187, of which 93 (50%) return a cluster and are tested; median length 2799
+  genes with 50–∞ mutations: 11, of which 11 (100%) return a cluster and are tested; median length 1512
+  overall 799 of 4655 tested
+
+§3 the lesson's file three ways: as listed, each mutation once per tumour, and each two-base change once
+  as listed                  4655 genes with at least 5 mutations, 799 tested; by count 5–9: 438/3461 (12.7%), 10–19: 257/996 (25.8%), 20–49: 93/187 (49.7%), 50–∞: 11/11 (100.0%)
+  once per tumour            4581 genes with at least 5 mutations, 478 tested; by count 5–9: 239/3408 (7.0%), 10–19: 173/983 (17.6%), 20–49: 55/179 (30.7%), 50–∞: 11/11 (100.0%)
+  and two-base changes once  4566 genes with at least 5 mutations, 415 tested; by count 5–9: 204/3404 (6.0%), 10–19: 151/973 (15.5%), 20–49: 49/178 (27.5%), 50–∞: 11/11 (100.0%)
+  ok   as listed, the JS table tests the 799 genes R does
+  ok   once per tumour, it tests R's 478 — 478
+  ok   with two-base changes once, R's 415 — 415
+  PIK3CA  L 1068, 359 mutations (359 placed), truncating or splice 0%, top 1047:131 545:70 542:42 345:19 546:11 726:8 453:7 118:5 111:5 420:4; score 0.799
+  AKT1    L 480, 26 mutations (26 placed), truncating or splice 0%, top 17:24 52:1 4:1; score 0.923
+  KRAS    L 189, 6 mutations (6 placed), truncating or splice 0%, top 12:5 92:1; score 0.833
+  TP53    L 393, 337 mutations (313 placed), truncating or splice 39%, top 273:20 175:19 220:10 342:10 193:9 248:8 196:8 179:7 176:6 213:6; score 0.556
+  CDH1    L 882, 131 mutations (117 placed), truncating or splice 85%, top 23:8 63:4 127:4 243:3 757:2 288:2 19:2 315:2 511:2 788:2; score 0.345
+  GATA3   L 444, 127 mutations (104 placed), truncating or splice 91%, top 408:13 335:11 330:4 293:4 426:4 436:3 364:3 329:3 444:3 431:2; score 0.596
+  MAP3K1  L 1512, 119 mutations (115 placed), truncating or splice 76%, top 273:3 1385:3 1437:2 457:2 1346:2 317:2 319:2 1145:2 1077:2 1048:2; score 0.253
+  PTEN    L 403, 56 mutations (51 placed), truncating or splice 70%, top 130:6 73:2 48:2 319:2 124:2 16:2 267:2 287:2 183:1 266:1; score 0.501
+  NF1     L 2839, 40 mutations (33 placed), truncating or splice 65%, top 716:1 554:1 1048:1 125:1 41:1 1247:1 2698:1 2073:1 529:1 366:1; score untested
+
+§4 the passenger genome, calibrated to the file counted once
+  prot_len.txt.gz: 18251 genes, log-length mean 6.107 (median 449), sd 0.727
+  target: 4566 genes with at least 5; count quantiles 50/75/90/99 7 10 14 32; tested 415
+  model: {"genes":18251,"lengthMedian":449,"lengthSd":0.727,"rateMedian":0.0053,"rateSd":0.4,"mutabilitySd":1,"truncating":0.15}
+  target median length by count 5–9, 10–19, 20–49: 749, 1391, 2804; tested share 6.0%, 15.5%, 27.5%
+    GENOME as set, each mutation once: 4530 genes at 5+, tested 397; quantiles 7 9 13 27; by count 6.1% of 3428, 14.8% of 959, 31.7% of 139, 54.5% of 4
+    GENOME as set, repeats at 0.0105: 4600 genes at 5+, tested 809; quantiles 7 9 13 27; by count 13.3% of 3463, 27.8% of 990, 49.1% of 143, 75.0% of 4
+  ok   counted once, the genome tests within 12% of the file's 415 — 397
+  ok   with repeats, within 12% of the file's 799 as listed — 809
+  ok   genes at 5+ within 10% of the file's, both ways — 4530 and 4600
+
+§5 each driver shape over 200 seeds, against its gene counted once
+  PIK3CA  oncogene   n 359 on 1068: score median 0.758, 5–95% 0.724–0.793, untested 0/200; the file's gene 0.799
+  ok   PIK3CA's simulated median is within 0.1 of its gene — 0.758 against 0.799
+  AKT1    oncogene   n  26 on 480: score median 0.923, 5–95% 0.808–1.000, untested 0/200; the file's gene 0.923
+  ok   AKT1's simulated median is within 0.1 of its gene — 0.923 against 0.923
+  KRAS    oncogene   n   6 on 189: score median 0.833, 5–95% 0.500–1.000, untested 0/200; the file's gene 0.833
+  ok   KRAS's simulated median is within 0.1 of its gene — 0.833 against 0.833
+  TP53    suppressor n 313 on 393: score median 0.544, 5–95% 0.474–0.617, untested 0/200; the file's gene 0.556
+  ok   TP53's simulated median is within 0.1 of its gene — 0.544 against 0.556
+  CDH1    suppressor n 117 on 882: score median 0.377, 5–95% 0.294–0.465, untested 0/200; the file's gene 0.345
+  ok   CDH1's simulated median is within 0.1 of its gene — 0.377 against 0.345
+  GATA3   suppressor n 104 on 444: score median 0.613, 5–95% 0.499–0.712, untested 0/200; the file's gene 0.596
+  ok   GATA3's simulated median is within 0.1 of its gene — 0.613 against 0.596
+  MAP3K1  suppressor n 115 on 1512: score median 0.179, 5–95% 0.097–0.272, untested 0/200; the file's gene 0.253
+  ok   MAP3K1's simulated median is within 0.1 of its gene — 0.179 against 0.253
+  PTEN    suppressor n  51 on 403: score median 0.514, 5–95% 0.362–0.636, untested 0/200; the file's gene 0.501
+  ok   PTEN's simulated median is within 0.1 of its gene — 0.514 against 0.501
+  NF1     suppressor n  33 on 2839: score median 0.061, 5–95% 0.061–0.143, untested 123/200; the file's gene untested
+
+  the count, with each shape's hotspot shares kept:
+    PIK3CA  n 10: 0.635; n 25: 0.697; n 100: 0.752; n 359: 0.760
+    TP53    n 10: 0.225 (54% untested); n 25: 0.318; n 100: 0.440; n 313: 0.552
+    AKT1    n 6: 1.000; n 12: 0.917; n 26: 0.923; n 100: 0.920
+    passenger on 749: n 5: tested 3%, score median 0.40; n 7: tested 6%, score median 0.29; n 9: tested 11%, score median 0.22
+    passenger on 1391: n 10: tested 9%, score median 0.20; n 14: tested 16%, score median 0.14; n 19: tested 29%, score median 0.11
+    passenger on 2804: n 20: tested 16%, score median 0.10; n 30: tested 36%, score median 0.07; n 45: tested 61%, score median 0.05
+
+§6 the cohort page: ten cohorts each way, with the count test beside
+  each mutation once: tested 403 a cohort; oncodrive calls per cohort — oncogenes 2.9 of 3, suppressors 0.1 of 6, passengers 0.4
+    drivers called in 10 cohorts: PIK3CA 10, AKT1 10, KRAS 9, GATA3 1; passengers called (count:score, r = carries a repeat): 5:0.80 5:0.80 5:0.80 5:0.80
+    lowest score called / highest not called, per cohort: 0.76/0.67 0.73/0.67 0.76/0.67 0.73/0.66 0.75/0.67 0.79/0.67 0.78/0.67 0.78/0.62 0.73/0.67 0.76/0.57
+    count test calls per cohort — oncogenes 3.0, suppressors 6.0, passengers 237.1; drivers: PIK3CA 10, AKT1 10, KRAS 10, TP53 10, CDH1 10, GATA3 10, MAP3K1 10, PTEN 10, NF1 10
+  repeats as the MAF lists them: tested 806 a cohort; oncodrive calls per cohort — oncogenes 2.8 of 3, suppressors 0.1 of 6, passengers 2.3
+    drivers called in 10 cohorts: PIK3CA 9, AKT1 10, KRAS 9, GATA3 1; passengers called (count:score, r = carries a repeat): 6:0.75r 5:0.80r 5:0.80r 5:0.80r 5:0.80 5:0.80 5:0.80r 5:0.80r 5:0.80r 5:0.80r 5:0.80r 5:0.80r 5:0.85r 5:0.80 5:0.80r 5:0.80r 5:0.80r 5:0.80r 5:0.80r 5:0.80r 5:0.80 5:0.80r 5:0.80r
+    lowest score called / highest not called, per cohort: 0.75/0.67 0.80/0.73 0.76/0.67 0.73/0.68 0.75/0.67 0.78/0.67 0.78/0.71 0.78/0.67 0.73/0.67 0.76/0.67
+    count test calls per cohort — oncogenes 3.0, suppressors 6.0, passengers 254.1; drivers: PIK3CA 10, AKT1 10, KRAS 10, TP53 10, CDH1 10, GATA3 10, MAP3K1 10, PTEN 10, NF1 10
+
+  the count test on the file, counted once: rate 5.670e-3 a residue over 10822745 residues; 207 of 4566 genes at fdr <= 0.05
+    among them: TP53 called, CDH1 called, GATA3 called, MAP3K1 called, PTEN called, NF1 called, PIK3CA called, AKT1 called, KRAS called, NDUFS1 not, RPL22 called
+    the longest called: RYR2 (68 on 4967), KMT2C (93 on 4911), LRP2 (43 on 4655), FAT3 (43 on 4557), HUWE1 (41 on 4374), PKHD1L1 (42 on 4243), CSMD3 (41 on 3707), DMD (57 on 3685)
+  ok   counted once, no suppressor but GATA3 is called in ten cohorts, and GATA3 in at most two — GATA3 1; its shape scores 0.61, with its frameshifts clustered at the C-terminal
+  ok   counted once, PIK3CA and AKT1 are called in every cohort
+
+23 checks, 0 failed

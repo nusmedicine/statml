@@ -1,0 +1,262 @@
+maftools 2.26.0 · data.table 1.18.6.1 · R version 4.5.2 (2025-10-31 ucrt) 
+
+§1 cell 2: read.maf(rmFlags = 20)
+   
+  ok   21,620 silent variants, as cell 2 prints — 21,620
+  66,421 non-synonymous variants in 967 tumours
+
+§2 cell 15: oncodrive(AACol = 'HGVSp_Short', minMut = 5)
+  said: warning: Oncodrive has been superseeded by OncodriveCLUSTL. See http://bg.upf.edu/group/projects/oncodrive-clust.php
+  said: Estimating background scores from synonymous variants..
+  said: Not enough genes to build background. Using predefined values. (Mean = 0.279; SD = 0.13)
+  said: Estimating cluster scores from non-syn variants..
+  said: Comapring with background model and estimating p-values..
+  said: Done ! 
+  ok   the background fell back to the predefined values, as cell 15 printed
+  799 genes in the table
+  ok   799 genes, the m that reproduces cell 16's FDRs
+  ok   seven genes at fdr <= 0.05, in cell 16's order — PIK3CA AKT1 NDUFS1 RPL22 KRAS DPEP1 FAM102A
+  ok   MutatedSamples         equal in all seven rows
+  ok   clusters               equal in all seven rows
+  ok   muts_in_clusters       equal in all seven rows
+  ok   clusterScores          matches to the printed digits — largest relative difference 4.0e-08
+  ok   protLen                equal in all seven rows
+  ok   zscore                 matches to the printed digits — largest relative difference 1.0e-07
+  ok   pval                   matches to the printed digits — largest relative difference 3.3e-07
+  ok   fdr                    matches to the printed digits — largest relative difference 2.1e-07
+  ok   fract_muts_in_clusters matches to the printed digits — largest relative difference 4.0e-08
+
+§3 the parse replicated: maftools:::cluster_prot on each gene's residues against the table
+  ok   all 799 genes: cluster_prot and the traced copy give the table's score, clusters and muts_in_clusters — 0 count mismatches, largest score difference 0.0e+00
+  genes with a tie for a cluster's peak: 3 (CBFB TP53 MAP3K1)
+
+§4 genes with at least 5 mutations that the table leaves out
+  4655 genes pass minMut = 5 and have a protein length; 799 return a cluster and are tested; 3856 have no residue at th and are not in the table
+  284 more genes with at least 5 mutations have no length in prot_len.txt.gz and are never scored
+  the most mutated genes left out:  PCLO (41, th 2), RYR3 (41, th 2), NF1 (40, th 2), MYCBP2 (38, th 2), ABCA13 (36, th 2), CACNA1E (36, th 2), PRUNE2 (36, th 2), XIRP2 (36, th 2) 
+
+§5 the background from silent variants (why cell 15 fell back)
+  variant classes in the silent set:  3'Flank 108, 3'UTR 206, 5'Flank 136, 5'UTR 131, IGR 1, Intron 659, RNA 447, Silent 19416, Splice_Region 516 
+  Silent rows write HGVSp_Short as p.D395=, p.I421=, p.V200=; 99.99% end in '='; the parse leaves '395=', which as.numeric makes NA
+  silent-set variants given a residue: 2 of 21,620
+  649 genes have at least 5 silent-set variants and a length; 0 of them return a cluster (100 needed)
+  ok   almost no silent variant is given a residue and no silent gene returns a cluster, so step 5 fell back at any gene count — 2 placed
+  with the '=' stripped: 19888 silent-set variants placed; 76 genes return a cluster (100 needed); their scores mean 0.363, sd 0.139, against the predefined 0.279 and 0.13
+
+§6 traced genes: th, meaningful residues, clusters, score, and where each stands
+
+  PIK3CA: total 369, placed 369 (splice sites and unparsed changes out), protein 1068 aa, th 3 (dbinom(3, 369, 1/1068) = 0.0048; at 2 it is 0.0422)
+    residues hit: 49; at th or more: 12; busiest 1047:136 545:74 542:42 345:19 546:11 726:9
+    cluster 1: core 111-111, span 106-111, N 13, peak 111, score 0.0230
+    cluster 2: core 118-118, span 118-118, N 5, peak 118, score 0.0136
+    cluster 3: core 345-345, span 344-350, N 22, peak 345, score 0.0544
+    cluster 4: core 420-420, span 420-420, N 4, peak 420, score 0.0108
+    cluster 5: core 447-447, span 447-452, N 5, peak 447, score 0.0096
+    cluster 6: core 453-453, span 450-453, N 9, peak 453, score 0.0218
+    cluster 7: core 542-546, span 539-546, N 128, peak 545, score 0.2622
+    cluster 8: core 726-726, span 726-726, N 9, peak 726, score 0.0244
+    cluster 9: core 1004-1004, span 1004-1007, N 5, peak 1004, score 0.0100
+    cluster 10: core 1047-1047, span 1043-1049, N 142, peak 1047, score 0.3745
+    gene: 10 clusters, 342 in clusters (fraction 0.927), score 0.8043, z 4.041, p 2.66e-05, fdr 3.50e-03, rank 7 of 799
+
+  AKT1: total 27, placed 27 (splice sites and unparsed changes out), protein 480 aa, th 2 (dbinom(2, 27, 1/480) = 0.0014; at 1 it is 0.0533)
+    residues hit: 3; at th or more: 1; busiest 17:25 4:1 52:1
+    cluster 1: core 17-17, span 17-17, N 25, peak 17, score 0.9259
+    gene: 1 clusters, 25 in clusters (fraction 0.926), score 0.9259, z 4.976, p 3.24e-07, fdr 8.63e-05, rank 3 of 799
+
+  KRAS: total 6, placed 6 (splice sites and unparsed changes out), protein 189 aa, th 2 (dbinom(2, 6, 1/189) = 0.0004; at 1 it is 0.0309)
+    residues hit: 2; at th or more: 1; busiest 12:5 92:1
+    cluster 1: core 12-12, span 12-12, N 5, peak 12, score 0.8333
+    gene: 1 clusters, 5 in clusters (fraction 0.833), score 0.8333, z 4.264, p 1.00e-05, fdr 2.00e-03, rank 4 of 799
+
+  NDUFS1: total 9, placed 9 (splice sites and unparsed changes out), protein 741 aa, th 2 (dbinom(2, 9, 1/741) = 0.0001; at 1 it is 0.0120)
+    residues hit: 1; at th or more: 1; busiest 623:9
+    cluster 1: core 623-623, span 623-623, N 9, peak 623, score 1.0000
+    gene: 1 clusters, 9 in clusters (fraction 1.000), score 1.0000, z 5.546, p 1.46e-08, fdr 5.83e-06, rank 1 of 799
+
+  RPL22: total 6, placed 6 (splice sites and unparsed changes out), protein 128 aa, th 2 (dbinom(2, 6, 1/128) = 0.0009; at 1 it is 0.0451)
+    residues hit: 1; at th or more: 1; busiest 15:6
+    cluster 1: core 15-15, span 15-15, N 6, peak 15, score 1.0000
+    gene: 1 clusters, 6 in clusters (fraction 1.000), score 1.0000, z 5.546, p 1.46e-08, fdr 5.83e-06, rank 2 of 799
+
+  DPEP1: total 5, placed 5 (splice sites and unparsed changes out), protein 411 aa, th 2 (dbinom(2, 5, 1/411) = 0.0001; at 1 it is 0.0120)
+    residues hit: 3; at th or more: 2; busiest 11:2 130:2 386:1
+    cluster 1: core 11-11, span 11-11, N 2, peak 11, score 0.4000
+    cluster 2: core 130-130, span 130-130, N 2, peak 130, score 0.4000
+    gene: 2 clusters, 4 in clusters (fraction 0.800), score 0.8000, z 4.008, p 3.07e-05, fdr 3.50e-03, rank 5 of 799
+
+  FAM102A: total 5, placed 5 (splice sites and unparsed changes out), protein 384 aa, th 2 (dbinom(2, 5, 1/384) = 0.0001; at 1 it is 0.0129)
+    residues hit: 3; at th or more: 2; busiest 60:2 109:2 259:1
+    cluster 1: core 60-60, span 60-60, N 2, peak 60, score 0.4000
+    cluster 2: core 109-109, span 109-109, N 2, peak 109, score 0.4000
+    gene: 2 clusters, 4 in clusters (fraction 0.800), score 0.8000, z 4.008, p 3.07e-05, fdr 3.50e-03, rank 6 of 799
+
+  TP53: total 348, placed 324 (splice sites and unparsed changes out), protein 393 aa, th 5 (dbinom(5, 348, 1/393) = 0.0018; at 4 it is 0.0105)
+    residues hit: 121; at th or more: 19; busiest 175:20 273:20 193:10 220:10 342:10 196:8
+    cluster 1: core 110-110, span 107-115, N 16, peak 110, score 0.0290
+    cluster 2: core 132-132, span 127-136, N 16, peak 132, score 0.0277
+    cluster 3: core 175-179, span 171-183, N 42, peak 175, score 0.0952
+    cluster 4: core 193-196, span 191-199, N 34, peak 193, score 0.0640
+    cluster 5: core 213-213, span 208-216, N 18, peak 213, score 0.0316
+    cluster 6: core 220-220, span 215-221, N 18, peak 220, score 0.0408
+    cluster 7: core 242-248, span 238-253, N 29, peak 248, score 0.0413
+    cluster 8: core 273-273, span 270-276, N 30, peak 273, score 0.0773
+    cluster 9: core 278-282, span 274-287, N 28, peak 282/280/278 (tied), score 0.0462
+    cluster 10: core 342-342, span 339-342, N 12, peak 342, score 0.0341
+    gene: 10 clusters, 243 in clusters (fraction 0.698), score 0.4873, z 1.602, p 5.46e-02, fdr 7.94e-01, rank 160 of 799
+
+  CDH1: total 134, placed 120 (splice sites and unparsed changes out), protein 882 aa, th 2 (dbinom(2, 134, 1/882) = 0.0099; at 1 it is 0.1307)
+    residues hit: 93; at th or more: 15; busiest 23:9 63:4 127:4 243:3 19:2 74:2
+    cluster 1: core 19-23, span 19-23, N 11, peak 23, score 0.0792
+    cluster 2: core 63-63, span 63-63, N 4, peak 63, score 0.0333
+    cluster 3: core 74-74, span 71-74, N 3, peak 74, score 0.0196
+    cluster 4: core 127-127, span 127-129, N 5, peak 127, score 0.0375
+    cluster 5: core 243-243, span 238-243, N 4, peak 243, score 0.0265
+    cluster 6: core 278-278, span 278-283, N 3, peak 278, score 0.0181
+    cluster 7: core 288-288, span 283-291, N 5, peak 288, score 0.0270
+    cluster 8: core 315-315, span 314-315, N 3, peak 315, score 0.0226
+    cluster 9: core 511-511, span 511-515, N 4, peak 511, score 0.0246
+    cluster 10: core 570-570, span 570-575, N 3, peak 570, score 0.0181
+    cluster 11: core 641-641, span 641-644, N 3, peak 641, score 0.0196
+    cluster 12: core 731-731, span 731-732, N 3, peak 731, score 0.0226
+    cluster 13: core 757-757, span 757-757, N 2, peak 757, score 0.0167
+    cluster 14: core 788-788, span 788-788, N 2, peak 788, score 0.0167
+    gene: 14 clusters, 55 in clusters (fraction 0.410), score 0.3821, z 0.793, p 2.14e-01, fdr 9.48e-01, rank 195 of 799
+
+  GATA3: total 127, placed 104 (splice sites and unparsed changes out), protein 444 aa, th 3 (dbinom(3, 127, 1/444) = 0.0029; at 2 it is 0.0306)
+    residues hit: 54; at th or more: 9; busiest 408:13 335:11 293:4 330:4 426:4 329:3
+    cluster 1: core 293-293, span 293-293, N 4, peak 293, score 0.0385
+    cluster 2: core 329-330, span 327-334, N 14, peak 330, score 0.0927
+    cluster 3: core 335-335, span 331-335, N 15, peak 335, score 0.1208
+    cluster 4: core 364-364, span 362-364, N 4, peak 364, score 0.0337
+    cluster 5: core 408-408, span 404-413, N 18, peak 408, score 0.1475
+    cluster 6: core 426-426, span 423-431, N 10, peak 426, score 0.0579
+    cluster 7: core 436-436, span 431-441, N 13, peak 436, score 0.0678
+    cluster 8: core 444-444, span 441-444, N 5, peak 444, score 0.0371
+    gene: 8 clusters, 83 in clusters (fraction 0.654), score 0.5958, z 2.437, p 7.41e-03, fdr 2.47e-01, rank 24 of 799
+
+  MAP3K1: total 122, placed 118 (splice sites and unparsed changes out), protein 1512 aa, th 2 (dbinom(2, 122, 1/1512) = 0.0030; at 1 it is 0.0745)
+    residues hit: 101; at th or more: 13; busiest 273:3 457:3 672:3 1385:3 317:2 319:2
+    cluster 1: core 273-273, span 273-273, N 3, peak 273, score 0.0254
+    cluster 2: core 317-319, span 317-319, N 4, peak 317/319 (tied), score 0.0339
+    cluster 3: core 325-325, span 325-325, N 2, peak 325, score 0.0169
+    cluster 4: core 457-457, span 457-457, N 3, peak 457, score 0.0254
+    cluster 5: core 672-672, span 672-672, N 3, peak 672, score 0.0254
+    cluster 6: core 763-763, span 763-764, N 3, peak 763, score 0.0229
+    cluster 7: core 1048-1048, span 1044-1048, N 3, peak 1048, score 0.0191
+    cluster 8: core 1077-1077, span 1077-1077, N 2, peak 1077, score 0.0169
+    cluster 9: core 1145-1145, span 1145-1148, N 3, peak 1145, score 0.0199
+    cluster 10: core 1346-1346, span 1346-1346, N 2, peak 1346, score 0.0169
+    cluster 11: core 1385-1385, span 1385-1386, N 4, peak 1385, score 0.0314
+    cluster 12: core 1437-1437, span 1432-1441, N 6, peak 1437, score 0.0257
+    gene: 12 clusters, 38 in clusters (fraction 0.311), score 0.2801, z 0.008, p 4.97e-01, fdr 9.66e-01, rank 537 of 799
+
+  KMT2C: total 93, placed 89 (splice sites and unparsed changes out), protein 4911 aa, th 2 (dbinom(2, 93, 1/4911) = 0.0002; at 1 it is 0.0186)
+    residues hit: 84; at th or more: 5; busiest 367:2 640:2 1478:2 4391:2 4478:2 97:1
+    cluster 1: core 367-367, span 367-367, N 2, peak 367, score 0.0225
+    cluster 2: core 640-640, span 640-640, N 2, peak 640, score 0.0225
+    cluster 3: core 1478-1478, span 1478-1478, N 2, peak 1478, score 0.0225
+    cluster 4: core 4391-4391, span 4391-4391, N 2, peak 4391, score 0.0225
+    cluster 5: core 4478-4478, span 4478-4478, N 2, peak 4478, score 0.0225
+    gene: 5 clusters, 10 in clusters (fraction 0.108), score 0.1124, z -1.282, p 9.00e-01, fdr 9.66e-01, rank 510 of 799
+
+  PTEN: total 57, placed 52 (splice sites and unparsed changes out), protein 403 aa, th 2 (dbinom(2, 57, 1/403) = 0.0086; at 1 it is 0.1231)
+    residues hit: 39; at th or more: 8; busiest 130:6 73:3 16:2 48:2 124:2 267:2
+    cluster 1: core 16-16, span 16-19, N 3, peak 16, score 0.0453
+    cluster 2: core 48-48, span 46-48, N 3, peak 48, score 0.0481
+    cluster 3: core 73-73, span 73-76, N 4, peak 73, score 0.0645
+    cluster 4: core 124-124, span 123-128, N 5, peak 124, score 0.0665
+    cluster 5: core 130-130, span 126-135, N 9, peak 130, score 0.1332
+    cluster 6: core 267-267, span 266-267, N 3, peak 267, score 0.0521
+    cluster 7: core 287-287, span 287-290, N 4, peak 287, score 0.0589
+    cluster 8: core 319-319, span 319-324, N 3, peak 319, score 0.0419
+    gene: 8 clusters, 34 in clusters (fraction 0.596), score 0.5103, z 1.779, p 3.76e-02, fdr 6.72e-01, rank 44 of 799
+
+  RUNX1: total 42, placed 40 (splice sites and unparsed changes out), protein 480 aa, th 2 (dbinom(2, 42, 1/480) = 0.0034; at 1 it is 0.0803)
+    residues hit: 28; at th or more: 5; busiest 96:9 70:2 76:2 134:2 142:2 85:1
+    cluster 1: core 70-70, span 70-70, N 2, peak 70, score 0.0500
+    cluster 2: core 76-76, span 76-76, N 2, peak 76, score 0.0500
+    cluster 3: core 96-96, span 95-96, N 10, peak 96, score 0.2427
+    cluster 4: core 134-134, span 134-134, N 2, peak 134, score 0.0500
+    cluster 5: core 142-142, span 141-142, N 3, peak 142, score 0.0677
+    gene: 5 clusters, 19 in clusters (fraction 0.452), score 0.4604, z 1.395, p 8.15e-02, fdr 7.94e-01, rank 140 of 799
+
+  CBFB: total 26, placed 24 (splice sites and unparsed changes out), protein 187 aa, th 2 (dbinom(2, 26, 1/187) = 0.0082; at 1 it is 0.1216)
+    residues hit: 18; at th or more: 5; busiest 63:3 70:2 73:2 85:2 102:2 45:1
+    cluster 1: core 63-63, span 63-67, N 4, peak 63, score 0.1354
+    cluster 2: core 70-73, span 67-76, N 7, peak 73/70 (tied), score 0.1527
+    cluster 3: core 85-85, span 83-90, N 4, peak 85, score 0.1115
+    cluster 4: core 102-102, span 99-104, N 4, peak 102, score 0.1189
+    gene: 4 clusters, 19 in clusters (fraction 0.731), score 0.5185, z 1.842, p 3.27e-02, fdr 6.72e-01, rank 35 of 799
+
+  SF3B1: total 15, placed 15 (splice sites and unparsed changes out), protein 1304 aa, th 2 (dbinom(2, 15, 1/1304) = 0.0001; at 1 it is 0.0114)
+    residues hit: 9; at th or more: 2; busiest 700:6 666:2 241:1 464:1 622:1 626:1
+    cluster 1: core 666-666, span 666-666, N 2, peak 666, score 0.1333
+    cluster 2: core 700-700, span 700-700, N 6, peak 700, score 0.4000
+    gene: 2 clusters, 8 in clusters (fraction 0.533), score 0.5333, z 1.956, p 2.52e-02, fdr 6.50e-01, rank 31 of 799
+
+§7 what cell 18 plots (fraction in clusters) against what is tested (the score)
+  correlation over 799 genes: 0.972
+  score = fraction exactly (every cluster one residue, no neighbours): 584 genes
+  score needed for fdr <= 0.05 here: the lowest called is 0.8000, the highest not called 0.6667
+  genes at fraction >= 0.5 not called: 55; the highest fraction not called: 0.800 (RGS17)
+  the count's only role is minMut: called genes by total —  DPEP1 5, FAM102A 5, RPL22 6, KRAS 6, NDUFS1 9, AKT1 27, PIK3CA 369 
+
+§8 the same function's other p-value methods (not run in the lesson)
+
+  pvalMethod = 'poisson': 32 of 799 genes at fdr <= 0.05
+    of those, 19 have FEWER mutations than the model expects (poisson.test is two-sided)
+    called above expectation, most mutated first:  PIK3CA 369/125.2, TP53 348/121.4, DMD 57/24.6, ZFHX4 52/24.2, SPTA1 49/17.5, FMN2 29/13.6, PAPPA2 29/14.0, CHD4 29/14.7, MYH9 29/14.9, AKT1 27/6.6, HYDIN 26/9.6, RB1 24/9.1, TLR4 19/8.6 
+    called below expectation:  CDH1 134/175.4, PTEN 57/95.8, MAP2K4 39/70.2, MYH10 16/40.8, CHD7 23/46.4, DNAH7 30/52.2, SCN1A 19/40.8, NOTCH1 11/31.1 
+    TP53    total 348, expected 121.4, fdr 2.24e-60  CALLED
+    CDH1    total 134, expected 175.4, fdr 3.63e-02  CALLED
+    GATA3   total 127, expected 96.1, fdr 5.67e-02
+    MAP3K1  total 122, expected 153.3, fdr 1.70e-01
+    PIK3CA  total 369, expected 125.2, fdr 1.11e-66  CALLED
+    NDUFS1  total 9, expected 8.1, fdr 1.00e+00
+    RPL22   total 6, expected 4.6, fdr 1.00e+00
+    AKT1    total 27, expected 6.6, fdr 4.37e-07  CALLED
+
+  pvalMethod = 'combined': 35 of 799 genes at fdr <= 0.05
+    of those, 19 have FEWER mutations than the model expects (poisson.test is two-sided)
+    called above expectation, most mutated first:  PIK3CA 369/125.2, TP53 348/121.4, DMD 57/24.6, ZFHX4 52/24.2, SPTA1 49/17.5, FMN2 29/13.6, PAPPA2 29/14.0, CHD4 29/14.7, MYH9 29/14.9, AKT1 27/6.6, HYDIN 26/9.6, RB1 24/9.1, TLR4 19/8.6, NDUFS1 9/8.1, KRAS 6/5.0 
+    called below expectation:  CDH1 134/175.4, PTEN 57/95.8, MAP2K4 39/70.2, MYH10 16/40.8, CHD7 23/46.4, DNAH7 30/52.2, SCN1A 19/40.8, NOTCH1 11/31.1 
+    TP53    total 348, expected 121.4, fdr 2.24e-60  CALLED
+    CDH1    total 134, expected 175.4, fdr 3.63e-02  CALLED
+    GATA3   total 127, expected 96.1, fdr 5.67e-02
+    MAP3K1  total 122, expected 153.3, fdr 1.70e-01
+    PIK3CA  total 369, expected 125.2, fdr 1.11e-66  CALLED
+    NDUFS1  total 9, expected 8.1, fdr 5.83e-06  CALLED
+    RPL22   total 6, expected 4.6, fdr 5.83e-06  CALLED
+    AKT1    total 27, expected 6.6, fdr 4.37e-07  CALLED
+
+§9 lollipopPlot's heights (cells 21 and 24) against oncodrive's per-residue counts
+  PIK3CA residue 1047: 136 mutations — H1047R 121, H1047L 13, H1047Y 2
+  PIK3CA residue 545: 74 mutations — E545K 68, E545A 5, E545G 1
+  PIK3CA residue 542: 42 mutations — E542K 41, E542G 1
+  PIK3CA residue 345: 19 mutations — N345K 17, N345H 1, N345T 1
+  TP53 residue 175: 20 mutations — R175H 20
+  TP53 residue 273: 20 mutations — R273H 12, R273C 4, R273L 3, R273P 1
+  TP53 residue 248: 8 mutations — R248W 6, R248Q 2
+  TP53 residue 342: 10 mutations — R342* 7, R342P 2, R342Efs*3 1
+
+§10 oncodrive with each mutation counted once per tumour
+  tumours with more than one aliquot in the MAF: 18
+  rows 89,568 -> 88,712 with each (tumour, position, allele) kept once
+  adjacent-base SNV pairs in one tumour and one gene: 238; dropping the second row of each leaves 88,474 rows
+
+  each mutation once per tumour: 478 genes tested, 6 at fdr <= 0.05: PIK3CA (361, score 0.800), AKT1 (26, score 0.923), NDUFS1 (9, score 1.000), RPL22 (6, score 1.000), KRAS (6, score 0.833), FAM102A (5, score 0.800)
+    DPEP1   4 mutations: not in the table
+    FAM102A 5 mutations, score 0.800, fdr 2.44e-03
+    AKT1    26 mutations, score 0.923, fdr 5.78e-05
+    RGS17   3 mutations: not in the table
+
+  and each two-base change once: 415 genes tested, 5 at fdr <= 0.05: PIK3CA (359, score 0.799), AKT1 (26, score 0.923), NDUFS1 (9, score 1.000), RPL22 (6, score 1.000), KRAS (6, score 0.833)
+    DPEP1   4 mutations: not in the table
+    FAM102A 4 mutations: not in the table
+    AKT1    26 mutations, score 0.923, fdr 5.02e-05
+    RGS17   3 mutations: not in the table
+
+wrote oncodrive_table.tsv (799 genes) and gene_positions.tsv (4655 genes) to the out dir
+
+15 checks, 0 failed
