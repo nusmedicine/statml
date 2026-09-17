@@ -51,48 +51,48 @@
   target: 4566 genes with at least 5; count quantiles 50/75/90/99 7 10 14 32; tested 415
   model: {"genes":18251,"lengthMedian":449,"lengthSd":0.727,"rateMedian":0.0053,"rateSd":0.4,"mutabilitySd":1,"truncating":0.15}
   target median length by count 5–9, 10–19, 20–49: 749, 1391, 2804; tested share 6.0%, 15.5%, 27.5%
-    GENOME as set, each mutation once: 4530 genes at 5+, tested 397; quantiles 7 9 13 27; by count 6.1% of 3428, 14.8% of 959, 31.7% of 139, 54.5% of 4
-    GENOME as set, repeats at 0.0105: 4600 genes at 5+, tested 809; quantiles 7 9 13 27; by count 13.3% of 3463, 27.8% of 990, 49.1% of 143, 75.0% of 4
-  ok   counted once, the genome tests within 12% of the file's 415 — 397
-  ok   with repeats, within 12% of the file's 799 as listed — 809
-  ok   genes at 5+ within 10% of the file's, both ways — 4530 and 4600
+    GENOME as set, each mutation once: 4591 genes at 5+, tested 392; quantiles 7 9 13 26; by count 6.2% of 3490, 14.3% of 965, 28.5% of 133, 50.0% of 3
+    GENOME as set, repeats at 0.0105: 4670 genes at 5+, tested 800; quantiles 7 9 13 26; by count 13.2% of 3538, 26.9% of 990, 45.9% of 139, 75.0% of 3
+  ok   counted once, the genome tests within 12% of the file's 415 — 392
+  ok   with repeats, within 12% of the file's 799 as listed — 800
+  ok   genes at 5+ within 10% of the file's, both ways — 4591 and 4670
 
 §5 each driver shape over 200 seeds, against its gene counted once
-  PIK3CA  oncogene   n 359 on 1068: score median 0.758, 5–95% 0.724–0.793, untested 0/200; the file's gene 0.799
-  ok   PIK3CA's simulated median is within 0.1 of its gene — 0.758 against 0.799
-  AKT1    oncogene   n  26 on 480: score median 0.923, 5–95% 0.808–1.000, untested 0/200; the file's gene 0.923
+  PIK3CA  oncogene   n 359 on 1068: score median 0.763, 5–95% 0.720–0.796, untested 0/200; the file's gene 0.799
+  ok   PIK3CA's simulated median is within 0.1 of its gene — 0.763 against 0.799
+  AKT1    oncogene   n  26 on 480: score median 0.923, 5–95% 0.827–1.000, untested 0/200; the file's gene 0.923
   ok   AKT1's simulated median is within 0.1 of its gene — 0.923 against 0.923
-  KRAS    oncogene   n   6 on 189: score median 0.833, 5–95% 0.500–1.000, untested 0/200; the file's gene 0.833
+  KRAS    oncogene   n   6 on 189: score median 0.833, 5–95% 0.667–1.000, untested 0/200; the file's gene 0.833
   ok   KRAS's simulated median is within 0.1 of its gene — 0.833 against 0.833
-  TP53    suppressor n 313 on 393: score median 0.544, 5–95% 0.474–0.617, untested 0/200; the file's gene 0.556
-  ok   TP53's simulated median is within 0.1 of its gene — 0.544 against 0.556
-  CDH1    suppressor n 117 on 882: score median 0.377, 5–95% 0.294–0.465, untested 0/200; the file's gene 0.345
-  ok   CDH1's simulated median is within 0.1 of its gene — 0.377 against 0.345
-  GATA3   suppressor n 104 on 444: score median 0.613, 5–95% 0.499–0.712, untested 0/200; the file's gene 0.596
-  ok   GATA3's simulated median is within 0.1 of its gene — 0.613 against 0.596
-  MAP3K1  suppressor n 115 on 1512: score median 0.179, 5–95% 0.097–0.272, untested 0/200; the file's gene 0.253
+  TP53    suppressor n 313 on 393: score median 0.557, 5–95% 0.468–0.623, untested 0/200; the file's gene 0.556
+  ok   TP53's simulated median is within 0.1 of its gene — 0.557 against 0.556
+  CDH1    suppressor n 117 on 882: score median 0.380, 5–95% 0.288–0.486, untested 0/200; the file's gene 0.345
+  ok   CDH1's simulated median is within 0.1 of its gene — 0.380 against 0.345
+  GATA3   suppressor n 104 on 444: score median 0.607, 5–95% 0.499–0.711, untested 0/200; the file's gene 0.596
+  ok   GATA3's simulated median is within 0.1 of its gene — 0.607 against 0.596
+  MAP3K1  suppressor n 115 on 1512: score median 0.179, 5–95% 0.093–0.260, untested 0/200; the file's gene 0.253
   ok   MAP3K1's simulated median is within 0.1 of its gene — 0.179 against 0.253
-  PTEN    suppressor n  51 on 403: score median 0.514, 5–95% 0.362–0.636, untested 0/200; the file's gene 0.501
-  ok   PTEN's simulated median is within 0.1 of its gene — 0.514 against 0.501
-  NF1     suppressor n  33 on 2839: score median 0.061, 5–95% 0.061–0.143, untested 123/200; the file's gene untested
+  PTEN    suppressor n  51 on 403: score median 0.511, 5–95% 0.348–0.629, untested 0/200; the file's gene 0.501
+  ok   PTEN's simulated median is within 0.1 of its gene — 0.511 against 0.501
+  NF1     suppressor n  33 on 2839: score median 0.061, 5–95% 0.061–0.129, untested 112/200; the file's gene untested
 
   the count, with each shape's hotspot shares kept:
-    PIK3CA  n 10: 0.635; n 25: 0.697; n 100: 0.752; n 359: 0.760
-    TP53    n 10: 0.225 (54% untested); n 25: 0.318; n 100: 0.440; n 313: 0.552
+    PIK3CA  n 10: 0.671; n 25: 0.722; n 100: 0.754; n 359: 0.761
+    TP53    n 10: 0.200 (38% untested); n 25: 0.341 (1% untested); n 100: 0.431; n 313: 0.549
     AKT1    n 6: 1.000; n 12: 0.917; n 26: 0.923; n 100: 0.920
-    passenger on 749: n 5: tested 3%, score median 0.40; n 7: tested 6%, score median 0.29; n 9: tested 11%, score median 0.22
-    passenger on 1391: n 10: tested 9%, score median 0.20; n 14: tested 16%, score median 0.14; n 19: tested 29%, score median 0.11
-    passenger on 2804: n 20: tested 16%, score median 0.10; n 30: tested 36%, score median 0.07; n 45: tested 61%, score median 0.05
+    passenger on 749: n 5: tested 4%, score median 0.40; n 7: tested 9%, score median 0.29; n 9: tested 13%, score median 0.22
+    passenger on 1391: n 10: tested 8%, score median 0.20; n 14: tested 14%, score median 0.14; n 19: tested 25%, score median 0.11
+    passenger on 2804: n 20: tested 19%, score median 0.10; n 30: tested 36%, score median 0.07; n 45: tested 64%, score median 0.04
 
 §6 the cohort page: ten cohorts each way, with the count test beside
-  each mutation once: tested 403 a cohort; oncodrive calls per cohort — oncogenes 2.9 of 3, suppressors 0.1 of 6, passengers 0.4
-    drivers called in 10 cohorts: PIK3CA 10, AKT1 10, KRAS 9, GATA3 1; passengers called (count:score, r = carries a repeat): 5:0.80 5:0.80 5:0.80 5:0.80
-    lowest score called / highest not called, per cohort: 0.76/0.67 0.73/0.67 0.76/0.67 0.73/0.66 0.75/0.67 0.79/0.67 0.78/0.67 0.78/0.62 0.73/0.67 0.76/0.57
-    count test calls per cohort — oncogenes 3.0, suppressors 6.0, passengers 237.1; drivers: PIK3CA 10, AKT1 10, KRAS 10, TP53 10, CDH1 10, GATA3 10, MAP3K1 10, PTEN 10, NF1 10
-  repeats as the MAF lists them: tested 806 a cohort; oncodrive calls per cohort — oncogenes 2.8 of 3, suppressors 0.1 of 6, passengers 2.3
-    drivers called in 10 cohorts: PIK3CA 9, AKT1 10, KRAS 9, GATA3 1; passengers called (count:score, r = carries a repeat): 6:0.75r 5:0.80r 5:0.80r 5:0.80r 5:0.80 5:0.80 5:0.80r 5:0.80r 5:0.80r 5:0.80r 5:0.80r 5:0.80r 5:0.85r 5:0.80 5:0.80r 5:0.80r 5:0.80r 5:0.80r 5:0.80r 5:0.80r 5:0.80 5:0.80r 5:0.80r
-    lowest score called / highest not called, per cohort: 0.75/0.67 0.80/0.73 0.76/0.67 0.73/0.68 0.75/0.67 0.78/0.67 0.78/0.71 0.78/0.67 0.73/0.67 0.76/0.67
-    count test calls per cohort — oncogenes 3.0, suppressors 6.0, passengers 254.1; drivers: PIK3CA 10, AKT1 10, KRAS 10, TP53 10, CDH1 10, GATA3 10, MAP3K1 10, PTEN 10, NF1 10
+  each mutation once: tested 410 a cohort; oncodrive calls per cohort — oncogenes 2.8 of 3, suppressors 0.1 of 6, passengers 0.7
+    drivers called in 10 cohorts: PIK3CA 10, AKT1 10, KRAS 8, GATA3 1; passengers called (count:score, r = carries a repeat): 5:0.80 5:0.85 5:0.80 6:0.73 5:0.80 5:0.80 5:0.80
+    lowest score called / highest not called, per cohort: 0.77/0.67 0.73/0.67 0.77/0.67 0.78/0.67 0.74/0.70 0.73/0.67 0.73/0.67 0.77/0.67 0.78/0.62 0.75/0.61
+    count test calls per cohort — oncogenes 3.0, suppressors 6.0, passengers 217.5; drivers: PIK3CA 10, AKT1 10, KRAS 10, TP53 10, CDH1 10, GATA3 10, MAP3K1 10, PTEN 10, NF1 10
+  repeats as the MAF lists them: tested 825 a cohort; oncodrive calls per cohort — oncogenes 2.7 of 3, suppressors 0.1 of 6, passengers 2.7
+    drivers called in 10 cohorts: PIK3CA 9, AKT1 10, KRAS 8, GATA3 1; passengers called (count:score, r = carries a repeat): 5:0.80 5:0.85 5:0.80r 5:0.80r 11:0.73r 5:0.90r 5:0.80r 5:0.80r 5:0.80r 6:0.73r 5:0.80 5:0.80r 5:0.80r 5:0.80r 5:0.80 5:0.80r 7:0.71r 8:0.75r 5:0.80r 5:0.80 7:0.71r 5:0.80r 5:0.80r 5:0.80 5:0.80r 5:0.80r 5:0.80r
+    lowest score called / highest not called, per cohort: 0.77/0.67 0.83/0.73 0.77/0.73 0.73/0.67 0.74/0.71 0.73/0.67 0.77/0.73 0.71/0.67 0.71/0.67 0.75/0.67
+    count test calls per cohort — oncogenes 3.0, suppressors 6.0, passengers 233.5; drivers: PIK3CA 10, AKT1 10, KRAS 10, TP53 10, CDH1 10, GATA3 10, MAP3K1 10, PTEN 10, NF1 10
 
   the count test on the file, counted once: rate 5.670e-3 a residue over 10822745 residues; 207 of 4566 genes at fdr <= 0.05
     among them: TP53 called, CDH1 called, GATA3 called, MAP3K1 called, PTEN called, NF1 called, PIK3CA called, AKT1 called, KRAS called, NDUFS1 not, RPL22 called

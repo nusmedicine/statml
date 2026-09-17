@@ -9575,11 +9575,46 @@ cohort* (cells 13–18: colour is the kind the simulation gave, a ring is a call
 and a line counts the genes not in the table). Page 1 prints z and p; the FDR
 waits for page 2.
 
-**NEXT: the draft** at manifest status `draft`, from these picks and the mock's
-drawing code, with `_lab/driver-genes-verify.mjs`. Open for the draft rather than
-picks: the kind colours (the mock used `--c-group-a` for oncogenes and
-`--c-group-b` for suppressors; a new pair of roles may be the honest answer),
-label placement on page 2, and the copy audit.
+#### DRAFT 2026-09-18, on his "draft"
+
+`widgets/driver-genes/` at manifest status `draft`, so at `/lab/` only.
+`model.js` holds the engine (maftools' `oncodrive`, the port the measure checked)
+and the stage on core's generator; `_lab/driver-genes-model.js` now re-exports
+it, so the measure (23 checks, rerun) and the mock run the widget's own code.
+`_lab/driver-genes-verify.mjs` (54 checks, in `npm test`) holds the engine to
+`_lab/driver-genes-reference.tsv` — 360 synthetic genes scored by maftools' own
+`get_threshold` and `cluster_prot` (`_lab/driver-genes-reference.R`), reaching
+every branch, so the repo carries no TCGA rows — and asserts the stage's
+calibration, the contract by name, the steps driven in node, the geometry at
+535, 550 and 770px through core's own `makePlot`, and the struck-word sweeps.
+
+What the draft decided, to put to him at the round rather than settle here:
+
+- **Page 1 is six presses**: *Add the mutations*, then cell 12's five steps
+  under its own headings (*Identify significant residues · Form clusters ·
+  Score each cluster · Score the gene · Test against the background*), the label
+  keyed on the drive's counter as widget 60's is. The mutations land over 1.2s
+  whatever their number. Step 4 draws the cluster scores laid end to end over
+  the fraction in clusters, so the √2 discount is a visible difference; step 5
+  the background with z and p. A gene with no cluster stops after the first
+  step and says it is not tested.
+- **Page 1's genes are page 2's**: the oncogene, tumor suppressor and small
+  oncogene are the cohort's PIK3CA-, TP53- and AKT1-shaped drivers at the same
+  seed, and page 2 labels those three with page 1's names when kinds are on.
+- **Page 2 opens with "Colour by kind" off** (2.1: the kind is the answer), the
+  calls ringed; the mock had it on. Across eases between the fraction and the
+  score.
+- **A formula card on both pages** (widget 67's machinery): the threshold, a
+  cluster's score and the gene's z on page 1, each number appearing with its
+  step; z, p and Benjamini-Hochberg over the table on page 2.
+- Not built: a click on a cluster to move the close-up (the close-up follows the
+  cluster with the most residues), a hover inspector on page 2, and new colour
+  roles (oncogenes `--c-group-a`, suppressors `--c-group-b`).
+
+Found by the verify while drafting: a passenger's threshold (2) sat above its
+tallest stem (1), so the stems' scale now reaches the threshold; page 2's
+"not in the table" line measured past a 535px canvas and is two lines; the card
+printed a probability as 0.0000.
 
 ### Slot 70 · `mutational-signatures` — Mutational Signatures
 

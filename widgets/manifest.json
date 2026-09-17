@@ -1011,6 +1011,23 @@
       ],
       "arc": 67,
       "status": "shipped"
+    },
+    {
+      "slug": "driver-genes",
+      "title": "Cancer Driver Genes",
+      "blurb": "OncodriveCLUST scores positional clustering: an oncogene's mutations cluster, and a tumor suppressor's are spread out.",
+      "course": "PHM5003",
+      "topics": [
+        "driver genes",
+        "OncodriveCLUST",
+        "positional clustering",
+        "oncogene",
+        "tumor suppressor",
+        "false discovery rate",
+        "cancer"
+      ],
+      "arc": 69,
+      "status": "draft"
     }
   ]
 }
