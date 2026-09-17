@@ -8652,7 +8652,7 @@ dominating a decomposition; a nearest reference used as a name.
 |---|---|---|---|---|---|---|
 | 67 | `variant-allele-frequency` | Tumor Heterogeneity | 01-2 cells 17–25 | a VAF below 0.5 is a subclone, and a cluster of VAFs is a clone. **Measured: 965 of 967 tumours have a median VAF below 0.5, and a tumour with one clone reads MATH 15–25 from sampling alone** | reported (Dentro, Wedge & Van Loo 2017; the lesson's cells 17 and 24 state both caveats) | **SHIPPED 2026-09-17** as `tumor-heterogeneity`, three pages |
 | 68 | `clonal-architecture` | Clonal Architecture | 01-2 cell 25 and `cancer-retcher.png`; nothing run | the clusters' CCFs give the tree. **Measured on his figure: the sum rule rules out branching at three of its four samples, and the surgery sample alone fits both trees** | documented for the rule (Nik-Zainal et al. 2012, the pigeonhole principle); the misconception inferred | **FOLDED into 67 as its last page, Kenneth's pick 2026-09-16**, and shipped with it 2026-09-17 — the section below stands as that page's spec |
-| 69 | `driver-genes` | Cancer Driver Genes | 01-3 cells 12–25 | a gene `oncodrive` does not call is a passenger; a smaller FDR is a stronger driver. **Measured: TP53, CDH1, GATA3 and MAP3K1, four of the six most mutated genes, are absent from cell 16's table** | documented (Tamborero et al. 2013; TCGA 2012 names all four as significantly mutated) | proposed |
+| 69 | `driver-genes` | Cancer Driver Genes | 01-3 cells 12–25 | a gene `oncodrive` does not call is a passenger; a smaller FDR is a stronger driver. **Measured: TP53, CDH1, GATA3 and MAP3K1, four of the six most mutated genes, are absent from cell 16's table** | documented (Tamborero et al. 2013; TCGA 2012 names all four as significantly mutated) | **measured, mocked and picked 2026-09-17** — maftools installed, cell 16 reproduced; next the draft |
 | 70 | `mutational-signatures` | Mutational Signatures | 01-4 | an extracted signature is a process across the cohort, and its best COSMIC match names the cause. **Measured: Signature_1 is one tumour** | reported (Koh et al. 2021 on attribution) | proposed — **a new widget importing 41's engine, his pick 2026-09-16** |
 | 71 | `somatic-interactions` | Somatic Interactions | 01-3 cells 4–11, 35 | two genes rarely mutated together share a pathway (cell 4's reading). **Measured: TP53–CDH1's odds ratio 0.153 is 0.407 within histology** | documented (Canisius, Martens & Wessels 2016; van de Haar et al. 2019) | **not asked for** — kept proposed, **his call after 67–70 are built** |
 
@@ -8722,6 +8722,31 @@ mock, since a slug is a public URL.
    mutations.** Its Mutant group (cell 37, N 367) is the tumours with either:
    328 with PIK3CA plus 82 with MAP3K1, less the 43 with both (cell 35's
    table).
+9. **01-3 cell 15's background could not be built from this MAF at any
+   size** (measured on maftools 2.26.0, 2026-09-17, and told to him). GDC
+   writes a silent change as `p.D395=`; `parse_prot` strips letters and
+   asterisks but not the `=`, so 2 of the 21,620 silent-set variants get a
+   residue and no silent gene returns a cluster. Read correctly, 76 genes
+   would, still under the 100 `nBgGenes` asks for. maftools' help says the
+   fallback 0.279 / 0.13 were "estimated from COSMIC synonymous variants".
+10. **The MAF counts some mutations more than once, and cell 16 carries it.**
+    18 tumours have two or three aliquots (01A with 01B, or a primary 01A with
+    a metastasis 06A), and `read.maf(isTCGA = T)` cuts every barcode to twelve
+    characters, so each shared mutation is two rows at one residue: 856 repeat
+    rows in the file, 652 of them non-synonymous outside the FLAG genes. A
+    two-base change is two rows on adjacent bases, 238 of them. **387 of the
+    799 genes in the table are there only on residues one tumour hit.** Counted
+    once per tumour, 478 genes are tested and DPEP1 leaves (its R130W pair is
+    TCGA-E2-A15A's primary and metastasis; 4 mutations, under `minMut`);
+    counting each two-base change once as well, 415 are tested and FAM102A
+    leaves (E109V and E109* are one event in TCGA-A1-A0SE). AKT1 keeps its call
+    with one E17K repeat removed. A `distinct()` on the 12-character barcode,
+    chromosome, position and allele before `read.maf` removes the first kind.
+11. **maftools' own count test is not a usable alternative.** `pvalMethod =
+    "poisson"` fits `total ~ protLen + clusters` with an identity link and
+    tests two-sided, so 19 of its 32 calls at FDR 0.05 are genes with fewer
+    mutations than expected, CDH1 (134 against 175.4) among them; `"combined"`
+    takes the smaller of that and the z-score FDR.
 
 ### Slot 67 · `variant-allele-frequency` — Tumor Heterogeneity
 
@@ -9464,6 +9489,97 @@ maftools is not installed and its source is a network fetch — his approval.
 clustering one (a gene's mutation count against its length), which calls the
 spread suppressors and misses the small hotspot genes. It is the stage where
 each method loses (§ *Widget 43*'s rule), and it is not in the notebook.
+
+#### MEASURED, MOCKED AND PICKED 2026-09-17
+
+**maftools installed on his approval** (Bioconductor 3.22: maftools 2.26.0,
+Rhtslib, DNAcopy, pheatmap, into the R user library). `_lab/driver-genes-oncodrive.R`
+runs cells 2 and 15 as he ran them and **cell 16's seven rows reproduce in every
+column** (`_lab/driver-genes-oncodrive.txt`, 15 checks). `_lab/driver-genes-model.js`
+ports `oncodrive` line for line from the installed source, and
+`_lab/driver-genes-measure.mjs` matches it to maftools on **all 4,655 genes**:
+every threshold, the 3,856 left out, and all 799 scores, z, p and FDRs
+(`_lab/driver-genes-measure.txt`, 23 checks). The planning text above described
+the paper; what runs is this:
+
+- **The threshold is a point probability per gene**: the smallest x ≥ 2 with
+  `dbinom(x, total, 1/protLen) < 0.01`, `total` counting splice sites that then
+  get no residue. It is 2 for 4,652 of the 4,655 genes, 3 for PIK3CA and GATA3,
+  5 for TP53.
+- **Clusters:** residues at the threshold fewer than 5 apart merge, and each
+  cluster widens by up to 5 residues either side onto residues below it. Each
+  residue in the span adds (its mutations ÷ the gene's placed mutations) ÷
+  √2^distance from the cluster's peak; the gene's score is the sum over
+  clusters. Two quirks are ported and counted: a residue below the threshold
+  inside a cluster is scored but not added to its N, and tied peaks are
+  recycled in row order (3 genes, no call changed).
+- **A gene with no residue at the threshold is not in the table at all** —
+  `cluster_prot` returns NULL. Only 799 of the 4,655 genes with 5+ mutations are
+  tested; NF1 (40) is among those left out, and the FDR runs over the 799.
+- **The count only admits a gene.** NDUFS1 (9, all I623R) and RPL22 (6, all
+  K15fs) score 1 and rank 1–2; PIK3CA (369) scores 0.804 and ranks 7. The
+  lowest score called is 0.800 and the highest not called 0.667; a gene joining
+  the table is called from 0.707.
+- **Misconception 1, measured:** TP53 0.487 (fdr 0.79; 70% of its mutations in
+  clusters, the √2 discount on wide clusters), GATA3 0.596 (0.25), PTEN 0.510,
+  CDH1 0.382, MAP3K1 0.280 — tested, not called.
+- `plotOncodrive(useFraction = TRUE)` draws the fraction in clusters across,
+  −log10 FDR up and bubble size by cluster count; the fraction is not the score
+  (PIK3CA 0.927 against 0.804). `lollipopPlot` counts per protein change
+  (H1047R 121 of the 136 at residue 1047).
+- Findings 9–11 in § *What the lesson's own output says* are this
+  measurement's: the silent background, the repeated records, maftools' count
+  test.
+
+**The simulated stage, calibrated to the file counted once per tumour and
+two-base changes once** (§3–§6 of the measure). Drivers are nine SHAPES from
+the file — PIK3CA, AKT1, KRAS as oncogenes; TP53, CDH1, GATA3, MAP3K1, PTEN, NF1
+as suppressors — each with its length, count, hotspot residues and truncating
+share; each shape's median simulated score is within 0.1 of its gene's (TP53
+0.544 against 0.556, PTEN 0.514 against 0.501). Passengers are a genome of
+18,251 lengths (prot_len's log-mean and sd), a lognormal rate per gene (median
+0.0053, sd 0.4) and a lognormal mutability per residue (sd 1.0), fitted to the
+genes at 5+ (4,530 against 4,566), their count quantiles, length by count, the
+tested share by count (6.1%, 14.8%, 31.7% against 6.0%, 15.5%, 27.5%), and the
+count test's calls on the file (207; the simulated cohorts give about 246). **Without residue mutability, drivers scored
+far below their genes** (MAP3K1 0.08 against 0.25): the same processes act on a
+driver's other residues. Over ten cohorts, clustering calls PIK3CA and AKT1
+every time, KRAS 9, GATA3 once and no other suppressor, and 0.4 passengers a
+cohort; `REPEAT_RATE` 0.0105 doubles the tested genes (809 against the file's
+799) and adds two passenger calls a cohort, each on a repeated record.
+
+**Kenneth's picks, 2026-09-17, one `AskUserQuestion` from
+`_lab/driver-genes-mock.html`, all four recommendations:**
+
+1. **Records: each mutation once.** The cohort has one record per tumour and
+   event. Misconception 2 stands without repeats (the small oncogenes above the
+   one with 359 mutations; NDUFS1 and RPL22 still top the file counted once);
+   the repeats are finding 10, his notebook's to fix.
+2. **No count test.** The notebook runs none, and maftools' own is unusable;
+   ours would call all six suppressors and about 237 passengers a cohort (on
+   the file itself, 207 of 4,566 genes, among them RYR2, LRP2, FAT3 and CSMD3). Colour by
+   true kind shows what oncodrive misses.
+3. **The genes are named by kind** — Oncogene · Tumour suppressor · Small
+   oncogene · Passenger — with the gene each is shaped on in the control's
+   detail; page 2 colours by the same words.
+4. **Page 2's axis opens on the fraction in clusters, as cell 18 draws it,
+   with a display control to the score** (Across: Fraction in clusters ·
+   Score).
+
+**Settled by the mock and not re-argued:** two pages, *One gene* (cells 12,
+19–25: Step walks cell 12's five steps; the whole protein as a lollipop, round
+heads missense and square truncating, stems on a square-root scale so the
+threshold is a visible line; a close-up of one cluster, since 5 residues is 2
+pixels on the protein, following the cluster with the most residues) and *The
+cohort* (cells 13–18: colour is the kind the simulation gave, a ring is a call,
+and a line counts the genes not in the table). Page 1 prints z and p; the FDR
+waits for page 2.
+
+**NEXT: the draft** at manifest status `draft`, from these picks and the mock's
+drawing code, with `_lab/driver-genes-verify.mjs`. Open for the draft rather than
+picks: the kind colours (the mock used `--c-group-a` for oncogenes and
+`--c-group-b` for suppressors; a new pair of roles may be the honest answer),
+label placement on page 2, and the copy audit.
 
 ### Slot 70 · `mutational-signatures` — Mutational Signatures
 
