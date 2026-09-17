@@ -16772,6 +16772,49 @@ are JPG and nothing rescales the label before `AsDiscreted(threshold=0.5)` (find
 (2) above, +25.0% to +33.8% foreground on the synthetic disc); KRD-WBC's masks
 were not read.
 
+#### CLASSIFICATION OPTION 2026-09-17 — his question, measured, mocked, picked
+
+**His question:** *"i was wondering that if image augmentation is also done for
+classification. we dont' show it in notebook, but do you think it's a good idea to
+have a toggle or option to just augment without the mask?"* Read first: 06-2 cell 1
+§3 and the preprocessing figure put augmentation on the training split, but cells
+10, 34 and 64 give train, val and test the same `ToTensor()` and `Normalize()`, so
+no lesson augments a classification image. 06-1 cell 6's torchvision example
+(`RandomResizedCrop`, `RandomHorizontalFlip`) is a classification recipe, as code
+only.
+
+**Measured on MONAI 1.6.0** (`_lab/augmentation-classification-monai.py`, output
+in its `.txt`): with a class label in the sample (an int, an `np.int64`, a 0-d or
+`[1]` tensor, or a multi-hot vector), `keys=["image", "label"]` makes both
+RandFlipd lines raise `IndexError: list index out of range`, RandRotate90d
+`IndexError: tuple index out of range`, and RandAffined an AttributeError,
+ValueError or RuntimeError by the label's type; RandAdjustContrastd runs and
+returns the label as a float. With `keys=["image"]` every line runs and the label
+comes out unchanged. So the call the shipped page shows as the stale mask is the
+only spatial call that runs for classification, and without the option the page
+teaches `keys=["image"]` only as a mistake.
+
+**Mocked** (`_lab/augmentation-classification-mock.html`, drawn by the widget's own
+`model.js` at 550 px, with live core rails): the figure four ways (as shipped; A the
+class under each image; B a 40 px label row in the mask's place; C the row kept at
+247 px), the Rotate thumbnails with and without the outline, four rails, the two
+libraries, and a table of what changes. The class is `6 (neutrophil)`: 06-2 cell 3
+lists BloodMNIST, whose label map in `medmnist.INFO` puts neutrophil at 6, and cell
+14's `plot_image` titles a sample `True label: 6 (neutrophil)`. The smear's white
+cell has a three-lobed nucleus, a neutrophil's.
+
+**His picks, one AskUserQuestion, every recommendation:** add it; figure **B** (the
+Rotate page 665 px at 550 against 872 shipped); **Task: Segmentation ·
+Classification** in its own section above The transform, a display control, so
+switching it keeps the draws; the calls stay **MONAI's** under both tasks (in
+torchvision the transform is handed the image alone, so no line of its code shows
+the difference, and torchvision is not installed here). Taken as drawn: no outline
+and no label on the thumbnails; White blood cell hidden under Classification; the
+Pipeline page stays cell 19 with Task not on it. Not taken: a Classification
+pipeline (no lesson has one to list), a transform that changes the class on a
+second image, and `keys=["image", "label"]` under Classification (MONAI raises, and
+an error message is not a picture).
+
 *The entry below is the plan as first written and cut on 2026-09-13, kept as
 written.*
 

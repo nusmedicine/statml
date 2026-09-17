@@ -1,0 +1,583 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · augmentation — classification</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1600px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 104ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); min-height: 26px; white-space: pre-line; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 104ch; }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+       border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 104ch; }
+  table { border-collapse: collapse; font-size: var(--fs-sm); margin: var(--sp-2) 0; max-width: 150ch; }
+  th, td { border: 1px solid var(--grid); padding: 4px 10px; text-align: left; vertical-align: top; }
+  th { color: var(--ink-2); font-weight: 600; }
+  ul.note { color: var(--ink-2); font-size: var(--fs-sm); max-width: 104ch; margin: 0 0 var(--sp-3); padding-left: 1.2em; }
+  ul.note li { margin: 0 0 var(--sp-1); }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>augmentation &middot; a classification option</h1>
+  <p class="q">
+    <b>Your picks, 2026-09-17, one question each: every recommendation.</b> Add it; the figure <b>B</b>, a label row
+    in the mask's place; <b>Task: Segmentation &middot; Classification</b> in its own section above The transform; the
+    calls stay <b>MONAI's</b> under both tasks.
+  </p>
+  <p class="note">
+    <b>Your ask, 2026-09-17:</b> &ldquo;do you think it's a good idea to have a toggle or option to just augment without
+    the mask?&rdquo;, then &ldquo;ok we are using different libraries...can mock it for me to take a look then i'll
+    decide&rdquo;. <b>Measured first, on MONAI 1.6.0:</b> when the label is a class &mdash; an int, a 0-d or
+    <code>[1]</code> tensor, or a multi-hot vector &mdash; both <code>RandFlipd</code> lines, <code>RandRotate90d</code>
+    and <code>RandAffined</code> raise with <code>keys=["image", "label"]</code>, and with <code>keys=["image"]</code>
+    every line runs and the label comes out unchanged. So the call the shipped page shows as the stale mask is the only
+    spatial call that runs for classification.
+  </p>
+  <p class="note">
+    <b>Everything drawn here</b> comes from the widget's own <code>model.js</code> and <code>engine.js</code>, at the
+    side layout's 550px canvas, on the widget's default seed 106. The rails are core's <code>buildControls</code> at
+    300px and answer clicks. On-canvas strings are candidates for the copy audit, not copy. Each section ends with a
+    recommendation.
+  </p>
+
+  <h2>1 &middot; The figure: one draw under each task</h2>
+  <p class="note">
+    <code>RandRotate90d</code>, the sixth draw of seed 106 (k = 1). The augmented image is the same pixels under both
+    tasks; only what sits under it changes. <b>The class is 6 (neutrophil)</b>: 06-2 cell 3's table lists BloodMNIST
+    (white blood cell types), whose label map in <code>medmnist.INFO</code> puts neutrophil at 6, and cell 14's
+    <code>plot_image</code> titles a sample <code>True label: 6 (neutrophil)</code>. The smear's white cell has a
+    three-lobed nucleus, which is a neutrophil's.
+  </p>
+  <div class="row" id="figRow"></div>
+  <p class="rec" id="recFig"></p>
+
+  <h2>2 &middot; The twelve thumbnails under Flip and Rotate</h2>
+  <p class="note">
+    On the shipped page every thumbnail carries the mask's outline. Under Classification there is no mask to outline,
+    so the question is whether a 79px thumbnail still shows the turn without it. Rotate, all twelve draws of seed 106.
+  </p>
+  <div class="row" id="gridRow"></div>
+  <p class="rec" id="recGrid"></p>
+
+  <h2>3 &middot; The rail</h2>
+  <p class="note">
+    Transform is Affine, the call that changes most: <code>keys</code> is written into the call instead of offered, and
+    <code>mode</code> takes one value, since only the image is resampled. White blood cell is hidden under
+    Classification, because it exists for the stale mask's Dice. <b>Task is a display control in every rail</b>, so
+    switching it keeps the twelve draws: the same draws, read as segmentation or as classification. Click Task or
+    Transform in any rail to see the call change.
+  </p>
+  <div class="row" id="railRow"></div>
+  <p class="rec" id="recRail"></p>
+
+  <h2>4 &middot; The two libraries</h2>
+  <p class="note">
+    06-2 runs torchvision and the widget's calls are MONAI's. For classification the two differ in what a transform
+    is handed, and 06-2's own <code>CustomImageDataset</code> (cell 2) shows it.
+  </p>
+  <table>
+    <tr><th></th><th>torchvision, as 06-2 writes it</th><th>MONAI, as 06-3 and the widget write it</th></tr>
+    <tr>
+      <td>what a transform is handed</td>
+      <td>the image: <code>image = self.transform(image)</code>, with the label built on the line after it (06-2 cell 2)</td>
+      <td>the sample dict; <code>keys</code> names the entries the transform changes</td>
+    </tr>
+    <tr>
+      <td>a left&ndash;right flip for classification</td>
+      <td><code>T.RandomHorizontalFlip(p=0.5)</code> (06-1 cell 6)</td>
+      <td><code>RandFlipd(keys=["image"], prob=0.5, spatial_axis=1)</code></td>
+    </tr>
+    <tr>
+      <td>the class label given to a spatial transform</td>
+      <td>not written: the transform is not handed the label</td>
+      <td><code>keys=["image", "label"]</code> raises: <code>IndexError: list index out of range</code> on
+        <code>RandFlipd</code>, <code>tuple index out of range</code> on <code>RandRotate90d</code></td>
+    </tr>
+    <tr>
+      <td>augmentation in the lesson's code</td>
+      <td>none: cells 10, 34 and 64 give train, val and test the same <code>ToTensor()</code> and
+        <code>Normalize()</code></td>
+      <td>cell 19's six random lines: the four spatial ones on the image and the mask, the two intensity ones on the image</td>
+    </tr>
+  </table>
+  <p class="rec" id="recLib"></p>
+
+  <h2>5 &middot; What changes on the page, and what stays</h2>
+  <table>
+    <tr><th>on the Transforms page</th><th>Segmentation, as shipped</th><th>Classification</th></tr>
+    <tr><td>caption</td><td><code>RandFlipd on one training image and its mask</code></td><td><code>… and its label</code></td></tr>
+    <tr><td>under each image</td><td>the mask</td><td>the class, <code>6 (neutrophil)</code>, as picked in &sect;1</td></tr>
+    <tr><td>outline on each image</td><td>the mask's</td><td>none</td></tr>
+    <tr><td><code>keys</code></td><td>a slot: <code>["image", "label"]</code> or <code>["image"]</code></td><td>written into the call: <code>["image"]</code></td></tr>
+    <tr><td>the stale mask: its line, the Dice tile, the dashed outline, its legend row</td><td>under <code>keys=["image"]</code></td><td>not shown</td></tr>
+    <tr><td><code>RandAffined</code>'s label mode, and the magnifier</td><td>a slot; the magnifier under <code>"bilinear"</code></td><td><code>mode="bilinear"</code>, no slot; no magnifier</td></tr>
+    <tr><td>Affine's faint outlines of earlier draws</td><td>shown</td><td>none</td></tr>
+    <tr><td>White blood cell control</td><td>shown</td><td>hidden</td></tr>
+    <tr><td>Draws, Applied and Last draw tiles; the affine ranges, the &gamma; curves, the noise difference</td><td colspan="2">unchanged</td></tr>
+    <tr><td>Pipeline page</td><td colspan="2">cell 19, unchanged; Task is not on it</td></tr>
+    <tr><td>links</td><td colspan="2"><code>task=classification</code> is added; every existing link opens as it does now, since Segmentation is the default</td></tr>
+  </table>
+  <p class="note"><b>Not in the mock, and why:</b></p>
+  <ul class="note">
+    <li><b>A Classification Pipeline page.</b> 06-2 runs no random transform, so there is no listing of its own to show,
+      and cell 19 with <code>keys=["image"]</code> throughout would be a pipeline no lesson writes.</li>
+    <li><b>A transform that changes the class</b> (06-2 cell 1 &sect;3: horizontal flipping on images with left/right
+      context). A smear has no left or right, so this needs a second image; the left&ndash;right flip on a second image
+      was not taken on 2026-09-15.</li>
+    <li><b><code>keys=["image", "label"]</code> under Classification.</b> MONAI raises (&sect;4), and an error message is
+      not a picture.</li>
+  </ul>
+</main>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+import { makeRng } from "../core/rng.js";
+import { buildControls, buildActions, gatingParams } from "../core/controls.js";
+import { resolveParams } from "../core/params.js";
+import * as M from "../augmentation/model.js";
+
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+const W = 550;
+const SEED = 106;
+
+const el = (tag, cls, text) => { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; };
+function cand(host, title, sub, w) {
+  const box = el("div", "cand");
+  box.style.width = `${w}px`;
+  box.appendChild(el("h3", null, title));
+  box.appendChild(el("p", "sub", sub));
+  document.getElementById(host).appendChild(box);
+  return box;
+}
+function canvasIn(box, w, h) {
+  const c = document.createElement("canvas");
+  c.width = Math.round(w * DPR); c.height = Math.round(h * DPR);
+  c.style.width = `${w}px`; c.style.height = `${h}px`;
+  box.appendChild(c);
+  const ctx = c.getContext("2d");
+  ctx.scale(DPR, DPR);
+  return ctx;
+}
+
+/* ---- primitives, as widgets/augmentation/main.js has them ------------------ */
+
+const signed = (v, d) => (v < 0 ? `−${Math.abs(v).toFixed(d)}` : v.toFixed(d));
+const devicePx = (size) => Math.max(1, Math.round(size * (globalThis.devicePixelRatio || 1)));
+const DEG = Math.PI / 180;
+
+function txt(ctx, colors, s, x, y, o = {}) {
+  const { color = colors.ink2, align = "left", size = colors.fsSm, baseline = "alphabetic", mono = false, weight = "" } = o;
+  ctx.save();
+  ctx.fillStyle = color;
+  ctx.textAlign = align;
+  ctx.textBaseline = baseline;
+  ctx.font = `${weight} ${size} ${mono ? colors.mono : colors.font}`.trim();
+  ctx.fillText(s, x, y);
+  ctx.restore();
+}
+const caption = (ctx, colors, s, x, y) => txt(ctx, colors, s, x, y, { color: colors.ink2, weight: "600" });
+const note = (ctx, colors, s, x, y, tone, o = {}) => txt(ctx, colors, s, x, y, { color: tone ?? colors.ink3, size: colors.fsXs, ...o });
+
+function frame(ctx, x, y, w, h, stroke, width = 1) {
+  ctx.save();
+  ctx.strokeStyle = stroke;
+  ctx.lineWidth = width;
+  ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+  ctx.restore();
+}
+
+const bitmaps = new WeakMap();
+function bitmapOf(im, px, tint) {
+  let per = bitmaps.get(im);
+  if (!per) { per = new Map(); bitmaps.set(im, per); }
+  const key = `${px}:${tint ?? ""}`;
+  if (per.has(key)) return per.get(key);
+  const c = document.createElement("canvas");
+  c.width = px; c.height = px;
+  const g = c.getContext("2d");
+  const id = g.createImageData(px, px);
+  if (!tint && im.c === 3) {
+    const n3 = im.w * im.h;
+    for (let v = 0; v < px; v += 1) {
+      const y = Math.min(im.h - 1, Math.floor(((v + 0.5) * im.h) / px));
+      for (let u = 0; u < px; u += 1) {
+        const i = y * im.w + Math.min(im.w - 1, Math.floor(((u + 0.5) * im.w) / px));
+        const o = 4 * (v * px + u);
+        for (let ch = 0; ch < 3; ch += 1) id.data[o + ch] = Math.max(0, Math.min(255, Math.round(255 * im.d[ch * n3 + i])));
+        id.data[o + 3] = 255;
+      }
+    }
+    g.putImageData(id, 0, 0);
+    per.set(key, c);
+    return c;
+  }
+  const acc = new Float32Array(px * px * 3);
+  const cnt = new Float32Array(px * px);
+  for (let y = 0; y < im.h; y += 1) {
+    const ty = Math.min(px - 1, Math.floor((y * px) / im.h));
+    for (let x = 0; x < im.w; x += 1) {
+      const t = ty * px + Math.min(px - 1, Math.floor((x * px) / im.w));
+      cnt[t] += 1;
+      acc[3 * t] += im.d[y * im.w + x];
+    }
+  }
+  const rgb = [1, 3, 5].map((k) => parseInt(tint.slice(k, k + 2), 16));
+  for (let t = 0; t < px * px; t += 1) {
+    const o = 4 * t;
+    id.data[o] = rgb[0]; id.data[o + 1] = rgb[1]; id.data[o + 2] = rgb[2];
+    id.data[o + 3] = Math.round(255 * Math.max(0, Math.min(1, acc[3 * t] / (cnt[t] || 1))));
+  }
+  g.putImageData(id, 0, 0);
+  per.set(key, c);
+  return c;
+}
+const paintImage = (ctx, im, x, y, size, tint = null) => ctx.drawImage(bitmapOf(im, devicePx(size), tint), x, y, size, size);
+
+function outline(ctx, colors, pts, x, y, size, { color, width = 1.5, dash = null, alpha = 1 }) {
+  const s = size / M.N;
+  ctx.save();
+  ctx.beginPath(); ctx.rect(x, y, size, size); ctx.clip();
+  ctx.beginPath();
+  pts.forEach(([px, py], i) => {
+    if (i) ctx.lineTo(x + (px + 0.5) * s, y + (py + 0.5) * s);
+    else ctx.moveTo(x + (px + 0.5) * s, y + (py + 0.5) * s);
+  });
+  ctx.closePath();
+  if (dash) ctx.setLineDash(dash);
+  if (alpha >= 1) {
+    ctx.globalAlpha = 0.85; ctx.strokeStyle = colors.surface; ctx.lineWidth = width + 2; ctx.stroke();
+  }
+  ctx.globalAlpha = alpha; ctx.strokeStyle = color; ctx.lineWidth = width; ctx.stroke();
+  ctx.restore();
+}
+function panel(ctx, colors, x, y, size, paint, lines = []) {
+  paint();
+  lines.forEach((l) => outline(ctx, colors, l.pts, x, y, size, l));
+  frame(ctx, x, y, size, size, colors.grid);
+}
+const imagePanel = (ctx, colors, im, x, y, size, lines = []) => panel(ctx, colors, x, y, size, () => paintImage(ctx, im, x, y, size), lines);
+function maskPanel(ctx, colors, m, x, y, size) {
+  ctx.save(); ctx.fillStyle = colors.surface; ctx.fillRect(x, y, size, size); ctx.restore();
+  panel(ctx, colors, x, y, size, () => paintImage(ctx, m, x, y, size, colors.reference));
+}
+
+const probOf = (params, kind) => params[`${kind}_prob`];
+function drawText(kind, d, params) {
+  if (!d.fired) return `not applied: prob = ${probOf(params, kind)}`;
+  if (kind === "flip") return `applied: spatial_axis=${d.op.axis} flips the image ${d.op.axis === 0 ? "top to bottom" : "left to right"}`;
+  if (kind === "rotate") return `applied: k = ${d.op.k}, a ${90 * d.op.k}° rotation counter-clockwise`;
+  const { rotate, translate, scale } = d.op;
+  return `applied: rotate ${signed(rotate / DEG, 1)}°, translate (${signed(translate[0], 1)}, ${signed(translate[1], 1)}) px, `
+    + `scale (${scale[0].toFixed(2)}, ${scale[1].toFixed(2)})`;
+}
+function shortText(kind, d) {
+  if (!d.fired) return "not applied";
+  if (kind === "flip") return "flipped";
+  return `k = ${d.op.k}`;
+}
+
+/* ---- the widget's defaults, and its state ---------------------------------- */
+
+const BASE = {
+  topic: "transforms", keys: "image,label", flip_prob: "0.5", spatial_axis: "0", rotate_prob: "0.5", max_k: "3",
+  affine_prob: "0.25", rotate_range: "10", translate_height: "8", translate_width: "8", scale_height: "0.1",
+  scale_width: "0.1", mode: "nearest", contrast_prob: "1", gamma_low: "0.5", gamma_high: "2", noise_prob: "1",
+  std: "0.1", cell: "off-centre", seed: SEED,
+};
+const states = new Map();
+const stateOf = (transform) => {
+  if (!states.has(transform)) states.set(transform, M.computeTransforms({ ...BASE, transform }, makeRng(SEED)));
+  return states.get(transform);
+};
+
+/* ---- 1 · the figure --------------------------------------------------------- */
+
+const L = M.figureLayout(W);
+const LABEL_ROW = 40;
+const CLASS_TEXT = "6 (neutrophil)";
+/* where the draw's line and the band start, per candidate; the shipped page is "seg" */
+function geometry(v) {
+  if (v === "seg" || v === "C") return { line1: L.line1, bandY: L.bandY };
+  if (v === "A") {
+    const labelY = L.imgY + L.s + 18;
+    return { labelY, line1: labelY + 26, bandY: labelY + 26 + 38 };
+  }
+  const line1 = L.maskY + LABEL_ROW + 20;
+  return { line1, bandY: line1 + 38 };
+}
+const pageAt = (v, transform) => geometry(v).bandY + M.bandLayout(W, { ...BASE, transform }).height + 10;
+
+function labelBox(ctx, x, y, w, h, centred) {
+  ctx.save(); ctx.fillStyle = T.surface; ctx.fillRect(x, y, w, h); ctx.restore();
+  frame(ctx, x, y, w, h, T.grid);
+  txt(ctx, T, CLASS_TEXT, centred ? x + w / 2 : x + 12, y + h / 2 + 1,
+    { color: T.ink1, size: T.fsSm, baseline: "middle", align: centred ? "center" : "left" });
+}
+
+function figure(ctx, variant, transform, n) {
+  const params = { ...BASE, transform };
+  const state = stateOf(transform);
+  const sm = M.smear("off-centre");
+  const d = state.draws[n - 1];
+  const smp = state.sample(n - 1, "off-centre");
+  const seg = variant === "seg";
+  const G = geometry(variant);
+  caption(ctx, T, `${M.CLASS[transform]} on one training image and its ${seg ? "mask" : "label"}`, M.PAD, 20);
+  note(ctx, T, "Original", L.x0, L.imgY - 8, T.ink2, { weight: "600" });
+  note(ctx, T, `Augmented, draw ${n} of ${M.DRAWS}`, L.x1, L.imgY - 8, T.ink2, { weight: "600" });
+  imagePanel(ctx, T, sm.image, L.x0, L.imgY, L.s, seg ? [{ pts: M.outlineOf(sm.wbc, []), color: T.reference }] : []);
+  imagePanel(ctx, T, smp.image, L.x1, L.imgY, L.s, seg ? [{ pts: M.outlineOf(smp.wbc, smp.ops), color: T.reference }] : []);
+  if (seg) {
+    note(ctx, T, "mask", L.x0, L.maskY - 6, T.ink3);
+    note(ctx, T, "mask", L.x1, L.maskY - 6, T.ink3);
+    maskPanel(ctx, T, sm.mask, L.x0, L.maskY, L.s);
+    maskPanel(ctx, T, smp.mask, L.x1, L.maskY, L.s);
+  } else if (variant === "A") {
+    ctx.save(); ctx.font = `${T.fsXs} ${T.font}`; const lw = ctx.measureText("label").width; ctx.restore();
+    for (const x of [L.x0, L.x1]) {
+      note(ctx, T, "label", x, G.labelY, T.ink3);
+      txt(ctx, T, CLASS_TEXT, x + lw + 8, G.labelY, { color: T.ink1, size: T.fsSm });
+    }
+  } else {
+    for (const x of [L.x0, L.x1]) {
+      note(ctx, T, "label", x, L.maskY - 6, T.ink3);
+      labelBox(ctx, x, L.maskY, L.s, variant === "B" ? LABEL_ROW : L.s, variant === "C");
+    }
+  }
+  note(ctx, T, drawText(transform, d, params), M.PAD, G.line1, d.fired ? T.ink1 : T.ink3);
+  if (!seg) note(ctx, T, "keys=[\"image\"]: the transform is applied to the image only; the label is unchanged", M.PAD, G.line1 + 16, T.ink1);
+  return G.line1 + 16 + 14;
+}
+
+{
+  const n = 6;
+  const rows = [
+    ["seg", "Segmentation, as shipped", "image over mask, the mask's outline on each image"],
+    ["A", "A · the class under each image", "no second row"],
+    ["B", "B · a label row in the mask's place", `image over label, the row ${LABEL_ROW}px`],
+    ["C", "C · the second row kept at full size", "the page is one height under both tasks"],
+  ];
+  for (const [v, title, sub] of rows) {
+    const heights = ["flip", "rotate", "affine"].map((k) => pageAt(v, k));
+    const box = cand("figRow", title, `${sub}\npage at 550px: Flip ${heights[0]} · Rotate ${heights[1]} · Affine ${heights[2]}`, W);
+    const h = v === "seg" || v === "C" ? L.line1 + 30 : v === "A" ? geometry("A").line1 + 30 : geometry("B").line1 + 30;
+    figure(canvasIn(box, W, h), v, "rotate", n);
+  }
+  const saved = (v) => pageAt("seg", "rotate") - pageAt(v, "rotate");
+  document.getElementById("recFig").innerHTML =
+    `<b>B.</b> It keeps your pair figure's two rows, so Task changes what is in the second row and nothing else: image `
+    + `over label under both tasks, the label a picture in one and a class in the other. The page is ${saved("B")}px shorter `
+    + `than the shipped one. A saves ${saved("A")}px but drops the row the mask was in, so the two tasks stop lining up; `
+    + `C keeps one height at the cost of a ${L.s}px box holding one short line. All three drop the outline on the images: `
+    + `it is the mask's outline, and under Classification there is no mask. The line under the figure ties the picture to `
+    + `the call's <code>keys</code>; its wording is the copy audit's.`;
+}
+
+/* ---- 2 · the thumbnails ----------------------------------------------------- */
+
+function grid(ctx, transform, n, withOutline) {
+  const params = { ...BASE, transform };
+  const state = stateOf(transform);
+  const B = M.bandLayout(W, params);
+  ctx.save();
+  ctx.translate(0, 10 - B.top);
+  for (let i = 0; i < M.DRAWS; i += 1) {
+    const { x, y } = B.at(i);
+    if (i >= n) { frame(ctx, x, y, B.ts, B.ts, T.grid); continue; }
+    const smp = state.sample(i, "off-centre");
+    const lines = withOutline ? [{ pts: M.outlineOf(smp.wbc, smp.ops), color: T.reference, width: 1.2 }] : [];
+    imagePanel(ctx, T, smp.image, x, y, B.ts, lines);
+    const d = state.draws[i];
+    note(ctx, T, d.fired ? shortText(transform, d) : "—", x + B.ts / 2, y + B.ts + 13, d.fired ? T.ink1 : T.ink3, { align: "center" });
+  }
+  const fired = state.draws.slice(0, n).filter((d) => d.fired);
+  const c = [1, 2, 3].map((k) => fired.filter((d) => d.op.k === k).length);
+  note(ctx, T, `k = 1: ${c[0]} · k = 2: ${c[1]} · k = 3: ${c[2]} · not applied: ${n - fired.length}; each k is a 90° rotation counter-clockwise`,
+    M.PAD, B.tallyY, T.ink1);
+  ctx.restore();
+  return B.height + 10;
+}
+{
+  const B = M.bandLayout(W, { ...BASE, transform: "rotate" });
+  const box1 = cand("gridRow", "Segmentation, as shipped", "each thumbnail carries the mask's outline", W);
+  grid(canvasIn(box1, W, B.height + 10), "rotate", 12, true);
+  const box2 = cand("gridRow", "Classification", "no mask, so no outline; no label on the thumbnails", W);
+  grid(canvasIn(box2, W, B.height + 10), "rotate", 12, false);
+  document.getElementById("recGrid").innerHTML =
+    `<b>No outline and no label on the thumbnails.</b> The turn reads from where the white cell sits in each one, since `
+    + `the cell is off-centre. Twelve copies of <code>6 (neutrophil)</code> would repeat what the figure already says `
+    + `once. The affine ranges, the &gamma; curves and the noise difference are drawn the same under both tasks.`;
+}
+
+/* ---- 3 · the rails ---------------------------------------------------------- */
+
+const ON = (topic) => ({ param: "topic", equals: topic });
+const opts = (vals, show = (v) => v) => vals.map((v) => ({ value: v, label: show(v) }));
+const slot = (options, def, label = "") => ({ type: "select", label, hidden: true, options, default: def });
+const AFF_DETAIL = "Rotates by an angle drawn from ± rotate_range, translates each axis by a value drawn from ± "
+  + "translate_range pixels and scales each axis by 1 plus a value drawn from ± scale_range; a scale above 1 "
+  + "shrinks the image. Pixels outside the transformed image are set to 0.";
+
+function railSpec({ place, name, task }) {
+  const S = name === "label" ? "mask" : "segmentation";
+  const C = name === "label" ? "class" : "classification";
+  const is = (kind, t) => ({ all: [ON("transforms"), { param: "transform", equals: kind }, ...(t ? [{ param: "task", equals: t }] : [])] });
+  const taskField = name === "label"
+    ? {
+      type: "segmented", label: "Label", detail: "a mask for segmentation, a class for classification",
+      options: [{ value: S, label: "Mask" }, { value: C, label: "Class" }], default: task === "classification" ? C : S, when: ON("transforms"),
+    }
+    : {
+      type: "segmented", label: "Task", detail: "the label: a mask for segmentation, a class for classification",
+      options: [{ value: S, label: "Segmentation" }, { value: C, label: "Classification" }], default: task === "classification" ? C : S, when: ON("transforms"),
+    };
+  const spec = {
+    topic: { type: "segmented", label: "Topic", options: [{ value: "transforms", label: "Transforms" }, { value: "pipeline", label: "Pipeline" }], default: "transforms" },
+  };
+  if (place === "first") {
+    spec.kSec = { type: "section", label: name === "label" ? "The label" : "The task", when: ON("transforms") };
+    spec.task = taskField;
+  }
+  Object.assign(spec, {
+    tSec: { type: "section", label: "The transform", when: ON("transforms") },
+    transform: {
+      type: "segmented", label: "Transform", detail: "one augment transform, applied to the original image on its own",
+      options: [{ value: "flip", label: "Flip" }, { value: "rotate", label: "Rotate" }, { value: "affine", label: "Affine" }, { value: "contrast", label: "Contrast" }, { value: "noise", label: "Noise" }],
+      default: "affine", when: ON("transforms"),
+    },
+    keys: slot([{ value: "image,label", label: "[\"image\", \"label\"]" }, { value: "image", label: "[\"image\"]" }], "image,label"),
+    flip_prob: slot(opts(M.PROBS), "0.5"),
+    spatial_axis: slot(opts(["0", "1"]), "0"),
+    rotate_prob: slot(opts(M.PROBS), "0.5"),
+    max_k: slot(opts(["1", "2", "3"]), "3"),
+    affine_prob: slot(opts(M.PROBS), "0.25"),
+    rotate_range: slot(opts(["0", "5", "10", "20", "45"], (v) => `${v}.0`), "10"),
+    translate_height: slot(opts(["0", "8", "32", "64"]), "8", "height"),
+    translate_width: slot(opts(["0", "8", "32", "64"]), "8", "width"),
+    scale_height: slot(opts(["0", "0.1", "0.2", "0.3"]), "0.1", "height"),
+    scale_width: slot(opts(["0", "0.1", "0.2", "0.3"]), "0.1", "width"),
+    mode: slot([{ value: "nearest", label: "\"nearest\"" }, { value: "bilinear", label: "\"bilinear\"" }], "nearest", "label"),
+    contrast_prob: slot(opts(M.PROBS), "1"),
+    gamma_low: slot(opts(["0.3", "0.5", "0.7", "1"]), "0.5", "low"),
+    gamma_high: slot(opts(["1", "1.5", "2", "3"]), "2", "high"),
+    noise_prob: slot(opts(M.PROBS), "1"),
+    std: slot(opts(["0.01", "0.05", "0.1"]), "0.1"),
+
+    callSec: { type: "section", label: "The call", when: ON("transforms") },
+    flipA: { type: "expr", open: "RandFlipd(keys=", close: ",", slots: ["keys"], when: is("flip", S) },
+    flipA2: { type: "expr", open: "RandFlipd(keys=[\"image\"],", slots: [], when: is("flip", C) },
+    flipB: { type: "expr", open: "prob=", close: ",", slots: ["flip_prob"], when: is("flip") },
+    flipC: {
+      type: "expr", open: "spatial_axis=", close: ")", slots: ["spatial_axis"], when: is("flip", S),
+      detail: "Flips the image, and the mask when \"label\" is in keys: spatial_axis 0 flips top to bottom, 1 left to right.",
+    },
+    flipC2: {
+      type: "expr", open: "spatial_axis=", close: ")", slots: ["spatial_axis"], when: is("flip", C),
+      detail: "Flips the image: spatial_axis 0 flips top to bottom, 1 left to right.",
+    },
+    rotA: { type: "expr", open: "RandRotate90d(keys=", close: ",", slots: ["keys"], when: is("rotate", S) },
+    rotA2: { type: "expr", open: "RandRotate90d(keys=[\"image\"],", slots: [], when: is("rotate", C) },
+    rotB: { type: "expr", open: "prob=", close: ",", slots: ["rotate_prob"], when: is("rotate") },
+    rotC: {
+      type: "expr", open: "max_k=", close: ")", slots: ["max_k"], when: is("rotate", S),
+      detail: "Rotates the image, and the mask when \"label\" is in keys, by k × 90° counter-clockwise, with k drawn from 1 to max_k.",
+    },
+    rotC2: {
+      type: "expr", open: "max_k=", close: ")", slots: ["max_k"], when: is("rotate", C),
+      detail: "Rotates the image by k × 90° counter-clockwise, with k drawn from 1 to max_k.",
+    },
+    affA: { type: "expr", open: "RandAffined(keys=", close: ",", slots: ["keys"], when: is("affine", S) },
+    affA2: { type: "expr", open: "RandAffined(keys=[\"image\"],", slots: [], when: is("affine", C) },
+    affB: { type: "expr", open: "prob=", close: ",", slots: ["affine_prob"], when: is("affine") },
+    affC: { type: "expr", open: "rotate_range=np.deg2rad(", close: "),", slots: ["rotate_range"], when: is("affine") },
+    affD: { type: "expr", open: "translate_range=(", close: "),", slots: ["translate_height", "translate_width"], when: is("affine") },
+    affE: { type: "expr", open: "scale_range=(", close: "),", slots: ["scale_height", "scale_width"], when: is("affine") },
+    affF: { type: "expr", open: "mode=(\"bilinear\", ", close: "), padding_mode=\"zeros\")", slots: ["mode"], when: is("affine", S), detail: AFF_DETAIL },
+    affF2: { type: "expr", open: "mode=\"bilinear\", padding_mode=\"zeros\")", slots: [], when: is("affine", C), detail: AFF_DETAIL },
+    conA: { type: "expr", open: "RandAdjustContrastd(keys=[\"image\"], prob=", close: ",", slots: ["contrast_prob"], when: is("contrast") },
+    conB: {
+      type: "expr", open: "gamma=(", close: "))", slots: ["gamma_low", "gamma_high"], when: is("contrast"),
+      detail: "Rescales intensities to 0–1, raises them to the power γ, drawn between the two values of gamma, and rescales them back.",
+    },
+    noiseA: { type: "expr", open: "RandGaussianNoised(keys=[\"image\"], prob=", close: ",", slots: ["noise_prob"], when: is("noise") },
+    noiseB: {
+      type: "expr", open: "mean=0.0, std=", close: ")", slots: ["std"], when: is("noise"),
+      detail: "Adds Gaussian noise with a standard deviation drawn between 0 and std to every pixel of the image.",
+    },
+
+    imgSec: { type: "section", label: place === "data" ? "The data" : "The image", when: ON("transforms") },
+  });
+  if (place === "data") spec.task = taskField;
+  Object.assign(spec, {
+    cell: {
+      type: "segmented", label: "White blood cell", detail: "the position of the white blood cell, the object in the mask",
+      options: [{ value: "off-centre", label: "Off-centre" }, { value: "centred", label: "Centred" }], default: "off-centre",
+      when: { all: [ON("transforms"), { param: "task", equals: S }] },
+    },
+    pSec: { type: "section", label: "The split", when: ON("pipeline") },
+    split: {
+      type: "segmented", label: "Split", detail: "the pipeline applied to the image: train_transforms or val_test_transforms",
+      options: [{ value: "training", label: "Training" }, { value: "validation", label: "Validation/Test" }], default: "training", when: ON("pipeline"),
+    },
+    seed: { type: "int", label: "Seed", detail: "fixes the random draws, so a seed repeats them", min: 1, max: 200, default: SEED },
+  });
+  return spec;
+}
+
+const rails = [
+  [{ place: "first", name: "task", task: "classification" }, "A · Task in its own section, first", "under Classification"],
+  [{ place: "first", name: "task", task: "segmentation" }, "A · the same rail", "under Segmentation, for the call as shipped"],
+  [{ place: "first", name: "label", task: "classification" }, "A, named Label: Mask · Class", "under Class"],
+  [{ place: "data", name: "task", task: "classification" }, "B · Task in The data, after the call", "under Classification"],
+];
+for (const [opt, title, sub] of rails) {
+  const spec = railSpec(opt);
+  const box = cand("railRow", title, sub, 320);
+  const host = el("div", "w-split rail-host");
+  const rail = el("div", "w-rail");
+  host.appendChild(rail);
+  const cm = el("div", "w-controls");
+  rail.appendChild(cm);
+  let values = resolveParams(spec, new URLSearchParams(""));
+  const gates = gatingParams(spec);
+  const api = buildControls(cm, spec, values, (name, v) => {
+    values = { ...values, [name]: v };
+    if (gates.has(name)) api.rebuild(values);
+  });
+  const drive = el("div", "w-drive");
+  rail.appendChild(drive);
+  buildActions(drive, [
+    { key: "step", text: "Draw", group: "pace", onClick: () => {} },
+    { key: "run", text: "Play", group: "pace", primary: true, onClick: () => {} },
+    { key: "reset", text: "Reset", onClick: () => {} },
+  ]);
+  box.appendChild(host);
+}
+document.getElementById("recRail").innerHTML =
+  `<b>A, named Task.</b> Task decides what <code>keys</code> says in every spatial call, and <code>mode</code> in `
+  + `RandAffined, so it sits above the call; in B it is set below the lines it changes. <i>Segmentation</i> and `
+  + `<i>Classification</i> are the two lessons' own titles, which a student arriving from either will look for, and the `
+  + `detail names the label, the thing that differs. <i>Label: Mask · Class</i> names that thing directly instead.`;
+
+document.getElementById("recLib").innerHTML =
+  `<b>Keep the calls MONAI's under both tasks.</b> In MONAI the difference between the tasks is one argument on the rail, `
+  + `<code>keys</code>; in torchvision the transform is not handed the label, so no line of torchvision code shows the `
+  + `difference, and a torchvision rail could not show it either. A torchvision rail would also need torchvision `
+  + `installed here (a network install, your approval), measured, and a second engine wherever its arguments differ `
+  + `from MONAI's.`;
+</script>
+</body>
+</html>

@@ -1,0 +1,55 @@
+monai 1.6.0 torch 2.14.0+cpu
+
+==== keys=['image', 'label'] ====
+  int 2                  RandFlipd axis 0     RAISES IndexError: list index out of range
+  int 2                  RandFlipd axis 1     RAISES IndexError: list index out of range
+  int 2                  RandRotate90d        RAISES IndexError: tuple index out of range
+  int 2                  RandAffined          RAISES AttributeError: 'int' object has no attribute 'shape'
+  int 2                  RandAdjustContrastd  OK   label -> 2.0 (MetaTensor)
+  np.int64 2             RandFlipd axis 0     RAISES IndexError: list index out of range
+  np.int64 2             RandFlipd axis 1     RAISES IndexError: list index out of range
+  np.int64 2             RandRotate90d        RAISES IndexError: tuple index out of range
+  np.int64 2             RandAffined          RAISES ValueError: Unsupported output type: <class 'numpy.int64'>
+  np.int64 2             RandAdjustContrastd  OK   label -> 2.0 (float64)
+  tensor(2)              RandFlipd axis 0     RAISES IndexError: list index out of range
+  tensor(2)              RandFlipd axis 1     RAISES IndexError: list index out of range
+  tensor(2)              RandRotate90d        RAISES IndexError: tuple index out of range
+  tensor(2)              RandAffined          RAISES RuntimeError: grid_sampler(): expected grid to have size -1 in last dimension, but got grid with sizes [1, 8, 8, 0]
+  tensor(2)              RandAdjustContrastd  OK   label -> 2.0 (MetaTensor)
+  tensor([2])            RandFlipd axis 0     RAISES IndexError: list index out of range
+  tensor([2])            RandFlipd axis 1     RAISES IndexError: list index out of range
+  tensor([2])            RandRotate90d        RAISES IndexError: tuple index out of range
+  tensor([2])            RandAffined          RAISES RuntimeError: grid_sampler(): expected 5D input and grid with same number of dimensions, but got input with sizes [1, 1] and grid with sizes [1, 8, 8, 0]
+  tensor([2])            RandAdjustContrastd  OK   label -> [2.0] (MetaTensor)
+  multi-hot [0,1,0,0]    RandFlipd axis 0     RAISES IndexError: list index out of range
+  multi-hot [0,1,0,0]    RandFlipd axis 1     RAISES IndexError: list index out of range
+  multi-hot [0,1,0,0]    RandRotate90d        RAISES IndexError: tuple index out of range
+  multi-hot [0,1,0,0]    RandAffined          RAISES RuntimeError: grid_sampler(): expected 5D input and grid with same number of dimensions, but got input with sizes [1, 4] and grid with sizes [1, 8, 8, 0]
+  multi-hot [0,1,0,0]    RandAdjustContrastd  OK   label -> [0.0, 0.9999998211860657, 0.0, 0.0] (MetaTensor)
+
+==== keys=['image'] ====
+  int 2                  RandFlipd axis 0     OK   label -> 2 (int)
+  int 2                  RandFlipd axis 1     OK   label -> 2 (int)
+  int 2                  RandRotate90d        OK   label -> 2 (int)
+  int 2                  RandAffined          OK   label -> 2 (int)
+  int 2                  RandAdjustContrastd  OK   label -> 2 (int)
+  np.int64 2             RandFlipd axis 0     OK   label -> 2 (int64)
+  np.int64 2             RandFlipd axis 1     OK   label -> 2 (int64)
+  np.int64 2             RandRotate90d        OK   label -> 2 (int64)
+  np.int64 2             RandAffined          OK   label -> 2 (int64)
+  np.int64 2             RandAdjustContrastd  OK   label -> 2 (int64)
+  tensor(2)              RandFlipd axis 0     OK   label -> 2 (Tensor)
+  tensor(2)              RandFlipd axis 1     OK   label -> 2 (Tensor)
+  tensor(2)              RandRotate90d        OK   label -> 2 (Tensor)
+  tensor(2)              RandAffined          OK   label -> 2 (Tensor)
+  tensor(2)              RandAdjustContrastd  OK   label -> 2 (Tensor)
+  tensor([2])            RandFlipd axis 0     OK   label -> [2] (Tensor)
+  tensor([2])            RandFlipd axis 1     OK   label -> [2] (Tensor)
+  tensor([2])            RandRotate90d        OK   label -> [2] (Tensor)
+  tensor([2])            RandAffined          OK   label -> [2] (Tensor)
+  tensor([2])            RandAdjustContrastd  OK   label -> [2] (Tensor)
+  multi-hot [0,1,0,0]    RandFlipd axis 0     OK   label -> [0.0, 1.0, 0.0, 0.0] (Tensor)
+  multi-hot [0,1,0,0]    RandFlipd axis 1     OK   label -> [0.0, 1.0, 0.0, 0.0] (Tensor)
+  multi-hot [0,1,0,0]    RandRotate90d        OK   label -> [0.0, 1.0, 0.0, 0.0] (Tensor)
+  multi-hot [0,1,0,0]    RandAffined          OK   label -> [0.0, 1.0, 0.0, 0.0] (Tensor)
+  multi-hot [0,1,0,0]    RandAdjustContrastd  OK   label -> [0.0, 1.0, 0.0, 0.0] (Tensor)
