@@ -16885,6 +16885,36 @@ or `{"image": "image1.jpg", "label": 6}` above the list on both tasks, and
 starts the page over, as Split does. Owed at ship: the Segmentation Pipeline states
 are recorded again, since the dict line moves that list down 20 px.
 
+#### BUILT 2026-09-17 — Task above Topic, the Classification pipeline, the import line
+
+`model.js`: `callOf(i, classify)` takes the label out of cell 19's keys; a pipeline
+state carries `classify`, `list` (the indices it shows) and `last` (the line that
+ends an epoch), and `stepsFor`, `lineStatus` and `listAt` read the list instead of
+the random flag, so AsDiscreted is absent under Classification in both splits;
+`pipelineLayout` starts the list and the sample 20 px lower for the dict line, and
+keeps the list area at twelve rows under both tasks. `main.js`: Task first, above
+Topic, a data control with no section; each call opens with its `from
+monai.transforms import …` line; Split's detail reads *the MONAI pipeline applied to
+the image*; the Pipeline page draws the sample dict above the list, no outline on the
+sample or the strip under Classification, `label: 6 (neutrophil)` under the sample,
+each line's call through `callOf`, the strip at `state.last`, and a legend without
+the mask's row.
+
+The verify (5,471 checks) adds: Task a data control before Topic; the import on
+every call; the Classification list pinned to
+`augmentation-classification-pipeline.txt` (it runs, the cache boundary, the int
+label, the fixed lines' one sample, cell 19 raising at LoadImaged); eleven and five
+lines, 53 and 12 presses, Next epoch after RandGaussianNoised; no call naming the
+label; the same epochs and the same image every epoch under both tasks; and the
+Classification pipeline's geometry. `check` green; `test` 29 scripts green. Read in
+the browser at 1280: both tasks' rails (Task, then Topic), the Pipeline canvas text
+under both tasks at 1 and 27 presses and in validation (nothing past the canvas),
+presses across the epoch boundary under Classification (11 of 11 RandGaussianNoised,
+Next epoch, then epoch 2 at RandFlipd), and a Task switch taking the Transforms
+page's draws from 6 to 0; no console error. **Expected at ship, not yet run:** the
+three Segmentation Pipeline states DIFFER (the dict line), the ten Transforms states
+MATCH.
+
 *The entry below is the plan as first written and cut on 2026-09-13, kept as
 written.*
 

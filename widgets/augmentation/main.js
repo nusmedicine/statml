@@ -51,14 +51,21 @@
        from CacheDataset's cache.
 
     8. TASK: SEGMENTATION · CLASSIFICATION (Kenneth's picks, 2026-09-17,
-       `_lab/augmentation-classification-mock.html`). He asked whether
-       augmentation is done for classification; MONAI raises on every spatial
-       line when a class label is in keys, so keys=["image"], the stale mask on
-       the Segmentation page, is the call that runs for classification. Under
-       Classification the class sits in the mask's row (pick B), no outline is
-       drawn, keys is written into each call, and White blood cell is hidden. A
-       display control: the draws are the same under both tasks. The Pipeline
-       page stays cell 19, and Task is not on it.
+       `_lab/augmentation-classification-mock.html`, then
+       `_lab/augmentation-task-mock.html`). He asked whether augmentation is
+       done for classification; MONAI raises on every spatial line when a class
+       label is in keys, so keys=["image"], the stale mask on the Segmentation
+       page, is the call that runs for classification. Task comes first, above
+       Topic, and both pages follow it. Under Classification the class sits in
+       the mask's row (pick B), no outline is drawn, keys is written into each
+       call, White blood cell is hidden, and the Pipeline page lists cell 19
+       with keys=["image"] and no AsDiscreted (run on MONAI). A data control,
+       as Split is, since it changes that list.
+
+    9. THE LIBRARY AND THE SAMPLE (his picks, 2026-09-17): each call opens with
+       its `from monai.transforms import` line, Split's detail names MONAI, and
+       the Pipeline page shows the sample dict the list is given above the
+       list, where the two tasks first differ.
    ========================================================================= */
 
 import { defineWidget } from "../core/index.js";
@@ -755,10 +762,15 @@ function drawPipeline(ctx, colors, w, params, state, anim) {
   const epoch = view.epoch;
   const list = state.train ? "train_transforms" : "val_test_transforms";
   caption(ctx, colors, cur || moving ? `${list}, epoch ${epoch + 1} of ${M.EPOCHS}` : `${list}, before the first epoch`, M.PAD, 20);
+  /* THE SAMPLE DICT the list is given (his pick, 2026-09-17): where the two tasks
+     first differ, a mask file that LoadImaged reads or a class no line is given */
+  code(ctx, colors, state.classify ? `{"image": "image1.jpg", "label": ${M.LABEL.value}}` : "{\"image\": \"image1.jpg\", \"label\": \"mask1.jpg\"}",
+    M.PAD + 10, P.dictY, colors.ink2);
 
   const listW = P.sx - M.PAD - 14;
   const statusX = M.PAD + 150;
-  /* the lines of the list chosen: every line of train_transforms, or the six of val_test_transforms */
+  /* the lines of the list chosen: every line of train_transforms, or the six of
+     val_test_transforms; under Classification eleven and five, with no AsDiscreted */
   state.list.forEach((i, row) => {
     const l = M.LINES[i];
     const y = P.top + row * P.row;
@@ -792,7 +804,8 @@ function drawPipeline(ctx, colors, w, params, state, anim) {
   }
 
   const wbc = M.PLACEMENTS["off-centre"];
-  const line = (ops) => [{ pts: M.outlineOf(wbc, ops), color: colors.reference }];
+  /* the mask's outline, which Classification has no mask for */
+  const line = (ops) => (state.classify ? [] : [{ pts: M.outlineOf(wbc, ops), color: colors.reference }]);
   const press = moving ? M.pressAt(state, s, t) : null;
   if (press?.part === "out") {
     /* a training epoch's first press: the last epoch's sample fades out ... */
@@ -832,22 +845,24 @@ function drawPipeline(ctx, colors, w, params, state, anim) {
     imagePanel(ctx, colors, at.image, P.sx, P.top, P.s, line(at.ops));
   }
   note(ctx, colors, cur ? "the sample after the last transform," : "the image file", P.sx, P.top + P.s + 14, colors.ink3);
-  if (cur) note(ctx, colors, "with the mask's outline", P.sx, P.top + P.s + 28, colors.ink3);
+  if (cur) {
+    note(ctx, colors, state.classify ? `label: ${M.LABEL.value} (${M.LABEL.name})` : "with the mask's outline", P.sx, P.top + P.s + 28, colors.ink3);
+  }
 
   /* the call of the line on the sample: the one running, else the one just run */
   const named = moving ? state.steps[s] : cur;
-  if (named) code(ctx, colors, M.LINES[named.line].call, M.PAD, P.detailY, colors.ink2);
+  if (named) code(ctx, colors, M.callOf(named.line, state.classify), M.PAD, P.detailY, colors.ink2);
   const detail = detailOf(state, named);
   if (detail) note(ctx, colors, detail, M.PAD, P.detailY + 16, colors.ink1);
 
   note(ctx, colors, "The same image, epoch by epoch", M.PAD, P.stripY, colors.ink2, { weight: "600" });
-  const complete = (e) => state.steps.findIndex((st) => st.epoch === e && st.line === M.LAST) < s;
+  const complete = (e) => state.steps.findIndex((st) => st.epoch === e && st.line === state.last) < s;
   for (let e = 0; e < M.EPOCHS; e += 1) {
     const x = M.PAD + e * (P.ts + P.stripGap);
     const y = P.stripY + 10;
     if (complete(e)) {
-      const fin = state.linesOf(e)[M.LAST];
-      imagePanel(ctx, colors, fin.image, x, y, P.ts, [{ pts: M.outlineOf(wbc, fin.ops), color: colors.reference, width: 1 }]);
+      const fin = state.linesOf(e)[state.last];
+      imagePanel(ctx, colors, fin.image, x, y, P.ts, line(fin.ops).map((l) => ({ ...l, width: 1 })));
     } else {
       frame(ctx, x, y, P.ts, P.ts, colors.grid);
     }
@@ -893,6 +908,17 @@ defineWidget({
   height: ({ w, ...values }) => M.pageHeight(w, values),
 
   params: {
+    /* TASK (Kenneth's picks, 2026-09-17): first, above Topic, so both pages follow
+       it ("task -> transforms/pipeline?"). A data control, as Split is: it changes
+       the Pipeline page's list, so switching it starts the page over, and the same
+       seed gives the same draws again. */
+    task: {
+      type: "segmented",
+      label: "Task",
+      detail: "the label: a mask for segmentation, a class for classification",
+      options: [{ value: "segmentation", label: "Segmentation" }, { value: "classification", label: "Classification" }],
+      default: "segmentation",
+    },
     topic: {
       type: "segmented",
       label: "Topic",
@@ -901,20 +927,6 @@ defineWidget({
     },
 
     /* --- Transforms ------------------------------------------------------ */
-    /* TASK (Kenneth's picks, 2026-09-17): its own section above the transform,
-       since it decides what keys says in every spatial call; a display control,
-       so switching it keeps the draws */
-    kSec: { type: "section", label: "The task", when: ON("transforms") },
-    task: {
-      type: "segmented",
-      label: "Task",
-      detail: "the label: a mask for segmentation, a class for classification",
-      options: [{ value: "segmentation", label: "Segmentation" }, { value: "classification", label: "Classification" }],
-      default: "segmentation",
-      display: true,
-      when: ON("transforms"),
-    },
-
     tSec: { type: "section", label: "The transform", when: ON("transforms") },
     transform: {
       type: "segmented",
@@ -960,6 +972,9 @@ defineWidget({
     std: slot(opts(["0.01", "0.05", "0.1"]), "0.1"),
 
     callSec: { type: "section", label: "The call", when: ON("transforms") },
+    /* THE LIBRARY (his pick, 2026-09-17: "specify the MONAI library under 'The
+       call'"): each call opens with its import, the line cell 19 opens with */
+    flipI: { type: "expr", open: "from monai.transforms import RandFlipd", slots: [], when: IS("flip") },
     flipA: { type: "expr", open: "RandFlipd(keys=", close: ",", slots: ["keys"], when: SEG("flip") },
     flipAc: { type: "expr", open: "RandFlipd(keys=[\"image\"],", slots: [], when: CLS("flip") },
     flipB: { type: "expr", open: "prob=", close: ",", slots: ["flip_prob"], when: IS("flip") },
@@ -971,6 +986,7 @@ defineWidget({
       type: "expr", open: "spatial_axis=", close: ")", slots: ["spatial_axis"], when: CLS("flip"),
       detail: "Flips the image: spatial_axis 0 flips top to bottom, 1 left to right.",
     },
+    rotI: { type: "expr", open: "from monai.transforms import RandRotate90d", slots: [], when: IS("rotate") },
     rotA: { type: "expr", open: "RandRotate90d(keys=", close: ",", slots: ["keys"], when: SEG("rotate") },
     rotAc: { type: "expr", open: "RandRotate90d(keys=[\"image\"],", slots: [], when: CLS("rotate") },
     rotB: { type: "expr", open: "prob=", close: ",", slots: ["rotate_prob"], when: IS("rotate") },
@@ -982,6 +998,7 @@ defineWidget({
       type: "expr", open: "max_k=", close: ")", slots: ["max_k"], when: CLS("rotate"),
       detail: "Rotates the image by k × 90° counter-clockwise, with k drawn from 1 to max_k.",
     },
+    affI: { type: "expr", open: "from monai.transforms import RandAffined", slots: [], when: IS("affine") },
     affA: { type: "expr", open: "RandAffined(keys=", close: ",", slots: ["keys"], when: SEG("affine") },
     affAc: { type: "expr", open: "RandAffined(keys=[\"image\"],", slots: [], when: CLS("affine") },
     affB: { type: "expr", open: "prob=", close: ",", slots: ["affine_prob"], when: IS("affine") },
@@ -994,11 +1011,13 @@ defineWidget({
     },
     /* only the image is resampled, so mode takes the image's value alone */
     affFc: { type: "expr", open: "mode=\"bilinear\", padding_mode=\"zeros\")", slots: [], when: CLS("affine"), detail: AFFINE_DETAIL },
+    conI: { type: "expr", open: "from monai.transforms import RandAdjustContrastd", slots: [], when: IS("contrast") },
     conA: { type: "expr", open: "RandAdjustContrastd(keys=[\"image\"], prob=", close: ",", slots: ["contrast_prob"], when: IS("contrast") },
     conB: {
       type: "expr", open: "gamma=(", close: "))", slots: ["gamma_low", "gamma_high"], when: IS("contrast"),
       detail: "Rescales intensities to 0–1, raises them to the power γ, drawn between the two values of gamma, and rescales them back.",
     },
+    noiseI: { type: "expr", open: "from monai.transforms import RandGaussianNoised", slots: [], when: IS("noise") },
     noiseA: { type: "expr", open: "RandGaussianNoised(keys=[\"image\"], prob=", close: ",", slots: ["noise_prob"], when: IS("noise") },
     noiseB: {
       type: "expr", open: "mean=0.0, std=", close: ")", slots: ["std"], when: IS("noise"),
@@ -1022,7 +1041,7 @@ defineWidget({
     split: {
       type: "segmented",
       label: "Split",
-      detail: "the pipeline applied to the image: train_transforms or val_test_transforms",
+      detail: "the MONAI pipeline applied to the image: train_transforms or val_test_transforms",
       options: [{ value: "training", label: "Training" }, { value: "validation", label: "Validation/Test" }],
       default: "training",
       when: ON("pipeline"),
@@ -1042,7 +1061,7 @@ defineWidget({
   legend: ({ params }) => {
     if (params.topic === "pipeline") {
       return [
-        { token: "reference", label: "The mask's outline, on the sample", mark: "line" },
+        ...(M.isClassification(params) ? [] : [{ token: "reference", label: "The mask's outline, on the sample", mark: "line" }]),
         { token: "highlight", label: "The transform just applied", mark: "bar" },
       ];
     }

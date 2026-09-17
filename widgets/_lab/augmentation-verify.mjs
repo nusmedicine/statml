@@ -27,9 +27,12 @@
 
    §3c THE TASK (2026-09-17): MONAI's own run says a class label in keys raises
    on every spatial line and keys=["image"] leaves it unchanged, which the
-   Classification page prints; the draws are the same under both tasks (Task
-   is display); a hidden White blood cell does not move the cell; the class row
-   takes the mask's place.
+   Classification page prints; the draws are the same under both tasks; Task
+   is a data control above Topic, and each call opens with its import; a hidden
+   White blood cell does not move the cell; the class row takes the mask's
+   place; and the Classification pipeline (eleven lines and five, no
+   AsDiscreted) is pinned to MONAI's run of it, with the same images epoch by
+   epoch.
 
    §4 THE GEOMETRY at 535, 550 and 770 for every page, under both tasks:
    panels, bands and windows inside the canvas and above the page's height.
@@ -361,15 +364,21 @@ section("§3c the task: Segmentation · Classification");
     return /\bOK\b/.test(l) && name && l.includes(`label -> ${unchanged[name]} (`);
   }), `MONAI: keys=["image"] runs every line and leaves the label unchanged (${rows.length} of 25 runs)`);
 
-  /* Task is a display control: compute does not read it, so both tasks have one set of draws */
+  /* one seed, one set of draws, under both tasks: the label takes no draw */
   for (const kind of M.KINDS) {
     const seg = M.computeTransforms({ ...BASE, transform: kind, task: "segmentation" }, makeRng(106)).draws;
     const cls = M.computeTransforms({ ...BASE, transform: kind, task: "classification" }, makeRng(106)).draws;
     assert(JSON.stringify(seg) === JSON.stringify(cls), `${kind}: the draws are the same under both tasks`);
   }
+  /* Task above Topic, a data control, as Split is (his picks on _lab/augmentation-task-mock.html) */
   const src = readFileSync(join(here, "..", "augmentation", "main.js"), "utf8");
   const taskField = src.match(/\n {4}task: \{\n[\s\S]*?\n {4}\},/)?.[0] ?? "";
-  assert(/default: "segmentation",/.test(taskField) && /display: true,/.test(taskField), "main.js declares Task a display control, Segmentation by default");
+  assert(/default: "segmentation",/.test(taskField) && !/display: true/.test(taskField) && !/when:/.test(taskField),
+    "main.js declares Task a data control on both pages, Segmentation by default");
+  assert(src.indexOf("\n    task: {") < src.indexOf("\n    topic: {"), "Task comes before Topic in the rail");
+  for (const [kind, cls] of Object.entries(M.CLASS)) {
+    assert(src.includes(`open: "from monai.transforms import ${cls}", slots: [], when: IS("${kind}")`), `${kind}: the call opens with its import`);
+  }
   assert(/cell: \{[\s\S]*?when: \{ all: \[ON\("transforms"\), TASK\("segmentation"\)\] \}/.test(src), "White blood cell shows under Segmentation only");
   assert(M.placeOf({ task: "classification", cell: "centred" }) === "off-centre" && M.placeOf({ task: "segmentation", cell: "centred" }) === "centred",
     "a hidden White blood cell value does not move the cell under Classification");
@@ -383,6 +392,40 @@ section("§3c the task: Segmentation · Classification");
     const saved = M.pageHeight(550, p) - M.pageHeight(550, { ...p, task: "classification" });
     assert(saved === S.s - M.LABEL_ROW, `${kind}: the Classification page is ${saved} px shorter`);
   }
+
+  /* THE PIPELINE UNDER CLASSIFICATION, against MONAI's own run
+     (`augmentation-classification-pipeline.txt`): the list runs with keys=["image"]
+     and no AsDiscreted, caches the same lines, and keeps the label an int */
+  const pipeTxt = readFileSync(join(here, "augmentation-classification-pipeline.txt"), "utf8");
+  assert(/training: runs; .*before RandFlipd ran 1 time\(s\) and the one after RandGaussianNoised 5 time\(s\) over 5 fetches/.test(pipeTxt),
+    "MONAI: the classification list runs, and CacheDataset caches the lines before the first RandFlipd");
+  assert(/label after each fetch \[\(6, 'int'\), \(6, 'int'\), \(6, 'int'\), \(6, 'int'\), \(6, 'int'\)\]/.test(pipeTxt)
+    && /batch: .*label \[6, 1\] dtype torch\.int64/.test(pipeTxt), "MONAI: the label stays the int 6, and a batch collates it to int64");
+  assert(/validation: every fetch the same sample: True/.test(pipeTxt), "MONAI: the five fixed lines give the same sample every fetch");
+  assert(/cell 19 as written with a class label: raises RuntimeError: applying transform <monai\.transforms\.io\.dictionary\.LoadImaged/.test(pipeTxt),
+    "MONAI: cell 19 as written raises at LoadImaged on a class label");
+
+  const segT = M.computePipeline({ ...BASE, topic: "pipeline" }, makeRng(106));
+  const clsT = M.computePipeline({ ...BASE, topic: "pipeline", task: "classification" }, makeRng(106));
+  const clsV = M.computePipeline({ ...BASE, topic: "pipeline", task: "classification", split: "validation" }, makeRng(106));
+  assert(clsT.list.join() === "0,1,2,3,4,5,6,7,8,9,10" && clsT.last === 10 && clsV.list.join() === "0,1,2,3,4" && clsV.last === 4,
+    "classification: train_transforms lists eleven lines and val_test_transforms five, with no AsDiscreted");
+  assert(clsT.total === 11 + (M.EPOCHS - 1) * 6 && clsV.total === 5 + (M.EPOCHS - 1),
+    `classification: ${clsT.total} presses in training, ${clsV.total} in validation`);
+  const phases = Array.from({ length: clsT.total }, (_, n) => M.pipelinePhase(clsT, n));
+  assert(phases.filter((ph) => ph === "epoch").length === M.EPOCHS - 1 && phases[11] === "epoch",
+    "classification: Next epoch is offered after RandGaussianNoised, at the seven boundaries");
+  assert(clsT.list.every((i) => !M.callOf(i, true).includes("\"label\"")), "classification: no line of the list names the label");
+  assert(segT.list.every((i) => M.callOf(i, false) === M.LINES[i].call), "segmentation: every line is cell 19's own");
+  assert(M.LINES.every((l, i) => M.lineStatus(clsT, 20, i).status !== "absent" || i === M.LAST), "classification: only AsDiscreted is absent from the training list");
+  assert(JSON.stringify(segT.epochs) === JSON.stringify(clsT.epochs), "one seed draws the same epochs under both tasks");
+  let same = true;
+  for (let e = 0; e < M.EPOCHS; e += 1) {
+    const a = segT.linesOf(e)[M.LAST].image.d;
+    const b = clsT.linesOf(e)[clsT.last].image.d;
+    for (let j = 0; j < a.length; j += 1) if (a[j] !== b[j]) { same = false; break; }
+  }
+  assert(same, "every epoch's sample is the same image under both tasks");
 }
 
 /* §4 ---------------------------------------------------------------------- */
@@ -397,6 +440,7 @@ section("§4 the geometry");
     { ...BASE, transform: "contrast" },
     { ...BASE, transform: "noise" },
     { ...BASE, topic: "pipeline" },
+    { ...BASE, topic: "pipeline", task: "classification" },
     /* under Classification, with a bilinear mode and keys left in the link: neither reaches the page */
     ...M.KINDS.map((transform) => ({ ...BASE, transform, task: "classification", mode: "bilinear" })),
   ];

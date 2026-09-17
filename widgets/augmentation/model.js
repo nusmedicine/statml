@@ -151,8 +151,9 @@ export const labelIn = (params) => params.keys !== "image";
    Under Classification the label is a class, not a picture: MONAI 1.6.0 raises on
    every spatial line when a class label is in `keys`, and `keys=["image"]` leaves
    it unchanged (`_lab/augmentation-classification-monai.py`). So the figure
-   draws the class in the mask's place and no outline, and the draws are the same
-   under both tasks — Task is a display control, and nothing in `compute` reads it. */
+   draws the class in the mask's place and no outline. The draws are the same
+   under both tasks: `computeTransforms` does not read Task, and `computePipeline`
+   reads it only for which lines the list holds. */
 export const isClassification = (params) => params.task === "classification";
 /* The smear's class: BloodMNIST's label map (`medmnist.INFO`, the dataset 06-2
    cell 3 lists for white blood cell types) puts neutrophil at 6, and the white
@@ -300,6 +301,17 @@ export const LINES = [
 export const FIRST_RANDOM = LINES.findIndex((l) => l.random);
 export const LAST = LINES.length - 1;
 
+/* THE LIST UNDER EACH TASK (Kenneth's picks, 2026-09-17, `_lab/augmentation-task-mock.html`).
+   Under Classification the list is cell 19 with the label taken out of every
+   `keys` and no AsDiscreted: eleven lines in training, five in validation. Run
+   on MONAI 1.6.0 (`_lab/augmentation-classification-pipeline.py`): it runs,
+   CacheDataset caches the same lines, and the label stays an int. LINES stays
+   the one master list, so an index names one transform under both tasks; a
+   state's `list` holds the indices it shows and `last` the one that ends an
+   epoch. The images are the same under both tasks, since the label takes no draw. */
+export const callOf = (i, classify) =>
+  (classify ? LINES[i].call.replace("keys=[\"image\", \"label\"]", "keys=[\"image\"]") : LINES[i].call);
+
 /** One epoch's draws at cell 19's arguments. */
 function drawEpoch(rng) {
   const flip0 = rng.next() < 0.5;
@@ -333,15 +345,15 @@ export function firedIn(line, ep) {
 }
 
 /** The step list: each entry is the line a press completes, in the epoch it completes it. */
-function stepsFor(train) {
+function stepsFor(list, train) {
   const steps = [];
   for (let e = 0; e < EPOCHS; e += 1) {
     if (e === 0) {
-      LINES.forEach((l, i) => { if (train || !l.random) steps.push({ epoch: 0, line: i }); });
+      list.forEach((i) => steps.push({ epoch: 0, line: i }));
     } else if (train) {
-      for (let i = FIRST_RANDOM; i <= LAST; i += 1) steps.push({ epoch: e, line: i });
+      list.filter((i) => i >= FIRST_RANDOM).forEach((i) => steps.push({ epoch: e, line: i }));
     } else {
-      steps.push({ epoch: e, line: LAST });
+      steps.push({ epoch: e, line: list[list.length - 1] });
     }
   }
   return steps;
@@ -349,19 +361,24 @@ function stepsFor(train) {
 
 export function computePipeline(params, rng) {
   const train = params.split !== "validation";
+  const classify = isClassification(params);
   /* drawn for both lists, so a seed names the same epochs whichever is shown */
   const epochs = Array.from({ length: EPOCHS }, () => drawEpoch(rng));
-  const steps = stepsFor(train);
+  /* THE LINES OF THE LIST SHOWN, as indices into LINES (round two, Kenneth:
+     "i thought we do not do any augmentations on validation/test data?"):
+     val_test_transforms is cell 19's six fixed lines and nothing else; the
+     draft drew the training list with the random lines struck through, which
+     read as a list with augmentations switched off. Under Classification
+     AsDiscreted is not in either list. */
+  const list = LINES.map((l, i) => i).filter((i) => (train || !LINES[i].random) && !(classify && LINES[i].cls === "AsDiscreted"));
+  const steps = stepsFor(list, train);
   const memo = new Map();
   return {
     page: "pipeline",
     train,
-    /* THE LINES OF THE LIST SHOWN, as indices into LINES (round two, Kenneth:
-       "i thought we do not do any augmentations on validation/test data?"):
-       val_test_transforms is cell 19's six fixed lines and nothing else; the
-       draft drew the training list with the random lines struck through, which
-       read as a list with augmentations switched off. */
-    list: LINES.map((l, i) => (train || !l.random ? i : -1)).filter((i) => i >= 0),
+    classify,
+    list,
+    last: list[list.length - 1],
     epochs,
     steps,
     total: steps.length,
@@ -425,8 +442,7 @@ export function stepChange(state, step) {
  * `current` marks the line the last press ran.
  */
 export function lineStatus(state, s, i) {
-  const l = LINES[i];
-  if (!state.train && l.random) return { status: "absent", current: false };
+  if (!state.list.includes(i)) return { status: "absent", current: false };
   const cur = s > 0 ? state.steps[s - 1] : null;
   if (!cur) return { status: "pending", current: false };
   if (cur.epoch > 0 && (i < FIRST_RANDOM || !state.train)) return { status: "cached", current: false };
@@ -447,7 +463,7 @@ export function listAt(state, s, moving) {
   if (next && (!cur || next.epoch !== cur.epoch)) {
     const e = next.epoch;
     const status = LINES.map((l, i) => {
-      if (!state.train && l.random) return "absent";
+      if (!state.list.includes(i)) return "absent";
       return e > 0 && (i < FIRST_RANDOM || !state.train) ? "cached" : "pending";
     });
     return { epoch: e, status, done: -1, running: next.line };
@@ -665,16 +681,21 @@ export function bandLayout(w, params) {
   return { kind: "noise", top, size: MAG, height: MAG + 44 };
 }
 
+/* THE SAMPLE DICT ABOVE THE LIST (his pick, 2026-09-17): the list and the sample
+   start DICT_H lower, and the list area keeps twelve rows under both tasks, since
+   at eleven the call under the list reached the row of the note under the sample. */
+const DICT_H = 20;
+
 export function pipelineLayout(w) {
   const row = 21;
   const s = 222;
-  const top = 36;
+  const top = 36 + DICT_H;
   const listBottom = top + LINES.length * row;
   const detailY = listBottom + 20;
   const stripY = detailY + 48;
   const thumb = Math.floor((w - 2 * PAD - (EPOCHS - 1) * 8) / EPOCHS);
   const ts = Math.min(56, thumb);
-  return { row, s, top, sx: w - PAD - s, detailY, stripY, ts, stripGap: (w - 2 * PAD - EPOCHS * ts) / (EPOCHS - 1), height: stripY + 12 + ts + 24 };
+  return { row, s, top, dictY: top - 8, sx: w - PAD - s, detailY, stripY, ts, stripGap: (w - 2 * PAD - EPOCHS * ts) / (EPOCHS - 1), height: stripY + 12 + ts + 24 };
 }
 
 export function pageHeight(w, params) {
