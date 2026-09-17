@@ -7069,79 +7069,79 @@
       "tx": "dd4774a4"
     },
     {
-      "$note": "augmentation · Transforms, Flip, nothing drawn: the empty Augmented column and its note",
+      "$note": "augmentation · Segmentation, Transforms, Flip, nothing drawn: the empty Augmented column and its note",
       "slug": "augmentation",
-      "state": "?theme=light&shown=0",
+      "state": "?theme=light&task=segmentation&shown=0",
       "px": "f3b1f750",
       "tx": "bb5118bf"
     },
     {
-      "$note": "augmentation · Transforms, Flip, twelve draws: the grid of samples and the tally",
+      "$note": "augmentation · Segmentation, Transforms, Flip, twelve draws: the grid of samples and the tally",
       "slug": "augmentation",
-      "state": "?theme=light&shown=12",
+      "state": "?theme=light&task=segmentation&shown=12",
       "px": "e15777c7",
       "tx": "2a919019"
     },
     {
-      "$note": "augmentation · Transforms, Flip with the mask left out of keys, the first draw: Dice 0.10 off-centre",
+      "$note": "augmentation · Segmentation, Transforms, Flip with the mask left out of keys, the first draw: Dice 0.10 off-centre",
       "slug": "augmentation",
-      "state": "?theme=light&keys=image&shown=1",
+      "state": "?theme=light&task=segmentation&keys=image&shown=1",
       "px": "64d01e87",
       "tx": "66025d26"
     },
     {
-      "$note": "augmentation · Transforms, the same with the white blood cell centred: Dice 0.99",
+      "$note": "augmentation · Segmentation, Transforms, the same with the white blood cell centred: Dice 0.99",
       "slug": "augmentation",
-      "state": "?theme=light&keys=image&cell=centred&shown=1",
+      "state": "?theme=light&task=segmentation&keys=image&cell=centred&shown=1",
       "px": "bff0fb9d",
       "tx": "aed27471"
     },
     {
-      "$note": "augmentation · Transforms, Rotate, twelve draws: every k in the grid",
+      "$note": "augmentation · Segmentation, Transforms, Rotate, twelve draws: every k in the grid",
       "slug": "augmentation",
-      "state": "?theme=light&transform=rotate&shown=12",
+      "state": "?theme=light&task=segmentation&transform=rotate&shown=12",
       "px": "2ead3cfc",
       "tx": "170f554b"
     },
     {
-      "$note": "augmentation · Transforms, Affine at prob 1 with the label bilinear, twelve draws: the ranges and the magnified edge",
+      "$note": "augmentation · Segmentation, Transforms, Affine at prob 1 with the label bilinear, twelve draws: the samples, the ranges and the magnified edge",
       "slug": "augmentation",
-      "state": "?theme=light&transform=affine&affine_prob=1&mode=bilinear&shown=12",
-      "px": "c8603a97",
+      "state": "?theme=light&task=segmentation&transform=affine&affine_prob=1&mode=bilinear&shown=12",
+      "px": "b4705fca",
       "tx": "2b42ef2b"
     },
     {
-      "$note": "augmentation · Transforms, Contrast, twelve draws: the gamma curves",
+      "$note": "augmentation · Segmentation, Transforms, Contrast, twelve draws: the samples and the gamma curves",
       "slug": "augmentation",
-      "state": "?theme=light&transform=contrast&shown=12",
-      "px": "c55c779e",
+      "state": "?theme=light&task=segmentation&transform=contrast&shown=12",
+      "px": "b094b1c9",
       "tx": "c28210c0"
     },
     {
-      "$note": "augmentation · Transforms, Noise, twelve draws: the difference and the sigma line",
+      "$note": "augmentation · Segmentation, Transforms, Noise, twelve draws: the samples, the difference and the sigma line",
       "slug": "augmentation",
-      "state": "?theme=light&transform=noise&shown=12",
-      "px": "f319508f",
+      "state": "?theme=light&task=segmentation&transform=noise&shown=12",
+      "px": "0f71c7a1",
       "tx": "fa3cc5c4"
     },
     {
-      "$note": "augmentation · Pipeline, training, epoch 3 part-way",
+      "$note": "augmentation · Segmentation, Pipeline, training, epoch 4 after RandAffined: the sample dict above the list",
       "slug": "augmentation",
-      "state": "?theme=light&topic=pipeline&shown=30",
-      "px": "4e02e748",
+      "state": "?theme=light&task=segmentation&topic=pipeline&shown=30",
+      "px": "12fd7e04",
       "tx": "367917a8"
     },
     {
-      "$note": "augmentation · Pipeline, Validation/Test, epoch 3: the six fixed transforms, all cached",
+      "$note": "augmentation · Segmentation, Pipeline, Validation/Test, epoch 3: the six fixed transforms, all cached",
       "slug": "augmentation",
-      "state": "?theme=light&topic=pipeline&split=validation&shown=8",
-      "px": "f179eaf2",
+      "state": "?theme=light&task=segmentation&topic=pipeline&split=validation&shown=8",
+      "px": "49f1df57",
       "tx": "00c42634"
     },
     {
-      "$note": "augmentation · DRIVEN - the first Draw mid-motion: the flip squashing through its line",
+      "$note": "augmentation · DRIVEN - Segmentation, the first Draw mid-motion: the flip squashing through its line",
       "slug": "augmentation",
-      "state": "?theme=light",
+      "state": "?theme=light&task=segmentation",
       "drive": {
         "click": "step",
         "frames": 20
@@ -7150,9 +7150,9 @@
       "tx": "bb5118bf"
     },
     {
-      "$note": "augmentation · INTERRUPTED - the second Draw fading the first result out",
+      "$note": "augmentation · INTERRUPTED - Segmentation, the second Draw fading the first result out",
       "slug": "augmentation",
-      "state": "?theme=light",
+      "state": "?theme=light&task=segmentation",
       "drive": {
         "before": [
           {
@@ -7167,9 +7167,9 @@
       "tx": "0a242625"
     },
     {
-      "$note": "augmentation · INTERRUPTED - the Pipeline's first RandFlipd mid-motion after five fixed transforms",
+      "$note": "augmentation · INTERRUPTED - Segmentation, the Pipeline's first RandFlipd mid-motion after five fixed transforms",
       "slug": "augmentation",
-      "state": "?theme=light&topic=pipeline",
+      "state": "?theme=light&task=segmentation&topic=pipeline",
       "drive": {
         "before": [
           {
@@ -7196,8 +7196,85 @@
         "click": "step",
         "frames": 12
       },
-      "px": "2201a4a6",
+      "px": "4354a969",
       "tx": "51ccffb9"
+    },
+    {
+      "$note": "augmentation · Classification, Transforms, Flip, nothing drawn: the empty Augmented column and the class row",
+      "slug": "augmentation",
+      "state": "?theme=light&task=classification&shown=0",
+      "px": "e7c5c196",
+      "tx": "22cfa402"
+    },
+    {
+      "$note": "augmentation · Classification, Transforms, Flip, twelve draws: the samples with no outline, the class in the mask's row",
+      "slug": "augmentation",
+      "state": "?theme=light&task=classification&shown=12",
+      "px": "cd3f7903",
+      "tx": "38f0b9c6"
+    },
+    {
+      "$note": "augmentation · Classification, Transforms, Rotate after an applied draw: keys=[\"image\"], the label is not transformed",
+      "slug": "augmentation",
+      "state": "?theme=light&task=classification&transform=rotate&shown=6",
+      "px": "67888814",
+      "tx": "6921aeca"
+    },
+    {
+      "$note": "augmentation · Classification, Transforms, Affine, twelve draws: the samples and the ranges, no outline and no magnifier",
+      "slug": "augmentation",
+      "state": "?theme=light&task=classification&transform=affine&shown=12",
+      "px": "ed4e6b18",
+      "tx": "c2cafdbe"
+    },
+    {
+      "$note": "augmentation · Classification, Transforms, Contrast, twelve draws: the samples and the gamma curves",
+      "slug": "augmentation",
+      "state": "?theme=light&task=classification&transform=contrast&shown=12",
+      "px": "cd355e71",
+      "tx": "f03ed5e1"
+    },
+    {
+      "$note": "augmentation · Classification, Pipeline, training, epoch 4 after RandAffined: eleven transforms, the class under the sample",
+      "slug": "augmentation",
+      "state": "?theme=light&task=classification&topic=pipeline&shown=27",
+      "px": "40ec583d",
+      "tx": "04812ce0"
+    },
+    {
+      "$note": "augmentation · Classification, Pipeline, Validation/Test, epoch 3: the five fixed transforms, all cached",
+      "slug": "augmentation",
+      "state": "?theme=light&task=classification&topic=pipeline&split=validation&shown=7",
+      "px": "19667278",
+      "tx": "d7cea57b"
+    },
+    {
+      "$note": "augmentation · DRIVEN - Classification, the first Draw mid-motion: the flip squashing, the class row unchanged",
+      "slug": "augmentation",
+      "state": "?theme=light&task=classification",
+      "drive": {
+        "click": "step",
+        "frames": 20
+      },
+      "px": "d7320f82",
+      "tx": "22cfa402"
+    },
+    {
+      "$note": "augmentation · INTERRUPTED - Classification, the second Draw fading the first result and its class out",
+      "slug": "augmentation",
+      "state": "?theme=light&task=classification",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 40
+          }
+        ],
+        "click": "step",
+        "frames": 3
+      },
+      "px": "ef890a9f",
+      "tx": "31114b46"
     },
     {
       "$note": "tumor-heterogeneity · One mutation, nothing read: the empty pileup, and the card stating the definition only",

@@ -373,8 +373,9 @@ section("§3c the task: Segmentation · Classification");
   /* Task above Topic, a data control, as Split is (his picks on _lab/augmentation-task-mock.html) */
   const src = readFileSync(join(here, "..", "augmentation", "main.js"), "utf8");
   const taskField = src.match(/\n {4}task: \{\n[\s\S]*?\n {4}\},/)?.[0] ?? "";
-  assert(/default: "segmentation",/.test(taskField) && !/display: true/.test(taskField) && !/when:/.test(taskField),
-    "main.js declares Task a data control on both pages, Segmentation by default");
+  assert(/default: "classification",/.test(taskField) && !/display: true/.test(taskField) && !/when:/.test(taskField)
+    && taskField.indexOf("\"classification\"") < taskField.indexOf("\"segmentation\""),
+    "main.js declares Task a data control on both pages, Classification first and by default");
   assert(src.indexOf("\n    task: {") < src.indexOf("\n    topic: {"), "Task comes before Topic in the rail");
   for (const [kind, cls] of Object.entries(M.CLASS)) {
     assert(src.includes(`open: "from monai.transforms import ${cls}", slots: [], when: IS("${kind}")`), `${kind}: the call opens with its import`);

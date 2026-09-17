@@ -13,7 +13,7 @@
 <body>
 <h1>Hashing widget 62's states</h1>
 <p>Splice the block below into <code>fingerprint-baseline.json</code> over
-<code>augmentation</code>'s thirteen placeholders. NOT DEPLOYED.</p>
+<code>augmentation</code>'s twenty-two entries. NOT DEPLOYED.</p>
 <pre id="out">running…</pre>
 <div class="frames" id="frames"></div>
 
@@ -231,6 +231,11 @@ async function shoot(entry) {
 }
 
 /* --- the states to record: the placeholders, by their own entries ---------- */
+/* COPIED 2026-09-17 FROM tumor-heterogeneity-shoot.html, the newest shooter, for
+   the ship of widget 62's Classification task (22 states, every one naming its
+   task, since the default moved to Classification). One addition: a state that
+   still carries a recorded hash reports whether this run reproduced it, so the
+   seven the day's changes cannot reach are checked, not assumed. */
 const baseline = await (await fetch("./fingerprint-baseline.json")).json();
 const NEW = baseline.states.filter((s) => s.slug === "augmentation");
 
@@ -249,6 +254,10 @@ const PROOF = [
   pick("umap", (s) => !s.drive),                            // settled
   pick("permutation-test", (s) => s.drive?.click),          // click, second widget
   pick("mendelian-randomization", (s) => s.drive?.before?.some((b) => b.click)), // before+click
+  /* widget 67 drives two of its eases by `set` onto a SEGMENTED control (tree,
+     axis) rather than onto a button, so that path is proven too: odds-and-risk
+     drives its own ease exactly that way. */
+  pick("odds-and-risk", (s) => s.drive?.set?.against),     // set onto a segmented control
 ].filter(Boolean);
 
 out.textContent = "waiting for devicePixelRatio 1.25 (the pane must be displayed)…";
@@ -275,10 +284,11 @@ if (bad) {
 } else {
   lines.push(`  ${PROOF.length}/${PROOF.length} reproduced — the copy is faithful.\n`);
   lines.push("widget 62's states — each shot three times; driven states checked against their settled sibling");
-  lines.push("  AGREE   px       tx        @size          state");
+  lines.push("  AGREE   px       tx        @size          RECORDED       state");
   const done = [];
   let flaky = 0;
   let inert = 0;
+  let moved = 0;
   for (const s of NEW) {
     const runs = [];
     for (let i = 0; i < 3; i += 1) runs.push(await shoot(s));
@@ -302,12 +312,16 @@ if (bad) {
       px: runs[0].px,
       tx: runs[0].tx,
     });
-    lines.push(`  ${stable ? "STABLE" : "FLAKY "}  ${runs[0].px} ${runs[0].tx}  @${runs[0].size}  ${s.state}`
+    const recorded = s.px === "0" ? "new          "
+      : runs[0].px === s.px && runs[0].tx === s.tx ? "reproduced   " : "!! MOVED     ";
+    if (recorded.startsWith("!!")) moved += 1;
+    lines.push(`  ${stable ? "STABLE" : "FLAKY "}  ${runs[0].px} ${runs[0].tx}  @${runs[0].size}  ${recorded}  ${s.state}`
       + `${s.drive ? `   [${runs[0].note}]` : ""}${sibling}`);
     if (!stable) lines.push(`     runs: ${runs.map((r) => `${r.px}/${r.tx}`).join("  ")}`);
     if (runs[0].px === "error") lines.push(`     ERROR: ${runs[0].note}`);
     if (runs[0].note.includes("NEVER SETTLED")) lines.push(`     ${runs[0].note}`);
   }
+  lines.push(`\n${moved} of the recorded states did not reproduce.`);
   lines.push(flaky || inert
     ? `\n${flaky} FLAKY, ${inert} INERT — fix before recording anything.`
     : "\nAll stable, every drive moved its figure. JSON to splice into fingerprint-baseline.json:");

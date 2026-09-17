@@ -16973,6 +16973,31 @@ segmentation"*). Segmentation stays the default, so every existing link opens as
 did and the URL carries `task=classification` only when it is chosen (read in the
 browser both ways). The rail is not hashed, so no state moves.
 
+#### SHIPPED 2026-09-17 — the Classification task, on "make classification as default, push to gallery"
+
+**Classification is the default** (his word the same evening), so the gallery opens
+on it and a Segmentation link carries `task=segmentation`; both words are public
+now. **22 fingerprint states** (from 13), every one naming its task, recorded by
+`_lab/augmentation-shoot.html`, a fresh copy of the newest shooter (widget 67's)
+with one addition: a state that still carried a recorded hash reports whether it
+reproduced. The copy proved 7/7; all 22 were STABLE over three shots and every
+drive moved its figure; **all seven recorded states reproduced** (Segmentation's
+empty and twelve-draw Flip, the stale mask off-centre and centred, Rotate, and both
+driven Flip states), so the day's changes reached none of them. The six changed
+Segmentation states (Affine with the magnifier, Contrast, Noise, both Pipeline
+states and the Pipeline's driven one) moved in `px` only, their `tx` identical: the
+samples row and the dict line are canvas. Nine new Classification states: Flip empty
+and at twelve draws, Rotate after an applied draw (the keys line), Affine, Contrast,
+the Pipeline in training at epoch 4 and in validation, the first Draw mid-motion and
+the second Draw fading out.
+
+**The full suite, fronted at DPR 1.25: all 824 states identical**, on the third run.
+The first read 822 with two `cnn-architecture` states `px`-only DIFFER while the
+document was hidden; the second showed a `naive-bayes` `px`-only DIFFER (a known
+scrollbar flake) and then went hidden too. Both were discarded, and the third ran
+with a `visibilitychange` log that recorded no change from the fourth row to the
+last. `check` green; `test` 29 scripts green, the verify at 5,560 checks.
+
 *The entry below is the plan as first written and cut on 2026-09-13, kept as
 written.*
 
