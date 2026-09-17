@@ -397,7 +397,7 @@ export function configMany(params) {
     n: Number(params.mutations),
     purity: Number(params.purity2),
     depthMedian: Number(params.depth2),
-    assumed: params.assumed === "pure" ? 1 : Number(params.purity2),
+    assumed: params.assumed === "nothing" ? 1 : Number(params.purity2),
   };
 }
 
@@ -786,7 +786,9 @@ export const STRINGS = {
   sampleSection: "The sample",
   purityLabel: "Tumor purity",
   purityDetail: "the fraction of cells in the sample that are tumor cells",
-  ccfLabel: "Tumor cells carrying it",
+  /* The same quantity page 1's own tile reads out as "Cancer cell fraction",
+     so it is set under that name too (the terminology pass of 2026-09-17). */
+  ccfLabel: "Cancer cell fraction",
   ccfDetail: "the fraction of tumor cells that carry the mutation",
   stateLabel: "Copy number",
   stateDetail: "copies of one inherited chromosome + copies of the other, as an allele-specific caller reports them",
@@ -816,15 +818,15 @@ export const STRINGS = {
   lookSection: "How to read it",
   axisLabel: "Axis",
   axisDetail: "the variant allele frequency, or the cancer cell fraction with purity and copy number divided out",
-  assumedLabel: "Purity used",
-  assumedDetail: "the purity the correction divides by",
+  assumedLabel: "Given",
+  assumedDetail: "what the correction is given; without purity it assumes a pure sample",
   clustersLabel: "Clusters found",
   clustersDetail: "a Gaussian mixture, the number of components chosen by BIC",
 
   samplesSection: "The samples",
   takenLabel: "Samples used",
   takenDetail: "biopsies of one patient, counted from the surgery sample",
-  shapeLabel: "Shape",
+  shapeLabel: "Tree",
   shapeDetail: "which cluster is inside which",
   cellsLabel: "Draw the cells",
   cellsDetail: "each sample's tumor cells under its fractions",
@@ -907,9 +909,13 @@ export const STRINGS = {
     + "multiplied by one number. Each cluster is one component of a Gaussian mixture, the number of "
     + "them chosen by BIC — mutations at similar frequencies. MAD is the median absolute deviation, "
     + "and 1.4826 scales it to a standard deviation.",
-  noteTree: "A cluster's cells are a subset of its parent's, so the children of a cluster cannot "
-    + "need more cells than the parent has. Two clusters that would are one inside the other rather "
-    + "than side by side.",
+  /* A CLUSTER IS A GROUP OF MUTATIONS, NOT OF CELLS. Page 2 teaches exactly that
+     — the populations are the truth, the clusters are what a mixture finds —
+     so page 3 cannot then give a cluster cells of its own (the terminology pass
+     of 2026-09-17). The rule is about the cells that carry the mutations. */
+  noteTree: "The cells carrying a cluster's mutations are a subset of those carrying its parent's, "
+    + "so a cluster's children cannot need more cells than their parent has. Two clusters that "
+    + "would are one inside the other rather than side by side.",
   labelReading: "the reading",
   labelModel: "the model",
   labelSample: "this sample",
@@ -937,11 +943,17 @@ export const PAGES = [
   { value: "many", label: "Many mutations" },
   { value: "clonal", label: "Clonal architecture", span: true },
 ];
+/* ONE ROW EACH. Named in full so the two options match the tiles, and neither
+   fits half a rail: at a narrow rail "Variant allele frequency" measured 135px
+   and "Cancer cell fraction" 116px against 106px buttons — the second had been
+   clipping before its partner was spelled out. A two-column grid gains nothing
+   for two options, so each takes the full width. */
 export const AXES = [
-  { value: "vaf", label: "VAF" },
-  { value: "ccf", label: "Cancer cell fraction" },
+  { value: "vaf", label: "Variant allele frequency", span: true },
+  { value: "ccf", label: "Cancer cell fraction", span: true },
 ];
 export const ASSUMED = [
-  { value: "sample", label: "The sample's" },
-  { value: "pure", label: "1.00" },
+  /* Page 1's "Given", on page 2's one correction. Nothing first, as there. */
+  { value: "nothing", label: "Nothing" },
+  { value: "purity", label: "Purity" },
 ];

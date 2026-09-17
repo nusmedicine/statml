@@ -502,11 +502,11 @@ const defaults = async () => resolveParams(await spec(), new URLSearchParams("")
 
 /* --- 4 · page 2: the mixture, and MATH ------------------------------------ */
 {
-  const cfgOne = M.configMany({ clones: "one", mutations: "300", purity2: "0.70", depth2: "88", assumed: "sample" });
+  const cfgOne = M.configMany({ clones: "one", mutations: "300", purity2: "0.70", depth2: "88", assumed: "purity" });
   const one = M.buildMany(makeRng(3), cfgOne);
   check("one clone is given more than one cluster", one.fit.K > 1, `K = ${one.fit.K}`);
   check("its MATH is not zero", one.math > 8 && one.math < 22, one.math.toFixed(1));
-  const cfgTwo = M.configMany({ clones: "two", mutations: "300", purity2: "0.70", depth2: "88", assumed: "sample" });
+  const cfgTwo = M.configMany({ clones: "two", mutations: "300", purity2: "0.70", depth2: "88", assumed: "purity" });
   const two = M.buildMany(makeRng(3), cfgTwo);
   check("a real subclone scores higher than one clone", two.math > one.math + 10,
     `${two.math.toFixed(1)} against ${one.math.toFixed(1)}`);
@@ -558,12 +558,12 @@ const defaults = async () => resolveParams(await spec(), new URLSearchParams("")
     analysisSec: "section", knows: "segmented",
     clones: "segmented", mutations: "choice", lookSec: "section",
     axis: "segmented", assumed: "segmented", clusters: "bool", samplesSec: "section", taken: "choice",
-    shape: "segmented", showcells: "bool", dataSec: "section", seed: "int", all: "bool", shown: "int",
+    tree: "segmented", showcells: "bool", dataSec: "section", seed: "int", all: "bool", shown: "int",
   };
   for (const [name, type] of Object.entries(WANT)) check(`${name} is ${type}`, W.params[name]?.type === type);
   check("no parameters beyond those",
     Object.keys(W.params).sort().join() === Object.keys(WANT).sort().join());
-  for (const name of ["page", "axis", "assumed", "clusters", "taken", "shape", "showcells", "all"]) {
+  for (const name of ["page", "axis", "assumed", "clusters", "taken", "tree", "showcells", "all"]) {
     check(`${name} is a display parameter`, W.params[name].display === true);
   }
   for (const name of ["purity", "ccf", "state", "copies", "depth", "clones", "mutations", "seed"]) {
@@ -648,7 +648,7 @@ const defaults = async () => resolveParams(await spec(), new URLSearchParams("")
       }
     }
   }
-  for (const clones of ["one", "two", "three"]) for (const axis of ["vaf", "ccf"]) for (const assumed of ["sample", "pure"]) {
+  for (const clones of ["one", "two", "three"]) for (const axis of ["vaf", "ccf"]) for (const assumed of ["purity", "nothing"]) {
     cells.push({ ...values, page: "many", clones, axis, assumed, mutations: "120" });
   }
   for (const taken of ["1", "2", "4"]) for (const shape of ["linear", "branching"]) {
@@ -735,7 +735,7 @@ const defaults = async () => resolveParams(await spec(), new URLSearchParams("")
     card2.includes(`= ${many.many.math.toFixed(1)}`), card2.slice(-70));
 
   /* Page 3: the rule, and the sample that decides it. */
-  const { state: tree } = drawWith({ ...values, page: "clonal", shape: "branching" });
+  const { state: tree } = drawWith({ ...values, page: "clonal", tree: "branching" });
   const card3 = cardText();
   check("page 3's card states the sum rule", /Σ over the children of a cluster: c ≤ c of the parent/.test(card3), card3.slice(0, 60));
   const decided = tree.used.find((s) => !M.fitsSumRule(M.shapeOf("branching"), s.ccf));
@@ -743,7 +743,7 @@ const defaults = async () => resolveParams(await spec(), new URLSearchParams("")
   check("…and the arithmetic of the sample that rules the shape out",
     card3.includes(`${M.n2(tight.sum)} > ${M.n2(tight.parent)}`) && card3.includes(decided.key),
     `${decided.key}: ${M.n2(tight.sum)} > ${M.n2(tight.parent)}`);
-  const linear = drawWith({ ...values, page: "clonal", shape: "linear" });
+  const linear = drawWith({ ...values, page: "clonal", tree: "linear" });
   void linear;
   check("…and the tightest one when the shape fits", /≤/.test(cardText()), cardText().slice(-40));
   check("the card is rebuilt when the page changes", cardText() !== card2 && cardText() !== full);
@@ -921,14 +921,14 @@ const defaults = async () => resolveParams(await spec(), new URLSearchParams("")
   const st3 = W.compute({ params: clonal, rng: makeRng(clonal.seed) });
   const sh = W.animation.init({ params: clonal, state: st3, fromScratch: true });
   check("the shape opens on the shape the control names", sh.shapeMix === 0);
-  W.animation.rebuild(sh, { params: { ...clonal, shape: "branching" }, state: st3 });
+  W.animation.rebuild(sh, { params: { ...clonal, tree: "branching" }, state: st3 });
   check("switching the shape asks core for frames", sh.easing === true);
   sh.mode = "ease";
   let f3 = 0;
-  while (W.animation.advance(sh, { dt: 32, params: { ...clonal, shape: "branching" }, state: st3 }) && f3 < 200) f3 += 1;
+  while (W.animation.advance(sh, { dt: 32, params: { ...clonal, tree: "branching" }, state: st3 }) && f3 < 200) f3 += 1;
   check("…and lands exactly on the other shape", sh.shapeMix === 1, `${f3} frames`);
   /* Turned round mid-glide it leaves from where the figure is, as the axis does. */
-  const back3 = W.animation.init({ params: { ...clonal, shape: "branching" }, state: st3, fromScratch: true });
+  const back3 = W.animation.init({ params: { ...clonal, tree: "branching" }, state: st3, fromScratch: true });
   back3.mode = "ease";
   W.animation.rebuild(back3, { params: clonal, state: st3 });
   W.animation.advance(back3, { dt: 32, params: clonal, state: st3 });
@@ -936,7 +936,7 @@ const defaults = async () => resolveParams(await spec(), new URLSearchParams("")
     back3.shapeMix < 1 && back3.shapeMix > 0.7, M.n3(back3.shapeMix));
   /* Off page 3 there is nothing to watch, so it lands rather than glides. */
   const off = W.animation.init({ params: { ...values, page: "one" }, state: st3, fromScratch: true });
-  W.animation.rebuild(off, { params: { ...values, page: "one", shape: "branching" }, state: st3 });
+  W.animation.rebuild(off, { params: { ...values, page: "one", tree: "branching" }, state: st3 });
   check("…and a shape changed off page 3 lands with no frames",
     !off.easing && off.shapeMix === 1);
 
@@ -1039,7 +1039,7 @@ const defaults = async () => resolveParams(await spec(), new URLSearchParams("")
     };
     for (const t of [0.15, 0.35, 0.5, 0.65, 0.85]) {
       for (const taken of ["1", "2", "4"]) {
-        mid({ ...values, page: "clonal", taken }, (a) => { a.shapeMix = t; a.shape = "branching"; });
+        mid({ ...values, page: "clonal", taken }, (a) => { a.shapeMix = t; a.tree = "branching"; });
       }
       for (const axis of ["vaf", "ccf"]) {
         mid({ ...many, axis, purity: "0.35" }, (a) => {

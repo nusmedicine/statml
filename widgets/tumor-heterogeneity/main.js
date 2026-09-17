@@ -137,7 +137,7 @@ const worked = (num, den, result) => (MATHML
 function cardForPage(params, state, anim) {
   const S = M.STRINGS;
   if (params.page === "clonal") {
-    const shape = M.shapeOf(params.shape);
+    const shape = M.shapeOf(params.tree);
     /* The sample that decides: the one that rules this shape out if any does,
        and otherwise the one whose children come closest to their parent. */
     const decided = state.used.find((s) => !M.fitsSumRule(shape, s.ccf))
@@ -655,14 +655,14 @@ function drawMany(ctx, colors, L, params, state, anim) {
 
 function drawTreePage(ctx, colors, L, params, state, anim) {
   const used = state.used;
-  const shape = M.shapeOf(params.shape);
+  const shape = M.shapeOf(params.tree);
   const cols = [colors.groupA, colors.groupB, colors.groupC];
   /* WHERE THE SHAPE GLIDE HAS GOT TO. 0 is SHAPES[0], 1 is SHAPES[1]; at rest
      it is whichever the control names. Only the PICTURE glides — the caption,
      the arithmetic and the readout tiles state the shape the reader has just
      chosen, immediately, because a printed number that lags the data is a
      number the data does not support (page 1's VAF bar, the same ruling). */
-  const sMix = M.easeOut(anim?.shapeMix ?? M.shapeIndex(params.shape));
+  const sMix = M.easeOut(anim?.shapeMix ?? M.shapeIndex(params.tree));
 
   /* the CCF lines, his figure's left panel */
   const plot = makePlot({ ctx, colors, rect: L.lines, xDomain: [0, M.SAMPLES.length], yDomain: [0, 1] });
@@ -944,6 +944,7 @@ widgetApi = defineWidget({
     lookSec: { type: "section", label: M.STRINGS.lookSection, when: { param: "page", equals: "many" } },
     axis: {
       type: "segmented",
+      style: "grid",
       label: M.STRINGS.axisLabel,
       detail: M.STRINGS.axisDetail,
       options: M.AXES,
@@ -956,7 +957,7 @@ widgetApi = defineWidget({
       label: M.STRINGS.assumedLabel,
       detail: M.STRINGS.assumedDetail,
       options: M.ASSUMED,
-      default: "sample",
+      default: "purity",
       display: true,
       when: { all: [{ param: "page", equals: "many" }, { param: "axis", equals: "ccf" }] },
     },
@@ -979,7 +980,9 @@ widgetApi = defineWidget({
       display: true,
       when: { param: "page", equals: "clonal" },
     },
-    shape: {
+    /* "Tree", not "Shape" — the field's word and what the diagram is
+       (Kenneth, 2026-09-17). The link word follows the control. */
+    tree: {
       type: "segmented",
       label: M.STRINGS.shapeLabel,
       detail: M.STRINGS.shapeDetail,
@@ -1032,8 +1035,8 @@ widgetApi = defineWidget({
   legend: ({ params }) => {
     if (params.page === "many") {
       return [
-        { token: "group-a", label: "Mutations in every tumor cell", mark: "bar" },
-        { token: "group-b", label: "Mutations in some of them", mark: "bar" },
+        { token: "group-a", label: "Clonal: in every tumor cell", mark: "bar" },
+        { token: "group-b", label: "Subclonal: in some tumor cells", mark: "bar" },
         ...(params.clusters ? [{ token: "ink-2", label: "A cluster the mixture found, at its mean ± one standard deviation", mark: "line" }] : []),
         ...(params.axis === "ccf" ? [{ token: "reference", label: "The threshold at a cancer cell fraction of 0.9", mark: "line" }] : []),
       ];
@@ -1047,7 +1050,7 @@ widgetApi = defineWidget({
           label: `Cluster ${c + 1}: ${genes.join(", ")}`,
           mark: "line",
         })),
-        { token: "extreme", label: "Cells the shape would need and the sample does not have", mark: "line" },
+        { token: "extreme", label: "Cells the tree would need and the sample does not have", mark: "line" },
       ];
     }
     return [
@@ -1107,8 +1110,8 @@ widgetApi = defineWidget({
         /* Page 3's shape: 0 is SHAPES[0], 1 is SHAPES[1], and it eases toward
            whichever the control names — one scalar, exactly like `mix`, so a
            switch turned round mid-glide leaves from where the figure is. */
-        shapeMix: M.shapeIndex(params.shape),
-        shape: params.shape,
+        shapeMix: M.shapeIndex(params.tree),
+        tree: params.tree,
       };
     },
 
@@ -1124,7 +1127,7 @@ widgetApi = defineWidget({
         anim.mix = toward(anim.mix, axisTarget);
         if (anim.mix !== axisTarget) moving = true;
 
-        const shapeTarget = M.shapeIndex(anim.shape);
+        const shapeTarget = M.shapeIndex(anim.tree);
         anim.shapeMix = toward(anim.shapeMix, shapeTarget);
         if (anim.shapeMix !== shapeTarget) moving = true;
 
@@ -1177,12 +1180,12 @@ widgetApi = defineWidget({
       /* The shape moved: the same door as the axis, on the same page-3 terms.
          Off page 3 it lands, so a reader who switches shape from elsewhere and
          then arrives finds the figure already there. */
-      if (params.shape !== anim.shape) {
-        anim.shape = params.shape;
+      if (params.tree !== anim.tree) {
+        anim.tree = params.tree;
         if (params.page === "clonal" && !reducedMotion()) anim.easing = true;
-        else anim.shapeMix = M.shapeIndex(params.shape);
+        else anim.shapeMix = M.shapeIndex(params.tree);
       }
-      if (params.page !== "clonal" && !anim.easing) anim.shapeMix = M.shapeIndex(params.shape);
+      if (params.page !== "clonal" && !anim.easing) anim.shapeMix = M.shapeIndex(params.tree);
     },
   },
 
@@ -1213,7 +1216,7 @@ widgetApi = defineWidget({
       ];
     }
     if (params.page === "clonal") {
-      const shape = M.shapeOf(params.shape);
+      const shape = M.shapeOf(params.tree);
       const fits = state.used.every((s) => M.fitsSumRule(shape, s.ccf));
       /* A shape fits the evidence when it fits EVERY sample used, so the count
          is the shapes surviving the first sample intersected with the rest. */
@@ -1222,8 +1225,8 @@ widgetApi = defineWidget({
         .reduce((keep, fitting) => keep.filter((s) => fitting.includes(s)), [...M.SHAPES]).length;
       const failing = state.used.find((s) => !M.fitsSumRule(shape, s.ccf));
       return [
-        { label: "This shape", value: fits ? "Fits" : "Ruled out", note: failing ? `by ${failing.key}` : `on ${state.used.length} sample${state.used.length > 1 ? "s" : ""}` },
-        { label: "Shapes that fit", value: `${both} of ${M.SHAPES.length}`, note: "given the samples used" },
+        { label: "This tree", value: fits ? "Fits" : "Ruled out", note: failing ? `by ${failing.key}` : `on ${state.used.length} sample${state.used.length > 1 ? "s" : ""}` },
+        { label: "Trees that fit", value: `${both} of ${M.SHAPES.length}`, note: "given the samples used" },
         { label: "Samples used", value: String(state.used.length), note: "biopsies of one patient" },
       ];
     }
@@ -1277,10 +1280,10 @@ widgetApi = defineWidget({
         + `${state.many.fit.K > 1 ? "s" : ""} has the lowest BIC, and MATH is ${state.many.math.toFixed(1)}.`;
     }
     if (params.page === "clonal") {
-      const shape = M.shapeOf(params.shape);
+      const shape = M.shapeOf(params.tree);
       const failing = state.used.find((s) => !M.fitsSumRule(shape, s.ccf));
       return `Three clusters' mean cancer cell fraction across ${state.used.length} sample`
-        + `${state.used.length > 1 ? "s" : ""} of one patient, against the shape ${shape.label}, which `
+        + `${state.used.length > 1 ? "s" : ""} of one patient, against the tree ${shape.label}, which `
         + `${failing ? `is ruled out by ${failing.key}` : "fits every sample used"}.`;
     }
     const k = Math.min(anim?.k ?? 0, state.one.depth);
