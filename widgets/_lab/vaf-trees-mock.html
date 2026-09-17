@@ -1,0 +1,356 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · tumor-heterogeneity — branching patterns</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1500px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 104ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); min-height: 26px; white-space: pre-line; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 104ch; }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+       border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 104ch; }
+  table { border-collapse: collapse; font-size: var(--fs-sm); margin: var(--sp-2) 0; }
+  th, td { border: 1px solid var(--grid); padding: 4px 10px; text-align: left; vertical-align: top; }
+  th { color: var(--ink-2); font-weight: 600; }
+  td.num { font-family: var(--font-mono); }
+  td.bad { color: var(--c-extreme); }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>tumor-heterogeneity &middot; branching patterns on page 3</h1>
+  <p class="note">
+    <b>Your ask, 2026-09-17:</b> &ldquo;do you have other scenarios with additional branching patterns? mock it to see
+    if appropriate&rdquo;. Everything here is computed by the widget's own <code>model.js</code> and
+    <code>_lab/vaf-model.js</code>; the numbers match <code>_lab/vaf-trees-measure.mjs</code>. Trees are drawn with the
+    radially aligned connectors that went in today.
+  </p>
+
+  <h2>0 &middot; The finding that came first: the sample control does nothing</h2>
+  <p class="note">
+    Page 3 exists to show that <b>more biopsies narrow the tree</b>. With your figure's samples in their order, it
+    cannot: <code>P2.1st</code> on its own already rules out branching, and it is always the first sample used. So
+    &ldquo;Trees that fit&rdquo; reads 1 of 2 at every setting. Only <code>P2.surgery</code> on its own leaves both
+    open, and the control has no way to choose it.
+  </p>
+  <div id="inert"></div>
+  <p class="q" id="q0"></p>
+
+  <h2>1 &middot; Every tree three and four clusters can have</h2>
+  <p class="note">
+    With the trunk fixed and every later cluster's parent an earlier one, <b>k clusters have (k&minus;1)! trees</b>:
+    2 at three clusters, 6 at four, 24 at five. Drawn here at page 3's own node size (radius 11px), with arrowheads as
+    your figure draws them. The question is whether six stay legible side by side.
+  </p>
+  <div class="row" id="three"></div>
+  <div class="row" id="four"></div>
+
+  <h2>2 &middot; A four-cluster patient, and the lesson three clusters cannot teach</h2>
+  <p class="note">
+    <b>No lesson data has four clusters, so this patient is BUILT</b> from a known tree &mdash; 2 and 3 branch from the
+    trunk and 4 sits under 3, a mixed pattern three clusters cannot draw &mdash; and would have to say so on the page.
+    Each sample holds its own share of each subclone; a cluster's CCF is its own share plus every descendant's.
+  </p>
+  <div id="builtTable"></div>
+  <div class="row" id="narrow"></div>
+  <div id="typical"></div>
+  <p class="rec" id="rec2"></p>
+
+  <h2>3 &middot; What your figure draws that the page does not</h2>
+  <p class="note">
+    <code>cancer-retcher.png</code> has <b>arrowheads</b> on the edges, an <b>error bar</b> on every cluster mean CCF,
+    and <b>three driver genes</b> per cluster. The error bars bear on the sum rule itself: <code>1.05 &gt; 0.73</code> is
+    a violation no bar closes, and <code>0.95 &gt; 0.83</code> is closer.
+  </p>
+  <div class="row" id="figRow"></div>
+  <p class="rec" id="rec3"></p>
+
+  <h2>4 &middot; Terminology across the three pages</h2>
+  <p class="note">
+    Your other ask: &ldquo;get whole widget to ensure all terminology is aligned&rdquo;. Page 1 changed a great deal
+    over two days; these are the places the three pages now name one thing two ways, or two things one way.
+  </p>
+  <div id="terms"></div>
+</main>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+import * as M from "../tumor-heterogeneity/model.js";
+import { trees, fitsSumRule } from "./vaf-model.js";
+
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+const el = (tag, cls, text) => { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; };
+function cand(host, title, sub, w) {
+  const box = el("div", "cand");
+  box.style.width = `${w}px`;
+  box.appendChild(el("h3", null, title));
+  box.appendChild(el("p", "sub", sub));
+  document.getElementById(host).appendChild(box);
+  return box;
+}
+function canvasIn(box, w, h) {
+  const c = document.createElement("canvas");
+  c.width = Math.round(w * DPR); c.height = Math.round(h * DPR);
+  c.style.width = `${w}px`; c.style.height = `${h}px`;
+  box.appendChild(c);
+  const ctx = c.getContext("2d");
+  ctx.scale(DPR, DPR);
+  return ctx;
+}
+const wash = (color, a) => {
+  const m = String(color).match(/^#([0-9a-f]{6})$/i);
+  if (!m) return color;
+  const p = [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16));
+  return `rgba(${p[0]},${p[1]},${p[2]},${a})`;
+};
+const label = (ctx, s, x, y, size = 11, colour = T.ink2, align = "left", weight = "") => {
+  ctx.save(); ctx.font = `${weight} ${size}px ${T.font}`; ctx.fillStyle = colour; ctx.textAlign = align; ctx.fillText(s, x, y); ctx.restore();
+};
+function table(host, head, rows, cls = []) {
+  const t = el("table");
+  const tr = el("tr");
+  for (const h of head) tr.appendChild(el("th", null, h));
+  t.appendChild(tr);
+  for (const r of rows) {
+    const x = el("tr");
+    r.forEach((v, i) => x.appendChild(el("td", (typeof cls[i] === "function" ? cls[i](v) : cls[i]) ?? null, String(v))));
+    t.appendChild(x);
+  }
+  document.getElementById(host).appendChild(t);
+}
+/* A FOURTH CLUSTER HAS NO FREE HUE ON PAGE 3. Clusters 1–3 are group-a/b/c —
+   blue, yellow, green — the overflow is --c-extreme red, and the chosen tree's
+   box is --c-highlight violet. Of the unassigned cluster tokens, aqua
+   (cluster-d, series-3) sits beside green and read as the same colour in the
+   first draft of this page; violet and red are both already doing a job there.
+   Violet is used below as the least-bad, and §2's note says what it costs. */
+const css = getComputedStyle(document.documentElement);
+const tok = (n) => css.getPropertyValue(n).trim();
+const COLS = [T.groupA, T.groupB, T.groupC, tok("--series-7") || T.highlight];
+
+/* ---- a tidy tree layout for any parents array ----------------------------- */
+function layoutTree(parents, cx, top, width, dy = 38) {
+  const k = parents.length + 1;
+  const kids = [...Array(k)].map(() => []);
+  parents.forEach((p, i) => kids[p].push(i + 1));
+  const depth = [0];
+  for (let i = 1; i < k; i += 1) depth[i] = depth[parents[i - 1]] + 1;
+  const leaves = [];
+  const walk = (n) => { if (!kids[n].length) leaves.push(n); kids[n].forEach(walk); };
+  walk(0);
+  const x = [];
+  const span = Math.min(width, leaves.length * 34);
+  leaves.forEach((n, i) => { x[n] = cx - span / 2 + (leaves.length === 1 ? span / 2 : (i * span) / (leaves.length - 1)); });
+  const place = (n) => { if (kids[n].length) { kids[n].forEach(place); x[n] = kids[n].reduce((a, c) => a + x[c], 0) / kids[n].length; } };
+  place(0);
+  return [...Array(k)].map((_, n) => [x[n], top + depth[n] * dy]);
+}
+function drawTree(ctx, parents, pos, { arrows = true, dim = false } = {}) {
+  ctx.save();
+  if (dim) ctx.globalAlpha = 0.35;
+  ctx.strokeStyle = T.ink3;
+  ctx.fillStyle = T.ink3;
+  ctx.lineWidth = 1.5;
+  parents.forEach((p, i) => {
+    const { from, to } = M.connectorEnds(pos[p], pos[i + 1]);
+    ctx.beginPath(); ctx.moveTo(...from); ctx.lineTo(...to); ctx.stroke();
+    if (arrows) {
+      const ang = Math.atan2(to[1] - from[1], to[0] - from[0]);
+      const a = 6;
+      ctx.beginPath();
+      ctx.moveTo(to[0], to[1]);
+      ctx.lineTo(to[0] - a * Math.cos(ang - 0.45), to[1] - a * Math.sin(ang - 0.45));
+      ctx.lineTo(to[0] - a * Math.cos(ang + 0.45), to[1] - a * Math.sin(ang + 0.45));
+      ctx.closePath(); ctx.fill();
+    }
+  });
+  pos.forEach((p, n) => {
+    ctx.beginPath(); ctx.arc(p[0], p[1], M.NODE_R, 0, Math.PI * 2);
+    ctx.fillStyle = wash(COLS[n], 0.9); ctx.fill();
+    label(ctx, String(n + 1), p[0], p[1] + 4, 10, T.surface, "center");
+  });
+  ctx.restore();
+}
+const treeName = (parents) => {
+  const kids = [...Array(parents.length + 1)].map(() => []);
+  parents.forEach((p, i) => kids[p].push(i + 2));
+  return kids.map((c, n) => (c.length ? `${c.join(" and ")} under ${n + 1}` : null)).filter(Boolean).join("; ");
+};
+
+/* ---- 0 · the inert control ----------------------------------------------- */
+{
+  const all = trees(3);
+  const orders = [
+    ["as the page does — the first, the first two, all four", M.SAMPLES],
+    ["starting from the surgery sample", [M.SAMPLES[3], M.SAMPLES[0], M.SAMPLES[1], M.SAMPLES[2]]],
+  ];
+  const rows = [];
+  for (const [how, order] of orders) {
+    const counts = [1, 2, 4].map((n) => all.filter((t) => order.slice(0, n).every((s) => fitsSumRule(t, s.ccf))).length);
+    rows.push([how, ...counts.map((c) => `${c} of ${all.length}`)]);
+  }
+  table("inert", ["which samples come first", "1 sample", "2 samples", "4 samples"], rows,
+    [null, (v) => (v === "1 of 2" ? "num" : "num"), "num", "num"]);
+  document.getElementById("q0").textContent =
+    "This needs fixing whatever else is decided. Starting from the surgery sample makes the control do its job with "
+    + "your own data — 2 of 2, then 1 of 2 once a second biopsy arrives — and is the smallest change. Letting the "
+    + "reader tick any subset would show it too, at the cost of four checkboxes.";
+}
+
+/* ---- 1 · every tree ------------------------------------------------------- */
+for (const [host, k] of [["three", 3], ["four", 4]]) {
+  const all = trees(k);
+  all.forEach((t) => {
+    const box = cand(host, treeName(t), `${k} clusters`, 150);
+    const ctx = canvasIn(box, 150, 40 + (k - 1) * 38 + 20);
+    drawTree(ctx, t, layoutTree(t, 75, 22, 120));
+  });
+}
+
+/* ---- 2 · the built patient ------------------------------------------------ */
+const TRUE = [0, 0, 2];
+const own = [
+  { key: "S1", own: [0.30, 0.30, 0.15, 0.25] },
+  { key: "S2", own: [0.20, 0.10, 0.30, 0.40] },
+  { key: "S3", own: [0.35, 0.40, 0.20, 0.05] },
+  { key: "S4", own: [0.25, 0.05, 0.10, 0.60] },
+];
+const ccfOf = (parents, shares) => {
+  const ccf = [...shares];
+  for (let n = shares.length - 1; n >= 1; n -= 1) ccf[parents[n - 1]] += ccf[n];
+  return ccf;
+};
+const built = own.map((s) => ({ key: s.key, ccf: ccfOf(TRUE, s.own) }));
+table("builtTable", ["sample", "cluster 1", "cluster 2", "cluster 3", "cluster 4"],
+  built.map((s) => [s.key, ...s.ccf.map((c) => c.toFixed(2))]), [null, "num", "num", "num", "num"]);
+{
+  const all = trees(4);
+  for (const used of [1, 2, 4]) {
+    const fit = all.filter((t) => built.slice(0, used).every((s) => fitsSumRule(t, s.ccf)));
+    /* TWO ROWS OF THREE. Laid out in one row at 78px apart — what a 470px panel
+       allows — neighbouring trees overlapped: a tree three nodes wide needs about
+       95px at the page's 11px node. That is itself an answer to "is it
+       appropriate": six trees do not share one row of page 3 without shrinking
+       the nodes below what a label fits in. */
+    const box = cand("narrow", `${used} sample${used > 1 ? "s" : ""}: ${fit.length} of ${all.length} trees fit`,
+      "the ones that fit drawn solid; the true tree shaded", 330);
+    const ctx = canvasIn(box, 330, 300);
+    all.forEach((t, i) => {
+      const cx = 55 + (i % 3) * 110;
+      const top = 20 + Math.floor(i / 3) * 145;
+      const ok = fit.some((f) => f.join() === t.join());
+      const isTrue = t.join() === TRUE.join();
+      if (isTrue) {
+        ctx.save(); ctx.fillStyle = wash(T.reference, ok ? 0.12 : 0.05); ctx.fillRect(cx - 52, top - 16, 104, 134); ctx.restore();
+      }
+      drawTree(ctx, t, layoutTree(t, cx, top, 80, 34), { dim: !ok });
+    });
+  }
+}
+{
+  let seed = 7;
+  const rnd = () => { seed = (seed * 1664525 + 1013904223) % 4294967296; return seed / 4294967296; };
+  const rows = [];
+  for (const k of [3, 4]) {
+    const all = trees(k);
+    const tally = [0, 0, 0, 0, 0];
+    const RUNS = 2000;
+    for (let run = 0; run < RUNS; run += 1) {
+      const truth = all[Math.floor(rnd() * all.length)];
+      const samples = [...Array(4)].map(() => {
+        const raw = [...Array(k)].map(() => rnd() + 0.05);
+        const sum = raw.reduce((a, b) => a + b, 0);
+        return { ccf: ccfOf(truth, raw.map((x) => x / sum)) };
+      });
+      for (let u = 1; u <= 4; u += 1) tally[u] += all.filter((t) => samples.slice(0, u).every((s) => fitsSumRule(t, s.ccf))).length;
+    }
+    rows.push([`${k} clusters (${all.length} trees)`, ...[1, 2, 3, 4].map((u) => (tally[u] / RUNS).toFixed(2))]);
+  }
+  table("typical", ["2,000 random patients", "trees left, 1 sample", "2 samples", "3 samples", "4 samples"], rows,
+    [null, "num", "num", "num", "num"]);
+  document.getElementById("rec2").textContent =
+    "The page's own reading: four clusters are where the sampling lesson has room. Three clusters start near one tree "
+    + "and have nowhere to go (1.49 → 1.07 on average); four start near three and narrow to one (2.89 → 1.25). The "
+    + "cost is three things. The data is built rather than yours, which the page would have to say, and decision 7 — "
+    + "page 3's numbers are your figure's and nothing on it is simulated — would change. Six trees do not fit one row "
+    + "at the page's node size (they overlapped at 78px apart), so the panel grows to two rows. And there is no free "
+    + "fourth colour: aqua reads as green, and violet and red already mark the chosen tree and the overflow.";
+}
+
+/* ---- 3 · what the figure draws ------------------------------------------- */
+{
+  const lin = [0, 1];
+  const br = [0, 0];
+  {
+    const box = cand("figRow", "as the page draws it now", "plain connectors", 220);
+    const ctx = canvasIn(box, 220, 140);
+    drawTree(ctx, lin, layoutTree(lin, 60, 22, 60), { arrows: false });
+    drawTree(ctx, br, layoutTree(br, 160, 22, 60), { arrows: false });
+  }
+  {
+    const box = cand("figRow", "with arrowheads, as your figure", "directed: a parent gives rise to a child", 220);
+    const ctx = canvasIn(box, 220, 140);
+    drawTree(ctx, lin, layoutTree(lin, 60, 22, 60));
+    drawTree(ctx, br, layoutTree(br, 160, 22, 60));
+  }
+  {
+    const box = cand("figRow", "the lines panel with error bars", "bars are illustrative: the figure's own are not in the lesson's data", 360);
+    const ctx = canvasIn(box, 360, 170);
+    const x0 = 40, x1 = 340, y0 = 150, y1 = 20;
+    const sx = (i) => x0 + (i + 0.5) * ((x1 - x0) / 4);
+    const sy = (v) => y0 - v * (y0 - y1);
+    ctx.strokeStyle = T.grid; ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y0); ctx.stroke();
+    for (let c = 0; c < 3; c += 1) {
+      ctx.strokeStyle = COLS[c]; ctx.lineWidth = 2; ctx.beginPath();
+      M.SAMPLES.forEach((s, i) => (i ? ctx.lineTo(sx(i), sy(s.ccf[c])) : ctx.moveTo(sx(i), sy(s.ccf[c]))));
+      ctx.stroke();
+      M.SAMPLES.forEach((s, i) => {
+        ctx.save(); ctx.strokeStyle = wash(COLS[c], 0.6); ctx.lineWidth = 2.5;
+        ctx.beginPath(); ctx.moveTo(sx(i), sy(s.ccf[c] - 0.05)); ctx.lineTo(sx(i), sy(s.ccf[c] + 0.05)); ctx.stroke(); ctx.restore();
+        ctx.beginPath(); ctx.arc(sx(i), sy(s.ccf[c]), 3.5, 0, Math.PI * 2); ctx.fillStyle = COLS[c]; ctx.fill();
+      });
+    }
+    M.SAMPLES.forEach((s, i) => label(ctx, s.key, sx(i), 166, 9, T.ink3, "center"));
+  }
+  document.getElementById("rec3").textContent =
+    "The page's own reading: take the arrowheads, which cost nothing and say the thing a plain line cannot — that a "
+    + "parent gives rise to a child. Leave the error bars out: the lesson's data does not carry the figure's own "
+    + "intervals, and bars the widget invented would claim an uncertainty nobody measured. Leave the driver genes out "
+    + "of the tree; three names per node would not fit an 11px node, and they belong to the lesson's figure.";
+}
+
+/* ---- 4 · terminology ------------------------------------------------------ */
+table("terms", ["concept", "page 1", "page 2", "page 3", "the lesson", "proposal"], [
+  ["the fraction of tumor cells carrying a mutation", "control \"Tumor cells carrying it\"; tile \"Cancer cell fraction\"",
+    "axis \"Cancer cell fraction\"", "\"Cluster mean cancer cell fraction\"", "Cancer Cell Fraction (CCF)",
+    "control → \"Cancer cell fraction\": one quantity, one name, set and read on the same page"],
+  ["the two axis options on page 2", "—", "\"VAF\" · \"Cancer cell fraction\" (one abbreviated, one not)", "—", "VAF · CCF",
+    "\"Variant allele frequency\" · \"Cancer cell fraction\", in a grid if they do not share a row"],
+  ["a tree of clusters", "—", "—", "\"Shape\", \"This shape\", \"Shapes that fit\"", "clonal architecture, clonal evolution",
+    "\"Tree\" — the field's word, what the diagram is, and your own \"branching patterns\" point at it"],
+  ["a cluster and the cells it stands for", "—", "clusters (found) against populations (true)",
+    "note: \"A cluster's cells are a subset of its parent's\"", "subclones with distinct profiles; clusters of CCFs",
+    "\"The cells carrying a cluster's mutations are a subset of those carrying its parent's\" — page 2 teaches that a cluster is not a population, so page 3 should not give one cells"],
+  ["mutations in every / some tumor cells", "call: \"Clonal · Subclonal\"", "legend: \"Mutations in every tumor cell\" · \"Mutations in some of them\"", "—", "clonal · subclonal",
+    "legend → \"Clonal: in every tumor cell\" · \"Subclonal: in some tumor cells\", the words page 1's call uses"],
+  ["what the analysis is given", "\"Given: Nothing · Purity · Purity and copy number\"", "\"Purity used: The sample's · 1.00\"", "—", "Refining Estimates (Optional)",
+    "page 2's control → \"Given: Nothing · Purity\", the same idea under the same name"],
+  ["section headings", "\"The sample · The sequencing · The analysis\"", "\"The sample · The tumor · How to read it\"", "\"The samples\"", "—",
+    "\"How to read it\" → \"The view\", the collection's plain-noun register (it has both \"The view\" and \"How to look at it\")"],
+], [null, null, null, null, null, null]);
+</script>
+</body>
+</html>
