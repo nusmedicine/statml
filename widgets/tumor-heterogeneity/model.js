@@ -610,6 +610,21 @@ export function barRects(shape, ccf, { x, y, w, h }) {
   }
   return rects;
 }
+/* WHERE A CONNECTOR MEETS ITS TWO NODES: on each circle's edge, along the line
+   between the two centres, so the connector points at both. It stepped a fixed
+   11px straight down from the parent and straight up into the child, which is
+   right only when the two are stacked; on a diagonal it left each end off to the
+   side of the centre it should aim at (Kenneth, 2026-09-17: "the nodes should be
+   radially aligned to the connectors"). A vertical connector comes out exactly
+   as it was. */
+export const NODE_R = 11;
+export function connectorEnds([x0, y0], [x1, y1], r = NODE_R) {
+  const d = Math.hypot(x1 - x0, y1 - y0) || 1;
+  const ux = (x1 - x0) / d;
+  const uy = (y1 - y0) / d;
+  return { from: [x0 + ux * r, y0 + uy * r], to: [x1 - ux * r, y1 - uy * r] };
+}
+
 export const lerpRect = (a, b, t) => ({
   x: lerp(a.x, b.x, t), y: lerp(a.y, b.y, t), w: lerp(a.w, b.w, t), h: lerp(a.h, b.h, t),
 });

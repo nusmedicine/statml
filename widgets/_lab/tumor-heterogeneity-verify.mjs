@@ -826,6 +826,35 @@ const defaults = async () => resolveParams(await spec(), new URLSearchParams("")
   const W = await widget();
   const values = await defaults();
 
+  /* ---- page 3: every connector points at the centres it joins ----
+     His catch from a screenshot, 2026-09-17: on the branching tree the ends sat
+     beside the node centres rather than aiming at them. A pixel hash would
+     record the misaligned picture as faithfully as the aligned one, so the
+     geometry is asserted: each end lies on its circle, on the line between the
+     two centres. */
+  {
+    let off = 0;
+    let n = 0;
+    const pairs = [
+      [[100, 22], [100, 58]], [[100, 22], [78, 70]], [[100, 22], [122, 70]],
+      [[50, 50], [90, 20]], [[0, 0], [30, 40]],
+    ];
+    for (const [a, b] of pairs) {
+      const { from, to } = M.connectorEnds(a, b);
+      n += 1;
+      const onA = Math.abs(Math.hypot(from[0] - a[0], from[1] - a[1]) - M.NODE_R) < 1e-9;
+      const onB = Math.abs(Math.hypot(to[0] - b[0], to[1] - b[1]) - M.NODE_R) < 1e-9;
+      /* collinear with both centres: the cross product of (b − a) and (end − a) is zero */
+      const cross = (p) => (b[0] - a[0]) * (p[1] - a[1]) - (b[1] - a[1]) * (p[0] - a[0]);
+      if (!onA || !onB || Math.abs(cross(from)) > 1e-6 || Math.abs(cross(to)) > 1e-6) off += 1;
+    }
+    check("every connector's ends lie on their nodes, on the line between the centres",
+      off === 0, n + " connectors, " + off + " off");
+    const v = M.connectorEnds([100, 22], [100, 58]);
+    check("…and a vertical one is exactly the 11px it was before",
+      v.from[0] === 100 && v.from[1] === 33 && v.to[0] === 100 && v.to[1] === 47);
+  }
+
   /* ---- page 3: cluster 3 slides out of cluster 2 to beside it ---- */
   check("the shape glide's one scalar has exactly two ends to run between",
     M.SHAPES.length === 2 && M.shapeIndex("linear") === 0 && M.shapeIndex("branching") === 1);

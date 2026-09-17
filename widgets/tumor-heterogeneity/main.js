@@ -718,15 +718,16 @@ function drawTreePage(ctx, colors, L, params, state, anim) {
     ctx.strokeStyle = colors.ink3;
     ctx.lineWidth = 1.5;
     s.parents.forEach((p, ci) => {
+      const { from, to } = M.connectorEnds(pos[p], pos[ci + 1]);
       ctx.beginPath();
-      ctx.moveTo(pos[p][0], pos[p][1] + 11);
-      ctx.lineTo(pos[ci + 1][0], pos[ci + 1][1] - 11);
+      ctx.moveTo(from[0], from[1]);
+      ctx.lineTo(to[0], to[1]);
       ctx.stroke();
     });
     ctx.restore();
     pos.forEach((p, ci) => {
       ctx.beginPath();
-      ctx.arc(p[0], p[1], 11, 0, Math.PI * 2);
+      ctx.arc(p[0], p[1], M.NODE_R, 0, Math.PI * 2);
       ctx.fillStyle = wash(cols[ci], 0.85);
       ctx.fill();
       text(ctx, String(ci + 1), p[0], p[1] + 4, {
