@@ -372,7 +372,40 @@ function drive(params, mode, { dt = 32, frames = 4000 } = {}) {
   check("the card prints no probability as 0.0000", zeros.length === 0, zeros[0]?.slice(0, 80));
 }
 
-/* --- 7 · the copy, against the words this collection has struck ----------------- */
+/* --- 7 · page 2's names, clear of the points ------------------------------------
+   Kenneth, 2026-09-18: "fix the oncogene label overlap". The placement checked
+   only other names, and "Oncogene" printed through the ring of the called
+   passenger beside it. The drawing and this check read one geometry
+   (`cohortMarks`, `labelPlacements`) on core's own plot scales, over seeds,
+   the narrowest and widest canvases, and both ends of the Across ease. The
+   measure is 6px a character, wider than the canvas's, so a clear box here is
+   clear on the page. */
+{
+  const { makePlot } = await import("../core/canvas.js");
+  const bad = [];
+  let named = 0;
+  for (let seed = 1; seed <= 8; seed += 1) {
+    const c = M.cohortFor(seed);
+    for (const w of [535, 770]) {
+      const L = M.layout(w, paramsOf({ page: "cohort" }));
+      const plot = makePlot({ ctx: recorder().ctx, colors: COLORS, rect: L.plot, xDomain: [0, 1], yDomain: [0, M.cohortTop(c.table)] });
+      for (const mix of [0, 0.5, 1]) {
+        const marks = M.cohortMarks(c.table, plot.sx, plot.sy, mix);
+        const placements = M.labelPlacements(marks, M.namedGenes(c), L.plot, (s) => s.length * 6);
+        named += placements.length;
+        for (const p of placements) {
+          if (p.overPoints || p.overNames || p.outside) {
+            bad.push(`seed ${seed} at ${w}, across ${mix}: "${p.text}" over ${p.overPoints} point(s), ${p.overNames} name(s)${p.outside ? ", outside" : ""}`);
+          }
+        }
+        if (placements.length !== M.namedGenes(c).length) bad.push(`seed ${seed} at ${w}: a name was not placed`);
+      }
+    }
+  }
+  check(`${named} names on page 2 clear every point, ring and other name`, bad.length === 0, bad.slice(0, 3).join(" | "));
+}
+
+/* --- 8 · the copy, against the words this collection has struck ----------------- */
 {
   const src = [read("widgets/driver-genes/main.js"), read("widgets/driver-genes/model.js")]
     .join("\n")

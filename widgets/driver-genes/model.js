@@ -402,6 +402,68 @@ export function tallyOf(mutations, k) {
   return [...at.values()];
 }
 
+/* ---- page 2's marks --------------------------------------------------------
+   Where each gene is drawn, in one place, so the drawing and the verify's
+   overlap check read the same geometry (5.8). `sx` and `sy` are core's plot
+   scales. */
+export const RING = 3;   // a call's ring, this far outside its point
+export const markRadius = (g) => 2 + 1.3 * Math.sqrt(g.clusters);
+export const cohortTop = (table) => Math.max(6, Math.ceil(Math.max(...table.map((g) => -Math.log10(g.fdr)))));
+export function cohortMarks(table, sx, sy, mix) {
+  return table.map((g) => ({ g, x: sx(lerp(g.fraction, g.score, mix)), y: sy(-Math.log10(g.fdr)), r: markRadius(g) }));
+}
+
+/** The three genes page 1 walks, named on page 2 as page 1 names them. */
+export const namedGenes = (cohort) => KINDS.filter((k) => k.shape)
+  .map((k) => ({ text: k.label, g: cohort.byName[k.shape] }))
+  .filter(({ g }) => g.tested);
+
+/* A NAME GOES WHERE ITS BOX IS CLEAR OF EVERY POINT, EVERY RING AND EVERY NAME
+   ALREADY PLACED: beside the point, then above or below it, then further out
+   with a leader line. It checked only other names until 2026-09-18, and
+   "Oncogene" printed through the ring of the called passenger beside it
+   (Kenneth: "fix the oncogene label overlap"). Where no candidate is clear, the
+   one over the fewest points, nearest first. */
+export function labelPlacements(marks, names, box, measure) {
+  const discs = marks.map((m) => ({ x: m.x, y: m.y, r: m.r + (m.g.called ? RING + 1.5 : 1.5) }));
+  const clearOf = (b, d) => {
+    const cx = Math.max(b.x, Math.min(d.x, b.x + b.w));
+    const cy = Math.max(b.y, Math.min(d.y, b.y + b.h));
+    return (d.x - cx) ** 2 + (d.y - cy) ** 2 >= d.r ** 2;
+  };
+  const items = names
+    .map(({ text, g }) => ({ text, mark: marks.find((m) => m.g === g) }))
+    .filter((it) => it.mark)
+    .sort((p, q) => p.mark.y - q.mark.y);
+  const placed = [];
+  const out = [];
+  for (const { text, mark } of items) {
+    const w = measure(text);
+    const reach = mark.r + (mark.g.called ? RING : 0) + 5;
+    const cands = [
+      [mark.x - reach - w, mark.y + 4, false],
+      [mark.x + reach, mark.y + 4, false],
+      [mark.x - w / 2, mark.y - reach - 2, false],
+      [mark.x - w / 2, mark.y + reach + 11, false],
+    ];
+    for (const dy of [-20, 20, -34, 34, -48, 48, -62, 62]) {
+      cands.push([mark.x - reach - 8 - w, mark.y + 4 + dy, true], [mark.x + reach + 8, mark.y + 4 + dy, true]);
+    }
+    let best = null;
+    cands.forEach(([lx, ly, leader], order) => {
+      const b = { x: lx - 2, y: ly - 11, w: w + 4, h: 14 };
+      const outside = b.x < box.x || b.x + b.w > box.x + box.w || b.y < box.y || b.y + b.h > box.y + box.h;
+      const overNames = placed.filter((p) => p.x < b.x + b.w && b.x < p.x + p.w && p.y < b.y + b.h && b.y < p.y + p.h).length;
+      const overPoints = discs.filter((d) => !clearOf(b, d)).length;
+      const cost = (outside ? 1e6 : 0) + overNames * 1e4 + overPoints * 100 + order;
+      if (!best || cost < best.cost) best = { text, lx, ly, w, leader, box: b, cost, outside, overNames, overPoints, mark };
+    });
+    placed.push(best.box);
+    out.push(best);
+  }
+  return out;
+}
+
 /* ---- the steps ------------------------------------------------------------ */
 
 /* Stage 0 is the empty protein; stage 1 has the mutations; stages 2 to 6 are

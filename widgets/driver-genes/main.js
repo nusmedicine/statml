@@ -380,43 +380,32 @@ function drawGenePage(ctx, colors, w, params, state, anim) {
 
 const KIND_FILL = (colors, kind) => (kind === "oncogene" ? colors.groupA : kind === "suppressor" ? colors.groupB : colors.ink3);
 
-/* Labels for the three genes page 1 walks: beside the point where there is
-   room, else moved up or down with a leader line back to it. */
-function placeLabels(ctx, colors, items, box) {
-  const placed = [];
-  ctx.save();
-  ctx.font = noteFont(colors);
-  for (const it of [...items].sort((p, q) => p.y - q.y)) {
-    const w = ctx.measureText(it.text).width;
-    let chosen = null;
-    for (const dy of [0, -14, 14, -28, 28, -42, 42]) {
-      for (const side of it.x > box.x + 120 ? ["left", "right"] : ["right", "left"]) {
-        const lx = side === "left" ? it.x - it.r - 6 - w : it.x + it.r + 6;
-        const ly = it.y + dy;
-        const b = { x: lx - 2, y: ly - 11, w: w + 4, h: 14 };
-        if (b.x < box.x || b.x + b.w > box.x + box.w || b.y < box.y - 4 || b.y + b.h > box.y + box.h) continue;
-        if (placed.some((p) => p.x < b.x + b.w && b.x < p.x + p.w && p.y < b.y + b.h && b.y < p.y + p.h)) continue;
-        chosen = { lx, ly, side, b, dy, w };
-        break;
-      }
-      if (chosen) break;
+/** The names `M.labelPlacements` placed, each with the surface halo core gives
+    a caption, and a leader line to the point's rim where a name moved out. */
+function drawNames(ctx, colors, placements) {
+  for (const p of placements) {
+    if (p.leader) {
+      const fromX = p.lx < p.mark.x ? p.lx + p.w + 2 : p.lx - 2;
+      const fromY = p.ly - 4;
+      const rim = p.mark.r + (p.mark.g.called ? M.RING : 0) + 1;
+      const dx = fromX - p.mark.x, dy = fromY - p.mark.y, len = Math.hypot(dx, dy) || 1;
+      rule(ctx, fromX, fromY, p.mark.x + (dx / len) * rim, p.mark.y + (dy / len) * rim, colors.ink3, 0.75);
     }
-    if (!chosen) continue;
-    placed.push(chosen.b);
-    if (chosen.dy !== 0) {
-      rule(ctx, chosen.side === "left" ? chosen.lx + chosen.w + 2 : chosen.lx - 2, chosen.ly - 4, it.x, it.y, colors.ink3, 0.75);
-    }
-    text(ctx, it.text, chosen.lx, chosen.ly, { font: noteFont(colors), fill: colors.ink1 });
+    ctx.save();
+    ctx.font = noteFont(colors);
+    ctx.strokeStyle = colors.surface;
+    ctx.lineWidth = 3;
+    ctx.strokeText(p.text, p.lx, p.ly);
+    ctx.restore();
+    text(ctx, p.text, p.lx, p.ly, { font: noteFont(colors), fill: colors.ink1 });
   }
-  ctx.restore();
 }
 
 function drawCohortPage(ctx, colors, w, params, state, anim) {
   const L = M.layout(w, params);
   const c = state.cohort;
   const mix = anim?.mix ?? (params.across === "score" ? 1 : 0);
-  const heights = c.table.map((g) => -Math.log10(g.fdr));
-  const yTop = Math.max(6, Math.ceil(Math.max(...heights)));
+  const yTop = M.cohortTop(c.table);
   const plot = makePlot({ ctx, colors, rect: L.plot, xDomain: [0, 1], yDomain: [0, yTop] });
   const yTicks = [];
   for (let t = 0; t <= yTop; t += yTop > 8 ? 2 : 1) yTicks.push(t);
@@ -428,30 +417,25 @@ function drawCohortPage(ctx, colors, w, params, state, anim) {
   rule(ctx, L.plot.x, lineY, L.plot.x + L.plot.w, lineY, colors.ink2, 1, [5, 4]);
   text(ctx, S.fdrLine, L.plot.x + L.plot.w, lineY - 5, { font: noteFont(colors), fill: colors.ink2, align: "right" });
 
-  const r = (g) => 2 + 1.3 * Math.sqrt(g.clusters);
-  const xOf = (g) => plot.sx(M.lerp(g.fraction, g.score, mix));
-  const yOf = (g) => plot.sy(-Math.log10(g.fdr));
-  const order = [...c.table].sort((p, q) => (p.kind === "passenger" ? 0 : 1) - (q.kind === "passenger" ? 0 : 1));
-  for (const g of order) {
+  const marks = M.cohortMarks(c.table, plot.sx, plot.sy, mix);
+  const order = [...marks].sort((p, q) => (p.g.kind === "passenger" ? 0 : 1) - (q.g.kind === "passenger" ? 0 : 1));
+  for (const m of order) {
     ctx.beginPath();
-    ctx.arc(xOf(g), yOf(g), r(g), 0, Math.PI * 2);
-    ctx.fillStyle = params.kinds && g.kind !== "passenger" ? wash(KIND_FILL(colors, g.kind), 0.9) : wash(colors.ink3, 0.5);
+    ctx.arc(m.x, m.y, m.r, 0, Math.PI * 2);
+    ctx.fillStyle = params.kinds && m.g.kind !== "passenger" ? wash(KIND_FILL(colors, m.g.kind), 0.9) : wash(colors.ink3, 0.5);
     ctx.fill();
   }
-  for (const g of order) {
-    if (!g.called) continue;
+  for (const m of order) {
+    if (!m.g.called) continue;
     ctx.beginPath();
-    ctx.arc(xOf(g), yOf(g), r(g) + 3, 0, Math.PI * 2);
+    ctx.arc(m.x, m.y, m.r + M.RING, 0, Math.PI * 2);
     ctx.strokeStyle = colors.ink1;
     ctx.lineWidth = 1.25;
     ctx.stroke();
   }
   if (params.kinds) {
-    const named = M.KINDS.filter((k) => k.shape)
-      .map((k) => ({ k, g: c.byName[k.shape] }))
-      .filter(({ g }) => g.tested)
-      .map(({ k, g }) => ({ text: k.label, x: xOf(g), y: yOf(g) + 4, r: r(g) + (g.called ? 3 : 0) }));
-    placeLabels(ctx, colors, named, L.plot);
+    const measure = (s) => { ctx.save(); ctx.font = noteFont(colors); const width = ctx.measureText(s).width; ctx.restore(); return width; };
+    drawNames(ctx, colors, M.labelPlacements(marks, M.namedGenes(c), L.plot, measure));
   }
 
   const base = L.plot.y + L.plot.h;
