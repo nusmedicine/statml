@@ -27,8 +27,8 @@
    behavioural assertion passing, so the spec is asserted key by key
    (HANDOVER § *Driving the animation in node*).
 
-   THE STATUS. The manifest and `main.js` both say `draft` and this says so;
-   all three flip in one commit at ship.
+   THE STATUS. The manifest and `main.js` both say `shipped` and this says so;
+   all three flipped together at the ship, 2026-09-17.
 
    Exits non-zero on failure.
    ========================================================================= */
@@ -569,10 +569,10 @@ const defaults = async () => resolveParams(await spec(), new URLSearchParams("")
   for (const name of ["purity", "ccf", "state", "copies", "depth", "clones", "mutations", "seed"]) {
     check(`${name} is a data parameter`, !W.params[name].display);
   }
-  check("the widget is still a draft", W.status === "draft");
+  check("the widget is shipped", W.status === "shipped");
   check("the manifest agrees",
     JSON.parse(read("widgets/manifest.json")).widgets
-      .find((w) => w.slug === "tumor-heterogeneity")?.status === "draft");
+      .find((w) => w.slug === "tumor-heterogeneity")?.status === "shipped");
 }
 
 /* --- 7 · the animation, driven in node ------------------------------------ */

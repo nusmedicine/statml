@@ -7198,6 +7198,137 @@
       },
       "px": "2201a4a6",
       "tx": "51ccffb9"
+    },
+    {
+      "$note": "tumor-heterogeneity · One mutation, nothing read: the empty pileup, and the card stating the definition only",
+      "slug": "tumor-heterogeneity",
+      "state": "?theme=light&shown=0",
+      "px": "3dddfbc7",
+      "tx": "3dbed873"
+    },
+    {
+      "$note": "tumor-heterogeneity · One mutation, 88 reads at the defaults: 1 + 1, told both, one scenario and a clonal call",
+      "slug": "tumor-heterogeneity",
+      "state": "?theme=light&shown=88",
+      "px": "c50f208a",
+      "tx": "fbe81274"
+    },
+    {
+      "$note": "tumor-heterogeneity · 3 + 1 with two mutated copies, told both: the fits, the true scenario marked, and Cannot tell",
+      "slug": "tumor-heterogeneity",
+      "state": "?theme=light&state=3%2B1&copies=2&shown=88",
+      "px": "f42fa5a3",
+      "tx": "85f0392b"
+    },
+    {
+      "$note": "tumor-heterogeneity · 2 + 1 with one mutated copy: the same fraction on either chromosome, side by side",
+      "slug": "tumor-heterogeneity",
+      "state": "?theme=light&state=2%2B1&copies=1&shown=88",
+      "px": "536581d7",
+      "tx": "5d385944"
+    },
+    {
+      "$note": "tumor-heterogeneity · told nothing at 75% of tumor cells: the true scenario not listed, purity 1 assumed",
+      "slug": "tumor-heterogeneity",
+      "state": "?theme=light&knows=nothing&ccf=0.75&shown=88",
+      "px": "16f6cac4",
+      "tx": "2758eb5c"
+    },
+    {
+      "$note": "tumor-heterogeneity · told purity on a 3 + 1 sample: the true scenario not listed, two copies assumed",
+      "slug": "tumor-heterogeneity",
+      "state": "?theme=light&knows=purity&state=3%2B1&copies=2&shown=88",
+      "px": "d3f6f16e",
+      "tx": "de0988a8"
+    },
+    {
+      "$note": "tumor-heterogeneity · told nothing on a pure 1 + 1 sample: the range 0.50–1.00 beside Cannot tell",
+      "slug": "tumor-heterogeneity",
+      "state": "?theme=light&purity=1.00&knows=nothing&shown=88",
+      "px": "6d342904",
+      "tx": "5a46befc"
+    },
+    {
+      "$note": "tumor-heterogeneity · Many mutations on the variant allele frequency axis: the histogram, the clusters and MATH",
+      "slug": "tumor-heterogeneity",
+      "state": "?theme=light&page=many&shown=0",
+      "px": "f982e78c",
+      "tx": "92c1ea12"
+    },
+    {
+      "$note": "tumor-heterogeneity · Many mutations on the cancer cell fraction axis, given purity: the threshold at 0.9",
+      "slug": "tumor-heterogeneity",
+      "state": "?theme=light&page=many&axis=ccf&shown=0",
+      "px": "843fcc64",
+      "tx": "65030e70"
+    },
+    {
+      "$note": "tumor-heterogeneity · Many mutations on the cancer cell fraction axis, given nothing: the clonal peak emptied",
+      "slug": "tumor-heterogeneity",
+      "state": "?theme=light&page=many&axis=ccf&assumed=nothing&shown=0",
+      "px": "f2d879a5",
+      "tx": "cac6d6b5"
+    },
+    {
+      "$note": "tumor-heterogeneity · Clonal architecture, all four samples: the linear tree fits, error bars and genes",
+      "slug": "tumor-heterogeneity",
+      "state": "?theme=light&page=clonal&shown=0",
+      "px": "e8e070ee",
+      "tx": "291ab4f4"
+    },
+    {
+      "$note": "tumor-heterogeneity · the branching tree ruled out: the overflow on three samples, arrowheads on the tree",
+      "slug": "tumor-heterogeneity",
+      "state": "?theme=light&page=clonal&tree=branching&shown=0",
+      "px": "a0f8f726",
+      "tx": "9bdcc2b2"
+    },
+    {
+      "$note": "tumor-heterogeneity · the surgery sample alone: both trees fit",
+      "slug": "tumor-heterogeneity",
+      "state": "?theme=light&page=clonal&taken=1&shown=0",
+      "px": "47b674c5",
+      "tx": "447177d9"
+    },
+    {
+      "$note": "tumor-heterogeneity · DRIVEN - Play part-way through the reads: the newest fading in",
+      "slug": "tumor-heterogeneity",
+      "state": "?theme=light",
+      "drive": {
+        "click": "run",
+        "frames": 24,
+        "dt": 32
+      },
+      "px": "901cbd0f",
+      "tx": "0cfdccd4"
+    },
+    {
+      "$note": "tumor-heterogeneity · DRIVEN - the tree switched to branching, mid-glide: cluster 3 sliding out of cluster 2",
+      "slug": "tumor-heterogeneity",
+      "state": "?theme=light&page=clonal",
+      "drive": {
+        "set": {
+          "tree": "branching"
+        },
+        "frames": 6,
+        "dt": 32
+      },
+      "px": "589bb925",
+      "tx": "9bdcc2b2"
+    },
+    {
+      "$note": "tumor-heterogeneity · DRIVEN - the axis switched to cancer cell fraction, mid-ease: every mutation sliding",
+      "slug": "tumor-heterogeneity",
+      "state": "?theme=light&page=many",
+      "drive": {
+        "set": {
+          "axis": "ccf"
+        },
+        "frames": 6,
+        "dt": 32
+      },
+      "px": "0af52a98",
+      "tx": "65030e70"
     }
   ]
 }

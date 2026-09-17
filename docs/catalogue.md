@@ -12,7 +12,7 @@ answer can be checked against what was assumed.
 
 | looking for | go to |
 |---|---|
-| what to build next | **The cancer mutation arc (PHM5003 week 7), PROPOSED AND PICKED 2026-09-16: three widgets, 67 `tumor-heterogeneity` (with 68's tree as its last page) → 69 `driver-genes` → 70 `mutational-signatures`, 71 held back** — § *The cancer mutation arc*, where 67 is DRAFTED through seven rounds and waiting on his round, and 69 is next after it. The image arc under PHM5005 (slots 61–66) has 61 `cnn-architecture`, 64 `grad-cam`, 65 `unet` and 62 `augmentation` shipped, 63 `pretrained` measured and mocked and on KIV (his call 2026-09-15), 66 folded into 65; slot 52 `training-loop` (05-4) was discarded 2026-09-13, his call when the image arc was planned; the GWAS and PRS arc (56, 57, 59, 60) and the high-throughput arc are complete |
+| what to build next | **The cancer mutation arc (PHM5003 week 7), PROPOSED AND PICKED 2026-09-16: three widgets, 67 `tumor-heterogeneity` (with 68's tree as its last page) → 69 `driver-genes` → 70 `mutational-signatures`, 71 held back** — § *The cancer mutation arc*, where **67 is SHIPPED 2026-09-17** (three pages, 68's tree the last), and 69 is next: its measure step runs maftools' own `oncodrive`, and maftools is not installed — a network fetch, so 69 starts with his approval. The image arc under PHM5005 (slots 61–66) has 61 `cnn-architecture`, 64 `grad-cam`, 65 `unet` and 62 `augmentation` shipped, 63 `pretrained` measured and mocked and on KIV (his call 2026-09-15), 66 folded into 65; slot 52 `training-loop` (05-4) was discarded 2026-09-13, his call when the image arc was planned; the GWAS and PRS arc (56, 57, 59, 60) and the high-throughput arc are complete |
 | how a widget got its shape | § *Widget N*, in order |
 | the four-method reconnaissance | § *Widget 19*, under the PCA sections |
 | the arcs, and what is deliberately not a widget | the arc sections below |
@@ -8650,8 +8650,8 @@ dominating a decomposition; a nearest reference used as a name.
 
 | # | slug (provisional) | title | host | misconception | evidence | status |
 |---|---|---|---|---|---|---|
-| 67 | `variant-allele-frequency` | Tumor Heterogeneity | 01-2 cells 17–25 | a VAF below 0.5 is a subclone, and a cluster of VAFs is a clone. **Measured: 965 of 967 tumours have a median VAF below 0.5, and a tumour with one clone reads MATH 15–25 from sampling alone** | reported (Dentro, Wedge & Van Loo 2017; the lesson's cells 17 and 24 state both caveats) | proposed |
-| 68 | `clonal-architecture` | Clonal Architecture | 01-2 cell 25 and `cancer-retcher.png`; nothing run | the clusters' CCFs give the tree. **Measured on his figure: the sum rule rules out branching at three of its four samples, and the surgery sample alone fits both trees** | documented for the rule (Nik-Zainal et al. 2012, the pigeonhole principle); the misconception inferred | **FOLDED into 67 as its last page, Kenneth's pick 2026-09-16** — the section below stands as that page's spec |
+| 67 | `variant-allele-frequency` | Tumor Heterogeneity | 01-2 cells 17–25 | a VAF below 0.5 is a subclone, and a cluster of VAFs is a clone. **Measured: 965 of 967 tumours have a median VAF below 0.5, and a tumour with one clone reads MATH 15–25 from sampling alone** | reported (Dentro, Wedge & Van Loo 2017; the lesson's cells 17 and 24 state both caveats) | **SHIPPED 2026-09-17** as `tumor-heterogeneity`, three pages |
+| 68 | `clonal-architecture` | Clonal Architecture | 01-2 cell 25 and `cancer-retcher.png`; nothing run | the clusters' CCFs give the tree. **Measured on his figure: the sum rule rules out branching at three of its four samples, and the surgery sample alone fits both trees** | documented for the rule (Nik-Zainal et al. 2012, the pigeonhole principle); the misconception inferred | **FOLDED into 67 as its last page, Kenneth's pick 2026-09-16**, and shipped with it 2026-09-17 — the section below stands as that page's spec |
 | 69 | `driver-genes` | Cancer Driver Genes | 01-3 cells 12–25 | a gene `oncodrive` does not call is a passenger; a smaller FDR is a stronger driver. **Measured: TP53, CDH1, GATA3 and MAP3K1, four of the six most mutated genes, are absent from cell 16's table** | documented (Tamborero et al. 2013; TCGA 2012 names all four as significantly mutated) | proposed |
 | 70 | `mutational-signatures` | Mutational Signatures | 01-4 | an extracted signature is a process across the cohort, and its best COSMIC match names the cause. **Measured: Signature_1 is one tumour** | reported (Koh et al. 2021 on attribution) | proposed — **a new widget importing 41's engine, his pick 2026-09-16** |
 | 71 | `somatic-interactions` | Somatic Interactions | 01-3 cells 4–11, 35 | two genes rarely mutated together share a pathway (cell 4's reading). **Measured: TP53–CDH1's odds ratio 0.153 is 0.407 within histology** | documented (Canisius, Martens & Wessels 2016; van de Haar et al. 2019) | **not asked for** — kept proposed, **his call after 67–70 are built** |
@@ -9296,6 +9296,100 @@ mutation can be built sitting ON the line, offered as a note and not taken; then
 the ship sequence — the shooter, the states, the status flip in the
 manifest, `main.js` and the verify, the full suite, `check` and `test` read
 alone, and the push on his word.
+
+#### PAGE 3, THE BRANCHING PATTERNS, AND ONE NAME FOR EACH THING — 2026-09-17 — `3ce3c61` to `511b66d`
+
+*"ok get whole widget to ensure all terminology is aligned for clonal
+architecture · the nodes should be radially aligned to the connectors · do you
+have other scenarios with additional branching patterns? mock it to see if
+appropriate"*. Measured in `_lab/vaf-trees-measure.mjs` and mocked in
+`_lab/vaf-trees-mock.html` before anything was built.
+
+**The connectors meet the nodes radially** (`3ce3c61`). Each stepped a fixed
+11px straight down from its parent and straight up into its child, which is
+right only when the two nodes are stacked: the linear tree looked fine and the
+branching tree's diagonals ended beside the centres they aimed at.
+`connectorEnds` puts each end on its node's circle along the line through both
+centres. Held as geometry in the verify, since a pixel hash records a
+misaligned picture as faithfully as an aligned one.
+
+**The finding that came first: page 3's sample control did nothing**
+(`afeec35`). In the figure's order P2.1st joined first, and on its own it rules
+out branching (0.534 + 0.512 past 0.729), so the trees that fit read 1 of 2 at
+every setting. The page exists to show more biopsies narrowing the tree, and it
+could not.
+
+**More patterns need more clusters.** With the trunk fixed, k clusters have
+(k − 1)! trees — 2, 6, 24 — so the page already drew every pattern three
+clusters can have. Over 2,000 random patients three clusters leave 1.49 trees at
+one sample and 1.07 at four; four clusters leave 2.89 and 1.25, and a built
+four-cluster patient with a mixed tree goes 3 of 6, then 1 of 6. The costs,
+found by drawing it: the data would be BUILT rather than his figure's; six trees
+do not fit one row at 11px nodes (neighbours 4px apart, four overlaps, where two
+rows of three clear by 36px); and there is no free fourth cluster colour — aqua
+read as green, and violet and red already mark the chosen tree and the overflow.
+
+**His picks** (`eec0350`): start from the surgery sample, keep three clusters
+and his data, and take all three things his figure draws that the page did not.
+
+- **Surgery first.** `JOIN_ORDER` puts P2.surgery — the only sample that leaves
+  both trees open — ahead of the biopsies, so the count reads 2 of 2 and then 1
+  of 2. The samples still DRAW in the figure's time order: positions had come
+  from the order of use, which would have put the surgery sample before the
+  biopsies it followed.
+- **His error bars, read off `cancer-retcher.png`** the way the means were,
+  calibrated on the figure's own gridlines (0.0017 CCF a pixel). Three are
+  recorded as what they are: two reach only the figure's 12px dot and are upper
+  bounds, and P2.1st cluster 2's lower half is hidden under cluster 3 and
+  mirrored from its visible half (the other three blue bars are symmetric to
+  within 0.002). They bear on the rule itself: P2.1st's violation survives them
+  (0.939 past 0.750), while P2.2st's closes to within 0.016 — the figure's own
+  bars saying that sample's evidence is weak.
+- **His genes in the legend** (SPEN, CA3, HRH2 · TP53, PDGFRB, USH2A · NWD1,
+  USP54, NCL), since three names do not fit an 11px node; and **arrowheads**,
+  the tip on the connector's radial end, because a parent gives rise to a child
+  and a plain line does not say so.
+
+**One name for each thing — the table's four rows, all taken** (`511b66d`).
+Page 1 set *Tumor cells carrying it* and read out *Cancer cell fraction*: one
+number, two names, one page. The control takes the tile's name, which pages 2
+and 3 already used, and page 2's axis options are both in full, each on its own
+row (at a narrow rail they measure 135px and 116px against 106px buttons).
+*Tree*, not *Shape* — the field's word — so `shape=` became `tree=`, the last
+moment a link word could change. **A cluster is not a population**, which is
+what page 2 teaches, so page 3's note no longer gives a cluster cells of its
+own: *"The cells carrying a cluster's mutations are a subset of those carrying
+its parent's"*. And page 2 speaks page 1's words — *Clonal: in every tumor
+cell* and *Subclonal: in some tumor cells* — and its *Purity used: The sample's
+· 1.00* became **Given: Nothing · Purity**, page 1's control on page 2's one
+correction, which settles the draft's open question about page 2 and the
+knowledge control.
+
+#### SHIPPED 2026-09-17, on Kenneth's "push to gallery"
+
+Sixteen fingerprint states from `_lab/tumor-heterogeneity-shoot.html` — seven
+proof states from other widgets reproduced first, then three shots of each, all
+stable, every drive moving its figure. Thirteen settled: page 1 empty and at 88
+reads, 3 + 1 with two mutated copies, 2 + 1 with one, given nothing at 75% of
+tumor cells, given purity on a 3 + 1 sample, and given nothing on a pure sample
+(the range beside *Cannot tell*); page 2 on each axis and with nothing given;
+page 3 with all four samples, with the branching tree, and with the surgery
+sample alone. Three driven: Play part-way through the reads, the tree
+mid-glide, the axis mid-ease. Full suite fronted at DPR 1.25: **all 815 states
+identical**. `check` green; `test` 29 scripts green, the verify 196 checks.
+
+**The blurb's verb** went from *decide* to *set*, the subtitle's own, and
+`check` caught the page's meta description still carrying the old one — one
+sentence with two consumers.
+
+**Its link words, public now** (the list under *DRAFTED* is superseded):
+`page=one|many|clonal`, `purity`, `ccf`, `state=1+1|2+0|1+0|2+1|3+1`, `copies`,
+`depth`, `knows=nothing|purity|both`, `clones=one|two|three`, `mutations`,
+`axis=vaf|ccf`, `assumed=nothing|purity`, `clusters`, `taken=1|2|4`,
+`tree=linear|branching`, `showcells`, `seed`, `all`.
+
+**Open after ship:** no mutation can be built sitting ON the 0.9 line (offered
+as a note, not taken), and the four-cluster patient stays a mock.
 
 ### Slot 68 · `clonal-architecture` — cuttable, or 67's last page
 

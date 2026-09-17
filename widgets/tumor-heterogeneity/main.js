@@ -830,7 +830,7 @@ function clearDrawAll() {
 widgetApi = defineWidget({
   slug: "tumor-heterogeneity",
   title: "Tumor Heterogeneity",
-  status: "draft",
+  status: "shipped",
   subtitle: M.STRINGS.subtitle,
   layout: "side",
   height: ({ w, ...values }) => M.stageHeight(w, values),
