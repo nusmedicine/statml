@@ -17001,6 +17001,43 @@ last. `check` green; `test` 29 scripts green, the verify at 5,560 checks.
 live manifest reads `shipped` with "classification" among the topics, and the live
 `main.js` carries the Classification default and the import lines.
 
+#### THE READER ARGUMENT 2026-09-17 — his questions after the push, measured, and his edit
+
+**His questions:** why `reader="PILReader", reverse_indexing=False` was needed; what
+standard practice is, since his notebook works; whether the reader must be named;
+then his revised cell 19 and `show_image_label` to check.
+
+**Measured on MONAI 1.6.0** (`_lab/augmentation-reader-plots.py`, `-choice.py` and
+`-cell19.py`, each with its `.txt`):
+
+- **The SHIPPED 2026-09-16 note overstated the dependency.** It says the widget's axis
+  wording "holds only with that argument". Relative to what cell 27 plots
+  (`permute(1, 2, 0)`, rows = tensor dim 1), axis 0 flips top to bottom, k = 1 turns
+  counter-clockwise, a positive affine rotate turns clockwise and translate reads
+  (height, width) under both reader orders. The argument decides only whether the plots
+  equal the saved files: a PNG 28 rows by 36 columns loads `(1, 36, 28)` by default and
+  `(1, 28, 36)` with it.
+- **Why MONAI swaps:** `PILReader`'s docstring puts the swap on by default "so that
+  output of the reader is consistent with the other readers", the medical-volume
+  readers indexed [x, y, z] with an affine to millimetres. Keeping the default is
+  standard for NIfTI and DICOM; for 2D image files rows first matches PIL, matplotlib
+  and torchvision, and chest X-rays or non-square images show the swap.
+- **Name the reader:** `LoadImaged(..., reverse_indexing=False)` alone reaches
+  `PILReader` for .jpg and .png (rows first), but a .tif raises with only Pillow
+  installed, and on `ITKReader` the same flag's `False` is the width-first default (its
+  docstring; ITK is not installed here). `reader="PILReader", reverse_indexing=False`
+  loaded all three rows first.
+- **His revised cell 19, run verbatim on a 40 × 60 JPG with a PNG mask:**
+  `train_transforms` loaded `(3, 40, 60)` with plots equal to the files;
+  `val_test_transforms` as first sent loaded `(3, 60, 40)`, which was told to him, and he
+  added the arguments there too. `show_image_label` is right: `(C, H, W)` and
+  `(1, H, W)` after `decollate_batch`, `(H, W, 3)` and `(H, W)` plotted, and image and
+  mask aligned through the random lines (lowest Dice 0.942 over 40 samples).
+
+**His edit (his report):** both `LoadImaged` lines in cell 19 carry the two arguments,
+with an explanation. The Master copy under Downloads predates it; cell 15's syntax
+block was pointed out as possibly still plain.
+
 *The entry below is the plan as first written and cut on 2026-09-13, kept as
 written.*
 

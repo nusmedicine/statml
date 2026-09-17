@@ -1,0 +1,22 @@
+monai 1.6.0
+itk not installed: ModuleNotFoundError
+PILReader suffixes: .
+        """
+
+default:
+  readers registered: ['NumpyReader(reverse_indexing=—)', 'PILReader(reverse_indexing=True)']
+  .jpg: read by PILReader(reverse_indexing=True) -> shape (36, 28, 3)  (width first)
+  .png: read by PILReader(reverse_indexing=True) -> shape (36, 28, 3)  (width first)
+  .tif: raises RuntimeError:    The current registered: [<monai.data.image_reader.NumpyReader object at 0x000002010096D820>, <monai.data.image_reader
+
+reverse_indexing=False only:
+  readers registered: ['NumpyReader(reverse_indexing=—)', 'PILReader(reverse_indexing=False)']
+  .jpg: read by PILReader(reverse_indexing=False) -> shape (28, 36, 3)  (rows first)
+  .png: read by PILReader(reverse_indexing=False) -> shape (28, 36, 3)  (rows first)
+  .tif: raises RuntimeError:    The current registered: [<monai.data.image_reader.NumpyReader object at 0x0000020100FA9BB0>, <monai.data.image_reader
+
+reader='PILReader', reverse_indexing=False:
+  readers registered: ['NumpyReader(reverse_indexing=—)', 'PILReader(reverse_indexing=False)', 'PILReader(reverse_indexing=False)']
+  .jpg: read by PILReader(reverse_indexing=False) -> shape (28, 36, 3)  (rows first)
+  .png: read by PILReader(reverse_indexing=False) -> shape (28, 36, 3)  (rows first)
+  .tif: read by PILReader(reverse_indexing=False) -> shape (28, 36, 3)  (rows first)

@@ -1,0 +1,10 @@
+reverse_indexing=True: tensor (1, 36, 28), plot equals the saved file: False
+  Flip(spatial_axis=0) plots as a top-to-bottom flip of the plot: True
+  Rotate90(k=1) plots as a counter-clockwise quarter turn of the plot: True
+  Affine rotate +20° moves the shape's centroid -18.3° on the plot (negative is clockwise)
+  Affine translate (4, 0) moves the centroid (-4.0 rows, +0.0 columns) on the plot
+reverse_indexing=False: tensor (1, 28, 36), plot equals the saved file: True
+  Flip(spatial_axis=0) plots as a top-to-bottom flip of the plot: True
+  Rotate90(k=1) plots as a counter-clockwise quarter turn of the plot: True
+  Affine rotate +20° moves the shape's centroid -19.5° on the plot (negative is clockwise)
+  Affine translate (4, 0) moves the centroid (-3.2 rows, -0.3 columns) on the plot
