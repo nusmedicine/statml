@@ -25,8 +25,14 @@
    comment names; the step list, CacheDataset's boundary and the step labels'
    phases.
 
-   §4 THE GEOMETRY at 550 and 770 for every page: panels, bands and windows
-   inside the canvas and above the page's height.
+   §3c THE TASK (2026-09-17): MONAI's own run says a class label in keys raises
+   on every spatial line and keys=["image"] leaves it unchanged, which the
+   Classification page prints; the draws are the same under both tasks (Task
+   is display); a hidden White blood cell does not move the cell; the class row
+   takes the mask's place.
+
+   §4 THE GEOMETRY at 535, 550 and 770 for every page, under both tasks:
+   panels, bands and windows inside the canvas and above the page's height.
 
    §5 THE COPY: every string literal in main.js against the struck words.
    Timings are RECORDED and gate nothing.
@@ -337,6 +343,48 @@ section("§3b the tween: its ends, and its pace");
   }
 }
 
+/* §3c --------------------------------------------------------------------- */
+section("§3c the task: Segmentation · Classification");
+{
+  /* the claim the Classification page prints, against MONAI's own run: a class
+     label in keys raises on every spatial line, and keys=["image"] leaves it
+     unchanged (`augmentation-classification-monai.py`, 2026-09-17) */
+  const txt = readFileSync(join(here, "augmentation-classification-monai.txt"), "utf8");
+  const [both, image] = txt.split(/^==== keys=.*$/m).slice(1);
+  const spatial = (s) => s.split("\n").filter((l) => /RandFlipd|RandRotate90d|RandAffined/.test(l));
+  assert(spatial(both).length === 20 && spatial(both).every((l) => /RAISES/.test(l)),
+    `MONAI: every spatial line raises with a class label in keys (${spatial(both).length} of 20 runs)`);
+  const unchanged = { "int 2": "2", "np.int64 2": "2", "tensor(2)": "2", "tensor([2])": "[2]", "multi-hot [0,1,0,0]": "[0.0, 1.0, 0.0, 0.0]" };
+  const rows = image.split("\n").filter((l) => /label ->/.test(l));
+  assert(rows.length === 25 && rows.every((l) => {
+    const name = Object.keys(unchanged).find((k) => l.trim().startsWith(k));
+    return /\bOK\b/.test(l) && name && l.includes(`label -> ${unchanged[name]} (`);
+  }), `MONAI: keys=["image"] runs every line and leaves the label unchanged (${rows.length} of 25 runs)`);
+
+  /* Task is a display control: compute does not read it, so both tasks have one set of draws */
+  for (const kind of M.KINDS) {
+    const seg = M.computeTransforms({ ...BASE, transform: kind, task: "segmentation" }, makeRng(106)).draws;
+    const cls = M.computeTransforms({ ...BASE, transform: kind, task: "classification" }, makeRng(106)).draws;
+    assert(JSON.stringify(seg) === JSON.stringify(cls), `${kind}: the draws are the same under both tasks`);
+  }
+  const src = readFileSync(join(here, "..", "augmentation", "main.js"), "utf8");
+  const taskField = src.match(/\n {4}task: \{\n[\s\S]*?\n {4}\},/)?.[0] ?? "";
+  assert(/default: "segmentation",/.test(taskField) && /display: true,/.test(taskField), "main.js declares Task a display control, Segmentation by default");
+  assert(/cell: \{[\s\S]*?when: \{ all: \[ON\("transforms"\), TASK\("segmentation"\)\] \}/.test(src), "White blood cell shows under Segmentation only");
+  assert(M.placeOf({ task: "classification", cell: "centred" }) === "off-centre" && M.placeOf({ task: "segmentation", cell: "centred" }) === "centred",
+    "a hidden White blood cell value does not move the cell under Classification");
+  assert(M.LABEL.value === 6 && M.LABEL.name === "neutrophil", "the class is BloodMNIST's 6, neutrophil");
+  for (const kind of M.KINDS) {
+    const L = M.figureLayout(550, { task: "classification" });
+    const S = M.figureLayout(550, {});
+    assert(L.maskY === S.maskY && L.line1 === L.maskY + M.LABEL_ROW + 20,
+      `${kind}: under Classification the class row takes the mask's place, ${M.LABEL_ROW} px tall`);
+    const p = { ...BASE, transform: kind };
+    const saved = M.pageHeight(550, p) - M.pageHeight(550, { ...p, task: "classification" });
+    assert(saved === S.s - M.LABEL_ROW, `${kind}: the Classification page is ${saved} px shorter`);
+  }
+}
+
 /* §4 ---------------------------------------------------------------------- */
 section("§4 the geometry");
 {
@@ -349,6 +397,8 @@ section("§4 the geometry");
     { ...BASE, transform: "contrast" },
     { ...BASE, transform: "noise" },
     { ...BASE, topic: "pipeline" },
+    /* under Classification, with a bilinear mode and keys left in the link: neither reaches the page */
+    ...M.KINDS.map((transform) => ({ ...BASE, transform, task: "classification", mode: "bilinear" })),
   ];
   /* a scrollbar takes 15 px; a height that answers to it flips the page between two layouts (2026-09-16) */
   for (const p of pages) {
@@ -358,7 +408,7 @@ section("§4 the geometry");
   for (const w of [535, 550, 770]) {
     for (const p of pages) {
       const h = M.pageHeight(w, p);
-      const tag = `${w} px, ${p.topic === "pipeline" ? "pipeline" : `${p.transform}${p.mode === "bilinear" ? " bilinear" : ""}${p.keys === "image" ? " keys image" : ""}`}`;
+      const tag = `${w} px, ${p.topic === "pipeline" ? "pipeline" : `${p.transform}${p.mode === "bilinear" ? " bilinear" : ""}${p.keys === "image" ? " keys image" : ""}${p.task === "classification" ? " classification" : ""}`}`;
       if (p.topic === "pipeline") {
         const P = M.pipelineLayout(w);
         assert(P.sx + P.s <= w - M.PAD + 0.5 && P.sx > M.PAD + 150 + 60, `${tag}: the sample beside the list, inside the canvas`);
@@ -366,8 +416,10 @@ section("§4 the geometry");
         assert(P.stripY + 12 + P.ts + 13 <= h, `${tag}: the strip's labels above the height ${h}`);
         continue;
       }
-      const L = M.figureLayout(w);
+      const L = M.figureLayout(w, p);
       assert(L.x1 + L.s <= w - M.PAD, `${tag}: the two columns inside the canvas`);
+      assert(L.maskY + (p.task === "classification" ? M.LABEL_ROW : L.s) + 14 <= L.line1 && L.line2 + 16 <= L.bandY,
+        `${tag}: the second row, then its two lines, above the band`);
       const B = M.bandLayout(w, p);
       if (B.kind === "grid") {
         const last = B.at(M.DRAWS - 1);
@@ -376,7 +428,8 @@ section("§4 the geometry");
       if (B.kind === "ranges") {
         assert(B.boxX[1] + B.bs + 30 <= w - M.PAD && B.tallyY <= h, `${tag}: both boxes and the tally fit`);
         if (B.mag) assert(M.PAD + 3 * B.mag.size + 2 * B.mag.gap <= w - M.PAD + 0.5 && B.mag.top + 14 + B.mag.size + 48 <= h, `${tag}: the three windows fit`);
-        assert((p.mode === "bilinear" && p.keys !== "image") === Boolean(B.mag), `${tag}: the windows show exactly when the label is resampled bilinear`);
+        assert((p.mode === "bilinear" && p.keys !== "image" && p.task !== "classification") === Boolean(B.mag),
+          `${tag}: the windows show exactly when the mask is resampled bilinear`);
       }
       if (B.kind === "curve") assert(M.PAD + 26 + B.size + 28 + 200 <= w && B.top + 8 + B.size + 26 <= h, `${tag}: the curve and its notes fit`);
       if (B.kind === "noise") assert(M.PAD + B.size + 30 + 120 <= w && B.top + 8 + B.size + 28 <= h, `${tag}: the difference panel and the σ line fit`);

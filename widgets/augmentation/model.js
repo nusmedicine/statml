@@ -146,6 +146,22 @@ const SPATIAL = new Set(["flip", "rotate", "affine"]);
 export const isSpatial = (kind) => SPATIAL.has(kind);
 export const PROBS = ["0", "0.15", "0.25", "0.3", "0.5", "0.75", "1"];
 export const labelIn = (params) => params.keys !== "image";
+
+/* THE TASK (Kenneth's picks, 2026-09-17, `_lab/augmentation-classification-mock.html`).
+   Under Classification the label is a class, not a picture: MONAI 1.6.0 raises on
+   every spatial line when a class label is in `keys`, and `keys=["image"]` leaves
+   it unchanged (`_lab/augmentation-classification-monai.py`). So the figure
+   draws the class in the mask's place and no outline, and the draws are the same
+   under both tasks — Task is a display control, and nothing in `compute` reads it. */
+export const isClassification = (params) => params.task === "classification";
+/* The smear's class: BloodMNIST's label map (`medmnist.INFO`, the dataset 06-2
+   cell 3 lists for white blood cell types) puts neutrophil at 6, and the white
+   cell's three-lobed nucleus is a neutrophil's. Written as 06-2 cell 14 titles a
+   sample: the index, then the name. */
+export const LABEL = { value: 6, name: "neutrophil" };
+/* White blood cell is hidden under Classification, and a hidden value does not
+   change a figure, so that page draws the off-centre cell whatever it holds. */
+export const placeOf = (params) => (isClassification(params) ? "off-centre" : params.cell);
 export const gammaRange = (params) => {
   const a = Number(params.gamma_low);
   const b = Number(params.gamma_high);
@@ -601,18 +617,23 @@ const MAG = 164;
    tall, its scrollbar narrowed the canvas to 535 and the panels to 247, the
    document fell to 1,200, the scrollbar went, and the page flipped between the
    two every 200 ms. */
-export function figureLayout(w) {
+/* Under Classification the second row is the class label, LABEL_ROW tall, at the
+   mask's place (his pick B): the rows line up with Segmentation's, and the page is
+   207 px shorter. */
+export const LABEL_ROW = 40;
+
+export function figureLayout(w, params = {}) {
   const s = Math.min(247, Math.floor((w - 2 * PAD - COL_GAP) / 2));
   const imgY = 54;
   const maskY = imgY + s + 24;
-  const line1 = maskY + s + 20;
+  const line1 = maskY + (isClassification(params) ? LABEL_ROW : s) + 20;
   return { s, x0: PAD, x1: PAD + s + COL_GAP, imgY, maskY, line1, line2: line1 + 16, bandY: line1 + 38 };
 }
 
 export const thumbSize = (w) => Math.min(79, Math.floor((w - 2 * PAD - (THUMB_COLS - 1) * THUMB_GAP) / THUMB_COLS));
 
 export function bandLayout(w, params) {
-  const L = figureLayout(w);
+  const L = figureLayout(w, params);
   const kind = params.transform;
   const top = L.bandY;
   if (kind === "flip" || kind === "rotate") {
@@ -621,7 +642,8 @@ export function bandLayout(w, params) {
     return { kind: "grid", top, ts, at, tallyY: top + 12 + 2 * (ts + 20) + 10, height: 2 * (ts + 20) + 34 };
   }
   if (kind === "affine") {
-    const mag = params.mode === "bilinear" && params.keys !== "image";
+    /* the magnifier is the mask's edge, so there is none under Classification */
+    const mag = params.mode === "bilinear" && params.keys !== "image" && !isClassification(params);
     const magTop = top + RANGES_H + 16;
     const lineX = PAD + 96;
     const bs = 84;
@@ -657,5 +679,5 @@ export function pipelineLayout(w) {
 
 export function pageHeight(w, params) {
   if (params.topic === "pipeline") return pipelineLayout(w).height;
-  return figureLayout(w).bandY + bandLayout(w, params).height + 10;
+  return figureLayout(w, params).bandY + bandLayout(w, params).height + 10;
 }

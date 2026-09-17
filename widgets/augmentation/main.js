@@ -49,6 +49,16 @@
        runs the next line, the label reads Next epoch after AsDiscreted, and
        from the second epoch the lines before the first random one are served
        from CacheDataset's cache.
+
+    8. TASK: SEGMENTATION · CLASSIFICATION (Kenneth's picks, 2026-09-17,
+       `_lab/augmentation-classification-mock.html`). He asked whether
+       augmentation is done for classification; MONAI raises on every spatial
+       line when a class label is in keys, so keys=["image"], the stale mask on
+       the Segmentation page, is the call that runs for classification. Under
+       Classification the class sits in the mask's row (pick B), no outline is
+       drawn, keys is written into each call, and White blood cell is hidden. A
+       display control: the draws are the same under both tasks. The Pipeline
+       page stays cell 19, and Task is not on it.
    ========================================================================= */
 
 import { defineWidget } from "../core/index.js";
@@ -261,6 +271,16 @@ function maskPanel(ctx, colors, m, x, y, size, bytes = null, a = 1) {
     else paintImage(ctx, m, x, y, size, colors.reference);
   }, [], a);
 }
+/** The class in the mask's row, at opacity a: one text under every draw, since keys=["image"] leaves it unchanged. */
+function labelPanel(ctx, colors, x, y, size, a = 1) {
+  ctx.save();
+  ctx.fillStyle = colors.surface;
+  ctx.fillRect(x, y, size, M.LABEL_ROW);
+  ctx.globalAlpha = a;
+  txt(ctx, colors, `${M.LABEL.value} (${M.LABEL.name})`, x + 12, y + M.LABEL_ROW / 2 + 1, { color: colors.ink1, baseline: "middle" });
+  ctx.restore();
+  frame(ctx, x, y, size, M.LABEL_ROW, colors.grid);
+}
 
 /* ============================ the Transforms page ========================= */
 
@@ -313,7 +333,12 @@ function cellLines(colors, wbc, ops, withLabel) {
 
 /** Draw i, finished: the engine's exact result, at opacity a while it fades out. */
 function paintAugmented(ctx, colors, L, state, params, i, a = 1) {
-  const smp = state.sample(i, params.cell);
+  const smp = state.sample(i, M.placeOf(params));
+  if (M.isClassification(params)) {
+    imagePanel(ctx, colors, smp.image, L.x1, L.imgY, L.s, [], a);
+    labelPanel(ctx, colors, L.x1, L.maskY, L.s, a);
+    return;
+  }
   const spatial = M.isSpatial(state.kind);
   const lines = [...earlierLines(colors, state, smp.wbc, i), ...cellLines(colors, smp.wbc, smp.ops, !spatial || state.withLabel)];
   imagePanel(ctx, colors, smp.image, L.x1, L.imgY, L.s, lines, a);
@@ -321,7 +346,12 @@ function paintAugmented(ctx, colors, L, state, params, i, a = 1) {
 }
 
 /** The original in the Augmented column at opacity a: the image a draw starts from, fading in. */
-function paintStart(ctx, colors, L, sm, a) {
+function paintStart(ctx, colors, L, sm, a, cls) {
+  if (cls) {
+    imagePanel(ctx, colors, sm.image, L.x1, L.imgY, L.s, [], a);
+    labelPanel(ctx, colors, L.x1, L.maskY, L.s, a);
+    return;
+  }
   imagePanel(ctx, colors, sm.image, L.x1, L.imgY, L.s, cellLines(colors, sm.wbc, [], true), a);
   maskPanel(ctx, colors, sm.mask, L.x1, L.maskY, L.s, null, a);
 }
@@ -334,24 +364,27 @@ function paintStart(ctx, colors, L, sm, a) {
  * the original, which is what MONAI returns.
  */
 function paintTween(ctx, colors, L, state, params, i, e) {
-  const sm = M.smear(params.cell);
+  const cls = M.isClassification(params);
+  const sm = M.smear(M.placeOf(params));
   const d = state.draws[i];
   const kind = state.kind;
   const { x1, imgY, maskY, s } = L;
-  const early = earlierLines(colors, state, sm.wbc, i);
+  /* under Classification there is no mask, so no outline and a class that does not move */
+  const early = cls ? [] : earlierLines(colors, state, sm.wbc, i);
   if (d.fired && M.isSpatial(kind)) {
     const wp = M.tweenWarp(M.fileOpsOf(d)[0], e);
     const px = devicePx(s);
     panel(ctx, colors, x1, imgY, s, () => blit(ctx, M.renderWarp(sm.image, px, wp, { zeros: kind === "affine" }), x1, imgY, s),
-      [...early, ...cellLines(colors, sm.wbc, [wp], state.withLabel)]);
-    maskPanel(ctx, colors, sm.mask, x1, maskY, s, state.withLabel ? M.renderWarp(sm.mask, px, wp, { tint: hexRgb(colors.reference) }) : null);
+      cls ? [] : [...early, ...cellLines(colors, sm.wbc, [wp], state.withLabel)]);
+    if (cls) labelPanel(ctx, colors, x1, maskY, s);
+    else maskPanel(ctx, colors, sm.mask, x1, maskY, s, state.withLabel ? M.renderWarp(sm.mask, px, wp, { tint: hexRgb(colors.reference) }) : null);
     return;
   }
-  const lines = cellLines(colors, sm.wbc, [], true);
+  const lines = cls ? [] : cellLines(colors, sm.wbc, [], true);
   if (d.fired && kind === "contrast") {
     panel(ctx, colors, x1, imgY, s, () => blit(ctx, gammaBytes(sm.image, s, 1 + e * (d.gamma - 1)), x1, imgY, s), lines);
   } else if (d.fired && kind === "noise") {
-    const noisy = state.sample(i, params.cell).image;
+    const noisy = state.sample(i, M.placeOf(params)).image;
     panel(ctx, colors, x1, imgY, s, () => {
       paintImage(ctx, sm.image, x1, imgY, s);
       ctx.save();
@@ -362,7 +395,8 @@ function paintTween(ctx, colors, L, state, params, i, e) {
   } else {
     imagePanel(ctx, colors, sm.image, x1, imgY, s, [...early, ...lines]);
   }
-  maskPanel(ctx, colors, sm.mask, x1, maskY, s);
+  if (cls) labelPanel(ctx, colors, x1, maskY, s);
+  else maskPanel(ctx, colors, sm.mask, x1, maskY, s);
 }
 
 function drawGrid(ctx, colors, w, params, state, n) {
@@ -374,8 +408,8 @@ function drawGrid(ctx, colors, w, params, state, n) {
       frame(ctx, x, y, B.ts, B.ts, colors.grid);
       continue;
     }
-    const smp = state.sample(i, params.cell);
-    imagePanel(ctx, colors, smp.image, x, y, B.ts, [{ pts: maskLine(smp), color: colors.reference, width: 1.2 }]);
+    const smp = state.sample(i, M.placeOf(params));
+    imagePanel(ctx, colors, smp.image, x, y, B.ts, M.isClassification(params) ? [] : [{ pts: maskLine(smp), color: colors.reference, width: 1.2 }]);
     const d = state.draws[i];
     note(ctx, colors, d.fired ? shortText(kind, d) : "—", x + B.ts / 2, y + B.ts + 13, d.fired ? colors.ink1 : colors.ink3, { align: "center" });
   }
@@ -463,7 +497,7 @@ function drawRanges(ctx, colors, w, params, state, n, flight) {
 function drawMagnifier(ctx, colors, w, B, state, params, n) {
   const { top, size, gap } = B.mag;
   caption(ctx, colors, "The mask's edge, 20 × 20 pixels", M.PAD, top + 4);
-  const last = n > 0 ? state.sample(n - 1, params.cell) : null;
+  const last = n > 0 ? state.sample(n - 1, M.placeOf(params)) : null;
   if (!last || !state.draws[n - 1].fired) {
     note(ctx, colors, n ? "the last draw was not applied, so the mask was not resampled" : "no applied draw yet",
       M.PAD, top + 24, colors.ink3);
@@ -570,7 +604,7 @@ function drawNoise(ctx, colors, w, params, state, n, flight) {
     /* the difference of the lit draw at its fraction: after − before scales
        with σ, so each value moves from 0.5, no change, by e of the way */
     const { e } = shown.find((s) => s.i === lit);
-    const src = bitmapOf(state.sample(lit, params.cell).diff, devicePx(S)).bytes;
+    const src = bitmapOf(state.sample(lit, M.placeOf(params)).diff, devicePx(S)).bytes;
     const bytes = new Uint8ClampedArray(src.length);
     for (let k = 0; k < src.length; k += 4) {
       for (let ch = 0; ch < 3; ch += 1) bytes[k + ch] = 127.5 + e * (src[k + ch] - 127.5);
@@ -605,19 +639,24 @@ function drawNoise(ctx, colors, w, params, state, n, flight) {
 }
 
 function drawTransforms(ctx, colors, w, params, state, anim) {
-  const L = M.figureLayout(w);
+  const L = M.figureLayout(w, params);
   const n = Math.min(anim?.n ?? 0, M.DRAWS);
   const t = anim?.t ?? 0;
   const kind = state.kind;
-  const sm = M.smear(params.cell);
+  const cls = M.isClassification(params);
+  const sm = M.smear(M.placeOf(params));
   const drawing = t > 0 && n < M.DRAWS ? n + 1 : n;
-  caption(ctx, colors, `${M.CLASS[kind]} on one training image and its mask`, M.PAD, 20);
+  /* the second row: the mask, or under Classification the class, LABEL_ROW tall */
+  const row = cls ? "label" : "mask";
+  const rowH = cls ? M.LABEL_ROW : L.s;
+  caption(ctx, colors, `${M.CLASS[kind]} on one training image and its ${row}`, M.PAD, 20);
   note(ctx, colors, "Original", L.x0, L.imgY - 8, colors.ink2, { weight: "600" });
   note(ctx, colors, drawing ? `Augmented, draw ${drawing} of ${M.DRAWS}` : "Augmented", L.x1, L.imgY - 8, colors.ink2, { weight: "600" });
-  imagePanel(ctx, colors, sm.image, L.x0, L.imgY, L.s, [{ pts: M.outlineOf(sm.wbc, []), color: colors.reference }]);
-  note(ctx, colors, "mask", L.x0, L.maskY - 6, colors.ink3);
-  note(ctx, colors, "mask", L.x1, L.maskY - 6, colors.ink3);
-  maskPanel(ctx, colors, sm.mask, L.x0, L.maskY, L.s);
+  imagePanel(ctx, colors, sm.image, L.x0, L.imgY, L.s, cls ? [] : [{ pts: M.outlineOf(sm.wbc, []), color: colors.reference }]);
+  note(ctx, colors, row, L.x0, L.maskY - 6, colors.ink3);
+  note(ctx, colors, row, L.x1, L.maskY - 6, colors.ink3);
+  if (cls) labelPanel(ctx, colors, L.x0, L.maskY, L.s);
+  else maskPanel(ctx, colors, sm.mask, L.x0, L.maskY, L.s);
 
   /* A PRESS: the last result fades out, the original fades in, then the draw
      moves from it — every draw starts from the original */
@@ -627,17 +666,17 @@ function drawTransforms(ctx, colors, w, params, state, anim) {
     if (n) paintAugmented(ctx, colors, L, state, params, n - 1, press.a);
     else {
       frame(ctx, L.x1, L.imgY, L.s, L.s, colors.grid);
-      frame(ctx, L.x1, L.maskY, L.s, L.s, colors.grid);
+      frame(ctx, L.x1, L.maskY, L.s, rowH, colors.grid);
     }
   } else if (press?.part === "in") {
-    paintStart(ctx, colors, L, sm, press.a);
+    paintStart(ctx, colors, L, sm, press.a, cls);
   } else if (flight) {
     paintTween(ctx, colors, L, state, params, flight.i, flight.e);
   } else if (n) {
     paintAugmented(ctx, colors, L, state, params, n - 1);
   } else {
     frame(ctx, L.x1, L.imgY, L.s, L.s, colors.grid);
-    frame(ctx, L.x1, L.maskY, L.s, L.s, colors.grid);
+    frame(ctx, L.x1, L.maskY, L.s, rowH, colors.grid);
     note(ctx, colors, "Press Draw to apply the transform", L.x1 + L.s / 2, L.imgY + L.s / 2, colors.ink3, { align: "center" });
   }
 
@@ -646,9 +685,16 @@ function drawTransforms(ctx, colors, w, params, state, anim) {
     note(ctx, colors, drawText(kind, d, params), M.PAD, L.line1, d.fired ? colors.ink1 : colors.ink3);
   } else if (n) {
     const d = state.draws[n - 1];
-    const smp = state.sample(n - 1, params.cell);
+    const smp = state.sample(n - 1, M.placeOf(params));
     note(ctx, colors, drawText(kind, d, params), M.PAD, L.line1, d.fired ? colors.ink1 : colors.ink3);
-    if (smp.stale !== null) {
+    if (cls) {
+      /* after an applied draw on a spatial page, as the stale mask's line is:
+         a draw that is not applied transforms nothing, and an intensity
+         transform leaves the label unchanged under both tasks */
+      if (M.isSpatial(kind) && d.fired) {
+        note(ctx, colors, "keys=[\"image\"]: the transform is applied to the image only; the label is unchanged", M.PAD, L.line2, colors.ink1);
+      }
+    } else if (smp.stale !== null) {
       note(ctx, colors, `keys=["image"]: the mask is not transformed; Dice between the mask and the white blood cell: ${smp.stale.toFixed(2)}`,
         M.PAD, L.line2, colors.ink1);
     } else if (d.fired && kind === "affine" && state.labelMode === "bilinear") {
@@ -813,10 +859,18 @@ function drawPipeline(ctx, colors, w, params, state, anim) {
 
 const ON = (topic) => ({ param: "topic", equals: topic });
 const IS = (kind) => ({ all: [ON("transforms"), { param: "transform", equals: kind }] });
+/* a call's line under one task: keys is a slot under Segmentation and written into the call under Classification */
+const TASK = (task) => ({ param: "task", equals: task });
+const SEG = (kind) => ({ all: [...IS(kind).all, TASK("segmentation")] });
+const CLS = (kind) => ({ all: [...IS(kind).all, TASK("classification")] });
 const opts = (vals, show = (v) => v) => vals.map((v) => ({ value: v, label: show(v) }));
 const slot = (options, def, label = "") => ({ type: "select", label, hidden: true, options, default: def });
 const phaseOf = (state, n) => (state.page === "pipeline" ? M.pipelinePhase(state, n) : "draw");
 const totalOf = (state) => (state.page === "pipeline" ? state.total : M.DRAWS);
+
+const AFFINE_DETAIL = "Rotates by an angle drawn from ± rotate_range, translates each axis by a value drawn from ± "
+  + "translate_range pixels and scales each axis by 1 plus a value drawn from ± scale_range; a scale above 1 "
+  + "shrinks the image. Pixels outside the transformed image are set to 0.";
 
 const STEP_LABELS = { draw: "Draw", line: "Next transform", epoch: "Next epoch" };
 const STEP_TITLES = {
@@ -846,6 +900,20 @@ defineWidget({
     },
 
     /* --- Transforms ------------------------------------------------------ */
+    /* TASK (Kenneth's picks, 2026-09-17): its own section above the transform,
+       since it decides what keys says in every spatial call; a display control,
+       so switching it keeps the draws */
+    kSec: { type: "section", label: "The task", when: ON("transforms") },
+    task: {
+      type: "segmented",
+      label: "Task",
+      detail: "the label: a mask for segmentation, a class for classification",
+      options: [{ value: "segmentation", label: "Segmentation" }, { value: "classification", label: "Classification" }],
+      default: "segmentation",
+      display: true,
+      when: ON("transforms"),
+    },
+
     tSec: { type: "section", label: "The transform", when: ON("transforms") },
     transform: {
       type: "segmented",
@@ -891,29 +959,40 @@ defineWidget({
     std: slot(opts(["0.01", "0.05", "0.1"]), "0.1"),
 
     callSec: { type: "section", label: "The call", when: ON("transforms") },
-    flipA: { type: "expr", open: "RandFlipd(keys=", close: ",", slots: ["keys"], when: IS("flip") },
+    flipA: { type: "expr", open: "RandFlipd(keys=", close: ",", slots: ["keys"], when: SEG("flip") },
+    flipAc: { type: "expr", open: "RandFlipd(keys=[\"image\"],", slots: [], when: CLS("flip") },
     flipB: { type: "expr", open: "prob=", close: ",", slots: ["flip_prob"], when: IS("flip") },
     flipC: {
-      type: "expr", open: "spatial_axis=", close: ")", slots: ["spatial_axis"], when: IS("flip"),
+      type: "expr", open: "spatial_axis=", close: ")", slots: ["spatial_axis"], when: SEG("flip"),
       detail: "Flips the image, and the mask when \"label\" is in keys: spatial_axis 0 flips top to bottom, 1 left to right.",
     },
-    rotA: { type: "expr", open: "RandRotate90d(keys=", close: ",", slots: ["keys"], when: IS("rotate") },
+    flipCc: {
+      type: "expr", open: "spatial_axis=", close: ")", slots: ["spatial_axis"], when: CLS("flip"),
+      detail: "Flips the image: spatial_axis 0 flips top to bottom, 1 left to right.",
+    },
+    rotA: { type: "expr", open: "RandRotate90d(keys=", close: ",", slots: ["keys"], when: SEG("rotate") },
+    rotAc: { type: "expr", open: "RandRotate90d(keys=[\"image\"],", slots: [], when: CLS("rotate") },
     rotB: { type: "expr", open: "prob=", close: ",", slots: ["rotate_prob"], when: IS("rotate") },
     rotC: {
-      type: "expr", open: "max_k=", close: ")", slots: ["max_k"], when: IS("rotate"),
+      type: "expr", open: "max_k=", close: ")", slots: ["max_k"], when: SEG("rotate"),
       detail: "Rotates the image, and the mask when \"label\" is in keys, by k × 90° counter-clockwise, with k drawn from 1 to max_k.",
     },
-    affA: { type: "expr", open: "RandAffined(keys=", close: ",", slots: ["keys"], when: IS("affine") },
+    rotCc: {
+      type: "expr", open: "max_k=", close: ")", slots: ["max_k"], when: CLS("rotate"),
+      detail: "Rotates the image by k × 90° counter-clockwise, with k drawn from 1 to max_k.",
+    },
+    affA: { type: "expr", open: "RandAffined(keys=", close: ",", slots: ["keys"], when: SEG("affine") },
+    affAc: { type: "expr", open: "RandAffined(keys=[\"image\"],", slots: [], when: CLS("affine") },
     affB: { type: "expr", open: "prob=", close: ",", slots: ["affine_prob"], when: IS("affine") },
     affC: { type: "expr", open: "rotate_range=np.deg2rad(", close: "),", slots: ["rotate_range"], when: IS("affine") },
     affD: { type: "expr", open: "translate_range=(", close: "),", slots: ["translate_height", "translate_width"], when: IS("affine") },
     affE: { type: "expr", open: "scale_range=(", close: "),", slots: ["scale_height", "scale_width"], when: IS("affine") },
     affF: {
-      type: "expr", open: "mode=(\"bilinear\", ", close: "), padding_mode=\"zeros\")", slots: ["mode"], when: IS("affine"),
-      detail: "Rotates by an angle drawn from ± rotate_range, translates each axis by a value drawn from ± "
-        + "translate_range pixels and scales each axis by 1 plus a value drawn from ± scale_range; a scale above 1 "
-        + "shrinks the image. Pixels outside the transformed image are set to 0.",
+      type: "expr", open: "mode=(\"bilinear\", ", close: "), padding_mode=\"zeros\")", slots: ["mode"], when: SEG("affine"),
+      detail: AFFINE_DETAIL,
     },
+    /* only the image is resampled, so mode takes the image's value alone */
+    affFc: { type: "expr", open: "mode=\"bilinear\", padding_mode=\"zeros\")", slots: [], when: CLS("affine"), detail: AFFINE_DETAIL },
     conA: { type: "expr", open: "RandAdjustContrastd(keys=[\"image\"], prob=", close: ",", slots: ["contrast_prob"], when: IS("contrast") },
     conB: {
       type: "expr", open: "gamma=(", close: "))", slots: ["gamma_low", "gamma_high"], when: IS("contrast"),
@@ -933,7 +1012,8 @@ defineWidget({
       options: [{ value: "off-centre", label: "Off-centre" }, { value: "centred", label: "Centred" }],
       default: "off-centre",
       display: true,
-      when: ON("transforms"),
+      /* it exists for the stale mask's Dice, so Classification hides it (and `placeOf` draws the off-centre cell) */
+      when: { all: [ON("transforms"), TASK("segmentation")] },
     },
 
     /* --- Pipeline -------------------------------------------------------- */
@@ -966,9 +1046,11 @@ defineWidget({
       ];
     }
     const kind = params.transform;
-    const out = [{ token: "reference", label: "The mask, and its outline on the image", mark: "line" }];
-    if (M.isSpatial(kind) && !M.labelIn(params)) out.push({ token: "highlight", label: "The white blood cell after the draw", mark: "dash" });
-    if (kind === "affine" && M.labelIn(params)) out.push({ token: "empirical", label: "The mask's outline after earlier draws", mark: "line" });
+    /* under Classification there is no mask, so none of its three rows */
+    const seg = !M.isClassification(params);
+    const out = seg ? [{ token: "reference", label: "The mask, and its outline on the image", mark: "line" }] : [];
+    if (seg && M.isSpatial(kind) && !M.labelIn(params)) out.push({ token: "highlight", label: "The white blood cell after the draw", mark: "dash" });
+    if (seg && kind === "affine" && M.labelIn(params)) out.push({ token: "empirical", label: "The mask's outline after earlier draws", mark: "line" });
     if (kind === "affine" || kind === "contrast" || kind === "noise") {
       /* the contrast band draws a draw as its curve, the other two as a dot */
       const mark = kind === "contrast" ? "line" : "dot";
@@ -1057,8 +1139,8 @@ defineWidget({
       { label: "Applied", value: n ? `${fired} of ${n}` : "—", note: `prob = ${probOf(params, kind)}: the probability that a draw is applied` },
       { label: "Last draw", value: last ? shortText(kind, last) : "—", note: last ? drawText(kind, last, params) : "no draw yet" },
     ];
-    if (M.isSpatial(kind) && !M.labelIn(params)) {
-      const smp = last && last.fired ? state.sample(n - 1, params.cell) : null;
+    if (!M.isClassification(params) && M.isSpatial(kind) && !M.labelIn(params)) {
+      const smp = last && last.fired ? state.sample(n - 1, M.placeOf(params)) : null;
       tiles.push({
         label: "Dice of the mask",
         value: smp ? smp.stale.toFixed(2) : "—",

@@ -16815,6 +16815,39 @@ pipeline (no lesson has one to list), a transform that changes the class on a
 second image, and `keys=["image", "label"]` under Classification (MONAI raises, and
 an error message is not a picture).
 
+#### BUILT 2026-09-17 — the option on the Transforms page, committed, not pushed
+
+`model.js`: `isClassification`; `LABEL` (6, neutrophil); `placeOf`, which draws the
+off-centre cell under Classification, where White blood cell is hidden; `LABEL_ROW`
+= 40, with `figureLayout(w, params)` putting the class row at the mask's place; and
+no magnifier under Classification, since it is the mask's edge. `main.js`: a section
+*The task* above *The transform*, with **Task: Segmentation · Classification**,
+display; each spatial call's first line split by task (keys a slot under
+Segmentation, written `["image"]` under Classification), its detail likewise, and
+RandAffined's last line `mode="bilinear", padding_mode="zeros")` under
+Classification; White blood cell under Segmentation only. Under Classification the
+figure draws `6 (neutrophil)` in both columns' second row (fading with its sample on
+a press, an empty frame before the first draw) and no outline on the images or the
+thumbnails; after an applied spatial draw it prints `keys=["image"]: the transform
+is applied to the image only; the label is unchanged`; the legend drops the mask's
+three rows and the readout the Dice tile. **Found reading the canvas text:** that
+line first printed after a draw that was not applied. It now prints after an applied
+draw only, as the stale mask's line does.
+
+The verify's new §3c (5,115 checks in all) pins the printed line to
+`augmentation-classification-monai.txt` (all 20 spatial runs with the label in keys
+raise; all 25 image-only runs leave the label unchanged), the draws equal under both
+tasks, the hidden White blood cell, and the class row's geometry; §4 adds every
+transform under Classification at 535, 550 and 770. `check` green; `test` 29 scripts
+green. Read in the browser at 1280: every transform under Classification; a link
+carrying `keys=image`, `mode=bilinear` and `cell=centred` (no Dice tile, no
+magnifier, the off-centre cell); Task toggled with six draws kept; presses through
+the fade and the motion, with no console error. **The 13 existing states were not
+run.** They should still MATCH: the Task section adds 153 px to the rail, and in the
+harness's 900 × 1200 frame every Transforms state's figure column is already the
+taller one, so no state gains or loses its scrollbar. Classification states are owed
+at ship. **Open for him:** the subtitle's second sentence names the mask only.
+
 *The entry below is the plan as first written and cut on 2026-09-13, kept as
 written.*
 
