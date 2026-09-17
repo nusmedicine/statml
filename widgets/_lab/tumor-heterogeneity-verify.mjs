@@ -826,6 +826,43 @@ const defaults = async () => resolveParams(await spec(), new URLSearchParams("")
   const W = await widget();
   const values = await defaults();
 
+  /* ---- page 3: the sample control narrows the tree ----
+     It could not in the figure's own order: P2.1st alone rules out branching
+     and it was always first, so the trees that fit read 1 of 2 at every
+     setting (_lab/vaf-trees-mock.html § 0). The surgery sample joins first
+     now, which is the only single sample that leaves both open. */
+  {
+    const counts = M.TAKEN_OPTIONS.map((t) => M.usedSamples(t.key)
+      .map((smp) => M.shapesFitting(smp.ccf))
+      .reduce((keep, f) => keep.filter((x) => f.includes(x)), [...M.SHAPES]).length);
+    check("the sample control narrows the tree as samples join",
+      counts[0] === 2 && counts[counts.length - 1] === 1, counts.join(" → ") + " of 2");
+    const one = M.usedSamples("1");
+    check("…one sample is the surgery sample, the only one that leaves both trees",
+      one.length === 1 && one[0].key === "P2.surgery"
+      && M.SAMPLES.filter((smp) => M.shapesFitting(smp.ccf).length === 2).map((smp) => smp.key).join() === "P2.surgery");
+    /* The samples still draw in the figure's time order, whichever joined first. */
+    const ordered = M.TAKEN_OPTIONS.every((t) => {
+      const idx = M.usedSamples(t.key).map((smp) => M.SAMPLES.indexOf(smp));
+      return idx.every((v, i) => i === 0 || v > idx[i - 1]);
+    });
+    check("…and they are drawn in the figure's time order, not the order they joined", ordered);
+
+    /* The error bars are read off the figure: each brackets its own mean. */
+    const bracket = M.SAMPLES.every((smp) => smp.ccf.every((m, c) => smp.lo[c] <= m && m <= smp.hi[c]));
+    check("every cluster's error bar brackets its mean", bracket);
+    /* And they say what the widget's sum rule cannot: P2.1st's violation
+       survives its bars, P2.2st's nearly closes inside them. */
+    const [p1, p2] = M.SAMPLES;
+    check("P2.1st's violation survives its error bars",
+      p1.lo[1] + p1.lo[2] > p1.hi[0], (p1.lo[1] + p1.lo[2]).toFixed(3) + " > " + p1.hi[0]);
+    check("…while P2.2st's is within a few hundredths of closing",
+      p2.lo[1] + p2.lo[2] - p2.hi[0] < 0.03, "margin " + (p2.lo[1] + p2.lo[2] - p2.hi[0]).toFixed(3));
+    check("each cluster names its figure's three genes",
+      M.CLUSTER_GENES.length === 3 && M.CLUSTER_GENES.every((g) => g.length === 3)
+      && M.CLUSTER_GENES[1].includes("TP53"));
+  }
+
   /* ---- page 3: every connector points at the centres it joins ----
      His catch from a screenshot, 2026-09-17: on the branching tree the ends sat
      beside the node centres rather than aiming at them. A pixel hash would

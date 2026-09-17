@@ -562,18 +562,57 @@ export function axisAt(many, cfg, mix) {
 
 /* 01-2 cell 25's figure: four samples of one patient, three clusters' mean
    cancer cell fraction. DECISION 7: measured from the figure, not simulated. */
+/* THE ERROR BARS ARE HIS FIGURE'S TOO, read off `cancer-retcher.png` the way
+   the means were (Kenneth's pick, 2026-09-17), so nothing on page 3 becomes
+   invented. Calibrated on the figure's own gridlines — CCF 0 at y 665.5 and 1
+   at y 72.5, so one pixel is 0.0017 — and each bar measured as the extent of
+   its cluster's hue in a 5px band through the point. `lo` and `hi` are the
+   bar's ends. Three are not a clean reading, and say so:
+
+     P2.1st cluster 1 and P2.surgery cluster 3 reach only about as far as the
+       figure's own dot (radius 12px, 0.020): their bars are at most that long.
+     P2.1st cluster 2's lower half is hidden under cluster 3, drawn on top of
+       it; its upper half is 0.039 and the other three blue bars are symmetric
+       to within 0.002, so the lower end is taken as the mirror.
+
+   The bars bear on the sum rule itself. P2.1st's violation survives them —
+   even the children's lower ends (0.495 + 0.444) pass the trunk's upper end,
+   0.750 — while P2.2st's is within 0.016 of closing, so the figure's own bars
+   are what say that sample's evidence is weak. */
 export const SAMPLES = [
-  { key: "P2.1st", ccf: [0.729, 0.534, 0.512] },
-  { key: "P2.2st", ccf: [0.826, 0.597, 0.353] },
-  { key: "P2.3st", ccf: [0.926, 0.767, 0.348] },
-  { key: "P2.surgery", ccf: [0.806, 0.476, 0.304] },
+  { key: "P2.1st", ccf: [0.729, 0.534, 0.512], lo: [0.706, 0.495, 0.444], hi: [0.750, 0.573, 0.579] },
+  { key: "P2.2st", ccf: [0.826, 0.597, 0.353], lo: [0.793, 0.549, 0.325], hi: [0.858, 0.647, 0.382] },
+  { key: "P2.3st", ccf: [0.926, 0.767, 0.348], lo: [0.896, 0.716, 0.294], hi: [0.959, 0.819, 0.402] },
+  { key: "P2.surgery", ccf: [0.806, 0.476, 0.304], lo: [0.770, 0.424, 0.281], hi: [0.844, 0.529, 0.328] },
 ];
+/* The three genes his figure names beside each cluster. */
+export const CLUSTER_GENES = [
+  ["SPEN", "CA3", "HRH2"],
+  ["TP53", "PDGFRB", "USH2A"],
+  ["NWD1", "USP54", "NCL"],
+];
+
+/* WHICH SAMPLES JOIN FIRST. Page 3 exists to show that more biopsies narrow the
+   tree, and in the figure's own order it could not: P2.1st on its own already
+   rules out branching (0.534 + 0.512 = 1.05 past 0.729) and it was always the
+   first used, so the trees that fit read 1 of 2 at every setting
+   (`_lab/vaf-trees-mock.html` § 0). Only P2.surgery on its own leaves both
+   open, so it joins first — his pick, 2026-09-17 — and the count reads 2 of 2,
+   then 1 of 2. The samples still DRAW in the figure's time order; only which
+   of them are included changes. */
+export const JOIN_ORDER = [3, 0, 1, 2];
 export const TAKEN_OPTIONS = [
-  { key: "1", label: "The first", n: 1 },
-  { key: "2", label: "The first two", n: 2 },
-  { key: "4", label: "All four", n: 4 },
+  { key: "1", n: 1 },
+  { key: "2", n: 2 },
+  { key: "4", n: 4 },
 ];
 export const takenOf = (key) => TAKEN_OPTIONS.find((t) => t.key === key) ?? TAKEN_OPTIONS[2];
+/** The samples in use, back in the figure's time order. */
+export const usedSamples = (taken) => {
+  const n = takenOf(taken).n;
+  const picked = new Set(JOIN_ORDER.slice(0, n));
+  return SAMPLES.filter((_, i) => picked.has(i));
+};
 
 /* Clusters ordered by cancer cell fraction, descending; cluster 1 is the trunk
    and every later cluster's parent is an earlier one, so three clusters have
@@ -784,7 +823,7 @@ export const STRINGS = {
 
   samplesSection: "The samples",
   takenLabel: "Samples used",
-  takenDetail: "biopsies of one patient, each with its own cancer cell fractions",
+  takenDetail: "biopsies of one patient, counted from the surgery sample",
   shapeLabel: "Shape",
   shapeDetail: "which cluster is inside which",
   cellsLabel: "Draw the cells",

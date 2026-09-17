@@ -667,27 +667,42 @@ function drawTreePage(ctx, colors, L, params, state, anim) {
   /* the CCF lines, his figure's left panel */
   const plot = makePlot({ ctx, colors, rect: L.lines, xDomain: [0, M.SAMPLES.length], yDomain: [0, 1] });
   plot.caption(M.STRINGS.linesCaption);
+  /* EACH SAMPLE STAYS AT ITS PLACE ON THE FIGURE'S TIMELINE. Positions came
+     from the order of the samples in use, so once the surgery sample joined
+     first it would have been drawn at the left, before the biopsies it
+     followed. The axis is the figure's four samples; only the ones in use are
+     drawn, and joined in time order. */
+  const at = (s) => M.SAMPLES.indexOf(s) + 0.5;
   for (let c = 0; c < 3; c += 1) {
     ctx.beginPath();
     used.forEach((s, i) => {
-      const x = plot.sx(i + 0.5);
+      const x = plot.sx(at(s));
       const y = plot.sy(s.ccf[c]);
       if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
     });
     ctx.strokeStyle = cols[c];
     ctx.lineWidth = 2;
     ctx.stroke();
-    used.forEach((s, i) => {
+    used.forEach((s) => {
+      /* The figure's error bar, under the point it belongs to. */
+      ctx.save();
+      ctx.strokeStyle = wash(cols[c], 0.55);
+      ctx.lineWidth = 3;
       ctx.beginPath();
-      ctx.arc(plot.sx(i + 0.5), plot.sy(s.ccf[c]), 3.5, 0, Math.PI * 2);
+      ctx.moveTo(plot.sx(at(s)), plot.sy(s.lo[c]));
+      ctx.lineTo(plot.sx(at(s)), plot.sy(s.hi[c]));
+      ctx.stroke();
+      ctx.restore();
+      ctx.beginPath();
+      ctx.arc(plot.sx(at(s)), plot.sy(s.ccf[c]), 3.5, 0, Math.PI * 2);
       ctx.fillStyle = cols[c];
       ctx.fill();
     });
   }
   plot.axisY({ ticks: [0, 0.5, 1], format: (v) => M.n2(v) });
   plot.axisX({
-    ticks: used.map((_, i) => i + 0.5),
-    format: (v) => used[Math.floor(v)].key,
+    ticks: used.map(at),
+    format: (v) => M.SAMPLES[Math.floor(v)].key,
   });
 
   /* the two shapes, the chosen one marked */
@@ -723,6 +738,17 @@ function drawTreePage(ctx, colors, L, params, state, anim) {
       ctx.moveTo(from[0], from[1]);
       ctx.lineTo(to[0], to[1]);
       ctx.stroke();
+      /* AN ARROWHEAD, as his figure draws: a parent gives rise to a child,
+         which a plain line does not say. Its tip is the connector's own end,
+         so it lands on the child's edge along the same radial line. */
+      const ang = Math.atan2(to[1] - from[1], to[0] - from[0]);
+      ctx.beginPath();
+      ctx.moveTo(to[0], to[1]);
+      ctx.lineTo(to[0] - 6 * Math.cos(ang - 0.45), to[1] - 6 * Math.sin(ang - 0.45));
+      ctx.lineTo(to[0] - 6 * Math.cos(ang + 0.45), to[1] - 6 * Math.sin(ang + 0.45));
+      ctx.closePath();
+      ctx.fillStyle = colors.ink3;
+      ctx.fill();
     });
     ctx.restore();
     pos.forEach((p, ci) => {
@@ -1014,9 +1040,13 @@ widgetApi = defineWidget({
     }
     if (params.page === "clonal") {
       return [
-        { token: "group-a", label: "Cluster 1", mark: "line" },
-        { token: "group-b", label: "Cluster 2", mark: "line" },
-        { token: "group-c", label: "Cluster 3", mark: "line" },
+        /* His figure names three genes beside each cluster. They do not fit an
+           11px node, so they go where each cluster is named. */
+        ...M.CLUSTER_GENES.map((genes, c) => ({
+          token: ["group-a", "group-b", "group-c"][c],
+          label: `Cluster ${c + 1}: ${genes.join(", ")}`,
+          mark: "line",
+        })),
         { token: "extreme", label: "Cells the shape would need and the sample does not have", mark: "line" },
       ];
     }
@@ -1036,7 +1066,7 @@ widgetApi = defineWidget({
     const one = M.buildReads(rng, cfg);
     const manyCfg = M.configMany({ ...params, purity2: params.purity, depth2: params.depth });
     const many = M.buildMany(rng, manyCfg);
-    const used = M.SAMPLES.slice(0, M.takenOf(params.taken).n);
+    const used = M.usedSamples(params.taken);
     return { cfg, one, manyCfg, many, used };
   },
 
