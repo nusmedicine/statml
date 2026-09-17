@@ -988,6 +988,7 @@
         "Compose",
         "CacheDataset",
         "segmentation",
+        "classification",
         "deep learning"
       ],
       "arc": 62,

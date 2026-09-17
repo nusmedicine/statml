@@ -699,7 +699,7 @@ function drawTransforms(ctx, colors, w, params, state, anim) {
          a draw that is not applied transforms nothing, and an intensity
          transform leaves the label unchanged under both tasks */
       if (M.isSpatial(kind) && d.fired) {
-        note(ctx, colors, "keys=[\"image\"]: the transform is applied to the image only; the label is unchanged", M.PAD, L.line2, colors.ink1);
+        note(ctx, colors, "keys=[\"image\"]: the label is not transformed", M.PAD, L.line2, colors.ink1);
       }
     } else if (smp.stale !== null) {
       note(ctx, colors, `keys=["image"]: the mask is not transformed; Dice between the mask and the white blood cell: ${smp.stale.toFixed(2)}`,
@@ -846,7 +846,7 @@ function drawPipeline(ctx, colors, w, params, state, anim) {
   }
   note(ctx, colors, cur ? "the sample after the last transform," : "the image file", P.sx, P.top + P.s + 14, colors.ink3);
   if (cur) {
-    note(ctx, colors, state.classify ? `label: ${M.LABEL.value} (${M.LABEL.name})` : "with the mask's outline", P.sx, P.top + P.s + 28, colors.ink3);
+    note(ctx, colors, state.classify ? `with its label, ${M.LABEL.value} (${M.LABEL.name})` : "with the mask's outline", P.sx, P.top + P.s + 28, colors.ink3);
   }
 
   /* the call of the line on the sample: the one running, else the one just run */
@@ -1024,7 +1024,9 @@ defineWidget({
       detail: "Adds Gaussian noise with a standard deviation drawn between 0 and std to every pixel of the image.",
     },
 
-    imgSec: { type: "section", label: "The image", when: ON("transforms") },
+    /* The image holds White blood cell alone, so it shows under Segmentation only
+       (the copy audit, 2026-09-17: under Classification it held only Seed) */
+    imgSec: { type: "section", label: "The image", when: { all: [ON("transforms"), TASK("segmentation")] } },
     cell: {
       type: "segmented",
       label: "White blood cell",
@@ -1041,7 +1043,7 @@ defineWidget({
     split: {
       type: "segmented",
       label: "Split",
-      detail: "the MONAI pipeline applied to the image: train_transforms or val_test_transforms",
+      detail: "the MONAI pipeline applied to the sample: train_transforms or val_test_transforms",
       options: [{ value: "training", label: "Training" }, { value: "validation", label: "Validation/Test" }],
       default: "training",
       when: ON("pipeline"),
@@ -1051,7 +1053,10 @@ defineWidget({
        (2026-09-15): Flip's first draw is applied and five of twelve are,
        Rotate draws every k, Affine applies five of twelve, and the first
        epoch fires three of the six random lines, the affine among them — a
-       typical share. Seed 1 opened Flip on a draw that was not applied. */
+       typical share. Seed 1 opened Flip on a draw that was not applied.
+       Its own section on both pages (the copy audit, 2026-09-17): it is part of
+       neither the image nor the split. */
+    seedSec: { type: "section", label: "Random draws" },
     seed: { type: "int", label: "Seed", detail: "fixes the random draws, so a seed repeats them", min: 1, max: 200, default: 106 },
 
     /* Authoring escape hatch, first render only: draws, or presses on the list. */

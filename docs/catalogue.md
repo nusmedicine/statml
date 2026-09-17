@@ -16915,6 +16915,34 @@ page's draws from 6 to 0; no console error. **Expected at ship, not yet run:** t
 three Segmentation Pipeline states DIFFER (the dict line), the ten Transforms states
 MATCH.
 
+#### THE COPY AUDIT AGAIN 2026-09-17 — on "let's go ahead with the copy audit again"; applied on "apply all"
+
+Every reader-facing string read in the five passes (register and lesson references,
+the collection's own vocabulary, outcome commentary, personification, URL words).
+The 2026-09-16 wording held; the new subtitle, the blurb and `task=classification`
+passed. Five rows, all in the day's additions, applied on "apply all":
+
+1. The Classification figure's line after an applied spatial draw, *"the transform is
+   applied to the image only; the label is unchanged"*, said one fact twice: now
+   `keys=["image"]: the label is not transformed`, the Segmentation line's own form.
+2. The Classification Pipeline note *"label: 6 (neutrophil)"* did not continue the
+   note above it, *"the sample after the last transform,"*: now *"with its label, 6
+   (neutrophil)"*, as Segmentation's *"with the mask's outline"* does.
+3. Under Classification the Transforms rail's *The image* section held only Seed, and
+   on the Pipeline page Seed sat under *The split*: Seed now has its own section,
+   *Random draws*, on both pages, and *The image* shows under Segmentation only.
+4. Split's detail: *"the MONAI pipeline applied to the sample"*, since under
+   Segmentation it transforms the image and the mask.
+5. The manifest's `topics` gains "classification" (no page reads the field).
+
+Kept after reading: "label" over the class row (cell 14's word), Task's detail, the
+import lines and the sample dict (code), the subtitle and the blurb, and the last
+audit's "draw", "on its own" and "The call". No new struck word goes into the
+verify's sweep: the findings were sentences, not words. Rows 3 and 4 are rail text
+and rows 1 and 2 are Classification canvas text, so no recorded state moves. Read in
+the browser under both tasks on both pages; both new lines fit at 535 and 550 px.
+Verify 5,512 checks; `check` green; `test` 29 scripts green.
+
 *The entry below is the plan as first written and cut on 2026-09-13, kept as
 written.*
 
