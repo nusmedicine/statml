@@ -9601,9 +9601,10 @@ What the draft decided, to put to him at the round rather than settle here:
 - **Page 1's genes are page 2's**: the oncogene, tumor suppressor and small
   oncogene are the cohort's PIK3CA-, TP53- and AKT1-shaped drivers at the same
   seed, and page 2 labels those three with page 1's names when kinds are on.
-- **Page 2 opens with "Colour by kind" off** (2.1: the kind is the answer), the
-  calls ringed; the mock had it on. Across eases between the fraction and the
-  score.
+- **Page 2 opens with "Colour by kind" on — his call, 2026-09-18.** The draft
+  opened with it off (2.1: the kind is the answer); he turned it on, as the mock
+  had it, so the missed tumor suppressors are on screen at once. Across eases
+  between the fraction and the score.
 - **A formula card on both pages** (widget 67's machinery): the threshold, a
   cluster's score and the gene's z on page 1, each number appearing with its
   step; z, p and Benjamini-Hochberg over the table on page 2.

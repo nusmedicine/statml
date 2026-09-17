@@ -539,12 +539,12 @@ defineWidget({
       display: true,
       when: { param: "page", equals: "cohort" },
     },
-    /* Decision 5: off at first, so the page opens on the calls alone. */
+    /* Decision 5: on at first, his call on the draft (2026-09-18). */
     kinds: {
       type: "bool",
       label: S.kindsLabel,
       detail: S.kindsDetail,
-      default: false,
+      default: true,
       display: true,
       when: { param: "page", equals: "cohort" },
     },

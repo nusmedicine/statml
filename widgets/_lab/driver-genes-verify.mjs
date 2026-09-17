@@ -225,7 +225,8 @@ const W = await widget();
     spec.page.display && spec.across.display && spec.kinds.display && !spec.gene.display && !spec.seed.display);
   check("the gene options are the four kinds, the oncogene first",
     spec.gene.options.map((o) => o.value).join() === "oncogene,suppressor,small,passenger" && spec.gene.default === "oncogene");
-  check("the kinds open off and the axis on the fraction", spec.kinds.default === false && spec.across.default === "fraction");
+  /* the kinds open coloured, Kenneth's call on the draft (2026-09-18) */
+  check("the kinds open coloured and the axis on the fraction", spec.kinds.default === true && spec.across.default === "fraction");
   check("shown is hidden and runs 0 to 6", spec.shown.hidden === true && spec.shown.max === 6);
   check("the step label follows the drive's own counter", W.animation.stepLabel.anim === "labelAt"
     && [0, 1, 2, 3, 4, 5].every((k) => typeof W.animation.stepLabel.labels[k] === "string"));

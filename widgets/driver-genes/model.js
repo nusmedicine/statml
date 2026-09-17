@@ -35,10 +35,13 @@
        records (catalogue finding 10); that is his notebook's to fix, and it is
        no control here.
 
-    5. PAGE 2 OPENS AS CELL 18 DRAWS IT: calls ringed, no kind coloured. The
-       kinds are a display control, because the kind of each gene is the
-       answer the page exists to show (2.1). The axis opens on the fraction in
-       clusters, with the score one press away (his pick 4).
+    5. PAGE 2 OPENS WITH EACH GENE'S KIND COLOURED, his call on the draft
+       (2026-09-18). The draft opened on the calls alone, arguing 2.1 — the kind
+       is the answer — and he turned the colours on: the page is where the
+       missed tumor suppressors are seen, and they are seen at once. The kinds
+       stay a display control, so cell 18's uncoloured plot is one press away.
+       The axis opens on the fraction in clusters, with the score one press
+       away (his pick 4).
 
     6. THE COHORT IS CACHED BY SEED. It is 18,251 genes, and core reruns
        `compute()` on a display change too, so drawing it again for every
