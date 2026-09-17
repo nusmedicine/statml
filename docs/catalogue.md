@@ -9238,6 +9238,57 @@ number".
 `copies` now reaches the minor chromosome only through the panel, never the
 rail.
 
+#### SIMPLIFIED, LINED UP, AND THE REGISTER PASS — 2026-09-16/17 — `37eb66a` to `1db3480`
+
+Five of his questions in a row were the panel failing to explain itself, and
+each fix is recorded where it would otherwise be re-argued.
+
+**The caption promised fits and listed non-fits.** "Scenarios that fit" drew the
+ruled-out rows too, each needing "would need 1.18" and a line explaining "a
+fraction past 1" — three hops to read one row (*"still confusing … information
+overload"*). Only the fits are drawn now; if none fit, one line says so. The
+inference those rows carried — one copy cannot explain this reading, so more
+must — is absent rather than confusing, and would come back as a note, never as
+rows under that caption.
+
+**"Ruled out by the assumption" never said which.** `assumptionsWrong` checks
+rather than infers — purity 1 is wrong when the sample is not pure, two copies
+when the copies do not come to two — and the line names it, in the card's own
+words: *"purity 1 and two copies were assumed"*.
+
+**Compacting found the guard had never painted a note.** The height reserved
+42px under the panel always; `scenarioNote` now decides, read by both the height
+and the draw. The extent sweep's page-1 cells left `knows` at its default, where
+no note is ever drawn — widened, it found the longest note 52px off the canvas.
+§ *Widget 42* again: a check nobody has watched fail is not yet a check.
+
+**"CCF 1.00 but Cannot tell" — the call was right and the tile was cheating.**
+A reading of 0.500 fits a clonal mutation on one of two copies AND a subclonal
+one on both copies of a 2 + 0 region in half the cells; the call saw both and
+said Cannot tell, and the tile showed 1.00 because `reportedScenario` preferred
+the sample the reader built — knowledge the analysis does not have. His pick,
+the RANGE: `0.50–1.00` beside Cannot tell, `1.00` beside Clonal once the
+allele-specific call removes the 2 + 0 scenario. **That is the page's clearest
+demonstration of what an allele-specific call is for.** The card now inverts the
+model's own expected VAF for every multiplicity that fits, so it reads
+`0.500 × 2.00 ÷ m = 1.00 at m = 1, 0.50 at m = 2` instead of `1.06`.
+
+**The register pass.** The collection names a rail section as a plain noun —
+"The data" 18 times, "The model" 10, "The inference", "The truth" — and his
+*"i see some mannerisms like '…you built', 'what you bring', 'how you
+sequenced'"* found an afternoon of second-person narration: now *The sample ·
+The sequencing · The analysis*, "Given", and "The true scenario". The audit found
+the same class he had not named in the card's level notes ("Here it is solved",
+"worth on its own", "comes back as"), the mutated-copies detail ("was copied
+too") and page 2's axis detail ("as they came"). The sweep now strikes second
+person and those phrases.
+
+**Two rows put to him and KEPT, so they are not re-argued:** the subtitle's
+"what is left once both are divided out", his own rephrasing, which he judges
+plain English rather than narration; and "Cannot tell" as the call's value over
+"Ambiguous" or "Either", because a student reads it at once and the note beside
+it states the literal fact.
+
 **What the draft leaves open:** his round continues; page 2 and page 3 have not
 been read against the knowledge control, which is a page-1 idea that page 2's
 purity correction could also carry; the threshold's insensitivity means no
