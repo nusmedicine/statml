@@ -1,0 +1,487 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · augmentation — Task and Topic</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1600px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 104ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); min-height: 26px; white-space: pre-line; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 104ch; }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+       border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 104ch; }
+  table { border-collapse: collapse; font-size: var(--fs-sm); margin: var(--sp-2) 0; max-width: 150ch; }
+  th, td { border: 1px solid var(--grid); padding: 4px 10px; text-align: left; vertical-align: top; }
+  th { color: var(--ink-2); font-weight: 600; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>augmentation &middot; Task and Topic</h1>
+  <p class="q">
+    <b>Your picks, 2026-09-17, one question each: every recommendation.</b> <b>A</b>, Task then Topic; <b>(ii)</b>, the
+    sample dict above the list on both tasks; the <b>import line</b> as the call's first line, with <b>D</b> naming
+    MONAI in Split's detail; and switching Task <b>starts the page over</b>, as Split does.
+  </p>
+  <p class="note">
+    <b>Your asks, 2026-09-17:</b> &ldquo;specify the MONAI library under &lsquo;The call&rsquo; so students know which
+    library calls are made&rdquo;, and &ldquo;under pipeline it refers to segmentation only..can you discuss and mock up
+    how best to organize this? * task -&gt; transforms/pipeline? then we have a classification version of transforms
+    without the mask reference&rdquo;. The new subtitle is in.
+  </p>
+  <p class="note">
+    <b>Measured first, on MONAI 1.6.0</b> (<code>_lab/augmentation-classification-pipeline.py</code>): cell 19 with
+    <code>keys=["image"]</code> on every line and no <code>AsDiscreted</code> runs on
+    <code>{"image": path, "label": 6}</code>. <code>CacheDataset</code> still caches every line before the first
+    <code>RandFlipd</code> (it ran once in five fetches, and the lines after it ran five times). The label comes back
+    as the int 6 on every fetch, a batch of two collates it to <code>tensor([6, 1])</code> as int64, and the fixed
+    lines alone give the same sample on every fetch. Cell 19 as written raises at <code>LoadImaged</code> when the
+    label is a class, since it reads the label as a file path. Everything drawn below comes from the widget's own
+    <code>model.js</code> at 550px, on seed 106; the rails are core's <code>buildControls</code> at 300px and answer
+    clicks.
+  </p>
+
+  <h2>1 &middot; Where Task goes</h2>
+  <p class="note">
+    <b>A is your suggestion:</b> Task first, then Topic, so both pages follow the task. <b>B</b> keeps Topic first and
+    shows Task on both pages. <b>C</b> is what is built now: Task on the Transforms page only, so the Pipeline page
+    stays cell 19 with its masks whichever task was chosen, which is the problem you raised. The rails open on the
+    Pipeline page under Classification, where the three differ; click Topic to see the Transforms page.
+  </p>
+  <div class="row" id="orgRow"></div>
+  <p class="rec" id="recOrg"></p>
+
+  <h2>2 &middot; The Pipeline page under Classification</h2>
+  <p class="note">
+    The classification list is cell 19 with <code>keys=["image"]</code> on every line and no
+    <code>AsDiscreted</code>: eleven lines in training and five in validation, as measured above. The images are
+    the same as under Segmentation, epoch by epoch, since the label takes no draw. Shown at the same point: epoch 4,
+    after <code>RandAffined</code>. (i) and (ii) differ in one thing, the sample dict above the list.
+  </p>
+  <div class="row" id="pipeRow"></div>
+  <p class="rec" id="recPipe"></p>
+
+  <h2>3 &middot; Naming the library in The call</h2>
+  <p class="note">
+    Transform is Affine under Classification, with Task placed as A. <b>A</b> puts cell 19's own import as the first
+    line of the call. <b>B</b> names the section. <b>C</b> gives the section a detail. The Pipeline page names no
+    library either; <b>D</b> shows it named in the Split control's detail, which goes with any of A, B or C.
+  </p>
+  <div class="row" id="libRow"></div>
+  <p class="rec" id="recLib"></p>
+
+  <h2>4 &middot; Switching Task: keep the draws, or start over?</h2>
+  <p class="note">
+    Task is built as a display control, so switching it keeps the draws. With Task over both pages that has a cost on
+    the Pipeline page, where the two lists are different lengths.
+  </p>
+  <table>
+    <tr><th></th><th>display, as built</th><th>data</th></tr>
+    <tr><td>switching Task on the Transforms page</td><td>keeps the twelve draws</td><td>starts the draws over; the seed gives the same draws again</td></tr>
+    <tr><td>switching Task on the Pipeline page</td><td>maps each press between a twelve-line and an eleven-line list, and <code>AsDiscreted</code> has no place in the second</td><td>starts the epochs over, as Split does</td></tr>
+    <tr><td>the control it behaves like</td><td>White blood cell</td><td>Split, which also changes the list</td></tr>
+  </table>
+  <p class="rec" id="recData"></p>
+
+  <h2>5 &middot; What changes</h2>
+  <table>
+    <tr><th></th><th>Segmentation</th><th>Classification</th></tr>
+    <tr><td>rail, with A</td><td colspan="2">Task, then Topic, then the page's sections; <i>The task</i> section on the Transforms page goes</td></tr>
+    <tr><td>Transforms page</td><td>as shipped</td><td>as built today: the class row, no outline, <code>keys=["image"]</code></td></tr>
+    <tr><td>Pipeline listing</td><td>cell 19's twelve lines; validation six</td><td>eleven lines, <code>keys=["image"]</code>, no <code>AsDiscreted</code>; validation five</td></tr>
+    <tr><td>under the sample</td><td>with the mask's outline</td><td><code>label: 6 (neutrophil)</code>; no outline</td></tr>
+    <tr><td>epoch strip</td><td>outlines</td><td>none</td></tr>
+    <tr><td>Next epoch</td><td>after <code>AsDiscreted</code></td><td>after <code>RandGaussianNoised</code></td></tr>
+    <tr><td>readout</td><td>Transform N of 12 (6)</td><td>Transform N of 11 (5); Random transforms applied unchanged</td></tr>
+    <tr><td>links</td><td colspan="2"><code>task=classification</code> reaches both pages; every existing link opens as it does now</td></tr>
+  </table>
+</main>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+import { makeRng } from "../core/rng.js";
+import { buildControls, buildActions, gatingParams } from "../core/controls.js";
+import { resolveParams } from "../core/params.js";
+import * as M from "../augmentation/model.js";
+
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+const W = 550;
+const SEED = 106;
+
+const el = (tag, cls, text) => { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; };
+function cand(host, title, sub, w) {
+  const box = el("div", "cand");
+  box.style.width = `${w}px`;
+  box.appendChild(el("h3", null, title));
+  box.appendChild(el("p", "sub", sub));
+  document.getElementById(host).appendChild(box);
+  return box;
+}
+function canvasIn(box, w, h) {
+  const c = document.createElement("canvas");
+  c.width = Math.round(w * DPR); c.height = Math.round(h * DPR);
+  c.style.width = `${w}px`; c.style.height = `${h}px`;
+  box.appendChild(c);
+  const ctx = c.getContext("2d");
+  ctx.scale(DPR, DPR);
+  return ctx;
+}
+
+/* ---- primitives, as widgets/augmentation/main.js has them ------------------ */
+
+const signed = (v, d) => (v < 0 ? `−${Math.abs(v).toFixed(d)}` : v.toFixed(d));
+const devicePx = (size) => Math.max(1, Math.round(size * (globalThis.devicePixelRatio || 1)));
+const DEG = Math.PI / 180;
+function txt(ctx, colors, s, x, y, o = {}) {
+  const { color = colors.ink2, align = "left", size = colors.fsSm, baseline = "alphabetic", mono = false, weight = "" } = o;
+  ctx.save();
+  ctx.fillStyle = color; ctx.textAlign = align; ctx.textBaseline = baseline;
+  ctx.font = `${weight} ${size} ${mono ? colors.mono : colors.font}`.trim();
+  ctx.fillText(s, x, y);
+  ctx.restore();
+}
+const caption = (ctx, colors, s, x, y) => txt(ctx, colors, s, x, y, { color: colors.ink2, weight: "600" });
+const note = (ctx, colors, s, x, y, tone, o = {}) => txt(ctx, colors, s, x, y, { color: tone ?? colors.ink3, size: colors.fsXs, ...o });
+const code = (ctx, colors, s, x, y, tone) => txt(ctx, colors, s, x, y, { color: tone ?? colors.ink2, size: colors.fsXs, mono: true });
+function frame(ctx, x, y, w, h, stroke, width = 1) {
+  ctx.save(); ctx.strokeStyle = stroke; ctx.lineWidth = width; ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1); ctx.restore();
+}
+const bitmaps = new WeakMap();
+function bitmapOf(im, px) {
+  let per = bitmaps.get(im);
+  if (!per) { per = new Map(); bitmaps.set(im, per); }
+  if (per.has(px)) return per.get(px);
+  const c = document.createElement("canvas");
+  c.width = px; c.height = px;
+  const g = c.getContext("2d");
+  const id = g.createImageData(px, px);
+  const n3 = im.w * im.h;
+  for (let v = 0; v < px; v += 1) {
+    const y = Math.min(im.h - 1, Math.floor(((v + 0.5) * im.h) / px));
+    for (let u = 0; u < px; u += 1) {
+      const i = y * im.w + Math.min(im.w - 1, Math.floor(((u + 0.5) * im.w) / px));
+      const o = 4 * (v * px + u);
+      for (let ch = 0; ch < 3; ch += 1) id.data[o + ch] = Math.max(0, Math.min(255, Math.round(255 * im.d[(im.c === 3 ? ch : 0) * n3 + i])));
+      id.data[o + 3] = 255;
+    }
+  }
+  g.putImageData(id, 0, 0);
+  per.set(px, c);
+  return c;
+}
+function outline(ctx, colors, pts, x, y, size, { color, width = 1.5 }) {
+  const s = size / M.N;
+  ctx.save();
+  ctx.beginPath(); ctx.rect(x, y, size, size); ctx.clip();
+  ctx.beginPath();
+  pts.forEach(([px, py], i) => (i ? ctx.lineTo(x + (px + 0.5) * s, y + (py + 0.5) * s) : ctx.moveTo(x + (px + 0.5) * s, y + (py + 0.5) * s)));
+  ctx.closePath();
+  ctx.globalAlpha = 0.85; ctx.strokeStyle = colors.surface; ctx.lineWidth = width + 2; ctx.stroke();
+  ctx.globalAlpha = 1; ctx.strokeStyle = color; ctx.lineWidth = width; ctx.stroke();
+  ctx.restore();
+}
+function imagePanel(ctx, colors, im, x, y, size, lines = []) {
+  ctx.drawImage(bitmapOf(im, devicePx(size)), x, y, size, size);
+  lines.forEach((l) => outline(ctx, colors, l.pts, x, y, size, l));
+  frame(ctx, x, y, size, size, colors.grid);
+}
+
+/* ---- 2 · the Pipeline page under each task ---------------------------------- */
+
+const EPOCHS = M.EPOCHS;
+const LABEL_TEXT = `${M.LABEL.value} (${M.LABEL.name})`;
+/* the classification list: cell 19's calls with the label taken out of keys, and no AsDiscreted */
+const callOf = (task, i) => (task === "classification"
+  ? M.LINES[i].call.replace("keys=[\"image\", \"label\"]", "keys=[\"image\"]")
+  : M.LINES[i].call);
+
+function pipeView(task, split) {
+  const train = split !== "validation";
+  const seg = M.computePipeline({ topic: "pipeline", split }, makeRng(SEED));
+  if (task === "segmentation") return { task, train, seg, lines: seg.list, last: M.LAST, steps: seg.steps };
+  const lines = seg.list.filter((i) => i !== M.LAST);
+  const last = lines[lines.length - 1];
+  const steps = [];
+  for (let e = 0; e < EPOCHS; e += 1) {
+    if (e === 0) lines.forEach((i) => steps.push({ epoch: 0, line: i }));
+    else if (train) lines.filter((i) => i >= M.FIRST_RANDOM).forEach((i) => steps.push({ epoch: e, line: i }));
+    else steps.push({ epoch: e, line: last });
+  }
+  return { task, train, seg, lines, last, steps };
+}
+const pressesTo = (V, epoch, line) => V.steps.findIndex((st) => st.epoch === epoch && st.line === line) + 1;
+
+function statusOf(V, s, i) {
+  const cur = s > 0 ? V.steps[s - 1] : null;
+  if (!cur) return "pending";
+  if (cur.epoch > 0 && (i < M.FIRST_RANDOM || !V.train)) return "cached";
+  return i <= cur.line ? "done" : "pending";
+}
+function lineTextOf(V, epoch, i, status) {
+  const l = M.LINES[i];
+  if (status === "cached") return "from the cache";
+  if (status !== "done") return "";
+  if (!l.random) return i === M.LAST && V.train ? "applied every epoch" : "applied, then cached";
+  const ep = V.seg.epochs[epoch];
+  if (!M.firedIn(i, ep)) return "not applied";
+  if (l.random === "rot90") return `k = ${ep.k}`;
+  if (l.random === "contrast") return `γ ${ep.gamma.toFixed(2)}`;
+  if (l.random === "noise") return `σ ${ep.sigma.toFixed(4)}`;
+  return l.random === "affine" ? "applied" : "flipped";
+}
+function detailOf(V, cur) {
+  if (!cur) return "The image file, before any transform is applied.";
+  if (!V.train && cur.epoch > 0) return "Every transform in this pipeline is cached: the sample is the same as in epoch 1.";
+  const ep = V.seg.epochs[cur.epoch];
+  if (M.LINES[cur.line].random === "affine" && ep.affine) {
+    const { rotate, translate, scale } = ep.affine;
+    return `drawn: rotate ${signed(rotate / DEG, 1)}°, translate (${signed(translate[0], 1)}, ${signed(translate[1], 1)}) px, `
+      + `scale (${scale[0].toFixed(2)}, ${scale[1].toFixed(2)})`;
+  }
+  if (cur.epoch > 0 && cur.line === M.FIRST_RANDOM) return `epoch ${cur.epoch + 1} starts from the cached output of SpatialPadd`;
+  return "";
+}
+
+/* the shipped layout, and the dict line above it. The list area keeps the shipped
+   twelve rows under both tasks: at eleven, the call under the list reaches the row
+   of the note under the sample, and a long call such as LoadImaged's runs into it. */
+function layoutOf(w, rows, dict) {
+  const row = 21;
+  const s = 222;
+  const top = 36 + (dict ? 20 : 0);
+  const detailY = top + Math.max(rows, M.LINES.length) * row + 20;
+  const stripY = detailY + 48;
+  const ts = Math.min(56, Math.floor((w - 2 * M.PAD - (EPOCHS - 1) * 8) / EPOCHS));
+  return { row, s, top, sx: w - M.PAD - s, detailY, stripY, ts, stripGap: (w - 2 * M.PAD - EPOCHS * ts) / (EPOCHS - 1), height: stripY + 12 + ts + 24 };
+}
+
+function drawPipe(ctx, w, V, s, dict) {
+  const cls = V.task === "classification";
+  const P = layoutOf(w, cls ? M.LINES.length - 1 : M.LINES.length, dict);
+  const cur = s > 0 ? V.steps[s - 1] : null;
+  const epoch = cur ? cur.epoch : 0;
+  const listName = V.train ? "train_transforms" : "val_test_transforms";
+  caption(ctx, T, cur ? `${listName}, epoch ${epoch + 1} of ${EPOCHS}` : `${listName}, before the first epoch`, M.PAD, 20);
+  if (dict) code(ctx, T, cls ? "{\"image\": \"image1.jpg\", \"label\": 6}" : "{\"image\": \"image1.jpg\", \"label\": \"mask1.jpg\"}", M.PAD + 10, P.top - 8, T.ink2);
+  const listW = P.sx - M.PAD - 14;
+  V.lines.forEach((i, r) => {
+    const y = P.top + r * P.row;
+    const status = statusOf(V, s, i);
+    if (cur && i === cur.line && status === "done") {
+      ctx.save(); ctx.fillStyle = T.surface2; ctx.fillRect(M.PAD, y, listW, P.row); ctx.fillStyle = T.highlight; ctx.fillRect(M.PAD, y, 3, P.row); ctx.restore();
+    }
+    const live = status === "done";
+    code(ctx, T, M.LINES[i].cls, M.PAD + 10, y + 14, live ? T.ink1 : T.ink3);
+    const text = lineTextOf(V, epoch, i, status);
+    const fired = live && M.LINES[i].random && M.firedIn(i, V.seg.epochs[epoch]);
+    if (text) note(ctx, T, text, M.PAD + 150, y + 14, fired ? T.ink1 : T.ink3, { weight: fired ? "600" : "" });
+  });
+  if (!V.train) {
+    const y = P.top + V.lines.length * P.row + 20;
+    note(ctx, T, "This pipeline has no random transform,", M.PAD + 10, y, T.ink2);
+    note(ctx, T, "so the sample is the same in every epoch.", M.PAD + 10, y + 15, T.ink2);
+  }
+  const wbc = M.PLACEMENTS["off-centre"];
+  const at = cur ? V.seg.linesOf(epoch)[cur.line] : { image: M.smear("off-centre").raw, ops: [] };
+  imagePanel(ctx, T, at.image, P.sx, P.top, P.s, cls ? [] : [{ pts: M.outlineOf(wbc, at.ops), color: T.reference }]);
+  note(ctx, T, cur ? "the sample after the last transform," : "the image file", P.sx, P.top + P.s + 14, T.ink3);
+  if (cur) note(ctx, T, cls ? `label: ${LABEL_TEXT}` : "with the mask's outline", P.sx, P.top + P.s + 28, T.ink3);
+  if (cur) code(ctx, T, callOf(V.task, cur.line), M.PAD, P.detailY, T.ink2);
+  const detail = detailOf(V, cur);
+  if (detail) note(ctx, T, detail, M.PAD, P.detailY + 16, T.ink1);
+  note(ctx, T, "The same image, epoch by epoch", M.PAD, P.stripY, T.ink2, { weight: "600" });
+  for (let e = 0; e < EPOCHS; e += 1) {
+    const x = M.PAD + e * (P.ts + P.stripGap);
+    const y = P.stripY + 10;
+    const idx = V.steps.findIndex((st) => st.epoch === e && st.line === V.last);
+    if (idx >= 0 && idx < s) {
+      const fin = V.seg.linesOf(e)[V.last];
+      imagePanel(ctx, T, fin.image, x, y, P.ts, cls ? [] : [{ pts: M.outlineOf(wbc, fin.ops), color: T.reference, width: 1 }]);
+    } else {
+      frame(ctx, x, y, P.ts, P.ts, T.grid);
+    }
+    note(ctx, T, String(e + 1), x + P.ts / 2, y + P.ts + 13, T.ink3, { align: "center" });
+  }
+  return P.height;
+}
+
+{
+  const segT = pipeView("segmentation", "training");
+  const clsT = pipeView("classification", "training");
+  const clsV = pipeView("classification", "validation");
+  const point = segT.steps[29];                       /* the shipped state's 30 presses: epoch 4, RandAffined */
+  const rows = [
+    ["Segmentation, as shipped", `train_transforms: twelve lines\n${pressesTo(segT, point.epoch, point.line)} presses`, segT, pressesTo(segT, point.epoch, point.line), false],
+    ["Classification (i) · the class under the sample", `eleven lines, keys=["image"], no AsDiscreted\n${pressesTo(clsT, point.epoch, point.line)} presses`, clsT, pressesTo(clsT, point.epoch, point.line), false],
+    ["Classification (ii) · and the sample dict above the list", "the label as the Dataset is given it", clsT, pressesTo(clsT, point.epoch, point.line), true],
+    ["Classification (ii), Validation/Test", "five lines, epoch 3: all cached", clsV, pressesTo(clsV, 2, clsV.last), true],
+  ];
+  for (const [title, sub, V, s, dict] of rows) {
+    const box = cand("pipeRow", title, sub, W);
+    const P = layoutOf(W, V.task === "classification" ? M.LINES.length - 1 : M.LINES.length, dict);
+    drawPipe(canvasIn(box, W, P.height), W, V, s, dict);
+  }
+  document.getElementById("recPipe").innerHTML =
+    `<b>(ii).</b> The sample dict is where the two tasks first differ: <code>"label": "mask1.jpg"</code> is a file `
+    + `that <code>LoadImaged</code> reads and every spatial line moves, and <code>"label": 6</code> is a number that no `
+    + `line is given. Without it the class appears only under the sample, after the list has run. The dict line goes `
+    + `on the Segmentation page too, so the two stay parallel; it moves that page's list down 20px, and its fingerprint `
+    + `states are recorded again at ship.`;
+}
+
+/* ---- 1 and 3 · the rails ---------------------------------------------------- */
+
+const ON = (topic) => ({ param: "topic", equals: topic });
+const opts = (vals, show = (v) => v) => vals.map((v) => ({ value: v, label: show(v) }));
+const slot = (options, def, label = "") => ({ type: "select", label, hidden: true, options, default: def });
+const AFF_DETAIL = "Rotates by an angle drawn from ± rotate_range, translates each axis by a value drawn from ± "
+  + "translate_range pixels and scales each axis by 1 plus a value drawn from ± scale_range; a scale above 1 "
+  + "shrinks the image. Pixels outside the transformed image are set to 0.";
+
+function railSpec({ order, lib = "none", task = "classification", topic = "pipeline" }) {
+  const S = "segmentation";
+  const C = "classification";
+  const onT = ON("transforms");
+  const is = (kind, t) => ({ all: [onT, { param: "transform", equals: kind }, ...(t ? [{ param: "task", equals: t }] : [])] });
+  const taskField = (when) => ({
+    type: "segmented", label: "Task", detail: "the label: a mask for segmentation, a class for classification",
+    options: [{ value: S, label: "Segmentation" }, { value: C, label: "Classification" }], default: task, ...(when ? { when } : {}),
+  });
+  const topicField = { type: "segmented", label: "Topic", options: [{ value: "transforms", label: "Transforms" }, { value: "pipeline", label: "Pipeline" }], default: topic };
+  const spec = {};
+  if (order === "task") Object.assign(spec, { task: taskField(), topic: topicField });
+  else if (order === "topic") Object.assign(spec, { topic: topicField, task: taskField() });
+  else Object.assign(spec, { topic: topicField, kSec: { type: "section", label: "The task", when: onT }, task: taskField(onT) });
+  const imp = (cls, kind) => (lib === "import" ? { [`imp_${kind}`]: { type: "expr", open: `from monai.transforms import ${cls}`, slots: [], when: is(kind) } } : {});
+  Object.assign(spec, {
+    tSec: { type: "section", label: "The transform", when: onT },
+    transform: {
+      type: "segmented", label: "Transform", detail: "one augment transform, applied to the original image on its own",
+      options: [{ value: "flip", label: "Flip" }, { value: "rotate", label: "Rotate" }, { value: "affine", label: "Affine" }, { value: "contrast", label: "Contrast" }, { value: "noise", label: "Noise" }],
+      default: "affine", when: onT,
+    },
+    keys: slot([{ value: "image,label", label: "[\"image\", \"label\"]" }, { value: "image", label: "[\"image\"]" }], "image,label"),
+    flip_prob: slot(opts(M.PROBS), "0.5"),
+    spatial_axis: slot(opts(["0", "1"]), "0"),
+    rotate_prob: slot(opts(M.PROBS), "0.5"),
+    max_k: slot(opts(["1", "2", "3"]), "3"),
+    affine_prob: slot(opts(M.PROBS), "0.25"),
+    rotate_range: slot(opts(["0", "5", "10", "20", "45"], (v) => `${v}.0`), "10"),
+    translate_height: slot(opts(["0", "8", "32", "64"]), "8", "height"),
+    translate_width: slot(opts(["0", "8", "32", "64"]), "8", "width"),
+    scale_height: slot(opts(["0", "0.1", "0.2", "0.3"]), "0.1", "height"),
+    scale_width: slot(opts(["0", "0.1", "0.2", "0.3"]), "0.1", "width"),
+    mode: slot([{ value: "nearest", label: "\"nearest\"" }, { value: "bilinear", label: "\"bilinear\"" }], "nearest", "label"),
+    contrast_prob: slot(opts(M.PROBS), "1"),
+    gamma_low: slot(opts(["0.3", "0.5", "0.7", "1"]), "0.5", "low"),
+    gamma_high: slot(opts(["1", "1.5", "2", "3"]), "2", "high"),
+    noise_prob: slot(opts(M.PROBS), "1"),
+    std: slot(opts(["0.01", "0.05", "0.1"]), "0.1"),
+    callSec: {
+      type: "section", label: lib === "section" ? "The MONAI call" : "The call", when: onT,
+      ...(lib === "detail" ? { detail: "a dictionary transform from MONAI's monai.transforms: keys names the entries it changes" } : {}),
+    },
+    ...imp("RandFlipd", "flip"),
+    flipA: { type: "expr", open: "RandFlipd(keys=", close: ",", slots: ["keys"], when: is("flip", S) },
+    flipAc: { type: "expr", open: "RandFlipd(keys=[\"image\"],", slots: [], when: is("flip", C) },
+    flipB: { type: "expr", open: "prob=", close: ",", slots: ["flip_prob"], when: is("flip") },
+    flipC: { type: "expr", open: "spatial_axis=", close: ")", slots: ["spatial_axis"], when: is("flip", S), detail: "Flips the image, and the mask when \"label\" is in keys: spatial_axis 0 flips top to bottom, 1 left to right." },
+    flipCc: { type: "expr", open: "spatial_axis=", close: ")", slots: ["spatial_axis"], when: is("flip", C), detail: "Flips the image: spatial_axis 0 flips top to bottom, 1 left to right." },
+    ...imp("RandRotate90d", "rotate"),
+    rotA: { type: "expr", open: "RandRotate90d(keys=", close: ",", slots: ["keys"], when: is("rotate", S) },
+    rotAc: { type: "expr", open: "RandRotate90d(keys=[\"image\"],", slots: [], when: is("rotate", C) },
+    rotB: { type: "expr", open: "prob=", close: ",", slots: ["rotate_prob"], when: is("rotate") },
+    rotC: { type: "expr", open: "max_k=", close: ")", slots: ["max_k"], when: is("rotate", S), detail: "Rotates the image, and the mask when \"label\" is in keys, by k × 90° counter-clockwise, with k drawn from 1 to max_k." },
+    rotCc: { type: "expr", open: "max_k=", close: ")", slots: ["max_k"], when: is("rotate", C), detail: "Rotates the image by k × 90° counter-clockwise, with k drawn from 1 to max_k." },
+    ...imp("RandAffined", "affine"),
+    affA: { type: "expr", open: "RandAffined(keys=", close: ",", slots: ["keys"], when: is("affine", S) },
+    affAc: { type: "expr", open: "RandAffined(keys=[\"image\"],", slots: [], when: is("affine", C) },
+    affB: { type: "expr", open: "prob=", close: ",", slots: ["affine_prob"], when: is("affine") },
+    affC: { type: "expr", open: "rotate_range=np.deg2rad(", close: "),", slots: ["rotate_range"], when: is("affine") },
+    affD: { type: "expr", open: "translate_range=(", close: "),", slots: ["translate_height", "translate_width"], when: is("affine") },
+    affE: { type: "expr", open: "scale_range=(", close: "),", slots: ["scale_height", "scale_width"], when: is("affine") },
+    affF: { type: "expr", open: "mode=(\"bilinear\", ", close: "), padding_mode=\"zeros\")", slots: ["mode"], when: is("affine", S), detail: AFF_DETAIL },
+    affFc: { type: "expr", open: "mode=\"bilinear\", padding_mode=\"zeros\")", slots: [], when: is("affine", C), detail: AFF_DETAIL },
+    ...imp("RandAdjustContrastd", "contrast"),
+    conA: { type: "expr", open: "RandAdjustContrastd(keys=[\"image\"], prob=", close: ",", slots: ["contrast_prob"], when: is("contrast") },
+    conB: { type: "expr", open: "gamma=(", close: "))", slots: ["gamma_low", "gamma_high"], when: is("contrast"), detail: "Rescales intensities to 0–1, raises them to the power γ, drawn between the two values of gamma, and rescales them back." },
+    ...imp("RandGaussianNoised", "noise"),
+    noiseA: { type: "expr", open: "RandGaussianNoised(keys=[\"image\"], prob=", close: ",", slots: ["noise_prob"], when: is("noise") },
+    noiseB: { type: "expr", open: "mean=0.0, std=", close: ")", slots: ["std"], when: is("noise"), detail: "Adds Gaussian noise with a standard deviation drawn between 0 and std to every pixel of the image." },
+    imgSec: { type: "section", label: "The image", when: onT },
+    cell: {
+      type: "segmented", label: "White blood cell", detail: "the position of the white blood cell, the object in the mask",
+      options: [{ value: "off-centre", label: "Off-centre" }, { value: "centred", label: "Centred" }], default: "off-centre",
+      when: { all: [onT, { param: "task", equals: S }] },
+    },
+    pSec: { type: "section", label: "The split", when: ON("pipeline") },
+    split: {
+      type: "segmented", label: "Split",
+      detail: lib === "split" ? "the MONAI pipeline applied to the image: train_transforms or val_test_transforms" : "the pipeline applied to the image: train_transforms or val_test_transforms",
+      options: [{ value: "training", label: "Training" }, { value: "validation", label: "Validation/Test" }], default: "training", when: ON("pipeline"),
+    },
+    seed: { type: "int", label: "Seed", detail: "fixes the random draws, so a seed repeats them", min: 1, max: 200, default: SEED },
+  });
+  return spec;
+}
+
+function rail(host, title, sub, opt, drive) {
+  const spec = railSpec(opt);
+  const box = cand(host, title, sub, 320);
+  const hostEl = el("div", "w-split rail-host");
+  const r = el("div", "w-rail");
+  hostEl.appendChild(r);
+  const cm = el("div", "w-controls");
+  r.appendChild(cm);
+  let values = resolveParams(spec, new URLSearchParams(""));
+  const gates = gatingParams(spec);
+  const api = buildControls(cm, spec, values, (name, v) => {
+    values = { ...values, [name]: v };
+    if (gates.has(name)) api.rebuild(values);
+  });
+  const d = el("div", "w-drive");
+  r.appendChild(d);
+  buildActions(d, [
+    { key: "step", text: drive, group: "pace", onClick: () => {} },
+    { key: "run", text: "Play", group: "pace", primary: true, onClick: () => {} },
+    { key: "reset", text: "Reset", onClick: () => {} },
+  ]);
+  box.appendChild(hostEl);
+}
+
+rail("orgRow", "A · Task, then Topic", "your suggestion: both pages follow the task", { order: "task" }, "Next transform");
+rail("orgRow", "B · Topic, then Task", "Task on both pages, below the page switch", { order: "topic" }, "Next transform");
+rail("orgRow", "C · as built", "Task on the Transforms page only", { order: "built" }, "Next transform");
+document.getElementById("recOrg").innerHTML =
+  `<b>A.</b> It is the lessons' own order: classification and segmentation are one lesson each, and each lesson `
+  + `covers the transforms and then the pipeline. Task then decides everything under it, which is true of both pages. `
+  + `B does the same work, with Task read after the page is chosen; C is the problem as it stands.`;
+
+rail("libRow", "A · the import as the first line", "cell 19's own line, for this transform", { order: "task", lib: "import", topic: "transforms" }, "Draw");
+rail("libRow", "B · the section named", "The MONAI call", { order: "task", lib: "section", topic: "transforms" }, "Draw");
+rail("libRow", "C · a detail under the section", "the library in words", { order: "task", lib: "detail", topic: "transforms" }, "Draw");
+rail("libRow", "D · the Pipeline page, in Split's detail", "goes with any of A, B or C", { order: "task", lib: "split", topic: "pipeline" }, "Next transform");
+document.getElementById("recLib").innerHTML =
+  `<b>A, with D.</b> The import is the line students write first in cell 19, so it names the library in the same `
+  + `code the rail already shows, and it names the class with it. B and C name the library in words beside code. `
+  + `D covers the Pipeline page, whose listing on the canvas names classes and no library.`;
+
+document.getElementById("recData").innerHTML =
+  `<b>Data.</b> With Task above both pages it changes what the Pipeline page lists, as Split does, and a Split change `
+  + `already starts that page over. On the Transforms page the cost is small: the same seed gives the same draws, so `
+  + `pressing Draw again shows the same draws under the other task.`;
+</script>
+</body>
+</html>

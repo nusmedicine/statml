@@ -16848,6 +16848,43 @@ harness's 900 × 1200 frame every Transforms state's figure column is already th
 taller one, so no state gains or loses its scrollbar. Classification states are owed
 at ship. **Open for him:** the subtitle's second sentence names the mask only.
 
+#### TASK AND TOPIC 2026-09-17 — his two asks, measured, mocked, picked
+
+**The subtitle** took the offered version on his "use the new subtitle" (e1d38ab):
+*"A spatial transform is applied to a mask with its image, and not to a class
+label."* **His two asks:** *"specify the MONAI library under 'The call' so students
+know which library calls are made"*, and *"under pipeline it refers to segementation
+only..can you discuss and mock up how best to organize this? * task ->
+transforms/pipeline? then we have a classification version of transforms without
+the mask reference"*.
+
+**Measured on MONAI 1.6.0** (`_lab/augmentation-classification-pipeline.py`, output
+in its `.txt`): cell 19 with `keys=["image"]` on every line and no `AsDiscreted`
+runs on `{"image": path, "label": 6}`; `CacheDataset` still caches the lines before
+the first RandFlipd (once in five fetches, the lines after it five times); the label
+comes back as the int 6 on every fetch, and a batch of two collates to
+`tensor([6, 1])`, int64; the five fixed lines give the same sample every fetch. Cell
+19 as written raises at `LoadImaged` on a class label, reading it as a file path. No
+lesson writes this list out: it is cell 19 with the rule the Transforms page shows.
+
+**Mocked** (`_lab/augmentation-task-mock.html`): three rails for where Task goes (A
+Task then Topic, his; B Topic then Task; C as built); the Pipeline page under
+Classification at the shipped state's point, (i) the class under the sample and (ii)
+with the sample dict above the list, and Validation/Test; four rails naming the
+library (A the import line, B the section named, C a section detail, D Split's
+detail); a table on whether switching Task keeps the draws. **Found drawing it:** an
+eleven-row list put the call under the list in the row of the note under the sample,
+so the list area keeps the shipped twelve rows under both tasks.
+
+**His picks, one AskUserQuestion, every recommendation:** **A**, Task above Topic, so
+both pages follow the task; **(ii)**, `{"image": "image1.jpg", "label": "mask1.jpg"}`
+or `{"image": "image1.jpg", "label": 6}` above the list on both tasks, and
+`label: 6 (neutrophil)` under the Classification sample; **the import line**
+(`from monai.transforms import RandAffined`) as the first line of The call, with
+**D**, Split's detail naming MONAI; and Task a **data** control, so switching it
+starts the page over, as Split does. Owed at ship: the Segmentation Pipeline states
+are recorded again, since the dict line moves that list down 20 px.
+
 *The entry below is the plan as first written and cut on 2026-09-13, kept as
 written.*
 

@@ -1,0 +1,7 @@
+monai 1.6.0 torch 2.14.0+cpu
+training: runs; image (3, 64, 64); the transform before RandFlipd ran 1 time(s) and the one after RandGaussianNoised 5 time(s) over 5 fetches
+training: label after each fetch [(6, 'int'), (6, 'int'), (6, 'int'), (6, 'int'), (6, 'int')]
+training: 5 distinct samples in 5 fetches
+batch: image (2, 3, 64, 64); label [6, 1] dtype torch.int64
+validation: every fetch the same sample: True; label 6
+cell 19 as written with a class label: raises RuntimeError: applying transform <monai.transforms.io.dictionary.LoadImaged object at 0x000001901DD9B8F0>
