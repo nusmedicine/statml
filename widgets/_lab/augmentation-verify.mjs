@@ -468,6 +468,13 @@ section("§4 the geometry");
       if (B.kind === "grid") {
         const last = B.at(M.DRAWS - 1);
         assert(last.x + B.ts <= w - M.PAD + 0.5 && B.tallyY <= h, `${tag}: the grid and its tally fit`);
+      } else {
+        /* the twelve samples on every page (his pick A, 2026-09-17): under the figure, their labels above the band */
+        const S = B.samples;
+        const last = S.at(M.DRAWS - 1);
+        assert(S.top === L.bandY && last.x + S.ts <= w - M.PAD + 0.5 && last.y + S.ts + 13 < B.top,
+          `${tag}: the twelve samples fit under the figure, their labels above the band`);
+        assert(S.ts === M.bandLayout(w, { ...p, transform: "flip" }).ts, `${tag}: the samples are the size Flip's are`);
       }
       if (B.kind === "ranges") {
         assert(B.boxX[1] + B.bs + 30 <= w - M.PAD && B.tallyY <= h, `${tag}: both boxes and the tally fit`);

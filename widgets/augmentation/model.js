@@ -648,15 +648,27 @@ export function figureLayout(w, params = {}) {
 
 export const thumbSize = (w) => Math.min(79, Math.floor((w - 2 * PAD - (THUMB_COLS - 1) * THUMB_GAP) / THUMB_COLS));
 
+/* The twelve samples from `top`, two rows of six; `tally` leaves room for the
+   line under them, which only Flip and Rotate carry. */
+function samplesLayout(w, top, tally) {
+  const ts = thumbSize(w);
+  const at = (i) => ({ x: PAD + (i % THUMB_COLS) * (ts + THUMB_GAP), y: top + 12 + Math.floor(i / THUMB_COLS) * (ts + 20) });
+  return { top, ts, at, tallyY: top + 12 + 2 * (ts + 20) + 10, height: 2 * (ts + 20) + (tally ? 34 : 12) };
+}
+const SAMPLES_GAP = 8;
+
 export function bandLayout(w, params) {
   const L = figureLayout(w, params);
   const kind = params.transform;
-  const top = L.bandY;
-  if (kind === "flip" || kind === "rotate") {
-    const ts = thumbSize(w);
-    const at = (i) => ({ x: PAD + (i % THUMB_COLS) * (ts + THUMB_GAP), y: top + 12 + Math.floor(i / THUMB_COLS) * (ts + 20) });
-    return { kind: "grid", top, ts, at, tallyY: top + 12 + 2 * (ts + 20) + 10, height: 2 * (ts + 20) + 34 };
-  }
+  if (kind === "flip" || kind === "rotate") return { kind: "grid", ...samplesLayout(w, L.bandY, true) };
+  /* THE SAMPLES IN SEQUENCE ON EVERY PAGE (Kenneth, 2026-09-17: "for some
+     transforms we have the images in sequence, but not for others"; his pick A
+     on `_lab/augmentation-sequence-mock.html`). Affine, Contrast and Noise draw
+     a continuous argument, so their band showing where each draw landed stays,
+     below the twelve samples; its own line carries the tally. */
+  const samples = samplesLayout(w, L.bandY, false);
+  const lead = samples.height + SAMPLES_GAP;
+  const top = L.bandY + lead;
   if (kind === "affine") {
     /* the magnifier is the mask's edge, so there is none under Classification */
     const mag = params.mode === "bilinear" && params.keys !== "image" && !isClassification(params);
@@ -665,6 +677,7 @@ export function bandLayout(w, params) {
     const bs = 84;
     return {
       kind: "ranges",
+      samples,
       top,
       lineX,
       lineW: w - PAD - lineX,
@@ -674,11 +687,11 @@ export function bandLayout(w, params) {
       boxX: [lineX, lineX + bs + 150],
       tallyY: top + 190,
       mag: mag ? { top: magTop, size: MAG, gap: Math.floor((w - 2 * PAD - 3 * MAG) / 2) } : null,
-      height: RANGES_H + (mag ? MAG + 70 : 0),
+      height: lead + RANGES_H + (mag ? MAG + 70 : 0),
     };
   }
-  if (kind === "contrast") return { kind: "curve", top, size: CURVE, height: CURVE + 44 };
-  return { kind: "noise", top, size: MAG, height: MAG + 44 };
+  if (kind === "contrast") return { kind: "curve", samples, top, size: CURVE, height: lead + CURVE + 44 };
+  return { kind: "noise", samples, top, size: MAG, height: lead + MAG + 44 };
 }
 
 /* THE SAMPLE DICT ABOVE THE LIST (his pick, 2026-09-17): the list and the sample

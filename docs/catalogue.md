@@ -16943,6 +16943,29 @@ and rows 1 and 2 are Classification canvas text, so no recorded state moves. Rea
 the browser under both tasks on both pages; both new lines fit at 535 and 550 px.
 Verify 5,512 checks; `check` green; `test` 29 scripts green.
 
+#### THE SAMPLES IN SEQUENCE 2026-09-17 — his note, mocked, picked A, built
+
+**His note, with a screenshot of Flip's twelve samples:** *"for some transforms we
+have the images in sequence, but not for others (e.g. contrast, affine, contrast,
+noise)"*. The difference was the draft's own: Flip and Rotate draw a discrete
+outcome, so the samples are the values, and Affine, Contrast and Noise draw a
+continuous argument, so their band showed where each draw landed and no image.
+**Mocked** (`_lab/augmentation-sequence-mock.html`): the three bands as now, A the
+twelve samples under the figure with the band kept below, B the samples in place of
+the band, and A at the widest affine arguments. At cell 19's affine an applied sample
+shows mostly the zeros in its corners (the cell moves 1 to 3 px in a 79 px sample); at
+45°, 32 px and 0.3 they differ plainly; contrast's spread and the noisier σ draws read.
+**His pick A.** Built: `bandLayout` gives Affine, Contrast and Noise a `samples`
+layout (Flip's size, no tally row) with their band 8 px below it; `drawGrid` draws the
+samples on every page and the tally only on Flip and Rotate, since each band's own
+line carries it. Pages at 550 under Segmentation: Affine 1,058 (1,292 with the
+magnifier), Contrast 1,078, Noise 1,066; Flip and Rotate unchanged at 872. The verify
+(5,560) holds the samples inside the canvas, their labels above the band, and their
+size equal to Flip's, at 535, 550 and 770 under both tasks. Read in the browser at
+twelve draws on every page and under Classification: no text past the canvas or below
+it, no console error. **Owed at ship:** the Affine, Contrast and Noise states are
+recorded again.
+
 *The entry below is the plan as first written and cut on 2026-09-13, kept as
 written.*
 

@@ -406,21 +406,25 @@ function paintTween(ctx, colors, L, state, params, i, e) {
   else maskPanel(ctx, colors, sm.mask, x1, maskY, s);
 }
 
+/* The twelve samples in sequence, on every page (his pick A, 2026-09-17): Flip
+   and Rotate's whole band, and the row above the band on the other three. */
 function drawGrid(ctx, colors, w, params, state, n) {
   const B = M.bandLayout(w, params);
+  const G = B.kind === "grid" ? B : B.samples;
   const kind = state.kind;
   for (let i = 0; i < M.DRAWS; i += 1) {
-    const { x, y } = B.at(i);
+    const { x, y } = G.at(i);
     if (i >= n) {
-      frame(ctx, x, y, B.ts, B.ts, colors.grid);
+      frame(ctx, x, y, G.ts, G.ts, colors.grid);
       continue;
     }
     const smp = state.sample(i, M.placeOf(params));
-    imagePanel(ctx, colors, smp.image, x, y, B.ts, M.isClassification(params) ? [] : [{ pts: maskLine(smp), color: colors.reference, width: 1.2 }]);
+    imagePanel(ctx, colors, smp.image, x, y, G.ts, M.isClassification(params) ? [] : [{ pts: maskLine(smp), color: colors.reference, width: 1.2 }]);
     const d = state.draws[i];
-    note(ctx, colors, d.fired ? shortText(kind, d) : "—", x + B.ts / 2, y + B.ts + 13, d.fired ? colors.ink1 : colors.ink3, { align: "center" });
+    note(ctx, colors, d.fired ? shortText(kind, d) : "—", x + G.ts / 2, y + G.ts + 13, d.fired ? colors.ink1 : colors.ink3, { align: "center" });
   }
-  if (!n) return;
+  /* the band below carries the tally on the other three pages */
+  if (!n || B.kind !== "grid") return;
   const shown = state.draws.slice(0, n);
   const fired = shown.filter((d) => d.fired);
   if (kind === "flip") {
@@ -713,10 +717,10 @@ function drawTransforms(ctx, colors, w, params, state, anim) {
     }
   }
 
-  if (kind === "flip" || kind === "rotate") drawGrid(ctx, colors, w, params, state, n);
-  else if (kind === "affine") drawRanges(ctx, colors, w, params, state, n, flight);
+  drawGrid(ctx, colors, w, params, state, n);
+  if (kind === "affine") drawRanges(ctx, colors, w, params, state, n, flight);
   else if (kind === "contrast") drawCurve(ctx, colors, w, params, state, n, flight);
-  else drawNoise(ctx, colors, w, params, state, n, flight);
+  else if (kind === "noise") drawNoise(ctx, colors, w, params, state, n, flight);
 }
 
 /* ============================== the Pipeline page ========================= */

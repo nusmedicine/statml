@@ -1,0 +1,320 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · augmentation — the samples in sequence</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1760px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 104ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); min-height: 26px; white-space: pre-line; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 104ch; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>augmentation &middot; the samples in sequence</h1>
+  <p class="note">
+    <b>Your note, 2026-09-17:</b> &ldquo;for some transforms we have the images in sequence, but not for others (e.g.
+    contrast, affine, contrast, noise)&rdquo;. <b>Why they differ now:</b> Flip and Rotate draw a discrete outcome, so
+    the sample is the value and the band under the figure shows the twelve samples. Affine, Contrast and Noise draw a
+    continuous argument, so their band shows where each draw landed: the three ranges, the &gamma; curves, the
+    &sigma; line with the noise itself. So none of those three pages shows the augmented images one after another.
+  </p>
+  <p class="note">
+    Everything below is the band under the figure only (the figure above it is unchanged), drawn by the widget's own
+    <code>model.js</code> at 550px on seed 106, at twelve draws, under Segmentation. <b>As now</b> is the shipped band;
+    <b>A</b> puts the twelve samples under the figure, as Flip and Rotate have them, and keeps the band below;
+    <b>B</b> replaces the band with the samples. Each heading gives the whole page's height at 550px.
+  </p>
+
+  <h2>1 &middot; Affine</h2>
+  <div class="row" id="affineRow"></div>
+  <h2>2 &middot; Contrast</h2>
+  <div class="row" id="contrastRow"></div>
+  <h2>3 &middot; Noise</h2>
+  <div class="row" id="noiseRow"></div>
+  <h2>4 &middot; Affine's samples at wider arguments</h2>
+  <p class="note">
+    Cell 19's affine is small: &plusmn;10&deg;, &plusmn;8px and &plusmn;0.1 on a 512px image move the white cell by
+    1 to 3px in a 79px sample. A at <code>rotate_range</code> 45, <code>translate_range</code> (32, 32),
+    <code>scale_range</code> (0.3, 0.3) and <code>prob</code> 1, the widest the slots offer, to judge what the samples
+    show when the arguments are large.
+  </p>
+  <div class="row" id="wideRow"></div>
+  <p class="rec" id="rec"></p>
+</main>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+import { makeRng } from "../core/rng.js";
+import * as M from "../augmentation/model.js";
+
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+const W = 550;
+const SEED = 106;
+const el = (tag, cls, text) => { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; };
+function cand(host, title, sub, w) {
+  const box = el("div", "cand");
+  box.style.width = `${w}px`;
+  box.appendChild(el("h3", null, title));
+  box.appendChild(el("p", "sub", sub));
+  document.getElementById(host).appendChild(box);
+  return box;
+}
+function canvasIn(box, w, h) {
+  const c = document.createElement("canvas");
+  c.width = Math.round(w * DPR); c.height = Math.round(h * DPR);
+  c.style.width = `${w}px`; c.style.height = `${h}px`;
+  box.appendChild(c);
+  const ctx = c.getContext("2d");
+  ctx.scale(DPR, DPR);
+  return ctx;
+}
+
+/* ---- primitives and bands, as widgets/augmentation/main.js has them --------- */
+
+const signed = (v, d) => (v < 0 ? `−${Math.abs(v).toFixed(d)}` : v.toFixed(d));
+const devicePx = (size) => Math.max(1, Math.round(size * (globalThis.devicePixelRatio || 1)));
+const DEG = Math.PI / 180;
+function txt(ctx, colors, s, x, y, o = {}) {
+  const { color = colors.ink2, align = "left", size = colors.fsSm, baseline = "alphabetic", mono = false, weight = "" } = o;
+  ctx.save();
+  ctx.fillStyle = color; ctx.textAlign = align; ctx.textBaseline = baseline;
+  ctx.font = `${weight} ${size} ${mono ? colors.mono : colors.font}`.trim();
+  ctx.fillText(s, x, y);
+  ctx.restore();
+}
+const note = (ctx, colors, s, x, y, tone, o = {}) => txt(ctx, colors, s, x, y, { color: tone ?? colors.ink3, size: colors.fsXs, ...o });
+function frame(ctx, x, y, w, h, stroke, width = 1) {
+  ctx.save(); ctx.strokeStyle = stroke; ctx.lineWidth = width; ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1); ctx.restore();
+}
+function dot(ctx, x, y, color, r = 3) {
+  ctx.save(); ctx.fillStyle = color; ctx.beginPath(); ctx.arc(x, y, r, 0, 2 * Math.PI); ctx.fill(); ctx.restore();
+}
+const bitmaps = new WeakMap();
+function bitmapOf(im, px) {
+  let per = bitmaps.get(im);
+  if (!per) { per = new Map(); bitmaps.set(im, per); }
+  if (per.has(px)) return per.get(px);
+  const c = document.createElement("canvas");
+  c.width = px; c.height = px;
+  const g = c.getContext("2d");
+  const id = g.createImageData(px, px);
+  const n3 = im.w * im.h;
+  for (let v = 0; v < px; v += 1) {
+    const y = Math.min(im.h - 1, Math.floor(((v + 0.5) * im.h) / px));
+    for (let u = 0; u < px; u += 1) {
+      const i = y * im.w + Math.min(im.w - 1, Math.floor(((u + 0.5) * im.w) / px));
+      const o = 4 * (v * px + u);
+      for (let ch = 0; ch < 3; ch += 1) id.data[o + ch] = Math.max(0, Math.min(255, Math.round(255 * im.d[(im.c === 3 ? ch : 0) * n3 + i])));
+      id.data[o + 3] = 255;
+    }
+  }
+  g.putImageData(id, 0, 0);
+  per.set(px, c);
+  return c;
+}
+const paintImage = (ctx, im, x, y, size) => ctx.drawImage(bitmapOf(im, devicePx(size)), x, y, size, size);
+function outline(ctx, colors, pts, x, y, size, { color, width = 1.5 }) {
+  const s = size / M.N;
+  ctx.save();
+  ctx.beginPath(); ctx.rect(x, y, size, size); ctx.clip();
+  ctx.beginPath();
+  pts.forEach(([px, py], i) => (i ? ctx.lineTo(x + (px + 0.5) * s, y + (py + 0.5) * s) : ctx.moveTo(x + (px + 0.5) * s, y + (py + 0.5) * s)));
+  ctx.closePath();
+  ctx.globalAlpha = 0.85; ctx.strokeStyle = colors.surface; ctx.lineWidth = width + 2; ctx.stroke();
+  ctx.globalAlpha = 1; ctx.strokeStyle = color; ctx.lineWidth = width; ctx.stroke();
+  ctx.restore();
+}
+function imagePanel(ctx, colors, im, x, y, size, lines = []) {
+  paintImage(ctx, im, x, y, size);
+  lines.forEach((l) => outline(ctx, colors, l.pts, x, y, size, l));
+  frame(ctx, x, y, size, size, colors.grid);
+}
+const probOf = (params, kind) => params[`${kind}_prob`];
+function shortText(kind, d) {
+  if (!d.fired) return "not applied";
+  if (kind === "contrast") return `γ ${d.gamma.toFixed(2)}`;
+  if (kind === "noise") return `σ ${d.sigma.toFixed(4)}`;
+  return "applied";
+}
+const maskLine = (smp) => M.outlineOf(smp.wbc, smp.stale === null ? smp.ops : []);
+function bandDraws(state, n) {
+  const shown = state.draws.slice(0, n).map((d, i) => ({ d, i, e: 1 }));
+  const lit = shown.filter((s) => s.d.fired).map((s) => s.i).pop();
+  return { shown, lit };
+}
+
+/* the twelve samples, as drawGrid draws them for Flip and Rotate, from `top` */
+const GRID_H = 2 * (M.thumbSize(W) + 20) + 34;
+function grid(ctx, params, state, n, top, tally) {
+  const ts = M.thumbSize(W);
+  const kind = state.kind;
+  for (let i = 0; i < M.DRAWS; i += 1) {
+    const x = M.PAD + (i % M.THUMB_COLS) * (ts + 6);
+    const y = top + 12 + Math.floor(i / M.THUMB_COLS) * (ts + 20);
+    if (i >= n) { frame(ctx, x, y, ts, ts, T.grid); continue; }
+    const smp = state.sample(i, "off-centre");
+    imagePanel(ctx, T, smp.image, x, y, ts, [{ pts: maskLine(smp), color: T.reference, width: 1.2 }]);
+    const d = state.draws[i];
+    note(ctx, T, d.fired ? shortText(kind, d) : "—", x + ts / 2, y + ts + 13, d.fired ? T.ink1 : T.ink3, { align: "center" });
+  }
+  if (tally) {
+    const fired = state.draws.slice(0, n).filter((d) => d.fired).length;
+    note(ctx, T, `applied in ${fired} of ${n} draws; prob = ${probOf(params, kind)}`, M.PAD, top + 12 + 2 * (ts + 20) + 10, T.ink1);
+  }
+}
+
+function drawRanges(ctx, colors, w, params, state, n) {
+  const B = M.bandLayout(w, params);
+  const { shown, lit } = bandDraws(state, n);
+  const pointTone = (i) => (i === lit ? colors.highlight : colors.empirical);
+  const r = Number(params.rotate_range);
+  note(ctx, colors, "rotate, degrees", M.PAD, B.lineY + 4, colors.ink2);
+  ctx.save(); ctx.strokeStyle = colors.axis; ctx.beginPath(); ctx.moveTo(B.lineX, B.lineY); ctx.lineTo(B.lineX + B.lineW, B.lineY); ctx.stroke(); ctx.restore();
+  note(ctx, colors, signed(-r, 0), B.lineX, B.lineY + 16, colors.ink3);
+  note(ctx, colors, "0", B.lineX + B.lineW / 2, B.lineY + 16, colors.ink3, { align: "center" });
+  note(ctx, colors, String(r), B.lineX + B.lineW, B.lineY + 16, colors.ink3, { align: "right" });
+  const along = (v, range) => (range > 0 ? (v + range) / (2 * range) : 0.5);
+  shown.forEach(({ d, i, e }) => {
+    if (d.fired) dot(ctx, B.lineX + along((e * d.op.rotate) / DEG, r) * B.lineW, B.lineY, pointTone(i), i === lit ? 4 : 3);
+  });
+  const box = (bx, label, rows, cols, center, valOf, ticks, rowTicks) => {
+    note(ctx, colors, label, bx, B.boxY - 8, colors.ink2);
+    note(ctx, colors, rowTicks[0], bx + B.bs + 5, B.boxY + 8, colors.ink3);
+    note(ctx, colors, rowTicks[1], bx + B.bs + 5, B.boxY + B.bs, colors.ink3);
+    frame(ctx, bx, B.boxY, B.bs, B.bs, colors.axis);
+    ctx.save(); ctx.strokeStyle = colors.grid; ctx.setLineDash([2, 3]); ctx.beginPath();
+    ctx.moveTo(bx + B.bs / 2, B.boxY); ctx.lineTo(bx + B.bs / 2, B.boxY + B.bs); ctx.moveTo(bx, B.boxY + B.bs / 2); ctx.lineTo(bx + B.bs, B.boxY + B.bs / 2);
+    ctx.stroke(); ctx.restore();
+    note(ctx, colors, "width", bx + B.bs / 2, B.boxY + B.bs + 14, colors.ink3, { align: "center" });
+    note(ctx, colors, "height", bx - 6, B.boxY + B.bs / 2 + 3, colors.ink3, { align: "right" });
+    note(ctx, colors, ticks[0], bx, B.boxY + B.bs + 14, colors.ink3);
+    note(ctx, colors, ticks[1], bx + B.bs, B.boxY + B.bs + 14, colors.ink3, { align: "right" });
+    shown.forEach(({ d, i, e }) => {
+      if (!d.fired) return;
+      const [vh, vw] = valOf(d).map((v) => center + e * (v - center));
+      dot(ctx, bx + along(vw - center, cols) * B.bs, B.boxY + along(vh - center, rows) * B.bs, pointTone(i), i === lit ? 4 : 3);
+    });
+  };
+  const th = Number(params.translate_height); const tw = Number(params.translate_width);
+  const sh = Number(params.scale_height); const sw = Number(params.scale_width);
+  box(B.boxX[0], "translate, px", th, tw, 0, (d) => d.op.translate, [signed(-tw, 0), String(tw)], [signed(-th, 0), String(th)]);
+  box(B.boxX[1], "scale", sh, sw, 1, (d) => d.op.scale, [(1 - sw).toFixed(1), (1 + sw).toFixed(1)], [(1 - sh).toFixed(1), (1 + sh).toFixed(1)]);
+  const fired = state.draws.slice(0, n).filter((d) => d.fired).length;
+  note(ctx, colors, `applied in ${fired} of ${n} draws; each dot is one applied draw's value within its range`, M.PAD, B.tallyY, colors.ink1);
+}
+function drawCurve(ctx, colors, w, params, state, n) {
+  const B = M.bandLayout(w, params);
+  const [lo, hi] = M.gammaRange(params);
+  const x0 = M.PAD + 26; const y0 = B.top + 8; const S = B.size;
+  const X = (v) => x0 + v * S; const Y = (v) => y0 + S - v * S;
+  ctx.save(); ctx.fillStyle = colors.empirical; ctx.globalAlpha = 0.16; ctx.beginPath();
+  for (let i = 0; i <= 40; i += 1) { const v = i / 40; if (i) ctx.lineTo(X(v), Y(v ** lo)); else ctx.moveTo(X(v), Y(v ** lo)); }
+  for (let i = 40; i >= 0; i -= 1) ctx.lineTo(X(i / 40), Y((i / 40) ** hi));
+  ctx.closePath(); ctx.fill(); ctx.restore();
+  frame(ctx, x0, y0, S, S, colors.axis);
+  const curve = (g, color, width, alpha = 1) => {
+    ctx.save(); ctx.globalAlpha = alpha; ctx.strokeStyle = color; ctx.lineWidth = width; ctx.beginPath();
+    for (let i = 0; i <= 60; i += 1) { const v = i / 60; if (i) ctx.lineTo(X(v), Y(v ** g)); else ctx.moveTo(X(v), Y(v ** g)); }
+    ctx.stroke(); ctx.restore();
+  };
+  curve(1, colors.reference, 1);
+  const { shown, lit } = bandDraws(state, n);
+  shown.forEach(({ d, i }) => { if (!d.fired) return; if (i === lit) curve(d.gamma, colors.highlight, 2); else curve(d.gamma, colors.empirical, 1, 0.7); });
+  const fired = state.draws.slice(0, n).filter((d) => d.fired);
+  note(ctx, colors, "0", x0, y0 + S + 13, colors.ink3, { align: "center" });
+  note(ctx, colors, "1", x0 + S, y0 + S + 13, colors.ink3, { align: "center" });
+  note(ctx, colors, "input intensity", x0 + S / 2, y0 + S + 26, colors.ink3, { align: "center" });
+  ctx.save(); ctx.translate(M.PAD + 8, y0 + S / 2); ctx.rotate(-Math.PI / 2); note(ctx, colors, "output intensity", 0, 0, colors.ink3, { align: "center" }); ctx.restore();
+  const tx = x0 + S + 28;
+  note(ctx, colors, `shaded: γ from ${lo} to ${hi}`, tx, y0 + 14, colors.ink2);
+  note(ctx, colors, "the diagonal: γ = 1, no change", tx, y0 + 30, colors.ink2);
+  note(ctx, colors, `applied in ${fired.length} of ${n} draws; each curve is one applied draw`, tx, y0 + 54, colors.ink1);
+}
+function drawNoise(ctx, colors, w, params, state, n) {
+  const B = M.bandLayout(w, params);
+  const S = B.size; const y0 = B.top + 8;
+  const { shown, lit } = bandDraws(state, n);
+  if (lit === undefined) frame(ctx, M.PAD, y0, S, S, colors.grid);
+  else imagePanel(ctx, colors, state.sample(lit, "off-centre").diff, M.PAD, y0, S);
+  note(ctx, colors, "augmented − original, × 20", M.PAD, y0 + S + 14, colors.ink1);
+  note(ctx, colors, "grey: no change", M.PAD, y0 + S + 28, colors.ink3);
+  const std = Number(params.std);
+  const lx = M.PAD + S + 30; const lw = w - M.PAD - lx; const ly = y0 + 40;
+  note(ctx, colors, "σ of each applied draw", lx, y0 + 14, colors.ink2);
+  ctx.save(); ctx.strokeStyle = colors.axis; ctx.beginPath(); ctx.moveTo(lx, ly); ctx.lineTo(lx + lw, ly); ctx.stroke(); ctx.restore();
+  note(ctx, colors, "0", lx, ly + 16, colors.ink3);
+  note(ctx, colors, String(std), lx + lw, ly + 16, colors.ink3, { align: "right" });
+  shown.forEach(({ d, i }) => { if (d.fired) dot(ctx, lx + (d.sigma / std) * lw, ly, i === lit ? colors.highlight : colors.empirical, i === lit ? 4 : 3); });
+  const fired = state.draws.slice(0, n).filter((d) => d.fired).length;
+  note(ctx, colors, `applied in ${fired} of ${n} draws; σ is drawn from 0 to std`, lx, ly + 44, colors.ink1);
+  note(ctx, colors, `std = ${std} is ${(255 * std).toFixed(1)} of 255 grey levels`, lx, ly + 60, colors.ink3);
+}
+
+/* ---- the candidates --------------------------------------------------------- */
+
+const BASE = {
+  topic: "transforms", task: "segmentation", keys: "image,label", flip_prob: "0.5", spatial_axis: "0", rotate_prob: "0.5", max_k: "3",
+  affine_prob: "0.25", rotate_range: "10", translate_height: "8", translate_width: "8", scale_height: "0.1",
+  scale_width: "0.1", mode: "nearest", contrast_prob: "1", gamma_low: "0.5", gamma_high: "2", noise_prob: "1",
+  std: "0.1", cell: "off-centre", seed: SEED,
+};
+const BANDS = { affine: drawRanges, contrast: drawCurve, noise: drawNoise };
+const FIG_BAND = M.figureLayout(W, BASE).bandY;   /* where the band starts under the figure: 630 */
+const GAP = 12;
+
+function row(host, params) {
+  const kind = params.transform;
+  const state = M.computeTransforms(params, makeRng(SEED));
+  const n = M.DRAWS;
+  const B = M.bandLayout(W, params);
+  const bandH = B.height;
+  const band = (ctx, y) => { ctx.save(); ctx.translate(0, y - B.top); BANDS[kind](ctx, T, W, params, state, n); ctx.restore(); };
+  const page = (h) => FIG_BAND + h + 10;
+  {
+    const box = cand(host, "As now", `the ${kind === "affine" ? "ranges" : kind === "contrast" ? "γ curves" : "difference and σ line"} alone\npage ${page(bandH)}px`, W);
+    band(canvasIn(box, W, bandH + 16), 8);
+  }
+  {
+    const box = cand(host, "A · the samples, then the band", `twelve samples under the figure, as Flip and Rotate\npage ${page(GRID_H + GAP + bandH)}px`, W);
+    const ctx = canvasIn(box, W, GRID_H + GAP + bandH + 16);
+    grid(ctx, params, state, n, 0, false);
+    band(ctx, GRID_H + GAP + 8);
+  }
+  {
+    const box = cand(host, "B · the samples only", `the band removed; the tally as Flip's\npage ${page(GRID_H)}px`, W);
+    grid(canvasIn(box, W, GRID_H + 8), params, state, n, 0, true);
+  }
+}
+
+row("affineRow", { ...BASE, transform: "affine" });
+row("contrastRow", { ...BASE, transform: "contrast" });
+row("noiseRow", { ...BASE, transform: "noise" });
+{
+  const params = { ...BASE, transform: "affine", affine_prob: "1", rotate_range: "45", translate_height: "32", translate_width: "32", scale_height: "0.3", scale_width: "0.3" };
+  const state = M.computeTransforms(params, makeRng(SEED));
+  const box = cand("wideRow", "A at the widest arguments", "rotate_range 45 · translate_range (32, 32) · scale_range (0.3, 0.3) · prob 1", W);
+  grid(canvasIn(box, W, GRID_H + 8), params, state, M.DRAWS, 0, false);
+}
+document.getElementById("rec").innerHTML =
+  `<b>A.</b> Every page then has the same structure: the draw large, the twelve samples in sequence, and, where the `
+  + `argument is continuous, the band that shows where each draw landed in its range. The samples show what `
+  + `augmentation gives the network, a different image each draw, and the band shows how each argument is drawn; B `
+  + `keeps the first and loses the second, which is the part the rail's arguments set. The cost is 232px on those `
+  + `three pages. Under Classification the samples carry no outline, as on Flip and Rotate.`;
+</script>
+</body>
+</html>
