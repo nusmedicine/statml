@@ -1,18 +1,24 @@
 # Handover
 
-**SIXTY-ONE WIDGETS IN THE MANIFEST — 60 on the gallery and `roc-auc` UNLISTED; no draft on `main`** (`wgcna` is still a draft on its own branch and worktree, another session's). The live site is <https://nusmedicine.github.io/statml/>, deployed from `main`: the latest widget ship is `ea9426e`, and this handover's commit follows it.
+**IN REVIEW, NOT PUSHED (2026-09-17, a later session): slot 62 `augmentation` has a Classification task on `main`, committed locally.** Kenneth asked whether augmentation is done for classification, then for the library to be named and the Pipeline page to follow the task. MONAI was run twice, two mocks were drawn (`_lab/augmentation-classification-mock.html`, `_lab/augmentation-task-mock.html`), and both rounds were built on his picks (catalogue § Slot 62, from *CLASSIFICATION OPTION* to the second *BUILT*): Task above Topic as a data control, both pages in a Classification version, the import line on every call, and the sample dict above the Pipeline list; the new subtitle is in. **Do not push `main` until he has tested it and given the word:** it changes a shipped widget, and every push publishes. A copy audit was applied on "apply all", and Affine, Contrast and Noise now show the twelve samples under the figure as Flip and Rotate do (his pick A). At ship it owes Classification fingerprint states, the three Segmentation Pipeline states and the Affine, Contrast and Noise states recorded again (the dict line and the samples move them), the full suite fronted, and `task=classification` added to the widget's public link words below.
 
-**SESSION CLOSED 2026-09-17, the day's second close.** Slot 62 `augmentation` **SHIPPED AND PUSHED a Classification task** on Kenneth's "make classification as default, push to gallery", as `ea9426e`, after the session's eight commits of rounds (`36a8592..bcfde48`). He asked whether augmentation is done for classification and whether the widget should augment without the mask. Three mocks followed (`_lab/augmentation-classification-mock.html`, `augmentation-task-mock.html`, `augmentation-sequence-mock.html`), and every pick was the recommendation: Task above Topic (Classification · Segmentation, Classification the default, a data control), a Classification version of both pages, the `from monai.transforms import` line on every call, the sample dict above the Pipeline list, a new subtitle, a copy audit, and the twelve samples under the figure on every Transforms page. MONAI was run for both claims (`_lab/augmentation-classification-monai.py`, `_lab/augmentation-classification-pipeline.py`). At the ship 22 states were recorded (from 13, and all seven already-recorded states reproduced), `check` passed, `test` passed its 29 scripts, the verify passed 5,560 checks, and the fronted full suite read 824 of 824 identical on its third run: the first two went hidden mid-run and were discarded. The push carried the nine commits since `f42807f`. The deploy ran green (2m23s); the live manifest reads `shipped` with "classification" among the topics, and the live `main.js` carries the Classification default and the import lines.
+**SIXTY-ONE WIDGETS IN THE MANIFEST — 60 on the gallery and `roc-auc` UNLISTED; no draft on `main`** (`wgcna` is still a draft on its own branch and worktree, another session's). The live site is <https://nusmedicine.github.io/statml/>, deployed from `main`: the widget ship is `93f2d6d`, and this handover's commit follows it.
 
-The day's first close, slot 67 `tumor-heterogeneity` at `93f2d6d`, is recorded in its section below and in the catalogue.
+**SESSION CLOSED 2026-09-17.** Slot 67 `tumor-heterogeneity` **SHIPPED AND PUSHED** on Kenneth's "push to gallery" as `93f2d6d`, after this session's 25 commits of rounds on the draft (`b38fae1..511b66d`): the copy audit, three tweens, page 1 rebuilt around what the analysis is given and the call it makes, both defaults measured, the register pass, and page 3's radial connectors, sample order, error bars, genes and arrowheads, then one name for each thing across the three pages. The push carried all 40 local commits since `264c625`. The deploy ran green (2m41s), and the live manifest reads `shipped` with the new blurb, 60 of 61. At the ship `check` passed, `test` passed its 29 scripts, the widget's verify passed 196 checks, and the fronted full suite read 815 of 815 identical.
 
 **NEXT: his call.** The cancer arc's order is 69 `driver-genes` → 70 `mutational-signatures`, with 71 `somatic-interactions` his call once those are built. **69's measure step runs maftools' own `oncodrive`, and maftools is not installed here: installing it from Bioconductor is a network call to put to him** (SimpleWall), not something to build around. The image arc (PHM5005 06) has 61, 64, 65 and 62 shipped and 63 `pretrained` on KIV; slot 52 `training-loop` was discarded on 2026-09-13; the GWAS and PRS arc and the high-throughput arc are complete.
 
-> **Compacted three times.** On 2026-09-16 from 3,528 lines ([docs/archive/HANDOVER-2026-09-16.md](docs/archive/HANDOVER-2026-09-16.md): every per-widget session record for widgets 22 to 65), on 2026-09-17 from 1,651 ([docs/archive/HANDOVER-2026-09-17.md](docs/archive/HANDOVER-2026-09-17.md): slot 62's review record, the history behind *Working on Windows* and the DPR section, and open items that were duplicated or moot), and at that day's second close from 1,466 to 1,433 ([docs/archive/HANDOVER-2026-09-17b.md](docs/archive/HANDOVER-2026-09-17b.md): slot 67's what-shipped and verification paragraphs and the in-review block for slot 62's Classification task, both in the catalogue; the particulars of the MR, PRS and 01-2 notebook text written for Kenneth; and the lesson-link and projection clauses repeated under each open item, now said once). Each archive is byte-identical to HANDOVER.md at the commit [docs/archive/README.md](docs/archive/README.md) names. Kept here: current state, the order of work, the machine, the lessons not yet in the principles, the open items, and every reference section another file points at (*Working on Windows*, *The canvas text sweep*, *Driving the animation in node*, the fingerprint harness, *THE BIG ONE*, *Order of work*, *NEVER BASELINE BY PLACEHOLDER-AND-DIFF*, the traps). A source comment naming a HANDOVER section that is no longer here resolves in an archive. **HANDOVER is current state and the next task; the catalogue is the record.**
+> **Compacted twice.** On 2026-09-16 from 3,528 lines ([docs/archive/HANDOVER-2026-09-16.md](docs/archive/HANDOVER-2026-09-16.md): every per-widget session record for widgets 22 to 65), and on 2026-09-17 from 1,651 ([docs/archive/HANDOVER-2026-09-17.md](docs/archive/HANDOVER-2026-09-17.md): slot 62's review record, the history behind *Working on Windows* and the DPR section, and open items that were duplicated or moot). Each archive is byte-identical to HANDOVER.md at the commit [docs/archive/README.md](docs/archive/README.md) names. Kept here: current state, the order of work, the machine, the lessons not yet in the principles, the open items, and every reference section another file points at (*Working on Windows*, *The canvas text sweep*, *Driving the animation in node*, the fingerprint harness, *THE BIG ONE*, *Order of work*, *NEVER BASELINE BY PLACEHOLDER-AND-DIFF*, the traps). A source comment naming a HANDOVER section that is no longer here resolves in an archive. **HANDOVER is current state and the next task; the catalogue is the record.**
 
-## Slot 67 `tumor-heterogeneity` — shipped 2026-09-17 (`93f2d6d`)
+## Slot 67 `tumor-heterogeneity` — shipped 2026-09-17
 
-"Tumor Heterogeneity" for PHM5003 07 / 01-2 cells 17–25: *One mutation · Many mutations · Clonal architecture*. The catalogue's § *Slot 67* has what shipped, how it was verified (16 states, 196 verify checks, the suite 815 of 815 at the time), and every round.
+**What shipped.** "Tumor Heterogeneity" for PHM5003 07 / 01-2 cells 17–25, three pages in the lesson's order:
+
+- **One mutation.** Sixty cells at the sample's purity, with the mutation drawn on the copies it can sit on; the reads as a pileup; the VAF bar carrying the expected value. Under it, a panel of the scenarios that fit the expected VAF, given what the analysis is **Given**: Nothing · Purity · Purity and copy number. A fourth tile makes the call, **Clonal · Subclonal · Cannot tell**, beside the cancer cell fraction, which reads as a range when several scenarios fit. The rail is *The sample · The sequencing · The analysis*.
+- **Many mutations.** One histogram, with the truth in colour (*Clonal: in every tumor cell* · *Subclonal: in some tumor cells*) and the mixture's components as brackets. The axis eases between variant allele frequency and cancer cell fraction, with **Given: Nothing · Purity** for the correction. MATH and the cluster count sit in tiles.
+- **Clonal architecture.** His RETCHER figure's four samples, with his error bars and genes; the two trees with arrowheads; the sum rule's overflow in `--c-extreme`. The sample control narrows the trees that fit, 2 of 2 → 1 of 2, because the surgery sample joins first.
+
+**How it was verified.** Sixteen fingerprint states from `_lab/tumor-heterogeneity-shoot.html`: thirteen settled and three driven, each shot three times after seven proof states reproduced. The fronted full suite read **all 815 states identical**. `_lab/tumor-heterogeneity-verify.mjs` has 196 checks, among them a painted-extent sweep (settled and mid-tween), the radial connector geometry, page 3's control narrowing, the error bars bracketing their means, and a struck-word sweep over 150 strings. The catalogue's § *Slot 67* has every round.
 
 **Things the next session must know about this widget:**
 
@@ -25,21 +31,16 @@ The day's first close, slot 67 `tumor-heterogeneity` at `93f2d6d`, is recorded i
 - **Three tweens, and one deliberate non-tween:** page 2's axis eases through core's display-change door; page 2's bars morph on purity, depth and mutation count (bar heights, not mutations, because depth re-deals the stream); page 3's tree glides on one scalar. The VAF bar is not eased.
 - **The 01-2 notebook does not link to it yet** (prd §4 says how). The catalogue's § *What the lesson's own output says* lists what the lesson prints wrongly; those are his to fix.
 
-## Slot 62 `augmentation` — shipped 2026-09-16, the Classification task shipped 2026-09-17 (`ea9426e`)
+## Slot 62 `augmentation` — shipped 2026-09-16
 
-"Deep Learning - Image Augmentation" for PHM5005 06-2 and 06-3: **Task** (Classification · Segmentation) over two pages, Transforms · Pipeline. The catalogue's slot 62 entry has what shipped, how it was verified, and every round through *SHIPPED 2026-09-17*; what follows is still true and still owed.
-
-- **Classification is the default**, so the gallery opens on it and a Segmentation link carries `task=segmentation`. Task is a data control above Topic: it changes the Pipeline list, as Split does, so switching it starts the page over. Every fingerprint state names its task, so a later change of default moves no state.
-- **Under Classification the label is a class, and the page shows it as one.** `6 (neutrophil)` (BloodMNIST's label map; 06-2 cell 14's title form) sits in the mask's row, each call writes `keys=["image"]`, no outline is drawn, and White blood cell is hidden (`placeOf` draws the off-centre cell). Both claims were run on MONAI 1.6.0: a class label in keys raises on every spatial line, and cell 19 with `keys=["image"]` and no `AsDiscreted` runs, caches the same lines, and keeps the label an int. **No lesson writes that eleven-line pipeline out;** it is cell 19 with the rule the Transforms page shows.
-- **`LINES` is the one master list.** A pipeline state carries `list` (the indices it shows), `last` (the line that ends an epoch) and `classify`, and `callOf(i, classify)` writes each call. The list area keeps twelve rows under both tasks: at eleven, the call under the list reached the row of the note under the sample.
-- **The twelve samples sit under the figure on every Transforms page** (`bandLayout(…).samples`), with Affine's ranges, Contrast's γ curves and Noise's σ band below them, each band carrying the tally.
+"Deep Learning - Image Augmentation" for PHM5005 06-3, two pages, Transforms · Pipeline. The catalogue's slot 62 entry has what shipped, how it was verified, and the review; what follows is still true and still owed.
 
 - **Its axis wording assumes Kenneth's edit to the notebook:** `reader="PILReader", reverse_indexing=False` on cell 19's LoadImaged lines. With it an image loads [C, H, W], `spatial_axis=0` flips top to bottom, `Rotate90` k = 1 turns counter-clockwise, a positive affine rotate turns clockwise, and translate and scale are (height, width). Without it MONAI loads a 2D image x-first and each of those reads the other way. He said he would add it; nothing here has checked that he did.
 - **The lesson's JPG masks are unmeasured.** Nothing rescales the label before `AsDiscreted(threshold=0.5)`, so on a 0–255 JPG mask any compression value of 1 or more becomes foreground (+25.0% to +33.8% on a synthetic disc); KRD-WBC's own masks were not read. Told to him 2026-09-15.
 - **The engine restates MONAI's arguments in file axes in one place**, `fileOp(op, order)` in `widgets/augmentation/engine.js`. **The MONAI trap the pin caught:** `RandAffined`'s parameters readable after a call are a second, unapplied draw; read `rand_affine_grid.get_transformation_matrix()`.
 - **The page's height must not depend on the canvas width between 535 and 770 px.** The Noise page never settled under the harness's scrollbar (255 px panels made the document 1,211 tall, the scrollbar narrowed the canvas to 535, the document fell to 1,200, the scrollbar went) until the panel and thumbnail sizes were capped at their 535 px values in `figureLayout`, `thumbSize` and `pipelineLayout`. The verify asserts one height at 535, 550, 755 and 770. Any widget whose height reads its width can do this; the shooter says NEVER SETTLED.
-- **Its link words are public now:** `task=classification|segmentation`, `topic=pipeline`, `transform=flip|rotate|affine|contrast|noise`, `keys=image`, `cell=off-centre|centred`, `mode=bilinear`, `split=validation`, `translate_height`, `translate_width`, `scale_height`, `scale_width`, and the `*_prob`, `gamma_low`, `gamma_high` and `std` slots. Renaming breaks shared links.
-- **Neither 06-2 nor 06-3 links to it yet** (prd §4 says how). A link from 06-2 needs no task word; one from 06-3 needs `?task=segmentation`.
+- **Its link words are public now:** `topic=pipeline`, `transform=flip|rotate|affine|contrast|noise`, `keys=image`, `cell=off-centre|centred`, `mode=bilinear`, `split=validation`, `translate_height`, `translate_width`, `scale_height`, `scale_width`, and the `*_prob`, `gamma_low`, `gamma_high` and `std` slots. Renaming breaks shared links.
+- **The 06-3 notebook does not link to it yet** (prd §4 says how).
 
 ## Open across the collection, none blocking
 
@@ -71,13 +72,13 @@ The order has run on every widget since 49, unchanged through 67:
 
 Consolidated on 2026-09-16 from the session notes it replaces; *Working on Windows* below keeps the history and the diagnoses.
 
-- **Dev server:** `node scripts/serve.mjs <port>`. Never `npm run dev` (a WSL Docker container holds :8000) and never `PORT=`. `.claude/launch.json` has `widgets` on 8010 and `widgets-alt` to `widgets-alt4` on 8011–8014; other chats' servers usually hold some of them, and `preview_start` refuses a taken port, so take the next free lane (2026-09-17's second close left 8010 held by the first session's server and 8011 by its own). `netstat -ano | grep LISTENING | grep ':801'` says which are taken. A server another chat started on this tree serves the same files with `no-store`, so navigating to it works.
+- **Dev server:** `node scripts/serve.mjs <port>`. Never `npm run dev` (a WSL Docker container holds :8000) and never `PORT=`. `.claude/launch.json` has `widgets` on 8010 and `widgets-alt` to `widgets-alt4` on 8011–8014; other chats' servers usually hold some of them, and `preview_start` refuses a taken port, so take the next free lane (2026-09-17 closed with only 8010 held, by that session's own server). `netstat -ano | grep LISTENING | grep ':801'` says which are taken. A server another chat started on this tree serves the same files with `no-store`, so navigating to it works.
 - **After every push, read `gh run list --limit 1` and curl the live manifest.** A verify that passed here failed on GitHub's runner for a day (a 150 ms gate in `prs-verify.mjs`, 2026-09-12), and every deploy failed with it. Never gate a verify on the clock.
 - **Git on Dropbox:** `git add` one file at a time in a retry loop, and commit with `git -c gc.auto=0 commit`. `unable to write file .git/objects/…: Permission denied` is Dropbox indexing each object as git writes it, never permissions; the automatic repack fails on Dropbox's lock and leaves a `.tmp-*` file in `.git/objects/pack/`. An add that reports `Permission denied` can still have landed, so read `git status` before retrying blind.
 - **Write scripts and patches to the scratchpad with the Write tool**, then run them: heredocs and `node -e` in the Bash tool mangle backslashes and quotes. **Line endings:** `.gitattributes` pins LF, and 502 tracked files are LF against 37 CRLF. Python's `open(p, "w")` writes CRLF on Windows, so open with `newline="\n"` or use the Edit tool, and check with `tr -cd '\r' < file | wc -c`.
-- **The harness and every shooter need the pane displayed, the tab active and the document visible.** DPR reads 1.25 only then: a run with the pane hidden reads DPR 1 and every `px` DIFFERs, and a run with the document hidden at DPR 1.25 still gave 27 false `px` DIFFERs (2026-09-13). Close other tabs, `tabs_select` the harness, and read `devicePixelRatio` and `document.visibilityState` on every poll; discard a run that was hidden at any point. A poll only samples, so **install a `visibilitychange` listener on the harness page right after load** that logs the row count at each change: on 2026-09-17 two runs went hidden between polls (false `px` DIFFERs in `cnn-architecture` and `naive-bayes`), and the third, logged, showed no change from its fourth row to its last. `javascript_tool` caps at 45 s, so poll in waits of 38 s or less. The suite auto-runs; never click Run.
+- **The harness and every shooter need the pane displayed, the tab active and the document visible.** DPR reads 1.25 only then: a run with the pane hidden reads DPR 1 and every `px` DIFFERs, and a run with the document hidden at DPR 1.25 still gave 27 false `px` DIFFERs (2026-09-13). Close other tabs, `tabs_select` the harness, and read `devicePixelRatio` and `document.visibilityState` on every poll; discard a run that was hidden at any point. `javascript_tool` caps at 45 s, so poll in waits of 38 s or less. The suite auto-runs; never click Run.
 - **The harness frame is 900 × 1200.** A side-layout canvas is 550 CSS px wide there, 535 when the page is tall enough for a scrollbar, so aim hit coordinates at targets that hold at both. `check` refuses a driven state that also pins `shown=`; reach a finished figure through `before: [{ click: "run", frames: N }]`. The frame clock is 32 ms, so a driven state needs enough frames to pass a beat (14 frames is 448 ms). A hit state that "clears" a pin is inert, since the pointer still hovers the target; record pins.
-- **The shooter:** copy the newest `_lab/*-shoot.html` (now `augmentation-shoot.html`, copied 2026-09-17 from `tumor-heterogeneity-shoot.html`, which was built from the current harness functions; an older copy can predate a branch of `setParam` and hash a state the drive never reached). It proves the copy against known states first, shoots each state three times, and checks every driven state against its settled sibling. **Re-recording a shipped widget,** give each state the change cannot reach its recorded hashes instead of `"0"`: the newest copy reports whether each one reproduced. Two traps: it reads `$note` unguarded and some states have none, so guard it (`$note ?? ""`); and its output is written only at the end, so an empty page mid-run is normal.
+- **The shooter:** copy the newest `_lab/*-shoot.html` (now `tumor-heterogeneity-shoot.html`, copied from `augmentation-shoot.html` and built from the current harness functions; an older copy can predate a branch of `setParam` and hash a state the drive never reached). It proves the copy against known states first, shoots each state three times, and checks every driven state against its settled sibling. Two traps: it reads `$note` unguarded and some states have none, so guard it (`$note ?? ""`); and its output is written only at the end, so an empty page mid-run is normal.
 - **The scrollbar flake:** a `px`-only DIFFER on a tall page, `tx` matching and the row hashed at 688 where the baseline holds 669, is the scrollbar until that widget's shooter run alone says otherwise. Do not rebaseline it. A DIFFER on BOTH hashes with identical hashes across runs is something else (t-sne, 2026-09-10: proven environmental by running the harness on the last all-green commit from a detached worktree). And a ship claim that reads "all N of the new widget's states MATCH" is not a full-suite claim; read the DIFFER count.
 - **Screenshots come back black once the page is scrolled:** shift `document.body.style.marginTop` instead of scrolling. The pane's screenshot is 800 px wide. Trust DOM reads over screenshots; under `resize_window`, clicks by `ref` can land off target, while DOM `.click()` and dispatched PointerEvents are reliable.
 - **Python:** `python` is 3.12 at `%LOCALAPPDATA%\Programs\Python\Python312`, with numpy 2.5.2, scikit-learn 1.9.0, Pillow 12.3.0, torch 2.14.0+cpu and MONAI 1.6.0. Two of three torch error strings quoted from memory were wrong (2026-09-11). **A blocked network call is a question for Kenneth** (SimpleWall prompts), not a constraint to build around.
@@ -85,16 +86,7 @@ Consolidated on 2026-09-16 from the session notes it replaces; *Working on Windo
 
 ## Things learned, not yet in the principles
 
-Each block below is carried as written by the session that learned it, newest first. `docs/design-principles.md` holds none of them yet (grepped 2026-09-16, and 2026-09-17 for the two newest blocks); moving them there is Kenneth's call.
-
-### From 62 `augmentation`'s Classification task (2026-09-17)
-
-- **A value that is a bug in one setting and correct in another needs a control naming the setting, not another value.** `keys=["image"]` was the stale mask's failure case under segmentation and is the only spatial call that runs for classification. A classification toggle on `keys` would have shown one setting as both; Task names what decides it.
-- **A control that changes a list's length is a data control, as Split is.** Task began as display, keeping the draws. Once it also changed the Pipeline list from twelve lines to eleven, keeping progress would have meant mapping each press between two lists, and he picked "start over".
-- **Shortening a list can move a line into a note's row.** Eleven rows put the call printed under the list on the baseline of the note under the sample, beside it. The layout keeps the longer list's rows.
-- **A line's condition is its sibling's condition.** The Classification keys line printed after a draw that was not applied, while its Segmentation sibling, the stale mask's line, prints only after an applied one. Reading the canvas text after an unapplied press found it.
-- **A second copy audit finds its rows in the strings written since the first, and in gating.** Every row was the day's, and one was made by a `when`: under Classification the section *The image* held only Seed.
-- **Re-recording can measure what it expects unchanged.** Seven of 22 states kept their recorded hashes, and the shooter reported all seven reproduced, so "the change cannot reach them" was measured rather than argued.
+Each block below is carried as written by the session that learned it, newest first. `docs/design-principles.md` holds none of them yet (grepped 2026-09-16, and 2026-09-17 for the newest block); moving them there is Kenneth's call.
 
 ### From 67 `tumor-heterogeneity`, the rounds to ship (2026-09-16/17)
 
@@ -599,22 +591,41 @@ pointer drag confined to a strip), `--c-value-low/high` as a colour role,
 ## Kenneth's notebook edits
 
 **03 - MR and the PRS notebooks (2026-09-13).** **Kenneth is editing the
-notebooks himself; nothing in this repo waits on it.** The text written for him
-at widget 60's close was all in the chat: the MR results cell, the three methods
-as a table with inline math, the harmonisation table, the F statistic and
-pleiotropy sentences, and the PRS calibration sentences ("on the diagonal", not
-"sits"). Its particulars are in
-[docs/archive/HANDOVER-2026-09-17b.md](docs/archive/HANDOVER-2026-09-17b.md).
-When the arc is next touched, read the notebooks first — the widget's words must
-match his.
+notebooks himself; nothing in this repo waits on it.** Text was written for him
+in the session that closed widget 60, all of it in the
+chat, none in the repo: for `03 - MR.ipynb` the results cell (each method
+estimates the causal effect as a SLOPE, then b / se / pval as that slope's
+report; "all five slopes are positive", IVW 0.45 ≈ odds ratio 1.6 per SD of
+BMI — an SD, not a variance, because the BMI GWAS standardised its trait),
+the three methods as a markdown table with `<br>` line breaks and the
+IVW and Egger formulas as inline `$…$` math (display `$` does not
+render inside a table cell; no `|` inside the math), a harmonisation
+table ("same two alleles, each study reports for its own effect allele"),
+the F statistic and pleiotropy sentences; for the PRS notebooks (02-1,
+02-2) the calibration sentences with "a calibrated plot is on the
+diagonal", not "sits". When the arc is next touched, read the notebook
+first — the widget's words must match his.
 
 **01-2, the HWE revision (2026-09-13).** Kenneth asked why the lesson's pooled sample of three populations "preserves" HWE. It does not: within Chinese, Malay and Indian separately NO SNP fails at 10⁻⁶, mean F is zero, and all 2008 pooled failures pass in every group. The numbers are under the catalogue's § *Three things the lesson's own output files say*, item 2.
 
-**His decision: revise 01-2 to do it properly, not a note:** HWE tested within
-each population (`--keep-fam` per RACE list), and the SNPs that pass in all three
-kept with `--extract` in place of `--hwe`. The cell-by-cell plan, the six
-intersection methods he chose among, and the QC practice it was checked against
-are in the 2026-09-17b archive.
+**His decision: revise 01-2 to do it properly, not a note.** The cells he
+is adding, all Bash-kernel, no `awk`: three `grep ",C$" … | cut -d, -f1 >
+keep_C.txt` lists from the RACE column of `iomics_measurements.csv`;
+`--hardy` runs with `--keep-fam keep_C.txt` beside the pooled one, read
+with `sort -g -k9,9 file.hwe | head` (not `head` alone — the top of
+chromosome 1 is monomorphic); `--hwe 1e-6 --write-snplist` per population;
+the intersection of the three pass lists (his choice among six that were
+timed on 2.5M names: `sort A B | uniq -d` twice, `comm`, `grep -Fxf`,
+`awk`, Python sets, an R file with tidyverse `map(read_lines) %>%
+reduce(intersect)` — the R one is untested here, this machine's R has no
+tidyverse); then `--extract hwe_pass_CMI.snplist` in place of `--hwe` in
+the filtering cell. Practice checked against Turner's QC protocol
+("necessary to test within each group"), UK Biobank (marker QC on a
+European-ancestry subset), the CCDG pipeline (within homogeneous subsets,
+remove on failure in any), Marees 2018, PLINK's `--hwe` (founders and
+controls by default). The one refinement told to him: the big cohorts
+group by genetic ancestry from PCA, and the RACE label stands in for it
+here because 01-4 shows the labels and clusters coincide.
 
 **Two things this may change in the repo later, neither owed now:** the
 `hardy-weinberg` widget's copy and its catalogue misconception line were
@@ -639,9 +650,11 @@ These are the things a past session recorded and did NOT fix. Each is a
 deliberate deferral, not a bug list — the full reasoning is in the catalogue
 under each widget's own section.
 
-*The lesson links that no notebook carries yet, and the projection check that no widget from 11 on except 25 has had, are listed once under* Open across the collection *above, not repeated per widget here.*
+**Open on 67 `tumor-heterogeneity`, none blocking:** no mutation can be built sitting on the 0.9 line (offered as a note, not taken); the four-cluster patient in `_lab/vaf-trees-mock.html` stays a mock, on his pick of three clusters and his own data; the 01-2 notebook does not yet link to it (prd §4 says how).
 
-**Open on 67 `tumor-heterogeneity`, none blocking:** no mutation can be built sitting on the 0.9 line (offered as a note, not taken); the four-cluster patient in `_lab/vaf-trees-mock.html` stays a mock, on his pick of three clusters and his own data.
+**NOT YET JUDGED PROJECTED** — widgets 22 (`tsne`) and 23 (`umap`) have never
+been looked at from the back of a lecture room. Principle: thin strokes and
+small tick labels are what fail at distance.
 
 **Widget 24 `kmeans`, three recorded and not fixed:**
 
@@ -675,39 +688,45 @@ under each widget's own section.
 **Open on 57, none blocking:** the rail is ~790px against a ~500px figure
 column; λ after three SNPs is a median of three and moves a lot early in a
 run; dragging the Family effect slider under + PCs + GRM recomputes at
-~230 ms an event.
+~230 ms an event; the 01-3 to 01-6 notebooks do not yet link to it (prd
+§4 says how).
 
 **Open on 56, none blocking:** the frequency difference is shared by both
 pages, so at the default 0.5 the Many-SNPs page shows most SNPs past the
 line (the mock drew each SNP's difference from a spread and matched the
-lesson file's 0.12%); the static legend entries above.
+lesson file's 0.12%); the static legend entries above; the 01-2 notebook
+does not yet link to it (prd §4 says how).
 
-**Open on 55, none blocking:** 05-4's cell 41 links the netlify site where
-the widget link would go; the three Start
+**Open on 55, none blocking:** the 05-4 notebook does not yet link to it
+(prd §4 says how; cell 41 links the netlify site today); the three Start
 detail lines were kept as descriptions of place ("(−3.6, 0.6); the local
 minimum lies between here and the global one") and Kenneth may strike them
 as steering; compare at lr 0.3 is a busy picture (real: RMSprop is flung at
 that rate); the rail is ~685px in the tallest state against a ~590px stage.
-**Open on 54:** the Single-label fraction renders small in MathML; the
-Multi-label rail is taller than its stage.
+**Open on 54:** the notebook link; the Single-label fraction renders small
+in MathML; the Multi-label rail is taller than its stage.
 
 **Open on `composition`, none blocking:** the readout tiles on the four flow
 pages print results at rest (Gate range, shapes match, Merged) while the
-captions wait, raised twice and not taken up.
+captions wait, raised twice and not taken up; the 05-3 notebook does not
+yet link to 49, 50 or 51 (prd §4 says how).
 
 **Open on `support-layers`, none blocking:** the pooling window's canvas
 arithmetic line prints max at 2 dp and mean at 4 dp (the readout tile was
 fixed, the canvas line was not named by the audit); the `PLACEHOLDER, draft:`
 note prefix still stands on `processing-layers`' 29 states in the baseline
-(50's were stripped; the shooter strips it itself, so it is cosmetic).
+(50's were stripped; the shooter strips it itself, so it is cosmetic); the
+05-3 notebook does not yet link to either widget (prd §4 says how).
 
-**Widget 53 `tensors`, open after shipping, none blocking** (the notebook's
-second tensor is under *Notebook points recorded for him* above):
+**What tensors leaves open, none blocking:** the 05-2 notebook does not yet
+link to the widget (prd §4 says how); the notebook's second tensor (cells
+41–44) holds 21–30 where the widget's T2 is T + size (21–40 at rank 3),
+his cell to edit; the rank-5 figures are tall at the 550px stage (stack at
+rank 4 in the frames view about 1600px, its print under the drawing);
+the phone-width overflow on Basics (canvas ≈ 371) is accepted for the
+lecture screen; and the three `?ops` overruns listed under *Open items*.
 
-- The rank-5 figures are tall at the 550px stage (stack at rank 4 in the
-  frames view about 1600px, its print under the drawing), and the
-  phone-width overflow on Basics (canvas ≈ 371) is accepted for the lecture
-  screen.
+**Widget 53 `tensors`, open after shipping, none blocking:**
 
 - The two degenerate stacks a student can type, [20, 1, 1] and
   [1, 20, 1, 1], overrun the 550px stage by 30 to 110px in the stack view
@@ -716,6 +735,8 @@ second tensor is under *Notebook points recorded for him* above):
   `dim 1 = 0` into 22px (visible on Join's stack in the frames view).
 - The lesson's `T[0, 0, −1]` (cell 19): negative indices were offered as
   an option and Kenneth did not take them.
+- The notebook's second tensor (cells 41–44) holds 21–30 in both samples;
+  the widget's holds T + size, 21–40 at rank 3. Kenneth's cell to edit.
 - Join at rank 4 is two 40-cell tensors and an 80-cell result, drawn since
   round 28 as a fifth level; judged by him and kept, at its height.
 - At rank 4, `flatten()` and `reshape(-1)` make a [40] row, which at the
@@ -739,7 +760,7 @@ second tensor is under *Notebook points recorded for him* above):
    harness `drag` step would close that; the turned-viewpoint settled state
    covers what the drag writes meanwhile.
 
-**Widget 45 `hmm`, for its projection check:** the 550px fingerprint canvas gives 17px tiles and 10px letters on Biology.
+**Widget 45 `hmm`, still open:** not judged projected — the 550px fingerprint canvas gives 17px tiles and 10px letters on Biology; and the 05/02 lesson link is not yet placed.
 
 **Widget 44 `experimental-design`, what is still open:**
 
@@ -758,15 +779,27 @@ second tensor is under *Notebook points recorded for him* above):
    is significant 68.7% of the time, 4.8% of those with the sign backwards. The
    stated hazard is a lost finding; the measured one is an invented finding at
    43.5% when nothing is there. Kenneth has been told; the notebook is his.
+4. **The notebook link**, which no PHM5003 lesson carries. The archive's *Where
+   things are* table records, per widget, whether its lesson link is placed.
+5. **Not judged projected**, which every widget from 11 on still owes.
 
-**Widget 43 `enrichment`, still open:** the permutation scheme. `gseaNull`
-permutes set membership; the real thing permutes sample labels and re-ranks.
-Newly buildable — the stage now has an expression matrix — and costed at the
-foot of `main.js`.
+**Widget 43 `enrichment`, still open:**
 
-**Widget 42 `hierarchical-clustering`, still open:** narrow widths unchecked
-since the canvas grew to 790 tall, last measured at 375px when it was 400. A
-student could actually hit this one.
+1. **The permutation scheme.** `gseaNull` permutes set membership; the real
+   thing permutes sample labels and re-ranks. Newly buildable — the stage now
+   has an expression matrix — and costed at the foot of `main.js`.
+2. **Not judged projected**, which every widget from 11 on still owes.
+3. **The notebook link**, which no PHM5003 lesson carries.
+
+**Widget 42 `hierarchical-clustering`, still open, in the order they matter:**
+
+- **Narrow widths unchecked** since the canvas grew to 790 tall. Last measured
+  at 375px when it was 400. This is the one thing on the list a student could
+  actually hit.
+- **Not judged projected**, which every widget from 11 on still owes.
+
+**No widget from 11 through 24 has been judged projected** (25 was, on its
+promotion day); old, and blocks nothing.
 
 ### Still open on widget 20, and both are teaching calls
 

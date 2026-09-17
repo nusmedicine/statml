@@ -16997,6 +16997,9 @@ document was hidden; the second showed a `naive-bayes` `px`-only DIFFER (a known
 scrollbar flake) and then went hidden too. Both were discarded, and the third ran
 with a `visibilitychange` log that recorded no change from the fourth row to the
 last. `check` green; `test` 29 scripts green, the verify at 5,560 checks.
+**Pushed** with the nine commits since `f42807f`: the deploy ran green (2m23s), the
+live manifest reads `shipped` with "classification" among the topics, and the live
+`main.js` carries the Classification default and the import lines.
 
 *The entry below is the plan as first written and cut on 2026-09-13, kept as
 written.*
