@@ -919,8 +919,11 @@ defineWidget({
     task: {
       type: "segmented",
       label: "Task",
-      detail: "the label: a mask for segmentation, a class for classification",
-      options: [{ value: "segmentation", label: "Segmentation" }, { value: "classification", label: "Classification" }],
+      /* Classification first, on his word (2026-09-17), the order of the two
+         lessons; the detail follows the buttons. Segmentation stays the default,
+         so every existing link opens as it did. */
+      detail: "the label: a class for classification, a mask for segmentation",
+      options: [{ value: "classification", label: "Classification" }, { value: "segmentation", label: "Segmentation" }],
       default: "segmentation",
     },
     topic: {

@@ -16966,6 +16966,13 @@ twelve draws on every page and under Classification: no text past the canvas or 
 it, no console error. **Owed at ship:** the Affine, Contrast and Noise states are
 recorded again.
 
+**Classification first on the Task buttons**, on his *"can you put classification
+before segmentation on the buttons?"*: the order of the two lessons. Task's detail
+follows the buttons (*"the label: a class for classification, a mask for
+segmentation"*). Segmentation stays the default, so every existing link opens as it
+did and the URL carries `task=classification` only when it is chosen (read in the
+browser both ways). The rail is not hashed, so no state moves.
+
 *The entry below is the plan as first written and cut on 2026-09-13, kept as
 written.*
 
