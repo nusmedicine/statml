@@ -883,11 +883,12 @@ defineWidget({
   slug: "augmentation",
   status: "shipped",
   title: "Deep Learning - Image Augmentation",
-  /* Kenneth's pick A of the copy audit, 2026-09-16 */
+  /* Kenneth's pick A of the copy audit, 2026-09-16; the second sentence rewritten
+     for the Task control on his word, 2026-09-17 ("use the new subtitle") */
   subtitle:
-    "Data augmentation applies new random transforms to each training image in every epoch. A spatial "
-    + "transform is applied to the image and its mask together. Only the fixed transforms are applied to "
-    + "validation and test images.",
+    "Data augmentation applies new random transforms to each training image every epoch. A spatial "
+    + "transform is applied to a mask with its image, and not to a class label. Only the fixed transforms "
+    + "are applied to validation and test images.",
   layout: "side",
   height: ({ w, ...values }) => M.pageHeight(w, values),
 
