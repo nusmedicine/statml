@@ -8653,7 +8653,7 @@ dominating a decomposition; a nearest reference used as a name.
 | 67 | `variant-allele-frequency` | Tumor Heterogeneity | 01-2 cells 17–25 | a VAF below 0.5 is a subclone, and a cluster of VAFs is a clone. **Measured: 965 of 967 tumours have a median VAF below 0.5, and a tumour with one clone reads MATH 15–25 from sampling alone** | reported (Dentro, Wedge & Van Loo 2017; the lesson's cells 17 and 24 state both caveats) | **SHIPPED 2026-09-17** as `tumor-heterogeneity`, three pages |
 | 68 | `clonal-architecture` | Clonal Architecture | 01-2 cell 25 and `cancer-retcher.png`; nothing run | the clusters' CCFs give the tree. **Measured on his figure: the sum rule rules out branching at three of its four samples, and the surgery sample alone fits both trees** | documented for the rule (Nik-Zainal et al. 2012, the pigeonhole principle); the misconception inferred | **FOLDED into 67 as its last page, Kenneth's pick 2026-09-16**, and shipped with it 2026-09-17 — the section below stands as that page's spec |
 | 69 | `driver-genes` | Cancer Driver Genes | 01-3 cells 12–25 | a gene `oncodrive` does not call is a passenger; a smaller FDR is a stronger driver. **Measured: TP53, CDH1, GATA3 and MAP3K1, four of the six most mutated genes, are absent from cell 16's table** | documented (Tamborero et al. 2013; TCGA 2012 names all four as significantly mutated) | **measured, mocked and picked 2026-09-17** — maftools installed, cell 16 reproduced; next the draft |
-| 70 | `mutational-signatures` | Mutational Signatures | 01-4 | an extracted signature is a process across the cohort, and its best COSMIC match names the cause. **Measured: Signature_1 is one tumour** | reported (Koh et al. 2021 on attribution) | proposed — **a new widget importing 41's engine, his pick 2026-09-16** |
+| 70 | `mutational-signatures` | Mutational Signatures | 01-4 | an extracted signature is a process across the cohort, and its best COSMIC match names the cause. **Measured: Signature_1 is one tumour** | reported (Koh et al. 2021 on attribution) | **measured, mocked and picked 2026-09-18** — NMF installed, cells 4–30 reproduced, references look-alikes; next the draft |
 | 71 | `somatic-interactions` | Somatic Interactions | 01-3 cells 4–11, 35 | two genes rarely mutated together share a pathway (cell 4's reading). **Measured: TP53–CDH1's odds ratio 0.153 is 0.407 within histology** | documented (Canisius, Martens & Wessels 2016; van de Haar et al. 2019) | **not asked for** — kept proposed, **his call after 67–70 are built** |
 
 **Every citation in this section is to re-read before copy quotes it**; they
@@ -8717,7 +8717,9 @@ mock, since a slug is a public URL.
    represents the original mutation frequencies". § *Widget 41* reads it the
    same way.
 7. **01-4's Signature_1 is one tumour** — TCGA-AN-A046, with 5,841 of the
-   cohort's 82,747 SNVs. Slot 70 has the measurement.
+   cohort's 82,747 SNVs. Slot 70 has the measurement: in cell 21's own run
+   (reproduced on NMF 0.28, 2026-09-18) that tumour holds 58.6% of the
+   signature and alone holds half of it.
 8. **01-3 cell 38 reads the two-gene `mafSurvival` as patients with both
    mutations.** Its Mutant group (cell 37, N 367) is the tumours with either:
    328 with PIK3CA plus 82 with MAP3K1, less the 43 with both (cell 35's
@@ -8747,6 +8749,19 @@ mock, since a slug is a public URL.
     tests two-sided, so 19 of its 32 calls at FDR 0.05 are genes with fewer
     mutations than expected, CDH1 (134 against 175.4) among them; `"combined"`
     takes the smaller of that and the z-score FDR.
+12. **01-4 cell 23 says maftools does not yet support COSMIC v3.** maftools
+    2.26.0 ships `SBS_v34` (v3.4, 86 signatures) beside `legacy` and `SBS`, and
+    `compareSignatures(sig_db = "SBS_v34")` runs on cell 21's signatures and
+    names the same five best matches as `SBS` (SBS10b, SBS2, SBS3, SBS6, SBS6;
+    run 2026-09-18).
+13. **01-4 cell 29 says it compares "with the reference COSMIC database (v2)"**
+    while running `sig_db = "SBS"`, the v3 set; the same cell spells
+    "tstability".
+14. **01-4 cell 19's `estimateSignatures` and cell 21's `extractSignatures` add
+    `pConstant = 0.1` to every cell**, 9,293 counts on top of 82,747 (11.2%),
+    which cell 19 describes as "a small value to add if there a problem with
+    NMF". It does not make the flat signature (the same five come out at 0.001),
+    but the exposures it returns include it.
 
 ### Slot 67 · `variant-allele-frequency` — Tumor Heterogeneity
 
@@ -9812,6 +9827,106 @@ answered here rather than in 41.
 
 **Ask:** the reference profiles — synthetic look-alikes, or COSMIC's own
 vectors, whose licence has to be read before a public repository carries them.
+
+#### MEASURED, MOCKED AND PICKED 2026-09-18
+
+**NMF installed on his approval** (CRAN: NMF 0.28 into the R user library, with
+Biobase 2.70.0 from Bioconductor 3.22 and CRAN's dependencies; no BSgenome).
+`_lab/mutational-signatures-nmf.R` runs 01-4 as he ran it and **every number
+the notebook printed reproduces** (`_lab/mutational-signatures-nmf.txt`, 9
+checks): cell 4's six rows, cell 11's 968 × 96 matrix, cell 12's head, cell
+14's tumour in all 96 types, **all 60 printed rows of cell 21 to the printed
+digits** (largest relative difference 4.4 × 10⁻⁷), and every printed cosine of
+cells 24 and 30. The matrix is built from the MAF's own 11-base `CONTEXT`
+through `trinucleotideMatrix`'s conversion lines, so no hg38 genome was needed.
+What ran, read from the installed source: `extractSignatures` is one
+`NMF::nmf(rank = 5, seed = 123456)` run of `brunet`, the KL update (890
+iterations here), with `pConstant` added to every cell first;
+`compareSignatures` rounds each cosine to three digits and names the maximum.
+
+- **Misconception 2, in the lesson's own run:** Signature_1 is TCGA-AN-A046's
+  profile (cosine 1.000); that tumour holds 58.6% of it and alone holds half.
+  Rerun without it, no signature comes within cosine 0.46 of Signature_1, the
+  freed slot goes to one matching COSMIC_30 (0.883), and Signature_4 splits.
+  Tumours holding half of the others: Signature_2 (APOBEC) 20, Signature_3
+  (flat) 206, Signature_4 184, Signature_5 50.
+- **Misconception 3:** Signature_2 is COSMIC_2 0.848 against COSMIC_13 0.813,
+  the two APOBEC signatures; Signature_5 SBS6 0.797 against SBS15 0.775;
+  Signature_4 names 5-methylcytosine deamination in legacy and mismatch repair
+  in SBS; the flat Signature_3 has four references within 0.14 (COSMIC_3 0.886,
+  COSMIC_8 0.803, COSMIC_4 — tobacco smoking — 0.775, COSMIC_5 0.745).
+- **The pseudo-count is 11.2% of the matrix** (9,293 added to 82,747; 9.6
+  against the median tumour's 42), but the flat signature is not made of it: at
+  `pConstant` 0.001 and 0.01 the same five come out, the flat one 0.82 flat
+  against 0.87.
+- **COSMIC's profiles cannot be on the site.** Its terms (cosmickb.org/terms,
+  read 2026-09-18) forbid display "on a free to access platform (including but
+  not limited to public facing websites)" without GRL's written consent. The
+  measure reads maftools' copies on this machine only to score the look-alikes;
+  no vector is in the repo.
+
+**The planning model**, `_lab/mutational-signatures-model.js`, checked by
+`_lab/mutational-signatures-measure.mjs` (9 checks,
+`_lab/mutational-signatures-measure.txt`):
+
+- **Ten look-alike references**, each built from its process's mechanism (class
+  shares, and a weight for each 5′ and each 3′ base): cosine 0.80–1.00 to both
+  COSMIC profiles each stands for, and the catalogue's geometry follows the real
+  one — the flat three 0.78–0.87 apart (SBS 0.79–0.88), CpG against mismatch
+  repair 0.81 (0.77). The lesson's own signatures rank against them as against
+  COSMIC: Signature_1 Polymerase epsilon 0.965; Signature_2 APOBEC C>T 0.757,
+  then C>G 0.648 (SBS2 0.757, SBS13 0.654); Signature_3 recombination defect
+  0.846, then the unknown flat one 0.746.
+- **A simulated cohort** of 100 tumours: lognormal counts fitted to the matrix
+  (log-mean 3.838, sd 0.891; median 44 against 42), deamination at CpG and a flat
+  clock-like process in every tumour, APOBEC (its C>T and C>G together) in about
+  30%, a recombination defect in about 25%, and one hypermutated tumour with a
+  polymerase epsilon profile at 7.1% of the mutations, TCGA-AN-A046's share.
+- **The extraction** is the KL update from one start with `pConstant = 0.1`,
+  stopped when the divergence moves less than 10⁻⁷ of itself over 10 iterations
+  (median 337 ms in Node; 166–719 ms in the browser).
+- **What it shows, over ten seeds:** at rank 4 the tumour takes its own
+  signature in 9 of 10 (52.6–66.9% of it, one tumour holding half), and **every
+  start that missed it stopped at a higher divergence** (3 of 30 starts), so the
+  one-tumour signature is the better fit and a single start can miss it. By the
+  tumour's share: 1% 0 of 10, 2% 1, 3% 6, 5% 9, 7.1% 9, 10% 10. **The flat
+  signature is named after the process that built less of it in 4 of 10**, by
+  cosine margins of 0.006–0.026 (seed 1: Clock-like 0.878 over the recombination
+  defect 0.866, built 56% recombination defect). APOBEC is always named C>T,
+  C>G second.
+
+**Kenneth's picks, 2026-09-18, one `AskUserQuestion` from
+`_lab/mutational-signatures-mock.html`, all four recommendations:**
+
+1. **The references are look-alikes, named by process** (Deamination at CpG,
+   APOBEC C>T, …), with the COSMIC signature each stands for in the detail, as
+   widget 69 names its genes by kind.
+2. **Page 2 draws cell 0's figure, then each signature opened out**, as two
+   presses after Extract: M ≈ S × W as `cancer-signature.png` draws it, then each
+   signature's bars with W's row under it sorted, where "one tumour holds half"
+   is read.
+3. **The hypermutated tumour is in, with a Left-out switch** (*The hypermutated
+   tumour: In · Left out*): the lesson's cohort has one, and leaving it out is
+   the measurement of cell 21 done by hand.
+4. **Page 3 is cells 26 and 32's heatmap, a row opening as cells 28 and 34's
+   profiles with the runner-up, and what built each signature printed** — the
+   simulation's own knowledge, which turns "a best match is a ranking" into a
+   case.
+
+**Settled by the mock and not re-argued:** three pages in the notebook's order,
+*Catalogue · Signatures · Matching*; page 1 is the arrival and then two read
+steps (twelve written changes → six read from the pyrimidine, with Ti/Tv → 96
+with the neighbours), on one tumour of 1,302 mutations; the rank is *Signatures
+to extract*, 2–6, opening on 4, with widget 41 in its detail; the page is a
+display parameter and the tumour, the rank and the seed are data; the widget
+opens on M alone; seed 1 is the default, where all ten of the mock's checks hold.
+
+**For the draft, not settled:** a colour role for the six substitution classes
+(the mock borrows the cluster slots); page 3's row click through core's region
+door, widget 59's pattern; the extraction cached by the parameters it reads, as
+69 caches its cohort; and how much of widget 41's `model.js` to import —
+`updateKL` and `cosine` are general, `normalise` and `fitTrace` read its 24 × 12
+stage, and generalising them is a change to a shipped widget's engine.
 
 ### Slot 71 · `somatic-interactions` — not asked for, measured, cuttable
 
