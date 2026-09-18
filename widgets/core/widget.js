@@ -938,6 +938,12 @@ export function defineWidget(config) {
        the label moves when the counter does. */
     if (decl.anim != null) {
       const entry = decl.labels?.[anim?.[decl.anim]];
+      /* AN ENTRY MAY ITSELF KEY ON A PARAMETER, exactly as one under `param`
+         may. Widget 69's cohort walk places its genes on whichever axis the
+         reader has chosen, so the step that does it is named by the counter AND
+         by the control; without this the button read "[object Object]"
+         (2026-09-18). */
+      if (entry && typeof entry === "object") return resolveLabel(entry, decl.default ?? fallback);
       return entry ?? decl.default ?? fallback;
     }
     const field = spec[decl.param];

@@ -1115,6 +1115,16 @@ gets the default, so this is an explicit statement rather than an oversight.
 > thing that happens is a toggle. **A dead Step beside a live toggle teaches that
 > the toggle is the afterthought.**
 
+
+**A label may key on the animation's own counter, and an entry under it may key
+on a parameter in turn.** Widget 69's cohort walk places its genes on whichever
+axis the reader chose, so the press that does it is named by the counter AND by
+the control: `{ anim: "labelAt", labels: { c1: { param: "across", labels: {…} } } }`.
+
+> *Earned:* `resolveLabel` recursed into an object entry under `param` and
+> returned one under `anim` as it stood, so the button read **"[object Object]"**
+> (2026-09-18). The width reservation had always flattened both.
+
 ---
 
 ### 4.3 Motion should read as the thing it depicts
