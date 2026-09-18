@@ -9662,8 +9662,11 @@ printed a probability as 0.0000.
   use), **Colour by kind → Colour by role** (the conventional term for oncogene
   against tumor suppressor). The subtitle is his pick of four: the method first,
   as `gwas`, `mendelian-randomization` and `polygenic-score` open, and a last
-  sentence for the correction the cohort page now spends a press on. The blurb
-  stays as it was, on his call.
+  sentence for the correction the cohort page now spends a press on — with its
+  middle clause naming the genes, *"so the score detects the oncogene and not
+  the suppressor"*, on his call after the pick, since the option as offered kept
+  the "first / second" construction the audit had flagged in the old one. The
+  blurb stays as it was, also his call.
 
 - **All four tweens built, his pick of the mock (2026-09-18).** Page 2 is now a
   five-press build and page 1's two panel changes carry their panel:

@@ -650,7 +650,7 @@ export const STRINGS = {
   subtitle: "OncodriveCLUST scores the share of a gene's mutations in positional clusters against a fixed "
     + "background. Gain-of-function mutations in an oncogene are found at a few residues that activate the "
     + "protein, and loss-of-function mutations in a tumor suppressor anywhere along it, so the score detects the "
-    + "first gene and not the second. Across a cohort the p-values are then corrected for the number of genes "
+    + "oncogene and not the suppressor. Across a cohort the p-values are then corrected for the number of genes "
     + "tested.",
 
   pageLabel: "Page",
