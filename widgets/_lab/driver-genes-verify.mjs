@@ -260,10 +260,15 @@ function drive(params, mode, { dt = 32, frames = 4000 } = {}) {
     labels.slice(0, 6).join(" | ") === Object.values(M.STRINGS.stepLabels).join(" | "), labels.join(" | "));
   check("a finished gene's button names the step it ended on", d.anim.done && d.anim.labelAt === 5);
 
-  const run = drive(paramsOf({ gene: "suppressor" }), "run");
-  const frames = run.press();
-  check("Play takes the tumor suppressor through every step and stops", run.anim.stage === 6 && run.anim.done && run.anim.landed === run.state.one.n,
-    `${frames} frames at 32 ms`);
+  /* Play is declined, his call on the draft (2026-09-18): each step is read,
+     not watched, and one press takes exactly one of them. */
+  check("the page declines Play, and no copy for it is left behind",
+    W.animation.runLabel === null && W.animation.runTitle === undefined && M.STRINGS.runTitle === undefined);
+  const sup = drive(paramsOf({ gene: "suppressor" }), "step");
+  const stages = [];
+  for (let i = 0; i < 7; i += 1) { sup.press(); stages.push(sup.anim.stage); }
+  check("six presses take the tumor suppressor through every step and stop",
+    stages.join() === "1,2,3,4,5,6,6" && sup.anim.done && sup.anim.landed === sup.state.one.n, stages.join());
 
   const seed = [1, 2, 3, 4, 5, 6].find((s) => !M.analyse(M.geneFor("passenger", s)).res);
   const p = drive(paramsOf({ gene: "passenger", seed }), "step");

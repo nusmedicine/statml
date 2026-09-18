@@ -450,7 +450,8 @@ function drawCohortPage(ctx, colors, w, params, state, anim) {
 
 /* ---- the steps ------------------------------------------------------------------ */
 
-/** One frame of the drive. A step is one stage; Play pauses STAGE_MS on each. */
+/** One frame of the drive. One press is one step, and it ends there: with Play
+    declined (below) nothing chains the steps together. */
 function takeStep(anim, dt, a) {
   const last = M.lastStage(a);
   if (anim.stage >= last) { anim.done = true; return false; }
@@ -462,19 +463,12 @@ function takeStep(anim, dt, a) {
     anim.landed = Math.min(a.n, Math.ceil(a.n * Math.min(1, anim.clock / M.LAND_MS)));
     if (anim.landed < a.n) return true;
     anim.clock = 0;
-    return anim.mode !== "step";
-  }
-  if (anim.mode === "step") {
-    anim.stage += 1;
-    anim.clock = 0;
-    anim.done = anim.stage >= last;
     return false;
   }
-  if (anim.clock < M.STAGE_MS) return true;
   anim.stage += 1;
   anim.clock = 0;
-  if (anim.stage >= last) { anim.done = true; return false; }
-  return true;
+  anim.done = anim.stage >= last;
+  return false;
 }
 
 /* ---- the widget ----------------------------------------------------------------- */
@@ -583,7 +577,17 @@ defineWidget({
        steps, keyed on the animation's own counter, as widget 60's is. */
     stepLabel: { anim: "labelAt", labels: S.stepLabels, default: S.stepLabels[0] },
     stepTitle: S.stepTitle,
-    runTitle: S.runTitle,
+    /* NO PLAY (4.5), Kenneth's call on the draft (2026-09-18). The five steps
+       are not motion: each press puts 12 to 80 words on screen that were not
+       there before — 3.6 to 24 seconds of reading at 200 wpm, measured from the
+       canvas, the card and the tiles — and Play gave each of them 1.1 s,
+       replacing the lower panel twice on the way. The arrival is the one thing
+       that moves and Step plays it in full, so what Play added was a pace
+       nobody can read at (4.1) and a second way to start over beside Reset.
+       Sharing the row cost the step button its width too: "Test against the
+       background" needs 198px of the 149 the pair left it, so the drive row
+       grew 20px twice a walk and moved the seed slider under it. */
+    runLabel: null,
 
     init: ({ params, state, fromScratch }) => {
       const last = M.lastStage(state.one);

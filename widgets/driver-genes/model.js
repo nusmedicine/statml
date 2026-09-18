@@ -47,6 +47,14 @@
        `compute()` on a display change too, so drawing it again for every
        toggle would stall the page for no change of data. `compute()` stays
        pure: the cache is keyed on the one parameter the cohort reads.
+
+    7. PAGE 1 HAS NO PLAY, his call on the draft (2026-09-18), measured before
+       it was taken: each step puts 12 to 80 words on screen that were not there
+       before, and Play gave each 1.1 s. Nothing moves between the steps — the
+       arrival is the one animation, and Step plays all of it — and the lower
+       panel is replaced twice on the way, so Play discarded a panel a second
+       after drawing it. `runLabel: null` in main.js; the step button then has
+       the row to itself, which its two longest labels need.
    ========================================================================= */
 
 import { makeRng } from "../core/rng.js";
@@ -474,7 +482,6 @@ export const lastStage = (a) => (a.res ? STAGES : 2);
 /** The stage the drive button's label is read at (see STRINGS.stepLabels). */
 export const labelStage = (anim) => (anim.done ? Math.max(0, anim.stage - 1) : anim.stage);
 export const LAND_MS = 1200;   // the mutations arrive over this long, whatever their number
-export const STAGE_MS = 1100;  // Play's pause on each step
 export const EASE_MS = 420;
 export const easeOut = (t) => 1 - (1 - Math.min(1, Math.max(0, t))) ** 3;
 export const lerp = (a, b, t) => a + (b - a) * t;
@@ -567,7 +574,6 @@ export const STRINGS = {
     5: "Test against the background",
   },
   stepTitle: "Take the next step of the analysis",
-  runTitle: "Take every step of the analysis in turn",
 
   proteinCaption: "The protein",
   closeCaption: (a, b) => `Residues ${a}–${b}`,

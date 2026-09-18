@@ -9581,7 +9581,7 @@ waits for page 2.
 `model.js` holds the engine (maftools' `oncodrive`, the port the measure checked)
 and the stage on core's generator; `_lab/driver-genes-model.js` now re-exports
 it, so the measure (23 checks, rerun) and the mock run the widget's own code.
-`_lab/driver-genes-verify.mjs` (54 checks, in `npm test`) holds the engine to
+`_lab/driver-genes-verify.mjs` (56 checks, in `npm test`) holds the engine to
 `_lab/driver-genes-reference.tsv` — 360 synthetic genes scored by maftools' own
 `get_threshold` and `cluster_prot` (`_lab/driver-genes-reference.R`), reaching
 every branch, so the repo carries no TCGA rows — and asserts the stage's
@@ -9616,6 +9616,30 @@ Found by the verify while drafting: a passenger's threshold (2) sat above its
 tallest stem (1), so the stems' scale now reaches the threshold; page 2's
 "not in the table" line measured past a 535px canvas and is two lines; the card
 printed a probability as 0.0000.
+
+#### HIS FIRST ROUND, 2026-09-18
+
+- **Page 2's names clear every point.** "Oncogene" printed through the ring of
+  the called passenger beside it. A name now goes where its box is clear of
+  every point, ring and name already placed — beside the point, then above or
+  below, then further out with a leader — and carries core's caption halo. The
+  geometry moved to `model.js` (`cohortMarks`, `labelPlacements`), so the verify
+  reads what the widget draws: 144 names clear at 8 seeds × {535, 770}px × the
+  Across ends and middle.
+- **Page 1 declines Play — his call, on the measurement.** He asked whether Play
+  made sense for steps, and it did not: each press puts 12 to 80 words on screen
+  that were not there before (counted from the canvas, the card and the tiles),
+  which is 3.6 to 24 seconds of reading at 200 wpm, and Play gave each 1.1 s.
+  Nothing moves between the steps — the arrival is the one animation and Step
+  plays all of it — and the lower panel is replaced twice on the way, so Play
+  discarded a panel a second after drawing it (4.1's segmenting, 4.5). It also
+  cost the row its shape: sharing it left the step button 149px where "Test
+  against the background" needs 198, so the drive row grew 20px twice a walk and
+  moved the seed slider under it. `runLabel: null`; the step button now has the
+  row to itself at 298px and every label sits on one line.
+- Open, not raised by him: at a rail narrow enough to stack, the Gene control's
+  two-column grid lands 0.27px short of "Tumor suppressor" and shows an
+  ellipsis. At the 300px rail it fits.
 
 ### Slot 70 · `mutational-signatures` — Mutational Signatures
 
