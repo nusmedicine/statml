@@ -9637,9 +9637,12 @@ printed a probability as 0.0000.
   against the background" needs 198, so the drive row grew 20px twice a walk and
   moved the seed slider under it. `runLabel: null`; the step button now has the
   row to itself at 298px and every label sits on one line.
-- Open, not raised by him: at a rail narrow enough to stack, the Gene control's
-  two-column grid lands 0.27px short of "Tumor suppressor" and shows an
-  ellipsis. At the 300px rail it fits.
+- **A grid option now wraps rather than truncating**, his call after the Gene
+  control was found showing "Tumor suppress…" at a rail narrow enough to stack.
+  One line in core (§ *3.3* in the principles): it also gives `hardy-weinberg`
+  back "Heterozygotes miscalled" and `polygenic-score` two of its six steps.
+  Nothing the fingerprint hashes moved — 824 of 824 identical, fronted at
+  DPR 1.25.
 
 ### Slot 70 · `mutational-signatures` — Mutational Signatures
 

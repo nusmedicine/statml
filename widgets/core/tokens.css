@@ -1434,7 +1434,15 @@ p.w-text-hint { max-width: none; text-align: left; }
   display: grid;
   grid-template-columns: 1fr 1fr;
 }
-.w-seg-grid .w-seg-btn { border-bottom: 1px solid var(--grid); }
+/* A GRID OPTION WRAPS RATHER THAN ELLIPSING. A row divides the rail by the
+   option count and a long label there has nowhere to go, so `.w-seg-btn`
+   truncates; a grid cell has a second line to give, and an option nobody can
+   read is not an option visible at rest (3.3). Below 880px the rail becomes
+   `repeat(auto-fit, minmax(210px, 1fr))`, which is where it bit: at an 820px
+   page `hardy-weinberg` read "Heterozygotes mi…" and "Homozygotes mis…", and
+   `driver-genes` lost the r of "Tumor suppressor" to a quarter of a pixel.
+   Measured 2026-09-18 over the eleven widgets with a grid. */
+.w-seg-grid .w-seg-btn { white-space: normal; border-bottom: 1px solid var(--grid); }
 .w-seg-grid .w-seg-btn:nth-child(2n) { border-right: 0; }
 .w-seg-grid .w-seg-btn--span { grid-column: 1 / -1; border-right: 0; }
 /* A FACE OVER ITS QUALIFIER (`qual` on an option — controls.js). The name keeps

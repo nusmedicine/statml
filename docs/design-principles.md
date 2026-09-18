@@ -321,6 +321,21 @@ Same data — a string key from a fixed list — in three shapes.
 something whose job is to be explored. Tick labels under a slider are mandatory
 for the same reason: a bare slider shows a position and hides the positions.
 
+**Amended 2026-09-18: an option in the two-column grid WRAPS rather than
+truncating.** A segmented row divides the rail by its option count, so a long
+label there has nowhere to go and `.w-seg-btn` ellipses it; a grid cell has a
+second line to give, and an option nobody can read is not an option visible at
+rest.
+
+> *Earned:* below 880px the rail becomes `repeat(auto-fit, minmax(210px, 1fr))`,
+> whose cells leave a grid column about 118px. At an 820px page `hardy-weinberg`
+> offered **"Heterozygotes mi…"** against **"Homozygotes mis…"** — two options
+> that differ in the part that was cut — `polygenic-score` lost the ends of two
+> of its six steps, and `driver-genes` lost the r of "Tumor suppressor" to a
+> quarter of a pixel. Measured across the eleven widgets with a grid. At the
+> fingerprint's own 900px frame the rail is 300px and nothing wraps, so the
+> change moved no state: 824 of 824 identical.
+
 ### 3.4a A tall widget puts its controls beside the figure, not above it
 
 Reading order (3.1) says setup first. It does **not** say setup *above*, and on a
