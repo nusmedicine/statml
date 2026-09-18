@@ -40,6 +40,7 @@ const SCRIPTS = [
   "widgets/_lab/composition-verify.mjs",        // the shape chains and prints widget 51 draws
   "widgets/_lab/cnn-verify.mjs",                // the counts, the receptive field and the stage widget 61 draws
   "widgets/_lab/driver-genes-verify.mjs",       // maftools' oncodrive on 360 reference genes, the calibrated cohort and the stage widget 69 draws
+  "widgets/_lab/mutational-signatures-verify.mjs",  // NMF's brunet from a fixed start, the page's claims and the stage widget 70 draws
   "widgets/_lab/gradcam-verify.mjs",            // the engine, the trained claims, Grad-CAM's arithmetic and the stage widget 64 draws
   "widgets/_lab/unet-verify.mjs",               // the shapes and counts against torch, the Dice claims and the stage widget 65 draws
   "widgets/_lab/augmentation-verify.mjs",       // the engine against MONAI 1.6.0, the smear's claims and the stage widget 62 draws

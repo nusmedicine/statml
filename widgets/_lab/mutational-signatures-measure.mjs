@@ -87,17 +87,17 @@ console.log("\n§2 the look-alike references against the profiles they stand for
 const flat = new Array(96).fill(1);
 let worst = 1;
 for (const r of M.REFERENCES) {
-  const c = r.like.map((n) => M.cosine(r.profile, real[n]));
+  const c = r.scored.map((n) => M.cosine(r.profile, real[n]));
   worst = Math.min(worst, ...c);
   const best = Object.entries(real).map(([n, v]) => [n, M.cosine(r.profile, v)]).sort((a, b) => b[1] - a[1])[0];
-  console.log(`  ${r.name.padEnd(32)} ${r.like.map((n, i) => `${n} ${f3(c[i])}`).join(", ")}; nearest real ${best[0]} ${f3(best[1])}; flatness ${f3(M.cosine(r.profile, flat))} against ${f3(M.cosine(real[r.like[1]], flat))}`);
+  console.log(`  ${r.name.padEnd(32)} ${r.scored.map((n, i) => `${n} ${f3(c[i])}`).join(", ")}; nearest real ${best[0]} ${f3(best[1])}; flatness ${f3(M.cosine(r.profile, flat))} against ${f3(M.cosine(real[r.scored[1]], flat))}`);
 }
 ck("every look-alike is within cosine 0.8 of both profiles it stands for", worst >= 0.8, `lowest ${f3(worst)}`);
 console.log("  pairs, look-alike against the real SBS pair (legacy pair):");
 const R = M.REFERENCES;
 let geomOff = 0;
 for (let i = 0; i < R.length; i += 1) for (let j = i + 1; j < R.length; j += 1) {
-  const c = M.cosine(R[i].profile, R[j].profile), rs = M.cosine(real[R[i].like[1]], real[R[j].like[1]]), rl = M.cosine(real[R[i].like[0]], real[R[j].like[0]]);
+  const c = M.cosine(R[i].profile, R[j].profile), rs = M.cosine(real[R[i].scored[1]], real[R[j].scored[1]]), rl = M.cosine(real[R[i].scored[0]], real[R[j].scored[0]]);
   geomOff = Math.max(geomOff, Math.abs(c - rs));
   if (c > 0.5 || rs > 0.5) console.log(`    ${R[i].key}~${R[j].key} ${f3(c)} against ${f3(rs)} (${f3(rl)})`);
 }
@@ -217,7 +217,7 @@ for (const key of ["3/out", "4/in"]) {
   console.log(`  rank ${key.replace("/", ", the tumour ")}: a flat signature in ${n} of 10; named after the process that built less of it in ${named}`);
   for (const l of lines) console.log(`    ${l}`);
   const flip = lines.filter((l) => l.startsWith("clock")).length;
-  console.log(`    named Clock-like in ${flip} and Homologous recombination defect in ${lines.length - flip}; the best match ahead of the runner-up by ${f3(Math.min(...runs.map((x) => { const s = [...x.sigs].sort((a, b) => (b.mix[1] + b.mix[3]) - (a.mix[1] + a.mix[3]))[0]; return s.match[0].cos - s.match[1].cos; })))}–${f3(Math.max(...runs.map((x) => { const s = [...x.sigs].sort((a, b) => (b.mix[1] + b.mix[3]) - (a.mix[1] + a.mix[3]))[0]; return s.match[0].cos - s.match[1].cos; })))}`);
+  console.log(`    named Clock-like in ${flip} and Recombination defect in ${lines.length - flip}; the best match ahead of the runner-up by ${f3(Math.min(...runs.map((x) => { const s = [...x.sigs].sort((a, b) => (b.mix[1] + b.mix[3]) - (a.mix[1] + a.mix[3]))[0]; return s.match[0].cos - s.match[1].cos; })))}–${f3(Math.max(...runs.map((x) => { const s = [...x.sigs].sort((a, b) => (b.mix[1] + b.mix[3]) - (a.mix[1] + a.mix[3]))[0]; return s.match[0].cos - s.match[1].cos; })))}`);
 }
 
 /* ------------------------------------------------------------------ §6 */

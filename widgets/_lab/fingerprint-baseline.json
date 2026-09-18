@@ -7651,6 +7651,27 @@
       },
       "px": "31f616d0",
       "tx": "a1d17eef"
+    },
+    {
+      "$note": "mutational-signatures · DRAFT placeholder: page 1, the tumor's 96 types",
+      "slug": "mutational-signatures",
+      "state": "?theme=light&shown=3",
+      "px": "0",
+      "tx": "0"
+    },
+    {
+      "$note": "mutational-signatures · DRAFT placeholder: page 2, each signature with its exposures",
+      "slug": "mutational-signatures",
+      "state": "?theme=light&page=signatures&shown=2",
+      "px": "0",
+      "tx": "0"
+    },
+    {
+      "$note": "mutational-signatures · DRAFT placeholder: page 3, compared",
+      "slug": "mutational-signatures",
+      "state": "?theme=light&page=matching&shown=1",
+      "px": "0",
+      "tx": "0"
     }
   ]
 }

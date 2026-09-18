@@ -9951,6 +9951,59 @@ the parameters it reads, as 69 caches its cohort; and widget 41's `updateKL` and
 `fitTrace` read its 24 × 12 stage, and 70 writes its own trace around the
 update).
 
+#### DRAFT 2026-09-19, on his "go ahead"
+
+`widgets/mutational-signatures/` at manifest status `draft`, so at `/lab/` only.
+`model.js` holds the engine, the stage, the look-alikes, the caches, the
+geometry and the copy; `_lab/mutational-signatures-model.js` now re-exports it
+(keeping only the mock's unpicked standalone tumor), so the measure (rerun, 9
+checks) and the mock (12 checks) run the widget's own code.
+`_lab/mutational-signatures-verify.mjs` (59 checks, in `npm test`) holds:
+
+- **The engine to R's NMF.** `_lab/mutational-signatures-reference.tsv` is a
+  synthetic 96 × 24 matrix from the widget's own cohort, a fixed start, and what
+  NMF 0.28 returns after exactly 200 `brunet` iterations from it
+  (`nmf(..., seed = nmfModel(W0, H0), .stop = nmf.stop.iteration(200))`,
+  `_lab/mutational-signatures-reference.R`). Widget 41's `updateKL`, with
+  brunet's floor at machine epsilon every tenth iteration (read from
+  `nmf_update.brunet`), lands on the same W and H to 5.7 × 10⁻⁸ relative.
+- **The page's claims at seed 1, rank 4** — signature 4 is tumor 101's own
+  (62%, half in one tumor, Polymerase epsilon 0.991); left out, nothing within
+  0.6 of it; the flat signature named Clock-like 0.878 over Recombination defect
+  0.860 though built 55% recombination defect; APOBEC named C>T then C>G; tumor
+  77, page 1's largest, the APOBEC signature's largest holder at 22%.
+- The contract by name, every press of the three pages driven in node, the
+  `shown` doors, a height that does not read the width, nothing painted outside
+  the canvas on any page, stage, press or rank at 535 and 770px (through a
+  recorder with a full affine transform, since page 3's names are set on end),
+  the regions, and the struck-word sweep with one addition: **no string names a
+  shade for one theme** ("darker"), because the grey ramp runs toward light ink
+  on the dark theme. The first draft's legend said "a darker cell" and was false
+  there.
+
+What the draft decided, to put to him at the round rather than settle here:
+
+- **The stopping rule is 10⁻⁶, capped at 2,000 iterations**, measured over
+  seeds 1–10: 10⁻⁷, 3 × 10⁻⁷ and 10⁻⁶ give the same answers (9 of 10, 4 of 10)
+  and 10⁻⁶ is fastest (a median 234 ms in node; the measure's § 4). NMF's own
+  brunet stops on a stable clustering of the columns instead.
+- **Page 1 skips the extraction** (its `compute` returns no fit), so the seed
+  slider on page 1 does not wait on one; a first visit to page 2 or 3 pays it.
+- **Page 3 extracts first when page 2 has not** ("Extract the signatures",
+  landing at once, since the descent is page 2's to draw), then "Compare with
+  the references". **The chosen signature opens on 1**, and a row click or the
+  Signature control changes it; before the comparison nothing is drawn for it.
+- **The references' names are short enough to stand on end** above the heatmap
+  (Recombination defect, Mismatch repair defect) and each carries "stands for
+  SBSn" beside its profile; a note says they are built to resemble COSMIC's.
+- **The builders list at most three processes** above 5%, so a line fits 535px.
+- **The six classes' roles are `--c-sub-ca` … `--c-sub-tg`** in `tokens.css`,
+  read as `colors.subs` (`env.js`), a core change: the full fingerprint suite was
+  run on it.
+- Not built: tweens beyond the three presses that move (the arrival, the fold
+  and split on page 1, the descent and the handover on page 2), a hover
+  inspector on page 3's cells, and a formula card on page 1.
+
 ### Slot 71 · `somatic-interactions` — not asked for, measured, cuttable
 
 **Host.** 01-3 cell 4 (co-occurring genes "could have synergistic effect",
