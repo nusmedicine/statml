@@ -9643,6 +9643,24 @@ printed a probability as 0.0000.
   back "Heterozygotes miscalled" and `polygenic-score` two of its six steps.
   Nothing the fingerprint hashes moved — 824 of 824 identical, fronted at
   DPR 1.25.
+- **Where motion would carry an idea, mocked and open:**
+  `_lab/driver-genes-tween-mock.html`, on his *"check if there are tweening
+  animation opportunities … for the cohort page … perhaps from a list of data
+  how it is plotted"*. It plays four candidates from the widget's own engine.
+  (1) **Page 2 built from its table**, six presses as page 1 has six: the 4,574
+  genes with 5 or more mutations, the 4,170 with no cluster falling away, the
+  404 rows taking their place across, rising to −log₁₀ p, then FALLING BY THEIR
+  RANK as Benjamini-Hochberg lands — the top gene by 2.6 of the axis and the
+  middle one by 0.16 — and the calls last. The plot takes the width the list
+  gives up; the scale is fixed at the top of −log₁₀ p so the ticks stay put and
+  what moves is the correction; the pre-correction cloud can stay as a ghost.
+  The page as it stands plots −log₁₀ FDR only, so the correction is the one
+  thing it never shows. (2) **The Across ease read through `easeOut`**, which
+  sits exported and unread in `model.js`. (3) **The close-up growing out of its
+  own locator box** — it covers 1.3% of the protein, 5px of the strip. (4) **S
+  walking from the score bar onto the background curve.** 3 and 4 ease at both
+  ends, not out: at 45% of its time an `easeOut` zoom is already 83% of the way
+  there, which reads as a jump and not a camera move.
 
 ### Slot 70 · `mutational-signatures` — Mutational Signatures
 

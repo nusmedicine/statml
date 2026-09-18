@@ -1,0 +1,584 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · driver-genes — tween mock</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1400px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 104ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); min-height: 26px; white-space: pre-line; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .bar { display: flex; gap: var(--sp-2); align-items: center; margin: var(--sp-2) 0 var(--sp-3); }
+  .bar .w-btn { min-width: 0; }
+  .bar span { font-size: var(--fs-xs); color: var(--ink-3); font-family: var(--font-mono); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 104ch; }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+       border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 104ch; }
+  table { border-collapse: collapse; font-size: var(--fs-sm); margin: var(--sp-2) 0; max-width: 120ch; }
+  th, td { border: 1px solid var(--grid); padding: 4px 10px; text-align: left; vertical-align: top; }
+  th { color: var(--ink-2); font-weight: 600; }
+  td.num { font-family: var(--font-mono); white-space: nowrap; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>driver-genes &middot; tween mock</h1>
+  <p class="note">
+    Where motion would carry an idea, for the round of 2026-09-18. <b>Every number here is computed on this page</b> by
+    <code>driver-genes/model.js</code>, the widget's own engine, so nothing below is a drawing of something the
+    widget cannot do. Section 1 is the one you asked for: the cohort page as a walk from the table of
+    numbers to the plot. Sections 2 and 3 are the other places a tween would earn its frames. On-canvas strings are
+    candidates, not copy.
+  </p>
+
+  <h2>1 &middot; The cohort page, built from its own table</h2>
+  <p class="note" id="buildNote"></p>
+  <div class="bar">
+    <button class="w-btn w-btn--primary" id="bStep">Step</button>
+    <button class="w-btn" id="bPlay">Play</button>
+    <button class="w-btn" id="bReset">Reset</button>
+    <span id="buildStage"></span>
+  </div>
+  <div class="row" id="buildRow"></div>
+  <p class="note" id="buildWhat"></p>
+  <p class="q" id="qBuild"></p>
+  <p class="rec" id="recBuild"></p>
+
+  <h2>2 &middot; The Across switch: the pace it moves at</h2>
+  <p class="note">
+    The widget already eases the points between the fraction and the score; it moves them at a constant rate, and
+    <code>easeOut</code> sits unused in <code>model.js</code>. Both panels below carry the same 420&nbsp;ms and the
+    same points. Left is what ships today, right is the same ease read through <code>easeOut</code>, which is what
+    widget 60 does with its two readings of one study.
+  </p>
+  <div class="bar">
+    <button class="w-btn w-btn--primary" id="bAcross">Switch across</button>
+    <span id="acrossNote"></span>
+  </div>
+  <div class="row" id="acrossRow"></div>
+  <p class="rec" id="recAcross"></p>
+
+  <h2>3 &middot; One gene: the two places a panel arrives with no explanation</h2>
+  <p class="note">
+    Three frames of each, at the start, at 45% and at the end &mdash; pacing is easier to judge from stills side by
+    side than from a loop. Neither is built; both replace a panel outright today.
+  </p>
+  <h3 style="margin-top:var(--sp-4)">a &middot; The close-up grows out of its own locator box</h3>
+  <p class="note" id="zoomNote"></p>
+  <div class="row" id="zoomRow"></div>
+  <h3 style="margin-top:var(--sp-4)">b &middot; The gene's score walks onto the background it is judged against</h3>
+  <p class="note" id="slideNote"></p>
+  <div class="row" id="slideRow"></div>
+  <p class="rec" id="recOne"></p>
+
+  <h2>4 &middot; What each would cost</h2>
+  <div id="costs"></div>
+</main>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+import * as M from "../driver-genes/model.js";
+
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+const SEED = Number(new URLSearchParams(location.search).get("seed") || 1);
+
+/* ---------------------------------------------------------------- shell */
+function el(tag, cls, text) { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
+function cand(rowId, title, sub, w) {
+  const box = el("div", "cand");
+  box.style.width = `${w}px`;
+  if (title) box.appendChild(el("h3", null, title));
+  box.appendChild(el("p", "sub", sub ?? ""));
+  document.getElementById(rowId).appendChild(box);
+  return box;
+}
+function canvasIn(box, w, h) {
+  const c = document.createElement("canvas");
+  c.width = Math.round(w * DPR); c.height = Math.round(h * DPR);
+  c.style.width = `${w}px`; c.style.height = `${h}px`;
+  box.appendChild(c);
+  const ctx = c.getContext("2d");
+  ctx.scale(DPR, DPR);
+  ctx.__w = w; ctx.__h = h;
+  return ctx;
+}
+const wash = (color, a) => {
+  const m = String(color).match(/^#([0-9a-f]{6})$/i);
+  if (!m) return color;
+  const p = [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16));
+  return `rgba(${p[0]},${p[1]},${p[2]},${a})`;
+};
+function label(ctx, s, x, y, { size = 11, colour = T.ink2, align = "left", mono = false, weight = "", alpha = 1 } = {}) {
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.font = `${weight ? weight + " " : ""}${size}px ${mono ? T.mono : T.font}`;
+  ctx.fillStyle = colour; ctx.textAlign = align;
+  ctx.fillText(s, x, y);
+  ctx.restore();
+}
+function line(ctx, x1, y1, x2, y2, colour, width = 1, dash = null, alpha = 1) {
+  ctx.save(); ctx.globalAlpha = alpha; ctx.strokeStyle = colour; ctx.lineWidth = width; if (dash) ctx.setLineDash(dash);
+  ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); ctx.restore();
+}
+const clear = (ctx) => ctx.clearRect(0, 0, ctx.__w, ctx.__h);
+const lerp = (a, b, t) => a + (b - a) * t;
+const ease = M.easeOut;
+/* A CAMERA MOVE EASES AT BOTH ENDS. `easeOut` leaves at full speed, which is
+   right for something that falls into place (4.3) and wrong for a window
+   travelling between two places: read at 45% of its time, an easeOut zoom is
+   already 83% of the way there. Section 3 uses this instead. */
+const easeInOut = (t) => (t < 0.5 ? 4 * t * t * t : 1 - ((-2 * t + 2) ** 3) / 2);
+const int = (x) => Math.round(x).toLocaleString("en-US");
+
+/* ---------------------------------------------------------------- the cohort */
+const cohort = M.cohortFor(SEED);
+/* The lesson prints the table by p, so the list does too. */
+const table = [...cohort.table].sort((a, b) => a.p - b.p);
+const untested = cohort.untested;
+const N_CAND = cohort.atMin;
+const lp = (g) => -Math.log10(g.p);
+const lq = (g) => -Math.log10(g.fdr);
+/* One scale for the whole walk: nothing rescales under the reader. */
+const Y_TOP = Math.max(6, Math.ceil(Math.max(...table.map(lp))));
+const nameOf = (g) => (g.kind === "passenger" ? g.name.replace("passenger ", "gene ") : g.name);
+const kindFill = (g) => (g.kind === "oncogene" ? T.groupA : g.kind === "suppressor" ? T.groupB : T.ink3);
+
+/* Twelve readable rows: the top of the table by p, with four candidates that
+   return no cluster mixed in where their mutation counts put them. */
+const LIST_ROWS = (() => {
+  const shown = table.slice(0, 8).map((g) => ({ g, tested: true }));
+  const out = [...untested].sort((a, b) => b.mutations.length - a.mutations.length).slice(0, 4).map((g) => ({ g, tested: false }));
+  return [...shown, ...out].sort((a, b) => b.g.mutations.length - a.g.mutations.length);
+})();
+
+const BUILD = [
+  { name: "The genes with 5 or more mutations",
+    what: `Every gene the test is offered: ${int(N_CAND)} of the cohort's ${int(cohort.genes.length)}. Twelve are legible; each thin mark on the left is one gene.` },
+  { name: "The table",
+    what: `A gene with no residue at its threshold returns no cluster, so it is not in the table and is not tested: ${int(untested.length)} of them fall away, leaving ${int(table.length)} rows.` },
+  { name: "Across: the fraction in clusters",
+    what: "Each row leaves the list for its place across, the share of its mutations that sit in a cluster. Nothing is up the page yet." },
+  { name: "Up: the p-value",
+    what: "Each gene's score is turned into z and then p, and the point rises to −log₁₀ p. The drivers are already at the top." },
+  { name: "The correction",
+    what: `Benjamini-Hochberg over the table's ${int(table.length)} rows. Every point falls, and it falls by its rank: the smallest p is multiplied by all ${int(table.length)} rows, the largest by one.` },
+  { name: "The calls",
+    what: `The line is FDR 0.05. ${table.filter((g) => g.called).length} genes are above it, and the kind each gene was given in the simulation is the colour.` },
+];
+
+const BUILD_W = 764, BUILD_H = 470;
+const LIST = { x: 16, y: 44, w: 288, h: BUILD_H - 44 - 78 };
+/* THE PLOT TAKES THE WIDTH THE LIST GIVES UP, so the last frame is the widget's
+   own full-width figure and not a panel beside an empty column. Positions are
+   held in the data's own terms and mapped through whatever rectangle the plot
+   is at THIS frame, or the points would chase a target that is moving. */
+const NARROW = { x: 318, y: 44, w: BUILD_W - 318 - 20, h: BUILD_H - 44 - 78 };
+const FULL = { x: 64, y: 44, w: BUILD_W - 64 - 20, h: BUILD_H - 44 - 78 };
+const rectAt = (spread) => ({
+  x: lerp(NARROW.x, FULL.x, spread), y: NARROW.y,
+  w: lerp(NARROW.w, FULL.w, spread), h: NARROW.h,
+});
+const sxIn = (r, v) => r.x + v * r.w;
+const syIn = (r, v) => r.y + r.h - (v / Y_TOP) * r.h;
+const markR = (g) => 2 + 1.3 * Math.sqrt(g.clusters);
+
+/* The column the list holds every gene in: one thin mark per gene, in the order
+   the list is printed in, so 4,574 rows are a visible depth and not a claim in
+   a caption. */
+const streamY = (i, n) => LIST.y + 26 + ((i + 0.5) / n) * (LIST.h - 40);
+const ALL = [...table.map((g) => ({ g, tested: true })), ...untested.map((g) => ({ g, tested: false }))]
+  .sort((a, b) => b.g.mutations.length - a.g.mutations.length);
+
+/** Where every gene is at the end of stage `s`, in the data's own terms. */
+function layoutAt(s) {
+  return ALL.map((row, i) => {
+    const { g, tested } = row;
+    if (s <= 0) return { list: streamY(i, ALL.length), a: 1, r: 1.6 };
+    if (!tested) return { list: streamY(i, ALL.length), a: 0, r: 1.6 };
+    const rank = table.indexOf(g);
+    if (s === 1) return { list: streamY(rank, table.length), a: 1, r: 1.6 };
+    return { at: [g.fraction, s === 2 ? 0 : s === 3 ? lp(g) : lq(g)], a: 1, r: markR(g) };
+  });
+}
+const LAYOUTS = [0, 1, 2, 3, 4, 5].map(layoutAt);
+const place = (d, rect) => (d.list !== undefined
+  ? { x: LIST.x + 8, y: d.list }
+  : { x: sxIn(rect, d.at[0]), y: syIn(rect, d.at[1]) });
+
+function drawList(ctx, alpha, dropT) {
+  if (alpha <= 0.01) return;
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  const cols = [LIST.x + 26, LIST.x + 152, LIST.x + 204, LIST.x + 258];
+  label(ctx, "gene", cols[0], LIST.y + 14, { size: 10, colour: T.ink3 });
+  label(ctx, "mutations", cols[1], LIST.y + 14, { size: 10, colour: T.ink3, align: "right" });
+  label(ctx, "clusters", cols[2], LIST.y + 14, { size: 10, colour: T.ink3, align: "right" });
+  label(ctx, "score", cols[3], LIST.y + 14, { size: 10, colour: T.ink3, align: "right" });
+  line(ctx, LIST.x + 20, LIST.y + 20, LIST.x + LIST.w - 8, LIST.y + 20, T.grid);
+  let y = LIST.y + 38;
+  for (const { g, tested } of LIST_ROWS) {
+    const a = tested ? 1 : 1 - dropT;
+    if (a > 0.01) {
+      const dx = tested ? 0 : -18 * dropT;
+      label(ctx, nameOf(g), cols[0] + dx, y, { size: 11, colour: tested ? T.ink1 : T.ink3, alpha: a });
+      label(ctx, int(g.mutations.length), cols[1] + dx, y, { size: 11, colour: T.ink2, mono: true, align: "right", alpha: a });
+      label(ctx, tested ? String(g.clusters) : "none", cols[2] + dx, y, { size: 11, colour: tested ? T.ink2 : T.ink3, mono: true, align: "right", alpha: a });
+      label(ctx, tested ? g.score.toFixed(3) : "—", cols[3] + dx, y, { size: 11, colour: tested ? T.ink2 : T.ink3, mono: true, align: "right", alpha: a });
+    }
+    y += tested ? 19 : 19 * (1 - dropT);
+  }
+  label(ctx, `${int(Math.round(lerp(N_CAND, table.length, dropT)))} rows`, LIST.x + 26, LIST.y + LIST.h - 6,
+    { size: 11, colour: T.ink2, mono: true });
+  ctx.restore();
+}
+
+function drawPlot(ctx, rect, { axes, line005, yLabel, ghosts }) {
+  if (axes <= 0.01) return;
+  ctx.save();
+  ctx.globalAlpha = axes;
+  const ticks = [];
+  for (let t = 0; t <= Y_TOP; t += Y_TOP > 8 ? 2 : 1) ticks.push(t);
+  for (const t of ticks) {
+    line(ctx, rect.x, syIn(rect, t), rect.x + rect.w, syIn(rect, t), T.grid);
+    label(ctx, String(t), rect.x - 6, syIn(rect, t) + 4, { size: 10, colour: T.ink3, align: "right", mono: true });
+  }
+  line(ctx, rect.x, rect.y + rect.h, rect.x + rect.w, rect.y + rect.h, T.axis);
+  for (const t of [0, 0.2, 0.4, 0.6, 0.8, 1]) {
+    label(ctx, String(t), sxIn(rect, t), rect.y + rect.h + 16, { size: 10, colour: T.ink3, align: "center", mono: true });
+  }
+  label(ctx, "Fraction of mutations in clusters", rect.x + rect.w / 2, rect.y + rect.h + 34, { size: 11, colour: T.ink2, align: "center" });
+  ctx.restore();
+  /* THE QUANTITY UP THE PAGE CHANGES AT THE CORRECTION AND THE SCALE DOES NOT:
+     the points fall against ticks that stay where they are, so what the reader
+     sees move is the correction and not the frame. */
+  label(ctx, yLabel, rect.x - 40, rect.y - 10, { size: 11, colour: T.ink2, alpha: axes });
+  if (ghosts > 0.01) {
+    for (const g of table) {
+      ctx.save();
+      ctx.globalAlpha = 0.16 * ghosts;
+      ctx.beginPath();
+      ctx.arc(sxIn(rect, g.fraction), syIn(rect, lp(g)), markR(g), 0, Math.PI * 2);
+      ctx.fillStyle = T.ink3;
+      ctx.fill();
+      ctx.restore();
+    }
+    label(ctx, "where each gene was before the correction", rect.x + rect.w, rect.y - 10,
+      { size: 11, colour: T.ink3, align: "right", alpha: ghosts });
+  }
+}
+
+function drawBuild(ctx, stage, t) {
+  clear(ctx);
+  const from = LAYOUTS[Math.max(0, stage - 1)], to = LAYOUTS[stage];
+  const e = ease(t);
+  const listAlpha = stage >= 3 ? 0 : stage === 2 ? 1 - e : 1;
+  const axes = stage >= 3 ? 1 : stage === 2 ? e : 0;
+  const spread = stage >= 3 ? 1 : stage === 2 ? e : 0;
+  const colours = stage >= 5 ? e : 0;
+  const rect = rectAt(spread);
+  const yLabel = stage <= 3 ? "−log₁₀ p" : "−log₁₀ FDR";
+  drawPlot(ctx, rect, { axes, line005: stage >= 5 ? e : 0, yLabel, ghosts: stage === 4 ? e : stage > 4 ? 1 : 0 });
+  if (stage >= 5 || (stage === 4 && e > 0)) {
+    const y = syIn(rect, -Math.log10(0.05));
+    const a = stage >= 5 ? e : 0;
+    if (a > 0.01) {
+      line(ctx, rect.x, y, rect.x + rect.w, y, T.ink2, 1, [5, 4], a);
+      label(ctx, "FDR 0.05", rect.x + rect.w, y - 5, { size: 11, colour: T.ink2, align: "right", alpha: a });
+    }
+  }
+  drawList(ctx, listAlpha, stage === 1 ? e : stage >= 2 ? 1 : 0);
+
+  for (let i = 0; i < ALL.length; i += 1) {
+    const a = place(from[i], rect), b = place(to[i], rect);
+    const x = lerp(a.x, b.x, e), y = lerp(a.y, b.y, e);
+    const r = lerp(from[i].r, to[i].r, e), al = lerp(from[i].a, to[i].a, e);
+    if (al <= 0.01) continue;
+    const g = ALL[i].g;
+    ctx.save();
+    ctx.globalAlpha = al;
+    ctx.beginPath();
+    ctx.arc(x, y, Math.max(1, r), 0, Math.PI * 2);
+    const own = colours > 0 && g.kind !== "passenger" ? kindFill(g) : T.ink3;
+    ctx.fillStyle = wash(own, colours > 0 && g.kind !== "passenger" ? 0.9 : 0.5);
+    ctx.fill();
+    if (colours > 0.5 && g.called) {
+      ctx.beginPath();
+      ctx.arc(x, y, Math.max(1, r) + 3, 0, Math.PI * 2);
+      ctx.strokeStyle = T.ink1; ctx.lineWidth = 1.25; ctx.stroke();
+    }
+    ctx.restore();
+  }
+  label(ctx, BUILD[stage].name, 16, 22, { size: 13, colour: T.ink1, weight: "600" });
+  label(ctx, `step ${stage} of 5`, BUILD_W - 16, 22, { size: 11, colour: T.ink3, align: "right" });
+}
+
+const buildBox = cand("buildRow", null, null, BUILD_W);
+const buildCtx = canvasIn(buildBox, BUILD_W, BUILD_H);
+const build = { stage: 0, t: 1, raf: null, playing: false };
+const stageText = document.getElementById("buildStage");
+const whatText = document.getElementById("buildWhat");
+function paintBuild() {
+  drawBuild(buildCtx, build.stage, build.t);
+  stageText.textContent = `stage ${build.stage} · ${BUILD[build.stage].name}`;
+  whatText.textContent = BUILD[build.stage].what;
+}
+const STEP_MS = 900;
+function runTo(stage, then) {
+  build.stage = stage;
+  build.t = 0;
+  const t0 = performance.now();
+  cancelAnimationFrame(build.raf);
+  const frame = (now) => {
+    build.t = Math.min(1, (now - t0) / STEP_MS);
+    paintBuild();
+    if (build.t < 1) build.raf = requestAnimationFrame(frame);
+    else if (then) then();
+  };
+  build.raf = requestAnimationFrame(frame);
+}
+document.getElementById("bStep").addEventListener("click", () => {
+  if (build.stage >= BUILD.length - 1) return;
+  runTo(build.stage + 1);
+});
+document.getElementById("bPlay").addEventListener("click", () => {
+  const next = () => { if (build.stage < BUILD.length - 1) runTo(build.stage + 1, next); };
+  if (build.stage >= BUILD.length - 1) { build.stage = 0; build.t = 1; paintBuild(); }
+  next();
+});
+document.getElementById("bReset").addEventListener("click", () => {
+  cancelAnimationFrame(build.raf);
+  build.stage = 0; build.t = 1; paintBuild();
+});
+paintBuild();
+
+document.getElementById("buildNote").innerHTML =
+  `Six presses, as page 1 has six. The cohort is seed ${SEED}: <b>${int(cohort.genes.length)}</b> genes, `
+  + `<b>${int(N_CAND)}</b> with five or more mutations, <b>${int(untested.length)}</b> of those with no residue at `
+  + `their threshold, and <b>${int(table.length)}</b> rows in the table. Every point is a gene the widget already `
+  + `computes; only the order the reader meets them in is new. The scale is fixed at the top of −log<sub>10</sub> p `
+  + `(${Y_TOP}), so nothing rescales under the reader when the correction lands.`;
+
+document.getElementById("qBuild").innerHTML =
+  `<b>The question.</b> The step that earns the walk is step 4: every point falls, and by its rank — the smallest p `
+  + `is multiplied by ${int(table.length)}, the largest by one. On this cohort the top gene falls `
+  + `${(Math.max(...table.map(lp)) - Math.max(...table.map(lq))).toFixed(1)} of the axis and the middle gene `
+  + `${(() => { const d = table.map((g) => lp(g) - lq(g)).sort((a, b) => a - b); return d[Math.floor(d.length / 2)].toFixed(2); })()}. `
+  + `That is the shape of the correction, and the page as it stands never shows it: it plots −log<sub>10</sub> FDR `
+  + `only, so the reader sees the answer and not the arithmetic. Is that worth six presses on a page you called `
+  + `static, or should the page stay one figure and the correction stay in the formula card?`;
+
+document.getElementById("recBuild").innerHTML =
+  `<b>Recommendation: build it.</b> It is the only place in the widget where a number is corrected rather than `
+  + `computed, the motion is the correction itself, and it answers the page's own "not in the table" sentence by `
+  + `showing the ${int(untested.length)} genes leave. Two smaller calls come with it: the axis is fixed at the top `
+  + `of −log<sub>10</sub> p rather than the top of −log<sub>10</sub> FDR (a taller frame than today), and the Across `
+  + `switch stays a display control, so it eases at whatever step the reader has reached.`;
+
+/* ---------------------------------------------------------------- 2 · the ease */
+const ACROSS_W = 400, ACROSS_H = 300;
+const aPlot = { x: 46, y: 18, w: ACROSS_W - 46 - 16, h: ACROSS_H - 18 - 42 };
+const aTop = Math.max(6, Math.ceil(Math.max(...table.map(lq))));
+const ax = (v) => aPlot.x + v * aPlot.w;
+const ay = (v) => aPlot.y + aPlot.h - (v / aTop) * aPlot.h;
+function drawAcross(ctx, mix) {
+  clear(ctx);
+  for (let t = 0; t <= aTop; t += 2) {
+    line(ctx, aPlot.x, ay(t), aPlot.x + aPlot.w, ay(t), T.grid);
+    label(ctx, String(t), aPlot.x - 6, ay(t) + 4, { size: 10, colour: T.ink3, align: "right", mono: true });
+  }
+  line(ctx, aPlot.x, aPlot.y + aPlot.h, aPlot.x + aPlot.w, aPlot.y + aPlot.h, T.axis);
+  label(ctx, mix < 0.5 ? "Fraction of mutations in clusters" : "Score", aPlot.x + aPlot.w / 2, aPlot.y + aPlot.h + 30,
+    { size: 11, colour: T.ink2, align: "center" });
+  for (const g of table) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(ax(lerp(g.fraction, g.score, mix)), ay(lq(g)), markR(g), 0, Math.PI * 2);
+    ctx.fillStyle = wash(g.kind === "passenger" ? T.ink3 : kindFill(g), g.kind === "passenger" ? 0.5 : 0.9);
+    ctx.fill();
+    ctx.restore();
+  }
+}
+const linBox = cand("acrossRow", "As it ships: a constant rate", "mix += dt / 420", ACROSS_W);
+const easeBox = cand("acrossRow", "The house ease: easeOut(mix)", "1 − (1 − t)³, as widget 60 reads its two views", ACROSS_W);
+const linCtx = canvasIn(linBox, ACROSS_W, ACROSS_H);
+const easeCtx = canvasIn(easeBox, ACROSS_W, ACROSS_H);
+let acrossTo = 1;
+function playAcross() {
+  const from = 1 - acrossTo, to = acrossTo;
+  const t0 = performance.now();
+  const frame = (now) => {
+    const t = Math.min(1, (now - t0) / M.EASE_MS);
+    drawAcross(linCtx, lerp(from, to, t));
+    drawAcross(easeCtx, lerp(from, to, ease(t)));
+    if (t < 1) requestAnimationFrame(frame);
+    else acrossTo = 1 - acrossTo;
+  };
+  requestAnimationFrame(frame);
+}
+drawAcross(linCtx, 0);
+drawAcross(easeCtx, 0);
+document.getElementById("acrossNote").textContent = `${M.EASE_MS} ms, ${table.length} points`;
+document.getElementById("bAcross").addEventListener("click", playAcross);
+document.getElementById("recAcross").innerHTML =
+  `<b>Recommendation: read the ease through <code>easeOut</code>.</b> One line in <code>cohortMarks</code>. The points `
+  + `leave together and settle rather than stopping dead, which is what every other repositioning in the repo does, `
+  + `and <code>easeOut</code> is already exported here and read by nothing.`;
+
+/* ---------------------------------------------------------------- 3 · one gene */
+const one = M.analyse(M.geneFor("oncogene", SEED));
+const win = (() => {
+  const c = one.focus;
+  return { lo: Math.max(1, Math.min(c.start, c.coreStart) - 4), hi: Math.min(one.gene.L, Math.max(c.end, c.coreEnd) + 4) };
+})();
+const ZOOM_W = 400, ZOOM_H = 300;
+function drawZoom(ctx, tRaw) {
+  const t = easeInOut(tRaw);
+  clear(ctx);
+  const x0 = 24, x1 = ZOOM_W - 16, base = 96, top = 30;
+  const X = (p) => x0 + ((p - 0.5) / one.gene.L) * (x1 - x0);
+  const Y = (n) => base - Math.sqrt(n / one.scaleTop) * (base - top);
+  label(ctx, "The protein", x0, 18, { size: 12, colour: T.ink1, weight: "600" });
+  for (const r of one.residues) line(ctx, X(r.pos), base, X(r.pos), Y(r.n), wash(T.ink3, 0.8));
+  for (const r of one.residues) {
+    ctx.save();
+    ctx.fillStyle = r.n >= one.th ? T.highlight : wash(T.ink2, 0.45);
+    ctx.beginPath();
+    ctx.arc(X(r.pos), Y(r.n), r.n >= one.th ? 3 : 2.2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+  ctx.save();
+  ctx.fillStyle = T.surface3; ctx.fillRect(x0, base + 3, x1 - x0, 8);
+  ctx.strokeStyle = T.axis; ctx.lineWidth = 1; ctx.strokeRect(x0 + 0.5, base + 3.5, x1 - x0 - 1, 7);
+  ctx.restore();
+  const boxA = { x: X(win.lo) - 2, y: base + 1, w: Math.max(6, X(win.hi) - X(win.lo) + 4), h: 12 };
+  const boxB = { x: x0, y: 150, w: x1 - x0, h: 120 };
+  ctx.save();
+  ctx.strokeStyle = T.ink1; ctx.lineWidth = 1;
+  ctx.strokeRect(boxA.x, boxA.y, boxA.w, boxA.h);
+  ctx.restore();
+  const r = {
+    x: lerp(boxA.x, boxB.x, t), y: lerp(boxA.y, boxB.y, t),
+    w: lerp(boxA.w, boxB.w, t), h: lerp(boxA.h, boxB.h, t),
+  };
+  ctx.save();
+  ctx.globalAlpha = 0.25 + 0.75 * t;
+  ctx.strokeStyle = T.ink2; ctx.lineWidth = 1;
+  ctx.strokeRect(r.x, r.y, r.w, r.h);
+  /* the close-up's own bars, drawn into whatever rectangle the window is at */
+  const cols = win.hi - win.lo + 1;
+  const cw = r.w / cols;
+  const at = new Map(one.residues.map((x) => [x.pos, x]));
+  let maxN = 1;
+  for (let p = win.lo; p <= win.hi; p += 1) maxN = Math.max(maxN, at.get(p)?.n ?? 0);
+  for (let p = win.lo; p <= win.hi; p += 1) {
+    const g = at.get(p);
+    if (!g) continue;
+    const h = (g.n / maxN) * (r.h - 12);
+    ctx.fillStyle = g.n >= one.th ? T.highlight : wash(T.ink3, 0.6);
+    ctx.fillRect(r.x + (p - win.lo) * cw + cw * 0.15, r.y + r.h - h, Math.max(1, cw * 0.7), h);
+  }
+  ctx.restore();
+  if (t > 0.6) label(ctx, `Residues ${win.lo}–${win.hi}`, boxB.x, boxB.y - 8, { size: 12, colour: T.ink1, weight: "600", alpha: (t - 0.6) / 0.4 });
+}
+for (const t of [0, 0.45, 1]) {
+  const box = cand("zoomRow", t === 0 ? "the press lands" : t === 1 ? "settled" : "mid-flight", `t = ${t}`, ZOOM_W);
+  drawZoom(canvasIn(box, ZOOM_W, ZOOM_H), t);
+}
+document.getElementById("zoomNote").innerHTML =
+  `The close-up covers residues ${win.lo}–${win.hi} of ${int(one.gene.L)} — `
+  + `${(100 * (win.hi - win.lo + 1) / one.gene.L).toFixed(1)}% of the protein, which is `
+  + `${((win.hi - win.lo + 1) / one.gene.L * 360).toFixed(0)} pixels of the strip above at the widest canvas. `
+  + `Today the panel appears already full and a small box on the protein is the only thing saying where it came from.`;
+
+const SLIDE_W = 400, SLIDE_H = 300;
+function drawSlide(ctx, tRaw) {
+  const t = easeInOut(tRaw);
+  clear(ctx);
+  const x0 = 30, x1 = SLIDE_W - 16;
+  const X = (v) => x0 + v * (x1 - x0);
+  label(ctx, "The gene's score", x0, 18, { size: 12, colour: T.ink1, weight: "600" });
+  const y = 34, h = 20;
+  ctx.save();
+  ctx.fillStyle = T.surface3; ctx.fillRect(x0, y, x1 - x0, h);
+  let at = 0;
+  const scores = one.res.clusters.map((c) => c.score).sort((p, q) => q - p);
+  scores.forEach((s, i) => {
+    ctx.fillStyle = wash(T.highlight, i % 2 ? 0.55 : 0.9);
+    ctx.fillRect(X(at), y, Math.max(1, X(at + s) - X(at) - 1), h);
+    at += s;
+  });
+  ctx.restore();
+  /* the background it is judged against */
+  const py = 150, ph = 90;
+  const pdf = (s) => Math.exp(-0.5 * ((s - M.BACKGROUND.mean) / M.BACKGROUND.sd) ** 2);
+  const PX = (s) => x0 + ((s + 0.1) / 1.2) * (x1 - x0);
+  ctx.save();
+  ctx.globalAlpha = 0.3 + 0.7 * t;
+  ctx.beginPath();
+  for (let s = -0.1, first = true; s <= 1.1; s += 0.01) {
+    const px = PX(s), pyy = py + ph - pdf(s) * ph;
+    if (first) { ctx.moveTo(px, pyy); first = false; } else ctx.lineTo(px, pyy);
+  }
+  ctx.strokeStyle = T.reference; ctx.lineWidth = 1.5; ctx.stroke();
+  ctx.restore();
+  line(ctx, x0, py + ph, x1, py + ph, T.axis);
+  label(ctx, "the background", x0, py - 8, { size: 11, colour: T.ink2, alpha: 0.3 + 0.7 * t });
+  /* S travels from the end of the bar to its place on the curve */
+  const from = { x: X(one.res.score), y: y + h / 2 };
+  const to = { x: PX(one.res.score), y: py + ph / 2 };
+  const mx = lerp(from.x, to.x, t), my = lerp(from.y, to.y, t);
+  line(ctx, mx, my - 26, mx, my + 26, T.highlight, 2);
+  label(ctx, `S = ${one.res.score.toFixed(3)}`, mx + 6, my - 30, { size: 11, colour: T.ink1, weight: "600" });
+  if (t > 0.8) {
+    ctx.save();
+    ctx.globalAlpha = (t - 0.8) / 0.2;
+    ctx.beginPath();
+    ctx.moveTo(PX(one.res.score), py + ph);
+    for (let s = one.res.score; s <= 1.1; s += 0.01) ctx.lineTo(PX(s), py + ph - pdf(s) * ph);
+    ctx.lineTo(PX(1.1), py + ph);
+    ctx.closePath();
+    ctx.fillStyle = wash(T.extreme, 0.6);
+    ctx.fill();
+    ctx.restore();
+  }
+}
+for (const t of [0, 0.45, 1]) {
+  const box = cand("slideRow", t === 0 ? "the press lands" : t === 1 ? "settled" : "mid-flight", `t = ${t}`, SLIDE_W);
+  drawSlide(canvasIn(box, SLIDE_W, SLIDE_H), t);
+}
+document.getElementById("slideNote").innerHTML =
+  `The same number twice: the end of the bar the cluster scores add up to, and the line the p-value is measured from. `
+  + `S = ${one.res.score.toFixed(3)} here, p = ${M.pText(one.p)}. `
+  + `Today the second panel replaces the first, so the reader is told they are the same number rather than shown it.`;
+
+document.getElementById("recOne").innerHTML =
+  `<b>Recommendation: a, yes; b, yes; the rest, no.</b> Both connect two panels that otherwise replace each other. `
+  + `The threshold line sweeping down, the cluster bars growing and the mutations fading in by class were mocked and `
+  + `left out: they decorate a step rather than explain one, and each adds a frame budget to a page that is read, `
+  + `not watched.`;
+
+/* ---------------------------------------------------------------- 4 · costs */
+document.getElementById("costs").innerHTML = `
+  <table>
+    <tr><th>Where</th><th>What moves</th><th>What it teaches</th><th>Cost</th></tr>
+    <tr><td>Page 2, the build</td><td>${int(N_CAND)} genes leave a list, ${int(untested.length)} fall away, the rest take their place and are then corrected</td>
+        <td>that the plot is a table, and that BH moves a gene by its rank</td><td>six stages, one layout function, a tween per stage; the page gains an animation and loses its "static" reading</td></tr>
+    <tr><td>Page 2, Across</td><td>the same points, read on the other axis</td><td>nothing new; it reads as one motion rather than a jump</td><td>one line</td></tr>
+    <tr><td>Page 1a, the close-up</td><td>the locator box grows into the panel</td><td>where the close-up's ${win.hi - win.lo + 1} residues sit in ${int(one.gene.L)}</td><td>one rect lerp around the existing draw</td></tr>
+    <tr><td>Page 1b, the score</td><td>S walks from the bar onto the curve</td><td>that the bar's end and the line on the curve are one number</td><td>one point lerp, plus holding both panels for the length of the tween</td></tr>
+  </table>`;
+</script>
+</body>
+</html>
