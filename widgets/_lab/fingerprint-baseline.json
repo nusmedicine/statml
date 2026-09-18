@@ -7406,6 +7406,251 @@
       },
       "px": "0af52a98",
       "tx": "65030e70"
+    },
+    {
+      "$note": "driver-genes · One gene, before any press: the protein, its residues and nothing else",
+      "slug": "driver-genes",
+      "state": "?theme=light&shown=0",
+      "px": "2bea1729",
+      "tx": "a6c309ba"
+    },
+    {
+      "$note": "driver-genes · the mutations added: 359 on 1,068 residues, no threshold yet",
+      "slug": "driver-genes",
+      "state": "?theme=light&shown=1",
+      "px": "355d6fa8",
+      "tx": "6ef47f1b"
+    },
+    {
+      "$note": "driver-genes · the significant residues: the threshold line, the marked residues and the close-up",
+      "slug": "driver-genes",
+      "state": "?theme=light&shown=2",
+      "px": "81c02ec8",
+      "tx": "1d05b862"
+    },
+    {
+      "$note": "driver-genes · the clusters formed: the bands under the protein and the span in the close-up",
+      "slug": "driver-genes",
+      "state": "?theme=light&shown=3",
+      "px": "5c1f68ef",
+      "tx": "ad369379"
+    },
+    {
+      "$note": "driver-genes · each cluster scored: the peak, and distance and term under every residue",
+      "slug": "driver-genes",
+      "state": "?theme=light&shown=4",
+      "px": "46db5964",
+      "tx": "a81de66c"
+    },
+    {
+      "$note": "driver-genes · the gene's score: its cluster scores end to end over the fraction in clusters",
+      "slug": "driver-genes",
+      "state": "?theme=light&shown=5",
+      "px": "983e9b46",
+      "tx": "7a0444a3"
+    },
+    {
+      "$note": "driver-genes · the score against the background: the tail past it, z and p",
+      "slug": "driver-genes",
+      "state": "?theme=light&shown=6",
+      "px": "b2c6b2d6",
+      "tx": "c3664d39"
+    },
+    {
+      "$note": "driver-genes · a tumor suppressor at its last step: mutations along the protein, a lower score",
+      "slug": "driver-genes",
+      "state": "?theme=light&gene=suppressor&shown=6",
+      "px": "b533f353",
+      "tx": "378fb9d0"
+    },
+    {
+      "$note": "driver-genes · the small oncogene: 26 mutations, almost all at one residue",
+      "slug": "driver-genes",
+      "state": "?theme=light&gene=small&shown=6",
+      "px": "5371831d",
+      "tx": "911f7fcd"
+    },
+    {
+      "$note": "driver-genes · a passenger with no residue at its threshold: no cluster, not in the table",
+      "slug": "driver-genes",
+      "state": "?theme=light&gene=passenger&shown=2",
+      "px": "f6fa9607",
+      "tx": "765ade3f"
+    },
+    {
+      "$note": "driver-genes · The cohort, before any press: the list of every gene with 5 or more mutations",
+      "slug": "driver-genes",
+      "state": "?theme=light&page=cohort&shown=0",
+      "px": "d22a940e",
+      "tx": "4cc982b3"
+    },
+    {
+      "$note": "driver-genes · the table: the genes with no cluster gone, and the count with them",
+      "slug": "driver-genes",
+      "state": "?theme=light&page=cohort&shown=1",
+      "px": "ee4555ac",
+      "tx": "ca0d81f3"
+    },
+    {
+      "$note": "driver-genes · every gene at its p-value, before the correction",
+      "slug": "driver-genes",
+      "state": "?theme=light&page=cohort&shown=3",
+      "px": "5afc74cb",
+      "tx": "1971a8c1"
+    },
+    {
+      "$note": "driver-genes · the finished figure: the correction, the line at FDR 0.05, the calls and the roles",
+      "slug": "driver-genes",
+      "state": "?theme=light&page=cohort&shown=5",
+      "px": "7c2489c7",
+      "tx": "a1d17eef"
+    },
+    {
+      "$note": "driver-genes · the same figure with the roles uncoloured: a ring is the only answer",
+      "slug": "driver-genes",
+      "state": "?theme=light&page=cohort&kinds=0&shown=5",
+      "px": "a3f8d9d5",
+      "tx": "461dcd35"
+    },
+    {
+      "$note": "driver-genes · the cohort read on the score axis",
+      "slug": "driver-genes",
+      "state": "?theme=light&page=cohort&across=score&shown=5",
+      "px": "16bff231",
+      "tx": "a1d17eef"
+    },
+    {
+      "$note": "driver-genes · another cohort at seed 3",
+      "slug": "driver-genes",
+      "state": "?theme=light&page=cohort&seed=3&shown=5",
+      "px": "e49dbbd1",
+      "tx": "3f4c9f27"
+    },
+    {
+      "$note": "driver-genes · DRIVEN - the mutations arriving, part way through the first press",
+      "slug": "driver-genes",
+      "state": "?theme=light",
+      "drive": {
+        "click": "step",
+        "frames": 14,
+        "dt": 32
+      },
+      "px": "19a60561",
+      "tx": "502c5492"
+    },
+    {
+      "$note": "driver-genes · DRIVEN - the close-up growing out of its locator box, mid-flight",
+      "slug": "driver-genes",
+      "state": "?theme=light",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 40
+          }
+        ],
+        "click": "step",
+        "frames": 8,
+        "dt": 32
+      },
+      "px": "7a4c7f7b",
+      "tx": "1d05b862"
+    },
+    {
+      "$note": "driver-genes · DRIVEN - the gene's score walking from its bar onto the background, mid-walk",
+      "slug": "driver-genes",
+      "state": "?theme=light",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 40
+          },
+          {
+            "click": "step",
+            "frames": 20
+          },
+          {
+            "click": "step",
+            "frames": 2
+          },
+          {
+            "click": "step",
+            "frames": 2
+          },
+          {
+            "click": "step",
+            "frames": 2
+          }
+        ],
+        "click": "step",
+        "frames": 8,
+        "dt": 32
+      },
+      "px": "d3ef2f14",
+      "tx": "c3664d39"
+    },
+    {
+      "$note": "driver-genes · DRIVEN - Benjamini-Hochberg landing: every gene falling by its rank",
+      "slug": "driver-genes",
+      "state": "?theme=light&page=cohort",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 32
+          },
+          {
+            "click": "step",
+            "frames": 32
+          },
+          {
+            "click": "step",
+            "frames": 32
+          }
+        ],
+        "click": "step",
+        "frames": 14,
+        "dt": 32
+      },
+      "px": "927620ac",
+      "tx": "874960e7"
+    },
+    {
+      "$note": "driver-genes · DRIVEN - the finished cohort eased onto the score axis, mid-ease",
+      "slug": "driver-genes",
+      "state": "?theme=light&page=cohort",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 32
+          },
+          {
+            "click": "step",
+            "frames": 32
+          },
+          {
+            "click": "step",
+            "frames": 32
+          },
+          {
+            "click": "step",
+            "frames": 32
+          },
+          {
+            "click": "step",
+            "frames": 32
+          }
+        ],
+        "set": {
+          "across": "score"
+        },
+        "frames": 6,
+        "dt": 32
+      },
+      "px": "31f616d0",
+      "tx": "a1d17eef"
     }
   ]
 }

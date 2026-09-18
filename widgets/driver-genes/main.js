@@ -670,7 +670,7 @@ function takeCohortStep(anim, dt) {
 defineWidget({
   slug: "driver-genes",
   title: "Cancer Driver Genes",
-  status: "draft",
+  status: "shipped",
   subtitle: S.subtitle,
   layout: "side",
   height: ({ w, ...values }) => M.stageHeight(w, values),

@@ -9726,6 +9726,31 @@ printed a probability as 0.0000.
   ends, not out: at 45% of its time an `easeOut` zoom is already 83% of the way
   there, which reads as a jump and not a camera move.
 
+#### SHIPPED 2026-09-18, on his "tested ok, push it to gallery"
+
+Manifest and `main.js` both `shipped`, so the gallery lists it and `/lab/` no
+longer does. **22 fingerprint states** from `_lab/driver-genes-shoot.html`
+(copied that day from `augmentation-shoot.html`): the seven steps of *One gene*,
+the other three genes, seven of the cohort build, and five driven — the
+mutations arriving, the close-up growing out of its box, the score walking onto
+the background, Benjamini-Hochberg landing, and the Across ease. Every state
+stable over three runs, every drive moved its figure, and the shooter's seven
+proof states reproduced.
+
+**The record had to be taken twice, and the reason is worth keeping.** The first
+pass ran while the widget still carried the DRAFT BANNER, which adds about 44px:
+that pushed the two tallest states (`shown=6` and `gene=suppressor&shown=6`, whose
+formula card is at its fullest) past the harness's 1,200px frame, so they hashed
+on a scrolled page at a 669px canvas. With the banner gone the same pages measure
+1,169 and 1,197 tall, no scrollbar, 688px — and the suite reported exactly those
+two states and the driven one that ends on `shown=6` as DIFFER, on `px` alone
+with `tx` identical, which is the signature the handover names. **Record the
+states AFTER the status flip, not before.**
+
+Verification at the ship: verify 66 checks, `npm run check` and `npm test`
+(30 scripts) each run alone and read, and the full suite fronted at DPR 1.25
+reading 846 of 846 identical.
+
 ### Slot 70 · `mutational-signatures` — Mutational Signatures
 
 **Host.** 01-4 end to end: cell 0 (`cancer-signature.png`, M ≈ S · W, a

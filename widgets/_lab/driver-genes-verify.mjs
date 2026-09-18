@@ -28,7 +28,7 @@
    that nothing is painted outside the canvas, at the narrowest and widest
    side-layout canvases, and that the height does not read the width.
 
-   THE STATUS. The manifest and `main.js` both say `draft`, and this says so.
+   THE STATUS. The manifest and `main.js` both say `shipped`, and this says so.
 
    Exits non-zero on failure.
    ========================================================================= */
@@ -252,7 +252,7 @@ const W = await widget();
   check("the step label follows the drive's own counter", W.animation.stepLabel.anim === "labelAt"
     && [0, 1, 2, 3, 4, 5].every((k) => typeof W.animation.stepLabel.labels[k] === "string"));
   const manifest = JSON.parse(read("widgets/manifest.json")).widgets.find((w) => w.slug === "driver-genes");
-  check("the manifest and main.js both say draft", manifest?.status === "draft" && W.status === "draft");
+  check("the manifest and main.js both say shipped", manifest?.status === "shipped" && W.status === "shipped");
   check("the blurb is the page's meta description",
     read("widgets/driver-genes/index.html").includes(`content="${manifest.blurb}"`) && manifest.blurb.length <= 120, `${manifest.blurb.length} chars`);
   check("the lab's model re-exports the widget's engine",
