@@ -76,7 +76,10 @@ change. This has already cost one debugging session.
    secant, a gradient arrow; added 2026-09-08 because `--c-highlight` is
    1.08 against the curve a tangent lies on), and `--c-dim-a`…`d` (the
    dimensions of a tensor, one hue each, counted from the last; on frames,
-   rules, arrows and swatches, never on text — added 2026-09-09). Needing a role that does not exist is a signal to add one, not to
+   rules, arrows and swatches, never on text — added 2026-09-09), and
+   `--c-sub-ca`…`tg` (the six substitution classes C>A…T>G in the field's own
+   colours, on bars, bands and swatches, never on text; a panel wearing them
+   takes a grey value ramp — added 2026-09-19 for widget 70). Needing a role that does not exist is a signal to add one, not to
    reach for `--series-n`.
 6. **All randomness comes from the seeded `rng` passed to `compute`.** Never
    `Math.random()`.

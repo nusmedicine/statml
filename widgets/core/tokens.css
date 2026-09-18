@@ -270,6 +270,24 @@
   --c-dim-c:      var(--series-3);   /* aqua   */
   --c-dim-d:      var(--series-8);   /* red    */
 
+  /* --- the six substitution classes, read from the pyrimidine --------------- *
+     Widget 70 (2026-09-19) colours a mutation's class — C>A, C>G, C>T, T>A,
+     T>C, T>G — on its bars, bands and swatches, never on text. The hues are
+     the field's convention, the one COSMIC's pages and SigProfilerPlotting
+     draw (light blue, black, red, light grey, light green, pale pink, read
+     from SigProfilerPlotting's source), set on slots the palette already has,
+     so no colour enters it: Kenneth's pick over maftools' own six, which would
+     have needed six from outside it. The black and the grey are ink because
+     the convention's are. A panel wearing these must not also colour by VALUE
+     (the rule --c-value-low/high carry): widget 70's heatmaps take a grey ramp,
+     so its red means C>T and nothing else. */
+  --c-sub-ca:     var(--series-1);   /* C>A, blue  */
+  --c-sub-cg:     var(--ink-1);      /* C>G, black */
+  --c-sub-ct:     var(--series-8);   /* C>T, red   */
+  --c-sub-ta:     var(--ink-3);      /* T>A, grey  */
+  --c-sub-tc:     var(--series-6);   /* T>C, green */
+  --c-sub-tg:     var(--series-5);   /* T>G, pink  */
+
   --c-wash: color-mix(in srgb, var(--c-empirical) 10%, transparent);
 
   /* --- type ------------------------------------------------------------- */

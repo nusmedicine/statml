@@ -161,6 +161,8 @@ export function readTokens() {
     valueHigh: v("--c-value-high"),
     slope: v("--c-slope"),
     dims: ["a", "b", "c", "d"].map((k) => v(`--c-dim-${k}`)),
+    /* the six substitution classes, in maftools' order: C>A C>G C>T T>A T>C T>G */
+    subs: ["ca", "cg", "ct", "ta", "tc", "tg"].map((k) => v(`--c-sub-${k}`)),
     series: [1, 2, 3, 4, 5, 6, 7, 8].map((i) => v(`--series-${i}`)),
     font: v("--font"),
     mono: v("--font-mono"),
