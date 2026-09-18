@@ -9916,17 +9916,40 @@ iterations here), with `pConstant` added to every cell first;
 **Settled by the mock and not re-argued:** three pages in the notebook's order,
 *Catalogue · Signatures · Matching*; page 1 is the arrival and then two read
 steps (twelve written changes → six read from the pyrimidine, with Ti/Tv → 96
-with the neighbours), on one tumour of 1,302 mutations; the rank is *Signatures
-to extract*, 2–6, opening on 4, with widget 41 in its detail; the page is a
-display parameter and the tumour, the rank and the seed are data; the widget
-opens on M alone; seed 1 is the default, where all ten of the mock's checks hold.
+with the neighbours); the rank is *Signatures to extract*, 2–6, opening on 4,
+with widget 41 in its detail; the page is a display parameter and the tumour,
+the rank and the seed are data; the widget opens on M alone; seed 1 is the
+default, where all the mock's checks hold.
 
-**For the draft, not settled:** a colour role for the six substitution classes
-(the mock borrows the cluster slots); page 3's row click through core's region
-door, widget 59's pattern; the extraction cached by the parameters it reads, as
-69 caches its cohort; and how much of widget 41's `model.js` to import —
-`updateKL` and `cosine` are general, `normalise` and `fitTrace` read its 24 × 12
-stage, and generalising them is a change to a shipped widget's engine.
+**Three more picks, 2026-09-19, from the mock's § 8, all three
+recommendations,** on his "you need to ask me questions?" after the four:
+
+5. **The six substitution classes take the field's convention on the
+   palette** — C>A `--series-1`, C>G `--ink-1`, C>T `--series-8`, T>A
+   `--ink-3`, T>C `--series-6`, T>G `--series-5` — the colours COSMIC and
+   SigProfilerPlotting draw (read from SigProfilerPlotting's source), as six new
+   roles in `tokens.css`, a core change with a full fingerprint run. His own
+   figures disagree with each other (cell 18 ggplot's hues, cells 28 and 34
+   maftools' coral4, lightcyan4, deeppink3, lightsalmon1, forestgreen,
+   cornflowerblue), and maftools' would have needed six colours outside the
+   validated palette. **The widget's heatmaps (M, S, W and the cosines) take a
+   grey ramp,** because a panel on the value ramp must not also colour by
+   identity and `--c-value-high` is red: red means C>T and nothing else here.
+6. **Page 1 builds two of page 2's tumours, with a control between them** —
+   the largest ordinary tumour and the hypermutated one (at seed 1, tumour 77
+   with 388 mutations, the APOBEC signature's largest holder at 22%, one of 5
+   holding half; and tumour 101 with 605, holding 63% of its own signature
+   alone). Widget 69's rule: page 1's examples are page 2's, and the two are
+   misconception 2's two cases before page 2 names it. Both follow the seed.
+7. **The slug is `mutational-signatures` and the title *Mutational
+   Signatures*,** 01-4's own heading.
+
+**Left to the draft, with a conventional answer, so not asked:** page 3's row
+click through core's region door, widget 59's pattern; the extraction cached by
+the parameters it reads, as 69 caches its cohort; and widget 41's `updateKL` and
+`cosine` imported as they are, so 41 does not change (its `normalise` and
+`fitTrace` read its 24 × 12 stage, and 70 writes its own trace around the
+update).
 
 ### Slot 71 · `somatic-interactions` — not asked for, measured, cuttable
 

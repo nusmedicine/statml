@@ -112,6 +112,34 @@
   <p class="note">The claims above, recomputed in the browser from the module the measure script imports.</p>
   <div id="checks">running…</div>
 
+  <h2>8 &middot; Three questions before the draft</h2>
+  <p class="note">
+    Added 2026-09-19, after your four picks. The rest of what the draft decides has a conventional answer and is not
+    asked: the extraction cached by the parameters it reads, page 3's row click through core's region door, and widget
+    41's <code>updateKL</code> and <code>cosine</code> imported as they are, so 41 itself does not change.
+  </p>
+  <h3>8.1 &middot; The six substitution classes' colours</h3>
+  <p class="note">
+    Your two figures disagree: cell 18 draws ggplot's default hues and cells 28 and 34 draw maftools' (coral4,
+    lightcyan4, deeppink3, lightsalmon1, forestgreen, cornflowerblue, read from the installed source). The field's own
+    convention is the one COSMIC's site and SigProfilerPlotting draw: C&gt;A light blue, C&gt;G black, C&gt;T red, T&gt;A
+    light grey, T&gt;C light green, T&gt;G pale pink (read from SigProfilerPlotting's source). Whichever is picked becomes
+    six roles in <code>tokens.css</code>, a core change with a full fingerprint run. Each arm draws the same tumour.
+  </p>
+  <div class="row" id="colRow"></div>
+  <p class="q" id="qCol"></p>
+  <p class="rec" id="recCol"></p>
+  <h3>8.2 &middot; Page 1's tumour</h3>
+  <p class="note">
+    Page 1 needs a tumour with enough mutations to fill 96 bars; the cohort's median tumour has 48. Widget 69's rule is
+    that page 1's genes are page 2's, so the reader meets on page 2 what was built on page 1.
+  </p>
+  <div class="row" id="tumRow"></div>
+  <p class="q" id="qTum"></p>
+  <p class="rec" id="recTum"></p>
+  <h3>8.3 &middot; The slug and the title</h3>
+  <p class="q" id="qSlug"></p>
+
 <script type="module">
 import { readTokens } from "../core/env.js";
 import { buildControls } from "../core/controls.js";
@@ -165,7 +193,7 @@ const niceMax = (m) => { if (m <= 0) return 1; const e = 10 ** Math.floor(Math.l
 const tick = (v) => (v === 0 ? "0" : v >= 1 ? String(Math.round(v)) : v.toFixed(v < 0.1 ? 2 : 1).replace(/^0/, ""));
 
 /** 96 bars in maftools' order, coloured by substitution class, the class bands under them (plotSignatures). */
-function profileBars(ctx, v, { x0 = 52, x1 = 534, top, base, max = null, bands = true, ticks = true, bandLabels = true } = {}) {
+function profileBars(ctx, v, { x0 = 52, x1 = 534, top, base, max = null, bands = true, ticks = true, bandLabels = true, colours = CLASS } = {}) {
   const bw = (x1 - x0) / 96;
   const m = max ?? niceMax(Math.max(...v));
   if (ticks) {
@@ -173,12 +201,12 @@ function profileBars(ctx, v, { x0 = 52, x1 = 534, top, base, max = null, bands =
   }
   for (let i = 0; i < 96; i += 1) {
     const h = Math.min(1, v[i] / m) * (base - top);
-    ctx.fillStyle = CLASS[i >> 4];
+    ctx.fillStyle = colours[i >> 4];
     ctx.fillRect(x0 + i * bw + 0.5, base - h, Math.max(1, bw - 1), h);
   }
   line(ctx, x0, base + 0.5, x1, base + 0.5, T.axis);
   if (bands) for (let k = 0; k < 6; k += 1) {
-    ctx.fillStyle = CLASS[k]; ctx.fillRect(x0 + 16 * k * bw + 1, base + 4, 16 * bw - 2, 4);
+    ctx.fillStyle = colours[k]; ctx.fillRect(x0 + 16 * k * bw + 1, base + 4, 16 * bw - 2, 4);
     if (bandLabels) label(ctx, M.CLASSES[k], x0 + (16 * k + 8) * bw, base + 19, { size: 10, colour: T.ink2, align: "center", mono: true });
   }
 }
@@ -566,6 +594,70 @@ function carriers(box, infos, colsCount, title) {
     + "region door as widget 59's pins do.";
 }
 
+/* ---------------------------------------------------------------- 8 · before the draft */
+const colOf = (j) => COHORT.M.map((row) => row[j]);
+const BIG = [...COHORT.counts.keys()].filter((j) => j !== H).sort((a, b) => COHORT.counts[b] - COHORT.counts[a])[0];
+{
+  const SETS = [
+    ["A · The field's convention, on the palette", "C>A series-1 · C>G ink-1 · C>T series-8 · T>A ink-3 · T>C series-6 · T>G series-5\nthe colours COSMIC and SigProfilerPlotting draw, on the collection's palette",
+      [T.series[0], T.ink1, T.series[7], T.ink3, T.series[5], T.series[4]]],
+    ["B · The collection's six cluster hues", "--c-cluster-a … f, as §§1–5 draw them\nno convention behind them: the slots in their order",
+      T.clusters],
+    ["C · maftools' colours, as your cells 28 and 34", "coral4 · lightcyan4 · deeppink3 · lightsalmon1 · forestgreen · cornflowerblue\nsix colours outside the validated palette, hard-coded in this mock only",
+      ["#8B3E2F", "#7A8B8B", "#CD1076", "#FFA07A", "#228B22", "#6495ED"]],
+  ];
+  for (const [title, sub, cols] of SETS) {
+    const box = cand("colRow", title, sub);
+    const ctx = canvasIn(box, W, 196);
+    let x = 52;
+    ctx.save(); ctx.font = `10px ${T.mono}`;
+    M.CLASSES.forEach((c, k) => { ctx.fillStyle = cols[k]; ctx.fillRect(x, 14, 10, 8); label(ctx, c, x + 14, 22, { size: 10, colour: T.ink2, mono: true }); x += 14 + ctx.measureText(c).width + 18; });
+    ctx.restore();
+    profileBars(ctx, TUMOUR.counts, { top: 44, base: 156, colours: cols });
+  }
+  document.getElementById("qCol").innerHTML =
+    "<b>Your call:</b> <b>A</b>, the field's convention on the collection's palette, which is what students meet in "
+    + "papers and on COSMIC's pages; <b>B</b>, the six cluster hues the mock has used, which carry no convention; or "
+    + "<b>C</b>, maftools' colours as your cells 28 and 34 print them, which needs six colours added outside the validated "
+    + "palette (and cell 18 already draws a third set).";
+  document.getElementById("recCol").innerHTML =
+    "<b>A.</b> Every hue is already a palette slot, so it needs roles and no new colours, and it matches the pictures "
+    + "students will see after the course. It also settles a conflict the mock has: its heatmaps run to "
+    + "<code>--c-value-high</code>, which is red, beside class colours that include red, and <code>tokens.css</code> says a "
+    + "panel on the value ramp must not also colour by identity. Under A the draft's heatmaps (M, S, W and the cosines) take "
+    + "a grey ramp, and red means C&gt;T and nothing else on these pages.";
+}
+{
+  const a = cand("tumRow", "A · A tumour of its own", `${TUMOUR.mutations.length.toLocaleString()} mutations from the cohort's common processes, as §1 draws it\nnot in page 2's cohort; Seed draws another`);
+  const ctx = canvasIn(a, W, 186);
+  profileBars(ctx, TUMOUR.counts, { top: 26, base: 136 });
+  label(ctx, "a mix of deamination at CpG, the clock-like process and APOBEC", 52, 176, { size: 10.5, colour: T.ink2 });
+  const b = cand("tumRow", "B · Two of page 2's tumours: the largest, and the hypermutated one", `a control on page 1 chooses between them; both follow the seed\nthe tumour the Left-out switch removes is the second`);
+  const ctx2 = canvasIn(b, W, 372);
+  const apo = SIGS[APO], own = SIGS[OWN];
+  const bigShare = apo.e[BIG] / apo.total;
+  label(ctx2, `Tumour ${BIG + 1}, the largest of the other 100: ${COHORT.counts[BIG]} mutations`, 52, 16, { size: 11, colour: T.ink1, weight: "600" });
+  profileBars(ctx2, colOf(BIG), { top: 30, base: 128 });
+  label(ctx2, `on page 2 it holds ${pc(bigShare)} of Signature ${APO + 1}, the APOBEC one, which ${apo.hold.half} tumours hold half of`, 52, 166, { size: 10.5, colour: T.ink2 });
+  label(ctx2, `Tumour 101, the hypermutated one: ${COHORT.counts[H]} mutations`, 52, 198, { size: 11, colour: T.ink1, weight: "600" });
+  profileBars(ctx2, HYPER, { top: 212, base: 310 });
+  label(ctx2, `on page 2 it holds ${pc(own.hold.topShare)} of Signature ${OWN + 1}, alone; cosine ${f3(M.cosine(own.s, HYPER))} to its own bars here`, 52, 348, { size: 10.5, colour: T.ink2 });
+  document.getElementById("qTum").innerHTML =
+    "<b>Your call:</b> <b>A</b>, a tumour of its own with 1,302 mutations, as cell 14's has; <b>B</b>, two of page 2's "
+    + "tumours with a control between them, so the page-1 catalogue is a column of page 2's M; or <b>C</b>, tumour 101 "
+    + "alone, the hypermutated one.";
+  document.getElementById("recTum").innerHTML =
+    "<b>B.</b> Widget 69's rule, and the two tumours are misconception 2's two cases before page 2 names it: tumour "
+    + `${BIG + 1} is one of the ${apo.hold.half} that hold half of the APOBEC signature, and tumour 101 alone holds half of `
+    + "its own. A reader who built tumour 101's bars on page 1 can recognise them on page 2. C would teach the catalogue on "
+    + `the one tumour that is not typical; A is not in the cohort. Their counts are smaller than cell 14's (${COHORT.counts[BIG]} and `
+    + `${COHORT.counts[H]} against 1,302), and the bars still read.`;
+}
+document.getElementById("qSlug").innerHTML =
+  "<b>Your call:</b> the slug <code>mutational-signatures</code> and the title <b>Mutational Signatures</b>, 01-4's own "
+  + "heading and the field's term (the arc's slug ruling). The draft lives at its final URL, so the slug is public from "
+  + "the first commit at <code>/lab/</code>, and a later rename breaks shared links.";
+
 /* ---------------------------------------------------------------- 7 · checks */
 {
   const out = [];
@@ -584,6 +676,9 @@ function carriers(box, infos, colsCount, title) {
   ck("page 3: the flat signature's best match and runner-up are the two flat processes it was built from", ["clock", "hr"].includes(flat.match[0].key) && ["clock", "hr"].includes(flat.match[1].key), `${flat.match[0].key} ${f3(flat.match[0].cos)} / ${flat.match[1].key} ${f3(flat.match[1].cos)}`);
   ck(`page 3: at seed ${SEED} the flat signature is named after the process that built less of it`, flat.match[0].key === (flat.mix[1] < flat.mix[3] ? "clock" : "hr"), `built ${builtBy(flat.mix)}`);
   ck("page 3: the APOBEC signature is named C>T with C>G second", SIGS[APO].match[0].key === "apobecT" && SIGS[APO].match[1].key === "apobecG");
+  ck(`8.2: tumour ${BIG + 1}, the largest of the other 100, is the APOBEC signature's largest holder`, SIGS[APO].hold.top === BIG, pc(SIGS[APO].e[BIG] / SIGS[APO].total));
+  ck("8.2: both page-1 tumours of arm B fill most of the 96 types", [colOf(BIG), HYPER].every((v) => v.filter((x) => x > 0).length >= 60),
+    [colOf(BIG), HYPER].map((v) => v.filter((x) => x > 0).length).join(" and "));
   document.getElementById("checks").textContent = `${out.join("\n")}\n\n${out.length} checks, ${bad} failed`;
 }
 </script>
