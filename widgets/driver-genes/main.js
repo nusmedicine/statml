@@ -325,7 +325,7 @@ function drawCloseUp(ctx, colors, L, a, stage) {
   }
   if (stage >= 4) {
     text(ctx, S.distance, x0 - 6, barBase + 30, { font: noteFont(colors), fill: colors.ink3, align: "right" });
-    text(ctx, S.part, x0 - 6, barBase + 46, { font: noteFont(colors), fill: colors.ink3, align: "right" });
+    text(ctx, S.term, x0 - 6, barBase + 46, { font: noteFont(colors), fill: colors.ink3, align: "right" });
     /* Two rows of parts where the columns are narrower than a part, so
        neighbours do not print through each other. */
     const stagger = cw < 30;
@@ -752,8 +752,8 @@ defineWidget({
       ];
     }
     return [
-      { token: "ink-2", label: "Missense mutations at a residue: a round head", mark: "dot" },
-      { token: "ink-2", label: "Truncating mutations at a residue: a square head", mark: "bar" },
+      { token: "ink-2", label: "Missense mutations at a residue: a circle", mark: "dot" },
+      { token: "ink-2", label: "Truncating mutations at a residue: a square", mark: "bar" },
       { token: "highlight", label: "Residues at or above the threshold, and the gene's score", mark: "bar" },
       { token: "reference", label: "The background the score is compared with", mark: "line" },
       { token: "extreme", label: "Scores at least as high under the background: the p-value", mark: "bar" },
@@ -918,7 +918,7 @@ defineWidget({
       const rows = `${M.intText(c.table.length)} genes with a cluster, of ${M.intText(c.atMin)} with five or more mutations`;
       if (stage < 1) return `A list of ${M.intText(c.atMin)} genes with five or more mutations, none of them tested yet.`;
       if (stage < M.COHORT_ACROSS) return `A table of ${rows}.`;
-      if (stage < M.COHORT_UP) return `A table of ${rows}, each placed by its ${across}, with nothing up the page yet.`;
+      if (stage < M.COHORT_UP) return `A table of ${rows}, each placed by its ${across}, before any p-value is drawn.`;
       if (stage < M.COHORT_CORRECT) return `A scatter of ${rows}, by ${across} and −log10 p, before any correction.`;
       const called = c.table.filter((g) => g.called).length;
       if (stage < M.COHORT_STAGES) {
@@ -929,12 +929,14 @@ defineWidget({
     const a = state.one;
     const stage = anim?.stage ?? 0;
     const kind = M.kindOf(params.gene).label.toLowerCase();
+    /* The article reads the word: "A oncogene" was what a fixed one gave. */
+    const an = /^[aeiou]/i.test(kind) ? "An" : "A";
     if (stage === 0) return `A protein of ${M.intText(a.gene.L)} residues, with no mutations added yet.`;
     if (!a.res && stage >= 2) {
-      return `A ${kind} with ${a.n} mutations on ${M.intText(a.gene.L)} residues; no residue reaches the threshold of `
+      return `${an} ${kind} with ${a.n} mutations on ${M.intText(a.gene.L)} residues; no residue reaches the threshold of `
         + `${a.th}, so the gene has no cluster and is not tested.`;
     }
-    return `A ${kind} with ${a.n} mutations on ${M.intText(a.gene.L)} residues, at step ${Math.max(0, stage - 1)} of 5`
+    return `${an} ${kind} with ${a.n} mutations on ${M.intText(a.gene.L)} residues, at step ${Math.max(0, stage - 1)} of 5`
       + `${a.res && stage >= 5 ? `; its clusters score ${M.n3(a.res.score)}` : ""}`
       + `${a.res && stage >= 6 ? `, z ${M.n2(a.z)} and p ${M.pText(a.p)}` : ""}.`;
   },

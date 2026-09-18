@@ -9643,6 +9643,28 @@ printed a probability as 0.0000.
   back "Heterozygotes miscalled" and `polygenic-score` two of its six steps.
   Nothing the fingerprint hashes moved — 824 of 824 identical, fronted at
   DPR 1.25.
+- **The copy audit, 2026-09-18.** All 62 reader-facing strings against the
+  collection's register. Clean already: no second person, no "tumour", no lesson
+  reference, none of the struck physical verbs, "Colour" the house spelling,
+  "sd" lowercase as 47 other strings have it. Nine corrections: *No residue
+  **reaches** 3* (the rule is ≥ th, and "has 3" reads as exactly 3); *No cluster
+  is formed, so the gene is not in the table* (a gene does not **return**
+  anything — the function does); *onto residues below **the threshold*** (not
+  "below it", which can read as below in position); the Page detail now says the
+  cohort is walked too; *including 6 tumor suppressors*; *Place each by its
+  fraction **in clusters***, measured at 209px against the 218px the narrowest
+  rail allows; *Raise each **to** its p-value* ("by" states an increment); the
+  list counts **genes**, true before and after the drop; and the page-1 summary's
+  article now reads the word, where a fixed one gave "A oncogene". Four register
+  calls, all his: **part → term** (each is a term of the sum, and "part" was
+  ours), **a round head → a circle** (lollipop vocabulary the lesson does not
+  use), **How to read it → How to look at it** (the wording two other widgets
+  use), **Colour by kind → Colour by role** (the conventional term for oncogene
+  against tumor suppressor). The subtitle is his pick of four: the method first,
+  as `gwas`, `mendelian-randomization` and `polygenic-score` open, and a last
+  sentence for the correction the cohort page now spends a press on. The blurb
+  stays as it was, on his call.
+
 - **All four tweens built, his pick of the mock (2026-09-18).** Page 2 is now a
   five-press build and page 1's two panel changes carry their panel:
 

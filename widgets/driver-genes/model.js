@@ -647,22 +647,23 @@ export const ACROSS = [
 ];
 
 export const STRINGS = {
-  subtitle: "Gain-of-function mutations in an oncogene are found at a few residues that activate the protein, "
-    + "and loss-of-function mutations in a tumor suppressor anywhere along it. OncodriveCLUST scores the share "
-    + "of a gene's mutations in positional clusters against a fixed background, so it detects the first pattern "
-    + "and not the second, and the score does not depend on how many mutations a gene has.",
+  subtitle: "OncodriveCLUST scores the share of a gene's mutations in positional clusters against a fixed "
+    + "background. Gain-of-function mutations in an oncogene are found at a few residues that activate the "
+    + "protein, and loss-of-function mutations in a tumor suppressor anywhere along it, so the score detects the "
+    + "first gene and not the second. Across a cohort the p-values are then corrected for the number of genes "
+    + "tested.",
 
   pageLabel: "Page",
-  pageDetail: "one gene through the five steps, or every gene in a cohort",
+  pageDetail: "one gene through the five steps, or a cohort from the table to the calls",
   geneSection: "The gene",
   geneLabel: "Gene",
   geneDetail: "simulated with the length, count and hotspot residues of PIK3CA, TP53 or AKT1 in a breast cancer "
     + "cohort, or as a gene with 7 mutations on 749 residues",
-  lookSection: "How to read it",
+  lookSection: "How to look at it",
   acrossLabel: "Across",
   acrossDetail: "the fraction of a gene's mutations in clusters, or the score its p-value is computed from",
-  kindsLabel: "Colour by kind",
-  kindsDetail: "the kind each gene was given in the simulation",
+  kindsLabel: "Colour by role",
+  kindsDetail: "the role each gene was given in the simulation",
   dataSection: "The data",
   seedLabel: "Seed",
   seedDetail: "draws different mutations and a different cohort",
@@ -684,9 +685,9 @@ export const STRINGS = {
      quantity the Across control is set to, since that is what the press does. */
   cohortLabels: {
     c0: "Drop the genes with no cluster",
-    c1: { param: "across", labels: { fraction: "Place each by its fraction", score: "Place each by its score" },
-      default: "Place each by its fraction" },
-    c2: "Raise each by its p-value",
+    c1: { param: "across", labels: { fraction: "Place each by its fraction in clusters", score: "Place each by its score" },
+      default: "Place each by its fraction in clusters" },
+    c2: "Raise each to its p-value",
     c3: "Correct for every gene tested",
     c4: "Call the genes at FDR 0.05",
   },
@@ -703,16 +704,16 @@ export const STRINGS = {
   listClusters: "clusters",
   listScore: "score",
   listNone: "none",
-  listRows: (n) => `${n} rows`,
+  listRows: (n) => `${n} genes`,
   axisP: "−log₁₀ p",
   ghostNote: "where each gene was before the correction",
   threshold: (th) => `threshold ${th}`,
   clusterSpan: (a, b) => `cluster ${a}–${b}`,
   peak: "peak",
   distance: "distance",
-  part: "part",
-  noCluster: (th, n, L) => `No residue has ${th} mutations, the threshold for ${n} mutations on ${L} residues.`,
-  notTested: "The gene returns no cluster, so it is not in the table and not tested.",
+  term: "term",
+  noCluster: (th, n, L) => `No residue reaches ${th} mutations, the threshold for ${n} mutations on ${L} residues.`,
+  notTested: "No cluster is formed, so the gene is not in the table and is not tested.",
   fdrLine: "FDR 0.05",
   axisFraction: "Fraction of mutations in clusters",
   axisScore: "Score",
@@ -721,7 +722,7 @@ export const STRINGS = {
   /* Two lines: as one, it measured past a 535px canvas, the harness's width. */
   notInTable: (out, of) => `Not in the table: ${out} of ${of} genes with 5 or more mutations`,
   notInTableWhy: "Each has no residue at its threshold, so it is not tested.",
-  driversNotInTable: (k) => `${k} of the tumor suppressors among them`,
+  driversNotInTable: (k) => `including ${k} tumor suppressors`,
 
   labelThreshold: "threshold",
   labelCluster: "cluster score",
@@ -729,7 +730,8 @@ export const STRINGS = {
   labelFdr: "FDR",
   noteGene: "n is the gene's mutations and L its residues, nᵢ the mutations at residue i and dᵢ its distance "
     + "from the cluster's peak. Residues at the threshold fewer than 5 apart form one cluster, which extends "
-    + "up to 5 residues onto residues below it. The background mean and sd are fixed values, not estimated "
+    + "up to 5 residues onto residues below the threshold. The background mean and sd are fixed values, not "
+    + "estimated "
     + "from the cohort.",
   noteCohort: "Genes are ranked by p, and m counts only genes with a cluster: a gene with no residue at its "
     + "threshold is not in the table and is not tested.",
