@@ -1,0 +1,116 @@
+Warning messages:
+1: package 'data.table' was built under R version 4.5.3 
+2: package 'NMF' was built under R version 4.5.3 
+3: package 'rngtools' was built under R version 4.5.3 
+maftools 2.26.0 · NMF 0.28 · R version 4.5.2 (2025-10-31 ucrt) · RNG Mersenne-Twister/Inversion/Rejection 
+
+§1 cells 2, 4, 11, 12 and 14: the MAF, Ti/Tv, and the 96-channel matrix
+  ok   21,620 silent variants, as cell 2 prints
+  ok   cell 4's six printed rows of fraction.contribution — largest difference 4.8e-06
+  cell 6's boxes, medians over 968 tumours: C>T 50.0%, C>A 14.3%, C>G 12.5%, T>C 10.0%, T>A 5.1%, T>G 3.8%; Ti 61.1%, Tv 38.9%
+  ok   every SNP carries an 11-base CONTEXT centred on its reference base — 82747 SNPs, 0 with another length, 0 off-centre
+  82,747 SNPs (silent included, useSyn = TRUE); 41,398 (50.0%) have a purine reference and are read from the other strand
+  the twelve written changes:  A>G 3923, T>C 3844, C>T 20015, G>A 20027, A>T 1717, T>A 1757, A>C 1437, T>G 1548, C>A 6035, G>T 6393, C>G 8150, G>C 7901 
+  folded to six:  T>C 7767 (9.4%), C>T 40042 (48.4%), T>A 3474 (4.2%), T>G 2985 (3.6%), C>A 12428 (15.0%), C>G 16051 (19.4%) 
+  ok   968 x 96, as cell 11 prints — 968 x 96
+  ok   cell 12's printed head: the same six tumours in the same order, the first eight channels equal
+  ok   cell 14's TCGA-BH-A18G equal in all 96 channels — 1302 SNVs
+  SNVs per tumour over 968 tumours: 0% 2, 10% 19, 25% 26, 50% 42, 75% 75, 90% 141.3, 99% 908.94, 100% 5841; total 82,747
+  heaviest:  TCGA-AN-A046 5841 (7.1%), TCGA-AC-A23H 4968 (6.0%), TCGA-BH-A18G 1302 (1.6%), TCGA-5L-AAT1 1270 (1.5%), TCGA-A8-A09Z 1172 (1.4%), TCGA-BH-A0HF 1160 (1.4%) 
+  tumours with fewer than 10 SNVs: 15; with none: 0
+
+§2 cell 21: extractSignatures(n = 5, pConstant = 0.1, parallel = 1)
+  said: -Running NMF for factorization rank: 5 
+  ok   cell 21's 60 printed rows, all five signatures, to the printed seven digits (entries above 1e-6) — largest relative difference 4.4e-07
+  largest absolute difference over the 60 rows, tiny entries included: 2.1e-08
+  cosine of Signature_1 to cell 21's printed rows: 1.000000
+  cosine of Signature_2 to cell 21's printed rows: 1.000000
+  cosine of Signature_3 to cell 21's printed rows: 1.000000
+  cosine of Signature_4 to cell 21's printed rows: 1.000000
+  cosine of Signature_5 to cell 21's printed rows: 1.000000
+  the run: method brunet, 890 iterations, seed random, residual (KL) 25977.0
+
+§3 cells 24 and 30: compareSignatures against legacy and SBS
+  legacy said: --Found Signature_1 most similar to COSMIC_10
+  legacy said: Aetiology: defects in polymerase POLE [cosine-similarity: 0.939]
+  legacy said: --Found Signature_2 most similar to COSMIC_2
+  legacy said: Aetiology: APOBEC Cytidine Deaminase (C>T) [cosine-similarity: 0.848]
+  legacy said: --Found Signature_3 most similar to COSMIC_3
+  legacy said: Aetiology: defects in DNA-DSB repair by HR [cosine-similarity: 0.886]
+  legacy said: --Found Signature_4 most similar to COSMIC_1
+  legacy said: Aetiology: spontaneous deamination of 5-methylcytosine [cosine-similarity: 0.868]
+  legacy said: --Found Signature_5 most similar to COSMIC_6
+  legacy said: Aetiology: defective DNA mismatch repair [cosine-similarity: 0.902] 
+  SBS said: --Found Signature_1 most similar to SBS10b
+  SBS said: Aetiology: Polymerase epsilon exonuclease domain mutations [cosine-similarity: 0.878]
+  SBS said: --Found Signature_2 most similar to SBS2
+  SBS said: Aetiology: APOBEC Cytidine Deaminase (C>T) [cosine-similarity: 0.757]
+  SBS said: --Found Signature_3 most similar to SBS3
+  SBS said: Aetiology: Defects in DNA-DSB repair by HR [cosine-similarity: 0.872]
+  SBS said: --Found Signature_4 most similar to SBS6
+  SBS said: Aetiology: defective DNA mismatch repair [cosine-similarity: 0.832]
+  SBS said: --Found Signature_5 most similar to SBS6
+  SBS said: Aetiology: defective DNA mismatch repair [cosine-similarity: 0.797] 
+  ok   cell 24's printed cosines (COSMIC_1–10 and 21–30), all five rows — largest difference 0.000
+  ok   cell 30's printed cosines (SBS1 … SBS7d), all five rows — largest difference 0.000
+  Signature_1  legacy: COSMIC_10 0.939, COSMIC_18 0.384, COSMIC_1 0.375, COSMIC_7 0.280
+               SBS:    SBS10b 0.878, SBS10a 0.592, SBS56 0.548, SBS36 0.486
+  Signature_2  legacy: COSMIC_2 0.848, COSMIC_13 0.813, COSMIC_7 0.459, COSMIC_30 0.443
+               SBS:    SBS2 0.757, SBS13 0.654, SBS7a 0.588, SBS40 0.447
+  Signature_3  legacy: COSMIC_3 0.886, COSMIC_8 0.803, COSMIC_4 0.775, COSMIC_5 0.745
+               SBS:    SBS3 0.872, SBS40 0.791, SBS39 0.748, SBS8 0.738
+  Signature_4  legacy: COSMIC_1 0.868, COSMIC_6 0.788, COSMIC_30 0.698, COSMIC_19 0.655
+               SBS:    SBS6 0.832, SBS1 0.765, SBS15 0.635, SBS30 0.632
+  Signature_5  legacy: COSMIC_6 0.902, COSMIC_15 0.799, COSMIC_20 0.741, COSMIC_1 0.728
+               SBS:    SBS6 0.797, SBS15 0.775, SBS44 0.723, SBS1 0.619
+
+§4 what each of cell 21's signatures is made of
+  Signature_1: 9741 mutations explained (10.6% of the fit); largest holders TCGA-AN-A046 58.6%, TCGA-AC-A23H 1.8%, TCGA-5L-AAT1 0.7%; tumours holding half: 1; nearest tumour TCGA-AN-A046 at cosine 1.000 (5841 SNVs)
+    largest channels T[C>T]G 0.355, T[C>A]T 0.254, T[C>A]A 0.040; cosine to a flat profile 0.229
+  Signature_2: 27985 mutations explained (30.4% of the fit); largest holders TCGA-AC-A23H 17.0%, TCGA-5L-AAT1 4.1%, TCGA-D8-A1JA 3.2%; tumours holding half: 20; nearest tumour TCGA-AC-A23H at cosine 0.995 (4968 SNVs)
+    largest channels T[C>T]A 0.251, T[C>G]T 0.181, T[C>G]A 0.148; cosine to a flat profile 0.271
+  Signature_3: 26351 mutations explained (28.6% of the fit); largest holders TCGA-A1-A0SO 0.8%, TCGA-BH-A18V 0.8%, TCGA-A2-A25A 0.7%; tumours holding half: 206; nearest tumour TCGA-A1-A0SO at cosine 0.809 (277 SNVs)
+    largest channels A[C>A]C 0.028, T[C>A]C 0.028, C[C>A]A 0.023; cosine to a flat profile 0.873
+  Signature_4: 13701 mutations explained (14.9% of the fit); largest holders TCGA-BH-A0HF 8.5%, TCGA-AN-A0AK 1.6%, TCGA-A8-A09Z 1.4%; tumours holding half: 184; nearest tumour TCGA-A8-A0A1 at cosine 0.890 (43 SNVs)
+    largest channels A[C>T]G 0.117, C[C>T]G 0.117, G[C>T]G 0.106; cosine to a flat profile 0.389
+  Signature_5: 14262 mutations explained (15.5% of the fit); largest holders TCGA-BH-A18G 7.9%, TCGA-A8-A09Z 6.8%, TCGA-AN-A0AK 6.1%; tumours holding half: 50; nearest tumour TCGA-BH-A18G at cosine 0.981 (1302 SNVs)
+    largest channels G[C>T]G 0.104, A[C>T]G 0.070, G[C>T]C 0.064; cosine to a flat profile 0.502
+  the pseudo-count: pConstant 0.1 in each of 92928 cells adds 9293 to the matrix's 82,747 mutations (11.2%); for the median tumour (42 SNVs) it is 9.6 of 51.6
+
+§5 the same call with TCGA-AN-A046 left out, and with TCGA-AC-A23H left out as well
+  without TCGA-AN-A046 (967 tumours):
+    Signature_1: nearest of the lesson's is Signature_2 at 0.999; best legacy COSMIC_2 0.853, best SBS SBS2 0.762; cosine to TCGA-AN-A046 0.206
+    Signature_2: nearest of the lesson's is Signature_4 at 0.712; best legacy COSMIC_30 0.883, best SBS SBS30 0.873; cosine to TCGA-AN-A046 0.165
+    Signature_3: nearest of the lesson's is Signature_4 at 0.826; best legacy COSMIC_1 0.934, best SBS SBS1 0.897; cosine to TCGA-AN-A046 0.464
+    Signature_4: nearest of the lesson's is Signature_3 at 0.960; best legacy COSMIC_3 0.922, best SBS SBS3 0.893; cosine to TCGA-AN-A046 0.191
+    Signature_5: nearest of the lesson's is Signature_5 at 0.997; best legacy COSMIC_6 0.913, best SBS SBS6 0.809; cosine to TCGA-AN-A046 0.221
+    closest any signature comes to the lesson's Signature_1: 0.463
+  without TCGA-AN-A046 and TCGA-AC-A23H (966 tumours):
+    Signature_1: nearest of the lesson's is Signature_2 at 0.997; best legacy COSMIC_2 0.868, best SBS SBS2 0.781; cosine to TCGA-AN-A046 0.219
+    Signature_2: nearest of the lesson's is Signature_4 at 0.716; best legacy COSMIC_30 0.884, best SBS SBS30 0.875; cosine to TCGA-AN-A046 0.165
+    Signature_3: nearest of the lesson's is Signature_4 at 0.819; best legacy COSMIC_1 0.934, best SBS SBS1 0.896; cosine to TCGA-AN-A046 0.456
+    Signature_4: nearest of the lesson's is Signature_3 at 0.954; best legacy COSMIC_3 0.922, best SBS SBS3 0.892; cosine to TCGA-AN-A046 0.190
+    Signature_5: nearest of the lesson's is Signature_5 at 0.996; best legacy COSMIC_6 0.914, best SBS SBS6 0.809; cosine to TCGA-AN-A046 0.224
+    closest any signature comes to the lesson's Signature_1: 0.454
+
+§6 the same call at other pConstant values (every tumour in)
+  pConstant 0.001:
+    Signature_1: nearest lesson signature 1 at 0.999; flat 0.229; best legacy COSMIC_10 0.952
+    Signature_2: nearest lesson signature 4 at 0.994; flat 0.392; best legacy COSMIC_1 0.904
+    Signature_3: nearest lesson signature 2 at 1.000; flat 0.266; best legacy COSMIC_2 0.848
+    Signature_4: nearest lesson signature 3 at 0.987; flat 0.822; best legacy COSMIC_3 0.881
+    Signature_5: nearest lesson signature 5 at 0.998; flat 0.511; best legacy COSMIC_6 0.883
+  pConstant 0.01:
+    Signature_1: nearest lesson signature 1 at 1.000; flat 0.229; best legacy COSMIC_10 0.948
+    Signature_2: nearest lesson signature 4 at 0.995; flat 0.389; best legacy COSMIC_1 0.900
+    Signature_3: nearest lesson signature 2 at 1.000; flat 0.267; best legacy COSMIC_2 0.847
+    Signature_4: nearest lesson signature 3 at 0.990; flat 0.831; best legacy COSMIC_3 0.884
+    Signature_5: nearest lesson signature 5 at 0.999; flat 0.511; best legacy COSMIC_6 0.886
+  pConstant 1:
+    Signature_1: nearest lesson signature 1 at 1.000; flat 0.237; best legacy COSMIC_10 0.932
+    Signature_2: nearest lesson signature 2 at 1.000; flat 0.281; best legacy COSMIC_2 0.849
+    Signature_3: nearest lesson signature 3 at 0.941; flat 0.954; best legacy COSMIC_3 0.850
+    Signature_4: nearest lesson signature 4 at 0.738; flat 0.404; best legacy COSMIC_30 0.891
+    Signature_5: nearest lesson signature 5 at 0.977; flat 0.482; best legacy COSMIC_6 0.941
+
+9 checks, 0 failed

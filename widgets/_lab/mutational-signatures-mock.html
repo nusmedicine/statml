@@ -1,0 +1,592 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · mutational-signatures — mock</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1600px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 104ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); min-height: 26px; white-space: pre-line; }
+  .cand .under { font-size: 11px; font-family: var(--font-mono); color: var(--ink-2); margin: var(--sp-1) 0 0; white-space: pre-line; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 104ch; }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+       border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 104ch; }
+  table { border-collapse: collapse; font-size: var(--fs-sm); margin: var(--sp-2) 0; max-width: 130ch; }
+  th, td { border: 1px solid var(--grid); padding: 4px 10px; text-align: left; vertical-align: top; }
+  th { color: var(--ink-2); font-weight: 600; }
+  #checks { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--ink-2); white-space: pre-line;
+            padding: var(--sp-3); background: var(--surface-2); border: 1px solid var(--grid); max-width: 104ch; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>mutational-signatures &middot; mock</h1>
+  <p class="note">
+    Slot 70, for 01-4 end to end. <b>Every number drawn here is computed on this page</b> by
+    <code>_lab/mutational-signatures-model.js</code>: a simulated cohort whose mutation counts are fitted to the lesson's
+    matrix, the KL update your cell 21 runs (<code>NMF</code>'s default <code>brunet</code>, which is widget 41's
+    <code>updateKL</code>), and ten reference profiles built for this page. <code>_lab/mutational-signatures-measure.mjs</code>
+    checks the same module against the lesson's own run. The mock draws filled states so they can be judged; the widget
+    opens empty. On-canvas strings are candidates for the copy audit, not copy. Each section ends with a recommendation;
+    the grey-ruled boxes are the questions only you can answer. <span id="seedNote"></span>
+  </p>
+
+  <h2>0 &middot; What the measurement found</h2>
+  <div id="findings"></div>
+
+  <h2>1 &middot; Page 1, <i>Catalogue</i>: one tumour's mutations into 96 types (cells 3&ndash;18)</h2>
+  <p class="note">
+    One simulated tumour with 1,302 single-base substitutions, as many as cell 14's TCGA-BH-A18G. A MAF writes each change
+    on the reference strand, so half of them arrive as a change from a purine (G or A) &mdash; 41,398 of the lesson's
+    82,747 do. One press each: the changes as written; each read from the pyrimidine of its base pair, which folds twelve
+    changes into six (cells 3&ndash;6's transitions and transversions are read here); and each split by the base on
+    either side, which makes 96 (cells 10&ndash;18).
+  </p>
+  <div class="row" id="catRow"></div>
+  <p class="rec" id="recCat"></p>
+
+  <h2>2 &middot; Page 2, <i>Signatures</i>: the cohort factorised (cells 0 and 19&ndash;21)</h2>
+  <p class="note">
+    <span id="cohortNote"></span> Four processes are planted: deamination at CpG and a flat clock-like process in every
+    tumour, APOBEC (its C&gt;T and its C&gt;G together, as the enzymes make them) in about a third, and a homologous
+    recombination defect in about a quarter. <b>One tumour is hypermutated</b>: a polymerase epsilon profile carrying
+    7.1% of the cohort's mutations, TCGA-AN-A046's share of the lesson's. Four signatures are extracted, the number
+    planted, with <code>pConstant = 0.1</code> as cell 21 has it. A and B draw the same extraction.
+  </p>
+  <div class="row" id="sigRow"></div>
+  <p class="q" id="qSig"></p>
+  <p class="rec" id="recSig"></p>
+
+  <h2>3 &middot; How large must one tumour be to take a signature?</h2>
+  <p class="note">
+    The same cohort shape, the hypermutated tumour's share of all mutations varied, four signatures extracted from one
+    start, seeds 1&ndash;5. The measure script runs ten seeds (&sect;6 of its output): 0 of 10 at 1%, 6 of 10 at 3%,
+    9 of 10 at 7.1%. A start that misses it stops at a higher divergence: the tumour's own signature is the better fit.
+  </p>
+  <div class="row" id="shareRow"></div>
+  <p class="q" id="qShare"></p>
+  <p class="rec" id="recShare"></p>
+
+  <h2>4 &middot; Page 3, <i>Matching</i>: naming each signature (cells 22&ndash;34)</h2>
+  <p class="note">
+    The four signatures of &sect;2 against the ten references of &sect;5 by cosine similarity, which is what
+    <code>compareSignatures</code> computes. Because the cohort is simulated, the page also knows what built each
+    signature: the non-negative mix of the planted profiles closest to it, printed under each. A is cells 26 and 32's
+    heatmap; B is cells 28 and 34's profiles, each with the runner-up beside the best match.
+  </p>
+  <div class="row" id="matchRow"></div>
+  <p class="q" id="qMatch"></p>
+  <p class="rec" id="recMatch"></p>
+
+  <h2>5 &middot; The references: ten look-alikes, not COSMIC's profiles</h2>
+  <p class="note">
+    <b>COSMIC's terms forbid exposing its data &ldquo;on a free to access platform (including but not limited to public
+    facing websites)&rdquo;</b> without GRL's written consent (cosmickb.org/terms, read 2026-09-18), and the gallery is
+    one. Each profile below is built for this page from its process's mechanism &mdash; which base changes, beside which
+    neighbours &mdash; and not from COSMIC's numbers. The measure scores each against the real profile it stands for on
+    this machine (maftools ships them); those cosines are printed and no vector leaves the repo. The catalogue's
+    geometry follows the real one: the flat three sit 0.78&ndash;0.87 apart (real 0.79&ndash;0.88), CpG against
+    mismatch repair 0.81 (real 0.77).
+  </p>
+  <div class="row" id="refRow"></div>
+  <p class="q" id="qRefs"></p>
+  <p class="rec" id="recRefs"></p>
+
+  <h2>6 &middot; The rail</h2>
+  <p class="note">Rendered by core's <code>buildControls</code> at 300px, one per page. The drive row is core's and not drawn here; its labels are listed under each.</p>
+  <div class="row" id="railRow"></div>
+  <p class="rec" id="recRail"></p>
+
+  <h2>7 &middot; What this page checks</h2>
+  <p class="note">The claims above, recomputed in the browser from the module the measure script imports.</p>
+  <div id="checks">running…</div>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+import { buildControls } from "../core/controls.js";
+import { resolveParams } from "../core/params.js";
+import { makeRng } from "../core/rng.js";
+import * as M from "./mutational-signatures-model.js";
+
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+const W = 550;
+const SEED = Number(new URLSearchParams(location.search).get("seed") || 1);
+const f2 = (x) => x.toFixed(2);
+const f3 = (x) => x.toFixed(3);
+const pc = (x) => `${Math.round(100 * x)}%`;
+const CLASS = T.clusters;            // six hues, placeholders for a role the draft adds (see §6)
+
+/* ---------------------------------------------------------------- shell */
+function el(tag, cls, text) { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
+function cand(rowId, title, sub, w = W) {
+  const box = el("div", "cand");
+  box.style.width = `${w}px`;
+  box.appendChild(el("h3", null, title));
+  box.appendChild(el("p", "sub", sub));
+  document.getElementById(rowId).appendChild(box);
+  return box;
+}
+function canvasIn(box, w, h) {
+  const c = document.createElement("canvas");
+  c.width = Math.round(w * DPR); c.height = Math.round(h * DPR);
+  c.style.width = `${w}px`; c.style.height = `${h}px`;
+  box.appendChild(c);
+  const ctx = c.getContext("2d");
+  ctx.scale(DPR, DPR);
+  return ctx;
+}
+const rgb = (c) => { const m = String(c).match(/^#([0-9a-f]{6})$/i); return m ? [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16)) : [128, 128, 128]; };
+const wash = (color, a) => { const p = rgb(color); return `rgba(${p[0]},${p[1]},${p[2]},${a})`; };
+const ramp = (t) => { const a = rgb(T.surface3), b = rgb(T.valueHigh); const u = Math.max(0, Math.min(1, t)); return `rgb(${a.map((x, i) => Math.round(x + (b[i] - x) * u)).join(",")})`; };
+function label(ctx, s, x, y, { size = 11, colour = T.ink2, align = "left", mono = false, weight = "", baseline = "alphabetic" } = {}) {
+  ctx.save();
+  ctx.font = `${weight ? weight + " " : ""}${size}px ${mono ? T.mono : T.font}`;
+  ctx.fillStyle = colour; ctx.textAlign = align; ctx.textBaseline = baseline;
+  ctx.fillText(s, x, y);
+  ctx.restore();
+}
+function line(ctx, x1, y1, x2, y2, colour, width = 1, dash = null) {
+  ctx.save(); ctx.strokeStyle = colour; ctx.lineWidth = width; if (dash) ctx.setLineDash(dash);
+  ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); ctx.restore();
+}
+const niceMax = (m) => { if (m <= 0) return 1; const e = 10 ** Math.floor(Math.log10(m)); for (const k of [1, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10]) if (k * e >= m) return k * e; return 10 * e; };
+const tick = (v) => (v === 0 ? "0" : v >= 1 ? String(Math.round(v)) : v.toFixed(v < 0.1 ? 2 : 1).replace(/^0/, ""));
+
+/** 96 bars in maftools' order, coloured by substitution class, the class bands under them (plotSignatures). */
+function profileBars(ctx, v, { x0 = 52, x1 = 534, top, base, max = null, bands = true, ticks = true, bandLabels = true } = {}) {
+  const bw = (x1 - x0) / 96;
+  const m = max ?? niceMax(Math.max(...v));
+  if (ticks) {
+    for (const t of [0, m]) { line(ctx, x0 - 3, base - (t / m) * (base - top), x0, base - (t / m) * (base - top), T.axis); label(ctx, tick(t), x0 - 6, base - (t / m) * (base - top) + 3.5, { size: 10, colour: T.ink3, align: "right", mono: true }); }
+  }
+  for (let i = 0; i < 96; i += 1) {
+    const h = Math.min(1, v[i] / m) * (base - top);
+    ctx.fillStyle = CLASS[i >> 4];
+    ctx.fillRect(x0 + i * bw + 0.5, base - h, Math.max(1, bw - 1), h);
+  }
+  line(ctx, x0, base + 0.5, x1, base + 0.5, T.axis);
+  if (bands) for (let k = 0; k < 6; k += 1) {
+    ctx.fillStyle = CLASS[k]; ctx.fillRect(x0 + 16 * k * bw + 1, base + 4, 16 * bw - 2, 4);
+    if (bandLabels) label(ctx, M.CLASSES[k], x0 + (16 * k + 8) * bw, base + 19, { size: 10, colour: T.ink2, align: "center", mono: true });
+  }
+}
+
+/* ---------------------------------------------------------------- the data every section reads */
+const TUMOUR = M.drawTumour(makeRng(SEED * 31 + 7), 1302, { cpg: 0.25, clock: 0.3, apobec: 0.45 });
+const COHORT = M.makeCohort(makeRng(SEED), { tumours: 100, hyper: M.LESSON_HYPER_SHARE });
+const H = COHORT.hyperIndex;
+const HYPER = COHORT.M.map((row) => row[H]);
+let t0 = performance.now();
+const EX = M.extract(COHORT.M, 4, makeRng(SEED * 7919 + 1));
+const MS_IN = performance.now() - t0;
+const OUT_M = COHORT.M.map((row) => row.slice(0, H));
+t0 = performance.now();
+const EX_OUT = M.extract(OUT_M, 4, makeRng(SEED * 7919 + 1));
+const MS_OUT = performance.now() - t0;
+/* What built each signature: the planted profiles, and when the tumour is in, the
+   polymerase epsilon profile it was drawn from, the fifth thing in the cohort. */
+const BUILDERS_IN = [...COHORT.profiles, M.REF.pole.profile];
+const sigInfo = (ex, withHyper) => {
+  const fit = ex.exposures.reduce((t, e) => t + M.sum(e), 0);
+  return ex.signatures.map((s, k) => ({
+    s, e: ex.exposures[k], hold: M.holders(ex.exposures[k]), match: M.matches(s),
+    mix: M.plantedMix(s, withHyper ? BUILDERS_IN : COHORT.profiles),
+    own: withHyper && M.cosine(s, HYPER) > 0.99, total: M.sum(ex.exposures[k]), share: M.sum(ex.exposures[k]) / fit,
+  }));
+};
+const SIGS = sigInfo(EX, true), SIGS_OUT = sigInfo(EX_OUT, false);
+const COHORT_TOTAL = M.sum(COHORT.counts);
+const OWN = SIGS.findIndex((x) => x.own);
+const FLAT = SIGS.map((x, k) => [k, x.mix[1] + x.mix[3]]).sort((a, b) => b[1] - a[1])[0][0];
+const APO = SIGS.map((x, k) => [k, x.mix[2]]).sort((a, b) => b[1] - a[1])[0][0];
+const PLANTED_NAME = ["deamination at CpG", "clock-like", "APOBEC", "recombination defect", "polymerase epsilon, tumour 101"];
+const builtBy = (mix) => mix.map((x, k) => [PLANTED_NAME[k], x]).filter(([, x]) => x >= 0.05).sort((a, b) => b[1] - a[1]).map(([n, x]) => `${pc(x)} ${n}`).join(", ");
+document.getElementById("seedNote").textContent = `Seed ${SEED} (?seed=N to change it); extraction took ${Math.round(MS_IN)} ms with the tumour in and ${Math.round(MS_OUT)} ms without, in this browser.`;
+document.getElementById("cohortNote").textContent = `One simulated cohort: ${COHORT.counts.length} tumours, ${COHORT_TOTAL.toLocaleString()} mutations, a median of ${[...COHORT.counts].sort((a, b) => a - b)[COHORT.counts.length >> 1]} a tumour (the lesson's is 42).`;
+
+/* ---------------------------------------------------------------- 0 · findings */
+{
+  const rows = [
+    ["Your 01-4 reproduces", "On maftools 2.26.0 and NMF 0.28 (installed on your approval): cell 4's six rows, cell 11's 968 × 96 matrix, cell 12's head, cell 14's tumour in all 96 types, <b>all 60 printed rows of cell 21 to the printed digits</b>, and every printed cosine of cells 24 and 30. The matrix is read from the MAF's own <code>CONTEXT</code> column through maftools' conversion lines, so no hg38 genome was needed.", "—"],
+    ["Signature_1 is one tumour", "TCGA-AN-A046 holds 58.6% of it, and one tumour holds half; the signature is that tumour's own profile (cosine 1.000). It has 5,841 of the cohort's 82,747 SNVs (7.1%; the median tumour has 42). Cell 21 rerun without it: no signature comes within cosine 0.46 of Signature_1, and the freed slot goes to one matching COSMIC_30 (0.883) while Signature_4 splits.", "page 2; &ldquo;a signature is a process across the cohort&rdquo;"],
+    ["The others are spread", "Tumours holding half of each: Signature_2 (APOBEC) 20, Signature_3 (flat) 206, Signature_4 184, Signature_5 50.", "page 2's tile"],
+    ["A best match is a ranking", "Signature_2: COSMIC_2 0.848, COSMIC_13 0.813 &mdash; the two APOBEC signatures, 0.035 apart. Signature_5: SBS6 0.797, SBS15 0.775. Signature_4 is 5-methylcytosine deamination in legacy (COSMIC_1 0.868) and mismatch repair in SBS (SBS6 0.832, SBS1 0.765), and Signatures 4 and 5 both name SBS6. The flat Signature_3: COSMIC_3 0.886, then 0.803, 0.775 (tobacco smoking) and 0.745.", "page 3; &ldquo;the best match names the cause&rdquo;"],
+    ["COSMIC's profiles cannot be on the site", "COSMIC's terms: no display &ldquo;on a free to access platform (including but not limited to public facing websites)&rdquo; without GRL's written consent. The lesson's own use of them through maftools is yours; the gallery's would be public.", "§5"],
+    ["The pseudo-count is 11% of the matrix", "<code>pConstant = 0.1</code> in each of 92,928 cells adds 9,293 to 82,747 mutations; for the median tumour, 9.6 against 42. The flat signature is not made of it: at 0.001 and 0.01 the same five come out, the flat one 0.82 flat against 0.87.", "the record"],
+    ["Three lines in your notebook", "Cell 23 says maftools does not support COSMIC v3 yet: 2.26.0 ships <code>SBS_v34</code> (v3.4, 86 signatures). Cell 29 says it compares &ldquo;with the reference COSMIC database (v2)&rdquo; while running <code>sig_db = \"SBS\"</code> (v3), and spells &ldquo;tstability&rdquo;. With findings 5&ndash;7 of the catalogue's list (Ti/Tv and oxidative damage; what the cophenetic measures; Signature_1).", "<b>your notebook</b>"],
+  ];
+  const t = el("table");
+  t.innerHTML = `<tr><th>finding</th><th>measured</th><th>bears on</th></tr>` + rows.map((r) => `<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td></tr>`).join("");
+  document.getElementById("findings").appendChild(t);
+}
+
+/* ---------------------------------------------------------------- 1 · the catalogue */
+{
+  const n = TUMOUR.mutations.length;
+  const written = Object.fromEntries(M.WRITTEN.map((w) => [w, 0]));
+  for (const m of TUMOUR.mutations) written[m.written] += 1;
+  const byClass = M.CLASSES.map((s) => ({ s, pyr: written[s], pur: written[M.PURINE_FORM[s]] }));
+  const top = niceMax(Math.max(...byClass.map((c) => c.pyr + c.pur)));
+  // A · as written
+  {
+    const box = cand("catRow", "Step 1 · The changes as written", `${n.toLocaleString()} substitutions on the reference strand: twelve kinds\neach pair is one change read from opposite strands`);
+    const ctx = canvasIn(box, W, 250);
+    const x0 = 52, x1 = 534, top0 = 30, base = 190;
+    const slot = (x1 - x0) / 6, bw = 22;
+    const m = niceMax(Math.max(...Object.values(written)));
+    for (const t of [0, m / 2, m]) { const y = base - (t / m) * (base - top0); line(ctx, x0, y, x1, y, T.grid); label(ctx, tick(t), x0 - 6, y + 3.5, { size: 10, colour: T.ink3, align: "right", mono: true }); }
+    byClass.forEach((c, k) => {
+      const cx = x0 + slot * k + slot / 2;
+      for (const [j, key, a] of [[0, c.s, 1], [1, M.PURINE_FORM[c.s], 0.45]]) {
+        const x = cx - bw - 2 + j * (bw + 4), h = (written[key] / m) * (base - top0);
+        ctx.fillStyle = wash(CLASS[k], a); ctx.fillRect(x, base - h, bw, h);
+        label(ctx, String(written[key]), x + bw / 2, base - h - 4, { size: 9, colour: T.ink2, align: "center", mono: true });
+        label(ctx, key, x + bw / 2, base + 14, { size: 10, colour: j ? T.ink3 : T.ink1, align: "center", mono: true });
+      }
+    });
+    line(ctx, x0, base + 0.5, x1, base + 0.5, T.axis);
+    label(ctx, "from a pyrimidine (C, T): solid · from a purine (G, A): pale", x0, base + 38, { size: 10.5, colour: T.ink2 });
+    label(ctx, "mutations", x0, top0 - 12, { size: 10, colour: T.ink3 });
+  }
+  // B · read from the pyrimidine
+  const ti = (byClass[2].pyr + byClass[2].pur + byClass[4].pyr + byClass[4].pur) / n;
+  {
+    const box = cand("catRow", "Step 2 · Read from the pyrimidine", `each purine change joins its partner: G>A is C>T on the other strand\nsix kinds; the transitions are C>T and T>C (cell 3)`);
+    const ctx = canvasIn(box, W, 250);
+    const x0 = 52, x1 = 534, top0 = 30, base = 190;
+    const slot = (x1 - x0) / 6, bw = 40;
+    for (const t of [0, top / 2, top]) { const y = base - (t / top) * (base - top0); line(ctx, x0, y, x1, y, T.grid); label(ctx, tick(t), x0 - 6, y + 3.5, { size: 10, colour: T.ink3, align: "right", mono: true }); }
+    byClass.forEach((c, k) => {
+      const x = x0 + slot * k + slot / 2 - bw / 2;
+      const h1 = (c.pyr / top) * (base - top0), h2 = (c.pur / top) * (base - top0);
+      ctx.fillStyle = CLASS[k]; ctx.fillRect(x, base - h1, bw, h1);
+      ctx.fillStyle = wash(CLASS[k], 0.45); ctx.fillRect(x, base - h1 - h2, bw, h2);
+      label(ctx, String(c.pyr + c.pur), x + bw / 2, base - h1 - h2 - 4, { size: 9, colour: T.ink2, align: "center", mono: true });
+      label(ctx, c.s, x + bw / 2, base + 14, { size: 10, colour: T.ink1, align: "center", mono: true });
+      label(ctx, M.TRANSITIONS.has(c.s) ? "Ti" : "Tv", x + bw / 2, base + 27, { size: 9, colour: M.TRANSITIONS.has(c.s) ? T.ink1 : T.ink3, align: "center", mono: true, weight: M.TRANSITIONS.has(c.s) ? "600" : "" });
+    });
+    line(ctx, x0, base + 0.5, x1, base + 0.5, T.axis);
+    label(ctx, `transitions (Ti) ${pc(ti)} · transversions (Tv) ${pc(1 - ti)} · Ti/Tv ${f2(ti / (1 - ti))}`, x0, base + 48, { size: 10.5, colour: T.ink1 });
+  }
+  // C · with the neighbours
+  {
+    const box = cand("catRow", "Step 3 · With the base on either side", `each of the six split by its 5′ and 3′ neighbours: 6 × 16 = 96\nthe tumour's row of the matrix M (cell 14), drawn as cell 18 draws it`);
+    const ctx = canvasIn(box, W, 250);
+    profileBars(ctx, TUMOUR.counts, { top: 30, base: 170 });
+    label(ctx, "mutations of each type", 52, 18, { size: 10, colour: T.ink3 });
+    const tops = [...TUMOUR.counts.keys()].sort((a, b) => TUMOUR.counts[b] - TUMOUR.counts[a]).slice(0, 3);
+    label(ctx, `most common: ${tops.map((i) => `${M.CHANNELS[i]} ${TUMOUR.counts[i]}`).join(" · ")}`, 52, 222, { size: 10.5, colour: T.ink1 });
+    label(ctx, "A[C>T]G: C changed to T, with A on its 5′ side and G on its 3′ side", 52, 240, { size: 10, colour: T.ink2 });
+  }
+  document.getElementById("recCat").innerHTML =
+    "<b>Three presses, after the mutations arrive.</b> Step 1 is the only motion &mdash; the mutations land in their "
+    + "twelve written bars, which is repetition, so it plays; steps 2 and 3 are read, so each is one press "
+    + "(your rule from widget 69: Play only for motion or repetition). In step 2 each pale half slides onto its partner's bar and the whole "
+    + "strand reading is on screen: the pairs are near-equal in step 1 because each is one change read from two strands. "
+    + `This tumour reads Ti ${pc(ti)}; cell 6's cohort median is 61.1%. The six hues are placeholders: the draft needs a `
+    + "role for the six classes (&sect;6).";
+}
+
+/* ---------------------------------------------------------------- 2 · the factorisation */
+function heatmaps(box, ex, colsCount) {
+  const ctx = canvasIn(box, W, 420);
+  const Mx = COHORT.M.map((row) => row.slice(0, colsCount));
+  /* flatMap(Array.from), not flat(): flat() leaves Float64Array rows whole. */
+  const flatM = Mx.flatMap((r) => Array.from(r)).sort((a, b) => a - b);
+  const cap = flatM[Math.floor(0.99 * (flatM.length - 1))] || 1;
+  const top = 46, rowH = 3.1;
+  const mx0 = 44, mw = 250, cw = mw / colsCount;
+  for (let i = 0; i < 96; i += 1) for (let j = 0; j < colsCount; j += 1) { ctx.fillStyle = ramp(Mx[i][j] / cap); ctx.fillRect(mx0 + j * cw, top + i * rowH, Math.ceil(cw), Math.ceil(rowH)); }
+  for (let k = 0; k < 6; k += 1) { ctx.fillStyle = CLASS[k]; ctx.fillRect(mx0 - 8, top + 16 * k * rowH + 1, 4, 16 * rowH - 2); }
+  const r = ex.signatures.length;
+  const sx0 = 334, sw = 13;
+  const smax = Math.max(...ex.signatures.flatMap((s) => [...s]));
+  for (let k = 0; k < r; k += 1) for (let i = 0; i < 96; i += 1) { ctx.fillStyle = ramp(Math.sqrt(ex.signatures[k][i] / smax)); ctx.fillRect(sx0 + k * sw, top + i * rowH, sw - 1, Math.ceil(rowH)); }
+  const wx0 = 408, ww = 132, wcw = ww / colsCount, wy0 = top + 96 * rowH / 2 - (r * 13) / 2;
+  const emax = Math.sqrt(Math.max(...ex.exposures.flatMap((e) => [...e])));
+  for (let k = 0; k < r; k += 1) for (let j = 0; j < colsCount; j += 1) { ctx.fillStyle = ramp(Math.sqrt(ex.exposures[k][j]) / emax); ctx.fillRect(wx0 + j * wcw, wy0 + k * 13, Math.ceil(wcw), 12); }
+  const mid = top + 96 * rowH / 2;
+  label(ctx, "M", mx0 + mw / 2, 30, { size: 22, colour: T.ink1, align: "center", weight: "600" });
+  label(ctx, "S", sx0 + (r * sw) / 2, 30, { size: 22, colour: T.ink1, align: "center", weight: "600" });
+  label(ctx, "W", wx0 + ww / 2, wy0 - 12, { size: 22, colour: T.ink1, align: "center", weight: "600" });
+  label(ctx, "≈", 314, mid + 7, { size: 22, colour: T.ink1, align: "center" });
+  label(ctx, "×", 390, mid + 7, { size: 20, colour: T.ink1, align: "center" });
+  label(ctx, `${colsCount} tumours`, mx0 + mw / 2, top + 96 * rowH + 18, { size: 10.5, colour: T.ink2, align: "center" });
+  label(ctx, `${r} signatures`, sx0 + (r * sw) / 2, top + 96 * rowH + 18, { size: 10.5, colour: T.ink2, align: "center" });
+  label(ctx, `${colsCount} tumours`, wx0 + ww / 2, wy0 + r * 13 + 16, { size: 10.5, colour: T.ink2, align: "center" });
+  ctx.save(); ctx.translate(16, mid); ctx.rotate(-Math.PI / 2); label(ctx, "96 mutation types", 0, 0, { size: 10.5, colour: T.ink2, align: "center" }); ctx.restore();
+  if (colsCount > H) { const x = mx0 + H * cw; ctx.strokeStyle = T.ink1; ctx.lineWidth = 1; ctx.strokeRect(x - 1, top - 2, Math.ceil(cw) + 2, 96 * rowH + 4); label(ctx, "tumour 101", x + 3, top + 96 * rowH + 32, { size: 10, colour: T.ink1, align: "right" }); }
+  label(ctx, `M's colour: the count, full at ${cap} and above (the 99th percentile) · S and W: square root`, 44, 412, { size: 10, colour: T.ink3 });
+}
+function classKey(ctx, y) {
+  let x = 52;
+  ctx.save(); ctx.font = `10px ${T.mono}`;
+  M.CLASSES.forEach((c, k) => { ctx.fillStyle = CLASS[k]; ctx.fillRect(x, y - 8, 10, 8); label(ctx, c, x + 14, y, { size: 10, colour: T.ink2, mono: true }); x += 14 + ctx.measureText(c).width + 18; });
+  ctx.restore();
+}
+function carriers(box, infos, colsCount, title) {
+  const rowH = 156;
+  const ctx = canvasIn(box, W, 44 + infos.length * rowH);
+  label(ctx, title, 52, 16, { size: 10.5, colour: T.ink3 });
+  classKey(ctx, 36);
+  infos.forEach((x, k) => {
+    const y = 46 + k * rowH;
+    label(ctx, `Signature ${k + 1}`, 52, y + 12, { size: 11.5, colour: T.ink1, weight: "600" });
+    label(ctx, `${pc(x.share)} of the fit`, 140, y + 12, { size: 10.5, colour: T.ink2 });
+    profileBars(ctx, x.s, { top: y + 22, base: y + 70, bandLabels: false, ticks: false });
+    // who carries it: each tumour's share, largest first
+    const sorted = [...x.e].map((v, j) => [v, j]).sort((a, b) => b[0] - a[0]);
+    const x0 = 52, x1 = 534, bw = (x1 - x0) / colsCount, top = y + 100, base = y + 134;
+    const m = sorted[0][0];
+    sorted.forEach(([v, j], r) => {
+      const h = (v / m) * (base - top);
+      ctx.fillStyle = r < x.hold.half ? T.ink2 : wash(T.ink3, 0.55);
+      ctx.fillRect(x0 + r * bw + 0.3, base - h, Math.max(0.8, bw - 0.6), h);
+    });
+    line(ctx, x0, base + 0.5, x1, base + 0.5, T.axis);
+    const xh = x0 + x.hold.half * bw;
+    line(ctx, xh, top - 4, xh, base + 3, T.highlight, 1.5);
+    const who = x.hold.top === H ? "tumour 101, the hypermutated one" : `tumour ${x.hold.top + 1}`;
+    label(ctx, `${x.hold.half === 1 ? "One tumour holds" : `${x.hold.half} tumours hold`} half of it · the largest share: ${who}, ${pc(x.hold.topShare)}`, x0, top - 9, { size: 10.5, colour: T.ink1 });
+    label(ctx, "its mutations in each tumour, largest first", x0, base + 13, { size: 9.5, colour: T.ink3 });
+  });
+}
+{
+  const a = cand("sigRow", "A · Cell 0's figure, M ≈ S × W", `the lesson's three matrices, drawn with the extraction's numbers\ntumour 101 outlined`);
+  heatmaps(a, EX, COHORT.counts.length);
+  a.appendChild(el("p", "under", `S: 4 signatures, each a column summing to one · W: each tumour's mutations from each signature`));
+  const b = cand("sigRow", "B · Each signature, and who carries it", `plotSignatures' bars, with W's row under each: the tumours sorted\nby how many of its mutations they carry; the rule marks half`);
+  carriers(b, SIGS, COHORT.counts.length, `four signatures from ${COHORT.counts.length} tumours, the hypermutated one included`);
+  const c = cand("sigRow", "B, with the hypermutated tumour left out", `the same 100 other tumours, the same start\nthe signature it held is spent elsewhere`);
+  carriers(c, SIGS_OUT, H, `four signatures from ${H} tumours`);
+  const own = SIGS[OWN];
+  const lostTo = SIGS_OUT.map((x) => x.mix).map((mix) => builtBy(mix));
+  b.appendChild(el("p", "under", OWN >= 0
+    ? `Signature ${OWN + 1} is tumour 101's own profile: cosine ${f3(M.cosine(own.s, HYPER))}; it holds ${pc(own.hold.topShare)} of it.\nthe other three: ${SIGS.filter((x, k) => k !== OWN).map((x) => `${x.hold.half} tumours hold half`).join(", ")}`
+    : "no signature is the tumour's own at this seed"));
+  c.appendChild(el("p", "under", `closest any signature comes to tumour 101: ${f3(Math.max(...SIGS_OUT.map((x) => M.cosine(x.s, HYPER))))}\nbuilt by: ${lostTo.map((t, k) => `${k + 1} ${t}`).join(" · ")}`));
+  document.getElementById("qSig").innerHTML =
+    "<b>Your call:</b> which drawing does page 2 use? <b>A</b> is your cell 0 figure with numbers in it: the shapes of "
+    + "the three matrices, which is what the equation is about, but a 96 × 101 heatmap does not say that Signature "
+    + `${OWN + 1} is one tumour's &mdash; that column is one outlined sliver. <b>B</b> answers what a signature is made of `
+    + "(its bars) and who carries it (W's row, sorted), and the one-tumour signature is a single bar. <b>A then B</b> is "
+    + "two presses: the equation, then each signature opened out.";
+  document.getElementById("recSig").innerHTML =
+    "<b>A, then B, as two presses after Extract.</b> Cell 0 is the figure the lesson opens with and the students' "
+    + "picture of M ≈ S · W; B is where misconception 2 is visible without a caption &mdash; &ldquo;one tumour holds "
+    + `half&rdquo; beside a signature whose best match (page 3) is Polymerase epsilon at ${f3(own ? own.match[0].cos : 0)}. `
+    + "Extract runs the KL update as widget 41's Solve does, and the rank is <i>Signatures to extract</i>, 2&ndash;6, opening "
+    + "on 4, with 41 named in its detail for how to choose it. The widget opens on M alone.";
+}
+
+/* ---------------------------------------------------------------- 3 · the tumour's size */
+{
+  const box = cand("shareRow", "One tumour's share of the cohort's mutations, and whether it takes a signature", "four signatures, one start, seeds 1–5 · computing…");
+  const note = box.querySelector(".sub");
+  const ctx = canvasIn(box, W, 230);
+  const shares = [0.01, 0.02, 0.03, 0.05, M.LESSON_HYPER_SHARE, 0.1];
+  const x0 = 60, x1 = 520, top = 30, base = 180;
+  const X = (s) => x0 + (Math.log(s / 0.01) / Math.log(10 / 1)) * (x1 - x0);
+  const Y = (k) => base - (k / 5) * (base - top);
+  for (let k = 0; k <= 5; k += 1) { line(ctx, x0, Y(k), x1, Y(k), T.grid); label(ctx, String(k), x0 - 8, Y(k) + 3.5, { size: 10, colour: T.ink3, align: "right", mono: true }); }
+  for (const s of shares) label(ctx, s === M.LESSON_HYPER_SHARE ? "7.1%" : `${Math.round(100 * s)}%`, X(s), base + 14, { size: 10, colour: s === M.LESSON_HYPER_SHARE ? T.ink1 : T.ink3, align: "center", mono: true });
+  line(ctx, x0, base + 0.5, x1, base + 0.5, T.axis);
+  label(ctx, "seeds of 5 in which one signature is the tumour's own profile", x1, base - 10, { size: 10, colour: T.ink3, align: "right" });
+  label(ctx, "the tumour's share of all mutations (log scale) · 7.1% is TCGA-AN-A046's", (x0 + x1) / 2, base + 32, { size: 10.5, colour: T.ink2, align: "center" });
+  const pts = [];
+  let i = 0;
+  const step = () => {
+    if (i >= shares.length) {
+      note.textContent = "four signatures, one start, seeds 1–5";
+      document.getElementById("qShare").innerHTML =
+        "<b>Your call:</b> how does the reader meet the hypermutated tumour? <b>A</b>, it is in the cohort as it is in "
+        + "the lesson's, and a two-way control leaves it out (<i>The hypermutated tumour: In · Left out</i>); <b>B</b>, a "
+        + "slider for its share of the cohort's mutations, 0&ndash;15%, so the reader finds where it takes a signature "
+        + "(this plot); <b>C</b>, the cohort opens without it and a control adds it.";
+      document.getElementById("recShare").innerHTML =
+        "<b>A, in by default.</b> It is the lesson's situation: the reader extracts, sees a clean-looking signature, "
+        + "finds it is one tumour's, and leaves the tumour out &mdash; your measurement of cell 21, done by hand. B makes "
+        + "the size the lesson, but 7.1% is the only share the lesson has and the answer at 2&ndash;3% depends on the "
+        + "start; C opens on a cohort the lesson does not have.";
+      return;
+    }
+    const s = shares[i];
+    let took = 0;
+    for (let seed = 1; seed <= 5; seed += 1) {
+      const co = M.makeCohort(makeRng(seed), { tumours: 100, hyper: s });
+      const col = co.M.map((row) => row[co.hyperIndex]);
+      const ex = M.extract(co.M, 4, makeRng(seed * 7919 + 1));
+      if (ex.signatures.some((sg, k) => M.cosine(sg, col) > 0.99 && M.holders(ex.exposures[k]).top === co.hyperIndex)) took += 1;
+    }
+    pts.push([s, took]);
+    ctx.fillStyle = s === M.LESSON_HYPER_SHARE ? T.highlight : T.empirical;
+    ctx.beginPath(); ctx.arc(X(s), Y(took), 4.5, 0, 2 * Math.PI); ctx.fill();
+    if (pts.length > 1) line(ctx, X(pts.at(-2)[0]), Y(pts.at(-2)[1]), X(s), Y(took), T.empirical, 1.5);
+    label(ctx, String(took), X(s), Y(took) - 9, { size: 10, colour: T.ink1, align: "center", mono: true });
+    i += 1;
+    setTimeout(step, 0);
+  };
+  setTimeout(step, 50);
+}
+
+/* ---------------------------------------------------------------- 4 · matching */
+{
+  const a = cand("matchRow", "A · Cells 26 and 32's heatmap", "cosine of each signature with each reference; the best in each row outlined\nwhat built each signature, from the simulation, under it");
+  const ctx = canvasIn(a, W, 330);
+  const refs = M.REFERENCES;
+  const x0 = 96, cwid = 43.6, top = 110, rh = 34;
+  refs.forEach((r, j) => {
+    ctx.save(); ctx.translate(x0 + j * cwid + cwid / 2 + 3, top - 6); ctx.rotate(-Math.PI / 3);
+    label(ctx, r.name.replace("Homologous recombination defect", "Recombination defect").replace("Mismatch repair defect", "Mismatch repair"), 0, 0, { size: 10, colour: T.ink2 });
+    ctx.restore();
+  });
+  SIGS.forEach((x, k) => {
+    const y = top + k * rh;
+    label(ctx, `Signature ${k + 1}`, x0 - 8, y + rh / 2 + 4, { size: 11, colour: T.ink1, align: "right" });
+    refs.forEach((r, j) => {
+      const c = x.match.find((m) => m.key === r.key).cos;
+      ctx.fillStyle = ramp(Math.max(0, (c - 0.1) / 0.9)); ctx.fillRect(x0 + j * cwid, y, cwid - 1, rh - 1);
+      label(ctx, f2(c).replace(/^0/, ""), x0 + j * cwid + cwid / 2, y + rh / 2 + 4, { size: 10, colour: c > 0.6 ? T.surface : T.ink2, align: "center", mono: true });
+      if (x.match[0].key === r.key) { ctx.strokeStyle = T.ink1; ctx.lineWidth = 2; ctx.strokeRect(x0 + j * cwid + 1, y + 1, cwid - 3, rh - 3); }
+    });
+  });
+  SIGS.forEach((x, k) => label(ctx, `${k + 1} · built by ${builtBy(x.mix)}${x.own ? " — tumour 101's own" : ""}`, 20, top + 4 * rh + 22 + k * 16, { size: 10.5, colour: T.ink1 }));
+
+  const b = cand("matchRow", "B · Cells 28 and 34's profiles, with the runner-up", "each signature, its best match and the one after it\nfor the flat signature and the APOBEC one");
+  const ctx2 = canvasIn(b, W, 560);
+  [FLAT, APO].forEach((k, blk) => {
+    const x = SIGS[k];
+    const y0 = 8 + blk * 276;
+    label(ctx2, `Signature ${k + 1}`, 52, y0 + 12, { size: 11.5, colour: T.ink1, weight: "600" });
+    label(ctx2, `built by ${builtBy(x.mix)}`, 140, y0 + 12, { size: 10.5, colour: T.ink2 });
+    profileBars(ctx2, x.s, { top: y0 + 20, base: y0 + 76, ticks: false, bandLabels: false });
+    for (let r = 0; r < 2; r += 1) {
+      const m = x.match[r];
+      const y = y0 + 100 + r * 88;
+      label(ctx2, `${r === 0 ? "Best match" : "Runner-up"}: ${m.name}`, 52, y + 10, { size: 11, colour: r === 0 ? T.ink1 : T.ink2, weight: r === 0 ? "600" : "" });
+      label(ctx2, `cosine ${f3(m.cos)}`, 534, y + 10, { size: 11, colour: T.ink1, align: "right", mono: true });
+      profileBars(ctx2, M.REF[m.key].profile, { top: y + 18, base: y + 62, ticks: false, bandLabels: blk === 1 && r === 1 });
+    }
+  });
+  const flat = SIGS[FLAT], apo = SIGS[APO];
+  const smaller = flat.mix[1] < flat.mix[3] ? "clock" : "hr";
+  b.appendChild(el("p", "under", `Signature ${FLAT + 1}: ${flat.match[0].name} ${f3(flat.match[0].cos)} over ${flat.match[1].name} ${f3(flat.match[1].cos)}, ahead by ${f3(flat.match[0].cos - flat.match[1].cos)}`
+    + `${flat.match[0].key === smaller ? "\n— named after the process that built LESS of it" : ""}`
+    + `\nSignature ${APO + 1}: one process named by one of its two outcomes, ${apo.match[0].name} over ${apo.match[1].name}`));
+  document.getElementById("qMatch").innerHTML =
+    "<b>Your call, two parts.</b> Which drawing: <b>A</b>, the heatmap your cells 26 and 32 print, where a near-tie is two "
+    + "similar squares; or <b>B</b>, plotSignatures' profiles with the runner-up beside the best, where the reader can see "
+    + "what the cosine is comparing. And does the page print <b>what built each signature</b>? Only a simulation can; it "
+    + `is what turns &ldquo;the best match is a ranking&rdquo; into a case: at this seed Signature ${FLAT + 1} is named `
+    + `${flat.match[0].name} and was built ${builtBy(flat.mix)}.`;
+  document.getElementById("recMatch").innerHTML =
+    "<b>A, then B for the signature the reader picks, and what built each printed on both.</b> The heatmap is the "
+    + "lesson's own step and shows every name at once; a click on a row opens it as B (a region writing one display "
+    + "parameter, widget 59's pattern), so the comparison behind a cosine is one press away. The measure: at rank 4 with "
+    + "the tumour in, the flat signature is named after the process that built less of it in 4 of 10 seeds, by cosine "
+    + "margins of 0.006&ndash;0.026; the APOBEC signature is always named C&gt;T, with C&gt;G second.";
+}
+
+/* ---------------------------------------------------------------- 5 · the references */
+{
+  const CAL = { cpg: ["SBS1", 0.998], clock: ["SBS5", 0.95], hr: ["SBS3", 0.92], flat: ["SBS40", 0.94], apobecT: ["SBS2", 1.0], apobecG: ["SBS13", 0.998],
+    mmr: ["SBS6", 0.958], pole: ["COSMIC_10", 0.93], tobacco: ["SBS4", 0.969], oxidative: ["SBS18", 0.947] };
+  const box = cand("refRow", "The ten look-alike references", "each built from its mechanism; the cosine to the COSMIC profile it stands for, from the measure", 1100 + 16);
+  const ctx = canvasIn(box, 1100, 5 * 92 + 10);
+  M.REFERENCES.forEach((r, i) => {
+    const col = i % 2, rw = Math.floor(i / 2);
+    const xo = col * 550, y = 8 + rw * 92;
+    label(ctx, r.name, xo + 52, y + 12, { size: 11, colour: T.ink1, weight: "600" });
+    label(ctx, `stands for ${CAL[r.key][0]} · cosine ${f3(CAL[r.key][1])} · flatness ${f3(M.cosine(r.profile, new Array(96).fill(1)))}`, xo + 534, y + 12, { size: 10, colour: T.ink2, align: "right", mono: true });
+    profileBars(ctx, r.profile, { x0: xo + 52, x1: xo + 534, top: y + 20, base: y + 64, ticks: false, bandLabels: rw === 4 });
+  });
+  document.getElementById("qRefs").innerHTML =
+    "<b>Your call:</b> <b>A</b>, these look-alikes, named by process, with a line on the page saying they are built "
+    + "for it and that the real profiles are COSMIC's; <b>B</b>, COSMIC's own profiles, which needs GRL's written consent "
+    + "first (yours to ask, and the widget waits for it); or <b>C</b>, no matching page, the widget ending at the "
+    + "extraction and the lesson doing the matching.";
+  document.getElementById("recRefs").innerHTML =
+    "<b>A.</b> It keeps what page 3 is for: the lesson's own signatures rank against these as they rank against COSMIC "
+    + "&mdash; Signature_1 Polymerase epsilon 0.965; Signature_2 APOBEC C&gt;T 0.757 then C&gt;G 0.648 (SBS: 0.757 and 0.654); "
+    + "Signature_3 recombination defect 0.846 then unknown-flat 0.746 (SBS: 0.872, 0.791). Names by process, as widget 69 "
+    + "names its genes by kind, with the COSMIC signature each stands for in the page's detail.";
+}
+
+/* ---------------------------------------------------------------- 6 · the rail */
+{
+  const SPECS = [
+    ["Page 1 · Catalogue", {
+      page: { type: "segmented", label: "Page", options: ["Catalogue", "Signatures", "Matching"], default: "Catalogue", detail: "one tumour's mutations, the cohort factorised, or each signature named" },
+      data: { type: "section", label: "The data", afterDrive: true },
+      seed: { type: "int", label: "Seed", min: 1, max: 200, default: 1, detail: "draws a different tumour", afterDrive: true },
+    }, "Step: Add the mutations · Read from the pyrimidine · Add the neighbours"],
+    ["Page 2 · Signatures", {
+      page: { type: "segmented", label: "Page", options: ["Catalogue", "Signatures", "Matching"], default: "Signatures" },
+      cohortSec: { type: "section", label: "The cohort" },
+      hyper: { type: "segmented", label: "The hypermutated tumour", options: ["In", "Left out"], default: "In", detail: "one tumour with 7.1% of the cohort's mutations" },
+      rank: { type: "int", label: "Signatures to extract", min: 2, max: 6, default: 4, detail: "choosing the number: widget 41, Matrix Factorization" },
+      data: { type: "section", label: "The data", afterDrive: true },
+      seed: { type: "int", label: "Seed", min: 1, max: 200, default: 1, detail: "draws a different cohort", afterDrive: true },
+    }, "Step: Extract (the KL update runs) · Open each signature"],
+    ["Page 3 · Matching", {
+      page: { type: "segmented", label: "Page", options: ["Catalogue", "Signatures", "Matching"], default: "Matching" },
+      lookSec: { type: "section", label: "How to look at it", afterDrive: true },
+      built: { type: "bool", label: "Show what built each signature", default: true, afterDrive: true },
+    }, "Step: Compare with the references · a row opens as B"],
+  ];
+  for (const [name, spec, drive] of SPECS) {
+    const box = cand("railRow", name, `core buildControls at 300px\ndrive row: ${drive}`, 300);
+    const mount = el("div");
+    mount.style.width = "300px";
+    box.appendChild(mount);
+    try {
+      const values = resolveParams(spec, new URLSearchParams(""));
+      buildControls(mount, spec, values, () => {});
+    } catch (e) {
+      box.appendChild(el("p", "under", `buildControls: ${e.message}`));
+    }
+  }
+  document.getElementById("recRail").innerHTML =
+    "The page is a display parameter, as widgets 67 and 69 have it, so a visit to Matching does not undo the extraction. "
+    + "The hypermutated tumour, the rank and the seed are data: each changes M, so each starts page 2 over (invariant 3). "
+    + "<b>Two things for the draft, not for now:</b> a colour role for the six substitution classes (the six hues here "
+    + "are the cluster slots as placeholders; cells 18 and 28 each colour them), and whether page 3's click reaches core's "
+    + "region door as widget 59's pins do.";
+}
+
+/* ---------------------------------------------------------------- 7 · checks */
+{
+  const out = [];
+  let bad = 0;
+  const ck = (label, cond, note = "") => { out.push(`${cond ? "ok  " : "FAIL"} ${label}${note ? " — " + note : ""}`); if (!cond) bad += 1; };
+  const n = TUMOUR.mutations.length;
+  ck("page 1: the twelve written bars, the six and the 96 all count the same mutations", M.sum(TUMOUR.counts) === n && TUMOUR.mutations.every((m) => m.written === m.cls || m.written === M.PURINE_FORM[m.cls]), `${n}`);
+  const pur = TUMOUR.mutations.filter((m) => m.purine).length / n;
+  ck("page 1: about half are written from a purine, as in the lesson's file (50.0%)", Math.abs(pur - 0.5) < 0.04, pc(pur));
+  ck("channelOf reads G>A in AGC as C>T in GCT, channel G[C>T]T", M.CHANNELS[M.channelOf("AGC", "G", "A").index] === "G[C>T]T");
+  ck("page 2: one signature is the hypermutated tumour's own profile", OWN >= 0, OWN >= 0 ? `cosine ${f3(M.cosine(SIGS[OWN].s, HYPER))}` : "none");
+  ck("page 2: it alone holds half of that signature", OWN >= 0 && SIGS[OWN].hold.half === 1 && SIGS[OWN].hold.top === H, OWN >= 0 ? pc(SIGS[OWN].hold.topShare) : "");
+  ck("page 2: with it left out, no signature comes within cosine 0.6 of it", Math.max(...SIGS_OUT.map((x) => M.cosine(x.s, HYPER))) < 0.6, f3(Math.max(...SIGS_OUT.map((x) => M.cosine(x.s, HYPER)))));
+  ck("page 3: its best match is Polymerase epsilon", OWN >= 0 && SIGS[OWN].match[0].key === "pole");
+  const flat = SIGS[FLAT];
+  ck("page 3: the flat signature's best match and runner-up are the two flat processes it was built from", ["clock", "hr"].includes(flat.match[0].key) && ["clock", "hr"].includes(flat.match[1].key), `${flat.match[0].key} ${f3(flat.match[0].cos)} / ${flat.match[1].key} ${f3(flat.match[1].cos)}`);
+  ck(`page 3: at seed ${SEED} the flat signature is named after the process that built less of it`, flat.match[0].key === (flat.mix[1] < flat.mix[3] ? "clock" : "hr"), `built ${builtBy(flat.mix)}`);
+  ck("page 3: the APOBEC signature is named C>T with C>G second", SIGS[APO].match[0].key === "apobecT" && SIGS[APO].match[1].key === "apobecG");
+  document.getElementById("checks").textContent = `${out.join("\n")}\n\n${out.length} checks, ${bad} failed`;
+}
+</script>
+</main>
+</body>
+</html>

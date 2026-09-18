@@ -1,0 +1,118 @@
+§1 the lesson's five signatures (cell 21), who holds them, and how clear each best match is
+  Signature_1: largest holder TCGA-AN-A046 58.6%, tumours holding half 1
+    legacy COSMIC_10 0.939 ahead of COSMIC_18 0.384 by 0.555; SBS SBS10b 0.878 ahead of SBS10a 0.592 by 0.287
+    named "defects in polymerase POLE" in legacy, "Polymerase epsilon exonuclease domain mutations" in SBS
+  Signature_2: largest holder TCGA-AC-A23H 17.0%, tumours holding half 20
+    legacy COSMIC_2 0.848 ahead of COSMIC_13 0.813 by 0.035; SBS SBS2 0.757 ahead of SBS13 0.654 by 0.103
+    named "APOBEC Cytidine Deaminase (C>T)" in legacy, "APOBEC Cytidine Deaminase (C>T)" in SBS
+  Signature_3: largest holder TCGA-A1-A0SO 0.8%, tumours holding half 206
+    legacy COSMIC_3 0.886 ahead of COSMIC_8 0.803 by 0.083; SBS SBS3 0.872 ahead of SBS40 0.791 by 0.080
+    named "defects in DNA-DSB repair by HR" in legacy, "Defects in DNA-DSB repair by HR" in SBS
+  Signature_4: largest holder TCGA-BH-A0HF 8.5%, tumours holding half 184
+    legacy COSMIC_1 0.868 ahead of COSMIC_6 0.788 by 0.080; SBS SBS6 0.832 ahead of SBS1 0.765 by 0.067
+    named "spontaneous deamination of 5-methylcytosine" in legacy, "defective DNA mismatch repair" in SBS
+  Signature_5: largest holder TCGA-BH-A18G 7.9%, tumours holding half 50
+    legacy COSMIC_6 0.902 ahead of COSMIC_15 0.799 by 0.103; SBS SBS6 0.797 ahead of SBS15 0.775 by 0.022
+    named "defective DNA mismatch repair" in legacy, "defective DNA mismatch repair" in SBS
+  ok   Signature_1: one tumour holds half of it, TCGA-AN-A046 — 58.6%
+  ok   Signature_1 is that tumour's own profile — 1.000
+  ok   TCGA-AN-A046's share of the cohort's SNVs is LESSON_HYPER_SHARE — 5841 of 82747, 7.1%
+
+§2 the look-alike references against the profiles they stand for
+  Deamination at CpG               COSMIC_1 0.956, SBS1 0.998; nearest real SBS1 0.998; flatness 0.238 against 0.212
+  Clock-like, flat                 COSMIC_5 0.936, SBS5 0.948; nearest real SBS5 0.948; flatness 0.812 against 0.780
+  Homologous recombination defect  COSMIC_3 0.926, SBS3 0.920; nearest real COSMIC_3 0.926; flatness 0.903 against 0.868
+  Unknown, flat                    COSMIC_8 0.801, SBS40 0.940; nearest real SBS40 0.940; flatness 0.828 against 0.828
+  APOBEC, C>T                      COSMIC_2 0.986, SBS2 1.000; nearest real SBS2 1.000; flatness 0.175 against 0.164
+  APOBEC, C>G                      COSMIC_13 0.965, SBS13 0.998; nearest real SBS13 0.998; flatness 0.216 against 0.204
+  Mismatch repair defect           COSMIC_6 0.918, SBS6 0.958; nearest real SBS6 0.958; flatness 0.373 against 0.328
+  Polymerase epsilon               COSMIC_10 0.930, SBS10b 0.866; nearest real COSMIC_10 0.930; flatness 0.307 against 0.214
+  Tobacco smoking                  COSMIC_4 0.893, SBS4 0.969; nearest real SBS4 0.969; flatness 0.549 against 0.549
+  Reactive oxygen                  COSMIC_18 0.932, SBS18 0.947; nearest real SBS18 0.947; flatness 0.465 against 0.449
+  ok   every look-alike is within cosine 0.8 of both profiles it stands for — lowest 0.801
+  pairs, look-alike against the real SBS pair (legacy pair):
+    cpg~mmr 0.808 against 0.766 (0.841)
+    clock~hr 0.812 against 0.793 (0.821)
+    clock~flat 0.776 against 0.831 (0.743)
+    clock~mmr 0.517 against 0.415 (0.514)
+    hr~flat 0.870 against 0.882 (0.799)
+    hr~tobacco 0.630 against 0.639 (0.684)
+    flat~tobacco 0.610 against 0.617 (0.805)
+    flat~oxidative 0.588 against 0.579 (0.672)
+    tobacco~oxidative 0.639 against 0.733 (0.736)
+  largest difference from the SBS geometry over all 45 pairs: 0.272
+  the lesson's signatures ranked against the look-alikes:
+    Signature_1: Polymerase epsilon 0.965, Reactive oxygen 0.377, Unknown, flat 0.310
+    Signature_2: APOBEC, C>T 0.757, APOBEC, C>G 0.648, Unknown, flat 0.505
+    Signature_3: Homologous recombination defect 0.846, Unknown, flat 0.746, Clock-like, flat 0.683
+    Signature_4: Mismatch repair defect 0.874, Deamination at CpG 0.783, Clock-like, flat 0.548
+    Signature_5: Mismatch repair defect 0.771, Clock-like, flat 0.653, Deamination at CpG 0.635
+  ok   the lesson's Signature_1 matches Polymerase epsilon, Signature_2 the two APOBEC look-alikes first and second
+
+§3 the simulated cohort's counts against the lesson's matrix
+  0.1  lesson   19   simulated (ten cohorts of 100)   14
+  0.25 lesson   26   simulated (ten cohorts of 100)   23
+  0.5  lesson   42   simulated (ten cohorts of 100)   44
+  0.75 lesson   75   simulated (ten cohorts of 100)   83
+  0.9  lesson  141   simulated (ten cohorts of 100)  155
+  0.99 lesson  903   simulated (ten cohorts of 100)  388
+  ok   the simulated median is within 20% of the lesson's 42 — 44
+  seed 1: planted mutations by process cpg 2462 in 100 tumours, clock 3246 in 100 tumours, apobec 1196 in 33 tumours, hr 904 in 26 tumours
+
+§4 extraction over seeds 1–10 (100 tumours, pConstant 0.1)
+  rank 3, the tumour out: recovery (median, lowest) cpg 0.979 0.972, clock 0.849 0.827, apobec 0.990 0.965, hr 0.889 0.812
+  rank 3, the tumour in: a signature is the tumour's own in 4 of 10; recovery (median, lowest) cpg 0.975 0.909, clock 0.845 0.647, apobec 0.957 0.919, hr 0.857 0.448
+    the tumour's signature: largest holder 45.9%–57.7%, tumours holding half 1/2, best match Polymerase epsilon 0.969–0.994
+  rank 4, the tumour out: recovery (median, lowest) cpg 0.981 0.872, clock 0.786 0.732, apobec 0.994 0.982, hr 0.805 0.696
+  rank 4, the tumour in: a signature is the tumour's own in 9 of 10; recovery (median, lowest) cpg 0.978 0.973, clock 0.849 0.805, apobec 0.989 0.866, hr 0.866 0.810
+    the tumour's signature: largest holder 52.6%–66.9%, tumours holding half 1, best match Polymerase epsilon 0.982–0.994
+  rank 5, the tumour out: recovery (median, lowest) cpg 0.983 0.974, clock 0.755 0.694, apobec 0.994 0.983, hr 0.779 0.725
+  rank 5, the tumour in: a signature is the tumour's own in 10 of 10; recovery (median, lowest) cpg 0.981 0.919, clock 0.786 0.752, apobec 0.991 0.978, hr 0.814 0.700
+    the tumour's signature: largest holder 53.3%–67.6%, tumours holding half 1, best match Polymerase epsilon 0.978–0.994
+  ok   at rank 4 with the tumour in, one start gives it its own signature, held half by it alone, in at least 9 of 10 seeds — 9 of 10
+  ok   from three starts, the lowest divergence gives the tumour its own signature in all 10 seeds — 10 of 10
+  ok   every start that missed it stopped at a higher divergence than every start that found it — 3 misses in 30 starts
+    seed 6: a start without it stopped at divergence 2703.2 after 1530 iterations; with it, 2429.4, 2429.4
+    seed 7: a start without it stopped at divergence 2462.8 after 2040 iterations; with it, 2243.7
+    seed 7: a start without it stopped at divergence 2455.5 after 1780 iterations; with it, 2243.7
+  rank 4, the tumour in — planted processes below cosine 0.9, by seed: clock+hr, clock+hr, clock+hr, clock+hr, hr, clock+hr, clock+apobec+hr, clock+hr, clock+hr, clock+hr
+  rank 4, the tumour out — below cosine 0.9, by seed: clock+hr, clock+hr, clock+hr, clock+hr, clock+hr, clock+hr, clock+hr, cpg+clock+hr, clock+hr, clock+hr
+  the APOBEC signature (C>T and C>G planted together): best APOBEC, C>T 0.778–0.859, runner-up APOBEC, C>G/Unknown, flat/Polymerase epsilon 0.534–0.736
+  one extraction: median 337 ms, longest 1106 ms; iterations median 1190, most 3000 (Node v24.18.0)
+
+§5 the flat signature: what built it against what it is named
+  rank 3, the tumour out: a flat signature in 10 of 10; named after the process that built less of it in 0
+    hr 0.889 / clock 0.876 — built 36.8% clock-like, 60.4% recombination defect
+    hr 0.897 / clock 0.838 — built 31.2% clock-like, 68.8% recombination defect
+    hr 0.891 / clock 0.832 — built 31.3% clock-like, 68.7% recombination defect
+    hr 0.897 / clock 0.866 — built 38.6% clock-like, 61.2% recombination defect
+    hr 0.903 / clock 0.888 — built 43.4% clock-like, 56.6% recombination defect
+    clock 0.870 / hr 0.812 — built 58.5% clock-like, 39.3% recombination defect
+    hr 0.883 / clock 0.849 — built 38.2% clock-like, 61.8% recombination defect
+    hr 0.841 / clock 0.830 — built 40.1% clock-like, 58.3% recombination defect
+    hr 0.889 / clock 0.827 — built 30.1% clock-like, 69.9% recombination defect
+    hr 0.875 / clock 0.836 — built 36.6% clock-like, 63.4% recombination defect
+    named Clock-like in 1 and Homologous recombination defect in 9; the best match ahead of the runner-up by 0.011–0.063
+  rank 4, the tumour in: a flat signature in 10 of 10; named after the process that built less of it in 4
+    clock 0.878 / hr 0.866 — built 40.0% clock-like, 55.8% recombination defect  ← named after the smaller
+    hr 0.890 / clock 0.829 — built 30.6% clock-like, 69.4% recombination defect
+    hr 0.883 / clock 0.844 — built 36.7% clock-like, 63.3% recombination defect
+    clock 0.882 / hr 0.856 — built 39.7% clock-like, 54.5% recombination defect  ← named after the smaller
+    clock 0.903 / hr 0.888 — built 49.2% clock-like, 49.9% recombination defect  ← named after the smaller
+    clock 0.858 / hr 0.810 — built 58.5% clock-like, 40.4% recombination defect
+    hr 0.856 / clock 0.805 — built 32.8% clock-like, 67.2% recombination defect
+    clock 0.838 / hr 0.832 — built 41.0% clock-like, 55.8% recombination defect  ← named after the smaller
+    hr 0.873 / clock 0.837 — built 33.7% clock-like, 64.8% recombination defect
+    hr 0.864 / clock 0.849 — built 43.2% clock-like, 56.8% recombination defect
+    named Clock-like in 5 and Homologous recombination defect in 5; the best match ahead of the runner-up by 0.006–0.061
+
+§6 how large the tumour must be to take a signature (rank 4, seeds 1–10)
+    1.0% of the cohort's mutations (54–89 mutations): its own signature in 0 of 10
+    2.0% of the cohort's mutations (113–166 mutations): its own signature in 1 of 10
+    3.0% of the cohort's mutations (165–249 mutations): its own signature in 6 of 10
+    5.0% of the cohort's mutations (276–433 mutations): its own signature in 9 of 10
+    7.1% of the cohort's mutations (438–621 mutations): its own signature in 9 of 10
+   10.0% of the cohort's mutations (634–909 mutations): its own signature in 10 of 10
+   15.0% of the cohort's mutations (1009–1393 mutations): its own signature in 10 of 10
+
+9 checks, 0 failed
