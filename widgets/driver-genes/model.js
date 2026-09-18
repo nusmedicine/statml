@@ -331,14 +331,29 @@ const cohorts = new Map();
 export function cohortFor(seed) {
   if (cohorts.has(seed)) return cohorts.get(seed);
   const genes = drawCohort(seed);
+  /* Every gene carries the place it was drawn at, because the list names the
+     ones page 1 does not by their number and the drivers have no number of
+     their own (the page invents no gene symbols). */
+  genes.forEach((g, i) => { g.index = i + 1; });
   const table = oncodriveTable(genes);
   const atMin = genes.filter((g) => g.mutations.length >= MIN_MUT);
+  /* The order the build walks, worked out once with the cohort: the list is
+     printed by p, as the table is, and the column of marks beside it is every
+     candidate by its mutation count, so the rows the reader can read sit among
+     marks in an order they can see. */
+  const byP = [...table].sort((a, b) => a.p - b.p);
+  const untested = atMin.filter((g) => !g.tested);
   const value = {
     seed,
     genes,
     table,
+    byP,
+    rank: new Map(byP.map((g, i) => [g, i])),
+    order: [...atMin].sort((a, b) => b.mutations.length - a.mutations.length),
+    rows: [...byP.slice(0, 8), ...[...untested].sort((a, b) => b.mutations.length - a.mutations.length).slice(0, 4)]
+      .sort((a, b) => b.mutations.length - a.mutations.length),
     atMin: atMin.length,
-    untested: atMin.filter((g) => !g.tested),
+    untested,
     byName: Object.fromEntries(genes.filter((g) => g.kind !== "passenger").map((g) => [g.name, g])),
   };
   if (cohorts.size >= 6) cohorts.delete(cohorts.keys().next().value);
@@ -416,9 +431,14 @@ export function tallyOf(mutations, k) {
    scales. */
 export const RING = 3;   // a call's ring, this far outside its point
 export const markRadius = (g) => 2 + 1.3 * Math.sqrt(g.clusters);
-export const cohortTop = (table) => Math.max(6, Math.ceil(Math.max(...table.map((g) => -Math.log10(g.fdr)))));
-export function cohortMarks(table, sx, sy, mix) {
-  return table.map((g) => ({ g, x: sx(lerp(g.fraction, g.score, mix)), y: sy(-Math.log10(g.fdr)), r: markRadius(g) }));
+/* THE SCALE REACHES THE UNCORRECTED p, not just the FDR, because the build
+   below raises every gene to -log10 p before Benjamini-Hochberg pulls it down
+   (COHORT_STEPS). One scale for the whole walk: the ticks stay where they are
+   and what the reader sees move is the correction, not the frame. */
+export const cohortTop = (table) => Math.max(6, Math.ceil(Math.max(...table.map((g) => -Math.log10(g.p)))));
+export function cohortMarks(table, sx, sy, mix, stage = COHORT_STAGES) {
+  const up = (g) => (stage >= COHORT_CORRECT ? -Math.log10(g.fdr) : -Math.log10(g.p));
+  return table.map((g) => ({ g, x: sx(lerp(g.fraction, g.score, mix)), y: sy(up(g)), r: markRadius(g) }));
 }
 
 /** The three genes page 1 walks, named on page 2 as page 1 names them. */
@@ -454,8 +474,13 @@ export function labelPlacements(marks, names, box, measure) {
       [mark.x - w / 2, mark.y - reach - 2, false],
       [mark.x - w / 2, mark.y + reach + 11, false],
     ];
-    for (const dy of [-20, 20, -34, 34, -48, 48, -62, 62]) {
-      cands.push([mark.x - reach - 8 - w, mark.y + 4 + dy, true], [mark.x + reach + 8, mark.y + 4 + dy, true]);
+    /* Further out, with a leader. The reach grew on 2026-09-18: the scale now
+       climbs to the uncorrected p, which packs the cloud into the bottom of the
+       plot, and at 535px a name could no longer find a gap within 62px. */
+    for (const dy of [-20, 20, -34, 34, -48, 48, -62, 62, -78, 78, -96, 96]) {
+      for (const dx of [8, 30]) {
+        cands.push([mark.x - reach - dx - w, mark.y + 4 + dy, true], [mark.x + reach + dx, mark.y + 4 + dy, true]);
+      }
     }
     let best = null;
     cands.forEach(([lx, ly, leader], order) => {
@@ -472,6 +497,53 @@ export function labelPlacements(marks, names, box, measure) {
   return out;
 }
 
+/* ---- page 2's build --------------------------------------------------------
+   His call of 2026-09-18, from `_lab/driver-genes-tween-mock.html`: the page
+   was a finished figure, and the walk that makes it is the one place in the
+   widget where a number is CORRECTED rather than computed. Five presses:
+
+     1  the genes with no cluster fall away, leaving the table
+     2  each row takes its place across, the fraction in clusters or the score
+     3  each rises to -log10 p
+     4  Benjamini-Hochberg pulls it down BY ITS RANK: the smallest p is
+        multiplied by every row, the largest by one
+     5  the line at FDR 0.05, the calls, and the kinds
+
+   The plot takes the width the list gives up, so the last frame is the
+   full-width figure the page drew before the walk existed. */
+export const COHORT_STAGES = 5;
+export const COHORT_ACROSS = 2;    // the stage the points reach the plot
+export const COHORT_UP = 3;        // -log10 p
+export const COHORT_CORRECT = 4;   // -log10 FDR
+export const COHORT_MS = 900;      // one press, whatever it moves
+export const GHOST = 0.16;         // where each gene was before the correction
+
+/** The name the list prints. The three genes page 1 walks are named as page 1
+    names them (decision 3); the rest carry the number the simulation drew them
+    at, because the page invents no gene symbols. */
+export function listName(cohort, g) {
+  const k = KINDS.find((kind) => kind.shape && cohort.byName[kind.shape] === g);
+  return k ? k.label : `gene ${g.index}`;
+}
+
+const streamY = (list, i, n) => list.y + 26 + ((i + 0.5) / n) * (list.h - 40);
+
+/** Where every candidate gene sits at the end of `stage`, in pixels: in the
+    list, or in whatever rectangle the plot is at this frame. */
+export function buildPlaces(cohort, list, rect, mix, stage) {
+  const top = cohortTop(cohort.table);
+  const sx = (v) => rect.x + v * rect.w;
+  const sy = (v) => rect.y + rect.h - (v / top) * rect.h;
+  const n = cohort.order.length;
+  return cohort.order.map((g, i) => {
+    if (stage <= 0) return { g, x: list.x + 8, y: streamY(list, i, n), r: 1.6, a: 1 };
+    if (!g.tested) return { g, x: list.x + 8, y: streamY(list, i, n), r: 1.6, a: 0 };
+    if (stage === 1) return { g, x: list.x + 8, y: streamY(list, cohort.rank.get(g), cohort.table.length), r: 1.6, a: 1 };
+    const up = stage < COHORT_UP ? 0 : stage < COHORT_CORRECT ? -Math.log10(g.p) : -Math.log10(g.fdr);
+    return { g, x: sx(lerp(g.fraction, g.score, mix)), y: sy(up), r: markRadius(g), a: 1 };
+  });
+}
+
 /* ---- the steps ------------------------------------------------------------ */
 
 /* Stage 0 is the empty protein; stage 1 has the mutations; stages 2 to 6 are
@@ -479,10 +551,37 @@ export function labelPlacements(marks, names, box, measure) {
    threshold ends at stage 2: it has no cluster, so it is not in the table. */
 export const STAGES = 6;
 export const lastStage = (a) => (a.res ? STAGES : 2);
-/** The stage the drive button's label is read at (see STRINGS.stepLabels). */
-export const labelStage = (anim) => (anim.done ? Math.max(0, anim.stage - 1) : anim.stage);
+/** The stage the drive button's label is read at (see STRINGS.stepLabels).
+    Page 2 keys the same map with `c0`…`c4`, so one button names the next step
+    of whichever page is on screen. */
+export function labelStage(anim) {
+  if (anim.page === "cohort") {
+    const at = anim.done ? Math.max(0, anim.cohort - 1) : anim.cohort;
+    return `c${Math.min(at, COHORT_STAGES - 1)}`;
+  }
+  return anim.done ? Math.max(0, anim.stage - 1) : anim.stage;
+}
 export const LAND_MS = 1200;   // the mutations arrive over this long, whatever their number
 export const EASE_MS = 420;
+/* THE TWO STEPS OF PAGE 1 THAT MOVE. A step that only reveals lands at once;
+   these two carry a panel from one place to another, and a reader shown the
+   destination with no journey is told the two panels are related rather than
+   seeing it (his call, 2026-09-18):
+     2  the close-up grows out of the locator box on the protein
+     6  the gene's score walks from the end of its bar onto the background */
+export const TWEENED = new Set([2, 6]);
+export const TWEEN_MS = 520;
+/** A camera move eases at both ends. `easeOut` leaves at full speed, which is
+    right for something that falls into place (4.3) and wrong for a window
+    travelling between two places: read at 45% of its time, an easeOut zoom is
+    already 83% of the way there. */
+export const easeInOut = (t) => {
+  const x = Math.min(1, Math.max(0, t));
+  return x < 0.5 ? 4 * x * x * x : 1 - ((-2 * x + 2) ** 3) / 2;
+};
+export const lerpRect = (a, b, t) => ({
+  x: lerp(a.x, b.x, t), y: lerp(a.y, b.y, t), w: lerp(a.w, b.w, t), h: lerp(a.h, b.h, t),
+});
 export const easeOut = (t) => 1 - (1 - Math.min(1, Math.max(0, t))) ** 3;
 export const lerp = (a, b, t) => a + (b - a) * t;
 
@@ -498,7 +597,15 @@ export const COHORT_H = 470;
 export function layout(w, params) {
   const x0 = 56, x1 = w - 18;
   if (params.page === "cohort") {
-    return { page: "cohort", plot: { x: 64, y: 40, w: w - 64 - 20, h: COHORT_H - 40 - 102 }, height: COHORT_H };
+    /* Two rectangles for one plot: the one it has while the list is on screen,
+       and the one it grows into when the list is gone. The list is half the
+       canvas, capped: four columns and a gene's name need 250px of it, and at
+       0.42 of a 550px canvas "mutations" and "clusters" printed into each
+       other. */
+    const plot = { x: 64, y: 40, w: w - 64 - 20, h: COHORT_H - 40 - 102 };
+    const list = { x: 16, y: 40, w: Math.min(320, Math.round(w * 0.5)), h: plot.h };
+    const narrow = { x: list.x + list.w + 42, y: plot.y, w: w - (list.x + list.w + 42) - 20, h: plot.h };
+    return { page: "cohort", plot, narrow, list, height: COHORT_H };
   }
   return {
     page: "gene",
@@ -573,6 +680,16 @@ export const STRINGS = {
     4: "Score the gene",
     5: "Test against the background",
   },
+  /* Page 2's five, keyed `c0`…`c4` on the same counter. The second names the
+     quantity the Across control is set to, since that is what the press does. */
+  cohortLabels: {
+    c0: "Drop the genes with no cluster",
+    c1: { param: "across", labels: { fraction: "Place each by its fraction", score: "Place each by its score" },
+      default: "Place each by its fraction" },
+    c2: "Raise each by its p-value",
+    c3: "Correct for every gene tested",
+    c4: "Call the genes at FDR 0.05",
+  },
   stepTitle: "Take the next step of the analysis",
 
   proteinCaption: "The protein",
@@ -580,6 +697,15 @@ export const STRINGS = {
   geneScoreCaption: "The gene's score: its cluster scores added",
   backgroundCaption: "The score against the background",
   cohortCaption: "Genes in the table",
+  candidateCaption: "Genes with 5 or more mutations",
+  listGene: "gene",
+  listMutations: "mutations",
+  listClusters: "clusters",
+  listScore: "score",
+  listNone: "none",
+  listRows: (n) => `${n} rows`,
+  axisP: "−log₁₀ p",
+  ghostNote: "where each gene was before the correction",
   threshold: (th) => `threshold ${th}`,
   clusterSpan: (a, b) => `cluster ${a}–${b}`,
   peak: "peak",

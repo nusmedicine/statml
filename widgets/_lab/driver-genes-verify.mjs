@@ -84,25 +84,46 @@ async function widget() {
 function recorder() {
   const box = { x0: Infinity, y0: Infinity, x1: -Infinity, y1: -Infinity, bad: false };
   const seen = [];
+  const arcs = [];
   const stack = [];
-  let tx = 0, ty = 0, rot = 0;
+  /* A SCALE AND A CLIP, because page 1's close-up is drawn at its own size into
+     whatever rectangle the zoom has reached: without the scale the extent is
+     the panel's and not the window's, and without the clip this reports paint
+     the canvas never receives (2026-09-18). */
+  let tx = 0, ty = 0, rot = 0, kx = 1, ky = 1, clipBox = null, pending = null;
   const mark = (x, y) => {
     if (!Number.isFinite(x) || !Number.isFinite(y)) { box.bad = true; return; }
-    box.x0 = Math.min(box.x0, x + tx); box.y0 = Math.min(box.y0, y + ty);
-    box.x1 = Math.max(box.x1, x + tx); box.y1 = Math.max(box.y1, y + ty);
+    let px = x * kx + tx, py = y * ky + ty;
+    if (clipBox) {
+      if (px < clipBox.x0 - 0.5 || px > clipBox.x1 + 0.5 || py < clipBox.y0 - 0.5 || py > clipBox.y1 + 0.5) {
+        px = Math.max(clipBox.x0, Math.min(clipBox.x1, px));
+        py = Math.max(clipBox.y0, Math.min(clipBox.y1, py));
+      }
+    }
+    box.x0 = Math.min(box.x0, px); box.y0 = Math.min(box.y0, py);
+    box.x1 = Math.max(box.x1, px); box.y1 = Math.max(box.y1, py);
   };
   const ctx = {
-    save() { stack.push([tx, ty, rot, this.textAlign, this.font]); },
-    restore() { const s = stack.pop(); if (s) [tx, ty, rot] = s; },
-    beginPath() {}, closePath() {}, stroke() {}, fill() {}, setLineDash() {}, clip() {}, scale() {},
-    translate(dx, dy) { tx += dx; ty += dy; },
+    save() { stack.push([tx, ty, rot, kx, ky, clipBox]); },
+    restore() { const s = stack.pop(); if (s) [tx, ty, rot, kx, ky, clipBox] = s; },
+    beginPath() { pending = null; }, closePath() {}, stroke() {}, fill() {}, setLineDash() {},
+    rect(x, y, w, h) { pending = { x0: x * kx + tx, y0: y * ky + ty, x1: (x + w) * kx + tx, y1: (y + h) * ky + ty }; },
+    clip() {
+      if (!pending) return;
+      clipBox = clipBox
+        ? { x0: Math.max(clipBox.x0, pending.x0), y0: Math.max(clipBox.y0, pending.y0),
+          x1: Math.min(clipBox.x1, pending.x1), y1: Math.min(clipBox.y1, pending.y1) }
+        : pending;
+    },
+    scale(x, y) { kx *= x; ky *= y; },
+    translate(dx, dy) { tx += dx * kx; ty += dy * ky; },
     rotate(r) { rot += r; },
     measureText: (s) => ({ width: String(s).length * 6 }),
     fillRect: (x, y, w, h) => { mark(x, y); mark(x + w, y + h); },
     strokeRect: (x, y, w, h) => { mark(x, y); mark(x + w, y + h); },
     clearRect: () => {},
     moveTo: mark, lineTo: mark,
-    arc: (x, y, r) => { mark(x - r, y - r); mark(x + r, y + r); },
+    arc: (x, y, r) => { arcs.push({ x: x * kx + tx, y: y * ky + ty, r: r * kx }); mark(x - r, y - r); mark(x + r, y + r); },
     fillText(s, x, y) {
       seen.push(String(s));
       const w = String(s).length * 6;
@@ -114,7 +135,7 @@ function recorder() {
     textAlign: "left", textBaseline: "alphabetic", font: "", fillStyle: "", strokeStyle: "", lineWidth: 1,
     globalAlpha: 1, lineJoin: "miter", lineCap: "butt",
   };
-  return { ctx, box, seen };
+  return { ctx, box, seen, arcs };
 }
 
 const COLORS = Object.fromEntries([
@@ -294,7 +315,44 @@ function drive(params, mode, { dt = 32, frames = 4000 } = {}) {
   const cohort = paramsOf({ page: "cohort" });
   const sc = W.compute({ params: cohort });
   const ac = W.animation.init({ params: cohort, state: sc, fromScratch: true });
-  check("the cohort page has nothing to drive", ac.inert === true);
+  check("the cohort page opens on its list, with nothing plotted",
+    ac.cohort === 0 && ac.done === false && !ac.inert);
+  const cStages = [];
+  const cLabels = [];
+  for (let i = 0; i < 6; i += 1) {
+    cLabels.push(ac.labelAt);
+    ac.mode = "step";
+    let frames = 0;
+    while (W.animation.advance(ac, { dt: 32, params: cohort, state: sc }) && frames < 400) frames += 1;
+    cStages.push(ac.cohort);
+  }
+  check("five presses build the cohort plot and stop", cStages.join() === "1,2,3,4,5,5" && ac.done === true, cStages.join());
+  check("each press of page 2 names its own step, in the build's order",
+    cLabels.slice(0, 5).join() === "c0,c1,c2,c3,c4" && ac.labelAt === "c4", cLabels.join());
+  const labelMap = W.animation.stepLabel.labels;
+  check("the press that places the genes names the axis it places them on",
+    labelMap.c1.param === "across" && labelMap.c1.labels.fraction !== labelMap.c1.labels.score);
+  check("every step of both pages has a label", [0, 1, 2, 3, 4, 5].every((k) => typeof labelMap[k] === "string")
+    && ["c0", "c2", "c3", "c4"].every((k) => typeof labelMap[k] === "string"));
+
+  /* invariant 3: the page is a display parameter, so each page keeps its place */
+  W.animation.rebuild(ac, { params: paramsOf({ page: "gene" }), state: sc });
+  check("switching to page 1 keeps page 2's place and finds page 1 empty",
+    ac.cohort === 5 && ac.stage === 0 && ac.done === false);
+  W.animation.rebuild(ac, { params: cohort, state: sc });
+  check("switching back finds page 2 finished, where it was left", ac.cohort === 5 && ac.done === true);
+  const authoredC = paramsOf({ page: "cohort", shown: 5 });
+  const acShown = W.animation.init({ params: authoredC, state: W.compute({ params: authoredC }), fromScratch: false });
+  check("?page=cohort&shown=5 opens the finished figure", acShown.cohort === 5 && acShown.done === true);
+  const acHalf = W.animation.init({ params: paramsOf({ page: "cohort", shown: 3 }), state: sc, fromScratch: false });
+  check("?page=cohort&shown=3 stops before the correction", acHalf.cohort === 3 && acHalf.done === false);
+
+  /* page 1's two steps that carry a panel keep their frames */
+  const tw = drive(paramsOf({ gene: "oncogene" }), "step");
+  const frames = [];
+  for (let i = 0; i < 6; i += 1) frames.push(tw.press());
+  check("the two steps that move take frames, and the rest land at once",
+    frames[1] > 4 && frames[5] > 4 && frames[2] === 0 && frames[3] === 0 && frames[4] === 0, frames.join());
   const toScore = paramsOf({ page: "cohort", across: "score" });
   W.animation.rebuild(ac, { params: toScore, state: sc });
   check("switching Across on the cohort page asks for an ease", ac.easing === true);
@@ -324,18 +382,21 @@ function drive(params, mode, { dt = 32, frames = 4000 } = {}) {
         const state = W.compute({ params });
         const anim = W.animation.init({ params, state, fromScratch: true });
         for (let stage = 0; stage <= 6; stage += 1) {
-          anim.stage = Math.min(stage, M.lastStage(state.one));
-          anim.landed = anim.stage >= 1 ? state.one.n : 0;
-          anim.done = anim.stage >= M.lastStage(state.one);
-          anim.labelAt = M.labelStage(anim);
-          const h = W.height({ w, ...params });
-          const { ctx, box, seen } = recorder();
-          W.draw({ ctx, colors: COLORS, w, h, params, state, anim });
-          texts.push(...seen, cardText());
-          if (box.bad || box.x0 < 0 || box.y0 < 0 || box.x1 > w || box.y1 > h) {
-            out.push(`${gene} seed ${seed} stage ${anim.stage} at ${w}: [${box.x0.toFixed(0)}, ${box.y0.toFixed(0)}]–[${box.x1.toFixed(0)}, ${box.y1.toFixed(0)}] in ${w}×${h}`);
+          for (const t of M.TWEENED.has(stage) ? [0.5, 1] : [1]) {
+            anim.stage = Math.min(stage, M.lastStage(state.one));
+            anim.tween = anim.stage === stage ? t : 1;
+            anim.landed = anim.stage >= 1 ? state.one.n : 0;
+            anim.done = anim.stage >= M.lastStage(state.one);
+            anim.labelAt = M.labelStage(anim);
+            const h = W.height({ w, ...params });
+            const { ctx, box, seen } = recorder();
+            W.draw({ ctx, colors: COLORS, w, h, params, state, anim });
+            texts.push(...seen, cardText());
+            if (box.bad || box.x0 < 0 || box.y0 < 0 || box.x1 > w || box.y1 > h) {
+              out.push(`${gene} seed ${seed} stage ${anim.stage} t ${t} at ${w}: [${box.x0.toFixed(0)}, ${box.y0.toFixed(0)}]–[${box.x1.toFixed(0)}, ${box.y1.toFixed(0)}] in ${w}×${h}`);
+            }
+            readouts.push(...W.readout({ params, state, anim }), { label: "summary", value: W.summary({ params, state, anim }), note: "" });
           }
-          readouts.push(...W.readout({ params, state, anim }), { label: "summary", value: W.summary({ params, state, anim }), note: "" });
         }
       }
     }
@@ -345,13 +406,24 @@ function drive(params, mode, { dt = 32, frames = 4000 } = {}) {
         const state = W.compute({ params });
         const anim = W.animation.init({ params, state, fromScratch: true });
         const h = W.height({ w, ...params });
-        const { ctx, box, seen } = recorder();
-        W.draw({ ctx, colors: COLORS, w, h, params, state, anim });
-        texts.push(...seen, cardText());
-        if (box.bad || box.x0 < 0 || box.y0 < 0 || box.x1 > w || box.y1 > h) {
-          out.push(`cohort kinds ${kinds} ${across} at ${w}: [${box.x0.toFixed(0)}, ${box.y0.toFixed(0)}]–[${box.x1.toFixed(0)}, ${box.y1.toFixed(0)}] in ${w}×${h}`);
+        /* every stage of the build, and every stage caught halfway through its
+           own press, since that is where a tween paints what a settled frame
+           never shows */
+        for (let stage = 0; stage <= M.COHORT_STAGES; stage += 1) {
+          for (const t of stage === 0 ? [1] : [0.5, 1]) {
+            anim.cohort = stage;
+            anim.cohortT = t;
+            anim.done = stage >= M.COHORT_STAGES && t >= 1;
+            anim.labelAt = M.labelStage(anim);
+            const { ctx, box, seen } = recorder();
+            W.draw({ ctx, colors: COLORS, w, h, params, state, anim });
+            texts.push(...seen, cardText());
+            if (box.bad || box.x0 < 0 || box.y0 < 0 || box.x1 > w || box.y1 > h) {
+              out.push(`cohort kinds ${kinds} ${across} stage ${stage} t ${t} at ${w}: [${box.x0.toFixed(0)}, ${box.y0.toFixed(0)}]–[${box.x1.toFixed(0)}, ${box.y1.toFixed(0)}] in ${w}×${h}`);
+            }
+            readouts.push(...W.readout({ params, state, anim }), { label: "summary", value: W.summary({ params, state, anim }), note: "" });
+          }
         }
-        readouts.push(...W.readout({ params, state, anim }), { label: "summary", value: W.summary({ params, state, anim }), note: "" });
       }
     }
   }
@@ -375,6 +447,32 @@ function drive(params, mode, { dt = 32, frames = 4000 } = {}) {
   /* the card's threshold row prints a digit for every probability it states */
   const zeros = texts.filter((s) => /= 0\.0000\b/.test(s));
   check("the card prints no probability as 0.0000", zeros.length === 0, zeros[0]?.slice(0, 80));
+}
+
+/* --- 6b · the Across ease is READ through easeOut ------------------------------
+   His call of 2026-09-18. The points are placed on the ease's curve, not at its
+   clock: at half the ease's time the constant rate has them half way and
+   `easeOut` seven eighths of the way, and the drawn x-positions say which. */
+{
+  const { makePlot } = await import("../core/canvas.js");
+  const params = paramsOf({ page: "cohort", kinds: false });
+  const state = W.compute({ params });
+  const anim = W.animation.init({ params, state, fromScratch: true });
+  anim.cohort = M.COHORT_STAGES;
+  anim.cohortT = 1;
+  anim.done = true;
+  anim.mix = 0.5;
+  const w = 770;
+  const { ctx, arcs } = recorder();
+  W.draw({ ctx, colors: COLORS, w, h: W.height({ w, ...params }), params, state, anim });
+  const L = M.layout(w, params);
+  const plot = makePlot({ ctx: recorder().ctx, colors: COLORS, rect: L.plot, xDomain: [0, 1], yDomain: [0, M.cohortTop(state.cohort.table)] });
+  const xsAt = (m) => [...new Set(state.cohort.table.map((g) => plot.sx(M.lerp(g.fraction, g.score, m)).toFixed(2)))].sort();
+  const drawn = [...new Set(arcs.map((a) => a.x.toFixed(2)))].sort();
+  const eased = xsAt(M.easeOut(0.5));
+  const linear = xsAt(0.5);
+  check("half way through the Across ease the points are on the curve, not the clock",
+    drawn.join() === eased.join() && eased.join() !== linear.join(), `${drawn.length} x-positions drawn`);
 }
 
 /* --- 7 · page 2's names, clear of the points ------------------------------------

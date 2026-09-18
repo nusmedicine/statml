@@ -9643,6 +9643,45 @@ printed a probability as 0.0000.
   back "Heterozygotes miscalled" and `polygenic-score` two of its six steps.
   Nothing the fingerprint hashes moved — 824 of 824 identical, fronted at
   DPR 1.25.
+- **All four tweens built, his pick of the mock (2026-09-18).** Page 2 is now a
+  five-press build and page 1's two panel changes carry their panel:
+
+  - *The cohort, built from its table.* Stage 0 is the list — twelve rows a
+    reader can read over a column holding one mark for each of the 4,574
+    candidates — then the 4,170 with no cluster fall away, the 404 rows take
+    their place across, rise to −log₁₀ p, and fall by their rank as
+    Benjamini-Hochberg lands; the line and the calls come last. The plot takes
+    the width the list gives up (`layout` returns `narrow` and `plot`, and
+    `lerpRect` between them), the scale is fixed at the top of −log₁₀ p so the
+    ticks never move under the points, the axis label changes from p to FDR at
+    the correction, and the pre-correction cloud stays as a ghost at 0.16 so
+    the settled figure keeps the arithmetic. `buildPlaces` holds every gene's
+    place at every stage, so the drawing and the verify read one geometry.
+  - *The counters are two.* `anim.stage` is page 1's and `anim.cohort` page 2's,
+    each with its own tween clock, because the page is a display parameter and a
+    display change resets nothing (invariant 3). One step button names the next
+    press of whichever page is on screen: page 1's labels are keyed `0`…`5` on
+    the counter and page 2's `c0`…`c4`, and `c1` nests a `{ param: "across" }`
+    label so the press that places the genes names the axis it places them on.
+    That nesting needed a core fix — `resolveLabel` recursed for `param` entries
+    but not for `anim` ones, and the button read "[object Object]".
+  - *Page 1's close-up grows out of its locator box* (stage 2) and *S walks from
+    the score bar onto the background curve* (stage 6), both eased at BOTH ends:
+    at 45% of its time an `easeOut` zoom is already 83% of the way there. The
+    two panels hand over at the midpoint rather than crossfading, because both
+    head their own caption at the same point and fading one under the other
+    printed them through each other.
+  - *The Across ease is read through `easeOut`*, which was exported and unread.
+  - The verify gained the build, the label map, the page-switch invariant, both
+    `?shown=` doors, mid-flight frames at every stage of both pages, and a check
+    that the drawn x-positions at half the ease's time are on the curve and not
+    the clock: 66 checks. Its recorder learned `scale` and `clip`, without which
+    the zoom's extents were the panel's and not the window's.
+  - Two numbers moved with the build: the y scale now tops at −log₁₀ p (8 at
+    seed 1, where the FDR alone gave 6), and the list is half the canvas, capped
+    at 320px, after "mutations" and "clusters" printed into each other at 0.42
+    of a 550px canvas.
+
 - **Where motion would carry an idea, mocked and open:**
   `_lab/driver-genes-tween-mock.html`, on his *"check if there are tweening
   animation opportunities … for the cohort page … perhaps from a list of data

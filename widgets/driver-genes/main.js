@@ -103,12 +103,18 @@ function sumText(values, max = 6) {
 function cardFor(params, state, anim) {
   if (params.page === "cohort") {
     const c = state.cohort;
+    const stage = anim?.cohort ?? M.COHORT_STAGES;
     const called = c.table.filter((g) => g.called).length;
+    const first = c.byP[0];
     return {
       rows: [
-        [S.labelGene, MATHML ? ZP_MATH : ZP_PLAIN],
+        [S.labelGene, MATHML ? ZP_MATH : ZP_PLAIN,
+          stage >= M.COHORT_UP && first
+            ? numbers(`the smallest p in the table is ${M.pText(first.p)}, at S = ${M.n3(first.score)}`) : null],
         [S.labelFdr, MATHML ? FDR_MATH : FDR_PLAIN,
-          numbers(`m = ${M.intText(c.table.length)} genes in the table; ${called} with q ≤ ${M.FDR_LINE}`)],
+          stage >= M.COHORT_CORRECT
+            ? numbers(`m = ${M.intText(c.table.length)} genes in the table`
+              + `${stage >= M.COHORT_STAGES ? `; ${called} with q ≤ ${M.FDR_LINE}` : ""}`) : null],
       ],
       note: S.noteCohort,
     };
@@ -230,13 +236,12 @@ function drawProtein(ctx, colors, L, a, stage, landed) {
     text(ctx, M.intText(t), X(t), base + 27, { font: monoFont(colors), fill: colors.ink3, align: t === 1 ? "left" : t === a.gene.L ? "right" : "center" });
   }
 
-  const win = a.focus ? closeWindow(a) : null;
-  if (stage >= 2 && win) {
+  if (stage >= 2 && a.focus) {
+    const box = locatorRect(L, a);
     ctx.save();
     ctx.strokeStyle = colors.ink1;
     ctx.lineWidth = 1;
-    const wa = X(win.lo), wb = X(win.hi);
-    ctx.strokeRect(wa - 2, base + 1, Math.max(4, wb - wa + 4), 12);
+    ctx.strokeRect(box.x, box.y, box.w, box.h);
     ctx.restore();
   }
   if (stage >= 3 && a.res) {
@@ -252,6 +257,36 @@ function drawProtein(ctx, colors, L, a, stage, landed) {
 function closeWindow(a) {
   const c = a.focus;
   return { lo: Math.max(1, Math.min(c.start, c.coreStart) - 4), hi: Math.min(a.gene.L, Math.max(c.end, c.coreEnd) + 4) };
+}
+
+/* THE BOX ON THE PROTEIN AND THE PANEL ARE ONE GEOMETRY, because the panel
+   grows out of the box on the press that opens it (his call, 2026-09-18), and a
+   journey that starts anywhere else teaches the wrong place. */
+function locatorRect(L, a) {
+  const win = closeWindow(a);
+  const X = (pos) => L.x0 + ((pos - 0.5) / a.gene.L) * (L.x1 - L.x0);
+  const wa = X(win.lo), wb = X(win.hi);
+  return { x: wa - 2, y: L.protein.base + 1, w: Math.max(4, wb - wa + 4), h: 12 };
+}
+const closeRect = (L) => ({ x: L.x0, y: L.lower.top - 14, w: L.x1 - L.x0, h: 176 });
+
+/** The close-up, or the close-up on its way out of the box. */
+function drawCloseUpAt(ctx, colors, L, a, stage, t) {
+  if (t >= 1) { drawCloseUp(ctx, colors, L, a, stage); return; }
+  const to = closeRect(L);
+  const r = M.lerpRect(locatorRect(L, a), to, M.easeInOut(t));
+  ctx.save();
+  /* Clipped to the window: the panel is drawn at its own size into whatever
+     rectangle the window has reached, so what is outside it has not arrived. */
+  ctx.beginPath();
+  ctx.rect(r.x - 1, r.y - 1, r.w + 2, r.h + 2);
+  ctx.clip();
+  ctx.globalAlpha = 0.3 + 0.7 * t;
+  ctx.translate(r.x, r.y);
+  ctx.scale(r.w / to.w, r.h / to.h);
+  ctx.translate(-to.x, -to.y);
+  drawCloseUp(ctx, colors, L, a, stage);
+  ctx.restore();
 }
 
 function drawCloseUp(ctx, colors, L, a, stage) {
@@ -303,8 +338,14 @@ function drawCloseUp(ctx, colors, L, a, stage) {
   }
 }
 
+/** Where the S marker stands on the score bar: the start of its walk. */
+function scoreMark(L, a) {
+  const y = L.lower.top + 36, h = 26;
+  return { x: L.x0 + a.res.score * (L.x1 - L.x0), y0: y - 8, y1: y + h + 8 };
+}
+
 /** Step 4: the gene's score as its clusters' scores laid end to end. */
-function drawGeneScore(ctx, colors, L, a) {
+function drawGeneScore(ctx, colors, L, a, withMark = true) {
   const { x0, x1 } = L;
   const top = L.lower.top;
   const X = (v) => x0 + v * (x1 - x0);
@@ -322,9 +363,11 @@ function drawGeneScore(ctx, colors, L, a) {
     }
     at += s;
   });
-  rule(ctx, X(a.res.score), y - 8, X(a.res.score), y + h + 8, colors.ink1, 2);
-  text(ctx, `S = ${M.n3(a.res.score)}`, X(a.res.score) + (a.res.score > 0.8 ? -6 : 6), y - 10,
-    { font: capFont(colors), fill: colors.ink1, align: a.res.score > 0.8 ? "right" : "left" });
+  if (withMark) {
+    rule(ctx, X(a.res.score), y - 8, X(a.res.score), y + h + 8, colors.ink1, 2);
+    text(ctx, `S = ${M.n3(a.res.score)}`, X(a.res.score) + (a.res.score > 0.8 ? -6 : 6), y - 10,
+      { font: capFont(colors), fill: colors.ink1, align: a.res.score > 0.8 ? "right" : "left" });
+  }
   for (const t of [0, 0.25, 0.5, 0.75, 1]) {
     text(ctx, String(t), X(t), y + h + 22, { font: monoFont(colors), fill: colors.ink3, align: t === 0 ? "left" : t === 1 ? "right" : "center" });
   }
@@ -340,11 +383,22 @@ function drawGeneScore(ctx, colors, L, a) {
     x0, fy + 28, { font: noteFont(colors), fill: colors.ink2 });
 }
 
-/** Step 5: the score against the fixed background. */
-function drawBackground(ctx, colors, L, a) {
+/** Step 5: the score against the fixed background. Below t = 1 the curve is
+    arriving and the S marker is still walking down from the score bar, so one
+    number takes its place on the other panel instead of two panels replacing
+    each other (his call, 2026-09-18). */
+function drawBackground(ctx, colors, L, a, t = 1) {
   const { x0, x1 } = L;
   const top = L.lower.top;
-  const plot = makePlot({ ctx, colors, rect: { x: x0, y: top + 24, w: x1 - x0, h: 112 }, xDomain: [-0.1, 1.1], yDomain: [0, 1.1] });
+  const rect = { x: x0, y: top + 24, w: x1 - x0, h: 112 };
+  const plot = makePlot({ ctx, colors, rect, xDomain: [-0.1, 1.1], yDomain: [0, 1.1] });
+  const e = M.easeInOut(t);
+  /* A HANDOFF, NOT A CROSSFADE. Both panels head their own caption at the same
+     point, so fading one out under the other printed the two through each
+     other; the bar is gone by the halfway point and the curve starts there,
+     and the marker on its way down is what carries the frame between them. */
+  ctx.save();
+  ctx.globalAlpha = Math.max(0, 2 * e - 1);
   text(ctx, S.backgroundCaption, x0, top, { font: capFont(colors), fill: colors.ink1 });
   text(ctx, S.backgroundNote, x1, top, { font: noteFont(colors), fill: colors.ink2, align: "right" });
   const pdf = (s) => Math.exp(-0.5 * ((s - M.BACKGROUND.mean) / M.BACKGROUND.sd) ** 2);
@@ -353,10 +407,22 @@ function drawBackground(ctx, colors, L, a) {
   plot.area(pts, { fill: colors.reference, opacity: 0.22 });
   plot.area(pts.filter(([s]) => s >= a.res.score), { fill: colors.extreme, opacity: 0.6 });
   plot.curve(pts, { stroke: colors.reference, width: 1.5 });
-  plot.axisX({ ticks: [0, 0.25, 0.5, 0.75, 1], format: (t) => String(t) });
-  plot.vline(a.res.score, { stroke: colors.highlight, width: 2, label: `S = ${M.n3(a.res.score)}`, align: a.res.score > 0.8 ? "left" : "right" });
-  text(ctx, `z = (${M.n3(a.res.score)} − 0.279) / 0.13 = ${M.n2(a.z)}      p = ${M.pText(a.p)}`,
-    x0, top + 178, { font: `${colors.fsSm} ${colors.mono}`, fill: colors.ink1 });
+  plot.axisX({ ticks: [0, 0.25, 0.5, 0.75, 1], format: (tick) => String(tick) });
+  ctx.restore();
+  if (t >= 1) {
+    plot.vline(a.res.score, { stroke: colors.highlight, width: 2, label: `S = ${M.n3(a.res.score)}`, align: a.res.score > 0.8 ? "left" : "right" });
+    text(ctx, `z = (${M.n3(a.res.score)} − 0.279) / 0.13 = ${M.n2(a.z)}      p = ${M.pText(a.p)}`,
+      x0, top + 178, { font: `${colors.fsSm} ${colors.mono}`, fill: colors.ink1 });
+    return;
+  }
+  const from = scoreMark(L, a);
+  const to = { x: plot.sx(a.res.score), y0: rect.y, y1: rect.y + rect.h };
+  const mx = from.x + (to.x - from.x) * e;
+  const y0 = from.y0 + (to.y0 - from.y0) * e;
+  const y1 = from.y1 + (to.y1 - from.y1) * e;
+  rule(ctx, mx, y0, mx, y1, colors.highlight, 2);
+  text(ctx, `S = ${M.n3(a.res.score)}`, mx + (a.res.score > 0.8 ? -6 : 6), y0 - 6,
+    { font: capFont(colors), fill: colors.ink1, align: a.res.score > 0.8 ? "right" : "left" });
 }
 
 function drawGenePage(ctx, colors, w, params, state, anim) {
@@ -371,9 +437,21 @@ function drawGenePage(ctx, colors, w, params, state, anim) {
     text(ctx, S.notTested, L.x0, L.lower.top + 28, { font: noteFont(colors), fill: colors.ink1 });
     return;
   }
-  if (stage <= 4) drawCloseUp(ctx, colors, L, a, stage);
-  else if (stage === 5) drawGeneScore(ctx, colors, L, a);
-  else drawBackground(ctx, colors, L, a);
+  const t = anim?.tween ?? 1;
+  if (stage <= 4) { drawCloseUpAt(ctx, colors, L, a, stage, stage === 2 ? t : 1); return; }
+  if (stage === 5) { drawGeneScore(ctx, colors, L, a); return; }
+  /* The bar the score came from stays while the marker leaves it, and is gone
+     by the halfway point, where the background starts to arrive. */
+  if (t < 1) {
+    const out = Math.max(0, 1 - 2 * M.easeInOut(t));
+    if (out > 0.01) {
+      ctx.save();
+      ctx.globalAlpha = out;
+      drawGeneScore(ctx, colors, L, a, false);
+      ctx.restore();
+    }
+  }
+  drawBackground(ctx, colors, L, a, t);
 }
 
 /* ---- page 2: the cohort --------------------------------------------------------- */
@@ -401,50 +479,146 @@ function drawNames(ctx, colors, placements) {
   }
 }
 
+/** The table, while the list is still on screen: twelve rows a reader can
+    read, over a column holding one mark per candidate gene, so the rows sit in
+    a depth that is drawn rather than claimed. */
+function drawList(ctx, colors, L, c, alpha, dropT) {
+  if (alpha <= 0.01) return;
+  const { list } = L;
+  const cols = [list.x + 26, list.x + list.w * 0.62, list.x + list.w * 0.82, list.x + list.w];
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  text(ctx, S.listGene, cols[0], list.y + 14, { font: monoFont(colors), fill: colors.ink3 });
+  text(ctx, S.listMutations, cols[1], list.y + 14, { font: monoFont(colors), fill: colors.ink3, align: "right" });
+  text(ctx, S.listClusters, cols[2], list.y + 14, { font: monoFont(colors), fill: colors.ink3, align: "right" });
+  text(ctx, S.listScore, cols[3], list.y + 14, { font: monoFont(colors), fill: colors.ink3, align: "right" });
+  rule(ctx, list.x + 20, list.y + 20, list.x + list.w, list.y + 20, colors.grid);
+  let y = list.y + 38;
+  for (const g of c.rows) {
+    const a = g.tested ? 1 : 1 - dropT;
+    if (a > 0.01) {
+      ctx.save();
+      ctx.globalAlpha = alpha * a;
+      const dx = g.tested ? 0 : -18 * dropT;
+      const ink = g.tested ? colors.ink1 : colors.ink3;
+      text(ctx, M.listName(c, g), cols[0] + dx, y, { font: noteFont(colors), fill: ink });
+      text(ctx, M.intText(g.mutations.length), cols[1] + dx, y, { font: monoFont(colors), fill: colors.ink2, align: "right" });
+      text(ctx, g.tested ? String(g.clusters) : S.listNone, cols[2] + dx, y, { font: monoFont(colors), fill: ink, align: "right" });
+      text(ctx, g.tested ? M.n3(g.score) : "—", cols[3] + dx, y, { font: monoFont(colors), fill: ink, align: "right" });
+      ctx.restore();
+    }
+    y += g.tested ? 19 : 19 * (1 - dropT);
+  }
+  text(ctx, S.listRows(M.intText(Math.round(c.atMin + (c.table.length - c.atMin) * dropT))), cols[0], list.y + list.h - 6,
+    { font: monoFont(colors), fill: colors.ink2 });
+  ctx.restore();
+}
+
 function drawCohortPage(ctx, colors, w, params, state, anim) {
   const L = M.layout(w, params);
   const c = state.cohort;
-  const mix = anim?.mix ?? (params.across === "score" ? 1 : 0);
+  /* Without an animation the page is its last stage: that is what `?shown=5`
+     and a settled figure are. */
+  const stage = anim?.cohort ?? M.COHORT_STAGES;
+  const e = M.easeOut(anim?.cohortT ?? 1);
+  /* THE EASE IS READ HERE, not stored: `mix` counts the ease's time and the
+     points are placed on its curve, as widget 60 reads its two views. */
+  const mix = M.easeOut(anim?.mix ?? (params.across === "score" ? 1 : 0));
+  const at = (s) => (stage > s ? 1 : stage === s ? e : 0);
+  const spread = at(M.COHORT_ACROSS);
+  const rect = M.lerpRect(L.narrow, L.plot, spread);
   const yTop = M.cohortTop(c.table);
-  const plot = makePlot({ ctx, colors, rect: L.plot, xDomain: [0, 1], yDomain: [0, yTop] });
-  const yTicks = [];
-  for (let t = 0; t <= yTop; t += yTop > 8 ? 2 : 1) yTicks.push(t);
-  plot.grid(yTicks);
-  plot.caption(S.cohortCaption);
-  plot.axisY({ ticks: yTicks, format: String, label: S.axisFdr });
-  plot.axisX({ ticks: [0, 0.2, 0.4, 0.6, 0.8, 1], format: (t) => String(t), label: mix < 0.5 ? S.axisFraction : S.axisScore });
-  const lineY = plot.sy(-Math.log10(M.FDR_LINE));
-  rule(ctx, L.plot.x, lineY, L.plot.x + L.plot.w, lineY, colors.ink2, 1, [5, 4]);
-  text(ctx, S.fdrLine, L.plot.x + L.plot.w, lineY - 5, { font: noteFont(colors), fill: colors.ink2, align: "right" });
+  const plot = makePlot({ ctx, colors, rect, xDomain: [0, 1], yDomain: [0, yTop] });
 
-  const marks = M.cohortMarks(c.table, plot.sx, plot.sy, mix);
-  const order = [...marks].sort((p, q) => (p.g.kind === "passenger" ? 0 : 1) - (q.g.kind === "passenger" ? 0 : 1));
-  for (const m of order) {
-    ctx.beginPath();
-    ctx.arc(m.x, m.y, m.r, 0, Math.PI * 2);
-    ctx.fillStyle = params.kinds && m.g.kind !== "passenger" ? wash(KIND_FILL(colors, m.g.kind), 0.9) : wash(colors.ink3, 0.5);
-    ctx.fill();
-  }
-  for (const m of order) {
-    if (!m.g.called) continue;
-    ctx.beginPath();
-    ctx.arc(m.x, m.y, m.r + M.RING, 0, Math.PI * 2);
-    ctx.strokeStyle = colors.ink1;
-    ctx.lineWidth = 1.25;
-    ctx.stroke();
-  }
-  if (params.kinds) {
-    const measure = (s) => { ctx.save(); ctx.font = noteFont(colors); const width = ctx.measureText(s).width; ctx.restore(); return width; };
-    drawNames(ctx, colors, M.labelPlacements(marks, M.namedGenes(c), L.plot, measure));
+  text(ctx, stage < M.COHORT_ACROSS ? S.candidateCaption : S.cohortCaption,
+    stage < M.COHORT_ACROSS ? L.list.x : rect.x, 24, { font: capFont(colors), fill: colors.ink1 });
+
+  if (spread > 0.01) {
+    ctx.save();
+    ctx.globalAlpha = spread;
+    const yTicks = [];
+    for (let t = 0; t <= yTop; t += yTop > 8 ? 2 : 1) yTicks.push(t);
+    plot.grid(yTicks);
+    plot.axisY({ ticks: yTicks, format: String, label: stage < M.COHORT_CORRECT ? S.axisP : S.axisFdr });
+    plot.axisX({ ticks: [0, 0.2, 0.4, 0.6, 0.8, 1], format: (t) => String(t), label: mix < 0.5 ? S.axisFraction : S.axisScore });
+    ctx.restore();
   }
 
-  const base = L.plot.y + L.plot.h;
-  text(ctx, S.notInTable(M.intText(c.untested.length), M.intText(c.atMin)), L.plot.x, base + 56,
-    { font: noteFont(colors), fill: colors.ink1 });
-  text(ctx, S.notInTableWhy, L.plot.x, base + 73, { font: noteFont(colors), fill: colors.ink2 });
-  const suppressorsOut = c.untested.filter((g) => g.kind === "suppressor").length;
-  if (params.kinds && suppressorsOut) {
-    text(ctx, S.driversNotInTable(suppressorsOut), L.plot.x, base + 90, { font: noteFont(colors), fill: colors.ink2 });
+  /* Where each gene was before the correction. It stays after the fall, so the
+     settled figure carries the arithmetic and not only the answer. */
+  const ghosts = at(M.COHORT_CORRECT);
+  if (ghosts > 0.01) {
+    ctx.save();
+    ctx.globalAlpha = M.GHOST * ghosts;
+    for (const g of c.table) {
+      ctx.beginPath();
+      ctx.arc(plot.sx(M.lerp(g.fraction, g.score, mix)), plot.sy(-Math.log10(g.p)), M.markRadius(g), 0, Math.PI * 2);
+      ctx.fillStyle = colors.ink3;
+      ctx.fill();
+    }
+    ctx.restore();
+    text(ctx, S.ghostNote, rect.x + rect.w, 24, { font: noteFont(colors), fill: colors.ink3, align: "right" });
+  }
+
+  const calls = at(M.COHORT_STAGES);
+  if (calls > 0.01) {
+    ctx.save();
+    ctx.globalAlpha = calls;
+    const lineY = plot.sy(-Math.log10(M.FDR_LINE));
+    rule(ctx, rect.x, lineY, rect.x + rect.w, lineY, colors.ink2, 1, [5, 4]);
+    text(ctx, S.fdrLine, rect.x + rect.w, lineY - 5, { font: noteFont(colors), fill: colors.ink2, align: "right" });
+    ctx.restore();
+  }
+
+  drawList(ctx, colors, L, c, stage < M.COHORT_ACROSS ? 1 : stage === M.COHORT_ACROSS ? 1 - e : 0, at(1));
+
+  /* Both ends of this press, read through the rectangle the plot is at THIS
+     frame: a point placed against a rectangle that is still moving would chase
+     a target rather than travel to one. */
+  const from = M.buildPlaces(c, L.list, rect, mix, Math.max(0, stage - 1));
+  const to = M.buildPlaces(c, L.list, rect, mix, stage);
+  const kinds = params.kinds && calls > 0;
+  for (const pass of [0, 1]) {
+    for (let i = 0; i < to.length; i += 1) {
+      const g = to[i].g;
+      if ((g.kind === "passenger" ? 0 : 1) !== pass) continue;
+      const a = M.lerp(from[i].a, to[i].a, e);
+      if (a <= 0.01) continue;
+      const x = M.lerp(from[i].x, to[i].x, e);
+      const y = M.lerp(from[i].y, to[i].y, e);
+      const r = Math.max(1, M.lerp(from[i].r, to[i].r, e));
+      ctx.save();
+      ctx.globalAlpha = a;
+      ctx.beginPath();
+      ctx.arc(x, y, r, 0, Math.PI * 2);
+      ctx.fillStyle = kinds && g.kind !== "passenger" ? wash(KIND_FILL(colors, g.kind), 0.9) : wash(colors.ink3, 0.5);
+      ctx.fill();
+      if (calls > 0.5 && g.called) {
+        ctx.beginPath();
+        ctx.arc(x, y, r + M.RING, 0, Math.PI * 2);
+        ctx.strokeStyle = colors.ink1;
+        ctx.lineWidth = 1.25;
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+  }
+
+  if (params.kinds && calls > 0.5) {
+    const measure = (str) => { ctx.save(); ctx.font = noteFont(colors); const width = ctx.measureText(str).width; ctx.restore(); return width; };
+    const marks = M.cohortMarks(c.table, plot.sx, plot.sy, mix, stage);
+    drawNames(ctx, colors, M.labelPlacements(marks, M.namedGenes(c), rect, measure));
+  }
+
+  if (stage >= 1) {
+    const base = L.plot.y + L.plot.h;
+    text(ctx, S.notInTable(M.intText(c.untested.length), M.intText(c.atMin)), L.plot.x, base + 56,
+      { font: noteFont(colors), fill: colors.ink1 });
+    text(ctx, S.notInTableWhy, L.plot.x, base + 73, { font: noteFont(colors), fill: colors.ink2 });
+    const suppressorsOut = c.untested.filter((g) => g.kind === "suppressor").length;
+    if (params.kinds && suppressorsOut) {
+      text(ctx, S.driversNotInTable(suppressorsOut), L.plot.x, base + 90, { font: noteFont(colors), fill: colors.ink2 });
+    }
   }
 }
 
@@ -454,6 +628,11 @@ function drawCohortPage(ctx, colors, w, params, state, anim) {
     declined (below) nothing chains the steps together. */
 function takeStep(anim, dt, a) {
   const last = M.lastStage(a);
+  /* A step that carries a panel somewhere keeps its frames until it lands. */
+  if (anim.tween < 1) {
+    anim.tween = Math.min(1, anim.tween + dt / M.TWEEN_MS);
+    return anim.tween < 1;
+  }
   if (anim.stage >= last) { anim.done = true; return false; }
   anim.clock += dt;
   /* The first step is an arrival: the mutations land over LAND_MS whatever
@@ -467,8 +646,23 @@ function takeStep(anim, dt, a) {
   }
   anim.stage += 1;
   anim.clock = 0;
+  anim.tween = M.TWEENED.has(anim.stage) ? 0 : 1;
   anim.done = anim.stage >= last;
-  return false;
+  return anim.tween < 1;
+}
+
+/** One frame of page 2's build. Every press moves something, so every press
+    takes its own frames; there is no arrival to pace separately. */
+function takeCohortStep(anim, dt) {
+  if (anim.cohortT < 1) {
+    anim.cohortT = Math.min(1, anim.cohortT + dt / M.COHORT_MS);
+    return anim.cohortT < 1;
+  }
+  if (anim.cohort >= M.COHORT_STAGES) { anim.done = true; return false; }
+  anim.cohort += 1;
+  anim.cohortT = Math.min(1, dt / M.COHORT_MS);
+  anim.done = anim.cohort >= M.COHORT_STAGES;
+  return anim.cohortT < 1;
 }
 
 /* ---- the widget ----------------------------------------------------------------- */
@@ -575,7 +769,10 @@ defineWidget({
   animation: {
     /* The button names what this press does (4.4b): the next of cell 12's
        steps, keyed on the animation's own counter, as widget 60's is. */
-    stepLabel: { anim: "labelAt", labels: S.stepLabels, default: S.stepLabels[0] },
+    /* One button, two pages: page 1's steps are keyed 0…5 on the counter and
+       page 2's `c0`…`c4`, so the label always names the next press of the page
+       on screen (4.4b). */
+    stepLabel: { anim: "labelAt", labels: { ...S.stepLabels, ...S.cohortLabels }, default: S.stepLabels[0] },
     stepTitle: S.stepTitle,
     /* NO PLAY (4.5), Kenneth's call on the draft (2026-09-18). The five steps
        are not motion: each press puts 12 to 80 words on screen that were not
@@ -591,13 +788,20 @@ defineWidget({
 
     init: ({ params, state, fromScratch }) => {
       const last = M.lastStage(state.one);
-      const stage = fromScratch ? 0 : Math.min(last, Math.max(0, params.shown ?? 0));
+      /* `shown` opens the page it is given with, and the other page stays
+         empty: a widget opens on no answer it was not asked for (invariant 4). */
+      const shown = fromScratch ? 0 : Math.max(0, params.shown ?? 0);
+      const cohort = params.page === "cohort" ? Math.min(M.COHORT_STAGES, shown) : 0;
+      const stage = params.page === "cohort" ? 0 : Math.min(last, shown);
       const anim = {
+        page: params.page,
         stage,
+        cohort,
         landed: stage >= 1 ? state.one.n : 0,
         clock: 0,
-        done: stage >= last,
-        inert: params.page === "cohort",
+        tween: 1,
+        cohortT: 1,
+        done: params.page === "cohort" ? cohort >= M.COHORT_STAGES : stage >= last,
         mix: params.across === "score" ? 1 : 0,
         across: params.across,
       };
@@ -612,16 +816,18 @@ defineWidget({
         anim.mix = target > anim.mix ? Math.min(target, anim.mix + step) : Math.max(target, anim.mix - step);
         return anim.mix !== target;
       }
-      const more = takeStep(anim, dt, state.one);
+      const more = anim.page === "cohort" ? takeCohortStep(anim, dt) : takeStep(anim, dt, state.one);
       anim.labelAt = M.labelStage(anim);
       return more;
     },
 
     rebuild: (anim, { params, state }) => {
-      anim.inert = params.page === "cohort";
+      /* Both pages keep their own place in their own walk, because the page is
+         a display parameter and a display change resets nothing (invariant 3). */
+      anim.page = params.page;
       const last = M.lastStage(state.one);
       anim.stage = Math.min(anim.stage, last);
-      anim.done = anim.stage >= last;
+      anim.done = params.page === "cohort" ? anim.cohort >= M.COHORT_STAGES : anim.stage >= last;
       anim.labelAt = M.labelStage(anim);
       /* The axis moved: ease on page 2, land anywhere else, and leave from
          where the points are if a second change comes mid-ease. */
@@ -646,30 +852,38 @@ defineWidget({
   readout({ params, state, anim }) {
     if (params.page === "cohort") {
       const c = state.cohort;
+      /* A number appears with the step that produces it (2.4), so the tiles
+         walk with the build and do not answer it in advance. */
+      const stage = anim?.cohort ?? M.COHORT_STAGES;
+      const done = stage >= M.COHORT_STAGES;
       const called = c.table.filter((g) => g.called);
       const inTable = { oncogene: 0, suppressor: 0, passenger: 0 };
       const hits = { oncogene: 0, suppressor: 0, passenger: 0 };
       for (const g of c.table) { inTable[g.kind] += 1; if (g.called) hits[g.kind] += 1; }
       const planted = (kind) => M.DRIVERS.filter((d) => M.SHAPES[d].kind === kind).length;
       const tiles = [
-        { label: "Genes in the table", value: M.intText(c.table.length), note: `of ${M.intText(c.atMin)} with 5 or more mutations` },
+        {
+          label: "Genes in the table",
+          value: stage >= 1 ? M.intText(c.table.length) : "—",
+          note: `of ${M.intText(c.atMin)} with 5 or more mutations`,
+        },
       ];
       if (!params.kinds) {
         return [
           ...tiles,
-          { label: "Called", value: M.intText(called.length), note: `at FDR ${M.FDR_LINE}` },
+          { label: "Called", value: done ? M.intText(called.length) : "—", note: done ? `at FDR ${M.FDR_LINE}` : `none tested yet` },
           {
             label: "Lowest score called",
-            value: called.length ? M.n3(Math.min(...called.map((g) => g.score))) : "—",
-            note: called.length ? "among the called genes" : "no gene is called",
+            value: done && called.length ? M.n3(Math.min(...called.map((g) => g.score))) : "—",
+            note: !done ? "once the correction is made" : called.length ? "among the called genes" : "no gene is called",
           },
         ];
       }
       return [
         ...tiles,
-        { label: "Oncogenes called", value: `${hits.oncogene} of ${planted("oncogene")}`, note: `${inTable.oncogene} in the table` },
-        { label: "Tumor suppressors called", value: `${hits.suppressor} of ${planted("suppressor")}`, note: `${inTable.suppressor} in the table` },
-        { label: "Passengers called", value: M.intText(hits.passenger), note: `of ${M.intText(inTable.passenger)} in the table` },
+        { label: "Oncogenes called", value: done ? `${hits.oncogene} of ${planted("oncogene")}` : "—", note: stage >= 1 ? `${inTable.oncogene} in the table` : "none tested yet" },
+        { label: "Tumor suppressors called", value: done ? `${hits.suppressor} of ${planted("suppressor")}` : "—", note: stage >= 1 ? `${inTable.suppressor} in the table` : "none tested yet" },
+        { label: "Passengers called", value: done ? M.intText(hits.passenger) : "—", note: stage >= 1 ? `of ${M.intText(inTable.passenger)} in the table` : "none tested yet" },
       ];
     }
     const a = state.one;
@@ -699,10 +913,18 @@ defineWidget({
   summary({ params, state, anim }) {
     if (params.page === "cohort") {
       const c = state.cohort;
+      const stage = anim?.cohort ?? M.COHORT_STAGES;
+      const across = params.across === "score" ? "score" : "fraction of mutations in clusters";
+      const rows = `${M.intText(c.table.length)} genes with a cluster, of ${M.intText(c.atMin)} with five or more mutations`;
+      if (stage < 1) return `A list of ${M.intText(c.atMin)} genes with five or more mutations, none of them tested yet.`;
+      if (stage < M.COHORT_ACROSS) return `A table of ${rows}.`;
+      if (stage < M.COHORT_UP) return `A table of ${rows}, each placed by its ${across}, with nothing up the page yet.`;
+      if (stage < M.COHORT_CORRECT) return `A scatter of ${rows}, by ${across} and −log10 p, before any correction.`;
       const called = c.table.filter((g) => g.called).length;
-      return `A scatter of ${M.intText(c.table.length)} genes with a cluster, of ${M.intText(c.atMin)} with five or more `
-        + `mutations, by ${params.across === "score" ? "score" : "fraction of mutations in clusters"} and −log10 FDR; `
-        + `${called} are called at FDR ${M.FDR_LINE}.`;
+      if (stage < M.COHORT_STAGES) {
+        return `A scatter of ${rows}, by ${across} and −log10 FDR, after Benjamini-Hochberg over the table's rows.`;
+      }
+      return `A scatter of ${rows}, by ${across} and −log10 FDR; ${called} are called at FDR ${M.FDR_LINE}.`;
     }
     const a = state.one;
     const stage = anim?.stage ?? 0;
