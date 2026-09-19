@@ -200,11 +200,11 @@ function fillRect(ctx, r, fill) {
 
 /* ---- page 1: the catalogue ------------------------------------------------------- */
 
-function yTicks(ctx, colors, L, yMax, alpha) {
+function yTicks(ctx, colors, L, yMax, alpha, reach = L.x1) {
   withAlpha(ctx, alpha, () => {
     for (const v of [0, yMax / 2, yMax]) {
       const y = L.base - (v / yMax) * (L.base - L.top);
-      if (v > 0) rule(ctx, L.x0, y, L.x1, y, colors.grid);
+      if (v > 0) rule(ctx, L.x0, y, reach, y, colors.grid);
       text(ctx, M.intText(v), L.x0 - 7, y + 4, { font: monoFont(colors), fill: colors.ink3, align: "right" });
     }
   });
@@ -302,30 +302,129 @@ function drawSquare(ctx, colors, L, fold) {
   });
 }
 
-function drawCatalogue(ctx, colors, w, params, state, anim) {
-  const L = M.layout(w, params);
+/** The two written counts above each class's stack (round 4): the solid
+    part's in the ink of its written label, then the pale part's in the paler
+    ink of its own, so 101 + 87 reads as the C>T bar's two parts. */
+function drawCounts(ctx, colors, L, t, alpha) {
+  withAlpha(ctx, alpha, () => t.byClass.forEach(({ pyr, pur }, k) => {
+    const top = M.foldedRect(L, k, true, pyr, pur, t.yClass).y;
+    const a = String(pyr), b = ` + ${pur}`;
+    ctx.save();
+    ctx.font = monoFont(colors);
+    const wa = ctx.measureText(a).width, wb = ctx.measureText(b).width;
+    ctx.restore();
+    const x = L.x0 + L.slot * (k + 0.5) - (wa + wb) / 2;
+    text(ctx, a, x, top - 5, { font: `600 ${colors.fsXs} ${colors.mono}`, fill: colors.ink1 });
+    text(ctx, b, x + wa, top - 5, { font: monoFont(colors), fill: colors.ink3 });
+  }));
+}
+
+/** One mutation from both strands (round 4): the pair G:C becoming A:T, which
+    the file writes G>A on the + strand and which reads C>T on the − strand,
+    5′ to 3′, in the pale and the solid red of the C>T bar's two parts. */
+function drawStrands(ctx, colors, L, alpha) {
+  const y0 = L.strands.y;
+  withAlpha(ctx, alpha, () => {
+    text(ctx, S.strandsTitle, L.x0, y0, { font: capFont(colors), fill: colors.ink1 });
+    const box = 17;
+    const bold = `600 ${colors.fsXs} ${colors.mono}`;
+    const seq = (x, y, ends, bases, mark) => {
+      text(ctx, ends[0], x, y + 12, { font: monoFont(colors), fill: colors.ink3 });
+      let bx = x + 16;
+      bases.forEach((b, i) => {
+        ctx.save();
+        ctx.fillStyle = i === 1 ? mark : colors.surface;
+        ctx.fillRect(bx, y, box, box);
+        ctx.strokeStyle = colors.grid;
+        ctx.lineWidth = 1;
+        ctx.strokeRect(bx + 0.5, y + 0.5, box - 1, box - 1);
+        ctx.restore();
+        text(ctx, b, bx + box / 2, y + 12.5, { font: bold, fill: colors.ink1, align: "center" });
+        bx += box + 2;
+      });
+      text(ctx, ends[1], bx + 2, y + 12, { font: monoFont(colors), fill: colors.ink3 });
+      return bx + 18;
+    };
+    const row = (y, label, ends, before, after, mark, words, wordsFill) => {
+      text(ctx, label, L.x0, y + 12, { font: noteFont(colors), fill: colors.ink2 });
+      let x = seq(L.x0 + 58, y, ends, before, mark);
+      text(ctx, "→", x + 6, y + 12, { font: noteFont(colors), fill: colors.ink2, align: "center" });
+      x = seq(x + 16, y, ends, after, mark);
+      text(ctx, words, x + 8, y + 12, { font: noteFont(colors), fill: wordsFill });
+    };
+    row(y0 + 10, S.strandPlus, ["5′", "3′"], ["A", "G", "C"], ["A", "A", "C"], wash(colors.subs[2], 0.45), S.strandWritten, colors.ink3);
+    row(y0 + 32, S.strandMinus, ["3′", "5′"], ["T", "C", "G"], ["T", "T", "G"], colors.subs[2], S.strandRead, colors.ink1);
+  });
+}
+
+/** The six grids' frames and letters (round 4): the 3′ base over each
+    column, the 5′ base beside the first grid's rows, and each class's band and
+    name under its grid. Empty cells keep their frame, so a type with no
+    mutation is still a place. */
+function gridFrames(ctx, colors, L, alpha) {
+  const G = M.gridOf(L);
+  withAlpha(ctx, alpha, () => {
+    for (let k = 0; k < 6; k += 1) {
+      ctx.save();
+      ctx.strokeStyle = colors.grid;
+      ctx.lineWidth = 1;
+      for (let l = 0; l < 4; l += 1) {
+        for (let r = 0; r < 4; r += 1) ctx.strokeRect(G.x(k) + r * G.cell + 0.5, G.y + l * G.cell + 0.5, G.cell - 1, G.cell - 1);
+      }
+      ctx.restore();
+      M.BASES.forEach((b, r) => text(ctx, b, G.x(k) + (r + 0.5) * G.cell, G.y - 4, { font: monoFont(colors), fill: colors.ink3, align: "center" }));
+      ctx.fillStyle = colors.subs[k];
+      ctx.fillRect(G.x(k), L.base + 4, 4 * G.cell, 4);
+      text(ctx, M.CLASSES[k], G.x(k) + 2 * G.cell, L.base + 21, { font: monoFont(colors), fill: colors.ink1, align: "center" });
+    }
+    M.BASES.forEach((b, l) => text(ctx, b, G.x(0) - 5, G.y + (l + 0.5) * G.cell + 4, { font: monoFont(colors), fill: colors.ink3, align: "right" }));
+    text(ctx, S.fivePrime, G.x(0) - 5, G.y - 4, { font: monoFont(colors), fill: colors.ink2, align: "right" });
+    text(ctx, S.threePrime, G.x(5) + 4 * G.cell, G.y - 16, { font: monoFont(colors), fill: colors.ink2, align: "right" });
+  });
+}
+
+/** Type ch's target in the view stage `cat` shows (round 4): its grid cell
+    after the split, its bar's column once lined up. One geometry for the
+    click (regions), the pointer and the outline. */
+function typeTarget(Lw, cat, ch) {
+  if (cat === 3) return M.gridCell(Lw, ch);
+  const cw = (Lw.slot - 6) / 16;
+  return { x: Lw.x0 + Lw.slot * (ch >> 4) + 3 + (ch % 16) * cw, y: Lw.top, w: cw, h: Lw.base - Lw.top };
+}
+function typeAt(Lw, cat, p) {
+  if (!p || cat < 3) return -1;
+  for (let ch = 0; ch < 96; ch += 1) {
+    const r = typeTarget(Lw, cat, ch);
+    if (p.x >= r.x && p.x < r.x + r.w && p.y >= r.y && p.y < r.y + r.h) return ch;
+  }
+  return -1;
+}
+
+function drawCatalogue(ctx, colors, w, params, state, anim, pointer) {
+  const L = M.layout(w, params), Lw = M.wideOf(L);
   const t = state.tumor;
   const cat = anim?.cat ?? 0;
   const tt = anim?.catT ?? 1;
-  const e = M.easeInOut(tt);
+  const f = tt < 1 ? M.easeInOut(tt) : 1;
 
   text(ctx, S.tumorCaption(t), L.x0, 22, { font: capFont(colors), fill: colors.ink1 });
-  text(ctx, [S.catEmpty, S.catWritten, S.catFolded, S.catSplit][cat], L.x0, 40, { font: noteFont(colors), fill: colors.ink2 });
-  text(ctx, S.axisCount, L.x0 - 7, L.top - 10, { font: noteFont(colors), fill: colors.ink3, align: "left" });
+  text(ctx, [S.catEmpty, S.catWritten, S.catFolded, S.catGrid, S.catLined][cat], L.x0, 40, { font: noteFont(colors), fill: colors.ink2 });
 
   /* THE FRAME IS FIXED to the finished figure of each step (2.5): the written
      and folded bars share the class scale, so twelve bars fold into six
-     without the axis moving, and the split rescales once, as a camera move. */
-  if (cat === 3 && tt < 1) {
-    yTicks(ctx, colors, L, t.yClass, 1 - e);
-    yTicks(ctx, colors, L, t.yChannel, e);
-  } else {
-    yTicks(ctx, colors, L, cat === 3 ? t.yChannel : t.yClass, 1);
-  }
-  rule(ctx, L.x0, L.base + 0.5, L.x1, L.base + 0.5, colors.axis);
+     without the axis moving. The grids read counts as areas, so the axis
+     leaves with the split and returns, on the type scale, with the row; the
+     frame widens as the square steps aside, a camera move. */
+  const reach = cat < 3 ? L.x1 : cat === 3 ? M.lerp(L.x1, Lw.x1, f) : Lw.x1;
+  const axis = cat < 3 ? 1 : cat === 3 ? 1 - f : f;
+  withAlpha(ctx, axis, () => text(ctx, S.axisCount, L.x0 - 7, L.top - 10, { font: noteFont(colors), fill: colors.ink3, align: "left" }));
+  yTicks(ctx, colors, L, cat === 4 ? t.yChannel : t.yClass, axis, reach);
+  withAlpha(ctx, axis, () => rule(ctx, L.x0, L.base + 0.5, reach, L.base + 0.5, colors.axis));
+
   /* the square beside the bars: twelve written changes until the fold, the
-     six read from the pyrimidine after it, folding with the bars (round 3) */
-  drawSquare(ctx, colors, L, cat < 2 ? 0 : cat === 2 && tt < 1 ? e : 1);
+     six read from the pyrimidine after it (round 3); aside at the split (4) */
+  withAlpha(ctx, cat < 3 ? 1 : cat === 3 ? 1 - f : 0, () => drawSquare(ctx, colors, L, cat < 2 ? 0 : cat === 2 ? f : 1));
+  if (cat >= 2) drawStrands(ctx, colors, L, cat === 2 ? f : 1);
 
   if (cat === 0) { writtenLabels(ctx, colors, L, 0.5); return; }
 
@@ -340,7 +439,6 @@ function drawCatalogue(ctx, colors, w, params, state, anim) {
   }
 
   if (cat === 2) {
-    const f = tt < 1 ? e : 1;
     t.byClass.forEach(({ pyr, pur }, k) => {
       const a0 = M.writtenRect(L, k, false, pyr, t.yClass), a1 = M.foldedRect(L, k, false, pyr, pur, t.yClass);
       const b0 = M.writtenRect(L, k, true, pur, t.yClass), b1 = M.foldedRect(L, k, true, pyr, pur, t.yClass);
@@ -349,24 +447,45 @@ function drawCatalogue(ctx, colors, w, params, state, anim) {
     });
     writtenLabels(ctx, colors, L, 1 - f);
     classLabels(ctx, colors, L, f);
+    drawCounts(ctx, colors, L, t, f);
     if (f >= 1) text(ctx, S.tiLine(t.ti), L.x0, L.base + 52, { font: noteFont(colors), fill: colors.ink1 });
     return;
   }
 
-  const f = tt < 1 ? e : 1;
+  /* 3: each class's bar comes apart into its grid; 4: each grid is read row
+     by row into the 96-bar row every signature is drawn in */
+  const largest = Math.max(...t.counts);
   for (let ch = 0; ch < 96; ch += 1) {
-    const from = M.stackedRect(L, ch, t.counts, t.yClass);
-    const to = M.channelRect(L, ch, t.counts[ch], t.yChannel);
-    fillRect(ctx, M.lerpRect(from, to, f), colors.subs[ch >> 4]);
+    const square = M.gridSquare(Lw, ch, t.counts[ch], largest);
+    const r = cat === 3
+      ? M.lerpRect(M.stackedRect(L, ch, t.counts, t.yClass), square, f)
+      : M.lerpRect(square, M.channelRect(Lw, ch, t.counts[ch], t.yChannel), f);
+    fillRect(ctx, r, colors.subs[ch >> 4]);
   }
-  classLabels(ctx, colors, L, 1 - f);
-  bandLabels(ctx, colors, L, f);
+  if (cat === 3) {
+    classLabels(ctx, colors, L, 1 - f);
+    drawCounts(ctx, colors, L, t, 1 - M.easeInOut(Math.min(1, tt * 3)));
+    gridFrames(ctx, colors, Lw, f);
+  } else {
+    gridFrames(ctx, colors, Lw, 1 - f);
+    bandLabels(ctx, colors, Lw, f);
+  }
   text(ctx, S.tiLine(t.ti), L.x0, L.base + 52, { font: noteFont(colors), fill: colors.ink1 });
-  if (f >= 1) {
-    const top = [...t.counts.keys()].sort((a, b) => t.counts[b] - t.counts[a]).slice(0, 3);
-    text(ctx, S.topLine(top.map((i) => `${M.CHANNELS[i]} ${t.counts[i]}`).join(" · ")), L.x0, L.base + 70, { font: noteFont(colors), fill: colors.ink1 });
-    text(ctx, S.exampleLine, L.x0, L.base + 88, { font: noteFont(colors), fill: colors.ink2 });
-  }
+  if (f < 1) return;
+  const top = [...t.counts.keys()].sort((a, b) => t.counts[b] - t.counts[a]).slice(0, 3);
+  text(ctx, S.topLine(top.map((i) => `${M.CHANNELS[i]} ${t.counts[i]}`).join(" · ")), L.x0, L.base + 70, { font: noteFont(colors), fill: colors.ink1 });
+  /* the named type: the one under the pointer, else the one chosen (round 4) */
+  const hovered = typeAt(Lw, cat, pointer);
+  const ch = hovered >= 0 ? hovered : M.CHANNELS.indexOf(params.type);
+  if (ch < 0) return;
+  text(ctx, S.typeLine(M.CHANNELS[ch], t.counts[ch]), L.x0, L.base + 88, { font: noteFont(colors), fill: colors.ink1 });
+  const r = cat === 3 ? M.gridCell(Lw, ch) : M.channelRect(Lw, ch, t.counts[ch], t.yChannel);
+  const h = Math.max(3, r.h);
+  ctx.save();
+  ctx.strokeStyle = colors.ink1;
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(r.x - 1.25, r.y + r.h - h - 1.25, r.w + 2.5, h + 2.5);
+  ctx.restore();
 }
 
 /* ---- page 2: the factorization --------------------------------------------------- */
@@ -747,10 +866,12 @@ function drawMatching(ctx, colors, w, params, state, anim) {
 
 /* ---- the drives ------------------------------------------------------------------- */
 
-/** One frame of page 1's press: the arrival, the fold or the split. */
+/** One frame of page 1's press: the arrival, the fold, the split into grids
+    or the line-up. */
+const catSpan = (cat) => (cat === 2 ? M.FOLD_MS : cat === 3 ? M.SPLIT_MS : M.LINE_MS);
 function takeCatStep(anim, dt, t) {
   if (anim.catT < 1) {
-    anim.catT = Math.min(1, anim.catT + dt / (anim.cat === 2 ? M.FOLD_MS : M.SPLIT_MS));
+    anim.catT = Math.min(1, anim.catT + dt / catSpan(anim.cat));
     return anim.catT < 1;
   }
   if (anim.cat === 1 && anim.landed < t.n) {
@@ -765,7 +886,7 @@ function takeCatStep(anim, dt, t) {
     anim.landed = Math.min(t.n, Math.ceil((t.n * anim.clock) / M.LAND_MS));
     return anim.landed < t.n;
   }
-  anim.catT = Math.min(1, dt / (anim.cat === 2 ? M.FOLD_MS : M.SPLIT_MS));
+  anim.catT = Math.min(1, dt / catSpan(anim.cat));
   return anim.catT < 1;
 }
 
@@ -831,6 +952,13 @@ defineWidget({
       type: "segmented", label: S.tumorLabel, detail: S.tumorDetail, options: M.TUMOR_OPTIONS, default: "largest",
       display: true, when: { param: "page", equals: "catalogue" },
     },
+    /* Round 4, his pick: a click on a grid's square or on a bar names its type
+       in the line under the figure; this is the keyboard's way to the same
+       (3.6), the 96 grouped by class. */
+    type: {
+      type: "select", label: S.typeLabel, detail: S.typeDetail, options: M.TYPE_OPTIONS, default: M.TYPE_DEFAULT,
+      display: true, when: { param: "page", equals: "catalogue" },
+    },
 
     cohortSec: { type: "section", label: S.cohortSection, when: ON_PAGES_2_3 },
     /* His pick 3: in, as the lesson's cohort has one, and a switch to leave it out. */
@@ -893,7 +1021,17 @@ defineWidget({
     return { cohort, tumor, fit };
   },
 
-  regions: ({ w, params, state }) => {
+  /* Round 4: the pointer names the type under it on page 1, and a click pins
+     it. Core hands regions the stage (`anim`) for this alone: the targets are
+     a grid's cells after the split and the bars' columns once lined up. */
+  pointer: true,
+  regions: ({ w, params, state, anim }) => {
+    if (params.page === "catalogue") {
+      const cat = anim?.cat ?? 0;
+      if (!state || cat < 3) return [];
+      const Lw = M.wideOf(M.layout(w, params));
+      return M.CHANNELS.map((c, ch) => ({ ...typeTarget(Lw, cat, ch), set: { type: c }, label: c }));
+    }
     if (params.page !== "matching" || !state?.fit) return [];
     const L = M.layout(w, params);
     return state.fit.sigs.map((_, k) => ({
@@ -971,13 +1109,13 @@ defineWidget({
     },
   },
 
-  draw({ ctx, colors, w, params, state, anim }) {
+  draw({ ctx, colors, w, params, state, anim, pointer }) {
     /* The card is mounted from here, never at module scope: `buildShell`
        creates `.w-figure` inside `defineWidget`. */
     renderCard(cardFor(params, state, anim));
     if (params.page === "signatures") { drawSignatures(ctx, colors, w, params, state, anim); return; }
     if (params.page === "matching") { drawMatching(ctx, colors, w, params, state, anim); return; }
-    drawCatalogue(ctx, colors, w, params, state, anim);
+    drawCatalogue(ctx, colors, w, params, state, anim, pointer);
   },
 
   readout({ params, state, anim }) {

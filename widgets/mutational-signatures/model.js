@@ -459,15 +459,17 @@ export function writtenCounts(tumor, k = tumor.n) {
 /* ---- the drives ---------------------------------------------------------------- */
 
 /* Page 1: 0 empty, 1 the mutations as written, 2 read from the pyrimidine,
-   3 split by the neighbouring bases. Page 2: 0 M alone, 1 extracted (cell 0's
+   3 split by the neighbouring bases into a 4×4 grid a class, 4 the grids read
+   row by row into the 96-bar row (round 4). Page 2: 0 M alone, 1 extracted (cell 0's
    figure), 2 each signature drawn beside W, 3 each signature opened out with
    its exposures. Page 3: 0 nothing compared, 1 compared. */
-export const CAT_STAGES = 3;
+export const CAT_STAGES = 4;
 export const SIG_STAGES = 3;
 export const MATCH_STAGES = 1;
 export const LAND_MS = 1200;      // the mutations arrive over this long, whatever their number
 export const FOLD_MS = 800;       // twelve bars fold into six
-export const SPLIT_MS = 900;      // six bars split into 96
+export const SPLIT_MS = 1300;     // six bars split into six grids of 16
+export const LINE_MS = 1300;      // the grids read row by row into the 96-bar row
 export const DESCENT_MS = 2400;   // the extraction's snapshots
 /* THE COMPARISON IS A SCAN (round 3, 2026-09-19, Kenneth's pick over the
    draft's 0.5 s fade, `_lab/mutational-signatures-round3-mock.html`): the
@@ -597,7 +599,8 @@ export const lerpRect = (a, b, t) => ({ x: lerp(a.x, b.x, t), y: lerp(a.y, b.y, 
 /* THE HEIGHT NEVER READS THE WIDTH (widget 62, 2026-09-16): a page whose height
    moved with the canvas between 535 and 770px never settled under the
    harness's scrollbar. Each page's height reads its rank at most. */
-export const CAT_H = 372;
+/* 372, and 58 more for the band showing one mutation from both strands (round 4). */
+export const CAT_H = 430;
 export const SIG_A_H = 430;       // cell 0's figure
 export const SIG_ROW = 104;       // one signature opened out
 export const MATCH_HEAD = 150;    // the references' names, set vertically
@@ -640,10 +643,15 @@ export function layout(w, params) {
   /* THE SQUARE STANDS BESIDE THE BARS (round 3, his pick), so the bars give
      up SQUARE_W + 14px: at 535px a class slot goes from 77px to 54px, and
      stage 1's two labels a class still clear each other (the verify). */
-  const x0 = 56, x1 = w - 18 - SQUARE_W - 14, top = 64;
+  const x0 = 56, x1 = w - 18 - SQUARE_W - 14, top = 64, base = 252;
   return {
-    page: "catalogue", x0, x1, top, base: 252, slot: (x1 - x0) / 6, height: CAT_H,
+    page: "catalogue", x0, x1, top, base, slot: (x1 - x0) / 6, height: CAT_H,
     square: { x: w - 18 - SQUARE_W, y: top - 10, w: SQUARE_W },
+    /* THE SQUARE STEPS ASIDE AT THE SPLIT (round 4, his pick): once Ti and Tv
+       are read it has done its work, and the 96 types take its width, a
+       camera move like the axis's. At 535px a grid cell is 16px, not 10.5. */
+    wide: { x1: w - 18, slot: (w - 18 - x0) / 6 },
+    strands: { y: base + 104 },
   };
 }
 export const stageHeight = (w, values) => layout(w, values).height;
@@ -760,6 +768,28 @@ export function squareNodes(L) {
   return { A: [x0, y0], G: [x1, y0], C: [x0, y1], T: [x1, y1], side, x0, x1, y0, y1 };
 }
 
+/* ---- page 1's grids (round 4): a 4×4 grid a class, a row for the base on the
+   5′ side and a column for the base on the 3′ side, each square's area its
+   count; reading a grid row by row gives the 96 bars' own order, which is
+   what the fourth press does. `wideOf` is the frame the split lands in. -------- */
+export const wideOf = (L) => ({ ...L, x1: L.wide.x1, slot: L.wide.slot });
+export function gridOf(L) {
+  const cell = Math.min((L.slot - 12) / 4, 24);
+  return { cell, x: (k) => L.x0 + L.slot * (k + 0.5) - 2 * cell, y: L.base - 8 - 4 * cell };
+}
+/** Type ch's cell in its class's grid. */
+export function gridCell(L, ch) {
+  const G = gridOf(L), k = ch >> 4, l = (ch >> 2) & 3, r = ch & 3;
+  return { x: G.x(k) + r * G.cell, y: G.y + l * G.cell, w: G.cell, h: G.cell };
+}
+/** Type ch's square: centred in its cell, its area the count's share of the
+    largest type's, which fills 88% of a cell's side. */
+export function gridSquare(L, ch, count, largest) {
+  const c = gridCell(L, ch);
+  const side = c.w * 0.88 * Math.sqrt(count / Math.max(1, largest));
+  return { x: c.x + (c.w - side) / 2, y: c.y + (c.h - side) / 2, w: side, h: side };
+}
+
 /* Page 1's bars, one geometry for the drawing and the verify (5.8). */
 const Y = (L, v, yMax) => L.base - (v / yMax) * (L.base - L.top);
 export function writtenRect(L, k, purine, v, yMax) {
@@ -809,6 +839,11 @@ export const PAGES = [
   { value: "signatures", label: "Signatures" },
   { value: "matching", label: "Matching" },
 ];
+/* The 96 types for the Type control, in maftools' order and grouped by class,
+   the keyboard's way to a type a click names (3.6). */
+export const TYPE_OPTIONS = CHANNELS.map((c, i) => ({ value: c, label: c, group: CLASSES[i >> 4] }));
+export const TYPE_DEFAULT = "A[C>T]G";
+
 export const TUMOR_OPTIONS = [
   { value: "largest", label: "The largest" },
   { value: "hypermutated", label: "The hypermutated one" },
@@ -856,6 +891,7 @@ export const STRINGS = {
     k0: "Add the mutations",
     k1: "Read from the pyrimidine",
     k2: "Split by the neighbouring bases",
+    k3: "Line up the 96 types",
     s0: "Extract the signatures",
     s1: "Show the signatures",
     s2: "Show each signature's exposures",
@@ -871,11 +907,22 @@ export const STRINGS = {
   catEmpty: "No mutations added yet",
   catWritten: "As written: the change on the reference strand",
   catFolded: "Read from the pyrimidine: G>A is C>T on the other strand",
-  catSplit: "96 types: the change and the base on either side",
+  catGrid: "96 types: a row for each 5′ base, a column for each 3′ base",
+  catLined: "96 types in a row: each grid read row by row, as signatures are drawn",
+  fivePrime: "5′",
+  threePrime: "3′ →",
   purineNote: "from a purine (G or A): the paler bar",
   axisCount: "substitutions",
   tiLine: (ti) => `Transitions (C>T and T>C): ${pct(ti)} · transversions: ${pct(1 - ti)}`,
-  exampleLine: "A[C>T]G: C changed to T, with A on its 5′ side and G on its 3′ side",
+  /* the named type's line, the draft's example line generalised (round 4) */
+  typeLine: (c, n) => `${c}: ${intText(n)} mutation${n === 1 ? "" : "s"}, ${c[2]} changed to ${c[4]} between ${c[0]} (5′) and ${c[6]} (3′)`,
+  typeLabel: "Type",
+  typeDetail: "one of the 96, named in the line under the figure",
+  strandsTitle: "One mutation, both strands: the base pair G:C became A:T",
+  strandPlus: "+ strand",
+  strandMinus: "− strand",
+  strandWritten: "written by the file: G>A",
+  strandRead: "read 5′→3′, GCT to GTT: C>T",
   squarePurines: "purines",
   squarePyrimidines: "pyrimidines",
   squareTi: "Ti",
@@ -947,7 +994,8 @@ export const STRINGS = {
     `Tumor ${t.index + 1}, with ${intText(t.n)} substitutions not yet added.`,
     `Tumor ${t.index + 1}'s ${intText(t.n)} substitutions, counted by the change as written on the reference strand: twelve kinds.`,
     `Tumor ${t.index + 1}'s substitutions read from the pyrimidine: six kinds, ${pct(t.ti)} of them transitions.`,
-    `Tumor ${t.index + 1}'s substitutions in 96 types, the change with the base on either side; ${t.typesHit} types have a mutation.`,
+    `Tumor ${t.index + 1}'s substitutions in 96 types, a 4 by 4 grid for each class, by the base on the 5′ side and on the 3′ side; ${t.typesHit} types have a mutation.`,
+    `Tumor ${t.index + 1}'s substitutions in 96 types in a row, the change with the base on either side; ${t.typesHit} types have a mutation.`,
   ][cat],
   sumM: (n) => `The matrix M: 96 mutation types by ${n} tumors, before any signature is extracted.`,
   sumExtracted: (n, r, it) => `M, 96 types by ${n} tumors, factorised into ${r} signatures and their exposures after ${intText(it)} iterations.`,

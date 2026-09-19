@@ -10158,6 +10158,62 @@ transversions/transitions?" Mock `_lab/mutational-signatures-round3-mock.html`
 
 Verify 87 checks (was 74).
 
+#### Round 4, 2026-09-19: why two bars stack, and the 96 types as grids — four picks
+
+His question on page 1's stage 2 ("can you explain why the 2 bars combine and
+get stacked … i got confused here") was answered step by step in the session:
+a mutation changes a base PAIR, so G>A in AGC on the + strand is C>T in GCT on
+the − strand; the twelve written changes are six kinds, named from the
+pyrimidine; the stack is one class's count, its solid part the changes the
+file wrote as C>T (101 for tumor 77) and its pale part those it wrote as G>A
+(87), about half each because the file always writes the + strand. His
+follow-up: "mock both" of the fixes offered, and "is there another way to
+visualize the 96 types or triplets.. i get confused with the visualization
+currently". Mock `_lab/mutational-signatures-round4-mock.html` (`4abbaa3`). All
+four picks were the recommendations:
+
+1. **Both** fold explanations: the two written counts above each stack
+   (`101 + 87`, the solid part's count in the ink of its written label, the
+   pale part's in the paler ink of its own), and a band under the bars from
+   the fold on — "One mutation, both strands: the base pair G:C became A:T",
+   the + strand AGC→AAC "written by the file: G>A" and the − strand
+   TCG→TTG "read 5′→3′, GCT to GTT: C>T", the changed bases in the pale and
+   the solid red of the C>T bar's two parts. Page 1 grows 372 → 430px.
+2. **Grid, then lined up.** *Split by the neighbouring bases* turns each
+   class's bar into a 4×4 grid, a row for each 5′ base and a column for each 3′
+   base, each square's area its count (the largest 88% of a cell); the axis
+   leaves, since areas carry the counts. A FOURTH press, *Line up the 96 types*,
+   reads each grid row by row into the 96-bar row every signature on pages 2
+   and 3 is drawn in, and the axis returns on the type scale. Measured on the
+   default tumor: its four largest types, T[C>T]A 77, T[C>G]T 51, T[C>T]T 46 and
+   T[C>G]A 44, are the T row's A and T columns of the C>T and C>G grids —
+   APOBEC's TCW, seen as a place. (The mock first claimed tumor 77's CpG types
+   stand out as the C>T grid's G column; its checks caught that they are 13, 4,
+   8 and 9, and the claim was changed before he saw it.)
+3. **The square steps aside at the split**: once Ti and Tv are read, it fades
+   on the split and the 96 types take its width, a camera move. At 535px a
+   grid cell is 16.2px, not 10.5.
+4. **A click names a type.** After the split every type is a click target
+   (its grid cell; once lined up, its bar's column) that sets `type`, a display
+   `select` of the 96 grouped by class, default A[C>T]G (the draft's example),
+   and the line under the figure names it: "T[C>T]A: 77 mutations, C changed to
+   T between T (5′) and A (3′)", with the type outlined. The pointer names the
+   type under it too (`pointer: true`), the pinned one when it leaves.
+   **A core change was needed for the click**: regions were never handed
+   `anim`, and which targets are on screen (cells or columns) is a stage, not a
+   parameter. `regions` now receives `anim`, for which settled view a stage
+   shows only, never animation progress (the rule in `widget.js`, README and
+   the new-widget skill); the full fingerprint suite was run on it.
+
+`CAT_STAGES` 4, `SPLIT_MS` 1300 (the blocks travel further), `LINE_MS` 1300;
+`shown` runs 0–4. Two captions were cut for 535px: a 4-press page's step notes
+at 81 and 83 characters ran past the canvas in the verify's conservative text
+model. Verify 98 checks (was 87): the counts sum to the tumor, the band arrives
+with the fold, the square is gone after the split, square areas proportional
+to counts, the grid's rows and columns are the 5′ and 3′ bases, the 96
+targets in each view inside the canvas and disjoint, the pointer and the pin
+name the right type.
+
 ### Slot 71 · `somatic-interactions` — not asked for, measured, cuttable
 
 **Host.** 01-3 cell 4 (co-occurring genes "could have synergistic effect",

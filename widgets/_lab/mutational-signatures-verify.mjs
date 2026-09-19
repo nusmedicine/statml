@@ -38,6 +38,11 @@
    the exact frames either side of it; page 1's square stands clear of the
    bars, whose stage-1 labels still clear each other at 535px.
 
+   ROUND 4: page 1's stacks carry their two written counts and a band shows
+   one mutation from both strands; the split makes a 4×4 grid a class, square
+   areas proportional to counts, and a fourth press lines the grids up; a click
+   names a type through regions that read the stage core now hands them.
+
    THE STATUS. The manifest and `main.js` both say `draft`, and this says so.
 
    Exits non-zero on failure.
@@ -245,7 +250,7 @@ console.log("\n§4 the contract");
 const W = await widget();
 {
   const spec = W.params;
-  const keys = ["page", "tumorSec", "tumor", "cohortSec", "hypermutated", "rank", "lookSec", "signature", "dataSec", "seed", "truth", "shown"];
+  const keys = ["page", "tumorSec", "tumor", "type", "cohortSec", "hypermutated", "rank", "lookSec", "signature", "dataSec", "seed", "truth", "shown"];
   check("the spec's parameters, in order", Object.keys(spec).join() === keys.join(), Object.keys(spec).join());
   check("page, tumor, signature and truth are display; hypermutated, rank and seed are data",
     spec.page.display && spec.tumor.display && spec.signature.display && spec.truth.display
@@ -254,7 +259,7 @@ const W = await widget();
     spec.hypermutated.default === "in" && spec.rank.default === 4 && spec.truth.default === "1");
   check("the signature control offers one button a signature, following the rank",
     optionKeys(spec.signature, { rank: 6 }).join() === "1,2,3,4,5,6" && optionKeys(spec.signature, { rank: 2 }).join() === "1,2");
-  check("shown is hidden and runs 0 to 3", spec.shown.hidden === true && spec.shown.max === 3);
+  check("shown is hidden and runs 0 to 4", spec.shown.hidden === true && spec.shown.max === 4);
   const labels = W.animation.stepLabel.labels;
   check("the step label follows the drive's own counter, a label for every press",
     W.animation.stepLabel.anim === "labelAt" && ["k0", "k1", "k2", "s0", "s1", "mX", "m0"].every((k) => typeof labels[k] === "string"));
@@ -283,14 +288,15 @@ function press(anim, params, state, { dt = 32, frames = 6000 } = {}) {
   check("page 1 opens empty: no mutation added", a1.cat === 0 && a1.landed === 0 && a1.done === false);
   check("page 1 draws no extraction, so it runs none", s1.fit === null);
   const seen = [], labels = [], frames = [];
-  for (let i = 0; i < 4; i += 1) {
+  for (let i = 0; i < 5; i += 1) {
     labels.push(a1.labelAt);
     frames.push(press(a1, p1, s1));
     seen.push(a1.cat);
   }
-  check("three presses: the mutations, the pyrimidine, the neighbours; then done", seen.join() === "1,2,3,3" && a1.done, seen.join());
-  check("each press is labelled with the step it takes", labels.slice(0, 3).join() === "k0,k1,k2" && a1.labelAt === "k2", labels.join());
-  check("the arrival, the fold and the split each take frames", frames[0] > 4 && frames[1] > 4 && frames[2] > 4 && frames[3] === 0, frames.join());
+  check("four presses: the mutations, the pyrimidine, the neighbours, the line-up; then done", seen.join() === "1,2,3,4,4" && a1.done, seen.join());
+  check("each press is labelled with the step it takes", labels.slice(0, 4).join() === "k0,k1,k2,k3" && a1.labelAt === "k3", labels.join());
+  check("the arrival, the fold, the split and the line-up each take frames",
+    frames.slice(0, 4).every((x) => x > 4) && frames[4] === 0, frames.join());
 
   const p2 = paramsOf({ page: "signatures" });
   const s2 = W.compute({ params: p2 });
@@ -367,7 +373,7 @@ console.log("\n§6 the geometry");
       for (const seed of [1, 2]) {
         const params = paramsOf({ tumor, seed });
         const n = M.tumorFor(seed, tumor).n;
-        for (const [cat, catT, landed] of [[0, 1, 0], [1, 1, Math.round(n / 2)], [1, 1, n], [2, 0.5, n], [2, 1, n], [3, 0.5, n], [3, 1, n]]) {
+        for (const [cat, catT, landed] of [[0, 1, 0], [1, 1, Math.round(n / 2)], [1, 1, n], [2, 0.5, n], [2, 1, n], [3, 0.5, n], [3, 1, n], [4, 0.5, n], [4, 1, n]]) {
           paint(params, { ...blank("catalogue", tumor), cat, catT, landed }, w);
         }
       }
@@ -417,7 +423,7 @@ console.log("\n§6 the geometry");
       regs.length === rank && regs.every((r, k) => r.set.signature === String(k + 1) && keys.includes(r.set.signature)
         && r.y >= 0 && r.y + r.h <= W.height({ w: 535, ...pr })));
   }
-  check("no page but the third has a clickable region", ["catalogue", "signatures"].every((page) =>
+  check("page 2 has no clickable region, and page 1 none before its split", ["catalogue", "signatures"].every((page) =>
     W.regions({ w: 535, h: 400, params: paramsOf({ page }), state: W.compute({ params: paramsOf({ page }) }) }).length === 0));
 }
 
@@ -698,11 +704,79 @@ console.log("\n§6c the comparison's scan, the eased row switch, and page 1's sq
         && M.ARROWS.filter((a) => a.purine).every((a) => M.PURINE_FORM[M.CLASSES[a.k]] === a.written));
     const p = paramsOf({});
     const early = frame(p, { ...blank("catalogue"), cat: 1, catT: 1, landed: 10 }).seen;
-    const late = frame(p, { ...blank("catalogue"), cat: 3, catT: 1, landed: M.tumorFor(1, "largest").n }).seen;
+    const late = frame(p, { ...blank("catalogue"), cat: 2, catT: 1, landed: M.tumorFor(1, "largest").n }).seen;
     check("the square names its two kinds once the changes are read from the pyrimidine, and not before",
       !early.includes(M.STRINGS.squareTiKey) && late.includes(M.STRINGS.squareTiKey) && late.includes(M.STRINGS.squareTvKey)
         && early.includes(M.STRINGS.squarePurines) && early.includes(M.STRINGS.squarePyrimidines));
   }
+}
+
+/* --- 6d · round 4 (2026-09-19): why two bars stack, the grids, a type named ---- */
+console.log("\n§6d page 1: the counts and the strands, the grids and the line-up, a type named");
+{
+  const blank = (page) => ({ page, tumor: "largest", cat: 0, catT: 1, landed: 0, clock: 0, sig: 0, sigT: 1, match: 0, matchT: 1 });
+  const t = M.tumorFor(1, "largest");
+  const p = paramsOf({});
+  const frame = (params, anim, w = 626, pointer = null) => {
+    const state = W.compute({ params });
+    const { ctx, seen, box } = recorder({ record: true });
+    const h = W.height({ w, ...params });
+    W.draw({ ctx, colors: COLORS, w, h, params, state, anim, pointer });
+    return { seen, box, h };
+  };
+  const at = (cat, catT = 1) => ({ ...blank("catalogue"), cat, catT, landed: t.n });
+
+  /* why two bars stack */
+  const folded = frame(p, at(2)).seen, written = frame(p, at(1)).seen;
+  check("once read from the pyrimidine, each stack carries its two written counts, and they add up to the tumor",
+    t.byClass.every(({ pyr, pur }) => folded.includes(String(pyr)) && folded.includes(` + ${pur}`))
+      && t.byClass.reduce((a, c) => a + c.pyr + c.pur, 0) === t.n, t.byClass.map((c) => `${c.pyr} + ${c.pur}`).join(", "));
+  check("the band showing one mutation from both strands arrives with the fold and stays",
+    !written.includes(M.STRINGS.strandsTitle) && [folded, frame(p, at(3)).seen, frame(p, at(4)).seen].every((s) =>
+      s.includes(M.STRINGS.strandsTitle) && s.includes(M.STRINGS.strandWritten) && s.includes(M.STRINGS.strandRead)));
+  check("the square steps aside at the split and is gone once the grids have formed",
+    folded.includes(M.STRINGS.squarePurines) && !frame(p, at(3)).seen.includes(M.STRINGS.squarePurines));
+
+  /* the grids */
+  const L = M.wideOf(M.layout(626, p)), largest = Math.max(...t.counts);
+  /* Array.from: a Float64Array's own map would turn the nulls into zeros */
+  const ratios = Array.from(t.counts).map((c, ch) => (c > 0 ? M.gridSquare(L, ch, c, largest).w ** 2 / c : null)).filter((x) => x !== null);
+  check("each type's square has an area proportional to its count, the largest filling 88% of its cell's side",
+    ratios.every((r) => Math.abs(r / ratios[0] - 1) < 1e-9)
+      && Math.abs(M.gridSquare(L, t.counts.indexOf(largest), largest, largest).w - 0.88 * M.gridOf(L).cell) < 1e-9);
+  check("type ch sits in the row of its 5′ base and the column of its 3′ base, so a grid read row by row is the 96 bars' order",
+    M.CHANNELS.every((c, ch) => {
+      const cell = M.gridCell(L, ch), G = M.gridOf(L);
+      return c[0] === M.BASES[Math.round((cell.y - G.y) / G.cell)] && c[6] === M.BASES[Math.round((cell.x - G.x(ch >> 4)) / G.cell)];
+    }));
+  {
+    const cells = [535, 770].map((w) => M.gridOf(M.wideOf(M.layout(w, p))).cell);
+    check("with the square aside, a grid cell is at least 16px wide at 535px", cells[0] >= 16, cells.map((c) => `${c.toFixed(1)}px`).join(" and "));
+  }
+
+  /* a type named: regions, the pointer, the control */
+  const optionKeysOf = new Set(M.TYPE_OPTIONS.map((o) => o.value));
+  const regs = (cat) => W.regions({ w: 626, h: W.height({ w: 626, ...p }), params: p, state: W.compute({ params: p }), anim: at(cat) });
+  const r3 = regs(3), r4 = regs(4);
+  check("after the split every type is a click target, its grid cell; once lined up, its bar's column; before, none",
+    regs(2).length === 0 && r3.length === 96 && r4.length === 96
+      && r3.every((r, ch) => r.set.type === M.CHANNELS[ch] && optionKeysOf.has(r.set.type) && r.w === M.gridCell(L, ch).w)
+      && r4.every((r, ch) => r.set.type === M.CHANNELS[ch] && r.y === L.top && r.h === L.base - L.top));
+  const inside = (rs) => rs.every((r) => r.x >= 0 && r.y >= 0 && r.x + r.w <= 626 && r.y + r.h <= W.height({ w: 626, ...p }));
+  const disjoint = (rs) => rs.every((a, i) => rs.every((b, j) => i === j || a.x + a.w <= b.x + 1e-9 || b.x + b.w <= a.x + 1e-9 || a.y + a.h <= b.y + 1e-9 || b.y + b.h <= a.y + 1e-9));
+  check("the targets lie inside the canvas and never overlap, in both views", inside(r3) && inside(r4) && disjoint(r3) && disjoint(r4));
+  const tca = M.CHANNELS.indexOf("T[C>T]A"), cell = M.gridCell(L, tca);
+  const hovered = frame(p, at(3), 626, { x: cell.x + cell.w / 2, y: cell.y + cell.h / 2 }).seen;
+  check("the pointer over a grid's square names that type in the line under the figure",
+    hovered.includes(M.STRINGS.typeLine("T[C>T]A", t.counts[tca])), M.STRINGS.typeLine("T[C>T]A", t.counts[tca]));
+  const pinned = frame(paramsOf({ type: "T[C>G]T" }), at(4)).seen;
+  const dflt = frame(p, at(4)).seen;
+  check("with no pointer, the line names the type chosen, the example by default",
+    pinned.includes(M.STRINGS.typeLine("T[C>G]T", t.counts[M.CHANNELS.indexOf("T[C>G]T")]))
+      && dflt.includes(M.STRINGS.typeLine(M.TYPE_DEFAULT, t.counts[M.CHANNELS.indexOf(M.TYPE_DEFAULT)])));
+  check("the Type control offers the 96 in maftools' order, grouped by class, and starts on the example",
+    W.params.type.options.length === 96 && W.params.type.options.every((o, i) => o.value === M.CHANNELS[i] && o.group === M.CLASSES[i >> 4])
+      && W.params.type.default === "A[C>T]G" && W.params.type.display === true);
 }
 
 /* --- 7 · the copy, against the words this collection has struck ----------------- */
