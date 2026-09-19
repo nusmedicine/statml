@@ -15,10 +15,13 @@
        identity with the same hue, and the classes already use red, so it is
        not widget 41's red ramp.
      · Violet therefore means "larger" on pages 2 and 3, and `--c-highlight`,
-       the same violet, is on neither: the pair travelling in the opening press
-       and the rule at half of a signature's exposure are ink.
+       the same violet, is on neither: the rule at half of a signature's
+       exposure is ink.
      · Tumor 101, the hypermutated one, is outlined in M and in W, and marked
        under its bar once the signatures open (round 1).
+     · NOTHING MOVES OVER A FINISHED SIGNATURE (round 2, his ask): the
+       signatures form in the space M leaves, and each moving strip keeps to
+       its own lane, its own row, or the free space left of S.
      · On page 1 a change written from a purine is its class colour, paler, so
        it can be seen joining its partner.
    ========================================================================= */
@@ -311,11 +314,33 @@ function snapshotAt(fit, t) {
   return fit.trace[i];
 }
 
-/** Cell 0's figure without its travellers: M, the class bands beside it, the
-    letters and labels, S's and W's frames, and once extracted the iteration's
-    line. The opening press fades all of this as the pairs leave. */
-function drawHeatStay(ctx, colors, w, params, state, snap) {
-  const L = M.layout(w, params);
+/* Page 2 is ONE SCENE at every stage: what is left of M, S's and W's frames,
+   each column of S and each row of W, and the words. The extraction, both
+   presses and the opened view differ only in where the scene is (`sceneOf`),
+   so each press starts on the last one's final frame, op for op (the verify's
+   seams), and press 3 ends on the opened view. */
+
+/** Where page 2's scene is, at stage `sig` and `t` of the way through it. */
+function sceneOf(state, sig, t) {
+  const f = state.fit, r = f.rank;
+  const last = f.trace[f.trace.length - 1];
+  const rest = { u: Array(r).fill(0), m: 1, s: 1, w: 1, caption: 0, e: 0, f: 0, v: 0, words: 0, wide: false };
+  if (sig <= 0) return { ...rest, snap: null };
+  if (sig === 1) return { ...rest, snap: snapshotAt(f, t) };
+  if (sig === 2) {
+    const at = M.showAt(r, t * M.showTiming(r).total);
+    return { ...rest, snap: last, u: at.u, m: at.m, s: at.s, caption: at.caption };
+  }
+  const at = M.openAt(t * M.openTiming().total);
+  return {
+    ...rest, snap: last, u: Array(r).fill(1), m: 0, s: 0, w: 1 - at.e, caption: 1 - at.f,
+    e: at.e, f: at.f, v: at.v, words: at.words, wide: true,
+  };
+}
+
+/** M and everything that goes with it: the class bands, the letters, the axis
+    labels, tumor 101's outline and, once extracted, the iteration's line. */
+function drawM(ctx, colors, L, params, state, snap) {
   const H = L.heat;
   const f = state.fit;
   const n = f.cols;
@@ -333,7 +358,6 @@ function drawHeatStay(ctx, colors, w, params, state, snap) {
   const mid = H.top + 48 * H.rowH;
   text(ctx, S.heatM, H.M.x + H.M.w / 2, 40, { font: `600 22px ${colors.font}`, fill: colors.ink1, align: "center" });
   text(ctx, "≈", H.S.x - 15, mid + 7, { font: `20px ${colors.font}`, fill: colors.ink1, align: "center" });
-  text(ctx, S.heatS, H.S.x + H.S.w / 2, 40, { font: `600 22px ${colors.font}`, fill: colors.ink1, align: "center" });
   text(ctx, "×", H.W.x - 13, mid + 7, { font: `18px ${colors.font}`, fill: colors.ink1, align: "center" });
   ctx.save();
   ctx.translate(16, mid);
@@ -341,7 +365,6 @@ function drawHeatStay(ctx, colors, w, params, state, snap) {
   text(ctx, S.typesAxis, 0, 0, { font: noteFont(colors), fill: colors.ink2, align: "center" });
   ctx.restore();
   text(ctx, S.tumorsAxis(n), H.M.x + H.M.w / 2, H.base + 18, { font: noteFont(colors), fill: colors.ink2, align: "center" });
-  text(ctx, S.sigAxis(f.rank), H.S.x + H.S.w / 2, H.base + 18, { font: noteFont(colors), fill: colors.ink2, align: "center" });
   if (params.hypermutated !== "out") {
     const x = H.M.x + (n - 1) * cw;
     ctx.save();
@@ -351,21 +374,34 @@ function drawHeatStay(ctx, colors, w, params, state, snap) {
     ctx.restore();
     text(ctx, S.hyperTag, x + cw, H.base + 32, { font: noteFont(colors), fill: colors.ink1, align: "right" });
   }
+  if (!snap) return;
+  text(ctx, S.iterLine(snap.iter, snap.kl), H.M.x, H.base + 48, { font: noteFont(colors), fill: colors.ink1 });
+  text(ctx, S.heatNote(M.intText(f.cap)), H.M.x, H.base + 66, { font: noteFont(colors), fill: colors.ink3 });
+}
 
-  /* S and W: empty frames until the press; their cells are the travellers. */
-  const r = f.rank;
-  const wTop = M.wTop(L, r);
-  text(ctx, S.heatW, H.W.x + H.W.w / 2, wTop - 12, { font: `600 22px ${colors.font}`, fill: colors.ink1, align: "center" });
-  text(ctx, S.tumorsAxis(n), H.W.x + H.W.w / 2, wTop + r * (M.W_ROW + 1) + 16, { font: noteFont(colors), fill: colors.ink2, align: "center" });
+/** S's letter, label and frame; its cells are the columns. */
+function drawSFrame(ctx, colors, L, state) {
+  const H = L.heat;
+  text(ctx, S.heatS, H.S.x + H.S.w / 2, 40, { font: `600 22px ${colors.font}`, fill: colors.ink1, align: "center" });
+  text(ctx, S.sigAxis(state.fit.rank), H.S.x + H.S.w / 2, H.base + 18, { font: noteFont(colors), fill: colors.ink2, align: "center" });
   ctx.save();
   ctx.strokeStyle = colors.grid;
   ctx.lineWidth = 1;
   ctx.strokeRect(H.S.x - 0.5, H.top - 0.5, H.S.w, 96 * H.rowH + 1);
-  ctx.strokeRect(H.W.x - 0.5, wTop - 0.5, H.W.w + 1, r * (M.W_ROW + 1));
   ctx.restore();
-  if (!snap) return;
-  text(ctx, S.iterLine(snap.iter, snap.kl), H.M.x, H.base + 48, { font: noteFont(colors), fill: colors.ink1 });
-  text(ctx, S.heatNote(M.intText(f.cap)), H.M.x, H.base + 66, { font: noteFont(colors), fill: colors.ink3 });
+}
+
+/** W's letter, label and frame; its cells are the rows. */
+function drawWFrame(ctx, colors, L, state) {
+  const H = L.heat, r = state.fit.rank, top = M.wTop(L, r);
+  text(ctx, S.heatW, H.W.x + H.W.w / 2, top - 12, { font: `600 22px ${colors.font}`, fill: colors.ink1, align: "center" });
+  text(ctx, S.tumorsAxis(state.fit.cols), H.W.x + H.W.w / 2, top + r * (M.W_ROW + 1) + 16,
+    { font: noteFont(colors), fill: colors.ink2, align: "center" });
+  ctx.save();
+  ctx.strokeStyle = colors.grid;
+  ctx.lineWidth = 1;
+  ctx.strokeRect(H.W.x - 0.5, top - 0.5, H.W.w + 1, r * (M.W_ROW + 1));
+  ctx.restore();
 }
 
 /** Tumor 101's mark on its cell of W: the outline it wears in M, and once the
@@ -390,55 +426,49 @@ function markTumor(ctx, colors, c, base, stand) {
   });
 }
 
-/** Signature k's column of S and row of W, `u` of the way through its flight
-    and `v` of the way through the sort, shaded from `vals` (a snapshot of the
-    descent, or the signatures once extracted). At u = 0 this is cell 0's
-    figure's cells; at u = v = 1, the opened view's bars (M.flight). */
-function drawTraveller(ctx, colors, L, params, state, k, vals, { u = 0, v = 0, outline = 0 } = {}) {
-  const f = state.fit, s = f.sigs[k], R = L.rows[k], n = f.cols;
-  const { swing, stand, strip, row } = M.flight(L, f.rank, k, u);
-
-  /* S's column, in its own frame: a tile a type, standing up as its bar in
-     the type's class colour, so the value moves from the shade to the height */
+/** Column k of S as the strip `strip`, its cells shaded from `vals` and
+    standing `stand` of the way up as bars in the class colours, so the value
+    moves from the shade to the height; its baseline, class bands and title
+    arrive as they stand. */
+function drawColumn(ctx, colors, L, state, k, vals, strip, stand, moving) {
+  const f = state.fit, s = f.sigs[k], R = L.rows[k];
   const pmax = M.niceMax(Math.max(...s.profile));
   const pH = R.profile.base - R.profile.top;
   ctx.save();
   ctx.translate(strip.px, strip.py);
   ctx.rotate(strip.ang);
   for (let i = 0; i < 96; i += 1) {
-    const c = M.stripCell(strip, i, swing, stand, Math.min(1, s.profile[i] / pmax) * pH);
+    const c = M.stripCell(strip, i, moving, stand, Math.min(1, s.profile[i] / pmax) * pH);
     if (c.w <= 0) continue;
-    const tone = shade(colors, Math.sqrt(vals.sig[i] / f.sigMax));
+    const tone = shade(colors, Math.sqrt(vals[i] / f.sigMax));
     ctx.fillStyle = stand > 0 ? mixHex(tone, colors.subs[i >> 4], stand) : tone;
     ctx.fillRect(c.x, c.y, c.w, c.h);
   }
-  withAlpha(ctx, outline, () => {
-    ctx.strokeStyle = colors.ink1;
-    ctx.lineWidth = 1.5;
-    ctx.strokeRect(-strip.th / 2 - 2.5, -strip.p * strip.len - 2.5, strip.th + 5, strip.len + 5);
-  });
   ctx.restore();
-  /* the baseline and the class bands, as plotSignatures draws them */
   withAlpha(ctx, stand, () => {
-    rule(ctx, L.x0, R.profile.base + 0.5, L.x1, R.profile.base + 0.5, colors.axis);
-    const bw = (L.x1 - L.x0) / 96;
+    const x0 = strip.px - strip.len, bw = strip.len / 96;
+    rule(ctx, x0, R.profile.base + 0.5, strip.px, R.profile.base + 0.5, colors.axis);
     for (let c = 0; c < 6; c += 1) {
       ctx.fillStyle = colors.subs[c];
-      ctx.fillRect(L.x0 + 16 * c * bw + 1, R.profile.base + 3, 16 * bw - 2, 3);
+      ctx.fillRect(x0 + 16 * c * bw + 1, R.profile.base + 3, 16 * bw - 2, 3);
     }
+    text(ctx, S.sigTitle(k + 1), L.x0, R.title, { font: capFont(colors), fill: colors.ink1 });
+    text(ctx, S.sigShare(s.share), L.x0 + 86, R.title, { font: noteFont(colors), fill: colors.ink2 });
   });
+}
 
-  /* W's row: each tumor one cell, then one bar, in M's column order until the
-     sort sends each to its place, largest first; the tumors holding half of
-     the exposure stay dark once sorted */
+/** W's row k as the rect `row`: each tumor one cell, then one bar in M's column
+    order, until the sort (`v`) sends each to its place, largest first; the
+    tumors holding half of the exposure stay dark once sorted. */
+function drawWRow(ctx, colors, L, params, state, k, vals, row, stand, v) {
+  const f = state.fit, s = f.sigs[k], R = L.rows[k], n = f.cols;
   const hyperJ = params.hypermutated === "out" ? -1 : state.cohort.hyperIndex;
   const stripH = R.strip.base - R.strip.top;
   const top = s.exposure[s.sorted[0]] || 1;
-  const sortT = M.easeInOut(v);
   for (let j = 0; j < n; j += 1) {
     const e = Math.max(0, s.exposure[j]);
-    const c = M.rowCell(row, n, M.lerp(j, s.place[j], sortT), stand, (e / top) * stripH);
-    const tone = shade(colors, Math.sqrt(Math.max(0, vals.expo[j]) / f.expoMax));
+    const c = M.rowCell(row, n, M.lerp(j, s.place[j], v), stand, (e / top) * stripH);
+    const tone = shade(colors, Math.sqrt(Math.max(0, vals[j]) / f.expoMax));
     const bar = v >= 1 ? (s.place[j] < s.hold.half ? colors.ink2 : wash(colors.ink3, 0.55)) : colors.ink2;
     if (c.h > 0) {
       ctx.fillStyle = stand <= 0 ? tone : stand >= 1 ? bar : mixHex(tone, colors.ink2, stand);
@@ -446,11 +476,6 @@ function drawTraveller(ctx, colors, L, params, state, k, vals, { u = 0, v = 0, o
     }
     if (j === hyperJ) markTumor(ctx, colors, c, row.y + row.h, stand);
   }
-  withAlpha(ctx, outline, () => {
-    ctx.strokeStyle = colors.ink1;
-    ctx.lineWidth = 1.5;
-    ctx.strokeRect(row.x - 2.5, row.y - 2.5, row.w + 5, row.h + 5);
-  });
   withAlpha(ctx, stand, () => rule(ctx, L.x0, R.strip.base + 0.5, L.x1, R.strip.base + 0.5, colors.axis));
 }
 
@@ -460,8 +485,6 @@ function drawOpenedWords(ctx, colors, L, state) {
   text(ctx, S.openedCaption, L.x0, 22, { font: capFont(colors), fill: colors.ink1 });
   f.sigs.forEach((s, k) => {
     const R = L.rows[k];
-    text(ctx, S.sigTitle(k + 1), L.x0, R.title, { font: capFont(colors), fill: colors.ink1 });
-    text(ctx, S.sigShare(s.share), L.x0 + 86, R.title, { font: noteFont(colors), fill: colors.ink2 });
     /* after the tumors that hold half of it: in ink, as violet means "larger"
        on this page, and down to the baseline only, clear of tumor 101's mark */
     const xh = L.x0 + s.hold.half * ((L.x1 - L.x0) / f.cols);
@@ -472,37 +495,26 @@ function drawOpenedWords(ctx, colors, L, state) {
   });
 }
 
-/** Cell 0's figure: M, and once extracted S and W at a snapshot of the descent. */
-function drawHeatmaps(ctx, colors, w, params, state, snap) {
-  drawHeatStay(ctx, colors, w, params, state, snap);
-  if (!snap) return;
-  const L = M.layout(w, params);
-  for (let k = 0; k < state.fit.rank; k += 1) {
-    drawTraveller(ctx, colors, L, params, state, k, { sig: snap.sigs[k], expo: snap.expo[k] });
-  }
-}
-
-/** The opening press `t` of the way through; at t = 1, the opened view. */
-function drawPress(ctx, colors, w, params, state, t) {
-  const f = state.fit;
-  const L = M.layout(w, params);
-  const at = M.openAt(f.rank, t * M.openTiming(f.rank).total);
-  const last = f.trace[f.trace.length - 1];
-  withAlpha(ctx, at.stay, () => drawHeatStay(ctx, colors, w, params, state, last));
-  /* the pairs still at home first, so a travelling pair passes over them */
-  const order = [...at.u.keys()].sort((a, b) => (at.u[a] > 0) - (at.u[b] > 0));
-  for (const k of order) {
-    drawTraveller(ctx, colors, L, params, state, k, { sig: last.sigs[k], expo: last.expo[k] },
-      { u: at.u[k], v: at.v, outline: M.travelOutline(at.u[k]) });
-  }
-  withAlpha(ctx, M.easeInOut(at.words), () => drawOpenedWords(ctx, colors, L, state));
-}
-
 function drawSignatures(ctx, colors, w, params, state, anim) {
-  const sig = anim?.sig ?? 0;
-  const t = anim?.sigT ?? 1;
-  if (sig >= 2) { drawPress(ctx, colors, w, params, state, t); return; }
-  drawHeatmaps(ctx, colors, w, params, state, sig === 0 ? null : snapshotAt(state.fit, t));
+  const f = state.fit, r = f.rank;
+  const L = M.layout(w, params);
+  const sc = sceneOf(state, anim?.sig ?? 0, anim?.sigT ?? 1);
+  withAlpha(ctx, sc.m, () => drawM(ctx, colors, L, params, state, sc.snap));
+  withAlpha(ctx, sc.s, () => drawSFrame(ctx, colors, L, state));
+  withAlpha(ctx, sc.w, () => drawWFrame(ctx, colors, L, state));
+  withAlpha(ctx, sc.caption, () => text(ctx, S.shownCaption, L.x0, 22, { font: capFont(colors), fill: colors.ink1 }));
+  if (!sc.snap) return;
+  /* the columns still waiting first, so a moving one passes over them */
+  const order = [...sc.u.keys()].sort((a, b) => (sc.u[a] > 0) - (sc.u[b] > 0));
+  for (const k of order) {
+    const J = M.column(L, r, k, sc.u[k]);
+    drawColumn(ctx, colors, L, state, k, sc.snap.sigs[k], sc.wide ? M.widened(L, k, sc.f) : J.strip,
+      sc.wide ? 1 : J.stand, sc.u[k] > 0);
+  }
+  for (let k = 0; k < r; k += 1) {
+    drawWRow(ctx, colors, L, params, state, k, sc.snap.expo[k], M.wRow(L, r, k, sc.e, sc.f), sc.f, sc.v);
+  }
+  withAlpha(ctx, sc.words, () => drawOpenedWords(ctx, colors, L, state));
 }
 
 /* ---- page 3: matching ------------------------------------------------------------- */
@@ -615,9 +627,10 @@ function takeCatStep(anim, dt, t) {
   return anim.catT < 1;
 }
 
-/** One frame of page 2's press: the descent, or the signatures opening. */
+/** One frame of page 2's press: the descent, the signatures drawn beside W, or
+    each opened out with its exposures. */
 function takeSigStep(anim, dt, rank) {
-  const span = () => (anim.sig === 1 ? M.DESCENT_MS : M.openTiming(rank).total);
+  const span = () => (anim.sig === 1 ? M.DESCENT_MS : anim.sig === 2 ? M.showTiming(rank).total : M.openTiming().total);
   if (anim.sigT < 1) {
     anim.sigT = Math.min(1, anim.sigT + dt / span());
     return anim.sigT < 1;
@@ -806,7 +819,7 @@ defineWidget({
       const f = state.fit;
       const sig = anim?.sig ?? 0;
       const extracted = sig >= 2 || (sig === 1 && (anim?.sigT ?? 1) >= 1);
-      const opened = sig >= 2 && (anim?.sigT ?? 1) >= 1;
+      const opened = sig >= M.SIG_STAGES && (anim?.sigT ?? 1) >= 1;
       const widest = f.sigs.map((s, k) => ({ s, k })).sort((a, b) => b.s.hold.topShare - a.s.hold.topShare)[0];
       return [
         { label: S.tileTumors, value: M.intText(f.cols), note: S.tileTumorsNote(f.total) },
@@ -845,6 +858,7 @@ defineWidget({
       const sig = anim?.sig ?? 0;
       if (sig === 0) return S.sumM(f.cols);
       if (sig === 1) return S.sumExtracted(f.cols, f.rank, f.iterations);
+      if (sig === 2) return S.sumShown(f.rank);
       const own = f.sigs.findIndex((s) => s.own);
       return S.sumOpened(f.rank, own >= 0 ? own + 1 : null);
     }

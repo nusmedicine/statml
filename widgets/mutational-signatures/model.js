@@ -9,7 +9,8 @@
      Catalogue    one tumor's substitutions into 96 types: as written, read
                   from the pyrimidine, and with the base on either side
      Signatures   the cohort's 96 × n matrix factorised as M ≈ S × W, then
-                  each signature opened out with its exposures
+                  each column of S drawn as a signature beside W, then each
+                  signature opened out with its exposures
      Matching     each signature against ten reference profiles by cosine
                   similarity, the chosen one beside its best match and the
                   runner-up
@@ -459,9 +460,10 @@ export function writtenCounts(tumor, k = tumor.n) {
 
 /* Page 1: 0 empty, 1 the mutations as written, 2 read from the pyrimidine,
    3 split by the neighbouring bases. Page 2: 0 M alone, 1 extracted (cell 0's
-   figure), 2 each signature opened out. Page 3: 0 nothing compared, 1 compared. */
+   figure), 2 each signature drawn beside W, 3 each signature opened out with
+   its exposures. Page 3: 0 nothing compared, 1 compared. */
 export const CAT_STAGES = 3;
-export const SIG_STAGES = 2;
+export const SIG_STAGES = 3;
 export const MATCH_STAGES = 1;
 export const LAND_MS = 1200;      // the mutations arrive over this long, whatever their number
 export const FOLD_MS = 800;       // twelve bars fold into six
@@ -469,46 +471,66 @@ export const SPLIT_MS = 900;      // six bars split into 96
 export const DESCENT_MS = 2400;   // the extraction's snapshots
 export const COMPARE_MS = 500;    // the cosines arrive
 
-/* THE PRESS THAT OPENS THE SIGNATURES, one at a time (Kenneth's pick C of
-   three, 2026-09-19, `_lab/mutational-signatures-round1-mock.html`): column k
-   of S and row k of W travel together to signature k's place, outlined, and
-   the next pair leaves as that one arrives; its cells then stand up as bars,
-   the value moving from the shade to the height; once every signature has
-   landed the rows sort, largest first, and the words arrive. The draft's
-   crossfade (0.7 s) said nothing of where a signature came from. */
-export const OPEN_TRAVEL_MS = 550;   // one pair's journey
-export const OPEN_SORT_MS = 550;     // every row sorts, largest first
-export const OPEN_WORDS_MS = 300;    // the titles, the half rules and their lines
-export const OPEN_FADE_MS = 450;     // M and its labels leave
-export const SWING = 0.55;           // the share of a pair's flight spent travelling; the rest, standing up
+/* THE TWO PRESSES THAT OPEN THE SIGNATURES (round 2, 2026-09-19; Kenneth's
+   pick B of three, `_lab/mutational-signatures-round2-mock.html`). Round 1's
+   press moved each column over the signatures already in place, which he
+   found confusing, so the signatures now form in the space M leaves and the
+   matrices keep theirs; the widening is a press of its own.
 
-/** The press's clock at a rank. One pair travels at a time; past rank 4 each
-    journey shortens, so the press never runs past 3.5 s. */
-export function openTiming(rank) {
-  const travel = Math.min(OPEN_TRAVEL_MS, 1650 / Math.max(1, rank - 1));
-  const fly = travel / SWING;
-  const sortAt = (rank - 1) * travel + fly;
-  const sortEnd = sortAt + OPEN_SORT_MS;
-  return { travel, fly, sortAt, sortEnd, total: sortEnd + OPEN_WORDS_MS };
+   "Show the signatures": M fades, then one column at a time, left to right,
+   each column of S gathers itself in its own lane at its signature's row
+   (squeezed to a short strip, so it turns in a small space), turns a quarter
+   anticlockwise about its T>G end into the free space left of S, slides left
+   along its own row, and its 96 cells stand up as bars in the class colours.
+   The page rests there, the signatures beside W. No outline: one thing moves
+   at a time, his pick over outlining it.
+
+   "Show each signature's exposures": W's rows move down or up their own lane
+   to their signatures' rows, then the signatures widen to the full width as
+   each row of W widens under its signature, the row's cells standing up as
+   bars in tumor order; then they sort, largest first, and the words arrive. */
+export const JOURNEY_MS = 1200;      // one column: gather, turn, slide, stand
+export const GATHER = 0.2, TURN = 0.45, SLIDE = 0.75;   // where each part of a journey ends
+export const FADE_MS = 450;          // M and its labels leave
+export const PRESS3 = { rows: 450, widen: 800, sort: 550, words: 300 };
+
+/** Press 2's clock at a rank: the next column leaves S as the last one has
+    turned, so one column is on its way out of S at a time. */
+export function showTiming(rank) {
+  const gap = TURN * JOURNEY_MS;
+  return { gap, total: (rank - 1) * gap + JOURNEY_MS };
+}
+/** Press 3's clock, the same at every rank. */
+export function openTiming() {
+  const rows = PRESS3.rows, widen = rows + PRESS3.widen, sort = widen + PRESS3.sort;
+  return { rows, widen, sort, total: sort + PRESS3.words };
 }
 
 const seg = (t, a, b) => Math.max(0, Math.min(1, (t - a) / (b - a)));
 
-/** Where the press is `now` ms in: each signature's flight, the sort, the
-    words, and how much of M is left. */
-export function openAt(rank, now) {
-  const T = openTiming(rank);
+/** Where press 2 is `now` ms in: each column's journey, and how much of M and
+    of S's frame is left. */
+export function showAt(rank, now) {
+  const T = showTiming(rank);
+  const lastOut = (rank - 1) * T.gap;
   return {
-    u: Array.from({ length: rank }, (_, k) => seg(now, k * T.travel, k * T.travel + T.fly)),
-    v: seg(now, T.sortAt, T.sortEnd),
-    words: seg(now, T.sortEnd, T.total),
-    stay: 1 - easeInOut(seg(now, 0, OPEN_FADE_MS)),
+    u: Array.from({ length: rank }, (_, k) => seg(now, k * T.gap, k * T.gap + JOURNEY_MS)),
+    m: 1 - easeInOut(seg(now, 0, FADE_MS)),
+    s: 1 - easeInOut(seg(now, lastOut, lastOut + TURN * JOURNEY_MS)),
+    caption: easeInOut(seg(now, T.total - 0.15 * JOURNEY_MS, T.total)),
   };
 }
-
-/** The outline on a travelling pair: on for the journey, gone by the time its
-    bars have half stood up. */
-export const travelOutline = (u) => (u <= 0 ? 0 : u < SWING ? 1 : Math.max(0, 1 - (u - SWING) / 0.25));
+/** Where press 3 is `now` ms in: W's rows in their lane, the widening, the
+    sort and the words. */
+export function openAt(now) {
+  const T = openTiming();
+  return {
+    e: easeInOut(seg(now, 0, T.rows)),
+    f: easeInOut(seg(now, T.rows, T.widen)),
+    v: easeInOut(seg(now, T.widen, T.sort)),
+    words: easeInOut(seg(now, T.sort, T.total)),
+  };
+}
 
 /** The key the drive button's label is read at (STRINGS.stepLabels): the step
     the next press takes, or, once a page is done, the last one it took, so a
@@ -525,7 +547,10 @@ export const easeInOut = (t) => {
   return x < 0.5 ? 4 * x * x * x : 1 - ((-2 * x + 2) ** 3) / 2;
 };
 export const easeOut = (t) => 1 - (1 - Math.min(1, Math.max(0, t))) ** 3;
-export const lerp = (a, b, t) => a + (b - a) * t;
+/* Exact at both ends, (1 − t)a + tb rather than a + (b − a)t, which can miss b
+   by a rounding at t = 1: a press must end on exactly the frame the next one
+   starts on (the verify's seams). */
+export const lerp = (a, b, t) => (1 - t) * a + t * b;
 export const lerpRect = (a, b, t) => ({ x: lerp(a.x, b.x, t), y: lerp(a.y, b.y, t), w: lerp(a.w, b.w, t), h: lerp(a.h, b.h, t) });
 
 /* ---- layout ---------------------------------------------------------------------- */
@@ -578,59 +603,82 @@ export function layout(w, params) {
 }
 export const stageHeight = (w, values) => layout(w, values).height;
 
-/* ---- the press's geometry: one for cell 0's figure, the flight and the opened
-   view (5.8), so the press starts on the extraction's last frame and ends on
-   the opened view's first ---------------------------------------------------------- */
+/* ---- the presses' geometry: one for cell 0's figure, both presses and the
+   opened view (5.8), so each press starts on the last one's final frame and
+   press 3 ends on the opened view ------------------------------------------------- */
 
 export const TILE = 8;      // a column laid down, and a row slid under it, before the bars stand
 export const W_ROW = 12;    // one row of W in cell 0's figure
+/* THE FREE SPACE between the signatures and S. The signatures form in
+   [x0, S.x − FREE], and a column is squeezed to GATHERED before it turns, so
+   the whole of its turn stays in that space, 15px clear of them: the verify
+   sweeps every moving strip against every finished signature. */
+export const FREE = 90;
+export const GATHERED = 80;
 
 /** The top of W's first row in cell 0's figure: the rows centred on M's middle. */
 export const wTop = (L, rank) => L.heat.top + 48 * L.heat.rowH - (rank * (W_ROW + 1)) / 2;
+/** Where the signatures drawn beside W end: the free space left of S. */
+export const shortRight = (L) => L.heat.S.x - FREE;
 
-/** Signature k's column of S and row of W, `u` of the way through its flight.
-
-    THE COLUMN TURNS ABOUT THE POINT OF IT LEVEL WITH ITS SIGNATURE'S BASELINE,
-    not about its middle: turned about its middle, the first signature's column
-    rose 31px above the canvas at 770 wide halfway round, and the last one's
-    fell 20px below it. It turns a quarter anticlockwise, so its top (C>A) ends at
-    the left as plotSignatures reads, and it stretches to the profile's width
-    AFTER it turns (the square of the swing), so the turning strip stays short.
+/** Column k of S in press 2, `u` of the way through its journey, and how far
+    its cells have stood up as bars.
 
     The strip is given in its own frame, for `ctx.translate(px, py)` then
-    `ctx.rotate(ang)`: y runs along it from -p·len (C>A) to (1 - p)·len, and x
+    `ctx.rotate(ang)`: y runs along it from -p·len (C>A) to (1 - p)·len and x
     across it, the bars standing on the edge x = -th/2, which faces down once
-    it has turned. */
-export function flight(L, rank, k, u) {
+    it has turned. Here p = 1: THE PIVOT IS THE COLUMN'S T>G END, so a quarter
+    turn anticlockwise lays it down to the LEFT of its own lane, over lanes the
+    columns before it have already left, with C>A at the left as plotSignatures
+    reads. Round 1 turned a full-length column about a point level with its
+    row, and its sweep crossed the signatures already in place. */
+export function column(L, rank, k, u) {
   const H = L.heat, R = L.rows[k];
-  const swing = easeInOut(Math.min(1, u / SWING));
-  const stand = easeInOut(Math.max(0, (u - SWING) / (1 - SWING)));
-  const sw = H.S.w / rank, th0 = sw - 1;
-  const len0 = 96 * H.rowH, len1 = L.x1 - L.x0;
-  const p = Math.max(0, Math.min(1, (R.profile.base - TILE / 2 - H.top) / len0));
-  const from = { x: H.S.x + k * sw + th0 / 2, y: H.top + p * len0 };
-  const to = { x: L.x0 + p * len1, y: R.profile.base - TILE / 2 };
-  const top = wTop(L, rank);
+  const gather = easeInOut(seg(u, 0, GATHER));
+  const turn = easeInOut(seg(u, GATHER, TURN));
+  const slide = easeInOut(seg(u, TURN, SLIDE));
+  const stand = easeInOut(seg(u, SLIDE, 1));
+  const sw = H.S.w / rank, th0 = sw - 1, len0 = 96 * H.rowH;
+  const lane = H.S.x + k * sw + th0 / 2;
+  const xc = shortRight(L);
   return {
-    swing, stand,
+    turn, stand,
     strip: {
-      px: lerp(from.x, to.x, swing), py: lerp(from.y, to.y, swing), p,
-      len: lerp(len0, len1, swing * swing), th: lerp(th0, TILE, swing), ang: (-Math.PI / 2) * swing,
+      p: 1,
+      px: lerp(lane, xc, slide),
+      py: lerp(H.top + len0, R.profile.base - TILE / 2, gather),
+      len: slide > 0 ? lerp(GATHERED, xc - L.x0, slide) : lerp(len0, GATHERED, gather),
+      th: lerp(th0, TILE, turn),
+      ang: (-Math.PI / 2) * turn,
     },
-    row: lerpRect({ x: H.W.x, y: top + k * (W_ROW + 1), w: H.W.w, h: W_ROW },
-      { x: L.x0, y: R.strip.base - TILE, w: L.x1 - L.x0, h: TILE }, swing),
   };
 }
 
+/** Signature k in press 3, `f` of the way from beside W to the full width. */
+export function widened(L, k, f) {
+  const R = L.rows[k], xc = shortRight(L);
+  return { p: 1, px: lerp(xc, L.x1, f), py: R.profile.base - TILE / 2, len: lerp(xc - L.x0, L.x1 - L.x0, f), th: TILE, ang: -Math.PI / 2 };
+}
+
+/** W's row k: in cell 0's figure, then `e` of the way down or up its own lane
+    to its signature's row, then `f` of the way to the full width. */
+export function wRow(L, rank, k, e, f) {
+  const H = L.heat, R = L.rows[k];
+  const home = { x: H.W.x, y: wTop(L, rank) + k * (W_ROW + 1), w: H.W.w, h: W_ROW };
+  const lane = { x: H.W.x, y: R.strip.base - TILE, w: H.W.w, h: TILE };
+  const wide = { x: L.x0, y: R.strip.base - TILE, w: L.x1 - L.x0, h: TILE };
+  return f > 0 ? lerpRect(lane, wide, f) : lerpRect(home, lane, e);
+}
+
 /** S's cell i in the strip's own frame, standing `stand` of the way from a
-    tile to a bar `barH` tall. Cells overlap by a hair while the strip is
-    turned, or its antialiased edges show the surface between them. */
-export function stripCell(strip, i, swing, stand, barH) {
+    tile to a bar `barH` tall. Cells overlap by a hair while the strip moves as
+    tiles, or their antialiased edges show the surface between them. */
+export function stripCell(strip, i, moving, stand, barH) {
   const cell = strip.len / 96;
   const gap = stand * Math.min(1, cell * 0.25);
   return {
     x: -strip.th / 2, y: -strip.p * strip.len + i * cell + gap / 2,
-    w: lerp(strip.th, barH, stand), h: cell - gap + (stand === 0 && swing > 0 ? 0.35 : 0),
+    w: lerp(strip.th, barH, stand), h: cell - gap + (stand === 0 && moving ? 0.35 : 0),
   };
 }
 
@@ -741,7 +789,8 @@ export const STRINGS = {
     k1: "Read from the pyrimidine",
     k2: "Split by the neighbouring bases",
     s0: "Extract the signatures",
-    s1: "Show each signature's exposures",
+    s1: "Show the signatures",
+    s2: "Show each signature's exposures",
     mX: "Extract the signatures",
     m0: "Compare with the references",
   },
@@ -787,6 +836,7 @@ export const STRINGS = {
   standsFor: (m) => `stands for ${m.like}`,
   referencesNote: "Each reference is a profile built to resemble the COSMIC signature named beside it.",
 
+  shownCaption: "Each column of S, drawn as a signature: the share of each type",
   openedCaption: "Each signature, and below it its exposure in each tumor, largest first",
 
   /* the legend */
@@ -826,6 +876,7 @@ export const STRINGS = {
   ][cat],
   sumM: (n) => `The matrix M: 96 mutation types by ${n} tumors, before any signature is extracted.`,
   sumExtracted: (n, r, it) => `M, 96 types by ${n} tumors, factorised into ${r} signatures and their exposures after ${intText(it)} iterations.`,
+  sumShown: (r) => `${r} signatures, each a column of S drawn as bars over the 96 types, beside W, their exposures.`,
   sumOpened: (r, own) => `${r} signatures, each with its exposure in each tumor${own ? `; half of signature ${own}'s exposure is in one tumor` : ""}.`,
   sumNoSignatures: "Ten reference profiles, and no signature extracted yet to compare with them.",
   sumNotCompared: (r) => `${r} signatures and ten reference profiles, not yet compared.`,

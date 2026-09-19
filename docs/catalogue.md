@@ -10072,7 +10072,53 @@ highlight colour, so the one-colour-one-meaning rule had to be kept by hand:
 
 Verify 70 checks (was 59). The core change (`--c-magnitude` in `tokens.css`,
 `magnitude` in `readTokens`, CLAUDE.md's role list) was run through the full
-fingerprint suite.
+fingerprint suite: 846 of 846 existing states identical, fronted at DPR 1.25
+(`6bda435` core, `5536fde` the widget).
+
+#### Round 2, 2026-09-19: the signatures form beside the matrices — two picks
+
+His ask the same day, on round 1's press: "consider the transition from
+matrices to signatures another way without them overlapping as it can be
+confusing … signatures are on the left, and matrices are on the [right]. after
+completing the tween transition, the signatures can be expanded." Round 1
+turned each full-length column about a point level with its row, so a later
+column's sweep crossed the signatures already in place. One word of his was
+ambiguous, so three layouts went to him as sketches first (A upright beside S,
+rows aligned; B lying down on the left; C the equation shrunk to the right and
+kept); **his pick B**, and **the widening as its own press** (the
+recommendation). Mock `_lab/mutational-signatures-round2-mock.html` (`ce59641`):
+the two presses at real width with key frames, and a sweep of every moving
+strip. **Then "build it, no outline"** (over the ink outline on the leaving
+column): one thing moves at a time, so nothing needs marking.
+
+**Page 2 has three presses now** (`SIG_STAGES` 3; `shown` 2 is the resting
+state, 3 the opened view):
+
+1. *Extract the signatures* — unchanged.
+2. *Show the signatures* — M fades; one column at a time, left to right, each
+   column of S **gathers in its own lane** at its signature's row (squeezed to
+   80px, so it turns in a small space), **turns a quarter anticlockwise about
+   its T>G end** (so it lies down to the LEFT of its lane, over lanes the
+   columns before it have left, with C>A at the left), **slides left along its
+   own row** into the space M left, and stands up as bars. The next column
+   leaves as the last has turned. The page RESTS with the signatures drawn
+   beside W: "Each column of S, drawn as a signature: the share of each type".
+   1.7 s at rank 2, 2.8 s at 4, 3.9 s at 6.
+3. *Show each signature's exposures* — W's rows move down or up their own lane
+   to their signatures' rows, the signatures widen to the full width while
+   each row of W widens under its signature and stands up as bars, then the
+   rows sort and the words arrive. 2.1 s at every rank. It ends on round 1's
+   opened view.
+
+The signatures form in `[x0, S.x − 90]`; a gathered column's whole turn stays
+15px clear of that space, and W's lane never meets it. **The verify sweeps
+every moving strip as a rotated rectangle every 5 ms at 535, 626 and 770 and
+ranks 2–6 (14,790 frames): nothing moves over a finished signature, over W,
+over a column still waiting, over another moving strip, or off the canvas.**
+Page 2 is one scene at every stage (`sceneOf`), so both seams (extraction →
+press 2, press 2 → press 3) are checked op for op; `lerp` became
+(1 − t)a + tb so a press ends on exactly the frame the next starts on.
+Verify 74 checks.
 
 ### Slot 71 · `somatic-interactions` — not asked for, measured, cuttable
 

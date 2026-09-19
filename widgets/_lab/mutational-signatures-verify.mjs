@@ -28,6 +28,11 @@
    halfway through every press, at the narrowest and widest side-layout
    canvases, and that the height does not read the width.
 
+   THE PRESSES THAT OPEN THE SIGNATURES (rounds 1 and 2): each starts on the
+   last one's final frame op for op, one column leaves S at a time, and — his
+   ask of round 2 — nothing moves over a finished signature, swept every 5 ms
+   as rotated rectangles at three widths and ranks 2 to 6.
+
    THE STATUS. The manifest and `main.js` both say `draft`, and this says so.
 
    Exits non-zero on failure.
@@ -286,12 +291,13 @@ function press(anim, params, state, { dt = 32, frames = 6000 } = {}) {
   const s2 = W.compute({ params: p2 });
   const a2 = W.animation.init({ params: p2, state: s2, fromScratch: true });
   const seen2 = [], labels2 = [], frames2 = [];
-  for (let i = 0; i < 3; i += 1) { labels2.push(a2.labelAt); frames2.push(press(a2, p2, s2)); seen2.push(a2.sig); }
-  check("page 2: Extract, then each signature shown; then done", seen2.join() === "1,2,2" && a2.done, seen2.join());
-  check("page 2's presses are labelled s0, s1", labels2.slice(0, 2).join() === "s0,s1", labels2.join());
-  check("the descent plays over its clock and the opening press over its own",
-    Math.abs(frames2[0] - M.DESCENT_MS / 32) <= 2 && Math.abs(frames2[1] - M.openTiming(4).total / 32) <= 2 && frames2[2] === 0,
-    `${frames2.join()} frames of 32 ms; the press ${M.openTiming(4).total} ms at rank 4`);
+  for (let i = 0; i < 4; i += 1) { labels2.push(a2.labelAt); frames2.push(press(a2, p2, s2)); seen2.push(a2.sig); }
+  check("page 2: Extract, the signatures beside W, then each opened out; then done", seen2.join() === "1,2,3,3" && a2.done, seen2.join());
+  check("page 2's presses are labelled s0, s1, s2", labels2.slice(0, 3).join() === "s0,s1,s2", labels2.join());
+  check("the descent and the two presses each play over their own clock",
+    Math.abs(frames2[0] - M.DESCENT_MS / 32) <= 2 && Math.abs(frames2[1] - M.showTiming(4).total / 32) <= 2
+      && Math.abs(frames2[2] - M.openTiming().total / 32) <= 2 && frames2[3] === 0,
+    `${frames2.join()} frames of 32 ms; ${M.showTiming(4).total} and ${M.openTiming().total} ms at rank 4`);
 
   const p3 = paramsOf({ page: "matching" });
   const s3 = W.compute({ params: p3 });
@@ -305,9 +311,9 @@ function press(anim, params, state, { dt = 32, frames = 6000 } = {}) {
 
   /* invariant 3: each page keeps its place */
   W.animation.rebuild(a2, { params: paramsOf({ page: "matching" }), state: s3 });
-  check("switching from page 2 to page 3 keeps the extraction, with nothing compared", a2.sig === 2 && a2.match === 0 && a2.labelAt === "m0" && !a2.done);
+  check("switching from page 2 to page 3 keeps the extraction, with nothing compared", a2.sig === M.SIG_STAGES && a2.match === 0 && a2.labelAt === "m0" && !a2.done);
   W.animation.rebuild(a2, { params: paramsOf({ page: "catalogue" }), state: s1 });
-  check("and page 1 is where it was left, empty", a2.cat === 0 && a2.sig === 2 && a2.labelAt === "k0");
+  check("and page 1 is where it was left, empty", a2.cat === 0 && a2.sig === M.SIG_STAGES && a2.labelAt === "k0");
   W.animation.rebuild(a1, { params: paramsOf({ tumor: "hypermutated" }), state: W.compute({ params: paramsOf({ tumor: "hypermutated" }) }) });
   check("another tumor starts page 1 over and leaves the rest", a1.cat === 0 && a1.landed === 0 && a1.tumor === "hypermutated");
 
@@ -316,7 +322,8 @@ function press(anim, params, state, { dt = 32, frames = 6000 } = {}) {
     return W.animation.init({ params, state: W.compute({ params }), fromScratch: false });
   };
   check("?shown=2 opens page 1 read from the pyrimidine", sh({ shown: 2 }).cat === 2);
-  check("?page=signatures&shown=2 opens each signature shown", sh({ page: "signatures", shown: 2 }).sig === 2);
+  check("?page=signatures&shown=2 opens the signatures beside W, and shown=3 each opened out",
+    sh({ page: "signatures", shown: 2 }).sig === 2 && sh({ page: "signatures", shown: 3 }).sig === 3);
   const m1 = sh({ page: "matching", shown: 1 });
   check("?page=matching&shown=1 opens compared, the extraction taken", m1.sig === 1 && m1.match === 1 && m1.done);
   check("a replay starts over whatever shown says", W.animation.init({ params: paramsOf({ shown: 3 }), state: s1, fromScratch: true }).cat === 0);
@@ -363,7 +370,8 @@ console.log("\n§6 the geometry");
     for (const rank of [2, 4, 6]) {
       for (const hypermutated of ["in", "out"]) {
         const p2 = paramsOf({ page: "signatures", rank, hypermutated });
-        for (const [sig, sigT] of [[0, 1], [1, 0.3], [1, 1], ...[0, 0.04, 0.08, 0.12, 0.2, 0.3, 0.45, 0.6, 0.75, 0.85, 0.95, 1].map((t) => [2, t])]) {
+        const along = [0, 0.04, 0.08, 0.12, 0.2, 0.3, 0.45, 0.6, 0.75, 0.85, 0.95, 1];
+        for (const [sig, sigT] of [[0, 1], [1, 0.3], [1, 1], ...along.map((t) => [2, t]), ...along.map((t) => [3, t])]) {
           paint(p2, { ...blank("signatures", "largest"), sig, sigT }, w);
         }
         for (const truth of ["0", "1"]) {
@@ -405,88 +413,152 @@ console.log("\n§6 the geometry");
     W.regions({ w: 535, h: 400, params: paramsOf({ page }), state: W.compute({ params: paramsOf({ page }) }) }).length === 0));
 }
 
-/* --- 6b · the opening press, round 1 (2026-09-19): one pair at a time, violet --- */
-console.log("\n§6b the opening press and the ramp");
+/* --- 6b · the presses that open the signatures (rounds 1 and 2, 2026-09-19) ------ */
+console.log("\n§6b the presses that open the signatures, and the ramp");
 {
   const blank = (page) => ({ page, tumor: "largest", cat: 0, catT: 1, landed: 0, clock: 0, sig: 0, sigT: 1, match: 0, matchT: 1 });
   const frame = (params, anim, w) => {
     const state = W.compute({ params });
-    const { ctx, ops, styles } = recorder({ record: true });
+    const { ctx, ops, styles, seen } = recorder({ record: true });
     W.draw({ ctx, colors: COLORS, w, h: W.height({ w, ...params }), params, state, anim });
-    return { ops, styles, state };
+    return { ops, styles, seen, state };
   };
 
-  /* the press starts on the extraction's last frame, op for op */
+  /* each press starts on the last one's final frame, op for op */
   const seams = [];
   for (const w of [535, 770]) {
     for (const rank of [2, 4, 6]) {
       for (const hypermutated of ["in", "out"]) {
         const p = paramsOf({ page: "signatures", rank, hypermutated });
-        const a = frame(p, { ...blank("signatures"), sig: 1, sigT: 1 }, w).ops;
-        const b = frame(p, { ...blank("signatures"), sig: 2, sigT: 0 }, w).ops;
-        if (a.length !== b.length || a.some((x, i) => x !== b[i])) seams.push(`${w} r${rank} ${hypermutated}: ${a.length} ops against ${b.length}`);
+        for (const [from, to] of [[1, 2], [2, 3]]) {
+          const a = frame(p, { ...blank("signatures"), sig: from, sigT: 1 }, w).ops;
+          const b = frame(p, { ...blank("signatures"), sig: to, sigT: 0 }, w).ops;
+          if (a.length !== b.length || a.some((x, i) => x !== b[i])) seams.push(`${w} r${rank} ${hypermutated} ${from}→${to}: ${a.length} ops against ${b.length}`);
+        }
       }
     }
   }
-  check("the press's first frame is the extraction's last, op for op, at every rank and both widths", seams.length === 0, seams.slice(0, 2).join(" | "));
+  check("each press's first frame is the last one's final frame, op for op, at ranks 2, 4, 6 and both widths", seams.length === 0, seams.slice(0, 2).join(" | "));
 
-  /* it ends on bars where plotSignatures draws them */
+  /* press 3 ends on bars where plotSignatures draws them */
   {
     const w = 626, p = paramsOf({ page: "signatures" });
     const L = M.layout(w, p);
     const fit = M.fitFor(1, "in", 4);
     let worst = 0;
     fit.sigs.forEach((s, k) => {
-      const { strip, stand, swing } = M.flight(L, 4, k, 1);
+      const strip = M.widened(L, k, 1);
       const R = L.rows[k], bw = (L.x1 - L.x0) / 96, pmax = M.niceMax(Math.max(...s.profile));
       for (let i = 0; i < 96; i += 1) {
         const barH = Math.min(1, s.profile[i] / pmax) * (R.profile.base - R.profile.top);
-        const c = M.stripCell(strip, i, swing, stand, barH);
+        const c = M.stripCell(strip, i, false, 1, barH);
         /* a quarter turn anticlockwise takes (x, y) in the strip's frame to (px + y, py - x) */
         const x = strip.px + c.y, y = strip.py - (c.x + c.w);
         const want = { x: L.x0 + i * bw + 0.5, y: R.profile.base - barH, w: bw - 1, h: barH };
         worst = Math.max(worst, Math.abs(x - want.x), Math.abs(y - want.y), Math.abs(c.h - want.w), Math.abs(c.w - want.h));
       }
     });
-    check("the press ends with each column's cells standing where the profile's bars stand", worst < 1e-9, `largest miss ${worst.toExponential(1)} px`);
+    check("press 3 ends with each signature's bars where the profile's bars stand", worst < 1e-9, `largest miss ${worst.toExponential(1)} px`);
   }
 
-  /* one pair travels at a time, and every pair travels */
+  /* one column leaves S at a time, and every column leaves */
   const clash = [];
   for (let rank = 2; rank <= 6; rank += 1) {
-    const T = M.openTiming(rank);
-    const travelled = new Set();
+    const T = M.showTiming(rank);
+    const left = new Set();
     for (let now = 0; now <= T.total; now += 2) {
-      const moving = M.openAt(rank, now).u.map((u, k) => [u, k]).filter(([u]) => u > 0 && u < M.SWING);
-      moving.forEach(([, k]) => travelled.add(k));
-      if (moving.length > 1) { clash.push(`rank ${rank} at ${now} ms`); break; }
+      const leaving = M.showAt(rank, now).u.map((u, k) => [u, k]).filter(([u]) => u > 0 && u < M.TURN);
+      leaving.forEach(([, k]) => left.add(k));
+      if (leaving.length > 1) { clash.push(`rank ${rank} at ${now} ms`); break; }
     }
-    if (travelled.size !== rank) clash.push(`rank ${rank}: ${travelled.size} of ${rank} travelled`);
+    if (left.size !== rank) clash.push(`rank ${rank}: ${left.size} of ${rank} left`);
   }
-  check("one pair travels at a time, and every pair travels, at ranks 2 to 6", clash.length === 0, clash.join(" | "));
-  const totals = [2, 3, 4, 5, 6].map((r) => M.openTiming(r).total);
-  check("the press never runs past 3.5 s", totals.every((t) => t <= 3500), totals.map((t) => `${t.toFixed(0)}`).join(" · ") + " ms");
+  check("one column leaves S at a time, and every column leaves, at ranks 2 to 6", clash.length === 0, clash.join(" | "));
+  const totals = [2, 3, 4, 5, 6].map((r) => M.showTiming(r).total);
+  check("press 2 runs under 4 s at every rank, press 3 under 2.5 s", totals.every((t) => t < 4000) && M.openTiming().total < 2500,
+    `${totals.map((t) => t.toFixed(0)).join(" · ")} ms; ${M.openTiming().total} ms`);
 
-  /* every column stays on the canvas through its turn */
-  const off = [];
-  for (const w of [535, 770]) {
+  /* NOTHING MOVES OVER A FINISHED SIGNATURE (round 2, his ask), nor over W,
+     another moving strip, a column still waiting, or off the canvas: every
+     moving strip as a rotated rectangle, every 5 ms, separating axes */
+  const quad = (strip) => {
+    const cs = Math.cos(strip.ang), sn = Math.sin(strip.ang);
+    const lo = -strip.p * strip.len, hi = (1 - strip.p) * strip.len;
+    return [[-strip.th / 2, lo], [strip.th / 2, lo], [strip.th / 2, hi], [-strip.th / 2, hi]]
+      .map(([x, y]) => [strip.px + cs * x - sn * y, strip.py + sn * x + cs * y]);
+  };
+  const box = (r) => [[r.x, r.y], [r.x + r.w, r.y], [r.x + r.w, r.y + r.h], [r.x, r.y + r.h]];
+  const meet = (P, Q) => {
+    for (const poly of [P, Q]) {
+      for (let i = 0; i < poly.length; i += 1) {
+        const [x1, y1] = poly[i], [x2, y2] = poly[(i + 1) % poly.length];
+        const nx = y2 - y1, ny = x1 - x2;
+        const a = P.map(([x, y]) => x * nx + y * ny), b = Q.map(([x, y]) => x * nx + y * ny);
+        if (Math.max(...a) <= Math.min(...b) + 1e-6 || Math.max(...b) <= Math.min(...a) + 1e-6) return false;
+      }
+    }
+    return true;
+  };
+  const hits = { finished: [], moving: [], waiting: [], w: [], edge: [] };
+  let frames = 0;
+  for (const w of [535, 626, 770]) {
     for (let rank = 2; rank <= 6; rank += 1) {
       const p = paramsOf({ page: "signatures", rank });
-      const L = M.layout(w, p), h = W.height({ w, ...p });
-      for (let k = 0; k < rank; k += 1) {
-        for (let u = 0; u <= 1.0001; u += 0.01) {
-          const { strip } = M.flight(L, rank, k, u);
-          const cs = Math.cos(strip.ang), sn = Math.sin(strip.ang);
-          for (const [x, y] of [[-strip.th / 2, -strip.p * strip.len], [strip.th / 2, -strip.p * strip.len],
-            [-strip.th / 2, (1 - strip.p) * strip.len], [strip.th / 2, (1 - strip.p) * strip.len]]) {
-            const X = strip.px + cs * x - sn * y, Y = strip.py + sn * x + cs * y;
-            if (X < 0 || Y < 0 || X > w || Y > h) { off.push(`${w} r${rank} k${k} u${u.toFixed(2)}: (${X.toFixed(0)}, ${Y.toFixed(0)})`); break; }
+      const L = M.layout(w, p), H = L.heat, h = W.height({ w, ...p });
+      const sigBox = (j) => box({ x: L.x0, y: L.rows[j].title - 12, w: M.shortRight(L) - L.x0, h: L.rows[j].profile.base + 6 - (L.rows[j].title - 12) });
+      const wBlock = box({ x: H.W.x, y: M.wTop(L, rank), w: H.W.w, h: rank * (M.W_ROW + 1) });
+      const T = M.showTiming(rank);
+      for (let now = 0; now <= T.total; now += 5) {
+        frames += 1;
+        const us = M.showAt(rank, now).u;
+        const qs = us.map((u, k) => quad(M.column(L, rank, k, u).strip));
+        us.forEach((u, k) => {
+          if (qs[k].some(([x, y]) => x < -0.5 || y < -0.5 || x > w + 0.5 || y > h + 0.5)) hits.edge.push(`${w} r${rank} ${k + 1} ${now}`);
+          if (!(u > 0 && u < 1)) return;
+          us.forEach((o, j) => {
+            if (j === k) return;
+            if (o >= 1 && meet(qs[k], sigBox(j))) hits.finished.push(`${w} r${rank}: column ${k + 1} over signature ${j + 1} at ${now} ms`);
+            else if (o > 0 && o < 1 && meet(qs[k], qs[j])) hits.moving.push(`${w} r${rank}: ${k + 1} and ${j + 1} at ${now} ms`);
+            else if (o <= 0 && meet(qs[k], qs[j])) hits.waiting.push(`${w} r${rank}: ${k + 1} over column ${j + 1} at ${now} ms`);
+          });
+          if (meet(qs[k], wBlock)) hits.w.push(`${w} r${rank}: column ${k + 1} over W at ${now} ms`);
+        });
+      }
+      const T3 = M.openTiming();
+      for (let now = 0; now <= T3.total; now += 5) {
+        frames += 1;
+        const at = M.openAt(now);
+        for (let k = 0; k < rank; k += 1) {
+          const row = box(M.wRow(L, rank, k, at.e, at.f));
+          for (let j = 0; j < rank; j += 1) {
+            const st = M.widened(L, j, at.f), R = L.rows[j];
+            if (meet(row, box({ x: st.px - st.len, y: R.profile.top, w: st.len, h: R.profile.base + 6 - R.profile.top }))) {
+              hits.finished.push(`${w} r${rank}: W's row ${k + 1} over signature ${j + 1} at ${now} ms of press 3`);
+            }
+            if (j !== k && meet(row, box(M.wRow(L, rank, j, at.e, at.f)))) hits.moving.push(`${w} r${rank}: W's rows ${k + 1} and ${j + 1}`);
           }
         }
       }
     }
   }
-  check("every column of S stays on the canvas through its turn, at ranks 2 to 6 and both widths", off.length === 0, off.slice(0, 2).join(" | "));
+  check(`nothing moves over a finished signature, at 535, 626 and 770 and ranks 2 to 6 (${frames} frames)`, hits.finished.length === 0, hits.finished.slice(0, 2).join(" | "));
+  check("no two moving strips meet, and none passes over W or a column of S still waiting",
+    hits.moving.length + hits.w.length + hits.waiting.length === 0, [...hits.moving, ...hits.w, ...hits.waiting].slice(0, 2).join(" | "));
+  check("every moving strip stays on the canvas", hits.edge.length === 0, hits.edge.slice(0, 2).join(" | "));
+
+  /* the page rests after press 2: the signatures beside W, M and S gone */
+  {
+    const p = paramsOf({ page: "signatures" });
+    const { seen } = frame(p, { ...blank("signatures"), sig: 2, sigT: 1 }, 626);
+    const fit = M.fitFor(1, "in", 4);
+    check("after press 2 the page rests with each signature titled beside W, and M and S gone",
+      seen.includes(M.STRINGS.shownCaption) && fit.sigs.every((_, k) => seen.includes(M.STRINGS.sigTitle(k + 1)))
+        && seen.includes(M.STRINGS.heatW) && !seen.includes(M.STRINGS.heatM) && !seen.includes(M.STRINGS.heatS)
+        && !seen.includes(M.STRINGS.openedCaption), seen.slice(0, 4).join(" · "));
+    const done = frame(p, { ...blank("signatures"), sig: 3, sigT: 1 }, 626).seen;
+    check("after press 3 the opened view: its caption, and W and the resting caption gone",
+      done.includes(M.STRINGS.openedCaption) && !done.includes(M.STRINGS.heatW) && !done.includes(M.STRINGS.shownCaption));
+  }
 
   /* tumor 101 */
   const fit = M.fitFor(1, "in", 4), co = M.cohortFor(1);
@@ -503,7 +575,7 @@ console.log("\n§6b the opening press and the ramp");
     for (const hypermutated of ["in", "out"]) {
       const p = paramsOf({ page, hypermutated });
       const stages = page === "signatures"
-        ? [[0, 1], [1, 1], [2, 0.1], [2, 0.5], [2, 0.9], [2, 1]].map(([sig, sigT]) => ({ ...blank(page), sig, sigT }))
+        ? [[0, 1], [1, 1], [2, 0.1], [2, 0.5], [2, 1], [3, 0.3], [3, 0.7], [3, 1]].map(([sig, sigT]) => ({ ...blank(page), sig, sigT }))
         : [{ ...blank(page), sig: 1, match: 1, matchT: 1 }];
       for (const anim of stages) {
         const { styles } = frame(p, anim, 626);
