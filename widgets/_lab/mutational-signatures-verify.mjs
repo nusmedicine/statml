@@ -46,7 +46,7 @@
    A SWITCH MID-PRESS (2026-09-19): another page or tumor finishes the press
    in flight and ends its loop, rather than taking the other page's press.
 
-   THE STATUS. The manifest and `main.js` both say `draft`, and this says so.
+   THE STATUS. The manifest and `main.js` both say `shipped`, and this says so.
 
    Exits non-zero on failure.
    ========================================================================= */
@@ -277,7 +277,7 @@ const W = await widget();
     W.animation.stepLabel.anim === "labelAt" && ["k0", "k1", "k2", "s0", "s1", "mX", "m0"].every((k) => typeof labels[k] === "string"));
   check("the page declines Play", W.animation.runLabel === null);
   const manifest = JSON.parse(read("widgets/manifest.json")).widgets.find((w) => w.slug === "mutational-signatures");
-  check("the manifest and main.js both say draft", manifest?.status === "draft" && W.status === "draft");
+  check("the manifest and main.js both say shipped", manifest?.status === "shipped" && W.status === "shipped");
   check("the blurb is the page's meta description",
     read("widgets/mutational-signatures/index.html").includes(`content="${manifest.blurb}"`) && manifest.blurb.length <= 120, `${manifest.blurb.length} chars`);
   check("the lab's model re-exports the widget's", /from "\.\.\/mutational-signatures\/model\.js"/.test(read("widgets/_lab/mutational-signatures-model.js")));

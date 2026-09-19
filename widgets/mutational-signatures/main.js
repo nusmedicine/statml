@@ -937,7 +937,7 @@ const ON_PAGES_2_3 = { param: "page", oneOf: ["signatures", "matching"] };
 defineWidget({
   slug: "mutational-signatures",
   title: "Mutational Signatures",
-  status: "draft",
+  status: "shipped",
   subtitle: S.subtitle,
   layout: "side",
   height: ({ w, ...values }) => M.stageHeight(w, values),

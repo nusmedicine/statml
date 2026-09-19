@@ -7653,25 +7653,443 @@
       "tx": "a1d17eef"
     },
     {
-      "$note": "mutational-signatures · DRAFT placeholder: page 1, the tumor's 96 types",
+      "$note": "mutational-signatures · Catalogue, before any press: the empty frame and its caption",
+      "slug": "mutational-signatures",
+      "state": "?theme=light&shown=0",
+      "px": "2ad045fe",
+      "tx": "22e3cdc1"
+    },
+    {
+      "$note": "mutational-signatures · the mutations added: twelve written changes, each purine form the paler bar",
+      "slug": "mutational-signatures",
+      "state": "?theme=light&shown=1",
+      "px": "ceeb6bdc",
+      "tx": "05f3702a"
+    },
+    {
+      "$note": "mutational-signatures · read from the pyrimidine: six classes, the written counts on each stack, the strands band",
+      "slug": "mutational-signatures",
+      "state": "?theme=light&shown=2",
+      "px": "7e498a62",
+      "tx": "8a5a13af"
+    },
+    {
+      "$note": "mutational-signatures · split by the neighbouring bases: a 4×4 grid a class, the example type named and outlined",
       "slug": "mutational-signatures",
       "state": "?theme=light&shown=3",
-      "px": "0",
-      "tx": "0"
+      "px": "68a927c0",
+      "tx": "7e4aeddb"
     },
     {
-      "$note": "mutational-signatures · DRAFT placeholder: page 2, each signature with its exposures",
+      "$note": "mutational-signatures · the 96 types lined up as signatures are plotted, the example's bar outlined",
+      "slug": "mutational-signatures",
+      "state": "?theme=light&shown=4",
+      "px": "2f1c419b",
+      "tx": "7e4aeddb"
+    },
+    {
+      "$note": "mutational-signatures · tumor 101, the hypermutated one, lined up",
+      "slug": "mutational-signatures",
+      "state": "?theme=light&tumor=hypermutated&shown=4",
+      "px": "287c4886",
+      "tx": "66ae96ba"
+    },
+    {
+      "$note": "mutational-signatures · a type named by the link: T[C>T]A outlined in its grid",
+      "slug": "mutational-signatures",
+      "state": "?theme=light&type=T%5BC%3ET%5DA&shown=3",
+      "px": "421dcf64",
+      "tx": "7e4aeddb"
+    },
+    {
+      "$note": "mutational-signatures · Signatures, before any press: M, and S's and W's empty frames",
+      "slug": "mutational-signatures",
+      "state": "?theme=light&page=signatures&shown=0",
+      "px": "9cc7eb8d",
+      "tx": "4b2cab87"
+    },
+    {
+      "$note": "mutational-signatures · extracted: M ≈ S × W filled",
+      "slug": "mutational-signatures",
+      "state": "?theme=light&page=signatures&shown=1",
+      "px": "78714c43",
+      "tx": "e76bc1f8"
+    },
+    {
+      "$note": "mutational-signatures · each column of S plotted as a signature, beside W",
       "slug": "mutational-signatures",
       "state": "?theme=light&page=signatures&shown=2",
-      "px": "0",
-      "tx": "0"
+      "px": "7e8e8a79",
+      "tx": "e76bc1f8"
     },
     {
-      "$note": "mutational-signatures · DRAFT placeholder: page 3, compared",
+      "$note": "mutational-signatures · each signature opened out with its exposures",
+      "slug": "mutational-signatures",
+      "state": "?theme=light&page=signatures&shown=3",
+      "px": "64779df2",
+      "tx": "6e2ae946"
+    },
+    {
+      "$note": "mutational-signatures · the hypermutated tumor left out",
+      "slug": "mutational-signatures",
+      "state": "?theme=light&page=signatures&hypermutated=out&shown=3",
+      "px": "e406acdc",
+      "tx": "31952a6d"
+    },
+    {
+      "$note": "mutational-signatures · six signatures, the tallest page",
+      "slug": "mutational-signatures",
+      "state": "?theme=light&page=signatures&rank=6&shown=3",
+      "px": "843d6d45",
+      "tx": "3b7aa9c8"
+    },
+    {
+      "$note": "mutational-signatures · two signatures",
+      "slug": "mutational-signatures",
+      "state": "?theme=light&page=signatures&rank=2&shown=3",
+      "px": "c22f7dc8",
+      "tx": "4fe20f56"
+    },
+    {
+      "$note": "mutational-signatures · another cohort at seed 3",
+      "slug": "mutational-signatures",
+      "state": "?theme=light&page=signatures&seed=3&shown=3",
+      "px": "a3deaca1",
+      "tx": "5134bae7"
+    },
+    {
+      "$note": "mutational-signatures · Matching, before any press: the references named, nothing extracted",
+      "slug": "mutational-signatures",
+      "state": "?theme=light&page=matching&shown=0",
+      "px": "ea4d05e5",
+      "tx": "fb49a37b"
+    },
+    {
+      "$note": "mutational-signatures · compared: every cosine, signature 1 beside its best match and the runner-up",
       "slug": "mutational-signatures",
       "state": "?theme=light&page=matching&shown=1",
-      "px": "0",
-      "tx": "0"
+      "px": "7552287b",
+      "tx": "0444dfdd"
+    },
+    {
+      "$note": "mutational-signatures · signature 4 beside its matches",
+      "slug": "mutational-signatures",
+      "state": "?theme=light&page=matching&signature=4&shown=1",
+      "px": "803ef584",
+      "tx": "5795dd40"
+    },
+    {
+      "$note": "mutational-signatures · True processes off",
+      "slug": "mutational-signatures",
+      "state": "?theme=light&page=matching&truth=off&shown=1",
+      "px": "139a8dd9",
+      "tx": "0444dfdd"
+    },
+    {
+      "$note": "mutational-signatures · the hypermutated tumor left out, compared",
+      "slug": "mutational-signatures",
+      "state": "?theme=light&page=matching&hypermutated=out&shown=1",
+      "px": "672bd5f0",
+      "tx": "80d27125"
+    },
+    {
+      "$note": "mutational-signatures · DRIVEN - the mutations arriving, part way through the first press",
+      "slug": "mutational-signatures",
+      "state": "?theme=light",
+      "drive": {
+        "click": "step",
+        "frames": 14,
+        "dt": 32
+      },
+      "px": "3211f725",
+      "tx": "cc921854"
+    },
+    {
+      "$note": "mutational-signatures · DRIVEN - the fold, each purine bar part way onto its pyrimidine partner",
+      "slug": "mutational-signatures",
+      "state": "?theme=light",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 40
+          }
+        ],
+        "click": "step",
+        "frames": 12,
+        "dt": 32
+      },
+      "px": "94d2c069",
+      "tx": "8a5a13af"
+    },
+    {
+      "$note": "mutational-signatures · DRIVEN - the split, each class's bar part way into its grid while the square steps aside",
+      "slug": "mutational-signatures",
+      "state": "?theme=light",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 40
+          },
+          {
+            "click": "step",
+            "frames": 26
+          }
+        ],
+        "click": "step",
+        "frames": 20,
+        "dt": 32
+      },
+      "px": "d66bbdd8",
+      "tx": "8a5a13af"
+    },
+    {
+      "$note": "mutational-signatures · DRIVEN - the line-up, the grids part way into the row of 96",
+      "slug": "mutational-signatures",
+      "state": "?theme=light",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 40
+          },
+          {
+            "click": "step",
+            "frames": 26
+          },
+          {
+            "click": "step",
+            "frames": 42
+          }
+        ],
+        "click": "step",
+        "frames": 20,
+        "dt": 32
+      },
+      "px": "e49fd53b",
+      "tx": "8a5a13af"
+    },
+    {
+      "$note": "mutational-signatures · DRIVEN - the descent, part way",
+      "slug": "mutational-signatures",
+      "state": "?theme=light&page=signatures",
+      "drive": {
+        "click": "step",
+        "frames": 30,
+        "dt": 32
+      },
+      "px": "3fab407a",
+      "tx": "4b2cab87"
+    },
+    {
+      "$note": "mutational-signatures · DRIVEN - the signatures forming beside W, one column at a time",
+      "slug": "mutational-signatures",
+      "state": "?theme=light&page=signatures",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 78
+          }
+        ],
+        "click": "step",
+        "frames": 40,
+        "dt": 32
+      },
+      "px": "050b9189",
+      "tx": "e76bc1f8"
+    },
+    {
+      "$note": "mutational-signatures · DRIVEN - each signature opening out with its exposures",
+      "slug": "mutational-signatures",
+      "state": "?theme=light&page=signatures",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 78
+          },
+          {
+            "click": "step",
+            "frames": 92
+          }
+        ],
+        "click": "step",
+        "frames": 30,
+        "dt": 32
+      },
+      "px": "897b23dc",
+      "tx": "e76bc1f8"
+    },
+    {
+      "$note": "mutational-signatures · DRIVEN - the comparison scanning signature 1's row",
+      "slug": "mutational-signatures",
+      "state": "?theme=light&page=matching",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 2
+          }
+        ],
+        "click": "step",
+        "frames": 40,
+        "dt": 32
+      },
+      "px": "a1155db0",
+      "tx": "fb49a37b"
+    },
+    {
+      "$note": "mutational-signatures · DRIVEN - the panel easing from signature 1 to 3, after the comparison",
+      "slug": "mutational-signatures",
+      "state": "?theme=light&page=matching",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 2
+          },
+          {
+            "click": "step",
+            "frames": 92
+          }
+        ],
+        "set": {
+          "signature": "3"
+        },
+        "frames": 6,
+        "dt": 32
+      },
+      "px": "b057b06c",
+      "tx": "a70bc930"
+    },
+    {
+      "$note": "mutational-signatures · INTERRUPTED - page 2 visited mid-arrival: nothing extracted, the loop ended",
+      "slug": "mutational-signatures",
+      "state": "?theme=light",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 5
+          }
+        ],
+        "set": {
+          "page": "signatures"
+        },
+        "frames": 10,
+        "dt": 32
+      },
+      "px": "9cc7eb8d",
+      "tx": "4b2cab87"
+    },
+    {
+      "$note": "mutational-signatures · INTERRUPTED - another tumor mid-arrival: page 1 empty for it, nothing landing",
+      "slug": "mutational-signatures",
+      "state": "?theme=light",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 5
+          }
+        ],
+        "set": {
+          "tumor": "hypermutated"
+        },
+        "frames": 10,
+        "dt": 32
+      },
+      "px": "92d2ffee",
+      "tx": "ae805b71"
+    },
+    {
+      "$note": "mutational-signatures · HIT-DRIVEN: after the split, T[C>T]A's square in the C>T grid at [229,236] names it",
+      "slug": "mutational-signatures",
+      "state": "?theme=light",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 40
+          },
+          {
+            "click": "step",
+            "frames": 26
+          },
+          {
+            "click": "step",
+            "frames": 42
+          }
+        ],
+        "hit": [
+          229,
+          236
+        ],
+        "frames": 2,
+        "dt": 32
+      },
+      "px": "421dcf64",
+      "tx": "7e4aeddb"
+    },
+    {
+      "$note": "mutational-signatures · HIT-DRIVEN: after the line-up, T[C>G]T's column in the row of 96 at [209,214] names it",
+      "slug": "mutational-signatures",
+      "state": "?theme=light",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 40
+          },
+          {
+            "click": "step",
+            "frames": 26
+          },
+          {
+            "click": "step",
+            "frames": 42
+          },
+          {
+            "click": "step",
+            "frames": 42
+          }
+        ],
+        "hit": [
+          209,
+          214
+        ],
+        "frames": 2,
+        "dt": 32
+      },
+      "px": "992bba41",
+      "tx": "7e4aeddb"
+    },
+    {
+      "$note": "mutational-signatures · HIT-DRIVEN: after the comparison, signature 3's row at [212,215] opens it, the panel mid-ease",
+      "slug": "mutational-signatures",
+      "state": "?theme=light&page=matching",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 2
+          },
+          {
+            "click": "step",
+            "frames": 92
+          }
+        ],
+        "hit": [
+          212,
+          215
+        ],
+        "frames": 6,
+        "dt": 32
+      },
+      "px": "09c5fd19",
+      "tx": "a70bc930"
     }
   ]
 }
