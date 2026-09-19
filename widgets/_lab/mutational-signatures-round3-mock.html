@@ -271,7 +271,7 @@ function drawMatch(ctx, T, w) {
   const P1 = B.best, P2 = B.runner;
   const labelPair = (m, head, which) => {
     text(ctx, head, L.x0, which.label, { font: cap(T), fill: T.ink1 });
-    text(ctx, `${S.cosLabel(m.cos)} · ${S.standsFor(m)}`, L.x1, which.label, { font: note(T), fill: T.ink2, align: "right" });
+    text(ctx, `${S.cosLabel(m.cos)} · ${S.modelledOn(m)}`, L.x1, which.label, { font: note(T), fill: T.ink2, align: "right" });
   };
   if (pressed && scan && now < ROWS_AT) {
     /* the scan: each reference in turn under the signature */
@@ -294,8 +294,8 @@ function drawMatch(ctx, T, w) {
     });
     const runA = scan ? E(seg(now, SETTLE_AT, SCAN_TOTAL)) : E(now / NOW_TOTAL);
     alpha(ctx, runA, () => {
-      alpha(ctx, 1 - ease, () => { text(ctx, S.runnerLabel(sa.match[1]), L.x0, P2.label, { font: note(T), fill: T.ink1 }); text(ctx, `${S.cosLabel(sa.match[1].cos)} · ${S.standsFor(sa.match[1])}`, L.x1, P2.label, { font: note(T), fill: T.ink2, align: "right" }); });
-      alpha(ctx, ease, () => { text(ctx, S.runnerLabel(sb.match[1]), L.x0, P2.label, { font: note(T), fill: T.ink1 }); text(ctx, `${S.cosLabel(sb.match[1].cos)} · ${S.standsFor(sb.match[1])}`, L.x1, P2.label, { font: note(T), fill: T.ink2, align: "right" }); });
+      alpha(ctx, 1 - ease, () => { text(ctx, S.runnerLabel(sa.match[1]), L.x0, P2.label, { font: note(T), fill: T.ink1 }); text(ctx, `${S.cosLabel(sa.match[1].cos)} · ${S.modelledOn(sa.match[1])}`, L.x1, P2.label, { font: note(T), fill: T.ink2, align: "right" }); });
+      alpha(ctx, ease, () => { text(ctx, S.runnerLabel(sb.match[1]), L.x0, P2.label, { font: note(T), fill: T.ink1 }); text(ctx, `${S.cosLabel(sb.match[1].cos)} · ${S.modelledOn(sb.match[1])}`, L.x1, P2.label, { font: note(T), fill: T.ink2, align: "right" }); });
       barsFrom(ctx, T, mixH(M.REF[sa.match[1].key].profile, M.REF[sb.match[1].key].profile, P2.top, P2.base), L.x0, L.x1, P2.base);
     });
   }

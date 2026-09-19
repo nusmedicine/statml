@@ -8,7 +8,7 @@
 
      Catalogue    one tumor's substitutions into 96 types: as written, read
                   from the pyrimidine, and with the base on either side
-     Signatures   the cohort's 96 × n matrix factorised as M ≈ S × W, then
+     Signatures   the cohort's 96 × n matrix factorized as M ≈ S × W, then
                   each column of S drawn as a signature beside W, then each
                   signature opened out with its exposures
      Matching     each signature against ten reference profiles by cosine
@@ -96,7 +96,7 @@ export const sum = (v) => { let s = 0; for (const x of v) s += x; return s; };
    Each profile is a recipe: the share of each substitution class, and within a
    class a weight for each 5′ and each 3′ base (multiplied), plus a small floor
    everywhere. Weights are listed A, C, G, T. `like` names the COSMIC signature
-   each stands for, which the page prints; `scored` names the legacy and the v3
+   each is modelled on, which the page prints; `scored` names the legacy and the v3
    profile the measure scores the resemblance against
    (`_lab/mutational-signatures-measure.txt` § 2). */
 const U = [1, 1, 1, 1];
@@ -151,7 +151,7 @@ export const REFERENCES = [
   { key: "tobacco", name: "Tobacco smoking", like: "SBS4", scored: ["COSMIC_4", "SBS4"],
     profile: recipe({ classes: { "C>A": 0.62, "T>A": 0.15, "C>T": 0.1, "C>G": 0.06, "T>C": 0.05, "T>G": 0.02 },
       left: { "C>A": [0.18, 0.48, 0.1, 0.24], "T>A": [0.2, 0.44, 0.12, 0.24] }, right: { "C>A": [0.34, 0.32, 0.04, 0.3] } }) },
-  { key: "oxidative", name: "Reactive oxygen", like: "SBS18", scored: ["COSMIC_18", "SBS18"],
+  { key: "oxidative", name: "Reactive oxygen species", like: "SBS18", scored: ["COSMIC_18", "SBS18"],
     profile: recipe({ classes: { "C>A": 0.7, "C>T": 0.14, "T>A": 0.05, "T>C": 0.05, "C>G": 0.04, "T>G": 0.02 },
       left: { "C>A": [0.14, 0.14, 0.34, 0.38] }, right: { "C>A": [0.46, 0.08, 0.04, 0.42] } }) },
 ];
@@ -868,7 +868,7 @@ export const STRINGS = {
     + "and their exposures, and each signature is named by the reference profile it is most similar to.",
 
   pageLabel: "Page",
-  pageDetail: "one tumor's mutations, the cohort factorised, or each signature compared with the references",
+  pageDetail: "one tumor's mutations, the cohort factorized, or each signature compared with the references",
   tumorSection: "The tumor",
   tumorLabel: "Tumor",
   tumorDetail: "two tumors of the cohort: the one with the most mutations apart from the hypermutated one, and the "
@@ -877,10 +877,10 @@ export const STRINGS = {
   hyperLabel: "The hypermutated tumor",
   hyperDetail: "one tumor with 7.1% of the cohort's mutations, from a polymerase epsilon profile",
   rankLabel: "Signatures to extract",
-  rankDetail: "the rank of the factorization: it finds as many signatures as it is given",
+  rankDetail: "the rank of the factorization: the number of signatures extracted",
   lookSection: "How to look at it",
   openLabel: "Signature",
-  openDetail: "the signature drawn beside its best match and the runner-up",
+  openDetail: "the signature plotted beside its best match and the runner-up",
   dataSection: "The data",
   seedLabel: "Seed",
   seedDetail: "draws a different cohort",
@@ -908,20 +908,19 @@ export const STRINGS = {
   catWritten: "As written: the change on the reference strand",
   catFolded: "Read from the pyrimidine: G>A is C>T on the other strand",
   catGrid: "96 types: a row for each 5′ base, a column for each 3′ base",
-  catLined: "96 types in a row: each grid read row by row, as signatures are drawn",
+  catLined: "96 types in a row: each grid read row by row, as signatures are plotted",
   fivePrime: "5′",
   threePrime: "3′ →",
-  purineNote: "from a purine (G or A): the paler bar",
   axisCount: "substitutions",
   tiLine: (ti) => `Transitions (C>T and T>C): ${pct(ti)} · transversions: ${pct(1 - ti)}`,
   /* the named type's line, the draft's example line generalised (round 4) */
-  typeLine: (c, n) => `${c}: ${intText(n)} mutation${n === 1 ? "" : "s"}, ${c[2]} changed to ${c[4]} between ${c[0]} (5′) and ${c[6]} (3′)`,
+  typeLine: (c, n) => `${c}: ${intText(n)} substitution${n === 1 ? "" : "s"}, ${c[2]} changed to ${c[4]} between ${c[0]} (5′) and ${c[6]} (3′)`,
   typeLabel: "Type",
   typeDetail: "one of the 96, named in the line under the figure",
   strandsTitle: "One mutation, both strands: the base pair G:C became A:T",
-  strandPlus: "+ strand",
-  strandMinus: "− strand",
-  strandWritten: "written by the file: G>A",
+  strandPlus: "reference strand",
+  strandMinus: "other strand",
+  strandWritten: "as written: G>A",
   strandRead: "read 5′→3′, GCT to GTT: C>T",
   squarePurines: "purines",
   squarePyrimidines: "pyrimidines",
@@ -939,13 +938,12 @@ export const STRINGS = {
   tumorsAxis: (n) => `${n} tumors`,
   sigAxis: (r) => `${r} signatures`,
   hyperTag: "tumor 101",
-  heatNote: (cap) => `Shading: M by count, full at ${cap} and above; S and W by the square root`,
+  heatNote: (cap) => `Shading: M by count, strongest at ${cap} or more; S and W by the square root`,
   iterLine: (it, kl) => `after ${intText(it)} iterations: KL divergence ${intText(kl)}`,
   sigTitle: (k) => `Signature ${k}`,
-  sigShare: (s) => `${pct(s)} of the fit`,
+  sigShare: (s) => `${pct(s)} of the total exposure`,
   halfLine: (n) => (n === 1 ? "Half of its exposure is in one tumor" : `Half of its exposure is in ${n} tumors`),
   topTumor: (j, hyper, share) => (hyper ? `tumor 101, the hypermutated one, has ${pct(share)}` : `tumor ${j + 1} has the most, ${pct(share)}`),
-  stripNote: "its exposure in each tumor, largest first",
 
   /* page 3 */
   matchCaption: "Cosine similarity with each reference",
@@ -955,10 +953,10 @@ export const STRINGS = {
   runnerLabel: (m) => `Runner-up: ${m.name}`,
   cosLabel: (c) => `cosine ${cos3(c)}`,
   comparedLabel: (name) => `Compared with: ${name}`,
-  standsFor: (m) => `stands for ${m.like}`,
+  modelledOn: (m) => `modelled on ${m.like}`,
   referencesNote: "Each reference is a profile built to resemble the COSMIC signature named beside it.",
 
-  shownCaption: "Each column of S, drawn as a signature: the share of each type",
+  shownCaption: "Each column of S, plotted as a signature: the share of each type",
   openedCaption: "Each signature, and below it its exposure in each tumor, largest first",
 
   /* the legend */
@@ -982,7 +980,7 @@ export const STRINGS = {
   tileToExtract: (r) => `${r} to extract`,
   tileLargest: "Largest share in one tumor",
   tileLargestNote: (k, j) => `of signature ${k}'s exposure, in tumor ${j + 1}`,
-  tileLargestWait: "once each signature is shown",
+  tileLargestWait: "once the exposures are shown",
   tileBest: "Best match",
   tileRunner: "Runner-up",
   tileFor: (k) => `for signature ${k}`,
@@ -998,8 +996,8 @@ export const STRINGS = {
     `Tumor ${t.index + 1}'s substitutions in 96 types in a row, the change with the base on either side; ${t.typesHit} types have a mutation.`,
   ][cat],
   sumM: (n) => `The matrix M: 96 mutation types by ${n} tumors, before any signature is extracted.`,
-  sumExtracted: (n, r, it) => `M, 96 types by ${n} tumors, factorised into ${r} signatures and their exposures after ${intText(it)} iterations.`,
-  sumShown: (r) => `${r} signatures, each a column of S drawn as bars over the 96 types, beside W, their exposures.`,
+  sumExtracted: (n, r, it) => `M, 96 types by ${n} tumors, factorized into ${r} signatures and their exposures after ${intText(it)} iterations.`,
+  sumShown: (r) => `${r} signatures, each a column of S plotted as bars over the 96 types, beside W, the matrix of their exposures.`,
   sumOpened: (r, own) => `${r} signatures, each with its exposure in each tumor${own ? `; half of signature ${own}'s exposure is in one tumor` : ""}.`,
   sumNoSignatures: "Ten reference profiles, and no signature extracted yet to compare with them.",
   sumNotCompared: (r) => `${r} signatures and ten reference profiles, not yet compared.`,

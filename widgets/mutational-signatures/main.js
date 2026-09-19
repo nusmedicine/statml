@@ -347,7 +347,8 @@ function drawStrands(ctx, colors, L, alpha) {
     };
     const row = (y, label, ends, before, after, mark, words, wordsFill) => {
       text(ctx, label, L.x0, y + 12, { font: noteFont(colors), fill: colors.ink2 });
-      let x = seq(L.x0 + 58, y, ends, before, mark);
+      /* room for "reference strand", the captions' own words (the copy audit) */
+      let x = seq(L.x0 + 104, y, ends, before, mark);
       text(ctx, "→", x + 6, y + 12, { font: noteFont(colors), fill: colors.ink2, align: "center" });
       x = seq(x + 16, y, ends, after, mark);
       text(ctx, words, x + 8, y + 12, { font: noteFont(colors), fill: wordsFill });
@@ -803,7 +804,7 @@ function drawMatching(ctx, colors, w, params, state, anim) {
     ctx.closePath();
     ctx.fill();
   });
-  if (params.truth === "1") {
+  if (params.truth === "on") {
     withAlpha(ctx, at.built, () => f.sigs.forEach((s, k) => {
       text(ctx, S.builtLine(k + 1, M.builtText(s.mix)), L.x0 - 36, L.builtTop + k * M.BUILT_ROW, { font: noteFont(colors), fill: colors.ink2 });
     }));
@@ -816,7 +817,7 @@ function drawMatching(ctx, colors, w, params, state, anim) {
     const P = B[which];
     text(ctx, which === "best" ? S.bestLabel(m) : S.runnerLabel(m), L.x0, P.label,
       { font: which === "best" ? capFont(colors) : noteFont(colors), fill: colors.ink1 });
-    text(ctx, `${S.cosLabel(m.cos)} · ${S.standsFor(m)}`, L.x1, P.label, { font: noteFont(colors), fill: colors.ink2, align: "right" });
+    text(ctx, `${S.cosLabel(m.cos)} · ${S.modelledOn(m)}`, L.x1, P.label, { font: noteFont(colors), fill: colors.ink2, align: "right" });
   });
   const bars = (va, vb, P) => {
     const a = barHeights(va, P.top, P.base), b = barHeights(vb, P.top, P.base);
@@ -834,7 +835,7 @@ function drawMatching(ctx, colors, w, params, state, anim) {
       const m = s.match.find((x) => x.key === r.key);
       withAlpha(ctx, at.comparingIn, () => {
         text(ctx, S.comparedLabel(r.name), L.x0, B.best.label, { font: capFont(colors), fill: colors.ink1 });
-        text(ctx, `${S.cosLabel(m.cos)} · ${S.standsFor(m)}`, L.x1, B.best.label, { font: noteFont(colors), fill: colors.ink2, align: "right" });
+        text(ctx, `${S.cosLabel(m.cos)} · ${S.modelledOn(m)}`, L.x1, B.best.label, { font: noteFont(colors), fill: colors.ink2, align: "right" });
         profileBars(ctx, colors, r.profile, { x0: L.x0, x1: L.x1, top: B.best.top, base: B.best.base });
       });
     } else {
@@ -983,10 +984,12 @@ defineWidget({
     dataSec: { type: "section", label: S.dataSection, afterDrive: true },
     seed: { type: "int", label: S.seedLabel, detail: S.seedDetail, min: 1, max: 200, default: 1, afterDrive: true },
     /* 3.7: a reveal is "True <noun>", Off/On, directly after Seed. On by
-       default, his pick 4: what built each signature is printed. */
+       default, his pick 4: what built each signature is printed. The link
+       carries the words the control shows, off/on, as every True-X switch in
+       the collection does (5.9; the copy audit, 2026-09-19). */
     truth: {
       type: "segmented", label: S.truthLabel, detail: S.truthDetail,
-      options: [{ value: "0", label: "Off" }, { value: "1", label: "On" }], default: "1",
+      options: [{ value: "off", label: "Off" }, { value: "on", label: "On" }], default: "on",
       display: true, afterDrive: true, when: { param: "page", equals: "matching" },
     },
 

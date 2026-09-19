@@ -256,7 +256,7 @@ const W = await widget();
     spec.page.display && spec.tumor.display && spec.signature.display && spec.truth.display
     && !spec.hypermutated.display && !spec.rank.display && !spec.seed.display);
   check("the cohort opens with the hypermutated tumor in, at rank 4, truth on",
-    spec.hypermutated.default === "in" && spec.rank.default === 4 && spec.truth.default === "1");
+    spec.hypermutated.default === "in" && spec.rank.default === 4 && spec.truth.default === "on");
   check("the signature control offers one button a signature, following the rank",
     optionKeys(spec.signature, { rank: 6 }).join() === "1,2,3,4,5,6" && optionKeys(spec.signature, { rank: 2 }).join() === "1,2");
   check("shown is hidden and runs 0 to 4", spec.shown.hidden === true && spec.shown.max === 4);
@@ -385,7 +385,7 @@ console.log("\n§6 the geometry");
         for (const [sig, sigT] of [[0, 1], [1, 0.3], [1, 1], ...along.map((t) => [2, t]), ...along.map((t) => [3, t])]) {
           paint(p2, { ...blank("signatures", "largest"), sig, sigT }, w);
         }
-        for (const truth of ["0", "1"]) {
+        for (const truth of ["off", "on"]) {
           for (const signature of ["1", String(rank)]) {
             const p3 = paramsOf({ page: "matching", rank, hypermutated, truth, signature });
             for (const [sig, match, matchT] of [[0, 0, 1], [1, 0, 1], [1, 1, 0.05], [1, 1, 0.3], [1, 1, 0.5], [1, 1, 0.62], [1, 1, 0.7], [1, 1, 0.85], [1, 1, 1]]) {
@@ -791,10 +791,12 @@ console.log("\n§7 the copy");
     .filter((t) => /[a-z]{3}/i.test(t) && !/^<|var\(--|^\([a-z-]+:/.test(t) && t.trim().length >= 12);
   const struck = [
     ["a physical verb for a value", /\b(sits?|sitting|sat|lies|lying|falls?|falling|fell|walks?|walking|lands?|landing)\b/i],
-    ["a model acting", /\b(keeps?|wants?|thinks?|believes?|decides?|chooses?|chose|knows?|tries|refuses?|prefers?|gathers?)\b/i],
-    ["our own shorthand", /\b(card|rung|trench|the plain|look-alike)\b/i],
+    ["a model acting", /\b(keeps?|wants?|thinks?|believes?|decides?|chooses?|chose|knows?|tries|refuses?|prefers?|gathers?|finds|stands? for|written by)\b/i],
+    /* the copy audit (2026-09-19) added "of the fit", "full at" and a
+       depiction called "drawn", which on this page also means sampled */
+    ["our own shorthand", /\b(card|rung|trench|the plain|look-alike|of the fit|full at|drawn)\b/i],
     ["a lesson reference", /\b(notebook|lesson|cell \d|chapter)\b/i],
-    ["the other spelling", /\btumour/i],
+    ["the other spelling", /\btumour|factoris/i],
     ["the reader addressed", /\b(you|your|yours)\b/i],
     ["a shade named for one theme", /\b(darker|lighter|darkest|lightest)\b/i],
   ];

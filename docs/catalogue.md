@@ -10214,6 +10214,48 @@ to counts, the grid's rows and columns are the 5′ and 3′ bases, the 96
 targets in each view inside the canvas and disjoint, the pointer and the pin
 name the right type.
 
+#### The copy audit, 2026-09-19
+
+On "keep the notation in the link, it's fine. do a copy audit" (the `type`
+value stays the field's T[C>T]A, percent-encoded). Four passes over 64 strings
+(register, lesson references, internal vocabulary, personification) plus the
+link values and the legends, presented as a table; he took the ten fixes as a
+set and the recommendation on three questions:
+
+1. "the cohort factorised" / "factorised into" → **factorized**, the method's
+   own spelling (the subtitle's "matrix factorization", widget 41's title);
+   the collection otherwise spells UK, so "neighbouring" stays.
+2. Signatures to extract: "it finds as many signatures as it is given" →
+   **"the number of signatures extracted"** (no agency for the method).
+3. The named type's line: "77 mutations" → **"77 substitutions"**, page 1's
+   count word everywhere else.
+4. The largest-share tile's wait note: "once each signature is shown" →
+   **"once the exposures are shown"** — since round 2 they come on press 3.
+5. Under M: "full at 11 and above" → **"strongest at 11 or more"**.
+6. **"drawn" → "plotted"** in four strings (the lined-up caption, the resting
+   caption and summary, the Signature control's detail): on this page "draws"
+   also means sampled (the Seed's "draws a different cohort").
+7. The resting summary: "…beside W, their exposures" → "…beside W, the
+   matrix of their exposures".
+8. The strands band: "written by the file: G>A" → **"as written: G>A"**, step
+   1's own caption; the page never names the file.
+9. "Reactive oxygen" → **"Reactive oxygen species"**, the standard term.
+10. The True processes link: `truth=0|1` → **`truth=off|on`**, the words the
+    control shows (5.9), as every other True-X switch writes them.
+11. His three picks: "stands for SBS1" → **"modelled on SBS1"** ("stands" is on
+    the personification list, and the reference is built to resemble COSMIC's);
+    "40% of the fit" → **"40% of the total exposure"**; the band's rows "+
+    strand / − strand" → **"reference strand / other strand"**, the captions'
+    own words.
+
+Kept on the evidence: "Recombination defect" and "Mismatch repair defect"
+(COSMIC's own "defective … repair"; the full names do not stand on end, and
+"HR" reads as hazard ratio in this course); "True processes", "Seed · draws a
+different cohort", "How to look at it" (the collection's settled names); the
+subtitle and blurb. Two unused strings removed (`purineNote`, `stripNote`).
+The verify's struck-word sweep now also strikes finds, stands for, written by,
+of the fit, full at, drawn, and factoris; 115 strings pass it.
+
 ### Slot 71 · `somatic-interactions` — not asked for, measured, cuttable
 
 **Host.** 01-3 cell 4 (co-occurring genes "could have synergistic effect",
