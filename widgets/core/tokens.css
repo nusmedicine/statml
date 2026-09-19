@@ -279,14 +279,32 @@
      so no colour enters it: Kenneth's pick over maftools' own six, which would
      have needed six from outside it. The black and the grey are ink because
      the convention's are. A panel wearing these must not also colour by VALUE
-     (the rule --c-value-low/high carry): widget 70's heatmaps take a grey ramp,
-     so its red means C>T and nothing else. */
+     with a hue they use (the rule --c-value-low/high carry): widget 70's
+     heatmaps take --c-magnitude below, so its red means C>T and nothing else. */
   --c-sub-ca:     var(--series-1);   /* C>A, blue  */
   --c-sub-cg:     var(--ink-1);      /* C>G, black */
   --c-sub-ct:     var(--series-8);   /* C>T, red   */
   --c-sub-ta:     var(--ink-3);      /* T>A, grey  */
   --c-sub-tc:     var(--series-6);   /* T>C, green */
   --c-sub-tg:     var(--series-5);   /* T>G, pink  */
+
+  /* --- how large a non-negative entry is, beside identity colours ---------- *
+     A matrix of counts, weights or similarities, shaded in one hue from
+     --surface-3 (nothing) to this (the most), for a figure whose rows or
+     columns already wear identity colours and so cannot take the red end of
+     --c-value-high, which widget 41 shades its NMF matrices with: widget 70's
+     M, S, W and cosine heatmap sit beside the six --c-sub-* classes, and red
+     there is C>T. Added 2026-09-19 on Kenneth's pick of violet over grey,
+     amber and the lesson's own cream-to-red, all four measured in both themes
+     in `_lab/mutational-signatures-round1-mock.html`: 7.6 from empty to full
+     on the light theme and 5.0 on the dark, a steady climb in both.
+
+     It shares its slot with --c-highlight, so the two must not meet on one
+     page: a legend is per page, and a violet swatch explained as "a larger
+     value" beside a violet rule meaning "look here" would say two things in
+     one colour. Widget 70 draws its travelling pair and its half rule in ink
+     for exactly this reason. */
+  --c-magnitude:  var(--series-7);   /* how large an entry is: the full end   */
 
   --c-wash: color-mix(in srgb, var(--c-empirical) 10%, transparent);
 
