@@ -1,0 +1,525 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · mutational-signatures — round 2 mock</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  body { background: var(--surface-2); }
+  .lab { max-width: 1640px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 110ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .bar { position: sticky; top: 0; z-index: 5; display: flex; flex-wrap: wrap; gap: var(--sp-2) var(--sp-5); align-items: center;
+         padding: var(--sp-2) var(--sp-3); margin: 0 0 var(--sp-3); background: var(--surface-1); border: 1px solid var(--grid);
+         border-radius: var(--radius); font-size: var(--fs-sm); color: var(--ink-2); }
+  .bar .grp { display: flex; align-items: center; gap: 6px; }
+  .bar button, .drive button { font: inherit; font-size: var(--fs-sm); padding: 3px 10px; border: 1px solid var(--axis); background: var(--surface-1);
+                color: var(--ink-1); border-radius: var(--radius); cursor: pointer; }
+  .bar button[aria-pressed="true"] { background: var(--ink-1); color: var(--surface-1); border-color: var(--ink-1); }
+  .drive { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; margin: var(--sp-2) 0; font-size: var(--fs-sm); color: var(--ink-2); }
+  .drive button:disabled { opacity: 0.45; cursor: default; }
+  .drive input[type="range"] { flex: 1 1 260px; accent-color: var(--focus); }
+  .drive .t { font-family: var(--font-mono); font-size: 11px; min-width: 16ch; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .row { display: flex; gap: var(--sp-3); align-items: flex-start; flex-wrap: wrap; }
+  .kf { flex: 0 0 auto; }
+  .kf .sub { font-size: 11px; color: var(--ink-3); margin: 2px 0 var(--sp-1); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--c-reference); background: var(--surface-1); max-width: 110ch; }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+       border-left: 3px solid var(--c-reference); background: var(--surface-1); max-width: 110ch; }
+  #checks { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--ink-2); white-space: pre-line;
+            padding: var(--sp-3); background: var(--surface-1); border: 1px solid var(--grid); max-width: 110ch; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>mutational-signatures &middot; round 2 mock</h1>
+  <p class="note">
+    Your ask on round 1: the press moved the columns over the signatures already in place, which is confusing.
+    Your picks: <b>B</b>, the signatures forming on the left while the matrices stay on the right, each column turning
+    beside S and sliding along its own row, and <b>the widening as its own press</b>. Drawn from the widget's
+    <code>model.js</code> (seed 1, the hypermutated tumor in) on its own layout, with the violet ramp and tumor 101's
+    outline from round 1. The widget's round-1 press is unchanged until you pick.
+  </p>
+
+  <div class="bar">
+    <div class="grp">Width <span id="widthBtns"></span></div>
+    <div class="grp">Signatures <span id="rankBtns"></span></div>
+    <div class="grp">Theme <span id="themeBtns"></span></div>
+    <div class="grp">Speed <span id="speedBtns"></span></div>
+  </div>
+
+  <h2>1 &middot; Page 2 after the extraction, and the two presses</h2>
+  <p class="note">
+    <b>Press 2, <i>Show the signatures</i>.</b> M fades. Then, one column at a time, left to right: the column of S
+    gathers itself in its own lane at its signature's row (its cells squeezed to a short strip, so it turns in a small
+    space), lies down to the left, turning about its C&gt;T&hellip;T&gt;G end so that C&gt;A points left as
+    <code>plotSignatures</code> reads, slides left along its own row into the space M left, and its 96 cells stand up
+    as bars in the class colours. It is outlined in ink while it leaves S and turns. W stays where it is. The page
+    rests there: each signature beside W, S emptied into them.
+    <b>Press 3, <i>Show each signature's exposures</i>.</b> W's rows slide down or up their own lane to their
+    signature's row, then the signatures widen to the full width while each row of W widens under its signature;
+    the row's cells stand up as bars in tumor order, then sort, largest first, and the words arrive. The last frame is
+    the draft's opened view.
+  </p>
+  <div class="drive">
+    <button id="p2">Show the signatures</button>
+    <button id="p3" disabled>Show each signature's exposures</button>
+    <button id="reset">Reset</button>
+    <input type="range" id="scrub" min="0" max="1000" value="0">
+    <span class="t" id="clock"></span>
+  </div>
+  <canvas id="stage"></canvas>
+  <p class="note" style="margin-top:var(--sp-2)">The slider runs through both presses; the two buttons play them at the chosen speed.</p>
+
+  <h3 style="margin-top:var(--sp-4)">Key frames</h3>
+  <div class="row" id="frames"></div>
+
+  <h2>2 &middot; What this page checks</h2>
+  <p class="note">
+    Every moving strip is swept through both presses, every 5 ms, at the three widths and ranks 2 to 6, as a rotated
+    rectangle, and tested against every finished signature, against the other moving strips, and against the canvas
+    edge. The columns of S still waiting are reported separately: the option said a column may turn over the matrices'
+    side.
+  </p>
+  <div id="checks"></div>
+  <p class="q" id="qs"></p>
+</main>
+
+<script type="module">
+import * as M from "./mutational-signatures-model.js";
+
+const S = M.STRINGS;
+const DPR = window.devicePixelRatio || 1;
+const q = new URLSearchParams(location.search);
+const SEED = Number(q.get("seed") || 1), HYPER = q.get("hyper") || "in";
+const root = document.documentElement;
+
+/* ---------------------------------------------------------------- tokens */
+function readTheme(theme) {
+  const was = root.dataset.theme;
+  root.dataset.theme = theme;
+  const cs = getComputedStyle(root);
+  const v = (name) => cs.getPropertyValue(name).trim();
+  const T = {
+    surface: v("--surface-1"), surface3: v("--surface-3"), ink1: v("--ink-1"), ink2: v("--ink-2"), ink3: v("--ink-3"),
+    grid: v("--grid"), axis: v("--axis"), magnitude: v("--c-magnitude"),
+    subs: ["ca", "cg", "ct", "ta", "tc", "tg"].map((k) => v(`--c-sub-${k}`)),
+    font: v("--font"), mono: v("--font-mono"), fsXs: v("--fs-xs"), fsSm: v("--fs-sm"),
+  };
+  if (was) root.dataset.theme = was; else delete root.dataset.theme;
+  return T;
+}
+const THEMES = { light: readTheme("light"), dark: readTheme("dark") };
+const rgb = (c) => { const m = String(c).match(/^#([0-9a-f]{6})$/i); return m ? [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16)) : [128, 128, 128]; };
+const hex = (p) => `#${p.map((x) => Math.round(Math.max(0, Math.min(255, x))).toString(16).padStart(2, "0")).join("")}`;
+const mix = (a, b, t) => { const p = rgb(a), r = rgb(b), u = Math.max(0, Math.min(1, t)); return hex(p.map((x, i) => x + (r[i] - x) * u)); };
+const wash = (c, a) => { const p = rgb(c); return `rgba(${p[0]},${p[1]},${p[2]},${a})`; };
+const shade = (T, v) => mix(T.surface3, T.magnitude, v);
+
+/* ---------------------------------------------------------------- state */
+const state = {
+  width: Number(q.get("w") || 626),
+  rank: Number(q.get("rank") || 4),
+  theme: q.get("theme") || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"),
+  speed: 1,
+  t: 0,            // 0..1 over press 2, 1..2 over press 3
+  playing: null,
+};
+function el(tag, cls, text) { const x = document.createElement(tag); if (cls) x.className = cls; if (text != null) x.textContent = text; return x; }
+function buttons(hostId, options, key, after) {
+  const host = document.getElementById(hostId);
+  host.replaceChildren();
+  for (const [value, text] of options) {
+    const b = el("button", null, text);
+    b.setAttribute("aria-pressed", String(state[key] === value));
+    b.onclick = () => { state[key] = value; buttons(hostId, options, key, after); after(); };
+    host.appendChild(b);
+  }
+}
+function sizeCanvas(c, w, h, scale = 1) {
+  c.width = Math.round(w * DPR * scale); c.height = Math.round(h * DPR * scale);
+  c.style.width = `${w * scale}px`; c.style.height = `${h * scale}px`;
+  const ctx = c.getContext("2d");
+  ctx.setTransform(DPR * scale, 0, 0, DPR * scale, 0, 0);
+  return ctx;
+}
+function text(ctx, s, x, y, { font, fill, align = "left" }) { ctx.save(); ctx.font = font; ctx.fillStyle = fill; ctx.textAlign = align; ctx.fillText(s, x, y); ctx.restore(); }
+function rule(ctx, x1, y1, x2, y2, stroke, width = 1) { ctx.save(); ctx.strokeStyle = stroke; ctx.lineWidth = width; ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); ctx.restore(); }
+function alpha(ctx, a, paint) { if (a <= 0.01) return; ctx.save(); ctx.globalAlpha *= Math.min(1, a); paint(); ctx.restore(); }
+const capFont = (T) => `600 ${T.fsSm} ${T.font}`;
+const noteFont = (T) => `${T.fsXs} ${T.font}`;
+const seg = (t, a, b) => Math.max(0, Math.min(1, (t - a) / (b - a)));
+const E = M.easeInOut;
+const lerp = M.lerp;
+
+/* ---------------------------------------------------------------- the geometry of B
+   THE FREE SPACE: the signatures form in [x0, xc], xc = S.x - FREE, so a column
+   turning beside S never reaches them. A column is squeezed to LS before it
+   turns, so its turn stays in that space. The numbers are checked in § 2. */
+const FREE = 90, LS = 80, TILE = M.TILE;
+/* one column's journey, as shares of JOURNEY ms: squeeze, turn, slide, stand */
+const JOURNEY = 1200, A_END = 0.2, B_END = 0.45, C_END = 0.75;
+const PRESS3 = { rows: 450, widen: 800, sort: 550, words: 300 };
+
+function timing2(rank) {
+  /* the next column leaves as the last one has turned, so one column is on the
+     move out of S at a time; past rank 4 the spacing shortens */
+  const gap = Math.min(B_END * JOURNEY, 1650 / Math.max(1, rank - 1));
+  return { gap, total: (rank - 1) * gap + JOURNEY };
+}
+const timing3 = () => { const a = PRESS3.rows, b = a + PRESS3.widen, c = b + PRESS3.sort; return { rowsEnd: a, widenEnd: b, sortEnd: c, total: c + PRESS3.words }; };
+
+const compactRight = (L) => L.heat.S.x - FREE;
+
+/** Column k of S in press 2, `u` of the way through its journey: a strip given in
+    its own frame (translate to px, py; rotate by ang), p = 1, so y runs from
+    -len (C>A) to 0 (T>G) and the pivot is its T>G end. */
+function column(L, rank, k, u) {
+  const H = L.heat, R = L.rows[k];
+  const a = E(seg(u, 0, A_END)), b = E(seg(u, A_END, B_END)), c = E(seg(u, B_END, C_END)), d = E(seg(u, C_END, 1));
+  const sw = H.S.w / rank, th0 = sw - 1, len0 = 96 * H.rowH;
+  const lane = H.S.x + k * sw + th0 / 2;
+  const baseY = R.profile.base - TILE / 2;
+  const xc = compactRight(L);
+  return {
+    a, b, c, d,
+    strip: {
+      p: 1,
+      px: lerp(lane, xc, c),
+      py: lerp(H.top + len0, baseY, a),
+      len: c > 0 ? lerp(LS, xc - L.x0, c) : lerp(len0, LS, a),
+      th: lerp(th0, TILE, b),
+      ang: (-Math.PI / 2) * b,
+    },
+  };
+}
+/** The same strip in press 3, widening from the short signature to the full one. */
+function widened(L, k, f) {
+  const R = L.rows[k], xc = compactRight(L);
+  return { p: 1, px: lerp(xc, L.x1, f), py: R.profile.base - TILE / 2, len: lerp(xc - L.x0, L.x1 - L.x0, f), th: TILE, ang: -Math.PI / 2 };
+}
+/** W's row k in press 3: down or up its own lane to its signature's row, then as wide as the page. */
+function wRow(L, rank, k, e, f) {
+  const H = L.heat, R = L.rows[k];
+  const home = { x: H.W.x, y: M.wTop(L, rank) + k * (M.W_ROW + 1), w: H.W.w, h: M.W_ROW };
+  const inLane = { x: H.W.x, y: R.strip.base - TILE, w: H.W.w, h: TILE };
+  const wide = { x: L.x0, y: R.strip.base - TILE, w: L.x1 - L.x0, h: TILE };
+  return f > 0 ? M.lerpRect(inLane, wide, f) : M.lerpRect(home, inLane, e);
+}
+
+/** Where everything is at mock time t (0..1 press 2, 1..2 press 3). */
+function frameAt(L, rank, t) {
+  const T2 = timing2(rank), T3 = timing3();
+  const now2 = Math.min(1, t) * T2.total;
+  const now3 = Math.max(0, t - 1) * T3.total;
+  const us = Array.from({ length: rank }, (_, k) => seg(now2, k * T2.gap, k * T2.gap + JOURNEY));
+  return {
+    us,
+    mFade: 1 - E(seg(now2, 0, 450)),
+    sFade: 1 - E(seg(now2, (rank - 1) * T2.gap, (rank - 1) * T2.gap + B_END * JOURNEY)),
+    e: E(seg(now3, 0, T3.rowsEnd)),
+    f: E(seg(now3, T3.rowsEnd, T3.widenEnd)),
+    v: E(seg(now3, T3.widenEnd, T3.sortEnd)),
+    words: E(seg(now3, T3.sortEnd, T3.total)),
+    wFade: 1 - E(seg(now3, 0, T3.rowsEnd)),
+    press3: t > 1,
+  };
+}
+
+/* ---------------------------------------------------------------- drawing */
+function drawStage(ctx, T, w, rank, t) {
+  const fit = M.fitFor(SEED, HYPER, rank), co = M.cohortFor(SEED);
+  const params = { page: "signatures", rank, hypermutated: HYPER };
+  const L = M.layout(w, params), H = L.heat, n = fit.cols;
+  const F = frameAt(L, rank, t);
+  const last = fit.trace[fit.trace.length - 1];
+  const hyperJ = HYPER === "out" ? -1 : co.hyperIndex;
+  ctx.fillStyle = T.surface; ctx.fillRect(0, 0, w, L.height);
+
+  /* M and its labels */
+  alpha(ctx, F.mFade, () => {
+    const cw = H.M.w / n;
+    for (let i = 0; i < 96; i += 1) for (let j = 0; j < n; j += 1) {
+      ctx.fillStyle = shade(T, fit.M[i][j] / fit.cap);
+      ctx.fillRect(H.M.x + j * cw, H.top + i * H.rowH, Math.ceil(cw), Math.ceil(H.rowH));
+    }
+    for (let c = 0; c < 6; c += 1) { ctx.fillStyle = T.subs[c]; ctx.fillRect(H.M.x - 8, H.top + 16 * c * H.rowH + 1, 4, 16 * H.rowH - 2); }
+    const mid = H.top + 48 * H.rowH;
+    text(ctx, S.heatM, H.M.x + H.M.w / 2, 40, { font: `600 22px ${T.font}`, fill: T.ink1, align: "center" });
+    text(ctx, "≈", H.S.x - 15, mid + 7, { font: `20px ${T.font}`, fill: T.ink1, align: "center" });
+    text(ctx, "×", H.W.x - 13, mid + 7, { font: `18px ${T.font}`, fill: T.ink1, align: "center" });
+    ctx.save(); ctx.translate(16, mid); ctx.rotate(-Math.PI / 2); text(ctx, S.typesAxis, 0, 0, { font: noteFont(T), fill: T.ink2, align: "center" }); ctx.restore();
+    text(ctx, S.tumorsAxis(n), H.M.x + H.M.w / 2, H.base + 18, { font: noteFont(T), fill: T.ink2, align: "center" });
+    if (hyperJ >= 0) {
+      const x = H.M.x + hyperJ * cw;
+      ctx.save(); ctx.strokeStyle = T.ink1; ctx.lineWidth = 1; ctx.strokeRect(x - 1, H.top - 2, Math.ceil(cw) + 2, 96 * H.rowH + 4); ctx.restore();
+      text(ctx, S.hyperTag, x + cw, H.base + 32, { font: noteFont(T), fill: T.ink1, align: "right" });
+    }
+    text(ctx, S.iterLine(last.iter, last.kl), H.M.x, H.base + 48, { font: noteFont(T), fill: T.ink1 });
+    text(ctx, S.heatNote(M.intText(fit.cap)), H.M.x, H.base + 66, { font: noteFont(T), fill: T.ink3 });
+  });
+  /* S's frame and labels, until the last column has left */
+  alpha(ctx, F.sFade, () => {
+    text(ctx, S.heatS, H.S.x + H.S.w / 2, 40, { font: `600 22px ${T.font}`, fill: T.ink1, align: "center" });
+    text(ctx, S.sigAxis(rank), H.S.x + H.S.w / 2, H.base + 18, { font: noteFont(T), fill: T.ink2, align: "center" });
+    ctx.save(); ctx.strokeStyle = T.grid; ctx.lineWidth = 1; ctx.strokeRect(H.S.x - 0.5, H.top - 0.5, H.S.w, 96 * H.rowH + 1); ctx.restore();
+  });
+  /* W's letter, label and frame, until its rows leave */
+  const wTop = M.wTop(L, rank);
+  alpha(ctx, F.wFade, () => {
+    text(ctx, S.heatW, H.W.x + H.W.w / 2, wTop - 12, { font: `600 22px ${T.font}`, fill: T.ink1, align: "center" });
+    text(ctx, S.tumorsAxis(n), H.W.x + H.W.w / 2, wTop + rank * (M.W_ROW + 1) + 16, { font: noteFont(T), fill: T.ink2, align: "center" });
+    ctx.save(); ctx.strokeStyle = T.grid; ctx.lineWidth = 1; ctx.strokeRect(H.W.x - 0.5, wTop - 0.5, H.W.w + 1, rank * (M.W_ROW + 1)); ctx.restore();
+  });
+  /* the caption of the resting state, and then of the opened view */
+  alpha(ctx, E(seg(t, 0.85, 1)) * (1 - F.f), () => text(ctx, "Each column of S, drawn as a signature: the share of each type", L.x0, 22, { font: capFont(T), fill: T.ink1 }));
+
+  /* the columns of S: still waiting ones first, so a moving one passes over them */
+  const order = [...F.us.keys()].sort((a, b) => (F.us[a] > 0) - (F.us[b] > 0));
+  for (const k of order) {
+    const s = fit.sigs[k], R = L.rows[k];
+    const J = column(L, rank, k, F.us[k]);
+    const strip = F.press3 ? widened(L, k, F.f) : J.strip;
+    const stand = F.press3 ? 1 : J.d;
+    const pmax = M.niceMax(Math.max(...s.profile));
+    const pH = R.profile.base - R.profile.top;
+    ctx.save();
+    ctx.translate(strip.px, strip.py);
+    ctx.rotate(strip.ang);
+    const cell = strip.len / 96;
+    for (let i = 0; i < 96; i += 1) {
+      const barH = Math.min(1, s.profile[i] / pmax) * pH;
+      const gap = stand * Math.min(1, cell * 0.25);
+      const h = lerp(strip.th, barH, stand);
+      if (h <= 0) continue;
+      const tone = shade(T, Math.sqrt(last.sigs[k][i] / fit.sigMax));
+      ctx.fillStyle = stand > 0 ? mix(tone, T.subs[i >> 4], stand) : tone;
+      ctx.fillRect(-strip.th / 2, -strip.len + i * cell + gap / 2, h, cell - gap + (stand === 0 && F.us[k] > 0 ? 0.35 : 0));
+    }
+    /* outlined while it leaves S and turns */
+    const out = F.press3 ? 0 : F.us[k] <= 0 ? 0 : F.us[k] < B_END ? 1 : Math.max(0, 1 - (F.us[k] - B_END) / 0.15);
+    alpha(ctx, out, () => { ctx.strokeStyle = T.ink1; ctx.lineWidth = 1.5; ctx.strokeRect(-strip.th / 2 - 2.5, -strip.len - 2.5, strip.th + 5, strip.len + 5); });
+    ctx.restore();
+    /* the baseline, the class bands and the title arrive as the bars stand */
+    alpha(ctx, stand, () => {
+      const x1 = strip.px, x0 = strip.px - strip.len, bw = strip.len / 96;
+      rule(ctx, x0, R.profile.base + 0.5, x1, R.profile.base + 0.5, T.axis);
+      for (let c = 0; c < 6; c += 1) { ctx.fillStyle = T.subs[c]; ctx.fillRect(x0 + 16 * c * bw + 1, R.profile.base + 3, 16 * bw - 2, 3); }
+      text(ctx, S.sigTitle(k + 1), L.x0, R.title, { font: capFont(T), fill: T.ink1 });
+      text(ctx, S.sigShare(s.share), L.x0 + 86, R.title, { font: noteFont(T), fill: T.ink2 });
+    });
+  }
+
+  /* W's rows */
+  for (let k = 0; k < rank; k += 1) {
+    const s = fit.sigs[k], R = L.rows[k];
+    const row = wRow(L, rank, k, F.e, F.f);
+    const stand = F.f;
+    const stripH = R.strip.base - R.strip.top;
+    const top = s.exposure[s.sorted[0]] || 1;
+    for (let j = 0; j < n; j += 1) {
+      const e = Math.max(0, s.exposure[j]);
+      const c = M.rowCell(row, n, lerp(j, s.place[j], F.v), stand, (e / top) * stripH);
+      const tone = shade(T, Math.sqrt(e / fit.expoMax));
+      const bar = F.v >= 1 ? (s.place[j] < s.hold.half ? T.ink2 : wash(T.ink3, 0.55)) : T.ink2;
+      if (c.h > 0) { ctx.fillStyle = stand <= 0 ? tone : stand >= 1 ? bar : mix(tone, T.ink2, stand); ctx.fillRect(c.x, c.y, c.w, c.h); }
+      if (j === hyperJ) {
+        alpha(ctx, 1 - stand, () => { ctx.strokeStyle = T.ink1; ctx.lineWidth = 1; ctx.strokeRect(c.x - 1, c.y - 1, c.w + 2, c.h + 2); });
+        alpha(ctx, stand, () => {
+          const cx = c.x + c.w / 2, base = row.y + row.h;
+          ctx.fillStyle = T.ink1; ctx.beginPath(); ctx.moveTo(cx, base + 2); ctx.lineTo(cx + 3, base + 6); ctx.lineTo(cx - 3, base + 6); ctx.closePath(); ctx.fill();
+        });
+      }
+    }
+    alpha(ctx, stand, () => rule(ctx, L.x0, R.strip.base + 0.5, L.x1, R.strip.base + 0.5, T.axis));
+  }
+
+  /* the opened view's words */
+  alpha(ctx, F.words, () => {
+    text(ctx, S.openedCaption, L.x0, 22, { font: capFont(T), fill: T.ink1 });
+    fit.sigs.forEach((s, k) => {
+      const R = L.rows[k];
+      const xh = L.x0 + s.hold.half * ((L.x1 - L.x0) / n);
+      rule(ctx, xh, R.strip.top - 3, xh, R.strip.base, T.ink1, 1.5);
+      text(ctx, S.halfLine(s.hold.half), L.x0, R.stripLabel, { font: noteFont(T), fill: T.ink1 });
+      text(ctx, S.topTumor(s.hold.top, s.hold.top === co.hyperIndex, s.hold.topShare), L.x1, R.stripLabel, { font: noteFont(T), fill: T.ink2, align: "right" });
+    });
+  });
+  return L;
+}
+
+/* ---------------------------------------------------------------- the overlap sweep */
+function corners(strip) {
+  const cs = Math.cos(strip.ang), sn = Math.sin(strip.ang);
+  const pts = [[-strip.th / 2, -strip.len], [strip.th / 2, -strip.len], [-strip.th / 2, 0], [strip.th / 2, 0]];
+  return pts.map(([x, y]) => [strip.px + cs * x - sn * y, strip.py + sn * x + cs * y]);
+}
+/** Separating-axis test for two convex quadrilaterals. */
+function overlap(P, Q) {
+  for (const poly of [P, Q]) {
+    for (let i = 0; i < poly.length; i += 1) {
+      const [x1, y1] = poly[i], [x2, y2] = poly[(i + 1) % poly.length];
+      const nx = y2 - y1, ny = x1 - x2;
+      const pr = (pts) => pts.map(([x, y]) => x * nx + y * ny);
+      const a = pr(P), b = pr(Q);
+      if (Math.max(...a) <= Math.min(...b) + 1e-6 || Math.max(...b) <= Math.min(...a) + 1e-6) return false;
+    }
+  }
+  return true;
+}
+const rectPoly = (r) => [[r.x, r.y], [r.x + r.w, r.y], [r.x + r.w, r.y + r.h], [r.x, r.y + r.h]];
+const hull = (strip) => { const c = corners(strip); return [c[0], c[1], c[3], c[2]]; };
+
+function sweep() {
+  const out = [];
+  let finishedHits = 0, movingHits = 0, edge = 0, waitingHits = 0, wHits = 0, frames = 0;
+  const firstOf = {};
+  const note = (key, msg) => { if (!firstOf[key]) firstOf[key] = msg; };
+  for (const w of [535, 626, 770]) {
+    for (let rank = 2; rank <= 6; rank += 1) {
+      const params = { page: "signatures", rank, hypermutated: HYPER };
+      const L = M.layout(w, params), H = L.heat;
+      const T2 = timing2(rank);
+      const fit = M.fitFor(SEED, HYPER, rank);
+      const wBlock = { x: H.W.x, y: M.wTop(L, rank), w: H.W.w, h: rank * (M.W_ROW + 1) };
+      for (let now = 0; now <= T2.total; now += 5) {
+        frames += 1;
+        const t = now / T2.total;
+        const F = frameAt(L, rank, t);
+        const polys = F.us.map((u, k) => ({ k, u, poly: hull(column(L, rank, k, u).strip) }));
+        for (const { k, u, poly } of polys) {
+          if (poly.some(([x, y]) => x < -0.5 || y < -0.5 || x > w + 0.5 || y > L.height + 0.5)) { edge += 1; note("edge", `${w} r${rank} k${k} at ${now} ms`); }
+          if (!(u > 0 && u < 1)) continue;
+          for (const o of polys) {
+            if (o.k === k) continue;
+            /* a finished signature: its bars stand up to the profile's top */
+            if (o.u >= 1) {
+              const R = L.rows[o.k], xc = compactRight(L);
+              const box = rectPoly({ x: L.x0, y: R.title - 12, w: xc - L.x0, h: R.profile.base + 6 - (R.title - 12) });
+              if (overlap(poly, box)) { finishedHits += 1; note("fin", `${w} r${rank}: column ${k + 1} over signature ${o.k + 1} at ${now} ms`); }
+            } else if (o.u > 0) {
+              if (overlap(poly, o.poly)) { movingHits += 1; note("mov", `${w} r${rank}: columns ${k + 1} and ${o.k + 1} at ${now} ms`); }
+            } else if (overlap(poly, o.poly)) { waitingHits += 1; note("wait", `${w} r${rank}: column ${k + 1} over column ${o.k + 1} of S at ${now} ms`); }
+          }
+          if (overlap(poly, rectPoly(wBlock))) { wHits += 1; note("w", `${w} r${rank}: column ${k + 1} over W at ${now} ms`); }
+        }
+      }
+      /* press 3: W's rows in their lane and the widening */
+      const T3 = timing3();
+      for (let now = 0; now <= T3.total; now += 5) {
+        frames += 1;
+        const F = frameAt(L, rank, 1 + now / T3.total);
+        for (let k = 0; k < rank; k += 1) {
+          const row = rectPoly(wRow(L, rank, k, F.e, F.f));
+          for (let j = 0; j < rank; j += 1) {
+            const R = L.rows[j], st = widened(L, j, F.f);
+            const box = rectPoly({ x: st.px - st.len, y: R.profile.top, w: st.len, h: R.profile.base + 6 - R.profile.top });
+            if (overlap(row, box)) { finishedHits += 1; note("fin3", `${w} r${rank}: W's row ${k + 1} over signature ${j + 1} at ${now} ms of press 3`); }
+            if (j !== k && overlap(row, rectPoly(wRow(L, rank, j, F.e, F.f)))) { movingHits += 1; note("mov3", `${w} r${rank}: W's rows ${k + 1} and ${j + 1}`); }
+          }
+        }
+      }
+      void fit;
+    }
+  }
+  const ok = (c, m) => out.push(`${c ? "PASS" : "FAIL"}  ${m}`);
+  ok(finishedHits === 0, `nothing moves over a finished signature (${frames} frames)${firstOf.fin || firstOf.fin3 ? ": " + (firstOf.fin || firstOf.fin3) : ""}`);
+  ok(movingHits === 0, `no two moving things meet${firstOf.mov || firstOf.mov3 ? ": " + (firstOf.mov || firstOf.mov3) : ""}`);
+  ok(edge === 0, `every column stays on the canvas${firstOf.edge ? ": " + firstOf.edge : ""}`);
+  ok(wHits === 0, `no column passes over W${firstOf.w ? ": " + firstOf.w : ""}`);
+  out.push(`${waitingHits === 0 ? "PASS" : "NOTE"}  a turning column over a column of S still waiting: ${waitingHits === 0 ? "never" : `${waitingHits} frame-pairs, e.g. ${firstOf.wait}`}`);
+  /* the compact signatures' width, per bar */
+  for (const w of [535, 626, 770]) {
+    const L = M.layout(w, { page: "signatures", rank: 4, hypermutated: HYPER });
+    const xc = compactRight(L);
+    out.push(`       at ${w}px the resting signatures are ${Math.round(xc - L.x0)}px wide, ${((xc - L.x0) / 96).toFixed(2)}px a bar; W's lane starts at ${Math.round(L.heat.W.x)}px`);
+  }
+  for (let r = 2; r <= 6; r += 1) out.push(`       rank ${r}: press 2 ${Math.round(timing2(r).total)} ms, press 3 ${timing3().total} ms`);
+  document.getElementById("checks").textContent = out.join("\n");
+}
+
+/* ---------------------------------------------------------------- wiring */
+const stage = document.getElementById("stage");
+const scrub = document.getElementById("scrub");
+const clock = document.getElementById("clock");
+const b2 = document.getElementById("p2"), b3 = document.getElementById("p3");
+function render() {
+  const T = THEMES[state.theme];
+  root.dataset.theme = state.theme;
+  const L = M.layout(state.width, { page: "signatures", rank: state.rank, hypermutated: HYPER });
+  const ctx = sizeCanvas(stage, state.width, L.height);
+  drawStage(ctx, T, state.width, state.rank, state.t);
+  scrub.value = String(Math.round(state.t * 500));
+  const T2 = timing2(state.rank), T3 = timing3();
+  clock.textContent = state.t <= 1 ? `press 2: ${(state.t * T2.total / 1000).toFixed(2)} s` : `press 3: ${((state.t - 1) * T3.total / 1000).toFixed(2)} s`;
+  b2.disabled = state.t > 0;
+  b3.disabled = state.t < 1 || state.t > 1;
+}
+function keyframes() {
+  const host = document.getElementById("frames");
+  host.replaceChildren();
+  const T = THEMES[state.theme];
+  const T2 = timing2(state.rank);
+  const shots = [
+    [0, "after the extraction"],
+    [(0.3 * JOURNEY) / T2.total, "column 1 turning beside S"],
+    [(T2.gap + 0.6 * JOURNEY) / T2.total, "column 2 sliding along its row"],
+    [1, "press 2 done: the signatures beside W"],
+    [1 + 0.35, "press 3: W's rows in their lane, widening"],
+    [2, "press 3 done: the opened view"],
+  ];
+  const scale = 0.5;
+  for (const [t, label] of shots) {
+    const box = el("div", "kf");
+    box.appendChild(el("p", "sub", label));
+    const c = document.createElement("canvas");
+    const L = M.layout(state.width, { page: "signatures", rank: state.rank, hypermutated: HYPER });
+    const ctx = sizeCanvas(c, state.width, L.height, scale);
+    drawStage(ctx, T, state.width, state.rank, t);
+    box.appendChild(c);
+    host.appendChild(box);
+  }
+}
+function play(from, to) {
+  const T2 = timing2(state.rank), T3 = timing3();
+  const ms = from < 1 ? T2.total : T3.total;
+  const t0 = performance.now();
+  state.playing = { from, to, ms, t0 };
+}
+function tick(now) {
+  if (state.playing) {
+    const P = state.playing;
+    const x = Math.min(1, ((now - P.t0) * state.speed) / P.ms);
+    state.t = P.from + (P.to - P.from) * x;
+    if (x >= 1) state.playing = null;
+    render();
+  }
+  requestAnimationFrame(tick);
+}
+b2.onclick = () => play(0, 1);
+b3.onclick = () => play(1, 2);
+document.getElementById("reset").onclick = () => { state.playing = null; state.t = 0; render(); };
+scrub.max = "1000";
+scrub.oninput = () => { state.playing = null; state.t = Number(scrub.value) / 500; render(); };
+const all = () => { render(); keyframes(); };
+buttons("widthBtns", [[535, "535"], [626, "626"], [770, "770"]], "width", all);
+buttons("rankBtns", [[2, "2"], [4, "4"], [6, "6"]], "rank", all);
+buttons("themeBtns", [["light", "Light"], ["dark", "Dark"]], "theme", all);
+buttons("speedBtns", [[1, "1×"], [0.25, "¼×"]], "speed", () => {});
+document.getElementById("qs").innerHTML =
+  "<b>For you, once you have looked:</b> the resting state after press 2 (the signatures beside W, S emptied into them) &mdash; "
+  + "is that the stop you wanted? Its caption is a candidate, and the step label <i>Show the signatures</i> is new. "
+  + "At 535px the resting signatures are narrow (see &sect;2); they widen on press 3.";
+all();
+sweep();
+requestAnimationFrame(tick);
+</script>
+</body>
+</html>
