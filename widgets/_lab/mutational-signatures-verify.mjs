@@ -43,6 +43,9 @@
    areas proportional to counts, and a fourth press lines the grids up; a click
    names a type through regions that read the stage core now hands them.
 
+   A SWITCH MID-PRESS (2026-09-19): another page or tumor finishes the press
+   in flight and ends its loop, rather than taking the other page's press.
+
    THE STATUS. The manifest and `main.js` both say `draft`, and this says so.
 
    Exits non-zero on failure.
@@ -336,6 +339,42 @@ function press(anim, params, state, { dt = 32, frames = 6000 } = {}) {
   check("and page 1 is where it was left, empty", a2.cat === 0 && a2.sig === M.SIG_STAGES && a2.labelAt === "k0");
   W.animation.rebuild(a1, { params: paramsOf({ tumor: "hypermutated" }), state: W.compute({ params: paramsOf({ tumor: "hypermutated" }) }) });
   check("another tumor starts page 1 over and leaves the rest", a1.cat === 0 && a1.landed === 0 && a1.tumor === "hypermutated");
+
+  /* A switch MID-PRESS (found designing the ship's interrupted states,
+     2026-09-19): core keeps the loop running through a display change, and
+     page 1's arrival interrupted by a visit to page 2 used to run Extract,
+     page 2's descent by a visit to page 3 the comparison, and another tumor's
+     mutations landed unpressed. */
+  const midway = (params, n) => {
+    const state = W.compute({ params });
+    const a = W.animation.init({ params, state, fromScratch: true });
+    a.mode = "step";
+    for (let i = 0; i < n; i += 1) W.animation.advance(a, { dt: 32, params, state });
+    return a;
+  };
+  const visit = (a, o) => {
+    const params = paramsOf(o);
+    const state = W.compute({ params });
+    W.animation.rebuild(a, { params, state });
+    return W.animation.advance(a, { dt: 32, params, state });
+  };
+  const i1 = midway(p1, 5);
+  const i1on = visit(i1, { page: "signatures" });
+  check("page 1's arrival interrupted by page 2: the loop ends and nothing is extracted",
+    i1on === false && i1.sig === 0 && i1.labelAt === "s0");
+  /* the loop has ended, so the way back is a rebuild with no frame after it */
+  W.animation.rebuild(i1, { params: p1, state: s1 });
+  check("and back on page 1 the arrival is complete, the fold next", i1.cat === 1 && i1.landed === s1.tumor.n && i1.labelAt === "k1");
+  const i2 = midway(p2, 10);
+  const i2on = visit(i2, { page: "matching" });
+  check("page 2's descent interrupted by page 3: the loop ends and nothing is compared, the descent complete",
+    i2on === false && i2.match === 0 && i2.sig === 1 && i2.sigT === 1 && i2.labelAt === "m0");
+  const i3 = midway(p1, 5);
+  const i3on = visit(i3, { tumor: "hypermutated" });
+  check("another tumor mid-arrival: the loop ends and page 1 is empty for it", i3on === false && i3.cat === 0 && i3.landed === 0 && i3.labelAt === "k0");
+  const i4 = W.animation.init({ params: p1, state: s1, fromScratch: true });
+  W.animation.rebuild(i4, { params: p2, state: s2 });
+  check("a switch with nothing moving leaves the next press whole", Math.abs(press(i4, p2, s2) - M.DESCENT_MS / 32) <= 2 && i4.sig === 1);
 
   const sh = (o) => {
     const params = paramsOf(o);

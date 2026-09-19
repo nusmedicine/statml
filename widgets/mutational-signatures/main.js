@@ -1086,14 +1086,40 @@ defineWidget({
         anim.easeT = Math.min(1, anim.easeT + dt / M.EASE_MS);
         return anim.easeT < 1;
       }
+      /* the loop left running for a press a page or tumor switch finished
+         (`rebuild`) ends here, before it takes the new page's press */
+      if (anim.halt) {
+        anim.halt = false;
+        anim.moving = false;
+        settle(anim);
+        return false;
+      }
       const more = anim.page === "signatures" ? takeSigStep(anim, dt, state.fit.rank)
         : anim.page === "matching" ? takeMatchStep(anim, dt)
           : takeCatStep(anim, dt, state.tumor);
+      anim.moving = more;
       settle(anim);
       return more;
     },
 
-    rebuild: (anim, { params }) => {
+    rebuild: (anim, { params, state }) => {
+      /* A PRESS BELONGS TO THE PAGE AND THE TUMOR IT STARTED ON. Core keeps a
+         running loop going through a display change, and `advance` steps
+         whichever page `anim.page` names, so a switch mid-press used to take the
+         new page's next press unasked: page 1's arrival, interrupted by a visit
+         to page 2, ran Extract; page 2's descent, by a visit to page 3, ran the
+         comparison; and another tumor's mutations landed with nothing pressed.
+         Found designing the ship's interrupted states (2026-09-19). The press
+         finishes here, as if its frames had run, and `halt` ends the loop at
+         its next frame. Only while a press moves: set otherwise, it would
+         swallow the first frame of the reader's next press. */
+      if (anim.moving && (params.page !== anim.page || params.tumor !== anim.tumor)) {
+        anim.catT = 1;
+        if (anim.cat === 1) anim.landed = state.tumor.n;
+        anim.sigT = 1;
+        anim.matchT = 1;
+        anim.halt = true;
+      }
       /* Each page keeps its place, because the page is a display parameter
          (invariant 3). Another tumor starts page 1's own walk over. */
       anim.page = params.page;
