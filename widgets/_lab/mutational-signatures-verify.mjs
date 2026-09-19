@@ -250,8 +250,17 @@ console.log("\n§4 the contract");
 const W = await widget();
 {
   const spec = W.params;
-  const keys = ["page", "tumorSec", "tumor", "type", "cohortSec", "hypermutated", "rank", "lookSec", "signature", "dataSec", "seed", "truth", "shown"];
+  const keys = ["page", "tumorSec", "tumor", "cohortSec", "hypermutated", "rank", "lookSec", "signature", "typeSec", "type", "dataSec", "seed", "truth", "shown"];
   check("the spec's parameters, in order", Object.keys(spec).join() === keys.join(), Object.keys(spec).join());
+  /* his question, 2026-09-19: declared under Tumor, the Type control read as a
+     choice of which mutations to add. It names a type and changes nothing
+     until the split, so it goes below the buttons (3.4j). */
+  const onPage1 = (f) => f.when?.param === "page" && f.when?.equals === "catalogue";
+  check("the Type control sits below the buttons on page 1 alone, in its own section ahead of The data",
+    spec.typeSec.afterDrive && spec.type.afterDrive && onPage1(spec.typeSec) && onPage1(spec.type)
+      && spec.typeSec.label === M.STRINGS.lookSection
+      && Object.keys(spec).filter((k) => spec[k].afterDrive).slice(0, 3).join() === "typeSec,type,dataSec"
+      && Object.keys(spec).filter((k) => !spec[k].afterDrive && onPage1(spec[k])).join() === "tumorSec,tumor");
   check("page, tumor, signature and truth are display; hypermutated, rank and seed are data",
     spec.page.display && spec.tumor.display && spec.signature.display && spec.truth.display
     && !spec.hypermutated.display && !spec.rank.display && !spec.seed.display);

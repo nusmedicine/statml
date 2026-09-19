@@ -953,13 +953,6 @@ defineWidget({
       type: "segmented", label: S.tumorLabel, detail: S.tumorDetail, options: M.TUMOR_OPTIONS, default: "largest",
       display: true, when: { param: "page", equals: "catalogue" },
     },
-    /* Round 4, his pick: a click on a grid's square or on a bar names its type
-       in the line under the figure; this is the keyboard's way to the same
-       (3.6), the 96 grouped by class. */
-    type: {
-      type: "select", label: S.typeLabel, detail: S.typeDetail, options: M.TYPE_OPTIONS, default: M.TYPE_DEFAULT,
-      display: true, when: { param: "page", equals: "catalogue" },
-    },
 
     cohortSec: { type: "section", label: S.cohortSection, when: ON_PAGES_2_3 },
     /* His pick 3: in, as the lesson's cohort has one, and a switch to leave it out. */
@@ -979,6 +972,19 @@ defineWidget({
       type: "segmented", label: S.openLabel, detail: S.openDetail,
       options: (v) => Array.from({ length: v.rank }, (_, i) => ({ value: String(i + 1), label: String(i + 1) })),
       optionsFrom: "rank", default: "1", display: true, when: { param: "page", equals: "matching" },
+    },
+
+    /* Round 4, his pick: a click on a grid's square or on a bar names its type
+       in the line under the figure; this is the keyboard's way to the same
+       (3.6), the 96 grouped by class. BELOW THE BUTTONS (3.4j): it names a
+       type once the bars are split and changes nothing before, and declared
+       under Tumor it read as a choice of which mutations to add (his question,
+       2026-09-19). Page 3's Signature stays above Compare: it picks the row
+       the scan runs over, so it means something before the press. */
+    typeSec: { type: "section", label: S.lookSection, afterDrive: true, when: { param: "page", equals: "catalogue" } },
+    type: {
+      type: "select", label: S.typeLabel, detail: S.typeDetail, options: M.TYPE_OPTIONS, default: M.TYPE_DEFAULT,
+      display: true, afterDrive: true, when: { param: "page", equals: "catalogue" },
     },
 
     dataSec: { type: "section", label: S.dataSection, afterDrive: true },

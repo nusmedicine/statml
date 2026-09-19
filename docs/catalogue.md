@@ -10256,6 +10256,23 @@ subtitle and blurb. Two unused strings removed (`purineNote`, `stripNote`).
 The verify's struck-word sweep now also strikes finds, stands for, written by,
 of the fit, full at, drawn, and factoris; 115 strings pass it.
 
+#### The Type control below the buttons, 2026-09-19
+
+He asked whether the Type dropdown was still needed, and whether "Add the
+mutations" was limited by it. It was not: every press takes all of the tumor's
+substitutions, and Type is display only. It names one of the 96 in the line
+under the figure and outlines its square, and it does nothing until the third
+press has split the bars. It stays because round 4's click pin makes the type
+a parameter, and a clickable target keeps a control as the keyboard's way to
+it (3.6). The fault was its place: declared under Tumor and above the button,
+it read as a choice of which mutations to add. His pick: **below the buttons**,
+in a "How to look at it" section ahead of The data (3.4j; widgets 41 and 44).
+Removing it with the pin was the alternative; it would have left no keyboard
+route and no way for a link to name a type, and the core change that hands
+regions the stage (e663c72) would have lost its only user. Page 3's Signature
+stays above Compare, as it picks the row the scan runs over. The verify pins
+the placement.
+
 ### Slot 71 · `somatic-interactions` — not asked for, measured, cuttable
 
 **Host.** 01-3 cell 4 (co-occurring genes "could have synergistic effect",
