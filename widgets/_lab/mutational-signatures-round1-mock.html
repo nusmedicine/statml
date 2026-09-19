@@ -1,0 +1,625 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · mutational-signatures — round 1 mock</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  body { background: var(--surface-2); }
+  .lab { max-width: 1640px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 110ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .bar { position: sticky; top: 0; z-index: 5; display: flex; flex-wrap: wrap; gap: var(--sp-2) var(--sp-5); align-items: center;
+         padding: var(--sp-2) var(--sp-3); margin: 0 0 var(--sp-3); background: var(--surface-1); border: 1px solid var(--grid);
+         border-radius: var(--radius); font-size: var(--fs-sm); color: var(--ink-2); }
+  .bar .grp { display: flex; align-items: center; gap: 6px; }
+  .bar button { font: inherit; font-size: var(--fs-sm); padding: 3px 10px; border: 1px solid var(--axis); background: var(--surface-1);
+                color: var(--ink-1); border-radius: var(--radius); cursor: pointer; }
+  .bar button[aria-pressed="true"] { background: var(--ink-1); color: var(--surface-1); border-color: var(--ink-1); }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; }
+  .cand .sub { font-size: 11px; color: var(--ink-3); margin: 0 0 var(--sp-2); max-width: 100%; }
+  .cand .ctl { display: flex; align-items: center; gap: var(--sp-2); margin: var(--sp-1) 0 0; font-size: 11px; color: var(--ink-2);
+               font-family: var(--font-mono); }
+  .cand .ctl input[type="range"] { flex: 1 1 auto; accent-color: var(--focus); }
+  .cand .ctl button { font: inherit; padding: 2px 10px; border: 1px solid var(--axis); background: var(--surface-1); color: var(--ink-1);
+                      border-radius: var(--radius); cursor: pointer; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--c-highlight); background: var(--surface-1); max-width: 110ch; }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+       border-left: 3px solid var(--c-reference); background: var(--surface-1); max-width: 110ch; }
+  table { border-collapse: collapse; font-size: var(--fs-sm); margin: var(--sp-2) 0; }
+  th, td { border: 1px solid var(--grid); padding: 4px 10px; text-align: left; vertical-align: top; }
+  th { color: var(--ink-2); font-weight: 600; }
+  td.num { font-family: var(--font-mono); text-align: right; }
+  td .sw { display: inline-block; width: 150px; height: 12px; border: 1px solid var(--grid); vertical-align: middle; }
+  #checks { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--ink-2); white-space: pre-line;
+            padding: var(--sp-3); background: var(--surface-1); border: 1px solid var(--grid); max-width: 110ch; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>mutational-signatures &middot; round 1 mock</h1>
+  <p class="note">
+    Your two questions on the draft, 2026-09-19. <b>1.</b> Is there a transition on the press <i>Show each signature's
+    exposures</i>, so you can see how the matrices connect to the signatures? <b>2.</b> Can the matrices take a colour
+    ramp instead of grey without clashing with the six class colours? Everything below is drawn from the widget's own
+    <code>model.js</code> at its defaults (seed 1, the hypermutated tumor in, 4 signatures), on the widget's own layout
+    function, so the first and last frames of each press are the widget's two figures. The bar sets the ramp, the theme
+    and the width for the whole page.
+  </p>
+
+  <div class="bar">
+    <div class="grp">Ramp <span id="rampBtns"></span></div>
+    <div class="grp">Theme <span id="themeBtns"></span></div>
+    <div class="grp">Width <span id="widthBtns"></span></div>
+    <div class="grp">Speed <span id="speedBtns"></span></div>
+    <div class="grp">Tumor 101 <span id="followBtns"></span></div>
+  </div>
+
+  <h2>1 &middot; The press that opens the signatures</h2>
+  <p class="note">
+    <b>What the draft does now</b> (A): a crossfade. The matrices are gone by the halfway point of 0.7 s and the
+    signatures fade in from there, so nothing on screen says that each signature <i>is</i> a column of S and its
+    exposures <i>are</i> a row of W. B and C move them. In both, S's column <i>k</i> lies down and stretches into
+    signature <i>k</i>'s place; its 96 cells then trade shade for height (the value moves from the shade to the bar's
+    height, which frees colour to carry the class). W's row <i>k</i> slides under it, its 101 cells become bars in
+    tumor order, and then they sort, largest first, which is the order the strip is read in. M fades as they leave.
+    B moves every signature at once; C moves one signature at a time with the pair in flight outlined in the
+    highlight colour, so column <i>k</i> and row <i>k</i> are seen to travel together. <b>Tumor 101</b> (the bar
+    switch): M's column for the hypermutated tumor is outlined in the draft; with this on, its cell in W keeps that
+    outline through the move and the sort, so in the opened view its bar is marked in every strip &mdash; first in
+    signature 4, near the end in the other three.
+  </p>
+  <div class="row" id="pressRow"></div>
+  <p class="rec" id="recPress"></p>
+
+  <h2>2 &middot; The matrices' colour</h2>
+  <p class="note">
+    The lesson's own <code>M &asymp; S &middot; W</code> figure (cell 0, the one page 2 is drawn from) shades its
+    matrices cream &rarr; orange &rarr; red, and widget 41 draws its NMF matrices on the collection's value ramp,
+    which ends in the same red. Red is C&gt;T here, and C&gt;T is the hottest block of M, so a red cell beside the red
+    C&gt;T band would say "many" and "C&gt;T" in one colour. <b>Grey is not free of that either</b>: C&gt;G is black and
+    T&gt;A is grey, so the draft's ramp ends between two of the class colours. Four ramps, each built only from colours
+    the palette already has, and the numbers under them are measured from the tokens on this page in both themes.
+  </p>
+  <div id="rampTable"></div>
+  <div class="row" id="rampRow"></div>
+  <p class="q" id="qRamp"></p>
+  <p class="rec" id="recRamp"></p>
+
+  <h2>3 &middot; What this page checks</h2>
+  <div id="checks"></div>
+</main>
+
+<script type="module">
+import * as M from "./mutational-signatures-model.js";
+
+const S = M.STRINGS;
+const DPR = window.devicePixelRatio || 1;
+const q = new URLSearchParams(location.search);
+const SEED = Number(q.get("seed") || 1), RANK = Number(q.get("rank") || 4), HYPER = q.get("hyper") || "in";
+const fit = M.fitFor(SEED, HYPER, RANK);
+const cohort = M.cohortFor(SEED);
+const params = { page: "signatures", rank: RANK, hypermutated: HYPER };
+const n = fit.cols;
+const hyperJ = HYPER === "out" ? -1 : n - 1;
+
+/* ---------------------------------------------------------------- tokens, both themes */
+const root = document.documentElement;
+function readTheme(theme) {
+  const was = root.dataset.theme;
+  root.dataset.theme = theme;
+  const cs = getComputedStyle(root);
+  const v = (name) => cs.getPropertyValue(name).trim();
+  const T = {
+    surface: v("--surface-1"), surface3: v("--surface-3"), ink1: v("--ink-1"), ink2: v("--ink-2"), ink3: v("--ink-3"),
+    grid: v("--grid"), axis: v("--axis"), highlight: v("--c-highlight"),
+    series: [1, 2, 3, 4, 5, 6, 7, 8].map((i) => v(`--series-${i}`)),
+    subs: ["ca", "cg", "ct", "ta", "tc", "tg"].map((k) => v(`--c-sub-${k}`)),
+    font: v("--font"), mono: v("--font-mono"), fsXs: v("--fs-xs"), fsSm: v("--fs-sm"),
+  };
+  if (was) root.dataset.theme = was; else delete root.dataset.theme;
+  return T;
+}
+const THEMES = { light: readTheme("light"), dark: readTheme("dark") };
+
+const rgb = (c) => { const m = String(c).match(/^#([0-9a-f]{6})$/i); return m ? [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16)) : [128, 128, 128]; };
+const hex = (p) => `#${p.map((x) => Math.round(Math.max(0, Math.min(255, x))).toString(16).padStart(2, "0")).join("")}`;
+const mixP = (a, b, t) => a.map((x, i) => x + (b[i] - x) * t);
+const mix = (a, b, t) => hex(mixP(rgb(a), rgb(b), Math.max(0, Math.min(1, t))));
+const wash = (c, a) => { const p = rgb(c); return `rgba(${p[0]},${p[1]},${p[2]},${a})`; };
+const lin = (x) => { const s = x / 255; return s <= 0.04045 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4; };
+const lum = (c) => { const [r, g, b] = rgb(c).map(lin); return 0.2126 * r + 0.7152 * g + 0.0722 * b; };
+const contrast = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
+
+/* THE FOUR RAMPS, each a list of stops built from tokens only. */
+const RAMPS = {
+  grey: {
+    label: "Grey (the draft)",
+    stops: (T) => [[0, T.surface3], [1, T.ink2]],
+    clash: "ends between C>G's black and T>A's grey",
+  },
+  lesson: {
+    label: "Cell 0's, to red",
+    stops: (T) => [[0, T.surface3], [0.4, T.series[3]], [0.7, T.series[1]], [1, T.series[7]]],
+    clash: "ends in C>T's red; widget 41's ramp ends there too",
+  },
+  amber: {
+    label: "Amber, no red",
+    stops: (T) => [[0, T.surface3], [0.6, T.series[3]], [1, mix(T.series[3], T.ink1, 0.45)]],
+    clash: "no class colour; amber is --c-group-b and --c-prior, neither on this widget",
+  },
+  violet: {
+    label: "Violet",
+    stops: (T) => [[0, T.surface3], [1, T.series[6]]],
+    clash: "violet is --c-highlight, which marks the half rule on the opened view",
+  },
+};
+function rampFn(key, T) {
+  const stops = RAMPS[key].stops(T).map(([t, c]) => [t, rgb(c)]);
+  return (v) => {
+    const t = Math.max(0, Math.min(1, v));
+    let i = 0;
+    while (i < stops.length - 2 && t > stops[i + 1][0]) i += 1;
+    const [t0, a] = stops[i], [t1, b] = stops[i + 1];
+    return hex(mixP(a, b, (t - t0) / (t1 - t0 || 1)));
+  };
+}
+
+/* ---------------------------------------------------------------- state and shell */
+const state = {
+  ramp: q.get("ramp") || "grey",
+  theme: q.get("theme") || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"),
+  width: Number(q.get("w") || 626),
+  speed: 1,
+  follow: true,
+};
+function el(tag, cls, text) { const x = document.createElement(tag); if (cls) x.className = cls; if (text != null) x.textContent = text; return x; }
+function buttons(hostId, options, key, after) {
+  const host = document.getElementById(hostId);
+  host.replaceChildren();
+  for (const [value, text] of options) {
+    const b = el("button", null, text);
+    b.setAttribute("aria-pressed", String(state[key] === value));
+    b.onclick = () => { state[key] = value; buttons(hostId, options, key, after); after(); };
+    host.appendChild(b);
+  }
+}
+function sizeCanvas(c, w, h) {
+  c.width = Math.round(w * DPR); c.height = Math.round(h * DPR);
+  c.style.width = `${w}px`; c.style.height = `${h}px`;
+  const ctx = c.getContext("2d");
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  return ctx;
+}
+function text(ctx, s, x, y, { font, fill, align = "left", baseline = "alphabetic" }) {
+  ctx.save(); ctx.font = font; ctx.fillStyle = fill; ctx.textAlign = align; ctx.textBaseline = baseline; ctx.fillText(s, x, y); ctx.restore();
+}
+function rule(ctx, x1, y1, x2, y2, stroke, width = 1) {
+  ctx.save(); ctx.strokeStyle = stroke; ctx.lineWidth = width; ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); ctx.restore();
+}
+function alpha(ctx, a, paint) { if (a <= 0.01) return; ctx.save(); ctx.globalAlpha *= Math.min(1, a); paint(); ctx.restore(); }
+const capFont = (T) => `600 ${T.fsSm} ${T.font}`;
+const noteFont = (T) => `${T.fsXs} ${T.font}`;
+const seg = (t, a, b) => Math.max(0, Math.min(1, (t - a) / (b - a)));
+const ordinal = (x) => `${x}${x % 100 >= 11 && x % 100 <= 13 ? "th" : ["th", "st", "nd", "rd"][x % 10] ?? "th"}`;
+
+/* ---------------------------------------------------------------- the two figures, as the draft draws them */
+const last = fit.trace[fit.trace.length - 1];
+const sortedOrder = fit.sigs.map((s) => [...s.exposure.keys()].sort((a, b) => s.exposure[b] - s.exposure[a]));
+const rankOf = sortedOrder.map((ord) => { const r = new Int32Array(n); ord.forEach((j, i) => { r[j] = i; }); return r; });
+
+function heatGeometry(L) {
+  const H = L.heat, r = fit.rank;
+  const mid = H.top + 48 * H.rowH, wRowH = 12;
+  return { H, mid, wRowH, wTop: mid - (r * (wRowH + 1)) / 2, sw: H.S.w / r, cw: H.M.w / n, wcw: H.W.w / n };
+}
+
+/** M, the labels and the empty frames: everything on page 2 that does not travel. */
+function drawStay(ctx, T, ramp, L, a) {
+  const G = heatGeometry(L), H = G.H, r = fit.rank;
+  alpha(ctx, a, () => {
+    for (let i = 0; i < 96; i += 1) {
+      for (let j = 0; j < n; j += 1) {
+        ctx.fillStyle = ramp(fit.M[i][j] / fit.cap);
+        ctx.fillRect(H.M.x + j * G.cw, H.top + i * H.rowH, Math.ceil(G.cw), Math.ceil(H.rowH));
+      }
+    }
+    for (let k = 0; k < 6; k += 1) { ctx.fillStyle = T.subs[k]; ctx.fillRect(H.M.x - 8, H.top + 16 * k * H.rowH + 1, 4, 16 * H.rowH - 2); }
+    text(ctx, S.heatM, H.M.x + H.M.w / 2, 40, { font: `600 22px ${T.font}`, fill: T.ink1, align: "center" });
+    text(ctx, "≈", H.S.x - 15, G.mid + 7, { font: `20px ${T.font}`, fill: T.ink1, align: "center" });
+    text(ctx, S.heatS, H.S.x + H.S.w / 2, 40, { font: `600 22px ${T.font}`, fill: T.ink1, align: "center" });
+    text(ctx, "×", H.W.x - 13, G.mid + 7, { font: `18px ${T.font}`, fill: T.ink1, align: "center" });
+    ctx.save(); ctx.translate(16, G.mid); ctx.rotate(-Math.PI / 2);
+    text(ctx, S.typesAxis, 0, 0, { font: noteFont(T), fill: T.ink2, align: "center" }); ctx.restore();
+    text(ctx, S.tumorsAxis(n), H.M.x + H.M.w / 2, H.base + 18, { font: noteFont(T), fill: T.ink2, align: "center" });
+    text(ctx, S.sigAxis(r), H.S.x + H.S.w / 2, H.base + 18, { font: noteFont(T), fill: T.ink2, align: "center" });
+    if (hyperJ >= 0) {
+      const x = H.M.x + hyperJ * G.cw;
+      ctx.save(); ctx.strokeStyle = T.ink1; ctx.lineWidth = 1; ctx.strokeRect(x - 1, H.top - 2, Math.ceil(G.cw) + 2, 96 * H.rowH + 4); ctx.restore();
+      text(ctx, S.hyperTag, x + G.cw, H.base + 32, { font: noteFont(T), fill: T.ink1, align: "right" });
+    }
+    text(ctx, S.heatW, H.W.x + H.W.w / 2, G.wTop - 12, { font: `600 22px ${T.font}`, fill: T.ink1, align: "center" });
+    text(ctx, S.tumorsAxis(n), H.W.x + H.W.w / 2, G.wTop + r * (G.wRowH + 1) + 16, { font: noteFont(T), fill: T.ink2, align: "center" });
+    ctx.save(); ctx.strokeStyle = T.grid; ctx.lineWidth = 1;
+    ctx.strokeRect(H.S.x - 0.5, H.top - 0.5, H.S.w, 96 * H.rowH + 1);
+    ctx.strokeRect(H.W.x - 0.5, G.wTop - 0.5, H.W.w + 1, r * (G.wRowH + 1));
+    ctx.restore();
+    text(ctx, S.iterLine(last.iter, last.kl), H.M.x, H.base + 48, { font: noteFont(T), fill: T.ink1 });
+    text(ctx, S.heatNote(M.intText(fit.cap)), H.M.x, H.base + 66, { font: noteFont(T), fill: T.ink3 });
+  });
+}
+
+/** The opened view's words and rules, which arrive last. */
+function drawOpenedText(ctx, T, L, a) {
+  alpha(ctx, a, () => {
+    text(ctx, S.openedCaption, L.x0, 22, { font: capFont(T), fill: T.ink1 });
+    fit.sigs.forEach((s, k) => {
+      const R = L.rows[k];
+      text(ctx, S.sigTitle(k + 1), L.x0, R.title, { font: capFont(T), fill: T.ink1 });
+      text(ctx, S.sigShare(s.share), L.x0 + 86, R.title, { font: noteFont(T), fill: T.ink2 });
+      const bw = (L.x1 - L.x0) / n;
+      const xh = L.x0 + s.hold.half * bw;
+      rule(ctx, xh, R.strip.top - 3, xh, R.strip.base + 3, T.highlight, 1.5);
+      text(ctx, S.halfLine(s.hold.half), L.x0, R.stripLabel, { font: noteFont(T), fill: T.ink1 });
+      text(ctx, S.topTumor(s.hold.top, s.hold.top === cohort.hyperIndex, s.hold.topShare), L.x1, R.stripLabel,
+        { font: noteFont(T), fill: T.ink2, align: "right" });
+    });
+  });
+}
+
+/* ---------------------------------------------------------------- one signature's journey
+   u runs 0 → 1 over its own flight: [0, .55] the column lies down and stretches
+   while the row slides under it; [.55, 1] the tiles become bars. The sort runs
+   on its own clock `v` (0 → 1), once every signature has landed. */
+const TILE = 8;           // a lying S column's thickness, and a W row's, before the bars stand up
+
+function drawSignatureFlight(ctx, T, ramp, L, k, u, v, { outline = 0, follow = false }) {
+  const G = heatGeometry(L), H = G.H, R = L.rows[k], s = fit.sigs[k];
+  const swing = M.easeInOut(seg(u, 0, 0.55));
+  const stand = M.easeInOut(seg(u, 0.55, 1));
+  const sortT = M.easeInOut(v);
+
+  /* S's column k: a rigid strip that turns a quarter turn anticlockwise, so its
+     top (C>A) ends at the left, as plotSignatures reads. */
+  const len0 = 96 * H.rowH, len1 = L.x1 - L.x0;
+  const th0 = G.sw - 1, th1 = TILE;
+  const c0 = { x: H.S.x + k * G.sw + th0 / 2, y: H.top + len0 / 2 };
+  const c1 = { x: (L.x0 + L.x1) / 2, y: R.profile.base - th1 / 2 };
+  const len = M.lerp(len0, len1, swing), th = M.lerp(th0, th1, swing);
+  const cx = M.lerp(c0.x, c1.x, swing), cy = M.lerp(c0.y, c1.y, swing);
+  const ang = -Math.PI / 2 * swing;
+  const pmax = M.niceMax(Math.max(...s.profile));
+  const pH = R.profile.base - R.profile.top;
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(ang);
+  /* Local frame: y runs along the strip (C>A first), x across it; the bars
+     stand on the edge at x = -th/2, which faces down once the turn is done. */
+  const cell = len / 96;
+  for (let i = 0; i < 96; i += 1) {
+    const shadeC = ramp(Math.sqrt(last.sigs[k][i] / fit.sigMax));
+    const barH = Math.min(1, s.profile[i] / pmax) * pH;
+    const h = M.lerp(th, barH, stand);
+    const gap = stand * Math.min(1, cell * 0.25);
+    ctx.fillStyle = stand > 0 ? mix(shadeC, T.subs[i >> 4], stand) : shadeC;
+    const y = -len / 2 + i * cell + gap / 2;
+    ctx.fillRect(-th / 2, y, Math.max(0.01, h), Math.max(0.6, cell - gap + (stand === 0 ? 0.35 : 0)));
+  }
+  if (outline > 0.01) {
+    ctx.save(); ctx.globalAlpha *= outline; ctx.strokeStyle = T.highlight; ctx.lineWidth = 2;
+    ctx.strokeRect(-th / 2 - 2, -len / 2 - 2, Math.max(th, 0) + 4, len + 4); ctx.restore();
+  }
+  ctx.restore();
+  /* the class bands under the profile, once the bars stand */
+  alpha(ctx, stand, () => {
+    rule(ctx, L.x0, R.profile.base + 0.5, L.x1, R.profile.base + 0.5, T.axis);
+    const bw = (L.x1 - L.x0) / 96;
+    for (let c = 0; c < 6; c += 1) { ctx.fillStyle = T.subs[c]; ctx.fillRect(L.x0 + 16 * c * bw + 1, R.profile.base + 3, 16 * bw - 2, 3); }
+  });
+
+  /* W's row k: slides under the column, its cells become bars in tumor order,
+     then sort largest first. */
+  const r0 = { x: H.W.x, y: G.wTop + k * (G.wRowH + 1), w: H.W.w, h: G.wRowH };
+  const r1 = { x: L.x0, y: R.strip.base - TILE, w: L.x1 - L.x0, h: TILE };
+  const rowR = M.lerpRect(r0, r1, swing);
+  const cwNow = rowR.w / n;
+  const stripH = R.strip.base - R.strip.top;
+  const top = s.exposure[sortedOrder[k][0]] || 1;
+  const half = s.hold.half;
+  for (let j = 0; j < n; j += 1) {
+    const e = Math.max(0, s.exposure[j]);
+    const shadeC = ramp(Math.sqrt(e / fit.expoMax));
+    const barH = (e / top) * stripH;
+    const slot = M.lerp(j, rankOf[k][j], sortT);
+    const x = rowR.x + slot * cwNow;
+    const h = M.lerp(rowR.h, barH, stand);
+    const final = rankOf[k][j] < half ? T.ink2 : wash(T.ink3, 0.55);
+    const barColour = sortT >= 1 ? final : T.ink2;
+    ctx.fillStyle = stand > 0 ? (stand >= 1 ? barColour : mix(shadeC, T.ink2, stand)) : shadeC;
+    const gap = stand * 0.6;
+    ctx.fillRect(x + gap / 2, rowR.y + rowR.h - h, Math.max(0.8, cwNow - gap + (stand === 0 ? 0.3 : 0)), Math.max(0.01, h));
+    if (follow && j === hyperJ) {
+      ctx.save(); ctx.strokeStyle = T.ink1; ctx.lineWidth = 1;
+      ctx.strokeRect(x - 1.5, rowR.y + rowR.h - Math.max(h, 3) - 1.5, Math.max(cwNow, 1.5) + 3, Math.max(h, 3) + 3); ctx.restore();
+    }
+  }
+  if (outline > 0.01) {
+    alpha(ctx, outline, () => { ctx.save(); ctx.strokeStyle = T.highlight; ctx.lineWidth = 2; ctx.strokeRect(rowR.x - 2, rowR.y - 2, rowR.w + 4, rowR.h + 4); ctx.restore(); });
+  }
+  alpha(ctx, stand, () => rule(ctx, L.x0, R.strip.base + 0.5, L.x1, R.strip.base + 0.5, T.axis));
+}
+
+/** A signature not yet moving, still in S and W. */
+function drawSignatureHome(ctx, T, ramp, L, k, follow) {
+  drawSignatureFlight(ctx, T, ramp, L, k, 0, 0, { follow });
+}
+
+/* ---------------------------------------------------------------- the three arms */
+const ARMS = [
+  {
+    key: "now", title: "A · Now: a crossfade, 0.7 s",
+    sub: "The draft's press. M, S and W are gone by the halfway point; the opened view fades in from there.",
+    ms: 700,
+    draw(ctx, T, ramp, L, t, follow) {
+      const e = M.easeInOut(t);
+      alpha(ctx, Math.max(0, 1 - 2 * e), () => { drawStay(ctx, T, ramp, L, 1); for (let k = 0; k < fit.rank; k += 1) drawSignatureHome(ctx, T, ramp, L, k, false); });
+      alpha(ctx, Math.max(0, 2 * e - 1), () => { for (let k = 0; k < fit.rank; k += 1) drawSignatureFlight(ctx, T, ramp, L, k, 1, 1, { follow: false }); drawOpenedText(ctx, T, L, 1); });
+    },
+  },
+  {
+    key: "together", title: "B · Together: every signature moves at once, 2.4 s",
+    sub: "0–0.7 s every column lies down as its row slides under it; 0.7–1.3 s the cells become bars; 1.3–1.8 s the rows sort; 1.8–2.4 s the words arrive.",
+    ms: 2400,
+    draw(ctx, T, ramp, L, t, follow) {
+      const u = seg(t, 0, 0.54), v = seg(t, 0.54, 0.75), words = seg(t, 0.75, 1);
+      drawStay(ctx, T, ramp, L, 1 - M.easeInOut(seg(t, 0, 0.2)));
+      for (let k = 0; k < fit.rank; k += 1) drawSignatureFlight(ctx, T, ramp, L, k, u, v, { follow });
+      drawOpenedText(ctx, T, L, M.easeInOut(words));
+    },
+  },
+  {
+    key: "staggered", title: "C · One at a time: the travelling pair outlined, 3.5 s",
+    sub: "Signature 1's column and row travel first (0.55 s) and stand up while signature 2's travel, and so on; the rows sort together once all have landed, then the words.",
+    ms: 3500,
+    draw(ctx, T, ramp, L, t, follow) {
+      const r = fit.rank, ms = 3500;
+      /* the next pair leaves as the last one arrives, so one pair travels at a time */
+      const fly = 1000, gap = 550, sortAt = (r - 1) * gap + fly, sortMs = 550;
+      const now = t * ms;
+      drawStay(ctx, T, ramp, L, 1 - M.easeInOut(seg(now, 0, 450)));
+      const v = seg(now, sortAt, sortAt + sortMs);
+      /* the ones still at home first, so a travelling pair passes over them */
+      const started = (k) => (now > k * gap ? 1 : 0);
+      const order = [...Array(r).keys()].sort((a, b) => started(a) - started(b));
+      for (const k of order) {
+        const u = seg(now, k * gap, k * gap + fly);
+        /* outlined while it travels, the outline gone by the time its bars stand */
+        const outline = u <= 0 ? 0 : u < 0.55 ? 1 : Math.max(0, 1 - (u - 0.55) / 0.25);
+        drawSignatureFlight(ctx, T, ramp, L, k, u, v, { outline, follow });
+      }
+      drawOpenedText(ctx, T, L, M.easeInOut(seg(now, sortAt + sortMs, ms)));
+    },
+  },
+];
+
+const players = [];
+function buildPress() {
+  const row = document.getElementById("pressRow");
+  row.replaceChildren();
+  players.length = 0;
+  for (const arm of ARMS) {
+    const box = el("div", "cand");
+    box.style.width = `${state.width + 2}px`;
+    box.appendChild(el("h3", null, arm.title));
+    box.appendChild(el("p", "sub", arm.sub));
+    const c = document.createElement("canvas");
+    box.appendChild(c);
+    const ctl = el("div", "ctl");
+    const play = el("button", null, "Play");
+    const scrub = document.createElement("input");
+    scrub.type = "range"; scrub.min = "0"; scrub.max = "1000"; scrub.value = "0";
+    const read = el("span", null, "0.00 s");
+    ctl.append(play, scrub, read);
+    box.appendChild(ctl);
+    row.appendChild(box);
+    const P = { arm, c, scrub, read, t: 0, playing: false, t0: 0 };
+    P.render = () => {
+      const T = THEMES[state.theme], ramp = rampFn(state.ramp, T);
+      const L = M.layout(state.width, params);
+      const ctx = sizeCanvas(c, state.width, L.height);
+      ctx.fillStyle = T.surface; ctx.fillRect(0, 0, state.width, L.height);
+      arm.draw(ctx, T, ramp, L, P.t, state.follow);
+      scrub.value = String(Math.round(P.t * 1000));
+      read.textContent = `${(P.t * arm.ms / 1000).toFixed(2)} s`;
+    };
+    scrub.oninput = () => { P.playing = false; P.t = Number(scrub.value) / 1000; P.render(); };
+    play.onclick = () => { P.t = 0; P.playing = true; P.t0 = performance.now(); };
+    players.push(P);
+  }
+}
+function frame(now) {
+  for (const P of players) {
+    if (!P.playing) continue;
+    P.t = Math.min(1, ((now - P.t0) * state.speed) / P.arm.ms);
+    if (P.t >= 1) P.playing = false;
+    P.render();
+  }
+  requestAnimationFrame(frame);
+}
+
+/* ---------------------------------------------------------------- the ramps, at real width */
+function drawMatching(ctx, T, ramp, w) {
+  const Lm = M.layout(w, { page: "matching", rank: RANK, hypermutated: HYPER });
+  text(ctx, S.matchCaption, Lm.x0 - 36, 18, { font: capFont(T), fill: T.ink1 });
+  M.REFERENCES.forEach((r, j) => {
+    ctx.save(); ctx.translate(Lm.cellX + (j + 0.5) * Lm.cellW + 4, Lm.heatTop - 8); ctx.rotate(-Math.PI / 2);
+    text(ctx, r.name, 0, 0, { font: noteFont(T), fill: T.ink1 }); ctx.restore();
+  });
+  fit.sigs.forEach((s, k) => {
+    const y = Lm.heatTop + k * M.MATCH_ROW;
+    text(ctx, S.sigTitle(k + 1), Lm.labelX, y + M.MATCH_ROW / 2 + 4, { font: k === 0 ? capFont(T) : noteFont(T), fill: T.ink1, align: "right" });
+    M.REFERENCES.forEach((r, j) => {
+      const x = Lm.cellX + j * Lm.cellW;
+      const c = s.match.find((m) => m.key === r.key).cos;
+      const fill = ramp((c - 0.1) / 0.9);
+      ctx.fillStyle = fill;
+      ctx.fillRect(x + 1, y + 1, Lm.cellW - 2, M.MATCH_ROW - 2);
+      /* the number in whichever ink reads better on this cell */
+      const ink = contrast(fill, T.ink1) >= contrast(fill, T.surface) ? T.ink1 : T.surface;
+      text(ctx, M.cell2(c), x + Lm.cellW / 2, y + M.MATCH_ROW / 2 + 4, { font: `${T.fsXs} ${T.mono}`, fill: ink, align: "center" });
+      if (s.match[0].key === r.key) { ctx.save(); ctx.strokeStyle = T.ink1; ctx.lineWidth = 2; ctx.strokeRect(x + 1.5, y + 1.5, Lm.cellW - 3, M.MATCH_ROW - 3); ctx.restore(); }
+    });
+  });
+  return Lm.heatBase + 8;
+}
+
+function buildRamps() {
+  /* the table: each ramp's range and whether it climbs steadily, in both themes */
+  const rows = Object.entries(RAMPS).map(([key, R]) => {
+    const cells = ["light", "dark"].map((th) => {
+      const T = THEMES[th], f = rampFn(key, T);
+      const ls = Array.from({ length: 21 }, (_, i) => lum(f(i / 20)));
+      const dir = Math.sign(ls[20] - ls[0]);
+      const steady = ls.every((x, i) => i === 0 || dir * (x - ls[i - 1]) >= -1e-9);
+      /* the flattest tenth of the ramp: the smallest luminance step between neighbouring tenths */
+      const tenths = Array.from({ length: 10 }, (_, i) => contrast(f(i / 10), f((i + 1) / 10)));
+      return { range: contrast(f(0), f(1)), steady, flattest: Math.min(...tenths), grad: Array.from({ length: 11 }, (_, i) => f(i / 10)) };
+    });
+    return { key, R, cells };
+  });
+  const tbl = el("table");
+  const cellHtml = (c) => `<span class="sw" style="background:linear-gradient(to right,${c.grad.join(",")})"></span>`
+    + `<div style="font-family:var(--font-mono);font-size:11px;margin-top:3px">range ${c.range.toFixed(1)} · flattest ${c.flattest.toFixed(2)} · `
+    + `${c.steady ? "climbs steadily" : "<b>does not climb steadily</b>"}</div>`;
+  tbl.innerHTML = `<tr><th>ramp</th><th>light theme</th><th>dark theme</th></tr>`
+    + rows.map(({ R, cells }) => `<tr><td><b>${R.label}</b><div style="color:var(--ink-3);font-size:11px;max-width:24ch">${R.clash}</div></td>`
+      + `${cells.map((c) => `<td>${cellHtml(c)}</td>`).join("")}</tr>`).join("");
+  const host = document.getElementById("rampTable");
+  host.replaceChildren(tbl);
+  host.appendChild(el("p", "note", "Range is the contrast ratio between the empty end and the full end; the flattest tenth is the smallest contrast between neighbouring tenths of the ramp, so a low number there is a stretch where a larger value is hard to tell from a smaller one."));
+  state.rampRows = rows;
+
+  const row = document.getElementById("rampRow");
+  row.replaceChildren();
+  const T = THEMES[state.theme];
+  for (const [key, R] of Object.entries(RAMPS)) {
+    const box = el("div", "cand");
+    box.style.width = `${state.width + 2}px`;
+    box.appendChild(el("h3", null, R.label));
+    box.appendChild(el("p", "sub", `page 2 after the extraction, then page 3's heatmap; ${R.clash}`));
+    const L = M.layout(state.width, params);
+    const c1 = document.createElement("canvas");
+    box.appendChild(c1);
+    const ctx = sizeCanvas(c1, state.width, L.height);
+    ctx.fillStyle = T.surface; ctx.fillRect(0, 0, state.width, L.height);
+    const ramp = rampFn(key, T);
+    drawStay(ctx, T, ramp, L, 1);
+    for (let k = 0; k < fit.rank; k += 1) drawSignatureHome(ctx, T, ramp, L, k, false);
+    const c2 = document.createElement("canvas");
+    c2.style.marginTop = "6px";
+    box.appendChild(c2);
+    const Lm = M.layout(state.width, { page: "matching", rank: RANK, hypermutated: HYPER });
+    const ctx2 = sizeCanvas(c2, state.width, Lm.heatBase + 12);
+    ctx2.fillStyle = T.surface; ctx2.fillRect(0, 0, state.width, Lm.heatBase + 12);
+    drawMatching(ctx2, T, ramp, state.width);
+    row.appendChild(box);
+  }
+}
+
+/* ---------------------------------------------------------------- copy, checks, wiring */
+function writeCopy() {
+  const own = fit.sigs.findIndex((s) => s.own);
+  const where = hyperJ < 0 || own < 0 ? "" : fit.sigs.map((_, k) => k).filter((k) => k !== own)
+    .map((k) => `${ordinal(rankOf[k][hyperJ] + 1)} in signature ${k + 1}`).join(", ").replace(/, ([^,]*)$/, " and $1");
+  document.getElementById("recPress").innerHTML =
+    "<b>Recommendation: C, one at a time, with Tumor 101 on.</b> It is the only arm that shows the pairing the "
+    + "question is about: while signature 2 travels, its column of S and its row of W are the only outlined things "
+    + "moving. B is shorter, but four columns and four rows crossing at once read as a shuffle. Keeping tumor 101's "
+    + "outline from M through W to the strips answers the other half of \"how the matrix is connected\": the tumor "
+    + `boxed in M lands as the first bar of signature ${own + 1}, the ${M.pct(fit.sigs[own]?.hold.topShare ?? 0)} the page `
+    + `already prints, and ${where} of ${n}. It costs 2.8 s more than now, once, on a press that is read and not replayed.`;
+  document.getElementById("qRamp").innerHTML =
+    "<b>For you:</b> which ramp for M, S, W and page 3's cosine heatmap? Your figure's red is the one thing this "
+    + "page's measurements rule out twice: it is C&gt;T's colour, and on the dark theme its red end is no lighter than "
+    + "its amber middle, so the largest counts stop standing out exactly where the eye looks for them.";
+  document.getElementById("recRamp").innerHTML =
+    "<b>Recommendation: Amber, no red.</b> It is your figure's cream and amber with the red end replaced by a deep "
+    + "amber, so the page still reads as cell 0's figure; it climbs steadily in both themes; and it shares no colour "
+    + "with a class or with a role this widget uses. It would become one new role pair in the tokens "
+    + "(the ends of a count or weight ramp), so a later widget with a matrix beside class colours has a ramp to take. "
+    + "Violet reaches furthest on the light theme, but it is the highlight colour, which the opened view's half rule "
+    + "wears, and on the dark theme it is shorter than grey or amber. Grey is the widest on the dark theme and second "
+    + "to violet on the light, if you would rather keep it.";
+}
+
+function runChecks() {
+  const out = [];
+  const ok = (cond, msg) => out.push(`${cond ? "PASS" : "FAIL"}  ${msg}`);
+  const L = M.layout(state.width, params);
+  ok(L.height === M.layout(state.width, params).height, `one canvas height for both figures of page 2: ${L.height}px, so the press never resizes the stage`);
+  /* the flight's last frame is the opened view: S's column k, laid down, equals signature k's bars */
+  ok(fit.sigs.every((s, k) => last.sigs[k].every((x, i) => Math.abs(x - s.profile[i]) < 1e-12)), "the last snapshot's S columns are the signatures the opened view draws");
+  ok(fit.sigs.every((s, k) => last.expo[k].every((x, j) => Math.abs(x - s.exposure[j]) < 1e-9)), "the last snapshot's W rows are the exposures the opened view draws");
+  ok(sortedOrder.every((ord, k) => ord.every((j, i) => i === 0 || fit.sigs[k].exposure[ord[i - 1]] >= fit.sigs[k].exposure[j])), "each strip's sort is largest first");
+  if (hyperJ >= 0) {
+    const own = fit.sigs.findIndex((s) => s.own);
+    ok(own >= 0 && rankOf[own][hyperJ] === 0, `tumor 101 lands first in signature ${own + 1}'s strip`);
+    const others = fit.sigs.map((_, k) => rankOf[k][hyperJ] + 1).filter((_, k) => k !== own);
+    out.push(`       …and at ${others.join(", ")} of ${n} in the other strips`);
+  }
+  for (const { R, cells } of state.rampRows) {
+    out.push(`       ${R.label.padEnd(18)} light range ${cells[0].range.toFixed(1)}, flattest ${cells[0].flattest.toFixed(2)}, ${cells[0].steady ? "steady" : "NOT steady"} · dark range ${cells[1].range.toFixed(1)}, flattest ${cells[1].flattest.toFixed(2)}, ${cells[1].steady ? "steady" : "NOT steady"}`);
+  }
+  const amber = state.rampRows.find((r) => r.key === "amber");
+  ok(amber.cells.every((c) => c.steady && c.range >= 4), "the recommended ramp climbs steadily with a range of at least 4 in both themes");
+  const lesson = state.rampRows.find((r) => r.key === "lesson");
+  ok(!lesson.cells[1].steady, "cell 0's ramp does not climb steadily on the dark theme (the claim in the question)");
+  {
+    const f = rampFn("lesson", THEMES.dark);
+    ok(lum(f(1)) <= lum(f(0.4)), `dark: cell 0's red end (luminance ${lum(f(1)).toFixed(3)}) is no lighter than its amber middle (${lum(f(0.4)).toFixed(3)})`);
+  }
+  {
+    const range = (key, th) => state.rampRows.find((r) => r.key === key).cells[th === "light" ? 0 : 1].range;
+    ok(Object.keys(RAMPS).every((k) => range("violet", "light") >= range(k, "light")), "light: violet has the widest range (the claim in the recommendation)");
+    ok(range("violet", "dark") < range("grey", "dark") && range("violet", "dark") < range("amber", "dark"), "dark: violet is shorter than grey and amber");
+    ok(Object.keys(RAMPS).filter((k) => k !== "violet").every((k) => range("grey", "light") >= range(k, "light")) && Object.keys(RAMPS).every((k) => range("grey", "dark") >= range(k, "dark")), "grey is the widest in both themes, violet on the light theme aside");
+  }
+  /* no ramp stop may be a class colour, except the two the text names */
+  for (const th of ["light", "dark"]) {
+    const T = THEMES[th];
+    const f = rampFn("amber", T);
+    const nearest = Math.min(...T.subs.map((c) => Math.min(...Array.from({ length: 11 }, (_, i) => {
+      const a = rgb(f(i / 10)), b = rgb(c); return Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
+    }))));
+    ok(nearest > 60, `${th}: amber's nearest approach to a class colour is ${nearest.toFixed(0)} in RGB distance`);
+  }
+  document.getElementById("checks").textContent = out.join("\n");
+}
+
+function renderAll() {
+  root.dataset.theme = state.theme;
+  buildRamps();
+  for (const P of players) P.render();
+  runChecks();
+}
+function rebuildAll() { buildPress(); renderAll(); }
+
+buttons("rampBtns", Object.entries(RAMPS).map(([k, R]) => [k, R.label]), "ramp", renderAll);
+buttons("themeBtns", [["light", "Light"], ["dark", "Dark"]], "theme", renderAll);
+buttons("widthBtns", [[534, "534"], [626, "626"], [770, "770"]], "width", rebuildAll);
+buttons("speedBtns", [[1, "1×"], [0.25, "¼×"]], "speed", () => {});
+buttons("followBtns", [[true, "On"], [false, "Off"]], "follow", renderAll);
+writeCopy();
+rebuildAll();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
