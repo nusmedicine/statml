@@ -33,6 +33,11 @@
    ask of round 2 — nothing moves over a finished signature, swept every 5 ms
    as rotated rectangles at three widths and ranks 2 to 6.
 
+   ROUND 3: page 3's comparison is a scan of the chosen row and its numbers
+   wait for the scan; a later click eases the panel, starting and ending on
+   the exact frames either side of it; page 1's square stands clear of the
+   bars, whose stage-1 labels still clear each other at 535px.
+
    THE STATUS. The manifest and `main.js` both say `draft`, and this says so.
 
    Exits non-zero on failure.
@@ -377,7 +382,10 @@ console.log("\n§6 the geometry");
         for (const truth of ["0", "1"]) {
           for (const signature of ["1", String(rank)]) {
             const p3 = paramsOf({ page: "matching", rank, hypermutated, truth, signature });
-            for (const [sig, match, matchT] of [[0, 0, 1], [1, 0, 1], [1, 1, 0.5], [1, 1, 1]]) paint(p3, { ...blank("matching", "largest"), sig, match, matchT }, w);
+            for (const [sig, match, matchT] of [[0, 0, 1], [1, 0, 1], [1, 1, 0.05], [1, 1, 0.3], [1, 1, 0.5], [1, 1, 0.62], [1, 1, 0.7], [1, 1, 0.85], [1, 1, 1]]) {
+              paint(p3, { ...blank("matching", "largest"), sig, match, matchT }, w);
+            }
+            paint(p3, { ...blank("matching", "largest"), sig: 1, match: 1, matchT: 1, shownRow: rank - 1, fromRow: 0, easeT: 0.5 }, w);
           }
         }
       }
@@ -591,6 +599,110 @@ console.log("\n§6b the presses that open the signatures, and the ramp");
     lg({ page: "signatures" })[0].token === "magnitude" && lg({ page: "matching" })[0].token === "magnitude");
   check("page 2's legend names tumor 101 while it is in, and not once left out",
     lg({ page: "signatures" }).some((e) => e.mark === "tri") && !lg({ page: "signatures", hypermutated: "out" }).some((e) => e.mark === "tri"));
+}
+
+/* --- 6c · round 3 (2026-09-19): the scan, the eased row switch, the square ------ */
+console.log("\n§6c the comparison's scan, the eased row switch, and page 1's square");
+{
+  const blank = (page) => ({ page, tumor: "largest", cat: 0, catT: 1, landed: 0, clock: 0, sig: 0, sigT: 1, match: 0, matchT: 1 });
+  const frame = (params, anim, w = 626) => {
+    const state = W.compute({ params });
+    const { ctx, ops, seen, box } = recorder({ record: true });
+    const h = W.height({ w, ...params });
+    W.draw({ ctx, colors: COLORS, w, h, params, state, anim });
+    return { ops, seen, box, h, state };
+  };
+  const T = M.compareTiming();
+
+  /* the scan */
+  for (const k of [0, 2]) {
+    const at = M.compareAt(1000, 4, k);
+    check(`the scan fills row ${k + 1}, when it is the one chosen, a reference at a time before any other row`,
+      at.cell[k].slice(0, 5).every((a) => a > 0.99) && at.cell[k].slice(6).every((a) => a === 0)
+        && at.cell.every((row, r) => r === k || row.every((a) => a === 0)),
+      at.cell[k].map((a) => a.toFixed(1)).join(" "));
+  }
+  {
+    const before = M.compareAt(T.settleAt - 1, 4, 0), after = M.compareAt(T.total, 4, 0);
+    check("every row has filled before any best is outlined, and every best is outlined at the end",
+      before.cell.every((row) => row.every((a) => a > 0.99)) && before.outline === 0 && after.outline === 1 && after.runner === 1,
+      `rows by ${T.settleAt} ms, the press ${T.total} ms`);
+  }
+  {
+    const p = paramsOf({ page: "matching" });
+    const fit = M.fitFor(1, "in", 4);
+    const laid = M.REFERENCES.filter((r, j) => frame(p, { ...blank("matching"), sig: 1, match: 1, matchT: (j * M.SCAN.each + 100) / T.total, scanRow: 0 }).seen
+      .includes(M.STRINGS.comparedLabel(r.name)));
+    const settled = frame(p, { ...blank("matching"), sig: 1, match: 1, matchT: (T.rowsAt + 50) / T.total, scanRow: 0 }).seen;
+    check("the panel lays each of the ten references under the signature in turn, then settles on the best match",
+      laid.length === M.REFERENCES.length && settled.includes(M.STRINGS.bestLabel(fit.sigs[0].match[0])),
+      `${laid.length} of ${M.REFERENCES.length} laid`);
+    const mid = { ...blank("matching"), sig: 1, match: 1, matchT: 0.5, scanRow: 0 };
+    const state = W.compute({ params: p });
+    const tiles = W.readout({ params: p, state, anim: mid });
+    check("the tiles, the card and the summary wait for the scan to finish",
+      tiles.every((t) => t.value === "—") && W.summary({ params: p, state, anim: mid }) === M.STRINGS.sumNotCompared(4)
+        && !(frame(p, mid), cardText()).includes("cos(signature"));
+  }
+
+  /* the eased row switch */
+  {
+    const p1 = paramsOf({ page: "matching", shown: 1 });
+    const a = W.animation.init({ params: p1, state: W.compute({ params: p1 }), fromScratch: false });
+    const p3 = paramsOf({ page: "matching", shown: 1, signature: "3" });
+    W.animation.rebuild(a, { params: p3, state: W.compute({ params: p3 }) });
+    const asked = a.easing === true && a.fromRow === 0 && a.shownRow === 2 && a.easeT === 0;
+    a.mode = "ease";
+    let frames = 0;
+    while (W.animation.advance(a, { dt: 32, params: p3, state: W.compute({ params: p3 }) }) && frames < 200) frames += 1;
+    check("once compared, a click on another row asks core for an ease, which runs its clock and lands",
+      asked && a.easeT === 1 && Math.abs(frames - M.EASE_MS / 32) <= 2, `${frames} frames of 32 ms`);
+    const p0 = paramsOf({ page: "matching" });
+    const b = W.animation.init({ params: p0, state: W.compute({ params: p0 }), fromScratch: true });
+    W.animation.rebuild(b, { params: paramsOf({ page: "matching", signature: "3" }), state: W.compute({ params: p0 }) });
+    check("before the comparison, a click on another row changes it without an ease", !b.easing && b.shownRow === 2 && b.easeT === 1);
+  }
+  {
+    const done = { ...blank("matching"), sig: 1, match: 1, matchT: 1 };
+    const same = (x, y) => x.length === y.length && x.every((o, i) => o === y[i]);
+    const seams = [];
+    for (const w of [535, 770]) {
+      const pa = paramsOf({ page: "matching" }), pb = paramsOf({ page: "matching", signature: "3" });
+      if (!same(frame(pa, { ...done, shownRow: 0, fromRow: 0, easeT: 1 }, w).ops, frame(pb, { ...done, shownRow: 2, fromRow: 0, easeT: 0 }, w).ops)) seams.push(`${w} start`);
+      if (!same(frame(pb, { ...done, shownRow: 2, fromRow: 0, easeT: 1 }, w).ops, frame(pb, { ...done, shownRow: 2, fromRow: 2, easeT: 1 }, w).ops)) seams.push(`${w} end`);
+    }
+    check("the ease starts on the old signature's panel and ends on the new one's, op for op", seams.length === 0, seams.join(" | "));
+  }
+
+  /* page 1's square */
+  {
+    const out = [];
+    let tight = Infinity;
+    for (const w of [535, 626, 770]) {
+      const L = M.layout(w, { page: "catalogue" });
+      const N = M.squareNodes(L);
+      if (L.square.x < L.x1 + 12 || L.square.x + L.square.w > w || N.y1 + 64 >= L.base + 40 || N.y0 - 16 - 11 < 0) out.push(`${w}px`);
+      /* stage 1's two labels a class, measured in a mono face 0.6 em wide, wider than the canvas's own */
+      M.CLASSES.forEach((s, k) => {
+        const a = M.writtenRect(L, k, false, 0, 1), b = M.writtenRect(L, k, true, 0, 1);
+        tight = Math.min(tight, (b.x + b.w / 2 - 1.5 * 6.6) - (a.x + a.w / 2 + 1.5 * 6.6));
+      });
+    }
+    check("the square stands beside the bars at 535, 626 and 770px: clear of them, inside the canvas, above the lines under them", out.length === 0, out.join(" "));
+    check("stage 1's two labels a class clear each other at every width, even in a mono face 0.6 em wide", tight >= 0, `${tight.toFixed(1)}px at the tightest`);
+    const pyr = M.ARROWS.filter((a) => !a.purine);
+    check("twelve arrows, one a written change; the six left after the fold start at C or T",
+      M.ARROWS.length === 12 && new Set(M.ARROWS.map((a) => a.from + a.to)).size === 12 && pyr.length === 6 && pyr.every((a) => a.from === "C" || a.from === "T"));
+    check("the two transitions left are C→T and T→C, and each pale arrow is the purine form of the arrow its colour matches",
+      pyr.filter((a) => a.ti).map((a) => a.from + a.to).sort().join() === "CT,TC"
+        && M.ARROWS.filter((a) => a.purine).every((a) => M.PURINE_FORM[M.CLASSES[a.k]] === a.written));
+    const p = paramsOf({});
+    const early = frame(p, { ...blank("catalogue"), cat: 1, catT: 1, landed: 10 }).seen;
+    const late = frame(p, { ...blank("catalogue"), cat: 3, catT: 1, landed: M.tumorFor(1, "largest").n }).seen;
+    check("the square names its two kinds once the changes are read from the pyrimidine, and not before",
+      !early.includes(M.STRINGS.squareTiKey) && late.includes(M.STRINGS.squareTiKey) && late.includes(M.STRINGS.squareTvKey)
+        && early.includes(M.STRINGS.squarePurines) && early.includes(M.STRINGS.squarePyrimidines));
+  }
 }
 
 /* --- 7 · the copy, against the words this collection has struck ----------------- */

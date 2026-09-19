@@ -94,7 +94,7 @@ function cardFor(params, state, anim) {
   if (params.page === "matching" && state.fit) {
     const k = openIndex(params);
     const s = state.fit.sigs[k];
-    const compared = (anim?.match ?? 0) >= 1;
+    const compared = (anim?.match ?? 0) >= 1 && (anim?.matchT ?? 1) >= 1;
     return {
       rows: [[S.labelCosine, MATHML ? COSINE_MATH : COSINE_PLAIN,
         compared && s ? numbers(`cos(signature ${k + 1}, ${s.match[0].name}) = ${M.cos3(s.match[0].cos)}`) : null]],
@@ -242,6 +242,66 @@ function bandLabels(ctx, colors, L, alpha) {
   });
 }
 
+/** One written change as an arrow of the square, set beside its reverse. */
+function squareArrow(ctx, [ax, ay], [bx, by], colour) {
+  const dx = bx - ax, dy = by - ay, len = Math.hypot(dx, dy), ux = dx / len, uy = dy / len;
+  const nx = -uy * 3, ny = ux * 3, r = M.NODE_R;
+  const sx = ax + ux * (r + 3) + nx, sy = ay + uy * (r + 3) + ny;
+  const ex = bx - ux * (r + 4) + nx, ey = by - uy * (r + 4) + ny;
+  ctx.save();
+  ctx.strokeStyle = colour;
+  ctx.fillStyle = colour;
+  ctx.lineWidth = 1.6;
+  ctx.beginPath();
+  ctx.moveTo(sx, sy);
+  ctx.lineTo(ex - ux * 4, ey - uy * 4);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(ex, ey);
+  ctx.lineTo(ex - ux * 6 - uy * 3.2, ey - uy * 6 + ux * 3.2);
+  ctx.lineTo(ex - ux * 6 + uy * 3.2, ey - uy * 6 - ux * 3.2);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+
+/** The square at `fold`: 0, all twelve written changes, those from a purine
+    paler; 1, the six read from the pyrimidine, with Ti and Tv labelled. */
+function drawSquare(ctx, colors, L, fold) {
+  const N = M.squareNodes(L);
+  const mid = (N.x0 + N.x1) / 2;
+  text(ctx, S.squarePurines, mid, N.y0 - 16, { font: noteFont(colors), fill: colors.ink2, align: "center" });
+  text(ctx, S.squarePyrimidines, mid, N.y1 + 30, { font: noteFont(colors), fill: colors.ink2, align: "center" });
+  for (const a of M.ARROWS) {
+    const colour = colors.subs[a.k];
+    withAlpha(ctx, a.purine ? 1 - fold : 1, () => squareArrow(ctx, N[a.from], N[a.to], a.purine ? wash(colour, 0.45) : colour));
+  }
+  for (const b of ["A", "G", "C", "T"]) {
+    const [x, y] = N[b];
+    ctx.save();
+    ctx.fillStyle = colors.surface;
+    ctx.strokeStyle = colors.ink2;
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.arc(x, y, M.NODE_R, 0, 2 * Math.PI);
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+    text(ctx, b, x, y + 4, { font: capFont(colors), fill: colors.ink1, align: "center" });
+  }
+  withAlpha(ctx, fold, () => {
+    const bold = `600 ${colors.fsXs} ${colors.mono}`;
+    text(ctx, S.squareTi, mid, N.y1 + 16, { font: bold, fill: colors.ink1, align: "center" });
+    text(ctx, S.squareTv, N.x0 - 16, (N.y0 + N.y1) / 2 + 4, { font: monoFont(colors), fill: colors.ink2, align: "center" });
+    text(ctx, S.squareTv, N.x1 + 16, (N.y0 + N.y1) / 2 + 4, { font: monoFont(colors), fill: colors.ink2, align: "center" });
+    const x = L.square.x + 6;
+    text(ctx, S.squareTi, x, N.y1 + 50, { font: bold, fill: colors.ink1 });
+    text(ctx, S.squareTiKey, x + 22, N.y1 + 50, { font: noteFont(colors), fill: colors.ink1 });
+    text(ctx, S.squareTv, x, N.y1 + 64, { font: monoFont(colors), fill: colors.ink2 });
+    text(ctx, S.squareTvKey, x + 22, N.y1 + 64, { font: noteFont(colors), fill: colors.ink2 });
+  });
+}
+
 function drawCatalogue(ctx, colors, w, params, state, anim) {
   const L = M.layout(w, params);
   const t = state.tumor;
@@ -263,6 +323,9 @@ function drawCatalogue(ctx, colors, w, params, state, anim) {
     yTicks(ctx, colors, L, cat === 3 ? t.yChannel : t.yClass, 1);
   }
   rule(ctx, L.x0, L.base + 0.5, L.x1, L.base + 0.5, colors.axis);
+  /* the square beside the bars: twelve written changes until the fold, the
+     six read from the pyrimidine after it, folding with the bars (round 3) */
+  drawSquare(ctx, colors, L, cat < 2 ? 0 : cat === 2 && tt < 1 ? e : 1);
 
   if (cat === 0) { writtenLabels(ctx, colors, L, 0.5); return; }
 
@@ -519,6 +582,15 @@ function drawSignatures(ctx, colors, w, params, state, anim) {
 
 /* ---- page 3: matching ------------------------------------------------------------- */
 
+/* The comparison is a scan, and a click on another row afterwards eases the
+   panel below into the new signature's (round 3). */
+
+/** A profile's bar heights in a panel, so two can be eased between. */
+function barHeights(v, top, base) {
+  const m = M.niceMax(Math.max(...v));
+  return Array.from(v, (x) => Math.min(1, x / m) * (base - top));
+}
+
 function drawMatching(ctx, colors, w, params, state, anim) {
   const L = M.layout(w, params);
   const f = state.fit;
@@ -540,12 +612,21 @@ function drawMatching(ctx, colors, w, params, state, anim) {
     text(ctx, S.referencesNote, L.x0 - 36, L.height - 10, { font: noteFont(colors), fill: colors.ink3 });
     return;
   }
-  const open = openIndex(params);
-  const truth = params.truth === "1";
+  const shown = anim?.shownRow ?? openIndex(params);
+  const from = anim?.fromRow ?? shown;
+  const e = M.easeInOut(anim?.easeT ?? 1);
+  const scanRow = anim?.scanRow ?? shown;
+  const at = match >= 1 ? M.compareAt(mt * M.compareTiming().total, f.rank, scanRow) : null;
+  const pressing = at && mt < 1;
+  /* the row the panel is about: the scanned one while the press runs, then the
+     chosen one, its label turning bold halfway through an ease */
+  const marked = !at ? -1 : pressing ? scanRow : e < 0.5 ? from : shown;
+  const rowMid = (k) => L.heatTop + (k + 0.5) * M.MATCH_ROW;
+
   f.sigs.forEach((s, k) => {
     const y = L.heatTop + k * M.MATCH_ROW;
     text(ctx, S.sigTitle(k + 1), L.labelX, y + M.MATCH_ROW / 2 + 4,
-      { font: k === open && match >= 1 ? capFont(colors) : noteFont(colors), fill: colors.ink1, align: "right" });
+      { font: k === marked ? capFont(colors) : noteFont(colors), fill: colors.ink1, align: "right" });
     M.REFERENCES.forEach((r, j) => {
       const x = L.cellX + j * L.cellW;
       ctx.save();
@@ -553,17 +634,19 @@ function drawMatching(ctx, colors, w, params, state, anim) {
       ctx.lineWidth = 1;
       ctx.strokeRect(x + 0.5, y + 0.5, L.cellW - 1, M.MATCH_ROW - 1);
       ctx.restore();
-      if (match < 1) return;
+      if (!at) return;
       const c = s.match.find((m) => m.key === r.key).cos;
-      withAlpha(ctx, mt, () => {
+      withAlpha(ctx, at.cell[k][j], () => {
         const fill = shade(colors, (c - 0.1) / 0.9);
         ctx.fillStyle = fill;
         ctx.fillRect(x + 1, y + 1, L.cellW - 2, M.MATCH_ROW - 2);
         text(ctx, M.cell2(c), x + L.cellW / 2, y + M.MATCH_ROW / 2 + 4,
           { font: monoFont(colors), fill: inkOn(colors, fill), align: "center" });
-        if (s.match[0].key === r.key) {
-          /* cased by a line of the surface inside it, so it reads on the
-             strongest violet in either theme */
+      });
+      if (s.match[0].key === r.key) {
+        /* cased by a line of the surface inside it, so it reads on the
+           strongest violet in either theme */
+        withAlpha(ctx, at.outline, () => {
           ctx.save();
           ctx.strokeStyle = colors.ink1;
           ctx.lineWidth = 2;
@@ -572,34 +655,93 @@ function drawMatching(ctx, colors, w, params, state, anim) {
           ctx.lineWidth = 1;
           ctx.strokeRect(x + 3, y + 3, L.cellW - 6, M.MATCH_ROW - 6);
           ctx.restore();
-        }
-      });
+        });
+      }
     });
   });
-  if (match < 1) {
+  if (!at) {
     text(ctx, S.referencesNote, L.x0 - 36, L.height - 10, { font: noteFont(colors), fill: colors.ink3 });
     return;
   }
 
-  withAlpha(ctx, mt, () => {
-    if (truth) {
-      f.sigs.forEach((s, k) => {
-        text(ctx, S.builtLine(k + 1, M.builtText(s.mix)), L.x0 - 36, L.builtTop + k * M.BUILT_ROW, { font: noteFont(colors), fill: colors.ink2 });
-      });
-    }
-    const s = f.sigs[open];
-    const B = L.b;
-    text(ctx, S.sigTitle(open + 1), L.x0, B.top + 12, { font: capFont(colors), fill: colors.ink1 });
-    text(ctx, S.sigShare(s.share), L.x0 + 86, B.top + 12, { font: noteFont(colors), fill: colors.ink2 });
-    profileBars(ctx, colors, s.profile, { x0: L.x0, x1: L.x1, top: B.own.top, base: B.own.base });
-    for (const [which, m] of [["best", s.match[0]], ["runner", s.match[1]]]) {
-      const P = B[which];
-      text(ctx, which === "best" ? S.bestLabel(m) : S.runnerLabel(m), L.x0, P.label,
-        { font: which === "best" ? capFont(colors) : noteFont(colors), fill: colors.ink1 });
-      text(ctx, `${S.cosLabel(m.cos)} · ${S.standsFor(m)}`, L.x1, P.label, { font: noteFont(colors), fill: colors.ink2, align: "right" });
-      profileBars(ctx, colors, M.REF[m.key].profile, { x0: L.x0, x1: L.x1, top: P.top, base: P.base });
-    }
+  /* the cell being filled, outlined while its reference is laid below */
+  if (at.comparing >= 0) {
+    const x = L.cellX + at.comparing * L.cellW, y = L.heatTop + scanRow * M.MATCH_ROW;
+    ctx.save();
+    ctx.strokeStyle = colors.ink1;
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(x + 0.75, y + 0.75, L.cellW - 1.5, M.MATCH_ROW - 1.5);
+    ctx.restore();
+  }
+  /* the mark beside the row the panel is about, moving with an ease */
+  withAlpha(ctx, at.own, () => {
+    const ym = pressing ? rowMid(scanRow) : M.lerp(rowMid(from), rowMid(shown), e);
+    ctx.fillStyle = colors.ink1;
+    ctx.beginPath();
+    ctx.moveTo(10, ym - 4);
+    ctx.lineTo(16, ym);
+    ctx.lineTo(10, ym + 4);
+    ctx.closePath();
+    ctx.fill();
   });
+  if (params.truth === "1") {
+    withAlpha(ctx, at.built, () => f.sigs.forEach((s, k) => {
+      text(ctx, S.builtLine(k + 1, M.builtText(s.mix)), L.x0 - 36, L.builtTop + k * M.BUILT_ROW, { font: noteFont(colors), fill: colors.ink2 });
+    }));
+  }
+
+  /* the panel: the signature, then the reference laid under it */
+  const B = L.b;
+  const heads = (s, which, alpha) => withAlpha(ctx, alpha, () => {
+    const m = which === "best" ? s.match[0] : s.match[1];
+    const P = B[which];
+    text(ctx, which === "best" ? S.bestLabel(m) : S.runnerLabel(m), L.x0, P.label,
+      { font: which === "best" ? capFont(colors) : noteFont(colors), fill: colors.ink1 });
+    text(ctx, `${S.cosLabel(m.cos)} · ${S.standsFor(m)}`, L.x1, P.label, { font: noteFont(colors), fill: colors.ink2, align: "right" });
+  });
+  const bars = (va, vb, P) => {
+    const a = barHeights(va, P.top, P.base), b = barHeights(vb, P.top, P.base);
+    profileBars(ctx, colors, a.map((h, i) => M.lerp(h, b[i], e)), { x0: L.x0, x1: L.x1, top: P.top, base: P.base, max: P.base - P.top });
+  };
+  if (pressing) {
+    const s = f.sigs[scanRow];
+    withAlpha(ctx, at.own, () => {
+      text(ctx, S.sigTitle(scanRow + 1), L.x0, B.top + 12, { font: capFont(colors), fill: colors.ink1 });
+      text(ctx, S.sigShare(s.share), L.x0 + 86, B.top + 12, { font: noteFont(colors), fill: colors.ink2 });
+      profileBars(ctx, colors, s.profile, { x0: L.x0, x1: L.x1, top: B.own.top, base: B.own.base });
+    });
+    if (at.comparing >= 0) {
+      const r = M.REFERENCES[at.comparing];
+      const m = s.match.find((x) => x.key === r.key);
+      withAlpha(ctx, at.comparingIn, () => {
+        text(ctx, S.comparedLabel(r.name), L.x0, B.best.label, { font: capFont(colors), fill: colors.ink1 });
+        text(ctx, `${S.cosLabel(m.cos)} · ${S.standsFor(m)}`, L.x1, B.best.label, { font: noteFont(colors), fill: colors.ink2, align: "right" });
+        profileBars(ctx, colors, r.profile, { x0: L.x0, x1: L.x1, top: B.best.top, base: B.best.base });
+      });
+    } else {
+      heads(s, "best", 1);
+      profileBars(ctx, colors, M.REF[s.match[0].key].profile, { x0: L.x0, x1: L.x1, top: B.best.top, base: B.best.base });
+      heads(s, "runner", at.runner);
+      withAlpha(ctx, at.runner, () => profileBars(ctx, colors, M.REF[s.match[1].key].profile, { x0: L.x0, x1: L.x1, top: B.runner.top, base: B.runner.base }));
+    }
+  } else {
+    const sa = f.sigs[from], sb = f.sigs[shown];
+    withAlpha(ctx, 1 - e, () => {
+      text(ctx, S.sigTitle(from + 1), L.x0, B.top + 12, { font: capFont(colors), fill: colors.ink1 });
+      text(ctx, S.sigShare(sa.share), L.x0 + 86, B.top + 12, { font: noteFont(colors), fill: colors.ink2 });
+    });
+    withAlpha(ctx, e, () => {
+      text(ctx, S.sigTitle(shown + 1), L.x0, B.top + 12, { font: capFont(colors), fill: colors.ink1 });
+      text(ctx, S.sigShare(sb.share), L.x0 + 86, B.top + 12, { font: noteFont(colors), fill: colors.ink2 });
+    });
+    bars(sa.profile, sb.profile, B.own);
+    heads(sa, "best", 1 - e);
+    heads(sb, "best", e);
+    bars(M.REF[sa.match[0].key].profile, M.REF[sb.match[0].key].profile, B.best);
+    heads(sa, "runner", 1 - e);
+    heads(sb, "runner", e);
+    bars(M.REF[sa.match[1].key].profile, M.REF[sb.match[1].key].profile, B.runner);
+  }
   text(ctx, S.referencesNote, L.x0 - 36, L.height - 10, { font: noteFont(colors), fill: colors.ink3 });
 }
 
@@ -642,16 +784,19 @@ function takeSigStep(anim, dt, rank) {
 }
 
 /** One frame of page 3's press: the extraction if page 2 has not run it, which
-    lands at once (its descent is page 2's to draw), then the comparison. */
+    lands at once (its descent is page 2's to draw), then the comparison, a
+    scan of the chosen row. */
 function takeMatchStep(anim, dt) {
+  const total = M.compareTiming().total;
   if (anim.matchT < 1) {
-    anim.matchT = Math.min(1, anim.matchT + dt / M.COMPARE_MS);
+    anim.matchT = Math.min(1, anim.matchT + dt / total);
     return anim.matchT < 1;
   }
   if (anim.sig === 0) { anim.sig = 1; anim.sigT = 1; return false; }
   if (anim.match >= M.MATCH_STAGES) return false;
   anim.match += 1;
-  anim.matchT = Math.min(1, dt / M.COMPARE_MS);
+  anim.scanRow = anim.shownRow ?? 0;
+  anim.matchT = Math.min(1, dt / total);
   return anim.matchT < 1;
 }
 
@@ -768,7 +913,13 @@ defineWidget({
     init: ({ params, state, fromScratch }) => {
       /* `shown` opens the page it is given with, and the others stay empty. */
       const shown = fromScratch ? 0 : Math.max(0, params.shown ?? 0);
-      const anim = { page: params.page, tumor: params.tumor, cat: 0, catT: 1, landed: 0, clock: 0, sig: 0, sigT: 1, match: 0, matchT: 1 };
+      /* shownRow is the signature page 3's panel shows; fromRow and easeT ease
+         it into another after a click (round 3); scanRow is the one scanned. */
+      const row = openIndex(params);
+      const anim = {
+        page: params.page, tumor: params.tumor, cat: 0, catT: 1, landed: 0, clock: 0, sig: 0, sigT: 1, match: 0, matchT: 1,
+        shownRow: row, fromRow: row, easeT: 1, scanRow: row,
+      };
       if (params.page === "catalogue") {
         anim.cat = Math.min(M.CAT_STAGES, shown);
         anim.landed = anim.cat >= 1 ? state.tumor.n : 0;
@@ -783,6 +934,11 @@ defineWidget({
     },
 
     advance: (anim, { dt, state }) => {
+      /* core's display ease: page 3's panel into the signature just chosen */
+      if (anim.mode === "ease") {
+        anim.easeT = Math.min(1, anim.easeT + dt / M.EASE_MS);
+        return anim.easeT < 1;
+      }
       const more = anim.page === "signatures" ? takeSigStep(anim, dt, state.fit.rank)
         : anim.page === "matching" ? takeMatchStep(anim, dt)
           : takeCatStep(anim, dt, state.tumor);
@@ -800,6 +956,16 @@ defineWidget({
         anim.catT = 1;
         anim.landed = 0;
         anim.clock = 0;
+      }
+      /* Another signature on page 3: once compared, the panel eases into it
+         (round 3); before, or while the scan runs, it is simply the one shown. */
+      const row = openIndex(params);
+      if (row !== anim.shownRow) {
+        const compared = params.page === "matching" && anim.match >= M.MATCH_STAGES && anim.matchT >= 1;
+        anim.fromRow = compared ? anim.shownRow : row;
+        anim.shownRow = row;
+        anim.easeT = compared ? 0 : 1;
+        if (compared) anim.easing = true;
       }
       settle(anim);
     },
@@ -835,7 +1001,7 @@ defineWidget({
       const f = state.fit;
       const k = openIndex(params);
       const s = f.sigs[k];
-      const compared = (anim?.match ?? 0) >= 1;
+      const compared = (anim?.match ?? 0) >= 1 && (anim?.matchT ?? 1) >= 1;
       return [
         { label: S.tileBest, value: compared ? M.cos3(s.match[0].cos) : "—", note: compared ? s.match[0].name : S.tileFor(k + 1) },
         { label: S.tileRunner, value: compared ? M.cos3(s.match[1].cos) : "—", note: compared ? s.match[1].name : S.tileFor(k + 1) },
@@ -865,7 +1031,7 @@ defineWidget({
     if (params.page === "matching") {
       const f = state.fit;
       if ((anim?.sig ?? 0) === 0) return S.sumNoSignatures;
-      if ((anim?.match ?? 0) < 1) return S.sumNotCompared(f.rank);
+      if ((anim?.match ?? 0) < 1 || (anim?.matchT ?? 1) < 1) return S.sumNotCompared(f.rank);
       const k = openIndex(params);
       const s = f.sigs[k];
       return S.sumCompared(f.rank, k + 1, s.match[0], s.match[1]);

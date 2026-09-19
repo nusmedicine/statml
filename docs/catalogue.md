@@ -10120,6 +10120,44 @@ press 2, press 2 → press 3) are checked op for op; `lerp` became
 (1 − t)a + tb so a press ends on exactly the frame the next starts on.
 Verify 74 checks.
 
+#### Round 3, 2026-09-19: tweens on Matching, a Ti/Tv square on Catalogue — three picks
+
+His two asks after round 2: "any opportunities for tweening in matching page?"
+and "for the catalogue page, perhaps we need a reference diagram for
+transversions/transitions?" Mock `_lab/mutational-signatures-round3-mock.html`
+(`d264b31`, 14 checks). All three picks were the recommendations:
+
+1. **The comparison press is a scan** (over the draft's 0.5 s fade). The
+   chosen signature's row fills one reference at a time (180 ms each), the
+   cell being filled outlined, while the panel below lays that reference under
+   the signature ("Compared with: …, cosine … · stands for SBSn"), so each
+   cosine is seen as two profiles compared. The other rows then fill one after
+   another, then each row's best is outlined, and the panel settles on the
+   best match and the runner-up (2.9 s). The tiles, the formula card's numbers
+   and the summary wait for the scan to finish (2.4).
+2. **A click on another row eases** (over an instant redraw): core's display
+   ease (`anim.easing` in `rebuild`), the panel's three profiles changing
+   height into the new signature's and its matches' over 0.6 s, the labels
+   crossfading, and a new ▸ mark beside the row labels moving to the chosen
+   row. Only once compared; before, or during the scan, the row simply
+   changes. The verify checks the ease's first and last frames against the
+   panels either side of it, op for op.
+3. **The lesson's Ti/Tv square beside the bars, folding** (over fixed, or a
+   card above the figure). The lesson's figure (cell 3, the standard square:
+   purines A and G on top, pyrimidines C and T below) colours transitions blue
+   and transversions red — C>A's and C>T's colours here — so it is redrawn in
+   the class colours: each arrow is one written change in the colour of the
+   class it is read as, paler when written from a purine, like its bar (the
+   legend says "the paler bar or arrow"). On *Read from the pyrimidine* the six
+   pale arrows fade as their bars fold, leaving the six that start at C or T,
+   and Ti (along the bottom edge, C↔T) and Tv (the sides and diagonals) are
+   labelled, with a two-line key. The bars give up 138px: a class slot at
+   535px goes from 77px to 54px, and stage 1's two labels a class still clear
+   each other (0.3px at the tightest, measured in a mono face 0.6 em wide, the
+   widest the system faces reach).
+
+Verify 87 checks (was 74).
+
 ### Slot 71 · `somatic-interactions` — not asked for, measured, cuttable
 
 **Host.** 01-3 cell 4 (co-occurring genes "could have synergistic effect",

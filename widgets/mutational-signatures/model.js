@@ -469,7 +469,16 @@ export const LAND_MS = 1200;      // the mutations arrive over this long, whatev
 export const FOLD_MS = 800;       // twelve bars fold into six
 export const SPLIT_MS = 900;      // six bars split into 96
 export const DESCENT_MS = 2400;   // the extraction's snapshots
-export const COMPARE_MS = 500;    // the cosines arrive
+/* THE COMPARISON IS A SCAN (round 3, 2026-09-19, Kenneth's pick over the
+   draft's 0.5 s fade, `_lab/mutational-signatures-round3-mock.html`): the
+   chosen signature's row fills one reference at a time while the panel below
+   lays that reference under the signature, so each cosine is seen as two
+   profiles compared; then the other rows fill, one after another; then each
+   row's best is outlined and the panel settles on the best match and the
+   runner-up. A click on another row afterwards EASES the panel's profiles into
+   the new signature's (EASE_MS), core's display ease. */
+export const SCAN = { each: 180, fill: 120, rows: 600, settle: 500 };
+export const EASE_MS = 600;
 
 /* THE TWO PRESSES THAT OPEN THE SIGNATURES (round 2, 2026-09-19; Kenneth's
    pick B of three, `_lab/mutational-signatures-round2-mock.html`). Round 1's
@@ -529,6 +538,36 @@ export function openAt(now) {
     f: easeInOut(seg(now, T.rows, T.widen)),
     v: easeInOut(seg(now, T.widen, T.sort)),
     words: easeInOut(seg(now, T.sort, T.total)),
+  };
+}
+
+/** The comparison's clock, the same at every rank. */
+export function compareTiming() {
+  const rowsAt = REFERENCES.length * SCAN.each, settleAt = rowsAt + SCAN.rows;
+  return { rowsAt, settleAt, total: settleAt + SCAN.settle };
+}
+/** Where the comparison is `now` ms in, when row `k` is the one scanned: each
+    cell's opacity, the reference the panel is laying under the signature (-1
+    once the scan is over), and when the outlines, the runner-up and the
+    builders arrive. */
+export function compareAt(now, rank, k) {
+  const T = compareTiming();
+  const others = Array.from({ length: rank }, (_, r) => r).filter((r) => r !== k);
+  const each = SCAN.rows / Math.max(1, others.length);
+  const cell = Array.from({ length: rank }, (_, r) => REFERENCES.map((_, j) => {
+    if (r === k) return easeInOut(seg(now, j * SCAN.each, j * SCAN.each + SCAN.fill));
+    const i = others.indexOf(r);
+    return easeInOut(seg(now, T.rowsAt + i * each, T.rowsAt + (i + 1) * each));
+  }));
+  const comparing = now < T.rowsAt ? Math.min(REFERENCES.length - 1, Math.floor(now / SCAN.each)) : -1;
+  return {
+    cell,
+    comparing,
+    comparingIn: comparing >= 0 ? easeInOut(seg(now, comparing * SCAN.each, comparing * SCAN.each + 60)) : 0,
+    own: easeInOut(seg(now, 0, 200)),
+    outline: easeInOut(seg(now, T.settleAt, T.settleAt + 300)),
+    runner: easeInOut(seg(now, T.settleAt, T.total)),
+    built: easeInOut(seg(now, T.settleAt, T.total)),
   };
 }
 
@@ -598,8 +637,14 @@ export function layout(w, params) {
       height: bTop + 226,
     };
   }
-  const x0 = 56, x1 = w - 18;
-  return { page: "catalogue", x0, x1, top: 64, base: 252, slot: (x1 - x0) / 6, height: CAT_H };
+  /* THE SQUARE STANDS BESIDE THE BARS (round 3, his pick), so the bars give
+     up SQUARE_W + 14px: at 535px a class slot goes from 77px to 54px, and
+     stage 1's two labels a class still clear each other (the verify). */
+  const x0 = 56, x1 = w - 18 - SQUARE_W - 14, top = 64;
+  return {
+    page: "catalogue", x0, x1, top, base: 252, slot: (x1 - x0) / 6, height: CAT_H,
+    square: { x: w - 18 - SQUARE_W, y: top - 10, w: SQUARE_W },
+  };
 }
 export const stageHeight = (w, values) => layout(w, values).height;
 
@@ -690,6 +735,29 @@ export function rowCell(row, n, slot, stand, barH) {
   const gap = 0.6 * stand;
   const h = lerp(row.h, barH, stand);
   return { x: row.x + slot * cw + gap / 2, y: row.y + row.h - h, w: stand > 0 ? Math.max(0.8, cw - gap) : Math.ceil(cw), h };
+}
+
+/* ---- page 1's square: transitions and transversions (round 3) -------------------
+   The lesson's figure (cell 3) is the standard square, the purines A and G on
+   top and the pyrimidines C and T below, transitions along the top and bottom
+   and transversions down the sides and across. It colours transitions blue and
+   transversions red, which are C>A's and C>T's colours here, so the square is
+   drawn in the class colours: each arrow is one written change, in the colour
+   of the class it is read as, paler when it is written from a purine, like its
+   bar. Reading from the pyrimidine leaves the six arrows that start at C or T. */
+export const SQUARE_W = 124;
+export const NODE_R = 10;
+export const ARROWS = WRITTEN.map((w) => {
+  const pyrimidine = CLASSES.includes(w);
+  const cls = pyrimidine ? w : CLASSES.find((c) => PURINE_FORM[c] === w);
+  return { written: w, from: w[0], to: w[2], k: CLASSES.indexOf(cls), purine: !pyrimidine, ti: TRANSITIONS.has(cls) };
+});
+/** The square's four bases in the catalogue's layout. */
+export function squareNodes(L) {
+  const box = L.square;
+  const side = Math.min(72, box.w - 44);
+  const x0 = box.x + (box.w - side) / 2, x1 = x0 + side, y0 = box.y + 34, y1 = y0 + side;
+  return { A: [x0, y0], G: [x1, y0], C: [x0, y1], T: [x1, y1], side, x0, x1, y0, y1 };
 }
 
 /* Page 1's bars, one geometry for the drawing and the verify (5.8). */
@@ -808,6 +876,12 @@ export const STRINGS = {
   axisCount: "substitutions",
   tiLine: (ti) => `Transitions (C>T and T>C): ${pct(ti)} · transversions: ${pct(1 - ti)}`,
   exampleLine: "A[C>T]G: C changed to T, with A on its 5′ side and G on its 3′ side",
+  squarePurines: "purines",
+  squarePyrimidines: "pyrimidines",
+  squareTi: "Ti",
+  squareTv: "Tv",
+  squareTiKey: "transition",
+  squareTvKey: "transversion",
   topLine: (items) => `Most common: ${items}`,
 
   /* page 2 */
@@ -833,6 +907,7 @@ export const STRINGS = {
   bestLabel: (m) => `Best match: ${m.name}`,
   runnerLabel: (m) => `Runner-up: ${m.name}`,
   cosLabel: (c) => `cosine ${cos3(c)}`,
+  comparedLabel: (name) => `Compared with: ${name}`,
   standsFor: (m) => `stands for ${m.like}`,
   referencesNote: "Each reference is a profile built to resemble the COSMIC signature named beside it.",
 
@@ -840,7 +915,7 @@ export const STRINGS = {
   openedCaption: "Each signature, and below it its exposure in each tumor, largest first",
 
   /* the legend */
-  legendPurine: "A change written from a purine (G or A): the paler bar",
+  legendPurine: "A change written from a purine (G or A): the paler bar or arrow",
   legendHeat: "A larger count or weight: a stronger shade",
   legendCosine: "A higher cosine similarity: a stronger shade",
   legendBest: "The best match in each row: outlined",
