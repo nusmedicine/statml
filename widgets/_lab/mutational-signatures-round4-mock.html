@@ -1,0 +1,541 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · mutational-signatures — round 4 mock</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  body { background: var(--surface-2); }
+  .lab { max-width: 1640px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 112ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .bar { position: sticky; top: 0; z-index: 5; display: flex; flex-wrap: wrap; gap: var(--sp-2) var(--sp-5); align-items: center;
+         padding: var(--sp-2) var(--sp-3); margin: 0 0 var(--sp-3); background: var(--surface-1); border: 1px solid var(--grid);
+         border-radius: var(--radius); font-size: var(--fs-sm); color: var(--ink-2); }
+  .grp { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  button { font: inherit; font-size: var(--fs-sm); padding: 3px 10px; border: 1px solid var(--axis); background: var(--surface-1);
+           color: var(--ink-1); border-radius: var(--radius); cursor: pointer; }
+  button[aria-pressed="true"] { background: var(--ink-1); color: var(--surface-1); border-color: var(--ink-1); }
+  button:disabled { opacity: 0.45; cursor: default; }
+  .drive { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; margin: var(--sp-2) 0; font-size: var(--fs-sm); color: var(--ink-2); }
+  .drive input[type="range"] { flex: 1 1 240px; accent-color: var(--focus); }
+  .drive .t { font-family: var(--font-mono); font-size: 11px; min-width: 16ch; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  #inspect { font-family: var(--font-mono); font-size: var(--fs-sm); color: var(--ink-1); min-height: 1.6em; margin: 6px 0 0; }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--c-reference); background: var(--surface-1); max-width: 112ch; }
+  #checks { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--ink-2); white-space: pre-line;
+            padding: var(--sp-3); background: var(--surface-1); border: 1px solid var(--grid); max-width: 112ch; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>mutational-signatures &middot; round 4 mock</h1>
+  <p class="note">
+    Page 1, tumor 77, with the Ti/Tv square from round 3. Your asks: <b>mock both</b> ways of showing why the two bars
+    of a class stack on <i>Read from the pyrimidine</i>, and <b>another way to show the 96 types</b>, since the 96
+    thin bars confuse. Every switch below can be combined; the drive walks the page's presses, and the slider scrubs
+    them.
+  </p>
+  <div class="bar">
+    <div class="grp">Width <span id="widthBtns"></span></div>
+    <div class="grp">Theme <span id="themeBtns"></span></div>
+    <div class="grp">Speed <span id="speedBtns"></span></div>
+  </div>
+
+  <h2>1 &middot; Why two bars stack: the counts, and the two strands</h2>
+  <p class="note">
+    <b>Counts</b>: as the pale bar lands on its partner, the two written counts appear above the stack, the solid
+    part's first in the ink of its label and the pale part's second in the paler ink of its label: tumor 77's C&gt;T
+    reads <code>101 + 87</code>. <b>Strands</b>: from the fold on, a band under the bars shows one mutation from both
+    strands &mdash; the pair G:C becoming A:T, which the file writes as G&gt;A on the + strand and which reads as C&gt;T
+    on the &minus; strand, 5&prime; to 3&prime; &mdash; in the pale and solid red of the two parts of the C&gt;T bar. The
+    page grows 58px for it.
+  </p>
+  <p class="note"><b>Counts</b> <span id="countsBtns"></span> &nbsp; <b>Strands</b> <span id="strandsBtns"></span></p>
+
+  <h2>2 &middot; The 96 types</h2>
+  <p class="note">
+    <b>Now</b>: each class's bar comes apart into 16 bars, the 96 in one row. <b>Grouped</b>: the same 96, but each
+    class's 16 in four groups of four, the group by the base on the 5&prime; side (lettered), the bars within it by the
+    base on the 3&prime; side in the same order, A C G T. <b>Grid</b>: each class's bar comes apart into a 4&times;4
+    grid, a row for each 5&prime; base and a column for each 3&prime; base, each square's area its count, so the
+    neighbours are read off two axes: tumor 77's four largest types, TCA and TCT with a C&gt;T or a C&gt;G, are the T row's
+    A and T columns of those two grids, the TCW pattern of APOBEC. <b>Grid, then lined up</b>: the
+    grid, and a fourth press, <i>Line up the 96 types</i>, reads each grid row by row into the 96-bar row that pages 2
+    and 3 draw every signature in &mdash; so the order of those 96 bars is seen being made. <b>Name the type under the
+    pointer</b> works on every arm: move over a bar or a square.
+  </p>
+  <p class="note"><b>The 96 types</b> <span id="armBtns"></span> &nbsp; <b>Name the type under the pointer</b> <span id="inspectBtns"></span>
+    &nbsp; <b>The Ti/Tv square at the split</b> <span id="asideBtns"></span></p>
+  <p class="note">
+    <b>The square steps aside</b> (new, not asked): once the changes are read from the pyrimidine, the square has done
+    its work, so on the split it fades and the 96 types take its width. At 535px that turns a grid cell from 10.5px to
+    16px and a bar from 2.0px to 3.4px.
+  </p>
+
+  <div class="drive">
+    <button id="k1">Add the mutations</button>
+    <button id="k2" disabled>Read from the pyrimidine</button>
+    <button id="k3" disabled>Split by the neighbouring bases</button>
+    <button id="k4" disabled>Line up the 96 types</button>
+    <button id="kReset">Reset</button>
+    <input type="range" id="scrub" min="0" max="4000" value="0">
+    <span class="t" id="clock"></span>
+  </div>
+  <canvas id="cat"></canvas>
+  <div id="inspect"></div>
+  <p class="rec" id="rec"></p>
+
+  <h2>3 &middot; What this page checks</h2>
+  <div id="checks"></div>
+</main>
+
+<script type="module">
+import * as M from "./mutational-signatures-model.js";
+
+const S = M.STRINGS;
+const DPR = window.devicePixelRatio || 1;
+const q = new URLSearchParams(location.search);
+const SEED = Number(q.get("seed") || 1);
+const root = document.documentElement;
+
+function readTheme(theme) {
+  const was = root.dataset.theme;
+  root.dataset.theme = theme;
+  const cs = getComputedStyle(root);
+  const v = (name) => cs.getPropertyValue(name).trim();
+  const T = {
+    surface: v("--surface-1"), surface3: v("--surface-3"), ink1: v("--ink-1"), ink2: v("--ink-2"), ink3: v("--ink-3"),
+    grid: v("--grid"), axis: v("--axis"),
+    subs: ["ca", "cg", "ct", "ta", "tc", "tg"].map((k) => v(`--c-sub-${k}`)),
+    font: v("--font"), mono: v("--font-mono"), fsXs: v("--fs-xs"), fsSm: v("--fs-sm"),
+  };
+  if (was) root.dataset.theme = was; else delete root.dataset.theme;
+  return T;
+}
+const THEMES = { light: readTheme("light"), dark: readTheme("dark") };
+const rgb = (c) => { const m = String(c).match(/^#([0-9a-f]{6})$/i); return m ? [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16)) : [128, 128, 128]; };
+const wash = (c, a) => { const p = rgb(c); return `rgba(${p[0]},${p[1]},${p[2]},${a})`; };
+const E = M.easeInOut;
+const lerp = M.lerp;
+
+const state = {
+  width: Number(q.get("w") || 626),
+  theme: q.get("theme") || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"),
+  speed: 1, counts: "on", strands: "on", arm: "gridline", inspect: "on", aside: "on",
+  t: 0, hover: -1, anim: null,
+};
+function el(tag, cls, text) { const x = document.createElement(tag); if (cls) x.className = cls; if (text != null) x.textContent = text; return x; }
+function buttons(hostId, options, key, after) {
+  const host = document.getElementById(hostId);
+  host.replaceChildren();
+  for (const [value, label] of options) {
+    const b = el("button", null, label);
+    b.setAttribute("aria-pressed", String(state[key] === value));
+    b.onclick = () => { state[key] = value; buttons(hostId, options, key, after); after(); };
+    host.appendChild(b);
+    host.appendChild(document.createTextNode(" "));
+  }
+}
+function sizeCanvas(c, w, h) {
+  c.width = Math.round(w * DPR); c.height = Math.round(h * DPR);
+  c.style.width = `${w}px`; c.style.height = `${h}px`;
+  const ctx = c.getContext("2d");
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  return ctx;
+}
+function text(ctx, s, x, y, { font, fill, align = "left" }) { ctx.save(); ctx.font = font; ctx.fillStyle = fill; ctx.textAlign = align; ctx.fillText(s, x, y); ctx.restore(); }
+function rule(ctx, x1, y1, x2, y2, stroke, width = 1) { ctx.save(); ctx.strokeStyle = stroke; ctx.lineWidth = width; ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); ctx.restore(); }
+function alpha(ctx, a, paint) { if (a <= 0.01) return; ctx.save(); ctx.globalAlpha *= Math.min(1, a); paint(); ctx.restore(); }
+const cap = (T) => `600 ${T.fsSm} ${T.font}`;
+const note = (T) => `${T.fsXs} ${T.font}`;
+const mono = (T) => `${T.fsXs} ${T.mono}`;
+const monoB = (T) => `600 ${T.fsXs} ${T.mono}`;
+const fillRect = (ctx, r, c) => { if (r.h > 0 && r.w > 0) { ctx.fillStyle = c; ctx.fillRect(r.x, r.y, r.w, r.h); } };
+
+const tu = M.tumorFor(SEED, "largest");
+const MAXC = Math.max(...tu.counts);
+const EXAMPLE = M.CHANNELS.indexOf("A[C>T]G");
+const STRAND_BAND = 58;                 // what the strands band adds to the page
+
+/* ---------------------------------------------------------------- the stage */
+function layout(w) {
+  const L = M.layout(w, { page: "catalogue" });
+  return { ...L, height: L.height + (state.strands === "on" ? STRAND_BAND : 0) };
+}
+function stage(t) {
+  if (t <= 0) return { cat: 0, p: 1, landed: 0 };
+  if (t <= 1) return { cat: 1, p: 1, landed: Math.round(tu.n * t) };
+  if (t <= 2) return { cat: 2, p: t - 1, landed: tu.n };
+  if (t <= 3) return { cat: 3, p: t - 2, landed: tu.n };
+  return { cat: 4, p: t - 3, landed: tu.n };
+}
+const lastT = () => (state.arm === "gridline" ? 4 : 3);
+/* THE SQUARE STEPS ASIDE AT THE SPLIT (the switch): once Ti and Tv are read,
+   the 96 types take the square's width, a camera move like the axis's. */
+const wide = (L) => ({ ...L, x1: L.square.x + L.square.w, slot: (L.square.x + L.square.w - L.x0) / 6 });
+const target = (L) => (state.aside === "on" ? wide(L) : L);
+
+/* the grid: a row for each 5′ base, a column for each 3′ base */
+function grid(L) {
+  const cell = Math.min((L.slot - 12) / 4, 24);
+  return { cell, x: (k) => L.x0 + L.slot * (k + 0.5) - 2 * cell, y: L.base - 8 - 4 * cell };
+}
+function squareRect(L, G, ch) {
+  const k = ch >> 4, l = (ch >> 2) & 3, r = ch & 3;
+  const side = G.cell * 0.88 * Math.sqrt(tu.counts[ch] / MAXC);
+  const cx = G.x(k) + (r + 0.5) * G.cell, cy = G.y + (l + 0.5) * G.cell;
+  return { x: cx - side / 2, y: cy - side / 2, w: side, h: side };
+}
+function cellRect(L, G, ch) {
+  const k = ch >> 4, l = (ch >> 2) & 3, r = ch & 3;
+  return { x: G.x(k) + r * G.cell, y: G.y + l * G.cell, w: G.cell, h: G.cell };
+}
+/* grouped: four groups of four in a class's slot, by the 5′ base */
+const GAP = 3;
+function groupedRect(L, ch, v, yMax) {
+  const k = ch >> 4, l = (ch >> 2) & 3, r = ch & 3;
+  const inner = L.slot - 6, cw = (inner - 3 * GAP) / 16;
+  const x = L.x0 + L.slot * k + 3 + l * (4 * cw + GAP) + r * cw;
+  const y = L.base - (v / yMax) * (L.base - L.top);
+  return { x: x + 0.4, y, w: Math.max(0.8, cw - 0.8), h: L.base - y };
+}
+/** Where type `ch` is drawn at the end of the split, in the chosen arm. */
+function splitRect(L, G, ch) {
+  if (state.arm === "grouped") return groupedRect(L, ch, tu.counts[ch], tu.yChannel);
+  if (state.arm === "grid" || state.arm === "gridline") return squareRect(L, G, ch);
+  return M.channelRect(L, ch, tu.counts[ch], tu.yChannel);
+}
+
+/* the Ti/Tv square, as the widget draws it (round 3) */
+function squareArrow(ctx, [ax, ay], [bx, by], colour) {
+  const dx = bx - ax, dy = by - ay, len = Math.hypot(dx, dy), ux = dx / len, uy = dy / len;
+  const nx = -uy * 3, ny = ux * 3, r = M.NODE_R;
+  const sx = ax + ux * (r + 3) + nx, sy = ay + uy * (r + 3) + ny;
+  const ex = bx - ux * (r + 4) + nx, ey = by - uy * (r + 4) + ny;
+  ctx.save(); ctx.strokeStyle = colour; ctx.fillStyle = colour; ctx.lineWidth = 1.6;
+  ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(ex - ux * 4, ey - uy * 4); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(ex, ey); ctx.lineTo(ex - ux * 6 - uy * 3.2, ey - uy * 6 + ux * 3.2); ctx.lineTo(ex - ux * 6 + uy * 3.2, ey - uy * 6 - ux * 3.2); ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+function drawSquare(ctx, T, L, fold) {
+  const N = M.squareNodes(L), mid = (N.x0 + N.x1) / 2;
+  text(ctx, S.squarePurines, mid, N.y0 - 16, { font: note(T), fill: T.ink2, align: "center" });
+  text(ctx, S.squarePyrimidines, mid, N.y1 + 30, { font: note(T), fill: T.ink2, align: "center" });
+  for (const a of M.ARROWS) alpha(ctx, a.purine ? 1 - fold : 1, () => squareArrow(ctx, N[a.from], N[a.to], a.purine ? wash(T.subs[a.k], 0.45) : T.subs[a.k]));
+  for (const b of ["A", "G", "C", "T"]) {
+    const [x, y] = N[b];
+    ctx.save(); ctx.fillStyle = T.surface; ctx.strokeStyle = T.ink2; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(x, y, M.NODE_R, 0, 2 * Math.PI); ctx.fill(); ctx.stroke(); ctx.restore();
+    text(ctx, b, x, y + 4, { font: cap(T), fill: T.ink1, align: "center" });
+  }
+  alpha(ctx, fold, () => {
+    text(ctx, S.squareTi, mid, N.y1 + 16, { font: monoB(T), fill: T.ink1, align: "center" });
+    text(ctx, S.squareTv, N.x0 - 16, (N.y0 + N.y1) / 2 + 4, { font: mono(T), fill: T.ink2, align: "center" });
+    text(ctx, S.squareTv, N.x1 + 16, (N.y0 + N.y1) / 2 + 4, { font: mono(T), fill: T.ink2, align: "center" });
+    const x = L.square.x + 6;
+    text(ctx, S.squareTi, x, N.y1 + 50, { font: monoB(T), fill: T.ink1 }); text(ctx, S.squareTiKey, x + 22, N.y1 + 50, { font: note(T), fill: T.ink1 });
+    text(ctx, S.squareTv, x, N.y1 + 64, { font: mono(T), fill: T.ink2 }); text(ctx, S.squareTvKey, x + 22, N.y1 + 64, { font: note(T), fill: T.ink2 });
+  });
+}
+
+/* ---- (a) the two written counts above each stacked bar */
+function drawCounts(ctx, T, L, a) {
+  alpha(ctx, a, () => tu.byClass.forEach(({ pyr, pur }, k) => {
+    const top = M.foldedRect(L, k, true, pyr, pur, tu.yClass).y;
+    ctx.save(); ctx.font = mono(T);
+    const s1 = String(pyr), s2 = ` + ${pur}`;
+    const w1 = ctx.measureText(s1).width, w2 = ctx.measureText(s2).width;
+    ctx.restore();
+    const cx = L.x0 + L.slot * (k + 0.5), x = cx - (w1 + w2) / 2, y = top - 5;
+    text(ctx, s1, x, y, { font: monoB(T), fill: T.ink1 });
+    text(ctx, s2, x + w1, y, { font: mono(T), fill: T.ink3 });
+  }));
+}
+
+/* ---- (b) one mutation from both strands */
+function drawStrands(ctx, T, L, a) {
+  const y0 = L.base + 104;
+  alpha(ctx, a, () => {
+    text(ctx, "One mutation, both strands: the base pair G:C became A:T", L.x0, y0, { font: cap(T), fill: T.ink1 });
+    const red = T.subs[2], pale = wash(T.subs[2], 0.45);
+    const box = 17;
+    const strand = (y, label, left, right, bases, mark, fillC, after, afterFill, words, wordsFill) => {
+      text(ctx, label, L.x0, y + 12, { font: note(T), fill: T.ink2 });
+      let x = L.x0 + 58;
+      const seq = (xs, arr, markFill) => {
+        text(ctx, left, xs, y + 12, { font: mono(T), fill: T.ink3 });
+        let bx = xs + 16;
+        arr.forEach((b, i) => {
+          ctx.save(); ctx.fillStyle = i === 1 ? markFill : T.surface; ctx.strokeStyle = T.grid; ctx.lineWidth = 1;
+          ctx.fillRect(bx, y, box, box); ctx.strokeRect(bx + 0.5, y + 0.5, box - 1, box - 1); ctx.restore();
+          text(ctx, b, bx + box / 2, y + 12.5, { font: monoB(T), fill: T.ink1, align: "center" });
+          bx += box + 2;
+        });
+        text(ctx, right, bx + 2, y + 12, { font: mono(T), fill: T.ink3 });
+        return bx + 18;
+      };
+      x = seq(x, bases, fillC);
+      text(ctx, "→", x + 6, y + 12, { font: note(T), fill: T.ink2, align: "center" });
+      x = seq(x + 16, after, afterFill);
+      text(ctx, words, x + 8, y + 12, { font: note(T), fill: wordsFill });
+    };
+    strand(y0 + 10, "+ strand", "5′", "3′", ["A", "G", "C"], "G", pale, ["A", "A", "C"], pale, "written by the file: G>A", T.ink3);
+    strand(y0 + 32, "− strand", "3′", "5′", ["T", "C", "G"], "C", red, ["T", "T", "G"], red, "read 5′→3′, GCT to GTT: C>T", T.ink1);
+  });
+}
+
+function drawCat(ctx, T, w, t, hover) {
+  const L = layout(w), Lt = target(L), Gt = grid(Lt);
+  const { cat, p, landed } = stage(t);
+  const e = E(p);
+  const gridArm = state.arm === "grid" || state.arm === "gridline";
+  ctx.fillStyle = T.surface; ctx.fillRect(0, 0, w, L.height);
+  text(ctx, S.tumorCaption(tu), L.x0, 22, { font: cap(T), fill: T.ink1 });
+  const notes = [S.catEmpty, S.catWritten, S.catFolded,
+    gridArm ? "96 types: a row for the base on the 5′ side, a column for the base on the 3′ side" : S.catSplit,
+    "96 types in a row: each grid read row by row, as every signature is drawn"];
+  text(ctx, notes[cat], L.x0, 40, { font: note(T), fill: T.ink2 });
+
+  /* the count axis: the class scale, then the type scale; the grid reads counts as areas, so it has none */
+  const reach = cat < 3 ? L.x1 : cat === 3 ? lerp(L.x1, Lt.x1, e) : Lt.x1;
+  const ticks = (yMax, a) => alpha(ctx, a, () => {
+    text(ctx, S.axisCount, L.x0 - 7, L.top - 10, { font: note(T), fill: T.ink3 });
+    for (const v of [0, yMax / 2, yMax]) {
+      const y = L.base - (v / yMax) * (L.base - L.top);
+      if (v > 0) rule(ctx, L.x0, y, reach, y, T.grid);
+      text(ctx, M.intText(v), L.x0 - 7, y + 4, { font: mono(T), fill: T.ink3, align: "right" });
+    }
+  });
+  if (cat <= 2) ticks(tu.yClass, 1);
+  else if (cat === 3 && !gridArm) { ticks(tu.yClass, 1 - e); ticks(tu.yChannel, e); }
+  else if (cat === 3) ticks(tu.yClass, 1 - e);
+  else ticks(tu.yChannel, e);
+  alpha(ctx, cat === 3 && gridArm ? 1 - e : cat === 4 ? e : 1, () => rule(ctx, L.x0, L.base + 0.5, reach, L.base + 0.5, T.axis));
+
+  const fold = cat < 2 ? 0 : cat === 2 ? e : 1;
+  const squareA = state.aside !== "on" || cat < 3 ? 1 : cat === 3 ? 1 - e : 0;
+  alpha(ctx, squareA, () => drawSquare(ctx, T, L, fold));
+
+  const writtenLabels = (a) => alpha(ctx, a, () => M.CLASSES.forEach((s, k) => {
+    const ra = M.writtenRect(L, k, false, 0, 1), rb = M.writtenRect(L, k, true, 0, 1);
+    text(ctx, s, ra.x + ra.w / 2, L.base + 15, { font: mono(T), fill: T.ink1, align: "center" });
+    text(ctx, M.PURINE_FORM[s], rb.x + rb.w / 2, L.base + 15, { font: mono(T), fill: T.ink3, align: "center" });
+  }));
+  const classLabels = (a) => alpha(ctx, a, () => M.CLASSES.forEach((s, k) => {
+    const cx = L.x0 + L.slot * (k + 0.5), ti = M.TRANSITIONS.has(s);
+    text(ctx, s, cx, L.base + 15, { font: mono(T), fill: T.ink1, align: "center" });
+    text(ctx, ti ? "Ti" : "Tv", cx, L.base + 29, { font: ti ? monoB(T) : mono(T), fill: ti ? T.ink1 : T.ink3, align: "center" });
+  }));
+  const bands = (a, fivePrime) => alpha(ctx, a, () => {
+    for (let k = 0; k < 6; k += 1) {
+      const x = Lt.x0 + Lt.slot * k + 3;
+      ctx.fillStyle = T.subs[k]; ctx.fillRect(x, Lt.base + 4, Lt.slot - 6, 4);
+      if (fivePrime) {
+        const inner = Lt.slot - 6, cw = (inner - 3 * GAP) / 16;
+        M.BASES.forEach((b, l) => text(ctx, b, x + l * (4 * cw + GAP) + 2 * cw, Lt.base + 20, { font: mono(T), fill: T.ink3, align: "center" }));
+        text(ctx, M.CLASSES[k], x + (Lt.slot - 6) / 2, Lt.base + 34, { font: mono(T), fill: T.ink1, align: "center" });
+      } else {
+        text(ctx, M.CLASSES[k], x + (Lt.slot - 6) / 2, Lt.base + 21, { font: mono(T), fill: T.ink1, align: "center" });
+      }
+    }
+  });
+  const G = Gt;
+  const gridFrame = (a) => alpha(ctx, a, () => {
+    for (let k = 0; k < 6; k += 1) {
+      for (let l = 0; l < 4; l += 1) for (let r = 0; r < 4; r += 1) {
+        ctx.save(); ctx.strokeStyle = T.grid; ctx.lineWidth = 1;
+        ctx.strokeRect(G.x(k) + r * G.cell + 0.5, G.y + l * G.cell + 0.5, G.cell - 1, G.cell - 1); ctx.restore();
+      }
+      M.BASES.forEach((b, r) => text(ctx, b, G.x(k) + (r + 0.5) * G.cell, G.y - 4, { font: mono(T), fill: T.ink3, align: "center" }));
+      ctx.fillStyle = T.subs[k]; ctx.fillRect(G.x(k), L.base + 4, 4 * G.cell, 4);
+      text(ctx, M.CLASSES[k], G.x(k) + 2 * G.cell, L.base + 21, { font: mono(T), fill: T.ink1, align: "center" });
+    }
+    M.BASES.forEach((b, l) => text(ctx, b, G.x(0) - 5, G.y + (l + 0.5) * G.cell + 4, { font: mono(T), fill: T.ink3, align: "right" }));
+    text(ctx, "5′", G.x(0) - 5, G.y - 4, { font: mono(T), fill: T.ink2, align: "right" });
+    text(ctx, "3′ →", G.x(5) + 4 * G.cell, G.y - 16, { font: mono(T), fill: T.ink2, align: "right" });
+  });
+
+  if (cat === 0) writtenLabels(0.5);
+  else if (cat === 1) {
+    const written = M.writtenCounts(tu, landed);
+    M.CLASSES.forEach((s, k) => {
+      fillRect(ctx, M.writtenRect(L, k, false, written[s], tu.yClass), T.subs[k]);
+      fillRect(ctx, M.writtenRect(L, k, true, written[M.PURINE_FORM[s]], tu.yClass), wash(T.subs[k], 0.45));
+    });
+    writtenLabels(1);
+  } else if (cat === 2) {
+    tu.byClass.forEach(({ pyr, pur }, k) => {
+      fillRect(ctx, M.lerpRect(M.writtenRect(L, k, false, pyr, tu.yClass), M.foldedRect(L, k, false, pyr, pur, tu.yClass), e), T.subs[k]);
+      fillRect(ctx, M.lerpRect(M.writtenRect(L, k, true, pur, tu.yClass), M.foldedRect(L, k, true, pyr, pur, tu.yClass), e), wash(T.subs[k], 0.45));
+    });
+    writtenLabels(1 - e); classLabels(e);
+    if (state.counts === "on") drawCounts(ctx, T, L, e);
+    if (e >= 1) text(ctx, S.tiLine(tu.ti), L.x0, L.base + 52, { font: note(T), fill: T.ink1 });
+  } else {
+    /* the split, and in the last arm the line-up */
+    for (let ch = 0; ch < 96; ch += 1) {
+      const from = M.stackedRect(L, ch, tu.counts, tu.yClass), mid = splitRect(Lt, Gt, ch);
+      const r = cat === 3 ? M.lerpRect(from, mid, e) : M.lerpRect(mid, M.channelRect(Lt, ch, tu.counts[ch], tu.yChannel), e);
+      fillRect(ctx, r, T.subs[ch >> 4]);
+    }
+    if (cat === 3) {
+      classLabels(1 - e);
+      if (state.counts === "on") drawCounts(ctx, T, L, 1 - E(Math.min(1, p * 3)));
+      if (gridArm) gridFrame(e);
+      else bands(e, state.arm === "grouped");
+    } else {
+      gridFrame(1 - e);
+      bands(e, false);
+    }
+    text(ctx, S.tiLine(tu.ti), L.x0, L.base + 52, { font: note(T), fill: T.ink1 });
+    const settled = (cat === 3 && p >= 1) || (cat === 4 && p >= 1);
+    if (settled) {
+      const top = [...tu.counts.keys()].sort((a, b) => tu.counts[b] - tu.counts[a]).slice(0, 3);
+      text(ctx, S.topLine(top.map((i) => `${M.CHANNELS[i]} ${tu.counts[i]}`).join(" · ")), L.x0, L.base + 70, { font: note(T), fill: T.ink1 });
+      text(ctx, S.exampleLine, L.x0, L.base + 88, { font: note(T), fill: T.ink2 });
+      /* the example's own square, outlined, in the grid */
+      if (gridArm && cat === 3) {
+        const c = cellRect(Lt, Gt, EXAMPLE);
+        ctx.save(); ctx.strokeStyle = T.ink1; ctx.lineWidth = 1.5; ctx.strokeRect(c.x + 0.75, c.y + 0.75, c.w - 1.5, c.h - 1.5); ctx.restore();
+      }
+    }
+  }
+  if (state.strands === "on" && cat >= 2) drawStrands(ctx, T, L, cat === 2 ? e : 1);
+
+  /* the type under the pointer */
+  if (hover >= 0 && cat >= 3) {
+    const r = currentRect(L, hover, t);
+    ctx.save(); ctx.strokeStyle = T.ink1; ctx.lineWidth = 1.5; ctx.strokeRect(r.x - 1.5, r.y - 1.5, r.w + 3, r.h + 3); ctx.restore();
+  }
+  return L;
+}
+/** Where type `ch` is at mock time t, for the pointer. */
+function currentRect(L, ch, t) {
+  const { cat, p } = stage(t), e = E(p), Lt = target(L), Gt = grid(Lt);
+  if (cat === 3) return M.lerpRect(M.stackedRect(L, ch, tu.counts, tu.yClass), splitRect(Lt, Gt, ch), e);
+  return M.lerpRect(splitRect(Lt, Gt, ch), M.channelRect(Lt, ch, tu.counts[ch], tu.yChannel), e);
+}
+function hitTest(L, x, y, t) {
+  const G = grid(target(L));
+  const { cat } = stage(t);
+  if (cat < 3) return -1;
+  const gridNow = (state.arm === "grid" || (state.arm === "gridline" && cat === 3));
+  for (let ch = 0; ch < 96; ch += 1) {
+    /* a grid is hit by its cell, so an empty type can be named too; a bar by its column */
+    let r;
+    if (gridNow) r = cellRect(target(L), G, ch);
+    else { const b = currentRect(L, ch, t); r = { x: b.x - 0.5, y: L.top, w: Math.max(b.w + 1, 2), h: L.base - L.top }; }
+    if (x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h) return ch;
+  }
+  return -1;
+}
+function describe(ch) {
+  const c = M.CHANNELS[ch], k = ch >> 4, cls = M.CLASSES[k];
+  return `${c} · ${tu.counts[ch]} mutation${tu.counts[ch] === 1 ? "" : "s"} · ${cls[0]} changed to ${cls[2]}, with ${c[0]} on its 5′ side and ${c[6]} on its 3′ side`;
+}
+
+/* ---------------------------------------------------------------- wiring */
+const canvas = document.getElementById("cat");
+function render() {
+  const T = THEMES[state.theme];
+  root.dataset.theme = state.theme;
+  const L = layout(state.width);
+  const ctx = sizeCanvas(canvas, state.width, L.height);
+  drawCat(ctx, T, state.width, state.t, state.inspect === "on" ? state.hover : -1);
+  document.getElementById("scrub").max = String(lastT() * 1000);
+  document.getElementById("scrub").value = String(Math.round(state.t * 1000));
+  const st = stage(state.t);
+  document.getElementById("clock").textContent = `press ${st.cat}${st.cat >= 2 && st.p < 1 ? `, ${Math.round(st.p * 100)}%` : ""}`;
+  const at = (v) => Math.abs(state.t - v) < 1e-3;
+  document.getElementById("k1").disabled = state.t > 0;
+  document.getElementById("k2").disabled = !at(1);
+  document.getElementById("k3").disabled = !at(2);
+  document.getElementById("k4").disabled = !(state.arm === "gridline" && at(3));
+  document.getElementById("k4").style.display = state.arm === "gridline" ? "" : "none";
+  document.getElementById("inspect").textContent = state.inspect === "on" && state.hover >= 0 && st.cat >= 3 ? describe(state.hover) : "";
+}
+function play(from, to, ms) { state.anim = { from, to, ms, t0: performance.now() }; }
+function tick(now) {
+  if (state.anim) {
+    const a = state.anim, x = Math.min(1, ((now - a.t0) * state.speed) / a.ms);
+    state.t = a.from + (a.to - a.from) * x;
+    if (x >= 1) state.anim = null;
+    render();
+  }
+  requestAnimationFrame(tick);
+}
+document.getElementById("k1").onclick = () => play(0, 1, M.LAND_MS);
+document.getElementById("k2").onclick = () => play(1, 2, M.FOLD_MS);
+document.getElementById("k3").onclick = () => play(2, 3, state.arm === "gridline" || state.arm === "grid" ? 1300 : M.SPLIT_MS);
+document.getElementById("k4").onclick = () => play(3, 4, 1300);
+document.getElementById("kReset").onclick = () => { state.anim = null; state.t = 0; render(); };
+document.getElementById("scrub").oninput = (ev) => { state.anim = null; state.t = Number(ev.target.value) / 1000; render(); };
+canvas.addEventListener("mousemove", (ev) => {
+  const r = canvas.getBoundingClientRect();
+  const L = layout(state.width);
+  const h = hitTest(L, ev.clientX - r.left, ev.clientY - r.top, state.t);
+  if (h !== state.hover) { state.hover = h; render(); }
+});
+canvas.addEventListener("mouseleave", () => { state.hover = -1; render(); });
+
+/* ---------------------------------------------------------------- checks */
+function checks() {
+  const out = [];
+  const ok = (c, m) => out.push(`${c ? "PASS" : "FAIL"}  ${m}`);
+  const probe = document.createElement("canvas").getContext("2d");
+  const T = THEMES.light;
+  const sum = (a) => a.reduce((x, y) => x + y, 0);
+  ok(sum(tu.byClass.map((c) => c.pyr + c.pur)) === tu.n, `the six stacked bars add up to the tumor's ${tu.n}`);
+  for (const w of [535, 626, 770]) {
+    const L = M.layout(w, { page: "catalogue" }), G = grid(L);
+    probe.font = mono(T);
+    const widest = Math.max(...tu.byClass.map(({ pyr, pur }) => probe.measureText(`${pyr} + ${pur}`).width));
+    ok(widest <= L.slot - 2, `${w}px: the widest pair of counts, ${Math.round(widest)}px, fits a class slot of ${Math.round(L.slot)}px`);
+    probe.font = note(T);
+    const band = L.x0 + 58 + 2 * (16 + 3 * 19 + 18) + 16 + 8 + probe.measureText("read 5′→3′, GCT to GTT: C>T").width;
+    ok(band <= w - 16, `${w}px: the strands band ends at ${Math.round(band)}px, inside the canvas`);
+    probe.font = mono(T);
+    ok(G.cell >= probe.measureText("W").width + 3, `${w}px: a grid cell is ${G.cell.toFixed(1)}px, room for its letter`);
+    ok(G.y - 16 >= L.top - 10, `${w}px: the grids and their letters sit inside the bars' own area`);
+    const cw = (L.slot - 6 - 3 * GAP) / 16;
+    out.push(`       ${w}px: grouped bars are ${(cw - 0.8).toFixed(1)}px wide, the draft's 96 are ${((L.slot - 6) / 16 - 1).toFixed(1)}px`);
+    const Lw = wide(L), cww = (Lw.slot - 6 - 3 * GAP) / 16;
+    out.push(`       ${w}px, the square aside: a grid cell ${grid(Lw).cell.toFixed(1)}px, grouped bars ${(cww - 0.8).toFixed(1)}px, the 96 ${((Lw.slot - 6) / 16 - 1).toFixed(1)}px`);
+  }
+  /* the grid's reading order is the 96 bars' order */
+  ok(M.CHANNELS.every((c, ch) => c[0] === M.BASES[(ch >> 2) & 3] && c[6] === M.BASES[ch & 3] && c.slice(2, 5) === M.CLASSES[ch >> 4]),
+    "type ch sits at row ⌊ch/4⌋ mod 4 (its 5′ base) and column ch mod 4 (its 3′ base) of its class's grid, so reading a grid row by row gives the 96 bars' order");
+  const G = grid(M.layout(626, { page: "catalogue" }));
+  ok(Math.abs(squareRect(M.layout(626, { page: "catalogue" }), G, tu.counts.indexOf(MAXC)).w - 0.88 * G.cell) < 1e-9, `the largest type (${MAXC}) fills 88% of its cell; the areas are proportional to the counts`);
+  const tcw = [32 + 12, 32 + 15, 16 + 12, 16 + 15];
+  out.push(`       tumor 77's T rows, A and T columns, of the C>T and C>G grids (APOBEC's TCW): ${tcw.map((c) => `${M.CHANNELS[c]} ${tu.counts[c]}`).join(", ")}`);
+  const top4 = [...tu.counts.keys()].sort((a, b) => tu.counts[b] - tu.counts[a]).slice(0, 4);
+  ok(top4.every((c) => tcw.includes(c)), "tumor 77's four largest types are exactly those four TCW squares (the claim in the note)");
+  document.getElementById("checks").textContent = out.join("\n");
+}
+
+buttons("widthBtns", [[535, "535"], [626, "626"], [770, "770"]], "width", render);
+buttons("themeBtns", [["light", "Light"], ["dark", "Dark"]], "theme", render);
+buttons("speedBtns", [[1, "1×"], [0.25, "¼×"]], "speed", () => {});
+buttons("countsBtns", [["off", "Off"], ["on", "On"]], "counts", render);
+buttons("strandsBtns", [["off", "Off"], ["on", "On"]], "strands", render);
+buttons("armBtns", [["now", "Now"], ["grouped", "Grouped"], ["grid", "Grid"], ["gridline", "Grid, then lined up"]], "arm", () => { state.t = Math.min(state.t, lastT()); render(); });
+buttons("inspectBtns", [["off", "Off"], ["on", "On"]], "inspect", render);
+buttons("asideBtns", [["off", "Stays"], ["on", "Steps aside"]], "aside", render);
+document.getElementById("rec").innerHTML =
+  "<b>For you:</b> counts, strands, both or neither; and which way to show the 96 types. My recommendation is both, "
+  + "and <b>Grid, then lined up</b>: the grid makes the neighbours two readable axes (tumor 77's largest types are the T row of "
+  + "its C&gt;T and C&gt;G grids, APOBEC's TCW), and the fourth press builds the 96-bar row pages 2 and 3 use, so that row stops being "
+  + "96 anonymous bars. Naming the type under the pointer helps any arm; in the widget it would be a click that pins "
+  + "the type, as widget 59's triangle does, with the same line under the figure.";
+render();
+checks();
+requestAnimationFrame(tick);
+</script>
+</body>
+</html>
