@@ -296,8 +296,12 @@ Three rules, and core throws at load if you break the first two:
 
 It is built lazily at click and hover time, never inside `draw()` — `draw()` runs
 every frame and a region list rebuilt there is per-frame work that paints
-nothing. It is not handed `colors` or `anim` either: a target that moved with the
-theme, or with how far an animation had run, would drift away from the picture.
+nothing. It is not handed `colors`: a target that moved with the theme would
+drift away from the picture. It IS handed `anim` (since 2026-09-19, widget 70),
+for one thing only — which settled view a stage shows, when a press turns one
+drawing of the data into another and a click must reach whichever is on screen.
+Read a stage counter, never a clock: a target that moved with how far an
+animation had run would drift away from the picture.
 
 ## Verifying
 

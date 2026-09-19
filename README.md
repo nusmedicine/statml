@@ -331,8 +331,10 @@ used the dropdown. Three rules, and core throws at load on the first two:
   parameter, and the drawn target is the shortcut.
 
 Built lazily at click and hover time, never inside `draw()`, and not handed
-`colors` or `anim`: a target that moved with the theme, or with animation
-progress, would drift away from the picture.
+`colors`: a target that moved with the theme would drift away from the picture.
+It is handed `anim` for one thing only, which settled view a stage shows (widget
+70's catalogue turns its grids into a row of bars on a press); a target must read
+a stage counter, never animation progress, or it drifts the same way.
 
 ### House rules
 

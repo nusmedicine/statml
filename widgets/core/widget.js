@@ -16,7 +16,7 @@
          readout:  ({ params, state, anim }) => [{ label, value, note }],
          table:    ({ params, state, anim }) => ({ columns, rows }),
          animation: { init, advance },              // see below
-         regions:  ({ w, h, params, state }) => [{ set: { k: v }, ... }],
+         regions:  ({ w, h, params, state, anim }) => [{ set: { k: v }, ... }],
          drag:     { param, value },                // a movement, not a click
        })
 
@@ -581,12 +581,19 @@ export function defineWidget(config) {
      `regions` at all — for every other widget `regions && at(ev)` short-circuits
      before `at` is ever evaluated, which is why this sat here unnoticed and why
      hoisting it changes nothing for them. */
+  /* `anim` IS HANDED OVER FOR ONE THING ONLY: which settled view a stage
+     shows. Widget 70's catalogue shows the 96 types as grids after one press
+     and as a row of bars after the next, and a type is clicked in whichever
+     is on screen — a stage the parameters cannot know (2026-09-19). A target
+     must still never read how far an animation has run: one that moved with
+     the progress would drift away from the picture, which is why regions were
+     not handed `anim` at all before. Read a stage counter, never a clock. */
   const at = (ev) => {
     if (!regions) return null;
     const p = surface.pointAt(ev);
     if (!p) return null;
     return hitTest(
-      regions({ w: surface.width, h: surface.height, params: { ...values }, state }) ?? [],
+      regions({ w: surface.width, h: surface.height, params: { ...values }, state, anim }) ?? [],
       p.x, p.y
     );
   };
@@ -598,7 +605,7 @@ export function defineWidget(config) {
        throw where every other driver in this repo throws. Coercing them into
        the default instead would turn a click that does the wrong thing into a
        click that quietly does something else. */
-    const probe = regions({ w: surface.width, h: surface.height, params: { ...values }, state });
+    const probe = regions({ w: surface.width, h: surface.height, params: { ...values }, state, anim });
     for (const r of probe ?? []) {
       const keys = Object.keys(r.set ?? {});
       if (keys.length !== 1) {
