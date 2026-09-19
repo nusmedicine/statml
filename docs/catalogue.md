@@ -12,7 +12,7 @@ answer can be checked against what was assumed.
 
 | looking for | go to |
 |---|---|
-| what to build next | **The cancer mutation arc (PHM5003 week 7), PROPOSED AND PICKED 2026-09-16: three widgets, 67 `tumor-heterogeneity` (with 68's tree as its last page) → 69 `driver-genes` → 70 `mutational-signatures`, 71 held back** — § *The cancer mutation arc*, where **67 is SHIPPED 2026-09-17** (three pages, 68's tree the last), **69 SHIPPED 2026-09-18**, and **70 SHIPPED 2026-09-19** (three pages; committed, the push held until he has seen the new subtitle); 71 is his call. The image arc under PHM5005 (slots 61–66) has 61 `cnn-architecture`, 64 `grad-cam`, 65 `unet` and 62 `augmentation` shipped, 63 `pretrained` measured and mocked and on KIV (his call 2026-09-15), 66 folded into 65; slot 52 `training-loop` (05-4) was discarded 2026-09-13, his call when the image arc was planned; the GWAS and PRS arc (56, 57, 59, 60) and the high-throughput arc are complete |
+| what to build next | **The cancer mutation arc (PHM5003 week 7), PROPOSED AND PICKED 2026-09-16: three widgets, 67 `tumor-heterogeneity` (with 68's tree as its last page) → 69 `driver-genes` → 70 `mutational-signatures`, 71 held back** — § *The cancer mutation arc*, where **67 is SHIPPED 2026-09-17** (three pages, 68's tree the last), **69 SHIPPED 2026-09-18**, and **70 SHIPPED AND PUSHED 2026-09-19** (three pages, `792b58c`); 71 is his call. The image arc under PHM5005 (slots 61–66) has 61 `cnn-architecture`, 64 `grad-cam`, 65 `unet` and 62 `augmentation` shipped, 63 `pretrained` measured and mocked and on KIV (his call 2026-09-15), 66 folded into 65; slot 52 `training-loop` (05-4) was discarded 2026-09-13, his call when the image arc was planned; the GWAS and PRS arc (56, 57, 59, 60) and the high-throughput arc are complete |
 | how a widget got its shape | § *Widget N*, in order |
 | the four-method reconnaissance | § *Widget 19*, under the PCA sections |
 | the arcs, and what is deliberately not a widget | the arc sections below |
@@ -10273,16 +10273,18 @@ regions the stage (e663c72) would have lost its only user. Page 3's Signature
 stays above Compare, as it picks the row the scan runs over. The verify pins
 the placement.
 
-#### SHIPPED 2026-09-19, on his "tested ok", with the push held
+#### SHIPPED AND PUSHED 2026-09-19, on his "tested ok, push it"
 
 He said "tested ok" and asked for subtitle and blurb options, "see how other
-widgets did it". Read against all 61 shipped ones: every subtitle opens on the
-concept, and the blurb is its first sentence compressed. He took the
+widgets did it". Read against all 61 shipped ones: nearly every subtitle opens
+on the concept, and each blurb is one sentence naming it. He took the
 recommendation of three for each (`511f117`), in the lesson's own terms:
 "associated with one mutational process", "decomposes", "exposures", cosine
 similarity against reference signatures. The old copy opened on the counting
 rule and said a signature is "named by" its closest reference, the reading page
-3 exists to correct. He chose to see the new subtitle before the push.
+3 exists to correct. He chose to see the new subtitle before the push, then said
+"tested ok, push it and write handover": pushed as `792b58c`, the deploy green,
+the live manifest `shipped`.
 
 **A bug found at the ship, by designing its interrupted states** (`73f1658`).
 Core keeps a running loop going through a display change, and `advance` steps
