@@ -9,11 +9,16 @@
 
      · The six substitution classes wear the field's colours, `--c-sub-*`
        (his pick 5), on bars, bands and swatches and never on text.
-     · A heatmap is GREY, a stronger shade for more (darker on the light
-       theme, lighter on the dark): a panel coloured by value must not also
-       colour by identity, and the classes already use red.
-     · `--c-highlight` is the one thing to look at: the rule marking half of a
-       signature's exposure.
+     · A heatmap runs from the well colour to `--c-magnitude`, violet, a
+       stronger shade for more: his pick of round 1 (2026-09-19) over the
+       draft's grey. A panel coloured by value must not also colour by
+       identity with the same hue, and the classes already use red, so it is
+       not widget 41's red ramp.
+     · Violet therefore means "larger" on pages 2 and 3, and `--c-highlight`,
+       the same violet, is on neither: the pair travelling in the opening press
+       and the rule at half of a signature's exposure are ink.
+     · Tumor 101, the hypermutated one, is outlined in M and in W, and marked
+       under its bar once the signatures open (round 1).
      · On page 1 a change written from a purine is its class colour, paler, so
        it can be seen joining its partner.
    ========================================================================= */
@@ -132,12 +137,28 @@ function wash(color, a) {
   const p = rgbOf(color);
   return p ? `rgba(${p[0]},${p[1]},${p[2]},${a})` : color;
 }
-/** The grey ramp: the well colour for nothing, the secondary ink for the most. */
-function shade(colors, v) {
-  const a = rgbOf(colors.surface3), b = rgbOf(colors.ink2);
-  const t = Math.max(0, Math.min(1, v));
-  if (!a || !b) return t < 0.5 ? colors.surface3 : colors.ink2;
-  return `rgb(${a.map((x, i) => Math.round(x + (b[i] - x) * t)).join(",")})`;
+const hexOf = (p) => `#${p.map((x) => Math.round(Math.max(0, Math.min(255, x))).toString(16).padStart(2, "0")).join("")}`;
+/** Token colour `a` moved `t` of the way to token colour `b`. */
+function mixHex(a, b, t) {
+  const p = rgbOf(a), q = rgbOf(b);
+  const u = Math.max(0, Math.min(1, t));
+  if (!p || !q) return u < 0.5 ? a : b;
+  return hexOf(p.map((x, i) => x + (q[i] - x) * u));
+}
+/** The ramp: the well colour for nothing, `--c-magnitude` for the most. */
+const shade = (colors, v) => mixHex(colors.surface3, colors.magnitude, v);
+
+/** Whichever ink reads better on a shaded cell. The ramp ends dark on the
+    light theme and pale on the dark, so no one ink reads on all of it. */
+function inkOn(colors, fill) {
+  const lum = (c) => {
+    const p = rgbOf(c);
+    if (!p) return 0.5;
+    const [r, g, b] = p.map((x) => { const s = x / 255; return s <= 0.04045 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4; });
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  };
+  const contrast = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
+  return contrast(fill, colors.ink1) >= contrast(fill, colors.surface) ? colors.ink1 : colors.surface;
 }
 
 function withAlpha(ctx, a, paint) {
@@ -290,7 +311,10 @@ function snapshotAt(fit, t) {
   return fit.trace[i];
 }
 
-function drawHeatmaps(ctx, colors, w, params, state, snap) {
+/** Cell 0's figure without its travellers: M, the class bands beside it, the
+    letters and labels, S's and W's frames, and once extracted the iteration's
+    line. The opening press fades all of this as the pairs leave. */
+function drawHeatStay(ctx, colors, w, params, state, snap) {
   const L = M.layout(w, params);
   const H = L.heat;
   const f = state.fit;
@@ -328,78 +352,157 @@ function drawHeatmaps(ctx, colors, w, params, state, snap) {
     text(ctx, S.hyperTag, x + cw, H.base + 32, { font: noteFont(colors), fill: colors.ink1, align: "right" });
   }
 
-  /* S and W: empty frames until the press, then the descent's snapshots, on
-     the frame of the finished figure so the columns can be seen forming. */
+  /* S and W: empty frames until the press; their cells are the travellers. */
   const r = f.rank;
-  const wRowH = 12;
-  const wTop = mid - (r * (wRowH + 1)) / 2;
+  const wTop = M.wTop(L, r);
   text(ctx, S.heatW, H.W.x + H.W.w / 2, wTop - 12, { font: `600 22px ${colors.font}`, fill: colors.ink1, align: "center" });
-  text(ctx, S.tumorsAxis(n), H.W.x + H.W.w / 2, wTop + r * (wRowH + 1) + 16, { font: noteFont(colors), fill: colors.ink2, align: "center" });
+  text(ctx, S.tumorsAxis(n), H.W.x + H.W.w / 2, wTop + r * (M.W_ROW + 1) + 16, { font: noteFont(colors), fill: colors.ink2, align: "center" });
   ctx.save();
   ctx.strokeStyle = colors.grid;
   ctx.lineWidth = 1;
   ctx.strokeRect(H.S.x - 0.5, H.top - 0.5, H.S.w, 96 * H.rowH + 1);
-  ctx.strokeRect(H.W.x - 0.5, wTop - 0.5, H.W.w + 1, r * (wRowH + 1));
+  ctx.strokeRect(H.W.x - 0.5, wTop - 0.5, H.W.w + 1, r * (M.W_ROW + 1));
   ctx.restore();
   if (!snap) return;
-  const sw = H.S.w / r;
-  for (let k = 0; k < r; k += 1) {
-    for (let i = 0; i < 96; i += 1) {
-      ctx.fillStyle = shade(colors, Math.sqrt(snap.sigs[k][i] / f.sigMax));
-      ctx.fillRect(H.S.x + k * sw, H.top + i * H.rowH, sw - 1, Math.ceil(H.rowH));
-    }
-  }
-  const wcw = H.W.w / n;
-  for (let k = 0; k < r; k += 1) {
-    for (let j = 0; j < n; j += 1) {
-      ctx.fillStyle = shade(colors, Math.sqrt(Math.max(0, snap.expo[k][j]) / f.expoMax));
-      ctx.fillRect(H.W.x + j * wcw, wTop + k * (wRowH + 1), Math.ceil(wcw), wRowH);
-    }
-  }
   text(ctx, S.iterLine(snap.iter, snap.kl), H.M.x, H.base + 48, { font: noteFont(colors), fill: colors.ink1 });
   text(ctx, S.heatNote(M.intText(f.cap)), H.M.x, H.base + 66, { font: noteFont(colors), fill: colors.ink3 });
 }
 
-function drawOpened(ctx, colors, w, params, state) {
-  const L = M.layout(w, params);
+/** Tumor 101's mark on its cell of W: the outline it wears in M, and once the
+    cell has stood up as a bar, a mark under it. A mark under the bar rather
+    than a box round it, because in the tumor's own signature it is the first
+    bar and the half rule stands right beside it. */
+function markTumor(ctx, colors, c, base, stand) {
+  withAlpha(ctx, 1 - stand, () => {
+    ctx.strokeStyle = colors.ink1;
+    ctx.lineWidth = 1;
+    ctx.strokeRect(c.x - 1, c.y - 1, c.w + 2, c.h + 2);
+  });
+  withAlpha(ctx, stand, () => {
+    const cx = c.x + c.w / 2;
+    ctx.fillStyle = colors.ink1;
+    ctx.beginPath();
+    ctx.moveTo(cx, base + 2);
+    ctx.lineTo(cx + 3, base + 6);
+    ctx.lineTo(cx - 3, base + 6);
+    ctx.closePath();
+    ctx.fill();
+  });
+}
+
+/** Signature k's column of S and row of W, `u` of the way through its flight
+    and `v` of the way through the sort, shaded from `vals` (a snapshot of the
+    descent, or the signatures once extracted). At u = 0 this is cell 0's
+    figure's cells; at u = v = 1, the opened view's bars (M.flight). */
+function drawTraveller(ctx, colors, L, params, state, k, vals, { u = 0, v = 0, outline = 0 } = {}) {
+  const f = state.fit, s = f.sigs[k], R = L.rows[k], n = f.cols;
+  const { swing, stand, strip, row } = M.flight(L, f.rank, k, u);
+
+  /* S's column, in its own frame: a tile a type, standing up as its bar in
+     the type's class colour, so the value moves from the shade to the height */
+  const pmax = M.niceMax(Math.max(...s.profile));
+  const pH = R.profile.base - R.profile.top;
+  ctx.save();
+  ctx.translate(strip.px, strip.py);
+  ctx.rotate(strip.ang);
+  for (let i = 0; i < 96; i += 1) {
+    const c = M.stripCell(strip, i, swing, stand, Math.min(1, s.profile[i] / pmax) * pH);
+    if (c.w <= 0) continue;
+    const tone = shade(colors, Math.sqrt(vals.sig[i] / f.sigMax));
+    ctx.fillStyle = stand > 0 ? mixHex(tone, colors.subs[i >> 4], stand) : tone;
+    ctx.fillRect(c.x, c.y, c.w, c.h);
+  }
+  withAlpha(ctx, outline, () => {
+    ctx.strokeStyle = colors.ink1;
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(-strip.th / 2 - 2.5, -strip.p * strip.len - 2.5, strip.th + 5, strip.len + 5);
+  });
+  ctx.restore();
+  /* the baseline and the class bands, as plotSignatures draws them */
+  withAlpha(ctx, stand, () => {
+    rule(ctx, L.x0, R.profile.base + 0.5, L.x1, R.profile.base + 0.5, colors.axis);
+    const bw = (L.x1 - L.x0) / 96;
+    for (let c = 0; c < 6; c += 1) {
+      ctx.fillStyle = colors.subs[c];
+      ctx.fillRect(L.x0 + 16 * c * bw + 1, R.profile.base + 3, 16 * bw - 2, 3);
+    }
+  });
+
+  /* W's row: each tumor one cell, then one bar, in M's column order until the
+     sort sends each to its place, largest first; the tumors holding half of
+     the exposure stay dark once sorted */
+  const hyperJ = params.hypermutated === "out" ? -1 : state.cohort.hyperIndex;
+  const stripH = R.strip.base - R.strip.top;
+  const top = s.exposure[s.sorted[0]] || 1;
+  const sortT = M.easeInOut(v);
+  for (let j = 0; j < n; j += 1) {
+    const e = Math.max(0, s.exposure[j]);
+    const c = M.rowCell(row, n, M.lerp(j, s.place[j], sortT), stand, (e / top) * stripH);
+    const tone = shade(colors, Math.sqrt(Math.max(0, vals.expo[j]) / f.expoMax));
+    const bar = v >= 1 ? (s.place[j] < s.hold.half ? colors.ink2 : wash(colors.ink3, 0.55)) : colors.ink2;
+    if (c.h > 0) {
+      ctx.fillStyle = stand <= 0 ? tone : stand >= 1 ? bar : mixHex(tone, colors.ink2, stand);
+      ctx.fillRect(c.x, c.y, c.w, c.h);
+    }
+    if (j === hyperJ) markTumor(ctx, colors, c, row.y + row.h, stand);
+  }
+  withAlpha(ctx, outline, () => {
+    ctx.strokeStyle = colors.ink1;
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(row.x - 2.5, row.y - 2.5, row.w + 5, row.h + 5);
+  });
+  withAlpha(ctx, stand, () => rule(ctx, L.x0, R.strip.base + 0.5, L.x1, R.strip.base + 0.5, colors.axis));
+}
+
+/** The opened view's words and its half rules, which arrive last. */
+function drawOpenedWords(ctx, colors, L, state) {
   const f = state.fit;
   text(ctx, S.openedCaption, L.x0, 22, { font: capFont(colors), fill: colors.ink1 });
   f.sigs.forEach((s, k) => {
     const R = L.rows[k];
     text(ctx, S.sigTitle(k + 1), L.x0, R.title, { font: capFont(colors), fill: colors.ink1 });
     text(ctx, S.sigShare(s.share), L.x0 + 86, R.title, { font: noteFont(colors), fill: colors.ink2 });
-    profileBars(ctx, colors, s.profile, { x0: L.x0, x1: L.x1, top: R.profile.top, base: R.profile.base });
-    /* W's row, sorted: each tumor one bar, the largest first, and a rule after
-       the tumors that hold half of it. */
-    const sorted = [...s.exposure].sort((a, b) => b - a);
-    const bw = (L.x1 - L.x0) / sorted.length;
-    const top = sorted[0] || 1;
-    sorted.forEach((v, i) => {
-      const h = (v / top) * (R.strip.base - R.strip.top);
-      if (h <= 0) return;
-      ctx.fillStyle = i < s.hold.half ? colors.ink2 : wash(colors.ink3, 0.55);
-      ctx.fillRect(L.x0 + i * bw + 0.3, R.strip.base - h, Math.max(0.8, bw - 0.6), h);
-    });
-    rule(ctx, L.x0, R.strip.base + 0.5, L.x1, R.strip.base + 0.5, colors.axis);
-    const xh = L.x0 + s.hold.half * bw;
-    rule(ctx, xh, R.strip.top - 3, xh, R.strip.base + 3, colors.highlight, 1.5);
+    /* after the tumors that hold half of it: in ink, as violet means "larger"
+       on this page, and down to the baseline only, clear of tumor 101's mark */
+    const xh = L.x0 + s.hold.half * ((L.x1 - L.x0) / f.cols);
+    rule(ctx, xh, R.strip.top - 3, xh, R.strip.base, colors.ink1, 1.5);
     text(ctx, S.halfLine(s.hold.half), L.x0, R.stripLabel, { font: noteFont(colors), fill: colors.ink1 });
     text(ctx, S.topTumor(s.hold.top, s.hold.top === state.cohort.hyperIndex, s.hold.topShare), L.x1, R.stripLabel,
       { font: noteFont(colors), fill: colors.ink2, align: "right" });
   });
 }
 
+/** Cell 0's figure: M, and once extracted S and W at a snapshot of the descent. */
+function drawHeatmaps(ctx, colors, w, params, state, snap) {
+  drawHeatStay(ctx, colors, w, params, state, snap);
+  if (!snap) return;
+  const L = M.layout(w, params);
+  for (let k = 0; k < state.fit.rank; k += 1) {
+    drawTraveller(ctx, colors, L, params, state, k, { sig: snap.sigs[k], expo: snap.expo[k] });
+  }
+}
+
+/** The opening press `t` of the way through; at t = 1, the opened view. */
+function drawPress(ctx, colors, w, params, state, t) {
+  const f = state.fit;
+  const L = M.layout(w, params);
+  const at = M.openAt(f.rank, t * M.openTiming(f.rank).total);
+  const last = f.trace[f.trace.length - 1];
+  withAlpha(ctx, at.stay, () => drawHeatStay(ctx, colors, w, params, state, last));
+  /* the pairs still at home first, so a travelling pair passes over them */
+  const order = [...at.u.keys()].sort((a, b) => (at.u[a] > 0) - (at.u[b] > 0));
+  for (const k of order) {
+    drawTraveller(ctx, colors, L, params, state, k, { sig: last.sigs[k], expo: last.expo[k] },
+      { u: at.u[k], v: at.v, outline: M.travelOutline(at.u[k]) });
+  }
+  withAlpha(ctx, M.easeInOut(at.words), () => drawOpenedWords(ctx, colors, L, state));
+}
+
 function drawSignatures(ctx, colors, w, params, state, anim) {
   const sig = anim?.sig ?? 0;
   const t = anim?.sigT ?? 1;
-  const f = state.fit;
-  if (sig < 2 || t < 1) {
-    const snap = sig === 0 ? null : sig === 1 ? snapshotAt(f, t) : f.trace[f.trace.length - 1];
-    /* A HANDOFF, as widget 69's panels hand over: cell 0's figure is gone by
-       the halfway point, and the signatures opened out start there. */
-    withAlpha(ctx, sig === 2 ? Math.max(0, 1 - 2 * M.easeInOut(t)) : 1, () => drawHeatmaps(ctx, colors, w, params, state, snap));
-  }
-  if (sig === 2) withAlpha(ctx, t < 1 ? Math.max(0, 2 * M.easeInOut(t) - 1) : 1, () => drawOpened(ctx, colors, w, params, state));
+  if (sig >= 2) { drawPress(ctx, colors, w, params, state, t); return; }
+  drawHeatmaps(ctx, colors, w, params, state, sig === 0 ? null : snapshotAt(state.fit, t));
 }
 
 /* ---- page 3: matching ------------------------------------------------------------- */
@@ -441,15 +544,21 @@ function drawMatching(ctx, colors, w, params, state, anim) {
       if (match < 1) return;
       const c = s.match.find((m) => m.key === r.key).cos;
       withAlpha(ctx, mt, () => {
-        ctx.fillStyle = shade(colors, (c - 0.1) / 0.9);
+        const fill = shade(colors, (c - 0.1) / 0.9);
+        ctx.fillStyle = fill;
         ctx.fillRect(x + 1, y + 1, L.cellW - 2, M.MATCH_ROW - 2);
         text(ctx, M.cell2(c), x + L.cellW / 2, y + M.MATCH_ROW / 2 + 4,
-          { font: monoFont(colors), fill: c > 0.55 ? colors.surface : colors.ink2, align: "center" });
+          { font: monoFont(colors), fill: inkOn(colors, fill), align: "center" });
         if (s.match[0].key === r.key) {
+          /* cased by a line of the surface inside it, so it reads on the
+             strongest violet in either theme */
           ctx.save();
           ctx.strokeStyle = colors.ink1;
           ctx.lineWidth = 2;
           ctx.strokeRect(x + 1.5, y + 1.5, L.cellW - 3, M.MATCH_ROW - 3);
+          ctx.strokeStyle = colors.surface;
+          ctx.lineWidth = 1;
+          ctx.strokeRect(x + 3, y + 3, L.cellW - 6, M.MATCH_ROW - 6);
           ctx.restore();
         }
       });
@@ -506,9 +615,9 @@ function takeCatStep(anim, dt, t) {
   return anim.catT < 1;
 }
 
-/** One frame of page 2's press: the descent, or the handover. */
-function takeSigStep(anim, dt) {
-  const span = () => (anim.sig === 1 ? M.DESCENT_MS : M.OPEN_MS);
+/** One frame of page 2's press: the descent, or the signatures opening. */
+function takeSigStep(anim, dt, rank) {
+  const span = () => (anim.sig === 1 ? M.DESCENT_MS : M.openTiming(rank).total);
   if (anim.sigT < 1) {
     anim.sigT = Math.min(1, anim.sigT + dt / span());
     return anim.sigT < 1;
@@ -601,10 +710,16 @@ defineWidget({
   },
 
   legend: ({ params }) => {
-    if (params.page === "signatures") return [{ token: "ink-2", label: S.legendHeat, mark: "bar" }, ...classLegend()];
+    if (params.page === "signatures") {
+      return [
+        { token: "magnitude", label: S.legendHeat, mark: "bar" },
+        ...classLegend(),
+        ...(params.hypermutated === "out" ? [] : [{ token: "ink-1", label: S.legendHyper, mark: "tri" }]),
+      ];
+    }
     if (params.page === "matching") {
       return [
-        { token: "ink-2", label: S.legendCosine, mark: "bar" },
+        { token: "magnitude", label: S.legendCosine, mark: "bar" },
         { token: "ink-1", label: S.legendBest, mark: "line" },
         ...classLegend(),
       ];
@@ -655,7 +770,7 @@ defineWidget({
     },
 
     advance: (anim, { dt, state }) => {
-      const more = anim.page === "signatures" ? takeSigStep(anim, dt)
+      const more = anim.page === "signatures" ? takeSigStep(anim, dt, state.fit.rank)
         : anim.page === "matching" ? takeMatchStep(anim, dt)
           : takeCatStep(anim, dt, state.tumor);
       settle(anim);

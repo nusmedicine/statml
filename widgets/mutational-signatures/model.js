@@ -53,7 +53,8 @@
        `compute()` stays pure: every cache is keyed on what it reads.
 
     8. THE SIX CLASSES WEAR THE FIELD'S COLOURS (his pick 5), as six roles in
-       `tokens.css`; the heatmaps take a grey ramp, so red means C>T only.
+       `tokens.css`; the heatmaps take `--c-magnitude`'s violet ramp (his pick
+       of round 1, over the draft's grey), so red means C>T only.
    ========================================================================= */
 
 import { makeRng } from "../core/rng.js";
@@ -378,10 +379,16 @@ export function fitFor(seed, hypermutated, rank) {
     const hyperCol = co.M.map((row) => row[co.hyperIndex]);
     const sigs = ex.signatures.map((s, k) => {
       const hold = holders(ex.exposures[k]);
+      /* the tumors largest first, and each tumor's place in that order: the
+         opened view's strip, and where the press's sort sends each bar */
+      const sorted = [...ex.exposures[k].keys()].sort((a, b) => ex.exposures[k][b] - ex.exposures[k][a]);
+      const place = new Int32Array(sorted.length);
+      sorted.forEach((j, i) => { place[j] = i; });
       return {
         profile: s,
         exposure: ex.exposures[k],
         total: sum(ex.exposures[k]),
+        sorted, place,
         hold,
         match: matches(s),
         mix: plantedMix(s, builders),
@@ -460,8 +467,48 @@ export const LAND_MS = 1200;      // the mutations arrive over this long, whatev
 export const FOLD_MS = 800;       // twelve bars fold into six
 export const SPLIT_MS = 900;      // six bars split into 96
 export const DESCENT_MS = 2400;   // the extraction's snapshots
-export const OPEN_MS = 700;       // cell 0's figure hands over to the signatures opened out
 export const COMPARE_MS = 500;    // the cosines arrive
+
+/* THE PRESS THAT OPENS THE SIGNATURES, one at a time (Kenneth's pick C of
+   three, 2026-09-19, `_lab/mutational-signatures-round1-mock.html`): column k
+   of S and row k of W travel together to signature k's place, outlined, and
+   the next pair leaves as that one arrives; its cells then stand up as bars,
+   the value moving from the shade to the height; once every signature has
+   landed the rows sort, largest first, and the words arrive. The draft's
+   crossfade (0.7 s) said nothing of where a signature came from. */
+export const OPEN_TRAVEL_MS = 550;   // one pair's journey
+export const OPEN_SORT_MS = 550;     // every row sorts, largest first
+export const OPEN_WORDS_MS = 300;    // the titles, the half rules and their lines
+export const OPEN_FADE_MS = 450;     // M and its labels leave
+export const SWING = 0.55;           // the share of a pair's flight spent travelling; the rest, standing up
+
+/** The press's clock at a rank. One pair travels at a time; past rank 4 each
+    journey shortens, so the press never runs past 3.5 s. */
+export function openTiming(rank) {
+  const travel = Math.min(OPEN_TRAVEL_MS, 1650 / Math.max(1, rank - 1));
+  const fly = travel / SWING;
+  const sortAt = (rank - 1) * travel + fly;
+  const sortEnd = sortAt + OPEN_SORT_MS;
+  return { travel, fly, sortAt, sortEnd, total: sortEnd + OPEN_WORDS_MS };
+}
+
+const seg = (t, a, b) => Math.max(0, Math.min(1, (t - a) / (b - a)));
+
+/** Where the press is `now` ms in: each signature's flight, the sort, the
+    words, and how much of M is left. */
+export function openAt(rank, now) {
+  const T = openTiming(rank);
+  return {
+    u: Array.from({ length: rank }, (_, k) => seg(now, k * T.travel, k * T.travel + T.fly)),
+    v: seg(now, T.sortAt, T.sortEnd),
+    words: seg(now, T.sortEnd, T.total),
+    stay: 1 - easeInOut(seg(now, 0, OPEN_FADE_MS)),
+  };
+}
+
+/** The outline on a travelling pair: on for the journey, gone by the time its
+    bars have half stood up. */
+export const travelOutline = (u) => (u <= 0 ? 0 : u < SWING ? 1 : Math.max(0, 1 - (u - SWING) / 0.25));
 
 /** The key the drive button's label is read at (STRINGS.stepLabels): the step
     the next press takes, or, once a page is done, the last one it took, so a
@@ -530,6 +577,72 @@ export function layout(w, params) {
   return { page: "catalogue", x0, x1, top: 64, base: 252, slot: (x1 - x0) / 6, height: CAT_H };
 }
 export const stageHeight = (w, values) => layout(w, values).height;
+
+/* ---- the press's geometry: one for cell 0's figure, the flight and the opened
+   view (5.8), so the press starts on the extraction's last frame and ends on
+   the opened view's first ---------------------------------------------------------- */
+
+export const TILE = 8;      // a column laid down, and a row slid under it, before the bars stand
+export const W_ROW = 12;    // one row of W in cell 0's figure
+
+/** The top of W's first row in cell 0's figure: the rows centred on M's middle. */
+export const wTop = (L, rank) => L.heat.top + 48 * L.heat.rowH - (rank * (W_ROW + 1)) / 2;
+
+/** Signature k's column of S and row of W, `u` of the way through its flight.
+
+    THE COLUMN TURNS ABOUT THE POINT OF IT LEVEL WITH ITS SIGNATURE'S BASELINE,
+    not about its middle: turned about its middle, the first signature's column
+    rose 31px above the canvas at 770 wide halfway round, and the last one's
+    fell 20px below it. It turns a quarter anticlockwise, so its top (C>A) ends at
+    the left as plotSignatures reads, and it stretches to the profile's width
+    AFTER it turns (the square of the swing), so the turning strip stays short.
+
+    The strip is given in its own frame, for `ctx.translate(px, py)` then
+    `ctx.rotate(ang)`: y runs along it from -p·len (C>A) to (1 - p)·len, and x
+    across it, the bars standing on the edge x = -th/2, which faces down once
+    it has turned. */
+export function flight(L, rank, k, u) {
+  const H = L.heat, R = L.rows[k];
+  const swing = easeInOut(Math.min(1, u / SWING));
+  const stand = easeInOut(Math.max(0, (u - SWING) / (1 - SWING)));
+  const sw = H.S.w / rank, th0 = sw - 1;
+  const len0 = 96 * H.rowH, len1 = L.x1 - L.x0;
+  const p = Math.max(0, Math.min(1, (R.profile.base - TILE / 2 - H.top) / len0));
+  const from = { x: H.S.x + k * sw + th0 / 2, y: H.top + p * len0 };
+  const to = { x: L.x0 + p * len1, y: R.profile.base - TILE / 2 };
+  const top = wTop(L, rank);
+  return {
+    swing, stand,
+    strip: {
+      px: lerp(from.x, to.x, swing), py: lerp(from.y, to.y, swing), p,
+      len: lerp(len0, len1, swing * swing), th: lerp(th0, TILE, swing), ang: (-Math.PI / 2) * swing,
+    },
+    row: lerpRect({ x: H.W.x, y: top + k * (W_ROW + 1), w: H.W.w, h: W_ROW },
+      { x: L.x0, y: R.strip.base - TILE, w: L.x1 - L.x0, h: TILE }, swing),
+  };
+}
+
+/** S's cell i in the strip's own frame, standing `stand` of the way from a
+    tile to a bar `barH` tall. Cells overlap by a hair while the strip is
+    turned, or its antialiased edges show the surface between them. */
+export function stripCell(strip, i, swing, stand, barH) {
+  const cell = strip.len / 96;
+  const gap = stand * Math.min(1, cell * 0.25);
+  return {
+    x: -strip.th / 2, y: -strip.p * strip.len + i * cell + gap / 2,
+    w: lerp(strip.th, barH, stand), h: cell - gap + (stand === 0 && swing > 0 ? 0.35 : 0),
+  };
+}
+
+/** W's cell at column `slot` of its row (its column in M, or its place once
+    sorted), standing `stand` of the way from a tile to a bar `barH` tall. At
+    rest it is cell 0's figure's cell; stood and sorted, the opened view's bar. */
+export function rowCell(row, n, slot, stand, barH) {
+  const cw = row.w / n;
+  const gap = 0.6 * stand;
+  const h = lerp(row.h, barH, stand);
+  return { x: row.x + slot * cw + gap / 2, y: row.y + row.h - h, w: stand > 0 ? Math.max(0.8, cw - gap) : Math.ceil(cw), h };
+}
 
 /* Page 1's bars, one geometry for the drawing and the verify (5.8). */
 const Y = (L, v, yMax) => L.base - (v / yMax) * (L.base - L.top);
@@ -681,6 +794,7 @@ export const STRINGS = {
   legendHeat: "A larger count or weight: a stronger shade",
   legendCosine: "A higher cosine similarity: a stronger shade",
   legendBest: "The best match in each row: outlined",
+  legendHyper: "Tumor 101, the hypermutated one: outlined, then marked under its bar",
 
   /* the tiles */
   tileSubstitutions: "Substitutions",

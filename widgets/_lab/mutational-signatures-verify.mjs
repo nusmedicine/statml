@@ -74,9 +74,13 @@ async function widget() {
 /** A canvas context that records the extent of everything painted, through a
     full affine transform, so page 3's names set on end are measured where
     they are drawn. Text is 6px a character, wider than the canvas's own. */
-function recorder() {
+function recorder({ record = false } = {}) {
   const box = { x0: Infinity, y0: Infinity, x1: -Infinity, y1: -Infinity, bad: false };
   const seen = [];
+  /* every mark with its corners through the transform, its colour and its
+     alpha, so two frames can be compared op for op; and every colour used */
+  const ops = [];
+  const styles = new Set();
   const stack = [];
   let T = [1, 0, 0, 1, 0, 0];
   const apply = (x, y) => [T[0] * x + T[2] * y + T[4], T[1] * x + T[3] * y + T[5]];
@@ -86,37 +90,55 @@ function recorder() {
     box.x0 = Math.min(box.x0, px); box.y0 = Math.min(box.y0, py);
     box.x1 = Math.max(box.x1, px); box.y1 = Math.max(box.y1, py);
   };
+  const log = (kind, style, alpha, pts) => record && ops.push(`${kind} ${style} ${alpha.toFixed(4)} ${pts.map(([x, y]) => apply(x, y).map((v) => v.toFixed(4)).join(",")).join(" ")}`);
   const mul = (a, b) => [a[0] * b[0] + a[2] * b[1], a[1] * b[0] + a[3] * b[1], a[0] * b[2] + a[2] * b[3], a[1] * b[2] + a[3] * b[3],
     a[0] * b[4] + a[2] * b[5] + a[4], a[1] * b[4] + a[3] * b[5] + a[5]];
   const ctx = {
-    save() { stack.push(T.slice()); },
-    restore() { const s = stack.pop(); if (s) T = s; },
+    save() { stack.push({ T: T.slice(), a: this.globalAlpha, f: this.fillStyle, s: this.strokeStyle, lw: this.lineWidth }); },
+    restore() {
+      const s = stack.pop();
+      if (s) { T = s.T; this.globalAlpha = s.a; this.fillStyle = s.f; this.strokeStyle = s.s; this.lineWidth = s.lw; }
+    },
     translate(dx, dy) { T = mul(T, [1, 0, 0, 1, dx, dy]); },
     scale(x, y) { T = mul(T, [x, 0, 0, y, 0, 0]); },
     rotate(r) { T = mul(T, [Math.cos(r), Math.sin(r), -Math.sin(r), Math.cos(r), 0, 0]); },
-    beginPath() {}, closePath() {}, stroke() {}, fill() {}, setLineDash() {}, clip() {}, rect() {},
+    beginPath() {}, closePath() {}, setLineDash() {}, clip() {}, rect() {},
+    stroke() { styles.add(this.strokeStyle); },
+    fill() { styles.add(this.fillStyle); },
     measureText: (s) => ({ width: String(s).length * 6 }),
-    fillRect: (x, y, w, h) => { mark(x, y); mark(x + w, y + h); mark(x + w, y); mark(x, y + h); },
-    strokeRect: (x, y, w, h) => { mark(x, y); mark(x + w, y + h); },
+    fillRect(x, y, w, h) {
+      mark(x, y); mark(x + w, y + h); mark(x + w, y); mark(x, y + h);
+      styles.add(this.fillStyle);
+      log("F", this.fillStyle, this.globalAlpha, [[x, y], [x + w, y + h]]);
+    },
+    strokeRect(x, y, w, h) {
+      mark(x, y); mark(x + w, y + h);
+      styles.add(this.strokeStyle);
+      log("S", this.strokeStyle, this.globalAlpha, [[x, y], [x + w, y + h]]);
+    },
     clearRect: () => {},
     moveTo: mark, lineTo: mark,
     arc: (x, y, r) => { mark(x - r, y - r); mark(x + r, y + r); },
     fillText(s, x, y) {
       seen.push(String(s));
+      styles.add(this.fillStyle);
       const w = String(s).length * 6;
       const left = this.textAlign === "center" ? x - w / 2 : this.textAlign === "right" ? x - w : x;
       mark(left, y - 11); mark(left + w, y + 3); mark(left, y + 3); mark(left + w, y - 11);
+      log(`T ${s}`, this.fillStyle, this.globalAlpha, [[x, y]]);
     },
     strokeText() {},
     textAlign: "left", textBaseline: "alphabetic", font: "", fillStyle: "", strokeStyle: "", lineWidth: 1, globalAlpha: 1,
   };
-  return { ctx, box, seen };
+  return { ctx, box, seen, ops, styles };
 }
 
+/* Distinct stand-ins for the two violets, so a use of either can be found. */
 const COLORS = Object.fromEntries([
-  "surface", "surface2", "surface3", "ink1", "ink2", "ink3", "grid", "axis", "highlight", "reference",
+  "surface", "surface2", "surface3", "ink1", "ink2", "ink3", "grid", "axis", "highlight", "reference", "magnitude",
 ].map((k) => [k, "#123456"]));
-Object.assign(COLORS, { subs: ["#101010", "#202020", "#303030", "#404040", "#505050", "#606060"],
+Object.assign(COLORS, { highlight: "#aa00aa", magnitude: "#5500ff",
+  subs: ["#101010", "#202020", "#303030", "#404040", "#505050", "#606060"],
   font: "sans-serif", mono: "monospace", fsXs: "11px", fsSm: "13px", fsMd: "15px" });
 
 /* --- 1 · the engine against R's NMF, from one start ----------------------------- */
@@ -267,7 +289,9 @@ function press(anim, params, state, { dt = 32, frames = 6000 } = {}) {
   for (let i = 0; i < 3; i += 1) { labels2.push(a2.labelAt); frames2.push(press(a2, p2, s2)); seen2.push(a2.sig); }
   check("page 2: Extract, then each signature shown; then done", seen2.join() === "1,2,2" && a2.done, seen2.join());
   check("page 2's presses are labelled s0, s1", labels2.slice(0, 2).join() === "s0,s1", labels2.join());
-  check("the descent plays over its frames, the handover over fewer", frames2[0] > frames2[1] && frames2[1] > 4, frames2.join());
+  check("the descent plays over its clock and the opening press over its own",
+    Math.abs(frames2[0] - M.DESCENT_MS / 32) <= 2 && Math.abs(frames2[1] - M.openTiming(4).total / 32) <= 2 && frames2[2] === 0,
+    `${frames2.join()} frames of 32 ms; the press ${M.openTiming(4).total} ms at rank 4`);
 
   const p3 = paramsOf({ page: "matching" });
   const s3 = W.compute({ params: p3 });
@@ -339,7 +363,9 @@ console.log("\n§6 the geometry");
     for (const rank of [2, 4, 6]) {
       for (const hypermutated of ["in", "out"]) {
         const p2 = paramsOf({ page: "signatures", rank, hypermutated });
-        for (const [sig, sigT] of [[0, 1], [1, 0.3], [1, 1], [2, 0.5], [2, 1]]) paint(p2, { ...blank("signatures", "largest"), sig, sigT }, w);
+        for (const [sig, sigT] of [[0, 1], [1, 0.3], [1, 1], ...[0, 0.04, 0.08, 0.12, 0.2, 0.3, 0.45, 0.6, 0.75, 0.85, 0.95, 1].map((t) => [2, t])]) {
+          paint(p2, { ...blank("signatures", "largest"), sig, sigT }, w);
+        }
         for (const truth of ["0", "1"]) {
           for (const signature of ["1", String(rank)]) {
             const p3 = paramsOf({ page: "matching", rank, hypermutated, truth, signature });
@@ -377,6 +403,122 @@ console.log("\n§6 the geometry");
   }
   check("no page but the third has a clickable region", ["catalogue", "signatures"].every((page) =>
     W.regions({ w: 535, h: 400, params: paramsOf({ page }), state: W.compute({ params: paramsOf({ page }) }) }).length === 0));
+}
+
+/* --- 6b · the opening press, round 1 (2026-09-19): one pair at a time, violet --- */
+console.log("\n§6b the opening press and the ramp");
+{
+  const blank = (page) => ({ page, tumor: "largest", cat: 0, catT: 1, landed: 0, clock: 0, sig: 0, sigT: 1, match: 0, matchT: 1 });
+  const frame = (params, anim, w) => {
+    const state = W.compute({ params });
+    const { ctx, ops, styles } = recorder({ record: true });
+    W.draw({ ctx, colors: COLORS, w, h: W.height({ w, ...params }), params, state, anim });
+    return { ops, styles, state };
+  };
+
+  /* the press starts on the extraction's last frame, op for op */
+  const seams = [];
+  for (const w of [535, 770]) {
+    for (const rank of [2, 4, 6]) {
+      for (const hypermutated of ["in", "out"]) {
+        const p = paramsOf({ page: "signatures", rank, hypermutated });
+        const a = frame(p, { ...blank("signatures"), sig: 1, sigT: 1 }, w).ops;
+        const b = frame(p, { ...blank("signatures"), sig: 2, sigT: 0 }, w).ops;
+        if (a.length !== b.length || a.some((x, i) => x !== b[i])) seams.push(`${w} r${rank} ${hypermutated}: ${a.length} ops against ${b.length}`);
+      }
+    }
+  }
+  check("the press's first frame is the extraction's last, op for op, at every rank and both widths", seams.length === 0, seams.slice(0, 2).join(" | "));
+
+  /* it ends on bars where plotSignatures draws them */
+  {
+    const w = 626, p = paramsOf({ page: "signatures" });
+    const L = M.layout(w, p);
+    const fit = M.fitFor(1, "in", 4);
+    let worst = 0;
+    fit.sigs.forEach((s, k) => {
+      const { strip, stand, swing } = M.flight(L, 4, k, 1);
+      const R = L.rows[k], bw = (L.x1 - L.x0) / 96, pmax = M.niceMax(Math.max(...s.profile));
+      for (let i = 0; i < 96; i += 1) {
+        const barH = Math.min(1, s.profile[i] / pmax) * (R.profile.base - R.profile.top);
+        const c = M.stripCell(strip, i, swing, stand, barH);
+        /* a quarter turn anticlockwise takes (x, y) in the strip's frame to (px + y, py - x) */
+        const x = strip.px + c.y, y = strip.py - (c.x + c.w);
+        const want = { x: L.x0 + i * bw + 0.5, y: R.profile.base - barH, w: bw - 1, h: barH };
+        worst = Math.max(worst, Math.abs(x - want.x), Math.abs(y - want.y), Math.abs(c.h - want.w), Math.abs(c.w - want.h));
+      }
+    });
+    check("the press ends with each column's cells standing where the profile's bars stand", worst < 1e-9, `largest miss ${worst.toExponential(1)} px`);
+  }
+
+  /* one pair travels at a time, and every pair travels */
+  const clash = [];
+  for (let rank = 2; rank <= 6; rank += 1) {
+    const T = M.openTiming(rank);
+    const travelled = new Set();
+    for (let now = 0; now <= T.total; now += 2) {
+      const moving = M.openAt(rank, now).u.map((u, k) => [u, k]).filter(([u]) => u > 0 && u < M.SWING);
+      moving.forEach(([, k]) => travelled.add(k));
+      if (moving.length > 1) { clash.push(`rank ${rank} at ${now} ms`); break; }
+    }
+    if (travelled.size !== rank) clash.push(`rank ${rank}: ${travelled.size} of ${rank} travelled`);
+  }
+  check("one pair travels at a time, and every pair travels, at ranks 2 to 6", clash.length === 0, clash.join(" | "));
+  const totals = [2, 3, 4, 5, 6].map((r) => M.openTiming(r).total);
+  check("the press never runs past 3.5 s", totals.every((t) => t <= 3500), totals.map((t) => `${t.toFixed(0)}`).join(" · ") + " ms");
+
+  /* every column stays on the canvas through its turn */
+  const off = [];
+  for (const w of [535, 770]) {
+    for (let rank = 2; rank <= 6; rank += 1) {
+      const p = paramsOf({ page: "signatures", rank });
+      const L = M.layout(w, p), h = W.height({ w, ...p });
+      for (let k = 0; k < rank; k += 1) {
+        for (let u = 0; u <= 1.0001; u += 0.01) {
+          const { strip } = M.flight(L, rank, k, u);
+          const cs = Math.cos(strip.ang), sn = Math.sin(strip.ang);
+          for (const [x, y] of [[-strip.th / 2, -strip.p * strip.len], [strip.th / 2, -strip.p * strip.len],
+            [-strip.th / 2, (1 - strip.p) * strip.len], [strip.th / 2, (1 - strip.p) * strip.len]]) {
+            const X = strip.px + cs * x - sn * y, Y = strip.py + sn * x + cs * y;
+            if (X < 0 || Y < 0 || X > w || Y > h) { off.push(`${w} r${rank} k${k} u${u.toFixed(2)}: (${X.toFixed(0)}, ${Y.toFixed(0)})`); break; }
+          }
+        }
+      }
+    }
+  }
+  check("every column of S stays on the canvas through its turn, at ranks 2 to 6 and both widths", off.length === 0, off.slice(0, 2).join(" | "));
+
+  /* tumor 101 */
+  const fit = M.fitFor(1, "in", 4), co = M.cohortFor(1);
+  const own = fit.sigs.findIndex((s) => s.own);
+  check("each strip's order is its exposures largest first, and each tumor's place is its index in that order",
+    fit.sigs.every((s) => s.sorted.every((j, i) => s.place[j] === i && (i === 0 || s.exposure[s.sorted[i - 1]] >= s.exposure[j]))));
+  check("tumor 101's bar lands first in its own signature's strip", own >= 0 && fit.sigs[own].place[co.hyperIndex] === 0,
+    `signature ${own + 1}; ${fit.sigs.map((s) => s.place[co.hyperIndex] + 1).join(", ")} of ${fit.cols} across the four`);
+
+  /* violet means one thing a page: the ramp's, never the highlight's */
+  const lit = [];
+  let rampSeen = false;
+  for (const page of ["signatures", "matching"]) {
+    for (const hypermutated of ["in", "out"]) {
+      const p = paramsOf({ page, hypermutated });
+      const stages = page === "signatures"
+        ? [[0, 1], [1, 1], [2, 0.1], [2, 0.5], [2, 0.9], [2, 1]].map(([sig, sigT]) => ({ ...blank(page), sig, sigT }))
+        : [{ ...blank(page), sig: 1, match: 1, matchT: 1 }];
+      for (const anim of stages) {
+        const { styles } = frame(p, anim, 626);
+        if (styles.has(COLORS.highlight)) lit.push(`${page} ${JSON.stringify(anim).slice(0, 40)}`);
+        if (styles.has(COLORS.magnitude)) rampSeen = true;
+      }
+    }
+  }
+  check("pages 2 and 3 never use the highlight colour, which the ramp shares", lit.length === 0, lit.slice(0, 2).join(" | "));
+  check("the heatmaps reach the ramp's full end, --c-magnitude", rampSeen);
+  const lg = (o) => W.legend({ params: paramsOf(o) });
+  check("the legend's shade swatch is --c-magnitude on pages 2 and 3",
+    lg({ page: "signatures" })[0].token === "magnitude" && lg({ page: "matching" })[0].token === "magnitude");
+  check("page 2's legend names tumor 101 while it is in, and not once left out",
+    lg({ page: "signatures" }).some((e) => e.mark === "tri") && !lg({ page: "signatures", hypermutated: "out" }).some((e) => e.mark === "tri"));
 }
 
 /* --- 7 · the copy, against the words this collection has struck ----------------- */

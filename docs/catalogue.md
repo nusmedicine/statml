@@ -10004,6 +10004,76 @@ What the draft decided, to put to him at the round rather than settle here:
   and split on page 1, the descent and the handover on page 2), a hover
   inspector on page 3's cells, and a formula card on page 1.
 
+#### Round 1, 2026-09-19: the opening press and the ramp — three picks
+
+His two questions on the draft, with a screenshot of page 2 pointing at *Show
+each signature's exposures*: is there a transition, so he can see how the
+matrices connect to the signatures; and could the matrices take a colour
+instead of the "a bit drab" grey, though it might clash with the classes ("you
+can mock up to see"). Mock `_lab/mutational-signatures-round1-mock.html`
+(`ed6c008`, 13 checks): three presses on the widget's own layout, scrubbable at
+¼ speed, and four ramps built from tokens only at real width in both themes,
+each measured for contrast from empty to full, whether it climbs steadily, and
+its flattest tenth. **The lesson's own M ≈ S · W figure (cell 0) shades cream →
+orange → red** and widget 41 shades its NMF matrices on `--c-value-high`'s red;
+both end in C>T's colour, and on the dark theme cell 0's red end (0.275) is
+darker than its amber middle (0.292), so the largest counts stop standing out.
+**Grey was not clash-free either**: it ends between C>G's black and T>A's grey.
+
+His picks, asked with the mock open:
+
+1. **The press: C, one at a time** (the recommendation, over B, all at once,
+   and A, the draft's crossfade). Column k of S and row k of W travel together,
+   outlined, the next pair leaving as that one arrives; the column turns a
+   quarter anticlockwise so C>A ends at the left, and its 96 cells then stand up
+   as bars in the class colours, the value moving from the shade to the height;
+   once all have landed the rows sort, largest first, and the words arrive.
+   2.4 s at rank 2, 3.5 s at rank 4, never more (past rank 4 each journey
+   shortens: 3.25 s at 5, 3.1 s at 6).
+2. **Tumor 101 on** (the recommendation): M's outline on the hypermutated
+   tumor's column is carried on its cells of W through the move and the sort,
+   and in the opened view a mark sits under its bar in every strip — first in
+   signature 4 (the 62% the page prints), 95th, 99th and 24th of 101 in the
+   other three at seed 1.
+3. **Violet** for M, S, W and page 3's cosine heatmap, **against the
+   recommendation** (amber without the red): 7.6 from empty to full on the
+   light theme and 5.0 on the dark, a steady climb in both. A new core role,
+   `--c-magnitude` (= `--series-7`), not `--c-highlight` reached for: a ramp
+   is not "the one thing to look at".
+
+**What the violet pick moved, in the build** — the mock said violet is the
+highlight colour, so the one-colour-one-meaning rule had to be kept by hand:
+
+- **No `--c-highlight` on pages 2 or 3.** The legend is per page, so a violet
+  swatch reading "a larger count or weight" beside a violet half rule would say
+  two things in one colour. The half rule is ink-1 now, and stops at the
+  strip's baseline; the travelling pair's outline is ink-1 (the mock drew it in
+  the highlight, which with violet cells inside it would have meant two things
+  on one frame). The verify gives the two roles distinct stand-in colours and
+  fails if the highlight's is used anywhere on page 2 or 3.
+- **Tumor 101's mark in the strips is a ▲ under the bar, not a box round it**:
+  in signature 4 the tumor's bar is the first and the half rule stands right
+  after it, so a box and the rule met on one edge. The legend gains a ▲ entry
+  while the tumor is in.
+- **Page 3's numbers take whichever ink reads better on their cell** (the ramp
+  ends dark on the light theme and pale on the dark), and the best-match
+  outline is cased by a line of the surface inside it, so it reads on the
+  strongest violet.
+- **The column turns about its point level with its signature's baseline**, not
+  about its middle as in the mock: turned about the middle, the first column
+  rose 31px above the canvas at 770 wide and the last fell 20px below it; and it
+  stretches to the profile's width after it turns (the square of the swing).
+  The verify sweeps every column's corners through the turn at ranks 2–6 and
+  both widths.
+- **One geometry** (5.8): `flight`, `stripCell` and `rowCell` in `model.js`
+  draw cell 0's figure's S and W, the press, and the opened view, so the
+  verify checks the press's first frame against the extraction's last op for
+  op, and its last against where plotSignatures' bars stand (to 10⁻¹³ px).
+
+Verify 70 checks (was 59). The core change (`--c-magnitude` in `tokens.css`,
+`magnitude` in `readTokens`, CLAUDE.md's role list) was run through the full
+fingerprint suite.
+
 ### Slot 71 · `somatic-interactions` — not asked for, measured, cuttable
 
 **Host.** 01-3 cell 4 (co-occurring genes "could have synergistic effect",
