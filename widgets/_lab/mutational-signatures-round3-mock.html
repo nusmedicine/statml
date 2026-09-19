@@ -1,0 +1,547 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · mutational-signatures — round 3 mock</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  body { background: var(--surface-2); }
+  .lab { max-width: 1640px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: var(--sp-3) 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 110ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .bar { position: sticky; top: 0; z-index: 5; display: flex; flex-wrap: wrap; gap: var(--sp-2) var(--sp-5); align-items: center;
+         padding: var(--sp-2) var(--sp-3); margin: 0 0 var(--sp-3); background: var(--surface-1); border: 1px solid var(--grid);
+         border-radius: var(--radius); font-size: var(--fs-sm); color: var(--ink-2); }
+  .grp { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  button { font: inherit; font-size: var(--fs-sm); padding: 3px 10px; border: 1px solid var(--axis); background: var(--surface-1);
+           color: var(--ink-1); border-radius: var(--radius); cursor: pointer; }
+  button[aria-pressed="true"] { background: var(--ink-1); color: var(--surface-1); border-color: var(--ink-1); }
+  button:disabled { opacity: 0.45; cursor: default; }
+  .arms { display: flex; flex-wrap: wrap; gap: var(--sp-2) var(--sp-5); margin: var(--sp-2) 0; font-size: var(--fs-sm); color: var(--ink-2); }
+  .drive { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; margin: var(--sp-2) 0; font-size: var(--fs-sm); color: var(--ink-2); }
+  .drive input[type="range"] { flex: 1 1 240px; accent-color: var(--focus); }
+  .drive .t { font-family: var(--font-mono); font-size: 11px; min-width: 18ch; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--c-reference); background: var(--surface-1); max-width: 110ch; }
+  #checks { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--ink-2); white-space: pre-line;
+            padding: var(--sp-3); background: var(--surface-1); border: 1px solid var(--grid); max-width: 110ch; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>mutational-signatures &middot; round 3 mock</h1>
+  <p class="note">
+    Your two asks after round 2: <b>any opportunities for tweening on the Matching page</b>, and <b>a reference diagram
+    for transitions and transversions on the Catalogue page</b>. Drawn from the widget's <code>model.js</code> at its
+    defaults on its own layouts; the violet ramp from round 1. The bar sets the width, the theme and the speed for both
+    sections.
+  </p>
+  <div class="bar">
+    <div class="grp">Width <span id="widthBtns"></span></div>
+    <div class="grp">Theme <span id="themeBtns"></span></div>
+    <div class="grp">Speed <span id="speedBtns"></span></div>
+  </div>
+
+  <h2>1 &middot; Matching: two places a tween can teach</h2>
+  <p class="note">
+    <b>The comparison press.</b> Now it fades every cosine in at once (0.5 s), so nothing shows that a cosine is one
+    signature laid against one reference. <b>Scan</b>: the chosen signature's row fills one reference at a time, left to
+    right, and the panel below lays each reference under the signature as its cell fills; then the other rows fill,
+    one after another; then each row's best is outlined and the panel settles on the best match and the runner-up
+    (2.9 s). <b>A click on another row.</b> Now the panel below redraws at once. <b>Ease</b>: its three profiles
+    change height into the new signature's and its matches' (0.6 s), and a mark beside the row labels moves from the
+    old row to the new, so the reader sees the heatmap row and the panel are one choice. Click any row of the heatmap
+    to try it.
+  </p>
+  <div class="arms">
+    <div class="grp">Press <span id="pressBtns"></span></div>
+    <div class="grp">Row switch <span id="switchBtns"></span></div>
+    <div class="grp">True processes <span id="truthBtns"></span></div>
+  </div>
+  <div class="drive">
+    <button id="cmp">Compare with the references</button>
+    <button id="cmpReset">Reset</button>
+    <input type="range" id="cmpScrub" min="0" max="1000" value="0">
+    <span class="t" id="cmpClock"></span>
+  </div>
+  <canvas id="match"></canvas>
+  <p class="rec" id="recMatch"></p>
+
+  <h2>2 &middot; Catalogue: transitions and transversions</h2>
+  <p class="note">
+    Your lesson's figure (cell 3) is the standard square: the purines A and G on top, the pyrimidines C and T below,
+    transitions along the top and bottom (A&harr;G, C&harr;T), transversions down the sides and across. It colours
+    transitions blue and transversions red, and here blue is C&gt;A and red is C&gt;T, so these draw the same square in
+    the class colours: every arrow is one written change, in the colour of the class it is read as. <b>Folding</b>: the
+    twelve written changes are twelve arrows, the six from a purine paler, like their bars; on <i>Read from the
+    pyrimidine</i> the six pale ones fade as their bars fold into their partners', leaving the six the catalogue counts,
+    every one starting at C or T, and Ti and Tv label the two kinds. <b>Fixed</b>: the six arrows and their labels from
+    the start. <b>Card above</b>: the same square with a sentence, above the figure, where pages 2 and 3 have their
+    formula; the bars keep the full width.
+  </p>
+  <div class="arms">
+    <div class="grp">Diagram <span id="diagBtns"></span></div>
+  </div>
+  <div class="drive">
+    <button id="k1">Add the mutations</button>
+    <button id="k2" disabled>Read from the pyrimidine</button>
+    <button id="k3" disabled>Split by the neighbouring bases</button>
+    <button id="kReset">Reset</button>
+    <input type="range" id="catScrub" min="0" max="3000" value="0">
+    <span class="t" id="catClock"></span>
+  </div>
+  <canvas id="card" style="margin-bottom:6px"></canvas>
+  <canvas id="cat"></canvas>
+  <p class="rec" id="recCat"></p>
+
+  <h2>3 &middot; What this page checks</h2>
+  <div id="checks"></div>
+</main>
+
+<script type="module">
+import * as M from "./mutational-signatures-model.js";
+
+const S = M.STRINGS;
+const DPR = window.devicePixelRatio || 1;
+const q = new URLSearchParams(location.search);
+const SEED = Number(q.get("seed") || 1), HYPER = "in", RANK = 4;
+const root = document.documentElement;
+
+function readTheme(theme) {
+  const was = root.dataset.theme;
+  root.dataset.theme = theme;
+  const cs = getComputedStyle(root);
+  const v = (name) => cs.getPropertyValue(name).trim();
+  const T = {
+    surface: v("--surface-1"), surface3: v("--surface-3"), ink1: v("--ink-1"), ink2: v("--ink-2"), ink3: v("--ink-3"),
+    grid: v("--grid"), axis: v("--axis"), magnitude: v("--c-magnitude"),
+    subs: ["ca", "cg", "ct", "ta", "tc", "tg"].map((k) => v(`--c-sub-${k}`)),
+    font: v("--font"), mono: v("--font-mono"), fsXs: v("--fs-xs"), fsSm: v("--fs-sm"),
+  };
+  if (was) root.dataset.theme = was; else delete root.dataset.theme;
+  return T;
+}
+const THEMES = { light: readTheme("light"), dark: readTheme("dark") };
+const rgb = (c) => { const m = String(c).match(/^#([0-9a-f]{6})$/i); return m ? [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16)) : [128, 128, 128]; };
+const hex = (p) => `#${p.map((x) => Math.round(Math.max(0, Math.min(255, x))).toString(16).padStart(2, "0")).join("")}`;
+const mix = (a, b, t) => { const p = rgb(a), r = rgb(b), u = Math.max(0, Math.min(1, t)); return hex(p.map((x, i) => x + (r[i] - x) * u)); };
+const wash = (c, a) => { const p = rgb(c); return `rgba(${p[0]},${p[1]},${p[2]},${a})`; };
+const shade = (T, v) => mix(T.surface3, T.magnitude, v);
+const lin = (x) => { const s = x / 255; return s <= 0.04045 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4; };
+const lum = (c) => { const [r, g, b] = rgb(c).map(lin); return 0.2126 * r + 0.7152 * g + 0.0722 * b; };
+const inkOn = (T, fill) => { const c = (a, b) => (Math.max(lum(a), lum(b)) + 0.05) / (Math.min(lum(a), lum(b)) + 0.05); return c(fill, T.ink1) >= c(fill, T.surface) ? T.ink1 : T.surface; };
+const E = M.easeInOut, lerp = M.lerp;
+const seg = (t, a, b) => Math.max(0, Math.min(1, (t - a) / (b - a)));
+
+const state = {
+  width: Number(q.get("w") || 626),
+  theme: q.get("theme") || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"),
+  speed: 1,
+  press: "scan", switch: "ease", truth: "1",
+  cmp: 0,                 // ms into the comparison press, 0 = not pressed
+  chosen: 0, from: 0, e: 1,
+  diag: "fold",
+  cat: 0,                 // 0..3 over the three presses
+  anims: [],
+};
+function el(tag, cls, text) { const x = document.createElement(tag); if (cls) x.className = cls; if (text != null) x.textContent = text; return x; }
+function buttons(hostId, options, key, after) {
+  const host = document.getElementById(hostId);
+  host.replaceChildren();
+  for (const [value, label] of options) {
+    const b = el("button", null, label);
+    b.setAttribute("aria-pressed", String(state[key] === value));
+    b.onclick = () => { state[key] = value; buttons(hostId, options, key, after); after(); };
+    host.appendChild(b);
+  }
+}
+function sizeCanvas(c, w, h) {
+  c.width = Math.round(w * DPR); c.height = Math.round(h * DPR);
+  c.style.width = `${w}px`; c.style.height = `${h}px`;
+  const ctx = c.getContext("2d");
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  return ctx;
+}
+function text(ctx, s, x, y, { font, fill, align = "left" }) { ctx.save(); ctx.font = font; ctx.fillStyle = fill; ctx.textAlign = align; ctx.fillText(s, x, y); ctx.restore(); }
+function rule(ctx, x1, y1, x2, y2, stroke, width = 1) { ctx.save(); ctx.strokeStyle = stroke; ctx.lineWidth = width; ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); ctx.restore(); }
+function alpha(ctx, a, paint) { if (a <= 0.01) return; ctx.save(); ctx.globalAlpha *= Math.min(1, a); paint(); ctx.restore(); }
+const cap = (T) => `600 ${T.fsSm} ${T.font}`;
+const note = (T) => `${T.fsXs} ${T.font}`;
+const mono = (T) => `${T.fsXs} ${T.mono}`;
+function play(key, from, to, ms, after) {
+  state.anims = state.anims.filter((a) => a.key !== key);
+  state.anims.push({ key, from, to, ms, t0: performance.now(), after });
+}
+function tick(now) {
+  if (state.anims.length) {
+    for (const a of [...state.anims]) {
+      const x = Math.min(1, ((now - a.t0) * state.speed) / a.ms);
+      state[a.key] = a.from + (a.to - a.from) * x;
+      if (x >= 1) { state.anims = state.anims.filter((b) => b !== a); a.after?.(); }
+    }
+    renderMatch(); renderCat();
+  }
+  requestAnimationFrame(tick);
+}
+
+/* ================================================================ § 1 matching */
+const SCAN_EACH = 180, FILL = 120, ROWS_AT = 1800, ROWS_MS = 600, SETTLE_AT = 2400, SETTLE_MS = 500;
+const SCAN_TOTAL = SETTLE_AT + SETTLE_MS, NOW_TOTAL = 500, EASE_MS = 600;
+const cmpTotal = () => (state.press === "scan" ? SCAN_TOTAL : NOW_TOTAL);
+
+/** bar heights for a profile in a panel, so two can be eased between */
+const heights = (v, top, base) => { const m = M.niceMax(Math.max(...v)); return Array.from(v, (x) => Math.min(1, x / m) * (base - top)); };
+function barsFrom(ctx, T, hs, x0, x1, base) {
+  const bw = (x1 - x0) / 96;
+  hs.forEach((h, i) => { if (h > 0) { ctx.fillStyle = T.subs[i >> 4]; ctx.fillRect(x0 + i * bw + 0.5, base - h, Math.max(1, bw - 1), h); } });
+  rule(ctx, x0, base + 0.5, x1, base + 0.5, T.axis);
+  for (let c = 0; c < 6; c += 1) { ctx.fillStyle = T.subs[c]; ctx.fillRect(x0 + 16 * c * bw + 1, base + 3, 16 * bw - 2, 3); }
+}
+
+function drawMatch(ctx, T, w) {
+  const fit = M.fitFor(SEED, HYPER, RANK), L = M.layout(w, { page: "matching", rank: RANK, hypermutated: HYPER });
+  ctx.fillStyle = T.surface; ctx.fillRect(0, 0, w, L.height);
+  text(ctx, S.matchCaption, L.x0 - 36, 18, { font: cap(T), fill: T.ink1 });
+  M.REFERENCES.forEach((r, j) => {
+    ctx.save(); ctx.translate(L.cellX + (j + 0.5) * L.cellW + 4, L.heatTop - 8); ctx.rotate(-Math.PI / 2);
+    text(ctx, r.name, 0, 0, { font: note(T), fill: T.ink1 }); ctx.restore();
+  });
+  const now = state.cmp, scan = state.press === "scan";
+  const k = state.chosen;
+  const pressed = now > 0;
+  /* the timeline */
+  const others = [...Array(RANK).keys()].filter((r) => r !== k);
+  const cellA = (row, j) => {
+    if (!pressed) return 0;
+    if (!scan) return E(now / NOW_TOTAL);
+    if (row === k) return E(seg(now, j * SCAN_EACH, j * SCAN_EACH + FILL));
+    const idx = others.indexOf(row), each = ROWS_MS / others.length;
+    return E(seg(now, ROWS_AT + idx * each, ROWS_AT + (idx + 1) * each));
+  };
+  const outlineA = !pressed ? 0 : scan ? E(seg(now, SETTLE_AT, SETTLE_AT + 300)) : E(now / NOW_TOTAL);
+  /* the rows */
+  const ease = state.switch === "ease" ? E(state.e) : 1;
+  fit.sigs.forEach((s, row) => {
+    const y = L.heatTop + row * M.MATCH_ROW;
+    const isChosen = row === (ease < 0.5 ? state.from : k);
+    text(ctx, S.sigTitle(row + 1), L.labelX, y + M.MATCH_ROW / 2 + 4, { font: isChosen && pressed ? cap(T) : note(T), fill: T.ink1, align: "right" });
+    M.REFERENCES.forEach((r, j) => {
+      const x = L.cellX + j * L.cellW;
+      ctx.save(); ctx.strokeStyle = T.grid; ctx.lineWidth = 1; ctx.strokeRect(x + 0.5, y + 0.5, L.cellW - 1, M.MATCH_ROW - 1); ctx.restore();
+      const c = s.match.find((m) => m.key === r.key).cos;
+      alpha(ctx, cellA(row, j), () => {
+        const fill = shade(T, (c - 0.1) / 0.9);
+        ctx.fillStyle = fill; ctx.fillRect(x + 1, y + 1, L.cellW - 2, M.MATCH_ROW - 2);
+        text(ctx, M.cell2(c), x + L.cellW / 2, y + M.MATCH_ROW / 2 + 4, { font: mono(T), fill: inkOn(T, fill), align: "center" });
+      });
+      if (s.match[0].key === r.key) {
+        alpha(ctx, outlineA, () => {
+          ctx.save(); ctx.strokeStyle = T.ink1; ctx.lineWidth = 2; ctx.strokeRect(x + 1.5, y + 1.5, L.cellW - 3, M.MATCH_ROW - 3);
+          ctx.strokeStyle = T.surface; ctx.lineWidth = 1; ctx.strokeRect(x + 3, y + 3, L.cellW - 6, M.MATCH_ROW - 6); ctx.restore();
+        });
+      }
+    });
+  });
+  /* the mark beside the chosen row, moving with the ease */
+  if (state.switch === "ease") {
+    const yFrom = L.heatTop + (state.from + 0.5) * M.MATCH_ROW, yTo = L.heatTop + (k + 0.5) * M.MATCH_ROW;
+    const ym = lerp(yFrom, yTo, ease);
+    ctx.fillStyle = T.ink1; ctx.beginPath(); ctx.moveTo(10, ym - 4); ctx.lineTo(16, ym); ctx.lineTo(10, ym + 4); ctx.closePath(); ctx.fill();
+  }
+  /* who built each signature */
+  const builtA = !pressed ? 0 : scan ? E(seg(now, SETTLE_AT, SCAN_TOTAL)) : E(now / NOW_TOTAL);
+  if (state.truth === "1") alpha(ctx, builtA, () => fit.sigs.forEach((s, row) => text(ctx, S.builtLine(row + 1, M.builtText(s.mix)), L.x0 - 36, L.builtTop + row * M.BUILT_ROW, { font: note(T), fill: T.ink2 })));
+
+  /* the panel below: the chosen signature, then the reference beside it */
+  const B = L.b;
+  const sa = fit.sigs[state.from], sb = fit.sigs[k];
+  const mixH = (va, vb, top, base) => { const a = heights(va, top, base), b = heights(vb, top, base); return a.map((h, i) => lerp(h, b[i], ease)); };
+  const ownA = !pressed ? 0 : scan ? E(seg(now, 0, 200)) : E(now / NOW_TOTAL);
+  alpha(ctx, ownA, () => {
+    alpha(ctx, 1 - ease, () => { text(ctx, S.sigTitle(state.from + 1), L.x0, B.top + 12, { font: cap(T), fill: T.ink1 }); text(ctx, S.sigShare(sa.share), L.x0 + 86, B.top + 12, { font: note(T), fill: T.ink2 }); });
+    alpha(ctx, ease, () => { text(ctx, S.sigTitle(k + 1), L.x0, B.top + 12, { font: cap(T), fill: T.ink1 }); text(ctx, S.sigShare(sb.share), L.x0 + 86, B.top + 12, { font: note(T), fill: T.ink2 }); });
+    barsFrom(ctx, T, mixH(sa.profile, sb.profile, B.own.top, B.own.base), L.x0, L.x1, B.own.base);
+  });
+  const P1 = B.best, P2 = B.runner;
+  const labelPair = (m, head, which) => {
+    text(ctx, head, L.x0, which.label, { font: cap(T), fill: T.ink1 });
+    text(ctx, `${S.cosLabel(m.cos)} · ${S.standsFor(m)}`, L.x1, which.label, { font: note(T), fill: T.ink2, align: "right" });
+  };
+  if (pressed && scan && now < ROWS_AT) {
+    /* the scan: each reference in turn under the signature */
+    const j = Math.min(9, Math.floor(now / SCAN_EACH));
+    const ref = M.REFERENCES[j];
+    const m = sb.match.find((x) => x.key === ref.key);
+    alpha(ctx, E(seg(now, j * SCAN_EACH, j * SCAN_EACH + 60)), () => {
+      labelPair(m, `Compared with: ${ref.name}`, P1);
+      barsFrom(ctx, T, heights(ref.profile, P1.top, P1.base), L.x0, L.x1, P1.base);
+    });
+    /* the cell being filled, outlined while it is compared */
+    const cx = L.cellX + j * L.cellW, cy = L.heatTop + k * M.MATCH_ROW;
+    ctx.save(); ctx.strokeStyle = T.ink1; ctx.lineWidth = 1.5; ctx.strokeRect(cx + 0.75, cy + 0.75, L.cellW - 1.5, M.MATCH_ROW - 1.5); ctx.restore();
+  } else if (pressed) {
+    const bestA = scan ? 1 : E(now / NOW_TOTAL);
+    alpha(ctx, bestA, () => {
+      alpha(ctx, 1 - ease, () => labelPair(sa.match[0], S.bestLabel(sa.match[0]), P1));
+      alpha(ctx, ease, () => labelPair(sb.match[0], S.bestLabel(sb.match[0]), P1));
+      barsFrom(ctx, T, mixH(M.REF[sa.match[0].key].profile, M.REF[sb.match[0].key].profile, P1.top, P1.base), L.x0, L.x1, P1.base);
+    });
+    const runA = scan ? E(seg(now, SETTLE_AT, SCAN_TOTAL)) : E(now / NOW_TOTAL);
+    alpha(ctx, runA, () => {
+      alpha(ctx, 1 - ease, () => { text(ctx, S.runnerLabel(sa.match[1]), L.x0, P2.label, { font: note(T), fill: T.ink1 }); text(ctx, `${S.cosLabel(sa.match[1].cos)} · ${S.standsFor(sa.match[1])}`, L.x1, P2.label, { font: note(T), fill: T.ink2, align: "right" }); });
+      alpha(ctx, ease, () => { text(ctx, S.runnerLabel(sb.match[1]), L.x0, P2.label, { font: note(T), fill: T.ink1 }); text(ctx, `${S.cosLabel(sb.match[1].cos)} · ${S.standsFor(sb.match[1])}`, L.x1, P2.label, { font: note(T), fill: T.ink2, align: "right" }); });
+      barsFrom(ctx, T, mixH(M.REF[sa.match[1].key].profile, M.REF[sb.match[1].key].profile, P2.top, P2.base), L.x0, L.x1, P2.base);
+    });
+  }
+  text(ctx, S.referencesNote, L.x0 - 36, L.height - 10, { font: note(T), fill: T.ink3 });
+  return L;
+}
+const matchCanvas = document.getElementById("match");
+function renderMatch() {
+  const T = THEMES[state.theme];
+  root.dataset.theme = state.theme;
+  const L = M.layout(state.width, { page: "matching", rank: RANK, hypermutated: HYPER });
+  const ctx = sizeCanvas(matchCanvas, state.width, L.height);
+  drawMatch(ctx, T, state.width);
+  document.getElementById("cmpScrub").value = String(Math.round((state.cmp / cmpTotal()) * 1000));
+  document.getElementById("cmpClock").textContent = `${(state.cmp / 1000).toFixed(2)} of ${(cmpTotal() / 1000).toFixed(1)} s`;
+}
+matchCanvas.addEventListener("click", (ev) => {
+  const r = matchCanvas.getBoundingClientRect();
+  const y = ev.clientY - r.top;
+  const L = M.layout(state.width, { page: "matching", rank: RANK, hypermutated: HYPER });
+  const row = Math.floor((y - L.heatTop) / M.MATCH_ROW);
+  if (row < 0 || row >= RANK || row === state.chosen) return;
+  state.from = state.chosen; state.chosen = row;
+  if (state.switch === "ease") { state.e = 0; play("e", 0, 1, EASE_MS); } else { state.from = row; state.e = 1; }
+  renderMatch();
+});
+document.getElementById("cmp").onclick = () => play("cmp", 0, cmpTotal(), cmpTotal());
+document.getElementById("cmpReset").onclick = () => { state.anims = []; state.cmp = 0; renderMatch(); };
+document.getElementById("cmpScrub").oninput = (ev) => { state.anims = state.anims.filter((a) => a.key !== "cmp"); state.cmp = (Number(ev.target.value) / 1000) * cmpTotal(); renderMatch(); };
+
+/* ================================================================ § 2 catalogue */
+const DIAG_W = 124;          // the square's box beside the bars
+const CARD_H = 150;
+const NODE_R = 10;
+/* the square: purines on top, pyrimidines below, as in the lesson's figure */
+function nodes(box) {
+  const side = Math.min(72, box.w - 44);
+  const x0 = box.x + (box.w - side) / 2, x1 = x0 + side, y0 = box.y + 34, y1 = y0 + side;
+  return { A: [x0, y0], G: [x1, y0], C: [x0, y1], T: [x1, y1], side, x0, x1, y0, y1 };
+}
+/* each written change, the class it is read as, and whether it is written from a purine */
+const WRITTEN_ARROWS = M.WRITTEN.map((wch) => {
+  const pyr = M.CLASSES.includes(wch);
+  const cls = pyr ? wch : Object.keys(M.PURINE_FORM).find((k) => M.PURINE_FORM[k] === wch);
+  return { from: wch[0], to: wch[2], k: M.CLASSES.indexOf(cls), purine: !pyr, ti: M.TRANSITIONS.has(cls) };
+});
+function arrow(ctx, [ax, ay], [bx, by], colour, width = 1.6) {
+  const dx = bx - ax, dy = by - ay, len = Math.hypot(dx, dy), ux = dx / len, uy = dy / len;
+  const nx = -uy * 3, ny = ux * 3;                         // the two directions sit side by side
+  const sx = ax + ux * (NODE_R + 3) + nx, sy = ay + uy * (NODE_R + 3) + ny;
+  const ex = bx - ux * (NODE_R + 4) + nx, ey = by - uy * (NODE_R + 4) + ny;
+  ctx.save();
+  ctx.strokeStyle = colour; ctx.fillStyle = colour; ctx.lineWidth = width;
+  ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(ex - ux * 4, ey - uy * 4); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(ex, ey); ctx.lineTo(ex - ux * 6 - uy * 3.2, ey - uy * 6 + ux * 3.2); ctx.lineTo(ex - ux * 6 + uy * 3.2, ey - uy * 6 - ux * 3.2); ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+/** The square at `fold` (0: all twelve written changes; 1: the six read from the pyrimidine). */
+function drawSquare(ctx, T, box, fold, labels) {
+  const N = nodes(box);
+  text(ctx, "purines", (N.x0 + N.x1) / 2, N.y0 - 16, { font: note(T), fill: T.ink2, align: "center" });
+  text(ctx, "pyrimidines", (N.x0 + N.x1) / 2, N.y1 + 30, { font: note(T), fill: T.ink2, align: "center" });
+  for (const a of WRITTEN_ARROWS) {
+    const col = T.subs[a.k];
+    const op = a.purine ? 1 - fold : 1;
+    alpha(ctx, op, () => arrow(ctx, N[a.from], N[a.to], a.purine ? wash(col, 0.45) : col));
+  }
+  for (const [b, [x, y]] of Object.entries({ A: N.A, G: N.G, C: N.C, T: N.T })) {
+    ctx.save(); ctx.fillStyle = T.surface; ctx.strokeStyle = T.ink2; ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.arc(x, y, NODE_R, 0, 2 * Math.PI); ctx.fill(); ctx.stroke(); ctx.restore();
+    text(ctx, b, x, y + 4, { font: `600 ${T.fsSm} ${T.font}`, fill: T.ink1, align: "center" });
+  }
+  alpha(ctx, labels, () => {
+    text(ctx, "Ti", (N.x0 + N.x1) / 2, N.y1 + 16, { font: `600 ${T.fsXs} ${T.mono}`, fill: T.ink1, align: "center" });
+    text(ctx, "Tv", N.x0 - 16, (N.y0 + N.y1) / 2 + 4, { font: mono(T), fill: T.ink2, align: "center" });
+    text(ctx, "Tv", N.x1 + 16, (N.y0 + N.y1) / 2 + 4, { font: mono(T), fill: T.ink2, align: "center" });
+    text(ctx, "Ti  transition", box.x + 6, N.y1 + 50, { font: note(T), fill: T.ink1 });
+    text(ctx, "Tv  transversion", box.x + 6, N.y1 + 64, { font: note(T), fill: T.ink2 });
+  });
+}
+
+/* page 1 as the draft draws it, on a layout narrowed for the square when it stands beside the bars */
+function catLayout(w, beside) {
+  const L = M.layout(w, { page: "catalogue" });
+  if (!beside) return L;
+  const x1 = w - 18 - DIAG_W - 14;
+  return { ...L, x1, slot: (x1 - L.x0) / 6 };
+}
+function catStage(t) {
+  const tumor = M.tumorFor(SEED, "largest");
+  if (t <= 0) return { cat: 0, catT: 1, landed: 0 };
+  if (t <= 1) return { cat: 1, catT: 1, landed: Math.round(tumor.n * t) };
+  if (t <= 2) return { cat: 2, catT: t - 1, landed: tumor.n };
+  return { cat: 3, catT: t - 2, landed: tumor.n };
+}
+function drawCat(ctx, T, w, t, beside) {
+  const L = catLayout(w, beside), tu = M.tumorFor(SEED, "largest");
+  const { cat, catT, landed } = catStage(t);
+  const e = E(catT);
+  ctx.fillStyle = T.surface; ctx.fillRect(0, 0, w, L.height);
+  text(ctx, S.tumorCaption(tu), L.x0, 22, { font: cap(T), fill: T.ink1 });
+  text(ctx, [S.catEmpty, S.catWritten, S.catFolded, S.catSplit][cat], L.x0, 40, { font: note(T), fill: T.ink2 });
+  text(ctx, S.axisCount, L.x0 - 7, L.top - 10, { font: note(T), fill: T.ink3 });
+  const ticks = (yMax, a) => alpha(ctx, a, () => { for (const v of [0, yMax / 2, yMax]) { const y = L.base - (v / yMax) * (L.base - L.top); if (v > 0) rule(ctx, L.x0, y, L.x1, y, T.grid); text(ctx, M.intText(v), L.x0 - 7, y + 4, { font: mono(T), fill: T.ink3, align: "right" }); } });
+  if (cat === 3 && catT < 1) { ticks(tu.yClass, 1 - e); ticks(tu.yChannel, e); } else ticks(cat === 3 ? tu.yChannel : tu.yClass, 1);
+  rule(ctx, L.x0, L.base + 0.5, L.x1, L.base + 0.5, T.axis);
+  const fill = (r, c) => { if (r.h > 0 && r.w > 0) { ctx.fillStyle = c; ctx.fillRect(r.x, r.y, r.w, r.h); } };
+  const writtenLabels = (a) => alpha(ctx, a, () => M.CLASSES.forEach((s, k) => {
+    const ra = M.writtenRect(L, k, false, 0, 1), rb = M.writtenRect(L, k, true, 0, 1);
+    text(ctx, s, ra.x + ra.w / 2, L.base + 15, { font: mono(T), fill: T.ink1, align: "center" });
+    text(ctx, M.PURINE_FORM[s], rb.x + rb.w / 2, L.base + 15, { font: mono(T), fill: T.ink3, align: "center" });
+  }));
+  const classLabels = (a) => alpha(ctx, a, () => M.CLASSES.forEach((s, k) => {
+    const cx = L.x0 + L.slot * (k + 0.5), ti = M.TRANSITIONS.has(s);
+    text(ctx, s, cx, L.base + 15, { font: mono(T), fill: T.ink1, align: "center" });
+    text(ctx, ti ? "Ti" : "Tv", cx, L.base + 29, { font: ti ? `600 ${T.fsXs} ${T.mono}` : mono(T), fill: ti ? T.ink1 : T.ink3, align: "center" });
+  }));
+  let fold = 0;
+  if (cat === 0) writtenLabels(0.5);
+  else if (cat === 1) {
+    const written = M.writtenCounts(tu, landed);
+    M.CLASSES.forEach((s, k) => {
+      fill(M.writtenRect(L, k, false, written[s], tu.yClass), T.subs[k]);
+      fill(M.writtenRect(L, k, true, written[M.PURINE_FORM[s]], tu.yClass), wash(T.subs[k], 0.45));
+    });
+    writtenLabels(1);
+  } else if (cat === 2) {
+    fold = catT < 1 ? e : 1;
+    tu.byClass.forEach(({ pyr, pur }, k) => {
+      fill(M.lerpRect(M.writtenRect(L, k, false, pyr, tu.yClass), M.foldedRect(L, k, false, pyr, pur, tu.yClass), fold), T.subs[k]);
+      fill(M.lerpRect(M.writtenRect(L, k, true, pur, tu.yClass), M.foldedRect(L, k, true, pyr, pur, tu.yClass), fold), wash(T.subs[k], 0.45));
+    });
+    writtenLabels(1 - fold); classLabels(fold);
+    if (fold >= 1) text(ctx, S.tiLine(tu.ti), L.x0, L.base + 52, { font: note(T), fill: T.ink1 });
+  } else {
+    fold = 1;
+    const f = catT < 1 ? e : 1;
+    for (let ch = 0; ch < 96; ch += 1) fill(M.lerpRect(M.stackedRect(L, ch, tu.counts, tu.yClass), M.channelRect(L, ch, tu.counts[ch], tu.yChannel), f), T.subs[ch >> 4]);
+    classLabels(1 - f);
+    alpha(ctx, f, () => { for (let k = 0; k < 6; k += 1) { const x = L.x0 + L.slot * k + 3; ctx.fillStyle = T.subs[k]; ctx.fillRect(x, L.base + 4, L.slot - 6, 4); text(ctx, M.CLASSES[k], x + (L.slot - 6) / 2, L.base + 21, { font: mono(T), fill: T.ink1, align: "center" }); } });
+    text(ctx, S.tiLine(tu.ti), L.x0, L.base + 52, { font: note(T), fill: T.ink1 });
+    if (f >= 1) {
+      const top = [...tu.counts.keys()].sort((a, b) => tu.counts[b] - tu.counts[a]).slice(0, 3);
+      text(ctx, S.topLine(top.map((i) => `${M.CHANNELS[i]} ${tu.counts[i]}`).join(" · ")), L.x0, L.base + 70, { font: note(T), fill: T.ink1 });
+      text(ctx, S.exampleLine, L.x0, L.base + 88, { font: note(T), fill: T.ink2 });
+    }
+  }
+  if (beside) {
+    const box = { x: w - 18 - DIAG_W, y: L.top - 10, w: DIAG_W, h: 200 };
+    if (state.diag === "fold") drawSquare(ctx, T, box, fold, fold);
+    else drawSquare(ctx, T, box, 1, 1);
+  }
+  return L;
+}
+function drawCard(ctx, T, w) {
+  const h = CARD_H;
+  ctx.fillStyle = T.surface; ctx.fillRect(0, 0, w, h);
+  drawSquare(ctx, T, { x: 12, y: 2, w: DIAG_W, h: CARD_H - 4 }, 1, 0);
+  const x = DIAG_W + 32;
+  const lines = [
+    ["600", "A transition (Ti) replaces a base with one of its kind:"],
+    ["", "a pyrimidine with a pyrimidine (C↔T), or a purine"],
+    ["", "with a purine (A↔G)."],
+    ["600", "A transversion (Tv) replaces it with one of the other kind."],
+    ["", "Read from the pyrimidine, every change starts at C or T,"],
+    ["", "so two of the six classes are transitions: C>T and T>C."],
+  ];
+  lines.forEach(([wt, s], i) => text(ctx, s, x, 30 + i * 18, { font: `${wt} ${T.fsXs} ${T.font}`.trim(), fill: wt ? T.ink1 : T.ink2 }));
+  return h;
+}
+const catCanvas = document.getElementById("cat"), cardCanvas = document.getElementById("card");
+function renderCat() {
+  const T = THEMES[state.theme];
+  const beside = state.diag !== "card";
+  cardCanvas.style.display = beside ? "none" : "block";
+  if (!beside) { const cctx = sizeCanvas(cardCanvas, state.width, CARD_H); drawCard(cctx, T, state.width); }
+  const L = catLayout(state.width, beside);
+  const ctx = sizeCanvas(catCanvas, state.width, L.height);
+  drawCat(ctx, T, state.width, state.cat, beside);
+  document.getElementById("catScrub").value = String(Math.round(state.cat * 1000));
+  const st = catStage(state.cat);
+  document.getElementById("catClock").textContent = `step ${st.cat}${st.cat >= 2 && st.catT < 1 ? `, ${Math.round(st.catT * 100)}%` : ""}`;
+  document.getElementById("k1").disabled = state.cat > 0;
+  document.getElementById("k2").disabled = !(state.cat >= 1 && state.cat < 1.001);
+  document.getElementById("k3").disabled = !(state.cat >= 2 && state.cat < 2.001);
+}
+document.getElementById("k1").onclick = () => play("cat", 0, 1, M.LAND_MS);
+document.getElementById("k2").onclick = () => play("cat", 1, 2, M.FOLD_MS);
+document.getElementById("k3").onclick = () => play("cat", 2, 3, M.SPLIT_MS);
+document.getElementById("kReset").onclick = () => { state.anims = state.anims.filter((a) => a.key !== "cat"); state.cat = 0; renderCat(); };
+document.getElementById("catScrub").oninput = (ev) => { state.anims = state.anims.filter((a) => a.key !== "cat"); state.cat = Number(ev.target.value) / 1000; renderCat(); };
+
+/* ================================================================ § 3 checks */
+function checks() {
+  const out = [];
+  const ok = (c, m) => out.push(`${c ? "PASS" : "FAIL"}  ${m}`);
+  const probe = document.createElement("canvas").getContext("2d");
+  const T = THEMES.light;
+  for (const w of [535, 626, 770]) {
+    const L = catLayout(w, true);
+    probe.font = mono(T);
+    /* stage 1's two labels a class must not meet */
+    let worst = Infinity;
+    M.CLASSES.forEach((s, k) => {
+      const a = M.writtenRect(L, k, false, 0, 1), b = M.writtenRect(L, k, true, 0, 1);
+      const gap = (b.x + b.w / 2 - probe.measureText(M.PURINE_FORM[s]).width / 2) - (a.x + a.w / 2 + probe.measureText(s).width / 2);
+      worst = Math.min(worst, gap);
+    });
+    ok(worst >= 0, `${w}px, the square beside the bars: the written labels clear each other by ${worst.toFixed(1)}px; a class slot is ${L.slot.toFixed(0)}px (${M.layout(w, { page: "catalogue" }).slot.toFixed(0)} now)`);
+    const box = { x: w - 18 - DIAG_W, y: L.top - 10, w: DIAG_W };
+    const N = nodes(box);
+    ok(box.x >= L.x1 + 12 && N.y1 + 64 < L.base + 40 && box.x + box.w <= w, `${w}px: the square sits in its own box, clear of the bars (${Math.round(box.x - L.x1)}px) and inside the canvas`);
+    probe.font = note(T);
+    const widest = Math.max(...[S.tiLine(0.55), S.topLine("A[C>T]G 99 · T[C>T]A 99 · T[C>T]T 99"), S.exampleLine].map((s) => probe.measureText(s).width));
+    ok(L.x0 + widest <= w - 16, `${w}px: the lines under the bars fit the full width, the widest ${Math.round(widest)}px`);
+  }
+  /* every one of the twelve arrows is one written change, and the six left start at a pyrimidine */
+  ok(WRITTEN_ARROWS.length === 12 && new Set(WRITTEN_ARROWS.map((a) => a.from + a.to)).size === 12, "twelve arrows, one for each written change");
+  const left = WRITTEN_ARROWS.filter((a) => !a.purine);
+  ok(left.length === 6 && left.every((a) => a.from === "C" || a.from === "T"), "after the fold six arrows are left, every one starting at C or T");
+  ok(left.filter((a) => a.ti).map((a) => a.from + a.to).sort().join() === "CT,TC", "the two transitions left are C→T and T→C, along the bottom edge");
+  ok(WRITTEN_ARROWS.filter((a) => a.purine).every((a) => { const p = left.find((b) => b.k === a.k); return p && M.PURINE_FORM[`${p.from}>${p.to}`] === `${a.from}>${a.to}`; }), "each pale arrow is the purine form of the arrow its colour matches");
+  const fit = M.fitFor(SEED, HYPER, RANK);
+  ok(fit.sigs.every((s) => s.match.length === 10), `the scan lays ${M.REFERENCES.length} references under each chosen signature, ${SCAN_EACH} ms each`);
+  document.getElementById("checks").textContent = out.join("\n");
+}
+
+function renderAll() { renderMatch(); renderCat(); }
+buttons("widthBtns", [[535, "535"], [626, "626"], [770, "770"]], "width", renderAll);
+buttons("themeBtns", [["light", "Light"], ["dark", "Dark"]], "theme", renderAll);
+buttons("speedBtns", [[1, "1×"], [0.25, "¼×"]], "speed", () => {});
+buttons("pressBtns", [["now", "Now: fade"], ["scan", "Scan"]], "press", () => { state.cmp = 0; renderMatch(); });
+buttons("switchBtns", [["now", "Now: instant"], ["ease", "Ease"]], "switch", () => { state.from = state.chosen; state.e = 1; renderMatch(); });
+buttons("truthBtns", [["0", "Off"], ["1", "On"]], "truth", renderMatch);
+buttons("diagBtns", [["fold", "Beside the bars, folding"], ["fixed", "Beside the bars, fixed"], ["card", "Card above"]], "diag", renderCat);
+document.getElementById("recMatch").innerHTML =
+  "<b>For you:</b> the scan, the eased row switch, both, or neither. The scan makes the press 2.9 s instead of 0.5; the "
+  + "switch adds a small mark beside the row labels, which the page does not have now. A third opportunity, not mocked: "
+  + "overlay the signature's bars on its best match's, so where the two agree is seen, not only scored.";
+document.getElementById("recCat").innerHTML =
+  "<b>For you:</b> which diagram, if any. Beside the bars it costs the bars about a fifth of their width (at 535px a "
+  + "class slot goes from 77px to 54px; the checks below measure the labels); the card costs 156px of height above the "
+  + "figure and none of the width, and does not move. Folding ties the diagram to the press that introduces Ti and Tv.";
+renderAll();
+checks();
+requestAnimationFrame(tick);
+</script>
+</body>
+</html>
