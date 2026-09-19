@@ -863,9 +863,9 @@ export function builtText(mix) {
 }
 
 export const STRINGS = {
-  subtitle: "Each single-base substitution is counted as one of 96 types: the change read from the pyrimidine, "
-    + "with the base on either side. Non-negative matrix factorization splits a cohort's counts into signatures "
-    + "and their exposures, and each signature is named by the reference profile it is most similar to.",
+  subtitle: "A mutational signature is the pattern of substitutions associated with one mutational process, over 96 types: "
+    + "the change read from the pyrimidine, with the base on either side. Non-negative matrix factorization decomposes "
+    + "a cohort's counts into signatures and their exposures, and cosine similarity compares each with reference signatures.",
 
   pageLabel: "Page",
   pageDetail: "one tumor's mutations, the cohort factorized, or each signature compared with the references",
