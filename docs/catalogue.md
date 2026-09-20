@@ -12,7 +12,7 @@ answer can be checked against what was assumed.
 
 | looking for | go to |
 |---|---|
-| what to build next | **The sequence arc (PHM5005 07-1 to 07-3), PROPOSED, MEASURED AND PICKED 2026-09-20: four widgets by data type; 73 `signal-cnn-lstm` SHIPPED AND PUSHED the same day (`fbe62c2`); 75 `sequence-cnn-lstm` SHIPPED AND PUSHED 2026-09-20 evening (`77fd1d7`, 42 states) after thirteen review rounds, the copy audit and three subtitle rounds; 72 `signal-windows` SHIPPED AND PUSHED 2026-09-21 (`1fe6062`, 33 states, four pages Clean · Window · Split · Normalize, the cleaning page added on his ask); NEXT 74 `sequence-encoding`, the arc's last** — § *The sequence arc*, under PHM5005. Slot 71 `somatic-interactions` CUT 2026-09-20 and slot 52 `training-loop` DISCARDED 2026-09-13, both his call. The cancer mutation arc (67, 69, 70) is complete; the image arc has 61, 64, 65 and 62 shipped, 63 `pretrained` on KIV (his call 2026-09-15), 66 folded into 65; the GWAS and PRS arc (56, 57, 59, 60) and the high-throughput arc are complete |
+| what to build next | **The sequence arc (PHM5005 07-1 to 07-3), PROPOSED, MEASURED AND PICKED 2026-09-20: four widgets by data type; 73 `signal-cnn-lstm` SHIPPED AND PUSHED the same day (`fbe62c2`); 75 `sequence-cnn-lstm` SHIPPED AND PUSHED 2026-09-20 evening (`77fd1d7`, 42 states) after thirteen review rounds, the copy audit and three subtitle rounds; 72 `signal-windows` SHIPPED AND PUSHED 2026-09-21 (`1fe6062`, 33 states, four pages Clean · Window · Split · Normalize, the cleaning page added on his ask); NEXT 74 `embedding-space` — replacing `sequence-encoding` on his call of 2026-09-21, its content being on 75's input panel already; the embedding as a learned space, MEASURED in `_lab/embedding-space-measure.mjs` (§ *Slot 74 · embedding-space* under the arc) — the arc's last** — § *The sequence arc*, under PHM5005. Slot 71 `somatic-interactions` CUT 2026-09-20 and slot 52 `training-loop` DISCARDED 2026-09-13, both his call. The cancer mutation arc (67, 69, 70) is complete; the image arc has 61, 64, 65 and 62 shipped, 63 `pretrained` on KIV (his call 2026-09-15), 66 folded into 65; the GWAS and PRS arc (56, 57, 59, 60) and the high-throughput arc are complete |
 | how a widget got its shape | § *Widget N*, in order |
 | the four-method reconnaissance | § *Widget 19*, under the PCA sections |
 | the arcs, and what is deliberately not a widget | the arc sections below |
@@ -18985,7 +18985,7 @@ page. The arc is therefore **four widgets, renumbered in the notebooks' order**
 |---|---|---|---|---|---|
 | 72 | `signal-windows` — **SHIPPED AND PUSHED 2026-09-21** (`1fe6062`) | Deep Learning - Signal Windows | 07-2 cells 1–21 | Clean · Window · Split · Normalize (§ *Slot 75* above, and the cleaning of cell 4 §1 on his ask) | second, then **third** on his call of 2026-09-20 afternoon; measured, mocked and picked 2026-09-20 evening, drafted the same night, shipped the next day (§ *72* below) |
 | 73 | `signal-cnn-lstm` (his pick; planned as `signal-models`) — **SHIPPED AND PUSHED 2026-09-20** (`fbe62c2`) | Deep Learning - Signals: CNN and LSTM | 07-2 cells 22–99 | 1D-CNN (k in ms, the stack, 69 ms per output, the head) · LSTM (permute, memory across beats, the three reductions as a display, the CNN + LSTM strip) · Occlusion (k = 32 / 16, baseline 0, the resolution, two copies) — §§ *Slot 73*, *74*, *76* above, the signal halves | **first; the engine is born here** |
-| 74 | `sequence-encoding` | Deep Learning - Sequence Encoding | 07-3 cells 1–25 | Tokenize · Pad · Encode (§ *Slot 72* above) | fourth |
+| 74 | `embedding-space` (was `sequence-encoding`, **replaced 2026-09-21** on his call: tokens, PAD, one-hot against embedding and the transpose are on 75's input panel) | Deep Learning - Embedding Space (provisional) | 07-1 cell 3's *Vector space* panel; 07-3 cells 101–105 (the amino-acid vocabulary) | Amino acids by role · Codons by synonymy, the points moving as the model trains (§ *Slot 74 · embedding-space* below) | fourth, **MEASURED 2026-09-21**, mock next |
 | 75 | `sequence-cnn-lstm` (his pick; planned as `sequence-models`) — **MEASURED, MOCKED AND PICKED 2026-09-20** | Deep Learning - Sequences: CNN and LSTM | 07-3 cells 26–178 | 1D-CNN (the kernel as a PWM, trained kernels spell the motif at their alignment, global max over PAD) · LSTM (packing, the final states; on composition, the task the recurrence can read) · CNN + LSTM (page 1's maps under the recurrence, last against max) · Occlusion (k = 4 / 8 / 12, baseline PAD, the heat behind the letters) — the sequence halves of the same sections | **SHIPPED AND PUSHED 2026-09-20** (`77fd1d7`, 42 states: 27 settled, 10 driven, 3 hit-driven, 2 interrupted) |
 
 Slugs and titles are confirmed at each widget's own mock, since a slug is a
@@ -19674,6 +19674,58 @@ interrupted (a page visited mid-press shows its own untouched page). The
 hit's coordinates come from the harness's 900 px frame, where the canvas is
 535 px wide. `npm run check` and `npm test` (33 scripts) run alone and
 green; the full suite and the deploy are recorded in HANDOVER.
+
+#### Slot 74 · `embedding-space` — MEASURED 2026-09-21, replacing `sequence-encoding` on his call
+
+**His question, after 72 shipped:** *what is sequence-encoding? I thought we
+did that in the sequence-cnn-lstm widget already — one-hot and embedding? or
+it needs a separate widget to really explain it, e.g. embedding and vector
+spaces.* Read against the collection: tokens, the lookup table, one-hot
+`[4, L]` against embedding `[L, E]`, the transpose, the 250-token axis with
+PAD and packed against unpacked are all on 75's input panel (one-hot
+against learned a data control there), an embedding as one row of a table is
+50's page, the transpose 53's; what remained of § *Slot 72* above was the
+strip the catalogue had already called the arc's thinnest figure. **What no
+widget shows is 07-1 cell 3's own *Vector space* panel:** one-hot puts every
+pair of tokens at the same distance, and an embedding trained on a task
+learns a geometry in which tokens with the same role become neighbours — a
+geometry nobody typed in. For DNA it is four points; it needs a larger
+vocabulary.
+
+**Measured** (`_lab/embedding-space-measure.mjs`, 11 s, on the arc's
+engine; its header has each number): **the claim holds where the model
+learns the task.** Amino acids in four roles, a class-1 pattern
+hydrophobic · hydrophobic · positive · negative written in random residues
+of each role: the trained table's nearest-neighbour role purity goes 35% →
+100% (chance 28%), the within/between distance ratio 1.03 → 0.74, and both
+move with the held-out accuracy epoch by epoch (chance through epoch 10,
+then 58% → 99% and 35% → 100% together). Codons, a motif of three amino
+acids written in random synonymous codons: the motif's eighteen codons reach
+100% purity, synonyms as neighbours, while the other 43 the task never
+rewards stay at chance — **only the tokens the task uses get a geometry.**
+One-hot reaches 100% on both tasks: the embedding buys no accuracy at this
+size, it buys parameters (450 against 698 and 1,586) and the geometry, and a
+one-hot table has nothing to draw. E = 2 and 4 do not learn the four-role
+task, so the picture is a PROJECTION: at E = 8 and 40 epochs every seed
+learns (91–100%), purity 100% in 8-D and 85–95% after projection to the top
+two components; E = 16 learns faster and projects worse (65–85% in 2-D).
+21 ms an epoch — 0.8 s on the click.
+
+**His call: build it**, as the arc's fourth widget under the slot's number.
+**Proposed, for the mock:** two pages, *Amino acids* (roles) and *Codons*
+(synonymy), each training on the click with Step and Play moving the twenty
+or sixty-one points in a 2-D projection coloured by their TRUE role (truth
+gets colour, the learned position is the figure), from the equidistant
+one-hot start; a readout of held-out accuracy, purity and the distance
+ratio; E as a data control (8 the default, the projection's honesty said on
+the figure); a caption that the tokens the task never rewards stay where
+they started. **To settle at the draft:** the projection has to be aligned
+frame to frame (Procrustes to the previous epoch) or the picture rotates as
+it trains — measure it before the first mock is shown. Title and slug
+provisional: `embedding-space`, "Deep Learning - Embedding Space".
+
+**NEXT:** mock from `_lab/signal-windows-mock.html`'s shell → his picks →
+draft, in a new session.
 
 ---
 
