@@ -357,8 +357,10 @@ function drawClean(ctx, colors, w, params, state, anim) {
     rect(ctx, px(a), CL.resTop, px(a + fs) - px(a), CL.resBot - CL.resTop, wash(colors.highlight, 0.12), colors.highlight, 1);
     const zp = trace(ctx, seg, zx0, zx1, CL.resTop, CL.resBot, colors.empirical, 0.8);
     for (let t = 0; t < seg.length; t++) { const yy = CL.resBot - ((Math.max(-1.5, Math.min(3, seg[t])) + 1.5) / 4.5) * (CL.resBot - CL.resTop); rect(ctx, zp(t) - 1, yy - 1, 2, 2, colors.ink1); }
+    /* the R-wave note goes under the long trace, not under the 220 px inset, where it met the zoom caption
+       (his first look, 2026-09-20) and, moved to a second line, the filter row's caption */
     txt(ctx, colors, S.capZoom, zx0, CL.resBot + 12, { fill: colors.highlight });
-    txt(ctx, colors, S.capR(c.rSpan), zx1, CL.resBot + 12, { align: "right", fill: colors.ink3 });
+    txt(ctx, colors, S.capR(c.rSpan), X0, CL.resBot + 12, { fill: colors.ink3 });
     ctx.restore();
   }
 
@@ -474,7 +476,9 @@ function drawSplit(ctx, colors, w, params, state, anim) {
 function drawNormalize(ctx, colors, w, params, state, anim) {
   const X0 = PAD_L, X1 = w - PAD_R, t = stageT(anim, 1, anim.n.normalize), amp = state.amp;
   txt(ctx, colors, t >= 1 ? S.capAmpAfter : S.capAmp, X0, NM.head, { font: capFont(colors), fill: colors.ink1 });
-  const colW = Math.min(40, (X1 - X0 - 260) / M.SUBJECTS), rmsMax = Math.max(1e-6, ...state.windows.map((v) => v.rms)) * 1.1;
+  /* the print block is right-aligned at the edge and the dots stop 360 px short of it: at 250 px from the edge the
+     shape line ran 60 px off the canvas (the text sweep, 2026-09-20) */
+  const colW = Math.min(40, (X1 - X0 - 360) / M.SUBJECTS), rmsMax = Math.max(1e-6, ...state.windows.map((v) => v.rms)) * 1.1;
   const yOf = (r) => NM.bot - (NM.bot - NM.top) * (r / rmsMax);
   const yAfter = yOf(rmsMax / 1.6);
   for (const v of state.windows) {
@@ -484,10 +488,9 @@ function drawNormalize(ctx, colors, w, params, state, anim) {
   for (let s = 0; s < M.SUBJECTS; s++) txt(ctx, colors, String(s + 1), X0 + 20 + s * colW, NM.bot + 14, { align: "center", fill: colors.ink3 });
   line(ctx, X0 + 4, NM.bot + 0.5, X0 + 20 + M.SUBJECTS * colW, NM.bot + 0.5, colors.axis);
   if (t > 0) { ctx.save(); ctx.globalAlpha = t; line(ctx, X0 + 4, yAfter + 0.5, X0 + 20 + M.SUBJECTS * colW, yAfter + 0.5, colors.reference, 1, [3, 3]); txt(ctx, colors, S.capSd1, X0 + 24 + M.SUBJECTS * colW, yAfter + 4, { font: monoFont(colors), fill: colors.reference }); ctx.restore(); }
-  const pxr = X1 - 250;
-  txt(ctx, colors, S.capShape(state.windows.length, state.L), pxr, NM.top + 14, { font: `600 ${colors.fsSm} ${colors.mono}`, fill: colors.ink1 });
-  txt(ctx, colors, S.capShapeNote(state.windows.length, state.L, state.sec, state.rate), pxr, NM.top + 30, { fill: colors.ink2 });
-  txt(ctx, colors, S.capBatch(state.L), pxr, NM.top + 54, { font: monoFont(colors), fill: colors.ink2 });
+  txt(ctx, colors, S.capShape(state.windows.length, state.L), X1, NM.top + 14, { font: `600 ${colors.fsSm} ${colors.mono}`, fill: colors.ink1, align: "right" });
+  txt(ctx, colors, S.capShapeNote(state.windows.length, state.L, state.sec, state.rate), X1, NM.top + 30, { fill: colors.ink2, align: "right" });
+  txt(ctx, colors, S.capBatch(state.L), X1, NM.top + 54, { font: monoFont(colors), fill: colors.ink2, align: "right" });
 }
 
 /* ================================================================ widget */
