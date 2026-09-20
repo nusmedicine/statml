@@ -606,6 +606,27 @@
       "$note": "DRIVEN: one candidate mid-arrival, its dot still oversized before it settles onto the curve."
     },
     {
+      "$note": "maximum-likelihood · INTERRUPTED - the dispersion tab visited mid-candidate: no candidate taken there, the loop ended",
+      "slug": "maximum-likelihood",
+      "state": "?theme=light",
+      "drive": {
+        "lead": true,
+        "before": [
+          {
+            "click": "step",
+            "frames": 5
+          }
+        ],
+        "set": {
+          "estimate": "disp"
+        },
+        "frames": 10,
+        "dt": 32
+      },
+      "px": "0faa1c74",
+      "tx": "2f5e64b4"
+    },
+    {
       "slug": "bayesian",
       "state": "?theme=light&shown=0",
       "px": "e271887e",
@@ -687,6 +708,27 @@
       },
       "px": "b275116c",
       "tx": "4b138ca8"
+    },
+    {
+      "$note": "bayesian · INTERRUPTED - the sampler visited mid-count: the count landed and counted, no draw proposed, the loop ended",
+      "slug": "bayesian",
+      "state": "?theme=light",
+      "drive": {
+        "lead": true,
+        "before": [
+          {
+            "click": "step",
+            "frames": 5
+          }
+        ],
+        "set": {
+          "view": "mcmc"
+        },
+        "frames": 10,
+        "dt": 32
+      },
+      "px": "5a3aa33d",
+      "tx": "bce9d49a"
     },
     {
       "$note": "The lesson's own data, converged, shares NOT rounded off — every mark a fraction.",
@@ -1110,6 +1152,32 @@
       "tx": "c949f3e3"
     },
     {
+      "$note": "odds-and-risk · INTERRUPTED - the calculation visited mid-run and back: the studies run to the end",
+      "slug": "odds-and-risk",
+      "state": "?theme=light&died1=40&died0=20",
+      "drive": {
+        "before": [
+          {
+            "click": "run",
+            "frames": 5
+          },
+          {
+            "set": {
+              "view": "calculate"
+            },
+            "frames": 10
+          }
+        ],
+        "set": {
+          "view": "design"
+        },
+        "frames": 10,
+        "dt": 32
+      },
+      "px": "d26a18f8",
+      "tx": "51b1c1a8"
+    },
+    {
       "$note": "The fit tab at twelve parameters: the training curve through the noise and the held-out error already climbing. The state the widget exists to reach.",
       "slug": "generalization",
       "state": "?theme=light&params=12&shown=12",
@@ -1131,16 +1199,36 @@
       "tx": "f5bf88f5"
     },
     {
-      "$note": "DRIVEN: mid-add, one parameter going onto the ladder. A settled state is blind to anything drawn only while the curve is moving.",
+      "$note": "DRIVEN: the first press under speed=slow, its rung landed at 30 frames. Nothing is drawn between rungs, so at 10 frames this state hashed identically to its settled sibling and covered no drive at all (found by the sweep's shooter, 2026-09-20).",
       "slug": "generalization",
       "state": "?theme=light&speed=slow&params=1",
       "drive": {
         "click": "step",
+        "frames": 30,
+        "dt": 32
+      },
+      "px": "70bab231",
+      "tx": "f5bf88f5"
+    },
+    {
+      "$note": "generalization · INTERRUPTED - the cross-validation tab visited mid-rung: no fold rotated, the loop ended",
+      "slug": "generalization",
+      "state": "?theme=light&speed=slow&params=1",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 5
+          }
+        ],
+        "set": {
+          "view": "cv"
+        },
         "frames": 10,
         "dt": 32
       },
-      "px": "38476a1b",
-      "tx": "7c6e5053"
+      "px": "bec100a2",
+      "tx": "ae2639cc"
     },
     {
       "$note": "The opening state: both dials at zero, so this IS plain linear regression and all thirteen coefficients are in.",
@@ -1242,6 +1330,26 @@
       },
       "px": "bb23a75a",
       "tx": "83f0976f"
+    },
+    {
+      "$note": "trees-and-ensembles · INTERRUPTED - the bag page visited mid-split: no resample drawn, the loop ended",
+      "slug": "trees-and-ensembles",
+      "state": "?theme=light",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 5
+          }
+        ],
+        "set": {
+          "page": "bag"
+        },
+        "frames": 10,
+        "dt": 32
+      },
+      "px": "1b1b04ab",
+      "tx": "a6d65fba"
     },
     {
       "slug": "balancing-data",
@@ -6796,6 +6904,26 @@
       "tx": "3b1d43a9"
     },
     {
+      "$note": "mendelian-randomization · INTERRUPTED - step 2 visited mid-press on step 1: no SNP added, the loop ended",
+      "slug": "mendelian-randomization",
+      "state": "?theme=light",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 5
+          }
+        ],
+        "set": {
+          "page": "gwas"
+        },
+        "frames": 10,
+        "dt": 32
+      },
+      "px": "85f29b05",
+      "tx": "b85c068a"
+    },
+    {
       "$note": "the defaults with every layer in - two blocks, base 32, kernel 3, global average pooling, a 28px image. shown counts columns before the gate, so 6 is the six columns and the receptive field not yet asked for",
       "slug": "cnn-architecture",
       "state": "?theme=light&shown=6",
@@ -6950,6 +7078,26 @@
         "dt": 32
       },
       "px": "73b415bb",
+      "tx": "edc0c068"
+    },
+    {
+      "$note": "cnn-architecture · INTERRUPTED - the receptive field opened mid-unit: every unit placed, the field walk not started",
+      "slug": "cnn-architecture",
+      "state": "?theme=light",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 5
+          }
+        ],
+        "set": {
+          "patch": true
+        },
+        "frames": 10,
+        "dt": 32
+      },
+      "px": "d3059783",
       "tx": "edc0c068"
     },
     {

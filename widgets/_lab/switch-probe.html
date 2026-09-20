@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Lab · a display switch mid-press</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  body { font-family: var(--font); padding: var(--sp-4); }
+  pre { font-family: var(--font-mono); font-size: var(--fs-xs); white-space: pre-wrap; }
+  .frames { position: absolute; left: -99999px; top: 0; }
+</style>
+</head>
+<body>
+<h1>A display switch mid-press, every widget</h1>
+<p>Widget 70's ship found that core keeps a running loop going through a
+display change, so a widget whose <code>advance</code> steps whichever page
+a display parameter names runs the other page's press unasked when the
+reader switches mid-press; widget 69 had it too (2026-09-19, fixed
+2026-09-20). This page asks every widget the same question, with no
+knowledge of its internals: for each display control, is the figure after
+<em>press → switch</em> the same whether the press was interrupted five
+frames in or allowed to finish first — and is it the same after switching
+back? A data control resets the animation on both runs, so it passes
+trivially; a display control that re-targets the drive does not.
+NOT DEPLOYED.</p>
+<pre id="out">running…</pre>
+<div class="frames" id="frames"></div>
+
+<script type="module">
+/* `hash`, `figureText` and the drive are the fingerprint harness's, as copied
+   through driver-genes-shoot.html on 2026-09-20; the `setParam` branches are
+   the harness's, including the pill/action-button one. */
+const FRAME_W = 900;
+const FRAME_H = 1200;
+const DONE_FRAMES = 700;   // long enough for any single press; a Play run may not finish
+const CUT_FRAMES = 5;      // the interruption, as widget 70's probe
+const MAX_OPTIONS = 3;
+
+const frames = document.getElementById("frames");
+const out = document.getElementById("out");
+
+function hash(s) {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < s.length; i += 1) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  return (h >>> 0).toString(16).padStart(8, "0");
+}
+function figureText(doc) {
+  return [".w-math", ".w-legend", ".w-readout"]
+    .map((sel) => [...doc.querySelectorAll(sel)].map((n) => n.textContent).join(" "))
+    .join(" | ").replace(/\s+/g, " ").trim();
+}
+async function settle(frame, minMs = 300, maxMs = 4000) {
+  const t0 = Date.now();
+  let last = null;
+  let still = 0;
+  for (;;) {
+    await new Promise((r) => setTimeout(r, 50));
+    const c = frame.contentDocument?.querySelector(".w-figure canvas");
+    const now = c ? `${c.width}x${c.height}` : null;
+    still = now !== null && now === last ? still + 1 : 0;
+    last = now;
+    const waited = Date.now() - t0;
+    if (waited >= maxMs) return { timedOut: true };
+    if (waited >= minMs && still >= 2) return { timedOut: false };
+  }
+}
+
+/* ---- the controls a widget offers, read from its DOM --------------------- */
+function controlsOf(doc) {
+  const found = [];
+  const segs = new Map();
+  for (const b of doc.querySelectorAll(".w-seg-btn[data-param]")) {
+    const name = b.dataset.param;
+    if (!segs.has(name)) segs.set(name, []);
+    segs.get(name).push(b.dataset.value);
+  }
+  for (const [name, values] of segs) {
+    const cur = [...doc.querySelectorAll(`.w-seg-btn[data-param="${name}"]`)]
+      .find((b) => b.getAttribute("aria-pressed") === "true" || b.classList.contains("is-on") || b.classList.contains("active"))?.dataset.value;
+    found.push({ name, kind: "seg", current: cur ?? values[0], values: values.filter((v) => v !== (cur ?? values[0])).slice(0, MAX_OPTIONS) });
+  }
+  for (const el of doc.querySelectorAll("select[data-param]")) {
+    const name = el.dataset.param;
+    if (segs.has(name)) continue;
+    const opts = [...el.options].map((o) => o.value);
+    found.push({ name, kind: "select", current: el.value, values: opts.filter((v) => v !== el.value).slice(0, MAX_OPTIONS) });
+  }
+  for (const el of doc.querySelectorAll("[data-param]")) {
+    const name = el.dataset.param;
+    if (segs.has(name) || el.tagName === "SELECT") continue;
+    if (el.classList.contains("w-pill") || el.classList.contains("w-action-btn")) {
+      const on = el.getAttribute("aria-pressed") === "true";
+      found.push({ name, kind: "pill", current: on, values: [!on] });
+    } else if (el.type === "checkbox") {
+      found.push({ name, kind: "checkbox", current: el.checked, values: [!el.checked] });
+    } else if (el.dataset.options) {
+      const opts = JSON.parse(el.dataset.options);
+      const cur = opts[Number(el.value)];
+      found.push({ name, kind: "options", current: cur, values: opts.filter((v) => v !== cur).slice(0, MAX_OPTIONS) });
+    }
+  }
+  return found;
+}
+
+function driveKey(doc) {
+  const step = doc.querySelector('.w-drive .w-btn[data-key="step"]');
+  if (step && !step.disabled) return "step";
+  const run = doc.querySelector('.w-drive .w-btn[data-key="run"]');
+  if (run && !run.disabled) return "run";
+  return null;
+}
+/* A two-stage widget (bootstrap, permutation-test, …) enables Step and Play
+   only after its lead press; the probe runs the lead to its end first, as the
+   harness's `lead: true` does, at the lead's own 64 ms clock. */
+function hasLead(doc) {
+  const lead = doc.querySelector('.w-drive .w-btn[data-key="lead"]');
+  return Boolean(lead && !lead.disabled);
+}
+const LEAD_FRAMES = 300;
+
+/* ---- one run: load, press, pump, switch, pump, read, switch back, pump, read */
+function makeDriver(win, doc) {
+  /* The harness's clock, plus the cancel: a DATA change stops the loop through
+     `cancelAnimationFrame`, and a queue that ignores it runs the cancelled
+     frame anyway — the first draft of this probe flagged every data control
+     for that reason. */
+  const queue = [];
+  let ids = 0;
+  win.requestAnimationFrame = (cb) => { ids += 1; queue.push({ id: ids, cb }); return ids; };
+  win.cancelAnimationFrame = (id) => { const i = queue.findIndex((q) => q.id === id); if (i >= 0) queue.splice(i, 1); };
+  let t = 1000;
+  const pump = (n, dt = 32) => {
+    let ran = 0;
+    for (let i = 0; i < n; i += 1) {
+      const q = queue.shift();
+      if (!q) break;
+      t += dt;
+      q.cb(t);
+      ran += 1;
+    }
+    return ran;
+  };
+  const press = (key) => {
+    const b = doc.querySelector(`.w-drive .w-btn[data-key="${key}"]`);
+    if (!b) throw new Error(`no "${key}" drive button`);
+    if (b.disabled) throw new Error(`"${key}" disabled`);
+    b.click();
+  };
+  const setParam = (name, value) => {
+    const seg = doc.querySelectorAll(`.w-seg-btn[data-param="${name}"]`);
+    if (seg.length) {
+      const b = [...seg].find((x) => x.dataset.value === String(value));
+      if (!b) throw new Error(`"${name}" has no option "${value}"`);
+      b.click();
+      return;
+    }
+    const el = doc.querySelector(`[data-param="${name}"]`);
+    if (!el) throw new Error(`no control for "${name}"`);
+    if (el.classList.contains("w-pill") || el.classList.contains("w-action-btn")) {
+      if ((el.getAttribute("aria-pressed") === "true") !== Boolean(value)) el.click();
+      return;
+    }
+    const fire = (type) => el.dispatchEvent(new win.Event(type, { bubbles: true }));
+    if (el.dataset.options) {
+      const i = JSON.parse(el.dataset.options).indexOf(value);
+      if (i < 0) throw new Error(`"${name}" has no option "${value}"`);
+      el.value = String(i);
+      fire("input");
+    } else if (el.type === "checkbox") {
+      el.checked = Boolean(value);
+      fire("change");
+    } else if (el.tagName === "SELECT") {
+      el.value = String(value);
+      fire("change");
+    } else {
+      el.value = String(value);
+      fire("input");
+    }
+  };
+  const read = () => {
+    const canvas = doc.querySelector(".w-figure canvas");
+    const label = doc.querySelector('.w-drive .w-btn[data-key="step"]')?.textContent.trim()
+      ?? doc.querySelector('.w-drive .w-btn[data-key="run"]')?.textContent.trim() ?? "";
+    return { px: canvas ? hash(canvas.toDataURL("image/png")) : "no canvas", tx: hash(figureText(doc)), label, pending: queue.length };
+  };
+  return { pump, press, setParam, read };
+}
+
+async function open(slug) {
+  const frame = document.createElement("iframe");
+  frame.width = FRAME_W;
+  frame.height = FRAME_H;
+  frame.style.border = "0";
+  frame.src = `../${slug}/?theme=light`;
+  frames.appendChild(frame);
+  await new Promise((r) => frame.addEventListener("load", r));
+  const rest = await settle(frame);
+  return { frame, rest };
+}
+
+async function run(slug, key, ctl, value, cutFrames, lead) {
+  const { frame } = await open(slug);
+  const d = makeDriver(frame.contentWindow, frame.contentDocument);
+  let res;
+  try {
+    if (lead) { d.press("lead"); d.pump(LEAD_FRAMES, 64); }
+    d.press(key);
+    const pressed = d.pump(cutFrames);
+    d.setParam(ctl.name, value);
+    const afterPumped = d.pump(DONE_FRAMES);
+    const after = d.read();
+    d.setParam(ctl.name, current(ctl));
+    const backPumped = d.pump(DONE_FRAMES);
+    const back = d.read();
+    res = { after, back, pressed, afterPumped, backPumped };
+  } catch (e) {
+    res = { error: String(e.message ?? e) };
+  }
+  frame.remove();
+  return res;
+}
+function current(ctl) { return ctl.current; }
+
+const same = (a, b) => a.px === b.px && a.tx === b.tx && a.label === b.label;
+const diffOf = (a, b) => ["px", "tx", "label"].filter((k) => a[k] !== b[k]).join("+");
+
+const manifest = await (await fetch("../manifest.json")).json();
+const slugs = (Array.isArray(manifest) ? manifest : manifest.widgets).map((w) => w.slug);
+const only = new URLSearchParams(location.search).get("only");
+const lines = [];
+const flagged = [];
+let probed = 0;
+const paint = () => { out.textContent = lines.join("\n") + `\n\n${probed} switches probed, ${flagged.length} flagged`; };
+
+for (const slug of slugs) {
+  if (only && !only.split(",").includes(slug)) continue;
+  const { frame, rest } = await open(slug);
+  const lead = hasLead(frame.contentDocument);
+  if (lead) { const d = makeDriver(frame.contentWindow, frame.contentDocument); d.press("lead"); d.pump(LEAD_FRAMES, 64); }
+  const key = driveKey(frame.contentDocument);
+  const ctls = key ? controlsOf(frame.contentDocument) : [];
+  frame.remove();
+  if (!key) { lines.push(`${slug.padEnd(28)} no drive button${lead ? " after the lead" : ""}${rest.timedOut ? " (never settled)" : ""}`); paint(); continue; }
+  const notes = [];
+  for (const ctl of ctls) {
+    for (const v of ctl.values) {
+      const control = await run(slug, key, ctl, v, DONE_FRAMES, lead);
+      const cut = await run(slug, key, ctl, v, CUT_FRAMES, lead);
+      probed += 1;
+      if (control.error || cut.error) { notes.push(`${ctl.name}=${v}: ERROR ${control.error ?? cut.error}`); continue; }
+      /* a press that was not in flight at the cut cannot be interrupted */
+      if (cut.pressed < CUT_FRAMES) continue;
+      const a = same(control.after, cut.after) ? "" : `after ${diffOf(control.after, cut.after)} [${control.after.label} | ${cut.after.label}]`;
+      const b = same(control.back, cut.back) ? "" : `back ${diffOf(control.back, cut.back)} [${control.back.label} | ${cut.back.label}]`;
+      if (a || b) {
+        notes.push(`${ctl.name}=${v}: ${[a, b].filter(Boolean).join("; ")}  (cut ran ${cut.afterPumped}f then ${cut.backPumped}f; control ${control.afterPumped}f then ${control.backPumped}f)`);
+        flagged.push(`${slug} ${ctl.name}=${v}`);
+      }
+    }
+  }
+  lines.push(`${slug.padEnd(28)} ${key.padEnd(4)} ${String(ctls.reduce((n, c) => n + c.values.length, 0)).padStart(3)} switches${notes.length ? "\n    " + notes.join("\n    ") : ""}`);
+  paint();
+}
+lines.push("", "FLAGGED:", ...flagged.map((f) => `  ${f}`), "", "done");
+paint();
+</script>
+</body>
+</html>
