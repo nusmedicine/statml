@@ -456,11 +456,16 @@ function letterCell(w, t, base) {
  * of `k` tokens from `win` in the excerpt and on the rows. Returns the
  * panel's bottom, where the page's own drawing starts.
  */
-/** the base under the pointer when it is over the overview rows, else null — the hover inspector's one input */
+/** the base under the pointer when it is over a letter or the overview rows, else null — the hover inspector's one input */
 function hoverBase(pointer, w, code) {
-  if (!pointer) return null;
+  if (!pointer || pointer.x < PAD_L || pointer.x >= w - PAD_R) return null;
+  if (pointer.y >= INPUT.top - 2 && pointer.y < lettersBot + 2) {
+    const row = Math.min(4, Math.max(0, Math.floor((pointer.y - INPUT.top) / INPUT.lineH)));
+    const col = Math.min(ROW_LEN - 1, Math.floor((pointer.x - PAD_L) / letterCell(w, 0, 0).pitch));
+    return row * ROW_LEN + col;
+  }
   const rowsBot = rowsTop + nRows(code) * INPUT.rowH;
-  if (pointer.y < rowsTop - 4 || pointer.y > rowsBot + 6 || pointer.x < PAD_L || pointer.x >= px(w, M.LEN)) return null;
+  if (pointer.y < rowsTop - 4 || pointer.y > rowsBot + 6 || pointer.x >= px(w, M.LEN)) return null;
   return Math.max(0, Math.min(M.LEN - 1, Math.floor((pointer.x - PAD_L) / colW(w))));
 }
 
@@ -479,6 +484,7 @@ function drawInput(ctx, colors, w, state, code, emb, { centre = null, win = null
     const id = x.tok[t], motif = task === "motif" && inMotif(t);
     if (motif) rect(ctx, lx, ly - INPUT.lineH + 3, pitch, INPUT.lineH, wash(colors.reference, 0.22));
     txt(ctx, colors, M.VOCAB[id], lx + pitch / 2, ly, { font: `${motif ? "700 " : ""}${small ? colors.fsXs : colors.fsSm} ${colors.mono}`, fill: letterFill(id, t), align: "center" });
+    if (hover === t) rect(ctx, lx, ly - INPUT.lineH + 3, pitch, INPUT.lineH, null, colors.highlight, 1.2);
   }
 
   /* the encoding of one token: its row of the table */
@@ -960,7 +966,10 @@ defineWidget({
       x: X0 + b * bw, y: rowsTop, w: bw, h: nRows(params.code) * INPUT.rowH,
       set: { stop: Math.round((b + 0.5) * (M.LEN / buckets)) }, label: `window at base ${Math.round((b + 0.5) * (M.LEN / buckets))}`,
     }));
-    return [...rows, ...stops];
+    /* and every letter: a click parks the window on that base */
+    const pitch = letterCell(w, 0, 0).pitch;
+    const letters = Array.from({ length: M.LEN }, (_, t) => { const c = letterCell(w, t, INPUT.top + 12); return { x: c.x, y: c.y - INPUT.lineH + 3, w: pitch, h: INPUT.lineH, set: { stop: t + 1 }, label: `window at base ${t + 1}` }; });
+    return [...rows, ...stops, ...letters];
   },
 
   animation: {
