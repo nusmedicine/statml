@@ -9407,6 +9407,39 @@
       },
       "px": "1016a7bd",
       "tx": "ef77db46"
+    },
+    {
+      "$note": "embedding-space · Amino acids, before any epoch: the rows as initialised (placeholder, to record once the design settles)",
+      "slug": "embedding-space",
+      "state": "?theme=light&shown=0",
+      "px": "0",
+      "tx": "0"
+    },
+    {
+      "$note": "embedding-space · Amino acids, all forty epochs: the four roles apart (placeholder)",
+      "slug": "embedding-space",
+      "state": "?theme=light&shown=40",
+      "px": "0",
+      "tx": "0"
+    },
+    {
+      "$note": "embedding-space · Codons, all forty epochs: the eighteen in three clusters, the rest nowhere (placeholder)",
+      "slug": "embedding-space",
+      "state": "?theme=light&page=codon&shown=40",
+      "px": "0",
+      "tx": "0"
+    },
+    {
+      "$note": "embedding-space · Amino acids, mid-move of the first epoch (placeholder)",
+      "slug": "embedding-space",
+      "state": "?theme=light",
+      "drive": {
+        "click": "step",
+        "frames": 6,
+        "dt": 40
+      },
+      "px": "0",
+      "tx": "0"
     }
   ]
 }

@@ -1108,6 +1108,24 @@
       ],
       "arc": 75,
       "status": "shipped"
+    },
+    {
+      "slug": "embedding-space",
+      "title": "Deep Learning - Embedding Space",
+      "blurb": "A trained embedding table is a space: tokens the task treats alike become neighbours, a geometry nobody typed in.",
+      "course": "PHM5005",
+      "topics": [
+        "embedding",
+        "vector space",
+        "tokens",
+        "amino acids",
+        "codons",
+        "genetic code",
+        "representation",
+        "deep learning"
+      ],
+      "arc": 74,
+      "status": "draft"
     }
   ]
 }
