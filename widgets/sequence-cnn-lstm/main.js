@@ -84,11 +84,13 @@ const ROW_LEN = 40;   // cell 178 wraps the letters at 40
    40, then the encoded rows on the 250-token axis — four one-hot rows, or the
    embedding's eight — with a bar under the motif. Everything below sits at an
    offset from its bottom, which depends on the encoding. */
-const INPUT = { top: 22, lineH: 14, rowH: 8, gap: 10, midH: 76, excerpt: 12 };
+const INPUT = { top: 22, lineH: 14, rowH: 8, gap: 10, midH: 76 };
 const lettersBot = INPUT.top + 5 * INPUT.lineH;
-/* his round 3: between the letters and the overview rows, the lesson's two
-   figures — the table with a token's row lit, twelve tokens around the window
-   as rows with their vectors across, the transpose, the same twelve as columns */
+/* his rounds 3 and 7: between the letters and the overview rows, the lesson's
+   two figures — the table with the window's tokens' rows lit, the window's k
+   tokens as rows with their vectors across, the transpose, the same k as
+   columns. ONE size: the excerpt is what the layer reads at once, k tokens on
+   the CNN page and one token, a step, on the recurrence pages. */
 const midTop = lettersBot + 24;
 const rowsTop = midTop + INPUT.midH + 24;
 const nRows = (code) => (code === "onehot" ? 4 : SPEC.E);
@@ -203,7 +205,8 @@ const S = {
   capInput: (code) => (code === "onehot" ? `tokens [${M.MAX_LEN}] → one-hot [4, ${M.MAX_LEN}]` : `tokens [${M.MAX_LEN}] → Embedding [${M.MAX_LEN}, ${SPEC.E}] → transpose [${SPEC.E}, ${M.MAX_LEN}]`),
   capPad: "PAD",
   capTable: "the table",
-  capExcerpt: "each token its row",
+  capExcerpt: (n) => (n === 1 ? "one token, its row" : `the window's ${n} tokens, each its row`),
+  capReads: (n) => (n === 1 ? "what one step reads" : "what the kernel reads"),
   capTranspose: "transpose",
   capSlides: (E) => `[${E}, ${M.MAX_LEN}] · what the kernel slides over`,
   capTruth: (task, cls, extra) => (task === "motif" ? (cls ? `the sequence shown: motif, ${extra} ${extra === 1 ? "copy" : "copies"}` : "the sequence shown: no motif") : `the sequence shown: ${cls ? "GC-rich" : "GC-poor"} · GC ${extra.toFixed(2)}`),
@@ -448,13 +451,13 @@ function letterCell(w, t, base) {
 /**
  * The input panel: the sequence's letters (the motif bold in the reference
  * colour; on composition G and C in ink and A and T lighter); then the
- * lesson's two figures for `centre`'s neighbourhood — the table with the
- * token at `centre` lit, twelve tokens as rows with their vectors across, the
- * transpose, the same twelve as columns; then the encoded rows on the token
- * axis, all 250 — four one-hot rows, or the embedding's eight — PAD shaded, a
- * bar under each copy of the motif, the excerpt boxed. `win` boxes a window
- * of `k` tokens from `win` in the excerpt and on the rows. Returns the
- * panel's bottom, where the page's own drawing starts.
+ * lesson's two figures for the window — the table with the window's tokens'
+ * rows lit, the window's `k` tokens from `win` as rows with their vectors
+ * across, the transpose, the same `k` as columns; then the encoded rows on
+ * the token axis, all 250 — four one-hot rows, or the embedding's eight — PAD
+ * shaded, a bar under each copy of the motif, the window boxed. A `hover`
+ * base moves the window there for the inspector, nothing written. Returns
+ * the panel's bottom, where the page's own drawing starts.
  */
 /** the base under the pointer when it is over a letter or the overview rows, else null — the hover inspector's one input */
 function hoverBase(pointer, w, code) {
@@ -469,7 +472,7 @@ function hoverBase(pointer, w, code) {
   return Math.max(0, Math.min(M.LEN - 1, Math.floor((pointer.x - PAD_L) / colW(w))));
 }
 
-function drawInput(ctx, colors, w, state, code, emb, { centre = null, win = null, k = 0, hover = null } = {}) {
+function drawInput(ctx, colors, w, state, code, emb, { win = null, k = 1, hover = null } = {}) {
   const { x, seq, task, cls, extra } = state;
   const X0 = PAD_L, X1 = w - PAD_R;
   const capIn = S.capInput(code), capTruth = S.capTruth(task, cls, extra);
@@ -479,13 +482,24 @@ function drawInput(ctx, colors, w, state, code, emb, { centre = null, win = null
   const inMotif = (t) => seq.motifAt.some((m) => t >= m && t < m + M.MOTIF.length);
   const small = letterCell(w, 0, 0).pitch < 9;
   const letterFill = (id, t) => (task === "motif" && inMotif(t) ? colors.reference : task === "composition" ? (isGC(id) ? colors.ink1 : colors.ink3) : colors.ink1);
+
+  /* the window the panel shows: the hovered base first, else the parked one, else the motif's start */
+  const n = Math.max(1, k);
+  const clampStart = (t) => Math.max(0, Math.min(M.LEN - n, t));
+  const ex0 = clampStart(hover != null ? hover - Math.floor(n / 2) : win != null ? win : (seq.motifAt[0] ?? Math.floor(M.LEN / 2) - 1));
+  const inWin = (t) => t >= ex0 && t < ex0 + n;
+
   for (let t = 0; t < M.LEN; t++) {
     const { x: lx, y: ly, pitch } = letterCell(w, t, INPUT.top + 12);
     const id = x.tok[t], motif = task === "motif" && inMotif(t);
     if (motif) rect(ctx, lx, ly - INPUT.lineH + 3, pitch, INPUT.lineH, wash(colors.reference, 0.22));
+    if (inWin(t)) rect(ctx, lx, ly - INPUT.lineH + 3, pitch, INPUT.lineH, wash(colors.highlight, 0.16));
     txt(ctx, colors, M.VOCAB[id], lx + pitch / 2, ly, { font: `${motif ? "700 " : ""}${small ? colors.fsXs : colors.fsSm} ${colors.mono}`, fill: letterFill(id, t), align: "center" });
-    if (hover === t) rect(ctx, lx, ly - INPUT.lineH + 3, pitch, INPUT.lineH, null, colors.highlight, 1.2);
   }
+  /* the window's box on the letters, wrapping where a row does */
+  { const a = letterCell(w, ex0, INPUT.top + 12), b = letterCell(w, ex0 + n - 1, INPUT.top + 12);
+    if (a.y === b.y) rect(ctx, a.x - 1, a.y - INPUT.lineH + 2, b.x + b.pitch - a.x + 2, INPUT.lineH + 2, null, colors.highlight, 1.5);
+    else { rect(ctx, a.x - 1, a.y - INPUT.lineH + 2, X1 - a.x + 1, INPUT.lineH + 2, null, colors.highlight, 1.5); rect(ctx, X0 - 1, b.y - INPUT.lineH + 2, b.x + b.pitch - X0 + 2, INPUT.lineH + 2, null, colors.highlight, 1.5); } }
 
   /* the encoding of one token: its row of the table */
   const E_ = nRows(code), cell = code === "onehot" ? 11 : 9;
@@ -493,39 +507,33 @@ function drawInput(ctx, colors, w, state, code, emb, { centre = null, win = null
   let amax = 1e-9; if (code !== "onehot") for (const v of emb.W.v) amax = Math.max(amax, Math.abs(v));
   const cellFill = (v) => (code === "onehot" ? (v > 0 ? colors.empirical : colors.surface2) : signed(colors, v, amax));
   const rowName = (e) => (code === "onehot" ? "ACGT"[e] : `e${e + 1}`);
-  /* the excerpt sits on the hovered base when there is one (an inspector: the
-     same panel is reached by the click that parks the window), else on `centre` */
-  const n = INPUT.excerpt;
-  const focus = hover ?? centre ?? (seq.motifAt[0] ?? Math.floor(M.LEN / 2)) - 2;
-  const ex0 = Math.max(0, Math.min(M.LEN - n, focus - Math.floor(n / 2) + 2));
-  const litAt = Math.max(0, Math.min(M.LEN - 1, hover ?? centre ?? ex0)), lit = x.tok[litAt];
 
-  /* the table */
+  /* the table, the window's tokens' rows lit, with a count where a base recurs */
   const tx0 = X0 + 4, tw = E_ * cell;
+  const counts = {}; for (let t = ex0; t < ex0 + n; t++) counts[x.tok[t]] = (counts[x.tok[t]] ?? 0) + 1;
   txt(ctx, colors, S.capTable, X0, midTop - 6, { fill: colors.ink2 });
   for (let id = 0; id < M.VOCAB.length; id++) {
     const v = vec(id), y = midTop + id * cell;
-    txt(ctx, colors, M.VOCAB[id], tx0 - 5, y + cell - 2, { font: monoFont(colors), fill: id === lit ? colors.highlight : colors.ink3, align: "right" });
+    txt(ctx, colors, M.VOCAB[id], tx0 - 5, y + cell - 2, { font: monoFont(colors), fill: counts[id] ? colors.highlight : colors.ink3, align: "right" });
     for (let e = 0; e < E_; e++) rect(ctx, tx0 + e * cell, y, cell - 1, cell - 1, cellFill(v[e]));
-    if (id === lit) rect(ctx, tx0 - 2, y - 1, tw + 3, cell + 1, null, colors.highlight, 1.2);
+    if (counts[id]) { rect(ctx, tx0 - 2, y - 1, tw + 3, cell + 1, wash(colors.highlight, 0.14), colors.highlight, 1.2); if (counts[id] > 1) txt(ctx, colors, `×${counts[id]}`, tx0 + tw + 4, y + cell - 2, { font: monoFont(colors), fill: colors.highlight }); }
   }
 
-  /* the excerpt as rows, two columns of six */
-  const ex = tx0 + tw + 46, colWEx = tw + 22, rh = 11, per = n / 2;
-  txt(ctx, colors, S.capExcerpt, ex - 12, midTop - 6, { fill: colors.ink2 });
+  /* the window's tokens as rows: one column up to six, two beyond */
+  const ex = tx0 + tw + 46, rh = 11, per = n > 6 ? Math.ceil(n / 2) : n, cols = n > 6 ? 2 : 1, colWEx = tw + 22;
+  txt(ctx, colors, S.capExcerpt(n), ex - 12, midTop - 6, { fill: colors.ink2 });
   for (let i = 0; i < n; i++) {
     const t = ex0 + i, bx = ex + Math.floor(i / per) * colWEx, by = midTop + (i % per) * rh;
     const v = vec(x.tok[t]);
     txt(ctx, colors, M.VOCAB[x.tok[t]], bx - 6, by + 9, { font: `${task === "motif" && inMotif(t) ? "700 " : ""}${colors.fsXs} ${colors.mono}`, fill: letterFill(x.tok[t], t), align: "right" });
     for (let e = 0; e < E_; e++) rect(ctx, bx + e * cell, by, cell - 1, rh - 1, cellFill(v[e]));
-    if (win != null && t >= win && t < win + k) rect(ctx, bx - 2, by - 1, tw + 3, rh + 1, null, colors.highlight, 1.2);
-    if (hover != null && t === litAt) rect(ctx, bx - 2, by - 1, tw + 3, rh + 1, wash(colors.highlight, 0.18), colors.highlight, 1.2);
   }
+  for (let c = 0; c < cols; c++) { const rows = Math.min(per, n - c * per); rect(ctx, ex + c * colWEx - 2, midTop - 1, tw + 3, rows * rh + 1, null, colors.highlight, 1.5); }
   for (let e = 0; e < E_; e++) txt(ctx, colors, rowName(e), ex + e * cell + cell / 2 - 0.5, midTop + per * rh + 9, { font: monoFont(colors), fill: colors.ink3, align: "center" });
 
-  /* the transpose, and the same twelve as columns */
-  const ax = ex + 2 * colWEx - 22 + 8, cx0 = ax + 66;
-  const ay = midTop + per * rh / 2;
+  /* the transpose, and the same tokens as columns */
+  const ax = ex + cols * colWEx - 22 + 8, cx0 = ax + 66;
+  const ay = midTop + Math.max(per * rh, E_ * cell) / 2;
   line(ctx, ax + 6, ay + 0.5, ax + 52, ay + 0.5, colors.ink2, 1.2);
   ctx.save(); ctx.fillStyle = colors.ink2; ctx.beginPath(); ctx.moveTo(ax + 56, ay + 0.5); ctx.lineTo(ax + 50, ay - 3.5); ctx.lineTo(ax + 50, ay + 4.5); ctx.closePath(); ctx.fill(); ctx.restore();
   txt(ctx, colors, S.capTranspose, ax + 30, ay - 6, { fill: colors.ink2, align: "center" });
@@ -535,10 +543,11 @@ function drawInput(ctx, colors, w, state, code, emb, { centre = null, win = null
     for (let e = 0; e < E_; e++) rect(ctx, cx0 + i * cell, midTop + 4 + e * cell, cell - 1, cell - 1, cellFill(v[e]));
   }
   for (let e = 0; e < E_; e++) txt(ctx, colors, rowName(e), cx0 - 5, midTop + 4 + e * cell + cell - 2, { font: monoFont(colors), fill: colors.ink3, align: "right" });
-  if (win != null) { const a = Math.max(0, win - ex0), b = Math.min(n, win - ex0 + k); if (b > a) rect(ctx, cx0 + a * cell - 1, midTop + 3, (b - a) * cell + 1, E_ * cell + 1, null, colors.highlight, 1.5); }
-  if (hover != null && litAt >= ex0 && litAt < ex0 + n) rect(ctx, cx0 + (litAt - ex0) * cell - 1, midTop + 3, cell + 1, E_ * cell + 1, wash(colors.highlight, 0.18), colors.highlight, 1.2);
+  rect(ctx, cx0 - 1, midTop + 3, n * cell + 1, E_ * cell + 1, null, colors.highlight, 1.5);
+  { const capR = S.capReads(n); ctx.save(); ctx.font = `${colors.fsXs} ${colors.font}`; const fits = cx0 + ctx.measureText(capR).width <= X1; ctx.restore();
+    txt(ctx, colors, capR, fits ? cx0 : X1, midTop + 4 + E_ * cell + 12, { fill: colors.ink3, align: fits ? "left" : "right" }); }
 
-  /* the overview: all 250 on the token axis, the excerpt boxed */
+  /* the overview: all 250 on the token axis, the window boxed */
   const cw = colW(w), rowH = INPUT.rowH;
   txt(ctx, colors, S.capSlides(E_), X0, rowsTop - 6, { fill: colors.ink2 });
   rect(ctx, px(w, M.LEN), rowsTop, px(w, M.MAX_LEN) - px(w, M.LEN), E_ * rowH, colors.surface2);
@@ -547,8 +556,7 @@ function drawInput(ctx, colors, w, state, code, emb, { centre = null, win = null
   txt(ctx, colors, S.capPad, (px(w, M.LEN) + px(w, M.MAX_LEN)) / 2, rowsTop + Math.floor(E_ / 2) * rowH + 4, { fill: colors.ink3, align: "center" });
   const rowsBot = rowsTop + E_ * rowH;
   for (const m of seq.motifAt) rect(ctx, px(w, m), rowsBot + 2, M.MOTIF.length * cw, 3, colors.reference);
-  rect(ctx, px(w, ex0) - 1, rowsTop - 3, n * cw + 2, E_ * rowH + 6, null, colors.ink3, 1);
-  if (hover != null) rect(ctx, px(w, litAt) - 1, rowsTop - 3, cw + 2, E_ * rowH + 6, null, colors.highlight, 1.5);
+  rect(ctx, px(w, ex0) - 1, rowsTop - 2, n * cw + 2, E_ * rowH + 3, wash(colors.highlight, 0.22), colors.highlight, 1.5);
   return inputBot(code);
 }
 
@@ -580,13 +588,12 @@ function drawCnn(ctx, colors, w, params, state, anim, hover) {
   /* the window: slides through every stop with press 1, then parks at `stop`; the input panel's excerpt follows it */
   const shownT = count === 1 && anim.t < 1 ? Math.round(tSlide * (L1 - 1)) : stopT;
   const winStart = shownT * stride - pad;
-  const CNN = cnnGeom(drawInput(ctx, colors, w, state, code, cnn.net.emb, count >= 1 ? { centre: Math.max(0, winStart), win: winStart, k, hover } : { hover }));
+  const CNN = cnnGeom(drawInput(ctx, colors, w, state, code, cnn.net.emb, { win: Math.max(0, winStart), k, hover }));
   const rowsBot = rowsTop + nRows(code) * INPUT.rowH;
 
   if (count >= 1) {
     const start = winStart;
     const wx0 = px(w, Math.max(0, start)), wx1 = px(w, Math.min(M.MAX_LEN, start + k));
-    rect(ctx, wx0 - 1, rowsTop - 2, Math.max(2, wx1 - wx0) + 2, rowsBot - rowsTop + 3, wash(colors.highlight, 0.22), colors.highlight, 1.5);
     const right = wx1 + 6 + 120 > X1;
     txt(ctx, colors, S.capWindow(k), right ? wx0 - 6 : wx1 + 6, rowsBot + 13, { fill: colors.highlight, align: right ? "right" : "left" });
   }
@@ -774,7 +781,7 @@ function drawRecurrence(ctx, colors, w, params, m, G, count, anim, { xOfStep, to
 function drawLstm(ctx, colors, w, params, state, anim, hover) {
   const { lstm, seq, task, code, names } = state;
   const X0 = PAD_L;
-  const LSTM = lstmGeom(drawInput(ctx, colors, w, state, code, lstm.net.emb, { hover }));
+  const LSTM = lstmGeom(drawInput(ctx, colors, w, state, code, lstm.net.emb, { k: 1, hover }));
   txt(ctx, colors, S.capEmbed(code, lstm.packed), X0, LSTM.embY, { font: monoFont(colors), fill: colors.ink1 });
   drawRecurrence(ctx, colors, w, params, lstm, LSTM, anim.n.lstm, anim, {
     xOfStep: (t) => px(w, t) + colW(w) / 2, top: LSTM.blockTop, runCaption: S.capRunning(names[1]), lossCaption: S.capLossLstm(SPEC.lstm.n, SPEC.lstm.epochs),
@@ -788,7 +795,7 @@ function drawCombo(ctx, colors, w, params, state, anim, hover) {
   const X0 = PAD_L, X1 = w - PAD_R, count = anim.n.combo;
   const Lp = combo.X.T, tFeat = stageT(anim, 1, count);
   const xOfStep = (t) => X0 + ((t + 0.5) / Lp) * (X1 - X0);
-  const COMBO = comboGeom(drawInput(ctx, colors, w, state, code, state.cnn.net.emb, { hover }));
+  const COMBO = comboGeom(drawInput(ctx, colors, w, state, code, state.cnn.net.emb, { k: 1, hover }));
   txt(ctx, colors, S.capFeats(M.C1, Lp), X0, COMBO.featsHead, { font: capFont(colors), fill: colors.ink1 });
   let fmax = 1e-9; for (const r of combo.X.feats) for (const v of r) fmax = Math.max(fmax, v);
   const cw = (X1 - X0) / Lp;

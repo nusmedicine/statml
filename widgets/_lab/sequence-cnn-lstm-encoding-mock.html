@@ -54,6 +54,25 @@
     place the learned values can be seen as a table.</p>
   <div class="row" id="rowD"></div>
 
+  <h2>E &middot; His round 6: the window in every view, not only the transposed one</h2>
+  <p class="note">The window (k = 7, the highlight colour) is boxed today in the transposed columns, on the overview rows, and as a frame
+    on each of its rows in the excerpt. Three more places it could show, each drawn alone so it can be judged: <b>E1</b> the letters
+    themselves, a box around the k letters (it wraps at a row's end); <b>E2</b> the vocabulary table, the rows of the tokens the window
+    covers lit, with a count beside a row the window reads more than once; <b>E3</b> the excerpt as one block around its k consecutive
+    rows instead of a frame per row. The transposed columns are drawn each time for the eye's reference.</p>
+  <div class="row" id="rowE"></div>
+  <p class="q"><b>Which of E1, E2, E3 join the panel?</b> any set, or none</p>
+
+  <h2>F &middot; His round 7: one size, the window's &mdash; the excerpt is what the layer reads at once</h2>
+  <p class="note">Today the excerpt is twelve tokens and the window k of them, two sizes for one idea. Under one rule the excerpt IS the
+    window: k rows with their vectors across, the transpose, k columns &mdash; at k = 3, 7 and 11 below, one-hot and learned. On the
+    recurrence pages, which read one token a step, the excerpt is one token: its row, the transpose, its column &mdash; the lesson's
+    Token &rarr; vector figure at its smallest. The table stays at the left with the window's tokens' rows lit (E2), and the
+    overview underneath keeps the window boxed. Hover still moves it, by whole windows.</p>
+  <div class="row" id="rowF"></div>
+  <p class="q"><b>One size?</b> A &middot; the window's k on the CNN page and one token on the recurrence pages (recommended) &nbsp;|&nbsp;
+    B &middot; the window's k on the CNN page, twelve on the recurrence pages &nbsp;|&nbsp; C &middot; twelve everywhere, as now</p>
+
   <p class="rec">Recommended: <b>B</b>, because it is the lesson's two figures in the lesson's order and the transpose is the step the notebook
     prints; it costs about 60 px of height. C is B without the transpose. D adds the table to any of them and is worth having under
     Learned in any case.</p>
@@ -198,6 +217,83 @@ for (const code of ["onehot", "learned"]) {
   arrow(ctx, tx0 + E * cell + 6, ty0 + first * cell + cell / 2, rpx(winStart) - 4, ty0 + E * 4, T.highlight);
   label(ctx, `${M.VOCAB[first]} at base ${winStart + 1} → its column`, tx0 + E * cell + 8, ty0 + first * cell - 4, { size: 9, colour: T.highlight });
 }
+
+/* ================================================================ E */
+{
+  const code = "onehot", E = 4, cell = 11;
+  const winTok = Array.from({ length: K }, (_, j) => x.tok[winStart + j]);
+  const ctx = cand("rowE", "E1 · the window on the letters", "two rows of forty around the window; the box wraps where the row does", W, 90);
+  const pitch = (X1 - X0) / 40, r0 = Math.floor(winStart / 40) - 0;
+  for (let i = 0; i < 80; i++) { const t = r0 * 40 + i; if (t >= M.LEN) break; const lx = X0 + (i % 40) * pitch, ly = 30 + Math.floor(i / 40) * 14; const inM = t >= motif && t < motif + 7; if (inM) rect(ctx, lx, ly - 11, pitch, 14, wash(T.reference, 0.22)); label(ctx, M.VOCAB[x.tok[t]], lx + pitch / 2, ly, { size: 12, mono: true, colour: inM ? T.reference : T.ink1, weight: inM ? "700" : "", align: "center" }); }
+  { const a = winStart - r0 * 40, b = a + K - 1; const ax = X0 + (a % 40) * pitch, ay = 30 + Math.floor(a / 40) * 14, bx = X0 + (b % 40) * pitch, by = 30 + Math.floor(b / 40) * 14;
+    if (ay === by) rect(ctx, ax - 1, ay - 12, bx + pitch - ax + 2, 16, wash(T.highlight, 0.16), T.highlight, 1.5);
+    else { rect(ctx, ax - 1, ay - 12, X1 - ax + 1, 16, wash(T.highlight, 0.16), T.highlight, 1.5); rect(ctx, X0 - 1, by - 12, bx + pitch - X0 + 2, 16, wash(T.highlight, 0.16), T.highlight, 1.5); } }
+  label(ctx, "window · k = 7", X0, 72, { size: 10, colour: T.highlight });
+
+  const c2 = cand("rowE", "E2 · the window's tokens lit in the table", "the rows the kernel's seven columns read; ×2 where a base recurs", W, 110);
+  const tx0 = X0 + 20, ty0 = 20;
+  const counts = {}; for (const id of winTok) counts[id] = (counts[id] ?? 0) + 1;
+  for (let id = 0; id < 6; id++) {
+    const v = vecOf(id, code), y = ty0 + id * cell;
+    label(c2, M.VOCAB[id], tx0 - 6, y + 9, { size: 10, mono: true, colour: counts[id] ? T.highlight : T.ink3, align: "right" });
+    for (let e = 0; e < E; e++) rect(c2, tx0 + e * cell, y, cell - 1, cell - 1, cellOf(v[e], code));
+    if (counts[id]) { rect(c2, tx0 - 2, y - 1, E * cell + 3, cell + 1, wash(T.highlight, 0.16), T.highlight, 1.2); if (counts[id] > 1) label(c2, `×${counts[id]}`, tx0 + E * cell + 6, y + 9, { size: 9, mono: true, colour: T.highlight }); }
+  }
+  label(c2, "the table", X0, 12, { size: 10, colour: T.ink2 });
+  /* the transposed columns beside, for reference */
+  const cx0 = tx0 + E * cell + 90;
+  for (let i = 0; i < EXN; i++) { const t = EX0 + i, v = vecOf(x.tok[t], code); label(c2, M.VOCAB[x.tok[t]], cx0 + i * cell + cell / 2, 16, { size: 9, mono: true, colour: T.ink1, align: "center" }); for (let e = 0; e < E; e++) rect(c2, cx0 + i * cell, 20 + e * cell, cell - 1, cell - 1, cellOf(v[e], code)); }
+  rect(c2, cx0 + (winStart - EX0) * cell - 1, 19, K * cell + 1, E * cell + 1, null, T.highlight, 1.5);
+  label(c2, "the window's letters: " + winTok.map((id) => M.VOCAB[id]).join(" "), cx0, 20 + E * cell + 16, { size: 10, colour: T.highlight });
+
+  const c3 = cand("rowE", "E3 · the excerpt as one block", "the twelve tokens as rows; the window's seven as one box rather than seven frames", W, 100);
+  const ex = X0 + 20, colWEx = E * cell + 26, rh = 11, per = 6;
+  for (let i = 0; i < 12; i++) { const t = EX0 + 4 + i, bx = ex + Math.floor(i / per) * colWEx, by = 18 + (i % per) * rh; const v = vecOf(x.tok[t], code); label(c3, M.VOCAB[x.tok[t]], bx - 6, by + 9, { size: 10, mono: true, colour: T.ink1, align: "right" }); for (let e = 0; e < E; e++) rect(c3, bx + e * cell, by, cell - 1, rh - 1, cellOf(v[e], code)); }
+  { const a = winStart - (EX0 + 4), b = a + K - 1; const boxOf = (i0, i1) => { const col = Math.floor(i0 / per); rect(c3, ex + col * colWEx - 2, 18 + (i0 % per) * rh - 1, E * cell + 3, (i1 - i0 + 1) * rh + 1, wash(T.highlight, 0.16), T.highlight, 1.5); };
+    if (Math.floor(a / per) === Math.floor(b / per)) boxOf(a, b); else { boxOf(a, Math.floor(a / per) * per + per - 1); boxOf(Math.floor(b / per) * per, b); } }
+  label(c3, "each token its row", X0, 12, { size: 10, colour: T.ink2 });
+  label(c3, "one box for the seven rows the kernel reads at this stop; it continues into the second column when the window straddles it", X0, 96, { size: 9, colour: T.ink3 });
+}
+
+/* ================================================================ F */
+function panelF(code, kk, title, sub) {
+  const E = code === "onehot" ? 4 : 8, cell = code === "onehot" ? 11 : 9, rh = 11;
+  const ws = kk === 1 ? motif + 2 : motif - Math.floor((kk - 7) / 2) - 2;
+  const toks = Array.from({ length: kk }, (_, j) => ws + j);
+  const H = 24 + Math.max(6 * cell, kk * rh, E * cell + 6) + 36 + E * 8 + 16;
+  const ctx = cand("rowF", title, sub, W, H);
+  /* the table, the window's tokens lit */
+  const tx0 = X0 + 4, ty0 = 24;
+  const counts = {}; for (const t of toks) counts[x.tok[t]] = (counts[x.tok[t]] ?? 0) + 1;
+  label(ctx, "the table", X0, 14, { size: 10, colour: T.ink2 });
+  for (let id = 0; id < 6; id++) { const v = vecOf(id, code), y = ty0 + id * cell; label(ctx, M.VOCAB[id], tx0 - 5, y + cell - 2, { size: 9, mono: true, colour: counts[id] ? T.highlight : T.ink3, align: "right" }); for (let e = 0; e < E; e++) rect(ctx, tx0 + e * cell, y, cell - 1, cell - 1, cellOf(v[e], code)); if (counts[id]) rect(ctx, tx0 - 2, y - 1, E * cell + 3, cell + 1, wash(T.highlight, 0.14), T.highlight, 1.2); }
+  /* the window as rows */
+  const ex = tx0 + E * cell + 44;
+  label(ctx, kk === 1 ? "one token, its row" : `the window's ${kk} tokens, each its row`, ex - 12, 14, { size: 10, colour: T.ink2 });
+  for (let i = 0; i < kk; i++) { const t = toks[i], v = vecOf(x.tok[t], code), by = ty0 + i * rh, inM = t >= motif && t < motif + 7; label(ctx, M.VOCAB[x.tok[t]], ex - 6, by + 9, { size: 9, mono: true, colour: inM ? T.reference : T.ink1, weight: inM ? "700" : "", align: "right" }); for (let e = 0; e < E; e++) rect(ctx, ex + e * cell, by, cell - 1, rh - 1, cellOf(v[e], code)); }
+  rect(ctx, ex - 2, ty0 - 1, E * cell + 3, kk * rh + 1, null, T.highlight, 1.5);
+  /* the transpose and the columns */
+  const ax = ex + E * cell + 14, cx0 = ax + 66, ay = ty0 + Math.max(kk * rh, E * cell) / 2;
+  arrow(ctx, ax + 6, ay, ax + 56, ay, T.ink2);
+  label(ctx, "transpose", ax + 30, ay - 6, { size: 10, colour: T.ink2, align: "center" });
+  for (let i = 0; i < kk; i++) { const t = toks[i], v = vecOf(x.tok[t], code), inM = t >= motif && t < motif + 7; label(ctx, M.VOCAB[x.tok[t]], cx0 + i * cell + cell / 2, ty0 - 2, { size: 9, mono: true, colour: inM ? T.reference : T.ink1, weight: inM ? "700" : "", align: "center" }); for (let e = 0; e < E; e++) rect(ctx, cx0 + i * cell, ty0 + 4 + e * cell, cell - 1, cell - 1, cellOf(v[e], code)); }
+  for (let e = 0; e < E; e++) label(ctx, rowNames(code)[e], cx0 - 5, ty0 + 4 + e * cell + cell - 2, { size: 8, mono: true, colour: T.ink3, align: "right" });
+  rect(ctx, cx0 - 1, ty0 + 3, kk * cell + 1, E * cell + 1, null, T.highlight, 1.5);
+  label(ctx, kk === 1 ? "what one step of the recurrence reads" : "what the kernel reads at this stop", cx0, ty0 + 4 + E * cell + 14, { size: 9, colour: T.ink3 });
+  /* the overview */
+  const oy = ty0 + Math.max(6 * cell, kk * rh, E * cell + 6) + 30;
+  label(ctx, `[${E}, 250] · what the kernel slides over`, X0, oy - 6, { size: 10, colour: T.ink2 });
+  rect(ctx, px(M.LEN), oy, px(M.MAX_LEN) - px(M.LEN), E * 8, T.surface2);
+  for (let t = 0; t < M.LEN; t++) { const v = vecOf(x.tok[t], code); for (let e = 0; e < E; e++) if (code !== "onehot" || v[e] > 0) rect(ctx, px(t), oy + e * 8, cw + 0.4, 7, cellOf(v[e], code)); }
+  rect(ctx, px(ws) - 1, oy - 2, kk * cw + 2, E * 8 + 3, wash(T.highlight, 0.22), T.highlight, 1.5);
+  rect(ctx, px(motif), oy + E * 8 + 2, 7 * cw, 3, T.reference);
+}
+panelF("onehot", 7, "F · one-hot, k = 7", "the excerpt is the window");
+panelF("learned", 7, "F · learned, k = 7", "the excerpt is the window");
+panelF("onehot", 3, "F · one-hot, k = 3", "the smallest kernel");
+panelF("onehot", 11, "F · one-hot, k = 11", "the largest");
+panelF("onehot", 1, "F · the recurrence pages: one token a step", "the lesson's Token → vector figure at its smallest");
+panelF("learned", 1, "F · the recurrence pages, learned", "one row of the table, transposed to one column");
 </script>
 </body>
 </html>
