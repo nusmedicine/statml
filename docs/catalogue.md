@@ -19436,6 +19436,21 @@ field's detail line, which said the same, is gone. Applied to 73
 states are untouched by it (the shared engine change is what needs them
 re-run).
 
+**The copy audit (3bf7a8c, verify 8c85ce6):** twenty of ~220 strings — no
+model "asked" (predict again), conventional terms (lookup table, heatmap,
+receptive field, width at half maximum, drift over the padding), internal
+words struck (budget, probed, spells, class-1, "the slide"), the CNN legend
+without a one-hot cell under the learned encoding, a combo legend in steps.
+"Reads" and "sees" for a receptive field kept, as 73 shipped them. The
+verify's struck-word list carries the new words. **Subtitle and blurb:**
+three rounds of drafts — his corrections: "DNA reaches a network" is
+personification; order the subtitle as the pipeline, sequence → symbols →
+tokens → one-hot or embedding → CNN/LSTM → occlusion; generalise to any
+biological sequence, four bases or twenty amino acids, "here for DNA". Blurb:
+"A biological sequence as tokens, as one-hot or embedded rows, into a 1D CNN
+or an LSTM; occlusion sets a window to PAD." (119 chars, manifest and page
+description alike.)
+
 ---
 
 ## Two arcs, not one — now three
