@@ -9766,6 +9766,64 @@ Verification at the ship: verify 66 checks, `npm run check` and `npm test`
 (30 scripts) each run alone and read, and the full suite fronted at DPR 1.25
 reading 846 of 846 identical.
 
+#### The mid-press page switch, fixed 2026-09-20 (`88d7929`), and the sweep it started
+
+Slot 70's ship found that core keeps a running loop going through a display
+change, so a widget whose `advance` steps whichever page a display parameter
+names runs the other page's press unasked when the reader switches mid-press.
+69 had it: "Add the mutations" interrupted by a visit to *The cohort* dropped
+the genes with no cluster, 29 frames, the button then naming the press after.
+It also had the sibling 70 did not: an Across change on the cohort page hands
+the loop to the ease, which fast-forwards nothing, so a press in flight stayed
+where it stopped and the reader's next press was spent finishing it (23 frames
+where a whole press is 28). `rebuild` now finishes the press in flight and,
+on a page switch, sets `halt`, which ends the loop at its next frame; on an
+Across change it finishes the press and lets the ease play. The verify drives
+all five cases (77 checks, the seven new ones failing on the unfixed widget);
+three INTERRUPTED fingerprint states, the two page switches hashing
+identically to the settled empty page.
+
+**Then every widget was asked the same question**, by a probe that needs no
+knowledge of a widget's internals, `_lab/switch-probe.html`: for each display
+control, is the figure after *press → switch* the same whether the press was
+interrupted five frames in or allowed to finish first, and the same after
+switching back. It replaces the frame clock as the harness does, honours
+`cancelAnimationFrame` (its first draft did not, and flagged every data
+control), and runs the lead first on a two-stage widget. 308 switches on 63
+widgets, then 161 more after the lead. **Seven widgets had the fault, each in
+its own shape**, each fixed in its own commit with an INTERRUPTED state shot
+by `_lab/switch-shoot.html` (every recorded state of the seven reproduced):
+
+| widget | what a switch mid-press did | fix |
+|---|---|---|
+| `trees-and-ensembles` (`3b69b5e`) | drew a resample or fit a tree on the page switched to; the split left half scanned. Also: `rebuild` returned an object core discards, so its clamps never applied; and `done` carried across pages, so a finished tree made the next press on an empty bag page a Replay | finish the unit, `halt`; `rebuild` mutates; `done` reads the page on screen |
+| `generalization` (`330a216`) | rotated a fold on the cross-validation tab; the slider moved mid-press set the ladder and then climbed one more rung | finish the rung or fold, `halt` |
+| `odds-and-risk` (`c3521df`) | a run interrupted by the calculation came back frozen part way, the button reading as if nothing had been run | finish the run when the tab leaves |
+| `mendelian-randomization` (`1b0a488`) | added the other page's first SNP unasked on a shared beat clock and left its own undone; a change of reading mid-press handed the loop to the ease with the press where it stopped | finish the SNP (and the final beat), `halt` on a page switch, none under the ease; five verify checks |
+| `cnn-architecture` (`f56e962`) | the gate opened mid-unit left the loop walking the receptive field a beat ahead of the reader's first press | `halt`, since opening already lands every unit; one verify check |
+| `maximum-likelihood` (`131ac38`) | landed the candidate in flight (finishing the press) and then took the next one, on the tab switched to or when the factors toggle moved | `halt` |
+| `bayesian` (`0328a65`) | dropped the count in flight, which lost the press, then proposed a draw on the sampler | land and count it, `halt` |
+
+Five of the seven lift the body of `advance` into a module-level function so
+`advance` can record whether the drive moved and end a halted loop first; the
+body is unchanged. Widgets not named passed: 61 with the fault only in the
+seven, and 70 and 69 passing with their fixes. Two things the run turned up
+beside the fault: `bootstrap`'s `dist` switch flagged once in the two-stage
+pass and not on re-probe (a flake, not chased); and `generalization`'s
+recorded driven state, ten frames into a rung that lands at twenty-eight, hashed
+identically to its settled sibling, so it covered no drive at all. It is now
+thirty frames and re-recorded. A core option was not taken: seven shapes of
+finish are seven widgets' own knowledge, and a flag on the page parameter
+could only stop the loop, not finish the press.
+
+Verification: `npm run check` and `npm test` (31 scripts) each run alone
+and read, the shooter's copy proven on seven recorded states, and the full
+suite fronted at DPR 1.25 run twice — once after 69's fix (driver-genes 25 of
+25 identical; 45 DIFFERs elsewhere, 43 on `px` alone, in twelve widgets no
+file of which had changed, which a second run with the pane fronted from the
+start did not reproduce) and once after the sweep, reading **890 of 890
+identical**, the document hidden at no point.
+
 ### Slot 70 · `mutational-signatures` — Mutational Signatures
 
 **Host.** 01-4 end to end: cell 0 (`cancer-signature.png`, M ≈ S · W, a
