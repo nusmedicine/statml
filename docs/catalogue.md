@@ -19369,6 +19369,33 @@ overrun, no collision. `check` and `test` pass. Next: his screenshots and
 comments, the copy audit, the states, and 73's thirty states re-run since
 `signal-cnn-lstm/engine.js` is shared.
 
+**Nine review rounds the same evening, one commit each (6edebc9 → d0f99dc),
+all local.** 1 — the motif's outline on the rows read as a second window, the
+learned encoding drew the same rows as one-hot, the LSTM page's composition
+strip was a different picture of the input: every model page now opens with
+the sequence's LETTERS (wrapped at 40, the motif bold on a wash) and one
+input panel. 2 — the sequence's truth on the figure and in the probability
+tile ("the sequence shown: GC-poor · GC 0.30"). 3 — the encoding panel
+mocked four ways (`_lab/sequence-cnn-lstm-encoding-mock.html`); his pick B:
+the vocabulary table, the tokens as rows with their vectors across, the
+transpose, the same tokens as columns, then the 250 as the overview; D's
+table under both encodings. 4 — `pointer: true`: the panel follows the base
+under the pointer over the rows. 5 — and over the letters; a click on a
+letter parks the window. 6/7 — his question "should the excerpt be limited
+to the kernel size?": ONE size, the excerpt is what the layer reads at once
+— the window's k tokens on the CNN page, one token on the recurrence pages;
+the window boxed on the letters, its tokens' rows lit in the table with a
+count where a base recurs. 8 — row numbers 1 · 41 · 81 · 121 · 161 on the
+letters; the hover snaps to the stride's grid (the slide and the parked
+window already did, stepping through the layer's outputs). 9 — the motif in
+`--c-theory` (orange: a claim from outside the data), not `--c-reference`
+(grey, the benchmark a fit is judged against); one column of k rows at every
+k with the middle strip growing to fit (k = 11 → 9-px rows); a gutter for
+the transposed block's labels. The canvas text sweep (fillText wrapped, Play
+pressed, every string's extent checked) runs at 535 px, the harness width,
+after each round: three captions learned to fit by measure. Heights are now
+functions of page, encoding, direction and k.
+
 ---
 
 ## Two arcs, not one — now three
