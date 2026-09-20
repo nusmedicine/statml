@@ -12,7 +12,7 @@ answer can be checked against what was assumed.
 
 | looking for | go to |
 |---|---|
-| what to build next | **The sequence arc (PHM5005 07-1 to 07-3), PROPOSED, MEASURED AND PICKED 2026-09-20: four widgets by data type; 73 `signal-cnn-lstm` SHIPPED AND PUSHED the same day (`fbe62c2`); 75 `sequence-cnn-lstm` MEASURED, MOCKED, PICKED AND DRAFTED the same day on his call, ahead of 72 — everything trained ahead; NEXT his review rounds (§ *75*); then 72 `signal-windows`, then 74 `sequence-encoding`** — § *The sequence arc*, under PHM5005. Slot 71 `somatic-interactions` CUT 2026-09-20 and slot 52 `training-loop` DISCARDED 2026-09-13, both his call. The cancer mutation arc (67, 69, 70) is complete; the image arc has 61, 64, 65 and 62 shipped, 63 `pretrained` on KIV (his call 2026-09-15), 66 folded into 65; the GWAS and PRS arc (56, 57, 59, 60) and the high-throughput arc are complete |
+| what to build next | **The sequence arc (PHM5005 07-1 to 07-3), PROPOSED, MEASURED AND PICKED 2026-09-20: four widgets by data type; 73 `signal-cnn-lstm` SHIPPED AND PUSHED the same day (`fbe62c2`); 75 `sequence-cnn-lstm` SHIPPED AND PUSHED 2026-09-20 evening (`77fd1d7`, 42 states) after thirteen review rounds, the copy audit and three subtitle rounds; NEXT 72 `signal-windows`, then 74 `sequence-encoding`** — § *The sequence arc*, under PHM5005. Slot 71 `somatic-interactions` CUT 2026-09-20 and slot 52 `training-loop` DISCARDED 2026-09-13, both his call. The cancer mutation arc (67, 69, 70) is complete; the image arc has 61, 64, 65 and 62 shipped, 63 `pretrained` on KIV (his call 2026-09-15), 66 folded into 65; the GWAS and PRS arc (56, 57, 59, 60) and the high-throughput arc are complete |
 | how a widget got its shape | § *Widget N*, in order |
 | the four-method reconnaissance | § *Widget 19*, under the PCA sections |
 | the arcs, and what is deliberately not a widget | the arc sections below |
@@ -18986,7 +18986,7 @@ page. The arc is therefore **four widgets, renumbered in the notebooks' order**
 | 72 | `signal-windows` | Deep Learning - Signal Windows | 07-2 cells 1–21 | Window · Split · Normalize (§ *Slot 75* above) | second, then **third** on his call of 2026-09-20 afternoon |
 | 73 | `signal-cnn-lstm` (his pick; planned as `signal-models`) — **SHIPPED AND PUSHED 2026-09-20** (`fbe62c2`) | Deep Learning - Signals: CNN and LSTM | 07-2 cells 22–99 | 1D-CNN (k in ms, the stack, 69 ms per output, the head) · LSTM (permute, memory across beats, the three reductions as a display, the CNN + LSTM strip) · Occlusion (k = 32 / 16, baseline 0, the resolution, two copies) — §§ *Slot 73*, *74*, *76* above, the signal halves | **first; the engine is born here** |
 | 74 | `sequence-encoding` | Deep Learning - Sequence Encoding | 07-3 cells 1–25 | Tokenize · Pad · Encode (§ *Slot 72* above) | fourth |
-| 75 | `sequence-cnn-lstm` (his pick; planned as `sequence-models`) — **MEASURED, MOCKED AND PICKED 2026-09-20** | Deep Learning - Sequences: CNN and LSTM | 07-3 cells 26–178 | 1D-CNN (the kernel as a PWM, trained kernels spell the motif at their alignment, global max over PAD) · LSTM (packing, the final states; on composition, the task the recurrence can read) · CNN + LSTM (page 1's maps under the recurrence, last against max) · Occlusion (k = 4 / 8 / 12, baseline PAD, the heat behind the letters) — the sequence halves of the same sections | third, then **second** on his call of 2026-09-20 afternoon |
+| 75 | `sequence-cnn-lstm` (his pick; planned as `sequence-models`) — **MEASURED, MOCKED AND PICKED 2026-09-20** | Deep Learning - Sequences: CNN and LSTM | 07-3 cells 26–178 | 1D-CNN (the kernel as a PWM, trained kernels spell the motif at their alignment, global max over PAD) · LSTM (packing, the final states; on composition, the task the recurrence can read) · CNN + LSTM (page 1's maps under the recurrence, last against max) · Occlusion (k = 4 / 8 / 12, baseline PAD, the heat behind the letters) — the sequence halves of the same sections | **SHIPPED AND PUSHED 2026-09-20** (`77fd1d7`, 42 states: 27 settled, 10 driven, 3 hit-driven, 2 interrupted) |
 
 Slugs and titles are confirmed at each widget's own mock, since a slug is a
 public URL. The LSTM is named on both models widgets and there is no cell
@@ -19181,7 +19181,7 @@ came next, he picked 75 `sequence-models` over 72 ("I think it's supposed to
 be sequences after signals"), so the order is now 73 → 75 → 72 → 74, and 72
 follows 75.
 
-#### 75 `sequence-cnn-lstm` (planned as `sequence-models`) — MEASURED, MOCKED, PICKED AND DRAFTED 2026-09-20, seven budget sweeps
+#### 75 `sequence-cnn-lstm` (planned as `sequence-models`) — SHIPPED AND PUSHED 2026-09-20 (`77fd1d7`); measured, mocked, picked and drafted the same day, seven budget sweeps
 
 **His pick, 2026-09-20 afternoon:** 75 before 72. The host is 07-3 cells
 26–178, read in full: cell 28's `CNN1D` as instantiated (embedding, conv k7
@@ -19450,6 +19450,33 @@ biological sequence, four bases or twenty amino acids, "here for DNA". Blurb:
 "A biological sequence as tokens, as one-hot or embedded rows, into a 1D CNN
 or an LSTM; occlusion sets a window to PAD." (119 chars, manifest and page
 description alike.)
+
+**SHIPPED AND PUSHED 2026-09-20 evening on his "tested ok, do the states and
+ship" (`77fd1d7`; commits f44e663 → 77fd1d7, one file each).** The switch
+probe: 18 switches, 0 flagged. Forty-two states — 27 settled across the four
+pages (both tasks, both encodings, k 3 and 11, stride 2, average pooling,
+bi, unpacked, max reduced, every occlusion window and model, the flat maps),
+10 driven (the slide at two paces, the stack, the loss curve, both
+recurrence sweeps with the window following, the combo's kernel slide and
+its three synced marks, the first occluded window, Play), 3 hit-driven (a
+map row → follow, a letter → stop, the rows → stop), 2 interrupted (a page
+switch mid-press each way) — identical across three filtered runs, then a
+confirmation run reading all 72 of 73's and 75's states MATCH. **Two things
+the ship found.** (1) The full suite read 26 of 73's thirty states DIFFER,
+px only, every readout unchanged, at the same canvas sizes, and only the
+"before any press" states matched — so not the scrollbar but the shared
+engine: `train`'s per-epoch rebuild of the shuffle index (added for 75's
+function source) drew the same random numbers into different batches, and
+73 trains in the browser. Fixed in `engine.js` (f44e663: the order persists
+across epochs for a fixed set; a new array gets a new order); 75's table
+verified byte-for-byte under the fix; 73's thirty MATCH again. (2) The
+shooter's copy proof did not reproduce — all seven proof states DIFFER on
+px against a harness that MATCHes them — so `fingerprint.html` grew the
+`?only=a,b` filter HANDOVER had asked for (27ea756; Copy new baseline
+splices a filtered run into the baseline in place), and the states were
+recorded through the harness itself: three runs of the widget's 42 in about
+two minutes each. The shooter copy was not kept. `npm run check`, `npm test`
+and `npm run build` run alone and read; deploy 35516542426.
 
 ---
 
