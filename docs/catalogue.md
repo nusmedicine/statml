@@ -12,7 +12,7 @@ answer can be checked against what was assumed.
 
 | looking for | go to |
 |---|---|
-| what to build next | **The sequence arc (PHM5005 07-1 to 07-3), PROPOSED, MEASURED AND PICKED 2026-09-20: four widgets by data type; 73 `signal-cnn-lstm` SHIPPED AND PUSHED the same day (`fbe62c2`); 75 `sequence-cnn-lstm` SHIPPED AND PUSHED 2026-09-20 evening (`77fd1d7`, 42 states) after thirteen review rounds, the copy audit and three subtitle rounds; NEXT 72 `signal-windows`, then 74 `sequence-encoding`** — § *The sequence arc*, under PHM5005. Slot 71 `somatic-interactions` CUT 2026-09-20 and slot 52 `training-loop` DISCARDED 2026-09-13, both his call. The cancer mutation arc (67, 69, 70) is complete; the image arc has 61, 64, 65 and 62 shipped, 63 `pretrained` on KIV (his call 2026-09-15), 66 folded into 65; the GWAS and PRS arc (56, 57, 59, 60) and the high-throughput arc are complete |
+| what to build next | **The sequence arc (PHM5005 07-1 to 07-3), PROPOSED, MEASURED AND PICKED 2026-09-20: four widgets by data type; 73 `signal-cnn-lstm` SHIPPED AND PUSHED the same day (`fbe62c2`); 75 `sequence-cnn-lstm` SHIPPED AND PUSHED 2026-09-20 evening (`77fd1d7`, 42 states) after thirteen review rounds, the copy audit and three subtitle rounds; NEXT 72 `signal-windows` — MEASURED, MOCKED AND PICKED 2026-09-20 evening, the draft is next — then 74 `sequence-encoding`** — § *The sequence arc*, under PHM5005. Slot 71 `somatic-interactions` CUT 2026-09-20 and slot 52 `training-loop` DISCARDED 2026-09-13, both his call. The cancer mutation arc (67, 69, 70) is complete; the image arc has 61, 64, 65 and 62 shipped, 63 `pretrained` on KIV (his call 2026-09-15), 66 folded into 65; the GWAS and PRS arc (56, 57, 59, 60) and the high-throughput arc are complete |
 | how a widget got its shape | § *Widget N*, in order |
 | the four-method reconnaissance | § *Widget 19*, under the PCA sections |
 | the arcs, and what is deliberately not a widget | the arc sections below |
@@ -18983,7 +18983,7 @@ page. The arc is therefore **four widgets, renumbered in the notebooks' order**
 
 | # | slug | title (provisional) | host | pages | order |
 |---|---|---|---|---|---|
-| 72 | `signal-windows` | Deep Learning - Signal Windows | 07-2 cells 1–21 | Window · Split · Normalize (§ *Slot 75* above) | second, then **third** on his call of 2026-09-20 afternoon |
+| 72 | `signal-windows` | Deep Learning - Signal Windows | 07-2 cells 1–21 | Window · Split · Normalize (§ *Slot 75* above) | second, then **third** on his call of 2026-09-20 afternoon; **MEASURED, MOCKED AND PICKED 2026-09-20 evening** (§ *72* below) |
 | 73 | `signal-cnn-lstm` (his pick; planned as `signal-models`) — **SHIPPED AND PUSHED 2026-09-20** (`fbe62c2`) | Deep Learning - Signals: CNN and LSTM | 07-2 cells 22–99 | 1D-CNN (k in ms, the stack, 69 ms per output, the head) · LSTM (permute, memory across beats, the three reductions as a display, the CNN + LSTM strip) · Occlusion (k = 32 / 16, baseline 0, the resolution, two copies) — §§ *Slot 73*, *74*, *76* above, the signal halves | **first; the engine is born here** |
 | 74 | `sequence-encoding` | Deep Learning - Sequence Encoding | 07-3 cells 1–25 | Tokenize · Pad · Encode (§ *Slot 72* above) | fourth |
 | 75 | `sequence-cnn-lstm` (his pick; planned as `sequence-models`) — **MEASURED, MOCKED AND PICKED 2026-09-20** | Deep Learning - Sequences: CNN and LSTM | 07-3 cells 26–178 | 1D-CNN (the kernel as a PWM, trained kernels spell the motif at their alignment, global max over PAD) · LSTM (packing, the final states; on composition, the task the recurrence can read) · CNN + LSTM (page 1's maps under the recurrence, last against max) · Occlusion (k = 4 / 8 / 12, baseline PAD, the heat behind the letters) — the sequence halves of the same sections | **SHIPPED AND PUSHED 2026-09-20** (`77fd1d7`, 42 states: 27 settled, 10 driven, 3 hit-driven, 2 interrupted) |
@@ -19477,6 +19477,109 @@ splices a filtered run into the baseline in place), and the states were
 recorded through the harness itself: three runs of the widget's 42 in about
 two minutes each. The shooter copy was not kept. `npm run check`, `npm test`
 and `npm run build` run alone and read; deploy 35516542426.
+
+#### 72 `signal-windows` — MEASURED, MOCKED AND PICKED 2026-09-20 evening; the draft is next
+
+**The ask, 2026-09-20 evening:** *read handover and let's plan the next
+widget.* The host is 07-2 cells 1–21, read again in full: cell 1's workflow
+(segmentation, label alignment, the split, per-segment normalisation), cell 4
+(his figure `dl-sequential-preprocess-window.png`: Recording annotation ·
+Event annotation → Segmented · Unsegmented → Window → label; *if labels are
+at the recording level every window inherits it; if from event annotations,
+assign by overlap*), cell 5 (*window-level split: randomize across all
+windows; subject-level split: all windows from one subject go to the same
+split (avoids leakage)*; `x' = (x − μ) / σ` per window; `[N, C, L]`), cells
+11–13 (the manifest and a stratified 80/10/10 `train_test_split`), cells
+16–19 (`ECGDataset`, `normalize` over `dim=1`, `xb.shape`). **One thing in
+the notebook worth telling him, told:** cell 13 splits the fragments at
+random, stratified by label, and PhysioNet's fragments come several to a
+record (`418_C_VFL_1075s_frag`, `418_C_VFL_277s_frag`, …), so the lesson's
+own split is window-level, two cells after cell 5 says subject-level avoids
+leakage; the record number is the file name's first token. The widget stays
+silent on it — no lesson references in copy (principle 5.9) — and the
+notebook is his.
+
+**Measured** (`_lab/signal-windows-measure.mjs`, 129 s, 2026-09-20; its
+header carries every number). The arc measurement's M5 (79.5% against 33.3%)
+had settled the claim on a stage whose class was an irregular rhythm; this
+script built the widget's own stage — eight subjects, each a 20 s recording
+in a morphology of their own (rate, amplitude, QRS width, T wave, wander),
+windowed at a length and an overlap — and asked what a page needs:
+
+- **The rhythm class is the leak, whole (W1/W3/W7/W9).** With the class a
+  recording annotation, a nearest neighbour on the window's spectrum scores
+  59 → 69–78 → 87–95% under a window-level split as the overlap goes 0 → 50
+  → 75%, and 46–52% under a subject-level one at every overlap. **No window
+  length changes that:** 1, 2, 4 and 8 s give 48–65% subject-level while the
+  window-level number reaches 100% at 8 s with the nearest window the same
+  subject every time. 73's CNN cannot learn the rhythm either (30–46%).
+- **Ectopic beats as the class are learnable and do not leak (W2/W7).** With
+  an event label both splits read 87–98% for the nearest neighbour and 93–98%
+  for the CNN: the beat looks alike across subjects, so the nearest window's
+  label is right whoever it belongs to. With the recording label on that
+  stage, 90–100% against 82–91%.
+- **The similarity rule (W8).** Correlation at the best shift finds a window
+  of the same subject for 86% of held-out windows under the window-level
+  split (the spectrum 55%, zero-lag correlation 26%) and gives the widest
+  gap, 93.5% against 65.7%; only 16% of those matches OVERLAP the held-out
+  window — the leak is the subject's morphology, not the shared samples, as
+  M5 found. Half rate, lag step 3: 0.5 s on 312 windows.
+- **Amplitude is not a leak (W4):** the CNN on raw windows scores 51 / 39%
+  against 67 / 56% z-scored — unnormalised inputs train worse, the lesson's
+  own reason for `normalize`. Per-subject RMS varies with CV 15%. So the
+  Normalize page claims nothing about the split.
+- **Budget (W5):** 73's CNN trains on these windows in 0.65 s, but its
+  numbers move 69–98% with the seed on one setting.
+- **Label by overlap (W6):** an 80-sample event is labelled onto 1.2 / 2.4 /
+  4.7 windows under "any overlap" and 1.0 / 2.0 / 3.9 under "more than half"
+  at overlap 0 / 50 / 75% and L = 360; at 0% it lies wholly inside some
+  window 79% of the time, at 50% always.
+
+**Mocked** (`_lab/signal-windows-mock.html`, from 73's shell; every number on
+the page computed there — the stage from the seed, windowed, dealt two ways,
+scored by the nearest window in 0.36 s; `?seed=N&L=720&overlap=0.75` for
+another). Five sections: the stage (two subjects' recordings with both
+annotations drawn), the Window page as one recording with the two label lanes
+under it (A) against the figure's two arms side by side (B), the Split page
+as two decks — one row a subject, cells coloured by label with `--c-event` /
+`--c-nonevent`, held-out cells outlined in `--c-holdout` — under the
+recording label and under the event label, each with one held-out window
+drawn over its nearest training window and whose it is, the Normalize page
+(amplitude before and after, the `[N, C, L]` print), and three rails.
+
+**His picks, 2026-09-20 evening, two `AskUserQuestion` calls, every one the
+recommendation:**
+
+1. **Both annotations on the stage, an Annotation control (data: recording ·
+   event) choosing which becomes the label.** The Window page shows that arm
+   of his figure; the Split page scores that label. Under recording the leak
+   shows; under event both splits agree and the caption says why. The
+   subject-level number is the one to report either way.
+2. **The scorer is the nearest window, drawn:** each held-out window takes
+   the label of the most similar training window (correlation at the best
+   shift), and the match is drawn over it with whose it is. Not the CNN.
+3. **The Split page shows one deal, both numbers:** a Split control (data: by
+   window · by subject) picks the deal drawn; the readout prints both
+   accuracies.
+4. **Step and Play on both pages:** Window — Step cuts the next window and
+   writes its label; Split — Step deals one row or column, then scores the
+   held-out windows one at a time with the match drawn as it is found.
+5. **The Window page is one recording with two lanes** (mock A), the live
+   lane the Annotation control's, the other dimmed.
+6. **Controls:** Window 1 · 2 · 4 s (360 · 720 · 1440 samples, the lesson's
+   2 s among them); Overlap 0 · 50 · 75 %; Event rule (any overlap · more
+   than half) when Annotation is event; Subject drawn, a display control;
+   Seed.
+7. **Normalize is a third page**, small: each subject's windows' amplitude
+   before and after, the formula, and the `[N, C, L]` print for the current
+   stage. The page control reads Window · Split · Normalize.
+8. **Slug `signal-windows`, title "Deep Learning - Signal Windows".**
+
+**NEXT:** the draft — `widgets/signal-windows/` with `model.js` (the stage
+lifted from the mock, the windowing, the nearest-window scorer, the label
+counts) and `main.js`, `_lab/signal-windows-verify.mjs` registered in
+`scripts/verify.mjs`, manifest status `draft`; then his rounds. The CNN is
+not imported; nothing trains.
 
 ---
 

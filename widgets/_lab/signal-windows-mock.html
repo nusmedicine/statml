@@ -1,0 +1,405 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · signal-windows — mock</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1600px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 104ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); min-height: 26px; white-space: pre-line; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 104ch; }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+       border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 104ch; }
+  .q b { display: block; margin-bottom: 2px; }
+  #findings { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--ink-2); white-space: pre-line;
+              padding: var(--sp-3); background: var(--surface-2); border: 1px solid var(--grid); max-width: 120ch; }
+  .rail { display: inline-block; vertical-align: top; width: 260px; border: 1px solid var(--grid); padding: 8px 10px; font-size: 11px; color: var(--ink-1); margin-right: var(--sp-4); }
+  .rail .sec { font-size: 10px; color: var(--ink-3); text-transform: uppercase; letter-spacing: .04em; margin: 8px 0 2px; }
+  .rail .sec:first-child { margin-top: 0; }
+  .rail .ctl { display: flex; justify-content: space-between; gap: 8px; padding: 2px 0; }
+  .rail .ctl span:last-child { color: var(--ink-2); font-family: var(--font-mono); font-size: 10px; }
+  .rail .btn { border: 1px solid var(--grid); border-radius: 3px; padding: 3px 8px; margin: 3px 0; text-align: center; background: var(--surface-2); }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>signal-windows &middot; mock</h1>
+  <p class="note">
+    Slot 72, for 07-2 cells 1&ndash;21: segmentation and label alignment (cell 4, your figure), the split's unit (cell 5),
+    per-window <code>normalize</code> and the <code>[N, C, L]</code> print (cells 17&ndash;19). <b>Every number drawn here is
+    computed on this page</b>: eight subjects' recordings generated from the seed, windowed, dealt two ways and scored by a
+    nearest neighbour. Nothing trains. The mock draws filled states so they can be judged; the widget opens empty.
+    On-canvas strings are candidates for the copy audit, not copy. Each section ends with a recommendation; the grey-ruled
+    boxes are the questions only you can answer. <span id="seedNote"></span>
+  </p>
+
+  <h2>0 &middot; What the measurement found (<code>_lab/signal-windows-measure.mjs</code>, 129 s)</h2>
+  <div id="findings"></div>
+
+  <h2>1 &middot; The stage: eight subjects, each a recording in their own morphology, with BOTH annotations of your figure</h2>
+  <p class="note">
+    Every subject has a rate, an amplitude, a QRS width, a T wave and a wander of their own. Two annotations sit on each
+    recording: a <b>recording annotation</b> (the rhythm: regular or irregular, one label for the whole recording &mdash; what a
+    PhysioNet fragment's class is, since it comes from the record) and <b>event annotations</b> (each ectopic beat, an interval
+    of 80 samples). Which one becomes the window's label is the figure's two arms.
+  </p>
+  <div class="row" id="stageRow"></div>
+  <p class="q"><b>1.1 &middot; The annotations on the stage</b>
+    <b>A &middot; both, and an Annotation control (data) chooses which becomes the label &mdash; recording &middot; event (recommended)</b>: the Window page shows the figure's arm and the Split page scores that label &nbsp;|&nbsp;
+    B &middot; the recording annotation only (the rhythm class); the event arm is a picture on the Window page and no split is scored on it &nbsp;|&nbsp;
+    C &middot; the event annotation only</p>
+
+  <h2>2 &middot; Page 1, <i>Window</i> (cell 4): the recording, the windows, the label each inherits</h2>
+  <p class="note">
+    One subject's recording, cut into windows of <code>L</code> at an overlap. Under a recording annotation every window
+    inherits the one label. Under event annotations a window is labelled by overlap with an event: any overlap, or more than
+    half the event inside. The counts under the windows are the page's own.
+  </p>
+  <div class="row" id="winRow"></div>
+  <p class="rec" id="recWin"></p>
+  <p class="q"><b>2.1 &middot; Layout</b>
+    <b>A &middot; one recording, the two label lanes stacked under it, the Annotation control switching which lane is live (recommended)</b> &nbsp;|&nbsp;
+    B &middot; the figure's two arms side by side, each with its own recording and windows</p>
+  <p class="q"><b>2.2 &middot; Motion</b>
+    <b>A &middot; Step cuts the next window and labels it; Play runs to the end (recommended)</b> &mdash; the cutting is repetition, and the label rule is read once per window &nbsp;|&nbsp;
+    B &middot; static: every window drawn on a parameter change, no Step</p>
+  <p class="q"><b>2.3 &middot; Controls</b>
+    <b>A &middot; Window 1 &middot; 2 &middot; 4 s (360 &middot; 720 &middot; 1440 samples); Overlap 0 &middot; 50 &middot; 75 %; Event rule any overlap &middot; more than half (when Annotation = event); Subject drawn (display) (recommended)</b> &nbsp;|&nbsp;
+    B &middot; the lesson's 2 s fixed, only Overlap and the rule move</p>
+
+  <h2>3 &middot; Page 2, <i>Split</i> (cell 5): the windows dealt by window or by subject, and what a nearest neighbour scores</h2>
+  <p class="note">
+    All eight subjects' windows as a deck, one row a subject, coloured by label; the held-out ones marked. Dealt by
+    <b>window</b> (a random fifth, the lesson's cell 13) or by <b>subject</b> (one of each class held out, all their windows).
+    The scorer is the simplest model there is: each held-out window takes the label of the <b>most similar training window</b>
+    (correlation at the best shift), so the mechanism can be drawn &mdash; the held-out window over its match, and whose it is.
+  </p>
+  <div class="row" id="splitRow"></div>
+  <p class="rec" id="recSplit"></p>
+  <p class="q"><b>3.1 &middot; The scorer</b>
+    <b>A &middot; the nearest window, drawn (recommended)</b>: deterministic, instant, and the leak is visible &mdash; the match is the same subject &nbsp;|&nbsp;
+    B &middot; 73's CNN trained on the click under each split (0.65 s each, measured; the numbers move with the seed, 69&ndash;98% on one setting, and there is no mechanism to draw) &nbsp;|&nbsp;
+    C &middot; both, the CNN as a second readout line</p>
+  <p class="q"><b>3.2 &middot; What the page shows</b>
+    <b>A &middot; a Split control (data: by window &middot; by subject) picks the deal drawn; the readout prints both accuracies (recommended)</b> &nbsp;|&nbsp;
+    B &middot; both deals side by side, no Split control &nbsp;|&nbsp;
+    C &middot; the chosen deal and its number only</p>
+  <p class="q"><b>3.3 &middot; Motion</b>
+    <b>A &middot; Step deals one subject's row (by subject) or one column (by window), then scores the held-out windows one at a time, the match drawn as it is found; Play runs on (recommended)</b> &nbsp;|&nbsp;
+    B &middot; the deal drawn at once, Step scores one held-out window</p>
+
+  <h2>4 &middot; Page 3, <i>Normalize</i> (cells 17&ndash;19): per-window z-score, and the print</h2>
+  <p class="note">
+    The lesson's <code>normalize</code> standardises each window over its own samples. Left: each subject's windows' RMS
+    amplitude before, and after. Right: the lesson's <code>xb.shape</code>, as <code>[N, C, L]</code> for the current stage.
+    Measured: the amplitude is not a leak 73's CNN can use (raw windows train worse than z-scored under either split), so the
+    page says what the lesson says &mdash; levels vary recording to recording &mdash; and claims nothing about the split.
+  </p>
+  <div class="row" id="normRow"></div>
+  <p class="q"><b>4.1 &middot; Its place</b>
+    <b>A &middot; a third page, small (recommended)</b>, so the page control reads Window &middot; Split &middot; Normalize as the catalogue has it &nbsp;|&nbsp;
+    B &middot; a strip at the bottom of the Window page, and two pages</p>
+
+  <h2>5 &middot; The rail</h2>
+  <p class="note">Three pages as a page control at the top, as 73 has it; the stage block shared; per-page controls through <code>when:</code>.</p>
+  <div id="rails"></div>
+  <p class="q"><b>5.1 &middot; The slug and the title</b>
+    <code>signal-windows</code> &middot; "Deep Learning - Signal Windows" (the catalogue's) &nbsp;|&nbsp; <code>signal-windows</code> &middot; "Deep Learning - Signals: Windows and the Split" &nbsp;|&nbsp; yours</p>
+  <p class="q"><b>5.2 &middot; The notebook</b>
+    Cell 13 splits the fragments at random, stratified by label; PhysioNet's fragments come several to a record (<code>418_C_VFL_1075s</code>, <code>418_C_VFL_277s</code>, &hellip;), so the lesson's own split is window-level, two cells after cell 5 says subject-level avoids leakage. The record number is the file name's first token. Yours to change or leave; the widget's caption can say which the lesson does, or stay silent.</p>
+</main>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+import { makeRng } from "../core/rng.js";
+
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+const W = 550;
+const Q = new URLSearchParams(location.search);
+const SEED = Number(Q.get("seed") || 1);
+const L = Number(Q.get("L") || 360), OVERLAP = Number(Q.get("overlap") || 0.5);
+document.getElementById("seedNote").textContent = `Seed ${SEED}, L = ${L}, overlap ${OVERLAP}; add ?seed=N&L=720&overlap=0.75 for another.`;
+
+/* ---------------------------------------------------------------- shell */
+function el(tag, cls, text) { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
+function cand(rowId, title, sub, w = W) {
+  const box = el("div", "cand"); box.style.width = `${w}px`;
+  box.appendChild(el("h3", null, title)); box.appendChild(el("p", "sub", sub));
+  document.getElementById(rowId).appendChild(box);
+  return box;
+}
+function canvasIn(box, w, h) {
+  const c = document.createElement("canvas");
+  c.width = Math.round(w * DPR); c.height = Math.round(h * DPR); c.style.width = `${w}px`; c.style.height = `${h}px`;
+  box.appendChild(c); const ctx = c.getContext("2d"); ctx.scale(DPR, DPR); return ctx;
+}
+const rgb = (c) => { const m = String(c).match(/^#([0-9a-f]{6})$/i); return m ? [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16)) : [128, 128, 128]; };
+const wash = (color, a) => { const p = rgb(color); return `rgba(${p[0]},${p[1]},${p[2]},${a})`; };
+function label(ctx, s, x, y, { size = 11, colour = T.ink2, align = "left", mono = false, weight = "", baseline = "alphabetic" } = {}) {
+  ctx.save(); ctx.font = `${weight ? weight + " " : ""}${size}px ${mono ? T.mono : T.font}`; ctx.fillStyle = colour; ctx.textAlign = align; ctx.textBaseline = baseline; ctx.fillText(s, x, y); ctx.restore();
+}
+function line(ctx, x1, y1, x2, y2, colour, width = 1, dash = null) {
+  ctx.save(); ctx.strokeStyle = colour; ctx.lineWidth = width; if (dash) ctx.setLineDash(dash); ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); ctx.restore();
+}
+function rect(ctx, x, y, w, h, fill, stroke = null, lw = 1) { ctx.save(); if (fill) { ctx.fillStyle = fill; ctx.fillRect(x, y, w, h); } if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw; ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1); } ctx.restore(); }
+function polyline(ctx, xs, ys, colour, width = 1.2) { ctx.save(); ctx.strokeStyle = colour; ctx.lineWidth = width; ctx.lineJoin = "round"; ctx.beginPath(); xs.forEach((x, i) => (i ? ctx.lineTo(x, ys[i]) : ctx.moveTo(x, ys[i]))); ctx.stroke(); ctx.restore(); }
+/** the trace between x0..x1, top..bot on a fixed value window */
+function tracePlot(ctx, x, x0, x1, top, bot, colour = T.empirical, lw = 1, mn = -1, mx = 2.2) {
+  const n = x.length, xs = [], ys = [];
+  for (let t = 0; t < n; t++) { xs.push(x0 + (t / (n - 1)) * (x1 - x0)); ys.push(bot - ((Math.max(mn, Math.min(mx, x[t])) - mn) / (mx - mn)) * (bot - top)); }
+  polyline(ctx, xs, ys, colour, lw);
+  return (t) => x0 + (t / (n - 1)) * (x1 - x0);
+}
+const pct = (v) => `${(100 * v).toFixed(0)}%`;
+const mean = (a) => a.reduce((p, q) => p + q, 0) / a.length;
+
+/* ------------------------------------------------------------- the stage */
+/* the measure script's stage, both annotations on every subject: a rhythm (regular / irregular, the recording annotation)
+   and occasional ectopic beats (each an event annotation of 80 samples) */
+const FS = 360, S = 8, TREC = 7200, EV = 40;
+function subject(rng, s, cls) {
+  return { s, cls, period: 130 + Math.floor(rng.next() * 70), amp: 0.6 + rng.next() * 1.0, width: 3 + Math.floor(rng.next() * 3),
+    tAmp: 0.1 + rng.next() * 0.25, tLag: 40 + Math.floor(rng.next() * 30), wanderF: 400 + rng.next() * 400, wanderA: 0.05 + rng.next() * 0.1, wanderP: rng.next() * 6.28,
+    jitter: cls === 1 ? 0.30 : 0.03, q: 0.12 };
+}
+function record(rng, sub) {
+  const x = new Float64Array(TREC), events = [];
+  for (let t = Math.floor(rng.next() * sub.period); t < TREC;) {
+    if (rng.next() < sub.q) {
+      for (let d = -EV; d <= EV; d++) if (t + d >= 0 && t + d < TREC) x[t + d] += sub.amp * (1.3 * Math.exp(-(d * d) / (2 * 11 * 11)) - 0.35 * Math.exp(-((d - 26) ** 2) / (2 * 9 * 9)));
+      events.push([Math.max(0, t - EV), Math.min(TREC, t + EV)]);
+    } else {
+      const w = sub.width;
+      for (let d = -w; d <= w; d++) if (t + d >= 0 && t + d < TREC) x[t + d] += sub.amp * (1 - Math.abs(d) / (w + 1));
+      for (let d = -w - 5; d < -w; d++) if (t + d >= 0) x[t + d] -= 0.12 * sub.amp;
+      for (let d = w + 1; d < w + 9; d++) if (t + d < TREC) x[t + d] -= 0.18 * sub.amp;
+      for (let d = sub.tLag; d < sub.tLag + 50; d++) if (t + d < TREC) x[t + d] += sub.tAmp * sub.amp * Math.sin(Math.PI * (d - sub.tLag) / 50);
+    }
+    t += Math.max(60, Math.round(sub.period * (1 + sub.jitter * rng.normal())));
+  }
+  for (let t = 0; t < TREC; t++) x[t] += rng.normal(0, 0.03) + sub.wanderA * Math.sin(2 * Math.PI * t / sub.wanderF + sub.wanderP);
+  return { x, events };
+}
+const z = (a) => { const m = mean(a), sd = Math.sqrt(mean(a.map((v) => (v - m) ** 2))) || 1; return a.map((v) => (v - m) / sd); };
+const rng = makeRng(SEED);
+const subjects = Array.from({ length: S }, (_, s) => subject(rng, s, s % 2));
+const recs = subjects.map((sub) => record(rng, sub));
+const STEP = Math.max(1, Math.round(L * (1 - OVERLAP)));
+const windows = [];
+subjects.forEach((sub, s) => {
+  const { x, events } = recs[s];
+  for (let a = 0; a + L <= TREC; a += STEP) {
+    const raw = Array.from(x.slice(a, a + L));
+    let any = 0, maj = 0;
+    for (const [e0, e1] of events) { const ov = Math.max(0, Math.min(a + L, e1) - Math.max(a, e0)); if (ov > 0) any = 1; if (ov > (e1 - e0) / 2) maj = 1; }
+    const zed = z(raw);
+    windows.push({ sub: s, start: a, raw, zed, half: zed.filter((_, i) => i % 2 === 0), rms: Math.sqrt(mean(raw.map((v) => v * v))), yRec: sub.cls, yAny: any, yMaj: maj });
+  }
+});
+const perSub = windows.length / S;
+
+/* the scorer: correlation at the best shift, on the half-rate window, shifts up to a quarter of the window */
+function lagCorr(a, b) { let best = -2; const n = a.length, maxLag = Math.floor(n / 4); for (let lag = -maxLag; lag <= maxLag; lag += 3) { let s = 0, c = 0; for (let i = Math.max(0, -lag); i < Math.min(n, n - lag); i++) { s += a[i] * b[i + lag]; c++; } const v = (s / c) * Math.sqrt(c / n); if (v > best) best = v; } return best; }
+function nearest(train, t) { let best = -Infinity, at = null; for (const tr of train) { if (tr === t) continue; const c = lagCorr(tr.half, t.half); if (c > best) { best = c; at = tr; } } return { at, c: best }; }
+function score(train, test, y) { const matches = test.map((t) => ({ t, ...nearest(train, t) })); return { acc: mean(matches.map((m) => (m.at[y] === m.t[y] ? 1 : 0))), same: mean(matches.map((m) => (m.at.sub === m.t.sub ? 1 : 0))), matches }; }
+const dealRng = makeRng(SEED + 50);
+const idx = windows.map((_, i) => i); for (let i = idx.length - 1; i > 0; i--) { const j = Math.floor(dealRng.next() * (i + 1)); [idx[i], idx[j]] = [idx[j], idx[i]]; }
+const heldW = new Set(idx.slice(0, Math.round(idx.length / 5)));
+const byWindow = { train: windows.filter((_, i) => !heldW.has(i)), test: windows.filter((_, i) => heldW.has(i)), isHeld: (i) => heldW.has(i) };
+const heldS = new Set([0, 1]);
+const bySubject = { train: windows.filter((w) => !heldS.has(w.sub)), test: windows.filter((w) => heldS.has(w.sub)), isHeld: (i) => heldS.has(windows[i].sub) };
+const tScore = performance.now();
+const R = {};
+for (const y of ["yRec", "yMaj"]) R[y] = { w: score(byWindow.train, byWindow.test, y), s: score(bySubject.train, bySubject.test, y) };
+const scoreMs = performance.now() - tScore;
+// label-by-overlap counts on this stage
+const evCount = (() => { let any = 0, maj = 0, n = 0; subjects.forEach((_, s) => { for (const [e0, e1] of recs[s].events) { n++; for (let a = 0; a + L <= TREC; a += STEP) { const ov = Math.max(0, Math.min(a + L, e1) - Math.max(a, e0)); if (ov > 0) any++; if (ov > (e1 - e0) / 2) maj++; } } }); return { any: any / n, maj: maj / n, n }; })();
+
+/* ================================================================== §0 */
+document.getElementById("findings").textContent = [
+  `this page: ${S} subjects × ${perSub} windows of ${L} (${(L / FS).toFixed(0)} s) at ${pct(OVERLAP)} overlap, stride ${STEP}; ${evCount.n} ectopic beats; scored in ${(scoreMs / 1000).toFixed(2)} s`,
+  `this page, recording label (rhythm): by window ${pct(R.yRec.w.acc)} · by subject ${pct(R.yRec.s.acc)}; the nearest window is the same subject for ${pct(R.yRec.w.same)} of held-out windows under the window deal`,
+  `this page, event label (more than half): by window ${pct(R.yMaj.w.acc)} · by subject ${pct(R.yMaj.s.acc)}`,
+  `this page: one 80-sample event is labelled onto ${evCount.any.toFixed(2)} windows under any overlap, ${evCount.maj.toFixed(2)} under more than half`,
+  "script W3/W7 (rhythm class, 1-NN on the spectrum, S = 8–12): window-level 59 → 69–78 → 87–95% as the overlap goes 0 → 50 → 75%; subject-level 46–52% throughout — the class is not learnable from a window, and the window-level number is the subject",
+  "script W9: no window length makes the rhythm learnable across subjects (subject-level 48–65% at 1, 2, 4, 8 s) while the window-level number reaches 100% at 8 s with the nearest window the same subject 100% of the time; 73's CNN cannot learn it either (30–46% subject-level)",
+  "script W2/W7 (ectopic beats as the class, event labels): both splits 87–98% — the beat is learnable and looks alike across subjects, so the label of the nearest window is right whoever it belongs to; with the RECORDING label on that stage, 90–100% against 82–91%",
+  "script W8 (which similarity): correlation at the best shift finds the same subject for 86% of held-out windows (spectrum 55%, zero-lag 26%) and gives the widest gap; on 312 windows it costs 0.5 s at half rate",
+  "script W4: the CNN on raw windows scores LOWER than on z-scored ones under both splits (51 / 39% against 67 / 56%) — amplitude is not a leak here; per-subject RMS varies with CV 15%, every z-scored window has sd 1",
+  "script W5: 73's CNN trains on these windows in 0.65 s (20 epochs, half width) — affordable, but its numbers move with the seed (69–98% on one setting)",
+  "script W6: an 80-sample event is labelled onto 1.2 / 2.4 / 4.7 windows (any overlap) and 1.0 / 2.0 / 3.9 (more than half) at overlap 0 / 50 / 75% and L = 360; at 0% it lies wholly inside some window 79% of the time",
+].join("\n");
+
+/* ================================================================== §1 */
+{
+  const mk = (s) => {
+    const sub = subjects[s], { x, events } = recs[s];
+    const box = cand("stageRow", `Subject ${s + 1} · ${sub.cls ? "irregular rhythm" : "regular rhythm"} (the recording annotation)`, `first 12 s of 20 · ${events.length} ectopic beats (the event annotations) · rate ${Math.round(60 * FS / sub.period)} bpm, amplitude ${sub.amp.toFixed(2)}`);
+    const ctx = canvasIn(box, W, 130);
+    const N = 12 * FS;
+    const px = tracePlot(ctx, x.slice(0, N), 14, W - 14, 12, 100);
+    for (const [e0, e1] of events) if (e0 < N) rect(ctx, px(e0), 12, px(Math.min(e1, N)) - px(e0), 88, wash(T.event, 0.16));
+    label(ctx, "0 s", 14, 116, { size: 9 }); label(ctx, "12 s", W - 14, 116, { size: 9, align: "right" });
+    label(ctx, "event annotation · ectopic beat", 14 + 90, 24, { size: 9, colour: T.event });
+  };
+  mk(0); mk(1);
+}
+
+/* ================================================================== §2 */
+{
+  const s = 1, sub = subjects[s], { x, events } = recs[s];
+  const N = 12 * FS, X0 = 40, X1 = W * 2 - 14;
+  // A · one recording, two lanes
+  const box = cand("winRow", "A · one recording, the two label lanes under it", `subject 2, 12 s drawn · L = ${L}, stride ${STEP} · the live lane is the Annotation control's; the other is dimmed`, W * 2);
+  const ctx = canvasIn(box, W * 2, 300);
+  label(ctx, "Recording", X0, 14, { colour: T.ink1, weight: "600", size: 10 });
+  const px = tracePlot(ctx, x.slice(0, N), X0, X1, 20, 90);
+  for (const [e0, e1] of events) if (e0 < N) { rect(ctx, px(e0), 20, px(Math.min(e1, N)) - px(e0), 70, wash(T.event, 0.16)); label(ctx, "event", px(e0) + 2, 30, { size: 8, colour: T.event }); }
+  rect(ctx, px(0), 20, px(N - 1) - px(0), 70, null, T.event, 1);
+  label(ctx, "recording annotation: irregular rhythm", X1 - 4, 30, { size: 9, colour: T.event, align: "right" });
+  const winsHere = windows.filter((w) => w.sub === s && w.start + L <= N);
+  const lane = (top, title, y, dim) => {
+    label(ctx, title, X0, top - 4, { colour: dim ? T.ink3 : T.ink1, weight: "600", size: 10 });
+    winsHere.forEach((w, i) => {
+      const yy = top + (i % 2) * 16, x0 = px(w.start), x1 = px(w.start + L - 1);
+      const on = w[y] === 1, col = on ? T.event : T.nonevent;
+      rect(ctx, x0, yy, x1 - x0, 14, wash(col, dim ? 0.08 : 0.22), dim ? T.grid : col, 1);
+      label(ctx, on ? (y === "yRec" ? "irregular" : "A") : (y === "yRec" ? "" : "N"), (x0 + x1) / 2, yy + 10, { size: 9, align: "center", colour: dim ? T.ink3 : T.ink1 });
+    });
+  };
+  lane(118, "Recording annotation → every window inherits it", "yRec", true);
+  lane(172, "Event annotation → a window is labelled by overlap (more than half the event inside)", "yMaj", false);
+  label(ctx, `${winsHere.length} windows drawn of this subject's ${perSub} · ${windows.length} in all · one event is labelled onto ${evCount.maj.toFixed(1)} windows under this rule, ${evCount.any.toFixed(1)} under any overlap`, X0, 232, { size: 10 });
+  label(ctx, "A = an event inside · N = none · a window with less than half an event reads N under this rule and A under any overlap", X0, 248, { size: 9 });
+  label(ctx, "Step cuts the next window: the box appears at the stride, the rule is applied, the letter is written", X0, 266, { size: 9, colour: T.ink3 });
+  label(ctx, "controls: Annotation · Window · Overlap · Event rule · Subject drawn · Seed", X0, 282, { size: 9, colour: T.ink3 });
+
+  // B · the figure's two arms
+  const box2 = cand("winRow", "B · the figure's two arms side by side", "left: recording annotation, the windows inherit · right: event annotations, by overlap · both at the same L and overlap", W * 2);
+  const c2 = canvasIn(box2, W * 2, 300);
+  const arm = (x0, x1, title, y, note) => {
+    label(c2, title, x0, 14, { colour: T.ink1, weight: "600", size: 10 });
+    const N2 = 6 * FS, pxx = tracePlot(c2, x.slice(0, N2), x0, x1, 20, 90);
+    if (y === "yMaj") for (const [e0, e1] of events) if (e0 < N2) rect(c2, pxx(e0), 20, pxx(Math.min(e1, N2)) - pxx(e0), 70, wash(T.event, 0.16));
+    else rect(c2, pxx(0), 20, pxx(N2 - 1) - pxx(0), 70, wash(T.event, 0.06), T.event, 1);
+    const ws = windows.filter((w) => w.sub === s && w.start + L <= N2);
+    ws.forEach((w, i) => { const yy = 110 + (i % 2) * 18, a = pxx(w.start), b = pxx(w.start + L - 1); const on = w[y] === 1, col = on ? T.event : T.nonevent; rect(c2, a, yy, b - a, 16, wash(col, 0.22), col, 1); label(c2, on ? "A" : "N", (a + b) / 2, yy + 11, { size: 9, align: "center", colour: T.ink1 }); });
+    label(c2, note, x0, 170, { size: 9 });
+  };
+  arm(30, W - 20, "Recording annotation", "yRec", "every window inherits the recording's label: A on all of them");
+  arm(W + 30, 2 * W - 14, "Event annotation", "yMaj", "each window by its overlap with an event");
+  label(c2, "closer to your figure, but two recordings on one page double the traces a page draws and the arm not chosen has nothing to say", 30, 210, { size: 9, colour: T.ink3 });
+  document.getElementById("recWin").textContent = `Recommended: A. One recording is the stage; the Annotation control decides which lane is live and the same choice is what the Split page scores. The counts under the windows are the page's readout: ${windows.length} windows at L = ${L}, stride ${STEP}; an event onto ${evCount.maj.toFixed(1)} windows under more than half, ${evCount.any.toFixed(1)} under any overlap.`;
+}
+
+/* ================================================================== §3 */
+{
+  const drawDeal = (ctx, x0, title, deal, res, y, note) => {
+    label(ctx, title, x0, 14, { colour: T.ink1, weight: "600", size: 10 });
+    const cw = Math.min(12, 470 / perSub), ch = 14;
+    subjects.forEach((sub, s) => {
+      const yy = 24 + s * (ch + 5);
+      label(ctx, `subject ${s + 1}`, x0 + 48, yy + 10, { size: 9, align: "right", colour: heldS.has(s) && deal === bySubject ? T.holdout : T.ink2 });
+      windows.forEach((w, i) => {
+        if (w.sub !== s) return; const k = (i % perSub); const xx = x0 + 54 + k * cw;
+        const col = w[y] ? T.event : T.nonevent, held = deal.isHeld(i);
+        rect(ctx, xx, yy, cw - 1, ch, wash(col, held ? 0.12 : 0.55));
+        if (held) rect(ctx, xx, yy, cw - 1, ch, null, T.holdout, 1.5);
+      });
+    });
+    const yb = 24 + S * (ch + 5) + 4;
+    label(ctx, `held-out accuracy ${pct(res.acc)}`, x0, yb + 12, { size: 12, colour: T.ink1, weight: "600" });
+    label(ctx, `${deal.test.length} held out of ${windows.length} · the nearest window is the same subject for ${pct(res.same)} of them`, x0, yb + 28, { size: 9 });
+    label(ctx, note, x0, yb + 42, { size: 9, colour: T.ink3 });
+    // one held-out window over its match
+    const m = res.matches.find((mm) => mm.at.sub === mm.t.sub) || res.matches[0];
+    const top = yb + 54;
+    label(ctx, `one held-out window (subject ${m.t.sub + 1}) over its nearest training window (subject ${m.at.sub + 1}), correlation ${m.c.toFixed(2)}`, x0, top + 10, { size: 9, colour: T.ink1 });
+    tracePlot(ctx, m.at.zed, x0, x0 + 480, top + 16, top + 70, T.reference, 1, -2.5, 4);
+    tracePlot(ctx, m.t.zed, x0, x0 + 480, top + 16, top + 70, T.highlight, 1.2, -2.5, 4);
+  };
+  for (const [y, name] of [["yRec", "recording label (the rhythm)"], ["yMaj", "event label (more than half)"]]) {
+    const box = cand("splitRow", `Split · ${name}`, `the deck: one row a subject, cells coloured by label, held-out cells outlined in --c-holdout · scored by the nearest window at the best shift`, W * 2);
+    const ctx = canvasIn(box, W * 2, 330);
+    drawDeal(ctx, 14, "by window · a random fifth held out (cell 13)", byWindow, R[y].w, y, "windows from every subject sit in both halves");
+    drawDeal(ctx, W + 14, "by subject · subjects 1 and 2 held out, every window of theirs", bySubject, R[y].s, y, "no held-out window has a training window from the same subject");
+  }
+  document.getElementById("recSplit").textContent = `Recommended: the nearest window as the scorer, and the Annotation control shared. Under the recording label this page reads ${pct(R.yRec.w.acc)} by window against ${pct(R.yRec.s.acc)} by subject, and the match drawn is the same subject for ${pct(R.yRec.w.same)} of held-out windows — the number a window-level split reports is the subject, not the rhythm. Under the event label both deals read about the same (${pct(R.yMaj.w.acc)} against ${pct(R.yMaj.s.acc)}): the beat is learnable and looks alike across subjects. Both are true and the caption says which is which; the subject-level number is the one to report either way.`;
+}
+
+/* ================================================================== §4 */
+{
+  const box = cand("normRow", "Normalize · each subject's windows' RMS amplitude, before and after", "left: raw windows, one dot a window · right: after per-window z-score, every window has sd 1");
+  const ctx = canvasIn(box, W, 220);
+  const X0 = 60;
+  label(ctx, "raw", X0, 14, { colour: T.ink1, weight: "600", size: 10 });
+  label(ctx, "after normalize · (x − mean) / std over the window's samples", X0 + 250, 14, { colour: T.ink1, weight: "600", size: 10 });
+  const rmsMax = Math.max(...windows.map((w) => w.rms)) * 1.1;
+  const y0 = 170, hh = 130;
+  subjects.forEach((_, s) => {
+    const xx = X0 + s * 26;
+    label(ctx, `${s + 1}`, xx, y0 + 14, { size: 9, align: "center" });
+    for (const w of windows) if (w.sub === s) { rect(ctx, xx - 3 + (w.start % 7) - 3, y0 - hh * (w.rms / rmsMax), 3, 3, wash(T.empirical, 0.6)); }
+    const xx2 = X0 + 250 + s * 26;
+    label(ctx, `${s + 1}`, xx2, y0 + 14, { size: 9, align: "center" });
+    rect(ctx, xx2 - 4, y0 - hh * (1 / 1.4), 8, 3, T.empirical);
+  });
+  line(ctx, X0 - 8, y0 + 0.5, X0 + 8 * 26, y0 + 0.5, T.axis); line(ctx, X0 + 242, y0 + 0.5, X0 + 250 + 8 * 26, y0 + 0.5, T.axis);
+  label(ctx, "subject", X0 + 100, y0 + 28, { size: 9, align: "center" }); label(ctx, "subject", X0 + 350, y0 + 28, { size: 9, align: "center" });
+  const rmsSub = subjects.map((_, s) => mean(windows.filter((w) => w.sub === s).map((w) => w.rms)));
+  const cv = Math.sqrt(mean(rmsSub.map((v) => (v - mean(rmsSub)) ** 2))) / mean(rmsSub);
+  label(ctx, `between-subject spread of the mean amplitude: CV ${pct(cv)} → 0`, X0, 40, { size: 9 });
+  label(ctx, "sd 1", X0 + 250 + 8 * 26 + 6, y0 - hh * (1 / 1.4) + 4, { size: 9, mono: true, colour: T.ink3 });
+
+  const box2 = cand("normRow", "Normalize · the print", "cell 19's xb.shape, for the current stage; the batch is the lesson's 64", 360);
+  const c2 = canvasIn(box2, 360, 220);
+  label(c2, "the dataset", 14, 20, { colour: T.ink1, weight: "600", size: 10 });
+  label(c2, `[N, C, L] = [${windows.length}, 1, ${L}]`, 14, 44, { size: 13, mono: true, colour: T.ink1 });
+  label(c2, `N = ${windows.length} windows · C = 1 channel (lead MLII) · L = ${L} samples = ${(L / FS).toFixed(0)} s at ${FS} Hz`, 14, 64, { size: 9 });
+  label(c2, "one batch", 14, 96, { colour: T.ink1, weight: "600", size: 10 });
+  label(c2, `xb.shape  torch.Size([64, 1, ${L}])`, 14, 120, { size: 12, mono: true, colour: T.ink1 });
+  label(c2, "yb.shape  torch.Size([64])", 14, 140, { size: 12, mono: true, colour: T.ink1 });
+  label(c2, "the lesson's fragments: [64, 1, 720]", 14, 164, { size: 9, colour: T.ink3 });
+  label(c2, "a small page: the amplitude figure, the print, the lesson's formula", 14, 196, { size: 9, colour: T.ink3 });
+}
+
+/* ================================================================== §5 */
+{
+  const rails = document.getElementById("rails");
+  const mk = (title, secs) => {
+    const r = el("div", "rail"); r.appendChild(el("h3", null, title));
+    for (const s of secs) { r.appendChild(el("div", "sec", s.name)); for (const c of s.items) { if (c.btn) r.appendChild(el("div", "btn", c.btn)); else { const d = el("div", "ctl"); d.appendChild(el("span", null, c.label)); d.appendChild(el("span", null, c.val)); r.appendChild(d); } } }
+    rails.appendChild(r);
+  };
+  const stage = { name: "The recordings", items: [{ label: "Annotation", val: "recording · event" }, { label: "Event rule", val: "any overlap · more than half" }, { label: "Seed", val: "1–200" }] };
+  const cut = { name: "The windows", items: [{ label: "Window", val: "1 · 2 · 4 s" }, { label: "Overlap", val: "0 · 50 · 75 %" }] };
+  mk("Page 1 · Window", [
+    { name: "Page", items: [{ label: "Window · Split · Normalize", val: "page" }] }, stage, cut,
+    { name: "Cut", items: [{ btn: "Next window" }, { btn: "Play" }, { btn: "Reset" }] },
+    { name: "Look at", items: [{ label: "Subject", val: "1–8" }] },
+  ]);
+  mk("Page 2 · Split", [
+    { name: "Page", items: [{ label: "Window · Split · Normalize", val: "page" }] }, stage, cut,
+    { name: "The split", items: [{ label: "Split", val: "by window · by subject" }] },
+    { name: "Deal and score", items: [{ btn: "Step" }, { btn: "Play" }, { btn: "Reset" }] },
+    { name: "Look at", items: [{ label: "Held-out window", val: "click one" }] },
+  ]);
+  mk("Page 3 · Normalize", [
+    { name: "Page", items: [{ label: "Window · Split · Normalize", val: "page" }] }, stage, cut,
+  ]);
+}
+</script>
+</body>
+</html>
