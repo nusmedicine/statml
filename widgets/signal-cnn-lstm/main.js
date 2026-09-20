@@ -55,11 +55,13 @@ import * as E from "./engine.js";
 
 /* ------------------------------------------------------------- the pages -- */
 
+/* two rows, one parameter: the three models are one kind of thing and occlusion is not — it asks any of them
+   (Kenneth 2026-09-20, round 13, for this widget and 73); core's `group` puts each run on its own row */
 const PAGES = [
-  { value: "cnn", label: "1D-CNN" },
-  { value: "lstm", label: "LSTM" },
-  { value: "combo", label: "CNN + LSTM" },
-  { value: "occlusion", label: "Occlusion" },
+  { value: "cnn", label: "1D-CNN", group: "the models" },
+  { value: "lstm", label: "LSTM", group: "the models" },
+  { value: "combo", label: "CNN + LSTM", group: "the models" },
+  { value: "occlusion", label: "Occlusion", group: "attribution, on any of them" },
 ];
 const ON = (page) => ({ param: "page", equals: page });
 const ON_LSTMS = { param: "page", oneOf: ["lstm", "combo"] };
@@ -88,7 +90,6 @@ const S = {
     + "the fragment and one summary of its outputs reaches the linear layer. Occlusion scores each "
     + "window by how far the prediction moves without it, whichever model is asked.",
   pageLabel: "Page",
-  pageDetail: "the three models, then occlusion on any of them",
   fragSection: "The fragment",
   copiesLabel: "Ectopic beats",
   copiesDetail: "how many beats of the fragment are wide ectopic complexes; 0 is the other class, sinus rhythm — the models are trained the same way",
@@ -686,7 +687,7 @@ defineWidget({
   height: ({ page }) => HEIGHTS[page] ?? HEIGHTS.cnn,
 
   params: {
-    page: { type: "segmented", label: S.pageLabel, detail: S.pageDetail, options: PAGES, default: "cnn", display: true },
+    page: { type: "segmented", label: S.pageLabel, options: PAGES, default: "cnn", display: true },
 
     fragSec: { type: "section", label: S.fragSection },
     copies: {
