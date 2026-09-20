@@ -396,6 +396,39 @@ console.log("\n6 · the run");
   let guard = 0;
   while (A.advance(anim, { dt: 16, params: base({ page: "gwas" }), state: st }) && guard < 10000) { t += 16; guard += 1; }
   check("Play on step 2 runs every SNP in about five seconds", anim.k.gwas === 79 && t > 4000 && t < 6500, `${t} ms`);
+
+  /* A SWITCH MID-PRESS (found by the sweep after widget 70's ship,
+     2026-09-20): core keeps the loop running through a display change, and
+     the beat clock is shared, so a press on step 1 interrupted by a visit to
+     step 2 used to add step 2's first SNP unasked and leave its own undone;
+     a change of reading mid-press handed the loop to the ease with the press
+     where it stopped. */
+  {
+    const p1 = base();
+    const p2 = base({ page: "gwas" });
+    const a = A.init({ params: p1, state: st, fromScratch: true });
+    a.mode = "step";
+    for (let i = 0; i < 5; i += 1) A.advance(a, { dt: 32, params: p1, state: st });
+    check("a press on step 1 is in flight after five frames", a.moving === true && a.k.trial === 0 && a.beat > 0, `beat ${a.beat.toFixed(2)}`);
+    A.rebuild(a, { params: p2, state: st });
+    const more = A.advance(a, { dt: 32, params: p2, state: st });
+    check("interrupted by step 2: the loop ends, no SNP added, the press complete",
+      more === false && a.k.gwas === 0 && a.k.trial === 1 && a.beat === 0 && !a.halt, `gwas ${a.k.gwas}, trial ${a.k.trial}`);
+    A.rebuild(a, { params: p1, state: st });
+    check("and back on step 1 the second act is next", a.trialBeat === 1 && M.STEP_LABELS.labels.trial.labels[1] === "Fit the observational line");
+    const b = A.init({ params: p1, state: st, fromScratch: true });
+    b.mode = "step";
+    for (let i = 0; i < 5; i += 1) A.advance(b, { dt: 32, params: p1, state: st });
+    A.rebuild(b, { params: base({ confounding: "none" }), state: st });
+    check("a change of reading mid-press finishes the press and asks for the ease",
+      b.easing === true && b.k.trial === 1 && b.beat === 0 && !b.halt && b.moving === false);
+    const c = A.init({ params: p1, state: st, fromScratch: true });
+    A.rebuild(c, { params: p2, state: st });
+    c.mode = "step";
+    let f = 0;
+    while (A.advance(c, { dt: 32, params: p2, state: st }) && f < 500) f += 1;
+    check("a switch with nothing moving leaves the next press whole", c.k.gwas === 1 && f > 0, `${f} frames`);
+  }
   check("…and a press of Step is one SNP", (() => {
     const a = A.init({ params: base({ page: "estimate" }), state: st, fromScratch: true });
     a.mode = "step";

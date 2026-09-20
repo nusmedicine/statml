@@ -842,6 +842,37 @@ function viewAt(state, params, anim) {
   return M.lerpView(from, to, M.easeOut(anim.mix));
 }
 
+/** One frame of the drive on the page the parameters name: a beat of the
+    step, or the final beat that draws the lines. Was the body of `advance`
+    after its ease branch until 2026-09-20. */
+function takeBeat(anim, dt, params, state) {
+  const page = M.pageOf(params);
+  const total = M.totalFor(page, state);
+  if (anim.k[page] < total) {
+    anim.beat += dt / M.beatMs(page, state, anim.k[page]);
+    if (anim.beat < 1) return true;
+    if (anim.mode === "step") {
+      anim.beat = 0;
+      anim.k[page] = Math.min(total, anim.k[page] + 1);
+    } else {
+      const units = Math.floor(anim.beat);
+      anim.beat -= units;
+      anim.k[page] = Math.min(total, anim.k[page] + units);
+    }
+    anim.trialBeat = anim.k.trial;
+    if (anim.k[page] < total) return anim.mode !== "step";
+  }
+  /* the last SNP is in: the final beat plays whatever the mode, so the
+     press that adds SNP 79 also draws the lines */
+  if (page in anim.fin && anim.fin[page] < 1) {
+    anim.fin[page] = Math.min(1, anim.fin[page] + dt / M.FIN_MS);
+    if (anim.fin[page] < 1) return true;
+  }
+  anim.beat = 0;
+  anim.done = true;
+  return false;
+}
+
 defineWidget({
   slug: "mendelian-randomization",
   title: "Mendelian Randomization",
@@ -1060,41 +1091,42 @@ defineWidget({
         anim.mix = Math.min(1, anim.mix + dt / M.EASE_MS);
         return anim.mix < 1;
       }
-      const page = M.pageOf(params);
-      const total = M.totalFor(page, state);
-      if (anim.k[page] < total) {
-        anim.beat += dt / M.beatMs(page, state, anim.k[page]);
-        if (anim.beat < 1) return true;
-        if (anim.mode === "step") {
-          anim.beat = 0;
-          anim.k[page] = Math.min(total, anim.k[page] + 1);
-        } else {
-          const units = Math.floor(anim.beat);
-          anim.beat -= units;
-          anim.k[page] = Math.min(total, anim.k[page] + units);
-        }
-        anim.trialBeat = anim.k.trial;
-        if (anim.k[page] < total) return anim.mode !== "step";
-      }
-      /* the last SNP is in: the final beat plays whatever the mode, so the
-         press that adds SNP 79 also draws the lines */
-      if (page in anim.fin && anim.fin[page] < 1) {
-        anim.fin[page] = Math.min(1, anim.fin[page] + dt / M.FIN_MS);
-        if (anim.fin[page] < 1) return true;
-      }
-      anim.beat = 0;
-      anim.done = true;
-      return false;
+      /* the loop left running for a press a page switch finished (`rebuild`)
+         ends here, before it takes the other's next */
+      if (anim.halt) { anim.halt = false; anim.moving = false; return false; }
+      const more = takeBeat(anim, dt, params, state);
+      anim.moving = more;
+      return more;
     },
 
     /* A display change keeps every step's work (non-negotiable 3), and a
        change of reading — an assumption, or Harmonise — asks core for the
        frames to ease across it. A page change is not eased. */
     rebuild: (anim, { params, state }) => {
-      for (const page of ALL_STEPS) anim.k[page] = Math.min(anim.k[page] ?? 0, M.totalFor(page, state));
-      anim.trialBeat = anim.k.trial;
       const page = M.pageOf(params);
       const key = M.viewKey(params);
+      /* A PRESS BELONGS TO THE PAGE IT STARTED ON. Core keeps a running loop
+         going through a display change, and `takeBeat` steps whichever page
+         the parameters name on one shared beat clock, so a press interrupted
+         by a visit to another page added that page's first SNP unasked and
+         left its own undone; and a change of reading mid-press handed the
+         loop to the ease with the press where it stopped. Found by the sweep
+         after widget 70's ship (2026-09-20). The press finishes here, as if
+         its frames had run: on a page switch `halt` ends the loop at its next
+         frame; under an ease the stopped loop needs no halt, and a pending one
+         would end the ease. Only while a press moves (`advance` records it),
+         or the reader's next press loses its first frame. */
+      if (anim.moving && (page !== anim.page || key !== anim.viewKey)) {
+        const was = anim.page;
+        const total = M.totalFor(was, state);
+        if (anim.k[was] < total) anim.k[was] += 1;
+        if (was in anim.fin && anim.k[was] >= total) anim.fin[was] = 1;
+        anim.beat = 0;
+        anim.moving = false;
+        anim.halt = page !== anim.page;
+      }
+      for (const p of ALL_STEPS) anim.k[p] = Math.min(anim.k[p] ?? 0, M.totalFor(p, state));
+      anim.trialBeat = anim.k.trial;
       if (page !== anim.page) {
         anim.page = page;
         anim.viewKey = key;
