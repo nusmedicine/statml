@@ -95,7 +95,7 @@ const S = {
   subjectLabel: "Subject",
   subjectDetail: "whose recording is drawn",
   pickLabel: "Held-out window",
-  pickDetail: "which held-out window is drawn over its nearest training window; a click on a held-out cell picks one",
+  pickDetail: "which held-out window is drawn over its nearest training window; a click on a held-out window in the figure picks one",
 
   stepLabels: {
     clean0: "Resample", clean1: "Filter", clean2: "Detrend", clean3: "Detrend",
