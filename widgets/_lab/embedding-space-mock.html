@@ -1,0 +1,512 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · embedding-space — mock</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1600px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 104ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); min-height: 26px; white-space: pre-line; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 104ch; }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+       border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 104ch; }
+  .q b { display: block; margin-bottom: 2px; }
+  #findings { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--ink-2); white-space: pre-line;
+              padding: var(--sp-3); background: var(--surface-2); border: 1px solid var(--grid); max-width: 120ch; }
+  .rail { display: inline-block; vertical-align: top; width: 260px; border: 1px solid var(--grid); padding: 8px 10px; font-size: 11px; color: var(--ink-1); margin-right: var(--sp-4); }
+  .rail .sec { font-size: 10px; color: var(--ink-3); text-transform: uppercase; letter-spacing: .04em; margin: 8px 0 2px; }
+  .rail .sec:first-child { margin-top: 0; }
+  .rail .ctl { display: flex; justify-content: space-between; gap: 8px; padding: 2px 0; }
+  .rail .ctl span:last-child { color: var(--ink-2); font-family: var(--font-mono); font-size: 10px; }
+  .rail .btn { border: 1px solid var(--grid); border-radius: 3px; padding: 3px 8px; margin: 3px 0; text-align: center; background: var(--surface-2); }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>embedding-space &middot; mock</h1>
+  <p class="note">
+    Slot 74, for 07-1 cell 3's <i>Vector space</i> panel and 07-3's amino-acid vocabulary, with the position pages you asked
+    about on 2026-09-21 for the language lessons (08-1 cell 1 &sect;2, 08-3 cell 4 &sect;2). <b>Every number drawn here is computed
+    on this page</b>: the amino-acid and codon tables train on load on 73's engine (E = 8, 40 epochs each), and four
+    single-head attention models train on the order task (none &middot; learned &middot; sinusoidal &middot; rotary, 30 epochs each) on
+    the lab's head. About seven seconds; the page fills as each finishes. The mock draws filled states so they can be
+    judged; the widget opens empty. On-canvas strings are candidates for the copy audit, not copy. Each section ends with
+    a recommendation; the grey-ruled boxes are the questions only you can answer. <span id="seedNote"></span>
+  </p>
+
+  <h2>0 &middot; What the measurements found (<code>_lab/embedding-space-measure.mjs</code> 11 s, <code>-align-</code> 3 s, <code>positional-encoding-measure.mjs</code> 15 s)</h2>
+  <div id="findings">training…</div>
+
+  <h2>1 &middot; Page 1, <i>Amino acids</i>: twenty tokens in four roles, the table trained on a role task, its rows drawn as points</h2>
+  <p class="note">
+    The task: class 1 carries hydrophobic &middot; hydrophobic &middot; positive &middot; negative somewhere, each slot a random residue of
+    that role; class 0 carries nothing. No single letter is the cue, so the table can only learn the roles. The twenty rows
+    of <code>Embedding(21, 8)</code> are projected onto their top two principal components, each frame's own, laid over the
+    final frame by a rotation (measured: the raw projection reflects and spins; this holds it still). Colour is the
+    TRUE role, which nobody typed in; the position is what training put there. At epoch 0 the rows are N(0, 1), as
+    <code>nn.Embedding</code> initialises them.
+  </p>
+  <div class="row" id="aaRow"></div>
+  <div class="row" id="aaRow2"></div>
+  <div class="row" id="aaRow3"></div>
+  <p class="rec" id="recAA"></p>
+  <p class="q"><b>1.1 &middot; The stage</b>
+    <b>A &middot; your figure's two panels: the table as a heatmap at left, the space at right, both moving as it trains (recommended)</b> &nbsp;|&nbsp;
+    B &middot; the space alone, larger &nbsp;|&nbsp;
+    C &middot; A plus the distance matrix beneath &mdash; exact where the picture is a projection, and the one place a one-hot code can be drawn honestly (every off-diagonal entry &radic;2)</p>
+  <p class="q"><b>1.2 &middot; Holding the frame still</b>
+    <b>A &middot; each epoch's own components, laid over the final frame by a rotation (recommended)</b>: every frame is that epoch's best two-dimensional view, nothing spins, and the end is known at the start because <code>compute()</code> trains every epoch before the first is drawn &nbsp;|&nbsp;
+    B &middot; every epoch projected onto the FINAL table's components &mdash; the smoothest, and structure shows a little earlier because the axes are chosen with hindsight (70% purity at epoch 0 on one seed, against 35%); honest only with the axes named as the trained table's</p>
+  <p class="q"><b>1.3 &middot; Where the points start</b>
+    <b>A &middot; N(0, 1) rows as torch initialises them, the caption saying so (recommended)</b>: the start is noise, purity at chance &nbsp;|&nbsp;
+    B &middot; a one-hot state first (the distance matrix flat at &radic;2; there is no two-dimensional picture of twenty equidistant points), then training from the random rows</p>
+  <p class="q"><b>1.4 &middot; Controls</b>
+    <b>A &middot; E = 4 &middot; 8 &middot; 16 (data, 8 default; 4 does not learn the four-role task, which is a finding the page can show), Seed; Step trains one epoch, Play runs the forty; readout: held-out accuracy, nearest-neighbour role purity, the within/between distance ratio (recommended)</b> &nbsp;|&nbsp;
+    B &middot; A with Epochs 20 &middot; 40 &middot; 80 as well &nbsp;|&nbsp;
+    C &middot; A with an Encoding control one-hot &middot; learned as 75 has it (one-hot reaches 100% too: what changes is the parameter count and that the table has nothing to draw)</p>
+
+  <h2>2 &middot; Page 2, <i>Codons</i>: sixty-one tokens, the motif L &middot; R &middot; S written in random synonymous codons</h2>
+  <p class="note">
+    The same stage over the genetic code: class 1 carries the three amino acids in that order, each as a random one of its
+    six codons. Only the eighteen codons the task rewards get a geometry; the other forty-three move too (every codon is in the
+    background, so every row gets a gradient) but land nowhere in particular (measured: purity 100% for the eighteen,
+    at chance for the rest). So the page shows both: synonyms become neighbours, and the rest get no geometry.
+  </p>
+  <div class="row" id="codonRow"></div>
+  <p class="rec" id="recCodon"></p>
+  <p class="q"><b>2.1 &middot; The other forty-three</b>
+    <b>A &middot; drawn in the neutral ink, unlabelled, so the eighteen carry the figure (recommended)</b> &nbsp;|&nbsp;
+    B &middot; every codon coloured by its amino acid (twenty hues, and the claim about the rest is lost in them) &nbsp;|&nbsp;
+    C &middot; the eighteen only</p>
+  <p class="q"><b>2.3 &middot; The axes</b>
+    <b>B &middot; the top two components of the eighteen rows the task rewards, said on the figure (recommended: on this seed the eighteen read 100% on their own axes and 44% on all sixty-one's &mdash; the forty-three noise rows otherwise choose the axes)</b> &nbsp;|&nbsp;
+    A &middot; the top two components of all sixty-one rows, as page 1 does with its twenty</p>
+  <p class="q"><b>2.2 &middot; Labels</b>
+    <b>A &middot; the three-letter codon on each of the eighteen; hover names any point (recommended)</b> &nbsp;|&nbsp;
+    B &middot; no labels; hover names a point</p>
+
+  <h2>3 &middot; The position pages (08-1 cell 1 &sect;2, 08-3 cell 4 &sect;2): learned &middot; fixed sinusoidal &middot; relative, a rotation</h2>
+  <p class="note">
+    The lesson's claim: attention on its own treats a sequence as an unordered set, so <code>x&#x0303;<sub>i</sub> = x<sub>i</sub> + p<sub>i</sub></code>
+    adds a position vector to each token's embedding; a relative encoding (a rotation of q and k, RoPE) makes the
+    attention score depend on the offset i &minus; j alone. Measured on an ORDER task &mdash; two motifs both present, class 1
+    when the first precedes the second, the same bag of tokens in both classes &mdash; a head with no position sits at 48&ndash;49%
+    while it learns a presence task at 77&ndash;84%; each of the three learns the order (83&ndash;93%); and when the SAME tokens are
+    moved to positions 24..47, learned falls to chance, sinusoidal below it, and the rotation's scores do not change to the
+    last digit. <b>What does not hold:</b> the learned table does not become ordered on this task (its nearest row is i &plusmn; 1
+    for 21% of positions, the sinusoid's 100%), and with real tokens prepended every encoding falls &mdash; that is one head
+    and a mean pool diluted over twice the tokens, so the page moves the POSITIONS and claims nothing about longer sequences.
+  </p>
+  <div class="row" id="posRow"></div>
+  <div class="row" id="posRow2"></div>
+  <div class="row" id="posRow3"></div>
+  <p class="rec" id="recPos"></p>
+  <p class="q"><b>3.1 &middot; Where the position pages live</b>
+    <b>A &middot; in this widget, after Codons (recommended)</b>: the position vector is added in the SAME space the first two pages draw, the lesson's own strip figure, and 08-3 links to the page by URL &nbsp;|&nbsp;
+    B &middot; their own widget for the language lessons, the first of an 08 arc (attention, the encoder block, tokenisation and pre-training would follow), and 74 stays two pages &nbsp;|&nbsp;
+    C &middot; not now: 74 ships two pages, the position pages are planned with the 08 arc</p>
+  <p class="q"><b>3.2 &middot; Their shape</b>
+    <b>A &middot; one page, <i>Position</i>, with an Encoding control none &middot; learned &middot; sinusoidal &middot; rotary (data): the same stage, so the four can be compared on it (recommended)</b> &nbsp;|&nbsp;
+    B &middot; a page per encoding, Learned &middot; Sinusoidal &middot; Rotary, none as a state on each &nbsp;|&nbsp;
+    C &middot; two pages: <i>Position</i> (the tables, and the addition drawn in the space) and <i>Order</i> (the task, the scores, the shift)</p>
+  <p class="q"><b>3.3 &middot; The stage</b>
+    <b>A &middot; your table figure at the top (the [L, D] heatmap for learned and sinusoidal; a row of turning pairs for rotary; blank for none), the attention scores of one held-out sequence beneath, the readout printing held-out accuracy in range and under the shift (recommended)</b> &nbsp;|&nbsp;
+    B &middot; A plus the addition drawn in the embedding space: the sequence's tokens as points, an arrow from each to x<sub>i</sub> + p<sub>i</sub> (below; for rotary there is no arrow, nothing is added) &nbsp;|&nbsp;
+    C &middot; the tables only, nothing trained, no task</p>
+  <p class="q"><b>3.4 &middot; The shift</b>
+    <b>A &middot; a Shift control, 0 &middot; 24 (display: the trained model is read, not retrained): the same tokens at the moved positions, the score matrix redrawn and the accuracy under it printed (recommended)</b> &nbsp;|&nbsp;
+    B &middot; both matrices always side by side, no control</p>
+  <p class="q"><b>3.5 &middot; The task and the training</b>
+    <b>A &middot; the order task, trained on the click as pages 1 and 2 are (Step an epoch, Play thirty; about a second); the presence task's number for none in the readout, so the failure reads as order and not capacity (recommended)</b> &nbsp;|&nbsp;
+    B &middot; the order task only &nbsp;|&nbsp;
+    C &middot; a Task control order &middot; presence (data)</p>
+
+  <h2>4 &middot; The rail</h2>
+  <p class="note">Three pages as a page control at the top, as 72 and 73 have it; the shared block; per-page controls through <code>when:</code>. The seed is in a section of its own under the page's data, as 59 has it.</p>
+  <div id="rails"></div>
+  <p class="q"><b>4.1 &middot; The slug and the title</b>
+    <code>embedding-space</code> &middot; "Deep Learning - Embedding Space" (the catalogue's provisional) &nbsp;|&nbsp; <code>embedding-space</code> &middot; "Deep Learning - Embeddings and Position" if 3.1 is A &nbsp;|&nbsp; yours</p>
+  <p class="q"><b>4.2 &middot; The order of building</b>
+    <b>A &middot; pages 1 and 2 drafted and reviewed first, the position page added in the same widget once they settle (recommended)</b> &nbsp;|&nbsp; B &middot; all three pages in the first draft</p>
+</main>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+import { makeRng } from "../core/rng.js";
+import * as E from "../signal-cnn-lstm/engine.js";
+import { attnModel, sinusoid, nParams } from "./attention-lab.js";
+
+const T = readTokens();
+const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const DPR = window.devicePixelRatio || 1;
+const W = 550;
+const Q = new URLSearchParams(location.search);
+const SEED = Number(Q.get("seed") || 1);
+document.getElementById("seedNote").textContent = `Seed ${SEED}; add ?seed=N for another.`;
+
+/* ---------------------------------------------------------------- shell */
+function el(tag, cls, text) { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
+function cand(rowId, title, sub, w = W) {
+  const box = el("div", "cand"); box.style.width = `${w}px`;
+  box.appendChild(el("h3", null, title)); box.appendChild(el("p", "sub", sub));
+  document.getElementById(rowId).appendChild(box);
+  return box;
+}
+function canvasIn(box, w, h) {
+  const c = document.createElement("canvas");
+  c.width = Math.round(w * DPR); c.height = Math.round(h * DPR); c.style.width = `${w}px`; c.style.height = `${h}px`;
+  box.appendChild(c); const ctx = c.getContext("2d"); ctx.scale(DPR, DPR); return ctx;
+}
+const rgb = (c) => { const m = String(c).match(/^#([0-9a-f]{6})$/i); return m ? [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16)) : [128, 128, 128]; };
+const wash = (color, a) => { const p = rgb(color); return `rgba(${p[0]},${p[1]},${p[2]},${a})`; };
+function label(ctx, s, x, y, { size = 11, colour = T.ink2, align = "left", mono = false, weight = "", baseline = "alphabetic" } = {}) {
+  ctx.save(); ctx.font = `${weight ? weight + " " : ""}${size}px ${mono ? T.mono : T.font}`; ctx.fillStyle = colour; ctx.textAlign = align; ctx.textBaseline = baseline; ctx.fillText(s, x, y); ctx.restore();
+}
+function line(ctx, x1, y1, x2, y2, colour, width = 1, dash = null) {
+  ctx.save(); ctx.strokeStyle = colour; ctx.lineWidth = width; if (dash) ctx.setLineDash(dash); ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); ctx.restore();
+}
+function rect(ctx, x, y, w, h, fill, stroke = null, lw = 1) { ctx.save(); if (fill) { ctx.fillStyle = fill; ctx.fillRect(x, y, w, h); } if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw; ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1); } ctx.restore(); }
+function dot(ctx, x, y, r, fill, stroke = null) { ctx.save(); ctx.beginPath(); ctx.arc(x, y, r, 0, 2 * Math.PI); ctx.fillStyle = fill; ctx.fill(); if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = 1; ctx.stroke(); } ctx.restore(); }
+function arrow(ctx, x1, y1, x2, y2, colour, lw = 1) { line(ctx, x1, y1, x2, y2, colour, lw); const a = Math.atan2(y2 - y1, x2 - x1); ctx.save(); ctx.fillStyle = colour; ctx.beginPath(); ctx.moveTo(x2, y2); ctx.lineTo(x2 - 5 * Math.cos(a - 0.4), y2 - 5 * Math.sin(a - 0.4)); ctx.lineTo(x2 - 5 * Math.cos(a + 0.4), y2 - 5 * Math.sin(a + 0.4)); ctx.closePath(); ctx.fill(); ctx.restore(); }
+const pct = (v) => `${(100 * v).toFixed(0)}%`;
+const f = (v, d = 2) => Number(v).toFixed(d);
+const mean = (a) => a.reduce((p, q) => p + q, 0) / a.length;
+const HI = css("--c-value-high") || T.theory, LO = css("--c-value-low") || T.extreme;
+/** a diverging cell colour on [-m, m] */
+const diverge = (v, m) => { const a = Math.min(1, Math.abs(v) / m); return wash(v >= 0 ? HI : LO, 0.08 + 0.92 * a); };
+/** a [rows][cols] heatmap */
+function heatmap(ctx, rows, x, y, w, h, m) {
+  const R = rows.length, C = rows[0].length, cw = w / C, ch = h / R;
+  for (let r = 0; r < R; r++) for (let c = 0; c < C; c++) rect(ctx, x + c * cw, y + r * ch, Math.ceil(cw), Math.ceil(ch), diverge(rows[r][c], m));
+  rect(ctx, x, y, w, h, null, T.grid);
+}
+
+/* ------------------------------------------------------ the vocabularies */
+const AA = "AVLIMFWYSTNQCGPKRHDE";
+const ROLE_OF = {};
+for (const c of "AVLIMFWY") ROLE_OF[c] = "hydrophobic";
+for (const c of "STNQCGP") ROLE_OF[c] = "polar";
+for (const c of "KRH") ROLE_OF[c] = "positive";
+for (const c of "DE") ROLE_OF[c] = "negative";
+const ROLE_COLOUR = { hydrophobic: css("--c-cluster-a"), polar: css("--c-cluster-b"), positive: css("--c-cluster-c"), negative: css("--c-cluster-d") };
+const aaTok = (c) => AA.indexOf(c) + 1;
+const byRole = (role) => [...AA].filter((c) => ROLE_OF[c] === role);
+const AA_IDS = [...AA].map(aaTok);
+const BASES = "TCAG", CODE = "FFLLSSSSYY**CC*WLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG";
+const CODONS = [], AA_OF = {};
+for (let i = 0; i < 64; i++) { const c = BASES[i >> 4] + BASES[(i >> 2) & 3] + BASES[i & 3]; CODONS.push(c); AA_OF[c] = CODE[i]; }
+const codonTok = (c) => CODONS.indexOf(c) + 1;
+const synonyms = (aa) => CODONS.filter((c) => AA_OF[c] === aa);
+const SENSE = CODONS.filter((c) => AA_OF[c] !== "*"), CODON_IDS = SENSE.map(codonTok);
+const MOTIF_COLOUR = { L: css("--c-cluster-a"), R: css("--c-cluster-b"), S: css("--c-cluster-c") };
+
+/* ---------------------------------------------------------------- tasks */
+function aaTask(rng, n, L = 60) {
+  const roles = ["hydrophobic", "hydrophobic", "positive", "negative"];
+  const hasPattern = (s) => { for (let i = 0; i + 4 <= s.length; i++) if (roles.every((r, j) => ROLE_OF[s[i + j]] === r)) return true; return false; };
+  const out = [];
+  for (let i = 0; i < n; i++) {
+    const y = i % 2; let s;
+    do { s = Array.from({ length: L }, () => AA[Math.floor(rng.next() * 20)]); } while (hasPattern(s));
+    if (y) { const at = Math.floor(rng.next() * (L - 4)); roles.forEach((r, j) => { const pool = byRole(r); s[at + j] = pool[Math.floor(rng.next() * pool.length)]; }); }
+    out.push({ x: { tok: Int32Array.from(s.map(aaTok)), L }, y });
+  }
+  return out;
+}
+function codonTask(rng, n, L = 30) {
+  const motif = ["L", "R", "S"];
+  const hasMotif = (aas) => { for (let i = 0; i + 3 <= aas.length; i++) if (motif.every((a, j) => aas[i + j] === a)) return true; return false; };
+  const out = [];
+  for (let i = 0; i < n; i++) {
+    const y = i % 2; let s;
+    do { s = Array.from({ length: L }, () => SENSE[Math.floor(rng.next() * SENSE.length)]); } while (hasMotif(s.map((c) => AA_OF[c])));
+    if (y) { const at = Math.floor(rng.next() * (L - 3)); motif.forEach((a, j) => { const pool = synonyms(a); s[at + j] = pool[Math.floor(rng.next() * pool.length)]; }); }
+    out.push({ x: { tok: Int32Array.from(s.map(codonTok)), L }, y });
+  }
+  return out;
+}
+const M1 = "WKD", M2 = "HPC";
+function orderTask(rng, n, { Ltot = 24, lo = 0, span = 24 } = {}) {
+  const out = [];
+  const hasEither = (s) => { const str = s.join(""); return str.includes(M1) || str.includes(M2); };
+  for (let i = 0; i < n; i++) {
+    const y = i % 2; let s, a, b;
+    do { s = Array.from({ length: Ltot }, () => AA[Math.floor(rng.next() * 20)]); a = lo + Math.floor(rng.next() * (span - 3)); b = lo + Math.floor(rng.next() * (span - 3)); } while (hasEither(s) || Math.abs(a - b) < 3);
+    const first = y ? M1 : M2, second = y ? M2 : M1, [pa, pb] = a < b ? [a, b] : [b, a];
+    for (let j = 0; j < 3; j++) { s[pa + j] = first[j]; s[pb + j] = second[j]; }
+    out.push({ x: { tok: Int32Array.from(s.map(aaTok)), L: Ltot }, y, letters: s.join("") });
+  }
+  return out;
+}
+function presenceTask(rng, n, L = 24) {
+  const out = [];
+  for (let i = 0; i < n; i++) {
+    const y = i % 2; let s;
+    do { s = Array.from({ length: L }, () => AA[Math.floor(rng.next() * 20)]); } while (s.join("").includes(M1));
+    if (y) { const at = Math.floor(rng.next() * (L - 3)); for (let j = 0; j < 3; j++) s[at + j] = M1[j]; }
+    out.push({ x: { tok: Int32Array.from(s.map(aaTok)), L }, y });
+  }
+  return out;
+}
+const shifted = (data, by) => data.map(({ x, y }) => ({ x: { tok: x.tok, L: x.L, pos: Int32Array.from(x.tok, (_, i) => i + by) }, y }));
+
+/* ------------------------------------------------------ PCA · Procrustes */
+function basis(R) {
+  const Ed = R[0].length, mu = Array.from({ length: Ed }, (_, e) => mean(R.map((r) => r[e])));
+  let Xr = R.map((r) => r.map((v, e) => v - mu[e]));
+  const B = [];
+  for (let c = 0; c < 2; c++) {
+    let v = Array.from({ length: Ed }, (_, e) => Math.sin(e + 1 + c));
+    for (let it = 0; it < 300; it++) { const w = new Array(Ed).fill(0); for (const r of Xr) { const s = r.reduce((p, q, e) => p + q * v[e], 0); for (let e = 0; e < Ed; e++) w[e] += s * r[e]; } const nrm = Math.sqrt(w.reduce((p, q) => p + q * q, 0)) || 1; v = w.map((q) => q / nrm); }
+    Xr = Xr.map((r) => { const s = r.reduce((p, q, e) => p + q * v[e], 0); return r.map((q, e) => q - s * v[e]); });
+    B.push(v);
+  }
+  return { mu, B };
+}
+const project = (R, { mu, B }) => R.map((r) => B.map((v) => r.reduce((p, q, e) => p + (q - mu[e]) * v[e], 0)));
+function procrustes(P, A) {
+  let best = null;
+  for (const refl of [1, -1]) {
+    const Qp = P.map(([x, y]) => [x, refl * y]);
+    let sc = 0, ss = 0;
+    for (let i = 0; i < Qp.length; i++) { const [ax, ay] = A[i], [bx, by] = Qp[i]; sc += ax * bx + ay * by; ss += ay * bx - ax * by; }
+    const th = Math.atan2(ss, sc), c = Math.cos(th), s = Math.sin(th);
+    const R = Qp.map(([x, y]) => [c * x - s * y, s * x + c * y]);
+    const resid = R.reduce((p, [x, y], i) => p + (x - A[i][0]) ** 2 + (y - A[i][1]) ** 2, 0);
+    if (!best || resid < best.resid) best = { R, resid };
+  }
+  return best.R;
+}
+const dist = (a, b) => Math.sqrt(a.reduce((p, v, i) => p + (v - b[i]) ** 2, 0));
+function geometry(R, groupOf) {
+  const n = R.length; let win = [], btw = [], pure = 0;
+  for (let i = 0; i < n; i++) { let best = Infinity, bj = -1; for (let j = 0; j < n; j++) { if (i === j) continue; const d = dist(R[i], R[j]); (groupOf(i) === groupOf(j) ? win : btw).push(d); if (d < best) { best = d; bj = j; } } if (groupOf(bj) === groupOf(i)) pure++; }
+  return { ratio: mean(win) / mean(btw), purity: pure / n };
+}
+
+/* ------------------------------------------------------- the space panel */
+/** points in a fixed ±lim window; `items` [{ p: [x, y], colour, text }] */
+function space(ctx, x0, y0, w, h, items, { lim = 3, title = null, labels = true } = {}) {
+  rect(ctx, x0, y0, w, h, css("--surface-1"), T.grid);
+  const cx = x0 + w / 2, cy = y0 + h / 2, sc = (w / 2 - 8) / lim;
+  line(ctx, x0 + 4, cy, x0 + w - 4, cy, T.grid); line(ctx, cx, y0 + 4, cx, y0 + h - 4, T.grid);
+  for (const it of items) { const px = cx + it.p[0] * sc, py = cy - it.p[1] * sc; dot(ctx, px, py, it.r || 4.5, it.colour, it.stroke || null); if (labels && it.text) label(ctx, it.text, px + 6, py + 3, { size: 9, mono: true, colour: it.textColour || T.ink1 }); }
+  if (title) label(ctx, title, x0 + 6, y0 + 12, { size: 10, colour: T.ink2 });
+}
+
+/* =============================================================== page 1 */
+const findings = [];
+const status = (s) => { document.getElementById("findings").textContent = s; };
+const aaRows = (emb) => AA_IDS.map((id) => Array.from(emb.W.v.slice(id * emb.E, (id + 1) * emb.E)));
+function trainAA(seed, Edim, epochs) {
+  const rng = makeRng(seed), emb = E.Embedding(makeRng(seed + 100), 21, Edim, 0);
+  const net = E.Sequential([emb, E.Conv1d(makeRng(seed + 101), Edim, 8, 4, 1, 0, true), E.ReLU(), E.GlobalPool(8, "max"), E.Linear(makeRng(seed + 102), 8, 2)]);
+  const test = aaTask(makeRng(seed + 200), 300);
+  const tables = [aaRows(emb)], accs = [null];
+  const t1 = performance.now();
+  E.train(rng, net, (e) => aaTask(makeRng(seed * 1000 + e), 300), { epochs, lr: 1e-2, onEpoch: () => { tables.push(aaRows(emb)); accs.push(E.accuracy(net, test)); } });
+  return { tables, accs, ms: performance.now() - t1, params: net.params.reduce((p, q) => p + q.v.length, 0) };
+}
+const roleOf = (i) => ROLE_OF[AA[i]];
+await new Promise((r) => setTimeout(r, 30));
+const AAr = trainAA(SEED, 8, 40);
+const own = AAr.tables.map((R) => project(R, basis(R)));
+const finalFrame = own[own.length - 1];
+const framesD = own.map((P) => procrustes(P, finalFrame));
+const framesC = AAr.tables.map((R) => project(R, basis(AAr.tables[40])));
+const geo = AAr.tables.map((R) => geometry(R, roleOf));
+const purity2 = (P, g) => geometry(P, g).purity;
+findings.push(`this page, amino acids (seed ${SEED}, E = 8, 40 epochs, ${(AAr.ms / 1000).toFixed(1)} s, ${AAr.params} parameters): held-out ${[10, 20, 30, 40].map((e) => pct(AAr.accs[e])).join(" → ")} at epochs 10 · 20 · 30 · 40; purity in 8-D ${pct(geo[0].purity)} → ${pct(geo[40].purity)} (chance 28%), ratio ${f(geo[0].ratio)} → ${f(geo[40].ratio)}; purity in the 2-D picture ${pct(purity2(own[0], roleOf))} → ${pct(purity2(own[40], roleOf))}`);
+status(findings.join("\n") + "\n…");
+
+{
+  /* 1a: the space at four epochs, own basis laid over the final frame */
+  for (const e of [0, 10, 20, 40]) {
+    const box = cand("aaRow", e === 0 ? "Epoch 0 · the rows as initialised" : `Epoch ${e}`, `held-out ${e ? pct(AAr.accs[e]) : "—"} · purity ${pct(geo[e].purity)} in 8-D, ${pct(purity2(framesD[e], roleOf))} drawn · ratio ${f(geo[e].ratio)}`, 262);
+    const ctx = canvasIn(box, 262, 262);
+    space(ctx, 0, 0, 262, 262, framesD[e].map((p, i) => ({ p, colour: ROLE_COLOUR[roleOf(i)], text: AA[i] })));
+    label(ctx, "each epoch's own components, laid over the final frame", 6, 254, { size: 8, colour: T.ink3 });
+  }
+  /* 1b: his two panels at epoch 40 */
+  const box = cand("aaRow2", "A · your figure: the table, and the space (epoch 40)", "left: Embedding(21, 8) rows 1..20 as a heatmap, the PAD row left out · right: the same rows as points", 600);
+  const ctx = canvasIn(box, 600, 300);
+  const R = AAr.tables[40];
+  heatmap(ctx, R, 40, 24, 8 * 18, 20 * 12, 3);
+  AA.split("").forEach((c, i) => label(ctx, c, 34, 24 + i * 12 + 9, { size: 9, mono: true, align: "right", colour: ROLE_COLOUR[roleOf(i)] }));
+  for (let e = 0; e < 8; e++) label(ctx, String(e), 40 + e * 18 + 9, 20, { size: 8, mono: true, align: "center", colour: T.ink3 });
+  label(ctx, "the table · one row a token, E = 8", 40, 280, { size: 9, colour: T.ink2 });
+  space(ctx, 220, 12, 276, 276, framesD[40].map((p, i) => ({ p, colour: ROLE_COLOUR[roleOf(i)], text: AA[i] })), { title: "the space · the top two components" });
+  let ly = 30; for (const role of ["hydrophobic", "polar", "positive", "negative"]) { dot(ctx, 508, ly, 4, ROLE_COLOUR[role]); label(ctx, role, 516, ly + 3, { size: 9 }); ly += 14; }
+  label(ctx, "colour: the true role", 502, 100, { size: 8, colour: T.ink3 });
+  /* 1c: the distance matrices — one-hot, and trained */
+  const box2 = cand("aaRow2", "C · the distance matrix: one-hot, then the trained table", "left: a one-hot code, every off-diagonal distance √2 — nothing to draw as neighbours · right: the trained rows, blocks by role", W);
+  const ctx2 = canvasIn(box2, W, 300);
+  const drawDist = (rows, x0, title) => {
+    const n = rows.length, cs = 11, mx = Math.max(...rows.flatMap((a, i) => rows.map((b, j) => (i === j ? 0 : dist(a, b)))));
+    for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) { const d = i === j ? 0 : dist(rows[i], rows[j]); rect(ctx2, x0 + 20 + j * cs, 24 + i * cs, cs, cs, wash(css("--c-magnitude") || T.highlight, 0.05 + 0.9 * (1 - d / mx))); }
+    AA.split("").forEach((c, i) => { label(ctx2, c, x0 + 16, 24 + i * cs + 8, { size: 8, mono: true, align: "right", colour: ROLE_COLOUR[roleOf(i)] }); label(ctx2, c, x0 + 20 + i * cs + 5, 21, { size: 8, mono: true, align: "center", colour: ROLE_COLOUR[roleOf(i)] }); });
+    rect(ctx2, x0 + 20, 24, n * cs, n * cs, null, T.grid);
+    label(ctx2, title, x0 + 20, 24 + n * cs + 14, { size: 9, colour: T.ink2 });
+  };
+  const onehot = AA_IDS.map((id) => Array.from({ length: 21 }, (_, e) => (e === id ? 1 : 0)));
+  drawDist(onehot, 10, "one-hot: every pair √2 apart");
+  drawDist(R, 290, "trained: darker is nearer");
+  /* 1d: the final-basis alternative, for 1.2 */
+  for (const e of [0, 10, 20, 40]) {
+    const box = cand("aaRow3", `1.2 B · epoch ${e} on the FINAL table's components`, `purity drawn ${pct(purity2(framesC[e], roleOf))} (own components ${pct(purity2(framesD[e], roleOf))})`, 200);
+    const ctx = canvasIn(box, 200, 200);
+    space(ctx, 0, 0, 200, 200, framesC[e].map((p, i) => ({ p, colour: ROLE_COLOUR[roleOf(i)], text: AA[i], r: 3.5 })));
+  }
+  document.getElementById("recAA").textContent = `Recommendation: A for the stage, A for the frame, A for the start, A for the controls. On this seed the picture reaches ${pct(purity2(framesD[40], roleOf))} purity in two dimensions against ${pct(geo[40].purity)} in eight, which the caption says; the four roles separate by epoch ${geo.findIndex((g) => g.purity >= 0.9) > 0 ? geo.findIndex((g) => g.purity >= 0.9) : "40 or later"}.`;
+}
+
+/* =============================================================== page 2 */
+await new Promise((r) => setTimeout(r, 30));
+{
+  const seed = SEED, Edim = 8, rng = makeRng(seed), emb = E.Embedding(makeRng(seed + 100), 65, Edim, 0);
+  const net = E.Sequential([emb, E.Conv1d(makeRng(seed + 101), Edim, 8, 3, 1, 0, true), E.ReLU(), E.GlobalPool(8, "max"), E.Linear(makeRng(seed + 102), 8, 2)]);
+  const rows = () => CODON_IDS.map((id) => Array.from(emb.W.v.slice(id * emb.E, (id + 1) * emb.E)));
+  const test = codonTask(makeRng(seed + 200), 300);
+  const R0 = rows(); const t1 = performance.now();
+  E.train(rng, net, (e) => codonTask(makeRng(seed * 1000 + e), 300), { epochs: 40, lr: 1e-2 });
+  const ms = performance.now() - t1, R1 = rows(), acc = E.accuracy(net, test);
+  const motifIdx = SENSE.map((c, i) => ("LRS".includes(AA_OF[c]) ? i : -1)).filter((i) => i >= 0), restIdx = SENSE.map((_, i) => i).filter((i) => !motifIdx.includes(i));
+  const gM = geometry(motifIdx.map((i) => R1[i]), (k) => AA_OF[SENSE[motifIdx[k]]]), gR = geometry(restIdx.map((i) => R1[i]), (k) => AA_OF[SENSE[restIdx[k]]]);
+  const P0 = project(R0, basis(R0)), P1 = procrustes(project(R1, basis(R1)), project(R0, basis(R1)));
+  const b18 = basis(motifIdx.map((i) => R1[i])), P1m = procrustes(project(R1, b18), P1);
+  const pur18 = (P) => geometry(motifIdx.map((i) => P[i]), (k) => AA_OF[SENSE[motifIdx[k]]]).purity;
+  const moved = mean(R1.map((r, i) => dist(r, R0[i])));
+  const movedM = mean(motifIdx.map((i) => dist(R1[i], R0[i]))), movedR = mean(restIdx.map((i) => dist(R1[i], R0[i])));
+  findings.push(`this page, codons (E = 8, k = 3, 40 epochs, ${(ms / 1000).toFixed(1)} s): held-out ${pct(acc)}; the motif's 18 codons: purity ${pct(gM.purity)} in 8-D (chance 29%), ratio ${f(gM.ratio)}; drawn on the axes of all 61 rows ${pct(pur18(P1))}, on the axes of the eighteen ${pct(pur18(P1m))}; the other 43: purity ${pct(gR.purity)}; a motif codon's row moved ${f(movedM)} in 8-D, another's ${f(movedR)}`);
+  status(findings.join("\n") + "\n…");
+  const items = (P) => P.map((p, i) => { const aa = AA_OF[SENSE[i]], m = "LRS".includes(aa); return { p, colour: m ? MOTIF_COLOUR[aa] : wash(T.ink3, 0.55), text: m ? SENSE[i] : null, r: m ? 4.5 : 3 }; });
+  for (const [P, title, sub] of [[P0, "Epoch 0 · sixty-one sense codons, as initialised", "the motif's eighteen coloured by amino acid (L · R · S), the rest in the neutral ink"], [P1, "Epoch 40 · the eighteen have a geometry, the rest have none", `held-out ${pct(acc)} · eighteen: purity ${pct(gM.purity)} in 8-D, ${pct(pur18(P1))} drawn on the axes of all 61 rows · the other 43: purity ${pct(gR.purity)}`], [P1m, "Epoch 40 · 2.3 B: the axes from the eighteen rows with a geometry", `the same table; the eighteen: ${pct(pur18(P1m))} drawn · the 43 noise rows no longer choose the axes`]]) {
+    const box = cand("codonRow", title, sub, 300);
+    const ctx = canvasIn(box, 300, 300);
+    space(ctx, 0, 0, 300, 300, items(P), { lim: 3.5 });
+    let ly = 20; for (const aa of "LRS") { dot(ctx, 262, ly, 4, MOTIF_COLOUR[aa]); label(ctx, `${aa} · ${synonyms(aa).length} codons`, 270, ly + 3, { size: 8 }); ly += 12; }
+  }
+  document.getElementById("recCodon").textContent = `Recommendation: A, A and B. The rest moved ${f(movedR)} in eight dimensions against ${f(movedM)} for a motif codon, so the catalogue's proposed caption ("the tokens the task never rewards stay where they started") is FALSE and goes: they move, and their nearest neighbours stay at chance (${pct(gR.purity)} here). The caption says the task gives a geometry only to the tokens it rewards. For 2.3, B: the eighteen read ${pct(pur18(P1m))} on their own axes against ${pct(pur18(P1))} on all sixty-one's.`;
+}
+
+/* ================================================================ page 3 */
+await new Promise((r) => setTimeout(r, 30));
+{
+  const models = {}, acc = {};
+  const testIn = orderTask(makeRng(SEED + 200), 300);
+  const testPre = orderTask(makeRng(SEED + 300), 300, { Ltot: 48, lo: 24, span: 24 });
+  for (const pe of ["none", "learned", "sinusoidal", "rope"]) {
+    const rng = makeRng(SEED), m = attnModel(makeRng(SEED + 100), { pe });
+    const t1 = performance.now();
+    E.train(rng, m, (e) => orderTask(makeRng(SEED * 1000 + e), 300), { epochs: 30, lr: 3e-3 });
+    models[pe] = m;
+    acc[pe] = { inRange: E.accuracy(m, testIn), shift: E.accuracy(m, shifted(testIn, 24)), pre: E.accuracy(m, testPre), ms: performance.now() - t1, params: nParams(m) };
+    status(findings.join("\n") + `\n… ${pe} trained`);
+    await new Promise((r) => setTimeout(r, 10));
+  }
+  const mp = attnModel(makeRng(SEED + 100), { pe: "none" });
+  E.train(makeRng(SEED), mp, (e) => presenceTask(makeRng(SEED * 1000 + e), 300), { epochs: 30, lr: 3e-3 });
+  const accPresence = E.accuracy(mp, presenceTask(makeRng(SEED + 200), 300));
+  const NAME = { none: "none", learned: "learned", sinusoidal: "sinusoidal", rope: "rotary (RoPE)" };
+  findings.push(`this page, the order task (single head, D = 16, dk = 8, mean pool, 30 epochs): ${["none", "learned", "sinusoidal", "rope"].map((pe) => `${NAME[pe]} ${pct(acc[pe].inRange)} in range · ${pct(acc[pe].shift)} positions +24 · ${pct(acc[pe].pre)} with 24 tokens prepended (${(acc[pe].ms / 1000).toFixed(1)} s, ${acc[pe].params} parameters)`).join("; ")}; none on the presence task ${pct(accPresence)}`);
+  findings.push("script, amino acids: purity 35% → 100% with the accuracy 58% → 99% (E = 8, seed 1); E = 2 and 4 do not learn the four-role task; E = 16 learns faster and projects worse (65–85% in 2-D); one-hot reaches 100% too, at 698 parameters against 450");
+  findings.push("script, alignment: raw PCA frames reflect (4 of 40 on one seed) and rotate; the largest step a point takes falls 2.0–2.7 → 0.15–0.28 under Procrustes to the final frame, 0.12–0.20 on the final basis; the cloud's radius stays under 2.5, so fixed axes at ±3 hold every frame");
+  findings.push("script, position: no position 48–49% on order for thirty epochs, 77–84% on presence; learned 83–86%, sinusoidal 86–88%, rotary 92–93% in range; the same tokens at +24: 46–61%, 29–37% (below chance), 92–93%; scores under the shift change by 2.6 / 3.1 / 0.000; the learned table's nearest row is i ± 1 for 21% of positions (sinusoid 100%); rows never indexed do not move");
+  status(findings.join("\n"));
+
+  /* 3a: the tables, his figure */
+  const D = 16, Lp = 24;
+  const tbl = (m) => Array.from({ length: Lp }, (_, p) => Array.from(m.posVec(p)));
+  const init = attnModel(makeRng(SEED + 100), { pe: "learned" });
+  for (const [rows, title, sub] of [
+    [tbl(init), "Learned · at init", "nn.Embedding(48, 16) rows 0..23, N(0, 1) — your figure"],
+    [tbl(models.learned), "Learned · after training on the order task", `held-out ${pct(acc.learned.inRange)}; rows 24..47 never indexed, unmoved`],
+    [sinusoid(Lp, D), "Sinusoidal · fixed", "sin on even dimensions, cos on odd, one frequency a pair — your figure"],
+  ]) {
+    const box = cand("posRow", title, sub, 262);
+    const ctx = canvasIn(box, 262, 200);
+    heatmap(ctx, rows, 30, 14, 16 * 13, 24 * 7, 2.5);
+    label(ctx, "0", 26, 22, { size: 8, mono: true, align: "right", colour: T.ink3 }); label(ctx, "23", 26, 14 + 24 * 7 - 2, { size: 8, mono: true, align: "right", colour: T.ink3 });
+    label(ctx, "position", 8, 100, { size: 8, colour: T.ink3, align: "center" });
+    label(ctx, "dimension 0 … 15", 30 + 8 * 13, 194, { size: 8, colour: T.ink3, align: "center" });
+  }
+  {
+    const box = cand("posRow", "Rotary · nothing added: q and k turned by the position", "one pair of q's eight dimensions a row, θ = 1 · 0.1 · 0.01 · 0.001 a step; the score q·k then depends on i − j alone", 262);
+    const ctx = canvasIn(box, 262, 200);
+    for (let mth = 0; mth < 4; mth++) for (let p = 0; p < Lp; p++) {
+      const cx = 22 + p * 10, cy = 40 + mth * 36, th = p * Math.pow(10000, -(2 * mth) / 8);
+      dot(ctx, cx, cy, 4.5, css("--surface-2"), T.grid); line(ctx, cx, cy, cx + 4.5 * Math.cos(th), cy - 4.5 * Math.sin(th), css("--c-group-a"), 1.6);
+    }
+    label(ctx, "position 0 … 23", 22 + 12 * 10, 20, { size: 8, colour: T.ink3, align: "center" });
+    for (let mth = 0; mth < 4; mth++) label(ctx, `pair ${mth}`, 258, 44 + mth * 36, { size: 8, mono: true, colour: T.ink3, align: "right" });
+    label(ctx, "score unchanged when both positions move: measured 0.000", 22, 192, { size: 8, colour: T.ink2 });
+  }
+
+  /* 3c: the scores of one held-out sequence, in range and at +24 */
+  const ex = testIn.find((d) => d.y === 1);
+  const exShift = { tok: ex.x.tok, L: ex.x.L, pos: Int32Array.from(ex.x.tok, (_, i) => i + 24) };
+  const box = cand("posRow2", "A · the attention scores of one held-out sequence, in range and with its positions moved by 24", `${ex.letters} · class 1 (${M1} before ${M2}) · pre-softmax q·k/√dk, one row a query token`, W * 2 + 20);
+  const ctx = canvasIn(box, W * 2 + 20, 190);
+  let x0 = 10;
+  for (const pe of ["none", "learned", "sinusoidal", "rope"]) {
+    const m = models[pe], S0 = m.scores(ex.x), S1 = m.scores(exShift);
+    const mx = Math.max(...S0.flatMap((r) => Array.from(r, Math.abs)), 1e-6);
+    heatmap(ctx, S0.map((r) => Array.from(r)), x0, 30, 120, 120, mx); heatmap(ctx, S1.map((r) => Array.from(r)), x0 + 130, 30, 120, 120, mx);
+    let dsum = 0; for (let i = 0; i < 24; i++) for (let j = 0; j < 24; j++) dsum += Math.abs(S0[i][j] - S1[i][j]);
+    label(ctx, NAME[pe], x0, 18, { size: 10, weight: "600", colour: T.ink1 });
+    label(ctx, `positions 0..23 · ${pct(acc[pe].inRange)}`, x0, 164, { size: 9 }); label(ctx, `positions 24..47 · ${pct(acc[pe].shift)}`, x0 + 130, 164, { size: 9 });
+    label(ctx, `mean |Δ score| ${f(dsum / 576, 3)}`, x0, 178, { size: 8, mono: true, colour: pe === "rope" ? css("--c-highlight") : T.ink3 });
+    /* the motif columns */
+    const at1 = ex.letters.indexOf(M1), at2 = ex.letters.indexOf(M2);
+    for (const [at, col] of [[at1, css("--c-group-a")], [at2, css("--c-group-b")]]) { rect(ctx, x0 + at * 5, 26, 15, 3, col); rect(ctx, x0 + 130 + at * 5, 26, 15, 3, col); }
+    x0 += 272;
+  }
+  label(ctx, `${M1} · ${M2} marked over their columns`, 10 + 3 * 272 - 10, 8, { size: 8, colour: T.ink3, align: "left" });
+
+  /* 3b: the addition drawn in the space, for 3.3 B */
+  for (const pe of ["learned", "sinusoidal"]) {
+    const m = models[pe], tokRows = AA_IDS.map((id) => Array.from(m.tok.v.slice(id * m.D, (id + 1) * m.D)));
+    const B = basis(tokRows), P = project(tokRows, B);
+    const seq = ex.letters.slice(0, 8);
+    const pts = P.map((p, i) => ({ p, colour: wash(ROLE_COLOUR[roleOf(i)], 0.9), text: AA[i], r: 3.5 }));
+    const box = cand("posRow3", `3.3 B · ${NAME[pe]}: the first eight tokens of the sequence, x_i, and x_i + p_i`, "the token's point, an arrow to where the position puts it; the head's own token table (D = 16), its top two components", 262);
+    const ctx = canvasIn(box, 262, 262);
+    const lim = 4, cx = 131, cy = 131, sc = (131 - 8) / lim;
+    space(ctx, 0, 0, 262, 262, pts, { lim });
+    for (let i = 0; i < seq.length; i++) {
+      const id = aaTok(seq[i]), row = tokRows[id - 1], pv = m.posVec(i), sum = row.map((v, e) => v + pv[e]);
+      const [a, b] = project([sum], B)[0], [ax, ay] = P[id - 1];
+      arrow(ctx, cx + ax * sc, cy - ay * sc, cx + a * sc, cy - b * sc, wash(T.ink2, 0.8), 1);
+      label(ctx, `${seq[i]}${i}`, cx + a * sc + 4, cy - b * sc - 3, { size: 8, mono: true, colour: T.ink2 });
+    }
+  }
+  document.getElementById("recPos").textContent = `Recommendation: A, A, A, A, A. On this seed the head with no position scores ${pct(acc.none.inRange)} on order and ${pct(accPresence)} on presence; moved by 24 positions the rotary head keeps ${pct(acc.rope.shift)} while learned falls to ${pct(acc.learned.shift)} and sinusoidal to ${pct(acc.sinusoidal.shift)}. The rotary and learned single-head models are each about a second to train; the page trains one at a time on its Encoding value and caches by data parameters as 73 does.`;
+}
+
+/* ================================================================= rails */
+{
+  const rails = document.getElementById("rails");
+  const rail = (title, secs) => {
+    const r = el("div", "rail");
+    r.appendChild(el("div", "sec", title));
+    for (const [sec, ctls] of secs) { r.appendChild(el("div", "sec", sec)); for (const c of ctls) { if (typeof c === "string") r.appendChild(el("div", "btn", c)); else { const d = el("div", "ctl"); d.appendChild(el("span", null, c[0])); d.appendChild(el("span", null, c[1])); r.appendChild(d); } } }
+    rails.appendChild(r);
+  };
+  rail("Page · Amino acids", [["Page", [["Page", "Amino acids · Codons · Position"]]], ["The data", [["Embedding size E", "4 · 8 · 16"], ["Seed", "1"]]], ["Motion", ["Step (one epoch)", "Play · 40 epochs", "Reset"]], ["Readout", [["held-out accuracy", "—"], ["role purity", "—"], ["within / between", "—"]]]]);
+  rail("Page · Codons", [["Page", [["Page", "Amino acids · Codons · Position"]]], ["The data", [["Embedding size E", "4 · 8 · 16"], ["Seed", "1"]]], ["Motion", ["Step (one epoch)", "Play · 40 epochs", "Reset"]], ["Readout", [["held-out accuracy", "—"], ["purity, the motif's 18", "—"], ["purity, the other 43", "—"]]]]);
+  rail("Page · Position", [["Page", [["Page", "Amino acids · Codons · Position"]]], ["The data", [["Encoding", "none · learned · sinusoidal · rotary"], ["Seed", "1"]]], ["Motion", ["Step (one epoch)", "Play · 30 epochs", "Reset"]], ["The figure", [["Shift (display)", "0 · 24"]]], ["Readout", [["held-out accuracy", "—"], ["at the shifted positions", "—"], ["parameters", "—"]]]]);
+}
+</script>
+</body>
+</html>

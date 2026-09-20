@@ -19724,8 +19724,91 @@ frame to frame (Procrustes to the previous epoch) or the picture rotates as
 it trains — measure it before the first mock is shown. Title and slug
 provisional: `embedding-space`, "Deep Learning - Embedding Space".
 
-**NEXT:** mock from `_lab/signal-windows-mock.html`'s shell → his picks →
-draft, in a new session.
+**PLANNED 2026-09-21, the next session — measured twice more, mocked,
+picked.** His ask: *the main emphasis is embedding space, but consider
+separate pages on positional encoding (it will be used for PHM5005 DL for
+Language), e.g. learned, fixed (frequency), relative (RoPE).* The language
+lessons read: 08-1 cell 1 §2 (x̃ᵢ = xᵢ + pᵢ; learned, sinusoidal, "relative
+encodings or rotations"), 08-3 cell 2 §4 and cell 4 §2 (the three-row table
+learned · fixed · relative, the learned and sinusoidal syntax, the
+prototype's `nn.Embedding(max_len, d_model)`), and his three figures
+(`dl-language-position.png`, the x + p strip; `-position-learn.png`, a
+[N, D] noise heatmap; `-position-sinusoidal.png`, the striped table). No
+catalogue plan existed for the 08 lessons; this is the first piece of one.
+
+**Measured, the alignment the section above asked for**
+(`_lab/embedding-space-align-measure.mjs`, 3 s; its header has each number):
+a per-epoch PCA of the twenty rows **reflects and spins** — on one seed four
+of forty frames are reflections of the previous, the largest step a point
+takes is 2.0–2.7 against a cloud radius of 2. Own-basis + Procrustes to the
+previous frame, own-basis + Procrustes to the FINAL frame, and the final
+table's basis fixed all hold it (largest step 0.15–0.28 · 0.15–0.28 ·
+0.12–0.20). **Own basis laid over the final frame is the pick** (1.2 A):
+every frame is that epoch's best two-dimensional view, no chain drifts, and
+compute() trains every epoch before the first is drawn so the end is known
+at the start; the final basis is smoother but chooses the axes with
+hindsight (70% purity at epoch 0 on one seed). Fixed axes at ±3 hold every
+frame. At epoch 0 the rows are N(0, 1): **the points start as noise, not as
+an equidistant one-hot arrangement** — twenty equidistant points cannot be
+drawn in two dimensions; a one-hot code is drawable only as a distance
+matrix with every off-diagonal entry √2.
+
+**Measured, the position pages** (`_lab/positional-encoding-measure.mjs`,
+15 s, on `_lab/attention-lab.js` — a single self-attention head with its own
+backward, written because no widget has one, checked against finite
+differences to 2e-8). An ORDER task: two three-letter motifs both present,
+class 1 when the first precedes the second, the same bag of tokens in both
+classes. **The lesson's claim holds exactly:** with no position the head sits
+at 48–49% for thirty epochs while it learns a presence task at 77–84%, so the
+failure is order, not capacity. Learned 83–86%, sinusoidal 86–88%, rotary
+92–93% in range (D = 16, dk = 8, mean pool, 35 ms an epoch — a second on
+the click). **The same tokens at positions 24..47:** learned 46–61%,
+sinusoidal 29–37% (below chance: the shifted encoding inverts what it
+learned), rotary 92–93% unchanged; the attention scores change by 2.6 · 3.1 ·
+**0.000**. **What does not hold, and the page will not say:** the learned
+table gets no neighbour order on this task (nearest row i ± 1 for 21% of
+positions, the sinusoid 100%; rows never indexed do not move at all); with
+24 real tokens prepended EVERY encoding falls to 48–60%, rotary included —
+one head and a mean pool diluted over twice the tokens — so the page shifts
+the POSITIONS and claims nothing about longer sequences.
+
+**The mock** (`_lab/embedding-space-mock.html`, every number computed on the
+page: both tables and four attention heads trained on load, seven seconds)
+**overturned two lines of the proposal above.** (1) *"The tokens the task
+never rewards stay where they started"* is FALSE: every sense codon is in
+the background so every row gets a gradient, and the forty-three move 1.50
+in eight dimensions against 2.01 for a motif codon — they move, and land
+nowhere (purity 5%). The caption says the task gives a geometry only to the
+tokens it rewards. (2) On the axes of all sixty-one rows the eighteen read
+44% in two dimensions; on their own axes 100%, three clean clusters — the
+noise rows otherwise choose the axes, so the codon page's axes come from the
+eighteen and the figure says so.
+
+**His picks, 2026-09-21, four `AskUserQuestion` rounds, every one the
+recommendation:** 3.1 the position pages live IN THIS WIDGET, after Codons
+(08-3 links to the page by URL) · 3.2 ONE page, *Position*, with Encoding
+none · learned · sinusoidal · rotary as a data control · 1.1 his figure's
+two panels, the table as a heatmap and the space, both moving · 1.2 own
+components laid over the final frame · 1.3 N(0, 1) rows, the caption saying
+so · 1.4 E = 4 · 8 · 16 (data, 8 default), Seed; Step an epoch, Play the
+forty; readout held-out accuracy, role purity, within/between ratio · 2.1 the
+other forty-three in the neutral ink, unlabelled · 2.3 the axes from the
+eighteen · 2.2 codon text on the eighteen, hover names any point · 3.3 the
+table figure at the top (turning pairs for rotary, blank for none), the
+scores of one held-out sequence beneath, accuracy in range and shifted in
+the readout · 3.4 a Shift control 0 · 24 (display: the trained model is
+read, not retrained) · 3.5 the order task trained on the click, the presence
+number for none in the readout · 4.1 `embedding-space`, **"Deep Learning -
+Embedding Space"** · 4.2 pages 1 and 2 drafted and reviewed first, Position
+added once they settle.
+
+**The widget as planned:** three pages, Amino acids · Codons · Position, the
+first two on 73's engine (E = 8, 40 epochs, cached by data parameters), the
+third on the attention head, which moves from `_lab/attention-lab.js` into
+`signal-cnn-lstm/engine.js` beside RNN and LSTM when the page is drafted.
+Sequence arc: 73, 75, 72 shipped; 74 is its last.
+
+**NEXT:** the draft of pages 1 and 2, on his word.
 
 ---
 
