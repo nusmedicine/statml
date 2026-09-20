@@ -1356,6 +1356,20 @@ const drive = (params, state, dt, cap = 40000, mode = "run") => {
         && a.n === state.units && a.phase === "layers";
     })(), "and closing it leaves the columns where they are (3.4b)");
 
+  /* the gate opened mid-unit (found by the sweep after widget 70's ship,
+     2026-09-20): core keeps the loop running through a display change, and it
+     used to walk on into the receptive field a beat ahead of the reader */
+  check("the gate opened mid-unit ends the loop: every column in, the walk not started",
+    (() => {
+      const a = W.animation.init({ params, state, fromScratch: true });
+      a.mode = "step";
+      for (let i = 0; i < 5; i += 1) W.animation.advance(a, { dt: 32, params, state });
+      const inFlight = a.moving === true && a.n < state.units;
+      W.animation.rebuild(a, { params: walk, state });
+      const more = W.animation.advance(a, { dt: 32, params: walk, state });
+      return inFlight && more === false && a.n === state.units && a.s === 0 && a.halt === false && a.moving === false;
+    })());
+
   /* one press a call, so every cell is visited once */
   const slow = drive(walk, state, M.SLIDE_MS0, 40000);
   const seq = slow.marks.filter((m) => m.n >= state.units).map((m) => m.s);

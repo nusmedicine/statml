@@ -1152,6 +1152,52 @@ const BLOCK_OPTIONS = ["1", "2", "3"].map((v) => ({ value: v, label: v }));
    once — the longest press count any combination of the controls reaches */
 const SHOWN_MAX = 7 + 4096;
 
+/** One frame of whichever walk the gate names: a unit of the layers, or a
+    cell of the receptive field. Was the body of `advance` until 2026-09-20. */
+function takeBeat(anim, dt, params, state) {
+  const patch = Boolean(params.patch);
+  const plan = walkPlan(params, state.stages, Math.min(anim.n, state.units));
+  const step = anim.mode === "step";
+  if (!patch) {
+    if (anim.n >= state.units) {
+      anim.beat = 0;
+      anim.phase = PHASES.layers;
+      anim.done = true;
+      return false;
+    }
+    anim.beat += dt / M.UNIT_MS;
+    if (anim.beat < 1) return true;
+    anim.beat = 0;
+    anim.n += 1;
+    anim.acc = 0;
+    settle(anim, plan, state.units, patch);
+    return !step && !anim.done;
+  }
+  if (anim.s >= plan.beats) {
+    anim.beat = 0;
+    anim.phase = PHASES.units;
+    anim.done = true;
+    return false;
+  }
+  /* THE PACE RAMPS ACROSS THE MAP (decision 10), so the wait is read one
+     cell at a time rather than assumed: the accumulator is spent against
+     whatever this cell costs, and on the big maps several cells go by in
+     one frame near the end. */
+  anim.acc += dt;
+  let moved = 0;
+  while (anim.s < plan.beats) {
+    const ms = M.slideMsAt(plan.slide, plan.start + anim.s);
+    if (anim.acc < ms) break;
+    anim.acc -= ms;
+    anim.s += 1;
+    moved += 1;
+    if (step) { anim.acc = 0; break; }
+  }
+  if (moved === 0) return true;
+  settle(anim, plan, state.units, patch);
+  return !step && !anim.done;
+}
+
 defineWidget({
   slug: "cnn-architecture",
   title: "Deep Learning - CNN Architecture",
@@ -1331,6 +1377,16 @@ defineWidget({
        stepping out and back in cost nothing (3.4b). */
     rebuild: (anim, { params, state }) => {
       const patch = Boolean(params.patch);
+      /* THE FIELD WALK STARTS OVER ON EVERY DISPLAY CHANGE (`s` and `acc`
+         below), and core keeps a running loop going through one: the gate
+         opened mid-unit left the loop walking the receptive field, a beat
+         ahead of the reader's first press, and a control moved mid-walk had
+         the loop walking on from the start it had just been given. Found by
+         the sweep after widget 70's ship (2026-09-20). Everything is already
+         in place — opening lands every unit, closing is core's own stop — so
+         the loop only has to end: `halt` does, at its next frame, only while
+         a walk moves (`advance` records it). */
+      if (patch && anim.moving) anim.halt = true;
       if (patch) {
         anim.n = state.units;
         anim.beat = 0;
@@ -1341,47 +1397,12 @@ defineWidget({
     },
 
     advance: (anim, { dt, params, state }) => {
-      const patch = Boolean(params.patch);
-      const plan = walkPlan(params, state.stages, Math.min(anim.n, state.units));
-      const step = anim.mode === "step";
-      if (!patch) {
-        if (anim.n >= state.units) {
-          anim.beat = 0;
-          anim.phase = PHASES.layers;
-          anim.done = true;
-          return false;
-        }
-        anim.beat += dt / M.UNIT_MS;
-        if (anim.beat < 1) return true;
-        anim.beat = 0;
-        anim.n += 1;
-        anim.acc = 0;
-        settle(anim, plan, state.units, patch);
-        return !step && !anim.done;
-      }
-      if (anim.s >= plan.beats) {
-        anim.beat = 0;
-        anim.phase = PHASES.units;
-        anim.done = true;
-        return false;
-      }
-      /* THE PACE RAMPS ACROSS THE MAP (decision 10), so the wait is read one
-         cell at a time rather than assumed: the accumulator is spent against
-         whatever this cell costs, and on the big maps several cells go by in
-         one frame near the end. */
-      anim.acc += dt;
-      let moved = 0;
-      while (anim.s < plan.beats) {
-        const ms = M.slideMsAt(plan.slide, plan.start + anim.s);
-        if (anim.acc < ms) break;
-        anim.acc -= ms;
-        anim.s += 1;
-        moved += 1;
-        if (step) { anim.acc = 0; break; }
-      }
-      if (moved === 0) return true;
-      settle(anim, plan, state.units, patch);
-      return !step && !anim.done;
+      /* the loop left running for a walk the gate finished (`rebuild`)
+         ends here, before it takes the other's next */
+      if (anim.halt) { anim.halt = false; anim.moving = false; return false; }
+      const more = takeBeat(anim, dt, params, state);
+      anim.moving = more;
+      return more;
     },
   },
 
