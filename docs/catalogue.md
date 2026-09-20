@@ -19641,8 +19641,39 @@ because it moves with the rate (A_8 is 0.70 Hz at 360 Hz, 0.18 at 90); at
 90 Hz the 50 Hz line has folded to 40 and the Filter row says no notch at
 50 Hz exists there; the Window page draws all 20 s where the mock drew 12.
 
-**NEXT:** his rounds from the draft at `/widget/signal-windows/`; then the
-copy audit, the states and the ship.
+**Round 1 and the audit, 2026-09-20 night to 2026-09-21.** His first look:
+one overlap (the zoom caption and the R-wave note under the 220 px inset),
+a copy audit review, and subtitle and blurb drafts. A sweep of every string
+the canvas paints with its measured box (`fillText` wrapped, the theme
+toggled to repaint) found one more — the Normalize page's shape print 60 px
+off the right edge — and reads clean on every page since (`623bc51`). The
+audit as one table of fifteen rows, **all applied on his word** (`20852ec`,
+`68ea811`): *deal* and *deck* struck (a card metaphor of ours) for *split*
+and *Hold out*; *sit* and *lie*; the URL values `ma` · `poly` · `maj` made
+the control words `average` · `polynomial` · `half`; the recording arm's
+letters `irr` / `reg` made `1` / `0`; the details in conventional terms
+(stop band, cut-off frequency); and the struck-word sweep in the verify
+extended with deal, deck, sit, lie, fall and the two abbreviations — which
+then caught *cell* in a detail. **Subtitle A and blurb B1, his picks
+(`c889f7e`), both starting from the signal:** *A signal is recorded as one
+long trace at its own sampling rate, with line noise and a drifting
+baseline, so it is resampled, filtered and detrended, then cut into windows
+of fixed length …*; *Signals are cleaned, windowed and labelled, then split
+by subject: windows of one person are not independent samples.*
+
+**SHIPPED 2026-09-21 (`1fe6062`) on "tested ok, do the states and ship
+it".** Status flipped first. Thirty-three states, identical across three
+filtered runs and MATCH on a fourth: twenty-four settled across the four
+pages (the folded line at 90 Hz, the polynomial under drift, level 10, both
+filters off, the event arm at any overlap and 75%, both splits, the fifth
+held-out window picked, 616 windows, seed 7, the print at `[40, 1, 1440]`),
+six driven (Resample and Detrend fading in, Play cutting windows, the
+hold-out sweep, Play scoring, the dots moving to sd 1), one hit-driven (the
+held-out cell at [213, 30] picks the second window drawn) and two
+interrupted (a page visited mid-press shows its own untouched page). The
+hit's coordinates come from the harness's 900 px frame, where the canvas is
+535 px wide. `npm run check` and `npm test` (33 scripts) run alone and
+green; the full suite and the deploy are recorded in HANDOVER.
 
 ---
 
