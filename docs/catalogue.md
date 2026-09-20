@@ -19575,11 +19575,49 @@ recommendation:**
    stage. The page control reads Window · Split · Normalize.
 8. **Slug `signal-windows`, title "Deep Learning - Signal Windows".**
 
+**Then, the same evening, his ask: *can you also mock up other preprocessing
+steps like correcting for noise and drift?*** — cell 4 §1 (his figures
+`dl-sequential-preprocess-raw.png`, Resample → Filter → Detrend as three
+rows, and `-detrend.png`, Raw → Drift `A_j(t)` → Detrended), which § *Slot
+75* above had down as *not a page*. Mocked as § 1b of the same page
+(`ce52df7`), everything computed there on subject 2's recording with the
+lesson's contamination added (50 Hz line, white noise, a 0.25 Hz drift):
+decimation `x'[n] = x[nM]` with the samples drawn over one second at
+360 · 180 · 90 Hz; a 50 Hz notch and a 40 Hz low-pass as second-order
+sections run forward and backward; a db4 wavelet decomposition, periodised
+after a ramp between the ends is taken out (reconstruction error 3e-15), its
+`A_j` and `D_1 … D_j` stacked as his figure has them; and the lesson's three
+trends over one trace. **Three facts the page found:** the lesson's
+band-pass 0.5–40 Hz removes the drift by itself (8% left), so with it Detrend
+has nothing to do — hence a notch and a low-pass, and the drift left for
+Detrend, so each row of his figure shows one change; the wavelet level
+matters — `A_8` leaves 2% of a 0.25 Hz drift, `A_9` 18%, `A_10` 79%; and the
+degree-5 polynomial cannot follow three periods of drift (76% left) while the
+2 s moving average leaves 31%. So Trend and Level are controls with a visible
+winner and loser at every tick.
+
+**His picks, two more `AskUserQuestion` calls, every one the recommendation:**
+
+9. **A first page, *Clean*, in this widget.** The page control reads Clean ·
+   Window · Split · Normalize, the notebook's order. Step runs Resample →
+   Filter → Detrend as his figure's rows. The cleaning controls are data
+   controls, so the other pages window the CLEANED recording.
+10. **All three steps, one Step each.**
+11. **The filter as Notch (off · 50 · 60 Hz) and Low-pass (40 · 100 Hz ·
+    off)**, not the lesson's band-pass.
+12. **Trend: moving average · polynomial · wavelet, with Level 7 · 8 · 9 · 10
+    shown when wavelet.**
+13. **Noise: none · line · drift · both**, one data control on the
+    recordings, so a step can be watched doing nothing.
+
 **NEXT:** the draft — `widgets/signal-windows/` with `model.js` (the stage
-lifted from the mock, the windowing, the nearest-window scorer, the label
-counts) and `main.js`, `_lab/signal-windows-verify.mjs` registered in
-`scripts/verify.mjs`, manifest status `draft`; then his rounds. The CNN is
-not imported; nothing trains.
+lifted from the mock with the contamination and the cleaning — decimation,
+the biquads, the three trends, the periodised db4 — the windowing, the
+nearest-window scorer, the label counts) and `main.js` with four pages,
+`_lab/signal-windows-verify.mjs` registered in `scripts/verify.mjs` (the
+wavelet's reconstruction error and the notch's depth are its first
+assertions), manifest status `draft`; then his rounds. The CNN is not
+imported; nothing trains. Height: four pages, the Clean page the tallest.
 
 ---
 
