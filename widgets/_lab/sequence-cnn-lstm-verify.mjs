@@ -141,7 +141,8 @@ section("§5 the copy");
   const src = readFileSync(join(here, "..", "sequence-cnn-lstm", "main.js"), "utf8");
   const S = src.slice(src.indexOf("const S = {"), src.indexOf("/* --------------------------------------------------------- drawing helpers"));
   const strings = S.match(/"[^"\n]*"|`[^`\n]*`/g) ?? [];
-  const struck = /\b(never|sticky|folksy|lesson|notebook|chapter|chose|wants|remembers|forgets|trained here)\b|\bcell \d/i;
+  /* budget · probed · spells · class-1 · half-max · asks: struck in the 2026-09-20 audit (internal vocabulary, a coinage, a model asked) */
+  const struck = /\b(never|sticky|folksy|lesson|notebook|chapter|chose|wants|remembers|forgets|trained here|budget|probed|spells|class-1|half-max|asks?|asked)\b|\bcell \d/i;
   const hits = strings.filter((s) => struck.test(s));
   assert(hits.length === 0, `no struck word in a reader-facing string: ${hits.slice(0, 5).join(" · ")}`);
   console.log(`  ${strings.length} strings swept`);
