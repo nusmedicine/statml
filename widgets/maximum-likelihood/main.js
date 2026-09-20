@@ -283,6 +283,31 @@ function halt(anim, { finished = false } = {}) {
   return false;
 }
 
+/** One frame of the drive after the lead: the candidate in flight on the
+    tab the parameters name, or the next one. Was the body of `advance` after
+    its lead branch until 2026-09-20. */
+function takePress(anim, dt, params) {
+  if (!anim.leadDone || anim.done) return false;
+
+  const tab = params.estimate;
+  const last = lastIndex(tab);
+  // The climb has five moves against the sweeps' forty-one, so a single pace
+  // would either race through it or crawl through them.
+  const dur = anim.mode === "step" || tab === "both" ? STEP_MS : PLAY_MS;
+
+  if (anim.flyT < 1) {
+    anim.flyT = clamp01(anim.flyT + dt / dur);
+    if (anim.flyT < 1) return true;
+    if (anim.cursor[tab] >= last) return halt(anim, { finished: true });
+    if (anim.mode === "step") return halt(anim);
+  }
+
+  if (anim.cursor[tab] >= last) return halt(anim, { finished: true });
+  anim.cursor[tab] += 1;
+  anim.flyT = 0;
+  return true;
+}
+
 defineWidget({
   slug: "maximum-likelihood",
   title: "Maximum Likelihood",
@@ -597,7 +622,16 @@ defineWidget({
     rebuild(anim, { params }) {
       const live = anim.cursor[params.estimate];
       anim.done = live >= lastIndex(params.estimate);
+      /* Landing the candidate in flight finishes the press: the cursor moved
+         when it was pressed. But core keeps a running loop going through a
+         display change, and `takePress`, finding nothing in flight, took the
+         next candidate — on the tab just switched to, or on this one when a
+         toggle moved. Found by the sweep after widget 70's ship (2026-09-20).
+         `anim.halt` (a flag; `halt()` below is the frame's own return) ends
+         the loop at its next frame, only while a press moves (`advance`
+         records it), or the reader's next press loses its first frame. */
       anim.flyT = 1;
+      if (anim.moving) anim.halt = true;
     },
 
     advance(anim, { dt, params }) {
@@ -610,25 +644,12 @@ defineWidget({
         anim.leadDone = true;
         return false;
       }
-      if (!anim.leadDone || anim.done) return false;
-
-      const tab = params.estimate;
-      const last = lastIndex(tab);
-      // The climb has five moves against the sweeps' forty-one, so a single pace
-      // would either race through it or crawl through them.
-      const dur = anim.mode === "step" || tab === "both" ? STEP_MS : PLAY_MS;
-
-      if (anim.flyT < 1) {
-        anim.flyT = clamp01(anim.flyT + dt / dur);
-        if (anim.flyT < 1) return true;
-        if (anim.cursor[tab] >= last) return halt(anim, { finished: true });
-        if (anim.mode === "step") return halt(anim);
-      }
-
-      if (anim.cursor[tab] >= last) return halt(anim, { finished: true });
-      anim.cursor[tab] += 1;
-      anim.flyT = 0;
-      return true;
+      /* the loop left running for a press a display change finished
+         (`rebuild`) ends here, before it takes the other tab's press */
+      if (anim.halt) { anim.halt = false; anim.moving = false; return false; }
+      const more = takePress(anim, dt, params);
+      anim.moving = more;
+      return more;
     },
   },
 
