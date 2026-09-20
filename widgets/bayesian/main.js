@@ -411,6 +411,34 @@ function hpdLevels(joint, cellArea) {
   return out;
 }
 
+/** One frame of the drive after the lead: the count or the draw in flight on
+    the view the parameters name, or the next one. Was the body of `advance`
+    after its lead branch until 2026-09-20. */
+function takePress(anim, dt, params) {
+  if (!anim.leadDone || anim.done) return false;
+  const mcmc = params.view === "mcmc";
+  const dur = anim.mode === "step"
+    ? (mcmc ? DRAW_STEP_MS : STEP_MS)
+    : (mcmc ? DRAW_PLAY_MS : PLAY_MS);
+  const last = mcmc ? DRAWS : params.n;
+  const at = () => (mcmc ? anim.draws : anim.obs);
+
+  if (anim.flying) {
+    anim.flyT = clamp01(anim.flyT + dt / dur);
+    if (anim.flyT < 1) return true;
+    // It has landed, so it counts: everything below moves on by one.
+    anim.flying = false;
+    if (mcmc) anim.draws += 1; else anim.obs += 1;
+    if (at() >= last) { anim.done = true; return false; }
+    if (anim.mode === "step") return false;
+  }
+
+  if (at() >= last) { anim.done = true; return false; }
+  anim.flying = true;
+  anim.flyT = 0;
+  return true;
+}
+
 defineWidget({
   slug: "bayesian",
   title: "Bayesian Estimation",
@@ -897,6 +925,7 @@ defineWidget({
            the lead. Only Reset goes back to before it. */
         leadDone: Boolean(leadDone), leadT: leadDone ? 1 : 0,
         obs: 0, draws: 0, flying: false, flyT: 1, done: false,
+        view: params.view,
       };
       const pre = fromScratch ? 0 : Math.max(0, params.shown | 0);
       if (pre > 0) {
@@ -913,6 +942,19 @@ defineWidget({
        is now live. Without it, entering the sampler with the counts finished
        showed "Replay" over a chain that had not started. */
     rebuild(anim, { params }) {
+      /* A PRESS BELONGS TO THE VIEW IT STARTED ON. Dropping the count in
+         flight lost the press: it is counted only on landing, below in
+         `takePress`. And core keeps a running loop going through a display
+         change, so the loop then took the next press on the view just switched
+         to. Found by the sweep after widget 70's ship (2026-09-20). The count
+         lands and is counted here, as if its frames had run, and `halt` ends
+         the loop at its next frame; only while a press moves (`advance`
+         records it), or the reader's next press loses its first frame. */
+      if (anim.moving && anim.flying) {
+        if (anim.view === "mcmc") anim.draws += 1; else anim.obs += 1;
+        anim.halt = true;
+      }
+      anim.view = params.view;
       const live = params.view === "mcmc" ? anim.draws : anim.obs;
       const last = params.view === "mcmc" ? DRAWS : params.n;
       anim.done = live >= last;
@@ -930,28 +972,12 @@ defineWidget({
         anim.leadDone = true;
         return false;
       }
-      if (!anim.leadDone || anim.done) return false;
-      const mcmc = params.view === "mcmc";
-      const dur = anim.mode === "step"
-        ? (mcmc ? DRAW_STEP_MS : STEP_MS)
-        : (mcmc ? DRAW_PLAY_MS : PLAY_MS);
-      const last = mcmc ? DRAWS : params.n;
-      const at = () => (mcmc ? anim.draws : anim.obs);
-
-      if (anim.flying) {
-        anim.flyT = clamp01(anim.flyT + dt / dur);
-        if (anim.flyT < 1) return true;
-        // It has landed, so it counts: everything below moves on by one.
-        anim.flying = false;
-        if (mcmc) anim.draws += 1; else anim.obs += 1;
-        if (at() >= last) { anim.done = true; return false; }
-        if (anim.mode === "step") return false;
-      }
-
-      if (at() >= last) { anim.done = true; return false; }
-      anim.flying = true;
-      anim.flyT = 0;
-      return true;
+      /* the loop left running for a press a display change finished
+         (`rebuild`) ends here, before it takes the other tab's press */
+      if (anim.halt) { anim.halt = false; anim.moving = false; return false; }
+      const more = takePress(anim, dt, params);
+      anim.moving = more;
+      return more;
     },
   },
 
