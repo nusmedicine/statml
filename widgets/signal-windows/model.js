@@ -227,7 +227,7 @@ export const levelHz = (J, fs) => fs / 2 ** (J + 1);
 /**
  * The cleaning of one raw recording, every stage kept so a page can draw
  * each: resampled at `rate`, filtered by `notchHz` (or "off") and `lowHz`
- * (or "off"), and detrended by `trend` (`ma` · `poly` · `wavelet` at `level`).
+ * (or "off"), and detrended by `trend` (`average` · `polynomial` · `wavelet` at `level`).
  * A filter whose frequency is not below the rate's Nyquist is skipped and
  * said: at 90 Hz the 50 Hz line has already folded to 40 Hz.
  */
@@ -237,7 +237,7 @@ export function clean(raw, { rate, notchHz, lowHz, trend, level }) {
   const notchOn = notchHz !== "off" && Number(notchHz) < rate / 2, lowOn = lowHz !== "off" && Number(lowHz) < rate / 2;
   let filtered = notchOn ? notch(resampled, Number(notchHz), rate) : Float64Array.from(resampled);
   if (lowOn) filtered = lowpass(filtered, Number(lowHz), rate);
-  const tr = trend === "ma" ? movingAverage(filtered, MA_SECONDS * rate) : trend === "poly" ? polyTrend(filtered, POLY_DEGREE) : wavelet(filtered, level).A;
+  const tr = trend === "average" ? movingAverage(filtered, MA_SECONDS * rate) : trend === "polynomial" ? polyTrend(filtered, POLY_DEGREE) : wavelet(filtered, level).A;
   const cleaned = new Float64Array(filtered.length);
   for (let t = 0; t < cleaned.length; t++) cleaned[t] = filtered[t] - tr[t];
   return {

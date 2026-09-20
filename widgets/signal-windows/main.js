@@ -49,34 +49,36 @@ const ON_WINDOWS = { param: "page", oneOf: ["window", "split", "normalize"] };
 const ON_SUBJECT = { param: "page", oneOf: ["clean", "window"] };
 const HEIGHTS = { clean: 560, window: 344, split: 456, normalize: 300 };
 
-const DUR = { clean: 900, window: 220, deal: 800, scoreOne: 140, normalize: 900 };
+const DUR = { clean: 900, window: 220, holdOut: 800, scoreOne: 140, normalize: 900 };
 const PICK_MAX = 160;
 
 /* ------------------------------------------------------------- the copy --- */
 
 const S = {
   subtitle:
-    "A recording is resampled, filtered and detrended, then cut into windows that each inherit a "
-    + "label from the recording or from the events inside it. A window is not a subject: dealt at "
-    + "random into train and held-out, windows of one subject sit on both sides, and the nearest "
-    + "training window is theirs. Each window is then standardised over its own samples.",
+    "A signal is recorded as one long trace at its own sampling rate, with line noise and a drifting "
+    + "baseline, so it is resampled, filtered and detrended, then cut into windows of fixed length that "
+    + "each inherit a label from the recording's annotation or from the events they overlap. A window is "
+    + "not an independent sample: split by window, a held-out window's nearest training window is usually "
+    + "the same subject's and the score is inflated; split by subject it is not. Each window is then "
+    + "standardised over its own samples.",
   pageLabel: "Page",
   recSection: "The recordings",
   noiseLabel: "Noise",
-  noiseDetail: "what the raw recordings carry besides the heart: line noise at 50 Hz, a slow drift, or both",
+  noiseDetail: "what the raw recordings contain besides the ECG: line noise at 50 Hz, a slow drift, or both",
   seedLabel: "Seed",
-  seedDetail: "the eight subjects, their recordings and the deal, reproducibly",
+  seedDetail: "the eight subjects, their recordings and the split, reproducibly",
   cleanSection: "The cleaning",
   rateLabel: "Rate",
   rateDetail: "the sampling rate after resampling: every M-th sample is kept",
   notchLabel: "Notch",
-  notchDetail: "a narrow stop at one frequency",
+  notchDetail: "a narrow stop band at one frequency",
   lowLabel: "Low-pass",
-  lowDetail: "the frequency above which the filter stops",
+  lowDetail: "the cut-off frequency; everything faster is removed",
   trendLabel: "Trend",
   trendDetail: "what is subtracted as the baseline: a moving average of 2 s, a polynomial of degree 5, or a wavelet approximation",
   levelLabel: "Level",
-  levelDetail: "how coarse the wavelet approximation is; a higher level keeps only slower movement",
+  levelDetail: "how coarse the wavelet approximation is; a higher level follows only slower changes",
   winSection: "The windows",
   windowLabel: "Window",
   windowDetail: "the length of one window, in seconds at the rate",
@@ -88,17 +90,17 @@ const S = {
   ruleDetail: "when an event labels a window: at any overlap, or only with more than half the event inside",
   splitSection: "The split",
   splitLabel: "Split",
-  splitDetail: "the unit dealt into train and held-out: a random fifth of the windows, or one subject of each class with every window of theirs",
+  splitDetail: "the unit assigned to train or held-out: a random fifth of the windows, or one subject of each class with every window of theirs",
   lookSection: "Look at",
   subjectLabel: "Subject",
   subjectDetail: "whose recording is drawn",
   pickLabel: "Held-out window",
-  pickDetail: "which held-out window is drawn over its nearest training window; a click on the deck picks one",
+  pickDetail: "which held-out window is drawn over its nearest training window; a click on a held-out cell picks one",
 
   stepLabels: {
     clean0: "Resample", clean1: "Filter", clean2: "Detrend", clean3: "Detrend",
     window: "Cut a window",
-    split0: "Deal", split1: "Score a window",
+    split0: "Hold out", split1: "Score a window",
     normalize0: "Normalize", normalize1: "Normalize",
   },
   stepTitles: {
@@ -107,7 +109,7 @@ const S = {
     clean2: "Subtract the chosen trend from the filtered recording",
     clean3: "Every step of the cleaning is drawn",
     window: "Cut the next window at the stride and write the label it inherits",
-    split0: "Deal every window into train or held-out by the chosen unit",
+    split0: "Assign every window to train or held-out by the chosen unit",
     split1: "Find the next held-out window's nearest training window and take its label",
     normalize0: "Standardise every window over its own samples",
     normalize1: "Every window is standardised",
@@ -149,13 +151,13 @@ const S = {
   filterNone: "no filter",
   filterNotch: (hz) => `notch ${hz} Hz`,
   filterLow: (hz) => `low-pass ${hz} Hz`,
-  capFolded: (hz, at, fs) => `the ${hz} Hz line lies above half the rate and has folded to ${at} Hz; no notch at ${hz} Hz exists at ${fs} Hz`,
+  capFolded: (hz, at, fs) => `the ${hz} Hz line is above half the rate and has folded to ${at} Hz; a notch at ${hz} Hz is not possible at ${fs} Hz`,
   capLowSkipped: (hz, fs) => `${hz} Hz is above half the rate; nothing to stop at ${fs} Hz`,
   capPower: (fs) => `power · 0–${Math.min(80, fs / 2).toFixed(0)} Hz`,
   capPowerBefore: "before",
   capPowerAfter: "after",
   capDetrend: (name) => `Detrend · x'(t) = x(t) − trend · ${name}`,
-  trendNames: { ma: "moving average of 2 s", poly: "polynomial of degree 5", wavelet: (j, hz) => `wavelet A_${j}, slower than ${hz.toFixed(2)} Hz` },
+  trendNames: { average: "moving average of 2 s", polynomial: "polynomial of degree 5", wavelet: (j, hz) => `wavelet A_${j}, slower than ${hz.toFixed(2)} Hz` },
   capCleaned: "cleaned",
 
   capRecording: (s) => `Subject ${s} · cleaned recording`,
@@ -165,10 +167,10 @@ const S = {
   capLaneRec: "every window inherits the recording's label",
   capLaneAny: "a window is labelled 1 at any overlap with an event",
   capLaneMaj: "a window is labelled 1 with more than half an event inside",
-  winLetter: (y, annotation) => (annotation === "recording" ? (y ? "irr" : "reg") : y ? "A" : "N"),
+  winLetter: (y, annotation) => (annotation === "recording" ? (y ? "1" : "0") : y ? "A" : "N"),
 
   capDeck: (n, kind) => `${n} windows, one row a subject · held out by ${kind === "window" ? "window: a random fifth" : "subject: one of each class"}`,
-  capDeckWait: (n) => `${n} windows, one row a subject · not dealt`,
+  capDeckWait: (n) => `${n} windows, one row a subject · not yet split`,
   subjectRow: (s) => `subject ${s}`,
   capMatch: (ts, ms, c, same) => `held-out window of subject ${ts} over its nearest training window, subject ${ms} · correlation ${c.toFixed(2)}${same ? " · the same subject" : ""}`,
   capMatchWait: "the held-out window and its nearest training window are drawn once one is scored",
@@ -183,7 +185,7 @@ const S = {
   /* readout */
   tileRate: "Rate",
   tileRateNote: (M) => (M === 1 ? "every sample kept" : `every ${M}${M === 2 ? "nd" : "th"} sample kept`),
-  tileLine: "Line left",
+  tileLine: "Line noise left",
   tileLineNote: "power at the line's frequency after the filter, as a fraction of before",
   tileDrift: "Drift left",
   tileDriftNote: "what is slower than 0.4 Hz after detrending, as a fraction of the drift added",
@@ -191,7 +193,7 @@ const S = {
   tileNone: "none added",
   tileWindows: "Windows",
   tileWindowsNote: (per, sub) => `${per} a subject, ${sub} subjects`,
-  tileReach: "Windows an event reaches",
+  tileReach: "Windows one event labels",
   tileReachNote: (rule) => (rule === "any" ? "on average, at any overlap" : "on average, with more than half inside"),
   tileOnes: "Labelled 1",
   tileOnesNote: (annotation) => (annotation === "recording" ? "windows of the subjects with an irregular rhythm" : "windows with an event inside, by the rule"),
@@ -199,7 +201,7 @@ const S = {
   tileBySubject: "Held-out accuracy · by subject",
   tileAccNote: (n) => `${n} held-out windows, each given its nearest training window's label`,
   tileSame: "Nearest window is the same subject",
-  tileSameNote: "of the held-out windows scored so far, under the deal drawn",
+  tileSameNote: "of the held-out windows scored so far, under the split drawn",
   tileSoFar: (k, n) => `${k} of ${n} scored`,
   tileCv: "Spread of amplitude between subjects",
   tileCvNote: "coefficient of variation of the subjects' mean window amplitude",
@@ -210,7 +212,7 @@ const S = {
   sum: {
     clean: (n) => ["the raw recording", "the raw and the resampled recording", "resampled and filtered", "resampled, filtered and detrended"][n],
     window: (k, n) => (k === 0 ? "the recording, no window cut" : k < n ? `${k} of ${n} windows cut and labelled` : "every window cut and labelled"),
-    split: (k, n) => (k === 0 ? "the deck of windows, not dealt" : k === 1 ? "dealt, none scored" : k - 1 < n ? `${k - 1} of ${n} held-out windows scored` : "every held-out window scored"),
+    split: (k, n) => (k === 0 ? "the windows, not yet split" : k === 1 ? "split, none scored" : k - 1 < n ? `${k - 1} of ${n} held-out windows scored` : "every held-out window scored"),
     normalize: (n) => (n ? "every window standardised" : "the windows' amplitudes as recorded"),
   },
 };
@@ -321,7 +323,7 @@ function compute({ params }) {
 /* ================================================================== anim */
 
 const stagesOf = (page, state) => (page === "clean" ? 3 : page === "window" ? state.perSub : page === "split" ? 1 + state.split.res.matches.length : 1);
-const durOf = (page, count) => (page === "clean" ? DUR.clean : page === "window" ? DUR.window : page === "split" ? (count === 1 ? DUR.deal : DUR.scoreOne) : DUR.normalize);
+const durOf = (page, count) => (page === "clean" ? DUR.clean : page === "window" ? DUR.window : page === "split" ? (count === 1 ? DUR.holdOut : DUR.scoreOne) : DUR.normalize);
 function settle(anim) {
   const n = anim.n[anim.page];
   anim.labelAt = anim.page === "clean" ? `clean${n}` : anim.page === "window" ? "window" : anim.page === "split" ? (n === 0 ? "split0" : "split1") : `normalize${n}`;
@@ -528,7 +530,7 @@ defineWidget({
     },
     trend: {
       type: "segmented", label: S.trendLabel, detail: S.trendDetail,
-      options: [{ value: "ma", label: "Moving average" }, { value: "poly", label: "Polynomial" }, { value: "wavelet", label: "Wavelet" }], default: "wavelet", when: ON("clean"),
+      options: [{ value: "average", label: "Moving average" }, { value: "polynomial", label: "Polynomial" }, { value: "wavelet", label: "Wavelet" }], default: "wavelet", when: ON("clean"),
     },
     level: {
       type: "choice", label: S.levelLabel, detail: S.levelDetail,
@@ -551,7 +553,7 @@ defineWidget({
     },
     rule: {
       type: "segmented", label: S.ruleLabel, detail: S.ruleDetail,
-      options: [{ value: "any", label: "Any overlap" }, { value: "maj", label: "More than half" }], default: "maj",
+      options: [{ value: "any", label: "Any overlap" }, { value: "half", label: "More than half" }], default: "half",
       when: { all: [ON_WINDOWS, { param: "annotation", equals: "event" }] },
     },
 
