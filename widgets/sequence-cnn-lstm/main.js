@@ -78,7 +78,26 @@ const WINDOW_MS = 220;
 const PREFIX_EVERY = 10;
 const ROW_LEN = 40;   // cell 178 wraps the letters at 40
 
-const HEIGHTS = { cnn: 500, lstm: { uni: 440, bi: 500 }, combo: { last: 562, max: 562 }, occlusion: 236 };
+/* The input panel every model page opens with (his round 1, 2026-09-20: the
+   letters at the top with the motif bold, the same panel on every page, and
+   the learned table drawn as its own rows): the sequence's letters wrapped at
+   40, then the encoded rows on the 250-token axis — four one-hot rows, or the
+   embedding's eight — with a bar under the motif. Everything below sits at an
+   offset from its bottom, which depends on the encoding. */
+const INPUT = { top: 22, lineH: 14, rowH: 8, gap: 10 };
+const lettersBot = INPUT.top + 5 * INPUT.lineH;
+const rowsTop = lettersBot + INPUT.gap;
+const nRows = (code) => (code === "onehot" ? 4 : SPEC.E);
+const inputBot = (code) => rowsTop + nRows(code) * INPUT.rowH + 16;
+const cnnGeom = (b) => ({ kernHead: b + 18, kernTop: b + 26, cell: 11, mapsHead: b + 112, mapsTop: b + 120, mapRowH: 11, spellW: 112, chainHead: b + 236, outsY: b + 316, lossHead: b + 360, lossTop: b + 368, lossH: 34 });
+const lstmGeom = (b) => ({ embY: b + 14, blockTop: b + 44, cellH: 7, gap: 6, reduceGap: 22, reduceH: 12, runGap: 66, runH: 70, lossGap: 44, lossH: 34 });
+const comboGeom = (b) => ({ featsHead: b + 14, featsTop: b + 20, featCellH: 6, permY: b + 88, blockTop: b + 118, cellH: 6, gap: 6, reduceGap: 22, reduceH: 12, runGap: 66, runH: 70, lossGap: 44, lossH: 34 });
+const HEIGHTS = {
+  cnn: (code) => inputBot(code) + 420,
+  lstm: (code, direction) => inputBot(code) + 362 + (direction === "bi" ? SPEC.H * 7 + 6 : 0),
+  combo: (code) => inputBot(code) + 498,
+  occlusion: 236,
+};
 
 /* ------------------------------------------------------------- the copy --- */
 
@@ -178,7 +197,6 @@ const S = {
 
   /* canvas captions */
   capInput: (code) => (code === "onehot" ? `tokens [${M.MAX_LEN}] → one-hot [4, ${M.MAX_LEN}]` : `tokens [${M.MAX_LEN}] → Embedding [${M.MAX_LEN}, ${SPEC.E}] → transpose [${SPEC.E}, ${M.MAX_LEN}]`),
-  capRowsNote: (code) => (code === "onehot" ? "the rows A C G T; PAD is a column of zeros" : `the table's ${SPEC.E} rows drawn as the four bases they encode; PAD is a row of zeros`),
   capPad: "PAD",
   capWindow: (k) => `window · k = ${k} bases`,
   capKernel: (c, k, code) => `kernel ${c} read as a matrix [4, ${k}]${code === "learned" ? " through the table" : ""}`,
@@ -197,7 +215,6 @@ const S = {
   capLossLstm: (n, e) => `loss by epoch · ${n} fresh sequences an epoch · ${e} epochs · H = ${SPEC.H}`,
   capProbe: (v) => v.toFixed(2),
   capPred: (p, name) => `p(${name}) = ${p.toFixed(2)}`,
-  capStrip: "G or C dark · A or T light · PAD shaded",
   capEmbed: (code, packed) => `${code === "onehot" ? "one-hot" : "Embedding"} [B, ${M.MAX_LEN}, ${code === "onehot" ? 4 : SPEC.E}]${packed ? ` · pack_padded_sequence: ${M.LEN} real steps` : ` · unpacked: all ${M.MAX_LEN} steps`}`,
   capBlock: (T, F) => `output · [${T}, ${F}]`,
   capHalfFwd: (H) => `h→ · forward pass · ${H} rows`,
@@ -300,9 +317,6 @@ const isGC = (id) => id === 2 || id === 3;
 
 /* ----------------------------------------------------------- the geometry */
 
-const CNN = { rowsTop: 22, rowH: 8, kernHead: 74, kernTop: 82, cell: 11, mapsHead: 168, mapsTop: 176, mapRowH: 11, spellW: 112, chainHead: 292, outsY: 372, lossHead: 416, lossTop: 424, lossH: 34 };
-const LSTM = { stripTop: 22, stripH: 10, embY: 58, blockHead: 78, blockTop: 88, cellH: 7, gap: 6, reduceGap: 22, reduceH: 12, runGap: 66, runH: 70, lossGap: 44, lossH: 34 };
-const COMBO = { stripTop: 22, stripH: 10, featsHead: 58, featsTop: 64, featCellH: 6, permY: 128, blockHead: 148, blockTop: 158, cellH: 6, gap: 6, reduceGap: 22, reduceH: 12, runGap: 66, runH: 70, lossGap: 44 };
 const OCC = { lettersTop: 34, lineH: 14, attrHead: 122, attrTop: 130, attrH: 56 };
 
 /* ================================================================ compute */
@@ -412,26 +426,46 @@ function takePress(anim, dt, state) {
 
 const stageT = (anim, n, count) => (count > n ? 1 : count === n ? ease(anim.t) : 0);
 
-/** the sequence as its one-hot rows (or the learned table read as the four bases), PAD shaded, the motif outlined */
-function drawRows(ctx, colors, w, state, top, rowH) {
-  const { x, seq } = state;
-  const cw = colW(w);
-  rect(ctx, px(w, M.LEN), top, px(w, M.MAX_LEN) - px(w, M.LEN), 4 * rowH, colors.surface2);
-  for (let t = 0; t < M.LEN; t++) {
-    const bi = M.BASES.indexOf(x.tok[t]);
-    if (bi >= 0) rect(ctx, px(w, t), top + bi * rowH, cw + 0.4, rowH - 1, colors.empirical);
-  }
-  "ACGT".split("").forEach((b, i) => txt(ctx, colors, b, PAD_L - 6, top + i * rowH + rowH - 1, { font: monoFont(colors), fill: colors.ink3, align: "right" }));
-  txt(ctx, colors, S.capPad, (px(w, M.LEN) + px(w, M.MAX_LEN)) / 2, top + 2 * rowH + 4, { fill: colors.ink3, align: "center" });
-  for (const m of seq.motifAt) rect(ctx, px(w, m) - 1, top - 2, M.MOTIF.length * cw + 2, 4 * rowH + 3, null, colors.reference, 1);
+/** the cell of letter `t` in rows of 40: its left edge, its baseline (row 0's at `base`) and the pitch */
+function letterCell(w, t, base) {
+  const pitch = (w - PAD_R - PAD_L) / ROW_LEN;
+  return { x: PAD_L + (t % ROW_LEN) * pitch, y: base + Math.floor(t / ROW_LEN) * INPUT.lineH, pitch };
 }
 
-/** the sequence as a composition strip: G or C dark, A or T light, PAD shaded; the motif outlined */
-function drawStrip(ctx, colors, w, state, top, h) {
-  const { x, seq } = state, cw = colW(w);
-  for (let t = 0; t < M.MAX_LEN; t++) rect(ctx, px(w, t), top, cw + 0.4, h, t >= M.LEN ? colors.surface2 : isGC(x.tok[t]) ? colors.ink1 : colors.surface3);
-  for (const m of seq.motifAt) rect(ctx, px(w, m) - 1, top - 2, M.MOTIF.length * cw + 2, h + 4, null, colors.reference, 1);
-  txt(ctx, colors, S.capStrip, PAD_L, top + h + 12, { fill: colors.ink3 });
+/**
+ * The input panel: the sequence's letters (the motif bold in the reference
+ * colour; on composition G and C in ink and A and T lighter), then the encoded
+ * rows on the token axis — the four one-hot rows, or the embedding's rows read
+ * from the page's model — PAD shaded, a bar under each copy of the motif.
+ * Returns the panel's bottom, where the page's own drawing starts.
+ */
+function drawInput(ctx, colors, w, state, code, emb) {
+  const { x, seq, task } = state;
+  txt(ctx, colors, S.capInput(code), PAD_L, 14, { font: capFont(colors), fill: colors.ink1 });
+  const inMotif = (t) => seq.motifAt.some((m) => t >= m && t < m + M.MOTIF.length);
+  const small = letterCell(w, 0, 0).pitch < 9;
+  for (let t = 0; t < M.LEN; t++) {
+    const { x: lx, y: ly, pitch } = letterCell(w, t, INPUT.top + 12);
+    const id = x.tok[t], motif = task === "motif" && inMotif(t);
+    if (motif) rect(ctx, lx, ly - INPUT.lineH + 3, pitch, INPUT.lineH, wash(colors.reference, 0.22));
+    const fill = motif ? colors.reference : task === "composition" ? (isGC(id) ? colors.ink1 : colors.ink3) : colors.ink1;
+    txt(ctx, colors, M.VOCAB[id], lx + pitch / 2, ly, { font: `${motif ? "700 " : ""}${small ? colors.fsXs : colors.fsSm} ${colors.mono}`, fill, align: "center" });
+  }
+  const cw = colW(w), rows = nRows(code), rowH = INPUT.rowH;
+  rect(ctx, px(w, M.LEN), rowsTop, px(w, M.MAX_LEN) - px(w, M.LEN), rows * rowH, colors.surface2);
+  if (code === "onehot") {
+    for (let t = 0; t < M.LEN; t++) { const bi = M.BASES.indexOf(x.tok[t]); if (bi >= 0) rect(ctx, px(w, t), rowsTop + bi * rowH, cw + 0.4, rowH - 1, colors.empirical); }
+    "ACGT".split("").forEach((b, i) => txt(ctx, colors, b, PAD_L - 6, rowsTop + i * rowH + rowH - 1, { font: monoFont(colors), fill: colors.ink3, align: "right" }));
+  } else {
+    /* the embedding's rows: the table's value for each token, signed */
+    const E_ = emb.E; let amax = 1e-9; for (const v of emb.W.v) amax = Math.max(amax, Math.abs(v));
+    for (let t = 0; t < M.LEN; t++) for (let e = 0; e < E_; e++) rect(ctx, px(w, t), rowsTop + e * rowH, cw + 0.4, rowH - 1, signed(colors, emb.W.v[x.tok[t] * E_ + e], amax));
+    for (let e = 0; e < E_; e++) txt(ctx, colors, `e${e + 1}`, PAD_L - 6, rowsTop + e * rowH + rowH - 1, { font: monoFont(colors), fill: colors.ink3, align: "right" });
+  }
+  txt(ctx, colors, S.capPad, (px(w, M.LEN) + px(w, M.MAX_LEN)) / 2, rowsTop + Math.floor(rows / 2) * rowH + 4, { fill: colors.ink3, align: "center" });
+  const rowsBot = rowsTop + rows * rowH;
+  for (const m of seq.motifAt) rect(ctx, px(w, m), rowsBot + 2, M.MOTIF.length * cw, 3, colors.reference);
+  return inputBot(code);
 }
 
 function drawMatrix(ctx, colors, x0, y0, Mx, cell, amax, { spell = null, fill = null } = {}) {
@@ -459,18 +493,17 @@ function drawCnn(ctx, colors, w, params, state, anim) {
   const follow = followed.c;
   const relu1 = acts[1];
 
-  txt(ctx, colors, S.capInput(code), X0, 14, { font: capFont(colors), fill: colors.ink1 });
-  drawRows(ctx, colors, w, state, CNN.rowsTop, CNN.rowH);
-  const rowsBot = CNN.rowsTop + 4 * CNN.rowH;
+  const CNN = cnnGeom(drawInput(ctx, colors, w, state, code, cnn.net.emb));
+  const rowsBot = rowsTop + nRows(code) * INPUT.rowH;
 
   /* the window: slides through every stop with press 1, then parks at `stop` */
   const shownT = count === 1 && anim.t < 1 ? Math.round(tSlide * (L1 - 1)) : stopT;
   if (count >= 1) {
     const start = shownT * stride - pad;
     const wx0 = px(w, Math.max(0, start)), wx1 = px(w, Math.min(M.MAX_LEN, start + k));
-    rect(ctx, wx0 - 1, CNN.rowsTop - 2, Math.max(2, wx1 - wx0) + 2, rowsBot - CNN.rowsTop + 3, wash(colors.highlight, 0.22), colors.highlight, 1.5);
+    rect(ctx, wx0 - 1, rowsTop - 2, Math.max(2, wx1 - wx0) + 2, rowsBot - rowsTop + 3, wash(colors.highlight, 0.22), colors.highlight, 1.5);
     const right = wx1 + 6 + 120 > X1;
-    txt(ctx, colors, S.capWindow(k), right ? wx0 - 6 : wx1 + 6, rowsBot + 11, { fill: colors.highlight, align: right ? "right" : "left" });
+    txt(ctx, colors, S.capWindow(k), right ? wx0 - 6 : wx1 + 6, rowsBot + 13, { fill: colors.highlight, align: right ? "right" : "left" });
   }
 
   /* the kernel read as a matrix, the motif as a matrix, and the read at the shown stop */
@@ -582,7 +615,7 @@ function drawCnn(ctx, colors, w, params, state, anim) {
 }
 
 /** the block of a recurrence's outputs, the states the head reads, and the running prediction — shared by the two recurrence pages */
-function drawRecurrence(ctx, colors, w, params, m, G, count, anim, { xOfStep, top, runCaption, lossCaption, reduce, bi, packed, motifSteps, T, names }) {
+function drawRecurrence(ctx, colors, w, params, m, G, count, anim, { xOfStep, top, runCaption, lossCaption, reduce, bi, packed, motifSteps, T, names, note = null }) {
   const X0 = PAD_L, X1 = w - PAD_R;
   const { reading, running, curve, acc } = m;
   const feats = reading.feats, Fd = feats[0].length, H = bi ? Fd / 2 : Fd;
@@ -641,6 +674,7 @@ function drawRecurrence(ctx, colors, w, params, m, G, count, anim, { xOfStep, to
     const pts = running.slice(0, n);
     polyline(ctx, pts.map((r) => xOfStep(r.t)), pts.map((r) => rBot - r.p * (rBot - rTop)), colors.empirical, 1.6);
     for (const r of pts) { ctx.save(); ctx.fillStyle = colors.empirical; ctx.beginPath(); ctx.arc(xOfStep(r.t), rBot - r.p * (rBot - rTop), 2.2, 0, 7); ctx.fill(); ctx.restore(); }
+    if (tRun >= 1 && note) txt(ctx, colors, note, X0, rBot + 16, { fill: colors.ink3 });
     if (tRun >= 1) {
       const lTop = rBot + G.lossGap;
       txt(ctx, colors, lossCaption, X0, lTop - 8, { font: capFont(colors), fill: colors.ink1 });
@@ -652,14 +686,13 @@ function drawRecurrence(ctx, colors, w, params, m, G, count, anim, { xOfStep, to
 function drawLstm(ctx, colors, w, params, state, anim) {
   const { lstm, seq, task, code, names } = state;
   const X0 = PAD_L;
-  txt(ctx, colors, S.capInput(code), X0, 14, { font: capFont(colors), fill: colors.ink1 });
-  drawStrip(ctx, colors, w, state, LSTM.stripTop, LSTM.stripH);
+  const LSTM = lstmGeom(drawInput(ctx, colors, w, state, code, lstm.net.emb));
   txt(ctx, colors, S.capEmbed(code, lstm.packed), X0, LSTM.embY, { font: monoFont(colors), fill: colors.ink1 });
   drawRecurrence(ctx, colors, w, params, lstm, LSTM, anim.n.lstm, anim, {
     xOfStep: (t) => px(w, t) + colW(w) / 2, top: LSTM.blockTop, runCaption: S.capRunning(names[1]), lossCaption: S.capLossLstm(SPEC.lstm.n, SPEC.lstm.epochs),
     reduce: "last", bi: params.direction === "bi", packed: lstm.packed, motifSteps: seq.motifAt.map((m) => m + 3), T: lstm.T, names,
+    note: task === "motif" ? S.capNoMotifLstm : null,
   });
-  if (task === "motif" && anim.n.lstm >= 3) txt(ctx, colors, S.capNoMotifLstm, X0, LSTM.blockTop + 4, { fill: colors.ink3 });
 }
 
 function drawCombo(ctx, colors, w, params, state, anim) {
@@ -667,8 +700,7 @@ function drawCombo(ctx, colors, w, params, state, anim) {
   const X0 = PAD_L, X1 = w - PAD_R, count = anim.n.combo;
   const Lp = combo.X.T, tFeat = stageT(anim, 1, count);
   const xOfStep = (t) => X0 + ((t + 0.5) / Lp) * (X1 - X0);
-  txt(ctx, colors, S.capInput(code), X0, 14, { font: capFont(colors), fill: colors.ink1 });
-  drawStrip(ctx, colors, w, state, COMBO.stripTop, COMBO.stripH);
+  const COMBO = comboGeom(drawInput(ctx, colors, w, state, code, state.cnn.net.emb));
   txt(ctx, colors, S.capFeats(M.C1, Lp), X0, COMBO.featsHead, { font: capFont(colors), fill: colors.ink1 });
   let fmax = 1e-9; for (const r of combo.X.feats) for (const v of r) fmax = Math.max(fmax, v);
   const cw = (X1 - X0) / Lp;
@@ -685,11 +717,7 @@ function drawCombo(ctx, colors, w, params, state, anim) {
   });
 }
 
-/** the letters in rows of 40, the pitch from the width; returns (t) → { x, y } of a letter's cell */
-function letterAt(w, t) {
-  const pitch = (w - PAD_R - PAD_L) / ROW_LEN;
-  return { x: PAD_L + (t % ROW_LEN) * pitch, y: OCC.lettersTop + Math.floor(t / ROW_LEN) * OCC.lineH, pitch };
-}
+const letterAt = (w, t) => letterCell(w, t, OCC.lettersTop);
 
 function drawOcclusion(ctx, colors, w, params, state, anim) {
   const { x, seq, occ, names } = state;
@@ -748,7 +776,7 @@ defineWidget({
   title: "Deep Learning - Sequences: CNN and LSTM",
   subtitle: S.subtitle,
   layout: "side",
-  height: ({ page, direction, reduce }) => (page === "lstm" ? HEIGHTS.lstm[direction] ?? HEIGHTS.lstm.uni : page === "combo" ? HEIGHTS.combo[reduce] ?? HEIGHTS.combo.last : HEIGHTS[page] ?? HEIGHTS.cnn),
+  height: ({ page, direction, code }) => (page === "lstm" ? HEIGHTS.lstm(code, direction) : page === "combo" ? HEIGHTS.combo(code) : page === "occlusion" ? HEIGHTS.occlusion : HEIGHTS.cnn(code)),
 
   params: {
     page: { type: "segmented", label: S.pageLabel, detail: S.pageDetail, options: PAGES, default: "cnn", display: true },
@@ -842,11 +870,12 @@ defineWidget({
 
   regions: ({ w, params, state, anim }) => {
     if (!state || params.page !== "cnn" || (anim?.n?.cnn ?? 0) < 1) return [];
+    const CNN = cnnGeom(inputBot(params.code));
     const X0 = PAD_L, X1 = w - PAD_R, mapX1 = X1 - CNN.spellW;
     const rows = Array.from({ length: M.C1 }, (_, c) => ({ x: X0, y: CNN.mapsTop + c * CNN.mapRowH, w: mapX1 - X0, h: CNN.mapRowH, set: { follow: String(c + 1) }, label: `kernel ${c + 1}` }));
     const buckets = 20, bw = (px(w, M.LEN) - X0) / buckets;
     const stops = Array.from({ length: buckets }, (_, b) => ({
-      x: X0 + b * bw, y: CNN.rowsTop, w: bw, h: 4 * CNN.rowH,
+      x: X0 + b * bw, y: rowsTop, w: bw, h: nRows(params.code) * INPUT.rowH,
       set: { stop: Math.round((b + 0.5) * (M.LEN / buckets)) }, label: `window at base ${Math.round((b + 0.5) * (M.LEN / buckets))}`,
     }));
     return [...rows, ...stops];
