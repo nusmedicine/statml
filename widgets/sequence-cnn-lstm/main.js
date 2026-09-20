@@ -84,7 +84,7 @@ const ROW_LEN = 40;   // cell 178 wraps the letters at 40
    40, then the encoded rows on the 250-token axis — four one-hot rows, or the
    embedding's eight — with a bar under the motif. Everything below sits at an
    offset from its bottom, which depends on the encoding. */
-const INPUT = { top: 22, lineH: 14, rowH: 8, gap: 10, midH: 76 };
+const INPUT = { top: 22, lineH: 14, rowH: 8, gap: 10 };
 const lettersBot = INPUT.top + 5 * INPUT.lineH;
 /* his rounds 3 and 7: between the letters and the overview rows, the lesson's
    two figures — the table with the window's tokens' rows lit, the window's k
@@ -92,14 +92,18 @@ const lettersBot = INPUT.top + 5 * INPUT.lineH;
    columns. ONE size: the excerpt is what the layer reads at once, k tokens on
    the CNN page and one token, a step, on the recurrence pages. */
 const midTop = lettersBot + 24;
-const rowsTop = midTop + INPUT.midH + 24;
+/* the window's k tokens as ONE column of rows (his round 9: two columns read as a second figure beside the
+   transpose), so the middle strip grows with k and everything under it moves down */
+const exRowH = (k) => (k > 6 ? 9 : 11);
+const midHOf = (k) => Math.max(76, k * exRowH(k) + 10);
+const rowsTopOf = (k) => midTop + midHOf(k) + 24;
 const nRows = (code) => (code === "onehot" ? 4 : SPEC.E);
-const inputBot = (code) => rowsTop + nRows(code) * INPUT.rowH + 16;
+const inputBot = (code, k = 1) => rowsTopOf(k) + nRows(code) * INPUT.rowH + 16;
 const cnnGeom = (b) => ({ kernHead: b + 18, kernTop: b + 26, cell: 11, mapsHead: b + 112, mapsTop: b + 120, mapRowH: 11, spellW: 112, chainHead: b + 236, outsY: b + 316, lossHead: b + 360, lossTop: b + 368, lossH: 34 });
 const lstmGeom = (b) => ({ embY: b + 14, blockTop: b + 44, cellH: 7, gap: 6, reduceGap: 22, reduceH: 12, runGap: 66, runH: 70, lossGap: 44, lossH: 34 });
 const comboGeom = (b) => ({ featsHead: b + 14, featsTop: b + 20, featCellH: 6, permY: b + 88, blockTop: b + 118, cellH: 6, gap: 6, reduceGap: 22, reduceH: 12, runGap: 66, runH: 70, lossGap: 44, lossH: 34 });
 const HEIGHTS = {
-  cnn: (code) => inputBot(code) + 420,
+  cnn: (code, k) => inputBot(code, k) + 420,
   lstm: (code, direction) => inputBot(code) + 362 + (direction === "bi" ? SPEC.H * 7 + 6 : 0),
   combo: (code) => inputBot(code) + 498,
   occlusion: 236,
@@ -185,19 +189,19 @@ const S = {
       { token: "value-high", label: "A positive kernel weight, or contribution" },
       { token: "value-low", label: "A negative kernel weight, or contribution" },
       { token: "highlight", label: "The window, the kernel being read, the output whose reach is drawn" },
-      { token: "reference", label: "Where the motif is; the motif as a matrix" },
+      { token: "theory", label: "Where the motif is; the motif as a matrix" },
     ],
     lstm: [
       { token: "value-high", label: "A positive output of the recurrence" },
       { token: "value-low", label: "A negative output" },
       { token: "highlight", label: "The states the linear layer reads" },
       { token: "empirical", label: "The model's probability if the sequence ended at that base", mark: "line" },
-      { token: "reference", label: "Where the motif is" },
+      { token: "theory", label: "Where the motif is" },
     ],
     occlusion: [
       { token: "extreme", label: "The window set to PAD" },
       { token: "magnitude", label: "Attribution: how far the probability moved when the window covering that base was occluded", mark: "bar" },
-      { token: "reference", label: "Where the motif is" },
+      { token: "theory", label: "Where the motif is" },
     ],
   },
 
@@ -460,14 +464,14 @@ function letterCell(w, t, base) {
  * the panel's bottom, where the page's own drawing starts.
  */
 /** the base under the pointer when it is over a letter or the overview rows, else null — the hover inspector's one input */
-function hoverBase(pointer, w, code) {
+function hoverBase(pointer, w, code, k) {
   if (!pointer || pointer.x < PAD_L || pointer.x >= w - PAD_R) return null;
   if (pointer.y >= INPUT.top - 2 && pointer.y < lettersBot + 2) {
     const row = Math.min(4, Math.max(0, Math.floor((pointer.y - INPUT.top) / INPUT.lineH)));
     const col = Math.min(ROW_LEN - 1, Math.floor((pointer.x - PAD_L) / letterCell(w, 0, 0).pitch));
     return row * ROW_LEN + col;
   }
-  const rowsBot = rowsTop + nRows(code) * INPUT.rowH;
+  const rowsTop = rowsTopOf(k), rowsBot = rowsTop + nRows(code) * INPUT.rowH;
   if (pointer.y < rowsTop - 4 || pointer.y > rowsBot + 6 || pointer.x >= px(w, M.LEN)) return null;
   return Math.max(0, Math.min(M.LEN - 1, Math.floor((pointer.x - PAD_L) / colW(w))));
 }
@@ -478,13 +482,13 @@ function drawInput(ctx, colors, w, state, code, emb, { win = null, k = 1, hover 
   const capIn = S.capInput(code), capTruth = S.capTruth(task, cls, extra);
   txt(ctx, colors, capIn, X0, 14, { font: capFont(colors), fill: colors.ink1 });
   ctx.save(); ctx.font = capFont(colors); const inEnd = X0 + ctx.measureText(capIn).width; ctx.font = `${colors.fsXs} ${colors.font}`; const truthW = ctx.measureText(capTruth).width; ctx.restore();
-  if (X1 - truthW > inEnd + 16) txt(ctx, colors, capTruth, X1, 14, { fill: colors.reference, align: "right" });
+  if (X1 - truthW > inEnd + 16) txt(ctx, colors, capTruth, X1, 14, { fill: colors.theory, align: "right" });
   const inMotif = (t) => seq.motifAt.some((m) => t >= m && t < m + M.MOTIF.length);
   const small = letterCell(w, 0, 0).pitch < 9;
-  const letterFill = (id, t) => (task === "motif" && inMotif(t) ? colors.reference : task === "composition" ? (isGC(id) ? colors.ink1 : colors.ink3) : colors.ink1);
+  const letterFill = (id, t) => (task === "motif" && inMotif(t) ? colors.theory : task === "composition" ? (isGC(id) ? colors.ink1 : colors.ink3) : colors.ink1);
 
   /* the window the panel shows: the hovered base first, else the parked one, else the motif's start */
-  const n = Math.max(1, k);
+  const n = Math.max(1, k), rowsTop = rowsTopOf(n);
   const clampStart = (t) => Math.max(0, Math.min(M.LEN - n, t));
   /* a hovered window starts where an output's window does: on the stride's grid, as the slide and the parked window do */
   const snap = (start) => Math.round((start + pad) / stride) * stride - pad;
@@ -494,7 +498,7 @@ function drawInput(ctx, colors, w, state, code, emb, { win = null, k = 1, hover 
   for (let t = 0; t < M.LEN; t++) {
     const { x: lx, y: ly, pitch } = letterCell(w, t, INPUT.top + 12);
     const id = x.tok[t], motif = task === "motif" && inMotif(t);
-    if (motif) rect(ctx, lx, ly - INPUT.lineH + 3, pitch, INPUT.lineH, wash(colors.reference, 0.22));
+    if (motif) rect(ctx, lx, ly - INPUT.lineH + 3, pitch, INPUT.lineH, wash(colors.theory, 0.22));
     if (inWin(t)) rect(ctx, lx, ly - INPUT.lineH + 3, pitch, INPUT.lineH, wash(colors.highlight, 0.16));
     txt(ctx, colors, M.VOCAB[id], lx + pitch / 2, ly, { font: `${motif ? "700 " : ""}${small ? colors.fsXs : colors.fsSm} ${colors.mono}`, fill: letterFill(id, t), align: "center" });
   }
@@ -522,8 +526,8 @@ function drawInput(ctx, colors, w, state, code, emb, { win = null, k = 1, hover 
     if (counts[id]) { rect(ctx, tx0 - 2, y - 1, tw + 3, cell + 1, wash(colors.highlight, 0.14), colors.highlight, 1.2); if (counts[id] > 1) txt(ctx, colors, `×${counts[id]}`, tx0 + tw + 4, y + cell - 2, { font: monoFont(colors), fill: colors.highlight }); }
   }
 
-  /* the window's tokens as rows: one column up to six, two beyond */
-  const ex = tx0 + tw + 46, rh = 11, per = n > 6 ? Math.ceil(n / 2) : n, cols = n > 6 ? 2 : 1, colWEx = tw + 22;
+  /* the window's tokens as rows, one column */
+  const ex = tx0 + tw + 46, rh = exRowH(n), per = n, cols = 1, colWEx = tw + 22;
   const capEx = S.capExcerpt(n);
   txt(ctx, colors, capEx, ex - 12, midTop - 6, { fill: colors.ink2 });
   ctx.save(); ctx.font = `${colors.fsXs} ${colors.font}`; const capExEnd = ex - 12 + ctx.measureText(capEx).width; ctx.restore();
@@ -534,11 +538,12 @@ function drawInput(ctx, colors, w, state, code, emb, { win = null, k = 1, hover 
     for (let e = 0; e < E_; e++) rect(ctx, bx + e * cell, by, cell - 1, rh - 1, cellFill(v[e]));
   }
   for (let c = 0; c < cols; c++) { const rows = Math.min(per, n - c * per); rect(ctx, ex + c * colWEx - 2, midTop - 1, tw + 3, rows * rh + 1, null, colors.highlight, 1.5); }
-  for (let e = 0; e < E_; e++) txt(ctx, colors, rowName(e), ex + e * cell + cell / 2 - 0.5, midTop + per * rh + 9, { font: monoFont(colors), fill: colors.ink3, align: "center" });
+  for (let e = 0; e < E_; e++) txt(ctx, colors, code === "onehot" ? rowName(e) : String(e + 1), ex + e * cell + cell / 2 - 0.5, midTop + per * rh + 9, { font: monoFont(colors), fill: colors.ink3, align: "center" });
 
   /* the transpose, and the same tokens as columns */
-  const ax = ex + cols * colWEx - 22 + 8, cx0 = Math.max(ax + 66, capExEnd + 16);
-  const ay = midTop + Math.max(per * rh, E_ * cell) / 2, tip = cx0 - 10;
+  /* the transposed block starts past the caption and leaves a gutter for its own row labels */
+  const ax = ex + cols * colWEx - 22 + 8, cx0 = Math.max(ax + 84, capExEnd + 34);
+  const ay = midTop + Math.max(per * rh, E_ * cell) / 2, tip = cx0 - 24;
   line(ctx, ax + 6, ay + 0.5, tip - 4, ay + 0.5, colors.ink2, 1.2);
   ctx.save(); ctx.fillStyle = colors.ink2; ctx.beginPath(); ctx.moveTo(tip, ay + 0.5); ctx.lineTo(tip - 6, ay - 3.5); ctx.lineTo(tip - 6, ay + 4.5); ctx.closePath(); ctx.fill(); ctx.restore();
   txt(ctx, colors, S.capTranspose, (ax + 6 + tip) / 2, ay - 6, { fill: colors.ink2, align: "center" });
@@ -560,9 +565,9 @@ function drawInput(ctx, colors, w, state, code, emb, { win = null, k = 1, hover 
   for (let e = 0; e < E_; e++) txt(ctx, colors, rowName(e), X0 - 6, rowsTop + e * rowH + rowH - 1, { font: monoFont(colors), fill: colors.ink3, align: "right" });
   txt(ctx, colors, S.capPad, (px(w, M.LEN) + px(w, M.MAX_LEN)) / 2, rowsTop + Math.floor(E_ / 2) * rowH + 4, { fill: colors.ink3, align: "center" });
   const rowsBot = rowsTop + E_ * rowH;
-  for (const m of seq.motifAt) rect(ctx, px(w, m), rowsBot + 2, M.MOTIF.length * cw, 3, colors.reference);
+  for (const m of seq.motifAt) rect(ctx, px(w, m), rowsBot + 2, M.MOTIF.length * cw, 3, colors.theory);
   rect(ctx, px(w, ex0) - 1, rowsTop - 2, n * cw + 2, E_ * rowH + 3, wash(colors.highlight, 0.22), colors.highlight, 1.5);
-  return inputBot(code);
+  return inputBot(code, n);
 }
 
 function drawMatrix(ctx, colors, x0, y0, Mx, cell, amax, { spell = null, fill = null } = {}) {
@@ -594,7 +599,7 @@ function drawCnn(ctx, colors, w, params, state, anim, hover) {
   const shownT = count === 1 && anim.t < 1 ? Math.round(tSlide * (L1 - 1)) : stopT;
   const winStart = shownT * stride - pad;
   const CNN = cnnGeom(drawInput(ctx, colors, w, state, code, cnn.net.emb, { win: Math.max(0, winStart), k, hover, stride, pad }));
-  const rowsBot = rowsTop + nRows(code) * INPUT.rowH;
+  const rowsTop = rowsTopOf(k), rowsBot = rowsTop + nRows(code) * INPUT.rowH;
 
   if (count >= 1) {
     const start = winStart;
@@ -616,9 +621,9 @@ function drawCnn(ctx, colors, w, params, state, anim, hover) {
       const motifM = M.motifKernel();
       /* the caption sits on the header's line, past the header's end when the matrix starts under it */
       const cx = Math.max(bx, headEnd + 14);
-      txt(ctx, colors, S.capMotifMatrix, cx, CNN.kernHead, { fill: colors.reference });
+      txt(ctx, colors, S.capMotifMatrix, cx, CNN.kernHead, { fill: colors.theory });
       ctx.save(); ctx.font = `${colors.fsXs} ${colors.font}`; capEnd = cx + ctx.measureText(S.capMotifMatrix).width; ctx.restore();
-      const endM = drawMatrix(ctx, colors, bx, CNN.kernTop, motifM, CNN.cell, 1, { spell: M.MOTIF, fill: (v) => (v > 0 ? colors.reference : wash(colors.reference, 0.12)) });
+      const endM = drawMatrix(ctx, colors, bx, CNN.kernTop, motifM, CNN.cell, 1, { spell: M.MOTIF, fill: (v) => (v > 0 ? colors.theory : wash(colors.theory, 0.12)) });
       bx = endM + 26;
     }
     /* the band: the window's bases, each read by its column of the matrix */
@@ -664,7 +669,7 @@ function drawCnn(ctx, colors, w, params, state, anim, hover) {
       txt(ctx, colors, `${q.spell} ${q.match}/${Math.min(k, M.MOTIF.length)}`, mapX1 + 8, y + 9, { font: monoFont(colors), fill: c === follow ? colors.highlight : q.match >= Math.min(k, M.MOTIF.length) - 1 ? colors.ink1 : colors.ink3 });
     }
   }
-  for (const m of seq.motifAt) line(ctx, mpx(m + 3.5), CNN.mapsTop, mpx(m + 3.5), CNN.mapsTop + M.C1 * CNN.mapRowH, wash(colors.reference, 0.6), 1, [2, 3]);
+  for (const m of seq.motifAt) line(ctx, mpx(m + 3.5), CNN.mapsTop, mpx(m + 3.5), CNN.mapsTop + M.C1 * CNN.mapRowH, wash(colors.theory, 0.6), 1, [2, 3]);
   if (count >= 1) {
     rect(ctx, X0 - 1, CNN.mapsTop + follow * CNN.mapRowH - 1, mapX1 - X0 + 2, CNN.mapRowH + 1, null, colors.highlight, 1.2);
     const cxm = mpx(centreOf(shownT, k, stride, pad));
@@ -735,7 +740,7 @@ function drawRecurrence(ctx, colors, w, params, m, G, count, anim, { xOfStep, to
   txt(ctx, colors, S.capHalfFwd(H), X1, top - 3, { align: "right", fill: colors.ink3 });
   if (bi) txt(ctx, colors, S.capHalfRev(H), X1, rowY(H) - 1, { align: "right", fill: colors.ink3 });
   if (tSweep > 0 && tSweep < 1) line(ctx, xOfStep(upto), top, xOfStep(upto), blockBot, colors.highlight, 1.5);
-  for (const s of motifSteps) line(ctx, xOfStep(s), top, xOfStep(s), blockBot, wash(colors.reference, 0.6), 1, [2, 3]);
+  for (const s of motifSteps) line(ctx, xOfStep(s), top, xOfStep(s), blockBot, wash(colors.theory, 0.6), 1, [2, 3]);
 
   let y = blockBot;
   if (tRed > 0) {
@@ -769,7 +774,7 @@ function drawRecurrence(ctx, colors, w, params, m, G, count, anim, { xOfStep, to
     const rTop = blockBot + G.reduceGap + G.reduceH + G.runGap, rBot = rTop + G.runH;
     txt(ctx, colors, runCaption, X0, rTop - 8, { font: capFont(colors), fill: colors.ink1 });
     for (const p of [0, 0.5, 1]) { const yy = rBot - p * (rBot - rTop); line(ctx, X0, yy + 0.5, X1, yy + 0.5, colors.grid); txt(ctx, colors, p.toFixed(1), X0 - 6, yy + 3, { font: monoFont(colors), fill: colors.ink3, align: "right" }); }
-    for (const s of motifSteps) rect(ctx, xOfStep(s) - 4, rTop, 8, rBot - rTop, wash(colors.reference, 0.12));
+    for (const s of motifSteps) rect(ctx, xOfStep(s) - 4, rTop, 8, rBot - rTop, wash(colors.theory, 0.12));
     const n = Math.max(1, Math.ceil(tRun * running.length));
     const pts = running.slice(0, n);
     polyline(ctx, pts.map((r) => xOfStep(r.t)), pts.map((r) => rBot - r.p * (rBot - rTop)), colors.empirical, 1.6);
@@ -808,7 +813,7 @@ function drawCombo(ctx, colors, w, params, state, anim, hover) {
   const uptoF = Math.floor(tFeat * Lp);
   for (let t = 0; t < uptoF; t++) for (let c = 0; c < M.C1; c++) { const v = combo.X.feats[t][c]; if (v > 0) rect(ctx, X0 + t * cw, COMBO.featsTop + c * COMBO.featCellH, cw + 0.5, COMBO.featCellH, ramp(colors, v / fmax, colors.empirical)); }
   const stepOf = (m) => Math.round(((m + 3) / M.MAX_LEN) * Lp);
-  for (const m of seq.motifAt) line(ctx, xOfStep(stepOf(m)), COMBO.featsTop, xOfStep(stepOf(m)), COMBO.featsTop + M.C1 * COMBO.featCellH, wash(colors.reference, 0.6), 1, [2, 3]);
+  for (const m of seq.motifAt) line(ctx, xOfStep(stepOf(m)), COMBO.featsTop, xOfStep(stepOf(m)), COMBO.featsTop + M.C1 * COMBO.featCellH, wash(colors.theory, 0.6), 1, [2, 3]);
   if (count >= 1) txt(ctx, colors, S.capPermuteCombo(Lp, M.C1), X0, COMBO.permY, { font: monoFont(colors), fill: colors.ink1 });
   const shifted = { n: { combo: count - 1 }, t: anim.t, page: "combo" };
   if (count >= 2) drawRecurrence(ctx, colors, w, params, combo, COMBO, count - 1, shifted, {
@@ -849,8 +854,8 @@ function drawOcclusion(ctx, colors, w, params, state, anim) {
   }
   for (const m of seq.motifAt) {
     const a = letterAt(w, m), b = letterAt(w, Math.min(M.LEN - 1, m + M.MOTIF.length - 1));
-    if (a.y === b.y) rect(ctx, a.x, a.y - OCC.lineH + 3, b.x + b.pitch - a.x, OCC.lineH, null, colors.reference, 1);
-    else { rect(ctx, a.x, a.y - OCC.lineH + 3, X1 - a.x, OCC.lineH, null, colors.reference, 1); rect(ctx, X0, b.y - OCC.lineH + 3, b.x + b.pitch - X0, OCC.lineH, null, colors.reference, 1); }
+    if (a.y === b.y) rect(ctx, a.x, a.y - OCC.lineH + 3, b.x + b.pitch - a.x, OCC.lineH, null, colors.theory, 1);
+    else { rect(ctx, a.x, a.y - OCC.lineH + 3, X1 - a.x, OCC.lineH, null, colors.theory, 1); rect(ctx, X0, b.y - OCC.lineH + 3, b.x + b.pitch - X0, OCC.lineH, null, colors.theory, 1); }
   }
   if (cur) {
     const a = letterAt(w, cur.start), b = letterAt(w, Math.min(M.LEN - 1, cur.start + occ.k - 1));
@@ -863,8 +868,8 @@ function drawOcclusion(ctx, colors, w, params, state, anim) {
   const bw = (X1 - X0) / M.LEN;
   for (let s = 0; s < M.LEN; s++) if (cnt[s] > 0) { const a = partial[s] / cnt[s]; const h = OCC.attrH * a / scale; rect(ctx, X0 + s * bw, OCC.attrTop + OCC.attrH - h, bw + 0.5, h, colors.magnitude); }
   line(ctx, X0, OCC.attrTop + OCC.attrH + 0.5, X1, OCC.attrTop + OCC.attrH + 0.5, colors.axis);
-  for (const m of seq.motifAt) rect(ctx, X0 + m * bw, OCC.attrTop - 2, M.MOTIF.length * bw, OCC.attrH + 4, null, colors.reference, 1);
-  if (seq.motifAt.length) txt(ctx, colors, seq.motifAt.length > 1 ? S.capCopies : S.capMotif, X0 + seq.motifAt[0] * bw, OCC.attrTop + OCC.attrH + 14, { fill: colors.reference });
+  for (const m of seq.motifAt) rect(ctx, X0 + m * bw, OCC.attrTop - 2, M.MOTIF.length * bw, OCC.attrH + 4, null, colors.theory, 1);
+  if (seq.motifAt.length) txt(ctx, colors, seq.motifAt.length > 1 ? S.capCopies : S.capMotif, X0 + seq.motifAt[0] * bw, OCC.attrTop + OCC.attrH + 14, { fill: colors.theory });
   if (done) txt(ctx, colors, S.capHalfMax(M.halfMaxWidth(occ.attr)), X1, OCC.attrHead, { align: "right", fill: colors.ink3 });
 }
 
@@ -876,7 +881,7 @@ defineWidget({
   title: "Deep Learning - Sequences: CNN and LSTM",
   subtitle: S.subtitle,
   layout: "side",
-  height: ({ page, direction, code }) => (page === "lstm" ? HEIGHTS.lstm(code, direction) : page === "combo" ? HEIGHTS.combo(code) : page === "occlusion" ? HEIGHTS.occlusion : HEIGHTS.cnn(code)),
+  height: ({ page, direction, code, k }) => (page === "lstm" ? HEIGHTS.lstm(code, direction) : page === "combo" ? HEIGHTS.combo(code) : page === "occlusion" ? HEIGHTS.occlusion : HEIGHTS.cnn(code, Number(k))),
 
   params: {
     page: { type: "segmented", label: S.pageLabel, detail: S.pageDetail, options: PAGES, default: "cnn", display: true },
@@ -970,7 +975,7 @@ defineWidget({
 
   regions: ({ w, params, state, anim }) => {
     if (!state || params.page !== "cnn" || (anim?.n?.cnn ?? 0) < 1) return [];
-    const CNN = cnnGeom(inputBot(params.code));
+    const k = Number(params.k), CNN = cnnGeom(inputBot(params.code, k)), rowsTop = rowsTopOf(k);
     const X0 = PAD_L, X1 = w - PAD_R, mapX1 = X1 - CNN.spellW;
     const rows = Array.from({ length: M.C1 }, (_, c) => ({ x: X0, y: CNN.mapsTop + c * CNN.mapRowH, w: mapX1 - X0, h: CNN.mapRowH, set: { follow: String(c + 1) }, label: `kernel ${c + 1}` }));
     const buckets = 20, bw = (px(w, M.LEN) - X0) / buckets;
@@ -1029,7 +1034,7 @@ defineWidget({
   pointer: true,
 
   draw({ ctx, colors, w, params, state, anim, pointer }) {
-    const hover = params.page === "occlusion" ? null : hoverBase(pointer, w, params.code);
+    const hover = params.page === "occlusion" ? null : hoverBase(pointer, w, params.code, params.page === "cnn" ? Number(params.k) : 1);
     if (params.page === "lstm") drawLstm(ctx, colors, w, params, state, anim, hover);
     else if (params.page === "combo") drawCombo(ctx, colors, w, params, state, anim, hover);
     else if (params.page === "occlusion") drawOcclusion(ctx, colors, w, params, state, anim);
