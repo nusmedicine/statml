@@ -11,7 +11,7 @@
 
 import { makeRng } from "../core/rng.js";
 import * as E from "../signal-cnn-lstm/engine.js";
-import * as M from "../sequence-models/model.js";
+import * as M from "../sequence-cnn-lstm/model.js";
 
 const t0 = Date.now();
 const secs = () => ((Date.now() - t0) / 1000).toFixed(1);

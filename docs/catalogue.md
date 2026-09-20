@@ -12,7 +12,7 @@ answer can be checked against what was assumed.
 
 | looking for | go to |
 |---|---|
-| what to build next | **The sequence arc (PHM5005 07-1 to 07-3), PROPOSED, MEASURED AND PICKED 2026-09-20: four widgets by data type; 73 `signal-cnn-lstm` SHIPPED AND PUSHED the same day (`fbe62c2`); 75 `sequence-cnn-lstm` MEASURED, MOCKED AND PICKED the same afternoon on his call, ahead of 72 — everything trained ahead, NEXT its draft (§ *75*); then 72 `signal-windows`, then 74 `sequence-encoding`** — § *The sequence arc*, under PHM5005. Slot 71 `somatic-interactions` CUT 2026-09-20 and slot 52 `training-loop` DISCARDED 2026-09-13, both his call. The cancer mutation arc (67, 69, 70) is complete; the image arc has 61, 64, 65 and 62 shipped, 63 `pretrained` on KIV (his call 2026-09-15), 66 folded into 65; the GWAS and PRS arc (56, 57, 59, 60) and the high-throughput arc are complete |
+| what to build next | **The sequence arc (PHM5005 07-1 to 07-3), PROPOSED, MEASURED AND PICKED 2026-09-20: four widgets by data type; 73 `signal-cnn-lstm` SHIPPED AND PUSHED the same day (`fbe62c2`); 75 `sequence-cnn-lstm` MEASURED, MOCKED, PICKED AND DRAFTED the same day on his call, ahead of 72 — everything trained ahead; NEXT his review rounds (§ *75*); then 72 `signal-windows`, then 74 `sequence-encoding`** — § *The sequence arc*, under PHM5005. Slot 71 `somatic-interactions` CUT 2026-09-20 and slot 52 `training-loop` DISCARDED 2026-09-13, both his call. The cancer mutation arc (67, 69, 70) is complete; the image arc has 61, 64, 65 and 62 shipped, 63 `pretrained` on KIV (his call 2026-09-15), 66 folded into 65; the GWAS and PRS arc (56, 57, 59, 60) and the high-throughput arc are complete |
 | how a widget got its shape | § *Widget N*, in order |
 | the four-method reconnaissance | § *Widget 19*, under the PCA sections |
 | the arcs, and what is deliberately not a widget | the arc sections below |
@@ -19181,7 +19181,7 @@ came next, he picked 75 `sequence-models` over 72 ("I think it's supposed to
 be sequences after signals"), so the order is now 73 → 75 → 72 → 74, and 72
 follows 75.
 
-#### 75 `sequence-cnn-lstm` (planned as `sequence-models`) — MEASURED, MOCKED AND PICKED 2026-09-20, seven budget sweeps
+#### 75 `sequence-cnn-lstm` (planned as `sequence-models`) — MEASURED, MOCKED, PICKED AND DRAFTED 2026-09-20, seven budget sweeps
 
 **His pick, 2026-09-20 afternoon:** 75 before 72. The host is 07-3 cells
 26–178, read in full: cell 28's `CNN1D` as instantiated (embedding, conv k7
@@ -19343,12 +19343,31 @@ the engine, and give the verify a retrain-and-compare as 65's has. The seed
 draws the sequence shown and nothing else; the draft's copy must say so
 where 73's said "trained here".
 
-**NEXT:** the draft of 75 `sequence-cnn-lstm` at manifest status `draft`
-(`widgets/sequence-cnn-lstm/`, `model.js` moved there from
-`widgets/sequence-models/`; the table generator in `_lab/`; the verify
-registered in `scripts/verify.mjs`), then rounds from his screenshots, the
-copy audit, the states, and 73's thirty states re-run since the engine is
-shared. Then 72 `signal-windows`, then 74 `sequence-encoding`.
+**DRAFT BUILT, 2026-09-20 evening, on his "go ahead with the draft"** —
+`widgets/sequence-cnn-lstm/` (`main.js`, `model.js` moved from
+`sequence-models/`, `index.html`, `table.js`), manifest status `draft` so it
+sits at `/lab/` only, two placeholder states, the verify
+`_lab/sequence-cnn-lstm-verify.mjs` registered (37 assertions: the token
+engine's gradient checks, the chain arithmetic, every one of the 208 table
+keys present at the right size and one of each kind retrained and compared
+byte for byte, the claims on the shipped nets, and a struck-word sweep of
+the copy). **The table** (`_lab/sequence-cnn-lstm-table.mjs`, 1.2 MB,
+404 s): the CNN at FIVE restarts, not the sweeps' three — at three the
+learned table's k = 7 net landed at 75%, at five 99%; every stride-1 max net
+reads the motif at both parities and seven of eight stride-2 max nets read
+one only (even 100% / odd 3%, or the reverse), so the parity readout stays;
+average pooling on the motif is the arm that loses (50–75% against 97–99%);
+the recurrence on the motif is at chance (45–55%) and on composition packed
+one way 100%, unpacked one way 50%, both ways 99–100% either way; the
+CNN + LSTM on the motif reads 48–50% with the final states and 98–99% with
+max. Four pages, the same presses as 73 (3 · 3 · 4 · the windows); the CNN
+page's first press slides the followed kernel and reads it as a matrix
+beside the motif's own, with the window's bases read column by column; the
+loss panel draws the table's curve with the probe losses of the other
+initialisations as dots. Canvas text swept on every page at 746 px: no
+overrun, no collision. `check` and `test` pass. Next: his screenshots and
+comments, the copy audit, the states, and 73's thirty states re-run since
+`signal-cnn-lstm/engine.js` is shared.
 
 ---
 

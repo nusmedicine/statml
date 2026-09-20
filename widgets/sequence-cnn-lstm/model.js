@@ -340,14 +340,21 @@ export function seqReading(model, x) {
   return { feats: model.clf.feats.map((r) => r.slice()), reduced: model.clf.z.slice(), p, T: model.T };
 }
 
+/** the prefix ending at base t, padded to 250 as every sequence is: a packed
+    model stops at t, an unpacked one reads the PAD after it, as each would */
+export function prefixAt(x, t) {
+  const tok = new Int32Array(MAX_LEN); tok.set(x.tok.slice(0, t + 1));
+  return { tok, L: MAX_LEN, len: t + 1 };
+}
+
 /**
  * The running prediction: the trained model's probability if the sequence
- * ENDED at position t — the whole model on the prefix, every `every` bases;
- * a bidirectional model has no partial state, so the prefix is re-read.
+ * ENDED at position t — the whole model on the padded prefix, every `every`
+ * bases; a bidirectional model has no partial state, so the prefix is re-read.
  */
 export function prefixCurve(model, x, every = 10) {
   const out = [];
-  const at = (t) => { const px = { tok: x.tok.slice(0, t + 1), L: t + 1, len: t + 1 }; const z = model.forward(px); return E.softmaxCE(z, 0).p[1]; };
+  const at = (t) => { const z = model.forward(prefixAt(x, t)); return E.softmaxCE(z, 0).p[1]; };
   for (let t = every - 1; t < x.len; t += every) out.push({ t, p: at(t) });
   if (out.length === 0 || out[out.length - 1].t !== x.len - 1) out.push({ t: x.len - 1, p: at(x.len - 1) });
   return out;
@@ -398,6 +405,49 @@ export function halfMaxWidth(attr) {
   let n = 0; for (const v of attr) if (v > m / 2) n++;
   return n;
 }
+
+/* ------------------------------------------------------------- the table --- */
+
+/* The widget trains nothing (his pick, 2026-09-20: everything ahead, as
+   65). `_lab/sequence-cnn-lstm-table.mjs` trains every setting with this
+   file's nets and ships the weights as `table.js`; the page rebuilds a net
+   from its spec and pours the weights back in, in `net.params` order, which
+   is the build's order and nothing else's. Float32 in base64: exact for the
+   verify's retrain-and-compare, and a third the size of decimal text. */
+
+/** every parameter of a net, in order, as one Float32Array */
+export function flatWeights(net) {
+  const n = net.params.reduce((a, p) => a + p.v.length, 0), out = new Float32Array(n);
+  let o = 0; for (const p of net.params) { out.set(p.v, o); o += p.v.length; }
+  return out;
+}
+
+/** pour a flat vector back into a net's parameters; throws on a length that is not the net's */
+export function loadWeights(net, flat) {
+  const n = net.params.reduce((a, p) => a + p.v.length, 0);
+  if (flat.length !== n) throw new Error(`weights: ${flat.length} values for a net of ${n} parameters`);
+  let o = 0; for (const p of net.params) { for (let i = 0; i < p.v.length; i++) p.v[i] = flat[o + i]; o += p.v.length; }
+  return net;
+}
+
+/** base64 of a Float32Array's bytes, and back — node and the browser */
+export function encodeWeights(flat) {
+  const bytes = new Uint8Array(flat.buffer, flat.byteOffset, flat.byteLength);
+  if (typeof Buffer !== "undefined") return Buffer.from(bytes).toString("base64");
+  let s = ""; for (let i = 0; i < bytes.length; i++) s += String.fromCharCode(bytes[i]);
+  return btoa(s);
+}
+export function decodeWeights(b64) {
+  let bytes;
+  if (typeof Buffer !== "undefined") bytes = new Uint8Array(Buffer.from(b64, "base64"));
+  else { const s = atob(b64); bytes = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) bytes[i] = s.charCodeAt(i); }
+  return new Float32Array(bytes.buffer, bytes.byteOffset, bytes.byteLength / 4);
+}
+
+/** the table's keys, one per setting the rail can reach */
+export const keyCnn = ({ task, code, k, stride, pool }) => `cnn|${task}|${code}|k${k}|s${stride}|${pool}`;
+export const keyLstm = ({ task, code, direction, pack }) => `lstm|${task}|${code}|${direction}|${pack ? "packed" : "unpacked"}`;
+export const keyCombo = ({ task, code, k, stride, pool, reduce }) => `combo|${task}|${code}|k${k}|s${stride}|${pool}|${reduce}`;
 
 /** the CNN + LSTM strip's shapes, the lesson's cell 67 */
 export function comboShapes({ B = "B", Ed = 64, Cc = 64, H = 128 } = {}) {

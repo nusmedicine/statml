@@ -8638,6 +8638,25 @@
       },
       "px": "056f9e8a",
       "tx": "7fc37d79"
+    },
+    {
+      "$note": "sequence-cnn-lstm · DRAFT placeholder: 1D-CNN before any press",
+      "slug": "sequence-cnn-lstm",
+      "state": "?theme=light&shown=0",
+      "px": "0",
+      "tx": "0"
+    },
+    {
+      "$note": "sequence-cnn-lstm · DRAFT placeholder: the slide, driven",
+      "slug": "sequence-cnn-lstm",
+      "state": "?theme=light",
+      "drive": {
+        "click": "step",
+        "frames": 14,
+        "dt": 32
+      },
+      "px": "0",
+      "tx": "0"
     }
   ]
 }

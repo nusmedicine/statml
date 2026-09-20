@@ -1064,6 +1064,28 @@
       ],
       "arc": 73,
       "status": "shipped"
+    },
+    {
+      "slug": "sequence-cnn-lstm",
+      "title": "Deep Learning - Sequences: CNN and LSTM",
+      "blurb": "On one-hot DNA a kernel is a position weight matrix; packing stops at the last real base; occlusion blanks a window.",
+      "course": "PHM5005",
+      "topics": [
+        "1D convolution",
+        "position weight matrix",
+        "motif",
+        "one-hot",
+        "embedding",
+        "LSTM",
+        "padding",
+        "packing",
+        "occlusion",
+        "explainability",
+        "DNA",
+        "deep learning"
+      ],
+      "arc": 75,
+      "status": "draft"
     }
   ]
 }
