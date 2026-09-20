@@ -1068,7 +1068,7 @@
     {
       "slug": "signal-windows",
       "title": "Deep Learning - Signal Windows",
-      "blurb": "A recording is cleaned and cut into labelled windows; a window is not a subject, so the split's unit decides the score.",
+      "blurb": "Signals are cleaned, windowed and labelled, then split by subject: windows of one person are not independent samples.",
       "course": "PHM5005",
       "topics": [
         "resampling",
