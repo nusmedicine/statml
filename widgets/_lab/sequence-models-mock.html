@@ -1,0 +1,526 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · sequence-models — mock</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1600px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 104ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); min-height: 26px; white-space: pre-line; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 104ch; }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+       border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 104ch; }
+  .q b { display: block; margin-bottom: 2px; }
+  #findings { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--ink-2); white-space: pre-line;
+              padding: var(--sp-3); background: var(--surface-2); border: 1px solid var(--grid); max-width: 104ch; }
+  .rail { display: inline-block; vertical-align: top; width: 260px; border: 1px solid var(--grid); padding: 8px 10px; font-size: 11px; color: var(--ink-1); margin-right: var(--sp-4); margin-bottom: var(--sp-3); }
+  .rail .sec { font-size: 10px; color: var(--ink-3); text-transform: uppercase; letter-spacing: .04em; margin: 8px 0 2px; }
+  .rail .sec:first-child { margin-top: 0; }
+  .rail .ctl { display: flex; justify-content: space-between; gap: 8px; padding: 2px 0; }
+  .rail .ctl span:last-child { color: var(--ink-2); font-family: var(--font-mono); font-size: 10px; }
+  .rail .btn { border: 1px solid var(--grid); border-radius: 3px; padding: 3px 8px; margin: 3px 0; text-align: center; background: var(--surface-2); }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>sequence-models &middot; mock</h1>
+  <p class="note">
+    Slot 75, for 07-3 cells 26&ndash;178: the lesson's <code>CNN1D</code>, <code>BiLSTM</code> and <code>CNN_LSTM</code> on
+    tokenized DNA, and Captum's <code>Occlusion</code> with PAD as the baseline. The sequence halves of 73's four pages, on
+    the same engine. <b>Every number drawn here is computed on this page</b> by <code>widgets/sequence-models/model.js</code>
+    on <code>signal-cnn-lstm/engine.js</code>: the stage from the seed, five models trained here (about 9 s on load — the
+    page is blank until then), the occlusion walked by hand. The mock draws filled states so they can be judged; the widget
+    opens empty. On-canvas strings are candidates for the copy audit, not copy. Each section ends with a recommendation;
+    the grey-ruled boxes are the questions only you can answer. <span id="seedNote"></span>
+  </p>
+
+  <h2>0 &middot; What the measurement found</h2>
+  <div id="findings"></div>
+
+  <h2>1 &middot; The stage: a 200-mer padded to 250, two tasks</h2>
+  <p class="note">
+    The lesson's data is coding against intergenic 200-mers (every one exactly 200 bp, padded to <code>MAX_LEN = 250</code>)
+    and, later, influenza HA proteins. A page that reads a kernel as a motif needs a motif that IS the evidence, so the
+    <b>motif</b> task plants TGACTCA (the AP-1 site) in a random 200-mer. A recurrence at H = 8 never finds a 7-mer in 200
+    random bases in any budget measured, but it reads <b>composition</b> (GC-rich against GC-poor, the lesson's task in
+    proxy) &mdash; so the stage offers both, and each model has a task it can win.
+  </p>
+  <div class="row" id="stageRow"></div>
+  <p class="q"><b>1.1 &middot; Task</b>
+    <b>A &middot; a data control in the stage block, motif &middot; composition, default motif (recommended)</b>: the CNN page opens on the kernel-as-motif reading, the LSTM page on the motif trains and reports chance with a caption naming the task it reads &nbsp;|&nbsp;
+    B &middot; motif only, the LSTM page reports chance and stops there &nbsp;|&nbsp;
+    C &middot; composition only, the CNN page loses the kernel's spelling</p>
+  <p class="q"><b>1.2 &middot; The encoding</b>
+    <b>A &middot; one-hot, four rows, as 07-1's figure draws it (recommended)</b>; the caption names the lesson's <code>Embedding(E = 64)</code> and says a one-hot table is an embedding with four fixed rows; on one-hot the kernel IS the position weight matrix &nbsp;|&nbsp;
+    B &middot; one-hot &middot; learned (E = 8) as a data control; through a learned table the kernel's reading is the kernel composed with the table (99 / 96 / 99 under restarts, 3.4 s against 2.6)</p>
+
+  <h2>2 &middot; Page 1, <i>1D-CNN</i> (cell 26): the kernel on the one-hot rows is a position weight matrix</h2>
+  <p class="note">
+    The one-hot sequence as four rows, a <code>[4, k]</code> kernel sliding along it, its score at every position under; then
+    the trained net's kernels each read as a matrix and spelled by column argmax, the chain
+    <code>250 → 250 → 125</code> and the global max over 125 positions of which 22 read PAD only. The first press slides the
+    hand-made kernel of 07-1 cell 2 (+1 on the motif's base, −1/3 elsewhere) so the reader sees a PWM score before anything is
+    trained; Train fits the lesson's net and the second panel fills.
+  </p>
+  <div class="row" id="cnnRow"></div>
+  <p class="rec" id="recCnn"></p>
+  <p class="q"><b>2.1 &middot; How Train trains</b>
+    <b>A &middot; half width (8 / 16), three initialisations probed for six epochs on fresh sequences, the best finished to twenty; about 2.3 s; ten seeds of ten at 98% or better; the loss panel shows the three probes and the caption says one was kept (recommended)</b> &nbsp;|&nbsp;
+    B &middot; one initialisation at 16 / 16, about 3 s: one seed in four to eight never finds the motif, and the readout prints its held-out score &nbsp;|&nbsp;
+    C &middot; weights trained ahead and shipped, as 65 did, one net per k &times; pool &times; task; Seed then changes the sequence shown and nothing else</p>
+  <p class="q"><b>2.2 &middot; Stride</b>
+    <b>A &middot; 1 &middot; 2 as a data control, default 1, the readout printing the held-out score by the motif's offset parity (recommended)</b>: at the lesson's stride 2 the trained net reads the motif at even offsets only, or odd only &mdash; the seed decides which &mdash; and at stride 1 at both; on composition either stride is 100% &nbsp;|&nbsp;
+    B &middot; stride 1 fixed, the caption naming the lesson's 2</p>
+  <p class="q"><b>2.3 &middot; Kernel size</b>
+    <b>A &middot; k = 3 &middot; 5 &middot; 7 &middot; 11 read in bases, default 7 (recommended)</b>; at k = 3 no kernel can spell the 7-mer, at 11 the spelling carries four bases of noise &nbsp;|&nbsp;
+    B &middot; 7 fixed</p>
+
+  <h2>3 &middot; Page 2, <i>LSTM</i> (cell 47): the packed recurrence, and the last state after the padding</h2>
+  <p class="note">
+    On composition. The block of the recurrence's outputs along the sequence, the PAD steps shaded; <code>pack</code> stops the
+    recurrence at the last real base and the "last" marker sits there; unpacked, the recurrence reads 50 PAD steps and
+    "last" is the state after them. One direction shows it cleanly: packed the model reads the composition, unpacked its
+    last state carries nothing. Bidirectional &mdash; the lesson's &mdash; the reverse pass reads the PAD first and its final
+    state is intact, so the score barely moves. Below, the running prediction: p(GC-rich) if the sequence ended at each base.
+  </p>
+  <div class="row" id="lstmRow"></div>
+  <p class="rec" id="recLstm"></p>
+  <p class="q"><b>3.1 &middot; Direction and pack</b>
+    <b>A &middot; Direction uni &middot; bi and Pack on &middot; off, both data controls, default uni and on (recommended)</b>: the failure is one click away and visible; bi is the lesson's and the caption says why its score survives &nbsp;|&nbsp;
+    B &middot; bi fixed (the lesson's), Pack the only control: the block changes, the score does not</p>
+  <p class="q"><b>3.2 &middot; Reduce on this page</b>
+    <b>A &middot; the lesson's final states only, no Reduce control (recommended)</b>: 07-3's LSTM has no pooling table; max would rescue the unpacked arm and blur the packing claim &nbsp;|&nbsp;
+    B &middot; last &middot; max as data, as 73 has it</p>
+
+  <h2>4 &middot; Page 3, <i>CNN + LSTM</i> (cell 66): page 1's convolution, then the recurrence, then one summary</h2>
+  <p class="note">
+    73's design: the recurrence runs on page 1's trained first-layer maps (frozen), so only the LSTM trains here. On the motif
+    the lesson's summary &mdash; the final states &mdash; stays at chance while max over the steps reaches 99%: a localized
+    event needs max, the measured M3b row. On composition both work. The running prediction of the max model jumps at the
+    motif; the last model's never moves.
+  </p>
+  <div class="row" id="comboRow"></div>
+  <p class="rec" id="recCombo"></p>
+  <p class="q"><b>4.1 &middot; Reduce</b>
+    <b>A &middot; last &middot; max as a data control, default last (recommended)</b>: the default is the lesson's own and it is the arm that loses on a localized event &nbsp;|&nbsp;
+    B &middot; max only</p>
+
+  <h2>5 &middot; Page 4, <i>Occlusion</i> (cells 166&ndash;178): a window of tokens set to PAD, the heat behind the letters</h2>
+  <p class="note">
+    Captum's recipe on the trained CNN: a window of <code>k</code> tokens replaced by PAD, the model asked again, |Δp| as the
+    window's score; the bar plot by position and cell 178's heat behind each letter, padding stripped. The lesson's
+    <code>k = 8</code>, stride 4, and its "try 4, 8, 12". The baseline PAD against N (a quarter of each base) correlates 0.96
+    &mdash; no losing arm, so no baseline control; a caption names the notebook's alternative.
+  </p>
+  <div class="row" id="occRow"></div>
+  <p class="rec" id="recOcc"></p>
+  <p class="q"><b>5.1 &middot; Copies of the motif</b>
+    <b>A &middot; a data control 1 &middot; 2 &middot; 3 in the stage block, shared by every page, as 73's ectopic beats (recommended)</b>: with two copies each reads as unimportant &nbsp;|&nbsp;
+    B &middot; on the Occlusion page only</p>
+  <p class="q"><b>5.2 &middot; Which model the window is asked</b>
+    <b>A &middot; 1D-CNN &middot; LSTM &middot; CNN + LSTM, as 73 (recommended)</b>: through the CNN + LSTM (max) the top window is on the motif in 100% and the map is 10 bases wide against the CNN's 23 &nbsp;|&nbsp;
+    B &middot; the CNN only, as the notebook does</p>
+
+  <h2>6 &middot; The rail</h2>
+  <p class="note">Four pages, the stage block shared, per-page controls through <code>when:</code>; the same shape as 73.</p>
+  <div id="rails"></div>
+  <p class="q"><b>6.1 &middot; The slug and the title</b>
+    <code>sequence-models</code> &middot; "Deep Learning - Sequences: CNN and LSTM" (73's title pattern; the slug as planned) &nbsp;|&nbsp;
+    <code>sequence-cnn-lstm</code> &middot; the same title (73's slug pattern) &nbsp;|&nbsp; yours</p>
+</main>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+import { makeRng } from "../core/rng.js";
+import * as M from "../sequence-models/model.js";
+import * as E from "../signal-cnn-lstm/engine.js";
+
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+const W = 550;
+const SEED = Number(new URLSearchParams(location.search).get("seed") || 1);
+const HEAT = T.magnitude || T.valueHigh;
+document.getElementById("seedNote").textContent = `Seed ${SEED}; add ?seed=N for another.`;
+
+/* the settings the sweeps settled (sequence-models-sweep*.mjs) */
+const CH = [8, 16], N_CNN = 300, CNN_FIT = { restarts: 3, probe: 6, epochs: 20, lr: 1e-2 };
+const GC = 0.7, N_LSTM = 150, LSTM_FIT = { epochs: 20, lr: 1e-2 };
+const N_COMBO = 200;
+const COMBO_FIT = { epochs: 8, lr: 1e-2 };
+
+/* ---------------------------------------------------------------- shell */
+function el(tag, cls, text) { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
+function cand(rowId, title, sub, w = W) {
+  const box = el("div", "cand"); box.style.width = `${w}px`;
+  box.appendChild(el("h3", null, title)); box.appendChild(el("p", "sub", sub));
+  document.getElementById(rowId).appendChild(box);
+  return box;
+}
+function canvasIn(box, w, h) {
+  const c = document.createElement("canvas");
+  c.width = Math.round(w * DPR); c.height = Math.round(h * DPR); c.style.width = `${w}px`; c.style.height = `${h}px`;
+  box.appendChild(c); const ctx = c.getContext("2d"); ctx.scale(DPR, DPR); return ctx;
+}
+const rgb = (c) => { const m = String(c).match(/^#([0-9a-f]{6})$/i); return m ? [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16)) : [128, 128, 128]; };
+const wash = (color, a) => { const p = rgb(color); return `rgba(${p[0]},${p[1]},${p[2]},${a})`; };
+const ramp = (t, to = HEAT) => { const a = rgb(T.surface3), b = rgb(to); const u = Math.max(0, Math.min(1, t)); return `rgb(${a.map((x, i) => Math.round(x + (b[i] - x) * u)).join(",")})`; };
+const diverge = (v, scale) => (v >= 0 ? ramp(v / scale, T.valueHigh) : ramp(-v / scale, T.valueLow));
+function label(ctx, s, x, y, { size = 11, colour = T.ink2, align = "left", mono = false, weight = "", baseline = "alphabetic" } = {}) {
+  ctx.save(); ctx.font = `${weight ? weight + " " : ""}${size}px ${mono ? T.mono : T.font}`; ctx.fillStyle = colour; ctx.textAlign = align; ctx.textBaseline = baseline; ctx.fillText(s, x, y); ctx.restore();
+}
+function line(ctx, x1, y1, x2, y2, colour, width = 1, dash = null) {
+  ctx.save(); ctx.strokeStyle = colour; ctx.lineWidth = width; if (dash) ctx.setLineDash(dash); ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); ctx.restore();
+}
+function rect(ctx, x, y, w, h, fill, stroke = null, lw = 1) { ctx.save(); if (fill) { ctx.fillStyle = fill; ctx.fillRect(x, y, w, h); } if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw; ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1); } ctx.restore(); }
+function polyline(ctx, xs, ys, colour, width = 1.2) { ctx.save(); ctx.strokeStyle = colour; ctx.lineWidth = width; ctx.lineJoin = "round"; ctx.beginPath(); xs.forEach((x, i) => (i ? ctx.lineTo(x, ys[i]) : ctx.moveTo(x, ys[i]))); ctx.stroke(); ctx.restore(); }
+const X0 = 44, X1 = W - 14;
+const f2 = (v) => Number(v).toFixed(2);
+const pct = (v) => `${(100 * v).toFixed(0)}%`;
+const timed = (fn) => { const t = performance.now(); const r = fn(); return { r, ms: performance.now() - t }; };
+
+/** letters in rows of `perRow`, `pitch` px apart; `heat(t)` in [0, 1] washes behind a letter; returns (t) → {x, y} */
+function letterRows(ctx, tok, len, x0, y0, { perRow = 40, pitch = 12, rowH = 14, heat = null, mark = null, pad = 0 } = {}) {
+  const at = (t) => ({ x: x0 + (t % perRow) * pitch, y: y0 + Math.floor(t / perRow) * rowH });
+  for (let t = 0; t < len + pad; t++) {
+    const { x, y } = at(t);
+    if (t < len && heat) { const h = heat(t); if (h > 0.02) rect(ctx, x - 1, y - rowH + 3, pitch, rowH, wash(HEAT, 0.85 * h)); }
+    if (t < len && mark && mark(t)) rect(ctx, x - 1, y - rowH + 3, pitch, rowH, null, T.reference, 1);
+    label(ctx, t < len ? M.VOCAB[tok[t]] : "*", x, y, { size: 10, mono: true, colour: t < len ? T.ink1 : T.ink3, align: "left" });
+  }
+  return at;
+}
+
+/* ------------------------------------------------------------- the data */
+const rng = makeRng(SEED);
+const motifTrain = M.dataset(rng, N_CNN, 1), motifTest = M.dataset(rng, 100, 1);
+const compTrain = M.dataset(rng, N_LSTM, 1, { task: "composition", gc: GC }), compTest = M.dataset(rng, 100, 1, { task: "composition", gc: GC });
+const ex1 = motifTest.find((d) => d.y === 1), ex0 = motifTest.find((d) => d.y === 0);
+const exG = compTest.find((d) => d.y === 1), exA = compTest.find((d) => d.y === 0);
+const ex2 = M.sequence(makeRng(SEED + 100), 1, { copies: 2 });
+
+const cnnRng = makeRng(SEED + 1);
+const tCnn = timed(() => M.trainRestarts(cnnRng, (r) => M.buildCnn(r, { code: "onehot", stride: 1, channels: CH }), () => M.dataset(cnnRng, N_CNN, 1), CNN_FIT));
+const cnn = tCnn.r.net, cnnCurve = tCnn.r.curve, cnnProbes = tCnn.r.probes, cnnAcc = E.accuracy(cnn, motifTest);
+
+const lstmRng = makeRng(SEED + 2);
+const lstmPacked = M.buildSeqModel(lstmRng, { code: "onehot", direction: "uni", pack: true, reduce: "last" });
+const tPacked = timed(() => M.trainNet(lstmRng, lstmPacked, () => M.dataset(lstmRng, N_LSTM, 1, { task: "composition", gc: GC }), LSTM_FIT));
+const lstmRng2 = makeRng(SEED + 2);
+const lstmUnpacked = M.buildSeqModel(lstmRng2, { code: "onehot", direction: "uni", pack: false, reduce: "last" });
+const tUnpacked = timed(() => M.trainNet(lstmRng2, lstmUnpacked, () => M.dataset(lstmRng2, N_LSTM, 1, { task: "composition", gc: GC }), LSTM_FIT));
+const accPacked = E.accuracy(lstmPacked, compTest), accUnpacked = E.accuracy(lstmUnpacked, compTest);
+
+const fTest = motifTest.map((d) => ({ x: M.convFeatures(cnn, d.x), y: d.y }));
+const combos = {};
+for (const reduce of ["last", "max"]) {
+  const r = makeRng(SEED + 3);
+  const model = M.buildFeatureLstm(r, { D: CH[0], pack: true, reduce });
+  const t = timed(() => M.trainNet(r, model, () => M.dataset(r, N_COMBO, 1).map((d) => ({ x: M.convFeatures(cnn, d.x), y: d.y })), COMBO_FIT));
+  combos[reduce] = { model, ms: t.ms, acc: E.accuracy(model, fTest) };
+}
+
+/* ================================================================== §0 */
+document.getElementById("findings").textContent = [
+  `this page: the CNN (one-hot, stride 1, ${CH.join("/")} channels), ${CNN_FIT.restarts} initialisations probed ${CNN_FIT.probe} epochs (losses ${cnnProbes.map(f2).join(" / ")}), the best finished to ${CNN_FIT.epochs} on fresh ${N_CNN} sequences an epoch, ${(tCnn.ms / 1000).toFixed(1)} s, held-out ${pct(cnnAcc)}; the LSTM (uni, H = 8) packed ${(tPacked.ms / 1000).toFixed(1)} s → ${pct(accPacked)}, unpacked ${(tUnpacked.ms / 1000).toFixed(1)} s → ${pct(accUnpacked)}; CNN + LSTM last ${pct(combos.last.acc)} (${(combos.last.ms / 1000).toFixed(1)} s), max ${pct(combos.max.acc)} (${(combos.max.ms / 1000).toFixed(1)} s)`,
+  "sweeps 1–7: the lesson's CNN at half width with a learned table at stride 2, 200 × 20 at Adam 1e-3, sat at CHANCE; stride 1 trains and stride 2 does not at the same budget with one init (52–77%); the parity story did not hold as a MEAN over six seeds but holds PER SEED under restarts — a stride-2 net reads the motif at one parity only (seed 1: even 100%, odd 4%; seed 2: even 0%, odd 100%), stride 1 reads both; one-hot trains faster than a learned table (E = 4 unstable, E = 8 at 2 s); with ONE initialisation no width, rate, batch, epoch count or fresh-data regime made every seed find the motif — 8/16 loses one seed in two, 16/16 one in four to eight, 16/32 one in seven — the init decides it; THREE RESTARTS probed six epochs, the best finished to twenty on fresh sequences: 8/16 ten seeds of ten at 98–99% in 2.3 s (the winner's probe loss 0.01–0.11 against 0.4–0.7)",
+  "the recurrence on the MOTIF: chance at every budget tried up to H = 16, 400 × 20 (18 s) — train loss 0.18, test 46%, it memorises; on COMPOSITION at a 0.7 / 0.3 GC gap: uni packed last min 97% over eight seeds on fresh 150 an epoch × 20 (1.2 s), uni UNPACKED last 50% on every seed, bi packed min 83% (2.6 s), bi unpacked min 99% (the reverse pass reads PAD first); at 0.6 / 0.4 the last-state reading converges on half the seeds only",
+  "CNN + LSTM on page 1's frozen features [250, 16], packed, 200 × 8 (1.9 s): motif last 45 / 39 / 48%, max 99 / 99 / 99%; composition last 97 / 100 / 100%, max 100 / 100 / 100%; cell 67's shape end to end on composition 87% in 2.2 s",
+  "occlusion (a trained CNN, 40 sequences): at k = 4 · 8 · 12 (stride k / 2) the top window overlaps the planted motif in 100% each, half-max width 8 · 11.5 · 16 bases against the motif's 7 — the window is the resolution; PAD against N as the baseline correlate 0.98 → no baseline control; two copies of the motif: occluding one drops p by 0.013, both by 0.99; through the CNN + LSTM (max) the top window is on the motif in 100%; on composition the map has no peak (|Δp| 0.000 at every window)",
+  "arithmetic: stride 1 → 250 → 250 → 125, one Conv2 output reads 11 bases, 22 of the 125 max positions read PAD only; stride 2 → 125 → 63, 15 bases, 11 PAD-only; the lesson's CNN has 10,226 parameters and its BiLSTM 199,554 (19.5×); the lesson's NUM_TOKENS = len(dna_vocab) = 5 with unk_idx = 5 would index past the table — ACGT-only data never triggers it",
+].join("\n");
+
+/* ================================================================== §1 */
+{
+  const mk = (title, sub, d, extra) => {
+    const box = cand("stageRow", title, sub, 520);
+    const ctx = canvasIn(box, 520, 118);
+    letterRows(ctx, d.x.tok, M.LEN, 14, 16, { pad: 50, mark: (t) => d.motifAt.some((m) => t >= m && t < m + M.MOTIF.length) });
+    label(ctx, extra, 14, 112, { size: 9, colour: T.ink3 });
+  };
+  mk("Motif · class 1", "one copy of TGACTCA planted in a random 200-mer\npadded with 50 PAD (*) to the lesson's 250", ex1, `tokens: ${Array.from(ex1.x.tok.slice(0, 12)).join(" ")} … ${Array.from(ex1.x.tok.slice(198, 204)).join(" ")} …  (* = 0, A = 1, C = 2, G = 3, T = 4)`);
+  mk("Motif · class 0", "a random 200-mer; the 7-mer occurs by chance in about 2%", ex0, "the same tokens and padding; nothing to find");
+  mk("Composition · class 1", `GC-rich: G or C with probability ${GC}\n(the lesson's coding regions are GC-richer than its intergenic ones)`, exG, `GC ${f2(M.gcOf(exG.x.tok))} here; class 0 draws G or C with probability ${(1 - GC).toFixed(1)}`);
+  mk("Composition · class 0", `GC-poor: G or C with probability ${(1 - GC).toFixed(1)}`, exA, `GC ${f2(M.gcOf(exA.x.tok))} here`);
+}
+
+/* ================================================================== §2 */
+{
+  const box = cand("cnnRow", "Page 1 · 1D-CNN — the hand-made kernel, then the trained net", `one-hot [4, 250] · the kernel [4, 7] at the motif · its score at every position (stride 1)\nthen ${CH[0]} trained kernels read as matrices and spelled; the chain; the global max over 125`);
+  const ctx = canvasIn(box, W, 600);
+  const d = ex1;
+  const colW = (X1 - X0) / M.MAX_LEN, rowH = 9, gridTop = 22;
+  label(ctx, "x · one-hot [4, 250]", X0, 14, { colour: T.ink1, weight: "600" });
+  for (let t = 0; t < M.MAX_LEN; t++) {
+    if (t >= M.LEN) rect(ctx, X0 + t * colW, gridTop, colW + 0.3, 4 * rowH, T.surface2);
+    const id = d.x.tok[t]; const bi = M.BASES.indexOf(id);
+    if (bi >= 0) rect(ctx, X0 + t * colW, gridTop + bi * rowH, colW + 0.3, rowH - 1, T.ink1);
+  }
+  "ACGT".split("").forEach((b, i) => label(ctx, b, X0 - 6, gridTop + i * rowH + 8, { size: 9, mono: true, align: "right" }));
+  label(ctx, "PAD", X0 + M.LEN * colW + 4, gridTop + 4 * rowH + 10, { size: 8, colour: T.ink3 });
+  const m0 = d.motifAt[0];
+  rect(ctx, X0 + m0 * colW - 1, gridTop - 2, 7 * colW + 2, 4 * rowH + 3, null, T.highlight, 1.5);
+  // the hand-made kernel enlarged
+  const hand = M.motifKernel();
+  const kx = X0, ky = gridTop + 4 * rowH + 20, cell = 13;
+  label(ctx, "the kernel · [4, 7] · +1 on the motif's base, −1/3 elsewhere", kx, ky - 4, { size: 10, colour: T.ink1, weight: "600" });
+  for (let bi = 0; bi < 4; bi++) for (let j = 0; j < 7; j++) rect(ctx, kx + j * cell, ky + bi * cell, cell - 1, cell - 1, diverge(hand[bi][j], 1));
+  "ACGT".split("").forEach((b, i) => label(ctx, b, kx - 5, ky + i * cell + 10, { size: 9, mono: true, align: "right" }));
+  M.MOTIF.split("").forEach((b, j) => label(ctx, b, kx + j * cell + 3, ky + 4 * cell + 10, { size: 9, mono: true, colour: T.highlight }));
+  label(ctx, "spelled by column argmax: TGACTCA — the kernel is the motif", kx + 7 * cell + 12, ky + 12, { size: 10 });
+  label(ctx, "score = Σ_j W[base_j, j]  ·  7 at a match, 0 ± 1.5 elsewhere", kx + 7 * cell + 12, ky + 26, { size: 9, mono: true, colour: T.ink3 });
+  label(ctx, "the window ⊙ the kernel, summed: one value of the feature map", kx + 7 * cell + 12, ky + 40, { size: 9, colour: T.ink3 });
+  // score track, stride 1
+  const trackTop = ky + 4 * cell + 26, trackH = 40;
+  label(ctx, "the kernel's score at every position", X0, trackTop - 2, { size: 10, colour: T.ink1, weight: "600" });
+  const sc = M.pwmScan(hand, d.x.tok);
+  const smax = 7, smin = -3;
+  const sy = (v) => trackTop + 4 + trackH * (1 - (Math.max(smin, v) - smin) / (smax - smin));
+  polyline(ctx, Array.from(sc, (_, t) => X0 + (t + 3.5) * colW), Array.from(sc, sy), T.empirical, 1);
+  line(ctx, X0, sy(0) + 0.5, X0 + M.LEN * colW, sy(0) + 0.5, T.axis);
+  rect(ctx, X0 + m0 * colW, trackTop + 2, 7 * colW, trackH + 4, wash(T.reference, 0.18));
+  label(ctx, `peak ${f2(sc[m0])} at base ${m0} — the planted motif`, X1, trackTop - 2, { size: 9, align: "right", colour: T.ink3 });
+  // the trained kernels
+  const ks = M.kernelsSpelled(cnn);
+  const ty = trackTop + trackH + 30;
+  label(ctx, `Train · the lesson's net at ${CH[0]} / ${CH[1]} channels · ${CNN_FIT.restarts} initialisations, ${CNN_FIT.probe} epochs each, the best to ${CNN_FIT.epochs} · ${(tCnn.ms / 1000).toFixed(1)} s · held-out ${pct(cnnAcc)}`, X0, ty - 4, { size: 10, colour: T.ink1, weight: "600" });
+  const kw = 7 * 4, kh = 4 * 4, per = 8, gapx = (X1 - X0) / per;
+  ks.forEach((q, i) => {
+    const cx = X0 + (i % per) * gapx, cy = ty + Math.floor(i / per) * 46;
+    let amax = 0; for (const r of q.M) for (const v of r) amax = Math.max(amax, Math.abs(v));
+    for (let bi = 0; bi < 4; bi++) for (let j = 0; j < 7; j++) rect(ctx, cx + j * 4, cy + bi * 4, 3.5, 3.5, diverge(q.M[bi][j], amax));
+    if (i === 0) rect(ctx, cx - 2, cy - 2, kw + 3, kh + 3, null, T.highlight, 1.2);
+    label(ctx, q.spell, cx, cy + kh + 11, { size: 8, mono: true, colour: q.match === 7 ? T.highlight : T.ink2 });
+    label(ctx, `${q.match}/7${q.offset ? ` at ${q.offset > 0 ? "+" : ""}${q.offset}` : ""}`, cx, cy + kh + 21, { size: 7.5, colour: T.ink3 });
+  });
+  const tk = ty + 2 * 46 + 4;
+  label(ctx, `best kernel k${ks[0].c + 1} spells ${ks[0].spell}: ${ks[0].match} of 7 columns the motif's at a shift of ${ks[0].offset}; ${ks.filter((q) => q.match >= 5).length} of ${CH[0]} kernels match 5 or more`, X0, tk + 8, { size: 10 });
+  // its score track on the sequence
+  const tr = M.scoreTrack(cnn, d.x, ks[0].c);
+  const t2 = tk + 28, tmax = Math.max(...tr), tmin = Math.min(...tr);
+  const ty2 = (v) => t2 + 4 + 30 * (1 - (v - tmin) / (tmax - tmin + 1e-9));
+  polyline(ctx, Array.from(tr, (_, t) => X0 + (t + 0.5) * colW * (M.MAX_LEN / tr.length)), Array.from(tr, ty2), T.empirical, 1);
+  rect(ctx, X0 + m0 * colW, t2 + 2, 7 * colW, 34, wash(T.reference, 0.18));
+  label(ctx, `k${ks[0].c + 1}'s score along the sequence (before ReLU)`, X0, t2 - 2, { size: 9, colour: T.ink3 });
+  // the chain and the max
+  const ch = M.chain({ k: 7, stride: 1 });
+  const cy2 = t2 + 48;
+  label(ctx, "the chain · one Conv2 output's reach · the global max", X0, cy2, { colour: T.ink1, weight: "600" });
+  const rows = [{ name: "one-hot", L: 250, rf: 1 }, ...ch.rows];
+  rows.forEach((r, i) => { label(ctx, r.name.padEnd(16), X0, cy2 + 14 + i * 12, { size: 9.5, mono: true, colour: T.ink1 }); label(ctx, `L = ${String(r.L).padStart(3)}`, X0 + 130, cy2 + 14 + i * 12, { size: 9.5, mono: true }); if (i) label(ctx, `sees ${r.rf} bases`, X0 + 200, cy2 + 14 + i * 12, { size: 9.5, mono: true, colour: i === rows.length - 1 ? T.highlight : T.ink2 }); });
+  label(ctx, `AdaptiveMaxPool1d(1) → Linear(${CH[1]}, 2)`, X0, cy2 + 14 + rows.length * 12, { size: 9.5, mono: true, colour: T.ink2 });
+  const last = ch.rows[ch.rows.length - 1];
+  const oy = cy2 + 14 + (rows.length + 1) * 12 + 4;
+  const ox = (i) => X0 + (i / (last.L - 1)) * (X1 - X0);
+  cnn.forward(d.x);
+  const arg = cnn.pool.arg;
+  for (let i = 0; i < last.L; i++) rect(ctx, ox(i) - 1.5, oy, 3, 8, ch.padOnly.includes(i) ? T.surface3 : T.surface2);
+  for (let c = 0; c < CH[1]; c++) rect(ctx, ox(arg[c]) - 1.5, oy, 3, 8, T.highlight);
+  label(ctx, `Conv2 outputs · ${last.L}; ${ch.padOnly.length} read PAD only (shaded); the max of each of ${CH[1]} channels sits at a coloured tick — none on PAD`, X0, oy + 20, { size: 9 });
+  label(ctx, `probe losses ${cnnProbes.map(f2).join(" · ")} · the best kept · loss ${f2(cnnCurve[0])} → ${f2(cnnCurve[cnnCurve.length - 1])}`, X0, oy + 34, { size: 9, mono: true, colour: T.ink3 });
+  label(ctx, "controls: k · pool (max | avg) · seed · task · copies; click a kernel to follow it", X0, oy + 48, { size: 9, colour: T.ink3 });
+  document.getElementById("recCnn").textContent = `Recommended: press 1 slides the hand-made kernel and prints its score — the PWM reading before any training; Train fits the lesson's net at half width, the best of three initialisations (${(tCnn.ms / 1000).toFixed(1)} s here) and every kernel is read as a matrix and spelled; the chain prints the lesson's arithmetic at the page's stride, and the global max's PAD-only positions are shaded so the reader sees why max is the lesson's choice.`;
+}
+
+/* ================================================================== §3 */
+{
+  const box = cand("lstmRow", "Page 2 · LSTM — packed against unpacked, one direction, on composition", `LSTM(4 → H = 8), one-hot, ${N_LSTM} × ${LSTM_FIT.epochs} epochs at 1e-2 · the lesson: BiLSTM H = 128, packed\nleft block packed (${(tPacked.ms / 1000).toFixed(1)} s), right unpacked (${(tUnpacked.ms / 1000).toFixed(1)} s)`);
+  const ctx = canvasIn(box, W, 470);
+  const d = exG;
+  // the sequence as a GC strip
+  label(ctx, `x · GC ${f2(M.gcOf(d.x.tok))} · class 1`, X0, 14, { colour: T.ink1, weight: "600" });
+  const colW = (X1 - X0) / M.MAX_LEN;
+  for (let t = 0; t < M.MAX_LEN; t++) rect(ctx, X0 + t * colW, 20, colW + 0.3, 8, t >= M.LEN ? T.surface2 : (d.x.tok[t] === 2 || d.x.tok[t] === 3) ? T.ink1 : T.surface3);
+  label(ctx, "G or C dark · A or T light · PAD shaded", X0, 40, { size: 8.5, colour: T.ink3 });
+  const drawBlock = (model, top, name, acc) => {
+    const r = M.seqReading(model, d.x);
+    const H = model.H, Tn = r.T;
+    let amax = 0; for (const row of r.feats) for (const v of row) amax = Math.max(amax, Math.abs(v));
+    label(ctx, `${name} · output [${Tn}, ${H}] · held-out ${pct(acc)} · p(GC-rich) ${f2(r.p[1])}`, X0, top - 4, { size: 10, colour: T.ink1, weight: "600" });
+    const gh = 7;
+    for (let t = 0; t < M.MAX_LEN; t++) for (let j = 0; j < H; j++) rect(ctx, X0 + t * colW, top + j * gh, colW + 0.3, gh, t < Tn ? diverge(r.feats[t][j], amax) : T.surface2);
+    rect(ctx, X0 + (Tn - 1) * colW - 1, top - 1, 4, H * gh + 2, null, T.highlight, 1.5);
+    label(ctx, "last", X0 + (Tn - 1) * colW + (Tn < M.MAX_LEN ? 6 : -6), top + 8, { size: 8.5, colour: T.highlight, align: Tn < M.MAX_LEN ? "left" : "right" });
+    label(ctx, model.pack ? "pack: the recurrence stops at base 200; the last state is the state after the last real base" : "unpacked: 50 PAD steps follow; the last state is the state after them", X0, top + H * gh + 12, { size: 9 });
+    return top + H * gh + 20;
+  };
+  let y = drawBlock(lstmPacked, 62, "packed", accPacked);
+  y = drawBlock(lstmUnpacked, y + 16, "unpacked", accUnpacked);
+  // the state's move over the PAD (unpacked)
+  {
+    lstmUnpacked.forward(d.x);
+    const feats = lstmUnpacked.clf.feats, H = lstmUnpacked.H, ref = feats[M.LEN - 1];
+    let nref = 0; for (let j = 0; j < H; j++) nref += ref[j] ** 2; nref = Math.sqrt(nref);
+    const mv = []; for (let t = M.LEN - 1; t < M.MAX_LEN; t++) { let s = 0; for (let j = 0; j < H; j++) s += (feats[t][j] - ref[j]) ** 2; mv.push(Math.sqrt(s) / nref); }
+    label(ctx, "how far the state moves over the PAD, relative to its norm at base 200", X0, y + 8, { size: 10, colour: T.ink1, weight: "600" });
+    const top = y + 14, h = 40, mmax = Math.max(1, ...mv);
+    polyline(ctx, mv.map((_, i) => X0 + (M.LEN - 1 + i) * colW), mv.map((v) => top + h * (1 - v / mmax)), T.empirical, 1.4);
+    line(ctx, X0, top + h + 0.5, X1, top + h + 0.5, T.axis);
+    label(ctx, `${f2(mv[mv.length - 1])} of its norm at base 250`, X0 + M.LEN * colW - 4, top + 10, { size: 9, align: "right" });
+    y = top + h + 10;
+  }
+  // running prediction (packed)
+  {
+    const c = M.prefixCurve(lstmPacked, d.x, 10);
+    label(ctx, "if the sequence ended here · p(GC-rich) on every prefix, the packed model", X0, y + 10, { size: 10, colour: T.ink1, weight: "600" });
+    const top = y + 16, h = 44;
+    line(ctx, X0, top + h / 2 + 0.5, X0 + M.LEN * colW, top + h / 2 + 0.5, T.grid, 1, [2, 3]);
+    polyline(ctx, c.map((q) => X0 + q.t * colW), c.map((q) => top + h * (1 - q.p)), T.empirical, 1.4);
+    line(ctx, X0, top + h + 0.5, X1, top + h + 0.5, T.axis);
+    label(ctx, "0.5", X0 - 4, top + h / 2 + 3, { size: 8, align: "right", colour: T.ink3 });
+    label(ctx, `on the MOTIF task this recurrence stays at chance (measured to 18 s); the caption says so and names composition`, X0, top + h + 14, { size: 9, colour: T.ink3 });
+  }
+  document.getElementById("recLstm").textContent = `Recommended: Direction uni · bi and Pack on · off as data controls, default uni and on — here packed ${pct(accPacked)} against unpacked ${pct(accUnpacked)} on the same seed; the block shows where "last" is read in each case, and the state's move over the PAD is drawn as a number, not asserted. The measure's bi rows (packed min 88%, unpacked min 92%) go in the caption under bi: the reverse pass reads the PAD first, so its final state is intact.`;
+}
+
+/* ================================================================== §4 */
+{
+  const box = cand("comboRow", "Page 3 · CNN + LSTM — page 1's maps into the recurrence, last against max, on the motif", `features [250, ${CH[0]}] from the trained first layer (frozen) → BiLSTM H = 8 → last | max → Linear\n${N_COMBO} × ${COMBO_FIT.epochs} epochs: last ${pct(combos.last.acc)} (${(combos.last.ms / 1000).toFixed(1)} s), max ${pct(combos.max.acc)} (${(combos.max.ms / 1000).toFixed(1)} s)`);
+  const ctx = canvasIn(box, W, 420);
+  const d = ex1;
+  const colW = (X1 - X0) / M.MAX_LEN;
+  const fx = M.convFeatures(cnn, d.x);
+  label(ctx, `Conv1 → ReLU · [${CH[0]}, 250] · the maps of page 1's trained net`, X0, 14, { colour: T.ink1, weight: "600" });
+  let fmax = 0; for (const v of fx.feats) for (const q of v) fmax = Math.max(fmax, q);
+  const gh = 5;
+  for (let t = 0; t < fx.T; t++) for (let c = 0; c < CH[0]; c++) { const v = fx.feats[t][c]; if (v > 0) rect(ctx, X0 + t * colW, 20 + c * gh, colW + 0.3, gh, ramp(v / fmax)); }
+  rect(ctx, X0 + M.LEN * colW, 20, 50 * colW, CH[0] * gh, T.surface2);
+  const m0 = d.motifAt[0];
+  rect(ctx, X0 + m0 * colW - 1, 18, 7 * colW + 2, CH[0] * gh + 4, null, T.reference, 1);
+  label(ctx, "permute: [B, C, L] → [B, L, C] · pack to 200 steps", X0, 20 + CH[0] * gh + 14, { size: 9.5, mono: true, colour: T.ink1 });
+  let y = 20 + CH[0] * gh + 24;
+  for (const reduce of ["last", "max"]) {
+    const { model, acc } = combos[reduce];
+    const z = model.forward(fx); const p = E.softmaxCE(z, 0).p[1];
+    const feats = model.clf.feats, Fd = feats[0].length;
+    let amax = 0; for (const r of feats) for (const v of r) amax = Math.max(amax, Math.abs(v));
+    label(ctx, `BiLSTM output [200, 16] → ${reduce} · held-out ${pct(acc)} · p(motif) ${f2(p)}`, X0, y + 10, { size: 10, colour: T.ink1, weight: "600" });
+    const top = y + 16, h = 4;
+    for (let t = 0; t < feats.length; t++) for (let j = 0; j < Fd; j++) rect(ctx, X0 + t * colW, top + j * h, colW + 0.3, h, diverge(feats[t][j], amax));
+    if (reduce === "last") { rect(ctx, X0 + 199 * colW - 1, top - 1, 4, 8 * h + 2, null, T.highlight, 1.5); rect(ctx, X0 - 1, top + 8 * h - 1, 4, 8 * h + 2, null, T.highlight, 1.5); }
+    else for (let j = 0; j < Fd; j++) rect(ctx, X0 + model.clf.arg[j] * colW - 0.5, top + j * h, 2, h, T.highlight);
+    // running prediction
+    const pts = []; for (let t = 9; t < M.LEN; t += 10) { const px = M.convFeatures(cnn, { tok: d.x.tok.slice(0, t + 1), L: t + 1, len: t + 1 }); pts.push({ t, p: E.predict(model, px)[1] }); }
+    const rt = top + Fd * h + 8, rh = 34;
+    line(ctx, X0, rt + rh / 2 + 0.5, X0 + M.LEN * colW, rt + rh / 2 + 0.5, T.grid, 1, [2, 3]);
+    polyline(ctx, pts.map((q) => X0 + q.t * colW), pts.map((q) => rt + rh * (1 - q.p)), T.empirical, 1.4);
+    rect(ctx, X0 + m0 * colW, rt, 7 * colW, rh, wash(T.reference, 0.18));
+    label(ctx, "if the sequence ended here", X0, rt + rh + 10, { size: 8.5, colour: T.ink3 });
+    y = rt + rh + 14;
+  }
+  label(ctx, "the lesson's summary is the final states (last); on a localized event it stays at chance and max finds it — M3b's row", X0, y + 8, { size: 9 });
+  document.getElementById("recCombo").textContent = `Recommended: the page stands on page 1's trained first layer as 73's did; Reduce last · max as a data control with the lesson's last as the default, so the first result is the lesson's own and the reader sees why the CNN's global max was the right choice for a motif; the running prediction jumps at the motif under max and never moves under last.`;
+}
+
+/* ================================================================== §5 */
+{
+  const box = cand("occRow", "Page 4 · Occlusion — k = 8, stride 4, baseline PAD, the trained CNN", "the bar plot by position (cell 176) and the heat behind the letters (cell 178, wrapped at 40)");
+  const ctx = canvasIn(box, W, 420);
+  const d = ex1;
+  const pr = (x) => E.predict(cnn, x)[1];
+  const o = M.occlusionWalk(pr, d.x, { k: 8, stride: 4, baseline: "pad" });
+  const best = o.windows.reduce((a, b) => (b.a > a.a ? b : a));
+  const amax = Math.max(...o.attr);
+  label(ctx, `x · f(x) = ${f2(o.base)} · the window at ${best.start}: f(x_occluded) = ${f2(best.p)} · a = ${f2(best.a)}`, X0, 14, { colour: T.ink1, weight: "600" });
+  const at = letterRows(ctx, d.x.tok, M.LEN, X0, 34, { heat: (t) => o.attr[t] / amax, mark: (t) => d.motifAt.some((m) => t >= m && t < m + 7) });
+  { const a = at(best.start), b = at(best.start + 7); if (a.y === b.y) rect(ctx, a.x - 2, a.y - 11, 8 * 12 + 2, 15, null, T.ink1, 1.2); }
+  label(ctx, "heat: |Δp| when the 8-token window covering the letter is set to PAD · box: the top window · outline: the planted motif", X0, 34 + 5 * 14 + 4, { size: 8.5, colour: T.ink3 });
+  // bar plot
+  const bt = 34 + 5 * 14 + 20, bh = 60;
+  label(ctx, "Importance (Occlusion) · by position, padding stripped", X0, bt - 2, { size: 10, colour: T.ink1, weight: "600" });
+  const bw = (X1 - X0) / M.LEN;
+  for (let t = 0; t < M.LEN; t++) if (o.attr[t] > 0) rect(ctx, X0 + t * bw, bt + 4 + bh * (1 - o.attr[t] / amax), Math.max(1, bw), bh * o.attr[t] / amax, HEAT);
+  line(ctx, X0, bt + 4 + bh + 0.5, X1, bt + 4 + bh + 0.5, T.axis);
+  rect(ctx, X0 + d.motifAt[0] * bw, bt + 2, 7 * bw, bh + 4, null, T.reference, 1);
+  label(ctx, `half-max width ${M.halfMaxWidth(o.attr)} bases (the motif is 7) · peak ${f2(amax)}`, X1, bt - 2, { size: 9, align: "right", colour: T.ink3 });
+  // k = 4 and 12
+  let y = bt + bh + 24;
+  for (const k of [4, 12]) {
+    const o2 = M.occlusionWalk(pr, d.x, { k, stride: k >> 1, baseline: "pad" });
+    const m2 = Math.max(...o2.attr);
+    label(ctx, `k = ${k}, stride ${k >> 1} · half-max width ${M.halfMaxWidth(o2.attr)} bases`, X0, y + 8, { size: 9.5, colour: T.ink1 });
+    for (let t = 0; t < M.LEN; t++) if (o2.attr[t] > 0) rect(ctx, X0 + t * bw, y + 12 + 26 * (1 - o2.attr[t] / m2), Math.max(1, bw), 26 * o2.attr[t] / m2, HEAT);
+    line(ctx, X0, y + 38.5, X1, y + 38.5, T.axis);
+    rect(ctx, X0 + d.motifAt[0] * bw, y + 10, 7 * bw, 30, null, T.reference, 1);
+    y += 46;
+  }
+  // through the combo (max)
+  {
+    const prc = (x) => E.predict(combos.max.model, M.convFeatures(cnn, x))[1];
+    const o3 = M.occlusionWalk(prc, d.x, { k: 8, stride: 4, baseline: "pad" });
+    const m3 = Math.max(...o3.attr);
+    label(ctx, `through the CNN + LSTM (max) · k = 8 · half-max width ${M.halfMaxWidth(o3.attr)} bases · peak ${f2(m3)}`, X0, y + 8, { size: 9.5, colour: T.ink1 });
+    for (let t = 0; t < M.LEN; t++) if (o3.attr[t] > 0) rect(ctx, X0 + t * bw, y + 12 + 26 * (1 - o3.attr[t] / m3), Math.max(1, bw), 26 * o3.attr[t] / m3, HEAT);
+    line(ctx, X0, y + 38.5, X1, y + 38.5, T.axis);
+    rect(ctx, X0 + d.motifAt[0] * bw, y + 10, 7 * bw, 30, null, T.reference, 1);
+    y += 46;
+  }
+  label(ctx, "Step moves the window one stride; Play walks it; the heat fills as the windows are asked", X0, y + 6, { size: 9, colour: T.ink3 });
+
+  const box2 = cand("occRow", "Page 4 · two copies of the motif — the failure to include", "copies = 2 · the CNN trained on one copy · occluding one copy against both", 360);
+  const c2 = canvasIn(box2, 360, 420);
+  const d2 = ex2;
+  const p2 = pr(d2.x);
+  label(c2, `x · f(x) = ${f2(p2)} · motif at ${d2.motifAt.join(" and ")}`, 14, 14, { colour: T.ink1, weight: "600" });
+  const o4 = M.occlusionWalk(pr, d2.x, { k: 8, stride: 4, baseline: "pad" });
+  const m4 = Math.max(...o4.attr);
+  letterRows(c2, d2.x.tok, M.LEN, 14, 34, { pitch: 8.3, perRow: 40, rowH: 14, heat: (t) => o4.attr[t] / m4, mark: (t) => d2.motifAt.some((m) => t >= m && t < m + 7) });
+  const wipe = (ps) => { const tok = d2.x.tok.slice(); for (const s of ps) for (let t = s; t < s + 7; t++) tok[t] = M.PAD; return pr({ tok, L: d2.x.L, len: d2.x.len }); };
+  const one = p2 - wipe([d2.motifAt[0]]), both = p2 - wipe(d2.motifAt);
+  const yb = 34 + 5 * 14 + 16;
+  const bw2 = (346 - 14) / M.LEN;
+  for (let t = 0; t < M.LEN; t++) if (o4.attr[t] > 0) rect(c2, 14 + t * bw2, yb + 40 * (1 - o4.attr[t] / m4), Math.max(1, bw2), 40 * o4.attr[t] / m4, HEAT);
+  line(c2, 14, yb + 40.5, 346, yb + 40.5, T.axis);
+  for (const m of d2.motifAt) rect(c2, 14 + m * bw2, yb - 2, 7 * bw2, 44, null, T.reference, 1);
+  label(c2, `occlude the first copy: p drops ${f2(one)}`, 14, yb + 62, { size: 10, mono: true });
+  label(c2, `occlude both: p drops ${f2(both)}`, 14, yb + 76, { size: 10, mono: true });
+  label(c2, "each copy alone reads as unimportant: occlusion scores a", 14, yb + 98, { size: 9 });
+  label(c2, "window against a model that still has the other copy", 14, yb + 110, { size: 9 });
+  label(c2, `peak here ${f2(m4)} against ${f2(amax)} with one copy`, 14, yb + 128, { size: 9, colour: T.ink3 });
+  document.getElementById("recOcc").textContent = `Recommended: the lesson's k = 8 / 4 as the default with 4 and 12 in the control (the notebook's "try 4, 8, 12"); PAD the only baseline, the caption naming the notebook's UNK alternative and that the two maps correlate 0.96; copies as the failure case with its two numbers read out; Model 1D-CNN · LSTM · CNN + LSTM as 73, since through the CNN + LSTM the map is narrower than through the CNN.`;
+}
+
+/* ================================================================== §6 */
+{
+  const rails = document.getElementById("rails");
+  const mk = (title, secs) => {
+    const r = el("div", "rail"); r.appendChild(el("h3", null, title));
+    for (const s of secs) { r.appendChild(el("div", "sec", s.name)); for (const c of s.items) { if (c.btn) r.appendChild(el("div", "btn", c.btn)); else { const d = el("div", "ctl"); d.appendChild(el("span", null, c.label)); d.appendChild(el("span", null, c.val)); r.appendChild(d); } } }
+    rails.appendChild(r);
+  };
+  const stage = { name: "The sequence", items: [{ label: "Task", val: "motif · composition" }, { label: "Copies of the motif", val: "1 · 2 · 3" }, { label: "Seed", val: "1–200" }] };
+  const page = { name: "Page", items: [{ label: "1D-CNN · LSTM · CNN + LSTM · Occlusion", val: "page" }] };
+  mk("Page 1 · 1D-CNN", [page, stage,
+    { name: "The first layer", items: [{ label: "Kernel size k", val: "3 · 5 · 7 · 11" }, { label: "Stride", val: "1 · 2" }] },
+    { name: "The head", items: [{ label: "Pool", val: "max · avg" }] },
+    { name: "Drive", items: [{ btn: "Slide the kernel" }, { btn: "Train" }, { btn: "Reset" }] },
+    { name: "Look at", items: [{ label: "Kernel", val: "1–16 (click a matrix)" }, { label: "Window at base", val: "click the rows" }] },
+  ]);
+  mk("Page 2 · LSTM", [page, stage,
+    { name: "The recurrence", items: [{ label: "Direction", val: "uni · bi" }, { label: "Pack", val: "on · off" }] },
+    { name: "Drive", items: [{ btn: "Run the recurrence" }, { btn: "Predict along the sequence" }, { btn: "Reset" }] },
+  ]);
+  mk("Page 3 · CNN + LSTM", [page, stage,
+    { name: "The recurrence", items: [{ label: "Reduce", val: "last · max" }] },
+    { name: "Drive", items: [{ btn: "Extract the maps" }, { btn: "Run the recurrence" }, { btn: "Predict along the sequence" }, { btn: "Reset" }] },
+  ]);
+  mk("Page 4 · Occlusion", [page, stage,
+    { name: "The model", items: [{ label: "Model", val: "1D-CNN · LSTM · CNN + LSTM" }] },
+    { name: "The window", items: [{ label: "Window k", val: "4 · 8 · 12" }] },
+    { name: "Walk", items: [{ btn: "Next window" }, { btn: "Play" }, { btn: "Reset" }] },
+    { name: "Look at", items: [{ label: "Heat", val: "on · off" }] },
+  ]);
+}
+</script>
+</body>
+</html>

@@ -12,7 +12,7 @@ answer can be checked against what was assumed.
 
 | looking for | go to |
 |---|---|
-| what to build next | **The sequence arc (PHM5005 07-1 to 07-3), PROPOSED, MEASURED AND PICKED 2026-09-20: four widgets by data type; 73 `signal-cnn-lstm` SHIPPED AND PUSHED the same day (`fbe62c2`); NEXT 72 `signal-windows`, then 75 `sequence-models`, then 74 `sequence-encoding`** — § *The sequence arc*, under PHM5005. Slot 71 `somatic-interactions` CUT 2026-09-20 and slot 52 `training-loop` DISCARDED 2026-09-13, both his call. The cancer mutation arc (67, 69, 70) is complete; the image arc has 61, 64, 65 and 62 shipped, 63 `pretrained` on KIV (his call 2026-09-15), 66 folded into 65; the GWAS and PRS arc (56, 57, 59, 60) and the high-throughput arc are complete |
+| what to build next | **The sequence arc (PHM5005 07-1 to 07-3), PROPOSED, MEASURED AND PICKED 2026-09-20: four widgets by data type; 73 `signal-cnn-lstm` SHIPPED AND PUSHED the same day (`fbe62c2`); 75 `sequence-models` MEASURED AND MOCKED the same afternoon on his call, ahead of 72 — its picks are open under § *75*; then 72 `signal-windows`, then 74 `sequence-encoding`** — § *The sequence arc*, under PHM5005. Slot 71 `somatic-interactions` CUT 2026-09-20 and slot 52 `training-loop` DISCARDED 2026-09-13, both his call. The cancer mutation arc (67, 69, 70) is complete; the image arc has 61, 64, 65 and 62 shipped, 63 `pretrained` on KIV (his call 2026-09-15), 66 folded into 65; the GWAS and PRS arc (56, 57, 59, 60) and the high-throughput arc are complete |
 | how a widget got its shape | § *Widget N*, in order |
 | the four-method reconnaissance | § *Widget 19*, under the PCA sections |
 | the arcs, and what is deliberately not a widget | the arc sections below |
@@ -18983,10 +18983,10 @@ page. The arc is therefore **four widgets, renumbered in the notebooks' order**
 
 | # | slug | title (provisional) | host | pages | order |
 |---|---|---|---|---|---|
-| 72 | `signal-windows` | Deep Learning - Signal Windows | 07-2 cells 1–21 | Window · Split · Normalize (§ *Slot 75* above) | second |
+| 72 | `signal-windows` | Deep Learning - Signal Windows | 07-2 cells 1–21 | Window · Split · Normalize (§ *Slot 75* above) | second, then **third** on his call of 2026-09-20 afternoon |
 | 73 | `signal-cnn-lstm` (his pick; planned as `signal-models`) — **SHIPPED AND PUSHED 2026-09-20** (`fbe62c2`) | Deep Learning - Signals: CNN and LSTM | 07-2 cells 22–99 | 1D-CNN (k in ms, the stack, 69 ms per output, the head) · LSTM (permute, memory across beats, the three reductions as a display, the CNN + LSTM strip) · Occlusion (k = 32 / 16, baseline 0, the resolution, two copies) — §§ *Slot 73*, *74*, *76* above, the signal halves | **first; the engine is born here** |
 | 74 | `sequence-encoding` | Deep Learning - Sequence Encoding | 07-3 cells 1–25 | Tokenize · Pad · Encode (§ *Slot 72* above) | fourth |
-| 75 | `sequence-models` | Deep Learning - Sequence Models | 07-3 cells 26–178 | 1D-CNN (the kernel as a PWM, trained kernels spell the motif, global max over PAD) · LSTM (packing, the final states, the strip) · Occlusion (k = 8 / 4, baseline PAD, the heat behind the letters) — the sequence halves of the same sections | third |
+| 75 | `sequence-models` (provisional; his to name at the mock) — **MEASURED AND MOCKED 2026-09-20** | Deep Learning - Sequences: CNN and LSTM (provisional) | 07-3 cells 26–178 | 1D-CNN (the kernel as a PWM, trained kernels spell the motif at their alignment, global max over PAD) · LSTM (packing, the final states; on composition, the task the recurrence can read) · CNN + LSTM (page 1's maps under the recurrence, last against max) · Occlusion (k = 4 / 8 / 12, baseline PAD, the heat behind the letters) — the sequence halves of the same sections | third, then **second** on his call of 2026-09-20 afternoon |
 
 Slugs and titles are confirmed at each widget's own mock, since a slug is a
 public URL. The LSTM is named on both models widgets and there is no cell
@@ -19171,11 +19171,147 @@ cut) and `fbe62c2` (the widget, the manifest entry, the thirty states, the
 shooter). The first widget of the arc, built from ask to ship in one day
 with the plan.
 
-**NEXT in the arc:** 72 `signal-windows` (07-2 cells 1–21: Window · Split ·
-Normalize; § *Slot 75* above holds its hosts and the 79.5% against 33.3%
-measurement), measure → mock → his picks → draft, from
-`_lab/signal-cnn-lstm-mock.html`'s shell; it trains nothing, and its Split
-page can score 73's trained net through `widgets/signal-cnn-lstm/engine.js`.
+**NEXT in the arc, as recorded on 2026-09-20 morning:** 72 `signal-windows`
+(07-2 cells 1–21: Window · Split · Normalize; § *Slot 75* above holds its
+hosts and the 79.5% against 33.3% measurement), measure → mock → his picks →
+draft, from `_lab/signal-cnn-lstm-mock.html`'s shell; it trains nothing, and
+its Split page can score 73's trained net through
+`widgets/signal-cnn-lstm/engine.js`. **Overtaken the same day:** asked which
+came next, he picked 75 `sequence-models` over 72 ("I think it's supposed to
+be sequences after signals"), so the order is now 73 → 75 → 72 → 74, and 72
+follows 75.
+
+#### 75 `sequence-models` — MEASURED AND MOCKED 2026-09-20, seven budget sweeps
+
+**His pick, 2026-09-20 afternoon:** 75 before 72. The host is 07-3 cells
+26–178, read in full: cell 28's `CNN1D` as instantiated (embedding, conv k7
+s2 p3, ReLU, conv k5 s2 p2, ReLU, `AdaptiveMaxPool1d`, linear — the
+prototype of cell 26 has a `MaxPool1d(2)` the run does not), cell 47's
+`BiLSTM` with `pack_padded_sequence` and the final forward and backward
+states concatenated, cell 67's `CNN_LSTM` (one convolution with no stride,
+then the same recurrence), the protein section (cells 85–165: influenza HA,
+human against animal host, a 22-token vocabulary), and cells 166–178's
+`Occlusion` at k = 8, stride 4, baseline `PAD_IDX`, the bar plot and the
+heat behind the letters wrapped at 40. Two things in the notebook worth
+telling him: `NUM_TOKENS = len(dna_vocab)` is 5 while `Tokenize(unk_idx=5)`
+would index past the embedding table — ACGT-only data never triggers it; and
+the 1D-CNN prose (cell 26) has the pooling layer its code (cell 28) drops.
+
+**The engine, extended.** `widgets/signal-cnn-lstm/engine.js` gains
+`Embedding(V, E, padding_idx, rows?)` (rows N(0, 1) as torch initialises, the
+PAD row zero and never updated; `rows` fixes a one-hot table), an input
+gradient out of `SeqClassifier.backward` so a front end can train under the
+recurrence, a `skip` mask in `gradCheck` for the PAD row, and `train` taking
+a function of the epoch as its data source (a fresh draw each epoch). Widget
+73's measure still passes after each (gradient checks 5e-9 to 9e-8); its
+thirty fingerprint states are to be re-run at the draft, since the file is
+shared. `widgets/sequence-models/model.js` is the stage and the nets:
+`sequence` (200 random bases, `copies` of TGACTCA planted, padded to the
+lesson's 250; or GC-rich against GC-poor), `buildCnn`, `buildSeqModel`
+(packing as a slice to the real length), `buildFeatureLstm` and
+`convFeatures` (73's frozen-convolution design), `pwm` and `spellAlign` (a
+kernel read as a [4, k] matrix and spelled by column argmax at its best
+alignment against the motif), `occlusionWalk` on tokens, `prefixCurve`,
+`padDrift`, and `trainRestarts`.
+
+**Measured** (`_lab/sequence-models-measure.mjs`, 4 min, and the seven sweeps
+`_lab/sequence-models-sweep.mjs` to `-sweep7.mjs`, 2026-09-20; the header of
+each carries what it found). **The first run trained nothing:** the lesson's
+CNN at half width with a learned table at stride 2, 200 × 20 at Adam 1e-3,
+sat at chance on the planted 7-mer, and so did every BiLSTM. What the sweeps
+then established, each over six to ten seeds:
+
+- **The CNN on the motif.** Stride 1 trains and the lesson's stride 2 does
+  not at the same budget with one initialisation (52–77%), and the "a motif
+  at an odd offset is read shifted" explanation did NOT hold as a mean over
+  six seeds (even 59% against odd 73%). **Under restarts it holds per seed:**
+  a stride-2 net reads the motif at ONE parity — seed 1 even 100%, odd 4%;
+  seed 2 even 0%, odd 100%; seed 3 both — while stride 1 reads both on every
+  seed and composition is 100% at either stride. A readout by the motif's
+  offset parity is the picture, so stride 1 · 2 is a control with a losing
+  arm after all. One-hot input trains faster than a learned table (E = 4
+  unstable, E = 8 at 3.4 s under restarts, 99 / 96 / 99). **With one initialisation no width, rate, batch, epoch count or
+  fresh-data regime made every seed find the motif** — 8/16 channels loses
+  one seed in two, 16/16 one in four to eight, 16/32 one in seven, at 1.7 /
+  3.0 / 4.8 s — because the initialisation decides it: the failed seeds'
+  best kernel matches 2–3 columns of 7 and the global max never hands one
+  the gradient. **Three random restarts probed six epochs on fresh sequences,
+  the best finished to twenty** (`trainRestarts`): at 8/16 ten seeds of ten at
+  98–99% in 2.3 s, the winner's probe loss 0.01–0.11 against 0.4–0.7 for
+  the losers. That is the Train press. A converged net's best kernel spells
+  the motif at 5–7 of 7 columns at some alignment (a 7-wide kernel slid at
+  stride 1 may lock onto CTCA… from its first column), which is why the
+  reading is alignment-aware.
+- **Pool.** Max (the lesson's) against average on the motif: max wins
+  (average 50–72%); on composition both 100%. A control with a losing arm.
+  **Bias** on or off moves nothing (the global max never sits on a PAD-only
+  position, trained): no control.
+- **The recurrence.** On the motif, chance at every budget to 18 s (H = 16,
+  400 × 20: train loss 0.18, test 46% — it memorises). On **composition**
+  (G or C with probability 0.7 against 0.3; at 0.6 / 0.4 the last-state
+  reading converges on half the seeds only): one direction, packed, last
+  states, fresh 150 an epoch × 20 at 1e-2 — min 97% over eight seeds, 1.2 s;
+  **unpacked, 50% on every seed** (the state after fifty PAD steps has moved
+  0.3–1.0 of its norm and carries nothing); bidirectional packed min 83%
+  (2.6 s), bidirectional UNPACKED min 99% — the reverse pass reads the PAD
+  first and its final state is intact, which is why the lesson's design
+  hides the failure. Max as the reduction rescues the unpacked arm (99%), so
+  the LSTM page offers no Reduce. The running prediction on a GC-rich
+  sequence rises to 0.99 within the first 20–40 bases.
+- **CNN + LSTM** on page 1's trained first layer, frozen, packed, fresh 200 ×
+  8 (1.8 s): on the motif the lesson's final states stay at chance (39–56%)
+  and max reaches 99% on every seed — M3b's row, a localized event needs
+  max; on composition both 97–100%. Cell 67's shape end to end on
+  composition, 87–100% in 2.2 s, for the record.
+- **Occlusion** on a converged CNN, 40 sequences: at k = 4 · 8 · 12 (stride
+  k / 2) the top window overlaps the planted motif in 100% each and the
+  map's half-max width is 8 · 11.5 · 16 bases against the motif's 7 — the
+  window is the resolution. PAD against N (a quarter of each base) as the
+  baseline correlate 0.98: no baseline control, a caption names the
+  notebook's UNK. Two copies of the motif: occluding one drops p by 0.013,
+  both by 0.99 — the failure to include, sharper than 73's. Through the
+  CNN + LSTM (max) the top window is on the motif in 100%. On composition the
+  map is flat (|Δp| 0.000 at every window): nothing local to point at.
+- **Arithmetic.** At stride 1: 250 → 250 → 125, one Conv2 output reads 11
+  bases, 22 of the 125 max positions read PAD only; at the lesson's stride 2:
+  125 → 63, 15 bases, 11 PAD-only. The lesson's CNN has 10,226 parameters and
+  its BiLSTM 199,554.
+
+**Mocked** (`_lab/sequence-models-mock.html`, from 73's shell; trains five
+models on load in about 9 s): the stage's four sequences as letter rows with
+the motif outlined; page 1 with the one-hot rows, the hand-made kernel of
+07-1 cell 2 as a [4, 7] matrix and its score at every position, then the
+trained kernels as matrices spelled with their alignment, the chain and the
+global max's PAD-only positions; page 2 with the packed and unpacked blocks
+side by side, the "last" marker in each, the state's move over the PAD and
+the running prediction; page 3 with page 1's maps, the two reductions'
+blocks and their running predictions; page 4 with the heat behind the letters,
+the bar plot at k = 8 / 4 / 12, the map through the CNN + LSTM, and the
+two-copy panel; the four rails.
+
+**The open calls, for Kenneth, with the mock open:**
+
+1. **Task.** A data control motif · composition, default motif (recommended);
+   motif only; composition only.
+2. **The encoding.** One-hot, four rows (recommended); one-hot · learned as a
+   data control.
+3. **How Train trains.** Half width, three restarts (recommended); one
+   initialisation at 16/16; weights trained ahead as 65.
+4. **Stride.** 1 · 2 as a data control, default 1, with a readout of the
+   held-out score by the motif's offset parity (recommended, on the final
+   measure's per-seed finding); 1 fixed with a caption naming the lesson's 2.
+5. **Kernel size.** 3 · 5 · 7 · 11 in bases (recommended); 7 fixed.
+6. **Direction and pack.** Both data controls, default uni and on
+   (recommended); bi fixed, pack the only control.
+7. **Reduce on the LSTM page.** None, the lesson's final states (recommended);
+   last · max.
+8. **Reduce on the CNN + LSTM page.** last · max, default last (recommended);
+   max only.
+9. **Copies.** A shared data control 1 · 2 · 3 (recommended); Occlusion only.
+10. **Which model occlusion asks.** 1D-CNN · LSTM · CNN + LSTM as 73
+    (recommended); the CNN only.
+11. **Slug and title.** `sequence-models` · "Deep Learning - Sequences: CNN
+    and LSTM"; `sequence-cnn-lstm`; his.
 
 ---
 

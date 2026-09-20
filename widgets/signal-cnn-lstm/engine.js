@@ -219,6 +219,44 @@ export function Linear(rng, nin, nout) {
   return layer;
 }
 
+/**
+ * `nn.Embedding(V, E, padding_idx)` for slot 75's token stages (07-3 cells
+ * 26, 47, 66): rows N(0, 1) as torch initialises them, the PAD row zero and
+ * never updated (no gradient reaches it, torch's `padding_idx`). Reads
+ * `x.tok`, an integer array of `x.L` ids, and returns the channel-major
+ * `{ d: [E, L], L }` a Conv1d takes — the lesson's `emb(tokens).transpose(1, 2)`
+ * in one step, so a token net is a plain `Sequential` with this layer first.
+ * `rows`, if given, fixes the table (a one-hot code, say) and the layer holds
+ * no parameters. `W.skip` marks the PAD row for `gradCheck`, whose numeric
+ * gradient there is not zero while the analytic one is masked, as torch's is.
+ */
+export function Embedding(rng, V, E, padIdx = 0, rows = null) {
+  const W = { v: F(V * E), g: F(V * E), m: F(V * E), s: F(V * E) };
+  if (rows) for (let v = 0; v < V; v++) for (let e = 0; e < E; e++) W.v[v * E + e] = rows[v][e];
+  else for (let i = 0; i < V * E; i++) W.v[i] = rng.normal(0, 1);
+  if (padIdx != null) for (let e = 0; e < E; e++) W.v[padIdx * E + e] = 0;
+  W.skip = (i) => Math.floor(i / E) === padIdx;
+  const layer = {
+    W, V, E, padIdx, params: rows ? [] : [W],
+    forward(x) {
+      const L = x.L, y = F(E * L);
+      for (let t = 0; t < L; t++) { const r = x.tok[t] * E; for (let e = 0; e < E; e++) y[e * L + t] = W.v[r + e]; }
+      layer.x = x;
+      return { d: y, L };
+    },
+    backward(dy) {
+      const x = layer.x, L = x.L;
+      if (rows) return null;
+      for (let t = 0; t < L; t++) {
+        const id = x.tok[t]; if (id === padIdx) continue;
+        const r = id * E; for (let e = 0; e < E; e++) W.g[r + e] += dy.d[e * L + t];
+      }
+      return null; // tokens carry no gradient
+    },
+  };
+  return layer;
+}
+
 /** Softmax cross-entropy on logits: the loss, its gradient on the logits, and
     the probabilities. */
 export function softmaxCE(logits, y) {
@@ -421,8 +459,14 @@ export function SeqClassifier(rng, { cellKind = "lstm", D, H, bidirectional = tr
       } else {
         for (let j = 0; j < Fd; j++) put(arg[j], j, dz[j]);
       }
-      fwd.backward(dHf);
-      if (bwd) bwd.backward(dHb);
+      /* the gradient on the inputs, summed over the two directions, so a front
+         end (75's embedding and convolution) can train under the recurrence;
+         the reverse cell read X reversed, so its dX[i] belongs to X[T−1−i] */
+      const dXf = fwd.backward(dHf);
+      if (!bwd) return dXf;
+      const dXb = bwd.backward(dHb);
+      for (let t = 0; t < T; t++) { const a = dXf[t], b = dXb[T - 1 - t]; for (let i = 0; i < a.length; i++) a[i] += b[i]; }
+      return dXf;
     },
   };
   return model;
@@ -434,13 +478,17 @@ export function SeqClassifier(rng, { cellKind = "lstm", D, H, bidirectional = tr
  * Mini-batch training with Adam. `data` is `[{ x, y }]`; `net.forward(x)`
  * returns logits (a Float64Array, or `{ d }`); `net.backward(g)` takes the
  * gradient on the logits in the same form the forward returned. `onEpoch`
- * gets `(epoch, meanLoss)` so a widget can keep the curve.
+ * gets `(epoch, meanLoss)` so a widget can keep the curve. `data` may instead
+ * be a function of the epoch returning that epoch's `[{ x, y }]` — a fresh
+ * draw each time, for a synthetic stage where a fixed set of a few hundred
+ * random sequences is memorised before its one planted motif is found (75).
  */
-export function train(rng, net, data, { epochs, batch = 16, lr = 1e-3, onEpoch = null }) {
+export function train(rng, net, source, { epochs, batch = 16, lr = 1e-3, onEpoch = null }) {
   let step = 0;
-  const idx = data.map((_, i) => i);
   const wraps = (out) => out && out.d !== undefined;
   for (let e = 0; e < epochs; e++) {
+    const data = typeof source === "function" ? source(e) : source;
+    const idx = data.map((_, i) => i);
     for (let i = idx.length - 1; i > 0; i--) { const j = Math.floor(rng.next() * (i + 1)); [idx[i], idx[j]] = [idx[j], idx[i]]; }
     let lossSum = 0;
     for (let b0 = 0; b0 < idx.length; b0 += batch) {
@@ -513,6 +561,7 @@ export function gradCheck(params, lossFn, rng, { perParam = 4, eps = 1e-5 } = {}
     const idx = new Set();
     while (idx.size < Math.min(perParam, p.v.length)) idx.add(Math.floor(rng.next() * p.v.length));
     for (const i of idx) {
+      if (p.skip && p.skip(i)) continue; // a masked row (Embedding's PAD)
       const old = p.v[i];
       p.v[i] = old + eps; const lp = lossFn(false);
       p.v[i] = old - eps; const lm = lossFn(false);
