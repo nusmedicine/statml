@@ -1,0 +1,549 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · the sequence arc — mock</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1600px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 104ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); min-height: 26px; white-space: pre-line; }
+  .cand .under { font-size: 11px; font-family: var(--font-mono); color: var(--ink-2); margin: var(--sp-1) 0 0; white-space: pre-line; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 104ch; }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+       border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 104ch; }
+  .q b { display: block; margin-bottom: 2px; }
+  table { border-collapse: collapse; font-size: var(--fs-sm); margin: var(--sp-2) 0; max-width: 130ch; }
+  th, td { border: 1px solid var(--grid); padding: 4px 10px; text-align: left; vertical-align: top; }
+  th { color: var(--ink-2); font-weight: 600; }
+  #findings { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--ink-2); white-space: pre-line;
+              padding: var(--sp-3); background: var(--surface-2); border: 1px solid var(--grid); max-width: 104ch; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>The sequence arc &middot; PHM5005 07-1 to 07-3 &middot; mock</h1>
+  <p class="note">
+    Five candidate slots, one panel each, drawn at the widget's 550px. <b>Every number drawn here is computed on this page</b>
+    from the same arithmetic as <code>_lab/dl-seq-measure.mjs</code> (a tanh RNN and an LSTM at torch's initialisation, a
+    position-weight kernel over one-hot DNA, occlusion by hand) except where a caption says it is the script's trained
+    figure. The panels are the LEADING figure of each slot, not its pages; the mock draws filled states so they can be
+    judged, and a widget opens empty. On-canvas strings are candidates for the copy audit, not copy. Each section ends with
+    a recommendation; the grey-ruled boxes at the end are the six calls only you can answer.
+  </p>
+
+  <h2>0 &middot; What the measurement found</h2>
+  <div id="findings"></div>
+
+  <h2>1 &middot; Slot 73 <code>sequence-cnn</code> &mdash; 1D Convolutional Neural Networks (07-1 &sect;1, 07-2 cell 22, 07-3 cell 26)</h2>
+  <p class="note">
+    Left, the <i>Signal</i> page's figure: a 2 s trace at 360 Hz, the kernel's window, the feature map under it, and one
+    output of the lesson's stacked net drawn back onto the trace &mdash; 25 samples, 69 ms, most of one QRS. Right, the
+    <i>Sequence</i> page: forty bases one-hot as four rows, a [4, 7] kernel that is +1 on one base per column, and the
+    score track, which is the PWM score at every position; the planted motif is where it peaks. The strip above it is where
+    slot 72 would fold in.
+  </p>
+  <div class="row" id="cnnRow"></div>
+  <p class="rec">Recommended first: it births the conv1d engine 76 imports, and its Sequence page makes the arc's strongest
+    claim with a number (a random kernel finds the motif 0% of the time; the tuned one 99%; two trained kernels spell it 7/7).</p>
+
+  <h2>2 &middot; Slot 74 <code>sequence-rnn</code> &mdash; Recurrent Neural Networks (07-1 &sect;2, 07-2 cell 44, 07-3 cell 47)</h2>
+  <p class="note">
+    Left, <i>Memory</i>: your figure at n = 12, and under it how much of h<sub>n</sub> moves when one x<sub>t</sub> is
+    perturbed, at initialisation &mdash; computed here on an LSTM with H = 32. Middle, <i>Reduce</i>: the outputs as an
+    [L, 2H] block and the three ways of collapsing it; the numbers under it are the script's, and only the event row
+    separates them. Right, <i>Padding</i>: a 200-token sequence padded to 250, the state's norm along it, and where
+    "the last state" is with and without <code>pack_padded_sequence</code>.
+  </p>
+  <div class="row" id="rnnRow"></div>
+  <p class="rec">Two claims a draft would have made are not drawn: "the LSTM remembers further" (a trained tanh RNN matched it
+    at every length) and "each reduction has its task" (only max won a row). So no cell control; Reduce shows what each
+    reduction computes, on the event task, where the choice moves the answer 100% against 75% against 50%.</p>
+
+  <h2>3 &middot; Slot 76 <code>occlusion</code> &mdash; Explainability by Occlusion (07-1 cell 5, 07-2 cells 86&ndash;99, 07-3 cells 166&ndash;178)</h2>
+  <p class="note">
+    Left, <i>Signal</i>: one window set to the baseline as your figure draws it, the two numbers, and the attribution bars
+    at the lesson's k = 32, stride 16 over a k = 8 map of the same signal &mdash; the window is the resolution. The model
+    here is a fixed template detector so the page can compute it; the widget trains the lesson's net (0.7 s). Right,
+    <i>Sequence</i>: the letters with the heat behind them, PAD as the baseline, as cell 178 prints them.
+  </p>
+  <div class="row" id="occRow"></div>
+  <p class="rec">Second to build: the smallest use of 73's engine, as 64 was of its own. The failure to include is two
+    copies of the cue, each read as unimportant (the script: 0.005 against 0.020 for both).</p>
+
+  <h2>4 &middot; Slot 75 <code>signal-windows</code> &mdash; Segmentation, Labels and the Split (07-2 cells 4&ndash;5)</h2>
+  <p class="note">
+    Left, <i>Window</i>: your figure &mdash; one recording, overlapping windows, a label rule. Right, <i>Split</i>: the same
+    windows from six subjects dealt two ways; the accuracies are the script's (eight subjects, 1-NN on the spectrum).
+  </p>
+  <div class="row" id="winRow"></div>
+  <p class="rec">The strongest number in the arc and the thinnest deep learning; the second to cut. If built, its Split page
+    can score 73's trained net instead of a nearest neighbour.</p>
+
+  <h2>5 &middot; Slot 72 <code>sequence-encoding</code> &mdash; Encoding Symbolic Sequences (07-1 cell 3, 07-3 cells 19&ndash;25)</h2>
+  <p class="note">
+    The whole slot as one strip: string &rarr; tokens &rarr; padded IDs &rarr; one-hot [4, L] or embedding [L, E] &rarr; the
+    transpose 07-3 cell 26 prints. This is what would sit at the top of 73's Sequence page if it folds in.
+  </p>
+  <div class="row" id="encRow"></div>
+  <p class="rec">The first to cut: 50 already reads one row of the embedding table and 53 owns the transpose; what is new
+    is a strip's worth and reads best beside the kernel that consumes it.</p>
+
+  <h2>6 &middot; Six calls</h2>
+  <p class="q"><b>6.1 &middot; How many</b>
+    A &middot; five widgets, 72 to 76 &nbsp;|&nbsp; <b>B &middot; four: 73, 76, 74, 75, with 72 folded into 73 as the strip in &sect;5 (recommended)</b> &nbsp;|&nbsp;
+    C &middot; four: 73, 76, 74, 72, with 75 cut &nbsp;|&nbsp; D &middot; three: 73, 74, 76</p>
+  <p class="q"><b>6.2 &middot; Build order</b>
+    <b>A &middot; the engine's: 73 &rarr; 76 &rarr; 74 &rarr; 75 (recommended)</b> &nbsp;|&nbsp; B &middot; the notebooks': 75 &rarr; 73 &rarr; 74 &rarr; 76</p>
+  <p class="q"><b>6.3 &middot; 74's Reduce control, given that only max won a row</b>
+    <b>A &middot; a display control naming last &middot; mean &middot; max, shown on the event task where it moves the answer (recommended)</b> &nbsp;|&nbsp;
+    B &middot; a task control too, endpoints &middot; trend &middot; event, though two rows show no difference &nbsp;|&nbsp; C &middot; a caption, no control</p>
+  <p class="q"><b>6.4 &middot; 74's cell</b>
+    <b>A &middot; the LSTM by name, as every 07 net has it, with the note that a plain RNN reads the same way (recommended)</b> &nbsp;|&nbsp;
+    B &middot; 49's stand-in <code>f</code>, the cell unnamed</p>
+  <p class="q"><b>6.5 &middot; The stage</b>
+    <b>A &middot; simulated: an ECG-like trace and random DNA with a planted motif, as every arc's stage is (recommended)</b> &nbsp;|&nbsp;
+    B &middot; a few of PhysioNet's open-access fragments embedded (the open-data question the cancer arc left unasked)</p>
+  <p class="q"><b>6.6 &middot; Slugs and titles</b>
+    <code>sequence-cnn</code> &middot; <code>sequence-rnn</code> &middot; <code>occlusion</code> &middot; <code>signal-windows</code> &middot; <code>sequence-encoding</code>,
+    titles from the notebooks' own headings ("Deep Learning - 1D Convolution", "Deep Learning - Recurrence", "Deep Learning - Occlusion", "Deep Learning - Signal Windows") &mdash; yours to rename; a slug is a public URL.</p>
+
+  <h2>7 &middot; The grouping, on your question (2026-09-20): by concept, or by data type?</h2>
+  <p class="note">
+    The five slots above are cut by CONCEPT, each spanning both notebooks. Your lessons are cut by DATA TYPE: 07-2 is
+    signals end to end (prepare &rarr; 1D-CNN &rarr; LSTM &rarr; CNN+LSTM &rarr; occlusion) and 07-3 is sequences end to end.
+    The measured claims split cleanly along that line: 07-2 teaches the kernel as a duration, the stack, the three
+    reductions and the zero baseline; 07-3 teaches the kernel as a PWM, padding and packing, the PAD baseline. Each row
+    below is one widget; each box is one page of its rail; an outlined box is a page that trains or runs a model.
+  </p>
+  <style>
+    .rail { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin: 4px 0 10px; }
+    .rail .w { font-family: var(--font-mono); font-size: 11px; color: var(--ink-1); min-width: 150px; }
+    .rail .pg { font-size: 11px; padding: 3px 9px; border: 1px solid var(--grid); border-radius: 3px; background: var(--surface-2); color: var(--ink-1); }
+    .rail .pg.eng { border-color: var(--c-group-a); }
+    .rail .n { font-size: 10px; color: var(--ink-3); margin-left: 6px; }
+    .grp { margin: var(--sp-2) 0 var(--sp-3); padding: var(--sp-2) var(--sp-3); border: 1px solid var(--grid); max-width: 130ch; }
+    .grp h3 { margin-bottom: 6px; }
+  </style>
+  <div class="grp">
+    <h3>A &middot; by concept &mdash; the five slots as planned (four with 72 folded)</h3>
+    <div class="rail"><span class="w">sequence-cnn</span><span class="pg eng">Signal</span><span class="pg eng">Sequence</span><span class="n">07-1 &sect;1, 07-2 cell 22, 07-3 cells 26 / 107</span></div>
+    <div class="rail"><span class="w">sequence-rnn</span><span class="pg eng">Memory</span><span class="pg eng">Reduce</span><span class="pg eng">Padding</span><span class="n">07-1 &sect;2, 07-2 cell 44, 07-3 cell 47</span></div>
+    <div class="rail"><span class="w">occlusion</span><span class="pg eng">Signal</span><span class="pg eng">Sequence</span><span class="n">07-2 cells 86&ndash;99, 07-3 cells 166&ndash;178</span></div>
+    <div class="rail"><span class="w">signal-windows</span><span class="pg">Window</span><span class="pg">Split</span><span class="pg">Normalize</span><span class="n">07-2 cells 4&ndash;5</span></div>
+    <p class="note" style="margin:0">One engine per idea, one claim per widget. Cost: every models widget is linked from BOTH notebooks, and a 07-2
+      reader opens a widget whose second page is DNA (a <code>?page=</code> in the link lands them on their own page, as earlier arcs do).</p>
+  </div>
+  <div class="grp">
+    <h3>B &middot; by data type, two widgets each &mdash; your suggestion</h3>
+    <div class="rail"><span class="w">signal-windows</span><span class="pg">Window</span><span class="pg">Split</span><span class="pg">Normalize</span><span class="n">07-2 cells 1&ndash;21</span></div>
+    <div class="rail"><span class="w">signal-models</span><span class="pg eng">1D-CNN</span><span class="pg eng">LSTM</span><span class="pg">CNN+LSTM</span><span class="pg eng">Occlusion</span><span class="n">07-2 cells 22&ndash;99: k in ms, the stack (69 ms), permute, memory across beats, the three reductions, k = 32 / baseline 0</span></div>
+    <div class="rail"><span class="w">sequence-encoding</span><span class="pg">Tokenize</span><span class="pg">Pad</span><span class="pg">Encode</span><span class="n">07-3 cells 1&ndash;25</span></div>
+    <div class="rail"><span class="w">sequence-models</span><span class="pg eng">1D-CNN</span><span class="pg eng">LSTM</span><span class="pg">CNN+LSTM</span><span class="pg eng">Occlusion</span><span class="n">07-3 cells 26&ndash;178: the kernel as a PWM, global max over PAD, packing and the final states, k = 8 / baseline PAD</span></div>
+    <p class="note" style="margin:0">Mirrors the notebooks; each widget links from one contiguous stretch of one lesson; the two preparation widgets stand
+      alone. Cost: the two models widgets are the heaviest in the collection (four pages, a trained CNN and an LSTM forward each,
+      controls per page through <code>when:</code> as 49 does), and the 1D-CNN and Occlusion pages are drawn twice &mdash; with
+      different claims each time and one imported engine, as 55 imported 48's relief.</p>
+  </div>
+  <div class="grp">
+    <h3>C &middot; by data type, one widget each</h3>
+    <div class="rail"><span class="w">signals</span><span class="pg">Windows</span><span class="pg eng">1D-CNN</span><span class="pg eng">LSTM</span><span class="pg">CNN+LSTM</span><span class="pg eng">Occlusion</span><span class="n">07-2 end to end</span></div>
+    <div class="rail"><span class="w">sequences</span><span class="pg">Encoding</span><span class="pg eng">1D-CNN</span><span class="pg eng">LSTM</span><span class="pg">CNN+LSTM</span><span class="pg eng">Occlusion</span><span class="n">07-3 end to end</span></div>
+    <p class="note" style="margin:0">Two links, two widgets. Cost: five pages and four stages each, which is the shape 05-3's ten-page plan had before it
+      was split into 49 and 50 because the rail outgrew the stage; the split's leak claim (79.5% against 33.3%) becomes one page of a
+      widget about models.</p>
+  </div>
+  <div class="grp">
+    <h3>D &middot; by data type for preparation, one models widget with a Data switch</h3>
+    <div class="rail"><span class="w">signal-windows</span><span class="pg">Window</span><span class="pg">Split</span><span class="pg">Normalize</span></div>
+    <div class="rail"><span class="w">sequence-encoding</span><span class="pg">Tokenize</span><span class="pg">Pad</span><span class="pg">Encode</span></div>
+    <div class="rail"><span class="w">sequence-models</span><span class="pg eng">1D-CNN</span><span class="pg eng">LSTM</span><span class="pg">CNN+LSTM</span><span class="pg eng">Occlusion</span><span class="n">&times; a Data control, Signal &middot; Sequence: the same page on the other data type</span></div>
+    <p class="note" style="margin:0">One engine, one models widget, three links. Cost: eight stages in one widget (four pages &times; two data types), and the
+      models widget again belongs to both lessons rather than to one.</p>
+  </div>
+  <p class="rec">Recommended: <b>B</b>. Your lessons are cut by data type and the measured claims fall on that cut without
+    duplication of argument &mdash; 07-2's CNN page is about time (k in ms, one output = most of a QRS) and 07-3's is about
+    symbols (the kernel is a PWM); 07-2's LSTM page is about reducing [L, 2H] and 07-3's about packing. Occlusion sits as
+    the last page of the models widget it explains, as the notebooks have it. Order under B: <code>signal-models</code>
+    first (the engine is born there), then <code>signal-windows</code> to complete 07-2, then <code>sequence-models</code>,
+    then <code>sequence-encoding</code>; or the notebooks' own, windows &rarr; models &rarr; encoding &rarr; models.</p>
+  <p class="q"><b>7.1 &middot; CNN+LSTM under B</b>
+    A &middot; its own page: the notebook's shape walk [B, C, L] &rarr; conv &rarr; [B, 32, L&prime;] &rarr; permute &rarr; LSTM &rarr; pool &rarr; linear, drawn from the CNN page's real maps, no third training run &nbsp;|&nbsp;
+    <b>B &middot; a strip on the LSTM page (recommended): the same shapes in one row, the LSTM page's controls unchanged</b></p>
+</main>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+import { makeRng } from "../core/rng.js";
+
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+const W = 550;
+const HEAT = T.magnitude || T.valueHigh;
+
+/* ---------------------------------------------------------------- shell */
+function el(tag, cls, text) { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
+function cand(rowId, title, sub, w = W) {
+  const box = el("div", "cand"); box.style.width = `${w}px`;
+  box.appendChild(el("h3", null, title)); box.appendChild(el("p", "sub", sub));
+  document.getElementById(rowId).appendChild(box);
+  return box;
+}
+function canvasIn(box, w, h) {
+  const c = document.createElement("canvas");
+  c.width = Math.round(w * DPR); c.height = Math.round(h * DPR); c.style.width = `${w}px`; c.style.height = `${h}px`;
+  box.appendChild(c); const ctx = c.getContext("2d"); ctx.scale(DPR, DPR); return ctx;
+}
+const rgb = (c) => { const m = String(c).match(/^#([0-9a-f]{6})$/i); return m ? [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16)) : [128, 128, 128]; };
+const wash = (color, a) => { const p = rgb(color); return `rgba(${p[0]},${p[1]},${p[2]},${a})`; };
+const ramp = (t, to = HEAT) => { const a = rgb(T.surface3), b = rgb(to); const u = Math.max(0, Math.min(1, t)); return `rgb(${a.map((x, i) => Math.round(x + (b[i] - x) * u)).join(",")})`; };
+function label(ctx, s, x, y, { size = 11, colour = T.ink2, align = "left", mono = false, weight = "", baseline = "alphabetic" } = {}) {
+  ctx.save(); ctx.font = `${weight ? weight + " " : ""}${size}px ${mono ? T.mono : T.font}`; ctx.fillStyle = colour; ctx.textAlign = align; ctx.textBaseline = baseline; ctx.fillText(s, x, y); ctx.restore();
+}
+function line(ctx, x1, y1, x2, y2, colour, width = 1, dash = null) {
+  ctx.save(); ctx.strokeStyle = colour; ctx.lineWidth = width; if (dash) ctx.setLineDash(dash); ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); ctx.restore();
+}
+function rect(ctx, x, y, w, h, fill, stroke = null, lw = 1) { ctx.save(); if (fill) { ctx.fillStyle = fill; ctx.fillRect(x, y, w, h); } if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw; ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1); } ctx.restore(); }
+function polyline(ctx, xs, ys, colour, width = 1.2) { ctx.save(); ctx.strokeStyle = colour; ctx.lineWidth = width; ctx.lineJoin = "round"; ctx.beginPath(); xs.forEach((x, i) => (i ? ctx.lineTo(x, ys[i]) : ctx.moveTo(x, ys[i]))); ctx.stroke(); ctx.restore(); }
+function arrow(ctx, x1, y1, x2, y2, colour, width = 1.2) { line(ctx, x1, y1, x2, y2, colour, width); const a = Math.atan2(y2 - y1, x2 - x1); ctx.save(); ctx.fillStyle = colour; ctx.beginPath(); ctx.moveTo(x2, y2); ctx.lineTo(x2 - 7 * Math.cos(a - 0.4), y2 - 7 * Math.sin(a - 0.4)); ctx.lineTo(x2 - 7 * Math.cos(a + 0.4), y2 - 7 * Math.sin(a + 0.4)); ctx.closePath(); ctx.fill(); ctx.restore(); }
+const zeros = (n) => new Float64Array(n);
+const norm = (a) => Math.sqrt(a.reduce((s, v) => s + v * v, 0));
+const dist = (a, b) => Math.sqrt(a.reduce((s, v, i) => s + (v - b[i]) ** 2, 0));
+
+/* ------------------------------------------------------------- the stage */
+const FS = 360, L = 720;
+function ecg(rng, cls, { copies = 1 } = {}) {
+  const x = zeros(L); const period = 150 + Math.floor(rng.next() * 30), phase = Math.floor(rng.next() * period);
+  for (let t = phase; t < L; t += period) {
+    for (let d = -3; d <= 3; d++) if (t + d >= 0 && t + d < L) x[t + d] += 1.0 * (1 - Math.abs(d) / 4);            // R
+    for (let d = -8; d < -3; d++) if (t + d >= 0) x[t + d] -= 0.12;                                                  // Q
+    for (let d = 4; d < 12; d++) if (t + d < L) x[t + d] -= 0.18;                                                    // S
+    for (let d = 40; d < 90; d++) if (t + d < L) x[t + d] += 0.22 * Math.sin(Math.PI * (d - 40) / 50);              // T
+  }
+  const cues = [];
+  if (cls === 1) for (let c = 0; c < copies; c++) { const centre = 120 + Math.floor(rng.next() * (L - 240)); for (let t = centre - 60; t <= centre + 60; t++) if (t >= 0 && t < L) x[t] += 0.8 * Math.exp(-((t - centre) ** 2) / (2 * 22 * 22)); cues.push(centre); }
+  for (let t = 0; t < L; t++) x[t] += rng.normal(0, 0.03);
+  const mu = x.reduce((a, b) => a + b, 0) / L, sd = Math.sqrt(x.reduce((a, b) => a + (b - mu) ** 2, 0) / L);
+  for (let t = 0; t < L; t++) x[t] = (x[t] - mu) / sd;
+  return { x, cues };
+}
+const BASES = "ACGT", MOTIF = "TGACTCA";
+function randomSeq(rng, n) { let s = ""; for (let i = 0; i < n; i++) s += BASES[Math.floor(rng.next() * 4)]; return s; }
+function pwmScore(seq, kernel, k) { const out = []; for (let t = 0; t + k <= seq.length; t++) { let s = 0; for (let j = 0; j < k; j++) s += kernel[BASES.indexOf(seq[t + j])][j]; out.push(s); } return out; }
+const tunedKernel = MOTIF.split("").map((b) => b).reduce((K, b, j) => { for (let c = 0; c < 4; c++) K[c][j] = BASES[c] === b ? 1 : -1 / 3; return K; }, [0, 1, 2, 3].map(() => zeros(MOTIF.length)));
+
+function tracePlot(ctx, x, x0, x1, top, bot, colour = T.empirical, lw = 1.1) {
+  const n = x.length, mn = Math.min(...x), mx = Math.max(...x);
+  const xs = [], ys = [];
+  for (let t = 0; t < n; t++) { xs.push(x0 + (t / (n - 1)) * (x1 - x0)); ys.push(bot - ((x[t] - mn) / (mx - mn)) * (bot - top)); }
+  polyline(ctx, xs, ys, colour, lw);
+  return (t) => x0 + (t / (n - 1)) * (x1 - x0);
+}
+
+/* ================================================================ §0 */
+document.getElementById("findings").textContent = [
+  "07-2: 2 s at 360 Hz → L = 720 → 360 → 180 → 90; one Conv2 output sees 25 samples = 69 ms (a QRS is 80–100 ms); outputs sit 22 ms apart",
+  "07-3: all 100,000 sequences are 200 bp; MAX_LEN 250 pads each by 50, truncates none; 250 → 125 → 63 positions, 13 on PAD; receptive field 15 bases",
+  "M1  a [4, 7] kernel of +1 / −1/3 IS the PWM score (7.00 at the motif, 0.00 ± 1.53 elsewhere); argmax finds the planted TGACTCA in 99.0% of 500 sequences, a random kernel in 0.0%",
+  "M4b trained conv(4→8, k7) → ReLU → global max: 97.5% test; the two strongest kernels spell TGACTCA 7/7 by column argmax",
+  "M2  50 PAD steps at init: the tanh RNN's 'last' state moves 99–100% of its norm; the LSTM's cell decays to 0.29–0.35 (forget gate 0.50 on zero input); mean pooling scales by 0.80",
+  "M2  sensitivity of h_40 to x_t at init: 1 at t = 40, 3.5e-5 (RNN) / 7.1e-5 (LSTM) at t = 20, 2e-9 / 2e-8 at t = 1",
+  "M3a recall the first token, H = 16: RNN 100/100/100 at T = 20 and 100/98.5/49.5 at T = 40; LSTM 84.5/100/57.5 and 53/50/48; both chance at T = 80 — the cells do NOT separate here",
+  "M3b bi-RNN, last / mean / max:  endpoints 100 / 100 / 100 · trend 98 / 97 / 97 · event 50 / 75 / 100 — only max wins a row, and only on the localized event",
+  "M4  the lesson's net at half width, 28 ms/epoch, 100% test; occlusion at k = 32: peak on the cue 97.5%, half-max width 61 samples against the cue's 28 (24 at k = 16, 19 at k = 8)",
+  "M4  a zero baseline against a window-mean baseline: correlation 0.48, peak 0.086 → 0.011; two copies of the cue: occluding one drops p by 0.005, both by 0.020",
+  "M5  eight subjects × 24 overlapping windows, 1-NN on the log spectrum: window-level split 79.5%, subject-level 33.3%; a 60-sample event is labelled onto 2.37 windows (any overlap) or 1.93 (more than half)",
+].join("\n");
+
+/* ================================================================ §1 · 73 */
+{
+  const rng = makeRng(7);
+  // Signal page
+  const box = cand("cnnRow", "A · Signal — the window, the feature map, one output's receptive field", "720 samples · 360 Hz · k = 25 drawn = 69 ms\nfeature map = correlation with a QRS-shaped kernel, computed here");
+  const ctx = canvasIn(box, W, 300);
+  const { x } = ecg(rng, 0);
+  const X0 = 44, X1 = W - 14;
+  label(ctx, "Input · 2 s at 360 Hz", X0, 16, { colour: T.ink1, weight: "600" });
+  const px = tracePlot(ctx, x, X0, X1, 26, 110);
+  // kernel: a QRS template of k = 25 at a chosen window
+  const k = 25, kern = zeros(k); for (let j = 0; j < k; j++) { const d = j - 12; kern[j] = (Math.abs(d) <= 3 ? 1 - Math.abs(d) / 4 : 0) - (d >= 4 && d < 12 ? 0.18 : 0) - (d < -3 && d >= -8 ? 0.12 : 0); }
+  const km = kern.reduce((a, b) => a + b, 0) / k; for (let j = 0; j < k; j++) kern[j] -= km;
+  const fm = []; for (let t = 0; t + k <= L; t += 2) { let s = 0; for (let j = 0; j < k; j++) s += x[t + j] * kern[j]; fm.push(Math.max(0, s)); }
+  const at = 300; // the window drawn
+  rect(ctx, px(at), 26, px(at + k) - px(at), 84, wash(T.highlight, 0.15), T.highlight, 1.5);
+  label(ctx, `window · k = ${k} samples = ${Math.round(1000 * k / FS)} ms`, px(at + k) + 6, 40, { colour: T.highlight, size: 10 });
+  // kernel row
+  label(ctx, "Kernel", X0, 134, { colour: T.ink1, weight: "600" });
+  const kx = X0 + 50, cw = 6.4; for (let j = 0; j < k; j++) rect(ctx, kx + j * cw, 124, cw, 14, ramp((kern[j] + 0.5) / 1.5, T.groupA), T.grid);
+  label(ctx, "⊛  window  →  one value of the feature map", kx + k * cw + 10, 134, { size: 10 });
+  // feature map
+  label(ctx, "Feature map · stride 2 · 360 values", X0, 162, { colour: T.ink1, weight: "600" });
+  const fmMax = Math.max(...fm); const fw = (X1 - X0) / fm.length;
+  for (let i = 0; i < fm.length; i++) rect(ctx, X0 + i * fw, 168 + 40 * (1 - fm[i] / fmMax), Math.max(1, fw), 40 * fm[i] / fmMax, T.groupA);
+  line(ctx, X0, 208.5, X1, 208.5, T.axis);
+  // the stacked net: one Conv2 output's receptive field
+  label(ctx, "The lesson's net · 720 → 360 → 180 → 90 → average → linear", X0, 232, { colour: T.ink1, weight: "600" });
+  const outI = 37; const rf0 = outI * 8 - 3 - 4, rf1 = rf0 + 25;
+  const ox = (i) => X0 + (i / 89) * (X1 - X0);
+  for (let i = 0; i < 90; i++) rect(ctx, ox(i) - 2, 240, 4, 8, i === outI ? T.highlight : T.surface3);
+  label(ctx, "Conv2 output", X1, 262, { align: "right", size: 10 });
+  line(ctx, ox(outI), 248, px(rf0), 110, T.highlight, 1, [3, 3]); line(ctx, ox(outI), 248, px(rf1), 110, T.highlight, 1, [3, 3]);
+  label(ctx, `one output reads 25 samples = 69 ms of the trace — most of one QRS; neighbours 8 samples = 22 ms apart`, X0, 280, { size: 10, colour: T.ink2 });
+  label(ctx, "head: AdaptiveAvgPool1d averages the 90, then Linear(32, 2)", X0, 294, { size: 10, colour: T.ink3 });
+
+  // Sequence page
+  const box2 = cand("cnnRow", "B · Sequence — one-hot rows, a [4, 7] kernel, the score track", "40 bases, TGACTCA planted · kernel +1 / −1/3 · score = Σ_j W[base_j, j]\nstrip above: where slot 72 folds in");
+  const c2 = canvasIn(box2, W, 300);
+  const n = 40; let seq = randomSeq(rng, n); const pos = 22; seq = seq.slice(0, pos) + MOTIF + seq.slice(pos + 7);
+  const bx0 = 44, bw = (W - 14 - bx0) / n;
+  // encode strip
+  label(c2, "Encode", bx0 - 38, 16, { colour: T.ink1, weight: "600", size: 10 });
+  for (let t = 0; t < n; t++) label(c2, seq[t], bx0 + t * bw + bw / 2, 16, { align: "center", mono: true, size: 10, colour: T.ink1 });
+  label(c2, "tokens", bx0 - 38, 30, { size: 10 });
+  for (let t = 0; t < n; t++) label(c2, String(BASES.indexOf(seq[t]) + 1), bx0 + t * bw + bw / 2, 30, { align: "center", mono: true, size: 9, colour: T.ink3 });
+  // one-hot
+  label(c2, "X · [4, L]", bx0 - 38, 50, { colour: T.ink1, weight: "600", size: 10 });
+  const rh = 11;
+  for (let c = 0; c < 4; c++) { label(c2, BASES[c], bx0 - 10, 50 + c * rh + 9, { mono: true, size: 9, align: "right" }); for (let t = 0; t < n; t++) rect(c2, bx0 + t * bw, 42 + c * rh, bw, rh, seq[t] === BASES[c] ? T.empirical : T.surface2, T.grid); }
+  rect(c2, bx0 + pos * bw, 42, 7 * bw, 4 * rh, null, T.reference, 1.5);
+  label(c2, "planted motif", bx0 + pos * bw + 3.5 * bw, 100, { align: "center", size: 9, colour: T.reference });
+  // kernel
+  label(c2, "Kernel · [4, 7]", bx0 - 38, 124, { colour: T.ink1, weight: "600", size: 10 });
+  const kw = 16;
+  for (let c = 0; c < 4; c++) { label(c2, BASES[c], bx0 - 10, 116 + c * rh + 9, { mono: true, size: 9, align: "right" }); for (let j = 0; j < 7; j++) rect(c2, bx0 + j * kw, 116 + c * rh, kw, rh, tunedKernel[c][j] > 0 ? T.groupA : wash(T.groupA, 0.12), T.grid); }
+  for (let j = 0; j < 7; j++) label(c2, MOTIF[j], bx0 + j * kw + kw / 2, 116 + 4 * rh + 10, { align: "center", mono: true, size: 9, colour: T.groupA });
+  label(c2, "+1 on one base per column, −1/3 on the other three:", bx0 + 7 * kw + 12, 130, { size: 10 });
+  label(c2, "a position weight matrix", bx0 + 7 * kw + 12, 143, { size: 10 });
+  label(c2, "over integer IDs on one channel a filter reads w · 2w · 3w · 4w,", bx0 + 7 * kw + 12, 158, { size: 9, colour: T.ink3 });
+  label(c2, "so no such filter fires on C alone", bx0 + 7 * kw + 12, 170, { size: 9, colour: T.ink3 });
+  // score track
+  label(c2, "Feature map · the PWM score at each position", bx0 - 38, 190, { colour: T.ink1, weight: "600", size: 10 });
+  const sc = pwmScore(seq, tunedKernel, 7); const smin = Math.min(...sc), smax = 7;
+  for (let t = 0; t < sc.length; t++) { const h = 50 * (sc[t] - smin) / (smax - smin); rect(c2, bx0 + t * bw + 1, 250 - h, bw - 2, h, t === pos ? T.highlight : T.groupA); }
+  line(c2, bx0, 250.5, W - 14, 250.5, T.axis);
+  label(c2, `score 7.00 at position ${pos + 1}; elsewhere ${(sc.reduce((a, b, i) => (i === pos ? a : a + b), 0) / (sc.length - 1)).toFixed(2)} on average`, bx0, 268, { size: 10 });
+  label(c2, "head: global max over the positions (13 of 63 on PAD in the lesson) — PAD's zero column cannot win a max", bx0, 284, { size: 9, colour: T.ink3 });
+  label(c2, "second press (widget): train 8 kernels on motif presence and print each as its column-argmax spelling", bx0, 296, { size: 9, colour: T.ink3 });
+}
+
+/* ================================================================ §2 · 74 */
+const sigm = (x) => 1 / (1 + Math.exp(-x));
+function lstmInit(rng, D, H) {
+  const b = 1 / Math.sqrt(H), u = (n) => { const a = zeros(n); for (let i = 0; i < n; i++) a[i] = rng.uniform(-b, b); return a; };
+  const Wi = u(4 * H * D), Uh = u(4 * H * H), bias = u(4 * H); for (let i = 0; i < 4 * H; i++) bias[i] += rng.uniform(-b, b);
+  return { D, H, Wi, Uh, bias, run(X) { const Hs = [], Cs = []; let h = zeros(H), c = zeros(H); for (const x of X) { const g = zeros(4 * H); for (let j = 0; j < 4 * H; j++) { let a = bias[j]; for (let i = 0; i < D; i++) a += Wi[j * D + i] * x[i]; for (let i = 0; i < H; i++) a += Uh[j * H + i] * h[i]; g[j] = a; } const nc = zeros(H), nh = zeros(H); for (let j = 0; j < H; j++) { nc[j] = sigm(g[H + j]) * c[j] + sigm(g[j]) * Math.tanh(g[2 * H + j]); nh[j] = sigm(g[3 * H + j]) * Math.tanh(nc[j]); } Hs.push(nh); Cs.push(nc); h = nh; c = nc; } return { Hs, Cs }; } };
+}
+{
+  const rng = makeRng(9);
+  // Memory
+  const box = cand("rnnRow", "A · Memory — your figure, and how much of hₙ one xₜ still moves", "LSTM · H = 32 · n = 12 · sensitivity by finite difference, at init\n(trained: one early bit is carried 40 steps by either cell, 80 by neither)", 360);
+  const ctx = canvasIn(box, 360, 300);
+  const n = 12, H = 32, cell = lstmInit(rng, 4, H);
+  const X = Array.from({ length: n }, () => { const v = zeros(4); v[Math.floor(rng.next() * 4)] = 1; return v; });
+  const base = cell.run(X).Hs[n - 1];
+  const sens = X.map((_, t) => { const X2 = X.map((v) => v.slice()); X2[t][0] += 1e-4; X2[t][1] -= 1e-4; return dist(cell.run(X2).Hs[n - 1], base) / 1e-4; });
+  const smax = Math.max(...sens);
+  const cx = (t) => 30 + t * 28;
+  label(ctx, "Output", cx(n - 1), 14, { size: 10, align: "center" }); ctx.save(); ctx.fillStyle = wash(T.theory, 0.5); ctx.beginPath(); ctx.arc(cx(n - 1), 30, 9, 0, 7); ctx.fill(); ctx.restore(); label(ctx, "o", cx(n - 1), 34, { align: "center", size: 10, colour: T.ink1 });
+  arrow(ctx, cx(n - 1), 74, cx(n - 1), 42, T.ink2);
+  label(ctx, "Hidden", 4, 92, { size: 10 });
+  for (let t = 0; t < n; t++) { rect(ctx, cx(t) - 10, 78, 20, 20, wash(T.empirical, 0.35), null); label(ctx, `h${t + 1}`, cx(t), 92, { align: "center", size: 9, colour: T.ink1 }); if (t) arrow(ctx, cx(t - 1) + 10, 88, cx(t) - 10, 88, T.ink2); }
+  label(ctx, "Input", 4, 140, { size: 10 });
+  for (let t = 0; t < n; t++) { ctx.save(); ctx.fillStyle = wash(T.groupB, 0.45); ctx.beginPath(); ctx.arc(cx(t), 136, 9, 0, 7); ctx.fill(); ctx.restore(); label(ctx, `x${t + 1}`, cx(t), 140, { align: "center", size: 9, colour: T.ink1 }); arrow(ctx, cx(t), 126, cx(t), 100, T.ink2); }
+  label(ctx, "Memory carried along the arrows: h_t = f(W_x x_t + W_h h_{t−1})", 30, 166, { size: 10 });
+  label(ctx, `‖∂h${n}/∂xₜ‖ at initialisation, relative to t = ${n}`, 30, 196, { colour: T.ink1, weight: "600", size: 10 });
+  for (let t = 0; t < n; t++) { const hgt = 60 * Math.sqrt(sens[t] / smax); rect(ctx, cx(t) - 8, 266 - hgt, 16, hgt, t === n - 1 ? T.highlight : T.empirical); label(ctx, (sens[t] / smax).toExponential(0).replace("e", "e"), cx(t), 280, { align: "center", size: 7.5, mono: true, colour: T.ink3 }); }
+  line(ctx, 18, 266.5, 350, 266.5, T.axis);
+  label(ctx, "click a step to perturb it; a second press trains and the bars change", 30, 294, { size: 9, colour: T.ink3 });
+
+  // Reduce
+  const box2 = cand("rnnRow", "B · Reduce — output [L, 2H] collapsed three ways", "bi-LSTM at init · L = 24 · H = 4 drawn (2H = 8 rows)\naccuracies under it are the script's, on the event task", 300);
+  const c2 = canvasIn(box2, 300, 300);
+  const Lr = 24, Hr = 4, fwd = lstmInit(rng, 4, Hr), bwd = lstmInit(rng, 4, Hr);
+  const Xr = Array.from({ length: Lr }, () => { const v = zeros(4); v[Math.floor(rng.next() * 4)] = 1; return v; });
+  const Hf = fwd.run(Xr).Hs, Hb = bwd.run([...Xr].reverse()).Hs;
+  const feat = Array.from({ length: Lr }, (_, t) => [...Hf[t], ...Hb[Lr - 1 - t]]);
+  const gx0 = 30, gw = 9, gh = 10;
+  label(c2, "output · [L, 2H]", gx0, 14, { colour: T.ink1, weight: "600", size: 10 });
+  label(c2, "→", gx0 - 22, 48, { size: 9 }); label(c2, "←", gx0 - 22, 90, { size: 9 });
+  for (let t = 0; t < Lr; t++) for (let j = 0; j < 2 * Hr; j++) rect(c2, gx0 + t * gw, 22 + j * gh, gw, gh, ramp((feat[t][j] + 0.4) / 0.8, T.empirical), T.grid);
+  rect(c2, gx0 + (Lr - 1) * gw, 22, gw, Hr * gh, null, T.highlight, 1.5); rect(c2, gx0, 22 + Hr * gh, gw, Hr * gh, null, T.highlight, 1.5);
+  label(c2, "last = the forward pass's last state and the reverse", gx0, 116, { size: 9 });
+  label(c2, "pass's last state — at opposite ends of the block", gx0, 127, { size: 9 });
+  const red = { last: feat[Lr - 1].map((v, j) => (j < Hr ? v : feat[0][j])), mean: feat[0].map((_, j) => feat.reduce((a, r) => a + r[j], 0) / Lr), max: feat[0].map((_, j) => Math.max(...feat.map((r) => r[j]))) };
+  let yy = 138;
+  for (const [name, v] of Object.entries(red)) {
+    label(c2, name, gx0, yy + 9, { mono: true, size: 10, colour: T.ink1 });
+    for (let j = 0; j < 2 * Hr; j++) rect(c2, gx0 + 40 + j * 14, yy, 14, 12, ramp((v[j] + 0.4) / 0.8, T.empirical), T.grid);
+    label(c2, "[2H] → Linear(2H, 2)", gx0 + 40 + 8 * 14 + 8, yy + 9, { size: 9, colour: T.ink3 });
+    yy += 20;
+  }
+  label(c2, "test accuracy, bi-RNN, script (two seeds)", gx0, 214, { colour: T.ink1, weight: "600", size: 10 });
+  const rows = [["endpoints", "100", "100", "100"], ["trend", "98", "97", "97"], ["event (GATC)", "50", "75", "100"]];
+  label(c2, "last", gx0 + 110, 228, { size: 9, mono: true }); label(c2, "mean", gx0 + 160, 228, { size: 9, mono: true }); label(c2, "max", gx0 + 210, 228, { size: 9, mono: true });
+  rows.forEach((r, i) => { const y = 244 + i * 16; label(c2, r[0], gx0, y, { size: 9 }); r.slice(1).forEach((v, j) => label(c2, v + "%", gx0 + 110 + j * 50, y, { size: 9, mono: true, colour: i === 2 && j === 2 ? T.highlight : T.ink2 })); });
+  label(c2, "only max wins a row → a display, not a claim per arm", gx0, 296, { size: 9, colour: T.ink3 });
+
+  // Padding
+  const box3 = cand("rnnRow", "C · Padding — the state along 200 real tokens and 50 PAD", "LSTM · H = 32 · D = 8 · PAD embedding = zero row · at init\n‖c_t‖ drawn; the 'last' marker with and without packing", 360);
+  const c3 = canvasIn(box3, 360, 300);
+  const REAL = 200, PADn = 50, cellp = lstmInit(rng, 8, 32);
+  const Xp = Array.from({ length: REAL + PADn }, (_, t) => { const v = zeros(8); if (t < REAL) for (let i = 0; i < 8; i++) v[i] = rng.normal(0, 1); return v; });
+  const { Hs, Cs } = cellp.run(Xp);
+  const cn = Cs.map(norm), hn = Hs.map(norm), cmax = Math.max(...cn);
+  const px0 = 40, px1 = 344, ty = (v) => 150 - 100 * v / cmax, tx = (t) => px0 + (t / (REAL + PADn - 1)) * (px1 - px0);
+  rect(c3, tx(REAL), 40, tx(REAL + PADn - 1) - tx(REAL), 120, wash(T.unknown, 0.18));
+  label(c3, "PAD · 50", tx(REAL) + 4, 52, { size: 9, colour: T.ink3 });
+  label(c3, "‖c_t‖ · the cell along the sequence", px0, 30, { colour: T.ink1, weight: "600", size: 10 });
+  polyline(c3, cn.map((_, t) => tx(t)), cn.map(ty), T.empirical, 1.4);
+  line(c3, px0, 150.5, px1, 150.5, T.axis);
+  line(c3, tx(REAL - 1), 40, tx(REAL - 1), 160, T.reference, 1.2, [3, 3]); label(c3, "packed: last = 200", tx(REAL - 1) - 4, 172, { size: 9, align: "right", colour: T.reference });
+  line(c3, tx(REAL + PADn - 1), 40, tx(REAL + PADn - 1), 160, T.highlight, 1.2); label(c3, "unpacked: last = 250", tx(REAL + PADn - 1), 186, { size: 9, align: "right", colour: T.highlight });
+  label(c3, `‖c_250‖ / ‖c_200‖ = ${(cn[REAL + PADn - 1] / cn[REAL - 1]).toFixed(2)}`, px0, 210, { size: 10, mono: true, colour: T.ink1 });
+  label(c3, `‖h_250 − h_200‖ / ‖h_200‖ = ${(dist(Hs[REAL + PADn - 1], Hs[REAL - 1]) / hn[REAL - 1]).toFixed(2)}`, px0, 223, { size: 10, mono: true, colour: T.ink1 });
+  label(c3, "on zero input the forget gate sits at 0.50: the cell forgets the sequence", px0, 240, { size: 9 });
+  label(c3, "and settles where the biases alone put it (0.29–0.35 at H = 128, script)", px0, 252, { size: 9 });
+  label(c3, "a tanh RNN's state moves 99–100% of its norm over the same 50 steps", px0, 264, { size: 9 });
+  label(c3, "mean pooling over the 250 scales every channel by 0.80; a max ignores PAD", px0, 276, { size: 9 });
+  label(c3, "pack (display): the trace stops at 200 and the marker moves", px0, 292, { size: 9, colour: T.ink3 });
+}
+
+/* ================================================================ §3 · 76 */
+{
+  const rng = makeRng(21);
+  const box = cand("occRow", "A · Signal — one window to the baseline, the bars, two window sizes", "model here = a fixed detector of the wide bump (the widget trains the lesson's net)\nk = 32 / stride 16 over k = 8 / stride 4 · baseline 0");
+  const ctx = canvasIn(box, W, 300);
+  const { x, cues } = ecg(rng, 1);
+  const X0 = 44, X1 = W - 14;
+  // a stand-in model: p = sigmoid(a · max correlation with a 45-sample gaussian bump − b)
+  const tmpl = zeros(45); for (let j = 0; j < 45; j++) tmpl[j] = Math.exp(-((j - 22) ** 2) / (2 * 8 * 8)); const tm = tmpl.reduce((a, b) => a + b, 0) / 45; for (let j = 0; j < 45; j++) tmpl[j] -= tm;
+  const f = (sig) => { let best = -Infinity; for (let t = 0; t + 45 <= L; t += 3) { let s = 0; for (let j = 0; j < 45; j++) s += sig[t + j] * tmpl[j]; best = Math.max(best, s); } return sigm(0.9 * (best - 6)); };
+  const p0 = f(x);
+  const occl = (k, s) => { const attr = zeros(L), cnt = zeros(L); for (let st = 0; st + k <= L; st += s) { const d = x.slice(); for (let t = st; t < st + k; t++) d[t] = 0; const a = Math.abs(p0 - f(d)); for (let t = st; t < st + k; t++) { attr[t] += a; cnt[t]++; } } for (let t = 0; t < L; t++) attr[t] /= Math.max(1, cnt[t]); return attr; };
+  label(ctx, `x · f(x) = ${p0.toFixed(2)}`, X0, 16, { colour: T.ink1, weight: "600" });
+  const px = tracePlot(ctx, x, X0, X1, 24, 96);
+  const win = cues[0] - 16;
+  rect(ctx, px(win), 24, px(win + 32) - px(win), 72, null, T.ink1, 1.2);
+  line(ctx, px(win), 60, px(win + 32), 60, T.extreme, 2);
+  const d = x.slice(); for (let t = win; t < win + 32; t++) d[t] = 0;
+  label(ctx, `window i · f(x_occluded) = ${f(d).toFixed(2)} · a_i = ${Math.abs(p0 - f(d)).toFixed(2)}`, px(win + 32) + 6, 40, { size: 10, colour: T.ink1 });
+  const a32 = occl(32, 16), a8 = occl(8, 4);
+  const draw = (attr, top, name) => { const m = Math.max(...attr); label(ctx, name, X0, top - 4, { size: 10, colour: T.ink1, weight: "600" }); const bwid = (X1 - X0) / L; for (let t = 0; t < L; t++) if (attr[t] > 0) rect(ctx, X0 + t * bwid, top + 44 * (1 - attr[t] / m), Math.max(1, bwid), 44 * attr[t] / m, HEAT); line(ctx, X0, top + 44.5, X1, top + 44.5, T.axis); let above = 0; for (let t = 0; t < L; t++) if (attr[t] > m / 2) above++; label(ctx, `half-max width ${above} samples`, X1, top - 4, { size: 9, align: "right", colour: T.ink3 }); };
+  draw(a32, 122, "Importance (Occlusion) · k = 32, stride 16 — the lesson's");
+  draw(a8, 190, "k = 8, stride 4");
+  rect(ctx, px(cues[0] - 22), 118, px(cues[0] + 22) - px(cues[0] - 22), 120, null, T.reference, 1, );
+  label(ctx, "the cue · 45 samples", px(cues[0] + 22) + 4, 246, { size: 9, colour: T.reference });
+  label(ctx, "script, on the trained net: half-max 61 samples at k = 32 against the cue's 28; 24 at k = 16; 19 at k = 8", X0, 268, { size: 9 });
+  label(ctx, "baseline zero against window-mean: the two maps correlate 0.48; two copies of the cue: 0.005 each, 0.020 both", X0, 282, { size: 9 });
+  label(ctx, "Play walks the window at the stride; the overlay page washes the trace with a_i", X0, 296, { size: 9, colour: T.ink3 });
+
+  const box2 = cand("occRow", "B · Sequence — the letters with the heat behind them", "PWM-kernel model · k = 8, stride 4 · baseline = PAD's zero column\nas 07-3 cell 178 prints it, padding stripped");
+  const c2 = canvasIn(box2, W, 300);
+  const n = 80; let seq = randomSeq(rng, n); const pos = 47; seq = seq.slice(0, pos) + MOTIF + seq.slice(pos + 7);
+  const score = (s) => { const sc = pwmScore(s.replace(/\*/g, "A"), tunedKernel, 7).map((v, t) => (s.slice(t, t + 7).includes("*") ? v - 1 * (s.slice(t, t + 7).split("*").length - 1) * 1 : v)); return sigm(1.6 * (Math.max(...sc) - 5)); };
+  // proper PAD handling: zero column contributes 0 to the score
+  const scorePad = (s) => { let best = -Infinity; for (let t = 0; t + 7 <= s.length; t++) { let v = 0; for (let j = 0; j < 7; j++) { const ch = s[t + j]; if (ch !== "*") v += tunedKernel[BASES.indexOf(ch)][j]; } best = Math.max(best, v); } return sigm(1.6 * (best - 5)); };
+  const p0s = scorePad(seq), attr = zeros(n), cnt = zeros(n);
+  for (let st = 0; st + 8 <= n; st += 4) { const s2 = seq.slice(0, st) + "********" + seq.slice(st + 8); const a = Math.abs(p0s - scorePad(s2)); for (let t = st; t < st + 8; t++) { attr[t] += a; cnt[t]++; } }
+  for (let t = 0; t < n; t++) attr[t] /= Math.max(1, cnt[t]); const am = Math.max(...attr);
+  label(c2, `x · f(x) = ${p0s.toFixed(2)} · a window of 8 tokens set to PAD, stride 4`, 20, 16, { colour: T.ink1, weight: "600" });
+  const wrap = 40, cwid = 12.4;
+  for (let t = 0; t < n; t++) { const r = Math.floor(t / wrap), c = t % wrap; const x = 44 + c * cwid, y = 36 + r * 30; rect(c2, x, y, cwid, 22, ramp(attr[t] / am)); label(c2, seq[t], x + cwid / 2, y + 15, { align: "center", mono: true, size: 11, colour: T.ink1 }); if (c === 0) label(c2, String(t + 1).padStart(3), 38, y + 15, { align: "right", mono: true, size: 9 }); }
+  rect(c2, 44 + (pos % wrap) * cwid, 36 + Math.floor(pos / wrap) * 30, 7 * cwid, 22, null, T.reference, 1.5);
+  label(c2, "Importance (Occlusion) by position", 20, 118, { colour: T.ink1, weight: "600", size: 10 });
+  const bx = 44, bwid = (W - 14 - bx) / n;
+  for (let t = 0; t < n; t++) rect(c2, bx + t * bwid, 176 - 50 * attr[t] / am, Math.max(1, bwid - 1), 50 * attr[t] / am, HEAT);
+  line(c2, bx, 176.5, W - 14, 176.5, T.axis);
+  label(c2, "the top window overlaps the planted motif (script, trained net: 100% of 50 sequences)", 20, 200, { size: 9 });
+  label(c2, "baseline control: PAD · UNK — on tokens the baseline is a token, not a value", 20, 214, { size: 9 });
+  label(c2, "k control: 4 · 8 · 12 (the notebook's 'try 4, 8, 12'); stride half of k or k", 20, 228, { size: 9 });
+  label(c2, "Grad-CAM (64) asks the gradient once; occlusion asks the model once per window — one caption, no more", 20, 256, { size: 9, colour: T.ink3 });
+}
+
+/* ================================================================ §4 · 75 */
+{
+  const rng = makeRng(44);
+  const box = cand("winRow", "A · Window — your figure: a recording, overlapping windows, the label rule", "one recording · windows of 256 at 50% overlap · event annotations\nlabel by 'any overlap' or 'more than half'");
+  const ctx = canvasIn(box, W, 260);
+  const N = 900, x = zeros(N); const beats = []; let t = 30; while (t < N) { beats.push(t); t += 110 + Math.round(rng.normal(0, 4)); }
+  const events = [beats[3], beats[6]];
+  for (const b of beats) { const wide = events.includes(b); for (let d = -40; d <= 40; d++) if (b + d >= 0 && b + d < N) x[b + d] += wide ? 0.9 * Math.exp(-(d * d) / (2 * 14 * 14)) : (Math.abs(d) <= 3 ? 1 - Math.abs(d) / 4 : 0) + (d >= 30 && d < 70 ? 0.2 * Math.sin(Math.PI * (d - 30) / 40) : 0); }
+  for (let i = 0; i < N; i++) x[i] += rng.normal(0, 0.03);
+  const X0 = 30, X1 = W - 14;
+  label(ctx, "Recording", X0, 16, { colour: T.ink1, weight: "600" });
+  const px = tracePlot(ctx, x, X0, X1, 24, 84);
+  for (const e of events) { rect(ctx, px(e - 40), 24, px(e + 40) - px(e - 40), 60, wash(T.event, 0.18)); label(ctx, "A", px(e), 96, { align: "center", size: 10, colour: T.event }); }
+  label(ctx, "event annotation", px(events[0] + 40) + 4, 34, { size: 9, colour: T.event });
+  const Lw = 256, step = 128; let wi = 0;
+  label(ctx, "Windows · 256 · stride 128", X0, 118, { colour: T.ink1, weight: "600", size: 10 });
+  for (let s = 0; s + Lw <= N; s += step, wi++) { const y = 124 + (wi % 2) * 18; const ov = events.map((e) => Math.max(0, Math.min(s + Lw, e + 40) - Math.max(s, e - 40))); const any = ov.some((v) => v > 0), maj = ov.some((v) => v > 40); rect(ctx, px(s), y, px(s + Lw) - px(s), 14, wash(maj ? T.event : any ? T.event : T.nonevent, maj ? 0.5 : any ? 0.22 : 0.3), T.grid); label(ctx, maj ? "A" : any ? "A?" : "N", px(s) + 4, y + 10.5, { size: 9, colour: T.ink1 }); }
+  label(ctx, "A = more than half the event inside · A? = any overlap · N = none", X0, 172, { size: 9 });
+  label(ctx, "recording-level annotation instead: every window inherits one label", X0, 186, { size: 9 });
+  label(ctx, "script: a 60-sample event is labelled onto 2.37 windows under 'any overlap', 1.93 under 'more than half'", X0, 210, { size: 9 });
+  label(ctx, "then per-window z-score (per-subject amplitude CV 17% → every window sd 1) and the print [N, C, L]", X0, 224, { size: 9 });
+  label(ctx, "controls: window length · overlap · label rule (display) · seed", X0, 248, { size: 9, colour: T.ink3 });
+
+  const box2 = cand("winRow", "B · Split — the same windows dealt by window or by subject", "six subjects drawn (the script's eight) · held-out windows outlined\naccuracies are the script's: 1-NN on the log spectrum");
+  const c2 = canvasIn(box2, W, 260);
+  const S = 6, Wn = 16, tw = 26, th = 14;
+  const drawDeal = (x0, title, holdout, acc) => {
+    label(c2, title, x0, 16, { colour: T.ink1, weight: "600", size: 10 });
+    for (let s = 0; s < S; s++) { label(c2, `subject ${s + 1}`, x0, 36 + s * (th + 6) + 10, { size: 9 }); for (let w = 0; w < Wn; w++) { const hx = x0 + 56 + w * (tw / 2 + 1); const held = holdout(s, w); rect(c2, hx, 36 + s * (th + 6), tw / 2, th, wash(T.clusters[s], held ? 0.9 : 0.35), held ? T.ink1 : null, 1); } label(c2, s % 2 ? "A" : "N", x0 + 56 + Wn * (tw / 2 + 1) + 4, 36 + s * (th + 6) + 10, { size: 9, colour: s % 2 ? T.event : T.nonevent }); }
+    label(c2, `held-out accuracy ${acc}`, x0, 36 + S * (th + 6) + 12, { size: 11, colour: T.ink1, weight: "600" });
+  };
+  drawDeal(14, "window-level split · every fifth window", (s, w) => (s * Wn + w) % 5 === 0, "79.5%");
+  drawDeal(288, "subject-level split · two subjects out", (s) => s === 0 || s === 1, "33.3%");
+  label(c2, "the classifier learned the subjects: 44's pseudoreplication with the unit named", 14, 196, { size: 9 });
+  label(c2, "the first feature tried, raw correlation, gave 69.2% against 40.1% — overlap in samples is not similarity at zero lag", 14, 210, { size: 9 });
+  label(c2, "if 73 is built first, this page scores 73's trained net instead of a nearest neighbour", 14, 234, { size: 9, colour: T.ink3 });
+}
+
+/* ================================================================ §5 · 72 */
+{
+  const rng = makeRng(3);
+  const box = cand("encRow", "The strip — string → tokens → padded IDs → one-hot [4, L] or embedding [L, E] → transpose", "L = 20 drawn, real length 16, PAD 4 · E = 4 · the embedding's PAD row is zero\n(the lesson: 200 real, 50 PAD, E = 64)", 1260);
+  const ctx = canvasIn(box, 1260, 170);
+  const real = 16, Lp = 20, E = 4, seq = randomSeq(rng, real);
+  const vocab = { "*": 0, A: 1, C: 2, G: 3, T: 4 };
+  const cw = 18; let x = 14;
+  label(ctx, "string", x, 16, { colour: T.ink1, weight: "600", size: 10 }); for (let t = 0; t < real; t++) label(ctx, seq[t], x + t * cw + cw / 2, 40, { align: "center", mono: true, size: 12, colour: T.ink1 });
+  label(ctx, `${real} bp`, x, 60, { size: 9 });
+  x += real * cw + 30; arrow(ctx, x - 24, 36, x - 6, 36, T.ink2);
+  label(ctx, "Pad(max_len) → Tokenize(vocab)", x, 16, { colour: T.ink1, weight: "600", size: 10 });
+  const padded = seq + "*".repeat(Lp - real);
+  for (let t = 0; t < Lp; t++) { const isPad = padded[t] === "*"; rect(ctx, x + t * cw, 26, cw, 20, isPad ? wash(T.unknown, 0.25) : T.surface2, T.grid); label(ctx, String(vocab[padded[t]]), x + t * cw + cw / 2, 40, { align: "center", mono: true, size: 11, colour: isPad ? T.ink3 : T.ink1 }); }
+  label(ctx, `[${Lp}] · * = 0 is PAD · integer IDs impose an order: 1 2 3 4 on one channel`, x, 60, { size: 9 });
+  // one-hot
+  label(ctx, "one-hot · [4, L]", x, 84, { colour: T.ink1, weight: "600", size: 10 });
+  for (let c = 0; c < 4; c++) { label(ctx, BASES[c], x - 8, 92 + c * 11 + 9, { align: "right", mono: true, size: 9 }); for (let t = 0; t < Lp; t++) rect(ctx, x + t * cw, 92 + c * 11, cw, 11, padded[t] === BASES[c] ? T.empirical : padded[t] === "*" ? wash(T.unknown, 0.18) : T.surface2, T.grid); }
+  label(ctx, "a PAD column is all zero", x, 150, { size: 9 });
+  x += Lp * cw + 30; arrow(ctx, x - 24, 36, x - 6, 36, T.ink2);
+  // embedding
+  label(ctx, "Embedding(6, E, padding_idx=0) · [L, E]", x, 16, { colour: T.ink1, weight: "600", size: 10 });
+  const table = [0, 1, 2, 3, 4, 5].map((i) => Array.from({ length: E }, () => (i === 0 ? 0 : rng.normal(0, 1))));
+  const eh = 5.6;
+  for (let t = 0; t < Lp; t++) for (let e = 0; e < E; e++) { const v = table[vocab[padded[t]]][e]; rect(ctx, x + e * 14, 24 + t * eh, 14, eh, padded[t] === "*" ? wash(T.unknown, 0.18) : ramp((v + 2) / 4, T.empirical)); }
+  label(ctx, "row 0, PAD, is zero", x + E * 14 + 8, 34, { size: 9 });
+  label(ctx, `E = ${E} drawn (64 in the lesson)`, x + E * 14 + 8, 48, { size: 9 });
+  label(ctx, "one row of the table per token — 50's page", x + E * 14 + 8, 62, { size: 9, colour: T.ink3 });
+  x += E * 14 + 190; arrow(ctx, x - 24, 36, x - 6, 36, T.ink2);
+  label(ctx, "transpose(1, 2) · [E, L] — channels first", x, 16, { colour: T.ink1, weight: "600", size: 10 });
+  for (let e = 0; e < E; e++) for (let t = 0; t < Lp; t++) { const v = table[vocab[padded[t]]][e]; rect(ctx, x + t * 9, 26 + e * 12, 9, 12, padded[t] === "*" ? wash(T.unknown, 0.18) : ramp((v + 2) / 4, T.empirical)); }
+  label(ctx, "the kernel reads a [E, k] window of this;", x, 90, { size: 9 });
+  label(ctx, "73's Sequence page starts here", x, 102, { size: 9 });
+  label(ctx, "k-mer tokens instead: 4^k table rows (k = 6: 4,096)", x, 116, { size: 9 });
+  label(ctx, "reverse complement (train only): a caption", x, 130, { size: 9, colour: T.ink3 });
+}
+</script>
+</body>
+</html>
