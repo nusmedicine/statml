@@ -12,7 +12,7 @@ answer can be checked against what was assumed.
 
 | looking for | go to |
 |---|---|
-| what to build next | **The sequence arc (PHM5005 07-1 to 07-3), PROPOSED, MEASURED AND PICKED 2026-09-20: four widgets by data type, 73 `signal-models` → 72 `signal-windows` → 75 `sequence-models` → 74 `sequence-encoding`; 73 is NEXT, its engine and mock first** — § *The sequence arc*, under PHM5005. Slot 71 `somatic-interactions` CUT 2026-09-20 and slot 52 `training-loop` DISCARDED 2026-09-13, both his call. The cancer mutation arc (67, 69, 70) is complete; the image arc has 61, 64, 65 and 62 shipped, 63 `pretrained` on KIV (his call 2026-09-15), 66 folded into 65; the GWAS and PRS arc (56, 57, 59, 60) and the high-throughput arc are complete |
+| what to build next | **The sequence arc (PHM5005 07-1 to 07-3), PROPOSED, MEASURED AND PICKED 2026-09-20: four widgets by data type; 73 `signal-cnn-lstm` SHIPPED AND PUSHED the same day (`fbe62c2`); NEXT 72 `signal-windows`, then 75 `sequence-models`, then 74 `sequence-encoding`** — § *The sequence arc*, under PHM5005. Slot 71 `somatic-interactions` CUT 2026-09-20 and slot 52 `training-loop` DISCARDED 2026-09-13, both his call. The cancer mutation arc (67, 69, 70) is complete; the image arc has 61, 64, 65 and 62 shipped, 63 `pretrained` on KIV (his call 2026-09-15), 66 folded into 65; the GWAS and PRS arc (56, 57, 59, 60) and the high-throughput arc are complete |
 | how a widget got its shape | § *Widget N*, in order |
 | the four-method reconnaissance | § *Widget 19*, under the PCA sections |
 | the arcs, and what is deliberately not a widget | the arc sections below |
@@ -18984,7 +18984,7 @@ page. The arc is therefore **four widgets, renumbered in the notebooks' order**
 | # | slug | title (provisional) | host | pages | order |
 |---|---|---|---|---|---|
 | 72 | `signal-windows` | Deep Learning - Signal Windows | 07-2 cells 1–21 | Window · Split · Normalize (§ *Slot 75* above) | second |
-| 73 | `signal-cnn-lstm` (his pick; planned as `signal-models`) | Deep Learning - Signals: CNN and LSTM | 07-2 cells 22–99 | 1D-CNN (k in ms, the stack, 69 ms per output, the head) · LSTM (permute, memory across beats, the three reductions as a display, the CNN + LSTM strip) · Occlusion (k = 32 / 16, baseline 0, the resolution, two copies) — §§ *Slot 73*, *74*, *76* above, the signal halves | **first; the engine is born here** |
+| 73 | `signal-cnn-lstm` (his pick; planned as `signal-models`) — **SHIPPED AND PUSHED 2026-09-20** (`fbe62c2`) | Deep Learning - Signals: CNN and LSTM | 07-2 cells 22–99 | 1D-CNN (k in ms, the stack, 69 ms per output, the head) · LSTM (permute, memory across beats, the three reductions as a display, the CNN + LSTM strip) · Occlusion (k = 32 / 16, baseline 0, the resolution, two copies) — §§ *Slot 73*, *74*, *76* above, the signal halves | **first; the engine is born here** |
 | 74 | `sequence-encoding` | Deep Learning - Sequence Encoding | 07-3 cells 1–25 | Tokenize · Pad · Encode (§ *Slot 72* above) | fourth |
 | 75 | `sequence-models` | Deep Learning - Sequence Models | 07-3 cells 26–178 | 1D-CNN (the kernel as a PWM, trained kernels spell the motif, global max over PAD) · LSTM (packing, the final states, the strip) · Occlusion (k = 8 / 4, baseline PAD, the heat behind the letters) — the sequence halves of the same sections | third |
 
@@ -19165,8 +19165,17 @@ fifteen switches, none flagged. Status flipped to shipped in the manifest and
 the widget; `check`, `test` and `build` pass. Core untouched, so no suite run.
 **NOT PUSHED.**
 
-**NEXT:** his "push it"; then one commit, the push, `gh run list` for the
-deploy, and the live manifest count (64).
+**SHIPPED AND PUSHED 2026-09-20, on his "tested ok, push it to gallery":**
+`c5aabad` (the arc plan, the measure script, the mocks, his figures, slot 71
+cut) and `fbe62c2` (the widget, the manifest entry, the thirty states, the
+shooter). The first widget of the arc, built from ask to ship in one day
+with the plan.
+
+**NEXT in the arc:** 72 `signal-windows` (07-2 cells 1–21: Window · Split ·
+Normalize; § *Slot 75* above holds its hosts and the 79.5% against 33.3%
+measurement), measure → mock → his picks → draft, from
+`_lab/signal-cnn-lstm-mock.html`'s shell; it trains nothing, and its Split
+page can score 73's trained net through `widgets/signal-cnn-lstm/engine.js`.
 
 ---
 
