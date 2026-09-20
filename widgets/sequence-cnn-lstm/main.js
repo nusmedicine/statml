@@ -472,7 +472,7 @@ function hoverBase(pointer, w, code) {
   return Math.max(0, Math.min(M.LEN - 1, Math.floor((pointer.x - PAD_L) / colW(w))));
 }
 
-function drawInput(ctx, colors, w, state, code, emb, { win = null, k = 1, hover = null } = {}) {
+function drawInput(ctx, colors, w, state, code, emb, { win = null, k = 1, hover = null, stride = 1, pad = 0 } = {}) {
   const { x, seq, task, cls, extra } = state;
   const X0 = PAD_L, X1 = w - PAD_R;
   const capIn = S.capInput(code), capTruth = S.capTruth(task, cls, extra);
@@ -486,7 +486,9 @@ function drawInput(ctx, colors, w, state, code, emb, { win = null, k = 1, hover 
   /* the window the panel shows: the hovered base first, else the parked one, else the motif's start */
   const n = Math.max(1, k);
   const clampStart = (t) => Math.max(0, Math.min(M.LEN - n, t));
-  const ex0 = clampStart(hover != null ? hover - Math.floor(n / 2) : win != null ? win : (seq.motifAt[0] ?? Math.floor(M.LEN / 2) - 1));
+  /* a hovered window starts where an output's window does: on the stride's grid, as the slide and the parked window do */
+  const snap = (start) => Math.round((start + pad) / stride) * stride - pad;
+  const ex0 = clampStart(hover != null ? snap(hover - Math.floor(n / 2)) : win != null ? win : (seq.motifAt[0] ?? Math.floor(M.LEN / 2) - 1));
   const inWin = (t) => t >= ex0 && t < ex0 + n;
 
   for (let t = 0; t < M.LEN; t++) {
@@ -496,6 +498,7 @@ function drawInput(ctx, colors, w, state, code, emb, { win = null, k = 1, hover 
     if (inWin(t)) rect(ctx, lx, ly - INPUT.lineH + 3, pitch, INPUT.lineH, wash(colors.highlight, 0.16));
     txt(ctx, colors, M.VOCAB[id], lx + pitch / 2, ly, { font: `${motif ? "700 " : ""}${small ? colors.fsXs : colors.fsSm} ${colors.mono}`, fill: letterFill(id, t), align: "center" });
   }
+  for (let r = 0; r < 5; r++) txt(ctx, colors, String(r * ROW_LEN + 1), X0 - 6, INPUT.top + 12 + r * INPUT.lineH, { font: monoFont(colors), fill: colors.ink3, align: "right" });
   /* the window's box on the letters, wrapping where a row does */
   { const a = letterCell(w, ex0, INPUT.top + 12), b = letterCell(w, ex0 + n - 1, INPUT.top + 12);
     if (a.y === b.y) rect(ctx, a.x - 1, a.y - INPUT.lineH + 2, b.x + b.pitch - a.x + 2, INPUT.lineH + 2, null, colors.highlight, 1.5);
@@ -521,7 +524,9 @@ function drawInput(ctx, colors, w, state, code, emb, { win = null, k = 1, hover 
 
   /* the window's tokens as rows: one column up to six, two beyond */
   const ex = tx0 + tw + 46, rh = 11, per = n > 6 ? Math.ceil(n / 2) : n, cols = n > 6 ? 2 : 1, colWEx = tw + 22;
-  txt(ctx, colors, S.capExcerpt(n), ex - 12, midTop - 6, { fill: colors.ink2 });
+  const capEx = S.capExcerpt(n);
+  txt(ctx, colors, capEx, ex - 12, midTop - 6, { fill: colors.ink2 });
+  ctx.save(); ctx.font = `${colors.fsXs} ${colors.font}`; const capExEnd = ex - 12 + ctx.measureText(capEx).width; ctx.restore();
   for (let i = 0; i < n; i++) {
     const t = ex0 + i, bx = ex + Math.floor(i / per) * colWEx, by = midTop + (i % per) * rh;
     const v = vec(x.tok[t]);
@@ -532,11 +537,11 @@ function drawInput(ctx, colors, w, state, code, emb, { win = null, k = 1, hover 
   for (let e = 0; e < E_; e++) txt(ctx, colors, rowName(e), ex + e * cell + cell / 2 - 0.5, midTop + per * rh + 9, { font: monoFont(colors), fill: colors.ink3, align: "center" });
 
   /* the transpose, and the same tokens as columns */
-  const ax = ex + cols * colWEx - 22 + 8, cx0 = ax + 66;
-  const ay = midTop + Math.max(per * rh, E_ * cell) / 2;
-  line(ctx, ax + 6, ay + 0.5, ax + 52, ay + 0.5, colors.ink2, 1.2);
-  ctx.save(); ctx.fillStyle = colors.ink2; ctx.beginPath(); ctx.moveTo(ax + 56, ay + 0.5); ctx.lineTo(ax + 50, ay - 3.5); ctx.lineTo(ax + 50, ay + 4.5); ctx.closePath(); ctx.fill(); ctx.restore();
-  txt(ctx, colors, S.capTranspose, ax + 30, ay - 6, { fill: colors.ink2, align: "center" });
+  const ax = ex + cols * colWEx - 22 + 8, cx0 = Math.max(ax + 66, capExEnd + 16);
+  const ay = midTop + Math.max(per * rh, E_ * cell) / 2, tip = cx0 - 10;
+  line(ctx, ax + 6, ay + 0.5, tip - 4, ay + 0.5, colors.ink2, 1.2);
+  ctx.save(); ctx.fillStyle = colors.ink2; ctx.beginPath(); ctx.moveTo(tip, ay + 0.5); ctx.lineTo(tip - 6, ay - 3.5); ctx.lineTo(tip - 6, ay + 4.5); ctx.closePath(); ctx.fill(); ctx.restore();
+  txt(ctx, colors, S.capTranspose, (ax + 6 + tip) / 2, ay - 6, { fill: colors.ink2, align: "center" });
   for (let i = 0; i < n; i++) {
     const t = ex0 + i, v = vec(x.tok[t]);
     txt(ctx, colors, M.VOCAB[x.tok[t]], cx0 + i * cell + cell / 2 - 0.5, midTop - 2, { font: `${task === "motif" && inMotif(t) ? "700 " : ""}${colors.fsXs} ${colors.mono}`, fill: letterFill(x.tok[t], t), align: "center" });
@@ -588,7 +593,7 @@ function drawCnn(ctx, colors, w, params, state, anim, hover) {
   /* the window: slides through every stop with press 1, then parks at `stop`; the input panel's excerpt follows it */
   const shownT = count === 1 && anim.t < 1 ? Math.round(tSlide * (L1 - 1)) : stopT;
   const winStart = shownT * stride - pad;
-  const CNN = cnnGeom(drawInput(ctx, colors, w, state, code, cnn.net.emb, { win: Math.max(0, winStart), k, hover }));
+  const CNN = cnnGeom(drawInput(ctx, colors, w, state, code, cnn.net.emb, { win: Math.max(0, winStart), k, hover, stride, pad }));
   const rowsBot = rowsTop + nRows(code) * INPUT.rowH;
 
   if (count >= 1) {
