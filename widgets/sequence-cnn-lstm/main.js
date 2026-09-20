@@ -836,13 +836,15 @@ function drawCombo(ctx, colors, w, params, state, anim, hover) {
   /* the window is page 1's kernel: it slides with the maps' sweep through press 1 and follows the recurrence through press 2,
      since one step of the recurrence reads one map column, the kernel's k bases (his round 11) */
   const { k, stride, pad } = state;
-  const stepRead = count === 1 ? uptoF : stepReading(anim, count - 1, combo.T);
+  const stepRead = ((t) => (t == null ? null : Math.min(Lp - 1, t)))(count === 1 ? uptoF : stepReading(anim, count - 1, combo.T));
   const COMBO = comboGeom(drawInput(ctx, colors, w, state, code, state.cnn.net.emb, { k, stride, pad, hover, reads: S.capReadsCombo(k), win: stepRead == null ? null : Math.max(0, stepRead * stride - pad) }));
   txt(ctx, colors, S.capFeats(M.C1, Lp), X0, COMBO.featsHead, { font: capFont(colors), fill: colors.ink1 });
   let fmax = 1e-9; for (const r of combo.X.feats) for (const v of r) fmax = Math.max(fmax, v);
   const cw = (X1 - X0) / Lp;
   rect(ctx, X0, COMBO.featsTop, X1 - X0, M.C1 * COMBO.featCellH, colors.surface2);
   for (let t = 0; t < uptoF; t++) for (let c = 0; c < M.C1; c++) { const v = combo.X.feats[t][c]; if (v > 0) rect(ctx, X0 + t * cw, COMBO.featsTop + c * COMBO.featCellH, cw + 0.5, COMBO.featCellH, ramp(colors, v / fmax, colors.empirical)); }
+  /* the map column the recurrence is reading, in step with the block's cursor and the window on the input (his round 12) */
+  if (count >= 2 && stepRead != null) rect(ctx, X0 + stepRead * cw - 1, COMBO.featsTop - 1.5, cw + 2, M.C1 * COMBO.featCellH + 3, wash(colors.highlight, 0.25), colors.highlight, 1.5);
   const stepOf = (m) => Math.round(((m + 3) / M.MAX_LEN) * Lp);
   for (const m of seq.motifAt) line(ctx, xOfStep(stepOf(m)), COMBO.featsTop, xOfStep(stepOf(m)), COMBO.featsTop + M.C1 * COMBO.featCellH, wash(colors.theory, 0.6), 1, [2, 3]);
   if (count >= 1) txt(ctx, colors, S.capPermuteCombo(Lp, M.C1), X0, COMBO.permY, { font: monoFont(colors), fill: colors.ink1 });
