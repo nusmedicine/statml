@@ -106,6 +106,15 @@ function hash(s) {
 
 const baseline = await (await fetch("./fingerprint-baseline.json")).json();
 let latest = [];
+/* `?only=a,b` runs the named widgets' states alone — the full suite is twelve
+   minutes and a new widget's determinism check needs three runs of its own
+   forty states (HANDOVER asked for this on 2026-09-16; added 2026-09-20 for
+   widget 75). "Copy new baseline" under a filter splices the run into the
+   baseline in place of those widgets' entries, so the other 900 keep the
+   hashes they were recorded with rather than being dropped. */
+const only = new URLSearchParams(location.search).get("only");
+const inOnly = (entry) => !only || only.split(",").includes(entry.slug);
+const wanted = baseline.states.filter(inOnly);
 
 /**
  * Step a widget's animation by hand.
@@ -416,7 +425,7 @@ async function run() {
   let differ = 0;
   let fresh = 0;
 
-  for (const entry of baseline.states) {
+  for (const entry of wanted) {
     const { px, tx, note, size } = await shoot(entry);
     latest.push({ ...entry, px, tx });
 
@@ -450,15 +459,17 @@ async function run() {
     ? `${differ} state(s) DIFFER — a regression, unless you meant it`
     : fresh
       ? `All known states match; ${fresh} new state(s) need a baseline`
-      : `All ${baseline.states.length} states identical`;
+      : `All ${wanted.length} states identical${only ? ` (only ${only})` : ""}`;
   summary.style.color = differ ? "#d03b3b" : "var(--ink-1)";
 }
 
 document.getElementById("run").addEventListener("click", run);
 
 document.getElementById("copy").addEventListener("click", async () => {
+  let k = 0;
+  const states = only ? baseline.states.map((e) => (inOnly(e) ? latest[k++] : e)) : latest;
   const next = JSON.stringify(
-    { $comment: baseline.$comment, states: latest },
+    { $comment: baseline.$comment, states },
     null,
     2
   );
