@@ -528,6 +528,17 @@ defineWidget({
        against what the parameters now ask for. Setting `easing` is the request
        for frames; core clears it when it grants one (principle 4.4). */
     rebuild: (anim, { params }) => {
+      /* A RUN BELONGS TO THE TAB IT STARTED ON. Core keeps a running loop
+         going through a display change, and `advance` runs the studies only
+         on the design tab, so a run interrupted by a visit to the calculation
+         came back frozen part way, the button reading as if nothing had been
+         run. Found by the sweep after widget 70's ship (2026-09-20). The run
+         finishes here, as if its frames had run; the loop ends on its own on
+         the other tab, where there is nothing to move. */
+      if (anim.mode === "run" && anim.t > 0 && anim.t < 1 && params.view !== "design") {
+        anim.t = 1;
+        anim.done = true;
+      }
       anim.qT = params.against === "odds" ? 1 : 0;
       anim.sT = params.design === "case-control" ? 1 : 0;
       if (Math.abs(anim.qT - anim.q) > 0.003 || Math.abs(anim.sT - anim.s) > 0.003) {
