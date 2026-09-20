@@ -72,7 +72,7 @@ const STAGES = { cnn: 3, lstm: 3, combo: 4 };
 const DUR = {
   cnn: [2200, 700, 1200],
   lstm: [1800, 600, 1400],
-  combo: [700, 1400, 600, 1200],
+  combo: [2200, 1400, 600, 1200],
 };
 const WINDOW_MS = 220;
 /* the pace, as a multiple of the durations above: the fast pace is what the draft ran at (his round 10) */
@@ -108,7 +108,7 @@ const comboGeom = (b) => ({ featsHead: b + 14, featsTop: b + 20, featCellH: 6, p
 const HEIGHTS = {
   cnn: (code, k) => inputBot(code, k) + 420,
   lstm: (code, direction) => inputBot(code) + 362 + (direction === "bi" ? SPEC.H * 7 + 6 : 0),
-  combo: (code) => inputBot(code) + 498,
+  combo: (code, k) => inputBot(code, k) + 498,
   occlusion: 236,
 };
 
@@ -221,6 +221,7 @@ const S = {
   capTable: "the table",
   capExcerpt: (n) => (n === 1 ? "one token, its row" : `the window's ${n} tokens, each its row`),
   capReads: (n) => (n === 1 ? "what one step reads" : "what the kernel reads"),
+  capReadsCombo: (k) => `what one step reads: the kernel's ${k} bases`,
   capTranspose: "transpose",
   capSlides: (E) => `[${E}, ${M.MAX_LEN}] · what the kernel slides over`,
   capTruth: (task, cls, extra) => (task === "motif" ? (cls ? `the sequence shown: motif, ${extra} ${extra === 1 ? "copy" : "copies"}` : "the sequence shown: no motif") : `the sequence shown: ${cls ? "GC-rich" : "GC-poor"} · GC ${extra.toFixed(2)}`),
@@ -264,6 +265,10 @@ const S = {
   capAttr: (k, s) => `attribution by position · k = ${k}, stride ${s} · padding stripped`,
   capHalfMax: (n) => `half-max width ${n} bases`,
   capMotif: "the motif",
+  capFlat: (a, k) => `largest change ${a.toFixed(3)} · no window of ${k} moves the prediction`,
+  capFlatWhy: (task, k) => (task === "composition"
+    ? `the fraction of G and C is counted over all ${M.LEN} bases; ${k} of them move it by ${(k / M.LEN).toFixed(2)} at most`
+    : "there is no motif in this sequence to remove"),
   capCopies: "the copies",
   className: { motif: ["No motif", "Motif"], composition: ["GC-poor", "GC-rich"] },
 
@@ -291,6 +296,7 @@ const S = {
   tileWidth: "Half-max width of the map",
   tileWidthNote: "bases above half the largest attribution; the motif is 7 wide",
   tileWidthNoteNone: "bases above half the largest attribution; this sequence has no motif",
+  tileWidthNoteFlat: "no window moves the probability by 0.05 or more: the map is flat",
 
   /* summary */
   sum: {
@@ -346,6 +352,11 @@ const isGC = (id) => id === 2 || id === 3;
 /* ----------------------------------------------------------- the geometry */
 
 const OCC = { lettersTop: 34, lineH: 14, attrHead: 122, attrTop: 130, attrH: 56 };
+/* the attribution axis reaches at least this far, a change of 0.05 in the probability: on composition every window
+   moves a saturated p by under 0.001 (measured 2026-09-20, the three models, both classes), and an axis fitted
+   to that drew noise at full height as if it were a map */
+const ATTR_FLOOR = 0.05;
+const flatMap = (occ) => occ.windows.every((win) => win.a < ATTR_FLOOR);
 
 /* ================================================================ compute */
 
@@ -486,7 +497,7 @@ function hoverBase(pointer, w, code, k) {
   return Math.max(0, Math.min(M.LEN - 1, Math.floor((pointer.x - PAD_L) / colW(w))));
 }
 
-function drawInput(ctx, colors, w, state, code, emb, { win = null, k = 1, hover = null, stride = 1, pad = 0 } = {}) {
+function drawInput(ctx, colors, w, state, code, emb, { win = null, k = 1, hover = null, stride = 1, pad = 0, reads = null } = {}) {
   const { x, seq, task, cls, extra } = state;
   const X0 = PAD_L, X1 = w - PAD_R;
   const capIn = S.capInput(code), capTruth = S.capTruth(task, cls, extra);
@@ -564,7 +575,7 @@ function drawInput(ctx, colors, w, state, code, emb, { win = null, k = 1, hover 
   }
   for (let e = 0; e < E_; e++) txt(ctx, colors, rowName(e), cx0 - 5, midTop + 4 + e * cell + cell - 2, { font: monoFont(colors), fill: colors.ink3, align: "right" });
   rect(ctx, cx0 - 1, midTop + 3, n * cell + 1, E_ * cell + 1, null, colors.highlight, 1.5);
-  { const capR = S.capReads(n); ctx.save(); ctx.font = `${colors.fsXs} ${colors.font}`; const fits = cx0 + ctx.measureText(capR).width <= X1; ctx.restore();
+  { const capR = reads ?? S.capReads(n); ctx.save(); ctx.font = `${colors.fsXs} ${colors.font}`; const fits = cx0 + ctx.measureText(capR).width <= X1; ctx.restore();
     txt(ctx, colors, capR, fits ? cx0 : X1, midTop + 4 + E_ * cell + 12, { fill: colors.ink3, align: fits ? "left" : "right" }); }
 
   /* the overview: all 250 on the token axis, the window boxed */
@@ -798,16 +809,16 @@ function drawRecurrence(ctx, colors, w, params, m, G, count, anim, { xOfStep, to
   }
 }
 
-/** the base the recurrence is reading: the sweep's step during press 1, the last real base once it has run (the head reads the state there) */
-function readingBase(anim, count, T) {
+/** the step the recurrence is reading: the sweep's during press 1, the last once it has run (the head reads the state there) */
+function stepReading(anim, count, T) {
   if (count < 1) return null;
-  return Math.min(M.LEN - 1, count === 1 ? Math.floor(ease(anim.t) * T) : T - 1);
+  return count === 1 ? Math.floor(ease(anim.t) * T) : T - 1;
 }
 
 function drawLstm(ctx, colors, w, params, state, anim, hover) {
   const { lstm, seq, task, code, names } = state;
   const X0 = PAD_L;
-  const LSTM = lstmGeom(drawInput(ctx, colors, w, state, code, lstm.net.emb, { k: 1, hover, win: readingBase(anim, anim.n.lstm, lstm.T) }));
+  const LSTM = lstmGeom(drawInput(ctx, colors, w, state, code, lstm.net.emb, { k: 1, hover, win: ((t) => (t == null ? null : Math.min(M.LEN - 1, t)))(stepReading(anim, anim.n.lstm, lstm.T)) }));
   txt(ctx, colors, S.capEmbed(code, lstm.packed), X0, LSTM.embY, { font: monoFont(colors), fill: colors.ink1 });
   drawRecurrence(ctx, colors, w, params, lstm, LSTM, anim.n.lstm, anim, {
     xOfStep: (t) => px(w, t) + colW(w) / 2, top: LSTM.blockTop, runCaption: S.capRunning(names[1]), lossCaption: S.capLossLstm(SPEC.lstm.n, SPEC.lstm.epochs),
@@ -822,10 +833,11 @@ function drawCombo(ctx, colors, w, params, state, anim, hover) {
   const Lp = combo.X.T, tFeat = stageT(anim, 1, count);
   const xOfStep = (t) => X0 + ((t + 0.5) / Lp) * (X1 - X0);
   const uptoF = Math.floor(tFeat * Lp);
-  /* the window follows the maps' sweep through press 1 and the recurrence's through press 2, at the base under the step's centre */
-  const centreTok = (t) => Math.max(0, Math.min(M.LEN - 1, Math.round(centreOf(t, state.k, state.stride, state.pad))));
-  const stepRead = count === 1 ? uptoF : readingBase(anim, count - 1, combo.T);
-  const COMBO = comboGeom(drawInput(ctx, colors, w, state, code, state.cnn.net.emb, { k: 1, hover, win: stepRead == null ? null : centreTok(stepRead) }));
+  /* the window is page 1's kernel: it slides with the maps' sweep through press 1 and follows the recurrence through press 2,
+     since one step of the recurrence reads one map column, the kernel's k bases (his round 11) */
+  const { k, stride, pad } = state;
+  const stepRead = count === 1 ? uptoF : stepReading(anim, count - 1, combo.T);
+  const COMBO = comboGeom(drawInput(ctx, colors, w, state, code, state.cnn.net.emb, { k, stride, pad, hover, reads: S.capReadsCombo(k), win: stepRead == null ? null : Math.max(0, stepRead * stride - pad) }));
   txt(ctx, colors, S.capFeats(M.C1, Lp), X0, COMBO.featsHead, { font: capFont(colors), fill: colors.ink1 });
   let fmax = 1e-9; for (const r of combo.X.feats) for (const v of r) fmax = Math.max(fmax, v);
   const cw = (X1 - X0) / Lp;
@@ -862,7 +874,7 @@ function drawOcclusion(ctx, colors, w, params, state, anim) {
   }
   let amax = 1e-9; for (const win of occ.windows) amax = Math.max(amax, win.a);
   let pmax = 1e-9; for (let s = 0; s < M.LEN; s++) if (cnt[s] > 0) pmax = Math.max(pmax, partial[s] / cnt[s]);
-  const scale = Math.max(pmax, amax * 0.5);
+  const scale = Math.max(pmax, amax * 0.5, ATTR_FLOOR);
 
   /* the letters, the heat behind each once the map is complete (cell 178), the window boxed, the motif outlined */
   for (let s = 0; s < M.LEN; s++) {
@@ -887,10 +899,15 @@ function drawOcclusion(ctx, colors, w, params, state, anim) {
   const bw = (X1 - X0) / M.LEN;
   for (let s = 0; s < M.LEN; s++) if (cnt[s] > 0) { const a = partial[s] / cnt[s]; const h = OCC.attrH * a / scale; rect(ctx, X0 + s * bw, OCC.attrTop + OCC.attrH - h, bw + 0.5, h, colors.magnitude); }
   line(ctx, X0, OCC.attrTop + OCC.attrH + 0.5, X1, OCC.attrTop + OCC.attrH + 0.5, colors.axis);
+  txt(ctx, colors, "0", X0 - 6, OCC.attrTop + OCC.attrH + 3, { font: monoFont(colors), fill: colors.ink3, align: "right" });
+  txt(ctx, colors, scale.toFixed(2), X0 - 6, OCC.attrTop + 4, { font: monoFont(colors), fill: colors.ink3, align: "right" });
   for (const m of seq.motifAt) rect(ctx, X0 + m * bw, OCC.attrTop - 2, M.MOTIF.length * bw, OCC.attrH + 4, null, colors.theory, 1);
   if (cur) rect(ctx, X0 + cur.start * bw, OCC.attrTop - 2, Math.min(occ.k, M.LEN - cur.start) * bw, OCC.attrH + 4, wash(colors.extreme, 0.14), colors.extreme, 1.2);
   if (seq.motifAt.length) txt(ctx, colors, seq.motifAt.length > 1 ? S.capCopies : S.capMotif, X0 + seq.motifAt[0] * bw, OCC.attrTop + OCC.attrH + 14, { fill: colors.theory });
-  if (done) txt(ctx, colors, S.capHalfMax(M.halfMaxWidth(occ.attr)), X1, OCC.attrHead, { align: "right", fill: colors.ink3 });
+  if (done && flatMap(occ)) {
+    txt(ctx, colors, S.capFlat(amax, occ.k), X0, OCC.attrTop + OCC.attrH + 14, { fill: colors.ink2 });
+    txt(ctx, colors, S.capFlatWhy(state.task, occ.k), X0, OCC.attrTop + OCC.attrH + 27, { fill: colors.ink3 });
+  } else if (done) txt(ctx, colors, S.capHalfMax(M.halfMaxWidth(occ.attr)), X1, OCC.attrHead, { align: "right", fill: colors.ink3 });
 }
 
 /* ================================================================ widget */
@@ -901,7 +918,7 @@ defineWidget({
   title: "Deep Learning - Sequences: CNN and LSTM",
   subtitle: S.subtitle,
   layout: "side",
-  height: ({ page, direction, code, k }) => (page === "lstm" ? HEIGHTS.lstm(code, direction) : page === "combo" ? HEIGHTS.combo(code) : page === "occlusion" ? HEIGHTS.occlusion : HEIGHTS.cnn(code, Number(k))),
+  height: ({ page, direction, code, k }) => (page === "lstm" ? HEIGHTS.lstm(code, direction) : page === "combo" ? HEIGHTS.combo(code, Number(k)) : page === "occlusion" ? HEIGHTS.occlusion : HEIGHTS.cnn(code, Number(k))),
 
   params: {
     page: { type: "segmented", label: S.pageLabel, detail: S.pageDetail, options: PAGES, default: "cnn", display: true },
@@ -1056,7 +1073,7 @@ defineWidget({
   pointer: true,
 
   draw({ ctx, colors, w, params, state, anim, pointer }) {
-    const hover = params.page === "occlusion" ? null : hoverBase(pointer, w, params.code, params.page === "cnn" ? Number(params.k) : 1);
+    const hover = params.page === "occlusion" ? null : hoverBase(pointer, w, params.code, params.page === "lstm" ? 1 : Number(params.k));
     if (params.page === "lstm") drawLstm(ctx, colors, w, params, state, anim, hover);
     else if (params.page === "combo") drawCombo(ctx, colors, w, params, state, anim, hover);
     else if (params.page === "occlusion") drawOcclusion(ctx, colors, w, params, state, anim);
@@ -1086,7 +1103,7 @@ defineWidget({
       return [
         { label: S.tileP(names[1]), value: state.occ.base.toFixed(2), note: S.tilePNoteModel(state.occ.model, state.truth) },
         { label: S.tileWindow, value: `${Math.min(i, n)} / ${n}`, note: S.tileWindowNote(state.occ.k, state.occ.stride) },
-        { label: S.tileWidth, value: done ? String(M.halfMaxWidth(state.occ.attr)) : S.tileWait, note: state.seq.motifAt.length ? S.tileWidthNote : S.tileWidthNoteNone },
+        { label: S.tileWidth, value: done && !flatMap(state.occ) ? String(M.halfMaxWidth(state.occ.attr)) : S.tileWait, note: done && flatMap(state.occ) ? S.tileWidthNoteFlat : state.seq.motifAt.length ? S.tileWidthNote : S.tileWidthNoteNone },
       ];
     }
     const last = state.chain.rows[state.chain.rows.length - 1];
