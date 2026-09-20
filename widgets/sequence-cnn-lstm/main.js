@@ -84,9 +84,13 @@ const ROW_LEN = 40;   // cell 178 wraps the letters at 40
    40, then the encoded rows on the 250-token axis — four one-hot rows, or the
    embedding's eight — with a bar under the motif. Everything below sits at an
    offset from its bottom, which depends on the encoding. */
-const INPUT = { top: 22, lineH: 14, rowH: 8, gap: 10 };
+const INPUT = { top: 22, lineH: 14, rowH: 8, gap: 10, midH: 76, excerpt: 12 };
 const lettersBot = INPUT.top + 5 * INPUT.lineH;
-const rowsTop = lettersBot + INPUT.gap;
+/* his round 3: between the letters and the overview rows, the lesson's two
+   figures — the table with a token's row lit, twelve tokens around the window
+   as rows with their vectors across, the transpose, the same twelve as columns */
+const midTop = lettersBot + 24;
+const rowsTop = midTop + INPUT.midH + 24;
 const nRows = (code) => (code === "onehot" ? 4 : SPEC.E);
 const inputBot = (code) => rowsTop + nRows(code) * INPUT.rowH + 16;
 const cnnGeom = (b) => ({ kernHead: b + 18, kernTop: b + 26, cell: 11, mapsHead: b + 112, mapsTop: b + 120, mapRowH: 11, spellW: 112, chainHead: b + 236, outsY: b + 316, lossHead: b + 360, lossTop: b + 368, lossH: 34 });
@@ -198,12 +202,16 @@ const S = {
   /* canvas captions */
   capInput: (code) => (code === "onehot" ? `tokens [${M.MAX_LEN}] → one-hot [4, ${M.MAX_LEN}]` : `tokens [${M.MAX_LEN}] → Embedding [${M.MAX_LEN}, ${SPEC.E}] → transpose [${SPEC.E}, ${M.MAX_LEN}]`),
   capPad: "PAD",
+  capTable: "the table",
+  capExcerpt: "each token its row",
+  capTranspose: "transpose",
+  capSlides: (E) => `[${E}, ${M.MAX_LEN}] · what the kernel slides over`,
   capTruth: (task, cls, extra) => (task === "motif" ? (cls ? `the sequence shown: motif, ${extra} ${extra === 1 ? "copy" : "copies"}` : "the sequence shown: no motif") : `the sequence shown: ${cls ? "GC-rich" : "GC-poor"} · GC ${extra.toFixed(2)}`),
   capWindow: (k) => `window · k = ${k} bases`,
   capKernel: (c, k, code) => `kernel ${c} read as a matrix [4, ${k}]${code === "learned" ? " through the table" : ""}`,
   capSpell: (spell, match, k, offset) => `spells ${spell}: ${match} of ${Math.min(k, M.MOTIF.length)} columns the motif's${offset ? ` at a shift of ${offset > 0 ? "+" : ""}${offset}` : ""}`,
   capMotifMatrix: "the motif as a matrix",
-  capBand: (t) => `at base ${t}: the window's bases, each read by its column`,
+  capBand: (t) => `read at base ${t}`,
   capBandSum: (v) => `sum ${v.toFixed(2)}`,
   capBandRelu: (v) => `ReLU → ${v.toFixed(2)}`,
   capMaps: (c, L1) => `Conv1 → ReLU · [${c}, ${L1}] · each output under the window it read`,
@@ -213,6 +221,7 @@ const S = {
   capReach: (rf, jump) => `one output reads ${rf} bases; neighbours ${jump} apart`,
   capHead: (pool, c2) => `${pool === "avg" ? "AdaptiveAvgPool1d(1)" : "AdaptiveMaxPool1d(1)"} → Linear(${c2}, 2)`,
   capLoss: (n, e, r, p) => `loss by epoch · ${n} fresh sequences an epoch · ${e} epochs · the best of ${r} initialisations, each probed for ${p}`,
+  capLossShort: (n, e, r) => `loss by epoch · ${n} fresh an epoch · ${e} epochs · the best of ${r} initialisations`,
   capLossLstm: (n, e) => `loss by epoch · ${n} fresh sequences an epoch · ${e} epochs · H = ${SPEC.H}`,
   capProbe: (v) => v.toFixed(2),
   capPred: (p, name) => `p(${name}) = ${p.toFixed(2)}`,
@@ -225,7 +234,7 @@ const S = {
   capFromFwd: (H) => `from h→ [${H}]`,
   capFromRev: (H) => `from h← [${H}]`,
   capHow: {
-    last: (T, bi) => (bi ? `concat: the forward pass's state at step ${T} and the reverse pass's at step 1 — the two framed columns` : `the state at step ${T} — the framed column`),
+    last: (T, bi) => (bi ? `concat: h→ at step ${T} and h← at step 1 — the two framed columns` : `the state at step ${T} — the framed column`),
     max: (T) => `each row's largest value over its ${T} steps — the marked cells`,
   },
   capRunning: (name) => `if the sequence ended here: p(${name})`,
@@ -438,40 +447,88 @@ function letterCell(w, t, base) {
 
 /**
  * The input panel: the sequence's letters (the motif bold in the reference
- * colour; on composition G and C in ink and A and T lighter), then the encoded
- * rows on the token axis — the four one-hot rows, or the embedding's rows read
- * from the page's model — PAD shaded, a bar under each copy of the motif.
- * Returns the panel's bottom, where the page's own drawing starts.
+ * colour; on composition G and C in ink and A and T lighter); then the
+ * lesson's two figures for `centre`'s neighbourhood — the table with the
+ * token at `centre` lit, twelve tokens as rows with their vectors across, the
+ * transpose, the same twelve as columns; then the encoded rows on the token
+ * axis, all 250 — four one-hot rows, or the embedding's eight — PAD shaded, a
+ * bar under each copy of the motif, the excerpt boxed. `win` boxes a window
+ * of `k` tokens from `win` in the excerpt and on the rows. Returns the
+ * panel's bottom, where the page's own drawing starts.
  */
-function drawInput(ctx, colors, w, state, code, emb) {
+function drawInput(ctx, colors, w, state, code, emb, { centre = null, win = null, k = 0 } = {}) {
   const { x, seq, task, cls, extra } = state;
+  const X0 = PAD_L, X1 = w - PAD_R;
   const capIn = S.capInput(code), capTruth = S.capTruth(task, cls, extra);
-  txt(ctx, colors, capIn, PAD_L, 14, { font: capFont(colors), fill: colors.ink1 });
-  ctx.save(); ctx.font = capFont(colors); const inEnd = PAD_L + ctx.measureText(capIn).width; ctx.font = `${colors.fsXs} ${colors.font}`; const truthW = ctx.measureText(capTruth).width; ctx.restore();
-  if (w - PAD_R - truthW > inEnd + 16) txt(ctx, colors, capTruth, w - PAD_R, 14, { fill: colors.reference, align: "right" });
+  txt(ctx, colors, capIn, X0, 14, { font: capFont(colors), fill: colors.ink1 });
+  ctx.save(); ctx.font = capFont(colors); const inEnd = X0 + ctx.measureText(capIn).width; ctx.font = `${colors.fsXs} ${colors.font}`; const truthW = ctx.measureText(capTruth).width; ctx.restore();
+  if (X1 - truthW > inEnd + 16) txt(ctx, colors, capTruth, X1, 14, { fill: colors.reference, align: "right" });
   const inMotif = (t) => seq.motifAt.some((m) => t >= m && t < m + M.MOTIF.length);
   const small = letterCell(w, 0, 0).pitch < 9;
+  const letterFill = (id, t) => (task === "motif" && inMotif(t) ? colors.reference : task === "composition" ? (isGC(id) ? colors.ink1 : colors.ink3) : colors.ink1);
   for (let t = 0; t < M.LEN; t++) {
     const { x: lx, y: ly, pitch } = letterCell(w, t, INPUT.top + 12);
     const id = x.tok[t], motif = task === "motif" && inMotif(t);
     if (motif) rect(ctx, lx, ly - INPUT.lineH + 3, pitch, INPUT.lineH, wash(colors.reference, 0.22));
-    const fill = motif ? colors.reference : task === "composition" ? (isGC(id) ? colors.ink1 : colors.ink3) : colors.ink1;
-    txt(ctx, colors, M.VOCAB[id], lx + pitch / 2, ly, { font: `${motif ? "700 " : ""}${small ? colors.fsXs : colors.fsSm} ${colors.mono}`, fill, align: "center" });
+    txt(ctx, colors, M.VOCAB[id], lx + pitch / 2, ly, { font: `${motif ? "700 " : ""}${small ? colors.fsXs : colors.fsSm} ${colors.mono}`, fill: letterFill(id, t), align: "center" });
   }
-  const cw = colW(w), rows = nRows(code), rowH = INPUT.rowH;
-  rect(ctx, px(w, M.LEN), rowsTop, px(w, M.MAX_LEN) - px(w, M.LEN), rows * rowH, colors.surface2);
-  if (code === "onehot") {
-    for (let t = 0; t < M.LEN; t++) { const bi = M.BASES.indexOf(x.tok[t]); if (bi >= 0) rect(ctx, px(w, t), rowsTop + bi * rowH, cw + 0.4, rowH - 1, colors.empirical); }
-    "ACGT".split("").forEach((b, i) => txt(ctx, colors, b, PAD_L - 6, rowsTop + i * rowH + rowH - 1, { font: monoFont(colors), fill: colors.ink3, align: "right" }));
-  } else {
-    /* the embedding's rows: the table's value for each token, signed */
-    const E_ = emb.E; let amax = 1e-9; for (const v of emb.W.v) amax = Math.max(amax, Math.abs(v));
-    for (let t = 0; t < M.LEN; t++) for (let e = 0; e < E_; e++) rect(ctx, px(w, t), rowsTop + e * rowH, cw + 0.4, rowH - 1, signed(colors, emb.W.v[x.tok[t] * E_ + e], amax));
-    for (let e = 0; e < E_; e++) txt(ctx, colors, `e${e + 1}`, PAD_L - 6, rowsTop + e * rowH + rowH - 1, { font: monoFont(colors), fill: colors.ink3, align: "right" });
+
+  /* the encoding of one token: its row of the table */
+  const E_ = nRows(code), cell = code === "onehot" ? 11 : 9;
+  const vec = (id) => (code === "onehot" ? M.ONE_HOT[id] : Array.from({ length: E_ }, (_, e) => emb.W.v[id * E_ + e]));
+  let amax = 1e-9; if (code !== "onehot") for (const v of emb.W.v) amax = Math.max(amax, Math.abs(v));
+  const cellFill = (v) => (code === "onehot" ? (v > 0 ? colors.empirical : colors.surface2) : signed(colors, v, amax));
+  const rowName = (e) => (code === "onehot" ? "ACGT"[e] : `e${e + 1}`);
+  const n = INPUT.excerpt;
+  const ex0 = Math.max(0, Math.min(M.LEN - n, (centre ?? (seq.motifAt[0] ?? Math.floor(M.LEN / 2)) - 2) - Math.floor(n / 2) + 2));
+  const lit = x.tok[Math.max(0, Math.min(M.LEN - 1, centre ?? ex0))];
+
+  /* the table */
+  const tx0 = X0 + 4, tw = E_ * cell;
+  txt(ctx, colors, S.capTable, X0, midTop - 6, { fill: colors.ink2 });
+  for (let id = 0; id < M.VOCAB.length; id++) {
+    const v = vec(id), y = midTop + id * cell;
+    txt(ctx, colors, M.VOCAB[id], tx0 - 5, y + cell - 2, { font: monoFont(colors), fill: id === lit ? colors.highlight : colors.ink3, align: "right" });
+    for (let e = 0; e < E_; e++) rect(ctx, tx0 + e * cell, y, cell - 1, cell - 1, cellFill(v[e]));
+    if (id === lit) rect(ctx, tx0 - 2, y - 1, tw + 3, cell + 1, null, colors.highlight, 1.2);
   }
-  txt(ctx, colors, S.capPad, (px(w, M.LEN) + px(w, M.MAX_LEN)) / 2, rowsTop + Math.floor(rows / 2) * rowH + 4, { fill: colors.ink3, align: "center" });
-  const rowsBot = rowsTop + rows * rowH;
+
+  /* the excerpt as rows, two columns of six */
+  const ex = tx0 + tw + 46, colWEx = tw + 22, rh = 11, per = n / 2;
+  txt(ctx, colors, S.capExcerpt, ex - 12, midTop - 6, { fill: colors.ink2 });
+  for (let i = 0; i < n; i++) {
+    const t = ex0 + i, bx = ex + Math.floor(i / per) * colWEx, by = midTop + (i % per) * rh;
+    const v = vec(x.tok[t]);
+    txt(ctx, colors, M.VOCAB[x.tok[t]], bx - 6, by + 9, { font: `${task === "motif" && inMotif(t) ? "700 " : ""}${colors.fsXs} ${colors.mono}`, fill: letterFill(x.tok[t], t), align: "right" });
+    for (let e = 0; e < E_; e++) rect(ctx, bx + e * cell, by, cell - 1, rh - 1, cellFill(v[e]));
+    if (win != null && t >= win && t < win + k) rect(ctx, bx - 2, by - 1, tw + 3, rh + 1, null, colors.highlight, 1.2);
+  }
+  for (let e = 0; e < E_; e++) txt(ctx, colors, rowName(e), ex + e * cell + cell / 2 - 0.5, midTop + per * rh + 9, { font: monoFont(colors), fill: colors.ink3, align: "center" });
+
+  /* the transpose, and the same twelve as columns */
+  const ax = ex + 2 * colWEx - 22 + 8, cx0 = ax + 66;
+  const ay = midTop + per * rh / 2;
+  line(ctx, ax + 6, ay + 0.5, ax + 52, ay + 0.5, colors.ink2, 1.2);
+  ctx.save(); ctx.fillStyle = colors.ink2; ctx.beginPath(); ctx.moveTo(ax + 56, ay + 0.5); ctx.lineTo(ax + 50, ay - 3.5); ctx.lineTo(ax + 50, ay + 4.5); ctx.closePath(); ctx.fill(); ctx.restore();
+  txt(ctx, colors, S.capTranspose, ax + 30, ay - 6, { fill: colors.ink2, align: "center" });
+  for (let i = 0; i < n; i++) {
+    const t = ex0 + i, v = vec(x.tok[t]);
+    txt(ctx, colors, M.VOCAB[x.tok[t]], cx0 + i * cell + cell / 2 - 0.5, midTop - 2, { font: `${task === "motif" && inMotif(t) ? "700 " : ""}${colors.fsXs} ${colors.mono}`, fill: letterFill(x.tok[t], t), align: "center" });
+    for (let e = 0; e < E_; e++) rect(ctx, cx0 + i * cell, midTop + 4 + e * cell, cell - 1, cell - 1, cellFill(v[e]));
+  }
+  for (let e = 0; e < E_; e++) txt(ctx, colors, rowName(e), cx0 - 5, midTop + 4 + e * cell + cell - 2, { font: monoFont(colors), fill: colors.ink3, align: "right" });
+  if (win != null) { const a = Math.max(0, win - ex0), b = Math.min(n, win - ex0 + k); if (b > a) rect(ctx, cx0 + a * cell - 1, midTop + 3, (b - a) * cell + 1, E_ * cell + 1, null, colors.highlight, 1.5); }
+
+  /* the overview: all 250 on the token axis, the excerpt boxed */
+  const cw = colW(w), rowH = INPUT.rowH;
+  txt(ctx, colors, S.capSlides(E_), X0, rowsTop - 6, { fill: colors.ink2 });
+  rect(ctx, px(w, M.LEN), rowsTop, px(w, M.MAX_LEN) - px(w, M.LEN), E_ * rowH, colors.surface2);
+  for (let t = 0; t < M.LEN; t++) { const v = vec(x.tok[t]); for (let e = 0; e < E_; e++) if (code !== "onehot" || v[e] > 0) rect(ctx, px(w, t), rowsTop + e * rowH, cw + 0.4, rowH - 1, cellFill(v[e])); }
+  for (let e = 0; e < E_; e++) txt(ctx, colors, rowName(e), X0 - 6, rowsTop + e * rowH + rowH - 1, { font: monoFont(colors), fill: colors.ink3, align: "right" });
+  txt(ctx, colors, S.capPad, (px(w, M.LEN) + px(w, M.MAX_LEN)) / 2, rowsTop + Math.floor(E_ / 2) * rowH + 4, { fill: colors.ink3, align: "center" });
+  const rowsBot = rowsTop + E_ * rowH;
   for (const m of seq.motifAt) rect(ctx, px(w, m), rowsBot + 2, M.MOTIF.length * cw, 3, colors.reference);
+  rect(ctx, px(w, ex0) - 1, rowsTop - 3, n * cw + 2, E_ * rowH + 6, null, colors.ink3, 1);
   return inputBot(code);
 }
 
@@ -500,13 +557,14 @@ function drawCnn(ctx, colors, w, params, state, anim) {
   const follow = followed.c;
   const relu1 = acts[1];
 
-  const CNN = cnnGeom(drawInput(ctx, colors, w, state, code, cnn.net.emb));
+  /* the window: slides through every stop with press 1, then parks at `stop`; the input panel's excerpt follows it */
+  const shownT = count === 1 && anim.t < 1 ? Math.round(tSlide * (L1 - 1)) : stopT;
+  const winStart = shownT * stride - pad;
+  const CNN = cnnGeom(drawInput(ctx, colors, w, state, code, cnn.net.emb, count >= 1 ? { centre: Math.max(0, winStart), win: winStart, k } : {}));
   const rowsBot = rowsTop + nRows(code) * INPUT.rowH;
 
-  /* the window: slides through every stop with press 1, then parks at `stop` */
-  const shownT = count === 1 && anim.t < 1 ? Math.round(tSlide * (L1 - 1)) : stopT;
   if (count >= 1) {
-    const start = shownT * stride - pad;
+    const start = winStart;
     const wx0 = px(w, Math.max(0, start)), wx1 = px(w, Math.min(M.MAX_LEN, start + k));
     rect(ctx, wx0 - 1, rowsTop - 2, Math.max(2, wx1 - wx0) + 2, rowsBot - rowsTop + 3, wash(colors.highlight, 0.22), colors.highlight, 1.5);
     const right = wx1 + 6 + 120 > X1;
@@ -615,7 +673,10 @@ function drawCnn(ctx, colors, w, params, state, anim) {
   const tCls = stageT(anim, 3, count);
   if (tCls > 0) {
     ctx.save(); ctx.globalAlpha = Math.min(1, tCls * 3);
-    txt(ctx, colors, S.capLoss(SPEC.cnn.n, SPEC.cnn.epochs, SPEC.cnn.restarts, SPEC.cnn.probe), X0, CNN.lossHead, { font: capFont(colors), fill: colors.ink1 });
+    /* the full caption when it fits the canvas, the short one at the harness's 535 px */
+    const capL = S.capLoss(SPEC.cnn.n, SPEC.cnn.epochs, SPEC.cnn.restarts, SPEC.cnn.probe);
+    ctx.save(); ctx.font = capFont(colors); const fits = X0 + ctx.measureText(capL).width <= X1; ctx.restore();
+    txt(ctx, colors, fits ? capL : S.capLossShort(SPEC.cnn.n, SPEC.cnn.epochs, SPEC.cnn.restarts), X0, CNN.lossHead, { font: capFont(colors), fill: colors.ink1 });
     drawLossCurve(ctx, colors, X0, CNN.lossTop, CNN.lossH, cnn.curve, Math.ceil(tCls * cnn.curve.length), tCls >= 1 ? S.capPred(pred[1], state.names[1]) : null, tCls >= 1 ? cnn.probes : null, SPEC.cnn.probe);
     ctx.restore();
   }

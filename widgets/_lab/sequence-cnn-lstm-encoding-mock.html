@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · sequence-cnn-lstm — the encoding panel, four ways</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1400px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 104ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); min-height: 26px; white-space: pre-line; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 104ch; }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 104ch; }
+  .q b { display: block; margin-bottom: 2px; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>sequence-cnn-lstm &middot; the encoding panel, four ways</h1>
+  <p class="note">
+    His round 3 (2026-09-20): the one-hot and embedding rows read vertically. They are the tensor AFTER the transpose,
+    <code>[E, 250]</code>, one column a token at two pixels a column &mdash; what <code>Conv1d</code> reads, but not a
+    picture of an encoding. 07-1's own figures are Token &rarr; a row vector (one-hot <code>[0 1 0 0]</code>, or the table's
+    row), and 07-3 cell 26's step is the transpose <code>[B, L, E] &rarr; [B, E, L]</code>. Each option below is drawn for
+    one-hot and for the learned table of the shipped k = 7 net, on the same sequence and window. The letters block above
+    the panel stays as it is on every option.
+  </p>
+
+  <h2>A &middot; As now: the transposed tensor, one column a token, all 250</h2>
+  <div class="row" id="rowA"></div>
+
+  <h2>B &middot; The lesson's rows: an excerpt of the window's neighbourhood as token &rarr; row vector, then its transpose</h2>
+  <p class="note">Twenty-four tokens around the window, each a ROW with its letter and its vector across &mdash; the <code>[L, E]</code>
+    table <code>emb(tokens)</code> returns &mdash; then the arrow and the same twenty-four as COLUMNS, which is what the kernel slides over. The full
+    250 stay underneath as the small overview with the excerpt marked, so the kernel's slide still has its axis.</p>
+  <div class="row" id="rowB"></div>
+
+  <h2>C &middot; Columns under their letters: the excerpt at a legible scale, the overview underneath</h2>
+  <p class="note">The same twenty-four tokens, each a column with its letter on top, at 18 px a column, so "one token is one column of
+    the four rows" is readable; the transpose is not drawn, only named in the caption.</p>
+  <div class="row" id="rowC"></div>
+
+  <h2>D &middot; The lookup itself beside the rows: the table <code>[6, E]</code> as the lesson's embedding figure, one token's row lit</h2>
+  <p class="note">The rows as now, plus the table (PAD, A, C, G, T, N &times; E) drawn once at the left with the token under the window's
+    first base highlighted in it and an arrow to its column &mdash; the mapping the one-hot and the learned table share, and the only
+    place the learned values can be seen as a table.</p>
+  <div class="row" id="rowD"></div>
+
+  <p class="rec">Recommended: <b>B</b>, because it is the lesson's two figures in the lesson's order and the transpose is the step the notebook
+    prints; it costs about 60 px of height. C is B without the transpose. D adds the table to any of them and is worth having under
+    Learned in any case.</p>
+  <p class="q"><b>Which panel, and does D's table join it?</b> A &middot; B (recommended) &middot; C &middot; and D's table on &middot; off</p>
+</main>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+import { makeRng } from "../core/rng.js";
+import * as M from "../sequence-cnn-lstm/model.js";
+import { TABLE } from "../sequence-cnn-lstm/table.js";
+
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+const W = 620;
+function el(tag, cls, text) { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
+function cand(rowId, title, sub, w, h) {
+  const box = el("div", "cand"); box.style.width = `${w}px`;
+  box.appendChild(el("h3", null, title)); box.appendChild(el("p", "sub", sub));
+  document.getElementById(rowId).appendChild(box);
+  const c = document.createElement("canvas");
+  c.width = Math.round(w * DPR); c.height = Math.round(h * DPR); c.style.width = `${w}px`; c.style.height = `${h}px`;
+  box.appendChild(c); const ctx = c.getContext("2d"); ctx.scale(DPR, DPR); return ctx;
+}
+const rgb = (c) => { const m = String(c).match(/^#([0-9a-f]{6})$/i); return m ? [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16)) : [128, 128, 128]; };
+const wash = (color, a) => { const p = rgb(color); return `rgba(${p[0]},${p[1]},${p[2]},${a})`; };
+const ramp = (t, to) => { const a = rgb(T.surface3), b = rgb(to); const u = Math.max(0, Math.min(1, t)); return `rgb(${a.map((x, i) => Math.round(x + (b[i] - x) * u)).join(",")})`; };
+const signed = (v, s) => (v >= 0 ? ramp(v / s, T.valueHigh) : ramp(-v / s, T.valueLow));
+function label(ctx, s, x, y, { size = 11, colour = T.ink2, align = "left", mono = false, weight = "" } = {}) { ctx.save(); ctx.font = `${weight ? weight + " " : ""}${size}px ${mono ? T.mono : T.font}`; ctx.fillStyle = colour; ctx.textAlign = align; ctx.fillText(s, x, y); ctx.restore(); }
+function rect(ctx, x, y, w, h, fill, stroke = null, lw = 1) { ctx.save(); if (fill) { ctx.fillStyle = fill; ctx.fillRect(x, y, w, h); } if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw; ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1); } ctx.restore(); }
+function arrow(ctx, x1, y1, x2, y2, colour) { ctx.save(); ctx.strokeStyle = colour; ctx.fillStyle = colour; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); const a = Math.atan2(y2 - y1, x2 - x1); ctx.beginPath(); ctx.moveTo(x2, y2); ctx.lineTo(x2 - 6 * Math.cos(a - 0.4), y2 - 6 * Math.sin(a - 0.4)); ctx.lineTo(x2 - 6 * Math.cos(a + 0.4), y2 - 6 * Math.sin(a + 0.4)); ctx.closePath(); ctx.fill(); ctx.restore(); }
+
+/* the sequence, the window and the two encodings */
+const seq = M.sequence(makeRng(10), 1, { copies: 1 });
+const x = seq.x, motif = seq.motifAt[0];
+const winStart = motif - 2, K = 7, EX0 = Math.max(0, motif - 9), EXN = 24;
+const cnnL = M.loadWeights(M.buildCnn(makeRng(1), { code: "learned", E: 8, k: 7, stride: 1, pool: "max", channels: [8, 16] }), M.decodeWeights(TABLE["cnn|motif|learned|k7|s1|max"].w));
+const embL = cnnL.emb;
+let amax = 1e-9; for (const v of embL.W.v) amax = Math.max(amax, Math.abs(v));
+const X0 = 44, X1 = W - 14;
+const px = (t) => X0 + (t / M.MAX_LEN) * (X1 - X0), cw = (X1 - X0) / M.MAX_LEN;
+const vecOf = (id, code) => (code === "onehot" ? M.ONE_HOT[id] : Array.from({ length: 8 }, (_, e) => embL.W.v[id * 8 + e]));
+const cellOf = (v, code) => (code === "onehot" ? (v > 0 ? T.empirical : T.surface2) : signed(v, amax));
+const rowNames = (code) => (code === "onehot" ? ["A", "C", "G", "T"] : Array.from({ length: 8 }, (_, e) => `e${e + 1}`));
+
+/** the overview rows as now, at `top`; returns the bottom */
+function overview(ctx, code, top, rowH = 8, { mark = true } = {}) {
+  const E = code === "onehot" ? 4 : 8;
+  rect(ctx, px(M.LEN), top, px(M.MAX_LEN) - px(M.LEN), E * rowH, T.surface2);
+  for (let t = 0; t < M.LEN; t++) { const v = vecOf(x.tok[t], code); for (let e = 0; e < E; e++) if (code !== "onehot" || v[e] > 0) rect(ctx, px(t), top + e * rowH, cw + 0.4, rowH - 1, cellOf(v[e], code)); }
+  rowNames(code).forEach((n, i) => label(ctx, n, X0 - 6, top + i * rowH + rowH - 1, { size: 9, mono: true, colour: T.ink3, align: "right" }));
+  label(ctx, "PAD", (px(M.LEN) + px(M.MAX_LEN)) / 2, top + Math.floor(E / 2) * rowH + 4, { size: 10, colour: T.ink3, align: "center" });
+  rect(ctx, px(winStart) - 1, top - 2, K * cw + 2, E * rowH + 3, wash(T.highlight, 0.22), T.highlight, 1.5);
+  rect(ctx, px(motif), top + E * rowH + 2, 7 * cw, 3, T.reference);
+  if (mark) rect(ctx, px(EX0) - 1, top - 4, EXN * cw + 2, E * rowH + 8, null, T.ink3, 1);
+  return top + E * rowH + 8;
+}
+
+/* ================================================================ A */
+for (const code of ["onehot", "learned"]) {
+  const E = code === "onehot" ? 4 : 8;
+  const ctx = cand("rowA", code === "onehot" ? "A · one-hot [4, 250]" : "A · Embedding [8, 250]", "as the draft draws it after round 1", W, 30 + E * 8 + 20);
+  label(ctx, code === "onehot" ? "tokens [250] → one-hot [4, 250]" : "tokens [250] → Embedding [250, 8] → transpose [8, 250]", X0, 14, { colour: T.ink1, weight: "600" });
+  overview(ctx, code, 22, 8, { mark: false });
+}
+
+/* ================================================================ B */
+for (const code of ["onehot", "learned"]) {
+  const E = code === "onehot" ? 4 : 8, cell = 12;
+  const H = 30 + EXN * 0 + 8 * cell + 40 + E * 8 + 20;
+  const ctx = cand("rowB", code === "onehot" ? "B · one-hot: token → row, then the transpose" : "B · learned: token → the table's row, then the transpose", "twenty-four tokens around the window; the 250 underneath", W, 200 + E * 8);
+  label(ctx, code === "onehot" ? "tokens → one-hot: each token a row of 4 · [L, 4]" : "tokens → Embedding: each token its row of the table · [L, 8]", X0, 14, { colour: T.ink1, weight: "600" });
+  /* the excerpt as rows: 24 rows is too tall at 12 px, so two columns of 12 rows */
+  const rowsPer = 12, rh = 11;
+  for (let i = 0; i < EXN; i++) {
+    const t = EX0 + i, col = Math.floor(i / rowsPer), r = i % rowsPer;
+    const bx = X0 + col * (E * cell + 60), by = 24 + r * rh;
+    const inWin = t >= winStart && t < winStart + K, inMotif = t >= motif && t < motif + 7;
+    label(ctx, M.VOCAB[x.tok[t]], bx - 10, by + 9, { size: 10, mono: true, colour: inMotif ? T.reference : T.ink1, weight: inMotif ? "700" : "", align: "right" });
+    const v = vecOf(x.tok[t], code);
+    for (let e = 0; e < E; e++) rect(ctx, bx + e * cell, by, cell - 1, rh - 1, cellOf(v[e], code));
+    if (inWin) rect(ctx, bx - 2, by - 1, E * cell + 3, rh + 1, null, T.highlight, 1.2);
+  }
+  rowNames(code).forEach((n, e) => label(ctx, n, X0 + e * cell + cell / 2 - 0.5, 24 + rowsPer * rh + 10, { size: 8, mono: true, colour: T.ink3, align: "center" }));
+  const ty = 24 + rowsPer * rh + 22;
+  arrow(ctx, X0 + 2 * (E * cell + 60) + 10, 24 + rowsPer * rh / 2, X0 + 2 * (E * cell + 60) + 60, 24 + rowsPer * rh / 2, T.ink2);
+  label(ctx, "transpose", X0 + 2 * (E * cell + 60) + 12, 24 + rowsPer * rh / 2 - 8, { size: 9, colour: T.ink2 });
+  label(ctx, `[L, ${E}] → [${E}, L]`, X0 + 2 * (E * cell + 60) + 4, 24 + rowsPer * rh / 2 + 22, { size: 9, mono: true, colour: T.ink2 });
+  /* the same 24 as columns, to the right of the arrow */
+  const cx0 = X0 + 2 * (E * cell + 60) + 70, ccw = Math.min(12, (X1 - cx0) / EXN);
+  for (let i = 0; i < EXN; i++) {
+    const t = EX0 + i, v = vecOf(x.tok[t], code), inMotif = t >= motif && t < motif + 7;
+    label(ctx, M.VOCAB[x.tok[t]], cx0 + i * ccw + ccw / 2, 20, { size: 9, mono: true, colour: inMotif ? T.reference : T.ink1, weight: inMotif ? "700" : "", align: "center" });
+    for (let e = 0; e < E; e++) rect(ctx, cx0 + i * ccw, 26 + e * 10, ccw - 1, 9, cellOf(v[e], code));
+  }
+  rect(ctx, cx0 + (winStart - EX0) * ccw - 1, 25, K * ccw + 1, E * 10 + 1, null, T.highlight, 1.5);
+  rowNames(code).forEach((n, e) => label(ctx, n, cx0 - 5, 26 + e * 10 + 8, { size: 8, mono: true, colour: T.ink3, align: "right" }));
+  label(ctx, "what the kernel slides over", cx0, 26 + E * 10 + 14, { size: 9, colour: T.ink3 });
+  label(ctx, "all 250 · the excerpt boxed", X0, ty + 4, { size: 10, colour: T.ink1, weight: "600" });
+  overview(ctx, code, ty + 12);
+}
+
+/* ================================================================ C */
+for (const code of ["onehot", "learned"]) {
+  const E = code === "onehot" ? 4 : 8, ccw = 18, rh = 12;
+  const ctx = cand("rowC", code === "onehot" ? "C · one-hot columns under their letters" : "C · learned columns under their letters", "the same twenty-four; the 250 underneath", W, 60 + E * rh + 30 + E * 8 + 12);
+  label(ctx, code === "onehot" ? "one-hot [4, 250] · one token is one column" : "Embedding, transposed · [8, 250] · one token is one column of 8", X0, 14, { colour: T.ink1, weight: "600" });
+  const cx0 = X0 + 20;
+  for (let i = 0; i < EXN; i++) {
+    const t = EX0 + i, v = vecOf(x.tok[t], code), inMotif = t >= motif && t < motif + 7;
+    if (inMotif) rect(ctx, cx0 + i * ccw, 22, ccw, 14, wash(T.reference, 0.22));
+    label(ctx, M.VOCAB[x.tok[t]], cx0 + i * ccw + ccw / 2, 33, { size: 12, mono: true, colour: inMotif ? T.reference : T.ink1, weight: inMotif ? "700" : "", align: "center" });
+    for (let e = 0; e < E; e++) rect(ctx, cx0 + i * ccw, 40 + e * rh, ccw - 1, rh - 1, cellOf(v[e], code));
+  }
+  rowNames(code).forEach((n, e) => label(ctx, n, cx0 - 6, 40 + e * rh + rh - 2, { size: 9, mono: true, colour: T.ink3, align: "right" }));
+  rect(ctx, cx0 + (winStart - EX0) * ccw - 1, 38, K * ccw + 1, E * rh + 2, null, T.highlight, 1.5);
+  label(ctx, "window · k = 7", cx0 + (winStart - EX0 + K) * ccw + 6, 50, { size: 10, colour: T.highlight });
+  const oy = 40 + E * rh + 24;
+  label(ctx, "all 250 · the excerpt boxed", X0, oy - 4, { size: 10, colour: T.ink1, weight: "600" });
+  overview(ctx, code, oy + 4);
+}
+
+/* ================================================================ D */
+for (const code of ["onehot", "learned"]) {
+  const E = code === "onehot" ? 4 : 8, cell = 12;
+  const ctx = cand("rowD", code === "onehot" ? "D · the table [6, 4] beside the rows" : "D · the table [6, 8] beside the rows", "PAD A C G T N · the row of the token under the window's first base lit", W, 30 + Math.max(6 * cell + 30, E * 8 + 20));
+  label(ctx, code === "onehot" ? "the table: a token's row · one-hot has four fixed rows" : "the table: a token's row · Embedding(6, 8), learned, PAD a row of zeros", X0, 14, { colour: T.ink1, weight: "600" });
+  const tx0 = X0 + 20, ty0 = 26;
+  const first = x.tok[winStart];
+  for (let id = 0; id < 6; id++) {
+    const v = vecOf(id, code);
+    label(ctx, M.VOCAB[id], tx0 - 8, ty0 + id * cell + 9, { size: 10, mono: true, colour: id === first ? T.highlight : T.ink2, align: "right" });
+    for (let e = 0; e < E; e++) rect(ctx, tx0 + e * cell, ty0 + id * cell, cell - 1, cell - 1, cellOf(v[e], code));
+    if (id === first) rect(ctx, tx0 - 2, ty0 + id * cell - 1, E * cell + 3, cell + 1, null, T.highlight, 1.2);
+  }
+  rowNames(code).forEach((n, e) => label(ctx, n, tx0 + e * cell + cell / 2 - 0.5, ty0 + 6 * cell + 10, { size: 8, mono: true, colour: T.ink3, align: "center" }));
+  /* the rows, narrower, to the right */
+  const rx0 = tx0 + E * cell + 60, rpx = (t) => rx0 + (t / M.MAX_LEN) * (X1 - rx0), rcw = (X1 - rx0) / M.MAX_LEN;
+  rect(ctx, rpx(M.LEN), ty0, rpx(M.MAX_LEN) - rpx(M.LEN), E * 8, T.surface2);
+  for (let t = 0; t < M.LEN; t++) { const v = vecOf(x.tok[t], code); for (let e = 0; e < E; e++) if (code !== "onehot" || v[e] > 0) rect(ctx, rpx(t), ty0 + e * 8, rcw + 0.4, 7, cellOf(v[e], code)); }
+  rect(ctx, rpx(winStart) - 1, ty0 - 2, K * rcw + 2, E * 8 + 3, wash(T.highlight, 0.22), T.highlight, 1.5);
+  arrow(ctx, tx0 + E * cell + 6, ty0 + first * cell + cell / 2, rpx(winStart) - 4, ty0 + E * 4, T.highlight);
+  label(ctx, `${M.VOCAB[first]} at base ${winStart + 1} → its column`, tx0 + E * cell + 8, ty0 + first * cell - 4, { size: 9, colour: T.highlight });
+}
+</script>
+</body>
+</html>
