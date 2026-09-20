@@ -8640,23 +8640,448 @@
       "tx": "7fc37d79"
     },
     {
-      "$note": "sequence-cnn-lstm · DRAFT placeholder: 1D-CNN before any press",
+      "$note": "sequence-cnn-lstm · 1D-CNN, before any press: the letters, the encoding panel at the motif, the rows",
       "slug": "sequence-cnn-lstm",
       "state": "?theme=light&shown=0",
-      "px": "0",
-      "tx": "0"
+      "px": "e08c7b86",
+      "tx": "884c0ac2"
     },
     {
-      "$note": "sequence-cnn-lstm · DRAFT placeholder: the slide, driven",
+      "$note": "sequence-cnn-lstm · 1D-CNN, after the slide: kernel 1 as a matrix, the motif as a matrix, the window at base 100, its band",
+      "slug": "sequence-cnn-lstm",
+      "state": "?theme=light&shown=1",
+      "px": "4d2bba63",
+      "tx": "884c0ac2"
+    },
+    {
+      "$note": "sequence-cnn-lstm · 1D-CNN, all three presses: maps, the stack, one output's receptive field, the loss curve",
+      "slug": "sequence-cnn-lstm",
+      "state": "?theme=light&shown=3",
+      "px": "2a1bfd0c",
+      "tx": "bf102699"
+    },
+    {
+      "$note": "sequence-cnn-lstm · 1D-CNN at k = 11, stride 2: the panel grown to eleven rows, one offset parity read",
+      "slug": "sequence-cnn-lstm",
+      "state": "?theme=light&k=11&stride=2&shown=3",
+      "px": "454e4857",
+      "tx": "9be39ba6"
+    },
+    {
+      "$note": "sequence-cnn-lstm · 1D-CNN at k = 3 with average pooling, kernel 5 followed, the window at base 50",
+      "slug": "sequence-cnn-lstm",
+      "state": "?theme=light&k=3&pool=avg&follow=5&stop=50&shown=3",
+      "px": "2260a395",
+      "tx": "3c829175"
+    },
+    {
+      "$note": "sequence-cnn-lstm · 1D-CNN under the learned encoding: eight embedding rows, the kernel read through the table",
+      "slug": "sequence-cnn-lstm",
+      "state": "?theme=light&code=learned&shown=3",
+      "px": "98394870",
+      "tx": "0cc2e1a4"
+    },
+    {
+      "$note": "sequence-cnn-lstm · 1D-CNN on a sequence with no motif (copies 0): the other class",
+      "slug": "sequence-cnn-lstm",
+      "state": "?theme=light&copies=0&shown=3",
+      "px": "45b81b3f",
+      "tx": "5289d04b"
+    },
+    {
+      "$note": "sequence-cnn-lstm · 1D-CNN with three copies of the motif on seed 7",
+      "slug": "sequence-cnn-lstm",
+      "state": "?theme=light&copies=3&seed=7&shown=3",
+      "px": "96082b21",
+      "tx": "62ad6a3f"
+    },
+    {
+      "$note": "sequence-cnn-lstm · 1D-CNN on composition, GC-rich: G and C in ink, the truth on the figure",
+      "slug": "sequence-cnn-lstm",
+      "state": "?theme=light&task=composition&shown=3",
+      "px": "d7e7f0b1",
+      "tx": "59ccf39e"
+    },
+    {
+      "$note": "sequence-cnn-lstm · 1D-CNN on composition, GC-poor, learned encoding",
+      "slug": "sequence-cnn-lstm",
+      "state": "?theme=light&task=composition&cls=poor&code=learned&shown=3",
+      "px": "da88d6f1",
+      "tx": "30fbcb1a"
+    },
+    {
+      "$note": "sequence-cnn-lstm · LSTM, before any press: the letters and the empty block",
+      "slug": "sequence-cnn-lstm",
+      "state": "?theme=light&page=lstm&shown=0",
+      "px": "b1abeb02",
+      "tx": "878baf57"
+    },
+    {
+      "$note": "sequence-cnn-lstm · LSTM, all three presses: the packed block, the last state framed, the running prediction, the chance note",
+      "slug": "sequence-cnn-lstm",
+      "state": "?theme=light&page=lstm&shown=3",
+      "px": "163d6d9b",
+      "tx": "30de292b"
+    },
+    {
+      "$note": "sequence-cnn-lstm · LSTM both ways: two halves, two framed columns, the concat",
+      "slug": "sequence-cnn-lstm",
+      "state": "?theme=light&page=lstm&direction=bi&shown=3",
+      "px": "ff52429c",
+      "tx": "f69afe68"
+    },
+    {
+      "$note": "sequence-cnn-lstm · LSTM unpacked: 250 steps, the state after the fifty PAD tokens, the drift tile",
+      "slug": "sequence-cnn-lstm",
+      "state": "?theme=light&page=lstm&pack=off&shown=3",
+      "px": "3cfa726d",
+      "tx": "9d7edcfd"
+    },
+    {
+      "$note": "sequence-cnn-lstm · LSTM on composition: the class it reads",
+      "slug": "sequence-cnn-lstm",
+      "state": "?theme=light&page=lstm&task=composition&shown=3",
+      "px": "1480e9a0",
+      "tx": "bfb89114"
+    },
+    {
+      "$note": "sequence-cnn-lstm · LSTM both ways under the learned encoding",
+      "slug": "sequence-cnn-lstm",
+      "state": "?theme=light&page=lstm&code=learned&direction=bi&shown=3",
+      "px": "80fded85",
+      "tx": "bbb2885e"
+    },
+    {
+      "$note": "sequence-cnn-lstm · CNN + LSTM, all four presses: the maps, the block, last reduced, the running prediction",
+      "slug": "sequence-cnn-lstm",
+      "state": "?theme=light&page=combo&shown=4",
+      "px": "8c9e5699",
+      "tx": "7f5561da"
+    },
+    {
+      "$note": "sequence-cnn-lstm · CNN + LSTM with max reduced: the marked cells, the motif found",
+      "slug": "sequence-cnn-lstm",
+      "state": "?theme=light&page=combo&reduce=max&shown=4",
+      "px": "b5480562",
+      "tx": "2270b87d"
+    },
+    {
+      "$note": "sequence-cnn-lstm · CNN + LSTM at k = 11 under the learned encoding: the window eleven wide on the combo page",
+      "slug": "sequence-cnn-lstm",
+      "state": "?theme=light&page=combo&k=11&code=learned&shown=4",
+      "px": "a59b8aee",
+      "tx": "ecf0ba5f"
+    },
+    {
+      "$note": "sequence-cnn-lstm · CNN + LSTM on composition at stride 2: 125 steps",
+      "slug": "sequence-cnn-lstm",
+      "state": "?theme=light&page=combo&task=composition&stride=2&shown=4",
+      "px": "1bd52560",
+      "tx": "5e212db4"
+    },
+    {
+      "$note": "sequence-cnn-lstm · Occlusion of the 1D-CNN, the walk complete at k = 8: the map at the motif, the heatmap behind the letters",
+      "slug": "sequence-cnn-lstm",
+      "state": "?theme=light&page=occlusion&shown=99",
+      "px": "9c041b5a",
+      "tx": "91024d1b"
+    },
+    {
+      "$note": "sequence-cnn-lstm · Occlusion at k = 4: the narrowest map",
+      "slug": "sequence-cnn-lstm",
+      "state": "?theme=light&page=occlusion&window=4&shown=99",
+      "px": "688a161f",
+      "tx": "72e7d309"
+    },
+    {
+      "$note": "sequence-cnn-lstm · Occlusion of the CNN + LSTM at k = 12",
+      "slug": "sequence-cnn-lstm",
+      "state": "?theme=light&page=occlusion&window=12&model=combo&shown=99",
+      "px": "02b16b18",
+      "tx": "00aae395"
+    },
+    {
+      "$note": "sequence-cnn-lstm · Occlusion of the LSTM with the heatmap off",
+      "slug": "sequence-cnn-lstm",
+      "state": "?theme=light&page=occlusion&model=lstm&heat=off&shown=99",
+      "px": "023864b4",
+      "tx": "a4d4382f"
+    },
+    {
+      "$note": "sequence-cnn-lstm · Occlusion on a sequence with no motif: the flat map and its note",
+      "slug": "sequence-cnn-lstm",
+      "state": "?theme=light&page=occlusion&copies=0&shown=99",
+      "px": "2b2cd1e9",
+      "tx": "31d27a58"
+    },
+    {
+      "$note": "sequence-cnn-lstm · Occlusion on composition: the flat map, the axis at its floor, the note on the fraction",
+      "slug": "sequence-cnn-lstm",
+      "state": "?theme=light&page=occlusion&task=composition&shown=99",
+      "px": "3fe35672",
+      "tx": "e38eff67"
+    },
+    {
+      "$note": "sequence-cnn-lstm · Occlusion with two copies: both windows read",
+      "slug": "sequence-cnn-lstm",
+      "state": "?theme=light&page=occlusion&copies=2&shown=99",
+      "px": "0796cc71",
+      "tx": "39794eab"
+    },
+    {
+      "$note": "sequence-cnn-lstm · DRIVEN - the kernel part way along the rows at the medium pace, the panel's window following it",
       "slug": "sequence-cnn-lstm",
       "state": "?theme=light",
+      "px": "62483426",
+      "tx": "884c0ac2",
       "drive": {
         "click": "step",
-        "frames": 14,
+        "frames": 30,
         "dt": 32
-      },
-      "px": "0",
-      "tx": "0"
+      }
+    },
+    {
+      "$note": "sequence-cnn-lstm · DRIVEN - the same slide at the fast pace, further along",
+      "slug": "sequence-cnn-lstm",
+      "state": "?theme=light&speed=fast",
+      "px": "41dd4c8f",
+      "tx": "884c0ac2",
+      "drive": {
+        "click": "step",
+        "frames": 30,
+        "dt": 32
+      }
+    },
+    {
+      "$note": "sequence-cnn-lstm · DRIVEN - the stack fading in after the slide",
+      "slug": "sequence-cnn-lstm",
+      "state": "?theme=light",
+      "px": "84ac584c",
+      "tx": "43c42112",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 110
+          }
+        ],
+        "click": "step",
+        "frames": 10,
+        "dt": 32
+      }
+    },
+    {
+      "$note": "sequence-cnn-lstm · DRIVEN - the loss curve part way through its epochs",
+      "slug": "sequence-cnn-lstm",
+      "state": "?theme=light",
+      "px": "07308319",
+      "tx": "43c42112",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 110
+          },
+          {
+            "click": "step",
+            "frames": 40
+          }
+        ],
+        "click": "step",
+        "frames": 20,
+        "dt": 32
+      }
+    },
+    {
+      "$note": "sequence-cnn-lstm · DRIVEN - the recurrence sweeping the block, the one-token window at the base being read",
+      "slug": "sequence-cnn-lstm",
+      "state": "?theme=light&page=lstm",
+      "px": "e11f6e04",
+      "tx": "878baf57",
+      "drive": {
+        "click": "step",
+        "frames": 40,
+        "dt": 32
+      }
+    },
+    {
+      "$note": "sequence-cnn-lstm · DRIVEN - the running prediction drawing left to right",
+      "slug": "sequence-cnn-lstm",
+      "state": "?theme=light&page=lstm",
+      "px": "1700b20d",
+      "tx": "30de292b",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 90
+          },
+          {
+            "click": "step",
+            "frames": 30
+          }
+        ],
+        "click": "step",
+        "frames": 25,
+        "dt": 32
+      }
+    },
+    {
+      "$note": "sequence-cnn-lstm · DRIVEN - CNN + LSTM, page 1's kernel sliding with the maps filling behind it",
+      "slug": "sequence-cnn-lstm",
+      "state": "?theme=light&page=combo",
+      "px": "ec7edbd2",
+      "tx": "842f408b",
+      "drive": {
+        "click": "step",
+        "frames": 40,
+        "dt": 32
+      }
+    },
+    {
+      "$note": "sequence-cnn-lstm · DRIVEN - CNN + LSTM, the recurrence sweeping the maps: the window, the map column and the block's cursor at one step",
+      "slug": "sequence-cnn-lstm",
+      "state": "?theme=light&page=combo",
+      "px": "e192732b",
+      "tx": "842f408b",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 110
+          }
+        ],
+        "click": "step",
+        "frames": 30,
+        "dt": 32
+      }
+    },
+    {
+      "$note": "sequence-cnn-lstm · DRIVEN - the first window easing to PAD",
+      "slug": "sequence-cnn-lstm",
+      "state": "?theme=light&page=occlusion",
+      "px": "c66f0219",
+      "tx": "5a9bf450",
+      "drive": {
+        "click": "step",
+        "frames": 4,
+        "dt": 32
+      }
+    },
+    {
+      "$note": "sequence-cnn-lstm · DRIVEN - Play, several windows in, the band on the plot",
+      "slug": "sequence-cnn-lstm",
+      "state": "?theme=light&page=occlusion",
+      "px": "8e8aedf1",
+      "tx": "34b6ad67",
+      "drive": {
+        "click": "run",
+        "frames": 60,
+        "dt": 32
+      }
+    },
+    {
+      "$note": "sequence-cnn-lstm · HIT-DRIVEN: after the slide, kernel 3's map at [300,411] makes it the followed one",
+      "slug": "sequence-cnn-lstm",
+      "state": "?theme=light",
+      "px": "5f7e998f",
+      "tx": "884c0ac2",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 110
+          }
+        ],
+        "hit": [
+          300,
+          411
+        ],
+        "frames": 2,
+        "dt": 32
+      }
+    },
+    {
+      "$note": "sequence-cnn-lstm · HIT-DRIVEN: after the slide, the letter at [169,30] parks the window at base 11",
+      "slug": "sequence-cnn-lstm",
+      "state": "?theme=light",
+      "px": "1e8794b1",
+      "tx": "884c0ac2",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 110
+          }
+        ],
+        "hit": [
+          169,
+          30
+        ],
+        "frames": 2,
+        "dt": 32
+      }
+    },
+    {
+      "$note": "sequence-cnn-lstm · HIT-DRIVEN: after the slide, the rows at [200,232] park the window at base 85",
+      "slug": "sequence-cnn-lstm",
+      "state": "?theme=light",
+      "px": "0b650763",
+      "tx": "884c0ac2",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 110
+          }
+        ],
+        "hit": [
+          200,
+          232
+        ],
+        "frames": 2,
+        "dt": 32
+      }
+    },
+    {
+      "$note": "sequence-cnn-lstm · INTERRUPTED - the LSTM page visited mid-slide: its own empty page, the loop ended",
+      "slug": "sequence-cnn-lstm",
+      "state": "?theme=light",
+      "px": "b1abeb02",
+      "tx": "878baf57",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 5
+          }
+        ],
+        "set": {
+          "page": "lstm"
+        },
+        "frames": 10,
+        "dt": 32
+      }
+    },
+    {
+      "$note": "sequence-cnn-lstm · INTERRUPTED - CNN + LSTM visited mid-sweep: its own empty page, the loop ended",
+      "slug": "sequence-cnn-lstm",
+      "state": "?theme=light&page=lstm",
+      "px": "261b0d16",
+      "tx": "842f408b",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 5
+          }
+        ],
+        "set": {
+          "page": "combo"
+        },
+        "frames": 10,
+        "dt": 32
+      }
     }
   ]
 }
