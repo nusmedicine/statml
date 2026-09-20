@@ -19610,14 +19610,39 @@ winner and loser at every tick.
 13. **Noise: none · line · drift · both**, one data control on the
     recordings, so a step can be watched doing nothing.
 
-**NEXT:** the draft — `widgets/signal-windows/` with `model.js` (the stage
-lifted from the mock with the contamination and the cleaning — decimation,
-the biquads, the three trends, the periodised db4 — the windowing, the
-nearest-window scorer, the label counts) and `main.js` with four pages,
-`_lab/signal-windows-verify.mjs` registered in `scripts/verify.mjs` (the
-wavelet's reconstruction error and the notch's depth are its first
-assertions), manifest status `draft`; then his rounds. The CNN is not
-imported; nothing trains. Height: four pages, the Clean page the tallest.
+**DRAFT committed 2026-09-20 evening (`be20dd3`, local), on "start the
+draft".** `widgets/signal-windows/model.js` is the stage and the arithmetic
+(the eight subjects with both annotations, the contamination, decimation,
+second-order sections run forward and backward, the three trends with a
+periodised db4 reflected out to a power of two, the windowing and its label
+rules, the two deals, the nearest-window scorer at half rate with a lag step
+of 3); `main.js` the four pages — Clean (Step runs Resample → Filter →
+Detrend, each a row; a one-second zoom sample by sample; the power before and
+after the filter as an inset; the trend over the filtered trace and the
+cleaned trace under it), Window (the cleaned recording with the live
+annotation drawn on it, windows cut one a press into two staggered rows with
+their letter), Split (the deck, one row a subject; press 1 deals with a sweep,
+each press after scores one held-out window and draws it over its nearest
+training window; a click on a held-out cell picks the one drawn; both
+accuracies in the readout, the other deal's once the drawn one is scored) and
+Normalize (one press moves every window's amplitude dot to sd 1; the
+`[N, C, L]` print). `_lab/signal-windows-verify.mjs` is registered (28
+checks: the sections' pass and stop bands, the wavelet to rounding, the
+prefix-sum average, the folded line at 90 Hz, A_8 under 5% of the drift and
+A_10 most of it, the label rules against a brute count, the two deals' gap on
+the recording label and their agreement on the event label, the struck-word
+sweep). The switch probe reads 20 switches, 0 flagged. **Found while
+building:** the wavelet's ramp was read live from the array the loop was
+rewriting, so A_j drifted along the record (76% left at every level) —
+the ends are read once now, and A_8 leaves 2%. **For his first look:** the
+Page row's fourth label truncates below about 900 px; the Held-out window
+slider runs to 160 and clamps to the count; Level's cutoff is printed in Hz
+because it moves with the rate (A_8 is 0.70 Hz at 360 Hz, 0.18 at 90); at
+90 Hz the 50 Hz line has folded to 40 and the Filter row says no notch at
+50 Hz exists there; the Window page draws all 20 s where the mock drew 12.
+
+**NEXT:** his rounds from the draft at `/widget/signal-windows/`; then the
+copy audit, the states and the ship.
 
 ---
 
