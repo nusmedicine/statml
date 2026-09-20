@@ -456,7 +456,15 @@ function letterCell(w, t, base) {
  * of `k` tokens from `win` in the excerpt and on the rows. Returns the
  * panel's bottom, where the page's own drawing starts.
  */
-function drawInput(ctx, colors, w, state, code, emb, { centre = null, win = null, k = 0 } = {}) {
+/** the base under the pointer when it is over the overview rows, else null — the hover inspector's one input */
+function hoverBase(pointer, w, code) {
+  if (!pointer) return null;
+  const rowsBot = rowsTop + nRows(code) * INPUT.rowH;
+  if (pointer.y < rowsTop - 4 || pointer.y > rowsBot + 6 || pointer.x < PAD_L || pointer.x >= px(w, M.LEN)) return null;
+  return Math.max(0, Math.min(M.LEN - 1, Math.floor((pointer.x - PAD_L) / colW(w))));
+}
+
+function drawInput(ctx, colors, w, state, code, emb, { centre = null, win = null, k = 0, hover = null } = {}) {
   const { x, seq, task, cls, extra } = state;
   const X0 = PAD_L, X1 = w - PAD_R;
   const capIn = S.capInput(code), capTruth = S.capTruth(task, cls, extra);
@@ -479,9 +487,12 @@ function drawInput(ctx, colors, w, state, code, emb, { centre = null, win = null
   let amax = 1e-9; if (code !== "onehot") for (const v of emb.W.v) amax = Math.max(amax, Math.abs(v));
   const cellFill = (v) => (code === "onehot" ? (v > 0 ? colors.empirical : colors.surface2) : signed(colors, v, amax));
   const rowName = (e) => (code === "onehot" ? "ACGT"[e] : `e${e + 1}`);
+  /* the excerpt sits on the hovered base when there is one (an inspector: the
+     same panel is reached by the click that parks the window), else on `centre` */
   const n = INPUT.excerpt;
-  const ex0 = Math.max(0, Math.min(M.LEN - n, (centre ?? (seq.motifAt[0] ?? Math.floor(M.LEN / 2)) - 2) - Math.floor(n / 2) + 2));
-  const lit = x.tok[Math.max(0, Math.min(M.LEN - 1, centre ?? ex0))];
+  const focus = hover ?? centre ?? (seq.motifAt[0] ?? Math.floor(M.LEN / 2)) - 2;
+  const ex0 = Math.max(0, Math.min(M.LEN - n, focus - Math.floor(n / 2) + 2));
+  const litAt = Math.max(0, Math.min(M.LEN - 1, hover ?? centre ?? ex0)), lit = x.tok[litAt];
 
   /* the table */
   const tx0 = X0 + 4, tw = E_ * cell;
@@ -502,6 +513,7 @@ function drawInput(ctx, colors, w, state, code, emb, { centre = null, win = null
     txt(ctx, colors, M.VOCAB[x.tok[t]], bx - 6, by + 9, { font: `${task === "motif" && inMotif(t) ? "700 " : ""}${colors.fsXs} ${colors.mono}`, fill: letterFill(x.tok[t], t), align: "right" });
     for (let e = 0; e < E_; e++) rect(ctx, bx + e * cell, by, cell - 1, rh - 1, cellFill(v[e]));
     if (win != null && t >= win && t < win + k) rect(ctx, bx - 2, by - 1, tw + 3, rh + 1, null, colors.highlight, 1.2);
+    if (hover != null && t === litAt) rect(ctx, bx - 2, by - 1, tw + 3, rh + 1, wash(colors.highlight, 0.18), colors.highlight, 1.2);
   }
   for (let e = 0; e < E_; e++) txt(ctx, colors, rowName(e), ex + e * cell + cell / 2 - 0.5, midTop + per * rh + 9, { font: monoFont(colors), fill: colors.ink3, align: "center" });
 
@@ -518,6 +530,7 @@ function drawInput(ctx, colors, w, state, code, emb, { centre = null, win = null
   }
   for (let e = 0; e < E_; e++) txt(ctx, colors, rowName(e), cx0 - 5, midTop + 4 + e * cell + cell - 2, { font: monoFont(colors), fill: colors.ink3, align: "right" });
   if (win != null) { const a = Math.max(0, win - ex0), b = Math.min(n, win - ex0 + k); if (b > a) rect(ctx, cx0 + a * cell - 1, midTop + 3, (b - a) * cell + 1, E_ * cell + 1, null, colors.highlight, 1.5); }
+  if (hover != null && litAt >= ex0 && litAt < ex0 + n) rect(ctx, cx0 + (litAt - ex0) * cell - 1, midTop + 3, cell + 1, E_ * cell + 1, wash(colors.highlight, 0.18), colors.highlight, 1.2);
 
   /* the overview: all 250 on the token axis, the excerpt boxed */
   const cw = colW(w), rowH = INPUT.rowH;
@@ -529,6 +542,7 @@ function drawInput(ctx, colors, w, state, code, emb, { centre = null, win = null
   const rowsBot = rowsTop + E_ * rowH;
   for (const m of seq.motifAt) rect(ctx, px(w, m), rowsBot + 2, M.MOTIF.length * cw, 3, colors.reference);
   rect(ctx, px(w, ex0) - 1, rowsTop - 3, n * cw + 2, E_ * rowH + 6, null, colors.ink3, 1);
+  if (hover != null) rect(ctx, px(w, litAt) - 1, rowsTop - 3, cw + 2, E_ * rowH + 6, null, colors.highlight, 1.5);
   return inputBot(code);
 }
 
@@ -550,7 +564,7 @@ function drawLossCurve(ctx, colors, x0, y0, h, curve, upto, caption, probes = nu
   if (caption) txt(ctx, colors, caption, x0 + 228, y0 + 12, { font: `600 ${colors.fsSm} ${colors.mono}`, fill: colors.ink1 });
 }
 
-function drawCnn(ctx, colors, w, params, state, anim) {
+function drawCnn(ctx, colors, w, params, state, anim, hover) {
   const { x, seq, acts, chain, cnn, pred, k, stride, pad, L1, kernels, followed, stopT, code, task } = state;
   const X0 = PAD_L, X1 = w - PAD_R, cw = colW(w);
   const count = anim.n.cnn, tSlide = count === 1 ? ease(anim.t) : count > 1 ? 1 : 0;
@@ -560,7 +574,7 @@ function drawCnn(ctx, colors, w, params, state, anim) {
   /* the window: slides through every stop with press 1, then parks at `stop`; the input panel's excerpt follows it */
   const shownT = count === 1 && anim.t < 1 ? Math.round(tSlide * (L1 - 1)) : stopT;
   const winStart = shownT * stride - pad;
-  const CNN = cnnGeom(drawInput(ctx, colors, w, state, code, cnn.net.emb, count >= 1 ? { centre: Math.max(0, winStart), win: winStart, k } : {}));
+  const CNN = cnnGeom(drawInput(ctx, colors, w, state, code, cnn.net.emb, count >= 1 ? { centre: Math.max(0, winStart), win: winStart, k, hover } : { hover }));
   const rowsBot = rowsTop + nRows(code) * INPUT.rowH;
 
   if (count >= 1) {
@@ -751,10 +765,10 @@ function drawRecurrence(ctx, colors, w, params, m, G, count, anim, { xOfStep, to
   }
 }
 
-function drawLstm(ctx, colors, w, params, state, anim) {
+function drawLstm(ctx, colors, w, params, state, anim, hover) {
   const { lstm, seq, task, code, names } = state;
   const X0 = PAD_L;
-  const LSTM = lstmGeom(drawInput(ctx, colors, w, state, code, lstm.net.emb));
+  const LSTM = lstmGeom(drawInput(ctx, colors, w, state, code, lstm.net.emb, { hover }));
   txt(ctx, colors, S.capEmbed(code, lstm.packed), X0, LSTM.embY, { font: monoFont(colors), fill: colors.ink1 });
   drawRecurrence(ctx, colors, w, params, lstm, LSTM, anim.n.lstm, anim, {
     xOfStep: (t) => px(w, t) + colW(w) / 2, top: LSTM.blockTop, runCaption: S.capRunning(names[1]), lossCaption: S.capLossLstm(SPEC.lstm.n, SPEC.lstm.epochs),
@@ -763,12 +777,12 @@ function drawLstm(ctx, colors, w, params, state, anim) {
   });
 }
 
-function drawCombo(ctx, colors, w, params, state, anim) {
+function drawCombo(ctx, colors, w, params, state, anim, hover) {
   const { combo, seq, code, names } = state;
   const X0 = PAD_L, X1 = w - PAD_R, count = anim.n.combo;
   const Lp = combo.X.T, tFeat = stageT(anim, 1, count);
   const xOfStep = (t) => X0 + ((t + 0.5) / Lp) * (X1 - X0);
-  const COMBO = comboGeom(drawInput(ctx, colors, w, state, code, state.cnn.net.emb));
+  const COMBO = comboGeom(drawInput(ctx, colors, w, state, code, state.cnn.net.emb, { hover }));
   txt(ctx, colors, S.capFeats(M.C1, Lp), X0, COMBO.featsHead, { font: capFont(colors), fill: colors.ink1 });
   let fmax = 1e-9; for (const r of combo.X.feats) for (const v of r) fmax = Math.max(fmax, v);
   const cw = (X1 - X0) / Lp;
@@ -989,11 +1003,16 @@ defineWidget({
     },
   },
 
-  draw({ ctx, colors, w, params, state, anim }) {
-    if (params.page === "lstm") drawLstm(ctx, colors, w, params, state, anim);
-    else if (params.page === "combo") drawCombo(ctx, colors, w, params, state, anim);
+  /* the pointer over the overview rows moves the encoding panel's excerpt to the base under it — an inspector,
+     since the click that parks the window reaches the same panel; nothing is written */
+  pointer: true,
+
+  draw({ ctx, colors, w, params, state, anim, pointer }) {
+    const hover = params.page === "occlusion" ? null : hoverBase(pointer, w, params.code);
+    if (params.page === "lstm") drawLstm(ctx, colors, w, params, state, anim, hover);
+    else if (params.page === "combo") drawCombo(ctx, colors, w, params, state, anim, hover);
     else if (params.page === "occlusion") drawOcclusion(ctx, colors, w, params, state, anim);
-    else drawCnn(ctx, colors, w, params, state, anim);
+    else drawCnn(ctx, colors, w, params, state, anim, hover);
   },
 
   readout({ params, state, anim }) {
