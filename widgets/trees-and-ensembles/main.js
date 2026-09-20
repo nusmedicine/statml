@@ -941,6 +941,61 @@ function resolveRGB(css) {
 
 /* ========================================================================= */
 
+/** One frame of the drive: one split, one resample or one boosted tree, on the
+    page the parameters name. Was the body of `advance` until 2026-09-20. */
+function takeUnit(anim, dt, params, state) {
+  const sp = speedOf(params);
+  const running = anim.mode === "run";
+
+  if (params.page === "boost") {
+    /* Same two beats as the bag — what is left over is shown, then the
+       tree that answers it lands — so the ensemble pages share a grammar. */
+    const o = anim.boost;
+    if (o.k >= BOOST_M) { anim.done = true; return false; }
+    if (o.phase === "idle") { o.phase = sp.flip ? "fit" : "draw"; o.t = 0; }
+    o.t += dt;
+    const drawMs = sp.flip ? 0 : DRAW_MS / sp.mult;
+    const fitMs = sp.flip ? FLIP_MS * (2 / sp.mult) : FIT_MS / sp.mult;
+    if (o.phase === "draw" && o.t >= drawMs) { o.phase = "fit"; o.t = 0; }
+    else if (o.phase === "fit" && o.t >= fitMs) {
+      o.k += 1; o.phase = "idle"; o.t = 0;
+      anim.done = o.k >= BOOST_M;
+      return running && !anim.done;
+    }
+    return true;
+  }
+
+  if (params.page === "bag") {
+    const b = anim.bag;
+    if (b.k >= BAG_B) { anim.done = true; return false; }
+    if (b.phase === "idle") { b.phase = sp.flip ? "fit" : "draw"; b.t = 0; }
+    b.t += dt;
+    const drawMs = sp.flip ? 0 : DRAW_MS / sp.mult;
+    const fitMs = sp.flip ? FLIP_MS * (2 / sp.mult) : FIT_MS / sp.mult;
+    if (b.phase === "draw" && b.t >= drawMs) { b.phase = "fit"; b.t = 0; }
+    else if (b.phase === "fit" && b.t >= fitMs) {
+      b.k += 1; b.phase = "idle"; b.t = 0;
+      anim.done = b.k >= BAG_B;
+      return running && !anim.done;
+    }
+    return true;
+  }
+
+  const a = anim.tree;
+  const step = state.steps[a.k];
+  if (!step) { anim.done = true; return false; }
+  if (a.phase === "idle") { a.phase = "scan"; a.t = 0; }
+  a.t += dt;
+  const scanMs = Math.pow(step.cands.length, 0.72) * MS_PER_CAND / sp.mult;
+  if (a.phase === "scan" && a.t >= scanMs) { a.phase = "commit"; a.t = 0; }
+  else if (a.phase === "commit" && a.t >= COMMIT_MS / sp.mult) {
+    a.k += 1; a.phase = "idle"; a.t = 0;
+    anim.done = a.k >= state.steps.length;
+    return running && !anim.done;
+  }
+  return true;
+}
+
 defineWidget({
   slug: "trees-and-ensembles",
   title: "Trees and Ensembles",
@@ -1042,6 +1097,7 @@ defineWidget({
         bag: { k: Math.min(head, BAG_B), phase: "idle", t: 0 },
         boost: { k: Math.min(head, BOOST_M), phase: "idle", t: 0 },
         done: false,
+        page: params.page,
       };
     },
 
@@ -1054,66 +1110,43 @@ defineWidget({
        was written to do that before reading the contract properly; it was
        core's existing behaviour with extra state bolted on. */
     advance(anim, { dt, params, state }) {
-      const sp = speedOf(params);
-      const running = anim.mode === "run";
-
-      if (params.page === "boost") {
-        /* Same two beats as the bag — what is left over is shown, then the
-           tree that answers it lands — so the ensemble pages share a grammar. */
-        const o = anim.boost;
-        if (o.k >= BOOST_M) { anim.done = true; return false; }
-        if (o.phase === "idle") { o.phase = sp.flip ? "fit" : "draw"; o.t = 0; }
-        o.t += dt;
-        const drawMs = sp.flip ? 0 : DRAW_MS / sp.mult;
-        const fitMs = sp.flip ? FLIP_MS * (2 / sp.mult) : FIT_MS / sp.mult;
-        if (o.phase === "draw" && o.t >= drawMs) { o.phase = "fit"; o.t = 0; }
-        else if (o.phase === "fit" && o.t >= fitMs) {
-          o.k += 1; o.phase = "idle"; o.t = 0;
-          anim.done = o.k >= BOOST_M;
-          return running && !anim.done;
-        }
-        return true;
-      }
-
-      if (params.page === "bag") {
-        const b = anim.bag;
-        if (b.k >= BAG_B) { anim.done = true; return false; }
-        if (b.phase === "idle") { b.phase = sp.flip ? "fit" : "draw"; b.t = 0; }
-        b.t += dt;
-        const drawMs = sp.flip ? 0 : DRAW_MS / sp.mult;
-        const fitMs = sp.flip ? FLIP_MS * (2 / sp.mult) : FIT_MS / sp.mult;
-        if (b.phase === "draw" && b.t >= drawMs) { b.phase = "fit"; b.t = 0; }
-        else if (b.phase === "fit" && b.t >= fitMs) {
-          b.k += 1; b.phase = "idle"; b.t = 0;
-          anim.done = b.k >= BAG_B;
-          return running && !anim.done;
-        }
-        return true;
-      }
-
-      const a = anim.tree;
-      const step = state.steps[a.k];
-      if (!step) { anim.done = true; return false; }
-      if (a.phase === "idle") { a.phase = "scan"; a.t = 0; }
-      a.t += dt;
-      const scanMs = Math.pow(step.cands.length, 0.72) * MS_PER_CAND / sp.mult;
-      if (a.phase === "scan" && a.t >= scanMs) { a.phase = "commit"; a.t = 0; }
-      else if (a.phase === "commit" && a.t >= COMMIT_MS / sp.mult) {
-        a.k += 1; a.phase = "idle"; a.t = 0;
-        anim.done = a.k >= state.steps.length;
-        return running && !anim.done;
-      }
-      return true;
+      /* the loop left running for a unit a page switch finished (`rebuild`)
+         ends here, before it takes the other's next */
+      if (anim.halt) { anim.halt = false; anim.moving = false; return false; }
+      const more = takeUnit(anim, dt, params, state);
+      anim.moving = more;
+      return more;
     },
 
     /* `samples` is a data parameter so core re-inits from empty; `page` and
-       `speed` are display, and both cursors survive them untouched. */
-    rebuild: (anim, { state }) => ({
-      tree: { ...anim.tree, k: Math.min(anim.tree.k, state.steps.length) },
-      bag: { ...anim.bag, k: Math.min(anim.bag.k, BAG_B) },
-      boost: { ...anim.boost, k: Math.min(anim.boost.k, BOOST_M) },
-      done: anim.done,
-    }),
+       `speed` are display, and both cursors survive them untouched.
+
+       A UNIT BELONGS TO THE PAGE IT STARTED ON. Core keeps a running loop
+       going through a display change, and `takeUnit` steps whichever page the
+       parameters name, so a page switch mid-split used to take the new page's
+       unit unasked — a resample drawn, a tree fit — and leave the split half
+       scanned for the reader's next press to finish. Found by the sweep after
+       widget 70's ship (2026-09-20). The unit finishes here, as if its frames
+       had run, and `halt` ends the loop at its next frame; only while a unit
+       moves (`advance` records it), or the reader's next press loses its
+       first frame. Mutated, not returned: core discards what `rebuild`
+       returns, so the object this used to build never applied. `done` now
+       reads the page on screen, so a finished tree no longer makes the next
+       press on an empty bag page a Replay. */
+    rebuild: (anim, { params, state }) => {
+      if (anim.moving && params.page !== anim.page) {
+        const cur = anim.page === "bag" ? anim.bag : anim.page === "boost" ? anim.boost : anim.tree;
+        const total = anim.page === "bag" ? BAG_B : anim.page === "boost" ? BOOST_M : state.steps.length;
+        if (cur.phase !== "idle") { cur.k = Math.min(total, cur.k + 1); cur.phase = "idle"; cur.t = 0; }
+        anim.halt = true;
+      }
+      anim.page = params.page;
+      anim.tree.k = Math.min(anim.tree.k, state.steps.length);
+      anim.bag.k = Math.min(anim.bag.k, BAG_B);
+      anim.boost.k = Math.min(anim.boost.k, BOOST_M);
+      anim.done = params.page === "bag" ? anim.bag.k >= BAG_B
+        : params.page === "boost" ? anim.boost.k >= BOOST_M : anim.tree.k >= state.steps.length;
+    },
   },
 
   draw({ ctx, colors, w, params, state, anim }) {
