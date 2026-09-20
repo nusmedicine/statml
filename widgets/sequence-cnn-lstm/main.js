@@ -118,10 +118,12 @@ const HEIGHTS = {
 
 const S = {
   subtitle:
-    "A DNA sequence reaches a network as tokens: one-hot rows or a learned table. Over those rows a "
-    + "1D kernel is a position weight matrix and its feature map is a motif's score at every base; a "
-    + "packed recurrence stops at the last real base, and its final state is what the linear layer reads; "
-    + "occlusion sets a window of tokens to PAD and records how far the prediction moves.",
+    "A biological sequence is a string of symbols: the four bases of DNA, or the twenty amino acids of a "
+    + "protein. Each symbol is an integer token, and each token is encoded as one of a few fixed one-hot "
+    + "rows or as a row of an embedding with learned values, here for DNA. Over those rows a 1D CNN "
+    + "applies a kernel at every position, which on one-hot rows is a position weight matrix; an LSTM "
+    + "updates one state symbol by symbol and, packed, ends at the last real one. Occlusion sets a window "
+    + "of tokens to PAD, and the change in the prediction is that window's attribution.",
   pageLabel: "Page",
   seqSection: "The sequence",
   taskLabel: "Task",
