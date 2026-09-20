@@ -1,0 +1,393 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · signal-cnn-lstm — mock</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1600px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 104ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); min-height: 26px; white-space: pre-line; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 104ch; }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+       border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 104ch; }
+  .q b { display: block; margin-bottom: 2px; }
+  table { border-collapse: collapse; font-size: var(--fs-sm); margin: var(--sp-2) 0; max-width: 130ch; }
+  th, td { border: 1px solid var(--grid); padding: 4px 10px; text-align: left; vertical-align: top; }
+  th { color: var(--ink-2); font-weight: 600; }
+  #findings { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--ink-2); white-space: pre-line;
+              padding: var(--sp-3); background: var(--surface-2); border: 1px solid var(--grid); max-width: 104ch; }
+  .rail { display: inline-block; vertical-align: top; width: 260px; border: 1px solid var(--grid); padding: 8px 10px; font-size: 11px; color: var(--ink-1); margin-right: var(--sp-4); }
+  .rail .sec { font-size: 10px; color: var(--ink-3); text-transform: uppercase; letter-spacing: .04em; margin: 8px 0 2px; }
+  .rail .sec:first-child { margin-top: 0; }
+  .rail .ctl { display: flex; justify-content: space-between; gap: 8px; padding: 2px 0; }
+  .rail .ctl span:last-child { color: var(--ink-2); font-family: var(--font-mono); font-size: 10px; }
+  .rail .btn { border: 1px solid var(--grid); border-radius: 3px; padding: 3px 8px; margin: 3px 0; text-align: center; background: var(--surface-2); }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>signal-cnn-lstm <h1>signal-models &middot; mock</h1>middot; mock</h1>
+  <p class="note">
+    Slot 73, for 07-2 cells 22&ndash;99: the lesson's <code>CNN1D</code>, <code>BiLSTM</code> and <code>CNN_LSTM</code> on 2 s
+    ECG fragments, and Captum's <code>Occlusion</code>. <b>Every number drawn here is computed on this page</b> by
+    <code>widgets/signal-cnn-lstm/model.js</code> on <code>engine.js</code>: the stage generated from the seed, the lesson's
+    net at half width trained here in about a second, the occlusion run by hand, the LSTM run forward at initialisation.
+    The mock draws filled states so they can be judged; the widget opens empty. On-canvas strings are candidates for the
+    copy audit, not copy. Each section ends with a recommendation; the grey-ruled boxes are the questions only you can
+    answer. <span id="seedNote"></span>
+  </p>
+
+  <h2>0 &middot; What the measurement found</h2>
+  <div id="findings"></div>
+
+  <h2>1 &middot; The stage: a 2 s fragment, sinus rhythm with or without a wide ectopic beat</h2>
+  <p class="note">
+    The lesson's fragments are PhysioNet's, Dangerous (VF, VT, torsades) against OK. A sustained arrhythmia gives an
+    occlusion window nothing to point at &mdash; every beat is the evidence &mdash; so the stage plants ONE wide ectopic
+    beat in sinus rhythm and calls the classes by what they are. Both classes below, then two copies.
+  </p>
+  <div class="row" id="stageRow"></div>
+  <p class="q"><b>1.1 &middot; The classes' names</b>
+    <b>A &middot; "Sinus rhythm" and "Ectopic beat" (recommended)</b>, with a caption that the lesson trains Dangerous against OK on PhysioNet's fragments &nbsp;|&nbsp;
+    B &middot; the lesson's "OK" and "Dangerous" (a single ectopic beat is class 4, which the lesson files under OK &mdash; so this would contradict the data it points at)</p>
+
+  <h2>2 &middot; Page 1, <i>1D-CNN</i> (cell 22): the kernel on the trace, the feature maps, one output's reach</h2>
+  <p class="note">
+    The trained net's first layer: eight kernels of <code>k</code> slide at stride 2 over the 720 samples; the feature maps
+    are drawn as eight heat rows; the followed kernel's weights sit beside its row. Under them the lesson's dimension
+    chain and one Conv2 output's receptive field drawn back onto the trace &mdash; 25 samples, 69 ms, most of one QRS.
+    <code>k</code> is read in samples and in milliseconds, the lesson's <code>&Delta;t = k / f_s</code>.
+  </p>
+  <div class="row" id="cnnRow"></div>
+  <p class="rec" id="recCnn"></p>
+  <p class="q"><b>2.1 &middot; Training in the widget</b>
+    <b>A &middot; <code>compute()</code> trains the half-width net on a click, 1.0&ndash;1.3 s, as 64 does (recommended)</b>; the loss curve is drawn as it trains &nbsp;|&nbsp;
+    B &middot; weights trained ahead and shipped, as 65 did, one set per <code>k</code> &times; stride &times; pad &times; pool (16 sets)</p>
+  <p class="q"><b>2.2 &middot; The kernel-size control</b>
+    <b>A &middot; <code>k</code> = 3 &middot; 7 &middot; 15 &middot; 31, each tick labelled in samples with the ms in the detail (recommended)</b> &nbsp;|&nbsp;
+    B &middot; the lesson's 7 fixed, and only stride and pad move</p>
+
+  <h2>3 &middot; Page 2, <i>LSTM</i> (cell 44): the block, the three reductions, the memory</h2>
+  <p class="note">
+    The permute is printed once: <code>[B, C, L] &rarr; [B, L, C]</code>. The BiLSTM's <code>output</code> over the fragment is a
+    <code>[720, 2H]</code> block, drawn at H = 8; <code>last</code>, <code>mean</code> and <code>max</code> collapse it three ways,
+    each a <code>[2H]</code> row into <code>Linear(2H, 2)</code>. Right: how much the forward pass's last state moves when one
+    sample is nudged, at initialisation &mdash; the memory bottleneck as a bar per position. The strip at the bottom is the
+    CNN + LSTM (cell 67) as shapes.
+  </p>
+  <div class="row" id="lstmRow"></div>
+  <p class="rec">The browser cannot train this LSTM (24 ms a fragment for one forward and backward at H = 32, measured), so the page
+    is forward-only and says so. The measurement also says no reduction wins except <code>max</code> on a localized event, so
+    Reduce is a display, as you picked.</p>
+  <p class="q"><b>3.1 &middot; What the LSTM page runs</b>
+    <b>A &middot; the lesson's BiLSTM at initialisation over the 720 samples (recommended)</b>: the block, the reductions and the memory bars are all honest at init, and the caption says the lesson trains it for 100 epochs &nbsp;|&nbsp;
+    B &middot; a BiLSTM trained here on a decimated trace (72 steps, ~2 s) so a second press shows what training does to the bars &nbsp;|&nbsp;
+    C &middot; the block and reductions only, no memory bars</p>
+  <p class="q"><b>3.2 &middot; H drawn</b>
+    <b>A &middot; H = 8, 16 rows the eye can count (recommended)</b>, the caption naming the lesson's 64 &nbsp;|&nbsp; B &middot; H = 64 as a 128-row heat image (16 ms a forward, affordable)</p>
+
+  <h2>4 &middot; Page 3, <i>Occlusion</i> (cells 86&ndash;99): one window to the baseline, the bars, the overlay</h2>
+  <p class="note">
+    Captum's recipe by hand on the net page 1 trained: a window of <code>k</code> set to the baseline (your figure's flat line),
+    <code>f(x)</code> and <code>f(x_occluded)</code> as two numbers, the attribution bar at that window; Play walks the window at
+    the stride. Two maps of the same fragment: the lesson's k = 32 / 16 and k = 16 / 8. Then the overlay, cell 99's
+    washes. Right: two ectopic beats, the failure to include.
+  </p>
+  <div class="row" id="occRow"></div>
+  <p class="rec" id="recOcc"></p>
+  <p class="q"><b>4.1 &middot; The window control</b>
+    <b>A &middot; <code>k</code> = 8 &middot; 16 &middot; 32 &middot; 64 with stride = k / 2 (the lesson's rule), and a baseline control zero &middot; window mean (recommended)</b> &nbsp;|&nbsp;
+    B &middot; k and stride as two sliders</p>
+  <p class="q"><b>4.2 &middot; Copies of the ectopic beat</b>
+    <b>A &middot; a data control, 1 &middot; 2 &middot; 3, in the setup block, shared by all three pages (recommended)</b> &nbsp;|&nbsp;
+    B &middot; on the Occlusion page only</p>
+
+  <h2>5 &middot; The rail</h2>
+  <p class="note">Three pages as a page control at the top, as 49 and 70 have it; the setup block shared; per-page controls through <code>when:</code>.</p>
+  <div id="rails"></div>
+  <p class="q"><b>5.1 &middot; The slug and the title</b>
+    <code>signal-models</code> &middot; "Deep Learning - Signal Models" &nbsp;|&nbsp; <code>signal-cnn-lstm</code> &middot; "Deep Learning - Signals: CNN and LSTM" &nbsp;|&nbsp; yours</p>
+</main>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+import { makeRng } from "../core/rng.js";
+import * as M from "../signal-cnn-lstm/model.js";
+import * as E from "../signal-cnn-lstm/engine.js";
+
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+const W = 550;
+const SEED = Number(new URLSearchParams(location.search).get("seed") || 1);
+const HEAT = T.magnitude || T.valueHigh;
+document.getElementById("seedNote").textContent = `Seed ${SEED}; add ?seed=N for another.`;
+
+/* ---------------------------------------------------------------- shell */
+function el(tag, cls, text) { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
+function cand(rowId, title, sub, w = W) {
+  const box = el("div", "cand"); box.style.width = `${w}px`;
+  box.appendChild(el("h3", null, title)); box.appendChild(el("p", "sub", sub));
+  document.getElementById(rowId).appendChild(box);
+  return box;
+}
+function canvasIn(box, w, h) {
+  const c = document.createElement("canvas");
+  c.width = Math.round(w * DPR); c.height = Math.round(h * DPR); c.style.width = `${w}px`; c.style.height = `${h}px`;
+  box.appendChild(c); const ctx = c.getContext("2d"); ctx.scale(DPR, DPR); return ctx;
+}
+const rgb = (c) => { const m = String(c).match(/^#([0-9a-f]{6})$/i); return m ? [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16)) : [128, 128, 128]; };
+const wash = (color, a) => { const p = rgb(color); return `rgba(${p[0]},${p[1]},${p[2]},${a})`; };
+const ramp = (t, to = HEAT) => { const a = rgb(T.surface3), b = rgb(to); const u = Math.max(0, Math.min(1, t)); return `rgb(${a.map((x, i) => Math.round(x + (b[i] - x) * u)).join(",")})`; };
+const diverge = (v, scale) => (v >= 0 ? ramp(v / scale, T.empirical) : ramp(-v / scale, T.extreme));
+function label(ctx, s, x, y, { size = 11, colour = T.ink2, align = "left", mono = false, weight = "", baseline = "alphabetic" } = {}) {
+  ctx.save(); ctx.font = `${weight ? weight + " " : ""}${size}px ${mono ? T.mono : T.font}`; ctx.fillStyle = colour; ctx.textAlign = align; ctx.textBaseline = baseline; ctx.fillText(s, x, y); ctx.restore();
+}
+function line(ctx, x1, y1, x2, y2, colour, width = 1, dash = null) {
+  ctx.save(); ctx.strokeStyle = colour; ctx.lineWidth = width; if (dash) ctx.setLineDash(dash); ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); ctx.restore();
+}
+function rect(ctx, x, y, w, h, fill, stroke = null, lw = 1) { ctx.save(); if (fill) { ctx.fillStyle = fill; ctx.fillRect(x, y, w, h); } if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw; ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1); } ctx.restore(); }
+function polyline(ctx, xs, ys, colour, width = 1.2) { ctx.save(); ctx.strokeStyle = colour; ctx.lineWidth = width; ctx.lineJoin = "round"; ctx.beginPath(); xs.forEach((x, i) => (i ? ctx.lineTo(x, ys[i]) : ctx.moveTo(x, ys[i]))); ctx.stroke(); ctx.restore(); }
+function arrow(ctx, x1, y1, x2, y2, colour, width = 1.2) { line(ctx, x1, y1, x2, y2, colour, width); const a = Math.atan2(y2 - y1, x2 - x1); ctx.save(); ctx.fillStyle = colour; ctx.beginPath(); ctx.moveTo(x2, y2); ctx.lineTo(x2 - 7 * Math.cos(a - 0.4), y2 - 7 * Math.sin(a - 0.4)); ctx.lineTo(x2 - 7 * Math.cos(a + 0.4), y2 - 7 * Math.sin(a + 0.4)); ctx.closePath(); ctx.fill(); ctx.restore(); }
+/** the trace between x0..x1, top..bot on a fixed value window [-2.5, 4] (z-scored fragments) */
+function tracePlot(ctx, x, x0, x1, top, bot, colour = T.empirical, lw = 1.1) {
+  const n = x.length, mn = -2.5, mx = 4;
+  const xs = [], ys = [];
+  for (let t = 0; t < n; t++) { xs.push(x0 + (t / (n - 1)) * (x1 - x0)); ys.push(bot - ((Math.max(mn, Math.min(mx, x[t])) - mn) / (mx - mn)) * (bot - top)); }
+  polyline(ctx, xs, ys, colour, lw);
+  return (t) => x0 + (t / (n - 1)) * (x1 - x0);
+}
+const X0 = 44, X1 = W - 14;
+const f2 = (v) => v.toFixed(2);
+
+/* ------------------------------------------------------------- the data */
+const rng = makeRng(SEED);
+const data = M.dataset(rng, 200, 1);
+const test = M.dataset(rng, 60, 1);
+const net = M.buildNet(rng, {});
+const tTrain = performance.now();
+const curve = M.trainNet(rng, net, data);
+const trainMs = performance.now() - tTrain;
+const accTest = E.accuracy(net, test);
+const ex0 = data.find((d) => d.y === 0), ex1 = data.find((d) => d.y === 1);
+const ex2 = M.fragment(makeRng(SEED + 100), 1, { copies: 2 });
+
+/* ================================================================== §0 */
+document.getElementById("findings").textContent = [
+  `this page: the half-width net trained on 200 fragments for 20 epochs in ${(trainMs / 1000).toFixed(1)} s; loss ${f2(curve[0])} → ${f2(curve.at(-1))}; held-out accuracy ${(100 * accTest).toFixed(0)}% on 60`,
+  "script (S2): the lesson's width (16 / 32) is 143 ms an epoch = 2.9 s for 20; half width 49 ms = 1.0 s; the BiLSTM at H = 32 over 720 steps is 24 ms a fragment forward + backward → no training in the browser (19 s for five epochs)",
+  "script (S3): at k = 32 / stride 16 the occlusion peak lands within 40 samples of the ectopic beat in 88% of fragments, half-max width 110 (the beat is ~30); k = 16 / 8: 100%, 34; k = 64 / 32: 36%, 266",
+  "script (S3): two ectopic beats — occluding one drops p(class 1) by 0.018, both by 0.038; four of eight first-layer kernels correlate 0.5–0.7 with a narrow peak",
+  "arithmetic: 720 → 360 → 180 → 90; one Conv2 output reads 25 samples = 69 ms (a QRS is 80–100 ms); outputs sit 8 samples = 22 ms apart; the head averages the 90",
+].join("\n");
+
+/* ================================================================== §1 */
+{
+  const mk = (title, sub, d) => {
+    const box = cand("stageRow", title, sub, 360);
+    const ctx = canvasIn(box, 360, 120);
+    const px = tracePlot(ctx, d.x.d, 14, 346, 10, 100);
+    for (const e of d.ectopic) rect(ctx, px(e - 30), 10, px(e + 30) - px(e - 30), 90, wash(T.highlight, 0.14));
+    label(ctx, "0 s", 14, 114, { size: 9 }); label(ctx, "2 s · 720 samples at 360 Hz", 346, 114, { size: 9, align: "right" });
+  };
+  mk("Sinus rhythm", "class 0 · narrow QRS, T wave, 150–180 samples apart\nz-scored per fragment, the lesson's normalize", ex0);
+  mk("One ectopic beat", "class 1 · one beat replaced by a wide, tall, T-less complex\n(~30 samples at half height)", ex1);
+  mk("Two ectopic beats", "copies = 2 · the occlusion page's failure case", ex2);
+}
+
+/* ================================================================== §2 */
+{
+  const box = cand("cnnRow", "Page 1 · 1D-CNN — trained here", `k = 7 samples = ${M.ms(7).toFixed(0)} ms · stride 2 · pad 3 · 8 kernels drawn (the lesson's 16)\nfeature maps after ReLU; the followed kernel's weights beside its row`);
+  const ctx = canvasIn(box, W, 430);
+  const d = ex1;
+  const acts = net.activations(d.x);
+  const relu1 = acts[1];          // [C1, 360]
+  const L1 = relu1.L;
+  label(ctx, "x · [1, 720]", X0, 14, { colour: T.ink1, weight: "600" });
+  const px = tracePlot(ctx, d.x.d, X0, X1, 20, 86);
+  const kAt = d.ectopic[0] - 3;
+  rect(ctx, px(kAt), 20, px(kAt + 7) - px(kAt), 66, wash(T.highlight, 0.2), T.highlight, 1.5);
+  label(ctx, `window · k = 7 = ${M.ms(7).toFixed(0)} ms`, px(kAt + 7) + 6, 32, { size: 10, colour: T.highlight });
+  // feature maps
+  label(ctx, "Conv1 → ReLU · [8, 360]", X0, 108, { colour: T.ink1, weight: "600" });
+  const conv1 = net.layers[0];
+  const rowH = 12, mapTop = 114, mapW = (X1 - X0 - 60);
+  let maxAct = 0; for (const v of relu1.d) if (v > maxAct) maxAct = v;
+  const followed = 0;
+  for (let c = 0; c < M.C1; c++) {
+    for (let t = 0; t < L1; t++) { const v = relu1.d[c * L1 + t]; if (v > 0) rect(ctx, X0 + (t / L1) * mapW, mapTop + c * rowH, mapW / L1 + 0.5, rowH - 1, ramp(v / maxAct)); }
+    label(ctx, `k${c + 1}`, X0 - 6, mapTop + c * rowH + 9, { size: 9, align: "right", mono: true, colour: c === followed ? T.highlight : T.ink3 });
+  }
+  rect(ctx, X0 - 1, mapTop + followed * rowH - 1, mapW + 2, rowH + 1, null, T.highlight, 1.2);
+  // the followed kernel's weights
+  const kx = X0 + mapW + 10;
+  label(ctx, "weights", kx, mapTop + 8, { size: 9 });
+  let wmax = 0; for (let j = 0; j < 7; j++) wmax = Math.max(wmax, Math.abs(conv1.W.v[followed * 7 + j]));
+  for (let j = 0; j < 7; j++) { const v = conv1.W.v[followed * 7 + j]; const h = 30 * Math.abs(v) / wmax; rect(ctx, kx + j * 7, mapTop + 44 - (v > 0 ? h : 0), 6, h, v > 0 ? T.groupA : T.extreme); }
+  line(ctx, kx, mapTop + 44.5, kx + 49, mapTop + 44.5, T.axis);
+  label(ctx, "QRS-shaped", kx, mapTop + 90, { size: 8, colour: T.ink3 });
+  // the chain
+  const chain = M.chain({});
+  const cy = 226;
+  label(ctx, "The lesson's chain · one Conv2 output's reach", X0, cy, { colour: T.ink1, weight: "600" });
+  const rows = [{ name: "input", L: 720, rf: 1 }, ...chain];
+  rows.forEach((r, i) => { label(ctx, r.name.padEnd(16), X0, cy + 16 + i * 13, { size: 10, mono: true, colour: T.ink1 }); label(ctx, `L = ${String(r.L).padStart(3)}`, X0 + 130, cy + 16 + i * 13, { size: 10, mono: true }); if (i) label(ctx, `sees ${r.rf} samples = ${M.ms(r.rf).toFixed(0)} ms`, X0 + 200, cy + 16 + i * 13, { size: 10, mono: true, colour: i === rows.length - 1 ? T.highlight : T.ink2 }); });
+  label(ctx, "AdaptiveAvgPool1d(1) → Linear(16, 2)", X0, cy + 16 + rows.length * 13, { size: 10, mono: true, colour: T.ink2 });
+  // conv2 outputs and one receptive field drawn back
+  const L2 = chain[2].L, oy = 312;
+  const ox = (i) => X0 + (i / (L2 - 1)) * (X1 - X0);
+  const outI = Math.round((d.ectopic[0] / M.L) * (L2 - 1));
+  for (let i = 0; i < L2; i++) rect(ctx, ox(i) - 2, oy, 4, 8, i === outI ? T.highlight : T.surface3);
+  label(ctx, "Conv2 outputs · 90", X1, oy + 22, { size: 9, align: "right" });
+  const rf0 = outI * 8 - 12, rf1 = rf0 + 25;
+  line(ctx, ox(outI), oy, px(Math.max(0, rf0)), 86, T.highlight, 1, [3, 3]); line(ctx, ox(outI), oy, px(Math.min(719, rf1)), 86, T.highlight, 1, [3, 3]);
+  label(ctx, `this output reads 25 samples = ${M.ms(25).toFixed(0)} ms of the trace — most of one QRS; neighbours ${M.ms(8).toFixed(0)} ms apart`, X0, oy + 42, { size: 10 });
+  // loss curve
+  label(ctx, "training here · loss by epoch", X0, oy + 66, { size: 10, colour: T.ink1, weight: "600" });
+  const cx = (i) => X0 + 160 + (i / (curve.length - 1)) * 200, cyv = (v) => oy + 92 - 30 * (v / 0.7);
+  polyline(ctx, curve.map((_, i) => cx(i)), curve.map(cyv), T.empirical, 1.4);
+  line(ctx, X0 + 160, oy + 92.5, X0 + 360, oy + 92.5, T.axis);
+  label(ctx, `loss ${f2(curve[0])} → ${f2(curve.at(-1))} · ${(trainMs / 1000).toFixed(1)} s · held-out ${(100 * accTest).toFixed(0)}%`, X0, oy + 100, { size: 9, mono: true });
+  label(ctx, "controls: k · stride · pad · pool (avg | max) · seed · copies; click a map to follow its kernel", X0, oy + 114, { size: 9, colour: T.ink3 });
+  document.getElementById("recCnn").textContent = `Recommended: the page trains on the click (${(trainMs / 1000).toFixed(1)} s here) and draws the maps of the net it trained; k is read in samples and ms; the chain prints the lesson's own arithmetic and the reach of one output is drawn, not only stated.`;
+}
+
+/* ================================================================== §3 */
+{
+  const box = cand("lstmRow", "Page 2 · LSTM — the block and the three reductions", "BiLSTM(1 → 8) at initialisation over the 720 steps · [720, 16] drawn as heat\nthe lesson: H = 64, trained 100 epochs in Colab", 360);
+  const ctx = canvasIn(box, 360, 330);
+  const st = M.lstmStage(makeRng(SEED + 7), ex1.x);
+  const H = st.H, T2 = st.T, Fd = 2 * H;
+  label(ctx, "permute: [B, 1, 720] → [B, 720, 1]", 14, 14, { size: 10, mono: true, colour: T.ink1 });
+  label(ctx, "output · [720, 2H]", 14, 34, { colour: T.ink1, weight: "600", size: 10 });
+  const gx0 = 34, gw = 300, gh = 6;
+  let amax = 0; for (const r of st.feats) for (const v of r) amax = Math.max(amax, Math.abs(v));
+  for (let t = 0; t < T2; t++) for (let j = 0; j < Fd; j++) rect(ctx, gx0 + (t / T2) * gw, 40 + j * gh, gw / T2 + 0.5, gh, diverge(st.feats[t][j], amax));
+  label(ctx, "→", 20, 40 + H * gh / 2 + 3, { size: 9 }); label(ctx, "←", 20, 40 + H * gh * 1.5 + 3, { size: 9 });
+  rect(ctx, gx0 + gw - 2, 40, 3, H * gh, null, T.highlight, 1.5); rect(ctx, gx0, 40 + H * gh, 3, H * gh, null, T.highlight, 1.5);
+  label(ctx, "last: the forward pass's last state, the reverse pass's last state", 14, 40 + Fd * gh + 12, { size: 9 });
+  let yy = 160;
+  for (const [name, v] of Object.entries(st.reduce)) {
+    label(ctx, name, 14, yy + 9, { mono: true, size: 10, colour: T.ink1 });
+    for (let j = 0; j < Fd; j++) rect(ctx, 54 + j * 12, yy, 12, 11, diverge(v[j], amax), T.grid);
+    label(ctx, "[2H] → Linear(2H, 2)", 54 + Fd * 12 + 8, yy + 9, { size: 9, colour: T.ink3 });
+    yy += 18;
+  }
+  label(ctx, "which reduction (display): last · mean · max", 14, 226, { size: 9 });
+  label(ctx, "script: on a localized event max 100%, mean 75%, last 50%;", 14, 240, { size: 9 });
+  label(ctx, "on composition and endpoints all three ≥ 97% — a display, not a claim per arm", 14, 252, { size: 9 });
+  label(ctx, "the strip (cell 67, CNN + LSTM):", 14, 278, { size: 10, colour: T.ink1, weight: "600" });
+  const shapes = M.comboShapes();
+  shapes.forEach((s, i) => { const col = i % 3, row = Math.floor(i / 3); const sx = 14 + col * 112, sy = 296 + row * 22; const txt = `[${s.shape.join(", ")}]`; label(ctx, txt, sx, sy, { size: 9, mono: true, colour: T.ink1 }); label(ctx, s.name, sx, sy + 10, { size: 7.5, colour: T.ink3 }); });
+
+  const box2 = cand("lstmRow", "Page 2 · the memory bars", "‖∂h_T/∂x_t‖ relative to t = T, forward pass, at initialisation\n(finite difference: one extra forward per bar, 7.5 ms each)", 360);
+  const c2 = canvasIn(box2, 360, 330);
+  const ts = [719, 715, 710, 700, 690, 680, 660, 640, 600, 500, 360, 0];
+  const sens = ts.map((t) => st.sensitivity(t));
+  label(c2, "how much of the last state one sample still moves", 14, 14, { colour: T.ink1, weight: "600", size: 10 });
+  const px = tracePlot(c2, ex1.x.d, 14, 346, 22, 80, T.empirical, 0.9);
+  const logH = (v) => Math.max(1, 120 * (12 + Math.log10(Math.max(v, 1e-12))) / 12);
+  ts.forEach((t, i) => { const h = logH(sens[i]); rect(c2, px(t) - 3, 220 - h, 6, h, i === 0 ? T.highlight : T.empirical); line(c2, px(t), 82, px(t), 98, T.grid); });
+  const fmtS = (v) => (v < 0.01 ? v.toExponential(0) : v.toFixed(2));
+  label(c2, `t = 720: ${fmtS(sens[0])} · 20 back: ${fmtS(sens[3])} · 120 back: ${fmtS(sens[8])} · 220 back: ${fmtS(sens[9])} · start: ${fmtS(sens[11])}`, 14, 234, { size: 8, mono: true, colour: T.ink3 });
+  line(c2, 14, 220.5, 346, 220.5, T.axis);
+  for (const e of [0, -4, -8, -12]) { const y = 220 - 120 * (12 + e) / 12; line(c2, 14, y + 0.5, 20, y + 0.5, T.axis); label(c2, e === 0 ? "1" : `1e${e}`, 22, y + 3, { size: 7.5, mono: true, colour: T.ink3 }); }
+  label(c2, "log scale · steps back from the end →", 14, 250, { size: 9 });
+  label(c2, `at init the sensitivity is ${sens[3].toExponential(1)} twenty steps back and ${sens[ts.length - 1].toExponential(1)} at the start`, 14, 270, { size: 9 });
+  label(c2, "a click on the trace picks t; the bar is one forward pass", 14, 284, { size: 9 });
+  label(c2, "training: not in the browser (24 ms a fragment forward + backward)", 14, 298, { size: 9, colour: T.ink3 });
+  label(c2, "the lesson's claim, honest at init: the past is a fixed-size summary", 14, 312, { size: 9, colour: T.ink3 });
+}
+
+/* ================================================================== §4 */
+{
+  const box = cand("occRow", "Page 3 · Occlusion — the lesson's k = 32 / 16 over k = 16 / 8", "baseline 0 (the lesson's) · the net page 1 trained · one fragment with one ectopic beat");
+  const ctx = canvasIn(box, W, 330);
+  const d = ex1;
+  const p0 = E.predict(net, d.x)[1];
+  label(ctx, `x · f(x) = ${f2(p0)}`, X0, 14, { colour: T.ink1, weight: "600" });
+  const px = tracePlot(ctx, d.x.d, X0, X1, 20, 86);
+  const win = d.ectopic[0] - 16;
+  rect(ctx, px(win), 20, px(win + 32) - px(win), 66, null, T.ink1, 1.2);
+  line(ctx, px(win), 62, px(win + 32), 62, T.extreme, 2);
+  const occ = d.x.d.slice(); for (let t = win; t < win + 32; t++) occ[t] = 0;
+  const pOcc = E.predict(net, { d: occ, L: M.L })[1];
+  label(ctx, `window i · f(x_occluded) = ${f2(pOcc)} · a_i = ${f2(Math.abs(p0 - pOcc))}`, px(win + 32) + 6, 34, { size: 10, colour: T.ink1 });
+  const a32 = M.occlude(net, d.x, { k: 32, stride: 16 }).attr, a16 = M.occlude(net, d.x, { k: 16, stride: 8 }).attr;
+  const draw = (attr, top, name) => { const m = Math.max(...attr); label(ctx, name, X0, top - 4, { size: 10, colour: T.ink1, weight: "600" }); const bw = (X1 - X0) / M.L; for (let t = 0; t < M.L; t++) if (attr[t] > 0) rect(ctx, X0 + t * bw, top + 44 * (1 - attr[t] / m), Math.max(1, bw), 44 * attr[t] / m, HEAT); line(ctx, X0, top + 44.5, X1, top + 44.5, T.axis); label(ctx, `half-max width ${M.halfMaxWidth(attr)} samples · peak ${f2(m)}`, X1, top - 4, { size: 9, align: "right", colour: T.ink3 }); };
+  draw(a32, 112, "Importance (Occlusion) · k = 32, stride 16");
+  draw(a16, 180, "k = 16, stride 8");
+  rect(ctx, px(d.ectopic[0] - 15), 108, px(d.ectopic[0] + 15) - px(d.ectopic[0] - 15), 120, null, T.reference, 1);
+  label(ctx, "the beat · ~30 samples", px(d.ectopic[0] + 15) + 4, 236, { size: 9, colour: T.reference });
+  // overlay
+  label(ctx, "overlay · cell 99's washes, k = 32", X0, 258, { size: 10, colour: T.ink1, weight: "600" });
+  const m32 = Math.max(...a32);
+  for (let t = 0; t < M.L; t++) rect(ctx, px(t), 264, (X1 - X0) / M.L + 0.5, 50, wash(HEAT, 0.55 * a32[t] / m32));
+  tracePlot(ctx, d.x.d, X0, X1, 266, 312, T.ink1, 0.9);
+  label(ctx, "Play walks the window at the stride; Step moves it one stride", X0, 326, { size: 9, colour: T.ink3 });
+
+  const box2 = cand("occRow", "Page 3 · two ectopic beats — the failure to include", "copies = 2 · occluding one copy against both · k = 32 / 16", 360);
+  const c2 = canvasIn(box2, 360, 330);
+  const d2 = ex2;
+  const p2 = E.predict(net, d2.x)[1];
+  label(c2, `x · f(x) = ${f2(p2)}`, 14, 14, { colour: T.ink1, weight: "600" });
+  const px2 = tracePlot(c2, d2.x.d, 14, 346, 20, 86);
+  for (const e of d2.ectopic) rect(c2, px2(e - 30), 20, px2(e + 30) - px2(e - 30), 66, wash(T.highlight, 0.14));
+  const wipe = (cs) => { const x = d2.x.d.slice(); for (const c of cs) for (let t = Math.max(0, c - 40); t < Math.min(M.L, c + 40); t++) x[t] = 0; return E.predict(net, { d: x, L: M.L })[1]; };
+  const one = d2.ectopic.length > 1 ? p2 - wipe([d2.ectopic[0]]) : NaN, both = d2.ectopic.length > 1 ? p2 - wipe(d2.ectopic) : NaN;
+  const a2 = M.occlude(net, d2.x, { k: 32, stride: 16 }).attr; const m2 = Math.max(...a2);
+  label(c2, "Importance (Occlusion) · k = 32", 14, 108, { size: 10, colour: T.ink1, weight: "600" });
+  const bw = (346 - 14) / M.L; for (let t = 0; t < M.L; t++) if (a2[t] > 0) rect(c2, 14 + t * bw, 116 + 44 * (1 - a2[t] / m2), Math.max(1, bw), 44 * a2[t] / m2, HEAT);
+  line(c2, 14, 160.5, 346, 160.5, T.axis);
+  label(c2, `occlude the first beat: p drops ${f2(one)}`, 14, 186, { size: 10, mono: true });
+  label(c2, `occlude both: p drops ${f2(both)}`, 14, 200, { size: 10, mono: true });
+  label(c2, "each copy alone reads as nearly unimportant:", 14, 224, { size: 9 });
+  label(c2, "occlusion scores a window against a model that still has the other copy", 14, 236, { size: 9 });
+  label(c2, "script over 40 fragments: 0.018 one, 0.038 both", 14, 250, { size: 9, colour: T.ink3 });
+  label(c2, "peak attribution here " + f2(m2) + " against " + f2(Math.max(...a32)) + " with one beat", 14, 264, { size: 9, colour: T.ink3 });
+  document.getElementById("recOcc").textContent = `Recommended: the lesson's k = 32 / 16 as the default so the first map is the blocky one the notebook prints, with k = 16 beside it in the control; the baseline as a control because the two maps differ (script: correlation 0.48); copies as the failure case, its numbers read out.`;
+}
+
+/* ================================================================== §5 */
+{
+  const rails = document.getElementById("rails");
+  const mk = (title, secs) => {
+    const r = el("div", "rail"); r.appendChild(el("h3", null, title));
+    for (const s of secs) { r.appendChild(el("div", "sec", s.name)); for (const c of s.items) { if (c.btn) r.appendChild(el("div", "btn", c.btn)); else { const d = el("div", "ctl"); d.appendChild(el("span", null, c.label)); d.appendChild(el("span", null, c.val)); r.appendChild(d); } } }
+    rails.appendChild(r);
+  };
+  mk("Page 1 · 1D-CNN", [
+    { name: "Page", items: [{ label: "1D-CNN · LSTM · Occlusion", val: "page" }] },
+    { name: "The fragment", items: [{ label: "Ectopic beats", val: "1 · 2 · 3" }, { label: "Seed", val: "1–200" }] },
+    { name: "The first layer", items: [{ label: "Kernel size k", val: "3 · 7 · 15 · 31" }, { label: "Stride", val: "1 · 2" }, { label: "Padding", val: "same · none" }] },
+    { name: "The head", items: [{ label: "Pool", val: "avg · max" }] },
+    { name: "Train", items: [{ btn: "Train 20 epochs" }, { btn: "Reset" }] },
+    { name: "Look at", items: [{ label: "Follow kernel", val: "1–8 (click a map)" }] },
+  ]);
+  mk("Page 2 · LSTM", [
+    { name: "Page", items: [{ label: "1D-CNN · LSTM · Occlusion", val: "page" }] },
+    { name: "The fragment", items: [{ label: "Ectopic beats", val: "1 · 2 · 3" }, { label: "Seed", val: "1–200" }] },
+    { name: "The recurrence", items: [{ label: "Direction", val: "uni · bi" }] },
+    { name: "Look at", items: [{ label: "Reduce", val: "last · mean · max" }, { label: "Nudge sample t", val: "click the trace" }] },
+  ]);
+  mk("Page 3 · Occlusion", [
+    { name: "Page", items: [{ label: "1D-CNN · LSTM · Occlusion", val: "page" }] },
+    { name: "The fragment", items: [{ label: "Ectopic beats", val: "1 · 2 · 3" }, { label: "Seed", val: "1–200" }] },
+    { name: "The window", items: [{ label: "Window k", val: "8 · 16 · 32 · 64" }, { label: "Baseline", val: "zero · window mean" }] },
+    { name: "Walk", items: [{ btn: "Next window" }, { btn: "Play" }, { btn: "Reset" }] },
+    { name: "Look at", items: [{ label: "Overlay", val: "on · off" }] },
+  ]);
+}
+</script>
+</body>
+</html>

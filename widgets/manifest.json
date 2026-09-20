@@ -1044,6 +1044,26 @@
       ],
       "arc": 70,
       "status": "shipped"
+    },
+    {
+      "slug": "signal-cnn-lstm",
+      "title": "Deep Learning - Signals: CNN and LSTM",
+      "blurb": "Position in a signal is time, so a 1D kernel reads a duration, an LSTM reads in order, and occlusion blanks a window.",
+      "course": "PHM5005",
+      "topics": [
+        "1D convolution",
+        "kernel size",
+        "receptive field",
+        "LSTM",
+        "hidden state",
+        "occlusion",
+        "explainability",
+        "ECG",
+        "time series",
+        "deep learning"
+      ],
+      "arc": 73,
+      "status": "shipped"
     }
   ]
 }

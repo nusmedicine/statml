@@ -8302,6 +8302,342 @@
       },
       "px": "09c5fd19",
       "tx": "a70bc930"
+    },
+    {
+      "$note": "signal-cnn-lstm · 1D-CNN, before any press: the fragment alone",
+      "slug": "signal-cnn-lstm",
+      "state": "?theme=light&shown=0",
+      "px": "8d5bfaa2",
+      "tx": "373c12c4"
+    },
+    {
+      "$note": "signal-cnn-lstm · 1D-CNN, after the slide: the followed map, the window parked at the chosen stop, the band",
+      "slug": "signal-cnn-lstm",
+      "state": "?theme=light&shown=1",
+      "px": "28a5a9a2",
+      "tx": "373c12c4"
+    },
+    {
+      "$note": "signal-cnn-lstm · 1D-CNN, all three presses: maps, chain, one output's reach, the loss curve",
+      "slug": "signal-cnn-lstm",
+      "state": "?theme=light&shown=3",
+      "px": "0d7753f9",
+      "tx": "5286af98"
+    },
+    {
+      "$note": "signal-cnn-lstm · 1D-CNN at k = 15, stride 1, no padding: 720 outputs, the chain changed",
+      "slug": "signal-cnn-lstm",
+      "state": "?theme=light&k=15&stride=1&pad=none&shown=3",
+      "px": "e775a335",
+      "tx": "2ecf7a18"
+    },
+    {
+      "$note": "signal-cnn-lstm · 1D-CNN at k = 31 with max pooling, kernel 5 followed, the window at sample 200",
+      "slug": "signal-cnn-lstm",
+      "state": "?theme=light&k=31&pool=max&follow=5&stop=200&shown=3",
+      "px": "864ab13a",
+      "tx": "d2597e52"
+    },
+    {
+      "$note": "signal-cnn-lstm · 1D-CNN on sinus rhythm (0 ectopic beats), all three presses",
+      "slug": "signal-cnn-lstm",
+      "state": "?theme=light&copies=0&shown=3",
+      "px": "10371999",
+      "tx": "5286af98"
+    },
+    {
+      "$note": "signal-cnn-lstm · 1D-CNN with three ectopic beats on seed 7",
+      "slug": "signal-cnn-lstm",
+      "state": "?theme=light&copies=3&seed=7&shown=3",
+      "px": "f5f25101",
+      "tx": "5286af98"
+    },
+    {
+      "$note": "signal-cnn-lstm · LSTM, before any press: the fragment and the empty block",
+      "slug": "signal-cnn-lstm",
+      "state": "?theme=light&page=lstm&shown=0",
+      "px": "7f1f12a6",
+      "tx": "7834e30d"
+    },
+    {
+      "$note": "signal-cnn-lstm · LSTM, all three presses: the block in two halves, max reduced, the running prediction",
+      "slug": "signal-cnn-lstm",
+      "state": "?theme=light&page=lstm&shown=3",
+      "px": "1674dcf4",
+      "tx": "2ab22a78"
+    },
+    {
+      "$note": "signal-cnn-lstm · LSTM with the last states: the two framed columns, the connectors, the weak model",
+      "slug": "signal-cnn-lstm",
+      "state": "?theme=light&page=lstm&reduce=last&shown=3",
+      "px": "27e9fe25",
+      "tx": "9e715ff6"
+    },
+    {
+      "$note": "signal-cnn-lstm · LSTM one way with mean: one half, one group, [720, 8]",
+      "slug": "signal-cnn-lstm",
+      "state": "?theme=light&page=lstm&direction=uni&reduce=mean&shown=3",
+      "px": "c9c44e52",
+      "tx": "48a12b33"
+    },
+    {
+      "$note": "signal-cnn-lstm · CNN + LSTM, all four presses: the features, the block, max reduced, the running prediction",
+      "slug": "signal-cnn-lstm",
+      "state": "?theme=light&page=combo&shown=4",
+      "px": "50d0554f",
+      "tx": "45773f50"
+    },
+    {
+      "$note": "signal-cnn-lstm · CNN + LSTM with two ectopic beats and the last states",
+      "slug": "signal-cnn-lstm",
+      "state": "?theme=light&page=combo&copies=2&reduce=last&shown=4",
+      "px": "50b92887",
+      "tx": "1de7ab82"
+    },
+    {
+      "$note": "signal-cnn-lstm · Occlusion of the 1D-CNN, the walk complete at k = 32, the overlay",
+      "slug": "signal-cnn-lstm",
+      "state": "?theme=light&page=occlusion&shown=99",
+      "px": "f65c9d56",
+      "tx": "faf74c1d"
+    },
+    {
+      "$note": "signal-cnn-lstm · Occlusion at k = 16: the map at half the window",
+      "slug": "signal-cnn-lstm",
+      "state": "?theme=light&page=occlusion&window=16&shown=99",
+      "px": "6e0c7c2e",
+      "tx": "c688d0b0"
+    },
+    {
+      "$note": "signal-cnn-lstm · Occlusion of the CNN + LSTM: one sharp block",
+      "slug": "signal-cnn-lstm",
+      "state": "?theme=light&page=occlusion&model=combo&shown=99",
+      "px": "d5af1dba",
+      "tx": "040b00ad"
+    },
+    {
+      "$note": "signal-cnn-lstm · Occlusion of the LSTM with the window-mean baseline, the overlay off",
+      "slug": "signal-cnn-lstm",
+      "state": "?theme=light&page=occlusion&model=lstm&baseline=mean&overlay=off&shown=99",
+      "px": "7094cba3",
+      "tx": "d3093407"
+    },
+    {
+      "$note": "signal-cnn-lstm · Occlusion on sinus rhythm: the attribution over the normal beats",
+      "slug": "signal-cnn-lstm",
+      "state": "?theme=light&page=occlusion&copies=0&shown=99",
+      "px": "048b29b1",
+      "tx": "ae90be4e"
+    },
+    {
+      "$note": "signal-cnn-lstm · DRIVEN - the kernel part way along the trace, its map filling behind it",
+      "slug": "signal-cnn-lstm",
+      "state": "?theme=light",
+      "drive": {
+        "click": "step",
+        "frames": 30,
+        "dt": 32
+      },
+      "px": "e71a22df",
+      "tx": "373c12c4"
+    },
+    {
+      "$note": "signal-cnn-lstm · DRIVEN - the stack fading in after the slide",
+      "slug": "signal-cnn-lstm",
+      "state": "?theme=light",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 80
+          }
+        ],
+        "click": "step",
+        "frames": 10,
+        "dt": 32
+      },
+      "px": "1d9922fc",
+      "tx": "34222048"
+    },
+    {
+      "$note": "signal-cnn-lstm · DRIVEN - the loss curve part way through its epochs",
+      "slug": "signal-cnn-lstm",
+      "state": "?theme=light",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 80
+          },
+          {
+            "click": "step",
+            "frames": 30
+          }
+        ],
+        "click": "step",
+        "frames": 20,
+        "dt": 32
+      },
+      "px": "cdd449b1",
+      "tx": "34222048"
+    },
+    {
+      "$note": "signal-cnn-lstm · DRIVEN - the recurrence sweeping the block, half way along the fragment",
+      "slug": "signal-cnn-lstm",
+      "state": "?theme=light&page=lstm",
+      "drive": {
+        "click": "step",
+        "frames": 28,
+        "dt": 32
+      },
+      "px": "2cf886b3",
+      "tx": "7834e30d"
+    },
+    {
+      "$note": "signal-cnn-lstm · DRIVEN - the running prediction drawing left to right",
+      "slug": "signal-cnn-lstm",
+      "state": "?theme=light&page=lstm",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 70
+          },
+          {
+            "click": "step",
+            "frames": 30
+          }
+        ],
+        "click": "step",
+        "frames": 20,
+        "dt": 32
+      },
+      "px": "60732b88",
+      "tx": "2ab22a78"
+    },
+    {
+      "$note": "signal-cnn-lstm · DRIVEN - CNN + LSTM, the recurrence sweeping the features after they appeared",
+      "slug": "signal-cnn-lstm",
+      "state": "?theme=light&page=combo",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 30
+          }
+        ],
+        "click": "step",
+        "frames": 22,
+        "dt": 32
+      },
+      "px": "0e5c3fa3",
+      "tx": "7fc37d79"
+    },
+    {
+      "$note": "signal-cnn-lstm · DRIVEN - the first window easing to the baseline",
+      "slug": "signal-cnn-lstm",
+      "state": "?theme=light&page=occlusion",
+      "drive": {
+        "click": "step",
+        "frames": 4,
+        "dt": 32
+      },
+      "px": "328e9c4f",
+      "tx": "5cbd58cc"
+    },
+    {
+      "$note": "signal-cnn-lstm · DRIVEN - Play, several windows in",
+      "slug": "signal-cnn-lstm",
+      "state": "?theme=light&page=occlusion",
+      "drive": {
+        "click": "run",
+        "frames": 60,
+        "dt": 32
+      },
+      "px": "588cf091",
+      "tx": "1394aab6"
+    },
+    {
+      "$note": "signal-cnn-lstm · HIT-DRIVEN: after the slide, kernel 3's map at [300,152] makes it the followed one",
+      "slug": "signal-cnn-lstm",
+      "state": "?theme=light",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 80
+          }
+        ],
+        "hit": [
+          300,
+          152
+        ],
+        "frames": 2,
+        "dt": 32
+      },
+      "px": "46476d72",
+      "tx": "373c12c4"
+    },
+    {
+      "$note": "signal-cnn-lstm · HIT-DRIVEN: after the slide, the trace at [366,50] parks the window at sample 468",
+      "slug": "signal-cnn-lstm",
+      "state": "?theme=light",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 80
+          }
+        ],
+        "hit": [
+          366,
+          50
+        ],
+        "frames": 2,
+        "dt": 32
+      },
+      "px": "fd8c0c10",
+      "tx": "373c12c4"
+    },
+    {
+      "$note": "signal-cnn-lstm · INTERRUPTED - the LSTM page visited mid-slide: its own empty page, the loop ended",
+      "slug": "signal-cnn-lstm",
+      "state": "?theme=light",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 5
+          }
+        ],
+        "set": {
+          "page": "lstm"
+        },
+        "frames": 10,
+        "dt": 32
+      },
+      "px": "7f1f12a6",
+      "tx": "7834e30d"
+    },
+    {
+      "$note": "signal-cnn-lstm · INTERRUPTED - CNN + LSTM visited mid-sweep: its own empty page, the loop ended",
+      "slug": "signal-cnn-lstm",
+      "state": "?theme=light&page=lstm",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 5
+          }
+        ],
+        "set": {
+          "page": "combo"
+        },
+        "frames": 10,
+        "dt": 32
+      },
+      "px": "056f9e8a",
+      "tx": "7fc37d79"
     }
   ]
 }
