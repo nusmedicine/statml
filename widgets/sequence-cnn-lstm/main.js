@@ -198,6 +198,7 @@ const S = {
   /* canvas captions */
   capInput: (code) => (code === "onehot" ? `tokens [${M.MAX_LEN}] → one-hot [4, ${M.MAX_LEN}]` : `tokens [${M.MAX_LEN}] → Embedding [${M.MAX_LEN}, ${SPEC.E}] → transpose [${SPEC.E}, ${M.MAX_LEN}]`),
   capPad: "PAD",
+  capTruth: (task, cls, extra) => (task === "motif" ? (cls ? `the sequence shown: motif, ${extra} ${extra === 1 ? "copy" : "copies"}` : "the sequence shown: no motif") : `the sequence shown: ${cls ? "GC-rich" : "GC-poor"} · GC ${extra.toFixed(2)}`),
   capWindow: (k) => `window · k = ${k} bases`,
   capKernel: (c, k, code) => `kernel ${c} read as a matrix [4, ${k}]${code === "learned" ? " through the table" : ""}`,
   capSpell: (spell, match, k, offset) => `spells ${spell}: ${match} of ${Math.min(k, M.MOTIF.length)} columns the motif's${offset ? ` at a shift of ${offset > 0 ? "+" : ""}${offset}` : ""}`,
@@ -251,8 +252,9 @@ const S = {
   tileParityNote: "held-out class-1 accuracy with the motif at an even base, then at an odd one",
   tileWait: "—",
   tileP: (name) => `p(${name})`,
-  tilePNote: "the trained model's probability for the whole sequence",
-  tilePNoteModel: (model) => `the trained ${model}'s probability for the whole sequence`,
+  tilePNote: (truth) => `the trained model's probability for the whole sequence, which is ${truth}`,
+  tilePNoteModel: (model, truth) => `the trained ${model}'s probability for the whole sequence, which is ${truth}`,
+  truthOf: (task, cls, extra) => (task === "motif" ? (cls ? `a motif sequence, ${extra} ${extra === 1 ? "copy" : "copies"}` : "a sequence with no motif") : `${cls ? "GC-rich" : "GC-poor"} at GC ${extra.toFixed(2)}`),
   tileMove: "The state's move over the padding",
   tileMoveNote: "how far the forward state moved between the last real base and step 250, as a fraction of its norm there",
   tileMovePacked: "0 · packed",
@@ -362,7 +364,9 @@ function compute({ params }) {
     parity = by;
   }
 
-  const state = { seq, x, task, code, cls, cnn, acts, chain, pred, k, stride, pad, L1, kernels, followed, stopT, parity, lstm: null, combo: null, occ: null };
+  const extra = task === "motif" ? copies : M.gcOf(x.tok);
+  const truth = S.truthOf(task, cls, extra);
+  const state = { seq, x, task, code, cls, extra, truth, cnn, acts, chain, pred, k, stride, pad, L1, kernels, followed, stopT, parity, lstm: null, combo: null, occ: null };
   const names = S.className[task];
 
   const lstmOf = () => {
@@ -440,8 +444,11 @@ function letterCell(w, t, base) {
  * Returns the panel's bottom, where the page's own drawing starts.
  */
 function drawInput(ctx, colors, w, state, code, emb) {
-  const { x, seq, task } = state;
-  txt(ctx, colors, S.capInput(code), PAD_L, 14, { font: capFont(colors), fill: colors.ink1 });
+  const { x, seq, task, cls, extra } = state;
+  const capIn = S.capInput(code), capTruth = S.capTruth(task, cls, extra);
+  txt(ctx, colors, capIn, PAD_L, 14, { font: capFont(colors), fill: colors.ink1 });
+  ctx.save(); ctx.font = capFont(colors); const inEnd = PAD_L + ctx.measureText(capIn).width; ctx.font = `${colors.fsXs} ${colors.font}`; const truthW = ctx.measureText(capTruth).width; ctx.restore();
+  if (w - PAD_R - truthW > inEnd + 16) txt(ctx, colors, capTruth, w - PAD_R, 14, { fill: colors.reference, align: "right" });
   const inMotif = (t) => seq.motifAt.some((m) => t >= m && t < m + M.MOTIF.length);
   const small = letterCell(w, 0, 0).pitch < 9;
   for (let t = 0; t < M.LEN; t++) {
@@ -933,7 +940,7 @@ defineWidget({
     if (params.page === "lstm") {
       const m = state.lstm, count = anim?.n?.lstm ?? 0, read = count >= 2;
       return [
-        { label: S.tileP(names[1]), value: read ? m.reading.p[1].toFixed(2) : S.tileWait, note: S.tilePNote },
+        { label: S.tileP(names[1]), value: read ? m.reading.p[1].toFixed(2) : S.tileWait, note: S.tilePNote(state.truth) },
         { label: S.tileMove, value: m.packed ? S.tileMovePacked : m.drift.toFixed(2), note: S.tileMoveNote },
         { label: S.tileAcc, value: read ? `${Math.round(100 * m.acc)}%` : S.tileWait, note: S.tileAccNote(SPEC.nTest) },
       ];
@@ -941,7 +948,7 @@ defineWidget({
     if (params.page === "combo") {
       const m = state.combo, Fd = m.reading.feats[0].length, count = anim?.n?.combo ?? 0, read = count >= 3;
       return [
-        { label: S.tileP(names[1]), value: read ? m.reading.p[1].toFixed(2) : S.tileWait, note: S.tilePNote },
+        { label: S.tileP(names[1]), value: read ? m.reading.p[1].toFixed(2) : S.tileWait, note: S.tilePNote(state.truth) },
         { label: S.tileReduce, value: params.reduce, note: S.tileReduceNote(m.T, Fd) },
         { label: S.tileAcc, value: read ? `${Math.round(100 * m.acc)}%` : S.tileWait, note: S.tileAccNote(SPEC.nTest) },
       ];
@@ -949,7 +956,7 @@ defineWidget({
     if (params.page === "occlusion") {
       const i = anim?.occ ?? 0, n = state.occ.windows.length, done = i >= n && (anim?.t ?? 1) >= 1;
       return [
-        { label: S.tileP(names[1]), value: state.occ.base.toFixed(2), note: S.tilePNoteModel(state.occ.model) },
+        { label: S.tileP(names[1]), value: state.occ.base.toFixed(2), note: S.tilePNoteModel(state.occ.model, state.truth) },
         { label: S.tileWindow, value: `${Math.min(i, n)} / ${n}`, note: S.tileWindowNote(state.occ.k, state.occ.stride) },
         { label: S.tileWidth, value: done ? String(M.halfMaxWidth(state.occ.attr)) : S.tileWait, note: state.seq.motifAt.length ? S.tileWidthNote : S.tileWidthNoteNone },
       ];
@@ -957,6 +964,7 @@ defineWidget({
     const last = state.chain.rows[state.chain.rows.length - 1];
     const count = anim?.n?.cnn ?? 0, classified = count >= 3 && (anim?.t ?? 1) >= 1;
     const tiles = [
+      { label: S.tileP(names[1]), value: classified ? state.pred[1].toFixed(2) : S.tileWait, note: S.tilePNote(state.truth) },
       { label: S.tileK, value: `${state.k} bases`, note: S.tileKNote },
       { label: S.tileReach, value: count >= 2 ? `${last.rf} bases` : S.tileWait, note: S.tileReachNote },
       { label: S.tileAcc, value: classified ? `${Math.round(100 * state.cnn.acc)}%` : S.tileWait, note: S.tileAccNote(SPEC.nTest) },
