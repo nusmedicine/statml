@@ -926,7 +926,7 @@ function drawOcclusion(ctx, colors, w, params, state, anim) {
 
 defineWidget({
   slug: "sequence-cnn-lstm",
-  status: "draft",
+  status: "shipped",
   title: "Deep Learning - Sequences: CNN and LSTM",
   subtitle: S.subtitle,
   layout: "side",
