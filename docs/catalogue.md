@@ -12,7 +12,7 @@ answer can be checked against what was assumed.
 
 | looking for | go to |
 |---|---|
-| what to build next | **The sequence arc (PHM5005 07-1 to 07-3), PROPOSED, MEASURED AND PICKED 2026-09-20: four widgets by data type; 73 `signal-cnn-lstm` SHIPPED AND PUSHED the same day (`fbe62c2`); 75 `sequence-models` MEASURED AND MOCKED the same afternoon on his call, ahead of 72 — its picks are open under § *75*; then 72 `signal-windows`, then 74 `sequence-encoding`** — § *The sequence arc*, under PHM5005. Slot 71 `somatic-interactions` CUT 2026-09-20 and slot 52 `training-loop` DISCARDED 2026-09-13, both his call. The cancer mutation arc (67, 69, 70) is complete; the image arc has 61, 64, 65 and 62 shipped, 63 `pretrained` on KIV (his call 2026-09-15), 66 folded into 65; the GWAS and PRS arc (56, 57, 59, 60) and the high-throughput arc are complete |
+| what to build next | **The sequence arc (PHM5005 07-1 to 07-3), PROPOSED, MEASURED AND PICKED 2026-09-20: four widgets by data type; 73 `signal-cnn-lstm` SHIPPED AND PUSHED the same day (`fbe62c2`); 75 `sequence-cnn-lstm` MEASURED, MOCKED AND PICKED the same afternoon on his call, ahead of 72 — everything trained ahead, NEXT its draft (§ *75*); then 72 `signal-windows`, then 74 `sequence-encoding`** — § *The sequence arc*, under PHM5005. Slot 71 `somatic-interactions` CUT 2026-09-20 and slot 52 `training-loop` DISCARDED 2026-09-13, both his call. The cancer mutation arc (67, 69, 70) is complete; the image arc has 61, 64, 65 and 62 shipped, 63 `pretrained` on KIV (his call 2026-09-15), 66 folded into 65; the GWAS and PRS arc (56, 57, 59, 60) and the high-throughput arc are complete |
 | how a widget got its shape | § *Widget N*, in order |
 | the four-method reconnaissance | § *Widget 19*, under the PCA sections |
 | the arcs, and what is deliberately not a widget | the arc sections below |
@@ -18986,7 +18986,7 @@ page. The arc is therefore **four widgets, renumbered in the notebooks' order**
 | 72 | `signal-windows` | Deep Learning - Signal Windows | 07-2 cells 1–21 | Window · Split · Normalize (§ *Slot 75* above) | second, then **third** on his call of 2026-09-20 afternoon |
 | 73 | `signal-cnn-lstm` (his pick; planned as `signal-models`) — **SHIPPED AND PUSHED 2026-09-20** (`fbe62c2`) | Deep Learning - Signals: CNN and LSTM | 07-2 cells 22–99 | 1D-CNN (k in ms, the stack, 69 ms per output, the head) · LSTM (permute, memory across beats, the three reductions as a display, the CNN + LSTM strip) · Occlusion (k = 32 / 16, baseline 0, the resolution, two copies) — §§ *Slot 73*, *74*, *76* above, the signal halves | **first; the engine is born here** |
 | 74 | `sequence-encoding` | Deep Learning - Sequence Encoding | 07-3 cells 1–25 | Tokenize · Pad · Encode (§ *Slot 72* above) | fourth |
-| 75 | `sequence-models` (provisional; his to name at the mock) — **MEASURED AND MOCKED 2026-09-20** | Deep Learning - Sequences: CNN and LSTM (provisional) | 07-3 cells 26–178 | 1D-CNN (the kernel as a PWM, trained kernels spell the motif at their alignment, global max over PAD) · LSTM (packing, the final states; on composition, the task the recurrence can read) · CNN + LSTM (page 1's maps under the recurrence, last against max) · Occlusion (k = 4 / 8 / 12, baseline PAD, the heat behind the letters) — the sequence halves of the same sections | third, then **second** on his call of 2026-09-20 afternoon |
+| 75 | `sequence-cnn-lstm` (his pick; planned as `sequence-models`) — **MEASURED, MOCKED AND PICKED 2026-09-20** | Deep Learning - Sequences: CNN and LSTM | 07-3 cells 26–178 | 1D-CNN (the kernel as a PWM, trained kernels spell the motif at their alignment, global max over PAD) · LSTM (packing, the final states; on composition, the task the recurrence can read) · CNN + LSTM (page 1's maps under the recurrence, last against max) · Occlusion (k = 4 / 8 / 12, baseline PAD, the heat behind the letters) — the sequence halves of the same sections | third, then **second** on his call of 2026-09-20 afternoon |
 
 Slugs and titles are confirmed at each widget's own mock, since a slug is a
 public URL. The LSTM is named on both models widgets and there is no cell
@@ -19181,7 +19181,7 @@ came next, he picked 75 `sequence-models` over 72 ("I think it's supposed to
 be sequences after signals"), so the order is now 73 → 75 → 72 → 74, and 72
 follows 75.
 
-#### 75 `sequence-models` — MEASURED AND MOCKED 2026-09-20, seven budget sweeps
+#### 75 `sequence-cnn-lstm` (planned as `sequence-models`) — MEASURED, MOCKED AND PICKED 2026-09-20, seven budget sweeps
 
 **His pick, 2026-09-20 afternoon:** 75 before 72. The host is 07-3 cells
 26–178, read in full: cell 28's `CNN1D` as instantiated (embedding, conv k7
@@ -19312,6 +19312,43 @@ two-copy panel; the four rails.
     (recommended); the CNN only.
 11. **Slug and title.** `sequence-models` · "Deep Learning - Sequences: CNN
     and LSTM"; `sequence-cnn-lstm`; his.
+
+**PICKED, 2026-09-20 afternoon, three rounds by `AskUserQuestion` with the
+mock open** — the recommendation on eight, his own on three:
+
+| call | his pick |
+|---|---|
+| 1 Task | **a data control** motif · composition, default motif |
+| 2 Encoding | **one-hot · learned as a data control** (his; recommended one-hot only) — through a learned table the kernel is read composed with the table |
+| 3 How Train trains | **weights trained ahead**, as 65 (his; recommended three restarts live) — and, on the follow-up, **everything ahead**: the recurrences and the CNN + LSTM too, so Seed changes the sequence shown and nothing else, on every page |
+| 4 Stride | **1 · 2 as a data control**, default 1, the readout by the motif's offset parity |
+| 5 Kernel size | **3 · 5 · 7 · 11** in bases, default 7 |
+| 6 LSTM page | **Direction uni · bi and Pack on · off**, default uni and on |
+| 7 Reduce on the LSTM page | **none**, the lesson's final states |
+| 8 Reduce on the CNN + LSTM page | **last · max**, default last |
+| 9 Copies | **a shared data control** 1 · 2 · 3 in the stage block |
+| 10 Occlusion asks | **1D-CNN · LSTM · CNN + LSTM** |
+| 11 Slug and title | **`sequence-cnn-lstm`**, "Deep Learning - Sequences: CNN and LSTM" |
+
+**What "everything ahead" means for the draft.** A table generated on this
+machine and shipped with the widget, as 65's `table.js` is: the CNN per
+k × stride × pool × encoding × task (64 nets, each the best of three
+restarts, with its loss curve and its three probe losses so the caption can
+say one was kept), the LSTM per direction × pack × encoding × task (16), the
+CNN + LSTM per k × stride × encoding × task × reduce standing on the CNN
+table's max-pool net (64); copies is not a training setting — the two- and
+three-copy sequences are shown to the one-copy net, which is the failure to
+include as measured. Regenerate the table after any change to `model.js` or
+the engine, and give the verify a retrain-and-compare as 65's has. The seed
+draws the sequence shown and nothing else; the draft's copy must say so
+where 73's said "trained here".
+
+**NEXT:** the draft of 75 `sequence-cnn-lstm` at manifest status `draft`
+(`widgets/sequence-cnn-lstm/`, `model.js` moved there from
+`widgets/sequence-models/`; the table generator in `_lab/`; the verify
+registered in `scripts/verify.mjs`), then rounds from his screenshots, the
+copy audit, the states, and 73's thirty states re-run since the engine is
+shared. Then 72 `signal-windows`, then 74 `sequence-encoding`.
 
 ---
 
