@@ -486,9 +486,17 @@ export function SeqClassifier(rng, { cellKind = "lstm", D, H, bidirectional = tr
 export function train(rng, net, source, { epochs, batch = 16, lr = 1e-3, onEpoch = null }) {
   let step = 0;
   const wraps = (out) => out && out.d !== undefined;
+  /* THE ORDER PERSISTS ACROSS EPOCHS for a fixed set: each epoch's shuffle
+     starts from the previous epoch's permutation, as the first version did.
+     Rebuilding it from the identity every epoch draws the same random numbers
+     but lands on different batches, and that moved 26 of widget 73's thirty
+     fingerprint states with every readout unchanged (2026-09-20, found by the
+     full suite at 75's ship). A function source gives a new array each epoch,
+     and a new array gets a new order. */
+  let idx = null, held = null;
   for (let e = 0; e < epochs; e++) {
     const data = typeof source === "function" ? source(e) : source;
-    const idx = data.map((_, i) => i);
+    if (data !== held) { held = data; idx = data.map((_, i) => i); }
     for (let i = idx.length - 1; i > 0; i--) { const j = Math.floor(rng.next() * (i + 1)); [idx[i], idx[j]] = [idx[j], idx[i]]; }
     let lossSum = 0;
     for (let b0 = 0; b0 < idx.length; b0 += batch) {
