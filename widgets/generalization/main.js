@@ -323,6 +323,36 @@ function labelEnds(ctx, colors, plot, upto, lg, items) {
   ctx.restore();
 }
 
+/** One frame of the drive: a rung of the ladder on the fit tab, a fold on the
+    cross-validation tab. Was the body of `advance` until 2026-09-20. */
+function takePress(anim, dt, params, state) {
+  const per = params.speed === "slow" ? 900 : params.speed === "fast" ? 90 : 400;
+  anim.t += dt;
+
+  /* THE FIT TAB CLIMBS THE LADDER; THE CV TAB ROTATES THE FOLDS. Two tabs,
+     two nouns, and the step label declares which (3.4c, amended). */
+  if (params.view !== "cv") {
+    while (anim.t >= per) {
+      anim.t -= per;
+      if (anim.pos >= MAXP) { anim.done = true; return false; }
+      anim.pos += 1;
+      anim.maxSeen = Math.max(anim.maxSeen, anim.pos);
+      if (anim.mode === "step") return false;
+    }
+    return true;
+  }
+
+  const count = state.folds.length;
+  while (anim.t >= per) {
+    anim.t -= per;
+    anim.fold = (anim.fold + 1) % count;
+    anim.seen = Math.min(count, anim.seen + 1);
+    if (anim.mode === "step") return false;
+    if (anim.fold === 0) { anim.done = true; return false; }
+  }
+  return true;
+}
+
 defineWidget({
   slug: "generalization",
   title: "Fitting and Generalizing",
@@ -473,10 +503,33 @@ defineWidget({
       maxSeen: Math.max(1, params.shown || 1, Number(params.params)),
       t: 0,
       done: false,
+      view: params.view,
     }),
 
-    rebuild(anim, { params }) {
+    rebuild(anim, { params, state }) {
       const p = Math.max(1, Number(params.params));
+      /* A PRESS BELONGS TO THE TAB IT STARTED ON. Core keeps a running loop
+         going through a display change, and `takePress` climbs or rotates
+         whichever tab the parameters name, so "Add a parameter" interrupted by
+         a visit to the cross-validation tab rotated a fold unasked, and the
+         slider moved mid-press set the ladder and then climbed one more rung.
+         Found by the sweep after widget 70's ship (2026-09-20). The press
+         finishes here, as if its frames had run, and `halt` ends the loop at
+         its next frame; only while a press moves (`advance` records it), or
+         the reader's next press loses its first frame. */
+      if (anim.moving && (params.view !== anim.view || p !== anim.lastSlider)) {
+        if (anim.view !== "cv") {
+          if (anim.pos < MAXP) anim.pos += 1;
+          anim.maxSeen = Math.max(anim.maxSeen, anim.pos);
+        } else {
+          const count = state.folds.length;
+          anim.fold = (anim.fold + 1) % count;
+          anim.seen = Math.min(count, anim.seen + 1);
+        }
+        anim.t = 0;
+        anim.halt = true;
+      }
+      anim.view = params.view;
       if (p !== anim.lastSlider) {
         anim.pos = p;
         anim.lastSlider = p;
@@ -485,31 +538,12 @@ defineWidget({
     },
 
     advance(anim, { dt, params, state }) {
-      const per = params.speed === "slow" ? 900 : params.speed === "fast" ? 90 : 400;
-      anim.t += dt;
-
-      /* THE FIT TAB CLIMBS THE LADDER; THE CV TAB ROTATES THE FOLDS. Two tabs,
-         two nouns, and the step label declares which (3.4c, amended). */
-      if (params.view !== "cv") {
-        while (anim.t >= per) {
-          anim.t -= per;
-          if (anim.pos >= MAXP) { anim.done = true; return false; }
-          anim.pos += 1;
-          anim.maxSeen = Math.max(anim.maxSeen, anim.pos);
-          if (anim.mode === "step") return false;
-        }
-        return true;
-      }
-
-      const count = state.folds.length;
-      while (anim.t >= per) {
-        anim.t -= per;
-        anim.fold = (anim.fold + 1) % count;
-        anim.seen = Math.min(count, anim.seen + 1);
-        if (anim.mode === "step") return false;
-        if (anim.fold === 0) { anim.done = true; return false; }
-      }
-      return true;
+      /* the loop left running for a press a tab switch or slider move finished (`rebuild`)
+         ends here, before it takes the other's next */
+      if (anim.halt) { anim.halt = false; anim.moving = false; return false; }
+      const more = takePress(anim, dt, params, state);
+      anim.moving = more;
+      return more;
     },
   },
 
