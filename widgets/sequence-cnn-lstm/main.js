@@ -75,6 +75,9 @@ const DUR = {
   combo: [700, 1400, 600, 1200],
 };
 const WINDOW_MS = 220;
+/* the pace, as a multiple of the durations above: the fast pace is what the draft ran at (his round 10) */
+const PACE = { slow: 2.5, medium: 1.5, fast: 1 };
+const paceOf = (params) => PACE[params?.speed] ?? PACE.medium;
 const PREFIX_EVERY = 10;
 const ROW_LEN = 40;   // cell 178 wraps the letters at 40
 
@@ -156,6 +159,13 @@ const S = {
   windowSection: "The window",
   windowLabel: "Window k",
   windowDetail: "how many tokens are set to PAD at once; the stride is k / 2, half a window",
+  speedLabel: "Play speed",
+  speedDetail: "how long a press takes, for Play and for Step alike",
+  speedOptions: [
+    { value: "slow", label: "Slow", detail: "two and a half times the fast pace" },
+    { value: "medium", label: "Medium", detail: "one and a half times the fast pace" },
+    { value: "fast", label: "Fast", detail: "a press in about a second, the slide in two" },
+  ],
   heatLabel: "Heat",
   heatDetail: "the attribution drawn behind each letter once every window has been occluded",
 
@@ -426,16 +436,16 @@ function isDone(anim, state) {
   if (anim.page === "occlusion") return state.occ ? anim.occ >= state.occ.windows.length && anim.t >= 1 : true;
   return anim.n[anim.page] >= STAGES[anim.page] && anim.t >= 1;
 }
-function takePress(anim, dt, state) {
+function takePress(anim, dt, state, pace) {
   if (anim.page === "occlusion") {
     const n = state.occ.windows.length;
-    if (anim.t < 1) { anim.t = Math.min(1, anim.t + dt / WINDOW_MS); if (anim.t < 1) return true; }
+    if (anim.t < 1) { anim.t = Math.min(1, anim.t + dt / (WINDOW_MS * pace)); if (anim.t < 1) return true; }
     if (anim.occ >= n) return false;
     anim.occ += 1; anim.t = 0;
     return true;
   }
   const count = anim.n[anim.page], max = STAGES[anim.page];
-  if (anim.t < 1) { anim.t = Math.min(1, anim.t + dt / DUR[anim.page][count - 1]); return true; }
+  if (anim.t < 1) { anim.t = Math.min(1, anim.t + dt / (DUR[anim.page][count - 1] * pace)); return true; }
   if (count >= max) return false;
   anim.n[anim.page] += 1;
   anim.t = 0;
@@ -788,10 +798,16 @@ function drawRecurrence(ctx, colors, w, params, m, G, count, anim, { xOfStep, to
   }
 }
 
+/** the base the recurrence is reading: the sweep's step during press 1, the last real base once it has run (the head reads the state there) */
+function readingBase(anim, count, T) {
+  if (count < 1) return null;
+  return Math.min(M.LEN - 1, count === 1 ? Math.floor(ease(anim.t) * T) : T - 1);
+}
+
 function drawLstm(ctx, colors, w, params, state, anim, hover) {
   const { lstm, seq, task, code, names } = state;
   const X0 = PAD_L;
-  const LSTM = lstmGeom(drawInput(ctx, colors, w, state, code, lstm.net.emb, { k: 1, hover }));
+  const LSTM = lstmGeom(drawInput(ctx, colors, w, state, code, lstm.net.emb, { k: 1, hover, win: readingBase(anim, anim.n.lstm, lstm.T) }));
   txt(ctx, colors, S.capEmbed(code, lstm.packed), X0, LSTM.embY, { font: monoFont(colors), fill: colors.ink1 });
   drawRecurrence(ctx, colors, w, params, lstm, LSTM, anim.n.lstm, anim, {
     xOfStep: (t) => px(w, t) + colW(w) / 2, top: LSTM.blockTop, runCaption: S.capRunning(names[1]), lossCaption: S.capLossLstm(SPEC.lstm.n, SPEC.lstm.epochs),
@@ -805,12 +821,15 @@ function drawCombo(ctx, colors, w, params, state, anim, hover) {
   const X0 = PAD_L, X1 = w - PAD_R, count = anim.n.combo;
   const Lp = combo.X.T, tFeat = stageT(anim, 1, count);
   const xOfStep = (t) => X0 + ((t + 0.5) / Lp) * (X1 - X0);
-  const COMBO = comboGeom(drawInput(ctx, colors, w, state, code, state.cnn.net.emb, { k: 1, hover }));
+  const uptoF = Math.floor(tFeat * Lp);
+  /* the window follows the maps' sweep through press 1 and the recurrence's through press 2, at the base under the step's centre */
+  const centreTok = (t) => Math.max(0, Math.min(M.LEN - 1, Math.round(centreOf(t, state.k, state.stride, state.pad))));
+  const stepRead = count === 1 ? uptoF : readingBase(anim, count - 1, combo.T);
+  const COMBO = comboGeom(drawInput(ctx, colors, w, state, code, state.cnn.net.emb, { k: 1, hover, win: stepRead == null ? null : centreTok(stepRead) }));
   txt(ctx, colors, S.capFeats(M.C1, Lp), X0, COMBO.featsHead, { font: capFont(colors), fill: colors.ink1 });
   let fmax = 1e-9; for (const r of combo.X.feats) for (const v of r) fmax = Math.max(fmax, v);
   const cw = (X1 - X0) / Lp;
   rect(ctx, X0, COMBO.featsTop, X1 - X0, M.C1 * COMBO.featCellH, colors.surface2);
-  const uptoF = Math.floor(tFeat * Lp);
   for (let t = 0; t < uptoF; t++) for (let c = 0; c < M.C1; c++) { const v = combo.X.feats[t][c]; if (v > 0) rect(ctx, X0 + t * cw, COMBO.featsTop + c * COMBO.featCellH, cw + 0.5, COMBO.featCellH, ramp(colors, v / fmax, colors.empirical)); }
   const stepOf = (m) => Math.round(((m + 3) / M.MAX_LEN) * Lp);
   for (const m of seq.motifAt) line(ctx, xOfStep(stepOf(m)), COMBO.featsTop, xOfStep(stepOf(m)), COMBO.featsTop + M.C1 * COMBO.featCellH, wash(colors.theory, 0.6), 1, [2, 3]);
@@ -869,6 +888,7 @@ function drawOcclusion(ctx, colors, w, params, state, anim) {
   for (let s = 0; s < M.LEN; s++) if (cnt[s] > 0) { const a = partial[s] / cnt[s]; const h = OCC.attrH * a / scale; rect(ctx, X0 + s * bw, OCC.attrTop + OCC.attrH - h, bw + 0.5, h, colors.magnitude); }
   line(ctx, X0, OCC.attrTop + OCC.attrH + 0.5, X1, OCC.attrTop + OCC.attrH + 0.5, colors.axis);
   for (const m of seq.motifAt) rect(ctx, X0 + m * bw, OCC.attrTop - 2, M.MOTIF.length * bw, OCC.attrH + 4, null, colors.theory, 1);
+  if (cur) rect(ctx, X0 + cur.start * bw, OCC.attrTop - 2, Math.min(occ.k, M.LEN - cur.start) * bw, OCC.attrH + 4, wash(colors.extreme, 0.14), colors.extreme, 1.2);
   if (seq.motifAt.length) txt(ctx, colors, seq.motifAt.length > 1 ? S.capCopies : S.capMotif, X0 + seq.motifAt[0] * bw, OCC.attrTop + OCC.attrH + 14, { fill: colors.theory });
   if (done) txt(ctx, colors, S.capHalfMax(M.halfMaxWidth(occ.attr)), X1, OCC.attrHead, { align: "right", fill: colors.ink3 });
 }
@@ -965,6 +985,8 @@ defineWidget({
       options: [{ value: "off", label: "Off" }, { value: "on", label: "On" }], default: "on", display: true, afterDrive: true, when: ON("occlusion"),
     },
 
+    speed: { type: "choice", label: S.speedLabel, detail: S.speedDetail, options: S.speedOptions, default: "medium", display: true, afterDrive: true },
+
     /* authoring escape hatch, first render only: presses already taken on the page it opens with */
     shown: { type: "int", min: 0, max: 99, default: 0, hidden: true },
   },
@@ -1005,11 +1027,11 @@ defineWidget({
       return anim;
     },
 
-    advance: (anim, { dt, state }) => {
+    advance: (anim, { dt, state, params }) => {
       if (anim.halt) { anim.halt = false; anim.moving = false; settle(anim); return false; }
       const stepping = anim.mode === "step";
       const before = countOf(anim);
-      let more = takePress(anim, dt, state);
+      let more = takePress(anim, dt, state, paceOf(params));
       const after = countOf(anim);
       anim.done = isDone(anim, state);
       if (stepping && after > before) anim.pressEnd = after;
