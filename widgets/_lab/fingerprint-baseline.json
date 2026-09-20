@@ -9084,11 +9084,329 @@
       }
     },
     {
-      "$note": "signal-windows · PLACEHOLDER while the widget is a draft: Clean, before any press",
+      "$note": "signal-windows · Clean, before any press: the raw recording alone",
       "slug": "signal-windows",
       "state": "?theme=light&shown=0",
-      "px": "0",
-      "tx": "0"
+      "px": "5316ead6",
+      "tx": "a55be607"
+    },
+    {
+      "$note": "signal-windows · Clean, after Resample: the resampled trace and the one-second zoom",
+      "slug": "signal-windows",
+      "state": "?theme=light&shown=1",
+      "px": "9d6b4bce",
+      "tx": "a55be607"
+    },
+    {
+      "$note": "signal-windows · Clean, all three presses at the defaults: notch and low-pass, the power inset, A_8 over the filtered trace, the cleaned trace",
+      "slug": "signal-windows",
+      "state": "?theme=light&shown=3",
+      "px": "f581a55b",
+      "tx": "e8668bd1"
+    },
+    {
+      "$note": "signal-windows · Clean at 90 Hz with line noise only: the 50 Hz line folded to 40 and the notch impossible, said on the figure",
+      "slug": "signal-windows",
+      "state": "?theme=light&shown=3&rate=90&noise=line",
+      "px": "63664499",
+      "tx": "aa972ee5"
+    },
+    {
+      "$note": "signal-windows · Clean at 180 Hz with the moving average",
+      "slug": "signal-windows",
+      "state": "?theme=light&shown=3&rate=180&trend=average",
+      "px": "1a360d23",
+      "tx": "437ce655"
+    },
+    {
+      "$note": "signal-windows · Clean with drift only and the polynomial, which cannot follow it",
+      "slug": "signal-windows",
+      "state": "?theme=light&shown=3&noise=drift&trend=polynomial",
+      "px": "ca4598bb",
+      "tx": "10f1b2f9"
+    },
+    {
+      "$note": "signal-windows · Clean with no noise added: the readout says none added",
+      "slug": "signal-windows",
+      "state": "?theme=light&shown=3&noise=none",
+      "px": "685be98d",
+      "tx": "fd4ba209"
+    },
+    {
+      "$note": "signal-windows · Clean at level 10: the approximation too slow for the drift",
+      "slug": "signal-windows",
+      "state": "?theme=light&shown=3&level=10",
+      "px": "943354db",
+      "tx": "0bdb09e5"
+    },
+    {
+      "$note": "signal-windows · Clean, subject 5 with both filters off",
+      "slug": "signal-windows",
+      "state": "?theme=light&shown=3&subject=5&notchHz=off&lowHz=off",
+      "px": "80f80809",
+      "tx": "e8f901ac"
+    },
+    {
+      "$note": "signal-windows · Window, before any press: the cleaned recording with its recording annotation",
+      "slug": "signal-windows",
+      "state": "?theme=light&page=window&shown=0",
+      "px": "fbbeea00",
+      "tx": "9f0f58cd"
+    },
+    {
+      "$note": "signal-windows · Window, every window cut under the recording annotation: 1 on every window of subject 2",
+      "slug": "signal-windows",
+      "state": "?theme=light&page=window&shown=99",
+      "px": "83914e67",
+      "tx": "9f0f58cd"
+    },
+    {
+      "$note": "signal-windows · Window, every window cut under event annotations, more than half",
+      "slug": "signal-windows",
+      "state": "?theme=light&page=window&shown=99&annotation=event",
+      "px": "473d9d52",
+      "tx": "302ce1af"
+    },
+    {
+      "$note": "signal-windows · Window, event annotations at any overlap and 75% overlap",
+      "slug": "signal-windows",
+      "state": "?theme=light&page=window&shown=99&annotation=event&rule=any&overlap=75",
+      "px": "f30c90fc",
+      "tx": "09498022"
+    },
+    {
+      "$note": "signal-windows · Window, 4 s windows at no overlap, subject 5",
+      "slug": "signal-windows",
+      "state": "?theme=light&page=window&shown=99&window=4&overlap=0&subject=5",
+      "px": "38ad5672",
+      "tx": "6f945e0b"
+    },
+    {
+      "$note": "signal-windows · Split, before any press: the windows not yet split",
+      "slug": "signal-windows",
+      "state": "?theme=light&page=split&shown=0",
+      "px": "50b74061",
+      "tx": "9c7cdd55"
+    },
+    {
+      "$note": "signal-windows · Split, after Hold out by window: a random fifth outlined, none scored",
+      "slug": "signal-windows",
+      "state": "?theme=light&page=split&shown=1",
+      "px": "4c727205",
+      "tx": "9c7cdd55"
+    },
+    {
+      "$note": "signal-windows · Split, every held-out window scored by window: both accuracies, the first held-out window over its match",
+      "slug": "signal-windows",
+      "state": "?theme=light&page=split&shown=999",
+      "px": "0774d3d6",
+      "tx": "6f2ab722"
+    },
+    {
+      "$note": "signal-windows · Split by subject, every held-out window scored: subjects 1 and 2 held out",
+      "slug": "signal-windows",
+      "state": "?theme=light&page=split&shown=999&split=subject",
+      "px": "76d734a8",
+      "tx": "e9918f11"
+    },
+    {
+      "$note": "signal-windows · Split on the event label, the fifth held-out window drawn",
+      "slug": "signal-windows",
+      "state": "?theme=light&page=split&shown=999&annotation=event&pick=5",
+      "px": "5d9565f2",
+      "tx": "b946ec8c"
+    },
+    {
+      "$note": "signal-windows · Split at 75% overlap: 616 windows, the leak at its widest",
+      "slug": "signal-windows",
+      "state": "?theme=light&page=split&shown=999&overlap=75",
+      "px": "884c938b",
+      "tx": "13be66e7"
+    },
+    {
+      "$note": "signal-windows · Split with 2 s windows on seed 7",
+      "slug": "signal-windows",
+      "state": "?theme=light&page=split&shown=999&window=2&seed=7",
+      "px": "907af184",
+      "tx": "3454b5c4"
+    },
+    {
+      "$note": "signal-windows · Normalize, before the press: each window's amplitude by subject",
+      "slug": "signal-windows",
+      "state": "?theme=light&page=normalize&shown=0",
+      "px": "1016a7bd",
+      "tx": "ef77db46"
+    },
+    {
+      "$note": "signal-windows · Normalize, after the press: every window at sd 1 and the print",
+      "slug": "signal-windows",
+      "state": "?theme=light&page=normalize&shown=1",
+      "px": "9b168785",
+      "tx": "96e39f92"
+    },
+    {
+      "$note": "signal-windows · Normalize with 4 s windows at no overlap: the print reads [40, 1, 1440]",
+      "slug": "signal-windows",
+      "state": "?theme=light&page=normalize&shown=1&window=4&overlap=0",
+      "px": "452160f4",
+      "tx": "0e6c7b64"
+    },
+    {
+      "$note": "signal-windows · DRIVEN - Resample fading in",
+      "slug": "signal-windows",
+      "state": "?theme=light",
+      "drive": {
+        "click": "step",
+        "frames": 10,
+        "dt": 32
+      },
+      "px": "247d0c6c",
+      "tx": "a55be607"
+    },
+    {
+      "$note": "signal-windows · DRIVEN - Detrend fading in after the two presses before it",
+      "slug": "signal-windows",
+      "state": "?theme=light",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 40
+          },
+          {
+            "click": "step",
+            "frames": 40
+          }
+        ],
+        "click": "step",
+        "frames": 12,
+        "dt": 32
+      },
+      "px": "f9483d6d",
+      "tx": "a55be607"
+    },
+    {
+      "$note": "signal-windows · DRIVEN - Window, Play: several windows cut and one mid-slide",
+      "slug": "signal-windows",
+      "state": "?theme=light&page=window",
+      "drive": {
+        "click": "run",
+        "frames": 30,
+        "dt": 32
+      },
+      "px": "2de67088",
+      "tx": "9f0f58cd"
+    },
+    {
+      "$note": "signal-windows · DRIVEN - Split, the hold-out sweep part way across the rows",
+      "slug": "signal-windows",
+      "state": "?theme=light&page=split",
+      "drive": {
+        "click": "step",
+        "frames": 12,
+        "dt": 32
+      },
+      "px": "b8542735",
+      "tx": "9c7cdd55"
+    },
+    {
+      "$note": "signal-windows · DRIVEN - Split, Play after the hold-out: several held-out windows scored, one mid-mark",
+      "slug": "signal-windows",
+      "state": "?theme=light&page=split",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 30
+          }
+        ],
+        "click": "run",
+        "frames": 40,
+        "dt": 32
+      },
+      "px": "94265b02",
+      "tx": "574dde93"
+    },
+    {
+      "$note": "signal-windows · DRIVEN - Normalize, the dots part way to sd 1",
+      "slug": "signal-windows",
+      "state": "?theme=light&page=normalize",
+      "drive": {
+        "click": "step",
+        "frames": 14,
+        "dt": 32
+      },
+      "px": "e970d70b",
+      "tx": "ef77db46"
+    },
+    {
+      "$note": "signal-windows · HIT-DRIVEN: after the hold-out and two scored, the held-out cell of subject 1 at column 11 [213,30] picks the second window drawn",
+      "slug": "signal-windows",
+      "state": "?theme=light&page=split",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 30
+          },
+          {
+            "click": "step",
+            "frames": 6
+          },
+          {
+            "click": "step",
+            "frames": 6
+          }
+        ],
+        "hit": [
+          213,
+          30
+        ],
+        "frames": 2,
+        "dt": 32
+      },
+      "px": "584fb8a4",
+      "tx": "a42ce249"
+    },
+    {
+      "$note": "signal-windows · INTERRUPTED - the Window page visited mid-Resample: its own untouched page, the loop ended",
+      "slug": "signal-windows",
+      "state": "?theme=light",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 5
+          }
+        ],
+        "set": {
+          "page": "window"
+        },
+        "frames": 10,
+        "dt": 32
+      },
+      "px": "fbbeea00",
+      "tx": "9f0f58cd"
+    },
+    {
+      "$note": "signal-windows · INTERRUPTED - Normalize visited mid-hold-out: its own untouched page, the loop ended",
+      "slug": "signal-windows",
+      "state": "?theme=light&page=split",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 5
+          }
+        ],
+        "set": {
+          "page": "normalize"
+        },
+        "frames": 10,
+        "dt": 32
+      },
+      "px": "1016a7bd",
+      "tx": "ef77db46"
     }
   ]
 }
