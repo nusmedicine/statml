@@ -19396,6 +19396,17 @@ pressed, every string's extent checked) runs at 535 px, the harness width,
 after each round: three captions learned to fit by measure. Heights are now
 functions of page, encoding, direction and k.
 
+**Round 10 (fb466b8), his first comments on the model pages:** the one-token
+window on the recurrence pages did not move — it now follows the sweep, at
+the base the recurrence is reading (press 1 on the LSTM page; presses 1 and
+2 on the combo page, at the base under the step's centre through page 1's
+kernel and stride) and parks at the last real base, where the head reads.
+"The playback speed can be fast": a Play speed (slow · medium · fast, a
+`display` choice after the drive; the draft's pace is now `fast`, medium is
+1.5× and slow 2.5× of it, for Play and Step alike). The occluded window was
+boxed on the letters but not on the attribution plot — drawn there too, in
+`--c-extreme` with a wash, the legend's "window set to PAD".
+
 ---
 
 ## Two arcs, not one — now three
