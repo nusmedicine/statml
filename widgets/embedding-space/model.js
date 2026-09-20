@@ -5,8 +5,10 @@
    vocabulary (cells 101–105) and the genetic code. One-hot puts every pair of
    tokens at the same distance; an embedding trained on a task learns a
    geometry in which the tokens the task treats alike become neighbours. For
-   DNA's four tokens there is nothing to see, so the vocabularies are the
-   twenty amino acids in four roles and the sixty-one sense codons.
+   DNA's four tokens there is little to see (measured: A lands near G and C
+   near T under a purine · pyrimidine pattern, four points), so the
+   vocabularies are a clinical one of forty words, the twenty amino acids in
+   four roles, and the sixty-one sense codons.
    `_lab/embedding-space-measure.mjs` and `-align-measure.mjs` measured every
    number a comment here quotes (2026-09-21); `_lab/embedding-space-mock.html`
    drew them.
@@ -63,7 +65,6 @@ export const NAMES = {
   K: "lysine", R: "arginine", H: "histidine", D: "aspartate", E: "glutamate",
 };
 const aaTok = (c) => AA.indexOf(c) + 1;
-const byRole = (role) => [...AA].filter((c) => ROLE_OF[c] === role);
 
 const BASES = "TCAG";
 const CODE = "FFLLSSSSYY**CC*WLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG"; // TCAG order
@@ -74,21 +75,50 @@ export const SENSE = CODONS.filter((c) => AA_OF[c] !== "*"); // 61
 export const MOTIF = ["L", "R", "S"];
 const synonyms = (aa) => CODONS.filter((c) => AA_OF[c] === aa);
 
+/* A CLINICAL VOCABULARY, the plain-language page (his ask, 2026-09-21): the
+   same stage over words, so the space is seen first on tokens everyone
+   reads. Four roles of eight words, and eight fillers the task never
+   rewards — they take the codon page's part, tokens that move and land
+   nowhere. The sentence is 08-1's own ("the patient was treated with
+   aspirin for chest pain"), as roles: an action, a drug, a symptom, a site. */
+export const WORD_ROLES = {
+  action: ["admitted", "treated", "discharged", "examined", "referred", "monitored", "reviewed", "prescribed"],
+  drug: ["aspirin", "metformin", "insulin", "warfarin", "statin", "morphine", "antibiotic", "steroid"],
+  symptom: ["pain", "fever", "cough", "nausea", "fatigue", "dyspnoea", "dizziness", "rash"],
+  site: ["chest", "head", "abdomen", "knee", "back", "throat", "skin", "leg"],
+};
+export const FILLERS = ["the", "patient", "was", "with", "for", "and", "on", "then"];
+export const WORDS = [...Object.values(WORD_ROLES).flat(), ...FILLERS]; // 40, tokens 1..40
+const WORD_ROLE = {};
+for (const [role, list] of Object.entries(WORD_ROLES)) for (const w of list) WORD_ROLE[w] = role;
+export const wordRole = (w) => WORD_ROLE[w] ?? "filler";
+
 /* ---------------------------------------------------------------- tasks */
 
-function aaTask(rng, n, L = 60) {
-  const roles = ["hydrophobic", "hydrophobic", "positive", "negative"];
-  const hasPattern = (s) => { for (let i = 0; i + 4 <= s.length; i++) if (roles.every((r, j) => ROLE_OF[s[i + j]] === r)) return true; return false; };
-  const out = [];
-  for (let i = 0; i < n; i++) {
-    const y = i % 2;
-    let s;
-    do { s = Array.from({ length: L }, () => AA[Math.floor(rng.next() * 20)]); } while (hasPattern(s));
-    if (y) { const at = Math.floor(rng.next() * (L - 4)); roles.forEach((r, j) => { const pool = byRole(r); s[at + j] = pool[Math.floor(rng.next() * pool.length)]; }); }
-    out.push({ x: { tok: Int32Array.from(s.map(aaTok)), L }, y });
-  }
-  return out;
+/**
+ * A role pattern written in random members: class 1 carries `pattern` (a
+ * role a slot) somewhere, each slot a random token of that role, so no
+ * single token is the cue and the table can only learn the roles; class 0
+ * carries the pattern nowhere. `tokens` is the alphabet drawn uniformly,
+ * `roleOf` names a token's role, `tok` its id.
+ */
+function roleTask({ tokens, roleOf, tok, pattern, L }) {
+  const pools = {}; for (const r of pattern) pools[r] = tokens.filter((t) => roleOf(t) === r);
+  const hasPattern = (s) => { for (let i = 0; i + pattern.length <= s.length; i++) if (pattern.every((r, j) => roleOf(s[i + j]) === r)) return true; return false; };
+  return (rng, n) => {
+    const out = [];
+    for (let i = 0; i < n; i++) {
+      const y = i % 2;
+      let s;
+      do { s = Array.from({ length: L }, () => tokens[Math.floor(rng.next() * tokens.length)]); } while (hasPattern(s));
+      if (y) { const at = Math.floor(rng.next() * (L - pattern.length)); pattern.forEach((r, j) => { const pool = pools[r]; s[at + j] = pool[Math.floor(rng.next() * pool.length)]; }); }
+      out.push({ x: { tok: Int32Array.from(s.map(tok)), L }, y });
+    }
+    return out;
+  };
 }
+const aaTask = roleTask({ tokens: [...AA], roleOf: (c) => ROLE_OF[c], tok: aaTok, pattern: ["hydrophobic", "hydrophobic", "positive", "negative"], L: 60 });
+const wordTask = roleTask({ tokens: WORDS, roleOf: wordRole, tok: (w) => WORDS.indexOf(w) + 1, pattern: ["action", "drug", "symptom", "site"], L: 16 });
 
 function codonTask(rng, n, L = 30) {
   const hasMotif = (aas) => { for (let i = 0; i + 3 <= aas.length; i++) if (MOTIF.every((a, j) => aas[i + j] === a)) return true; return false; };
@@ -107,6 +137,14 @@ function codonTask(rng, n, L = 30) {
 
 /** what a page is: its vocabulary, its task, and which rows the picture is about */
 export const PAGES = {
+  words: {
+    V: 41, k: 4, task: wordTask,
+    tokens: WORDS, ids: WORDS.map((_, i) => i + 1),
+    group: (i) => wordRole(WORDS[i]),
+    /* the rows that get a geometry: the thirty-two role words; the fillers are the rest */
+    scored: WORDS.map((w, i) => (WORD_ROLE[w] ? i : -1)).filter((i) => i >= 0),
+    chance: 7 / 31, // seven of the same role among the thirty-one other role words
+  },
   aa: {
     V: 21, k: 4, task: aaTask,
     tokens: [...AA], ids: [...AA].map(aaTok),
@@ -129,12 +167,12 @@ export const PAGES = {
 const mean = (a) => a.reduce((p, q) => p + q, 0) / a.length;
 const dist = (a, b) => { let s = 0; for (let i = 0; i < a.length; i++) s += (a[i] - b[i]) ** 2; return Math.sqrt(s); };
 
-/** nearest-neighbour purity (the neighbour shares the group) and the within/between distance ratio, over `idx` rows of R */
-export function geometry(R, idx, group) {
+/** nearest-neighbour purity (the neighbour, sought among `among`, shares the group) and the within/between distance ratio, over `idx` rows of R */
+export function geometry(R, idx, group, among = idx) {
   const n = idx.length; let win = [], btw = [], pure = 0;
-  for (let a = 0; a < n; a++) {
-    const i = idx[a]; let best = Infinity, bj = -1;
-    for (let b = 0; b < n; b++) { if (a === b) continue; const j = idx[b], d = dist(R[i], R[j]); (group(i) === group(j) ? win : btw).push(d); if (d < best) { best = d; bj = j; } }
+  for (const i of idx) {
+    let best = Infinity, bj = -1;
+    for (const j of among) { if (i === j) continue; const d = dist(R[i], R[j]); (group(i) === group(j) ? win : btw).push(d); if (d < best) { best = d; bj = j; } }
     if (group(bj) === group(i)) pure++;
   }
   return { purity: pure / n, ratio: btw.length && win.length ? mean(win) / mean(btw) : 1 };
@@ -203,9 +241,10 @@ export function trainPage(pageKey, Edim, seed) {
   const frames = own.map((Q) => procrustes(Q, final, P.scored));
   const geo = tables.map((R) => geometry(R, P.scored, P.group));
   const geo2 = frames.map((F) => geometry(F, P.scored, P.group));
-  /* the codon page reports the unrewarded rows as well: they move, and land nowhere */
+  /* the codon and word pages report the unrewarded rows as well, their neighbours sought among EVERY row:
+     among themselves the fillers would be trivially pure, being one group */
   const rest = all.filter((i) => !P.scored.includes(i));
-  const geoRest = rest.length ? tables.map((R) => geometry(R, rest, P.group)) : null;
+  const geoRest = rest.length ? tables.map((R) => geometry(R, rest, P.group, all)) : null;
 
   /* the axes for the picture: the cloud's radius stays under 2.5 over training (measured), so ±3 holds every frame */
   let radius = 0; for (const F of frames) for (const i of P.scored) radius = Math.max(radius, Math.hypot(F[i][0], F[i][1]));
