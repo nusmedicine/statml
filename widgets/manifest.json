@@ -1066,6 +1066,28 @@
       "status": "shipped"
     },
     {
+      "slug": "signal-windows",
+      "title": "Deep Learning - Signal Windows",
+      "blurb": "A recording is cleaned and cut into labelled windows; a window is not a subject, so the split's unit decides the score.",
+      "course": "PHM5005",
+      "topics": [
+        "resampling",
+        "filtering",
+        "detrending",
+        "wavelet",
+        "segmentation",
+        "label alignment",
+        "data leakage",
+        "subject-level split",
+        "normalization",
+        "ECG",
+        "time series",
+        "deep learning"
+      ],
+      "arc": 72,
+      "status": "draft"
+    },
+    {
       "slug": "sequence-cnn-lstm",
       "title": "Deep Learning - Sequences: CNN and LSTM",
       "blurb": "A biological sequence as tokens, as one-hot or embedded rows, into a 1D CNN or an LSTM; occlusion sets a window to PAD.",

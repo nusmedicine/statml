@@ -9082,6 +9082,13 @@
         "frames": 10,
         "dt": 32
       }
+    },
+    {
+      "$note": "signal-windows · PLACEHOLDER while the widget is a draft: Clean, before any press",
+      "slug": "signal-windows",
+      "state": "?theme=light&shown=0",
+      "px": "0",
+      "tx": "0"
     }
   ]
 }
