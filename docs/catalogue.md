@@ -19407,6 +19407,21 @@ kernel and stride) and parks at the last real base, where the head reads.
 boxed on the letters but not on the attribution plot — drawn there too, in
 `--c-extreme` with a wash, the legend's "window set to PAD".
 
+**Round 11:** "should the CNN part also be animated on CNN + LSTM?" — yes:
+the combo page's first press now slides page 1's kernel (2.2 s, as page 1's
+does) with the maps filling behind it, and the window on that page is the
+kernel's k bases throughout, since one step of the recurrence reads one map
+column, which is k bases. "On composition, occlusion doesn't show which
+parts contribute?" — measured: the composition models sit at p = 1.00 or
+0.00, and blanking 8 of 200 bases moves that by under 0.001 for all three
+models and both classes; the plot's auto-scale had drawn that noise at full
+height. The attribution axis now has a floor of 0.05 (labelled 0 and the
+scale's top), and a flat map is said on the figure — "largest change 0.000
+· no window of 8 moves the prediction", with why: the fraction of G and C is
+counted over all 200 bases and 8 of them move it by 0.04 at most; on a
+motif sequence with no copy, "there is no motif to remove" — and the
+half-max tile reads "—" with a note.
+
 ---
 
 ## Two arcs, not one — now three
