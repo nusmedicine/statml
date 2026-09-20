@@ -7653,6 +7653,70 @@
       "tx": "a1d17eef"
     },
     {
+      "$note": "driver-genes · INTERRUPTED - The cohort visited mid-arrival: nothing dropped, the loop ended",
+      "slug": "driver-genes",
+      "state": "?theme=light",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 5
+          }
+        ],
+        "set": {
+          "page": "cohort"
+        },
+        "frames": 10,
+        "dt": 32
+      },
+      "px": "d22a940e",
+      "tx": "4cc982b3"
+    },
+    {
+      "$note": "driver-genes · INTERRUPTED - One gene visited mid-press on the cohort: nothing landing, the loop ended",
+      "slug": "driver-genes",
+      "state": "?theme=light&page=cohort",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 5
+          }
+        ],
+        "set": {
+          "page": "gene"
+        },
+        "frames": 10,
+        "dt": 32
+      },
+      "px": "2bea1729",
+      "tx": "a6c309ba"
+    },
+    {
+      "$note": "driver-genes · INTERRUPTED - Across changed mid-press: the press finished, then eased onto the score axis",
+      "slug": "driver-genes",
+      "state": "?theme=light&page=cohort",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 32
+          },
+          {
+            "click": "step",
+            "frames": 5
+          }
+        ],
+        "set": {
+          "across": "score"
+        },
+        "frames": 20,
+        "dt": 32
+      },
+      "px": "7db6d332",
+      "tx": "ca0d81f3"
+    },
+    {
       "$note": "mutational-signatures · Catalogue, before any press: the empty frame and its caption",
       "slug": "mutational-signatures",
       "state": "?theme=light&shown=0",

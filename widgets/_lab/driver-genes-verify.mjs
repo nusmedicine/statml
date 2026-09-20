@@ -24,6 +24,10 @@
    THE STEPS. Five presses after the mutations land, in cell 12's order; a gene
    with no cluster ends after the first, and says why.
 
+   A SWITCH MID-PRESS (2026-09-19, from widget 70): the other page finishes
+   the press in flight and ends its loop rather than taking that page's press,
+   and an Across change finishes it before the ease it asks for.
+
    THE GEOMETRY. `height` and `draw` share one layout so this script can check
    that nothing is painted outside the canvas, at the narrowest and widest
    side-layout canvases, and that the height does not read the width.
@@ -361,6 +365,70 @@ function drive(params, mode, { dt = 32, frames = 4000 } = {}) {
   let f = 0;
   while (W.animation.advance(ac, { dt: 32, params: toScore, state: sc }) && f < 100) f += 1;
   check("the ease lands on the score", ac.mix === 1, `${f} frames`);
+
+  /* A SWITCH MID-PRESS (found from widget 70, 2026-09-19): core keeps the loop
+     running through a display change, and `advance` steps whichever page
+     `anim.page` names. So "Add the mutations" interrupted by a visit to The
+     cohort used to drop the genes with no cluster unasked, 29 frames, the
+     button then reading the press after; and a cohort press interrupted by a
+     visit to One gene landed the mutations. An Across change mid-press hands
+     the loop to the ease, which left the press where it stopped: a half-fallen
+     cloud under a label naming the next step. */
+  const p1 = paramsOf({});
+  const s1 = W.compute({ params: p1 });
+  const midway = (params, presses, n) => {
+    const state = W.compute({ params });
+    const a = W.animation.init({ params, state, fromScratch: true });
+    a.mode = "step";
+    for (let p = 0; p < presses; p += 1) while (W.animation.advance(a, { dt: 32, params, state }));
+    for (let i = 0; i < n; i += 1) W.animation.advance(a, { dt: 32, params, state });
+    return a;
+  };
+  const visit = (a, o) => {
+    const params = paramsOf(o);
+    const state = W.compute({ params });
+    W.animation.rebuild(a, { params, state });
+    return { params, state, more: W.animation.advance(a, { dt: 32, params, state }) };
+  };
+  const i1 = midway(p1, 0, 5);
+  check("the arrival is in flight after five frames", i1.stage === 1 && i1.landed > 0 && i1.landed < s1.one.n, `${i1.landed} of ${s1.one.n}`);
+  const v1 = visit(i1, { page: "cohort" });
+  check("the arrival interrupted by The cohort: the loop ends and nothing is dropped",
+    v1.more === false && i1.cohort === 0 && i1.cohortT === 1 && i1.labelAt === "c0", `cohort ${i1.cohort}, label ${i1.labelAt}`);
+  /* the loop has ended, so the way back is a rebuild with no frame after it */
+  W.animation.rebuild(i1, { params: p1, state: s1 });
+  check("and back on One gene the mutations are all in place, the threshold next",
+    i1.stage === 1 && i1.landed === s1.one.n && i1.labelAt === 1, `stage ${i1.stage}, landed ${i1.landed}, label ${i1.labelAt}`);
+  const i2 = midway(p1, 1, 3);
+  check("the close-up is in flight after three frames of the second press", i2.stage === 2 && i2.tween > 0 && i2.tween < 1, `tween ${i2.tween.toFixed(2)}`);
+  const v2 = visit(i2, { page: "cohort" });
+  check("the close-up interrupted by The cohort: the loop ends, the close-up in place, nothing dropped",
+    v2.more === false && i2.tween === 1 && i2.cohort === 0 && i2.labelAt === "c0");
+  const i3 = midway(cohort, 0, 5);
+  check("the first cohort press is in flight after five frames", i3.cohort === 1 && i3.cohortT > 0 && i3.cohortT < 1, `t ${i3.cohortT.toFixed(2)}`);
+  const v3 = visit(i3, { page: "gene" });
+  check("a cohort press interrupted by One gene: the loop ends, the press complete, nothing landing",
+    v3.more === false && i3.cohortT === 1 && i3.cohort === 1 && i3.stage === 0 && i3.landed === 0 && i3.labelAt === 0, `stage ${i3.stage}, landed ${i3.landed}, label ${i3.labelAt}`);
+  W.animation.rebuild(i3, { params: cohort, state: sc });
+  check("and back on The cohort the press is finished, the next named", i3.cohort === 1 && i3.cohortT === 1 && i3.labelAt === "c1");
+  const i4 = midway(cohort, 1, 5);
+  W.animation.rebuild(i4, { params: toScore, state: sc });
+  check("Across changed mid-press: the press finishes under the ease it asks for",
+    i4.easing === true && i4.cohortT === 1 && i4.cohort === 2 && !i4.halt, `t ${i4.cohortT}, easing ${i4.easing}`);
+  i4.easing = false;
+  i4.mode = "ease";
+  let fe = 0;
+  while (W.animation.advance(i4, { dt: 32, params: toScore, state: sc }) && fe < 100) fe += 1;
+  i4.mode = "step";
+  let fn = 0;
+  while (W.animation.advance(i4, { dt: 32, params: toScore, state: sc }) && fn < 400) fn += 1;
+  check("and the press after the ease is a whole one", i4.mix === 1 && i4.cohort === 3 && Math.abs(fn - M.COHORT_MS / 32) <= 2, `${fe} ease frames, ${fn} press frames`);
+  const i5 = W.animation.init({ params: p1, state: s1, fromScratch: true });
+  W.animation.rebuild(i5, { params: cohort, state: sc });
+  i5.mode = "step";
+  let f5 = 0;
+  while (W.animation.advance(i5, { dt: 32, params: cohort, state: sc }) && f5 < 400) f5 += 1;
+  check("a switch with nothing moving leaves the next press whole", Math.abs(f5 - M.COHORT_MS / 32) <= 2 && i5.cohort === 1, `${f5} frames`);
 }
 
 /* --- 6 · the geometry, the tiles and the text ------------------------------------ */

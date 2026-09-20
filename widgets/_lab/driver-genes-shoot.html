@@ -13,15 +13,15 @@
 <body>
 <h1>Hashing widget 69's states</h1>
 <p>Splice the block below into <code>fingerprint-baseline.json</code> over
-<code>driver-genes</code>'s twenty-two entries. NOT DEPLOYED.</p>
+<code>driver-genes</code>'s twenty-five entries. NOT DEPLOYED.</p>
 <pre id="out">running…</pre>
 <div class="frames" id="frames"></div>
 
 <script type="module">
 /* ============================================================================
    `fingerprint.html`'s `hash`, `figureText`, `drive`, `settle` and `shoot`,
-   COPIED VERBATIM (the lm-shoot / mr-shoot pattern), so widget 69's twenty-two
-   states can be recorded without re-verifying the 757 already-known-good ones.
+   COPIED VERBATIM (the lm-shoot / mr-shoot pattern), so widget 70's thirty-four
+   states can be recorded without re-verifying the 846 already-known-good ones.
 
    COPIED FROM THE HARNESS AS IT STANDS TODAY, not from mr-shoot. mr-shoot's
    copy of `setParam` predates two branches the harness has since grown, and
@@ -231,16 +231,22 @@ async function shoot(entry) {
 }
 
 /* --- the states to record: the placeholders, by their own entries ---------- */
-/* COPIED 2026-09-18 FROM augmentation-shoot.html, the newest shooter, for the
-   ship of widget 69 (22 states: seven steps of One gene, the other three genes,
-   seven of the cohort build, and five driven — the arrival, the close-up
-   growing out of its box, the score walking onto the background, the correction
-   landing, and the Across ease). */
+/* COPIED 2026-09-20 FROM mutational-signatures-shoot.html, the newest shooter, for
+   the mid-press page switch fix in widget 69 (25 states: the 22 of the ship,
+   given their recorded hashes so the copy reports whether each reproduced,
+   and three INTERRUPTED — a page visited mid-arrival, the other mid-press on
+   the cohort, and Across changed mid-press). */
 const baseline = await (await fetch("./fingerprint-baseline.json")).json();
 const NEW = baseline.states.filter((s) => s.slug === "driver-genes");
 
+/* A HIDDEN DOCUMENT HASHES AT ANOTHER DEVICE PIXEL RATIO, and the pane can be
+   hidden between polls without the ratio check noticing (2026-09-17), so every
+   moment hidden is counted and printed with the result. */
+let hiddenCount = 0;
+document.addEventListener("visibilitychange", () => { if (document.hidden) hiddenCount += 1; });
+
 /* --- prove the copy before trusting it ------------------------------------
-   Chosen so every code path widget 69's states use is proven against
+   Chosen so every code path widget 70's states use is proven against
    a hash already in the baseline: a settled state, a plain `click` state, a
    `before`+`click` state, a `hit` state, and — the one that matters most here
    — a `set` onto a BUTTON wearing `data-param`, which is the branch the gate
@@ -283,7 +289,7 @@ if (bad) {
   out.textContent = lines.join("\n");
 } else {
   lines.push(`  ${PROOF.length}/${PROOF.length} reproduced — the copy is faithful.\n`);
-  lines.push("widget 69's states — each shot three times; driven states checked against their settled sibling");
+  lines.push("widget 70's states — each shot three times; driven states checked against their settled sibling");
   lines.push("  AGREE   px       tx        @size          RECORDED       state");
   const done = [];
   let flaky = 0;
@@ -322,6 +328,7 @@ if (bad) {
     if (runs[0].note.includes("NEVER SETTLED")) lines.push(`     ${runs[0].note}`);
   }
   lines.push(`\n${moved} of the recorded states did not reproduce.`);
+  lines.push(`the document was hidden ${hiddenCount} time(s) during the run${hiddenCount ? " — NOT TRUSTWORTHY, run again fronted" : ""}; devicePixelRatio at the end ${devicePixelRatio}`);
   lines.push(flaky || inert
     ? `\n${flaky} FLAKY, ${inert} INERT — fix before recording anything.`
     : "\nAll stable, every drive moved its figure. JSON to splice into fingerprint-baseline.json:");

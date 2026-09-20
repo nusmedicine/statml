@@ -665,6 +665,15 @@ function takeCohortStep(anim, dt) {
   return anim.cohortT < 1;
 }
 
+/** The press in flight, finished as if its frames had run: the arrival with
+    every mutation landed, a carried panel at its destination, a cohort press at
+    its end. For `rebuild`, when a page or axis switch takes the loop away. */
+function finishPress(anim, a) {
+  if (anim.stage === 1 && anim.landed < a.n) { anim.landed = a.n; anim.clock = 0; }
+  anim.tween = 1;
+  anim.cohortT = 1;
+}
+
 /* ---- the widget ----------------------------------------------------------------- */
 
 defineWidget({
@@ -816,12 +825,35 @@ defineWidget({
         anim.mix = target > anim.mix ? Math.min(target, anim.mix + step) : Math.max(target, anim.mix - step);
         return anim.mix !== target;
       }
+      /* the loop left running for a press a page switch finished (`rebuild`)
+         ends here, before it takes the new page's press */
+      if (anim.halt) {
+        anim.halt = false;
+        anim.moving = false;
+        return false;
+      }
       const more = anim.page === "cohort" ? takeCohortStep(anim, dt) : takeStep(anim, dt, state.one);
+      anim.moving = more;
       anim.labelAt = M.labelStage(anim);
       return more;
     },
 
     rebuild: (anim, { params, state }) => {
+      /* A PRESS BELONGS TO THE PAGE IT STARTED ON. Core keeps a running loop
+         going through a display change, and `advance` steps whichever page
+         `anim.page` names, so a switch mid-press used to take the new page's
+         next press unasked: "Add the mutations" interrupted by a visit to The
+         cohort dropped the genes with no cluster, 29 frames, the button then
+         naming the press after; a cohort press interrupted by a visit to One
+         gene landed the mutations. Found from widget 70's ship (2026-09-19),
+         which has the same fix. The press finishes here, as if its frames had
+         run, and `halt` ends the loop at its next frame. Only while a press
+         moves (`advance` records it): set otherwise, it would swallow the
+         first frame of the reader's next press. */
+      if (anim.moving && params.page !== anim.page) {
+        finishPress(anim, state.one);
+        anim.halt = true;
+      }
       /* Both pages keep their own place in their own walk, because the page is
          a display parameter and a display change resets nothing (invariant 3). */
       anim.page = params.page;
@@ -833,8 +865,16 @@ defineWidget({
          where the points are if a second change comes mid-ease. */
       if (params.across !== anim.across) {
         anim.across = params.across;
-        if (params.page === "cohort" && !reducedMotion()) anim.easing = true;
-        else anim.mix = params.across === "score" ? 1 : 0;
+        if (params.page === "cohort" && !reducedMotion()) {
+          /* Core stops the step loop to hand the frames to the ease, and it
+             fast-forwards nothing, so a press in flight stayed where it
+             stopped: a half-fallen cloud under a label naming the next step,
+             and the reader's next press spent on finishing it. The press
+             finishes first, and the ease plays over the finished figure. The
+             stopped loop needs no halt, and a pending one would end the ease. */
+          if (anim.moving) { finishPress(anim, state.one); anim.moving = false; anim.halt = false; }
+          anim.easing = true;
+        } else anim.mix = params.across === "score" ? 1 : 0;
       }
       if (params.page !== "cohort" && !anim.easing) anim.mix = params.across === "score" ? 1 : 0;
     },
