@@ -19422,6 +19422,11 @@ counted over all 200 bases and 8 of them move it by 0.04 at most; on a
 motif sequence with no copy, "there is no motif to remove" — and the
 half-max tile reads "—" with a note.
 
+**Round 12:** "when animating the LSTM part, should the CNN part sync?" —
+the map column the recurrence is reading is framed through the combo page's
+second press, in step with the block's cursor and the window on the input:
+three marks, one step.
+
 ---
 
 ## Two arcs, not one — now three
