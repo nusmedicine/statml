@@ -56,11 +56,13 @@ import { TABLE, SPEC } from "./table.js";
 
 /* ------------------------------------------------------------- the pages -- */
 
+/* two rows, one parameter: the three models are one kind of thing and occlusion is not — it asks any of them
+   (Kenneth 2026-09-20, round 13, for this widget and 73); core's `group` puts each run on its own row */
 const PAGES = [
-  { value: "cnn", label: "1D-CNN" },
-  { value: "lstm", label: "LSTM" },
-  { value: "combo", label: "CNN + LSTM" },
-  { value: "occlusion", label: "Occlusion" },
+  { value: "cnn", label: "1D-CNN", group: "the models" },
+  { value: "lstm", label: "LSTM", group: "the models" },
+  { value: "combo", label: "CNN + LSTM", group: "the models" },
+  { value: "occlusion", label: "Occlusion", group: "attribution, on any of them" },
 ];
 const ON = (page) => ({ param: "page", equals: page });
 const ON_TASK = (task) => ({ param: "task", equals: task });
@@ -121,7 +123,6 @@ const S = {
     + "packed recurrence stops at the last real base, and its final state is what the linear layer reads; "
     + "occlusion sets a window of tokens to PAD and asks the model again.",
   pageLabel: "Page",
-  pageDetail: "the three models, then occlusion on any of them",
   seqSection: "The sequence",
   taskLabel: "Task",
   taskDetail: "what separates the two classes: one planted motif, TGACTCA, or the fraction of G and C",
@@ -923,7 +924,7 @@ defineWidget({
   height: ({ page, direction, code, k }) => (page === "lstm" ? HEIGHTS.lstm(code, direction) : page === "combo" ? HEIGHTS.combo(code, Number(k)) : page === "occlusion" ? HEIGHTS.occlusion : HEIGHTS.cnn(code, Number(k))),
 
   params: {
-    page: { type: "segmented", label: S.pageLabel, detail: S.pageDetail, options: PAGES, default: "cnn", display: true },
+    page: { type: "segmented", label: S.pageLabel, options: PAGES, default: "cnn", display: true },
 
     seqSec: { type: "section", label: S.seqSection },
     task: {
