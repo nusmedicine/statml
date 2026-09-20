@@ -3,10 +3,11 @@
 
    A token is a row of a table. Drawn as a point, a trained table is a space,
    and the tokens the task treats alike become neighbours — a geometry nobody
-   typed in. Three pages, the same stage: forty clinical words in four roles
-   (the plain-language page, his ask of 2026-09-21, so the space is first
-   seen on tokens everyone reads), twenty amino acids in four roles, and
-   sixty-one codons with a three-amino-acid motif written in random synonyms.
+   typed in. Four pages, the same stage, in the order he set (2026-09-21):
+   the four bases (continuity with the sequence widget; four points, two
+   pairs), sixty-one codons with a three-amino-acid motif written in random
+   synonyms, twenty amino acids in four roles, and forty clinical words in
+   four roles (the plain-language page, his ask, on tokens everyone reads).
    His figure's two panels (2026-09-21 picks): the table as a heatmap at the
    left, the space at the right, both moving as the table trains, from the
    N(0, 1) rows `nn.Embedding` starts with.
@@ -33,7 +34,7 @@
 import { defineWidget } from "../core/index.js";
 import * as M from "./model.js";
 
-const PAGES = [{ value: "words", label: "Words" }, { value: "aa", label: "Amino acids" }, { value: "codon", label: "Codons" }];
+const PAGES = [{ value: "dna", label: "DNA" }, { value: "codon", label: "Codons" }, { value: "aa", label: "Amino acids" }, { value: "words", label: "Words" }];
 const STEP_MS = 420;   // one epoch's move on Step
 const RUN_MS = 240;    // one epoch's move under Play: forty in under ten seconds
 const HEIGHT = 384;
@@ -43,7 +44,7 @@ const HEIGHT = 384;
 const S = {
   subtitle:
     "A token is a row of a table, and a trained table is a space: tokens the task treats alike become neighbours, a geometry nobody typed in. " +
-    "Forty clinical words, then twenty amino acids and sixty-one codons; the rows drawn as points that move as the table trains.",
+    "Four bases, sixty-one codons, twenty amino acids, forty clinical words; the rows drawn as points that move as the table trains.",
   pageLabel: "Page",
   dataSection: "The table",
   eLabel: "Embedding size E",
@@ -57,6 +58,10 @@ const S = {
   runTitle: "Train the remaining epochs in turn",
 
   legend: {
+    dna: [
+      { token: "cluster-a", label: "Purine · A G", mark: "dot" },
+      { token: "cluster-b", label: "Pyrimidine · C T", mark: "dot" },
+    ],
     words: [
       { token: "cluster-a", label: "Action · admitted, treated, discharged …", mark: "dot" },
       { token: "cluster-b", label: "Drug · aspirin, metformin, insulin …", mark: "dot" },
@@ -80,6 +85,7 @@ const S = {
 
   capTable: (V, E) => `the table · Embedding(${V}, ${E}) · one row a token`,
   capSpace: {
+    dna: "the space · each row on the table's top two components",
     words: "the space · the axes from the thirty-two role words",
     aa: "the space · each row on the table's top two components",
     codon: "the space · the axes from the eighteen rewarded rows",
@@ -88,6 +94,7 @@ const S = {
   capEpoch: (e, n, acc) => `epoch ${e} of ${n} · held-out ${Math.round(100 * acc)}%`,
   capDrawn: (p2, p, E) => `purity drawn ${Math.round(100 * p2)}% · in ${E}-D ${Math.round(100 * p)}%`,
   capTask: {
+    dna: "class 1 carries purine · purine · pyrimidine · pyrimidine, each a random base of that class",
     words: "class 1 carries action · drug · symptom · site, each a random word of that role",
     aa: "class 1 carries hydrophobic · hydrophobic · positive · negative, each a random residue of that role",
     codon: "class 1 carries L · R · S, each a random one of its six codons",
@@ -97,6 +104,10 @@ const S = {
   tileAccNote: "300 sequences outside the training set, after the epochs trained so far",
   tileWait: "—",
   tiles: {
+    dna: {
+      main: "Class purity", mainNote: (E) => `bases whose nearest row in ${E}-D is of their class, purine or pyrimidine; chance 33%`,
+      rest: "Within / between", restNote: "mean distance within a class over mean distance between classes; 1 is no structure",
+    },
     words: {
       main: "Role purity", mainNote: (E) => `role words whose nearest row in ${E}-D shares their role; chance 23%`,
       rest: "Purity, the fillers", restNote: "fillers whose nearest of all forty rows is a filler; the task treats them alike, and alike is a role too",
@@ -112,12 +123,13 @@ const S = {
   },
 
   hover: {
+    dna: (c) => `${c} · ${M.BASE_NAMES[c]} · ${M.baseClass(c)}`,
     words: (t) => `${t} · ${M.wordRole(t)}`,
     aa: (c) => `${c} · ${M.NAMES[c]} · ${M.roleOf(c)}`,
     codon: (c) => `${c} · ${M.NAMES[M.AA_OF[c]] ?? M.AA_OF[c]} (${M.AA_OF[c]})`,
   },
 
-  sum: (page, e, n) => `${{ words: "forty clinical words", aa: "twenty amino acids", codon: "sixty-one codons" }[page]} as rows of an embedding table and as points; ${e === 0 ? "the rows as initialised" : e < n ? `${e} of ${n} epochs trained` : "all epochs trained"}`,
+  sum: (page, e, n) => `${{ dna: "four bases", words: "forty clinical words", aa: "twenty amino acids", codon: "sixty-one codons" }[page]} as rows of an embedding table and as points; ${e === 0 ? "the rows as initialised" : e < n ? `${e} of ${n} epochs trained` : "all epochs trained"}`,
 };
 
 /* ------------------------------------------------------ drawing helpers */
@@ -158,6 +170,7 @@ function dot(ctx, x, y, r, fill, stroke = null, lw = 1) {
 
 /* the truth's colours: a page's groups in the cluster hues, in the legend's order; a group with no slot is unrewarded */
 const SLOTS = {
+  dna: { purine: 0, pyrimidine: 1 },
   words: { action: 0, drug: 1, symptom: 2, site: 3 },
   aa: { hydrophobic: 0, polar: 1, positive: 2, negative: 3 },
   codon: { L: 0, R: 1, S: 2 },
@@ -169,15 +182,14 @@ function colourOf(colors, page, i) {
 
 /* ----------------------------------------------------------- the layout */
 
-const PAD_L = 40, PAD_R = 14, TOP = 24, GAP = 34;
+const PAD_R = 14, TOP = 24, GAP = 26, TABLE_X = 12;
 const BELOW = 40;   // under the panels: the epoch line and the task
 /** the two panels: the table at the left, the space a square at the right */
-function layout(w, E) {
+function layout(w) {
   const bottom = HEIGHT - BELOW;
   const side = bottom - TOP;
   const spaceX = w - PAD_R - side;
-  const tableW = Math.min(spaceX - GAP - PAD_L, E * 26);
-  return { top: TOP, bottom, side, spaceX, tableX: PAD_L, tableW, cellW: tableW / E };
+  return { top: TOP, bottom, side, spaceX, tableX: TABLE_X, tableW: spaceX - GAP - TABLE_X };
 }
 
 /* ================================================================ compute */
@@ -203,22 +215,36 @@ const isDone = (anim) => anim.n[anim.page] >= M.EPOCHS && anim.t >= 1;
 
 /* ==================================================================== draw */
 
+/* EVERY ROW IS NAMED (his ask, 2026-09-21). Sixty-one codon names at one row
+   each would need a table twice the canvas at the smallest face, so the rows
+   break into columns — as many as keep a row at ROW_H — read down each
+   column in turn; a codon table is three stacks, a word table two. */
+const ROW_H = 13;
 function drawTable(ctx, colors, L, params, state, anim) {
-  const P = M.PAGES[params.page], n = anim.n[params.page], t = ease(anim.t);
+  const P = M.PAGES[params.page], page = params.page, n = anim.n[page], t = ease(anim.t);
   const prev = state.tables[Math.max(0, n - 1)], cur = state.tables[n];
-  const rows = cur.length, E = state.E, rowH = (L.bottom - L.top) / rows;
+  const rows = cur.length, E = state.E;
+  const cols = Math.max(1, Math.ceil((rows * ROW_H) / L.side)), per = Math.ceil(rows / cols);
+  ctx.save(); ctx.font = monoFont(colors);
+  const labelW = Math.max(...P.tokens.map((tk) => ctx.measureText(tk).width)) + 8;
+  ctx.restore();
+  const colW = L.tableW / cols, cellW = Math.max(3, Math.min(26, (colW - labelW - 10) / E));
   txt(ctx, colors, S.capTable(P.V, E), L.tableX, 14, { font: capFont(colors), fill: colors.ink1 });
   for (let i = 0; i < rows; i++) {
-    const y = L.top + i * rowH;
+    const c = Math.floor(i / per), r = i % per;
+    const x0 = L.tableX + c * colW, y = L.top + r * ROW_H;
     for (let e = 0; e < E; e++) {
       const v = lerp(prev[i][e], cur[i][e], t);
-      rect(ctx, L.tableX + e * L.cellW, y, Math.ceil(L.cellW), Math.ceil(rowH), signed(colors, v, 3));
+      rect(ctx, x0 + labelW + e * cellW, y, Math.ceil(cellW), ROW_H, signed(colors, v, 3));
     }
-    /* the row's name: a letter for an amino acid; elsewhere a colour tick, the rewarded rows in their group's colour */
-    if (params.page === "aa") txt(ctx, colors, P.tokens[i], L.tableX - 5, y + rowH / 2, { font: monoFont(colors), fill: colourOf(colors, "aa", i), align: "right", baseline: "middle" });
-    else if (SLOTS[params.page][P.group(i)] != null) rect(ctx, L.tableX - 6, y, 4, Math.max(1, rowH - 0.5), colourOf(colors, params.page, i));
+    /* the row's name, in its group's colour; the neutral ink for a row the task never rewards */
+    const rewarded = SLOTS[page][P.group(i)] != null;
+    txt(ctx, colors, P.tokens[i], x0 + labelW - 4, y + ROW_H / 2, { font: monoFont(colors), fill: rewarded ? colourOf(colors, page, i) : colors.ink3, align: "right", baseline: "middle" });
   }
-  rect(ctx, L.tableX, L.top, L.tableW, L.bottom - L.top, null, colors.grid);
+  for (let c = 0; c < cols; c++) {
+    const inCol = Math.min(per, rows - c * per);
+    rect(ctx, L.tableX + c * colW + labelW, L.top, E * cellW, inCol * ROW_H, null, colors.grid);
+  }
 }
 
 /** where row i sits in the picture at this frame, in drawing coordinates */
@@ -276,7 +302,8 @@ defineWidget({
   pointer: true,
 
   params: {
-    page: { type: "segmented", label: S.pageLabel, options: PAGES, default: "words", display: true },
+    /* two by two: in one row "Amino acids" truncates at the rail's width */
+    page: { type: "segmented", style: "grid", label: S.pageLabel, options: PAGES, default: "dna", display: true },
     dataSec: { type: "section", label: S.dataSection },
     E: {
       type: "choice", label: S.eLabel, detail: S.eDetail,
@@ -287,7 +314,7 @@ defineWidget({
     shown: { type: "int", min: 0, max: M.EPOCHS, default: 0, hidden: true },
   },
 
-  legend: ({ params }) => S.legend[params.page] ?? S.legend.words,
+  legend: ({ params }) => S.legend[params.page] ?? S.legend.dna,
 
   compute,
 
@@ -299,7 +326,7 @@ defineWidget({
 
     init: ({ params, fromScratch }) => {
       const shown = fromScratch ? 0 : Math.max(0, Math.min(M.EPOCHS, Number(params.shown) || 0));
-      const anim = { page: params.page, n: { words: 0, aa: 0, codon: 0 }, t: 1, moving: false, halt: false };
+      const anim = { page: params.page, n: { dna: 0, codon: 0, aa: 0, words: 0 }, t: 1, moving: false, halt: false };
       anim.n[params.page] = shown;
       anim.done = isDone(anim);
       return anim;
@@ -332,18 +359,18 @@ defineWidget({
   },
 
   draw({ ctx, colors, w, params, state, anim, pointer }) {
-    const L = layout(w, state.E);
+    const L = layout(w);
     drawTable(ctx, colors, L, params, state, anim);
     drawSpace(ctx, colors, L, params, state, anim, pointer);
     const e = shownEpoch(anim);
-    txt(ctx, colors, e === 0 ? S.capStart : S.capEpoch(e, M.EPOCHS, state.accs[e]), PAD_L, L.bottom + 14, { fill: colors.ink1, font: `600 ${colors.fsXs} ${colors.font}` });
-    txt(ctx, colors, S.capTask[params.page], PAD_L, L.bottom + 28, { fill: colors.ink3 });
+    txt(ctx, colors, e === 0 ? S.capStart : S.capEpoch(e, M.EPOCHS, state.accs[e]), TABLE_X, L.bottom + 14, { fill: colors.ink1, font: `600 ${colors.fsXs} ${colors.font}` });
+    txt(ctx, colors, S.capTask[params.page], TABLE_X, L.bottom + 28, { fill: colors.ink3 });
   },
 
   readout({ params, state, anim }) {
     const e = shownEpoch(anim), E = state.E, T = S.tiles[params.page];
     const acc = e >= 1 ? `${Math.round(100 * state.accs[e])}%` : S.tileWait;
-    const rest = params.page === "aa" ? state.geo[e].ratio.toFixed(2) : `${Math.round(100 * state.geoRest[e].purity)}%`;
+    const rest = state.geoRest == null ? state.geo[e].ratio.toFixed(2) : `${Math.round(100 * state.geoRest[e].purity)}%`;
     return [
       { label: S.tileAcc, value: acc, note: S.tileAccNote },
       { label: T.main, value: `${Math.round(100 * state.geo[e].purity)}%`, note: T.mainNote(E) },

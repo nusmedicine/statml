@@ -5,10 +5,10 @@
    vocabulary (cells 101–105) and the genetic code. One-hot puts every pair of
    tokens at the same distance; an embedding trained on a task learns a
    geometry in which the tokens the task treats alike become neighbours. For
-   DNA's four tokens there is little to see (measured: A lands near G and C
-   near T under a purine · pyrimidine pattern, four points), so the
-   vocabularies are a clinical one of forty words, the twenty amino acids in
-   four roles, and the sixty-one sense codons.
+   DNA's four tokens the picture is four points (measured: A lands near G
+   and C near T under a purine · pyrimidine pattern), so the vocabularies
+   run from there to the sixty-one sense codons, the twenty amino acids in
+   four roles, and a clinical one of forty words.
    `_lab/embedding-space-measure.mjs` and `-align-measure.mjs` measured every
    number a comment here quotes (2026-09-21); `_lab/embedding-space-mock.html`
    drew them.
@@ -66,6 +66,13 @@ export const NAMES = {
 };
 const aaTok = (c) => AA.indexOf(c) + 1;
 
+/* THE FOUR BASES, on his ask (2026-09-21) for continuity with the sequence
+   widget: four points, but measured to land as two pairs — A near G and C
+   near T — under a purine · purine · pyrimidine · pyrimidine pattern. */
+export const DNA = "ACGT"; // PAD = 0, tokens 1..4
+export const BASE_NAMES = { A: "adenine", C: "cytosine", G: "guanine", T: "thymine" };
+export const baseClass = (c) => ("AG".includes(c) ? "purine" : "pyrimidine");
+
 const BASES = "TCAG";
 const CODE = "FFLLSSSSYY**CC*WLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG"; // TCAG order
 export const CODONS = [], AA_OF = {};
@@ -117,6 +124,7 @@ function roleTask({ tokens, roleOf, tok, pattern, L }) {
     return out;
   };
 }
+const dnaTask = roleTask({ tokens: [...DNA], roleOf: baseClass, tok: (c) => DNA.indexOf(c) + 1, pattern: ["purine", "purine", "pyrimidine", "pyrimidine"], L: 40 });
 const aaTask = roleTask({ tokens: [...AA], roleOf: (c) => ROLE_OF[c], tok: aaTok, pattern: ["hydrophobic", "hydrophobic", "positive", "negative"], L: 60 });
 const wordTask = roleTask({ tokens: WORDS, roleOf: wordRole, tok: (w) => WORDS.indexOf(w) + 1, pattern: ["action", "drug", "symptom", "site"], L: 16 });
 
@@ -137,6 +145,13 @@ function codonTask(rng, n, L = 30) {
 
 /** what a page is: its vocabulary, its task, and which rows the picture is about */
 export const PAGES = {
+  dna: {
+    V: 5, k: 4, task: dnaTask,
+    tokens: [...DNA], ids: [1, 2, 3, 4],
+    group: (i) => baseClass(DNA[i]),
+    scored: [0, 1, 2, 3],
+    chance: 1 / 3, // one base of the same class among three others
+  },
   words: {
     V: 41, k: 4, task: wordTask,
     tokens: WORDS, ids: WORDS.map((_, i) => i + 1),
