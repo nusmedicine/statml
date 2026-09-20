@@ -1,19 +1,30 @@
 /* ============================================================================
-   Widget 74 · Embedding Space — PHM5005 07-1 cell 3's "Vector space" panel.
+   Widget 74 · Embedding Space — PHM5005 07-1 cell 3's "Vector space" panel,
+   and 08-1 cell 1 §2's position encoding.
 
    A token is a row of a table. Drawn as a point, a trained table is a space,
    and the tokens the task treats alike become neighbours — a geometry nobody
-   typed in. Four pages, the same stage, in the order he set (2026-09-21):
-   the four bases (continuity with the sequence widget; four points, two
-   pairs), sixty-one codons with a three-amino-acid motif written in random
-   synonyms, twenty amino acids in four roles, and forty clinical words in
-   four roles (the plain-language page, his ask, on tokens everyone reads).
-   His figure's two panels (2026-09-21 picks): the table as a heatmap at the
-   left, the space at the right, both moving as the table trains, from the
-   N(0, 1) rows `nn.Embedding` starts with.
+   typed in. Four pages on that stage, in the order he set (2026-09-21): the
+   four bases (continuity with the sequence widget; four points, two pairs),
+   sixty-one codons with a three-amino-acid motif written in random synonyms,
+   twenty amino acids in four roles, and forty clinical words in four roles
+   (the plain-language page, his ask, on tokens everyone reads). His figure's
+   two panels: the table as a heatmap at the left, the space at the right,
+   both moving as the table trains, from the N(0, 1) rows `nn.Embedding`
+   starts with.
+
+   A FIFTH PAGE, POSITION, for the language lessons: the same clinical words
+   through one attention head, with nothing, a learned table, the sinusoid
+   or a rotation telling it where a token sits. The lesson's own example is
+   the task — aspirin before pain, or after — and the head with no position
+   sits at chance on it (measured; model.js has the numbers). The stage is
+   again two panels: the position table at the left (what is added), the
+   attention scores of one held-out sequence at the right (what it changes),
+   and a Positions control that moves the same words along by the whole
+   length, which leaves the rotation's scores alone and breaks the others.
 
    THE PRESS IS AN EPOCH. compute() trains all forty epochs on the click
-   (under a second) and records the table after each; Step moves the points
+   (about a second) and records the table after each; Step moves the points
    from one epoch's frame to the next, Play runs the forty. Nothing is
    computed per frame: the tween interpolates two recorded frames
    (invariant 2).
@@ -28,29 +39,41 @@
    is what training put there (colour carries the truth, never the finding).
    The accuracy-by-epoch track under the panels was drawn and cut on his
    word (clutter, 2026-09-21); the epoch line carries the number.
-   The Position page for the language lessons follows once these settle.
    ========================================================================= */
 
 import { defineWidget } from "../core/index.js";
 import * as M from "./model.js";
 
-const PAGES = [{ value: "dna", label: "DNA" }, { value: "codon", label: "Codons" }, { value: "aa", label: "Amino acids" }, { value: "words", label: "Words" }];
+const PAGES = [
+  { value: "dna", label: "DNA" }, { value: "codon", label: "Codons" }, { value: "aa", label: "Amino acids" }, { value: "words", label: "Words" },
+  { value: "position", label: "Position" },
+];
+const ENCODINGS = [{ value: "none", label: "None" }, { value: "learned", label: "Learned" }, { value: "sinusoidal", label: "Sinusoidal" }, { value: "rope", label: "Rotary" }];
 const STEP_MS = 420;   // one epoch's move on Step
 const RUN_MS = 240;    // one epoch's move under Play: forty in under ten seconds
 const HEIGHT = 384;
+const ON = (page) => ({ param: "page", equals: page });
+const ON_TABLES = { param: "page", oneOf: ["dna", "codon", "aa", "words"] };
 
 /* -------------------------------------------------------------- strings */
 
 const S = {
   subtitle:
     "A token is a row of a table, and a trained table is a space: tokens the task treats alike become neighbours, a geometry nobody typed in. " +
-    "Four bases, sixty-one codons, twenty amino acids, forty clinical words; the rows drawn as points that move as the table trains.",
+    "Four bases, sixty-one codons, twenty amino acids, forty clinical words; the rows drawn as points that move as the table trains. " +
+    "Then position: what an attention head is told about where a token sits, and what a shift does to it.",
   pageLabel: "Page",
   dataSection: "The table",
   eLabel: "Embedding size E",
   eDetail: "how many numbers a token's row holds; the picture projects them to two",
   seedLabel: "Seed",
   seedDetail: "the starting rows and the training sequences, reproducibly",
+  posSection: "The head",
+  encodingLabel: "Encoding",
+  encodingDetail: "what tells the head where a token sits: nothing, a table trained with the rest, the fixed sine and cosine table, or a rotation of q and k by the position",
+  lookSection: "Look at",
+  shiftLabel: "Positions",
+  shiftDetail: "the same sixteen words at positions 0 to 15, or moved along to 16 to 31; the trained head is read, not retrained",
 
   stepLabel: "Train one",
   stepTitle: "Train one epoch of 300 sequences and move each row to where it leaves it",
@@ -81,6 +104,10 @@ const S = {
       { token: "cluster-c", label: "Serine (S) · six codons", mark: "dot" },
       { token: "ink-3", label: "The other 43 codons, which the task never rewards", mark: "dot" },
     ],
+    position: [
+      { token: "group-a", label: "aspirin · first in class 1", mark: "dot" },
+      { token: "group-b", label: "pain · second in class 1", mark: "dot" },
+    ],
   },
 
   capTable: (V, E) => `the table · Embedding(${V}, ${E}) · one row a token`,
@@ -98,10 +125,27 @@ const S = {
     words: "class 1 carries action · drug · symptom · site, each a random word of that role",
     aa: "class 1 carries hydrophobic · hydrophobic · positive · negative, each a random residue of that role",
     codon: "class 1 carries L · R · S, each a random one of its six codons",
+    position: "class 1 has aspirin before pain, class 0 the reverse; both words in every sequence of sixteen",
   },
+
+  /* the Position page */
+  capPos: {
+    none: "no position · the token rows alone",
+    learned: (Lmax, D) => `position table · Embedding(${Lmax}, ${D}), trained`,
+    sinusoidal: (Lmax, D) => `position table · sin and cos [${Lmax}, ${D}], fixed`,
+    rope: "rotary · q and k turned by the position",
+  },
+  capPosNone: "nothing is added to a token's row, so the head has no way to tell which came first",
+  capPosRope: (m, th) => `pair ${m} · ${th} rad a position`,
+  capScores: (lo, hi) => `scores q·k/√dk · one held-out sequence at positions ${lo} to ${hi}`,
+  capPosStart: "epoch 0 · the head as initialised",
+  capPosEpoch: (e, n, acc, accS) => `epoch ${e} of ${n} · held-out ${Math.round(100 * acc)}% · at the shifted positions ${Math.round(100 * accS)}%`,
+  hoverScore: (a, b, v) => `${a} → ${b} · ${v.toFixed(2)}`,
+  hoverTable: (p, d, v) => `position ${p} · dimension ${d} · ${v.toFixed(2)}`,
 
   tileAcc: "Held-out accuracy",
   tileAccNote: "300 sequences outside the training set, after the epochs trained so far",
+  tileAccNotePos: "200 sequences outside the training set, at the positions trained on",
   tileWait: "—",
   tiles: {
     dna: {
@@ -121,6 +165,16 @@ const S = {
       rest: "Purity, the other 43", restNote: "codons whose nearest of all sixty-one rows is a synonym; they move too, and at chance they have landed nowhere",
     },
   },
+  tileShift: "At the shifted positions",
+  tileShiftNote: "the same sequences with every position moved along by sixteen; the trained head read, not retrained",
+  tilePresence: "Presence, no position",
+  tilePresenceNote: "the same head with no position on a presence task, aspirin in or out: it learns, so the failure is order",
+  tileParams: "Parameters",
+  tileParamsNote: {
+    learned: "the position table adds 32 × 16 = 512 to the head's 1,202",
+    sinusoidal: "the fixed table adds none",
+    rope: "the rotation adds none",
+  },
 
   hover: {
     dna: (c) => `${c} · ${M.BASE_NAMES[c]} · ${M.baseClass(c)}`,
@@ -130,6 +184,7 @@ const S = {
   },
 
   sum: (page, e, n) => `${{ dna: "four bases", words: "forty clinical words", aa: "twenty amino acids", codon: "sixty-one codons" }[page]} as rows of an embedding table and as points; ${e === 0 ? "the rows as initialised" : e < n ? `${e} of ${n} epochs trained` : "all epochs trained"}`,
+  sumPos: (pe, e, n) => `one attention head over sixteen words with ${{ none: "no position", learned: "a learned position table", sinusoidal: "the sinusoidal position table", rope: "a rotary position encoding" }[pe]}; ${e === 0 ? "as initialised" : e < n ? `${e} of ${n} epochs trained` : "all epochs trained"}`,
 };
 
 /* ------------------------------------------------------ drawing helpers */
@@ -199,9 +254,10 @@ function layout(w) {
    another page would retrain for a second. */
 const cache = new Map();
 function compute({ params }) {
-  const key = [params.page, params.E, params.seed].join("|");
+  const pos = params.page === "position";
+  const key = pos ? ["position", params.encoding, params.seed].join("|") : [params.page, params.E, params.seed].join("|");
   if (cache.has(key)) return cache.get(key);
-  const run = M.trainPage(params.page, Number(params.E), params.seed);
+  const run = pos ? M.trainPosition(params.encoding, params.seed) : M.trainPage(params.page, Number(params.E), params.seed);
   if (cache.size > 12) cache.delete(cache.keys().next().value);
   cache.set(key, run);
   return run;
@@ -290,6 +346,84 @@ function drawSpace(ctx, colors, L, params, state, anim, pointer) {
   txt(ctx, colors, S.capDrawn(g2.purity, g.purity, state.E), L.spaceX + L.side, L.bottom + 14, { fill: colors.ink2, align: "right" });
 }
 
+/* ------------------------------------------------------ the Position page */
+
+/** the scores matrix shown at this frame: the chosen positions, tweened between the two recorded epochs */
+function scoresAt(state, anim, shift) {
+  const n = anim.n.position, t = ease(anim.t), src = shift ? state.scoresShift : state.scores;
+  const a = src[Math.max(0, n - 1)], b = src[n];
+  return a.map((row, i) => row.map((v, j) => lerp(v, b[i][j], t)));
+}
+
+function drawPosition(ctx, colors, w, params, state, anim, pointer) {
+  const { L: T, Lmax, D, dk } = M.POS, pe = state.pe, shift = Number(params.shift), n = anim.n.position, t = ease(anim.t);
+  const L = layout(w);
+  const cs = L.side / T;                       // a score cell
+  const scX = L.spaceX, scY = L.top;
+
+  /* the left panel: what the encoding adds */
+  ctx.save(); ctx.font = monoFont(colors);
+  const wordW = Math.max(...state.words.map((s) => ctx.measureText(s).width)) + 10;
+  ctx.restore();
+  const tblX = TABLE_X + 26, tblW = scX - wordW - GAP - tblX, cell = Math.max(4, Math.min(12, tblW / D));
+  const capLeft = pe === "none" ? S.capPos.none : pe === "rope" ? S.capPos.rope : S.capPos[pe](Lmax, D);
+  txt(ctx, colors, capLeft, TABLE_X, 14, { font: capFont(colors), fill: colors.ink1 });
+  let tableHover = null;
+  if (pe === "learned" || pe === "sinusoidal") {
+    const prev = pe === "learned" ? state.tables[Math.max(0, n - 1)] : state.fixed, cur = pe === "learned" ? state.tables[n] : state.fixed;
+    for (let r = 0; r < T; r++) {
+      const p = shift + r, y = L.top + r * cell * 1.0;
+      for (let d = 0; d < D; d++) rect(ctx, tblX + d * cell, y, Math.ceil(cell), Math.ceil(cell), signed(colors, lerp(prev[p][d], cur[p][d], t), 2.5));
+      txt(ctx, colors, String(p), tblX - 4, y + cell / 2, { font: monoFont(colors), fill: colors.ink3, align: "right", baseline: "middle" });
+    }
+    rect(ctx, tblX, L.top, D * cell, T * cell, null, colors.grid);
+    if (pointer && pointer.x >= tblX && pointer.x < tblX + D * cell && pointer.y >= L.top && pointer.y < L.top + T * cell) {
+      const d = Math.floor((pointer.x - tblX) / cell), r = Math.floor((pointer.y - L.top) / cell);
+      tableHover = [tblX + (d + 0.5) * cell, L.top + r * cell, S.hoverTable(shift + r, d, lerp(prev[shift + r][d], cur[shift + r][d], t))];
+    }
+  } else if (pe === "rope") {
+    const pitch = Math.min(16, tblW / T), rad = pitch * 0.4;
+    for (let m = 0; m < dk / 2; m++) {
+      const th = Math.pow(10000, -(2 * m) / dk), y = L.top + 30 + m * 46;
+      for (let r = 0; r < T; r++) {
+        const cx = tblX + (r + 0.5) * pitch, a = (shift + r) * th;
+        dot(ctx, cx, y, rad, colors.surface2, colors.grid);
+        line(ctx, cx, y, cx + rad * Math.cos(a), y - rad * Math.sin(a), colors.groupA, 1.6);
+      }
+      txt(ctx, colors, S.capPosRope(m, th >= 0.01 ? String(th) : th.toFixed(3)), tblX, y + rad + 12, { fill: colors.ink3 });
+    }
+    txt(ctx, colors, `positions ${shift} to ${shift + T - 1}`, tblX, L.top + 8, { fill: colors.ink3 });
+  } else {
+    rect(ctx, tblX, L.top, D * cell, T * cell, null, colors.grid);
+    txt(ctx, colors, S.capPosNone, tblX + 6, L.top + 16, { fill: colors.ink3 });
+  }
+
+  /* the right panel: the scores of one held-out sequence, one row a query */
+  txt(ctx, colors, S.capScores(shift, shift + T - 1), scX - wordW, 14, { font: capFont(colors), fill: colors.ink1 });
+  const Sc = scoresAt(state, anim, shift);
+  let mx = 1e-6; for (const row of Sc) for (const v of row) mx = Math.max(mx, Math.abs(v));
+  const first = state.words.indexOf(M.POS.first), second = state.words.indexOf(M.POS.second);
+  const wordColour = (i) => (i === first ? colors.groupA : i === second ? colors.groupB : colors.ink2);
+  for (let i = 0; i < T; i++) {
+    for (let j = 0; j < T; j++) rect(ctx, scX + j * cs, scY + i * cs, Math.ceil(cs), Math.ceil(cs), signed(colors, Sc[i][j], mx));
+    txt(ctx, colors, state.words[i], scX - 6, scY + (i + 0.5) * cs, { font: monoFont(colors), fill: wordColour(i), align: "right", baseline: "middle" });
+  }
+  rect(ctx, scX, scY, L.side, L.side, null, colors.grid);
+  /* the two words' columns, marked above the matrix */
+  for (const [i, col] of [[first, colors.groupA], [second, colors.groupB]]) rect(ctx, scX + i * cs + 2, scY - 5, cs - 4, 3, col);
+  if (pointer && pointer.x >= scX && pointer.x < scX + L.side && pointer.y >= scY && pointer.y < scY + L.side) {
+    const j = Math.floor((pointer.x - scX) / cs), i = Math.floor((pointer.y - scY) / cs);
+    rect(ctx, scX + j * cs, scY + i * cs, cs, cs, null, colors.highlight, 1.5);
+    const left = j > T / 2;
+    txt(ctx, colors, S.hoverScore(state.words[i], state.words[j], Sc[i][j]), left ? scX + j * cs - 6 : scX + (j + 1) * cs + 6, scY + i * cs - 6, { fill: colors.ink1, align: left ? "right" : "left", halo: true });
+  }
+  if (tableHover) txt(ctx, colors, tableHover[2], tableHover[0], tableHover[1] - 6, { fill: colors.ink1, halo: true });
+
+  const e = shownEpoch(anim);
+  txt(ctx, colors, e === 0 ? S.capPosStart : S.capPosEpoch(e, M.EPOCHS, state.accs[e], state.accsShift[e]), TABLE_X, L.bottom + 14, { fill: colors.ink1, font: `600 ${colors.fsXs} ${colors.font}` });
+  txt(ctx, colors, S.capTask.position, TABLE_X, L.bottom + 28, { fill: colors.ink3 });
+}
+
 /* ================================================================ widget */
 
 defineWidget({
@@ -304,12 +438,19 @@ defineWidget({
   params: {
     /* two by two: in one row "Amino acids" truncates at the rail's width */
     page: { type: "segmented", style: "grid", label: S.pageLabel, options: PAGES, default: "dna", display: true },
-    dataSec: { type: "section", label: S.dataSection },
+    dataSec: { type: "section", label: S.dataSection, when: ON_TABLES },
     E: {
       type: "choice", label: S.eLabel, detail: S.eDetail,
-      options: M.SIZES.map((e) => ({ value: String(e), label: String(e) })), default: "8",
+      options: M.SIZES.map((e) => ({ value: String(e), label: String(e) })), default: "8", when: ON_TABLES,
     },
+    posSec: { type: "section", label: S.posSection, when: ON("position") },
+    encoding: { type: "segmented", style: "grid", label: S.encodingLabel, detail: S.encodingDetail, options: ENCODINGS, default: "learned", when: ON("position") },
     seed: { type: "int", label: S.seedLabel, detail: S.seedDetail, min: 1, max: 200, default: 1 },
+    lookPos: { type: "section", label: S.lookSection, afterDrive: true, when: ON("position") },
+    shift: {
+      type: "segmented", label: S.shiftLabel, detail: S.shiftDetail,
+      options: [{ value: "0", label: "0 to 15" }, { value: "16", label: "16 to 31" }], default: "0", display: true, afterDrive: true, when: ON("position"),
+    },
     /* authoring escape hatch, first render only: epochs already trained on the page it opens with */
     shown: { type: "int", min: 0, max: M.EPOCHS, default: 0, hidden: true },
   },
@@ -326,7 +467,7 @@ defineWidget({
 
     init: ({ params, fromScratch }) => {
       const shown = fromScratch ? 0 : Math.max(0, Math.min(M.EPOCHS, Number(params.shown) || 0));
-      const anim = { page: params.page, n: { dna: 0, codon: 0, aa: 0, words: 0 }, t: 1, moving: false, halt: false };
+      const anim = { page: params.page, n: { dna: 0, codon: 0, aa: 0, words: 0, position: 0 }, t: 1, moving: false, halt: false };
       anim.n[params.page] = shown;
       anim.done = isDone(anim);
       return anim;
@@ -359,6 +500,7 @@ defineWidget({
   },
 
   draw({ ctx, colors, w, params, state, anim, pointer }) {
+    if (params.page === "position") { drawPosition(ctx, colors, w, params, state, anim, pointer); return; }
     const L = layout(w);
     drawTable(ctx, colors, L, params, state, anim);
     drawSpace(ctx, colors, L, params, state, anim, pointer);
@@ -368,15 +510,28 @@ defineWidget({
   },
 
   readout({ params, state, anim }) {
-    const e = shownEpoch(anim), E = state.E, T = S.tiles[params.page];
-    const acc = e >= 1 ? `${Math.round(100 * state.accs[e])}%` : S.tileWait;
-    const rest = state.geoRest == null ? state.geo[e].ratio.toFixed(2) : `${Math.round(100 * state.geoRest[e].purity)}%`;
+    const e = shownEpoch(anim);
+    const pct = (v) => `${Math.round(100 * v)}%`;
+    if (params.page === "position") {
+      const third = state.pe === "none"
+        ? { label: S.tilePresence, value: pct(state.presence), note: S.tilePresenceNote }
+        : { label: S.tileParams, value: state.params.toLocaleString("en"), note: S.tileParamsNote[state.pe] };
+      return [
+        { label: S.tileAcc, value: e >= 1 ? pct(state.accs[e]) : S.tileWait, note: S.tileAccNotePos },
+        { label: S.tileShift, value: e >= 1 ? pct(state.accsShift[e]) : S.tileWait, note: S.tileShiftNote },
+        third,
+      ];
+    }
+    const E = state.E, T = S.tiles[params.page];
+    const rest = state.geoRest == null ? state.geo[e].ratio.toFixed(2) : pct(state.geoRest[e].purity);
     return [
-      { label: S.tileAcc, value: acc, note: S.tileAccNote },
-      { label: T.main, value: `${Math.round(100 * state.geo[e].purity)}%`, note: T.mainNote(E) },
+      { label: S.tileAcc, value: e >= 1 ? pct(state.accs[e]) : S.tileWait, note: S.tileAccNote },
+      { label: T.main, value: pct(state.geo[e].purity), note: T.mainNote(E) },
       { label: T.rest, value: rest, note: T.restNote },
     ];
   },
 
-  summary({ params, anim }) { return S.sum(params.page, shownEpoch(anim), M.EPOCHS); },
+  summary({ params, state, anim }) {
+    return params.page === "position" ? S.sumPos(state.pe, shownEpoch(anim), M.EPOCHS) : S.sum(params.page, shownEpoch(anim), M.EPOCHS);
+  },
 });

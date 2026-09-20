@@ -267,3 +267,79 @@ export function trainPage(pageKey, Edim, seed) {
 
   return { page: pageKey, E: Edim, seed, tables, accs, frames, geo, geo2, geoRest, lim, params, epochs: EPOCHS };
 }
+
+/* ------------------------------------------------------ the Position page */
+
+/* THE POSITION PAGE (08-1 cell 1 §2, 08-3 cell 4 §2), on the engine's
+   AttentionHead over the clinical vocabulary. The lesson's own example is
+   the task: "aspirin treated patient" against "patient treated aspirin" —
+   class 1 has `aspirin` before `pain`, class 0 the reverse, both words in
+   every sequence, so the bag of tokens is the same in both classes and a
+   head with no position must sit at chance. Measured (2026-09-21): none
+   48–53% on three seeds; learned 89–100%, sinusoidal 75–99%, rotary
+   99–100% in range; the SAME words at positions 16..31 — the page's shift —
+   learned 48–58%, sinusoidal 49–52%, rotary 99–100%; the head with no
+   position learns a presence task (aspirin in or out) at 100%, so the
+   failure is order, not capacity. What the page does not claim: anything
+   about LONGER sequences — with real tokens prepended every encoding falls,
+   because one head and a mean pool are diluted over twice the tokens. */
+export const POS = { L: 16, Lmax: 32, D: 16, dk: 8, first: "aspirin", second: "pain" };
+const wordTok = (w) => WORDS.indexOf(w) + 1;
+
+/** class 1 has `first` before `second`, class 0 the reverse; neither word elsewhere in the sequence */
+function orderTask(rng, n) {
+  const { L, first, second } = POS, out = [];
+  for (let i = 0; i < n; i++) {
+    const y = i % 2;
+    let s, a, b;
+    do { s = Array.from({ length: L }, () => WORDS[Math.floor(rng.next() * WORDS.length)]); a = Math.floor(rng.next() * L); b = Math.floor(rng.next() * L); } while (s.includes(first) || s.includes(second) || a === b);
+    const [pa, pb] = a < b ? [a, b] : [b, a];
+    s[pa] = y ? first : second; s[pb] = y ? second : first;
+    out.push({ x: { tok: Int32Array.from(s.map(wordTok)), L }, y, words: s });
+  }
+  return out;
+}
+/** class 1 has `first` somewhere, class 0 not at all: the control task, for the head with no position */
+function presenceTask(rng, n) {
+  const { L, first } = POS, out = [];
+  for (let i = 0; i < n; i++) {
+    const y = i % 2;
+    let s;
+    do { s = Array.from({ length: L }, () => WORDS[Math.floor(rng.next() * WORDS.length)]); } while (s.includes(first));
+    if (y) s[Math.floor(rng.next() * L)] = first;
+    out.push({ x: { tok: Int32Array.from(s.map(wordTok)), L }, y });
+  }
+  return out;
+}
+/** the same sequences with every position moved along by `by`; the tokens untouched */
+const shifted = (data, by) => data.map(({ x, y }) => ({ x: { tok: x.tok, L: x.L, pos: Int32Array.from(x.tok, (_, i) => i + by) }, y }));
+
+/**
+ * The whole run for one encoding: after every epoch, the held-out accuracy
+ * in range and at the shifted positions, the attention scores of one
+ * held-out class-1 sequence at both, and the position table (learned) —
+ * the sinusoid's is fixed, the rotation has none. The head with no
+ * position is trained a second time on the presence task, for the readout.
+ */
+export function trainPosition(pe, seed) {
+  const { L, Lmax, D, dk } = POS;
+  const m = E.AttentionHead(makeRng(seed * 11 + 1), { V: WORDS.length + 1, D, dk, Lmax, pe });
+  const test = orderTask(makeRng(seed * 11 + 5), 200), testS = shifted(test, L);
+  const ex = test.find((d) => d.y === 1), exS = shifted([ex], L)[0];
+  const copy = (S) => S.map((r) => Array.from(r));
+  const tableNow = () => (pe === "learned" ? Array.from({ length: Lmax }, (_, p) => Array.from(m.posVec(p))) : null);
+  const accs = [null], accsShift = [null], scores = [copy(m.scores(ex.x))], scoresShift = [copy(m.scores(exS.x))], tables = [tableNow()];
+  E.train(makeRng(seed * 11 + 7), m, (e) => orderTask(makeRng(seed * 1000 + e + 13), 300), {
+    epochs: EPOCHS, lr: 5e-3,
+    onEpoch: () => { accs.push(E.accuracy(m, test)); accsShift.push(E.accuracy(m, testS)); scores.push(copy(m.scores(ex.x))); scoresShift.push(copy(m.scores(exS.x))); tables.push(tableNow()); },
+  });
+  const params = m.params.reduce((p, q) => p + q.v.length, 0);
+  let presence = null;
+  if (pe === "none") {
+    const mp = E.AttentionHead(makeRng(seed * 11 + 1), { V: WORDS.length + 1, D, dk, Lmax, pe });
+    E.train(makeRng(seed * 11 + 9), mp, (e) => presenceTask(makeRng(seed * 1000 + e + 17), 300), { epochs: EPOCHS, lr: 5e-3 });
+    presence = E.accuracy(mp, presenceTask(makeRng(seed * 11 + 6), 200));
+  }
+  const fixed = pe === "sinusoidal" ? E.sinusoid(Lmax, D).map((r) => Array.from(r)) : null;
+  return { page: "position", pe, seed, L, Lmax, D, dk, epochs: EPOCHS, words: ex.words, accs, accsShift, scores, scoresShift, tables, fixed, presence, params };
+}

@@ -66,7 +66,8 @@
 
 import { makeRng } from "../core/rng.js";
 import * as E from "../signal-cnn-lstm/engine.js";
-import { attnModel, sinusoid, nParams } from "./attention-lab.js";
+import { AttentionHead as attnModel, sinusoid } from "../signal-cnn-lstm/engine.js";
+const nParams = (m) => m.params.reduce((p, q) => p + q.v.length, 0);
 
 const t0 = Date.now();
 const secs = () => ((Date.now() - t0) / 1000).toFixed(1);

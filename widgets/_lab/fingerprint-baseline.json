@@ -9440,6 +9440,13 @@
       },
       "px": "0",
       "tx": "0"
+    },
+    {
+      "$note": "embedding-space · Position, rotary, all forty epochs, the shifted positions (placeholder)",
+      "slug": "embedding-space",
+      "state": "?theme=light&page=position&encoding=rope&shift=16&shown=40",
+      "px": "0",
+      "tx": "0"
     }
   ]
 }
