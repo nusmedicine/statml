@@ -19427,6 +19427,15 @@ the map column the recurrence is reading is framed through the combo page's
 second press, in step with the block's cursor and the window on the input:
 three marks, one step.
 
+**Round 13:** "occlusion should be on a separate row — this applies to the
+signals widget as well": the Page control is two rows through core's option
+`group` (one parameter still) — 1D-CNN · LSTM · CNN + LSTM captioned "the
+models", Occlusion under it captioned "attribution, on any of them"; the
+field's detail line, which said the same, is gone. Applied to 73
+`signal-cnn-lstm` in its own commit; the rail is not hashed, so 73's thirty
+states are untouched by it (the shared engine change is what needs them
+re-run).
+
 ---
 
 ## Two arcs, not one — now three
