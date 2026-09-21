@@ -272,8 +272,13 @@ function hoverAt(pointer, w, state) {
    cells of its COLUMN, and each is shaded in its own hue — `--c-group-a` and
    `--c-group-b`, the two arms of a comparison the reader chose (his round 6,
    2026-09-21: no brackets, the two shadings different). */
-const DEFAULT_FOCUS = { gene: 4, sample: 0, other: 5 };
-const focusOf = (hover) => (hover ? { gene: hover.gene, sample: hover.sample, other: hover.gene === 0 ? 5 : 0 } : DEFAULT_FOCUS);
+/* The default's two readings are on DIFFERENT genes — between on gene 1
+   (unchanged, so its truth is 1.00), within on genes 5 and 6 — and a hover
+   puts both on the gene pointed at. One focus carrying both, after the first
+   version carried one gene and printed gene 1's number over gene 5's shaded
+   row (his catch, 2026-09-22). */
+const DEFAULT_FOCUS = { between: 0, within: 4, other: 5, sample: 0 };
+const focusOf = (hover) => (hover ? { between: hover.gene, within: hover.gene, other: hover.gene === 0 ? 5 : 0, sample: hover.sample } : DEFAULT_FOCUS);
 const WASH = 0.22;
 
 /* The two readings the table brackets, which is what a unit change eases:
@@ -496,8 +501,8 @@ function drawPiles(ctx, colors, w, y0, state, hover) {
       const F = focusOf(hover);
       const span = (i) => ctx.fillRect(L.gx[i] - gap / 2, base - laneH + 16, L.gw[i] + gap, laneH - 2);
       ctx.save();
-      ctx.globalAlpha = WASH; ctx.fillStyle = colors.groupA; span(F.gene);
-      if (k === F.sample) { ctx.fillStyle = colors.groupB; span(F.gene); span(F.other); }
+      ctx.globalAlpha = WASH; ctx.fillStyle = colors.groupA; span(F.between);
+      if (k === F.sample) { ctx.fillStyle = colors.groupB; span(F.within); span(F.other); }
       ctx.restore();
     }
     ctx.textAlign = "left";
@@ -550,10 +555,10 @@ function drawTable(ctx, colors, w, y0, state, r, fade, hover) {
     ctx.save();
     ctx.globalAlpha = WASH * fade;
     ctx.fillStyle = colors.groupA;
-    ctx.fillRect(cx.A - TABLE.colW, first + F.gene * rh - 12, cx.B - cx.A + TABLE.colW + 8, rh);
+    ctx.fillRect(cx.A - TABLE.colW, first + F.between * rh - 12, cx.B - cx.A + TABLE.colW + 8, rh);
     const colX = F.sample ? cx.B : cx.A;
     ctx.fillStyle = colors.groupB;
-    ctx.fillRect(colX - TABLE.colW, first + F.gene * rh - 12, TABLE.colW + 8, rh);
+    ctx.fillRect(colX - TABLE.colW, first + F.within * rh - 12, TABLE.colW + 8, rh);
     ctx.fillRect(colX - TABLE.colW, first + F.other * rh - 12, TABLE.colW + 8, rh);
     ctx.restore();
   }
@@ -595,14 +600,14 @@ function drawTable(ctx, colors, w, y0, state, r, fade, hover) {
     ctx.font = `${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.ink3;
     ctx.fillText(`truth ${fmt(truth, 2)}: ${why}`, mx, y + rh);
   };
-  const g = F.gene, k = F.sample, other = F.other;
+  const gb = F.between, gw = F.within, k = F.sample, other = F.other;
   const U = k ? toyU.B : toyU.A, S = k ? "B" : "A";
   const changedIn = (i) => (k === 1 && toy.changed.includes(i) ? FOLD : 1);
   /* with no pointer the numbers are the eased ones, so a unit change counts them along */
-  const between = hover ? toyU.B[g] / toyU.A[g] : r.between, betweenTruth = toy.changed.includes(g) ? FOLD : 1;
-  const within = hover ? U[g] / U[other] : r.within, withinTruth = changedIn(g) / changedIn(other);
-  reading(colors.groupA, `between: gene ${g + 1}, B ÷ A`, first, between, betweenTruth, toy.changed.includes(g) ? `up ${FOLD}×` : "unchanged");
-  reading(colors.groupB, `within ${S}: gene ${g + 1} ÷ gene ${other + 1}`, first + 4 * rh, within, withinTruth, withinTruth !== 1 ? `one expression per kb, gene ${g + 1} up ${FOLD}×` : "one expression per kb");
+  const between = hover ? toyU.B[gb] / toyU.A[gb] : r.between, betweenTruth = toy.changed.includes(gb) ? FOLD : 1;
+  const within = hover ? U[gw] / U[other] : r.within, withinTruth = changedIn(gw) / changedIn(other);
+  reading(colors.groupA, `between: gene ${gb + 1}, B ÷ A`, first, between, betweenTruth, toy.changed.includes(gb) ? `up ${FOLD}×` : "unchanged");
+  reading(colors.groupB, `within ${S}: gene ${gw + 1} ÷ gene ${other + 1}`, first + 4 * rh, within, withinTruth, withinTruth !== 1 ? `one expression per kb, gene ${gw + 1} up ${FOLD}×` : "one expression per kb");
   ctx.font = `${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.ink3;
   ctx.fillText("point at a gene to read it both ways", mx, first + 6 * rh + 2);
   ctx.restore();
