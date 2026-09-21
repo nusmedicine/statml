@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · count-normalization — title, subtitle, blurb</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1400px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 104ch; font-size: var(--fs-sm); }
+  .g-grid { display: grid; gap: var(--sp-3); margin: var(--sp-3) 0 0; grid-template-columns: repeat(4, minmax(240px, 1fr)); }
+  .g-card { display: block; padding: var(--sp-3); text-decoration: none; color: inherit; background: var(--surface-1); border: 1px solid var(--border); border-radius: var(--radius); }
+  .g-card h2 { margin: 0; font-size: var(--fs-md); font-weight: 600; padding: 0; border: 0; }
+  .g-card p { margin: var(--sp-1) 0 0; color: var(--ink-2); font-size: var(--fs-sm); }
+  .g-card.pick { border-color: var(--c-highlight); }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 104ch; }
+  .hdr { margin-top: var(--sp-3); padding: var(--sp-3); border: 1px solid var(--grid); background: var(--surface-1); max-width: 620px; }
+  .hdr .t { font-size: var(--fs-lg); font-weight: 600; }
+  .hdr .s { color: var(--ink-2); font-size: var(--fs-sm); margin-top: 4px; }
+  .hdr .n { color: var(--ink-3); font-size: var(--fs-xs); margin-top: 6px; font-family: var(--font-mono); }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>count-normalization &middot; the title, subtitle and blurb, beside the PHM5003 cards</h1>
+  <p class="note">
+    The card as the gallery lays it out beside the three PHM5003 week-5 cards it will sit near (39, 40, 43), once per title
+    candidate, with the blurb candidate named beside it. Under each row, the widget's header with one subtitle candidate.
+    The widget is one stage now: a count carries depth, length and composition; each unit divides out two; within is a
+    column and between is a row; no unit does both. The title, subtitle and blurb should say that and nothing the rail
+    does not also carry.
+  </p>
+  <div id="rows"></div>
+
+  <h2>The calls</h2>
+  <p class="q"><b>Title</b>
+    A &middot; <b>Expression Units</b> (as it is: the unit is the control, and the collection's titles name the concept) &nbsp;|&nbsp;
+    B &middot; RNA-seq Normalization (the lesson's word; 39 is already "Normalization and Transformation") &nbsp;|&nbsp;
+    C &middot; Counts, TPM and Size Factors (the three things on the rail) &nbsp;|&nbsp;
+    D &middot; Normalizing Read Counts</p>
+  <p class="q"><b>Subtitle</b>
+    S1 &middot; as it is (depth and length, then the share, then the size factor) &nbsp;|&nbsp;
+    <b>S2 &middot; the within/between form (recommended: it is what the figure now argues)</b> &nbsp;|&nbsp;
+    S3 &middot; the short form</p>
+  <p class="q"><b>Blurb</b> (under 120 characters)
+    B1 &middot; as it is (119) &nbsp;|&nbsp;
+    <b>B2 &middot; "CPM, FPKM and TPM compare genes within a sample; a size factor compares a gene between samples; no unit does both." (114, recommended)</b> &nbsp;|&nbsp;
+    B3 &middot; "Each unit divides out two of depth, length and composition, so it compares within a sample or between samples, not both." (118)</p>
+</main>
+<script>
+const cards = {
+  39: ["Normalization and Transformation", "Normalization corrects technical variation between samples; transformation stabilises variance that grows with size."],
+  40: ["Batch Effects", "The same samples with and without the batch shift, then what each correction method does to the biology."],
+  43: ["Enrichment Analysis", "Overrepresentation uses threshold-based gene selection; the enrichment score ranks the entire list."],
+};
+const blurbs = {
+  B1: "Depth, length and composition move a count; CPM, FPKM and TPM divide out two of them, a size factor survives the third.",
+  B2: "CPM, FPKM and TPM compare genes within a sample; a size factor compares a gene between samples; no unit does both.",
+  B3: "Each unit divides out two of depth, length and composition, so it compares within a sample or between samples, not both.",
+};
+const subtitles = {
+  S1: "A read count depends on the sample's depth and the gene's length as well as its expression. CPM, FPKM and TPM divide these out, but each is a share of the sample's total, so when some genes rise every other gene's share falls. A size factor takes the scale from the genes that did not change.",
+  S2: "A read count carries the sample's depth, the gene's length and what the other genes did. FPKM and TPM divide out depth and length, so they compare genes within a sample; a size factor divides out depth and composition, so it compares a gene between samples. No unit does both, which is why a differential expression test takes the counts.",
+  S3: "A read count carries depth, length and composition as well as expression. Each unit divides out two of the three: FPKM and TPM for comparing genes within a sample, a size factor for comparing a gene between samples.",
+};
+const candidates = [
+  ["A", "Expression Units", "B2", "S2"],
+  ["B", "RNA-seq Normalization", "B2", "S1"],
+  ["C", "Counts, TPM and Size Factors", "B3", "S3"],
+  ["D", "Normalizing Read Counts", "B1", "S1"],
+];
+const host = document.getElementById("rows");
+for (const [name, title, bk, sk] of candidates) {
+  const h = document.createElement("h2"); h.textContent = `${name} · ${title}  —  blurb ${bk}, subtitle ${sk}`; host.appendChild(h);
+  const grid = document.createElement("div"); grid.className = "g-grid";
+  const order = [[39, cards[39]], [40, cards[40]], [77, [title, blurbs[bk]]], [43, cards[43]]];
+  for (const [arc, [t, b]] of order) {
+    const a = document.createElement("a"); a.className = "g-card" + (arc === 77 ? " pick" : ""); a.href = "#";
+    a.innerHTML = `<h2>${t}</h2><p>${b}</p>`; grid.appendChild(a);
+  }
+  host.appendChild(grid);
+  const hdr = document.createElement("div"); hdr.className = "hdr";
+  hdr.innerHTML = `<div class="t">${title}</div><div class="s">${subtitles[sk]}</div><div class="n">${sk} · ${subtitles[sk].length} characters · blurb ${bk} ${blurbs[bk].length} characters</div>`;
+  host.appendChild(hdr);
+}
+</script>
+</body>
+</html>
