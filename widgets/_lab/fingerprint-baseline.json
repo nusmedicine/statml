@@ -9425,7 +9425,7 @@
     {
       "$note": "embedding-space · Codons, all forty epochs: the eighteen in three clusters, the rest nowhere (placeholder)",
       "slug": "embedding-space",
-      "state": "?theme=light&page=codon&shown=40",
+      "state": "?theme=light&vocab=codon&shown=40",
       "px": "0",
       "tx": "0"
     },

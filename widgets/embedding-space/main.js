@@ -44,16 +44,20 @@
 import { defineWidget } from "../core/index.js";
 import * as M from "./model.js";
 
-const PAGES = [
-  { value: "dna", label: "DNA" }, { value: "codon", label: "Codons" }, { value: "aa", label: "Amino acids" }, { value: "words", label: "Words" },
-  { value: "position", label: "Position" },
-];
+/* TWO PAGES, AND A VOCABULARY UNDER THE FIRST (his rearrangement, 2026-09-21):
+   the four vocabularies are one stage, Encode, seen through different tokens;
+   Position is a different stage. `stageOf` names which of the five stages a
+   parameter set shows, and the animation keeps a counter per stage so a
+   switch and back finds the epochs where they were. */
+const PAGES = [{ value: "encode", label: "Encode" }, { value: "position", label: "Position" }];
+const VOCABS = [{ value: "dna", label: "DNA" }, { value: "codon", label: "Codons" }, { value: "aa", label: "Amino acids" }, { value: "words", label: "Words" }];
+const stageOf = (params) => (params.page === "position" ? "position" : params.vocab);
 const ENCODINGS = [{ value: "none", label: "None" }, { value: "learned", label: "Learned" }, { value: "sinusoidal", label: "Sinusoidal" }, { value: "rope", label: "Rotary" }];
 const STEP_MS = 420;   // one epoch's move on Step
 const RUN_MS = 240;    // one epoch's move under Play: forty in under ten seconds
 const HEIGHT = 384;
 const ON = (page) => ({ param: "page", equals: page });
-const ON_TABLES = { param: "page", oneOf: ["dna", "codon", "aa", "words"] };
+const ON_ENCODE = { param: "page", equals: "encode" };
 
 /* -------------------------------------------------------------- strings */
 
@@ -63,13 +67,15 @@ const S = {
     "Four bases, sixty-one codons, twenty amino acids, forty clinical words; the rows drawn as points that move as the table trains. " +
     "Then position: what an attention head is told about where a token sits, and what a shift does to it.",
   pageLabel: "Page",
+  vocabLabel: "Vocabulary",
+  vocabDetail: "which tokens the table holds a row for: the four bases, the sixty-one sense codons, the twenty amino acids, or forty clinical words",
   dataSection: "The table",
   eLabel: "Embedding size E",
   eDetail: "how many numbers a token's row holds; the picture projects them to two",
   seedLabel: "Seed",
   seedDetail: "the starting rows and the training sequences, reproducibly",
   posSection: "The head",
-  encodingLabel: "Encoding",
+  encodingLabel: "Position encoding",
   encodingDetail: "what tells the head where a token sits: nothing, a table trained with the rest, the fixed sine and cosine table, or a rotation of q and k by the position",
   lookSection: "Look at",
   shiftLabel: "Positions",
@@ -255,9 +261,9 @@ function layout(w) {
 const cache = new Map();
 function compute({ params }) {
   const pos = params.page === "position";
-  const key = pos ? ["position", params.encoding, params.seed].join("|") : [params.page, params.E, params.seed].join("|");
+  const key = pos ? ["position", params.encoding, params.seed].join("|") : [params.vocab, params.E, params.seed].join("|");
   if (cache.has(key)) return cache.get(key);
-  const run = pos ? M.trainPosition(params.encoding, params.seed) : M.trainPage(params.page, Number(params.E), params.seed);
+  const run = pos ? M.trainPosition(params.encoding, params.seed) : M.trainPage(params.vocab, Number(params.E), params.seed);
   if (cache.size > 12) cache.delete(cache.keys().next().value);
   cache.set(key, run);
   return run;
@@ -266,8 +272,8 @@ function compute({ params }) {
 /* ============================================================== animation */
 
 /** the epoch whose numbers are shown: the target once its move has landed, else the one before */
-const shownEpoch = (anim) => (anim.t >= 1 ? anim.n[anim.page] : Math.max(0, anim.n[anim.page] - 1));
-const isDone = (anim) => anim.n[anim.page] >= M.EPOCHS && anim.t >= 1;
+const shownEpoch = (anim) => (anim.t >= 1 ? anim.n[anim.stage] : Math.max(0, anim.n[anim.stage] - 1));
+const isDone = (anim) => anim.n[anim.stage] >= M.EPOCHS && anim.t >= 1;
 
 /* ==================================================================== draw */
 
@@ -277,7 +283,7 @@ const isDone = (anim) => anim.n[anim.page] >= M.EPOCHS && anim.t >= 1;
    column in turn; a codon table is three stacks, a word table two. */
 const ROW_H = 13;
 function drawTable(ctx, colors, L, params, state, anim) {
-  const P = M.PAGES[params.page], page = params.page, n = anim.n[page], t = ease(anim.t);
+  const P = M.PAGES[params.vocab], page = params.vocab, n = anim.n[page], t = ease(anim.t);
   const prev = state.tables[Math.max(0, n - 1)], cur = state.tables[n];
   const rows = cur.length, E = state.E;
   const cols = Math.max(1, Math.ceil((rows * ROW_H) / L.side)), per = Math.ceil(rows / cols);
@@ -305,14 +311,14 @@ function drawTable(ctx, colors, L, params, state, anim) {
 
 /** where row i sits in the picture at this frame, in drawing coordinates */
 function pointAt(L, state, anim, i) {
-  const n = anim.n[anim.page], t = ease(anim.t);
+  const n = anim.n[anim.stage], t = ease(anim.t);
   const a = state.frames[Math.max(0, n - 1)][i], b = state.frames[n][i];
   const sc = (L.side / 2 - 10) / state.lim, cx = L.spaceX + L.side / 2, cy = L.top + L.side / 2;
   return [cx + lerp(a[0], b[0], t) * sc, cy - lerp(a[1], b[1], t) * sc];
 }
 
 function drawSpace(ctx, colors, L, params, state, anim, pointer) {
-  const P = M.PAGES[params.page], page = params.page;
+  const P = M.PAGES[params.vocab], page = params.vocab;
   txt(ctx, colors, S.capSpace[page], L.spaceX, 14, { font: capFont(colors), fill: colors.ink1 });
   rect(ctx, L.spaceX, L.top, L.side, L.side, colors.surface2, colors.grid);
   const cx = L.spaceX + L.side / 2, cy = L.top + L.side / 2;
@@ -436,12 +442,13 @@ defineWidget({
   pointer: true,
 
   params: {
+    page: { type: "segmented", label: S.pageLabel, options: PAGES, default: "encode", display: true },
     /* two by two: in one row "Amino acids" truncates at the rail's width */
-    page: { type: "segmented", style: "grid", label: S.pageLabel, options: PAGES, default: "dna", display: true },
-    dataSec: { type: "section", label: S.dataSection, when: ON_TABLES },
+    vocab: { type: "segmented", style: "grid", label: S.vocabLabel, detail: S.vocabDetail, options: VOCABS, default: "dna", display: true, when: ON_ENCODE },
+    dataSec: { type: "section", label: S.dataSection, when: ON_ENCODE },
     E: {
       type: "choice", label: S.eLabel, detail: S.eDetail,
-      options: M.SIZES.map((e) => ({ value: String(e), label: String(e) })), default: "8", when: ON_TABLES,
+      options: M.SIZES.map((e) => ({ value: String(e), label: String(e) })), default: "8", when: ON_ENCODE,
     },
     posSec: { type: "section", label: S.posSection, when: ON("position") },
     encoding: { type: "segmented", style: "grid", label: S.encodingLabel, detail: S.encodingDetail, options: ENCODINGS, default: "learned", when: ON("position") },
@@ -455,7 +462,7 @@ defineWidget({
     shown: { type: "int", min: 0, max: M.EPOCHS, default: 0, hidden: true },
   },
 
-  legend: ({ params }) => S.legend[params.page] ?? S.legend.dna,
+  legend: ({ params }) => S.legend[stageOf(params)] ?? S.legend.dna,
 
   compute,
 
@@ -467,8 +474,8 @@ defineWidget({
 
     init: ({ params, fromScratch }) => {
       const shown = fromScratch ? 0 : Math.max(0, Math.min(M.EPOCHS, Number(params.shown) || 0));
-      const anim = { page: params.page, n: { dna: 0, codon: 0, aa: 0, words: 0, position: 0 }, t: 1, moving: false, halt: false };
-      anim.n[params.page] = shown;
+      const anim = { stage: stageOf(params), n: { dna: 0, codon: 0, aa: 0, words: 0, position: 0 }, t: 1, moving: false, halt: false };
+      anim.n[anim.stage] = shown;
       anim.done = isDone(anim);
       return anim;
     },
@@ -476,7 +483,7 @@ defineWidget({
     advance: (anim, { dt }) => {
       /* a press a page switch finished (`rebuild`) ends here, before it takes the new page's press */
       if (anim.halt) { anim.halt = false; anim.moving = false; return false; }
-      const page = anim.page, ms = anim.mode === "run" ? RUN_MS : STEP_MS;
+      const page = anim.stage, ms = anim.mode === "run" ? RUN_MS : STEP_MS;
       let more;
       if (anim.t < 1) {
         anim.t = Math.min(1, anim.t + dt / ms);
@@ -493,8 +500,9 @@ defineWidget({
       /* a press belongs to the page it started on: core keeps a running loop
          through a display change, so a switch mid-press would run the other
          page's press (the 2026-09-20 sweep) */
-      if (anim.moving && params.page !== anim.page) { anim.t = 1; anim.halt = true; }
-      anim.page = params.page;
+      const stage = stageOf(params);
+      if (anim.moving && stage !== anim.stage) { anim.t = 1; anim.halt = true; }
+      anim.stage = stage;
       anim.done = isDone(anim);
     },
   },
@@ -506,7 +514,7 @@ defineWidget({
     drawSpace(ctx, colors, L, params, state, anim, pointer);
     const e = shownEpoch(anim);
     txt(ctx, colors, e === 0 ? S.capStart : S.capEpoch(e, M.EPOCHS, state.accs[e]), TABLE_X, L.bottom + 14, { fill: colors.ink1, font: `600 ${colors.fsXs} ${colors.font}` });
-    txt(ctx, colors, S.capTask[params.page], TABLE_X, L.bottom + 28, { fill: colors.ink3 });
+    txt(ctx, colors, S.capTask[params.vocab], TABLE_X, L.bottom + 28, { fill: colors.ink3 });
   },
 
   readout({ params, state, anim }) {
@@ -522,7 +530,7 @@ defineWidget({
         third,
       ];
     }
-    const E = state.E, T = S.tiles[params.page];
+    const E = state.E, T = S.tiles[params.vocab];
     const rest = state.geoRest == null ? state.geo[e].ratio.toFixed(2) : pct(state.geoRest[e].purity);
     return [
       { label: S.tileAcc, value: e >= 1 ? pct(state.accs[e]) : S.tileWait, note: S.tileAccNote },
@@ -532,6 +540,6 @@ defineWidget({
   },
 
   summary({ params, state, anim }) {
-    return params.page === "position" ? S.sumPos(state.pe, shownEpoch(anim), M.EPOCHS) : S.sum(params.page, shownEpoch(anim), M.EPOCHS);
+    return params.page === "position" ? S.sumPos(state.pe, shownEpoch(anim), M.EPOCHS) : S.sum(params.vocab, shownEpoch(anim), M.EPOCHS);
   },
 });
