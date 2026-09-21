@@ -302,7 +302,7 @@ const mixReadings = (a, b, e) => ({ within: a.within + (b.within - a.within) * e
 
 defineWidget({
   slug: "count-normalization",
-  title: "Expression Units",
+  title: "Bulk RNA-seq: Normalization",
   /* S1 of three, his pick: concept first, mechanism second (2.10). */
   /* S2 of three, his pick (2026-09-22): the within/between form, which is
      what the figure argues; its last sentence amended for the sixth unit */

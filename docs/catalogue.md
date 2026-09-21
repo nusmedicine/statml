@@ -18867,7 +18867,12 @@ gene between samples; a size factor per kilobase does both*, 114). On the
 title he asked for an arc prefix to tell it from 39's generic "Normalization
 and Transformation": `_lab/count-normalization-title-mock.html` redrawn as
 the arc family under each prefix (RNA-seq: · RNA-seq - · Bulk RNA-seq:), the
-next four cards shown under the same prefix, his pick pending.
+next four cards shown under the same prefix. **His pick: E, "Bulk RNA-seq:
+Normalization"**, over the dash the DL arc uses — so the arc's titles are
+**Bulk RNA-seq: Normalization · Bulk RNA-seq: Differential Expression ·
+Single-Cell RNA-seq: QC · Single-Cell RNA-seq: Integration · Single-Cell
+RNA-seq: Clusters and Markers**, and the collection carries two arc-prefix
+forms, the DL arc's dash and this arc's colon.
 
 **Round 6** (2026-09-22) — *maybe we remove the brackets, but shade the
 hover for between and within differently. Instead of "is right", compare to
@@ -19051,7 +19056,7 @@ mechanism, and the gene-symbol deduplication is data handling.
 | 7.4 | 78's pages | **four**, and on his question the same evening (*does vst come at the beginning or the end? I saw it at the end*) **in the notebook's order: Model · Dispersion · Transform · Test** — 01-2 runs `DESeq()` (cell 23), then `vst` for the QC PCA (cell 25), then `results` and the MA plot (cell 38); the vst needs the fitted trend so it cannot come first, and it was mocked last only to keep the fit beside its test |
 | 7.5 | the single-cell stage | **simulated**: four samples shaped like the lesson's for 79, cells in ten PCs for 80 and 81 |
 | 7.6 | 80's method | **MNN against Harmony as a control** |
-| 7.7 | slugs and titles | **kept as proposed**; rename later from a gallery mock if a title reads wrong beside its neighbours |
+| 7.7 | slugs and titles | **kept as proposed**; rename later from a gallery mock if a title reads wrong beside its neighbours. **Renamed 2026-09-22 at 77's copy round**: the arc takes a prefix, *Bulk RNA-seq:* for 77 and 78, *Single-Cell RNA-seq:* for 79–81 (see § Slot 77, round 7); slugs unchanged |
 
 So the arc is **five widgets, 77 → 81**, and 82 `cell-clusters` is a page of
 81. NEXT: 77 `count-normalization`, measure its own failing case (the median
