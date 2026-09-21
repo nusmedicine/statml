@@ -17,9 +17,12 @@
  *   Depth        sample B sequenced deeper, equal lengths, nothing changes
  *   Length       every gene at one expression, lengths differ, one depth
  *   Composition  some genes change in B; the page ends on the size factor
- * The unit control is the reader's move on every page; the widget opens on raw
- * counts (2.1). No animation: the figure is a table of numbers in a unit, and
- * the walkthrough is a table too, gated as widget 39's quantile one is.
+ * The unit control is the reader's move on every page; each page opens on its
+ * problem (Depth at 3×, Length at Differ, Composition at 5% up 8×) and on raw
+ * counts, so the unit is the answer the reader builds (2.1, his pick after the
+ * first draft opened at 1× and Equal and the unit did nothing). The one motion
+ * is the unit change, eased; the walkthrough is a table, gated as widget 39's
+ * quantile one is.
  *
  * THE NUMBERS, measured before the mock (`_lab/rnaseq-measure.mjs` M1, and
  * the scratch `mor-fail.mjs` recorded in the catalogue): with 5% of genes up
@@ -157,13 +160,13 @@ defineWidget({
     depth: {
       type: "choice", label: "Depth of sample B",
       detail: "reads sequenced, relative to sample A",
-      options: DEPTHS.map((d) => ({ value: d, label: `${d}×` })), default: "1",
+      options: DEPTHS.map((d) => ({ value: d, label: `${d}×` })), default: "3",
       when: ON("depth"),
     },
     lengths: {
       type: "segmented", label: "Gene lengths",
       detail: "every gene at the same expression",
-      options: [{ value: "equal", label: "Equal" }, { value: "differ", label: "Differ" }], default: "equal",
+      options: [{ value: "equal", label: "Equal" }, { value: "differ", label: "Differ" }], default: "differ",
       when: ON("length"),
     },
     share: {
@@ -201,6 +204,10 @@ defineWidget({
         { value: "sf", label: UNITS.sf.label, detail: "counts ÷ the sample's median ratio to the geometric mean: depth and composition" },
       ],
       default: "raw",
+      /* Display: the counts are the data and the unit is how they are read, so
+         a unit change eases the figure between two readings of the same table
+         instead of resetting anything (core's display ease, as widget 12). */
+      display: true,
     },
 
     /* The walkthrough belongs to the one unit with a procedure, and sits under
@@ -277,10 +284,53 @@ defineWidget({
     };
   },
 
-  draw: ({ ctx, colors, w, params, state }) => {
+  /* THE ONLY MOTION IS THE UNIT CHANGE (his ask, 2026-09-21: the bars did not
+     move until the last step, and swapped when they did). The bars ease to
+     their new heights and the ratio over each pair counts along; the scatter
+     crossfades, because its axes change with the unit and a dot sliding across
+     a changing frame reads as nothing. No Step, no Play (4.5): there is nothing
+     to take one of. */
+  animation: {
+    stepLabel: null,
+    runLabel: null,
+    init: ({ params, state }) => ({ unit: params.unit, page: params.page, easeT: 1, fromHeights: null, fromState: null, easing: false }),
+    advance: (anim, { dt }) => {
+      if (anim.mode !== "ease") return false;
+      anim.easeT = Math.min(1, anim.easeT + dt / EASE_MS);
+      if (anim.easeT >= 1) { anim.fromHeights = null; anim.fromState = null; }
+      return anim.easeT < 1;
+    },
+    rebuild: (anim, { params, state }) => {
+      if (params.page !== anim.page) {
+        /* a new page is new data, not a new reading: no ease */
+        anim.page = params.page; anim.unit = params.unit; anim.easeT = 1; anim.fromHeights = null; anim.fromState = null;
+        return;
+      }
+      if (params.unit !== anim.unit) {
+        /* start from wherever the bars are now, so a unit chosen mid-ease
+           continues rather than jumping back */
+        anim.fromHeights = anim.fromHeights && anim.easeT < 1
+          ? mixHeights(anim.fromHeights, toyHeights(anim.lastState), easeInOut(anim.easeT))
+          : toyHeights(anim.lastState);
+        anim.fromState = anim.lastState;
+        anim.unit = params.unit;
+        anim.easeT = 0;
+        anim.easing = true;
+      }
+      anim.lastState = state;
+    },
+  },
+
+  draw: ({ ctx, colors, w, params, state, anim }) => {
     const unit = state.unit;
-    drawToy(ctx, colors, w, 0, state, params);
-    drawScatter(ctx, colors, w, TOY_H + GAP, state, params);
+    if (anim) anim.lastState = state;
+    const e = anim && anim.easeT < 1 ? easeInOut(anim.easeT) : 1;
+    const heights = e < 1 && anim.fromHeights ? mixHeights(anim.fromHeights, toyHeights(state), e) : toyHeights(state);
+    drawToy(ctx, colors, w, 0, state, params, heights);
+    if (e < 1 && anim.fromState) {
+      drawScatter(ctx, colors, w, TOY_H + GAP, anim.fromState, params, 1 - e);
+      drawScatter(ctx, colors, w, TOY_H + GAP, state, params, e);
+    } else drawScatter(ctx, colors, w, TOY_H + GAP, state, params, 1);
     if (params.page === "composition" && unit === "sf" && params.act) drawAct(ctx, colors, w, FIG_H, state);
   },
 
@@ -314,15 +364,30 @@ defineWidget({
 });
 
 /* --- the six genes, as paired bars --------------------------------------- */
-function drawToy(ctx, colors, w, y0, state, params) {
-  const { toy, toyU } = state;
+/* The six genes' bar heights as fractions of the tallest, and the ratio over
+   each pair — the two things a unit change eases. Fractions rather than values,
+   because the units differ by orders of magnitude and the axis has no scale. */
+function toyHeights(state) {
+  const { toyU } = state;
+  const top = Math.max(...toyU.A, ...toyU.B) || 1;
+  return { hA: toyU.A.map((v) => v / top), hB: toyU.B.map((v) => v / top), ratio: toyU.A.map((a, i) => toyU.B[i] / a) };
+}
+const mixHeights = (a, b, e) => ({
+  hA: a.hA.map((v, i) => v + (b.hA[i] - v) * e),
+  hB: a.hB.map((v, i) => v + (b.hB[i] - v) * e),
+  ratio: a.ratio.map((v, i) => v + (b.ratio[i] - v) * e),
+});
+const EASE_MS = 450;
+const easeInOut = (t) => (t < 0.5 ? 2 * t * t : 1 - ((-2 * t + 2) ** 2) / 2);
+
+function drawToy(ctx, colors, w, y0, state, params, heights) {
+  const { toy } = state;
   const n = toy.A.length;
   const padL = 34, padR = 10;
   const slot = (w - padL - padR) / n;
   const bw = Math.min(16, slot * 0.28);
   const base = y0 + TOY_H - 30;
-  const top = Math.max(...toyU.A, ...toyU.B) || 1;
-  const hOf = (v) => (v / top) * (TOY_H - 70);
+  const hOf = (frac) => frac * (TOY_H - 70);
 
   ctx.save();
   ctx.font = `${colors.fsSm} ${colors.font}`;
@@ -338,7 +403,7 @@ function drawToy(ctx, colors, w, y0, state, params) {
   ctx.font = `${colors.fsXs} ${colors.font}`;
   for (let i = 0; i < n; i += 1) {
     const cx = padL + slot * (i + 0.5);
-    const hA = hOf(toyU.A[i]), hB = hOf(toyU.B[i]);
+    const hA = hOf(heights.hA[i]), hB = hOf(heights.hB[i]);
     const changed = toy.changed.includes(i);
     const col = changed ? colors.highlight : null;
     ctx.fillStyle = col ?? colors.groupA;
@@ -347,7 +412,7 @@ function drawToy(ctx, colors, w, y0, state, params) {
     ctx.lineWidth = 1.5;
     ctx.strokeRect(cx + 1.5, base - hB + 0.5, bw - 1, Math.max(0, hB - 1));
     /* the ratio B/A over each pair, in the unit — the number the page argues about */
-    const r = toyU.B[i] / toyU.A[i];
+    const r = heights.ratio[i];
     ctx.textAlign = "center";
     ctx.fillStyle = changed ? colors.highlight : Math.abs(r - 1) > 0.005 ? colors.extreme : colors.ink2;
     ctx.font = `${colors.fsXs} ${colors.mono}`;
@@ -364,8 +429,10 @@ function drawToy(ctx, colors, w, y0, state, params) {
 }
 
 /* --- the 2,000 genes ------------------------------------------------------- */
-function drawScatter(ctx, colors, w, y0, state, params) {
+function drawScatter(ctx, colors, w, y0, state, params, fade) {
   const { panel, panU } = state;
+  ctx.save();
+  ctx.globalAlpha = fade;
   const u = UNITS[state.unit].short;
   const padL = 52, padR = 12, top = y0 + 24, bottom = y0 + SC_H - 34;
   const isLength = params.page === "length";
@@ -415,7 +482,7 @@ function drawScatter(ctx, colors, w, y0, state, params) {
   /* the genes: unchanged in the empirical hue, changed in the highlight, drawn last */
   ctx.save();
   const draw = (set, fill, alpha, r) => {
-    ctx.fillStyle = fill; ctx.globalAlpha = alpha;
+    ctx.fillStyle = fill; ctx.globalAlpha = alpha * fade;
     for (const i of set) {
       const x = isLength ? panel.len[i] : panU.A[i], y = isLength ? panU.A[i] : panU.B[i];
       if (!(x > 0 && y > 0)) continue;
@@ -433,6 +500,7 @@ function drawScatter(ctx, colors, w, y0, state, params) {
   ctx.font = `${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.ink3; ctx.textAlign = "center";
   ctx.fillText(isLength ? `sample A, ${u}` : `sample B, ${u}`, 0, 0);
   ctx.restore();
+  ctx.restore(); // the fade
 }
 
 /* --- the size factor, as the notebook prints it -------------------------- */
