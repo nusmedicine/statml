@@ -18847,6 +18847,20 @@ sits at −2.47. At the opening state (3×, lengths differ, gene 5 up) raw
 reads 12.00 within and 0.75 between, TPM 1.00 and 0.44, the size factor
 12.00 and 1.00.
 
+**Round 9** (2026-09-22) — *choose two colours for the hover shading whose
+overlap gives a nice colour; now it is muddy; pastel blue + red → purple?*
+`_lab/count-normalization-wash-mock.html`: nine token-role pairs, each wash
+alone and overlapping, in both themes, by alpha stacking and by multiply, at
+the table's cell size. Multiply loses the within wash on the dark theme;
+alpha stacking of blue and red (his suggestion) gives lavender in light and a
+muted purple in dark, where blue and yellow gave grey-green. **His pick: blue
++ red, alpha stacking.** Red is `--c-extreme` and the pair is not group-a /
+group-b's yellow, so **two roles were added to core**: `--c-between`
+(series-1) and `--c-within` (series-8), with the reason in `tokens.css` and
+in CLAUDE.md's list, and `readTokens` exposes them; the legend's swatches
+resolve `--c-<token>` on their own. A core change, so the full fingerprint
+suite ran before the commit.
+
 **Round 8** (2026-09-22) — *for the subtitle and blurb, name the methods or
 describe the approaches? The DE test seems out of place; give me options.*
 Five combinations drawn under the picked title. His picks: **approaches**

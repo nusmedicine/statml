@@ -149,6 +149,8 @@ export function readTokens() {
     groupA: v("--c-group-a"),
     groupB: v("--c-group-b"),
     groupC: v("--c-group-c"),
+    between: v("--c-between"),
+    within: v("--c-within"),
     clusters: ["a", "b", "c", "d", "e", "f"].map((k) => v(`--c-cluster-${k}`)),
     extreme: v("--c-extreme"),
     event: v("--c-event"),

@@ -390,8 +390,8 @@ defineWidget({
   legend: ({ params }) => {
     const L = [{ token: "empirical", label: "A read; a gene of the 2,000", mark: "bar" }];
     if (params.change !== "none") L.push({ token: "highlight", label: "A gene that changed", mark: "bar" });
-    L.push({ token: "groupA", label: "Between samples: one gene in both", mark: "bar" });
-    L.push({ token: "groupB", label: "Within a sample: two genes in one", mark: "bar" });
+    L.push({ token: "between", label: "Between samples: one gene in both", mark: "bar" });
+    L.push({ token: "within", label: "Within a sample: two genes in one", mark: "bar" });
     L.push({ token: "reference", label: "Truth for an unchanged gene", mark: "line" });
     L.push({ token: "reference", label: "Median over all 2,000 genes", mark: "dash" });
     return L;
@@ -520,8 +520,8 @@ function drawPiles(ctx, colors, w, y0, state, hover) {
       const F = focusOf(hover);
       const span = (i) => ctx.fillRect(L.gx[i] - gap / 2, base - laneH + 16, L.gw[i] + gap, laneH - 2);
       ctx.save();
-      ctx.globalAlpha = WASH; ctx.fillStyle = colors.groupA; span(F.between);
-      if (k === F.sample) { ctx.fillStyle = colors.groupB; span(F.within); span(F.other); }
+      ctx.globalAlpha = WASH; ctx.fillStyle = colors.between; span(F.between);
+      if (k === F.sample) { ctx.fillStyle = colors.within; span(F.within); span(F.other); }
       ctx.restore();
     }
     ctx.textAlign = "left";
@@ -573,10 +573,10 @@ function drawTable(ctx, colors, w, y0, state, r, fade, hover) {
        and the comparator's in the focus column, each in its own hue */
     ctx.save();
     ctx.globalAlpha = WASH * fade;
-    ctx.fillStyle = colors.groupA;
+    ctx.fillStyle = colors.between;
     ctx.fillRect(cx.A - TABLE.colW, first + F.between * rh - 12, cx.B - cx.A + TABLE.colW + 8, rh);
     const colX = F.sample ? cx.B : cx.A;
-    ctx.fillStyle = colors.groupB;
+    ctx.fillStyle = colors.within;
     ctx.fillRect(colX - TABLE.colW, first + F.within * rh - 12, TABLE.colW + 8, rh);
     ctx.fillRect(colX - TABLE.colW, first + F.other * rh - 12, TABLE.colW + 8, rh);
     ctx.restore();
@@ -625,8 +625,8 @@ function drawTable(ctx, colors, w, y0, state, r, fade, hover) {
   /* with no pointer the numbers are the eased ones, so a unit change counts them along */
   const between = hover ? toyU.B[gb] / toyU.A[gb] : r.between, betweenTruth = toy.changed.includes(gb) ? FOLD : 1;
   const within = hover ? U[gw] / U[other] : r.within, withinTruth = changedIn(gw) / changedIn(other);
-  reading(colors.groupA, `between: gene ${gb + 1}, B ÷ A`, first, between, betweenTruth, toy.changed.includes(gb) ? `up ${FOLD}×` : "unchanged");
-  reading(colors.groupB, `within ${S}: gene ${gw + 1} ÷ gene ${other + 1}`, first + 4 * rh, within, withinTruth, withinTruth !== 1 ? `one expression per kb, gene ${gw + 1} up ${FOLD}×` : "one expression per kb");
+  reading(colors.between, `between: gene ${gb + 1}, B ÷ A`, first, between, betweenTruth, toy.changed.includes(gb) ? `up ${FOLD}×` : "unchanged");
+  reading(colors.within, `within ${S}: gene ${gw + 1} ÷ gene ${other + 1}`, first + 4 * rh, within, withinTruth, withinTruth !== 1 ? `one expression per kb, gene ${gw + 1} up ${FOLD}×` : "one expression per kb");
   ctx.font = `${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.ink3;
   ctx.fillText("point at a gene to read it both ways", mx, first + 6 * rh + 2);
   ctx.restore();

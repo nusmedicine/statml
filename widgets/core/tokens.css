@@ -99,6 +99,20 @@
   --c-group-b:   var(--series-4);    /* the other arm                        */
   --c-group-c:   var(--series-6);    /* a third arm: three parallel branches */
 
+  /* THE TWO WAYS OF READING A TABLE OF GENES × SAMPLES — across a row (the same
+     gene in two samples, BETWEEN) and down a column (two genes in one sample,
+     WITHIN). Added 2026-09-22 for widget 77, whose reader points at a gene and
+     sees both readings shaded at once. They are washes (about 0.22 over the
+     figure surface) that OVERLAP on the cell the two readings share, so the
+     pair was chosen for what the overlap makes: blue over red gives lavender
+     in the light theme and a muted purple in the dark, where group-a over
+     group-b gave grey-green (`_lab/count-normalization-wash-mock.html`, nine
+     pairs, both themes). Not group-a / group-b, then, though they are two arms
+     of a comparison; and within shares red with --c-extreme only as a wash on
+     a table cell, never past a threshold. */
+  --c-between:   var(--series-1);    /* across a row: one gene, both samples  */
+  --c-within:    var(--series-8);    /* down a column: two genes, one sample  */
+
   /* GROUPS NOBODY ASSIGNED — the unsupervised case, and not the A/B pair above.
      An arm of a comparison is a thing you decided; a cluster in a projection is
      what you are trying to find out, so the colour means only "these samples

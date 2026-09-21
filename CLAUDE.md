@@ -82,7 +82,11 @@ change. This has already cost one debugging session.
    widget 70), and `--c-magnitude` (how large a non-negative matrix entry is,
    as a one-hue ramp from `--surface-3`, for a figure whose rows or columns
    already wear identity colours; violet, so it shares `--c-highlight`'s slot
-   and the two never meet on one page — added 2026-09-19 for widget 70). Needing a role that does not exist is a signal to add one, not to
+   and the two never meet on one page — added 2026-09-19 for widget 70), and
+   `--c-between` / `--c-within` (the two ways of reading a table of genes ×
+   samples, across a row and down a column, as washes that overlap on the
+   cell both readings share; blue and red, picked for the lavender the
+   overlap makes — added 2026-09-22 for widget 77). Needing a role that does not exist is a signal to add one, not to
    reach for `--series-n`.
 6. **All randomness comes from the seeded `rng` passed to `compute`.** Never
    `Math.random()`.
