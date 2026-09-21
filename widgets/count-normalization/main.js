@@ -8,8 +8,11 @@
  * total, so when some genes rise every unchanged gene's share falls. The size
  * factor (DESeq2's median of ratios) assumes most genes are unchanged and
  * reads the scale off them, which is why it survives a composition change and
- * a share does not — until most genes move one way, which the change control
- * reaches (2.6).
+ * a share does not. The state where most genes move one way was built (round
+ * 11) and CUT on his word (2026-09-22, round 12): every unit fails there, the
+ * counts alone cannot tell "most up" from "a few down in a deeper library",
+ * and the reader could not tell the method's limit from a broken widget. The
+ * lesson rests on most genes being unchanged, and so does this widget.
  *
  * ONE STAGE, his shape after three review rounds on 2026-09-21 (the record is
  * the catalogue's § Slot 77): the three confounds are three live data controls
@@ -47,10 +50,10 @@ import { defineWidget, fmt, mathmlRenders } from "../core/index.js";
 const LEN = [1, 2, 4, 1, 6, 0.5];
 const PER_KB = 4;
 const READ_KB = 0.25;      // one read, as a fraction of a gene
-const CHANGED = { none: [], one: [4], most: [1, 2, 3, 4] };
+const CHANGED = { none: [], one: [4] };
 const FOLD = 8;
 const GENES = 2000;
-const SHARE = { none: 0, one: 0.05, most: 0.6 };
+const SHARE = { none: 0, one: 0.05 };
 /* reads per unit of expression × length in the 2,000-gene panel */
 const PANEL_DEPTH = 0.1;
 const UNITS = {
@@ -344,7 +347,6 @@ defineWidget({
       options: [
         { value: "none", label: "None" },
         { value: "one", label: "Gene 5", detail: "one of the six; 5% of the 2,000" },
-        { value: "most", label: "Genes 2–5", detail: "four of the six; 60% of the 2,000" },
       ],
       default: "one",
     },
@@ -496,7 +498,7 @@ defineWidget({
     return [
       { label: "Within sample A: gene 5 ÷ gene 6", value: fmt(state.within, 2), note: `truth 1.00: the same expression per kilobase, in ${u}` },
       { label: "Between samples: gene 1, B ÷ A", value: fmt(state.between, 2), note: `truth 1.00: unchanged, in ${u}` },
-      { label: "2,000 unchanged genes: B − A, log2 of the medians", value: fmt(state.gapUnchanged, 2), note: `truth 0; ${state.nUnchanged.toLocaleString("en")} genes with counts over ${MIN_COUNT} in both${(state.unit === "sf" || state.unit === "sfkb") && state.toy.changed.length >= 4 ? "; the median sits among the changed genes, the larger group" : ""}` },
+      { label: "2,000 unchanged genes: B − A, log2 of the medians", value: fmt(state.gapUnchanged, 2), note: `truth 0; ${state.nUnchanged.toLocaleString("en")} genes with counts over ${MIN_COUNT} in both` },
     ];
   },
 });
@@ -685,8 +687,7 @@ function drawBoxes(ctx, colors, w, y0, state, fade) {
   });
   /* every line of text sits under the axis, where no box can reach it (the
      sweep found the corner text on the tallest box's median): the two gaps
-     with their truths on one line, then the caption — or, in the state where
-     the median took the larger group, the note that says so */
+     with their truths on one line, then the caption */
   ctx.font = `600 ${colors.fsXs} ${colors.font}`;
   ctx.textAlign = "left";
   ctx.fillStyle = Math.abs(state.gapUnchanged) > 0.05 ? colors.extreme : colors.ink1;
@@ -696,10 +697,8 @@ function drawBoxes(ctx, colors, w, y0, state, fade) {
     ctx.fillStyle = Math.abs(state.gapChanged - Math.log2(FOLD)) > 0.1 ? colors.extreme : colors.ink1;
     ctx.fillText(`changed, B − A ${fmt(state.gapChanged, 2)} · truth ${fmt(Math.log2(FOLD), 2)}`, padL + pw, bottom + 26);
   }
-  ctx.textAlign = "center"; ctx.font = `${colors.fsXs} ${colors.font}`;
-  const took = state.gapChanged !== null && state.gapUnchanged < -0.5 && Math.abs(state.gapChanged) < Math.abs(state.gapUnchanged);
-  ctx.fillStyle = took ? colors.extreme : colors.ink3;
-  ctx.fillText(took ? "the changed genes are the larger group, so the median took them as unchanged" : "log2 of the value; a box is the middle half, the line its median", padL + pw / 2, bottom + 39);
+  ctx.textAlign = "center"; ctx.font = `${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.ink3;
+  ctx.fillText("log2 of the value; a box is the middle half, the line its median", padL + pw / 2, bottom + 39);
   ctx.restore();
 }
 
@@ -734,11 +733,10 @@ function drawAct(ctx, colors, w, y0, state) {
   ctx.fillText(fmt(tsf.sfB, 2), cx[5], my);
   ctx.font = `${colors.fsXs} ${colors.font}`;
   ctx.fillStyle = colors.ink3;
-  /* the failing case in words: the median holds while the changed genes are
-     the few, and moves with them once they are the many */
-  const most = toy.changed.length >= 4;
-  ctx.fillText(most
-    ? "four of the six changed: the median sits among them, and the size factor moves with them"
-    : "a changed gene's ratio is one of six; the median is the middle of the other five", 34, my + 20);
+  /* why the median: a changed gene's ratio is one of six, and the middle of
+     the other five is the depth */
+  ctx.fillText(toy.changed.length
+    ? "gene 5's ratio is one of six; the median is the middle of the other five"
+    : "no gene changed: the six ratios are equal, and the median is that value", 34, my + 20);
   ctx.restore();
 }
