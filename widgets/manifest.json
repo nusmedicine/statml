@@ -1133,7 +1133,7 @@
     {
       "slug": "count-normalization",
       "title": "Bulk RNA-seq: Normalization",
-      "blurb": "TPM compares genes within a sample and a size factor a gene between samples; a size factor per kilobase does both.",
+      "blurb": "Per million reads and per kilobase compare genes within a sample; a scale from the unchanged genes compares between.",
       "course": "PHM5003",
       "topics": [
         "RNA-seq",

@@ -304,14 +304,16 @@ defineWidget({
   slug: "count-normalization",
   title: "Bulk RNA-seq: Normalization",
   /* S1 of three, his pick: concept first, mechanism second (2.10). */
-  /* S2 of three, his pick (2026-09-22): the within/between form, which is
-     what the figure argues; its last sentence amended for the sixth unit */
+  /* S4, his pick (2026-09-22) over the version that named the methods and
+     ended on the test: the approaches, no vocabulary, the names left to the
+     unit control; the test is widget 78's, and "what DESeq2 takes" stays as
+     the raw count's own detail */
   subtitle:
     "A read count carries the sample's depth, the gene's length and what the "
-    + "other genes did. FPKM and TPM divide out depth and length, so they compare "
-    + "genes within a sample; a size factor divides out depth and composition, so "
-    + "it compares a gene between samples. A size factor per kilobase does both; a "
-    + "differential expression test needs neither, only the counts.",
+    + "other genes did. Dividing by the sample's reads and the gene's length "
+    + "compares genes within a sample; dividing by a scale read off the genes "
+    + "that did not change compares a gene between samples. Dividing by both "
+    + "compares both ways.",
   layout: "side",
   status: "draft",
   pointer: true,

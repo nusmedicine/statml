@@ -18847,6 +18847,20 @@ sits at −2.47. At the opening state (3×, lengths differ, gene 5 up) raw
 reads 12.00 within and 0.75 between, TPM 1.00 and 0.44, the size factor
 12.00 and 1.00.
 
+**Round 8** (2026-09-22) — *for the subtitle and blurb, name the methods or
+describe the approaches? The DE test seems out of place; give me options.*
+Five combinations drawn under the picked title. His picks: **approaches**
+(per million, per kilobase, a scale read off the unchanged genes — the
+mechanism, no vocabulary, the names left to the unit control) and **the test
+sentence out** (the test is 78's; "what DESeq2 takes" stays as the raw
+count's detail). Subtitle **S4**: *A read count carries the sample's depth,
+the gene's length and what the other genes did. Dividing by the sample's
+reads and the gene's length compares genes within a sample; dividing by a
+scale read off the genes that did not change compares a gene between
+samples. Dividing by both compares both ways.* Blurb **B5** (116): *Per
+million reads and per kilobase compare genes within a sample; a scale from
+the unchanged genes compares between.*
+
 **Round 7** (2026-09-22) — *do a copy audit and review the title, subtitle
 and blurb; show me options. Am I right that a normalization can show
 differences within or between samples but not both?* The audit as a table
