@@ -18847,6 +18847,25 @@ sits at −2.47. At the opening state (3×, lengths differ, gene 5 up) raw
 reads 12.00 within and 0.75 between, TPM 1.00 and 0.44, the size factor
 12.00 and 1.00.
 
+**Round 17** (2026-09-22) — *review the subtitle and blurb again; I see
+personification: "the read carries". Did you forget the writing principles?*
+Yes: S4 and B5 were picked from options I had written without running the
+verb sweep on the options themselves — "a read count carries", "what the
+other genes did", "dividing … compares", "a scale … compares". The grep
+over the widget's strings found one more, the change control's detail ("its
+reads come from the others"). **S5 and B6, his picks:** *A read count
+depends on sequencing depth, gene length and library composition as well as
+the gene's expression. Division by the sample's reads and by the gene's
+length removes depth and length, so genes are comparable within a sample;
+division by a size factor estimated from the unchanged genes removes depth
+and composition, so a gene is comparable between samples. Both divisions
+are needed for both comparisons.* and *Depth and length divided out, genes
+are comparable within a sample; depth and composition divided out, between
+samples.* (121). The detail: "8× up, with the sample's total of reads
+fixed: fewer reads are left for the other genes". The rule, recorded in
+memory: run the verb list over the subtitle and blurb OPTIONS before they
+are offered, not only over main.js after a pick.
+
 **Round 16** (2026-09-22) — *clean up the annotation: there is so much
 truth everywhere I get confused whether it is the ratio or the log2; the
 tweening of the plot is a bit jerky; consider choosing which gene is
