@@ -24,7 +24,7 @@
 </head>
 <body>
 <main class="lab">
-  <h1>count-normalization &middot; the title, subtitle and blurb, beside the PHM5003 cards</h1>
+  <h1>count-normalization &middot; the subtitle and blurb, under the picked title</h1>
   <p class="note">
     The card as the gallery lays it out beside the three PHM5003 week-5 cards it will sit near (39, 40, 43), once per title
     candidate, with the blurb candidate named beside it. Under each row, the widget's header with one subtitle candidate.
@@ -35,20 +35,15 @@
   <div id="rows"></div>
 
   <h2>The calls</h2>
-  <p class="q"><b>Title</b> (his round: an arc prefix, to tell it from 39's generic one)
-    A &middot; <b>RNA-seq: Normalization</b> (his form) &nbsp;|&nbsp;
-    B &middot; RNA-seq - Normalization (the collection's dash, as "Deep Learning - Tensors") &nbsp;|&nbsp;
-    C &middot; RNA-seq: Expression Units &nbsp;|&nbsp;
-    D &middot; RNA-seq: Count Normalization &nbsp;|&nbsp;
-    E &middot; Bulk RNA-seq: Normalization (the single-cell widgets then read "Single-Cell RNA-seq: …")</p>
-  <p class="q"><b>Subtitle</b>
-    S1 &middot; as it is (depth and length, then the share, then the size factor) &nbsp;|&nbsp;
-    <b>S2 &middot; the within/between form (recommended: it is what the figure now argues)</b> &nbsp;|&nbsp;
-    S3 &middot; the short form</p>
-  <p class="q"><b>Blurb</b> (under 120 characters)
-    B1 &middot; as it is (119) &nbsp;|&nbsp;
-    <b>B2 &middot; "TPM compares genes within a sample and a size factor a gene between samples; a size factor per kilobase does both." (114, recommended, amended for the sixth unit)</b> &nbsp;|&nbsp;
-    B3 &middot; "Each unit divides out two of depth, length and composition, so it compares within a sample or between samples, not both." (118)</p>
+  <p class="q"><b>Names or approaches</b>
+    <b>methods named</b> (TPM, size factor: the words on the rail, and the lesson's) &nbsp;|&nbsp;
+    <b>approaches</b> (per million, per kilobase, a scale read off the unchanged genes: what each does, no vocabulary)</p>
+  <p class="q"><b>The test sentence</b>
+    <b>out</b> (the subtitle states the concept; "what DESeq2 takes" stays as the raw count's detail) &nbsp;|&nbsp;
+    <b>in, as S2 has it</b> (a differential expression test needs neither, only the counts) &nbsp;|&nbsp;
+    <b>in, as S6 has it</b> (a test of a change between samples takes the counts themselves, with that scale inside the model)</p>
+  <p class="q"><b>Blurb</b> (under 120)
+    B2 &middot; methods (114) &nbsp;|&nbsp; B5 &middot; approaches (116) &nbsp;|&nbsp; B6 &middot; what a count carries (115) &nbsp;|&nbsp; B7 &middot; methods with the test (118)</p>
 </main>
 <script>
 const cards = {
@@ -57,14 +52,16 @@ const cards = {
   43: ["Enrichment Analysis", "Overrepresentation uses threshold-based gene selection; the enrichment score ranks the entire list."],
 };
 const blurbs = {
-  B1: "Depth, length and composition move a count; CPM, FPKM and TPM divide out two of them, a size factor survives the third.",
   B2: "TPM compares genes within a sample and a size factor a gene between samples; a size factor per kilobase does both.",
-  B3: "Each unit divides out two of depth, length and composition, so it compares within a sample or between samples, not both.",
+  B5: "Per million reads and per kilobase compare genes within a sample; a scale from the unchanged genes compares between.",
+  B6: "A count carries depth, length and composition; dividing out two compares one way, dividing out all three both ways.",
+  B7: "TPM compares genes within a sample, a size factor a gene between samples; a test takes the counts and the size factor.",
 };
 const subtitles = {
-  S1: "A read count depends on the sample's depth and the gene's length as well as its expression. CPM, FPKM and TPM divide these out, but each is a share of the sample's total, so when some genes rise every other gene's share falls. A size factor takes the scale from the genes that did not change.",
   S2: "A read count carries the sample's depth, the gene's length and what the other genes did. FPKM and TPM divide out depth and length, so they compare genes within a sample; a size factor divides out depth and composition, so it compares a gene between samples. A size factor per kilobase does both; a differential expression test needs neither, only the counts.",
-  S3: "A read count carries depth, length and composition as well as expression. Each unit divides out two of the three: FPKM and TPM for comparing genes within a sample, a size factor for comparing a gene between samples.",
+  S4: "A read count carries the sample's depth, the gene's length and what the other genes did. Dividing by the sample's reads and the gene's length compares genes within a sample; dividing by a scale read off the genes that did not change compares a gene between samples. Dividing by both compares both ways.",
+  S5: "A read count carries the sample's depth, the gene's length and what the other genes did. FPKM and TPM divide out depth and length, so they compare genes within a sample; a size factor divides out depth and composition, so it compares a gene between samples; a size factor per kilobase does both.",
+  S6: "A read count carries the sample's depth, the gene's length and what the other genes did. Dividing by the sample's reads and the gene's length compares genes within a sample; dividing by a scale read off the genes that did not change compares a gene between samples. A test of a change between samples takes the counts themselves, with that scale inside the model.",
 };
 /* his round: like B but as an arc prefix, to tell it from 39's generic "Normalization and Transformation"; the
    four cards after it are the arc's next widgets under the same prefix, so the family reads as one */
@@ -74,11 +71,11 @@ const family = {
   bulk: ["Bulk RNA-seq: Differential Expression", "Single-Cell RNA-seq: QC", "Single-Cell RNA-seq: Integration", "Single-Cell RNA-seq: Clusters and Markers"],
 };
 const candidates = [
-  ["A", "RNA-seq: Normalization", "B2", "S2", "colon"],
-  ["B", "RNA-seq - Normalization", "B2", "S2", "dash"],
-  ["C", "RNA-seq: Expression Units", "B2", "S2", "colon"],
-  ["D", "RNA-seq: Count Normalization", "B2", "S2", "colon"],
-  ["E", "Bulk RNA-seq: Normalization", "B2", "S2", "bulk"],
+  ["S5 + B2 · methods named, no test sentence", "Bulk RNA-seq: Normalization", "B2", "S5", "bulk"],
+  ["S4 + B5 · approaches, no test sentence", "Bulk RNA-seq: Normalization", "B5", "S4", "bulk"],
+  ["S4 + B6 · approaches, the blurb by what a count carries", "Bulk RNA-seq: Normalization", "B6", "S4", "bulk"],
+  ["S2 + B7 · methods named, the test sentence kept", "Bulk RNA-seq: Normalization", "B7", "S2", "bulk"],
+  ["S6 + B5 · approaches, the test sentence in its own words", "Bulk RNA-seq: Normalization", "B5", "S6", "bulk"],
 ];
 const host = document.getElementById("rows");
 for (const [name, title, bk, sk, fam] of candidates) {
