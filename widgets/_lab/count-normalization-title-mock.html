@@ -35,18 +35,19 @@
   <div id="rows"></div>
 
   <h2>The calls</h2>
-  <p class="q"><b>Title</b>
-    A &middot; <b>Expression Units</b> (as it is: the unit is the control, and the collection's titles name the concept) &nbsp;|&nbsp;
-    B &middot; RNA-seq Normalization (the lesson's word; 39 is already "Normalization and Transformation") &nbsp;|&nbsp;
-    C &middot; Counts, TPM and Size Factors (the three things on the rail) &nbsp;|&nbsp;
-    D &middot; Normalizing Read Counts</p>
+  <p class="q"><b>Title</b> (his round: an arc prefix, to tell it from 39's generic one)
+    A &middot; <b>RNA-seq: Normalization</b> (his form) &nbsp;|&nbsp;
+    B &middot; RNA-seq - Normalization (the collection's dash, as "Deep Learning - Tensors") &nbsp;|&nbsp;
+    C &middot; RNA-seq: Expression Units &nbsp;|&nbsp;
+    D &middot; RNA-seq: Count Normalization &nbsp;|&nbsp;
+    E &middot; Bulk RNA-seq: Normalization (the single-cell widgets then read "Single-Cell RNA-seq: …")</p>
   <p class="q"><b>Subtitle</b>
     S1 &middot; as it is (depth and length, then the share, then the size factor) &nbsp;|&nbsp;
     <b>S2 &middot; the within/between form (recommended: it is what the figure now argues)</b> &nbsp;|&nbsp;
     S3 &middot; the short form</p>
   <p class="q"><b>Blurb</b> (under 120 characters)
     B1 &middot; as it is (119) &nbsp;|&nbsp;
-    <b>B2 &middot; "CPM, FPKM and TPM compare genes within a sample; a size factor compares a gene between samples; no unit does both." (114, recommended)</b> &nbsp;|&nbsp;
+    <b>B2 &middot; "TPM compares genes within a sample and a size factor a gene between samples; a size factor per kilobase does both." (114, recommended, amended for the sixth unit)</b> &nbsp;|&nbsp;
     B3 &middot; "Each unit divides out two of depth, length and composition, so it compares within a sample or between samples, not both." (118)</p>
 </main>
 <script>
@@ -57,30 +58,39 @@ const cards = {
 };
 const blurbs = {
   B1: "Depth, length and composition move a count; CPM, FPKM and TPM divide out two of them, a size factor survives the third.",
-  B2: "CPM, FPKM and TPM compare genes within a sample; a size factor compares a gene between samples; no unit does both.",
+  B2: "TPM compares genes within a sample and a size factor a gene between samples; a size factor per kilobase does both.",
   B3: "Each unit divides out two of depth, length and composition, so it compares within a sample or between samples, not both.",
 };
 const subtitles = {
   S1: "A read count depends on the sample's depth and the gene's length as well as its expression. CPM, FPKM and TPM divide these out, but each is a share of the sample's total, so when some genes rise every other gene's share falls. A size factor takes the scale from the genes that did not change.",
-  S2: "A read count carries the sample's depth, the gene's length and what the other genes did. FPKM and TPM divide out depth and length, so they compare genes within a sample; a size factor divides out depth and composition, so it compares a gene between samples. No unit does both, which is why a differential expression test takes the counts.",
+  S2: "A read count carries the sample's depth, the gene's length and what the other genes did. FPKM and TPM divide out depth and length, so they compare genes within a sample; a size factor divides out depth and composition, so it compares a gene between samples. A size factor per kilobase does both; a differential expression test needs neither, only the counts.",
   S3: "A read count carries depth, length and composition as well as expression. Each unit divides out two of the three: FPKM and TPM for comparing genes within a sample, a size factor for comparing a gene between samples.",
 };
+/* his round: like B but as an arc prefix, to tell it from 39's generic "Normalization and Transformation"; the
+   four cards after it are the arc's next widgets under the same prefix, so the family reads as one */
+const family = {
+  colon: ["RNA-seq: Differential Expression", "Single-Cell: QC", "Single-Cell: Integration", "Single-Cell: Clusters and Markers"],
+  dash: ["RNA-seq - Differential Expression", "Single-Cell - QC", "Single-Cell - Integration", "Single-Cell - Clusters and Markers"],
+  bulk: ["Bulk RNA-seq: Differential Expression", "Single-Cell RNA-seq: QC", "Single-Cell RNA-seq: Integration", "Single-Cell RNA-seq: Clusters and Markers"],
+};
 const candidates = [
-  ["A", "Expression Units", "B2", "S2"],
-  ["B", "RNA-seq Normalization", "B2", "S1"],
-  ["C", "Counts, TPM and Size Factors", "B3", "S3"],
-  ["D", "Normalizing Read Counts", "B1", "S1"],
+  ["A", "RNA-seq: Normalization", "B2", "S2", "colon"],
+  ["B", "RNA-seq - Normalization", "B2", "S2", "dash"],
+  ["C", "RNA-seq: Expression Units", "B2", "S2", "colon"],
+  ["D", "RNA-seq: Count Normalization", "B2", "S2", "colon"],
+  ["E", "Bulk RNA-seq: Normalization", "B2", "S2", "bulk"],
 ];
 const host = document.getElementById("rows");
-for (const [name, title, bk, sk] of candidates) {
-  const h = document.createElement("h2"); h.textContent = `${name} · ${title}  —  blurb ${bk}, subtitle ${sk}`; host.appendChild(h);
+for (const [name, title, bk, sk, fam] of candidates) {
+  const h = document.createElement("h2"); h.textContent = `${name} · ${title}`; host.appendChild(h);
   const grid = document.createElement("div"); grid.className = "g-grid";
-  const order = [[39, cards[39]], [40, cards[40]], [77, [title, blurbs[bk]]], [43, cards[43]]];
+  const order = [[39, cards[39]], [77, [title, blurbs[bk]]], [78, [family[fam][0], "…"]], [79, [family[fam][1], "…"]]];
   for (const [arc, [t, b]] of order) {
     const a = document.createElement("a"); a.className = "g-card" + (arc === 77 ? " pick" : ""); a.href = "#";
     a.innerHTML = `<h2>${t}</h2><p>${b}</p>`; grid.appendChild(a);
   }
   host.appendChild(grid);
+  const fam2 = document.createElement("p"); fam2.className = "note"; fam2.textContent = `the arc under this prefix: ${[title, ...family[fam]].join(" · ")}`; host.appendChild(fam2);
   const hdr = document.createElement("div"); hdr.className = "hdr";
   hdr.innerHTML = `<div class="t">${title}</div><div class="s">${subtitles[sk]}</div><div class="n">${sk} · ${subtitles[sk].length} characters · blurb ${bk} ${blurbs[bk].length} characters</div>`;
   host.appendChild(hdr);

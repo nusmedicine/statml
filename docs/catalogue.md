@@ -18847,6 +18847,28 @@ sits at −2.47. At the opening state (3×, lengths differ, gene 5 up) raw
 reads 12.00 within and 0.75 between, TPM 1.00 and 0.44, the size factor
 12.00 and 1.00.
 
+**Round 7** (2026-09-22) — *do a copy audit and review the title, subtitle
+and blurb; show me options. Am I right that a normalization can show
+differences within or between samples but not both?* The audit as a table
+of ten rows, six with a proposal: the five unit details brought to one shape
+(what the unit is, then "divides out …"), the third tile's and the size-factor
+table's notes shortened; the rest read in the register. His answer on the
+question: almost — each standard unit divides out two of the three so it
+compares one way, but size-factor counts per kilobase (edgeR's `rpkm()` on
+TMM library sizes, GeTMM) divide out all three and compare both ways; rare
+because a DE test needs neither length nor a unit. **He asked for it as a
+sixth unit**, "Size factor per kb", spanning the grid under the 2×2, with its
+formula `x_gA / (s_A · L_g)`; the table's two readings both print 1.00 under
+it, and the size-factor walkthrough follows both size-factor units. Picks:
+**S2** amended for the sixth unit (*A size factor per kilobase does both; a
+differential expression test needs neither, only the counts*), **B2**
+amended likewise (*TPM compares genes within a sample and a size factor a
+gene between samples; a size factor per kilobase does both*, 114). On the
+title he asked for an arc prefix to tell it from 39's generic "Normalization
+and Transformation": `_lab/count-normalization-title-mock.html` redrawn as
+the arc family under each prefix (RNA-seq: · RNA-seq - · Bulk RNA-seq:), the
+next four cards shown under the same prefix, his pick pending.
+
 **Round 6** (2026-09-22) — *maybe we remove the brackets, but shade the
 hover for between and within differently. Instead of "is right", compare to
 ground truth. For the histogram, am I right that if normalisation is correct,

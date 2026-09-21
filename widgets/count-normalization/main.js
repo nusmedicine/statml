@@ -57,6 +57,11 @@ const UNITS = {
   fpkm: { label: "FPKM", short: "FPKM" },
   tpm: { label: "TPM", short: "TPM" },
   sf: { label: "Size factor", short: "counts ÷ size factor" },
+  /* the one that divides out all three, his call (2026-09-22): edgeR's
+     rpkm() on TMM library sizes, GeTMM (Smid et al. 2018). Rare, because a
+     DE test needs neither length nor a unit — only the counts and a size
+     factor — and a within-sample look needs no composition correction */
+  sfkb: { label: "Size factor per kb", short: "counts ÷ size factor ÷ kb" },
 };
 const DEPTHS = ["1", "2", "3", "10"];
 const MIN_COUNT = 20;      // a gene counts toward the histogram only with counts over this in both samples
@@ -81,6 +86,7 @@ function unitOf(counts, len, unit, sf = 1) {
   if (unit === "cpm") { const t = total(counts); return counts.map((v) => (1e6 * v) / t); }
   if (unit === "fpkm") { const t = total(counts); return counts.map((v, i) => (1e9 * v) / (t * len[i])); }
   if (unit === "tpm") { const r = counts.map((v, i) => v / len[i]); const t = total(r); return r.map((v) => (1e6 * v) / t); }
+  if (unit === "sfkb") return counts.map((v, i) => v / sf / len[i]);
   return counts.map((v) => v / sf);
 }
 
@@ -198,6 +204,13 @@ function formulaFor(state) {
     inst: `(${x} / ${L}) / ${fmt(perKb, 1)} × 10⁶ = ${big(((x / L) / perKb) * 1e6)}`,
     note: `length divided out first, then the sample's total of the result: every sample sums to a million`,
   };
+  if (u === "sfkb") return {
+    math: M.wrap(`${M.frac(M.sub("x", "gA"), `${M.sub("s", "A")}<mo>&#x22C5;</mo>${Lg}`)}`),
+    plain: "x_gA / (s_A · L_g)",
+    instMath: M.wrap(`${M.frac(M.num(x), `${M.num(fmt(tsf.sfA, 2))}<mo>&#x22C5;</mo>${M.num(L)}`)}<mo>=</mo>${M.num(fmt(x / tsf.sfA / L, 2))}`),
+    inst: `${x} / (${fmt(tsf.sfA, 2)} · ${L}) = ${fmt(x / tsf.sfA / L, 2)}`,
+    note: `the size factor, then the length in kilobases: depth, composition and length divided out`,
+  };
   return {
     math: M.wrap(`${M.sub("s", "A")}<mo>=</mo><munder><mi>median</mi><mi>g</mi></munder><mo>(</mo>${M.frac(M.sub("x", "gA"), `<msqrt>${M.sub("x", "gA")}<mo>&#x22C5;</mo>${M.sub("x", "gB")}</msqrt>`)}<mo>)</mo><mo>,</mo><mspace width="0.6em"></mspace>${M.frac(M.sub("x", "gA"), M.sub("s", "A"))}`),
     plain: "s_A = median_g ( x_gA / √(x_gA · x_gB) ), then x_gA / s_A",
@@ -291,16 +304,19 @@ defineWidget({
   slug: "count-normalization",
   title: "Expression Units",
   /* S1 of three, his pick: concept first, mechanism second (2.10). */
+  /* S2 of three, his pick (2026-09-22): the within/between form, which is
+     what the figure argues; its last sentence amended for the sixth unit */
   subtitle:
-    "A read count depends on the sample's depth and the gene's length as well "
-    + "as its expression. CPM, FPKM and TPM divide these out, but each is a "
-    + "share of the sample's total, so when some genes rise every other gene's "
-    + "share falls. A size factor takes the scale from the genes that did not change.",
+    "A read count carries the sample's depth, the gene's length and what the "
+    + "other genes did. FPKM and TPM divide out depth and length, so they compare "
+    + "genes within a sample; a size factor divides out depth and composition, so "
+    + "it compares a gene between samples. A size factor per kilobase does both; a "
+    + "differential expression test needs neither, only the counts.",
   layout: "side",
   status: "draft",
   pointer: true,
   /* The walkthrough is a stage that has to give its pixels back (3.4b). */
-  height: ({ unit, act }) => (unit === "sf" && act ? FIG_H + ACT_H : FIG_H),
+  height: ({ unit, act }) => ((unit === "sf" || unit === "sfkb") && act ? FIG_H + ACT_H : FIG_H),
 
   params: {
     data: { type: "section", label: "The data" },
@@ -340,10 +356,11 @@ defineWidget({
         /* each detail names what the unit divides out, which is the HBC
            training table's column and the thing his question turned on */
         { value: "raw", label: UNITS.raw.label, span: true, detail: "reads mapped to the gene; what DESeq2 takes" },
-        { value: "cpm", label: UNITS.cpm.label, detail: "per million reads in the sample: depth" },
-        { value: "fpkm", label: UNITS.fpkm.label, detail: "per kilobase per million reads: depth and length; the sums differ between samples" },
-        { value: "tpm", label: UNITS.tpm.label, detail: "per kilobase, then per million of the result: depth and length; sums to a million" },
-        { value: "sf", label: UNITS.sf.label, detail: "counts ÷ the sample's median ratio to the geometric mean: depth and composition" },
+        { value: "cpm", label: UNITS.cpm.label, detail: "per million reads: divides out depth" },
+        { value: "fpkm", label: UNITS.fpkm.label, detail: "per kilobase per million reads: divides out depth and length; the sums differ between samples" },
+        { value: "tpm", label: UNITS.tpm.label, detail: "per kilobase, then per million: divides out depth and length; every sample sums to a million" },
+        { value: "sf", label: UNITS.sf.label, detail: "counts ÷ the sample's size factor: divides out depth and composition" },
+        { value: "sfkb", label: UNITS.sfkb.label, span: true, detail: "counts ÷ size factor ÷ kilobases: divides out all three (edgeR's TMM-RPKM, GeTMM)" },
       ],
       default: "raw",
       /* Display: the counts are the data and the unit is how they are read, so
@@ -362,7 +379,7 @@ defineWidget({
       detail: "the six genes: geometric mean, ratio, median",
       default: false,
       display: true,
-      when: { param: "unit", equals: "sf" },
+      when: { param: "unit", oneOf: ["sf", "sfkb"] },
     },
   },
 
@@ -459,7 +476,7 @@ defineWidget({
       drawTable(ctx, colors, w, ty, state, r, 1, hover);
       drawHist(ctx, colors, w, hy, state, 1);
     }
-    if (params.unit === "sf" && params.act) drawAct(ctx, colors, w, FIG_H, state);
+    if ((params.unit === "sf" || params.unit === "sfkb") && params.act) drawAct(ctx, colors, w, FIG_H, state);
   },
 
   readout: ({ state }) => {
@@ -467,7 +484,7 @@ defineWidget({
     return [
       { label: "Within sample A: gene 5 ÷ gene 6", value: fmt(state.within, 2), note: `truth 1.00: the same expression per kilobase, in ${u}` },
       { label: "Between samples: gene 1, B ÷ A", value: fmt(state.between, 2), note: `truth 1.00: unchanged, in ${u}` },
-      { label: "2,000 unchanged genes, median log2(B ÷ A)", value: fmt(state.medianUnchanged, 2), note: `truth 0; ${state.shifts.length.toLocaleString("en")} genes with counts over ${MIN_COUNT} in both${state.unit === "sf" && state.toy.changed.length >= 4 ? "; the median of ratios took the larger group, the changed genes, as the unchanged" : ""}` },
+      { label: "2,000 unchanged genes, median log2(B ÷ A)", value: fmt(state.medianUnchanged, 2), note: `truth 0; ${state.shifts.length.toLocaleString("en")} genes with counts over ${MIN_COUNT} in both${(state.unit === "sf" || state.unit === "sfkb") && state.toy.changed.length >= 4 ? "; the median sits among the changed genes, the larger group" : ""}` },
     ];
   },
 });
@@ -689,6 +706,6 @@ function drawAct(ctx, colors, w, y0, state) {
   const most = toy.changed.length >= 4;
   ctx.fillText(most
     ? "four of the six changed: the median sits among them, and the size factor moves with them"
-    : "a changed gene's ratio is one value among six; the median takes the middle of the others", 34, my + 20);
+    : "a changed gene's ratio is one of six; the median is the middle of the other five", 34, my + 20);
   ctx.restore();
 }
