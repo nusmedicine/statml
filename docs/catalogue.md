@@ -18887,15 +18887,21 @@ mechanism, and the gene-symbol deduplication is data handling.
    which is the recommended order; only the heading in cell 46 (*our
    unshrunken DEG results*) says otherwise.
 
-### The open calls — put with the mock `_lab/rnaseq-arc-mock.html` § 7, unanswered
+### The open calls — put with the mock `_lab/rnaseq-arc-mock.html` § 7, ANSWERED 2026-09-21 by two AskUserQuestion calls, every one the recommendation
 
-7.1 how many (six · **five with 82 folded into 81** · four · three) · 7.2
-build order (**the lessons'** · single-cell first) · 7.3 where the size factor
-lives (**77's last page** · 78's first) · 7.4 78's pages (**four** · three
-with the vst in 77 · two widgets) · 7.5 the single-cell stage (**simulated** ·
-a real 2,000-cell subsample of the QC numbers · both) · 7.6 80's method (**MNN
-against Harmony as a control** · anchors only · Harmony only) · 7.7 slugs and
-titles. Bold is the recommendation.
+| # | call | ANSWER |
+|---|---|---|
+| 7.1 | how many | **five: 77, 78, 79, 80, 81; 82 folded into 81 as its first page** (Clusters · Markers · Conditions) |
+| 7.2 | build order | **the lessons': 77 → 78 → 79 → 80 → 81** |
+| 7.3 | where the size factor lives | **77's last page**; 78 opens at the model with size factors given |
+| 7.4 | 78's pages | **four: Model · Dispersion · Test · Transform** |
+| 7.5 | the single-cell stage | **simulated**: four samples shaped like the lesson's for 79, cells in ten PCs for 80 and 81 |
+| 7.6 | 80's method | **MNN against Harmony as a control** |
+| 7.7 | slugs and titles | **kept as proposed**; rename later from a gallery mock if a title reads wrong beside its neighbours |
+
+So the arc is **five widgets, 77 → 81**, and 82 `cell-clusters` is a page of
+81. NEXT: 77 `count-normalization`, measure its own failing case (the median
+of ratios past half the genes changing) and mock before building.
 
 ---
 
