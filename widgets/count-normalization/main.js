@@ -226,6 +226,45 @@ function renderFormula(state) {
     + `<div class="w-math-note">${F.note}</div>`;
 }
 
+/* --- one geometry, read by the drawing and by the hover test (5.8) -------- */
+const TABLE = { cx: { gene: 44, len: 108, A: 208, B: 328 }, rh: 17, headDy: 32, colW: 64 };
+function pileLayout(w, toy) {
+  const padL = 74, padR = 10, gap = 14, n = toy.len.length;
+  const pxPerKb = (w - padL - padR - gap * (n - 1)) / total(toy.len);
+  const laneH = (PILE_H - 30) / 2;
+  const gx = [], gw = [];
+  let x = padL;
+  for (let i = 0; i < n; i += 1) { gx.push(x); gw.push(toy.len[i] * pxPerKb); x += toy.len[i] * pxPerKb + gap; }
+  const base = (k) => 22 + laneH * (k + 1) - 14;
+  return { padL, padR, gap, pxPerKb, laneH, gx, gw, base };
+}
+
+/* HOVER (his ask, 2026-09-21): pointing at a gene, in the piles or in the
+   table, reads that gene both ways — between the samples (its own row) and
+   within the sample pointed at (against gene 1, or gene 6 when it is gene 1).
+   Nothing is written; with no pointer the figure is exactly as before. */
+function hoverAt(pointer, w, state) {
+  if (!pointer) return null;
+  const { toy } = state;
+  const { x, y } = pointer;
+  const L = pileLayout(w, toy);
+  for (let k = 0; k < 2; k += 1) {
+    const base = L.base(k);
+    if (y >= base - L.laneH + 14 && y <= base + 14) {
+      for (let i = 0; i < toy.len.length; i += 1) if (x >= L.gx[i] - L.gap / 2 && x <= L.gx[i] + L.gw[i] + L.gap / 2) return { gene: i, sample: k };
+    }
+  }
+  const ty = PILE_H + GAP, first = ty + TABLE.headDy + 18;
+  for (let i = 0; i < 6; i += 1) {
+    const rowTop = first + i * TABLE.rh - 12, rowBot = rowTop + TABLE.rh;
+    if (y < rowTop || y > rowBot) continue;
+    if (x >= TABLE.cx.A - TABLE.colW && x <= TABLE.cx.A + 8) return { gene: i, sample: 0 };
+    if (x >= TABLE.cx.B - TABLE.colW && x <= TABLE.cx.B + 8) return { gene: i, sample: 1 };
+    if (x >= 10 && x < TABLE.cx.A - TABLE.colW) return { gene: i, sample: 0 };
+  }
+  return null;
+}
+
 /* The two readings the table brackets, which is what a unit change eases:
    the table and the histogram crossfade because their numbers and axes change
    with the unit, and a number sliding is a number the reader can follow. */
@@ -243,6 +282,7 @@ defineWidget({
     + "share falls. A size factor takes the scale from the genes that did not change.",
   layout: "side",
   status: "draft",
+  pointer: true,
   /* The walkthrough is a stage that has to give its pixels back (3.4b). */
   height: ({ unit, act }) => (unit === "sf" && act ? FIG_H + ACT_H : FIG_H),
 
@@ -384,20 +424,21 @@ defineWidget({
     },
   },
 
-  draw: ({ ctx, colors, w, params, state, anim }) => {
+  draw: ({ ctx, colors, w, params, state, anim, pointer }) => {
     renderFormula(state);
     if (anim) anim.lastState = state;
     const e = anim && anim.easeT < 1 ? easeInOut(anim.easeT) : 1;
     const r = e < 1 && anim.from ? mixReadings(anim.from, readings(state), e) : readings(state);
-    drawPiles(ctx, colors, w, 0, state);
+    const hover = hoverAt(pointer, w, state);
+    drawPiles(ctx, colors, w, 0, state, hover);
     const ty = PILE_H + GAP, hy = ty + TABLE_H + GAP;
     if (e < 1 && anim.fromState) {
-      drawTable(ctx, colors, w, ty, anim.fromState, r, 1 - e);
-      drawTable(ctx, colors, w, ty, state, r, e);
+      drawTable(ctx, colors, w, ty, anim.fromState, r, 1 - e, hover);
+      drawTable(ctx, colors, w, ty, state, r, e, hover);
       drawHist(ctx, colors, w, hy, anim.fromState, 1 - e);
       drawHist(ctx, colors, w, hy, state, e);
     } else {
-      drawTable(ctx, colors, w, ty, state, r, 1);
+      drawTable(ctx, colors, w, ty, state, r, 1, hover);
       drawHist(ctx, colors, w, hy, state, 1);
     }
     if (params.unit === "sf" && params.act) drawAct(ctx, colors, w, FIG_H, state);
@@ -414,12 +455,11 @@ defineWidget({
 });
 
 /* --- the six genes and their reads --------------------------------------- */
-function drawPiles(ctx, colors, w, y0, state) {
+function drawPiles(ctx, colors, w, y0, state, hover) {
   const { toy } = state;
   const n = toy.len.length;
-  const padL = 74, padR = 10, gap = 14;
-  const pxPerKb = (w - padL - padR - gap * (n - 1)) / total(toy.len);
-  const laneH = (PILE_H - 30) / 2;
+  const L = pileLayout(w, toy);
+  const { padL, padR, gap, pxPerKb, laneH } = L;
   /* rows shrink so the deepest pile fits its lane under the count label */
   const deepest = 1 + Math.max(0, ...toy.reads.A.flat().map(([, r]) => r), ...toy.reads.B.flat().map(([, r]) => r));
   const rowH = Math.min(5, (laneH - 30) / deepest);
@@ -436,7 +476,13 @@ function drawPiles(ctx, colors, w, y0, state) {
   ctx.fillText("a read is one rectangle; a pile's depth is the coverage", w - padR, y0 + 14);
 
   [["A", toy.A, toy.reads.A, 0], ["B", toy.B, toy.reads.B, 1]].forEach(([name, counts, reads, k]) => {
-    const base = y0 + 22 + laneH * (k + 1) - 14;
+    const base = y0 + L.base(k);
+    if (hover) {
+      /* the hovered gene's span in both lanes (between), and its lane (within) */
+      ctx.fillStyle = colors.surface3;
+      ctx.fillRect(L.gx[hover.gene] - gap / 2, base - laneH + 16, L.gw[hover.gene] + gap, laneH - 2);
+      if (k === hover.sample) ctx.fillRect(padL - gap / 2, base - laneH + 16, w - padL - padR + gap, 3);
+    }
     ctx.textAlign = "left";
     ctx.font = `600 ${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.ink2;
     ctx.fillText(`Sample ${name}`, 4, base - 12);
@@ -469,14 +515,21 @@ function drawPiles(ctx, colors, w, y0, state) {
 }
 
 /* --- the table: within is a column, between is a row ---------------------- */
-function drawTable(ctx, colors, w, y0, state, r, fade) {
+function drawTable(ctx, colors, w, y0, state, r, fade, hover) {
   const { toy, toyU } = state;
   const u = UNITS[state.unit].short;
-  const cx = { gene: 44, len: 108, A: 208, B: 328 };
-  const rh = 17, head = y0 + 32, first = head + 18;
+  const cx = TABLE.cx;
+  const rh = TABLE.rh, head = y0 + TABLE.headDy, first = head + 18;
   const mx = cx.B + 14;   // the margin where the two readings are named
   ctx.save();
   ctx.globalAlpha = fade;
+  if (hover) {
+    /* the row is the between reading, the column the within one */
+    ctx.fillStyle = colors.surface3;
+    ctx.fillRect(10, first + hover.gene * rh - 12, cx.B - 2, rh);
+    const colX = hover.sample ? cx.B : cx.A;
+    ctx.fillRect(colX - TABLE.colW, first - 12, TABLE.colW + 8, 6 * rh);
+  }
   ctx.textBaseline = "alphabetic";
   ctx.font = `${colors.fsSm} ${colors.font}`;
   ctx.fillStyle = colors.ink2; ctx.textAlign = "left";
@@ -503,26 +556,42 @@ function drawTable(ctx, colors, w, y0, state, r, fade) {
   ctx.fillText(big(total(toyU.A)), cx.A, ty);
   ctx.fillText(big(total(toyU.B)), cx.B, ty);
 
-  /* the within bracket: down column A between rows 5 and 6 */
-  ctx.strokeStyle = colors.ink3; ctx.lineWidth = 1.2;
-  const bx = cx.A + 10, y5 = first + 4 * rh - 4, y6 = first + 5 * rh - 4;
-  ctx.beginPath(); ctx.moveTo(bx - 4, y5 - 7); ctx.lineTo(bx, y5 - 7); ctx.lineTo(bx, y6 + 4); ctx.lineTo(bx - 4, y6 + 4); ctx.stroke();
-  /* the between bracket: across gene 1's row, above it */
-  const by = first - 13, bx1 = cx.A - 44, bx2 = cx.B + 6;
-  ctx.beginPath(); ctx.moveTo(bx1, by + 4); ctx.lineTo(bx1, by); ctx.lineTo(bx2, by); ctx.lineTo(bx2, by + 4); ctx.stroke();
-  /* the two readings, named in the margin; the numbers are the eased ones */
   ctx.textAlign = "left";
-  const name = (s, y, v) => {
+  const name = (s, y, v, right) => {
     ctx.font = `600 ${colors.fsXs} ${colors.font}`;
-    ctx.fillStyle = Math.abs(v - 1) > 0.01 ? colors.extreme : colors.ink1;
+    ctx.fillStyle = Math.abs(v - right) > 0.01 * right ? colors.extreme : colors.ink1;
     ctx.fillText(`${s} = ${fmt(v, 2)}`, mx, y);
   };
-  name("between: gene 1, B ÷ A", first, r.between);
+  const note = (s, y) => { ctx.font = `${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.ink3; ctx.fillText(s, mx, y); };
+  ctx.strokeStyle = colors.ink3; ctx.lineWidth = 1.2;
+  if (hover) {
+    /* the hovered gene, both ways: its row between the samples, and its
+       column against gene 1 (gene 6 when it is gene 1). "Right" is what the
+       stage set: 1.00, or the fold for a gene that changed, in sample B */
+    const g = hover.gene, k = hover.sample, other = g === 0 ? 5 : 0;
+    const U = k ? toyU.B : toyU.A, S = k ? "B" : "A";
+    const changedIn = (i) => (k === 1 && toy.changed.includes(i) ? FOLD : 1);
+    const between = toyU.B[g] / toyU.A[g], betweenRight = toy.changed.includes(g) ? FOLD : 1;
+    const within = U[g] / U[other], withinRight = changedIn(g) / changedIn(other);
+    name(`between: gene ${g + 1}, B ÷ A`, first, between, betweenRight);
+    note(`${toy.changed.includes(g) ? `up ${FOLD}×` : "unchanged"}: ${fmt(betweenRight, 2)} is right`, first + rh);
+    name(`within ${S}: gene ${g + 1} ÷ gene ${other + 1}`, first + 4 * rh, within, withinRight);
+    note(`one expression per kb${withinRight !== 1 ? `, gene ${g + 1} up ${FOLD}×` : ""}: ${fmt(withinRight, 2)} is right`, first + 5 * rh);
+  } else {
+    /* the within bracket: down column A between rows 5 and 6 */
+    const bx = cx.A + 10, y5 = first + 4 * rh - 4, y6 = first + 5 * rh - 4;
+    ctx.beginPath(); ctx.moveTo(bx - 4, y5 - 7); ctx.lineTo(bx, y5 - 7); ctx.lineTo(bx, y6 + 4); ctx.lineTo(bx - 4, y6 + 4); ctx.stroke();
+    /* the between bracket: across gene 1's row, above it */
+    const by = first - 13, bx1 = cx.A - 44, bx2 = cx.B + 6;
+    ctx.beginPath(); ctx.moveTo(bx1, by + 4); ctx.lineTo(bx1, by); ctx.lineTo(bx2, by); ctx.lineTo(bx2, by + 4); ctx.stroke();
+    /* the two readings, named in the margin; the numbers are the eased ones */
+    name("between: gene 1, B ÷ A", first, r.between, 1);
+    note("unchanged: 1.00 is right", first + rh);
+    name("within A: gene 5 ÷ gene 6", first + 4 * rh, r.within, 1);
+    note("one expression per kb: 1.00 is right", first + 5 * rh);
+  }
   ctx.font = `${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.ink3;
-  ctx.fillText("unchanged: 1.00 is right", mx, first + rh);
-  name("within A: gene 5 ÷ gene 6", first + 4 * rh, r.within);
-  ctx.font = `${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.ink3;
-  ctx.fillText("one expression per kb: 1.00 is right", mx, first + 5 * rh);
+  ctx.fillText("point at a gene to read it both ways", mx, first + 6 * rh + 2);
   ctx.restore();
 }
 

@@ -18847,6 +18847,17 @@ sits at −2.47. At the opening state (3×, lengths differ, gene 5 up) raw
 reads 12.00 within and 0.75 between, TPM 1.00 and 0.44, the size factor
 12.00 and 1.00.
 
+**Round 5** — *could we hover and compare within and between genes?* Core's
+pointer channel (`pointer: true`, as widgets 31 and 42): pointing at a gene,
+in a pile or in a table cell, reads THAT gene both ways in the table's
+margin — between the samples (its row, B ÷ A, washed across both cells) and
+within the sample pointed at (its column, against gene 1, or gene 6 when it
+is gene 1). "Right" follows the stage: 1.00, or the fold for a gene that
+changed in sample B. With no pointer the default brackets return, so the
+fingerprint is untouched. One geometry (`pileLayout`, `TABLE`) is read by
+the drawing and by the hover test, so the two cannot disagree about where a
+gene is (5.8).
+
 **Round 3** — *can you include the formulas in mathml?* A card above the
 figure on widget 33's pattern (`.w-math`, MathML where the browser draws it,
 plain text where not, so the `tx` hash covers it): the unit's definition,
