@@ -18847,6 +18847,36 @@ sits at −2.47. At the opening state (3×, lengths differ, gene 5 up) raw
 reads 12.00 within and 0.75 between, TPM 1.00 and 0.44, the size factor
 12.00 and 1.00.
 
+**Round 15** (2026-09-22) — *the histogram can demonstrate between
+comparisons; can it also do within? The histogram is a simulation of 2,000
+genes and the table shows six — could be confusing. Research how to teach
+between and within; mock up.* And, mid-round: *I have to mentally convert B/A
+with log2; show the log2 fold change too.* **What the sources do:** the HBC
+page draws depth as 2 samples × 3 genes, length as 2 genes in one sample,
+composition as 2 samples × a few genes; StatQuest and Pimentel compute RPKM
+and TPM by hand on a 3 × 3 table; none goes past a table's worth of genes.
+The histogram cannot show within by construction — a within reading is two
+genes in one sample, and a ratio per gene has already divided one sample by
+the other. `_lab/count-normalization-within-mock.html` (f93860a): four
+candidates in four units, three from the SAME six genes the table prints —
+B a slope chart (a dot per gene in A and in B on a log2 axis, a line
+joining them: within is the height of the dots in one column, between the
+slope of a line), C paired bars, A the histogram as now — and D the 2,000
+read within a sample (value against length, the fitted slope). **His pick:
+B.** The slope chart replaces the histogram; the 2,000-gene panel goes
+entirely, with its Poisson genes, the share matching of round 14 and the
+third tile. The chart shares one layout with the hover test, so pointing at
+a dot reads that gene both ways; a unit change slides every dot; genes at
+one height share a label ("genes 1–4" under TPM); the axis holds gene 5's
+dashed truth at 8× its A value; the grey line is the unchanged genes' height
+in A. **log2** (3b16a69, before the pick): each reading in the table's margin
+gains a line, "log2 −2.00 · truth 0", between the ratio and its truth (on
+the ratio's own line it ran off the narrowest canvas), and both tiles' notes
+open with the log2. The first draft's axis word met the title, its stacked
+labels ran into "sample B" and gene 5's truth sat above the axis; the sweep
+also caught the title off-canvas under the longest unit name. Seventeen
+states clean.
+
 **Round 14** (2026-09-22) — *why does the table readout not match the
 histogram? B/A = 0.25 but the histogram shows −0.33; it appears for CPM, TPM,
 FPKM.* A real inconsistency, and the same direction at a different size: the
