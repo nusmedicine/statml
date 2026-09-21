@@ -49,15 +49,17 @@ import * as M from "./model.js";
    Position is a different stage. `stageOf` names which of the five stages a
    parameter set shows, and the animation keeps a counter per stage so a
    switch and back finds the epochs where they were. */
-const PAGES = [{ value: "encode", label: "Encode" }, { value: "position", label: "Position" }];
+const PAGES = [{ value: "tokenize", label: "Tokenize" }, { value: "embed", label: "Embed" }, { value: "position", label: "Position" }];
 const VOCABS = [{ value: "dna", label: "DNA" }, { value: "codon", label: "Codons" }, { value: "aa", label: "Amino acids" }, { value: "words", label: "Words" }];
-const stageOf = (params) => (params.page === "position" ? "position" : params.vocab);
+const stageOf = (params) => (params.page === "position" ? "position" : params.page === "tokenize" ? `tok-${params.vocab}` : params.vocab);
+/* one press: an epoch trained on the Embed and Position pages, a token cut on the Tokenize page */
+const stepMs = (anim) => (anim.stage.startsWith("tok-") ? (anim.mode === "run" ? 110 : 220) : anim.mode === "run" ? RUN_MS : STEP_MS);
 const ENCODINGS = [{ value: "none", label: "None" }, { value: "learned", label: "Learned" }, { value: "sinusoidal", label: "Sinusoidal" }, { value: "rope", label: "Rotary" }];
 const STEP_MS = 420;   // one epoch's move on Step
 const RUN_MS = 240;    // one epoch's move under Play: forty in under ten seconds
 const HEIGHT = 384;
 const ON = (page) => ({ param: "page", equals: page });
-const ON_ENCODE = { param: "page", equals: "encode" };
+const ON_TOK_EMBED = { param: "page", oneOf: ["tokenize", "embed"] };
 
 /* -------------------------------------------------------------- strings */
 
@@ -65,7 +67,7 @@ const S = {
   subtitle:
     "A token is a row of a table, and a trained table is a space: tokens the task treats alike become neighbours, a geometry nobody typed in. " +
     "Four bases, sixty-one codons, twenty amino acids, forty clinical words; the rows drawn as points that move as the table trains. " +
-    "Then position: what an attention head is told about where a token sits, and what a shift does to it.",
+    "Before the table, tokenization; after it, position: what an attention head is told about where a token sits, and what a shift does to it.",
   pageLabel: "Page",
   vocabLabel: "Vocabulary",
   vocabDetail: "which tokens the table holds a row for: the four bases, the sixty-one sense codons, the twenty amino acids, or forty clinical words",
@@ -81,10 +83,42 @@ const S = {
   shiftLabel: "Positions",
   shiftDetail: "the same sixteen words at positions 0 to 15, or moved along to 16 to 31; the trained head is read, not retrained",
 
-  stepLabel: "Train one",
-  stepTitle: "Train one epoch of 300 sequences and move each row to where it leaves it",
+  stepLabel: { param: "page", labels: { tokenize: "Next token" }, default: "Train one" },
+  stepTitle: { param: "page", labels: { tokenize: "Cut the next token, look up its id, and copy its row" }, default: "Train one epoch of 300 sequences and move each row to where it leaves it" },
   runLabel: "Play",
-  runTitle: "Train the remaining epochs in turn",
+  runTitle: { param: "page", labels: { tokenize: "Cut the remaining tokens in turn" }, default: "Train the remaining epochs in turn" },
+
+  /* the Tokenize page */
+  tokCapRaw: {
+    dna: (raw) => `the sequence · ${raw.length} bases`,
+    codon: (raw) => `the sequence · ${raw.length} bases, the same string as the base page`,
+    aa: (raw) => `the sequence · ${raw.length} residues`,
+    words: () => "the sentence",
+  },
+  tokCapTokens: {
+    base: () => "tokens · one a base, character by character",
+    codon: (d) => `tokens · one a codon, three bases at a time in frame 1${d ? `; the base${d.length > 1 ? "s" : ""} left over dropped` : ""}`,
+    residue: () => "tokens · one a residue, character by character",
+    word: () => `tokens · one a word; ${M.UNK} for a word outside the vocabulary, ${M.PAD} to ${M.PAD_TO}`,
+  },
+  tokCapIds: (V) => `ids · the row each token picks in Embedding(${V}, E); ${M.PAD} is row 0`,
+  tokCapOut: (L, E) => `emb(ids) · [L, E] = [${L}, ${E}] · a column a token, the row it picked, as initialised`,
+  tokStart: "no token yet · the sequence as text",
+  tokStatus: (i, T, tok, id) => `token ${i} of ${T} · ${tok} → id ${id} → row ${id}`,
+  tokHover: (tok, name, id) => `${tok} · ${name} · id ${id}`,
+  tokNote: {
+    base: "four rows to choose from; the network reads one base at a time",
+    codon: "sixty-four rows to choose from, a third as many tokens as bases; a codon that is a stop has a row too",
+    residue: "twenty rows to choose from, one a residue",
+    word: "the row for <unk> is shared by every word the vocabulary lacks; <pad> is a row of zeros, ignored downstream",
+  },
+  tileTokens: "Tokens",
+  tileTokensNote: { base: "one a base", codon: "one a codon; a third as many as bases", residue: "one a residue", word: `one a word, padded to ${M.PAD_TO}` },
+  tileVocab: "Vocabulary",
+  tileVocabNote: "rows in the table, counting <pad>; the words count <unk> too",
+  tileOut: "Output",
+  tileOutNote: "one row of E numbers a token, in sequence order: what the next layer reads",
+  sumTok: (vocab, n, T) => `a ${{ dna: "DNA sequence", codon: "DNA sequence", aa: "protein sequence", words: "clinical sentence" }[vocab]} cut into tokens and looked up in the table; ${n === 0 ? "no token cut yet" : n < T ? `${n} of ${T} tokens cut` : "every token cut and looked up"}`,
 
   legend: {
     dna: [
@@ -260,7 +294,8 @@ function layout(w) {
    another page would retrain for a second. */
 const cache = new Map();
 function compute({ params }) {
-  const pos = params.page === "position";
+  const pos = params.page === "position", tok = params.page === "tokenize";
+  if (tok) return M.tokenizePage(params.vocab, Number(params.E), params.seed); // no training: cheap, and not cached
   const key = pos ? ["position", params.encoding, params.seed].join("|") : [params.vocab, params.E, params.seed].join("|");
   if (cache.has(key)) return cache.get(key);
   const run = pos ? M.trainPosition(params.encoding, params.seed) : M.trainPage(params.vocab, Number(params.E), params.seed);
@@ -273,7 +308,7 @@ function compute({ params }) {
 
 /** the epoch whose numbers are shown: the target once its move has landed, else the one before */
 const shownEpoch = (anim) => (anim.t >= 1 ? anim.n[anim.stage] : Math.max(0, anim.n[anim.stage] - 1));
-const isDone = (anim) => anim.n[anim.stage] >= M.EPOCHS && anim.t >= 1;
+const isDone = (anim, state) => anim.n[anim.stage] >= state.steps && anim.t >= 1;
 
 /* ==================================================================== draw */
 
@@ -430,6 +465,68 @@ function drawPosition(ctx, colors, w, params, state, anim, pointer) {
   txt(ctx, colors, S.capTask.position, TABLE_X, L.bottom + 28, { fill: colors.ink3 });
 }
 
+/* ------------------------------------------------------ the Tokenize page */
+
+const TOK = { rawY: 34, tokCap: 58, boxTop: 80, boxH: 22, idCap: 130, idY: 146, outCap: 168, outTop: 178 };
+function drawTokenize(ctx, colors, w, params, state, anim, pointer) {
+  const { tokens, ids, out, E: Ed, raw, how, dropped, vocab } = state, T = tokens.length;
+  const P = M.PAGES[vocab];
+  const n = anim.n[anim.stage], t = ease(anim.t), arriving = anim.t < 1 ? n : 0; // the n-th token is landing while t < 1
+  const X0 = TABLE_X, X1 = w - PAD_R, bw = (X1 - X0) / T;
+  const colourFor = (tok) => { const gi = P.tokens.indexOf(tok); return gi >= 0 ? colourOf(colors, vocab, gi) : wash(colors.ink3, 0.55); };
+  const special = (tok) => tok === M.PAD || tok === M.UNK;
+
+  /* 1 · the raw sequence, the part cut so far in the full ink */
+  txt(ctx, colors, S.tokCapRaw[vocab](raw), X0, 14, { font: capFont(colors), fill: colors.ink1 });
+  ctx.save(); ctx.font = monoFont(colors);
+  const consumed = how === "codon" ? 3 * Math.min(n, T) : how === "word" ? tokens.slice(0, Math.min(n, T)).filter((tk) => tk !== M.PAD).length : Math.min(n, T);
+  let cx = X0;
+  const units = how === "word" ? raw.split(" ").map((u) => u + " ") : [...raw];
+  units.forEach((u, i) => {
+    const done = i < consumed, tail = how === "codon" && i >= raw.length - dropped.length;
+    ctx.fillStyle = tail ? colors.ink3 : done ? colors.ink1 : colors.ink2;
+    ctx.fillText(u, cx, TOK.rawY); cx += ctx.measureText(u).width;
+  });
+  if (dropped) { ctx.fillStyle = colors.ink3; ctx.fillText(`  · ${dropped.length} base${dropped.length > 1 ? "s" : ""} left over, dropped`, cx, TOK.rawY); }
+  ctx.restore();
+
+  /* 2 · the tokens, one box each; a word's label above or below in turn, where a box is narrower than its word */
+  txt(ctx, colors, S.tokCapTokens[how](dropped), X0, TOK.tokCap, { font: capFont(colors), fill: colors.ink1 });
+  ctx.save(); ctx.font = monoFont(colors); const wide = tokens.map((tk) => ctx.measureText(tk).width + 6 > bw); ctx.restore();
+  let hover = null;
+  for (let i = 0; i < Math.min(n, T); i++) {
+    const a = i === arriving - 1 ? t : 1, x = X0 + i * bw, tok = tokens[i];
+    ctx.save(); ctx.globalAlpha = a;
+    rect(ctx, x + 1, TOK.boxTop, bw - 2, TOK.boxH, special(tok) ? null : wash(colourFor(tok), 0.28), special(tok) ? colors.ink3 : colourFor(tok), 1);
+    if (wide[i]) txt(ctx, colors, tok, x + bw / 2, i % 2 ? TOK.boxTop + TOK.boxH + 12 : TOK.boxTop - 5, { font: monoFont(colors), fill: special(tok) ? colors.ink3 : colors.ink1, align: "center", halo: true });
+    else txt(ctx, colors, tok, x + bw / 2, TOK.boxTop + TOK.boxH / 2, { font: monoFont(colors), fill: special(tok) ? colors.ink3 : colors.ink1, align: "center", baseline: "middle" });
+    /* 3 · its id */
+    txt(ctx, colors, String(ids[i]), x + bw / 2, TOK.idY, { font: monoFont(colors), fill: colors.ink2, align: "center" });
+    ctx.restore();
+    if (pointer && pointer.x >= x && pointer.x < x + bw && pointer.y >= TOK.boxTop - 14 && pointer.y < TOK.idY + 4) hover = i;
+  }
+  txt(ctx, colors, S.tokCapIds(state.V), X0, TOK.idCap, { font: capFont(colors), fill: colors.ink1 });
+
+  /* 4 · the output: a column a token, the row it picked */
+  const L = layout(w), rH = Math.min(14, (L.bottom - TOK.outTop) / Ed);
+  txt(ctx, colors, S.tokCapOut(T, Ed), X0, TOK.outCap, { font: capFont(colors), fill: colors.ink1 });
+  for (let i = 0; i < Math.min(n, T); i++) {
+    const a = i === arriving - 1 ? t : 1, x = X0 + i * bw;
+    ctx.save(); ctx.globalAlpha = a;
+    for (let e = 0; e < Ed; e++) rect(ctx, x + 1, TOK.outTop + e * rH, bw - 1, Math.ceil(rH), signed(colors, out[i][e], 3));
+    ctx.restore();
+  }
+  rect(ctx, X0, TOK.outTop, T * bw, Ed * rH, null, colors.grid);
+  if (hover != null) {
+    const x = X0 + hover * bw + bw / 2, left = x > w * 0.6;
+    txt(ctx, colors, S.tokHover(tokens[hover], state.names[hover], ids[hover]), left ? x - 8 : x + 8, TOK.boxTop - 18, { fill: colors.ink1, align: left ? "right" : "left", halo: true });
+  }
+
+  const shown = anim.t >= 1 ? n : n - 1;
+  txt(ctx, colors, shown <= 0 ? S.tokStart : S.tokStatus(shown, T, tokens[shown - 1], ids[shown - 1]), X0, L.bottom + 14, { fill: colors.ink1, font: `600 ${colors.fsXs} ${colors.font}` });
+  txt(ctx, colors, S.tokNote[how], X0, L.bottom + 28, { fill: colors.ink3 });
+}
+
 /* ================================================================ widget */
 
 defineWidget({
@@ -442,13 +539,13 @@ defineWidget({
   pointer: true,
 
   params: {
-    page: { type: "segmented", label: S.pageLabel, options: PAGES, default: "encode", display: true },
+    page: { type: "segmented", label: S.pageLabel, options: PAGES, default: "tokenize", display: true },
     /* two by two: in one row "Amino acids" truncates at the rail's width */
-    vocab: { type: "segmented", style: "grid", label: S.vocabLabel, detail: S.vocabDetail, options: VOCABS, default: "dna", display: true, when: ON_ENCODE },
-    dataSec: { type: "section", label: S.dataSection, when: ON_ENCODE },
+    vocab: { type: "segmented", style: "grid", label: S.vocabLabel, detail: S.vocabDetail, options: VOCABS, default: "dna", display: true, when: ON_TOK_EMBED },
+    dataSec: { type: "section", label: S.dataSection, when: ON_TOK_EMBED },
     E: {
       type: "choice", label: S.eLabel, detail: S.eDetail,
-      options: M.SIZES.map((e) => ({ value: String(e), label: String(e) })), default: "8", when: ON_ENCODE,
+      options: M.SIZES.map((e) => ({ value: String(e), label: String(e) })), default: "8", when: ON_TOK_EMBED,
     },
     posSec: { type: "section", label: S.posSection, when: ON("position") },
     encoding: { type: "segmented", style: "grid", label: S.encodingLabel, detail: S.encodingDetail, options: ENCODINGS, default: "learned", when: ON("position") },
@@ -459,10 +556,10 @@ defineWidget({
       options: [{ value: "0", label: "0 to 15" }, { value: "16", label: "16 to 31" }], default: "0", display: true, afterDrive: true, when: ON("position"),
     },
     /* authoring escape hatch, first render only: epochs already trained on the page it opens with */
-    shown: { type: "int", min: 0, max: M.EPOCHS, default: 0, hidden: true },
+    shown: { type: "int", min: 0, max: 64, default: 0, hidden: true },
   },
 
-  legend: ({ params }) => S.legend[stageOf(params)] ?? S.legend.dna,
+  legend: ({ params }) => S.legend[params.page === "position" ? "position" : params.vocab] ?? S.legend.dna,
 
   compute,
 
@@ -472,43 +569,44 @@ defineWidget({
     runLabel: S.runLabel,
     runTitle: S.runTitle,
 
-    init: ({ params, fromScratch }) => {
-      const shown = fromScratch ? 0 : Math.max(0, Math.min(M.EPOCHS, Number(params.shown) || 0));
-      const anim = { stage: stageOf(params), n: { dna: 0, codon: 0, aa: 0, words: 0, position: 0 }, t: 1, moving: false, halt: false };
+    init: ({ params, state, fromScratch }) => {
+      const shown = fromScratch ? 0 : Math.max(0, Math.min(state.steps, Number(params.shown) || 0));
+      const anim = { stage: stageOf(params), n: { "tok-dna": 0, "tok-codon": 0, "tok-aa": 0, "tok-words": 0, dna: 0, codon: 0, aa: 0, words: 0, position: 0 }, t: 1, moving: false, halt: false };
       anim.n[anim.stage] = shown;
-      anim.done = isDone(anim);
+      anim.done = isDone(anim, state);
       return anim;
     },
 
-    advance: (anim, { dt }) => {
+    advance: (anim, { dt, state }) => {
       /* a press a page switch finished (`rebuild`) ends here, before it takes the new page's press */
       if (anim.halt) { anim.halt = false; anim.moving = false; return false; }
-      const page = anim.stage, ms = anim.mode === "run" ? RUN_MS : STEP_MS;
+      const page = anim.stage, ms = stepMs(anim), steps = state.steps;
       let more;
       if (anim.t < 1) {
         anim.t = Math.min(1, anim.t + dt / ms);
-        more = anim.t < 1 || (anim.mode === "run" && anim.n[page] < M.EPOCHS);
-      } else if (anim.n[page] < M.EPOCHS) {
+        more = anim.t < 1 || (anim.mode === "run" && anim.n[page] < steps);
+      } else if (anim.n[page] < steps) {
         anim.n[page] += 1; anim.t = 0; more = true;
       } else more = false;
-      anim.done = isDone(anim);
+      anim.done = isDone(anim, state);
       anim.moving = more;
       return more;
     },
 
-    rebuild: (anim, { params }) => {
+    rebuild: (anim, { params, state }) => {
       /* a press belongs to the page it started on: core keeps a running loop
          through a display change, so a switch mid-press would run the other
          page's press (the 2026-09-20 sweep) */
       const stage = stageOf(params);
       if (anim.moving && stage !== anim.stage) { anim.t = 1; anim.halt = true; }
       anim.stage = stage;
-      anim.done = isDone(anim);
+      anim.done = isDone(anim, state);
     },
   },
 
   draw({ ctx, colors, w, params, state, anim, pointer }) {
     if (params.page === "position") { drawPosition(ctx, colors, w, params, state, anim, pointer); return; }
+    if (params.page === "tokenize") { drawTokenize(ctx, colors, w, params, state, anim, pointer); return; }
     const L = layout(w);
     drawTable(ctx, colors, L, params, state, anim);
     drawSpace(ctx, colors, L, params, state, anim, pointer);
@@ -520,6 +618,13 @@ defineWidget({
   readout({ params, state, anim }) {
     const e = shownEpoch(anim);
     const pct = (v) => `${Math.round(100 * v)}%`;
+    if (params.page === "tokenize") {
+      return [
+        { label: S.tileTokens, value: String(state.tokens.length), note: S.tileTokensNote[state.how] },
+        { label: S.tileVocab, value: String(state.V), note: S.tileVocabNote },
+        { label: S.tileOut, value: `[${state.tokens.length}, ${state.E}]`, note: S.tileOutNote },
+      ];
+    }
     if (params.page === "position") {
       const third = state.pe === "none"
         ? { label: S.tilePresence, value: pct(state.presence), note: S.tilePresenceNote }
@@ -540,6 +645,7 @@ defineWidget({
   },
 
   summary({ params, state, anim }) {
+    if (params.page === "tokenize") return S.sumTok(params.vocab, shownEpoch(anim), state.steps);
     return params.page === "position" ? S.sumPos(state.pe, shownEpoch(anim), M.EPOCHS) : S.sum(params.vocab, shownEpoch(anim), M.EPOCHS);
   },
 });

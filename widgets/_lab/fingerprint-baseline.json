@@ -9418,14 +9418,14 @@
     {
       "$note": "embedding-space · Amino acids, all forty epochs: the four roles apart (placeholder)",
       "slug": "embedding-space",
-      "state": "?theme=light&shown=40",
+      "state": "?theme=light&page=embed&shown=40",
       "px": "0",
       "tx": "0"
     },
     {
       "$note": "embedding-space · Codons, all forty epochs: the eighteen in three clusters, the rest nowhere (placeholder)",
       "slug": "embedding-space",
-      "state": "?theme=light&vocab=codon&shown=40",
+      "state": "?theme=light&page=embed&vocab=codon&shown=40",
       "px": "0",
       "tx": "0"
     },
@@ -9445,6 +9445,13 @@
       "$note": "embedding-space · Position, rotary, all forty epochs, the shifted positions (placeholder)",
       "slug": "embedding-space",
       "state": "?theme=light&page=position&encoding=rope&shift=16&shown=40",
+      "px": "0",
+      "tx": "0"
+    },
+    {
+      "$note": "embedding-space · Tokenize, the sentence, every token cut: <unk> and <pad> in place (placeholder)",
+      "slug": "embedding-space",
+      "state": "?theme=light&page=tokenize&vocab=words&shown=16",
       "px": "0",
       "tx": "0"
     }

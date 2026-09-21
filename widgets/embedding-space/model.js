@@ -153,7 +153,7 @@ export const PAGES = {
     chance: 1 / 3, // one base of the same class among three others
   },
   words: {
-    V: 41, k: 4, task: wordTask,
+    V: 42, k: 4, task: wordTask, // PAD, the forty, and <unk> for the Tokenize page
     tokens: WORDS, ids: WORDS.map((_, i) => i + 1),
     group: (i) => wordRole(WORDS[i]),
     /* the rows that get a geometry: the thirty-two role words; the fillers are the rest */
@@ -265,7 +265,7 @@ export function trainPage(pageKey, Edim, seed) {
   let radius = 0; for (const F of frames) for (const i of P.scored) radius = Math.max(radius, Math.hypot(F[i][0], F[i][1]));
   const lim = Math.max(3, Math.ceil(radius * 1.05 * 2) / 2);
 
-  return { page: pageKey, E: Edim, seed, tables, accs, frames, geo, geo2, geoRest, lim, params, epochs: EPOCHS };
+  return { page: pageKey, E: Edim, seed, tables, accs, frames, geo, geo2, geoRest, lim, params, epochs: EPOCHS, steps: EPOCHS };
 }
 
 /* ------------------------------------------------------ the Position page */
@@ -341,5 +341,49 @@ export function trainPosition(pe, seed) {
     presence = E.accuracy(mp, presenceTask(makeRng(seed * 11 + 6), 200));
   }
   const fixed = pe === "sinusoidal" ? E.sinusoid(Lmax, D).map((r) => Array.from(r)) : null;
-  return { page: "position", pe, seed, L, Lmax, D, dk, epochs: EPOCHS, words: ex.words, accs, accsShift, scores, scoresShift, tables, fixed, presence, params };
+  return { page: "position", pe, seed, L, Lmax, D, dk, epochs: EPOCHS, steps: EPOCHS, words: ex.words, accs, accsShift, scores, scoresShift, tables, fixed, presence, params };
+}
+
+/* ------------------------------------------------------ the Tokenize page */
+
+/* TOKENIZATION (his ask, 2026-09-21; 08-3 cell 2 §1, 07-1 cell 3): the step
+   before the table. One raw sequence a vocabulary, cut into tokens the way
+   the lesson names — character by character for bases and residues, 3-mers
+   for codons (the same DNA string as the base page, 46 long so a base is
+   left over and dropped), words for the sentence, with the lesson's two
+   special tokens: a word outside the forty becomes <unk>, and the sentence
+   is padded to sixteen with <pad>. Each token's id is the row it picks in
+   the table the Embed page trains, read here as initialised, so the output
+   is [L, E]: one row of E numbers a token, in sequence order. */
+export const PAD = "<pad>", UNK = "<unk>";
+export const SENTENCE = "the patient was admitted with chest pain and treated with ibuprofen then discharged";
+export const PAD_TO = 16;
+
+/** the same rows trainPage starts from: the seed's Embedding as initialised */
+const initTable = (P, Edim, seed) => E.Embedding(makeRng(seed * 11 + 1), P.V, Edim, 0);
+
+export function tokenizePage(vocab, Edim, seed) {
+  const P = PAGES[vocab], rng = makeRng(seed * 11 + 21);
+  let raw, tokens, ids, dropped = "", padded = 0, how, names;
+  if (vocab === "dna" || vocab === "codon") {
+    raw = Array.from({ length: 46 }, () => DNA[Math.floor(rng.next() * 4)]).join("");
+    if (vocab === "dna") { tokens = [...raw]; ids = tokens.map((c) => DNA.indexOf(c) + 1); how = "base"; names = tokens.map((c) => BASE_NAMES[c]); }
+    else {
+      const n = Math.floor(raw.length / 3);
+      tokens = Array.from({ length: n }, (_, i) => raw.slice(3 * i, 3 * i + 3)); ids = tokens.map((c) => CODONS.indexOf(c) + 1); dropped = raw.slice(3 * n); how = "codon";
+      names = tokens.map((c) => (AA_OF[c] === "*" ? "stop" : `${NAMES[AA_OF[c]]} (${AA_OF[c]})`));
+    }
+  } else if (vocab === "aa") {
+    raw = Array.from({ length: 24 }, () => AA[Math.floor(rng.next() * 20)]).join("");
+    tokens = [...raw]; ids = tokens.map((c) => AA.indexOf(c) + 1); how = "residue"; names = tokens.map((c) => `${NAMES[c]} · ${ROLE_OF[c]}`);
+  } else {
+    raw = SENTENCE;
+    tokens = SENTENCE.split(" ").map((w) => (WORDS.includes(w) ? w : UNK));
+    ids = tokens.map((w) => (w === UNK ? WORDS.length + 1 : WORDS.indexOf(w) + 1));
+    while (tokens.length < PAD_TO) { tokens.push(PAD); ids.push(0); padded++; }
+    how = "word"; names = tokens.map((w) => (w === UNK ? "a word outside the vocabulary" : w === PAD ? "padding" : wordRole(w)));
+  }
+  const emb = initTable(P, Edim, seed);
+  const out = ids.map((id) => Array.from(emb.W.v.slice(id * Edim, (id + 1) * Edim)));
+  return { page: "tokenize", vocab, E: Edim, seed, raw, tokens, ids, names, out, dropped, padded, how, V: P.V, steps: tokens.length };
 }
