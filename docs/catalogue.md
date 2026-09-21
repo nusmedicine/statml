@@ -18894,7 +18894,7 @@ mechanism, and the gene-symbol deduplication is data handling.
 | 7.1 | how many | **five: 77, 78, 79, 80, 81; 82 folded into 81 as its first page** (Clusters · Markers · Conditions) |
 | 7.2 | build order | **the lessons': 77 → 78 → 79 → 80 → 81** |
 | 7.3 | where the size factor lives | **77's last page**; 78 opens at the model with size factors given |
-| 7.4 | 78's pages | **four: Model · Dispersion · Test · Transform** |
+| 7.4 | 78's pages | **four**, and on his question the same evening (*does vst come at the beginning or the end? I saw it at the end*) **in the notebook's order: Model · Dispersion · Transform · Test** — 01-2 runs `DESeq()` (cell 23), then `vst` for the QC PCA (cell 25), then `results` and the MA plot (cell 38); the vst needs the fitted trend so it cannot come first, and it was mocked last only to keep the fit beside its test |
 | 7.5 | the single-cell stage | **simulated**: four samples shaped like the lesson's for 79, cells in ten PCs for 80 and 81 |
 | 7.6 | 80's method | **MNN against Harmony as a control** |
 | 7.7 | slugs and titles | **kept as proposed**; rename later from a gallery mock if a title reads wrong beside its neighbours |

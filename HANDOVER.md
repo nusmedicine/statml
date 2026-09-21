@@ -17,7 +17,8 @@ computed on the page; recommended five with 82 folded into 81. Seven calls
 put in the mock's § 7 and by AskUserQuestion, **all seven answered the same
 evening, every one the recommendation** (five widgets 77–81 with 82 folded
 into 81; the lessons' order; the size factor on 77's last page; 78 four
-pages; simulated stage; MNN against Harmony on 80; names kept) — the table is
+pages in the notebook's order, Model · Dispersion · Transform · Test (his
+question: vst sits between the fit and the results in 01-2); simulated stage; MNN against Harmony on 80; names kept) — the table is
 under the catalogue's § *The open calls*. Five findings about the lessons'
 own output under § *What the lessons' own output says*. Nothing built. NEXT:
 77 `count-normalization` — measure its own failing case (the median of ratios
