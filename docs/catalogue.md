@@ -18759,6 +18759,32 @@ median of ratios has its own failing case — it assumes most genes are
 unchanged, and a slider past half the genes up should show it move — a claim
 to measure at build, not assumed here.
 
+#### MEASURED AND MOCKED 2026-09-21, his six picks the same evening
+
+**The failing case holds** (scratch `mor-fail.mjs`, then on the mock's own
+page): the median log2(B/A) of the unchanged genes under the size factor is
++0.02 at 5% of genes up 2×, −0.05 at 20%, −0.24 at 40%, −0.38 at 50%; at 8×
+it is +0.08, −0.19, −0.93, −1.58 — past half the genes up the size factor
+makes the same call TPM makes. When the movers go both ways (half up 4×, half
+down 4×) it reads 0.00 at 20% and −0.09 at 50%. So the share control runs to
+80% and the readout prints both numbers.
+
+**The mock** `_lab/count-normalization-mock.html`: three pages drawn on one
+figure shape (six genes with lengths as paired bars in the chosen unit above,
+2,000 Poisson genes as an A-against-B scatter below with the diagonal and the
+1.5× band), the rails of shape A (pages) and B (one stage) side by side, the
+figure alone in each half, the failing-case chart, the size-factor table, the
+certainty tile, three subtitles. **His picks, every one the recommendation:**
+
+| call | ANSWER |
+|---|---|
+| shape | **A — three pages on one figure shape**, each showing only its own controls, the last ending on the size factor |
+| figure | **both, stacked**: the six genes say why a share moves, the 2,000 by how much |
+| size factor | **a gated walkthrough on the Composition page**, as 39's quantile one: geometric mean · ratio · median on the six genes |
+| the count's certainty | **a tile on the Depth page**: the reads behind one TPM in A and B, and the Poisson CV |
+| subtitle | **S1**: *A read count depends on the sample's depth and the gene's length as well as its expression. CPM, FPKM and TPM divide these out, but each is a share of the sample's total, so when some genes rise every other gene's share falls. A size factor takes the scale from the genes that did not change.* |
+| the page control's label | **Step** — raw → CPM → TPM → size factor is one pipeline, the units accumulating left to right, as 74's |
+
 ### Slot 78 · `deseq2` — Differential Expression
 
 **Host.** 01-2 cell 1 and cell 22 are the notebook's own exposition, four

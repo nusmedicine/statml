@@ -1129,6 +1129,27 @@
       ],
       "arc": 74,
       "status": "shipped"
+    },
+    {
+      "slug": "count-normalization",
+      "title": "Expression Units",
+      "blurb": "Depth, length and composition move a count; CPM, FPKM and TPM divide out two of them, a size factor survives the third.",
+      "course": "PHM5003",
+      "topics": [
+        "RNA-seq",
+        "normalization",
+        "CPM",
+        "FPKM",
+        "TPM",
+        "size factor",
+        "median of ratios",
+        "DESeq2",
+        "sequencing depth",
+        "gene length",
+        "composition"
+      ],
+      "arc": 77,
+      "status": "draft"
     }
   ]
 }
