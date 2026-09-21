@@ -537,7 +537,10 @@ function drawTable(ctx, colors, w, y0, state, r, fade, hover) {
   const u = UNITS[state.unit].short;
   const cx = TABLE.cx;
   const rh = TABLE.rh, head = y0 + TABLE.headDy, first = head + 18;
-  const mx = cx.B + 14;   // the margin where the two readings are named
+  /* the margin where the two readings are named: 24px clear of column B's
+     numbers at the narrowest canvas (the longest line still fits), and up to
+     60px at a wide one — his screenshot at 960px had the swatch on the numbers */
+  const mx = cx.B + 24 + Math.max(0, Math.min(36, (w - 534) / 6));
   ctx.save();
   ctx.globalAlpha = fade;
   const F = focusOf(hover);
