@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · 77 count-normalization — genes and reads</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1600px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 104ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); min-height: 26px; white-space: pre-line; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 104ch; }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 104ch; }
+  .q b { display: block; margin-bottom: 2px; }
+  .leg { display: flex; gap: 14px; font-size: 11px; color: var(--ink-2); margin: 4px 0 8px; align-items: center; flex-wrap: wrap; }
+  .leg i { display: inline-block; width: 14px; height: 8px; margin-right: 5px; vertical-align: middle; border-radius: 1px; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>77 <code>count-normalization</code> &middot; genes and reads, as the HBC page draws them &middot; mock</h1>
+  <p class="note">
+    His ask, 2026-09-21: <i>could we have similar illustrations of genes and reads like the hbctraining website? also the
+    color of the legends is confusing.</i> That page draws a gene as a bar of its length and each read as a small
+    rectangle stacked above it, Sample A over Sample B. Below, the same six genes as before drawn that way, with counts
+    small enough to count: <b>the number of rectangles is the raw count; the depth of the pile is the coverage</b>, which
+    is what a per-kilobase unit (FPKM, TPM) reads and a per-million unit (CPM) does not. Every number is computed on
+    this page. Drawn at the widget's 550px; the ratio over each gene is B &divide; A in the unit named, as the widget prints it.
+  </p>
+
+  <h2>1 &middot; The three steps as pile-ups (legend scheme A: one hue for reads, samples are rows)</h2>
+  <div class="leg"><i style="background:var(--c-empirical)"></i>a read <i style="background:var(--c-highlight)"></i>a read of a gene that changed <i style="background:var(--ink-3)"></i>the gene, drawn to its length</div>
+  <p class="note">
+    <b>Depth</b>: equal lengths, B sequenced 3&times; deeper &mdash; every pile is three times as deep, every raw ratio 3.00.
+    <b>Length</b>: every gene at one expression per kilobase, lengths differ &mdash; the piles are all the same depth, and
+    the long gene has many more rectangles: raw and CPM count rectangles, FPKM and TPM read depth. <b>Composition</b>:
+    the same number of reads in each sample (the sequencer's capacity), gene 5 up 8&times; in B &mdash; it takes most of B's
+    rectangles and every other gene's pile thins, though nothing else changed. The size factor reads the five thinned
+    piles as the unchanged ones and rescales B by their median.
+  </p>
+  <div class="row" id="pileRow"></div>
+  <p class="rec">Recommended: this replaces the paired bars on all three steps. It is the page's own picture, and it shows the
+    thing the bars asserted &mdash; that a count is rectangles and a per-kilobase unit is depth &mdash; and on Composition it
+    shows the reads themselves being taken. Composition changes to a FIXED total of reads per sample, which is the HBC
+    framing and the true one (a sequencer has a capacity), so the unchanged genes' raw counts fall and the reader sees why.</p>
+
+  <h2>2 &middot; The legend: scheme A against scheme B, on the Composition step in TPM</h2>
+  <p class="note">
+    The confusion: Sample A's blue and the scatter's blue dots were the same hue for two different things, and Sample B's
+    yellow outline read as a third series. <b>A</b> &mdash; one hue for reads and for the scatter's genes (both are data),
+    the highlight for a gene that changed, samples told apart by their ROW and their label, never by colour. <b>B</b> &mdash;
+    Sample A and Sample B in the two group hues on the piles, the scatter's genes in a third hue.
+  </p>
+  <div class="row" id="legRow"></div>
+  <p class="rec">Recommended <b>A</b>: three legend entries instead of five, and blue means one thing everywhere (a gene's data).
+    A sample is a row with a name, which is what a sample is.</p>
+
+  <h2>3 &middot; With or without the 2,000-gene scatter below</h2>
+  <p class="note">
+    The pile-up says why. The scatter says by how much over 2,000 genes (the median shift, the count called down at
+    1.5&times;) and is where the share control's failing case shows. Left, the pile-up alone with the numbers in tiles;
+    right, the pile-up over the scatter as the widget has it now.
+  </p>
+  <div class="row" id="scatRow"></div>
+  <p class="rec">Recommended <b>both</b>, as picked before, but the scatter smaller (220px) under a taller pile-up (230px); the
+    two numbers it carries go in the tiles either way.</p>
+
+  <h2>4 &middot; The calls</h2>
+  <p class="q"><b>4.1 &middot; The figure</b> <b>pile-ups on all three steps, replacing the bars (recommended)</b> &nbsp;|&nbsp; pile-ups on Length and Composition, bars on Depth &nbsp;|&nbsp; keep the bars</p>
+  <p class="q"><b>4.2 &middot; Composition's reads</b> <b>a fixed total per sample, so the unchanged genes' counts fall when one gene rises (recommended; the HBC framing)</b> &nbsp;|&nbsp; as now, the unchanged genes' counts stay and only their share falls</p>
+  <p class="q"><b>4.3 &middot; The legend</b> <b>A: one hue for data, samples as rows (recommended)</b> &nbsp;|&nbsp; B: a hue per sample</p>
+  <p class="q"><b>4.4 &middot; The scatter</b> <b>keep it, smaller (recommended)</b> &nbsp;|&nbsp; cut it, numbers in tiles only</p>
+</main>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+import { makeRng } from "../core/rng.js";
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+const W = 550;
+function el(tag, cls, text) { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
+function cand(rowId, title, sub, w = W) { const box = el("div", "cand"); box.style.width = `${w}px`; box.appendChild(el("h3", null, title)); box.appendChild(el("p", "sub", sub)); document.getElementById(rowId).appendChild(box); return box; }
+function canvasIn(box, w, h) { const c = document.createElement("canvas"); c.width = Math.round(w * DPR); c.height = Math.round(h * DPR); c.style.width = `${w}px`; c.style.height = `${h}px`; box.appendChild(c); const ctx = c.getContext("2d"); ctx.scale(DPR, DPR); return ctx; }
+const rgb = (c) => { const m = String(c).match(/^#([0-9a-f]{6})$/i); return m ? [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16)) : [128, 128, 128]; };
+const wash = (color, a) => { const p = rgb(color); return `rgba(${p[0]},${p[1]},${p[2]},${a})`; };
+function label(ctx, s, x, y, { size = 11, colour = T.ink2, align = "left", mono = false, weight = "" } = {}) { ctx.save(); ctx.font = `${weight ? weight + " " : ""}${size}px ${mono ? T.mono : T.font}`; ctx.fillStyle = colour; ctx.textAlign = align; ctx.textBaseline = "alphabetic"; ctx.fillText(s, x, y); ctx.restore(); }
+function rect(ctx, x, y, w, h, fill, stroke = null, lw = 1) { ctx.save(); if (fill) { ctx.fillStyle = fill; ctx.fillRect(x, y, w, h); } if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw; ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1); } ctx.restore(); }
+function line(ctx, x1, y1, x2, y2, colour, width = 1, dash = null) { ctx.save(); ctx.strokeStyle = colour; ctx.lineWidth = width; if (dash) ctx.setLineDash(dash); ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); ctx.restore(); }
+function dot(ctx, x, y, r, fill) { ctx.save(); ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fillStyle = fill; ctx.fill(); ctx.restore(); }
+const median = (a) => { const s = Float64Array.from(a).sort(); const m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
+const f = (x, d = 2) => x.toFixed(d);
+const total = (c) => c.reduce((s, v) => s + v, 0);
+function unitOf(counts, len, unit, sf = 1) {
+  if (unit === "raw") return counts.slice();
+  if (unit === "CPM") { const t = total(counts); return counts.map((v) => (1e6 * v) / t); }
+  if (unit === "FPKM") { const t = total(counts); return counts.map((v, i) => (1e9 * v) / (t * len[i])); }
+  if (unit === "TPM") { const r = counts.map((v, i) => v / len[i]); const t = total(r); return r.map((v) => (1e6 * v) / t); }
+  return counts.map((v) => v / sf);
+}
+function sizeFactors(A, B) { const gm = A.map((a, i) => Math.sqrt(a * B[i])); const ok = gm.map((g) => g > 0); return [median(A.filter((_, i) => ok[i]).map((a, i) => a / gm.filter((_, j) => ok[j])[i])), median(B.filter((_, i) => ok[i]).map((b, i) => b / gm.filter((_, j) => ok[j])[i]))]; }
+
+/* --- the six genes, at read scale ------------------------------------------ */
+const LEN = [1, 2, 4, 1, 6, 0.5];           // kb
+const READ = 0.25;                           // kb, one read
+const PAGES = {
+  depth: { len: LEN.map(() => 2), perKb: [4, 3, 2, 4, 2, 5], depthB: 3, changed: [], fixedTotal: false },
+  length: { len: LEN, perKb: [4, 4, 4, 4, 4, 4], depthB: 1, changed: [], fixedTotal: false },
+  /* counts of 10 for every unchanged gene, so their ratios read the same number instead of
+     scattering with the rounding of small counts (the first draw: 0.76, 0.42, 0.80, 0.66) */
+  composition: { len: LEN, perKb: [10, 5, 2.5, 10, 2, 20], depthB: 1, changed: [4], fold: 8, fixedTotal: true },
+};
+function countsFor(p) {
+  const A = p.len.map((l, i) => Math.round(p.perKb[i] * l));
+  let B = p.len.map((l, i) => p.perKb[i] * l * p.depthB * (p.changed.includes(i) ? p.fold : 1));
+  if (p.fixedTotal) { const s = total(A) / total(B); B = B.map((v) => v * s); }
+  return { A, B: B.map((v) => Math.max(1, Math.round(v))) };
+}
+/* random read starts, packed into rows as a browser does */
+function pileUp(rng, n, lenKb) {
+  const rows = [];
+  const starts = Array.from({ length: n }, () => rng.next() * Math.max(0.0001, lenKb - READ)).sort((a, b) => a - b);
+  const placed = [];
+  for (const s of starts) { let r = 0; while (rows[r] !== undefined && rows[r] > s - 0.02) r += 1; rows[r] = s + READ; placed.push([s, r]); }
+  return placed;
+}
+
+/** one pile-up panel: A row over B row, reads as rectangles, the unit ratio over each gene */
+function drawPiles(ctx, x0, y0, w, h, p, unit, scheme, seed = 1) {
+  const rng = makeRng(seed);
+  const { A, B } = countsFor(p);
+  const [sfA, sfB] = sizeFactors(A, B);
+  const uA = unitOf(A, p.len, unit, sfA), uB = unitOf(B, p.len, unit, sfB);
+  const totalKb = total(p.len), gap = 14, padL = 74, padR = 10;
+  const within = p === PAGES.length; // the Length step compares genes within sample A: each gene ÷ gene 1
+  const pxPerKb = (w - padL - padR - gap * (p.len.length - 1)) / totalKb;
+  const rowH = 5, readH = 4;
+  const laneH = (h - 40) / 2;
+  const colA = scheme === "B" ? T.groupA : T.empirical, colB = scheme === "B" ? T.groupB : T.empirical;
+  label(ctx, `Six genes and their reads, in ${unit === "raw" ? "raw counts" : unit}`, padL, y0 + 14, { colour: T.ink1, weight: "600" });
+  label(ctx, within ? "each gene ÷ gene 1, within sample A" : "B ÷ A, the same gene in both samples", x0 + w - padR, y0 + 14, { align: "right", size: 10, colour: T.ink3 });
+  [["A", A, colA, 0], ["B", B, colB, 1]].forEach(([name, C, col, k]) => {
+    const base = y0 + 26 + laneH * (k + 1) - 16;
+    label(ctx, `Sample ${name}`, x0 + 4, base - 14, { size: 10, colour: T.ink2, weight: "600" });
+    label(ctx, `${total(C)} reads`, x0 + 4, base - 2, { size: 9, colour: T.ink3, mono: true });
+    let gx = x0 + padL;
+    for (let i = 0; i < p.len.length; i += 1) {
+      const gw = p.len[i] * pxPerKb;
+      const changed = p.changed.includes(i);
+      rect(ctx, gx, base, gw, 3, T.ink3);
+      const reads = pileUp(rng, C[i], p.len[i]);
+      const maxRow = Math.floor((laneH - 30) / rowH);
+      for (const [s, r] of reads) if (r < maxRow) rect(ctx, gx + s * pxPerKb, base - 2 - (r + 1) * rowH, Math.max(2, READ * pxPerKb - 1), readH, changed ? T.highlight : col);
+      if (reads.some(([, r]) => r >= maxRow)) label(ctx, `+${reads.filter(([, r]) => r >= maxRow).length}`, gx + gw / 2, base - 4 - maxRow * rowH, { size: 8, align: "center", colour: T.ink3 });
+      if (k === 1) {
+        label(ctx, `gene ${i + 1} · ${p.len[i]} kb`, gx + gw / 2, base + 14, { size: 9, align: "center", colour: T.ink3 });
+        const r = within ? uA[i] / uA[0] : uB[i] / uA[i];
+        /* the row sits between the lanes, under A's genes and above B's piles */
+        label(ctx, f(r, r >= 10 ? 1 : 2), gx + gw / 2, y0 + 26 + laneH + 2, { size: 10, align: "center", mono: true, weight: "600", colour: changed ? T.highlight : Math.abs(r - 1) > 0.005 ? T.extreme : T.ink1 });
+      }
+      label(ctx, String(C[i]), gx + gw / 2, base - 4 - (Math.max(...reads.map(([, r]) => r), -1) + 1) * rowH - 2, { size: 8, align: "center", colour: T.ink3, mono: true });
+      gx += gw + gap;
+    }
+  });
+  return { A, B, uA, uB, sfA, sfB };
+}
+
+/* ============================================================ 1 the three steps */
+{
+  for (const [name, unit, note] of [["depth", "raw", "B is three times as deep; every raw ratio 3.00; CPM reads them 1.00"], ["length", "CPM", "one expression per kb: equal depth of pile, unequal counts; the row is WITHIN sample A, each gene against gene 1: CPM reads gene 5 six times gene 1, TPM reads them equal"], ["composition", "TPM", "62 reads each; gene 5 up 8x takes 41 of B's; the other five thin from 10 reads to 4. Raw and CPM read them 0.40, TPM and FPKM 0.77 (gene 5 is long, so per kilobase it holds less), the size factor 1.00"]]) {
+    const box = cand("pileRow", `${name[0].toUpperCase()}${name.slice(1)} · shown in ${unit === "raw" ? "raw counts" : unit}`, note);
+    const ctx = canvasIn(box, W, 230);
+    drawPiles(ctx, 0, 0, W, 230, PAGES[name], unit, "A");
+  }
+  /* the same composition step, the units as the reader would step through them */
+  for (const unit of ["raw", "CPM", "size factor"]) {
+    const box = cand("pileRow", `Composition · shown in ${unit === "raw" ? "raw counts" : unit}`, unit === "raw" ? "the five unchanged genes' counts FELL: their reads went to gene 5" : unit === "CPM" ? "per million of the same total: still 0.40" : "B's size factor is the median ratio of the six, which the five unchanged set");
+    const ctx = canvasIn(box, W, 230);
+    drawPiles(ctx, 0, 0, W, 230, PAGES.composition, unit === "size factor" ? "sf" : unit, "A");
+  }
+}
+
+/* ============================================================ 2 legend schemes */
+{
+  for (const scheme of ["A", "B"]) {
+    const box = cand("legRow", `scheme ${scheme}`, scheme === "A" ? "reads in one hue, a changed gene in the highlight; samples are rows\nlegend: a read · a gene that changed · equal in A and B" : "Sample A blue, Sample B yellow, a changed gene in the highlight\nlegend: Sample A · Sample B · a gene that changed · one gene (scatter) · equal in A and B");
+    const ctx = canvasIn(box, W, 230);
+    drawPiles(ctx, 0, 0, W, 230, PAGES.composition, "TPM", scheme);
+  }
+}
+
+/* ============================================================ 3 with or without the scatter */
+{
+  const b1 = cand("scatRow", "pile-up alone, numbers in tiles", "230px figure; the tiles carry the median shift and the count called down", W);
+  const c1 = canvasIn(b1, W, 300);
+  drawPiles(c1, 0, 0, W, 230, PAGES.composition, "TPM", "A");
+  rect(c1, 10, 240, 160, 52, T.surface2, T.grid); label(c1, "Unchanged genes, median log2(B ÷ A)", 18, 256, { size: 9, colour: T.ink2 }); label(c1, "−0.67", 18, 280, { size: 18, weight: "600", colour: T.ink1 });
+  rect(c1, 180, 240, 160, 52, T.surface2, T.grid); label(c1, "Unchanged genes past 1.5×", 188, 256, { size: 9, colour: T.ink2 }); label(c1, "55 down · 0 up", 188, 280, { size: 18, weight: "600", colour: T.ink1 });
+  const b2 = cand("scatRow", "pile-up over the scatter, smaller", "230 + 220px; the scatter's genes in the same hue as the reads (scheme A)", W);
+  const c2 = canvasIn(b2, W, 460);
+  drawPiles(c2, 0, 0, W, 230, PAGES.composition, "TPM", "A");
+  line(c2, 0, 234, W, 234, T.grid);
+  const rng = makeRng(1), G = 2000;
+  const len = Array.from({ length: G }, () => Math.exp(rng.normal(Math.log(2), 0.7))), E = Array.from({ length: G }, () => Math.exp(rng.normal(Math.log(30), 1.6)));
+  const up = new Set(); while (up.size < 100) up.add(Math.floor(rng.next() * G));
+  const EB = E.map((v, i) => (up.has(i) ? 8 * v : v)); const s = total(E.map((v, i) => v * len[i])) / total(EB.map((v, i) => v * len[i]));
+  const pois = (mu) => (mu < 40 ? (() => { const L = Math.exp(-mu); let k = 0, q = 1; do { k += 1; q *= rng.next(); } while (q > L); return k - 1; })() : Math.max(0, Math.round(mu + Math.sqrt(mu) * rng.normal())));
+  const A = E.map((v, i) => pois(v * len[i] * 0.02)), B = EB.map((v, i) => pois(v * len[i] * 0.02 * s));
+  const tA = unitOf(A, len, "TPM"), tB = unitOf(B, len, "TPM");
+  const px0 = 50, py0 = 256, pw = W - 66, ph = 170;
+  line(c2, px0, py0, px0, py0 + ph, T.ink3); line(c2, px0, py0 + ph, px0 + pw, py0 + ph, T.ink3);
+  const vals = [...tA, ...tB].filter((v) => v > 0).map(Math.log10), lo = Math.min(...vals), hi = Math.max(...vals);
+  const sx = (v) => px0 + ((Math.log10(v) - lo) / (hi - lo)) * pw, sy = (v) => py0 + ph - ((Math.log10(v) - lo) / (hi - lo)) * ph;
+  line(c2, px0, py0 + ph, px0 + pw, py0, T.reference, 1.5);
+  for (let i = 0; i < G; i += 1) if (tA[i] > 0 && tB[i] > 0) dot(c2, sx(tA[i]), sy(tB[i]), 1.6, wash(up.has(i) ? T.highlight : T.empirical, up.has(i) ? 0.85 : 0.4));
+  label(c2, "2,000 genes, sample B against sample A, in TPM", px0, py0 - 4, { size: 10, colour: T.ink2 });
+  label(c2, "sample A, TPM", px0 + pw / 2, py0 + ph + 14, { size: 10, align: "center", colour: T.ink3 });
+}
+</script>
+</body>
+</html>
