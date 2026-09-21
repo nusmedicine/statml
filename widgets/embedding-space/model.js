@@ -146,14 +146,14 @@ function codonTask(rng, n, L = 30) {
 /** what a page is: its vocabulary, its task, and which rows the picture is about */
 export const PAGES = {
   dna: {
-    V: 5, k: 4, task: dnaTask,
+    V: 6, k: 4, task: dnaTask, // <pad> 0, A C G T, <unk> 5
     tokens: [...DNA], ids: [1, 2, 3, 4],
     group: (i) => baseClass(DNA[i]),
     scored: [0, 1, 2, 3],
     chance: 1 / 3, // one base of the same class among three others
   },
   words: {
-    V: 42, k: 4, task: wordTask, // PAD, the forty, and <unk> for the Tokenize page
+    V: 42, k: 4, task: wordTask, // <pad> 0, the forty, <unk> 41
     tokens: WORDS, ids: WORDS.map((_, i) => i + 1),
     group: (i) => wordRole(WORDS[i]),
     /* the rows that get a geometry: the thirty-two role words; the fillers are the rest */
@@ -161,7 +161,7 @@ export const PAGES = {
     chance: 7 / 31, // seven of the same role among the thirty-one other role words
   },
   aa: {
-    V: 21, k: 4, task: aaTask,
+    V: 22, k: 4, task: aaTask, // <pad> 0, the twenty, <unk> 21
     tokens: [...AA], ids: [...AA].map(aaTok),
     group: (i) => ROLE_OF[AA[i]],
     /* the rows that get a geometry: all twenty; the axes come from them */
@@ -169,7 +169,7 @@ export const PAGES = {
     chance: 0.28, // the mean over residues of (role size − 1) / 19, measured
   },
   codon: {
-    V: 65, k: 3, task: codonTask,
+    V: 66, k: 3, task: codonTask, // <pad> 0, the sixty-four, <unk> 65
     tokens: SENSE, ids: SENSE.map(codonTok),
     group: (i) => AA_OF[SENSE[i]],
     scored: SENSE.map((c, i) => (MOTIF.includes(AA_OF[c]) ? i : -1)).filter((i) => i >= 0), // the motif's eighteen
@@ -261,6 +261,8 @@ export function trainPage(pageKey, Edim, seed, { onehot = false } = {}) {
     onEpoch: () => { tables.push(rowsOf(emb, P.ids)); accs.push(E.accuracy(net, test)); },
   });
   const params = net.params.reduce((p, q) => p + q.v.length, 0);
+  /* every row at the end, <pad> and <unk> included, for the Position page's lookup */
+  const fullFinal = Array.from({ length: P.V }, (_, id) => Array.from(emb.W.v.slice(id * emb.E, (id + 1) * emb.E)));
 
   const all = P.tokens.map((_, i) => i);
   const own = tables.map((R) => project(R, basis(R, P.scored)));
@@ -277,7 +279,7 @@ export function trainPage(pageKey, Edim, seed, { onehot = false } = {}) {
   let radius = 0; for (const F of frames) for (const i of P.scored) radius = Math.max(radius, Math.hypot(F[i][0], F[i][1]));
   const lim = Math.max(3, Math.ceil(radius * 1.05 * 2) / 2);
 
-  return { page: pageKey, E: Edim, seed, tables, accs, frames, geo, geo2, geoRest, lim, params, epochs: EPOCHS, steps: EPOCHS };
+  return { page: pageKey, E: Edim, seed, tables, fullFinal, accs, frames, geo, geo2, geoRest, lim, params, epochs: EPOCHS, steps: EPOCHS };
 }
 
 /* ------------------------------------------------------ the Tokenize page */
@@ -292,30 +294,45 @@ export function trainPage(pageKey, Edim, seed, { onehot = false } = {}) {
    the table, which the Encode and Position pages read. */
 export const PAD = "<pad>", UNK = "<unk>";
 export const SENTENCE = "the patient was admitted with chest pain and treated with ibuprofen then discharged";
-export const PAD_TO = 16;
+/** the fixed length each vocabulary's example is padded to */
+export const PAD_TO = { dna: 48, codon: 16, aa: 26, words: 16 };
+
+/** the vocabulary as the tokenizer holds it: id → token, <pad> first and <unk> last */
+export function vocabList(vocab) {
+  const P = PAGES[vocab];
+  const body = vocab === "codon" ? CODONS : P.tokens; // the codon table has a row for every codon, stops included
+  return [{ tok: PAD, id: 0 }, ...body.map((tok, i) => ({ tok, id: i + 1 })), { tok: UNK, id: P.V - 1 }];
+}
 
 export function tokenizePage(vocab, seed) {
-  const P = PAGES[vocab], rng = makeRng(seed * 11 + 21);
-  let raw, tokens, ids, dropped = "", padded = 0, how, names;
+  const P = PAGES[vocab], rng = makeRng(seed * 11 + 21), unk = P.V - 1, padTo = PAD_TO[vocab];
+  let raw, tokens, ids, dropped = "", how, names;
+  const nameOf = {
+    dna: (c) => BASE_NAMES[c], codon: (c) => (AA_OF[c] === "*" ? "a stop codon" : `${NAMES[AA_OF[c]]} (${AA_OF[c]})`),
+    aa: (c) => `${NAMES[c]} · ${ROLE_OF[c]}`, words: (w) => wordRole(w),
+  }[vocab];
+  const unkName = { dna: "a base outside A C G T", codon: "a codon with a base outside A C G T", aa: "a residue outside the twenty", words: "a word outside the vocabulary" }[vocab];
   if (vocab === "dna" || vocab === "codon") {
-    raw = Array.from({ length: 46 }, () => DNA[Math.floor(rng.next() * 4)]).join("");
-    if (vocab === "dna") { tokens = [...raw]; ids = tokens.map((c) => DNA.indexOf(c) + 1); how = "base"; names = tokens.map((c) => BASE_NAMES[c]); }
-    else {
-      const n = Math.floor(raw.length / 3);
-      tokens = Array.from({ length: n }, (_, i) => raw.slice(3 * i, 3 * i + 3)); ids = tokens.map((c) => CODONS.indexOf(c) + 1); dropped = raw.slice(3 * n); how = "codon";
-      names = tokens.map((c) => (AA_OF[c] === "*" ? "stop" : `${NAMES[AA_OF[c]]} (${AA_OF[c]})`));
-    }
+    /* 46 bases with one N: not a multiple of three, so the codon page drops a base, and one codon holds the N */
+    const bases = Array.from({ length: 46 }, () => DNA[Math.floor(rng.next() * 4)]);
+    bases[7 + Math.floor(rng.next() * 30)] = "N";
+    raw = bases.join("");
+    if (vocab === "dna") { tokens = [...raw]; how = "base"; }
+    else { const k = Math.floor(raw.length / 3); tokens = Array.from({ length: k }, (_, i) => raw.slice(3 * i, 3 * i + 3)); dropped = raw.slice(3 * k); how = "codon"; }
   } else if (vocab === "aa") {
-    raw = Array.from({ length: 24 }, () => AA[Math.floor(rng.next() * 20)]).join("");
-    tokens = [...raw]; ids = tokens.map((c) => AA.indexOf(c) + 1); how = "residue"; names = tokens.map((c) => `${NAMES[c]} · ${ROLE_OF[c]}`);
+    const res = Array.from({ length: 24 }, () => AA[Math.floor(rng.next() * 20)]);
+    res[4 + Math.floor(rng.next() * 16)] = "X";
+    raw = res.join(""); tokens = [...raw]; how = "residue";
   } else {
-    raw = SENTENCE;
-    tokens = SENTENCE.split(" ").map((w) => (WORDS.includes(w) ? w : UNK));
-    ids = tokens.map((w) => (w === UNK ? WORDS.length + 1 : WORDS.indexOf(w) + 1));
-    while (tokens.length < PAD_TO) { tokens.push(PAD); ids.push(0); padded++; }
-    how = "word"; names = tokens.map((w) => (w === UNK ? "a word outside the vocabulary" : w === PAD ? "padding" : wordRole(w)));
+    raw = SENTENCE; tokens = SENTENCE.split(" "); how = "word";
   }
-  return { page: "tokenize", vocab, seed, raw, tokens, ids, names, dropped, padded, how, V: P.V, steps: tokens.length };
+  const known = vocab === "codon" ? CODONS : P.tokens;
+  tokens = tokens.map((tk) => (known.includes(tk) ? tk : UNK));
+  ids = tokens.map((tk) => (tk === UNK ? unk : known.indexOf(tk) + 1));
+  names = tokens.map((tk) => (tk === UNK ? unkName : nameOf(tk)));
+  let padded = 0;
+  while (tokens.length < padTo) { tokens.push(PAD); ids.push(0); names.push("padding to the fixed length"); padded++; }
+  return { page: "tokenize", vocab, seed, raw, tokens, ids, names, dropped, padded, padTo, how, V: P.V, unk, vocabList: vocabList(vocab), steps: tokens.length };
 }
 
 /* ------------------------------------------------------ the Position page */
@@ -332,9 +349,8 @@ export function tokenizePage(vocab, seed) {
 /** `run` is the Encode page's trained run for this vocabulary, E and seed, handed over from its cache */
 export function positionPage(vocab, Edim, seed, pe, run) {
   const tok = tokenizePage(vocab, seed);
-  const P = PAGES[vocab], L = tok.tokens.length, table = run.tables[EPOCHS];
-  const rowOf = (id) => (id === 0 ? new Array(Edim).fill(0) : table[P.ids.indexOf(id)] ?? new Array(Edim).fill(0)); // PAD and <unk> have no trained row: zeros
-  const emb = tok.ids.map(rowOf);
+  const L = tok.tokens.length;
+  const emb = tok.ids.map((id) => run.fullFinal[id]); // <pad> is the zero row, <unk> a row nothing trained
   let pos = null, final;
   if (pe === "rope") {
     final = emb.map((r, i) => Array.from(E.rope(Float64Array.from(r), i, Edim)));

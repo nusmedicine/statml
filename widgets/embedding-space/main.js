@@ -5,21 +5,26 @@
    Three pages, one step each, in the pipeline's order (his shape of
    2026-09-21: "we're getting ahead of ourselves"):
 
-     TOKENIZE  a raw sequence → tokens → ids, and nothing else. Bases one
-               by one, or the same DNA string as codons three at a time with
-               the leftover base dropped; residues; words, with <unk> for a
-               word outside the vocabulary and <pad> to a fixed length.
-     ENCODE    a token as a vector: ONE-HOT, the identity table, every pair
-               of tokens √2 apart so no similarity can be expressed; or an
-               EMBEDDING, a table of E numbers a token that trains with the
-               task — its rows drawn as points, moving epoch by epoch, and
-               the tokens the task treats alike become neighbours, a
-               geometry nobody typed in.
+     TOKENIZE  the vocabulary as the tokenizer holds it, id by id, then a raw
+               sequence → tokens → ids. Bases one by one, or the same DNA
+               string as codons three at a time with the leftover base
+               dropped; residues; words. Every example carries the lesson's
+               two special tokens: one symbol outside the vocabulary becomes
+               <unk>, and the sequence is padded to a fixed length with <pad>.
+               No colour by role here: nothing has been learned yet, and the
+               roles are what the next page's training reveals.
+     ENCODE    a token as a vector: ONE-HOT, the identity table written as
+               1s and 0s, every pair of rows √2 apart — the vectors are
+               orthogonal; or an EMBEDDING, a table of E numbers a token that
+               trains with the task — its rows drawn as points, moving epoch
+               by epoch, and the tokens the task treats alike become
+               neighbours, a geometry nobody typed in.
      POSITION  the tokenised sequence's embedding rows, plus a position row
                each, equals what the network reads: x̃ᵢ = xᵢ + pᵢ. Learned
-               rows as initialised, the sinusoid, or a rotation that adds
-               nothing and turns each pair of a row instead. No attention,
-               no training: the arithmetic alone.
+               rows as initialised, the sinusoid (its fastest pair drawn as a
+               dial turning with position), or a rotation that adds nothing
+               and turns each pair of a row instead. No attention, no
+               training: the arithmetic alone, the formula on the card.
 
    A Vocabulary under all three: four bases, sixty-one codons, twenty amino
    acids, forty clinical words (the plain-language one, so the same stage is
@@ -41,7 +46,7 @@
    is what training put there (colour carries the truth, never the finding).
    ========================================================================= */
 
-import { defineWidget } from "../core/index.js";
+import { defineWidget, mathmlRenders } from "../core/index.js";
 import * as M from "./model.js";
 
 const PAGES = [{ value: "tokenize", label: "Tokenize" }, { value: "encode", label: "Encode" }, { value: "position", label: "Position" }];
@@ -50,7 +55,7 @@ const ENCODINGS = [{ value: "onehot", label: "One-hot" }, { value: "embedding", 
 const POS_ENC = [{ value: "learned", label: "Learned" }, { value: "sinusoidal", label: "Sinusoidal" }, { value: "rope", label: "Rotary" }];
 const STEP_MS = 420, RUN_MS = 240;   // an epoch's move on Step, and under Play
 const TOK_STEP_MS = 220, TOK_RUN_MS = 110; // a token's arrival
-const HEIGHT = 384, HEIGHT_TOK = 204;
+const HEIGHT = 384, HEIGHT_POS = 440;
 const ON = (page) => ({ param: "page", equals: page });
 const ON_E = { any: [{ all: [ON("encode"), { param: "encoding", equals: "embedding" }] }, ON("position")] };
 
@@ -68,7 +73,7 @@ const S = {
     "Four bases, sixty-one codons, twenty amino acids, forty clinical words.",
   pageLabel: "Page",
   vocabLabel: "Vocabulary",
-  vocabDetail: "which tokens the table holds a row for: the four bases, the sixty-one sense codons, the twenty amino acids, or forty clinical words",
+  vocabDetail: "which tokens the table holds a row for: the four bases, the sixty-four codons, the twenty amino acids, or forty clinical words",
   dataSection: "The vector",
   encodingLabel: "Encoding",
   encodingDetail: "a token as a vector: a 1 in its own column and 0 elsewhere, or a row of E numbers trained with the task",
@@ -111,38 +116,47 @@ const S = {
     ],
   },
 
+  /* the formula card */
+  card: {
+    onehot: { label: "One-hot", plain: "x_i = e(t_i)", note: "a vector of V entries: a 1 in column t_i, 0 elsewhere" },
+    embedding: { label: "Embedding", plain: "x_i = E[t_i]", note: "row t_i of the table E, which has V rows of d numbers and trains with the task" },
+    add: { label: "Position", plain: "x~_i = x_i + p_i", note: "the token's row, plus the row for position i" },
+    rope: { label: "Position", plain: "x~_i = R(iθ) x_i", note: "the token's row, each pair of its entries turned by i · θ; nothing is added" },
+  },
+
   /* Tokenize */
+  tokCapVocab: (V, unk) => `the vocabulary · ${V} ids · ${M.PAD} is 0, ${M.UNK} is ${unk}`,
   tokCapRaw: {
-    dna: (raw) => `the sequence · ${raw.length} bases`,
+    dna: (raw) => `the sequence · ${raw.length} bases, one of them N`,
     codon: (raw) => `the sequence · ${raw.length} bases, the same string as the base page`,
-    aa: (raw) => `the sequence · ${raw.length} residues`,
+    aa: (raw) => `the sequence · ${raw.length} residues, one of them X`,
     words: () => "the sentence",
   },
   tokCapTokens: {
-    base: () => "tokens · one a base, character by character",
-    codon: (d) => `tokens · one a codon, three bases at a time in frame 1${d ? `; the base${d.length > 1 ? "s" : ""} left over dropped` : ""}`,
-    residue: () => "tokens · one a residue, character by character",
-    word: () => `tokens · one a word; ${M.UNK} for a word outside the vocabulary, ${M.PAD} to ${M.PAD_TO}`,
+    base: (d, padTo) => `tokens · one a base; ${M.UNK} for a symbol outside the vocabulary, ${M.PAD} to ${padTo}`,
+    codon: (d, padTo) => `tokens · one a codon, three bases at a time in frame 1${d ? `, the base${d.length > 1 ? "s" : ""} left over dropped` : ""}; ${M.UNK} for a codon with a symbol outside the vocabulary, ${M.PAD} to ${padTo}`,
+    residue: (d, padTo) => `tokens · one a residue; ${M.UNK} for a symbol outside the vocabulary, ${M.PAD} to ${padTo}`,
+    word: (d, padTo) => `tokens · one a word; ${M.UNK} for a word outside the vocabulary, ${M.PAD} to ${padTo}`,
   },
-  tokCapIds: (V) => `ids · the integer each token becomes, 1 to ${V - 1}; ${M.PAD} is 0`,
+  tokCapIds: "ids · the integer each token becomes",
   tokStart: "no token yet · the sequence as text",
   tokStatus: (i, T, tok, id) => `token ${i} of ${T} · ${tok} → id ${id}`,
   tokHover: (tok, name, id) => `${tok} · ${name} · id ${id}`,
   tokNote: {
-    base: "four ids to choose from; the network reads one base at a time",
-    codon: "sixty-four ids to choose from, a third as many tokens as bases; a codon that is a stop has an id too",
-    residue: "twenty ids to choose from, one a residue",
-    word: `one id is shared by every word the vocabulary lacks; ${M.PAD} fills the sequence to a fixed length and is ignored downstream`,
+    base: "the network reads one base at a time; N is not in the vocabulary, so it becomes <unk>",
+    codon: "a third as many tokens as bases; a stop codon has an id, and the codon holding the N becomes <unk>",
+    residue: "one id a residue; X is not in the vocabulary, so it becomes <unk>",
+    word: "one id is shared by every word the vocabulary lacks; <pad> fills the sequence to the fixed length and is ignored downstream",
   },
   tileTokens: "Tokens",
-  tileTokensNote: { base: "one a base", codon: "one a codon; a third as many as bases", residue: "one a residue", word: `one a word, padded to ${M.PAD_TO}` },
+  tileTokensNote: { base: "one a base, padded to the fixed length", codon: "one a codon, padded to the fixed length", residue: "one a residue, padded to the fixed length", word: "one a word, padded to the fixed length" },
   tileVocab: "Vocabulary",
-  tileVocabNote: `ids in use, counting ${M.PAD}; the words count ${M.UNK} too`,
+  tileVocabNote: `ids the tokenizer can give, counting ${M.PAD} and ${M.UNK}`,
   tileIds: "Ids",
   tileIdsNote: "integers in sequence order: what the next page turns into vectors",
 
   /* Encode · embedding */
-  capTable: (V, E) => `the table · Embedding(${V}, ${E}) · one row a token`,
+  capTable: (V, E) => `the table · Embedding(${V}, ${E}) · one row a token; ${M.PAD} and ${M.UNK} have rows too`,
   capSpace: {
     dna: "the space · each row on the table's top two components",
     codon: "the space · the axes from the eighteen rewarded rows",
@@ -181,24 +195,25 @@ const S = {
   },
 
   /* Encode · one-hot */
-  capOneHot: (V) => `the table · one-hot · [${V}, ${V}], the identity: a 1 in the token's own column`,
-  capOneHotDist: "the distances · every pair of tokens √2 apart · nothing to draw as neighbours",
-  capOneHotEpoch: (e, n, acc) => `epoch ${e} of ${n} · held-out ${Math.round(100 * acc)}% · the table is fixed, so nothing here moves`,
+  capOneHot: (V) => `the table · one-hot · [${V}, ${V}] · a 1 in the token's own column, 0 elsewhere`,
+  capOneHotDist: "the distances between rows · √2 for every pair · orthogonal",
+  capOneHotEpoch: (e, n, acc) => `epoch ${e} of ${n} · held-out ${Math.round(100 * acc)}% · the table is fixed`,
   capOneHotStart: "epoch 0 · the table is the identity, and stays so",
   tileDist: "Distance, any two tokens",
-  tileDistNote: "√2 between every pair of rows: one-hot expresses no similarity, whatever the task",
+  tileDistNote: "√2 between every pair of rows: the vectors are at right angles, and no two tokens are nearer than any other two",
   tileParams: "Parameters",
   tileParamsNoteOneHot: (V) => `the table holds none; the first layer reads ${V} channels instead of E`,
 
   /* Position */
   posCapTokens: "the tokens, as the Tokenize page cut them",
-  posCapEmb: (L, E) => `x · the embedding row of each token, from the table Encode trained · [${L}, ${E}]`,
+  posCapEmb: (L, E) => `the embedding row of each token, from the table Encode trained · [${L}, ${E}]`,
   posCapPos: {
-    learned: (L, E) => `+ p · position rows · Embedding(${L}, ${E}) as initialised; in a transformer they train with the rest`,
-    sinusoidal: (L, E) => `+ p · position rows · sin on even columns, cos on odd, one frequency a pair · [${L}, ${E}], fixed`,
-    rope: () => "rotary · nothing added: each pair of a row is turned by its position, a slower turn each pair",
+    learned: (L, E) => `position rows · Embedding(${L}, ${E}) as initialised; in a transformer they train with the rest`,
+    sinusoidal: (L, E) => `position rows · sin on even columns, cos on odd, one frequency a pair · [${L}, ${E}], fixed · the fastest pair as an angle above`,
+    rope: () => "nothing added: each pair of a row is turned by its position, the fastest pair drawn, a slower turn each pair",
   },
-  posCapFinal: { learned: "= x̃ · what the network reads", sinusoidal: "= x̃ · what the network reads", rope: "= x̃ · the rows turned · what the network reads" },
+  posCapFinal: { learned: "what the network reads", sinusoidal: "what the network reads", rope: "the rows turned · what the network reads" },
+  posGlyph: { x: "x", add: "+ p", rope: "⟳", final: "= x̃" },
   posStart: "no token yet",
   posStatus: { add: (i, tok) => `token ${i} · ${tok} at position ${i - 1} · row ${i - 1} of the position table added`, rope: (i, tok) => `token ${i} · ${tok} at position ${i - 1} · each pair of its row turned by ${i - 1} · θ` },
   posHover: { add: (tok, e, a, b, c) => `${tok} · column ${e} · ${a.toFixed(2)} + ${b.toFixed(2)} = ${c.toFixed(2)}`, rope: (tok, e, a, c) => `${tok} · column ${e} · ${a.toFixed(2)} → ${c.toFixed(2)}` },
@@ -246,20 +261,26 @@ function txt(ctx, colors, s, x, y, { font = null, fill = null, align = "left", b
 }
 const capFont = (colors) => `600 ${colors.fsSm} ${colors.font}`;
 const monoFont = (colors) => `${colors.fsXs} ${colors.mono}`;
+const glyphFont = (colors) => `600 ${colors.fsLg} ${colors.font}`;
 function line(ctx, x1, y1, x2, y2, stroke, width = 1, dash = null) {
   ctx.save(); ctx.strokeStyle = stroke; ctx.lineWidth = width; if (dash) ctx.setLineDash(dash);
   ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); ctx.restore();
 }
-function rect(ctx, x, y, w, h, fill, stroke = null, lw = 1) {
+function rect(ctx, x, y, w, h, fill, stroke = null, lw = 1, dash = null) {
   ctx.save();
   if (fill) { ctx.fillStyle = fill; ctx.fillRect(x, y, w, h); }
-  if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw; ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1); }
+  if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw; if (dash) ctx.setLineDash(dash); ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1); }
   ctx.restore();
 }
 function dot(ctx, x, y, r, fill, stroke = null, lw = 1) {
   ctx.save(); ctx.beginPath(); ctx.arc(x, y, r, 0, 2 * Math.PI); ctx.fillStyle = fill; ctx.fill();
   if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw; ctx.stroke(); }
   ctx.restore();
+}
+/** a dial: the angle `a`, anticlockwise from three o'clock */
+function dial(ctx, colors, cx, cy, r, a) {
+  dot(ctx, cx, cy, r, colors.surface2, colors.grid);
+  line(ctx, cx, cy, cx + r * Math.cos(a), cy - r * Math.sin(a), colors.groupA, 1.6);
 }
 
 /* the truth's colours: a vocabulary's groups in the cluster hues, in the legend's order; a group with no slot is unrewarded */
@@ -274,11 +295,6 @@ function colourOf(colors, vocab, i) {
   return slot == null ? wash(colors.ink3, 0.55) : colors.clusters[slot];
 }
 const isSpecial = (tok) => tok === M.PAD || tok === M.UNK;
-/** a token's colour by its vocabulary group; the neutral ink for a special token or one with no row */
-function tokenColour(colors, vocab, tok) {
-  const gi = M.PAGES[vocab].tokens.indexOf(tok);
-  return gi >= 0 ? colourOf(colors, vocab, gi) : wash(colors.ink3, 0.55);
-}
 
 /* ----------------------------------------------------------- the layout */
 
@@ -290,6 +306,47 @@ function layout(w) {
   const side = bottom - TOP;
   const spaceX = w - PAD_R - side;
   return { top: TOP, bottom, side, spaceX, tableX: TABLE_X, tableW: spaceX - GAP - TABLE_X };
+}
+
+/* the Tokenize page: the vocabulary grid first, its height by the vocabulary, then the sequence */
+const VOCAB_COLS = { dna: 6, codon: 11, aa: 11, words: 7 }, VCELL_H = 16;
+function tokLayout(vocab) {
+  const V = M.PAGES[vocab].V, cols = VOCAB_COLS[vocab], rows = Math.ceil(V / cols);
+  const gridTop = 22, gridBot = gridTop + rows * VCELL_H;
+  const seqCap = gridBot + 26;
+  return { cols, rows, gridTop, gridBot, seqCap, rawY: seqCap + 18, tokCap: seqCap + 44, boxTop: seqCap + 66, boxH: 22, idCap: seqCap + 116, idY: seqCap + 132, status: seqCap + 160, note: seqCap + 174, height: seqCap + 186 };
+}
+
+/* ======================================================= the formula card */
+
+/* The formula on a card above the figure, as batch-effect and 14 do it: a
+   `.w-math` host before `.w-figure`, MathML where it renders and the plain
+   form where it does not. His ask (2026-09-21): the operator glyphs on the
+   canvas read small, so the equation is set here at the card's size. */
+const MATHML = mathmlRenders();
+let cardHost = null, cardKey = null;
+const SUB = (v, s) => `<msub><mi>${v}</mi><mi>${s}</mi></msub>`;
+const MATH = {
+  onehot: `<math><mrow>${SUB("x", "i")}<mo>=</mo><msub><mi>e</mi>${SUB("t", "i")}</msub></mrow></math>`,
+  embedding: `<math><mrow>${SUB("x", "i")}<mo>=</mo><mi>E</mi><mo>[</mo>${SUB("t", "i")}<mo>]</mo></mrow></math>`,
+  add: `<math><mrow><msub><mover><mi>x</mi><mo>~</mo></mover><mi>i</mi></msub><mo>=</mo>${SUB("x", "i")}<mo>+</mo>${SUB("p", "i")}</mrow></math>`,
+  rope: `<math><mrow><msub><mover><mi>x</mi><mo>~</mo></mover><mi>i</mi></msub><mo>=</mo><mi>R</mi><mo>(</mo><mi>i</mi><mi>θ</mi><mo>)</mo>${SUB("x", "i")}</mrow></math>`,
+};
+function renderCard(params) {
+  const figure = document.querySelector("#widget .w-figure");
+  if (!figure || !figure.parentNode) return;
+  const which = params.page === "tokenize" ? null : params.page === "encode" ? params.encoding : params.posenc === "rope" ? "rope" : "add";
+  if (!which) { if (cardHost) { cardHost.remove(); cardHost = null; cardKey = null; } return; }
+  if (!cardHost) { cardHost = document.createElement("div"); cardHost.className = "w-math"; cardHost.style.minHeight = "2.4em"; figure.parentNode.insertBefore(cardHost, figure); cardKey = null; }
+  if (which === cardKey) return;
+  cardKey = which;
+  const c = S.card[which];
+  cardHost.innerHTML =
+    `<div class="w-math-eq" style="min-height:0">`
+    + `<span style="color:var(--ink-3);font-size:var(--fs-xs);margin-right:8px">${c.label}</span>`
+    + (MATHML ? MATH[which] : `<span>${c.plain}</span>`)
+    + `<span style="color:var(--ink-3);font-size:var(--fs-xs)">&nbsp;&nbsp;${c.note}</span>`
+    + `</div>`;
 }
 
 /* ================================================================ compute */
@@ -324,15 +381,15 @@ const isDone = (anim, state) => anim.n[anim.stage] >= state.steps && anim.t >= 1
 
 /* ======================================================== the token row */
 
-/** the tokens as boxes across the width: `upto` of them, the last at alpha `a`; returns the hovered index or null */
+/** the tokens as boxes across the width, in the neutral ink (nothing learned yet): `upto` of them, the last at alpha `a`; returns the hovered index or null */
 function tokenRow(ctx, colors, state, X0, bw, top, h, upto, a, pointer) {
-  const { tokens, vocab } = state;
+  const { tokens } = state;
   ctx.save(); ctx.font = monoFont(colors); const wide = tokens.map((tk) => ctx.measureText(tk).width + 6 > bw); ctx.restore();
   let hover = null;
   for (let i = 0; i < upto; i++) {
-    const x = X0 + i * bw, tok = tokens[i], col = tokenColour(colors, vocab, tok), sp = isSpecial(tok);
+    const x = X0 + i * bw, tok = tokens[i], sp = isSpecial(tok);
     ctx.save(); ctx.globalAlpha = i === upto - 1 ? a : 1;
-    rect(ctx, x + 1, top, bw - 2, h, sp ? null : wash(col, 0.28), sp ? colors.ink3 : col, 1);
+    rect(ctx, x + 1, top, bw - 2, h, sp ? null : colors.surface2, sp ? colors.ink3 : colors.axis, 1, sp ? [3, 3] : null);
     /* a label wider than its box goes above or below in turn */
     if (wide[i]) txt(ctx, colors, tok, x + bw / 2, i % 2 ? top + h + 12 : top - 5, { font: monoFont(colors), fill: sp ? colors.ink3 : colors.ink1, align: "center", halo: true });
     else txt(ctx, colors, tok, x + bw / 2, top + h / 2, { font: monoFont(colors), fill: sp ? colors.ink3 : colors.ink1, align: "center", baseline: "middle" });
@@ -344,42 +401,51 @@ function tokenRow(ctx, colors, state, X0, bw, top, h, upto, a, pointer) {
 
 /* =============================================================== Tokenize */
 
-const TOK = { rawY: 34, tokCap: 58, boxTop: 80, boxH: 22, idCap: 130, idY: 146, status: 176, note: 190 };
 function drawTokenize(ctx, colors, w, params, state, anim, pointer) {
-  const { tokens, ids, raw, how, dropped, vocab } = state, T = tokens.length;
-  const n = anim.n[anim.stage], t = ease(anim.t), upto = Math.min(n, T);
-  const X0 = TABLE_X, X1 = w - PAD_R, bw = (X1 - X0) / T;
+  const { tokens, ids, raw, how, dropped, vocab, vocabList: VL, padTo } = state, T = tokens.length;
+  const n = anim.n[anim.stage], t = ease(anim.t), upto = Math.min(n, T), a = anim.t < 1 ? t : 1;
+  const X0 = TABLE_X, X1 = w - PAD_R, bw = (X1 - X0) / T, L = tokLayout(vocab);
+
+  /* 0 · the vocabulary, id by id; the token being cut lights its entry, the ones already used are filled */
+  txt(ctx, colors, S.tokCapVocab(state.V, state.unk), X0, 14, { font: capFont(colors), fill: colors.ink1 });
+  const cw = (X1 - X0) / L.cols, used = new Set(ids.slice(0, upto)), current = upto > 0 ? ids[upto - 1] : -1;
+  VL.forEach(({ tok, id }, k) => {
+    const x = X0 + (k % L.cols) * cw, y = L.gridTop + Math.floor(k / L.cols) * VCELL_H, sp = isSpecial(tok);
+    rect(ctx, x, y, cw, VCELL_H, used.has(id) ? wash(colors.highlight, id === current ? 0.22 : 0.1) : null, id === current ? colors.highlight : colors.grid, id === current ? 1.5 : 1);
+    txt(ctx, colors, tok, x + 5, y + VCELL_H / 2, { font: monoFont(colors), fill: sp ? colors.ink3 : colors.ink1, baseline: "middle" });
+    txt(ctx, colors, String(id), x + cw - 5, y + VCELL_H / 2, { font: monoFont(colors), fill: colors.ink3, align: "right", baseline: "middle" });
+  });
 
   /* 1 · the raw sequence, the part cut so far in the full ink */
-  txt(ctx, colors, S.tokCapRaw[vocab](raw), X0, 14, { font: capFont(colors), fill: colors.ink1 });
+  txt(ctx, colors, S.tokCapRaw[vocab](raw), X0, L.seqCap, { font: capFont(colors), fill: colors.ink1 });
   ctx.save(); ctx.font = monoFont(colors);
-  const consumed = how === "codon" ? 3 * upto : how === "word" ? tokens.slice(0, upto).filter((tk) => tk !== M.PAD).length : upto;
+  const consumed = how === "codon" ? 3 * Math.min(upto, tokens.filter((tk) => tk !== M.PAD).length) : how === "word" ? tokens.slice(0, upto).filter((tk) => tk !== M.PAD).length : Math.min(upto, raw.length);
   const units = how === "word" ? raw.split(" ").map((u) => u + " ") : [...raw];
   let cx = X0;
   units.forEach((u, i) => {
     const tail = how === "codon" && i >= raw.length - dropped.length;
     ctx.fillStyle = tail ? colors.ink3 : i < consumed ? colors.ink1 : colors.ink2;
-    ctx.fillText(u, cx, TOK.rawY); cx += ctx.measureText(u).width;
+    ctx.fillText(u, cx, L.rawY); cx += ctx.measureText(u).width;
   });
-  if (dropped) { ctx.fillStyle = colors.ink3; ctx.fillText(`  · ${dropped.length} base${dropped.length > 1 ? "s" : ""} left over, dropped`, cx, TOK.rawY); }
+  if (dropped) { ctx.fillStyle = colors.ink3; ctx.fillText(`  · ${dropped.length} base${dropped.length > 1 ? "s" : ""} left over, dropped`, cx, L.rawY); }
   ctx.restore();
 
   /* 2 · the tokens · 3 · their ids */
-  txt(ctx, colors, S.tokCapTokens[how](dropped), X0, TOK.tokCap, { font: capFont(colors), fill: colors.ink1 });
-  const hover = tokenRow(ctx, colors, state, X0, bw, TOK.boxTop, TOK.boxH, upto, anim.t < 1 ? t : 1, pointer);
-  txt(ctx, colors, S.tokCapIds(state.V), X0, TOK.idCap, { font: capFont(colors), fill: colors.ink1 });
+  txt(ctx, colors, S.tokCapTokens[how](dropped, padTo), X0, L.tokCap, { font: capFont(colors), fill: colors.ink1 });
+  const hover = tokenRow(ctx, colors, state, X0, bw, L.boxTop, L.boxH, upto, a, pointer);
+  txt(ctx, colors, S.tokCapIds, X0, L.idCap, { font: capFont(colors), fill: colors.ink1 });
   for (let i = 0; i < upto; i++) {
-    ctx.save(); ctx.globalAlpha = i === upto - 1 && anim.t < 1 ? t : 1;
-    txt(ctx, colors, String(ids[i]), X0 + (i + 0.5) * bw, TOK.idY, { font: monoFont(colors), fill: colors.ink2, align: "center" });
+    ctx.save(); ctx.globalAlpha = i === upto - 1 ? a : 1;
+    txt(ctx, colors, String(ids[i]), X0 + (i + 0.5) * bw, L.idY, { font: monoFont(colors), fill: colors.ink2, align: "center" });
     ctx.restore();
   }
   if (hover != null) {
     const x = X0 + (hover + 0.5) * bw, left = x > w * 0.6;
-    txt(ctx, colors, S.tokHover(tokens[hover], state.names[hover], ids[hover]), left ? x - 8 : x + 8, TOK.boxTop - 18, { fill: colors.ink1, align: left ? "right" : "left", halo: true });
+    txt(ctx, colors, S.tokHover(tokens[hover], state.names[hover], ids[hover]), left ? x - 8 : x + 8, L.boxTop - 18, { fill: colors.ink1, align: left ? "right" : "left", halo: true });
   }
   const shown = shownStep(anim);
-  txt(ctx, colors, shown <= 0 ? S.tokStart : S.tokStatus(shown, T, tokens[shown - 1], ids[shown - 1]), X0, TOK.status, { fill: colors.ink1, font: `600 ${colors.fsXs} ${colors.font}` });
-  txt(ctx, colors, S.tokNote[how], X0, TOK.note, { fill: colors.ink3 });
+  txt(ctx, colors, shown <= 0 ? S.tokStart : S.tokStatus(shown, T, tokens[shown - 1], ids[shown - 1]), X0, L.status, { fill: colors.ink1, font: `600 ${colors.fsXs} ${colors.font}` });
+  txt(ctx, colors, S.tokNote[how], X0, L.note, { fill: colors.ink3 });
 }
 
 /* ===================================================== Encode · embedding */
@@ -389,31 +455,29 @@ function drawTokenize(ctx, colors, w, params, state, anim, pointer) {
    break into columns — as many as keep a row at ROW_H — read down each
    column in turn; a codon table is three stacks, a word table two. */
 const ROW_H = 13;
-function drawTable(ctx, colors, L, params, state, anim) {
-  const vocab = params.vocab, P = M.PAGES[vocab], n = anim.n[anim.stage], t = ease(anim.t);
-  const prev = state.tables[Math.max(0, n - 1)], cur = state.tables[n];
-  const rows = cur.length, E = state.E;
+/** the stacks' geometry, shared by the embedding table and the one-hot identity */
+function stacks(ctx, colors, L, vocab, E) {
+  const P = M.PAGES[vocab], rows = P.tokens.length;
   const cols = Math.max(1, Math.ceil((rows * ROW_H) / L.side)), per = Math.ceil(rows / cols);
   ctx.save(); ctx.font = monoFont(colors);
   const labelW = Math.max(...P.tokens.map((tk) => ctx.measureText(tk).width)) + 8;
   ctx.restore();
-  const colW = L.tableW / cols, cellW = Math.max(3, Math.min(26, (colW - labelW - 10) / E));
+  const colW = L.tableW / cols, cellW = Math.max(2, Math.min(26, (colW - labelW - 10) / E));
+  return { P, rows, cols, per, labelW, colW, cellW, at: (i) => ({ x0: L.tableX + Math.floor(i / per) * colW, y: L.top + (i % per) * ROW_H }) };
+}
+function drawTable(ctx, colors, L, params, state, anim) {
+  const vocab = params.vocab, n = anim.n[anim.stage], t = ease(anim.t), E = state.E;
+  const prev = state.tables[Math.max(0, n - 1)], cur = state.tables[n];
+  const G = stacks(ctx, colors, L, vocab, E), { P } = G;
   txt(ctx, colors, S.capTable(P.V, E), L.tableX, 14, { font: capFont(colors), fill: colors.ink1 });
-  for (let i = 0; i < rows; i++) {
-    const c = Math.floor(i / per), r = i % per;
-    const x0 = L.tableX + c * colW, y = L.top + r * ROW_H;
-    for (let e = 0; e < E; e++) {
-      const v = lerp(prev[i][e], cur[i][e], t);
-      rect(ctx, x0 + labelW + e * cellW, y, Math.ceil(cellW), ROW_H, signed(colors, v, 3));
-    }
+  for (let i = 0; i < G.rows; i++) {
+    const { x0, y } = G.at(i);
+    for (let e = 0; e < E; e++) rect(ctx, x0 + G.labelW + e * G.cellW, y, Math.ceil(G.cellW), ROW_H, signed(colors, lerp(prev[i][e], cur[i][e], t), 3));
     /* the row's name, in its group's colour; the neutral ink for a row the task never rewards */
     const rewarded = SLOTS[vocab][P.group(i)] != null;
-    txt(ctx, colors, P.tokens[i], x0 + labelW - 4, y + ROW_H / 2, { font: monoFont(colors), fill: rewarded ? colourOf(colors, vocab, i) : colors.ink3, align: "right", baseline: "middle" });
+    txt(ctx, colors, P.tokens[i], x0 + G.labelW - 4, y + ROW_H / 2, { font: monoFont(colors), fill: rewarded ? colourOf(colors, vocab, i) : colors.ink3, align: "right", baseline: "middle" });
   }
-  for (let c = 0; c < cols; c++) {
-    const inCol = Math.min(per, rows - c * per);
-    rect(ctx, L.tableX + c * colW + labelW, L.top, E * cellW, inCol * ROW_H, null, colors.grid);
-  }
+  for (let c = 0; c < G.cols; c++) rect(ctx, L.tableX + c * G.colW + G.labelW, L.top, E * G.cellW, Math.min(G.per, G.rows - c * G.per) * ROW_H, null, colors.grid);
 }
 
 /** where row i sits in the picture at this frame, in drawing coordinates */
@@ -471,27 +535,25 @@ function drawEmbedding(ctx, colors, w, params, state, anim, pointer) {
 /* ======================================================= Encode · one-hot */
 
 function drawOneHot(ctx, colors, w, params, state, anim) {
-  const vocab = params.vocab, P = M.PAGES[vocab], V = state.V, L = layout(w);
-  const rows = P.tokens.length, rowH = L.side / rows;
-  ctx.save(); ctx.font = monoFont(colors);
-  const labelW = rowH >= 11 ? Math.max(...P.tokens.map((tk) => ctx.measureText(tk).width)) + 8 : 0;
-  ctx.restore();
-  const cellW = Math.min(rowH, (L.tableW - labelW) / V);
+  const vocab = params.vocab, V = state.V, L = layout(w);
+  const G = stacks(ctx, colors, L, vocab, V), { P } = G;
+  const digits = G.cellW >= 9; // 1s and 0s written where a cell can hold a digit; elsewhere the 1 is the coloured cell
   txt(ctx, colors, S.capOneHot(V), L.tableX, 14, { font: capFont(colors), fill: colors.ink1 });
-  for (let i = 0; i < rows; i++) {
-    const y = L.top + i * rowH, id = P.ids[i];
-    rect(ctx, L.tableX + labelW, y, V * cellW, Math.ceil(rowH), colors.surface2);
-    rect(ctx, L.tableX + labelW + id * cellW, y, Math.max(1, cellW), Math.ceil(rowH), colourOf(colors, vocab, i));
-    if (labelW) txt(ctx, colors, P.tokens[i], L.tableX + labelW - 4, y + rowH / 2, { font: monoFont(colors), fill: colourOf(colors, vocab, i), align: "right", baseline: "middle" });
+  for (let i = 0; i < G.rows; i++) {
+    const { x0, y } = G.at(i), id = P.ids[i], col = colourOf(colors, vocab, i);
+    rect(ctx, x0 + G.labelW, y, V * G.cellW, ROW_H, colors.surface2);
+    rect(ctx, x0 + G.labelW + id * G.cellW, y, Math.max(1, G.cellW), ROW_H, digits ? wash(col, 0.35) : col);
+    if (digits) for (let v = 0; v < V; v++) txt(ctx, colors, v === id ? "1" : "0", x0 + G.labelW + (v + 0.5) * G.cellW, y + ROW_H / 2, { font: monoFont(colors), fill: v === id ? colors.ink1 : colors.ink3, align: "center", baseline: "middle" });
+    txt(ctx, colors, P.tokens[i], x0 + G.labelW - 4, y + ROW_H / 2, { font: monoFont(colors), fill: col, align: "right", baseline: "middle" });
   }
-  rect(ctx, L.tableX + labelW, L.top, V * cellW, rows * rowH, null, colors.grid);
+  for (let c = 0; c < G.cols; c++) rect(ctx, L.tableX + c * G.colW + G.labelW, L.top, V * G.cellW, Math.min(G.per, G.rows - c * G.per) * ROW_H, null, colors.grid);
 
   /* the distances: every pair the same */
   txt(ctx, colors, S.capOneHotDist, L.spaceX, 14, { font: capFont(colors), fill: colors.ink1 });
-  const cs = L.side / rows;
+  const rows = G.rows, cs = L.side / rows;
   for (let i = 0; i < rows; i++) for (let j = 0; j < rows; j++) rect(ctx, L.spaceX + j * cs, L.top + i * cs, Math.ceil(cs), Math.ceil(cs), i === j ? colors.surface3 : wash(colors.magnitude, 0.55));
   rect(ctx, L.spaceX, L.top, L.side, L.side, null, colors.grid);
-  txt(ctx, colors, "√2", L.spaceX + L.side / 2, L.top + L.side / 2, { font: capFont(colors), fill: colors.ink1, align: "center", baseline: "middle", halo: true });
+  txt(ctx, colors, "√2", L.spaceX + L.side / 2, L.top + L.side / 2, { font: glyphFont(colors), fill: colors.ink1, align: "center", baseline: "middle", halo: true });
 
   const e = shownStep(anim);
   txt(ctx, colors, e === 0 ? S.capOneHotStart : S.capOneHotEpoch(e, state.steps, state.accs[e]), TABLE_X, L.bottom + 14, { fill: colors.ink1, font: `600 ${colors.fsXs} ${colors.font}` });
@@ -500,59 +562,61 @@ function drawOneHot(ctx, colors, w, params, state, anim) {
 
 /* =============================================================== Position */
 
-const POS = { boxTop: 30, boxH: 18, firstCap: 84 };
+const POS = { boxTop: 30, boxH: 18, firstCap: 84, glyphW: 44, dialH: 26 };
 function drawPosition(ctx, colors, w, params, state, anim, pointer) {
-  const { tokens, emb, pos, final, E: Ed, pe, vocab } = state, T = tokens.length;
+  const { tokens, emb, pos, final, E: Ed, pe } = state, T = tokens.length;
   const n = anim.n[anim.stage], t = ease(anim.t), upto = Math.min(n, T), a = anim.t < 1 ? t : 1;
-  const X0 = TABLE_X, X1 = w - PAD_R, bw = (X1 - X0) / T, L = layout(w);
-  txt(ctx, colors, S.posCapTokens, X0, 14, { font: capFont(colors), fill: colors.ink1 });
+  const X0 = TABLE_X + POS.glyphW, X1 = w - PAD_R, bw = (X1 - X0) / T, bottom = HEIGHT_POS - BELOW;
+  txt(ctx, colors, S.posCapTokens, TABLE_X, 14, { font: capFont(colors), fill: colors.ink1 });
   const hoverTok = tokenRow(ctx, colors, state, X0, bw, POS.boxTop, POS.boxH, T, 1, pointer);
 
-  /* three matrices, a column a token: x, + p (or the turning), = x̃ */
-  const avail = L.bottom - POS.firstCap - 3 * 8, mh = (avail - 2 * 14) / 3, rH = mh / Ed;
+  /* three panels, a column a token: x · + p (a dial row for the sinusoid's fastest pair, dials alone for rotary) · = x̃ */
+  const dials = pe !== "learned";
+  const extra = pe === "rope" ? POS.dialH + 6 : pe === "sinusoidal" ? POS.dialH : 0;
+  const nMats = pe === "rope" ? 2 : 3;
+  const mh = Math.min(Ed * 12, (bottom - POS.firstCap - 3 * 22 - extra) / nMats), rH = mh / Ed;
   const panels = [
-    { cap: S.posCapEmb(T, Ed), rows: emb },
-    { cap: pe === "rope" ? S.posCapPos.rope() : S.posCapPos[pe](T, Ed), rows: pos },
-    { cap: S.posCapFinal[pe], rows: final },
+    { glyph: S.posGlyph.x, cap: S.posCapEmb(T, Ed), rows: emb, h: mh },
+    { glyph: pe === "rope" ? S.posGlyph.rope : S.posGlyph.add, cap: pe === "rope" ? S.posCapPos.rope() : S.posCapPos[pe](T, Ed), rows: pos, h: (pos ? mh : 6) + (dials ? POS.dialH : 0), dials },
+    { glyph: S.posGlyph.final, cap: S.posCapFinal[pe], rows: final, h: mh },
   ];
-  let hover = null;
-  panels.forEach((p, k) => {
-    const capY = POS.firstCap + k * (mh + 22), top = capY + 8;
-    txt(ctx, colors, p.cap, X0, capY, { font: capFont(colors), fill: colors.ink1 });
+  let hover = null, y = POS.firstCap;
+  for (const p of panels) {
+    txt(ctx, colors, p.cap, X0, y, { font: capFont(colors), fill: colors.ink1 });
+    const top = y + 8;
+    txt(ctx, colors, p.glyph, TABLE_X, top + p.h / 2, { font: glyphFont(colors), fill: colors.ink1, baseline: "middle" });
+    let matTop = top;
+    if (p.dials) {
+      /* the fastest pair as an angle: position · 1 radian, the same turn the rotation applies to its fastest pair */
+      const r = Math.min(bw * 0.4, POS.dialH / 2 - 3), cy = top + POS.dialH / 2;
+      for (let i = 0; i < upto; i++) { ctx.save(); ctx.globalAlpha = i === upto - 1 ? a : 1; dial(ctx, colors, X0 + (i + 0.5) * bw, cy, r, i); ctx.restore(); }
+      matTop = top + POS.dialH;
+    }
     if (p.rows) {
       for (let i = 0; i < upto; i++) {
         ctx.save(); ctx.globalAlpha = i === upto - 1 ? a : 1;
-        for (let e = 0; e < Ed; e++) rect(ctx, X0 + i * bw + 1, top + e * rH, bw - 1, Math.ceil(rH), signed(colors, p.rows[i][e], 3));
+        for (let e = 0; e < Ed; e++) rect(ctx, X0 + i * bw + 1, matTop + e * rH, bw - 1, Math.ceil(rH), signed(colors, p.rows[i][e], 3));
         ctx.restore();
       }
-      rect(ctx, X0, top, T * bw, Ed * rH, null, colors.grid);
-      if (pointer && pointer.x >= X0 && pointer.x < X0 + T * bw && pointer.y >= top && pointer.y < top + Ed * rH) {
-        const i = Math.floor((pointer.x - X0) / bw), e = Math.floor((pointer.y - top) / rH);
-        if (i < upto) hover = { i, e, x: X0 + (i + 0.5) * bw, y: top + e * rH };
-      }
-    } else {
-      /* rotary: the turning, one dial a token for the fastest pair, the angle pos · θ₀ */
-      const rad = Math.min(bw * 0.4, mh / 2 - 4), cy = top + mh / 2;
-      for (let i = 0; i < upto; i++) {
-        const cx = X0 + (i + 0.5) * bw;
-        ctx.save(); ctx.globalAlpha = i === upto - 1 ? a : 1;
-        dot(ctx, cx, cy, rad, colors.surface2, colors.grid);
-        line(ctx, cx, cy, cx + rad * Math.cos(i), cy - rad * Math.sin(i), colors.groupA, 1.6);
-        ctx.restore();
+      rect(ctx, X0, matTop, T * bw, Ed * rH, null, colors.grid);
+      if (pointer && pointer.x >= X0 && pointer.x < X0 + T * bw && pointer.y >= matTop && pointer.y < matTop + Ed * rH) {
+        const i = Math.floor((pointer.x - X0) / bw), e = Math.floor((pointer.y - matTop) / rH);
+        if (i < upto) hover = { i, e, x: X0 + (i + 0.5) * bw, y: matTop + e * rH };
       }
     }
-  });
+    y = top + p.h + 22;
+  }
   if (hover) {
-    const { i, e, x, y } = hover, left = x > w * 0.6;
+    const { i, e, x, y: hy } = hover, left = x > w * 0.6;
     const s = pe === "rope" ? S.posHover.rope(tokens[i], e, emb[i][e], final[i][e]) : S.posHover.add(tokens[i], e, emb[i][e], pos[i][e], final[i][e]);
-    txt(ctx, colors, s, left ? x - 8 : x + 8, y - 6, { fill: colors.ink1, align: left ? "right" : "left", halo: true });
+    txt(ctx, colors, s, left ? x - 8 : x + 8, hy - 6, { fill: colors.ink1, align: left ? "right" : "left", halo: true });
   } else if (hoverTok != null) {
     const x = X0 + (hoverTok + 0.5) * bw, left = x > w * 0.6;
     txt(ctx, colors, S.tokHover(tokens[hoverTok], state.names[hoverTok], state.ids[hoverTok]), left ? x - 8 : x + 8, POS.boxTop - 16, { fill: colors.ink1, align: left ? "right" : "left", halo: true });
   }
   const shown = shownStep(anim);
-  txt(ctx, colors, shown <= 0 ? S.posStart : (pe === "rope" ? S.posStatus.rope : S.posStatus.add)(shown, tokens[shown - 1]), X0, L.bottom + 14, { fill: colors.ink1, font: `600 ${colors.fsXs} ${colors.font}` });
-  txt(ctx, colors, S.posNote[pe], X0, L.bottom + 28, { fill: colors.ink3 });
+  txt(ctx, colors, shown <= 0 ? S.posStart : (pe === "rope" ? S.posStatus.rope : S.posStatus.add)(shown, tokens[shown - 1]), TABLE_X, bottom + 14, { fill: colors.ink1, font: `600 ${colors.fsXs} ${colors.font}` });
+  txt(ctx, colors, S.posNote[pe], TABLE_X, bottom + 28, { fill: colors.ink3 });
 }
 
 /* ================================================================ widget */
@@ -563,7 +627,7 @@ defineWidget({
   title: "Deep Learning - Embedding Space",
   subtitle: S.subtitle,
   layout: "side",
-  height: ({ page }) => (page === "tokenize" ? HEIGHT_TOK : HEIGHT),
+  height: ({ page, vocab }) => (page === "tokenize" ? tokLayout(vocab).height : page === "position" ? HEIGHT_POS : HEIGHT),
   pointer: true,
 
   params: {
@@ -583,7 +647,8 @@ defineWidget({
     shown: { type: "int", min: 0, max: 64, default: 0, hidden: true },
   },
 
-  legend: ({ params }) => S.legend[params.vocab] ?? S.legend.dna,
+  /* colour by role only where the geometry is the subject: the Encode page */
+  legend: ({ params }) => (params.page === "encode" ? S.legend[params.vocab] ?? [] : []),
 
   compute,
 
@@ -630,6 +695,7 @@ defineWidget({
   },
 
   draw({ ctx, colors, w, params, state, anim, pointer }) {
+    renderCard(params);
     if (params.page === "tokenize") drawTokenize(ctx, colors, w, params, state, anim, pointer);
     else if (params.page === "position") drawPosition(ctx, colors, w, params, state, anim, pointer);
     else if (state.onehot) drawOneHot(ctx, colors, w, params, state, anim);
