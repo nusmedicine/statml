@@ -31,7 +31,7 @@
  * factor; the size factor drifts from 40% of genes up one way and fails past
  * half; when the movers go both ways it holds to half.
  */
-import { defineWidget, makePlot, fmt } from "../core/index.js";
+import { defineWidget, makePlot, fmt, mathmlRenders } from "../core/index.js";
 
 /* --- the stage ------------------------------------------------------------ */
 /* Six genes AT READ SCALE, drawn as the HBC training page draws them (his ask,
@@ -171,6 +171,89 @@ function panelFor(params, rng) {
   const A = expr.map((v, i) => poisson(rng, v * len[i] * PANEL_DEPTH));
   const B = exprB.map((v, i) => poisson(rng, v * len[i] * PANEL_DEPTH * depth * scale));
   return { len, A, B, changed };
+}
+
+/* --- the formula card (his ask, 2026-09-21: the formulas in MathML) -------- *
+ * Two rows above the figure: the unit's definition, and the same definition
+ * with gene 1 of sample A's numbers in it, so the reader can check one
+ * rectangle count against one printed value. Rendered as MathML where the
+ * browser draws it and as plain text where it does not, the way widget 33's
+ * equation card is; the host is the same `.w-math` card, whose text the
+ * fingerprint's `tx` hash covers. */
+const MATHML = mathmlRenders();
+const M = {
+  sub: (b, i) => `<msub><mi>${b}</mi><mi>${i}</mi></msub>`,
+  frac: (a, b) => `<mfrac><mrow>${a}</mrow><mrow>${b}</mrow></mfrac>`,
+  num: (v) => `<mn>${v}</mn>`,
+  op: (o) => `<mo>${o}</mo>`,
+  wrap: (inner) => `<math><mrow>${inner}</mrow></math>`,
+  pow10: (k) => `<mo>&#xD7;</mo><msup><mn>10</mn><mn>${k}</mn></msup>`,
+};
+const big = (v) => (Math.abs(v) >= 1000 ? Math.round(v).toLocaleString("en") : fmt(v, v >= 100 ? 0 : 2));
+
+/** the unit's definition and its instance for gene 1 of sample A, both as MathML and as text */
+function formulaFor(state) {
+  const { toy, tsf } = state;
+  const x = toy.A[0], N = total(toy.A), L = toy.len[0];
+  const perKb = total(toy.A.map((v, i) => v / toy.len[i]));
+  const gm = Math.sqrt(toy.A[0] * toy.B[0]);
+  const u = state.unit;
+  const xg = M.sub("x", "g"), Lg = M.sub("L", "g"), N_ = "<mi>N</mi>";
+  const sum = (inner) => `<munder><mo>&#x2211;</mo><mi>j</mi></munder>${inner}`;
+  if (u === "raw") return {
+    math: M.wrap(`${xg}<mo>=</mo><mtext>reads mapped to gene g</mtext>`),
+    plain: "x_g = reads mapped to gene g",
+    instMath: M.wrap(`${M.sub("x", "1")}<mo>=</mo>${M.num(x)}`),
+    inst: `x_1 = ${x}`,
+    note: `N = ${N} reads in sample A`,
+  };
+  if (u === "cpm") return {
+    math: M.wrap(`${M.sub("CPM", "g")}<mo>=</mo>${M.frac(xg, N_)}${M.pow10(6)}`),
+    plain: "CPM_g = x_g / N × 10⁶",
+    instMath: M.wrap(`${M.frac(M.num(x), M.num(N))}${M.pow10(6)}<mo>=</mo>${M.num(big((x / N) * 1e6))}`),
+    inst: `${x} / ${N} × 10⁶ = ${big((x / N) * 1e6)}`,
+    note: `N = Σ x_j, the reads in the sample: depth divided out`,
+  };
+  if (u === "fpkm") return {
+    math: M.wrap(`${M.sub("FPKM", "g")}<mo>=</mo>${M.frac(xg, `${N_}<mo>/</mo><msup><mn>10</mn><mn>6</mn></msup><mo>&#x22C5;</mo>${Lg}`)}`),
+    plain: "FPKM_g = x_g / (N / 10⁶ · L_g)",
+    instMath: M.wrap(`${M.frac(M.num(x), `${M.num(N)}<mo>/</mo><msup><mn>10</mn><mn>6</mn></msup><mo>&#x22C5;</mo>${M.num(L)}`)}<mo>=</mo>${M.num(big(x / ((N / 1e6) * L)))}`),
+    inst: `${x} / (${N} / 10⁶ · ${L}) = ${big(x / ((N / 1e6) * L))}`,
+    note: `L_g in kilobases: depth and length divided out, in that order`,
+  };
+  if (u === "tpm") return {
+    math: M.wrap(`${M.sub("TPM", "g")}<mo>=</mo>${M.frac(`${xg}<mo>/</mo>${Lg}`, sum(`<mrow>${M.sub("x", "j")}<mo>/</mo>${M.sub("L", "j")}</mrow>`))}${M.pow10(6)}`),
+    plain: "TPM_g = (x_g / L_g) / Σ_j (x_j / L_j) × 10⁶",
+    instMath: M.wrap(`${M.frac(`${M.num(x)}<mo>/</mo>${M.num(L)}`, M.num(fmt(perKb, 1)))}${M.pow10(6)}<mo>=</mo>${M.num(big(((x / L) / perKb) * 1e6))}`),
+    inst: `(${x} / ${L}) / ${fmt(perKb, 1)} × 10⁶ = ${big(((x / L) / perKb) * 1e6)}`,
+    note: `length divided out first, then the sample's total of the result: every sample sums to a million`,
+  };
+  return {
+    math: M.wrap(`${M.sub("s", "A")}<mo>=</mo><munder><mi>median</mi><mi>g</mi></munder><mo>(</mo>${M.frac(M.sub("x", "gA"), `<msqrt>${M.sub("x", "gA")}<mo>&#x22C5;</mo>${M.sub("x", "gB")}</msqrt>`)}<mo>)</mo><mo>,</mo><mspace width="0.6em"></mspace>${M.frac(M.sub("x", "gA"), M.sub("s", "A"))}`),
+    plain: "s_A = median_g ( x_gA / √(x_gA · x_gB) ), then x_gA / s_A",
+    instMath: M.wrap(`${M.frac(M.num(x), `<msqrt>${M.num(x)}<mo>&#x22C5;</mo>${M.num(toy.B[0])}</msqrt>`)}<mo>=</mo>${M.num(fmt(x / gm, 2))}<mo>,</mo><mspace width="0.6em"></mspace>${M.sub("s", "A")}<mo>=</mo>${M.num(fmt(tsf.sfA, 2))}<mo>,</mo><mspace width="0.6em"></mspace>${M.frac(M.num(x), M.num(fmt(tsf.sfA, 2)))}<mo>=</mo>${M.num(fmt(x / tsf.sfA, 2))}`),
+    inst: `${x} / √(${x} · ${toy.B[0]}) = ${fmt(x / gm, 2)}, s_A = ${fmt(tsf.sfA, 2)}, ${x} / ${fmt(tsf.sfA, 2)} = ${fmt(x / tsf.sfA, 2)}`,
+    note: `the geometric mean over the two samples; the median over the six genes is the size factor`,
+  };
+}
+
+let mathHost = null, mathKey = null;
+function renderFormula(state) {
+  if (!mathHost) {
+    const figure = document.querySelector("#widget .w-figure");
+    if (!figure || !figure.parentNode) return;
+    mathHost = document.createElement("div");
+    mathHost.className = "w-math";
+    figure.parentNode.insertBefore(mathHost, figure);
+  }
+  const F = formulaFor(state);
+  const key = `${state.page}|${state.unit}|${F.inst}`;
+  if (key === mathKey) return;
+  mathKey = key;
+  const row = (label, html) => `<div class="w-math-eq" style="min-height:0"><span style="color:var(--ink-3);font-size:var(--fs-xs);margin-right:8px">${label}</span>${html}</div>`;
+  mathHost.innerHTML = row("the unit", `<span style="color:var(--ink-2)">${MATHML ? F.math : F.plain}</span>`)
+    + row("gene 1, sample A", `<span style="color:var(--c-empirical)">${MATHML ? F.instMath : F.inst}</span>`)
+    + `<div class="w-math-note">${F.note}</div>`;
 }
 
 defineWidget({
@@ -360,6 +443,7 @@ defineWidget({
 
   draw: ({ ctx, colors, w, params, state, anim }) => {
     const unit = state.unit;
+    renderFormula(state);
     if (anim) anim.lastState = state;
     const e = anim && anim.easeT < 1 ? easeInOut(anim.easeT) : 1;
     const heights = e < 1 && anim.fromHeights ? mixHeights(anim.fromHeights, toyHeights(state), e) : toyHeights(state);

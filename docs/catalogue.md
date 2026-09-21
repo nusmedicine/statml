@@ -18819,6 +18819,18 @@ total; scheme A; the scatter kept at 220px under a 230px pile-up. The 2,000-
 gene panel's depth rose 0.02 → 0.1 so that more than 64 unchanged genes clear
 the count floor once the total is fixed.
 
+**Round 3** — *can you include the formulas in mathml?* A card above the
+figure on widget 33's pattern (`.w-math`, MathML where the browser draws it,
+plain text where not, so the `tx` hash covers it): the unit's definition,
+then the same definition with gene 1 of sample A's numbers in it, then one
+line saying what the unit divides out. CPM `x_g / N × 10⁶`; FPKM
+`x_g / (N/10⁶ · L_g)`; TPM `(x_g / L_g) / Σ_j (x_j / L_j) × 10⁶`; the size
+factor `s_A = median_g (x_gA / √(x_gA · x_gB))` and `x_gA / s_A`, the two-
+sample form of cell 22's geometric mean. The instance is a check the reader
+can do against the rectangles: eight reads of forty on the Depth step read
+200,000 CPM; ten reads of gene 1 against four in B give a ratio of 1.58,
+which is the size factor of the sample where nothing changed.
+
 ### Slot 78 · `deseq2` — Differential Expression
 
 **Host.** 01-2 cell 1 and cell 22 are the notebook's own exposition, four
