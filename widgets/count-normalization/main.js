@@ -24,11 +24,17 @@
  * right, which is why a DE test takes counts and a size factor and a
  * gene-against-gene look takes TPM. Above the table, the six genes and their
  * reads as pile-ups (the count is the rectangles, the coverage is the pile's
- * depth); below it, 2,000 genes as a histogram of log2(B ÷ A), the HBC page's
- * DESeq2 figure, with the truth drawn as a line: 0 for the unchanged genes,
- * 3 for the ones up 8×. (Four boxes of the values themselves stood here for
- * one round; the moving medians hid the truth, and he asked for the
- * histogram back, 2026-09-22.)
+ * depth); below it, THE SAME SIX GENES as a slope chart (his pick, round 15,
+ * 2026-09-22): a dot per gene in sample A and in sample B on a log2 axis and
+ * a line joining them, so a within reading is the height of the dots in one
+ * column (the truth: every unchanged gene at one height, since all six have
+ * one expression per kilobase) and a between reading is the slope of a line
+ * (the truth: flat, or +3 for gene 5). One data set read three ways. A panel
+ * of 2,000 simulated genes stood under the table for fourteen rounds — as a
+ * histogram of log2(B ÷ A), then boxes, then the histogram again — and went
+ * because it could only show between, and its genes were not the table's;
+ * the sources (HBC, StatQuest, Pimentel) all teach on a table's worth of
+ * genes. Every ratio carries its log2 (his ask the same day).
  *
  * THE NUMBERS, measured before the mock (`_lab/rnaseq-measure.mjs` M1, the
  * scratch `mor-fail.mjs` recorded in the catalogue): with 5% of genes up 8×
@@ -39,7 +45,7 @@
  * protocol and 75% under another, so every other gene's TPM differs with
  * nothing changed.
  */
-import { defineWidget, makePlot, fmt, mathmlRenders } from "../core/index.js";
+import { defineWidget, fmt, mathmlRenders } from "../core/index.js";
 
 /* --- the stage ------------------------------------------------------------ */
 /* Six genes AT READ SCALE, drawn as the HBC training page draws them: each
@@ -53,9 +59,6 @@ const PER_KB = 4;
 const READ_KB = 0.25;      // one read, as a fraction of a gene
 const CHANGED = { none: [], one: [4] };
 const FOLD = 8;
-const GENES = 2000;
-/* reads per unit of expression × length in the 2,000-gene panel */
-const PANEL_DEPTH = 0.1;
 const UNITS = {
   raw: { label: "Raw count", short: "raw counts" },
   cpm: { label: "CPM", short: "CPM" },
@@ -69,12 +72,11 @@ const UNITS = {
   sfkb: { label: "Size factor per kb", short: "counts ÷ size factor ÷ kb" },
 };
 const DEPTHS = ["1", "2", "3", "10"];
-const MIN_COUNT = 20;      // a gene counts toward the histogram only with counts over this in both samples
 const PILE_H = 190;
 const TABLE_H = 180;
-const HIST_H = 156;
+const SLOPE_H = 200;
 const GAP = 4;
-const FIG_H = PILE_H + TABLE_H + HIST_H + 2 * GAP;
+const FIG_H = PILE_H + TABLE_H + SLOPE_H + 2 * GAP;
 const ACT_H = 236;
 const EASE_MS = 450;
 const easeInOut = (t) => (t < 0.5 ? 2 * t * t : 1 - ((-2 * t + 2) ** 2) / 2);
@@ -107,12 +109,6 @@ function sizeFactors(A, B) {
 }
 
 /* --- the data ------------------------------------------------------------- */
-function poisson(rng, mu) {
-  if (mu <= 0) return 0;
-  if (mu < 40) { const L = Math.exp(-mu); let k = 0, p = 1; do { k += 1; p *= rng.next(); } while (p > L); return k - 1; }
-  return Math.max(0, Math.round(mu + Math.sqrt(mu) * rng.normal()));
-}
-
 /** The six genes, exactly: counts are expression × length, no noise, so every
     number the table prints is the unit's own arithmetic. */
 function toyFor(params) {
@@ -139,46 +135,6 @@ function pileUp(rng, n, lenKb) {
     placed.push([start, r]);
   }
   return placed;
-}
-
-/** 2,000 genes with Poisson counts, the same three confounds as the six.
-    The changed genes hold the SAME SHARES of sample A as gene 5 holds of the
-    six — of the reads (41% with the lengths differing) and of the reads per
-    kilobase (17%, because gene 5 is long): a composition change is a share
-    moving, the reads' share is what CPM and FPKM lose and the per-kilobase
-    share is what TPM loses, so matching both is what makes the histogram's
-    unchanged bump land where the table's gene 1 does under every unit. Drawn
-    at random as 5% of the genes they held 5% of the reads and the two panels
-    disagreed, CPM reading gene 1 at 0.25 and the 2,000 at −0.33 log2 (his
-    catch, round 14); matched on the reads alone, TPM still read −1.52 against
-    the table's −1.18. The set is the highest-expressed genes above a length
-    floor, taken from the top until the reads' share is reached, the floor
-    chosen from ten candidates for the per-kilobase share it gives. */
-function panelFor(params, rng, share) {
-  const len = Array.from({ length: GENES }, () => (params.lengths === "equal" ? 2 : Math.exp(rng.normal(Math.log(2), 0.7))));
-  const expr = Array.from({ length: GENES }, () => Math.exp(rng.normal(Math.log(30), 1.6)));
-  let changed = new Set();
-  if (share.reads > 0) {
-    const reads = expr.map((v, i) => v * len[i]), allReads = total(reads), allPerKb = total(expr);
-    const sortedLen = Float64Array.from(len).sort();
-    let best = Infinity;
-    for (let q = 0; q < 10; q += 1) {
-      const floor = sortedLen[Math.floor((q / 10) * GENES)];
-      const order = reads.map((v, i) => i).filter((i) => len[i] >= floor).sort((i, j) => reads[j] - reads[i]);
-      const set = new Set();
-      let held = 0, perKb = 0;
-      for (const i of order) { if (held >= share.reads * allReads) break; set.add(i); held += reads[i]; perKb += expr[i]; }
-      if (held < share.reads * allReads) continue;
-      const off = Math.abs(perKb / allPerKb - share.perKb);
-      if (off < best) { best = off; changed = set; }
-    }
-  }
-  const exprB = expr.map((v, i) => (changed.has(i) ? v * FOLD : v));
-  const depth = Number(params.depth);
-  const scale = total(expr.map((v, i) => v * len[i])) / total(exprB.map((v, i) => v * len[i]));
-  const A = expr.map((v, i) => poisson(rng, v * len[i] * PANEL_DEPTH));
-  const B = exprB.map((v, i) => poisson(rng, v * len[i] * PANEL_DEPTH * depth * scale));
-  return { len, A, B, changed };
 }
 
 /* --- the formula card (his ask, 2026-09-21: the formulas in MathML) -------- *
@@ -282,8 +238,20 @@ function pileLayout(w, toy) {
   return { padL, padR, gap, pxPerKb, laneH, gx, gw, base };
 }
 
-/* HOVER (his ask, 2026-09-21): pointing at a gene, in the piles or in the
-   table, reads that gene both ways — between the samples (its own row) and
+/* The slope chart's geometry, read by the drawing and by the hover test.
+   The y scale comes from the values on show, which a unit change eases. */
+function slopeLayout(w, y0) {
+  const padL = 44, padR = 64, top = y0 + 26, bottom = y0 + SLOPE_H - 32;
+  const pw = w - padL - padR;
+  return { padL, padR, top, bottom, xA: padL + pw * 0.28, xB: padL + pw * 0.72 };
+}
+/* everything the axis must hold: the twelve values and gene 5's truth at B */
+const slopeValues = (toy, UA, UB) => [...UA, ...UB, ...toy.changed.map((i) => UA[i] * FOLD)];
+const slopeRange = (vals) => { const l = vals.map(log2); return { lo: Math.floor(Math.min(...l)) - 0.5, hi: Math.ceil(Math.max(...l)) + 0.5 }; };
+const slopeY = (L, R, v) => L.bottom - ((log2(v) - R.lo) / (R.hi - R.lo)) * (L.bottom - L.top);
+
+/* HOVER (his ask, 2026-09-21): pointing at a gene, in the piles, in the
+   table or in the slope chart, reads that gene both ways — between the samples (its own row) and
    within the sample pointed at (against gene 1, or gene 6 when it is gene 1).
    Nothing is written; with no pointer the figure is exactly as before. */
 function hoverAt(pointer, w, state) {
@@ -305,6 +273,16 @@ function hoverAt(pointer, w, state) {
     if (x >= TABLE.cx.B - TABLE.colW && x <= TABLE.cx.B + 8) return { gene: i, sample: 1 };
     if (x >= 10 && x < TABLE.cx.A - TABLE.colW) return { gene: i, sample: 0 };
   }
+  const SL = slopeLayout(w, ty + TABLE_H + GAP), R = slopeRange(slopeValues(toy, state.toyU.A, state.toyU.B));
+  if (y >= SL.top - 8 && y <= SL.bottom + 8) {
+    const k = Math.abs(x - SL.xA) <= 30 ? 0 : Math.abs(x - SL.xB) <= 30 ? 1 : -1;
+    if (k >= 0) {
+      const U = k ? state.toyU.B : state.toyU.A;
+      let best = -1, d = 9;
+      for (let i = 0; i < 6; i += 1) { const dy = Math.abs(y - slopeY(SL, R, U[i])); if (dy < d) { d = dy; best = i; } }
+      if (best >= 0) return { gene: best, sample: k };
+    }
+  }
   return null;
 }
 
@@ -325,8 +303,8 @@ const focusOf = (hover) => (hover ? { between: hover.gene, within: hover.gene, o
 const WASH = 0.22;
 
 /* The two readings the table brackets, which is what a unit change eases:
-   the table and the histogram crossfade because their numbers and axes change
-   with the unit, and a number sliding is a number the reader can follow. */
+   the table crossfades because its numbers change with the unit, the slope
+   chart's dots slide, and a number sliding is a number the reader can follow. */
 const readings = (state) => ({ within: state.within, between: state.between });
 const mixReadings = (a, b, e) => ({ within: a.within + (b.within - a.within) * e, between: a.between + (b.between - a.between) * e });
 
@@ -370,7 +348,7 @@ defineWidget({
       detail: "8× up; the sample's total of reads is fixed",
       options: [
         { value: "none", label: "None" },
-        { value: "one", label: "Gene 5", detail: "one of the six; of the 2,000, the top genes holding the same share of reads" },
+        { value: "one", label: "Gene 5", detail: "one of the six" },
       ],
       default: "one",
     },
@@ -417,12 +395,12 @@ defineWidget({
   /* one hue means one thing — a gene's data — and a sample is a row with a
      name (his pick, scheme A) */
   legend: ({ params }) => {
-    const L = [{ token: "empirical", label: "A read; a gene of the 2,000", mark: "bar" }];
+    const L = [{ token: "empirical", label: "A read; an unchanged gene", mark: "bar" }];
     if (params.change !== "none") L.push({ token: "highlight", label: "A gene that changed", mark: "bar" });
     L.push({ token: "between", label: "Between samples: one gene in both", mark: "bar" });
     L.push({ token: "within", label: "Within a sample: two genes in one", mark: "bar" });
-    L.push({ token: "reference", label: "Truth for an unchanged gene", mark: "line" });
-    if (params.change !== "none") L.push({ token: "highlight", label: "Truth for a changed gene", mark: "line" });
+    L.push({ token: "reference", label: "Truth for an unchanged gene: one height, level", mark: "line" });
+    if (params.change !== "none") L.push({ token: "highlight", label: "Truth for gene 5 in B: 8× its A", mark: "dash" });
     return L;
   },
 
@@ -431,16 +409,10 @@ defineWidget({
   compute: ({ params, rng }) => {
     const toy = toyFor(params);
     toy.reads = { A: toy.A.map((n, i) => pileUp(rng, n, toy.len[i])), B: toy.B.map((n, i) => pileUp(rng, n, toy.len[i])) };
-    const panel = panelFor(params, rng, {
-      reads: total(toy.changed.map((i) => toy.A[i])) / total(toy.A),
-      perKb: total(toy.changed.map((i) => toy.A[i] / toy.len[i])) / total(toy.A.map((v, i) => v / toy.len[i])),
-    });
     const unit = params.unit;
 
     const tsf = sizeFactors(toy.A, toy.B);
-    const psf = sizeFactors(panel.A, panel.B);
     const toyU = { A: unitOf(toy.A, toy.len, unit, tsf.sfA), B: unitOf(toy.B, toy.len, unit, tsf.sfB) };
-    const panU = { A: unitOf(panel.A, panel.len, unit, psf.sfA), B: unitOf(panel.B, panel.len, unit, psf.sfB) };
 
     /* the two readings: within sample A, gene 5 against gene 6 (one expression
        per kilobase, so 1.00 is right); between samples, gene 1 against itself
@@ -448,27 +420,16 @@ defineWidget({
     const within = toyU.A[4] / toyU.A[5];
     const between = toyU.B[0] / toyU.A[0];
 
-    /* the histogram of log2(B ÷ A) over the 2,000, genes counted in both */
-    const shifts = [], changedShifts = [];
-    for (let i = 0; i < GENES; i += 1) {
-      if (!(panel.A[i] > MIN_COUNT && panel.B[i] > MIN_COUNT)) continue;
-      const v = log2(panU.B[i] / panU.A[i]);
-      (panel.changed.has(i) ? changedShifts : shifts).push(v);
-    }
+    /* the unchanged genes' level in sample A: the within truth's height */
+    const levelA = median(toy.A.map((v, i) => i).filter((i) => !toy.changed.includes(i)).map((i) => toyU.A[i]));
 
-    return {
-      toy, panel, toyU, panU, tsf, psf, unit,
-      within, between,
-      shifts, changedShifts,
-      medianUnchanged: shifts.length ? median(shifts) : 0,
-      medianChanged: changedShifts.length ? median(changedShifts) : null,
-    };
+    return { toy, toyU, tsf, unit, within, between, levelA };
   },
 
   /* THE ONLY MOTION IS THE UNIT CHANGE (his ask, 2026-09-21). The two bracket
-     numbers count to their new values; the table and the histogram crossfade,
-     because their numbers and axes change with the unit. No Step, no Play
-     (4.5): there is nothing to take one of. */
+     numbers count to their new values; the table crossfades, because its
+     numbers change with the unit; the slope chart's dots slide to their new
+     heights. No Step, no Play (4.5): there is nothing to take one of. */
   animation: {
     stepLabel: null,
     runLabel: null,
@@ -504,11 +465,10 @@ defineWidget({
     if (e < 1 && anim.fromState) {
       drawTable(ctx, colors, w, ty, anim.fromState, r, 1 - e, hover);
       drawTable(ctx, colors, w, ty, state, r, e, hover);
-      drawHist(ctx, colors, w, hy, anim.fromState, 1 - e);
-      drawHist(ctx, colors, w, hy, state, e);
+      drawSlope(ctx, colors, w, hy, state, hover, anim.fromState, e);
     } else {
       drawTable(ctx, colors, w, ty, state, r, 1, hover);
-      drawHist(ctx, colors, w, hy, state, 1);
+      drawSlope(ctx, colors, w, hy, state, hover, null, 1);
     }
     if ((params.unit === "sf" || params.unit === "sfkb") && params.act) drawAct(ctx, colors, w, FIG_H, state);
   },
@@ -519,7 +479,6 @@ defineWidget({
       /* the log2 beside every ratio (his ask, round 15): a fold change is read in log2 */
       { label: "Within sample A: gene 5 ÷ gene 6", value: fmt(state.within, 2), note: `log2 ${fmt(log2(state.within), 2)} · truth 1.00 (log2 0): the same expression per kilobase, in ${u}` },
       { label: "Between samples: gene 1, B ÷ A", value: fmt(state.between, 2), note: `log2 ${fmt(log2(state.between), 2)} · truth 1.00 (log2 0): unchanged, in ${u}` },
-      { label: "2,000 unchanged genes, median log2(B ÷ A)", value: fmt(state.medianUnchanged, 2), note: `truth 0; ${state.shifts.length.toLocaleString("en")} genes with counts over ${MIN_COUNT} in both` },
     ];
   },
 });
@@ -668,49 +627,89 @@ function drawTable(ctx, colors, w, y0, state, r, fade, hover) {
   ctx.restore();
 }
 
-/* --- the 2,000 genes as a histogram of ratios ------------------------------ */
-function drawHist(ctx, colors, w, y0, state, fade) {
+/* --- the six genes as a slope chart: within is a column, between is a line -- */
+function drawSlope(ctx, colors, w, y0, state, hover, fromState, e) {
+  const { toy } = state;
   const u = UNITS[state.unit].short;
-  /* the axis holds −3..4 and widens to the data: raw counts at 10× put the
-     unchanged genes at 3.3 and the changed ones at 6.3 */
-  const all = [...state.shifts, ...state.changedShifts];
-  const lo = Math.min(-3, Math.floor(Math.min(...all))), hi = Math.max(4, Math.ceil(Math.max(...all)));
-  const nb = 6 * (hi - lo);
-  const hU = new Array(nb).fill(0), hC = new Array(nb).fill(0);
-  const bin = (v) => Math.floor(((v - lo) / (hi - lo)) * nb);
-  for (const v of state.shifts) { const k = bin(v); if (k >= 0 && k < nb) hU[k] += 1; }
-  for (const v of state.changedShifts) { const k = bin(v); if (k >= 0 && k < nb) hC[k] += 1; }
-  const hmax = Math.max(1, ...hU, ...hC);
-  /* 36 below the baseline: the axis label sits 26px under it and the sweep
-     found it 4px past the canvas at 30 */
-  const padL = 44, padR = 12, top = y0 + 22, bottom = y0 + HIST_H - 36;
+  /* a unit change slides every dot from its old height to its new one */
+  const mixU = (a, b) => (fromState ? a.map((v, i) => Math.exp(Math.log(v) + (Math.log(b[i]) - Math.log(v)) * e)) : b);
+  const UA = mixU(fromState ? fromState.toyU.A : state.toyU.A, state.toyU.A);
+  const UB = mixU(fromState ? fromState.toyU.B : state.toyU.B, state.toyU.B);
+  const levelA = fromState ? Math.exp(Math.log(fromState.levelA) + (Math.log(state.levelA) - Math.log(fromState.levelA)) * e) : state.levelA;
+  const L = slopeLayout(w, y0), R = slopeRange(slopeValues(toy, UA, UB));
+  const sy = (v) => slopeY(L, R, v);
   ctx.save();
-  ctx.globalAlpha = fade;
-  const plot = makePlot({ ctx, colors, rect: { x: padL, y: top, w: w - padL - padR, h: bottom - top }, xDomain: [lo, hi], yDomain: [0, hmax] });
-  const ticks = []; for (let t = lo; t <= hi; t += 1) ticks.push(t);
-  plot.axisX({ ticks, format: (v) => String(v), label: "log2(B ÷ A) per gene" });
-  plot.caption(`2,000 genes in ${u}: sample B against sample A`);
-  const bw = (w - padL - padR) / nb;
-  ctx.fillStyle = colors.empirical; ctx.globalAlpha = 0.8 * fade;
-  hU.forEach((v, k) => { if (v) ctx.fillRect(plot.sx(lo + (k / nb) * (hi - lo)), plot.sy(v), bw - 1, plot.sy(0) - plot.sy(v)); });
-  ctx.fillStyle = colors.highlight; ctx.globalAlpha = 0.85 * fade;
-  hC.forEach((v, k) => { if (v) ctx.fillRect(plot.sx(lo + (k / nb) * (hi - lo)), plot.sy(v), bw - 1, plot.sy(0) - plot.sy(v)); });
-  ctx.globalAlpha = fade;
-  /* the truths, as lines: 0 for an unchanged gene, log2 of the fold for a
-     changed one. A unit that compares between samples puts the blue bump on
-     the first and the violet on the second; a share puts both to the left of
-     their truth by the same amount */
-  /* Each line carries its own reading — the truth and the group's median —
-     on its own row, so the two labels can never meet (the sweep found the
-     corner text on the 0 line's label); a label goes on whichever side of
-     its line has room for it */
+  ctx.textBaseline = "alphabetic";
+  ctx.font = `${colors.fsSm} ${colors.font}`; ctx.fillStyle = colors.ink2; ctx.textAlign = "left";
+  ctx.fillText(`The six genes in ${u}: a line per gene, sample A to B, on a log2 axis`, 10, y0 + 14);
+  /* the grid: one line per power of two, the tick its log2 */
+  ctx.strokeStyle = colors.grid; ctx.lineWidth = 1;
+  ctx.font = `${colors.fsXs} ${colors.mono}`; ctx.fillStyle = colors.ink3; ctx.textAlign = "right";
+  for (let t = Math.ceil(R.lo); t <= Math.floor(R.hi); t += 1) {
+    const y = Math.round(sy(2 ** t)) + 0.5;
+    ctx.beginPath(); ctx.moveTo(L.padL, y); ctx.lineTo(w - L.padR + 20, y); ctx.stroke();
+    ctx.fillText(String(t), L.padL - 6, y + 4);
+  }
   ctx.font = `${colors.fsXs} ${colors.font}`;
-  const side = (v, text) => (plot.sx(v) + 4 + ctx.measureText(text).width > w - padR ? "left" : "right");
-  const lU = `unchanged: truth 0, median ${fmt(state.medianUnchanged, 2)}`;
-  plot.vline(0, { stroke: colors.reference, width: 1.5, label: lU, align: side(0, lU) });
-  if (state.medianChanged !== null) {
-    const lC = `up ${FOLD}×: truth ${fmt(Math.log2(FOLD), 0)}, median ${fmt(state.medianChanged, 2)}`;
-    plot.vline(Math.log2(FOLD), { stroke: colors.highlight, width: 1.5, label: lC, align: side(Math.log2(FOLD), lC), labelDy: 13 });
+  ctx.textAlign = "center"; ctx.fillStyle = colors.ink2;
+  ctx.fillText("sample A", L.xA, L.bottom + 16);
+  ctx.fillText("sample B", L.xB, L.bottom + 16);
+  /* the washes, as in the table: between along the focus gene's line, within
+     around the two dots in the focus column */
+  {
+    const F = focusOf(hover);
+    const xk = F.sample ? L.xB : L.xA;
+    ctx.save(); ctx.globalAlpha = WASH;
+    ctx.fillStyle = colors.between;
+    const yA = sy(UA[F.between]), yB = sy(UB[F.between]);
+    ctx.fillRect(L.xA - 12, Math.min(yA, yB) - 8, L.xB - L.xA + 24, Math.abs(yA - yB) + 16);
+    ctx.fillStyle = colors.within;
+    const U = F.sample ? UB : UA, y1 = sy(U[F.within]), y2 = sy(U[F.other]);
+    ctx.fillRect(xk - 12, Math.min(y1, y2) - 8, 24, Math.abs(y1 - y2) + 16);
+    ctx.restore();
+  }
+  /* the truths: the unchanged genes' height in A, level across to B (a
+     within reading lands on it when length is out of the unit; a between
+     reading is flat when the unit compares between samples); and for gene 5,
+     eight times its own A value, at B */
+  ctx.strokeStyle = colors.reference; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(L.xA - 30, Math.round(sy(levelA)) + 0.5); ctx.lineTo(L.xB + 30, Math.round(sy(levelA)) + 0.5); ctx.stroke();
+  for (const i of toy.changed) {
+    ctx.save(); ctx.strokeStyle = colors.highlight; ctx.setLineDash([4, 3]);
+    ctx.beginPath(); ctx.moveTo(L.xB - 14, Math.round(sy(UA[i] * FOLD)) + 0.5); ctx.lineTo(L.xB + 14, Math.round(sy(UA[i] * FOLD)) + 0.5); ctx.stroke();
+    ctx.restore();
+  }
+  /* the genes: a line each, a dot at each end, the name at B nudged clear of
+     its neighbours (under TPM four unchanged genes share one height) */
+  for (let i = 0; i < 6; i += 1) {
+    const changed = toy.changed.includes(i), col = changed ? colors.highlight : colors.empirical;
+    ctx.save(); ctx.strokeStyle = col; ctx.lineWidth = 1.5; ctx.globalAlpha = 0.8;
+    ctx.beginPath(); ctx.moveTo(L.xA, sy(UA[i])); ctx.lineTo(L.xB, sy(UB[i])); ctx.stroke(); ctx.restore();
+    ctx.fillStyle = col;
+    ctx.beginPath(); ctx.arc(L.xA, sy(UA[i]), 3.5, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(L.xB, sy(UB[i]), 3.5, 0, Math.PI * 2); ctx.fill();
+  }
+  /* the names at B: genes within 3px share one label ("genes 1–4" under TPM,
+     where four unchanged genes sit at one height), and a stack of labels is
+     pushed apart, then back up off the bottom */
+  const order = toy.len.map((v, i) => i).sort((i, j) => sy(UB[i]) - sy(UB[j]));
+  const groups = [];
+  for (const i of order) {
+    const g = groups[groups.length - 1];
+    if (g && Math.abs(sy(UB[i]) - g.y) <= 3) g.genes.push(i); else groups.push({ y: sy(UB[i]), genes: [i] });
+  }
+  let last = -Infinity;
+  for (const g of groups) { g.ly = Math.max(g.y + 4, last + 11); last = g.ly; }
+  let next = L.bottom + 2;
+  for (let k = groups.length - 1; k >= 0; k -= 1) { groups[k].ly = Math.min(groups[k].ly, next - 11); next = groups[k].ly; }
+  const runs = (ids) => { const a = ids.map((i) => i + 1).sort((x, y) => x - y); const out = []; let s0 = a[0], p = a[0];
+    for (let k = 1; k <= a.length; k += 1) { if (a[k] === p + 1) { p = a[k]; continue; } out.push(s0 === p ? String(s0) : p === s0 + 1 ? `${s0}, ${p}` : `${s0}–${p}`); s0 = a[k]; p = a[k]; }
+    return out.join(", "); };
+  ctx.font = `${colors.fsXs} ${colors.font}`; ctx.textAlign = "left";
+  for (const g of groups) {
+    const anyChanged = g.genes.some((i) => toy.changed.includes(i));
+    ctx.fillStyle = anyChanged ? colors.highlight : colors.ink3;
+    ctx.fillText(`${g.genes.length > 1 ? "genes" : "gene"} ${runs(g.genes)}`, L.xB + 10, g.ly);
   }
   ctx.restore();
 }
