@@ -54,7 +54,6 @@ const READ_KB = 0.25;      // one read, as a fraction of a gene
 const CHANGED = { none: [], one: [4] };
 const FOLD = 8;
 const GENES = 2000;
-const SHARE = { none: 0, one: 0.05 };
 /* reads per unit of expression × length in the 2,000-gene panel */
 const PANEL_DEPTH = 0.1;
 const UNITS = {
@@ -142,13 +141,38 @@ function pileUp(rng, n, lenKb) {
   return placed;
 }
 
-/** 2,000 genes with Poisson counts, the same three confounds as the six. */
-function panelFor(params, rng) {
+/** 2,000 genes with Poisson counts, the same three confounds as the six.
+    The changed genes hold the SAME SHARES of sample A as gene 5 holds of the
+    six — of the reads (41% with the lengths differing) and of the reads per
+    kilobase (17%, because gene 5 is long): a composition change is a share
+    moving, the reads' share is what CPM and FPKM lose and the per-kilobase
+    share is what TPM loses, so matching both is what makes the histogram's
+    unchanged bump land where the table's gene 1 does under every unit. Drawn
+    at random as 5% of the genes they held 5% of the reads and the two panels
+    disagreed, CPM reading gene 1 at 0.25 and the 2,000 at −0.33 log2 (his
+    catch, round 14); matched on the reads alone, TPM still read −1.52 against
+    the table's −1.18. The set is the highest-expressed genes above a length
+    floor, taken from the top until the reads' share is reached, the floor
+    chosen from ten candidates for the per-kilobase share it gives. */
+function panelFor(params, rng, share) {
   const len = Array.from({ length: GENES }, () => (params.lengths === "equal" ? 2 : Math.exp(rng.normal(Math.log(2), 0.7))));
   const expr = Array.from({ length: GENES }, () => Math.exp(rng.normal(Math.log(30), 1.6)));
-  const changed = new Set();
-  const n = Math.round(SHARE[params.change] * GENES);
-  while (changed.size < n) changed.add(Math.floor(rng.next() * GENES));
+  let changed = new Set();
+  if (share.reads > 0) {
+    const reads = expr.map((v, i) => v * len[i]), allReads = total(reads), allPerKb = total(expr);
+    const sortedLen = Float64Array.from(len).sort();
+    let best = Infinity;
+    for (let q = 0; q < 10; q += 1) {
+      const floor = sortedLen[Math.floor((q / 10) * GENES)];
+      const order = reads.map((v, i) => i).filter((i) => len[i] >= floor).sort((i, j) => reads[j] - reads[i]);
+      const set = new Set();
+      let held = 0, perKb = 0;
+      for (const i of order) { if (held >= share.reads * allReads) break; set.add(i); held += reads[i]; perKb += expr[i]; }
+      if (held < share.reads * allReads) continue;
+      const off = Math.abs(perKb / allPerKb - share.perKb);
+      if (off < best) { best = off; changed = set; }
+    }
+  }
   const exprB = expr.map((v, i) => (changed.has(i) ? v * FOLD : v));
   const depth = Number(params.depth);
   const scale = total(expr.map((v, i) => v * len[i])) / total(exprB.map((v, i) => v * len[i]));
@@ -346,7 +370,7 @@ defineWidget({
       detail: "8× up; the sample's total of reads is fixed",
       options: [
         { value: "none", label: "None" },
-        { value: "one", label: "Gene 5", detail: "one of the six; 5% of the 2,000" },
+        { value: "one", label: "Gene 5", detail: "one of the six; of the 2,000, the top genes holding the same share of reads" },
       ],
       default: "one",
     },
@@ -407,7 +431,10 @@ defineWidget({
   compute: ({ params, rng }) => {
     const toy = toyFor(params);
     toy.reads = { A: toy.A.map((n, i) => pileUp(rng, n, toy.len[i])), B: toy.B.map((n, i) => pileUp(rng, n, toy.len[i])) };
-    const panel = panelFor(params, rng);
+    const panel = panelFor(params, rng, {
+      reads: total(toy.changed.map((i) => toy.A[i])) / total(toy.A),
+      perKb: total(toy.changed.map((i) => toy.A[i] / toy.len[i])) / total(toy.A.map((v, i) => v / toy.len[i])),
+    });
     const unit = params.unit;
 
     const tsf = sizeFactors(toy.A, toy.B);
