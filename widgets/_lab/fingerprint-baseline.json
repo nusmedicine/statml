@@ -9409,49 +9409,98 @@
       "tx": "ef77db46"
     },
     {
-      "$note": "sequence-encoding · Tokenize, DNA, before any token: the sequence as text (placeholder)",
+      "$note": "sequence-encoding · Tokenize, DNA, before any token: the vocabulary and the sequence as a string",
       "slug": "sequence-encoding",
       "state": "?theme=light&shown=0",
-      "px": "0",
-      "tx": "0"
+      "px": "9ac584ca",
+      "tx": "70e12722"
     },
     {
-      "$note": "sequence-encoding · Tokenize, the sentence, every token cut: <unk> and <pad> in place (placeholder)",
+      "$note": "sequence-encoding · Tokenize, DNA, every token: 46 bases with the N as <unk>, padded to 48",
+      "slug": "sequence-encoding",
+      "state": "?theme=light&page=tokenize&vocab=dna&shown=48",
+      "px": "92091a2d",
+      "tx": "70e12722"
+    },
+    {
+      "$note": "sequence-encoding · Tokenize, codons, every token: fifteen codons, the leftover base dropped, <unk> and <pad>",
+      "slug": "sequence-encoding",
+      "state": "?theme=light&page=tokenize&vocab=codon&shown=16",
+      "px": "c7a978a4",
+      "tx": "cf623f90"
+    },
+    {
+      "$note": "sequence-encoding · Tokenize, the sentence, every token: <unk> for ibuprofen, three <pad>",
       "slug": "sequence-encoding",
       "state": "?theme=light&page=tokenize&vocab=words&shown=16",
-      "px": "0",
-      "tx": "0"
+      "px": "f296f99a",
+      "tx": "3fab5b79"
     },
     {
-      "$note": "sequence-encoding · Encode, amino acids, all forty epochs: the four roles apart (placeholder)",
+      "$note": "sequence-encoding · Encode, amino acids, epoch 0: the rows as initialised, the space at chance",
+      "slug": "sequence-encoding",
+      "state": "?theme=light&page=encode&vocab=aa&shown=0",
+      "px": "2609142c",
+      "tx": "029f87be"
+    },
+    {
+      "$note": "sequence-encoding · Encode, amino acids, all forty epochs: the four roles apart",
       "slug": "sequence-encoding",
       "state": "?theme=light&page=encode&vocab=aa&shown=40",
-      "px": "0",
-      "tx": "0"
+      "px": "7dbc734d",
+      "tx": "ee690eee"
     },
     {
-      "$note": "sequence-encoding · Encode, codons, all forty epochs: the eighteen in three clusters (placeholder)",
+      "$note": "sequence-encoding · Encode, codons, all forty epochs: the eighteen in three clusters on their own axes",
       "slug": "sequence-encoding",
       "state": "?theme=light&page=encode&vocab=codon&shown=40",
-      "px": "0",
-      "tx": "0"
+      "px": "b3173360",
+      "tx": "243412fe"
     },
     {
-      "$note": "sequence-encoding · Encode, one-hot, amino acids, all forty epochs: the identity and the flat distances (placeholder)",
+      "$note": "sequence-encoding · Encode, words, the change view at epoch 40: the trained structure out of a blank table",
+      "slug": "sequence-encoding",
+      "state": "?theme=light&page=encode&vocab=words&view=change&shown=40",
+      "px": "305f05ec",
+      "tx": "429c7f22"
+    },
+    {
+      "$note": "sequence-encoding · Encode, one-hot, amino acids: the identity as digits, rows and columns named",
       "slug": "sequence-encoding",
       "state": "?theme=light&page=encode&vocab=aa&encoding=onehot&shown=40",
-      "px": "0",
-      "tx": "0"
+      "px": "44311317",
+      "tx": "d19df31f"
     },
     {
-      "$note": "sequence-encoding · Position, the sentence, sinusoidal, every token: x, p and their sum (placeholder)",
+      "$note": "sequence-encoding · Encode, one-hot, codons: the tall 61 × 66 identity, column labels thinned",
+      "slug": "sequence-encoding",
+      "state": "?theme=light&page=encode&vocab=codon&encoding=onehot&shown=40",
+      "px": "ac37bb8a",
+      "tx": "b8779d2f"
+    },
+    {
+      "$note": "sequence-encoding · Position, the sentence, sinusoidal, every token: the four pairs' curves, x, p and x̃",
       "slug": "sequence-encoding",
       "state": "?theme=light&page=position&vocab=words&posenc=sinusoidal&shown=16",
-      "px": "0",
-      "tx": "0"
+      "px": "e3a0f8f9",
+      "tx": "a0eb638d"
     },
     {
-      "$note": "sequence-encoding · Encode, amino acids, mid-move of the first epoch (placeholder)",
+      "$note": "sequence-encoding · Position, DNA, rotary, every token: small dials, x and the rows turned",
+      "slug": "sequence-encoding",
+      "state": "?theme=light&page=position&vocab=dna&posenc=rope&shown=48",
+      "px": "4551cd36",
+      "tx": "a4fc9e7a"
+    },
+    {
+      "$note": "sequence-encoding · Position, amino acids, learned, every token: rows as initialised added",
+      "slug": "sequence-encoding",
+      "state": "?theme=light&page=position&vocab=aa&posenc=learned&shown=26",
+      "px": "85e6a2c4",
+      "tx": "e6ac8f44"
+    },
+    {
+      "$note": "sequence-encoding · Encode, amino acids, mid-move of the first epoch: the points between two frames",
       "slug": "sequence-encoding",
       "state": "?theme=light&page=encode&vocab=aa",
       "drive": {
@@ -9459,8 +9508,32 @@
         "frames": 6,
         "dt": 40
       },
-      "px": "0",
-      "tx": "0"
+      "px": "73953bbe",
+      "tx": "029f87be"
+    },
+    {
+      "$note": "sequence-encoding · Tokenize, the sentence, one press: the first token cut and its vocabulary entry lit",
+      "slug": "sequence-encoding",
+      "state": "?theme=light&page=tokenize&vocab=words",
+      "drive": {
+        "click": "step",
+        "frames": 3,
+        "dt": 40
+      },
+      "px": "f1a15ba4",
+      "tx": "3fab5b79"
+    },
+    {
+      "$note": "sequence-encoding · Position, the sentence, rotary, under Play: the first columns of all three panels",
+      "slug": "sequence-encoding",
+      "state": "?theme=light&page=position&vocab=words&posenc=rope",
+      "drive": {
+        "click": "run",
+        "frames": 8,
+        "dt": 60
+      },
+      "px": "e4b2f0e8",
+      "tx": "c92e2b65"
     }
   ]
 }

@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · signal-windows — the title, in the gallery</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1400px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 104ch; font-size: var(--fs-sm); }
+  .g-grid { display: grid; gap: var(--sp-3); margin: var(--sp-3) 0 0; grid-template-columns: repeat(4, minmax(240px, 1fr)); }
+  .g-card { display: block; padding: var(--sp-3); text-decoration: none; color: inherit; background: var(--surface-1); border: 1px solid var(--border); border-radius: var(--radius); }
+  .g-card h2 { margin: 0; font-size: var(--fs-md); font-weight: 600; padding: 0; border: 0; }
+  .g-card p { margin: var(--sp-1) 0 0; color: var(--ink-2); font-size: var(--fs-sm); }
+  .g-card.pick { border-color: var(--c-highlight); }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 104ch; }
+  .hdr { margin-top: var(--sp-3); padding: var(--sp-3); border: 1px solid var(--grid); background: var(--surface-1); max-width: 620px; }
+  .hdr .t { font-size: var(--fs-lg); font-weight: 600; }
+  .hdr .s { color: var(--ink-2); font-size: var(--fs-sm); margin-top: 4px; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>signal-windows &middot; the title, beside its arc</h1>
+  <p class="note">
+    The sequence arc's four cards as the gallery lays them out, with 72's title as it is and as each candidate. The other three
+    titles are as shipped. 72's pages are Clean &middot; Window &middot; Split &middot; Normalize: a raw recording in, labelled windows
+    of one length out, dealt by subject and normalized, the tensor a model reads. The candidates name that pipeline the way
+    74 names its own (&ldquo;Sequences: Tokens to Vectors&rdquo;). The blurb stays.
+  </p>
+  <div id="rows"></div>
+  <p class="q"><b>The pick</b>
+    A &middot; <b>Signals: Raw to Windows</b> (recommended: the input and the output, three words, the arc's pattern) &nbsp;|&nbsp;
+    B &middot; Signals: Recording to Windows &nbsp;|&nbsp;
+    C &middot; Signals: Recording to Batches (the last page prints the [N, C, L] batch) &nbsp;|&nbsp;
+    D &middot; Signals: Clean, Window, Split (the pages, as 73 lists its two models) &nbsp;|&nbsp;
+    E &middot; keep Signal Windows</p>
+  <p class="q"><b>The slug</b>
+    stays <code>signal-windows</code> under every candidate: the URL names the data shape, and the lesson's links hold.</p>
+</main>
+<script>
+const cards = {
+  73: ["Deep Learning - Signals: CNN and LSTM", "Position in a signal is time, so a 1D kernel reads a duration, an LSTM reads in order, and occlusion blanks a window."],
+  75: ["Deep Learning - Sequences: CNN and LSTM", "A biological sequence as tokens, as one-hot or embedded rows, into a 1D CNN or an LSTM; occlusion sets a window to PAD."],
+  74: ["Deep Learning - Sequences: Tokens to Vectors", "Tokens become vectors: orthogonal under one-hot, grouped by role by a trained embedding, plus position for attention."],
+};
+const blurb72 = "Signals are cleaned, windowed and labelled, then split by subject: windows of one person are not independent samples.";
+const candidates = [
+  ["as it is", "Deep Learning - Signal Windows"],
+  ["A", "Deep Learning - Signals: Raw to Windows"],
+  ["B", "Deep Learning - Signals: Recording to Windows"],
+  ["C", "Deep Learning - Signals: Recording to Batches"],
+  ["D", "Deep Learning - Signals: Clean, Window, Split"],
+];
+const host = document.getElementById("rows");
+for (const [name, title] of candidates) {
+  const h = document.createElement("h2"); h.textContent = `${name} · ${title}`; host.appendChild(h);
+  const grid = document.createElement("div"); grid.className = "g-grid";
+  const order = [[72, [title, blurb72]], [73, cards[73]], [74, cards[74]], [75, cards[75]]];
+  for (const [arc, [t, b]] of order) {
+    const a = document.createElement("a"); a.className = "g-card" + (arc === 72 ? " pick" : ""); a.href = "#";
+    a.innerHTML = `<h2>${t}</h2><p>${b}</p>`; grid.appendChild(a);
+  }
+  host.appendChild(grid);
+  const hdr = document.createElement("div"); hdr.className = "hdr";
+  hdr.innerHTML = `<div class="t">${title}</div><div class="s">A signal is recorded as one long trace at its own sampling rate, with line noise and a drifting baseline, so it is resampled, filtered and detrended, then cut into windows of fixed length that each inherit a label from the recording's annotation or from the events they overlap. A window is not an independent sample: split by window, a held-out window's nearest training window is usually its own subject's …</div>`;
+  host.appendChild(hdr);
+}
+</script>
+</body>
+</html>

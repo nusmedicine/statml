@@ -12,7 +12,7 @@ answer can be checked against what was assumed.
 
 | looking for | go to |
 |---|---|
-| what to build next | **The sequence arc (PHM5005 07-1 to 07-3), PROPOSED, MEASURED AND PICKED 2026-09-20: four widgets by data type; 73 `signal-cnn-lstm` SHIPPED AND PUSHED the same day (`fbe62c2`); 75 `sequence-cnn-lstm` SHIPPED AND PUSHED 2026-09-20 evening (`77fd1d7`, 42 states) after thirteen review rounds, the copy audit and three subtitle rounds; 72 `signal-windows` SHIPPED AND PUSHED 2026-09-21 (`1fe6062`, 33 states, four pages Clean · Window · Split · Normalize, the cleaning page added on his ask); NEXT 74 `embedding-space` — replacing `sequence-encoding` on his call of 2026-09-21, its content being on 75's input panel already; the embedding as a learned space, MEASURED in `_lab/embedding-space-measure.mjs` (§ *Slot 74 · embedding-space* under the arc) — the arc's last** — § *The sequence arc*, under PHM5005. Slot 71 `somatic-interactions` CUT 2026-09-20 and slot 52 `training-loop` DISCARDED 2026-09-13, both his call. The cancer mutation arc (67, 69, 70) is complete; the image arc has 61, 64, 65 and 62 shipped, 63 `pretrained` on KIV (his call 2026-09-15), 66 folded into 65; the GWAS and PRS arc (56, 57, 59, 60) and the high-throughput arc are complete |
+| what to build next | **The sequence arc (PHM5005 07-1 to 07-3), PROPOSED, MEASURED AND PICKED 2026-09-20: four widgets by data type; 73 `signal-cnn-lstm` SHIPPED AND PUSHED the same day (`fbe62c2`); 75 `sequence-cnn-lstm` SHIPPED AND PUSHED 2026-09-20 evening (`77fd1d7`, 42 states) after thirteen review rounds, the copy audit and three subtitle rounds; 72 `signal-windows` SHIPPED AND PUSHED 2026-09-21 (`1fe6062`, 33 states, four pages Clean · Window · Split · Normalize, the cleaning page added on his ask); 74 `sequence-encoding` (planned as `embedding-space`, renamed at the ship) SHIPPED AND PUSHED 2026-09-21 after eleven review rounds in one day, sixteen states — the arc COMPLETE** — § *The sequence arc*, under PHM5005. Slot 71 `somatic-interactions` CUT 2026-09-20 and slot 52 `training-loop` DISCARDED 2026-09-13, both his call. The cancer mutation arc (67, 69, 70) is complete; the image arc has 61, 64, 65 and 62 shipped, 63 `pretrained` on KIV (his call 2026-09-15), 66 folded into 65; the GWAS and PRS arc (56, 57, 59, 60) and the high-throughput arc are complete |
 | how a widget got its shape | § *Widget N*, in order |
 | the four-method reconnaissance | § *Widget 19*, under the PCA sections |
 | the arcs, and what is deliberately not a widget | the arc sections below |
@@ -19808,7 +19808,104 @@ third on the attention head, which moves from `_lab/attention-lab.js` into
 `signal-cnn-lstm/engine.js` beside RNN and LSTM when the page is drafted.
 Sequence arc: 73, 75, 72 shipped; 74 is its last.
 
-**NEXT:** the draft of pages 1 and 2, on his word.
+**DRAFTED AND SHIPPED THE SAME DAY, 2026-09-21, as `sequence-encoding` —
+"Deep Learning - Sequences: Tokens to Vectors".** The draft went up on
+"start the draft" (`4a03fbe`, Amino acids and Codons on 73's engine), and
+eleven review rounds from his screenshots reshaped it, one commit each:
+
+1. `0b418e8` — the accuracy track cut ("clutter"); a **Words** page, forty
+   clinical words in four roles with eight fillers (the fillers gather at
+   75%: the task treats them alike, so they group).
+2. `75a6a0a` — a **DNA** page (purine · purine · pyrimidine · pyrimidine;
+   A lands near G and C near T, four points), the order DNA · Codons ·
+   Amino acids · Words, **every row named** (tables in stacks of 13 px
+   rows), the page control two by two.
+3. `a25d71d` — a **Position** page on an attention head trained on the
+   clinical words (the lesson's own example, aspirin before pain), the
+   head moved from `_lab/attention-lab.js` into `signal-cnn-lstm/engine.js`,
+   the full suite 995 MATCH after the move. **Since cut** (round 5), the
+   head stays in the engine unused by any widget.
+4. `d01aaeb` — the rail as Page Encode · Position with a **Vocabulary**
+   control under it; `8a73440` — a **Tokenize** page first, his picks
+   Tokenize · Embed · Position with PAD and UNK shown.
+5. `20b2bbe` — **"we're getting ahead of ourselves"**: three pages, one step
+   each. Tokenize shows sequence → tokens → ids and nothing else; Encode
+   gains **Encoding one-hot · embedding** as 75's input panel has it (one-hot
+   the identity, its held-out accuracy climbing on a table that cannot
+   move); Position is **x + p = x̃** for the tokenised sequence, three
+   matrices a column a token — no attention, no training.
+6. `b682594` — the vocabulary first on Tokenize, id by id; every
+   vocabulary's example carries **<unk>** (an N, an X, a codon with the N, a
+   word outside the forty) and **<pad>**; no colour by role before Encode
+   (nothing has been learned yet); one-hot written as 1s and 0s; the
+   formula on a **MathML card**; the sinusoid's fastest pair as a dial.
+7. `3177c7d` — one-hot as the **identity alone, whole**, rows and columns
+   named, the distance panel gone on his word ("if we show 1/0 with proper
+   row/col labels it should be clear they are independent").
+8. `f43b61e` — the sinusoid and the rotation told apart (his pick A from
+   `_lab/embedding-space-position-mock.html`, all four pairs): the sinusoid
+   as **the curves its rows sample**, the rotation as **the token's own pair
+   turned**, before and after with the arc swept. `64930f5` — the dials
+   follow the column width, a **hover magnifies** a token's turn with its
+   numbers; each curve row gets its own label line.
+9. `2420d8a` — asked why the heatmap barely moves: the rows start N(0, 1)
+   (entries 0.85 on average) and move 0.5–0.65 an entry over forty epochs,
+   a fifth of the ±3 ramp and a fortieth of it a press, so the space turns
+   while the table barely stirs. His pick of four options: a **Table
+   control, Values · Change since start** (display). Then the
+   **text-overlap sweep as a lab page** (`_lab/text-overlap-sweep.html`,
+   the handover's recipe under a `fillText` wrap, a frame a state): eleven
+   captions past their panel, the vocabulary's <unk> on its id, the codon
+   one-hot's column labels on each other, the space's word labels piled
+   up. Four mechanisms: captions **fit their panel** by dropping trailing
+   clauses; the vocabulary grid's columns follow the width with rows
+   reserved for the narrowest layout; one-hot column labels thin to every
+   k-th; each point label takes **the first clear place of four, or none**.
+   Clean at 900 and 1200 across twenty-seven states. **A state that paints
+   nothing is a failure, not a pass** — the Tokenize page had thrown on a
+   stale name and read as clean once.
+10. `3d54cf0` — the fades cut (the table's tween between epochs, the alpha
+    of arriving tokens and columns; the points still move) and the **copy
+    audit**, sixteen rows: "never" struck from legends and notes, "carries"
+    → "contains", "cut" → "split", "rewarded rows" → the motif codons' and
+    role words' rows, "landed nowhere" and "alike is a role too" → plain
+    statements, "a position never seen in training has a row that never
+    trained" → "a position beyond the training length has an untrained
+    row", the change view's detail without its commentary. `b33771f` —
+    **subtitle A1 and blurb B1**, his picks after two redo rounds: position
+    is added FOR attention, not by it; a CNN or an LSTM reads order from the
+    sequence itself; no vocabulary list in the subtitle.
+11. `3c2aaeb` — **renamed**: the title names the whole pipeline as 73 and 75
+    name theirs; the slug is the lesson's word and the slot's original
+    name; the control over Tokenize · Encode · Position is **Step**, as
+    normalization labels its pipeline steps (the sequence arc's others say
+    Page, their pages being views rather than an order).
+
+**What shipped.** Three steps on one rail, a Vocabulary under all three
+(four bases · sixty-four codons · twenty amino acids · forty clinical
+words, each with <pad> at 0 and <unk> last). **Tokenize:** the vocabulary
+id by id, a raw sequence, the tokens (bases one by one, or the same 46-base
+string as codons three at a time with the leftover dropped; residues;
+words), their ids; Next token cuts one. **Encode:** one-hot as the identity
+with rows and columns named, or an embedding trained on the click (forty
+epochs of 300 sequences, under a second, cached by data parameters) with
+his figure's two panels — the table, named row by row, and the space, each
+epoch's own two components laid over the final epoch's by Procrustes (the
+codon axes from the eighteen motif codons' rows) — a Values · Change view,
+and a readout of held-out accuracy, purity and the within/between ratio.
+**Position:** the tokenised sequence's embedding rows from the table Encode
+trained, the position rows (learned as initialised · the sinusoid as the
+curves its rows sample · rotary as the token's pair turned, magnified on
+hover), and their sum, x̃ᵢ = xᵢ + pᵢ on a MathML card. Sixteen fingerprint
+states, identical across three recording runs; the suite 995 MATCH at the
+engine move; the sweep clean at both widths; `check` and `test` green.
+Sequence arc COMPLETE: 72, 73, 74, 75.
+
+**Two things learned, for the next widget.** (1) The mock's own numbers
+overturned two lines of this section's proposal — the unrewarded rows DO
+move, and the axes must come from the rows with a geometry. (2) A page that
+shows a mechanism (one-hot as the identity, position as a sum) beats a page
+that trains it: three of the day's eleven rounds took training out.
 
 ---
 

@@ -741,7 +741,7 @@ function drawPosition(ctx, colors, w, params, state, anim, pointer) {
 
 defineWidget({
   slug: "sequence-encoding",
-  status: "draft",
+  status: "shipped",
   title: "Deep Learning - Sequences: Tokens to Vectors",
   subtitle: S.subtitle,
   layout: "side",
