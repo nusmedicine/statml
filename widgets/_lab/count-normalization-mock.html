@@ -1,0 +1,353 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · 77 count-normalization — mock</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1600px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 104ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); min-height: 26px; white-space: pre-line; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 104ch; }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+       border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 104ch; }
+  .q b { display: block; margin-bottom: 2px; }
+  .rail { width: 250px; padding: var(--sp-2) var(--sp-3); border: 1px solid var(--grid); background: var(--surface-2); font-size: 11px; color: var(--ink-1); }
+  .rail .sec { font-weight: 600; color: var(--ink-2); margin: 8px 0 4px; text-transform: uppercase; font-size: 10px; letter-spacing: .04em; }
+  .rail .ctl { margin: 3px 0; }
+  .rail .ctl span { display: inline-block; padding: 1px 6px; border: 1px solid var(--grid); border-radius: 3px; margin: 1px 2px 1px 0; background: var(--surface-1); }
+  .rail .ctl span.on { border-color: var(--c-empirical); font-weight: 600; }
+  .rail .ctl .lab { display: block; color: var(--ink-2); margin-bottom: 2px; }
+  .rail .det { color: var(--ink-3); font-size: 10px; }
+  .sub2 { font-size: var(--fs-sm); color: var(--ink-1); max-width: 70ch; margin: 4px 0 8px; padding: 6px 10px; border: 1px solid var(--grid); background: var(--surface-1); }
+  .sub2 b { color: var(--ink-3); font-weight: 600; margin-right: 6px; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>77 <code>count-normalization</code> &middot; Expression Units &middot; mock</h1>
+  <p class="note">
+    Host: 01-2 cell 16 (<i>DESeq2 accepts only raw count data &hellip; we cannot use FPKM, TPM</i>) and cell 22 (the median
+    of ratios); 01-1's GDC object ships <code>unstranded</code>, <code>tpm_unstrand</code>, <code>fpkm_unstrand</code> side by
+    side. <b>Every number drawn here is computed on this page</b>: six genes with lengths for the countable panel, 2,000
+    Poisson genes for the wide one, each unit by its definition, the size factor by the median of ratios. Drawn at the
+    widget's 550px. On-canvas strings are candidates for the copy audit, not copy; a widget opens on the raw counts and
+    the reader picks the unit.
+  </p>
+
+  <h2>1 &middot; The shape: three pages (as picked) or one stage with a Unit control</h2>
+  <p class="note">
+    <b>A</b> &mdash; three pages, one confound each, the SAME figure on all three so the motion is recognised: the six
+    genes as paired bars in the chosen unit above, the 2,000-gene scatter below. The Depth page's data differ only in
+    depth; the Length page's genes differ only in length; the Composition page moves some genes and ends on the size
+    factor. <b>B</b> &mdash; one stage, no pages: the three confounds are three data controls and the unit is one control,
+    so the reader composes any case. B's figure is any one of A's; only the rail differs.
+  </p>
+  <div class="row" id="shapeRow"></div>
+  <div class="row">
+    <div class="rail"><div class="sec">A &middot; the rail</div>
+      <div class="ctl"><span class="lab">Page</span><span class="on">Depth</span><span>Length</span><span>Composition</span></div>
+      <div class="sec">The data</div>
+      <div class="ctl"><span class="lab">Depth of B against A</span><span>1&times;</span><span class="on">3&times;</span><span>10&times;</span> <span class="det">Depth page</span></div>
+      <div class="ctl"><span class="lab">Genes that change in B</span><span>1 of 6</span><span>5%</span><span>20%</span><span>50%</span><span>80%</span> <span class="det">Composition page</span></div>
+      <div class="ctl"><span class="lab">By how much</span><span>2&times;</span><span>4&times;</span><span class="on">8&times;</span> <span class="det">Composition page</span></div>
+      <div class="ctl"><span class="lab">Direction</span><span class="on">Up</span><span>Half up, half down</span> <span class="det">Composition page</span></div>
+      <div class="ctl"><span class="lab">Seed</span><span>1</span></div>
+      <div class="sec">The unit</div>
+      <div class="ctl"><span class="on">Raw count</span><span>CPM</span><span>FPKM</span><span>TPM</span><span>Size factor</span></div>
+      <div class="det">Size factor appears on the Composition page only</div>
+    </div>
+    <div class="rail"><div class="sec">B &middot; the rail</div>
+      <div class="sec">The data</div>
+      <div class="ctl"><span class="lab">Depth of B against A</span><span class="on">1&times;</span><span>3&times;</span><span>10&times;</span></div>
+      <div class="ctl"><span class="lab">Gene lengths</span><span>Equal</span><span class="on">Differ</span></div>
+      <div class="ctl"><span class="lab">Genes that change in B</span><span class="on">None</span><span>1 of 6</span><span>5%</span><span>20%</span><span>50%</span><span>80%</span></div>
+      <div class="ctl"><span class="lab">By how much</span><span>2&times;</span><span>4&times;</span><span class="on">8&times;</span></div>
+      <div class="ctl"><span class="lab">Direction</span><span class="on">Up</span><span>Half up, half down</span></div>
+      <div class="ctl"><span class="lab">Seed</span><span>1</span></div>
+      <div class="sec">The unit</div>
+      <div class="ctl"><span class="on">Raw count</span><span>CPM</span><span>FPKM</span><span>TPM</span><span>Size factor</span></div>
+    </div>
+  </div>
+  <p class="rec">Recommended <b>A</b>, as picked: the pages are the argument in order (3.1), each hides the controls that do
+    not belong to it (2.7), and the Composition page can end on the size factor, which B cannot. B is the stronger
+    sandbox and the weaker lesson: with every control live, a reader opens on a case no page argues.</p>
+
+  <h2>2 &middot; The figure: the six genes, the 2,000, or both</h2>
+  <p class="note">
+    Left, the countable panel alone (2.3): six genes, lengths under them, sample A filled and B outlined, in the chosen
+    unit, the unchanged gene's B/A printed. Middle, the wide panel alone: 2,000 genes, A against B in the unit on log
+    axes, the diagonal as equal, the changed genes in the highlight colour, the 1.5&times; band. Right, both stacked, which
+    is what &sect;1 draws.
+  </p>
+  <div class="row" id="figRow"></div>
+  <p class="rec">Recommended <b>both</b>: the six genes say WHY a share moves (one bar grows, every other share shrinks) and
+    the 2,000 say HOW MUCH (the cloud slides off the diagonal by a number). Either alone leaves one question.</p>
+
+  <h2>3 &middot; The failing case: the median of ratios past half the genes</h2>
+  <p class="note">
+    The size factor assumes most genes are unchanged. The Composition page's share control runs it out: the median
+    log2(B / A) of the UNCHANGED genes under TPM and under the size factor as the share of genes moving up rises, at
+    2&times; and 8&times;, and when the movers go both ways.
+  </p>
+  <div class="row" id="failRow"></div>
+  <p class="rec">The share control's top values are where the widget includes the case that fails (2.6): at half the genes
+    up 8&times; the size factor reads the unchanged genes down 1.6 log2, the same call TPM makes. When the movers go both
+    ways it holds to half. The readout should print both numbers.</p>
+
+  <h2>4 &middot; The size factor: a gated walkthrough, or the number alone</h2>
+  <p class="note">
+    39 <code>normalization</code> gates its quantile walkthrough behind a button because quantile is the one method with no
+    closed form. The median of ratios has three steps and the notebook prints them: the geometric mean per gene, each
+    sample's ratio to it, the median per sample. Left, the walkthrough as a table on the six genes; right, the number
+    alone in a readout tile.
+  </p>
+  <div class="row" id="sfRow"></div>
+  <p class="rec">Recommended <b>the walkthrough, gated</b>, on the Composition page under the Size factor option, as 39's
+    is under Quantile: the reader sees the changed gene's ratio sit off to one side and the median step past it, which
+    is the whole argument for why the method survives a composition change and a share does not.</p>
+
+  <h2>5 &middot; What the count carries that the unit does not</h2>
+  <p class="note">
+    Cell 16's reason DESeq2 wants counts. A TPM of 50 is 50 reads at 1M depth and 2,500 at 50M; the Poisson CV is 14%
+    against 2%. Three places it could go: a readout tile on the Depth page; a fourth page; a caption on the Depth page.
+  </p>
+  <div class="row" id="certRow"></div>
+  <p class="rec">Recommended <b>a tile on the Depth page</b>, since the depth control is the one that moves it: raise B's depth
+    and the tile shows the same TPM carrying more reads. A fourth page is a page for one sentence.</p>
+
+  <h2>6 &middot; Subtitle candidates (2.10: two or three claims that read written)</h2>
+  <div class="sub2"><b>S1</b> A read count depends on the sample's depth and the gene's length as well as its expression. CPM, FPKM and TPM divide these out, but each is a share of the sample's total, so when some genes rise every other gene's share falls. A size factor takes the scale from the genes that did not change.</div>
+  <div class="sub2"><b>S2</b> Counts differ between samples by depth and between genes by length. A unit that divides both out is a share of the sample, and a share moves when other genes move; the size factor is read from the genes that stay put, so it does not.</div>
+  <div class="sub2"><b>S3</b> Raw counts carry sequencing depth and gene length. CPM removes depth, FPKM and TPM remove both, and all three are shares of one sample's reads, which a change in a few genes shifts for every gene. DESeq2's size factor is the median ratio over genes, most of which are assumed unchanged.</div>
+  <p class="rec">Recommended <b>S1</b>: concept first, mechanism second, no vocabulary the rail does not also carry. Blurb (under 120): <i>Depth, length and composition move a count; CPM, FPKM and TPM divide out the first two, and a size factor survives the third.</i></p>
+
+  <h2>7 &middot; The calls</h2>
+  <p class="q"><b>7.1 &middot; Shape</b> <b>A &middot; three pages, one figure shape (recommended)</b> &nbsp;|&nbsp; B &middot; one stage, the unit and the three confounds as controls</p>
+  <p class="q"><b>7.2 &middot; Figure</b> six genes &nbsp;|&nbsp; 2,000 genes &nbsp;|&nbsp; <b>both stacked (recommended)</b></p>
+  <p class="q"><b>7.3 &middot; Size factor</b> <b>gated walkthrough on the Composition page (recommended)</b> &nbsp;|&nbsp; the number in a tile</p>
+  <p class="q"><b>7.4 &middot; The count's certainty</b> <b>a tile on the Depth page (recommended)</b> &nbsp;|&nbsp; a fourth page &nbsp;|&nbsp; a caption &nbsp;|&nbsp; cut</p>
+  <p class="q"><b>7.5 &middot; Subtitle</b> <b>S1 (recommended)</b> &nbsp;|&nbsp; S2 &nbsp;|&nbsp; S3</p>
+  <p class="q"><b>7.6 &middot; The page control's label</b> Page (the pages are three views of one confound each, as 72's) &nbsp;|&nbsp; <b>Step (recommended: raw &rarr; CPM &rarr; TPM &rarr; size factor is one pipeline, and the units accumulate left to right)</b></p>
+</main>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+import { makeRng } from "../core/rng.js";
+
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+const W = 550;
+
+function el(tag, cls, text) { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
+function cand(rowId, title, sub, w = W) { const box = el("div", "cand"); box.style.width = `${w}px`; box.appendChild(el("h3", null, title)); box.appendChild(el("p", "sub", sub)); document.getElementById(rowId).appendChild(box); return box; }
+function canvasIn(box, w, h) { const c = document.createElement("canvas"); c.width = Math.round(w * DPR); c.height = Math.round(h * DPR); c.style.width = `${w}px`; c.style.height = `${h}px`; box.appendChild(c); const ctx = c.getContext("2d"); ctx.scale(DPR, DPR); return ctx; }
+const rgb = (c) => { const m = String(c).match(/^#([0-9a-f]{6})$/i); return m ? [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16)) : [128, 128, 128]; };
+const wash = (color, a) => { const p = rgb(color); return `rgba(${p[0]},${p[1]},${p[2]},${a})`; };
+function label(ctx, s, x, y, { size = 11, colour = T.ink2, align = "left", mono = false, weight = "", baseline = "alphabetic" } = {}) { ctx.save(); ctx.font = `${weight ? weight + " " : ""}${size}px ${mono ? T.mono : T.font}`; ctx.fillStyle = colour; ctx.textAlign = align; ctx.textBaseline = baseline; ctx.fillText(s, x, y); ctx.restore(); }
+function line(ctx, x1, y1, x2, y2, colour, width = 1, dash = null) { ctx.save(); ctx.strokeStyle = colour; ctx.lineWidth = width; if (dash) ctx.setLineDash(dash); ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); ctx.restore(); }
+function rect(ctx, x, y, w, h, fill, stroke = null, lw = 1) { ctx.save(); if (fill) { ctx.fillStyle = fill; ctx.fillRect(x, y, w, h); } if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw; ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1); } ctx.restore(); }
+function polyline(ctx, xs, ys, colour, width = 1.2, dash = null) { ctx.save(); ctx.strokeStyle = colour; ctx.lineWidth = width; ctx.lineJoin = "round"; if (dash) ctx.setLineDash(dash); ctx.beginPath(); xs.forEach((x, i) => (i ? ctx.lineTo(x, ys[i]) : ctx.moveTo(x, ys[i]))); ctx.stroke(); ctx.restore(); }
+function dot(ctx, x, y, r, fill, stroke = null, lw = 1) { ctx.save(); ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); if (fill) { ctx.fillStyle = fill; ctx.fill(); } if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw; ctx.stroke(); } ctx.restore(); }
+const median = (a) => { const s = Float64Array.from(a).sort(); const m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
+const log2 = (x) => Math.log(x) / Math.LN2;
+const f = (x, d = 2) => x.toFixed(d);
+function poissonDraw(rng, mu) { if (mu <= 0) return 0; if (mu < 40) { const L = Math.exp(-mu); let k = 0, p = 1; do { k += 1; p *= rng.next(); } while (p > L); return k - 1; } return Math.max(0, Math.round(mu + Math.sqrt(mu) * rng.normal())); }
+
+/* ------------------------------------------------------------- the engine */
+const UNITS = ["raw", "CPM", "FPKM", "TPM", "size factor"];
+const tot = (c) => c.reduce((s, v) => s + v, 0);
+function unitOf(counts, len, unit, sf = 1) {
+  if (unit === "raw") return counts.slice();
+  if (unit === "CPM") { const t = tot(counts); return counts.map((v) => (1e6 * v) / t); }
+  if (unit === "FPKM") { const t = tot(counts); return counts.map((v, i) => (1e9 * v) / (t * len[i])); }
+  if (unit === "TPM") { const r = counts.map((v, i) => v / len[i]); const t = tot(r); return r.map((v) => (1e6 * v) / t); }
+  return counts.map((v) => v / sf);
+}
+function sizeFactors(A, B) { // median of ratios to the geometric mean, two samples
+  const ok = A.map((a, i) => a > 0 && B[i] > 0);
+  const gm = A.map((a, i) => Math.sqrt(a * B[i]));
+  const sfA = median(A.filter((_, i) => ok[i]).map((a, i) => a / gm.filter((_, j) => ok[j])[i]));
+  const sfB = median(B.filter((_, i) => ok[i]).map((b, i) => b / gm.filter((_, j) => ok[j])[i]));
+  return [sfA, sfB];
+}
+/* six genes: lengths in kb, expression in transcripts */
+const TOY = { len: [1, 2, 4, 1, 10, 0.5], expr: [100, 100, 100, 20, 300, 50] };
+function toy({ depthB = 1, lengthsDiffer = true, changed = [], fold = 8, equalExpr = false }) {
+  const len = lengthsDiffer ? TOY.len : TOY.len.map(() => 2);
+  const expr = equalExpr ? TOY.expr.map(() => 100) : TOY.expr;
+  const A = expr.map((e, i) => Math.round(e * len[i]));
+  const B = expr.map((e, i) => Math.round(e * len[i] * depthB * (changed.includes(i) ? fold : 1)));
+  return { len, A, B };
+}
+function panel(seed, { depthB = 1, share = 0, fold = 8, both = false }) {
+  const rng = makeRng(seed), G = 2000;
+  const len = Array.from({ length: G }, () => Math.exp(rng.normal(Math.log(2), 0.7)));
+  const E = Array.from({ length: G }, () => Math.exp(rng.normal(Math.log(30), 1.6)));
+  const up = new Set(); while (up.size < Math.round(share * G)) up.add(Math.floor(rng.next() * G));
+  const EB = E.map((v, i) => (up.has(i) ? (both && [...up].indexOf(i) % 2 ? v / fold : v * fold) : v));
+  const A = E.map((v, i) => poissonDraw(rng, v * len[i] * 0.02));
+  const B = EB.map((v, i) => poissonDraw(rng, v * len[i] * 0.02 * depthB));
+  return { len, A, B, changed: up };
+}
+
+/* ----------------------------------------------------- the two panels */
+function drawToy(ctx, x0, y0, w, h, t, unit, { changed = [], title = "" } = {}) {
+  const [sfA, sfB] = sizeFactors(t.A, t.B);
+  const uA = unitOf(t.A, t.len, unit, sfA), uB = unitOf(t.B, t.len, unit, sfB);
+  const top = Math.max(...uA, ...uB);
+  const n = t.A.length, slot = (w - 40) / n, bw = Math.min(16, slot * 0.3);
+  const base = y0 + h - 28;
+  label(ctx, title || `six genes in ${unit === "raw" ? "raw counts" : unit}`, x0 + 6, y0 + 14, { colour: T.ink1, weight: "600" });
+  line(ctx, x0 + 30, base, x0 + w - 6, base, T.axis || T.ink3);
+  for (let i = 0; i < n; i += 1) {
+    const cx = x0 + 34 + i * slot + slot / 2, hA = (uA[i] / top) * (h - 58), hB = (uB[i] / top) * (h - 58);
+    const isCh = changed.includes(i);
+    rect(ctx, cx - bw - 1, base - hA, bw, hA, isCh ? T.highlight : T.groupA);
+    rect(ctx, cx + 1, base - hB, bw, hB, null, isCh ? T.highlight : T.groupB, 1.5);
+    label(ctx, `${t.len[i]} kb`, cx, base + 12, { align: "center", size: 9, colour: T.ink3, mono: true });
+    const r = uB[i] / uA[i];
+    label(ctx, f(r, r >= 10 ? 0 : 2), cx, base - Math.max(hA, hB) - 4, { align: "center", size: 10, mono: true, colour: isCh ? T.highlight : Math.abs(r - 1) > 0.05 ? T.extreme : T.ink2 });
+  }
+  label(ctx, "A", x0 + 8, base - 6, { colour: T.groupA, weight: "600" }); label(ctx, "B", x0 + 8, base - 20, { colour: T.groupB, weight: "600" });
+  return { uA, uB, sfA, sfB };
+}
+function drawPanel(ctx, x0, y0, w, h, p, unit, { note = "" } = {}) {
+  const [sfA, sfB] = sizeFactors(p.A, p.B);
+  const uA = unitOf(p.A, p.len, unit, sfA), uB = unitOf(p.B, p.len, unit, sfB);
+  const px0 = x0 + 44, py0 = y0 + 22, pw = w - 60, ph = h - 52;
+  line(ctx, px0, py0, px0, py0 + ph, T.axis || T.ink3); line(ctx, px0, py0 + ph, px0 + pw, py0 + ph, T.axis || T.ink3);
+  const vals = [...uA, ...uB].filter((v) => v > 0).map(Math.log10);
+  const lo = Math.min(...vals), hi = Math.max(...vals);
+  const sx = (v) => px0 + ((Math.log10(v) - lo) / (hi - lo)) * pw, sy = (v) => py0 + ph - ((Math.log10(v) - lo) / (hi - lo)) * ph;
+  const diag = [[lo, hi]].map(([a, b]) => [px0, py0 + ph, px0 + pw, py0])[0];
+  line(ctx, ...diag, T.reference, 1);
+  const off = (k) => { const d = Math.log10(k); return [px0 + (d / (hi - lo)) * pw, py0 + ph, px0 + pw, py0 + (d / (hi - lo)) * ph]; };
+  const o1 = off(1.5), o2 = off(1 / 1.5);
+  line(ctx, o1[0], o1[1], o1[2] - (o1[0] - px0), o1[3] - (o1[3] - py0), T.reference, 1, [3, 3]);
+  line(ctx, px0, py0 + ph - (Math.log10(1.5) / (hi - lo)) * ph, px0 + pw - (Math.log10(1.5) / (hi - lo)) * pw, py0, T.reference, 1, [3, 3]);
+  void o2;
+  let unchDown = 0, nUnch = 0; const shifts = [];
+  for (let i = 0; i < uA.length; i += 1) {
+    if (!(uA[i] > 0 && uB[i] > 0)) continue;
+    const ch = p.changed.has(i);
+    dot(ctx, sx(uA[i]), sy(uB[i]), 1.7, wash(ch ? T.highlight : T.empirical, ch ? 0.85 : 0.45));
+    if (!ch && p.A[i] > 20 && p.B[i] > 20) { nUnch += 1; const s = log2(uB[i] / uA[i]); shifts.push(s); if (s < -0.585) unchDown += 1; }
+  }
+  label(ctx, `A, ${unit === "raw" ? "raw" : unit}`, px0 + pw / 2, py0 + ph + 14, { align: "center", size: 10, colour: T.ink3 });
+  ctx.save(); ctx.translate(x0 + 12, py0 + ph / 2); ctx.rotate(-Math.PI / 2); label(ctx, `B, ${unit === "raw" ? "raw" : unit}`, 0, 0, { align: "center", size: 10, colour: T.ink3 }); ctx.restore();
+  label(ctx, `unchanged genes: median log2(B/A) ${f(median(shifts), 2)}; ${unchDown} of ${nUnch} past the 1.5× line`, px0 + 6, py0 + 12, { size: 10, colour: T.ink1 });
+  if (note) label(ctx, note, px0 + 6, py0 + 26, { size: 10, colour: T.ink3 });
+  return { medianShift: median(shifts), unchDown, nUnch };
+}
+
+/* ============================================================ 1 the pages */
+{
+  const pages = [
+    ["Depth · B sequenced 3× deeper, nothing else differs", "raw", toy({ depthB: 3, lengthsDiffer: false }), panel(1, { depthB: 3 }), [], "every gene reads 3.0: the depth, not expression. CPM and every unit after it agree"],
+    ["Length · every gene at the same expression, lengths differ; one depth", "CPM", toy({ depthB: 1, lengthsDiffer: true, equalExpr: true }), panel(1, {}), [], "six genes at one expression; CPM reads the 10 kb gene twenty times the 0.5 kb one. FPKM and TPM read them equal"],
+    ["Composition · gene 5 up 8× in B, 5% of the panel up 8×", "TPM", toy({ depthB: 1, lengthsDiffer: true, changed: [4], fold: 8 }), panel(1, { share: 0.05, fold: 8 }), [4], "every unchanged share falls; the size factor reads them flat"],
+  ];
+  for (const [title, unit, t, p, changed, note] of pages) {
+    const box = cand("shapeRow", title, `unit shown: ${unit === "raw" ? "raw counts" : unit}\n${note}`);
+    const ctx = canvasIn(box, W, 470);
+    drawToy(ctx, 0, 0, W, 200, t, unit, { changed });
+    line(ctx, 0, 204, W, 204, T.grid);
+    drawPanel(ctx, 0, 208, W, 262, p, unit);
+  }
+}
+
+/* ============================================================ 2 the figure */
+{
+  const t = toy({ changed: [4], fold: 8 }), p = panel(1, { share: 0.05, fold: 8 });
+  const b1 = cand("figRow", "six genes alone", "TPM, gene 5 up 8×: the five unchanged shares read 0.24", 360);
+  drawToy(canvasIn(b1, 360, 200), 0, 0, 360, 200, t, "TPM", { changed: [4] });
+  const b2 = cand("figRow", "2,000 genes alone", "TPM, 5% up 8×: the unchanged cloud sits below the diagonal", 360);
+  drawPanel(canvasIn(b2, 360, 260), 0, 0, 360, 260, p, "TPM");
+  const b3 = cand("figRow", "both, stacked", "the widget as §1 draws it", 360);
+  const c3 = canvasIn(b3, 360, 430); drawToy(c3, 0, 0, 360, 180, t, "TPM", { changed: [4] }); line(c3, 0, 184, 360, 184, T.grid); drawPanel(c3, 0, 188, 360, 242, p, "TPM");
+}
+
+/* ============================================================ 3 the failing case */
+{
+  const box = cand("failRow", "median log2(B / A) of the unchanged genes, by the share of genes that move", `2,000 genes, counts over 20 in both samples; 0 is right. Solid TPM, dashed size factor\nred 8× up, blue 2× up, green 4× half up half down`, W);
+  const ctx = canvasIn(box, W, 300);
+  const x0 = 56, y0 = 20, w = W - 76, h = 230;
+  line(ctx, x0, y0, x0, y0 + h, T.axis || T.ink3); line(ctx, x0, y0 + h, x0 + w, y0 + h, T.axis || T.ink3);
+  const shares = [0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8];
+  const sx = (s) => x0 + (s / 0.85) * w, sy = (v) => y0 + ((-v) / 3) * h;
+  [0, -1, -2, -3].forEach((v) => { line(ctx, x0, sy(v), x0 + w, sy(v), T.grid); label(ctx, String(v), x0 - 6, sy(v) + 3, { align: "right", size: 10, colour: T.ink3 }); });
+  shares.forEach((s) => label(ctx, `${Math.round(100 * s)}%`, sx(s), y0 + h + 13, { align: "center", size: 10, colour: T.ink3 }));
+  label(ctx, "share of genes that move", x0 + w / 2, y0 + h + 27, { align: "center", size: 10, colour: T.ink3 });
+  const series = [["8× up", { fold: 8 }, T.extreme], ["2× up", { fold: 2 }, T.empirical], ["4×, half up half down", { fold: 4, both: true }, T.groupC]];
+  series.forEach(([name, opt, col], k) => {
+    const tpm = [], mor = [];
+    for (const s of shares) {
+      const p = panel(11, { share: s, ...opt });
+      const [sfA, sfB] = sizeFactors(p.A, p.B);
+      const tA = unitOf(p.A, p.len, "TPM"), tB = unitOf(p.B, p.len, "TPM");
+      const unch = [...Array(p.A.length).keys()].filter((i) => !p.changed.has(i) && p.A[i] > 20 && p.B[i] > 20);
+      tpm.push(median(unch.map((i) => log2(tB[i] / tA[i]))));
+      mor.push(median(unch.map((i) => log2((p.B[i] / sfB) / (p.A[i] / sfA)))));
+    }
+    polyline(ctx, shares.map(sx), tpm.map((v) => sy(Math.max(-3, v))), col, 2);
+    polyline(ctx, shares.map(sx), mor.map((v) => sy(Math.max(-3, v))), col, 2, [5, 4]);
+    label(ctx, name, x0 + w - 8, y0 + 16 + 15 * k, { align: "right", colour: col, weight: "600" });
+  });
+  line(ctx, sx(0.5), y0, sx(0.5), y0 + h, T.reference, 1, [3, 3]);
+  label(ctx, "half", sx(0.5) + 4, y0 + 12, { size: 10, colour: T.ink3 });
+}
+
+/* ============================================================ 4 the walkthrough */
+{
+  const t = toy({ changed: [4], fold: 8 });
+  const box = cand("sfRow", "the median of ratios on the six genes, as a table", "counts · geometric mean per gene · each sample's ratio to it · the median per sample; the changed gene's row in the highlight colour", W);
+  const ctx = canvasIn(box, W, 230);
+  const cols = ["gene", "A", "B", "geometric mean", "A / mean", "B / mean"], cx = [16, 90, 150, 230, 340, 440];
+  cols.forEach((c, k) => label(ctx, c, cx[k], 20, { size: 10, colour: T.ink3, weight: "600" }));
+  line(ctx, 10, 26, W - 10, 26, T.grid);
+  const gm = t.A.map((a, i) => Math.sqrt(a * t.B[i])), rA = t.A.map((a, i) => a / gm[i]), rB = t.B.map((b, i) => b / gm[i]);
+  for (let i = 0; i < 6; i += 1) {
+    const y = 44 + i * 22, col = i === 4 ? T.highlight : T.ink1;
+    [String(i + 1), String(t.A[i]), String(t.B[i]), f(gm[i], 0), f(rA[i], 2), f(rB[i], 2)].forEach((s, k) => label(ctx, s, cx[k], y, { size: 11, mono: true, colour: col }));
+  }
+  line(ctx, 10, 182, W - 10, 182, T.grid);
+  label(ctx, "median", 16, 200, { size: 11, weight: "600", colour: T.ink1 });
+  label(ctx, f(median(rA), 2), cx[4], 200, { size: 11, mono: true, weight: "600", colour: T.ink1 });
+  label(ctx, f(median(rB), 2), cx[5], 200, { size: 11, mono: true, weight: "600", colour: T.ink1 });
+  label(ctx, "the size factor of each sample; gene 5's ratio is one value among six and the median steps past it", 16, 220, { size: 10, colour: T.ink3 });
+
+  const b2 = cand("sfRow", "the number alone", "a readout tile beside the figure", 260);
+  const c2 = canvasIn(b2, 260, 90);
+  rect(c2, 10, 10, 240, 70, T.surface2, T.grid);
+  label(c2, "Size factors", 22, 30, { size: 11, colour: T.ink2 });
+  label(c2, `A ${f(median(rA), 2)} · B ${f(median(rB), 2)}`, 22, 56, { size: 20, weight: "600", colour: T.ink1 });
+  label(c2, "median ratio to the geometric mean", 22, 72, { size: 10, colour: T.ink3 });
+}
+
+/* ============================================================ 5 certainty */
+{
+  const b1 = cand("certRow", "a tile on the Depth page", "moves with the depth control", 300);
+  const c1 = canvasIn(b1, 300, 100);
+  rect(c1, 10, 10, 280, 80, T.surface2, T.grid);
+  label(c1, "Reads behind a TPM of 50", 22, 30, { size: 11, colour: T.ink2 });
+  label(c1, "A 50 · B 2,500", 22, 56, { size: 20, weight: "600", colour: T.ink1 });
+  label(c1, "Poisson CV 14% against 2%: the same unit, not the same certainty", 22, 76, { size: 10, colour: T.ink3 });
+  const b2 = cand("certRow", "a caption on the Depth page", "one line under the six genes", 300);
+  const c2 = canvasIn(b2, 300, 60);
+  label(c2, "A TPM of 50 is 50 reads at 1M depth and 2,500 at 50M.", 12, 26, { size: 11, colour: T.ink1 });
+  label(c2, "DESeq2 takes the count because the count carries the certainty.", 12, 44, { size: 11, colour: T.ink2 });
+}
+</script>
+</body>
+</html>
