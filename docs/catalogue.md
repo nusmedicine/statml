@@ -18847,6 +18847,21 @@ sits at −2.47. At the opening state (3×, lengths differ, gene 5 up) raw
 reads 12.00 within and 0.75 between, TPM 1.00 and 0.44, the size factor
 12.00 and 1.00.
 
+**Round 11** (2026-09-22) — *is the histogram the right way to visualise
+this? would a boxplot work? I'm confused.* `_lab/count-normalization-panel-mock.html`:
+the same 2,000 genes at three states as the ratio histogram, as four boxes of
+the values themselves (the unchanged genes in A and in B, the changed genes
+in A and in B, on a log axis, medians printed, truth lines at the unchanged
+level in A and at 8× the changed level in A), and as the lesson's MA plot.
+The histogram and the MA plot carry the ratio, so "up" shows only as a
+position against a line; the boxes show B above A, or level with it,
+directly — under the size factor with most genes up, the unchanged pair
+reads B 2.5 below A (truth level) and the changed pair 0.45 apart (truth 3).
+**His pick: the boxes**, which are widget 39's own figure split by whether
+the gene changed. The third tile is now the unchanged genes' B − A in log2
+of the medians, truth 0; the legend gains "Truth for a changed gene" and
+loses the median-over-all dash.
+
 **Round 10** (2026-09-22) — *if genes 2–5 are more highly expressed in B,
 the histogram should be the other way round?* Right about the truth, and the
 figure shows the size factor's reading: with most genes up and the total
