@@ -18847,6 +18847,27 @@ sits at −2.47. At the opening state (3×, lengths differ, gene 5 up) raw
 reads 12.00 within and 0.75 between, TPM 1.00 and 0.44, the size factor
 12.00 and 1.00.
 
+**Round 6** (2026-09-22) — *maybe we remove the brackets, but shade the
+hover for between and within differently. Instead of "is right", compare to
+ground truth. For the histogram, am I right that if normalisation is correct,
+for one changed gene most are around 0 and a few are DE, and for most genes
+changed most are DE and a few around 0?* The brackets went; one FOCUS serves
+the default (gene 5 in A against gene 6) and the hover (the gene pointed at,
+against gene 1), and its two readings are shaded in their own hues on the
+table and the piles — `--c-group-a` for between (the gene's row, both
+samples), `--c-group-b` for within (two cells of one column) — with a swatch
+beside each margin line and two legend entries. Every "is right" became
+"truth 1.00" or "truth 8.00" for a gene that rose in B, on the margin, the
+tiles and the histogram. **The histogram answer is no, and the widget now
+shows why:** under a correct unit the two bumps sit at their truths whatever
+their shares (unchanged at 0, changed at log2 8 = 3), so the picture is 95/5
+with one gene and 40/60 with most; what he saw under the size factor with
+most genes changed was the method's mistake, the median of ratios taking the
+larger group as the unchanged one and putting the changed 60% at 0 and the
+unchanged 40% at −2.5. Two truth lines are drawn on the histogram, "truth,
+unchanged" at 0 and "truth, up 8×" at 3, and the third tile says what the
+median of ratios did when it did it.
+
 **Round 5** — *could we hover and compare within and between genes?* Core's
 pointer channel (`pointer: true`, as widgets 31 and 42): pointing at a gene,
 in a pile or in a table cell, reads THAT gene both ways in the table's

@@ -265,6 +265,17 @@ function hoverAt(pointer, w, state) {
   return null;
 }
 
+/* THE FOCUS: which gene is read both ways. With no pointer it is gene 5 in
+   sample A against gene 6 (the readout's own pair); under a pointer it is the
+   gene pointed at, in the sample pointed at, against gene 1 (gene 6 when it
+   is gene 1). The between reading is that gene's ROW, the within reading two
+   cells of its COLUMN, and each is shaded in its own hue — `--c-group-a` and
+   `--c-group-b`, the two arms of a comparison the reader chose (his round 6,
+   2026-09-21: no brackets, the two shadings different). */
+const DEFAULT_FOCUS = { gene: 4, sample: 0, other: 5 };
+const focusOf = (hover) => (hover ? { gene: hover.gene, sample: hover.sample, other: hover.gene === 0 ? 5 : 0 } : DEFAULT_FOCUS);
+const WASH = 0.22;
+
 /* The two readings the table brackets, which is what a unit change eases:
    the table and the histogram crossfade because their numbers and axes change
    with the unit, and a number sliding is a number the reader can follow. */
@@ -355,7 +366,9 @@ defineWidget({
   legend: ({ params }) => {
     const L = [{ token: "empirical", label: "A read; a gene of the 2,000", mark: "bar" }];
     if (params.change !== "none") L.push({ token: "highlight", label: "A gene that changed", mark: "bar" });
-    L.push({ token: "reference", label: "Equal in A and B", mark: "line" });
+    L.push({ token: "groupA", label: "Between samples: one gene in both", mark: "bar" });
+    L.push({ token: "groupB", label: "Within a sample: two genes in one", mark: "bar" });
+    L.push({ token: "reference", label: "Truth for an unchanged gene", mark: "line" });
     L.push({ token: "reference", label: "Median over all 2,000 genes", mark: "dash" });
     return L;
   },
@@ -447,9 +460,9 @@ defineWidget({
   readout: ({ state }) => {
     const u = UNITS[state.unit].short;
     return [
-      { label: "Within sample A: gene 5 ÷ gene 6", value: fmt(state.within, 2), note: `the same expression per kilobase, in ${u}; 1.00 is right` },
-      { label: "Between samples: gene 1, B ÷ A", value: fmt(state.between, 2), note: `unchanged, in ${u}; 1.00 is right` },
-      { label: "2,000 unchanged genes, median log2(B ÷ A)", value: fmt(state.medianUnchanged, 2), note: `${state.shifts.length.toLocaleString("en")} genes with counts over ${MIN_COUNT} in both; 0 is right` },
+      { label: "Within sample A: gene 5 ÷ gene 6", value: fmt(state.within, 2), note: `truth 1.00: the same expression per kilobase, in ${u}` },
+      { label: "Between samples: gene 1, B ÷ A", value: fmt(state.between, 2), note: `truth 1.00: unchanged, in ${u}` },
+      { label: "2,000 unchanged genes, median log2(B ÷ A)", value: fmt(state.medianUnchanged, 2), note: `truth 0; ${state.shifts.length.toLocaleString("en")} genes with counts over ${MIN_COUNT} in both${state.unit === "sf" && state.toy.changed.length >= 4 ? "; the median of ratios took the larger group, the changed genes, as the unchanged" : ""}` },
     ];
   },
 });
@@ -477,11 +490,15 @@ function drawPiles(ctx, colors, w, y0, state, hover) {
 
   [["A", toy.A, toy.reads.A, 0], ["B", toy.B, toy.reads.B, 1]].forEach(([name, counts, reads, k]) => {
     const base = y0 + L.base(k);
-    if (hover) {
-      /* the hovered gene's span in both lanes (between), and its lane (within) */
-      ctx.fillStyle = colors.surface3;
-      ctx.fillRect(L.gx[hover.gene] - gap / 2, base - laneH + 16, L.gw[hover.gene] + gap, laneH - 2);
-      if (k === hover.sample) ctx.fillRect(padL - gap / 2, base - laneH + 16, w - padL - padR + gap, 3);
+    {
+      /* between: the focus gene's span in both lanes; within: the two genes'
+         spans in the focus lane, each in its own hue */
+      const F = focusOf(hover);
+      const span = (i) => ctx.fillRect(L.gx[i] - gap / 2, base - laneH + 16, L.gw[i] + gap, laneH - 2);
+      ctx.save();
+      ctx.globalAlpha = WASH; ctx.fillStyle = colors.groupA; span(F.gene);
+      if (k === F.sample) { ctx.fillStyle = colors.groupB; span(F.gene); span(F.other); }
+      ctx.restore();
     }
     ctx.textAlign = "left";
     ctx.font = `600 ${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.ink2;
@@ -523,12 +540,19 @@ function drawTable(ctx, colors, w, y0, state, r, fade, hover) {
   const mx = cx.B + 14;   // the margin where the two readings are named
   ctx.save();
   ctx.globalAlpha = fade;
-  if (hover) {
-    /* the row is the between reading, the column the within one */
-    ctx.fillStyle = colors.surface3;
-    ctx.fillRect(10, first + hover.gene * rh - 12, cx.B - 2, rh);
-    const colX = hover.sample ? cx.B : cx.A;
-    ctx.fillRect(colX - TABLE.colW, first - 12, TABLE.colW + 8, 6 * rh);
+  const F = focusOf(hover);
+  {
+    /* between: the focus gene's row across both samples; within: its cell
+       and the comparator's in the focus column, each in its own hue */
+    ctx.save();
+    ctx.globalAlpha = WASH * fade;
+    ctx.fillStyle = colors.groupA;
+    ctx.fillRect(cx.A - TABLE.colW, first + F.gene * rh - 12, cx.B - cx.A + TABLE.colW + 8, rh);
+    const colX = F.sample ? cx.B : cx.A;
+    ctx.fillStyle = colors.groupB;
+    ctx.fillRect(colX - TABLE.colW, first + F.gene * rh - 12, TABLE.colW + 8, rh);
+    ctx.fillRect(colX - TABLE.colW, first + F.other * rh - 12, TABLE.colW + 8, rh);
+    ctx.restore();
   }
   ctx.textBaseline = "alphabetic";
   ctx.font = `${colors.fsSm} ${colors.font}`;
@@ -557,39 +581,25 @@ function drawTable(ctx, colors, w, y0, state, r, fade, hover) {
   ctx.fillText(big(total(toyU.B)), cx.B, ty);
 
   ctx.textAlign = "left";
-  const name = (s, y, v, right) => {
+  /* the two readings, named in the margin beside a swatch of their hue: the
+     number, then the truth the stage set — 1.00, or the fold for a gene that
+     changed in sample B */
+  const reading = (hue, title, y, v, truth, why) => {
+    ctx.save(); ctx.globalAlpha = 0.9 * fade; ctx.fillStyle = hue; ctx.fillRect(mx - 12, y - 8, 8, 8); ctx.restore();
     ctx.font = `600 ${colors.fsXs} ${colors.font}`;
-    ctx.fillStyle = Math.abs(v - right) > 0.01 * right ? colors.extreme : colors.ink1;
-    ctx.fillText(`${s} = ${fmt(v, 2)}`, mx, y);
+    ctx.fillStyle = Math.abs(v - truth) > 0.01 * truth ? colors.extreme : colors.ink1;
+    ctx.fillText(`${title} = ${fmt(v, 2)}`, mx, y);
+    ctx.font = `${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.ink3;
+    ctx.fillText(`truth ${fmt(truth, 2)}: ${why}`, mx, y + rh);
   };
-  const note = (s, y) => { ctx.font = `${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.ink3; ctx.fillText(s, mx, y); };
-  ctx.strokeStyle = colors.ink3; ctx.lineWidth = 1.2;
-  if (hover) {
-    /* the hovered gene, both ways: its row between the samples, and its
-       column against gene 1 (gene 6 when it is gene 1). "Right" is what the
-       stage set: 1.00, or the fold for a gene that changed, in sample B */
-    const g = hover.gene, k = hover.sample, other = g === 0 ? 5 : 0;
-    const U = k ? toyU.B : toyU.A, S = k ? "B" : "A";
-    const changedIn = (i) => (k === 1 && toy.changed.includes(i) ? FOLD : 1);
-    const between = toyU.B[g] / toyU.A[g], betweenRight = toy.changed.includes(g) ? FOLD : 1;
-    const within = U[g] / U[other], withinRight = changedIn(g) / changedIn(other);
-    name(`between: gene ${g + 1}, B ÷ A`, first, between, betweenRight);
-    note(`${toy.changed.includes(g) ? `up ${FOLD}×` : "unchanged"}: ${fmt(betweenRight, 2)} is right`, first + rh);
-    name(`within ${S}: gene ${g + 1} ÷ gene ${other + 1}`, first + 4 * rh, within, withinRight);
-    note(`one expression per kb${withinRight !== 1 ? `, gene ${g + 1} up ${FOLD}×` : ""}: ${fmt(withinRight, 2)} is right`, first + 5 * rh);
-  } else {
-    /* the within bracket: down column A between rows 5 and 6 */
-    const bx = cx.A + 10, y5 = first + 4 * rh - 4, y6 = first + 5 * rh - 4;
-    ctx.beginPath(); ctx.moveTo(bx - 4, y5 - 7); ctx.lineTo(bx, y5 - 7); ctx.lineTo(bx, y6 + 4); ctx.lineTo(bx - 4, y6 + 4); ctx.stroke();
-    /* the between bracket: across gene 1's row, above it */
-    const by = first - 13, bx1 = cx.A - 44, bx2 = cx.B + 6;
-    ctx.beginPath(); ctx.moveTo(bx1, by + 4); ctx.lineTo(bx1, by); ctx.lineTo(bx2, by); ctx.lineTo(bx2, by + 4); ctx.stroke();
-    /* the two readings, named in the margin; the numbers are the eased ones */
-    name("between: gene 1, B ÷ A", first, r.between, 1);
-    note("unchanged: 1.00 is right", first + rh);
-    name("within A: gene 5 ÷ gene 6", first + 4 * rh, r.within, 1);
-    note("one expression per kb: 1.00 is right", first + 5 * rh);
-  }
+  const g = F.gene, k = F.sample, other = F.other;
+  const U = k ? toyU.B : toyU.A, S = k ? "B" : "A";
+  const changedIn = (i) => (k === 1 && toy.changed.includes(i) ? FOLD : 1);
+  /* with no pointer the numbers are the eased ones, so a unit change counts them along */
+  const between = hover ? toyU.B[g] / toyU.A[g] : r.between, betweenTruth = toy.changed.includes(g) ? FOLD : 1;
+  const within = hover ? U[g] / U[other] : r.within, withinTruth = changedIn(g) / changedIn(other);
+  reading(colors.groupA, `between: gene ${g + 1}, B ÷ A`, first, between, betweenTruth, toy.changed.includes(g) ? `up ${FOLD}×` : "unchanged");
+  reading(colors.groupB, `within ${S}: gene ${g + 1} ÷ gene ${other + 1}`, first + 4 * rh, within, withinTruth, withinTruth !== 1 ? `one expression per kb, gene ${g + 1} up ${FOLD}×` : "one expression per kb");
   ctx.font = `${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.ink3;
   ctx.fillText("point at a gene to read it both ways", mx, first + 6 * rh + 2);
   ctx.restore();
@@ -610,7 +620,7 @@ function drawHist(ctx, colors, w, y0, state, fade) {
   ctx.save();
   ctx.globalAlpha = fade;
   const plot = makePlot({ ctx, colors, rect: { x: padL, y: top, w: w - padL - padR, h: bottom - top }, xDomain: [lo, hi], yDomain: [0, hmax] });
-  plot.axisX({ ticks: [-3, -2, -1, 0, 1, 2, 3, 4], format: (v) => String(v), label: "log2(B ÷ A) per gene; 0 is equal" });
+  plot.axisX({ ticks: [-3, -2, -1, 0, 1, 2, 3, 4], format: (v) => String(v), label: "log2(B ÷ A) per gene" });
   plot.caption(`2,000 genes in ${u}: sample B against sample A`);
   const bw = (w - padL - padR) / nb;
   ctx.fillStyle = colors.empirical; ctx.globalAlpha = 0.8 * fade;
@@ -618,14 +628,20 @@ function drawHist(ctx, colors, w, y0, state, fade) {
   ctx.fillStyle = colors.highlight; ctx.globalAlpha = 0.85 * fade;
   hC.forEach((v, k) => { if (v) ctx.fillRect(plot.sx(lo + (k / nb) * (hi - lo)), plot.sy(v), bw - 1, plot.sy(0) - plot.sy(v)); });
   ctx.globalAlpha = fade;
-  plot.vline(0, { stroke: colors.reference, width: 1.5 });
+  /* the truths: 0 for an unchanged gene, log2 of the fold for a changed one.
+     A correct unit puts the blue bump on the first and the violet on the
+     second whatever their shares; the median of ratios with most genes
+     changed puts the violet bump on 0 instead (his question, round 6) */
+  plot.vline(0, { stroke: colors.reference, width: 1.5, label: "truth, unchanged", align: "right" });
+  if (state.toy.changed.length) plot.vline(Math.log2(FOLD), { stroke: colors.highlight, width: 1.5, label: `truth, up ${FOLD}×`, align: "right" });
   ctx.save(); ctx.setLineDash([4, 3]); plot.vline(state.medianAll, { stroke: colors.ink1, width: 1 }); ctx.restore();
   ctx.textBaseline = "alphabetic"; ctx.textAlign = "right";
   ctx.font = `600 ${colors.fsXs} ${colors.font}`;
   ctx.fillStyle = Math.abs(state.medianUnchanged) > 0.05 ? colors.extreme : colors.ink1;
-  ctx.fillText(`unchanged genes' median ${fmt(state.medianUnchanged, 2)}`, w - padR - 4, top + 12);
+  ctx.textAlign = "left";
+  ctx.fillText(`unchanged genes' median ${fmt(state.medianUnchanged, 2)}`, padL + 4, top + 12);
   ctx.font = `${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.ink3;
-  ctx.fillText(`median over all, dashed: ${fmt(state.medianAll, 2)}`, w - padR - 4, top + 24);
+  ctx.fillText(`truth 0 · median over all, dashed: ${fmt(state.medianAll, 2)}`, padL + 4, top + 24);
   ctx.restore();
 }
 
