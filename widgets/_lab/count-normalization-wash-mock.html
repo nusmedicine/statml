@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · count-normalization — the two washes and their overlap</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1500px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 104ch; font-size: var(--fs-sm); }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; }
+  canvas { display: block; border: 1px solid var(--grid); }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 104ch; }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 104ch; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>count-normalization &middot; the two washes, and what their overlap makes</h1>
+  <p class="note">
+    His ask, 2026-09-22: two hues whose overlap is a colour rather than mud (blue + yellow at the same alpha gives
+    grey-green). Each row is one pair of token roles: the between wash alone, the within wash alone, and the cell where
+    they overlap, drawn over the figure surface in the light theme and the dark theme, first by alpha stacking as the
+    widget does now (both at 0.22), then with the second wash multiplied in. The table row of six cells under each
+    triple is the actual table cell size, so the overlap reads at the size it has on the widget.
+  </p>
+  <div id="rows"></div>
+  <h2>The roles</h2>
+  <p class="note">
+    The two shadings are two arms of a comparison the reader chose, which is what <code>--c-group-a</code> /
+    <code>--c-group-b</code> mean (blue / yellow) — the pair the widget uses now. A row and a column are also two
+    dimensions of the table, which is what <code>--c-dim-a..d</code> mean (orange, green, aqua, red; "on frames, rules,
+    arrows and swatches, never on text"). Red is <code>--c-extreme</code> elsewhere (past a threshold) and violet is the
+    changed gene's highlight, so those two are drawn here to be seen and would need a new role to be used.
+  </p>
+  <p class="q"><b>The pick</b> a row number; and alpha stacking or multiply. If the pair is not group-a / group-b, the widget adds two
+    roles to tokens.css (<code>--c-between</code> / <code>--c-within</code>, aliases of the series slots picked), which is a core
+    change and means one full fingerprint run.</p>
+</main>
+<script type="module">
+import { readTokens } from "../core/env.js";
+const DPR = window.devicePixelRatio || 1;
+function canvasIn(host, w, h) { const c = document.createElement("canvas"); c.width = Math.round(w * DPR); c.height = Math.round(h * DPR); c.style.width = `${w}px`; c.style.height = `${h}px`; host.appendChild(c); const ctx = c.getContext("2d"); ctx.scale(DPR, DPR); return ctx; }
+const WASH = 0.22;
+const PAIRS = [
+  ["1 · group-a + group-b (as now)", "groupA", "groupB"],
+  ["2 · group-a + extreme (blue + red, his suggestion)", "groupA", "extreme"],
+  ["3 · group-a + slope (blue + magenta)", "groupA", "slope"],
+  ["4 · group-a + dim-a (blue + orange)", "groupA", "dimA"],
+  ["5 · smoothed + extreme (aqua + red)", "smoothed", "extreme"],
+  ["6 · group-a + group-c (blue + green)", "groupA", "groupC"],
+  ["7 · dim-c + dim-d (aqua + red)", "dimC", "dimD"],
+  ["8 · highlight + group-b (violet + yellow)", "highlight", "groupB"],
+  ["9 · group-c + slope (green + magenta)", "groupC", "slope"],
+];
+const host = document.getElementById("rows");
+function drawTriple(ctx, T, x0, a, b, mode) {
+  const s = 56;
+  ctx.fillStyle = T.surface; ctx.fillRect(x0, 0, 3 * s + 16 + 6 * 46 + 24, 130);
+  // the three swatches: A alone, B alone, overlap
+  const wash = (col, x, y, w, h) => { ctx.save(); ctx.globalAlpha = WASH; ctx.fillStyle = col; ctx.fillRect(x, y, w, h); ctx.restore(); };
+  const mult = (col, x, y, w, h) => { ctx.save(); ctx.globalCompositeOperation = "multiply"; ctx.globalAlpha = 0.35; ctx.fillStyle = col; ctx.fillRect(x, y, w, h); ctx.restore(); };
+  const B = mode === "multiply" ? mult : wash;
+  wash(a, x0, 8, s, s); B(b, x0 + s + 8, 8, s, s);
+  wash(a, x0 + 2 * s + 16, 8, s, s); B(b, x0 + 2 * s + 16, 8, s, s);
+  ctx.font = `10px ${T.font}`; ctx.fillStyle = T.ink3; ctx.textAlign = "center";
+  ctx.fillText("between", x0 + s / 2, 78); ctx.fillText("within", x0 + s + 8 + s / 2, 78); ctx.fillText("overlap", x0 + 2 * s + 16 + s / 2, 78);
+  // a table row at true size: six cells of 46 × 17, the row washed A, two cells washed B
+  const tx = x0 + 3 * s + 40, ty = 20, cw = 64, rh = 17;
+  ctx.font = `11px ${T.mono}`; ctx.fillStyle = T.ink1; ctx.textAlign = "right";
+  for (let i = 0; i < 6; i += 1) {
+    const y = ty + i * rh;
+    if (i === 0) wash(a, tx, y - 12, cw * 2 + 8, rh);
+    if (i === 4 || i === 5) B(b, tx, y - 12, cw + 8, rh);
+    ctx.fillStyle = T.ink1;
+    ctx.fillText(["166,667", "166,667", "166,667", "166,667", "166,667", "166,667"][i], tx + cw, y);
+    ctx.fillText(["73,770", "73,770", "73,770", "73,770", "606,557", "98,361"][i], tx + 2 * cw + 8, y);
+  }
+  // overlap cell: row 0 also gets within on a second example row
+  wash(a, tx, ty + 4 * rh - 12, cw * 2 + 8, rh);
+  ctx.fillStyle = T.ink3; ctx.font = `10px ${T.font}`; ctx.textAlign = "left";
+  ctx.fillText("rows 1 and 5 between; rows 5 and 6 within; row 5 is the overlap", tx, ty + 6 * rh + 2);
+}
+for (const [name, ka, kb] of PAIRS) {
+  const h2 = document.createElement("h2"); h2.textContent = name; host.appendChild(h2);
+  for (const mode of ["alpha", "multiply"]) {
+    const row = document.createElement("div"); row.className = "row";
+    const lab = document.createElement("p"); lab.className = "note"; lab.style.minWidth = "80px"; lab.textContent = mode; row.appendChild(lab);
+    for (const theme of ["light", "dark"]) {
+      document.documentElement.setAttribute("data-theme", theme);
+      const T = readTokens();
+      const ctx = canvasIn(row, 3 * 56 + 16 + 6 * 46 + 24 + 100, 130);
+      ctx.fillStyle = T.surface; ctx.fillRect(0, 0, 600, 130);
+      const col = (k) => (k.startsWith("dim") ? T.dims["ABCD".indexOf(k[3])] : T[k]);
+      drawTriple(ctx, T, 8, col(ka), col(kb), mode);
+    }
+    host.appendChild(row);
+  }
+}
+document.documentElement.removeAttribute("data-theme");
+</script>
+</body>
+</html>
