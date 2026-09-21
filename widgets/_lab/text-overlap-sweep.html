@@ -17,15 +17,15 @@
   is wrapped to record every string's box (the width from <code>measureText</code>, the height from the font's px, the
   left edge from the alignment, mapped through the context's transform so rotated and scaled text count), the canvas is
   repainted, and pairs whose boxes intersect are reported with anything past the canvas edge.
-  <code>?slug=embedding-space&amp;w=900</code>; the states come from the list in this file.
+  <code>?slug=sequence-encoding&amp;w=900</code>; the states come from the list in this file.
 </p>
 <pre id="out">running…</pre>
 <iframe id="frame" width="900" height="900"></iframe>
 <script type="module">
 const Q = new URLSearchParams(location.search);
-const slug = Q.get("slug") || "embedding-space", W = Number(Q.get("w") || 900);
+const slug = Q.get("slug") || "sequence-encoding", W = Number(Q.get("w") || 900);
 const STATES = {
-  "embedding-space": [
+  "sequence-encoding": [
     "?page=tokenize&vocab=dna&shown=48", "?page=tokenize&vocab=codon&shown=16", "?page=tokenize&vocab=aa&shown=26", "?page=tokenize&vocab=words&shown=16",
     "?page=tokenize&vocab=words&shown=0",
     "?page=encode&vocab=dna&shown=40", "?page=encode&vocab=codon&shown=40", "?page=encode&vocab=aa&shown=40", "?page=encode&vocab=words&shown=40",

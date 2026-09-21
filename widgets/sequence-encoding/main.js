@@ -1,5 +1,5 @@
 /* ============================================================================
-   Widget 74 · Embedding Space — PHM5005 07-1 cell 3 (tokens, one-hot,
+   Widget 74 · Sequences: Tokens to Vectors (`sequence-encoding`) — PHM5005 07-1 cell 3 (tokens, one-hot,
    embedding, the "Vector space" panel) and 08-1 cell 1 §2 (position).
 
    Three pages, one step each, in the pipeline's order (his shape of
@@ -71,7 +71,7 @@ const S = {
   subtitle:
     "A sequence is split into tokens, and each token becomes a vector: orthogonal and equidistant under one-hot, or a row of an embedding trained with the task, " +
     "in which tokens the task treats alike are near one another. For attention, which has no order of its own, a position encoding is added to each vector.",
-  pageLabel: "Page",
+  pageLabel: "Step",
   vocabLabel: "Vocabulary",
   vocabDetail: "which tokens the table holds a row for: the four bases, the sixty-four codons, the twenty amino acids, or forty clinical words",
   dataSection: "The vector",
@@ -740,9 +740,9 @@ function drawPosition(ctx, colors, w, params, state, anim, pointer) {
 /* ================================================================ widget */
 
 defineWidget({
-  slug: "embedding-space",
+  slug: "sequence-encoding",
   status: "draft",
-  title: "Deep Learning - Embedding Space",
+  title: "Deep Learning - Sequences: Tokens to Vectors",
   subtitle: S.subtitle,
   layout: "side",
   height: ({ page, vocab, encoding, posenc, E }) => (page === "tokenize" ? tokLayout(vocab).height : page === "position" ? heightPos(posenc, Number(E), M.PAD_TO[vocab]) : encoding === "onehot" ? oneHotLayout(vocab).height : HEIGHT),
