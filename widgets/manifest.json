@@ -1067,7 +1067,7 @@
     },
     {
       "slug": "signal-windows",
-      "title": "Deep Learning - Signal Windows",
+      "title": "Deep Learning - Signals: Raw to Windows",
       "blurb": "Signals are cleaned, windowed and labelled, then split by subject: windows of one person are not independent samples.",
       "course": "PHM5005",
       "topics": [

@@ -500,7 +500,7 @@ function drawNormalize(ctx, colors, w, params, state, anim) {
 defineWidget({
   slug: "signal-windows",
   status: "shipped",
-  title: "Deep Learning - Signal Windows",
+  title: "Deep Learning - Signals: Raw to Windows",
   subtitle: S.subtitle,
   layout: "side",
   height: ({ page }) => HEIGHTS[page] ?? HEIGHTS.clean,
