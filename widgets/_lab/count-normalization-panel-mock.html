@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · count-normalization — the 2,000-gene panel: histogram, boxes or MA</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1800px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 104ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); min-height: 26px; white-space: pre-line; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 104ch; }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 104ch; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>count-normalization &middot; the 2,000-gene panel three ways</h1>
+  <p class="note">
+    His question, 2026-09-22: <i>is the histogram the right way to visualise this? would a boxplot work?</i> The same 2,000
+    genes (lengths differ, sample B at 3&times;) drawn three ways, in three states across each row: raw counts with gene 5's
+    group up; TPM with gene 5's group up; the size factor with most genes up. <b>Every number is computed on this page.</b>
+    Blue is the unchanged genes, violet the changed; the grey line is the truth for an unchanged gene and the violet line the
+    truth for a changed one. 550 &times; 156 px, the panel's own size.
+  </p>
+
+  <h2>A &middot; the histogram of log2(B &divide; A), as now</h2>
+  <p class="note">Each gene becomes one number, its ratio between the samples. Up shows only as "right of the truth line", which is what made the
+    size-factor state read as reversed.</p>
+  <div class="row" id="rowA"></div>
+
+  <h2>B &middot; boxes of the values themselves: unchanged and changed genes, in each sample</h2>
+  <p class="note">Four boxes on a log axis: the unchanged genes in A and in B, then the changed genes in A and in B. B above A, or level with it,
+    is seen directly; the truth is the two unchanged boxes level and the changed pair eight times apart (three on the log2 axis).
+    The medians are printed. This is widget 39's own figure, one box per sample, split by whether the gene changed.</p>
+  <div class="row" id="rowB"></div>
+
+  <h2>C &middot; the MA plot, as 01-2 draws it (plotMA)</h2>
+  <p class="note">The ratio against the mean, one dot per gene. The same ratio as A, spread out by expression; it is the lesson's own figure and
+    78's, so a reader meets it again there.</p>
+  <div class="row" id="rowC"></div>
+
+  <h2>The call</h2>
+  <p class="q"><b>The panel</b>
+    <b>B &middot; the boxes (recommended: no ratio, the direction is seen, and it is the figure 39 already taught)</b> &nbsp;|&nbsp;
+    A &middot; the histogram as now &nbsp;|&nbsp; C &middot; the MA plot &nbsp;|&nbsp; B over A, both (312px, the widget grows)</p>
+  <p class="q"><b>Under B, the tile</b> the unchanged genes' median in B &divide; A stays the number (0 on the log2 axis is the truth), read off the
+    two blue boxes' medians instead of the histogram.</p>
+</main>
+<script type="module">
+import { readTokens } from "../core/env.js";
+import { makeRng } from "../core/rng.js";
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+const W = 550, H = 156;
+function el(tag, cls, text) { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
+function cand(rowId, title, sub) { const box = el("div", "cand"); box.style.width = `${W}px`; box.appendChild(el("h3", null, title)); box.appendChild(el("p", "sub", sub)); document.getElementById(rowId).appendChild(box); return box; }
+function canvasIn(box, w, h) { const c = document.createElement("canvas"); c.width = Math.round(w * DPR); c.height = Math.round(h * DPR); c.style.width = `${w}px`; c.style.height = `${h}px`; box.appendChild(c); const ctx = c.getContext("2d"); ctx.scale(DPR, DPR); return ctx; }
+const rgb = (c) => { const m = String(c).match(/^#([0-9a-f]{6})$/i); return m ? [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16)) : [128, 128, 128]; };
+const wash = (color, a) => { const p = rgb(color); return `rgba(${p[0]},${p[1]},${p[2]},${a})`; };
+function label(ctx, s, x, y, { size = 10, colour = T.ink3, align = "left", weight = "", mono = false } = {}) { ctx.save(); ctx.font = `${weight ? weight + " " : ""}${size}px ${mono ? T.mono : T.font}`; ctx.fillStyle = colour; ctx.textAlign = align; ctx.textBaseline = "alphabetic"; ctx.fillText(s, x, y); ctx.restore(); }
+function line(ctx, x1, y1, x2, y2, colour, width = 1, dash = null) { ctx.save(); ctx.strokeStyle = colour; ctx.lineWidth = width; if (dash) ctx.setLineDash(dash); ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); ctx.restore(); }
+function rect(ctx, x, y, w, h, fill, stroke = null, lw = 1) { ctx.save(); if (fill) { ctx.fillStyle = fill; ctx.fillRect(x, y, w, h); } if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw; ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1); } ctx.restore(); }
+function dot(ctx, x, y, r, fill) { ctx.save(); ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fillStyle = fill; ctx.fill(); ctx.restore(); }
+const median = (a) => { const s = Float64Array.from(a).sort(); const m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
+const quant = (a, p) => { const s = Float64Array.from(a).sort(); return s[Math.min(s.length - 1, Math.floor(p * s.length))]; };
+const total = (c) => c.reduce((s, v) => s + v, 0);
+const log2 = (x) => Math.log(x) / Math.LN2;
+const f = (x, d = 2) => x.toFixed(d);
+function poisson(rng, mu) { if (mu <= 0) return 0; if (mu < 40) { const L = Math.exp(-mu); let k = 0, p = 1; do { k += 1; p *= rng.next(); } while (p > L); return k - 1; } return Math.max(0, Math.round(mu + Math.sqrt(mu) * rng.normal())); }
+function unitOf(counts, len, unit, sf = 1) {
+  if (unit === "raw") return counts.slice();
+  if (unit === "TPM") { const r = counts.map((v, i) => v / len[i]); const t = total(r); return r.map((v) => (1e6 * v) / t); }
+  return counts.map((v) => v / sf);
+}
+function sizeFactors(A, B) { const gm = A.map((a, i) => Math.sqrt(a * B[i])); const ok = gm.map((g) => g > 0); const kA = A.filter((_, i) => ok[i]), kB = B.filter((_, i) => ok[i]), kg = gm.filter((g) => g > 0); return [median(kA.map((a, i) => a / kg[i])), median(kB.map((b, i) => b / kg[i]))]; }
+const FOLD = 8, G = 2000;
+function panel(seed, { depthB = 3, share = 0.05 }) {
+  const rng = makeRng(seed);
+  const len = Array.from({ length: G }, () => Math.exp(rng.normal(Math.log(2), 0.7)));
+  const E = Array.from({ length: G }, () => Math.exp(rng.normal(Math.log(30), 1.6)));
+  const up = new Set(); while (up.size < Math.round(share * G)) up.add(Math.floor(rng.next() * G));
+  const EB = E.map((v, i) => (up.has(i) ? FOLD * v : v));
+  const s = total(E.map((v, i) => v * len[i])) / total(EB.map((v, i) => v * len[i]));
+  const A = E.map((v, i) => poisson(rng, v * len[i] * 0.1)), B = EB.map((v, i) => poisson(rng, v * len[i] * 0.1 * depthB * s));
+  return { len, A, B, changed: up };
+}
+function valued(P, unit) {
+  const [sfA, sfB] = sizeFactors(P.A, P.B);
+  const uA = unitOf(P.A, P.len, unit, sfA), uB = unitOf(P.B, P.len, unit, sfB);
+  const keep = [...Array(G).keys()].filter((i) => P.A[i] > 20 && P.B[i] > 20);
+  return { uA, uB, keep, unch: keep.filter((i) => !P.changed.has(i)), ch: keep.filter((i) => P.changed.has(i)) };
+}
+const STATES = [
+  ["raw counts, gene 5's group up (5%)", "raw", { depthB: 3, share: 0.05 }],
+  ["TPM, gene 5's group up (5%)", "TPM", { depthB: 3, share: 0.05 }],
+  ["size factor, most genes up (60%)", "sf", { depthB: 3, share: 0.6 }],
+];
+
+/* A · the histogram */
+function drawHist(ctx, P, unit) {
+  const V = valued(P, unit);
+  const lo = -3, hi = 4, nb = 42, hU = new Array(nb).fill(0), hC = new Array(nb).fill(0);
+  const bin = (v) => Math.floor(((v - lo) / (hi - lo)) * nb);
+  const sh = (i) => log2(V.uB[i] / V.uA[i]);
+  V.unch.forEach((i) => { const k = bin(sh(i)); if (k >= 0 && k < nb) hU[k] += 1; });
+  V.ch.forEach((i) => { const k = bin(sh(i)); if (k >= 0 && k < nb) hC[k] += 1; });
+  const hmax = Math.max(1, ...hU, ...hC), px0 = 44, pw = W - 56, py0 = 22, ph = H - 58;
+  const xOf = (v) => px0 + ((v - lo) / (hi - lo)) * pw;
+  line(ctx, px0, py0 + ph, px0 + pw, py0 + ph, T.ink3);
+  hU.forEach((v, k) => rect(ctx, xOf(lo + (k / nb) * (hi - lo)), py0 + ph - (v / hmax) * ph, pw / nb - 1, (v / hmax) * ph, wash(T.empirical, 0.8)));
+  hC.forEach((v, k) => rect(ctx, xOf(lo + (k / nb) * (hi - lo)), py0 + ph - (v / hmax) * ph, pw / nb - 1, (v / hmax) * ph, wash(T.highlight, 0.85)));
+  line(ctx, xOf(0), py0, xOf(0), py0 + ph, T.reference, 1.5); line(ctx, xOf(3), py0, xOf(3), py0 + ph, T.highlight, 1.5);
+  [-3, -2, -1, 0, 1, 2, 3, 4].forEach((v) => label(ctx, String(v), xOf(v), py0 + ph + 12, { align: "center" }));
+  label(ctx, "log2(B ÷ A) per gene", px0 + pw / 2, py0 + ph + 24, { align: "center" });
+  label(ctx, `unchanged genes' median ${f(median(V.unch.map(sh)))} · changed ${f(median(V.ch.map(sh)))}`, px0 + 4, py0 + 12, { colour: T.ink1, weight: "600" });
+}
+
+/* B · four boxes on a log axis */
+function drawBoxes(ctx, P, unit) {
+  const V = valued(P, unit);
+  const groups = [["unchanged, A", V.unch.map((i) => V.uA[i]), T.empirical], ["unchanged, B", V.unch.map((i) => V.uB[i]), T.empirical], ["changed, A", V.ch.map((i) => V.uA[i]), T.highlight], ["changed, B", V.ch.map((i) => V.uB[i]), T.highlight]];
+  const all = groups.flatMap((g) => g[1]).filter((v) => v > 0).map(log2);
+  const lo = Math.min(...all), hi = Math.max(...all);
+  const px0 = 44, pw = W - 56, py0 = 18, ph = H - 54;
+  const sy = (v) => py0 + ph - ((log2(v) - lo) / (hi - lo)) * ph;
+  line(ctx, px0, py0 + ph, px0 + pw, py0 + ph, T.ink3);
+  /* the truths: a dotted line at the unchanged A median (B's unchanged box should sit on it), and one at 8x it for the changed pair */
+  const mA = median(groups[0][1]);
+  line(ctx, px0, sy(mA), px0 + pw, sy(mA), T.reference, 1.5);
+  const mCA = median(groups[2][1]);
+  line(ctx, px0 + pw / 2, sy(mCA * FOLD), px0 + pw, sy(mCA * FOLD), T.highlight, 1.5);
+  groups.forEach(([name, vals, col], k) => {
+    const cx = px0 + pw * (k + 0.5) / 4, half = 34;
+    const q1 = quant(vals, 0.25), q3 = quant(vals, 0.75), med = median(vals), w1 = quant(vals, 0.05), w9 = quant(vals, 0.95);
+    line(ctx, cx, sy(w1), cx, sy(w9), col);
+    rect(ctx, cx - half, sy(q3), 2 * half, sy(q1) - sy(q3), wash(col, 0.18), col);
+    line(ctx, cx - half, sy(med), cx + half, sy(med), col, 2.5);
+    label(ctx, name, cx, py0 + ph + 12, { align: "center" });
+    label(ctx, f(log2(med), 2), cx, sy(med) - 6, { align: "center", colour: T.ink1, mono: true, weight: "600" });
+  });
+  label(ctx, "log2 of the value; box = middle half, line = median", px0 + 4, py0 + 12, { colour: T.ink3 });
+  label(ctx, "grey: the unchanged genes' level in A · violet: 8× the changed genes' level in A", px0 + pw / 2, py0 + ph + 24, { align: "center" });
+  const gap = log2(median(groups[1][1]) / mA), gapC = log2(median(groups[3][1]) / mCA);
+  label(ctx, `unchanged B − A ${f(gap)} (truth 0) · changed B − A ${f(gapC)} (truth 3)`, px0 + pw - 4, py0 + 12, { align: "right", colour: T.ink1, weight: "600" });
+}
+
+/* C · the MA plot */
+function drawMA(ctx, P, unit) {
+  const V = valued(P, unit);
+  const px0 = 44, pw = W - 56, py0 = 22, ph = H - 58;
+  const xs = V.keep.map((i) => log2((V.uA[i] + V.uB[i]) / 2)), lo = Math.min(...xs), hi = Math.max(...xs);
+  const sx = (v) => px0 + ((v - lo) / (hi - lo)) * pw, sy = (v) => py0 + ph - ((v + 3) / 7) * ph;
+  line(ctx, px0, py0 + ph, px0 + pw, py0 + ph, T.ink3); line(ctx, px0, py0, px0, py0 + ph, T.ink3);
+  line(ctx, px0, sy(0), px0 + pw, sy(0), T.reference, 1.5); line(ctx, px0, sy(3), px0 + pw, sy(3), T.highlight, 1.5);
+  V.unch.forEach((i) => dot(ctx, sx(log2((V.uA[i] + V.uB[i]) / 2)), sy(Math.max(-3, Math.min(4, log2(V.uB[i] / V.uA[i])))), 1.5, wash(T.empirical, 0.4)));
+  V.ch.forEach((i) => dot(ctx, sx(log2((V.uA[i] + V.uB[i]) / 2)), sy(Math.max(-3, Math.min(4, log2(V.uB[i] / V.uA[i])))), 1.7, wash(T.highlight, 0.85)));
+  [-3, 0, 3].forEach((v) => label(ctx, String(v), px0 - 4, sy(v) + 3, { align: "right" }));
+  label(ctx, "mean of A and B (log2)", px0 + pw / 2, py0 + ph + 24, { align: "center" });
+  label(ctx, "log2(B ÷ A)", px0 + 4, py0 + 12, { colour: T.ink3 });
+}
+
+for (const [rowId, fn] of [["rowA", drawHist], ["rowB", drawBoxes], ["rowC", drawMA]]) {
+  for (const [name, unit, opt] of STATES) {
+    const box = cand(rowId, name, "");
+    fn(canvasIn(box, W, H), panel(1, opt), unit);
+  }
+}
+</script>
+</body>
+</html>
