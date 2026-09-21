@@ -18847,6 +18847,27 @@ sits at −2.47. At the opening state (3×, lengths differ, gene 5 up) raw
 reads 12.00 within and 0.75 between, TPM 1.00 and 0.44, the size factor
 12.00 and 1.00.
 
+**Round 14** (2026-09-22) — *why does the table readout not match the
+histogram? B/A = 0.25 but the histogram shows −0.33; it appears for CPM, TPM,
+FPKM.* A real inconsistency, and the same direction at a different size: the
+six genes and the 2,000 did not share the same composition change. Gene 5
+holds 41% of the six's reads in A, so up 8× it takes 85% of B's and gene 1
+reads 0.25 under CPM; the panel drew its changed genes at random as 5% of the
+2,000, so they held 5% of the reads and the unchanged bump moved only −0.33.
+**Fixed (301d8f6):** the panel's changed set is the highest-expressed genes
+above a length floor, taken from the top until they hold gene 5's share of
+sample A's reads, the floor chosen from ten candidates for the per-kilobase
+share it gives — gene 5 is 6 kb, so its per-kilobase share is 17% against
+41% of the reads, and TPM loses the per-kilobase share where CPM and FPKM
+lose the reads'; matched on the reads alone TPM still read −1.52 against the
+table's −1.18. Now within 0.09 log2 under every unit (raw −0.42 / −0.33; CPM
+and FPKM −2.00 / −1.91; TPM −1.18 / −1.18; size factor 0.00 / −0.02) and at
+seed 7, 10×, equal lengths (2.21 / 2.18; −1.12 / −1.15; 0.00 / 0.01). The
+control's detail now says what the 2,000's changed genes are. The lesson: two
+panels that claim to show the same thing must be built from the same shares,
+and the numbers on both should be read side by side every round ([[print
+the number to find the bug]]).
+
 **Round 13** (2026-09-22) — *restore the histogram; the boxplots look
 confusing, the median changes and I have no idea where the ground truth is.
 Keep the 6th unit for now.* **The histogram is back (f24bfec)**, round 10's
