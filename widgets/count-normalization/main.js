@@ -331,7 +331,7 @@ defineWidget({
     + "comparable between samples. Both divisions are needed for both "
     + "comparisons.",
   layout: "side",
-  status: "draft",
+  status: "shipped",
   pointer: true,
   /* The walkthrough is a stage that has to give its pixels back (3.4b). */
   height: ({ unit, act }) => ((unit === "sf" || unit === "sfkb") && act ? FIG_H + ACT_H : FIG_H),

@@ -9534,6 +9534,118 @@
       },
       "px": "e4b2f0e8",
       "tx": "c92e2b65"
+    },
+    {
+      "$note": "count-normalization · raw counts, 3×, lengths differ, gene 5 up: the opening figure",
+      "slug": "count-normalization",
+      "state": "?theme=light",
+      "px": "eb9f18a7",
+      "tx": "71912c81"
+    },
+    {
+      "$note": "count-normalization · CPM: depth out, gene 1 at 0.25 between, gene 5 ÷ 6 at 12 within",
+      "slug": "count-normalization",
+      "state": "?theme=light&unit=cpm",
+      "px": "64317890",
+      "tx": "264945e1"
+    },
+    {
+      "$note": "count-normalization · FPKM: depth and length out, within right, between 0.25",
+      "slug": "count-normalization",
+      "state": "?theme=light&unit=fpkm",
+      "px": "3eb717e4",
+      "tx": "3549a701"
+    },
+    {
+      "$note": "count-normalization · TPM: within right, between 0.44, five unchanged dots at one height",
+      "slug": "count-normalization",
+      "state": "?theme=light&unit=tpm",
+      "px": "6407ddf6",
+      "tx": "8a769f55"
+    },
+    {
+      "$note": "count-normalization · size factor: between right, length still in, five level lines",
+      "slug": "count-normalization",
+      "state": "?theme=light&unit=sf",
+      "px": "5dd75e85",
+      "tx": "9c80811e"
+    },
+    {
+      "$note": "count-normalization · size factor with the walkthrough open: geometric mean, ratio, median",
+      "slug": "count-normalization",
+      "state": "?theme=light&unit=sf&act=1",
+      "px": "433fad2d",
+      "tx": "9c80811e"
+    },
+    {
+      "$note": "count-normalization · size factor per kb: both readings right",
+      "slug": "count-normalization",
+      "state": "?theme=light&unit=sfkb",
+      "px": "da563520",
+      "tx": "27303438"
+    },
+    {
+      "$note": "count-normalization · nothing to correct: 1×, equal lengths, no change",
+      "slug": "count-normalization",
+      "state": "?theme=light&depth=1&lengths=equal&change=none",
+      "px": "7a33415b",
+      "tx": "a7b263f2"
+    },
+    {
+      "$note": "count-normalization · 10× and no change, CPM: depth alone, divided out",
+      "slug": "count-normalization",
+      "state": "?theme=light&depth=10&change=none&unit=cpm",
+      "px": "c639e8a1",
+      "tx": "60a13e96"
+    },
+    {
+      "$note": "count-normalization · gene 6 up (3% of the reads), CPM: composition barely moves the others",
+      "slug": "count-normalization",
+      "state": "?theme=light&change=6&unit=cpm",
+      "px": "fa550af4",
+      "tx": "0b2e74ce"
+    },
+    {
+      "$note": "count-normalization · gene 1 up, TPM: the between reading moves to gene 2",
+      "slug": "count-normalization",
+      "state": "?theme=light&change=1&unit=tpm",
+      "px": "6c6d02b8",
+      "tx": "1b5ac675"
+    },
+    {
+      "$note": "count-normalization · dark theme, size factor",
+      "slug": "count-normalization",
+      "state": "?theme=dark&unit=sf",
+      "px": "a9f4158f",
+      "tx": "9c80811e"
+    },
+    {
+      "$note": "count-normalization · DRIVEN mid-ease: raw to TPM at 300 of 450 ms, the dots sliding and the table crossfading (set, no drive button exists)",
+      "slug": "count-normalization",
+      "state": "?theme=light",
+      "drive": {
+        "set": {
+          "unit": "tpm"
+        },
+        "frames": 6,
+        "dt": 50
+      },
+      "px": "2a2272ab",
+      "tx": "8a769f55"
+    },
+    {
+      "$note": "count-normalization · DRIVEN mid-ease: size factor to size factor per kb at 200 ms",
+      "slug": "count-normalization",
+      "state": "?theme=light&unit=sf",
+      "drive": {
+        "set": {
+          "unit": "sfkb"
+        },
+        "frames": 4,
+        "dt": 50
+      },
+      "px": "f46d5d3c",
+      "tx": "27303438"
     }
   ]
 }
