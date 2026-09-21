@@ -18847,6 +18847,31 @@ sits at −2.47. At the opening state (3×, lengths differ, gene 5 up) raw
 reads 12.00 within and 0.75 between, TPM 1.00 and 0.44, the size factor
 12.00 and 1.00.
 
+**Round 12** (2026-09-22) — *take a step back, I have no idea why everything
+messes up with genes 2–5 B > A; things made sense with gene 5 B > A* — and,
+offered three ways to keep the state, *should we just omit this case where the
+majority of genes change? most RNA-seq analysis relies on the observation that
+most do not change. I don't want caveats and edge cases to mess up the widget
+pedagogically; go back to the basics and review.* **The majority state is
+CUT (03c18fc).** What it showed was correct and was the size factor's own
+limit, planned as the failing case (2.6): four of six genes and 52 of A's 58
+reads up 8×, so B's fixed reads went almost all to them, gene 1 fell to 2
+reads in raw counts already, and the median of the six ratios landed on a
+changed gene, so the size factor scaled B until genes 2–5 read level and
+genes 1 and 6 read 8× down. From counts alone "most genes up 8×" and "a few
+down 8× in a deeper library" are the same numbers. But two failures stacked
+into one collapse, the control named it as a bigger "Gene 5", the tiles
+reported gene 1, which the reader had not touched, and the only hint that
+the state was past the method's assumption was one small red line under the
+boxes — so it read as a broken widget. The lesson rests on most genes being
+unchanged; so does the widget now: None, or Gene 5. Gone with it: the panel
+share of 60%, the note under the boxes, the tile's aside, the walkthrough's
+"four of the six" line (its closing line now names gene 5, or the six equal
+ratios when nothing changed), and the sweep's four majority states (replaced
+by depth and change states; seventeen clean). The `mor-fail.mjs` measurement
+above stays as the record of why the state is not in the widget; the limit
+belongs to 78's median-of-ratios page if it belongs anywhere.
+
 **Round 11** (2026-09-22) — *is the histogram the right way to visualise
 this? would a boxplot work? I'm confused.* `_lab/count-normalization-panel-mock.html`:
 the same 2,000 genes at three states as the ratio histogram, as four boxes of
