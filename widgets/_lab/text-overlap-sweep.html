@@ -37,11 +37,10 @@ const STATES = {
     "?page=position&vocab=words&posenc=sinusoidal&E=16&shown=16", "?page=encode&vocab=codon&E=16&shown=40", "?page=position&vocab=dna&posenc=learned&E=4&shown=48",
   ],
   "count-normalization": [
-    "?", "?depth=3", "?depth=10&unit=cpm", "?depth=3&unit=tpm", "?depth=10&unit=sf",
-    "?page=length", "?page=length&lengths=differ", "?page=length&lengths=differ&unit=cpm", "?page=length&lengths=differ&unit=fpkm", "?page=length&lengths=differ&unit=tpm", "?page=length&lengths=differ&unit=sf",
-    "?page=composition", "?page=composition&unit=cpm", "?page=composition&unit=fpkm", "?page=composition&unit=tpm", "?page=composition&unit=sf",
-    "?page=composition&unit=sf&act=1", "?page=composition&unit=tpm&share=50", "?page=composition&unit=sf&share=80&fold=8", "?page=composition&unit=sf&share=50&direction=both&act=1",
-    "?page=composition&unit=tpm&fold=2&share=20", "?page=composition&unit=raw&share=80&fold=8",
+    "?", "?unit=cpm", "?unit=fpkm", "?unit=tpm", "?unit=sf", "?unit=sf&act=1",
+    "?depth=1&lengths=equal&change=none", "?depth=10&change=none&unit=cpm", "?depth=10&unit=sf&act=1",
+    "?change=most&unit=tpm", "?change=most&unit=sf&act=1", "?lengths=equal&change=most&unit=fpkm",
+    "?depth=1&lengths=differ&change=none&unit=tpm", "?depth=2&change=one&unit=fpkm",
   ],
 };
 const out = document.getElementById("out"), frame = document.getElementById("frame");

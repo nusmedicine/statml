@@ -18819,6 +18819,34 @@ total; scheme A; the scatter kept at 220px under a 230px pile-up. The 2,000-
 gene panel's depth rose 0.02 → 0.1 so that more than 64 unchanged genes clear
 the count floor once the total is fixed.
 
+**Round 4** — *are we looking at depth and gene length in separate steps?
+should we just have one data control for depth and gene length? is there a
+tile that makes it clear we can compare within and between samples? the
+scatterplot looks nice but I don't know how to interpret it. research the
+best way to teach this.* Researched (`_lab/count-normalization-table-mock.html`
+§ 0): the HBC page's recommended-for table, StatQuest's genes × replicates
+table with the column sums printed, Pimentel's "TPM is the proportion of
+transcripts in your pool", and Zhao, Ye & Stanton 2020 (*RNA* 26:903, the top
+three genes at 4.2% of transcripts under one library protocol and 75% under
+another; heart 48% mitochondrial against blood 1.5%; 1,751 genes falsely
+changed between stranded and unstranded). **The common device is a small
+table of genes × samples where within is reading down a column and between
+is reading across a row.** The three steps were my shape, not the sources',
+and they hid the point: no unit gets both comparisons right. **His four
+picks, all the recommendation:** ONE STAGE with depth, gene lengths and a
+gene that changes as three live controls, no Step; the table in the figure's
+middle with the two comparisons bracketed to their numbers (within: gene 5 ÷
+gene 6 at one expression per kilobase; between: gene 1, B ÷ A, unchanged;
+"1.00 is right"); the two readings as tiles; a histogram of log2(B ÷ A) over
+the 2,000 genes replacing the scatter (the HBC page's DESeq2 figure: where
+does the bulk of unchanged genes sit, 0 is right). The share, fold and
+direction controls collapsed into the change control's third option, most
+genes (genes 2–5, 60% of the 2,000), which keeps the size factor's failing
+case on stage: there its between reading is 0.15 and the histogram's bulk
+sits at −2.47. At the opening state (3×, lengths differ, gene 5 up) raw
+reads 12.00 within and 0.75 between, TPM 1.00 and 0.44, the size factor
+12.00 and 1.00.
+
 **Round 3** — *can you include the formulas in mathml?* A card above the
 figure on widget 33's pattern (`.w-math`, MathML where the browser draws it,
 plain text where not, so the `tx` hash covers it): the unit's definition,
