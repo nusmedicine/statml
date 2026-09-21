@@ -18847,6 +18847,19 @@ sits at −2.47. At the opening state (3×, lengths differ, gene 5 up) raw
 reads 12.00 within and 0.75 between, TPM 1.00 and 0.44, the size factor
 12.00 and 1.00.
 
+**Round 13** (2026-09-22) — *restore the histogram; the boxplots look
+confusing, the median changes and I have no idea where the ground truth is.
+Keep the 6th unit for now.* **The histogram is back (f24bfec)**, round 10's
+figure with two changes: each truth line carries its own reading on its own
+row — *unchanged: truth 0, median −0.37* on the grey line at 0, *up 8×: truth
+3, median 2.70* on the violet line at 3, placed on whichever side of the line
+has room — and the axis widens past −3..4 to hold raw counts at 10×. The
+dashed median over all genes and the note about the larger group, which
+served only the state round 12 cut, are not restored. The lesson of round 11:
+a box of the VALUES moves with every unit, so the truth has no fixed place on
+it; a histogram of RATIOS has its truths at 0 and at the fold, where a line
+can be drawn and named. Sixth unit kept on his word.
+
 **Round 12** (2026-09-22) — *take a step back, I have no idea why everything
 messes up with genes 2–5 B > A; things made sense with gene 5 B > A* — and,
 offered three ways to keep the state, *should we just omit this case where the
