@@ -669,6 +669,14 @@ function drawHist(ctx, colors, w, y0, state, fade) {
   ctx.fillText(`unchanged genes' median ${fmt(state.medianUnchanged, 2)}`, padL + 4, top + 12);
   ctx.font = `${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.ink3;
   ctx.fillText(`truth 0 · median over all, dashed: ${fmt(state.medianAll, 2)}`, padL + 4, top + 24);
+  /* the state he doubted (2026-09-22): the changed bump on the unchanged
+     truth. The median took the larger group as unchanged, and from the counts
+     alone "most genes up" and "the rest down in a deeper library" are the same
+     data — said here, where the reader is looking, and not only in the tile */
+  if (state.changedShifts.length && Math.abs(state.medianUnchanged) > 0.5 && Math.abs(median(state.changedShifts)) < Math.abs(state.medianUnchanged)) {
+    ctx.fillStyle = colors.extreme;
+    ctx.fillText("the changed genes are the larger group, so the median took them as unchanged", padL + 4, top + 36);
+  }
   ctx.restore();
 }
 

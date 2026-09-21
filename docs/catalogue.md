@@ -18847,6 +18847,18 @@ sits at −2.47. At the opening state (3×, lengths differ, gene 5 up) raw
 reads 12.00 within and 0.75 between, TPM 1.00 and 0.44, the size factor
 12.00 and 1.00.
 
+**Round 10** (2026-09-22) — *if genes 2–5 are more highly expressed in B,
+the histogram should be the other way round?* Right about the truth, and the
+figure shows the size factor's reading: with most genes up and the total
+fixed, the median of ratios takes the larger group as unchanged, so the
+changed bump lands on 0 and the unchanged one at −2.5; the truth lines say
+where they belong. Underneath: from the counts alone "60% of genes up 8×"
+and "40% down 8× in a deeper library" are the same data, so no normalisation
+tells them apart without spike-ins. The histogram now prints that where he
+looked — *the changed genes are the larger group, so the median took them as
+unchanged* — in the state where the changed bump sits nearer 0 than the
+unchanged one.
+
 **Round 9** (2026-09-22) — *choose two colours for the hover shading whose
 overlap gives a nice colour; now it is muddy; pastel blue + red → purple?*
 `_lab/count-normalization-wash-mock.html`: nine token-role pairs, each wash
