@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · count-normalization — within and between, from the same six genes</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1800px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 104ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); min-height: 26px; white-space: pre-line; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 104ch; }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 104ch; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>count-normalization &middot; within and between, from the same six genes</h1>
+  <p class="note">
+    His questions, 2026-09-22: <i>the histogram can demonstrate between comparisons; can it also do within? The histogram is a
+    simulation of 2,000 genes and the table shows six &mdash; could be confusing.</i> And: <i>I have to mentally convert B/A with log2;
+    show the log2 fold change too.</i>
+    <b>What the sources do.</b> The HBC page draws three toys: depth as 2 samples &times; 3 genes, length as 2 genes in one sample,
+    composition as 2 samples &times; a few genes with one gene taking the reads. StatQuest and Pimentel compute RPKM and TPM by hand on
+    a 3-gene &times; 3-sample table and show that TPM's columns sum to the same total. None of them uses more genes than a table can hold;
+    the 2,000 are this widget's addition. <b>So every candidate below is drawn from the SAME six genes the table prints</b>, in the
+    same unit, and the 2,000 appear only in D, which answers the within question for a large panel. Four states across each row:
+    raw counts, TPM, the size factor, the size factor per kb (depth 3&times;, lengths differ, gene 5 up 8&times;). Every number is computed here.
+    Blue is an unchanged gene, violet gene 5; grey lines are truths. Every ratio carries its log2.
+  </p>
+
+  <h2>A &middot; the histogram of 2,000 genes, as now &mdash; between only</h2>
+  <p class="note">One number per gene, B &divide; A. It cannot show a within comparison: a within reading is two GENES in one sample, and a
+    ratio per gene has already divided one sample by the other. Its genes are not the table's.</p>
+  <div class="row" id="rowA"></div>
+
+  <h2>B &middot; the six genes as a slope chart: a dot per gene in each sample, a line joining them</h2>
+  <p class="note">Two columns, sample A and sample B, the value on a log2 axis. <b>Within</b> is the height of the dots in ONE column: the truth is
+    every unchanged gene at one height, since all six have the same expression per kilobase, so a unit that divides out length stacks
+    the five blue dots on the grey line. <b>Between</b> is the slope of a gene's line: the truth is flat for an unchanged gene and
+    +3 for gene 5, so a unit that compares between samples draws five flat lines. The two readings the table prints are the two
+    marked pairs, with their log2.</p>
+  <div class="row" id="rowB"></div>
+
+  <h2>C &middot; the six genes as paired bars: A and B side by side for each gene</h2>
+  <p class="note">The figure people draw with TPM for a few genes of interest. <b>Within</b> is reading the A bars across the genes against the grey
+    line (the unchanged level); <b>between</b> is the two bars of one gene. On a log2 axis so gene 5's 8&times; does not flatten the rest.</p>
+  <div class="row" id="rowC"></div>
+
+  <h2>D &middot; the 2,000 genes read WITHIN a sample: the value against the gene's length, in sample A</h2>
+  <p class="note">The within version of the histogram, for the question. One dot per gene, sample A only; the fitted slope is printed. A unit that
+    carries length slopes up at 1 (a 2&times; longer gene reads 2&times; higher); one that divides it out is flat. The genes' expression per
+    kilobase varies, so the cloud is wide; only the slope is the reading. It answers the question but adds a third data set and a
+    regression to the stage.</p>
+  <div class="row" id="rowD"></div>
+
+  <h2>The call</h2>
+  <p class="rec"><b>Recommended: B in place of the histogram, and the 2,000 genes gone from the stage.</b> The table, the piles and B are then
+    one data set, the six genes, read three ways in one unit; B shows both comparisons at once and the truth for each is a line the
+    dots either sit on or do not. The histogram's job (the toy holds at scale, with noise) can go behind a gate, "Show 2,000 genes",
+    if you want to keep it reachable, or go entirely.</p>
+  <p class="q"><b>The stage under the table</b> &nbsp; B &middot; the slope chart (recommended) &nbsp;|&nbsp; C &middot; paired bars &nbsp;|&nbsp;
+    A &middot; the histogram as now &nbsp;|&nbsp; B with A behind a gate</p>
+  <p class="q"><b>log2</b> &nbsp; every ratio in the table's margin and the tiles gains its log2 in the same line: "B &divide; A = 0.25 &middot; log2 &minus;2.00" &mdash; done
+    whichever stage you pick.</p>
+</main>
+<script type="module">
+import { readTokens } from "../core/env.js";
+import { makeRng } from "../core/rng.js";
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+const W = 420, H = 210;
+
+/* --- the widget's own toy ------------------------------------------------ */
+const LEN = [1, 2, 4, 1, 6, 0.5], PER_KB = 4, FOLD = 8, DEPTH = 3, CHANGED = [4];
+const total = (c) => c.reduce((s, v) => s + v, 0);
+const median = (a) => { const s = Float64Array.from(a).sort(); const m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
+const log2 = (x) => Math.log(x) / Math.LN2;
+const fmt = (v, d = 2) => (Number.isFinite(v) ? v.toFixed(d) : "—");
+function toy() {
+  const A = LEN.map((l) => Math.round(PER_KB * l));
+  let B = LEN.map((l, i) => PER_KB * l * DEPTH * (CHANGED.includes(i) ? FOLD : 1));
+  const scale = (total(A) * DEPTH) / total(B);
+  B = B.map((v) => Math.max(1, Math.round(v * scale)));
+  return { A, B };
+}
+function unitOf(counts, len, unit, sf = 1) {
+  if (unit === "raw") return counts.slice();
+  if (unit === "cpm") { const t = total(counts); return counts.map((v) => (1e6 * v) / t); }
+  if (unit === "fpkm") { const t = total(counts); return counts.map((v, i) => (1e9 * v) / (t * len[i])); }
+  if (unit === "tpm") { const r = counts.map((v, i) => v / len[i]); const t = total(r); return r.map((v) => (1e6 * v) / t); }
+  if (unit === "sfkb") return counts.map((v, i) => v / sf / len[i]);
+  return counts.map((v) => v / sf);
+}
+function sizeFactors(A, B) {
+  const gm = A.map((a, i) => Math.sqrt(a * B[i]));
+  return { sfA: median(A.map((a, i) => a / gm[i])), sfB: median(B.map((b, i) => b / gm[i])) };
+}
+const UNITS = [["raw", "raw counts"], ["tpm", "TPM"], ["sf", "counts ÷ size factor"], ["sfkb", "counts ÷ size factor ÷ kb"]];
+const LENGTH_OUT = { raw: false, cpm: false, fpkm: true, tpm: true, sf: false, sfkb: true };
+const BETWEEN_OK = { raw: false, cpm: false, fpkm: false, tpm: false, sf: true, sfkb: true };
+
+/* --- the 2,000, with the widget's share matching ------------------------- */
+const G = 2000, PANEL_DEPTH = 0.1;
+function poisson(rng, mu) { if (mu <= 0) return 0; if (mu < 40) { const L = Math.exp(-mu); let k = 0, p = 1; do { k += 1; p *= rng.next(); } while (p > L); return k - 1; } return Math.max(0, Math.round(mu + Math.sqrt(mu) * rng.normal())); }
+function panel(seed, share) {
+  const rng = makeRng(seed);
+  const len = Array.from({ length: G }, () => Math.exp(rng.normal(Math.log(2), 0.7)));
+  const expr = Array.from({ length: G }, () => Math.exp(rng.normal(Math.log(30), 1.6)));
+  let changed = new Set();
+  const reads = expr.map((v, i) => v * len[i]), allReads = total(reads), allPerKb = total(expr);
+  const sortedLen = Float64Array.from(len).sort();
+  let best = Infinity;
+  for (let q = 0; q < 10; q += 1) {
+    const floor = sortedLen[Math.floor((q / 10) * G)];
+    const order = reads.map((v, i) => i).filter((i) => len[i] >= floor).sort((i, j) => reads[j] - reads[i]);
+    const set = new Set(); let held = 0, perKb = 0;
+    for (const i of order) { if (held >= share.reads * allReads) break; set.add(i); held += reads[i]; perKb += expr[i]; }
+    if (held < share.reads * allReads) continue;
+    const off = Math.abs(perKb / allPerKb - share.perKb);
+    if (off < best) { best = off; changed = set; }
+  }
+  const exprB = expr.map((v, i) => (changed.has(i) ? v * FOLD : v));
+  const scale = total(expr.map((v, i) => v * len[i])) / total(exprB.map((v, i) => v * len[i]));
+  const A = expr.map((v, i) => poisson(rng, v * len[i] * PANEL_DEPTH));
+  const B = exprB.map((v, i) => poisson(rng, v * len[i] * PANEL_DEPTH * DEPTH * scale));
+  return { len, A, B, changed };
+}
+
+const six = toy();
+const tsf = sizeFactors(six.A, six.B);
+const share = { reads: total(CHANGED.map((i) => six.A[i])) / total(six.A), perKb: total(CHANGED.map((i) => six.A[i] / LEN[i])) / total(six.A.map((v, i) => v / LEN[i])) };
+const pan = panel(1, share);
+const psf = sizeFactors(pan.A, pan.B);
+
+function canvas(host, title, sub) {
+  const d = document.createElement("div"); d.className = "cand";
+  d.innerHTML = `<h3>${title}</h3><p class="sub">${sub}</p>`;
+  const c = document.createElement("canvas"); c.width = W * DPR; c.height = H * DPR; c.style.width = W + "px"; c.style.height = H + "px";
+  d.appendChild(c); host.appendChild(d);
+  const ctx = c.getContext("2d"); ctx.scale(DPR, DPR);
+  ctx.font = `${T.fsXs} ${T.font}`; ctx.textBaseline = "alphabetic";
+  return ctx;
+}
+const text = (ctx, s, x, y, { color = T.ink2, align = "left", font = `${T.fsXs} ${T.font}` } = {}) => { ctx.fillStyle = color; ctx.textAlign = align; ctx.font = font; ctx.fillText(s, x, y); };
+const hline = (ctx, y, x0, x1, color, width = 1, dash = null) => { ctx.save(); ctx.strokeStyle = color; ctx.lineWidth = width; if (dash) ctx.setLineDash(dash); ctx.beginPath(); ctx.moveTo(x0, y + 0.5); ctx.lineTo(x1, y + 0.5); ctx.stroke(); ctx.restore(); };
+const ratioText = (v) => `${fmt(v)} · log2 ${fmt(log2(v))}`;
+
+for (const [unit, uname] of UNITS) {
+  const UA = unitOf(six.A, LEN, unit, tsf.sfA), UB = unitOf(six.B, LEN, unit, tsf.sfB);
+  const PA = unitOf(pan.A, pan.len, unit, psf.sfA), PB = unitOf(pan.B, pan.len, unit, psf.sfB);
+  const within = UA[4] / UA[5], between = UB[0] / UA[0];
+  const sub = `within A: gene 5 ÷ gene 6 = ${ratioText(within)} · truth 1.00\nbetween: gene 1, B ÷ A = ${ratioText(between)} · truth 1.00`;
+
+  /* A: the histogram as now */
+  {
+    const ctx = canvas(document.getElementById("rowA"), `2,000 genes in ${uname}`, sub);
+    const sh = [], ch = [];
+    for (let i = 0; i < G; i += 1) { if (!(pan.A[i] > 20 && pan.B[i] > 20)) continue; (pan.changed.has(i) ? ch : sh).push(log2(PB[i] / PA[i])); }
+    const lo = -3, hi = Math.max(4, Math.ceil(Math.max(...sh, ...ch))), nb = 6 * (hi - lo);
+    const hU = new Array(nb).fill(0), hC = new Array(nb).fill(0);
+    const bin = (v) => Math.floor(((v - lo) / (hi - lo)) * nb);
+    for (const v of sh) { const k = bin(v); if (k >= 0 && k < nb) hU[k] += 1; }
+    for (const v of ch) { const k = bin(v); if (k >= 0 && k < nb) hC[k] += 1; }
+    const hmax = Math.max(...hU, ...hC);
+    const padL = 30, padR = 12, top = 30, bottom = H - 34, pw = W - padL - padR;
+    const sx = (v) => padL + ((v - lo) / (hi - lo)) * pw, sy = (v) => bottom - (v / hmax) * (bottom - top);
+    hline(ctx, bottom, padL, padL + pw, T.ink3);
+    for (let t = lo; t <= hi; t += 1) text(ctx, String(t), sx(t), bottom + 14, { color: T.ink3, align: "center" });
+    text(ctx, "log2(B ÷ A) per gene", padL + pw / 2, bottom + 27, { color: T.ink3, align: "center" });
+    const bw = pw / nb;
+    ctx.globalAlpha = 0.8; ctx.fillStyle = T.empirical; hU.forEach((v, k) => v && ctx.fillRect(sx(lo + (k / nb) * (hi - lo)), sy(v), bw - 1, bottom - sy(v)));
+    ctx.fillStyle = T.highlight; hC.forEach((v, k) => v && ctx.fillRect(sx(lo + (k / nb) * (hi - lo)), sy(v), bw - 1, bottom - sy(v)));
+    ctx.globalAlpha = 1;
+    ctx.save(); ctx.strokeStyle = T.reference; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(Math.round(sx(0)) + 0.5, top); ctx.lineTo(Math.round(sx(0)) + 0.5, bottom); ctx.stroke();
+    ctx.strokeStyle = T.highlight; ctx.beginPath(); ctx.moveTo(Math.round(sx(3)) + 0.5, top); ctx.lineTo(Math.round(sx(3)) + 0.5, bottom); ctx.stroke(); ctx.restore();
+    text(ctx, `unchanged: truth 0, median ${fmt(median(sh))}`, sx(0) + 4, top + 10);
+    text(ctx, `up 8×: truth 3, median ${fmt(median(ch))}`, sx(3) - 4, top + 23, { align: "right" });
+    text(ctx, "between only: one ratio per gene", padL, 14, { color: T.ink3 });
+  }
+
+  /* B: the slope chart */
+  {
+    const ctx = canvas(document.getElementById("rowB"), `Six genes in ${uname}`, sub);
+    const vals = [...UA, ...UB].map(log2);
+    const lo = Math.floor(Math.min(...vals)) - 0.5, hi = Math.ceil(Math.max(...vals)) + 0.5;
+    const padL = 40, top = 26, bottom = H - 30, xA = 150, xB = 300;
+    const sy = (v) => bottom - ((log2(v) - lo) / (hi - lo)) * (bottom - top);
+    for (let t = Math.ceil(lo); t <= Math.floor(hi); t += 1) { hline(ctx, sy(2 ** t), padL, W - 12, T.grid); text(ctx, String(t), padL - 6, sy(2 ** t) + 4, { color: T.ink3, align: "right", font: `${T.fsXs} ${T.mono}` }); }
+    text(ctx, "log2 of the value", padL, 14, { color: T.ink3 });
+    text(ctx, "sample A", xA, bottom + 16, { align: "center", color: T.ink2 });
+    text(ctx, "sample B", xB, bottom + 16, { align: "center", color: T.ink2 });
+    /* truths: within — the unchanged level in A (all five should sit on it when length is out); between — flat */
+    const levelA = median([0, 1, 2, 3, 5].map((i) => UA[i]));
+    hline(ctx, sy(levelA), xA - 40, xB + 40, T.reference, 1.5);
+    text(ctx, LENGTH_OUT[unit] ? "truth: five unchanged genes at one height, five flat lines" : "truth: five at one height (length is in the unit: they spread)", padL, H - 4, { color: T.ink3 });
+    for (let i = 0; i < 6; i += 1) {
+      const col = CHANGED.includes(i) ? T.highlight : T.empirical;
+      ctx.save(); ctx.strokeStyle = col; ctx.lineWidth = 1.5; ctx.globalAlpha = 0.8; ctx.beginPath(); ctx.moveTo(xA, sy(UA[i])); ctx.lineTo(xB, sy(UB[i])); ctx.stroke(); ctx.restore();
+      ctx.fillStyle = col; ctx.beginPath(); ctx.arc(xA, sy(UA[i]), 3.5, 0, 7); ctx.fill(); ctx.beginPath(); ctx.arc(xB, sy(UB[i]), 3.5, 0, 7); ctx.fill();
+      text(ctx, `gene ${i + 1}`, xB + 10, sy(UB[i]) + 4, { color: T.ink3 });
+    }
+    /* the two marked readings */
+    ctx.save(); ctx.globalAlpha = 0.22; ctx.fillStyle = T.within; ctx.fillRect(xA - 14, Math.min(sy(UA[4]), sy(UA[5])) - 8, 28, Math.abs(sy(UA[4]) - sy(UA[5])) + 16);
+    ctx.fillStyle = T.between; ctx.fillRect(xA - 14, Math.min(sy(UA[0]), sy(UB[0])) - 8, xB - xA + 28, Math.abs(sy(UA[0]) - sy(UB[0])) + 16); ctx.restore();
+    text(ctx, `within A: gene 5 ÷ gene 6 = ${ratioText(within)}`, W - 12, top + 4, { align: "right", color: Math.abs(within - 1) > 0.01 ? T.extreme : T.ink1, font: `600 ${T.fsXs} ${T.font}` });
+    text(ctx, `between: gene 1 = ${ratioText(between)}`, W - 12, top + 17, { align: "right", color: Math.abs(between - 1) > 0.01 ? T.extreme : T.ink1, font: `600 ${T.fsXs} ${T.font}` });
+  }
+
+  /* C: paired bars */
+  {
+    const ctx = canvas(document.getElementById("rowC"), `Six genes in ${uname}`, sub);
+    const vals = [...UA, ...UB].map(log2);
+    const lo = Math.floor(Math.min(...vals)) - 1, hi = Math.ceil(Math.max(...vals)) + 0.5;
+    const padL = 40, top = 26, bottom = H - 30, pw = W - padL - 12, gw = pw / 6, bw = gw * 0.3;
+    const sy = (v) => bottom - ((log2(v) - lo) / (hi - lo)) * (bottom - top);
+    for (let t = Math.ceil(lo); t <= Math.floor(hi); t += 1) { hline(ctx, sy(2 ** t), padL, W - 12, T.grid); text(ctx, String(t), padL - 6, sy(2 ** t) + 4, { color: T.ink3, align: "right", font: `${T.fsXs} ${T.mono}` }); }
+    text(ctx, "log2 of the value; left bar A, right bar B", padL, 14, { color: T.ink3 });
+    const levelA = median([0, 1, 2, 3, 5].map((i) => UA[i]));
+    hline(ctx, sy(levelA), padL, W - 12, T.reference, 1.5);
+    for (let i = 0; i < 6; i += 1) {
+      const col = CHANGED.includes(i) ? T.highlight : T.empirical, x0 = padL + gw * i + gw / 2;
+      ctx.fillStyle = col; ctx.globalAlpha = 0.55; ctx.fillRect(x0 - bw - 1, sy(UA[i]), bw, bottom - sy(UA[i]));
+      ctx.globalAlpha = 1; ctx.fillRect(x0 + 1, sy(UB[i]), bw, bottom - sy(UB[i]));
+      text(ctx, `gene ${i + 1}`, x0, bottom + 14, { align: "center", color: T.ink3 });
+    }
+    text(ctx, BETWEEN_OK[unit] ? "truth: each gene's two bars level, except gene 5" : "truth: each gene's two bars level (they are not)", padL, H - 4, { color: T.ink3 });
+  }
+
+  /* D: the 2,000 within a sample */
+  {
+    const ctx = canvas(document.getElementById("rowD"), `2,000 genes in ${uname}, sample A`, sub);
+    const xs = [], ys = [];
+    for (let i = 0; i < G; i += 1) if (pan.A[i] > 20) { xs.push(log2(pan.len[i])); ys.push(log2(PA[i])); }
+    const mx = total(xs) / xs.length, my = total(ys) / ys.length;
+    let sxy = 0, sxx = 0; xs.forEach((x, k) => { sxy += (x - mx) * (ys[k] - my); sxx += (x - mx) ** 2; });
+    const slope = sxy / sxx;
+    const padL = 40, top = 26, bottom = H - 30, pw = W - padL - 12;
+    const xlo = -2, xhi = 3, ylo = Math.floor(Math.min(...ys)), yhi = Math.ceil(Math.max(...ys));
+    const sx = (v) => padL + ((v - xlo) / (xhi - xlo)) * pw, sy = (v) => bottom - ((v - ylo) / (yhi - ylo)) * (bottom - top);
+    hline(ctx, bottom, padL, padL + pw, T.ink3);
+    for (let t = xlo; t <= xhi; t += 1) text(ctx, `${2 ** t} kb`, sx(t), bottom + 14, { color: T.ink3, align: "center" });
+    text(ctx, "gene length", padL + pw / 2, bottom + 27, { color: T.ink3, align: "center" });
+    text(ctx, "log2 of the value", padL, 14, { color: T.ink3 });
+    ctx.globalAlpha = 0.35; ctx.fillStyle = T.empirical;
+    xs.forEach((x, k) => { ctx.beginPath(); ctx.arc(sx(x), sy(ys[k]), 1.6, 0, 7); ctx.fill(); });
+    ctx.globalAlpha = 1;
+    ctx.save(); ctx.strokeStyle = T.reference; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(sx(xlo), sy(my)); ctx.lineTo(sx(xhi), sy(my)); ctx.stroke();
+    ctx.strokeStyle = T.slope ?? T.highlight; ctx.beginPath(); ctx.moveTo(sx(xlo), sy(my + slope * (xlo - mx))); ctx.lineTo(sx(xhi), sy(my + slope * (xhi - mx))); ctx.stroke(); ctx.restore();
+    text(ctx, `slope ${fmt(slope)} · truth 0: expression does not depend on length`, W - 12, top + 4, { align: "right", color: Math.abs(slope) > 0.1 ? T.extreme : T.ink1, font: `600 ${T.fsXs} ${T.font}` });
+  }
+}
+</script>
+</body>
+</html>
