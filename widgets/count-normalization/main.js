@@ -516,8 +516,9 @@ defineWidget({
   readout: ({ state }) => {
     const u = UNITS[state.unit].short;
     return [
-      { label: "Within sample A: gene 5 ÷ gene 6", value: fmt(state.within, 2), note: `truth 1.00: the same expression per kilobase, in ${u}` },
-      { label: "Between samples: gene 1, B ÷ A", value: fmt(state.between, 2), note: `truth 1.00: unchanged, in ${u}` },
+      /* the log2 beside every ratio (his ask, round 15): a fold change is read in log2 */
+      { label: "Within sample A: gene 5 ÷ gene 6", value: fmt(state.within, 2), note: `log2 ${fmt(log2(state.within), 2)} · truth 1.00 (log2 0): the same expression per kilobase, in ${u}` },
+      { label: "Between samples: gene 1, B ÷ A", value: fmt(state.between, 2), note: `log2 ${fmt(log2(state.between), 2)} · truth 1.00 (log2 0): unchanged, in ${u}` },
       { label: "2,000 unchanged genes, median log2(B ÷ A)", value: fmt(state.medianUnchanged, 2), note: `truth 0; ${state.shifts.length.toLocaleString("en")} genes with counts over ${MIN_COUNT} in both` },
     ];
   },
@@ -648,8 +649,11 @@ function drawTable(ctx, colors, w, y0, state, r, fade, hover) {
     ctx.font = `600 ${colors.fsXs} ${colors.font}`;
     ctx.fillStyle = Math.abs(v - truth) > 0.01 * truth ? colors.extreme : colors.ink1;
     ctx.fillText(`${title} = ${fmt(v, 2)}`, mx, y);
+    /* the log2 on its own line with its own truth (his ask, round 15): the
+       margin is 182px at the narrowest canvas and the ratio line fills it */
+    ctx.fillText(`log2 ${fmt(log2(v), 2)} · truth ${fmt(Math.log2(truth), 0)}`, mx, y + rh);
     ctx.font = `${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.ink3;
-    ctx.fillText(`truth ${fmt(truth, 2)}: ${why}`, mx, y + rh);
+    ctx.fillText(`truth ${fmt(truth, 2)}: ${why}`, mx, y + 2 * rh);
   };
   const gb = F.between, gw = F.within, k = F.sample, other = F.other;
   const U = k ? toyU.B : toyU.A, S = k ? "B" : "A";
@@ -660,7 +664,7 @@ function drawTable(ctx, colors, w, y0, state, r, fade, hover) {
   reading(colors.between, `between: gene ${gb + 1}, B ÷ A`, first, between, betweenTruth, toy.changed.includes(gb) ? `up ${FOLD}×` : "unchanged");
   reading(colors.within, `within ${S}: gene ${gw + 1} ÷ gene ${other + 1}`, first + 4 * rh, within, withinTruth, withinTruth !== 1 ? `one expression per kb, gene ${gw + 1} up ${FOLD}×` : "one expression per kb");
   ctx.font = `${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.ink3;
-  ctx.fillText("point at a gene to read it both ways", mx, first + 6 * rh + 2);
+  ctx.fillText("point at a gene to read it both ways", mx, first + 7 * rh + 2);
   ctx.restore();
 }
 
