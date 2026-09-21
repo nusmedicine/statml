@@ -1112,7 +1112,7 @@
     {
       "slug": "embedding-space",
       "title": "Deep Learning - Embedding Space",
-      "blurb": "A trained embedding table is a space: tokens the task treats alike become neighbours, a geometry nobody typed in.",
+      "blurb": "Tokens become vectors: orthogonal under one-hot, grouped by role by a trained embedding, plus position for attention.",
       "course": "PHM5005",
       "topics": [
         "embedding",

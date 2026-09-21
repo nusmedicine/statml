@@ -69,9 +69,8 @@ const stepMs = (anim) => (isTokenStage(anim.stage) ? (anim.mode === "run" ? TOK_
 
 const S = {
   subtitle:
-    "A sequence becomes tokens, a token becomes a vector, and a position is added to it. " +
-    "One-hot puts every token the same distance from every other; an embedding trained with the task is a space in which the tokens the task treats alike become neighbours, a geometry nobody typed in. " +
-    "Four bases, sixty-one codons, twenty amino acids, forty clinical words.",
+    "A sequence is split into tokens, and each token becomes a vector: orthogonal and equidistant under one-hot, or a row of an embedding trained with the task, " +
+    "in which tokens the task treats alike are near one another. For attention, which has no order of its own, a position encoding is added to each vector.",
   pageLabel: "Page",
   vocabLabel: "Vocabulary",
   vocabDetail: "which tokens the table holds a row for: the four bases, the sixty-four codons, the twenty amino acids, or forty clinical words",
