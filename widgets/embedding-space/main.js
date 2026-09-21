@@ -14,8 +14,8 @@
                No colour by role here: nothing has been learned yet, and the
                roles are what the next page's training reveals.
      ENCODE    a token as a vector: ONE-HOT, the identity table written as
-               1s and 0s, every pair of rows √2 apart — the vectors are
-               orthogonal; or an EMBEDDING, a table of E numbers a token that
+               1s and 0s with rows and columns named, every pair of rows √2
+               apart — the vectors are orthogonal; or an EMBEDDING, a table of E numbers a token that
                trains with the task — its rows drawn as points, moving epoch
                by epoch, and the tokens the task treats alike become
                neighbours, a geometry nobody typed in.
@@ -195,12 +195,11 @@ const S = {
   },
 
   /* Encode · one-hot */
-  capOneHot: (V) => `the table · one-hot · [${V}, ${V}] · a 1 in the token's own column, 0 elsewhere`,
-  capOneHotDist: "the distances between rows · √2 for every pair · orthogonal",
+  capOneHot: (V) => `the table · one-hot · [${V}, ${V}] · one row a token, one column an id; a 1 where they meet, 0 elsewhere`,
   capOneHotEpoch: (e, n, acc) => `epoch ${e} of ${n} · held-out ${Math.round(100 * acc)}% · the table is fixed`,
   capOneHotStart: "epoch 0 · the table is the identity, and stays so",
   tileDist: "Distance, any two tokens",
-  tileDistNote: "√2 between every pair of rows: the vectors are at right angles, and no two tokens are nearer than any other two",
+  tileDistNote: "√2 between every pair of rows: the vectors are orthogonal, and no two tokens are nearer than any other two",
   tileParams: "Parameters",
   tileParamsNoteOneHot: (V) => `the table holds none; the first layer reads ${V} channels instead of E`,
 
@@ -534,26 +533,41 @@ function drawEmbedding(ctx, colors, w, params, state, anim, pointer) {
 
 /* ======================================================= Encode · one-hot */
 
+/* THE IDENTITY, WHOLE (his word, 2026-09-21): one row a token, one column an
+   id, a 1 where they meet and 0 everywhere else, rows and columns both
+   named. With both labels in place the rows are plainly independent and
+   every pair the same distance apart, so the distance panel went. The
+   canvas grows with the vocabulary — sixty-one codon rows at the smallest
+   readable face are a tall table, and that is what one-hot costs. */
+const OH = { headerTop: 22, charW: 7 };
+function oneHotLayout(vocab) {
+  const P = M.PAGES[vocab], VL = M.vocabList(vocab);
+  const header = 12 + OH.charW * Math.max(...VL.map(({ tok }) => tok.length));
+  const top = OH.headerTop + header, bottom = top + P.tokens.length * ROW_H;
+  return { P, VL, header, top, bottom, height: bottom + BELOW };
+}
 function drawOneHot(ctx, colors, w, params, state, anim) {
-  const vocab = params.vocab, V = state.V, L = layout(w);
-  const G = stacks(ctx, colors, L, vocab, V), { P } = G;
-  const digits = G.cellW >= 9; // 1s and 0s written where a cell can hold a digit; elsewhere the 1 is the coloured cell
-  txt(ctx, colors, S.capOneHot(V), L.tableX, 14, { font: capFont(colors), fill: colors.ink1 });
-  for (let i = 0; i < G.rows; i++) {
-    const { x0, y } = G.at(i), id = P.ids[i], col = colourOf(colors, vocab, i);
-    rect(ctx, x0 + G.labelW, y, V * G.cellW, ROW_H, colors.surface2);
-    rect(ctx, x0 + G.labelW + id * G.cellW, y, Math.max(1, G.cellW), ROW_H, digits ? wash(col, 0.35) : col);
-    if (digits) for (let v = 0; v < V; v++) txt(ctx, colors, v === id ? "1" : "0", x0 + G.labelW + (v + 0.5) * G.cellW, y + ROW_H / 2, { font: monoFont(colors), fill: v === id ? colors.ink1 : colors.ink3, align: "center", baseline: "middle" });
-    txt(ctx, colors, P.tokens[i], x0 + G.labelW - 4, y + ROW_H / 2, { font: monoFont(colors), fill: col, align: "right", baseline: "middle" });
+  const vocab = params.vocab, V = state.V, L = oneHotLayout(vocab), { P, VL } = L;
+  ctx.save(); ctx.font = monoFont(colors);
+  const labelW = Math.max(...P.tokens.map((tk) => ctx.measureText(tk).width)) + 8;
+  ctx.restore();
+  const X0 = TABLE_X + labelW, cellW = Math.min(24, (w - PAD_R - X0) / V), digits = cellW >= 9;
+  txt(ctx, colors, S.capOneHot(V), TABLE_X, 14, { font: capFont(colors), fill: colors.ink1 });
+  /* the columns' names, one an id, turned upright */
+  VL.forEach(({ tok, id }) => {
+    ctx.save(); ctx.translate(X0 + (id + 0.5) * cellW, L.top - 4); ctx.rotate(-Math.PI / 2);
+    txt(ctx, colors, tok, 0, 0, { font: monoFont(colors), fill: isSpecial(tok) ? colors.ink3 : colors.ink2, baseline: "middle" });
+    ctx.restore();
+  });
+  for (let i = 0; i < P.tokens.length; i++) {
+    const y = L.top + i * ROW_H, id = P.ids[i], col = colourOf(colors, vocab, i);
+    rect(ctx, X0, y, V * cellW, ROW_H, colors.surface2);
+    rect(ctx, X0 + id * cellW, y, Math.max(1, cellW), ROW_H, digits ? wash(col, 0.35) : col);
+    if (digits) for (let v = 0; v < V; v++) txt(ctx, colors, v === id ? "1" : "0", X0 + (v + 0.5) * cellW, y + ROW_H / 2, { font: monoFont(colors), fill: v === id ? colors.ink1 : colors.ink3, align: "center", baseline: "middle" });
+    txt(ctx, colors, P.tokens[i], X0 - 4, y + ROW_H / 2, { font: monoFont(colors), fill: col, align: "right", baseline: "middle" });
   }
-  for (let c = 0; c < G.cols; c++) rect(ctx, L.tableX + c * G.colW + G.labelW, L.top, V * G.cellW, Math.min(G.per, G.rows - c * G.per) * ROW_H, null, colors.grid);
-
-  /* the distances: every pair the same */
-  txt(ctx, colors, S.capOneHotDist, L.spaceX, 14, { font: capFont(colors), fill: colors.ink1 });
-  const rows = G.rows, cs = L.side / rows;
-  for (let i = 0; i < rows; i++) for (let j = 0; j < rows; j++) rect(ctx, L.spaceX + j * cs, L.top + i * cs, Math.ceil(cs), Math.ceil(cs), i === j ? colors.surface3 : wash(colors.magnitude, 0.55));
-  rect(ctx, L.spaceX, L.top, L.side, L.side, null, colors.grid);
-  txt(ctx, colors, "√2", L.spaceX + L.side / 2, L.top + L.side / 2, { font: glyphFont(colors), fill: colors.ink1, align: "center", baseline: "middle", halo: true });
+  for (let v = 1; v < V; v++) line(ctx, X0 + v * cellW, L.top, X0 + v * cellW, L.bottom, wash(colors.grid, 0.5));
+  rect(ctx, X0, L.top, V * cellW, L.bottom - L.top, null, colors.grid);
 
   const e = shownStep(anim);
   txt(ctx, colors, e === 0 ? S.capOneHotStart : S.capOneHotEpoch(e, state.steps, state.accs[e]), TABLE_X, L.bottom + 14, { fill: colors.ink1, font: `600 ${colors.fsXs} ${colors.font}` });
@@ -627,7 +641,7 @@ defineWidget({
   title: "Deep Learning - Embedding Space",
   subtitle: S.subtitle,
   layout: "side",
-  height: ({ page, vocab }) => (page === "tokenize" ? tokLayout(vocab).height : page === "position" ? HEIGHT_POS : HEIGHT),
+  height: ({ page, vocab, encoding }) => (page === "tokenize" ? tokLayout(vocab).height : page === "position" ? HEIGHT_POS : encoding === "onehot" ? oneHotLayout(vocab).height : HEIGHT),
   pointer: true,
 
   params: {
