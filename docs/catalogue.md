@@ -18847,6 +18847,25 @@ sits at −2.47. At the opening state (3×, lengths differ, gene 5 up) raw
 reads 12.00 within and 0.75 between, TPM 1.00 and 0.44, the size factor
 12.00 and 1.00.
 
+**Round 16** (2026-09-22) — *clean up the annotation: there is so much
+truth everywhere I get confused whether it is the ratio or the log2; the
+tweening of the plot is a bit jerky; consider choosing which gene is
+overexpressed.* Three changes. **The margin's readings** take one shape: the
+name of the reading, then its value as ratio and log2 on one line ("0.47 ·
+log2 −1.08"), then the truth in the same order ("truth 1.00 · log2 0 ·
+unchanged") — one "truth" per reading, and the two lines parallel so the
+reader sees which number answers which; the tiles' notes take the same
+order. **The ease** stepped because the slope chart's axis range was taken
+from the mixed values and moved by whole powers of two mid-ease; it now
+eases between the two units' own ranges. **The changed gene is the
+reader's pick:** the control is None or 1–6, a plain row of seven, default
+5; the between reading and its tile move to the first unchanged gene; the
+walkthrough names the gene; the legend says "the changed gene". It teaches
+something the fixed gene 5 could not: under CPM, gene 5 (41% of the reads)
+up 8× pulls gene 1 to 0.25 and gene 6 (3%) barely moves it, while under
+TPM every gene has the same per-kilobase share, so any gene up 8× pulls the
+others to 0.46 alike. The sweep gains four states on other genes.
+
 **Round 15** (2026-09-22) — *the histogram can demonstrate between
 comparisons; can it also do within? The histogram is a simulation of 2,000
 genes and the table shows six — could be confusing. Research how to teach
