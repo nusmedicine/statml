@@ -51,13 +51,15 @@ import { defineWidget, fmt, mathmlRenders } from "../core/index.js";
 /* Six genes AT READ SCALE, drawn as the HBC training page draws them: each
    gene a bar of its length, each read a rectangle piled above it, Sample A
    over Sample B. One expression per kilobase everywhere, so a within-sample
-   comparison has a truth of 1.00; gene 5 (6 kb) is the one that rises. The
+   comparison has a truth of 1.00; one gene rises in B. The
    sample's total of reads is FIXED at its depth (the sequencer's capacity), so
-   the reads a rising gene takes come from every other gene. */
+   the reads a rising gene takes come from every other gene. Which gene rises
+   is the reader's pick (round 16): gene 5 holds 41% of the reads and moves
+   every other gene's share; gene 6 holds 3% and moves almost nothing. */
 const LEN = [1, 2, 4, 1, 6, 0.5];
 const PER_KB = 4;
 const READ_KB = 0.25;      // one read, as a fraction of a gene
-const CHANGED = { none: [], one: [4] };
+const changedOf = (change) => (change === "none" ? [] : [Number(change) - 1]);
 const FOLD = 8;
 const UNITS = {
   raw: { label: "Raw count", short: "raw counts" },
@@ -114,7 +116,7 @@ function sizeFactors(A, B) {
 function toyFor(params) {
   const len = params.lengths === "equal" ? LEN.map(() => 2) : LEN;
   const depth = Number(params.depth);
-  const changed = CHANGED[params.change];
+  const changed = changedOf(params.change);
   const A = len.map((l) => Math.round(PER_KB * l));
   let B = len.map((l, i) => PER_KB * l * depth * (changed.includes(i) ? FOLD : 1));
   const scale = (total(A) * depth) / total(B);   // the capacity: B's total is A's at B's depth
@@ -298,8 +300,10 @@ function hoverAt(pointer, w, state) {
    puts both on the gene pointed at. One focus carrying both, after the first
    version carried one gene and printed gene 1's number over gene 5's shaded
    row (his catch, 2026-09-22). */
-const DEFAULT_FOCUS = { between: 0, within: 4, other: 5, sample: 0 };
-const focusOf = (hover) => (hover ? { between: hover.gene, within: hover.gene, other: hover.gene === 0 ? 5 : 0, sample: hover.sample } : DEFAULT_FOCUS);
+const firstUnchanged = (toy) => (toy.changed.includes(0) ? 1 : 0);
+const focusOf = (hover, toy) => (hover
+  ? { between: hover.gene, within: hover.gene, other: hover.gene === 0 ? 5 : 0, sample: hover.sample }
+  : { between: firstUnchanged(toy), within: 4, other: 5, sample: 0 });
 const WASH = 0.22;
 
 /* The two readings the table brackets, which is what a unit change eases:
@@ -344,13 +348,10 @@ defineWidget({
       options: [{ value: "equal", label: "Equal" }, { value: "differ", label: "Differ" }], default: "differ",
     },
     change: {
-      type: "segmented", label: "Genes that change in B",
-      detail: "8× up; the sample's total of reads is fixed",
-      options: [
-        { value: "none", label: "None" },
-        { value: "one", label: "Gene 5", detail: "one of the six" },
-      ],
-      default: "one",
+      type: "segmented", label: "Gene that changes in B",
+      detail: "8× up; the sample's total of reads is fixed, so its reads come from the others",
+      options: [{ value: "none", label: "None" }, ...LEN.map((l, i) => ({ value: String(i + 1), label: String(i + 1) }))],
+      default: "5",
     },
     seed: { type: "int", label: "Seed", min: 1, max: 200, default: 1 },
 
@@ -400,7 +401,7 @@ defineWidget({
     L.push({ token: "between", label: "Between samples: one gene in both", mark: "bar" });
     L.push({ token: "within", label: "Within a sample: two genes in one", mark: "bar" });
     L.push({ token: "reference", label: "Truth for an unchanged gene: one height, level", mark: "line" });
-    if (params.change !== "none") L.push({ token: "highlight", label: "Truth for gene 5 in B: 8× its A", mark: "dash" });
+    if (params.change !== "none") L.push({ token: "highlight", label: "Truth for the changed gene in B: 8× its A", mark: "dash" });
     return L;
   },
 
@@ -418,7 +419,8 @@ defineWidget({
        per kilobase, so 1.00 is right); between samples, gene 1 against itself
        (unchanged, so 1.00 is right) */
     const within = toyU.A[4] / toyU.A[5];
-    const between = toyU.B[0] / toyU.A[0];
+    const b = firstUnchanged(toy);
+    const between = toyU.B[b] / toyU.A[b];
 
     /* the unchanged genes' level in sample A: the within truth's height */
     const levelA = median(toy.A.map((v, i) => i).filter((i) => !toy.changed.includes(i)).map((i) => toyU.A[i]));
@@ -477,8 +479,8 @@ defineWidget({
     const u = UNITS[state.unit].short;
     return [
       /* the log2 beside every ratio (his ask, round 15): a fold change is read in log2 */
-      { label: "Within sample A: gene 5 ÷ gene 6", value: fmt(state.within, 2), note: `log2 ${fmt(log2(state.within), 2)} · truth 1.00 (log2 0): the same expression per kilobase, in ${u}` },
-      { label: "Between samples: gene 1, B ÷ A", value: fmt(state.between, 2), note: `log2 ${fmt(log2(state.between), 2)} · truth 1.00 (log2 0): unchanged, in ${u}` },
+      { label: "Within sample A: gene 5 ÷ gene 6", value: fmt(state.within, 2), note: `log2 ${fmt(log2(state.within), 2)} · truth 1.00, log2 0 · the same expression per kilobase, in ${u}` },
+      { label: `Between samples: gene ${firstUnchanged(state.toy) + 1}, B ÷ A`, value: fmt(state.between, 2), note: `log2 ${fmt(log2(state.between), 2)} · truth 1.00, log2 0 · unchanged, in ${u}` },
     ];
   },
 });
@@ -509,7 +511,7 @@ function drawPiles(ctx, colors, w, y0, state, hover) {
     {
       /* between: the focus gene's span in both lanes; within: the two genes'
          spans in the focus lane, each in its own hue */
-      const F = focusOf(hover);
+      const F = focusOf(hover, toy);
       const span = (i) => ctx.fillRect(L.gx[i] - gap / 2, base - laneH + 16, L.gw[i] + gap, laneH - 2);
       ctx.save();
       ctx.globalAlpha = WASH; ctx.fillStyle = colors.between; span(F.between);
@@ -559,7 +561,7 @@ function drawTable(ctx, colors, w, y0, state, r, fade, hover) {
   const mx = cx.B + 24 + Math.max(0, Math.min(36, (w - 534) / 6));
   ctx.save();
   ctx.globalAlpha = fade;
-  const F = focusOf(hover);
+  const F = focusOf(hover, toy);
   {
     /* between: the focus gene's row across both samples; within: its cell
        and the comparator's in the focus column, each in its own hue */
@@ -605,14 +607,17 @@ function drawTable(ctx, colors, w, y0, state, r, fade, hover) {
      changed in sample B */
   const reading = (hue, title, y, v, truth, why) => {
     ctx.save(); ctx.globalAlpha = 0.9 * fade; ctx.fillStyle = hue; ctx.fillRect(mx - 12, y - 8, 8, 8); ctx.restore();
+    /* three lines in one shape (his round 16: "so much truth everywhere"):
+       the name of the reading; its value, ratio then log2; the truth, ratio
+       then log2. The margin is 182px at the narrowest canvas, which is why
+       the value is not on the name's line. */
+    ctx.font = `${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.ink2;
+    ctx.fillText(title, mx, y);
     ctx.font = `600 ${colors.fsXs} ${colors.font}`;
     ctx.fillStyle = Math.abs(v - truth) > 0.01 * truth ? colors.extreme : colors.ink1;
-    ctx.fillText(`${title} = ${fmt(v, 2)}`, mx, y);
-    /* the log2 on its own line with its own truth (his ask, round 15): the
-       margin is 182px at the narrowest canvas and the ratio line fills it */
-    ctx.fillText(`log2 ${fmt(log2(v), 2)} · truth ${fmt(Math.log2(truth), 0)}`, mx, y + rh);
+    ctx.fillText(`${fmt(v, 2)} · log2 ${fmt(log2(v), 2)}`, mx, y + rh);
     ctx.font = `${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.ink3;
-    ctx.fillText(`truth ${fmt(truth, 2)}: ${why}`, mx, y + 2 * rh);
+    ctx.fillText(`truth ${fmt(truth, 2)} · log2 ${fmt(Math.log2(truth), 0)} · ${why}`, mx, y + 2 * rh);
   };
   const gb = F.between, gw = F.within, k = F.sample, other = F.other;
   const U = k ? toyU.B : toyU.A, S = k ? "B" : "A";
@@ -621,7 +626,7 @@ function drawTable(ctx, colors, w, y0, state, r, fade, hover) {
   const between = hover ? toyU.B[gb] / toyU.A[gb] : r.between, betweenTruth = toy.changed.includes(gb) ? FOLD : 1;
   const within = hover ? U[gw] / U[other] : r.within, withinTruth = changedIn(gw) / changedIn(other);
   reading(colors.between, `between: gene ${gb + 1}, B ÷ A`, first, between, betweenTruth, toy.changed.includes(gb) ? `up ${FOLD}×` : "unchanged");
-  reading(colors.within, `within ${S}: gene ${gw + 1} ÷ gene ${other + 1}`, first + 4 * rh, within, withinTruth, withinTruth !== 1 ? `one expression per kb, gene ${gw + 1} up ${FOLD}×` : "one expression per kb");
+  reading(colors.within, `within ${S}: gene ${gw + 1} ÷ gene ${other + 1}`, first + 4 * rh, within, withinTruth, withinTruth !== 1 ? `gene ${gw + 1} up ${FOLD}×` : "same per kb");
   ctx.font = `${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.ink3;
   ctx.fillText("point at a gene to read it both ways", mx, first + 7 * rh + 2);
   ctx.restore();
@@ -636,7 +641,12 @@ function drawSlope(ctx, colors, w, y0, state, hover, fromState, e) {
   const UA = mixU(fromState ? fromState.toyU.A : state.toyU.A, state.toyU.A);
   const UB = mixU(fromState ? fromState.toyU.B : state.toyU.B, state.toyU.B);
   const levelA = fromState ? Math.exp(Math.log(fromState.levelA) + (Math.log(state.levelA) - Math.log(fromState.levelA)) * e) : state.levelA;
-  const L = slopeLayout(w, y0), R = slopeRange(slopeValues(toy, UA, UB));
+  /* the axis range eases between the two units' ranges; taken from the mixed
+     values it stepped by whole powers of two mid-ease (his round 16: jerky) */
+  const Rt = slopeRange(slopeValues(toy, state.toyU.A, state.toyU.B));
+  const Rf = fromState ? slopeRange(slopeValues(toy, fromState.toyU.A, fromState.toyU.B)) : Rt;
+  const R = { lo: Rf.lo + (Rt.lo - Rf.lo) * e, hi: Rf.hi + (Rt.hi - Rf.hi) * e };
+  const L = slopeLayout(w, y0);
   const sy = (v) => slopeY(L, R, v);
   ctx.save();
   ctx.textBaseline = "alphabetic";
@@ -657,7 +667,7 @@ function drawSlope(ctx, colors, w, y0, state, hover, fromState, e) {
   /* the washes, as in the table: between along the focus gene's line, within
      around the two dots in the focus column */
   {
-    const F = focusOf(hover);
+    const F = focusOf(hover, toy);
     const xk = F.sample ? L.xB : L.xA;
     ctx.save(); ctx.globalAlpha = WASH;
     ctx.fillStyle = colors.between;
@@ -748,7 +758,7 @@ function drawAct(ctx, colors, w, y0, state) {
   /* why the median: a changed gene's ratio is one of six, and the middle of
      the other five is the depth */
   ctx.fillText(toy.changed.length
-    ? "gene 5's ratio is one of six; the median is the middle of the other five"
+    ? `gene ${toy.changed[0] + 1}'s ratio is one of six; the median is the middle of the other five`
     : "no gene changed: the six ratios are equal, and the median is that value", 34, my + 20);
   ctx.restore();
 }
