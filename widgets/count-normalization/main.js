@@ -24,10 +24,11 @@
  * right, which is why a DE test takes counts and a size factor and a
  * gene-against-gene look takes TPM. Above the table, the six genes and their
  * reads as pile-ups (the count is the rectangles, the coverage is the pile's
- * depth); below it, 2,000 genes as four boxes of the values themselves — the
- * unchanged genes in A and in B, the changed genes in A and in B — so B above
- * A, or level with it, is seen rather than read off a ratio (his pick over a
- * histogram of log2(B ÷ A), which showed "up" only as a position on a line).
+ * depth); below it, 2,000 genes as a histogram of log2(B ÷ A), the HBC page's
+ * DESeq2 figure, with the truth drawn as a line: 0 for the unchanged genes,
+ * 3 for the ones up 8×. (Four boxes of the values themselves stood here for
+ * one round; the moving medians hid the truth, and he asked for the
+ * histogram back, 2026-09-22.)
  *
  * THE NUMBERS, measured before the mock (`_lab/rnaseq-measure.mjs` M1, the
  * scratch `mor-fail.mjs` recorded in the catalogue): with 5% of genes up 8×
@@ -38,7 +39,7 @@
  * protocol and 75% under another, so every other gene's TPM differs with
  * nothing changed.
  */
-import { defineWidget, fmt, mathmlRenders } from "../core/index.js";
+import { defineWidget, makePlot, fmt, mathmlRenders } from "../core/index.js";
 
 /* --- the stage ------------------------------------------------------------ */
 /* Six genes AT READ SCALE, drawn as the HBC training page draws them: each
@@ -69,12 +70,12 @@ const UNITS = {
   sfkb: { label: "Size factor per kb", short: "counts ÷ size factor ÷ kb" },
 };
 const DEPTHS = ["1", "2", "3", "10"];
-const MIN_COUNT = 20;      // a gene counts toward the boxes only with counts over this in both samples
+const MIN_COUNT = 20;      // a gene counts toward the histogram only with counts over this in both samples
 const PILE_H = 190;
 const TABLE_H = 180;
-const BOX_H = 176;   /* three text lines under the axis, none over the boxes (the sweep) */
+const HIST_H = 156;
 const GAP = 4;
-const FIG_H = PILE_H + TABLE_H + BOX_H + 2 * GAP;
+const FIG_H = PILE_H + TABLE_H + HIST_H + 2 * GAP;
 const ACT_H = 236;
 const EASE_MS = 450;
 const easeInOut = (t) => (t < 0.5 ? 2 * t * t : 1 - ((-2 * t + 2) ** 2) / 2);
@@ -83,7 +84,6 @@ const easeInOut = (t) => (t < 0.5 ? 2 * t * t : 1 - ((-2 * t + 2) ** 2) / 2);
 const total = (c) => c.reduce((s, v) => s + v, 0);
 const median = (a) => { const s = Float64Array.from(a).sort(); const m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
 const log2 = (x) => Math.log(x) / Math.LN2;
-const quantile = (a, p) => { const s = Float64Array.from(a).sort(); return s[Math.min(s.length - 1, Math.floor(p * s.length))]; };
 const big = (v) => (Math.abs(v) >= 1000 ? Math.round(v).toLocaleString("en") : fmt(v, v >= 100 ? 0 : 2));
 
 /** One sample's counts in a unit. `sf` is that sample's size factor. */
@@ -421,27 +421,20 @@ defineWidget({
     const within = toyU.A[4] / toyU.A[5];
     const between = toyU.B[0] / toyU.A[0];
 
-    /* the 2,000 as four boxes of the values themselves (his pick, round 11,
-       over a histogram of ratios): the unchanged genes in A and in B, the
-       changed genes in A and in B, genes counted in both samples. B above A,
-       or level with it, is then seen rather than read off a ratio. */
-    const keep = [];
-    for (let i = 0; i < GENES; i += 1) if (panel.A[i] > MIN_COUNT && panel.B[i] > MIN_COUNT) keep.push(i);
-    const unch = keep.filter((i) => !panel.changed.has(i)), ch = keep.filter((i) => panel.changed.has(i));
-    const five = (vals) => (vals.length ? [0.05, 0.25, 0.5, 0.75, 0.95].map((q) => quantile(vals, q)) : null);
-    const boxes = [
-      { name: "unchanged, A", changed: false, sample: 0, q: five(unch.map((i) => panU.A[i])) },
-      { name: "unchanged, B", changed: false, sample: 1, q: five(unch.map((i) => panU.B[i])) },
-      { name: "changed, A", changed: true, sample: 0, q: five(ch.map((i) => panU.A[i])) },
-      { name: "changed, B", changed: true, sample: 1, q: five(ch.map((i) => panU.B[i])) },
-    ].filter((b) => b.q);
-    const gapUnchanged = boxes[1] ? log2(boxes[1].q[2] / boxes[0].q[2]) : 0;
-    const gapChanged = boxes[3] ? log2(boxes[3].q[2] / boxes[2].q[2]) : null;
+    /* the histogram of log2(B ÷ A) over the 2,000, genes counted in both */
+    const shifts = [], changedShifts = [];
+    for (let i = 0; i < GENES; i += 1) {
+      if (!(panel.A[i] > MIN_COUNT && panel.B[i] > MIN_COUNT)) continue;
+      const v = log2(panU.B[i] / panU.A[i]);
+      (panel.changed.has(i) ? changedShifts : shifts).push(v);
+    }
 
     return {
       toy, panel, toyU, panU, tsf, psf, unit,
       within, between,
-      boxes, gapUnchanged, gapChanged, nUnchanged: unch.length, nChanged: ch.length,
+      shifts, changedShifts,
+      medianUnchanged: shifts.length ? median(shifts) : 0,
+      medianChanged: changedShifts.length ? median(changedShifts) : null,
     };
   },
 
@@ -484,11 +477,11 @@ defineWidget({
     if (e < 1 && anim.fromState) {
       drawTable(ctx, colors, w, ty, anim.fromState, r, 1 - e, hover);
       drawTable(ctx, colors, w, ty, state, r, e, hover);
-      drawBoxes(ctx, colors, w, hy, anim.fromState, 1 - e);
-      drawBoxes(ctx, colors, w, hy, state, e);
+      drawHist(ctx, colors, w, hy, anim.fromState, 1 - e);
+      drawHist(ctx, colors, w, hy, state, e);
     } else {
       drawTable(ctx, colors, w, ty, state, r, 1, hover);
-      drawBoxes(ctx, colors, w, hy, state, 1);
+      drawHist(ctx, colors, w, hy, state, 1);
     }
     if ((params.unit === "sf" || params.unit === "sfkb") && params.act) drawAct(ctx, colors, w, FIG_H, state);
   },
@@ -498,7 +491,7 @@ defineWidget({
     return [
       { label: "Within sample A: gene 5 ÷ gene 6", value: fmt(state.within, 2), note: `truth 1.00: the same expression per kilobase, in ${u}` },
       { label: "Between samples: gene 1, B ÷ A", value: fmt(state.between, 2), note: `truth 1.00: unchanged, in ${u}` },
-      { label: "2,000 unchanged genes: B − A, log2 of the medians", value: fmt(state.gapUnchanged, 2), note: `truth 0; ${state.nUnchanged.toLocaleString("en")} genes with counts over ${MIN_COUNT} in both` },
+      { label: "2,000 unchanged genes, median log2(B ÷ A)", value: fmt(state.medianUnchanged, 2), note: `truth 0; ${state.shifts.length.toLocaleString("en")} genes with counts over ${MIN_COUNT} in both` },
     ];
   },
 });
@@ -644,61 +637,50 @@ function drawTable(ctx, colors, w, y0, state, r, fade, hover) {
   ctx.restore();
 }
 
-/* --- the 2,000 genes as four boxes ------------------------------------------ */
-function drawBoxes(ctx, colors, w, y0, state, fade) {
+/* --- the 2,000 genes as a histogram of ratios ------------------------------ */
+function drawHist(ctx, colors, w, y0, state, fade) {
   const u = UNITS[state.unit].short;
-  const { boxes } = state;
-  const all = boxes.flatMap((b) => [b.q[0], b.q[4]]).filter((v) => v > 0).map(log2);
-  const lo = Math.min(...all) - 0.3, hi = Math.max(...all) + 0.3;
-  const padL = 44, padR = 12, top = y0 + 22, bottom = y0 + BOX_H - 46;
-  const pw = w - padL - padR, ph = bottom - top;
-  const sy = (v) => top + ph - ((log2(v) - lo) / (hi - lo)) * ph;
+  /* the axis holds −3..4 and widens to the data: raw counts at 10× put the
+     unchanged genes at 3.3 and the changed ones at 6.3 */
+  const all = [...state.shifts, ...state.changedShifts];
+  const lo = Math.min(-3, Math.floor(Math.min(...all))), hi = Math.max(4, Math.ceil(Math.max(...all)));
+  const nb = 6 * (hi - lo);
+  const hU = new Array(nb).fill(0), hC = new Array(nb).fill(0);
+  const bin = (v) => Math.floor(((v - lo) / (hi - lo)) * nb);
+  for (const v of state.shifts) { const k = bin(v); if (k >= 0 && k < nb) hU[k] += 1; }
+  for (const v of state.changedShifts) { const k = bin(v); if (k >= 0 && k < nb) hC[k] += 1; }
+  const hmax = Math.max(1, ...hU, ...hC);
+  /* 36 below the baseline: the axis label sits 26px under it and the sweep
+     found it 4px past the canvas at 30 */
+  const padL = 44, padR = 12, top = y0 + 22, bottom = y0 + HIST_H - 36;
   ctx.save();
   ctx.globalAlpha = fade;
-  ctx.textBaseline = "alphabetic";
-  ctx.font = `${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.ink2; ctx.textAlign = "left";
-  ctx.fillText(`2,000 genes in ${u}: the unchanged and the changed genes, in each sample`, padL, y0 + 12);
-  ctx.strokeStyle = colors.axis ?? colors.ink3; ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.moveTo(padL, Math.round(bottom) + 0.5); ctx.lineTo(padL + pw, Math.round(bottom) + 0.5); ctx.stroke();
-  /* the truths: the unchanged genes' level in A, which B's unchanged box should
-     sit on; and 8× the changed genes' level in A, for the changed pair */
-  const mUA = boxes[0].q[2];
-  ctx.strokeStyle = colors.reference; ctx.lineWidth = 1.5;
-  ctx.beginPath(); ctx.moveTo(padL, sy(mUA)); ctx.lineTo(padL + pw, sy(mUA)); ctx.stroke();
-  if (boxes[3]) {
-    ctx.strokeStyle = colors.highlight;
-    ctx.beginPath(); ctx.moveTo(padL + pw / 2, sy(boxes[2].q[2] * FOLD)); ctx.lineTo(padL + pw, sy(boxes[2].q[2] * FOLD)); ctx.stroke();
+  const plot = makePlot({ ctx, colors, rect: { x: padL, y: top, w: w - padL - padR, h: bottom - top }, xDomain: [lo, hi], yDomain: [0, hmax] });
+  const ticks = []; for (let t = lo; t <= hi; t += 1) ticks.push(t);
+  plot.axisX({ ticks, format: (v) => String(v), label: "log2(B ÷ A) per gene" });
+  plot.caption(`2,000 genes in ${u}: sample B against sample A`);
+  const bw = (w - padL - padR) / nb;
+  ctx.fillStyle = colors.empirical; ctx.globalAlpha = 0.8 * fade;
+  hU.forEach((v, k) => { if (v) ctx.fillRect(plot.sx(lo + (k / nb) * (hi - lo)), plot.sy(v), bw - 1, plot.sy(0) - plot.sy(v)); });
+  ctx.fillStyle = colors.highlight; ctx.globalAlpha = 0.85 * fade;
+  hC.forEach((v, k) => { if (v) ctx.fillRect(plot.sx(lo + (k / nb) * (hi - lo)), plot.sy(v), bw - 1, plot.sy(0) - plot.sy(v)); });
+  ctx.globalAlpha = fade;
+  /* the truths, as lines: 0 for an unchanged gene, log2 of the fold for a
+     changed one. A unit that compares between samples puts the blue bump on
+     the first and the violet on the second; a share puts both to the left of
+     their truth by the same amount */
+  /* Each line carries its own reading — the truth and the group's median —
+     on its own row, so the two labels can never meet (the sweep found the
+     corner text on the 0 line's label); a label goes on whichever side of
+     its line has room for it */
+  ctx.font = `${colors.fsXs} ${colors.font}`;
+  const side = (v, text) => (plot.sx(v) + 4 + ctx.measureText(text).width > w - padR ? "left" : "right");
+  const lU = `unchanged: truth 0, median ${fmt(state.medianUnchanged, 2)}`;
+  plot.vline(0, { stroke: colors.reference, width: 1.5, label: lU, align: side(0, lU) });
+  if (state.medianChanged !== null) {
+    const lC = `up ${FOLD}×: truth ${fmt(Math.log2(FOLD), 0)}, median ${fmt(state.medianChanged, 2)}`;
+    plot.vline(Math.log2(FOLD), { stroke: colors.highlight, width: 1.5, label: lC, align: side(Math.log2(FOLD), lC), labelDy: 13 });
   }
-  const slots = boxes.length;
-  boxes.forEach((b, k) => {
-    const cx = padL + (pw * (k + 0.5)) / slots, half = Math.min(34, pw / slots / 3);
-    const col = b.changed ? colors.highlight : colors.empirical;
-    const [w1, q1, med, q3, w9] = b.q;
-    ctx.strokeStyle = col; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(cx, sy(w1)); ctx.lineTo(cx, sy(w9)); ctx.stroke();
-    ctx.save(); ctx.globalAlpha = 0.18 * fade; ctx.fillStyle = col; ctx.fillRect(cx - half, sy(q3), 2 * half, sy(q1) - sy(q3)); ctx.restore();
-    ctx.strokeRect(cx - half + 0.5, sy(q3) + 0.5, 2 * half - 1, Math.max(1, sy(q1) - sy(q3)) - 1);
-    ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(cx - half, sy(med)); ctx.lineTo(cx + half, sy(med)); ctx.stroke();
-    ctx.textAlign = "center";
-    ctx.font = `${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.ink3;
-    ctx.fillText(b.name, cx, bottom + 13);
-    ctx.font = `600 ${colors.fsXs} ${colors.mono}`; ctx.fillStyle = colors.ink1;
-    ctx.fillText(fmt(log2(med), 2), cx, sy(med) - 5);
-  });
-  /* every line of text sits under the axis, where no box can reach it (the
-     sweep found the corner text on the tallest box's median): the two gaps
-     with their truths on one line, then the caption */
-  ctx.font = `600 ${colors.fsXs} ${colors.font}`;
-  ctx.textAlign = "left";
-  ctx.fillStyle = Math.abs(state.gapUnchanged) > 0.05 ? colors.extreme : colors.ink1;
-  ctx.fillText(`unchanged, B − A ${fmt(state.gapUnchanged, 2)} · truth 0`, padL, bottom + 26);
-  if (state.gapChanged !== null) {
-    ctx.textAlign = "right";
-    ctx.fillStyle = Math.abs(state.gapChanged - Math.log2(FOLD)) > 0.1 ? colors.extreme : colors.ink1;
-    ctx.fillText(`changed, B − A ${fmt(state.gapChanged, 2)} · truth ${fmt(Math.log2(FOLD), 2)}`, padL + pw, bottom + 26);
-  }
-  ctx.textAlign = "center"; ctx.font = `${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.ink3;
-  ctx.fillText("log2 of the value; a box is the middle half, the line its median", padL + pw / 2, bottom + 39);
   ctx.restore();
 }
 
