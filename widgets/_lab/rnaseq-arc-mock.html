@@ -1,0 +1,577 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · the RNA-seq arc — mock</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1600px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 104ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); min-height: 26px; white-space: pre-line; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 104ch; }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+       border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 104ch; }
+  .q b { display: block; margin-bottom: 2px; }
+  .tell { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+          border-left: 3px solid var(--c-extreme); background: var(--surface-2); max-width: 104ch; }
+  table { border-collapse: collapse; font-size: var(--fs-sm); margin: var(--sp-2) 0; max-width: 130ch; }
+  th, td { border: 1px solid var(--grid); padding: 4px 10px; text-align: left; vertical-align: top; }
+  th { color: var(--ink-2); font-weight: 600; }
+  #findings { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--ink-2); white-space: pre-line;
+              padding: var(--sp-3); background: var(--surface-2); border: 1px solid var(--grid); max-width: 120ch; }
+  .rail { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin: 4px 0 10px; }
+  .rail .w { font-family: var(--font-mono); font-size: 11px; color: var(--ink-1); min-width: 170px; }
+  .rail .pg { font-size: 11px; padding: 3px 9px; border: 1px solid var(--grid); border-radius: 3px; background: var(--surface-2); color: var(--ink-1); }
+  .rail .pg.eng { border-color: var(--c-group-a); }
+  .rail .n { font-size: 10px; color: var(--ink-3); margin-left: 6px; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>The RNA-seq arc &middot; PHM5003 08 (01-2 DESeq2, 02-2 to 02-4 Seurat) &middot; mock</h1>
+  <p class="note">
+    Six candidate slots, one leading figure each, drawn at the widget's 550px. <b>Every number drawn here is computed on
+    this page</b> from the same arithmetic as <code>_lab/rnaseq-measure.mjs</code> (the units toy, a negative binomial
+    with a Cox&ndash;Reid fit and a trend prior, the closed-form vst, kNN &rarr; SNN &rarr; Louvain, mutual nearest neighbours
+    and a block-updated Harmony, a Wilcoxon over cells against a t-test over patients), except the QC panel, which reads
+    the lesson's own four 10x matrices through <code>_lab/rnaseq-sc-data.mjs</code>. The panels are the LEADING figure
+    of each slot, not its pages; the mock draws filled states so they can be judged, and a widget opens empty. On-canvas
+    strings are candidates for the copy audit, not copy. Each section ends with a recommendation; the grey-ruled boxes at
+    the end are the calls only you can answer, and the red-ruled ones are things the lesson's own output says.
+  </p>
+
+  <h2>0 &middot; What the measurement found</h2>
+  <div id="findings">loading the script's findings&hellip;</div>
+
+  <h2>1 &middot; Slot 77 <code>count-normalization</code> &mdash; counts, CPM, FPKM, TPM and the size factor (01-2 cells 16, 22)</h2>
+  <p class="note">
+    Left, the <i>Composition</i> page's figure: six genes with lengths, one of them (long and abundant) eight times up in
+    sample B, five unchanged. One unchanged gene read in every unit: raw and CPM agree here because the depth is equal;
+    FPKM and TPM read it DOWN because they are shares of a total that gene 5 now dominates; the median of ratios reads
+    it flat because it assumes most genes are unchanged and takes the scale from them. Right, the same at 2,000 genes with
+    5% up: the log2 shift of every unchanged gene under TPM against the median of ratios, with the 1.5&times; cutoff.
+  </p>
+  <div class="row" id="unitRow"></div>
+  <p class="rec">First to build: it answers ask 1 directly, and it is the widget 39 (<code>normalization</code>) did not build &mdash;
+    39 is scaling against transforming on intensities; this is the UNIT of a count, which only length and composition
+    move. Its last page ends on the size factor, which is where 78 begins.</p>
+
+  <h2>2 &middot; Slot 78 <code>deseq2</code> &mdash; the negative binomial, dispersion shrinkage, the Wald test, the vst (01-2 cells 1, 22, 24, 35&ndash;45)</h2>
+  <p class="note">
+    Left, the <i>Dispersion</i> page: <code>plotDispEsts</code> as the notebook draws it, on 1,200 genes at 3 vs 3 &mdash;
+    each gene's own estimate in grey, the trend fitted through all genes as the prior, the shrunk estimate as the
+    posterior. Right, the <i>Transform</i> page: the SD across replicates against the mean, for log2(x + 1) and the vst
+    that the trend implies in closed form; raw counts are off the axis (their SD is the mean's square root and more).
+  </p>
+  <div class="row" id="deseqRow"></div>
+  <p class="rec">Second, and the heaviest: four pages (Model &middot; Dispersion &middot; Test &middot; Transform). The script's number for the
+    Dispersion page is the arc's strongest: at three replicates the realised false discovery rate at padj &lt; 0.1 is 40%
+    with each gene's own dispersion, 20% shrunk, 8% with the truth. The Test page carries the parked
+    <code>count-regression</code>: the log2 fold change IS the coefficient on the log link, and W = &beta;/SE. LFC
+    shrinkage costs something real and the widget says so: 139 null low-count genes at |LFC| &gt; 1 become 0, and 274 true
+    ones become 194.</p>
+
+  <h2>3 &middot; Slot 79 <code>cell-qc</code> &mdash; nCount, nFeature, mt% and the thresholds (02-2 cells 16&ndash;26)</h2>
+  <p class="note">
+    The <i>Thresholds</i> page on the lesson's own cells: the mitochondrial fraction of every cell in each of the four
+    samples, the 10% line the lesson takes from its publication, and how many cells the line removes per sample. The
+    notebook prints one number, 40,564 &rarr; 31,014; the script reproduces it exactly and reads where it comes from.
+  </p>
+  <div class="row" id="qcRow"></div>
+  <p class="rec">Third. Three sliders, three metrics, and a per-sample count of what each removes. The stage is the call
+    in &sect;7.5: simulated samples shaped like these four, or a subsample of the real three numbers per cell.</p>
+  <p class="tell"><b>For you, from the lesson's own data.</b> The mt% &lt; 10 rule removes 9,351 of HB17 background's 11,197
+    cells (its median is 14.8%); HB53 background loses 0 of 8,540, the two tumours 1 and 40. CYP3A4 is detected in 91% of
+    HB17 background's cells, so the cells removed are hepatocytes, whose mitochondrial fraction is high in a healthy
+    liver. One patient's normal liver is almost entirely gone before integration.</p>
+
+  <h2>4 &middot; Slot 80 <code>integration</code> &mdash; anchors between batches, and a type that is in one batch only (02-3)</h2>
+  <p class="note">
+    Two batches of cells in 10 PCs, drawn on their first two: three types in both batches, a batch shift, and a fourth
+    type present in batch 2 only (hollow marks are batch 2). Left, before. Middle, mutual nearest neighbours: pairs form
+    only between cells of the same type, so the shared types align and the unique type is moved by the batch vector its
+    neighbours learned and left standing. Right, Harmony: clusters are made to hold both batches, so a batch-only type is
+    pulled toward the nearest shared one &mdash; the script: from 8.6 to 3.6 within-type SDs of it.
+  </p>
+  <div class="row" id="intRow"></div>
+  <p class="rec">Fourth. Widget 40 (<code>batch-effect</code>) already says a confounded batch cannot be corrected; this is its
+    single-cell instance, with the mechanism drawn: an anchor is a pair, and a type with no partner has no anchor. The
+    method control is the call in &sect;7.6: each method wins somewhere, which is the rule for offering a choice.</p>
+  <p class="tell"><b>For you.</b> The lesson's layers are patient &times; type, so tumour against background is integrated as a
+    batch. Its cluster 5 is Kupffer cells by CD163, and 02-4's test of tumor_5 against background_5 returns GPC3 (LFC 9.9,
+    detected in 95% of the tumour side and 0.4% of the background side), AFP, LIN28B, DLK1-like genes &mdash; hepatoblastoma
+    cells sitting in the Kupffer cluster. GPC3 is detected in 98% of cells in both tumour samples and 2&ndash;4% of the
+    backgrounds. The integration has aligned the tumour with the liver it came from.</p>
+
+  <h2>5 &middot; Slot 81 <code>cell-markers</code> &mdash; what a marker is, and cells are not replicates (02-4 cells 10&ndash;22)</h2>
+  <p class="note">
+    Left, the <i>Markers</i> page: two genes across four clusters as a dot plot (size is the share of cells expressing,
+    colour the mean), and <code>FindMarkers</code>'s columns for cluster 1 against the rest. Both genes test at p &asymp; 0;
+    pct.2 is what separates a marker from a gene that is merely expressed. Right, the <i>Conditions</i> page: two patients
+    per arm, no condition effect, 400 genes &mdash; the p-values of a Wilcoxon over cells against a t-test over patients.
+  </p>
+  <div class="row" id="markRow"></div>
+  <p class="rec">Fifth. Widget 44 (<code>experimental-design</code>) owns pseudoreplication and 32 (<code>mixed-model</code>) counts
+    evidence in patients; this is the instance where it costs most, because the lesson's own output prints p_val 0.
+    If 82 folds in, its resolution page goes first here: Clusters &middot; Markers &middot; Conditions.</p>
+
+  <h2>6 &middot; Slot 82 <code>cell-clusters</code> &mdash; kNN, SNN, Louvain, and the resolution (02-4 cell 5)</h2>
+  <p class="note">
+    The same 600 cells at three resolutions: three types and a continuum (a lineage in the middle of differentiating).
+    The count of clusters is the resolution's; at 2.0 the continuum is cut into pieces that were never populations.
+  </p>
+  <div class="row" id="clusRow"></div>
+  <p class="rec">The one to cut, or fold into 81 as its first page: three clustering widgets exist (23, 24, 42) and 42 already
+    says the cut is not a finding. What is new is the graph and the resolution, which is one page's worth.</p>
+
+  <h2>7 &middot; The calls</h2>
+  <p class="q"><b>7.1 &middot; How many</b>
+    A &middot; six widgets, 77 to 82 &nbsp;|&nbsp; <b>B &middot; five: 77, 78, 79, 80, 81, with 82 folded into 81 as its first page (recommended)</b> &nbsp;|&nbsp;
+    C &middot; four: 77, 78, 80, 81 (no QC widget; the mt% finding goes to you as a note) &nbsp;|&nbsp; D &middot; three: 77, 78, 81</p>
+  <p class="q"><b>7.2 &middot; Build order</b>
+    <b>A &middot; the lessons': 77 &rarr; 78 &rarr; 79 &rarr; 80 &rarr; 81 (recommended; no engine is shared across the bulk pair, and the cell stage is born at 79)</b> &nbsp;|&nbsp;
+    B &middot; single-cell first: 79 &rarr; 80 &rarr; 81 &rarr; 77 &rarr; 78</p>
+  <p class="q"><b>7.3 &middot; Where the size factor lives</b>
+    <b>A &middot; 77's last page, Composition, ends on the median of ratios; 78 opens at the model with size factors given (recommended: the size factor is the answer to the composition problem that page sets up)</b> &nbsp;|&nbsp;
+    B &middot; 78's first page, as the notebook's step 1; 77 ends on TPM</p>
+  <p class="q"><b>7.4 &middot; 78's pages</b>
+    <b>A &middot; four: Model &middot; Dispersion &middot; Test &middot; Transform (recommended)</b> &nbsp;|&nbsp;
+    B &middot; three, with the vst as a page of 77 instead &nbsp;|&nbsp; C &middot; two widgets, <code>deseq2</code> (Model &middot; Dispersion &middot; Test) and <code>vst</code></p>
+  <p class="q"><b>7.5 &middot; The single-cell stage</b>
+    <b>A &middot; simulated: cells in 10 PCs with named types, and for 79 four simulated samples shaped like the lesson's four (one with a high mitochondrial fraction) (recommended, as every arc's stage is)</b> &nbsp;|&nbsp;
+    B &middot; for 79 only, a 2,000-cell subsample of the three real QC numbers per cell embedded (derived numbers, not counts; the open-data question) &nbsp;|&nbsp; C &middot; both, as a stage control</p>
+  <p class="q"><b>7.6 &middot; 80's method</b>
+    <b>A &middot; a method control, anchors (MNN) against Harmony, because each wins somewhere: MNN leaves a batch-only type standing and mixes less; Harmony mixes fully and pulls it (recommended)</b> &nbsp;|&nbsp;
+    B &middot; anchors only, as the notebook &nbsp;|&nbsp; C &middot; Harmony only, as your ask named it</p>
+  <p class="q"><b>7.7 &middot; Slugs and titles</b>
+    <code>count-normalization</code> &middot; <code>deseq2</code> &middot; <code>cell-qc</code> &middot; <code>integration</code> &middot; <code>cell-markers</code> &middot; <code>cell-clusters</code>;
+    titles in the collection's plain form ("Expression Units", "Differential Expression", "Single-Cell QC", "Single-Cell Integration", "Clusters and Markers", "Graph Clustering") &mdash; yours to rename; a slug is a public URL.</p>
+
+  <h2>8 &middot; The rails, as proposed</h2>
+  <div class="rail"><span class="w">count-normalization</span><span class="pg">Depth</span><span class="pg">Length</span><span class="pg">Composition</span><span class="n">01-2 cells 16, 22 &middot; CPM, FPKM, TPM, the size factor</span></div>
+  <div class="rail"><span class="w">deseq2</span><span class="pg eng">Model</span><span class="pg eng">Dispersion</span><span class="pg eng">Test</span><span class="pg">Transform</span><span class="n">01-2 cells 1, 22, 24, 35&ndash;45 &middot; NB, shrinkage, Wald and LFC shrinkage, vst</span></div>
+  <div class="rail"><span class="w">cell-qc</span><span class="pg">Metrics</span><span class="pg">Thresholds</span><span class="n">02-2 cells 16&ndash;26</span></div>
+  <div class="rail"><span class="w">integration</span><span class="pg eng">Anchors</span><span class="pg eng">Correction</span><span class="n">02-3 &middot; MNN / Harmony; a type in one batch only</span></div>
+  <div class="rail"><span class="w">cell-markers</span><span class="pg eng">Clusters</span><span class="pg">Markers</span><span class="pg eng">Conditions</span><span class="n">02-4 cells 5&ndash;22 &middot; resolution (if 82 folds in), pct.1 / pct.2, cells are not replicates</span></div>
+  <p class="note">An outlined page runs an engine on the page (a fit, a graph, a correction); a plain one is arithmetic.</p>
+</main>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+import { makeRng } from "../core/rng.js";
+
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+const W = 550;
+
+/* ---------------------------------------------------------------- shell */
+function el(tag, cls, text) { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
+function cand(rowId, title, sub, w = W) {
+  const box = el("div", "cand"); box.style.width = `${w}px`;
+  box.appendChild(el("h3", null, title)); box.appendChild(el("p", "sub", sub));
+  document.getElementById(rowId).appendChild(box);
+  return box;
+}
+function canvasIn(box, w, h) {
+  const c = document.createElement("canvas");
+  c.width = Math.round(w * DPR); c.height = Math.round(h * DPR); c.style.width = `${w}px`; c.style.height = `${h}px`;
+  box.appendChild(c); const ctx = c.getContext("2d"); ctx.scale(DPR, DPR); return ctx;
+}
+const rgb = (c) => { const m = String(c).match(/^#([0-9a-f]{6})$/i); return m ? [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16)) : [128, 128, 128]; };
+const wash = (color, a) => { const p = rgb(color); return `rgba(${p[0]},${p[1]},${p[2]},${a})`; };
+function label(ctx, s, x, y, { size = 11, colour = T.ink2, align = "left", mono = false, weight = "", baseline = "alphabetic" } = {}) {
+  ctx.save(); ctx.font = `${weight ? weight + " " : ""}${size}px ${mono ? T.mono : T.font}`; ctx.fillStyle = colour; ctx.textAlign = align; ctx.textBaseline = baseline; ctx.fillText(s, x, y); ctx.restore();
+}
+function line(ctx, x1, y1, x2, y2, colour, width = 1, dash = null) {
+  ctx.save(); ctx.strokeStyle = colour; ctx.lineWidth = width; if (dash) ctx.setLineDash(dash); ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); ctx.restore();
+}
+function rect(ctx, x, y, w, h, fill, stroke = null, lw = 1) { ctx.save(); if (fill) { ctx.fillStyle = fill; ctx.fillRect(x, y, w, h); } if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw; ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1); } ctx.restore(); }
+function polyline(ctx, xs, ys, colour, width = 1.2, dash = null) { ctx.save(); ctx.strokeStyle = colour; ctx.lineWidth = width; ctx.lineJoin = "round"; if (dash) ctx.setLineDash(dash); ctx.beginPath(); xs.forEach((x, i) => (i ? ctx.lineTo(x, ys[i]) : ctx.moveTo(x, ys[i]))); ctx.stroke(); ctx.restore(); }
+function dot(ctx, x, y, r, fill, stroke = null, lw = 1) { ctx.save(); ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); if (fill) { ctx.fillStyle = fill; ctx.fill(); } if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw; ctx.stroke(); } ctx.restore(); }
+const mean = (a) => a.reduce((s, v) => s + v, 0) / a.length;
+const median = (a) => { const s = Float64Array.from(a).sort(); const m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
+const sd = (a) => { const m = mean(a); return Math.sqrt(a.reduce((s, v) => s + (v - m) ** 2, 0) / (a.length - 1)); };
+const log2 = (x) => Math.log(x) / Math.LN2;
+const f = (x, d = 2) => x.toFixed(d);
+
+/* ------------------------------------------------------------- numerics */
+function lgamma(z) { // Lanczos, g = 7
+  const g = [0.99999999999980993, 676.5203681218851, -1259.1392167224028, 771.32342877765313, -176.61502916214059, 12.507343278686905, -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7];
+  if (z < 0.5) return Math.log(Math.PI / Math.sin(Math.PI * z)) - lgamma(1 - z);
+  z -= 1; let x = g[0]; for (let i = 1; i < 9; i += 1) x += g[i] / (z + i);
+  const t = z + 7.5; return 0.5 * Math.log(2 * Math.PI) + (z + 0.5) * Math.log(t) - t + Math.log(x);
+}
+function gammaDraw(rng, shape, scale = 1) {
+  if (shape < 1) return gammaDraw(rng, shape + 1, scale) * Math.pow(rng.next(), 1 / shape);
+  const d = shape - 1 / 3, c = 1 / Math.sqrt(9 * d);
+  for (;;) { let x, v; do { x = rng.normal(); v = 1 + c * x; } while (v <= 0); v = v * v * v; const u = rng.next(); if (u < 1 - 0.0331 * x ** 4 || Math.log(u) < 0.5 * x * x + d * (1 - v + Math.log(v))) return d * v * scale; }
+}
+function poissonDraw(rng, mu) {
+  if (mu <= 0) return 0;
+  if (mu < 40) { const L = Math.exp(-mu); let k = 0, p = 1; do { k += 1; p *= rng.next(); } while (p > L); return k - 1; }
+  return Math.max(0, Math.round(mu + Math.sqrt(mu) * rng.normal()));
+}
+const nbDraw = (rng, mu, alpha) => (alpha <= 1e-8 ? poissonDraw(rng, mu) : poissonDraw(rng, mu * gammaDraw(rng, 1 / alpha, alpha)));
+function nbLogLik(counts, mus, alpha) { const size = 1 / alpha; let ll = 0; for (let i = 0; i < counts.length; i += 1) { const k = counts[i], mu = mus[i], lsm = Math.log(size + mu); ll += lgamma(k + size) - lgamma(size) - lgamma(k + 1) + size * (Math.log(size) - lsm) + k * (Math.log(mu) - lsm); } return ll; }
+function argmaxGolden(fn, lo, hi, iters = 50) { const gr = (Math.sqrt(5) - 1) / 2; let a = lo, b = hi, c = b - gr * (b - a), d = a + gr * (b - a), fc = fn(c), fd = fn(d); for (let i = 0; i < iters; i += 1) { if (fc > fd) { b = d; d = c; fd = fc; c = b - gr * (b - a); fc = fn(c); } else { a = c; c = d; fc = fd; d = a + gr * (b - a); fd = fn(d); } } return (a + b) / 2; }
+function erfc(x) { const z = Math.abs(x), t = 1 / (1 + 0.5 * z); const r = t * Math.exp(-z * z - 1.26551223 + t * (1.00002368 + t * (0.37409196 + t * (0.09678418 + t * (-0.18628806 + t * (0.27886807 + t * (-1.13520398 + t * (1.48851587 + t * (-0.82215223 + t * 0.17087277))))))))); return x >= 0 ? r : 2 - r; }
+const normalSf = (z) => 0.5 * erfc(z / Math.SQRT2);
+function wilcoxonP(a, b) {
+  const all = [...a.map((v) => [v, 0]), ...b.map((v) => [v, 1])].sort((x, y) => x[0] - y[0]);
+  const ranks = new Array(all.length); let i = 0;
+  while (i < all.length) { let j = i; while (j + 1 < all.length && all[j + 1][0] === all[i][0]) j += 1; const r = (i + j) / 2 + 1; for (let t = i; t <= j; t += 1) ranks[t] = r; i = j + 1; }
+  const n1 = a.length, n2 = b.length; let R1 = 0; all.forEach((e, t) => { if (e[1] === 0) R1 += ranks[t]; });
+  const U = R1 - (n1 * (n1 + 1)) / 2, mu = (n1 * n2) / 2, s = Math.sqrt((n1 * n2 * (n1 + n2 + 1)) / 12);
+  return 2 * normalSf(Math.abs((U - mu) / s));
+}
+function ibeta(x, a, b) { if (x <= 0) return 0; if (x >= 1) return 1; const bt = Math.exp(lgamma(a + b) - lgamma(a) - lgamma(b) + a * Math.log(x) + b * Math.log(1 - x)); const cf = (x, a, b) => { const qab = a + b, qap = a + 1, qam = a - 1; let c = 1, d = 1 - (qab * x) / qap; if (Math.abs(d) < 1e-300) d = 1e-300; d = 1 / d; let h = d; for (let m = 1; m <= 200; m += 1) { const m2 = 2 * m; let aa = (m * (b - m) * x) / ((qam + m2) * (a + m2)); d = 1 + aa * d; if (Math.abs(d) < 1e-300) d = 1e-300; c = 1 + aa / c; if (Math.abs(c) < 1e-300) c = 1e-300; d = 1 / d; h *= d * c; aa = (-(a + m) * (qab + m) * x) / ((a + m2) * (qap + m2)); d = 1 + aa * d; if (Math.abs(d) < 1e-300) d = 1e-300; c = 1 + aa / c; if (Math.abs(c) < 1e-300) c = 1e-300; d = 1 / d; const del = d * c; h *= del; if (Math.abs(del - 1) < 3e-12) break; } return h; }; return x < (a + 1) / (a + b + 2) ? (bt * cf(x, a, b)) / a : 1 - (bt * cf(1 - x, b, a)) / b; }
+function tTestP(a, b) { const va = sd(a) ** 2, vb = sd(b) ** 2, se = Math.sqrt(va / a.length + vb / b.length), t = (mean(a) - mean(b)) / se; const df = (va / a.length + vb / b.length) ** 2 / ((va / a.length) ** 2 / (a.length - 1) + (vb / b.length) ** 2 / (b.length - 1)); return ibeta(df / (df + t * t), df / 2, 0.5); }
+function pca2(X) { // first two PCs by power iteration with deflation
+  const n = X.length, D = X[0].length, mu = Array.from({ length: D }, (_, t) => mean(X.map((x) => x[t])));
+  const Xc = X.map((x) => x.map((v, t) => v - mu[t]));
+  const comps = [];
+  for (let c = 0; c < 2; c += 1) {
+    let v = Array.from({ length: D }, (_, t) => Math.sin(t + c + 1));
+    for (let it = 0; it < 60; it += 1) {
+      let w = new Array(D).fill(0);
+      for (const x of Xc) { let p = 0; for (let t = 0; t < D; t += 1) p += x[t] * v[t]; for (let t = 0; t < D; t += 1) w[t] += p * x[t]; }
+      for (const u of comps) { let p = 0; for (let t = 0; t < D; t += 1) p += w[t] * u[t]; for (let t = 0; t < D; t += 1) w[t] -= p * u[t]; }
+      const nw = Math.sqrt(w.reduce((s, q) => s + q * q, 0)); v = w.map((q) => q / nw);
+    }
+    comps.push(v);
+  }
+  return Xc.map((x) => comps.map((v) => x.reduce((s, q, t) => s + q * v[t], 0)));
+}
+
+/* ----------------------------------------------------- axes helper */
+function frame(ctx, x0, y0, w, h, { xlab = "", ylab = "" } = {}) {
+  line(ctx, x0, y0, x0, y0 + h, T.axis || T.ink3); line(ctx, x0, y0 + h, x0 + w, y0 + h, T.axis || T.ink3);
+  if (xlab) label(ctx, xlab, x0 + w / 2, y0 + h + 26, { align: "center", colour: T.ink3 });
+  if (ylab) { ctx.save(); ctx.translate(x0 - 34, y0 + h / 2); ctx.rotate(-Math.PI / 2); label(ctx, ylab, 0, 0, { align: "center", colour: T.ink3 }); ctx.restore(); }
+}
+
+/* ============================================================== 0 findings */
+fetch("rnaseq-measure.json").then((r) => r.json()).then((j) => { document.getElementById("findings").textContent = j.findings.join("\n"); }).catch(() => { document.getElementById("findings").textContent = "run `node widgets/_lab/rnaseq-measure.mjs` to write rnaseq-measure.json"; });
+
+/* ============================================================== 1 units */
+{
+  const len = [1, 2, 4, 1, 10, 0.5], expr = [100, 100, 100, 20, 300, 50];
+  const reads = (e) => e.map((v, i) => Math.round(v * len[i]));
+  const A = reads(expr), eB = expr.slice(); eB[4] *= 8; const B = reads(eB);
+  const tot = (c) => c.reduce((s, v) => s + v, 0);
+  const cpm = (c) => c.map((v) => (1e6 * v) / tot(c));
+  const fpkm = (c) => c.map((v, i) => (1e9 * v) / (tot(c) * len[i]));
+  const tpm = (c) => { const r = c.map((v, i) => v / len[i]); const t = tot(r); return r.map((v) => (1e6 * v) / t); };
+  const sf = (X, Y) => median(X.map((x, i) => x / Math.sqrt(x * Y[i])));
+  const sfA = sf(A, B), sfB = sf(B, A);
+  const units = [
+    ["raw count", A[0], B[0]], ["CPM", cpm(A)[0], cpm(B)[0]], ["FPKM", fpkm(A)[0], fpkm(B)[0]], ["TPM", tpm(A)[0], tpm(B)[0]], ["median of ratios", A[0] / sfA, B[0] / sfB],
+  ];
+  const box = cand("unitRow", "Composition · one unchanged gene in every unit", `six genes, lengths ${len.join(" / ")} kb; gene 5 is 8x up in B; gene 1 is unchanged\nbars: sample A filled, sample B outlined, each unit on its own scale; the number is B/A`);
+  const ctx = canvasIn(box, W, 250);
+  const x0 = 120, bw = 14, gap = 44, top = 30, base = 200;
+  label(ctx, "gene 1, unchanged, at the same depth", x0, 18, { colour: T.ink1, weight: "600" });
+  units.forEach(([name, a, b], k) => {
+    const cx = x0 + k * (W - x0 - 20) / units.length + 20;
+    const s = 150 / Math.max(a, b);
+    rect(ctx, cx, base - a * s, bw, a * s, T.groupA);
+    rect(ctx, cx + bw + 3, base - b * s, bw, b * s, null, T.groupB, 1.5);
+    const ratio = b / a;
+    label(ctx, f(ratio, 2), cx + bw + 1, base - Math.max(a, b) * s - 6, { align: "center", colour: Math.abs(ratio - 1) > 0.05 ? T.extreme : T.ink1, weight: "600", mono: true });
+    label(ctx, name, cx + bw + 1, base + 16, { align: "center", size: 10 });
+  });
+  line(ctx, x0 - 10, base, W - 10, base, T.axis || T.ink3);
+  label(ctx, "A", 20, base - 4, { colour: T.groupA, weight: "600" }); label(ctx, "B", 40, base - 4, { colour: T.groupB, weight: "600" });
+  label(ctx, `FPKM sums: A ${(tot(fpkm(A)) / 1e6).toFixed(1)}M, B ${(tot(fpkm(B)) / 1e6).toFixed(1)}M · TPM sums: 1M and 1M · size factors A ${f(sfA, 2)} B ${f(sfB, 2)}`, x0 - 10, base + 40, { size: 10, colour: T.ink3, mono: true });
+
+  // 2,000 genes
+  const rng = makeRng(11); const G = 2000;
+  const L = Array.from({ length: G }, () => Math.exp(rng.normal(Math.log(2), 0.7)));
+  const E = Array.from({ length: G }, () => Math.exp(rng.normal(Math.log(30), 1.6)));
+  const up = new Set(); while (up.size < 100) up.add(Math.floor(rng.next() * G));
+  const EB = E.map((v, i) => (up.has(i) ? 8 * v : v));
+  const draw = (e, depth) => e.map((v, i) => poissonDraw(rng, v * L[i] * depth));
+  const CA = draw(E, 0.02), CB = draw(EB, 0.03);
+  const unch = [...Array(G).keys()].filter((i) => !up.has(i) && CA[i] > 20 && CB[i] > 20);
+  const tA = CA.map((v, i) => v / L[i]), tB = CB.map((v, i) => v / L[i]);
+  const tpmR = unch.map((i) => log2((tB[i] / tot(tB)) / (tA[i] / tot(tA))));
+  const sfRatio = median([...Array(G).keys()].filter((i) => CA[i] > 0 && CB[i] > 0).map((i) => CB[i] / CA[i]));
+  const morR = unch.map((i) => log2(CB[i] / CA[i] / sfRatio));
+  const box2 = cand("unitRow", "Composition · 2,000 genes, 5% of them 8x up in B", `log2(B / A) of the ${unch.length} unchanged genes with counts over 20, under TPM and under the median of ratios\nthe dashed lines are the lesson's 1.5x cutoff; a bar past the left one is an unchanged gene called down`);
+  const c2 = canvasIn(box2, W, 250);
+  const px0 = 50, pw = W - 70, py0 = 22, ph = 170;
+  frame(c2, px0, py0, pw, ph, { xlab: "log2(B / A) of an unchanged gene" });
+  const lo = -2, hi = 1, nb = 30;
+  const hist = (arr) => { const h = new Array(nb).fill(0); arr.forEach((v) => { const k = Math.floor(((v - lo) / (hi - lo)) * nb); if (k >= 0 && k < nb) h[k] += 1; }); return h; };
+  const hT = hist(tpmR), hM = hist(morR), hmax = Math.max(...hT, ...hM);
+  const bx = (k) => px0 + (k / nb) * pw, bwid = pw / nb;
+  hM.forEach((v, k) => rect(c2, bx(k), py0 + ph - (v / hmax) * ph, bwid - 1, (v / hmax) * ph, wash(T.empirical, 0.75)));
+  hT.forEach((v, k) => rect(c2, bx(k), py0 + ph - (v / hmax) * ph, bwid - 1, (v / hmax) * ph, null, T.extreme, 1.2));
+  const xOf = (v) => px0 + ((v - lo) / (hi - lo)) * pw;
+  [-0.585, 0.585].forEach((v) => line(c2, xOf(v), py0, xOf(v), py0 + ph, T.reference, 1, [4, 3]));
+  line(c2, xOf(0), py0, xOf(0), py0 + ph, T.ink3, 1);
+  [-2, -1, 0, 1].forEach((v) => label(c2, String(v), xOf(v), py0 + ph + 13, { align: "center", size: 10, colour: T.ink3 }));
+  label(c2, `TPM: median ${f(median(tpmR), 2)}, ${tpmR.filter((v) => v < -0.585).length} called down`, px0 + 8, py0 + 14, { colour: T.extreme, weight: "600" });
+  label(c2, `median of ratios: median ${f(median(morR), 2)}, ${morR.filter((v) => v < -0.585).length} called down`, px0 + 8, py0 + 30, { colour: T.empirical, weight: "600" });
+  const share = [...up].reduce((s, i) => s + CB[i], 0) / tot(CB);
+  label(c2, `the 100 up genes hold ${(100 * share).toFixed(0)}% of B's reads`, px0 + 8, py0 + 46, { size: 10, colour: T.ink3 });
+}
+
+/* ============================================================== 2 deseq2 */
+{
+  const rng = makeRng(7); const G = 1200, grp = [0, 0, 0, 1, 1, 1];
+  const depth = [0.6, 1.0, 1.6, 0.8, 1.3, 2.0];
+  const mu0 = Array.from({ length: G }, () => Math.exp(rng.normal(Math.log(80), 1.8)));
+  const trendT = (mu) => 0.05 + 2 / mu;
+  const alphaT = mu0.map((m) => trendT(m) * Math.exp(rng.normal(0, 0.5)));
+  const isDE = Array.from({ length: G }, (_, i) => i % 10 === 0);
+  const lfcT = isDE.map((d) => (d ? (rng.next() < 0.5 ? -1 : 1) * (0.7 + 1.5 * rng.next()) : 0));
+  const counts = mu0.map((m, g) => grp.map((gr, j) => nbDraw(rng, m * depth[j] * (gr ? 2 ** lfcT[g] : 1), alphaT[g])));
+  const logGeo = counts.map((row) => (row.every((v) => v > 0) ? mean(row.map(Math.log)) : NaN));
+  const sf = grp.map((_, j) => Math.exp(median(counts.map((row, g) => Math.log(row[j]) - logGeo[g]).filter(Number.isFinite))));
+  const q = counts.map((row) => [0, 1].map((gr) => mean(row.map((v, j) => v / sf[j]).filter((_, j) => grp[j] === gr))));
+  const baseMean = counts.map((row) => mean(row.map((v, j) => v / sf[j])));
+  const mus = counts.map((row, g) => row.map((_, j) => Math.max(1e-6, q[g][grp[j]] * sf[j])));
+  const crLL = (row, mu, alpha) => { let ll = nbLogLik(row, mu, alpha), det = 0; for (const gr of [0, 1]) { let w = 0; for (let j = 0; j < 6; j += 1) if (grp[j] === gr) w += mu[j] / (1 + alpha * mu[j]); det += Math.log(w); } return ll - 0.5 * det; };
+  const alphaGW = counts.map((row, g) => Math.exp(argmaxGolden((la) => crLL(row, mus[g], Math.exp(la)), -9, 4)));
+  const ok = [...Array(G).keys()].filter((g) => baseMean[g] > 5 && alphaGW[g] > 1e-4).sort((a, b) => baseMean[a] - baseMean[b]);
+  const xs = [], ys = [];
+  for (let b = 0; b < 20; b += 1) { const sl = ok.slice(Math.floor((b * ok.length) / 20), Math.floor(((b + 1) * ok.length) / 20)); xs.push(1 / median(sl.map((g) => baseMean[g]))); ys.push(median(sl.map((g) => alphaGW[g]))); }
+  const mx = mean(xs), my = mean(ys), a1 = Math.max(0, xs.reduce((s, x, i) => s + (x - mx) * (ys[i] - my), 0) / xs.reduce((s, x) => s + (x - mx) ** 2, 0)), a0 = Math.max(1e-4, my - a1 * mx);
+  const trend = (mu) => a0 + a1 / mu;
+  const resid = ok.map((g) => Math.log(alphaGW[g]) - Math.log(trend(baseMean[g])));
+  const madSd = 1.4826 * median(resid.map((r) => Math.abs(r - median(resid))));
+  const priorVar = Math.max(madSd * madSd - 0.6449, 0.25);
+  const alphaMAP = counts.map((row, g) => { const lt = Math.log(trend(baseMean[g])); if (Math.log(alphaGW[g]) - lt > 2 * Math.sqrt(priorVar)) return alphaGW[g]; return Math.exp(argmaxGolden((x) => crLL(row, mus[g], Math.exp(x)) - ((x - lt) ** 2) / (2 * priorVar), -9, 4)); });
+
+  const box = cand("deseqRow", "Dispersion · each gene's own estimate, the trend, the shrunk estimate", `${G} genes, 3 vs 3, size factors by the median of ratios; a Cox–Reid fit per gene\nfitted trend a0 ${f(a0, 3)} + ${f(a1, 2)} / mean (true 0.05 + 2 / mean); prior sd on log alpha ${f(Math.sqrt(priorVar), 2)}`);
+  const ctx = canvasIn(box, W, 300);
+  const x0 = 52, y0 = 16, w = W - 72, h = 230;
+  frame(ctx, x0, y0, w, h, { xlab: "mean of normalised counts", ylab: "dispersion" });
+  const lx = (m) => x0 + ((Math.log10(m) + 0.3) / 4.8) * w, ly = (a) => y0 + h - ((Math.log10(a) + 4) / 5) * h;
+  [1, 10, 100, 1000, 1e4].forEach((m) => label(ctx, m >= 1e4 ? "10⁴" : String(m), lx(m), y0 + h + 13, { align: "center", size: 10, colour: T.ink3 }));
+  [1e-3, 1e-2, 0.1, 1, 10].forEach((a) => label(ctx, a < 1 ? a.toExponential(0).replace("e-", "e−") : String(a), x0 - 4, ly(a) + 3, { align: "right", size: 9, colour: T.ink3, mono: true }));
+  for (let g = 0; g < G; g += 1) if (baseMean[g] >= 0.5 && alphaGW[g] > 1e-4) dot(ctx, lx(baseMean[g]), ly(Math.max(1e-4, alphaGW[g])), 1.6, wash(T.ink3, 0.55));
+  for (let g = 0; g < G; g += 1) if (baseMean[g] >= 0.5 && alphaGW[g] > 1e-4) dot(ctx, lx(baseMean[g]), ly(Math.max(1e-4, alphaMAP[g])), 1.6, wash(T.posterior, 0.8));
+  const tx = [], ty = []; for (let m = 0.5; m <= 3e4; m *= 1.15) { tx.push(lx(m)); ty.push(ly(trend(m))); }
+  polyline(ctx, tx, ty, T.prior, 2.2);
+  label(ctx, "gene-wise estimate", x0 + w - 8, y0 + 16, { align: "right", colour: T.ink3, weight: "600" });
+  label(ctx, "fitted trend, the prior", x0 + w - 8, y0 + 32, { align: "right", colour: T.prior, weight: "600" });
+  label(ctx, "shrunk, the posterior", x0 + w - 8, y0 + 48, { align: "right", colour: T.posterior, weight: "600" });
+  const loN = [...Array(G).keys()].filter((g) => baseMean[g] < 20 && !isDE[g]);
+  const err = (est) => median(loN.map((g) => Math.abs(Math.log(est[g] / alphaT[g]))));
+  label(ctx, `low-count genes, median |log error|: gene-wise ${f(err(alphaGW), 2)}, shrunk ${f(err(alphaMAP), 2)}`, x0 + 6, y0 + h - 8, { size: 10, colour: T.ink2 });
+
+  // SD vs mean: log2(x+1) and vst
+  const vst = (x) => log2((1 + a1 + 2 * a0 * x + 2 * Math.sqrt(a0 * x * (1 + a1 + a0 * x))) / (4 * a0));
+  const box2 = cand("deseqRow", "Transform · SD across replicates against the mean", `null genes, normalised counts, binned by mean; one point per bin is the median SD of the bin\nthe vst is the closed form the fitted trend implies: log2 of (1 + a1 + 2 a0 x + 2 sqrt(a0 x (1 + a1 + a0 x))) / 4 a0`);
+  const c2 = canvasIn(box2, W, 300);
+  frame(c2, x0, y0, w, h, { xlab: "mean of normalised counts", ylab: "SD across the 6 replicates" });
+  const sx = (m) => x0 + ((Math.log10(m) + 0.3) / 4.8) * w, sy = (s) => y0 + h - (s / 1.6) * h;
+  [1, 10, 100, 1000, 1e4].forEach((m) => label(c2, m >= 1e4 ? "10⁴" : String(m), sx(m), y0 + h + 13, { align: "center", size: 10, colour: T.ink3 }));
+  [0, 0.5, 1, 1.5].forEach((s) => { label(c2, String(s), x0 - 4, sy(s) + 3, { align: "right", size: 10, colour: T.ink3 }); line(c2, x0, sy(s), x0 + w, sy(s), T.grid); });
+  const nulls = [...Array(G).keys()].filter((g) => !isDE[g] && baseMean[g] >= 0.7).sort((a, b) => baseMean[a] - baseMean[b]);
+  const bins = 14, pl = [], pv = [], pm = [];
+  for (let b = 0; b < bins; b += 1) {
+    const sl = nulls.slice(Math.floor((b * nulls.length) / bins), Math.floor(((b + 1) * nulls.length) / bins));
+    const norm = sl.map((g) => counts[g].map((v, j) => v / sf[j]));
+    pm.push(median(sl.map((g) => baseMean[g]))); pl.push(median(norm.map((r) => sd(r.map((v) => log2(v + 1)))))); pv.push(median(norm.map((r) => sd(r.map(vst)))));
+  }
+  polyline(c2, pm.map(sx), pl.map(sy), T.theory, 2); pm.forEach((m, i) => dot(c2, sx(m), sy(pl[i]), 3, T.theory));
+  polyline(c2, pm.map(sx), pv.map(sy), T.empirical, 2); pm.forEach((m, i) => dot(c2, sx(m), sy(pv[i]), 3, T.empirical));
+  label(c2, "log2(x + 1)", sx(pm[0]) + 8, sy(pl[0]) - 8, { colour: T.theory, weight: "600" });
+  label(c2, "vst", sx(pm[0]) + 8, sy(pv[0]) + 16, { colour: T.empirical, weight: "600" });
+  label(c2, "raw counts: SD is at least the square root of the mean; off this axis past a mean of 3", x0 + 6, y0 + 14, { size: 10, colour: T.ink3 });
+}
+
+/* ============================================================== 3 cell QC (real data) */
+fetch("rnaseq-sc-qc.json").then((r) => r.json()).then((J) => {
+  const names = Object.keys(J.samples);
+  const box = cand("qcRow", "Thresholds · the mitochondrial fraction of every cell, per sample, and the 10% line", `the lesson's four 10x matrices, read by _lab/rnaseq-sc-data.mjs; 40,564 cells; the notebook keeps 31,014\none histogram per sample, area-normalised; the count is what mt% ≥ 10 removes on its own`, 2 * W + 16);
+  const ctx = canvasIn(box, 2 * W + 16, 300);
+  const cols = [T.clusters[0], T.clusters[1], T.clusters[2], T.clusters[3]];
+  const pw = (2 * W + 16 - 60) / 4 - 14, ph = 200, y0 = 30;
+  names.forEach((s, k) => {
+    const S = J.samples[s], x0 = 44 + k * (pw + 14);
+    frame(ctx, x0, y0, pw, ph, { xlab: "mt%" });
+    const nb = 40, hmax = 40, h = new Array(nb).fill(0);
+    S.mt.forEach((v) => { const b = Math.min(nb - 1, Math.floor((v / hmax) * nb)); h[b] += 1; });
+    const top = Math.max(...h) / S.cells;
+    h.forEach((v, b) => { const fr = v / S.cells; rect(ctx, x0 + (b / nb) * pw, y0 + ph - (fr / top) * ph, pw / nb - 1, (fr / top) * ph, wash(cols[k], 0.7)); });
+    const xl = x0 + (10 / hmax) * pw; line(ctx, xl, y0, xl, y0 + ph, T.extreme, 1.5, [4, 3]);
+    [0, 10, 20, 30, 40].forEach((v) => label(ctx, String(v), x0 + (v / hmax) * pw, y0 + ph + 13, { align: "center", size: 10, colour: T.ink3 }));
+    label(ctx, s.replace("_", " "), x0 + 4, y0 - 8, { colour: T.ink1, weight: "600" });
+    label(ctx, `${S.cells.toLocaleString()} cells`, x0 + pw - 4, y0 + 14, { align: "right", size: 10, colour: T.ink3 });
+    label(ctx, `median ${S.quantiles.mt[2]}%`, x0 + pw - 4, y0 + 28, { align: "right", size: 10, colour: T.ink3 });
+    label(ctx, `mt ≥ 10 removes ${S.removed.mtOnly.toLocaleString()}`, x0 + pw - 4, y0 + 46, { align: "right", size: 11, colour: S.removed.mtOnly > 1000 ? T.extreme : T.ink2, weight: "600" });
+    label(ctx, `all three: ${S.removed.any.toLocaleString()} → ${S.kept.toLocaleString()} kept`, x0 + pw - 4, y0 + 62, { align: "right", size: 10, colour: T.ink2 });
+  });
+}).catch(() => { cand("qcRow", "Thresholds", "run `node --max-old-space-size=6000 widgets/_lab/rnaseq-sc-data.mjs` to write rnaseq-sc-qc.json"); });
+
+/* ============================================================== 4 integration */
+function knnBetween(A, B, k) { return A.map((a) => B.map((b, j) => { let s = 0; for (let t = 0; t < a.length; t += 1) s += (a[t] - b[t]) ** 2; return [s, j]; }).sort((x, y) => x[0] - y[0]).slice(0, k).map((e) => e[1])); }
+function mnnCorrect(X1, X2, k, sigma) {
+  const nn12 = knnBetween(X1, X2, k), nn21 = knnBetween(X2, X1, k), pairs = [];
+  for (let i = 0; i < X1.length; i += 1) for (const j of nn12[i]) if (nn21[j].includes(i)) pairs.push([i, j]);
+  const D = X1[0].length, corr = pairs.map(([i, j]) => X1[i].map((v, t) => v - X2[j][t]));
+  const out = X2.map((x) => { let ws = 0; const acc = new Array(D).fill(0); pairs.forEach(([, j], p) => { let d2 = 0; for (let t = 0; t < D; t += 1) d2 += (x[t] - X2[j][t]) ** 2; const w = Math.exp(-d2 / (2 * sigma * sigma)); ws += w; for (let t = 0; t < D; t += 1) acc[t] += w * corr[p][t]; }); return ws > 0 ? x.map((v, t) => v + acc[t] / ws) : x.slice(); });
+  return { corrected: out, pairs };
+}
+function harmony(X, batch, K, theta, rng) {
+  const n = X.length, D = X[0].length; let Z = X.map((x) => x.slice());
+  const Nb = [batch.filter((b) => b === 0).length, batch.filter((b) => b === 1).length];
+  for (let round = 0; round < 5; round += 1) {
+    let C = [Z[Math.floor(rng.next() * n)].slice()];
+    while (C.length < K) { const d2 = Z.map((z) => Math.min(...C.map((c) => c.reduce((s, v, t) => s + (v - z[t]) ** 2, 0)))); const tot = d2.reduce((s, v) => s + v, 0); let u = rng.next() * tot, i = 0; while (u > d2[i]) { u -= d2[i]; i += 1; } C.push(Z[i].slice()); }
+    const R = Array.from({ length: n }, () => new Array(K).fill(1 / K)), sigma = 2 * D;
+    const O = Array.from({ length: K }, () => [0, 0]); for (let i = 0; i < n; i += 1) for (let k = 0; k < K; k += 1) O[k][batch[i]] += R[i][k];
+    const idx = [...Array(n).keys()];
+    for (let it = 0; it < 15; it += 1) {
+      for (let t = n - 1; t > 0; t -= 1) { const s = Math.floor(rng.next() * (t + 1)); [idx[t], idx[s]] = [idx[s], idx[t]]; }
+      const block = Math.max(1, Math.floor(n / 20));
+      for (let start = 0; start < n; start += block) {
+        const cells = idx.slice(start, start + block);
+        for (const i of cells) for (let k = 0; k < K; k += 1) O[k][batch[i]] -= R[i][k];
+        const E = O.map((o) => { const tot = Math.max(0, o[0] + o[1]); return [tot * (Nb[0] / n), tot * (Nb[1] / n)]; });
+        for (const i of cells) { const b = batch[i]; let s = 0; for (let k = 0; k < K; k += 1) { const d2 = C[k].reduce((acc, v, t) => acc + (v - Z[i][t]) ** 2, 0); R[i][k] = Math.exp(-d2 / sigma) * Math.pow((E[k][b] + 1) / (Math.max(0, O[k][b]) + 1), theta); s += R[i][k]; } for (let k = 0; k < K; k += 1) { R[i][k] /= s; O[k][b] += R[i][k]; } }
+      }
+      for (let k = 0; k < K; k += 1) { const w = R.reduce((s, r) => s + r[k], 0); C[k] = Array.from({ length: D }, (_, t) => R.reduce((s, r, i) => s + r[k] * Z[i][t], 0) / Math.max(w, 1e-9)); }
+    }
+    const corr = Z.map(() => new Array(D).fill(0));
+    for (let k = 0; k < K; k += 1) {
+      const w = [0, 0], cb = [new Array(D).fill(0), new Array(D).fill(0)];
+      for (let i = 0; i < n; i += 1) { w[batch[i]] += R[i][k]; for (let t = 0; t < D; t += 1) cb[batch[i]][t] += R[i][k] * Z[i][t]; }
+      for (let b = 0; b < 2; b += 1) for (let t = 0; t < D; t += 1) cb[b][t] = w[b] > 1e-9 ? cb[b][t] / w[b] : C[k][t];
+      for (let i = 0; i < n; i += 1) for (let t = 0; t < D; t += 1) corr[i][t] += R[i][k] * (cb[batch[i]][t] - C[k][t]);
+    }
+    Z = Z.map((z, i) => z.map((v, t) => v - corr[i][t]));
+  }
+  return Z;
+}
+{
+  const rng = makeRng(5), D = 10, types = ["A", "B", "C", "D"];
+  const centres = types.map(() => Array.from({ length: D }, () => rng.normal(0, 2.2)));
+  const shift = Array.from({ length: D }, () => rng.normal(0, 1)); const sn = Math.sqrt(shift.reduce((s, v) => s + v * v, 0)); for (let t = 0; t < D; t += 1) shift[t] *= 4 / sn;
+  const make = (batch, present) => { const X = [], lab = []; present.forEach((t) => { for (let i = 0; i < (t === 3 ? 100 : 130); i += 1) { X.push(centres[t].map((c, d) => c + rng.normal(0, 1) + (batch ? shift[d] : 0))); lab.push(t); } }); return { X, lab }; };
+  const b1 = make(0, [0, 1, 2]), b2 = make(1, [0, 1, 2, 3]);
+  const { corrected } = mnnCorrect(b1.X, b2.X, 20, 2.5);
+  const H = harmony([...b1.X, ...b2.X], [...b1.X.map(() => 0), ...b2.X.map(() => 1)], 8, 2, makeRng(21));
+  const h1 = H.slice(0, b1.X.length), h2 = H.slice(b1.X.length);
+  const centroid = (X, lab, t) => { const idx = lab.map((l, i) => (l === t ? i : -1)).filter((i) => i >= 0); return X[0].map((_, d) => mean(idx.map((i) => X[i][d]))); };
+  const dist = (a, b) => Math.sqrt(a.reduce((s, v, d) => s + (v - b[d]) ** 2, 0));
+  const dToB = (X2) => dist(centroid(X2, b2.lab, 3), centroid(b1.X, b1.lab, 1));
+  const proj = pca2([...b1.X, ...b2.X]);
+  const panels = [["before", b1.X, b2.X, `D to the nearest shared type, in SDs: ${f(dToB(b2.X), 1)}`], ["mutual nearest neighbours", b1.X, corrected, `${f(dToB(corrected), 1)} — moved by the batch vector, left standing`], ["Harmony, θ = 2", h1, h2, `${f(dToB(h2), 1)} — pulled toward it`]];
+  const pw = 360;
+  panels.forEach(([name, X1, X2, note]) => {
+    const box = cand("intRow", name, note, pw);
+    const ctx = canvasIn(box, pw, 300);
+    // project every panel with the "before" PCA axes so the frames agree (principle 2.5)
+    const all = [...X1, ...X2], mu = Array.from({ length: D }, (_, t) => mean([...b1.X, ...b2.X].map((x) => x[t])));
+    const axes = (() => { const P = proj, Xc = [...b1.X, ...b2.X].map((x) => x.map((v, t) => v - mu[t])); const solve = (c) => { const num = new Array(D).fill(0); let den = 0; Xc.forEach((x, i) => { for (let t = 0; t < D; t += 1) num[t] += x[t] * P[i][c]; den += P[i][c] ** 2; }); return num.map((v) => v / den); }; return [solve(0), solve(1)]; })();
+    const pts = all.map((x) => axes.map((v) => x.reduce((s, q, t) => s + (q - mu[t]) * v[t], 0)));
+    const xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1]);
+    const lo0 = Math.min(...proj.map((p) => p[0])) - 1, hi0 = Math.max(...proj.map((p) => p[0])) + 1, lo1 = Math.min(...proj.map((p) => p[1])) - 1, hi1 = Math.max(...proj.map((p) => p[1])) + 1;
+    const sx = (v) => 14 + ((v - lo0) / (hi0 - lo0)) * (pw - 28), sy = (v) => 286 - ((v - lo1) / (hi1 - lo1)) * 272;
+    const labs = [...b1.lab, ...b2.lab], bat = [...X1.map(() => 0), ...X2.map(() => 1)];
+    pts.forEach((p, i) => { const c = T.clusters[labs[i]]; if (bat[i] === 0) dot(ctx, sx(p[0]), sy(p[1]), 2.6, wash(c, 0.8)); else dot(ctx, sx(p[0]), sy(p[1]), 2.6, null, c, 1.2); });
+    types.forEach((t, k) => label(ctx, t, 16 + k * 22, 16, { colour: T.clusters[k], weight: "600" }));
+    label(ctx, "filled batch 1 · hollow batch 2", pw - 8, 16, { align: "right", size: 10, colour: T.ink3 });
+    void xs; void ys;
+  });
+}
+
+/* ============================================================== 5 markers */
+{
+  const rng = makeRng(9);
+  const drawCells = (n, rate, pOn) => Array.from({ length: n }, () => (rng.next() < pOn ? Math.log1p(poissonDraw(rng, rate) * 10) : 0));
+  // two genes across four clusters: gene 1 on everywhere, gene 2 on in cluster 1 only
+  const sizes = [300, 300, 300, 300];
+  const g1 = sizes.map((n, k) => drawCells(n, k === 0 ? 8 : 6, k === 0 ? 0.9 : 0.85));
+  const g2 = sizes.map((n, k) => drawCells(n, k === 0 ? 6 : 4, k === 0 ? 0.7 : 0.05));
+  const stats = (a, b) => ({ lfc: log2((mean(a.map(Math.expm1)) + 1) / (mean(b.map(Math.expm1)) + 1)), p1: a.filter((v) => v > 0).length / a.length, p2: b.filter((v) => v > 0).length / b.length, p: wilcoxonP(a, b) });
+  const s1 = stats(g1[0], [...g1[1], ...g1[2], ...g1[3]]), s2 = stats(g2[0], [...g2[1], ...g2[2], ...g2[3]]);
+  const box = cand("markRow", "Markers · a dot plot of two genes, and FindMarkers for cluster 1 against the rest", `dot size is the share of cells with the gene detected, colour its mean over the cells that have it\nthe table is Seurat's columns: avg_log2FC, pct.1, pct.2, p (Wilcoxon over cells)`);
+  const ctx = canvasIn(box, W, 250);
+  const rows = [["gene high everywhere", g1, s1], ["gene specific to cluster 1", g2, s2]];
+  const cx0 = 190, cw = 56;
+  ["cluster 1", "2", "3", "4"].forEach((c, k) => label(ctx, c, cx0 + k * cw, 22, { align: "center", size: 10, colour: T.ink3 }));
+  rows.forEach(([name, g, s], r) => {
+    const y = 55 + r * 50;
+    label(ctx, name, 12, y + 4, { colour: T.ink1, weight: "600" });
+    g.forEach((cells, k) => { const on = cells.filter((v) => v > 0); const pctOn = on.length / cells.length, m = on.length ? mean(on) : 0; dot(ctx, cx0 + k * cw, y, 3 + 11 * pctOn, wash(T.valueHigh, 0.25 + 0.7 * Math.min(1, m / 5)), T.ink3, 0.6); });
+    label(ctx, `log2FC ${f(s.lfc, 2)}   pct.1 ${f(s.p1, 2)}   pct.2 ${f(s.p2, 2)}   p ${s.p.toExponential(0)}`, 12, y + 24, { size: 10, mono: true, colour: T.ink2 });
+  });
+  label(ctx, "both genes test at p ≈ 0 over 1,200 cells; pct.2 tells them apart, the p-value does not", 12, 190, { colour: T.ink1 });
+  label(ctx, "the lesson's cluster 5 vs 7 rows print p_val 0; the column that ranks a marker is the fold change with the shares", 12, 208, { size: 10, colour: T.ink3 });
+
+  // pseudoreplication
+  const G = 400; const pW = [], pP = [];
+  for (let g = 0; g < G; g += 1) {
+    const base = Math.log(3 + 20 * rng.next()), pat = [0, 1, 2, 3].map(() => rng.normal(0, 0.25));
+    const cells = pat.map((pe) => Array.from({ length: 300 }, () => poissonDraw(rng, Math.exp(base + pe) * gammaDraw(rng, 2, 0.5))));
+    const ln = (a) => a.map((v) => Math.log1p(v));
+    pW.push(wilcoxonP(ln([...cells[0], ...cells[1]]), ln([...cells[2], ...cells[3]])));
+    const pb = cells.map((c) => Math.log1p(mean(c))); pP.push(tTestP([pb[0], pb[1]], [pb[2], pb[3]]));
+  }
+  const box2 = cand("markRow", "Conditions · 400 null genes, two patients per arm, 300 cells each", `a patient effect of sd 0.25 on the log mean and no condition effect\nthe histogram of p-values from a Wilcoxon over the 600 cells per arm, and from a t-test over the 2 patients per arm`);
+  const c2 = canvasIn(box2, W, 250);
+  const x0 = 50, w = W - 70, y0 = 22, h = 170;
+  frame(c2, x0, y0, w, h, { xlab: "p-value" });
+  const nb = 20, hist = (arr) => { const hh = new Array(nb).fill(0); arr.forEach((v) => { hh[Math.min(nb - 1, Math.floor(v * nb))] += 1; }); return hh; };
+  const hW = hist(pW), hP = hist(pP), hmax = Math.max(...hW, ...hP);
+  hP.forEach((v, k) => rect(c2, x0 + (k / nb) * w, y0 + h - (v / hmax) * h, w / nb - 1, (v / hmax) * h, wash(T.empirical, 0.75)));
+  hW.forEach((v, k) => rect(c2, x0 + (k / nb) * w, y0 + h - (v / hmax) * h, w / nb - 1, (v / hmax) * h, null, T.extreme, 1.2));
+  line(c2, x0 + 0.05 * w, y0, x0 + 0.05 * w, y0 + h, T.reference, 1, [4, 3]);
+  [0, 0.25, 0.5, 0.75, 1].forEach((v) => label(c2, String(v), x0 + v * w, y0 + h + 13, { align: "center", size: 10, colour: T.ink3 }));
+  label(c2, `Wilcoxon over cells: ${(100 * pW.filter((p) => p < 0.05).length / G).toFixed(0)}% of null genes at p < 0.05`, x0 + w - 8, y0 + 16, { align: "right", colour: T.extreme, weight: "600" });
+  label(c2, `t-test over patients: ${(100 * pP.filter((p) => p < 0.05).length / G).toFixed(0)}%`, x0 + w - 8, y0 + 32, { align: "right", colour: T.empirical, weight: "600" });
+}
+
+/* ============================================================== 6 clusters */
+function knn(X, k) { const n = X.length, out = []; for (let i = 0; i < n; i += 1) { const d = []; for (let j = 0; j < n; j += 1) if (j !== i) { let s = 0; for (let t = 0; t < X[i].length; t += 1) s += (X[i][t] - X[j][t]) ** 2; d.push([s, j]); } d.sort((a, b) => a[0] - b[0]); out.push(d.slice(0, k).map((e) => e[1])); } return out; }
+function snnGraph(nn, prune = 1 / 15) { const n = nn.length, sets = nn.map((a, i) => new Set([...a, i])), adj = Array.from({ length: n }, () => new Map()); for (let i = 0; i < n; i += 1) { const cand = new Set(); for (const j of nn[i]) { cand.add(j); for (const l of nn[j]) cand.add(l); } for (const j of cand) { if (j <= i) continue; let inter = 0; for (const v of sets[i]) if (sets[j].has(v)) inter += 1; const jac = inter / (sets[i].size + sets[j].size - inter); if (jac >= prune) { adj[i].set(j, jac); adj[j].set(i, jac); } } } return adj; }
+function louvain(adj, gamma, rng) {
+  const n = adj.length, k = adj.map((m) => [...m.values()].reduce((s, w) => s + w, 0)), m2 = k.reduce((s, v) => s + v, 0);
+  let comm = [...Array(n).keys()], tot = k.slice(); const order = [...Array(n).keys()]; let moved = true, passes = 0;
+  while (moved && passes < 30) { moved = false; passes += 1; for (let t = order.length - 1; t > 0; t -= 1) { const s = Math.floor(rng.next() * (t + 1)); [order[t], order[s]] = [order[s], order[t]]; } for (const i of order) { const ci = comm[i]; tot[ci] -= k[i]; const wTo = new Map(); for (const [j, w] of adj[i]) wTo.set(comm[j], (wTo.get(comm[j]) ?? 0) + w); let best = ci, bestGain = (wTo.get(ci) ?? 0) - (gamma * k[i] * tot[ci]) / m2; for (const [c, w] of wTo) { const gain = w - (gamma * k[i] * tot[c]) / m2; if (gain > bestGain + 1e-12) { bestGain = gain; best = c; } } tot[best] += k[i]; if (best !== ci) { comm[i] = best; moved = true; } } }
+  const ids = [...new Set(comm)], map = new Map(ids.map((c, i) => [c, i])); comm = comm.map((c) => map.get(c));
+  const N = ids.length, A2 = Array.from({ length: N }, () => new Map());
+  for (let i = 0; i < n; i += 1) for (const [j, w] of adj[i]) { const a = comm[i], b = comm[j]; A2[a].set(b, (A2[a].get(b) ?? 0) + w); }
+  const k2 = A2.map((mm) => [...mm.values()].reduce((s, w) => s + w, 0)), tot2 = k2.slice(); let c2 = [...Array(N).keys()]; moved = true; passes = 0;
+  while (moved && passes < 30) { moved = false; passes += 1; for (let i = 0; i < N; i += 1) { const ci = c2[i]; tot2[ci] -= k2[i]; const wTo = new Map(); for (const [j, w] of A2[i]) if (j !== i) wTo.set(c2[j], (wTo.get(c2[j]) ?? 0) + w); let best = ci, bestGain = (wTo.get(ci) ?? 0) - (gamma * k2[i] * tot2[ci]) / m2; for (const [c, w] of wTo) { const gain = w - (gamma * k2[i] * tot2[c]) / m2; if (gain > bestGain + 1e-12) { bestGain = gain; best = c; } } tot2[best] += k2[i]; if (best !== ci) { c2[i] = best; moved = true; } } }
+  const fin = comm.map((c) => c2[c]), ids2 = [...new Set(fin)], map2 = new Map(ids2.map((c, i) => [c, i])); return fin.map((c) => map2.get(c));
+}
+{
+  const rng = makeRng(3), sizes = [200, 120, 80], D = 10;
+  const centres = sizes.map(() => Array.from({ length: D }, () => rng.normal(0, 1.3)));
+  const X = [], truth = [];
+  sizes.forEach((s, t) => { for (let i = 0; i < s; i += 1) { X.push(centres[t].map((c) => c + rng.normal(0, 1))); truth.push(t); } });
+  const dir = Array.from({ length: D }, () => rng.normal(0, 1)); const dn = Math.sqrt(dir.reduce((s, v) => s + v * v, 0)); for (let t = 0; t < D; t += 1) dir[t] /= dn;
+  const start = Array.from({ length: D }, () => rng.normal(0, 1.3) + 3);
+  for (let i = 0; i < 200; i += 1) { const u = 7 * rng.next(); X.push(start.map((c, t) => c + u * dir[t] + rng.normal(0, 1))); truth.push(3); }
+  const nn = knn(X, 20), adj = snnGraph(nn), proj = pca2(X);
+  const lo0 = Math.min(...proj.map((p) => p[0])) - 1, hi0 = Math.max(...proj.map((p) => p[0])) + 1, lo1 = Math.min(...proj.map((p) => p[1])) - 1, hi1 = Math.max(...proj.map((p) => p[1])) + 1;
+  const pw = 360;
+  for (const res of [0.1, 0.5, 2.0]) {
+    const runs = [0, 1, 2, 3, 4].map((s) => louvain(adj, res, makeRng(100 + s))).map((c) => ({ c, k: new Set(c).size })).sort((a, b) => a.k - b.k)[2];
+    const box = cand("clusRow", `resolution ${res}`, `${runs.k} clusters on the same 600 cells; the truth is three types and one continuum (the arc of cells, top right)`, pw);
+    const ctx = canvasIn(box, pw, 300);
+    const sx = (v) => 14 + ((v - lo0) / (hi0 - lo0)) * (pw - 28), sy = (v) => 286 - ((v - lo1) / (hi1 - lo1)) * 272;
+    proj.forEach((p, i) => { const c = T.clusters[runs.c[i] % 6]; if (truth[i] === 3) dot(ctx, sx(p[0]), sy(p[1]), 2.6, null, c, 1.3); else dot(ctx, sx(p[0]), sy(p[1]), 2.6, wash(c, 0.85)); });
+    label(ctx, "hollow: the continuum", pw - 8, 16, { align: "right", size: 10, colour: T.ink3 });
+  }
+}
+</script>
+</body>
+</html>

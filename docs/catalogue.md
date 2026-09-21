@@ -18629,6 +18629,276 @@ five). 2 → **rescoped** to forgetting. 3 → **one a section**. 4 → **61 · 
 4. **Where the trained U-Net lives.** In 65 behind a gate (recommended: the
    skip's effect is 65's own claim), or in 66 where Dice is scored.
 
+## The RNA-seq arc — PROPOSED 2026-09-21, from PHM5003 week 8
+
+**Kenneth's ask, 2026-09-21:** *plan for widgets to support PHM5003 RNAseq
+analysis; we cover bulk and single cell*, and three confusions off the top of
+his head: **(1)** normalization — when to use FPKM and TPM, what they mean, why
+some cannot be used to compare between conditions; **(2)** DESeq2 — variance
+stabilization, size factor estimation, empirical Bayes shrinkage, negative
+binomial modelling; **(3)** single cell with Seurat — harmonization, cell
+marker identification.
+
+**The eight notebooks were read in full the same day** from
+`../jupyterbook/phm5003/notebook/08 - RNAseq Expression Analysis/`, which
+carry their outputs: `01-1` Downloading from GDC (12 cells), `01-2`
+Differential Expression Analysis (75), `01-3` Pathway Analysis (59), `01-4`
+Survival Analysis (45), `02-1` scRNAseq Data Preparation (9), `02-2`
+Pre-Processing and QC (54), `02-3` Integration (17), `02-4` Differential
+Expression (23). Hosts below are cell indices in those files. The folder also
+holds the lesson's own products, and two of them were read for numbers rather
+than assumed: `results_DESeq2.tsv` (19,938 protein-coding genes, ashr-shrunk)
+and the four 10x matrices (40,564 cells). The measure scripts are
+`_lab/rnaseq-measure.mjs` (4 s; the units toy, a negative binomial with a
+Cox–Reid fit and a trend prior, the closed-form vst, kNN → SNN → Louvain,
+mutual nearest neighbours and a block-updated Harmony, a Wilcoxon over cells
+against a t-test over patients) and `_lab/rnaseq-sc-data.mjs` (5 s; parses
+the matrices, writes `_lab/rnaseq-sc-qc.json`). The mock is
+`_lab/rnaseq-arc-mock.html`, every figure computed on the page.
+
+**What the lessons run.** `01-2` is DESeq2 end to end on TCGA-CHOL, 44
+samples, `~ sample_type + gender + race`: the four-step description (size
+factors by the median of ratios, gene-wise dispersion by MLE, shrinkage to a
+fitted trend by MAP, an NB GLM on a log link with a Wald test), `vst()` for
+PCA and the heatmap, `plotDispEsts`, `results()` with its independent
+filtering (40% of genes at mean count < 1), `plotMA` before and after
+`lfcShrink(type = "ashr")`, the volcano, the 50 + 50 heatmap. `02-2` builds a
+Seurat object from four samples (two patients × tumour and background liver),
+filters at nFeature > 500, nCount > 800, mt% < 10, then `NormalizeData` (each
+cell to its total, × 10⁴, log1p), 2,000 HVGs, `ScaleData`, PCA to 50 and the
+elbow, UMAP and t-SNE on 20 PCs, feature plots of liver markers, and a
+`DimPlot` by patient and type that shows the batch. `02-3` runs
+`IntegrateLayers(method = CCAIntegration)` over the four layers and shows the
+UMAP no longer separates by patient or type. `02-4` runs `FindNeighbors` on the
+integrated space, `FindClusters(resolution = 0.3)` → 12 communities, annotates
+by canonical markers, and calls `FindMarkers` twice: cluster 5 against 7, and
+`tumor_5` against `background_5`.
+
+### What is already covered — read before proposing a seventh slot
+
+| existing widget | what it already does for this week | so the arc must not |
+|---|---|---|
+| 39 `normalization` | scaling against transforming on continuous intensities; boxplots per sample; the mean–variance fan and what log does to it | re-teach the boxplot or the log; 77 is the UNIT of a count, which only length and composition move, and 78's Transform page is the vst, which the trend implies |
+| 6 `multiple-testing` | thousands of p-values and the corrections; prd §7 names `08` as its lesson | re-teach padj; 78 prints it and stops, 81 says why Bonferroni over cells is the wrong count |
+| 8 `maximum-likelihood`, 9 `bayesian` | the likelihood surface; prior × likelihood → posterior, MAP | re-teach either; 78's Dispersion page is their instance per gene, with the trend AS the prior in `--c-prior` and the shrunk estimate in `--c-posterior` |
+| 15 `logistic-regression`, 29 `lm-categorical` | a coefficient on a link; `exp(b)` is an odds ratio; a categorical coefficient is a group difference | re-teach the link; 78's Test page says `log2FoldChange` IS the coefficient and `2^LFC` is a fold change for the same reason, which is the parked `count-regression` row's own framing |
+| 11 `probability-mechanisms` | the negative binomial as a distribution whose variance is coupled to its mean | re-teach the distribution; 78's Model page shows it across replicates of one gene |
+| 40 `batch-effect` | a batch effect confounded with the condition cannot be corrected without deleting the biology | re-teach confounding; 80 is its single-cell instance with the mechanism drawn (an anchor is a pair; a type without a partner has no anchor) |
+| 44 `experimental-design`, 32 `mixed-model` | pseudoreplication; evidence counted in patients, not rows | re-teach it; 81's Conditions page is the instance where it costs most, because the lesson prints `p_val 0` |
+| 19 `pca`, 21 `t-sne`, 22 `umap`, 23 `kmeans`, 24 `dbscan`, 42 `hierarchical-clustering` | the embeddings and three clusterings; 42 says the cut is not a finding | re-teach an embedding or a cut; 82 is only the graph and the resolution, one page's worth |
+| 43 `enrichment`, 31 `time-event` | ORA and GSEA; Kaplan–Meier and the hazard | anything for `01-3` and `01-4`, which are theirs |
+
+### Six slots — recommended five, his call
+
+| # | slug (provisional) | title (provisional) | host | misconception | measured | state |
+|---|---|---|---|---|---|---|
+| 77 | `count-normalization` | Expression Units | 01-2 cells 16 (*DESeq2 accepts only raw count data … we cannot use FPKM, TPM*), 22 (the median of ratios); 01-1 (the GDC object ships `unstranded`, `tpm_unstrand`, `fpkm_unstrand`, `fpkm_uq_unstrand`) | a normalised unit is comparable everywhere, and FPKM and TPM differ only in name | **holds**: with 5% of genes 8× up holding 48% of B's reads, the unchanged genes shift −0.81 log2 under CPM, −0.57 under TPM, −0.02 under the median of ratios; at a 1.5× cutoff TPM calls 48 of 98 unchanged genes down, the median of ratios 2; FPKM's per-sample sums differ (179M against 112M) where TPM's are 10⁶ by construction; a TPM of 50 is 50 reads at 1M depth and 2,500 at 50M, CV 14% against 2% | proposed, **first to build** |
+| 78 | `deseq2` | Differential Expression | 01-2 cells 1 (NB, α, the four steps), 22 (size factors, MLE, MAP, the trend, the GLM and design matrix, `W = β/SE`), 24–25 (`vst`), 35–36 (`plotDispEsts`), 38 (`summary`: independent filtering), 39–45 (MA plot, `lfcShrink`) | a gene's own dispersion from three replicates is an estimate worth using; the log2 fold change is a ratio of means; log is a variance stabiliser | **holds**: at 3 vs 3 the realised FDR at padj < 0.1 is 40% with gene-wise dispersions, 20% shrunk, 8% with the truth (4,000 genes, 10% DE); 11% of low-count genes' own estimates sit at the floor; LFC shrinkage takes 139 null low-count genes at \|LFC\| > 1 to 0 and 274 true ones to 194; the SD across replicates at a mean of 1–5 is 1.09 under log2(x + 1) and 0.33 under the vst, 0.30 everywhere above; the lesson's own table: lfcSE 1.26 at baseMean < 1, 0.22 above 1,000, and 96% of the significant genes at baseMean 1–10 carry \|LFC\| > 1 against 52% above 1,000 | proposed, **second; the heaviest** |
+| 79 | `cell-qc` | Single-Cell QC | 02-2 cells 16–26 | the three thresholds are universal numbers; a low count is a dead cell and a high one a doublet | **holds, on the lesson's own cells**: the script reproduces 40,564 → 31,014 exactly; mt% < 10 removes 9,351 of HB17 background's 11,197 cells (median 14.8%) and 0 / 1 / 27 of the other three; nFeature and nCount remove 1,308 and 1,312 there (1,199 both) and nothing elsewhere; CYP3A4 is detected in 91% of the cells removed | proposed, **third** |
+| 80 | `integration` | Single-Cell Integration | 02-3 cells 1, 9 (the five methods), 13–16; 02-2 cell 53 | integration removes the batch and leaves the biology; a type present in one batch has a partner in the other | **holds**: with every type in both batches MNN pairs 100% within type and Harmony mixes to 0.51 with the unique type 0.2 SD from its own; with a type in one batch only it has 0 MNN pairs and is moved by its neighbours' batch vector (8.6 → 6.9 SD from the nearest shared type), while Harmony at θ = 2 pulls it to 3.6 and 98% of its cells read as that type | proposed, **fourth** |
+| 81 | `cell-markers` | Clusters and Markers | 02-4 cells 5–6 (`FindNeighbors`, `FindClusters`), 10–15 (markers, `FeaturePlot`, `DoHeatmap`), 16–17 (`FindMarkers`'s columns), 18–22 (within a type across conditions) | a marker is a gene expressed in the cluster; a p-value ranks markers; cells are replicates | **holds**: a gene on in 92% of the cluster and 82% of the rest and a gene on in 69% against 5% both test at p < 1e-31 over 1,200 cells; with two patients per arm and no condition effect a Wilcoxon over cells rejects 75% of null genes (5% with no patient effect), a t-test over patients 3% | proposed, **fifth** |
+| 82 | `cell-clusters` | Graph Clustering | 02-4 cell 5 (kNN → SNN → Louvain, the two figures) | the clusters are the cell types; the count is a finding | **holds**: 600 cells, three types and a continuum, k = 20, SNN pruned at 1/15: 2 clusters at resolution 0.05, 3 at 0.1–0.3, 4 at 0.5 (ARI 0.95), 5 at 0.8–1.2, 6 at 2.0 with the continuum cut into pieces | proposed, **the one to cut, or 81's first page** |
+
+Six is the honest count for the three asks because ask 3 is three lessons and
+each has one idea the others do not (a threshold read off a distribution; an
+anchor; a marker's specificity and the unit of a test). The recommendation is
+**five — 77, 78, 79, 80, 81 — with 82 folded into 81 as its first page**,
+Clusters · Markers · Conditions, because the resolution is one page's worth
+and three clustering widgets already exist.
+
+**Build order.** The lessons' order is 77 → 78 → 79 → 80 → 81, and nothing
+argues against it: the bulk pair shares no engine (77 is arithmetic; 78 fits
+per gene), and the cell stage — cells in ten PCs with named types, projected
+to two — is born at 79 and imported by 80 and 81 the way 76 imported 73's.
+
+**The stage.** Simulated throughout, as every arc's is. 77 is a handful of
+genes with lengths and a 2,000-gene panel; 78 is 4,000 genes at 3 vs 3 from
+the notebook's own model (`NB(μ, α)`, `α = a₀ + a₁/μ` with a log-normal
+spread); 79 is four simulated samples shaped like the lesson's four, one of
+them a liver whose hepatocytes carry a high mitochondrial fraction; 80 and 81
+are cells in ten PCs. Whether 79 instead embeds a 2,000-cell subsample of the
+three real QC numbers per cell is the open-data question, put in § 7.5 of the
+mock.
+
+**Slugs**, on the file's own rulings: the method or the data shape, not the
+failure. `count-normalization` names the data shape beside 39's
+`normalization`; `deseq2` names the method the lesson names in its title, as
+`umap`, `shap` and `grad-cam` do; `cell-qc`, `integration`, `cell-markers`,
+`cell-clusters` are the lessons' own words.
+
+### Slot 77 · `count-normalization` — Expression Units
+
+**Host.** 01-2 cell 16 is one sentence — *DESeq2 accepts only raw count data
+as it does its own normalization. We cannot use normalized count data e.g.
+FPKM, TPM* — and cell 22 is the median of ratios in three numbered steps. The
+GDC object in 01-1 carries four units side by side, so a student who has run
+01-1 has TPM and FPKM in hand and a reason to ask why not.
+
+**The misconception, and the claim.** A count depends on three things that
+are not expression: the sample's depth, the gene's length, and what the other
+genes did. CPM corrects the first; FPKM and TPM correct the first two; all
+three are shares of the sample's total, so when a few genes rise every
+unchanged gene's share falls. The median of ratios assumes most genes are
+unchanged and reads the scale off them, which is why it survives a
+composition change and a share does not. And the count carries a certainty
+the unit throws away: the same TPM is 50 reads or 2,500.
+
+**Pages.** *Depth* — two samples, identical expression, sample B sequenced
+deeper: raw counts differ by the depth ratio for every gene; CPM agrees.
+*Length* — genes of different length at the same expression: CPM reads the
+long gene high; FPKM and TPM agree, and their per-sample sums are the
+difference between them. *Composition* — one gene rises in B and nothing else
+moves: the unchanged genes read down under FPKM and TPM by the same factor,
+flat under the median of ratios, which ends the page on the size factor. The
+readout is one unchanged gene's B/A in each unit, and the 2,000-gene panel's
+count of unchanged genes past the cutoff.
+
+**Controls.** The depth ratio; the gene's length; the fold change of the
+gene that moves and the share of genes moving with it. The last is where the
+median of ratios has its own failing case — it assumes most genes are
+unchanged, and a slider past half the genes up should show it move — a claim
+to measure at build, not assumed here.
+
+### Slot 78 · `deseq2` — Differential Expression
+
+**Host.** 01-2 cell 1 and cell 22 are the notebook's own exposition, four
+figures (`deseq2-nb`, `deseq2-mle`, `deseq2-map`, `deseq2-shrinkage`) and
+every formula the widget needs: `y ~ NB(μ, α)`, the geometric-mean ratio and
+its median, `log μ = Xβ`, the two-group design matrix written out, `W =
+β̂/SE`. Cells 35–36 draw `plotDispEsts` and say what a good fit looks like.
+Cells 39–45 draw the MA plot before and after `lfcShrink` and say the
+shrinkage *stabilized the fold changes, especially at the low gene counts*.
+
+**Pages.** *Model* — one gene's counts across its replicates at a chosen
+mean, Poisson beside negative binomial, and the variance against the mean
+over all genes: `σ² = μ + αμ²`, the line Poisson cannot leave. *Dispersion* —
+`plotDispEsts` on the stage: each gene's own estimate, the trend through all
+of them as the prior, the shrunk estimate as the posterior; a replicates
+control from 2 to 6; the readout counts null genes called at padj < 0.1 under
+the gene-wise and the shrunk dispersion, which is the empirical Bayes argument
+in one number. A gene more than two residual SDs above the trend is left
+where it is, as DESeq2 leaves it, and the widget should show one. *Test* —
+one gene's fit: the two group means on the log scale, `β` as their
+difference, its SE from the working weights `μ/(1 + αμ)`, `W` and its p; the
+MA plot over all genes with the funnel at low counts; LFC shrinkage as a
+display toggle, with its cost printed (the true effects it also pulls in).
+*Transform* — the SD across replicates against the mean under raw counts,
+log2(x + 1) and the vst the fitted trend implies in closed form; the reason
+the PCA and the heatmap take `vsd` and not the counts.
+
+**Engine.** The per-gene fit is a golden-section search over log α on the
+Cox–Reid adjusted likelihood; the mock does 1,200 genes at load with no
+visible delay, and the script does 4,000 in under a second. The trend is
+fitted through binned medians here, standing in for DESeq2's gamma GLM; the
+prior width is the residual variance less the sampling variance of a
+log-dispersion MLE (trigamma of (m − p)/2), floored at 0.25, as DESeq2's is.
+The vst is DESeq2's own closed form for a parametric trend.
+
+**What was measured and found wrong twice before it was right.** The
+gene-wise MLE without the Cox–Reid term fitted a trend at half its true height
+(a₀ 0.028, a₁ 0.92 against 0.05, 2) and the shrinkage barely helped (FDR 54%
+→ 43%); with it the trend reads 0.042 and 1.83 and the shrinkage halves the
+false discoveries. A single normal prior on the LFC, fitted to a set that is
+90% null, shrank with SD 0.22 and erased the true effects with the false
+(274 → 11); a spike-and-normal mixture fitted on the marginal likelihood
+keeps 194 of them. Both records are in the script's comments so the widget's
+engine starts from the second version.
+
+### Slot 79 · `cell-qc` — Single-Cell QC
+
+**Host.** 02-2 cells 16–26: the three metrics, the violins, the two scatters,
+and the thresholds *used in the publication (Commun Biol. 2021; 4: 1049)*.
+
+**Pages.** *Metrics* — nCount, nFeature and mt% per cell as one distribution
+per sample, and the nCount-against-nFeature scatter. *Thresholds* — three
+sliders and, per sample, what each removes on its own and what all three
+remove together. The stage is four samples shaped like the lesson's: one whose
+hepatocytes carry a high mitochondrial fraction, so the mt% rule that removes
+nothing from the other three removes most of it. The failing case is the
+lesson's own number.
+
+### Slot 80 · `integration` — Single-Cell Integration
+
+**Host.** 02-3 cell 1 (anchors as pairs of cells across datasets; the CCA
+figure), cell 9 (five methods on one list), cells 13–16 (the UMAP no longer
+separates by patient or type).
+
+**Pages.** *Anchors* — two batches of cells with a shift between them; the
+mutual nearest neighbours drawn as pairs; a type present in one batch only,
+which has none. *Correction* — before and after, with the batch-mixing score
+and the batch-only type's distance to the nearest shared type as the readout.
+The truth lever is whether the fourth type is in both batches. The method
+control, if he takes it, is MNN against Harmony, offered by the rule that
+each option must win somewhere: MNN leaves the batch-only type standing and
+mixes less (0.29); Harmony mixes fully (0.51) and pulls it (8.6 → 3.6 SD).
+CCA anchors, the notebook's method, are MNN in a shared correlation space and
+would be a third arm only if measured to differ.
+
+### Slot 81 · `cell-markers` — Clusters and Markers
+
+**Host.** 02-4 cells 5–6 (the SNN graph and Louvain, resolution 0.3), 10–15
+(the marker list and its feature plots), 16–17 (`FindMarkers`: Wilcoxon,
+`avg_log2FC`, `pct.1`, `pct.2`, Bonferroni), 18–22 (tumour against background
+within cluster 5).
+
+**Pages.** *Clusters* (if 82 folds in) — the graph and the resolution on the
+same cells. *Markers* — a dot plot of a few genes across the clusters (size
+the share detected, colour the mean) and `FindMarkers`'s columns for one
+cluster against the rest: two genes at p ≈ 0, told apart by `pct.2`.
+*Conditions* — the same cell type in two arms, two patients each, no
+condition effect: the p-value histogram of a Wilcoxon over cells against a
+t-test over the patients' pseudobulk means, with a patient-effect slider that
+takes the first from 5% to 75% and leaves the second at 5%.
+
+### What in 08 is not a widget
+
+`01-1` downloads. `01-3` is ORA and GSEA, which 43 owns; `01-4` is
+Kaplan–Meier and Cox on the DEGs, which 31 owns. `02-1` prepares files.
+`02-2`'s `NormalizeData` is a per-cell CPM with a log, which 77's Depth page
+is; its HVG selection, `ScaleData`, PCA to 50 with the elbow, and UMAP against
+t-SNE are 19, 21 and 22's, and the elbow is a caption. `02-3`'s `JoinLayers`
+is bookkeeping. `01-2`'s volcano and heatmap are figures of a result, not a
+mechanism, and the gene-symbol deduplication is data handling.
+
+### What the lessons' own output says — for Kenneth, his to fix
+
+1. **The mt% < 10 rule removes 85% of one sample.** HB17 background loses
+   9,351 of 11,197 cells to it (median mt% 14.8%); the other three lose 0, 1
+   and 27. CYP3A4 is detected in 91% of that sample's cells, so the cells
+   removed are hepatocytes, whose mitochondrial fraction is high in healthy
+   liver. One patient's normal liver is nearly gone before integration.
+2. **The integration treats tumour against background as a batch**, because
+   the layers are patient × type, and it succeeds: the UMAP no longer
+   separates by type. Then 02-4's test of `tumor_5` against `background_5` —
+   cluster 5 is Kupffer cells by CD163 — returns GPC3 at LFC 9.9 (detected in
+   95% of the tumour side, 0.4% of the background side), AFP, LIN28B, HMGA2.
+   Those are hepatoblastoma cells sitting in the Kupffer cluster. GPC3 is
+   detected in 98% of cells in both tumour samples and 2–4% of the
+   backgrounds.
+3. **`FindMarkers` prints `p_val 0`** for its top rows over 31,014 cells from
+   two patients; the script's null simulation rejects 75% of null genes the
+   same way. The lesson's own 05 / 01 (widget 44) is the correction.
+4. **`vst(dds, blind = FALSE)` is described backwards** in cell 24: *so that
+   the transformation does not take into account any grouping/covariates*.
+   `blind = FALSE` is the setting that DOES use the design; `blind = TRUE` is
+   the one that does not.
+5. **The DEG filter is applied to the shrunk table** (cell 47 converts
+   `res.shrink.DESeq2`, then cells 61–64 filter `padj < 0.05`, `|LFC| > 1`),
+   which is the recommended order; only the heading in cell 46 (*our
+   unshrunken DEG results*) says otherwise.
+
+### The open calls — put with the mock `_lab/rnaseq-arc-mock.html` § 7, unanswered
+
+7.1 how many (six · **five with 82 folded into 81** · four · three) · 7.2
+build order (**the lessons'** · single-cell first) · 7.3 where the size factor
+lives (**77's last page** · 78's first) · 7.4 78's pages (**four** · three
+with the vst in 77 · two widgets) · 7.5 the single-cell stage (**simulated** ·
+a real 2,000-cell subsample of the QC numbers · both) · 7.6 80's method (**MNN
+against Harmony as a control** · anchors only · Harmony only) · 7.7 slugs and
+titles. Bold is the recommendation.
+
+---
+
 ## The sequence arc — PROPOSED 2026-09-20, from `07-1` to `07-3`
 
 **Kenneth's ask, 2026-09-20:** *plan the next set of widgets to support PHM5005

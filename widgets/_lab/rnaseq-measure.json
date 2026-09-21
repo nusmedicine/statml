@@ -1,0 +1,219 @@
+{
+ "M2": {
+  "vstRows": [
+   {
+    "bin": "1–5",
+    "raw": 2.7812304581524154,
+    "log": 1.0862599711317418,
+    "vst": 0.3286304427391602
+   },
+   {
+    "bin": "5–20",
+    "raw": 5.900786008894974,
+    "log": 0.7569151310295907,
+    "vst": 0.30161988414175034
+   },
+   {
+    "bin": "20–100",
+    "raw": 15.015099809989374,
+    "log": 0.4735555955995343,
+    "vst": 0.3044409148684298
+   },
+   {
+    "bin": "100–1000",
+    "raw": 59.93392243716527,
+    "log": 0.34173634300653916,
+    "vst": 0.3015381845514733
+   },
+   {
+    "bin": "1000–",
+    "raw": 454.33351788087907,
+    "log": 0.3017380879550018,
+    "vst": 0.298354651887364
+   }
+  ],
+  "trend": {
+   "a0": 0.04216765391712475,
+   "a1": 1.8338775515717534
+  },
+  "priorSd": 0.6210108320708152
+ },
+ "M4": {
+  "2": {
+   "k": 6,
+   "ari": 0.628
+  },
+  "0.05": {
+   "k": 2,
+   "ari": 0.474
+  },
+  "0.1": {
+   "k": 3,
+   "ari": 0.779
+  },
+  "0.3": {
+   "k": 3,
+   "ari": 0.779
+  },
+  "0.5": {
+   "k": 4,
+   "ari": 0.947
+  },
+  "0.8": {
+   "k": 5,
+   "ari": 0.797
+  },
+  "1.2": {
+   "k": 5,
+   "ari": 0.778
+  }
+ },
+ "M5": {
+  "type D in BOTH batches": {
+   "pairs": 4278,
+   "mixB": 0.066,
+   "mixA": 0.326,
+   "before": {
+    "A": "A 100.0%",
+    "B": "B 89.6%, D 10.4%",
+    "C": "C 99.9%, D 0.1%",
+    "D": "D 99.9%, B 0.1%"
+   },
+   "after": {
+    "A": "A 100.0%",
+    "B": "B 97.0%, D 2.9%",
+    "C": "C 100.0%",
+    "D": "D 99.9%, B 0.1%"
+   },
+   "dB": "A 11.9, B 8.3, C 10.2, D 4.0",
+   "dA": "A 10.9, B 6.9, C 9.3, D 1.8",
+   "nD": 846,
+   "mixH": 0.509,
+   "afterH": {
+    "A": "A 100.0%",
+    "B": "B 99.8%, D 0.2%",
+    "C": "C 100.0%, B 0.0%",
+    "D": "D 99.2%, B 0.8%"
+   },
+   "dH": "A 10.4, B 5.9, C 8.6, D 0.2"
+  },
+  "type D in batch 2 ONLY": {
+   "pairs": 3221,
+   "mixB": 0.059,
+   "mixA": 0.286,
+   "before": {
+    "A": "A 100.0%",
+    "B": "B 99.9%, C 0.1%",
+    "C": "C 100.0%",
+    "D": "B 87.4%, C 12.5%"
+   },
+   "after": {
+    "A": "A 100.0%",
+    "B": "B 100.0%, C 0.1%",
+    "C": "C 100.0%",
+    "D": "B 91.6%, C 8.4%"
+   },
+   "dB": "A 11.9, B 8.6, C 10.1",
+   "dA": "A 10.8, B 6.9, C 8.9",
+   "nD": 0,
+   "mixH": 0.373,
+   "afterH": {
+    "A": "A 100.0%",
+    "B": "B 99.9%, C 0.1%",
+    "C": "C 100.0%",
+    "D": "B 98.3%, C 1.7%"
+   },
+   "dH": "A 9.7, B 3.6, C 7.6"
+  }
+ },
+ "M6": {
+  "markers": {
+   "sA": {
+    "lfc": 0.5965379106478111,
+    "p1": 0.9233333333333333,
+    "p2": 0.82,
+    "p": 4.352030779778171e-32
+   },
+   "sB": {
+    "lfc": 3.7280166374387234,
+    "p1": 0.69,
+    "p2": 0.05,
+    "p": 1.9497234245526965e-64
+   }
+  },
+  "pseudo": {
+   "wil": 0.7475,
+   "wil0": 0.0525,
+   "pb": 0.03
+  }
+ },
+ "findings": [
+  "M1 UNITS — the toy: six genes, two samples, identical expression, sample B sequenced 3x deeper",
+  "  raw counts A 100 200 400 20 3000 25 | B 300 600 1200 60 9000 75  -> B/A = 3.0 for every gene: depth, not expression",
+  "  CPM A 26702 53405 106809 5340 801068 6676 | B 26702 53405 106809 5340 801068 6676  -> equal, but gene 3 (4 kb) reads 4x gene 1 at the same expression: length",
+  "  TPM A 149254 149254 149254 29851 447761 74627 | B 149254 149254 149254 29851 447761 74627  -> equal, and genes 1..3 equal: length corrected",
+  "  FPKM A 26702270 26702270 26702270 5340454 80106809 13351135 sum 178905207 | B sum 178905207  -> sums equal here because composition is equal",
+  "  composition: gene 5 up 8x in B, five genes unchanged at the same depth",
+  "    TPM of the unchanged genes, B/A: 0.24 0.24 0.24 0.24 0.24  -> every unchanged gene reads DOWN 0.76",
+  "    FPKM of the unchanged genes, B/A: 0.15 0.15 0.15 0.15 0.15; FPKM sums A 178905207 B 111941806  -> the sums differ, TPM's are 1e6 by construction",
+  "    median of ratios: size factors A 1.000 B 1.000; normalised B/A of the unchanged genes: 1.00 1.00 1.00 1.00 1.00; gene 5: 8.0",
+  "M1b UNITS — 2,000 genes, 5% of them up 8x in B, the rest unchanged; per-unit log2 shift of the UNCHANGED genes (0 is right)",
+  "  the 100 up genes hold 48.1% of B's reads. median log2(B/A) of the unchanged genes: CPM -0.814, TPM -0.574, median-of-ratios -0.020",
+  "  under a 0.58 cutoff (1.5x), unchanged genes called DOWN by the shift alone: CPM 80, TPM 48, median-of-ratios 2 of 98",
+  "M1c UNITS — the same TPM at two depths: a TPM of 50 from a 1M-read library is 50 reads; from a 50M-read library it is 2,500",
+  "  Poisson CV of the count: 14.1% against 2.0% — the unit is the same, the certainty is not, and DESeq2 asks for the count because the count carries it",
+  "M2 DESEQ2 — 4,000 genes, 3 vs 3, trend alpha = 0.05 + 2/mu with lognormal spread sd 0.5; 10% of genes DE",
+  "  size factors, median of ratios: 0.534 0.895 1.432 0.715 1.146 1.784 | true (geometric-mean centred): 0.535 0.891 1.426 0.713 1.158 1.782; max error 0.011",
+  "  trend fitted a0 0.042 a1 1.83 (true 0.05, 2)",
+  "  residual sd of log gene-wise dispersion about the trend 1.02; prior sd 0.62",
+  "  low-count null genes (baseMean < 20, n = 810): median |log error| of the dispersion — gene-wise 0.78, shrunk 0.35; gene-wise at the floor (alpha < 1e-3): 10.6%",
+  "  gene-wise    : p < 0.05 among null 10.7% | padj < 0.1: 186 null + 279 of 398 DE -> realised FDR 40.0%",
+  "  shrunk (MAP) : p < 0.05 among null 6.9% | padj < 0.1: 68 null + 263 of 398 DE -> realised FDR 20.5%",
+  "  true         : p < 0.05 among null 4.7% | padj < 0.1: 22 null + 253 of 398 DE -> realised FDR 8.0%",
+  "  LFC shrinkage prior: null share 0.80 (true 0.90), effect sd 1.00; per baseMean bin, NULL genes with |LFC| > 1 before -> after shrinking, and the median SE:",
+  "    baseMean    0–  10: n  409, |LFC| > 1: 139 ->   0, median SE 0.99",
+  "    baseMean   10– 100: n 1472, |LFC| > 1:  79 ->   6, median SE 0.43",
+  "    baseMean  100–1000: n 1371, |LFC| > 1:   8 ->   2, median SE 0.28",
+  "    baseMean 1000–   : n  312, |LFC| > 1:   0 ->   0, median SE 0.25",
+  "  DE genes with a true |LFC| > 1 (n 317): read as |LFC| > 1 before 274, after shrinking 194; of those with baseMean < 10: 40 true, 1 kept",
+  "  SD across the six replicates (null genes, normalised counts) by mean, for raw, log2(x + 1) and vst:",
+  "    mean    1–   5: raw    2.8  log2(x+1) 1.09  vst 0.33",
+  "    mean    5–  20: raw    5.9  log2(x+1) 0.76  vst 0.30",
+  "    mean   20– 100: raw   15.0  log2(x+1) 0.47  vst 0.30",
+  "    mean  100–1000: raw   59.9  log2(x+1) 0.34  vst 0.30",
+  "    mean 1000–    : raw  454.3  log2(x+1) 0.30  vst 0.30",
+  "M2r THE LESSON'S OUTPUT — results_DESeq2.tsv (ashr-shrunk LFC, protein-coding, one row per symbol)",
+  "  19938 genes; baseMean quartiles 21.3 / 455.7 / 1635.3; padj NA (filtered) 2633",
+  "  by baseMean: n, median lfcSE, padj < 0.05, and |LFC| > 1 among those",
+  "        0–    1: n  2525, lfcSE 1.26, padj<0.05   0.0%, of which |LFC|>1 0.0%",
+  "        1–   10: n  1726, lfcSE 0.72, padj<0.05  25.8%, of which |LFC|>1 96.2%",
+  "       10–  100: n  2564, lfcSE 0.50, padj<0.05  52.8%, of which |LFC|>1 88.2%",
+  "      100– 1000: n  5981, lfcSE 0.30, padj<0.05  57.1%, of which |LFC|>1 63.7%",
+  "     1000–10000: n  6590, lfcSE 0.22, padj<0.05  59.0%, of which |LFC|>1 51.5%",
+  "    10000–     : n   552, lfcSE 0.29, padj<0.05  69.2%, of which |LFC|>1 70.7%",
+  "  named genes: CDK1 LFC 3.98 padj 4.6e-28 | EGFR LFC -1.27 padj 1.3e-4 | AFP LFC -2.51 padj 5.6e-4 | BRAF LFC -0.03 padj 8.9e-1 | GPC3 LFC -0.51 padj NaN | DLK1 LFC -1.51 padj NaN",
+  "M4 GRAPH CLUSTERS — 600 cells in 10 PCs: three types of 200 / 120 / 80 at centre spread 1.3, and 200 cells along a continuum of length 7 (a differentiating lineage); kNN k = 20, SNN pruned at 1/15, Louvain by resolution",
+  "  r 0.05: 2 clusters, ARI 0.47 | r 0.1: 3 clusters, ARI 0.78 | r 0.3: 3 clusters, ARI 0.78 | r 0.5: 4 clusters, ARI 0.95 | r 0.8: 5 clusters, ARI 0.80 | r 1.2: 5 clusters, ARI 0.78 | r 2: 6 clusters, ARI 0.63",
+  "  the notebook's resolution 0.3 on 31,014 cells gave 12 communities; the count is the resolution's, the cells are the same",
+  "M5 INTEGRATION — two batches in 10 PCs; types A, B, C in both (200 each); a batch shift of norm 4; MNN k = 20",
+  "  type D in BOTH batches: 4278 MNN pairs; batch mixing 0.07 -> 0.33 (0.5 is fully mixed)",
+  "    batch-2 cells' nearest batch-1 type, before: A->A 100.0% | B->B 89.6%, D 10.4% | C->C 99.9%, D 0.1% | D->D 99.9%, B 0.1%",
+  "    after:                                   A->A 100.0% | B->B 97.0%, D 2.9% | C->C 100.0% | D->D 99.9%, B 0.1%",
+  "    distance of D's centroid to batch-1 centroids (within-type sd = 1): before A 11.9, B 8.3, C 10.2, D 4.0 | after A 10.9, B 6.9, C 9.3, D 1.8",
+  "    MNN pairs from D cells: 846, paired with D 100.0%",
+  "    Harmony (simplified, theta 2): mixing 0.51; D's nearest batch-1 type D 99.2%, B 0.8%; D's centroid to batch-1 centroids: A 10.4, B 5.9, C 8.6, D 0.2",
+  "  type D in batch 2 ONLY: 3221 MNN pairs; batch mixing 0.06 -> 0.29 (0.5 is fully mixed)",
+  "    batch-2 cells' nearest batch-1 type, before: A->A 100.0% | B->B 99.9%, C 0.1% | C->C 100.0% | D->B 87.4%, C 12.5%",
+  "    after:                                   A->A 100.0% | B->B 100.0%, C 0.1% | C->C 100.0% | D->B 91.6%, C 8.4%",
+  "    distance of D's centroid to batch-1 centroids (within-type sd = 1): before A 11.9, B 8.6, C 10.1 | after A 10.8, B 6.9, C 8.9",
+  "    MNN pairs from D cells: 0, paired with ",
+  "    Harmony (simplified, theta 2): mixing 0.37; D's nearest batch-1 type B 98.3%, C 1.7%; D's centroid to batch-1 centroids: A 9.7, B 3.6, C 7.6",
+  "  the notebook's layers are patient x type, so tumour against background is integrated as a batch; its cluster 5 (Kupffer by CD163) tested tumour_5 against background_5 and returned GPC3 (LFC 9.9, pct 0.95 vs 0.004), AFP, LIN28B — hepatoblastoma cells sitting in the Kupffer cluster",
+  "M6 MARKERS — cluster of 300 cells against 900 others; log-normalised expression as Seurat's data layer",
+  "  gene high everywhere: avg_log2FC 0.60, pct.1 0.92, pct.2 0.82, p 4.4e-32",
+  "  gene specific to it:  avg_log2FC 3.73, pct.1 0.69, pct.2 0.05, p 1.9e-64  -> both p ~ 0; pct.2 is what separates a marker from a gene that is merely expressed",
+  "M6b PSEUDOREPLICATION — 2 patients per arm, 400 cells each, a patient effect of sd 0.25 on the log mean, NO condition effect; 400 genes",
+  "  null genes called at p < 0.05 — Wilcoxon over cells: 74.8% (with no patient effect: 5.3%); pseudobulk t-test over 2 vs 2 patients: 3.0%",
+  "  the notebook's FindMarkers output prints p_val 0 for its top rows over 31,014 cells from two patients — the same mechanism"
+ ]
+}
