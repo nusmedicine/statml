@@ -209,10 +209,11 @@ const S = {
   posCapPos: {
     learned: (L, E) => `position rows · Embedding(${L}, ${E}) as initialised; in a transformer they train with the rest`,
     sinusoidal: (L, E) => `position rows · the curves each pair samples, a dot where a token reads them · [${L}, ${E}], fixed`,
-    rope: () => "nothing added: the token's own first pair as an arrow, turned by its position; each slower pair turns less",
+    rope: () => "nothing added: the token's own first pair as an arrow, turned by its position; hover a circle to see it large",
   },
   posCapFinal: { learned: "what the network reads", sinusoidal: "what the network reads", rope: "the rows turned · what the network reads" },
   posGlyph: { x: "x", add: "+ p", rope: "⟳", final: "= x̃" },
+  posMag: (tok, i, turn, a, b, c, d) => [`${tok} · position ${i}`, `turned by ${i} · θ₀ = ${turn.toFixed(2)} rad`, `(${a.toFixed(2)}, ${b.toFixed(2)}) → (${c.toFixed(2)}, ${d.toFixed(2)})`, "columns 0 and 1; each slower pair turns less"],
   posPairLabel: (m, th) => `pair ${m} · columns ${2 * m} and ${2 * m + 1} · θ = ${th >= 0.01 ? String(Number(th.toFixed(3))) : th.toFixed(3)} a position`,
   posStart: "no token yet",
   posStatus: { add: (i, tok) => `token ${i} · ${tok} at position ${i - 1} · row ${i - 1} of the position table added`, rope: (i, tok) => `token ${i} · ${tok} at position ${i - 1} · each pair of its row turned by ${i - 1} · θ` },
@@ -587,39 +588,55 @@ function drawOneHot(ctx, colors, w, params, state, anim) {
    heatmap beneath is those readings; the rotation reads nothing off a
    curve — the token's own first pair is an arrow, and its position turns
    it, before in the neutral ink and after in colour, the arc swept. */
-const POS = { boxTop: 30, boxH: 18, firstCap: 84, glyphW: 44, curveH: 28, arrowH: 52, capGap: 8, panelGap: 22 };
+const POS = { boxTop: 30, boxH: 18, firstCap: 84, glyphW: 44, curveH: 40, curveLabel: 12, capGap: 8, panelGap: 22, dialMax: 24, magR: 46 };
 const pairsDrawn = (E) => Math.min(4, E / 2);
-const posBodies = (pe, E) => {
+/* the dial radius follows the column width up to a cap; sized from a nominal
+   canvas so the panel's height, which cannot know the width, agrees with it */
+const NOMINAL_W = 770;
+const dialR = (T) => Math.max(5, Math.min(POS.dialMax, 0.46 * (NOMINAL_W - PAD_R - TABLE_X - POS.glyphW) / T));
+const posBodies = (pe, E, T) => {
   const mh = Math.min(E * 12, 96);
-  return { mh, mid: pe === "sinusoidal" ? mh + POS.curveH * pairsDrawn(E) : pe === "rope" ? POS.arrowH : mh };
+  return { mh, mid: pe === "sinusoidal" ? mh + POS.curveH * pairsDrawn(E) : pe === "rope" ? 2 * dialR(T) + 8 : mh };
 };
-const heightPos = (pe, E) => { const { mh, mid } = posBodies(pe, E); return POS.firstCap + 3 * (POS.capGap + POS.panelGap) + 2 * mh + mid + BELOW; };
+const heightPos = (pe, E, T) => { const { mh, mid } = posBodies(pe, E, T); return POS.firstCap + 3 * (POS.capGap + POS.panelGap) + 2 * mh + mid + BELOW; };
 const theta = (m, E) => Math.pow(10000, -(2 * m) / E);
+
+/** one token's first pair turned: the arrow before (neutral) and after (colour) inside a circle of radius r, the arc between; heads only where there is room */
+function turnDial(ctx, colors, cx, cy, r, ax, ay, turn) {
+  const len = Math.min(r - 1, Math.hypot(ax, ay) * r * 0.45), a0 = Math.atan2(ay, ax), a1 = a0 + turn, big = r >= 12;
+  dot(ctx, cx, cy, r, colors.surface2, colors.grid);
+  if (len < 1) return;
+  ctx.save(); ctx.strokeStyle = wash(colors.groupA, 0.5); ctx.lineWidth = big ? 1.2 : 1; ctx.beginPath(); ctx.arc(cx, cy, len * 0.8, -a0, -a1, true); ctx.stroke(); ctx.restore();
+  const draw = big ? arrow : (c, x1, y1, x2, y2, col, lw) => line(c, x1, y1, x2, y2, col, lw);
+  draw(ctx, cx, cy, cx + len * Math.cos(a0), cy - len * Math.sin(a0), colors.ink3, big ? 1.4 : 1.2);
+  draw(ctx, cx, cy, cx + len * Math.cos(a1), cy - len * Math.sin(a1), colors.groupA, big ? 2 : 1.6);
+}
 
 function drawPosition(ctx, colors, w, params, state, anim, pointer) {
   const { tokens, emb, pos, final, E: Ed, pe } = state, T = tokens.length;
   const n = anim.n[anim.stage], t = ease(anim.t), upto = Math.min(n, T), a = anim.t < 1 ? t : 1;
-  const X0 = TABLE_X + POS.glyphW, X1 = w - PAD_R, bw = (X1 - X0) / T, bottom = heightPos(pe, Ed) - BELOW;
+  const X0 = TABLE_X + POS.glyphW, X1 = w - PAD_R, bw = (X1 - X0) / T, bottom = heightPos(pe, Ed, T) - BELOW;
   txt(ctx, colors, S.posCapTokens, TABLE_X, 14, { font: capFont(colors), fill: colors.ink1 });
   const hoverTok = tokenRow(ctx, colors, state, X0, bw, POS.boxTop, POS.boxH, T, 1, pointer);
 
-  const { mh } = posBodies(pe, Ed), rH = mh / Ed;
+  const { mh, mid } = posBodies(pe, Ed, T), rH = mh / Ed;
   const panels = [
     { glyph: S.posGlyph.x, cap: S.posCapEmb(T, Ed), rows: emb, h: mh },
-    { glyph: pe === "rope" ? S.posGlyph.rope : S.posGlyph.add, cap: pe === "rope" ? S.posCapPos.rope() : S.posCapPos[pe](T, Ed), rows: pos, h: posBodies(pe, Ed).mid, mid: true },
+    { glyph: pe === "rope" ? S.posGlyph.rope : S.posGlyph.add, cap: pe === "rope" ? S.posCapPos.rope() : S.posCapPos[pe](T, Ed), rows: pos, h: mid, mid: true },
     { glyph: S.posGlyph.final, cap: S.posCapFinal[pe], rows: final, h: mh },
   ];
-  let hover = null, y = POS.firstCap;
+  let hover = null, hoverDial = null, y = POS.firstCap;
   for (const p of panels) {
     txt(ctx, colors, p.cap, X0, y, { font: capFont(colors), fill: colors.ink1 });
     const top = y + POS.capGap;
     txt(ctx, colors, p.glyph, TABLE_X, top + p.h / 2, { font: glyphFont(colors), fill: colors.ink1, baseline: "middle" });
     let matTop = top;
     if (p.mid && pe === "sinusoidal") {
-      /* the curves each pair samples: sin and cos of position · θ_m, a row a pair, the fastest first */
-      const P = pairsDrawn(Ed);
+      /* the curves each pair samples: a label line, then sin and cos of position · θ_m; the fastest pair first */
+      const P = pairsDrawn(Ed), curveH = POS.curveH - POS.curveLabel;
       for (let m = 0; m < P; m++) {
-        const cy = top + m * POS.curveH + POS.curveH / 2, amp = POS.curveH * 0.36, th = theta(m, Ed);
+        const rowTop = top + m * POS.curveH, cy = rowTop + POS.curveLabel + curveH / 2, amp = curveH * 0.42, th = theta(m, Ed);
+        txt(ctx, colors, S.posPairLabel(m, th), X0 + 2, rowTop + 9, { fill: colors.ink3 });
         line(ctx, X0, cy, X1, cy, colors.grid);
         for (const [fn, col] of [[Math.sin, colors.groupA], [Math.cos, colors.groupB]]) {
           ctx.save(); ctx.strokeStyle = col; ctx.lineWidth = 1.3; ctx.beginPath();
@@ -627,24 +644,16 @@ function drawPosition(ctx, colors, w, params, state, anim, pointer) {
           ctx.stroke(); ctx.restore();
           for (let i = 0; i < upto; i++) { ctx.save(); ctx.globalAlpha = i === upto - 1 ? a : 1; dot(ctx, X0 + (i + 0.5) * bw, cy - amp * fn(i * th), 2.6, col); ctx.restore(); }
         }
-        txt(ctx, colors, S.posPairLabel(m, th), X0 + 4, cy - POS.curveH / 2 + 9, { fill: colors.ink3, halo: true });
       }
       txt(ctx, colors, "sin", X1 - 34, top + 9, { fill: colors.groupA, halo: true }); txt(ctx, colors, "cos", X1 - 14, top + 9, { fill: colors.groupB, halo: true });
       matTop = top + POS.curveH * P;
     } else if (p.mid && pe === "rope") {
-      /* the token's own first pair as an arrow, turned by position · θ₀: before in the neutral ink, after in colour, the arc swept */
-      const r = Math.min(bw * 0.46, POS.arrowH / 2 - 3), cy = top + POS.arrowH / 2;
+      const r = dialR(T), cy = top + r + 4;
       for (let i = 0; i < upto; i++) {
-        const cx = X0 + (i + 0.5) * bw, ax = emb[i][0], ay = emb[i][1], turn = i * theta(0, Ed);
-        const len = Math.min(r, Math.hypot(ax, ay) * r * 0.45), a0 = Math.atan2(ay, ax), a1 = a0 + turn;
         ctx.save(); ctx.globalAlpha = i === upto - 1 ? a : 1;
-        dot(ctx, cx, cy, r, colors.surface2, colors.grid);
-        if (len > 1) {
-          ctx.save(); ctx.strokeStyle = wash(colors.groupA, 0.5); ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(cx, cy, len * 0.8, -a0, -a1, true); ctx.stroke(); ctx.restore();
-          arrow(ctx, cx, cy, cx + len * Math.cos(a0), cy - len * Math.sin(a0), colors.ink3, 1.2);
-          arrow(ctx, cx, cy, cx + len * Math.cos(a1), cy - len * Math.sin(a1), colors.groupA, 1.6);
-        }
+        turnDial(ctx, colors, X0 + (i + 0.5) * bw, cy, r, emb[i][0], emb[i][1], i * theta(0, Ed));
         ctx.restore();
+        if (pointer && Math.hypot(pointer.x - X0 - (i + 0.5) * bw, pointer.y - cy) <= Math.max(r, bw / 2)) hoverDial = { i, cx: X0 + (i + 0.5) * bw, cy, r };
       }
     }
     if (p.rows) {
@@ -661,7 +670,16 @@ function drawPosition(ctx, colors, w, params, state, anim, pointer) {
     }
     y = top + p.h + POS.panelGap;
   }
-  if (hover) {
+  if (hoverDial) {
+    /* the magnifier: the hovered token's turn drawn large, with its numbers, over the panel above */
+    const { i, cx, cy, r } = hoverDial, R = POS.magR, turn = i * theta(0, Ed);
+    const mx = Math.max(X0 + R + 4, Math.min(X1 - R - 150, cx)), my = cy - r - R - 14;
+    dot(ctx, cx, cy, r + 2, "transparent", colors.highlight, 1.5);
+    rect(ctx, mx - R - 6, my - R - 6, 2 * R + 12 + 150, 2 * R + 12, colors.surface, colors.grid);
+    turnDial(ctx, colors, mx, my, R, emb[i][0], emb[i][1], turn);
+    const lines = S.posMag(tokens[i], i, turn, emb[i][0], emb[i][1], final[i][0], final[i][1]);
+    lines.forEach((ln, k) => txt(ctx, colors, ln, mx + R + 10, my - 18 + k * 15, { fill: k === 0 ? colors.ink1 : colors.ink2, font: k === 0 ? `600 ${colors.fsXs} ${colors.font}` : null }));
+  } else if (hover) {
     const { i, e, x, y: hy } = hover, left = x > w * 0.6;
     const str = pe === "rope" ? S.posHover.rope(tokens[i], e, emb[i][e], final[i][e]) : S.posHover.add(tokens[i], e, emb[i][e], pos[i][e], final[i][e]);
     txt(ctx, colors, str, left ? x - 8 : x + 8, hy - 6, { fill: colors.ink1, align: left ? "right" : "left", halo: true });
@@ -682,7 +700,7 @@ defineWidget({
   title: "Deep Learning - Embedding Space",
   subtitle: S.subtitle,
   layout: "side",
-  height: ({ page, vocab, encoding, posenc, E }) => (page === "tokenize" ? tokLayout(vocab).height : page === "position" ? heightPos(posenc, Number(E)) : encoding === "onehot" ? oneHotLayout(vocab).height : HEIGHT),
+  height: ({ page, vocab, encoding, posenc, E }) => (page === "tokenize" ? tokLayout(vocab).height : page === "position" ? heightPos(posenc, Number(E), M.PAD_TO[vocab]) : encoding === "onehot" ? oneHotLayout(vocab).height : HEIGHT),
   pointer: true,
 
   params: {
