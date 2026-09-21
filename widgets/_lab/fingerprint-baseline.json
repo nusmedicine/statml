@@ -9409,42 +9409,9 @@
       "tx": "ef77db46"
     },
     {
-      "$note": "embedding-space · Amino acids, before any epoch: the rows as initialised (placeholder, to record once the design settles)",
+      "$note": "embedding-space · Tokenize, DNA, before any token: the sequence as text (placeholder)",
       "slug": "embedding-space",
       "state": "?theme=light&shown=0",
-      "px": "0",
-      "tx": "0"
-    },
-    {
-      "$note": "embedding-space · Amino acids, all forty epochs: the four roles apart (placeholder)",
-      "slug": "embedding-space",
-      "state": "?theme=light&page=embed&shown=40",
-      "px": "0",
-      "tx": "0"
-    },
-    {
-      "$note": "embedding-space · Codons, all forty epochs: the eighteen in three clusters, the rest nowhere (placeholder)",
-      "slug": "embedding-space",
-      "state": "?theme=light&page=embed&vocab=codon&shown=40",
-      "px": "0",
-      "tx": "0"
-    },
-    {
-      "$note": "embedding-space · Amino acids, mid-move of the first epoch (placeholder)",
-      "slug": "embedding-space",
-      "state": "?theme=light",
-      "drive": {
-        "click": "step",
-        "frames": 6,
-        "dt": 40
-      },
-      "px": "0",
-      "tx": "0"
-    },
-    {
-      "$note": "embedding-space · Position, rotary, all forty epochs, the shifted positions (placeholder)",
-      "slug": "embedding-space",
-      "state": "?theme=light&page=position&encoding=rope&shift=16&shown=40",
       "px": "0",
       "tx": "0"
     },
@@ -9452,6 +9419,46 @@
       "$note": "embedding-space · Tokenize, the sentence, every token cut: <unk> and <pad> in place (placeholder)",
       "slug": "embedding-space",
       "state": "?theme=light&page=tokenize&vocab=words&shown=16",
+      "px": "0",
+      "tx": "0"
+    },
+    {
+      "$note": "embedding-space · Encode, amino acids, all forty epochs: the four roles apart (placeholder)",
+      "slug": "embedding-space",
+      "state": "?theme=light&page=encode&vocab=aa&shown=40",
+      "px": "0",
+      "tx": "0"
+    },
+    {
+      "$note": "embedding-space · Encode, codons, all forty epochs: the eighteen in three clusters (placeholder)",
+      "slug": "embedding-space",
+      "state": "?theme=light&page=encode&vocab=codon&shown=40",
+      "px": "0",
+      "tx": "0"
+    },
+    {
+      "$note": "embedding-space · Encode, one-hot, amino acids, all forty epochs: the identity and the flat distances (placeholder)",
+      "slug": "embedding-space",
+      "state": "?theme=light&page=encode&vocab=aa&encoding=onehot&shown=40",
+      "px": "0",
+      "tx": "0"
+    },
+    {
+      "$note": "embedding-space · Position, the sentence, sinusoidal, every token: x, p and their sum (placeholder)",
+      "slug": "embedding-space",
+      "state": "?theme=light&page=position&vocab=words&posenc=sinusoidal&shown=16",
+      "px": "0",
+      "tx": "0"
+    },
+    {
+      "$note": "embedding-space · Encode, amino acids, mid-move of the first epoch (placeholder)",
+      "slug": "embedding-space",
+      "state": "?theme=light&page=encode&vocab=aa",
+      "drive": {
+        "click": "step",
+        "frames": 6,
+        "dt": 40
+      },
       "px": "0",
       "tx": "0"
     }

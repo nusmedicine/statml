@@ -238,12 +238,24 @@ const rowsOf = (emb, ids) => ids.map((id) => Array.from(emb.W.v.slice(id * emb.E
  * two components laid over the final epoch's. Seeds derive from `seed`, so a
  * cache hit and a miss consume nothing differently downstream.
  */
-export function trainPage(pageKey, Edim, seed) {
+export function trainPage(pageKey, Edim, seed, { onehot = false } = {}) {
   const P = PAGES[pageKey];
-  const emb = E.Embedding(makeRng(seed * 11 + 1), P.V, Edim, 0);
-  const net = E.Sequential([emb, E.Conv1d(makeRng(seed * 11 + 2), Edim, 8, P.k, 1, 0, true), E.ReLU(), E.GlobalPool(8, "max"), E.Linear(makeRng(seed * 11 + 3), 8, 2)]);
+  /* ONE-HOT (07-1 cell 3's first encoding, his ask 2026-09-21): the table is
+     the identity, fixed — row v has a 1 in column v, the PAD row is zero —
+     so the network reads V channels and the table holds no parameters.
+     Measured: it learns these tasks as well as the embedding (100%); what
+     it cannot do is put two tokens nearer than any other two. */
+  const rows = onehot ? Array.from({ length: P.V }, (_, v) => Array.from({ length: P.V }, (_, e) => (e === v && v > 0 ? 1 : 0))) : null;
+  const emb = E.Embedding(makeRng(seed * 11 + 1), P.V, onehot ? P.V : Edim, 0, rows);
+  const net = E.Sequential([emb, E.Conv1d(makeRng(seed * 11 + 2), emb.E, 8, P.k, 1, 0, true), E.ReLU(), E.GlobalPool(8, "max"), E.Linear(makeRng(seed * 11 + 3), 8, 2)]);
   const test = P.task(makeRng(seed * 11 + 5), 300);
-  const tables = [rowsOf(emb, P.ids)], accs = [null];
+  const accs = [null];
+  if (onehot) {
+    E.train(makeRng(seed * 11 + 7), net, (e) => P.task(makeRng(seed * 1000 + e + 13), 300), { epochs: EPOCHS, lr: 1e-2, onEpoch: () => accs.push(E.accuracy(net, test)) });
+    const params = net.params.reduce((p, q) => p + q.v.length, 0);
+    return { page: pageKey, onehot: true, V: P.V, E: P.V, seed, accs, params, epochs: EPOCHS, steps: EPOCHS };
+  }
+  const tables = [rowsOf(emb, P.ids)];
   E.train(makeRng(seed * 11 + 7), net, (e) => P.task(makeRng(seed * 1000 + e + 13), 300), {
     epochs: EPOCHS, lr: 1e-2,
     onEpoch: () => { tables.push(rowsOf(emb, P.ids)); accs.push(E.accuracy(net, test)); },
@@ -268,82 +280,6 @@ export function trainPage(pageKey, Edim, seed) {
   return { page: pageKey, E: Edim, seed, tables, accs, frames, geo, geo2, geoRest, lim, params, epochs: EPOCHS, steps: EPOCHS };
 }
 
-/* ------------------------------------------------------ the Position page */
-
-/* THE POSITION PAGE (08-1 cell 1 §2, 08-3 cell 4 §2), on the engine's
-   AttentionHead over the clinical vocabulary. The lesson's own example is
-   the task: "aspirin treated patient" against "patient treated aspirin" —
-   class 1 has `aspirin` before `pain`, class 0 the reverse, both words in
-   every sequence, so the bag of tokens is the same in both classes and a
-   head with no position must sit at chance. Measured (2026-09-21): none
-   48–53% on three seeds; learned 89–100%, sinusoidal 75–99%, rotary
-   99–100% in range; the SAME words at positions 16..31 — the page's shift —
-   learned 48–58%, sinusoidal 49–52%, rotary 99–100%; the head with no
-   position learns a presence task (aspirin in or out) at 100%, so the
-   failure is order, not capacity. What the page does not claim: anything
-   about LONGER sequences — with real tokens prepended every encoding falls,
-   because one head and a mean pool are diluted over twice the tokens. */
-export const POS = { L: 16, Lmax: 32, D: 16, dk: 8, first: "aspirin", second: "pain" };
-const wordTok = (w) => WORDS.indexOf(w) + 1;
-
-/** class 1 has `first` before `second`, class 0 the reverse; neither word elsewhere in the sequence */
-function orderTask(rng, n) {
-  const { L, first, second } = POS, out = [];
-  for (let i = 0; i < n; i++) {
-    const y = i % 2;
-    let s, a, b;
-    do { s = Array.from({ length: L }, () => WORDS[Math.floor(rng.next() * WORDS.length)]); a = Math.floor(rng.next() * L); b = Math.floor(rng.next() * L); } while (s.includes(first) || s.includes(second) || a === b);
-    const [pa, pb] = a < b ? [a, b] : [b, a];
-    s[pa] = y ? first : second; s[pb] = y ? second : first;
-    out.push({ x: { tok: Int32Array.from(s.map(wordTok)), L }, y, words: s });
-  }
-  return out;
-}
-/** class 1 has `first` somewhere, class 0 not at all: the control task, for the head with no position */
-function presenceTask(rng, n) {
-  const { L, first } = POS, out = [];
-  for (let i = 0; i < n; i++) {
-    const y = i % 2;
-    let s;
-    do { s = Array.from({ length: L }, () => WORDS[Math.floor(rng.next() * WORDS.length)]); } while (s.includes(first));
-    if (y) s[Math.floor(rng.next() * L)] = first;
-    out.push({ x: { tok: Int32Array.from(s.map(wordTok)), L }, y });
-  }
-  return out;
-}
-/** the same sequences with every position moved along by `by`; the tokens untouched */
-const shifted = (data, by) => data.map(({ x, y }) => ({ x: { tok: x.tok, L: x.L, pos: Int32Array.from(x.tok, (_, i) => i + by) }, y }));
-
-/**
- * The whole run for one encoding: after every epoch, the held-out accuracy
- * in range and at the shifted positions, the attention scores of one
- * held-out class-1 sequence at both, and the position table (learned) —
- * the sinusoid's is fixed, the rotation has none. The head with no
- * position is trained a second time on the presence task, for the readout.
- */
-export function trainPosition(pe, seed) {
-  const { L, Lmax, D, dk } = POS;
-  const m = E.AttentionHead(makeRng(seed * 11 + 1), { V: WORDS.length + 1, D, dk, Lmax, pe });
-  const test = orderTask(makeRng(seed * 11 + 5), 200), testS = shifted(test, L);
-  const ex = test.find((d) => d.y === 1), exS = shifted([ex], L)[0];
-  const copy = (S) => S.map((r) => Array.from(r));
-  const tableNow = () => (pe === "learned" ? Array.from({ length: Lmax }, (_, p) => Array.from(m.posVec(p))) : null);
-  const accs = [null], accsShift = [null], scores = [copy(m.scores(ex.x))], scoresShift = [copy(m.scores(exS.x))], tables = [tableNow()];
-  E.train(makeRng(seed * 11 + 7), m, (e) => orderTask(makeRng(seed * 1000 + e + 13), 300), {
-    epochs: EPOCHS, lr: 5e-3,
-    onEpoch: () => { accs.push(E.accuracy(m, test)); accsShift.push(E.accuracy(m, testS)); scores.push(copy(m.scores(ex.x))); scoresShift.push(copy(m.scores(exS.x))); tables.push(tableNow()); },
-  });
-  const params = m.params.reduce((p, q) => p + q.v.length, 0);
-  let presence = null;
-  if (pe === "none") {
-    const mp = E.AttentionHead(makeRng(seed * 11 + 1), { V: WORDS.length + 1, D, dk, Lmax, pe });
-    E.train(makeRng(seed * 11 + 9), mp, (e) => presenceTask(makeRng(seed * 1000 + e + 17), 300), { epochs: EPOCHS, lr: 5e-3 });
-    presence = E.accuracy(mp, presenceTask(makeRng(seed * 11 + 6), 200));
-  }
-  const fixed = pe === "sinusoidal" ? E.sinusoid(Lmax, D).map((r) => Array.from(r)) : null;
-  return { page: "position", pe, seed, L, Lmax, D, dk, epochs: EPOCHS, steps: EPOCHS, words: ex.words, accs, accsShift, scores, scoresShift, tables, fixed, presence, params };
-}
-
 /* ------------------------------------------------------ the Tokenize page */
 
 /* TOKENIZATION (his ask, 2026-09-21; 08-3 cell 2 §1, 07-1 cell 3): the step
@@ -353,16 +289,12 @@ export function trainPosition(pe, seed) {
    left over and dropped), words for the sentence, with the lesson's two
    special tokens: a word outside the forty becomes <unk>, and the sentence
    is padded to sixteen with <pad>. Each token's id is the row it picks in
-   the table the Embed page trains, read here as initialised, so the output
-   is [L, E]: one row of E numbers a token, in sequence order. */
+   the table, which the Encode and Position pages read. */
 export const PAD = "<pad>", UNK = "<unk>";
 export const SENTENCE = "the patient was admitted with chest pain and treated with ibuprofen then discharged";
 export const PAD_TO = 16;
 
-/** the same rows trainPage starts from: the seed's Embedding as initialised */
-const initTable = (P, Edim, seed) => E.Embedding(makeRng(seed * 11 + 1), P.V, Edim, 0);
-
-export function tokenizePage(vocab, Edim, seed) {
+export function tokenizePage(vocab, seed) {
   const P = PAGES[vocab], rng = makeRng(seed * 11 + 21);
   let raw, tokens, ids, dropped = "", padded = 0, how, names;
   if (vocab === "dna" || vocab === "codon") {
@@ -383,7 +315,33 @@ export function tokenizePage(vocab, Edim, seed) {
     while (tokens.length < PAD_TO) { tokens.push(PAD); ids.push(0); padded++; }
     how = "word"; names = tokens.map((w) => (w === UNK ? "a word outside the vocabulary" : w === PAD ? "padding" : wordRole(w)));
   }
-  const emb = initTable(P, Edim, seed);
-  const out = ids.map((id) => Array.from(emb.W.v.slice(id * Edim, (id + 1) * Edim)));
-  return { page: "tokenize", vocab, E: Edim, seed, raw, tokens, ids, names, out, dropped, padded, how, V: P.V, steps: tokens.length };
+  return { page: "tokenize", vocab, seed, raw, tokens, ids, names, dropped, padded, how, V: P.V, steps: tokens.length };
+}
+
+/* ------------------------------------------------------ the Position page */
+
+/* POSITION (08-1 cell 1 §2, 08-3 cell 4 §2), on his word of 2026-09-21: no
+   attention, no training — the tokenised sequence's embedding rows, the
+   position rows, and their sum, x̃ᵢ = xᵢ + pᵢ. The embedding is the table
+   the Encode page trained for this vocabulary and seed (cached there), so
+   what the reader saw learned is what position is added to. Learned rows
+   are `nn.Embedding(L, E)` as initialised, N(0, 1) — in a transformer they
+   train with the rest; the sinusoid is the lesson's formula at d = E; the
+   rotation adds nothing and turns each pair of a row by pos · θ_m instead,
+   so its "final" is the rotated row and the caption says so. */
+/** `run` is the Encode page's trained run for this vocabulary, E and seed, handed over from its cache */
+export function positionPage(vocab, Edim, seed, pe, run) {
+  const tok = tokenizePage(vocab, seed);
+  const P = PAGES[vocab], L = tok.tokens.length, table = run.tables[EPOCHS];
+  const rowOf = (id) => (id === 0 ? new Array(Edim).fill(0) : table[P.ids.indexOf(id)] ?? new Array(Edim).fill(0)); // PAD and <unk> have no trained row: zeros
+  const emb = tok.ids.map(rowOf);
+  let pos = null, final;
+  if (pe === "rope") {
+    final = emb.map((r, i) => Array.from(E.rope(Float64Array.from(r), i, Edim)));
+  } else {
+    const rng = makeRng(seed * 11 + 31);
+    pos = pe === "learned" ? Array.from({ length: L }, () => Array.from({ length: Edim }, () => rng.normal(0, 1))) : E.sinusoid(L, Edim).map((r) => Array.from(r));
+    final = emb.map((r, i) => r.map((v, e) => v + pos[i][e]));
+  }
+  return { page: "position", vocab, E: Edim, seed, pe, tokens: tok.tokens, ids: tok.ids, names: tok.names, how: tok.how, emb, pos, final, steps: L };
 }
