@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Lab · text-overlap sweep</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  body { padding: var(--sp-4); font-size: var(--fs-sm); }
+  pre { font-family: var(--font-mono); font-size: var(--fs-xs); white-space: pre-wrap; background: var(--surface-2); padding: var(--sp-3); border: 1px solid var(--grid); }
+  iframe { border: 1px solid var(--grid); display: block; margin-top: var(--sp-3); }
+</style>
+</head>
+<body>
+<h1>Text-overlap sweep</h1>
+<p>
+  The handover's recipe (widget 72, 2026-09-20), as a page: each state of a widget is loaded in a frame, <code>fillText</code>
+  is wrapped to record every string's box (the width from <code>measureText</code>, the height from the font's px, the
+  left edge from the alignment, mapped through the context's transform so rotated and scaled text count), the canvas is
+  repainted, and pairs whose boxes intersect are reported with anything past the canvas edge.
+  <code>?slug=embedding-space&amp;w=900</code>; the states come from the list in this file.
+</p>
+<pre id="out">running…</pre>
+<iframe id="frame" width="900" height="900"></iframe>
+<script type="module">
+const Q = new URLSearchParams(location.search);
+const slug = Q.get("slug") || "embedding-space", W = Number(Q.get("w") || 900);
+const STATES = {
+  "embedding-space": [
+    "?page=tokenize&vocab=dna&shown=48", "?page=tokenize&vocab=codon&shown=16", "?page=tokenize&vocab=aa&shown=26", "?page=tokenize&vocab=words&shown=16",
+    "?page=tokenize&vocab=words&shown=0",
+    "?page=encode&vocab=dna&shown=40", "?page=encode&vocab=codon&shown=40", "?page=encode&vocab=aa&shown=40", "?page=encode&vocab=words&shown=40",
+    "?page=encode&vocab=aa&shown=0", "?page=encode&vocab=aa&view=change&shown=40", "?page=encode&vocab=words&view=change&shown=20",
+    "?page=encode&vocab=dna&encoding=onehot&shown=40", "?page=encode&vocab=codon&encoding=onehot&shown=40", "?page=encode&vocab=aa&encoding=onehot&shown=40", "?page=encode&vocab=words&encoding=onehot&shown=40",
+    "?page=position&vocab=dna&posenc=learned&shown=48", "?page=position&vocab=dna&posenc=sinusoidal&shown=48", "?page=position&vocab=dna&posenc=rope&shown=48",
+    "?page=position&vocab=codon&posenc=sinusoidal&shown=16", "?page=position&vocab=aa&posenc=rope&shown=26",
+    "?page=position&vocab=words&posenc=learned&shown=16", "?page=position&vocab=words&posenc=sinusoidal&shown=16", "?page=position&vocab=words&posenc=rope&shown=16",
+    "?page=position&vocab=words&posenc=sinusoidal&E=16&shown=16", "?page=encode&vocab=codon&E=16&shown=40", "?page=position&vocab=dna&posenc=learned&E=4&shown=48",
+  ],
+};
+const out = document.getElementById("out"), frame = document.getElementById("frame");
+frame.width = W;
+const log = [];
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+function install(win) {
+  const P = win.CanvasRenderingContext2D.prototype, orig = P.fillText, boxes = [];
+  P.fillText = function (s, x, y, ...rest) {
+    const str = String(s), m = this.measureText(str), w = m.width, px = Number((this.font.match(/(\d+(?:\.\d+)?)px/) || [0, 12])[1]);
+    let x0 = x; if (this.textAlign === "center") x0 = x - w / 2; else if (this.textAlign === "right" || this.textAlign === "end") x0 = x - w;
+    let y0 = y - 0.8 * px; if (this.textBaseline === "middle") y0 = y - px / 2; else if (this.textBaseline === "top") y0 = y;
+    const T = this.getTransform();
+    const pts = [[x0, y0], [x0 + w, y0], [x0, y0 + px], [x0 + w, y0 + px]].map(([a, b]) => ({ x: T.a * a + T.c * b + T.e, y: T.b * a + T.d * b + T.f }));
+    const bx = { s: str, x0: Math.min(...pts.map((p) => p.x)), x1: Math.max(...pts.map((p) => p.x)), y0: Math.min(...pts.map((p) => p.y)), y1: Math.max(...pts.map((p) => p.y)), canvas: this.canvas };
+    if (str.trim()) boxes.push(bx);
+    return orig.call(this, s, x, y, ...rest);
+  };
+  return { boxes, restore: () => { P.fillText = orig; } };
+}
+
+function report(boxes, canvas, dpr) {
+  const found = [];
+  const seen = new Set();
+  for (let i = 0; i < boxes.length; i++) {
+    const a = boxes[i];
+    if (a.canvas !== canvas) continue;
+    if (a.x1 > canvas.width + 1 || a.y1 > canvas.height + 1 || a.x0 < -1) found.push(`OFF-CANVAS "${a.s}" right ${((a.x1 - canvas.width) / dpr).toFixed(0)}px, bottom ${((a.y1 - canvas.height) / dpr).toFixed(0)}px`);
+    for (let j = i + 1; j < boxes.length; j++) {
+      const b = boxes[j];
+      if (b.canvas !== canvas) continue;
+      if (a.s === b.s && Math.abs(a.x0 - b.x0) < 1 && Math.abs(a.y0 - b.y0) < 1) continue; // the same string repainted (a halo, a repaint)
+      const ox = Math.min(a.x1, b.x1) - Math.max(a.x0, b.x0), oy = Math.min(a.y1, b.y1) - Math.max(a.y0, b.y0);
+      if (ox > 2 * dpr && oy > 2 * dpr) {
+        const key = [a.s, b.s].sort().join("|");
+        if (seen.has(key)) continue; seen.add(key);
+        found.push(`OVERLAP "${a.s}" × "${b.s}" (${(ox / dpr).toFixed(0)}×${(oy / dpr).toFixed(0)}px)`);
+      }
+    }
+  }
+  return found;
+}
+
+/* the frame's first layout lags its first load: without this the first states record nothing and pass vacuously */
+await sleep(1500);
+const only = Q.get("only");
+for (const st of (STATES[slug] || []).filter((st) => !only || st.includes(only))) {
+  frame.src = `../${slug}/index.html${st}&theme=light`;
+  await new Promise((r) => { frame.onload = r; });
+  await sleep(3500); // the click's training, on the slow pages
+  if (!frame.contentWindow.document.querySelector("canvas") || frame.contentWindow.document.querySelector("canvas").width < 400) { await sleep(2000); }
+  const win = frame.contentWindow, canvas = win.document.querySelector("canvas");
+  if (!canvas) { log.push(`${st}: NO CANVAS`); out.textContent = log.join("\n"); continue; }
+  const { boxes, restore } = install(win);
+  /* a repaint under the wrap: the widget declares pointer, so a move repaints */
+  const rct = canvas.getBoundingClientRect();
+  canvas.dispatchEvent(new win.PointerEvent("pointermove", { clientX: rct.left + 2, clientY: rct.top + 2, bubbles: true }));
+  await sleep(350);
+  canvas.dispatchEvent(new win.PointerEvent("pointerleave", { bubbles: true }));
+  await sleep(350);
+  restore();
+  const dpr = win.devicePixelRatio || 1;
+  const found = report(boxes, canvas, dpr);
+  /* a state that painted nothing is a failure, not a pass: a widget that throws before its first paint
+     leaves a 300×150 canvas and no strings, and that read as "ok" once (2026-09-21) */
+  if (boxes.length === 0) found.unshift("NO STRINGS PAINTED — the widget threw, or never drew");
+  log.push(`${st}  · ${boxes.length} strings · canvas ${Math.round(canvas.width / dpr)}×${Math.round(canvas.height / dpr)}` + (found.length ? "\n    " + found.join("\n    ") : "  ok"));
+  out.textContent = log.join("\n");
+}
+log.push("\ndone");
+out.textContent = log.join("\n");
+</script>
+</body>
+</html>
