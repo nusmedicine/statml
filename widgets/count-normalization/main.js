@@ -12,8 +12,9 @@
  * share control reaches (2.6).
  *
  * THREE PAGES ON ONE FIGURE SHAPE, his pick from `_lab/count-normalization-mock.html`
- * (2026-09-21): six genes with lengths as paired bars in the chosen unit above,
- * 2,000 genes as a scatter below. Each page's data differ in ONE thing:
+ * (2026-09-21): six genes and their reads as pile-ups above (his second ask, the
+ * HBC page's picture, `_lab/count-normalization-reads-mock.html`), 2,000 genes
+ * as a scatter below. Each page's data differ in ONE thing:
  *   Depth        sample B sequenced deeper, equal lengths, nothing changes
  *   Length       every gene at one expression, lengths differ, one depth
  *   Composition  some genes change in B; the page ends on the size factor
@@ -33,15 +34,30 @@
 import { defineWidget, makePlot, fmt } from "../core/index.js";
 
 /* --- the stage ------------------------------------------------------------ */
+/* Six genes AT READ SCALE, drawn as the HBC training page draws them (his ask,
+   2026-09-21): each gene a bar of its length, each read a rectangle piled
+   above it, Sample A over Sample B. The counts are small enough to count
+   (2.3): the number of rectangles is the raw count, the depth of the pile is
+   the coverage, which is what a per-kilobase unit reads. Each step has its own
+   reads per kilobase so its piles say one thing:
+     Depth        every gene 2 kb, B sequenced deeper — every pile deeper
+     Length       one coverage everywhere, lengths differ — equal depth, unequal counts
+     Composition  ten reads on every unchanged gene, gene 5 (6 kb) rises, and the
+                  sample's total is FIXED, so the other five thin from 10 to 4 */
 const TOY = {
-  /* six genes: length in kb, expression in transcripts per cell. The
-     10 kb gene at 300 is the one that carries most of the reads, so its
-     change is the composition case the six can show. */
-  len: [1, 2, 4, 1, 10, 0.5],
-  expr: [100, 100, 100, 20, 300, 50],
+  len: [1, 2, 4, 1, 6, 0.5],
+  perKb: {
+    depth: [4, 3, 2, 4, 2, 5],
+    length: [4, 4, 4, 4, 4, 4],
+    composition: [10, 5, 2.5, 10, 2, 20],
+  },
   changedUp: 4,       // gene 5 rises on the Composition page
   changedDown: 2,     // gene 3 falls when the direction is "both"
 };
+const READ_KB = 0.25;  // one read, as a fraction of a gene
+/* reads per unit of expression × length in the 2,000-gene panel: at 0.02 only
+   64 unchanged genes cleared MIN_COUNT once Composition fixed the total */
+const PANEL_DEPTH = 0.1;
 const GENES = 2000;
 const PAGES = [
   { value: "depth", label: "Depth" },
@@ -60,8 +76,8 @@ const SHARES = ["5", "20", "40", "50", "60", "80"];
 const FOLDS = ["2", "4", "8"];
 const CUTOFF = Math.log2(1.5);
 const MIN_COUNT = 20;        // an unchanged gene counts toward the shift only with counts over this in both samples
-const TOY_H = 186;
-const SC_H = 272;
+const TOY_H = 230;
+const SC_H = 220;
 const GAP = 8;
 const FIG_H = TOY_H + GAP + SC_H;
 const ACT_H = 236;
@@ -104,16 +120,35 @@ function poisson(rng, mu) {
     ratio the panel prints is the unit's own arithmetic. */
 function toyFor(params) {
   const page = params.page;
-  const len = page === "depth" ? TOY.len.map(() => 2) : TOY.len;
-  const expr = page === "length" ? TOY.expr.map(() => 100) : TOY.expr;
+  const len = page === "depth" || (page === "length" && params.lengths === "equal") ? TOY.len.map(() => 2) : TOY.len;
+  const perKb = TOY.perKb[page];
   const depth = page === "depth" ? Number(params.depth) : 1;
   const fold = Number(params.fold);
   const changed = [];
   if (page === "composition") { changed.push(TOY.changedUp); if (params.direction === "both") changed.push(TOY.changedDown); }
   const factor = (i) => (i === TOY.changedUp && changed.includes(i) ? fold : i === TOY.changedDown && changed.includes(i) ? 1 / fold : 1);
-  const A = expr.map((e, i) => Math.round(e * len[i]));
-  const B = expr.map((e, i) => Math.round(e * len[i] * depth * factor(i)));
+  const A = perKb.map((e, i) => Math.round(e * len[i]));
+  let B = perKb.map((e, i) => e * len[i] * depth * factor(i));
+  /* the sequencer's capacity: on Composition the total is the same in both
+     samples, so the reads a rising gene takes come from every other gene */
+  if (page === "composition") { const scale = total(A) / total(B); B = B.map((v) => v * scale); }
+  B = B.map((v) => Math.max(1, Math.round(v)));
   return { len, A, B, changed };
+}
+
+/* Read positions along each gene, packed into rows as a genome browser packs
+   them: a read goes in the first row whose last read ends before it starts.
+   Seeded, and computed once in compute(), so a pile is the same every frame. */
+function pileUp(rng, n, lenKb) {
+  const rows = [], placed = [];
+  const starts = Array.from({ length: n }, () => rng.next() * Math.max(0.0001, lenKb - READ_KB)).sort((a, b) => a - b);
+  for (const start of starts) {
+    let r = 0;
+    while (rows[r] !== undefined && rows[r] > start - 0.02) r += 1;
+    rows[r] = start + READ_KB;
+    placed.push([start, r]);
+  }
+  return placed;
 }
 
 /** 2,000 genes with Poisson counts. On the Length page every gene has one
@@ -131,8 +166,10 @@ function panelFor(params, rng) {
   const list = [...changed];
   const exprB = expr.map((v, i) => (changed.has(i) ? (params.direction === "both" && list.indexOf(i) % 2 ? v / fold : v * fold) : v));
   const depth = page === "depth" ? Number(params.depth) : 1;
-  const A = expr.map((v, i) => poisson(rng, v * len[i] * 0.02));
-  const B = exprB.map((v, i) => poisson(rng, v * len[i] * 0.02 * depth));
+  /* the same fixed total as the six genes: B's expected reads are scaled to A's */
+  const scale = page === "composition" ? total(expr.map((v, i) => v * len[i])) / total(exprB.map((v, i) => v * len[i])) : 1;
+  const A = expr.map((v, i) => poisson(rng, v * len[i] * PANEL_DEPTH));
+  const B = exprB.map((v, i) => poisson(rng, v * len[i] * PANEL_DEPTH * depth * scale));
   return { len, A, B, changed };
 }
 
@@ -228,12 +265,12 @@ defineWidget({
   },
 
   legend: ({ params }) => {
-    const L = [
-      { token: "groupA", label: "Sample A", mark: "bar" },
-      { token: "groupB", label: "Sample B", mark: "bar" },
-    ];
-    if (params.page === "composition") L.push({ token: "highlight", label: "A gene that changed", mark: "bar" });
-    L.push({ token: "empirical", label: params.page === "length" ? "One gene" : "One unchanged gene", mark: "dot" });
+    /* one hue means one thing — a gene's data — and a sample is a row with a
+       name (his pick, scheme A, after Sample A's blue and the scatter's blue
+       read as two series) */
+    const L = [{ token: "empirical", label: "A read", mark: "bar" }];
+    if (params.page === "composition") L.push({ token: "highlight", label: "A read of a gene that changed", mark: "bar" });
+    L.push({ token: "empirical", label: "One gene of the 2,000", mark: "dot" });
     L.push({ token: "reference", label: params.page === "length" ? "Every gene the same" : "Equal in A and B", mark: "line" });
     return L;
   },
@@ -244,7 +281,7 @@ defineWidget({
     const p = { ...params };
     if (p.page === "length" && p.lengths === "equal") p.lengthsEqual = true;
     const toy = toyFor(p);
-    if (p.lengthsEqual) toy.len = toy.len.map(() => 2), toy.A = toy.A.map(() => 200), toy.B = toy.B.map(() => 200);
+    toy.reads = { A: toy.A.map((n, i) => pileUp(rng, n, toy.len[i])), B: toy.B.map((n, i) => pileUp(rng, n, toy.len[i])) };
     const panel = panelFor(p, rng);
     if (p.lengthsEqual) panel.len = panel.len.map(() => 2);
     const unit = params.unit;
@@ -276,7 +313,7 @@ defineWidget({
     const readsA = 50, readsB = 50 * depth;
 
     return {
-      toy, panel, toyU, panU, tsf, psf, unit,
+      toy, panel, toyU, panU, tsf, psf, unit, page: params.page,
       sums: { fpkmA: total(unitOf(panel.A, panel.len, "fpkm")), fpkmB: total(unitOf(panel.B, panel.len, "fpkm")) },
       medianShift, calledDown, calledUp, nUnch: unch.length,
       lengthRatio: shortMed > 0 ? longMed / shortMed : NaN,
@@ -346,7 +383,7 @@ defineWidget({
     }
     if (params.page === "length") {
       return [
-        { label: "10 kb gene ÷ 0.5 kb gene", value: fmt(state.toyU.A[4] / state.toyU.A[5], 2), note: `genes 5 and 6 in sample A, in ${u}; 1.00 is equal expression` },
+        { label: `${state.toy.len[4]} kb gene ÷ ${state.toy.len[5]} kb gene`, value: fmt(state.toyU.A[4] / state.toyU.A[5], 2), note: `genes 5 and 6 in sample A, in ${u}; 1.00 is equal expression` },
         { label: "Longest tenth ÷ shortest tenth", value: fmt(state.lengthRatio, 2), note: `median over 2,000 genes at one expression, in ${u}` },
       ];
     }
@@ -367,64 +404,82 @@ defineWidget({
 /* The six genes' bar heights as fractions of the tallest, and the ratio over
    each pair — the two things a unit change eases. Fractions rather than values,
    because the units differ by orders of magnitude and the axis has no scale. */
+/* The row of numbers between the lanes, which is what a unit change eases:
+   the piles are the data and do not move, the reading of them does. On the
+   Length step the row is WITHIN sample A (each gene ÷ gene 1), because length
+   is a within-sample confound; on the other two it is B ÷ A, the same gene in
+   both samples. */
 function toyHeights(state) {
   const { toyU } = state;
-  const top = Math.max(...toyU.A, ...toyU.B) || 1;
-  return { hA: toyU.A.map((v) => v / top), hB: toyU.B.map((v) => v / top), ratio: toyU.A.map((a, i) => toyU.B[i] / a) };
+  const within = state.page === "length";
+  return { ratio: toyU.A.map((a, i) => (within ? a / toyU.A[0] : toyU.B[i] / a)) };
 }
-const mixHeights = (a, b, e) => ({
-  hA: a.hA.map((v, i) => v + (b.hA[i] - v) * e),
-  hB: a.hB.map((v, i) => v + (b.hB[i] - v) * e),
-  ratio: a.ratio.map((v, i) => v + (b.ratio[i] - v) * e),
-});
+const mixHeights = (a, b, e) => ({ ratio: a.ratio.map((v, i) => v + (b.ratio[i] - v) * e) });
 const EASE_MS = 450;
 const easeInOut = (t) => (t < 0.5 ? 2 * t * t : 1 - ((-2 * t + 2) ** 2) / 2);
 
 function drawToy(ctx, colors, w, y0, state, params, heights) {
   const { toy } = state;
-  const n = toy.A.length;
-  const padL = 34, padR = 10;
-  const slot = (w - padL - padR) / n;
-  const bw = Math.min(16, slot * 0.28);
-  const base = y0 + TOY_H - 30;
-  const hOf = (frac) => frac * (TOY_H - 70);
+  const within = state.page === "length";
+  const n = toy.len.length;
+  const padL = 74, padR = 10, gap = 14;
+  const pxPerKb = (w - padL - padR - gap * (n - 1)) / total(toy.len);
+  const laneH = (TOY_H - 40) / 2;
+  /* rows shrink so the deepest pile fits its lane under the count label, and
+     no read is hidden: at 10× depth a 2 kb gene holds 100 reads, thirteen rows
+     deep, and a "(+30 above)" label ran into the ratio row (the sweep) */
+  const deepest = 1 + Math.max(0, ...toy.reads.A.flat().map(([, r]) => r), ...toy.reads.B.flat().map(([, r]) => r));
+  const rowH = Math.min(5, (laneH - 44) / deepest);
+  const readH = Math.max(1.5, rowH - 1);
+  /* a label centred on a narrow gene stays inside the canvas */
+  const clampX = (x) => Math.min(Math.max(x, padL + 16), w - padR - 16);
 
   ctx.save();
-  ctx.font = `${colors.fsSm} ${colors.font}`;
   ctx.textBaseline = "alphabetic";
-  ctx.fillStyle = colors.ink2;
-  ctx.textAlign = "left";
-  ctx.fillText(`Six genes, in ${UNITS[state.unit].short}`, padL, y0 + 16);
-
-  ctx.strokeStyle = colors.axis ?? colors.ink3;
-  ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.moveTo(padL, Math.round(base) + 0.5); ctx.lineTo(w - padR, Math.round(base) + 0.5); ctx.stroke();
-
+  ctx.font = `${colors.fsSm} ${colors.font}`;
+  ctx.fillStyle = colors.ink2; ctx.textAlign = "left";
+  ctx.fillText(`Six genes and their reads, in ${UNITS[state.unit].short}`, padL, y0 + 14);
   ctx.font = `${colors.fsXs} ${colors.font}`;
-  for (let i = 0; i < n; i += 1) {
-    const cx = padL + slot * (i + 0.5);
-    const hA = hOf(heights.hA[i]), hB = hOf(heights.hB[i]);
-    const changed = toy.changed.includes(i);
-    const col = changed ? colors.highlight : null;
-    ctx.fillStyle = col ?? colors.groupA;
-    ctx.fillRect(cx - bw - 1, base - hA, bw, hA);
-    ctx.strokeStyle = col ?? colors.groupB;
-    ctx.lineWidth = 1.5;
-    ctx.strokeRect(cx + 1.5, base - hB + 0.5, bw - 1, Math.max(0, hB - 1));
-    /* the ratio B/A over each pair, in the unit — the number the page argues about */
-    const r = heights.ratio[i];
-    ctx.textAlign = "center";
-    ctx.fillStyle = changed ? colors.highlight : Math.abs(r - 1) > 0.005 ? colors.extreme : colors.ink2;
-    ctx.font = `${colors.fsXs} ${colors.mono}`;
-    ctx.fillText(fmt(r, r >= 10 ? 0 : 2), cx, base - Math.max(hA, hB) - 5);
-    ctx.font = `${colors.fsXs} ${colors.font}`;
-    ctx.fillStyle = colors.ink3;
-    ctx.fillText(`gene ${i + 1}`, cx, base + 13);
-    ctx.fillText(`${toy.len[i]} kb`, cx, base + 25);
-  }
-  ctx.textAlign = "left";
-  ctx.fillStyle = colors.ink3;
-  ctx.fillText("B ÷ A over each pair", w - padR - 118, y0 + 16);
+  ctx.fillStyle = colors.ink3; ctx.textAlign = "right";
+  ctx.fillText(within ? "each gene ÷ gene 1, within sample A" : "B ÷ A, the same gene in both samples", w - padR, y0 + 14);
+
+  [["A", toy.A, toy.reads.A, 0], ["B", toy.B, toy.reads.B, 1]].forEach(([name, counts, reads, k]) => {
+    const base = y0 + 26 + laneH * (k + 1) - 16;
+    ctx.textAlign = "left";
+    ctx.font = `600 ${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.ink2;
+    ctx.fillText(`Sample ${name}`, 4, base - 14);
+    ctx.font = `${colors.fsXs} ${colors.mono}`; ctx.fillStyle = colors.ink3;
+    ctx.fillText(`${total(counts)} reads`, 4, base - 2);
+    let gx = padL;
+    for (let i = 0; i < n; i += 1) {
+      const gw = toy.len[i] * pxPerKb;
+      const changed = toy.changed.includes(i);
+      ctx.fillStyle = colors.ink3;
+      ctx.fillRect(gx, base, gw, 3);
+      ctx.fillStyle = changed ? colors.highlight : colors.empirical;
+      let top = -1;
+      for (const [start, r] of reads[i]) {
+        top = Math.max(top, r);
+        ctx.fillRect(gx + start * pxPerKb, base - 2 - (r + 1) * rowH, Math.max(2, READ_KB * pxPerKb - 1), readH);
+      }
+      ctx.textAlign = "center";
+      const cx = clampX(gx + gw / 2);
+      ctx.font = `${colors.fsXs} ${colors.mono}`; ctx.fillStyle = colors.ink3;
+      ctx.fillText(String(counts[i]), cx, base - 6 - (top + 1) * rowH);
+      if (k === 1) {
+        /* two lines, so "gene 1" and "gene 2" clear each other on the 1 kb genes */
+        ctx.font = `${colors.fsXs} ${colors.font}`;
+        ctx.fillText(`gene ${i + 1}`, cx, base + 14);
+        ctx.fillText(`${toy.len[i]} kb`, cx, base + 25);
+        /* the row between the lanes: the unit's reading of this gene */
+        const r = heights.ratio[i];
+        ctx.font = `600 ${colors.fsXs} ${colors.mono}`;
+        ctx.fillStyle = changed ? colors.highlight : Math.abs(r - 1) > 0.005 ? colors.extreme : colors.ink1;
+        ctx.fillText(fmt(r, r >= 10 ? 1 : 2), cx, y0 + 26 + laneH + 2);
+      }
+      gx += gw + gap;
+    }
+  });
   ctx.restore();
 }
 

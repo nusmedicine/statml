@@ -18785,6 +18785,40 @@ certainty tile, three subtitles. **His picks, every one the recommendation:**
 | subtitle | **S1**: *A read count depends on the sample's depth and the gene's length as well as its expression. CPM, FPKM and TPM divide these out, but each is a share of the sample's total, so when some genes rise every other gene's share falls. A size factor takes the scale from the genes that did not change.* |
 | the page control's label | **Step** — raw → CPM → TPM → size factor is one pipeline, the units accumulating left to right, as 74's |
 
+#### BUILT AS A DRAFT the same evening, and two review rounds before he had seen it whole
+
+**Round 1** — *the bar graphs don't change until the last step? any tweening
+animation?* Both true: Depth opened at 1× and Length at Equal, so the unit
+did nothing until the data dial moved, and units swapped. His picks: **each
+step opens on its problem** (Depth at 3×, Length at Differ; the unit is the
+answer the reader builds) and **the unit change is eased** through core's
+display-ease door (widget 12's), `unit` a display parameter, Step and Play
+declined. He also asked for the stepwise explanation, given in prose and now
+the § *Pages* record above: Depth is the between-sample problem every unit
+fixes; Length is the within-sample problem only FPKM and TPM fix and the size
+factor does not touch; Composition is the second between-sample problem only
+the size factor survives.
+
+**Round 2** — *could we have similar illustrations of genes and reads like
+the hbctraining website? also the color of the legends is confusing.* Mocked
+in `_lab/count-normalization-reads-mock.html`: each gene a bar of its length,
+each read a rectangle piled above it as a browser packs them, Sample A over
+Sample B, at counts small enough to count — **the rectangles are the count,
+the pile's depth is the coverage**, which is what a per-kilobase unit reads.
+The Length step's printed row is WITHIN sample A (each gene ÷ gene 1: CPM
+reads 1 · 2 · 4 · 1 · 6 · 0.5, TPM reads 1.00 six times), the other two
+steps' rows are B ÷ A. Composition moved to a **fixed total of reads per
+sample** (the sequencer's capacity, the HBC framing): ten reads on every
+unchanged gene, gene 5 up 8× takes 41 of B's 62, the five thin to 4; raw and
+CPM read them 0.40, TPM and FPKM 0.77 (gene 5 is 6 kb, so per kilobase it
+holds less), the size factor 1.00. The legend confusion was Sample A's blue
+against the scatter's blue: **scheme A**, one hue for data, samples as rows
+with names, a changed gene in the highlight. **His four picks, all the
+recommendation:** pile-ups on all three steps replacing the bars; the fixed
+total; scheme A; the scatter kept at 220px under a 230px pile-up. The 2,000-
+gene panel's depth rose 0.02 → 0.1 so that more than 64 unchanged genes clear
+the count floor once the total is fixed.
+
 ### Slot 78 · `deseq2` — Differential Expression
 
 **Host.** 01-2 cell 1 and cell 22 are the notebook's own exposition, four
