@@ -1133,7 +1133,7 @@
     {
       "slug": "count-normalization",
       "title": "Bulk RNA-seq: Normalization",
-      "blurb": "Per million reads and per kilobase compare genes within a sample; a scale from the unchanged genes compares between.",
+      "blurb": "Depth and length divided out, genes are comparable within a sample; depth and composition divided out, between samples.",
       "course": "PHM5003",
       "topics": [
         "RNA-seq",

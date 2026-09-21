@@ -318,14 +318,18 @@ defineWidget({
   /* S1 of three, his pick: concept first, mechanism second (2.10). */
   /* S4, his pick (2026-09-22) over the version that named the methods and
      ended on the test: the approaches, no vocabulary, the names left to the
-     unit control; the test is widget 78's, and "what DESeq2 takes" stays as
-     the raw count's own detail */
+     unit control; the test is widget 78's. S5 (round 17, the same day) on his
+     catch that S4 personified — "a count carries", "what the other genes
+     did", "dividing compares" — the same content in literal verbs: depends
+     on, removes, are comparable. */
   subtitle:
-    "A read count carries the sample's depth, the gene's length and what the "
-    + "other genes did. Dividing by the sample's reads and the gene's length "
-    + "compares genes within a sample; dividing by a scale read off the genes "
-    + "that did not change compares a gene between samples. Dividing by both "
-    + "compares both ways.",
+    "A read count depends on sequencing depth, gene length and library "
+    + "composition as well as the gene's expression. Division by the sample's "
+    + "reads and by the gene's length removes depth and length, so genes are "
+    + "comparable within a sample; division by a size factor estimated from "
+    + "the unchanged genes removes depth and composition, so a gene is "
+    + "comparable between samples. Both divisions are needed for both "
+    + "comparisons.",
   layout: "side",
   status: "draft",
   pointer: true,
@@ -349,7 +353,7 @@ defineWidget({
     },
     change: {
       type: "segmented", label: "Gene that changes in B",
-      detail: "8× up; the sample's total of reads is fixed, so its reads come from the others",
+      detail: "8× up, with the sample's total of reads fixed: fewer reads are left for the other genes",
       options: [{ value: "none", label: "None" }, ...LEN.map((l, i) => ({ value: String(i + 1), label: String(i + 1) }))],
       default: "5",
     },
