@@ -21,9 +21,9 @@
                neighbours, a geometry nobody typed in.
      POSITION  the tokenised sequence's embedding rows, plus a position row
                each, equals what the network reads: x̃ᵢ = xᵢ + pᵢ. Learned
-               rows as initialised, the sinusoid (its fastest pair drawn as a
-               dial turning with position), or a rotation that adds nothing
-               and turns each pair of a row instead. No attention, no
+               rows as initialised, the sinusoid (drawn as the curves its rows
+               sample), or a rotation that adds nothing and turns the token's
+               own pair instead (drawn as the arrow before and after). No attention, no
                training: the arithmetic alone, the formula on the card.
 
    A Vocabulary under all three: four bases, sixty-one codons, twenty amino
@@ -55,7 +55,7 @@ const ENCODINGS = [{ value: "onehot", label: "One-hot" }, { value: "embedding", 
 const POS_ENC = [{ value: "learned", label: "Learned" }, { value: "sinusoidal", label: "Sinusoidal" }, { value: "rope", label: "Rotary" }];
 const STEP_MS = 420, RUN_MS = 240;   // an epoch's move on Step, and under Play
 const TOK_STEP_MS = 220, TOK_RUN_MS = 110; // a token's arrival
-const HEIGHT = 384, HEIGHT_POS = 440;
+const HEIGHT = 384;
 const ON = (page) => ({ param: "page", equals: page });
 const ON_E = { any: [{ all: [ON("encode"), { param: "encoding", equals: "embedding" }] }, ON("position")] };
 
@@ -208,11 +208,12 @@ const S = {
   posCapEmb: (L, E) => `the embedding row of each token, from the table Encode trained · [${L}, ${E}]`,
   posCapPos: {
     learned: (L, E) => `position rows · Embedding(${L}, ${E}) as initialised; in a transformer they train with the rest`,
-    sinusoidal: (L, E) => `position rows · sin on even columns, cos on odd, one frequency a pair · [${L}, ${E}], fixed · the fastest pair as an angle above`,
-    rope: () => "nothing added: each pair of a row is turned by its position, the fastest pair drawn, a slower turn each pair",
+    sinusoidal: (L, E) => `position rows · the curves each pair samples, a dot where a token reads them · [${L}, ${E}], fixed`,
+    rope: () => "nothing added: the token's own first pair as an arrow, turned by its position; each slower pair turns less",
   },
   posCapFinal: { learned: "what the network reads", sinusoidal: "what the network reads", rope: "the rows turned · what the network reads" },
   posGlyph: { x: "x", add: "+ p", rope: "⟳", final: "= x̃" },
+  posPairLabel: (m, th) => `pair ${m} · columns ${2 * m} and ${2 * m + 1} · θ = ${th >= 0.01 ? String(Number(th.toFixed(3))) : th.toFixed(3)} a position`,
   posStart: "no token yet",
   posStatus: { add: (i, tok) => `token ${i} · ${tok} at position ${i - 1} · row ${i - 1} of the position table added`, rope: (i, tok) => `token ${i} · ${tok} at position ${i - 1} · each pair of its row turned by ${i - 1} · θ` },
   posHover: { add: (tok, e, a, b, c) => `${tok} · column ${e} · ${a.toFixed(2)} + ${b.toFixed(2)} = ${c.toFixed(2)}`, rope: (tok, e, a, c) => `${tok} · column ${e} · ${a.toFixed(2)} → ${c.toFixed(2)}` },
@@ -276,10 +277,13 @@ function dot(ctx, x, y, r, fill, stroke = null, lw = 1) {
   if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw; ctx.stroke(); }
   ctx.restore();
 }
-/** a dial: the angle `a`, anticlockwise from three o'clock */
-function dial(ctx, colors, cx, cy, r, a) {
-  dot(ctx, cx, cy, r, colors.surface2, colors.grid);
-  line(ctx, cx, cy, cx + r * Math.cos(a), cy - r * Math.sin(a), colors.groupA, 1.6);
+/** an arrow from (x1, y1) to (x2, y2) with a small head */
+function arrow(ctx, x1, y1, x2, y2, colour, lw = 1.4) {
+  line(ctx, x1, y1, x2, y2, colour, lw);
+  const a = Math.atan2(y2 - y1, x2 - x1);
+  ctx.save(); ctx.fillStyle = colour; ctx.beginPath(); ctx.moveTo(x2, y2);
+  ctx.lineTo(x2 - 5 * Math.cos(a - 0.45), y2 - 5 * Math.sin(a - 0.45)); ctx.lineTo(x2 - 5 * Math.cos(a + 0.45), y2 - 5 * Math.sin(a + 0.45));
+  ctx.closePath(); ctx.fill(); ctx.restore();
 }
 
 /* the truth's colours: a vocabulary's groups in the cluster hues, in the legend's order; a group with no slot is unrewarded */
@@ -576,35 +580,72 @@ function drawOneHot(ctx, colors, w, params, state, anim) {
 
 /* =============================================================== Position */
 
-const POS = { boxTop: 30, boxH: 18, firstCap: 84, glyphW: 44, dialH: 26 };
+/* THE MIDDLE PANEL TELLS THE TWO APART (his pick, 2026-09-21, from
+   `_lab/embedding-space-position-mock.html`): the sinusoid's rows are
+   samples of sine and cosine curves, so the curves are drawn across the
+   token axis, one pair a row, a dot where each token reads them, and the
+   heatmap beneath is those readings; the rotation reads nothing off a
+   curve — the token's own first pair is an arrow, and its position turns
+   it, before in the neutral ink and after in colour, the arc swept. */
+const POS = { boxTop: 30, boxH: 18, firstCap: 84, glyphW: 44, curveH: 28, arrowH: 52, capGap: 8, panelGap: 22 };
+const pairsDrawn = (E) => Math.min(4, E / 2);
+const posBodies = (pe, E) => {
+  const mh = Math.min(E * 12, 96);
+  return { mh, mid: pe === "sinusoidal" ? mh + POS.curveH * pairsDrawn(E) : pe === "rope" ? POS.arrowH : mh };
+};
+const heightPos = (pe, E) => { const { mh, mid } = posBodies(pe, E); return POS.firstCap + 3 * (POS.capGap + POS.panelGap) + 2 * mh + mid + BELOW; };
+const theta = (m, E) => Math.pow(10000, -(2 * m) / E);
+
 function drawPosition(ctx, colors, w, params, state, anim, pointer) {
   const { tokens, emb, pos, final, E: Ed, pe } = state, T = tokens.length;
   const n = anim.n[anim.stage], t = ease(anim.t), upto = Math.min(n, T), a = anim.t < 1 ? t : 1;
-  const X0 = TABLE_X + POS.glyphW, X1 = w - PAD_R, bw = (X1 - X0) / T, bottom = HEIGHT_POS - BELOW;
+  const X0 = TABLE_X + POS.glyphW, X1 = w - PAD_R, bw = (X1 - X0) / T, bottom = heightPos(pe, Ed) - BELOW;
   txt(ctx, colors, S.posCapTokens, TABLE_X, 14, { font: capFont(colors), fill: colors.ink1 });
   const hoverTok = tokenRow(ctx, colors, state, X0, bw, POS.boxTop, POS.boxH, T, 1, pointer);
 
-  /* three panels, a column a token: x · + p (a dial row for the sinusoid's fastest pair, dials alone for rotary) · = x̃ */
-  const dials = pe !== "learned";
-  const extra = pe === "rope" ? POS.dialH + 6 : pe === "sinusoidal" ? POS.dialH : 0;
-  const nMats = pe === "rope" ? 2 : 3;
-  const mh = Math.min(Ed * 12, (bottom - POS.firstCap - 3 * 22 - extra) / nMats), rH = mh / Ed;
+  const { mh } = posBodies(pe, Ed), rH = mh / Ed;
   const panels = [
     { glyph: S.posGlyph.x, cap: S.posCapEmb(T, Ed), rows: emb, h: mh },
-    { glyph: pe === "rope" ? S.posGlyph.rope : S.posGlyph.add, cap: pe === "rope" ? S.posCapPos.rope() : S.posCapPos[pe](T, Ed), rows: pos, h: (pos ? mh : 6) + (dials ? POS.dialH : 0), dials },
+    { glyph: pe === "rope" ? S.posGlyph.rope : S.posGlyph.add, cap: pe === "rope" ? S.posCapPos.rope() : S.posCapPos[pe](T, Ed), rows: pos, h: posBodies(pe, Ed).mid, mid: true },
     { glyph: S.posGlyph.final, cap: S.posCapFinal[pe], rows: final, h: mh },
   ];
   let hover = null, y = POS.firstCap;
   for (const p of panels) {
     txt(ctx, colors, p.cap, X0, y, { font: capFont(colors), fill: colors.ink1 });
-    const top = y + 8;
+    const top = y + POS.capGap;
     txt(ctx, colors, p.glyph, TABLE_X, top + p.h / 2, { font: glyphFont(colors), fill: colors.ink1, baseline: "middle" });
     let matTop = top;
-    if (p.dials) {
-      /* the fastest pair as an angle: position · 1 radian, the same turn the rotation applies to its fastest pair */
-      const r = Math.min(bw * 0.4, POS.dialH / 2 - 3), cy = top + POS.dialH / 2;
-      for (let i = 0; i < upto; i++) { ctx.save(); ctx.globalAlpha = i === upto - 1 ? a : 1; dial(ctx, colors, X0 + (i + 0.5) * bw, cy, r, i); ctx.restore(); }
-      matTop = top + POS.dialH;
+    if (p.mid && pe === "sinusoidal") {
+      /* the curves each pair samples: sin and cos of position · θ_m, a row a pair, the fastest first */
+      const P = pairsDrawn(Ed);
+      for (let m = 0; m < P; m++) {
+        const cy = top + m * POS.curveH + POS.curveH / 2, amp = POS.curveH * 0.36, th = theta(m, Ed);
+        line(ctx, X0, cy, X1, cy, colors.grid);
+        for (const [fn, col] of [[Math.sin, colors.groupA], [Math.cos, colors.groupB]]) {
+          ctx.save(); ctx.strokeStyle = col; ctx.lineWidth = 1.3; ctx.beginPath();
+          for (let k = 0; k <= 240; k++) { const q = (k / 240) * (T - 1), x = X0 + (q + 0.5) * bw, yy = cy - amp * fn(q * th); if (k === 0) ctx.moveTo(x, yy); else ctx.lineTo(x, yy); }
+          ctx.stroke(); ctx.restore();
+          for (let i = 0; i < upto; i++) { ctx.save(); ctx.globalAlpha = i === upto - 1 ? a : 1; dot(ctx, X0 + (i + 0.5) * bw, cy - amp * fn(i * th), 2.6, col); ctx.restore(); }
+        }
+        txt(ctx, colors, S.posPairLabel(m, th), X0 + 4, cy - POS.curveH / 2 + 9, { fill: colors.ink3, halo: true });
+      }
+      txt(ctx, colors, "sin", X1 - 34, top + 9, { fill: colors.groupA, halo: true }); txt(ctx, colors, "cos", X1 - 14, top + 9, { fill: colors.groupB, halo: true });
+      matTop = top + POS.curveH * P;
+    } else if (p.mid && pe === "rope") {
+      /* the token's own first pair as an arrow, turned by position · θ₀: before in the neutral ink, after in colour, the arc swept */
+      const r = Math.min(bw * 0.46, POS.arrowH / 2 - 3), cy = top + POS.arrowH / 2;
+      for (let i = 0; i < upto; i++) {
+        const cx = X0 + (i + 0.5) * bw, ax = emb[i][0], ay = emb[i][1], turn = i * theta(0, Ed);
+        const len = Math.min(r, Math.hypot(ax, ay) * r * 0.45), a0 = Math.atan2(ay, ax), a1 = a0 + turn;
+        ctx.save(); ctx.globalAlpha = i === upto - 1 ? a : 1;
+        dot(ctx, cx, cy, r, colors.surface2, colors.grid);
+        if (len > 1) {
+          ctx.save(); ctx.strokeStyle = wash(colors.groupA, 0.5); ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(cx, cy, len * 0.8, -a0, -a1, true); ctx.stroke(); ctx.restore();
+          arrow(ctx, cx, cy, cx + len * Math.cos(a0), cy - len * Math.sin(a0), colors.ink3, 1.2);
+          arrow(ctx, cx, cy, cx + len * Math.cos(a1), cy - len * Math.sin(a1), colors.groupA, 1.6);
+        }
+        ctx.restore();
+      }
     }
     if (p.rows) {
       for (let i = 0; i < upto; i++) {
@@ -618,12 +659,12 @@ function drawPosition(ctx, colors, w, params, state, anim, pointer) {
         if (i < upto) hover = { i, e, x: X0 + (i + 0.5) * bw, y: matTop + e * rH };
       }
     }
-    y = top + p.h + 22;
+    y = top + p.h + POS.panelGap;
   }
   if (hover) {
     const { i, e, x, y: hy } = hover, left = x > w * 0.6;
-    const s = pe === "rope" ? S.posHover.rope(tokens[i], e, emb[i][e], final[i][e]) : S.posHover.add(tokens[i], e, emb[i][e], pos[i][e], final[i][e]);
-    txt(ctx, colors, s, left ? x - 8 : x + 8, hy - 6, { fill: colors.ink1, align: left ? "right" : "left", halo: true });
+    const str = pe === "rope" ? S.posHover.rope(tokens[i], e, emb[i][e], final[i][e]) : S.posHover.add(tokens[i], e, emb[i][e], pos[i][e], final[i][e]);
+    txt(ctx, colors, str, left ? x - 8 : x + 8, hy - 6, { fill: colors.ink1, align: left ? "right" : "left", halo: true });
   } else if (hoverTok != null) {
     const x = X0 + (hoverTok + 0.5) * bw, left = x > w * 0.6;
     txt(ctx, colors, S.tokHover(tokens[hoverTok], state.names[hoverTok], state.ids[hoverTok]), left ? x - 8 : x + 8, POS.boxTop - 16, { fill: colors.ink1, align: left ? "right" : "left", halo: true });
@@ -641,7 +682,7 @@ defineWidget({
   title: "Deep Learning - Embedding Space",
   subtitle: S.subtitle,
   layout: "side",
-  height: ({ page, vocab, encoding }) => (page === "tokenize" ? tokLayout(vocab).height : page === "position" ? HEIGHT_POS : encoding === "onehot" ? oneHotLayout(vocab).height : HEIGHT),
+  height: ({ page, vocab, encoding, posenc, E }) => (page === "tokenize" ? tokLayout(vocab).height : page === "position" ? heightPos(posenc, Number(E)) : encoding === "onehot" ? oneHotLayout(vocab).height : HEIGHT),
   pointer: true,
 
   params: {

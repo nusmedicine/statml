@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · embedding-space — the position pictures</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1400px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 104ch; font-size: var(--fs-sm); }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); min-height: 26px; white-space: pre-line; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+       border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 104ch; }
+  .q b { display: block; margin-bottom: 2px; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>embedding-space &middot; the Position page's middle panel</h1>
+  <p class="note">
+    The sinusoid and the rotation both turn with position, and as dials they look the same. Three ways to tell them apart,
+    each drawn for the sixteen-token sentence at E = 8 (four pairs) on seeded N(0, 1) embedding rows. The question is what
+    the middle panel shows for each encoding; the top and bottom panels (x, and x&#x0303;) stay as they are.
+  </p>
+
+  <h2>A &middot; the sinusoid as curves, the rotation as the vector turned</h2>
+  <p class="note">
+    <b>Sinusoidal:</b> the position rows ARE samples of sine and cosine curves, so draw the curves across the token axis and mark
+    where each token reads them: pair 0 turns a radian a position, pair 1 a tenth of that, and so on down; the heatmap
+    beneath is those samples. <b>Rotary:</b> nothing is read off a curve; the token's own pair of numbers is a small arrow,
+    and the position turns it: the arrow before (grey) and after (colour), with the arc it swept.
+  </p>
+  <div class="row" id="rowA"></div>
+
+  <h2>B &middot; both as dials, but the rotation's dial carries the vector</h2>
+  <p class="note">
+    The sinusoid's dial is a unit-circle point (the angle alone); the rotation's dial is the embedding pair itself as an
+    arrow of its own length, turned. Smaller change, smaller difference.
+  </p>
+  <div class="row" id="rowB"></div>
+
+  <h2>C &middot; the sinusoid as curves; the rotation as the whole row's pairs turned</h2>
+  <p class="note">
+    As A for the sinusoid. For the rotation, every pair of the row at once: four arrows a token (pair 0 to 3), each turned by its
+    own slower angle, so the reader sees that one row is turned four ways and the slow pairs barely move.
+  </p>
+  <div class="row" id="rowC"></div>
+
+  <p class="q"><b>The pick</b>
+    A &middot; curves for the sinusoid, one arrow turned for the rotation (recommended: the two mechanisms, reading a curve and turning a vector, are different pictures) &nbsp;|&nbsp;
+    B &middot; both dials, the rotation's carrying the vector &nbsp;|&nbsp;
+    C &middot; curves, and all four pairs turned for the rotation</p>
+  <p class="q"><b>How many pairs to draw for the sinusoid</b>
+    two (pair 0 and pair 1, recommended) &nbsp;|&nbsp; all four, stacked</p>
+</main>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+import { makeRng } from "../core/rng.js";
+
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const rgb = (c) => { const m = String(c).match(/^#([0-9a-f]{6})$/i); return m ? [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16)) : [128, 128, 128]; };
+const wash = (color, a) => { const p = rgb(color); return `rgba(${p[0]},${p[1]},${p[2]},${a})`; };
+const ramp = (t, to) => { const a = rgb(css("--surface-3")), b = rgb(to); const u = Math.max(0, Math.min(1, t)); return `rgb(${a.map((x, i) => Math.round(x + (b[i] - x) * u)).join(",")})`; };
+const signed = (v, s) => (v >= 0 ? ramp(v / s, css("--c-value-high")) : ramp(-v / s, css("--c-value-low")));
+
+function el(tag, cls, text) { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
+function cand(rowId, title, sub, w) {
+  const box = el("div", "cand"); box.style.width = `${w}px`;
+  box.appendChild(el("h3", null, title)); box.appendChild(el("p", "sub", sub));
+  document.getElementById(rowId).appendChild(box);
+  return box;
+}
+function canvasIn(box, w, h) {
+  const c = document.createElement("canvas");
+  c.width = Math.round(w * DPR); c.height = Math.round(h * DPR); c.style.width = `${w}px`; c.style.height = `${h}px`;
+  box.appendChild(c); const ctx = c.getContext("2d"); ctx.scale(DPR, DPR); return ctx;
+}
+function txt(ctx, s, x, y, { size = 11, colour = T.ink2, align = "left", mono = false, weight = "", baseline = "alphabetic" } = {}) {
+  ctx.save(); ctx.font = `${weight ? weight + " " : ""}${size}px ${mono ? T.mono : T.font}`; ctx.fillStyle = colour; ctx.textAlign = align; ctx.textBaseline = baseline; ctx.fillText(s, x, y); ctx.restore();
+}
+function line(ctx, x1, y1, x2, y2, colour, width = 1, dash = null) { ctx.save(); ctx.strokeStyle = colour; ctx.lineWidth = width; if (dash) ctx.setLineDash(dash); ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); ctx.restore(); }
+function rect(ctx, x, y, w, h, fill, stroke = null) { ctx.save(); if (fill) { ctx.fillStyle = fill; ctx.fillRect(x, y, w, h); } if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = 1; ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1); } ctx.restore(); }
+function arrow(ctx, x1, y1, x2, y2, colour, lw = 1.4) {
+  line(ctx, x1, y1, x2, y2, colour, lw);
+  const a = Math.atan2(y2 - y1, x2 - x1);
+  ctx.save(); ctx.fillStyle = colour; ctx.beginPath(); ctx.moveTo(x2, y2); ctx.lineTo(x2 - 5 * Math.cos(a - 0.45), y2 - 5 * Math.sin(a - 0.45)); ctx.lineTo(x2 - 5 * Math.cos(a + 0.45), y2 - 5 * Math.sin(a + 0.45)); ctx.closePath(); ctx.fill(); ctx.restore();
+}
+function circle(ctx, x, y, r, fill, stroke) { ctx.save(); ctx.beginPath(); ctx.arc(x, y, r, 0, 2 * Math.PI); if (fill) { ctx.fillStyle = fill; ctx.fill(); } if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = 1; ctx.stroke(); } ctx.restore(); }
+
+/* ---------------------------------------------------------------- data */
+const L = 16, E = 8, W = 640, X0 = 40, X1 = W - 12, bw = (X1 - X0) / L;
+const TOK = "the patient was admitted with chest pain and treated with <unk> then discharged <pad> <pad> <pad>".split(" ");
+const rng = makeRng(3);
+const emb = Array.from({ length: L }, () => Array.from({ length: E }, () => rng.normal(0, 1)));
+const theta = (m) => Math.pow(10000, -(2 * m) / E);
+const sinT = Array.from({ length: L }, (_, p) => Array.from({ length: E }, (_, i) => (i % 2 === 0 ? Math.sin(p * theta(i / 2)) : Math.cos(p * theta((i - 1) / 2)))));
+const rotate = (r, p) => { const o = r.slice(); for (let m = 0; m < E / 2; m++) { const th = p * theta(m), c = Math.cos(th), s = Math.sin(th), a = r[2 * m], b = r[2 * m + 1]; o[2 * m] = c * a - s * b; o[2 * m + 1] = s * a + c * b; } return o; };
+const groupA = css("--c-group-a"), groupB = css("--c-group-b");
+
+function tokensRow(ctx, y) { for (let i = 0; i < L; i++) { rect(ctx, X0 + i * bw + 1, y, bw - 2, 16, T.surface2, T.grid); txt(ctx, TOK[i].length > 5 ? TOK[i].slice(0, 5) : TOK[i], X0 + (i + 0.5) * bw, y + 8, { size: 9, mono: true, align: "center", baseline: "middle", colour: T.ink1 }); } }
+function heat(ctx, rows, y, rh) { for (let i = 0; i < L; i++) for (let e = 0; e < E; e++) rect(ctx, X0 + i * bw + 1, y + e * rh, bw - 1, rh, signed(rows[i][e], 2.5)); rect(ctx, X0, y, L * bw, E * rh, null, T.grid); }
+
+/* the sinusoid as curves: pairs `ms`, each a sin and a cos curve over the token axis, the samples marked */
+function curves(ctx, y, h, ms) {
+  const rowH = h / ms.length;
+  ms.forEach((m, k) => {
+    const cy = y + k * rowH + rowH / 2, amp = rowH * 0.36;
+    line(ctx, X0, cy, X1, cy, T.grid);
+    for (const [fn, col, name] of [[Math.sin, groupA, "sin"], [Math.cos, groupB, "cos"]]) {
+      ctx.save(); ctx.strokeStyle = col; ctx.lineWidth = 1.4; ctx.beginPath();
+      for (let s = 0; s <= 200; s++) { const p = (s / 200) * (L - 1), x = X0 + (p + 0.5) * bw, yy = cy - amp * fn(p * theta(m)); if (s === 0) ctx.moveTo(x, yy); else ctx.lineTo(x, yy); }
+      ctx.stroke(); ctx.restore();
+      for (let p = 0; p < L; p++) circle(ctx, X0 + (p + 0.5) * bw, cy - amp * fn(p * theta(m)), 2.6, col);
+    }
+    txt(ctx, `pair ${m} · θ = ${theta(m) >= 0.01 ? theta(m) : theta(m).toFixed(3)}`, X0 - 4, cy, { size: 9, align: "right", baseline: "middle", colour: T.ink3 });
+  });
+  txt(ctx, "sin", X1 - 30, y + 10, { size: 9, colour: groupA }); txt(ctx, "cos", X1 - 10, y + 10, { size: 9, colour: groupB });
+}
+/* the rotation as one arrow turned: pair m of each token's row, before in the neutral ink and after in colour, the arc swept */
+function turned(ctx, y, h, m, scale = 0.28) {
+  const r = Math.min(bw * 0.46, h / 2 - 3), cy = y + h / 2;
+  for (let i = 0; i < L; i++) {
+    const cx = X0 + (i + 0.5) * bw, a = emb[i][2 * m], b = emb[i][2 * m + 1], th = i * theta(m);
+    const len = Math.min(r, Math.hypot(a, b) * r * scale * 1.6), ang0 = Math.atan2(b, a), ang1 = ang0 + th;
+    circle(ctx, cx, cy, r, T.surface2, T.grid);
+    ctx.save(); ctx.strokeStyle = wash(groupA, 0.5); ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(cx, cy, len * 0.8, -ang0, -ang1, true); ctx.stroke(); ctx.restore();
+    arrow(ctx, cx, cy, cx + len * Math.cos(ang0), cy - len * Math.sin(ang0), T.ink3, 1.2);
+    arrow(ctx, cx, cy, cx + len * Math.cos(ang1), cy - len * Math.sin(ang1), groupA, 1.6);
+  }
+  txt(ctx, `pair ${m} · turned by position × θ, θ = ${theta(m) >= 0.01 ? theta(m) : theta(m).toFixed(3)}`, X0 - 4, cy, { size: 9, align: "right", baseline: "middle", colour: T.ink3 });
+}
+/* the unit-circle dial */
+function dials(ctx, y, h, m, withVector = false) {
+  const r = Math.min(bw * 0.4, h / 2 - 3), cy = y + h / 2;
+  for (let i = 0; i < L; i++) {
+    const cx = X0 + (i + 0.5) * bw, th = i * theta(m);
+    circle(ctx, cx, cy, r, T.surface2, T.grid);
+    if (withVector) { const a = emb[i][2 * m], b = emb[i][2 * m + 1], len = Math.min(r, Math.hypot(a, b) * r * 0.45), ang = Math.atan2(b, a) + th; arrow(ctx, cx, cy, cx + len * Math.cos(ang), cy - len * Math.sin(ang), groupA, 1.6); }
+    else line(ctx, cx, cy, cx + r * Math.cos(th), cy - r * Math.sin(th), groupA, 1.6);
+  }
+  txt(ctx, `pair ${m}`, X0 - 4, cy, { size: 9, align: "right", baseline: "middle", colour: T.ink3 });
+}
+
+/* ------------------------------------------------------------------- A */
+{
+  const box = cand("rowA", "A · sinusoidal: the curves the position rows sample (pairs 0 and 1), then the rows", "sin in group-a, cos in group-b; a dot where each token reads the curve; the heatmap beneath is those readings, [16, 8]", W);
+  const ctx = canvasIn(box, W, 250);
+  txt(ctx, "the tokens", X0, 12, { size: 10, colour: T.ink1, weight: "600" }); tokensRow(ctx, 18);
+  txt(ctx, "+ p · position rows · sin on even columns, cos on odd, one frequency a pair", X0, 54, { size: 10, colour: T.ink1, weight: "600" });
+  curves(ctx, 62, 100, [0, 1]);
+  heat(ctx, sinT, 172, 8);
+  const box2 = cand("rowA", "A · rotary: the token's own pair as an arrow, turned by its position (pair 0)", "before in the neutral ink, after in group-a, the arc swept; nothing is added, the row itself is turned; below, the rows turned", W);
+  const ctx2 = canvasIn(box2, W, 250);
+  txt(ctx2, "the tokens", X0, 12, { size: 10, colour: T.ink1, weight: "600" }); tokensRow(ctx2, 18);
+  txt(ctx2, "⟳ · each pair of the row turned by position × θ · nothing added", X0, 54, { size: 10, colour: T.ink1, weight: "600" });
+  turned(ctx2, 62, 100, 0);
+  heat(ctx2, emb.map((r, i) => rotate(r, i)), 172, 8);
+}
+/* ------------------------------------------------------------------- B */
+{
+  const box = cand("rowB", "B · sinusoidal: the dial as now (pair 0), then the rows", "the unit-circle point at angle position × θ", W);
+  const ctx = canvasIn(box, W, 150);
+  txt(ctx, "+ p · position rows · the fastest pair as an angle", X0, 12, { size: 10, colour: T.ink1, weight: "600" });
+  dials(ctx, 20, 44, 0);
+  heat(ctx, sinT, 74, 8);
+  const box2 = cand("rowB", "B · rotary: the dial carries the vector (pair 0), then the rows turned", "the embedding pair as an arrow of its own length, at its own angle plus position × θ", W);
+  const ctx2 = canvasIn(box2, W, 150);
+  txt(ctx2, "⟳ · the pair turned by position × θ", X0, 12, { size: 10, colour: T.ink1, weight: "600" });
+  dials(ctx2, 20, 44, 0, true);
+  heat(ctx2, emb.map((r, i) => rotate(r, i)), 74, 8);
+}
+/* ------------------------------------------------------------------- C */
+{
+  const box = cand("rowC", "C · sinusoidal: all four pairs as curves", "pair 0 turns a radian a position; pair 3 a thousandth, a line across sixteen tokens", W);
+  const ctx = canvasIn(box, W, 250);
+  txt(ctx, "+ p · position rows · four pairs", X0, 12, { size: 10, colour: T.ink1, weight: "600" });
+  curves(ctx, 20, 150, [0, 1, 2, 3]);
+  heat(ctx, sinT, 180, 8);
+  const box2 = cand("rowC", "C · rotary: every pair of the row turned, four arrows a token", "pair 0 to 3, top to bottom; the slow pairs barely turn, which is the design", W);
+  const ctx2 = canvasIn(box2, W, 250);
+  txt(ctx2, "⟳ · four pairs, each turned by its own angle", X0, 12, { size: 10, colour: T.ink1, weight: "600" });
+  for (let m = 0; m < 4; m++) turned(ctx2, 20 + m * 38, 36, m);
+  heat(ctx2, emb.map((r, i) => rotate(r, i)), 180, 8);
+}
+</script>
+</body>
+</html>
