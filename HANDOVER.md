@@ -1,5 +1,28 @@
 # Handover
 
+**2026-09-22: 77 `count-normalization` SHIPPED AND PUSHED (ab66e5c, 14
+states, "Bulk RNA-seq: Normalization"), the first of the RNA-seq arc, after
+seventeen review rounds in two days — the record is the catalogue's § Slot 77.**
+What it is: one data set, six genes in two samples, read three ways — piles of
+reads, the genes × samples table (within = a column, between = a row, hover
+reads any gene both ways, every ratio with its log2), and a slope chart of the
+same six — under the reader's choice of depth, gene lengths, WHICH gene rises
+8× (None or 1–6) and six units; the size-factor walkthrough behind a gate. Two
+CORE roles were added for it (905da4e, `--c-between` / `--c-within`; the full
+suite ran 1,011/1,011 before that commit). Two things were built and CUT on his
+word and are worth knowing before 78: a majority-change state (the size
+factor's own limit — correct, and it read as a broken widget; "most RNA-seq
+analysis relies on most genes not changing; go back to the basics") and a
+2,000-gene simulated panel under the six-gene table (histogram → boxes →
+histogram → gone: it could only show between, and its genes were not the
+table's; the sources all teach on a table's worth of genes). His personification
+catch on the subtitle at round 17 is in memory: grep the OPTIONS before
+offering them. NEXT: 78 `deseq2` ("Bulk RNA-seq: Differential Expression"),
+four pages in the notebook's order Model · Dispersion · Transform · Test —
+measure first (`_lab/rnaseq-measure.mjs` has the corrected stand-ins), mock,
+build; ask before showing the median-of-ratios limit past half the genes at
+all.
+
 **SIXTY-SEVEN WIDGETS IN THE MANIFEST — 66 on the gallery and `roc-auc` UNLISTED; no draft on `main`** (`wgcna` is still a draft on its own branch and worktree, another session's). The live site is <https://nusmedicine.github.io/statml/>, deployed from `main`: the latest widget ship is `9f9c873` (74 `sequence-encoding`, 2026-09-21, pushed with the twenty-two commits of its planning and eleven review rounds; 72's retitle `1c814cc` pushed after it as `6ba5a7d`; the first deploy run was cancelled by the second push, as Pages does, and the second, 35578748128, completed green — the live manifest read back with 67 widgets and both titles), and this handover's commit follows it. **SESSION CLOSED.**
 
 **2026-09-21 evening, ask to plan: the RNA-seq arc from PHM5003 08, PROPOSED

@@ -18692,7 +18692,7 @@ by canonical markers, and calls `FindMarkers` twice: cluster 5 against 7, and
 
 | # | slug (provisional) | title (provisional) | host | misconception | measured | state |
 |---|---|---|---|---|---|---|
-| 77 | `count-normalization` | Expression Units | 01-2 cells 16 (*DESeq2 accepts only raw count data … we cannot use FPKM, TPM*), 22 (the median of ratios); 01-1 (the GDC object ships `unstranded`, `tpm_unstrand`, `fpkm_unstrand`, `fpkm_uq_unstrand`) | a normalised unit is comparable everywhere, and FPKM and TPM differ only in name | **holds**: with 5% of genes 8× up holding 48% of B's reads, the unchanged genes shift −0.81 log2 under CPM, −0.57 under TPM, −0.02 under the median of ratios; at a 1.5× cutoff TPM calls 48 of 98 unchanged genes down, the median of ratios 2; FPKM's per-sample sums differ (179M against 112M) where TPM's are 10⁶ by construction; a TPM of 50 is 50 reads at 1M depth and 2,500 at 50M, CV 14% against 2% | proposed, **first to build** |
+| 77 | `count-normalization` | Bulk RNA-seq: Normalization — **SHIPPED 2026-09-22** (ab66e5c, 14 states) | 01-2 cells 16 (*DESeq2 accepts only raw count data … we cannot use FPKM, TPM*), 22 (the median of ratios); 01-1 (the GDC object ships `unstranded`, `tpm_unstrand`, `fpkm_unstrand`, `fpkm_uq_unstrand`) | a normalised unit is comparable everywhere, and FPKM and TPM differ only in name | **holds**: with 5% of genes 8× up holding 48% of B's reads, the unchanged genes shift −0.81 log2 under CPM, −0.57 under TPM, −0.02 under the median of ratios; at a 1.5× cutoff TPM calls 48 of 98 unchanged genes down, the median of ratios 2; FPKM's per-sample sums differ (179M against 112M) where TPM's are 10⁶ by construction; a TPM of 50 is 50 reads at 1M depth and 2,500 at 50M, CV 14% against 2% | proposed, **first to build** |
 | 78 | `deseq2` | Differential Expression | 01-2 cells 1 (NB, α, the four steps), 22 (size factors, MLE, MAP, the trend, the GLM and design matrix, `W = β/SE`), 24–25 (`vst`), 35–36 (`plotDispEsts`), 38 (`summary`: independent filtering), 39–45 (MA plot, `lfcShrink`) | a gene's own dispersion from three replicates is an estimate worth using; the log2 fold change is a ratio of means; log is a variance stabiliser | **holds**: at 3 vs 3 the realised FDR at padj < 0.1 is 40% with gene-wise dispersions, 20% shrunk, 8% with the truth (4,000 genes, 10% DE); 11% of low-count genes' own estimates sit at the floor; LFC shrinkage takes 139 null low-count genes at \|LFC\| > 1 to 0 and 274 true ones to 194; the SD across replicates at a mean of 1–5 is 1.09 under log2(x + 1) and 0.33 under the vst, 0.30 everywhere above; the lesson's own table: lfcSE 1.26 at baseMean < 1, 0.22 above 1,000, and 96% of the significant genes at baseMean 1–10 carry \|LFC\| > 1 against 52% above 1,000 | proposed, **second; the heaviest** |
 | 79 | `cell-qc` | Single-Cell QC | 02-2 cells 16–26 | the three thresholds are universal numbers; a low count is a dead cell and a high one a doublet | **holds, on the lesson's own cells**: the script reproduces 40,564 → 31,014 exactly; mt% < 10 removes 9,351 of HB17 background's 11,197 cells (median 14.8%) and 0 / 1 / 27 of the other three; nFeature and nCount remove 1,308 and 1,312 there (1,199 both) and nothing elsewhere; CYP3A4 is detected in 91% of the cells removed | proposed, **third** |
 | 80 | `integration` | Single-Cell Integration | 02-3 cells 1, 9 (the five methods), 13–16; 02-2 cell 53 | integration removes the batch and leaves the biology; a type present in one batch has a partner in the other | **holds**: with every type in both batches MNN pairs 100% within type and Harmony mixes to 0.51 with the unique type 0.2 SD from its own; with a type in one batch only it has 0 MNN pairs and is moved by its neighbours' batch vector (8.6 → 6.9 SD from the nearest shared type), while Harmony at θ = 2 pulls it to 3.6 and 98% of its cells read as that type | proposed, **fourth** |
@@ -18727,6 +18727,20 @@ failure. `count-normalization` names the data shape beside 39's
 `cell-clusters` are the lessons' own words.
 
 ### Slot 77 · `count-normalization` — Expression Units
+
+**SHIPPED 2026-09-22 (ab66e5c), on his "tested ok" after seventeen review
+rounds in two days.** Title *Bulk RNA-seq: Normalization*, subtitle S5, blurb
+B6. Fourteen fingerprint states: twelve settled (the six units, the
+walkthrough, no change at 1× with equal lengths, 10× with no change, gene 6
+and gene 1 as the changed gene, the dark theme) and two driven by `set`
+mid-ease (raw → TPM at 300 ms; size factor → per kb at 200 ms), since the
+ease has no drive button; identical across three recording runs at DPR 1.25
+with the document visible, then 14 MATCH. What shipped is one data set read
+three ways — the six genes as piles of reads, as the genes × samples table
+with hover, and as a slope chart — with the reader's choice of depth, lengths,
+the changed gene and the unit; the 2,000-gene panel that stood under the
+table for fourteen rounds is gone, and the majority-change state with it.
+The rounds below are the record of how it got there.
 
 **Host.** 01-2 cell 16 is one sentence — *DESeq2 accepts only raw count data
 as it does its own normalization. We cannot use normalized count data e.g.
