@@ -79,20 +79,20 @@ const S = {
   encodingLabel: "Encoding",
   encodingDetail: "a token as a vector: a 1 in its own column and 0 elsewhere, or a row of E numbers trained with the task",
   eLabel: "Embedding size E",
-  eDetail: "how many numbers a token's row holds; the picture projects them to two",
+  eDetail: "how many numbers a token's row holds; the space shows the first two principal components",
   seedLabel: "Seed",
   seedDetail: "the sequence, the starting rows and the training sequences, reproducibly",
   lookSection: "Look at",
   viewLabel: "Table",
-  viewDetail: "the rows' values, or how far each entry has moved from the row it started as: the trained structure on its own",
+  viewDetail: "each entry's value, or its change since initialisation",
   posSection: "The position",
   posEncLabel: "Position encoding",
   posEncDetail: "the row added for a token's place in the sequence: one trained with the rest, the fixed sine and cosine table, or a rotation of the row by its position",
 
   stepLabel: { param: "page", labels: { encode: "Train one" }, default: "Next token" },
-  stepTitle: { param: "page", labels: { tokenize: "Cut the next token and give it its id", encode: "Train one epoch of 300 sequences and move each row to where it leaves it", position: "Add the next token's position row to its embedding row" }, default: "Next token" },
+  stepTitle: { param: "page", labels: { tokenize: "Split off the next token and look up its id", encode: "Train one epoch of 300 sequences", position: "Add the next token's position row to its embedding row" }, default: "Next token" },
   runLabel: "Play",
-  runTitle: { param: "page", labels: { encode: "Train the remaining epochs in turn" }, default: "Take the remaining tokens in turn" },
+  runTitle: { param: "page", labels: { tokenize: "Split off the remaining tokens in turn", encode: "Train the remaining epochs in turn", position: "Add the remaining tokens' position rows in turn" }, default: "Play" },
 
   legend: {
     dna: [
@@ -103,7 +103,7 @@ const S = {
       { token: "cluster-a", label: "Leucine (L) · six codons", mark: "dot" },
       { token: "cluster-b", label: "Arginine (R) · six codons", mark: "dot" },
       { token: "cluster-c", label: "Serine (S) · six codons", mark: "dot" },
-      { token: "ink-3", label: "The other 43 codons, which the task never rewards", mark: "dot" },
+      { token: "ink-3", label: "The other 43 codons, outside the motif", mark: "dot" },
     ],
     aa: [
       { token: "cluster-a", label: "Hydrophobic · A V L I M F W Y", mark: "dot" },
@@ -116,7 +116,7 @@ const S = {
       { token: "cluster-b", label: "Drug · aspirin, metformin, insulin …", mark: "dot" },
       { token: "cluster-c", label: "Symptom · pain, fever, cough …", mark: "dot" },
       { token: "cluster-d", label: "Site · chest, head, abdomen …", mark: "dot" },
-      { token: "ink-3", label: "Fillers · the, patient, was, with …, which the task never rewards", mark: "dot" },
+      { token: "ink-3", label: "Fillers · the, patient, was, with …, in no role", mark: "dot" },
     ],
   },
 
@@ -143,39 +143,39 @@ const S = {
     word: (d, padTo) => `tokens · one a word · ${M.UNK} for a word outside the vocabulary · ${M.PAD} to ${padTo}`,
   },
   tokCapIds: "ids · the integer each token becomes",
-  tokStart: "no token yet · the sequence as text",
+  tokStart: "no token yet · the sequence as a string",
   tokStatus: (i, T, tok, id) => `token ${i} of ${T} · ${tok} → id ${id}`,
   tokHover: (tok, name, id) => `${tok} · ${name} · id ${id}`,
   tokNote: {
     base: "the network reads one base at a time; N is not in the vocabulary, so it becomes <unk>",
-    codon: "a third as many tokens as bases; a stop codon has an id, and the codon holding the N becomes <unk>",
+    codon: "a third as many tokens as bases; a stop codon has an id, and the codon that contains the N becomes <unk>",
     residue: "one id a residue; X is not in the vocabulary, so it becomes <unk>",
     word: "one id is shared by every word the vocabulary lacks · <pad> fills the sequence to the fixed length and is ignored downstream",
   },
   tileTokens: "Tokens",
   tileTokensNote: { base: "one a base, padded to the fixed length", codon: "one a codon, padded to the fixed length", residue: "one a residue, padded to the fixed length", word: "one a word, padded to the fixed length" },
   tileVocab: "Vocabulary",
-  tileVocabNote: `ids the tokenizer can give, counting ${M.PAD} and ${M.UNK}`,
+  tileVocabNote: `ids in the vocabulary, counting ${M.PAD} and ${M.UNK}`,
   tileIds: "Ids",
-  tileIdsNote: "integers in sequence order: what the next page turns into vectors",
+  tileIdsNote: "integers in sequence order; the Encode page turns them into vectors",
 
   /* Encode · embedding */
   capTable: (V, E) => `the table · Embedding(${V}, ${E}) · one row a token`,
-  capTableChange: (V, E) => `the table · change since initialised · Embedding(${V}, ${E})`,
+  capTableChange: (V, E) => `the table · change since initialisation · Embedding(${V}, ${E})`,
   capSpace: {
-    dna: "the space · each row on the table's top two components",
-    codon: "the space · the axes from the eighteen rewarded rows",
-    aa: "the space · each row on the table's top two components",
-    words: "the space · the axes from the thirty-two role words",
+    dna: "the space · each row on the table's first two principal components",
+    codon: "the space · the axes from the eighteen motif codons' rows",
+    aa: "the space · each row on the table's first two principal components",
+    words: "the space · the axes from the thirty-two role words' rows",
   },
   capStart: "epoch 0 · the rows as initialised, N(0, 1)",
   capEpoch: (e, n, acc) => `epoch ${e} of ${n} · held-out ${Math.round(100 * acc)}%`,
-  capDrawn: (p2, p, E) => `purity drawn ${Math.round(100 * p2)}% · in ${E}-D ${Math.round(100 * p)}%`,
+  capDrawn: (p2, p, E) => `purity in 2-D ${Math.round(100 * p2)}% · in ${E}-D ${Math.round(100 * p)}%`,
   capTask: {
-    dna: "class 1 carries purine · purine · pyrimidine · pyrimidine, each a random base of that class",
-    codon: "class 1 carries L · R · S, each a random one of its six codons",
-    aa: "class 1 carries hydrophobic · hydrophobic · positive · negative, each a random residue of that role",
-    words: "class 1 carries action · drug · symptom · site, each a random word of that role",
+    dna: "class 1 contains purine · purine · pyrimidine · pyrimidine, each a random base of that class",
+    codon: "class 1 contains L · R · S, each a random one of its six codons",
+    aa: "class 1 contains hydrophobic · hydrophobic · positive · negative, each a random residue of that role",
+    words: "class 1 contains action · drug · symptom · site, each a random word of that role",
   },
   tileAcc: "Held-out accuracy",
   tileAccNote: "300 sequences outside the training set, after the epochs trained so far",
@@ -187,7 +187,7 @@ const S = {
     },
     codon: {
       main: "Purity, the eighteen", mainNote: (E) => `motif codons whose nearest of the eighteen in ${E}-D is a synonym; chance 29%`,
-      rest: "Purity, the other 43", restNote: "codons whose nearest of all sixty-one rows is a synonym; they move too, and at chance they have landed nowhere",
+      rest: "Purity, the other 43", restNote: "codons whose nearest of all sixty-one rows is a synonym; at chance, training moved them without grouping them",
     },
     aa: {
       main: "Role purity", mainNote: (E) => `tokens whose nearest row in ${E}-D shares their role; chance 28%`,
@@ -195,37 +195,37 @@ const S = {
     },
     words: {
       main: "Role purity", mainNote: (E) => `role words whose nearest row in ${E}-D shares their role; chance 23%`,
-      rest: "Purity, the fillers", restNote: "fillers whose nearest of all forty rows is a filler; the task treats them alike, and alike is a role too",
+      rest: "Purity, the fillers", restNote: "fillers whose nearest of all forty rows is a filler; the task treats them alike, so they group together",
     },
   },
 
   /* Encode · one-hot */
   capOneHot: (V) => `the table · one-hot · [${V}, ${V}] · one row a token, one column an id; a 1 where they meet, 0 elsewhere`,
   capOneHotEpoch: (e, n, acc) => `epoch ${e} of ${n} · held-out ${Math.round(100 * acc)}% · the table is fixed`,
-  capOneHotStart: "epoch 0 · the table is the identity, and stays so",
+  capOneHotStart: "epoch 0 · the identity table, fixed throughout",
   tileDist: "Distance, any two tokens",
   tileDistNote: "√2 between every pair of rows: the vectors are orthogonal, and no two tokens are nearer than any other two",
   tileParams: "Parameters",
   tileParamsNoteOneHot: (V) => `the table holds none; the first layer reads ${V} channels instead of E`,
 
   /* Position */
-  posCapTokens: "the tokens, as the Tokenize page cut them",
-  posCapEmb: (L, E) => `the embedding row of each token, from the table Encode trained · [${L}, ${E}]`,
+  posCapTokens: "the tokens, from the Tokenize page",
+  posCapEmb: (L, E) => `the embedding row of each token, from the table trained on the Encode page · [${L}, ${E}]`,
   posCapPos: {
     learned: (L, E) => `position rows · Embedding(${L}, ${E}) as initialised · in a transformer they train with the rest`,
-    sinusoidal: (L, E) => `position rows · the curves each pair samples, a dot where a token reads them · [${L}, ${E}], fixed`,
-    rope: () => "nothing added: the token's own first pair as an arrow, turned by its position · hover a circle to see it large",
+    sinusoidal: (L, E) => `position rows · the sine and cosine curves each pair samples, a dot at each position · [${L}, ${E}], fixed`,
+    rope: () => "nothing added: the token's own first pair as an arrow, turned by its position · a circle magnifies on hover",
   },
   posCapFinal: { learned: "what the network reads", sinusoidal: "what the network reads", rope: "the rows turned · what the network reads" },
   posGlyph: { x: "x", add: "+ p", rope: "⟳", final: "= x̃" },
   posMag: (tok, i, turn, a, b, c, d) => [`${tok} · position ${i}`, `turned by ${i} · θ₀ = ${turn.toFixed(2)} rad`, `(${a.toFixed(2)}, ${b.toFixed(2)}) → (${c.toFixed(2)}, ${d.toFixed(2)})`, "columns 0 and 1; each slower pair turns less"],
-  posPairLabel: (m, th) => `pair ${m} · columns ${2 * m} and ${2 * m + 1} · θ = ${th >= 0.01 ? String(Number(th.toFixed(3))) : th.toFixed(3)} a position`,
+  posPairLabel: (m, th) => `pair ${m} · columns ${2 * m} and ${2 * m + 1} · θ = ${th >= 0.01 ? String(Number(th.toFixed(3))) : th.toFixed(3)} rad per position`,
   posStart: "no token yet",
   posStatus: { add: (i, tok) => `token ${i} · ${tok} at position ${i - 1} · row ${i - 1} of the position table added`, rope: (i, tok) => `token ${i} · ${tok} at position ${i - 1} · each pair of its row turned by ${i - 1} · θ` },
   posHover: { add: (tok, e, a, b, c) => `${tok} · column ${e} · ${a.toFixed(2)} + ${b.toFixed(2)} = ${c.toFixed(2)}`, rope: (tok, e, a, c) => `${tok} · column ${e} · ${a.toFixed(2)} → ${c.toFixed(2)}` },
   posNote: {
-    learned: "the same token at two positions gets two different rows · a position never seen in training has a row that never trained",
-    sinusoidal: "the same token at two positions gets two different rows · any position has a row, the formula makes it",
+    learned: "the same token at two positions gets two different rows · a position beyond the training length has an untrained row",
+    sinusoidal: "the same token at two positions gets two different rows · the formula gives every position a row",
     rope: "the same token at two positions gets two different rows · a rotation keeps each row's length",
   },
   tilePosRows: "Position rows",
@@ -241,7 +241,7 @@ const S = {
     words: (t) => `${t} · ${M.wordRole(t)}`,
   },
 
-  sumTok: (vocab, n, T) => `a ${{ dna: "DNA sequence", codon: "DNA sequence", aa: "protein sequence", words: "clinical sentence" }[vocab]} cut into tokens with their ids; ${n === 0 ? "no token cut yet" : n < T ? `${n} of ${T} tokens cut` : "every token cut"}`,
+  sumTok: (vocab, n, T) => `a ${{ dna: "DNA sequence", codon: "DNA sequence", aa: "protein sequence", words: "clinical sentence" }[vocab]} split into tokens with their ids; ${n === 0 ? "no token yet" : n < T ? `${n} of ${T} tokens` : "every token"}`,
   sum: (vocab, e, n) => `${{ dna: "four bases", codon: "sixty-one codons", aa: "twenty amino acids", words: "forty clinical words" }[vocab]} as rows of an embedding table and as points; ${e === 0 ? "the rows as initialised" : e < n ? `${e} of ${n} epochs trained` : "all epochs trained"}`,
   sumOneHot: (vocab, e, n) => `${{ dna: "four bases", codon: "sixty-one codons", aa: "twenty amino acids", words: "forty clinical words" }[vocab]} one-hot encoded, every pair the same distance apart; ${e === 0 ? "untrained" : `${e} of ${n} epochs trained on the fixed table`}`,
   sumPos: (vocab, pe, n, T) => `the tokenised ${{ dna: "DNA sequence", codon: "DNA sequence", aa: "protein sequence", words: "clinical sentence" }[vocab]}: embedding rows, ${pe === "rope" ? "a rotation by position" : `${pe} position rows`}, and their sum; ${n === 0 ? "no token yet" : n < T ? `${n} of ${T} tokens` : "every token"}`,
@@ -413,13 +413,13 @@ const isDone = (anim, state) => anim.n[anim.stage] >= state.steps && anim.t >= 1
 /* ======================================================== the token row */
 
 /** the tokens as boxes across the width, in the neutral ink (nothing learned yet): `upto` of them, the last at alpha `a`; returns the hovered index or null */
-function tokenRow(ctx, colors, state, X0, bw, top, h, upto, a, pointer) {
+function tokenRow(ctx, colors, state, X0, bw, top, h, upto, pointer) {
   const { tokens } = state;
   ctx.save(); ctx.font = monoFont(colors); const wide = tokens.map((tk) => ctx.measureText(tk).width + 6 > bw); ctx.restore();
   let hover = null;
   for (let i = 0; i < upto; i++) {
     const x = X0 + i * bw, tok = tokens[i], sp = isSpecial(tok);
-    ctx.save(); ctx.globalAlpha = i === upto - 1 ? a : 1;
+    ctx.save();
     rect(ctx, x + 1, top, bw - 2, h, sp ? null : colors.surface2, sp ? colors.ink3 : colors.axis, 1, sp ? [3, 3] : null);
     /* a label wider than its box goes above or below in turn */
     if (wide[i]) txt(ctx, colors, tok, x + bw / 2, i % 2 ? top + h + 12 : top - 5, { font: monoFont(colors), fill: sp ? colors.ink3 : colors.ink1, align: "center", halo: true });
@@ -434,7 +434,7 @@ function tokenRow(ctx, colors, state, X0, bw, top, h, upto, a, pointer) {
 
 function drawTokenize(ctx, colors, w, params, state, anim, pointer) {
   const { tokens, ids, raw, how, dropped, vocab, vocabList: VL, padTo } = state, T = tokens.length;
-  const n = anim.n[anim.stage], t = ease(anim.t), upto = Math.min(n, T), a = anim.t < 1 ? t : 1;
+  const n = anim.n[anim.stage], upto = Math.min(n, T);
   const X0 = TABLE_X, X1 = w - PAD_R, bw = (X1 - X0) / T, L = tokLayout(vocab);
 
   /* 0 · the vocabulary, id by id; the token being cut lights its entry, the ones already used are filled */
@@ -463,13 +463,9 @@ function drawTokenize(ctx, colors, w, params, state, anim, pointer) {
 
   /* 2 · the tokens · 3 · their ids */
   txt(ctx, colors, S.tokCapTokens[how](dropped, padTo), X0, L.tokCap, { font: capFont(colors), fill: colors.ink1, maxW: X1 - X0 });
-  const hover = tokenRow(ctx, colors, state, X0, bw, L.boxTop, L.boxH, upto, a, pointer);
+  const hover = tokenRow(ctx, colors, state, X0, bw, L.boxTop, L.boxH, upto, pointer);
   txt(ctx, colors, S.tokCapIds, X0, L.idCap, { font: capFont(colors), fill: colors.ink1, maxW: X1 - X0 });
-  for (let i = 0; i < upto; i++) {
-    ctx.save(); ctx.globalAlpha = i === upto - 1 ? a : 1;
-    txt(ctx, colors, String(ids[i]), X0 + (i + 0.5) * bw, L.idY, { font: monoFont(colors), fill: colors.ink2, align: "center" });
-    ctx.restore();
-  }
+  for (let i = 0; i < upto; i++) txt(ctx, colors, String(ids[i]), X0 + (i + 0.5) * bw, L.idY, { font: monoFont(colors), fill: colors.ink2, align: "center" });
   if (hover != null) {
     const x = X0 + (hover + 0.5) * bw, left = x > w * 0.6;
     txt(ctx, colors, S.tokHover(tokens[hover], state.names[hover], ids[hover]), left ? x - 8 : x + 8, L.boxTop - 18, { fill: colors.ink1, align: left ? "right" : "left", halo: true });
@@ -502,14 +498,17 @@ function stacks(ctx, colors, L, vocab, E) {
    "Change" colours each entry by its distance from the row it started as,
    on a ±2 ramp, and the trained structure appears out of a blank table. */
 function drawTable(ctx, colors, L, params, state, anim) {
-  const vocab = params.vocab, n = anim.n[anim.stage], t = ease(anim.t), E = state.E, change = params.view === "change";
-  const prev = state.tables[Math.max(0, n - 1)], cur = state.tables[n], base = state.tables[0];
+  /* the table shows the epoch reached, with no tween between epochs: the
+     fade from one colour to the next read as a distraction (his word,
+     2026-09-21); the points in the space still move, which is the motion */
+  const vocab = params.vocab, n = anim.n[anim.stage], E = state.E, change = params.view === "change";
+  const cur = state.tables[n], base = state.tables[0];
   const G = stacks(ctx, colors, L, vocab, E), { P } = G;
   txt(ctx, colors, change ? S.capTableChange(P.V, E) : S.capTable(P.V, E), L.tableX, 14, { font: capFont(colors), fill: colors.ink1, maxW: L.tableW });
   for (let i = 0; i < G.rows; i++) {
     const { x0, y } = G.at(i);
     for (let e = 0; e < E; e++) {
-      const v = lerp(prev[i][e], cur[i][e], t);
+      const v = cur[i][e];
       rect(ctx, x0 + G.labelW + e * G.cellW, y, Math.ceil(G.cellW), ROW_H, change ? signed(colors, v - base[i][e], 2) : signed(colors, v, 3));
     }
     /* the row's name, in its group's colour; the neutral ink for a row the task never rewards */
@@ -667,10 +666,10 @@ function turnDial(ctx, colors, cx, cy, r, ax, ay, turn) {
 
 function drawPosition(ctx, colors, w, params, state, anim, pointer) {
   const { tokens, emb, pos, final, E: Ed, pe } = state, T = tokens.length;
-  const n = anim.n[anim.stage], t = ease(anim.t), upto = Math.min(n, T), a = anim.t < 1 ? t : 1;
+  const n = anim.n[anim.stage], upto = Math.min(n, T);
   const X0 = TABLE_X + POS.glyphW, X1 = w - PAD_R, bw = (X1 - X0) / T, bottom = heightPos(pe, Ed, T) - BELOW;
   txt(ctx, colors, S.posCapTokens, TABLE_X, 14, { font: capFont(colors), fill: colors.ink1, maxW: X1 - TABLE_X });
-  const hoverTok = tokenRow(ctx, colors, state, X0, bw, POS.boxTop, POS.boxH, T, 1, pointer);
+  const hoverTok = tokenRow(ctx, colors, state, X0, bw, POS.boxTop, POS.boxH, T, pointer);
 
   const { mh, mid } = posBodies(pe, Ed, T), rH = mh / Ed;
   const panels = [
@@ -695,7 +694,7 @@ function drawPosition(ctx, colors, w, params, state, anim, pointer) {
           ctx.save(); ctx.strokeStyle = col; ctx.lineWidth = 1.3; ctx.beginPath();
           for (let k = 0; k <= 240; k++) { const q = (k / 240) * (T - 1), x = X0 + (q + 0.5) * bw, yy = cy - amp * fn(q * th); if (k === 0) ctx.moveTo(x, yy); else ctx.lineTo(x, yy); }
           ctx.stroke(); ctx.restore();
-          for (let i = 0; i < upto; i++) { ctx.save(); ctx.globalAlpha = i === upto - 1 ? a : 1; dot(ctx, X0 + (i + 0.5) * bw, cy - amp * fn(i * th), 2.6, col); ctx.restore(); }
+          for (let i = 0; i < upto; i++) dot(ctx, X0 + (i + 0.5) * bw, cy - amp * fn(i * th), 2.6, col);
         }
       }
       txt(ctx, colors, "sin", X1 - 34, top + 9, { fill: colors.groupA, halo: true }); txt(ctx, colors, "cos", X1 - 14, top + 9, { fill: colors.groupB, halo: true });
@@ -703,18 +702,12 @@ function drawPosition(ctx, colors, w, params, state, anim, pointer) {
     } else if (p.mid && pe === "rope") {
       const r = dialR(T), cy = top + r + 4;
       for (let i = 0; i < upto; i++) {
-        ctx.save(); ctx.globalAlpha = i === upto - 1 ? a : 1;
         turnDial(ctx, colors, X0 + (i + 0.5) * bw, cy, r, emb[i][0], emb[i][1], i * theta(0, Ed));
-        ctx.restore();
         if (pointer && Math.hypot(pointer.x - X0 - (i + 0.5) * bw, pointer.y - cy) <= Math.max(r, bw / 2)) hoverDial = { i, cx: X0 + (i + 0.5) * bw, cy, r };
       }
     }
     if (p.rows) {
-      for (let i = 0; i < upto; i++) {
-        ctx.save(); ctx.globalAlpha = i === upto - 1 ? a : 1;
-        for (let e = 0; e < Ed; e++) rect(ctx, X0 + i * bw + 1, matTop + e * rH, bw - 1, Math.ceil(rH), signed(colors, p.rows[i][e], 3));
-        ctx.restore();
-      }
+      for (let i = 0; i < upto; i++) for (let e = 0; e < Ed; e++) rect(ctx, X0 + i * bw + 1, matTop + e * rH, bw - 1, Math.ceil(rH), signed(colors, p.rows[i][e], 3));
       rect(ctx, X0, matTop, T * bw, Ed * rH, null, colors.grid);
       if (pointer && pointer.x >= X0 && pointer.x < X0 + T * bw && pointer.y >= matTop && pointer.y < matTop + Ed * rH) {
         const i = Math.floor((pointer.x - X0) / bw), e = Math.floor((pointer.y - matTop) / rH);
