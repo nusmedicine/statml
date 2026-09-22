@@ -19255,6 +19255,21 @@ First draft's walk gene sat at the floor (its likelihood rose to α → 0 and
 "own estimate 0.000" was drawn off its axis): the walker now needs an
 estimate off the floor, and a mark is clamped to the axis.
 
+**Round 4** (2026-09-22) — *should the buttons be relabelled? Dispersion is
+actually shrinkage. For shrinkage, can I choose an arbitrary point by
+hovering?* Both. The page is **Shrinkage** (value and label; the pages read
+Model · Shrinkage · Transform · Test), since what it shows is the shrinkage
+of the dispersion, and "dispersion α" stays on its axis. **Hover walks any
+gene**: the three curves are computed at compute for all sixty (60 × 81
+Cox–Reid likelihoods, a few milliseconds), the left panel has one geometry
+for the drawing and the hover test (5.8), and pointing at a dot moves the
+ring and the right panel to that gene; the tiles keep the gene chosen at
+compute, since a hover writes nothing. A hint sits in the panel's corner and
+the legend's last line says so. The same temporal-dead-zone trap as round 1
+bit again — the panel's geometry constants sat below `defineWidget` — so
+every helper now lives above the call, and the check that none follows it
+is in the patch script.
+
 **Host.** 01-2 cell 1 and cell 22 are the notebook's own exposition, four
 figures (`deseq2-nb`, `deseq2-mle`, `deseq2-map`, `deseq2-shrinkage`) and
 every formula the widget needs: `y ~ NB(μ, α)`, the geometric-mean ratio and

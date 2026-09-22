@@ -50,13 +50,13 @@ const ALPHAS = ["0.01", "0.05", "0.5"];
 const SHOWN_GENES = 60;
 const PAGES = [
   { value: "model", label: "Model" },
-  { value: "dispersion", label: "Dispersion" },
+  { value: "shrinkage", label: "Shrinkage" },
   { value: "transform", label: "Transform" },
   { value: "test", label: "Test" },
 ];
 const ON = (page) => ({ param: "page", equals: page });
-const HEIGHTS = { model: 300, dispersion: 340, transform: 300, test: 500 };
-/* THE DISPERSION PAGE IS A WALKTHROUGH (his ask, round 3, 2026-09-22: "demonstrate
+const HEIGHTS = { model: 300, shrinkage: 340, transform: 300, test: 500 };
+/* THE SHRINKAGE PAGE IS A WALKTHROUGH (his ask, round 3, 2026-09-22: "demonstrate
    step by step how empirical Bayes works"), the notebook's own three figures as
    three presses of Step: one gene's likelihood over α and its own estimate; the
    trend through all genes as the prior's centre, its width from their spread;
@@ -64,7 +64,7 @@ const HEIGHTS = { model: 300, dispersion: 340, transform: 300, test: 500 };
    gene's arrow. Steps that are read get Step alone (4.5). */
 const STAGES = 3;
 const STEP_MS = 700;
-const stagesOf = (page) => (page === "dispersion" ? STAGES : 0);
+const stagesOf = (page) => (page === "shrinkage" ? STAGES : 0);
 /* the walk panel's α axis, log10 */
 const WALK_DOMAIN = [-3, 1];
 const EASE_MS = 550;
@@ -82,6 +82,28 @@ const SD_DOMAIN = { raw: [0, 3.3], log2: [-1, 0.3], vst: [-1, 0.3] };
 const SD_KEY = { raw: "sdRaw", log2: "sdLog2", vst: "sdVst" };
 const CURVE_MAX = { raw: 10000, log2: 14, vst: 14 };
 
+/* the Shrinkage page's left panel, one geometry for the drawing and the hover
+   test (5.8) — above defineWidget, which draws once at load */
+const shrinkLayout = (w) => ({ H: HEIGHTS.shrinkage, split: Math.floor(w * 0.56) });
+const shrinkLeft = (w) => { const { H, split } = shrinkLayout(w); return { x0: 50, y0: 30, x1: split - 14, y1: H - 40 }; };
+const SHRINK_X = [0, 4.3], SHRINK_Y = [-3.2, 1.3];
+/* HOVER (his round 4): pointing at one of the sixty on the left walks it
+   through on the right; nothing is written, and with no pointer the gene is
+   the one chosen at compute */
+function hoverAt(pointer, w, state) {
+  if (!pointer) return null;
+  const R = shrinkLeft(w);
+  const sx = (v) => R.x0 + ((v - SHRINK_X[0]) / (SHRINK_X[1] - SHRINK_X[0])) * (R.x1 - R.x0);
+  const sy = (v) => R.y1 - ((v - SHRINK_Y[0]) / (SHRINK_Y[1] - SHRINK_Y[0])) * (R.y1 - R.y0);
+  let best = null, d2 = 12 * 12;
+  for (const g of state.shown) {
+    const bm = state.per.bmLog[g];
+    const x = sx(Number.isFinite(bm) ? bm : 0), y = sy(state.per.gwLog[g]);
+    const d = (pointer.x - x) ** 2 + (pointer.y - y) ** 2;
+    if (d < d2) { d2 = d; best = g; }
+  }
+  return best;
+}
 /* what draw() last painted, for the ease a data change asks for */
 let lastState = null, lastParams = null;
 /* the drive's state between presses: the label the button wears, and whether
@@ -96,17 +118,17 @@ function settle(anim, page) {
 const MATHML = mathmlRenders();
 const FORMULAS = {
   model: { math: "<math><mrow><mi>Var</mi><mo>(</mo><mi>y</mi><mo>)</mo><mo>=</mo><mi>μ</mi><mo>+</mo><mi>α</mi><msup><mi>μ</mi><mn>2</mn></msup></mrow></math>", plain: "Var(y) = μ + α μ²", note: "a count's variance across replicates: Poisson's μ, and α μ² beyond it" },
-  dispersion0: {
+  shrinkage0: {
     math: "<math><mrow><mi>L</mi><mo>(</mo><mi>α</mi><mo>)</mo><mo>=</mo><munder><mo>∏</mo><mi>j</mi></munder><mi>NB</mi><mo>(</mo><msub><mi>y</mi><mi>j</mi></msub><mo>;</mo><msub><mi>μ</mi><mi>j</mi></msub><mo>,</mo><mi>α</mi><mo>)</mo><mo>,</mo><mspace width=\"0.8em\"></mspace><msub><mover><mi>α</mi><mo>^</mo></mover><mi>gene</mi></msub><mo>=</mo><munder><mi>argmax</mi><mi>α</mi></munder><mi>log</mi><mi>L</mi><mo>(</mo><mi>α</mi><mo>)</mo></mrow></math>",
     plain: "L(α) = ∏_j NB(y_j; μ_j, α),   α̂_gene = argmax_α log L(α)",
     note: "one gene's likelihood over its own replicates alone: with few of them the curve is wide, and its maximum is the gene-wise estimate",
   },
-  dispersion1: {
+  shrinkage1: {
     math: "<math><mrow><mi>log</mi><mi>α</mi><mo>∼</mo><mi>N</mi><mo>(</mo><mi>log</mi><msub><mi>α</mi><mi>tr</mi></msub><mo>(</mo><mover><mi>μ</mi><mo>¯</mo></mover><mo>)</mo><mo>,</mo><msubsup><mi>σ</mi><mi>prior</mi><mn>2</mn></msubsup><mo>)</mo><mo>,</mo><mspace width=\"0.8em\"></mspace><msub><mi>α</mi><mi>tr</mi></msub><mo>(</mo><mi>μ</mi><mo>)</mo><mo>=</mo><msub><mi>a</mi><mn>0</mn></msub><mo>+</mo><mfrac><msub><mi>a</mi><mn>1</mn></msub><mi>μ</mi></mfrac></mrow></math>",
     plain: "log α ~ N( log α_tr(μ̄), σ²_prior ),   α_tr(μ) = a0 + a1 / μ",
     note: "the prior, from all genes: its centre is the trend at the gene's mean, its width the spread of the estimates about the trend less what few replicates alone would spread them",
   },
-  dispersion2: {
+  shrinkage2: {
     math: "<math><mrow><mi>posterior</mi><mo>(</mo><mi>α</mi><mo>)</mo><mo>∝</mo><mi>L</mi><mo>(</mo><mi>α</mi><mo>)</mo><mo>×</mo><mi>prior</mi><mo>(</mo><mi>α</mi><mo>)</mo><mo>,</mo><mspace width=\"0.8em\"></mspace><msub><mi>α</mi><mi>MAP</mi></msub><mo>=</mo><munder><mi>argmax</mi><mi>α</mi></munder><mo>[</mo><mi>log</mi><mi>L</mi><mo>(</mo><mi>α</mi><mo>)</mo><mo>+</mo><mi>log</mi><mi>prior</mi><mo>(</mo><mi>α</mi><mo>)</mo><mo>]</mo></mrow></math>",
     plain: "posterior(α) ∝ L(α) × prior(α),   α_MAP = argmax_α [ log L(α) + log prior(α) ]",
     note: "the posterior's mode is the shrunk estimate: a wide likelihood is pulled to the prior, a sharp one stays; a gene far above the trend keeps its own",
@@ -123,7 +145,7 @@ function renderFormula(page, stage = 0) {
     mathHost.className = "w-math";
     figure.parentNode.insertBefore(mathHost, figure);
   }
-  const key = page === "dispersion" ? `dispersion${Math.min(2, stage)}` : page;
+  const key = page === "shrinkage" ? `shrinkage${Math.min(2, stage)}` : page;
   if (mathKey === key) return;
   mathKey = key;
   const F = FORMULAS[key];
@@ -188,6 +210,7 @@ defineWidget({
     + "same way where the counts are low.",
   layout: "side",
   status: "draft",
+  pointer: true,
   height: ({ page }) => HEIGHTS[page] ?? HEIGHTS.model,
 
   params: {
@@ -225,7 +248,7 @@ defineWidget({
       default: false, display: true, when: ON("test"),
     },
 
-    /* authoring escape hatch, first render only: presses already taken on the Dispersion page */
+    /* authoring escape hatch, first render only: presses already taken on the Shrinkage page */
     shown: { type: "int", min: 0, max: STAGES, default: 0, hidden: true },
   },
 
@@ -237,11 +260,11 @@ defineWidget({
       { token: "reference", label: "Poisson: variance = mean", mark: "line" },
       { token: "theory", label: "Negative binomial: mean + α·mean²", mark: "line" },
     ];
-    if (p === "dispersion") return [
+    if (p === "shrinkage") return [
       { token: "empirical", label: "A gene's own estimate; the likelihood", mark: "bar" },
       { token: "theory", label: "The trend through all genes; the prior", mark: "line" },
       { token: "highlight", label: "The shrunk estimate; the posterior", mark: "bar" },
-      { token: "reference", label: "The one gene walked through", mark: "line" },
+      { token: "reference", label: "The gene walked through: point at another", mark: "line" },
     ];
     if (p === "transform") return [
       { token: "empirical", label: "An unchanged gene: SD across its replicates", mark: "bar" },
@@ -278,19 +301,19 @@ defineWidget({
     const walkers = shown.filter((g) => !an.outlier[g] && an.baseMean[g] >= 4 && an.baseMean[g] <= 60 && an.alphaGW[g] > 0.002 && an.alphaGW[g] < 5)
       .sort((a, b) => Math.abs(Math.log(an.alphaGW[b] / an.alphaTr[b])) - Math.abs(Math.log(an.alphaGW[a] / an.alphaTr[a])));
     const walk = walkers[0] ?? shown[Math.floor(shown.length / 4)];
+    /* the three curves over α for every one of the sixty, so pointing at any
+       of them walks it through (his round 4): 60 × 81 likelihoods, a few ms */
     const grid = Array.from({ length: 81 }, (_, k) => WALK_DOMAIN[0] + ((WALK_DOMAIN[1] - WALK_DOMAIN[0]) * k) / 80);   // log10 α
-    const ll = grid.map((x) => crLogLik(sim.counts[walk], an.fits[walk].mus, sim.grp, 10 ** x));
-    const llMax = Math.max(...ll);
-    const lt = Math.log(an.alphaTr[walk]), pv = an.prior.priorVar;
-    const lp = grid.map((x) => -((x * Math.LN10 - lt) ** 2) / (2 * pv));
-    const post = grid.map((_, k) => ll[k] - llMax + lp[k]);
-    const postMax = Math.max(...post);
-    const curves = {
-      grid,
-      like: ll.map((v) => Math.exp(v - llMax)),
-      prior: lp.map((v) => Math.exp(v)),
-      post: post.map((v) => Math.exp(v - postMax)),
-    };
+    const pv = an.prior.priorVar;
+    const curvesByGene = {};
+    for (const g of shown) {
+      const ll = grid.map((x) => crLogLik(sim.counts[g], an.fits[g].mus, sim.grp, 10 ** x));
+      const llMax = Math.max(...ll), lt = Math.log(an.alphaTr[g]);
+      const lp = grid.map((x) => -((x * Math.LN10 - lt) ** 2) / (2 * pv));
+      const post = grid.map((_, k) => ll[k] - llMax + lp[k]);
+      const postMax = Math.max(...post);
+      curvesByGene[g] = { grid, like: ll.map((v) => Math.exp(v - llMax)), prior: lp.map((v) => Math.exp(v)), post: post.map((v) => Math.exp(v - postMax)) };
+    }
     const called = (res) => ({ nulls: nullG.filter((g) => res[g].padj < 0.1).length, de: deG.filter((g) => res[g].padj < 0.1).length });
     const lowNull = nullG.filter((g) => an.baseMean[g] < 10), deBig = deG.filter((g) => Math.abs(sim.lfcT[g]) > 1);
     const over1 = (lfcOf, gs) => gs.filter((g) => Math.abs(lfcOf(g)) > 1).length;
@@ -314,14 +337,14 @@ defineWidget({
       return { a, b, n: gs.length, raw: s((v) => v), log2: s((v) => log2(v + 1)), vst: s(an.vst) };
     });
     return {
-      sim, an, nullG, deG, reps, mu, alpha, draws, shown, walk, curves, ex, per, sdBins,
+      sim, an, nullG, deG, reps, mu, alpha, draws, shown, walk, curvesByGene, ex, per, sdBins,
       calledGW: called(an.resGW), calledMAP: called(an.resMAP),
       funnel: { lowNull: lowNull.length, before: over1((g) => an.resMAP[g].lfc, lowNull), after: over1((g) => an.shrunk[g], lowNull) },
       cost: { deBig: deBig.length, before: over1((g) => an.resMAP[g].lfc, deBig), after: over1((g) => an.shrunk[g], deBig) },
     };
   },
 
-  /* Step alone, on the Dispersion page: three presses that are read (4.5). The
+  /* Step alone, on the Shrinkage page: three presses that are read (4.5). The
      other pages have nothing to step, so there the button is disabled through
      `done`. Each tweened display parameter keeps its own clock, so a second
      toggle mid-ease does not restart the first; a toggle flipped back mid-ease
@@ -335,7 +358,7 @@ defineWidget({
       s1: "Multiply the one gene's likelihood by the prior: the posterior, whose mode is the shrunk estimate",
       s2: "Pull every gene's estimate toward the trend the same way",
       done: "Every step of the Dispersion page has been taken",
-    }, default: "Step through the shrinkage on the Dispersion page" },
+    }, default: "Step through the shrinkage on the Shrinkage page" },
     runLabel: null,
     init: ({ params, fromScratch }) => {
       const now = { shrinkLfc: params.shrinkLfc ? 1 : 0, unit: params.unit };
@@ -380,13 +403,13 @@ defineWidget({
     },
   },
 
-  draw: ({ ctx, colors, w, params, state, anim }) => {
+  draw: ({ ctx, colors, w, params, state, anim, pointer }) => {
     const stage = anim ? anim.n : Number(params.shown) || 0, p = anim && anim.p < 1 ? easeInOut(anim.p) : 1;
     renderFormula(params.page, stage);
     const frac = (k) => (anim ? lerp(anim.from[k], anim.to[k], easeInOut(anim.t[k])) : (params[k] ? 1 : 0));
     const D = anim && anim.data.from && anim.data.t < 1 ? { from: anim.data.from, fromParams: anim.data.fromParams, e: easeInOut(anim.data.t), kind: anim.data.kind } : null;
     if (params.page === "model") drawModel(ctx, colors, w, state, D);
-    else if (params.page === "dispersion") drawDispersion(ctx, colors, w, state, stage, p, D);
+    else if (params.page === "shrinkage") drawShrinkage(ctx, colors, w, state, stage, p, D, hoverAt(pointer, w, state));
     else if (params.page === "transform") drawTransform(ctx, colors, w, state, anim ? anim.from.unit : params.unit, anim ? anim.to.unit : params.unit, anim ? easeInOut(anim.t.unit) : 1, D);
     else drawTest(ctx, colors, w, params, state, frac("shrinkLfc"), D);
     lastState = state;
@@ -400,7 +423,7 @@ defineWidget({
       { label: `SD of the gene's count, Poisson`, value: fmt(Math.sqrt(mu), 1), note: `√μ at μ = ${mu}` },
       { label: `SD, negative binomial`, value: fmt(Math.sqrt(mu + alpha * mu * mu), 1), note: `√(μ + αμ²) at α = ${alpha}; the ${state.draws.length} replicates drawn have SD ${fmt(sd(state.draws), 1)}` },
     ];
-    if (params.page === "dispersion") {
+    if (params.page === "shrinkage") {
       const g = state.walk;
       return [
         { label: "The one gene's dispersion: own estimate, and shrunk", value: `${fmt(an.alphaGW[g], 3)}${stage >= 2 ? ` → ${fmt(an.alphaMAP[g], 3)}` : ""}`, note: `mean ${fmt(an.baseMean[g], 1)}, counts ${state.sim.counts[g].join(" ")}${stage >= 1 ? `; trend at that mean ${fmt(an.alphaTr[g], 3)}, prior SD ${fmt(Math.sqrt(an.prior.priorVar), 2)} in log α` : ""}` },
@@ -463,17 +486,17 @@ function drawModel(ctx, colors, w, state, D) {
   }
 }
 
-/* --- Dispersion: 60 genes, each pulled toward the trend; one gene walked through --- */
-function drawDispersion(ctx, colors, w, state, stage, p, D) {
-  const H = HEIGHTS.dispersion, split = Math.floor(w * 0.56);
-  const { walk, curves } = state;
+/* --- Shrinkage: 60 genes, each pulled toward the trend; one gene walked through --- */
+function drawShrinkage(ctx, colors, w, state, stage, p, D, hover) {
+  const { H, split } = shrinkLayout(w);
+  const walk = hover ?? state.walk, curves = state.curvesByGene[walk];
   /* the reveal fractions: the trend at stage 1, the one gene's pull at 2, every gene's at 3 */
   const trendF = stage > 1 ? 1 : stage === 1 ? p : 0;
   const oneF = stage > 2 ? 1 : stage === 2 ? p : 0;
   const allF = stage >= 3 ? p : 0;
   /* left: the estimates against the mean */
   {
-    const F = frame(ctx, colors, { x0: 50, y0: 30, x1: split - 14, y1: H - 40 }, [0, 4.3], [-3.2, 1.3], { xlabel: "mean of normalised counts", ylabel: `${SHOWN_GENES} of the 1,200 genes: dispersion α`, xt: [1, 10, 100, 1000, 10000], yt: [0.001, 0.01, 0.1, 1, 10], xfmt: bigNum });
+    const F = frame(ctx, colors, shrinkLeft(w), SHRINK_X, SHRINK_Y, { xlabel: "mean of normalised counts", ylabel: `${SHOWN_GENES} of the 1,200 genes: dispersion α`, xt: [1, 10, 100, 1000, 10000], yt: [0.001, 0.01, 0.1, 1, 10], xfmt: bigNum });
     const ylog = (v) => F.sy(10 ** v);
     const trendPts = (a0, a1, upTo) => { const pts = []; for (let q = 0; q <= 4.3 * upTo + 1e-9; q += 0.05) { const m = 10 ** q; pts.push([F.sx(m), ylog(log10(Math.min(20, Math.max(0.0006, a0 + a1 / m))))]); } return pts; };
     const a0 = scalar(state, D, (S) => S.an.trend.a0), a1 = scalar(state, D, (S) => S.an.trend.a1);
@@ -484,7 +507,7 @@ function drawDispersion(ctx, colors, w, state, stage, p, D) {
         const bm = at(st, DD, "bmLog", g);
         const x = F.sx(10 ** (Number.isFinite(bm) ? bm : 0));
         const yGW = ylog(at(st, DD, "gwLog", g));
-        const f = g === st.walk ? Math.max(oneF, allF) : allF;
+        const f = g === walk ? Math.max(oneF, allF) : allF;
         if (f > 0) {
           const yNow = lerp(yGW, ylog(at(st, DD, "mapLog", g)), f);
           ctx.save(); ctx.strokeStyle = colors.highlight; ctx.lineWidth = 1; ctx.globalAlpha = 0.8 * base;
@@ -493,12 +516,13 @@ function drawDispersion(ctx, colors, w, state, stage, p, D) {
           if (st.an.outlier[g]) { ctx.save(); ctx.globalAlpha = f * base; ctx.strokeStyle = colors.highlight; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(x, yGW, 6, 0, Math.PI * 2); ctx.stroke(); ctx.restore(); }
         }
         dot(ctx, x, yGW, 3, colors.empirical, base);
-        if (g === st.walk) { ctx.save(); ctx.globalAlpha = base; ctx.strokeStyle = colors.reference; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(x, yGW, 7, 0, Math.PI * 2); ctx.stroke(); ctx.restore(); }
+        if (g === walk) { ctx.save(); ctx.globalAlpha = base; ctx.strokeStyle = colors.reference; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(x, yGW, 7, 0, Math.PI * 2); ctx.stroke(); ctx.restore(); }
       }
     });
     if (trendF > 0) label(ctx, colors, `trend: α = ${fmt(a0, 3)} + ${fmt(a1, 2)} / mean`, F.x1 - 6, ylog(log10(a0)) - 8, { color: colors.theory, align: "right" });
     /* short captions: the left panel is 235px wide at the narrowest canvas (the sweep) */
     label(ctx, colors, stage === 0 ? "each gene's own estimate" : stage === 1 ? "the trend through all genes" : stage === 2 ? "the one gene, pulled to the mode" : "every gene pulled; ringed: left alone", F.x0 + 4, F.y0 + 12, { color: colors.ink3 });
+    label(ctx, colors, "point at a gene to walk it through", F.x1 - 4, F.y1 - 6, { color: colors.ink3, align: "right" });
   }
   /* right: the one gene's curves over α — likelihood, prior, posterior */
   {
