@@ -19289,6 +19289,35 @@ which would take the Shrinkage walkthrough away. His picks: the three-page
 arrangement and *Fit and test*, both the recommendation. Nineteen sweep
 states, the transform's four now under other pages.
 
+**Round 6** (2026-09-22) — *when I click Shrink every gene, why does only one
+gene shrink? Why is the transform present on every page — confusing. Research
+again how best to explain DESeq2 with the pages and what makes sense in
+sequence; under fit/test, do we shrink again, or was it done under Shrink?*
+**The bug:** the walkthrough's "nothing left to step" guard ran every frame
+and fired once the counter reached three, so the last press ended after one
+frame with every arrow a sliver long; it runs between presses now (51116cc).
+**The research:** DESeq2's own vignette goes differential expression analysis
+(`DESeq()`, `results()`, then `lfcShrink()` "for visualization and ranking of
+genes"), exploring results (the MA plot), and then, as its own section, "Data
+transformations and visualization" (vst, PCA, heatmaps), with an FAQ that the
+transformed values are not input to the test; the HBC course puts the
+transform before the model as sample-level QC; the notebook runs it between
+`DESeq()` and `results()`. So the transform is outside the chain, before or
+after, and the fold-change shrinkage is a SECOND empirical Bayes step, on β
+after the test, by the same prior-over-all-genes idea. **His picks, both the
+recommendation:** the transform is the fourth page, last, the vignette's
+order, with its option's detail saying it is a separate call whose values the
+PCA and the heatmap take and the test does not (the round-5 button is gone);
+and the Fit and test page is a two-press walkthrough like the Shrinkage
+page's — open on the fit, β as the gap between the group means and every
+gene's β on the MA plot uncoloured; *Test* fades in the SE bar, W, p and padj
+and colours the MA plot past padj < 0.1; *Shrink the fold changes too* slides
+the after plot in, the card naming it a second shrinkage on β after the test
+(a spike at zero and a normal fitted to every gene's estimate, the p
+unchanged). The card's first line is the GLM alone, the second the Wald test,
+the third the posterior mean under the spike-and-normal prior. Twenty sweep
+states.
+
 **Host.** 01-2 cell 1 and cell 22 are the notebook's own exposition, four
 figures (`deseq2-nb`, `deseq2-mle`, `deseq2-map`, `deseq2-shrinkage`) and
 every formula the widget needs: `y ~ NB(μ, α)`, the geometric-mean ratio and

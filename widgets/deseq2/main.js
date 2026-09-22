@@ -48,33 +48,37 @@ const REPS = ["2", "3", "4", "6"];
 const MUS = ["10", "100", "1000"];
 const ALPHAS = ["0.01", "0.05", "0.5"];
 const SHOWN_GENES = 60;
-/* THREE PAGES ARE DESeq()'s CHAIN (his round 5, 2026-09-22: "are the steps
-   logical?"): the distribution assumed, the dispersion shrunk, the GLM fitted
-   and its coefficient tested — one call in the notebook. The vst is a separate
-   call, a side branch for the PCA and the heatmap, so it is a BUTTON that opens
-   its stage under whichever page is showing (a gate would hide Step). */
+/* FOUR PAGES IN THE VIGNETTE'S ORDER (his rounds 5 and 6, 2026-09-22): the
+   distribution assumed; the dispersion shrunk; the GLM fitted, its coefficient
+   tested, and the fold change shrunk a second time for the plot and the
+   ranking — DESeq(), results() and lfcShrink() — and last the transform, a
+   separate call whose values the PCA and the heatmap take and the test does
+   not. Round 5 had the transform as a button under every page, which read as
+   part of every page; the vignette's "Data transformations and visualization"
+   is its own section after the analysis, and so is this. */
 const PAGES = [
   { value: "distribution", label: "Distribution" },
   { value: "shrinkage", label: "Shrinkage" },
   { value: "fit", label: "Fit and test" },
+  { value: "transform", label: "Transform", detail: "a separate call after the fit: the PCA and the heatmap take these values; the test does not" },
 ];
 const ON = (page) => ({ param: "page", equals: page });
-const HEIGHTS = { distribution: 300, shrinkage: 340, fit: 500 };
-const TRANS_H = 300;   // the transform's stage, under the page, when its button is open
-/* THE SHRINKAGE PAGE IS A WALKTHROUGH (his ask, round 3, 2026-09-22: "demonstrate
+const HEIGHTS = { distribution: 300, shrinkage: 340, fit: 500, transform: 300 };
+/* THE SHRINKAGE AND FIT PAGES ARE WALKTHROUGHS (his ask, round 3, 2026-09-22: "demonstrate
    step by step how empirical Bayes works"), the notebook's own three figures as
    three presses of Step: one gene's likelihood over α and its own estimate; the
    trend through all genes as the prior's centre, its width from their spread;
    prior × likelihood as the posterior, its mode the shrunk estimate — then every
-   gene's arrow. Steps that are read get Step alone (4.5). */
-const STAGES = 3;
+   gene's arrow. On the Fit page (round 6): the fit, then the test, then the
+   fold change shrunk a second time. Steps that are read get Step alone (4.5). */
+const STAGES = { shrinkage: 3, fit: 2 };
 const STEP_MS = 700;
-const stagesOf = (page) => (page === "shrinkage" ? STAGES : 0);
+const stagesOf = (page) => STAGES[page] ?? 0;
 /* the walk panel's α axis, log10 */
 const WALK_DOMAIN = [-3, 1];
 const EASE_MS = 550;
 const easeInOut = (t) => (t < 0.5 ? 2 * t * t : 1 - ((-2 * t + 2) ** 2) / 2);
-const DISPLAY_TWEENS = ["shrinkLfc", "unit", "vst"];
+const DISPLAY_TWEENS = ["unit"];
 const DATA_KEYS = ["reps", "seed", "mu", "alpha"];
 const lerp = (a, b, e) => a + (b - a) * e;
 const mean = (a) => a.reduce((s, v) => s + v, 0) / a.length;
@@ -114,9 +118,9 @@ let lastState = null, lastParams = null;
 /* the drive's state between presses: the label the button wears, and whether
    the page has anything left to step */
 function settle(anim, page) {
-  const max = stagesOf(page);
-  anim.done = anim.n >= max && anim.p >= 1;
-  anim.labelAt = anim.done ? "done" : `s${anim.n}`;
+  const max = stagesOf(page), n = anim.n[page] ?? 0;
+  anim.done = n >= max && anim.p >= 1;
+  anim.labelAt = anim.done ? "done" : `${page[0]}${n}`;
 }
 
 /* --- the formula card, one line per page ------------------------------------ */
@@ -139,10 +143,12 @@ const FORMULAS = {
     note: "the posterior's mode is the shrunk estimate: a wide likelihood is pulled to the prior, a sharp one stays; a gene far above the trend keeps its own",
   },
   transform: { math: "<math><mrow><mi>vst</mi><mo>(</mo><mi>x</mi><mo>)</mo><mo>=</mo><msub><mi>log</mi><mn>2</mn></msub><mfrac><mrow><mn>1</mn><mo>+</mo><msub><mi>a</mi><mn>1</mn></msub><mo>+</mo><mn>2</mn><msub><mi>a</mi><mn>0</mn></msub><mi>x</mi><mo>+</mo><mn>2</mn><msqrt><msub><mi>a</mi><mn>0</mn></msub><mi>x</mi><mo>(</mo><mn>1</mn><mo>+</mo><msub><mi>a</mi><mn>1</mn></msub><mo>+</mo><msub><mi>a</mi><mn>0</mn></msub><mi>x</mi><mo>)</mo></msqrt></mrow><mrow><mn>4</mn><msub><mi>a</mi><mn>0</mn></msub></mrow></mfrac></mrow></math>", plain: "vst(x) = log2 [ (1 + a1 + 2 a0 x + 2 √(a0 x (1 + a1 + a0 x))) / (4 a0) ]", note: "the closed form for a trend α = a0 + a1 / μ: a transform whose variance is constant across the mean" },
-  fit: { math: "<math><mrow><mi>log</mi><msub><mi>μ</mi><mi>ij</mi></msub><mo>=</mo><msub><mi>β</mi><mn>0</mn></msub><mo>+</mo><msub><mi>β</mi><mn>1</mn></msub><msub><mi>x</mi><mi>j</mi></msub><mo>,</mo><mspace width=\"0.8em\"></mspace><mi>W</mi><mo>=</mo><mfrac><msub><mi>β</mi><mn>1</mn></msub><mrow><mi>SE</mi><mo>(</mo><msub><mi>β</mi><mn>1</mn></msub><mo>)</mo></mrow></mfrac></mrow></math>", plain: "log μ_ij = β0 + β1 x_j,   W = β1 / SE(β1)", note: "x_j is 0 in group A and 1 in group B, so β1 is the log fold change; W is compared with a standard normal" },
+  fit0: { math: "<math><mrow><mi>log</mi><msub><mi>μ</mi><mi>ij</mi></msub><mo>=</mo><msub><mi>β</mi><mn>0</mn></msub><mo>+</mo><msub><mi>β</mi><mn>1</mn></msub><msub><mi>x</mi><mi>j</mi></msub></mrow></math>", plain: "log μ_ij = β0 + β1 x_j", note: "the GLM: x_j is 0 in group A and 1 in group B, so β0 is group A's log mean and β1 the log fold change, fitted at the shrunk dispersion" },
+  fit1: { math: "<math><mrow><mi>W</mi><mo>=</mo><mfrac><msub><mi>β</mi><mn>1</mn></msub><mrow><mi>SE</mi><mo>(</mo><msub><mi>β</mi><mn>1</mn></msub><mo>)</mo></mrow></mfrac><mo>,</mo><mspace width=\"0.8em\"></mspace><mi>p</mi><mo>=</mo><mn>2</mn><mo>·</mo><mi>P</mi><mo>(</mo><mi>Z</mi><mo>&gt;</mo><mo>|</mo><mi>W</mi><mo>|</mo><mo>)</mo></mrow></math>", plain: "W = β1 / SE(β1),   p = 2 · P(Z > |W|)", note: "the Wald test: the coefficient over its standard error, compared with a standard normal; padj is Benjamini–Hochberg over all genes" },
+  fit2: { math: "<math><mrow><mover><msub><mi>β</mi><mn>1</mn></msub><mo>~</mo></mover><mo>=</mo><mi>E</mi><mo>[</mo><msub><mi>β</mi><mn>1</mn></msub><mo>|</mo><mi>data</mi><mo>]</mo><mo>,</mo><mspace width=\"0.8em\"></mspace><mi>prior</mi><mo>(</mo><msub><mi>β</mi><mn>1</mn></msub><mo>)</mo><mo>=</mo><msub><mi>π</mi><mn>0</mn></msub><mi>δ</mi><mo>(</mo><mn>0</mn><mo>)</mo><mo>+</mo><mo>(</mo><mn>1</mn><mo>−</mo><msub><mi>π</mi><mn>0</mn></msub><mo>)</mo><mi>N</mi><mo>(</mo><mn>0</mn><mo>,</mo><msup><mi>τ</mi><mn>2</mn></msup><mo>)</mo></mrow></math>", plain: "β̃1 = E[β1 | data],   prior(β1) = π0 δ(0) + (1 − π0) N(0, τ²)", note: "a second shrinkage, on the fold change after the test: the same prior-over-all-genes idea as the dispersion's, a spike at zero and a normal fitted to every gene's estimate; for the plot and the ranking, the test's p is unchanged" },
 };
 let mathHost = null, mathKey = null;
-function renderFormula(page, stage = 0, vst = false) {
+function renderFormula(page, stage = 0) {
   if (!mathHost) {
     const figure = document.querySelector("#widget .w-figure");
     if (!figure || !figure.parentNode) return;
@@ -150,11 +156,11 @@ function renderFormula(page, stage = 0, vst = false) {
     mathHost.className = "w-math";
     figure.parentNode.insertBefore(mathHost, figure);
   }
-  const key = `${page === "shrinkage" ? `shrinkage${Math.min(2, stage)}` : page}|${vst ? "vst" : ""}`;
+  const key = page === "shrinkage" ? `shrinkage${Math.min(2, stage)}` : page === "fit" ? `fit${Math.min(2, stage)}` : page;
   if (mathKey === key) return;
   mathKey = key;
-  const row = (F) => `<div class="w-math-eq"><span style="color:var(--ink-2)">${MATHML ? F.math : F.plain}</span></div><div class="w-math-note">${F.note}</div>`;
-  mathHost.innerHTML = row(FORMULAS[page === "shrinkage" ? `shrinkage${Math.min(2, stage)}` : page]) + (vst ? row(FORMULAS.transform) : "");
+  const F = FORMULAS[key];
+  mathHost.innerHTML = `<div class="w-math-eq"><span style="color:var(--ink-2)">${MATHML ? F.math : F.plain}</span></div><div class="w-math-note">${F.note}</div>`;
 }
 
 /* --- a small plot frame: log or linear axes, ticks named --------------------- */
@@ -216,7 +222,7 @@ defineWidget({
   layout: "side",
   status: "draft",
   pointer: true,
-  height: ({ page, vst }) => (HEIGHTS[page] ?? HEIGHTS.distribution) + (vst ? TRANS_H : 0),
+  height: ({ page }) => HEIGHTS[page] ?? HEIGHTS.distribution,
 
   params: {
     page: { type: "segmented", label: "Page", options: PAGES, default: "distribution", display: true },
@@ -240,56 +246,40 @@ defineWidget({
     },
 
 
-    testSec: { type: "section", label: "The fold change", when: ON("fit") },
-    shrinkLfc: {
-      type: "bool", label: "Shrink the fold changes", detail: "a spike at zero and a normal as the prior over all genes",
-      default: false, display: true, when: ON("fit"),
-    },
-
-    /* THE SIDE DOOR: the vst is not in the chain above — the test does not use
-       it and it does not use the test — so it opens under any page */
-    transSec: { type: "section", label: "For the plots", afterDrive: true },
-    vst: {
-      type: "bool", style: "action", label: "Transform, for the plots",
-      detail: "the variance-stabilising transform the PCA and the heatmap take, from the fitted trend",
-      default: false, display: true, afterDrive: true,
-    },
+    transSec: { type: "section", label: "The transform", when: ON("transform") },
     unit: {
       type: "segmented", label: "Values",
       options: [{ value: "raw", label: "Counts" }, { value: "log2", label: "log2(x + 1)" }, { value: "vst", label: "vst" }],
-      default: "raw", display: true, afterDrive: true, when: { param: "vst" },
+      default: "raw", display: true, when: ON("transform"),
     },
 
-    /* authoring escape hatch, first render only: presses already taken on the Shrinkage page */
-    shown: { type: "int", min: 0, max: STAGES, default: 0, hidden: true },
+    /* authoring escape hatch, first render only: presses already taken on the page that opens */
+    shown: { type: "int", min: 0, max: 3, default: 0, hidden: true },
   },
 
   legend: ({ params }) => {
     const p = params.page;
-    const trans = params.vst ? [
+    if (p === "transform") return [
       { token: "empirical", label: "An unchanged gene: SD across its replicates", mark: "bar" },
       { token: "theory", label: "Median SD in a bin of means", mark: "line" },
-    ] : [];
+    ];
     if (p === "distribution") return [
       { token: "empirical", label: "A replicate's count; a gene", mark: "bar" },
       { token: "highlight", label: "A gene that changed", mark: "bar" },
       { token: "reference", label: "Poisson: variance = mean", mark: "line" },
       { token: "theory", label: "Negative binomial: mean + α·mean²", mark: "line" },
-      ...trans,
     ];
     if (p === "shrinkage") return [
       { token: "empirical", label: "A gene's own estimate; the likelihood", mark: "bar" },
       { token: "theory", label: "The trend through all genes; the prior", mark: "line" },
       { token: "highlight", label: "The shrunk estimate; the posterior", mark: "bar" },
       { token: "reference", label: "The gene walked through: point at another", mark: "line" },
-      ...trans,
     ];
     return [
       { token: "empirical", label: "A replicate's count; a gene", mark: "bar" },
       { token: "theory", label: "A group's mean: the GLM's coefficient", mark: "line" },
       { token: "highlight", label: "β, the log2 fold change, and its SE", mark: "line" },
       { token: "extreme", label: "padj < 0.1", mark: "bar" },
-      ...trans,
     ];
   },
 
@@ -367,18 +357,20 @@ defineWidget({
      `init`, which asks core for an ease when there is a last picture to ease
      from, and puts the walkthrough back at its first step. */
   animation: {
-    stepLabel: { anim: "labelAt", labels: { s0: "Fit the trend", s1: "Multiply by the prior", s2: "Shrink every gene", done: "Step" }, default: "Step" },
+    stepLabel: { anim: "labelAt", labels: { s0: "Fit the trend", s1: "Multiply by the prior", s2: "Shrink every gene", f0: "Test", f1: "Shrink the fold changes too", done: "Step" }, default: "Step" },
     stepTitle: { anim: "labelAt", labels: {
       s0: "Fit the trend through every gene's own estimate: the prior's centre, and its width from their spread",
       s1: "Multiply the one gene's likelihood by the prior: the posterior, whose mode is the shrunk estimate",
       s2: "Pull every gene's estimate toward the trend the same way",
-      done: "Every step of the Dispersion page has been taken",
-    }, default: "Step through the shrinkage on the Shrinkage page" },
+      f0: "Divide the coefficient by its standard error: W, its p, and padj over all genes",
+      f1: "Shrink the fold change a second time, after the test, for the plot and the ranking",
+      done: "Every step of this page has been taken",
+    }, default: "Step through this page" },
     runLabel: null,
     init: ({ params, fromScratch }) => {
-      const now = { shrinkLfc: params.shrinkLfc ? 1 : 0, unit: params.unit, vst: params.vst ? 1 : 0 };
-      const anim = { t: { shrinkLfc: 1, unit: 1, vst: 1 }, from: { ...now }, to: { ...now }, data: { t: 1, from: null, fromParams: null, kind: "slide" }, easing: false, n: 0, p: 1 };
-      anim.n = fromScratch ? 0 : Math.min(STAGES, Math.max(0, Number(params.shown) || 0));
+      const now = { unit: params.unit };
+      const anim = { t: { unit: 1 }, from: { ...now }, to: { ...now }, data: { t: 1, from: null, fromParams: null, kind: "slide" }, easing: false, n: { shrinkage: 0, fit: 0 }, p: 1 };
+      if (!fromScratch && stagesOf(params.page)) anim.n[params.page] = Math.min(stagesOf(params.page), Math.max(0, Number(params.shown) || 0));
       if (lastState && lastParams && DATA_KEYS.some((k) => lastParams[k] !== params[k])) {
         anim.data = { t: 0, from: lastState, fromParams: lastParams, kind: lastParams.seed !== params.seed ? "fade" : "slide" };
         anim.easing = true;
@@ -399,21 +391,15 @@ defineWidget({
          ended the last press after one frame, once the counter reached three
          (his round 6: "why only one gene shrinks") */
       if (anim.p >= 1) {
-        if (anim.n >= stagesOf(params.page)) { settle(anim, params.page); return false; }
-        anim.n += 1; anim.p = 0;
+        if ((anim.n[params.page] ?? 0) >= stagesOf(params.page)) { settle(anim, params.page); return false; }
+        anim.n[params.page] += 1; anim.p = 0;
       }
       anim.p = Math.min(1, anim.p + dt / STEP_MS);
       if (anim.p >= 1) { settle(anim, params.page); return false; }
       return true;
     },
     rebuild: (anim, { params }) => {
-      const target = { shrinkLfc: params.shrinkLfc ? 1 : 0, unit: params.unit, vst: params.vst ? 1 : 0 };
-      for (const k of ["shrinkLfc", "vst"]) {
-        if (target[k] !== anim.to[k]) {
-          anim.from[k] = lerp(anim.from[k], anim.to[k], easeInOut(anim.t[k]));
-          anim.to[k] = target[k]; anim.t[k] = 0; anim.easing = true;
-        }
-      }
+      const target = { unit: params.unit };
       if (target.unit !== anim.to.unit) {
         /* a unit chosen mid-ease starts from the unit the picture was leaving toward */
         anim.from.unit = anim.t.unit < 0.5 ? anim.from.unit : anim.to.unit;
@@ -426,52 +412,42 @@ defineWidget({
   },
 
   draw: ({ ctx, colors, w, params, state, anim, pointer }) => {
-    const stage = anim ? anim.n : Number(params.shown) || 0, p = anim && anim.p < 1 ? easeInOut(anim.p) : 1;
-    renderFormula(params.page, stage, Boolean(params.vst));
-    const frac = (k) => (anim ? lerp(anim.from[k], anim.to[k], easeInOut(anim.t[k])) : (params[k] ? 1 : 0));
+    const stage = anim ? (anim.n[params.page] ?? 0) : Number(params.shown) || 0, p = anim && anim.p < 1 ? easeInOut(anim.p) : 1;
+    renderFormula(params.page, stage);
     const D = anim && anim.data.from && anim.data.t < 1 ? { from: anim.data.from, fromParams: anim.data.fromParams, e: easeInOut(anim.data.t), kind: anim.data.kind } : null;
     if (params.page === "distribution") drawDistribution(ctx, colors, w, state, D);
     else if (params.page === "shrinkage") drawShrinkage(ctx, colors, w, state, stage, p, D, hoverAt(pointer, w, state));
-    else drawFit(ctx, colors, w, params, state, frac("shrinkLfc"), D);
-    /* the transform's stage under the page, fading in as its button opens it */
-    if (params.vst) {
-      ctx.save(); ctx.globalAlpha = frac("vst");
-      drawTransform(ctx, colors, w, state, anim ? anim.from.unit : params.unit, anim ? anim.to.unit : params.unit, anim ? easeInOut(anim.t.unit) : 1, D, HEIGHTS[params.page] ?? HEIGHTS.distribution);
-      ctx.restore();
-    }
+    else if (params.page === "transform") drawTransform(ctx, colors, w, state, anim ? anim.from.unit : params.unit, anim ? anim.to.unit : params.unit, anim ? easeInOut(anim.t.unit) : 1, D);
+    else drawFit(ctx, colors, w, state, stage, p, D);
     lastState = state;
     lastParams = { reps: params.reps, seed: params.seed, mu: params.mu, alpha: params.alpha };
   },
 
   readout: ({ params, state, anim }) => {
     const { an, ex, mu, alpha } = state;
-    const stage = anim ? anim.n : Number(params.shown) || 0;
-    const trans = () => {
-      if (!params.vst) return [];
+    const stage = anim ? (anim.n[params.page] ?? 0) : Number(params.shown) || 0;
+    if (params.page === "transform") {
       const lo = state.sdBins[1], hi = state.sdBins[3], u = params.unit;
       return [
         { label: `SD across replicates, means 5–20`, value: fmt(lo[u], u === "raw" ? 1 : 2), note: `median over ${lo.n} unchanged genes` },
         { label: `SD across replicates, means 100–1,000`, value: fmt(hi[u], u === "raw" ? 1 : 2), note: `median over ${hi.n} unchanged genes${u === "vst" ? "; the same SD at every mean is what the transform is for" : u === "log2" ? "; the log still spreads the low counts" : "; the SD grows with the mean"}` },
       ];
-    };
+    }
     if (params.page === "distribution") return [
       { label: `SD of the gene's count, Poisson`, value: fmt(Math.sqrt(mu), 1), note: `√μ at μ = ${mu}` },
       { label: `SD, negative binomial`, value: fmt(Math.sqrt(mu + alpha * mu * mu), 1), note: `√(μ + αμ²) at α = ${alpha}; the ${state.draws.length} replicates drawn have SD ${fmt(sd(state.draws), 1)}` },
-      ...trans(),
     ];
     if (params.page === "shrinkage") {
       const g = state.walk;
       return [
         { label: "The one gene's dispersion: own estimate, and shrunk", value: `${fmt(an.alphaGW[g], 3)}${stage >= 2 ? ` → ${fmt(an.alphaMAP[g], 3)}` : ""}`, note: `mean ${fmt(an.baseMean[g], 1)}, counts ${state.sim.counts[g].join(" ")}${stage >= 1 ? `; trend at that mean ${fmt(an.alphaTr[g], 3)}, prior SD ${fmt(Math.sqrt(an.prior.priorVar), 2)} in log α` : ""}` },
         { label: "Unchanged genes called at padj < 0.1: gene-wise, then shrunk", value: stage >= 3 ? `${state.calledGW.nulls} → ${state.calledMAP.nulls}` : String(state.calledGW.nulls), note: `of ${state.nullG.length}; changed genes found ${state.calledGW.de}${stage >= 3 ? ` → ${state.calledMAP.de}` : ""} of ${state.deG.length}` },
-        ...trans(),
       ];
     }
     const r = an.resMAP[ex];
     return [
-      { label: "β: the log2 fold change of the gene", value: fmt(r.lfc, 2), note: `true ${fmt(state.sim.lfcT[ex], 2)}; SE ${fmt(r.se, 2)}, W = ${fmt(r.W, 2)}, p = ${sci(r.p)}, padj = ${sci(r.padj)}${params.shrinkLfc ? `; shrunk to ${fmt(an.shrunk[ex], 2)}` : ""}` },
-      { label: "Unchanged genes under a mean of 10 read at |LFC| > 1", value: params.shrinkLfc ? `${state.funnel.before} → ${state.funnel.after}` : String(state.funnel.before), note: `of ${state.funnel.lowNull}${params.shrinkLfc ? `; changed genes with a true |LFC| > 1 still read so: ${state.cost.before} → ${state.cost.after} of ${state.cost.deBig}` : ""}` },
-      ...trans(),
+      { label: "β: the log2 fold change of the gene", value: stage >= 2 ? `${fmt(r.lfc, 2)} → ${fmt(an.shrunk[ex], 2)}` : fmt(r.lfc, 2), note: `true ${fmt(state.sim.lfcT[ex], 2)}${stage >= 1 ? `; SE ${fmt(r.se, 2)}, W = ${fmt(r.W, 2)}, p = ${sci(r.p)}, padj = ${sci(r.padj)}` : "; the gap between the group means"}${stage >= 2 ? "; shrunk after the test, p unchanged" : ""}` },
+      { label: "Unchanged genes under a mean of 10 read at |LFC| > 1", value: stage >= 2 ? `${state.funnel.before} → ${state.funnel.after}` : String(state.funnel.before), note: `of ${state.funnel.lowNull}${stage >= 2 ? `; changed genes with a true |LFC| > 1 still read so: ${state.cost.before} → ${state.cost.after} of ${state.cost.deBig}` : stage >= 1 ? "; the funnel: a low count makes a wide fold change" : ""}` },
     ];
   },
 });
@@ -578,10 +554,9 @@ function drawShrinkage(ctx, colors, w, state, stage, p, D, hover) {
   }
 }
 
-/* --- The transform's stage: SD against mean on a log axis whose range eases with the unit --- */
-function drawTransform(ctx, colors, w, state, uFrom, uTo, eU, D, top) {
-  const H = top + TRANS_H, half = Math.floor(w / 2);
-  label(ctx, colors, "For the plots: the variance-stabilising transform, from the fitted trend", 50, top + 14, { color: colors.ink2 });
+/* --- Transform: SD against mean on a log axis whose range eases with the unit --- */
+function drawTransform(ctx, colors, w, state, uFrom, uTo, eU, D) {
+  const H = HEIGHTS.transform, half = Math.floor(w / 2), top = 0;
   const yd = [lerp(SD_DOMAIN[uFrom][0], SD_DOMAIN[uTo][0], eU), lerp(SD_DOMAIN[uFrom][1], SD_DOMAIN[uTo][1], eU)];
   {
     const F = frame(ctx, colors, { x0: 50, y0: top + 34, x1: half - 16, y1: H - 40 }, [0, 4.3], yd, { xlabel: "mean of normalised counts", ylabel: "unchanged genes: SD across replicates", xt: [1, 10, 100, 1000, 10000], yt: [0.1, 0.3, 1, 3, 10, 30, 100, 300, 1000], xfmt: bigNum });
@@ -620,8 +595,11 @@ function drawTransform(ctx, colors, w, state, uFrom, uTo, eU, D, top) {
 }
 
 /* --- Fit and test: one gene's fit; the MA plot, before and after LFC shrinkage --------------- */
-function drawFit(ctx, colors, w, params, state, frac, D) {
+function drawFit(ctx, colors, w, state, stage, p, D) {
   const TOP = 210, half = Math.floor(w / 2);
+  /* the reveal fractions: the test at stage 1, the second shrinkage at stage 2 */
+  const testF = stage > 1 ? 1 : stage === 1 ? p : 0;
+  const frac = stage >= 2 ? p : 0;
   /* the one gene: a different gene under a data change, so its panel crossfades */
   const onePanel = (S, alpha) => {
     const { an, sim, ex, reps } = S;
@@ -639,14 +617,20 @@ function drawFit(ctx, colors, w, params, state, frac, D) {
     for (const k of [0, 1]) curve(ctx, colors.theory, 2, [[F.sx(xg[k]) - 24, F.sy(log2(fit.q[k]))], [F.sx(xg[k]) + 24, F.sy(log2(fit.q[k]))]]);
     const xm = F.sx(0.5);
     curve(ctx, colors.highlight, 1.5, [[xm, F.sy(log2(fit.q[0]))], [xm, F.sy(log2(fit.q[1]))]]);
-    curve(ctx, colors.highlight, 4, [[xm + 8, F.sy(log2(fit.q[1]) - r.se)], [xm + 8, F.sy(log2(fit.q[1]) + r.se)]]);
-    /* six short lines: the right half is 223px wide at the narrowest canvas */
+    /* six short lines: the right half is 223px wide at the narrowest canvas.
+       The fit's lines are there from the start; the test's fade in with the
+       press; the shrunk β counts along with the second */
     const tx = half + 44, ty = 44;
     label(ctx, colors, `β = ${fmt(r.lfc, 2)}, the gap in log2`, tx, ty, { color: colors.highlight, weight: "600" });
-    label(ctx, colors, `SE = ${fmt(r.se, 2)} at α = ${fmt(an.alphaMAP[ex], 3)}`, tx, ty + 16, { color: colors.ink2 });
-    label(ctx, colors, `W = β / SE = ${fmt(r.W, 2)}`, tx, ty + 32, { color: colors.ink2 });
-    label(ctx, colors, `p = ${sci(r.p)}, padj = ${sci(r.padj)}`, tx, ty + 48, { color: colors.ink2 });
-    label(ctx, colors, `α: gene-wise ${fmt(an.alphaGW[ex], 3)}, trend ${fmt(an.alphaTr[ex], 3)}`, tx, ty + 64, { color: colors.ink3 });
+    label(ctx, colors, `at the shrunk α = ${fmt(an.alphaMAP[ex], 3)}`, tx, ty + 16, { color: colors.ink3 });
+    if (testF > 0) {
+      ctx.save(); ctx.globalAlpha = alpha * testF;
+      curve(ctx, colors.highlight, 4, [[xm + 8, F.sy(log2(fit.q[1]) - r.se)], [xm + 8, F.sy(log2(fit.q[1]) + r.se)]]);
+      label(ctx, colors, `SE = ${fmt(r.se, 2)}, from the weights μ / (1 + αμ)`, tx, ty + 32, { color: colors.ink2 });
+      label(ctx, colors, `W = β / SE = ${fmt(r.W, 2)}`, tx, ty + 48, { color: colors.ink2 });
+      label(ctx, colors, `p = ${sci(r.p)}, padj = ${sci(r.padj)}`, tx, ty + 64, { color: colors.ink2 });
+      ctx.restore();
+    }
     label(ctx, colors, frac > 0 ? `shrunk β = ${fmt(lerp(r.lfc, an.shrunk[ex], frac), 2)}, true ${fmt(sim.lfcT[ex], 2)}` : `true β = ${fmt(sim.lfcT[ex], 2)}`, tx, ty + 80, { color: colors.ink3 });
     ctx.restore();
   };
@@ -661,8 +645,10 @@ function drawFit(ctx, colors, w, params, state, frac, D) {
       for (const g of st.an.expressed) {
         const bm = at(st, DD, "bmLog", g), y = mix(st, DD, g);
         if (!Number.isFinite(bm) || !Number.isFinite(y)) continue;
-        const sig = st.an.resMAP[g].padj < 0.1;
-        dot(ctx, F.sx(10 ** bm), F.sy(y), 1.6, sig ? colors.extreme : colors.empirical, (sig ? 0.9 : 0.4) * base);
+        /* the fit alone is every gene's β; the test colours those past padj < 0.1 as it arrives */
+        const sig = testF > 0 && st.an.resMAP[g].padj < 0.1;
+        dot(ctx, F.sx(10 ** bm), F.sy(y), 1.6, colors.empirical, 0.4 * base);
+        if (sig) dot(ctx, F.sx(10 ** bm), F.sy(y), 1.6, colors.extreme, 0.9 * testF * base);
       }
       const exY = mix(st, DD, st.ex);
       if (Number.isFinite(exY)) dot(ctx, F.sx(Math.max(1, st.an.baseMean[st.ex])), F.sy(exY), 5, colors.highlight, base);
@@ -677,6 +663,6 @@ function drawFit(ctx, colors, w, params, state, frac, D) {
     ma({ x0: half + 44, y0, x1: w - 12, y1 }, "after shrinking the fold changes", (st, DD, g) => lerp(at(st, DD, "lfc", g), at(st, DD, "shrunk", g), frac), Math.min(1, frac * 2));
   } else {
     frame(ctx, colors, { x0: half + 44, y0, x1: w - 12, y1 }, [0, 4.3], [-6, 6], { ylog: false, ylabel: "after shrinking the fold changes", xt: [], yt: [] });
-    label(ctx, colors, "shrink the fold changes to draw it", (half + 44 + w - 12) / 2, (y0 + y1) / 2, { align: "center", color: colors.ink3 });
+    label(ctx, colors, stage >= 1 ? "shrink the fold changes to draw it" : "test, then shrink the fold changes", (half + 44 + w - 12) / 2, (y0 + y1) / 2, { align: "center", color: colors.ink3 });
   }
 }
