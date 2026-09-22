@@ -19270,6 +19270,25 @@ bit again — the panel's geometry constants sat below `defineWidget` — so
 every helper now lives above the call, and the check that none follows it
 is in the patch script.
 
+**Round 5** (2026-09-22) — *Model is actually showing why NB is better, so
+call it Distribution? When does the transform happen — is it separate from
+fitting and testing? Is testing part of fitting? See if the steps are
+logical; if not, one of them can be a separate button, e.g. transform is for
+visualisation.* All three right. `DESeq()` is one call — dispersions,
+shrinkage, the GLM fit and the Wald test on its coefficient — and `vst()` is
+a separate call whose output only the PCA and the heatmap take: it uses the
+fitted trend, the test does not use it. **Three pages are the chain,
+Distribution · Shrinkage · Fit and test, and the transform is a side door:**
+an action button *Transform, for the plots* in a section *For the plots*
+under the drive, which opens the transform's stage under whichever page is
+showing (the widget grows 300px; the stage fades in), with its Counts ·
+log2(x + 1) · vst control beside it; the formula card gains the vst's row,
+the legend and the tiles gain the transform's, under any page. A `gate` was
+the obvious control and was not used: core hides Step while a gate is shut,
+which would take the Shrinkage walkthrough away. His picks: the three-page
+arrangement and *Fit and test*, both the recommendation. Nineteen sweep
+states, the transform's four now under other pages.
+
 **Host.** 01-2 cell 1 and cell 22 are the notebook's own exposition, four
 figures (`deseq2-nb`, `deseq2-mle`, `deseq2-map`, `deseq2-shrinkage`) and
 every formula the widget needs: `y ~ NB(μ, α)`, the geometric-mean ratio and
