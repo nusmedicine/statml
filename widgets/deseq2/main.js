@@ -115,7 +115,7 @@ let lastState = null, lastParams = null;
    the page has anything left to step */
 function settle(anim, page) {
   const max = stagesOf(page);
-  anim.done = anim.n >= max;
+  anim.done = anim.n >= max && anim.p >= 1;
   anim.labelAt = anim.done ? "done" : `s${anim.n}`;
 }
 
@@ -394,9 +394,14 @@ defineWidget({
         if (anim.data.t >= 1) anim.data.from = null;
         return more;
       }
-      /* a press: the next stage grows in over STEP_MS, then the press ends */
-      if (anim.n >= stagesOf(params.page)) { settle(anim, params.page); return false; }
-      if (anim.p >= 1) { anim.n += 1; anim.p = 0; }
+      /* a press: the next stage grows in over STEP_MS, then the press ends. The
+         "nothing left" guard runs only between presses: run every frame, it
+         ended the last press after one frame, once the counter reached three
+         (his round 6: "why only one gene shrinks") */
+      if (anim.p >= 1) {
+        if (anim.n >= stagesOf(params.page)) { settle(anim, params.page); return false; }
+        anim.n += 1; anim.p = 0;
+      }
       anim.p = Math.min(1, anim.p + dt / STEP_MS);
       if (anim.p >= 1) { settle(anim, params.page); return false; }
       return true;
