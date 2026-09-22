@@ -19160,6 +19160,32 @@ put to him: the Dispersion figure (A, B, or A with arrows under the
 pointer), the MA plot (side by side or a toggle), the Model page's panels,
 the shared data control, the Test page's one gene, the title.
 
+**His picks, all six the recommendation (2026-09-22):** B, the arrows on 60
+genes; the MA plot before and after side by side; both Model panels;
+replicates 2 · 3 · 4 · 6 and a seed as the shared data control; a fixed
+changed gene near a mean of 100 as the Test page's example; the title *Bulk
+RNA-seq: Differential Expression*. Built as a draft the same day.
+
+#### BUILT AS A DRAFT 2026-09-22 (`widgets/deseq2/main.js`), awaiting his review
+
+Four pages on one stage, the engine's 1,200 genes at the reader's replicates
+and seed; a formula card per page in MathML (Var(y) = μ + αμ²; the MAP as the
+posterior's mode; the vst's closed form; log μ = β0 + β1 x and W = β/SE).
+*Model*: the one gene's Poisson beside NB with its 2·reps replicate counts as
+ticks, the mean and α as controls; every gene's variance against its mean
+with the Poisson line and the trend's curve. *Dispersion*: 60 genes spread
+over the means, each its own estimate; a display toggle *Shrink toward the
+trend* draws the arrow to each gene's MAP estimate and rings the ones left on
+their own; the tiles count unchanged genes called at padj < 0.1 under each
+dispersion. *Transform*: the SD across replicates against the mean under
+Counts · log2(x + 1) · vst with the bin medians as short lines; the transform
+as a curve beside log2. *Test*: the fixed changed gene's replicates, group
+means, β as the gap, the SE bar, the fit's numbers; the MA plot, and beside
+it, on *Shrink the fold changes*, the MA plot after, with the removed and the
+cost in the second tile. No animation: the two shrink toggles are display
+parameters, so the page opens on the gene-wise picture and the reader turns
+the shrinkage on. Seventeen sweep states.
+
 **Host.** 01-2 cell 1 and cell 22 are the notebook's own exposition, four
 figures (`deseq2-nb`, `deseq2-mle`, `deseq2-map`, `deseq2-shrinkage`) and
 every formula the widget needs: `y ~ NB(μ, α)`, the geometric-mean ratio and

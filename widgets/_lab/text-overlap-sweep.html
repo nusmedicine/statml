@@ -36,6 +36,12 @@ const STATES = {
     "?page=position&vocab=words&posenc=learned&shown=16", "?page=position&vocab=words&posenc=sinusoidal&shown=16", "?page=position&vocab=words&posenc=rope&shown=16",
     "?page=position&vocab=words&posenc=sinusoidal&E=16&shown=16", "?page=encode&vocab=codon&E=16&shown=40", "?page=position&vocab=dna&posenc=learned&E=4&shown=48",
   ],
+  "deseq2": [
+    "?", "?mu=10&alpha=0.5", "?mu=1000&alpha=0.01", "?reps=2", "?reps=6",
+    "?page=dispersion", "?page=dispersion&shrinkDisp=1", "?page=dispersion&shrinkDisp=1&reps=2", "?page=dispersion&shrinkDisp=1&reps=6",
+    "?page=transform", "?page=transform&unit=log2", "?page=transform&unit=vst", "?page=transform&unit=vst&reps=2",
+    "?page=test", "?page=test&shrinkLfc=1", "?page=test&shrinkLfc=1&reps=2", "?page=test&reps=6&seed=7",
+  ],
   "count-normalization": [
     "?", "?unit=cpm", "?unit=fpkm", "?unit=tpm", "?unit=sf", "?unit=sf&act=1",
     "?depth=1&lengths=equal&change=none", "?depth=10&change=none&unit=cpm", "?depth=10&unit=sf&act=1",

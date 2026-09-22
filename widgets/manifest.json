@@ -1150,6 +1150,23 @@
       ],
       "arc": 77,
       "status": "shipped"
+    },
+    {
+      "slug": "deseq2",
+      "title": "Bulk RNA-seq: Differential Expression",
+      "blurb": "Replicate counts vary beyond Poisson; a dispersion shrunk toward the trend across genes makes fold changes testable.",
+      "course": "PHM5003",
+      "topics": [
+        "RNA-seq",
+        "DESeq2",
+        "negative binomial",
+        "dispersion",
+        "empirical Bayes",
+        "Wald test",
+        "variance stabilization"
+      ],
+      "arc": 78,
+      "status": "draft"
     }
   ]
 }
