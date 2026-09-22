@@ -19186,6 +19186,22 @@ cost in the second tile. No animation: the two shrink toggles are display
 parameters, so the page opens on the gene-wise picture and the reader turns
 the shrinkage on. Seventeen sweep states.
 
+**Round 1** (2026-09-22) — *can you apply tweening where appropriate.* Three
+eases, each on a display change, by core's display ease as widget 77's: the
+Dispersion page's shrink slides each of the 60 estimates along its arrow
+from the gene's own value to the shrunk one, the arrow growing with it and
+the outlier rings fading in; the Test page's shrink fades the after plot in
+while every dot slides from its fold change to the shrunk one, and the
+example's "shrunk β" counts along; the Transform page's unit switch slides
+every gene's SD and the curve between log2 and the vst on the shared axis,
+and crossfades where the axis itself changes (raw counts against either).
+Each tweened parameter keeps its own clock (550 ms), so a second toggle
+mid-ease does not restart the first, and a toggle flipped back starts from
+where the picture is. Found on the way: a `const` helper declared after
+`defineWidget` threw on the Transform page's first draw (the temporal dead
+zone; the module draws once at load) — a function declaration now, and the
+record here so the next widget's helpers go above the call or as functions.
+
 **Host.** 01-2 cell 1 and cell 22 are the notebook's own exposition, four
 figures (`deseq2-nb`, `deseq2-mle`, `deseq2-map`, `deseq2-shrinkage`) and
 every formula the widget needs: `y ~ NB(μ, α)`, the geometric-mean ratio and
