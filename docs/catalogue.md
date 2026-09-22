@@ -19351,6 +19351,16 @@ its other; C the cumulative variance against genes ranked by variance, with
 the top 1% marked. Recommended A as the Transform page's right panel in place
 of the transform-as-a-curve, with the between/within ratio and the top-1%
 share as tiles.
+**His picks (2026-09-23):** A, the PCA, and the curve panel STAYS, so the
+Transform page is three panels across — the SD against the mean (the
+cause), the transform against the count (the rule), the samples on their
+first two PCs (the effect) — with three tiles: the two SD medians, the top
+1% share, and between ÷ within with PC1's and PC2's shares. The PCA is two
+power iterations on the sample-by-sample covariance at compute, one per
+unit, PC1 oriented so group B's centre is positive and PC2 so the first
+sample is, so a unit switch does not flip the picture; the panel crossfades
+on a unit or data change since the axes are the unit's own. At seed 1, 3 vs
+3: counts 86% and 0.86, the vst 8% and 3.94.
 
 **Host.** 01-2 cell 1 and cell 22 are the notebook's own exposition, four
 figures (`deseq2-nb`, `deseq2-mle`, `deseq2-map`, `deseq2-shrinkage`) and

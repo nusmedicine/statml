@@ -113,6 +113,35 @@ function hoverAt(pointer, w, state) {
   }
   return best;
 }
+/* THE PCA OF THE SAMPLES under each unit (his round 8, 2026-09-23: "a practical
+   way of showing the importance of the transforms for visualisation"), the
+   notebook's own next figure with `vsd`. Six to twelve samples, so the
+   sample-by-sample covariance is tiny and two power iterations give PC1 and
+   PC2. Measured first: under raw counts the top 1% of genes hold 67–90% of the
+   variance and PC1 does not split the groups; under the vst it does. PC1 is
+   oriented so group B's centre is positive and PC2 so the first sample is,
+   because a unit switch must not flip the picture for no reason. */
+function pcaOf(norm, fn, grp, keep) {
+  const n = grp.length;
+  const X = []; const vars = [];
+  for (const g of keep) { const t = norm[g].map(fn); const m = mean(t); const r = t.map((v) => v - m); X.push(r); vars.push(r.reduce((a, v) => a + v * v, 0) / (n - 1)); }
+  const total = vars.reduce((a, v) => a + v, 0) || 1;
+  const C = Array.from({ length: n }, (_, i) => Array.from({ length: n }, (_, j) => X.reduce((a, r) => a + r[i] * r[j], 0)));
+  const tr = C.reduce((a, r, i) => a + r[i], 0) || 1;
+  const power = (M) => { let v = Array.from({ length: n }, (_, i) => Math.cos(i + 1)); for (let it = 0; it < 300; it += 1) { const w = M.map((r) => r.reduce((a, x, j) => a + x * v[j], 0)); const nrm = Math.sqrt(w.reduce((a, x) => a + x * x, 0)) || 1; v = w.map((x) => x / nrm); } const lam = v.reduce((a, vi, i) => a + vi * M[i].reduce((t, x, j) => t + x * v[j], 0), 0); return { v, lam: Math.max(0, lam) }; };
+  const p1 = power(C), C2 = C.map((r, i) => r.map((x, j) => x - p1.lam * p1.v[i] * p1.v[j])), p2 = power(C2);
+  let s1 = p1.v.map((x) => x * Math.sqrt(p1.lam)), s2 = p2.v.map((x) => x * Math.sqrt(p2.lam));
+  const cen = (sc, k) => mean(sc.filter((_, j) => grp[j] === k));
+  if (cen(s1, 1) < cen(s1, 0)) s1 = s1.map((x) => -x);
+  if (s2[0] < 0) s2 = s2.map((x) => -x);
+  const c = [0, 1].map((k) => [cen(s1, k), cen(s2, k)]);
+  const between = Math.hypot(c[0][0] - c[1][0], c[0][1] - c[1][1]);
+  const within = mean(grp.map((k, j) => Math.hypot(s1[j] - c[k][0], s2[j] - c[k][1]))) || 1;
+  const sorted = vars.slice().sort((a, b) => b - a);
+  const top1 = sorted.slice(0, Math.ceil(sorted.length * 0.01)).reduce((a, v) => a + v, 0) / total;
+  return { s1, s2, share1: p1.lam / tr, share2: p2.lam / tr, ratio: between / within, top1 };
+}
+
 /* what draw() last painted, for the ease a data change asks for */
 let lastState = null, lastParams = null;
 /* the drive's state between presses: the label the button wears, and whether
@@ -261,8 +290,10 @@ defineWidget({
   legend: ({ params }) => {
     const p = params.page;
     if (p === "transform") return [
-      { token: "empirical", label: "An unchanged gene: SD across its replicates", mark: "bar" },
+      { token: "empirical", label: "An unchanged gene: SD across its replicates; the transform", mark: "bar" },
       { token: "theory", label: "Median SD in a bin of means", mark: "line" },
+      { token: "group-a", label: "A sample of group A, on its PCs", mark: "bar" },
+      { token: "group-b", label: "A sample of group B", mark: "bar" },
     ];
     if (p === "distribution") return [
       { token: "empirical", label: "A replicate's count; a gene", mark: "bar" },
@@ -337,6 +368,8 @@ defineWidget({
       sdLog2: norm.map((row, g) => (isNull.has(g) ? log10(Math.max(0.05, Math.min(2, sd(row.map((v) => log2(v + 1)))))) : NaN)),
       sdVst: norm.map((row, g) => (isNull.has(g) ? log10(Math.max(0.05, Math.min(2, sd(row.map(an.vst))))) : NaN)),
     };
+    const keepPca = an.expressed;
+    const pcaBy = { raw: pcaOf(norm, (v) => v, sim.grp, keepPca), log2: pcaOf(norm, (v) => log2(v + 1), sim.grp, keepPca), vst: pcaOf(norm, an.vst, sim.grp, keepPca) };
     const bins = [[1, 5], [5, 20], [20, 100], [100, 1000], [1000, 1e9]];
     const sdBins = bins.map(([a, b]) => {
       const gs = nullG.filter((g) => an.baseMean[g] >= a && an.baseMean[g] < b);
@@ -344,7 +377,7 @@ defineWidget({
       return { a, b, n: gs.length, raw: s((v) => v), log2: s((v) => log2(v + 1)), vst: s(an.vst) };
     });
     return {
-      sim, an, nullG, deG, reps, mu, alpha, draws, shown, walk, curvesByGene, ex, per, sdBins,
+      sim, an, nullG, deG, reps, mu, alpha, draws, shown, walk, curvesByGene, ex, per, sdBins, pcaBy,
       calledGW: called(an.resGW), calledMAP: called(an.resMAP),
       funnel: { lowNull: lowNull.length, before: over1((g) => an.resMAP[g].lfc, lowNull), after: over1((g) => an.shrunk[g], lowNull) },
       cost: { deBig: deBig.length, before: over1((g) => an.resMAP[g].lfc, deBig), after: over1((g) => an.shrunk[g], deBig) },
@@ -429,10 +462,11 @@ defineWidget({
     const { an, ex, mu, alpha } = state;
     const stage = anim ? (anim.n[params.page] ?? 0) : Number(params.shown) || 0;
     if (params.page === "transform") {
-      const lo = state.sdBins[1], hi = state.sdBins[3], u = params.unit;
+      const lo = state.sdBins[1], hi = state.sdBins[3], u = params.unit, P = state.pcaBy[u];
       return [
-        { label: `SD across replicates, means 5–20`, value: fmt(lo[u], u === "raw" ? 1 : 2), note: `median over ${lo.n} unchanged genes` },
-        { label: `SD across replicates, means 100–1,000`, value: fmt(hi[u], u === "raw" ? 1 : 2), note: `median over ${hi.n} unchanged genes${u === "vst" ? "; the same SD at every mean is what the transform is for" : u === "log2" ? "; the log still spreads the low counts" : "; the SD grows with the mean"}` },
+        { label: `SD across replicates, means 5–20 and 100–1,000`, value: `${fmt(lo[u], u === "raw" ? 1 : 2)} · ${fmt(hi[u], u === "raw" ? 1 : 2)}`, note: `medians over ${lo.n} and ${hi.n} unchanged genes${u === "vst" ? "; the same SD at every mean is what the transform is for" : u === "log2" ? "; the log still spreads the low counts" : "; the SD grows with the mean"}` },
+        { label: "Top 1% of genes: their share of the total variance", value: `${(100 * P.top1).toFixed(0)}%`, note: u === "raw" ? "a PCA and a heatmap of these values are those few genes" : "every gene has a say in the PCA and the heatmap" },
+        { label: "The two groups on PC1 and PC2: between ÷ within", value: fmt(P.ratio, 2), note: `the distance between the groups' centres over the spread within them; PC1 holds ${(100 * P.share1).toFixed(0)}% of the variance, PC2 ${(100 * P.share2).toFixed(0)}%` },
       ];
     }
     if (params.page === "distribution") return [
@@ -558,10 +592,10 @@ function drawShrinkage(ctx, colors, w, state, stage, p, D, hover) {
 
 /* --- Transform: SD against mean on a log axis whose range eases with the unit --- */
 function drawTransform(ctx, colors, w, state, uFrom, uTo, eU, D) {
-  const H = HEIGHTS.transform, half = Math.floor(w / 2), top = 0;
+  const H = HEIGHTS.transform, third = Math.floor(w / 3), half = 2 * third, top = 0;
   const yd = [lerp(SD_DOMAIN[uFrom][0], SD_DOMAIN[uTo][0], eU), lerp(SD_DOMAIN[uFrom][1], SD_DOMAIN[uTo][1], eU)];
   {
-    const F = frame(ctx, colors, { x0: 50, y0: top + 34, x1: half - 16, y1: H - 40 }, [0, 4.3], yd, { xlabel: "mean of normalised counts", ylabel: "unchanged genes: SD across replicates", xt: [1, 10, 100, 1000, 10000], yt: [0.1, 0.3, 1, 3, 10, 30, 100, 300, 1000], xfmt: bigNum });
+    const F = frame(ctx, colors, { x0: 50, y0: top + 34, x1: third - 12, y1: H - 40 }, [0, 4.3], yd, { xlabel: "mean of normalised counts", ylabel: "unchanged genes: SD", xt: [1, 10, 100, 1000, 10000], yt: [0.1, 0.3, 1, 3, 10, 30, 100, 300, 1000], xfmt: bigNum });
     const ylog = (v) => F.sy(10 ** v);
     fadeOrDraw(ctx, D, (S, DD) => {
       const st = S ?? state, base = ctx.globalAlpha;
@@ -581,7 +615,7 @@ function drawTransform(ctx, colors, w, state, uFrom, uTo, eU, D) {
   {
     const ymax = lerp(CURVE_MAX[uFrom], CURVE_MAX[uTo], eU);
     const yt = ymax > 100 ? [0, 5000, 10000].filter((t) => t <= ymax) : [0, 4, 8, 12];
-    const F = frame(ctx, colors, { x0: half + 44, y0: top + 34, x1: w - 12, y1: H - 40 }, [0, 4], [0, ymax], { ylog: false, xlabel: "normalised count", ylabel: "the value the count becomes", xt: [1, 10, 100, 1000, 10000], yt, xfmt: bigNum, yfmt: bigNum });
+    const F = frame(ctx, colors, { x0: third + 44, y0: top + 34, x1: half - 12, y1: H - 40 }, [0, 4], [0, ymax], { ylog: false, xlabel: "normalised count", ylabel: "the value", xt: [1, 10, 100, 1000, 10000], yt, xfmt: bigNum, yfmt: bigNum });
     const fA = transformOf(uFrom, state.an), fB = transformOf(uTo, state.an);
     /* the log2 reference is drawn beside a transform only: under counts it sat on the axis (the sweep) */
     const refAlpha = uFrom === "raw" && uTo === "raw" ? 0 : uFrom === "raw" ? eU : uTo === "raw" ? 1 - eU : 1;
@@ -592,8 +626,35 @@ function drawTransform(ctx, colors, w, state, uFrom, uTo, eU, D) {
     const pts = []; for (let q = 0; q <= 4; q += 0.05) { const x = 10 ** q; pts.push([F.sx(x), F.sy(lerp(fA(x), fB(x), eU))]); }
     curve(ctx, colors.empirical, 2, pts);
     const u = eU < 0.5 ? uFrom : uTo;
-    label(ctx, colors, u === "raw" ? "the count itself" : u === "log2" ? "log2(x + 1)" : `vst: ${fmt(state.an.vst(0), 2)} at zero, log2 above a hundred`, F.x0 + 4, F.y0 + 12, { color: colors.empirical });
+    label(ctx, colors, u === "raw" ? "the count itself" : u === "log2" ? "log2(x + 1)" : `vst: ${fmt(state.an.vst(0), 2)} at zero`, F.x0 + 4, F.y0 + 12, { color: colors.empirical });
   }
+  /* right: the PCA of the samples under the unit — the axes are the unit's own,
+     so a unit change or a data change crossfades rather than slides */
+  const pcaPanel = (S, u, alpha) => {
+    if (alpha <= 0) return;
+    const P = S.pcaBy[u], grp = S.sim.grp;
+    ctx.save(); ctx.globalAlpha *= alpha;
+    const R = { x0: half + 40, y0: top + 34, x1: w - 12, y1: H - 40 };
+    const m = Math.max(1e-9, ...P.s1.map(Math.abs), ...P.s2.map(Math.abs)) * 1.25;
+    const sx = (v) => R.x0 + ((v + m) / (2 * m)) * (R.x1 - R.x0), sy = (v) => R.y1 - ((v + m) / (2 * m)) * (R.y1 - R.y0);
+    ctx.strokeStyle = colors.grid; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(Math.round(sx(0)) + 0.5, R.y0); ctx.lineTo(Math.round(sx(0)) + 0.5, R.y1); ctx.moveTo(R.x0, Math.round(sy(0)) + 0.5); ctx.lineTo(R.x1, Math.round(sy(0)) + 0.5); ctx.stroke();
+    ctx.strokeStyle = colors.ink3; ctx.beginPath(); ctx.moveTo(R.x0, Math.round(R.y1) + 0.5); ctx.lineTo(R.x1, Math.round(R.y1) + 0.5); ctx.stroke();
+    label(ctx, colors, "the samples on two PCs", R.x0, R.y0 - 6, { color: colors.ink3 });
+    label(ctx, colors, `PC1, ${(100 * P.share1).toFixed(0)}%`, (R.x0 + R.x1) / 2, R.y1 + 13, { color: colors.ink3, align: "center" });
+    label(ctx, colors, `PC2, ${(100 * P.share2).toFixed(0)}%`, R.x0 + 4, R.y0 + 12, { color: colors.ink3 });
+    P.s1.forEach((x, j) => dot(ctx, sx(x), sy(P.s2[j]), 5, grp[j] ? colors.groupB : colors.groupA, ctx.globalAlpha));
+    label(ctx, colors, `between ÷ within ${fmt(P.ratio, 2)}`, R.x1 - 4, R.y1 + 26, { color: P.ratio >= 2.5 ? colors.ink1 : colors.extreme, align: "right", weight: "600" });
+    ctx.restore();
+  };
+  const from = D ? D.from : state;
+  if (D) {
+    pcaPanel(from, uTo, 1 - D.e);
+    pcaPanel(state, uTo, D.e);
+  } else if (uFrom !== uTo && eU < 1) {
+    pcaPanel(state, uFrom, 1 - eU);
+    pcaPanel(state, uTo, eU);
+  } else pcaPanel(state, uTo, 1);
 }
 
 /* --- Fit and test: one gene's fit; the MA plot, before and after LFC shrinkage --------------- */
