@@ -628,33 +628,34 @@ function drawTransform(ctx, colors, w, state, uFrom, uTo, eU, D) {
     const u = eU < 0.5 ? uFrom : uTo;
     label(ctx, colors, u === "raw" ? "the count itself" : u === "log2" ? "log2(x + 1)" : `vst: ${fmt(state.an.vst(0), 2)} at zero`, F.x0 + 4, F.y0 + 12, { color: colors.empirical });
   }
-  /* right: the PCA of the samples under the unit — the axes are the unit's own,
-     so a unit change or a data change crossfades rather than slides */
-  const pcaPanel = (S, u, alpha) => {
+  /* right: the PCA of the samples. The dots are the same samples under every
+     unit and PC1 is oriented the same way, so a unit change SLIDES each sample
+     to its new place while the axis rescales and the numbers count along (his
+     round 9: "PCA does not tween"); a data change slides too when the sample
+     count is the same, and crossfades when replicates change it */
+  const pcaPanel = (Pa, Pb, e, grp, alpha) => {
     if (alpha <= 0) return;
-    const P = S.pcaBy[u], grp = S.sim.grp;
+    const mix = (a, b) => lerp(a, b, e);
     ctx.save(); ctx.globalAlpha *= alpha;
     const R = { x0: half + 40, y0: top + 34, x1: w - 12, y1: H - 40 };
-    const m = Math.max(1e-9, ...P.s1.map(Math.abs), ...P.s2.map(Math.abs)) * 1.25;
+    const mOf = (P) => Math.max(1e-9, ...P.s1.map(Math.abs), ...P.s2.map(Math.abs)) * 1.25;
+    const m = mix(mOf(Pa), mOf(Pb));
     const sx = (v) => R.x0 + ((v + m) / (2 * m)) * (R.x1 - R.x0), sy = (v) => R.y1 - ((v + m) / (2 * m)) * (R.y1 - R.y0);
     ctx.strokeStyle = colors.grid; ctx.lineWidth = 1;
     ctx.beginPath(); ctx.moveTo(Math.round(sx(0)) + 0.5, R.y0); ctx.lineTo(Math.round(sx(0)) + 0.5, R.y1); ctx.moveTo(R.x0, Math.round(sy(0)) + 0.5); ctx.lineTo(R.x1, Math.round(sy(0)) + 0.5); ctx.stroke();
     ctx.strokeStyle = colors.ink3; ctx.beginPath(); ctx.moveTo(R.x0, Math.round(R.y1) + 0.5); ctx.lineTo(R.x1, Math.round(R.y1) + 0.5); ctx.stroke();
     label(ctx, colors, "the samples on two PCs", R.x0, R.y0 - 6, { color: colors.ink3 });
-    label(ctx, colors, `PC1, ${(100 * P.share1).toFixed(0)}%`, (R.x0 + R.x1) / 2, R.y1 + 13, { color: colors.ink3, align: "center" });
-    label(ctx, colors, `PC2, ${(100 * P.share2).toFixed(0)}%`, R.x0 + 4, R.y0 + 12, { color: colors.ink3 });
-    P.s1.forEach((x, j) => dot(ctx, sx(x), sy(P.s2[j]), 5, grp[j] ? colors.groupB : colors.groupA, ctx.globalAlpha));
-    label(ctx, colors, `between ÷ within ${fmt(P.ratio, 2)}`, R.x1 - 4, R.y1 + 26, { color: P.ratio >= 2.5 ? colors.ink1 : colors.extreme, align: "right", weight: "600" });
+    label(ctx, colors, `PC1, ${(100 * mix(Pa.share1, Pb.share1)).toFixed(0)}%`, (R.x0 + R.x1) / 2, R.y1 + 13, { color: colors.ink3, align: "center" });
+    label(ctx, colors, `PC2, ${(100 * mix(Pa.share2, Pb.share2)).toFixed(0)}%`, R.x0 + 4, R.y0 + 12, { color: colors.ink3 });
+    Pb.s1.forEach((x, j) => dot(ctx, sx(mix(Pa.s1[j], x)), sy(mix(Pa.s2[j], Pb.s2[j])), 5, grp[j] ? colors.groupB : colors.groupA, ctx.globalAlpha));
+    const ratio = mix(Pa.ratio, Pb.ratio);
+    label(ctx, colors, `between ÷ within ${fmt(ratio, 2)}`, R.x1 - 4, R.y1 + 26, { color: ratio >= 2.5 ? colors.ink1 : colors.extreme, align: "right", weight: "600" });
     ctx.restore();
   };
-  const from = D ? D.from : state;
-  if (D) {
-    pcaPanel(from, uTo, 1 - D.e);
-    pcaPanel(state, uTo, D.e);
-  } else if (uFrom !== uTo && eU < 1) {
-    pcaPanel(state, uFrom, 1 - eU);
-    pcaPanel(state, uTo, eU);
-  } else pcaPanel(state, uTo, 1);
+  const grp = state.sim.grp;
+  if (D && D.from.sim.grp.length === grp.length) pcaPanel(D.from.pcaBy[uTo], state.pcaBy[uTo], D.e, grp, 1);
+  else if (D) { pcaPanel(D.from.pcaBy[uTo], D.from.pcaBy[uTo], 1, D.from.sim.grp, 1 - D.e); pcaPanel(state.pcaBy[uTo], state.pcaBy[uTo], 1, grp, D.e); }
+  else pcaPanel(state.pcaBy[uFrom], state.pcaBy[uTo], eU, grp, 1);
 }
 
 /* --- Fit and test: one gene's fit; the MA plot, before and after LFC shrinkage --------------- */

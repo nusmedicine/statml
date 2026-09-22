@@ -19362,6 +19362,16 @@ sample is, so a unit switch does not flip the picture; the panel crossfades
 on a unit or data change since the axes are the unit's own. At seed 1, 3 vs
 3: counts 86% and 0.86, the vst 8% and 3.94.
 
+**Round 9** (2026-09-23) — *check for tweening again; the PCA does not
+tween.* It crossfaded by my choice, on the grounds that the axes are the
+unit's own; but the dots are the same samples under every unit and PC1 is
+already oriented the same way, so each sample now slides to its new place
+while the axis rescales and the shares and the between ÷ within count along;
+a data change slides too when the sample count is the same, and crossfades
+only when replicates change it. The pane's throttled screenshot caught it
+mid-way: the dots halfway, "between ÷ within 2.80" on its way from 0.86 to
+3.94.
+
 **Host.** 01-2 cell 1 and cell 22 are the notebook's own exposition, four
 figures (`deseq2-nb`, `deseq2-mle`, `deseq2-map`, `deseq2-shrinkage`) and
 every formula the widget needs: `y ~ NB(μ, α)`, the geometric-mean ratio and
