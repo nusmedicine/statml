@@ -69,12 +69,15 @@ export function nbPmf(k, mu, alpha) {
 export function simulate(rng, { genes = 1200, reps = 3, deShare = 0.1, spread = 0.5, trend = TREND_TRUE } = {}) {
   const n = 2 * reps;
   const grp = Array.from({ length: n }, (_, j) => (j < reps ? 0 : 1));
-  const depth = Array.from({ length: n }, () => Math.exp(rng.normal(0, 0.35)));
+  /* the genes' truths are drawn before anything that depends on the replicate
+     count, so a change of replicates keeps the same 1,200 genes and the
+     widget can slide each gene's estimate to its new value (round 2) */
   const mu0 = Array.from({ length: genes }, () => Math.exp(rng.normal(Math.log(80), 1.8)));
   const alphaT = mu0.map((m) => (trend.a0 + trend.a1 / m) * Math.exp(rng.normal(0, spread)));
   const every = deShare > 0 ? Math.round(1 / deShare) : Infinity;
   const isDE = Array.from({ length: genes }, (_, i) => i % every === 0);
   const lfcT = isDE.map((d) => (d ? (rng.next() < 0.5 ? -1 : 1) * (0.7 + 1.5 * rng.next()) : 0));
+  const depth = Array.from({ length: n }, () => Math.exp(rng.normal(0, 0.35)));
   const counts = mu0.map((m, g) => grp.map((gr, j) => nbDraw(rng, m * depth[j] * (gr ? 2 ** lfcT[g] : 1), alphaT[g])));
   return { genes, reps, grp, depth, mu0, alphaT, isDE, lfcT, counts };
 }

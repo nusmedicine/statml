@@ -7,8 +7,8 @@
  * mu; with few replicates alpha estimated gene by gene is noise, so DESeq2
  * fits a trend through all genes and pulls each gene's estimate toward it
  * (the prior times the likelihood, the MAP as the posterior's mode) — measured
- * here as the realised false discovery rate at padj < 0.1, 39% with the
- * gene-wise dispersion and 17% shrunk at three replicates. The same argument
+ * here as the realised false discovery rate at padj < 0.1, about 40% with the
+ * gene-wise dispersion and 20% shrunk at three replicates. The same argument
  * shrinks the log2 fold change, which removes the funnel at low counts and
  * costs some true effects there. And the vst is what the trend implies for a
  * transform whose variance no longer grows with the mean.
@@ -23,6 +23,21 @@
  * before and after LFC shrinkage side by side, both Model panels, replicates
  * and a seed as the shared data control, a fixed changed gene as the Test
  * page's example.
+ *
+ * THE MOTION IS EVERY CHANGE (his rounds 1 and 2, 2026-09-22): a display change
+ * eases through core's display door, as widget 77's; a DATA change eases
+ * through core's data door (`init` sets `anim.easing`, as widget 53's), with
+ * the widget carrying the picture it last painted. Replicates change the
+ * counts of the SAME 1,200 genes (the engine draws the genes' truths before
+ * anything that depends on the replicate count), so every estimate slides to
+ * its new value; a seed change is different genes, so the picture crossfades.
+ * The Transform page's unit switch slides every SD on a log axis whose range
+ * eases with it, so counts → log2(x + 1) is a slide too (his round 2: the
+ * crossfade there read as absent).
+ *
+ * A helper used by draw() must sit above `defineWidget` or be a function
+ * declaration: the module draws once at load, and a `const` below the call
+ * threw on the Transform page's first draw (round 1).
  */
 import { defineWidget, fmt, mathmlRenders } from "../core/index.js";
 import { makeRng } from "../core/rng.js";
@@ -41,18 +56,23 @@ const PAGES = [
 ];
 const ON = (page) => ({ param: "page", equals: page });
 const HEIGHTS = { model: 300, dispersion: 330, transform: 300, test: 500 };
-/* THE MOTION IS THE DISPLAY CHANGE (his ask, round 1, 2026-09-22): a shrink
-   toggle slides each estimate along its arrow, a unit switch slides each
-   gene's SD to its new height (or crossfades, when the axis itself changes,
-   raw counts against a transform). Core's display ease, as widget 77's. */
 const EASE_MS = 550;
 const easeInOut = (t) => (t < 0.5 ? 2 * t * t : 1 - ((-2 * t + 2) ** 2) / 2);
-const TWEENS = ["shrinkDisp", "shrinkLfc", "unit"];
+const DISPLAY_TWEENS = ["shrinkDisp", "shrinkLfc", "unit"];
+const DATA_KEYS = ["reps", "seed", "mu", "alpha"];
 const lerp = (a, b, e) => a + (b - a) * e;
 const mean = (a) => a.reduce((s, v) => s + v, 0) / a.length;
 const sd = (a) => { const m = mean(a); return Math.sqrt(a.reduce((s, v) => s + (v - m) ** 2, 0) / (a.length - 1)); };
 const log10 = (x) => Math.log10(x);
 const sci = (p) => (p < 1e-4 ? p.toExponential(1) : fmt(p, 4));
+const bigNum = (v) => (v >= 1000 ? `${Math.round(v / 1000)}k` : String(v));
+/* the Transform page's SD axis, log10, per unit; and its per-gene SD arrays */
+const SD_DOMAIN = { raw: [0, 3.3], log2: [-1, 0.3], vst: [-1, 0.3] };
+const SD_KEY = { raw: "sdRaw", log2: "sdLog2", vst: "sdVst" };
+const CURVE_MAX = { raw: 10000, log2: 14, vst: 14 };
+
+/* what draw() last painted, for the ease a data change asks for */
+let lastState = null, lastParams = null;
 
 /* --- the formula card, one line per page ------------------------------------ */
 const MATHML = mathmlRenders();
@@ -86,7 +106,12 @@ function frame(ctx, colors, { x0, y0, x1, y1 }, xd, yd, { xlog = true, ylog = tr
   ctx.strokeStyle = colors.grid; ctx.lineWidth = 1;
   ctx.font = `${colors.fsXs} ${colors.mono}`; ctx.fillStyle = colors.ink3;
   for (const t of xt) { const x = Math.round(sx(t)) + 0.5; ctx.beginPath(); ctx.moveTo(x, y0); ctx.lineTo(x, y1); ctx.stroke(); ctx.textAlign = "center"; ctx.fillText(xfmt(t), x, y1 + 13); }
-  for (const t of yt) { const y = Math.round(sy(t)) + 0.5; ctx.beginPath(); ctx.moveTo(x0, y); ctx.lineTo(x1, y); ctx.stroke(); ctx.textAlign = "right"; ctx.fillText(yfmt(t), x0 - 5, y + 4); }
+  for (const t of yt) {
+    const y = sy(t);
+    if (y < y0 - 1 || y > y1 + 1) continue;          // a tick outside an easing range
+    const yy = Math.round(y) + 0.5;
+    ctx.beginPath(); ctx.moveTo(x0, yy); ctx.lineTo(x1, yy); ctx.stroke(); ctx.textAlign = "right"; ctx.fillText(yfmt(t), x0 - 5, yy + 4);
+  }
   ctx.strokeStyle = colors.ink3; ctx.beginPath(); ctx.moveTo(x0, Math.round(y1) + 0.5); ctx.lineTo(x1, Math.round(y1) + 0.5); ctx.stroke();
   ctx.font = `${colors.fsXs} ${colors.font}`;
   if (xlabel) { ctx.textAlign = "center"; ctx.fillText(xlabel, (x0 + x1) / 2, y1 + 26); }
@@ -97,7 +122,27 @@ function frame(ctx, colors, { x0, y0, x1, y1 }, xd, yd, { xlog = true, ylog = tr
 const dot = (ctx, x, y, r, color, alpha = 1) => { ctx.save(); ctx.globalAlpha = alpha; ctx.fillStyle = color; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); ctx.restore(); };
 const label = (ctx, colors, s, x, y, { color = colors.ink2, align = "left", weight = "" } = {}) => { ctx.save(); ctx.textBaseline = "alphabetic"; ctx.fillStyle = color; ctx.textAlign = align; ctx.font = `${weight} ${colors.fsXs} ${colors.font}`.trim(); ctx.fillText(s, x, y); ctx.restore(); };
 const curve = (ctx, color, width, pts) => { ctx.save(); ctx.strokeStyle = color; ctx.lineWidth = width; ctx.beginPath(); pts.forEach(([x, y], k) => (k ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.stroke(); ctx.restore(); };
-const bigNum = (v) => (v >= 1000 ? `${Math.round(v / 1000)}k` : String(v));
+function transformOf(u, an) { return u === "raw" ? (v) => v : u === "log2" ? (v) => log2(v + 1) : an.vst; }
+
+/* --- the data ease: from the picture last painted to this one ------------------- *
+ * `D` is null when nothing is easing; otherwise { from, fromParams, e, kind }.
+ * `at(state, D, key, g)` reads one gene's value from the state's per-gene
+ * arrays, slid from the old picture's when the genes are the same. */
+const at = (state, D, key, g) => {
+  const v = state.per[key][g];
+  if (!D || D.kind !== "slide") return v;
+  const u = D.from.per[key][g];
+  return Number.isFinite(u) && Number.isFinite(v) ? lerp(u, v, D.e) : v;
+};
+const scalar = (state, D, get) => (D && D.kind === "slide" ? lerp(get(D.from), get(state), D.e) : get(state));
+/** a page drawn twice under a crossfade, or once; `drawAt(S, DD)` draws state S
+    (null for the current one) with the slide DD (null under a fade) */
+function fadeOrDraw(ctx, D, drawAt) {
+  if (D && D.kind === "fade") {
+    ctx.save(); ctx.globalAlpha *= 1 - D.e; drawAt(D.from, null); ctx.restore();
+    ctx.save(); ctx.globalAlpha *= D.e; drawAt(null, null); ctx.restore();
+  } else drawAt(null, D);
+}
 
 defineWidget({
   slug: "deseq2",
@@ -180,59 +225,75 @@ defineWidget({
 
   /* Pure and seeded. The engine's simulation and its analysis are one call;
      the one gene of the Model page draws from a second generator forked off
-     the first, so its mean and α leave the 1,200 genes where they are. */
+     the first, so its mean and α leave the 1,200 genes where they are. The
+     `per` arrays are what the eases slide, one value per gene. */
   compute: ({ params, rng }) => {
     const reps = Number(params.reps);
     const simRng = makeRng(Math.floor(rng.next() * 2 ** 31)), geneRng = makeRng(Math.floor(rng.next() * 2 ** 31));
     const sim = simulate(simRng, { genes: GENES, reps });
     const an = analyse(sim);
     const nullG = an.expressed.filter((g) => !sim.isDE[g]), deG = an.expressed.filter((g) => sim.isDE[g]);
-    /* the one gene */
     const mu = Number(params.mu), alpha = Number(params.alpha);
     const draws = Array.from({ length: 2 * reps }, () => nbDraw(geneRng, mu, alpha));
-    /* the 60 genes the Dispersion page draws: spread evenly over the means */
-    const byMean = an.expressed.slice().sort((a, b) => an.baseMean[a] - an.baseMean[b]).filter((g) => an.baseMean[g] >= 2);
-    const shown = Array.from({ length: SHOWN_GENES }, (_, k) => byMean[Math.floor(((k + 0.5) / SHOWN_GENES) * byMean.length)]);
-    /* the Test page's gene: a changed gene near a mean of 100, well found */
+    /* the 60 genes the Dispersion page draws, spread evenly over the TRUE
+       means, so the set is the same at every replicate count of one seed */
+    const byTruth = sim.mu0.map((_, g) => g).filter((g) => sim.mu0[g] >= 3).sort((a, b) => sim.mu0[a] - sim.mu0[b]);
+    const shown = Array.from({ length: SHOWN_GENES }, (_, k) => byTruth[Math.floor(((k + 0.5) / SHOWN_GENES) * byTruth.length)]);
     const cands = deG.filter((g) => an.baseMean[g] > 60 && an.baseMean[g] < 200).sort((a, b) => an.resMAP[a].p - an.resMAP[b].p);
-    const ex = cands[Math.min(2, cands.length - 1)] ?? deG.sort((a, b) => an.resMAP[a].p - an.resMAP[b].p)[0];
-    /* the numbers the pages print */
+    const ex = cands[Math.min(2, cands.length - 1)] ?? deG.slice().sort((a, b) => an.resMAP[a].p - an.resMAP[b].p)[0];
     const called = (res) => ({ nulls: nullG.filter((g) => res[g].padj < 0.1).length, de: deG.filter((g) => res[g].padj < 0.1).length });
     const lowNull = nullG.filter((g) => an.baseMean[g] < 10), deBig = deG.filter((g) => Math.abs(sim.lfcT[g]) > 1);
     const over1 = (lfcOf, gs) => gs.filter((g) => Math.abs(lfcOf(g)) > 1).length;
+    const isNull = new Set(nullG), expressed = new Set(an.expressed);
+    const norm = sim.counts.map((row) => row.map((v, j) => v / an.sf[j]));
+    const per = {
+      bmLog: an.baseMean.map((m) => (m >= 1 ? log10(m) : NaN)),
+      varLog: norm.map((row, g) => { const v = sd(row) ** 2; return expressed.has(g) && v > 0 ? log10(Math.min(2e7, v)) : NaN; }),
+      gwLog: an.alphaGW.map((a) => log10(Math.min(20, Math.max(0.0006, a)))),
+      mapLog: an.alphaMAP.map((a) => log10(Math.min(20, Math.max(0.0006, a)))),
+      lfc: an.resMAP.map((r, g) => (expressed.has(g) ? Math.max(-6, Math.min(6, r.lfc)) : NaN)),
+      shrunk: an.shrunk.map((v, g) => (expressed.has(g) ? Math.max(-6, Math.min(6, v)) : NaN)),
+      sdRaw: norm.map((row, g) => (isNull.has(g) ? log10(Math.max(0.05, Math.min(2000, sd(row)))) : NaN)),
+      sdLog2: norm.map((row, g) => (isNull.has(g) ? log10(Math.max(0.05, Math.min(2, sd(row.map((v) => log2(v + 1)))))) : NaN)),
+      sdVst: norm.map((row, g) => (isNull.has(g) ? log10(Math.max(0.05, Math.min(2, sd(row.map(an.vst))))) : NaN)),
+    };
     const bins = [[1, 5], [5, 20], [20, 100], [100, 1000], [1000, 1e9]];
     const sdBins = bins.map(([a, b]) => {
       const gs = nullG.filter((g) => an.baseMean[g] >= a && an.baseMean[g] < b);
-      const norm = gs.map((g) => sim.counts[g].map((v, j) => v / an.sf[j]));
-      const s = (fn) => (norm.length ? median(norm.map((row) => sd(row.map(fn)))) : NaN);
+      const s = (fn) => (gs.length ? median(gs.map((g) => sd(norm[g].map(fn)))) : NaN);
       return { a, b, n: gs.length, raw: s((v) => v), log2: s((v) => log2(v + 1)), vst: s(an.vst) };
     });
     return {
-      sim, an, nullG, deG, reps, mu, alpha, draws, shown, ex,
+      sim, an, nullG, deG, reps, mu, alpha, draws, shown, ex, per, sdBins,
       calledGW: called(an.resGW), calledMAP: called(an.resMAP),
       funnel: { lowNull: lowNull.length, before: over1((g) => an.resMAP[g].lfc, lowNull), after: over1((g) => an.shrunk[g], lowNull) },
       cost: { deBig: deBig.length, before: over1((g) => an.resMAP[g].lfc, deBig), after: over1((g) => an.shrunk[g], deBig) },
-      sdBins,
     };
   },
 
   /* No Step, no Play (4.5): nothing is taken one at a time. Each tweened
      display parameter keeps its own clock, so a second toggle mid-ease does
      not restart the first; a toggle flipped back mid-ease starts from where
-     the picture is. */
+     the picture is. A data change gets a fresh `anim` from `init`, which asks
+     core for an ease when there is a last picture to ease from. */
   animation: {
     stepLabel: null,
     runLabel: null,
-    init: ({ params }) => ({
-      t: { shrinkDisp: 1, shrinkLfc: 1, unit: 1 },
-      from: { shrinkDisp: params.shrinkDisp ? 1 : 0, shrinkLfc: params.shrinkLfc ? 1 : 0, unit: params.unit },
-      to: { shrinkDisp: params.shrinkDisp ? 1 : 0, shrinkLfc: params.shrinkLfc ? 1 : 0, unit: params.unit },
-      easing: false,
-    }),
+    init: ({ params }) => {
+      const now = { shrinkDisp: params.shrinkDisp ? 1 : 0, shrinkLfc: params.shrinkLfc ? 1 : 0, unit: params.unit };
+      const anim = { t: { shrinkDisp: 1, shrinkLfc: 1, unit: 1 }, from: { ...now }, to: { ...now }, data: { t: 1, from: null, fromParams: null, kind: "slide" }, easing: false };
+      if (lastState && lastParams && DATA_KEYS.some((k) => lastParams[k] !== params[k])) {
+        anim.data = { t: 0, from: lastState, fromParams: lastParams, kind: lastParams.seed !== params.seed ? "fade" : "slide" };
+        anim.easing = true;
+      }
+      return anim;
+    },
     advance: (anim, { dt }) => {
       if (anim.mode !== "ease") return false;
       let more = false;
-      for (const k of TWEENS) { if (anim.t[k] < 1) { anim.t[k] = Math.min(1, anim.t[k] + dt / EASE_MS); more = more || anim.t[k] < 1; } }
+      for (const k of DISPLAY_TWEENS) { if (anim.t[k] < 1) { anim.t[k] = Math.min(1, anim.t[k] + dt / EASE_MS); more = more || anim.t[k] < 1; } }
+      if (anim.data.t < 1) { anim.data.t = Math.min(1, anim.data.t + dt / EASE_MS); more = more || anim.data.t < 1; }
+      if (anim.data.t >= 1) anim.data.from = null;
       return more;
     },
     rebuild: (anim, { params }) => {
@@ -254,10 +315,13 @@ defineWidget({
   draw: ({ ctx, colors, w, params, state, anim }) => {
     renderFormula(params.page);
     const frac = (k) => (anim ? lerp(anim.from[k], anim.to[k], easeInOut(anim.t[k])) : (params[k] ? 1 : 0));
-    if (params.page === "model") drawModel(ctx, colors, w, state);
-    else if (params.page === "dispersion") drawDispersion(ctx, colors, w, params, state, frac("shrinkDisp"));
-    else if (params.page === "transform") drawTransform(ctx, colors, w, state, anim ? anim.from.unit : params.unit, anim ? anim.to.unit : params.unit, anim ? easeInOut(anim.t.unit) : 1);
-    else drawTest(ctx, colors, w, params, state, frac("shrinkLfc"));
+    const D = anim && anim.data.from && anim.data.t < 1 ? { from: anim.data.from, fromParams: anim.data.fromParams, e: easeInOut(anim.data.t), kind: anim.data.kind } : null;
+    if (params.page === "model") drawModel(ctx, colors, w, state, D);
+    else if (params.page === "dispersion") drawDispersion(ctx, colors, w, params, state, frac("shrinkDisp"), D);
+    else if (params.page === "transform") drawTransform(ctx, colors, w, state, anim ? anim.from.unit : params.unit, anim ? anim.to.unit : params.unit, anim ? easeInOut(anim.t.unit) : 1, D);
+    else drawTest(ctx, colors, w, params, state, frac("shrinkLfc"), D);
+    lastState = state;
+    lastParams = { reps: params.reps, seed: params.seed, mu: params.mu, alpha: params.alpha };
   },
 
   readout: ({ params, state }) => {
@@ -286,121 +350,123 @@ defineWidget({
 });
 
 /* --- Model: one gene's two distributions; every gene's variance against its mean --- */
-function drawModel(ctx, colors, w, state) {
-  const { mu, alpha, draws, an, sim } = state;
+function drawModel(ctx, colors, w, state, D) {
   const H = HEIGHTS.model, half = Math.floor(w / 2);
-  /* left: the two pmfs and the replicate counts */
+  /* left: the two pmfs at a mean and α that ease between the old and the new,
+     and the replicate counts, which are new draws, so they crossfade */
   {
+    const e = D ? D.e : 1;
+    const mu = D ? Math.exp(lerp(Math.log(D.from.mu), Math.log(state.mu), e)) : state.mu;
+    const alpha = D ? Math.exp(lerp(Math.log(D.from.alpha), Math.log(state.alpha), e)) : state.alpha;
     const kmax = Math.ceil(mu + 4 * Math.sqrt(mu + alpha * mu * mu));
     const P = [], N = []; let pm = 0;
     for (let k = 0; k <= kmax; k += 1) { P.push(poissonPmf(k, mu)); N.push(nbPmf(k, mu, alpha)); pm = Math.max(pm, P[k], N[k]); }
     const step = Math.max(1, Math.round(kmax / 4 / (10 ** Math.floor(log10(kmax / 4))))) * 10 ** Math.floor(log10(kmax / 4));
     const xt = []; for (let t = 0; t <= kmax; t += step) xt.push(t);
-    const F = frame(ctx, colors, { x0: 40, y0: 30, x1: half - 16, y1: H - 40 }, [0, kmax], [0, pm * 1.08], { xlog: false, ylog: false, xlabel: "count", ylabel: `one gene at mean ${mu}: probability of each count`, xt, xfmt: bigNum });
+    const F = frame(ctx, colors, { x0: 40, y0: 30, x1: half - 16, y1: H - 40 }, [0, kmax], [0, pm * 1.08], { xlog: false, ylog: false, xlabel: "count", ylabel: `one gene at mean ${state.mu}: probability of each count`, xt, xfmt: bigNum });
     curve(ctx, colors.reference, 1.5, P.map((p, k) => [F.sx(k), F.sy(p)]));
     curve(ctx, colors.theory, 2, N.map((p, k) => [F.sx(k), F.sy(p)]));
-    ctx.save(); ctx.strokeStyle = colors.empirical; ctx.lineWidth = 2;
-    for (const c of draws) { ctx.beginPath(); ctx.moveTo(F.sx(Math.min(c, kmax)), F.sy(0)); ctx.lineTo(F.sx(Math.min(c, kmax)), F.sy(0) - 14); ctx.stroke(); }
-    ctx.restore();
-    label(ctx, colors, `${draws.length} replicates: ${draws.join(" ")}`, F.x0 + 4, F.y0 + 12, { color: colors.empirical });
+    const ticks = (draws, alpha) => { ctx.save(); ctx.globalAlpha = alpha; ctx.strokeStyle = colors.empirical; ctx.lineWidth = 2; for (const c of draws) { ctx.beginPath(); ctx.moveTo(F.sx(Math.min(c, kmax)), F.sy(0)); ctx.lineTo(F.sx(Math.min(c, kmax)), F.sy(0) - 14); ctx.stroke(); } ctx.restore(); };
+    if (D) ticks(D.from.draws, 1 - e);
+    ticks(state.draws, D ? e : 1);
+    label(ctx, colors, `${state.draws.length} replicates: ${state.draws.join(" ")}`, F.x0 + 4, F.y0 + 12, { color: colors.empirical });
   }
-  /* right: variance against mean, all genes */
+  /* right: variance against mean, all genes — the same genes slide, new genes crossfade */
   {
     const F = frame(ctx, colors, { x0: half + 44, y0: 30, x1: w - 12, y1: H - 40 }, [0, 4.3], [0, 7.3], { xlabel: "mean of normalised counts", ylabel: "1,200 genes: variance across replicates", xt: [1, 10, 100, 1000, 10000], yt: [1, 100, 10000, 1000000], xfmt: bigNum, yfmt: (v) => `1e${log10(v)}` });
-    for (const g of an.expressed) { const v = sd(sim.counts[g].map((x, j) => x / an.sf[j])) ** 2; if (v > 0 && an.baseMean[g] >= 1) dot(ctx, F.sx(an.baseMean[g]), F.sy(Math.min(2e7, v)), 1.6, sim.isDE[g] ? colors.highlight : colors.empirical, 0.45); }
+    fadeOrDraw(ctx, D, (S, DD) => {
+      const st = S ?? state;
+      for (const g of st.an.expressed) {
+        const x = at(st, DD, "bmLog", g), y = at(st, DD, "varLog", g);
+        if (Number.isFinite(x) && Number.isFinite(y)) dot(ctx, F.sx(10 ** x), F.sy(10 ** y), 1.6, st.sim.isDE[g] ? colors.highlight : colors.empirical, 0.45 * ctx.globalAlpha);
+      }
+    });
     curve(ctx, colors.reference, 1.5, [[F.sx(1), F.sy(1)], [F.sx(20000), F.sy(20000)]]);
-    const pts = []; for (let e = 0; e <= 4.3; e += 0.05) { const m = 10 ** e; pts.push([F.sx(m), F.sy(m + an.trend.a0 * m * m)]); }
+    const a0 = scalar(state, D, (S) => S.an.trend.a0);
+    const pts = []; for (let q = 0; q <= 4.3; q += 0.05) { const m = 10 ** q; pts.push([F.sx(m), F.sy(m + a0 * m * m)]); }
     curve(ctx, colors.theory, 2, pts);
-    /* the two names at the right edge, one row each, clear of the lines (the sweep found them on each other at a small trend) */
-    label(ctx, colors, `mean + ${fmt(an.trend.a0, 3)}·mean²`, F.x1 - 4, F.y0 + 12, { color: colors.theory, align: "right" });
+    label(ctx, colors, `mean + ${fmt(a0, 3)}·mean²`, F.x1 - 4, F.y0 + 12, { color: colors.theory, align: "right" });
     label(ctx, colors, "Poisson: mean", F.x1 - 4, F.sy(20000) + 14, { color: colors.reference, align: "right" });
   }
 }
 
 /* --- Dispersion: 60 genes, each pulled toward the trend ---------------------------- */
-function drawDispersion(ctx, colors, w, params, state, frac) {
-  const { an, shown } = state;
+function drawDispersion(ctx, colors, w, params, state, frac, D) {
   const H = HEIGHTS.dispersion;
   const F = frame(ctx, colors, { x0: 50, y0: 30, x1: w - 12, y1: H - 40 }, [0, 4.3], [-3.2, 1.3], { xlabel: "mean of normalised counts", ylabel: `${SHOWN_GENES} of the 1,200 genes: dispersion α`, xt: [1, 10, 100, 1000, 10000], yt: [0.001, 0.01, 0.1, 1, 10], xfmt: bigNum });
-  const yc = (a) => F.sy(Math.min(20, Math.max(0.0006, a)));
-  const pts = []; for (let e = 0; e <= 4.3; e += 0.05) { const m = 10 ** e; pts.push([F.sx(m), yc(an.trend.a0 + an.trend.a1 / m)]); }
-  curve(ctx, colors.theory, 2, pts);
-  for (const g of shown) {
-    const x = F.sx(Math.max(1, an.baseMean[g]));
-    const yGW = yc(an.alphaGW[g]), yNow = lerp(yGW, yc(an.alphaMAP[g]), frac);
-    if (frac > 0) {
-      /* the arrow grows from the gene's own estimate as the dot slides along it */
-      ctx.save(); ctx.strokeStyle = colors.highlight; ctx.lineWidth = 1; ctx.globalAlpha = 0.8;
-      ctx.beginPath(); ctx.moveTo(x, yGW); ctx.lineTo(x, yNow); ctx.stroke(); ctx.restore();
-      dot(ctx, x, yNow, 3, colors.highlight, Math.min(1, frac * 2));
-      if (an.outlier[g]) { ctx.save(); ctx.globalAlpha = frac; ctx.strokeStyle = colors.highlight; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(x, yGW, 6, 0, Math.PI * 2); ctx.stroke(); ctx.restore(); }
+  const ylog = (v) => F.sy(10 ** v);
+  const trendPts = (a0, a1) => { const p = []; for (let q = 0; q <= 4.3; q += 0.05) { const m = 10 ** q; p.push([F.sx(m), ylog(log10(Math.min(20, Math.max(0.0006, a0 + a1 / m))))]); } return p; };
+  const a0 = scalar(state, D, (S) => S.an.trend.a0), a1 = scalar(state, D, (S) => S.an.trend.a1);
+  fadeOrDraw(ctx, D, (S, DD) => {
+    const st = S ?? state;
+    curve(ctx, colors.theory, 2, S ? trendPts(S.an.trend.a0, S.an.trend.a1) : trendPts(a0, a1));
+    const base = ctx.globalAlpha;
+    for (const g of st.shown) {
+      const bm = at(st, DD, "bmLog", g);
+      const x = F.sx(10 ** (Number.isFinite(bm) ? bm : 0));
+      const yGW = ylog(at(st, DD, "gwLog", g)), yNow = lerp(yGW, ylog(at(st, DD, "mapLog", g)), frac);
+      if (frac > 0) {
+        /* the arrow grows from the gene's own estimate as the dot slides along it */
+        ctx.save(); ctx.strokeStyle = colors.highlight; ctx.lineWidth = 1; ctx.globalAlpha = 0.8 * base;
+        ctx.beginPath(); ctx.moveTo(x, yGW); ctx.lineTo(x, yNow); ctx.stroke(); ctx.restore();
+        dot(ctx, x, yNow, 3, colors.highlight, Math.min(1, frac * 2) * base);
+        if (st.an.outlier[g]) { ctx.save(); ctx.globalAlpha = frac * base; ctx.strokeStyle = colors.highlight; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(x, yGW, 6, 0, Math.PI * 2); ctx.stroke(); ctx.restore(); }
+      }
+      dot(ctx, x, yGW, 3, colors.empirical, base);
     }
-    dot(ctx, x, yGW, 3, colors.empirical);
-  }
-  label(ctx, colors, `trend: α = ${fmt(an.trend.a0, 3)} + ${fmt(an.trend.a1, 2)} / mean`, F.x1 - 6, yc(an.trend.a0) - 8, { color: colors.theory, align: "right" });
-  label(ctx, colors, params.shrinkDisp ? `prior SD ${fmt(Math.sqrt(an.prior.priorVar), 2)} in log α; a gene more than two residual SDs above the trend keeps its own` : "each gene's own estimate, from its replicates alone", F.x0 + 4, F.y0 + 12, { color: colors.ink3 });
+  });
+  label(ctx, colors, `trend: α = ${fmt(a0, 3)} + ${fmt(a1, 2)} / mean`, F.x1 - 6, ylog(log10(a0)) - 8, { color: colors.theory, align: "right" });
+  label(ctx, colors, params.shrinkDisp ? `prior SD ${fmt(Math.sqrt(state.an.prior.priorVar), 2)} in log α; a gene more than two residual SDs above the trend keeps its own` : "each gene's own estimate, from its replicates alone", F.x0 + 4, F.y0 + 12, { color: colors.ink3 });
 }
 
-/* --- Transform: SD against mean under the chosen values; the transform as a curve --- */
-/* a function declaration, hoisted: defineWidget draws once at load, before
-   the module's later `const`s exist (the Transform page threw on that) */
-function transformOf(u, an) { return u === "raw" ? (v) => v : u === "log2" ? (v) => log2(v + 1) : an.vst; }
-/** one unit's picture at one alpha; two units on one axis are drawn once with
-    the SDs and curve interpolated (`uB`, `e`) */
-function drawTransformAt(ctx, colors, w, state, uA, uB, e, alpha) {
-  const { an, sim, nullG, sdBins } = state;
+/* --- Transform: SD against mean on a log axis whose range eases with the unit ------ */
+function drawTransform(ctx, colors, w, state, uFrom, uTo, eU, D) {
   const H = HEIGHTS.transform, half = Math.floor(w / 2);
-  const fA = transformOf(uA, an), fB = transformOf(uB, an);
-  const raw = uA === "raw";
-  const clampY = (v) => (raw ? Math.min(2000, v) : Math.min(1.6, v));
-  ctx.save(); ctx.globalAlpha = alpha;
+  const yd = [lerp(SD_DOMAIN[uFrom][0], SD_DOMAIN[uTo][0], eU), lerp(SD_DOMAIN[uFrom][1], SD_DOMAIN[uTo][1], eU)];
   {
-    const F = raw
-      ? frame(ctx, colors, { x0: 50, y0: 30, x1: half - 16, y1: H - 40 }, [0, 4.3], [-0.3, 3.3], { xlabel: "mean of normalised counts", ylabel: "unchanged genes: SD across replicates", xt: [1, 10, 100, 1000, 10000], yt: [1, 10, 100, 1000], xfmt: bigNum })
-      : frame(ctx, colors, { x0: 50, y0: 30, x1: half - 16, y1: H - 40 }, [0, 4.3], [0, 1.6], { ylog: false, xlabel: "mean of normalised counts", ylabel: "unchanged genes: SD across replicates", xt: [1, 10, 100, 1000, 10000], yt: [0, 0.5, 1, 1.5], xfmt: bigNum });
-    for (const g of nullG) {
-      if (an.baseMean[g] < 1) continue;
-      const norm = sim.counts[g].map((v, j) => v / an.sf[j]);
-      const sA = sd(norm.map(fA)), sB = sd(norm.map(fB));
-      if (!(sA > 0) || !(sB > 0)) continue;
-      dot(ctx, F.sx(an.baseMean[g]), F.sy(clampY(lerp(sA, sB, e))), 1.6, colors.empirical, 0.45);
-    }
-    for (const b of sdBins) {
-      if (!Number.isFinite(b[uA]) || !Number.isFinite(b[uB])) continue;
-      const y = F.sy(clampY(lerp(b[uA], b[uB], e)));
-      curve(ctx, colors.theory, 2.5, [[F.sx(Math.max(1, b.a)), y], [F.sx(Math.min(20000, b.b)), y]]);
-    }
+    const F = frame(ctx, colors, { x0: 50, y0: 30, x1: half - 16, y1: H - 40 }, [0, 4.3], yd, { xlabel: "mean of normalised counts", ylabel: "unchanged genes: SD across replicates", xt: [1, 10, 100, 1000, 10000], yt: [0.1, 0.3, 1, 3, 10, 30, 100, 300, 1000], xfmt: bigNum });
+    const ylog = (v) => F.sy(10 ** v);
+    fadeOrDraw(ctx, D, (S, DD) => {
+      const st = S ?? state, base = ctx.globalAlpha;
+      for (const g of st.nullG) {
+        const bm = at(st, DD, "bmLog", g);
+        const a = at(st, DD, SD_KEY[uFrom], g), b = at(st, DD, SD_KEY[uTo], g);
+        if (!Number.isFinite(bm) || !Number.isFinite(a) || !Number.isFinite(b)) continue;
+        dot(ctx, F.sx(10 ** bm), ylog(lerp(a, b, eU)), 1.6, colors.empirical, 0.45 * base);
+      }
+      for (const b of st.sdBins) {
+        if (!Number.isFinite(b[uFrom]) || !Number.isFinite(b[uTo])) continue;
+        const y = ylog(lerp(log10(Math.max(0.05, b[uFrom])), log10(Math.max(0.05, b[uTo])), eU));
+        curve(ctx, colors.theory, 2.5, [[F.sx(Math.max(1, b.a)), y], [F.sx(Math.min(20000, b.b)), y]]);
+      }
+    });
   }
   {
-    const F = raw
-      ? frame(ctx, colors, { x0: half + 44, y0: 30, x1: w - 12, y1: H - 40 }, [0, 4], [0, 10000], { ylog: false, xlabel: "normalised count", ylabel: "the value the count becomes", xt: [1, 10, 100, 1000, 10000], yt: [0, 5000, 10000], xfmt: bigNum, yfmt: bigNum })
-      : frame(ctx, colors, { x0: half + 44, y0: 30, x1: w - 12, y1: H - 40 }, [0, 4], [0, 14], { ylog: false, xlabel: "normalised count", ylabel: "the value the count becomes", xt: [1, 10, 100, 1000, 10000], yt: [0, 4, 8, 12], xfmt: bigNum });
-    if (!raw) { const ref = []; for (let q = 0; q <= 4; q += 0.05) { const x = 10 ** q; ref.push([F.sx(x), F.sy(log2(x + 1))]); } curve(ctx, colors.reference, 1, ref); label(ctx, colors, "log2(x + 1)", F.sx(2), F.sy(log2(3)) + 14, { color: colors.reference }); }
-    const pts = []; for (let q = 0; q <= 4; q += 0.05) { const x = 10 ** q; pts.push([F.sx(x), F.sy(lerp(fA(x), fB(x), e))]); }
+    const ymax = lerp(CURVE_MAX[uFrom], CURVE_MAX[uTo], eU);
+    const yt = ymax > 100 ? [0, 5000, 10000].filter((t) => t <= ymax) : [0, 4, 8, 12];
+    const F = frame(ctx, colors, { x0: half + 44, y0: 30, x1: w - 12, y1: H - 40 }, [0, 4], [0, ymax], { ylog: false, xlabel: "normalised count", ylabel: "the value the count becomes", xt: [1, 10, 100, 1000, 10000], yt, xfmt: bigNum, yfmt: bigNum });
+    const fA = transformOf(uFrom, state.an), fB = transformOf(uTo, state.an);
+    /* the log2 reference is drawn beside a transform only: under counts it sat on the axis (the sweep) */
+    const refAlpha = uFrom === "raw" && uTo === "raw" ? 0 : uFrom === "raw" ? eU : uTo === "raw" ? 1 - eU : 1;
+    if (refAlpha > 0) {
+      const ref = []; for (let q = 0; q <= 4; q += 0.05) { const x = 10 ** q; ref.push([F.sx(x), F.sy(log2(x + 1))]); }
+      ctx.save(); ctx.globalAlpha = refAlpha; curve(ctx, colors.reference, 1, ref); label(ctx, colors, "log2(x + 1)", F.sx(40), F.sy(log2(41)) + 14, { color: colors.reference }); ctx.restore();
+    }
+    const pts = []; for (let q = 0; q <= 4; q += 0.05) { const x = 10 ** q; pts.push([F.sx(x), F.sy(lerp(fA(x), fB(x), eU))]); }
     curve(ctx, colors.empirical, 2, pts);
-    const u = e < 0.5 ? uA : uB;
-    label(ctx, colors, u === "raw" ? "the count itself" : u === "log2" ? "log2(x + 1)" : `vst: ${fmt(an.vst(0), 2)} at zero, log2 above a hundred`, F.x0 + 4, F.y0 + 12, { color: colors.empirical });
-  }
-  ctx.restore();
-}
-function drawTransform(ctx, colors, w, state, uFrom, uTo, e) {
-  if (uFrom === uTo || e >= 1) { drawTransformAt(ctx, colors, w, state, uTo, uTo, 1, 1); return; }
-  if (uFrom === "raw" || uTo === "raw") {
-    /* the axis itself changes: a crossfade */
-    drawTransformAt(ctx, colors, w, state, uFrom, uFrom, 1, 1 - e);
-    drawTransformAt(ctx, colors, w, state, uTo, uTo, 1, e);
-  } else {
-    /* the same axis: every SD and the curve slide */
-    drawTransformAt(ctx, colors, w, state, uFrom, uTo, e, 1);
+    const u = eU < 0.5 ? uFrom : uTo;
+    label(ctx, colors, u === "raw" ? "the count itself" : u === "log2" ? "log2(x + 1)" : `vst: ${fmt(state.an.vst(0), 2)} at zero, log2 above a hundred`, F.x0 + 4, F.y0 + 12, { color: colors.empirical });
   }
 }
 
 /* --- Test: one gene's fit; the MA plot, before and after LFC shrinkage --------------- */
-function drawTest(ctx, colors, w, params, state, frac) {
-  const { an, sim, ex } = state;
-  const r = an.resMAP[ex], fit = an.fits[ex], reps = state.reps;
+function drawTest(ctx, colors, w, params, state, frac, D) {
   const TOP = 210, half = Math.floor(w / 2);
-  {
+  /* the one gene: a different gene under a data change, so its panel crossfades */
+  const onePanel = (S, alpha) => {
+    const { an, sim, ex, reps } = S;
+    const r = an.resMAP[ex], fit = an.fits[ex];
+    ctx.save(); ctx.globalAlpha = alpha;
     const norm = sim.counts[ex].map((v, j) => v / an.sf[j]);
     const vals = norm.map((v) => log2(Math.max(0.5, v)));
     const lo = Math.floor(Math.min(...vals)) - 1, hi = Math.ceil(Math.max(...vals)) + 1;
@@ -409,39 +475,48 @@ function drawTest(ctx, colors, w, params, state, frac) {
     const xg = [0.28, 0.72];
     label(ctx, colors, "group A", F.sx(xg[0]), F.y1 + 13, { align: "center", color: colors.ink3 });
     label(ctx, colors, "group B", F.sx(xg[1]), F.y1 + 13, { align: "center", color: colors.ink3 });
-    norm.forEach((v, j) => dot(ctx, F.sx(xg[sim.grp[j]]) + ((j % reps) - (reps - 1) / 2) * 7, F.sy(log2(Math.max(0.5, v))), 3.5, colors.empirical));
+    norm.forEach((v, j) => dot(ctx, F.sx(xg[sim.grp[j]]) + ((j % reps) - (reps - 1) / 2) * 7, F.sy(log2(Math.max(0.5, v))), 3.5, colors.empirical, alpha));
     for (const k of [0, 1]) curve(ctx, colors.theory, 2, [[F.sx(xg[k]) - 24, F.sy(log2(fit.q[k]))], [F.sx(xg[k]) + 24, F.sy(log2(fit.q[k]))]]);
     const xm = F.sx(0.5);
     curve(ctx, colors.highlight, 1.5, [[xm, F.sy(log2(fit.q[0]))], [xm, F.sy(log2(fit.q[1]))]]);
     curve(ctx, colors.highlight, 4, [[xm + 8, F.sy(log2(fit.q[1]) - r.se)], [xm + 8, F.sy(log2(fit.q[1]) + r.se)]]);
-    /* the fit's numbers, in the right half's top */
-    const tx = half + 44, ty = 44;
     /* six short lines: the right half is 223px wide at the narrowest canvas */
+    const tx = half + 44, ty = 44;
     label(ctx, colors, `β = ${fmt(r.lfc, 2)}, the gap in log2`, tx, ty, { color: colors.highlight, weight: "600" });
     label(ctx, colors, `SE = ${fmt(r.se, 2)} at α = ${fmt(an.alphaMAP[ex], 3)}`, tx, ty + 16, { color: colors.ink2 });
     label(ctx, colors, `W = β / SE = ${fmt(r.W, 2)}`, tx, ty + 32, { color: colors.ink2 });
     label(ctx, colors, `p = ${sci(r.p)}, padj = ${sci(r.padj)}`, tx, ty + 48, { color: colors.ink2 });
     label(ctx, colors, `α: gene-wise ${fmt(an.alphaGW[ex], 3)}, trend ${fmt(an.alphaTr[ex], 3)}`, tx, ty + 64, { color: colors.ink3 });
     label(ctx, colors, frac > 0 ? `shrunk β = ${fmt(lerp(r.lfc, an.shrunk[ex], frac), 2)}, true ${fmt(sim.lfcT[ex], 2)}` : `true β = ${fmt(sim.lfcT[ex], 2)}`, tx, ty + 80, { color: colors.ink3 });
-  }
-  const ma = (rect, lfcOf, title, alpha = 1) => {
+    ctx.restore();
+  };
+  if (D && D.from.ex !== state.ex) { onePanel(D.from, 1 - D.e); onePanel(state, D.e); } else onePanel(state, 1);
+  /* the MA plots: the same genes slide, new genes crossfade */
+  const ma = (rect, title, mix, alpha = 1) => {
     ctx.save(); ctx.globalAlpha = alpha;
     const F = frame(ctx, colors, rect, [0, 4.3], [-6, 6], { ylog: false, xlabel: "mean of normalised counts", ylabel: title, xt: [1, 10, 100, 1000, 10000], yt: [-4, -2, 0, 2, 4], xfmt: bigNum });
     curve(ctx, colors.reference, 1.5, [[F.sx(1), F.sy(0)], [F.sx(20000), F.sy(0)]]);
-    for (const g of an.expressed) { const sig = an.resMAP[g].padj < 0.1; dot(ctx, F.sx(Math.max(1, an.baseMean[g])), F.sy(Math.max(-6, Math.min(6, lfcOf(g)))), 1.6, sig ? colors.extreme : colors.empirical, sig ? 0.9 : 0.4); }
-    dot(ctx, F.sx(an.baseMean[ex]), F.sy(lfcOf(ex)), 5, colors.highlight);
+    fadeOrDraw(ctx, D, (S, DD) => {
+      const st = S ?? state, base = ctx.globalAlpha;
+      for (const g of st.an.expressed) {
+        const bm = at(st, DD, "bmLog", g), y = mix(st, DD, g);
+        if (!Number.isFinite(bm) || !Number.isFinite(y)) continue;
+        const sig = st.an.resMAP[g].padj < 0.1;
+        dot(ctx, F.sx(10 ** bm), F.sy(y), 1.6, sig ? colors.extreme : colors.empirical, (sig ? 0.9 : 0.4) * base);
+      }
+      const exY = mix(st, DD, st.ex);
+      if (Number.isFinite(exY)) dot(ctx, F.sx(Math.max(1, st.an.baseMean[st.ex])), F.sy(exY), 5, colors.highlight, base);
+    });
     ctx.restore();
-    return F;
   };
   const y0 = TOP + 10, y1 = HEIGHTS.test - 40;
-  ma({ x0: 44, y0, x1: half - 16, y1 }, (g) => an.resMAP[g].lfc, "1,200 genes: log2 fold change against mean");
+  ma({ x0: 44, y0, x1: half - 16, y1 }, "1,200 genes: log2 fold change against mean", (st, DD, g) => at(st, DD, "lfc", g));
   if (frac > 0) {
     /* the after plot fades in as every dot slides from its fold change to the shrunk one;
        what it removed and what it cost are the second tile's numbers */
-    ma({ x0: half + 44, y0, x1: w - 12, y1 }, (g) => lerp(an.resMAP[g].lfc, an.shrunk[g], frac), "after shrinking the fold changes", Math.min(1, frac * 2));
+    ma({ x0: half + 44, y0, x1: w - 12, y1 }, "after shrinking the fold changes", (st, DD, g) => lerp(at(st, DD, "lfc", g), at(st, DD, "shrunk", g), frac), Math.min(1, frac * 2));
   } else {
     frame(ctx, colors, { x0: half + 44, y0, x1: w - 12, y1 }, [0, 4.3], [-6, 6], { ylog: false, ylabel: "after shrinking the fold changes", xt: [], yt: [] });
     label(ctx, colors, "shrink the fold changes to draw it", (half + 44 + w - 12) / 2, (y0 + y1) / 2, { align: "center", color: colors.ink3 });
   }
-
 }

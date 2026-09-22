@@ -19133,10 +19133,15 @@ vst. `_lab/deseq2-measure.mjs` (5 s) writes `deseq2-measure.json`.
 
 | replicates | trend a0 / a1 (true 0.05 / 2) | prior sd | FDR gene-wise | FDR shrunk | FDR true α | power shrunk | ms |
 |---|---|---|---|---|---|---|---|
-| 2 | 0.024 / 2.21 | 0.78 | 56% | 39% | 9% | 67% | 75 |
-| 3 | 0.049 / 1.59 | 0.69 | 39% | 17% | 12% | 73% | 84 |
-| 4 | 0.049 / 2.00 | 0.68 | 32% | 18% | 8% | 75% | 93 |
-| 6 | 0.049 / 1.94 | 0.59 | 23% | 16% | 7% | 85% | 113 |
+| 2 | 0.045 / 0.60 | 1.00 | 58% | 35% | 8% | 69% | 74 |
+| 3 | 0.041 / 1.54 | 0.77 | 42% | 28% | 12% | 67% | 82 |
+| 4 | 0.051 / 1.61 | 0.64 | 35% | 24% | 12% | 76% | 90 |
+| 6 | 0.043 / 2.34 | 0.57 | 22% | 17% | 8% | 87% | 113 |
+
+(Re-measured after round 2 moved the genes' truths ahead of the
+replicate-dependent draws in `simulate`, so the stream changed; the first
+run read 56/39/32/23% gene-wise and 39/17/18/16% shrunk. The shape is the
+finding, and it held.)
 
 At 4,000 genes the same shape (3 reps: 38% / 20% / 7%). Model: at μ = 100 and
 α = 0.05 the SD is 24.5 against Poisson's 10; null genes' variance/mean runs
@@ -19201,6 +19206,26 @@ where the picture is. Found on the way: a `const` helper declared after
 `defineWidget` threw on the Transform page's first draw (the temporal dead
 zone; the module draws once at load) — a function declaration now, and the
 record here so the next widget's helpers go above the call or as functions.
+
+**Round 2** (2026-09-22) — *some of the tweens are absent or weird: no
+tweening when changing the data control sliders; the transform's counts →
+log2(x + 1) is a crossfade?* Both fixed. **Data changes ease** through core's
+data door (`init` sets `anim.easing`, as widget 53's cat-along-a-dim), the
+widget carrying the picture it last painted in module scope: a change of
+replicates keeps the SAME 1,200 genes — the engine now draws the genes'
+truths before anything that depends on the replicate count — so every
+estimate, variance, SD and fold change slides to its new value, the trend
+and its label counting along, and the 60 genes on the Dispersion page are
+chosen by quantiles of the TRUE mean so the set is the same at every
+replicate count; a seed change is different genes, so the picture
+crossfades; the Model page's mean and α morph the two curves between the
+old and the new parameters while the replicate ticks, new draws, crossfade;
+the Test page's example gene crossfades when it is a different gene. **The
+Transform page's unit switch is a slide in every direction**: the SD panel
+has one log axis whose range eases with the unit (counts 1–2,000 → transforms
+0.1–2, the ticks moving with it), and the curve panel's maximum eases, so
+counts → log2(x + 1) slides every dot and bends the line, which the pane's
+throttled screenshot caught mid-way. Sweep clean.
 
 **Host.** 01-2 cell 1 and cell 22 are the notebook's own exposition, four
 figures (`deseq2-nb`, `deseq2-mle`, `deseq2-map`, `deseq2-shrinkage`) and
