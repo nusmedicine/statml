@@ -19227,6 +19227,34 @@ has one log axis whose range eases with the unit (counts 1–2,000 → transform
 counts → log2(x + 1) slides every dot and bends the line, which the pane's
 throttled screenshot caught mid-way. Sweep clean.
 
+**Round 3** (2026-09-22) — *can you demonstrate step by step how empirical
+Bayes works? Also use MathML where appropriate.* **The Dispersion page is a
+walkthrough**, the notebook's own three figures (deseq2-mle, deseq2-map,
+deseq2-shrinkage) as three presses of Step, read rather than played (4.5, so
+Step alone; the other pages have nothing to step and the button is disabled
+there through `done`). The page splits: left, the 60 estimates against the
+mean as before; right, ONE GENE walked through — a low-count gene chosen at
+compute for a wide likelihood and a large pull, ringed grey on the left —
+with its curves over α on a log axis, each scaled to its maximum. *Open:*
+its likelihood from its own replicates (blue) with its maximum marked, the
+gene-wise estimate; the card reads L(α) = ∏ NB(y_j; μ_j, α), α̂ = argmax log
+L. *Fit the trend:* the trend draws in through all genes on the left, and
+on the right the prior appears (red), centred on the trend's value at this
+gene's mean, its width the prior SD; the card reads log α ~ N(log α_tr(μ̄),
+σ²) with α_tr = a0 + a1/μ. *Multiply by the prior:* the posterior (violet)
+appears, prior × likelihood, its mode marked as the shrunk estimate, and
+the one gene's arrow grows on the left; the card reads posterior ∝ L ×
+prior, α_MAP = argmax [log L + log prior]. *Shrink every gene:* every
+arrow grows. The tiles read the one gene's own and shrunk estimate with the
+trend's value and the prior SD, and the null genes called at padj < 0.1
+gene-wise → shrunk once the last step is taken. The likelihood is the
+engine's Cox–Reid log-likelihood on an 81-point grid, the prior the same
+normal in log α the MAP step maximises against, so the posterior's mode on
+the page IS the engine's MAP. `shown=` seeds the steps; the toggle is gone.
+First draft's walk gene sat at the floor (its likelihood rose to α → 0 and
+"own estimate 0.000" was drawn off its axis): the walker now needs an
+estimate off the floor, and a mark is clamped to the axis.
+
 **Host.** 01-2 cell 1 and cell 22 are the notebook's own exposition, four
 figures (`deseq2-nb`, `deseq2-mle`, `deseq2-map`, `deseq2-shrinkage`) and
 every formula the widget needs: `y ~ NB(μ, α)`, the geometric-mean ratio and
