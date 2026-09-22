@@ -119,6 +119,7 @@ let lastState = null, lastParams = null;
    the page has anything left to step */
 function settle(anim, page) {
   const max = stagesOf(page), n = anim.n[page] ?? 0;
+  anim.inert = max === 0;                 // core takes Step out of the row on a page with nothing to step (his round 7)
   anim.done = n >= max && anim.p >= 1;
   anim.labelAt = anim.done ? "done" : `${page[0]}${n}`;
 }
@@ -278,8 +279,9 @@ defineWidget({
     return [
       { token: "empirical", label: "A replicate's count; a gene", mark: "bar" },
       { token: "theory", label: "A group's mean: the GLM's coefficient", mark: "line" },
-      { token: "highlight", label: "β, the log2 fold change, and its SE", mark: "line" },
-      { token: "extreme", label: "padj < 0.1", mark: "bar" },
+      { token: "highlight", label: "β and its SE; on the MA plot, the gene fitted above", mark: "line" },
+      { token: "extreme", label: "padj < 0.1: called changed", mark: "bar" },
+      { token: "reference", label: "A ring: a gene that truly changed", mark: "bar" },
     ];
   },
 
@@ -447,7 +449,7 @@ defineWidget({
     const r = an.resMAP[ex];
     return [
       { label: "β: the log2 fold change of the gene", value: stage >= 2 ? `${fmt(r.lfc, 2)} → ${fmt(an.shrunk[ex], 2)}` : fmt(r.lfc, 2), note: `true ${fmt(state.sim.lfcT[ex], 2)}${stage >= 1 ? `; SE ${fmt(r.se, 2)}, W = ${fmt(r.W, 2)}, p = ${sci(r.p)}, padj = ${sci(r.padj)}` : "; the gap between the group means"}${stage >= 2 ? "; shrunk after the test, p unchanged" : ""}` },
-      { label: "Unchanged genes under a mean of 10 read at |LFC| > 1", value: stage >= 2 ? `${state.funnel.before} → ${state.funnel.after}` : String(state.funnel.before), note: `of ${state.funnel.lowNull}${stage >= 2 ? `; changed genes with a true |LFC| > 1 still read so: ${state.cost.before} → ${state.cost.after} of ${state.cost.deBig}` : stage >= 1 ? "; the funnel: a low count makes a wide fold change" : ""}` },
+      { label: "Unchanged genes under a mean of 10 read at |LFC| > 1", value: stage >= 2 ? `${state.funnel.before} → ${state.funnel.after}` : String(state.funnel.before), note: `of ${state.funnel.lowNull}${stage >= 2 ? `; changed genes with a true |LFC| > 1 still read so: ${state.cost.before} → ${state.cost.after} of ${state.cost.deBig}; the calls are the test's and stay` : stage >= 1 ? "; the funnel: a low count makes a wide fold change" : ""}` },
     ];
   },
 });
@@ -636,9 +638,10 @@ function drawFit(ctx, colors, w, state, stage, p, D) {
   };
   if (D && D.from.ex !== state.ex) { onePanel(D.from, 1 - D.e); onePanel(state, D.e); } else onePanel(state, 1);
   /* the MA plots: the same genes slide, new genes crossfade */
-  const ma = (rect, title, mix, alpha = 1) => {
+  const ma = (rect, title, mix, caption, alpha = 1) => {
     ctx.save(); ctx.globalAlpha = alpha;
     const F = frame(ctx, colors, rect, [0, 4.3], [-6, 6], { ylog: false, xlabel: "mean of normalised counts", ylabel: title, xt: [1, 10, 100, 1000, 10000], yt: [-4, -2, 0, 2, 4], xfmt: bigNum });
+    label(ctx, colors, caption, F.x0 + 4, F.y0 + 12, { color: colors.ink3 });
     curve(ctx, colors.reference, 1.5, [[F.sx(1), F.sy(0)], [F.sx(20000), F.sy(0)]]);
     fadeOrDraw(ctx, D, (S, DD) => {
       const st = S ?? state, base = ctx.globalAlpha;
@@ -649,18 +652,30 @@ function drawFit(ctx, colors, w, state, stage, p, D) {
         const sig = testF > 0 && st.an.resMAP[g].padj < 0.1;
         dot(ctx, F.sx(10 ** bm), F.sy(y), 1.6, colors.empirical, 0.4 * base);
         if (sig) dot(ctx, F.sx(10 ** bm), F.sy(y), 1.6, colors.extreme, 0.9 * testF * base);
+        /* the truth is a ring, so colour carries one grouping (the call) and enclosure the other */
+        if (st.sim.isDE[g]) { ctx.save(); ctx.globalAlpha = 0.85 * base; ctx.strokeStyle = colors.reference; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(F.sx(10 ** bm), F.sy(y), 3.2, 0, Math.PI * 2); ctx.stroke(); ctx.restore(); }
       }
       const exY = mix(st, DD, st.ex);
-      if (Number.isFinite(exY)) dot(ctx, F.sx(Math.max(1, st.an.baseMean[st.ex])), F.sy(exY), 5, colors.highlight, base);
+      if (Number.isFinite(exY)) {
+        const ex0 = F.sx(Math.max(1, st.an.baseMean[st.ex])), ey0 = F.sy(exY);
+        dot(ctx, ex0, ey0, 5, colors.highlight, base);
+        ctx.save(); ctx.globalAlpha = base; label(ctx, colors, "the gene above", ex0 + 8, ey0 + 4, { color: colors.highlight }); ctx.restore();
+      }
     });
     ctx.restore();
   };
   const y0 = TOP + 10, y1 = HEIGHTS.fit - 40;
-  ma({ x0: 44, y0, x1: half - 16, y1 }, "1,200 genes: log2 fold change against mean", (st, DD, g) => at(st, DD, "lfc", g));
+  /* what the dots mean, per stage (his round 7): before the test every gene's
+     β is blue with the truth ringed; the test colours the calls, so red without
+     a ring is a false call and a ring without red a miss; shrinkage changes β,
+     not p — the calls stay, the low-count fold changes shrink toward 0 */
+  ma({ x0: 44, y0, x1: half - 16, y1 }, "1,200 genes: log2 fold change against mean", (st, DD, g) => at(st, DD, "lfc", g),
+    stage >= 1 ? "red: called at padj < 0.1 · ring: truly changed" : "every gene's β · ring: truly changed");
   if (frac > 0) {
     /* the after plot fades in as every dot slides from its fold change to the shrunk one;
        what it removed and what it cost are the second tile's numbers */
-    ma({ x0: half + 44, y0, x1: w - 12, y1 }, "after shrinking the fold changes", (st, DD, g) => lerp(at(st, DD, "lfc", g), at(st, DD, "shrunk", g), frac), Math.min(1, frac * 2));
+    ma({ x0: half + 44, y0, x1: w - 12, y1 }, "after shrinking the fold changes", (st, DD, g) => lerp(at(st, DD, "lfc", g), at(st, DD, "shrunk", g), frac),
+      "same calls; low-count β pulled to 0", Math.min(1, frac * 2));
   } else {
     frame(ctx, colors, { x0: half + 44, y0, x1: w - 12, y1 }, [0, 4.3], [-6, 6], { ylog: false, ylabel: "after shrinking the fold changes", xt: [], yt: [] });
     label(ctx, colors, stage >= 1 ? "shrink the fold changes to draw it" : "test, then shrink the fold changes", (half + 44 + w - 12) / 2, (y0 + y1) / 2, { align: "center", color: colors.ink3 });

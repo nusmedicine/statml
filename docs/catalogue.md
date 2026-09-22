@@ -19318,6 +19318,24 @@ unchanged). The card's first line is the GLM alone, the second the Wald test,
 the third the posterior mean under the spike-and-normal prior. Twenty sweep
 states.
 
+**Round 7** (2026-09-22) — *some pages have no active Step; remove it there.
+On the Fit page, what is the highlighted dot? Which dots are significant,
+which shrank, do they affect the true changes — is LFC shrinkage to reduce
+false positives?* **Step leaves the pages with nothing to step** through
+core's `anim.inert` (the door widget 18 opened), set in `settle` when the
+page has no stages, so Distribution and Transform show Reset alone. **The
+MA plot says what its dots are:** the violet dot is the gene fitted above and
+is now labelled so; the truth is a ring in the reference hue on every gene
+that truly changed, so colour carries one grouping (the call) and enclosure
+the other, and after *Test* red without a ring is a false call and a ring
+without red a miss; a caption on each plot reads per stage. **And the
+answer, on the page and in the tile:** shrinkage changes β, not p — the
+calls are the test's and stay; what it does is pull the fold changes of
+low-count genes toward zero, where a few reads make a wide β, so the MA plot
+and a ranking by fold change stop being led by noise, at the cost of some
+true large effects at low counts (the tile's second number). It is not a
+false-positive control; padj is.
+
 **Host.** 01-2 cell 1 and cell 22 are the notebook's own exposition, four
 figures (`deseq2-nb`, `deseq2-mle`, `deseq2-map`, `deseq2-shrinkage`) and
 every formula the widget needs: `y ~ NB(μ, α)`, the geometric-mean ratio and
