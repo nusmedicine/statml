@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · deseq2 — four pages, computed</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1800px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 104ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); min-height: 26px; white-space: pre-line; max-width: 560px; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 104ch; }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 104ch; }
+  table.t { border-collapse: collapse; font-size: var(--fs-xs); font-family: var(--font-mono); color: var(--ink-2); margin: 0 0 var(--sp-3); }
+  table.t td, table.t th { padding: 2px 10px; border-bottom: 1px solid var(--grid); text-align: right; }
+  table.t th { color: var(--ink-3); font-weight: 400; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>deseq2 &middot; four pages, every figure computed here from the widget's engine</h1>
+  <p class="note">
+    His pick at planning: four pages in the NOTEBOOK's order, <b>Model &middot; Dispersion &middot; Transform &middot; Test</b>, on a simulated
+    stage (1,200 genes, a tenth of them changed, three replicates a group unless the control says otherwise). The engine is
+    <code>widgets/deseq2/engine.js</code>; <code>_lab/deseq2-measure.mjs</code> ran it at 2, 3, 4 and 6 replicates first (table at the foot).
+    Blue is a gene's own number (empirical), grey the truth or the Poisson line (reference), red the fitted trend (theory), violet the
+    shrunk estimate or the one thing to look at (highlight). Each canvas is the widget's own width.
+  </p>
+
+  <h2>1 &middot; Model &mdash; one gene's counts, Poisson beside negative binomial; the variance against the mean over all genes</h2>
+  <p class="note">Left: a gene at mean 100 across replicates, and the two distributions with that mean: Poisson (SD 10) and NB with &alpha; = 0.05
+    (SD 24). The six replicate counts are drawn as ticks. Right: every gene's variance across its replicates against its mean, log&ndash;log; the
+    grey line is Poisson (variance = mean), the red curve is &mu; + &alpha;&mu;&sup2; at the trend's &alpha;. Controls on this page: the mean and &alpha; of the one gene.</p>
+  <div class="row" id="rowModel"></div>
+
+  <h2>2 &middot; Dispersion &mdash; plotDispEsts: each gene's own estimate, the trend as the prior, the shrunk estimate as the posterior</h2>
+  <p class="note">A: the notebook's own figure at 1,200 genes &mdash; gene-wise (blue), trend (red), MAP (violet), the outliers left on their own estimate
+    ringed. B: the exposition's figure (deseq2-shrinkage.png) &mdash; the same, on 60 genes, with an arrow from each gene's own estimate to its
+    shrunk one, so the pull toward the trend is drawn. The readout under either: null genes called at padj &lt; 0.1 with the gene-wise and with the
+    shrunk dispersion, which is the empirical Bayes argument in one number. Control: replicates 2 &middot; 3 &middot; 4 &middot; 6.</p>
+  <div class="row" id="rowDisp"></div>
+  <table class="t" id="tDisp"></table>
+
+  <h2>3 &middot; Transform &mdash; the SD across replicates against the mean: raw counts, log2(x + 1), the vst</h2>
+  <p class="note">Left: one dot per null gene, the SD of its normalised counts across the six replicates against its mean, under each transform
+    (raw counts are off the axis: their SD is the square root of the mean and more). Right: the two transforms as curves against the count,
+    where the vst leaves log2 near zero and joins it above a hundred. This is why the PCA and the heatmap take <code>vsd</code>.</p>
+  <div class="row" id="rowTrans"></div>
+
+  <h2>4 &middot; Test &mdash; one gene's fit, and the MA plot over all genes, before and after LFC shrinkage</h2>
+  <p class="note">Left: one changed gene &mdash; its replicates in each group on a log2 axis after the size factors, the two group means (the GLM's two
+    coefficients on the log link), &beta; as their difference, the SE bar from the working weights, W and p. Middle and right: the MA plot as
+    <code>plotMA</code> draws it, padj &lt; 0.1 coloured; then after LFC shrinkage, with what it removed and what it cost printed.</p>
+  <div class="row" id="rowTest"></div>
+
+  <h2>The calls</h2>
+  <p class="q"><b>1 &middot; The Dispersion figure</b> &nbsp; A &middot; plotDispEsts at 1,200 genes (the lesson's own plot) &nbsp;|&nbsp;
+    <b>B &middot; the arrows on 60 genes, as the exposition's figure (recommended: the pull is the lesson, and a dot cloud hides it)</b> &nbsp;|&nbsp;
+    A, with B's arrows on the gene under the pointer</p>
+  <p class="q"><b>2 &middot; The Test page's MA plot</b> &nbsp; <b>before and after side by side (recommended: the reader compares two pictures)</b> &nbsp;|&nbsp;
+    one plot with a Shrink toggle that eases each dot to its shrunk place</p>
+  <p class="q"><b>3 &middot; The Model page</b> &nbsp; <b>both panels (recommended)</b> &nbsp;|&nbsp; the variance-against-mean panel only &nbsp;|&nbsp; the one gene only</p>
+  <p class="q"><b>4 &middot; The one data control across pages</b> &nbsp; <b>replicates 2 &middot; 3 &middot; 4 &middot; 6 and a seed (recommended)</b> &nbsp;|&nbsp;
+    also the share of genes changed &nbsp;|&nbsp; also the dispersion spread</p>
+  <p class="q"><b>5 &middot; The Test page's one gene</b> &nbsp; <b>a fixed changed gene near mean 100, chosen at compute (recommended)</b> &nbsp;|&nbsp;
+    the gene under the pointer on the MA plot</p>
+  <p class="q"><b>6 &middot; Title</b> &nbsp; <b>Bulk RNA-seq: Differential Expression (as planned)</b> &nbsp;|&nbsp; Bulk RNA-seq: DESeq2</p>
+
+  <h2>Measured (deseq2-measure.mjs, 1,200 genes)</h2>
+  <table class="t" id="tMeasure"></table>
+</main>
+<script type="module">
+import { readTokens } from "../core/env.js";
+import { makeRng } from "../core/rng.js";
+import { simulate, analyse, median, log2, nbPmf, poissonPmf, nbDraw } from "../deseq2/engine.js";
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+const mean = (a) => a.reduce((s, v) => s + v, 0) / a.length;
+const sd = (a) => { const m = mean(a); return Math.sqrt(a.reduce((s, v) => s + (v - m) ** 2, 0) / (a.length - 1)); };
+const fmt = (v, d = 2) => (Number.isFinite(v) ? v.toFixed(d) : "—");
+const log10 = (x) => Math.log10(x);
+
+function canvas(host, title, sub, W = 550, H = 260) {
+  const d = document.createElement("div"); d.className = "cand";
+  d.innerHTML = `<h3>${title}</h3><p class="sub">${sub}</p>`;
+  const c = document.createElement("canvas"); c.width = W * DPR; c.height = H * DPR; c.style.width = W + "px"; c.style.height = H + "px";
+  d.appendChild(c); host.appendChild(d);
+  const ctx = c.getContext("2d"); ctx.scale(DPR, DPR);
+  ctx.font = `${T.fsXs} ${T.font}`; ctx.textBaseline = "alphabetic";
+  return { ctx, W, H };
+}
+const text = (ctx, s, x, y, { color = T.ink2, align = "left", font = `${T.fsXs} ${T.font}` } = {}) => { ctx.fillStyle = color; ctx.textAlign = align; ctx.font = font; ctx.fillText(s, x, y); };
+/* a small log–log or log–linear frame */
+function frame(ctx, { x0, y0, x1, y1 }, xd, yd, { xlog = true, ylog = true, xlabel = "", ylabel = "", xt = [], yt = [] } = {}) {
+  const sx = (v) => x0 + (((xlog ? log10(v) : v) - xd[0]) / (xd[1] - xd[0])) * (x1 - x0);
+  const sy = (v) => y1 - (((ylog ? log10(v) : v) - yd[0]) / (yd[1] - yd[0])) * (y1 - y0);
+  ctx.strokeStyle = T.grid; ctx.lineWidth = 1;
+  for (const t of xt) { ctx.beginPath(); ctx.moveTo(sx(t) + 0.5, y0); ctx.lineTo(sx(t) + 0.5, y1); ctx.stroke(); text(ctx, String(t), sx(t), y1 + 13, { color: T.ink3, align: "center", font: `${T.fsXs} ${T.mono}` }); }
+  for (const t of yt) { ctx.beginPath(); ctx.moveTo(x0, sy(t) + 0.5); ctx.lineTo(x1, sy(t) + 0.5); ctx.stroke(); text(ctx, String(t), x0 - 5, sy(t) + 4, { color: T.ink3, align: "right", font: `${T.fsXs} ${T.mono}` }); }
+  ctx.strokeStyle = T.ink3; ctx.beginPath(); ctx.moveTo(x0, y1 + 0.5); ctx.lineTo(x1, y1 + 0.5); ctx.stroke();
+  if (xlabel) text(ctx, xlabel, (x0 + x1) / 2, y1 + 26, { color: T.ink3, align: "center" });
+  if (ylabel) text(ctx, ylabel, x0, y0 - 6, { color: T.ink3 });
+  return { sx, sy };
+}
+const dot = (ctx, x, y, r, color, alpha = 1) => { ctx.save(); ctx.globalAlpha = alpha; ctx.fillStyle = color; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); ctx.restore(); };
+
+/* --- the stage: 1,200 genes, 3 vs 3, seed 1 ------------------------------------- */
+const REPS = 3;
+const sim = simulate(makeRng(1), { genes: 1200, reps: REPS });
+const an = analyse(sim);
+const nullG = an.expressed.filter((g) => !sim.isDE[g]), deG = an.expressed.filter((g) => sim.isDE[g]);
+
+/* --- 1 · Model --------------------------------------------------------------------- */
+{
+  const mu = 100, alpha = 0.05;
+  const rng = makeRng(5);
+  const reps6 = Array.from({ length: 6 }, () => nbDraw(rng, mu, alpha));
+  const { ctx, W, H } = canvas(document.getElementById("rowModel"), "One gene at mean 100: Poisson, and negative binomial with α = 0.05",
+    `six replicate counts ${reps6.join(" ")}; SD Poisson 10.0, NB 24.5`);
+  const kmax = 220;
+  const P = [], N = []; let pm = 0;
+  for (let k = 0; k <= kmax; k += 1) { P.push(poissonPmf(k, mu)); N.push(nbPmf(k, mu, alpha)); pm = Math.max(pm, P[k], N[k]); }
+  const F = frame(ctx, { x0: 44, y0: 26, x1: W - 14, y1: H - 40 }, [0, kmax], [0, pm * 1.05], { xlog: false, ylog: false, xlabel: "count", ylabel: "probability", xt: [0, 50, 100, 150, 200] });
+  const curve = (arr, color, width) => { ctx.strokeStyle = color; ctx.lineWidth = width; ctx.beginPath(); arr.forEach((p, k) => (k ? ctx.lineTo(F.sx(k), F.sy(p)) : ctx.moveTo(F.sx(k), F.sy(p)))); ctx.stroke(); };
+  curve(P, T.reference, 1.5); curve(N, T.theory, 2);
+  for (const c of reps6) { ctx.strokeStyle = T.empirical; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(F.sx(c), F.sy(0)); ctx.lineTo(F.sx(c), F.sy(0) - 14); ctx.stroke(); }
+  text(ctx, "Poisson: variance = mean", F.sx(118), F.sy(P[100]) - 4, { color: T.reference });
+  text(ctx, "NB: variance = mean + α·mean²", F.sx(150), F.sy(N[150]) - 8, { color: T.theory });
+  text(ctx, "a replicate's count", F.sx(reps6[0]) + 6, F.sy(0) - 16, { color: T.empirical });
+}
+{
+  const { ctx, W, H } = canvas(document.getElementById("rowModel"), "1,200 genes: the variance across replicates against the mean",
+    `grey line: Poisson; red curve: μ + αμ² at the trend's α = ${fmt(an.trend.a0, 3)}`);
+  const F = frame(ctx, { x0: 50, y0: 26, x1: W - 14, y1: H - 40 }, [0, 4], [0, 7], { xlabel: "mean of normalised counts", ylabel: "variance across replicates", xt: [1, 10, 100, 1000, 10000], yt: [1, 100, 10000, 1000000] });
+  for (const g of an.expressed) { const v = sd(sim.counts[g].map((x, j) => x / an.sf[j])) ** 2; if (v > 0 && an.baseMean[g] > 1) dot(ctx, F.sx(an.baseMean[g]), F.sy(v), 1.6, sim.isDE[g] ? T.highlight : T.empirical, 0.45); }
+  ctx.strokeStyle = T.reference; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(F.sx(1), F.sy(1)); ctx.lineTo(F.sx(10000), F.sy(10000)); ctx.stroke();
+  ctx.strokeStyle = T.theory; ctx.lineWidth = 2; ctx.beginPath();
+  for (let e = 0; e <= 4; e += 0.05) { const m = 10 ** e, v = m + an.trend.a0 * m * m; e ? ctx.lineTo(F.sx(m), F.sy(v)) : ctx.moveTo(F.sx(m), F.sy(v)); } ctx.stroke();
+  text(ctx, "Poisson", F.sx(3000), F.sy(3000) + 12, { color: T.reference });
+  text(ctx, "μ + αμ²", F.sx(3000), F.sy(3000 + an.trend.a0 * 9e6) - 6, { color: T.theory });
+}
+
+/* --- 2 · Dispersion ---------------------------------------------------------------- */
+function dispPlot(host, title, sub, genesShown, arrows) {
+  const { ctx, W, H } = canvas(host, title, sub, 550, 300);
+  const F = frame(ctx, { x0: 50, y0: 26, x1: W - 14, y1: H - 40 }, [0, 4.3], [-3.2, 1.3], { xlabel: "mean of normalised counts", ylabel: "dispersion", xt: [1, 10, 100, 1000, 10000], yt: [0.001, 0.01, 0.1, 1, 10] });
+  const yc = (a) => F.sy(Math.min(20, Math.max(0.0006, a)));
+  for (const g of genesShown) {
+    const x = F.sx(Math.max(1, an.baseMean[g]));
+    if (arrows) {
+      ctx.strokeStyle = T.highlight; ctx.lineWidth = 1; ctx.globalAlpha = 0.8;
+      ctx.beginPath(); ctx.moveTo(x, yc(an.alphaGW[g])); ctx.lineTo(x, yc(an.alphaMAP[g])); ctx.stroke(); ctx.globalAlpha = 1;
+      dot(ctx, x, yc(an.alphaGW[g]), 3, T.empirical);
+      dot(ctx, x, yc(an.alphaMAP[g]), 3, T.highlight);
+      if (an.outlier[g]) { ctx.strokeStyle = T.highlight; ctx.beginPath(); ctx.arc(x, yc(an.alphaGW[g]), 6, 0, Math.PI * 2); ctx.stroke(); }
+    } else {
+      dot(ctx, x, yc(an.alphaGW[g]), 1.5, T.empirical, 0.5);
+      dot(ctx, x, yc(an.alphaMAP[g]), 1.5, T.highlight, 0.6);
+      if (an.outlier[g]) { ctx.strokeStyle = T.highlight; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(x, yc(an.alphaGW[g]), 4, 0, Math.PI * 2); ctx.stroke(); }
+    }
+  }
+  ctx.strokeStyle = T.theory; ctx.lineWidth = 2; ctx.beginPath();
+  for (let e = 0; e <= 4.3; e += 0.05) { const m = 10 ** e, a = an.trend.a0 + an.trend.a1 / m; e ? ctx.lineTo(F.sx(m), yc(a)) : ctx.moveTo(F.sx(m), yc(a)); } ctx.stroke();
+  text(ctx, `trend α = ${fmt(an.trend.a0, 3)} + ${fmt(an.trend.a1, 2)} / mean`, F.sx(300), yc(an.trend.a0) - 8, { color: T.theory });
+  text(ctx, "gene-wise", W - 14, 40, { align: "right", color: T.empirical });
+  text(ctx, "shrunk (MAP)", W - 14, 53, { align: "right", color: T.highlight });
+  text(ctx, "ringed: left on its own estimate", W - 14, 66, { align: "right", color: T.ink3 });
+}
+{
+  const fp = (res) => nullG.filter((g) => res[g].padj < 0.1).length, tp = (res) => deG.filter((g) => res[g].padj < 0.1).length;
+  const sub = `null genes at padj < 0.1: gene-wise ${fp(an.resGW)}, shrunk ${fp(an.resMAP)} (of ${nullG.length}); changed genes found ${tp(an.resGW)} and ${tp(an.resMAP)} of ${deG.length}`;
+  dispPlot(document.getElementById("rowDisp"), "A · plotDispEsts, 1,200 genes at 3 vs 3", sub, an.expressed, false);
+  const rng = makeRng(9);
+  const sample = an.expressed.filter(() => rng.next() < 60 / an.expressed.length);
+  dispPlot(document.getElementById("rowDisp"), "B · the pull toward the trend, 60 genes, an arrow each", "the exposition's figure (deseq2-shrinkage.png) on the same data", sample, true);
+  /* by replicates */
+  const t = document.getElementById("tDisp");
+  t.innerHTML = "<tr><th>replicates</th><th>trend a0</th><th>a1</th><th>prior sd</th><th>FDR gene-wise</th><th>FDR shrunk</th><th>FDR true α</th><th>power shrunk</th><th>ms</th></tr>";
+  for (const reps of [2, 3, 4, 6]) {
+    const t0 = performance.now();
+    const s2 = simulate(makeRng(7), { genes: 1200, reps }), a2 = analyse(s2);
+    const ms = performance.now() - t0;
+    const nG = a2.expressed.filter((g) => !s2.isDE[g]), dG = a2.expressed.filter((g) => s2.isDE[g]);
+    const fdr = (res) => { const f2 = nG.filter((g) => res[g].padj < 0.1).length, t2 = dG.filter((g) => res[g].padj < 0.1).length; return `${(100 * f2 / Math.max(1, f2 + t2)).toFixed(0)}%`; };
+    t.innerHTML += `<tr><td>${reps}</td><td>${fmt(a2.trend.a0, 3)}</td><td>${fmt(a2.trend.a1, 2)}</td><td>${fmt(Math.sqrt(a2.prior.priorVar), 2)}</td><td>${fdr(a2.resGW)}</td><td>${fdr(a2.resMAP)}</td><td>${fdr(a2.resTrue)}</td><td>${(100 * dG.filter((g) => a2.resMAP[g].padj < 0.1).length / dG.length).toFixed(0)}%</td><td>${ms.toFixed(0)}</td></tr>`;
+  }
+}
+
+/* --- 3 · Transform ------------------------------------------------------------------- */
+{
+  const { ctx, W, H } = canvas(document.getElementById("rowTrans"), "Null genes: SD across the six replicates against the mean",
+    "log2(x + 1) in blue, the vst in violet; raw counts off the axis");
+  const F = frame(ctx, { x0: 44, y0: 26, x1: W - 14, y1: H - 40 }, [0, 4], [0, 1.6], { ylog: false, xlabel: "mean of normalised counts", ylabel: "SD across replicates", xt: [1, 10, 100, 1000, 10000], yt: [0, 0.5, 1, 1.5] });
+  for (const g of nullG) {
+    const norm = sim.counts[g].map((v, j) => v / an.sf[j]);
+    dot(ctx, F.sx(Math.max(1, an.baseMean[g])), F.sy(Math.min(1.6, sd(norm.map((v) => log2(v + 1))))), 1.5, T.empirical, 0.45);
+    dot(ctx, F.sx(Math.max(1, an.baseMean[g])), F.sy(Math.min(1.6, sd(norm.map(an.vst)))), 1.5, T.highlight, 0.45);
+  }
+  const bins = [[1, 5], [5, 20], [20, 100], [100, 1000], [1000, 1e9]];
+  ctx.font = `${T.fsXs} ${T.mono}`;
+  bins.forEach(([a, b], k) => {
+    const gs = nullG.filter((g) => an.baseMean[g] >= a && an.baseMean[g] < b);
+    const norm = gs.map((g) => sim.counts[g].map((v, j) => v / an.sf[j]));
+    const s = (fn) => median(norm.map((row) => sd(row.map(fn))));
+    text(ctx, `${fmt(s((v) => log2(v + 1)), 2)}`, F.sx(Math.sqrt(a * Math.min(b, 20000))), H - 52, { color: T.empirical, align: "center", font: `${T.fsXs} ${T.mono}` });
+    text(ctx, `${fmt(s(an.vst), 2)}`, F.sx(Math.sqrt(a * Math.min(b, 20000))), H - 66, { color: T.highlight, align: "center", font: `${T.fsXs} ${T.mono}` });
+  });
+  text(ctx, "median SD per bin, vst over log2:", 48, H - 80, { color: T.ink3 });
+}
+{
+  const { ctx, W, H } = canvas(document.getElementById("rowTrans"), "The two transforms against the count",
+    `vst(0) = ${fmt(an.vst(0), 2)}: the vst is flat where a count is mostly noise, and log2 above a hundred`);
+  const F = frame(ctx, { x0: 44, y0: 26, x1: W - 14, y1: H - 40 }, [0, 4], [0, 14], { ylog: false, xlabel: "normalised count", ylabel: "transformed value", xt: [1, 10, 100, 1000, 10000], yt: [0, 4, 8, 12] });
+  const curve = (fn, color) => { ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.beginPath(); for (let e = 0; e <= 4; e += 0.05) { const x = 10 ** e; e ? ctx.lineTo(F.sx(x), F.sy(fn(x))) : ctx.moveTo(F.sx(x), F.sy(fn(x))); } ctx.stroke(); };
+  curve((x) => log2(x + 1), T.empirical); curve(an.vst, T.highlight);
+  text(ctx, "log2(x + 1)", F.sx(3), F.sy(log2(4)) + 14, { color: T.empirical });
+  text(ctx, "vst", F.sx(3), F.sy(an.vst(3)) - 8, { color: T.highlight });
+}
+
+/* --- 4 · Test ------------------------------------------------------------------------- */
+{
+  const ex = deG.filter((g) => an.baseMean[g] > 60 && an.baseMean[g] < 200).sort((a, b) => an.resMAP[a].p - an.resMAP[b].p)[2];
+  const r = an.resMAP[ex], fit = an.fits[ex];
+  const { ctx, W, H } = canvas(document.getElementById("rowTest"), `One changed gene: counts ${sim.counts[ex].join(" ")}`,
+    `size factors ${an.sf.map((v) => fmt(v, 2)).join(" ")}; group means ${fmt(fit.q[0], 1)} and ${fmt(fit.q[1], 1)}; α gene-wise ${fmt(an.alphaGW[ex], 3)}, trend ${fmt(an.alphaTr[ex], 3)}, MAP ${fmt(an.alphaMAP[ex], 3)}`, 550, 260);
+  const norm = sim.counts[ex].map((v, j) => v / an.sf[j]);
+  const lo = Math.floor(Math.min(...norm.map(log2))) - 1, hi = Math.ceil(Math.max(...norm.map(log2))) + 1;
+  const F = frame(ctx, { x0: 44, y0: 26, x1: W - 14, y1: H - 40 }, [0, 1], [lo, hi], { xlog: false, ylog: false, ylabel: "log2 of the normalised count", yt: Array.from({ length: hi - lo + 1 }, (_, k) => lo + k) });
+  const xg = [0.18, 0.42];
+  text(ctx, "group A", F.sx(xg[0]), H - 27, { align: "center" }); text(ctx, "group B", F.sx(xg[1]), H - 27, { align: "center" });
+  norm.forEach((v, j) => dot(ctx, F.sx(xg[sim.grp[j]]) + (j % REPS - 1) * 7, F.sy(log2(v)), 3.5, T.empirical));
+  for (const k of [0, 1]) { ctx.strokeStyle = T.theory; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(F.sx(xg[k]) - 22, F.sy(log2(fit.q[k]))); ctx.lineTo(F.sx(xg[k]) + 22, F.sy(log2(fit.q[k]))); ctx.stroke(); }
+  /* beta as the gap, the SE as a bar */
+  const xm = F.sx(0.5);
+  ctx.strokeStyle = T.highlight; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(xm, F.sy(log2(fit.q[0]))); ctx.lineTo(xm, F.sy(log2(fit.q[1]))); ctx.stroke();
+  ctx.strokeStyle = T.highlight; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(xm + 10, F.sy(log2(fit.q[1]) - r.se)); ctx.lineTo(xm + 10, F.sy(log2(fit.q[1]) + r.se)); ctx.stroke();
+  const tx = F.sx(0.5), ty = 60;
+  text(ctx, `β = ${fmt(r.lfc, 2)}: the log2 fold change (true ${fmt(sim.lfcT[ex], 2)})`, tx, ty, { color: T.highlight, font: `600 ${T.fsXs} ${T.font}` });
+  text(ctx, `SE = ${fmt(r.se, 2)}, from the weights μ / (1 + αμ)`, tx, ty + 15, { color: T.ink2 });
+  text(ctx, `W = β / SE = ${fmt(r.W, 2)}`, tx, ty + 30, { color: T.ink2 });
+  text(ctx, `p = ${r.p.toExponential(1)}, padj = ${r.padj.toExponential(1)}`, tx, ty + 45, { color: T.ink2 });
+  text(ctx, `shrunk β = ${fmt(an.shrunk[ex], 2)}`, tx, ty + 60, { color: T.ink3 });
+  text(ctx, "red: a group mean, the GLM's coefficient", tx, ty + 80, { color: T.theory });
+  text(ctx, "violet: β as the gap, its SE as a bar", tx, ty + 94, { color: T.highlight });
+}
+function maPlot(host, title, sub, lfcOf) {
+  const { ctx, W, H } = canvas(host, title, sub, 420, 260);
+  const F = frame(ctx, { x0: 40, y0: 26, x1: W - 14, y1: H - 40 }, [0, 4.3], [-6, 6], { ylog: false, xlabel: "mean of normalised counts", ylabel: "log2 fold change", xt: [1, 10, 100, 1000, 10000], yt: [-4, -2, 0, 2, 4] });
+  ctx.strokeStyle = T.reference; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(F.sx(1), F.sy(0)); ctx.lineTo(F.sx(20000), F.sy(0)); ctx.stroke();
+  for (const g of an.expressed) dot(ctx, F.sx(Math.max(1, an.baseMean[g])), F.sy(Math.max(-6, Math.min(6, lfcOf(g)))), 1.6, an.resMAP[g].padj < 0.1 ? T.extreme : T.empirical, an.resMAP[g].padj < 0.1 ? 0.9 : 0.4);
+  text(ctx, "padj < 0.1", W - 14, 40, { align: "right", color: T.extreme });
+}
+{
+  const big = (lfcOf, gs) => gs.filter((g) => Math.abs(lfcOf(g)) > 1).length;
+  const lowNull = nullG.filter((g) => an.baseMean[g] < 10), deBig = deG.filter((g) => Math.abs(sim.lfcT[g]) > 1);
+  maPlot(document.getElementById("rowTest"), "MA plot, 1,200 genes", `null genes under a mean of 10 read at |LFC| > 1: ${big((g) => an.resMAP[g].lfc, lowNull)} of ${lowNull.length}; changed genes with a true |LFC| > 1 read so: ${big((g) => an.resMAP[g].lfc, deBig)} of ${deBig.length}`, (g) => an.resMAP[g].lfc);
+  maPlot(document.getElementById("rowTest"), "After LFC shrinkage", `null genes under a mean of 10 at |LFC| > 1: ${big((g) => an.shrunk[g], lowNull)} of ${lowNull.length}; changed genes with a true |LFC| > 1 kept: ${big((g) => an.shrunk[g], deBig)} of ${deBig.length} — the cost`, (g) => an.shrunk[g]);
+}
+
+/* --- the measured table ----------------------------------------------------------- */
+fetch("./deseq2-measure.json").then((r) => r.json()).then((j) => {
+  const t = document.getElementById("tMeasure");
+  t.innerHTML = "<tr><th>finding</th></tr>" + j.findings.map((s) => `<tr><td style="text-align:left;white-space:pre">${s.replace(/</g, "&lt;")}</td></tr>`).join("");
+}).catch(() => {});
+</script>
+</body>
+</html>

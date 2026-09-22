@@ -1,0 +1,130 @@
+{
+  "when": "2026-09-22T07:53:35.382Z",
+  "table": [
+    {
+      "genes": 1200,
+      "reps": 2,
+      "ms": 75,
+      "trend": {
+        "a0": 0.024430719457758793,
+        "a1": 2.2092365056270586
+      },
+      "priorSd": 0.7793120952599512
+    },
+    {
+      "genes": 1200,
+      "reps": 3,
+      "ms": 84,
+      "trend": {
+        "a0": 0.049470318209038196,
+        "a1": 1.5866743369722187
+      },
+      "priorSd": 0.6892705429226414
+    },
+    {
+      "genes": 1200,
+      "reps": 4,
+      "ms": 93,
+      "trend": {
+        "a0": 0.049464167066573535,
+        "a1": 2.00352755638685
+      },
+      "priorSd": 0.6753924875122055
+    },
+    {
+      "genes": 1200,
+      "reps": 6,
+      "ms": 113,
+      "trend": {
+        "a0": 0.04878998513403356,
+        "a1": 1.9414243372789615
+      },
+      "priorSd": 0.5901317477952234
+    },
+    {
+      "genes": 4000,
+      "reps": 2,
+      "ms": 774,
+      "trend": {
+        "a0": 0.03467679773456932,
+        "a1": 1.4754227214895
+      },
+      "priorSd": 0.7194441716596341
+    },
+    {
+      "genes": 4000,
+      "reps": 3,
+      "ms": 793,
+      "trend": {
+        "a0": 0.041597007926552375,
+        "a1": 1.905746518909624
+      },
+      "priorSd": 0.6781366370798916
+    },
+    {
+      "genes": 4000,
+      "reps": 4,
+      "ms": 836,
+      "trend": {
+        "a0": 0.04222860228423934,
+        "a1": 2.323020700161937
+      },
+      "priorSd": 0.6079712181288457
+    },
+    {
+      "genes": 4000,
+      "reps": 6,
+      "ms": 915,
+      "trend": {
+        "a0": 0.047445195058257464,
+        "a1": 2.054142550861989
+      },
+      "priorSd": 0.594706156561084
+    }
+  ],
+  "findings": [
+    "MODEL — variance against mean: Poisson mu, negative binomial mu + alpha·mu²",
+    "  mu    10 alpha 0.05: SD Poisson   3.2  NB    3.9  (CV 38.7%); P(count > 2·mu) Poisson 1.6e-3  NB 9.6e-3",
+    "  mu   100 alpha 0.05: SD Poisson  10.0  NB   24.5  (CV 24.5%); P(count > 2·mu) Poisson 4.6e-19  NB 4.3e-4",
+    "  mu  1000 alpha 0.05: SD Poisson  31.6  NB  225.8  (CV 22.6%); P(count > 2·mu) Poisson 1.5e-170  NB 2.0e-4",
+    "  mu   100 alpha 0.50: SD Poisson  10.0  NB   71.4  (CV 71.4%); P(count > 2·mu) Poisson 4.6e-19  NB 9.2e-2",
+    "  mu   100 alpha 0.01: SD Poisson  10.0  NB   14.1  (CV 14.1%); P(count > 2·mu) Poisson 4.6e-19  NB 2.0e-9",
+    "  null genes, mean    5–  20: n  286, median variance/mean    3.1 (Poisson: 1)",
+    "  null genes, mean   20– 100: n  648, median variance/mean    5.1 (Poisson: 1)",
+    "  null genes, mean  100–1000: n  801, median variance/mean   14.1 (Poisson: 1)",
+    "  null genes, mean 1000–    : n  158, median variance/mean   81.8 (Poisson: 1)",
+    "DISPERSION — 1,200 genes (the widget's size) and 4,000; a tenth DE; realised FDR at padj < 0.1 and power, by replicates",
+    "  genes 1200 reps 2 (75 ms): trend a0 0.024 a1 2.21 (true 0.05, 2); prior sd 0.78; outliers kept 0; low-count |log error| gene-wise 1.04 shrunk 0.35",
+    "     gene-wise FDR  56.2% power  65.5% (null p<0.05 14.9%) | shrunk FDR  39.4% power  67.2% (null p<0.05 10.7%) | true FDR   9.5% power  56.3% (null p<0.05 4.5%)",
+    "  genes 1200 reps 3 (84 ms): trend a0 0.049 a1 1.59 (true 0.05, 2); prior sd 0.69; outliers kept 8; low-count |log error| gene-wise 0.74 shrunk 0.37",
+    "     gene-wise FDR  39.5% power  76.1% (null p<0.05 10.3%) | shrunk FDR  16.7% power  72.6% (null p<0.05 8.1%) | true FDR  12.2% power  67.5% (null p<0.05 4.4%)",
+    "TEST — the LFC funnel and LFC shrinkage at 3 vs 3, 1,200 genes",
+    "  LFC prior: null share 0.80 (true 0.90), effect sd 1.00",
+    "    null, baseMean    1–  10: n  113, |LFC| > 1:  38 ->   0 shrunk; median SE 0.93",
+    "    null, baseMean   10– 100: n  478, |LFC| > 1:  27 ->   3 shrunk; median SE 0.43",
+    "    null, baseMean  100–1000: n  386, |LFC| > 1:   5 ->   0 shrunk; median SE 0.28",
+    "    null, baseMean 1000–    : n   95, |LFC| > 1:   0 ->   0 shrunk; median SE 0.27",
+    "    DE genes with true |LFC| > 1 (n 98): read as |LFC| > 1 before 87, after 67; with baseMean < 10: 7 true, 1 kept",
+    "  one DE gene (index 740): counts 40 20 15 197 102 65; size factors 2.21 1.25 0.83 0.78 0.60 1.04; group means 17.4 161.6; alpha gene-wise 0.227 trend 0.067 MAP 0.131; LFC 3.22 (true 2.00) SE 0.47 W 6.88 p 6.1e-12 padj 4.9e-10; shrunk LFC 2.64",
+    "TRANSFORM — SD across the six replicates (null genes, normalised counts) by mean: raw, log2(x + 1), vst",
+    "    mean    1–   5: n   51  raw    2.5  log2(x+1) 1.03  vst 0.34",
+    "    mean    5–  20: n  172  raw    6.0  log2(x+1) 0.79  vst 0.34",
+    "    mean   20– 100: n  368  raw   15.3  log2(x+1) 0.48  vst 0.33",
+    "    mean  100–1000: n  386  raw   58.3  log2(x+1) 0.34  vst 0.30",
+    "    mean 1000–    : n   95  raw  466.9  log2(x+1) 0.33  vst 0.32",
+    "  vst of 0, 1, 10, 100, 1000, 10000: 3.71 4.11 4.93 6.96 10.00 13.29; log2(x + 1): 0.00 1.00 3.46 6.66 9.97 13.29",
+    "  genes 1200 reps 4 (93 ms): trend a0 0.049 a1 2.00 (true 0.05, 2); prior sd 0.68; outliers kept 15; low-count |log error| gene-wise 0.54 shrunk 0.30",
+    "     gene-wise FDR  31.8% power  75.6% (null p<0.05 9.6%) | shrunk FDR  18.3% power  74.8% (null p<0.05 6.9%) | true FDR   7.7% power  70.6% (null p<0.05 4.9%)",
+    "  genes 1200 reps 6 (113 ms): trend a0 0.049 a1 1.94 (true 0.05, 2); prior sd 0.59; outliers kept 20; low-count |log error| gene-wise 0.47 shrunk 0.29",
+    "     gene-wise FDR  22.9% power  84.2% (null p<0.05 8.6%) | shrunk FDR  15.7% power  85.0% (null p<0.05 5.9%) | true FDR   6.6% power  82.5% (null p<0.05 4.6%)",
+    "  genes 4000 reps 2 (774 ms): trend a0 0.035 a1 1.48 (true 0.05, 2); prior sd 0.72; outliers kept 9; low-count |log error| gene-wise 1.09 shrunk 0.45",
+    "     gene-wise FDR  61.1% power  67.4% (null p<0.05 17.0%) | shrunk FDR  37.2% power  68.7% (null p<0.05 11.0%) | true FDR  10.6% power  55.6% (null p<0.05 5.8%)",
+    "  genes 4000 reps 3 (793 ms): trend a0 0.042 a1 1.91 (true 0.05, 2); prior sd 0.68; outliers kept 36; low-count |log error| gene-wise 0.77 shrunk 0.36",
+    "     gene-wise FDR  38.1% power  73.9% (null p<0.05 10.5%) | shrunk FDR  20.5% power  72.7% (null p<0.05 7.7%) | true FDR   6.8% power  68.9% (null p<0.05 4.8%)",
+    "  genes 4000 reps 4 (836 ms): trend a0 0.042 a1 2.32 (true 0.05, 2); prior sd 0.61; outliers kept 58; low-count |log error| gene-wise 0.58 shrunk 0.31",
+    "     gene-wise FDR  30.7% power  74.0% (null p<0.05 8.4%) | shrunk FDR  14.8% power  74.6% (null p<0.05 6.3%) | true FDR   7.6% power  71.0% (null p<0.05 4.8%)",
+    "  genes 4000 reps 6 (915 ms): trend a0 0.047 a1 2.05 (true 0.05, 2); prior sd 0.59; outliers kept 52; low-count |log error| gene-wise 0.45 shrunk 0.28",
+    "     gene-wise FDR  24.1% power  85.6% (null p<0.05 8.0%) | shrunk FDR  18.1% power  85.4% (null p<0.05 6.7%) | true FDR   9.5% power  84.4% (null p<0.05 5.4%)",
+    "DETERMINISM — same seed twice: trend true, every MAP dispersion true"
+  ]
+}

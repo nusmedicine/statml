@@ -19116,6 +19116,50 @@ which is the size factor of the sample where nothing changed.
 
 ### Slot 78 · `deseq2` — Differential Expression
 
+#### MEASURED AND MOCKED 2026-09-22, awaiting his picks
+
+**The engine is the widget's** (`widgets/deseq2/engine.js`), read by the
+mock, the measure script and, next, the widget: simulate (NB as gamma–Poisson,
+each sample its own depth, a tenth of genes DE at 0.7–2.2 log2 either way, the
+true dispersion the trend times a log-normal spread), size factors, the
+Cox–Reid gene-wise MLE by golden section, the trend through binned medians,
+the prior width with trigamma((m − p)/2) at any replicate count, the MAP with
+DESeq2's outlier rule (two residual SDs of the log gene-wise estimates — the
+first draft used the prior SD and kept 5% of genes), the Wald test from the
+working weights, BH, the spike-and-normal LFC prior by grid, the closed-form
+vst. `_lab/deseq2-measure.mjs` (5 s) writes `deseq2-measure.json`.
+
+**Measured, 1,200 genes (the widget's size), a tenth DE, padj < 0.1:**
+
+| replicates | trend a0 / a1 (true 0.05 / 2) | prior sd | FDR gene-wise | FDR shrunk | FDR true α | power shrunk | ms |
+|---|---|---|---|---|---|---|---|
+| 2 | 0.024 / 2.21 | 0.78 | 56% | 39% | 9% | 67% | 75 |
+| 3 | 0.049 / 1.59 | 0.69 | 39% | 17% | 12% | 73% | 84 |
+| 4 | 0.049 / 2.00 | 0.68 | 32% | 18% | 8% | 75% | 93 |
+| 6 | 0.049 / 1.94 | 0.59 | 23% | 16% | 7% | 85% | 113 |
+
+At 4,000 genes the same shape (3 reps: 38% / 20% / 7%). Model: at μ = 100 and
+α = 0.05 the SD is 24.5 against Poisson's 10; null genes' variance/mean runs
+3 → 82 from mean 5 to 1,000. Test at 3 vs 3: LFC prior null share 0.80
+(true 0.90), effect sd 1.00; null genes under a mean of 10 at |LFC| > 1 go
+38 → 0 shrunk, and DE genes with a true |LFC| > 1 go 87 → 67 read so — the
+cost. Transform: the SD across six replicates by mean, raw 2.5 → 467,
+log2(x + 1) 1.03 → 0.33, vst 0.34 → 0.32 flat; vst(0) = 3.71. Deterministic
+under one seed.
+
+**Mocked** in `_lab/deseq2-mock.html`, every figure computed on the page from
+the engine at 1,200 genes, 3 vs 3: Model (one gene's Poisson beside NB with
+the replicate counts as ticks; variance against mean over all genes with the
+Poisson line and μ + αμ²), Dispersion (A plotDispEsts at 1,200 genes; B the
+exposition's own figure, 60 genes with an arrow from each gene's estimate to
+its shrunk one; the replicates table), Transform (SD against mean under log2
+and vst with bin medians; the two transforms as curves), Test (one changed
+gene: replicates, group means, β as the gap, SE, W, p; the MA plot before
+and after LFC shrinkage with the removed and the cost printed). Six calls
+put to him: the Dispersion figure (A, B, or A with arrows under the
+pointer), the MA plot (side by side or a toggle), the Model page's panels,
+the shared data control, the Test page's one gene, the title.
+
 **Host.** 01-2 cell 1 and cell 22 are the notebook's own exposition, four
 figures (`deseq2-nb`, `deseq2-mle`, `deseq2-map`, `deseq2-shrinkage`) and
 every formula the widget needs: `y ~ NB(μ, α)`, the geometric-mean ratio and
