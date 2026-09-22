@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · deseq2 — what the transform does for the plots</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1800px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 104ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); min-height: 26px; white-space: pre-line; max-width: 380px; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 104ch; }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 104ch; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>deseq2 &middot; the Transform page: what the transform does for the plots</h1>
+  <p class="note">
+    His question (round 8, 2026-09-22): <i>is there a practical way of showing the importance of the transforms for visualisation?</i>
+    The notebook takes <code>vsd</code> for two figures, the PCA of the samples and the sample-correlation heatmap. Measured on the
+    widget's own stage (1,200 genes, a tenth changed, 3 vs 3): under raw counts the top 1% of genes hold 67&ndash;90% of the total
+    variance and PC1 does not split the two groups (between-group distance over within-group spread 1.2&ndash;2.2); under log2(x + 1)
+    it does (2.8&ndash;4.2); under the vst it does best (3.5&ndash;5.5). Every panel below is computed here, three units across each
+    row, for one seed. Blue and orange are the two groups (<code>--c-group-a</code> / <code>--c-group-b</code>).
+  </p>
+
+  <h2>A &middot; the PCA of the samples, the notebook's own QC figure</h2>
+  <p class="note">One dot per sample on PC1 and PC2, the group as colour. Under counts the two highest genes decide where a sample lands;
+    under the vst the groups fall apart along PC1. The tile would read the between/within ratio and the share of variance on PC1.</p>
+  <div class="row" id="rowA"></div>
+
+  <h2>B &middot; the sample-to-sample distance heatmap, the notebook's other QC figure</h2>
+  <p class="note">Euclidean distance between every pair of samples over all genes, bright is near. Under counts the pattern is not the groups;
+    under the vst the two blocks appear.</p>
+  <div class="row" id="rowB"></div>
+
+  <h2>C &middot; which genes carry the variance</h2>
+  <p class="note">The cumulative share of the total variance against the genes ranked by their variance. Under counts a handful of genes are
+    almost all of it, so the PCA and the heatmap are those genes; under the vst the curve is spread, so every gene has a say.</p>
+  <div class="row" id="rowC"></div>
+
+  <h2>The call</h2>
+  <p class="rec"><b>Recommended: A as the Transform page's right panel</b> in place of the transform-as-a-curve panel, since it is the figure the
+    notebook draws next with <code>vsd</code>, and a control the reader already has (the unit) rewrites it. The SD-against-mean panel stays on the
+    left as the cause; the tiles read the between/within ratio and the top 1% share. C is the sharpest single number and can live in a tile.</p>
+  <p class="q"><b>The right panel</b> &nbsp; <b>A &middot; the PCA (recommended)</b> &nbsp;|&nbsp; B &middot; the distance heatmap &nbsp;|&nbsp;
+    C &middot; the variance curve &nbsp;|&nbsp; A over B, both (the page grows)</p>
+  <p class="q"><b>The curve panel as now</b> (the transform against the count) &nbsp; <b>goes, its formula stays on the card (recommended)</b> &nbsp;|&nbsp; stays as a third panel</p>
+</main>
+<script type="module">
+import { readTokens } from "../core/env.js";
+import { makeRng } from "../core/rng.js";
+import { simulate, analyse, log2 } from "../deseq2/engine.js";
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+const mean = (a) => a.reduce((s, v) => s + v, 0) / a.length;
+const fmt = (v, d = 2) => (Number.isFinite(v) ? v.toFixed(d) : "—");
+const W = 380, H = 300;
+function canvas(host, title, sub) {
+  const d = document.createElement("div"); d.className = "cand";
+  d.innerHTML = `<h3>${title}</h3><p class="sub">${sub}</p>`;
+  const c = document.createElement("canvas"); c.width = W * DPR; c.height = H * DPR; c.style.width = W + "px"; c.style.height = H + "px";
+  d.appendChild(c); host.appendChild(d);
+  const ctx = c.getContext("2d"); ctx.scale(DPR, DPR);
+  ctx.font = `${T.fsXs} ${T.font}`; ctx.textBaseline = "alphabetic";
+  return ctx;
+}
+const text = (ctx, s, x, y, { color = T.ink2, align = "left", font = `${T.fsXs} ${T.font}` } = {}) => { ctx.fillStyle = color; ctx.textAlign = align; ctx.font = font; ctx.fillText(s, x, y); };
+
+const REPS = 3;
+const sim = simulate(makeRng(1), { genes: 1200, reps: REPS }), an = analyse(sim);
+const n = 2 * REPS;
+const norm = sim.counts.map((row) => row.map((v, j) => v / an.sf[j]));
+const UNITS = [["raw", "counts", (v) => v], ["log2", "log2(x + 1)", (v) => log2(v + 1)], ["vst", "vst", an.vst]];
+const GC = [T.groupA ?? T.empirical, T.groupB ?? T.highlight];
+
+function pca(fn) {
+  const X = norm.filter((_, g) => an.baseMean[g] >= 1).map((row) => { const t = row.map(fn); const m = mean(t); return t.map((v) => v - m); });
+  const vars = X.map((r) => r.reduce((s, v) => s + v * v, 0) / (n - 1));
+  const total = vars.reduce((s, v) => s + v, 0);
+  const C = Array.from({ length: n }, (_, i) => Array.from({ length: n }, (_, j) => X.reduce((s, r) => s + r[i] * r[j], 0)));
+  const tr = C.reduce((s, r, i) => s + r[i], 0);
+  const power = (M) => { let v = Array.from({ length: n }, (_, i) => Math.cos(i + 1)); for (let it = 0; it < 400; it += 1) { const w = M.map((r) => r.reduce((s, x, j) => s + x * v[j], 0)); const nrm = Math.sqrt(w.reduce((s, x) => s + x * x, 0)); v = w.map((x) => x / nrm); } const lam = v.reduce((s, vi, i) => s + vi * M[i].reduce((t, x, j) => t + x * v[j], 0), 0); return { v, lam }; };
+  const p1 = power(C), C2 = C.map((r, i) => r.map((x, j) => x - p1.lam * p1.v[i] * p1.v[j])), p2 = power(C2);
+  const s1 = p1.v.map((x) => x * Math.sqrt(p1.lam)), s2 = p2.v.map((x) => x * Math.sqrt(p2.lam));
+  const cen = [0, 1].map((k) => { const idx = sim.grp.map((g, j) => (g === k ? j : -1)).filter((j) => j >= 0); return [mean(idx.map((j) => s1[j])), mean(idx.map((j) => s2[j]))]; });
+  const between = Math.hypot(cen[0][0] - cen[1][0], cen[0][1] - cen[1][1]);
+  const within = mean(sim.grp.map((g, j) => Math.hypot(s1[j] - cen[g][0], s2[j] - cen[g][1])));
+  const sorted = vars.slice().sort((a, b) => b - a);
+  const cum = []; let acc = 0; for (const v of sorted) { acc += v; cum.push(acc / total); }
+  const dist = Array.from({ length: n }, (_, i) => Array.from({ length: n }, (_, j) => Math.sqrt(X.reduce((s, r) => s + (r[i] - r[j]) ** 2, 0))));
+  return { s1, s2, share1: p1.lam / tr, share2: p2.lam / tr, ratio: between / within, top1: cum[Math.ceil(sorted.length * 0.01) - 1], cum, dist };
+}
+
+for (const [u, name, fn] of UNITS) {
+  const P = pca(fn);
+  /* A: the PCA */
+  {
+    const ctx = canvas(document.getElementById("rowA"), `PCA of the ${n} samples in ${name}`, `PC1 ${(100 * P.share1).toFixed(0)}% · PC2 ${(100 * P.share2).toFixed(0)}% of the variance; between ÷ within ${fmt(P.ratio)}`);
+    const m = Math.max(...P.s1.map(Math.abs), ...P.s2.map(Math.abs)) * 1.2;
+    const sx = (v) => 40 + ((v + m) / (2 * m)) * (W - 54), sy = (v) => H - 40 - ((v + m) / (2 * m)) * (H - 70);
+    ctx.strokeStyle = T.grid; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(sx(0) + 0.5, 30); ctx.lineTo(sx(0) + 0.5, H - 40); ctx.moveTo(40, sy(0) + 0.5); ctx.lineTo(W - 14, sy(0) + 0.5); ctx.stroke();
+    text(ctx, `PC1 (${(100 * P.share1).toFixed(0)}%)`, W - 14, H - 26, { color: T.ink3, align: "right" });
+    text(ctx, `PC2 (${(100 * P.share2).toFixed(0)}%)`, 40, 22, { color: T.ink3 });
+    P.s1.forEach((x, j) => { ctx.fillStyle = GC[sim.grp[j]]; ctx.beginPath(); ctx.arc(sx(x), sy(P.s2[j]), 6, 0, Math.PI * 2); ctx.fill(); text(ctx, `${sim.grp[j] ? "B" : "A"}${(j % REPS) + 1}`, sx(x) + 9, sy(P.s2[j]) + 4, { color: T.ink2 }); });
+    text(ctx, `between ÷ within ${fmt(P.ratio)}`, W - 14, 40, { align: "right", color: P.ratio > 2.5 ? T.ink1 : T.extreme, font: `600 ${T.fsXs} ${T.font}` });
+  }
+  /* B: the distance heatmap */
+  {
+    const ctx = canvas(document.getElementById("rowB"), `Sample distances in ${name}`, `Euclidean over all genes; bright is near`);
+    const cell = Math.floor((Math.min(W, H) - 90) / n), x0 = 60, y0 = 40;
+    const dmax = Math.max(...P.dist.flat());
+    for (let i = 0; i < n; i += 1) for (let j = 0; j < n; j += 1) {
+      const t = P.dist[i][j] / dmax;
+      ctx.fillStyle = T.magnitude ?? T.highlight; ctx.globalAlpha = 1 - t; ctx.fillRect(x0 + j * cell, y0 + i * cell, cell - 1, cell - 1); ctx.globalAlpha = 1;
+    }
+    for (let i = 0; i < n; i += 1) { const nm = `${sim.grp[i] ? "B" : "A"}${(i % REPS) + 1}`; text(ctx, nm, x0 - 6, y0 + i * cell + cell / 2 + 4, { align: "right", color: GC[sim.grp[i]] }); text(ctx, nm, x0 + i * cell + cell / 2, y0 + n * cell + 14, { align: "center", color: GC[sim.grp[i]] }); }
+    const within = mean([[0, 1], [1, 2], [0, 2], [3, 4], [4, 5], [3, 5]].map(([a, b]) => P.dist[a][b])), between = mean([0, 1, 2].flatMap((a) => [3, 4, 5].map((b) => P.dist[a][b])));
+    text(ctx, `between ÷ within ${fmt(between / within)}`, x0, y0 + n * cell + 34, { color: T.ink1, font: `600 ${T.fsXs} ${T.font}` });
+  }
+  /* C: who holds the variance */
+  {
+    const ctx = canvas(document.getElementById("rowC"), `Cumulative share of the variance in ${name}`, `the top 1% of genes hold ${(100 * P.top1).toFixed(0)}%`);
+    const G = P.cum.length;
+    const sx = (k) => 44 + (k / G) * (W - 58), sy = (v) => H - 40 - v * (H - 70);
+    ctx.strokeStyle = T.grid; ctx.lineWidth = 1;
+    for (const q of [0.25, 0.5, 0.75, 1]) { ctx.beginPath(); ctx.moveTo(44, sy(q) + 0.5); ctx.lineTo(W - 14, sy(q) + 0.5); ctx.stroke(); text(ctx, `${(100 * q).toFixed(0)}%`, 40, sy(q) + 4, { align: "right", color: T.ink3, font: `${T.fsXs} ${T.mono}` }); }
+    ctx.strokeStyle = T.ink3; ctx.beginPath(); ctx.moveTo(44, sy(0) + 0.5); ctx.lineTo(W - 14, sy(0) + 0.5); ctx.stroke();
+    text(ctx, "genes, ranked by variance", (44 + W - 14) / 2, H - 22, { align: "center", color: T.ink3 });
+    ctx.strokeStyle = T.empirical; ctx.lineWidth = 2; ctx.beginPath(); P.cum.forEach((v, k) => (k ? ctx.lineTo(sx(k), sy(v)) : ctx.moveTo(sx(k), sy(v)))); ctx.stroke();
+    ctx.strokeStyle = T.reference; ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.moveTo(sx(Math.ceil(G * 0.01)), sy(0)); ctx.lineTo(sx(Math.ceil(G * 0.01)), sy(1)); ctx.stroke(); ctx.setLineDash([]);
+    text(ctx, `top 1% of genes: ${(100 * P.top1).toFixed(0)}% of the variance`, sx(Math.ceil(G * 0.01)) + 6, sy(P.top1) - 6, { color: T.ink1, font: `600 ${T.fsXs} ${T.font}` });
+  }
+}
+</script>
+</body>
+</html>

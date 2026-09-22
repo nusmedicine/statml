@@ -19336,6 +19336,22 @@ and a ranking by fold change stop being led by noise, at the cost of some
 true large effects at low counts (the tile's second number). It is not a
 false-positive control; padj is.
 
+**Round 8** (2026-09-22) — *what are the vertical bars under Fit and test?
+Is there a practical way of showing the importance of the transforms for
+visualisation? Mock options.* The bars are β (the thin line from group A's
+mean to group B's) and its SE (the thick bar), now named on the canvas.
+**Measured** on the widget's stage, 3 vs 3 and 6 vs 6 at two seeds: under
+raw counts the top 1% of genes hold 67–90% of the total variance and PC1 of
+the samples does not split the groups (between-group distance over
+within-group spread 1.2–2.2); under log2(x + 1) it does (2.8–4.2); under
+the vst best (3.5–5.5) with more variance on PC1. **Mocked** in
+`_lab/deseq2-transform-mock.html`, three units across each row: A the PCA
+of the samples, the notebook's own QC figure; B the sample-distance heatmap,
+its other; C the cumulative variance against genes ranked by variance, with
+the top 1% marked. Recommended A as the Transform page's right panel in place
+of the transform-as-a-curve, with the between/within ratio and the top-1%
+share as tiles.
+
 **Host.** 01-2 cell 1 and cell 22 are the notebook's own exposition, four
 figures (`deseq2-nb`, `deseq2-mle`, `deseq2-map`, `deseq2-shrinkage`) and
 every formula the widget needs: `y ~ NB(μ, α)`, the geometric-mean ratio and

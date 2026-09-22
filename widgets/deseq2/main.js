@@ -619,6 +619,8 @@ function drawFit(ctx, colors, w, state, stage, p, D) {
     for (const k of [0, 1]) curve(ctx, colors.theory, 2, [[F.sx(xg[k]) - 24, F.sy(log2(fit.q[k]))], [F.sx(xg[k]) + 24, F.sy(log2(fit.q[k]))]]);
     const xm = F.sx(0.5);
     curve(ctx, colors.highlight, 1.5, [[xm, F.sy(log2(fit.q[0]))], [xm, F.sy(log2(fit.q[1]))]]);
+    /* the two marks named where they are (his round 8: "what are these vertical bars") */
+    label(ctx, colors, "β", xm - 6, (F.sy(log2(fit.q[0])) + F.sy(log2(fit.q[1]))) / 2 + 4, { color: colors.highlight, align: "right", weight: "600" });
     /* six short lines: the right half is 223px wide at the narrowest canvas.
        The fit's lines are there from the start; the test's fade in with the
        press; the shrunk β counts along with the second */
@@ -628,6 +630,7 @@ function drawFit(ctx, colors, w, state, stage, p, D) {
     if (testF > 0) {
       ctx.save(); ctx.globalAlpha = alpha * testF;
       curve(ctx, colors.highlight, 4, [[xm + 8, F.sy(log2(fit.q[1]) - r.se)], [xm + 8, F.sy(log2(fit.q[1]) + r.se)]]);
+      label(ctx, colors, "± SE", xm + 14, F.sy(log2(fit.q[1])) + 4, { color: colors.highlight });
       label(ctx, colors, `SE = ${fmt(r.se, 2)}, from the weights μ / (1 + αμ)`, tx, ty + 32, { color: colors.ink2 });
       label(ctx, colors, `W = β / SE = ${fmt(r.W, 2)}`, tx, ty + 48, { color: colors.ink2 });
       label(ctx, colors, `p = ${sci(r.p)}, padj = ${sci(r.padj)}`, tx, ty + 64, { color: colors.ink2 });
