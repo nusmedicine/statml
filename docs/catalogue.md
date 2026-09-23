@@ -19653,7 +19653,26 @@ every one the recommendation.**
 | 10 | the scatters | **on Metrics, under the violins** — both of the lesson's own figures on one page |
 | 11 | applying the filter | **three presses: genes, then transcripts, then mt%** — the second press takes almost nothing new (84% were already gone) and the third takes a whole sample, which is an argument that only exists in the order |
 
-NEXT: draft `cell-qc` at status `draft`, three pages in that shape.
+**Round 1, 2026-09-23, from his screenshot.** Two findings, both his: a
+stringent threshold moved nothing on the bars, and the third page's name.
+
+1. **The filter was right and said nothing.** The rules go on one press at a
+   time, so a threshold set before the presses changes nothing a reader can
+   see — and every readout tile was gated on all THREE presses, so a reader
+   who had taken two was told none had been applied. Every number is now
+   counted over the rules applied so far (1,600 → 1,480 → 1,467 → 1,108 at
+   mt% < 7), and both figures carry their own state on the caption line: *no
+   rule applied yet*, in the threshold colour, then one, two, all three.
+2. **`Truth` → `Cells kept`** (his pick from `_lab/cell-qc-page-name-mock.html`,
+   which put the page live above four candidates in the tab row). His reading
+   — *the visualization of the clustering if we apply thresholds* — is what
+   the page is, and *Truth* named what the STAGE knows rather than what the
+   page shows. The URL value moved with the label, `?page=kept`. His second
+   pick: the map's caption stays as it is, because *placed by what was
+   sequenced in it* states the mechanism without borrowing a method's name —
+   it is neither UMAP nor PCA.
+
+NEXT: his round 2.
 
 ### Slot 80 · `integration` — Single-Cell Integration
 

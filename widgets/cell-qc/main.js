@@ -16,7 +16,9 @@
  *
  * THREE PAGES (his picks at planning, 2026-09-23, eleven calls with
  * `_lab/cell-qc-mock.html` open, every one the recommendation):
- * Metrics · Thresholds · Truth. The stage is simulated and FITTED to the real
+ * Metrics · Thresholds · Cells kept (his round 1, 2026-09-23: "Truth" named
+ * what the stage knows rather than what the page shows — the cells the rules
+ * leave, which is the set the next step clusters). The stage is simulated and FITTED to the real
  * cells rather than shaped to resemble them (`./engine.js`): nFeature is not
  * drawn but is how many genes are seen when the droplet's molecules are drawn
  * from its own profile, and mt% is mitochondrial over total — so the overlap
@@ -44,9 +46,9 @@ import { simulate, confusion, embed, median, TYPES, SAMPLES } from "./engine.js"
 const PAGES = [
   { value: "metrics", label: "Metrics" },
   { value: "thresholds", label: "Thresholds" },
-  { value: "truth", label: "Truth" },
+  { value: "kept", label: "Cells kept" },
 ];
-const HEIGHTS = { metrics: 580, thresholds: 430, truth: 400 };
+const HEIGHTS = { metrics: 580, thresholds: 430, kept: 400 };
 const STAGES = 3;                 // genes, transcripts, mitochondrial percentage
 const STEP_MS = 700;
 const EASE_MS = 450;
@@ -167,8 +169,8 @@ const tickLabel = (v) => (v >= 1000 ? `${Math.round(v / 1000)}k` : String(Math.r
    droplet, which the three violins and the two scatters split across five
    panels: pointing at a droplet in either scatter marks it in the other and
    ticks its value in all three violins. On Thresholds a sample is a bar and a
-   curve: pointing at either lights both. On Truth a droplet is a position, a
-   colour and a fate: pointing at one names them.
+   curve: pointing at either lights both. On Cells kept a droplet is a
+   position, a colour and a fate: pointing at one names them.
 
    One geometry for the drawing and the test (5.8): both read `state.axes` and
    the same rect functions, so a target sits where it is drawn.
@@ -391,7 +393,7 @@ function drawMetrics(ctx, colors, w, state, hover) {
     }
   });
   /* ONE DROPLET, FIVE PANELS. Its three numbers are three readings of it, and
-     what it holds is not among them — that is the Truth page's to say. */
+     what it holds is not among them — that is the next page's to say. */
   if (hover && hover.kind === "droplet") {
     const c = cells[hover.i];
     hoverLine(ctx, colors, scatterRect(w, 0).x, scatterRect(w, 1).y + scatterRect(w, 1).h + 44, [
@@ -550,15 +552,16 @@ function drawThresholds(ctx, colors, w, state, stage, p, hover) {
 }
 
 /* =========================================================================
-   PAGE 3 · Truth — what the removed droplets held. Position is the cell type
-   and colour is the state (his pick 4); the doublet panel beside it is the
-   lesson's other sentence, answered (his pick 5).
+   PAGE 3 · Cells kept — what the rules left, and what that cost. Position is
+   the cell type and colour is what the droplet holds (his pick 4); a droplet
+   a rule removed is hollow rather than recoloured. The doublet panel beside
+   it is the lesson's other sentence, answered (his pick 5).
    ====================================================================== */
 const STATE_COLOUR = (colors) => ({
   good: colors.empirical, dying: colors.extreme, empty: colors.unknown, doublet: colors.highlight,
 });
 
-function drawTruth(ctx, colors, w, state, stage, p, hover) {
+function drawKept(ctx, colors, w, state, stage, p, hover) {
   const { cells, pos, view, removedAt, centres, cost } = state;
   const SC = STATE_COLOUR(colors);
   const { rect, sx, sy } = mapScale(w, view);
@@ -910,7 +913,7 @@ defineWidget({
   },
 
   legend: ({ params }) => {
-    if (params.page === "truth") return [
+    if (params.page === "kept") return [
       { token: "empirical", label: "A droplet holding one cell; point at one to read what it holds", mark: "dot" },
       { token: "extreme", label: "A dying cell: its RNA has gone and its mitochondria have not", mark: "dot" },
       { token: "unknown", label: "No cell: ambient RNA only", mark: "dot" },
@@ -1100,7 +1103,7 @@ defineWidget({
       ctx.globalAlpha = alpha;
       if (params.page === "metrics") drawMetrics(ctx, colors, w, st, hover);
       else if (params.page === "thresholds") drawThresholds(ctx, colors, w, st, stage, p, hover);
-      else drawTruth(ctx, colors, w, st, stage, p, hover);
+      else drawKept(ctx, colors, w, st, stage, p, hover);
       ctx.restore();
     };
     if (D && D.kind === "fade") { one(D.from, 1 - D.e); one(state, D.e); }
