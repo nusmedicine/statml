@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · cell-qc — the three rows, drawn instead of described</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1180px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 4px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 100ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  .cand { border: 1px solid var(--grid); border-radius: var(--radius); padding: var(--sp-3) var(--sp-4) var(--sp-4); margin: 0 0 var(--sp-3); background: var(--surface-1); }
+  .cand .why { font-size: var(--fs-sm); color: var(--ink-2); margin: var(--sp-2) 0 0; max-width: 100ch; }
+  .cand .why b { color: var(--ink-1); }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); border-radius: var(--radius); }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--c-reference); background: var(--surface-2); }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>cell-qc &middot; the three rows, drawn instead of described</h1>
+  <p class="note">
+    The rows say &ldquo;Two different types&rdquo;, &ldquo;Two of the same type&rdquo;, &ldquo;One cell&rdquo;, and you have to hold all three in your head
+    to read the figure. A mark can say it instead: <b>one circle is one cell, two joined circles are two cells in one droplet,
+    and the colours are which cell types they are</b>. Four ways to do it, with the row as it would actually look under each.
+  </p>
+
+  <h2>1 &middot; The glyph on its own, at the size it would be drawn</h2>
+  <div class="cand"><div id="glyphs"></div>
+    <p class="why">The middle pair is the hard one: <b>two of the same type</b> has to read as two cells and not as one fat cell,
+      which is why the two circles are drawn apart rather than merged.</p>
+  </div>
+
+  <h2>2 &middot; The rows, as they would look</h2>
+  <div id="rows"></div>
+
+  <h2>3 &middot; And the same marks where the droplets are</h2>
+  <p class="note">If the glyph means something, the map can use it too: a droplet holding two cells drawn as two circles,
+    each half the colour of the type it holds. Shown here on the cell map from the Thresholds page.</p>
+  <div class="cand"><div id="map"></div>
+    <p class="why">Against: the map already colours a droplet by what it HOLDS (blue one cell, red dying, grey empty, violet two cells),
+      so giving the doublets a shape as well as a colour is one signal twice. For it: the shape is legible at 2px where a violet-versus-blue
+      difference is not, and it ties the map to the neighbourhood panel above it.</p>
+  </div>
+
+  <h2>4 &middot; The calls</h2>
+  <div id="calls"></div>
+</main>
+
+<script type="module">
+import { makeRng } from "../core/rng.js";
+import { simulate, applyFilters, doubletScores, profileOf, projectProfile, DOUBLET, TYPES, THRESHOLDS } from "../cell-qc/engine.js";
+
+const css = getComputedStyle(document.documentElement);
+const C = (n) => css.getPropertyValue(n).trim();
+const font = C("--font") || "system-ui";
+const CLUSTER = ["--c-cluster-a", "--c-cluster-b", "--c-cluster-c", "--c-cluster-d", "--c-cluster-e", "--c-cluster-f"];
+const typeCol = (key) => CLUSTER[TYPES.findIndex((t) => t.key === key)] ?? "--c-cluster-a";
+
+const { cells } = simulate(makeRng(1), {});
+const { keep } = applyFilters(cells, THRESHOLDS);
+const index = cells.map((c, i) => i).filter((i) => keep[i]);
+const pRng = makeRng(1 * 7919 + 13);
+const profAll = cells.map((c) => profileOf(pRng, c));
+const { score } = doubletScores(makeRng(38), cells, index, { ...DOUBLET, profiles: index.map((i) => profAll[i]) });
+const scoreOf = new Float64Array(cells.length).fill(NaN);
+index.forEach((i, r) => { scoreOf[i] = score[r]; });
+const posAll = profAll.map(projectProfile);
+
+function ctxFor(host, w, h, title) {
+  const d = document.createElement("div");
+  d.style.display = "inline-block"; d.style.marginRight = "16px"; d.style.verticalAlign = "top";
+  if (title) { const t = document.createElement("h3"); t.textContent = title; d.appendChild(t); }
+  const c = document.createElement("canvas");
+  const dpr = window.devicePixelRatio || 1;
+  c.width = w * dpr; c.height = h * dpr; c.style.width = w + "px"; c.style.height = h + "px";
+  const x = c.getContext("2d"); x.scale(dpr, dpr);
+  d.appendChild(c); host.appendChild(d);
+  return x;
+}
+const lab = (x, s, px, py, col = "--ink-2", align = "left", size = 11, weight = "", base = "alphabetic") => {
+  x.save(); x.fillStyle = C(col); x.textAlign = align; x.textBaseline = base;
+  x.font = `${weight} ${size}px ${font}`.trim(); x.fillText(s, px, py); x.restore();
+};
+
+/* ---- the glyph, in four styles ----------------------------------------- */
+function glyph(x, cx, cy, r, style, kind, cols) {
+  const off = r * 0.92;
+  const paint = (px, col) => {
+    x.save();
+    if (style === "outline") { x.strokeStyle = C(col); x.lineWidth = 1.4; x.beginPath(); x.arc(px, cy, r, 0, 7); x.stroke(); }
+    else { x.fillStyle = C(col); x.beginPath(); x.arc(px, cy, r, 0, 7); x.fill(); }
+    x.restore();
+  };
+  if (kind === "one") { paint(cx, cols[0]); return; }
+  paint(cx - off, cols[0]);
+  paint(cx + off, cols[1]);
+}
+
+const STYLES = [
+  { key: "types", name: "A · the cell types' own colours", cols: (k) => (k === "het" ? ["--c-cluster-a", "--c-cluster-c"] : k === "hom" ? ["--c-cluster-a", "--c-cluster-a"] : ["--c-cluster-a"]), style: "fill" },
+  { key: "neutral", name: "B · one ink, shape alone", cols: () => ["--ink-2", "--ink-2"], style: "fill" },
+  { key: "data", name: "C · the row's own data colour", cols: () => ["--c-empirical", "--c-empirical"], style: "fill" },
+  { key: "outline", name: "D · outlines, types' colours", cols: (k) => (k === "het" ? ["--c-cluster-a", "--c-cluster-c"] : k === "hom" ? ["--c-cluster-a", "--c-cluster-a"] : ["--c-cluster-a"]), style: "outline" },
+];
+const KINDS = [
+  { k: "het", name: "two different types" },
+  { k: "hom", name: "two of the same type" },
+  { k: "one", name: "one cell" },
+];
+{
+  const host = document.getElementById("glyphs");
+  const x = ctxFor(host, 1020, 120, null);
+  STYLES.forEach((st, si) => {
+    const x0 = 20 + si * 250;
+    lab(x, st.name, x0, 22, "--ink-2", "left", 12, "600");
+    KINDS.forEach((kd, ki) => {
+      const cy = 52 + ki * 24;
+      glyph(x, x0 + 14, cy, 5, st.style, kd.k, st.cols(kd.k));
+      lab(x, kd.name, x0 + 32, cy, "--ink-3", "left", 11, "", "middle");
+    });
+  });
+}
+
+/* ---- the rows, as they would look --------------------------------------- */
+const ROWS = [
+  { k: "het", name: "Two different types", of: (c) => c.state === "doublet" && c.partner !== c.type },
+  { k: "hom", name: "Two of the same type", of: (c) => c.state === "doublet" && c.partner === c.type },
+  { k: "one", name: "One cell", of: (c) => c.state !== "doublet" },
+];
+const ROWCANDS = [
+  { name: "A · glyph and words", glyph: true, words: true, style: STYLES[0] },
+  { name: "B · glyph alone", glyph: true, words: false, style: STYLES[0] },
+  { name: "C · as it is now, words alone", glyph: false, words: true, style: STYLES[0] },
+];
+{
+  const host = document.getElementById("rows");
+  for (const cand of ROWCANDS) {
+    const d = document.createElement("div"); d.className = "cand";
+    const h = document.createElement("h3"); h.textContent = cand.name; d.appendChild(h);
+    const W = 560, H = 210;
+    const x = ctxFor(d, W, H, null);
+    const L = 24, R = W - 16, T = 16, rowH = (H - 30) / 3;
+    const SX = (v) => L + v * (R - L);
+    ROWS.forEach((row, ri) => {
+      const y0 = T + ri * rowH, h2 = rowH - 26;
+      const mine = index.filter((i) => row.of(cells[i]));
+      let lx = L;
+      if (cand.glyph) {
+        const cols = cand.style.cols(row.k);
+        glyph(x, L + 6, y0 - 6, 4.4, cand.style.style, row.k, cols);
+        lx = L + 20;
+      }
+      if (cand.words) { lab(x, `${row.name} · ${mine.length}`, lx, y0 - 3, "--ink-3", "left", 11); }
+      else { lab(x, String(mine.length), lx, y0 - 3, "--ink-3", "left", 11); }
+      x.save(); x.strokeStyle = C("--grid"); x.strokeRect(L + 0.5, y0 + 0.5, R - L, h2); x.restore();
+      const jr = makeRng(97 + ri);
+      for (const i of mine) {
+        const px = SX(scoreOf[i]), py = y0 + 4 + jr.next() * (h2 - 8);
+        x.save();
+        x.globalAlpha = scoreOf[i] >= 0.6 ? 0.85 : 0.5;
+        x.fillStyle = C(scoreOf[i] >= 0.6 ? "--c-extreme" : "--c-empirical");
+        x.beginPath(); x.arc(px, py, 1.7, 0, 7); x.fill();
+        x.restore();
+      }
+      x.save(); x.strokeStyle = C("--c-reference"); x.setLineDash([4, 3]);
+      x.beginPath(); x.moveTo(SX(0.6), y0); x.lineTo(SX(0.6), y0 + h2); x.stroke(); x.restore();
+    });
+    d.appendChild(document.createElement("div"));
+    host.appendChild(d);
+  }
+}
+
+/* ---- the map with the same marks ---------------------------------------- */
+{
+  const host = document.getElementById("map");
+  const W = 700, H = 330;
+  const x = ctxFor(host, W, H, null);
+  const pts = index.map((i) => posAll[i]);
+  const xs = pts.map((p) => p.x).sort((a, b) => a - b), ys = pts.map((p) => p.y).sort((a, b) => a - b);
+  const q = (a, f) => a[Math.min(a.length - 1, Math.floor(f * a.length))];
+  const lo = Math.min(q(xs, 0.01), q(ys, 0.01)), hi = Math.max(q(xs, 0.99), q(ys, 0.99));
+  const mid = (lo + hi) / 2, half = ((hi - lo) / 2) * 1.14, span = 2 * half;
+  const draw = (X0, colourByType) => {
+    const sx = (v) => X0 + ((v - (mid - half)) / span) * 300;
+    const sy = (v) => 16 + (((mid + half) - v) / span) * 296;
+    for (const i of index) {
+      const c = cells[i];
+      const two = c.state === "doublet";
+      if (two) {
+        const cols = colourByType ? [typeCol(c.type), typeCol(c.partner)] : ["--c-highlight", "--c-highlight"];
+        glyph(x, sx(posAll[i].x), sy(posAll[i].y), 2.2, "fill", "two", cols);
+      } else {
+        const col = colourByType ? typeCol(c.type) : c.state === "good" ? "--c-empirical" : c.state === "dying" ? "--c-extreme" : "--c-unknown";
+        x.save(); x.globalAlpha = colourByType ? 0.45 : (c.state === "good" ? 0.45 : 0.85);
+        x.fillStyle = C(col); x.beginPath(); x.arc(sx(posAll[i].x), sy(posAll[i].y), 1.8, 0, 7); x.fill(); x.restore();
+      }
+    }
+  };
+  draw(20, false);
+  draw(370, true);
+  lab(x, "colour is what the droplet holds, as now; shape added", 20, 326, "--ink-3", "left", 10);
+  lab(x, "colour is the cell TYPE, shape says how many", 370, 326, "--ink-3", "left", 10);
+}
+
+const calls = [
+  ["1 &middot; the glyph's colours", "<b>A &mdash; the cell types' own colours (recommended: the map already uses them, so the glyph says which two types as well as how many)</b> | B, one ink and shape alone | C, the row's data colour | D, outlines"],
+  ["2 &middot; glyph and words, or glyph alone", "<b>both (recommended: the words name it once and the glyph carries it after)</b> | the glyph and a count only | words alone, as now"],
+  ["3 &middot; the same marks on the cell map", "<b>leave the map as it is (recommended: colour there already says what a droplet holds, and shape as well would be one signal twice)</b> | add the shape, colour unchanged | colour the map by cell TYPE and let shape say how many cells"],
+];
+document.getElementById("calls").innerHTML = calls.map(([q2, a]) => `<p class="q"><b>${q2}</b> &nbsp; ${a}</p>`).join("");
+</script>
+</body>
+</html>
