@@ -127,18 +127,39 @@ function hoverAt(pointer, w, state) {
    the most variable genes are the highest-count ones, changed or not. The
    notebook's sample-correlation heatmap told the groups apart in no unit
    (a gap of 0.00–0.02), so it is not here. */
+/* average linkage, Euclidean, the leaves in merge order: the notebook's
+   pheatmap clusters both rows and columns (his pick, round 12). Measured over
+   twelve seeds at 3 vs 3: the clustered samples keep each group contiguous
+   under counts in 5, under log2(x + 1) in 9, under the vst in 12. */
+function clusterOrder(items, dist) {
+  let clusters = items.map((i) => [i]);
+  const d = (A, B) => mean(A.flatMap((a) => B.map((b) => dist(a, b))));
+  while (clusters.length > 1) {
+    let best = [0, 1], bd = Infinity;
+    for (let i = 0; i < clusters.length; i += 1) for (let j = i + 1; j < clusters.length; j += 1) { const v = d(clusters[i], clusters[j]); if (v < bd) { bd = v; best = [i, j]; } }
+    const [i, j] = best;
+    clusters = clusters.filter((_, k) => k !== i && k !== j).concat([clusters[i].concat(clusters[j])]);
+  }
+  return clusters[0];
+}
 function heatOf(norm, fn, keep, sim, baseMean) {
   const sdOf = {}, vars = [];
   for (const g of keep) { const v = sd(norm[g].map(fn)); sdOf[g] = v; vars.push(v * v); }
   const total = vars.reduce((a, v) => a + v, 0) || 1;
   const sorted = vars.slice().sort((a, b) => b - a);
   const top1 = sorted.slice(0, Math.ceil(sorted.length * 0.01)).reduce((a, v) => a + v, 0) / total;
-  const rows = keep.slice().sort((a, b) => sdOf[b] - sdOf[a]).slice(0, HEAT_ROWS);
+  const top = keep.slice().sort((a, b) => sdOf[b] - sdOf[a]).slice(0, HEAT_ROWS);
+  const M = top.map((g) => norm[g].map(fn)), n = sim.grp.length;
+  const rows = clusterOrder(top.map((_, i) => i), (a, b) => Math.sqrt(M[a].reduce((acc, v, k) => acc + (v - M[b][k]) ** 2, 0))).map((i) => top[i]);
+  const cols = clusterOrder(Array.from({ length: n }, (_, j) => j), (a, b) => Math.sqrt(M.reduce((acc, r) => acc + (r[a] - r[b]) ** 2, 0)));
   const vals = rows.map((g) => norm[g].map(fn));
   const flat = vals.flat(), lo = Math.min(...flat), hi = Math.max(...flat);
-  const index = {}, t = {};
+  const index = {}, t = {}, colIndex = [];
   rows.forEach((g, i) => { index[g] = i; t[g] = vals[i].map((v) => (v - lo) / (hi - lo || 1)); });
-  return { rows, index, t, de: rows.filter((g) => sim.isDE[g]).length, medMean: median(rows.map((g) => baseMean[g])), top1 };
+  cols.forEach((j, jj) => { colIndex[j] = jj; });
+  /* the band's reading: one change of group along the clustered samples */
+  const together = cols.reduce((k, j, i) => k + (i > 0 && sim.grp[j] !== sim.grp[cols[i - 1]] ? 1 : 0), 0) === 1;
+  return { rows, index, t, colIndex, together, de: rows.filter((g) => sim.isDE[g]).length, medMean: median(rows.map((g) => baseMean[g])), top1 };
 }
 
 /* the Fit page's geometry, one place for the drawing and the hover test (5.8) */
@@ -323,7 +344,7 @@ defineWidget({
     if (p === "transform") return [
       { token: "empirical", label: "An unchanged gene: the SD of its values across replicates; the transform", mark: "bar" },
       { token: "theory", label: "Median SD in a bin of means", mark: "line" },
-      { token: "magnitude", label: "A gene's value in a sample, dark to bright on the unit's own scale", mark: "bar" },
+      { token: "magnitude", label: "A cell: one gene's value in one sample, dark to bright on the unit's own scale", mark: "bar" },
       { token: "group-a", label: "The band: a sample of group A", mark: "bar" },
       { token: "group-b", label: "A sample of group B", mark: "bar" },
       { token: "reference", label: "A tick: a gene that truly changed", mark: "line" },
@@ -499,7 +520,7 @@ defineWidget({
       const lo = state.sdBins[1], hi = state.sdBins[3], u = params.unit, Hm = state.heatBy[u];
       return [
         { label: `SD of the values across replicates, means 5–20 and 100–1,000`, value: `${fmt(lo[u], u === "raw" ? 1 : 2)} · ${fmt(hi[u], u === "raw" ? 1 : 2)}`, note: `medians over ${lo.n} and ${hi.n} unchanged genes${u === "vst" ? "; the same SD at every mean is what the transform is for" : u === "log2" ? "; under the log the low counts still have the larger SD" : "; the SD of the values grows with the mean"}` },
-        { label: `Truly changed among the ${HEAT_ROWS} most variable genes`, value: `${Hm.de} of ${HEAT_ROWS}`, note: `their median mean ${Math.round(Hm.medMean).toLocaleString("en-US")}; ${u === "raw" ? "the most variable counts are the highest counts, changed or not" : u === "log2" ? "under the log the low counts are the most variable, changed or not" : "with the same SD at every mean, the most variable genes are the changed ones"}` },
+        { label: `Truly changed among the ${HEAT_ROWS} most variable genes`, value: `${Hm.de} of ${HEAT_ROWS}`, note: `their median mean ${Math.round(Hm.medMean).toLocaleString("en-US")}; ${u === "raw" ? "the most variable counts are the highest counts, changed or not" : u === "log2" ? "under the log the low counts are the most variable, changed or not" : "with the same SD at every mean, the most variable genes are the changed ones"}; a cell is one gene's value in one sample, and a row's gap from A to B is its fold change, in log2 under log2 and the vst; the clustered samples ${Hm.together ? "fall into their two groups" : "do not fall into their two groups"}` },
         { label: "Top 1% of genes: their share of the total variance", value: `${(100 * Hm.top1).toFixed(0)}%`, note: u === "raw" ? "in a heatmap of these values, those few genes are almost all of the picture" : "in a heatmap of these values, every gene contributes" },
       ];
     }
@@ -684,7 +705,9 @@ function drawTransform(ctx, colors, w, state, uFrom, uTo, eU, D) {
     const R = { x0: half + 40, y0: top + 34, x1: w - 12, y1: H - 40 };
     const n = grp.length, gx0 = R.x0 + 12, cw = (R.x1 - gx0) / n, rh = (R.y1 - R.y0) / HEAT_ROWS;
     label(ctx, colors, `the ${HEAT_ROWS} most variable genes`, R.x0, R.y0 - 20, { color: colors.ink3 });
-    for (let j = 0; j < n; j += 1) { ctx.fillStyle = grp[j] ? colors.groupB : colors.groupA; ctx.fillRect(gx0 + j * cw, R.y0 - 9, cw - 1, 5); }
+    /* each sample's column slides to its clustered place, as the rows do */
+    const colX = (j) => gx0 + lerp(Ha.colIndex[j], Hb.colIndex[j], e) * cw;
+    for (let j = 0; j < n; j += 1) { ctx.fillStyle = grp[j] ? colors.groupB : colors.groupA; ctx.fillRect(colX(j), R.y0 - 9, cw - 1, 5); }
     for (const g of new Set([...Ha.rows, ...Hb.rows])) {
       const ia = Ha.index[g], ib = Hb.index[g];
       const i = lerp(ia ?? ib, ib ?? ia, e);
@@ -693,14 +716,15 @@ function drawTransform(ctx, colors, w, state, uFrom, uTo, eU, D) {
       for (let j = 0; j < n; j += 1) {
         const ta = Ha.t[g]?.[j], tb = Hb.t[g]?.[j];
         const t = lerp(ta ?? tb, tb ?? ta, e);
-        ctx.globalAlpha = base * a; ctx.fillStyle = colors.surface3; ctx.fillRect(gx0 + j * cw, y, cw - 1, rh - 1);
-        ctx.globalAlpha = base * a * t; ctx.fillStyle = colors.magnitude; ctx.fillRect(gx0 + j * cw, y, cw - 1, rh - 1);
+        ctx.globalAlpha = base * a; ctx.fillStyle = colors.surface3; ctx.fillRect(colX(j), y, cw - 1, rh - 1);
+        ctx.globalAlpha = base * a * t; ctx.fillStyle = colors.magnitude; ctx.fillRect(colX(j), y, cw - 1, rh - 1);
       }
       if (isDE[g]) { ctx.globalAlpha = base * a; ctx.strokeStyle = colors.reference; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(R.x0 + 2, y + rh / 2); ctx.lineTo(R.x0 + 8, y + rh / 2); ctx.stroke(); }
     }
     ctx.globalAlpha = base;
     ctx.strokeStyle = colors.ink3; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(gx0, Math.round(R.y1) + 0.5); ctx.lineTo(R.x1, Math.round(R.y1) + 0.5); ctx.stroke();
-    label(ctx, colors, `${n} samples`, gx0, R.y1 + 13, { color: colors.ink3 });
+    const together = (e < 0.5 ? Ha : Hb).together;
+    label(ctx, colors, `clustered: groups ${together ? "together" : "mixed"}`, R.x0, R.y1 + 13, { color: together ? colors.ink3 : colors.extreme });
     const de = Math.round(lerp(Ha.de, Hb.de, e));
     label(ctx, colors, `truly changed ${de} of ${HEAT_ROWS}`, R.x1 - 4, R.y1 + 26, { color: de >= HEAT_ROWS * 0.7 ? colors.ink1 : colors.extreme, align: "right", weight: "600" });
     ctx.restore();

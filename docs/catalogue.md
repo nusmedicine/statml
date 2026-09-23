@@ -19435,6 +19435,25 @@ for the prior and one for the posterior; the SE's weights moved to the Wald
 card; the seven text lines are each under 170px so the middle third holds
 them at the narrowest canvas. Thirty-five sweep states clean.
 
+**Round 12** (2026-09-23) — *for the heatmap, is row clustering useful, or
+would it defeat the purpose of showing the need for transformed values? Also,
+is it log2 fold change? I get confused.* Clustering reorders; it does not
+change which 30 genes are shown, so the tick count is the same under every
+order. Measured (`_lab/deseq2-cluster-measure.mjs`, twelve seeds at 3 vs 3):
+clustering the samples on the 30 most variable genes keeps each group
+contiguous under counts in 5, under log2(x + 1) in 9, under the vst in 12
+(the dendrogram's top split is the groups in 2 · 7 · 12). Mocked three
+orders (`_lab/deseq2-heatmap-order-mock.html?seed=3`); **his pick, C: rows
+and samples both clustered**, average linkage, Euclidean, the notebook's
+pheatmap — the band over the columns then shows where each sample landed
+(seed 3: B A A B B A under counts, two blocks under the vst) and each column
+slides to its clustered place on a unit change as the rows do; the caption
+reads "clustered: groups together / mixed" and the tile says whether the
+clustered samples fall into their two groups. **The cell is not a fold
+change**: it is one gene's value in one sample — a count, log2(count + 1) or
+the vst value — and a row's gap from its A cells to its B cells is its fold
+change, in log2 under log2 and the vst; the legend and the tile now say so.
+
 **Host.** 01-2 cell 1 and cell 22 are the notebook's own exposition, four
 figures (`deseq2-nb`, `deseq2-mle`, `deseq2-map`, `deseq2-shrinkage`) and
 every formula the widget needs: `y ~ NB(μ, α)`, the geometric-mean ratio and

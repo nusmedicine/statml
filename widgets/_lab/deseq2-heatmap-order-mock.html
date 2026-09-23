@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · deseq2 — the heatmap's row and column order</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1800px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 104ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); min-height: 26px; white-space: pre-line; max-width: 300px; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 104ch; }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 104ch; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>deseq2 &middot; the heatmap's row and column order (his question, round 12)</h1>
+  <p class="note">
+    <i>Is row clustering useful, or would it defeat the purpose of showing the need for transformed values?</i> Clustering reorders rows
+    and columns; it does not change which 30 genes are shown, so the tick count, the transform's worth in one number, is the same under
+    every order below. Measured first (<code>_lab/deseq2-cluster-measure.mjs</code>, 8 seeds): clustering the <b>samples</b> on the 30
+    most variable genes, 12 seeds at 3 vs 3: the dendrogram's top split is the two groups under counts in 2, under log2(x + 1) in 7,
+    under the vst in 12; the weaker reading the band shows, each group contiguous in the leaf order, holds under counts in 5, log2 in 9,
+    the vst in 12 (6 vs 6: 3 · 8 · 12). So column clustering is a second demonstration on the same figure: the notebook's <code>pheatmap</code> clusters
+    both, and the group band then shows where each sample landed. Seed 3 below (<code>?seed=</code> for another), 3 vs 3, the cell dark to bright on the unit's own scale.
+  </p>
+
+  <h2>A &middot; as now: rows ranked by SD in the unit, samples in their given order</h2>
+  <div class="row" id="rowA"></div>
+
+  <h2>B &middot; rows by direction: genes higher in B on top, then genes lower in B; samples as given</h2>
+  <p class="note">A sort, not a clustering: within each half the rank by SD stays. Under the vst the two blocks read as the notebook's figure;
+    under counts the halves are still the highest-count genes and no block appears.</p>
+  <div class="row" id="rowB"></div>
+
+  <h2>C &middot; rows AND samples clustered, average linkage, Euclidean; no dendrogram drawn</h2>
+  <p class="note">The band over the columns is the truth: under counts the samples fall into an order that is not the groups; under the vst the
+    two groups come out as two blocks. Rows cluster into the up and down genes under the vst and into count magnitude under counts.</p>
+  <div class="row" id="rowC"></div>
+
+  <h2>The call</h2>
+  <p class="rec"><b>Recommended: C, both clustered.</b> It is the notebook's own figure, the tick count is untouched, and the column band
+    adds the sample-level lesson the numbers above support: the clustering finds the groups only under the vst. A unit change still slides
+    the rows that stay; the columns slide to their new order the same way. B is the cheap half of it and gains nothing the band does not.</p>
+  <p class="q"><b>The heatmap's order</b> &nbsp; <b>C &middot; rows and samples clustered (recommended)</b> &nbsp;|&nbsp; B &middot; rows by direction, samples as given
+    &nbsp;|&nbsp; rows clustered, samples as given &nbsp;|&nbsp; A &middot; as now</p>
+  <p class="q"><b>The cell's value</b> is the gene's value in that sample: a count, log2(count + 1) or the vst value, never a fold change. The fold change of a
+    row is the gap between its A cells and its B cells, in log2 units under log2 and the vst. The next round labels the cell so on the panel and in the legend.</p>
+</main>
+<script type="module">
+import { readTokens } from "../core/env.js";
+import { makeRng } from "../core/rng.js";
+import { simulate, analyse, log2 } from "../deseq2/engine.js";
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+const mean = (a) => a.reduce((s, v) => s + v, 0) / a.length;
+const sd = (a) => { const m = mean(a); return Math.sqrt(a.reduce((s, v) => s + (v - m) ** 2, 0) / (a.length - 1)); };
+const W = 300, H = 300;
+function canvas(host, title, sub) {
+  const d = document.createElement("div"); d.className = "cand";
+  d.innerHTML = `<h3>${title}</h3><p class="sub">${sub}</p>`;
+  const c = document.createElement("canvas"); c.width = W * DPR; c.height = H * DPR; c.style.width = W + "px"; c.style.height = H + "px";
+  d.appendChild(c); host.appendChild(d);
+  const ctx = c.getContext("2d"); ctx.scale(DPR, DPR);
+  ctx.font = `${T.fsXs} ${T.font}`; ctx.textBaseline = "alphabetic";
+  return ctx;
+}
+const text = (ctx, s, x, y, { color = T.ink2, align = "left", font = `${T.fsXs} ${T.font}` } = {}) => { ctx.fillStyle = color; ctx.textAlign = align; ctx.font = font; ctx.fillText(s, x, y); };
+
+const REPS = 3, ROWS = 30;
+const SEED = Number(new URLSearchParams(location.search).get("seed") || 3);
+const sim = simulate(makeRng(SEED), { genes: 1200, reps: REPS }), an = analyse(sim);
+document.querySelector("h1").textContent += ` · seed ${SEED}`;
+const n = 2 * REPS;
+const norm = sim.counts.map((row) => row.map((v, j) => v / an.sf[j]));
+const UNITS = [["raw", "counts", (v) => v], ["log2", "log2(x + 1)", (v) => log2(v + 1)], ["vst", "vst", an.vst]];
+const GC = [T.groupA, T.groupB];
+const expressed = [...an.expressed];
+
+/* average linkage on a distance function; leaves in merge order */
+function clusterOrder(items, dist) {
+  let clusters = items.map((i) => [i]);
+  const d = (A, B) => mean(A.flatMap((a) => B.map((b) => dist(a, b))));
+  while (clusters.length > 1) {
+    let best = [0, 1], bd = Infinity;
+    for (let i = 0; i < clusters.length; i++) for (let j = i + 1; j < clusters.length; j++) { const v = d(clusters[i], clusters[j]); if (v < bd) { bd = v; best = [i, j]; } }
+    const [i, j] = best; clusters = clusters.filter((_, k) => k !== i && k !== j).concat([clusters[i].concat(clusters[j])]);
+  }
+  return clusters[0];
+}
+
+function heat(ctx, rows, colOrder, fn) {
+  const x0 = 24, y0 = 40, cw = 26, rh = Math.floor((H - 70) / ROWS);
+  const M = rows.map((g) => norm[g].map(fn));
+  const lo = Math.min(...M.flat()), hi = Math.max(...M.flat());
+  colOrder.forEach((j, jj) => { ctx.fillStyle = GC[sim.grp[j]]; ctx.fillRect(x0 + jj * cw, y0 - 10, cw - 1, 6); });
+  rows.forEach((g, i) => {
+    colOrder.forEach((j, jj) => {
+      const t = (M[i][j] - lo) / (hi - lo || 1);
+      ctx.fillStyle = T.surface3; ctx.fillRect(x0 + jj * cw, y0 + i * rh, cw - 1, rh - 1);
+      ctx.fillStyle = T.magnitude; ctx.globalAlpha = t; ctx.fillRect(x0 + jj * cw, y0 + i * rh, cw - 1, rh - 1); ctx.globalAlpha = 1;
+    });
+    if (sim.isDE[g]) { ctx.strokeStyle = T.reference; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x0 - 10, y0 + i * rh + rh / 2); ctx.lineTo(x0 - 4, y0 + i * rh + rh / 2); ctx.stroke(); }
+  });
+  const de = rows.filter((g) => sim.isDE[g]).length;
+  text(ctx, `truly changed ${de} of ${ROWS}`, x0 + n * cw + 10, y0 + 8, { color: T.ink1, font: `600 ${T.fsXs} ${T.font}` });
+  const runs = colOrder.reduce((k, j, i) => k + (i > 0 && sim.grp[j] !== sim.grp[colOrder[i - 1]] ? 1 : 0), 0);
+  text(ctx, `groups contiguous: ${runs === 1 ? "yes" : "no"}`, x0 + n * cw + 10, y0 + 26, { color: runs === 1 ? T.ink1 : T.extreme });
+}
+for (const [u, name, fn] of UNITS) {
+  const top = expressed.map((g) => [g, sd(norm[g].map(fn))]).sort((a, b) => b[1] - a[1]).slice(0, ROWS).map(([g]) => g);
+  const given = [...Array(n).keys()];
+  heat(canvas(document.getElementById("rowA"), `${name}`, "rows by SD, samples as given"), top, given, fn);
+  /* B: by direction */
+  const dir = (g) => mean(norm[g].filter((_, j) => sim.grp[j] === 1).map(fn)) - mean(norm[g].filter((_, j) => sim.grp[j] === 0).map(fn));
+  const up = top.filter((g) => dir(g) > 0), down = top.filter((g) => dir(g) <= 0);
+  heat(canvas(document.getElementById("rowB"), `${name}`, `${up.length} higher in B on top, ${down.length} lower`), up.concat(down), given, fn);
+  /* C: both clustered */
+  const M = top.map((g) => norm[g].map(fn));
+  const rowD = (a, b) => Math.sqrt(M[a].reduce((s, v, k) => s + (v - M[b][k]) ** 2, 0));
+  const colD = (a, b) => Math.sqrt(M.reduce((s, r) => s + (r[a] - r[b]) ** 2, 0));
+  const rOrder = clusterOrder([...Array(ROWS).keys()], rowD).map((i) => top[i]);
+  const cOrder = clusterOrder(given, colD);
+  heat(canvas(document.getElementById("rowC"), `${name}`, "rows and samples clustered"), rOrder, cOrder, fn);
+}
+</script>
+</body>
+</html>
