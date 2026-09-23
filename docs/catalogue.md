@@ -19982,7 +19982,28 @@ Two things the build then found that no box diagram could:
 The page is 951px at 746 and 1458 at 534, against 870 and 1094. 31 overlap
 states clean at both widths, switch probe 10/0.
 
-NEXT: his round 13.
+**Round 13, 2026-09-23 — REVERTED to round 10's layout on his word:** *"ok it
+looks more confusing..sigh ok can you revert to the original layout"*, with
+the order he wanted spelled out — all four violins, then the two scatters,
+then the spider and the scores. That is exactly what round 10 built, so
+`widgets/cell-qc/main.js` was restored to cebe8d8 whole: the copy audit and
+the core readout fix both came before it and are untouched.
+
+**What the three-band version cost and why it read worse.** Every panel was
+legible — the floors were measured and nothing was below one — but the page
+grew from 870 to 951 at 746 and from 1094 to 1458 at 534, three headings and
+three rules were added to a page that already carries a subtitle and eleven
+panel captions, and the doublet band's three panels were 180, 178 and 276
+where the row before had given the spider 231 and the rows 386. **A grouping
+that is correct can still be more to read than the thing it groups.**
+
+The mocks are kept: `_lab/cell-qc-group-mock.html` (four groupings, and the
+measured floor of every panel) and `_lab/cell-qc-bands-mock.html` (the bands,
+two ways). The measurement in them is the reusable part — a violin panel
+needs 174px before its two lines of sample name collide, which is a FIGURE
+floor and the reason a third of a 534px canvas can never hold one.
+
+NEXT: his round 14.
 
 ### Slot 80 · `integration` — Single-Cell Integration
 
