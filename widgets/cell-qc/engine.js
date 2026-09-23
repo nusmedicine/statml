@@ -268,25 +268,33 @@ const HEX = TYPES.map((t, i) => [Math.cos((Math.PI * 2 * i) / TYPES.length), Mat
    of the figure, since ambient RNA is every type at once. */
 const SPREAD = 9;
 
+/** What a droplet's own molecules said its six block fractions were: the true
+    fractions with the error of having measured them from `nCount` molecules.
+    This is the profile the map places a droplet by, and the space a
+    neighbour-based method would work in, so both read it from here. */
+export function profileOf(rng, c) {
+  /* the droplet's true block fractions: one type, two for a doublet, all six
+     for ambient. Outside its own block a type still holds the common genes,
+     which is the 0.07 floor the marker block sits on. */
+  const w = TYPES.map(() => (c.state === "empty" ? 1 / TYPES.length : 0.07));
+  const i = TYPES.findIndex((t) => t.key === c.type);
+  if (c.state !== "empty") {
+    w[i] += c.state === "doublet" ? 0.3 : 0.6;
+    if (c.partner) w[TYPES.findIndex((t) => t.key === c.partner)] += 0.3;
+  }
+  const s = w.reduce((a, b) => a + b, 0);
+  /* read off n molecules: each block's share is estimated with binomial error */
+  const n = Math.max(20, c.nCount);
+  return w.map((v) => {
+    const p = v / s;
+    return Math.max(0, p + rng.normal() * SPREAD * Math.sqrt((p * (1 - p)) / n));
+  });
+}
+
 export function embed(rng, cells) {
   return cells.map((c) => {
-    /* the droplet's true block fractions: one type, two for a doublet, all six
-       for ambient. Outside its own block a type still holds the common genes,
-       which is the 0.55 floor the marker block sits on. */
-    const w = TYPES.map((t) => (c.state === "empty" ? 1 / TYPES.length : 0.07));
-    const i = TYPES.findIndex((t) => t.key === c.type);
-    if (c.state !== "empty") {
-      w[i] += c.state === "doublet" ? 0.3 : 0.6;
-      if (c.partner) w[TYPES.findIndex((t) => t.key === c.partner)] += 0.3;
-    }
-    const s = w.reduce((a, b) => a + b, 0);
-    /* read off n molecules: each block's share is estimated with binomial error */
-    const n = Math.max(20, c.nCount);
+    const obs = profileOf(rng, c);
     let x = 0, y = 0, tot = 0;
-    const obs = w.map((v) => {
-      const p = v / s;
-      return Math.max(0, p + rng.normal() * SPREAD * Math.sqrt((p * (1 - p)) / n));
-    });
     obs.forEach((v, k) => { tot += v; x += v * HEX[k][0]; y += v * HEX[k][1]; });
     return { x: x / tot, y: y / tot };
   });

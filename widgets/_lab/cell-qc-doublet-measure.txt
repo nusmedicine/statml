@@ -1,0 +1,26 @@
+STAGE — 1137 droplets survive the lesson's thresholds, 62 of them hold two cells (5%); 49 hold two DIFFERENT types and 13 two of the same
+
+THE METHOD — artificial doublets, then each droplet scored by the share of its neighbours that are artificial
+  1× artificial, k = 20: calling the top 62 scores finds 48 of the 62 doublets (77%) — 48 of the 49 that hold two different types (98%), 0 of the 13 that hold two of the same (0%)
+      median score: two different types 0.90, two of the same 0.35, one cell 0.30
+  1× artificial, k = 50: calling the top 62 scores finds 48 of the 62 doublets (77%) — 48 of the 49 that hold two different types (98%), 0 of the 13 that hold two of the same (0%)
+      median score: two different types 0.88, two of the same 0.42, one cell 0.28
+  2× artificial, k = 20: calling the top 62 scores finds 45 of the 62 doublets (73%) — 45 of the 49 that hold two different types (92%), 0 of the 13 that hold two of the same (0%)
+      median score: two different types 0.90, two of the same 0.50, one cell 0.40
+  2× artificial, k = 50: calling the top 62 scores finds 48 of the 62 doublets (77%) — 48 of the 49 that hold two different types (98%), 0 of the 13 that hold two of the same (0%)
+      median score: two different types 0.92, two of the same 0.56, one cell 0.44
+
+AGAINST THE LESSON'S OWN METHOD — an upper threshold on the genes detected
+  a cut at the 90th percentile (5109 genes) calls 114 droplets and finds 21 of the 62 (34%), 16 of them heterotypic; 93 of the calls hold one cell
+  a cut at the 95th percentile (5746 genes) calls 57 droplets and finds 14 of the 62 (23%), 10 of them heterotypic; 43 of the calls hold one cell
+
+WHY THE SAME-TYPE DOUBLET IS THE POINT
+  Hepatocyte        two different types 0.88 (n  7)   two hepatocytes 0.58 (n  4)
+  Tumour cell       two different types 0.93 (n  8)   two tumour cells 0.54 (n  6)
+  Immune cell       two different types 0.94 (n 10)   two immune cells 0.28 (n  2)
+  Endothelial cell  two different types 0.88 (n 14)   two endothelial cells 0.32 (n  1)
+  Stellate cell     two different types 0.98 (n  5)   two stellate cells   –  (n  0)
+  Kupffer cell      two different types 0.96 (n  5)   two kupffer cells   –  (n  0)
+  A doublet of two cells of one type has that type's profile, so the artificial doublets near it are the ones made from that type too — and so is every ordinary cell of it. There is nothing in the profile to find. This is what DoubletFinder's homotypic-proportion adjustment concedes rather than solves.
+
+WHAT THESE NUMBERS ARE AN UPPER BOUND ON. The stage's doublets ARE two droplets' counts added together, and step 1 makes its artificial doublets the same way, so the method is being asked to recognise exactly the thing it simulates. A real doublet also carries ambient RNA, is captured with its own efficiency, and the two cells are not always in their type's centre. Read the heterotypic share as the ceiling, and the same-type share as the honest floor: the second is a property of the profile, not of the method.
