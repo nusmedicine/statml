@@ -20115,7 +20115,29 @@ after it*, and `\bstep\b` is struck — nothing is driven by presses any more
 
 31 overlap states clean, check, test 34/34, verify 68.
 
-NEXT: his round 18.
+**Round 18, 2026-09-24 — the subtitle trimmed to fifty-seven words.** His
+call, with the cuts named: *"maybe we don't need to specify details?"* — no
+worked example for any rule, just the four ways the one-droplet-one-cell
+assumption fails. Four lengths were put to him, 50 to 75 words, each with
+what it drops; **his pick was F2**, which keeps one clause and four words for
+ambient RNA and lets the figure explain the rest.
+
+**The ambient clause is the one that had to survive a trim.** Without it a
+reader arrives believing a high mitochondrial percentage means a dying cell,
+which is the belief the Thresholds page exists to break: at a strict
+threshold the rule empties a SAMPLE, and the measurement behind this widget
+struck the arc's own cell-type claim for that reason. Everything else cut was
+something the figure already draws — the saturation of the two counts, the
+poorly captured cell, and how an artificial doublet is made.
+
+> Single-cell RNA sequencing partitions cells into droplets, and all
+> downstream analysis treats a droplet as one intact cell. Quality control
+> removes the droplets where that is false: too few genes or transcripts, a
+> high percentage of mitochondrial transcripts from a dying cell or from
+> ambient RNA released during dissociation, or more than one cell in the
+> droplet.
+
+NEXT: his round 19.
 
 ### Slot 80 · `integration` — Single-Cell Integration
 

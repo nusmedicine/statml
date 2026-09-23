@@ -1294,25 +1294,28 @@ const DATA_KEYS = ["seed", "hot", "hotMt"];
 defineWidget({
   slug: "cell-qc",
   title: "Single-Cell RNA-seq: QC",
-  /* HIS ROUND 17, after four redrafts. The shape is his: say what a
-     droplet is and what every later step assumes about it, then give the
-     reason for each rule rather than its arithmetic. The saturation of the
-     two counts was cut on his word — the readout still carries it — and
-     the doublet clause is his pick of three endings, because "its profile
-     is a mixture of two cells" is what makes two cells of ONE type
-     invisible at any threshold, which the second score row is for. */
+  /* HIS, AFTER SIX DRAFTS (rounds 17 and 18). The shape is his: say what
+     the unit is and what everything downstream assumes about it, then name
+     the ways that is false. Every worked example was cut on his word —
+     the saturation of the two counts, the poorly captured cell, and how an
+     artificial doublet is made — because the figure shows each of them and
+     the sentence does not have to.
+
+     THE AMBIENT CLAUSE STAYS, four words of the fifty-seven. Without it a
+     reader arrives believing a high mitochondrial percentage means a dying
+     cell, which is the belief the Thresholds page exists to break: at a
+     strict threshold the rule empties a SAMPLE, and the measurement behind
+     this widget struck the arc’s own cell-type claim for that reason.
+
+     "all downstream analysis" and not "every step after it": \bstep\b is
+     struck in the copy check because nothing here is driven by presses. */
   subtitle:
     "Single-cell RNA sequencing partitions cells into droplets, and all "
     + "downstream analysis treats a droplet as one intact cell. Quality "
-    + "control removes the droplets where that is false: too few transcripts "
-    + "or too "
-    + "few genes means no cell, or a poorly captured one, and a high "
-    + "percentage of mitochondrial transcripts means a dying cell, or a "
-    + "sample whose dissociation released mitochondrial RNA into all of its "
-    + "droplets. A droplet that held two cells passes both. Its profile is a "
-    + "mixture of two cells, so pairs of droplets are added together to make "
-    + "artificial mixtures, and a droplet is called when enough of its "
-    + "nearest neighbours are artificial.",
+    + "control removes the droplets where that is false: too few genes or "
+    + "transcripts, a high percentage of mitochondrial transcripts from a "
+    + "dying cell or from ambient RNA released during dissociation, or more "
+    + "than one cell in the droplet.",
   layout: "side",
   status: "draft",
   height: ({ page, w }) => (page === "metrics" ? HEIGHTS.metrics + METRIC_BLOCK(w ?? 900) : HEIGHTS[page] ?? HEIGHTS.metrics),
