@@ -19936,7 +19936,53 @@ or four). The page is 844 → 870, the 26px the rule and its line of type
 cost. The droplet's four numbers stay under the scatters at +44, which is
 what clears the x-axis label; at +30 they printed through *Transcripts*.
 
-NEXT: his round 11.
+**Rounds 11 and 12, 2026-09-23 — the page grouped by concept.** His report:
+*"now my eye is just wandering everywhere seeing which graphs are referring to
+the same concept"*, with the grouping written out — *1) violin
+genes/transcripts -> genes x transcripts. 2) violin mito -> mito x
+transcripts. 3) violin doublet -> spider + scores*.
+
+Round 10's reorder had made the page one subject and then the next, but
+inside the first subject a panel still sat four hundred pixels from the panel
+about the same number with six others in between. Round 11 mocked four
+groupings (`_lab/cell-qc-group-mock.html`) and round 12 the bands he wrote,
+two ways (`_lab/cell-qc-bands-mock.html`). **His picks: layout E, full
+headings, and the doublet violin 262px tall so its band lines up.**
+
+**The mocks measured before drawing**, which is what settled it. Each panel's
+widest line, in the widget's own type:
+
+| panel | needs | why |
+|---|---|---|
+| a violin | **174px** | four samples, two lines of name each — a FIGURE floor, not a caption |
+| a scatter | 194 | its caption, with its note dropping to a second line |
+| the neighbourhood panel | 163 | the two marks and their key |
+| the three score rows | 236 | the x-axis label under all three |
+
+A third of the stage is 211px at 746 and **140 at 534**, which is what ruled
+out three concept columns: at 746 they cost three rewritten captions, and at
+534 no wording saves them, because a violin below 174 prints its sample names
+through each other — the same collision the overlap sweep found at 3px when
+the violins first went four across. Bands give each panel the width its own
+content needs instead of a third of the stage, and they wrap at 534 the way
+the violin row already did.
+
+Two things the build then found that no box diagram could:
+
+- **A scatter needs a left gutter of 56px, a violin does not.** A scatter's
+  y-axis carries a rotated label as well as ticks; at the 22px gap between
+  panels it printed through the sample names of the violin beside it. The old
+  two-scatter row had used 56 and that is the number the bands use now.
+- **The neighbourhood panel is 178px wide in a three-across band**, and its
+  three caption lines were 233, 215 and 222. They are one short line now,
+  *One droplet's fifty nearest*, and the rank and the pipeline order moved to
+  the band's own note, which is full width. A band heading is the right place
+  for a thing that is true of the whole band.
+
+The page is 951px at 746 and 1458 at 534, against 870 and 1094. 31 overlap
+states clean at both widths, switch probe 10/0.
+
+NEXT: his round 13.
 
 ### Slot 80 · `integration` — Single-Cell Integration
 

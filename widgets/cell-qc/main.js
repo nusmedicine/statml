@@ -59,7 +59,7 @@ const PAGES = [
 ];
 /* the Metrics page is taller when its four panels take two rows; core hands a
    height function the width for exactly this (widget 60's is the precedent) */
-const HEIGHTS = { metrics: 870, thresholds: 400 };
+const HEIGHTS = { thresholds: 400 };
 const EASE_MS = 450;
 const easeInOut = (t) => (t < 0.5 ? 2 * t * t : 1 - ((-2 * t + 2) ** 2) / 2);
 const log10 = (v) => Math.log10(Math.max(1, v));
@@ -130,50 +130,121 @@ function stageFor(seed, hot, hotMt) {
 
 /* --- geometry, above defineWidget: the module draws once at load ------------ */
 const PAD = { l: 52, r: 16, t: 26 };
-/* FOUR METRICS ACROSS THE TOP (his round 4). The fourth is not like the other
-   three and the page says so in its own words, but it IS a number per droplet
-   with a distribution, and standing it beside them is what stops the doublet
-   step reading as an appendix.
+/* THREE BANDS, ONE CONCEPT EACH (his round 12, and layout E of
+   `_lab/cell-qc-bands-mock.html`). His words: "1) violin genes/transcripts ->
+   genes x transcripts. 2) violin mito -> mito x transcripts. 3) violin
+   doublet -> spider + scores", because "my eye is just wandering everywhere
+   seeing which graphs are referring to the same concept".
 
-   TWO ROWS OF TWO WHEN THE CANVAS IS NARROW. Four across puts each panel's
-   four samples in 25px columns on the 534px canvas the harness renders, and
-   "liver" and "tumour" then print through each other — the text-overlap sweep
-   found it at 3px. The break is at 700px, which is where a column stops
-   holding the longer word. */
-const METRIC_COLS = (w) => (w < 700 ? 2 : 4);
-const violinRect = (w, i) => {
-  const cols = METRIC_COLS(w), gap = 22;
-  const each = (w - PAD.l - PAD.r - (cols - 1) * gap) / cols;
-  const row = Math.floor(i / cols), col = i % cols;
-  return { x: PAD.l + col * (each + gap), y: PAD.t + 4 + row * 224, w: each, h: 180 };
-};
-/* everything under them moves down by the extra row */
-const METRIC_BLOCK = (w) => (METRIC_COLS(w) === 2 ? 224 : 0);
-/* ONE SUBJECT, THEN THE NEXT (his round 10: "the doublets have a lot of
-   diagrams, and maybe they need to be visually separated from the other
-   metrics"). The doublet band used to sit BETWEEN the four distributions and
-   the two scatters, so the material about the first three numbers was split
-   in half by the material about the fourth. Now: everything measured on the
-   droplet is contiguous — four distributions, then the two scatters — and
-   then a rule across the stage, and under it the two panels that say where
-   the fourth number came from.
+   Each band reads left to right — the distributions first, then what they
+   are plotted against — under a rule and a heading of its own. Four violins
+   in one row and two scatters in another put a panel four hundred pixels from
+   the panel about the same number, with six others in between.
 
-   The fourth violin stays in the row of four. That was his round-4 decision
-   and it still holds: it IS a number per droplet with a distribution, and
-   standing it beside the others is what stops the doublet step reading as an
-   appendix. Only the two big diagrams moved, and the page is 26px taller for
-   the rule and its line of type. */
-const scatterRect = (w, i) => {
-  const each = (w - PAD.l - PAD.r - 56) / 2;
-  return { x: PAD.l + i * (each + 56), y: 262 + METRIC_BLOCK(w), w: each, h: 160 };
-};
-const ruleY = (w) => 492 + METRIC_BLOCK(w);
-const spaceRect = (w) => ({ x: PAD.l, y: 556 + METRIC_BLOCK(w), w: Math.min(250, (w - PAD.l - PAD.r) * 0.34), h: 262 });
-const scoreRect = (w) => {
-  const sp = spaceRect(w);
-  const x = sp.x + sp.w + 58;
-  return { x, y: 556 + METRIC_BLOCK(w), w: w - x - PAD.r - 8, h: 262 };
-};
+   THE FLOORS BELOW WERE MEASURED, not chosen: the mock printed the width of
+   every line each panel has to fit, in the widget's own type. A violin needs
+   174px before the two lines of a sample name collide under its four samples
+   — a figure floor, which is why a third of a 534px canvas cannot hold one
+   and the first and third bands wrap there. The three score rows need 236 for
+   their axis label and the neighbourhood panel 163 for its two marks and their
+   key; those are caption widths and both clear at either width. */
+const BANDS = [
+  { text: "The two counts — the same thing twice" },
+  { text: "Mitochondrial % — a dying cell, or the sample" },
+  /* THE BAND SAYS IT ONCE, for all three panels under it. These two lines used
+     to sit over the neighbourhood panel, which is 178px wide in this layout
+     and could hold neither: at 233px and 222px they printed across the score
+     rows beside it. A band heading is full width and is the right place for a
+     thing that is true of the whole band. */
+  {
+    text: "The doublet score — from the droplets nearest it",
+    note: "nearest in the middle, fiftieth at the rim; scored on what the other three rules keep",
+  },
+];
+const F_VIOLIN = 174, F_SPIDER = 163, F_ROWS = 236;
+const GAP = 22;        // between two panels in a band
+/* A SCATTER NEEDS ITS LEFT GUTTER. Its y-axis carries a rotated label as well
+   as ticks, and at a 22px gap that label prints through the sample names of
+   the violin beside it. A violin's own ticks are three characters and clear
+   the 22. The old two-scatter row used 56 and this is the same number. */
+const SGAP = 56;
+const CAP = 46;        // a band's rule down to the top of the panel under it
+const CAP3 = 52;       // band three: its heading carries a note line under the rule
+const LABELS = 29;     // two lines of sample name under a violin
+const BAND_GAP = 24;   // the foot of one band to the next band's rule
+const FOOT = 30;
+
+/* One measurement a width, because every draw and every hit-test asks for the
+   same rects and the page has eleven of them. */
+const layouts = new Map();
+function metricsLayout(w) {
+  const hit = layouts.get(w);
+  if (hit) return hit;
+  const full = w - PAD.l - PAD.r;
+  const violins = [], scatters = [], heads = [];
+  let y = 20;
+
+  heads.push({ y, ...BANDS[0] });
+  y += CAP;
+  const e3 = (full - GAP - SGAP) / 3;
+  if (e3 >= F_VIOLIN) {
+    violins[0] = { x: PAD.l, y, w: e3, h: 180 };
+    violins[1] = { x: PAD.l + e3 + GAP, y, w: e3, h: 180 };
+    scatters[0] = { x: PAD.l + 2 * e3 + GAP + SGAP, y, w: e3, h: 180 };
+    y += 180 + LABELS;
+  } else {
+    /* no room for three across: the two counts pair, and their scatter takes
+       the whole band under them */
+    const e2n = (full - GAP) / 2;
+    violins[0] = { x: PAD.l, y, w: e2n, h: 180 };
+    violins[1] = { x: PAD.l + e2n + GAP, y, w: e2n, h: 180 };
+    y += 180 + LABELS + GAP + 22;
+    scatters[0] = { x: PAD.l, y, w: full, h: 180 };
+    y += 180 + LABELS;
+  }
+  y += BAND_GAP;
+
+  heads.push({ y, ...BANDS[1] });
+  y += CAP;
+  const e2s = (full - SGAP) / 2;
+  violins[2] = { x: PAD.l, y, w: e2s, h: 180 };
+  scatters[1] = { x: PAD.l + e2s + SGAP, y, w: e2s, h: 180 };
+  y += 180 + LABELS + BAND_GAP;
+
+  heads.push({ y, ...BANDS[2] });
+  y += CAP3;
+  const e2 = (full - GAP) / 2;
+  let space, rows;
+  const trio = full - 2 * GAP;
+  if (trio >= F_VIOLIN + F_SPIDER + F_ROWS) {
+    /* THE SLACK GOES WHERE IT IS WORTH MOST. The three rows carry a thousand
+       droplets across a 0-to-1 axis and the spider fifty spokes, so they take
+       two thirds and a quarter of what is left over; the violin is legible at
+       its floor and takes the rest. */
+    const slack = trio - (F_VIOLIN + F_SPIDER + F_ROWS);
+    const wv = F_VIOLIN + slack * 0.1, ws = F_SPIDER + slack * 0.25;
+    violins[3] = { x: PAD.l, y, w: wv, h: 262 };
+    space = { x: PAD.l + wv + GAP, y, w: ws, h: 262 };
+    rows = { x: PAD.l + wv + ws + 2 * GAP, y, w: trio - wv - ws, h: 262 };
+    y += 262 + LABELS;
+  } else {
+    violins[3] = { x: PAD.l, y, w: e2, h: 262 };
+    space = { x: PAD.l + e2 + GAP, y, w: e2, h: 262 };
+    y += 262 + LABELS + GAP + 22;
+    rows = { x: PAD.l, y, w: full, h: 210 };
+    y += 210;
+  }
+  const L = { violins, scatters, heads, space, rows, height: Math.round(y + FOOT) };
+  layouts.set(w, L);
+  return L;
+}
+/* THE DOUBLET VIOLIN IS 262 TALL, not 180 (his round 12): it shares its band
+   with the neighbourhood panel and the three rows, and the three line up top
+   and bottom. */
+const violinRect = (w, i) => metricsLayout(w).violins[i];
+const scatterRect = (w, i) => metricsLayout(w).scatters[i];
+const spaceRect = (w) => metricsLayout(w).space;
+const scoreRect = (w) => metricsLayout(w).rows;
 /* LAYOUT A (his pick, round 2): the map is the biggest thing on the page,
    because what the sliders do to the cells is what the page is now about; the
    bar sits beside it and the sweep under the bar, so the whole dial stays
@@ -438,6 +509,28 @@ const ringAt = (ctx, colors, x, y, r = 5.5) => {
    ====================================================================== */
 function drawMetrics(ctx, colors, w, state, hover) {
   const { cells, thr, axes } = state;
+  /* THE BAND RULES FIRST, so every caption's surface halo prints over them.
+     Drawn in --grid and labelled in ink: a divider is structure, not data, and
+     every colour on this page already answers a question about a droplet. */
+  ctx.save();
+  ctx.strokeStyle = colors.grid;
+  ctx.lineWidth = 1;
+  ctx.textAlign = "left";
+  ctx.textBaseline = "middle";
+  for (const b of metricsLayout(w).heads) {
+    ctx.beginPath(); ctx.moveTo(PAD.l, b.y + 0.5); ctx.lineTo(w - PAD.r, b.y + 0.5); ctx.stroke();
+    ctx.font = `600 ${colors.fsSm} ${colors.font}`;
+    ctx.fillStyle = colors.surface;
+    ctx.fillRect(PAD.l - 4, b.y - 9, ctx.measureText(b.text).width + 8, 18);
+    ctx.fillStyle = colors.ink2;
+    ctx.fillText(b.text, PAD.l, b.y);
+    if (b.note) {
+      ctx.font = `${colors.fsXs} ${colors.font}`;
+      ctx.fillStyle = colors.ink3;
+      ctx.fillText(b.note, PAD.l, b.y + 18);
+    }
+  }
+  ctx.restore();
   METRICS.forEach((m, mi) => {
     const rect = violinRect(w, mi);
     const { lo, hi } = axes.violins[mi];
@@ -581,25 +674,6 @@ function drawMetrics(ctx, colors, w, state, hover) {
       ringAt(ctx, colors, plot.sx(log10(c[s.xk])), plot.sy(s.ylog ? log10(c[s.yk]) : c[s.yk]));
     }
   });
-  /* THE RULE THAT SEPARATES THE TWO SUBJECTS. Drawn in --grid and labelled in
-     ink, because a divider is structure and not data: every colour on this
-     page already answers a question about a droplet. The line of type is the
-     subtitle's own last clause, so the page and the sentence above it say the
-     same thing in the same words. */
-  ctx.save();
-  const ry = ruleY(w);
-  ctx.strokeStyle = colors.grid;
-  ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.moveTo(PAD.l, ry + 0.5); ctx.lineTo(w - PAD.r, ry + 0.5); ctx.stroke();
-  ctx.font = `600 ${colors.fsSm} ${colors.font}`;
-  ctx.textAlign = "left";
-  ctx.textBaseline = "middle";
-  const head = "Worked out from the droplets nearest it";
-  ctx.fillStyle = colors.surface;
-  ctx.fillRect(PAD.l - 4, ry - 9, ctx.measureText(head).width + 8, 18);
-  ctx.fillStyle = colors.ink2;
-  ctx.fillText(head, PAD.l, ry);
-  ctx.restore();
   drawDoubletPanels(ctx, colors, w, state, hover);
   /* ONE DROPLET, EVERY PANEL. Its four numbers are four readings of it, and
      what it holds is not among them: the three rows on the right are the
@@ -864,16 +938,13 @@ function drawDoubletPanels(ctx, colors, w, state, hover) {
   ctx.font = `600 ${colors.fsSm} ${colors.font}`;
   ctx.fillStyle = colors.ink2;
   ctx.textAlign = "left";
-  ctx.fillText("What one droplet's nearest neighbours are", mr.x, mr.y - 40);
-  /* THE ORDER, said once and on the figure (his round 4). The widget scores
-     what the other three rules keep, which is DoubletFinder's order; the
-     other order is scDblFinder's, and the two disagree in their own docs.
-     Two short lines rather than one long one: the panel is 250px wide and a
-     line that leaves it prints through the panel beside it. */
-  ctx.font = `${colors.fsXs} ${colors.font}`;
-  ctx.fillStyle = colors.ink3;
-  ctx.fillText("nearest in the middle, fiftieth at the rim", mr.x, mr.y - 24);
-  ctx.fillText("on the droplets the other three rules keep", mr.x, mr.y - 8);
+  /* ONE SHORT LINE. The rank and the order used to be two more lines here and
+     they are the band's own note now, because this panel is 178px wide in the
+     three-across band and neither line fitted: they printed across the score
+     rows beside it. The order itself still has to be said — the widget
+     scores what the other three rules keep, which is DoubletFinder's; the
+     other order is scDblFinder's, and the two disagree in their own docs. */
+  ctx.fillText("One droplet's fifty nearest", mr.x, mr.y - 8);
   ctx.restore();
   ctx.save();
   ctx.strokeStyle = colors.grid;
@@ -977,7 +1048,7 @@ function drawDoubletPanels(ctx, colors, w, state, hover) {
   ctx.font = `600 ${colors.fsSm} ${colors.font}`;
   ctx.fillStyle = colors.ink2;
   ctx.textAlign = "left";
-  ctx.fillText("The doublet score, by what the droplet holds", sr.x, sr.y - 24);
+  ctx.fillText("By what the droplet holds", sr.x, sr.y - 24);
   ctx.restore();
   DBL_ROWS.forEach((row, ri) => {
     const y0 = sr.y + ri * rowH, h = rowH - 26;
@@ -1231,7 +1302,7 @@ defineWidget({
     + "droplets nearest it.",
   layout: "side",
   status: "draft",
-  height: ({ page, w }) => (page === "metrics" ? HEIGHTS.metrics + METRIC_BLOCK(w ?? 900) : HEIGHTS[page] ?? HEIGHTS.metrics),
+  height: ({ page, w }) => (page === "metrics" ? metricsLayout(w ?? 900).height : HEIGHTS[page]),
 
   params: {
     page: { type: "segmented", label: "Page", options: PAGES, default: "metrics", display: true },
