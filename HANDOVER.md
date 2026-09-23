@@ -34,13 +34,15 @@ first (`_lab/rnaseq-sc-data.mjs` and `_lab/rnaseq-sc-qc.json` hold the 10x
 numbers: 40,564 → 31,014 cells, the mt% rule removes 85% of one sample), mock,
 build; the catalogue's § *The RNA-seq arc* has the plan and his picks.
 
-**SIXTY-EIGHT WIDGETS IN THE MANIFEST — 67 on the gallery and `roc-auc`
+**SIXTY-NINE WIDGETS IN THE MANIFEST — 68 on the gallery and `roc-auc`
 UNLISTED; no draft on `main`** (`wgcna` is still a draft on its own branch
 and worktree, another session's). The live site is
 <https://nusmedicine.github.io/statml/>, deployed from `main`: the latest
 widget ship is `bc2f534` (78 `deseq2`, 2026-09-23, pushed with the fifteen
-review-round commits behind it; deploy run 35823361910), and this handover's
-commit follows it. **SESSION CLOSED.**
+review-round commits behind it; that push's run was cancelled by the handover
+push, as Pages does, and the handover's run 35823430155 completed green — the
+live manifest read back with 69 widgets and deseq2 shipped), and this
+handover's commit follows it. **SESSION CLOSED.**
 
 **2026-09-22: 77 `count-normalization` SHIPPED AND PUSHED (ab66e5c, 14
 states, "Bulk RNA-seq: Normalization"), the first of the RNA-seq arc, after
