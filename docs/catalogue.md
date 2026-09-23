@@ -19506,6 +19506,19 @@ is as it was. The ring's label now picks its side from the ring's own
 position, not the control's mean (a hovered high-count gene ran its label
 off the right edge).
 
+**SHIPPED AND PUSHED 2026-09-23 on his "tested ok", after fifteen review
+rounds in two days.** Twenty fingerprint states: fourteen settled across the
+four pages, the three units and both themes (`shown=0` pins the pages that
+open on nothing, `shown=` the walkthroughs' later stages), four driven
+presses on Shrinkage and Fit — the later ones reached through `before` lists
+of completed presses, since a driven state may not also set `shown=` — and
+two set-driven eases, counts → vst on Transform and three → six replicates
+on Fit's finished figure through core's data door. Three recording runs
+identical, then a MATCH pass, all at DPR 1.25 with the pane fronted; the
+four `before` states hashed identically to their `shown=` forms. `check`
+and `test` read alone before the push. The measure scripts and the four mock
+pages stay in `_lab/` as the record.
+
 **Host.** 01-2 cell 1 and cell 22 are the notebook's own exposition, four
 figures (`deseq2-nb`, `deseq2-mle`, `deseq2-map`, `deseq2-shrinkage`) and
 every formula the widget needs: `y ~ NB(μ, α)`, the geometric-mean ratio and

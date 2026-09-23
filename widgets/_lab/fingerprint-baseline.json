@@ -9646,6 +9646,228 @@
       },
       "px": "f46d5d3c",
       "tx": "27303438"
+    },
+    {
+      "$note": "deseq2 · Distribution, the opening figure: one gene at mean 100 and α 0.05, the 1,200 genes' variance against mean",
+      "slug": "deseq2",
+      "state": "?theme=light&shown=0",
+      "px": "d95b7a06",
+      "tx": "90be2383"
+    },
+    {
+      "$note": "deseq2 · Distribution at mean 10, α 0.5: the NB wide and skewed",
+      "slug": "deseq2",
+      "state": "?theme=light&mu=10&alpha=0.5&shown=0",
+      "px": "3403d056",
+      "tx": "ef7247ad"
+    },
+    {
+      "$note": "deseq2 · Distribution with the simulation at α 0.01 and six replicates: the trend near Poisson",
+      "slug": "deseq2",
+      "state": "?theme=light&alpha=0.01&reps=6&shown=0",
+      "px": "b7ba9ab7",
+      "tx": "f7bf2d35"
+    },
+    {
+      "$note": "deseq2 · Shrinkage before any press: sixty genes' own estimates, the walked gene's likelihood",
+      "slug": "deseq2",
+      "state": "?theme=light&page=shrinkage&shown=0",
+      "px": "5543592c",
+      "tx": "5706c80d"
+    },
+    {
+      "$note": "deseq2 · Shrinkage after three presses: every gene pulled to the trend, the posterior",
+      "slug": "deseq2",
+      "state": "?theme=light&page=shrinkage&shown=3",
+      "px": "1418f845",
+      "tx": "5a7f294c"
+    },
+    {
+      "$note": "deseq2 · Shrinkage after two presses at two replicates, seed 9",
+      "slug": "deseq2",
+      "state": "?theme=light&page=shrinkage&shown=2&reps=2&seed=9",
+      "px": "7295beff",
+      "tx": "73f2b08e"
+    },
+    {
+      "$note": "deseq2 · Fit before any press: the one gene's fit, the MA plot of every β",
+      "slug": "deseq2",
+      "state": "?theme=light&page=fit&shown=0",
+      "px": "c8e04237",
+      "tx": "e79d4210"
+    },
+    {
+      "$note": "deseq2 · Fit after two presses: the test's calls, the LFC prior's spike and normal",
+      "slug": "deseq2",
+      "state": "?theme=light&page=fit&shown=2",
+      "px": "e5cb38a7",
+      "tx": "3439f9d4"
+    },
+    {
+      "$note": "deseq2 · Fit after four presses: the posterior, the MA plot after shrinkage",
+      "slug": "deseq2",
+      "state": "?theme=light&page=fit&shown=4",
+      "px": "ba791f8b",
+      "tx": "28b620f8"
+    },
+    {
+      "$note": "deseq2 · Fit after four presses at α 0.5 and two replicates",
+      "slug": "deseq2",
+      "state": "?theme=light&page=fit&shown=4&alpha=0.5&reps=2",
+      "px": "e20570b9",
+      "tx": "8d14f543"
+    },
+    {
+      "$note": "deseq2 · Transform in counts: the SD grows with the mean, the clustered heatmap's rows are the highest counts",
+      "slug": "deseq2",
+      "state": "?theme=light&page=transform&shown=0",
+      "px": "0c659bff",
+      "tx": "2e565474"
+    },
+    {
+      "$note": "deseq2 · Transform in vst: the SD level, the heatmap's rows the changed genes",
+      "slug": "deseq2",
+      "state": "?theme=light&page=transform&unit=vst&shown=0",
+      "px": "ab8fd51d",
+      "tx": "2c30fa44"
+    },
+    {
+      "$note": "deseq2 · Transform in log2(x + 1) at six replicates, seed 7",
+      "slug": "deseq2",
+      "state": "?theme=light&page=transform&unit=log2&reps=6&seed=7&shown=0",
+      "px": "00ea271c",
+      "tx": "b6cd8938"
+    },
+    {
+      "$note": "deseq2 · Transform in vst, dark theme",
+      "slug": "deseq2",
+      "state": "?theme=dark&page=transform&unit=vst&shown=0",
+      "px": "960e49d6",
+      "tx": "2c30fa44"
+    },
+    {
+      "$note": "deseq2 · DRIVEN mid-press: the trend fading in on Shrinkage at 250 of 700 ms",
+      "slug": "deseq2",
+      "state": "?theme=light&page=shrinkage",
+      "drive": {
+        "click": "step",
+        "frames": 5,
+        "dt": 50
+      },
+      "px": "28b237cf",
+      "tx": "4a053722"
+    },
+    {
+      "$note": "deseq2 · DRIVEN after 2 completed presses (before) mid-press: every gene sliding to the trend on Shrinkage's third press at 400 ms",
+      "slug": "deseq2",
+      "state": "?theme=light&page=shrinkage",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 16
+          },
+          {
+            "click": "step",
+            "frames": 16
+          }
+        ],
+        "click": "step",
+        "frames": 8,
+        "dt": 50
+      },
+      "px": "9cef694f",
+      "tx": "5a7f294c"
+    },
+    {
+      "$note": "deseq2 · DRIVEN after 1 completed press (before) mid-press: the LFC prior fading in on Fit's second press at 300 ms",
+      "slug": "deseq2",
+      "state": "?theme=light&page=fit",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 16
+          }
+        ],
+        "click": "step",
+        "frames": 6,
+        "dt": 50
+      },
+      "px": "2c94689e",
+      "tx": "3439f9d4"
+    },
+    {
+      "$note": "deseq2 · DRIVEN after 3 completed presses (before) mid-press: every β sliding to its shrunk value on Fit's fourth press at 400 ms",
+      "slug": "deseq2",
+      "state": "?theme=light&page=fit",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 16
+          },
+          {
+            "click": "step",
+            "frames": 16
+          },
+          {
+            "click": "step",
+            "frames": 16
+          }
+        ],
+        "click": "step",
+        "frames": 8,
+        "dt": 50
+      },
+      "px": "ebea798d",
+      "tx": "28b620f8"
+    },
+    {
+      "$note": "deseq2 · DRIVEN mid-ease: counts to vst at 300 of 550 ms, the SDs sliding on the easing axis and the heatmap's rows and columns sliding (set, no drive button)",
+      "slug": "deseq2",
+      "state": "?theme=light&page=transform",
+      "drive": {
+        "set": {
+          "unit": "vst"
+        },
+        "frames": 6,
+        "dt": 50
+      },
+      "px": "1ee1cf26",
+      "tx": "2c30fa44"
+    },
+    {
+      "$note": "deseq2 · DRIVEN after 4 completed presses (before) mid-ease: a data change, three to six replicates, on Fit's finished figure at 300 ms — the same genes sliding through core's data door (set)",
+      "slug": "deseq2",
+      "state": "?theme=light&page=fit",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 16
+          },
+          {
+            "click": "step",
+            "frames": 16
+          },
+          {
+            "click": "step",
+            "frames": 16
+          },
+          {
+            "click": "step",
+            "frames": 16
+          }
+        ],
+        "set": {
+          "reps": "6"
+        },
+        "frames": 6,
+        "dt": 50
+      },
+      "px": "5dbecb8e",
+      "tx": "5ecf12da"
     }
   ]
 }

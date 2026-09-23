@@ -320,7 +320,7 @@ defineWidget({
     + "with a Wald statistic, and itself shrunk toward zero where counts are low. A "
     + "variance-stabilising transformation is applied for visualisation only.",
   layout: "side",
-  status: "draft",
+  status: "shipped",
   pointer: true,
   height: ({ page }) => HEIGHTS[page] ?? HEIGHTS.distribution,
 
