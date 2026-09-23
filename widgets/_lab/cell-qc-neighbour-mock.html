@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · cell-qc — the neighbourhood, without looking like a droplet</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1180px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 4px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 100ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  .cand { border: 1px solid var(--grid); border-radius: var(--radius); padding: var(--sp-3) var(--sp-4) var(--sp-4); margin: 0 0 var(--sp-3); background: var(--surface-1); }
+  .cand .why { font-size: var(--fs-sm); color: var(--ink-2); margin: var(--sp-2) 0 0; max-width: 100ch; }
+  .cand .why b { color: var(--ink-1); }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); border-radius: var(--radius); }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--c-reference); background: var(--surface-2); }
+  .bad { border-left: 3px solid var(--c-extreme); background: var(--surface-2); padding: var(--sp-2) var(--sp-3); font-size: var(--fs-sm); color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 100ch; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>cell-qc &middot; the neighbourhood, without looking like a droplet</h1>
+
+  <p class="bad"><b>What you saw is what it draws.</b> A circle with dots inside it is a container, and in this widget the container
+    a reader has in mind is a droplet &mdash; so the panel says &ldquo;here is a droplet with cells in it&rdquo; before it says anything else.
+    Nothing in it marks the focal droplet as the subject, and nothing shows that the other dots are neighbours <i>of</i> it.
+    Both are fixable, and your spider is one of the fixes.</p>
+
+  <h2>1 &middot; &ldquo;neighbors based on distance from something?&rdquo; &mdash; yes, and here is the something</h2>
+  <p class="note">
+    Every droplet is a <b>point whose coordinates are what fraction of its transcripts came from each cell type's genes</b>.
+    A hepatocyte sits near the hepatocyte corner; an immune cell near the immune corner; a droplet holding one of each sits between them,
+    because its transcripts really are a mixture. <b>Distance is difference in that mixture</b> &mdash; two droplets are near when what was
+    sequenced in them was similar.
+  </p>
+  <p class="note">
+    The made-up doublets are points in the same space, made by adding two real droplets' transcripts together. So the question
+    &ldquo;what share of your nearest neighbours are made up&rdquo; is really: <b>of the things whose transcript mixture is most like yours,
+    how many are mixtures I built on purpose?</b> That is the whole method, and it is why no cut-off on a droplet's own counts can do it.
+  </p>
+
+  <h2>2 &middot; Four ways to draw it &mdash; a droplet holding two cells, beside one holding one</h2>
+  <div id="cands"></div>
+
+  <h2>3 &middot; The calls</h2>
+  <div id="calls"></div>
+</main>
+
+<script type="module">
+import { makeRng } from "../core/rng.js";
+import { simulate, applyFilters, doubletScores, profileOf, projectProfile, DOUBLET, THRESHOLDS } from "../cell-qc/engine.js";
+
+const css = getComputedStyle(document.documentElement);
+const C = (n) => css.getPropertyValue(n).trim();
+const font = C("--font") || "system-ui";
+
+const { cells } = simulate(makeRng(1), {});
+const { keep } = applyFilters(cells, THRESHOLDS);
+const index = cells.map((c, i) => i).filter((i) => keep[i]);
+const pRng = makeRng(1 * 7919 + 13);
+const profAll = cells.map((c) => profileOf(pRng, c));
+const { score, art } = doubletScores(makeRng(38), cells, index, { ...DOUBLET, profiles: index.map((i) => profAll[i]) });
+const scoreOf = new Float64Array(cells.length).fill(NaN);
+index.forEach((i, r) => { scoreOf[i] = score[r]; });
+const posAll = profAll.map(projectProfile);
+const artPos = art.map(projectProfile);
+
+const d2 = (u, v) => { let s = 0; for (let j = 0; j < u.length; j += 1) s += (u[j] - v[j]) ** 2; return s; };
+function neighbours(i) {
+  const out = [];
+  for (const j of index) if (j !== i) out.push({ d: Math.sqrt(d2(profAll[i], profAll[j])), pt: posAll[j], art: 0 });
+  for (let j = 0; j < art.length; j += 1) out.push({ d: Math.sqrt(d2(profAll[i], art[j])), pt: artPos[j], art: 1 });
+  out.sort((a, b) => a.d - b.d);
+  return out.slice(0, DOUBLET.k);
+}
+
+/* the two subjects: a doublet of two types near the middle of its row, and an
+   ordinary cell near the middle of its own */
+const hets = index.filter((i) => cells[i].state === "doublet" && cells[i].partner !== cells[i].type).sort((a, b) => scoreOf[a] - scoreOf[b]);
+const ones = index.filter((i) => cells[i].state === "good").sort((a, b) => scoreOf[a] - scoreOf[b]);
+const SUBJECTS = [
+  { i: hets[Math.floor(hets.length / 2)], name: "A droplet holding two cells" },
+  { i: ones[Math.floor(ones.length / 2)], name: "A droplet holding one cell" },
+];
+
+function ctxFor(host, w, h, title) {
+  const d = document.createElement("div");
+  d.style.display = "inline-block";
+  d.style.marginRight = "16px";
+  d.style.verticalAlign = "top";
+  if (title) { const t = document.createElement("h3"); t.textContent = title; d.appendChild(t); }
+  const c = document.createElement("canvas");
+  const dpr = window.devicePixelRatio || 1;
+  c.width = w * dpr; c.height = h * dpr; c.style.width = w + "px"; c.style.height = h + "px";
+  const x = c.getContext("2d"); x.scale(dpr, dpr);
+  d.appendChild(c); host.appendChild(d);
+  return x;
+}
+const lab = (x, s, px, py, col = "--ink-2", align = "left", size = 11, weight = "", base = "alphabetic") => {
+  x.save(); x.fillStyle = C(col); x.textAlign = align; x.textBaseline = base;
+  x.font = `${weight} ${size}px ${font}`.trim(); x.fillText(s, px, py); x.restore();
+};
+const dot = (x, px, py, r, col, alpha = 1) => {
+  x.save(); x.globalAlpha = alpha; x.fillStyle = C(col);
+  x.beginPath(); x.arc(px, py, r, 0, 7); x.fill(); x.restore();
+};
+const foot = (x, subj, ns, W, y) => {
+  const made = ns.filter((n) => n.art).length;
+  lab(x, `${made} of its ${DOUBLET.k} nearest are made up`, 10, y, "--ink-2", "left", 12, "600");
+  lab(x, `score ${(made / DOUBLET.k).toFixed(2)}`, 10, y + 18, made / DOUBLET.k >= 0.6 ? "--c-extreme" : "--ink-1", "left", 12, "600");
+};
+
+/* ---- A · spider on the droplets' own places ----------------------------- */
+function drawSpider(x, subj, W, H, { ring }) {
+  const ns = neighbours(subj.i);
+  const me = posAll[subj.i];
+  const far = Math.max(...ns.map((n) => Math.hypot(n.pt.x - me.x, n.pt.y - me.y))) * 1.1;
+  const R = 92, cx = W / 2, cy = 112;
+  const place = (n, rank) => {
+    if (!ring) return [cx + ((n.pt.x - me.x) / far) * R, cy - ((n.pt.y - me.y) / far) * R];
+    /* direction kept, distance replaced by its RANK, so the near ones stop
+       piling on top of the middle */
+    const a = Math.atan2(n.pt.y - me.y, n.pt.x - me.x);
+    const rr = 18 + ((rank + 1) / ns.length) * (R - 18);
+    return [cx + Math.cos(a) * rr, cy - Math.sin(a) * rr];
+  };
+  x.save();
+  x.lineWidth = 1;
+  ns.forEach((n, r) => {
+    const [px, py] = place(n, r);
+    x.globalAlpha = n.art ? 0.5 : 0.28;
+    x.strokeStyle = C(n.art ? "--c-reference" : "--c-empirical");
+    x.beginPath(); x.moveTo(cx, cy); x.lineTo(px, py); x.stroke();
+  });
+  x.restore();
+  ns.forEach((n, r) => {
+    const [px, py] = place(n, r);
+    dot(x, px, py, 3, n.art ? "--c-reference" : "--c-empirical", n.art ? 0.95 : 0.8);
+  });
+  x.save();
+  x.fillStyle = C("--c-highlight");
+  x.beginPath(); x.arc(cx, cy, 5.5, 0, 7); x.fill();
+  x.strokeStyle = C("--surface-1"); x.lineWidth = 2; x.stroke();
+  x.restore();
+  foot(x, subj, ns, W, cy + R + 44);
+}
+
+/* ---- C · the fifty along a distance axis -------------------------------- */
+function drawLadder(x, subj, W, H) {
+  const ns = neighbours(subj.i);
+  const L = 28, R = W - 22, y = 96, hMax = Math.max(...ns.map((n) => n.d));
+  x.save();
+  x.strokeStyle = C("--axis");
+  x.beginPath(); x.moveTo(L, y); x.lineTo(R, y); x.stroke();
+  x.restore();
+  x.save();
+  x.fillStyle = C("--c-highlight");
+  x.beginPath(); x.arc(L, y, 5.5, 0, 7); x.fill();
+  x.restore();
+  lab(x, "this droplet", L, y + 22, "--c-highlight", "left", 10);
+  lab(x, "further away", R, y + 22, "--ink-3", "right", 10);
+  ns.forEach((n, r) => {
+    const px = L + (n.d / hMax) * (R - L);
+    const py = y - 12 - (r % 7) * 9;
+    x.save();
+    x.strokeStyle = C(n.art ? "--c-reference" : "--c-empirical");
+    x.globalAlpha = 0.85; x.lineWidth = 2;
+    x.beginPath(); x.moveTo(px, py); x.lineTo(px, py + 6); x.stroke();
+    x.restore();
+  });
+  lab(x, "one mark a neighbour, placed by how different it is", L, 34, "--ink-3", "left", 10);
+  foot(x, subj, ns, W, y + 54);
+}
+
+/* ---- D · a tally of fifty ----------------------------------------------- */
+function drawTally(x, subj, W, H) {
+  const ns = neighbours(subj.i);
+  const L = 20, cols = 10, sw = 22, sh = 16, gap = 4;
+  lab(x, "the fifty nearest, nearest first", L, 26, "--ink-3", "left", 10);
+  ns.forEach((n, r) => {
+    const cxx = L + (r % cols) * (sw + gap), cyy = 40 + Math.floor(r / cols) * (sh + gap);
+    x.save();
+    x.globalAlpha = n.art ? 0.95 : 0.7;
+    x.fillStyle = C(n.art ? "--c-reference" : "--c-empirical");
+    x.fillRect(cxx, cyy, sw, sh);
+    x.restore();
+  });
+  foot(x, subj, ns, W, 40 + 5 * (sh + gap) + 24);
+}
+
+const CANDS = [
+  {
+    key: "A", name: "Spider on the droplets' own places (your suggestion)",
+    draw: (x, s, W, H) => drawSpider(x, s, W, H, { ring: false }), W: 330, H: 290,
+    why: "The spokes make the relation explicit — these are neighbours OF this droplet — and with no circle round them the container reading goes. The focal droplet is a filled mark rather than a ring, so it reads as the subject. Against: the nearest neighbours pile up on the hub, so the spokes that matter most are the shortest and least visible.",
+  },
+  {
+    key: "B", name: "Spider, spread out by rank",
+    draw: (x, s, W, H) => drawSpider(x, s, W, H, { ring: true }), W: 330, H: 290,
+    why: "The same figure with distance replaced by its ORDER: nearest on the inside, fiftieth on the rim, direction kept. Nothing piles up and the fifty are countable. Against: a reader may take the radius for a distance, which it is not — it is a rank, and that has to be said.",
+  },
+  {
+    key: "C", name: "The fifty along a distance axis",
+    draw: drawLadder, W: 330, H: 260,
+    why: "Answers your question directly: distance from this droplet, along an axis, one mark per neighbour. No space, no circle, nothing to mistake for a container, and the made-up ones cluster at one end for a doublet and scatter for a singlet. Against: it throws away direction, so the connection to the map above is lost.",
+  },
+  {
+    key: "D", name: "A tally of fifty",
+    draw: drawTally, W: 330, H: 240,
+    why: "The most countable thing possible: fifty squares in order of distance, grey for made-up. A reader can literally count them, and the doublet's row goes grey at the left. Against: it is a bar chart of one number, and it says nothing about what near MEANS.",
+  },
+];
+
+const host = document.getElementById("cands");
+for (const c of CANDS) {
+  const d = document.createElement("div"); d.className = "cand";
+  const h = document.createElement("h3"); h.textContent = `${c.key} · ${c.name}`; d.appendChild(h);
+  const row = document.createElement("div");
+  d.appendChild(row);
+  for (const s of SUBJECTS) {
+    const x = ctxFor(row, c.W, c.H, s.name);
+    c.draw(x, s, c.W, c.H);
+  }
+  const why = document.createElement("p"); why.className = "why"; why.textContent = c.why;
+  d.appendChild(why);
+  host.appendChild(d);
+}
+
+const calls = [
+  ["1 &middot; which drawing", "<b>B &mdash; the spider spread out by rank (recommended: it keeps your spokes and the direction, and nothing hides behind the hub)</b> | A, the spider on true places | C, the distance axis | D, the tally | C beside the map, as two panels"],
+  ["2 &middot; one droplet or two", "<b>one, the droplet under the pointer, as it is now (recommended: the three score rows are already the comparison, and pointing at one row then another IS the contrast)</b> | two fixed panels, a doublet beside a singlet, always on"],
+  ["3 &middot; what to call the panel", "<b>“What its nearest neighbours are” (recommended)</b> | “How the fourth is measured”, as now | “The fifty most similar droplets”"],
+  ["4 &middot; the made-up doublets in the space panel", "that panel is gone now &mdash; the space with the grey cloud in it was what showed WHERE made-up doublets land. <b>Leave it out; the spokes carry it (recommended)</b> | bring it back as a second small panel"],
+];
+document.getElementById("calls").innerHTML = calls.map(([q, a]) => `<p class="q"><b>${q}</b> &nbsp; ${a}</p>`).join("");
+</script>
+</body>
+</html>
