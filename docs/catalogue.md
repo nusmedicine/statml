@@ -19672,7 +19672,36 @@ stringent threshold moved nothing on the bars, and the third page's name.
    sequenced in it* states the mechanism without borrowing a method's name —
    it is neither UMAP nor PCA.
 
-NEXT: his round 2.
+**Round 2, 2026-09-23, the streamline.** His two asks — *for threshold, don't
+need to step, the graph shows dynamically when we change sliders* and *maybe
+we don't need cell's kept page? could the cluster plot be put under threshold
+... can also remove cells from the cluster instead of changing from filled to
+empty so effect is more apparent* — and both are right. Built live first
+(`_lab/cell-qc-live-mock.html`, three layouts off one rail), then his three
+picks: **layout A** (the map beside the bar, the sweep under them),
+**droplets gone** rather than ringed, and the **doublet cost curve cut**.
+
+**The widget is two pages now**, Metrics · Thresholds, with no Step: the
+animation declares the eases alone and marks itself inert. What the
+walkthrough said in time the figure says in place — the bar's three segments
+are the rules in the order they are charged, and the transcript rule's sliver
+is that two of the three rules are one. The cut page's punchline is the third
+readout tile.
+
+**Why removing beats marking**, in one drag: at a mitochondrial rule of 30
+the map is six dense clusters, every sample keeps 88–93% and six good cells
+are lost; at 5 the ambient sample is at 0%, the hepatocyte cluster is a
+scatter and 341 good cells are gone.
+
+**Measured while repointing the verify** (§5, and worth keeping): the two
+count rules catch 65 of 67 empty droplets and 62 of 100 dying cells and **not
+one of the 81 doublets** — a doublet has more of everything and every count
+rule is a floor, which answers the lesson's aside about high counts in three
+numbers. A good cell that is removed is almost always removed by the
+mitochondrial rule (306 against 6), because that rule reads a sample and not
+a cell.
+
+NEXT: his round 3.
 
 ### Slot 80 · `integration` — Single-Cell Integration
 
