@@ -1,5 +1,100 @@
 # Handover
 
+**2026-09-24: 79 `cell-qc` SHIPPED AND PUSHED (7648e10, 24 states,
+"Single-Cell RNA-seq: QC"), the third of the RNA-seq arc and the gallery's
+SEVENTIETH widget, after eighteen review rounds over two days — the record is
+the catalogue’s § Slot 79.** What it is: 1,600 simulated droplets, 400 a
+sample across four samples (Patient 1 / Patient 2 × liver / tumour), each
+holding one cell, a dying cell, two cells or no cell at all, drawn by
+`widgets/cell-qc/engine.js` and FITTED to the lesson’s own 40,564 10x cells
+rather than shaped to look right. Two pages. **Metrics**: four violins across
+the top (genes detected, transcripts, mitochondrial %, doublet score), the two
+scatters, and under a rule the neighbourhood panel and the three score rows.
+**Thresholds**: the cell map, one bar a sample, and a curve of every
+mitochondrial setting. Four sliders, and a droplet under the pointer is ringed
+in both scatters, ticked in all four distributions and named in the panel.
+
+**The things worth knowing before 80, in the order they cost time:**
+
+- **THE FOURTH RULE IS SCORED ON THE TWO COUNT RULES, NOT ALL THREE**, and
+  that is load-bearing, not a detail. It used to be scored on what the other
+  three keep (DoubletFinder’s order), which made the score move with the
+  mitochondrial threshold — so the curve on Thresholds could not apply the
+  doublet rule at all and read four to five points above the bar beside it.
+  He caught that ("i thought we were thresholding on all 4 criteria?").
+  Rescoring at the sweep’s 57 points measures **1,838 ms** against 26 for one
+  scoring, so it was never an option. What made it affordable is that the two
+  tools disagree only about where the MITOCHONDRIAL filter goes and agree on
+  the floor: scDblFinder’s FAQ asks for a coverage floor and puts further QC
+  downstream. Scoring on the count floor costs nothing, measured — 63 of 63
+  heterotypic doublets called at 0.6 against 47 of 49 before — and the verify
+  asserts per sample that the curve equals the bar at the set rule.
+- **A doublet of two cells of ONE type is invisible at every setting**, and
+  the second score row exists to show it: median 0.32 against 0.28 for a
+  droplet holding one cell. That is DoubletFinder’s homotypic-proportion
+  adjustment conceded rather than solved, and it is the half of the method
+  worth teaching.
+- **The measurement struck the arc’s own cell-type claim.** CYP3A4 is
+  detected in 91% of the cells the mt% rule removes AND 89% of those it
+  keeps: the rule removes a SAMPLE, not a cell type. Four words of the
+  subtitle carry that and should survive any future trim.
+- **Six layouts were tried and the round-10 one won.** Three concept columns
+  and three concept bands were both mocked to scale and both BUILT once
+  (a6dc8f4) and reverted on his word (5cbbd42) — “ok it looks more
+  confusing..sigh”. The reusable part is the measurement, not the layouts:
+  **a violin panel needs 174px before its two lines of sample name collide**,
+  which is a FIGURE floor, so a third of a 534px canvas can never hold one.
+  A scatter needs 194 for its caption, the neighbourhood panel 163 for its
+  key, the three score rows 236 for their axis label. Both mocks are kept:
+  `_lab/cell-qc-group-mock.html` and `_lab/cell-qc-bands-mock.html`.
+- **A scatter needs a 56px left gutter and a violin does not** " its y-axis
+  carries a rotated label as well as ticks, and at the 22px panel gap that
+  label printed through the sample names beside it.
+- **`--grid` is invisible across a full-width rule.** A hairline gridline is
+  #e1e0d9 on #fcfcfb: it reads inside a 160px panel and vanishes across 678
+  of them. The two band rules are `--ink-3`, the grey the axis labels and
+  ticks already use.
+- **The overlap sweep cannot see text over a GRAPH.** Two marks printed over
+  the sweep’s gridline and curves and all 31 states passed throughout. It
+  did catch what followed — a note dropped inside the panel onto the rule’s
+  own number at 534px.
+- **`\bstep\b` is struck in this widget’s copy check** (nothing is driven by
+  presses since round 2), which caught "every step after it" in the subtitle.
+  "all downstream analysis" is the field's word anyway.
+
+**Two new lab pages, both reusable on the next widget.**
+`_lab/cell-qc-copy-sweep.html` collects every reader-facing string, canvas AND
+DOM — the fillText recipe alone sees only the canvas, and the rail, readout
+and legend hold most of a widget’s copy; adapt its STATES and path. And
+`_lab/cell-qc-layout-mock.html` carries the diagnosis of a CORE bug fixed this
+session (bfc7708): `.w-stat-break` was `grid-column: 1 / -1`, which defeats
+`auto-fit`'s track collapse, so four readout tiles sat in six live 114px
+columns with half the width blank. It is a class on the tile AFTER the break
+now, `grid-column-start: 1` — two tracks of 367px. Four other widgets use a
+break (enrichment, gwas, metrics, naive-bayes) and it widens theirs the same
+way; the full suite ran **1045/1045 identical** after that change.
+
+**He asked for claudisms.ai this session** (<https://claudisms.ai>, banlist at
+`/claudisms.md`, ~290 terms extracted from the bold lead of each bullet), and
+it is a standing step in a copy audit from here. It matched **0 of 290** on
+both passes. Its one rule this project does NOT take is the em-dash ban: house
+style across seventy widgets, and changing one makes that one the odd one out.
+Everything a copy audit found came from the project’s own register rules, not
+from the list.
+
+**SEVENTY WIDGETS IN THE MANIFEST — 69 on the gallery and `roc-auc`
+UNLISTED; no draft on `main`** (`wgcna` is still a draft on its own branch and
+worktree, another session's). The live site is
+<https://nusmedicine.github.io/statml/>, deployed from `main`: the latest
+widget ship is `7648e10` (79 `cell-qc`, 2026-09-24), and this handover’s
+commit follows it. NEXT: **80 `integration`**, the second of the three
+single-cell widgets — and slot 79 left it a stage to build on: the
+per-sample-versus-pooled doublet measurement showed pooling costs nothing
+HERE only because every sample holds the same six populations, and **the rule
+bites when a population sits in one sample and not another, which is exactly
+80's subject**. Measure first, as always; the catalogue’s § *The RNA-seq arc*
+has the plan and his picks. **SESSION CLOSED.**
+
 **2026-09-23: 78 `deseq2` SHIPPED AND PUSHED (bc2f534, 20 states, "Bulk
 RNA-seq: Differential Expression"), the second of the RNA-seq arc, after
 fifteen review rounds in two days — the record is the catalogue's § Slot 78.**
