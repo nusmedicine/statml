@@ -62,6 +62,14 @@ const METRICS = [
   { key: "mt", name: "Mitochondrial %", log: false },
 ];
 
+/* the two scatters of cell 22, hoisted beside the metrics because `derive`
+   works out their domains and `hoverAt` reads them back: one geometry for the
+   drawing and the hit test (5.8) */
+const SCATTERS = [
+  { xk: "nCount", yk: "nFeature", ylog: true, caption: "Genes against transcripts", note: "one point a droplet" },
+  { xk: "nCount", yk: "mt", ylog: false, caption: "Mitochondrial % against transcripts", note: "the same droplets" },
+];
+
 const SAMPLE_OPTIONS = [
   { value: "none", label: "None" },
   ...SAMPLES.map((s) => ({ value: s.key, label: s.name })),
@@ -152,16 +160,123 @@ function hollows(ctx, points, r, stroke, alpha) {
 const tickLabel = (v) => (v >= 1000 ? `${Math.round(v / 1000)}k` : String(Math.round(v)));
 
 /* =========================================================================
+   THE HOVER — an inspector, and nothing lives only in it (core's own rule).
+
+   What it is for is different on each page, and on each it is the same
+   object seen twice. On Metrics the three numbers are three readings of ONE
+   droplet, which the three violins and the two scatters split across five
+   panels: pointing at a droplet in either scatter marks it in the other and
+   ticks its value in all three violins. On Thresholds a sample is a bar and a
+   curve: pointing at either lights both. On Truth a droplet is a position, a
+   colour and a fate: pointing at one names them.
+
+   One geometry for the drawing and the test (5.8): both read `state.axes` and
+   the same rect functions, so a target sits where it is drawn.
+   ====================================================================== */
+const near = (px, py, x, y, r) => (px - x) ** 2 + (py - y) ** 2 < r * r;
+
+function scatterScale(w, si, axes) {
+  const rect = scatterRect(w, si);
+  const { xlo, xhi, ylo, yhi } = axes.scatters[si];
+  return {
+    rect,
+    sx: (v) => rect.x + ((log10(v) - xlo) / (xhi - xlo)) * rect.w,
+    sy: (v, ylog) => rect.y + rect.h - (((ylog ? log10(v) : v) - ylo) / (yhi - ylo)) * rect.h,
+  };
+}
+
+function mapScale(w, view) {
+  const rect = mapRect(w);
+  const span = view[1] - view[0];
+  return {
+    rect,
+    sx: (v) => rect.x + ((v - view[0]) / span) * rect.w,
+    sy: (v) => rect.y + ((view[1] - v) / span) * rect.h,
+  };
+}
+
+function hoverAt(pointer, w, page, state) {
+  if (!pointer) return null;
+  const { cells, pos, axes, view } = state;
+  if (page === "metrics") {
+    for (let si = 0; si < SCATTERS.length; si += 1) {
+      const sc = SCATTERS[si], g = scatterScale(w, si, axes);
+      if (pointer.x < g.rect.x - 6 || pointer.x > g.rect.x + g.rect.w + 6) continue;
+      if (pointer.y < g.rect.y - 6 || pointer.y > g.rect.y + g.rect.h + 6) continue;
+      let best = -1, bd = 81;
+      cells.forEach((c, i) => {
+        const d = (pointer.x - g.sx(c[sc.xk])) ** 2 + (pointer.y - g.sy(c[sc.yk], sc.ylog)) ** 2;
+        if (d < bd) { bd = d; best = i; }
+      });
+      if (best >= 0) return { kind: "droplet", i: best };
+    }
+    return null;
+  }
+  if (page === "thresholds") {
+    const rect = barRect(w), rowH = rect.h / SAMPLES.length;
+    if (pointer.x > rect.x - 70 && pointer.x < rect.x + rect.w + 40 && pointer.y > rect.y && pointer.y < rect.y + rect.h) {
+      const si = Math.min(SAMPLES.length - 1, Math.max(0, Math.floor((pointer.y - rect.y) / rowH)));
+      return { kind: "sample", key: SAMPLES[si].key };
+    }
+    const sr = sweepRect(w);
+    if (pointer.x > sr.x && pointer.x < sr.x + sr.w + 60 && pointer.y > sr.y - 8 && pointer.y < sr.y + sr.h + 8) {
+      const mt = 2 + ((pointer.x - sr.x) / sr.w) * 28;
+      const k = Math.max(0, Math.min(56, Math.round((mt - 2) / 0.5)));
+      let best = null, bd = Infinity;
+      for (const sm of SAMPLES) {
+        const y = sr.y + sr.h - state.sweep[sm.key][k] * sr.h;
+        const d = Math.abs(pointer.y - y);
+        if (d < bd) { bd = d; best = sm.key; }
+      }
+      if (bd < 24) return { kind: "sample", key: best, mt: 2 + k * 0.5 };
+    }
+    return null;
+  }
+  const g = mapScale(w, view);
+  if (pointer.x < g.rect.x - 6 || pointer.x > g.rect.x + g.rect.w + 6) return null;
+  if (pointer.y < g.rect.y - 6 || pointer.y > g.rect.y + g.rect.h + 6) return null;
+  let best = -1, bd = 64;
+  pos.forEach((q, i) => {
+    const d = (pointer.x - g.sx(q.x)) ** 2 + (pointer.y - g.sy(q.y)) ** 2;
+    if (d < bd) { bd = d; best = i; }
+  });
+  return best >= 0 ? { kind: "droplet", i: best } : null;
+}
+
+/** The hover's own line, in the space each page keeps for it. */
+function hoverLine(ctx, colors, x, y, parts) {
+  ctx.save();
+  ctx.textAlign = "left";
+  ctx.textBaseline = "middle";
+  let cx = x;
+  for (const [text, tone, weight] of parts) {
+    ctx.font = `${weight ?? ""} ${colors.fsXs} ${colors.font}`.trim();
+    ctx.fillStyle = tone ?? colors.ink2;
+    ctx.fillText(text, cx, y);
+    cx += ctx.measureText(text).width + 8;
+  }
+  ctx.restore();
+}
+const bigCount = (v) => Math.round(v).toLocaleString("en-US");
+const ringAt = (ctx, colors, x, y, r = 5.5) => {
+  ctx.save();
+  ctx.strokeStyle = colors.highlight;
+  ctx.lineWidth = 1.8;
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.restore();
+};
+
+/* =========================================================================
    PAGE 1 · Metrics — the three numbers per cell, one distribution a sample,
    and the two scatters under them (cells 19 and 22, his pick 10).
    ====================================================================== */
-function drawMetrics(ctx, colors, w, state) {
-  const { cells, thr } = state;
+function drawMetrics(ctx, colors, w, state, hover) {
+  const { cells, thr, axes } = state;
   METRICS.forEach((m, mi) => {
     const rect = violinRect(w, mi);
-    const vals = cells.map((c) => (m.log ? log10(c[m.key]) : c[m.key]));
-    const lo = m.log ? Math.floor(Math.min(...vals) * 2) / 2 : 0;
-    const hi = m.log ? Math.ceil(Math.max(...vals) * 2) / 2 : Math.min(60, Math.ceil(Math.max(...vals)));
+    const { lo, hi } = axes.violins[mi];
     const plot = makePlot({ ctx, colors, rect, xDomain: [0, SAMPLES.length], yDomain: [lo, hi] });
     plot.caption(m.name);
     plot.axisY({
@@ -204,6 +319,20 @@ function drawMetrics(ctx, colors, w, state) {
         ctx.fillText(n[1] ?? "", cx, rect.y + rect.h + 17);
         ctx.restore();
       }
+      /* the hovered droplet's own value, ticked across the violin it belongs
+         to: the same droplet the scatters ring, in the panel for this metric */
+      if (hover && hover.kind === "droplet" && cells[hover.i].sample === s.key) {
+        const c = cells[hover.i];
+        const hy = plot.sy(m.log ? log10(c[m.key]) : c[m.key]);
+        ctx.save();
+        ctx.strokeStyle = colors.highlight;
+        ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        ctx.moveTo(cx - half - 4, hy);
+        ctx.lineTo(cx + half + 4, hy);
+        ctx.stroke();
+        ctx.restore();
+      }
     });
     /* the reader's own threshold, on the metric it applies to */
     const t = m.key === "nFeature" ? thr.nFeature : m.key === "nCount" ? thr.nCount : thr.mt;
@@ -228,18 +357,11 @@ function drawMetrics(ctx, colors, w, state) {
     ctx.restore();
   });
 
-  /* the two scatters of cell 22 */
-  const SC = [
-    { xk: "nCount", yk: "nFeature", ylog: true, caption: "Genes against transcripts", note: "one point a droplet" },
-    { xk: "nCount", yk: "mt", ylog: false, caption: "Mitochondrial % against transcripts", note: "the same droplets" },
-  ];
-  SC.forEach((s, si) => {
+  SCATTERS.forEach((s, si) => {
     const rect = scatterRect(w, si);
     const xs = cells.map((c) => log10(c[s.xk]));
     const ys = cells.map((c) => (s.ylog ? log10(c[s.yk]) : c[s.yk]));
-    const xlo = Math.floor(Math.min(...xs) * 2) / 2, xhi = Math.ceil(Math.max(...xs) * 2) / 2;
-    const ylo = s.ylog ? Math.floor(Math.min(...ys) * 2) / 2 : 0;
-    const yhi = s.ylog ? Math.ceil(Math.max(...ys) * 2) / 2 : Math.min(60, Math.ceil(Math.max(...ys)));
+    const { xlo, xhi, ylo, yhi } = axes.scatters[si];
     const plot = makePlot({ ctx, colors, rect, xDomain: [xlo, xhi], yDomain: [ylo, yhi] });
     plot.caption(s.caption);
     plot.note(s.note);
@@ -263,7 +385,22 @@ function drawMetrics(ctx, colors, w, state) {
     const hy = plot.sy(hv);
     ctx.beginPath(); ctx.moveTo(rect.x, hy); ctx.lineTo(rect.x + rect.w, hy); ctx.stroke();
     ctx.restore();
+    if (hover && hover.kind === "droplet") {
+      const c = cells[hover.i];
+      ringAt(ctx, colors, plot.sx(log10(c[s.xk])), plot.sy(s.ylog ? log10(c[s.yk]) : c[s.yk]));
+    }
   });
+  /* ONE DROPLET, FIVE PANELS. Its three numbers are three readings of it, and
+     what it holds is not among them — that is the Truth page's to say. */
+  if (hover && hover.kind === "droplet") {
+    const c = cells[hover.i];
+    hoverLine(ctx, colors, scatterRect(w, 0).x, scatterRect(w, 1).y + scatterRect(w, 1).h + 44, [
+      [SAMPLES.find((sm) => sm.key === c.sample).name, colors.ink1, "600"],
+      [`${bigCount(c.nCount)} transcripts`, colors.ink2],
+      [`${bigCount(c.nFeature)} genes`, colors.ink2],
+      [`${fmt(c.mt, 1)}% mitochondrial`, colors.ink2],
+    ]);
+  }
 }
 
 /* =========================================================================
@@ -271,7 +408,8 @@ function drawMetrics(ctx, colors, w, state) {
    droplet, and the mitochondrial rule swept from 2 to 30 beside it (his pick
    9: the bar is the state, the sweep is the dial).
    ====================================================================== */
-function drawThresholds(ctx, colors, w, state, stage, p) {
+function drawThresholds(ctx, colors, w, state, stage, p, hover) {
+  const lit = hover && hover.kind === "sample" ? hover.key : null;
   const { tally, sweep, thr } = state;
   const rect = barRect(w);
   const rowH = rect.h / SAMPLES.length;
@@ -312,7 +450,8 @@ function drawThresholds(ctx, colors, w, state, stage, p) {
     });
     ctx.restore();
     ctx.save();
-    ctx.strokeStyle = colors.grid;
+    ctx.strokeStyle = lit === s.key ? colors.highlight : colors.grid;
+    ctx.lineWidth = lit === s.key ? 1.6 : 1;
     ctx.strokeRect(rect.x + 0.5, y + 0.5, rect.w, h);
     ctx.fillStyle = colors.ink2;
     ctx.font = `${colors.fsXs} ${colors.font}`;
@@ -342,6 +481,19 @@ function drawThresholds(ctx, colors, w, state, stage, p) {
   }
   ctx.restore();
 
+  /* A SAMPLE IS A BAR AND A CURVE, and pointing at either lights both: what
+     these three rules did to it, and what every other mitochondrial rule
+     would have done. */
+  if (lit) {
+    const t = tally[lit];
+    const removed = t.n - t.kept;
+    hoverLine(ctx, colors, rect.x, rect.y + rect.h + 40, [
+      [SAMPLES.find((sm) => sm.key === lit).name, colors.ink1, "600"],
+      [`${t.n} droplets`, colors.ink2],
+      [stage > 0 ? `${removed} removed: ${RULES.slice(0, stage).map((r) => `${t.by[r]} ${RULE_NAME[r]}`).join(", ")}` : "no rule applied yet", stage > 0 ? colors.extreme : colors.ink3],
+    ]);
+  }
+
   /* the sweep: every mitochondrial threshold this reader could have chosen */
   const sr = sweepRect(w);
   const plot = makePlot({ ctx, colors, rect: sr, xDomain: [2, 30], yDomain: [0, 1] });
@@ -349,7 +501,10 @@ function drawThresholds(ctx, colors, w, state, stage, p) {
   plot.grid([0, 0.5, 1]);
   plot.axisX({ ticks: [5, 10, 20, 30], format: (t) => String(t), label: "Mitochondrial % rule" });
   plot.axisY({ ticks: [0, 0.5, 1], format: (t) => `${Math.round(t * 100)}%` });
-  for (const s of SAMPLES) plot.curve(sweep[s.key].map((v, k) => [2 + k * 0.5, v]), { stroke: colors.empirical, width: 1.6 });
+  for (const s of SAMPLES) {
+    plot.curve(sweep[s.key].map((v, k) => [2 + k * 0.5, v]),
+      { stroke: lit === s.key ? colors.highlight : colors.empirical, width: lit === s.key ? 2.4 : 1.6 });
+  }
   /* the four names at the ends of their own curves, pushed apart where the
      curves arrive together — three of the four end within two points of each
      other, which is the fact, and stacked labels are not a way to say it */
@@ -364,6 +519,17 @@ function drawThresholds(ctx, colors, w, state, stage, p) {
   ctx.textBaseline = "middle";
   for (const e of ends) ctx.fillText(shortName(e.key), sr.x + sr.w + 5, e.y);
   ctx.restore();
+  if (lit && hover.mt !== undefined) {
+    const k = Math.round((hover.mt - 2) / 0.5);
+    plot.dot(hover.mt, sweep[lit][k], { fill: colors.highlight, r: 3.5 });
+    ctx.save();
+    ctx.fillStyle = colors.highlight;
+    ctx.font = `${colors.fsXs} ${colors.font}`;
+    ctx.textAlign = hover.mt > 22 ? "right" : "left";
+    ctx.textBaseline = "bottom";
+    ctx.fillText(`${Math.round(100 * sweep[lit][k])}% at ${hover.mt}`, plot.sx(hover.mt) + (hover.mt > 22 ? -8 : 8), plot.sy(sweep[lit][k]) - 6);
+    ctx.restore();
+  }
   ctx.save();
   ctx.strokeStyle = colors.reference;
   ctx.setLineDash([4, 3]);
@@ -388,13 +554,10 @@ const STATE_COLOUR = (colors) => ({
   good: colors.empirical, dying: colors.extreme, empty: colors.unknown, doublet: colors.highlight,
 });
 
-function drawTruth(ctx, colors, w, state, stage, p) {
+function drawTruth(ctx, colors, w, state, stage, p, hover) {
   const { cells, pos, view, removedAt, centres, cost } = state;
-  const rect = mapRect(w);
   const SC = STATE_COLOUR(colors);
-  const span = view[1] - view[0];
-  const sx = (v) => rect.x + ((v - view[0]) / span) * rect.w;
-  const sy = (v) => rect.y + ((view[1] - v) / span) * rect.h;
+  const { rect, sx, sy } = mapScale(w, view);
   ctx.save();
   ctx.font = `600 ${colors.fsSm} ${colors.font}`;
   ctx.fillStyle = colors.ink2;
@@ -408,14 +571,25 @@ function drawTruth(ctx, colors, w, state, stage, p) {
     return stage > r ? 1 : stage === r ? p : 0;
   };
   for (const st of ["good", "empty", "dying", "doublet"]) {
-    const kept = [], removed = [];
+    const here = [], leaving = [], gone1 = [];
     cells.forEach((c, i) => {
       if (c.state !== st) return;
-      (gone(i) > 0.5 ? removed : kept).push([sx(pos[i].x), sy(pos[i].y)]);
+      const g = gone(i);
+      (g === 0 ? here : g === 1 ? gone1 : leaving).push([sx(pos[i].x), sy(pos[i].y), g]);
     });
     const r = st === "good" ? 1.9 : 2.3;
-    dots(ctx, kept, r, SC[st], st === "good" ? 0.5 : 0.9);
-    hollows(ctx, removed, r, SC[st], st === "good" ? 0.55 : 0.8);
+    const a = st === "good" ? 0.5 : 0.9;
+    dots(ctx, here, r, SC[st], a);
+    hollows(ctx, gone1, r, SC[st], st === "good" ? 0.55 : 0.8);
+    /* THE PRESS EMPTIES A DROPLET RATHER THAN SWAPPING IT. Only the rule now
+       arriving has droplets part of the way, so this set is small: each is
+       drawn twice, its fill fading out as its outline comes in. A hard flip at
+       the halfway point read as a different mark appearing, not as the same
+       droplet being removed. */
+    for (const [x, y, g] of leaving) {
+      dots(ctx, [[x, y]], r, SC[st], a * (1 - g));
+      hollows(ctx, [[x, y]], r, SC[st], (st === "good" ? 0.55 : 0.8) * g);
+    }
   }
   /* the six populations, named where their own cells are */
   ctx.save();
@@ -432,6 +606,30 @@ function drawTruth(ctx, colors, w, state, stage, p) {
     ctx.fillText(t.name, sx(c[0]), sy(c[1]));
   });
   ctx.restore();
+  /* A DROPLET IS A POSITION, A COLOUR AND A FATE, and the map can only draw
+     the first two. Pointing at one says all three, with the three numbers the
+     rules were read from. */
+  if (hover && hover.kind === "droplet") {
+    const c = cells[hover.i], r = removedAt[hover.i];
+    ringAt(ctx, colors, sx(pos[hover.i].x), sy(pos[hover.i].y), 6);
+    const heldBy = { good: "one cell", dying: "a dying cell", empty: "no cell, ambient RNA only", doublet: "two cells" }[c.state];
+    const type = c.state === "empty" ? "" : c.partner
+      ? `${TYPES.find((t) => t.key === c.type).name.toLowerCase()} and ${TYPES.find((t) => t.key === c.partner).name.toLowerCase()}`
+      : TYPES.find((t) => t.key === c.type).name.toLowerCase();
+    hoverLine(ctx, colors, rect.x, rect.y + rect.h + 16, [
+      [heldBy, SC[c.state], "600"],
+      [type, colors.ink3],
+    ]);
+    hoverLine(ctx, colors, rect.x, rect.y + rect.h + 32, [
+      [`${bigCount(c.nCount)} transcripts`, colors.ink2],
+      [`${bigCount(c.nFeature)} genes`, colors.ink2],
+      [`${fmt(c.mt, 1)}% mitochondrial`, colors.ink2],
+    ]);
+    hoverLine(ctx, colors, rect.x, rect.y + rect.h + 48, [
+      [r && stage >= r ? `removed: ${RULE_NAME[RULES[r - 1]]}` : stage >= STAGES ? "kept" : "still here", r && stage >= r ? colors.extreme : colors.empirical, "600"],
+    ]);
+  }
+
   /* the doublet panel: every upper cut on genes detected, what it catches
      against what it costs */
   const cr = costRect(w);
@@ -466,83 +664,33 @@ function tallyBy(cells, removedAt) {
   return t;
 }
 
-defineWidget({
-  slug: "cell-qc",
-  title: "Single-Cell RNA-seq: QC",
-  subtitle:
-    "Droplets are filtered before analysis on three numbers: the genes detected, "
-    + "the transcripts counted, and the percentage of transcripts that are "
-    + "mitochondrial. The first two measure the same thing twice. The third rises "
-    + "both in a cell that is dying and in a sample whose preparation released "
-    + "free mitochondrial RNA into every droplet, so one threshold applied across "
-    + "samples can remove most of one of them while removing nothing from the rest.",
-  layout: "side",
-  status: "draft",
-  height: ({ page }) => HEIGHTS[page] ?? HEIGHTS.metrics,
+/* --- the figures, derived from a set of droplets and the three rules --------
+   Lifted out of `compute` so an ease can re-run it on droplets part of the way
+   between two settings: everything here is cheap (a pass or two over 1,600
+   droplets), and deriving the whole figure from interpolated droplets is what
+   keeps a slide honest — no panel is tweened independently of another. */
+function derive(cells, pos, thr) {
+    /* the panels' own ranges, worked out once from the droplets rather than
+       per frame inside the drawing, so a hover resolves against exactly the
+       scales the picture was painted with */
+    const axes = {
+      violins: METRICS.map((m) => {
+        const v = cells.map((c) => (m.log ? log10(c[m.key]) : c[m.key]));
+        return m.log
+          ? { lo: Math.floor(Math.min(...v) * 2) / 2, hi: Math.ceil(Math.max(...v) * 2) / 2 }
+          : { lo: 0, hi: Math.min(60, Math.ceil(Math.max(...v))) };
+      }),
+      scatters: SCATTERS.map((sc) => {
+        const xs = cells.map((c) => log10(c[sc.xk]));
+        const ys = cells.map((c) => (sc.ylog ? log10(c[sc.yk]) : c[sc.yk]));
+        return {
+          xlo: Math.floor(Math.min(...xs) * 2) / 2, xhi: Math.ceil(Math.max(...xs) * 2) / 2,
+          ylo: sc.ylog ? Math.floor(Math.min(...ys) * 2) / 2 : 0,
+          yhi: sc.ylog ? Math.ceil(Math.max(...ys) * 2) / 2 : Math.min(60, Math.ceil(Math.max(...ys))),
+        };
+      }),
+    };
 
-  params: {
-    page: { type: "segmented", label: "Page", options: PAGES, default: "metrics", display: true },
-
-    dataSec: { type: "section", label: "The data" },
-    hot: {
-      type: "select", label: "Ambient mitochondrial RNA in",
-      detail: "cells that break apart during the preparation release mitochondrial transcripts, which land in every droplet of that sample",
-      options: SAMPLE_OPTIONS, default: "p1-liver",
-    },
-    hotMt: {
-      type: "choice", label: "That sample's median mitochondrial %",
-      detail: "the level the ambient RNA puts every one of its droplets at; the other three samples sit near 1%",
-      options: [2, 8, 15, 25].map((v) => ({ value: String(v), label: `${v}%` })), default: "15",
-      when: { param: "hot", not: "none" },
-    },
-    seed: { type: "int", label: "Seed", min: 1, max: 200, default: 1 },
-
-    filterSec: { type: "section", label: "The filter" },
-    genes: {
-      type: "int", label: "Genes detected, more than", min: 0, max: 1500, step: 50, default: 500, display: true,
-      detail: "how many of the cell's genes were seen at least once",
-    },
-    counts: {
-      type: "int", label: "Transcripts, more than", min: 0, max: 3000, step: 100, default: 800, display: true,
-      detail: "how many molecules the droplet held",
-    },
-    mt: {
-      type: "int", label: "Mitochondrial %, less than", min: 1, max: 40, step: 1, default: 10, display: true,
-      detail: "the share of those molecules that came from mitochondrial genes",
-    },
-
-    /* authoring escape hatch, first render only: presses already taken */
-    shown: { type: "int", min: 0, max: STAGES, default: 0, hidden: true },
-  },
-
-  legend: ({ params }) => {
-    if (params.page === "truth") return [
-      { token: "empirical", label: "A droplet holding one cell", mark: "dot" },
-      { token: "extreme", label: "A dying cell: its RNA has gone and its mitochondria have not", mark: "dot" },
-      { token: "unknown", label: "No cell: ambient RNA only", mark: "dot" },
-      { token: "highlight", label: "Two cells in one droplet", mark: "dot" },
-      { token: "ink-3", label: "Hollow: a droplet the filter removed", mark: "hollow" },
-    ];
-    if (params.page === "thresholds") return [
-      { token: "empirical", label: "Droplets the three rules keep", mark: "bar" },
-      { token: "extreme", label: "Droplets a rule removed, in the order the rules were applied", mark: "bar" },
-      { token: "reference", label: "The mitochondrial % now set", mark: "line" },
-    ];
-    return [
-      { token: "empirical", label: "A droplet: its genes, its transcripts, its mitochondrial %", mark: "bar" },
-      { token: "reference", label: "A threshold now set", mark: "line" },
-    ];
-  },
-
-  /* Pure and seeded. The droplets come from the memo, which holds every data
-     parameter in its key; everything below is the filter, which is what a
-     display parameter changes. */
-  compute: ({ params }) => {
-    const { cells, pos } = stageFor(params.seed, params.hot, params.hotMt);
-    /* the engine's own names inside, the reader's in the URL: a shareable
-       link reads ?genes=500&counts=800&mt=10 (5.9) */
-    const thr = { nFeature: params.genes, nCount: params.counts, mt: params.mt };
-    /* which rule removes a droplet, in the order they are applied: 0 kept */
     const removedAt = cells.map((c) => (c.nFeature > thr.nFeature ? (c.nCount > thr.nCount ? (c.mt < thr.mt ? 0 : 3) : 2) : 1));
     const keep = removedAt.map((r) => r === 0);
     const tally = tallyBy(cells, removedAt);
@@ -607,7 +755,132 @@ defineWidget({
       const cs = cells.filter((c) => c.sample === s.key);
       medians[s.key] = { mt: median(cs.map((c) => c.mt)), nCount: median(cs.map((c) => c.nCount)), nFeature: median(cs.map((c) => c.nFeature)) };
     }
-    return { cells, pos, view, thr, removedAt, keep, tally, sweep, centres, cost, conf, overlap: { either, both }, medians };
+    return { cells, pos, view, axes, thr, removedAt, keep, tally, sweep, centres, cost, conf, overlap: { either, both }, medians };
+}
+
+/* --- a data change that MOVED the droplets rather than replacing them -------
+   The ambient level is the one data control the droplets survive: the engine
+   draws each one in the same order whatever that level is, so droplet i at 8%
+   and droplet i at 25% are the same droplet with more mitochondrial RNA in it.
+   Measured: raising it from 15 to 25 keeps every droplet's state, type and
+   sample, and moves the numbers of the 400 in that sample and of NO other.
+   That is worth a slide rather than a jump, because the thing to see is
+   exactly that three samples do not move while one rises — the same reason
+   core offers the frames at all.
+
+   The seed and which sample carries the ambient RNA both redraw every
+   droplet, so they can only cross-fade.
+
+   The whole figure is re-derived from the droplets part of the way across —
+   0.9 ms a frame measured — rather than each panel tweening on its own, so
+   the bar, the sweep, the violins and the map can never disagree mid-flight. */
+const lerp = (a, b, e) => a + (b - a) * e;
+function slideState(from, to, e) {
+  const cells = to.cells.map((c, i) => {
+    const o = from.cells[i];
+    if (!o) return c;
+    return { ...c, nCount: lerp(o.nCount, c.nCount, e), nFeature: lerp(o.nFeature, c.nFeature, e), mt: lerp(o.mt, c.mt, e) };
+  });
+  const pos = to.pos.map((q, i) => (from.pos[i] ? { x: lerp(from.pos[i].x, q.x, e), y: lerp(from.pos[i].y, q.y, e) } : q));
+  const st = derive(cells, pos, to.thr);
+  /* the panels' ranges ease with the values inside them, so the droplets move
+     against a frame that is moving with them instead of snapping under them */
+  st.axes = {
+    violins: st.axes.violins.map((v, k) => ({ lo: lerp(from.axes.violins[k].lo, to.axes.violins[k].lo, e), hi: lerp(from.axes.violins[k].hi, to.axes.violins[k].hi, e) })),
+    scatters: st.axes.scatters.map((v, k) => ({
+      xlo: lerp(from.axes.scatters[k].xlo, to.axes.scatters[k].xlo, e), xhi: lerp(from.axes.scatters[k].xhi, to.axes.scatters[k].xhi, e),
+      ylo: lerp(from.axes.scatters[k].ylo, to.axes.scatters[k].ylo, e), yhi: lerp(from.axes.scatters[k].yhi, to.axes.scatters[k].yhi, e),
+    })),
+  };
+  st.view = [lerp(from.view[0], to.view[0], e), lerp(from.view[1], to.view[1], e)];
+  return st;
+}
+
+/* The state and the parameters last DRAWN, so `init` can tell a change that
+   moved the droplets from one that replaced them. Recorded at the end of
+   `draw` rather than of `compute`, because core recomputes before it re-inits
+   and a value written in `compute` would already be the new one. */
+let lastState = null, lastParams = null;
+const DATA_KEYS = ["seed", "hot", "hotMt"];
+
+defineWidget({
+  slug: "cell-qc",
+  title: "Single-Cell RNA-seq: QC",
+  subtitle:
+    "Droplets are filtered before analysis on three numbers: the genes detected, "
+    + "the transcripts counted, and the percentage of transcripts that are "
+    + "mitochondrial. The first two measure the same thing twice. The third rises "
+    + "both in a cell that is dying and in a sample whose preparation released "
+    + "free mitochondrial RNA into every droplet, so one threshold applied across "
+    + "samples can remove most of one of them while removing nothing from the rest.",
+  layout: "side",
+  status: "draft",
+  height: ({ page }) => HEIGHTS[page] ?? HEIGHTS.metrics,
+
+  params: {
+    page: { type: "segmented", label: "Page", options: PAGES, default: "metrics", display: true },
+
+    dataSec: { type: "section", label: "The data" },
+    hot: {
+      type: "select", label: "Ambient mitochondrial RNA in",
+      detail: "cells that break apart during the preparation release mitochondrial transcripts, which land in every droplet of that sample",
+      options: SAMPLE_OPTIONS, default: "p1-liver",
+    },
+    hotMt: {
+      type: "choice", label: "That sample's median mitochondrial %",
+      detail: "the level the ambient RNA puts every one of its droplets at; the other three samples sit near 1%",
+      options: [2, 8, 15, 25].map((v) => ({ value: String(v), label: `${v}%` })), default: "15",
+      when: { param: "hot", not: "none" },
+    },
+    seed: { type: "int", label: "Seed", min: 1, max: 200, default: 1 },
+
+    filterSec: { type: "section", label: "The filter" },
+    genes: {
+      type: "int", label: "Genes detected, more than", min: 0, max: 1500, step: 50, default: 500, display: true,
+      detail: "how many of the cell's genes were seen at least once",
+    },
+    counts: {
+      type: "int", label: "Transcripts, more than", min: 0, max: 3000, step: 100, default: 800, display: true,
+      detail: "how many molecules the droplet held",
+    },
+    mt: {
+      type: "int", label: "Mitochondrial %, less than", min: 1, max: 40, step: 1, default: 10, display: true,
+      detail: "the share of those molecules that came from mitochondrial genes",
+    },
+
+    /* authoring escape hatch, first render only: presses already taken */
+    shown: { type: "int", min: 0, max: STAGES, default: 0, hidden: true },
+  },
+
+  legend: ({ params }) => {
+    if (params.page === "truth") return [
+      { token: "empirical", label: "A droplet holding one cell; point at one to read what it holds", mark: "dot" },
+      { token: "extreme", label: "A dying cell: its RNA has gone and its mitochondria have not", mark: "dot" },
+      { token: "unknown", label: "No cell: ambient RNA only", mark: "dot" },
+      { token: "highlight", label: "Two cells in one droplet", mark: "dot" },
+      { token: "ink-3", label: "Hollow: a droplet the filter removed", mark: "hollow" },
+    ];
+    if (params.page === "thresholds") return [
+      { token: "empirical", label: "Droplets the three rules keep; point at a bar or a curve for one sample", mark: "bar" },
+      { token: "extreme", label: "Droplets a rule removed, in the order the rules were applied", mark: "bar" },
+      { token: "reference", label: "The mitochondrial % now set", mark: "line" },
+    ];
+    return [
+      { token: "empirical", label: "A droplet: point at one in either scatter for its three numbers", mark: "dot" },
+      { token: "reference", label: "A threshold now set", mark: "line" },
+    ];
+  },
+
+  /* Pure and seeded. The droplets come from the memo, which holds every data
+     parameter in its key; `derive` below is the filter and the figures, which
+     is what a display parameter changes — and what a slide re-runs per frame
+     on the droplets part of the way between two settings. */
+  compute: ({ params }) => {
+    const { cells, pos } = stageFor(params.seed, params.hot, params.hotMt);
+    /* the engine's own names inside, the reader's in the URL: a shareable
+       link reads ?genes=500&counts=800&mt=10 (5.9) */
+    const thr = { nFeature: params.genes, nCount: params.counts, mt: params.mt };
+    return derive(cells, pos, thr);
   },
 
   readout: ({ params, state, anim }) => {
@@ -700,14 +973,25 @@ defineWidget({
     },
     runLabel: null,
     init: ({ params, fromScratch }) => {
-      const anim = { n: 0, p: 1, t: 1, halt: false, labelAt: "s0", done: false, inert: false };
+      const anim = { n: 0, p: 1, halt: false, data: { t: 1, from: null, kind: null }, easing: false, labelAt: "s0", done: false, inert: false };
       if (!fromScratch) anim.n = Math.min(STAGES, Math.max(0, Number(params.shown) || 0));
+      if (lastState && lastParams && DATA_KEYS.some((k) => lastParams[k] !== params[k])) {
+        /* the ambient LEVEL moves the droplets it belongs to; the seed and
+           which sample carries it draw different droplets altogether */
+        const moved = lastParams.seed === params.seed && lastParams.hot === params.hot;
+        anim.data = { t: 0, from: lastState, kind: moved ? "slide" : "fade" };
+        anim.easing = true;
+      }
       settle(anim, params);
       return anim;
     },
     advance: (anim, { dt, params }) => {
       if (anim.mode === "ease") {
-        if (anim.t < 1) { anim.t = Math.min(1, anim.t + dt / EASE_MS); return anim.t < 1; }
+        if (anim.data.t < 1) {
+          anim.data.t = Math.min(1, anim.data.t + dt / EASE_MS);
+          if (anim.data.t >= 1) anim.data.from = null;
+          return anim.data.t < 1;
+        }
         return false;
       }
       /* the loop left running for a press that `rebuild` finished ends here,
@@ -733,16 +1017,35 @@ defineWidget({
          one is moving, or it would swallow the first frame of the reader's
          next press. */
       if (anim.p < 1) { anim.p = 1; anim.halt = true; }
+      /* a threshold moved mid-slide lands the slide: the droplets the reader
+         is now filtering are the ones the figure is about to hold */
+      if (anim.data.t < 1) { anim.data.t = 1; anim.data.from = null; }
       settle(anim, params);
     },
   },
 
-  draw: ({ ctx, colors, w, params, state, anim }) => {
+  pointer: true,
+
+  draw: ({ ctx, colors, w, params, state, anim, pointer }) => {
     const stage = anim ? anim.n : Number(params.shown) || 0;
     const p = anim && anim.p < 1 ? easeInOut(anim.p) : 1;
-    if (params.page === "metrics") drawMetrics(ctx, colors, w, state);
-    else if (params.page === "thresholds") drawThresholds(ctx, colors, w, state, stage, p);
-    else drawTruth(ctx, colors, w, state, stage, p);
+    const D = anim && anim.data.from && anim.data.t < 1 ? { from: anim.data.from, e: easeInOut(anim.data.t), kind: anim.data.kind } : null;
+    /* the inspector is the reader's pointer on the figure at rest; mid-ease
+       there is no droplet under it that will still be there when it lands */
+    const hover = D ? null : hoverAt(pointer, w, params.page, state);
+    const one = (st, alpha) => {
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      if (params.page === "metrics") drawMetrics(ctx, colors, w, st, hover);
+      else if (params.page === "thresholds") drawThresholds(ctx, colors, w, st, stage, p, hover);
+      else drawTruth(ctx, colors, w, st, stage, p, hover);
+      ctx.restore();
+    };
+    if (D && D.kind === "fade") { one(D.from, 1 - D.e); one(state, D.e); }
+    else if (D) one(slideState(D.from, state, D.e), 1);
+    else one(state, 1);
+    lastState = state;
+    lastParams = { seed: params.seed, hot: params.hot, hotMt: params.hotMt };
   },
 });
 
