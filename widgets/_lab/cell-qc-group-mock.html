@@ -1,0 +1,387 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · cell-qc — one concept, one block</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1240px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 6px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 100ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  .cand { border: 1px solid var(--grid); border-radius: var(--radius); padding: var(--sp-3) var(--sp-4) var(--sp-4); margin: 0 0 var(--sp-3); background: var(--surface-1); }
+  .cand .why { font-size: var(--fs-sm); color: var(--ink-2); margin: var(--sp-3) 0 0; max-width: 100ch; }
+  .cand .why b { color: var(--ink-1); }
+  .row { display: flex; gap: var(--sp-4); flex-wrap: wrap; align-items: flex-start; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); border-radius: var(--radius); }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--c-reference); background: var(--surface-2); }
+  table.m { border-collapse: collapse; font-size: var(--fs-sm); margin: var(--sp-2) 0 0; }
+  table.m th, table.m td { border-bottom: 1px solid var(--grid); padding: 4px 10px 4px 0; text-align: left; }
+  table.m td.n { text-align: right; font-variant-numeric: tabular-nums; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>cell-qc &middot; one concept, one block</h1>
+  <p class="note">
+    His round 11: <b>&ldquo;now my eye is just wandering everywhere seeing which graphs are referring to the same
+    concept&rdquo;</b>, and the proposal to align them column-wise &mdash; genes and transcripts over their scatter,
+    mitochondrial % over its scatter, the doublet score over the spider and the rows.
+    That grouping is right. <b>What decides how it can be drawn is a width, and the width is measurable</b>, so it is
+    measured first and every panel below that comes out too narrow is hatched.
+  </p>
+
+  <h2>1 &middot; What each panel needs to stay legible</h2>
+  <div class="cand">
+    <p class="why" style="margin-top:0">Measured with the widget's own type: <code>--fs-xs</code> 11px and
+      <code>--fs-sm</code> 12px in <code>system-ui</code>, the same strings it paints.</p>
+    <table class="m" id="mins"></table>
+    <p class="why"><b>Only one of these is a wall.</b> A violin panel below 174px prints its sample labels through each
+      other, which is a figure problem and the overlap sweep has caught it before at 3px. The other three are caption
+      widths, so a column a third of 746 wide is reachable by rewriting three captions &mdash; but
+      <b>a column a third of 534 wide is not reachable at all</b>, because the violins lose their labels whatever the
+      words say. The diagrams below hatch a panel narrower than its line as drawn today, with the two numbers on it.</p>
+  </div>
+
+  <h2>2 &middot; The groupings</h2>
+  <div id="layouts"></div>
+
+  <h2>3 &middot; The calls</h2>
+  <div id="calls"></div>
+</main>
+
+<script type="module">
+const css = getComputedStyle(document.documentElement);
+const C = (n) => css.getPropertyValue(n).trim();
+const font = C("--font") || "system-ui";
+const probe = document.createElement("canvas").getContext("2d");
+const wid = (s, px, weight) => { probe.font = `${weight ?? ""} ${px}px ${font}`.trim(); return probe.measureText(s).width; };
+
+/* ---- the measured minimum width of each panel --------------------------- */
+const MINS = [
+  { name: "A violin panel", need: Math.ceil(4 * Math.max(wid("tumour", 11), wid("P2", 11)) + 3 * 10),
+    hard: true,
+    why: "four samples labelled P1/P2 over liver/tumour — a FIGURE floor, not a caption: below it the words print through each other, which the overlap sweep found at 3px" },
+  { name: "A scatter", need: Math.ceil(wid("Mitochondrial % against transcripts", 12, "600") + wid("the same droplets", 11) + 16),
+    soft: Math.ceil(wid("Mitochondrial % against transcripts", 12, "600")),
+    why: "its caption and its note on one line; the note can drop to a second line, and then it needs only the caption" },
+  { name: "The neighbourhood panel", need: Math.ceil(wid("a droplet", 11) + wid("artificial doublet", 11) + 40),
+    hard: true,
+    why: "the two marks and their key, which sit INSIDE it; its 233px caption is allowed to run past the panel edge into the 58px gap, and does today" },
+  { name: "The three score rows", need: Math.ceil(wid("share of the nearest neighbours that are artificial", 11)),
+    soft: Math.ceil(wid("Two different types · 49", 11) + wid("median 0.88", 11) + 14),
+    why: "the x-axis label under all three; under a shorter label it needs only the widest row header beside its median" },
+];
+{
+  const t = document.getElementById("mins");
+  t.innerHTML = "<tr><th>panel</th><th>as drawn</th><th>rewritten</th><th>a third of 746</th><th>a third of 534</th><th>which line</th></tr>";
+  for (const m of MINS) {
+    const tr = document.createElement("tr");
+    const third746 = Math.floor((746 - 52 - 16 - 44) / 3), third534 = Math.floor((534 - 52 - 16 - 44) / 3);
+    const floor = m.hard ? m.need : Math.min(m.need, m.soft);
+    for (const [txt, cls] of [[m.name], [`${m.need}px`, "n"], [m.hard ? "—" : `${Math.min(m.need, m.soft)}px`, "n"],
+      [third746 >= floor ? `${third746} ✓` : `${third746} ✗`, "n"],
+      [third534 >= floor ? `${third534} ✓` : `${third534} ✗`, "n"], [m.why]]) {
+      const td = document.createElement("td");
+      if (cls) td.className = cls;
+      td.textContent = txt;
+      if (txt.endsWith("✗")) td.style.color = C("--c-extreme");
+      tr.appendChild(td);
+    }
+    t.appendChild(tr);
+  }
+}
+const NEED = Object.fromEntries(MINS.map((m) => [m.name, m.need]));
+const NEED_VIOLIN = NEED["A violin panel"], NEED_SCATTER = NEED["A scatter"];
+const NEED_SPIDER = NEED["The neighbourhood panel"], NEED_ROWS = NEED["The three score rows"];
+/* the scatter with its note wrapped to a second line: its caption alone */
+const NEED_SCATTER_SOFT = MINS[1].soft;
+
+/* ---- drawing ------------------------------------------------------------ */
+const PAD = { l: 52, r: 16, t: 26 };
+const COUNTS = "--c-empirical", MITO = "--c-extreme", DBL = "--c-cluster-b";
+function box(g, r, label, tone, sub, need) {
+  g.save();
+  g.fillStyle = C(tone);
+  g.globalAlpha = 0.12;
+  g.fillRect(r.x, r.y, r.w, r.h);
+  g.globalAlpha = 1;
+  g.strokeStyle = C(tone);
+  g.lineWidth = 1;
+  g.strokeRect(r.x + 0.5, r.y + 0.5, r.w, r.h);
+  const tight = need && r.w < need;
+  if (tight) {
+    g.save();
+    g.strokeStyle = C("--c-extreme");
+    g.globalAlpha = 0.5;
+    g.lineWidth = 1;
+    g.beginPath();
+    for (let d = -r.h; d < r.w; d += 8) { g.moveTo(r.x + d, r.y + r.h); g.lineTo(r.x + d + r.h, r.y); }
+    g.save(); g.rect(r.x, r.y, r.w, r.h); g.clip(); g.stroke(); g.restore();
+    g.restore();
+  }
+  g.fillStyle = C("--ink-1");
+  g.font = `600 11px ${font}`;
+  g.textAlign = "center";
+  g.textBaseline = "middle";
+  const cy = r.y + r.h / 2;
+  g.fillText(label, r.x + r.w / 2, cy - (sub || tight ? 8 : 0));
+  if (sub) { g.fillStyle = C("--ink-3"); g.font = `10px ${font}`; g.fillText(sub, r.x + r.w / 2, cy + 6); }
+  if (tight) {
+    g.fillStyle = C("--c-extreme");
+    g.font = `600 10px ${font}`;
+    g.fillText(`${Math.round(r.w)}px, needs ${need}`, r.x + r.w / 2, cy + (sub ? 20 : 10));
+  }
+  g.restore();
+}
+function head(g, x, y, w, text, tone) {
+  g.save();
+  g.strokeStyle = C("--grid");
+  g.lineWidth = 1;
+  g.beginPath(); g.moveTo(x, y + 0.5); g.lineTo(x + w, y + 0.5); g.stroke();
+  g.font = `600 12px ${font}`;
+  g.fillStyle = C("--surface-1");
+  g.fillRect(x - 4, y - 9, g.measureText(text).width + 8, 18);
+  g.fillStyle = C(tone);
+  g.textAlign = "left";
+  g.textBaseline = "middle";
+  g.fillText(text, x, y);
+  g.restore();
+}
+const T1 = "The two counts — the same thing twice";
+const T2 = "Mitochondrial % — a dying cell, or the sample";
+const T3 = "The doublet score — from the droplets nearest it";
+
+function draw(g, w, kind) {
+  const full = w - PAD.l - PAD.r, GAP = 22, VGAP = 60, FOOT = 52;
+  let y = PAD.t + 4;
+
+  if (kind === "now") {
+    const e = (full - 3 * GAP) / 4;
+    ["Genes", "Transcripts", "Mito %", "Doublet score"].forEach((n, i) =>
+      box(g, { x: PAD.l + i * (e + GAP), y, w: e, h: 180 }, n, i === 2 ? MITO : i === 3 ? DBL : COUNTS, null, NEED_VIOLIN));
+    y += 180 + VGAP;
+    const s = (full - 56) / 2;
+    box(g, { x: PAD.l, y, w: s, h: 160 }, "Genes × transcripts", COUNTS, null, NEED_SCATTER);
+    box(g, { x: PAD.l + s + 56, y, w: s, h: 160 }, "Mito % × transcripts", MITO, null, NEED_SCATTER);
+    y += 160 + 56;
+    head(g, PAD.l, y, full, "Worked out from the droplets nearest it", "--ink-2");
+    y += 42;
+    const sp = Math.min(250, full * 0.34);
+    box(g, { x: PAD.l, y, w: sp, h: 262 }, "One droplet's", DBL, "fifty nearest", NEED_SPIDER);
+    box(g, { x: PAD.l + sp + 58, y, w: full - sp - 58, h: 262 }, "The doublet score", DBL, "three rows", NEED_ROWS);
+    y += 262;
+  }
+
+  if (kind === "cols") {
+    /* his proposal, taken literally: three columns, one concept each */
+    const e = (full - 2 * GAP) / 3;
+    const col = (i) => PAD.l + i * (e + GAP);
+    head(g, col(0), y + 8, e, "The two counts", "--ink-2");
+    head(g, col(1), y + 8, e, "Mitochondrial %", "--ink-2");
+    head(g, col(2), y + 8, e, "The doublet score", "--ink-2");
+    y += 34;
+    box(g, { x: col(0), y, w: e, h: 180 }, "Genes", COUNTS, null, NEED_VIOLIN);
+    box(g, { x: col(1), y, w: e, h: 180 }, "Mito %", MITO, null, NEED_VIOLIN);
+    box(g, { x: col(2), y, w: e, h: 180 }, "Doublet score", DBL, null, NEED_VIOLIN);
+    box(g, { x: col(0), y: y + 224, w: e, h: 180 }, "Transcripts", COUNTS, null, NEED_VIOLIN);
+    box(g, { x: col(1), y: y + 224, w: e, h: 180 }, "Mito % × transcripts", MITO, null, NEED_SCATTER);
+    box(g, { x: col(2), y: y + 224, w: e, h: 262 }, "One droplet's", DBL, "fifty nearest", NEED_SPIDER);
+    box(g, { x: col(0), y: y + 448, w: e, h: 180 }, "Genes × transcripts", COUNTS, null, NEED_SCATTER);
+    box(g, { x: col(2), y: y + 530, w: e, h: 262 }, "The doublet score", DBL, "three rows", NEED_ROWS);
+    y += 792;
+  }
+
+  if (kind === "band") {
+    /* the same grouping, laid in rows: each concept a band across the stage */
+    const e3 = (full - 2 * GAP) / 3, wrap = e3 < NEED_VIOLIN;
+    head(g, PAD.l, y + 8, full, T1, "--ink-2");
+    y += 34;
+    if (wrap) {
+      /* the same fallback the widget already makes at 534: two across, then
+         the scatter on its own row with the whole width */
+      const e2 = (full - GAP) / 2;
+      box(g, { x: PAD.l, y, w: e2, h: 180 }, "Genes", COUNTS, null, NEED_VIOLIN);
+      box(g, { x: PAD.l + e2 + GAP, y, w: e2, h: 180 }, "Transcripts", COUNTS, null, NEED_VIOLIN);
+      y += 180 + GAP;
+      box(g, { x: PAD.l, y, w: full, h: 180 }, "Genes × transcripts", COUNTS, null, NEED_SCATTER);
+    } else {
+      box(g, { x: PAD.l, y, w: e3, h: 180 }, "Genes", COUNTS, null, NEED_VIOLIN);
+      box(g, { x: PAD.l + e3 + GAP, y, w: e3, h: 180 }, "Transcripts", COUNTS, null, NEED_VIOLIN);
+      box(g, { x: PAD.l + 2 * (e3 + GAP), y, w: e3, h: 180 }, "Genes × transcripts", COUNTS, null, NEED_SCATTER);
+    }
+    y += 180 + 44;
+    head(g, PAD.l, y + 8, full, T2, "--ink-2");
+    y += 34;
+    const e2 = (full - GAP) / 2;
+    box(g, { x: PAD.l, y, w: e2, h: 180 }, "Mito %", MITO, null, NEED_VIOLIN);
+    box(g, { x: PAD.l + e2 + GAP, y, w: e2, h: 180 }, "Mito % × transcripts", MITO, null, NEED_SCATTER);
+    y += 180 + 44;
+    head(g, PAD.l, y + 8, full, T3, "--ink-2");
+    y += 34;
+    const sp = Math.min(250, full * 0.34);
+    box(g, { x: PAD.l, y, w: sp, h: 262 }, "One droplet's", DBL, "fifty nearest", NEED_SPIDER);
+    box(g, { x: PAD.l + sp + 58, y, w: full - sp - 58, h: 262 }, "The doublet score", DBL, "three rows", NEED_ROWS);
+    y += 262;
+  }
+
+  if (kind === "twocol") {
+    /* two concept COLUMNS where the width allows it, and the doublet across
+       the foot where it does not */
+    const e2 = (full - 44) / 2, right = PAD.l + e2 + 44;
+    head(g, PAD.l, y + 8, e2, T1, "--ink-2");
+    head(g, right, y + 8, e2, T2, "--ink-2");
+    y += 34;
+    /* THE TWO COLUMNS END LEVEL. The counts column carries three panels and
+       the mitochondrial column two, which would leave 224px of white at the
+       foot of the second; instead its scatter takes that height. It is the
+       panel that earns it — the ambient-RNA story is the one a reader has
+       to see the shape of. */
+    box(g, { x: PAD.l, y, w: e2, h: 180 }, "Genes", COUNTS, null, NEED_VIOLIN);
+    box(g, { x: PAD.l, y: y + 224, w: e2, h: 180 }, "Transcripts", COUNTS, null, NEED_VIOLIN);
+    box(g, { x: PAD.l, y: y + 448, w: e2, h: 180 }, "Genes × transcripts", COUNTS, null, NEED_SCATTER);
+    box(g, { x: right, y, w: e2, h: 180 }, "Mito %", MITO, null, NEED_VIOLIN);
+    box(g, { x: right, y: y + 224, w: e2, h: 404 }, "Mito % × transcripts", MITO, "the taller panel", NEED_SCATTER);
+    y += 628 + 56;
+    head(g, PAD.l, y, full, T3, "--ink-2");
+    y += 42;
+    const sp = Math.min(250, full * 0.34);
+    box(g, { x: PAD.l, y, w: sp, h: 262 }, "One droplet's", DBL, "fifty nearest", NEED_SPIDER);
+    box(g, { x: PAD.l + sp + 58, y, w: full - sp - 58, h: 262 }, "The doublet score", DBL, "three rows", NEED_ROWS);
+    y += 262;
+  }
+  if (kind === "uneven") {
+    /* TWO COLUMNS THAT ARE NOT THE SAME WIDTH. The counts concept holds two
+       violins and the mitochondrial concept one, so an even split gives the
+       first two panels of 148px against a floor of 174 and the second column
+       80px it does not need. Split by what each column carries instead:
+       2 x 174 + 22 for the left, one caption's 194 for the right, and the
+       slack shared. */
+    const need1 = 2 * NEED_VIOLIN + GAP, need2 = NEED_SCATTER_SOFT;
+    const slack = full - 44 - need1 - need2;
+    if (slack < 0) return draw(g, w, "twocol");           // 534: no room, stack
+    const c1 = need1 + slack / 2, c2 = need2 + slack / 2, right = PAD.l + c1 + 44;
+    head(g, PAD.l, y + 8, c1, T1, "--ink-2");
+    head(g, right, y + 8, c2, T2, "--ink-2");
+    y += 34;
+    const half = (c1 - GAP) / 2;
+    box(g, { x: PAD.l, y, w: half, h: 180 }, "Genes", COUNTS, null, NEED_VIOLIN);
+    box(g, { x: PAD.l + half + GAP, y, w: half, h: 180 }, "Transcripts", COUNTS, null, NEED_VIOLIN);
+    box(g, { x: right, y, w: c2, h: 180 }, "Mito %", MITO, null, NEED_VIOLIN);
+    y += 180 + 44;
+    box(g, { x: PAD.l, y, w: c1, h: 180 }, "Genes × transcripts", COUNTS, null, NEED_SCATTER_SOFT);
+    box(g, { x: right, y, w: c2, h: 180 }, "Mito % × transcripts", MITO, null, NEED_SCATTER_SOFT);
+    y += 180 + 56;
+    head(g, PAD.l, y, full, T3, "--ink-2");
+    y += 42;
+    const sp = Math.min(250, full * 0.34);
+    box(g, { x: PAD.l, y, w: sp, h: 262 }, "One droplet's", DBL, "fifty nearest", NEED_SPIDER);
+    box(g, { x: PAD.l + sp + 58, y, w: full - sp - 58, h: 262 }, "The doublet score", DBL, "three rows", NEED_ROWS);
+    y += 262;
+  }
+  return y + FOOT;
+}
+
+const LAYOUTS = [
+  {
+    key: "now", name: "As it is now",
+    why: "Four distributions in a row, then two scatters, then the doublet band. <b>Nothing on the page says which "
+      + "panels are about the same number</b> — the genes violin and the genes-against-transcripts scatter are "
+      + "four hundred pixels apart with six other panels between them, and the only thing linking them is their words.",
+  },
+  {
+    key: "cols", name: "A · three concept columns, as proposed",
+    why: "One column a concept, top to bottom. The grouping is exactly right and it is the strongest of the four: a "
+      + "column is a <i>common region</i>, so nothing has to be read to know what belongs with what. "
+      + "<b>At 746 it is reachable</b>, and the measurement says what it costs: a third of the stage is 211px, so the "
+      + "scatter's note, the neighbourhood panel's caption and the score rows' axis label all have to be shortened or "
+      + "wrapped. <b>At 534 it is not reachable at all</b> — a third is 140px and a violin panel needs 174 to keep "
+      + "its four sample labels apart, whatever the words say. So this layout needs a second, different layout under it "
+      + "for narrow frames. The counts column also carries three panels against the mitochondrial column's two.",
+  },
+  {
+    key: "band", name: "B · the same grouping, in bands across the stage",
+    why: "The concepts are the same and so is their order; only the axis changes. A band is a common region too, and "
+      + "<b>each panel gets the width its content needs rather than a third of the stage</b>: three panels in the "
+      + "counts band, two in the mitochondrial band, two in the doublet band. <b>It needs no caption rewritten at "
+      + "either width</b>: at 534 the counts band wraps to two rows and gives its scatter the whole stage, which is the "
+      + "fallback the widget already makes. Against: a band is a weaker group than a column when the page is scrolled, "
+      + "because the heading leaves the screen and the row below it does not.",
+  },
+  {
+    key: "uneven", name: "D · C, with the columns split by what they carry",
+    why: "The counts concept holds two violins and the mitochondrial concept one, so splitting the stage down the "
+      + "middle is the wrong split: it gives the two count violins 148px against a floor of 174, and gives the "
+      + "mitochondrial column 80px it has no use for. Split by content instead — 405px and 229px at 746 — and "
+      + "<b>the two count violins sit side by side, both columns end level after two rows, and the page is about the "
+      + "height it is today</b>. At 534 there is no room for that split and it falls back to C's stacked columns, "
+      + "which is the same fallback the violin row already makes.",
+  },
+  {
+    key: "twocol", name: "C · two concept columns of equal width",
+    why: "His columns where the width allows them and a band where it does not. The two measured concepts stand "
+      + "side by side with their scatter under their violins, which is the alignment he asked for; the doublet keeps "
+      + "the full width its three rows need. <b>The fourth violin is gone</b> — in a column layout the doublet "
+      + "column would hold its distribution twice, since the three rows below ARE that distribution split by what the "
+      + "droplet holds. That also makes the page read as the subtitle already does: three numbers measured on the "
+      + "droplet, and then a fourth that is not. <b>Half the stage is 317px at 746 and 211px at 534</b>, so every panel "
+      + "clears its line at both widths and nothing has to be rewritten. The two columns end level because the "
+      + "mitochondrial scatter takes the height the third counts panel would have used.",
+  },
+];
+{
+  const host = document.getElementById("layouts");
+  for (const L of LAYOUTS) {
+    const d = document.createElement("div");
+    d.className = "cand";
+    const h = document.createElement("h3");
+    h.textContent = L.name;
+    d.appendChild(h);
+    const row = document.createElement("div");
+    row.className = "row";
+    for (const w of [746, 534]) {
+      const cell = document.createElement("div");
+      const t = document.createElement("h3");
+      t.textContent = `${w}px`;
+      t.style.color = "var(--ink-3)";
+      t.style.fontWeight = "400";
+      cell.appendChild(t);
+      const p = document.createElement("canvas").getContext("2d");
+      const H = draw(p, w, L.key);
+      const c = document.createElement("canvas");
+      const dpr = window.devicePixelRatio || 1;
+      c.width = w * dpr; c.height = H * dpr;
+      c.style.width = w + "px"; c.style.height = H + "px";
+      const g = c.getContext("2d");
+      g.scale(dpr, dpr);
+      draw(g, w, L.key);
+      cell.appendChild(c);
+      const cap = document.createElement("div");
+      cap.style.cssText = "font-size:var(--fs-xs);color:var(--ink-3);margin-top:4px";
+      cap.textContent = `${Math.round(H)}px tall`;
+      cell.appendChild(cap);
+      row.appendChild(cell);
+    }
+    d.appendChild(row);
+    const why = document.createElement("p");
+    why.className = "why";
+    why.innerHTML = L.why;
+    d.appendChild(why);
+    host.appendChild(d);
+  }
+}
+const calls = [
+  ["1 &middot; the grouping",
+    "<b>D &mdash; two concept columns split by what they carry (recommended: column alignment, every panel clear of its line at both widths, no caption rewritten, and the page stays about the height it is)</b> | C, the same with columns of equal width — 234px taller | B, three bands | A, three columns as proposed — three captions shortened at 746 and a different layout entirely at 534 | leave it"],
+  ["2 &middot; the fourth violin, if C or A",
+    "<b>drop it (recommended under C: a doublet column holding its own distribution twice is the thing that made the page feel repetitive)</b> | keep it in the doublet block"],
+  ["3 &middot; the headings",
+    "<b>a concept a heading, in ink on a rule (recommended: “The two counts — the same thing twice”, “Mitochondrial % — a dying cell, or the sample”, “The doublet score — from the droplets nearest it”)</b> | short nouns only | no headings, the grouping alone"],
+];
+document.getElementById("calls").innerHTML = calls.map(([q, a]) => `<p class="q"><b>${q}</b> &nbsp; ${a}</p>`).join("");
+</script>
+</body>
+</html>
