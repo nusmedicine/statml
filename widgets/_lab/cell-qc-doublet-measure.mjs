@@ -21,10 +21,15 @@
  *   4. A droplet sitting in a crowd of made-up doublets is called a doublet.
  *
  * Neither scrublet nor R is installed on this machine, so the core is
- * implemented here (step 1 to 4, no PCA: the stage's space is already the six
- * block fractions the map is drawn from) and scored against the stage's own
- * truth, which knows which droplets really hold two cells and which two types
- * each holds. What the numbers are an upper bound on is said at the foot.
+ * implemented in the widget's own engine (`doubletScores`: steps 1 to 3, no
+ * PCA, because the stage's space is already the six block fractions the map
+ * is drawn from) and scored here against the stage's own truth, which knows
+ * which droplets really hold two cells and which two types each holds. What
+ * the numbers are an upper bound on is said at the foot.
+ *
+ * This ran BEFORE the page existed and is what decided that it should: the
+ * 98% against 0% is the finding, and the widget's Doublets page is that
+ * finding drawn.
  *
  *   node widgets/_lab/cell-qc-doublet-measure.mjs        (~3 s)
  */
@@ -32,86 +37,55 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { makeRng } from "../core/rng.js";
-import { simulate, profileOf, applyFilters, median, TYPES, THRESHOLDS } from "../cell-qc/engine.js";
+import { simulate, applyFilters, doubletScores, median, TYPES, THRESHOLDS } from "../cell-qc/engine.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const findings = [];
 const say = (s) => { console.log(s); findings.push(s); };
 const pct = (x) => `${(100 * x).toFixed(0)}%`;
 
-const rng = makeRng(1);
-const { cells } = simulate(rng, {});
+const { cells } = simulate(makeRng(1), {});
 const { keep } = applyFilters(cells, THRESHOLDS);
 /* the method runs on what the thresholds left, as it does in a real pipeline */
 const real = cells.map((c, i) => i).filter((i) => keep[i]);
-const prof = new Map();
-const pRng = makeRng(11);
-for (const i of real) prof.set(i, profileOf(pRng, cells[i]));
 
 const truth = (i) => cells[i].state === "doublet";
-const heterotypic = (i) => cells[i].state === "doublet" && cells[i].partner !== cells[i].type;
+const het = (i) => cells[i].state === "doublet" && cells[i].partner !== cells[i].type;
 const nDbl = real.filter(truth).length;
-const nHet = real.filter(heterotypic).length;
-say(`STAGE — ${real.length} droplets survive the lesson's thresholds, ${nDbl} of them hold two cells (${pct(nDbl / real.length)}); ${nHet} hold two DIFFERENT types and ${nDbl - nHet} two of the same`);
-
-/* --- step 1: make doublets ------------------------------------------------- */
-/* the field's own rate: Scrublet's `sim_doublet_ratio` is 2 by default,
-   DoubletFinder's pN is 0.25 of the augmented set. Both make far more than
-   they expect to find, so the neighbourhood of a real doublet can fill up. */
-function makeArtificial(rng2, n) {
-  const out = [];
-  for (let k = 0; k < n; k += 1) {
-    const a = real[Math.floor(rng2.next() * real.length)];
-    let b = real[Math.floor(rng2.next() * real.length)];
-    while (b === a) b = real[Math.floor(rng2.next() * real.length)];
-    /* adding two droplets' counts adds their profiles in proportion to what
-       each contributed, which is what summing their count vectors does */
-    const wa = cells[a].nCount, wb = cells[b].nCount;
-    const pa = prof.get(a), pb = prof.get(b);
-    out.push(pa.map((v, j) => (v * wa + pb[j] * wb) / (wa + wb)));
-  }
-  return out;
-}
-
-/* --- steps 2 and 3: the neighbourhood score -------------------------------- */
-const dist2 = (u, v) => { let s = 0; for (let j = 0; j < u.length; j += 1) s += (u[j] - v[j]) ** 2; return s; };
-function scores(art, k) {
-  const pts = [...real.map((i) => ({ p: prof.get(i), art: 0 })), ...art.map((p) => ({ p, art: 1 }))];
-  return real.map((i, ri) => {
-    const me = pts[ri].p;
-    /* the k nearest, excluding the droplet itself */
-    const d = [];
-    for (let j = 0; j < pts.length; j += 1) { if (j === ri) continue; d.push([dist2(me, pts[j].p), pts[j].art]); }
-    d.sort((a, b) => a[0] - b[0]);
-    let a = 0;
-    for (let j = 0; j < k; j += 1) a += d[j][1];
-    return a / k;
-  });
-}
-
-/* --- step 4: call them, and score the calls -------------------------------- */
-function report(label, sc) {
-  /* call the top `nDbl` scores, which is the best any threshold on this score
-     could do — an expected doublet rate is what a real run supplies instead */
-  const order = real.map((i, ri) => ri).sort((a, b) => sc[b] - sc[a]);
-  const called = new Set(order.slice(0, nDbl).map((ri) => real[ri]));
-  const tp = [...called].filter(truth).length;
-  const tpHet = [...called].filter(heterotypic).length;
-  say(`  ${label}: calling the top ${nDbl} scores finds ${tp} of the ${nDbl} doublets (${pct(tp / nDbl)}) — ${tpHet} of the ${nHet} that hold two different types (${pct(tpHet / nHet)}), ${tp - tpHet} of the ${nDbl - nHet} that hold two of the same (${pct((tp - tpHet) / Math.max(1, nDbl - nHet))})`);
-  /* and the separation itself, which does not depend on where the line goes */
-  const sDbl = real.map((i, ri) => [i, sc[ri]]).filter(([i]) => truth(i)).map(([, v]) => v);
-  const sHet = real.map((i, ri) => [i, sc[ri]]).filter(([i]) => heterotypic(i)).map(([, v]) => v);
-  const sHom = real.map((i, ri) => [i, sc[ri]]).filter(([i]) => truth(i) && !heterotypic(i)).map(([, v]) => v);
-  const sGood = real.map((i, ri) => [i, sc[ri]]).filter(([i]) => cells[i].state === "good").map(([, v]) => v);
-  say(`      median score: two different types ${median(sHet).toFixed(2)}, two of the same ${median(sHom).toFixed(2)}, one cell ${median(sGood).toFixed(2)}`);
-  return { tp, tpHet, sDbl, sGood };
-}
+const nHet = real.filter(het).length;
+say(`STAGE — ${real.length} droplets survive the thresholds, ${nDbl} of them hold two cells (${pct(nDbl / real.length)}); ${nHet} hold two DIFFERENT types and ${nDbl - nHet} two of the same`);
 
 say("");
 say("THE METHOD — artificial doublets, then each droplet scored by the share of its neighbours that are artificial");
+say("  `ratio` is how many artificial doublets are made per droplet (Scrublet's sim_doublet_ratio is 2; DoubletFinder's pN is a quarter of the augmented set), `k` how many neighbours are counted");
+const runs = {};
 for (const ratio of [1, 2]) {
-  const art = makeArtificial(makeRng(7), Math.round(ratio * real.length));
-  for (const k of [20, 50]) report(`${ratio}× artificial, k = ${k}`, scores(art, k));
+  for (const k of [20, 50]) {
+    const t0 = performance.now();
+    const { score } = doubletScores(makeRng(7), cells, real, { ratio, k });
+    const ms = performance.now() - t0;
+    runs[`${ratio}|${k}`] = score;
+    const pick = (f) => real.map((i, r) => [i, score[r]]).filter(([i]) => f(i)).map(([, v]) => v);
+    const sHet = pick(het), sHom = pick((i) => truth(i) && !het(i)), sGood = pick((i) => cells[i].state === "good");
+    /* the best any line on this score could do: call the top nDbl of them */
+    const order = real.map((i, r) => r).sort((x, y) => score[y] - score[x]);
+    const called = new Set(order.slice(0, nDbl).map((r) => real[r]));
+    const tp = [...called].filter(truth).length, tpHet = [...called].filter(het).length;
+    say(`  ratio ${ratio}, k = ${k} (${ms.toFixed(0)} ms): calling the top ${nDbl} finds ${tp} of the ${nDbl} (${pct(tp / nDbl)}) — ${tpHet} of the ${nHet} holding two different types (${pct(tpHet / nHet)}), ${tp - tpHet} of the ${nDbl - nHet} holding two of the same (${pct((tp - tpHet) / Math.max(1, nDbl - nHet))})`);
+    say(`      median score: two different types ${median(sHet).toFixed(2)}, two of the same ${median(sHom).toFixed(2)}, one cell ${median(sGood).toFixed(2)}`);
+  }
+}
+
+say("");
+say("WHERE TO PUT THE LINE — the widget's own control, at ratio 1 and k = 50");
+{
+  const score = runs["1|50"];
+  for (const cut of [0.9, 0.8, 0.7, 0.6, 0.5]) {
+    const called = real.filter((i, r) => score[r] >= cut);
+    const tp = called.filter(truth).length, tpHet = called.filter(het).length;
+    const lost = called.filter((i) => cells[i].state === "good").length;
+    say(`  at ${cut.toFixed(1)}: calls ${String(called.length).padStart(3)}, finds ${String(tp).padStart(2)} of the ${nDbl} (${tpHet} of the ${nHet} heterotypic, ${tp - tpHet} of the ${nDbl - nHet} homotypic), and takes ${lost} droplets holding one cell`);
+  }
 }
 
 say("");
@@ -121,8 +95,7 @@ say("AGAINST THE LESSON'S OWN METHOD — an upper threshold on the genes detecte
   for (const p of [0.9, 0.95]) {
     const cut = sorted[Math.floor(p * sorted.length)];
     const called = real.filter((i) => cells[i].nFeature >= cut);
-    const tp = called.filter(truth).length;
-    const tpHet = called.filter(heterotypic).length;
+    const tp = called.filter(truth).length, tpHet = called.filter(het).length;
     say(`  a cut at the ${100 * p}th percentile (${cut} genes) calls ${called.length} droplets and finds ${tp} of the ${nDbl} (${pct(tp / nDbl)}), ${tpHet} of them heterotypic; ${called.length - tp} of the calls hold one cell`);
   }
 }
@@ -130,16 +103,15 @@ say("AGAINST THE LESSON'S OWN METHOD — an upper threshold on the genes detecte
 say("");
 say("WHY THE SAME-TYPE DOUBLET IS THE POINT");
 {
-  const art = makeArtificial(makeRng(7), 2 * real.length);
-  const sc = scores(art, 50);
-  const byType = {};
-  for (const t of TYPES) byType[t.key] = { het: [], hom: [] };
-  real.forEach((i, ri) => {
+  const score = runs["1|50"];
+  const by = {};
+  for (const t of TYPES) by[t.key] = { het: [], hom: [] };
+  real.forEach((i, r) => {
     if (!truth(i)) return;
-    (heterotypic(i) ? byType[cells[i].type].het : byType[cells[i].type].hom).push(sc[ri]);
+    (het(i) ? by[cells[i].type].het : by[cells[i].type].hom).push(score[r]);
   });
   for (const t of TYPES) {
-    const b = byType[t.key];
+    const b = by[t.key];
     if (!b.het.length && !b.hom.length) continue;
     say(`  ${t.name.padEnd(17)} two different types ${b.het.length ? median(b.het).toFixed(2) : "  – "} (n ${String(b.het.length).padStart(2)})   two ${t.name.toLowerCase()}s ${b.hom.length ? median(b.hom).toFixed(2) : "  – "} (n ${String(b.hom.length).padStart(2)})`);
   }

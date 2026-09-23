@@ -47,18 +47,29 @@
  */
 import { defineWidget, fmt, makePlot } from "../core/index.js";
 import { makeRng } from "../core/rng.js";
-import { simulate, confusion, embed, median, TYPES, SAMPLES } from "./engine.js";
+import { simulate, confusion, embed, doubletScores, projectProfile, median, TYPES, SAMPLES } from "./engine.js";
 
 const PAGES = [
   { value: "metrics", label: "Metrics" },
   { value: "thresholds", label: "Thresholds" },
+  { value: "doublets", label: "Doublets" },
 ];
-const HEIGHTS = { metrics: 580, thresholds: 400 };
+const HEIGHTS = { metrics: 580, thresholds: 400, doublets: 400 };
 const EASE_MS = 450;
 const easeInOut = (t) => (t < 0.5 ? 2 * t * t : 1 - ((-2 * t + 2) ** 2) / 2);
 const log10 = (v) => Math.log10(Math.max(1, v));
-const RULES = ["genes", "transcripts", "mt"];
-const RULE_NAME = { genes: "too few genes", transcripts: "too few transcripts", mt: "too high a mitochondrial %" };
+const RULES = ["genes", "transcripts", "mt", "doublet"];
+const RULE_NAME = {
+  genes: "too few genes", transcripts: "too few transcripts",
+  mt: "too high a mitochondrial %", doublet: "called a doublet",
+};
+/* the fourth rule's own settings: one artificial doublet per droplet and the
+   fifty nearest neighbours, which is 30 ms over eleven hundred droplets and so
+   is a control the reader can drag. Measured at ratio 2 the scores of the
+   ordinary cells rise with them (median 0.42 against 0.26) and the line has to
+   move to follow, which teaches the arbitrariness rather than the method. */
+const DBL = { ratio: 1, k: 50 };
+const DBL_OPTIONS = ["none", "0.9", "0.8", "0.7", "0.6", "0.5"];
 
 /* the three metrics, in the order the lesson prints them (cell 19) */
 const METRICS = [
@@ -123,6 +134,12 @@ const rightCol = (w) => {
   return { x, w: Math.max(150, w - x - 66) };
 };
 const barRect = (w) => ({ ...rightCol(w), y: 34, h: 104 });
+/* the Doublets page: the space the method works in on the left, at the map's
+   own size so the two pages are the same picture, and the scores on the right */
+const scoreRect = (w) => {
+  const c = rightCol(w);
+  return { x: c.x, y: 52, w: c.w, h: 250 };
+};
 const sweepRect = (w) => ({ ...rightCol(w), y: 226, h: 116 });
 
 /** A smoothed density over a fixed range, scaled to its own maximum. */
@@ -227,14 +244,20 @@ function hoverAt(pointer, w, page, state) {
     }
     return null;
   }
+  /* both the Thresholds map and the Doublets space are the same picture in
+     the same rect, so one hit test serves them; on Doublets only the droplets
+     the first three rules left are drawn, and only those can be pointed at */
   const g = mapScale(w, view);
   if (pointer.x < g.rect.x - 6 || pointer.x > g.rect.x + g.rect.w + 6) return null;
   if (pointer.y < g.rect.y - 6 || pointer.y > g.rect.y + g.rect.h + 6) return null;
   let best = -1, bd = 64;
-  pos.forEach((q, i) => {
-    const d = (pointer.x - g.sx(q.x)) ** 2 + (pointer.y - g.sy(q.y)) ** 2;
+  const shown = page === "doublets"
+    ? (state.dbl ? state.dbl.index : [])
+    : state.removedAt.map((r, i) => (r ? -1 : i)).filter((i) => i >= 0);
+  for (const i of shown) {
+    const d = (pointer.x - g.sx(pos[i].x)) ** 2 + (pointer.y - g.sy(pos[i].y)) ** 2;
     if (d < bd) { bd = d; best = i; }
-  });
+  }
   return best >= 0 ? { kind: "droplet", i: best } : null;
 }
 
@@ -588,10 +611,153 @@ function drawThresholds(ctx, colors, w, state, hover) {
   ctx.restore();
 }
 
+/* =========================================================================
+   PAGE 3 · Doublets — the one step of this pipeline that finds something by
+   simulating it (his round 3, 2026-09-23: "what's the algorithm?").
+
+   The lesson names doublets twice, both in prose, and sets no rule for them;
+   no tool is named in any of its four single-cell notebooks. What the field
+   does — Scrublet, DoubletFinder, scDblFinder all share it — cannot be
+   written as a cut on a droplet's own numbers, which is exactly why it is
+   worth a page: the two count rules remove not one of the 81 doublets,
+   measured. Instead: add random pairs of droplets together, put those
+   artificial doublets in the same space, and score each real droplet by the
+   share of its nearest neighbours that are artificial.
+
+   THE LEFT PANEL IS WHAT THE METHOD SEES — droplets and made-up doublets,
+   with nothing marking which droplets really hold two cells. THE RIGHT PANEL
+   IS THE ANSWER, in three rows the method never gets to look at: droplets
+   holding two different types, droplets holding two of the same, and droplets
+   holding one cell. At a score of 0.6 the first row is called whole — 49 of
+   49, for two droplets holding one cell — and the second row is not touched
+   at any score the control offers, nor at any other:
+   a doublet of two cells of one type has that type's profile, so the
+   artificial doublets around it were made from that type too. That is what
+   DoubletFinder's homotypic-proportion adjustment concedes rather than fixes,
+   and it is the half of this method worth teaching.
+   ====================================================================== */
+const DBL_ROWS = [
+  { key: "het", name: "Two different types", of: (c) => c.state === "doublet" && c.partner !== c.type },
+  { key: "hom", name: "Two of the same type", of: (c) => c.state === "doublet" && c.partner === c.type },
+  { key: "one", name: "One cell", of: (c) => c.state !== "doublet" },
+];
+
+function drawDoublets(ctx, colors, w, state, hover) {
+  const { cells, pos, view, dbl, thr } = state;
+  const { rect: mr, sx, sy } = mapScale(w, view);
+  ctx.save();
+  ctx.font = `600 ${colors.fsSm} ${colors.font}`;
+  ctx.fillStyle = colors.ink2;
+  ctx.textAlign = "left";
+  ctx.fillText("The droplets, and doublets made from them", mr.x, mr.y - 10);
+  ctx.restore();
+  ctx.save();
+  ctx.strokeStyle = colors.grid;
+  ctx.strokeRect(mr.x + 0.5, mr.y + 0.5, mr.w, mr.h);
+  ctx.restore();
+  if (!dbl) return;
+  /* what the method sees: every droplet one ink, because which of them holds
+     two cells is the thing being worked out */
+  dots(ctx, dbl.art.map((q) => [sx(q.x), sy(q.y)]), 1.5, colors.reference, 0.34);
+  dots(ctx, dbl.index.map((i) => [sx(pos[i].x), sy(pos[i].y)]), 1.9, colors.empirical, 0.6);
+  ctx.save();
+  ctx.font = `${colors.fsXs} ${colors.font}`;
+  ctx.textBaseline = "top";
+  ctx.textAlign = "left";
+  ctx.fillStyle = colors.empirical;
+  ctx.fillText(`${dbl.index.length} droplets`, mr.x, mr.y + mr.h + 6);
+  ctx.textAlign = "right";
+  ctx.fillStyle = colors.reference;
+  ctx.fillText(`${dbl.art.length} made-up doublets`, mr.x + mr.w, mr.y + mr.h + 6);
+  ctx.restore();
+  if (hover && hover.kind === "droplet") {
+    const c = cells[hover.i];
+    ringAt(ctx, colors, sx(pos[hover.i].x), sy(pos[hover.i].y), 6);
+    const held = { good: "one cell", dying: "a dying cell", empty: "no cell, ambient RNA only", doublet: c.partner === c.type ? "two cells of one type" : "two cells of different types" }[c.state];
+    hoverLine(ctx, colors, mr.x, mr.y + mr.h + 24, [
+      [`score ${fmt(dbl.score[hover.i], 2)}`, colors.ink1, "600"],
+      [held, c.state === "doublet" ? colors.highlight : colors.ink3],
+    ]);
+  }
+
+  /* --- the scores, in the three rows the method never sees ----------------- */
+  const sr = scoreRect(w);
+  const rowH = sr.h / DBL_ROWS.length;
+  const SX = (v) => sr.x + v * sr.w;
+  ctx.save();
+  ctx.font = `600 ${colors.fsSm} ${colors.font}`;
+  ctx.fillStyle = colors.ink2;
+  ctx.textAlign = "left";
+  ctx.fillText("Every droplet's score, by what it holds", sr.x, sr.y - 26);
+  ctx.restore();
+  DBL_ROWS.forEach((row, ri) => {
+    const y0 = sr.y + ri * rowH, h = rowH - 26;
+    const mine = dbl.index.filter((i) => row.of(cells[i]));
+    ctx.save();
+    ctx.fillStyle = colors.ink3;
+    ctx.font = `${colors.fsXs} ${colors.font}`;
+    ctx.textAlign = "left";
+    ctx.textBaseline = "alphabetic";
+    const head = `${row.name} · ${mine.length}`;
+    ctx.fillText(head, sr.x, y0 - 4);
+    const headRight = sr.x + ctx.measureText(head).width;
+    ctx.restore();
+    ctx.save();
+    ctx.strokeStyle = colors.grid;
+    ctx.strokeRect(sr.x + 0.5, y0 + 0.5, sr.w, h);
+    ctx.restore();
+    const jitter = makeRng(97 + ri);
+    const kept = [], called = [];
+    for (const i of mine) {
+      const v = dbl.score[i];
+      const py = y0 + 4 + jitter.next() * (h - 8);
+      (thr.dbl !== null && v >= thr.dbl ? called : kept).push([SX(v), py]);
+    }
+    dots(ctx, kept, 1.7, colors.empirical, 0.5);
+    dots(ctx, called, 1.9, colors.extreme, 0.8);
+    if (thr.dbl !== null) {
+      ctx.save();
+      ctx.strokeStyle = colors.reference;
+      ctx.setLineDash([4, 3]);
+      ctx.beginPath(); ctx.moveTo(SX(thr.dbl), y0); ctx.lineTo(SX(thr.dbl), y0 + h); ctx.stroke();
+      ctx.restore();
+    }
+    if (mine.length) {
+      const med = `median ${fmt(median(mine.map((i) => dbl.score[i])), 2)}`;
+      ctx.save();
+      ctx.fillStyle = colors.ink3;
+      ctx.font = `${colors.fsXs} ${colors.font}`;
+      ctx.textAlign = "right";
+      /* on the 534px canvas the harness renders, the row's own name takes the
+         line, so the median drops inside the row — core's rule for a note */
+      const room = sr.x + sr.w - ctx.measureText(med).width > headRight + 14;
+      ctx.textBaseline = room ? "alphabetic" : "top";
+      ctx.strokeStyle = colors.surface;
+      ctx.lineWidth = 3;
+      const mx = sr.x + sr.w - (room ? 0 : 4), my = room ? y0 - 4 : y0 + 4;
+      ctx.strokeText(med, mx, my);
+      ctx.fillText(med, mx, my);
+      ctx.restore();
+    }
+  });
+  ctx.save();
+  ctx.fillStyle = colors.ink3;
+  ctx.font = `${colors.fsXs} ${colors.font}`;
+  ctx.textBaseline = "top";
+  for (const v of [0, 0.5, 1]) {
+    ctx.textAlign = v === 0 ? "left" : v === 1 ? "right" : "center";
+    ctx.fillText(fmt(v, 1), SX(v), sr.y + sr.h - 20);
+  }
+  ctx.textAlign = "center";
+  ctx.fillStyle = colors.ink2;
+  ctx.fillText("share of the nearest neighbours that are made-up doublets", sr.x + sr.w / 2, sr.y + sr.h - 6);
+  ctx.restore();
+}
+
 /* --- the tallies the pages read ------------------------------------------- */
 function tallyBy(cells, removedAt) {
   const t = {};
-  for (const s of SAMPLES) t[s.key] = { n: 0, kept: 0, by: { genes: 0, transcripts: 0, mt: 0 } };
+  for (const s of SAMPLES) t[s.key] = { n: 0, kept: 0, by: { genes: 0, transcripts: 0, mt: 0, doublet: 0 } };
   cells.forEach((c, i) => {
     const row = t[c.sample];
     row.n += 1;
@@ -629,6 +795,19 @@ function derive(cells, pos, thr) {
     };
 
     const removedAt = cells.map((c) => (c.nFeature > thr.nFeature ? (c.nCount > thr.nCount ? (c.mt < thr.mt ? 0 : 3) : 2) : 1));
+    /* THE FOURTH RULE runs on what the first three left, as a real pipeline
+       does, and it cannot be written as a cut on a droplet's own numbers: it
+       needs the whole neighbourhood, so it is computed here and only when it
+       is being used. `dbl` is the score above which a droplet is called. */
+    let dbl = null;
+    if (thr.dbl !== null || thr.wantScores) {
+      const index = cells.map((c, i) => i).filter((i) => removedAt[i] === 0);
+      const { score, art } = doubletScores(makeRng(thr.scoreSeed), cells, index, DBL);
+      const byCell = new Float64Array(cells.length).fill(NaN);
+      index.forEach((i, r) => { byCell[i] = score[r]; });
+      dbl = { index, score: byCell, art: art.map(projectProfile) };
+      if (thr.dbl !== null) index.forEach((i, r) => { if (score[r] >= thr.dbl) removedAt[i] = 4; });
+    }
     const keep = removedAt.map((r) => r === 0);
     const tally = tallyBy(cells, removedAt);
 
@@ -682,7 +861,7 @@ function derive(cells, pos, thr) {
       const cs = cells.filter((c) => c.sample === s.key);
       medians[s.key] = { mt: median(cs.map((c) => c.mt)), nCount: median(cs.map((c) => c.nCount)), nFeature: median(cs.map((c) => c.nFeature)) };
     }
-    return { cells, pos, view, axes, thr, removedAt, keep, tally, sweep, centres, conf, overlap: { either, both }, medians };
+    return { cells, pos, view, axes, thr, removedAt, keep, tally, sweep, centres, conf, dbl, overlap: { either, both }, medians };
 }
 
 /* --- a data change that MOVED the droplets rather than replacing them -------
@@ -774,6 +953,15 @@ defineWidget({
       type: "int", label: "Mitochondrial %, less than", min: 1, max: 40, step: 1, default: 10, display: true,
       detail: "the share of those molecules that came from mitochondrial genes",
     },
+    /* NONE BY DEFAULT, which is what the lesson does: it names doublets twice
+       and sets no rule for them. The others are scores above which a droplet
+       is called — a share of its fifty nearest neighbours, not a count. */
+    dbl: {
+      type: "choice", label: "Doublet score, at least",
+      detail: "the share of a droplet's nearest neighbours that are made-up doublets",
+      options: DBL_OPTIONS.map((v) => ({ value: v, label: v === "none" ? "None" : v })),
+      default: "none", display: true,
+    },
   },
 
   legend: ({ params }) => {
@@ -783,6 +971,11 @@ defineWidget({
       { token: "unknown", label: "No cell: ambient RNA only", mark: "dot" },
       { token: "highlight", label: "Two cells in one droplet", mark: "dot" },
       { token: "ink-3", label: "Hollow: a droplet the filter removed", mark: "hollow" },
+    ];
+    if (params.page === "doublets") return [
+      { token: "empirical", label: "A droplet; point at one for its score", mark: "dot" },
+      { token: "reference", label: "A made-up doublet: two droplets added together", mark: "dot" },
+      { token: "extreme", label: "A droplet the score calls a doublet", mark: "dot" },
     ];
     if (params.page === "thresholds") return [
       { token: "empirical", label: "A droplet holding one cell, and on the bar the droplets kept", mark: "dot" },
@@ -805,7 +998,14 @@ defineWidget({
     const { cells, pos } = stageFor(params.seed, params.hot, params.hotMt);
     /* the engine's own names inside, the reader's in the URL: a shareable
        link reads ?genes=500&counts=800&mt=10 (5.9) */
-    const thr = { nFeature: params.genes, nCount: params.counts, mt: params.mt };
+    const thr = {
+      nFeature: params.genes, nCount: params.counts, mt: params.mt,
+      dbl: params.dbl === "none" ? null : Number(params.dbl),
+      /* the scores are wanted on the Doublets page even with the rule off, and
+         nowhere else: 30 ms is cheap to drag and not free to pay for nothing */
+      wantScores: params.page === "doublets",
+      scoreSeed: params.seed * 31 + 7,
+    };
     return derive(cells, pos, thr);
   },
 
@@ -828,6 +1028,32 @@ defineWidget({
           note: overlap.either
             ? `${Math.round((100 * overlap.both) / overlap.either)}% — the genes a droplet shows are the molecules it held, counted a second time, so more than ${thr.nCount} transcripts and more than ${thr.nFeature} genes are close to one rule`
             : `at more than ${thr.nFeature} genes and more than ${thr.nCount} transcripts neither rule reaches any droplet`,
+        },
+      ];
+    }
+    if (params.page === "doublets") {
+      const d = state.dbl;
+      const n = (f) => d.index.filter((i) => f(state.cells[i])).length;
+      const called = (f) => (thr.dbl === null ? 0 : d.index.filter((i) => f(state.cells[i]) && d.score[i] >= thr.dbl).length);
+      const het = DBL_ROWS[0].of, hom = DBL_ROWS[1].of, one = DBL_ROWS[2].of;
+      const total = called(het) + called(hom) + called(one);
+      return [
+        {
+          label: "Droplets called a doublet",
+          value: thr.dbl === null ? "none" : `${total} of ${d.index.length}`,
+          note: thr.dbl === null
+            ? `every droplet has a score, and with the rule off none of them is removed for holding two cells`
+            : `at a score of ${fmt(thr.dbl, 1)} or more, out of ${d.art.length} made-up doublets placed among them`,
+        },
+        {
+          label: "Doublets of two different types found",
+          value: `${called(het)} of ${n(het)}`,
+          note: `their median score is ${fmt(median(d.index.filter((i) => het(state.cells[i])).map((i) => d.score[i])), 2)}, against ${fmt(median(d.index.filter((i) => one(state.cells[i])).map((i) => d.score[i])), 2)} for a droplet holding one cell`,
+        },
+        {
+          label: "Doublets of two of the same type found",
+          value: `${called(hom)} of ${n(hom)}`,
+          note: `a doublet of two cells of one type has that type's profile, so the made-up doublets around it were made from that type too — their median score is ${fmt(median(d.index.filter((i) => hom(state.cells[i])).map((i) => d.score[i])), 2)}, and ${called(one)} droplets holding one cell are called with them`,
         },
       ];
     }
@@ -898,6 +1124,7 @@ defineWidget({
       ctx.save();
       ctx.globalAlpha = alpha;
       if (params.page === "metrics") drawMetrics(ctx, colors, w, st, hover);
+      else if (params.page === "doublets") drawDoublets(ctx, colors, w, st, hover);
       else drawThresholds(ctx, colors, w, st, hover);
       ctx.restore();
     };

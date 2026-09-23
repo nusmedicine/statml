@@ -18,14 +18,17 @@
    §5 which rule catches what: the count rules take the empty droplets and
       most of the dying cells and NO doublet, and the mitochondrial rule takes
       the sample carrying ambient RNA, good cells and all
-   §6 the copy: no struck word, no lesson reference, in a reader-facing string
+   §6 the fourth rule: the neighbour score is seeded and bounded, it calls the
+      doublets holding two different types and none of those holding two of
+      the same, and it only ever removes droplets the other three rules kept
+   §7 the copy: no struck word, no lesson reference, in a reader-facing string
    ========================================================================= */
 
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { makeRng } from "../core/rng.js";
-import { simulate, applyFilters, confusion, embed, median, TYPES, SAMPLES, THRESHOLDS, DEFAULTS } from "../cell-qc/engine.js";
+import { simulate, applyFilters, confusion, embed, doubletScores, median, TYPES, SAMPLES, THRESHOLDS, DEFAULTS } from "../cell-qc/engine.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 let fails = 0, checks = 0;
@@ -188,7 +191,48 @@ section("§5 which rule catches what — the figure's whole claim, as counts");
   console.log(`  ${checks} checks`);
 }
 
-section("§6 the copy");
+section("§6 the fourth rule: doublets found by the company they keep");
+{
+  const thr = THRESHOLDS;
+  const { keep } = applyFilters(cells, thr);
+  const index = cells.map((c, i) => i).filter((i) => keep[i]);
+  const run = () => doubletScores(makeRng(38), cells, index, { ratio: 1, k: 50 });
+  const t0 = performance.now();
+  const { score, art } = run();
+  const ms = performance.now() - t0;
+  assert(score.length === index.length && art.length === index.length, "one score a droplet, and one artificial doublet a droplet at ratio 1");
+  assert([...score].every((v) => v >= 0 && v <= 1), "every score is a share");
+  assert(JSON.stringify([...run().score]) === JSON.stringify([...score]), "the same seed scores the same way");
+  assert(ms < 300, `it runs in ${ms.toFixed(0)} ms, which is what lets the call be a control the reader drags`);
+  const het = [], hom = [], one = [];
+  index.forEach((i, r) => {
+    const c = cells[i];
+    if (c.state !== "doublet") one.push(score[r]);
+    else (c.partner !== c.type ? het : hom).push(score[r]);
+  });
+  assert(het.length >= 20 && hom.length >= 5, `the stage holds both kinds to test with (${het.length} of two types, ${hom.length} of one)`);
+  assert(median(het) > 0.7, `a doublet of two different types sits among the artificial ones (median ${median(het).toFixed(2)})`);
+  assert(median(hom) < 0.5 && median(one) < 0.5,
+    `a doublet of two of the SAME type does not (median ${median(hom).toFixed(2)}), and neither does a droplet holding one cell (${median(one).toFixed(2)}) — that is the method's own limit, not this stage's`);
+  /* the call, at the value the page offers */
+  for (const cut of [0.6, 0.8]) {
+    const calledHet = het.filter((v) => v >= cut).length;
+    const calledHom = hom.filter((v) => v >= cut).length;
+    const calledOne = one.filter((v) => v >= cut).length;
+    assert(calledHet / het.length > 0.8, `at a score of ${cut} it finds ${calledHet} of the ${het.length} doublets holding two different types`);
+    assert(calledHom === 0, `and ${calledHom} of the ${hom.length} holding two of the same`);
+    assert(calledOne < 0.02 * one.length, `taking ${calledOne} droplets that hold one cell with them (${(100 * calledOne / one.length).toFixed(1)}%)`);
+  }
+  /* and it is charged after the other three, never before */
+  const withRule = cells.map((c) => (c.nFeature > thr.nFeature ? (c.nCount > thr.nCount ? (c.mt < thr.mt ? 0 : 3) : 2) : 1));
+  index.forEach((i, r) => { if (score[r] >= 0.6) withRule[i] = 4; });
+  assert(withRule.every((r, i) => r !== 4 || keep[i]), "the fourth rule only ever removes a droplet the other three kept");
+  assert(cells.filter((c, i) => withRule[i] === 4).length === het.filter((v) => v >= 0.6).length + hom.filter((v) => v >= 0.6).length + one.filter((v) => v >= 0.6).length,
+    "what it removes is what it calls");
+  console.log(`  ${checks} checks`);
+}
+
+section("§7 the copy");
 {
   const src = readFileSync(join(here, "../cell-qc/main.js"), "utf8");
   /* comments are exempt and carry the record of where a decision came from;

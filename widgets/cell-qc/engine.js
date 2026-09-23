@@ -291,13 +291,82 @@ export function profileOf(rng, c) {
   });
 }
 
+/** Six block fractions read as weights on the hexagon: where the figure puts
+    a profile, whether it came off a droplet or out of a pair added together. */
+export function projectProfile(obs) {
+  let x = 0, y = 0, tot = 0;
+  obs.forEach((v, k) => { tot += v; x += v * HEX[k][0]; y += v * HEX[k][1]; });
+  return { x: x / tot, y: y / tot };
+}
+
 export function embed(rng, cells) {
-  return cells.map((c) => {
-    const obs = profileOf(rng, c);
-    let x = 0, y = 0, tot = 0;
-    obs.forEach((v, k) => { tot += v; x += v * HEX[k][0]; y += v * HEX[k][1]; });
-    return { x: x / tot, y: y / tot };
-  });
+  return cells.map((c) => projectProfile(profileOf(rng, c)));
+}
+
+/* --- how a doublet is actually found -----------------------------------------
+   Not by any cut on a droplet's own numbers — the count rules remove none of
+   them, measured — but by making doublets and seeing which droplets keep
+   their company. The idea is shared by Scrublet, DoubletFinder and
+   scDblFinder, and it is the one step of the single-cell pipeline that finds
+   something by simulating it:
+
+     1. take random pairs of the droplets and add their counts together;
+     2. put those artificial doublets in the same space as the real ones;
+     3. score each real droplet by the share of its k nearest neighbours that
+        are artificial.
+
+   Adding two droplets' counts adds their profiles in proportion to what each
+   contributed, which is what summing two count vectors does.
+
+   The bounded insertion rather than a sort is what makes this a control the
+   reader can drag: for 1,100 droplets and as many artificial ones a full sort
+   per droplet is seconds, and keeping the best k is milliseconds. */
+export function doubletScores(rng, cells, index, { ratio = 1, k = 50 } = {}) {
+  const prof = index.map((i) => profileOf(rng, cells[i]));
+  const n = index.length;
+  const art = [];
+  for (let m = 0; m < Math.round(ratio * n); m += 1) {
+    const a = Math.floor(rng.next() * n);
+    let b = Math.floor(rng.next() * n);
+    while (b === a) b = Math.floor(rng.next() * n);
+    const wa = cells[index[a]].nCount, wb = cells[index[b]].nCount;
+    const pa = prof[a], pb = prof[b];
+    art.push(pa.map((v, j) => (v * wa + pb[j] * wb) / (wa + wb)));
+  }
+  const dim = prof[0]?.length ?? 0;
+  const score = new Float64Array(n);
+  const best = new Float64Array(k);      // the k smallest distances so far
+  const mark = new Uint8Array(k);        // and whether each was artificial
+  for (let r = 0; r < n; r += 1) {
+    const me = prof[r];
+    let filled = 0, worst = Infinity;
+    const offer = (d, isArt) => {
+      if (filled === k && d >= worst) return;
+      /* insertion sort into a list of at most k, newest worst dropped */
+      let at = filled < k ? filled : k - 1;
+      while (at > 0 && best[at - 1] > d) { best[at] = best[at - 1]; mark[at] = mark[at - 1]; at -= 1; }
+      best[at] = d; mark[at] = isArt;
+      if (filled < k) filled += 1;
+      worst = best[filled - 1];
+    };
+    for (let j = 0; j < n; j += 1) {
+      if (j === r) continue;
+      const q = prof[j];
+      let d = 0;
+      for (let t = 0; t < dim; t += 1) { const e = me[t] - q[t]; d += e * e; }
+      offer(d, 0);
+    }
+    for (let j = 0; j < art.length; j += 1) {
+      const q = art[j];
+      let d = 0;
+      for (let t = 0; t < dim; t += 1) { const e = me[t] - q[t]; d += e * e; }
+      offer(d, 1);
+    }
+    let a = 0;
+    for (let j = 0; j < filled; j += 1) a += mark[j];
+    score[r] = filled ? a / filled : 0;
+  }
+  return { score, art, prof };
 }
 
 /** The filter read as the claim it is: of the droplets it removed, how many
