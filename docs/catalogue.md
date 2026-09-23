@@ -19484,8 +19484,9 @@ change is then estimated by a generalised linear model at the shrunk
 dispersion, tested with a Wald statistic, and itself shrunk toward zero
 where counts are low. A variance-stabilising transformation is applied for
 visualisation only." — **and blurb C1**, "Negative binomial counts; gene-wise
-dispersions and fold changes shrunk by empirical Bayes toward a prior fitted
-across genes." (126). Lesson for the register rule: "not folksy" is his
+dispersions and fold changes shrunk by empirical Bayes toward a prior across
+genes." (119; the 126-character draft with "fitted" was over the manifest's
+120 cap, which `check` caught after a piped tail had masked its failure). Lesson for the register rule: "not folksy" is his
 reading of the plain register on a methods widget — the vocabulary of the
 field's own methods section is the plain one there.
 
