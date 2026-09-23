@@ -1,0 +1,410 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · cell-qc — the pages, computed</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1800px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 104ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); min-height: 26px; white-space: pre-line; max-width: 560px; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 104ch; }
+  table.t { border-collapse: collapse; font-size: var(--fs-xs); font-family: var(--font-mono); color: var(--ink-2); margin: 0 0 var(--sp-3); }
+  table.t td, table.t th { padding: 2px 10px; border-bottom: 1px solid var(--grid); text-align: right; }
+  table.t th { color: var(--ink-3); font-weight: 400; }
+  table.t td.l, table.t th.l { text-align: left; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>cell-qc &middot; the candidate pages, every figure computed here from the widget's engine</h1>
+  <p class="note">
+    Host: <b>02-2 cells 16&ndash;26</b> &mdash; three metrics per cell, the violins, the two scatters, and the thresholds of
+    Commun Biol 2021 4:1049 (<code>nFeature &gt; 500</code>, <code>nCount &gt; 800</code>, <code>mt% &lt; 10</code>), which take
+    40,564 cells to 31,014 and are never broken down by rule or by sample. The stage is simulated, as § 7.5 of the arc plan settled:
+    four samples shaped like the lesson's four, <b>fitted to them</b> &mdash; <code>_lab/cell-qc-measure.mjs</code> reads the real
+    40,564 cells and then checks the stage against them. The engine is <code>widgets/cell-qc/engine.js</code>.
+  </p>
+  <p class="note">
+    <b>What the real cells said, and what the stage had to be rebuilt to carry.</b>
+    (1) mt% here is a property of the SAMPLE, not of a cell type: inside HB17_background every marker group sits at 12&ndash;15%, and
+    the other background liver &mdash; same tissue, other patient &mdash; sits at 0.1%. (2) Inside the three clean samples mt% falls as
+    the count rises (r = &minus;0.40 to &minus;0.70), which is the dying cell keeping its mitochondria; in the hot sample it is flat
+    across every count decile (13.5% in the lowest, 15.8% in the highest), which is ambient mitochondrial RNA in every droplet.
+    So the stage has both mechanisms and they are separate levers. (3) nCount and nFeature are one measurement twice: r = 0.95&ndash;0.99,
+    and 1,199 of the 1,434 cells either rule removes fail BOTH. Here nFeature is not drawn &mdash; it is how many genes are seen when the
+    droplet's molecules are drawn from its own profile, and the 89% overlap falls out. (4) The lesson's mt% rule removes 85% of one
+    sample; at mt% &lt; 20 it would remove 29%. The stage reproduces that curve to within a few points: <b>7 / 42 / 71 / 82%</b> kept at
+    mt% &lt; 10 / 15 / 20 / 25 against the real <b>15 / 42 / 71 / 85%</b>.
+  </p>
+  <table class="t" id="tReal"></table>
+
+  <h2>1 &middot; Metrics &mdash; the three numbers per cell, one distribution per sample (the lesson's VlnPlot, cell 19)</h2>
+  <p class="note">The lesson draws one violin per metric over all four samples pooled, which is where its own hot sample hides. Split by
+    sample and the picture is a different one. A: violins. B: the cells themselves, one column per sample, which is the same figure with
+    the droplets kept as droplets &mdash; and the widget's stage is small enough (400 a sample) to draw every one.</p>
+  <div class="row" id="rowMetrics"></div>
+
+  <h2>2 &middot; Metrics &mdash; the two scatters (cell 22), with the thresholds on them</h2>
+  <p class="note">The lesson's <code>FeatureScatter</code>: nCount against nFeature, and nCount against mt%. The thresholds are lines,
+    so what each rule removes is an area. Left pair: pooled, as the lesson draws it. Right pair: the hot sample alone.</p>
+  <div class="row" id="rowScatter"></div>
+
+  <h2>3 &middot; Thresholds &mdash; what each rule removes, on its own and together, per sample</h2>
+  <p class="note">The number the notebook prints is 40,564 &rarr; 31,014 and nothing else. A: a bar per sample, split by which rule removed
+    the cell (the two count rules first, then mt% alone) &mdash; the hot sample is the bar that is nearly all one colour. B: the same as a
+    line per sample as the mt% threshold moves from 2 to 30, which is the control the reader will hold.</p>
+  <div class="row" id="rowThr"></div>
+  <table class="t" id="tThr"></table>
+
+  <h2>4 &middot; Thresholds &mdash; the two count rules are one rule</h2>
+  <p class="note">On the count-against-gene scatter the two thresholds cross at almost the same cells: in the lesson's own data 84% of the
+    cells either rule removes fail both, and in the stage 89%. Drawn as the two lines and the three corners they make.</p>
+  <div class="row" id="rowOverlap"></div>
+
+  <h2>5 &middot; Truth &mdash; what the removed droplets actually held</h2>
+  <p class="note">The stage knows: a good cell, a dying cell, an empty droplet of ambient RNA, or two cells in one droplet. So the filter
+    can be read as the claim it is. A: the same scatter, each droplet coloured by what it holds, with the thresholds on it. B: the map &mdash;
+    each droplet placed by the profile its own molecules measured, so a shallow droplet lands away from its type, a doublet lands halfway
+    between the two it holds, and an empty droplet lands in the middle. Position is the cell type; colour is free to carry the state.</p>
+  <div class="row" id="rowTruth"></div>
+  <table class="t" id="tTruth"></table>
+
+  <h2>6 &middot; Doublets &mdash; the second half of the lesson's own sentence</h2>
+  <p class="note">Cell 24: <i>too high a number could indicate doublet/multiplets</i> &mdash; and then the lesson sets no upper threshold at
+    all. Here is why: the cut that catches a third of the doublets removes 130 good cells with them, and two thirds of the doublets sit
+    inside the bulk where no cut reaches them.</p>
+  <div class="row" id="rowDbl"></div>
+
+  <h2>7 &middot; The calls</h2>
+  <div id="calls"></div>
+</main>
+
+<script type="module">
+import { makeRng } from "../core/rng.js";
+import { simulate, applyFilters, confusion, embed, median, TYPES, SAMPLES, THRESHOLDS } from "../cell-qc/engine.js";
+
+const css = getComputedStyle(document.documentElement);
+const C = (n) => css.getPropertyValue(n).trim();
+const W = 560;
+
+function canvas(parent, w, h, title, sub) {
+  const d = document.createElement("div"); d.className = "cand";
+  if (title) { const t = document.createElement("h3"); t.textContent = title; d.appendChild(t); }
+  if (sub) { const p = document.createElement("p"); p.className = "sub"; p.textContent = sub; d.appendChild(p); }
+  const c = document.createElement("canvas");
+  const dpr = window.devicePixelRatio || 1;
+  c.width = w * dpr; c.height = h * dpr; c.style.width = w + "px"; c.style.height = h + "px";
+  const x = c.getContext("2d"); x.scale(dpr, dpr);
+  x.font = `12px ${C("--font-sans") || "system-ui"}`;
+  d.appendChild(c); parent.appendChild(d);
+  return x;
+}
+const lab = (x, s, px, py, col = "--ink-2", align = "left", size = 11, weight = "") => {
+  x.save(); x.fillStyle = C(col); x.textAlign = align; x.font = `${weight} ${size}px ${C("--font-sans") || "system-ui"}`.trim();
+  x.fillText(s, px, py); x.restore();
+};
+const line = (x, x1, y1, x2, y2, col, dash = []) => {
+  x.save(); x.strokeStyle = C(col); x.setLineDash(dash); x.beginPath(); x.moveTo(x1, y1); x.lineTo(x2, y2); x.stroke(); x.restore();
+};
+const dot = (x, px, py, r, col, alpha = 1) => {
+  x.save(); x.globalAlpha = alpha; x.fillStyle = C(col); x.beginPath(); x.arc(px, py, r, 0, 7); x.fill(); x.restore();
+};
+
+/* ---- the stage ---------------------------------------------------------- */
+const sim = simulate(makeRng(7), {});
+const cells = sim.cells;
+const pos = embed(makeRng(11), cells);
+const { keep, tally } = applyFilters(cells, THRESHOLDS);
+const TYPECOL = { hepatocyte: "--c-cluster-a", tumour: "--c-cluster-b", immune: "--c-cluster-c", endothelial: "--c-cluster-d", stellate: "--c-cluster-e", kupffer: "--c-cluster-f" };
+const STATECOL = { good: "--c-empirical", dying: "--c-extreme", empty: "--c-unknown", doublet: "--c-highlight" };
+
+/* ---- 0 · the real samples, as a table ------------------------------------ */
+{
+  const rows = [
+    ["", "cells", "nCount med", "nFeature med", "mt% med", "kept"],
+    ["HB17 background (hot)", "11,197", "2,136", "908", "14.8", "15%"],
+    ["HB17 tumour", "7,995", "5,495", "2,906", "0.6", "100%"],
+    ["HB53 background", "8,540", "8,294", "3,151", "0.1", "100%"],
+    ["HB53 tumour", "12,832", "5,889", "2,939", "0.5", "100%"],
+    ["— the stage —", "", "", "", "", ""],
+    ...SAMPLES.map((s) => {
+      const cs = cells.filter((c) => c.sample === s.key);
+      return [s.name + (s.key === sim.opts.hot ? " (hot)" : ""), String(cs.length),
+        String(Math.round(median(cs.map((c) => c.nCount)))), String(Math.round(median(cs.map((c) => c.nFeature)))),
+        median(cs.map((c) => c.mt)).toFixed(1), Math.round(100 * tally[s.key].kept / tally[s.key].n) + "%"];
+    }),
+  ];
+  const t = document.getElementById("tReal");
+  t.innerHTML = rows.map((r, i) => `<tr>${r.map((v, j) => `<t${i === 0 ? "h" : "d"} class="${j === 0 ? "l" : ""}">${v}</t${i === 0 ? "h" : "d"}>`).join("")}</tr>`).join("");
+}
+
+/* ---- 1 · metrics, per sample --------------------------------------------- */
+const METRICS = [
+  { key: "nFeature", name: "Genes detected", log: true, thr: THRESHOLDS.nFeature, below: true },
+  { key: "nCount", name: "Transcripts", log: true, thr: THRESHOLDS.nCount, below: true },
+  { key: "mt", name: "Mitochondrial %", log: false, thr: THRESHOLDS.mt, below: false },
+];
+function violins(host, mode) {
+  const h = 230, w = W;
+  const x = canvas(host, w, h * METRICS.length / 1.6, mode === "violin" ? "A · violins, one per sample" : "B · the droplets themselves",
+    mode === "violin" ? "the lesson's VlnPlot, split by sample" : "400 a sample, jittered; the same data");
+  const panelH = 122, top = 16;
+  METRICS.forEach((m, mi) => {
+    const y0 = top + mi * panelH, y1 = y0 + panelH - 34;
+    const vals = cells.map((c) => c[m.key]);
+    const lo = m.log ? Math.log10(Math.max(20, Math.min(...vals))) : 0;
+    const hi = m.log ? Math.log10(Math.max(...vals)) : Math.min(60, Math.max(...vals));
+    const sc = (v) => y1 - ((m.log ? Math.log10(Math.max(20, v)) : v) - lo) / (hi - lo) * (y1 - y0);
+    lab(x, m.name, 8, y0 - 3, "--ink-2", "left", 11, "600");
+    /* the threshold */
+    line(x, 70, sc(m.thr), w - 10, sc(m.thr), "--c-reference", [4, 3]);
+    lab(x, `${m.below ? ">" : "<"} ${m.thr}`, w - 12, sc(m.thr) - 3, "--c-reference", "right", 10);
+    SAMPLES.forEach((s, si) => {
+      const cx = 110 + si * 112;
+      const cs = cells.filter((c) => c.sample === s.key).map((c) => c[m.key]);
+      if (mode === "violin") {
+        const bins = 34, dens = new Array(bins).fill(0);
+        for (const v of cs) {
+          const t = ((m.log ? Math.log10(Math.max(20, v)) : v) - lo) / (hi - lo);
+          dens[Math.max(0, Math.min(bins - 1, Math.floor(t * bins)))] += 1;
+        }
+        const mx = Math.max(...dens);
+        x.save(); x.fillStyle = C(s.key === sim.opts.hot ? "--c-highlight" : "--c-empirical"); x.globalAlpha = 0.5;
+        x.beginPath();
+        for (let b = 0; b < bins; b += 1) x.lineTo(cx - 42 * dens[b] / mx, y1 - (b + 0.5) / bins * (y1 - y0));
+        for (let b = bins - 1; b >= 0; b -= 1) x.lineTo(cx + 42 * dens[b] / mx, y1 - (b + 0.5) / bins * (y1 - y0));
+        x.closePath(); x.fill(); x.restore();
+      } else {
+        const r = makeRng(3 + si);
+        for (const v of cs) dot(x, cx + (r.next() - 0.5) * 70, sc(v), 1.1, s.key === sim.opts.hot ? "--c-highlight" : "--c-empirical", 0.4);
+      }
+      if (mi === METRICS.length - 1) lab(x, s.name.replace("Patient ", "P").replace(" · ", "·"), cx, y1 + 14, "--ink-3", "center", 10);
+    });
+  });
+}
+violins(document.getElementById("rowMetrics"), "violin");
+violins(document.getElementById("rowMetrics"), "dots");
+
+/* ---- 2 · the two scatters ------------------------------------------------ */
+function scatter(host, subset, title, sub, colourBy) {
+  const w = 300, h = 300;
+  const x = canvas(host, w * 2 + 8, h, title, sub);
+  const panels = [
+    { xk: "nCount", yk: "nFeature", xlog: true, ylog: true },
+    { xk: "nCount", yk: "mt", xlog: true, ylog: false },
+  ];
+  panels.forEach((p, pi) => {
+    const ox = pi * (w + 8), L = ox + 52, R = ox + w - 12, T = 22, B = h - 30;
+    const xs = subset.map((i) => cells[i][p.xk]), ys = subset.map((i) => cells[i][p.yk]);
+    const xlo = Math.log10(Math.max(20, Math.min(...xs))), xhi = Math.log10(Math.max(...xs));
+    const ylo = p.ylog ? Math.log10(Math.max(20, Math.min(...ys))) : 0, yhi = p.ylog ? Math.log10(Math.max(...ys)) : Math.min(70, Math.max(...ys));
+    const SX = (v) => L + (Math.log10(Math.max(20, v)) - xlo) / (xhi - xlo) * (R - L);
+    const SY = (v) => B - ((p.ylog ? Math.log10(Math.max(20, v)) : v) - ylo) / (yhi - ylo) * (B - T);
+    x.save(); x.strokeStyle = C("--grid"); x.strokeRect(L, T, R - L, B - T); x.restore();
+    for (const i of subset) {
+      const c = cells[i];
+      const col = colourBy === "state" ? STATECOL[c.state] : (keep[i] ? "--c-empirical" : "--c-extreme");
+      dot(x, SX(c[p.xk]), SY(c[p.yk]), 1.4, col, 0.55);
+    }
+    line(x, SX(THRESHOLDS.nCount), T, SX(THRESHOLDS.nCount), B, "--c-reference", [4, 3]);
+    const yt = p.yk === "nFeature" ? THRESHOLDS.nFeature : THRESHOLDS.mt;
+    line(x, L, SY(yt), R, SY(yt), "--c-reference", [4, 3]);
+    lab(x, p.yk === "nFeature" ? "Genes detected" : "Mitochondrial %", L, T - 6, "--ink-2", "left", 11, "600");
+    lab(x, "Transcripts", R, B + 14, "--ink-3", "right", 10);
+  });
+}
+{
+  const host = document.getElementById("rowScatter");
+  scatter(host, cells.map((c, i) => i), "pooled, all four samples", "kept blue, removed red — the lesson draws this with no thresholds on it", "keep");
+  scatter(host, cells.map((c, i) => i).filter((i) => cells[i].sample === sim.opts.hot), "the hot sample alone", "the same two plots, one sample", "keep");
+}
+
+/* ---- 3 · thresholds, per sample ------------------------------------------ */
+{
+  const host = document.getElementById("rowThr");
+  const x = canvas(host, W, 250, "A · one bar a sample, split by what removed the cell", "count rules first, then mt% alone");
+  const L = 130, R = W - 16, T = 30, rowH = 44;
+  SAMPLES.forEach((s, si) => {
+    const t = tally[s.key], y = T + si * rowH;
+    const w = R - L, u = w / t.n;
+    let cx = L;
+    const seg = (n, col, alpha = 1) => { if (n <= 0) return; x.save(); x.globalAlpha = alpha; x.fillStyle = C(col); x.fillRect(cx, y, n * u, 26); x.restore(); cx += n * u; };
+    const countFail = t.failFeature + t.failCount - t.failBoth;
+    seg(t.kept, "--c-empirical");
+    seg(countFail, "--c-extreme", 0.45);
+    seg(t.n - t.kept - countFail, "--c-extreme");
+    x.save(); x.strokeStyle = C("--grid"); x.strokeRect(L, y, w, 26); x.restore();
+    lab(x, s.name + (s.key === sim.opts.hot ? " ·hot" : ""), L - 8, y + 17, "--ink-2", "right", 11);
+    lab(x, `${Math.round(100 * t.kept / t.n)}% kept`, L + 6, y + 17, "--surface-1", "left", 10, "600");
+  });
+  lab(x, "kept", L, T - 8, "--c-empirical", "left", 10, "600");
+  lab(x, "removed: too few counts or genes", L + 90, T - 8, "--ink-3", "left", 10);
+  lab(x, "mt% alone", R, T - 8, "--c-extreme", "right", 10, "600");
+
+  const x2 = canvas(host, W, 250, "B · the mt% threshold as the reader will move it", "cells kept in each sample, mt% from 2 to 30");
+  const L2 = 56, R2 = W - 90, T2 = 26, B2 = 210;
+  x2.save(); x2.strokeStyle = C("--grid"); x2.strokeRect(L2, T2, R2 - L2, B2 - T2); x2.restore();
+  const SX = (v) => L2 + (v - 2) / 28 * (R2 - L2), SY = (p) => B2 - p * (B2 - T2);
+  SAMPLES.forEach((s) => {
+    x2.save(); x2.strokeStyle = C(s.key === sim.opts.hot ? "--c-highlight" : "--c-empirical"); x2.lineWidth = 1.6; x2.beginPath();
+    for (let mt = 2; mt <= 30; mt += 0.5) {
+      const { tally: t2 } = applyFilters(cells.filter((c) => c.sample === s.key), { ...THRESHOLDS, mt });
+      x2.lineTo(SX(mt), SY(t2[s.key].kept / t2[s.key].n));
+    }
+    x2.stroke(); x2.restore();
+    const { tally: t3 } = applyFilters(cells.filter((c) => c.sample === s.key), { ...THRESHOLDS, mt: 30 });
+    const ly = SY(t3[s.key].kept / t3[s.key].n) + 4 + (s.key === sim.opts.hot ? 0 : (SAMPLES.indexOf(s) - 1) * 13);
+    lab(x2, s.name.replace("Patient ", "P"), R2 + 4, ly, s.key === sim.opts.hot ? "--c-highlight" : "--ink-3", "left", 10);
+  });
+  line(x2, SX(10), T2, SX(10), B2, "--c-reference", [4, 3]);
+  lab(x2, "the lesson's 10", SX(10) + 4, T2 + 12, "--c-reference", "left", 10);
+  lab(x2, "cells kept", L2, T2 - 8, "--ink-2", "left", 11, "600");
+  for (const p of [0, 0.5, 1]) lab(x2, `${p * 100}%`, L2 - 6, SY(p) + 4, "--ink-3", "right", 10);
+  for (const v of [5, 10, 20, 30]) lab(x2, String(v), SX(v), B2 + 14, "--ink-3", "center", 10);
+
+  const rows = [["", "cells", "fail genes", "fail counts", "fail both", "fail mt%", "mt% alone", "kept"]];
+  for (const s of SAMPLES) {
+    const t = tally[s.key];
+    rows.push([s.name + (s.key === sim.opts.hot ? " (hot)" : ""), t.n, t.failFeature, t.failCount, t.failBoth, t.failMt, t.mtAlone, `${Math.round(100 * t.kept / t.n)}%`]);
+  }
+  document.getElementById("tThr").innerHTML = rows.map((r, i) => `<tr>${r.map((v, j) => `<t${i === 0 ? "h" : "d"} class="${j === 0 ? "l" : ""}">${v}</t${i === 0 ? "h" : "d"}>`).join("")}</tr>`).join("");
+}
+
+/* ---- 4 · the two count rules are one ------------------------------------- */
+{
+  const host = document.getElementById("rowOverlap");
+  const x = canvas(host, 340, 320, "the count-against-gene scatter, the two rules as two lines",
+    "red: fails both. pale: fails one only — 11% of the removals");
+  const L = 58, R = 326, T = 22, B = 286;
+  const xs = cells.map((c) => c.nCount), ys = cells.map((c) => c.nFeature);
+  const xlo = Math.log10(Math.min(...xs)), xhi = Math.log10(Math.max(...xs));
+  const ylo = Math.log10(Math.min(...ys)), yhi = Math.log10(Math.max(...ys));
+  const SX = (v) => L + (Math.log10(v) - xlo) / (xhi - xlo) * (R - L);
+  const SY = (v) => B - (Math.log10(v) - ylo) / (yhi - ylo) * (B - T);
+  x.save(); x.strokeStyle = C("--grid"); x.strokeRect(L, T, R - L, B - T); x.restore();
+  let both = 0, one = 0;
+  for (const c of cells) {
+    const a = !(c.nFeature > THRESHOLDS.nFeature), b = !(c.nCount > THRESHOLDS.nCount);
+    if (a && b) both += 1; else if (a || b) one += 1;
+    dot(x, SX(c.nCount), SY(c.nFeature), 1.5, a && b ? "--c-extreme" : (a || b) ? "--c-highlight" : "--c-empirical", a || b ? 0.85 : 0.4);
+  }
+  line(x, SX(THRESHOLDS.nCount), T, SX(THRESHOLDS.nCount), B, "--c-reference", [4, 3]);
+  line(x, L, SY(THRESHOLDS.nFeature), R, SY(THRESHOLDS.nFeature), "--c-reference", [4, 3]);
+  lab(x, "Genes detected", L, T - 6, "--ink-2", "left", 11, "600");
+  lab(x, "Transcripts", R, B + 14, "--ink-3", "right", 10);
+  lab(x, `${both} fail both, ${one} fail one — ${Math.round(100 * both / (both + one))}% the same cells`, L + 6, B - 8, "--ink-2", "left", 10);
+}
+
+/* ---- 5 · truth ----------------------------------------------------------- */
+{
+  const host = document.getElementById("rowTruth");
+  scatter(host, cells.map((c, i) => i), "A · the same two scatters, coloured by what the droplet holds",
+    "blue good · red dying · grey empty · violet doublet", "state");
+
+  const x = canvas(host, 340, 340, "B · the map: position is the cell type, colour is the state",
+    "each droplet placed by the profile its own molecules measured");
+  const L = 20, T = 20, S = 300;
+  const SX = (v) => L + (v + 1.15) / 2.3 * S, SY = (v) => T + (1.15 - v) / 2.3 * S;
+  cells.forEach((c, i) => {
+    if (c.state !== "good") return;
+    dot(x, SX(pos[i].x), SY(pos[i].y), 1.6, TYPECOL[c.type], 0.30);
+  });
+  cells.forEach((c, i) => {
+    if (c.state === "good") return;
+    dot(x, SX(pos[i].x), SY(pos[i].y), 2.1, STATECOL[c.state], 0.9);
+  });
+  TYPES.forEach((t, i) => {
+    const g = cells.map((c, k) => k).filter((k) => cells[k].type === t.key && cells[k].state === "good" && cells[k].nCount > 4000);
+    if (!g.length) return;
+    const mx = g.reduce((s, k) => s + pos[k].x, 0) / g.length, my = g.reduce((s, k) => s + pos[k].y, 0) / g.length;
+    x.save();
+    x.font = `600 10px ${C("--font-sans") || "system-ui"}`; x.textAlign = "center";
+    x.lineWidth = 3; x.strokeStyle = C("--surface-1"); x.strokeText(t.name, SX(mx), SY(my));
+    x.fillStyle = C(TYPECOL[t.key]); x.fillText(t.name, SX(mx), SY(my));
+    x.restore();
+  });
+  lab(x, "dying", 24, 330, "--c-extreme", "left", 10, "600");
+  lab(x, "empty", 70, 330, "--c-unknown", "left", 10, "600");
+  lab(x, "doublet", 118, 330, "--c-highlight", "left", 10, "600");
+
+  const x3 = canvas(host, 300, 340, "C · the readout", "what the filter claimed, and what was true");
+  const c = confusion(cells, keep);
+  const rows = [
+    ["removed", String(c.removedGood + c.removedBad), ""],
+    ["  held a bad droplet", String(c.removedBad), ""],
+    ["  held a good cell", String(c.removedGood), `${Math.round(100 * c.removedGood / (c.removedGood + c.removedBad))}% of the removals`],
+    ["kept", String(c.keptGood + c.keptBad), ""],
+    ["  doublets kept", String(c.keptDoublet), ""],
+    ["  dying kept", String(c.keptDying), ""],
+    ["  empty kept", String(c.keptEmpty), ""],
+  ];
+  rows.forEach((r, i) => {
+    lab(x3, r[0], 14, 30 + i * 22, i < 3 ? "--ink-1" : "--ink-2", "left", 12, r[0].startsWith(" ") ? "" : "600");
+    lab(x3, r[1], 190, 30 + i * 22, "--ink-1", "right", 12, "600");
+    lab(x3, r[2], 200, 30 + i * 22, "--ink-3", "left", 10);
+  });
+  const states = ["good", "dying", "empty", "doublet"];
+  states.forEach((st, i) => {
+    const idx = cells.map((c2, k) => k).filter((k) => cells[k].state === st);
+    const removed = idx.filter((k) => !keep[k]).length;
+    lab(x3, `${st}: ${Math.round(100 * removed / idx.length)}% of ${idx.length} removed`, 14, 200 + i * 20, STATECOL[st], "left", 11);
+  });
+  document.getElementById("tTruth").innerHTML = "";
+}
+
+/* ---- 6 · doublets -------------------------------------------------------- */
+{
+  const host = document.getElementById("rowDbl");
+  const x = canvas(host, W, 300, "an upper rule on genes detected: every cut, what it catches against what it costs",
+    "one point a cut, from the 99.5th percentile down to the 80th");
+  const L = 62, R = W - 20, T = 26, B = 250;
+  x.save(); x.strokeStyle = C("--grid"); x.strokeRect(L, T, R - L, B - T); x.restore();
+  const good = cells.filter((c) => c.state === "good"), dbl = cells.filter((c) => c.state === "doublet");
+  const sorted = Float64Array.from(cells.map((c) => c.nFeature)).sort();
+  const caught = (cut) => dbl.filter((c) => c.nFeature >= cut).length;
+  const lost = (cut) => good.filter((c) => c.nFeature >= cut).length;
+  const maxLost = lost(sorted[Math.floor(0.80 * sorted.length)]);
+  const SX = (n) => L + n / maxLost * (R - L), SY = (n) => B - n / dbl.length * (B - T);
+  x.save(); x.strokeStyle = C("--c-highlight"); x.lineWidth = 1.8; x.beginPath();
+  for (let p = 99.5; p >= 80; p -= 0.25) { const cut = sorted[Math.floor(p / 100 * sorted.length)]; x.lineTo(SX(lost(cut)), SY(caught(cut))); }
+  x.stroke(); x.restore();
+  lab(x, `doublets caught, of ${dbl.length}`, L + 8, T + 14, "--c-highlight", "left", 11, "600");
+  lab(x, "good cells removed with them", R, B + 28, "--ink-2", "right", 11, "600");
+  for (const n of [0, dbl.length / 2, dbl.length]) lab(x, String(Math.round(n)), L - 6, SY(n) + 4, "--ink-3", "right", 10);
+  for (const n of [0, 100, 200, 300].filter((v) => v <= maxLost)) lab(x, String(n), SX(n), B + 14, "--ink-3", "center", 10);
+  for (const p of [90, 95, 99]) {
+    const cut = sorted[Math.floor(p / 100 * sorted.length)];
+    dot(x, SX(lost(cut)), SY(caught(cut)), 3, "--c-reference");
+    lab(x, `${p}th`, SX(lost(cut)) + 6, SY(caught(cut)) + 4, "--c-reference", "left", 10);
+  }
+  const cut90 = sorted[Math.floor(0.9 * sorted.length)];
+  host.lastChild.querySelector(".sub").textContent =
+    `one point a cut, from the 99.5th percentile down to the 80th\nat the 90th: ${caught(cut90)} of the ${dbl.length} doublets, ${lost(cut90)} good cells with them — ${(lost(cut90) / caught(cut90)).toFixed(1)} good cells a doublet`;
+}
+
+/* ---- 7 · the calls ------------------------------------------------------- */
+{
+  const calls = [
+    ["1 · How many pages", "<b>three — Metrics · Thresholds · Truth (recommended)</b> | two, the arc plan's Metrics and Thresholds | four, with Doublets its own page"],
+    ["2 · The Metrics figure", "<b>violins per sample, the lesson's own figure (recommended)</b> | the droplets themselves as columns | violins with the droplets drawn on them"],
+    ["3 · What the reader holds", "<b>three threshold sliders, plus which sample runs hot and by how much (recommended)</b> | the three sliders only, the hot sample fixed | the sliders and the four droplet shares as well"],
+    ["4 · The Truth page's figure", "<b>the map, position the type and colour the state (recommended)</b> | the scatter coloured by state | both, side by side"],
+    ["5 · Doublets", "<b>a panel on the Truth page (recommended)</b> | its own page with the upper-cut curve | left out"],
+    ["6 · The map", "<b>build it now, and 80 and 81 import it (recommended)</b> | leave 79 to the three numbers and let 80 build the map"],
+    ["7 · The sample names", "<b>Patient 1 · liver, Patient 1 · tumour, … (recommended)</b> | the lesson's own HB17_background, HB17_tumor, … | Sample A–D"],
+    ["8 · The cell types", "<b>the lesson's six, named (recommended)</b> | four, dropping stellate and Kupffer | unnamed, as A–F"],
+  ];
+  document.getElementById("calls").innerHTML = calls.map(([q, a]) => `<p class="q"><b>${q}</b> &nbsp; ${a}</p>`).join("");
+}
+</script>
+</body>
+</html>

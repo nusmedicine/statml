@@ -1,0 +1,80 @@
+REAL — the four samples of 02-2, 40,564 cells, at the lesson's thresholds nFeature > 500, nCount > 800, mt% < 10
+  HB17_background  n  11197  nCount med  2136  nFeature med   908  mt% med  14.8  r(count,feature) 0.953  r(count,mt)  0.195  kept 15%
+  HB17_tumor       n   7995  nCount med  5495  nFeature med  2906  mt% med   0.6  r(count,feature) 0.991  r(count,mt) -0.466  kept 100%
+  HB53_background  n   8540  nCount med  8294  nFeature med  3151  mt% med   0.1  r(count,feature) 0.993  r(count,mt) -0.697  kept 100%
+  HB53_tumor       n  12832  nCount med  5889  nFeature med  2939  mt% med   0.5  r(count,feature) 0.991  r(count,mt) -0.403  kept 100%
+  R3: 1434 cells fail nFeature or nCount, 1199 fail both — 84% of the removals are the same cells
+  R4: HB17_background kept as the mt%% rule moves — <5 4%  <10 15%  <15 42%  <20 71%  <25 85%  off 87%
+  R5: HB17_background  nFeature ~ nCount^0.62 between the 10th and 90th count percentiles (757 → 7117)
+  R5: HB17_tumor       nFeature ~ nCount^0.66 between the 10th and 90th count percentiles (1953 → 12122)
+  R5: HB53_background  nFeature ~ nCount^0.59 between the 10th and 90th count percentiles (1605 → 18098)
+  R5: HB53_tumor       nFeature ~ nCount^0.69 between the 10th and 90th count percentiles (1254 → 15936)
+
+STAGE — 400 droplets a sample, 6% dying, 4% empty, 5% doublets, "p1-liver" run hot at 15% median
+  1600 droplets in 51 ms
+  Patient 1 · liver   nCount med  3558  nFeature med  1794  mt% med  15.7  r(count,feature) 0.982  r(count,mt) -0.245
+  Patient 1 · tumour  nCount med  5351  nFeature med  2656  mt% med   1.1  r(count,feature) 0.978  r(count,mt) -0.625
+  Patient 2 · liver   nCount med  9559  nFeature med  3799  mt% med   1.1  r(count,feature) 0.969  r(count,mt) -0.578
+  Patient 2 · tumour  nCount med  5418  nFeature med  2631  mt% med   1.1  r(count,feature) 0.980  r(count,mt) -0.592
+  S1 — mt% by cell type within each sample (the real data is flat: 12–15% for every group in the hot sample)
+    Patient 1 · liver   hepatocyte 14.9  tumour 19.0  immune 15.8  endothelial 16.6  stellate 14.8  kupffer 13.9
+    Patient 1 · tumour  hepatocyte 1.4  tumour 1.0  immune 1.1  endothelial 1.0  stellate 1.1  kupffer 0.8
+    Patient 2 · liver   hepatocyte 1.0  tumour –  immune 0.9  endothelial 1.1  stellate 1.1  kupffer 0.8
+    Patient 2 · tumour  hepatocyte 1.2  tumour 1.1  immune 1.1  endothelial 1.0  stellate 1.1  kupffer 1.2
+  S2 — mt% by count decile (the clean samples fall, the hot one does not)
+    Patient 1 · liver   17.9 → 15.9 → 14.1 → 15.0 → 15.7
+    Patient 2 · liver   2.4 → 1.3 → 1.2 → 0.9 → 0.6
+  S3 — nFeature against nCount, and what each state looks like
+    good     n 1342  nCount med  5861  nFeature med  2710  mt% med   1.3
+    dying    n  103  nCount med   632  nFeature med   458  mt% med  12.8
+    empty    n   63  nCount med   239  nFeature med   205  mt% med   2.5
+    doublet  n   92  nCount med 12751  nFeature med  4301  mt% med   1.2
+
+PAGES
+  P1 Thresholds — what each rule removes, per sample, at the lesson's numbers
+    Patient 1 · liver   n 400  fail nFeature  45  nCount  47  (both  44)  mt 368  mt alone 323  kept 7%
+    Patient 1 · tumour  n 400  fail nFeature  28  nCount  34  (both  28)  mt  13  mt alone   1  kept 91%
+    Patient 2 · liver   n 400  fail nFeature  16  nCount  18  (both  16)  mt  12  mt alone   3  kept 95%
+    Patient 2 · tumour  n 400  fail nFeature  23  nCount  25  (both  23)  mt  10  mt alone   1  kept 94%
+    the two count rules overlap on 89% of the cells either removes (the lesson's four samples: 84%)
+  P2 Composition — each sample's share of the pooled cells, before and after
+    Patient 1 · liver   25.0% → 2.5%
+    Patient 1 · tumour  25.0% → 31.8%
+    Patient 2 · liver   25.0% → 33.0%
+    Patient 2 · tumour  25.0% → 32.6%
+    total 1600 → 1147 (72%); the lesson's own: 40,564 → 31,014 (76%), and its hot sample 27.6% → 5.4%
+  P3 Truth — the filter read as the claim it is
+    removed 453: 145 held a bad droplet, 308 held a good cell (68% of the removals)
+    kept 1147: 76 doublets, 30 dying, 7 empty — 10% of what is left is not one good cell
+    good     removed 23% of 1342
+    dying    removed 71% of 103
+    empty    removed 89% of 63
+    doublet  removed 17% of 92
+  P4 Doublets — the lesson says a high count is a doublet (02-2 cell 24). An upper nFeature rule, what it catches and what it costs:
+    cut at the 90th percentile (nFeature 4893): catches 33% of the 92 doublets and removes 130 good cells with them
+    cut at the 95th percentile (nFeature 5475): catches 16% of the 92 doublets and removes 65 good cells with them
+    cut at the 98th percentile (nFeature 6132): catches 10% of the 92 doublets and removes 23 good cells with them
+    cut at the 99th percentile (nFeature 6480): catches 4% of the 92 doublets and removes 12 good cells with them
+    a doublet of two cells of the same type: 41 of 92; caught at the 95th percentile 22% against 12% for two different types
+  P5 The hot sample — what moving its mt% rule buys, in the stage
+    mt% <   5: p1-liver 0%  p1-tumour 90%  p2-liver 93%  p2-tumour 93%
+    mt% <  10: p1-liver 7%  p1-tumour 91%  p2-liver 95%  p2-tumour 94%
+    mt% <  15: p1-liver 42%  p1-tumour 92%  p2-liver 95%  p2-tumour 94%
+    mt% <  20: p1-liver 71%  p1-tumour 92%  p2-liver 96%  p2-tumour 94%
+    mt% <  25: p1-liver 82%  p1-tumour 92%  p2-liver 96%  p2-tumour 94%
+    mt% < off: p1-liver 88%  p1-tumour 92%  p2-liver 96%  p2-tumour 94%
+  P5b The map — a droplet is placed by the profile its own molecules measured, so the error goes as 1/sqrt(nCount)
+    two type centres are 0.59 apart; a good cell sits this far from its own centre, in those units:
+      count decile 1: nCount med  1798  distance 0.21
+      count decile 4: nCount med  4291  distance 0.14
+      count decile 6: nCount med  6391  distance 0.12
+      count decile 9: nCount med 12566  distance 0.08
+      dying   : distance from its own type's centre 0.30
+      empty   : distance from its own type's centre 1.05
+      doublet : distance from its own type's centre 0.48
+      a doublet of two types sits 0.50 of the way from the one to the other (0.5 is the midpoint), n 51
+  P6 Seeds — the same stage at four seeds, kept share and the hot sample's
+    seed 1: kept 71%, hot sample 7%
+    seed 2: kept 72%, hot sample 9%
+    seed 3: kept 71%, hot sample 7%
+    seed 4: kept 71%, hot sample 7%

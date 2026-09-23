@@ -19567,13 +19567,74 @@ engine starts from the second version.
 **Host.** 02-2 cells 16–26: the three metrics, the violins, the two scatters,
 and the thresholds *used in the publication (Commun Biol. 2021; 4: 1049)*.
 
-**Pages.** *Metrics* — nCount, nFeature and mt% per cell as one distribution
-per sample, and the nCount-against-nFeature scatter. *Thresholds* — three
-sliders and, per sample, what each removes on its own and what all three
-remove together. The stage is four samples shaped like the lesson's: one whose
-hepatocytes carry a high mitochondrial fraction, so the mt% rule that removes
-nothing from the other three removes most of it. The failing case is the
-lesson's own number.
+**MEASURED 2026-09-23, and the measurement overturned the plan's own
+misconception line.** `_lab/cell-qc-measure.mjs` reads the lesson's own 40,564
+cells (already parsed to `_lab/rnaseq-sc-qc.json`) and then checks the stage
+against them. Four things the real cells say:
+
+| # | what the lesson's cells say | where it was going to be got wrong |
+|---|---|---|
+| R1 | **mt% here is a property of the SAMPLE, not of a cell type.** Inside HB17_background every marker group sits at 12–15% (hepatocyte 15.2, immune 14.0, endothelial 11.9, tumour 14.4, stellate 13.4), and HB53_background — the same tissue in the other patient, 96% CYP3A4-positive — sits at 0.1%. | the arc table's line *CYP3A4 is detected in 91% of the cells removed* is true and means nothing: CYP3A4 is detected in 89% of the cells KEPT there. The rule does not remove a cell type; it removes a sample |
+| R2 | in the three clean samples mt% **falls** as the count rises (r = −0.40, −0.47, −0.70) — the dying cell, which loses cytoplasm and keeps its mitochondria. In the hot sample it does not: r = +0.20, and the median is 13.5% in the lowest count decile against 15.8% in the highest | one word, *dying*, was covering two mechanisms. A cell that is dying and a sample that is contaminated make the same number and a different picture |
+| R3 | **nCount and nFeature are one measurement twice**: r = 0.95–0.99 on the log scale, and 1,199 of the 1,434 cells either rule removes fail **both** — 84% | the lesson's three thresholds are two |
+| R4 | the mt% rule removes 9,351 of that sample's 11,197 cells, 8,088 of them on that rule alone, and takes it from 27.6% of the pooled cells to 5.4%. At mt% < 15 it would keep 42%, at < 20 71%, at < 25 85% | the threshold is a dial, and the lesson's own number sits on the steepest part of it |
+
+**The stage** (`widgets/cell-qc/engine.js`), simulated as § 7.5 settled, is
+fitted to those cells rather than shaped to look like them. Four samples of
+400 droplets, two patients × tumour and background liver, six named
+populations from cell 47 (hepatocyte, tumour, immune, endothelial, stellate,
+Kupffer). A droplet holds cytoplasmic RNA (lognormal, width 0.55) and
+mitochondrial RNA (width 0.3, at the sample's own level), and every metric is
+a consequence of those two:
+
+- **nFeature is not drawn.** It is how many of 8,000 genes are seen when the
+  droplet's molecules are drawn from its profile — a power law p ∝ (g + 80)^−0.97
+  fitted by least squares to ten count quantiles of the two cleanest real
+  samples (928 genes at 1,242 molecules against their 925; 2,699 at 5,495
+  against 2,906; 5,742 at 23,000 against 5,408). R3's 84% overlap falls out as
+  **89%** with nothing imposed.
+- **mt% is not drawn either.** It is mito / total, so R2's negative
+  correlation falls out (−0.58 to −0.63 against the real −0.40 to −0.70) and
+  R1's flatness by type falls out with it.
+- **The two ways to a high mt% are separate levers**, because they are
+  separate in the lesson's data: a dying cell loses its cytoplasm by a factor
+  between 30 and 3, so its count falls as its mt% rises; ambient mitochondrial
+  RNA lands in every droplet in proportion to what it already holds, so it
+  raises a whole sample and leaves it **flat** across the counts (17.9 → 15.7
+  across the deciles, against the real 13.5 → 15.8).
+- **R4 reproduces to within a few points**: the hot sample keeps 7 / 42 / 71 /
+  82% at mt% < 10 / 15 / 20 / 25, against the real 15 / 42 / 71 / 85%.
+- **The map is the same draw again.** A droplet's position is its profile as
+  its own molecules measured it, so the error goes as 1/√n: a good cell of
+  10,000 molecules sits 0.09 of the way from its type's centre to the next
+  type's, one at the lesson's 800-count threshold 0.21, a dying cell 0.30, a
+  doublet of two types exactly 0.50 — halfway between the two it holds — and
+  an empty droplet 1.05, the middle of the figure, because ambient RNA is
+  every type at once. This is the cell stage 80 and 81 import.
+
+**What a fourth state buys.** The stage knows what each droplet holds — a good
+cell, a dying cell, an empty droplet, two cells — so the filter can be read as
+the claim it is: at the lesson's thresholds it removes 453 droplets of which
+**308 held a good cell**, and keeps 76 doublets, 30 dying cells and 7 empty
+droplets. And the lesson's other sentence (*too high a number could indicate
+doublet/multiplets*, cell 24) can be answered with the reason it sets no upper
+threshold: the cut at the 90th percentile of genes catches 30 of 92 doublets
+and takes **4.3 good cells with each one**.
+
+**The mock** is `_lab/cell-qc-mock.html`, every figure computed on the page
+from that engine: the violins per sample (the hot one is the violin that
+floats), the droplets as columns, the two `FeatureScatter`s with the
+thresholds on them, a bar per sample split by which rule removed the cell, the
+mt% threshold swept from 2 to 30 as four curves (three flat at 95%, one an
+S-curve through the lesson's 10 at 7%), the count-against-gene scatter with
+the two rules as two lines, the map, the readout, and the doublet cost curve.
+
+**Proposed: three pages.** *Metrics* — the three numbers per cell, one
+distribution per sample, and the two scatters. *Thresholds* — the three
+sliders, what each rule removes per sample, and the sweep. *Truth* — what the
+removed droplets actually held, on the map, with the doublet panel. The
+failing case is the lesson's own number, and it is not that the reader set a
+bad threshold: it is that one number was applied to four samples.
 
 ### Slot 80 · `integration` — Single-Cell Integration
 
