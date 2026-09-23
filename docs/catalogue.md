@@ -19904,7 +19904,39 @@ Caught by the overlap sweep on the way: round 5's replacement caption ran 6px
 past the right edge of the 534px canvas in all eight Metrics states, which is
 why the panel is now titled *The doublet score, by what the droplet holds*.
 
-NEXT: his round 10.
+**Round 10, 2026-09-23 — the layout.** His report: *"some are squished to one
+side.. try and see if can group logically...the doublets have a lot of
+diagrams, and maybe they need to be visually separated from the other
+metrics"*. Two different problems, mocked separately
+(`_lab/cell-qc-layout-mock.html`, to scale at 746 and 534), **his pick A on
+both**:
+
+- **The squished readout was a core bug.** `.w-readout` is
+  `repeat(auto-fit, minmax(104px, 1fr))`, which collapses the tracks nothing
+  sits in — and `.w-stat-break` was `grid-column: 1 / -1`, so every track had
+  something in it and none collapsed. Measured live: six tracks of 114.4px
+  with the break, five of 139.7 with its span removed, four of 177.6 with it
+  hidden. The break is now a class on the tile AFTER it, `grid-column-start:
+  1`, which starts a row the same way and spans nothing. Four tiles became
+  two tracks of 367px. Full fingerprint suite after the core change: **1045
+  states identical.**
+- **The order was the layout one.** The doublet band sat BETWEEN the four
+  distributions and the two scatters, so the material about the first three
+  numbers was split in half by the material about the fourth. Now: four
+  violins, the two scatters, a rule across the stage carrying the subtitle's
+  own last clause — *Worked out from the droplets nearest it* — and under it
+  the two doublet panels. **The fourth violin stays in the row of four**,
+  which is round 4's decision unchanged.
+
+Two things the mock got right by measuring rather than assuming, and both
+were told to him before he picked: **reordering saves no height** (the same
+blocks in a different order are the same height), and **dropping the fourth
+violin saves none either** (the violin row is one row whether it holds three
+or four). The page is 844 → 870, the 26px the rule and its line of type
+cost. The droplet's four numbers stay under the scatters at +44, which is
+what clears the x-axis label; at +30 they printed through *Transcripts*.
+
+NEXT: his round 11.
 
 ### Slot 80 · `integration` — Single-Cell Integration
 

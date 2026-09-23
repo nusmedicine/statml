@@ -59,7 +59,7 @@ const PAGES = [
 ];
 /* the Metrics page is taller when its four panels take two rows; core hands a
    height function the width for exactly this (widget 60's is the precedent) */
-const HEIGHTS = { metrics: 844, thresholds: 400 };
+const HEIGHTS = { metrics: 870, thresholds: 400 };
 const EASE_MS = 450;
 const easeInOut = (t) => (t < 0.5 ? 2 * t * t : 1 - ((-2 * t + 2) ** 2) / 2);
 const log10 = (v) => Math.log10(Math.max(1, v));
@@ -149,17 +149,30 @@ const violinRect = (w, i) => {
 };
 /* everything under them moves down by the extra row */
 const METRIC_BLOCK = (w) => (METRIC_COLS(w) === 2 ? 224 : 0);
-/* under them, how the fourth was measured: the space with the made-up
-   doublets, and what the score caught, in the three rows the method cannot see */
-const spaceRect = (w) => ({ x: PAD.l, y: 296 + METRIC_BLOCK(w), w: Math.min(250, (w - PAD.l - PAD.r) * 0.34), h: 262 });
+/* ONE SUBJECT, THEN THE NEXT (his round 10: "the doublets have a lot of
+   diagrams, and maybe they need to be visually separated from the other
+   metrics"). The doublet band used to sit BETWEEN the four distributions and
+   the two scatters, so the material about the first three numbers was split
+   in half by the material about the fourth. Now: everything measured on the
+   droplet is contiguous — four distributions, then the two scatters — and
+   then a rule across the stage, and under it the two panels that say where
+   the fourth number came from.
+
+   The fourth violin stays in the row of four. That was his round-4 decision
+   and it still holds: it IS a number per droplet with a distribution, and
+   standing it beside the others is what stops the doublet step reading as an
+   appendix. Only the two big diagrams moved, and the page is 26px taller for
+   the rule and its line of type. */
+const scatterRect = (w, i) => {
+  const each = (w - PAD.l - PAD.r - 56) / 2;
+  return { x: PAD.l + i * (each + 56), y: 262 + METRIC_BLOCK(w), w: each, h: 160 };
+};
+const ruleY = (w) => 492 + METRIC_BLOCK(w);
+const spaceRect = (w) => ({ x: PAD.l, y: 556 + METRIC_BLOCK(w), w: Math.min(250, (w - PAD.l - PAD.r) * 0.34), h: 262 });
 const scoreRect = (w) => {
   const sp = spaceRect(w);
   const x = sp.x + sp.w + 58;
-  return { x, y: 296 + METRIC_BLOCK(w), w: w - x - PAD.r - 8, h: 262 };
-};
-const scatterRect = (w, i) => {
-  const each = (w - PAD.l - PAD.r - 56) / 2;
-  return { x: PAD.l + i * (each + 56), y: 632 + METRIC_BLOCK(w), w: each, h: 160 };
+  return { x, y: 556 + METRIC_BLOCK(w), w: w - x - PAD.r - 8, h: 262 };
 };
 /* LAYOUT A (his pick, round 2): the map is the biggest thing on the page,
    because what the sliders do to the cells is what the page is now about; the
@@ -568,6 +581,25 @@ function drawMetrics(ctx, colors, w, state, hover) {
       ringAt(ctx, colors, plot.sx(log10(c[s.xk])), plot.sy(s.ylog ? log10(c[s.yk]) : c[s.yk]));
     }
   });
+  /* THE RULE THAT SEPARATES THE TWO SUBJECTS. Drawn in --grid and labelled in
+     ink, because a divider is structure and not data: every colour on this
+     page already answers a question about a droplet. The line of type is the
+     subtitle's own last clause, so the page and the sentence above it say the
+     same thing in the same words. */
+  ctx.save();
+  const ry = ruleY(w);
+  ctx.strokeStyle = colors.grid;
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(PAD.l, ry + 0.5); ctx.lineTo(w - PAD.r, ry + 0.5); ctx.stroke();
+  ctx.font = `600 ${colors.fsSm} ${colors.font}`;
+  ctx.textAlign = "left";
+  ctx.textBaseline = "middle";
+  const head = "Worked out from the droplets nearest it";
+  ctx.fillStyle = colors.surface;
+  ctx.fillRect(PAD.l - 4, ry - 9, ctx.measureText(head).width + 8, 18);
+  ctx.fillStyle = colors.ink2;
+  ctx.fillText(head, PAD.l, ry);
+  ctx.restore();
   drawDoubletPanels(ctx, colors, w, state, hover);
   /* ONE DROPLET, EVERY PANEL. Its four numbers are four readings of it, and
      what it holds is not among them: the three rows on the right are the
