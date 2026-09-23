@@ -1154,7 +1154,7 @@
     {
       "slug": "deseq2",
       "title": "Bulk RNA-seq: Differential Expression",
-      "blurb": "Negative binomial counts; gene-wise dispersions and fold changes shrunk by empirical Bayes toward a prior fitted across genes.",
+      "blurb": "Negative binomial counts; gene-wise dispersions and fold changes shrunk by empirical Bayes toward a prior across genes.",
       "course": "PHM5003",
       "topics": [
         "RNA-seq",
