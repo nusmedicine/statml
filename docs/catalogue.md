@@ -19470,6 +19470,25 @@ same SD at every mean is for the heatmap, not the test." — and blurb B3,
 shrunk toward a prior fitted to all genes." (118), in the manifest and the
 stub's description.
 
+**Round 14** (2026-09-23) — *show me drafts of options; write in conventional
+scientific language where possible, not folksy.* Four subtitles and four
+blurbs in a methods-section register (overdispersed, negative binomial,
+gene-wise, empirical Bayes, generalised linear model, Wald statistic,
+variance-stabilising transformation), swept before offering. **His picks:
+subtitle T1, the methods paragraph in the pages' order** — "RNA-seq counts
+are overdispersed relative to the Poisson distribution and are modelled as
+negative binomial, with a dispersion parameter per gene. With few
+replicates, gene-wise dispersion estimates are imprecise, so each is shrunk
+toward a trend fitted across all genes by empirical Bayes; the log2 fold
+change is then estimated by a generalised linear model at the shrunk
+dispersion, tested with a Wald statistic, and itself shrunk toward zero
+where counts are low. A variance-stabilising transformation is applied for
+visualisation only." — **and blurb C1**, "Negative binomial counts; gene-wise
+dispersions and fold changes shrunk by empirical Bayes toward a prior fitted
+across genes." (126). Lesson for the register rule: "not folksy" is his
+reading of the plain register on a methods widget — the vocabulary of the
+field's own methods section is the plain one there.
+
 **Host.** 01-2 cell 1 and cell 22 are the notebook's own exposition, four
 figures (`deseq2-nb`, `deseq2-mle`, `deseq2-map`, `deseq2-shrinkage`) and
 every formula the widget needs: `y ~ NB(μ, α)`, the geometric-mean ratio and
