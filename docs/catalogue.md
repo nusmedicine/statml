@@ -19871,7 +19871,40 @@ things, one a reading and one a gap:
   pointer. The neighbours keep colour for the only question the score asks,
   made up or real, so no mark on the panel carries two groupings.
 
-NEXT: his round 9.
+**Round 9, 2026-09-23 — the copy audit, and claudisms.ai.** Run off a new
+harness, `_lab/cell-qc-copy-sweep.html`: the fillText recipe alone sees only
+the canvas, and most of a widget's copy is in the rail, the readout and the
+legend. Six states, pointer over every panel, canvas and DOM together — **87
+reader-facing strings**.
+
+His second ask was to check them against <https://claudisms.ai>, a banlist of
+AI-writing tells. Its 290 literal terms were extracted and scanned: **0
+matches.** Its constructions, which it says a text search cannot catch
+(totalizing and crowned superlatives, "the only X that", placement metaphors
+with novel nouns), were checked by eye and found clear. **Its one real hit is
+em dashes, which it bans outright and this project uses as house style; kept,
+because changing one widget of sixty-seven makes that one the odd one out.**
+
+**Ten findings, all applied on his word:**
+
+| | was | why |
+|---|---|---|
+| 1 | one **good** cell | `state: "good"` is the engine's key, not a word the reader was given → **healthy** |
+| 2 | the genes a droplet **shows** … **close to one rule** | a droplet does not show; and it read as *close to a rule* → detected in / nearly the same rule |
+| 3 | the sample that **keeps** fewest | the rules keep, not the sample → the sample the rules take most from |
+| 4 | the share of **those** molecules | a control detail borrowed its antecedent from the line above → a droplet's molecules |
+| 5 | What **its** … / What **it** catches | two adjacent captions on orphan pronouns → *What one droplet's nearest neighbours are* / *The doublet score, by what the droplet holds* |
+| 6 | A rule now set**; and** two droplets… | the splice → *and an artificial doublet: …* |
+| 7 | **made up** (9 strings) | ours, not the field's: DoubletFinder and scDblFinder both say **artificial**, which is the word the student meets in the tools' own docs |
+| 8 | the blurb | written before the doublet work: three rules, no fourth, and it described what the widget shows rather than the concept |
+| 9 | the subtitle's last clause | *most of one of them* was ambiguous and *remove/removing* repeated; and it never named the fourth number, now half of page one |
+| 10 | the legend | it named blue, grey and red but not the yellow and aqua the glyph paints → two lines added |
+
+Caught by the overlap sweep on the way: round 5's replacement caption ran 6px
+past the right edge of the 534px canvas in all eight Metrics states, which is
+why the panel is now titled *The doublet score, by what the droplet holds*.
+
+NEXT: his round 10.
 
 ### Slot 80 · `integration` — Single-Cell Integration
 

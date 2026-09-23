@@ -832,7 +832,7 @@ function drawDoubletPanels(ctx, colors, w, state, hover) {
   ctx.font = `600 ${colors.fsSm} ${colors.font}`;
   ctx.fillStyle = colors.ink2;
   ctx.textAlign = "left";
-  ctx.fillText("What its nearest neighbours are", mr.x, mr.y - 40);
+  ctx.fillText("What one droplet's nearest neighbours are", mr.x, mr.y - 40);
   /* THE ORDER, said once and on the figure (his round 4). The widget scores
      what the other three rules keep, which is DoubletFinder's order; the
      other order is scDblFinder's, and the two disagree in their own docs.
@@ -917,12 +917,12 @@ function drawDoubletPanels(ctx, colors, w, state, hover) {
   ctx.textAlign = "left";
   ctx.fillStyle = colors.ink3;
   ctx.fillText("a droplet", mr.x + 16, keyY);
-  ctx.fillText("two added together", mr.x + 86, keyY);
+  ctx.fillText("artificial doublet", mr.x + 86, keyY);
   ctx.restore();
 
   const sc = dbl.score[subject];
   const called = thr.dbl !== null && sc >= thr.dbl;
-  hoverLine(ctx, colors, mr.x, mr.y + mr.h - 22, [[`${made} of its ${k} nearest are made up`, colors.ink2, "600"]]);
+  hoverLine(ctx, colors, mr.x, mr.y + mr.h - 22, [[`${made} of its ${k} nearest are artificial`, colors.ink2, "600"]]);
   /* the same mark the hub wears and the rows below are labelled with, beside
      the same words: what this droplet holds is the one thing the score cannot
      see, and it is the distinction the words alone would not carry */
@@ -945,7 +945,7 @@ function drawDoubletPanels(ctx, colors, w, state, hover) {
   ctx.font = `600 ${colors.fsSm} ${colors.font}`;
   ctx.fillStyle = colors.ink2;
   ctx.textAlign = "left";
-  ctx.fillText("What it catches, by what the droplet holds", sr.x, sr.y - 24);
+  ctx.fillText("The doublet score, by what the droplet holds", sr.x, sr.y - 24);
   ctx.restore();
   DBL_ROWS.forEach((row, ri) => {
     const y0 = sr.y + ri * rowH, h = rowH - 26;
@@ -1011,7 +1011,7 @@ function drawDoubletPanels(ctx, colors, w, state, hover) {
   }
   ctx.textAlign = "center";
   ctx.fillStyle = colors.ink2;
-  ctx.fillText("share of the nearest neighbours that are made up", sr.x + sr.w / 2, sr.y + sr.h - 6);
+  ctx.fillText("share of the nearest neighbours that are artificial", sr.x + sr.w / 2, sr.y + sr.h - 6);
   ctx.restore();
 }
 
@@ -1194,7 +1194,9 @@ defineWidget({
     + "mitochondrial. The first two measure the same thing twice. The third rises "
     + "both in a cell that is dying and in a sample whose preparation released "
     + "free mitochondrial RNA into every droplet, so one threshold applied across "
-    + "samples can remove most of one of them while removing nothing from the rest.",
+    + "every sample can empty one of them and take nothing from the rest. A fourth "
+    + "number is not measured on the droplet at all: it is worked out from the "
+    + "droplets nearest it.",
   layout: "side",
   status: "draft",
   height: ({ page, w }) => (page === "metrics" ? HEIGHTS.metrics + METRIC_BLOCK(w ?? 900) : HEIGHTS[page] ?? HEIGHTS.metrics),
@@ -1227,14 +1229,14 @@ defineWidget({
     },
     mt: {
       type: "int", label: "Mitochondrial %, less than", min: 1, max: 40, step: 1, default: 10, display: true,
-      detail: "the share of those molecules that came from mitochondrial genes",
+      detail: "the share of a droplet's molecules that came from mitochondrial genes",
     },
     /* NONE BY DEFAULT, which is what the lesson does: it names doublets twice
        and sets no rule for them. The others are scores above which a droplet
        is called — a share of its fifty nearest neighbours, not a count. */
     dbl: {
       type: "choice", label: "Doublet score, at least",
-      detail: "the share of a droplet's nearest neighbours that are made-up doublets",
+      detail: "the share of a droplet's nearest neighbours that are artificial doublets",
       options: DBL_OPTIONS.map((v) => ({ value: v, label: v === "none" ? "None" : v })),
       default: "none", display: true,
     },
@@ -1257,8 +1259,10 @@ defineWidget({
     ];
     return [
       { token: "empirical", label: "A droplet: point at one in either scatter for its four numbers", mark: "dot" },
-      { token: "reference", label: "A rule now set; and two droplets added together, drawn as two circles", mark: "dot" },
+      { token: "reference", label: "A rule now set, and an artificial doublet: two droplets added together, drawn as two circles", mark: "dot" },
       { token: "extreme", label: "A droplet the doublet score calls", mark: "dot" },
+      { token: "cluster-b", label: "What a droplet holds: one circle is one cell, two joined are two", mark: "dot" },
+      { token: "cluster-d", label: "A second colour: those two cells are of different types", mark: "dot" },
     ];
   },
 
@@ -1298,7 +1302,7 @@ defineWidget({
           label: "Droplets failing either count rule that fail both",
           value: overlap.either ? `${overlap.both} of ${overlap.either}` : "none",
           note: overlap.either
-            ? `${Math.round((100 * overlap.both) / overlap.either)}% — the genes a droplet shows are the molecules it held, counted a second time, so more than ${thr.nCount} transcripts and more than ${thr.nFeature} genes are close to one rule`
+            ? `${Math.round((100 * overlap.both) / overlap.either)}% — the genes detected in a droplet are the molecules it held, counted a second time, so more than ${thr.nCount} transcripts and more than ${thr.nFeature} genes are nearly the same rule`
             : `at more than ${thr.nFeature} genes and more than ${thr.nCount} transcripts neither rule reaches any droplet`,
         },
       ];
@@ -1321,7 +1325,7 @@ defineWidget({
       tiles.push({
         label: "Doublets of two of the same type called",
         value: `${called(hom)} of ${n(hom)}`,
-        note: `a doublet of two cells of one type has that type's profile, so the made-up doublets around it were made from that type too — its median score is ${medOf(hom)}, and no score the rule offers separates it from a droplet holding one cell`,
+        note: `a doublet of two cells of one type has that type's profile, so the artificial doublets around it were made from that type too — its median score is ${medOf(hom)}, and no score the rule offers separates it from a droplet holding one cell`,
       });
       return tiles;
     }
@@ -1337,16 +1341,16 @@ defineWidget({
         note: `removed: ${RULES.map((r) => `${SAMPLES.reduce((a, s) => a + tally[s.key].by[r], 0)} ${RULE_NAME[r]}`).join(", ")}`,
       },
       {
-        label: `Kept in ${worst.name}, the sample that keeps fewest`,
+        label: `Kept in ${worst.name}, the sample the rules take most from`,
         value: `${Math.round((100 * t.kept) / t.n)}%`,
         note: `its median mitochondrial % is ${fmt(medians[worst.key].mt, 1)}, against ${fmt(median(SAMPLES.filter((s) => s.key !== worst.key).map((s) => medians[s.key].mt)), 1)} in the other three`,
       },
       {
-        label: "Removed droplets that held one good cell",
+        label: "Removed droplets that held one healthy cell",
         value: removed ? `${conf.removedGood} of ${removed}` : "none removed",
         note: removed
-          ? `${Math.round((100 * conf.removedGood) / removed)}% of the removals; ${conf.keptBad} of the ${kept} kept are not one good cell — ${conf.keptDoublet} hold two cells, ${conf.keptDying} a dying cell, ${conf.keptEmpty} no cell`
-          : `${conf.keptBad} of the droplets on the figure are not one good cell`,
+          ? `${Math.round((100 * conf.removedGood) / removed)}% of the removals; ${conf.keptBad} of the ${kept} kept are not one healthy cell — ${conf.keptDoublet} hold two cells, ${conf.keptDying} a dying cell, ${conf.keptEmpty} no cell`
+          : `${conf.keptBad} of the droplets on the figure are not one healthy cell`,
       },
     ];
   },
