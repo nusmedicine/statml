@@ -790,16 +790,33 @@ function drawThresholds(ctx, colors, w, state, hover) {
     plot.curve(sweep[s.key].map((v, k) => [2 + k * 0.5, v]),
       { stroke: lit === s.key ? colors.highlight : colors.empirical, width: lit === s.key ? 2.4 : 1.6 });
   }
+  /* A LEADER WHERE A NAME HAD TO MOVE. Three of the four curves end within a
+     few pixels of each other, so the names are pushed 12px apart to stay
+     legible — and a name 30px from the curve it belongs to is worse than no
+     name at all. Each one keeps a line back to its own end. */
   const ends = SAMPLES
-    .map((s) => ({ key: s.key, y: plot.sy(sweep[s.key][sweep[s.key].length - 1]) }))
+    .map((s) => { const y = plot.sy(sweep[s.key][sweep[s.key].length - 1]); return { key: s.key, y, y0: y }; })
     .sort((a, b) => a.y - b.y);
   for (let i = 1; i < ends.length; i += 1) ends[i].y = Math.max(ends[i].y, ends[i - 1].y + 12);
   ctx.save();
-  ctx.fillStyle = colors.ink3;
   ctx.font = `${colors.fsXs} ${colors.font}`;
   ctx.textAlign = "left";
   ctx.textBaseline = "middle";
-  for (const e of ends) ctx.fillText(shortName(e.key), sr.x + sr.w + 5, e.y);
+  for (const e of ends) {
+    if (Math.abs(e.y - e.y0) > 1.5) {
+      ctx.save();
+      ctx.strokeStyle = colors.ink3;
+      ctx.globalAlpha = 0.6;
+      ctx.lineWidth = 0.8;
+      ctx.beginPath();
+      ctx.moveTo(sr.x + sr.w, e.y0);
+      ctx.lineTo(sr.x + sr.w + 4, e.y);
+      ctx.stroke();
+      ctx.restore();
+    }
+    ctx.fillStyle = lit === e.key ? colors.highlight : colors.ink3;
+    ctx.fillText(shortName(e.key), sr.x + sr.w + 5, e.y);
+  }
   ctx.restore();
   if (lit && hover.mt !== undefined) {
     const k = Math.round((hover.mt - 2) / 0.5);
@@ -818,11 +835,17 @@ function drawThresholds(ctx, colors, w, state, hover) {
   const vx = plot.sx(Math.max(2, Math.min(30, thr.mt)));
   ctx.beginPath(); ctx.moveTo(vx, sr.y); ctx.lineTo(vx, sr.y + sr.h); ctx.stroke();
   ctx.restore();
+  /* THE NUMBER SITS ON THE 100% GRIDLINE AND ON WHATEVER CURVE IS THERE, and
+     at these settings three of the four are, so it needs the surface halo the
+     rest of this widget uses for a mark printed over a figure. */
   ctx.save();
-  ctx.fillStyle = colors.reference;
   ctx.font = `${colors.fsXs} ${colors.font}`;
   ctx.textAlign = vx > sr.x + sr.w - 60 ? "right" : "left";
   ctx.textBaseline = "top";
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = colors.surface;
+  ctx.strokeText(` ${thr.mt} `, vx, sr.y + 2);
+  ctx.fillStyle = colors.reference;
   ctx.fillText(` ${thr.mt} `, vx, sr.y + 2);
   ctx.restore();
 }
