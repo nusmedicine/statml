@@ -1,0 +1,306 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · cell-qc — making the doublet score countable</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1180px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 4px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 100ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  .cand { border: 1px solid var(--grid); border-radius: var(--radius); padding: var(--sp-3) var(--sp-4) var(--sp-4); margin: 0 0 var(--sp-3); background: var(--surface-1); }
+  .cand .why { font-size: var(--fs-sm); color: var(--ink-2); margin: var(--sp-2) 0 0; max-width: 100ch; }
+  .cand .why b { color: var(--ink-1); }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); border-radius: var(--radius); }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--c-reference); background: var(--surface-2); }
+  table.t { border-collapse: collapse; font-size: var(--fs-xs); color: var(--ink-2); margin: 0 0 var(--sp-3); }
+  table.t td, table.t th { padding: 4px 12px; border-bottom: 1px solid var(--grid); text-align: left; vertical-align: top; }
+  table.t th { color: var(--ink-3); font-weight: 400; }
+  table.t td.k { color: var(--ink-1); font-weight: 600; white-space: nowrap; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>cell-qc &middot; is it clustering, or a cut-off? and what would make it obvious</h1>
+
+  <h2>1 &middot; What it is, exactly</h2>
+  <table class="t">
+    <tr><th>your question</th><th>the answer</th></tr>
+    <tr>
+      <td class="k">&ldquo;there is nearest neighbors?&rdquo;</td>
+      <td>Yes &mdash; but as a <b>local head-count</b>, not as a grouping. For one droplet you take its k nearest neighbours and ask what share of them are made-up doublets. That is a density estimate at a point.</td>
+    </tr>
+    <tr>
+      <td class="k">&ldquo;so it's clustering?&rdquo;</td>
+      <td><b>No.</b> Nothing is grouped and no labels come out. Clustering answers <i>which cells belong together</i>; this answers <i>how much company does this one droplet keep with things I made by adding two droplets together</i>. Same ingredient (neighbours), different question. (scDblFinder can optionally <i>generate</i> its artificial doublets cluster-wise, but the scoring is still a neighbourhood count.)</td>
+    </tr>
+    <tr>
+      <td class="k">&ldquo;or just cut-off via distribution?&rdquo;</td>
+      <td><b>Yes, at the end &mdash; but on an axis that did not exist before.</b> The whole method is a way of <i>manufacturing</i> a number you can threshold, because no threshold on the droplet's own numbers works: the count rules remove none of the 81 doublets, measured. And the cut is usually not chosen by looking for a valley in the score's distribution &mdash; DoubletFinder sets it from the <b>expected doublet rate</b> of the machine's loading (nExp, adjusted for the homotypic share), and scDblFinder thresholds to minimise misclassification of its known artificial doublets while staying near that expected rate.</td>
+    </tr>
+  </table>
+  <p class="note">So the honest one-line reading is: <b>make the thing you are looking for, then measure how much each droplet looks like it &mdash; and only then threshold.</b>
+    What the widget draws today shows the input (a space with made-up doublets in it) and the output (a score per droplet), and never the step in between, which is where the intuition is. Three candidates for that step:</p>
+
+  <h2>2 &middot; A &middot; Count the neighbours of one droplet</h2>
+  <p class="note">The score made literally countable: magnify one droplet's neighbourhood and colour its fifty nearest by whether they are real or made up.
+    Two droplets, side by side &mdash; one that holds two cells, one that holds one.</p>
+  <div class="cand">
+    <div id="rowA"></div>
+    <p class="why"><b>For it:</b> it turns an abstract share into a thing you can count, and it is the only view that shows <i>why</i> a droplet scores what it does.
+      A reader who sees this once can read the whole score axis afterwards. <b>Against:</b> it needs two panels and a magnification, and it shows two droplets out of eleven hundred &mdash;
+      it explains the method but does not audit it. Best paired with the score rows that are already there.</p>
+  </div>
+
+  <h2>3 &middot; B &middot; Where a made-up doublet comes from</h2>
+  <p class="note">Before counting neighbours, the reader has to believe the made-up doublets are in the right place. Two real droplets, added, and where the result lands.</p>
+  <div class="cand">
+    <div id="rowB"></div>
+    <p class="why"><b>For it:</b> it answers the question the current figure begs &mdash; where did that grey cloud come from, and why is it in the gaps?
+      Three arrows and the bridges stop being decoration. <b>Against:</b> it is a one-off construction; once understood there is nothing to explore,
+      so it earns its place as a small panel or an opening step, not as a control.</p>
+  </div>
+
+  <h2>4 &middot; C &middot; The space shaded by how made-up its neighbourhood is</h2>
+  <p class="note">The same count, run everywhere instead of at one droplet: a field over the whole space. The bridges between populations light up, and the real doublets sit in them.</p>
+  <div class="cand">
+    <div id="rowC"></div>
+    <p class="why"><b>For it:</b> one picture, no magnification, and it shows the score is a property of <i>place</i> &mdash; which is exactly the difference from a cut-off on a droplet's own numbers.
+      <b>Against:</b> it is a heat map, so it reads as a continuous surface rather than as a count of fifty things, and the widget's colour roles do not have a second magnitude ramp free
+      (<code>--c-magnitude</code> is violet and shares its slot with highlight). Honest but less countable than A.</p>
+  </div>
+
+  <h2>5 &middot; The calls</h2>
+  <div id="calls"></div>
+</main>
+
+<script type="module">
+import { makeRng } from "../core/rng.js";
+import { simulate, applyFilters, doubletScores, projectProfile, median, DOUBLET, TYPES, THRESHOLDS } from "../cell-qc/engine.js";
+
+const css = getComputedStyle(document.documentElement);
+const C = (n) => css.getPropertyValue(n).trim();
+const font = C("--font") || "system-ui";
+
+const { cells } = simulate(makeRng(1), {});
+const { keep } = applyFilters(cells, THRESHOLDS);
+const index = cells.map((c, i) => i).filter((i) => keep[i]);
+const { score, art, prof } = doubletScores(makeRng(38), cells, index, DOUBLET);
+const realPt = prof.map(projectProfile);
+const artPt = art.map(projectProfile);
+
+/* the frame every panel shares */
+const xs = [...realPt.map((p) => p.x), ...artPt.map((p) => p.x)].sort((a, b) => a - b);
+const ys = [...realPt.map((p) => p.y), ...artPt.map((p) => p.y)].sort((a, b) => a - b);
+const q = (a, f) => a[Math.min(a.length - 1, Math.floor(f * a.length))];
+const lo = Math.min(q(xs, 0.01), q(ys, 0.01)), hi = Math.max(q(xs, 0.99), q(ys, 0.99));
+const mid = (lo + hi) / 2, half = ((hi - lo) / 2) * 1.12;
+const VIEW = [mid - half, mid + half];
+
+function ctxFor(host, w, h, title) {
+  const d = document.createElement("div");
+  d.style.display = "inline-block";
+  d.style.marginRight = "14px";
+  d.style.verticalAlign = "top";
+  if (title) {
+    const t = document.createElement("h3");
+    t.textContent = title;
+    d.appendChild(t);
+  }
+  const c = document.createElement("canvas");
+  const dpr = window.devicePixelRatio || 1;
+  c.width = w * dpr; c.height = h * dpr; c.style.width = w + "px"; c.style.height = h + "px";
+  const x = c.getContext("2d"); x.scale(dpr, dpr);
+  d.appendChild(c);
+  host.appendChild(d);
+  return x;
+}
+const lab = (x, s, px, py, col = "--ink-2", align = "left", size = 11, weight = "", base = "alphabetic") => {
+  x.save(); x.fillStyle = C(col); x.textAlign = align; x.textBaseline = base;
+  x.font = `${weight} ${size}px ${font}`.trim(); x.fillText(s, px, py); x.restore();
+};
+const dot = (x, px, py, r, col, alpha = 1) => {
+  x.save(); x.globalAlpha = alpha; x.fillStyle = C(col);
+  x.beginPath(); x.arc(px, py, r, 0, 7); x.fill(); x.restore();
+};
+
+/* the k nearest of a droplet, over real and artificial together */
+const d2 = (u, v) => { let s = 0; for (let j = 0; j < u.length; j += 1) s += (u[j] - v[j]) ** 2; return s; };
+function neighbours(r, k) {
+  const out = [];
+  for (let j = 0; j < prof.length; j += 1) if (j !== r) out.push({ d: d2(prof[r], prof[j]), pt: realPt[j], art: 0 });
+  for (let j = 0; j < art.length; j += 1) out.push({ d: d2(prof[r], art[j]), pt: artPt[j], art: 1 });
+  out.sort((a, b) => a.d - b.d);
+  return out.slice(0, k);
+}
+
+/* --- A · one droplet's neighbourhood, magnified -------------------------- */
+{
+  const host = document.getElementById("rowA");
+  const het = index.map((i, r) => [i, r]).filter(([i]) => cells[i].state === "doublet" && cells[i].partner !== cells[i].type)
+    .sort((a, b) => score[b[1]] - score[a[1]]);
+  const good = index.map((i, r) => [i, r]).filter(([i]) => cells[i].state === "good")
+    .sort((a, b) => score[a[1]] - score[b[1]]);
+  const picks = [
+    { r: het[Math.floor(het.length / 2)][1], i: het[Math.floor(het.length / 2)][0], name: "A droplet holding two cells" },
+    { r: good[Math.floor(good.length / 2)][1], i: good[Math.floor(good.length / 2)][0], name: "A droplet holding one cell" },
+  ];
+  for (const p of picks) {
+    const k = DOUBLET.k;
+    const ns = neighbours(p.r, k);
+    const me = realPt[p.r];
+    /* magnify: the frame is the circle that just holds the k nearest */
+    const far = Math.sqrt(Math.max(...ns.map((n) => (n.pt.x - me.x) ** 2 + (n.pt.y - me.y) ** 2))) * 1.15;
+    const W = 330, H = 300, R = 120, cx = W / 2, cy = 128;
+    const x = ctxFor(host, W, H, p.name);
+    const sx = (v) => cx + ((v - me.x) / far) * R;
+    const sy = (v) => cy - ((v - me.y) / far) * R;
+    x.save();
+    x.strokeStyle = C("--grid");
+    x.beginPath(); x.arc(cx, cy, R, 0, 7); x.stroke();
+    x.restore();
+    /* everything else in the neighbourhood's reach, faint, for context */
+    for (let j = 0; j < realPt.length; j += 1) {
+      const px = sx(realPt[j].x), py = sy(realPt[j].y);
+      if ((px - cx) ** 2 + (py - cy) ** 2 > R * R) continue;
+      dot(x, px, py, 2, "--ink-3", 0.18);
+    }
+    for (const n of ns) dot(x, sx(n.pt.x), sy(n.pt.y), 3.1, n.art ? "--c-reference" : "--c-empirical", n.art ? 0.9 : 0.75);
+    x.save();
+    x.strokeStyle = C("--c-highlight"); x.lineWidth = 2;
+    x.beginPath(); x.arc(sx(me.x), sy(me.y), 6, 0, 7); x.stroke();
+    x.restore();
+    const made = ns.filter((n) => n.art).length;
+    lab(x, `${made} of its ${k} nearest neighbours are made up`, 12, cy + R + 26, "--ink-2", "left", 12, "600");
+    lab(x, `score ${(made / k).toFixed(2)}`, 12, cy + R + 44, made / k >= 0.6 ? "--c-extreme" : "--ink-3", "left", 12, "600");
+    lab(x, "made-up doublet", 12, cy + R + 64, "--c-reference", "left", 10);
+    lab(x, "another droplet", 150, cy + R + 64, "--c-empirical", "left", 10);
+  }
+}
+
+/* --- B · where a made-up doublet comes from ------------------------------ */
+{
+  const host = document.getElementById("rowB");
+  const W = 700, H = 330;
+  const x = ctxFor(host, W, H, "Two droplets, added");
+  const R = { x: 20, y: 16, w: 300, h: 296 };
+  const span = VIEW[1] - VIEW[0];
+  const sx = (v) => R.x + ((v - VIEW[0]) / span) * R.w;
+  const sy = (v) => R.y + ((VIEW[1] - v) / span) * R.h;
+  for (let j = 0; j < realPt.length; j += 1) dot(x, sx(realPt[j].x), sy(realPt[j].y), 1.6, "--ink-3", 0.22);
+  /* three pairs of different types, and where their sum lands */
+  const rng = makeRng(4);
+  const pairs = [];
+  let guard = 0;
+  while (pairs.length < 3 && guard++ < 4000) {
+    const a = Math.floor(rng.next() * index.length), b = Math.floor(rng.next() * index.length);
+    const ca = cells[index[a]], cb = cells[index[b]];
+    if (ca.state !== "good" || cb.state !== "good" || ca.type === cb.type) continue;
+    if (pairs.some((p) => p.ta === ca.type || p.tb === cb.type || p.ta === cb.type || p.tb === ca.type)) continue;
+    pairs.push({ a, b, ta: ca.type, tb: cb.type });
+  }
+  const cols = ["--c-group-a", "--c-group-b", "--c-group-c"];
+  pairs.forEach((p, pi) => {
+    const wa = cells[index[p.a]].nCount, wb = cells[index[p.b]].nCount;
+    const sum = prof[p.a].map((v, j) => (v * wa + prof[p.b][j] * wb) / (wa + wb));
+    const s = projectProfile(sum);
+    const pa = realPt[p.a], pb = realPt[p.b];
+    x.save();
+    x.strokeStyle = C(cols[pi]); x.globalAlpha = 0.7; x.setLineDash([3, 3]);
+    x.beginPath(); x.moveTo(sx(pa.x), sy(pa.y)); x.lineTo(sx(s.x), sy(s.y)); x.stroke();
+    x.beginPath(); x.moveTo(sx(pb.x), sy(pb.y)); x.lineTo(sx(s.x), sy(s.y)); x.stroke();
+    x.restore();
+    dot(x, sx(pa.x), sy(pa.y), 4, cols[pi]);
+    dot(x, sx(pb.x), sy(pb.y), 4, cols[pi]);
+    x.save();
+    x.strokeStyle = C(cols[pi]); x.lineWidth = 2;
+    x.beginPath(); x.arc(sx(s.x), sy(s.y), 5, 0, 7); x.stroke();
+    x.restore();
+  });
+  /* and the whole cloud it produces, beside it */
+  const R2 = { x: 370, y: 16, w: 300, h: 296 };
+  const sx2 = (v) => R2.x + ((v - VIEW[0]) / span) * R2.w;
+  const sy2 = (v) => R2.y + ((VIEW[1] - v) / span) * R2.h;
+  for (let j = 0; j < realPt.length; j += 1) dot(x, sx2(realPt[j].x), sy2(realPt[j].y), 1.6, "--ink-3", 0.22);
+  for (let j = 0; j < artPt.length; j += 1) dot(x, sx2(artPt[j].x), sy2(artPt[j].y), 1.6, "--c-reference", 0.5);
+  lab(x, "three pairs, and where each sum lands", R.x, R.y + R.h + 14, "--ink-3", "left", 10);
+  lab(x, `all ${artPt.length} of them: the gaps fill in`, R2.x, R2.y + R2.h + 14, "--ink-3", "left", 10);
+}
+
+/* --- C · the field ------------------------------------------------------- */
+{
+  const host = document.getElementById("rowC");
+  const W = 700, H = 330;
+  const x = ctxFor(host, W, H, "How made-up the neighbourhood is, everywhere");
+  const R = { x: 20, y: 16, w: 300, h: 296 };
+  const span = VIEW[1] - VIEW[0];
+  const sx = (v) => R.x + ((v - VIEW[0]) / span) * R.w;
+  const sy = (v) => R.y + ((VIEW[1] - v) / span) * R.h;
+  /* a coarse grid, each cell scored by the same count over its own neighbourhood */
+  const G = 34, cell = R.w / G;
+  const pts = [...realPt.map((p) => ({ p, a: 0 })), ...artPt.map((p) => ({ p, a: 1 }))];
+  for (let gx = 0; gx < G; gx += 1) {
+    for (let gy = 0; gy < G; gy += 1) {
+      const px = R.x + (gx + 0.5) * cell, py = R.y + (gy + 0.5) * cell;
+      let n = 0, a = 0;
+      for (const q2 of pts) {
+        const qx = sx(q2.p.x), qy = sy(q2.p.y);
+        if (Math.abs(qx - px) > 14 || Math.abs(qy - py) > 14) continue;
+        n += 1; a += q2.a;
+      }
+      if (n < 6) continue;
+      x.save();
+      x.globalAlpha = 0.16 + 0.7 * (a / n);
+      x.fillStyle = C("--c-reference");
+      x.fillRect(R.x + gx * cell, R.y + gy * cell, cell + 0.6, cell + 0.6);
+      x.restore();
+    }
+  }
+  for (let j = 0; j < realPt.length; j += 1) dot(x, sx(realPt[j].x), sy(realPt[j].y), 1.5, "--ink-1", 0.30);
+  lab(x, "pale: mostly real droplets · bright: mostly made up", R.x, R.y + R.h + 14, "--ink-3", "left", 10);
+
+  /* and the same field with the true doublets on it */
+  const R2 = { x: 370, y: 16, w: 300, h: 296 };
+  const sx2 = (v) => R2.x + ((v - VIEW[0]) / span) * R2.w;
+  const sy2 = (v) => R2.y + ((VIEW[1] - v) / span) * R2.h;
+  for (let gx = 0; gx < G; gx += 1) {
+    for (let gy = 0; gy < G; gy += 1) {
+      const px = R.x + (gx + 0.5) * cell, py = R.y + (gy + 0.5) * cell;
+      let n = 0, a = 0;
+      for (const q2 of pts) {
+        const qx = sx(q2.p.x), qy = sy(q2.p.y);
+        if (Math.abs(qx - px) > 14 || Math.abs(qy - py) > 14) continue;
+        n += 1; a += q2.a;
+      }
+      if (n < 6) continue;
+      x.save();
+      x.globalAlpha = 0.16 + 0.7 * (a / n);
+      x.fillStyle = C("--c-reference");
+      x.fillRect(R2.x + gx * cell, R2.y + gy * cell, cell + 0.6, cell + 0.6);
+      x.restore();
+    }
+  }
+  index.forEach((i, r) => {
+    const c = cells[i];
+    if (c.state !== "doublet") return;
+    const same = c.partner === c.type;
+    dot(x, sx2(realPt[r].x), sy2(realPt[r].y), 2.6, same ? "--c-unknown" : "--c-extreme", 0.95);
+  });
+  lab(x, "the droplets that really hold two cells, on top", R2.x, R2.y + R2.h + 14, "--ink-3", "left", 10);
+  lab(x, "two different types", R2.x, R2.y + R2.h + 28, "--c-extreme", "left", 10);
+  lab(x, "two of the same", R2.x + 110, R2.y + R2.h + 28, "--c-unknown", "left", 10);
+}
+
+const calls = [
+  ["1 &middot; which view, if any", "<b>A, as a small pair of panels replacing the left-hand space panel (recommended: it is the only one that makes the number countable, and the space it replaces already says what it says)</b> | B, the construction | C, the field | A and B together as two steps | none &mdash; the copy can carry it"],
+  ["2 &middot; if A goes in, is it fixed or the reader's", "<b>the droplet under the pointer (recommended: the hover is already there, and pointing at a high scorer and then a low one IS the lesson)</b> | two fixed examples, one of each | a control that walks through a few"],
+  ["3 &middot; what the page says the method is", "<b>“make the thing you are looking for, then measure how much each droplet looks like it” (recommended)</b> | name it as a density of made-up doublets | say nothing and let the panels carry it"],
+];
+document.getElementById("calls").innerHTML = calls.map(([q2, a]) => `<p class="q"><b>${q2}</b> &nbsp; ${a}</p>`).join("");
+</script>
+</body>
+</html>
