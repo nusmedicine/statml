@@ -45,6 +45,7 @@ const SCRIPTS = [
   "widgets/_lab/unet-verify.mjs",               // the shapes and counts against torch, the Dice claims and the stage widget 65 draws
   "widgets/_lab/sequence-cnn-lstm-verify.mjs",  // the token engine, the table of trained nets retrained and compared, and the claims widget 75 draws
   "widgets/_lab/signal-windows-verify.mjs",     // the cleaning's arithmetic, the label rules, and the split claims widget 72 draws
+  "widgets/_lab/cell-qc-verify.mjs",            // the droplet stage against the lesson's own 40,564 cells, the filter, the map and the claims widget 79 draws
   "widgets/_lab/augmentation-verify.mjs",       // the engine against MONAI 1.6.0, the smear's claims and the stage widget 62 draws
   "widgets/_lab/loss-functions-verify.mjs",     // the three losses and the stage widget 54 draws
   "widgets/_lab/optimizers-verify.mjs",         // torch.optim's own update rules, and the stage widget 55 draws

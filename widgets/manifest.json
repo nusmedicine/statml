@@ -1167,6 +1167,22 @@
       ],
       "arc": 78,
       "status": "shipped"
+    },
+    {
+      "slug": "cell-qc",
+      "title": "Single-Cell RNA-seq: QC",
+      "blurb": "Quality-control thresholds on droplet metrics: what each rule removes, per sample, and what the removed droplets held.",
+      "course": "PHM5003",
+      "topics": [
+        "single-cell RNA-seq",
+        "quality control",
+        "mitochondrial fraction",
+        "doublets",
+        "ambient RNA",
+        "thresholds"
+      ],
+      "arc": 79,
+      "status": "draft"
     }
   ]
 }

@@ -192,7 +192,10 @@ function drawCell(rng, sample, opts, mtLevel, ambient) {
   const breadth = Math.exp(rng.normal() * 0.18);
 
   const nCount = Math.max(20, Math.round(cyto + mito));
-  const nFeature = Math.min(GENES, genesSeen(rng, pa, Math.max(1, cyto * breadth)) + Math.min(13, Math.round(mito / 20)));
+  /* and never more genes than molecules: the breadth draw and the Bernoulli
+     spread can both push the count of genes above the molecules it was taken
+     from, which is not a thing a sequencer can report (the verify, §1) */
+  const nFeature = Math.min(nCount, GENES, genesSeen(rng, pa, Math.max(1, cyto * breadth)) + Math.min(13, Math.round(mito / 20)));
   const mt = Math.min(95, Math.max(0.02, 100 * mito / (cyto + mito)));
 
   return { sample: sample.key, type: type.key, partner: partner ? partner.key : null, state, nCount, nFeature, mt };
