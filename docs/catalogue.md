@@ -19734,7 +19734,40 @@ it calls leaves the Thresholds map and joins its bar. `doubletScores` lives
 in the engine (one implementation for the page, the measurement and the
 verify) and runs in 21 ms, which is what lets the call be dragged.
 
-NEXT: his round 4.
+**Round 4, 2026-09-23 — where the doublet step belongs, researched.** His
+questions: *where does doublet filtering occur? before the thresholding of
+genes/mito?* and *a page in itself looks weird as it stands out ... unless it
+is part of the metric?* Neither scrublet nor R is on this machine, so the
+packages' own documentation was read (`_lab/cell-qc-doublet-place-mock.html`
+carries the quotes).
+
+**The order: the two leading tools disagree, and that is the answer.**
+DoubletFinder puts the thresholds first — *"Ensure that input data is cleared
+of low-quality cell clusters ... Remove clusters, pre-process again, and run
+DoubletFinder"* — and takes *"a fully-processed Seurat object (i.e., after
+NormalizeData, FindVariableGenes, ScaleData, RunPCA ...)"*. scDblFinder's FAQ
+1.5.11 puts a floor first and the rest after: *"Further quality filtering
+should be performed downstream of doublet detection"*, because the expected
+rate is computed from the cells it is given and because a doublet of a good
+cell and a poor one is easier to find while both are there. They agree on the
+floor, on the expression space, and — the part that settled the layout — that
+the score is **not a fourth measurement of the same kind**.
+
+**One sample at a time**, which both insist on and which the widget was not
+doing. Implemented, then measured, which turned the fix into a finding: at
+the 400 droplets a sample this stage draws so they can be SEEN, a per-lane
+cloud of artificial doublets is too thin (34 of 49 against pooling's 49); at
+1,200 it is 113 against 122; at 3,000, near a real lane, 250 against 258. The
+widget pools, the engine says why, and pooling costs nothing here because
+every sample holds the same six populations. **The rule bites when a
+population sits in one sample and not another — slot 80's stage.**
+
+**His two picks:** the score becomes the **fourth metric** on Metrics, with
+the two panels that were its page under the four distributions, and
+Thresholds applies all four rules — two pages again; and the order is said
+once on the figure, *"on the droplets the other three rules keep"*.
+
+NEXT: his round 5.
 
 ### Slot 80 · `integration` — Single-Cell Integration
 
