@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · cell-qc — where the doublet material sits</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1240px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 6px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 100ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  .cand { border: 1px solid var(--grid); border-radius: var(--radius); padding: var(--sp-3) var(--sp-4) var(--sp-4); margin: 0 0 var(--sp-3); background: var(--surface-1); }
+  .cand .why { font-size: var(--fs-sm); color: var(--ink-2); margin: var(--sp-3) 0 0; max-width: 100ch; }
+  .cand .why b { color: var(--ink-1); }
+  .row { display: flex; gap: var(--sp-4); flex-wrap: wrap; align-items: flex-start; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); border-radius: var(--radius); }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--c-reference); background: var(--surface-2); }
+  .ro { border-top: 1px solid var(--grid); padding-top: var(--sp-3); margin-top: var(--sp-3); }
+  .ro { display: grid; grid-template-columns: repeat(auto-fit, minmax(104px, 1fr)); gap: var(--sp-3); }
+  .ro .brk { grid-column: 1 / -1; height: 0; }
+  .ro.fix .brk { display: none; }
+  .ro.fix .after-brk { grid-column-start: 1; }
+  .ro span { display: block; }
+  .ro .l { color: var(--ink-2); font-size: var(--fs-xs); }
+  .ro .v { font-size: var(--fs-fig); font-weight: 600; letter-spacing: -0.02em; }
+  .ro .n { color: var(--ink-3); font-size: var(--fs-xs); }
+  .frame { width: 746px; max-width: 100%; }
+  code { font-size: 12px; background: var(--surface-2); padding: 1px 4px; border-radius: 3px; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>cell-qc &middot; where the doublet material sits</h1>
+  <p class="note">
+    Two separate things are wrong on the Metrics page and they have different fixes.
+    <b>The order:</b> the doublet band sits BETWEEN the four distributions and the two scatters, so the material about
+    the first three numbers is split in half by the material about the fourth.
+    <b>The readout:</b> four tiles squeezed into 114px columns with half the width empty &mdash; a core bug, diagnosed below.
+    Every diagram here is to scale, at the two widths that matter: 746px, the lesson's own frame, and 534px, the harness's.
+  </p>
+
+  <h2>1 &middot; The readout, and why it is squished</h2>
+  <div class="cand">
+    <p class="why" style="margin-top:0">
+      <code>.w-readout</code> is <code>repeat(auto-fit, minmax(104px, 1fr))</code>. Auto-fit collapses the tracks nothing
+      sits in, and the surviving tracks then take the whole width. <b>A row break defeats it:</b>
+      <code>.w-stat-break</code> is <code>grid-column: 1 / -1</code>, so every track has something in it and none of them
+      collapses. Measured on the live widget: six tracks of 114.4px with the break, five of 139.7px with its span removed,
+      four of 177.6px with it hidden altogether.
+    </p>
+    <h3>As it is &mdash; six tracks of 114px</h3>
+    <div class="frame"><div class="ro now" id="roNow"></div></div>
+    <h3 style="margin-top:18px">The break as a column-start instead &mdash; two tracks of 367px</h3>
+    <div class="frame"><div class="ro fix" id="roFix"></div></div>
+    <p class="why"><b>The fix is in core:</b> <code>renderReadout</code> marks the tile AFTER a break instead of inserting
+      a spanning div, and the CSS sets <code>grid-column-start: 1</code> on it. Nothing spans, so the empty tracks collapse.
+      It reaches four other widgets that use a break &mdash; enrichment, gwas, metrics, naive-bayes &mdash; and widens their
+      tiles the same way. No canvas moves, so no fingerprint state changes.</p>
+  </div>
+
+  <h2>2 &middot; Where the doublet material goes</h2>
+  <div id="layouts"></div>
+
+  <h2>3 &middot; The calls</h2>
+  <div id="calls"></div>
+</main>
+
+<script type="module">
+const css = getComputedStyle(document.documentElement);
+const C = (n) => css.getPropertyValue(n).trim();
+const font = C("--font") || "system-ui";
+
+/* ---- the readout, both ways, with the widget's own four tiles ----------- */
+const TILES = [
+  ["Median mitochondrial %, highest sample against lowest", "15.3 against 1.0", "Patient 1 · liver and Patient 1 · tumour, of 400 droplets each; every cell type inside a sample sits at that sample's level"],
+  ["Droplets failing either count rule that fail both", "161 of 227", "71% — the genes detected in a droplet are the molecules it held, counted a second time, so more than 1800 transcripts and more than 800 genes are nearly the same rule"],
+  ["BREAK"],
+  ["Doublets of two different types called", "46 of 48", "at a score of 0.6 or more; their median is 0.88, against 0.26 for a droplet holding one cell, and 6 of those are called too"],
+  ["Doublets of two of the same type called", "0 of 13", "a doublet of two cells of one type has that type's profile, so the artificial doublets around it were made from that type too"],
+];
+for (const id of ["roNow", "roFix"]) {
+  const host = document.getElementById(id);
+  let afterBreak = false;
+  for (const t of TILES) {
+    if (t[0] === "BREAK") {
+      const b = document.createElement("div");
+      b.className = "brk";
+      host.appendChild(b);
+      afterBreak = true;
+      continue;
+    }
+    const d = document.createElement("div");
+    if (afterBreak) { d.className = "after-brk"; afterBreak = false; }
+    for (const [cls, text] of [["l", t[0]], ["v", t[1]], ["n", t[2]]]) {
+      const sp = document.createElement("span");
+      sp.className = cls;
+      sp.textContent = text;
+      d.appendChild(sp);
+    }
+    host.appendChild(d);
+  }
+}
+
+/* ---- the page diagrams, to scale --------------------------------------- */
+const PAD = { l: 52, r: 16, t: 26 };
+const MEASURED = "--c-empirical", DOUBLET = "--c-cluster-b";
+function box(g, r, label, tone, sub) {
+  g.save();
+  g.fillStyle = C(tone);
+  g.globalAlpha = 0.12;
+  g.fillRect(r.x, r.y, r.w, r.h);
+  g.globalAlpha = 1;
+  g.strokeStyle = C(tone);
+  g.lineWidth = 1;
+  g.strokeRect(r.x + 0.5, r.y + 0.5, r.w, r.h);
+  g.fillStyle = C("--ink-1");
+  g.font = `600 11px ${font}`;
+  g.textAlign = "center";
+  g.textBaseline = "middle";
+  g.fillText(label, r.x + r.w / 2, r.y + r.h / 2 - (sub ? 7 : 0));
+  if (sub) {
+    g.fillStyle = C("--ink-3");
+    g.font = `10px ${font}`;
+    g.fillText(sub, r.x + r.w / 2, r.y + r.h / 2 + 8);
+  }
+  g.restore();
+}
+function band(g, w, y, text, tone) {
+  g.save();
+  g.strokeStyle = C(tone);
+  g.lineWidth = 1.2;
+  g.setLineDash([5, 4]);
+  g.beginPath(); g.moveTo(8, y); g.lineTo(w - 8, y); g.stroke();
+  g.setLineDash([]);
+  g.font = `600 11px ${font}`;
+  const tw = g.measureText(text).width;
+  g.fillStyle = C("--surface-1");
+  g.fillRect(PAD.l - 4, y - 8, tw + 8, 16);
+  g.fillStyle = C(tone);
+  g.textAlign = "left";
+  g.textBaseline = "middle";
+  g.fillText(text, PAD.l, y);
+  g.restore();
+}
+const violins = (w, n) => {
+  const cols = w < 700 ? Math.min(2, n) : n, gap = 22;
+  const each = (w - PAD.l - PAD.r - (cols - 1) * gap) / cols;
+  return { cols, each, rows: Math.ceil(n / cols), gap };
+};
+/* each layout draws itself and returns the height it needs at width w */
+/* THE GAPS ARE THE WIDGET'S OWN, so the heights printed under each diagram
+   are the heights it would actually need: the live page runs 30 to 210 for
+   the violins, 296 to 558 for the doublet band and 632 to 792 for the
+   scatters, inside a declared 844 — 90px between one captioned block and
+   the next, and 52 at the foot. Calibrated: this returns 848 for the page
+   as it is, against the 844 it declares. */
+const GAP = 82, FOOT = 52;
+function drawLayout(g, w, kind, page) {
+  let y = PAD.t + 4;
+  const full = w - PAD.l - PAD.r;
+  const drawViolins = (names, doubletAt) => {
+    const v = violins(w, names.length);
+    names.forEach((nm, i) => {
+      const row = Math.floor(i / v.cols), col = i % v.cols;
+      box(g, { x: PAD.l + col * (v.each + v.gap), y: y + row * 224, w: v.each, h: 180 },
+        nm, i === doubletAt ? DOUBLET : MEASURED);
+    });
+    y += v.rows * 224 - 44 + GAP;
+  };
+  const drawScatters = () => {
+    const each = (full - 56) / 2;
+    box(g, { x: PAD.l, y, w: each, h: 160 }, "Genes × transcripts", MEASURED);
+    box(g, { x: PAD.l + each + 56, y, w: each, h: 160 }, "Mito % × transcripts", MEASURED);
+    y += 160 + GAP;
+  };
+  const drawDoubletBand = () => {
+    const sw = Math.min(250, full * 0.34);
+    box(g, { x: PAD.l, y, w: sw, h: 262 }, "One droplet's", DOUBLET, "fifty nearest");
+    box(g, { x: PAD.l + sw + 58, y, w: w - (PAD.l + sw + 58) - PAD.r - 8, h: 262 },
+      "The doublet score, three rows", DOUBLET, "by what the droplet holds");
+    y += 262 + GAP;
+  };
+  const FOUR = ["Genes", "Transcripts", "Mito %", "Doublet score"];
+  const LINE = "Worked out from the droplets nearest it";
+  if (kind === "now") { drawViolins(FOUR, 3); drawDoubletBand(); drawScatters(); }
+  if (kind === "band") {
+    drawViolins(FOUR, 3); drawScatters();
+    band(g, w, y - 46, LINE, DOUBLET); drawDoubletBand();
+  }
+  if (kind === "drop") {
+    drawViolins(FOUR.slice(0, 3), -1); drawScatters();
+    band(g, w, y - 46, LINE, DOUBLET); drawDoubletBand();
+  }
+  if (kind === "pages") {
+    if (page === 1) { drawViolins(FOUR.slice(0, 3), -1); drawScatters(); }
+    else { drawViolins(["Doublet score"], 0); drawDoubletBand(); }
+  }
+  return y - GAP + FOOT;
+}
+const LAYOUTS = [
+  {
+    key: "now", name: "As it is now",
+    why: "The doublet band sits between the four distributions and the two scatters. Going down the page a reader meets "
+      + "three measured numbers, then the whole method for a fourth, then two scatters that are about the first three "
+      + "again. <b>The material about one subject is split in half by another</b>, which is the thing that reads as "
+      + "crowded rather than any one panel's size.",
+  },
+  {
+    key: "band", name: "A · the same page, reordered, with a rule across it",
+    why: "Everything measured ON the droplet is contiguous: four distributions, then the two scatters. Then a dashed "
+      + "rule and one line of type, and under it the two panels that say where the fourth number came from. "
+      + "<b>The fourth violin stays in the row of four</b>, which was his round-4 decision — it is a number per "
+      + "droplet with a distribution, and standing it beside the others is what stopped the doublet step reading as an "
+      + "appendix. Only the two big diagrams move. <b>It is not shorter</b> — the same blocks in a different "
+      + "order are the same height, and the rule sits in a gap that was already there. What it buys is a page whose "
+      + "reading order is one subject and then the next.",
+  },
+  {
+    key: "drop", name: "B · the same, and the fourth violin dropped",
+    why: "The three score rows below ARE the doublet score's distribution, split by what the droplet holds, so the "
+      + "violin in the top row draws the same numbers a second time and less informatively. Dropping it gives the three "
+      + "that remain a third more width each at 746px. <b>It saves no height</b>, and at 534px it can leave a row of two "
+      + "and a row of one unless the panels go three across — which needs measuring, since four across was found to "
+      + "collide at 3px below 700. <b>Against:</b> the doublet control loses the dashed line it draws in the top row, and "
+      + "a hovered droplet is ticked in three distributions instead of four.",
+  },
+  {
+    key: "pages", name: "C · a page of its own",
+    why: "Metrics · Doublets · Thresholds. The cleanest separation, the shortest pages, and the easiest to link "
+      + "to from one lesson cell. <b>Against, in his own words at round 4:</b> a doublet page “looks weird as it "
+      + "stands out..unless it is part of the metric”. That objection was about a page standing outside the metrics, "
+      + "and this one still would.",
+  },
+];
+{
+  const host = document.getElementById("layouts");
+  for (const L of LAYOUTS) {
+    const d = document.createElement("div");
+    d.className = "cand";
+    const h = document.createElement("h3");
+    h.textContent = L.name;
+    d.appendChild(h);
+    const row = document.createElement("div");
+    row.className = "row";
+    const shots = L.key === "pages" ? [[746, 1], [746, 2], [534, 1]] : [[746, 0], [534, 0]];
+    for (const [w, page] of shots) {
+      const cell = document.createElement("div");
+      const t = document.createElement("h3");
+      t.textContent = L.key === "pages" ? `${w}px · ${page === 1 ? "Metrics" : "Doublets"}` : `${w}px`;
+      t.style.color = "var(--ink-3)";
+      t.style.fontWeight = "400";
+      cell.appendChild(t);
+      const probe = document.createElement("canvas").getContext("2d");
+      const H = drawLayout(probe, w, L.key, page);
+      const c = document.createElement("canvas");
+      const dpr = window.devicePixelRatio || 1;
+      c.width = w * dpr; c.height = H * dpr;
+      c.style.width = w + "px"; c.style.height = H + "px";
+      const g = c.getContext("2d");
+      g.scale(dpr, dpr);
+      drawLayout(g, w, L.key, page);
+      cell.appendChild(c);
+      const cap = document.createElement("div");
+      cap.style.cssText = "font-size:var(--fs-xs);color:var(--ink-3);margin-top:4px";
+      cap.textContent = `${Math.round(H)}px tall`;
+      cell.appendChild(cap);
+      row.appendChild(cell);
+    }
+    d.appendChild(row);
+    const why = document.createElement("p");
+    why.className = "why";
+    why.innerHTML = L.why;
+    d.appendChild(why);
+    host.appendChild(d);
+  }
+}
+const calls = [
+  ["1 &middot; where the doublet material sits",
+    "<b>A &mdash; reordered, with a rule across the page (recommended: it fixes the split without reopening round 4's decision, and nothing else has to move)</b> | B, the same and the fourth violin dropped | C, a page of its own | leave it"],
+  ["2 &middot; the readout grid",
+    "<b>fix it in core (recommended: it is a bug, and it widens four other widgets' tiles the same way)</b> | leave core and cut cell-qc to two tiles | leave it"],
+  ["3 &middot; the band's one line of type",
+    "<b>“Worked out from the droplets nearest it” (recommended: it is the subtitle's own last clause, so the page and the subtitle say the same thing)</b> | “The fourth number” | no line, just the rule"],
+];
+document.getElementById("calls").innerHTML = calls.map(([q, a]) => `<p class="q"><b>${q}</b> &nbsp; ${a}</p>`).join("");
+</script>
+</body>
+</html>
