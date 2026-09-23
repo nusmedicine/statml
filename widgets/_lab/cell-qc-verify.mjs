@@ -114,6 +114,16 @@ section("§3 the filter, as the widget applies it in three presses");
   assert(keptWith({ nCount: 0 }) >= keptWith({}) && keptWith({ nCount: 3000 }) <= keptWith({}), "a stricter transcript rule never keeps more");
   assert(keptWith({ mt: 40 }) >= keptWith({}) && keptWith({ mt: 1 }) <= keptWith({}), "a stricter mitochondrial rule never keeps more");
   assert(keptWith({ nFeature: 0, nCount: 0, mt: 100 }) === cells.length, "with every rule off, nothing is removed");
+  /* THE WALKTHROUGH COUNTS WHAT IT HAS DONE. At no press nothing is removed,
+     and at the third press the running count is the finished filter — the
+     readout reported neither until 2026-09-23. */
+  const applied = (stage) => removedAt.filter((r) => r > 0 && r <= stage).length;
+  assert(applied(0) === 0, "at no press nothing is removed");
+  assert(applied(1) === removedAt.filter((r) => r === 1).length, "one press removes exactly what the gene rule takes");
+  assert(applied(2) === removedAt.filter((r) => r === 1 || r === 2).length, "two presses remove the gene rule's and the transcript rule's");
+  assert(applied(3) === cells.length - keep.filter(Boolean).length, `three presses remove what the finished filter removes (${applied(3)})`);
+  assert(applied(1) >= applied(0) && applied(2) >= applied(1) && applied(3) >= applied(2), "a press never puts a droplet back");
+
   /* what the Truth page prints */
   const conf = confusion(cells, keep);
   assert(conf.removedGood + conf.removedBad + conf.keptGood + conf.keptBad === cells.length, "the four corners of the claim add to every droplet");

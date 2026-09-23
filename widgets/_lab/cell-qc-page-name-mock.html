@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · cell-qc — what to call the third page</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1100px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 96ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  .cand { border: 1px solid var(--grid); border-radius: var(--radius); padding: var(--sp-3) var(--sp-4) var(--sp-4); margin: 0 0 var(--sp-3); background: var(--surface-1); }
+  .cand h3 { font-size: var(--fs-sm); margin: 0 0 var(--sp-2); color: var(--ink-3); font-weight: 400; font-family: var(--font-mono); }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; }
+  .lhs { flex: 0 0 300px; }
+  .rhs { flex: 1 1 380px; color: var(--ink-2); font-size: var(--fs-sm); }
+  .rhs code { color: var(--ink-1); font-family: var(--font-mono); font-size: var(--fs-xs); }
+  .capline { margin: var(--sp-3) 0 0; font-weight: 600; color: var(--ink-2); font-size: var(--fs-sm); }
+  .caphint { color: var(--ink-3); font-size: var(--fs-xs); }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--c-reference); background: var(--surface-2); }
+  iframe { border: 1px solid var(--grid); border-radius: var(--radius); width: 100%; height: 470px; background: var(--surface-1); }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>cell-qc &middot; what to call the third page</h1>
+  <p class="note">
+    Your reading: <i>so it's the visualization of the clustering if we apply thresholds?</i> &mdash; which is what it is. Every droplet sits
+    where its own molecules put it, so the six populations separate the way they would in the space the cells are compared in; colour is what
+    the droplet holds, and a droplet a rule removed is drawn hollow. <b>Truth</b> was my word for it at planning, and it names what the STAGE
+    knows rather than what the page shows. Four candidates below, each in the tab row beside its neighbours, with the caption that would go with it.
+    <b>Clusters is deliberately not among them</b>: slot 81 has a Clusters page of its own, and two pages a fortnight apart with one name is worse than a dull name.
+  </p>
+  <p class="note">The page itself, live, to look at while you choose:</p>
+  <iframe src="../cell-qc/?page=truth&amp;shown=3"></iframe>
+
+  <div id="cands"></div>
+
+  <h2>The calls</h2>
+  <div id="calls"></div>
+</main>
+
+<script type="module">
+const CANDS = [
+  {
+    name: "Cost",
+    why: "A plain noun beside Metrics and Thresholds, and it names the page's own question: what the three rules cost. The readout under it is three costs — good cells removed, bad droplets kept, good cells per doublet caught.",
+    caption: "Every droplet, placed by what was sequenced in it",
+    hint: "unchanged",
+  },
+  {
+    name: "What was removed",
+    why: "Says it outright. Longer than its neighbours in the tab row, and it names only half of what the page shows — the droplets that stayed and should not have are the other half.",
+    caption: "Every droplet, placed by what was sequenced in it",
+    hint: "unchanged",
+  },
+  {
+    name: "Cells kept",
+    why: "The positive framing, and the one that reads forward into the next widget: this is the set that goes on to be clustered. It undersells the hollow droplets, which are the argument.",
+    caption: "The cells the rules keep, and the droplets they removed",
+    hint: "reworded to match the name",
+  },
+  {
+    name: "Truth",
+    why: "What it is called now. Names the thing only the simulation knows — what each droplet actually held — which is exactly what makes the page possible. Reads oddly in a row of plain nouns, and says nothing about the picture.",
+    caption: "Every droplet, placed by what was sequenced in it",
+    hint: "unchanged",
+  },
+];
+
+const host = document.getElementById("cands");
+for (const c of CANDS) {
+  const d = document.createElement("div");
+  d.className = "cand";
+  const h = document.createElement("h3");
+  h.textContent = `"${c.name}"`;
+  d.appendChild(h);
+  const row = document.createElement("div");
+  row.className = "row";
+  const lhs = document.createElement("div");
+  lhs.className = "lhs";
+  const seg = document.createElement("div");
+  seg.className = "w-seg";
+  for (const [label, on] of [["Metrics", false], ["Thresholds", false], [c.name, true]]) {
+    const b = document.createElement("button");
+    b.className = "w-seg-btn";
+    b.type = "button";
+    b.textContent = label;
+    if (on) b.setAttribute("aria-pressed", "true");
+    seg.appendChild(b);
+  }
+  lhs.appendChild(seg);
+  const cap = document.createElement("p");
+  cap.className = "capline";
+  cap.textContent = c.caption;
+  lhs.appendChild(cap);
+  const hint = document.createElement("p");
+  hint.className = "caphint";
+  hint.textContent = `the panel caption — ${c.hint}`;
+  lhs.appendChild(hint);
+  const rhs = document.createElement("div");
+  rhs.className = "rhs";
+  rhs.textContent = c.why;
+  row.appendChild(lhs);
+  row.appendChild(rhs);
+  d.appendChild(row);
+  host.appendChild(d);
+}
+
+const calls = [
+  ["1 &middot; the third page's name", "<b>Cost (recommended)</b> | What was removed | Cells kept | Truth, unchanged"],
+  ["2 &middot; does the map say what space it is?", "<b>leave the caption as it is (recommended): a droplet is placed by what was sequenced in it, which IS the space cells are compared in, said without borrowing a method's name</b> | add a note, &ldquo;the space the cells are compared in&rdquo; | name it as the projection it is"],
+];
+document.getElementById("calls").innerHTML = calls.map(([q, a]) => `<p class="q"><b>${q}</b> &nbsp; ${a}</p>`).join("");
+</script>
+</body>
+</html>

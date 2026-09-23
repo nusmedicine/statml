@@ -418,6 +418,10 @@ function drawThresholds(ctx, colors, w, state, stage, p, hover) {
   ctx.fillStyle = colors.ink2;
   ctx.textAlign = "left";
   ctx.fillText("Droplets, one bar a sample", rect.x, rect.y - 10);
+  ctx.font = `${colors.fsXs} ${colors.font}`;
+  ctx.fillStyle = stage < STAGES ? colors.reference : colors.ink3;
+  ctx.textAlign = "right";
+  ctx.fillText(appliedNote(stage), rect.x + rect.w, rect.y - 10);
   ctx.restore();
   SAMPLES.forEach((s, si) => {
     const t = tally[s.key];
@@ -562,7 +566,23 @@ function drawTruth(ctx, colors, w, state, stage, p, hover) {
   ctx.font = `600 ${colors.fsSm} ${colors.font}`;
   ctx.fillStyle = colors.ink2;
   ctx.textAlign = "left";
-  ctx.fillText("Every droplet, placed by what was sequenced in it", rect.x, rect.y - 10);
+  const cap = "Every droplet, placed by what was sequenced in it";
+  ctx.fillText(cap, rect.x, rect.y - 10);
+  const capRight = rect.x + ctx.measureText(cap).width;
+  ctx.font = `${colors.fsXs} ${colors.font}`;
+  ctx.fillStyle = stage < STAGES ? colors.reference : colors.ink3;
+  ctx.textAlign = "right";
+  /* the note shares the caption's line where there is room and drops inside
+     the frame where there is not — core's own rule for a note, and on a 534px
+     canvas the caption takes the whole line (the text-overlap sweep, 91px) */
+  const noteW = ctx.measureText(appliedNote(stage)).width;
+  const roomOnLine = rect.x + rect.w - noteW > capRight + 14;
+  ctx.textBaseline = roomOnLine ? "alphabetic" : "top";
+  ctx.strokeStyle = colors.surface;
+  ctx.lineWidth = 3;
+  const nx = rect.x + rect.w - (roomOnLine ? 0 : 3), ny = roomOnLine ? rect.y - 10 : rect.y + 4;
+  ctx.strokeText(appliedNote(stage), nx, ny);
+  ctx.fillText(appliedNote(stage), nx, ny);
   ctx.restore();
   /* how far a droplet has been removed: 0 while its rule has not been pressed */
   const gone = (i) => {
@@ -650,6 +670,43 @@ function drawTruth(ctx, colors, w, state, stage, p, hover) {
     ctx.restore();
   }
 }
+
+/* --- WHAT HAS BEEN REMOVED SO FAR ------------------------------------------
+   The rules are applied one press at a time, so every number the pages print
+   has to be counted over the rules applied SO FAR. Reporting only the finished
+   filter left the readout saying "none of the three rules has been applied
+   yet" after the reader had taken two of them (found by Kenneth, 2026-09-23,
+   from the other end: he moved a threshold, nothing moved, and the readout
+   agreed with the wrong one of the two possible reasons). */
+function atStage(state, stage) {
+  const { cells, removedAt } = state;
+  const c = { kept: 0, byRule: [0, 0, 0], removedGood: 0, removedBad: 0, keptGood: 0, keptBad: 0, keptDoublet: 0, keptDying: 0, keptEmpty: 0, bySample: {} };
+  for (const s of SAMPLES) c.bySample[s.key] = { n: 0, kept: 0, by: { genes: 0, transcripts: 0, mt: 0 } };
+  cells.forEach((cell, i) => {
+    const r = removedAt[i], row = c.bySample[cell.sample];
+    row.n += 1;
+    if (r > 0 && r <= stage) {
+      c.byRule[r - 1] += 1;
+      row.by[RULES[r - 1]] += 1;
+      if (cell.state === "good") c.removedGood += 1; else c.removedBad += 1;
+      return;
+    }
+    c.kept += 1;
+    row.kept += 1;
+    if (cell.state === "good") { c.keptGood += 1; return; }
+    c.keptBad += 1;
+    if (cell.state === "doublet") c.keptDoublet += 1;
+    else if (cell.state === "dying") c.keptDying += 1;
+    else c.keptEmpty += 1;
+  });
+  return c;
+}
+
+/* What the figure says about itself while the walkthrough is part-way: a
+   threshold moved before the rules are applied changes nothing a reader can
+   see, and the panel has to say which of the two reasons that is. */
+const appliedNote = (stage) =>
+  (stage === 0 ? "no rule applied yet" : stage === 1 ? "one rule applied" : stage === 2 ? "two rules applied" : "all three rules applied");
 
 /* --- the tallies the pages read ------------------------------------------- */
 function tallyBy(cells, removedAt) {
@@ -885,9 +942,8 @@ defineWidget({
 
   readout: ({ params, state, anim }) => {
     const stage = anim ? anim.n : Number(params.shown) || 0;
-    const { tally, conf, overlap, medians, cost, thr, sweep } = state;
+    const { tally, overlap, medians, cost, thr, sweep } = state;
     const total = SAMPLES.reduce((a, s) => a + tally[s.key].n, 0);
-    const kept = SAMPLES.reduce((a, s) => a + tally[s.key].kept, 0);
     if (params.page === "metrics") {
       const hi = SAMPLES.slice().sort((a, b) => medians[b.key].mt - medians[a.key].mt)[0];
       const lo = SAMPLES.slice().sort((a, b) => medians[a.key].mt - medians[b.key].mt)[0];
@@ -906,39 +962,45 @@ defineWidget({
         },
       ];
     }
+    /* EVERY NUMBER BELOW IS COUNTED OVER THE RULES APPLIED SO FAR, not over
+       the finished filter: a walkthrough that reports nothing until its last
+       press tells the reader who has taken two that they have taken none. */
+    const A = atStage(state, stage);
     if (params.page === "thresholds") {
-      const worst = SAMPLES.slice().sort((a, b) => tally[a.key].kept / tally[a.key].n - tally[b.key].kept / tally[b.key].n)[0];
-      const t = tally[worst.key];
+      const worst = SAMPLES.slice().sort((a, b) => A.bySample[a.key].kept / A.bySample[a.key].n - A.bySample[b.key].kept / A.bySample[b.key].n)[0];
+      const t = A.bySample[worst.key];
       const at20 = sweep[worst.key][Math.round((20 - 2) / 0.5)];
+      const applied = RULES.slice(0, stage).map((r, k) => `${RULE_NAME[r]} ${A.byRule[k]}`).join(", ");
       return [
         {
           label: "Droplets kept",
-          value: stage >= STAGES ? `${kept} of ${total}` : `${total}`,
-          note: stage >= STAGES
-            ? `too few genes ${SAMPLES.reduce((a, s) => a + tally[s.key].by.genes, 0)}, too few transcripts ${SAMPLES.reduce((a, s) => a + tally[s.key].by.transcripts, 0)}, too high a mitochondrial % ${SAMPLES.reduce((a, s) => a + tally[s.key].by.mt, 0)}`
-            : "none of the three rules has been applied yet",
+          value: `${A.kept} of ${total}`,
+          note: stage > 0
+            ? `${applied}; a threshold moved now moves these`
+            : `no rule applied yet: the three rules go on one press at a time, and a threshold set before that changes nothing until they do`,
         },
         {
           label: `Kept in ${worst.name}, the sample that keeps fewest`,
-          value: stage >= STAGES ? `${Math.round((100 * t.kept) / t.n)}%` : "—",
+          value: `${Math.round((100 * t.kept) / t.n)}%`,
           note: stage >= STAGES
             ? `${Math.round(100 * at20)}% of it would be kept at a mitochondrial rule of 20 instead of ${thr.mt}; its median is ${fmt(medians[worst.key].mt, 1)}%`
-            : "take the three presses",
+            : `${appliedNote(stage)}; its median mitochondrial % is ${fmt(medians[worst.key].mt, 1)}`,
         },
       ];
     }
+    const removed = A.removedGood + A.removedBad;
     return [
       {
         label: "Removed droplets that held one good cell",
-        value: stage >= STAGES ? `${conf.removedGood} of ${conf.removedGood + conf.removedBad}` : "—",
-        note: stage >= STAGES
-          ? `${Math.round((100 * conf.removedGood) / Math.max(1, conf.removedGood + conf.removedBad))}% of the removals; the other ${conf.removedBad} held a dying cell, two cells, or no cell at all`
-          : "take the three presses",
+        value: removed ? `${A.removedGood} of ${removed}` : "none removed yet",
+        note: removed
+          ? `${Math.round((100 * A.removedGood) / removed)}% of the removals; the other ${A.removedBad} held a dying cell, two cells, or no cell at all`
+          : `no rule applied yet: the three rules go on one press at a time, and a threshold set before that changes nothing until they do`,
       },
       {
         label: "Kept droplets that do not hold one good cell",
-        value: stage >= STAGES ? `${conf.keptBad} of ${conf.keptGood + conf.keptBad}` : "—",
-        note: stage >= STAGES ? `${conf.keptDoublet} hold two cells, ${conf.keptDying} a dying cell, ${conf.keptEmpty} no cell` : "take the three presses",
+        value: `${A.keptBad} of ${A.kept}`,
+        note: `${A.keptDoublet} hold two cells, ${A.keptDying} a dying cell, ${A.keptEmpty} no cell; ${appliedNote(stage)}`,
       },
       {
         label: "Good cells removed for each doublet caught",
