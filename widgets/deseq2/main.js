@@ -41,18 +41,19 @@
  */
 import { defineWidget, fmt, mathmlRenders } from "../core/index.js";
 import { makeRng } from "../core/rng.js";
-import { simulate, analyse, nbDraw, nbPmf, poissonPmf, crLogLik, log2, median } from "./engine.js";
+import { simulate, analyse, nbDraw, nbPmf, poissonPmf, crLogLik, log2, median, TREND_TRUE } from "./engine.js";
 
 const GENES = 1200;
 const REPS = ["2", "3", "4", "6"];
 const MUS = ["10", "100", "1000"];
 const ALPHAS = ["0.01", "0.05", "0.5"];
 const SHOWN_GENES = 60;
+const HEAT_ROWS = 30;
 /* FOUR PAGES IN THE VIGNETTE'S ORDER (his rounds 5 and 6, 2026-09-22): the
    distribution assumed; the dispersion shrunk; the GLM fitted, its coefficient
    tested, and the fold change shrunk a second time for the plot and the
    ranking — DESeq(), results() and lfcShrink() — and last the transform, a
-   separate call whose values the PCA and the heatmap take and the test does
+   separate call whose values a heatmap or a PCA take and the test does
    not. Round 5 had the transform as a button under every page, which read as
    part of every page; the vignette's "Data transformations and visualization"
    is its own section after the analysis, and so is this. */
@@ -60,7 +61,7 @@ const PAGES = [
   { value: "distribution", label: "Distribution" },
   { value: "shrinkage", label: "Shrinkage" },
   { value: "fit", label: "Fit and test" },
-  { value: "transform", label: "Transform", detail: "a separate call after the fit: the PCA and the heatmap take these values; the test does not" },
+  { value: "transform", label: "Transform", detail: "a separate call after the fit: a heatmap or a PCA takes these values; the test does not" },
 ];
 const ON = (page) => ({ param: "page", equals: page });
 const HEIGHTS = { distribution: 300, shrinkage: 340, fit: 500, transform: 300 };
@@ -71,7 +72,10 @@ const HEIGHTS = { distribution: 300, shrinkage: 340, fit: 500, transform: 300 };
    prior × likelihood as the posterior, its mode the shrunk estimate — then every
    gene's arrow. On the Fit page (round 6): the fit, then the test, then the
    fold change shrunk a second time. Steps that are read get Step alone (4.5). */
-const STAGES = { shrinkage: 3, fit: 2 };
+/* Round 11 (his pick): the Fit page is four presses — the test, then the fold
+   change shrunk step by step as the dispersion was: the prior fitted to every
+   gene's estimate, the one gene's likelihood times it, every gene pulled. */
+const STAGES = { shrinkage: 3, fit: 4 };
 const STEP_MS = 700;
 const stagesOf = (page) => STAGES[page] ?? 0;
 /* the walk panel's α axis, log10 */
@@ -113,33 +117,52 @@ function hoverAt(pointer, w, state) {
   }
   return best;
 }
-/* THE PCA OF THE SAMPLES under each unit (his round 8, 2026-09-23: "a practical
-   way of showing the importance of the transforms for visualisation"), the
-   notebook's own next figure with `vsd`. Six to twelve samples, so the
-   sample-by-sample covariance is tiny and two power iterations give PC1 and
-   PC2. Measured first: under raw counts the top 1% of genes hold 67–90% of the
-   variance and PC1 does not split the groups; under the vst it does. PC1 is
-   oriented so group B's centre is positive and PC2 so the first sample is,
-   because a unit switch must not flip the picture for no reason. */
-function pcaOf(norm, fn, grp, keep) {
-  const n = grp.length;
-  const X = []; const vars = [];
-  for (const g of keep) { const t = norm[g].map(fn); const m = mean(t); const r = t.map((v) => v - m); X.push(r); vars.push(r.reduce((a, v) => a + v * v, 0) / (n - 1)); }
+/* THE HEATMAP OF THE MOST VARIABLE GENES under each unit (his pick, round 11,
+   2026-09-23, in place of the PCA of round 8: "a heatmap would be better to
+   show why it is important to use transformed values ... can we indicate the
+   ground truth?"). Rows are the HEAT_ROWS genes with the largest SD across the
+   samples IN THAT UNIT, ranked; a tick beside a row is the truth. Measured
+   first (`_lab/deseq2-heat-measure.mjs`): of the 30 most variable genes
+   25–43% truly changed under counts and 80–100% under the vst — under counts
+   the most variable genes are the highest-count ones, changed or not. The
+   notebook's sample-correlation heatmap told the groups apart in no unit
+   (a gap of 0.00–0.02), so it is not here. */
+function heatOf(norm, fn, keep, sim, baseMean) {
+  const sdOf = {}, vars = [];
+  for (const g of keep) { const v = sd(norm[g].map(fn)); sdOf[g] = v; vars.push(v * v); }
   const total = vars.reduce((a, v) => a + v, 0) || 1;
-  const C = Array.from({ length: n }, (_, i) => Array.from({ length: n }, (_, j) => X.reduce((a, r) => a + r[i] * r[j], 0)));
-  const tr = C.reduce((a, r, i) => a + r[i], 0) || 1;
-  const power = (M) => { let v = Array.from({ length: n }, (_, i) => Math.cos(i + 1)); for (let it = 0; it < 300; it += 1) { const w = M.map((r) => r.reduce((a, x, j) => a + x * v[j], 0)); const nrm = Math.sqrt(w.reduce((a, x) => a + x * x, 0)) || 1; v = w.map((x) => x / nrm); } const lam = v.reduce((a, vi, i) => a + vi * M[i].reduce((t, x, j) => t + x * v[j], 0), 0); return { v, lam: Math.max(0, lam) }; };
-  const p1 = power(C), C2 = C.map((r, i) => r.map((x, j) => x - p1.lam * p1.v[i] * p1.v[j])), p2 = power(C2);
-  let s1 = p1.v.map((x) => x * Math.sqrt(p1.lam)), s2 = p2.v.map((x) => x * Math.sqrt(p2.lam));
-  const cen = (sc, k) => mean(sc.filter((_, j) => grp[j] === k));
-  if (cen(s1, 1) < cen(s1, 0)) s1 = s1.map((x) => -x);
-  if (s2[0] < 0) s2 = s2.map((x) => -x);
-  const c = [0, 1].map((k) => [cen(s1, k), cen(s2, k)]);
-  const between = Math.hypot(c[0][0] - c[1][0], c[0][1] - c[1][1]);
-  const within = mean(grp.map((k, j) => Math.hypot(s1[j] - c[k][0], s2[j] - c[k][1]))) || 1;
   const sorted = vars.slice().sort((a, b) => b - a);
   const top1 = sorted.slice(0, Math.ceil(sorted.length * 0.01)).reduce((a, v) => a + v, 0) / total;
-  return { s1, s2, share1: p1.lam / tr, share2: p2.lam / tr, ratio: between / within, top1 };
+  const rows = keep.slice().sort((a, b) => sdOf[b] - sdOf[a]).slice(0, HEAT_ROWS);
+  const vals = rows.map((g) => norm[g].map(fn));
+  const flat = vals.flat(), lo = Math.min(...flat), hi = Math.max(...flat);
+  const index = {}, t = {};
+  rows.forEach((g, i) => { index[g] = i; t[g] = vals[i].map((v) => (v - lo) / (hi - lo || 1)); });
+  return { rows, index, t, de: rows.filter((g) => sim.isDE[g]).length, medMean: median(rows.map((g) => baseMean[g])), top1 };
+}
+
+/* the Fit page's geometry, one place for the drawing and the hover test (5.8) */
+const FIT_TOP = 210, FIT_Y1 = FIT_TOP - 36;
+const fitLayout = (w) => ({ TOP: FIT_TOP, third: Math.floor(w / 3), half: Math.floor(w / 2) });
+const fitMaLeft = (w) => ({ x0: 44, y0: FIT_TOP + 10, x1: Math.floor(w / 2) - 16, y1: HEIGHTS.fit - 40 });
+const MA_X = [0, 4.3], MA_Y = [-6, 6], BETA_X = [-4, 4];
+/* HOVER on the Fit page (his round 11): pointing at a gene on the MA plot fits
+   it above and walks its fold change through the three curves; nothing is
+   written, and with no pointer the gene is the one chosen at compute */
+function hoverFit(pointer, w, state) {
+  if (!pointer) return null;
+  const R = fitMaLeft(w);
+  if (pointer.x < R.x0 || pointer.x > R.x1 || pointer.y < R.y0 || pointer.y > R.y1) return null;
+  const sx = (v) => R.x0 + ((v - MA_X[0]) / (MA_X[1] - MA_X[0])) * (R.x1 - R.x0);
+  const sy = (v) => R.y1 - ((v - MA_Y[0]) / (MA_Y[1] - MA_Y[0])) * (R.y1 - R.y0);
+  let best = null, d2 = 10 * 10;
+  for (const g of state.an.expressed) {
+    const bm = state.per.bmLog[g], y = state.per.lfc[g];
+    if (!Number.isFinite(bm) || !Number.isFinite(y)) continue;
+    const d = (pointer.x - sx(bm)) ** 2 + (pointer.y - sy(y)) ** 2;
+    if (d < d2) { d2 = d; best = g; }
+  }
+  return best;
 }
 
 /* what draw() last painted, for the ease a data change asks for */
@@ -172,10 +195,11 @@ const FORMULAS = {
     plain: "posterior(α) ∝ L(α) × prior(α),   α_MAP = argmax_α [ log L(α) + log prior(α) ]",
     note: "the posterior's mode is the shrunk estimate: a wide likelihood is pulled to the prior, a sharp one stays; a gene far above the trend is left at its own estimate",
   },
-  transform: { math: "<math><mrow><mi>vst</mi><mo>(</mo><mi>x</mi><mo>)</mo><mo>=</mo><msub><mi>log</mi><mn>2</mn></msub><mfrac><mrow><mn>1</mn><mo>+</mo><msub><mi>a</mi><mn>1</mn></msub><mo>+</mo><mn>2</mn><msub><mi>a</mi><mn>0</mn></msub><mi>x</mi><mo>+</mo><mn>2</mn><msqrt><msub><mi>a</mi><mn>0</mn></msub><mi>x</mi><mo>(</mo><mn>1</mn><mo>+</mo><msub><mi>a</mi><mn>1</mn></msub><mo>+</mo><msub><mi>a</mi><mn>0</mn></msub><mi>x</mi><mo>)</mo></msqrt></mrow><mrow><mn>4</mn><msub><mi>a</mi><mn>0</mn></msub></mrow></mfrac></mrow></math>", plain: "vst(x) = log2 [ (1 + a1 + 2 a0 x + 2 √(a0 x (1 + a1 + a0 x))) / (4 a0) ]", note: "the closed form for a trend α = a0 + a1 / μ: values whose SD across replicates is the same at every mean, for the PCA and the heatmap, which put every gene on one axis; the test needs no transform, since it models each gene's own variance" },
+  transform: { math: "<math><mrow><mi>vst</mi><mo>(</mo><mi>x</mi><mo>)</mo><mo>=</mo><msub><mi>log</mi><mn>2</mn></msub><mfrac><mrow><mn>1</mn><mo>+</mo><msub><mi>a</mi><mn>1</mn></msub><mo>+</mo><mn>2</mn><msub><mi>a</mi><mn>0</mn></msub><mi>x</mi><mo>+</mo><mn>2</mn><msqrt><msub><mi>a</mi><mn>0</mn></msub><mi>x</mi><mo>(</mo><mn>1</mn><mo>+</mo><msub><mi>a</mi><mn>1</mn></msub><mo>+</mo><msub><mi>a</mi><mn>0</mn></msub><mi>x</mi><mo>)</mo></msqrt></mrow><mrow><mn>4</mn><msub><mi>a</mi><mn>0</mn></msub></mrow></mfrac></mrow></math>", plain: "vst(x) = log2 [ (1 + a1 + 2 a0 x + 2 √(a0 x (1 + a1 + a0 x))) / (4 a0) ]", note: "the closed form for a trend α = a0 + a1 / μ: values whose SD across replicates is the same at every mean, for a heatmap or a PCA, which put every gene on one axis; the test needs no transform, since it models each gene's own variance" },
   fit0: { math: "<math><mrow><mi>log</mi><msub><mi>μ</mi><mi>ij</mi></msub><mo>=</mo><msub><mi>β</mi><mn>0</mn></msub><mo>+</mo><msub><mi>β</mi><mn>1</mn></msub><msub><mi>x</mi><mi>j</mi></msub></mrow></math>", plain: "log μ_ij = β0 + β1 x_j", note: "the GLM: x_j is 0 in group A and 1 in group B, so β0 is group A's log mean and β1 the log fold change, fitted at the shrunk dispersion" },
-  fit1: { math: "<math><mrow><mi>W</mi><mo>=</mo><mfrac><msub><mi>β</mi><mn>1</mn></msub><mrow><mi>SE</mi><mo>(</mo><msub><mi>β</mi><mn>1</mn></msub><mo>)</mo></mrow></mfrac><mo>,</mo><mspace width=\"0.8em\"></mspace><mi>p</mi><mo>=</mo><mn>2</mn><mo>·</mo><mi>P</mi><mo>(</mo><mi>Z</mi><mo>&gt;</mo><mo>|</mo><mi>W</mi><mo>|</mo><mo>)</mo></mrow></math>", plain: "W = β1 / SE(β1),   p = 2 · P(Z > |W|)", note: "the Wald test: the coefficient over its standard error, compared with a standard normal; padj is Benjamini–Hochberg over all genes" },
-  fit2: { math: "<math><mrow><mover><msub><mi>β</mi><mn>1</mn></msub><mo>~</mo></mover><mo>=</mo><mi>E</mi><mo>[</mo><msub><mi>β</mi><mn>1</mn></msub><mo>|</mo><mi>data</mi><mo>]</mo><mo>,</mo><mspace width=\"0.8em\"></mspace><mi>prior</mi><mo>(</mo><msub><mi>β</mi><mn>1</mn></msub><mo>)</mo><mo>=</mo><msub><mi>π</mi><mn>0</mn></msub><mi>δ</mi><mo>(</mo><mn>0</mn><mo>)</mo><mo>+</mo><mo>(</mo><mn>1</mn><mo>−</mo><msub><mi>π</mi><mn>0</mn></msub><mo>)</mo><mi>N</mi><mo>(</mo><mn>0</mn><mo>,</mo><msup><mi>τ</mi><mn>2</mn></msup><mo>)</mo></mrow></math>", plain: "β̃1 = E[β1 | data],   prior(β1) = π0 δ(0) + (1 − π0) N(0, τ²)", note: "a second shrinkage, on the fold change after the test: the same prior-over-all-genes idea as the dispersion's, a spike at zero and a normal fitted to every gene's estimate; for the plot and the ranking, the test's p is unchanged" },
+  fit1: { math: "<math><mrow><mi>W</mi><mo>=</mo><mfrac><msub><mi>β</mi><mn>1</mn></msub><mrow><mi>SE</mi><mo>(</mo><msub><mi>β</mi><mn>1</mn></msub><mo>)</mo></mrow></mfrac><mo>,</mo><mspace width=\"0.8em\"></mspace><mi>p</mi><mo>=</mo><mn>2</mn><mo>·</mo><mi>P</mi><mo>(</mo><mi>Z</mi><mo>&gt;</mo><mo>|</mo><mi>W</mi><mo>|</mo><mo>)</mo></mrow></math>", plain: "W = β1 / SE(β1),   p = 2 · P(Z > |W|)", note: "the Wald test: the coefficient over its standard error, which comes from the weights μ / (1 + αμ) at the shrunk α; W is compared with a standard normal, and padj is Benjamini–Hochberg over all genes" },
+  fit2: { math: "<math><mrow><mi>prior</mi><mo>(</mo><msub><mi>β</mi><mn>1</mn></msub><mo>)</mo><mo>=</mo><msub><mi>π</mi><mn>0</mn></msub><mi>δ</mi><mo>(</mo><mn>0</mn><mo>)</mo><mo>+</mo><mo>(</mo><mn>1</mn><mo>−</mo><msub><mi>π</mi><mn>0</mn></msub><mo>)</mo><mi>N</mi><mo>(</mo><mn>0</mn><mo>,</mo><msup><mi>τ</mi><mn>2</mn></msup><mo>)</mo></mrow></math>", plain: "prior(β1) = π0 δ(0) + (1 − π0) N(0, τ²)", note: "a prior over every gene's fold change, as the trend was over every gene's dispersion: a spike at zero, since most genes are unchanged, and a normal for the rest; the spike's share π0 and the normal's width τ are fitted to all the estimates and their SEs" },
+  fit3: { math: "<math><mrow><mover><msub><mi>β</mi><mn>1</mn></msub><mo>~</mo></mover><mo>=</mo><mi>E</mi><mo>[</mo><msub><mi>β</mi><mn>1</mn></msub><mo>|</mo><mi>data</mi><mo>]</mo><mo>,</mo><mspace width=\"0.8em\"></mspace><mi>likelihood</mi><mo>(</mo><msub><mi>β</mi><mn>1</mn></msub><mo>)</mo><mo>≈</mo><mi>N</mi><mo>(</mo><mover><msub><mi>β</mi><mn>1</mn></msub><mo>^</mo></mover><mo>,</mo><msup><mi>SE</mi><mn>2</mn></msup><mo>)</mo></mrow></math>", plain: "β̃1 = E[β1 | data],   likelihood(β1) ≈ N(β̂1, SE²)", note: "the likelihood of β1 is a normal at the estimate with the SE as its width; times the prior it is the posterior, whose mean is the shrunk fold change: a wide likelihood, from a low count, is pulled to the spike and a sharp one stays; the test's p is unchanged" },
 };
 let mathHost = null, mathKey = null;
 function renderFormula(page, stage = 0) {
@@ -186,7 +210,7 @@ function renderFormula(page, stage = 0) {
     mathHost.className = "w-math";
     figure.parentNode.insertBefore(mathHost, figure);
   }
-  const key = page === "shrinkage" ? `shrinkage${Math.min(2, stage)}` : page === "fit" ? `fit${Math.min(2, stage)}` : page;
+  const key = page === "shrinkage" ? `shrinkage${Math.min(2, stage)}` : page === "fit" ? `fit${Math.min(3, stage)}` : page;
   if (mathKey === key) return;
   mathKey = key;
   const F = FORMULAS[key];
@@ -264,16 +288,22 @@ defineWidget({
       detail: "1,200 genes, a tenth of them changed between the groups",
       options: REPS.map((r) => ({ value: r, label: r })), default: "3",
     },
+    /* α IS THE SIMULATION'S (his pick, round 11, 2026-09-23: on the Distribution
+       page the controls moved nothing on the right). Every gene's true dispersion
+       scatters around α + 2 / mean, so the whole stage — the trend, the calls,
+       the transform — answers it; the one gene on the left is drawn at α itself.
+       Measured: at 0.5 and three replicates the test calls 30–45 genes with a
+       false discovery rate of 30–58%; at 0.01, 111–131 with 16–24%. */
+    alpha: {
+      type: "choice", label: "Dispersion α", detail: "the variance beyond Poisson, as a share of the mean squared; every gene's own α scatters around it, higher at low counts",
+      options: ALPHAS.map((a) => ({ value: a, label: a })), default: "0.05",
+    },
     seed: { type: "int", label: "Seed", min: 1, max: 200, default: 1 },
 
     modelSec: { type: "section", label: "One gene", when: ON("distribution") },
     mu: {
       type: "choice", label: "Mean count", detail: "the gene's expected count in every replicate",
       options: MUS.map((m) => ({ value: m, label: bigNum(Number(m)) })), default: "100", when: ON("distribution"),
-    },
-    alpha: {
-      type: "choice", label: "Dispersion α", detail: "the variance beyond Poisson, as a share of the mean squared",
-      options: ALPHAS.map((a) => ({ value: a, label: a })), default: "0.05", when: ON("distribution"),
     },
 
 
@@ -285,7 +315,7 @@ defineWidget({
     },
 
     /* authoring escape hatch, first render only: presses already taken on the page that opens */
-    shown: { type: "int", min: 0, max: 3, default: 0, hidden: true },
+    shown: { type: "int", min: 0, max: 4, default: 0, hidden: true },
   },
 
   legend: ({ params }) => {
@@ -293,8 +323,10 @@ defineWidget({
     if (p === "transform") return [
       { token: "empirical", label: "An unchanged gene: the SD of its values across replicates; the transform", mark: "bar" },
       { token: "theory", label: "Median SD in a bin of means", mark: "line" },
-      { token: "group-a", label: "A sample of group A, on its PCs", mark: "bar" },
+      { token: "magnitude", label: "A gene's value in a sample, dark to bright on the unit's own scale", mark: "bar" },
+      { token: "group-a", label: "The band: a sample of group A", mark: "bar" },
       { token: "group-b", label: "A sample of group B", mark: "bar" },
+      { token: "reference", label: "A tick: a gene that truly changed", mark: "line" },
     ];
     if (p === "distribution") return [
       { token: "empirical", label: "A replicate's count; a gene", mark: "bar" },
@@ -311,7 +343,7 @@ defineWidget({
     return [
       { token: "empirical", label: "A replicate's count; a gene", mark: "bar" },
       { token: "theory", label: "A group's mean: the GLM's coefficient", mark: "line" },
-      { token: "highlight", label: "β and its SE; on the MA plot, the gene fitted above", mark: "line" },
+      { token: "highlight", label: "β and its SE; on the MA plot, the gene fitted above: point at another", mark: "line" },
       { token: "extreme", label: "padj < 0.1: called changed", mark: "bar" },
       { token: "reference", label: "A ring: a gene that truly changed", mark: "bar" },
     ];
@@ -324,10 +356,10 @@ defineWidget({
   compute: ({ params, rng }) => {
     const reps = Number(params.reps);
     const simRng = makeRng(Math.floor(rng.next() * 2 ** 31)), geneRng = makeRng(Math.floor(rng.next() * 2 ** 31));
-    const sim = simulate(simRng, { genes: GENES, reps });
+    const mu = Number(params.mu), alpha = Number(params.alpha);
+    const sim = simulate(simRng, { genes: GENES, reps, trend: { a0: alpha, a1: TREND_TRUE.a1 } });
     const an = analyse(sim);
     const nullG = an.expressed.filter((g) => !sim.isDE[g]), deG = an.expressed.filter((g) => sim.isDE[g]);
-    const mu = Number(params.mu), alpha = Number(params.alpha);
     const draws = Array.from({ length: 2 * reps }, () => nbDraw(geneRng, mu, alpha));
     /* the 60 genes the Dispersion page draws, spread evenly over the TRUE
        means, so the set is the same at every replicate count of one seed */
@@ -369,8 +401,7 @@ defineWidget({
       sdLog2: norm.map((row, g) => (isNull.has(g) ? log10(Math.max(0.05, Math.min(2, sd(row.map((v) => log2(v + 1)))))) : NaN)),
       sdVst: norm.map((row, g) => (isNull.has(g) ? log10(Math.max(0.05, Math.min(2, sd(row.map(an.vst))))) : NaN)),
     };
-    const keepPca = an.expressed;
-    const pcaBy = { raw: pcaOf(norm, (v) => v, sim.grp, keepPca), log2: pcaOf(norm, (v) => log2(v + 1), sim.grp, keepPca), vst: pcaOf(norm, an.vst, sim.grp, keepPca) };
+    const heatBy = { raw: heatOf(norm, (v) => v, an.expressed, sim, an.baseMean), log2: heatOf(norm, (v) => log2(v + 1), an.expressed, sim, an.baseMean), vst: heatOf(norm, an.vst, an.expressed, sim, an.baseMean) };
     const bins = [[1, 5], [5, 20], [20, 100], [100, 1000], [1000, 1e9]];
     const sdBins = bins.map(([a, b]) => {
       const gs = nullG.filter((g) => an.baseMean[g] >= a && an.baseMean[g] < b);
@@ -378,7 +409,7 @@ defineWidget({
       return { a, b, n: gs.length, raw: s((v) => v), log2: s((v) => log2(v + 1)), vst: s(an.vst) };
     });
     return {
-      sim, an, nullG, deG, reps, mu, alpha, draws, shown, walk, curvesByGene, ex, per, sdBins, pcaBy,
+      sim, an, nullG, deG, reps, mu, alpha, draws, shown, walk, curvesByGene, ex, per, sdBins, heatBy,
       calledGW: called(an.resGW), calledMAP: called(an.resMAP),
       funnel: { lowNull: lowNull.length, before: over1((g) => an.resMAP[g].lfc, lowNull), after: over1((g) => an.shrunk[g], lowNull) },
       cost: { deBig: deBig.length, before: over1((g) => an.resMAP[g].lfc, deBig), after: over1((g) => an.shrunk[g], deBig) },
@@ -393,13 +424,15 @@ defineWidget({
      `init`, which asks core for an ease when there is a last picture to ease
      from, and puts the walkthrough back at its first step. */
   animation: {
-    stepLabel: { anim: "labelAt", labels: { s0: "Fit the trend", s1: "Multiply by the prior", s2: "Shrink every gene", f0: "Test", f1: "Shrink the fold changes too", done: "Step" }, default: "Step" },
+    stepLabel: { anim: "labelAt", labels: { s0: "Fit the trend", s1: "Multiply by the prior", s2: "Shrink every gene", f0: "Test", f1: "Fit the prior", f2: "Multiply by the prior", f3: "Shrink every gene", done: "Step" }, default: "Step" },
     stepTitle: { anim: "labelAt", labels: {
       s0: "Fit the trend through every gene's own estimate: the prior's centre, and its width from their spread",
       s1: "Multiply the one gene's likelihood by the prior: the posterior, whose mode is the shrunk estimate",
       s2: "Pull every gene's estimate toward the trend the same way",
       f0: "Divide the coefficient by its standard error: W, its p, and padj over all genes",
-      f1: "Shrink the fold change a second time, after the test, for the plot and the ranking",
+      f1: "Fit a prior to every gene's fold change: a spike at zero and a normal, their shares and its width from the whole set",
+      f2: "Multiply the one gene's likelihood by the prior: the posterior, whose mean is the shrunk fold change",
+      f3: "Pull every gene's fold change toward zero the same way, after the test, for the plot and the ranking",
       done: "Every step of this page has been taken",
     }, default: "Step through this page" },
     runLabel: null,
@@ -454,7 +487,7 @@ defineWidget({
     if (params.page === "distribution") drawDistribution(ctx, colors, w, state, D);
     else if (params.page === "shrinkage") drawShrinkage(ctx, colors, w, state, stage, p, D, hoverAt(pointer, w, state));
     else if (params.page === "transform") drawTransform(ctx, colors, w, state, anim ? anim.from.unit : params.unit, anim ? anim.to.unit : params.unit, anim ? easeInOut(anim.t.unit) : 1, D);
-    else drawFit(ctx, colors, w, state, stage, p, D);
+    else drawFit(ctx, colors, w, state, stage, p, D, hoverFit(pointer, w, state));
     lastState = state;
     lastParams = { reps: params.reps, seed: params.seed, mu: params.mu, alpha: params.alpha };
   },
@@ -463,16 +496,16 @@ defineWidget({
     const { an, ex, mu, alpha } = state;
     const stage = anim ? (anim.n[params.page] ?? 0) : Number(params.shown) || 0;
     if (params.page === "transform") {
-      const lo = state.sdBins[1], hi = state.sdBins[3], u = params.unit, P = state.pcaBy[u];
+      const lo = state.sdBins[1], hi = state.sdBins[3], u = params.unit, Hm = state.heatBy[u];
       return [
         { label: `SD of the values across replicates, means 5–20 and 100–1,000`, value: `${fmt(lo[u], u === "raw" ? 1 : 2)} · ${fmt(hi[u], u === "raw" ? 1 : 2)}`, note: `medians over ${lo.n} and ${hi.n} unchanged genes${u === "vst" ? "; the same SD at every mean is what the transform is for" : u === "log2" ? "; under the log the low counts still have the larger SD" : "; the SD of the values grows with the mean"}` },
-        { label: "Top 1% of genes: their share of the total variance", value: `${(100 * P.top1).toFixed(0)}%`, note: u === "raw" ? "in a PCA or a heatmap of these values, those few genes are almost all of the distance" : "in a PCA or a heatmap of these values, every gene contributes" },
-        { label: "The two groups on PC1 and PC2: between ÷ within", value: fmt(P.ratio, 2), note: `the distance between the groups' centres over the spread within them; PC1 holds ${(100 * P.share1).toFixed(0)}% of the variance, PC2 ${(100 * P.share2).toFixed(0)}%` },
+        { label: `Truly changed among the ${HEAT_ROWS} most variable genes`, value: `${Hm.de} of ${HEAT_ROWS}`, note: `their median mean ${Math.round(Hm.medMean).toLocaleString("en-US")}; ${u === "raw" ? "the most variable counts are the highest counts, changed or not" : u === "log2" ? "under the log the low counts are the most variable, changed or not" : "with the same SD at every mean, the most variable genes are the changed ones"}` },
+        { label: "Top 1% of genes: their share of the total variance", value: `${(100 * Hm.top1).toFixed(0)}%`, note: u === "raw" ? "in a heatmap of these values, those few genes are almost all of the picture" : "in a heatmap of these values, every gene contributes" },
       ];
     }
     if (params.page === "distribution") return [
       { label: `SD of the gene's count, Poisson`, value: fmt(Math.sqrt(mu), 1), note: `√μ at μ = ${mu}` },
-      { label: `SD, negative binomial`, value: fmt(Math.sqrt(mu + alpha * mu * mu), 1), note: `√(μ + αμ²) at α = ${alpha}, which is ${(100 * Math.sqrt(mu + alpha * mu * mu) / mu).toFixed(0)}% of the mean; the ${state.draws.length} replicates drawn have SD ${fmt(sd(state.draws), 1)}` },
+      { label: `SD, negative binomial`, value: fmt(Math.sqrt(mu + alpha * mu * mu), 1), note: `√(μ + αμ²) at α = ${alpha}, which is ${(100 * Math.sqrt(mu + alpha * mu * mu) / mu).toFixed(0)}% of the mean; the ${state.draws.length} replicates drawn have SD ${fmt(sd(state.draws), 1)}; the trend fitted through the 1,200 genes reads ${fmt(an.trend.a0, 3)} at a high count` },
     ];
     if (params.page === "shrinkage") {
       const g = state.walk;
@@ -481,10 +514,10 @@ defineWidget({
         { label: "Unchanged genes called at padj < 0.1: gene-wise, then shrunk", value: stage >= 3 ? `${state.calledGW.nulls} → ${state.calledMAP.nulls}` : String(state.calledGW.nulls), note: `of ${state.nullG.length}; changed genes found ${state.calledGW.de}${stage >= 3 ? ` → ${state.calledMAP.de}` : ""} of ${state.deG.length}` },
       ];
     }
-    const r = an.resMAP[ex];
+    const r = an.resMAP[ex], { pi0, tau2 } = an.lfcPrior;
     return [
-      { label: "β: the log2 fold change of the gene", value: stage >= 2 ? `${fmt(r.lfc, 2)} → ${fmt(an.shrunk[ex], 2)}` : fmt(r.lfc, 2), note: `true ${fmt(state.sim.lfcT[ex], 2)}${stage >= 1 ? `; SE ${fmt(r.se, 2)}, W = ${fmt(r.W, 2)}, p = ${sci(r.p)}, padj = ${sci(r.padj)}` : "; the gap between the group means"}${stage >= 2 ? "; shrunk after the test, p unchanged" : ""}` },
-      { label: "Unchanged genes under a mean of 10 read at |LFC| > 1", value: stage >= 2 ? `${state.funnel.before} → ${state.funnel.after}` : String(state.funnel.before), note: `of ${state.funnel.lowNull}${stage >= 2 ? `; changed genes with a true |LFC| > 1 still read so: ${state.cost.before} → ${state.cost.after} of ${state.cost.deBig}; the calls come from the test and are unchanged` : stage >= 1 ? "; a low count gives a wide estimate of the fold change" : ""}` },
+      { label: "β: the log2 fold change of the gene", value: stage >= 3 ? `${fmt(r.lfc, 2)} → ${fmt(an.shrunk[ex], 2)}` : fmt(r.lfc, 2), note: `counts ${state.sim.counts[ex].join(" ")}; true ${fmt(state.sim.lfcT[ex], 2)}${stage >= 1 ? `; SE ${fmt(r.se, 2)}, W = ${fmt(r.W, 2)}, p = ${sci(r.p)}, padj = ${sci(r.padj)}` : "; the gap between the group means"}${stage >= 2 ? `; prior: spike ${fmt(pi0, 2)}, normal τ = ${fmt(Math.sqrt(tau2), 2)}` : ""}${stage >= 3 ? "; shrunk after the test, p unchanged" : ""}` },
+      { label: "Unchanged genes under a mean of 10 read at |LFC| > 1", value: stage >= 4 ? `${state.funnel.before} → ${state.funnel.after}` : String(state.funnel.before), note: `of ${state.funnel.lowNull}${stage >= 4 ? `; changed genes with a true |LFC| > 1 still read so: ${state.cost.before} → ${state.cost.after} of ${state.cost.deBig}; the calls come from the test and are unchanged` : stage >= 1 ? "; a low count gives a wide estimate of the fold change" : ""}` },
     ];
   },
 });
@@ -525,8 +558,18 @@ function drawDistribution(ctx, colors, w, state, D) {
     const a0 = scalar(state, D, (S) => S.an.trend.a0);
     const pts = []; for (let q = 0; q <= 4.3; q += 0.05) { const m = 10 ** q; pts.push([F.sx(m), F.sy(m + a0 * m * m)]); }
     curve(ctx, colors.theory, 2, pts);
-    label(ctx, colors, `mean + ${fmt(a0, 3)}·mean²`, F.x1 - 4, F.y0 + 12, { color: colors.theory, align: "right" });
-    label(ctx, colors, "Poisson: mean", F.x1 - 4, F.sy(20000) + 14, { color: colors.reference, align: "right" });
+    label(ctx, colors, `fitted: mean + ${fmt(a0, 3)}·mean²`, F.x1 - 4, F.y0 + 12, { color: colors.theory, align: "right" });
+    /* named just above its right end: below it, the one gene's label met it at every mean the sweep tried */
+    label(ctx, colors, "Poisson: mean", F.x1 - 4, F.sy(20000) - 6, { color: colors.reference, align: "right" });
+    /* the one gene of the left panel, where it sits among the 1,200 (his round
+       11: the controls moved nothing on the right); a ring in ink, since the
+       highlight is a changed gene here */
+    const muE = D ? Math.exp(lerp(Math.log(D.from.mu), Math.log(state.mu), D.e)) : state.mu;
+    const alE = D ? Math.exp(lerp(Math.log(D.from.alpha), Math.log(state.alpha), D.e)) : state.alpha;
+    const gx = F.sx(muE), gy = F.sy(muE + alE * muE * muE);
+    ctx.save(); ctx.strokeStyle = colors.ink1; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(gx, gy, 6, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
+    const left = muE >= 500;   // at a high mean the label sits left of the ring, clear of "Poisson: mean" (the sweep)
+    label(ctx, colors, "the one gene", left ? gx - 14 : gx + 10, gy + 4, { color: colors.ink1, align: left ? "right" : "left" });
   }
 }
 
@@ -629,52 +672,66 @@ function drawTransform(ctx, colors, w, state, uFrom, uTo, eU, D) {
     const u = eU < 0.5 ? uFrom : uTo;
     label(ctx, colors, u === "raw" ? "the count itself" : u === "log2" ? "log2(x + 1)" : `vst: ${fmt(state.an.vst(0), 2)} at zero`, F.x0 + 4, F.y0 + 12, { color: colors.empirical });
   }
-  /* right: the PCA of the samples. The dots are the same samples under every
-     unit and PC1 is oriented the same way, so a unit change SLIDES each sample
-     to its new place while the axis rescales and the numbers count along (his
-     round 9: "PCA does not tween"); a data change slides too when the sample
-     count is the same, and crossfades when replicates change it */
-  const pcaPanel = (Pa, Pb, e, grp, alpha) => {
+  /* right: the heatmap of the most variable genes. The rows are ranked in the
+     unit, so a unit change SLIDES the rows that stay to their new rank and
+     fades the rest, with every cell's shade easing; a data change with the
+     same samples slides the same way, and crossfades when replicates change
+     the sample count or a seed changes the genes */
+  const heatPanel = (Ha, Hb, e, grp, isDE, alpha) => {
     if (alpha <= 0) return;
-    const mix = (a, b) => lerp(a, b, e);
     ctx.save(); ctx.globalAlpha *= alpha;
+    const base = ctx.globalAlpha;
     const R = { x0: half + 40, y0: top + 34, x1: w - 12, y1: H - 40 };
-    const mOf = (P) => Math.max(1e-9, ...P.s1.map(Math.abs), ...P.s2.map(Math.abs)) * 1.25;
-    const m = mix(mOf(Pa), mOf(Pb));
-    const sx = (v) => R.x0 + ((v + m) / (2 * m)) * (R.x1 - R.x0), sy = (v) => R.y1 - ((v + m) / (2 * m)) * (R.y1 - R.y0);
-    ctx.strokeStyle = colors.grid; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(Math.round(sx(0)) + 0.5, R.y0); ctx.lineTo(Math.round(sx(0)) + 0.5, R.y1); ctx.moveTo(R.x0, Math.round(sy(0)) + 0.5); ctx.lineTo(R.x1, Math.round(sy(0)) + 0.5); ctx.stroke();
-    ctx.strokeStyle = colors.ink3; ctx.beginPath(); ctx.moveTo(R.x0, Math.round(R.y1) + 0.5); ctx.lineTo(R.x1, Math.round(R.y1) + 0.5); ctx.stroke();
-    label(ctx, colors, "the samples on two PCs", R.x0, R.y0 - 6, { color: colors.ink3 });
-    label(ctx, colors, `PC1, ${(100 * mix(Pa.share1, Pb.share1)).toFixed(0)}%`, (R.x0 + R.x1) / 2, R.y1 + 13, { color: colors.ink3, align: "center" });
-    label(ctx, colors, `PC2, ${(100 * mix(Pa.share2, Pb.share2)).toFixed(0)}%`, R.x0 + 4, R.y0 + 12, { color: colors.ink3 });
-    Pb.s1.forEach((x, j) => dot(ctx, sx(mix(Pa.s1[j], x)), sy(mix(Pa.s2[j], Pb.s2[j])), 5, grp[j] ? colors.groupB : colors.groupA, ctx.globalAlpha));
-    const ratio = mix(Pa.ratio, Pb.ratio);
-    label(ctx, colors, `between ÷ within ${fmt(ratio, 2)}`, R.x1 - 4, R.y1 + 26, { color: ratio >= 2.5 ? colors.ink1 : colors.extreme, align: "right", weight: "600" });
+    const n = grp.length, gx0 = R.x0 + 12, cw = (R.x1 - gx0) / n, rh = (R.y1 - R.y0) / HEAT_ROWS;
+    label(ctx, colors, `the ${HEAT_ROWS} most variable genes`, R.x0, R.y0 - 20, { color: colors.ink3 });
+    for (let j = 0; j < n; j += 1) { ctx.fillStyle = grp[j] ? colors.groupB : colors.groupA; ctx.fillRect(gx0 + j * cw, R.y0 - 9, cw - 1, 5); }
+    for (const g of new Set([...Ha.rows, ...Hb.rows])) {
+      const ia = Ha.index[g], ib = Hb.index[g];
+      const i = lerp(ia ?? ib, ib ?? ia, e);
+      const a = ia !== undefined && ib !== undefined ? 1 : ib !== undefined ? e : 1 - e;
+      const y = R.y0 + i * rh;
+      for (let j = 0; j < n; j += 1) {
+        const ta = Ha.t[g]?.[j], tb = Hb.t[g]?.[j];
+        const t = lerp(ta ?? tb, tb ?? ta, e);
+        ctx.globalAlpha = base * a; ctx.fillStyle = colors.surface3; ctx.fillRect(gx0 + j * cw, y, cw - 1, rh - 1);
+        ctx.globalAlpha = base * a * t; ctx.fillStyle = colors.magnitude; ctx.fillRect(gx0 + j * cw, y, cw - 1, rh - 1);
+      }
+      if (isDE[g]) { ctx.globalAlpha = base * a; ctx.strokeStyle = colors.reference; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(R.x0 + 2, y + rh / 2); ctx.lineTo(R.x0 + 8, y + rh / 2); ctx.stroke(); }
+    }
+    ctx.globalAlpha = base;
+    ctx.strokeStyle = colors.ink3; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(gx0, Math.round(R.y1) + 0.5); ctx.lineTo(R.x1, Math.round(R.y1) + 0.5); ctx.stroke();
+    label(ctx, colors, `${n} samples`, gx0, R.y1 + 13, { color: colors.ink3 });
+    const de = Math.round(lerp(Ha.de, Hb.de, e));
+    label(ctx, colors, `truly changed ${de} of ${HEAT_ROWS}`, R.x1 - 4, R.y1 + 26, { color: de >= HEAT_ROWS * 0.7 ? colors.ink1 : colors.extreme, align: "right", weight: "600" });
     ctx.restore();
   };
   const grp = state.sim.grp;
-  if (D && D.from.sim.grp.length === grp.length) pcaPanel(D.from.pcaBy[uTo], state.pcaBy[uTo], D.e, grp, 1);
-  else if (D) { pcaPanel(D.from.pcaBy[uTo], D.from.pcaBy[uTo], 1, D.from.sim.grp, 1 - D.e); pcaPanel(state.pcaBy[uTo], state.pcaBy[uTo], 1, grp, D.e); }
-  else pcaPanel(state.pcaBy[uFrom], state.pcaBy[uTo], eU, grp, 1);
+  if (D && D.kind === "slide" && D.from.sim.grp.length === grp.length) heatPanel(D.from.heatBy[uTo], state.heatBy[uTo], D.e, grp, state.sim.isDE, 1);
+  else if (D) { heatPanel(D.from.heatBy[uTo], D.from.heatBy[uTo], 1, D.from.sim.grp, D.from.sim.isDE, 1 - D.e); heatPanel(state.heatBy[uTo], state.heatBy[uTo], 1, grp, state.sim.isDE, D.e); }
+  else heatPanel(state.heatBy[uFrom], state.heatBy[uTo], eU, grp, state.sim.isDE, 1);
 }
 
-/* --- Fit and test: one gene's fit; the MA plot, before and after LFC shrinkage --------------- */
-function drawFit(ctx, colors, w, state, stage, p, D) {
-  const TOP = 210, half = Math.floor(w / 2);
-  /* the reveal fractions: the test at stage 1, the second shrinkage at stage 2 */
+/* --- Fit and test: one gene's fit and its β shrunk step by step; the MA plot, before and after --- */
+function drawFit(ctx, colors, w, state, stage, p, D, hover) {
+  const { TOP, third, half } = fitLayout(w);
+  /* the reveal fractions, one per press: the test, the prior, the posterior,
+     and the second shrinkage of every gene */
   const testF = stage > 1 ? 1 : stage === 1 ? p : 0;
-  const frac = stage >= 2 ? p : 0;
-  /* the one gene: a different gene under a data change, so its panel crossfades */
-  const onePanel = (S, alpha) => {
-    const { an, sim, ex, reps } = S;
-    const r = an.resMAP[ex], fit = an.fits[ex];
+  const priorF = stage > 2 ? 1 : stage === 2 ? p : 0;
+  const postF = stage > 3 ? 1 : stage === 3 ? p : 0;
+  const frac = stage >= 4 ? p : 0;
+  const g = hover ?? state.ex;
+  /* the one gene: the pointed-at one, else the one chosen at compute; a
+     different gene under a data change, so its panels crossfade */
+  const onePanel = (S, gene, alpha) => {
+    const { an, sim, reps } = S;
+    const r = an.resMAP[gene], fit = an.fits[gene];
     ctx.save(); ctx.globalAlpha = alpha;
-    const norm = sim.counts[ex].map((v, j) => v / an.sf[j]);
+    const norm = sim.counts[gene].map((v, j) => v / an.sf[j]);
     const vals = norm.map((v) => log2(Math.max(0.5, v)));
     const lo = Math.floor(Math.min(...vals)) - 1, hi = Math.ceil(Math.max(...vals)) + 1;
     const yt = []; for (let t = lo; t <= hi; t += 1) yt.push(t);
-    const F = frame(ctx, colors, { x0: 44, y0: 30, x1: half - 16, y1: TOP - 30 }, [0, 1], [lo, hi], { xlog: false, ylog: false, ylabel: `one changed gene: counts ${sim.counts[ex].join(" ")}, after the size factors`, yt });
+    const F = frame(ctx, colors, { x0: 44, y0: 30, x1: third - 12, y1: FIT_Y1 }, [0, 1], [lo, hi], { xlog: false, ylog: false, ylabel: `one ${sim.isDE[gene] ? "changed" : "unchanged"} gene: log2 of the counts after the size factors`, yt });
     const xg = [0.28, 0.72];
     label(ctx, colors, "group A", F.sx(xg[0]), F.y1 + 13, { align: "center", color: colors.ink3 });
     label(ctx, colors, "group B", F.sx(xg[1]), F.y1 + 13, { align: "center", color: colors.ink3 });
@@ -684,66 +741,120 @@ function drawFit(ctx, colors, w, state, stage, p, D) {
     curve(ctx, colors.highlight, 1.5, [[xm, F.sy(log2(fit.q[0]))], [xm, F.sy(log2(fit.q[1]))]]);
     /* the two marks named where they are (his round 8: "what are these vertical bars") */
     label(ctx, colors, "β", xm - 6, (F.sy(log2(fit.q[0])) + F.sy(log2(fit.q[1]))) / 2 + 4, { color: colors.highlight, align: "right", weight: "600" });
-    /* six short lines: the right half is 223px wide at the narrowest canvas.
-       The fit's lines are there from the start; the test's fade in with the
-       press; the shrunk β counts along with the second */
-    const tx = half + 44, ty = 44;
+    /* seven short lines in the middle third, 230px wide at the narrowest
+       canvas. The fit's lines are there from the start; the test's fade in with
+       the first press, the prior's with the second, the shrunk β with the third */
+    const tx = third + 8, ty = 44;
     label(ctx, colors, `β = ${fmt(r.lfc, 2)}, the gap in log2`, tx, ty, { color: colors.highlight, weight: "600" });
-    label(ctx, colors, `at the shrunk α = ${fmt(an.alphaMAP[ex], 3)}`, tx, ty + 16, { color: colors.ink3 });
+    label(ctx, colors, `at the shrunk α = ${fmt(an.alphaMAP[gene], 3)}`, tx, ty + 16, { color: colors.ink3 });
     if (testF > 0) {
       ctx.save(); ctx.globalAlpha = alpha * testF;
       curve(ctx, colors.highlight, 4, [[xm + 8, F.sy(log2(fit.q[1]) - r.se)], [xm + 8, F.sy(log2(fit.q[1]) + r.se)]]);
       label(ctx, colors, "± SE", xm + 14, F.sy(log2(fit.q[1])) + 4, { color: colors.highlight });
-      label(ctx, colors, `SE = ${fmt(r.se, 2)}, from the weights μ / (1 + αμ)`, tx, ty + 32, { color: colors.ink2 });
+      label(ctx, colors, `SE = ${fmt(r.se, 2)}`, tx, ty + 32, { color: colors.ink2 });
       label(ctx, colors, `W = β / SE = ${fmt(r.W, 2)}`, tx, ty + 48, { color: colors.ink2 });
       label(ctx, colors, `p = ${sci(r.p)}, padj = ${sci(r.padj)}`, tx, ty + 64, { color: colors.ink2 });
       ctx.restore();
     }
-    label(ctx, colors, frac > 0 ? `shrunk β = ${fmt(lerp(r.lfc, an.shrunk[ex], frac), 2)}, true ${fmt(sim.lfcT[ex], 2)}` : `true β = ${fmt(sim.lfcT[ex], 2)}`, tx, ty + 80, { color: colors.ink3 });
+    if (priorF > 0) {
+      ctx.save(); ctx.globalAlpha = alpha * priorF;
+      label(ctx, colors, `prior: spike ${fmt(an.lfcPrior.pi0, 2)}, τ = ${fmt(Math.sqrt(an.lfcPrior.tau2), 2)}`, tx, ty + 96, { color: colors.ink2 });
+      ctx.restore();
+    }
+    label(ctx, colors, `true β = ${fmt(sim.lfcT[gene], 2)}`, tx, ty + 80, { color: colors.ink3 });
+    if (postF > 0) { ctx.save(); ctx.globalAlpha = alpha * postF; label(ctx, colors, `shrunk β = ${fmt(lerp(r.lfc, an.shrunk[gene], postF), 2)}`, tx, ty + 112, { color: colors.highlight, weight: "600" }); ctx.restore(); }
     ctx.restore();
   };
-  if (D && D.from.ex !== state.ex) { onePanel(D.from, 1 - D.e); onePanel(state, D.e); } else onePanel(state, 1);
+  /* the three curves over β, the Shrinkage page's picture for the fold change:
+     each drawn to its own peak, the spike as a bar whose height is its share */
+  const betaPanel = (S, gene, alpha) => {
+    const { an } = S, r = an.resMAP[gene], { pi0, tau2 } = an.lfcPrior;
+    ctx.save(); ctx.globalAlpha = alpha;
+    const F = frame(ctx, colors, { x0: 2 * third + 40, y0: 30, x1: w - 12, y1: FIT_Y1 }, BETA_X, [0, 1.12], { xlog: false, ylog: false, xlabel: "β, the log2 fold change", ylabel: "three curves over β", xt: [-4, -2, 0, 2, 4], yt: [] });
+    const N = (x, m, v) => Math.exp(-((x - m) ** 2) / (2 * v));
+    const grid = Array.from({ length: 81 }, (_, k) => BETA_X[0] + ((BETA_X[1] - BETA_X[0]) * k) / 80);
+    const v0 = r.se ** 2, v1 = v0 + tau2, x2 = r.lfc ** 2;
+    const l0 = (pi0 / Math.sqrt(v0)) * Math.exp(-x2 / (2 * v0)), l1 = ((1 - pi0) / Math.sqrt(v1)) * Math.exp(-x2 / (2 * v1));
+    const w1 = l1 / (l0 + l1), mPost = r.lfc * (tau2 / v1), vPost = (v0 * tau2) / v1;
+    const clampX = (v) => Math.max(BETA_X[0], Math.min(BETA_X[1], v));
+    const mark = (v, color, text, y, a) => {
+      ctx.save(); ctx.globalAlpha = alpha * a; ctx.strokeStyle = color; ctx.lineWidth = 1; ctx.setLineDash([3, 3]);
+      ctx.beginPath(); ctx.moveTo(Math.round(F.sx(clampX(v))) + 0.5, F.y0); ctx.lineTo(Math.round(F.sx(clampX(v))) + 0.5, F.y1); ctx.stroke(); ctx.setLineDash([]);
+      const right = clampX(v) > 0.5;   // a label left of the mark near the right edge (the sweep)
+      label(ctx, colors, text, F.sx(clampX(v)) + (right ? -4 : 4), y, { color, align: right ? "right" : "left" });
+      ctx.restore();
+    };
+    const spike = (h, color, dx, a) => { ctx.save(); ctx.globalAlpha = alpha * a; ctx.fillStyle = color; ctx.fillRect(F.sx(0) + dx, F.sy(h), 4, F.y1 - F.sy(h)); ctx.restore(); };
+    mark(r.lfc, colors.empirical, `estimate ${fmt(r.lfc, 2)}`, F.y1 - 30, 1);
+    if (testF > 0) {
+      ctx.save(); ctx.globalAlpha = alpha * testF;
+      curve(ctx, colors.empirical, 2, grid.map((x) => [F.sx(x), F.sy(N(x, r.lfc, v0))]));
+      label(ctx, colors, "likelihood", F.x1 - 4, F.y0 + 12, { color: colors.empirical, align: "right" });
+      ctx.restore();
+    } else label(ctx, colors, "test to draw the likelihood", (F.x0 + F.x1) / 2, (F.y0 + F.y1) / 2, { align: "center", color: colors.ink3 });
+    if (priorF > 0) {
+      ctx.save(); ctx.globalAlpha = alpha * priorF;
+      curve(ctx, colors.theory, 2, grid.map((x) => [F.sx(x), F.sy((1 - pi0) * N(x, 0, tau2))]));
+      label(ctx, colors, "prior", F.x1 - 4, F.y0 + 26, { color: colors.theory, align: "right" });
+      label(ctx, colors, `spike ${fmt(pi0, 2)}`, F.sx(0) - 8, F.y0 + 12, { color: colors.theory, align: "right" });
+      ctx.restore();
+      spike(pi0, colors.theory, -5, priorF);
+    }
+    if (postF > 0) {
+      ctx.save(); ctx.globalAlpha = alpha * postF;
+      curve(ctx, colors.highlight, 2, grid.map((x) => [F.sx(x), F.sy(w1 * N(x, mPost, vPost))]));
+      label(ctx, colors, "posterior", F.x1 - 4, F.y0 + 40, { color: colors.highlight, align: "right" });
+      label(ctx, colors, `spike ${fmt(1 - w1, 2)}`, F.sx(0) - 8, F.y0 + 26, { color: colors.highlight, align: "right" });
+      ctx.restore();
+      spike(1 - w1, colors.highlight, 1, postF);
+      mark(an.shrunk[gene], colors.highlight, `shrunk ${fmt(an.shrunk[gene], 2)}`, F.y1 - 16, postF);
+    }
+    ctx.restore();
+  };
+  if (D && D.from.ex !== state.ex) { onePanel(D.from, D.from.ex, 1 - D.e); onePanel(state, g, D.e); betaPanel(D.from, D.from.ex, 1 - D.e); betaPanel(state, g, D.e); }
+  else { onePanel(state, g, 1); betaPanel(state, g, 1); }
   /* the MA plots: the same genes slide, new genes crossfade */
   const ma = (rect, title, mix, caption, alpha = 1) => {
     ctx.save(); ctx.globalAlpha = alpha;
-    const F = frame(ctx, colors, rect, [0, 4.3], [-6, 6], { ylog: false, xlabel: "mean of normalised counts", ylabel: title, xt: [1, 10, 100, 1000, 10000], yt: [-4, -2, 0, 2, 4], xfmt: bigNum });
+    const F = frame(ctx, colors, rect, MA_X, MA_Y, { ylog: false, xlabel: "mean of normalised counts", ylabel: title, xt: [1, 10, 100, 1000, 10000], yt: [-4, -2, 0, 2, 4], xfmt: bigNum });
     label(ctx, colors, caption, F.x0 + 4, F.y0 + 12, { color: colors.ink3 });
     curve(ctx, colors.reference, 1.5, [[F.sx(1), F.sy(0)], [F.sx(20000), F.sy(0)]]);
     fadeOrDraw(ctx, D, (S, DD) => {
       const st = S ?? state, base = ctx.globalAlpha;
-      for (const g of st.an.expressed) {
-        const bm = at(st, DD, "bmLog", g), y = mix(st, DD, g);
+      for (const gg of st.an.expressed) {
+        const bm = at(st, DD, "bmLog", gg), y = mix(st, DD, gg);
         if (!Number.isFinite(bm) || !Number.isFinite(y)) continue;
         /* the fit alone is every gene's β; the test colours those past padj < 0.1 as it arrives */
-        const sig = testF > 0 && st.an.resMAP[g].padj < 0.1;
+        const sig = testF > 0 && st.an.resMAP[gg].padj < 0.1;
         dot(ctx, F.sx(10 ** bm), F.sy(y), 1.6, colors.empirical, 0.4 * base);
         if (sig) dot(ctx, F.sx(10 ** bm), F.sy(y), 1.6, colors.extreme, 0.9 * testF * base);
         /* the truth is a ring, so colour carries one grouping (the call) and enclosure the other */
-        if (st.sim.isDE[g]) { ctx.save(); ctx.globalAlpha = 0.85 * base; ctx.strokeStyle = colors.reference; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(F.sx(10 ** bm), F.sy(y), 3.2, 0, Math.PI * 2); ctx.stroke(); ctx.restore(); }
+        if (st.sim.isDE[gg]) { ctx.save(); ctx.globalAlpha = 0.85 * base; ctx.strokeStyle = colors.reference; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(F.sx(10 ** bm), F.sy(y), 3.2, 0, Math.PI * 2); ctx.stroke(); ctx.restore(); }
       }
-      const exY = mix(st, DD, st.ex);
+      const one = S ? S.ex : g;
+      const exY = mix(st, DD, one);
       if (Number.isFinite(exY)) {
-        const ex0 = F.sx(Math.max(1, st.an.baseMean[st.ex])), ey0 = F.sy(exY);
+        const ex0 = F.sx(Math.max(1, st.an.baseMean[one])), ey0 = F.sy(exY);
         dot(ctx, ex0, ey0, 5, colors.highlight, base);
         ctx.save(); ctx.globalAlpha = base; label(ctx, colors, "the gene above", ex0 + 8, ey0 + 4, { color: colors.highlight }); ctx.restore();
       }
     });
     ctx.restore();
   };
-  const y0 = TOP + 10, y1 = HEIGHTS.fit - 40;
+  const L = fitMaLeft(w), y0 = L.y0, y1 = L.y1;
   /* what the dots mean, per stage (his round 7): before the test every gene's
      β is blue with the truth ringed; the test colours the calls, so red without
      a ring is a false call and a ring without red a miss; shrinkage changes β,
      not p — the calls stay, the low-count fold changes shrink toward 0 */
-  ma({ x0: 44, y0, x1: half - 16, y1 }, "1,200 genes: log2 fold change against mean", (st, DD, g) => at(st, DD, "lfc", g),
+  ma(L, "1,200 genes: log2 fold change against mean", (st, DD, gg) => at(st, DD, "lfc", gg),
     stage >= 1 ? "red: called at padj < 0.1 · ring: truly changed" : "every gene's β · ring: truly changed");
   if (frac > 0) {
     /* the after plot fades in as every dot slides from its fold change to the shrunk one;
        what it removed and what it cost are the second tile's numbers */
-    ma({ x0: half + 44, y0, x1: w - 12, y1 }, "after shrinking the fold changes", (st, DD, g) => lerp(at(st, DD, "lfc", g), at(st, DD, "shrunk", g), frac),
+    ma({ x0: half + 44, y0, x1: w - 12, y1 }, "after shrinking the fold changes", (st, DD, gg) => lerp(at(st, DD, "lfc", gg), at(st, DD, "shrunk", gg), frac),
       "same calls; low-count β pulled to 0", Math.min(1, frac * 2));
   } else {
-    frame(ctx, colors, { x0: half + 44, y0, x1: w - 12, y1 }, [0, 4.3], [-6, 6], { ylog: false, ylabel: "after shrinking the fold changes", xt: [], yt: [] });
-    label(ctx, colors, stage >= 1 ? "shrink the fold changes to draw it" : "test, then shrink the fold changes", (half + 44 + w - 12) / 2, (y0 + y1) / 2, { align: "center", color: colors.ink3 });
+    frame(ctx, colors, { x0: half + 44, y0, x1: w - 12, y1 }, MA_X, MA_Y, { ylog: false, ylabel: "after shrinking the fold changes", xt: [], yt: [] });
+    label(ctx, colors, stage >= 1 ? "every gene's shrunk β, on the last press" : "test, then shrink the fold changes", (half + 44 + w - 12) / 2, (y0 + y1) / 2, { align: "center", color: colors.ink3 });
   }
 }

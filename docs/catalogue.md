@@ -19399,6 +19399,42 @@ funnel"); the Distribution tile prints the NB SD as a share of the mean;
 come from the test and are unchanged". The verb sweep over every string is
 clean.
 
+**Round 11** (2026-09-23) — *the Distribution graph does not change when I
+adjust the data controls; for the LFC shrinkage, is it good to show it step
+by step like the shrinkage of the estimates?; a heatmap would be better to
+show why transformed values matter, so the data reflects the ground truth
+closer — can we indicate the ground truth? Mock if necessary.* Measured and
+mocked first (`_lab/deseq2-heat-measure.mjs`, `_lab/deseq2-heatmap-mock.html`):
+the notebook's sample-correlation heatmap tells the groups apart in **no**
+unit (within-group minus between-group correlation 0.00–0.02 everywhere), so
+it is out; of the 30 most variable genes 25–43% truly changed under counts,
+23–45% under log2(x + 1) and 80–100% under the vst, because under counts the
+most variable genes are the highest-count ones, changed or not. His three
+picks, built: **(1) α sets the whole simulation** — Dispersion α is a data
+control beside Replicates and Seed, every gene's true α scattering around
+α + 2/mean, so the trend, the calls and the transform answer it (measured at
+3 vs 3: α = 0.5 calls 30–45 genes at a false discovery rate of 30–58%,
+α = 0.01 calls 111–131 at 16–24%; the vst's value at zero moves from 0.5 to
+6); the one gene of the left panel is ringed where it sits among the 1,200
+and the tile prints the fitted a0 beside the α set. **(2) The heatmap in
+place of the PCA** — the 30 most variable genes in the unit, ranked, a tick
+in the reference hue beside each row that truly changed and the group as a
+band over the columns, the cell dark to bright on the unit's own scale
+(`--c-magnitude`); a unit change slides the rows that stay to their new rank
+and fades the rest, a data change with the same samples slides the same way
+and crossfades otherwise; the tile reads truly changed among the 30 (14 → 28
+of 30 at seed 1) with their median mean (3,011 → 464). **(3) The Fit page as
+four presses** — Test · Fit the prior · Multiply by the prior · Shrink every
+gene, with the three curves over β as a third top panel: the likelihood at
+β̂ with the SE as its width, the prior a spike at zero and a normal drawn to
+their shares (π₀ 0.80, τ 1.30 at seed 1), the posterior the same with its
+mean marked as the shrunk β; pointing at a gene on the MA plot fits it above
+and walks it through, as on Shrinkage (a low-count unchanged gene: β 0.83,
+SE 0.82, the spike's share 0.80 → 0.84, shrunk 0.10). The card has a line
+for the prior and one for the posterior; the SE's weights moved to the Wald
+card; the seven text lines are each under 170px so the middle third holds
+them at the narrowest canvas. Thirty-five sweep states clean.
+
 **Host.** 01-2 cell 1 and cell 22 are the notebook's own exposition, four
 figures (`deseq2-nb`, `deseq2-mle`, `deseq2-map`, `deseq2-shrinkage`) and
 every formula the widget needs: `y ~ NB(μ, α)`, the geometric-mean ratio and

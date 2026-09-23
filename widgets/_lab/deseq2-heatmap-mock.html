@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · deseq2 — the heatmap with the truth marked; the fold change shrunk step by step</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1800px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 104ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); min-height: 26px; white-space: pre-line; max-width: 380px; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 104ch; }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 104ch; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>deseq2 &middot; a heatmap with the truth marked (his point 3); the fold change shrunk step by step (his point 2)</h1>
+  <p class="note">
+    His points (round 11, 2026-09-23): <i>maybe a heatmap would be better to show why it is important to use transformed values, so we can
+    visualise data that reflects the ground truth closer; can we indicate the ground truth?</i> and <i>for the shrinkage of the LFC, is it
+    good to show it step by step like the shrinkage of the estimates?</i> Measured first, on the widget's own stage (1,200 genes, a tenth
+    changed, 3 vs 3, seeds 1, 7, 9; 2 and 6 replicates too). The notebook's sample-correlation heatmap tells the groups apart in
+    <b>no</b> unit (within-group minus between-group correlation 0.00&ndash;0.02 under counts, 0.02 under the vst), so it is out.
+    The gene heatmap does the job: <b>of the 30 most variable genes, 25&ndash;43% truly changed under counts and 80&ndash;100% under the vst</b>;
+    under log2(x + 1) 23&ndash;45%, since the low-count genes are the noisiest there. Every panel below is computed here for seed 1.
+  </p>
+
+  <h2>A &middot; the 30 most variable genes in the unit, truly changed genes marked</h2>
+  <p class="note">Rows are the 30 genes with the largest SD across the samples <b>in that unit</b>, ranked; columns the samples with the group
+    as a band on top; the cell is the value on the unit's own scale. A tick in the reference hue beside a row: that gene truly changed. Under
+    counts the most variable genes are the highest-count ones, whether they changed or not, and the picture across the columns is depth and
+    noise; under the vst they are the changed genes, and each row splits A | B. The tile reads <b>truly changed among the 30</b>.
+    A unit change slides the rows that stay and fades the rest.</p>
+  <div class="row" id="rowA"></div>
+
+  <h2>B &middot; the notebook's own figure: the 30 top-called genes, the same rows under every unit</h2>
+  <p class="note">Rows fixed: the genes the test called, by padj, as the notebook's top-DEG heatmap. Under counts the scale is set by the
+    largest count, so most rows are dark and the pattern is invisible; under log2(x + 1) and the vst every row reads and the A | B split is in
+    each. The tile would read <b>rows under a tenth of the scale</b>. The truth mark is less telling here: the called genes mostly did change.</p>
+  <div class="row" id="rowB"></div>
+
+  <h2>C &middot; the fold change shrunk step by step, the Shrinkage page's three curves over β</h2>
+  <p class="note">The likelihood of β is a normal at the estimate with the SE as its width; the prior fitted to every gene's estimate is a
+    spike at zero (π<sub>0</sub>) and a normal of width τ, since a single normal erased the true effects with the false when it was measured;
+    the posterior is their product, and its <b>mean</b> is the shrunk β. Left: the changed gene the page fits now, at a fair count, where the
+    likelihood is sharp and the pull is slight. Right: an unchanged low-count gene, where the likelihood is wide and the posterior is mostly the
+    spike. The Fit page would take four presses: <b>Test &middot; Fit the prior &middot; Multiply by the prior &middot; Shrink every gene</b>,
+    with the curves as a third panel in the top row and the gene walked chosen by pointing at the MA plot, as on Shrinkage.</p>
+  <div class="row" id="rowC"></div>
+
+  <h2>The call</h2>
+  <p class="rec"><b>Recommended: A in place of the PCA</b> on the Transform page. It carries the truth as a mark on the figure itself, the
+    number it reads (11 of 30 → 30 of 30 at seed 1) is the transform's worth in one line, and the pattern the reader sees under the vst is the one the
+    notebook's heatmap shows. B is the notebook's exact figure but its lesson is only that counts are unreadable, which log2 already fixes.
+    The PCA's between ÷ within stays available as a tile if wanted.</p>
+  <p class="q"><b>The Transform page's right panel</b> &nbsp; <b>A &middot; most variable genes, truth marked (recommended)</b> &nbsp;|&nbsp;
+    B &middot; the top-called genes, rows fixed &nbsp;|&nbsp; A over the PCA, both (the page grows) &nbsp;|&nbsp; keep the PCA</p>
+  <p class="q"><b>The LFC shrinkage as a walkthrough</b> &nbsp; <b>yes, four presses, curves as a third top panel, hover picks the gene (recommended)</b>
+    &nbsp;|&nbsp; yes, but the curves replace the six text lines &nbsp;|&nbsp; no, keep the two presses</p>
+</main>
+<script type="module">
+import { readTokens } from "../core/env.js";
+import { makeRng } from "../core/rng.js";
+import { simulate, analyse, log2 } from "../deseq2/engine.js";
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+const mean = (a) => a.reduce((s, v) => s + v, 0) / a.length;
+const sd = (a) => { const m = mean(a); return Math.sqrt(a.reduce((s, v) => s + (v - m) ** 2, 0) / (a.length - 1)); };
+const fmt = (v, d = 2) => (Number.isFinite(v) ? v.toFixed(d) : "—");
+const W = 380, H = 300;
+function canvas(host, title, sub) {
+  const d = document.createElement("div"); d.className = "cand";
+  d.innerHTML = `<h3>${title}</h3><p class="sub">${sub}</p>`;
+  const c = document.createElement("canvas"); c.width = W * DPR; c.height = H * DPR; c.style.width = W + "px"; c.style.height = H + "px";
+  d.appendChild(c); host.appendChild(d);
+  const ctx = c.getContext("2d"); ctx.scale(DPR, DPR);
+  ctx.font = `${T.fsXs} ${T.font}`; ctx.textBaseline = "alphabetic";
+  return ctx;
+}
+const text = (ctx, s, x, y, { color = T.ink2, align = "left", font = `${T.fsXs} ${T.font}` } = {}) => { ctx.fillStyle = color; ctx.textAlign = align; ctx.font = font; ctx.fillText(s, x, y); };
+
+const REPS = 3, ROWS = 30;
+const sim = simulate(makeRng(1), { genes: 1200, reps: REPS }), an = analyse(sim);
+const n = 2 * REPS;
+const norm = sim.counts.map((row) => row.map((v, j) => v / an.sf[j]));
+const UNITS = [["raw", "counts", (v) => v], ["log2", "log2(x + 1)", (v) => log2(v + 1)], ["vst", "vst", an.vst]];
+const GC = [T.groupA, T.groupB];
+const expressed = [...an.expressed];
+const called = expressed.filter((g) => an.resMAP[g].padj < 0.1).sort((a, b) => an.resMAP[a].padj - an.resMAP[b].padj).slice(0, ROWS);
+
+function heat(ctx, rows, fn, title) {
+  const x0 = 70, y0 = 40, cw = 26, rh = Math.floor((H - 70) / ROWS);
+  const M = rows.map((g) => norm[g].map(fn));
+  const lo = Math.min(...M.flat()), hi = Math.max(...M.flat());
+  /* the group band */
+  for (let j = 0; j < n; j += 1) { ctx.fillStyle = GC[sim.grp[j]]; ctx.fillRect(x0 + j * cw, y0 - 10, cw - 1, 6); }
+  text(ctx, "A", x0 + (REPS * cw) / 2, y0 - 14, { align: "center", color: T.groupA });
+  text(ctx, "B", x0 + REPS * cw + (REPS * cw) / 2, y0 - 14, { align: "center", color: T.groupB });
+  rows.forEach((g, i) => {
+    M[i].forEach((v, j) => {
+      const t = (v - lo) / (hi - lo || 1);
+      ctx.fillStyle = T.surface3; ctx.fillRect(x0 + j * cw, y0 + i * rh, cw - 1, rh - 1);
+      ctx.fillStyle = T.magnitude; ctx.globalAlpha = t; ctx.fillRect(x0 + j * cw, y0 + i * rh, cw - 1, rh - 1); ctx.globalAlpha = 1;
+    });
+    /* the truth: a tick beside the row */
+    if (sim.isDE[g]) { ctx.strokeStyle = T.reference; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x0 - 8, y0 + i * rh + rh / 2); ctx.lineTo(x0 - 3, y0 + i * rh + rh / 2); ctx.stroke(); }
+  });
+  const medMean = rows.map((g) => an.baseMean[g]).sort((a, b) => a - b)[Math.floor(rows.length / 2)];
+  text(ctx, "truly changed", x0 + n * cw + 8, y0 + 8, { color: T.reference });
+  ctx.strokeStyle = T.reference; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x0 + n * cw + 8, y0 + 16); ctx.lineTo(x0 + n * cw + 13, y0 + 16); ctx.stroke();
+  const de = rows.filter((g) => sim.isDE[g]).length;
+  const dim = M.filter((r) => Math.max(...r) < lo + 0.1 * (hi - lo)).length;
+  text(ctx, `truly changed: ${de} of ${ROWS}`, x0 + n * cw + 8, y0 + 40, { color: T.ink1, font: `600 ${T.fsXs} ${T.font}` });
+  text(ctx, `rows under a tenth`, x0 + n * cw + 8, y0 + 60, { color: T.ink2 });
+  text(ctx, `of the scale: ${dim}`, x0 + n * cw + 8, y0 + 74, { color: T.ink2 });
+  text(ctx, `scale ${fmt(lo, hi > 100 ? 0 : 1)} – ${fmt(hi, hi > 100 ? 0 : 1)}`, x0 + n * cw + 8, y0 + 100, { color: T.ink3, font: `${T.fsXs} ${T.mono}` });
+  text(ctx, `median mean of the rows ${Math.round(medMean).toLocaleString()}`, x0 + n * cw + 8, y0 + 120, { color: T.ink2 });
+  text(ctx, title, x0, H - 10, { color: T.ink3 });
+}
+for (const [u, name, fn] of UNITS) {
+  const top = expressed.map((g) => [g, sd(norm[g].map(fn))]).sort((a, b) => b[1] - a[1]).slice(0, ROWS).map(([g]) => g);
+  const ctxA = canvas(document.getElementById("rowA"), `The ${ROWS} most variable genes in ${name}`, `ranked by SD across the ${n} samples in this unit`);
+  heat(ctxA, top, fn, `${ROWS} genes × ${n} samples, ${name}`);
+  const ctxB = canvas(document.getElementById("rowB"), `The ${ROWS} top-called genes, in ${name}`, `the same rows under every unit, by padj`);
+  heat(ctxB, called, fn, `${ROWS} genes × ${n} samples, ${name}`);
+}
+
+/* C: the three curves over β for two genes */
+const { pi0, tau2 } = an.lfcPrior;
+const lowNull = expressed.filter((g) => !sim.isDE[g] && an.baseMean[g] < 10 && Math.abs(an.resMAP[g].lfc) > 1 && an.resMAP[g].se < 1.5).sort((a, b) => Math.abs(an.resMAP[b].lfc) - Math.abs(an.resMAP[a].lfc));
+const cands = [...an.expressed].filter((g) => sim.isDE[g] && an.baseMean[g] > 30 && an.resMAP[g].padj < 0.1);
+const ex = cands[Math.min(2, cands.length - 1)];
+for (const [g, who] of [[ex, "the changed gene the page fits"], [lowNull[0], "an unchanged gene at a low count"]]) {
+  const r = an.resMAP[g], v0 = r.se ** 2, v1 = v0 + tau2;
+  const l0 = (pi0 / Math.sqrt(v0)) * Math.exp(-(r.lfc ** 2) / (2 * v0)), l1 = ((1 - pi0) / Math.sqrt(v1)) * Math.exp(-(r.lfc ** 2) / (2 * v1));
+  const w1 = l1 / (l0 + l1), mPost = r.lfc * (tau2 / v1), vPost = v0 * tau2 / v1;
+  const ctx = canvas(document.getElementById("rowC"), `β of ${who}`, `mean ${fmt(an.baseMean[g], 0)}, counts ${sim.counts[g].join(" ")}\nβ = ${fmt(r.lfc)}, SE ${fmt(r.se)}; π0 ${fmt(pi0)}, τ ${fmt(Math.sqrt(tau2))}; posterior weight off the spike ${fmt(w1)}; shrunk β ${fmt(an.shrunk[g])}`);
+  const X = [-4, 4], x0 = 40, x1 = W - 14, yb = H - 40, yt = 34;
+  const sx = (v) => x0 + ((v - X[0]) / (X[1] - X[0])) * (x1 - x0);
+  const N = (x, m, v) => Math.exp(-((x - m) ** 2) / (2 * v)) / Math.sqrt(2 * Math.PI * v);
+  const grid = Array.from({ length: 161 }, (_, k) => X[0] + (k / 160) * (X[1] - X[0]));
+  const like = grid.map((x) => N(x, r.lfc, v0)), prior = grid.map((x) => (1 - pi0) * N(x, 0, tau2)), post = grid.map((x) => w1 * N(x, mPost, vPost));
+  const top = Math.max(...like, ...post, ...prior) * 1.1;
+  const sy = (v) => yb - (v / top) * (yb - yt);
+  ctx.strokeStyle = T.grid; ctx.lineWidth = 1;
+  for (const t of [-4, -2, 0, 2, 4]) { ctx.beginPath(); ctx.moveTo(sx(t) + 0.5, yt); ctx.lineTo(sx(t) + 0.5, yb); ctx.stroke(); text(ctx, String(t), sx(t), yb + 14, { align: "center", color: T.ink3, font: `${T.fsXs} ${T.mono}` }); }
+  ctx.strokeStyle = T.ink3; ctx.beginPath(); ctx.moveTo(x0, yb + 0.5); ctx.lineTo(x1, yb + 0.5); ctx.stroke();
+  text(ctx, "β, the log2 fold change", (x0 + x1) / 2, yb + 28, { align: "center", color: T.ink3 });
+  const line = (ys, color, wdt = 2) => { ctx.strokeStyle = color; ctx.lineWidth = wdt; ctx.beginPath(); ys.forEach((v, k) => (k ? ctx.lineTo(sx(grid[k]), sy(v)) : ctx.moveTo(sx(grid[k]), sy(v)))); ctx.stroke(); };
+  line(like, T.empirical); line(prior, T.theory); line(post, T.highlight);
+  /* the spike at zero: prior π0, posterior 1 − w1, as bars so a mass is not a curve */
+  ctx.fillStyle = T.theory; ctx.fillRect(sx(0) - 5, sy(top * pi0 / 1.1), 4, yb - sy(top * pi0 / 1.1));
+  ctx.fillStyle = T.highlight; ctx.fillRect(sx(0) + 1, sy(top * (1 - w1) / 1.1), 4, yb - sy(top * (1 - w1) / 1.1));
+  text(ctx, `spike ${fmt(pi0)} → ${fmt(1 - w1)}`, sx(0) - 8, yt + 12, { color: T.ink3, align: "right" });
+  const mark = (v, color, s, y) => { ctx.strokeStyle = color; ctx.lineWidth = 1; ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.moveTo(sx(v) + 0.5, yt); ctx.lineTo(sx(v) + 0.5, yb); ctx.stroke(); ctx.setLineDash([]); text(ctx, s, sx(v) + 4, y, { color }); };
+  mark(r.lfc, T.empirical, `estimate ${fmt(r.lfc)}`, yb - 30);
+  mark(an.shrunk[g], T.highlight, `shrunk ${fmt(an.shrunk[g])}`, yb - 16);
+  text(ctx, "likelihood", x1 - 4, yt + 12, { align: "right", color: T.empirical });
+  text(ctx, "prior: spike + normal", x1 - 4, yt + 26, { align: "right", color: T.theory });
+  text(ctx, "posterior, its mean shrunk β", x1 - 4, yt + 40, { align: "right", color: T.highlight });
+}
+</script>
+</body>
+</html>
