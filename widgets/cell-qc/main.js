@@ -229,6 +229,57 @@ function pairs(ctx, points, r, fill, alpha) {
   ctx.restore();
 }
 
+/** WHAT A DROPLET HOLDS, AS A MARK (his round 7: "i get confused by just
+    reading the text ... different colors for different cell types"). One
+    circle is one cell, two joined circles are two cells in one droplet, and
+    the two colours are whether those are two of a type or two different ones.
+
+    THE COLOURS ARE THE WHOLE DISTINCTION, which the mock settled: drawn in
+    one ink, or in the row's own data colour, "two different types" and "two
+    of the same type" are the same mark, and that sameness is exactly the
+    confusion this was built to remove.
+
+    IT IS ALWAYS A MARK BESIDE ITS OWN WORDS, never a dot among the data. That
+    is what keeps it clear of each panel's own colours — on the score rows
+    blue already means a droplet the rule keeps and red one it calls, so the
+    glyph takes the next two free hues off the cluster ramp rather than its
+    first two, which are that same blue and that same red. */
+const GLYPH_R = 4.2;
+const glyphWidth = (kind, r) => (kind === "het" || kind === "hom" ? 3.84 * r : 2 * r);
+function drawGlyph(ctx, colors, x, y, r, kind) {
+  const same = colors.clusters[1], other = colors.clusters[3];
+  const off = r * 0.92;
+  ctx.save();
+  const disc = (px, col) => {
+    ctx.fillStyle = col;
+    ctx.beginPath(); ctx.arc(px, y, r, 0, Math.PI * 2); ctx.fill();
+  };
+  if (kind === "het" || kind === "hom") {
+    disc(x + r, same);
+    disc(x + r + 2 * off, kind === "het" ? other : same);
+  } else if (kind === "none") {
+    /* no cell at all: the outline is the droplet with nothing in it */
+    ctx.strokeStyle = colors.ink3;
+    ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.arc(x + r, y, r - 0.6, 0, Math.PI * 2); ctx.stroke();
+  } else {
+    disc(x + r, same);
+  }
+  ctx.restore();
+  return glyphWidth(kind, r);
+}
+/** The one droplet's composition, in the glyph's terms and in words — the two
+    always drawn together, so the words are never the only carrier. */
+const holdsOf = (c) => (
+  c.state === "doublet"
+    ? (c.partner === c.type
+      ? { kind: "hom", words: "two cells of one type" }
+      : { kind: "het", words: "two cells of different types" })
+    : c.state === "good" ? { kind: "one", words: "one cell" }
+      : c.state === "dying" ? { kind: "one", words: "a dying cell" }
+        : { kind: "none", words: "ambient RNA only" }
+);
+
 const tickLabel = (v) => (v >= 1000 ? `${Math.round(v / 1000)}k` : String(Math.round(v)));
 /** A droplet's value for a metric. The first three are on the droplet; the
     fourth was worked out from every other one, and is absent for a droplet
@@ -863,13 +914,20 @@ function drawDoubletPanels(ctx, colors, w, state, hover) {
   const sc = dbl.score[subject];
   const called = thr.dbl !== null && sc >= thr.dbl;
   hoverLine(ctx, colors, mr.x, mr.y + mr.h - 22, [[`${made} of its ${k} nearest are made up`, colors.ink2, "600"]]);
-  const holds = isTwo
-    ? (c.partner === c.type ? "two cells of one type" : "two cells of different types")
-    : c.state === "good" ? "one cell" : c.state === "dying" ? "a dying cell" : "ambient RNA only";
-  hoverLine(ctx, colors, mr.x, mr.y + mr.h - 6, [
-    [`score ${fmt(sc, 2)}`, called ? colors.extreme : colors.ink1, "600"],
-    [`it holds ${holds}`, colors.ink3],
-  ]);
+  /* the same mark the rows below are labelled with, beside the same words:
+     what this droplet holds is the one thing the score cannot see, and it is
+     the distinction he could not hold in his head from the words alone */
+  const holds = holdsOf(c);
+  const scoreText = `score ${fmt(sc, 2)}`;
+  const line2 = mr.y + mr.h - 6;
+  ctx.save();
+  ctx.font = `600 ${colors.fsXs} ${colors.font}`;
+  const scoreW = ctx.measureText(scoreText).width;
+  ctx.restore();
+  hoverLine(ctx, colors, mr.x, line2, [[scoreText, called ? colors.extreme : colors.ink1, "600"]]);
+  const gx = mr.x + scoreW + 10;
+  const gw = drawGlyph(ctx, colors, gx, line2, GLYPH_R, holds.kind);
+  hoverLine(ctx, colors, gx + gw + 5, line2, [[holds.words, colors.ink3]]);
 
   /* --- the scores, in the three rows the method never sees ----------------- */
   const sr = scoreRect(w);
@@ -890,8 +948,10 @@ function drawDoubletPanels(ctx, colors, w, state, hover) {
     ctx.textAlign = "left";
     ctx.textBaseline = "alphabetic";
     const head = `${row.name} · ${mine.length}`;
-    ctx.fillText(head, sr.x, y0 - 4);
-    const headRight = sr.x + ctx.measureText(head).width;
+    const gw = drawGlyph(ctx, colors, sr.x, y0 - 8, GLYPH_R, row.key);
+    const headX = sr.x + gw + 6;
+    ctx.fillText(head, headX, y0 - 4);
+    const headRight = headX + ctx.measureText(head).width;
     ctx.restore();
     ctx.save();
     ctx.strokeStyle = colors.grid;

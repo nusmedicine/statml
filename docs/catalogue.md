@@ -19796,7 +19796,61 @@ block fractions and the score counted neighbours in another. The stage reads
 the profile once now and both take it, so a droplet's place and its company
 are the same fact seen twice.
 
-NEXT: his round 6.
+**Round 6, 2026-09-23 — the panel that read as a container.** His report:
+*"This can look confusing, i saw it and i thought they were cells in a single
+droplet"*. The first drawing put the fifty inside a circle, and a circle with
+dots in it is a container, not a neighbourhood. Four ways to draw one that is
+not a droplet were mocked (`_lab/cell-qc-neighbour-mock.html`), and his pick
+was **B, spokes, with the doublet drawn as two circles side by side**:
+
+- **no boundary**: a spoke from the droplet to each of its fifty, and nothing
+  enclosing them.
+- **rank along the spoke, direction kept** — nearest in the middle, fiftieth
+  at the rim. At true distance the nearest neighbours, which are the ones
+  that decide the score, pile up under the hub and cannot be seen.
+- **two joined circles for a droplet holding two cells.** Every made-up
+  doublet really is two droplets added together, so a real doublet sits as a
+  double mark in a crowd of double marks and the shape match IS the score.
+
+Found and fixed on the way, in the lab rather than the widget:
+`_lab/text-overlap-sweep.html` forced a repaint by moving the pointer and then
+away, and collected BOTH paints' strings into one list — so on any widget
+whose hover rewrites a line, every such string overlapped its own counterpart
+by its full width. It now groups strings by paint, taking `clearRect` as the
+boundary, and unions the findings. This would have produced a false positive
+for every hover widget after this one.
+
+**Round 7, 2026-09-23 — the three rows, drawn instead of described.** His
+report: *"is it possible to depict the 3 types as i get confused by just
+reading the text .. different colors for different cell types? mock for me to
+see"*. Mocked at the size it would be drawn
+(`_lab/cell-qc-rowglyph-mock.html`, four glyph styles × three row layouts,
+plus the cell map two ways). **The lead finding was that the colours ARE the
+distinction**: in one ink, or in the row's own data colour, *two different
+types* and *two of the same type* are the same mark, which is exactly the
+confusion reported. His answer was the recommendation on all three calls, and
+it built as:
+
+- **one circle is one cell, two joined circles are two cells in one droplet,
+  and the two colours say whether those are two of a type or two different
+  ones.** An empty droplet is an outline: no cell in it.
+- **the glyph is always a mark beside its own words**, never a dot among the
+  data — on the three row headers, and on the neighbourhood panel's own
+  readout, which drops *it holds* and lets the mark say it.
+- **the cluster ramp's second and fourth hues, not its first and second.**
+  The score rows already spend blue on a droplet the rule keeps and red on
+  one it calls, and those are `--c-cluster-a` and `--c-cluster-c` exactly —
+  the clash the tokens file names. Yellow and aqua are the free pair.
+- **the map is unchanged.** Colour there already says what a droplet holds,
+  and shape as well would be one signal twice.
+
+His question with the pick — *so the spider graph also shows the same
+glyphs?* — is answered by the SHAPE, which was already shared from round 6,
+and by the readout's mark; not by the colours. On that panel colour answers
+*made up or real*, which is the only question the score asks, and a second
+grouping in colour there is the rule the project keeps.
+
+NEXT: his round 8.
 
 ### Slot 80 · `integration` — Single-Cell Integration
 
