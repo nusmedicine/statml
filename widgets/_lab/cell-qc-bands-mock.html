@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · cell-qc — three bands, one concept each</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1240px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 6px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 100ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  .cand { border: 1px solid var(--grid); border-radius: var(--radius); padding: var(--sp-3) var(--sp-4) var(--sp-4); margin: 0 0 var(--sp-3); background: var(--surface-1); }
+  .cand .why { font-size: var(--fs-sm); color: var(--ink-2); margin: var(--sp-3) 0 0; max-width: 100ch; }
+  .cand .why b { color: var(--ink-1); }
+  .row { display: flex; gap: var(--sp-4); flex-wrap: wrap; align-items: flex-start; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); border-radius: var(--radius); }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--c-reference); background: var(--surface-2); }
+  table.m { border-collapse: collapse; font-size: var(--fs-sm); }
+  table.m th, table.m td { border-bottom: 1px solid var(--grid); padding: 4px 12px 4px 0; text-align: left; }
+  table.m td.n { text-align: right; font-variant-numeric: tabular-nums; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>cell-qc &middot; three bands, one concept each</h1>
+  <p class="note">
+    His round 12, the grouping written out: <b>1) violin genes/transcripts &rarr; genes &times; transcripts.
+    2) violin mito &rarr; mito &times; transcripts. 3) violin doublet &rarr; spider + scores.</b>
+    Each band reads left to right &mdash; the distributions first, then what they are plotted against &mdash; and
+    <b>the doublet violin stays, inside its own band</b>, which is what the earlier bands sketch left out.
+    Two ways to lay the third band, because it is the one that has three things in it. Panels narrower than the line
+    they have to print are hatched with the numbers; the floors are the measured ones from the last mock.
+  </p>
+
+  <h2>1 &middot; The bands</h2>
+  <div id="layouts"></div>
+
+  <h2>2 &middot; What each band's panels get</h2>
+  <div class="cand"><table class="m" id="widths"></table>
+    <p class="why">A violin panel needs <b>174px</b> to keep four sample labels apart, a scatter <b>194</b> for its
+      caption with its note wrapped, the neighbourhood panel <b>163</b> for the two marks and their key, and the three
+      score rows <b>236</b> for their axis label. Measured with the widget's own type on its own strings.</p>
+  </div>
+
+  <h2>3 &middot; The call</h2>
+  <div id="calls"></div>
+</main>
+
+<script type="module">
+const css = getComputedStyle(document.documentElement);
+const C = (n) => css.getPropertyValue(n).trim();
+const font = C("--font") || "system-ui";
+const probe = document.createElement("canvas").getContext("2d");
+const wid = (s, px, weight) => { probe.font = `${weight ?? ""} ${px}px ${font}`.trim(); return Math.ceil(probe.measureText(s).width); };
+
+/* the four floors, measured the same way as the last mock */
+const F_VIOLIN = 4 * Math.max(wid("tumour", 11), wid("P2", 11)) + 3 * 10;
+const F_SCATTER = wid("Mitochondrial % against transcripts", 12, "600");
+const F_SPIDER = wid("a droplet", 11) + wid("artificial doublet", 11) + 40;
+const F_ROWS = wid("share of the nearest neighbours that are artificial", 11);
+
+const PAD = { l: 52, r: 16, t: 26 };
+const COUNTS = "--c-empirical", MITO = "--c-extreme", DBL = "--c-cluster-b";
+const T1 = "The two counts — the same thing twice";
+const T2 = "Mitochondrial % — a dying cell, or the sample";
+const T3 = "The doublet score — from the droplets nearest it";
+
+const seen = [];
+function box(g, r, label, tone, sub, need, band) {
+  const tight = need && r.w < need;
+  if (band !== undefined) seen.push({ band, label, w: Math.round(r.w), need, tight });
+  g.save();
+  g.fillStyle = C(tone);
+  g.globalAlpha = 0.12;
+  g.fillRect(r.x, r.y, r.w, r.h);
+  g.globalAlpha = 1;
+  g.strokeStyle = C(tone);
+  g.lineWidth = 1;
+  g.strokeRect(r.x + 0.5, r.y + 0.5, r.w, r.h);
+  if (tight) {
+    g.save();
+    g.strokeStyle = C("--c-extreme");
+    g.globalAlpha = 0.5;
+    g.beginPath();
+    for (let d = -r.h; d < r.w; d += 8) { g.moveTo(r.x + d, r.y + r.h); g.lineTo(r.x + d + r.h, r.y); }
+    g.save(); g.rect(r.x, r.y, r.w, r.h); g.clip(); g.stroke(); g.restore();
+    g.restore();
+  }
+  g.fillStyle = C("--ink-1");
+  g.font = `600 11px ${font}`;
+  g.textAlign = "center";
+  g.textBaseline = "middle";
+  const cy = r.y + r.h / 2;
+  g.fillText(label, r.x + r.w / 2, cy - (sub || tight ? 8 : 0));
+  if (sub) { g.fillStyle = C("--ink-3"); g.font = `10px ${font}`; g.fillText(sub, r.x + r.w / 2, cy + 6); }
+  if (tight) {
+    g.fillStyle = C("--c-extreme");
+    g.font = `600 10px ${font}`;
+    g.fillText(`${Math.round(r.w)}px, needs ${need}`, r.x + r.w / 2, cy + (sub ? 20 : 10));
+  }
+  g.restore();
+}
+function head(g, x, y, w, text) {
+  g.save();
+  g.strokeStyle = C("--grid");
+  g.lineWidth = 1;
+  g.beginPath(); g.moveTo(x, y + 0.5); g.lineTo(x + w, y + 0.5); g.stroke();
+  g.font = `600 12px ${font}`;
+  g.fillStyle = C("--surface-1");
+  g.fillRect(x - 4, y - 9, g.measureText(text).width + 8, 18);
+  g.fillStyle = C("--ink-2");
+  g.textAlign = "left";
+  g.textBaseline = "middle";
+  g.fillText(text, x, y);
+  g.restore();
+}
+
+function draw(g, w, kind) {
+  const full = w - PAD.l - PAD.r, GAP = 22, BAND = 44, FOOT = 52;
+  let y = PAD.t + 4;
+
+  /* --- band 1: the two counts, then what they are plotted against -------- */
+  head(g, PAD.l, y + 8, full, T1);
+  y += 34;
+  const e3 = (full - 2 * GAP) / 3;
+  if (e3 >= F_VIOLIN) {
+    box(g, { x: PAD.l, y, w: e3, h: 180 }, "Genes", COUNTS, null, F_VIOLIN, 1);
+    box(g, { x: PAD.l + e3 + GAP, y, w: e3, h: 180 }, "Transcripts", COUNTS, null, F_VIOLIN, 1);
+    box(g, { x: PAD.l + 2 * (e3 + GAP), y, w: e3, h: 180 }, "Genes × transcripts", COUNTS, null, F_SCATTER, 1);
+    y += 180;
+  } else {
+    /* no room for three across: the two violins pair, the scatter takes the
+       whole band under them — the same wrap the violin row already makes */
+    const e2 = (full - GAP) / 2;
+    box(g, { x: PAD.l, y, w: e2, h: 180 }, "Genes", COUNTS, null, F_VIOLIN, 1);
+    box(g, { x: PAD.l + e2 + GAP, y, w: e2, h: 180 }, "Transcripts", COUNTS, null, F_VIOLIN, 1);
+    y += 180 + GAP;
+    box(g, { x: PAD.l, y, w: full, h: 180 }, "Genes × transcripts", COUNTS, null, F_SCATTER, 1);
+    y += 180;
+  }
+  y += BAND;
+
+  /* --- band 2: one violin, one scatter ----------------------------------- */
+  head(g, PAD.l, y + 8, full, T2);
+  y += 34;
+  const e2 = (full - GAP) / 2;
+  box(g, { x: PAD.l, y, w: e2, h: 180 }, "Mito %", MITO, null, F_VIOLIN, 2);
+  box(g, { x: PAD.l + e2 + GAP, y, w: e2, h: 180 }, "Mito % × transcripts", MITO, null, F_SCATTER, 2);
+  y += 180 + BAND;
+
+  /* --- band 3: the violin, the spider, the three rows -------------------- */
+  head(g, PAD.l, y + 8, full, T3);
+  y += 34;
+  const oneRow = kind === "wide" && full - 2 * GAP >= F_VIOLIN + F_SPIDER + F_ROWS;
+  if (oneRow) {
+    /* all three across, split by what each needs plus a share of the slack */
+    const slack = (full - 2 * GAP) - (F_VIOLIN + F_SPIDER + F_ROWS);
+    const wv = F_VIOLIN + slack * 0.1, ws = F_SPIDER + slack * 0.25, wr = F_ROWS + slack * 0.65;
+    box(g, { x: PAD.l, y, w: wv, h: 262 }, "Doublet score", DBL, null, F_VIOLIN, 3);
+    box(g, { x: PAD.l + wv + GAP, y, w: ws, h: 262 }, "One droplet's", DBL, "fifty nearest", F_SPIDER, 3);
+    box(g, { x: PAD.l + wv + ws + 2 * GAP, y, w: wr, h: 262 }, "The doublet score", DBL, "three rows", F_ROWS, 3);
+    y += 262;
+  } else {
+    /* the violin beside the spider, and the rows across the whole band */
+    const half = (full - GAP) / 2;
+    box(g, { x: PAD.l, y, w: half, h: 262 }, "Doublet score", DBL, null, F_VIOLIN, 3);
+    box(g, { x: PAD.l + half + GAP, y, w: half, h: 262 }, "One droplet's", DBL, "fifty nearest", F_SPIDER, 3);
+    y += 262 + GAP;
+    box(g, { x: PAD.l, y, w: full, h: 210 }, "The doublet score", DBL, "three rows", F_ROWS, 3);
+    y += 210;
+  }
+  return y + FOOT;
+}
+
+const LAYOUTS = [
+  {
+    key: "wide", name: "E · the three bands, each on one row",
+    why: "Exactly as he wrote it: three panels in the counts band, two in the mitochondrial band, three in the doublet "
+      + "band. Every band reads left to right, distributions first. <b>The doublet band fits across at 746</b> — "
+      + "174 + 163 + 236 plus two gaps is 617 of the 678 there are — and the slack goes mostly to the score rows, "
+      + "which end at 276px against the 386 they have today; the spider drops from 231 to 178, so its spokes reach 77px "
+      + "instead of 99. Nothing is below its floor. <b>It costs 24px of height at 746</b>, which makes it the cheapest "
+      + "of every layout mocked so far. At 534 there is no room for three across in either band, so both wrap, and this "
+      + "becomes identical to F.",
+  },
+  {
+    key: "stack", name: "F · the same, with the doublet band on two rows",
+    why: "The violin beside the spider, and the three score rows across the whole band under them. <b>The rows get "
+      + "678px instead of 260</b>, which is nearly twice what they have today, and the band still reads left to right "
+      + "then down, and the spider keeps 328px. It costs <b>232px of height at 746</b>, which is the whole of the "
+      + "difference between the two. At 534 the two are the same page, because E wraps to this anyway.",
+  },
+];
+{
+  const host = document.getElementById("layouts");
+  for (const L of LAYOUTS) {
+    const d = document.createElement("div");
+    d.className = "cand";
+    const h = document.createElement("h3");
+    h.textContent = L.name;
+    d.appendChild(h);
+    const row = document.createElement("div");
+    row.className = "row";
+    for (const w of [746, 534]) {
+      const cell = document.createElement("div");
+      const t = document.createElement("h3");
+      t.textContent = `${w}px`;
+      t.style.color = "var(--ink-3)";
+      t.style.fontWeight = "400";
+      cell.appendChild(t);
+      const p = document.createElement("canvas").getContext("2d");
+      const H = draw(p, w, L.key);
+      seen.length = 0;
+      const c = document.createElement("canvas");
+      const dpr = window.devicePixelRatio || 1;
+      c.width = w * dpr; c.height = H * dpr;
+      c.style.width = w + "px"; c.style.height = H + "px";
+      const g = c.getContext("2d");
+      g.scale(dpr, dpr);
+      draw(g, w, L.key);
+      if (w === 746 && L.key === "wide") window.__seen746 = seen.slice();
+      cell.appendChild(c);
+      const cap = document.createElement("div");
+      cap.style.cssText = "font-size:var(--fs-xs);color:var(--ink-3);margin-top:4px";
+      cap.textContent = `${Math.round(H)}px tall` + (w === 746 ? " · 870 today" : " · 1094 today");
+      cell.appendChild(cap);
+      row.appendChild(cell);
+    }
+    d.appendChild(row);
+    const why = document.createElement("p");
+    why.className = "why";
+    why.innerHTML = L.why;
+    d.appendChild(why);
+    host.appendChild(d);
+  }
+}
+/* what every panel actually gets, in both layouts and at both widths */
+{
+  const t = document.getElementById("widths");
+  t.innerHTML = "<tr><th>band</th><th>panel</th><th>E, 746</th><th>E, 534</th><th>F, 746</th><th>F, 534</th><th>needs</th></tr>";
+  const runs = {};
+  for (const key of ["wide", "stack"]) {
+    for (const w of [746, 534]) {
+      seen.length = 0;
+      draw(document.createElement("canvas").getContext("2d"), w, key);
+      runs[key + w] = seen.slice();
+    }
+  }
+  for (let i = 0; i < runs.stack746.length; i += 1) {
+    const ref = runs.stack746[i];
+    const tr = document.createElement("tr");
+    const cells = [String(ref.band), ref.label];
+    for (const k of ["wide746", "wide534", "stack746", "stack534"]) {
+      const m = runs[k].find((x) => x.label === ref.label && x.band === ref.band);
+      cells.push(m ? `${m.w}${m.tight ? " ✗" : ""}` : "—");
+    }
+    cells.push(String(ref.need));
+    cells.forEach((txt, ci) => {
+      const td = document.createElement("td");
+      if (ci >= 2) td.className = "n";
+      td.textContent = txt;
+      if (txt.endsWith("✗")) td.style.color = C("--c-extreme");
+      tr.appendChild(td);
+    });
+    t.appendChild(tr);
+  }
+}
+const calls = [
+  ["1 &middot; the third band",
+    "<b>E &mdash; all three across (recommended: it is what you wrote, nothing falls below its floor, and it costs 24px of height against F’s 232)</b> | F, the violin beside the spider with the rows across the whole band — the answer if 276px of score rows reads tight once it is drawn for real, which a box cannot tell either of us"],
+  ["2 &middot; the headings",
+    "<b>a concept a heading, on a rule (recommended: “The two counts — the same thing twice”, “Mitochondrial % — a dying cell, or the sample”, “The doublet score — from the droplets nearest it”)</b> | short nouns only — “The two counts”, “Mitochondrial %”, “The doublet score” | no headings, the rules alone"],
+  ["3 &middot; the doublet violin's height in band 3",
+    "<b>262px, the same as the spider beside it (recommended: the band's panels line up top and bottom)</b> | 180px as the other violins, top-aligned"],
+];
+document.getElementById("calls").innerHTML = calls.map(([q, a]) => `<p class="q"><b>${q}</b> &nbsp; ${a}</p>`).join("");
+</script>
+</body>
+</html>
