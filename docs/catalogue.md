@@ -19767,7 +19767,36 @@ the two panels that were its page under the four distributions, and
 Thresholds applies all four rules — two pages again; and the order is said
 once on the figure, *"on the droplets the other three rules keep"*.
 
-NEXT: his round 5.
+**Round 5, 2026-09-23 — making the score countable.** His question: *is there
+another visualization approach to make it intuitive what it's doing .. there
+is nearest neighbors? so it's clustering? or just cut-off via distribution*.
+Answered in three lines and mocked (`_lab/cell-qc-doublet-view-mock.html`,
+three candidates, nothing built until he picked):
+
+- **nearest neighbours, yes — as a local head count, not a grouping.**
+- **not clustering**: nothing is grouped and no labels come out. Clustering
+  answers which cells belong together; this answers how much company one
+  droplet keeps with things made by adding two droplets together.
+- **a cut-off, yes, but at the end and on an axis that did not exist before**,
+  and the line is not found by looking for a valley in the score: DoubletFinder
+  sets it from the machine's expected doublet rate (nExp, adjusted for the
+  homotypic share), scDblFinder by minimising misclassification of its own
+  artificial doublets while staying near that rate.
+
+**His pick: A, on the droplet under the pointer.** The left panel showed the
+method's INPUT and now shows its arithmetic for one droplet — the fifty
+nearest, magnified, coloured real or made-up, counted underneath. At rest, 14
+of 50 for a typical droplet; pointing at the first score row, 41 of 50 for
+one holding two cells. **The score rows are how a droplet is reached**, being
+laid out by the number the panel explains, and the same hover rings it in
+both scatters and ticks it in all four distributions.
+
+Also fixed on the way: the map was projected from one draw of a droplet's six
+block fractions and the score counted neighbours in another. The stage reads
+the profile once now and both take it, so a droplet's place and its company
+are the same fact seen twice.
+
+NEXT: his round 6.
 
 ### Slot 80 · `integration` — Single-Cell Integration
 
