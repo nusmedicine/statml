@@ -20070,7 +20070,52 @@ mitochondrial %*.
 
 31 overlap states clean, switch probe 10/0, verify 68 checks.
 
-NEXT: his round 17.
+**Round 17, 2026-09-24 — the second copy audit, and the subtitle in five
+drafts.** His brief: *"make sure you use concise scientific language, no
+mannerisms"*. Run off `_lab/cell-qc-copy-sweep.html` again — 71 canvas
+strings and 63 DOM strings — and scanned against
+<https://claudisms.ai> once more: **0 of 290 terms**, no emoji, no second person, no
+hedges. The machine finds nothing twice in a row; what the brief found was
+twelve things, all applied:
+
+| | was | now |
+|---|---|---|
+| 1 | worked out from | **estimated** from |
+| 2 | the first two measure the same thing twice | gone with the old subtitle |
+| 3 | the level the ambient RNA puts every one of its droplets at | the median mitochondrial % of that sample's droplets |
+| 4 | every cell type sits at that sample's level | ambient RNA raises every cell type in that sample equally |
+| 5 | the sample the rules take most from | the sample with the fewest kept |
+| 6 | no score the rule offers separates it | no **threshold** separates it |
+| 7 | neither rule reaches any droplet | neither count rule **removes** any droplet |
+| 8 | A second colour: those two cells are | **Two colours:** the droplet holds two cells |
+| 9 | the molecules it held, counted a second time | the genes detected **saturate with** the molecules counted — the old phrasing was not true as stated |
+| 10 | how many of **the cell's** genes were seen | how many genes were **detected** in the droplet — it assumed a cell, on the page about not assuming one |
+| 11 | What one droplet's nearest neighbours are | One droplet's fifty nearest neighbours |
+| 12 | The **cells** the rules leave | The **droplets** the rules leave — the map's one lapse into the vocabulary the widget exists to question |
+
+**The subtitle took five drafts and every one of them was his steer.** The
+first named the metrics and how they are computed; he cut the saturation and
+the two-rules-are-one detail as too much; then *"you need to focus on why
+they are done also — for example you focus on doublets estimated from
+droplets but reader doesn't know why we do it"*; then the opening shape,
+*"start maybe with Single cell sequencing is conducted on droplet..treated as
+one intact cell"*; then the doublet clause rewritten for intuition. **His
+picks: D2 with the E2 ending, and blurb 2.** The shape that came out of it is
+worth keeping for the arc: **say what the unit is and what every later step
+assumes about it, then give the REASON for each rule rather than its
+arithmetic.**
+
+*Its profile is a mixture of two cells* is the load-bearing clause, and the
+reason he took the longer ending: it is what makes two cells of ONE type
+invisible at any threshold, which the second score row is for.
+
+Caught by the widget's own copy guard on the way: the draft said *every step
+after it*, and `\bstep\b` is struck — nothing is driven by presses any more
+(round 2). *all downstream analysis* is the field's word and shorter.
+
+31 overlap states clean, check, test 34/34, verify 68.
+
+NEXT: his round 18.
 
 ### Slot 80 · `integration` — Single-Cell Integration
 

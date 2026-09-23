@@ -1171,7 +1171,7 @@
     {
       "slug": "cell-qc",
       "title": "Single-Cell RNA-seq: QC",
-      "blurb": "Droplets are filtered on what they hold: three numbers measured on each one, and a fourth from the droplets nearest it.",
+      "blurb": "Cells are partitioned into droplets and each droplet is treated as one cell; QC removes the ones where that is false.",
       "course": "PHM5003",
       "topics": [
         "single-cell RNA-seq",

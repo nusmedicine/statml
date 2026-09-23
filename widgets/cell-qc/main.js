@@ -478,7 +478,7 @@ function drawMetrics(ctx, colors, w, state, hover) {
      behind it. The first parts the four distributions from the two scatters;
      the second says what changes under it. */
   bandRule(ctx, colors, w, ruleTop(w));
-  bandRule(ctx, colors, w, ruleY(w), "Worked out from the droplets nearest it");
+  bandRule(ctx, colors, w, ruleY(w), "Estimated from the droplets nearest it");
   METRICS.forEach((m, mi) => {
     const rect = violinRect(w, mi);
     const { lo, hi } = axes.violins[mi];
@@ -665,7 +665,7 @@ function drawThresholds(ctx, colors, w, state, hover) {
   ctx.font = `600 ${colors.fsSm} ${colors.font}`;
   ctx.fillStyle = colors.ink2;
   ctx.textAlign = "left";
-  ctx.fillText("The cells the rules leave", mr.x, mr.y - 10);
+  ctx.fillText("The droplets the rules leave", mr.x, mr.y - 10);
   ctx.restore();
   ctx.save();
   ctx.strokeStyle = colors.grid;
@@ -913,7 +913,7 @@ function drawDoubletPanels(ctx, colors, w, state, hover) {
   ctx.font = `600 ${colors.fsSm} ${colors.font}`;
   ctx.fillStyle = colors.ink2;
   ctx.textAlign = "left";
-  ctx.fillText("What one droplet's nearest neighbours are", mr.x, mr.y - 40);
+  ctx.fillText("One droplet's fifty nearest neighbours", mr.x, mr.y - 40);
   /* THE ORDER, said once and on the figure (his round 4). The widget scores
      what the other three rules keep, which is DoubletFinder's order; the
      other order is scDblFinder's, and the two disagree in their own docs.
@@ -1294,15 +1294,25 @@ const DATA_KEYS = ["seed", "hot", "hotMt"];
 defineWidget({
   slug: "cell-qc",
   title: "Single-Cell RNA-seq: QC",
+  /* HIS ROUND 17, after four redrafts. The shape is his: say what a
+     droplet is and what every later step assumes about it, then give the
+     reason for each rule rather than its arithmetic. The saturation of the
+     two counts was cut on his word — the readout still carries it — and
+     the doublet clause is his pick of three endings, because "its profile
+     is a mixture of two cells" is what makes two cells of ONE type
+     invisible at any threshold, which the second score row is for. */
   subtitle:
-    "Droplets are filtered before analysis on three numbers: the genes detected, "
-    + "the transcripts counted, and the percentage of transcripts that are "
-    + "mitochondrial. The first two measure the same thing twice. The third rises "
-    + "both in a cell that is dying and in a sample whose preparation released "
-    + "free mitochondrial RNA into every droplet, so one threshold applied across "
-    + "every sample can empty one of them and take nothing from the rest. A fourth "
-    + "number is not measured on the droplet at all: it is worked out from the "
-    + "droplets nearest it.",
+    "Single-cell RNA sequencing partitions cells into droplets, and all "
+    + "downstream analysis treats a droplet as one intact cell. Quality "
+    + "control removes the droplets where that is false: too few transcripts "
+    + "or too "
+    + "few genes means no cell, or a poorly captured one, and a high "
+    + "percentage of mitochondrial transcripts means a dying cell, or a "
+    + "sample whose dissociation released mitochondrial RNA into all of its "
+    + "droplets. A droplet that held two cells passes both. Its profile is a "
+    + "mixture of two cells, so pairs of droplets are added together to make "
+    + "artificial mixtures, and a droplet is called when enough of its "
+    + "nearest neighbours are artificial.",
   layout: "side",
   status: "draft",
   height: ({ page, w }) => (page === "metrics" ? HEIGHTS.metrics + METRIC_BLOCK(w ?? 900) : HEIGHTS[page] ?? HEIGHTS.metrics),
@@ -1318,7 +1328,7 @@ defineWidget({
     },
     hotMt: {
       type: "choice", label: "That sample's median mitochondrial %",
-      detail: "the level the ambient RNA puts every one of its droplets at; the other three samples sit near 1%",
+      detail: "the median mitochondrial % of that sample's droplets; the other three sit near 1%",
       options: [2, 8, 15, 25].map((v) => ({ value: String(v), label: `${v}%` })), default: "15",
       when: { param: "hot", not: "none" },
     },
@@ -1327,7 +1337,7 @@ defineWidget({
     filterSec: { type: "section", label: "The filter" },
     genes: {
       type: "int", label: "Genes detected, more than", min: 0, max: 1500, step: 50, default: 500, display: true,
-      detail: "how many of the cell's genes were seen at least once",
+      detail: "how many genes were detected at least once in the droplet",
     },
     counts: {
       type: "int", label: "Transcripts, more than", min: 0, max: 3000, step: 100, default: 800, display: true,
@@ -1368,7 +1378,7 @@ defineWidget({
       { token: "reference", label: "A rule now set, and an artificial doublet: two droplets added together, drawn as two circles", mark: "dot" },
       { token: "extreme", label: "A droplet the doublet score calls", mark: "dot" },
       { token: "cluster-b", label: "What a droplet holds: one circle is one cell, two joined are two", mark: "dot" },
-      { token: "cluster-d", label: "A second colour: those two cells are of different types", mark: "dot" },
+      { token: "cluster-d", label: "Two colours: the droplet holds two cells of different types", mark: "dot" },
     ];
   },
 
@@ -1402,14 +1412,14 @@ defineWidget({
         {
           label: "Median mitochondrial %, highest sample against lowest",
           value: `${fmt(medians[hi.key].mt, 1)} against ${fmt(medians[lo.key].mt, 1)}`,
-          note: `${hi.name} and ${lo.name}, of ${tally[hi.key].n} droplets each; every cell type inside a sample sits at that sample's level`,
+          note: `${hi.name} and ${lo.name}, of ${tally[hi.key].n} droplets each; ambient RNA raises every cell type in that sample equally`,
         },
         {
           label: "Droplets failing either count rule that fail both",
           value: overlap.either ? `${overlap.both} of ${overlap.either}` : "none",
           note: overlap.either
-            ? `${Math.round((100 * overlap.both) / overlap.either)}% — the genes detected in a droplet are the molecules it held, counted a second time, so more than ${thr.nCount} transcripts and more than ${thr.nFeature} genes are nearly the same rule`
-            : `at more than ${thr.nFeature} genes and more than ${thr.nCount} transcripts neither rule reaches any droplet`,
+            ? `${Math.round((100 * overlap.both) / overlap.either)}% — the genes detected saturate with the molecules counted, so more than ${thr.nCount} transcripts and more than ${thr.nFeature} genes are nearly the same rule`
+            : `at more than ${thr.nFeature} genes and more than ${thr.nCount} transcripts neither count rule removes any droplet`,
         },
       ];
       /* the fourth metric's own numbers, beside the first three's: what the
@@ -1431,7 +1441,7 @@ defineWidget({
       tiles.push({
         label: "Doublets of two of the same type called",
         value: `${called(hom)} of ${n(hom)}`,
-        note: `a doublet of two cells of one type has that type's profile, so the artificial doublets around it were made from that type too — its median score is ${medOf(hom)}, and no score the rule offers separates it from a droplet holding one cell`,
+        note: `a doublet of two cells of one type has that type's profile, so the artificial doublets around it were made from that type too — its median score is ${medOf(hom)}, and no threshold separates it from a droplet holding one cell`,
       });
       return tiles;
     }
@@ -1447,7 +1457,7 @@ defineWidget({
         note: `removed: ${RULES.map((r) => `${SAMPLES.reduce((a, s) => a + tally[s.key].by[r], 0)} ${RULE_NAME[r]}`).join(", ")}`,
       },
       {
-        label: `Kept in ${worst.name}, the sample the rules take most from`,
+        label: `Kept in ${worst.name}, the sample with the fewest kept`,
         value: `${Math.round((100 * t.kept) / t.n)}%`,
         note: `its median mitochondrial % is ${fmt(medians[worst.key].mt, 1)}, against ${fmt(median(SAMPLES.filter((s) => s.key !== worst.key).map((s) => medians[s.key].mt)), 1)} in the other three`,
       },
