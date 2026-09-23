@@ -14,27 +14,33 @@
  * counts. And two of the three rules are one rule: 84% of the cells either
  * count rule removes fail both.
  *
- * THREE PAGES (his picks at planning, 2026-09-23, eleven calls with
- * `_lab/cell-qc-mock.html` open, every one the recommendation):
- * Metrics · Thresholds · Cells kept (his round 1, 2026-09-23: "Truth" named
- * what the stage knows rather than what the page shows — the cells the rules
- * leave, which is the set the next step clusters). The stage is simulated and FITTED to the real
+ * TWO PAGES, Metrics · Thresholds — three at planning, streamlined to two at
+ * his round 2 (2026-09-23): "for threshold, don't need to step, the graph
+ * shows dynamically when we change sliders" and "maybe we don't need cell's
+ * kept page? could the cluster plot be put under threshold". Both are right,
+ * and the second is the stronger figure: the map is now beside the bar under
+ * the same sliders, a removed droplet is GONE rather than hollow, and
+ * dragging the mitochondrial rule from 30 to 5 empties the hepatocyte cluster
+ * while the other five stay — a universal threshold deleting a population
+ * from the pooled data, in one drag. The stage is simulated and FITTED to the real
  * cells rather than shaped to resemble them (`./engine.js`): nFeature is not
  * drawn but is how many genes are seen when the droplet's molecules are drawn
  * from its own profile, and mt% is mitochondrial over total — so the overlap
  * between the count rules, the negative correlation and the recovery curve
  * all come back without being written anywhere.
  *
- * THE FILTER IS APPLIED IN THREE PRESSES, genes then transcripts then
- * mitochondrial percentage, because the second press visibly takes almost
- * nothing new and the third takes a whole sample. That argument only exists
- * in the order, which is why Step is the control and not a checkbox.
+ * NOTHING IS DRIVEN. The three rules apply as the sliders move, so the widget
+ * declares an animation for its EASES alone and marks it inert, which takes
+ * Step out of the drive row. The walkthrough it replaces (genes, then
+ * transcripts, then mitochondrial percentage, one press each) made the
+ * argument that two of the three rules are one rule — the second press took
+ * thirteen droplets after the first took a hundred and twenty — and that
+ * argument now lives where it also holds still: the bar's three segments, the
+ * crossing lines on the Metrics scatter, and the readout's own count.
  *
  * THE THRESHOLDS ARE DISPLAY PARAMETERS. They change which droplets are kept
- * and no droplet's numbers, and a reader who has taken all three presses and
- * then moves a slider must not have the presses undone (invariant 3). The
- * data parameters are the ones that change the droplets themselves — the seed
- * and which sample carries ambient RNA — and those do re-init.
+ * and no droplet's numbers. The data parameters are the ones that change the
+ * droplets themselves — the seed and which sample carries ambient RNA.
  *
  * THE STAGE IS CACHED by its data parameters, as widget 73's trained models
  * are: a slider tick must not redraw 1,600 droplets from 8,000 genes each.
@@ -46,11 +52,8 @@ import { simulate, confusion, embed, median, TYPES, SAMPLES } from "./engine.js"
 const PAGES = [
   { value: "metrics", label: "Metrics" },
   { value: "thresholds", label: "Thresholds" },
-  { value: "kept", label: "Cells kept" },
 ];
-const HEIGHTS = { metrics: 580, thresholds: 430, kept: 400 };
-const STAGES = 3;                 // genes, transcripts, mitochondrial percentage
-const STEP_MS = 700;
+const HEIGHTS = { metrics: 580, thresholds: 400 };
 const EASE_MS = 450;
 const easeInOut = (t) => (t < 0.5 ? 2 * t * t : 1 - ((-2 * t + 2) ** 2) / 2);
 const log10 = (v) => Math.log10(Math.max(1, v));
@@ -102,19 +105,25 @@ const scatterRect = (w, i) => {
   const each = (w - PAD.l - PAD.r - 56) / 2;
   return { x: PAD.l + i * (each + 56), y: 300, w: each, h: 196 };
 };
-/* THE TWO THRESHOLD PANELS ARE STACKED, not side by side. The harness renders
-   every widget in a 900px frame, which puts this canvas at 534px — and side by
-   side the sweep was 67px wide there, with its own caption 75px off the right
-   edge (the text-overlap sweep, 2026-09-23). Stacked, both panels have the
-   whole width at any size, and the bar (what the three rules did) sits above
-   the sweep (what every other threshold would have done). */
-const barRect = (w) => ({ x: 76, y: 34, w: w - 76 - 46, h: 112 });
-const sweepRect = (w) => ({ x: 56, y: 234, w: w - 56 - 72, h: 126 });
-const mapRect = (w) => ({ x: 20, y: 30, w: Math.min(300, w * 0.46), h: 300 });
-const costRect = (w) => {
-  const m = mapRect(w);
-  return { x: m.x + m.w + 76, y: 40, w: w - (m.x + m.w + 76) - PAD.r, h: 240 };
+/* LAYOUT A (his pick, round 2): the map is the biggest thing on the page,
+   because what the sliders do to the cells is what the page is now about; the
+   bar sits beside it and the sweep under the bar, so the whole dial stays
+   visible while a slider moves along it. The harness renders every widget in a
+   900px frame, which puts this canvas at 534px, so every rect is a share of
+   the width rather than a number. */
+const mapRect = (w) => {
+  const side = Math.max(190, Math.min(310, w * 0.42));
+  return { x: 22, y: 34, w: side, h: side };
 };
+const rightCol = (w) => {
+  const m = mapRect(w);
+  const x = m.x + m.w + 58;
+  /* 66px at the right edge: the four sample names sit at the ends of their own
+     curves on the sweep, and at 42 they were clipped to "P1 · tum" */
+  return { x, w: Math.max(150, w - x - 66) };
+};
+const barRect = (w) => ({ ...rightCol(w), y: 34, h: 104 });
+const sweepRect = (w) => ({ ...rightCol(w), y: 226, h: 116 });
 
 /** A smoothed density over a fixed range, scaled to its own maximum. */
 function density(values, lo, hi, bins = 40) {
@@ -139,22 +148,6 @@ function dots(ctx, points, r, fill, alpha) {
     ctx.beginPath();
     ctx.arc(x, y, r, 0, Math.PI * 2);
     ctx.fill();
-  }
-  ctx.restore();
-}
-
-/** The same droplets, outlined rather than filled — a droplet the filter
-    removed. Colour carries what the droplet HOLDS and must not also carry
-    whether it was removed, so removal is the mark: filled or hollow. */
-function hollows(ctx, points, r, stroke, alpha) {
-  ctx.save();
-  ctx.globalAlpha = alpha;
-  ctx.strokeStyle = stroke;
-  ctx.lineWidth = 1;
-  for (const [x, y] of points) {
-    ctx.beginPath();
-    ctx.arc(x, y, r, 0, Math.PI * 2);
-    ctx.stroke();
   }
   ctx.restore();
 }
@@ -406,13 +399,79 @@ function drawMetrics(ctx, colors, w, state, hover) {
 }
 
 /* =========================================================================
-   PAGE 2 · Thresholds — one bar a sample, split by the rule that removed the
-   droplet, and the mitochondrial rule swept from 2 to 30 beside it (his pick
-   9: the bar is the state, the sweep is the dial).
+   PAGE 2 · Thresholds — the three rules as the reader moves them: the map of
+   the cells they leave, the bar of what they took from each sample, and the
+   mitochondrial rule swept from 2 to 30 under it (layout A, his round 2).
+
+   A DROPLET A RULE REMOVES IS GONE, not marked (his round 2: "can also remove
+   cells from the cluster instead of changing from filled to empty so effect
+   is more apparent"). The drag is the proof: at a mitochondrial rule of 30
+   the map is six dense clusters and every sample keeps 88–93%; at 5 the
+   sample carrying the ambient RNA is at 0% and the hepatocyte cluster is a
+   scatter, because that sample was 62% hepatocyte. What that costs is then a
+   number rather than a mark, and the readout carries it.
    ====================================================================== */
-function drawThresholds(ctx, colors, w, state, stage, p, hover) {
+const STATE_COLOUR = (colors) => ({
+  good: colors.empirical, dying: colors.extreme, empty: colors.unknown, doublet: colors.highlight,
+});
+
+function drawThresholds(ctx, colors, w, state, hover) {
   const lit = hover && hover.kind === "sample" ? hover.key : null;
-  const { tally, sweep, thr } = state;
+  const { cells, pos, view, removedAt, centres, tally, sweep, thr } = state;
+  const SC = STATE_COLOUR(colors);
+
+  /* --- the map: the cells the rules leave ---------------------------------- */
+  const { rect: mr, sx, sy } = mapScale(w, view);
+  ctx.save();
+  ctx.font = `600 ${colors.fsSm} ${colors.font}`;
+  ctx.fillStyle = colors.ink2;
+  ctx.textAlign = "left";
+  ctx.fillText("The cells the rules leave", mr.x, mr.y - 10);
+  ctx.restore();
+  ctx.save();
+  ctx.strokeStyle = colors.grid;
+  ctx.strokeRect(mr.x + 0.5, mr.y + 0.5, mr.w, mr.h);
+  ctx.restore();
+  for (const st of ["good", "empty", "dying", "doublet"]) {
+    const pts = [];
+    cells.forEach((c, i) => {
+      if (c.state !== st || removedAt[i]) return;
+      pts.push([sx(pos[i].x), sy(pos[i].y)]);
+    });
+    dots(ctx, pts, st === "good" ? 1.9 : 2.3, SC[st], st === "good" ? 0.5 : 0.9);
+  }
+  /* the six populations, named where their own cells are; a population the
+     rules have emptied loses its name along with its cells */
+  ctx.save();
+  ctx.font = `600 ${colors.fsXs} ${colors.font}`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  TYPES.forEach((t) => {
+    const c = centres[t.key];
+    if (!c) return;
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = colors.surface;
+    ctx.strokeText(t.name, sx(c[0]), sy(c[1]));
+    ctx.fillStyle = colors.ink2;
+    ctx.fillText(t.name, sx(c[0]), sy(c[1]));
+  });
+  ctx.restore();
+  if (hover && hover.kind === "droplet") {
+    const c = cells[hover.i];
+    ringAt(ctx, colors, sx(pos[hover.i].x), sy(pos[hover.i].y), 6);
+    const type = c.state === "empty" ? "" : c.partner
+      ? `${TYPES.find((t) => t.key === c.type).name.toLowerCase()} and ${TYPES.find((t) => t.key === c.partner).name.toLowerCase()}`
+      : TYPES.find((t) => t.key === c.type).name.toLowerCase();
+    const held = { good: "one cell", dying: "a dying cell", empty: "no cell, ambient RNA only", doublet: "two cells" }[c.state];
+    hoverLine(ctx, colors, mr.x, mr.y + mr.h + 16, [[held, SC[c.state], "600"], [type, colors.ink3]]);
+    hoverLine(ctx, colors, mr.x, mr.y + mr.h + 32, [
+      [`${bigCount(c.nCount)} transcripts`, colors.ink2],
+      [`${bigCount(c.nFeature)} genes`, colors.ink2],
+      [`${fmt(c.mt, 1)}% mitochondrial`, colors.ink2],
+    ]);
+  }
+
+  /* --- the bar: what the rules took from each sample ----------------------- */
   const rect = barRect(w);
   const rowH = rect.h / SAMPLES.length;
   ctx.save();
@@ -420,40 +479,31 @@ function drawThresholds(ctx, colors, w, state, stage, p, hover) {
   ctx.fillStyle = colors.ink2;
   ctx.textAlign = "left";
   ctx.fillText("Droplets, one bar a sample", rect.x, rect.y - 10);
-  ctx.font = `${colors.fsXs} ${colors.font}`;
-  ctx.fillStyle = stage < STAGES ? colors.reference : colors.ink3;
-  ctx.textAlign = "right";
-  ctx.fillText(appliedNote(stage), rect.x + rect.w, rect.y - 10);
   ctx.restore();
   SAMPLES.forEach((s, si) => {
     const t = tally[s.key];
-    const y = rect.y + si * rowH + 6;
-    const h = rowH - 16;
+    const y = rect.y + si * rowH + 3;
+    const h = rowH - 12;
     const unit = rect.w / t.n;
-    /* how much of each rule's removal has arrived. A press increments the
-       stage first and then runs its progress, so the rule ARRIVING is index
-       stage − 1 and the ones before it are whole. */
-    const share = (k) => (k < stage - 1 ? 1 : k === stage - 1 ? p : 0);
     let x = rect.x;
     ctx.save();
     ctx.fillStyle = colors.empirical;
-    const removedNow = RULES.reduce((a, r, k) => a + t.by[r] * share(k), 0);
-    ctx.fillRect(x, y, (t.n - removedNow) * unit, h);
-    x += (t.n - removedNow) * unit;
+    ctx.fillRect(x, y, t.kept * unit, h);
+    x += t.kept * unit;
     ctx.fillStyle = colors.extreme;
-    RULES.forEach((r, k) => {
-      const seg = t.by[r] * share(k);
-      if (seg <= 0) return;
-      ctx.fillRect(x, y, seg * unit, h);
-      x += seg * unit;
-      /* a hairline in the surface colour between one rule's removals and the
-         next, so the three arrivals stay legible once all three have landed */
+    /* the three rules in the order they are written, hairline-separated: the
+       transcript rule's sliver between the other two is what says that two of
+       the three rules are one rule, which the walkthrough used to say in time */
+    for (const r of RULES) {
+      if (!t.by[r]) continue;
+      ctx.fillRect(x, y, t.by[r] * unit, h);
+      x += t.by[r] * unit;
       ctx.save();
       ctx.strokeStyle = colors.surface;
       ctx.lineWidth = 1;
       ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y + h); ctx.stroke();
       ctx.restore();
-    });
+    }
     ctx.restore();
     ctx.save();
     ctx.strokeStyle = lit === s.key ? colors.highlight : colors.grid;
@@ -466,54 +516,41 @@ function drawThresholds(ctx, colors, w, state, stage, p, hover) {
     ctx.fillText(shortName(s.key), rect.x - 8, y + h / 2);
     ctx.textAlign = "left";
     ctx.fillStyle = colors.ink3;
-    const kept = t.n - removedNow;
-    ctx.fillText(`${Math.round((100 * kept) / t.n)}%`, rect.x + rect.w + 8, y + h / 2);
+    ctx.fillText(`${Math.round((100 * t.kept) / t.n)}%`, rect.x + rect.w + 6, y + h / 2);
     ctx.restore();
   });
-  /* two lines rather than one: the rules applied so far is a long string, and
-     on a 550px canvas it printed straight through the word it sits beside */
   ctx.save();
   ctx.font = `${colors.fsXs} ${colors.font}`;
   ctx.textBaseline = "top";
   ctx.fillStyle = colors.empirical;
   ctx.textAlign = "left";
-  ctx.fillText("kept", rect.x, rect.y + rect.h + 6);
+  ctx.fillText("kept", rect.x, rect.y + rect.h - 2);
   ctx.fillStyle = colors.extreme;
   ctx.textAlign = "right";
-  ctx.fillText("removed", rect.x + rect.w, rect.y + rect.h + 6);
-  if (stage > 0) {
-    ctx.fillStyle = colors.ink3;
-    ctx.fillText(RULES.slice(0, stage).map((r) => RULE_NAME[r]).join(" · "), rect.x + rect.w, rect.y + rect.h + 20);
-  }
+  ctx.fillText("removed", rect.x + rect.w, rect.y + rect.h - 2);
   ctx.restore();
-
-  /* A SAMPLE IS A BAR AND A CURVE, and pointing at either lights both: what
-     these three rules did to it, and what every other mitochondrial rule
-     would have done. */
   if (lit) {
     const t = tally[lit];
-    const removed = t.n - t.kept;
-    hoverLine(ctx, colors, rect.x, rect.y + rect.h + 40, [
+    hoverLine(ctx, colors, rect.x, rect.y + rect.h + 22, [
       [SAMPLES.find((sm) => sm.key === lit).name, colors.ink1, "600"],
-      [`${t.n} droplets`, colors.ink2],
-      [stage > 0 ? `${removed} removed: ${RULES.slice(0, stage).map((r) => `${t.by[r]} ${RULE_NAME[r]}`).join(", ")}` : "no rule applied yet", stage > 0 ? colors.extreme : colors.ink3],
+      [`${t.n - t.kept} removed of ${t.n}`, colors.extreme],
+    ]);
+    hoverLine(ctx, colors, rect.x, rect.y + rect.h + 38, [
+      [RULES.map((r) => `${t.by[r]} ${RULE_NAME[r]}`).join(", "), colors.ink3],
     ]);
   }
 
-  /* the sweep: every mitochondrial threshold this reader could have chosen */
+  /* --- the sweep: every mitochondrial rule this reader could have set ------- */
   const sr = sweepRect(w);
   const plot = makePlot({ ctx, colors, rect: sr, xDomain: [2, 30], yDomain: [0, 1] });
   plot.caption("Droplets kept, at every mitochondrial %");
   plot.grid([0, 0.5, 1]);
-  plot.axisX({ ticks: [5, 10, 20, 30], format: (t) => String(t), label: "Mitochondrial % rule" });
+  plot.axisX({ ticks: [5, 10, 20, 30], format: (t) => String(t) });
   plot.axisY({ ticks: [0, 0.5, 1], format: (t) => `${Math.round(t * 100)}%` });
   for (const s of SAMPLES) {
     plot.curve(sweep[s.key].map((v, k) => [2 + k * 0.5, v]),
       { stroke: lit === s.key ? colors.highlight : colors.empirical, width: lit === s.key ? 2.4 : 1.6 });
   }
-  /* the four names at the ends of their own curves, pushed apart where the
-     curves arrive together — three of the four end within two points of each
-     other, which is the fact, and stacked labels are not a way to say it */
   const ends = SAMPLES
     .map((s) => ({ key: s.key, y: plot.sy(sweep[s.key][sweep[s.key].length - 1]) }))
     .sort((a, b) => a.y - b.y);
@@ -550,166 +587,6 @@ function drawThresholds(ctx, colors, w, state, stage, p, hover) {
   ctx.fillText(` ${thr.mt} `, vx, sr.y + 2);
   ctx.restore();
 }
-
-/* =========================================================================
-   PAGE 3 · Cells kept — what the rules left, and what that cost. Position is
-   the cell type and colour is what the droplet holds (his pick 4); a droplet
-   a rule removed is hollow rather than recoloured. The doublet panel beside
-   it is the lesson's other sentence, answered (his pick 5).
-   ====================================================================== */
-const STATE_COLOUR = (colors) => ({
-  good: colors.empirical, dying: colors.extreme, empty: colors.unknown, doublet: colors.highlight,
-});
-
-function drawKept(ctx, colors, w, state, stage, p, hover) {
-  const { cells, pos, view, removedAt, centres, cost } = state;
-  const SC = STATE_COLOUR(colors);
-  const { rect, sx, sy } = mapScale(w, view);
-  ctx.save();
-  ctx.font = `600 ${colors.fsSm} ${colors.font}`;
-  ctx.fillStyle = colors.ink2;
-  ctx.textAlign = "left";
-  const cap = "Every droplet, placed by what was sequenced in it";
-  ctx.fillText(cap, rect.x, rect.y - 10);
-  const capRight = rect.x + ctx.measureText(cap).width;
-  ctx.font = `${colors.fsXs} ${colors.font}`;
-  ctx.fillStyle = stage < STAGES ? colors.reference : colors.ink3;
-  ctx.textAlign = "right";
-  /* the note shares the caption's line where there is room and drops inside
-     the frame where there is not — core's own rule for a note, and on a 534px
-     canvas the caption takes the whole line (the text-overlap sweep, 91px) */
-  const noteW = ctx.measureText(appliedNote(stage)).width;
-  const roomOnLine = rect.x + rect.w - noteW > capRight + 14;
-  ctx.textBaseline = roomOnLine ? "alphabetic" : "top";
-  ctx.strokeStyle = colors.surface;
-  ctx.lineWidth = 3;
-  const nx = rect.x + rect.w - (roomOnLine ? 0 : 3), ny = roomOnLine ? rect.y - 10 : rect.y + 4;
-  ctx.strokeText(appliedNote(stage), nx, ny);
-  ctx.fillText(appliedNote(stage), nx, ny);
-  ctx.restore();
-  /* how far a droplet has been removed: 0 while its rule has not been pressed */
-  const gone = (i) => {
-    const r = removedAt[i];
-    if (!r) return 0;
-    return stage > r ? 1 : stage === r ? p : 0;
-  };
-  for (const st of ["good", "empty", "dying", "doublet"]) {
-    const here = [], leaving = [], gone1 = [];
-    cells.forEach((c, i) => {
-      if (c.state !== st) return;
-      const g = gone(i);
-      (g === 0 ? here : g === 1 ? gone1 : leaving).push([sx(pos[i].x), sy(pos[i].y), g]);
-    });
-    const r = st === "good" ? 1.9 : 2.3;
-    const a = st === "good" ? 0.5 : 0.9;
-    dots(ctx, here, r, SC[st], a);
-    hollows(ctx, gone1, r, SC[st], st === "good" ? 0.55 : 0.8);
-    /* THE PRESS EMPTIES A DROPLET RATHER THAN SWAPPING IT. Only the rule now
-       arriving has droplets part of the way, so this set is small: each is
-       drawn twice, its fill fading out as its outline comes in. A hard flip at
-       the halfway point read as a different mark appearing, not as the same
-       droplet being removed. */
-    for (const [x, y, g] of leaving) {
-      dots(ctx, [[x, y]], r, SC[st], a * (1 - g));
-      hollows(ctx, [[x, y]], r, SC[st], (st === "good" ? 0.55 : 0.8) * g);
-    }
-  }
-  /* the six populations, named where their own cells are */
-  ctx.save();
-  ctx.font = `600 ${colors.fsXs} ${colors.font}`;
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  TYPES.forEach((t) => {
-    const c = centres[t.key];
-    if (!c) return;
-    ctx.lineWidth = 3;
-    ctx.strokeStyle = colors.surface;
-    ctx.strokeText(t.name, sx(c[0]), sy(c[1]));
-    ctx.fillStyle = colors.ink2;
-    ctx.fillText(t.name, sx(c[0]), sy(c[1]));
-  });
-  ctx.restore();
-  /* A DROPLET IS A POSITION, A COLOUR AND A FATE, and the map can only draw
-     the first two. Pointing at one says all three, with the three numbers the
-     rules were read from. */
-  if (hover && hover.kind === "droplet") {
-    const c = cells[hover.i], r = removedAt[hover.i];
-    ringAt(ctx, colors, sx(pos[hover.i].x), sy(pos[hover.i].y), 6);
-    const heldBy = { good: "one cell", dying: "a dying cell", empty: "no cell, ambient RNA only", doublet: "two cells" }[c.state];
-    const type = c.state === "empty" ? "" : c.partner
-      ? `${TYPES.find((t) => t.key === c.type).name.toLowerCase()} and ${TYPES.find((t) => t.key === c.partner).name.toLowerCase()}`
-      : TYPES.find((t) => t.key === c.type).name.toLowerCase();
-    hoverLine(ctx, colors, rect.x, rect.y + rect.h + 16, [
-      [heldBy, SC[c.state], "600"],
-      [type, colors.ink3],
-    ]);
-    hoverLine(ctx, colors, rect.x, rect.y + rect.h + 32, [
-      [`${bigCount(c.nCount)} transcripts`, colors.ink2],
-      [`${bigCount(c.nFeature)} genes`, colors.ink2],
-      [`${fmt(c.mt, 1)}% mitochondrial`, colors.ink2],
-    ]);
-    hoverLine(ctx, colors, rect.x, rect.y + rect.h + 48, [
-      [r && stage >= r ? `removed: ${RULE_NAME[RULES[r - 1]]}` : stage >= STAGES ? "kept" : "still here", r && stage >= r ? colors.extreme : colors.empirical, "600"],
-    ]);
-  }
-
-  /* the doublet panel: every upper cut on genes detected, what it catches
-     against what it costs */
-  const cr = costRect(w);
-  const plot = makePlot({ ctx, colors, rect: cr, xDomain: [0, Math.max(10, cost.maxLost)], yDomain: [0, Math.max(1, cost.nDoublet)] });
-  plot.caption("An upper rule on genes detected");
-  plot.note("one point a cut");
-  plot.axisX({ label: "Good cells removed with them" });
-  plot.axisY({ label: `Doublets caught, of ${cost.nDoublet}` });
-  plot.curve(cost.curve, { stroke: colors.highlight, width: 1.8 });
-  for (const m of cost.marks) {
-    plot.dot(m.lost, m.caught, { fill: colors.reference, r: 3.5 });
-    ctx.save();
-    ctx.fillStyle = colors.reference;
-    ctx.font = `${colors.fsXs} ${colors.font}`;
-    ctx.textAlign = "left";
-    ctx.textBaseline = "middle";
-    ctx.fillText(` ${m.pct}th`, plot.sx(m.lost), plot.sy(m.caught));
-    ctx.restore();
-  }
-}
-
-/* --- WHAT HAS BEEN REMOVED SO FAR ------------------------------------------
-   The rules are applied one press at a time, so every number the pages print
-   has to be counted over the rules applied SO FAR. Reporting only the finished
-   filter left the readout saying "none of the three rules has been applied
-   yet" after the reader had taken two of them (found by Kenneth, 2026-09-23,
-   from the other end: he moved a threshold, nothing moved, and the readout
-   agreed with the wrong one of the two possible reasons). */
-function atStage(state, stage) {
-  const { cells, removedAt } = state;
-  const c = { kept: 0, byRule: [0, 0, 0], removedGood: 0, removedBad: 0, keptGood: 0, keptBad: 0, keptDoublet: 0, keptDying: 0, keptEmpty: 0, bySample: {} };
-  for (const s of SAMPLES) c.bySample[s.key] = { n: 0, kept: 0, by: { genes: 0, transcripts: 0, mt: 0 } };
-  cells.forEach((cell, i) => {
-    const r = removedAt[i], row = c.bySample[cell.sample];
-    row.n += 1;
-    if (r > 0 && r <= stage) {
-      c.byRule[r - 1] += 1;
-      row.by[RULES[r - 1]] += 1;
-      if (cell.state === "good") c.removedGood += 1; else c.removedBad += 1;
-      return;
-    }
-    c.kept += 1;
-    row.kept += 1;
-    if (cell.state === "good") { c.keptGood += 1; return; }
-    c.keptBad += 1;
-    if (cell.state === "doublet") c.keptDoublet += 1;
-    else if (cell.state === "dying") c.keptDying += 1;
-    else c.keptEmpty += 1;
-  });
-  return c;
-}
-
-/* What the figure says about itself while the walkthrough is part-way: a
-   threshold moved before the rules are applied changes nothing a reader can
-   see, and the panel has to say which of the two reasons that is. */
-const appliedNote = (stage) =>
-  (stage === 0 ? "no rule applied yet" : stage === 1 ? "one rule applied" : stage === 2 ? "two rules applied" : "all three rules applied");
 
 /* --- the tallies the pages read ------------------------------------------- */
 function tallyBy(cells, removedAt) {
@@ -778,27 +655,17 @@ function derive(cells, pos, thr) {
     const mid = (lo + hi) / 2, half = ((hi - lo) / 2) * 1.18;
     const view = [mid - half, mid + half];
 
-    /* the map's six centres, from the droplets whose profile was measured best */
+    /* the map's six centres, from the droplets whose profile was measured best
+       AND WHICH THE RULES LEFT, so a name sits among the cells that are still
+       there rather than where they used to be. A population would lose its
+       name with its cells, but none does: measured at every extreme of the
+       three rules, all six keep more than the eight cells a centre needs —
+       the populations are in all four samples, and the rules take samples. */
     const centres = {};
     for (const t of TYPES) {
-      const g = cells.map((c, i) => i).filter((i) => cells[i].type === t.key && cells[i].state === "good" && cells[i].nCount > 4000);
+      const g = cells.map((c, i) => i).filter((i) => cells[i].type === t.key && cells[i].state === "good" && cells[i].nCount > 4000 && !removedAt[i]);
       if (g.length >= 8) centres[t.key] = [g.reduce((s, i) => s + pos[i].x, 0) / g.length, g.reduce((s, i) => s + pos[i].y, 0) / g.length];
     }
-
-    /* the doublet cost curve: every upper cut from the 99.5th percentile down */
-    const good = cells.filter((c) => c.state === "good");
-    const dbl = cells.filter((c) => c.state === "doublet");
-    const sortedF = Float64Array.from(cells.map((c) => c.nFeature)).sort();
-    const at = (pctile) => sortedF[Math.min(sortedF.length - 1, Math.floor((pctile / 100) * sortedF.length))];
-    const caught = (cut) => dbl.filter((c) => c.nFeature >= cut).length;
-    const lostAt = (cut) => good.filter((c) => c.nFeature >= cut).length;
-    const curve = [];
-    for (let pc = 99.5; pc >= 80; pc -= 0.5) { const cut = at(pc); curve.push([lostAt(cut), caught(cut)]); }
-    const marks = [95, 90].map((pc) => ({ pct: pc, lost: lostAt(at(pc)), caught: caught(at(pc)) }));
-    const cost = {
-      curve, marks, nDoublet: dbl.length, maxLost: lostAt(at(80)),
-      ninety: { lost: lostAt(at(90)), caught: caught(at(90)) },
-    };
 
     /* what the filter claimed, and what was true */
     const conf = confusion(cells, keep);
@@ -815,7 +682,7 @@ function derive(cells, pos, thr) {
       const cs = cells.filter((c) => c.sample === s.key);
       medians[s.key] = { mt: median(cs.map((c) => c.mt)), nCount: median(cs.map((c) => c.nCount)), nFeature: median(cs.map((c) => c.nFeature)) };
     }
-    return { cells, pos, view, axes, thr, removedAt, keep, tally, sweep, centres, cost, conf, overlap: { either, both }, medians };
+    return { cells, pos, view, axes, thr, removedAt, keep, tally, sweep, centres, conf, overlap: { either, both }, medians };
 }
 
 /* --- a data change that MOVED the droplets rather than replacing them -------
@@ -907,9 +774,6 @@ defineWidget({
       type: "int", label: "Mitochondrial %, less than", min: 1, max: 40, step: 1, default: 10, display: true,
       detail: "the share of those molecules that came from mitochondrial genes",
     },
-
-    /* authoring escape hatch, first render only: presses already taken */
-    shown: { type: "int", min: 0, max: STAGES, default: 0, hidden: true },
   },
 
   legend: ({ params }) => {
@@ -921,9 +785,11 @@ defineWidget({
       { token: "ink-3", label: "Hollow: a droplet the filter removed", mark: "hollow" },
     ];
     if (params.page === "thresholds") return [
-      { token: "empirical", label: "Droplets the three rules keep; point at a bar or a curve for one sample", mark: "bar" },
-      { token: "extreme", label: "Droplets a rule removed, in the order the rules were applied", mark: "bar" },
-      { token: "reference", label: "The mitochondrial % now set", mark: "line" },
+      { token: "empirical", label: "A droplet holding one cell, and on the bar the droplets kept", mark: "dot" },
+      { token: "extreme", label: "A dying cell; on the bar, droplets a rule removed", mark: "dot" },
+      { token: "unknown", label: "No cell: ambient RNA only", mark: "dot" },
+      { token: "highlight", label: "Two cells in one droplet", mark: "dot" },
+      { token: "reference", label: "The mitochondrial % now set; point at a droplet, a bar or a curve", mark: "line" },
     ];
     return [
       { token: "empirical", label: "A droplet: point at one in either scatter for its three numbers", mark: "dot" },
@@ -943,10 +809,10 @@ defineWidget({
     return derive(cells, pos, thr);
   },
 
-  readout: ({ params, state, anim }) => {
-    const stage = anim ? anim.n : Number(params.shown) || 0;
-    const { tally, overlap, medians, cost, thr, sweep } = state;
+  readout: ({ params, state }) => {
+    const { tally, overlap, medians, conf, thr } = state;
     const total = SAMPLES.reduce((a, s) => a + tally[s.key].n, 0);
+    const kept = SAMPLES.reduce((a, s) => a + tally[s.key].kept, 0);
     if (params.page === "metrics") {
       const hi = SAMPLES.slice().sort((a, b) => medians[b.key].mt - medians[a.key].mt)[0];
       const lo = SAMPLES.slice().sort((a, b) => medians[a.key].mt - medians[b.key].mt)[0];
@@ -958,142 +824,72 @@ defineWidget({
         },
         {
           label: "Droplets failing either count rule that fail both",
-          value: overlap.either ? `${overlap.both} of ${overlap.either}` : "none yet",
+          value: overlap.either ? `${overlap.both} of ${overlap.either}` : "none",
           note: overlap.either
             ? `${Math.round((100 * overlap.both) / overlap.either)}% — the genes a droplet shows are the molecules it held, counted a second time, so more than ${thr.nCount} transcripts and more than ${thr.nFeature} genes are close to one rule`
             : `at more than ${thr.nFeature} genes and more than ${thr.nCount} transcripts neither rule reaches any droplet`,
         },
       ];
     }
-    /* EVERY NUMBER BELOW IS COUNTED OVER THE RULES APPLIED SO FAR, not over
-       the finished filter: a walkthrough that reports nothing until its last
-       press tells the reader who has taken two that they have taken none. */
-    const A = atStage(state, stage);
-    if (params.page === "thresholds") {
-      const worst = SAMPLES.slice().sort((a, b) => A.bySample[a.key].kept / A.bySample[a.key].n - A.bySample[b.key].kept / A.bySample[b.key].n)[0];
-      const t = A.bySample[worst.key];
-      const at20 = sweep[worst.key][Math.round((20 - 2) / 0.5)];
-      const applied = RULES.slice(0, stage).map((r, k) => `${RULE_NAME[r]} ${A.byRule[k]}`).join(", ");
-      return [
-        {
-          label: "Droplets kept",
-          value: `${A.kept} of ${total}`,
-          note: stage > 0
-            ? `${applied}; a threshold moved now moves these`
-            : `no rule applied yet: the three rules go on one press at a time, and a threshold set before that changes nothing until they do`,
-        },
-        {
-          label: `Kept in ${worst.name}, the sample that keeps fewest`,
-          value: `${Math.round((100 * t.kept) / t.n)}%`,
-          note: stage >= STAGES
-            ? `${Math.round(100 * at20)}% of it would be kept at a mitochondrial rule of 20 instead of ${thr.mt}; its median is ${fmt(medians[worst.key].mt, 1)}%`
-            : `${appliedNote(stage)}; its median mitochondrial % is ${fmt(medians[worst.key].mt, 1)}`,
-        },
-      ];
-    }
-    const removed = A.removedGood + A.removedBad;
+    /* THE COST IS A NUMBER NOW, because a removed droplet leaves the figure
+       (his round 2). These three tiles are what the page that was cut said. */
+    const worst = SAMPLES.slice().sort((a, b) => tally[a.key].kept / tally[a.key].n - tally[b.key].kept / tally[b.key].n)[0];
+    const t = tally[worst.key];
+    const removed = total - kept;
     return [
       {
+        label: "Droplets kept",
+        value: `${kept} of ${total}`,
+        note: `removed: ${RULES.map((r) => `${SAMPLES.reduce((a, s) => a + tally[s.key].by[r], 0)} ${RULE_NAME[r]}`).join(", ")}`,
+      },
+      {
+        label: `Kept in ${worst.name}, the sample that keeps fewest`,
+        value: `${Math.round((100 * t.kept) / t.n)}%`,
+        note: `its median mitochondrial % is ${fmt(medians[worst.key].mt, 1)}, against ${fmt(median(SAMPLES.filter((s) => s.key !== worst.key).map((s) => medians[s.key].mt)), 1)} in the other three`,
+      },
+      {
         label: "Removed droplets that held one good cell",
-        value: removed ? `${A.removedGood} of ${removed}` : "none removed yet",
+        value: removed ? `${conf.removedGood} of ${removed}` : "none removed",
         note: removed
-          ? `${Math.round((100 * A.removedGood) / removed)}% of the removals; the other ${A.removedBad} held a dying cell, two cells, or no cell at all`
-          : `no rule applied yet: the three rules go on one press at a time, and a threshold set before that changes nothing until they do`,
-      },
-      {
-        label: "Kept droplets that do not hold one good cell",
-        value: `${A.keptBad} of ${A.kept}`,
-        note: `${A.keptDoublet} hold two cells, ${A.keptDying} a dying cell, ${A.keptEmpty} no cell; ${appliedNote(stage)}`,
-      },
-      {
-        label: "Good cells removed for each doublet caught",
-        value: cost.ninety.caught ? fmt(cost.ninety.lost / cost.ninety.caught, 1) : "—",
-        note: cost.ninety.caught
-          ? `at an upper rule on the 90th percentile of genes detected, which catches ${cost.ninety.caught} of the ${cost.nDoublet} doublets`
-          : "no doublet reaches that cut",
+          ? `${Math.round((100 * conf.removedGood) / removed)}% of the removals; ${conf.keptBad} of the ${kept} kept are not one good cell — ${conf.keptDoublet} hold two cells, ${conf.keptDying} a dying cell, ${conf.keptEmpty} no cell`
+          : `${conf.keptBad} of the droplets on the figure are not one good cell`,
       },
     ];
   },
 
+  /* NOTHING IS DRIVEN (his round 2), so this declares the EASES alone and
+     marks itself inert, which takes Step and Play out of the drive row. The
+     two changes that deserve frames are unchanged: the ambient level moves
+     the droplets it belongs to, so it slides; the seed and which sample
+     carries it draw different droplets, so they cross-fade. */
   animation: {
-    stepLabel: {
-      anim: "labelAt",
-      labels: {
-        s0: "Remove too few genes",
-        s1: "Remove too few transcripts",
-        s2: "Remove too high a mitochondrial %",
-        done: "Step",
-      },
-      default: "Step",
-    },
-    stepTitle: {
-      anim: "labelAt",
-      labels: {
-        s0: "Remove every droplet showing fewer genes than the rule allows",
-        s1: "Remove every droplet holding fewer transcripts than the rule allows — the genes it showed were those molecules counted again",
-        s2: "Remove every droplet whose mitochondrial share is above the rule",
-        done: "All three rules have been applied",
-      },
-      default: "Apply the next rule",
-    },
-    runLabel: null,
-    init: ({ params, fromScratch }) => {
-      const anim = { n: 0, p: 1, halt: false, data: { t: 1, from: null, kind: null }, easing: false, labelAt: "s0", done: false, inert: false };
-      if (!fromScratch) anim.n = Math.min(STAGES, Math.max(0, Number(params.shown) || 0));
+    init: ({ params }) => {
+      const anim = { data: { t: 1, from: null, kind: null }, easing: false, inert: true, done: true };
       if (lastState && lastParams && DATA_KEYS.some((k) => lastParams[k] !== params[k])) {
-        /* the ambient LEVEL moves the droplets it belongs to; the seed and
-           which sample carries it draw different droplets altogether */
         const moved = lastParams.seed === params.seed && lastParams.hot === params.hot;
         anim.data = { t: 0, from: lastState, kind: moved ? "slide" : "fade" };
         anim.easing = true;
       }
-      settle(anim, params);
       return anim;
     },
-    advance: (anim, { dt, params }) => {
-      if (anim.mode === "ease") {
-        if (anim.data.t < 1) {
-          anim.data.t = Math.min(1, anim.data.t + dt / EASE_MS);
-          if (anim.data.t >= 1) anim.data.from = null;
-          return anim.data.t < 1;
-        }
-        return false;
+    advance: (anim, { dt }) => {
+      if (anim.data.t < 1) {
+        anim.data.t = Math.min(1, anim.data.t + dt / EASE_MS);
+        if (anim.data.t >= 1) anim.data.from = null;
+        return anim.data.t < 1;
       }
-      /* the loop left running for a press that `rebuild` finished ends here,
-         before it takes the next rule unasked (widget 70's halt, 2026-09-19) */
-      if (anim.halt) { anim.halt = false; settle(anim, params); return false; }
-      if (anim.p >= 1) {
-        if (anim.n >= STAGES) { settle(anim, params); return false; }
-        anim.n += 1; anim.p = 0;
-      }
-      anim.p = Math.min(1, anim.p + dt / STEP_MS);
-      if (anim.p >= 1) { settle(anim, params); return false; }
-      return true;
+      return false;
     },
-    /* A display change — a page, or any of the three thresholds — must not
-       undo the presses. A page switch mid-press finishes that press where it
-       was, which is the 2026-09-20 sweep's rule. */
-    rebuild: (anim, { params }) => {
-      /* A PRESS BELONGS TO THE MOMENT IT STARTED IN. Core keeps a running loop
-         going through a display change, so a page switch or a threshold moved
-         mid-press used to let the next frame take the NEXT rule unasked — the
-         switch probe flags exactly that. The press finishes here as if its
-         frames had run, and `halt` ends the loop at its next frame; only while
-         one is moving, or it would swallow the first frame of the reader's
-         next press. */
-      if (anim.p < 1) { anim.p = 1; anim.halt = true; }
-      /* a threshold moved mid-slide lands the slide: the droplets the reader
-         is now filtering are the ones the figure is about to hold */
+    /* a threshold moved mid-slide lands the slide: the droplets the reader is
+       now filtering are the ones the figure is about to hold */
+    rebuild: (anim) => {
       if (anim.data.t < 1) { anim.data.t = 1; anim.data.from = null; }
-      settle(anim, params);
     },
   },
 
   pointer: true,
 
   draw: ({ ctx, colors, w, params, state, anim, pointer }) => {
-    const stage = anim ? anim.n : Number(params.shown) || 0;
-    const p = anim && anim.p < 1 ? easeInOut(anim.p) : 1;
     const D = anim && anim.data.from && anim.data.t < 1 ? { from: anim.data.from, e: easeInOut(anim.data.t), kind: anim.data.kind } : null;
     /* the inspector is the reader's pointer on the figure at rest; mid-ease
        there is no droplet under it that will still be there when it lands */
@@ -1102,8 +898,7 @@ defineWidget({
       ctx.save();
       ctx.globalAlpha = alpha;
       if (params.page === "metrics") drawMetrics(ctx, colors, w, st, hover);
-      else if (params.page === "thresholds") drawThresholds(ctx, colors, w, st, stage, p, hover);
-      else drawKept(ctx, colors, w, st, stage, p, hover);
+      else drawThresholds(ctx, colors, w, st, hover);
       ctx.restore();
     };
     if (D && D.kind === "fade") { one(D.from, 1 - D.e); one(state, D.e); }
@@ -1113,10 +908,3 @@ defineWidget({
     lastParams = { seed: params.seed, hot: params.hot, hotMt: params.hotMt };
   },
 });
-
-/* Core reads `done` and `inert`; the page with nothing to step has neither. */
-function settle(anim, params) {
-  anim.inert = params.page === "metrics";
-  anim.done = anim.n >= STAGES && anim.p >= 1;
-  anim.labelAt = anim.done ? "done" : `s${Math.min(STAGES - 1, anim.n)}`;
-}

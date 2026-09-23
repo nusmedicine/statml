@@ -11,11 +11,13 @@
       sample carrying ambient RNA, falling with the count in the clean ones,
       the two count rules removing mostly the same droplets, and the recovery
       curve as the mitochondrial rule moves
-   §3 the filter: removedAt agrees with the three rules applied in order, the
-      per-sample tallies add up, and every rule is monotone in its threshold
+   §3 the filter: each droplet is assigned to the FIRST rule that removes it,
+      the per-sample tallies add up, and every rule is monotone in its threshold
    §4 the map: a doublet of two types lands between them, an empty droplet in
       the middle, and the distance from a type's centre falls as the count rises
-   §5 the doublet cost curve rises and costs what the page prints
+   §5 which rule catches what: the count rules take the empty droplets and
+      most of the dying cells and NO doublet, and the mitochondrial rule takes
+      the sample carrying ambient RNA, good cells and all
    §6 the copy: no struck word, no lesson reference, in a reader-facing string
    ========================================================================= */
 
@@ -93,15 +95,15 @@ section("§2 the four facts of the lesson's own cells");
   console.log(`  ${checks} checks`);
 }
 
-section("§3 the filter, as the widget applies it in three presses");
+section("§3 the filter, as the sliders apply it");
 {
   const thr = THRESHOLDS;
   const removedAt = cells.map((c) => (c.nFeature > thr.nFeature ? (c.nCount > thr.nCount ? (c.mt < thr.mt ? 0 : 3) : 2) : 1));
   const { keep, tally } = applyFilters(cells, thr);
   assert(removedAt.every((r, i) => (r === 0) === keep[i]), "a droplet removed by no rule is a droplet the filter keeps");
-  assert(cells.every((c, i) => removedAt[i] !== 1 || !(c.nFeature > thr.nFeature)), "every droplet the first press removes really is short of genes");
-  assert(cells.every((c, i) => removedAt[i] !== 2 || (c.nFeature > thr.nFeature && !(c.nCount > thr.nCount))), "the second press takes only droplets the first left");
-  assert(cells.every((c, i) => removedAt[i] !== 3 || (c.nFeature > thr.nFeature && c.nCount > thr.nCount && !(c.mt < thr.mt))), "the third press takes only droplets the first two left");
+  assert(cells.every((c, i) => removedAt[i] !== 1 || !(c.nFeature > thr.nFeature)), "a droplet charged to the gene rule really is short of genes");
+  assert(cells.every((c, i) => removedAt[i] !== 2 || (c.nFeature > thr.nFeature && !(c.nCount > thr.nCount))), "the transcript rule is charged only droplets the gene rule left");
+  assert(cells.every((c, i) => removedAt[i] !== 3 || (c.nFeature > thr.nFeature && c.nCount > thr.nCount && !(c.mt < thr.mt))), "the mitochondrial rule is charged only droplets the other two left");
   for (const s of SAMPLES) {
     const t = tally[s.key];
     const mine = cells.map((c, i) => i).filter((i) => cells[i].sample === s.key);
@@ -114,15 +116,15 @@ section("§3 the filter, as the widget applies it in three presses");
   assert(keptWith({ nCount: 0 }) >= keptWith({}) && keptWith({ nCount: 3000 }) <= keptWith({}), "a stricter transcript rule never keeps more");
   assert(keptWith({ mt: 40 }) >= keptWith({}) && keptWith({ mt: 1 }) <= keptWith({}), "a stricter mitochondrial rule never keeps more");
   assert(keptWith({ nFeature: 0, nCount: 0, mt: 100 }) === cells.length, "with every rule off, nothing is removed");
-  /* THE WALKTHROUGH COUNTS WHAT IT HAS DONE. At no press nothing is removed,
-     and at the third press the running count is the finished filter — the
-     readout reported neither until 2026-09-23. */
-  const applied = (stage) => removedAt.filter((r) => r > 0 && r <= stage).length;
-  assert(applied(0) === 0, "at no press nothing is removed");
-  assert(applied(1) === removedAt.filter((r) => r === 1).length, "one press removes exactly what the gene rule takes");
-  assert(applied(2) === removedAt.filter((r) => r === 1 || r === 2).length, "two presses remove the gene rule's and the transcript rule's");
-  assert(applied(3) === cells.length - keep.filter(Boolean).length, `three presses remove what the finished filter removes (${applied(3)})`);
-  assert(applied(1) >= applied(0) && applied(2) >= applied(1) && applied(3) >= applied(2), "a press never puts a droplet back");
+  /* THE BAR'S THREE SEGMENTS ARE THE ARGUMENT THAT TWO OF THE RULES ARE ONE:
+     a droplet is charged to the first rule that removes it, so the transcript
+     rule's segment is what the gene rule did not already take. The
+     walkthrough that used to say this in time was cut at his round 2, and the
+     segments are where it says it now. */
+  const charged = (k) => removedAt.filter((r) => r === k).length;
+  assert(charged(1) + charged(2) + charged(3) === cells.length - keep.filter(Boolean).length, "the three segments add to what the filter removes");
+  assert(charged(2) < charged(1) / 4,
+    `the transcript rule's segment is a sliver beside the gene rule's (${charged(2)} against ${charged(1)}) — the lesson's own two count rules remove 84% the same cells`);
 
   /* what the Truth page prints */
   const conf = confusion(cells, keep);
@@ -165,20 +167,24 @@ section("§4 the map: a droplet is placed by what was sequenced in it");
   console.log(`  ${checks} checks`);
 }
 
-section("§5 the doublet cost curve");
+section("§5 which rule catches what — the figure's whole claim, as counts");
 {
-  const good = cells.filter((c) => c.state === "good");
-  const dbl = cells.filter((c) => c.state === "doublet");
-  const sortedF = Float64Array.from(cells.map((c) => c.nFeature)).sort();
-  const at = (pc) => sortedF[Math.min(sortedF.length - 1, Math.floor((pc / 100) * sortedF.length))];
-  const caught = (cut) => dbl.filter((c) => c.nFeature >= cut).length;
-  const lost = (cut) => good.filter((c) => c.nFeature >= cut).length;
-  const pts = [];
-  for (let pc = 99.5; pc >= 80; pc -= 0.5) pts.push([lost(at(pc)), caught(at(pc))]);
-  assert(pts.every((p, i) => i === 0 || (p[0] >= pts[i - 1][0] && p[1] >= pts[i - 1][1])), "a looser cut catches no fewer doublets and removes no fewer good cells");
-  const c90 = caught(at(90)), l90 = lost(at(90));
-  assert(c90 > 0 && c90 < dbl.length, `the cut at the 90th percentile catches some of the doublets and not all (${c90} of ${dbl.length})`);
-  assert(l90 / c90 > 2, `and takes more than two good cells with each (${(l90 / c90).toFixed(1)})`);
+  const thr = THRESHOLDS;
+  const at = cells.map((c) => (c.nFeature > thr.nFeature ? (c.nCount > thr.nCount ? (c.mt < thr.mt ? 0 : 3) : 2) : 1));
+  const of = (st) => cells.map((c, i) => i).filter((i) => cells[i].state === st);
+  const charged = (idx, k) => idx.filter((i) => at[i] === k).length;
+  const byCount = (idx) => charged(idx, 1) + charged(idx, 2);
+  const empty = of("empty"), dying = of("dying"), dbl = of("doublet"), good = of("good");
+  assert(byCount(empty) / empty.length > 0.8,
+    `the two count rules are what catches an empty droplet: ${byCount(empty)} of ${empty.length}`);
+  assert(byCount(dying) / dying.length > 0.5,
+    `and most dying cells, which lost their RNA with their cytoplasm: ${byCount(dying)} of ${dying.length}`);
+  assert(byCount(dbl) === 0,
+    `and NO droplet holding two cells: ${byCount(dbl)} of ${dbl.length}. A doublet has more of everything and every count rule is a floor — which is the lesson's own aside about high counts, answered`);
+  assert(charged(dbl, 3) > 0 && charged(dbl, 3) === dbl.length - charged(dbl, 0),
+    `the mitochondrial rule is the only one that ever removes one, and it removes ${charged(dbl, 3)} — the ones in the sample carrying ambient RNA`);
+  assert(charged(good, 3) > 10 * byCount(good),
+    `a good cell removed is almost always removed by the mitochondrial rule (${charged(good, 3)} against ${byCount(good)} by the count rules), because that rule is reading a sample, not a cell`);
   console.log(`  ${checks} checks`);
 }
 
@@ -200,6 +206,7 @@ section("§6 the copy");
     ["\\bnotebook\\b|\\blesson\\b|\\bcell \\d+", "no lesson reference in reader-facing copy"],
     ["\\bnever\\b", "say the positive literal fact"],
     ["\\bSeurat\\b|\\bnFeature\\b|\\bnCount\\b|mtPercent", "a library's own variable name is not the reader's word"],
+    ["\\bpress(es|ed)?\\b|\\bstep\\b", "nothing is driven any more: the rules follow the sliders (his round 2)"],
   ];
   for (const [pat, why] of STRUCK) {
     const re = new RegExp(pat, "i");
