@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · cell-qc — live sliders, one page, three layouts</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1240px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 104ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  .rail { position: sticky; top: 0; z-index: 2; background: var(--surface-1); border: 1px solid var(--grid); border-radius: var(--radius);
+          padding: var(--sp-3) var(--sp-4); display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: var(--sp-3) var(--sp-4); margin: 0 0 var(--sp-4); }
+  .fld label { display: block; font-size: var(--fs-xs); color: var(--ink-2); margin: 0 0 4px; }
+  .fld label b { color: var(--ink-1); float: right; font-family: var(--font-mono); }
+  .fld input[type=range], .fld select { width: 100%; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); border-radius: var(--radius); }
+  .cand { margin: 0 0 var(--sp-4); }
+  .cand h3 { font-size: var(--fs-sm); margin: 0 0 4px; }
+  .cand p { font-size: var(--fs-xs); color: var(--ink-3); margin: 0 0 var(--sp-2); max-width: 100ch; }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--c-reference); background: var(--surface-2); }
+  .read { font-size: var(--fs-xs); font-family: var(--font-mono); color: var(--ink-2); margin: var(--sp-2) 0 0; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>cell-qc &middot; the sliders live, the presses gone, the map on the same page</h1>
+  <p class="note">
+    Your two asks, both built here: <b>no Step</b> &mdash; every figure follows the sliders as they move &mdash; and <b>no third page</b>, with the
+    cluster map under Thresholds so the filtering shows on the cells themselves. A droplet a rule removes is <b>gone</b>, not hollow.
+    Drag <i>Mitochondrial %</i> from 30 down to 5 and watch one sample's cells leave while the other three stay.
+    Every figure is computed on this page from <code>widgets/cell-qc/engine.js</code>, so these are the widget's own numbers.
+  </p>
+  <div class="rail" id="rail"></div>
+  <div id="cands"></div>
+  <h2>The calls</h2>
+  <div id="calls"></div>
+</main>
+
+<script type="module">
+import { makeRng } from "../core/rng.js";
+import { simulate, embed, median, TYPES, SAMPLES } from "../cell-qc/engine.js";
+
+const css = getComputedStyle(document.documentElement);
+const C = (n) => css.getPropertyValue(n).trim();
+const RULES = ["genes", "transcripts", "mt"];
+const RULE_NAME = { genes: "too few genes", transcripts: "too few transcripts", mt: "too high a mitochondrial %" };
+const STATE_COL = { good: "--c-empirical", dying: "--c-extreme", empty: "--c-unknown", doublet: "--c-highlight" };
+const log10 = (v) => Math.log10(Math.max(1, v));
+const shortName = (k) => (SAMPLES.find((s) => s.key === k)?.name ?? "").replace("Patient ", "P");
+
+const V = { seed: 1, hot: "p1-liver", hotMt: 15, genes: 500, counts: 800, mt: 10 };
+let cache = { key: null, cells: null, pos: null, view: null };
+function stage() {
+  const key = `${V.seed}|${V.hot}|${V.hotMt}`;
+  if (cache.key === key) return cache;
+  const sim = simulate(makeRng(V.seed), { hot: V.hot, hotMt: V.hotMt });
+  const pos = embed(makeRng(V.seed * 7919 + 13), sim.cells);
+  const px = pos.map((q) => q.x).slice().sort((a, b) => a - b);
+  const py = pos.map((q) => q.y).slice().sort((a, b) => a - b);
+  const q = (a, f) => a[Math.min(a.length - 1, Math.floor(f * a.length))];
+  const lo = Math.min(q(px, 0.01), q(py, 0.01)), hi = Math.max(q(px, 0.99), q(py, 0.99));
+  const mid = (lo + hi) / 2, half = ((hi - lo) / 2) * 1.18;
+  cache = { key, cells: sim.cells, pos, view: [mid - half, mid + half] };
+  return cache;
+}
+function filtered() {
+  const { cells, pos, view } = stage();
+  const removedAt = cells.map((c) => (c.nFeature > V.genes ? (c.nCount > V.counts ? (c.mt < V.mt ? 0 : 3) : 2) : 1));
+  const tally = {};
+  for (const s of SAMPLES) tally[s.key] = { n: 0, kept: 0, by: { genes: 0, transcripts: 0, mt: 0 } };
+  cells.forEach((c, i) => {
+    const t = tally[c.sample];
+    t.n += 1;
+    if (!removedAt[i]) t.kept += 1; else t.by[RULES[removedAt[i] - 1]] += 1;
+  });
+  let removedGood = 0, keptBad = 0, kept = 0;
+  cells.forEach((c, i) => {
+    if (removedAt[i]) { if (c.state === "good") removedGood += 1; return; }
+    kept += 1;
+    if (c.state !== "good") keptBad += 1;
+  });
+  return { cells, pos, view, removedAt, tally, removedGood, keptBad, kept };
+}
+
+/* --- drawing ------------------------------------------------------------- */
+function ctxFor(host, w, h) {
+  const c = document.createElement("canvas");
+  const dpr = window.devicePixelRatio || 1;
+  c.width = w * dpr; c.height = h * dpr; c.style.width = w + "px"; c.style.height = h + "px";
+  const x = c.getContext("2d"); x.scale(dpr, dpr);
+  host.appendChild(c);
+  return x;
+}
+const lab = (x, s, px, py, col = "--ink-2", align = "left", size = 11, weight = "", base = "alphabetic") => {
+  x.save(); x.fillStyle = C(col); x.textAlign = align; x.textBaseline = base;
+  x.font = `${weight} ${size}px ${C("--font") || "system-ui"}`.trim();
+  x.fillText(s, px, py); x.restore();
+};
+
+function drawBar(x, rect, F) {
+  lab(x, "Droplets, one bar a sample", rect.x, rect.y - 8, "--ink-2", "left", 12, "600");
+  const rowH = rect.h / SAMPLES.length;
+  SAMPLES.forEach((s, si) => {
+    const t = F.tally[s.key], y = rect.y + si * rowH + 4, h = rowH - 12, u = rect.w / t.n;
+    let cx = rect.x;
+    x.save();
+    x.fillStyle = C("--c-empirical"); x.fillRect(cx, y, t.kept * u, h); cx += t.kept * u;
+    x.fillStyle = C("--c-extreme");
+    for (const r of RULES) { if (!t.by[r]) continue; x.fillRect(cx, y, t.by[r] * u, h); cx += t.by[r] * u;
+      x.save(); x.strokeStyle = C("--surface-1"); x.beginPath(); x.moveTo(cx, y); x.lineTo(cx, y + h); x.stroke(); x.restore(); }
+    x.restore();
+    x.save(); x.strokeStyle = C("--grid"); x.strokeRect(rect.x + 0.5, y + 0.5, rect.w, h); x.restore();
+    lab(x, shortName(s.key), rect.x - 8, y + h / 2, "--ink-2", "right", 11, "", "middle");
+    lab(x, `${Math.round(100 * t.kept / t.n)}%`, rect.x + rect.w + 6, y + h / 2, "--ink-3", "left", 11, "", "middle");
+  });
+}
+
+function drawMap(x, rect, F, mode) {
+  lab(x, "The cells the rules leave", rect.x, rect.y - 8, "--ink-2", "left", 12, "600");
+  const span = F.view[1] - F.view[0];
+  const sx = (v) => rect.x + ((v - F.view[0]) / span) * rect.w;
+  const sy = (v) => rect.y + ((F.view[1] - v) / span) * rect.h;
+  x.save(); x.strokeStyle = C("--grid"); x.strokeRect(rect.x + 0.5, rect.y + 0.5, rect.w, rect.h); x.restore();
+  for (const st of ["good", "empty", "dying", "doublet"]) {
+    x.save(); x.fillStyle = C(STATE_COL[st]); x.globalAlpha = st === "good" ? 0.5 : 0.9;
+    F.cells.forEach((c, i) => {
+      if (c.state !== st || F.removedAt[i]) return;
+      x.beginPath(); x.arc(sx(F.pos[i].x), sy(F.pos[i].y), st === "good" ? 1.9 : 2.3, 0, 7); x.fill();
+    });
+    x.restore();
+    if (mode === "ghost") {
+      x.save(); x.strokeStyle = C(STATE_COL[st]); x.globalAlpha = 0.28; x.lineWidth = 1;
+      F.cells.forEach((c, i) => {
+        if (c.state !== st || !F.removedAt[i]) return;
+        x.beginPath(); x.arc(sx(F.pos[i].x), sy(F.pos[i].y), 2, 0, 7); x.stroke();
+      });
+      x.restore();
+    }
+  }
+  const centres = {};
+  for (const t of TYPES) {
+    const g = F.cells.map((c, i) => i).filter((i) => F.cells[i].type === t.key && F.cells[i].state === "good" && F.cells[i].nCount > 4000);
+    if (g.length >= 8) centres[t.key] = [g.reduce((s, i) => s + F.pos[i].x, 0) / g.length, g.reduce((s, i) => s + F.pos[i].y, 0) / g.length];
+  }
+  x.save();
+  x.font = `600 10px ${C("--font") || "system-ui"}`; x.textAlign = "center"; x.textBaseline = "middle";
+  for (const t of TYPES) {
+    const c = centres[t.key]; if (!c) continue;
+    x.lineWidth = 3; x.strokeStyle = C("--surface-1"); x.strokeText(t.name, sx(c[0]), sy(c[1]));
+    x.fillStyle = C("--ink-2"); x.fillText(t.name, sx(c[0]), sy(c[1]));
+  }
+  x.restore();
+}
+
+function drawSweep(x, rect, F) {
+  lab(x, "Droplets kept, at every mitochondrial %", rect.x, rect.y - 8, "--ink-2", "left", 12, "600");
+  x.save(); x.strokeStyle = C("--grid"); x.strokeRect(rect.x + 0.5, rect.y + 0.5, rect.w, rect.h); x.restore();
+  const SX = (v) => rect.x + ((v - 2) / 28) * rect.w, SY = (p) => rect.y + rect.h - p * rect.h;
+  const ends = [];
+  for (const s of SAMPLES) {
+    const cs = F.cells.filter((c) => c.sample === s.key);
+    x.save(); x.strokeStyle = C("--c-empirical"); x.lineWidth = 1.6; x.beginPath();
+    let last = 0;
+    for (let mt = 2; mt <= 30.001; mt += 0.5) {
+      let k = 0;
+      for (const c of cs) if (c.nFeature > V.genes && c.nCount > V.counts && c.mt < mt) k += 1;
+      last = k / cs.length;
+      x.lineTo(SX(mt), SY(last));
+    }
+    x.stroke(); x.restore();
+    ends.push({ key: s.key, y: SY(last) });
+  }
+  ends.sort((a, b) => a.y - b.y);
+  for (let i = 1; i < ends.length; i += 1) ends[i].y = Math.max(ends[i].y, ends[i - 1].y + 12);
+  for (const e of ends) lab(x, shortName(e.key), rect.x + rect.w + 5, e.y, "--ink-3", "left", 10, "", "middle");
+  x.save(); x.strokeStyle = C("--c-reference"); x.setLineDash([4, 3]);
+  x.beginPath(); x.moveTo(SX(Math.max(2, Math.min(30, V.mt))), rect.y); x.lineTo(SX(Math.max(2, Math.min(30, V.mt))), rect.y + rect.h); x.stroke(); x.restore();
+  for (const p of [0, 0.5, 1]) lab(x, `${p * 100}%`, rect.x - 6, SY(p), "--ink-3", "right", 10, "", "middle");
+  for (const v of [5, 10, 20, 30]) lab(x, String(v), SX(v), rect.y + rect.h + 12, "--ink-3", "center", 10, "", "top");
+}
+
+/* --- the three layouts ---------------------------------------------------- */
+const LAYOUTS = [
+  {
+    key: "A", w: 760, h: 380,
+    title: "A · the map beside the bar, the sweep under them",
+    why: "The map is the biggest thing on the page, which is what the filtering is now about. The sweep keeps the whole dial visible while a slider moves along it.",
+    draw: (x, F) => {
+      drawMap(x, { x: 28, y: 30, w: 300, h: 300 }, F, "none");
+      drawBar(x, { x: 400, y: 30, w: 300, h: 110 }, F);
+      drawSweep(x, { x: 400, y: 200, w: 290, h: 130 }, F);
+    },
+  },
+  {
+    key: "B", w: 760, h: 430,
+    title: "B · the bar across the top, the map and the sweep under it",
+    why: "Reads downward: what the rules did to each sample, then the cells they left and the dial they sit on.",
+    draw: (x, F) => {
+      drawBar(x, { x: 76, y: 30, w: 620, h: 96 }, F);
+      drawMap(x, { x: 28, y: 180, w: 250, h: 230 }, F);
+      drawSweep(x, { x: 360, y: 180, w: 330, h: 190 }, F);
+    },
+  },
+  {
+    key: "C", w: 760, h: 380,
+    title: "C · the sweep cut: the map and the bar only",
+    why: "With the sliders live, the sweep is the reader's own drag — the mitochondrial slider walks the same curve, and the bar reads it out. Cutting it gives the map the room and leaves one fewer thing on the page.",
+    draw: (x, F) => {
+      drawMap(x, { x: 28, y: 30, w: 330, h: 320 }, F);
+      drawBar(x, { x: 460, y: 60, w: 250, h: 180 }, F);
+    },
+  },
+];
+
+const host = document.getElementById("cands");
+const ctxs = [];
+for (const L of LAYOUTS) {
+  const d = document.createElement("div"); d.className = "cand";
+  const h = document.createElement("h3"); h.textContent = L.title; d.appendChild(h);
+  const p = document.createElement("p"); p.textContent = L.why; d.appendChild(p);
+  const x = ctxFor(d, L.w, L.h);
+  const r = document.createElement("p"); r.className = "read";
+  d.appendChild(r);
+  host.appendChild(d);
+  ctxs.push({ L, x, r });
+}
+
+/* --- the rail ------------------------------------------------------------- */
+const FIELDS = [
+  { key: "hot", kind: "select", label: "Ambient mitochondrial RNA in", options: [["none", "None"], ...SAMPLES.map((s) => [s.key, s.name])] },
+  { key: "hotMt", kind: "range", label: "That sample's median mitochondrial %", min: 2, max: 25, step: 1 },
+  { key: "seed", kind: "range", label: "Seed", min: 1, max: 40, step: 1 },
+  { key: "genes", kind: "range", label: "Genes detected, more than", min: 0, max: 1500, step: 50 },
+  { key: "counts", kind: "range", label: "Transcripts, more than", min: 0, max: 3000, step: 100 },
+  { key: "mt", kind: "range", label: "Mitochondrial %, less than", min: 1, max: 40, step: 1 },
+];
+const rail = document.getElementById("rail");
+for (const f of FIELDS) {
+  const d = document.createElement("div"); d.className = "fld";
+  const l = document.createElement("label"); l.textContent = f.label;
+  const b = document.createElement("b"); b.textContent = String(V[f.key]); l.appendChild(b);
+  d.appendChild(l);
+  let el;
+  if (f.kind === "select") {
+    el = document.createElement("select");
+    for (const [v, t] of f.options) { const o = document.createElement("option"); o.value = v; o.textContent = t; el.appendChild(o); }
+    el.value = V[f.key];
+    b.textContent = "";
+    el.addEventListener("change", () => { V[f.key] = el.value; paint(); });
+  } else {
+    el = document.createElement("input"); el.type = "range";
+    el.min = f.min; el.max = f.max; el.step = f.step; el.value = V[f.key];
+    el.addEventListener("input", () => { V[f.key] = Number(el.value); b.textContent = el.value; paint(); });
+  }
+  d.appendChild(el);
+  rail.appendChild(d);
+}
+
+function paint() {
+  const F = filtered();
+  for (const { L, x, r } of ctxs) {
+    x.clearRect(0, 0, L.w, L.h);
+    L.draw(x, F);
+    const total = F.cells.length;
+    r.textContent = `kept ${F.kept} of ${total} · ${F.removedGood} good cells removed · ${F.keptBad} kept droplets are not one good cell`
+      + ` · per sample ${SAMPLES.map((s) => `${shortName(s.key)} ${Math.round(100 * F.tally[s.key].kept / F.tally[s.key].n)}%`).join("  ")}`;
+  }
+}
+paint();
+
+const calls = [
+  ["1 &middot; the layout", "<b>A &mdash; map beside the bar, sweep under (recommended)</b> | B &mdash; bar across the top | C &mdash; the sweep cut"],
+  ["2 &middot; the sweep", "<b>keep it (recommended): it shows all four samples' whole curves at once, which one drag cannot</b> | cut it, the mitochondrial slider IS that curve now"],
+  ["3 &middot; removed droplets on the map", "<b>gone, as you asked (recommended)</b> | gone, but left as a faint ring so the cost stays visible (the third figure in each layout can be switched to this) | gone, and fading out over a quarter second when a slider settles"],
+  ["4 &middot; the doublet cost curve", "it was a panel on the page you are cutting. <b>Cut it too (recommended): the doublets stay in the stage and on the map, and the readout keeps the number</b> | keep it as a fourth panel here | move it to the Metrics page"],
+  ["5 &middot; the bar", "<b>keep the three rule segments, hairline-separated (recommended): the transcript rule's sliver is still the argument that two of the three rules are one</b> | plain kept-against-removed, the breakdown in the readout only"],
+  ["6 &middot; what the readout says", "<b>kept, good cells removed, kept droplets that are not one good cell (recommended)</b> | add the per-rule counts | add what each sample keeps"],
+];
+document.getElementById("calls").innerHTML = calls.map(([q, a]) => `<p class="q"><b>${q}</b> &nbsp; ${a}</p>`).join("");
+</script>
+</body>
+</html>
