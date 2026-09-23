@@ -782,7 +782,11 @@ function drawThresholds(ctx, colors, w, state, hover) {
   /* --- the sweep: every mitochondrial rule this reader could have set ------- */
   const sr = sweepRect(w);
   const plot = makePlot({ ctx, colors, rect: sr, xDomain: [2, 30], yDomain: [0, 1] });
-  plot.caption("Droplets kept, at every mitochondrial %");
+  /* THE CAPTION CARRIES IT, not a note. "the other three rules as set" was a
+     note first, and core drops a note inside the panel when the caption line
+     is full — which on the 534px canvas put it exactly where the rule's own
+     number sits, an 18px collision the overlap sweep caught at once. */
+  plot.caption("All four rules, at every mitochondrial %");
   plot.grid([0, 0.5, 1]);
   plot.axisX({ ticks: [5, 10, 20, 30], format: (t) => String(t) });
   plot.axisY({ ticks: [0, 0.5, 1], format: (t) => `${Math.round(t * 100)}%` });
@@ -918,7 +922,7 @@ function drawDoubletPanels(ctx, colors, w, state, hover) {
   ctx.font = `${colors.fsXs} ${colors.font}`;
   ctx.fillStyle = colors.ink3;
   ctx.fillText("nearest in the middle, fiftieth at the rim", mr.x, mr.y - 24);
-  ctx.fillText("on the droplets the other three rules keep", mr.x, mr.y - 8);
+  ctx.fillText("on the droplets the two count rules keep", mr.x, mr.y - 8);
   ctx.restore();
   ctx.save();
   ctx.strokeStyle = colors.grid;
@@ -1134,13 +1138,31 @@ function derive(cells, prof, pos, thr) {
     };
 
     const removedAt = cells.map((c) => (c.nFeature > thr.nFeature ? (c.nCount > thr.nCount ? (c.mt < thr.mt ? 0 : 3) : 2) : 1));
-    /* THE FOURTH RULE runs on what the first three left, as a real pipeline
-       does, and it cannot be written as a cut on a droplet's own numbers: it
-       needs the whole neighbourhood, so it is computed here and only when it
-       is being used. `dbl` is the score above which a droplet is called. */
+    /* THE FOURTH RULE cannot be written as a cut on a droplet's own numbers:
+       it needs the whole neighbourhood, so it is computed here and only when
+       it is being used. `dbl` is the score above which a droplet is called.
+
+       IT IS SCORED ON THE DROPLETS THE TWO COUNT RULES KEEP (his round 16:
+       "we threshold on these 4 criteria although the order may differ"). It
+       used to be scored on what all three of the others left, which is
+       DoubletFinder's order — and that made the curve beside the bar on the
+       Thresholds page unable to apply this rule at all, because the score
+       changes with the mitochondrial threshold the curve is sweeping. Scoring
+       at every point of the sweep was measured at 1,838 ms against 26 for one
+       scoring, so it was never an option.
+
+       THE COUNT RULES ARE THE FLOOR BOTH TOOLS AGREE ON. DoubletFinder puts
+       the thresholds first; scDblFinder's FAQ asks for a coverage floor and
+       says "Further quality filtering should be performed downstream of
+       doublet detection". The order between them is the part they disagree
+       about, and the widget now says the four rules apply without taking a
+       side. Measured on this stage, the floor basis costs nothing: at a cut
+       of 0.6 it calls 63 of the 63 doublets holding two different types
+       (against 47 of 49), none of the 18 holding two of the same, and 23 of
+       1,386 droplets holding one cell (1.7%). */
     let dbl = null;
     if (thr.dbl !== null || thr.wantScores) {
-      const index = cells.map((c, i) => i).filter((i) => removedAt[i] === 0);
+      const index = cells.map((c, i) => i).filter((i) => removedAt[i] === 0 || removedAt[i] === 3);
       const { score, art } = doubletScores(makeRng(thr.scoreSeed), cells, index, { ...DOUBLET, profiles: index.map((i) => prof[i]) });
       const byCell = new Float64Array(cells.length).fill(NaN);
       index.forEach((i, r) => { byCell[i] = score[r]; });
@@ -1163,14 +1185,21 @@ function derive(cells, prof, pos, thr) {
     const keep = removedAt.map((r) => r === 0);
     const tally = tallyBy(cells, removedAt);
 
-    /* the sweep, every half per cent from 2 to 30 */
+    /* THE SWEEP APPLIES ALL FOUR RULES, every half per cent from 2 to 30. It
+       applied three until his round 16 and read four to five points above the
+       bar beside it, which is what he caught. The doublet call can join it
+       because the score no longer moves with the mitochondrial threshold: at
+       the setting the dashed line marks, the curve now equals the bar. */
+    const called = cells.map((c, i) => dbl !== null && thr.dbl !== null && dbl.score[i] >= thr.dbl);
     const sweep = {};
     for (const s of SAMPLES) {
-      const cs = cells.filter((c) => c.sample === s.key);
+      const cs = cells.map((c, i) => [c, i]).filter(([c]) => c.sample === s.key);
       sweep[s.key] = [];
       for (let mt = 2; mt <= 30.001; mt += 0.5) {
         let k = 0;
-        for (const c of cs) if (c.nFeature > thr.nFeature && c.nCount > thr.nCount && c.mt < mt) k += 1;
+        for (const [c, i] of cs) {
+          if (c.nFeature > thr.nFeature && c.nCount > thr.nCount && c.mt < mt && !called[i]) k += 1;
+        }
         sweep[s.key].push(k / cs.length);
       }
     }

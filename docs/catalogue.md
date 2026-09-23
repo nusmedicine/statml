@@ -20019,7 +20019,58 @@ not. Two things had to change for a line to read as a separation:
 
 31 overlap states clean, switch probe 10/0.
 
-NEXT: his round 15.
+**Rounds 15 and 16, 2026-09-23 — the sweep told a different story from the
+bar.** He asked *"why does it say droplets? i thought we were thresholding on
+all 4 criteria?"* and he was right: the bar applied all four rules and the
+curve beside it applied three. Measured at the defaults, the curve read
+**91 / 90 / 87%** where the bar read **86 / 86 / 82%** — four to five points
+high, every time.
+
+**Droplets stays.** A droplet is what the machine makes and it may hold no
+cell, one, or two; calling them cells on this page would assume the answer
+the widget is about.
+
+**Why the fourth rule could not simply be added.** The score was computed on
+the droplets the other three rules keep, so it MOVES with the mitochondrial
+threshold the curve is sweeping. An honest four-rule curve has to rescore at
+all 57 points: **1,838 ms**, against 26 for one scoring. Three options were
+put to him — the mitochondrial rule alone, three rules with an honest
+caption, or all four rescored — along with what practice does.
+
+**What practice does, and his call.** Nobody draws this curve at all: the
+real workflow is one pass — look at the violins, filter once, normalise, PCA,
+run the tool once, drop the calls — and a change of threshold means re-running
+it by hand. So the real pipeline does behave like C. **His answer:** *"because
+this conceptual, C looks better..i.e. we threshold on these 4 criteria
+although the order may differ"*.
+
+**What made C affordable was the two tools' own disagreement.**
+DoubletFinder puts the thresholds first; scDblFinder's FAQ asks only for a
+coverage floor and says *"Further quality filtering should be performed
+downstream of doublet detection"*. **They agree on the floor.** The score is
+computed on the droplets the two COUNT rules keep now, so it no longer moves
+as the mitochondrial rule sweeps, and the curve applies all four exactly, at
+one scoring. At the setting the dashed line marks the curve equals the bar,
+which the verify asserts per sample.
+
+Measured, the floor basis costs nothing: at a cut of 0.6 it calls **63 of the
+63** doublets holding two different types (against 47 of 49 before), none of
+the 18 holding two of the same, and 23 of 1,386 droplets holding one cell
+(1.7%).
+
+Also this round, both from his screenshot: the rule's own number printed over
+the 100% gridline and whatever curve was there, and three of the four curve
+names were pushed 12px apart so P1 - liver's name sat 30px from its curve.
+The number takes a surface halo; each name keeps a leader back to its own
+end. **Neither was text on text, so the overlap sweep had passed and still
+passes** — text over a GRAPH is the gap that harness cannot see. It did catch
+the one that followed: the caption's note landed on the rule's number at
+534px, so the note is folded into the caption, *All four rules, at every
+mitochondrial %*.
+
+31 overlap states clean, switch probe 10/0, verify 68 checks.
+
+NEXT: his round 17.
 
 ### Slot 80 · `integration` — Single-Cell Integration
 

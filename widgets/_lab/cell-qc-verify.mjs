@@ -195,7 +195,12 @@ section("§6 the fourth rule: doublets found by the company they keep");
 {
   const thr = THRESHOLDS;
   const { keep } = applyFilters(cells, thr);
-  const index = cells.map((c, i) => i).filter((i) => keep[i]);
+  /* THE COUNT RULES ARE THE SCORING FLOOR, not all three (his round 16). The
+     mitochondrial threshold is downstream of the score now, which is what
+     lets the sweep on the Thresholds page apply all four rules at every
+     setting instead of three. */
+  const floor = cells.map((c) => c.nFeature > thr.nFeature && c.nCount > thr.nCount);
+  const index = cells.map((c, i) => i).filter((i) => floor[i]);
   const run = () => doubletScores(makeRng(38), cells, index, DOUBLET);
   const t0 = performance.now();
   const { score, art } = run();
@@ -223,12 +228,29 @@ section("§6 the fourth rule: doublets found by the company they keep");
     assert(calledHom === 0, `and ${calledHom} of the ${hom.length} holding two of the same`);
     assert(calledOne < 0.02 * one.length, `taking ${calledOne} droplets that hold one cell with them (${(100 * calledOne / one.length).toFixed(1)}%)`);
   }
-  /* and it is charged after the other three, never before */
+  /* it is charged after the other three, never before: a droplet the count
+     rules or the mitochondrial rule removed is attributed to that rule even
+     though it now carries a score */
   const withRule = cells.map((c) => (c.nFeature > thr.nFeature ? (c.nCount > thr.nCount ? (c.mt < thr.mt ? 0 : 3) : 2) : 1));
-  index.forEach((i, r) => { if (score[r] >= 0.6) withRule[i] = 4; });
+  index.forEach((i, r) => { if (score[r] >= 0.6 && withRule[i] === 0) withRule[i] = 4; });
   assert(withRule.every((r, i) => r !== 4 || keep[i]), "the fourth rule only ever removes a droplet the other three kept");
-  assert(cells.filter((c, i) => withRule[i] === 4).length === het.filter((v) => v >= 0.6).length + hom.filter((v) => v >= 0.6).length + one.filter((v) => v >= 0.6).length,
-    "what it removes is what it calls");
+  assert(cells.every((c, i) => !(floor[i] && !keep[i]) || withRule[i] === 3),
+    "a droplet the mitochondrial rule removed is charged to that rule, not to the doublet call it also carries");
+
+  /* AND THE CURVE BESIDE THE BAR CAN NOW SAY ALL FOUR (his round 16). The
+     Thresholds page sweeps the mitochondrial rule; because the score is
+     computed on the count floor it does not move as that sweep runs, so the
+     curve is exact at every setting and equal to the bar at the one the
+     reader set. Three rules read four to five points high, which is what he
+     caught: this asserts the two agree now. */
+  const scoreOf = new Float64Array(cells.length).fill(NaN);
+  index.forEach((i, r) => { scoreOf[i] = score[r]; });
+  for (const s of SAMPLES) {
+    const cs = cells.map((c, i) => [c, i]).filter(([c]) => c.sample === s.key);
+    const onCurve = cs.filter(([c, i]) => c.nFeature > thr.nFeature && c.nCount > thr.nCount && c.mt < thr.mt && !(scoreOf[i] >= 0.6)).length;
+    const onBar = cs.filter(([c, i]) => withRule[i] === 0).length;
+    assert(onCurve === onBar, `${s.name}: the curve at the set rule is the bar (${onCurve} against ${onBar})`);
+  }
   console.log(`  ${checks} checks`);
 }
 
