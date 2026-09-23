@@ -881,22 +881,31 @@ function drawDoubletPanels(ctx, colors, w, state, hover) {
   ctx.restore();
   dots(ctx, near.map((n, r) => (n.art ? null : place(n, r))).filter(Boolean), 2.6, colors.empirical, 0.85);
   pairs(ctx, near.map((n, r) => (n.art ? place(n, r) : null)).filter(Boolean), 2.2, colors.reference, 0.95);
-  /* the droplet itself, drawn as what it holds */
+  /* THE DROPLET ITSELF WEARS THE GLYPH (his round 8: "the cell in the middle
+     of the spider is always one color? even when i look at a doublet with 2
+     different cell types?"). It did not, and it should: the hub is the one
+     droplet whose composition the panel is about.
+
+     --c-highlight moves off its fill and becomes a ring around it. Colour
+     then says what the droplet holds and the enclosure says this is the one
+     under the pointer, which is how this project puts two groupings on one
+     figure — the neighbours keep colour for the only question the score asks,
+     made up or real. The disc of surface under the glyph is the gap that
+     stops the fifty spokes running through it. */
   const c = cells[subject];
-  const isTwo = c.state === "doublet";
+  const holds = holdsOf(c);
+  const hubW = glyphWidth(holds.kind, GLYPH_R);
   ctx.save();
   ctx.globalAlpha = 1;
-  ctx.strokeStyle = colors.surface;
-  ctx.lineWidth = 3;
-  if (isTwo) {
-    ctx.beginPath(); ctx.arc(cx - 3.1, cy, 4, 0, Math.PI * 2); ctx.stroke();
-    ctx.beginPath(); ctx.arc(cx + 3.1, cy, 4, 0, Math.PI * 2); ctx.stroke();
-  } else {
-    ctx.beginPath(); ctx.arc(cx, cy, 4.6, 0, Math.PI * 2); ctx.stroke();
-  }
+  ctx.fillStyle = colors.surface;
+  ctx.beginPath(); ctx.arc(cx, cy, hubW / 2 + 2.2, 0, Math.PI * 2); ctx.fill();
   ctx.restore();
-  if (isTwo) pairs(ctx, [[cx, cy]], 4, colors.highlight, 1);
-  else dots(ctx, [[cx, cy]], 4.6, colors.highlight, 1);
+  drawGlyph(ctx, colors, cx - hubW / 2, cy, GLYPH_R, holds.kind);
+  ctx.save();
+  ctx.strokeStyle = colors.highlight;
+  ctx.lineWidth = 1.6;
+  ctx.beginPath(); ctx.arc(cx, cy, hubW / 2 + 3.6, 0, Math.PI * 2); ctx.stroke();
+  ctx.restore();
 
   /* the key for the two marks, beside the marks themselves */
   ctx.save();
@@ -914,10 +923,9 @@ function drawDoubletPanels(ctx, colors, w, state, hover) {
   const sc = dbl.score[subject];
   const called = thr.dbl !== null && sc >= thr.dbl;
   hoverLine(ctx, colors, mr.x, mr.y + mr.h - 22, [[`${made} of its ${k} nearest are made up`, colors.ink2, "600"]]);
-  /* the same mark the rows below are labelled with, beside the same words:
-     what this droplet holds is the one thing the score cannot see, and it is
-     the distinction he could not hold in his head from the words alone */
-  const holds = holdsOf(c);
+  /* the same mark the hub wears and the rows below are labelled with, beside
+     the same words: what this droplet holds is the one thing the score cannot
+     see, and it is the distinction the words alone would not carry */
   const scoreText = `score ${fmt(sc, 2)}`;
   const line2 = mr.y + mr.h - 6;
   ctx.save();

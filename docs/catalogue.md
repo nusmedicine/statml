@@ -19850,7 +19850,28 @@ and by the readout's mark; not by the colours. On that panel colour answers
 *made up or real*, which is the only question the score asks, and a second
 grouping in colour there is the rule the project keeps.
 
-NEXT: his round 8.
+**Round 8, 2026-09-23 — the hub, and the half the method cannot do.** Two
+things, one a reading and one a gap:
+
+- *"it's easier to filter for 2 different cell types in a doublet and 2 of
+  the same? .. looks like no matter what threshold i set, i cannot exclude
+  them"* — **right, and it is the point of the second row.** At the default
+  stage: 49 doublets of two different types, median score 0.88, all 49 called
+  at 0.6; 13 of two of the same type, median 0.32, against 0.28 for a droplet
+  holding one cell, and no setting the control offers separates them. A
+  doublet of two cells of one type has that type's profile, so the made-up
+  doublets nearest it were made from that type too. This is what
+  DoubletFinder's homotypic-proportion adjustment concedes rather than fixes,
+  and both readout tiles carry the numbers.
+- *"the cell in the middle of the spider is always one color? even when i
+  look at a doublet with 2 different cell types?"* — it was, and it should
+  not have been. **The hub now wears the same glyph as the row it belongs
+  to**, and `--c-highlight` moves off its fill to a ring around it: colour
+  says what the droplet holds, the enclosure says this is the one under the
+  pointer. The neighbours keep colour for the only question the score asks,
+  made up or real, so no mark on the panel carries two groupings.
+
+NEXT: his round 9.
 
 ### Slot 80 · `integration` — Single-Cell Integration
 
