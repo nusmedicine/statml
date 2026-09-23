@@ -342,8 +342,12 @@ export function embed(rng, cells) {
     sits above `doubletScores` and in `_lab/cell-qc-doublet-measure.mjs`. */
 export const DOUBLET = { ratio: 1, k: 50, pooled: true };
 
-export function doubletScores(rng, cells, index, { ratio = 1, k = 50, pooled = false } = {}) {
-  const prof = index.map((i) => profileOf(rng, cells[i]));
+export function doubletScores(rng, cells, index, { ratio = 1, k = 50, pooled = false, profiles = null } = {}) {
+  /* the droplet's profile is ONE measurement, and the figure and the score
+     read the same one: the widget hands them in so a droplet's place on the
+     map and its neighbours in the score cannot be two different draws. A
+     caller that does not care draws its own. */
+  const prof = profiles ?? index.map((i) => profileOf(rng, cells[i]));
   const n = index.length;
   /* the pairs a droplet could have been made from: its own sample's, unless
      the reader has asked to see what pooling them does */
@@ -402,7 +406,7 @@ export function doubletScores(rng, cells, index, { ratio = 1, k = 50, pooled = f
     for (let j = 0; j < filled; j += 1) a += mark[j];
     score[r] = filled ? a / filled : 0;
   }
-  return { score, art, prof };
+  return { score, art, prof, artLane };
 }
 
 /** The filter read as the claim it is: of the droplets it removed, how many

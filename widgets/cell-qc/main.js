@@ -51,7 +51,7 @@
  */
 import { defineWidget, fmt, makePlot } from "../core/index.js";
 import { makeRng } from "../core/rng.js";
-import { simulate, confusion, embed, doubletScores, projectProfile, median, DOUBLET, TYPES, SAMPLES } from "./engine.js";
+import { simulate, confusion, profileOf, doubletScores, projectProfile, median, DOUBLET, TYPES, SAMPLES } from "./engine.js";
 
 const PAGES = [
   { value: "metrics", label: "Metrics" },
@@ -119,8 +119,12 @@ function stageFor(seed, hot, hotMt) {
   const key = `${seed}|${hot}|${hotMt}`;
   if (cached.key === key) return cached.value;
   const sim = simulate(makeRng(seed), { hot, hotMt });
-  const pos = embed(makeRng(seed * 7919 + 13), sim.cells);
-  cached = { key, value: { cells: sim.cells, pos } };
+  /* ONE MEASUREMENT A DROPLET. Its six block fractions are read once, the map
+     is that reading projected, and the doublet score counts neighbours in it —
+     so a droplet's place and its company are the same fact seen twice. */
+  const rng = makeRng(seed * 7919 + 13);
+  const prof = sim.cells.map((c) => profileOf(rng, c));
+  cached = { key, value: { cells: sim.cells, prof, pos: prof.map(projectProfile) } };
   return cached.value;
 }
 
@@ -262,15 +266,21 @@ function hoverAt(pointer, w, page, state) {
       });
       if (best >= 0) return { kind: "droplet", i: best };
     }
-    /* the space under them is the same droplets a third time, so pointing at
-       one there marks it in the scatters and ticks it in all four metrics */
-    const sp = spaceRect(w);
-    if (state.dbl && pointer.x > sp.x - 6 && pointer.x < sp.x + sp.w + 6 && pointer.y > sp.y - 6 && pointer.y < sp.y + sp.h + 6) {
-      const span = view[1] - view[0];
-      let best = -1, bd = 64;
+    /* THE SCORE ROWS ARE HOW A DROPLET IS REACHED. They are laid out by the
+       very number the neighbourhood panel explains, so pointing at the right
+       end of the first row and then at the middle of the third is the lesson
+       — and the same hover rings the droplet in both scatters and ticks it in
+       all four distributions. */
+    const sr = scoreRect(w);
+    if (state.dbl && pointer.x > sr.x - 8 && pointer.x < sr.x + sr.w + 8 && pointer.y > sr.y - 8 && pointer.y < sr.y + sr.h) {
+      const rowH = sr.h / DBL_ROWS.length;
+      const ri = Math.max(0, Math.min(DBL_ROWS.length - 1, Math.floor((pointer.y - sr.y) / rowH)));
+      const y0 = sr.y + ri * rowH, h = rowH - 26;
+      let best = -1, bd = 100;
       for (const i of state.dbl.index) {
-        const px = sp.x + ((pos[i].x - view[0]) / span) * sp.w;
-        const py = sp.y + ((view[1] - pos[i].y) / span) * sp.h;
+        if (!DBL_ROWS[ri].of(cells[i])) continue;
+        const px = sr.x + state.dbl.score[i] * sr.w;
+        const py = y0 + 4 + state.dbl.jitter[i] * (h - 8);
         const d = (pointer.x - px) ** 2 + (pointer.y - py) ** 2;
         if (d < bd) { bd = d; best = i; }
       }
@@ -721,12 +731,31 @@ const DBL_ROWS = [
   { key: "one", name: "One cell", of: (c) => c.state !== "doublet" },
 ];
 
+/** The k nearest of one droplet, over the real droplets and the made-up ones
+    together — the score's own arithmetic, for a single droplet, so the panel
+    can draw what it counted. Bounded insertion, so it costs nothing per
+    frame: two thousand distances and a list of fifty. */
+function neighbourhoodOf(state, i) {
+  const { dbl, prof } = state;
+  const me = prof[i];
+  const k = DOUBLET.k;
+  const best = [];
+  const offer = (d, pt, art) => {
+    if (best.length === k && d >= best[best.length - 1].d) return;
+    let at = best.length < k ? best.length : k - 1;
+    if (best.length < k) best.push(null);
+    while (at > 0 && best[at - 1].d > d) { best[at] = best[at - 1]; at -= 1; }
+    best[at] = { d, pt, art };
+  };
+  const dist = (u, v) => { let t = 0; for (let j = 0; j < u.length; j += 1) t += (u[j] - v[j]) ** 2; return t; };
+  for (const j of dbl.index) if (j !== i) offer(dist(me, prof[j]), state.pos[j], 0);
+  for (let j = 0; j < dbl.artProf.length; j += 1) offer(dist(me, dbl.artProf[j]), dbl.art[j], 1);
+  return { near: best, made: best.filter((n) => n.art).length, k };
+}
+
 function drawDoubletPanels(ctx, colors, w, state, hover) {
-  const { cells, pos, view, dbl, thr } = state;
+  const { cells, pos, dbl, thr } = state;
   const mr = spaceRect(w);
-  const span = view[1] - view[0];
-  const sx = (v) => mr.x + ((v - view[0]) / span) * mr.w;
-  const sy = (v) => mr.y + ((view[1] - v) / span) * mr.h;
   ctx.save();
   ctx.font = `600 ${colors.fsSm} ${colors.font}`;
   ctx.fillStyle = colors.ink2;
@@ -744,21 +773,49 @@ function drawDoubletPanels(ctx, colors, w, state, hover) {
   ctx.strokeRect(mr.x + 0.5, mr.y + 0.5, mr.w, mr.h);
   ctx.restore();
   if (!dbl) return;
-  dots(ctx, dbl.art.map((q) => [sx(q.x), sy(q.y)]), 1.4, colors.reference, 0.34);
-  dots(ctx, dbl.index.map((i) => [sx(pos[i].x), sy(pos[i].y)]), 1.7, colors.empirical, 0.6);
+
+  /* ONE DROPLET'S NEIGHBOURS, COUNTED (his round 5, from the mock). The score
+     is a share, and a share is only intuitive if you can see the things being
+     shared out: here are the fifty, coloured by whether they are droplets or
+     doublets somebody made up. Point at a high scorer and then a low one and
+     the whole axis is readable afterwards. With no pointer it opens on the
+     droplet whose score is the middle of them all — the inspector stays an
+     inspector, and nothing lives only in it. */
+  const subject = hover && hover.kind === "droplet" && Number.isFinite(dbl.score[hover.i]) ? hover.i : dbl.example;
+  const { near, made, k } = neighbourhoodOf(state, subject);
+  const me = pos[subject];
+  const R = Math.min(mr.w, mr.h) / 2 - 8;
+  const cx = mr.x + mr.w / 2, cy = mr.y + R + 6;
+  const far = Math.max(1e-6, Math.sqrt(Math.max(...near.map((n) => (n.pt.x - me.x) ** 2 + (n.pt.y - me.y) ** 2)))) * 1.12;
+  const sx = (v) => cx + ((v - me.x) / far) * R;
+  const sy = (v) => cy - ((v - me.y) / far) * R;
   ctx.save();
-  ctx.font = `${colors.fsXs} ${colors.font}`;
-  ctx.textBaseline = "top";
-  ctx.textAlign = "left";
-  ctx.fillStyle = colors.empirical;
-  ctx.fillText(`${dbl.index.length} droplets`, mr.x, mr.y + mr.h + 6);
-  ctx.textAlign = "right";
-  ctx.fillStyle = colors.reference;
-  ctx.fillText(`${dbl.art.length} made up`, mr.x + mr.w, mr.y + mr.h + 6);
+  ctx.strokeStyle = colors.grid;
+  ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.stroke();
   ctx.restore();
-  if (hover && hover.kind === "droplet" && Number.isFinite(dbl.score[hover.i])) {
-    ringAt(ctx, colors, sx(pos[hover.i].x), sy(pos[hover.i].y), 6);
+  /* whatever else falls inside the reach, faint, so the fifty are seen to be
+     a selection rather than everything there is */
+  const faint = [];
+  for (const j of dbl.index) {
+    const px = sx(pos[j].x), py = sy(pos[j].y);
+    if ((px - cx) ** 2 + (py - cy) ** 2 > R * R) continue;
+    faint.push([px, py]);
   }
+  dots(ctx, faint, 1.8, colors.ink3, 0.16);
+  dots(ctx, near.filter((n) => !n.art).map((n) => [sx(n.pt.x), sy(n.pt.y)]), 2.8, colors.empirical, 0.75);
+  dots(ctx, near.filter((n) => n.art).map((n) => [sx(n.pt.x), sy(n.pt.y)]), 2.8, colors.reference, 0.9);
+  ringAt(ctx, colors, sx(me.x), sy(me.y), 5.5);
+  const sc = dbl.score[subject];
+  const called = thr.dbl !== null && sc >= thr.dbl;
+  hoverLine(ctx, colors, mr.x, mr.y + mr.h - 24, [[`${made} of its ${k} nearest are made up`, colors.ink2, "600"]]);
+  const c = cells[subject];
+  const holds = c.state === "doublet"
+    ? (c.partner === c.type ? "two cells of one type" : "two cells of different types")
+    : c.state === "good" ? "one cell" : c.state === "dying" ? "a dying cell" : "ambient RNA only";
+  hoverLine(ctx, colors, mr.x, mr.y + mr.h - 8, [
+    [`score ${fmt(sc, 2)}`, called ? colors.extreme : colors.ink1, "600"],
+    [`it holds ${holds}`, colors.ink3],
+  ]);
 
   /* --- the scores, in the three rows the method never sees ----------------- */
   const sr = scoreRect(w);
@@ -786,15 +843,17 @@ function drawDoubletPanels(ctx, colors, w, state, hover) {
     ctx.strokeStyle = colors.grid;
     ctx.strokeRect(sr.x + 0.5, y0 + 0.5, sr.w, h);
     ctx.restore();
-    const jitter = makeRng(97 + ri);
     const kept = [], called = [];
     for (const i of mine) {
       const v = dbl.score[i];
-      const py = y0 + 4 + jitter.next() * (h - 8);
+      const py = y0 + 4 + dbl.jitter[i] * (h - 8);
       (thr.dbl !== null && v >= thr.dbl ? called : kept).push([SX(v), py]);
     }
     dots(ctx, kept, 1.6, colors.empirical, 0.5);
     dots(ctx, called, 1.8, colors.extreme, 0.8);
+    if (hover && hover.kind === "droplet" && row.of(cells[hover.i]) && Number.isFinite(dbl.score[hover.i])) {
+      ringAt(ctx, colors, SX(dbl.score[hover.i]), y0 + 4 + dbl.jitter[hover.i] * (h - 8), 4.5);
+    }
     if (thr.dbl !== null) {
       ctx.save();
       ctx.strokeStyle = colors.reference;
@@ -852,7 +911,7 @@ function tallyBy(cells, removedAt) {
    between two settings: everything here is cheap (a pass or two over 1,600
    droplets), and deriving the whole figure from interpolated droplets is what
    keeps a slide honest — no panel is tweened independently of another. */
-function derive(cells, pos, thr) {
+function derive(cells, prof, pos, thr) {
     /* the panels' own ranges, worked out once from the droplets rather than
        per frame inside the drawing, so a hover resolves against exactly the
        scales the picture was painted with */
@@ -883,10 +942,23 @@ function derive(cells, pos, thr) {
     let dbl = null;
     if (thr.dbl !== null || thr.wantScores) {
       const index = cells.map((c, i) => i).filter((i) => removedAt[i] === 0);
-      const { score, art } = doubletScores(makeRng(thr.scoreSeed), cells, index, DOUBLET);
+      const { score, art } = doubletScores(makeRng(thr.scoreSeed), cells, index, { ...DOUBLET, profiles: index.map((i) => prof[i]) });
       const byCell = new Float64Array(cells.length).fill(NaN);
       index.forEach((i, r) => { byCell[i] = score[r]; });
-      dbl = { index, score: byCell, art: art.map(projectProfile) };
+      /* the droplet the neighbourhood panel opens on: the one whose score is
+         the middle of them all, so the figure starts on a typical droplet and
+         the reader finds the rest by pointing */
+      /* each droplet's place across its row, drawn once and hit-tested from the
+         same number (5.8): the rows are how the reader reaches a droplet, so
+         the dot under the pointer has to be the dot that was painted */
+      const jitter = new Float64Array(cells.length);
+      const jRng = makeRng(97);
+      for (const i of index) jitter[i] = jRng.next();
+      const sorted = index.slice().sort((a, b) => byCell[a] - byCell[b]);
+      dbl = {
+        index, score: byCell, artProf: art, art: art.map(projectProfile), jitter,
+        example: sorted[Math.floor(sorted.length / 2)] ?? index[0],
+      };
       if (thr.dbl !== null) index.forEach((i, r) => { if (score[r] >= thr.dbl) removedAt[i] = 4; });
     }
     const keep = removedAt.map((r) => r === 0);
@@ -942,7 +1014,7 @@ function derive(cells, pos, thr) {
       const cs = cells.filter((c) => c.sample === s.key);
       medians[s.key] = { mt: median(cs.map((c) => c.mt)), nCount: median(cs.map((c) => c.nCount)), nFeature: median(cs.map((c) => c.nFeature)) };
     }
-    return { cells, pos, view, axes, thr, removedAt, keep, tally, sweep, centres, conf, dbl, overlap: { either, both }, medians };
+    return { cells, prof, pos, view, axes, thr, removedAt, keep, tally, sweep, centres, conf, dbl, overlap: { either, both }, medians };
 }
 
 /* --- a data change that MOVED the droplets rather than replacing them -------
@@ -969,7 +1041,8 @@ function slideState(from, to, e) {
     return { ...c, nCount: lerp(o.nCount, c.nCount, e), nFeature: lerp(o.nFeature, c.nFeature, e), mt: lerp(o.mt, c.mt, e) };
   });
   const pos = to.pos.map((q, i) => (from.pos[i] ? { x: lerp(from.pos[i].x, q.x, e), y: lerp(from.pos[i].y, q.y, e) } : q));
-  const st = derive(cells, pos, to.thr);
+  const prof = to.prof.map((q, i) => (from.prof[i] ? q.map((v, j) => lerp(from.prof[i][j], v, e)) : q));
+  const st = derive(cells, prof, pos, to.thr);
   /* the panels' ranges ease with the values inside them, so the droplets move
      against a frame that is moving with them instead of snapping under them */
   st.axes = {
@@ -1072,7 +1145,7 @@ defineWidget({
      is what a display parameter changes — and what a slide re-runs per frame
      on the droplets part of the way between two settings. */
   compute: ({ params }) => {
-    const { cells, pos } = stageFor(params.seed, params.hot, params.hotMt);
+    const { cells, prof, pos } = stageFor(params.seed, params.hot, params.hotMt);
     /* the engine's own names inside, the reader's in the URL: a shareable
        link reads ?genes=500&counts=800&mt=10 (5.9) */
     const thr = {
@@ -1083,7 +1156,7 @@ defineWidget({
       wantScores: params.page === "metrics",
       scoreSeed: params.seed * 31 + 7,
     };
-    return derive(cells, pos, thr);
+    return derive(cells, prof, pos, thr);
   },
 
   readout: ({ params, state }) => {
