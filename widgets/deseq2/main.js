@@ -289,12 +289,12 @@ defineWidget({
   slug: "deseq2",
   title: "Bulk RNA-seq: Differential Expression",
   subtitle:
-    "A count varies across replicates by more than a Poisson count would, and the "
-    + "extra variance, the dispersion, is estimated per gene from few replicates, "
-    + "so the estimate is uncertain. A trend fitted through all genes is the prior "
-    + "and each gene's estimate is shrunk toward it; the fold change is tested at "
-    + "the shrunk dispersion and, after the test, shrunk the same way where the "
-    + "counts are low.",
+    "A count varies across replicates by more than a Poisson count would, so the "
+    + "negative binomial adds a dispersion per gene. With three replicates a gene's own "
+    + "estimate is noise, so it is shrunk toward the trend through all genes; the fold "
+    + "change is tested at that dispersion and, where the counts are low, shrunk the "
+    + "same way afterwards. A transform with the same SD at every mean is for the "
+    + "heatmap, not the test.",
   layout: "side",
   status: "draft",
   pointer: true,

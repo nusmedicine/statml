@@ -19454,6 +19454,22 @@ change**: it is one gene's value in one sample — a count, log2(count + 1) or
 the vst value — and a row's gap from its A cells to its B cells is its fold
 change, in log2 under log2 and the vst; the legend and the tile now say so.
 
+**Round 13** (2026-09-23) — *can we work on the subtitle and blurb? Show me
+options covering different aspects of the widget and the motivation for the
+steps.* Four subtitles (the steps with their reasons in the pages' order; two
+estimates and one prior; the round-10 text tightened; the three questions the
+pages answer) and four blurbs, all swept for personification and second
+person before they were offered. **His picks, both the recommendation:**
+subtitle S1 — "A count varies across replicates by more than a Poisson count
+would, so the negative binomial adds a dispersion per gene. With three
+replicates a gene's own estimate is noise, so it is shrunk toward the trend
+through all genes; the fold change is tested at that dispersion and, where
+the counts are low, shrunk the same way afterwards. A transform with the
+same SD at every mean is for the heatmap, not the test." — and blurb B3,
+"Few replicates: each gene's dispersion, then its low-count fold change, is
+shrunk toward a prior fitted to all genes." (118), in the manifest and the
+stub's description.
+
 **Host.** 01-2 cell 1 and cell 22 are the notebook's own exposition, four
 figures (`deseq2-nb`, `deseq2-mle`, `deseq2-map`, `deseq2-shrinkage`) and
 every formula the widget needs: `y ~ NB(μ, α)`, the geometric-mean ratio and

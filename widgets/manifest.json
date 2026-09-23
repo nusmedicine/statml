@@ -1154,7 +1154,7 @@
     {
       "slug": "deseq2",
       "title": "Bulk RNA-seq: Differential Expression",
-      "blurb": "Replicate counts vary beyond Poisson; a dispersion shrunk toward the trend across genes makes fold changes testable.",
+      "blurb": "Few replicates: each gene's dispersion, then its low-count fold change, is shrunk toward a prior fitted to all genes.",
       "course": "PHM5003",
       "topics": [
         "RNA-seq",
