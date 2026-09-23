@@ -59,7 +59,7 @@ const PAGES = [
 ];
 /* the Metrics page is taller when its four panels take two rows; core hands a
    height function the width for exactly this (widget 60's is the precedent) */
-const HEIGHTS = { metrics: 782, thresholds: 400 };
+const HEIGHTS = { metrics: 844, thresholds: 400 };
 const EASE_MS = 450;
 const easeInOut = (t) => (t < 0.5 ? 2 * t * t : 1 - ((-2 * t + 2) ** 2) / 2);
 const log10 = (v) => Math.log10(Math.max(1, v));
@@ -151,15 +151,15 @@ const violinRect = (w, i) => {
 const METRIC_BLOCK = (w) => (METRIC_COLS(w) === 2 ? 224 : 0);
 /* under them, how the fourth was measured: the space with the made-up
    doublets, and what the score caught, in the three rows the method cannot see */
-const spaceRect = (w) => ({ x: PAD.l, y: 296 + METRIC_BLOCK(w), w: Math.min(240, (w - PAD.l - PAD.r) * 0.34), h: 200 });
+const spaceRect = (w) => ({ x: PAD.l, y: 296 + METRIC_BLOCK(w), w: Math.min(250, (w - PAD.l - PAD.r) * 0.34), h: 262 });
 const scoreRect = (w) => {
   const sp = spaceRect(w);
   const x = sp.x + sp.w + 58;
-  return { x, y: 296 + METRIC_BLOCK(w), w: w - x - PAD.r - 8, h: 200 };
+  return { x, y: 296 + METRIC_BLOCK(w), w: w - x - PAD.r - 8, h: 262 };
 };
 const scatterRect = (w, i) => {
   const each = (w - PAD.l - PAD.r - 56) / 2;
-  return { x: PAD.l + i * (each + 56), y: 570 + METRIC_BLOCK(w), w: each, h: 160 };
+  return { x: PAD.l + i * (each + 56), y: 632 + METRIC_BLOCK(w), w: each, h: 160 };
 };
 /* LAYOUT A (his pick, round 2): the map is the biggest thing on the page,
    because what the sliders do to the cells is what the page is now about; the
@@ -203,6 +203,27 @@ function dots(ctx, points, r, fill, alpha) {
   for (const [x, y] of points) {
     ctx.beginPath();
     ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+/** A DROPLET WITH TWO CELLS IN IT IS DRAWN AS TWO CIRCLES (his round 6): one
+    mark a thing, two joined marks a thing made of two. It is the made-up
+    doublets that wear it most — each really is two droplets added together —
+    so a real doublet surrounded by them is a double mark in a crowd of double
+    marks, and the shape match IS the score. */
+function pairs(ctx, points, r, fill, alpha) {
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = fill;
+  const off = r * 0.78;
+  for (const [x, y] of points) {
+    ctx.beginPath();
+    ctx.arc(x - off, y, r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(x + off, y, r, 0, Math.PI * 2);
     ctx.fill();
   }
   ctx.restore();
@@ -760,12 +781,15 @@ function drawDoubletPanels(ctx, colors, w, state, hover) {
   ctx.font = `600 ${colors.fsSm} ${colors.font}`;
   ctx.fillStyle = colors.ink2;
   ctx.textAlign = "left";
-  ctx.fillText("How the fourth is measured", mr.x, mr.y - 24);
+  ctx.fillText("What its nearest neighbours are", mr.x, mr.y - 40);
   /* THE ORDER, said once and on the figure (his round 4). The widget scores
      what the other three rules keep, which is DoubletFinder's order; the
-     other order is scDblFinder's, and the two disagree in their own docs. */
+     other order is scDblFinder's, and the two disagree in their own docs.
+     Two short lines rather than one long one: the panel is 250px wide and a
+     line that leaves it prints through the panel beside it. */
   ctx.font = `${colors.fsXs} ${colors.font}`;
   ctx.fillStyle = colors.ink3;
+  ctx.fillText("nearest in the middle, fiftieth at the rim", mr.x, mr.y - 24);
   ctx.fillText("on the droplets the other three rules keep", mr.x, mr.y - 8);
   ctx.restore();
   ctx.save();
@@ -774,45 +798,75 @@ function drawDoubletPanels(ctx, colors, w, state, hover) {
   ctx.restore();
   if (!dbl) return;
 
-  /* ONE DROPLET'S NEIGHBOURS, COUNTED (his round 5, from the mock). The score
-     is a share, and a share is only intuitive if you can see the things being
-     shared out: here are the fifty, coloured by whether they are droplets or
-     doublets somebody made up. Point at a high scorer and then a low one and
-     the whole axis is readable afterwards. With no pointer it opens on the
-     droplet whose score is the middle of them all — the inspector stays an
-     inspector, and nothing lives only in it. */
+  /* ONE DROPLET'S NEIGHBOURS, AS SPOKES (his rounds 5 and 6). The first
+     drawing of this put the fifty inside a circle, and a circle with dots in
+     it is a container — "i saw it and i thought they were cells in a single
+     droplet". So: no boundary, a spoke to every neighbour, and the focal
+     droplet a filled mark at the hub. Distance is replaced by its RANK along
+     each spoke — nearest at the middle, fiftieth at the rim, direction kept —
+     because at true distance the nearest neighbours, which are the ones that
+     decide the score, pile up under the hub and cannot be seen.
+
+     With no pointer it opens on the droplet whose score is the middle of them
+     all: the inspector stays an inspector, and nothing lives only in it. */
   const subject = hover && hover.kind === "droplet" && Number.isFinite(dbl.score[hover.i]) ? hover.i : dbl.example;
   const { near, made, k } = neighbourhoodOf(state, subject);
   const me = pos[subject];
-  const R = Math.min(mr.w, mr.h) / 2 - 8;
-  const cx = mr.x + mr.w / 2, cy = mr.y + R + 6;
-  const far = Math.max(1e-6, Math.sqrt(Math.max(...near.map((n) => (n.pt.x - me.x) ** 2 + (n.pt.y - me.y) ** 2)))) * 1.12;
-  const sx = (v) => cx + ((v - me.x) / far) * R;
-  const sy = (v) => cy - ((v - me.y) / far) * R;
+  const R = Math.min(mr.w / 2 - 12, (mr.h - 64) / 2);
+  const cx = mr.x + mr.w / 2, cy = mr.y + R + 12;
+  const place = (n, rank) => {
+    const a2 = Math.atan2(n.pt.y - me.y, n.pt.x - me.x);
+    const rr = 0.2 * R + ((rank + 1) / near.length) * 0.8 * R;
+    return [cx + Math.cos(a2) * rr, cy - Math.sin(a2) * rr];
+  };
   ctx.save();
-  ctx.strokeStyle = colors.grid;
-  ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.stroke();
+  ctx.lineWidth = 1;
+  near.forEach((n, r) => {
+    const [px, py] = place(n, r);
+    ctx.globalAlpha = n.art ? 0.42 : 0.24;
+    ctx.strokeStyle = n.art ? colors.reference : colors.empirical;
+    ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(px, py); ctx.stroke();
+  });
   ctx.restore();
-  /* whatever else falls inside the reach, faint, so the fifty are seen to be
-     a selection rather than everything there is */
-  const faint = [];
-  for (const j of dbl.index) {
-    const px = sx(pos[j].x), py = sy(pos[j].y);
-    if ((px - cx) ** 2 + (py - cy) ** 2 > R * R) continue;
-    faint.push([px, py]);
+  dots(ctx, near.map((n, r) => (n.art ? null : place(n, r))).filter(Boolean), 2.6, colors.empirical, 0.85);
+  pairs(ctx, near.map((n, r) => (n.art ? place(n, r) : null)).filter(Boolean), 2.2, colors.reference, 0.95);
+  /* the droplet itself, drawn as what it holds */
+  const c = cells[subject];
+  const isTwo = c.state === "doublet";
+  ctx.save();
+  ctx.globalAlpha = 1;
+  ctx.strokeStyle = colors.surface;
+  ctx.lineWidth = 3;
+  if (isTwo) {
+    ctx.beginPath(); ctx.arc(cx - 3.1, cy, 4, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(cx + 3.1, cy, 4, 0, Math.PI * 2); ctx.stroke();
+  } else {
+    ctx.beginPath(); ctx.arc(cx, cy, 4.6, 0, Math.PI * 2); ctx.stroke();
   }
-  dots(ctx, faint, 1.8, colors.ink3, 0.16);
-  dots(ctx, near.filter((n) => !n.art).map((n) => [sx(n.pt.x), sy(n.pt.y)]), 2.8, colors.empirical, 0.75);
-  dots(ctx, near.filter((n) => n.art).map((n) => [sx(n.pt.x), sy(n.pt.y)]), 2.8, colors.reference, 0.9);
-  ringAt(ctx, colors, sx(me.x), sy(me.y), 5.5);
+  ctx.restore();
+  if (isTwo) pairs(ctx, [[cx, cy]], 4, colors.highlight, 1);
+  else dots(ctx, [[cx, cy]], 4.6, colors.highlight, 1);
+
+  /* the key for the two marks, beside the marks themselves */
+  ctx.save();
+  const keyY = mr.y + mr.h - 40;
+  dots(ctx, [[mr.x + 8, keyY]], 2.4, colors.empirical, 0.85);
+  pairs(ctx, [[mr.x + 78, keyY]], 2.2, colors.reference, 0.95);
+  ctx.font = `${colors.fsXs} ${colors.font}`;
+  ctx.textBaseline = "middle";
+  ctx.textAlign = "left";
+  ctx.fillStyle = colors.ink3;
+  ctx.fillText("a droplet", mr.x + 16, keyY);
+  ctx.fillText("two added together", mr.x + 86, keyY);
+  ctx.restore();
+
   const sc = dbl.score[subject];
   const called = thr.dbl !== null && sc >= thr.dbl;
-  hoverLine(ctx, colors, mr.x, mr.y + mr.h - 24, [[`${made} of its ${k} nearest are made up`, colors.ink2, "600"]]);
-  const c = cells[subject];
-  const holds = c.state === "doublet"
+  hoverLine(ctx, colors, mr.x, mr.y + mr.h - 22, [[`${made} of its ${k} nearest are made up`, colors.ink2, "600"]]);
+  const holds = isTwo
     ? (c.partner === c.type ? "two cells of one type" : "two cells of different types")
     : c.state === "good" ? "one cell" : c.state === "dying" ? "a dying cell" : "ambient RNA only";
-  hoverLine(ctx, colors, mr.x, mr.y + mr.h - 8, [
+  hoverLine(ctx, colors, mr.x, mr.y + mr.h - 6, [
     [`score ${fmt(sc, 2)}`, called ? colors.extreme : colors.ink1, "600"],
     [`it holds ${holds}`, colors.ink3],
   ]);
@@ -1135,7 +1189,7 @@ defineWidget({
     ];
     return [
       { token: "empirical", label: "A droplet: point at one in either scatter for its four numbers", mark: "dot" },
-      { token: "reference", label: "A rule now set; a made-up doublet, two droplets added together", mark: "dot" },
+      { token: "reference", label: "A rule now set; and two droplets added together, drawn as two circles", mark: "dot" },
       { token: "extreme", label: "A droplet the doublet score calls", mark: "dot" },
     ];
   },

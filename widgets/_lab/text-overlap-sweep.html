@@ -68,8 +68,22 @@ frame.width = W;
 const log = [];
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+/* ONE PAINT AT A TIME. The sweep forces a repaint by moving the pointer and
+   then moving it away, so a widget whose hover writes text collects TWO
+   paints' strings into one list — and every string then overlaps its own
+   counterpart from the other paint, at the same place, by its whole width.
+   Found on widget 79 (2026-09-23): "14 of its 50 nearest are made up" against
+   "26 of its 50 nearest are made up", 159px. A paint starts where the widget
+   clears the canvas, which core's `surface.clear()` does with clearRect, so
+   that is the boundary this wraps. */
 function install(win) {
-  const P = win.CanvasRenderingContext2D.prototype, orig = P.fillText, boxes = [];
+  const P = win.CanvasRenderingContext2D.prototype, orig = P.fillText, origClear = P.clearRect;
+  const paints = [[]];
+  const boxes = { get length() { return paints.reduce((n, g) => n + g.length, 0); } };
+  P.clearRect = function (...args) {
+    if (paints[paints.length - 1].length) paints.push([]);
+    return origClear.apply(this, args);
+  };
   P.fillText = function (s, x, y, ...rest) {
     const str = String(s), m = this.measureText(str), w = m.width, px = Number((this.font.match(/(\d+(?:\.\d+)?)px/) || [0, 12])[1]);
     let x0 = x; if (this.textAlign === "center") x0 = x - w / 2; else if (this.textAlign === "right" || this.textAlign === "end") x0 = x - w;
@@ -77,10 +91,10 @@ function install(win) {
     const T = this.getTransform();
     const pts = [[x0, y0], [x0 + w, y0], [x0, y0 + px], [x0 + w, y0 + px]].map(([a, b]) => ({ x: T.a * a + T.c * b + T.e, y: T.b * a + T.d * b + T.f }));
     const bx = { s: str, x0: Math.min(...pts.map((p) => p.x)), x1: Math.max(...pts.map((p) => p.x)), y0: Math.min(...pts.map((p) => p.y)), y1: Math.max(...pts.map((p) => p.y)), canvas: this.canvas };
-    if (str.trim()) boxes.push(bx);
+    if (str.trim()) paints[paints.length - 1].push(bx);
     return orig.call(this, s, x, y, ...rest);
   };
-  return { boxes, restore: () => { P.fillText = orig; } };
+  return { boxes, paints, restore: () => { P.fillText = orig; P.clearRect = origClear; } };
 }
 
 function report(boxes, canvas, dpr) {
@@ -115,7 +129,7 @@ for (const st of (STATES[slug] || []).filter((st) => !only || st.includes(only))
   if (!frame.contentWindow.document.querySelector("canvas") || frame.contentWindow.document.querySelector("canvas").width < 400) { await sleep(2000); }
   const win = frame.contentWindow, canvas = win.document.querySelector("canvas");
   if (!canvas) { log.push(`${st}: NO CANVAS`); out.textContent = log.join("\n"); continue; }
-  const { boxes, restore } = install(win);
+  const { boxes, paints, restore } = install(win);
   /* a repaint under the wrap: the widget declares pointer, so a move repaints */
   const rct = canvas.getBoundingClientRect();
   canvas.dispatchEvent(new win.PointerEvent("pointermove", { clientX: rct.left + 2, clientY: rct.top + 2, bubbles: true }));
@@ -131,7 +145,15 @@ for (const st of (STATES[slug] || []).filter((st) => !only || st.includes(only))
   }
   restore();
   const dpr = win.devicePixelRatio || 1;
-  const found = report(boxes, canvas, dpr);
+  /* every paint judged on its own, and the findings unioned: a string that
+     overlaps in any one of them is a finding, and a string that only overlaps
+     its own twin from another paint is not */
+  const seenFound = new Set();
+  const found = [];
+  for (const g of paints) {
+    if (!g.length) continue;
+    for (const f of report(g, canvas, dpr)) if (!seenFound.has(f)) { seenFound.add(f); found.push(f); }
+  }
   /* a state that painted nothing is a failure, not a pass: a widget that throws before its first paint
      leaves a 300×150 canvas and no strings, and that read as "ok" once (2026-09-21) */
   if (boxes.length === 0) found.unshift("NO STRINGS PAINTED — the widget threw, or never drew");
