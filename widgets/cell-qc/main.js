@@ -14,8 +14,12 @@
  * counts. And two of the three rules are one rule: 84% of the cells either
  * count rule removes fail both.
  *
- * TWO PAGES, Metrics · Thresholds — three at planning, streamlined to two at
- * his round 2 (2026-09-23): "for threshold, don't need to step, the graph
+ * TWO PAGES, Metrics · Thresholds. Four metrics are measured on the first and
+ * four rules applied on the second — his round 4 (2026-09-23), after the
+ * doublet step arrived on a page of its own and "looks weird as it stands
+ * out ... unless it is part of the metric? then we threshold everything in
+ * the next page?" The shape was three pages at planning and was streamlined
+ * to two at his round 2: "for threshold, don't need to step, the graph
  * shows dynamically when we change sliders" and "maybe we don't need cell's
  * kept page? could the cluster plot be put under threshold". Both are right,
  * and the second is the stronger figure: the map is now beside the bar under
@@ -52,9 +56,10 @@ import { simulate, confusion, embed, doubletScores, projectProfile, median, DOUB
 const PAGES = [
   { value: "metrics", label: "Metrics" },
   { value: "thresholds", label: "Thresholds" },
-  { value: "doublets", label: "Doublets" },
 ];
-const HEIGHTS = { metrics: 580, thresholds: 400, doublets: 400 };
+/* the Metrics page is taller when its four panels take two rows; core hands a
+   height function the width for exactly this (widget 60's is the precedent) */
+const HEIGHTS = { metrics: 782, thresholds: 400 };
 const EASE_MS = 450;
 const easeInOut = (t) => (t < 0.5 ? 2 * t * t : 1 - ((-2 * t + 2) ** 2) / 2);
 const log10 = (v) => Math.log10(Math.max(1, v));
@@ -82,11 +87,13 @@ const RULE_NAME = {
    population sits in one batch only. */
 const DBL_OPTIONS = ["none", "0.9", "0.8", "0.7", "0.6", "0.5"];
 
-/* the three metrics, in the order the lesson prints them (cell 19) */
+/* the three the sequencer hands you, in the order the lesson prints them
+   (cell 19), and the fourth that takes every other droplet to work out */
 const METRICS = [
   { key: "nFeature", name: "Genes detected", log: true },
   { key: "nCount", name: "Transcripts", log: true },
   { key: "mt", name: "Mitochondrial %", log: false },
+  { key: "score", name: "Doublet score", log: false, derived: true },
 ];
 
 /* the two scatters of cell 22, hoisted beside the metrics because `derive`
@@ -119,13 +126,36 @@ function stageFor(seed, hot, hotMt) {
 
 /* --- geometry, above defineWidget: the module draws once at load ------------ */
 const PAD = { l: 52, r: 16, t: 26 };
+/* FOUR METRICS ACROSS THE TOP (his round 4). The fourth is not like the other
+   three and the page says so in its own words, but it IS a number per droplet
+   with a distribution, and standing it beside them is what stops the doublet
+   step reading as an appendix.
+
+   TWO ROWS OF TWO WHEN THE CANVAS IS NARROW. Four across puts each panel's
+   four samples in 25px columns on the 534px canvas the harness renders, and
+   "liver" and "tumour" then print through each other — the text-overlap sweep
+   found it at 3px. The break is at 700px, which is where a column stops
+   holding the longer word. */
+const METRIC_COLS = (w) => (w < 700 ? 2 : 4);
 const violinRect = (w, i) => {
-  const each = (w - PAD.l - PAD.r - 2 * 26) / 3;
-  return { x: PAD.l + i * (each + 26), y: PAD.t + 4, w: each, h: 190 };
+  const cols = METRIC_COLS(w), gap = 22;
+  const each = (w - PAD.l - PAD.r - (cols - 1) * gap) / cols;
+  const row = Math.floor(i / cols), col = i % cols;
+  return { x: PAD.l + col * (each + gap), y: PAD.t + 4 + row * 224, w: each, h: 180 };
+};
+/* everything under them moves down by the extra row */
+const METRIC_BLOCK = (w) => (METRIC_COLS(w) === 2 ? 224 : 0);
+/* under them, how the fourth was measured: the space with the made-up
+   doublets, and what the score caught, in the three rows the method cannot see */
+const spaceRect = (w) => ({ x: PAD.l, y: 296 + METRIC_BLOCK(w), w: Math.min(240, (w - PAD.l - PAD.r) * 0.34), h: 200 });
+const scoreRect = (w) => {
+  const sp = spaceRect(w);
+  const x = sp.x + sp.w + 58;
+  return { x, y: 296 + METRIC_BLOCK(w), w: w - x - PAD.r - 8, h: 200 };
 };
 const scatterRect = (w, i) => {
   const each = (w - PAD.l - PAD.r - 56) / 2;
-  return { x: PAD.l + i * (each + 56), y: 300, w: each, h: 196 };
+  return { x: PAD.l + i * (each + 56), y: 570 + METRIC_BLOCK(w), w: each, h: 160 };
 };
 /* LAYOUT A (his pick, round 2): the map is the biggest thing on the page,
    because what the sliders do to the cells is what the page is now about; the
@@ -145,12 +175,6 @@ const rightCol = (w) => {
   return { x, w: Math.max(150, w - x - 66) };
 };
 const barRect = (w) => ({ ...rightCol(w), y: 34, h: 104 });
-/* the Doublets page: the space the method works in on the left, at the map's
-   own size so the two pages are the same picture, and the scores on the right */
-const scoreRect = (w) => {
-  const c = rightCol(w);
-  return { x: c.x, y: 52, w: c.w, h: 250 };
-};
 const sweepRect = (w) => ({ ...rightCol(w), y: 226, h: 116 });
 
 /** A smoothed density over a fixed range, scaled to its own maximum. */
@@ -181,6 +205,11 @@ function dots(ctx, points, r, fill, alpha) {
 }
 
 const tickLabel = (v) => (v >= 1000 ? `${Math.round(v / 1000)}k` : String(Math.round(v)));
+/** A droplet's value for a metric. The first three are on the droplet; the
+    fourth was worked out from every other one, and is absent for a droplet
+    the other rules removed before the scoring ran. */
+const valueOf = (m, c, i, state) => (m.derived ? (state.dbl ? state.dbl.score[i] : NaN) : c[m.key]);
+const ruleOf = (m, thr) => (m.key === "nFeature" ? thr.nFeature : m.key === "nCount" ? thr.nCount : m.key === "mt" ? thr.mt : thr.dbl);
 
 /* =========================================================================
    THE HOVER — an inspector, and nothing lives only in it (core's own rule).
@@ -233,6 +262,20 @@ function hoverAt(pointer, w, page, state) {
       });
       if (best >= 0) return { kind: "droplet", i: best };
     }
+    /* the space under them is the same droplets a third time, so pointing at
+       one there marks it in the scatters and ticks it in all four metrics */
+    const sp = spaceRect(w);
+    if (state.dbl && pointer.x > sp.x - 6 && pointer.x < sp.x + sp.w + 6 && pointer.y > sp.y - 6 && pointer.y < sp.y + sp.h + 6) {
+      const span = view[1] - view[0];
+      let best = -1, bd = 64;
+      for (const i of state.dbl.index) {
+        const px = sp.x + ((pos[i].x - view[0]) / span) * sp.w;
+        const py = sp.y + ((view[1] - pos[i].y) / span) * sp.h;
+        const d = (pointer.x - px) ** 2 + (pointer.y - py) ** 2;
+        if (d < bd) { bd = d; best = i; }
+      }
+      if (best >= 0) return { kind: "droplet", i: best };
+    }
     return null;
   }
   if (page === "thresholds") {
@@ -255,16 +298,13 @@ function hoverAt(pointer, w, page, state) {
     }
     return null;
   }
-  /* both the Thresholds map and the Doublets space are the same picture in
-     the same rect, so one hit test serves them; on Doublets only the droplets
-     the first three rules left are drawn, and only those can be pointed at */
+  /* only the droplets still on the map can be pointed at: the rest are not
+     drawn, so a hit on one would be a hit on nothing */
   const g = mapScale(w, view);
   if (pointer.x < g.rect.x - 6 || pointer.x > g.rect.x + g.rect.w + 6) return null;
   if (pointer.y < g.rect.y - 6 || pointer.y > g.rect.y + g.rect.h + 6) return null;
   let best = -1, bd = 64;
-  const shown = page === "doublets"
-    ? (state.dbl ? state.dbl.index : [])
-    : state.removedAt.map((r, i) => (r ? -1 : i)).filter((i) => i >= 0);
+  const shown = state.removedAt.map((r, i) => (r ? -1 : i)).filter((i) => i >= 0);
   for (const i of shown) {
     const d = (pointer.x - g.sx(pos[i].x)) ** 2 + (pointer.y - g.sy(pos[i].y)) ** 2;
     if (d < bd) { bd = d; best = i; }
@@ -310,11 +350,24 @@ function drawMetrics(ctx, colors, w, state, hover) {
     plot.caption(m.name);
     plot.axisY({
       ticks: m.log ? Array.from({ length: Math.round(hi - lo) + 1 }, (_, k) => lo + k).filter((t) => Number.isInteger(t))
-        : [0, 20, 40, 60].filter((t) => t <= hi),
-      format: (t) => (m.log ? tickLabel(10 ** t) : String(t)),
+        : m.derived ? [0, 0.5, 1] : [0, 20, 40, 60].filter((t) => t <= hi),
+      format: (t) => (m.log ? tickLabel(10 ** t) : m.derived ? fmt(t, 1) : String(t)),
     });
+    if (m.derived && !state.dbl) {
+      ctx.save();
+      ctx.fillStyle = colors.ink3;
+      ctx.font = `${colors.fsXs} ${colors.font}`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("no droplets to score", rect.x + rect.w / 2, rect.y + rect.h / 2);
+      ctx.restore();
+      return;
+    }
     SAMPLES.forEach((s, si) => {
-      const v = cells.filter((c) => c.sample === s.key).map((c) => (m.log ? log10(c[m.key]) : c[m.key]));
+      const v = cells.map((c, i) => [c, i]).filter(([c]) => c.sample === s.key)
+        .map(([c, i]) => (m.log ? log10(valueOf(m, c, i, state)) : valueOf(m, c, i, state)))
+        .filter((x) => Number.isFinite(x));
+      if (!v.length) return;
       const d = density(v, lo, hi);
       const cx = plot.sx(si + 0.5);
       const half = Math.min(26, (rect.w / SAMPLES.length) * 0.44);
@@ -350,9 +403,11 @@ function drawMetrics(ctx, colors, w, state, hover) {
       }
       /* the hovered droplet's own value, ticked across the violin it belongs
          to: the same droplet the scatters ring, in the panel for this metric */
-      if (hover && hover.kind === "droplet" && cells[hover.i].sample === s.key) {
+      if (hover && hover.kind === "droplet" && cells[hover.i].sample === s.key
+          && Number.isFinite(valueOf(m, cells[hover.i], hover.i, state))) {
         const c = cells[hover.i];
-        const hy = plot.sy(m.log ? log10(c[m.key]) : c[m.key]);
+        const raw = valueOf(m, c, hover.i, state);
+        const hy = plot.sy(m.log ? log10(raw) : raw);
         ctx.save();
         ctx.strokeStyle = colors.highlight;
         ctx.lineWidth = 1.6;
@@ -363,8 +418,20 @@ function drawMetrics(ctx, colors, w, state, hover) {
         ctx.restore();
       }
     });
-    /* the reader's own threshold, on the metric it applies to */
-    const t = m.key === "nFeature" ? thr.nFeature : m.key === "nCount" ? thr.nCount : thr.mt;
+    /* the reader's own rule, on the metric it applies to */
+    const t = ruleOf(m, thr);
+    if (t === null || t === undefined) {
+      ctx.save();
+      ctx.fillStyle = colors.ink3;
+      ctx.font = `${colors.fsXs} ${colors.font}`;
+      ctx.textAlign = "right";
+      ctx.textBaseline = "top";
+      /* inside the panel: the caption owns the line above it, and on a narrow
+         canvas the two printed through each other */
+      ctx.fillText("no rule set", rect.x + rect.w - 4, rect.y + 4);
+      ctx.restore();
+      return;
+    }
     /* clamped to the panel: a threshold of nought sits below a log axis's own
        floor, and unclamped its label printed over the panel beneath */
     const ty = Math.max(rect.y, Math.min(rect.y + rect.h, plot.sy(m.log ? log10(t) : t)));
@@ -382,7 +449,7 @@ function drawMetrics(ctx, colors, w, state, hover) {
     ctx.textAlign = "right";
     const atFloor = ty >= rect.y + rect.h - 1;
     ctx.textBaseline = atFloor ? "top" : "bottom";
-    ctx.fillText(`${m.key === "mt" ? "<" : ">"} ${t}`, rect.x + rect.w, ty + (atFloor ? -13 : -3));
+    ctx.fillText(`${m.key === "nFeature" || m.key === "nCount" ? ">" : "<"} ${t}`, rect.x + rect.w, ty + (atFloor ? -13 : -3));
     ctx.restore();
   });
 
@@ -419,8 +486,10 @@ function drawMetrics(ctx, colors, w, state, hover) {
       ringAt(ctx, colors, plot.sx(log10(c[s.xk])), plot.sy(s.ylog ? log10(c[s.yk]) : c[s.yk]));
     }
   });
-  /* ONE DROPLET, FIVE PANELS. Its three numbers are three readings of it, and
-     what it holds is not among them — that is the next page's to say. */
+  drawDoubletPanels(ctx, colors, w, state, hover);
+  /* ONE DROPLET, EVERY PANEL. Its four numbers are four readings of it, and
+     what it holds is not among them: the three rows on the right are the
+     answer, and the reader can see they were never an input. */
   if (hover && hover.kind === "droplet") {
     const c = cells[hover.i];
     hoverLine(ctx, colors, scatterRect(w, 0).x, scatterRect(w, 1).y + scatterRect(w, 1).h + 44, [
@@ -623,26 +692,25 @@ function drawThresholds(ctx, colors, w, state, hover) {
 }
 
 /* =========================================================================
-   PAGE 3 · Doublets — the one step of this pipeline that finds something by
-   simulating it (his round 3, 2026-09-23: "what's the algorithm?").
+   THE FOURTH METRIC, under the four distributions on the Metrics page — how
+   it is measured, and what it catches (his round 4: a page of its own "looks
+   weird as it stands out ... unless it is part of the metric").
 
    The lesson names doublets twice, both in prose, and sets no rule for them;
    no tool is named in any of its four single-cell notebooks. What the field
-   does — Scrublet, DoubletFinder, scDblFinder all share it — cannot be
-   written as a cut on a droplet's own numbers, which is exactly why it is
-   worth a page: the two count rules remove not one of the 81 doublets,
-   measured. Instead: add random pairs of droplets together, put those
-   artificial doublets in the same space, and score each real droplet by the
-   share of its nearest neighbours that are artificial.
+   does — Scrublet, DoubletFinder and scDblFinder all share it — cannot be
+   written as a cut on a droplet's own numbers, which is why the other three
+   rules remove not one of the 81 doublets, measured. Instead: add random
+   pairs of droplets together, put those artificial doublets in the same
+   space, and score each droplet by the share of its nearest neighbours that
+   are artificial.
 
    THE LEFT PANEL IS WHAT THE METHOD SEES — droplets and made-up doublets,
    with nothing marking which droplets really hold two cells. THE RIGHT PANEL
-   IS THE ANSWER, in three rows the method never gets to look at: droplets
-   holding two different types, droplets holding two of the same, and droplets
-   holding one cell. At a score of 0.6 the first row is called whole — 49 of
-   49, for two droplets holding one cell — and the second row is not touched
-   at any score the control offers, nor at any other:
-   a doublet of two cells of one type has that type's profile, so the
+   IS THE ANSWER, in three rows the method never gets to look at. At a score
+   of 0.6 the first row is called whole — 49 of 49, for two droplets holding
+   one cell — and the second row is not touched at any score the control
+   offers: a doublet of two cells of one type has that type's profile, so the
    artificial doublets around it were made from that type too. That is what
    DoubletFinder's homotypic-proportion adjustment concedes rather than fixes,
    and it is the half of this method worth teaching.
@@ -653,24 +721,31 @@ const DBL_ROWS = [
   { key: "one", name: "One cell", of: (c) => c.state !== "doublet" },
 ];
 
-function drawDoublets(ctx, colors, w, state, hover) {
+function drawDoubletPanels(ctx, colors, w, state, hover) {
   const { cells, pos, view, dbl, thr } = state;
-  const { rect: mr, sx, sy } = mapScale(w, view);
+  const mr = spaceRect(w);
+  const span = view[1] - view[0];
+  const sx = (v) => mr.x + ((v - view[0]) / span) * mr.w;
+  const sy = (v) => mr.y + ((view[1] - v) / span) * mr.h;
   ctx.save();
   ctx.font = `600 ${colors.fsSm} ${colors.font}`;
   ctx.fillStyle = colors.ink2;
   ctx.textAlign = "left";
-  ctx.fillText("The droplets, and doublets made from them", mr.x, mr.y - 10);
+  ctx.fillText("How the fourth is measured", mr.x, mr.y - 24);
+  /* THE ORDER, said once and on the figure (his round 4). The widget scores
+     what the other three rules keep, which is DoubletFinder's order; the
+     other order is scDblFinder's, and the two disagree in their own docs. */
+  ctx.font = `${colors.fsXs} ${colors.font}`;
+  ctx.fillStyle = colors.ink3;
+  ctx.fillText("on the droplets the other three rules keep", mr.x, mr.y - 8);
   ctx.restore();
   ctx.save();
   ctx.strokeStyle = colors.grid;
   ctx.strokeRect(mr.x + 0.5, mr.y + 0.5, mr.w, mr.h);
   ctx.restore();
   if (!dbl) return;
-  /* what the method sees: every droplet one ink, because which of them holds
-     two cells is the thing being worked out */
-  dots(ctx, dbl.art.map((q) => [sx(q.x), sy(q.y)]), 1.5, colors.reference, 0.34);
-  dots(ctx, dbl.index.map((i) => [sx(pos[i].x), sy(pos[i].y)]), 1.9, colors.empirical, 0.6);
+  dots(ctx, dbl.art.map((q) => [sx(q.x), sy(q.y)]), 1.4, colors.reference, 0.34);
+  dots(ctx, dbl.index.map((i) => [sx(pos[i].x), sy(pos[i].y)]), 1.7, colors.empirical, 0.6);
   ctx.save();
   ctx.font = `${colors.fsXs} ${colors.font}`;
   ctx.textBaseline = "top";
@@ -679,16 +754,10 @@ function drawDoublets(ctx, colors, w, state, hover) {
   ctx.fillText(`${dbl.index.length} droplets`, mr.x, mr.y + mr.h + 6);
   ctx.textAlign = "right";
   ctx.fillStyle = colors.reference;
-  ctx.fillText(`${dbl.art.length} made-up doublets`, mr.x + mr.w, mr.y + mr.h + 6);
+  ctx.fillText(`${dbl.art.length} made up`, mr.x + mr.w, mr.y + mr.h + 6);
   ctx.restore();
-  if (hover && hover.kind === "droplet") {
-    const c = cells[hover.i];
+  if (hover && hover.kind === "droplet" && Number.isFinite(dbl.score[hover.i])) {
     ringAt(ctx, colors, sx(pos[hover.i].x), sy(pos[hover.i].y), 6);
-    const held = { good: "one cell", dying: "a dying cell", empty: "no cell, ambient RNA only", doublet: c.partner === c.type ? "two cells of one type" : "two cells of different types" }[c.state];
-    hoverLine(ctx, colors, mr.x, mr.y + mr.h + 24, [
-      [`score ${fmt(dbl.score[hover.i], 2)}`, colors.ink1, "600"],
-      [held, c.state === "doublet" ? colors.highlight : colors.ink3],
-    ]);
   }
 
   /* --- the scores, in the three rows the method never sees ----------------- */
@@ -699,7 +768,7 @@ function drawDoublets(ctx, colors, w, state, hover) {
   ctx.font = `600 ${colors.fsSm} ${colors.font}`;
   ctx.fillStyle = colors.ink2;
   ctx.textAlign = "left";
-  ctx.fillText("Every droplet's score, by what it holds", sr.x, sr.y - 26);
+  ctx.fillText("What it catches, by what the droplet holds", sr.x, sr.y - 24);
   ctx.restore();
   DBL_ROWS.forEach((row, ri) => {
     const y0 = sr.y + ri * rowH, h = rowH - 26;
@@ -724,8 +793,8 @@ function drawDoublets(ctx, colors, w, state, hover) {
       const py = y0 + 4 + jitter.next() * (h - 8);
       (thr.dbl !== null && v >= thr.dbl ? called : kept).push([SX(v), py]);
     }
-    dots(ctx, kept, 1.7, colors.empirical, 0.5);
-    dots(ctx, called, 1.9, colors.extreme, 0.8);
+    dots(ctx, kept, 1.6, colors.empirical, 0.5);
+    dots(ctx, called, 1.8, colors.extreme, 0.8);
     if (thr.dbl !== null) {
       ctx.save();
       ctx.strokeStyle = colors.reference;
@@ -761,7 +830,7 @@ function drawDoublets(ctx, colors, w, state, hover) {
   }
   ctx.textAlign = "center";
   ctx.fillStyle = colors.ink2;
-  ctx.fillText("share of the nearest neighbours that are made-up doublets", sr.x + sr.w / 2, sr.y + sr.h - 6);
+  ctx.fillText("share of the nearest neighbours that are made up", sr.x + sr.w / 2, sr.y + sr.h - 6);
   ctx.restore();
 }
 
@@ -789,6 +858,7 @@ function derive(cells, pos, thr) {
        scales the picture was painted with */
     const axes = {
       violins: METRICS.map((m) => {
+        if (m.derived) return { lo: 0, hi: 1 };
         const v = cells.map((c) => (m.log ? log10(c[m.key]) : c[m.key]));
         return m.log
           ? { lo: Math.floor(Math.min(...v) * 2) / 2, hi: Math.ceil(Math.max(...v) * 2) / 2 }
@@ -932,7 +1002,7 @@ defineWidget({
     + "samples can remove most of one of them while removing nothing from the rest.",
   layout: "side",
   status: "draft",
-  height: ({ page }) => HEIGHTS[page] ?? HEIGHTS.metrics,
+  height: ({ page, w }) => (page === "metrics" ? HEIGHTS.metrics + METRIC_BLOCK(w ?? 900) : HEIGHTS[page] ?? HEIGHTS.metrics),
 
   params: {
     page: { type: "segmented", label: "Page", options: PAGES, default: "metrics", display: true },
@@ -983,11 +1053,6 @@ defineWidget({
       { token: "highlight", label: "Two cells in one droplet", mark: "dot" },
       { token: "ink-3", label: "Hollow: a droplet the filter removed", mark: "hollow" },
     ];
-    if (params.page === "doublets") return [
-      { token: "empirical", label: "A droplet; point at one for its score", mark: "dot" },
-      { token: "reference", label: "A made-up doublet: two droplets added together", mark: "dot" },
-      { token: "extreme", label: "A droplet the score calls a doublet", mark: "dot" },
-    ];
     if (params.page === "thresholds") return [
       { token: "empirical", label: "A droplet holding one cell, and on the bar the droplets kept", mark: "dot" },
       { token: "extreme", label: "A dying cell; on the bar, droplets a rule removed", mark: "dot" },
@@ -996,8 +1061,9 @@ defineWidget({
       { token: "reference", label: "The mitochondrial % now set; point at a droplet, a bar or a curve", mark: "line" },
     ];
     return [
-      { token: "empirical", label: "A droplet: point at one in either scatter for its three numbers", mark: "dot" },
-      { token: "reference", label: "A threshold now set", mark: "line" },
+      { token: "empirical", label: "A droplet: point at one in either scatter for its four numbers", mark: "dot" },
+      { token: "reference", label: "A rule now set; a made-up doublet, two droplets added together", mark: "dot" },
+      { token: "extreme", label: "A droplet the doublet score calls", mark: "dot" },
     ];
   },
 
@@ -1012,9 +1078,9 @@ defineWidget({
     const thr = {
       nFeature: params.genes, nCount: params.counts, mt: params.mt,
       dbl: params.dbl === "none" ? null : Number(params.dbl),
-      /* the scores are wanted on the Doublets page even with the rule off, and
-         nowhere else: 30 ms is cheap to drag and not free to pay for nothing */
-      wantScores: params.page === "doublets",
+      /* the fourth metric is drawn on Metrics whether or not its rule is set,
+         so the score is wanted there; on Thresholds only if the rule is on */
+      wantScores: params.page === "metrics",
       scoreSeed: params.seed * 31 + 7,
     };
     return derive(cells, pos, thr);
@@ -1027,7 +1093,7 @@ defineWidget({
     if (params.page === "metrics") {
       const hi = SAMPLES.slice().sort((a, b) => medians[b.key].mt - medians[a.key].mt)[0];
       const lo = SAMPLES.slice().sort((a, b) => medians[a.key].mt - medians[b.key].mt)[0];
-      return [
+      const tiles = [
         {
           label: "Median mitochondrial %, highest sample against lowest",
           value: `${fmt(medians[hi.key].mt, 1)} against ${fmt(medians[lo.key].mt, 1)}`,
@@ -1041,32 +1107,28 @@ defineWidget({
             : `at more than ${thr.nFeature} genes and more than ${thr.nCount} transcripts neither rule reaches any droplet`,
         },
       ];
-    }
-    if (params.page === "doublets") {
+      /* the fourth metric's own numbers, beside the first three's: what the
+         score caught, and what it cannot catch at any setting */
       const d = state.dbl;
+      if (!d) return tiles;
       const n = (f) => d.index.filter((i) => f(state.cells[i])).length;
       const called = (f) => (thr.dbl === null ? 0 : d.index.filter((i) => f(state.cells[i]) && d.score[i] >= thr.dbl).length);
       const het = DBL_ROWS[0].of, hom = DBL_ROWS[1].of, one = DBL_ROWS[2].of;
-      const total = called(het) + called(hom) + called(one);
-      return [
-        {
-          label: "Droplets called a doublet",
-          value: thr.dbl === null ? "none" : `${total} of ${d.index.length}`,
-          note: thr.dbl === null
-            ? `every droplet has a score, and with the rule off none of them is removed for holding two cells`
-            : `at a score of ${fmt(thr.dbl, 1)} or more, out of ${d.art.length} made-up doublets placed among them`,
-        },
-        {
-          label: "Doublets of two different types found",
-          value: `${called(het)} of ${n(het)}`,
-          note: `their median score is ${fmt(median(d.index.filter((i) => het(state.cells[i])).map((i) => d.score[i])), 2)}, against ${fmt(median(d.index.filter((i) => one(state.cells[i])).map((i) => d.score[i])), 2)} for a droplet holding one cell`,
-        },
-        {
-          label: "Doublets of two of the same type found",
-          value: `${called(hom)} of ${n(hom)}`,
-          note: `a doublet of two cells of one type has that type's profile, so the made-up doublets around it were made from that type too — their median score is ${fmt(median(d.index.filter((i) => hom(state.cells[i])).map((i) => d.score[i])), 2)}, and ${called(one)} droplets holding one cell are called with them`,
-        },
-      ];
+      const medOf = (f) => fmt(median(d.index.filter((i) => f(state.cells[i])).map((i) => d.score[i])), 2);
+      tiles.push({ break: true });
+      tiles.push({
+        label: "Doublets of two different types called",
+        value: `${called(het)} of ${n(het)}`,
+        note: thr.dbl === null
+          ? `every droplet has a score, and with no rule set none of them is called; their median score is ${medOf(het)}, against ${medOf(one)} for a droplet holding one cell`
+          : `at a score of ${fmt(thr.dbl, 1)} or more; their median is ${medOf(het)}, against ${medOf(one)} for a droplet holding one cell, and ${called(one)} of those are called too`,
+      });
+      tiles.push({
+        label: "Doublets of two of the same type called",
+        value: `${called(hom)} of ${n(hom)}`,
+        note: `a doublet of two cells of one type has that type's profile, so the made-up doublets around it were made from that type too — its median score is ${medOf(hom)}, and no score the rule offers separates it from a droplet holding one cell`,
+      });
+      return tiles;
     }
     /* THE COST IS A NUMBER NOW, because a removed droplet leaves the figure
        (his round 2). These three tiles are what the page that was cut said. */
@@ -1135,7 +1197,6 @@ defineWidget({
       ctx.save();
       ctx.globalAlpha = alpha;
       if (params.page === "metrics") drawMetrics(ctx, colors, w, st, hover);
-      else if (params.page === "doublets") drawDoublets(ctx, colors, w, st, hover);
       else drawThresholds(ctx, colors, w, st, hover);
       ctx.restore();
     };
