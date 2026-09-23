@@ -1247,11 +1247,14 @@ p.w-text-hint { max-width: none; text-align: left; }
   border-top: 1px solid var(--grid);
 }
 
-/* a readout row break (`{ break: true }` in a widget's tiles): a full-width
-   zero-height cell, so tiles of a different kind start their own row */
+/* a readout row break (`{ break: true }` in a widget's tiles): the tile AFTER
+   the break starts column 1, so tiles of a different kind start their own row.
+   NOT a full-width cell of its own, which is what this was until 2026-09-23:
+   the grid above is auto-fit, so it collapses the tracks nothing sits in, and
+   a cell spanning every track left none of them empty — four tiles then sat
+   in six live 114px columns with half the width blank. */
 .w-stat-break {
-  grid-column: 1 / -1;
-  height: 0;
+  grid-column-start: 1;
 }
 
 .w-stat-label {

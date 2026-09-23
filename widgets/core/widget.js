@@ -1504,17 +1504,26 @@ function el(tag, className, text) {
 
 function renderReadout(host, tiles) {
   host.innerHTML = "";
+  /* `{ break: true }` starts a new row. Earned by widget 35, whose
+     classification-report averages are a different KIND of number from the
+     per-class tiles beside them — letting them share a row said they were
+     four of the same thing.
+
+     IT IS A CLASS ON THE NEXT TILE, NOT A CELL OF ITS OWN. The first version
+     was a full-width zero-height cell, `grid-column: 1 / -1`, and that
+     silently broke the grid it sat in: `.w-readout` is
+     `repeat(auto-fit, minmax(104px, 1fr))`, which collapses the tracks
+     nothing sits in so the survivors take the whole width — and a cell
+     spanning every track leaves none of them empty. Widget 79 showed it
+     (2026-09-23): four tiles, six live tracks of 114px, half the width blank.
+     A tile that merely STARTS at column 1 spans nothing, so the empty tracks
+     collapse and four tiles become two tracks of 367px. Adds no text either
+     way, so the tx hash sees nothing. */
+  let breaking = false;
   for (const tile of tiles) {
-    /* `{ break: true }` starts a new row: a full-width zero-height cell in the
-       readout grid. Earned by widget 35, whose classification-report averages
-       are a different KIND of number from the per-class tiles beside them —
-       letting them share a row said they were four of the same thing. Adds no
-       text, so the tx hash sees nothing. */
-    if (tile.break) {
-      host.appendChild(el("div", "w-stat-break"));
-      continue;
-    }
-    const wrap = el("div");
+    if (tile.break) { breaking = true; continue; }
+    const wrap = el("div", breaking ? "w-stat-break" : null);
+    breaking = false;
     wrap.appendChild(el("span", "w-stat-label", tile.label));
     wrap.appendChild(el("span", "w-stat-value", tile.value));
     if (tile.note) wrap.appendChild(el("span", "w-stat-note", tile.note));
