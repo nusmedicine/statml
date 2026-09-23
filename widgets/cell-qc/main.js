@@ -1317,7 +1317,7 @@ defineWidget({
     + "dying cell or from ambient RNA released during dissociation, or more "
     + "than one cell in the droplet.",
   layout: "side",
-  status: "draft",
+  status: "shipped",
   height: ({ page, w }) => (page === "metrics" ? HEIGHTS.metrics + METRIC_BLOCK(w ?? 900) : HEIGHTS[page] ?? HEIGHTS.metrics),
 
   params: {

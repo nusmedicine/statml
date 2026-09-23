@@ -9868,6 +9868,195 @@
       },
       "px": "5dbecb8e",
       "tx": "5ecf12da"
+    },
+    {
+      "$note": "cell-qc · the opening figure: four distributions, the two scatters, and the score with no rule set",
+      "slug": "cell-qc",
+      "state": "?theme=light",
+      "px": "041d76c5",
+      "tx": "da8b4405"
+    },
+    {
+      "$note": "cell-qc · the doublet rule at 0.6: the first score row called whole, the second untouched",
+      "slug": "cell-qc",
+      "state": "?theme=light&dbl=0.6",
+      "px": "647e6bb2",
+      "tx": "a993abef"
+    },
+    {
+      "$note": "cell-qc · the doublet rule at 0.9: only the highest scores called",
+      "slug": "cell-qc",
+      "state": "?theme=light&dbl=0.9",
+      "px": "2a9e1ade",
+      "tx": "7f6af4bd"
+    },
+    {
+      "$note": "cell-qc · no sample carries ambient RNA: the mitochondrial distributions are four of a kind",
+      "slug": "cell-qc",
+      "state": "?theme=light&hot=none",
+      "px": "a343585d",
+      "tx": "af6e158f"
+    },
+    {
+      "$note": "cell-qc · P2 tumour carries it, at 25%: the hottest setting the control offers",
+      "slug": "cell-qc",
+      "state": "?theme=light&hot=p2-tumour&hotMt=25",
+      "px": "9c70ec41",
+      "tx": "0359edee"
+    },
+    {
+      "$note": "cell-qc · the ambient sample at 2%: barely apart from the other three",
+      "slug": "cell-qc",
+      "state": "?theme=light&hotMt=2",
+      "px": "a95194ab",
+      "tx": "609368b6"
+    },
+    {
+      "$note": "cell-qc · another draw of the droplets",
+      "slug": "cell-qc",
+      "state": "?theme=light&seed=7",
+      "px": "0fd0ab11",
+      "tx": "5f041d9b"
+    },
+    {
+      "$note": "cell-qc · every rule at its strictest: 1500 genes, 3000 transcripts, 1% mitochondrial",
+      "slug": "cell-qc",
+      "state": "?theme=light&genes=1500&counts=3000&mt=1",
+      "px": "c38d39af",
+      "tx": "ff329448"
+    },
+    {
+      "$note": "cell-qc · every rule at its loosest: nothing removed by the three measured rules",
+      "slug": "cell-qc",
+      "state": "?theme=light&genes=0&counts=0&mt=40",
+      "px": "9ab7d63b",
+      "tx": "d112ab85"
+    },
+    {
+      "$note": "cell-qc · the rule set and another draw: the three rows on different droplets",
+      "slug": "cell-qc",
+      "state": "?theme=light&dbl=0.6&seed=3",
+      "px": "d11e49e1",
+      "tx": "b5f5970a"
+    },
+    {
+      "$note": "cell-qc · the score rows with the two count rules wide open, so every droplet is scored",
+      "slug": "cell-qc",
+      "state": "?theme=light&genes=0&counts=0&dbl=0.6",
+      "px": "082699ed",
+      "tx": "795da9f9"
+    },
+    {
+      "$note": "cell-qc · Thresholds: the map, the bar and the four-rule curve at the defaults",
+      "slug": "cell-qc",
+      "state": "?theme=light&page=thresholds",
+      "px": "b84f8d2b",
+      "tx": "6b621112"
+    },
+    {
+      "$note": "cell-qc · Thresholds at 2% mitochondrial: the ambient sample gone and the hepatocytes with it",
+      "slug": "cell-qc",
+      "state": "?theme=light&page=thresholds&mt=2",
+      "px": "e904e129",
+      "tx": "65ca644b"
+    },
+    {
+      "$note": "cell-qc · Thresholds at 5%: the ambient sample at nearly nothing",
+      "slug": "cell-qc",
+      "state": "?theme=light&page=thresholds&mt=5",
+      "px": "e4fb04e1",
+      "tx": "5146fa9c"
+    },
+    {
+      "$note": "cell-qc · Thresholds at 25%: the rule reaches almost nothing",
+      "slug": "cell-qc",
+      "state": "?theme=light&page=thresholds&mt=25",
+      "px": "fa1ee747",
+      "tx": "fe67d5e7"
+    },
+    {
+      "$note": "cell-qc · Thresholds with the doublet rule at 0.6: the curve drops to meet the bar",
+      "slug": "cell-qc",
+      "state": "?theme=light&page=thresholds&dbl=0.6",
+      "px": "d56ce033",
+      "tx": "03a72cad"
+    },
+    {
+      "$note": "cell-qc · Thresholds at 0.5 and 25%: the doublet rule doing most of the removing",
+      "slug": "cell-qc",
+      "state": "?theme=light&page=thresholds&dbl=0.5&mt=25",
+      "px": "91a0ed03",
+      "tx": "61d14a18"
+    },
+    {
+      "$note": "cell-qc · Thresholds with no ambient sample: four curves together",
+      "slug": "cell-qc",
+      "state": "?theme=light&page=thresholds&hot=none",
+      "px": "db2db4af",
+      "tx": "f73a6c18"
+    },
+    {
+      "$note": "cell-qc · Thresholds with the count rules strict: the map thinned everywhere",
+      "slug": "cell-qc",
+      "state": "?theme=light&page=thresholds&genes=1500&counts=3000&mt=1",
+      "px": "3524af45",
+      "tx": "5a837739"
+    },
+    {
+      "$note": "cell-qc · Thresholds on another draw",
+      "slug": "cell-qc",
+      "state": "?theme=light&page=thresholds&seed=12",
+      "px": "edf0cf54",
+      "tx": "6b1ad30a"
+    },
+    {
+      "$note": "cell-qc · Thresholds, P1 tumour carrying it at 8%, doublet rule set",
+      "slug": "cell-qc",
+      "state": "?theme=light&page=thresholds&hot=p1-tumour&hotMt=8&dbl=0.6",
+      "px": "08987074",
+      "tx": "4016ff85"
+    },
+    {
+      "$note": "cell-qc · DRIVEN: the ambient level mid-SLIDE, the droplets moving between two settings",
+      "slug": "cell-qc",
+      "state": "?theme=light",
+      "drive": {
+        "set": {
+          "hotMt": "25"
+        },
+        "frames": 8,
+        "dt": 32
+      },
+      "px": "31dc7980",
+      "tx": "46797fd0"
+    },
+    {
+      "$note": "cell-qc · DRIVEN: another seed mid-FADE, one draw of the droplets crossing to another",
+      "slug": "cell-qc",
+      "state": "?theme=light",
+      "drive": {
+        "set": {
+          "seed": 7
+        },
+        "frames": 8,
+        "dt": 32
+      },
+      "px": "be559f21",
+      "tx": "5f041d9b"
+    },
+    {
+      "$note": "cell-qc · DRIVEN: which sample carries the ambient RNA, mid-fade on the map",
+      "slug": "cell-qc",
+      "state": "?theme=light&page=thresholds",
+      "drive": {
+        "set": {
+          "hot": "p2-tumour"
+        },
+        "frames": 8,
+        "dt": 32
+      },
+      "px": "b79c75e9",
+      "tx": "a6077a64"
     }
   ]
 }
