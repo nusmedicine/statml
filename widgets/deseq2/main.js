@@ -170,9 +170,9 @@ const FORMULAS = {
   shrinkage2: {
     math: "<math><mrow><mi>posterior</mi><mo>(</mo><mi>α</mi><mo>)</mo><mo>∝</mo><mi>L</mi><mo>(</mo><mi>α</mi><mo>)</mo><mo>×</mo><mi>prior</mi><mo>(</mo><mi>α</mi><mo>)</mo><mo>,</mo><mspace width=\"0.8em\"></mspace><msub><mi>α</mi><mi>MAP</mi></msub><mo>=</mo><munder><mi>argmax</mi><mi>α</mi></munder><mo>[</mo><mi>log</mi><mi>L</mi><mo>(</mo><mi>α</mi><mo>)</mo><mo>+</mo><mi>log</mi><mi>prior</mi><mo>(</mo><mi>α</mi><mo>)</mo><mo>]</mo></mrow></math>",
     plain: "posterior(α) ∝ L(α) × prior(α),   α_MAP = argmax_α [ log L(α) + log prior(α) ]",
-    note: "the posterior's mode is the shrunk estimate: a wide likelihood is pulled to the prior, a sharp one stays; a gene far above the trend keeps its own",
+    note: "the posterior's mode is the shrunk estimate: a wide likelihood is pulled to the prior, a sharp one stays; a gene far above the trend is left at its own estimate",
   },
-  transform: { math: "<math><mrow><mi>vst</mi><mo>(</mo><mi>x</mi><mo>)</mo><mo>=</mo><msub><mi>log</mi><mn>2</mn></msub><mfrac><mrow><mn>1</mn><mo>+</mo><msub><mi>a</mi><mn>1</mn></msub><mo>+</mo><mn>2</mn><msub><mi>a</mi><mn>0</mn></msub><mi>x</mi><mo>+</mo><mn>2</mn><msqrt><msub><mi>a</mi><mn>0</mn></msub><mi>x</mi><mo>(</mo><mn>1</mn><mo>+</mo><msub><mi>a</mi><mn>1</mn></msub><mo>+</mo><msub><mi>a</mi><mn>0</mn></msub><mi>x</mi><mo>)</mo></msqrt></mrow><mrow><mn>4</mn><msub><mi>a</mi><mn>0</mn></msub></mrow></mfrac></mrow></math>", plain: "vst(x) = log2 [ (1 + a1 + 2 a0 x + 2 √(a0 x (1 + a1 + a0 x))) / (4 a0) ]", note: "the closed form for a trend α = a0 + a1 / μ: a transform whose variance is constant across the mean" },
+  transform: { math: "<math><mrow><mi>vst</mi><mo>(</mo><mi>x</mi><mo>)</mo><mo>=</mo><msub><mi>log</mi><mn>2</mn></msub><mfrac><mrow><mn>1</mn><mo>+</mo><msub><mi>a</mi><mn>1</mn></msub><mo>+</mo><mn>2</mn><msub><mi>a</mi><mn>0</mn></msub><mi>x</mi><mo>+</mo><mn>2</mn><msqrt><msub><mi>a</mi><mn>0</mn></msub><mi>x</mi><mo>(</mo><mn>1</mn><mo>+</mo><msub><mi>a</mi><mn>1</mn></msub><mo>+</mo><msub><mi>a</mi><mn>0</mn></msub><mi>x</mi><mo>)</mo></msqrt></mrow><mrow><mn>4</mn><msub><mi>a</mi><mn>0</mn></msub></mrow></mfrac></mrow></math>", plain: "vst(x) = log2 [ (1 + a1 + 2 a0 x + 2 √(a0 x (1 + a1 + a0 x))) / (4 a0) ]", note: "the closed form for a trend α = a0 + a1 / μ: values whose SD across replicates is the same at every mean, for the PCA and the heatmap, which put every gene on one axis; the test needs no transform, since it models each gene's own variance" },
   fit0: { math: "<math><mrow><mi>log</mi><msub><mi>μ</mi><mi>ij</mi></msub><mo>=</mo><msub><mi>β</mi><mn>0</mn></msub><mo>+</mo><msub><mi>β</mi><mn>1</mn></msub><msub><mi>x</mi><mi>j</mi></msub></mrow></math>", plain: "log μ_ij = β0 + β1 x_j", note: "the GLM: x_j is 0 in group A and 1 in group B, so β0 is group A's log mean and β1 the log fold change, fitted at the shrunk dispersion" },
   fit1: { math: "<math><mrow><mi>W</mi><mo>=</mo><mfrac><msub><mi>β</mi><mn>1</mn></msub><mrow><mi>SE</mi><mo>(</mo><msub><mi>β</mi><mn>1</mn></msub><mo>)</mo></mrow></mfrac><mo>,</mo><mspace width=\"0.8em\"></mspace><mi>p</mi><mo>=</mo><mn>2</mn><mo>·</mo><mi>P</mi><mo>(</mo><mi>Z</mi><mo>&gt;</mo><mo>|</mo><mi>W</mi><mo>|</mo><mo>)</mo></mrow></math>", plain: "W = β1 / SE(β1),   p = 2 · P(Z > |W|)", note: "the Wald test: the coefficient over its standard error, compared with a standard normal; padj is Benjamini–Hochberg over all genes" },
   fit2: { math: "<math><mrow><mover><msub><mi>β</mi><mn>1</mn></msub><mo>~</mo></mover><mo>=</mo><mi>E</mi><mo>[</mo><msub><mi>β</mi><mn>1</mn></msub><mo>|</mo><mi>data</mi><mo>]</mo><mo>,</mo><mspace width=\"0.8em\"></mspace><mi>prior</mi><mo>(</mo><msub><mi>β</mi><mn>1</mn></msub><mo>)</mo><mo>=</mo><msub><mi>π</mi><mn>0</mn></msub><mi>δ</mi><mo>(</mo><mn>0</mn><mo>)</mo><mo>+</mo><mo>(</mo><mn>1</mn><mo>−</mo><msub><mi>π</mi><mn>0</mn></msub><mo>)</mo><mi>N</mi><mo>(</mo><mn>0</mn><mo>,</mo><msup><mi>τ</mi><mn>2</mn></msup><mo>)</mo></mrow></math>", plain: "β̃1 = E[β1 | data],   prior(β1) = π0 δ(0) + (1 − π0) N(0, τ²)", note: "a second shrinkage, on the fold change after the test: the same prior-over-all-genes idea as the dispersion's, a spike at zero and a normal fitted to every gene's estimate; for the plot and the ranking, the test's p is unchanged" },
@@ -244,11 +244,12 @@ defineWidget({
   slug: "deseq2",
   title: "Bulk RNA-seq: Differential Expression",
   subtitle:
-    "A count varies across replicates by more than Poisson allows, and with few "
-    + "replicates a gene's own estimate of that extra variance is noise. A trend "
-    + "fitted through all genes is the prior; each gene's estimate is pulled toward "
-    + "it; the fold change is tested against the pulled estimate, and shrunk the "
-    + "same way where the counts are low.",
+    "A count varies across replicates by more than a Poisson count would, and the "
+    + "extra variance, the dispersion, is estimated per gene from few replicates, "
+    + "so the estimate is uncertain. A trend fitted through all genes is the prior "
+    + "and each gene's estimate is shrunk toward it; the fold change is tested at "
+    + "the shrunk dispersion and, after the test, shrunk the same way where the "
+    + "counts are low.",
   layout: "side",
   status: "draft",
   pointer: true,
@@ -290,7 +291,7 @@ defineWidget({
   legend: ({ params }) => {
     const p = params.page;
     if (p === "transform") return [
-      { token: "empirical", label: "An unchanged gene: SD across its replicates; the transform", mark: "bar" },
+      { token: "empirical", label: "An unchanged gene: the SD of its values across replicates; the transform", mark: "bar" },
       { token: "theory", label: "Median SD in a bin of means", mark: "line" },
       { token: "group-a", label: "A sample of group A, on its PCs", mark: "bar" },
       { token: "group-b", label: "A sample of group B", mark: "bar" },
@@ -464,14 +465,14 @@ defineWidget({
     if (params.page === "transform") {
       const lo = state.sdBins[1], hi = state.sdBins[3], u = params.unit, P = state.pcaBy[u];
       return [
-        { label: `SD across replicates, means 5–20 and 100–1,000`, value: `${fmt(lo[u], u === "raw" ? 1 : 2)} · ${fmt(hi[u], u === "raw" ? 1 : 2)}`, note: `medians over ${lo.n} and ${hi.n} unchanged genes${u === "vst" ? "; the same SD at every mean is what the transform is for" : u === "log2" ? "; the log still spreads the low counts" : "; the SD grows with the mean"}` },
-        { label: "Top 1% of genes: their share of the total variance", value: `${(100 * P.top1).toFixed(0)}%`, note: u === "raw" ? "a PCA and a heatmap of these values are those few genes" : "every gene has a say in the PCA and the heatmap" },
+        { label: `SD of the values across replicates, means 5–20 and 100–1,000`, value: `${fmt(lo[u], u === "raw" ? 1 : 2)} · ${fmt(hi[u], u === "raw" ? 1 : 2)}`, note: `medians over ${lo.n} and ${hi.n} unchanged genes${u === "vst" ? "; the same SD at every mean is what the transform is for" : u === "log2" ? "; under the log the low counts still have the larger SD" : "; the SD of the values grows with the mean"}` },
+        { label: "Top 1% of genes: their share of the total variance", value: `${(100 * P.top1).toFixed(0)}%`, note: u === "raw" ? "in a PCA or a heatmap of these values, those few genes are almost all of the distance" : "in a PCA or a heatmap of these values, every gene contributes" },
         { label: "The two groups on PC1 and PC2: between ÷ within", value: fmt(P.ratio, 2), note: `the distance between the groups' centres over the spread within them; PC1 holds ${(100 * P.share1).toFixed(0)}% of the variance, PC2 ${(100 * P.share2).toFixed(0)}%` },
       ];
     }
     if (params.page === "distribution") return [
       { label: `SD of the gene's count, Poisson`, value: fmt(Math.sqrt(mu), 1), note: `√μ at μ = ${mu}` },
-      { label: `SD, negative binomial`, value: fmt(Math.sqrt(mu + alpha * mu * mu), 1), note: `√(μ + αμ²) at α = ${alpha}; the ${state.draws.length} replicates drawn have SD ${fmt(sd(state.draws), 1)}` },
+      { label: `SD, negative binomial`, value: fmt(Math.sqrt(mu + alpha * mu * mu), 1), note: `√(μ + αμ²) at α = ${alpha}, which is ${(100 * Math.sqrt(mu + alpha * mu * mu) / mu).toFixed(0)}% of the mean; the ${state.draws.length} replicates drawn have SD ${fmt(sd(state.draws), 1)}` },
     ];
     if (params.page === "shrinkage") {
       const g = state.walk;
@@ -483,7 +484,7 @@ defineWidget({
     const r = an.resMAP[ex];
     return [
       { label: "β: the log2 fold change of the gene", value: stage >= 2 ? `${fmt(r.lfc, 2)} → ${fmt(an.shrunk[ex], 2)}` : fmt(r.lfc, 2), note: `true ${fmt(state.sim.lfcT[ex], 2)}${stage >= 1 ? `; SE ${fmt(r.se, 2)}, W = ${fmt(r.W, 2)}, p = ${sci(r.p)}, padj = ${sci(r.padj)}` : "; the gap between the group means"}${stage >= 2 ? "; shrunk after the test, p unchanged" : ""}` },
-      { label: "Unchanged genes under a mean of 10 read at |LFC| > 1", value: stage >= 2 ? `${state.funnel.before} → ${state.funnel.after}` : String(state.funnel.before), note: `of ${state.funnel.lowNull}${stage >= 2 ? `; changed genes with a true |LFC| > 1 still read so: ${state.cost.before} → ${state.cost.after} of ${state.cost.deBig}; the calls are the test's and stay` : stage >= 1 ? "; the funnel: a low count makes a wide fold change" : ""}` },
+      { label: "Unchanged genes under a mean of 10 read at |LFC| > 1", value: stage >= 2 ? `${state.funnel.before} → ${state.funnel.after}` : String(state.funnel.before), note: `of ${state.funnel.lowNull}${stage >= 2 ? `; changed genes with a true |LFC| > 1 still read so: ${state.cost.before} → ${state.cost.after} of ${state.cost.deBig}; the calls come from the test and are unchanged` : stage >= 1 ? "; a low count gives a wide estimate of the fold change" : ""}` },
     ];
   },
 });
@@ -595,7 +596,7 @@ function drawTransform(ctx, colors, w, state, uFrom, uTo, eU, D) {
   const H = HEIGHTS.transform, third = Math.floor(w / 3), half = 2 * third, top = 0;
   const yd = [lerp(SD_DOMAIN[uFrom][0], SD_DOMAIN[uTo][0], eU), lerp(SD_DOMAIN[uFrom][1], SD_DOMAIN[uTo][1], eU)];
   {
-    const F = frame(ctx, colors, { x0: 50, y0: top + 34, x1: third - 12, y1: H - 40 }, [0, 4.3], yd, { xlabel: "mean of normalised counts", ylabel: "unchanged genes: SD", xt: [1, 10, 100, 1000, 10000], yt: [0.1, 0.3, 1, 3, 10, 30, 100, 300, 1000], xfmt: bigNum });
+    const F = frame(ctx, colors, { x0: 50, y0: top + 34, x1: third - 12, y1: H - 40 }, [0, 4.3], yd, { xlabel: "mean of normalised counts", ylabel: "SD of the values", xt: [1, 10, 100, 1000, 10000], yt: [0.1, 0.3, 1, 3, 10, 30, 100, 300, 1000], xfmt: bigNum });
     const ylog = (v) => F.sy(10 ** v);
     fadeOrDraw(ctx, D, (S, DD) => {
       const st = S ?? state, base = ctx.globalAlpha;

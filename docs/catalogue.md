@@ -19372,6 +19372,33 @@ only when replicates change it. The pane's throttled screenshot caught it
 mid-way: the dots halfway, "between ÷ within 2.80" on its way from 0.86 to
 3.94.
 
+**Round 10** (2026-09-23) — *can you do a copy audit? Also, two contradictory
+things: SD is high for low counts, so we shrink; SD is also high for high
+counts, so we transform? And why no transform for fit/test?* Not a
+contradiction, but the copy had let two spreads share one word. The
+Shrinkage and Fit pages are about the spread of an ESTIMATE: a gene with few
+reads and few replicates carries little information, so α̂ and β̂ are wide
+(the coefficient of variation, 1/μ + α, is large at low means), and
+shrinking pulls the estimate toward what all genes say. The Transform page
+is about the spread of the VALUES: the SD of the counts across replicates,
+√(μ + αμ²), grows with the mean in absolute terms, which matters only to a
+method that puts every gene on one axis — the PCA, the distance heatmap —
+where the highest genes are then the whole picture; the transform levels the
+values' SD so every gene contributes. The test needs none of it: it models
+each gene on its own scale with the variance μ + αμ² built in, so another
+gene's absolute spread is irrelevant, and a transform would break the count
+model. **The audit, applied:** the subtitle says "estimated per gene from
+few replicates, so the estimate is uncertain" and "shrunk toward" (no
+"Poisson allows"); the transform's card says values whose SD is the same at
+every mean, for the PCA and the heatmap, and that the test needs no
+transform; the Transform page's panel, tile and legend say "SD of the
+values"; the Fit tile says "a wide estimate of the fold change" (not "the
+funnel"); the Distribution tile prints the NB SD as a share of the mean;
+"keeps its own" → "is left at its own estimate", "every gene has a say" →
+"every gene contributes", "the calls are the test's and stay" → "the calls
+come from the test and are unchanged". The verb sweep over every string is
+clean.
+
 **Host.** 01-2 cell 1 and cell 22 are the notebook's own exposition, four
 figures (`deseq2-nb`, `deseq2-mle`, `deseq2-map`, `deseq2-shrinkage`) and
 every formula the widget needs: `y ~ NB(μ, α)`, the geometric-mean ratio and
