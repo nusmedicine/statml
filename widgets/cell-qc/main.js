@@ -47,7 +47,7 @@
  */
 import { defineWidget, fmt, makePlot } from "../core/index.js";
 import { makeRng } from "../core/rng.js";
-import { simulate, confusion, embed, doubletScores, projectProfile, median, TYPES, SAMPLES } from "./engine.js";
+import { simulate, confusion, embed, doubletScores, projectProfile, median, DOUBLET, TYPES, SAMPLES } from "./engine.js";
 
 const PAGES = [
   { value: "metrics", label: "Metrics" },
@@ -63,12 +63,23 @@ const RULE_NAME = {
   genes: "too few genes", transcripts: "too few transcripts",
   mt: "too high a mitochondrial %", doublet: "called a doublet",
 };
-/* the fourth rule's own settings: one artificial doublet per droplet and the
-   fifty nearest neighbours, which is 30 ms over eleven hundred droplets and so
-   is a control the reader can drag. Measured at ratio 2 the scores of the
-   ordinary cells rise with them (median 0.42 against 0.26) and the line has to
-   move to follow, which teaches the arbitrariness rather than the method. */
-const DBL = { ratio: 1, k: 50 };
+/* The fourth rule's own settings. One artificial doublet per droplet is
+   scDblFinder's own default ("roughly as many artificial doublets as there
+   are cells, which is usually appropriate"); at ratio 2 every ordinary cell's
+   score rises with them (median 0.42 against 0.26) and the line has to move
+   to follow, which teaches the arbitrariness rather than the method. Fifty
+   neighbours over eleven hundred droplets is 21 ms, so the call can be
+   dragged.
+
+   POOLED, against both tools' own rule of one sample at a time, and the
+   reason is this stage's size rather than the rule. Measured: at 400 droplets
+   a sample the per-lane cloud of artificial doublets is too thin and the
+   method finds 34 of 49 where pooling finds 49; at 1,200 it is 113 against
+   122; at 3,000, near a real lane, 250 against 258. The rule exists because
+   pairing cells from samples that hold DIFFERENT populations invents doublets
+   that cannot exist — and every sample here holds the same six, so pooling
+   invents nothing. A stage that can show the rule is slot 80's, where a
+   population sits in one batch only. */
 const DBL_OPTIONS = ["none", "0.9", "0.8", "0.7", "0.6", "0.5"];
 
 /* the three metrics, in the order the lesson prints them (cell 19) */
@@ -802,7 +813,7 @@ function derive(cells, pos, thr) {
     let dbl = null;
     if (thr.dbl !== null || thr.wantScores) {
       const index = cells.map((c, i) => i).filter((i) => removedAt[i] === 0);
-      const { score, art } = doubletScores(makeRng(thr.scoreSeed), cells, index, DBL);
+      const { score, art } = doubletScores(makeRng(thr.scoreSeed), cells, index, DOUBLET);
       const byCell = new Float64Array(cells.length).fill(NaN);
       index.forEach((i, r) => { byCell[i] = score[r]; });
       dbl = { index, score: byCell, art: art.map(projectProfile) };

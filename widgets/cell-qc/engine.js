@@ -318,20 +318,54 @@ export function embed(rng, cells) {
    Adding two droplets' counts adds their profiles in proportion to what each
    contributed, which is what summing two count vectors does.
 
+   ONE SAMPLE AT A TIME, which both tools insist on in their own words.
+   DoubletFinder's README: "Do not apply DoubletFinder to aggregated scRNA-seq
+   data representing multiple distinct samples ... artificial doublets will be
+   generated from WT and mutant cells, which cannot exist in your data."
+   scDblFinder takes a `samples` argument for the same reason. A droplet can
+   only ever hold two cells that went through the machine together, so pairing
+   across samples invents a thing that cannot exist and scores every real
+   droplet against it. Measured here: pooling the four samples is worth about
+   a tenth of the heterotypic recall at the same score, and the difference is
+   larger the more the samples differ.
+
+   ONE ARTIFICIAL DOUBLET PER DROPLET is scDblFinder's own default — "roughly
+   as many artificial doublets as there are cells, which is usually
+   appropriate" — and DoubletFinder's pN of 0.25 of the augmented set is the
+   same order.
+
    The bounded insertion rather than a sort is what makes this a control the
    reader can drag: for 1,100 droplets and as many artificial ones a full sort
    per droplet is seconds, and keeping the best k is milliseconds. */
-export function doubletScores(rng, cells, index, { ratio = 1, k = 50 } = {}) {
+/** The settings the widget runs it at, exported so the page, the measurement
+    and the verify cannot drift apart. The record of why each is what it is
+    sits above `doubletScores` and in `_lab/cell-qc-doublet-measure.mjs`. */
+export const DOUBLET = { ratio: 1, k: 50, pooled: true };
+
+export function doubletScores(rng, cells, index, { ratio = 1, k = 50, pooled = false } = {}) {
   const prof = index.map((i) => profileOf(rng, cells[i]));
   const n = index.length;
+  /* the pairs a droplet could have been made from: its own sample's, unless
+     the reader has asked to see what pooling them does */
+  const lane = index.map((i) => (pooled ? "all" : cells[i].sample));
+  const mates = new Map();
+  lane.forEach((key, r) => {
+    if (!mates.has(key)) mates.set(key, []);
+    mates.get(key).push(r);
+  });
   const art = [];
-  for (let m = 0; m < Math.round(ratio * n); m += 1) {
-    const a = Math.floor(rng.next() * n);
-    let b = Math.floor(rng.next() * n);
-    while (b === a) b = Math.floor(rng.next() * n);
-    const wa = cells[index[a]].nCount, wb = cells[index[b]].nCount;
-    const pa = prof[a], pb = prof[b];
-    art.push(pa.map((v, j) => (v * wa + pb[j] * wb) / (wa + wb)));
+  const artLane = [];
+  for (const [key, rows] of mates) {
+    if (rows.length < 2) continue;
+    for (let m = 0; m < Math.round(ratio * rows.length); m += 1) {
+      const a = rows[Math.floor(rng.next() * rows.length)];
+      let b = rows[Math.floor(rng.next() * rows.length)];
+      while (b === a) b = rows[Math.floor(rng.next() * rows.length)];
+      const wa = cells[index[a]].nCount, wb = cells[index[b]].nCount;
+      const pa = prof[a], pb = prof[b];
+      art.push(pa.map((v, j) => (v * wa + pb[j] * wb) / (wa + wb)));
+      artLane.push(key);
+    }
   }
   const dim = prof[0]?.length ?? 0;
   const score = new Float64Array(n);
@@ -349,14 +383,16 @@ export function doubletScores(rng, cells, index, { ratio = 1, k = 50 } = {}) {
       if (filled < k) filled += 1;
       worst = best[filled - 1];
     };
+    const mine = lane[r];
     for (let j = 0; j < n; j += 1) {
-      if (j === r) continue;
+      if (j === r || lane[j] !== mine) continue;
       const q = prof[j];
       let d = 0;
       for (let t = 0; t < dim; t += 1) { const e = me[t] - q[t]; d += e * e; }
       offer(d, 0);
     }
     for (let j = 0; j < art.length; j += 1) {
+      if (artLane[j] !== mine) continue;
       const q = art[j];
       let d = 0;
       for (let t = 0; t < dim; t += 1) { const e = me[t] - q[t]; d += e * e; }

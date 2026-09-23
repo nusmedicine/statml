@@ -28,7 +28,7 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { makeRng } from "../core/rng.js";
-import { simulate, applyFilters, confusion, embed, doubletScores, median, TYPES, SAMPLES, THRESHOLDS, DEFAULTS } from "../cell-qc/engine.js";
+import { simulate, applyFilters, confusion, embed, doubletScores, median, DOUBLET, TYPES, SAMPLES, THRESHOLDS, DEFAULTS } from "../cell-qc/engine.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 let fails = 0, checks = 0;
@@ -196,7 +196,7 @@ section("§6 the fourth rule: doublets found by the company they keep");
   const thr = THRESHOLDS;
   const { keep } = applyFilters(cells, thr);
   const index = cells.map((c, i) => i).filter((i) => keep[i]);
-  const run = () => doubletScores(makeRng(38), cells, index, { ratio: 1, k: 50 });
+  const run = () => doubletScores(makeRng(38), cells, index, DOUBLET);
   const t0 = performance.now();
   const { score, art } = run();
   const ms = performance.now() - t0;

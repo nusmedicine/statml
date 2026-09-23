@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · cell-qc — where the doublet step belongs</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1180px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 4px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 100ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  blockquote { margin: 0 0 var(--sp-3); padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--c-reference);
+               background: var(--surface-2); font-size: var(--fs-sm); color: var(--ink-2); max-width: 100ch; }
+  blockquote cite { display: block; margin-top: 4px; font-style: normal; color: var(--ink-3); font-size: var(--fs-xs); }
+  .opt { border: 1px solid var(--grid); border-radius: var(--radius); padding: var(--sp-3) var(--sp-4) var(--sp-4); margin: 0 0 var(--sp-3); background: var(--surface-1); }
+  .opt .why { font-size: var(--fs-sm); color: var(--ink-2); margin: var(--sp-2) 0 0; max-width: 100ch; }
+  .opt .why b { color: var(--ink-1); }
+  .pages { display: flex; gap: var(--sp-3); flex-wrap: wrap; margin: var(--sp-2) 0 0; }
+  .pg { border: 1px solid var(--grid); border-radius: var(--radius); padding: var(--sp-2); min-width: 190px; background: var(--surface-2); }
+  .pg .nm { font-size: var(--fs-xs); font-weight: 600; color: var(--ink-1); margin: 0 0 6px; }
+  .pg .panel { border: 1px dashed var(--grid); border-radius: 3px; padding: 5px 7px; margin: 0 0 4px; font-size: 10px; color: var(--ink-3); font-family: var(--font-mono); }
+  .pg .panel.new { border-color: var(--c-highlight); color: var(--c-highlight); }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--c-reference); background: var(--surface-2); }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); border-radius: var(--radius); margin: var(--sp-2) 0 0; }
+  table.t { border-collapse: collapse; font-size: var(--fs-xs); font-family: var(--font-mono); color: var(--ink-2); margin: 0 0 var(--sp-3); }
+  table.t td, table.t th { padding: 2px 10px; border-bottom: 1px solid var(--grid); text-align: right; }
+  table.t th { color: var(--ink-3); font-weight: 400; }
+  table.t td.l, table.t th.l { text-align: left; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>cell-qc &middot; where does the doublet step belong?</h1>
+
+  <h2>1 &middot; What the tools say, in their own words</h2>
+  <p class="note">Neither scrublet nor R is on this machine, so this is read from the packages' own documentation rather than run.
+    <b>The two leading tools disagree about the order</b>, and the disagreement is the honest answer to your first question.</p>
+
+  <blockquote>
+    &ldquo;Ensure that input data is cleared of low-quality cell clusters &hellip; Manually threshold raw gene expression matrices according to RNA nUMIs
+    &hellip; Pre-process data using standard workflow &hellip; Identify clusters with (A) low RNA UMIs, (B) High % mitochondrial reads &hellip;
+    Remove clusters, pre-process again, and run DoubletFinder.&rdquo;
+    <cite>DoubletFinder README, &lsquo;Best-Practices&rsquo; &mdash; so: <b>thresholds first, doublets after</b>. Its input is &ldquo;a fully-processed Seurat object (i.e., after NormalizeData, FindVariableGenes, ScaleData, RunPCA&hellip;)&rdquo;.</cite>
+  </blockquote>
+
+  <blockquote>
+    &ldquo;The input to scDblFinder should not include empty droplets, and it might be necessary to remove cells with a very low coverage (e.g.&nbsp;&lt;200 or 500 reads) to avoid errors.
+    <b>Further quality filtering should be performed downstream of doublet detection</b>, for two reasons: 1. the default expected doublet rate is calculated on the basis of the cells given, and if you excluded a lot of cells as low quality, scDblFinder might think that the doublet rate should be lower than it is. 2. kicking out all low quality cells first might hamper our ability to detect doublets that are formed by the combination of a good quality cell with a low-quality one. This being said, these are mostly theoretical grounds, and unless your QC filtering is very stringent (and it shouldn&rsquo;t be!), it&rsquo;s unlikely to make a big difference.&rdquo;
+    <cite>scDblFinder vignette, FAQ 1.5.11 &mdash; so: <b>a floor first, the rest of the filtering after</b>.</cite>
+  </blockquote>
+
+  <p class="note"><b>What they agree on</b>, which is what the widget should carry: (1) drop the empty droplets before scoring &mdash; every version of the order starts there;
+    (2) the score is computed <b>in the expression space, after normalisation and PCA</b>, not on the three raw numbers &mdash; it is not a fourth measurement of the same kind;
+    (3) <b>one sample at a time</b>. DoubletFinder: &ldquo;Do not apply DoubletFinder to aggregated scRNA-seq data representing multiple distinct samples &hellip; artificial doublets will be generated from WT and mutant cells, which cannot exist in your data&rdquo;; scDblFinder takes a <code>samples</code> argument for the same reason.
+    (4) Both are for <b>heterotypic</b> doublets only &mdash; scDblFinder: &ldquo;has only a low performance in identifying homotypic doublets&rdquo;; DoubletFinder: &ldquo;insensitive to homotypic doublets&rdquo;. Which is the 0 of 13 we measured.</p>
+
+  <p class="note"><b>And one thing measured here, because it decides what this widget can honestly show.</b> Per-sample scoring is worse on this stage &mdash;
+    but only because the stage draws 400 droplets a sample so they can be seen. At a real lane's size the two agree:</p>
+  <table class="t" id="tLane"></table>
+  <p class="note">So the widget pools, and pooling costs it nothing: every sample here holds the same six populations, so no artificial pair is impossible.
+    <b>The rule's real justification needs a population that exists in one sample and not another</b> &mdash; which is slot 80's stage, not this one.</p>
+
+  <h2>2 &middot; Your question: is the score a fourth metric?</h2>
+  <p class="note">The strongest argument for putting it on Metrics is that it looks like one &mdash; a number per droplet, with a distribution.
+    Here are the four side by side, computed on this stage, so you can see whether it sits comfortably:</p>
+  <div id="four"></div>
+  <p class="note">What the picture does not say, and the page would have to: the first three are <b>properties of a droplet</b> and can be read off it alone.
+    The fourth is a <b>property of a droplet in a set</b> &mdash; it needs every other droplet, a cloud of made-up doublets, and a decision about
+    which droplets were in the set at all. Change the other three thresholds and every score moves.</p>
+
+  <h2>3 &middot; Four ways to place it</h2>
+  <div id="opts"></div>
+
+  <h2>4 &middot; The calls</h2>
+  <div id="calls"></div>
+</main>
+
+<script type="module">
+import { makeRng } from "../core/rng.js";
+import { simulate, applyFilters, doubletScores, median, THRESHOLDS } from "../cell-qc/engine.js";
+
+const css = getComputedStyle(document.documentElement);
+const C = (n) => css.getPropertyValue(n).trim();
+
+/* ---------- the lane-size table, from the numbers measured in node -------- */
+document.getElementById("tLane").innerHTML = [
+  ["droplets a sample", "per sample", "pooled"],
+  ["400 — this stage", "34 of 49 found, 7 wrong", "49 of 49 found, 10 wrong"],
+  ["1,200", "113 of 125, 50 wrong", "122 of 125, 47 wrong"],
+  ["3,000 — near a real lane", "250 of 273, 99 wrong", "258 of 273, 87 wrong"],
+].map((r, i) => `<tr>${r.map((v, j) => `<t${i ? "d" : "h"} class="${j === 0 ? "l" : ""}">${v}</t${i ? "d" : "h"}>`).join("")}</tr>`).join("");
+
+/* ---------- the four metrics, live -------------------------------------- */
+const { cells } = simulate(makeRng(1), {});
+const { keep } = applyFilters(cells, THRESHOLDS);
+const index = cells.map((c, i) => i).filter((i) => keep[i]);
+const { score } = doubletScores(makeRng(38), cells, index, { ratio: 1, k: 50, pooled: true });
+const scoreOf = new Float64Array(cells.length).fill(NaN);
+index.forEach((i, r) => { scoreOf[i] = score[r]; });
+
+const METRICS = [
+  { name: "Genes detected", log: true, of: (c) => c.nFeature, thr: THRESHOLDS.nFeature, above: true },
+  { name: "Transcripts", log: true, of: (c) => c.nCount, thr: THRESHOLDS.nCount, above: true },
+  { name: "Mitochondrial %", log: false, hi: 45, of: (c) => c.mt, thr: THRESHOLDS.mt, above: false },
+  { name: "Doublet score", log: false, hi: 1, of: (c, i) => scoreOf[i], thr: 0.6, above: false, isNew: true },
+];
+{
+  const host = document.getElementById("four");
+  const W = 1000, H = 220;
+  const c = document.createElement("canvas");
+  const dpr = window.devicePixelRatio || 1;
+  c.width = W * dpr; c.height = H * dpr; c.style.width = W + "px"; c.style.height = H + "px";
+  const x = c.getContext("2d"); x.scale(dpr, dpr);
+  host.appendChild(c);
+  const each = (W - 60) / 4;
+  METRICS.forEach((m, mi) => {
+    const rx = 40 + mi * each, rw = each - 34, ry = 28, rh = 150;
+    x.save();
+    x.font = `600 12px ${C("--font") || "system-ui"}`;
+    x.fillStyle = m.isNew ? C("--c-highlight") : C("--ink-2");
+    x.textAlign = "left";
+    x.fillText(m.name, rx, ry - 8);
+    x.restore();
+    x.save(); x.strokeStyle = C("--grid"); x.strokeRect(rx + 0.5, ry + 0.5, rw, rh); x.restore();
+    const vals = index.map((i) => (m.log ? Math.log10(Math.max(1, m.of(cells[i], i))) : m.of(cells[i], i)));
+    const lo = m.log ? Math.floor(Math.min(...vals)) : 0;
+    const hi = m.log ? Math.ceil(Math.max(...vals)) : m.hi;
+    const sy = (v) => ry + rh - ((v - lo) / (hi - lo)) * rh;
+    const r2 = makeRng(5 + mi);
+    x.save();
+    x.fillStyle = C(m.isNew ? "--c-highlight" : "--c-empirical");
+    x.globalAlpha = 0.28;
+    for (const v of vals) {
+      x.beginPath(); x.arc(rx + 6 + r2.next() * (rw - 12), sy(v), 1.3, 0, 7); x.fill();
+    }
+    x.restore();
+    const t = m.log ? Math.log10(m.thr) : m.thr;
+    x.save();
+    x.strokeStyle = C("--c-reference"); x.setLineDash([4, 3]);
+    x.beginPath(); x.moveTo(rx, sy(t)); x.lineTo(rx + rw, sy(t)); x.stroke();
+    x.restore();
+    x.save();
+    x.fillStyle = C("--c-reference"); x.font = `10px ${C("--font") || "system-ui"}`;
+    x.textAlign = "right"; x.textBaseline = "bottom";
+    x.fillText(`${m.above ? ">" : "<"} ${m.thr}`, rx + rw, sy(t) - 3);
+    x.restore();
+    x.save();
+    x.fillStyle = C("--ink-3"); x.font = `10px ${C("--font") || "system-ui"}`;
+    x.textAlign = "left"; x.textBaseline = "top";
+    x.fillText(m.log ? `median ${Math.round(10 ** median(vals))}` : `median ${median(vals).toFixed(m.hi === 1 ? 2 : 1)}`, rx, ry + rh + 6);
+    x.fillText(m.isNew ? "needs every other droplet" : "read off this droplet alone", rx, ry + rh + 20);
+    x.restore();
+  });
+}
+
+/* ---------- the four placements ----------------------------------------- */
+const OPTIONS = [
+  {
+    key: "A", name: "As it stands — three pages, the doublet page last",
+    pages: [
+      ["Metrics", ["violins, one a sample", "the two scatters"]],
+      ["Thresholds", ["the map", "the bar", "the mitochondrial sweep"]],
+      ["Doublets", ["the space and the made-up doublets", "the score, in three rows"], true],
+    ],
+    why: "What you have. The order is right — the score is computed on what the three rules left, which is DoubletFinder's order — but nothing on the page says so, and the page reads as an appendix because every other page is about the three numbers.",
+  },
+  {
+    key: "B", name: "Your suggestion — a fourth metric, then one page that filters everything",
+    pages: [
+      ["Metrics", ["violins: genes, transcripts, mitochondrial %", "the doublet score, beside them", "the space and the made-up doublets", "the two scatters"], true],
+      ["Thresholds", ["the map", "the bar, now four segments", "the mitochondrial sweep"]],
+    ],
+    why: "Two pages again, and it reads as one idea: measure four things, then filter on them. The cost is that Metrics becomes a big page, and it has to say that the fourth number is not like the other three — it needs every droplet, a cloud of made-up doublets, and it MOVES when the other thresholds move. If it does not say that, it teaches that a doublet score is just another column.",
+  },
+  {
+    key: "C", name: "One figure page — everything under the sliders",
+    pages: [
+      ["Metrics", ["violins, one a sample", "the two scatters"]],
+      ["Thresholds", ["the map", "the bar", "the sweep", "the score, in three rows"], true],
+    ],
+    why: "The leanest. Four rules, one page, and the score sits beside the map it cleans. On the 534px canvas the harness renders, four panels is one too many — the sweep or the score would have to go.",
+  },
+  {
+    key: "D", name: "The pipeline's own order — the doublet step BETWEEN measuring and filtering",
+    pages: [
+      ["Metrics", ["violins, one a sample", "the two scatters"]],
+      ["Doublets", ["the space and the made-up doublets", "the score, in three rows"], true],
+      ["Filter", ["the map", "the bar, four segments", "the sweep"]],
+    ],
+    why: "The same three pages as A, in the order scDblFinder argues for: a floor, then the doublet score, then the rest of the filtering. The page stops standing out because its POSITION is the claim — you measure, you find the doublets while the set is still whole, then you filter. Renaming Thresholds to Filter is part of it. Against: the widget's own doublet score is computed after the three rules, so the order on screen would have to match, and that is a real change to the engine rather than a layout.",
+  },
+];
+
+const host = document.getElementById("opts");
+for (const o of OPTIONS) {
+  const d = document.createElement("div"); d.className = "opt";
+  const h = document.createElement("h3"); h.textContent = `${o.key} · ${o.name}`; d.appendChild(h);
+  const pages = document.createElement("div"); pages.className = "pages";
+  for (const [nm, panels, isNew] of o.pages) {
+    const pg = document.createElement("div"); pg.className = "pg";
+    const t = document.createElement("p"); t.className = "nm"; t.textContent = nm; pg.appendChild(t);
+    for (const p of panels) {
+      const b = document.createElement("div");
+      b.className = "panel" + (isNew && /score|made-up/.test(p) ? " new" : "");
+      b.textContent = p;
+      pg.appendChild(b);
+    }
+    pages.appendChild(pg);
+  }
+  d.appendChild(pages);
+  const why = document.createElement("p"); why.className = "why"; why.textContent = o.why;
+  d.appendChild(why);
+  host.appendChild(d);
+}
+
+const calls = [
+  ["1 &middot; where the doublet step goes", "<b>B &mdash; a fourth metric on Metrics, then one page that filters all four (recommended: it is your own reading, it puts the widget back to two pages, and the fourth metric's own panel is what says it is not like the other three)</b> | D &mdash; its own page, moved BETWEEN measuring and filtering | C &mdash; folded into Thresholds | A &mdash; leave it last"],
+  ["2 &middot; what the page says about the order", "<b>one line on the doublet panel: the score is computed on the droplets the other three rules keep (recommended)</b> | a control that runs it before or after the other rules, so the disagreement between the two tools is on the figure | nothing, and the order stays implicit"],
+  ["3 &middot; the per-sample rule", "<b>pool, and say so in the source only (recommended): at 400 droplets a sample this stage cannot show the rule, and slot 80's can</b> | score per sample anyway, and accept 34 of 49 instead of 49 of 49 | a control, which would teach that pooling is better &mdash; true here and false in general"],
+];
+document.getElementById("calls").innerHTML = calls.map(([q, a]) => `<p class="q"><b>${q}</b> &nbsp; ${a}</p>`).join("");
+</script>
+</body>
+</html>

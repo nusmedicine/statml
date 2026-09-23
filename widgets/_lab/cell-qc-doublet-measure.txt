@@ -2,13 +2,13 @@ STAGE — 1137 droplets survive the thresholds, 62 of them hold two cells (5%); 
 
 THE METHOD — artificial doublets, then each droplet scored by the share of its neighbours that are artificial
   `ratio` is how many artificial doublets are made per droplet (Scrublet's sim_doublet_ratio is 2; DoubletFinder's pN is a quarter of the augmented set), `k` how many neighbours are counted
-  ratio 1, k = 20 (21 ms): calling the top 62 finds 48 of the 62 (77%) — 48 of the 49 holding two different types (98%), 0 of the 13 holding two of the same (0%)
+  ratio 1, k = 20 (26 ms): calling the top 62 finds 48 of the 62 (77%) — 48 of the 49 holding two different types (98%), 0 of the 13 holding two of the same (0%)
       median score: two different types 0.85, two of the same 0.35, one cell 0.25
-  ratio 1, k = 50 (21 ms): calling the top 62 finds 49 of the 62 (79%) — 49 of the 49 holding two different types (100%), 0 of the 13 holding two of the same (0%)
+  ratio 1, k = 50 (25 ms): calling the top 62 finds 49 of the 62 (79%) — 49 of the 49 holding two different types (100%), 0 of the 13 holding two of the same (0%)
       median score: two different types 0.88, two of the same 0.34, one cell 0.26
-  ratio 2, k = 20 (21 ms): calling the top 62 finds 45 of the 62 (73%) — 45 of the 49 holding two different types (92%), 0 of the 13 holding two of the same (0%)
+  ratio 2, k = 20 (25 ms): calling the top 62 finds 45 of the 62 (73%) — 45 of the 49 holding two different types (92%), 0 of the 13 holding two of the same (0%)
       median score: two different types 0.90, two of the same 0.55, one cell 0.40
-  ratio 2, k = 50 (26 ms): calling the top 62 finds 49 of the 62 (79%) — 49 of the 49 holding two different types (100%), 0 of the 13 holding two of the same (0%)
+  ratio 2, k = 50 (31 ms): calling the top 62 finds 49 of the 62 (79%) — 49 of the 49 holding two different types (100%), 0 of the 13 holding two of the same (0%)
       median score: two different types 0.92, two of the same 0.52, one cell 0.40
 
 WHERE TO PUT THE LINE — the widget's own control, at ratio 1 and k = 50
@@ -30,5 +30,14 @@ WHY THE SAME-TYPE DOUBLET IS THE POINT
   Stellate cell     two different types 0.90 (n  5)   two stellate cells   –  (n  0)
   Kupffer cell      two different types 0.92 (n  5)   two kupffer cells   –  (n  0)
   A doublet of two cells of one type has that type's profile, so the artificial doublets near it are the ones made from that type too — and so is every ordinary cell of it. There is nothing in the profile to find. This is what DoubletFinder's homotypic-proportion adjustment concedes rather than solves.
+
+LANES — one sample at a time, against all four pooled, as the stage grows
+   400 droplets a sample (1137 kept), per sample: at its best cut 0.75, 34 of the 49 heterotypic doublets found and 7 droplets holding one cell called with them
+   400 droplets a sample (1137 kept), pooled    : at its best cut 0.60, 49 of the 49 heterotypic doublets found and 10 droplets holding one cell called with them
+  1200 droplets a sample (3442 kept), per sample: at its best cut 0.70, 113 of the 125 heterotypic doublets found and 50 droplets holding one cell called with them
+  1200 droplets a sample (3442 kept), pooled    : at its best cut 0.65, 122 of the 125 heterotypic doublets found and 47 droplets holding one cell called with them
+  3000 droplets a sample (8630 kept), per sample: at its best cut 0.70, 250 of the 273 heterotypic doublets found and 99 droplets holding one cell called with them
+  3000 droplets a sample (8630 kept), pooled    : at its best cut 0.70, 258 of the 273 heterotypic doublets found and 87 droplets holding one cell called with them
+  At the size this stage draws, a lane is too thin for the method; at a real lane's size the two agree. The rule is right and this stage cannot show it — a population that sits in one sample and not another is what makes pooling wrong, and that is slot 80's stage.
 
 WHAT THESE NUMBERS ARE AN UPPER BOUND ON. The stage's doublets ARE two droplets' counts added together, and step 1 makes its artificial doublets the same way, so the method is being asked to recognise exactly the thing it simulates. A real doublet also carries ambient RNA, is captured with its own efficiency, and the two cells are not always in their type's centre. Read the heterotypic share as the ceiling, and the same-type share as the honest floor: the second is a property of the profile, not of the method.

@@ -31,13 +31,42 @@
  * 98% against 0% is the finding, and the widget's Doublets page is that
  * finding drawn.
  *
+ * TWO THINGS THE PACKAGES' OWN DOCUMENTATION SETTLED (2026-09-23, his round
+ * 4: "research what is consistent with seurat workflow"), since neither is
+ * installed here:
+ *
+ *   ORDER — the two tools disagree, and that is the answer. DoubletFinder's
+ *   README puts the thresholds first ("Ensure that input data is cleared of
+ *   low-quality cell clusters ... Remove clusters, pre-process again, and run
+ *   DoubletFinder"), and its input is "a fully-processed Seurat object (i.e.,
+ *   after NormalizeData, FindVariableGenes, ScaleData, RunPCA ...)".
+ *   scDblFinder's FAQ 1.5.11 puts a floor first and the rest after: "The
+ *   input ... should not include empty droplets, and it might be necessary to
+ *   remove cells with a very low coverage ... Further quality filtering
+ *   should be performed downstream of doublet detection", because the
+ *   expected doublet rate is computed from the cells it is given and because
+ *   a doublet of a good cell and a poor one is easier to find while both are
+ *   there. Both agree on the floor, on the expression space, and that the
+ *   score is not a fourth measurement of the same kind.
+ *
+ *   ONE SAMPLE AT A TIME — DoubletFinder: "Do not apply DoubletFinder to
+ *   aggregated scRNA-seq data representing multiple distinct samples ...
+ *   artificial doublets will be generated from WT and mutant cells, which
+ *   cannot exist in your data." scDblFinder takes `samples` for the same
+ *   reason. The widget pools anyway, and the § LANES block below is why: at
+ *   the 400 droplets a sample this stage draws so they can be seen, a
+ *   per-lane cloud of artificial doublets is too thin and the method finds 34
+ *   of 49 where pooling finds 49. At 3,000 a sample, near a real lane, the
+ *   two agree (250 against 258). The rule bites when samples hold DIFFERENT
+ *   populations; every sample here holds the same six.
+ *
  *   node widgets/_lab/cell-qc-doublet-measure.mjs        (~3 s)
  */
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { makeRng } from "../core/rng.js";
-import { simulate, applyFilters, doubletScores, median, TYPES, THRESHOLDS } from "../cell-qc/engine.js";
+import { simulate, applyFilters, doubletScores, median, DOUBLET, TYPES, THRESHOLDS } from "../cell-qc/engine.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const findings = [];
@@ -62,7 +91,7 @@ const runs = {};
 for (const ratio of [1, 2]) {
   for (const k of [20, 50]) {
     const t0 = performance.now();
-    const { score } = doubletScores(makeRng(7), cells, real, { ratio, k });
+    const { score } = doubletScores(makeRng(7), cells, real, { ...DOUBLET, ratio, k });
     const ms = performance.now() - t0;
     runs[`${ratio}|${k}`] = score;
     const pick = (f) => real.map((i, r) => [i, score[r]]).filter(([i]) => f(i)).map(([, v]) => v);
@@ -117,6 +146,27 @@ say("WHY THE SAME-TYPE DOUBLET IS THE POINT");
   }
   say("  A doublet of two cells of one type has that type's profile, so the artificial doublets near it are the ones made from that type too — and so is every ordinary cell of it. There is nothing in the profile to find. This is what DoubletFinder's homotypic-proportion adjustment concedes rather than solves.");
 }
+
+say("");
+say("LANES — one sample at a time, against all four pooled, as the stage grows");
+for (const per of [400, 1200, 3000]) {
+  const sim = simulate(makeRng(1), { cells: per });
+  const { keep: k2 } = applyFilters(sim.cells, THRESHOLDS);
+  const idx = sim.cells.map((c, i) => i).filter((i) => k2[i]);
+  const isHet = (i) => sim.cells[i].state === "doublet" && sim.cells[i].partner !== sim.cells[i].type;
+  const nH = idx.filter(isHet).length;
+  for (const pooled of [false, true]) {
+    const { score } = doubletScores(makeRng(7), sim.cells, idx, { ...DOUBLET, pooled });
+    let b = null;
+    for (let c = 0.3; c <= 0.95; c += 0.05) {
+      const called = idx.filter((i, r) => score[r] >= c);
+      const h = called.filter(isHet).length, o = called.filter((i) => sim.cells[i].state !== "doublet").length;
+      if (!b || h - o * 0.5 > b.v) b = { v: h - o * 0.5, c, h, o };
+    }
+    say(`  ${String(per).padStart(4)} droplets a sample (${idx.length} kept), ${pooled ? "pooled    " : "per sample"}: at its best cut ${b.c.toFixed(2)}, ${b.h} of the ${nH} heterotypic doublets found and ${b.o} droplets holding one cell called with them`);
+  }
+}
+say("  At the size this stage draws, a lane is too thin for the method; at a real lane's size the two agree. The rule is right and this stage cannot show it — a population that sits in one sample and not another is what makes pooling wrong, and that is slot 80's stage.");
 
 say("");
 say("WHAT THESE NUMBERS ARE AN UPPER BOUND ON. The stage's doublets ARE two droplets' counts added together, and step 1 makes its artificial doublets the same way, so the method is being asked to recognise exactly the thing it simulates. A real doublet also carries ambient RNA, is captured with its own efficiency, and the two cells are not always in their type's centre. Read the heterotypic share as the ceiling, and the same-type share as the honest floor: the second is a property of the profile, not of the method.");
