@@ -1,5 +1,47 @@
 # Handover
 
+**2026-09-23: 78 `deseq2` SHIPPED AND PUSHED (bc2f534, 20 states, "Bulk
+RNA-seq: Differential Expression"), the second of the RNA-seq arc, after
+fifteen review rounds in two days — the record is the catalogue's § Slot 78.**
+What it is: one simulated stage (1,200 genes, a tenth changed, the reader's
+replicates, seed and — since round 11 — the simulation's dispersion α)
+analysed by the widget's own engine (`widgets/deseq2/engine.js`: Cox–Reid
+gene-wise MLE, parametric trend, prior width by trigamma, MAP with the outlier
+rule, GLM, Wald, BH, a spike-and-normal LFC prior, the closed-form vst), read
+on four pages in the vignette's order: Distribution (one gene's Poisson and NB
+at a mean and α, hover any of the 1,200 to draw it), Shrinkage (three presses:
+likelihood → trend as the prior → posterior; hover any of sixty), Fit and test
+(four presses: Test → Fit the prior → Multiply by the prior → Shrink every
+gene, with the three curves over β beside the one gene's fit and the MA plot
+before and after; hover the MA plot), Transform (SD of the values against the
+mean, the transform curve, and the clustered heatmap of the 30 most variable
+genes with the truth as a tick and the group as a band). Things worth knowing
+before 79: the PCA of the samples was built (round 8) and REPLACED by the
+heatmap (round 11) on his word, because the heatmap carries the truth on the
+figure and the tick count is the transform's worth in one number; the
+notebook's sample-correlation heatmap separates the groups in NO unit and is
+not here; his "two contradictory SDs" (round 10) was two spreads sharing one
+word — the spread of an ESTIMATE (shrink) and of the VALUES (transform) — and
+the copy keeps them apart; the subtitle and blurb are in the field's
+methods-section register at his ask (round 14: "conventional scientific
+language, not folksy"), which on a methods widget IS the plain register; a
+`check` failure once went into a commit behind a piped `tail` (round 14) — run
+`npm run check` alone and read it. A driven fingerprint state may not also
+set `shown=`: later stages are reached with `before` lists of completed
+presses (16 frames at 50 ms for a 700 ms press). NEXT: 79 `cell-qc`
+("Single-Cell RNA-seq: QC"), the first of the three Seurat widgets — measure
+first (`_lab/rnaseq-sc-data.mjs` and `_lab/rnaseq-sc-qc.json` hold the 10x
+numbers: 40,564 → 31,014 cells, the mt% rule removes 85% of one sample), mock,
+build; the catalogue's § *The RNA-seq arc* has the plan and his picks.
+
+**SIXTY-EIGHT WIDGETS IN THE MANIFEST — 67 on the gallery and `roc-auc`
+UNLISTED; no draft on `main`** (`wgcna` is still a draft on its own branch
+and worktree, another session's). The live site is
+<https://nusmedicine.github.io/statml/>, deployed from `main`: the latest
+widget ship is `bc2f534` (78 `deseq2`, 2026-09-23, pushed with the fifteen
+review-round commits behind it; deploy run 35823361910), and this handover's
+commit follows it. **SESSION CLOSED.**
+
 **2026-09-22: 77 `count-normalization` SHIPPED AND PUSHED (ab66e5c, 14
 states, "Bulk RNA-seq: Normalization"), the first of the RNA-seq arc, after
 seventeen review rounds in two days — the record is the catalogue's § Slot 77.**
