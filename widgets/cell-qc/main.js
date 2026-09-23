@@ -59,7 +59,7 @@ const PAGES = [
 ];
 /* the Metrics page is taller when its four panels take two rows; core hands a
    height function the width for exactly this (widget 60's is the precedent) */
-const HEIGHTS = { metrics: 870, thresholds: 400 };
+const HEIGHTS = { metrics: 914, thresholds: 400 };
 const EASE_MS = 450;
 const easeInOut = (t) => (t < 0.5 ? 2 * t * t : 1 - ((-2 * t + 2) ** 2) / 2);
 const log10 = (v) => Math.log10(Math.max(1, v));
@@ -165,14 +165,21 @@ const METRIC_BLOCK = (w) => (METRIC_COLS(w) === 2 ? 224 : 0);
    the rule and its line of type. */
 const scatterRect = (w, i) => {
   const each = (w - PAD.l - PAD.r - 56) / 2;
-  return { x: PAD.l + i * (each + 56), y: 262 + METRIC_BLOCK(w), w: each, h: 160 };
+  return { x: PAD.l + i * (each + 56), y: 296 + METRIC_BLOCK(w), w: each, h: 160 };
 };
-const ruleY = (w) => 492 + METRIC_BLOCK(w);
-const spaceRect = (w) => ({ x: PAD.l, y: 556 + METRIC_BLOCK(w), w: Math.min(250, (w - PAD.l - PAD.r) * 0.34), h: 262 });
+/* A RULE AT EACH BOUNDARY (his round 14: "can you add some visual separation
+   between bands?", with a line drawn at both of them). The second one already
+   existed and carried the line of type; the first did not, and the two blocks
+   it now parts were 3px apart — the violins' sample names ended at 239 and
+   the scatter captions began at 242. The 34px each band gained is what makes
+   the rule a separation rather than one more line to read. */
+const ruleTop = (w) => 254 + METRIC_BLOCK(w);
+const ruleY = (w) => 526 + METRIC_BLOCK(w);
+const spaceRect = (w) => ({ x: PAD.l, y: 600 + METRIC_BLOCK(w), w: Math.min(250, (w - PAD.l - PAD.r) * 0.34), h: 262 });
 const scoreRect = (w) => {
   const sp = spaceRect(w);
   const x = sp.x + sp.w + 58;
-  return { x, y: 556 + METRIC_BLOCK(w), w: w - x - PAD.r - 8, h: 262 };
+  return { x, y: 600 + METRIC_BLOCK(w), w: w - x - PAD.r - 8, h: 262 };
 };
 /* LAYOUT A (his pick, round 2): the map is the biggest thing on the page,
    because what the sliders do to the cells is what the page is now about; the
@@ -407,6 +414,35 @@ function hoverAt(pointer, w, page, state) {
   return best >= 0 ? { kind: "droplet", i: best } : null;
 }
 
+/** A rule across the whole stage where one band of the figure ends and the
+    next begins, with an optional line of type sitting on it. Drawn in --grid
+    and labelled in ink, because a divider is structure and not data: every
+    colour on this page already answers a question about a droplet. */
+function bandRule(ctx, colors, w, y, label) {
+  ctx.save();
+  /* --ink-3 and not --grid. A hairline gridline is #e1e0d9 on #fcfcfb, which
+     reads inside a 160px panel and disappears across 678 of them: the first
+     drawing of this was invisible at the width it had to work at. This is the
+     grey the axis labels and ticks around it already use, so the dividers
+     carry the same weight as the figure's own furniture. */
+  ctx.strokeStyle = colors.ink3;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(PAD.l, y + 0.5);
+  ctx.lineTo(w - PAD.r, y + 0.5);
+  ctx.stroke();
+  if (label) {
+    ctx.font = `600 ${colors.fsSm} ${colors.font}`;
+    ctx.textAlign = "left";
+    ctx.textBaseline = "middle";
+    ctx.fillStyle = colors.surface;
+    ctx.fillRect(PAD.l - 4, y - 9, ctx.measureText(label).width + 8, 18);
+    ctx.fillStyle = colors.ink2;
+    ctx.fillText(label, PAD.l, y);
+  }
+  ctx.restore();
+}
+
 /** The hover's own line, in the space each page keeps for it. */
 function hoverLine(ctx, colors, x, y, parts) {
   ctx.save();
@@ -438,6 +474,11 @@ const ringAt = (ctx, colors, x, y, r = 5.5) => {
    ====================================================================== */
 function drawMetrics(ctx, colors, w, state, hover) {
   const { cells, thr, axes } = state;
+  /* BOTH RULES FIRST, so a caption's surface halo prints over one that runs
+     behind it. The first parts the four distributions from the two scatters;
+     the second says what changes under it. */
+  bandRule(ctx, colors, w, ruleTop(w));
+  bandRule(ctx, colors, w, ruleY(w), "Worked out from the droplets nearest it");
   METRICS.forEach((m, mi) => {
     const rect = violinRect(w, mi);
     const { lo, hi } = axes.violins[mi];
@@ -581,25 +622,6 @@ function drawMetrics(ctx, colors, w, state, hover) {
       ringAt(ctx, colors, plot.sx(log10(c[s.xk])), plot.sy(s.ylog ? log10(c[s.yk]) : c[s.yk]));
     }
   });
-  /* THE RULE THAT SEPARATES THE TWO SUBJECTS. Drawn in --grid and labelled in
-     ink, because a divider is structure and not data: every colour on this
-     page already answers a question about a droplet. The line of type is the
-     subtitle's own last clause, so the page and the sentence above it say the
-     same thing in the same words. */
-  ctx.save();
-  const ry = ruleY(w);
-  ctx.strokeStyle = colors.grid;
-  ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.moveTo(PAD.l, ry + 0.5); ctx.lineTo(w - PAD.r, ry + 0.5); ctx.stroke();
-  ctx.font = `600 ${colors.fsSm} ${colors.font}`;
-  ctx.textAlign = "left";
-  ctx.textBaseline = "middle";
-  const head = "Worked out from the droplets nearest it";
-  ctx.fillStyle = colors.surface;
-  ctx.fillRect(PAD.l - 4, ry - 9, ctx.measureText(head).width + 8, 18);
-  ctx.fillStyle = colors.ink2;
-  ctx.fillText(head, PAD.l, ry);
-  ctx.restore();
   drawDoubletPanels(ctx, colors, w, state, hover);
   /* ONE DROPLET, EVERY PANEL. Its four numbers are four readings of it, and
      what it holds is not among them: the three rows on the right are the

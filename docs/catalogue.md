@@ -20003,7 +20003,23 @@ two ways). The measurement in them is the reusable part — a violin panel
 needs 174px before its two lines of sample name collide, which is a FIGURE
 floor and the reason a third of a 534px canvas can never hold one.
 
-NEXT: his round 14.
+**Round 14, 2026-09-23 — a rule at each band boundary.** His ask, with a line
+drawn at both of them: *"can you add some visual separation between bands?"*.
+The second rule already existed and carried the line of type; the first did
+not. Two things had to change for a line to read as a separation:
+
+- **The blocks it parts were 3px apart.** The violins' sample names ended at
+  239 and the scatter captions began at 242 — legal by the overlap sweep and
+  cramped by eye. Each boundary gained 34px, and the page went 870 to 914.
+- **--grid is invisible at this width.** A hairline gridline is #e1e0d9 on
+  #fcfcfb, which reads inside a 160px panel and vanishes across 678 of them;
+  the first drawing of the new rule could not be seen at all. Both rules are
+  --ink-3 now, the grey the axis labels and ticks around them already use, so
+  a divider carries the same weight as the figure's own furniture.
+
+31 overlap states clean, switch probe 10/0.
+
+NEXT: his round 15.
 
 ### Slot 80 · `integration` — Single-Cell Integration
 
