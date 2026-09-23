@@ -19490,6 +19490,22 @@ genes." (119; the 126-character draft with "fitted" was over the manifest's
 reading of the plain register on a methods widget — the vocabulary of the
 field's own methods section is the plain one there.
 
+**Round 15** (2026-09-23) — *polishing: under Distribution, can I hover on
+one gene and the distribution graph updates?* Pointing at one of the 1,200
+on the right draws that gene on the left: the Poisson and negative binomial
+curves at its mean of normalised counts and its TRUE dispersion (the
+simulation's, since the page is about the model, not the estimate), its
+counts after the size factors as the ticks, the count axis widened to hold
+them, and "changed between the groups" on the title where it is; the ring
+moves to it and reads "the gene on the left". The geometry is one function
+for the drawing and the hover test (5.8), as on Shrinkage and Fit; a hover
+is drawn where it is and the data ease resumes when the pointer leaves. The
+legend's first entry says "point at one to draw it on the left"; a longer
+panel title said it too and ran 27px off the narrowest canvas, so the title
+is as it was. The ring's label now picks its side from the ring's own
+position, not the control's mean (a hovered high-count gene ran its label
+off the right edge).
+
 **Host.** 01-2 cell 1 and cell 22 are the notebook's own exposition, four
 figures (`deseq2-nb`, `deseq2-mle`, `deseq2-map`, `deseq2-shrinkage`) and
 every formula the widget needs: `y ~ NB(μ, α)`, the geometric-mean ratio and

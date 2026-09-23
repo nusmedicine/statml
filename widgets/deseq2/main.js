@@ -162,6 +162,29 @@ function heatOf(norm, fn, keep, sim, baseMean) {
   return { rows, index, t, colIndex, together, de: rows.filter((g) => sim.isDE[g]).length, medMean: median(rows.map((g) => baseMean[g])), top1 };
 }
 
+/* the Distribution page's right panel, one geometry for the drawing and the
+   hover test (5.8). HOVER (his round 15): pointing at one of the 1,200 draws
+   that gene on the left — the two distributions at its mean and its true
+   dispersion, its counts as the ticks — in place of the one gene the
+   controls describe; nothing is written */
+const distRight = (w) => ({ x0: Math.floor(w / 2) + 44, y0: 30, x1: w - 12, y1: HEIGHTS.distribution - 40 });
+const DIST_X = [0, 4.3], DIST_Y = [0, 7.3];
+function hoverDist(pointer, w, state) {
+  if (!pointer) return null;
+  const R = distRight(w);
+  if (pointer.x < R.x0 || pointer.x > R.x1 || pointer.y < R.y0 || pointer.y > R.y1) return null;
+  const sx = (v) => R.x0 + ((v - DIST_X[0]) / (DIST_X[1] - DIST_X[0])) * (R.x1 - R.x0);
+  const sy = (v) => R.y1 - ((v - DIST_Y[0]) / (DIST_Y[1] - DIST_Y[0])) * (R.y1 - R.y0);
+  let best = null, d2 = 10 * 10;
+  for (const g of state.an.expressed) {
+    const x = state.per.bmLog[g], y = state.per.varLog[g];
+    if (!Number.isFinite(x) || !Number.isFinite(y)) continue;
+    const d = (pointer.x - sx(x)) ** 2 + (pointer.y - sy(y)) ** 2;
+    if (d < d2) { d2 = d; best = g; }
+  }
+  return best;
+}
+
 /* the Fit page's geometry, one place for the drawing and the hover test (5.8) */
 const FIT_TOP = 210, FIT_Y1 = FIT_TOP - 36;
 const fitLayout = (w) => ({ TOP: FIT_TOP, third: Math.floor(w / 3), half: Math.floor(w / 2) });
@@ -351,7 +374,7 @@ defineWidget({
       { token: "reference", label: "A tick: a gene that truly changed", mark: "line" },
     ];
     if (p === "distribution") return [
-      { token: "empirical", label: "A replicate's count; a gene", mark: "bar" },
+      { token: "empirical", label: "A replicate's count; a gene: point at one to draw it on the left", mark: "bar" },
       { token: "highlight", label: "A gene that changed", mark: "bar" },
       { token: "reference", label: "Poisson: variance = mean", mark: "line" },
       { token: "theory", label: "Negative binomial: mean + α·mean²", mark: "line" },
@@ -506,7 +529,7 @@ defineWidget({
     const stage = anim ? (anim.n[params.page] ?? 0) : Number(params.shown) || 0, p = anim && anim.p < 1 ? easeInOut(anim.p) : 1;
     renderFormula(params.page, stage);
     const D = anim && anim.data.from && anim.data.t < 1 ? { from: anim.data.from, fromParams: anim.data.fromParams, e: easeInOut(anim.data.t), kind: anim.data.kind } : null;
-    if (params.page === "distribution") drawDistribution(ctx, colors, w, state, D);
+    if (params.page === "distribution") drawDistribution(ctx, colors, w, state, D, hoverDist(pointer, w, state));
     else if (params.page === "shrinkage") drawShrinkage(ctx, colors, w, state, stage, p, D, hoverAt(pointer, w, state));
     else if (params.page === "transform") drawTransform(ctx, colors, w, state, anim ? anim.from.unit : params.unit, anim ? anim.to.unit : params.unit, anim ? easeInOut(anim.t.unit) : 1, D);
     else drawFit(ctx, colors, w, state, stage, p, D, hoverFit(pointer, w, state));
@@ -545,30 +568,39 @@ defineWidget({
 });
 
 /* --- Distribution: one gene's two distributions; every gene's variance against its mean --- */
-function drawDistribution(ctx, colors, w, state, D) {
+function drawDistribution(ctx, colors, w, state, D, hover) {
   const H = HEIGHTS.distribution, half = Math.floor(w / 2);
+  /* the gene on the left: the pointed-at one of the 1,200 (its mean of
+     normalised counts, its true α, its counts after the size factors), else
+     the one the controls describe */
+  const hov = hover === null || hover === undefined ? null : {
+    mu: Math.max(1, state.an.baseMean[hover]), alpha: state.sim.alphaT[hover],
+    draws: state.sim.counts[hover].map((v, j) => Math.round(v / state.an.sf[j])),
+  };
+  if (hov) D = null;   // a hover is drawn where it is; the ease resumes when the pointer leaves
   /* left: the two pmfs at a mean and α that ease between the old and the new,
      and the replicate counts, which are new draws, so they crossfade */
   {
     const e = D ? D.e : 1;
-    const mu = D ? Math.exp(lerp(Math.log(D.from.mu), Math.log(state.mu), e)) : state.mu;
-    const alpha = D ? Math.exp(lerp(Math.log(D.from.alpha), Math.log(state.alpha), e)) : state.alpha;
-    const kmax = Math.ceil(mu + 4 * Math.sqrt(mu + alpha * mu * mu));
+    const mu = hov ? hov.mu : D ? Math.exp(lerp(Math.log(D.from.mu), Math.log(state.mu), e)) : state.mu;
+    const alpha = hov ? hov.alpha : D ? Math.exp(lerp(Math.log(D.from.alpha), Math.log(state.alpha), e)) : state.alpha;
+    const draws = hov ? hov.draws : state.draws;
+    const kmax = Math.ceil(Math.max(mu + 4 * Math.sqrt(mu + alpha * mu * mu), ...draws.map((c) => c * 1.05)));
     const P = [], N = []; let pm = 0;
     for (let k = 0; k <= kmax; k += 1) { P.push(poissonPmf(k, mu)); N.push(nbPmf(k, mu, alpha)); pm = Math.max(pm, P[k], N[k]); }
     const step = Math.max(1, Math.round(kmax / 4 / (10 ** Math.floor(log10(kmax / 4))))) * 10 ** Math.floor(log10(kmax / 4));
     const xt = []; for (let t = 0; t <= kmax; t += step) xt.push(t);
-    const F = frame(ctx, colors, { x0: 40, y0: 30, x1: half - 16, y1: H - 40 }, [0, kmax], [0, pm * 1.08], { xlog: false, ylog: false, xlabel: "count", ylabel: `one gene at mean ${state.mu}: probability of each count`, xt, xfmt: bigNum });
+    const F = frame(ctx, colors, { x0: 40, y0: 30, x1: half - 16, y1: H - 40 }, [0, kmax], [0, pm * 1.08], { xlog: false, ylog: false, xlabel: "count", ylabel: hov ? `the gene pointed at: mean ${bigNum(Math.round(hov.mu))}, true α ${fmt(hov.alpha, 3)}${state.sim.isDE[hover] ? ", changed between the groups" : ""}` : `one gene at mean ${state.mu}: probability of each count`, xt, xfmt: bigNum });
     curve(ctx, colors.reference, 1.5, P.map((p, k) => [F.sx(k), F.sy(p)]));
     curve(ctx, colors.theory, 2, N.map((p, k) => [F.sx(k), F.sy(p)]));
     const ticks = (draws, alpha) => { ctx.save(); ctx.globalAlpha = alpha; ctx.strokeStyle = colors.empirical; ctx.lineWidth = 2; for (const c of draws) { ctx.beginPath(); ctx.moveTo(F.sx(Math.min(c, kmax)), F.sy(0)); ctx.lineTo(F.sx(Math.min(c, kmax)), F.sy(0) - 14); ctx.stroke(); } ctx.restore(); };
     if (D) ticks(D.from.draws, 1 - e);
-    ticks(state.draws, D ? e : 1);
-    label(ctx, colors, `${state.draws.length} replicates: ${state.draws.join(" ")}`, F.x0 + 4, F.y0 + 12, { color: colors.empirical });
+    ticks(draws, D ? e : 1);
+    label(ctx, colors, `${draws.length} ${hov ? "samples, after the size factors" : "replicates"}: ${draws.join(" ")}`, F.x0 + 4, F.y0 + 12, { color: colors.empirical });
   }
   /* right: variance against mean, all genes — the same genes slide, new genes crossfade */
   {
-    const F = frame(ctx, colors, { x0: half + 44, y0: 30, x1: w - 12, y1: H - 40 }, [0, 4.3], [0, 7.3], { xlabel: "mean of normalised counts", ylabel: "1,200 genes: variance across replicates", xt: [1, 10, 100, 1000, 10000], yt: [1, 100, 10000, 1000000], xfmt: bigNum, yfmt: (v) => `1e${log10(v)}` });
+    const F = frame(ctx, colors, distRight(w), DIST_X, DIST_Y, { xlabel: "mean of normalised counts", ylabel: "1,200 genes: variance across replicates", xt: [1, 10, 100, 1000, 10000], yt: [1, 100, 10000, 1000000], xfmt: bigNum, yfmt: (v) => `1e${log10(v)}` });
     fadeOrDraw(ctx, D, (S, DD) => {
       const st = S ?? state;
       for (const g of st.an.expressed) {
@@ -588,10 +620,11 @@ function drawDistribution(ctx, colors, w, state, D) {
        highlight is a changed gene here */
     const muE = D ? Math.exp(lerp(Math.log(D.from.mu), Math.log(state.mu), D.e)) : state.mu;
     const alE = D ? Math.exp(lerp(Math.log(D.from.alpha), Math.log(state.alpha), D.e)) : state.alpha;
-    const gx = F.sx(muE), gy = F.sy(muE + alE * muE * muE);
+    /* the ring is on whichever gene the left panel draws */
+    const gx = hov ? F.sx(10 ** state.per.bmLog[hover]) : F.sx(muE), gy = hov ? F.sy(10 ** state.per.varLog[hover]) : F.sy(muE + alE * muE * muE);
     ctx.save(); ctx.strokeStyle = colors.ink1; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(gx, gy, 6, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
-    const left = muE >= 500;   // at a high mean the label sits left of the ring, clear of "Poisson: mean" (the sweep)
-    label(ctx, colors, "the one gene", left ? gx - 14 : gx + 10, gy + 4, { color: colors.ink1, align: left ? "right" : "left" });
+    const left = gx > F.x1 - 110;   // near the right edge the label sits left of the ring, clear of "Poisson: mean" (the sweep)
+    label(ctx, colors, hov ? "the gene on the left" : "the one gene", left ? gx - 14 : gx + 10, gy + 4, { color: colors.ink1, align: left ? "right" : "left" });
   }
 }
 
