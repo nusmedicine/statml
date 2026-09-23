@@ -19701,7 +19701,40 @@ numbers. A good cell that is removed is almost always removed by the
 mitochondrial rule (306 against 6), because that rule reads a sample and not
 a cell.
 
-NEXT: his round 3.
+**Round 3, 2026-09-23 — the Doublets page.** His question: *can i check if
+it's worthwhile illustrating how doublets are identified and removed?
+actually what's the algorithm?* Answered by measuring rather than describing
+(`_lab/cell-qc-doublet-measure.mjs`), because neither scrublet nor R is on
+this machine.
+
+**The lesson has no algorithm.** 02-2 names doublets twice, both in prose,
+and sets no upper threshold; no tool is named in any of the four single-cell
+notebooks (grepped for DoubletFinder, scDblFinder, Scrublet,
+DoubletDetection).
+
+**What the field does**, shared by every common detector and unlike a
+threshold in kind: make doublets by adding random pairs of droplets together;
+put them in the same space as the real ones; score each real droplet by the
+share of its k nearest neighbours that are artificial.
+
+**The measurement, which is what decided the page should exist.** At one
+artificial doublet per droplet and k = 50: the method calls **49 of the 49**
+doublets holding two different types, taking two droplets holding one cell
+with them, and **0 of the 13** holding two of the same, at every score the
+control offers. Medians 0.88 · 0.34 · 0.26. The lesson's own suggestion, an
+upper cut on genes detected, finds 21 of 62 and 93 of its 114 calls hold one
+cell. The same-type failure is not the method's: a doublet of two cells of
+one type HAS that type's profile, and the made-up doublets around it were
+made from that type too — what DoubletFinder's homotypic-proportion
+adjustment concedes rather than solves.
+
+**His two picks:** build it, and identify *and remove* — so `Doublet score,
+at least` is a fourth rule under the other three, None by default, and what
+it calls leaves the Thresholds map and joins its bar. `doubletScores` lives
+in the engine (one implementation for the page, the measurement and the
+verify) and runs in 21 ms, which is what lets the call be dragged.
+
+NEXT: his round 4.
 
 ### Slot 80 · `integration` — Single-Cell Integration
 
