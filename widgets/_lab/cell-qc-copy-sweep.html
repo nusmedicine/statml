@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Lab · cell-qc copy sweep</title>
+<style>body{font:13px/1.5 system-ui;margin:16px} pre{white-space:pre-wrap} iframe{width:960px;height:1100px;border:1px solid #ccc}</style>
+</head>
+<body>
+<h1>cell-qc · every reader-facing string</h1>
+<pre id="out">running…</pre>
+<script>
+/* EVERY STRING THE READER CAN SEE, canvas and DOM together, for a copy audit.
+   The fillText sweep alone misses the rail, the readout and the legend, which
+   is where most of the copy lives. NOT DEPLOYED. */
+const STATES = [
+  "", "?page=thresholds", "?dbl=0.6", "?page=thresholds&dbl=0.6&mt=5",
+  "?hot=none", "?genes=0&counts=0&mt=40",
+];
+const canvasStrings = new Set(), domStrings = new Set();
+async function run(q) {
+  const f = document.createElement("iframe");
+  f.src = "../cell-qc/" + q;
+  document.body.appendChild(f);
+  await new Promise((r) => { f.onload = r; });
+  await new Promise((r) => setTimeout(r, 500));
+  const win = f.contentWindow, doc = f.contentDocument;
+  const P = win.CanvasRenderingContext2D.prototype, orig = P.fillText;
+  P.fillText = function (s, ...rest) { canvasStrings.add(String(s)); return orig.call(this, s, ...rest); };
+  /* a REAL size change, because core repaints off a ResizeObserver and a
+     synthetic window resize event reaches nothing */
+  const cv = doc.querySelector("canvas");
+  const r0 = cv.getBoundingClientRect();
+  /* a pointer over each panel, so the hover's own lines are painted too */
+  for (const [px, py] of [[0.25, 0.42], [0.8, 0.36], [0.8, 0.46], [0.8, 0.58], [0.3, 0.8], [0.7, 0.8], [0.3, 0.2], [0.5, 0.55], [0.2, 0.3]]) {
+    cv.dispatchEvent(new win.PointerEvent("pointermove", {
+      clientX: r0.left + px * r0.width, clientY: r0.top + py * r0.height, bubbles: true,
+    }));
+    await new Promise((s2) => setTimeout(s2, 70));
+  }
+  cv.dispatchEvent(new win.PointerEvent("pointerleave", { bubbles: true }));
+  await new Promise((r) => setTimeout(r, 200));
+  /* the fallback the overlap sweep earned: a widget whose pointer left nothing
+     behind still repaints on the theme button, pressed twice */
+  if (!canvasStrings.size) {
+    const th = doc.querySelector('[data-key="theme"]');
+    if (th) { th.click(); await new Promise((r) => setTimeout(r, 300)); th.click(); await new Promise((r) => setTimeout(r, 300)); }
+  }
+  for (const el of doc.querySelectorAll("label, .w-readout *, .w-legend *, .w-math, h1, h2, h3, p, option, button, summary, figcaption, span, div")) {
+    if (el.children.length) continue;
+    const t = (el.textContent || "").trim();
+    if (t && t.length > 1) domStrings.add(t);
+  }
+  P.fillText = orig;
+  f.remove();
+}
+(async () => {
+  for (const q of STATES) await run(q);
+  const clean = (a) => [...a].filter((s) => /[a-zA-Z]{3}/.test(s)).sort();
+  document.getElementById("out").textContent =
+    "=== CANVAS (" + clean(canvasStrings).length + ") ===\n" + clean(canvasStrings).join("\n") +
+    "\n\n=== DOM (" + clean(domStrings).length + ") ===\n" + clean(domStrings).join("\n") + "\n\ndone";
+})();
+</script>
+</body>
+</html>
