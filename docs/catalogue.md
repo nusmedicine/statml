@@ -20411,6 +20411,22 @@ type interaction (`interaction`). `_lab/cell-markers-compare-measure.mjs`:
   FindConservedMarkers uses by default); all 25 hepatocyte markers are
   conserved.
 
+**Mocked and picked the same day** (`_lab/cell-markers-compare-mock.html`),
+all four the recommendation: (1) cluster against cluster and conserved
+markers as two controls on Markers ("Compared against": all other cells ·
+one cluster; "Markers": pooled · conserved in both patients); (2) a "True
+change" control on Conditions, the two p-value histograms REPLACED by two
+volcanos with the true changes ringed; (3) composition as a FOURTH page;
+(4) its test over samples on the arcsine square root. **Built into the
+draft**: FindMarkers now runs for the comparison on screen only (cached),
+which also removes the 0.4 s of testing every cluster up front; the
+clusters stage carries the patient × type interaction so conserved markers
+have something to drop. Two colour clashes found and fixed on the way: the
+cell strip under the volcanos wore the batch blue that the volcanos use for
+"called and truly changed" (now neutral ink), and the composition table
+marked p < 0.05 in --c-extreme, the tumour cells' red on the same page (now
+bold ink).
+
 ### What in 08 is not a widget
 
 `01-1` downloads. `01-3` is ORA and GSEA, which 43 owns; `01-4` is
