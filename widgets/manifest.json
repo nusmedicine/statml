@@ -1202,7 +1202,7 @@
     {
       "slug": "cell-markers",
       "title": "Single-Cell RNA-seq: Clusters and Markers",
-      "blurb": "Clusters, markers and the replicate in single-cell data: communities in a graph, genes specific to them, and samples.",
+      "blurb": "Cells are clustered in a graph and annotated by their markers; between conditions, the sample, not the cell, is the replicate.",
       "course": "PHM5003",
       "topics": [
         "single-cell RNA-seq",

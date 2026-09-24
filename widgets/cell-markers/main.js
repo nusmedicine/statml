@@ -55,7 +55,7 @@ const PAGES = [
 ];
 const ON = (page) => ({ param: "page", equals: page });
 const CELL_PAGES = { param: "page", oneOf: ["clusters", "two-clusters", "tumour-liver"] };
-const HEIGHTS = { clusters: 760, "two-clusters": 750, "tumour-liver": 760, composition: 380 };
+const HEIGHTS = { clusters: 760, "two-clusters": 770, "tumour-liver": 760, composition: 380 };
 const RESOLUTIONS = ["0.1", "0.3", "0.5", "0.8", "1.2", "2"];
 const SAMPLE_SD = ["0", "0.1", "0.2", "0.4", "0.65"];
 const PATIENT_SD = ["0", "0.3", "0.65"];
@@ -294,8 +294,10 @@ function drawMap(ctx, colors, state, M, style, { filled = -1, outlined = -1, typ
       if (!idx.length) return;
       const q = at([idx.reduce((s, i) => s + state.embed.U[i][0], 0) / idx.length, idx.reduce((s, i) => s + state.embed.U[i][1], 0) / idx.length]);
       const tw = ctx.measureText(t.name).width;
-      ctx.fillStyle = colors.surface; ctx.globalAlpha = 0.85; ctx.fillRect(q[0] - tw / 2 - 3, q[1] - 8, tw + 6, 16); ctx.globalAlpha = 1;
-      ctx.fillStyle = colors.ink1; ctx.fillText(t.name, q[0], q[1] + 1);
+      /* kept inside the box, as the disc maps' names */
+      const lx = Math.max(M.x + tw / 2 + 4, Math.min(M.x + M.S - tw / 2 - 4, q[0]));
+      ctx.fillStyle = colors.surface; ctx.globalAlpha = 0.85; ctx.fillRect(lx - tw / 2 - 3, q[1] - 8, tw + 6, 16); ctx.globalAlpha = 1;
+      ctx.fillStyle = colors.ink1; ctx.fillText(t.name, lx, q[1] + 1);
     });
   } else {
     ctx.font = `600 ${colors.fsXs} ${colors.mono}`;
@@ -342,7 +344,7 @@ function drawClusters(ctx, colors, w, params, state) {
   const genes = []; TYPES.forEach((_, t) => { for (let j = 0; j < 3; j += 1) genes.push(t * G_MARK + j); });
   genes.push(TYPES.length * G_MARK);
   const x0 = L.labelW, x1 = w - 56, cw = Math.min(30, (x1 - x0) / genes.length), top = L.dotTop;
-  heading(ctx, colors, "Each type's markers in each cluster: the name each cluster is given", 8, top - 62);
+  heading(ctx, colors, "Canonical markers of each type, by cluster: how each cluster is annotated", 8, top - 62);
   ctx.font = `${colors.fsXs} ${colors.mono}`;
   genes.forEach((g, j) => {
     ctx.save(); ctx.translate(x0 + j * cw + cw / 2 - 3, top - 12); ctx.rotate(-Math.PI / 4);
@@ -384,7 +386,8 @@ function drawTwo(ctx, colors, w, params, state) {
   heading(ctx, colors, `FindMarkers: comparator cluster ${mk.tested}, baseline ${mk.vsRest ? `the other ${fm.n2} cells` : `cluster ${mk.otherC} (${fm.n2} cells)`}; first 8 by p`, 8, y - 10);
   ctx.font = `${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.ink3;
   cols.forEach(([h, x, al]) => { ctx.textAlign = al; ctx.fillText(h, x, y + 8); });
-  y += 24;
+  ctx.textAlign = "left"; ctx.fillText("pct.1: the share of the comparator's cells detecting the gene; pct.2: the baseline's", 8, y + 24);
+  y += 42;
   const row = (x, grey) => {
     ctx.font = `${colors.fsXs} ${colors.mono}`; ctx.fillStyle = grey ? colors.ink3 : colors.ink1;
     const v = [geneName(x.g), pFmt(x.lp), x.lfc.toFixed(2), x.p1.toFixed(2), x.p2.toFixed(2), pFmt(x.lpAdj)];
@@ -419,7 +422,7 @@ function drawTumourLiver(ctx, colors, w, params, state) {
   ctx.textAlign = "left"; ctx.font = `${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.ink3;
   [
     "Over cells: each cell a replicate,",
-    "as the lesson's FindMarkers treats them",
+    "as FindMarkers treats them",
     "Over samples (pseudobulk): each sample's",
     "cells summed, then DESeq2 as for bulk",
     "RNA-seq; the four samples are the replicates",
@@ -429,7 +432,7 @@ function drawTumourLiver(ctx, colors, w, params, state) {
     return;
   }
   const PW = Math.floor((w - 64) / 2), xs = [24, 24 + PW + 40], top = L.volTop, bh = 210;
-  [[C.volC, `Over cells: ${C.n} cells (Wilcoxon)`], [C.volD, "Over samples: 4 summed (DESeq2)"]].forEach(([pts, title], k) => {
+  [[C.volC, `Over cells: ${C.n} cells (Wilcoxon)`], [C.volD, "Over samples: 4 pseudobulk samples (DESeq2)"]].forEach(([pts, title], k) => {
     const X = xs[k], yMax = Math.max(5, ...pts.map((q) => Math.min(60, q.nl))) * 1.05, xr = 3.5;
     const sx = (v) => X + PW / 2 + (Math.max(-xr, Math.min(xr, v)) / xr) * (PW / 2), sy = (v) => top + bh - (Math.min(60, v) / yMax) * bh;
     heading(ctx, colors, title, X, top - 12);
@@ -446,7 +449,7 @@ function drawTumourLiver(ctx, colors, w, params, state) {
   });
   /* one unchanged gene, cell by cell: why cells are not replicates */
   const sTop = L.stripTop, sH = HEIGHTS["tumour-liver"] - sTop - 30, colW = (w - 140) / 4;
-  heading(ctx, colors, `${geneName(C.ex.g)}, unchanged, the smallest p over cells: each cell's value, by sample`, 24, sTop - 12);
+  heading(ctx, colors, `${geneName(C.ex.g)}: unchanged, with the smallest p over cells. Each cell's value by sample; bar, the sample's mean`, 8, sTop - 12);
   const vMax = Math.max(...C.exVals.flat(), 0.1);
   C.exVals.forEach((vals, k) => {
     const cx = 110 + k * colW + colW / 2;
@@ -477,7 +480,7 @@ function drawComposition(ctx, colors, w, params, state) {
   heading(ctx, colors, "Each type's share, liver against tumour; bold, p < 0.05", X, TOP - 9);
   ctx.font = `${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.ink3;
   cols.forEach(([h, x, al]) => { ctx.textAlign = al; ctx.fillText(h, x, TOP + 12); });
-  const f = (q) => (q < 1e-4 ? q.toExponential(0) : q.toFixed(3));
+  const f = (q) => (q < 1e-4 ? q.toExponential(0) : q < 0.001 ? "<0.001" : q.toFixed(3));
   P.types.forEach((r, j) => {
     const y = TOP + 40 + j * 26;
     ctx.fillStyle = hueOf(colors, r.ti); ctx.fillRect(cx(0), y - 9, 10, 10);
@@ -495,11 +498,12 @@ defineWidget({
   slug: "cell-markers",
   title: "Single-Cell RNA-seq: Clusters and Markers",
   subtitle:
-    "Cells are clustered in a graph of shared nearest neighbours, and each cluster is named by the known "
-    + "markers it detects; the resolution sets how many clusters are found. Genes that differ between two "
-    + "clusters are tested over cells, and a gene can pass while detected in most cells of both. Genes that "
-    + "differ between conditions within one cluster are tested over samples, by summing each sample's cells, "
-    + "since cells from one sample are not independent replicates; so is a cell type's share of each sample.",
+    "Cells are clustered by modularity in a graph of shared nearest neighbours and annotated by the "
+    + "canonical markers they express; the resolution sets how many clusters are found. Between clusters, "
+    + "marker genes are ranked by a Wilcoxon test over cells, and a gene detected in most cells of both "
+    + "clusters can still be significant. Between conditions within a cell type, the replicates are the "
+    + "samples: each sample's cells are summed into a pseudobulk profile and tested as bulk RNA-seq, as is "
+    + "each type's share of the samples.",
   layout: "side",
   status: "draft",
   height: ({ page }) => HEIGHTS[page] ?? HEIGHTS.clusters,
@@ -533,13 +537,14 @@ defineWidget({
       optionsFrom: ["seed", "res", "comparator"],
       default: "rest", when: ON("two-clusters"),
     },
-    tlSec: { type: "section", label: "The samples", when: ON("tumour-liver") },
+    tlSec: { type: "section", label: "The comparison", when: ON("tumour-liver") },
     within: {
       type: "segmented", style: "grid", label: "Cluster",
       detail: `the cluster whose cells are compared, tumour samples against liver samples; only clusters with at least ${MIN_PER_SAMPLE} cells in every sample are listed`,
       options: (v) => testableOptions(v), optionsFrom: ["seed", "res"],
       default: "", when: ON("tumour-liver"),
     },
+    tlSampSec: { type: "section", label: "The samples", when: ON("tumour-liver") },
     change: {
       type: "choice", label: "True change",
       detail: "the log2 fold change of 20 genes in every cell type's tumour-sample cells, half up and half down; every other gene is unchanged",
@@ -559,7 +564,7 @@ defineWidget({
     compSec: { type: "section", label: "The samples", when: ON("composition") },
     compSd: {
       type: "choice", label: "Spread between samples",
-      detail: "the SD, in log, by which each sample's share of each type moves around its tissue's",
+      detail: "the SD, in log, by which each sample's share of each type varies about its tissue's mean share",
       options: COMP_SD.map((v) => ({ value: v, label: v })), default: "0.3", when: ON("composition"),
     },
   },
@@ -567,7 +572,6 @@ defineWidget({
   legend: ({ params }) => {
     const types = TYPES.map((t, i) => ({ token: `cluster-${"abcdef"[TYPE_SLOT[i]]}`, label: t.name, mark: params.page === "composition" ? "bar" : "dot" }));
     if (params.page === "clusters") return [...types, { token: "magnitude", label: "Dot plot: size, the share of the cluster's cells detecting the gene; shade, its mean", mark: "dot" }];
-    if (params.page === "two-clusters") return [...types, { token: "ink-1", label: "pct.1: the share of the comparator's cells detecting the gene; pct.2: the baseline's", mark: "line" }];
     if (params.page === "tumour-liver") return [
       { token: "ink-3", label: "A gene not called", mark: "dot" },
       { token: "empirical", label: "Called at adjusted p < 0.05, and truly changed", mark: "dot" },
@@ -618,10 +622,10 @@ defineWidget({
     const cl = state.cl;
     if (params.page === "clusters") {
       const byType = TYPES.map((t, ti) => cl.ann.filter((a) => a.type === ti).length);
-      const split = TYPES.filter((_, ti) => byType[ti] > 1).map((t) => t.name.toLowerCase());
+      const split = TYPES.filter((_, ti) => byType[ti] > 1).map((t) => t.name);
       return [
-        { label: "Clusters found", value: String(cl.k), note: `six cell types; modularity ${fmt(cl.q, 3)}, the best of 10 random starts` },
-        { label: "Cell types split over more than one cluster", value: String(split.length), note: split.length ? `${split.join(", ")}: the markers name each piece the same type` : "each type is one cluster" },
+        { label: "Clusters found", value: String(cl.k), note: `the data hold 6 cell types; modularity ${fmt(cl.q, 3)}, the best of 10 random starts` },
+        { label: "Cell types split over more than one cluster", value: String(split.length), note: split.length ? `${split.join(", ")}: each of its clusters expresses the same type's markers` : "each type is one cluster" },
       ];
     }
     if (params.page === "two-clusters") {
@@ -634,7 +638,7 @@ defineWidget({
     }
     if (params.page === "composition") {
       const T = state.comp.types;
-      const names = (k) => T.filter((r) => r[k] < 0.05).map((r) => TYPES[r.ti].name.toLowerCase()).join(", ") || "none";
+      const names = (k) => T.filter((r) => r[k] < 0.05).map((r) => TYPES[r.ti].name).join(", ") || "none";
       return [
         { label: "Types whose share differs, over cells", value: String(T.filter((r) => r.pCells < 0.05).length), note: `p < 0.05: ${names("pCells")}` },
         { label: "Types whose share differs, over samples", value: String(T.filter((r) => r.pSamples < 0.05).length), note: `p < 0.05: ${names("pSamples")}` },
@@ -646,7 +650,7 @@ defineWidget({
     const truth = Number(params.change) > 0;
     return [
       { label: "Over cells: genes called", value: truth ? `${tp(C.volC)} of 20 true` : `${fp(C.volC)}`, note: truth ? `and ${fp(C.volC)} unchanged genes called besides, at p_val_adj < 0.05` : "unchanged genes called at p_val_adj < 0.05; no gene truly changes" },
-      { label: "Over samples: genes called", value: truth ? `${tp(C.volD)} of 20 true` : `${fp(C.volD)}`, note: `${truth ? `and ${fp(C.volD)} unchanged genes called besides, at padj < 0.05` : "unchanged genes called at padj < 0.05"}; the patient effect is shared by both of a patient's samples, so it cancels between tumour and liver` },
+      { label: "Over samples: genes called", value: truth ? `${tp(C.volD)} of 20 true` : `${fp(C.volD)}`, note: truth ? `and ${fp(C.volD)} unchanged genes called besides, at padj < 0.05` : "unchanged genes called at padj < 0.05; no gene truly changes" },
     ];
   },
 });
