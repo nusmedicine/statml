@@ -18695,7 +18695,7 @@ by canonical markers, and calls `FindMarkers` twice: cluster 5 against 7, and
 | 77 | `count-normalization` | Bulk RNA-seq: Normalization — **SHIPPED 2026-09-22** (ab66e5c, 14 states) | 01-2 cells 16 (*DESeq2 accepts only raw count data … we cannot use FPKM, TPM*), 22 (the median of ratios); 01-1 (the GDC object ships `unstranded`, `tpm_unstrand`, `fpkm_unstrand`, `fpkm_uq_unstrand`) | a normalised unit is comparable everywhere, and FPKM and TPM differ only in name | **holds**: with 5% of genes 8× up holding 48% of B's reads, the unchanged genes shift −0.81 log2 under CPM, −0.57 under TPM, −0.02 under the median of ratios; at a 1.5× cutoff TPM calls 48 of 98 unchanged genes down, the median of ratios 2; FPKM's per-sample sums differ (179M against 112M) where TPM's are 10⁶ by construction; a TPM of 50 is 50 reads at 1M depth and 2,500 at 50M, CV 14% against 2% | proposed, **first to build** |
 | 78 | `deseq2` | Differential Expression | 01-2 cells 1 (NB, α, the four steps), 22 (size factors, MLE, MAP, the trend, the GLM and design matrix, `W = β/SE`), 24–25 (`vst`), 35–36 (`plotDispEsts`), 38 (`summary`: independent filtering), 39–45 (MA plot, `lfcShrink`) | a gene's own dispersion from three replicates is an estimate worth using; the log2 fold change is a ratio of means; log is a variance stabiliser | **holds**: at 3 vs 3 the realised FDR at padj < 0.1 is 40% with gene-wise dispersions, 20% shrunk, 8% with the truth (4,000 genes, 10% DE); 11% of low-count genes' own estimates sit at the floor; LFC shrinkage takes 139 null low-count genes at \|LFC\| > 1 to 0 and 274 true ones to 194; the SD across replicates at a mean of 1–5 is 1.09 under log2(x + 1) and 0.33 under the vst, 0.30 everywhere above; the lesson's own table: lfcSE 1.26 at baseMean < 1, 0.22 above 1,000, and 96% of the significant genes at baseMean 1–10 carry \|LFC\| > 1 against 52% above 1,000 | proposed, **second; the heaviest** |
 | 79 | `cell-qc` | Single-Cell QC | 02-2 cells 16–26 | the three thresholds are universal numbers; a low count is a dead cell and a high one a doublet | **holds, on the lesson's own cells**: the script reproduces 40,564 → 31,014 exactly; mt% < 10 removes 9,351 of HB17 background's 11,197 cells (median 14.8%) and 0 / 1 / 27 of the other three; nFeature and nCount remove 1,308 and 1,312 there, 1,199 of them the same cells, and nothing elsewhere. **The CYP3A4 line that stood here was struck 2026-09-23** — it is detected in 91% of the cells removed AND 89% of the cells kept, so the rule removes a sample, not a cell type; § Slot 79 has what replaced it | **SHIPPED 2026-09-24** |
-| 80 | `integration` | Single-Cell Integration | 02-3 cells 1, 9 (the five methods), 13–16; 02-2 cell 53 | integration removes the batch and leaves the biology; a type present in one batch has a partner in the other | **holds**: with every type in both batches MNN pairs 100% within type and Harmony mixes to 0.51 with the unique type 0.2 SD from its own; with a type in one batch only it has 0 MNN pairs and is moved by its neighbours' batch vector (8.6 → 6.9 SD from the nearest shared type), while Harmony at θ = 2 pulls it to 3.6 and 98% of its cells read as that type | **measured, mocked and picked 2026-09-24** — the control is the batch key, not the method; § Slot 80 |
+| 80 | `integration` | Single-Cell Integration | 02-3 cells 1, 9 (the five methods), 13–16; 02-2 cell 53 | integration removes the batch and leaves the biology; a type present in one batch has a partner in the other | **holds**: with every type in both batches MNN pairs 100% within type and Harmony mixes to 0.51 with the unique type 0.2 SD from its own; with a type in one batch only it has 0 MNN pairs and is moved by its neighbours' batch vector (8.6 → 6.9 SD from the nearest shared type), while Harmony at θ = 2 pulls it to 3.6 and 98% of its cells read as that type | **SHIPPED 2026-09-24** — the control is the batch key, not the method; § Slot 80 |
 | 81 | `cell-markers` | Clusters and Markers | 02-4 cells 5–6 (`FindNeighbors`, `FindClusters`), 10–15 (markers, `FeaturePlot`, `DoHeatmap`), 16–17 (`FindMarkers`'s columns), 18–22 (within a type across conditions) | a marker is a gene expressed in the cluster; a p-value ranks markers; cells are replicates | **holds**: a gene on in 92% of the cluster and 82% of the rest and a gene on in 69% against 5% both test at p < 1e-31 over 1,200 cells; with two patients per arm and no condition effect a Wilcoxon over cells rejects 75% of null genes (5% with no patient effect), a t-test over patients 3% | proposed, **fifth** |
 | 82 | `cell-clusters` | Graph Clustering | 02-4 cell 5 (kNN → SNN → Louvain, the two figures) | the clusters are the cell types; the count is a finding | **holds**: 600 cells, three types and a continuum, k = 20, SNN pruned at 1/15: 2 clusters at resolution 0.05, 3 at 0.1–0.3, 4 at 0.5 (ARI 0.95), 5 at 0.8–1.2, 6 at 2.0 with the continuum cut into pieces | proposed, **the one to cut, or 81's first page** |
 
@@ -20222,6 +20222,44 @@ in `--c-group-a` / `--c-group-b`, the types in `--c-cluster-*`; the engine
 moves from `_lab` into `widgets/integration/`. **Still to ask with the draft
 open:** the subtitle and blurb, and whether the title keeps "Single-Cell
 RNA-seq: Integration".
+
+#### BUILT, REVIEWED AND SHIPPED 2026-09-24 — the same day it was planned
+
+Drafted on "start the draft" (8f1e2fa): two panels of the same 600 cells,
+coloured by the batch variable and by cell type, and Step runs Find anchors
+(each anchor grows from a query cell to its partner) then Correct (the query
+batch slides along its anchors). The engine moved from `_lab` into
+`widgets/integration/engine.js`; the mock imports it.
+
+- **Round 0, his colour pick (efbcadf):** the batch in two INKS, because
+  `--c-group-a/b` are `--c-cluster-a/b`'s blue and yellow — blue meant
+  Patient 1 on one panel and hepatocyte on the other. With the batch in
+  ink, a full-ink anchor merged with the full-ink dots, so the batch panel
+  draws every anchor as one faint line and only the type panel marks the
+  anchors that join two types.
+- **Round 1 (13a9af2), "too busy":** an even sample of about 120 anchors is
+  drawn, every stride-th in the order found; the drawn share joining two
+  types is within 2 points of the method's over three seeds and both keys,
+  and the correction and every count use all of them.
+- **His question, "are Harmony and the other methods about the same?"**:
+  same goal and assumption, different mechanism — CCA, RPCA and FastMNN
+  pair cells, Harmony and scVI do not. On this stage, as measured, CCA
+  anchors merged and FastMNN and Harmony did not; not claimed as general.
+  His ask: a note under the Batch control that the other methods correct by
+  other mechanisms and make the same assumption.
+- **Copy round (025ad1d, 6fca123):** twelve rows, all applied, every string
+  and every option run through the claudisms banlist (290 terms; it caught
+  "moves", "hold" and "carries") and the house verb list before being
+  offered. Reference and query — the words of the lesson's figure — replace
+  first and second batch. **Subtitle S1** (technical against biology first;
+  he did not take the recommended S3, which led with the batch variable),
+  **blurb B2** (the batch variable). `_lab/integration-copy-sweep.html`
+  collects the strings.
+
+**Shipped** with ten states (seven settled: Patient and Tissue at each of
+three presses, Tissue at seed 7; three driven at 450 of 900 ms, one of them
+after a completed press), identical across three filtered runs at DPR 1.25
+with the tab visible throughout, and MATCH on a fourth.
 
 ### Slot 81 · `cell-markers` — Clusters and Markers
 

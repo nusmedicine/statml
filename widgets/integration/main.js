@@ -1,4 +1,4 @@
-/* integration — slot 80, "Single-Cell RNA-seq: Integration". DRAFT.
+/* integration — slot 80, "Single-Cell RNA-seq: Integration". SHIPPED 2026-09-24.
  *
  * Planned 2026-09-24 (catalogue § Slot 80): measured in
  * `_lab/integration-measure.mjs`, mocked in `_lab/integration-mock.html`,
@@ -76,7 +76,7 @@ defineWidget({
     + "cell types; a population present in one batch only is anchored to cells of another type and "
     + "corrected onto them.",
   layout: "side",
-  status: "draft",
+  status: "shipped",
   height: HEIGHT,
 
   params: {

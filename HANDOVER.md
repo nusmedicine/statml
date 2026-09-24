@@ -1,5 +1,40 @@
 # Handover
 
+**2026-09-24 (later the same day): 80 `integration` SHIPPED ("Single-Cell
+RNA-seq: Integration", 10 states), planned, drafted, reviewed and shipped in
+one session — the record is the catalogue's § Slot 80.** What it is: slot
+79's four samples and six types in a plane, a patient shift, tumour cells in
+the tumour samples only; two panels of the same cells coloured by the batch
+variable (two inks) and by cell type; Step runs Find anchors → Correct.
+The control is **Batch variable = Patient · Tissue**, not the method.
+
+**The things worth knowing before 81, in the order they cost time:**
+
+- **The arc's plan for 80 was wrong, and a measurement showed it.** Its
+  "Harmony pulls a one-batch type in, 98%" came from a lab stand-in that
+  corrected nothing at a realistic scale. Written as published, Harmony and
+  FastMNN merged nothing on this stage; the merge is CCA's and follows the
+  declared batch (tissue: 55–59% of anchors join two types). **Print a
+  before/after distance before believing any method comparison** —
+  `_lab/integration-measure.mjs` carries both corrected stand-ins.
+- **Every teaching source leads with mutual nearest neighbours** (Seurat's
+  vignette, Stuart 2019, OSCA, HBC); CCA gets one sentence. The widget
+  centres each batch on its own mean as its shared space and says so in the
+  Find anchors tooltip.
+- **`--c-group-a/b` are `--c-cluster-a/b`'s hues.** A figure with a
+  two-group variable beside six cell types cannot use both; this one put the
+  batch in inks. 81 will meet the same clash (conditions beside clusters).
+- **The claudisms banlist is at <https://claudisms.ai/claudisms.md>**;
+  run it on the subtitle and blurb OPTIONS before asking, as with the house
+  verb list — it caught "moves", "hold" and "carries" this round.
+
+**SEVENTY-ONE WIDGETS IN THE MANIFEST — 70 on the gallery and `roc-auc`
+UNLISTED.** NEXT: **81 `cell-markers`** ("Single-Cell RNA-seq: Clusters and
+Markers", three pages Clusters · Markers · Conditions), the arc's last;
+measure first (`_lab/rnaseq-measure.mjs` M4 and M6 hold the arc's numbers,
+which were measured with the SAME kind of stand-ins that were wrong for 80 —
+re-measure before relying on them). **SESSION CLOSED.**
+
 **2026-09-24: 79 `cell-qc` SHIPPED AND PUSHED (7648e10, 24 states,
 "Single-Cell RNA-seq: QC"), the third of the RNA-seq arc and the gallery's
 SEVENTIETH widget, after eighteen review rounds over two days — the record is
