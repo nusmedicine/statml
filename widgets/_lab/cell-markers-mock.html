@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · cell-markers — three pages, computed on the page</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1240px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 104ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  .rail { background: var(--surface-1); border: 1px solid var(--grid); border-radius: var(--radius);
+          padding: var(--sp-3) var(--sp-4); display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: var(--sp-3) var(--sp-4); margin: 0 0 var(--sp-3); }
+  .fld label { display: block; font-size: var(--fs-xs); color: var(--ink-2); margin: 0 0 4px; }
+  .fld label b { color: var(--ink-1); float: right; font-family: var(--font-mono); }
+  .fld input[type=range] { width: 100%; }
+  .seg { display: flex; gap: 4px; flex-wrap: wrap; }
+  .seg button { flex: 1; font: inherit; font-size: var(--fs-sm); padding: 4px 8px; border: 1px solid var(--grid); background: var(--surface-2); color: var(--ink-2); border-radius: var(--radius); cursor: pointer; }
+  .seg button[aria-pressed=true] { background: var(--ink-1); color: var(--surface-1); border-color: var(--ink-1); }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); border-radius: var(--radius); max-width: 100%; }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--sp-2); margin: var(--sp-3) 0; }
+  .tile { background: var(--surface-2); border-radius: var(--radius); padding: var(--sp-2) var(--sp-3); }
+  .tile .k { font-size: var(--fs-xs); color: var(--ink-3); }
+  .tile .v { font-family: var(--font-mono); font-size: var(--fs-md); color: var(--ink-1); }
+  .tile .n { font-size: var(--fs-xs); color: var(--ink-3); }
+  table.fm { border-collapse: collapse; font-size: var(--fs-sm); font-family: var(--font-mono); margin: var(--sp-2) 0; }
+  table.fm td, table.fm th { padding: 3px 10px; text-align: right; border-bottom: 1px solid var(--grid); }
+  table.fm th { color: var(--ink-3); font-weight: normal; font-family: var(--font); font-size: var(--fs-xs); }
+  table.fm td:first-child, table.fm th:first-child { text-align: left; }
+  table.fm tr.non td { color: var(--ink-3); }
+  table.calls { border-collapse: collapse; font-size: var(--fs-sm); width: 100%; }
+  table.calls td, table.calls th { border-top: 1px solid var(--grid); padding: 6px 8px; vertical-align: top; text-align: left; }
+  table.calls th { color: var(--ink-3); font-weight: normal; font-size: var(--fs-xs); }
+  .busy { color: var(--ink-3); font-size: var(--fs-xs); }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>cell-markers · Clusters · Markers · Conditions, on the measured stage</h1>
+  <p class="note">
+    Slot 79's six types and four samples carried down to 430 genes of counts, analysed on this page with Seurat's methods as published
+    (<code>_lab/cell-markers-engine.js</code>, the same module the measurement ran): normalise, scale, PCA 20, kNN 20, SNN pruned at 1/15,
+    Louvain at the best of 10 starts, and FindMarkers' tie-corrected Wilcoxon. Each section below is a proposed page. The map places a cell by
+    its six marker-block levels on a hexagon, as slots 79 and 80 do, with a hepatocyte's zonation score as a sideways offset; the clusters are
+    found in the 20-PC graph, not on the map.
+  </p>
+
+  <h2>1 · Clusters</h2>
+  <p class="note">The resolution sets how many communities Louvain finds in the same graph. Turn <i>Zonation</i> off and move to 0.8: the hepatocytes still split in two, and both halves sit at the same place along the lobule.</p>
+  <div class="rail">
+    <div class="fld"><label>Resolution <b id="rv"></b></label><input id="res" type="range" min="0" max="5" step="1"></div>
+    <div class="fld"><label>Hepatocyte zonation</label><div class="seg" id="zon"><button data-v="3">On</button><button data-v="0">Off</button></div></div>
+    <div class="fld"><label>Draw the graph</label><div class="seg" id="edges"><button data-v="off">No</button><button data-v="on">SNN edges</button></div></div>
+    <div class="fld"><label>Seed <b id="sv1"></b></label><input id="seed1" type="range" min="1" max="8" step="1"></div>
+  </div>
+  <canvas id="c1"></canvas>
+  <div class="tiles" id="t1"></div>
+
+  <h2>2 · Markers</h2>
+  <p class="note">A dot per cluster and gene: its size the share of the cluster's cells that detect the gene, its shade the mean. The table is <code>FindMarkers</code> for one cluster against every other cell, top 12 by p. Grey rows pass p_val_adj &lt; 0.05 and are detected in most other cells too.</p>
+  <div class="rail">
+    <div class="fld"><label>Cluster tested</label><div class="seg" id="clu"></div></div>
+  </div>
+  <canvas id="c2"></canvas>
+  <div id="fmtab"></div>
+  <div class="tiles" id="t2"></div>
+
+  <h2>3 · Conditions</h2>
+  <p class="note">Kupffer cells only, tumour samples against liver samples, two patients, <b>no condition effect</b>. Each gene is tested twice: over cells (FindMarkers) and over the two patients (summed counts per sample, a paired t). Under no effect a p-value histogram is flat. The sample effect is what one preparation does to every cell in it.</p>
+  <div class="rail">
+    <div class="fld"><label>Sample effect, sd in log <b id="bv"></b></label><input id="samp" type="range" min="0" max="4" step="1"></div>
+    <div class="fld"><label>Seed <b id="sv3"></b></label><input id="seed3" type="range" min="1" max="8" step="1"></div>
+  </div>
+  <canvas id="c3"></canvas>
+  <div class="tiles" id="t3"></div>
+
+  <h2>The calls</h2>
+  <div id="calls"></div>
+</main>
+
+<script type="module">
+import { makeRng } from "../core/rng.js";
+import { simulate, normalise, pcaScaled, knn, snn, findClusters, findMarkers, geneKind, TYPES, G, G_MARK, G_HOUSE, G_ZONE } from "./cell-markers-engine.js";
+import { lgamma } from "../core/stats.js";
+
+const css = getComputedStyle(document.documentElement);
+const C = (n) => css.getPropertyValue(n).trim();
+const FONT = C("--font"), MONO = C("--font-mono");
+const CL = ["a", "c", "b", "d", "e", "f"].map((k) => C(`--c-cluster-${k}`));
+const RES = [0.1, 0.3, 0.5, 0.8, 1.2, 2.0];
+const SAMP = [0, 0.1, 0.2, 0.4, 0.65];
+const V = { res: 1, zon: "3", edges: "off", seed1: 1, clu: 0, samp: 3, seed3: 1 };
+const dpr = window.devicePixelRatio || 1;
+function canvas(id, W, H) { const cv = document.getElementById(id); cv.width = W * dpr; cv.height = H * dpr; cv.style.width = W + "px"; cv.style.height = H + "px"; const ctx = cv.getContext("2d"); ctx.scale(dpr, dpr); return ctx; }
+const W = 1100;
+
+/* ---------------------------------------------------------------- stage 1+2 */
+let S = null;
+function stage12() {
+  const key = `${V.seed1}|${V.zon}`;
+  if (S && S.key === key) return S;
+  const cells = simulate(makeRng(V.seed1), { cells: 300, patientSd: 0, zonation: Number(V.zon) });
+  const Y = normalise(cells), P = pcaScaled(Y, 20, makeRng(10 + V.seed1));
+  const nn = knn(P, 20), adj = snn(nn);
+  /* the map: six marker-block means as weights on a hexagon, and the
+     zonation score (pericentral minus periportal half) as an offset along
+     the hexagon's tangent at the hepatocyte corner */
+  const hex = TYPES.map((_, i) => [Math.cos(Math.PI * 2 * i / 6), Math.sin(Math.PI * 2 * i / 6)]);
+  const pos = Y.map((y) => {
+    const w = TYPES.map((_, t) => { let s = 0; for (let g = t * G_MARK; g < (t + 1) * G_MARK; g += 1) s += y[g]; return Math.max(0.02, s / G_MARK - 0.3); });
+    const tot = w.reduce((a, b) => a + b, 0) || 1;
+    let x = 0, yy = 0; w.forEach((v, t) => { x += v * hex[t][0]; yy += v * hex[t][1]; });
+    let zs = 0; for (let g = G - G_ZONE; g < G; g += 1) zs += (g - (G - G_ZONE) < G_ZONE / 2 ? -1 : 1) * y[g];
+    const hepW = w[0] / tot;
+    return [x / tot, yy / tot + hepW * zs / G_ZONE * 0.12];
+  });
+  S = { key, cells, Y, adj, pos, byRes: {} };
+  return S;
+}
+function clustersAt(ri) {
+  const s = stage12();
+  if (!s.byRes[ri]) s.byRes[ri] = findClusters(s.adj, RES[ri], makeRng(100 + V.seed1));
+  return s.byRes[ri];
+}
+
+/* the found clusters, named by the type most of their cells are, as a reader annotating by markers would */
+function annotate(cells, cl) {
+  const k = Math.max(...cl) + 1;
+  return Array.from({ length: k }, (_, c) => {
+    const idx = cl.map((v, i) => (v === c ? i : -1)).filter((i) => i >= 0);
+    const counts = new Array(6).fill(0); idx.forEach((i) => { counts[cells[i].type] += 1; });
+    const top = counts.indexOf(Math.max(...counts));
+    const zs = idx.filter((i) => cells[i].type === 0).map((i) => cells[i].z);
+    return { c, n: idx.length, type: top, zMean: zs.length ? zs.reduce((a, b) => a + b, 0) / zs.length : null };
+  });
+}
+
+function draw1() {
+  const s = stage12(), r = clustersAt(V.res), ann = annotate(s.cells, r.clusters);
+  const H = 520, ctx = canvas("c1", W, H);
+  ctx.clearRect(0, 0, W, H);
+  const PAN = 480, gap = 40, x0s = [20, 20 + PAN + gap];
+  const xs = s.pos.map((p) => p[0]), ys = s.pos.map((p) => p[1]);
+  const lo = [Math.min(...xs), Math.min(...ys)], hi = [Math.max(...xs), Math.max(...ys)];
+  const half = Math.max(hi[0] - lo[0], hi[1] - lo[1]) / 2 * 1.08, mid = [(lo[0] + hi[0]) / 2, (lo[1] + hi[1]) / 2];
+  const at = (p, X) => [X + PAN / 2 + (p[0] - mid[0]) / half * (PAN / 2 - 8), 30 + PAN / 2 - (p[1] - mid[1]) / half * (PAN / 2 - 8)];
+  /* the same type's clusters get that type's hue, lighter to darker along the lobule */
+  const shade = (c) => {
+    const a = ann[c], sib = ann.filter((q) => q.type === a.type).sort((p, q) => (p.zMean ?? 0) - (q.zMean ?? 0));
+    const j = sib.indexOf(a), n = sib.length;
+    return { col: CL[a.type], alpha: n === 1 ? 0.85 : 0.35 + 0.6 * (j / (n - 1)) };
+  };
+  const heads = [`Coloured by cluster at resolution ${RES[V.res]}: ${r.k} found`, "Coloured by cell type (the truth)"];
+  [0, 1].forEach((pnl) => {
+    const X = x0s[pnl];
+    ctx.font = `600 13px ${FONT}`; ctx.fillStyle = C("--ink-1"); ctx.fillText(heads[pnl], X, 18);
+    ctx.strokeStyle = C("--grid"); ctx.strokeRect(X + 0.5, 30.5, PAN - 1, PAN - 1);
+    if (V.edges === "on" && pnl === 0) {
+      ctx.save(); ctx.strokeStyle = C("--ink-3"); ctx.globalAlpha = 0.12; ctx.lineWidth = 0.6;
+      s.adj.forEach((m, i) => { for (const [j] of m) if (j > i) { const a = at(s.pos[i], X), b = at(s.pos[j], X); ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke(); } });
+      ctx.restore();
+    }
+    s.cells.forEach((c, i) => {
+      const q = at(s.pos[i], X);
+      if (pnl === 0) { const sh = shade(r.clusters[i]); ctx.fillStyle = sh.col; ctx.globalAlpha = sh.alpha; }
+      else { ctx.fillStyle = CL[c.type]; ctx.globalAlpha = 0.8; }
+      ctx.beginPath(); ctx.arc(q[0], q[1], 2.4, 0, Math.PI * 2); ctx.fill();
+    });
+    ctx.globalAlpha = 1;
+    if (pnl === 0) {
+      ctx.font = `600 12px ${MONO}`; ctx.fillStyle = C("--ink-1"); ctx.textAlign = "center";
+      ann.forEach((a) => { const idx = r.clusters.map((v, i) => (v === a.c ? i : -1)).filter((i) => i >= 0); const cx = idx.reduce((s2, i) => s2 + s.pos[i][0], 0) / idx.length, cy = idx.reduce((s2, i) => s2 + s.pos[i][1], 0) / idx.length; const q = at([cx, cy], X); ctx.fillText(String(a.c), q[0], q[1] + 4); });
+      ctx.textAlign = "left";
+    } else {
+      ctx.font = `12px ${FONT}`; ctx.fillStyle = C("--ink-2");
+      TYPES.forEach((t, ti) => { const idx = s.cells.map((c, i) => (c.type === ti ? i : -1)).filter((i) => i >= 0); const cx = idx.reduce((a, i) => a + s.pos[i][0], 0) / idx.length, cy = idx.reduce((a, i) => a + s.pos[i][1], 0) / idx.length; const q = at([cx * 1.25, cy * 1.25], X); ctx.textAlign = "center"; ctx.fillText(t.name, q[0], q[1]); });
+      ctx.textAlign = "left";
+    }
+  });
+  const hepC = ann.filter((a) => a.type === 0 && a.zMean !== null).sort((a, b) => a.zMean - b.zMean);
+  document.getElementById("t1").innerHTML = [
+    ["Clusters found", `${r.k}`, `six cell types; modularity ${r.q.toFixed(3)}, the best of 10 starts`],
+    ["Clusters that are mostly hepatocytes", `${hepC.length}`, hepC.length > 1 ? `mean place along the lobule, portal 0 to central 1: ${hepC.map((a) => a.zMean.toFixed(2)).join(" · ")}` : "one hepatocyte cluster"],
+    ["Cells", `${s.cells.length}`, "300 a sample, four samples; the count at a resolution depends on the number of cells too"],
+  ].map(([k, v, n]) => `<div class="tile"><div class="k">${k}</div><div class="v">${v}</div><div class="n">${n}</div></div>`).join("");
+  drawMarkers();
+}
+
+/* ---------------------------------------------------------------- markers */
+function drawMarkers() {
+  const s = stage12(), r = clustersAt(V.res), ann = annotate(s.cells, r.clusters);
+  const k = r.k;
+  if (V.clu >= k) V.clu = 0;
+  document.getElementById("clu").innerHTML = ann.map((a) => `<button data-v="${a.c}" aria-pressed="${a.c === V.clu}">${a.c}</button>`).join("");
+  /* genes on the dot plot: 3 markers per type, 3 zonation (periportal, pericentral), 4 genes that differ a little, 2 high everywhere */
+  const genes = [];
+  TYPES.forEach((_, t) => { for (let j = 0; j < 3; j += 1) genes.push({ g: t * G_MARK + j + (t === 0 ? 12 : 0), lab: `${TYPES[t].name.split(" ")[0].slice(0, 4)}-${j + 1}`, kind: "marker", t }); });
+  [0, 1].forEach((j) => genes.push({ g: G - G_ZONE + j, lab: `portal-${j + 1}`, kind: "zone" }));
+  [0, 1].forEach((j) => genes.push({ g: G - G_ZONE / 2 + j, lab: `central-${j + 1}`, kind: "zone" }));
+  const fmAll = findMarkers(s.Y, (i) => r.clusters[i] === V.clu, (i) => r.clusters[i] !== V.clu, { nGenes: 33538 });
+  const nonMark = fmAll.res.filter((x) => x.lfc > 0 && x.lpAdj < Math.log10(0.05) && geneKind(x.g).kind === "spread").sort((a, b) => a.lp - b.lp).slice(0, 3);
+  nonMark.forEach((x, j) => genes.push({ g: x.g, lab: `g${x.g}`, kind: "spread" }));
+  genes.push({ g: TYPES.length * G_MARK, lab: "house-1", kind: "house" });
+  const H = 60 + k * 30 + 70, ctx = canvas("c2", W, H);
+  ctx.clearRect(0, 0, W, H);
+  const x0 = 120, cw = Math.min(46, (W - x0 - 20) / genes.length);
+  const stats = ann.map((a) => genes.map((gg) => { const idx = r.clusters.map((v, i) => (v === a.c ? i : -1)).filter((i) => i >= 0); const vals = idx.map((i) => s.Y[i][gg.g]); return { pct: vals.filter((v) => v > 0).length / vals.length, mean: vals.reduce((p, q) => p + q, 0) / vals.length }; }));
+  const maxMean = genes.map((_, j) => Math.max(...stats.map((row) => row[j].mean)) || 1);
+  ctx.font = `11px ${MONO}`; ctx.textAlign = "center"; ctx.fillStyle = C("--ink-2");
+  genes.forEach((gg, j) => { ctx.save(); ctx.translate(x0 + j * cw + cw / 2, 52); ctx.rotate(-Math.PI / 4); ctx.textAlign = "left"; ctx.fillStyle = gg.kind === "marker" ? C("--ink-1") : C("--ink-3"); ctx.fillText(gg.lab, 0, 0); ctx.restore(); });
+  ann.forEach((a, ri) => {
+    const y = 70 + ri * 30;
+    ctx.textAlign = "right"; ctx.font = `${a.c === V.clu ? "600 " : ""}12px ${FONT}`; ctx.fillStyle = C("--ink-1");
+    ctx.fillText(`${a.c} · ${TYPES[a.type].name.split(" ")[0]}`, x0 - 10, y + 4);
+    genes.forEach((gg, j) => {
+      const st = stats[ri][j], rad = 2 + 11 * Math.sqrt(st.pct);
+      ctx.fillStyle = C("--c-magnitude"); ctx.globalAlpha = 0.15 + 0.85 * (st.mean / maxMean[j]);
+      ctx.beginPath(); ctx.arc(x0 + j * cw + cw / 2, y, rad, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
+    });
+  });
+  ctx.textAlign = "left"; ctx.font = `12px ${FONT}`; ctx.fillStyle = C("--ink-3");
+  ctx.fillText("dot size: share of the cluster's cells detecting the gene · shade: mean, relative to the gene's highest cluster · grey labels: not a marker of any type", x0, H - 16);
+  const top = fmAll.res.filter((x) => x.lfc > 0).sort((a, b) => a.lp - b.lp || b.lfc - a.lfc).slice(0, 12);
+  const kindOf = (g) => { const kk = geneKind(g); return kk.kind === "marker" ? `marker of ${TYPES[kk.type].name.toLowerCase()}` : kk.kind === "zone" ? "zonation" : kk.kind === "house" ? "high everywhere" : "differs a little"; };
+  const ownType = ann[V.clu].type;
+  const isOwn = (g) => { const kk = geneKind(g); return (kk.kind === "marker" && kk.type === ownType) || kk.kind === "zone"; };
+  const sigUp = fmAll.res.filter((x) => x.lfc > 0 && x.lpAdj < Math.log10(0.05));
+  const sigNon = sigUp.filter((x) => !isOwn(x.g) && x.p2 > 0.5);
+  /* the table sorted by p, then the same cluster's significant genes that are detected in most other cells */
+  const rows = [...top, ...sigNon.sort((a, b) => a.lp - b.lp).slice(0, 4)];
+  document.getElementById("fmtab").innerHTML = `<table class="fm"><tr><th>gene</th><th>p_val</th><th>avg_log2FC</th><th>pct.1</th><th>pct.2</th><th>p_val_adj</th><th style="text-align:left">on this stage</th></tr>${rows.map((x, j) => `${j === top.length ? `<tr><td colspan="7" style="text-align:left;color:var(--ink-3);font-family:var(--font)">… and further down the same list, also p_val_adj &lt; 0.05:</td></tr>` : ""}<tr class="${isOwn(x.g) ? "" : "non"}"><td>g${x.g}</td><td>${x.lp < -300 ? "0" : `1e${x.lp.toFixed(0)}`}</td><td>${x.lfc.toFixed(2)}</td><td>${x.p1.toFixed(2)}</td><td>${x.p2.toFixed(2)}</td><td>${x.lpAdj < -300 ? "0" : x.lpAdj >= 0 ? "1" : `1e${x.lpAdj.toFixed(0)}`}</td><td style="text-align:left">${kindOf(x.g)}</td></tr>`).join("")}</table>`;
+  document.getElementById("t2").innerHTML = [
+    ["Genes up at p_val_adj < 0.05", `${sigUp.length}`, `cluster ${V.clu} against the ${fmAll.n2} other cells (${fmAll.n1} in the cluster)`],
+    ["Of those, detected in more than half of the other cells", `${sigNon.length}`, "significant, and expressed almost everywhere"],
+    ["Its own markers in the top 10 by p", `${top.slice(0, 10).filter((x) => isOwn(x.g)).length} of 10`, "the p-value ranks the markers first on this stage"],
+  ].map(([kk, v, n]) => `<div class="tile"><div class="k">${kk}</div><div class="v">${v}</div><div class="n">${n}</div></div>`).join("");
+  document.querySelectorAll("#clu button").forEach((b) => b.addEventListener("click", () => { V.clu = Number(b.dataset.v); drawMarkers(); }));
+}
+
+/* ---------------------------------------------------------------- conditions */
+function ibeta(x, a, b) {
+  if (x <= 0) return 0; if (x >= 1) return 1;
+  const bt = Math.exp(lgamma(a + b) - lgamma(a) - lgamma(b) + a * Math.log(x) + b * Math.log(1 - x));
+  const cf = (x, a, b) => { let c = 1, d = 1 - ((a + b) * x) / (a + 1); if (Math.abs(d) < 1e-300) d = 1e-300; d = 1 / d; let h = d; for (let m = 1; m <= 300; m += 1) { const m2 = 2 * m; let aa = (m * (b - m) * x) / ((a - 1 + m2) * (a + m2)); d = 1 + aa * d; if (Math.abs(d) < 1e-300) d = 1e-300; c = 1 + aa / c; if (Math.abs(c) < 1e-300) c = 1e-300; d = 1 / d; h *= d * c; aa = (-(a + m) * (a + b + m) * x) / ((a + m2) * (a + 1 + m2)); d = 1 + aa * d; if (Math.abs(d) < 1e-300) d = 1e-300; c = 1 + aa / c; if (Math.abs(c) < 1e-300) c = 1e-300; d = 1 / d; const del = d * c; h *= del; if (Math.abs(del - 1) < 3e-12) break; } return h; };
+  return x < (a + 1) / (a + b + 2) ? (bt * cf(x, a, b)) / a : 1 - (bt * cf(1 - x, b, a)) / b;
+}
+let S3 = null;
+function draw3() {
+  const key = `${V.seed3}|${V.samp}`;
+  if (!S3 || S3.key !== key) {
+    const cells = simulate(makeRng(V.seed3), { cells: 1200, patientSd: 0.3, sampleSd: SAMP[V.samp] });
+    const kupIdx = cells.map((c, i) => (c.type === 5 ? i : -1)).filter((i) => i >= 0);
+    const kc = kupIdx.map((i) => cells[i]);
+    const Y = normalise(kc);
+    const fm = findMarkers(Y, (i) => kc[i].tissue === "tumour", (i) => kc[i].tissue === "liver", { nGenes: 33538, logfc: 0, minPct: 0 });
+    const nul = fm.res.filter((x) => geneKind(x.g).kind === "spread");
+    const pb = {}; kc.forEach((c) => { pb[c.sample] = pb[c.sample] ?? new Float64Array(G); for (let g = 0; g < G; g += 1) pb[c.sample][g] += c.x[g]; });
+    const lib = Object.fromEntries(Object.entries(pb).map(([k2, v]) => [k2, v.reduce((a, b) => a + b, 0)]));
+    const cpm = (k2, g) => Math.log2(1 + (1e6 * pb[k2][g]) / lib[k2]);
+    const pPat = nul.map((x) => { const d = [cpm("p1-tumour", x.g) - cpm("p1-liver", x.g), cpm("p2-tumour", x.g) - cpm("p2-liver", x.g)]; const m = (d[0] + d[1]) / 2, sd = Math.abs(d[0] - d[1]) / Math.SQRT2; const t = sd > 0 ? m / (sd / Math.SQRT2) : 0; return ibeta(1 / (1 + t * t), 0.5, 0.5); });
+    const perSample = Object.fromEntries(["p1-liver", "p1-tumour", "p2-liver", "p2-tumour"].map((k2) => [k2, kc.filter((c) => c.sample === k2).length]));
+    S3 = { key, pCells: nul.map((x) => 10 ** x.lp), adjCells: nul.filter((x) => x.lpAdj < Math.log10(0.05)).length, pPat, n: kc.length, perSample, nNull: nul.length };
+  }
+  const H = 300, ctx = canvas("c3", W, H);
+  ctx.clearRect(0, 0, W, H);
+  const PW = 500, gap = 60, xs = [40, 40 + PW + gap], top = 40, bh = 200;
+  const hist = (ps) => { const b = new Array(20).fill(0); ps.forEach((p) => { b[Math.min(19, Math.floor(p * 20))] += 1; }); return b; };
+  const sets = [[S3.pCells, `Over cells: ${S3.n} Kupffer cells as the replicates`], [S3.pPat, "Over patients: the 2 patients as the replicates"]];
+  const yMax = Math.max(...sets.flatMap(([ps]) => hist(ps)), S3.nNull / 20 * 2);
+  sets.forEach(([ps, title], k2) => {
+    const X = xs[k2], b = hist(ps);
+    ctx.font = `600 13px ${FONT}`; ctx.fillStyle = C("--ink-1"); ctx.fillText(title, X, 18);
+    ctx.strokeStyle = C("--grid"); ctx.beginPath(); ctx.moveTo(X, top + bh + 0.5); ctx.lineTo(X + PW, top + bh + 0.5); ctx.stroke();
+    b.forEach((v, j) => { const h = v / yMax * bh; ctx.fillStyle = j === 0 ? C("--c-extreme") : C("--c-empirical"); ctx.fillRect(X + j * PW / 20 + 1, top + bh - h, PW / 20 - 2, h); });
+    const flat = top + bh - (S3.nNull / 20) / yMax * bh;
+    ctx.strokeStyle = C("--c-reference"); ctx.setLineDash([4, 4]); ctx.beginPath(); ctx.moveTo(X, flat); ctx.lineTo(X + PW, flat); ctx.stroke(); ctx.setLineDash([]);
+    ctx.font = `11px ${FONT}`; ctx.fillStyle = C("--ink-3");
+    ctx.fillText("0", X, top + bh + 16); ctx.textAlign = "right"; ctx.fillText("1", X + PW, top + bh + 16); ctx.textAlign = "center"; ctx.fillText("p-value", X + PW / 2, top + bh + 16); ctx.textAlign = "left";
+    ctx.fillText("dashed: flat, what a null gives", X + PW - 170, flat - 6);
+  });
+  const called = (ps) => ps.filter((p) => p < 0.05).length / ps.length;
+  document.getElementById("t3").innerHTML = [
+    ["Null genes at p < 0.05, over cells", `${Math.round(100 * called(S3.pCells))}%`, `${S3.adjCells} of ${S3.nNull} at p_val_adj < 0.05; 5% is the rate a test should give here`],
+    ["Null genes at p < 0.05, over patients", `${Math.round(100 * called(S3.pPat))}%`, "a paired t on the two patients' summed counts"],
+    ["Kupffer cells per sample", Object.values(S3.perSample).join(" · "), "liver and tumour, patient 1 then patient 2"],
+  ].map(([k2, v, n]) => `<div class="tile"><div class="k">${k2}</div><div class="v">${v}</div><div class="n">${n}</div></div>`).join("");
+}
+
+/* ---------------------------------------------------------------- controls */
+const seg = (id, prop, then) => { const el = document.getElementById(id); const sync = () => el.querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.v === String(V[prop])))); el.addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; V[prop] = b.dataset.v; sync(); then(); }); sync(); };
+const range = (id, prop, out, fmt, then) => { const el = document.getElementById(id); el.value = V[prop]; const o = document.getElementById(out); const upd = () => { V[prop] = +el.value; o.textContent = fmt(V[prop]); then(); }; el.addEventListener("change", upd); el.addEventListener("input", () => { o.textContent = fmt(+el.value); }); o.textContent = fmt(V[prop]); };
+seg("zon", "zon", draw1); seg("edges", "edges", draw1);
+range("res", "res", "rv", (v) => RES[v], draw1); range("seed1", "seed1", "sv1", (v) => v, draw1);
+range("samp", "samp", "bv", (v) => SAMP[v], draw3); range("seed3", "seed3", "sv3", (v) => v, draw3);
+draw1(); draw3();
+
+document.getElementById("calls").innerHTML = `
+<p class="note">Picks to make; each recommendation comes from the measurement in the catalogue's § Slot 81.</p>
+<table class="calls">
+<tr><th>#</th><th>call</th><th>arms</th><th>recommendation</th></tr>
+<tr><td>1</td><td>Pages</td><td>A · three pages Clusters · Markers · Conditions (the arc's plan) · B · two, Markers and Conditions, with the clustering a fixed given · C · three, but Conditions first</td><td>A — the lesson's order (cluster, annotate, compare), and each page has a lever that changes its result</td></tr>
+<tr><td>2</td><td>Clusters' failing case</td><td>A · a Zonation on/off control (on: the split follows the lobule; off: the same split follows nothing) · B · zonation always on, resolution alone</td><td>A — without it the page shows the resolution making more clusters and cannot show that a cluster can be a real state or an arbitrary cut</td></tr>
+<tr><td>3</td><td>The Markers page's point</td><td>A · significant is not specific: pct.1 against pct.2, grey rows significant and on in most other cells · B · the arc's "a p-value ranks markers wrongly"</td><td>A — B was struck by the measurement: every ranking puts 10 of 10 markers on top here</td></tr>
+<tr><td>4</td><td>Conditions' lever</td><td>A · the sample effect (what one preparation does) · B · the patient effect (the arc's) · C · both</td><td>A — a patient effect cancels when each patient gives cells to both arms (measured: nothing extra called); the sample effect is what the lesson's own GPC3 is</td></tr>
+<tr><td>5</td><td>Conditions' second test</td><td>A · a paired t on the two patients' summed counts, named as a test over patients · B · name it DESeq2 on pseudobulk and run widget 78's engine</td><td>A for the draft — with two patients no test over patients can call much, and saying so is the point; B is the field's method and could replace A once the page is agreed</td></tr>
+<tr><td>6</td><td>The map</td><td>A · the hexagon of slots 79 and 80, clusters found in the 20-PC graph (this mock) · B · a UMAP computed on the page</td><td>A — the same map as the two widgets before it, and a UMAP is a second method to explain (widget 22 has it)</td></tr>
+</table>`;
+</script>
+</body>
+</html>
