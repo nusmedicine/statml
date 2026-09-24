@@ -15,8 +15,8 @@
 import fs from "node:fs";
 import { makeRng } from "../core/rng.js";
 import { fuzzySet } from "../umap/model.js";
-import { simulate, normalise, pcaScaled } from "./cell-markers-engine.js";
-import { umapSgd } from "./cell-markers-umap.js";
+import { simulate, normalise, pcaScaled } from "../cell-markers/engine.js";
+import { umapSgd } from "../cell-markers/umap.js";
 
 const HERE = new URL(".", import.meta.url);
 const CASES = [{ per: 150, seed: 1 }, { per: 300, seed: 1 }];

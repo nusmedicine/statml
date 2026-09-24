@@ -10148,6 +10148,13 @@
       },
       "px": "88b0407b",
       "tx": "04bfd847"
+    },
+    {
+      "$note": "cell-markers · DRAFT placeholder, until the design is agreed",
+      "slug": "cell-markers",
+      "state": "?theme=light",
+      "px": "0",
+      "tx": "0"
     }
 ]
 }

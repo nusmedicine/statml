@@ -1,4 +1,4 @@
-/* _lab/cell-markers-umap.js — UMAP at a thousand cells, with umap-learn's own
+/* cell-markers/umap.js — UMAP at a thousand cells, with umap-learn's own
  * optimiser. For slot 81 (his pick: "a UMAP computed on the page").
  *
  * Widget 22's `umap/model.js` is exact full-batch: every pair pulls and

@@ -18,7 +18,7 @@ import fs from "node:fs";
 import { makeRng } from "../core/rng.js";
 import { umap } from "../umap/model.js";
 import { analyse } from "../deseq2/engine.js";
-import { simulate, normalise, pcaScaled, findMarkers, geneKind, G } from "./cell-markers-engine.js";
+import { simulate, normalise, pcaScaled, findMarkers, geneKind, G } from "../cell-markers/engine.js";
 
 const out = [];
 const say = (s) => { out.push(s); console.log(s); };

@@ -1,4 +1,4 @@
-/* _lab/cell-markers-engine.js — slot 81's stage and methods, one module for
+/* cell-markers/engine.js — slot 81's stage and methods, one module for
  * the measurement, the mock and (once picked) the widget.
  *
  * The stage is slots 79 and 80's: the same four samples (two patients ×
@@ -266,4 +266,41 @@ export function geneKind(g) {
   if (g < TYPES.length * G_MARK + G_HOUSE) return { kind: "house" };
   if (g >= G - G_ZONE) return { kind: "zone" };
   return { kind: "spread" };
+}
+
+/** One cell type only, `perSample` cells in each of the four samples: the
+    Conditions page's stage. The same profiles, patient and sample effects as
+    `simulate` draws, in the same order, so a type's cells here are what they
+    are there — only the other five types are not drawn. */
+export function simulateType(rng, typeKey, { perSample = 120, patientSd = 0.3, sampleSd = 0, phi = 0.3, depth = 1 } = {}) {
+  const P = profiles(rng);
+  const pat = [0, 1].map(() => Array.from({ length: G }, () => rng.normal(0, patientSd)));
+  const samp = SAMPLES.map(() => Array.from({ length: G }, () => rng.normal(0, sampleSd)));
+  const ti = TYPES.findIndex((t) => t.key === typeKey);
+  const out = [];
+  for (const [si, s] of SAMPLES.entries()) {
+    for (let i = 0; i < perSample; i += 1) {
+      const size = Math.exp(rng.normal(0, 0.35)) * depth * (s.depth / 5000);
+      const x = new Float64Array(G);
+      for (let g = 0; g < G; g += 1) {
+        const zg = g - (G - G_ZONE);
+        const lm = (zg >= 0 ? P[ti][g] - 1.5 : P[ti][g]) + pat[s.patient - 1][g] + samp[si][g];
+        x[g] = nbDraw(rng, size * Math.exp(lm), phi);
+      }
+      out.push({ sample: s.key, patient: s.patient, tissue: s.tissue, type: ti, z: null, x });
+    }
+  }
+  return out;
+}
+
+/* A gene's name on the page: the kind of gene it is on this stage and its
+   number within that kind. The stage is simulated, so no real gene symbol is
+   borrowed for it. */
+const TYPE_ABBR = ["Hep", "Tum", "Imm", "End", "Stel", "Kup"];
+export function geneName(g) {
+  const k = geneKind(g);
+  if (k.kind === "marker") return `${TYPE_ABBR[k.type]}${(g % G_MARK) + 1}`;
+  if (k.kind === "house") return `Common${g - TYPES.length * G_MARK + 1}`;
+  if (k.kind === "zone") { const zg = g - (G - G_ZONE); return zg < G_ZONE / 2 ? `Portal${zg + 1}` : `Central${zg - G_ZONE / 2 + 1}`; }
+  return `Gene${g - TYPES.length * G_MARK - G_HOUSE + 1}`;
 }

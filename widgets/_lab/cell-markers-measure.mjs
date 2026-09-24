@@ -17,7 +17,7 @@
  */
 import fs from "node:fs";
 import { makeRng } from "../core/rng.js";
-import { simulate, normalise, pcaScaled, knn, snn, findClusters, ari, findMarkers, geneKind, TYPES, G, G_MARK, G_HOUSE } from "./cell-markers-engine.js";
+import { simulate, normalise, pcaScaled, knn, snn, findClusters, ari, findMarkers, geneKind, TYPES, G, G_MARK, G_HOUSE } from "../cell-markers/engine.js";
 import { lgamma } from "../core/stats.js";
 
 const out = [];
