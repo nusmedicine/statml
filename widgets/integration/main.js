@@ -83,7 +83,7 @@ defineWidget({
     dataSec: { type: "section", label: "The data" },
     batch: {
       type: "segmented", label: "Batch variable",
-      detail: "the variable whose differences integration treats as technical and removes. Patient: two batches, each with liver and tumour samples. Tissue: liver samples against tumour samples, with tumour cells in the second batch only. Harmony, FastMNN and scVI correct by other mechanisms and also assume the batches share cell types",
+      detail: "the variable whose differences integration treats as technical and removes. Patient: two batches, each with liver and tumour samples. Tissue: liver samples against tumour samples, with tumour cells in the query batch only. Harmony, FastMNN and scVI correct by other mechanisms and also assume the batches share cell types",
       options: [{ value: "patient", label: "Patient" }, { value: "tissue", label: "Tissue" }],
       default: "patient",
     },
@@ -98,7 +98,7 @@ defineWidget({
       { token: "ink-1", label: `${key.labels[0]}: the reference batch, left unchanged`, mark: "dot" },
       { token: "ink-3", label: `${key.labels[1]}: the query batch, shifted onto the reference`, mark: "dot" },
       ...TYPES.map((t, i) => ({ token: `cluster-${"abcdef"[TYPE_SLOT[i]]}`, label: t.name, mark: "dot" })),
-      { token: "reference", label: "An anchor: a pair of cells, one from each batch; an even sample of them drawn", mark: "line" },
+      { token: "reference", label: "An anchor: a pair of cells, one from each batch; a sample of them drawn", mark: "line" },
       { token: "ink-1", label: "On the cell-type panel, an anchor between two different types", mark: "line" },
     ];
   },
