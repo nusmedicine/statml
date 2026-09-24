@@ -105,7 +105,7 @@ function clustersFor(seed, zonation, res) {
     p_val_adj < 0.05). */
 const cache2 = new Map();
 function markersFor(params, cl) {
-  const k = cl.k, tested = Math.min(Number(params.cluster), k - 1);
+  const k = cl.k, tested = Math.min(Number(params.cluster), k - 1);   // the list holds only clusters that exist; the min guards a URL typed by hand
   /* the comparison is ONE parameter, "rest" or a cluster's number, so a click
      on the map sets it the way the dropdown does (a region sets one parameter) */
   const vsRest = params.against === "rest";
@@ -174,6 +174,13 @@ function ibeta(x, a, b) {
   const bt = Math.exp(lgamma(a + b) - lgamma(a) - lgamma(b) + a * Math.log(x) + b * Math.log(1 - x));
   const cf = (x, a, b) => { let c = 1, d = 1 - ((a + b) * x) / (a + 1); if (Math.abs(d) < 1e-300) d = 1e-300; d = 1 / d; let h = d; for (let m = 1; m <= 300; m += 1) { const m2 = 2 * m; let aa = (m * (b - m) * x) / ((a - 1 + m2) * (a + m2)); d = 1 + aa * d; if (Math.abs(d) < 1e-300) d = 1e-300; c = 1 + aa / c; if (Math.abs(c) < 1e-300) c = 1e-300; d = 1 / d; h *= d * c; aa = (-(a + m) * (a + b + m) * x) / ((a + m2) * (a + 1 + m2)); d = 1 + aa * d; if (Math.abs(d) < 1e-300) d = 1e-300; c = 1 + aa / c; if (Math.abs(c) < 1e-300) c = 1e-300; d = 1 / d; const del = d * c; h *= del; if (Math.abs(del - 1) < 3e-12) break; } return h; };
   return x < (a + 1) / (a + b + 2) ? (bt * cf(x, a, b)) / a : 1 - (bt * cf(1 - x, b, a)) / b;
+}
+
+/** The clusters at the current seed, zonation and resolution, as options:
+    "Cluster 0 · Hepatocyte". The first 12 are offered, as the dot plot rows. */
+function clusterOptions(v) {
+  const cl = clustersFor(v.seed, v.zonation, v.res);
+  return cl.ann.slice(0, MAX_ROWS).map((a) => ({ value: String(a.c), label: `Cluster ${a.c} · ${TYPES[a.type].name}` }));
 }
 
 /* ------------------------------------------------------------ geometry (5.8) */
@@ -534,15 +541,24 @@ defineWidget({
       options: RESOLUTIONS.map((v) => ({ value: v, label: v })), default: "0.3", when: CELLS_PAGES,
     },
     markSec: { type: "section", label: "The comparison", when: ON("markers") },
+    /* THE LISTS ARE THE CLUSTERS THAT EXIST (his round: "why are there 11
+       clusters and 5 to compare?" — the controls were fixed at 0–11 while the
+       resolution found 6, and a missing number was quietly swapped for the
+       last). They are read from the same cached clustering the figure draws,
+       so the list and the figure cannot disagree; a value the new list no
+       longer holds returns to the default (core, `optionsFrom`). */
     cluster: {
-      type: "int", label: "Cluster tested", min: 0, max: MAX_ROWS - 1, default: 0,
-      detail: "clusters are numbered by size, 0 the largest; a row of the dot plot selects one too",
-      when: ON("markers"),
+      type: "select", label: "Cluster tested",
+      detail: "numbered by size, 0 the largest; a click on the map or the dot plot picks one too",
+      options: (v) => clusterOptions(v),
+      optionsFrom: ["seed", "zonation", "res"],
+      default: "0", when: ON("markers"),
     },
     against: {
       type: "select", label: "Compared against",
       detail: "all other cells, or one cluster; a click on the map picks one too",
-      options: [{ value: "rest", label: "All other cells" }, ...Array.from({ length: MAX_ROWS }, (_, c) => ({ value: String(c), label: `Cluster ${c}` }))],
+      options: (v) => [{ value: "rest", label: "All other cells" }, ...clusterOptions(v).filter((o) => o.value !== String(v.cluster))],
+      optionsFrom: ["seed", "zonation", "res", "cluster"],
       default: "rest", when: ON("markers"),
     },
     pick: {
@@ -615,10 +631,11 @@ defineWidget({
     /* core probes the table at load, before compute has run */
     if (params.page !== "markers" || !state) return [];
     const L = markersLayout(w);
-    const setFor = (c) => (params.pick === "against" ? { against: String(c) } : { cluster: c });
+    const setFor = (c) => (params.pick === "against" ? { against: String(c) } : { cluster: String(c) });
     return [
-      ...state.cl.ann.slice(0, MAX_ROWS).map((a, ri) => ({ x: 4, y: L.top + ri * L.rowH, w: L.x1 - 4, h: L.rowH, set: setFor(a.c), label: `cluster ${a.c}` })),
-      ...mapTiles(state, L).filter((t) => t.c < MAX_ROWS).map((t) => ({ x: t.x, y: t.y, w: t.w, h: t.h, set: setFor(t.c), label: `cluster ${t.c} on the map` })),
+      /* in comparison mode the tested cluster is not a comparison it can have */
+      ...state.cl.ann.slice(0, MAX_ROWS).filter((a) => !(params.pick === "against" && a.c === state.mk.tested)).map((a, ri) => ({ x: 4, y: L.top + state.cl.ann.indexOf(a) * L.rowH, w: L.x1 - 4, h: L.rowH, set: setFor(a.c), label: `cluster ${a.c}` })),
+      ...mapTiles(state, L).filter((t) => t.c < MAX_ROWS && !(params.pick === "against" && t.c === state.mk.tested)).map((t) => ({ x: t.x, y: t.y, w: t.w, h: t.h, set: setFor(t.c), label: `cluster ${t.c} on the map` })),
       ...markerChips(L).map((ch) => ({ x: ch.x, y: ch.y, w: ch.w, h: ch.h, set: ch.set, label: ch.label })),
     ];
   },
@@ -642,9 +659,9 @@ defineWidget({
     if (params.page === "markers") {
       const mk = state.mk, fm = mk.fm, tested = mk.tested;
       const up = fm.res.filter((x) => x.lfc > 0 && x.lpAdj < LOG05), broad = broadOf(mk);
-      const against = mk.vsRest ? `the other ${fm.n2} cells` : `cluster ${mk.otherC}'s ${fm.n2}${params.against !== String(mk.otherC) ? ` (cluster ${params.against} is the tested one or does not exist at this resolution)` : ""}`;
+      const against = mk.vsRest ? `the other ${fm.n2} cells` : `cluster ${mk.otherC}'s ${fm.n2}`;
       return [
-        { label: `Genes up in cluster ${tested} at p_val_adj < 0.05`, value: String(up.length), note: `${fm.n1} cells against ${against}${Number(params.cluster) > tested ? `; cluster ${params.cluster} does not exist at this resolution, so the last one is shown` : ""}` },
+        { label: `Genes up in cluster ${tested} at p_val_adj < 0.05`, value: String(up.length), note: `${fm.n1} cells against ${against}; ${state.cl.k} clusters at resolution ${params.res}` },
         params.markers === "conserved"
           ? { label: "Of those, up in both patients", value: String(up.filter((x) => mk.conserved.has(x.g)).length), note: "each patient tested separately, each at p_val_adj < 0.05" }
           : { label: "Of those, detected in more than half of the other group", value: String(broad.length), note: "significant, and not specific to the cluster" },
