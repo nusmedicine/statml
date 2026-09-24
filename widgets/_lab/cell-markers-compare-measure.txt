@@ -1,0 +1,25 @@
+C1 CONDITION WITH A REAL EFFECT — Kupffer cells, 120 a sample; 20 genes truly changed; three seeds each
+  change 0.5 log2, sample sd 0: over cells finds 3.0 of 20 and calls 0.0 unchanged genes; DESeq2 over samples finds 0.0 of 20 and calls 0.0
+  change 0.5 log2, sample sd 0.4: over cells finds 9.3 of 20 and calls 83.3 unchanged genes; DESeq2 over samples finds 0.0 of 20 and calls 0.0
+  change 1 log2, sample sd 0: over cells finds 15.0 of 20 and calls 0.0 unchanged genes; DESeq2 over samples finds 6.7 of 20 and calls 0.0
+  change 1 log2, sample sd 0.4: over cells finds 14.3 of 20 and calls 85.0 unchanged genes; DESeq2 over samples finds 0.0 of 20 and calls 0.0
+  change 2 log2, sample sd 0: over cells finds 20.0 of 20 and calls 0.0 unchanged genes; DESeq2 over samples finds 19.0 of 20 and calls 0.0
+  change 2 log2, sample sd 0.4: over cells finds 18.7 of 20 and calls 82.3 unchanged genes; DESeq2 over samples finds 13.7 of 20 and calls 1.3
+
+C2 CLUSTER AGAINST CLUSTER — true types, zonation 3; the top 10 genes up in hepatocytes by p
+  hepatocytes vs all other cells: 10 hepatocyte only
+  hepatocytes vs tumour cells:    10 hepatocyte only
+  the 10 genes hepatocytes share with tumour cells: vs rest median avg_log2FC 2.10, p 1e-112; vs tumour median avg_log2FC 0.76, 10 of 10 at p_val_adj < 0.05
+  periportal vs pericentral hepatocytes (by true position, z < 0.5): top 10 by p Central3 Portal14 Central9 Central1 Central5 Portal7 Portal3 Portal11 Central12 Central13; 30 genes at p_val_adj < 0.05, 30 of them zonation genes
+
+C3 DIFFERENTIAL ABUNDANCE — 400 cells a sample; each sample's mix varies around its tissue's by compSd; per type, liver against tumour
+  true shares, liver → tumour (79's mixes): Hepatocyte 60→4%, Tumour cell 1→50%, Immune cell 11→16%, Endothelial cell 16→14%, Stellate cell 6→7%, Kupffer cell 7→10%
+  compSd 0: called at p < 0.05 in 8 seeds — Hepatocyte 8/8, Tumour cell 8/0, Immune cell 7/0, Endothelial cell 2/0, Stellate cell 3/0, Kupffer cell 6/4  (over cells / over samples)
+  compSd 0.3: called at p < 0.05 in 8 seeds — Hepatocyte 8/7, Tumour cell 8/0, Immune cell 7/1, Endothelial cell 2/0, Stellate cell 3/1, Kupffer cell 6/0  (over cells / over samples)
+  compSd 0.6: called at p < 0.05 in 8 seeds — Hepatocyte 8/6, Tumour cell 8/1, Immune cell 6/1, Endothelial cell 5/0, Stellate cell 5/0, Kupffer cell 6/1  (over cells / over samples)
+
+C4 CONSERVED MARKERS — hepatocytes against all other cells; 10 genes raised in patient 1's hepatocytes only (interaction, log2)
+  interaction 1: pooled, 5 of the 10 patient-1-only genes at p_val_adj < 0.05 (0 in the top 20); conserved in both patients, 0; the hepatocyte markers conserved: 25 of 25
+  interaction 2: pooled, 7 of the 10 patient-1-only genes at p_val_adj < 0.05 (0 in the top 20); conserved in both patients, 0; the hepatocyte markers conserved: 25 of 25
+
+(4 s)

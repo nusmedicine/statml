@@ -20371,6 +20371,46 @@ hepatocyte-gradient |r| of 0.91–0.93 over five seeds against the library's
 1.00 and 0.87–0.94, in 216 ms at 600 cells and 559 ms at 1,200 (200
 epochs). Pick 6 stands: a UMAP computed on the page.
 
+#### His question at the draft, 2026-09-24: the other comparisons — MEASURED
+
+*"can we show how we compare and identify genes between samples (e.g.
+normal/tumor for same cell type) and between cell types? any other common
+comparisons?"* The comparisons a single-cell analysis commonly makes were
+set out (cluster vs all; cluster vs cluster; conserved markers; condition
+within a type; differential abundance; genes along a gradient) — the first
+three describe populations and use cells, the next two are claims about a
+condition and use samples. **He asked for four to be measured and mocked:
+a real condition effect, cluster against cluster, differential abundance and
+conserved markers.** The engine gained a real tumour change in
+`simulateType`, a per-sample composition spread (`compSd`) and a patient ×
+type interaction (`interaction`). `_lab/cell-markers-compare-measure.mjs`:
+
+- **A real condition effect (C1):** Kupffer cells, 20 genes truly changed.
+  With a sample effect of 0.4 the test over cells finds 14–19 of the 20 and
+  calls **82–85 of 210 unchanged genes** besides; DESeq2 over the four
+  samples finds 14 of 20 at a 2-log2 change with ~1 false call, and none at
+  1 log2. With no sample effect both are clean, and the test over cells has
+  more power (15 against 7 of 20 at 1 log2). The page can identify genes.
+- **Cluster against cluster (C2):** from the HEPATOCYTE side the top 10 are
+  the same against all cells and against tumour cells. From the TUMOUR side:
+  against all other cells, 5 of the 10 genes tumour cells share with
+  hepatocytes rank in its top 35 — tumour "markers" only because most cells
+  lack them; against hepatocytes they fall to avg_log2FC −0.73 and leave the
+  list. Periportal against pericentral hepatocytes: all 30 genes at
+  p_val_adj < 0.05 are zonation genes.
+- **Differential abundance (C3):** a logit t over two samples a side failed
+  on tumour cells (1% → 50%) in 8 of 8 seeds — 2% against 0.1% in the two
+  livers is a huge spread in logit. **The arcsine square root** (one of
+  propeller's transforms) calls hepatocytes and tumour cells in 8 of 8 at
+  compSd 0–0.3 and the small shifts in 0–1 of 8; the pooled chi-square over
+  cells calls immune (11 → 16%) in 7 of 8 and, at compSd 0.6, endothelial
+  (16 → 14%) in 5 of 8.
+- **Conserved markers (C4):** with 10 genes raised in patient 1's
+  hepatocytes only, 5–7 reach the pooled p_val_adj < 0.05 list (none in its
+  top 20) and 0 the conserved list (both patients, metap's minimump as
+  FindConservedMarkers uses by default); all 25 hepatocyte markers are
+  conserved.
+
 ### What in 08 is not a widget
 
 `01-1` downloads. `01-3` is ORA and GSEA, which 43 owns; `01-4` is

@@ -68,7 +68,7 @@ function poisson(rng, lam) {
 /** Four samples of `cells` cells. Pure given rng. `condition` is a true
     tumour-against-liver change on the Kupffer cells' first `conditionGenes`
     spread genes (log2 fold), zero by default. */
-export function simulate(rng, { cells = 400, patientSd = 0.3, sampleSd = 0, phi = 0.3, depth = 1, condition = 0, conditionGenes = 20, zonation = 0 } = {}) {
+export function simulate(rng, { cells = 400, patientSd = 0.3, sampleSd = 0, phi = 0.3, depth = 1, condition = 0, conditionGenes = 20, zonation = 0, compSd = 0, interaction = 0, interactionGenes = 10 } = {}) {
   const P = profiles(rng);
   const pat = [0, 1].map(() => Array.from({ length: G }, () => rng.normal(0, patientSd)));
   /* a SAMPLE's own effect, per gene: what one preparation does that the same
@@ -77,11 +77,16 @@ export function simulate(rng, { cells = 400, patientSd = 0.3, sampleSd = 0, phi 
      tumour-against-liver comparison it cancels; a sample's does not. */
   const samp = SAMPLES.map(() => Array.from({ length: G }, () => rng.normal(0, sampleSd)));
   const out = [];
+  /* each sample's own mix of types: its tissue's mix, every share moved by a
+     log-normal of sd `compSd` and renormalised — what two livers from two
+     people differ by, so a composition test has sample-to-sample noise */
+  const mixes = SAMPLES.map((s) => { const m = {}; for (const t of TYPES) m[t.key] = (s.mix[t.key] ?? 0) * Math.exp(rng.normal(0, compSd)); return m; });
   for (const [si, s] of SAMPLES.entries()) {
-    const tot = Object.values(s.mix).reduce((a, b) => a + b, 0);
+    const mix = mixes[si];
+    const tot = Object.values(mix).reduce((a, b) => a + b, 0);
     for (let i = 0; i < cells; i += 1) {
       const u = rng.next() * tot; let acc = 0, ti = 0;
-      for (let k = 0; k < TYPES.length; k += 1) { acc += s.mix[TYPES[k].key] ?? 0; if (u < acc) { ti = k; break; } }
+      for (let k = 0; k < TYPES.length; k += 1) { acc += mix[TYPES[k].key] ?? 0; if (u < acc) { ti = k; break; } }
       const size = Math.exp(rng.normal(0, 0.35)) * depth * (s.depth / 5000);
       /* a hepatocyte's place along the lobule, portal (0) to central (1): its
          zonation genes follow it, the periportal half falling and the
@@ -93,6 +98,10 @@ export function simulate(rng, { cells = 400, patientSd = 0.3, sampleSd = 0, phi 
         const zg = g - (G - G_ZONE);
         if (zg >= 0) lm = z === null ? P[ti][g] - 1.5 + pat[s.patient - 1][g] + samp[si][g] : lm + zonation * (zg < G_ZONE / 2 ? 0.5 - z : z - 0.5);
         if (condition && TYPES[ti].key === "kupffer" && s.tissue === "tumour" && g >= TYPES.length * G_MARK + G_HOUSE && g < TYPES.length * G_MARK + G_HOUSE + conditionGenes) lm += condition * Math.LN2;
+        /* a patient × type interaction: the first `interactionGenes` spread
+           genes raised in patient 1's hepatocytes only — a gene one person's
+           cells of a type carry and the other's do not */
+        if (interaction && ti === 0 && s.patient === 1 && g >= TYPES.length * G_MARK + G_HOUSE && g < TYPES.length * G_MARK + G_HOUSE + interactionGenes) lm += interaction * Math.LN2;
         x[g] = nbDraw(rng, size * Math.exp(lm), phi);
       }
       out.push({ sample: s.key, patient: s.patient, tissue: s.tissue, type: ti, z, x });
@@ -272,7 +281,7 @@ export function geneKind(g) {
     Conditions page's stage. The same profiles, patient and sample effects as
     `simulate` draws, in the same order, so a type's cells here are what they
     are there — only the other five types are not drawn. */
-export function simulateType(rng, typeKey, { perSample = 120, patientSd = 0.3, sampleSd = 0, phi = 0.3, depth = 1 } = {}) {
+export function simulateType(rng, typeKey, { perSample = 120, patientSd = 0.3, sampleSd = 0, phi = 0.3, depth = 1, condition = 0, conditionGenes = 20 } = {}) {
   const P = profiles(rng);
   const pat = [0, 1].map(() => Array.from({ length: G }, () => rng.normal(0, patientSd)));
   const samp = SAMPLES.map(() => Array.from({ length: G }, () => rng.normal(0, sampleSd)));
@@ -284,7 +293,11 @@ export function simulateType(rng, typeKey, { perSample = 120, patientSd = 0.3, s
       const x = new Float64Array(G);
       for (let g = 0; g < G; g += 1) {
         const zg = g - (G - G_ZONE);
-        const lm = (zg >= 0 ? P[ti][g] - 1.5 : P[ti][g]) + pat[s.patient - 1][g] + samp[si][g];
+        let lm = (zg >= 0 ? P[ti][g] - 1.5 : P[ti][g]) + pat[s.patient - 1][g] + samp[si][g];
+        /* a real tumour-against-liver change: the first `conditionGenes` spread
+           genes, up or down alternately by `condition` log2 */
+        const cg = g - (TYPES.length * G_MARK + G_HOUSE);
+        if (condition && s.tissue === "tumour" && cg >= 0 && cg < conditionGenes) lm += (cg % 2 ? -1 : 1) * condition * Math.LN2;
         x[g] = nbDraw(rng, size * Math.exp(lm), phi);
       }
       out.push({ sample: s.key, patient: s.patient, tissue: s.tissue, type: ti, z: null, x });
@@ -304,3 +317,6 @@ export function geneName(g) {
   if (k.kind === "zone") { const zg = g - (G - G_ZONE); return zg < G_ZONE / 2 ? `Portal${zg + 1}` : `Central${zg - G_ZONE / 2 + 1}`; }
   return `Gene${g - TYPES.length * G_MARK - G_HOUSE + 1}`;
 }
+
+/** the spread genes that truly change in simulateType's tumour samples */
+export const isConditionGene = (g, conditionGenes = 20) => { const cg = g - (TYPES.length * G_MARK + G_HOUSE); return cg >= 0 && cg < conditionGenes; };
