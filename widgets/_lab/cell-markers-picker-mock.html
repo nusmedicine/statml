@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · cell-markers — choosing the two clusters, three ways</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1240px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 104ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  .row { display: grid; grid-template-columns: 300px 1fr; gap: var(--sp-4); align-items: start; }
+  .rail { background: var(--surface-1); border: 1px solid var(--grid); border-radius: var(--radius); padding: var(--sp-3) var(--sp-4); font-size: var(--fs-sm); color: var(--ink-2); }
+  .rail .lbl { font-size: var(--fs-xs); color: var(--ink-2); margin: var(--sp-2) 0 4px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+  .grid button { font: inherit; font-size: var(--fs-xs); padding: 6px 6px; border: 1px solid var(--grid); background: var(--surface-2); color: var(--ink-2); border-radius: var(--radius); cursor: pointer; text-align: left; }
+  .grid button[aria-pressed=true] { background: var(--ink-1); color: var(--surface-1); border-color: var(--ink-1); }
+  .grid button span { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; vertical-align: -1px; }
+  .grid button.full { grid-column: 1 / -1; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); border-radius: var(--radius); cursor: pointer; }
+  .out { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; font-family: var(--font-mono); }
+  table.calls { border-collapse: collapse; font-size: var(--fs-sm); width: 100%; }
+  table.calls td, table.calls th { border-top: 1px solid var(--grid); padding: 6px 8px; vertical-align: top; text-align: left; }
+  table.calls th { color: var(--ink-3); font-weight: normal; font-size: var(--fs-xs); }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>cell-markers · Two clusters: choosing the comparator and the baseline</h1>
+  <p class="note">The draft has three ways to set the same two values (the rail's dropdowns, the rail's "A click sets" switch, and the chips beside the map), and a map whose clusters are small grey blobs with numbers. Below, three ways with one control per value, on the widget's own cells (seed 1, resolution 0.3). In each, <b>a cluster is drawn as a shaded region around its cells, named by its cell type</b>, and the region is what a click lands on. Every one of them is clickable here. <b>The rail stays in each</b> — the collection keeps a rail control for anything the canvas sets, as the keyboard and screen-reader route (principle: "keep the control") — but as one control per value, named by type.</p>
+
+  <h2>A · Two maps: one for the comparator, one for the baseline</h2>
+  <p class="note">Each map sets one thing, so no switch says what a click does. The baseline map has "All other cells" as a target under it. The rail shrinks to the same two choices as a list of type-named buttons (or could collapse under a disclosure).</p>
+  <div class="row"><div class="rail" id="railA"></div><div><canvas id="cA"></canvas><div class="out" id="oA"></div></div></div>
+
+  <h2>B · One map for the comparator, a row of buttons for the baseline</h2>
+  <p class="note">Clicking the map sets the comparator. The baseline is a row under the map: "All other cells" and each cluster by name. One large map; the second choice is the smaller one, so it takes the smaller control.</p>
+  <div class="row"><div class="rail" id="railB"></div><div><canvas id="cB"></canvas><div class="out" id="oB"></div></div></div>
+
+  <h2>C · Buttons in the rail; the map shows the choice</h2>
+  <p class="note">Two rows of type-named buttons in the rail, and the map only shows what they chose (comparator filled, baseline outlined). The simplest to use and to read; nothing on the canvas is clicked (clicking still works as a shortcut, here, for comparison).</p>
+  <div class="row"><div class="rail" id="railC"></div><div><canvas id="cC"></canvas><div class="out" id="oC"></div></div></div>
+
+  <h2>The calls</h2>
+  <table class="calls">
+    <tr><th>#</th><th>call</th><th>arms</th><th>recommendation</th></tr>
+    <tr><td>1</td><td>How the two clusters are chosen</td><td>A · two maps · B · one map and a baseline row · C · rail buttons, the map shows</td><td>A — each map does one thing, so no switch or instruction is needed, and the choice is made where the clusters are seen; the rail keeps the same two choices as named buttons</td></tr>
+    <tr><td>2</td><td>The same regions and names on the other pages</td><td>yes · Clusters and Tumour vs liver draw their maps the same way · no</td><td>yes — the Tumour vs liver map has the same small-blob problem</td></tr>
+  </table>
+</main>
+<script type="module">
+import { makeRng } from "../core/rng.js";
+import { simulate, normalise, pcaScaled, knn, snn, findClusters, TYPES } from "../cell-markers/engine.js";
+import { umapSgd } from "../cell-markers/umap.js";
+const css = getComputedStyle(document.documentElement), C = (n) => css.getPropertyValue(n).trim();
+const FONT = C("--font"), dpr = window.devicePixelRatio || 1;
+const HUE = ["a", "c", "b", "d", "e", "f"].map((k) => C(`--c-cluster-${k}`));
+const derived = (seed, salt) => (seed * 7919 + salt) % 2147483647;
+
+/* the widget's own pipeline at seed 1, resolution 0.3 */
+const seed = 1;
+const cells = simulate(makeRng(derived(seed, 1)), { cells: 300, patientSd: 0.3, sampleSd: 0, condition: 0, conditionTypes: TYPES.map((t) => t.key), integrated: true });
+const P = pcaScaled(normalise(cells.map((c) => ({ x: c.xi }))), 20, makeRng(derived(seed, 2)));
+const r = findClusters(snn(knn(P, 20)), 0.3, makeRng(derived(seed, 4)));
+const { Y: U } = umapSgd(P, { nEpochs: 200, rng: makeRng(derived(seed, 3)) });
+const K = r.k;
+const ann = Array.from({ length: K }, (_, c) => {
+  const idx = r.clusters.map((v, i) => (v === c ? i : -1)).filter((i) => i >= 0);
+  const t = new Array(6).fill(0); idx.forEach((i) => { t[cells[i].type] += 1; });
+  return { c, idx, n: idx.length, type: t.indexOf(Math.max(...t)) };
+});
+const name = (a) => TYPES[a.type].name;
+
+/* a map in a box: cells, and each cluster as a shaded disc around them with its name */
+function makeMap(M) {
+  let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+  U.forEach(([x, y]) => { x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); });
+  const half = (Math.max(x1 - x0, y1 - y0) / 2) * 1.25, mx = (x0 + x1) / 2, my = (y0 + y1) / 2;
+  const at = (p) => [M.x + M.S / 2 + ((p[0] - mx) / half) * (M.S / 2), M.y + M.S / 2 - ((p[1] - my) / half) * (M.S / 2)];
+  const discs = ann.map((a) => {
+    const pts = a.idx.map((i) => at(U[i]));
+    const cx = pts.reduce((s, q) => s + q[0], 0) / pts.length, cy = pts.reduce((s, q) => s + q[1], 0) / pts.length;
+    const ds = pts.map((q) => Math.hypot(q[0] - cx, q[1] - cy)).sort((p, q) => p - q);
+    return { a, cx, cy, r: Math.max(M.S * 0.075, ds[Math.floor(0.95 * ds.length)] * 1.35 + 6), pts };
+  });
+  return { M, discs };
+}
+function drawMap(ctx, map, { comp, base, dim = false, title }) {
+  const { M, discs } = map;
+  ctx.font = `600 13px ${FONT}`; ctx.fillStyle = C("--ink-1"); ctx.textAlign = "left"; ctx.fillText(title, M.x, M.y - 8);
+  ctx.strokeStyle = C("--grid"); ctx.lineWidth = 1; ctx.strokeRect(M.x + 0.5, M.y + 0.5, M.S - 1, M.S - 1);
+  discs.forEach((d) => {
+    const isC = d.a.c === comp, isB = d.a.c === base, on = isC || isB || base === "rest";
+    ctx.fillStyle = HUE[d.a.type]; ctx.globalAlpha = isC ? 0.3 : isB ? 0.2 : dim ? 0.06 : 0.12;
+    ctx.beginPath(); ctx.arc(d.cx, d.cy, d.r, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
+    if (isC) { ctx.strokeStyle = C("--ink-1"); ctx.lineWidth = 2.5; ctx.stroke(); }
+    if (isB) { ctx.strokeStyle = C("--ink-1"); ctx.lineWidth = 1.5; ctx.setLineDash([5, 4]); ctx.stroke(); ctx.setLineDash([]); }
+    ctx.fillStyle = HUE[d.a.type]; ctx.globalAlpha = on || !dim ? 0.9 : 0.35;
+    d.pts.forEach((q) => { ctx.beginPath(); ctx.arc(q[0], q[1], 1.8, 0, Math.PI * 2); ctx.fill(); });
+    ctx.globalAlpha = 1;
+    ctx.font = `${isC || isB ? "600 " : ""}12px ${FONT}`; ctx.textAlign = "center"; ctx.fillStyle = C("--ink-1");
+    const ly = d.cy + d.r + 14 > M.y + M.S - 4 ? d.cy - d.r - 6 : d.cy + d.r + 14;
+    ctx.fillText(`${name(d.a)} · ${d.a.c}`, d.cx, ly);
+  });
+  ctx.textAlign = "left";
+}
+const hit = (map, x, y) => { let best = null, bd = Infinity; map.discs.forEach((d) => { const dd = Math.hypot(x - d.cx, y - d.cy) / d.r; if (dd < 1 && dd < bd) { bd = dd; best = d.a.c; } }); return best; };
+function canvas(id, W, H) { const cv = document.getElementById(id); cv.width = W * dpr; cv.height = H * dpr; cv.style.width = W + "px"; cv.style.height = H + "px"; const ctx = cv.getContext("2d"); ctx.scale(dpr, dpr); return { cv, ctx }; }
+const local = (cv, ev) => { const b = cv.getBoundingClientRect(); return [ev.clientX - b.left, ev.clientY - b.top]; };
+function railHTML(state, which) {
+  const btn = (key, v, label, hue, full) => `<button data-k="${key}" data-v="${v}" aria-pressed="${String(state[key]) === String(v)}" class="${full ? "full" : ""}">${hue ? `<span style="background:${hue}"></span>` : ""}${label}</button>`;
+  return `<div class="lbl">Comparator: the cluster whose markers are found (ident.1)</div><div class="grid">${ann.map((a) => btn("comp", a.c, `${name(a)} · ${a.c}`, HUE[a.type])).join("")}</div>
+  <div class="lbl">Baseline: what it is measured against (ident.2)</div><div class="grid">${btn("base", "rest", "All other cells", null, true)}${ann.filter((a) => a.c !== state.comp).map((a) => btn("base", a.c, `${name(a)} · ${a.c}`, HUE[a.type])).join("")}</div>`;
+}
+function wireRail(el, state, redraw) {
+  el.innerHTML = railHTML(state);
+  el.onclick = (e) => { const b = e.target.closest("button"); if (!b) return; state[b.dataset.k] = b.dataset.v === "rest" ? "rest" : Number(b.dataset.v); if (state.base === state.comp) state.base = "rest"; redraw(); };
+}
+const say = (id, s) => { document.getElementById(id).textContent = `comparator: ${name(ann[s.comp])} · ${s.comp}   baseline: ${s.base === "rest" ? "all other cells" : `${name(ann[s.base])} · ${s.base}`}`; };
+
+/* A · two maps */
+{
+  const state = { comp: ann.findIndex((a) => TYPES[a.type].key === "kupffer"), base: "rest" };
+  const S = 400, W = 2 * S + 40, H = S + 84, { cv, ctx } = canvas("cA", W, H);
+  const mapC = makeMap({ x: 10, y: 24, S }), mapB = makeMap({ x: S + 30, y: 24, S });
+  const restBtn = { x: S + 30, y: 24 + S + 14, w: S, h: 34 };
+  const draw = () => {
+    ctx.clearRect(0, 0, W, H);
+    drawMap(ctx, mapC, { comp: state.comp, base: -1, title: "Comparator: click a cluster" });
+    drawMap(ctx, mapB, { comp: -1, base: state.base, dim: true, title: "Baseline: click a cluster, or all other cells" });
+    /* the comparator shown faintly hatched on the baseline map, and not clickable there */
+    const dC = mapB.discs.find((d) => d.a.c === state.comp); ctx.strokeStyle = C("--ink-3"); ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(dC.cx, dC.cy, dC.r, 0, Math.PI * 2); ctx.stroke();
+    ctx.fillStyle = state.base === "rest" ? C("--ink-1") : C("--surface-2"); ctx.fillRect(restBtn.x, restBtn.y, restBtn.w, restBtn.h);
+    ctx.strokeStyle = C("--grid"); ctx.strokeRect(restBtn.x + 0.5, restBtn.y + 0.5, restBtn.w - 1, restBtn.h - 1);
+    ctx.fillStyle = state.base === "rest" ? C("--surface-1") : C("--ink-2"); ctx.font = `13px ${FONT}`; ctx.textAlign = "center"; ctx.fillText("All other cells", restBtn.x + restBtn.w / 2, restBtn.y + 22); ctx.textAlign = "left";
+    wireRail(document.getElementById("railA"), state, draw); say("oA", state);
+  };
+  cv.onclick = (e) => {
+    const [x, y] = local(cv, e);
+    if (x >= restBtn.x && x < restBtn.x + restBtn.w && y >= restBtn.y && y < restBtn.y + restBtn.h) state.base = "rest";
+    else { const c1 = hit(mapC, x, y), c2 = hit(mapB, x, y); if (c1 !== null) { state.comp = c1; if (state.base === c1) state.base = "rest"; } else if (c2 !== null && c2 !== state.comp) state.base = c2; }
+    draw();
+  };
+  draw();
+}
+
+/* B · one map, a baseline row */
+{
+  const state = { comp: ann.findIndex((a) => TYPES[a.type].key === "kupffer"), base: "rest" };
+  const S = 480, W = S + 20, H = S + 120, { cv, ctx } = canvas("cB", W, H);
+  const map = makeMap({ x: 10, y: 24, S });
+  const chips = () => { const opts = [{ v: "rest", label: "All other cells" }, ...ann.filter((a) => a.c !== state.comp).map((a) => ({ v: a.c, label: `${name(a)} · ${a.c}`, hue: HUE[a.type] }))]; const cw = (S - 8 * 3) / 4; return opts.map((o, j) => ({ ...o, x: 10 + (j % 4) * (cw + 8), y: 24 + S + 34 + Math.floor(j / 4) * 30, w: cw, h: 24 })); };
+  const draw = () => {
+    ctx.clearRect(0, 0, W, H);
+    drawMap(ctx, map, { comp: state.comp, base: state.base, dim: state.base !== "rest", title: "Comparator: click a cluster" });
+    ctx.font = `600 13px ${FONT}`; ctx.fillStyle = C("--ink-1"); ctx.fillText("Baseline", 10, 24 + S + 24);
+    chips().forEach((ch) => {
+      const on = String(state.base) === String(ch.v);
+      ctx.fillStyle = on ? C("--ink-1") : C("--surface-2"); ctx.fillRect(ch.x, ch.y, ch.w, ch.h);
+      ctx.strokeStyle = C("--grid"); ctx.strokeRect(ch.x + 0.5, ch.y + 0.5, ch.w - 1, ch.h - 1);
+      if (ch.hue) { ctx.fillStyle = ch.hue; ctx.beginPath(); ctx.arc(ch.x + 10, ch.y + 12, 4, 0, Math.PI * 2); ctx.fill(); }
+      ctx.fillStyle = on ? C("--surface-1") : C("--ink-2"); ctx.font = `11px ${FONT}`; ctx.fillText(ch.label, ch.x + (ch.hue ? 18 : 8), ch.y + 16);
+    });
+    wireRail(document.getElementById("railB"), state, draw); say("oB", state);
+  };
+  cv.onclick = (e) => {
+    const [x, y] = local(cv, e);
+    const ch = chips().find((q) => x >= q.x && x < q.x + q.w && y >= q.y && y < q.y + q.h);
+    if (ch) state.base = ch.v; else { const c = hit(map, x, y); if (c !== null) { state.comp = c; if (state.base === c) state.base = "rest"; } }
+    draw();
+  };
+  draw();
+}
+
+/* C · rail buttons; the map shows */
+{
+  const state = { comp: ann.findIndex((a) => TYPES[a.type].key === "kupffer"), base: "rest" };
+  const S = 480, W = S + 20, H = S + 40, { cv, ctx } = canvas("cC", W, H);
+  const map = makeMap({ x: 10, y: 24, S });
+  const draw = () => {
+    ctx.clearRect(0, 0, W, H);
+    drawMap(ctx, map, { comp: state.comp, base: state.base, dim: state.base !== "rest", title: "The comparator (solid ring) and the baseline (dashed)" });
+    wireRail(document.getElementById("railC"), state, draw); say("oC", state);
+  };
+  cv.onclick = (e) => { const [x, y] = local(cv, e); const c = hit(map, x, y); if (c !== null) { state.comp = c; if (state.base === c) state.base = "rest"; } draw(); };
+  draw();
+}
+</script>
+</body>
+</html>
