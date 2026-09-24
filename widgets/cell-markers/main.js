@@ -55,7 +55,7 @@ const PAGES = [
 ];
 const ON = (page) => ({ param: "page", equals: page });
 const CELL_PAGES = { param: "page", oneOf: ["clusters", "two-clusters", "tumour-liver"] };
-const HEIGHTS = { clusters: 760, "two-clusters": 770, "tumour-liver": 600, composition: 380 };
+const HEIGHTS = { "two-clusters": 770, "tumour-liver": 600, composition: 380 };
 const RESOLUTIONS = ["0.1", "0.3", "0.5", "0.8", "1.2", "2"];
 const SAMPLE_SD = ["0", "0.1", "0.2", "0.4", "0.65"];
 const PATIENT_SD = ["0", "0.3", "0.65"];
@@ -113,7 +113,7 @@ function embedFor(seed) {
     const P = pcaScaled(Yi, 20, makeRng(derived(seed, 2)));
     const adj = snn(knn(P, 20));
     const { Y: U } = umapSgd(P, { nEpochs: 200, rng: makeRng(derived(seed, 3)) });
-    return { adj, U };
+    return { adj, U, types: cells.map((c) => c.type) };
   });
 }
 /** The clusters at a resolution, each named by the type most of its cells
@@ -195,7 +195,17 @@ function geneView(params, C, S) {
   const vals = ORDER.map((k) => C.a.idx.filter((i) => S.cells[i].sample === k).map((i) => S.Y[i][g]));
   const pb = ORDER.map((_, j) => Math.log1p((C.counts[g][j] / C.tot[j]) * 1e4));
   const r = C.an.resMAP[g], exp = C.an.expressed.includes(g);
-  return { g, vals, pb, truth: C.truthOf(g), cells: C.byG.get(g), deseq: exp ? { p: r.p, padj: r.padj } : null };
+  /* each tissue's mean and SE, over its cells and over its two samples. The
+     samples' SE is not the two sums' own spread — two points give an SE from
+     0.008 to 0.7 for the same kind of gene (measured over six seeds) — but
+     the spread DESeq2 tests with: its dispersion, shrunk toward the trend
+     across genes, as √((1/μ + α)/2) on the log scale, 2–3 times the cells' */
+  const cellStat = (v) => { const m = v.reduce((a, b) => a + b, 0) / v.length; return { m, se: Math.sqrt(v.reduce((a, b) => a + (b - m) ** 2, 0) / Math.max(1, v.length - 1) / v.length) }; };
+  const tissues = [0, 1].map((ti) => {
+    const j0 = 2 * ti, j1 = j0 + 1, mu = (C.counts[g][j0] / C.an.sf[j0] + C.counts[g][j1] / C.an.sf[j1]) / 2;
+    return { cells: cellStat([...vals[j0], ...vals[j1]]), samples: { m: (pb[j0] + pb[j1]) / 2, se: Math.sqrt((1 / Math.max(mu, 1e-9) + C.an.alphaMAP[g]) / 2) } };
+  });
+  return { g, vals, pb, tissues, truth: C.truthOf(g), cells: C.byG.get(g), deseq: exp ? { p: r.p, padj: r.padj } : null };
 }
 
 /* each sample's share of each type, and a test per type of liver against
@@ -244,11 +254,15 @@ function mapView(U, M, margin = 1.06) {
    cluster's cells and reaches past 95% of them, never smaller than a fixed
    share of the map, so every cluster is a target of a readable size. */
 const discCache = new WeakMap();
-function discsFor(state, M) {
-  const key = `${M.x},${M.y},${M.S}`, per = discCache.get(state) ?? new Map();
+function groupsOf(state, by) {
+  if (by !== "type") return state.cl.ann;
+  return TYPES.map((_, ti) => ({ c: ti, type: ti, idx: state.embed.types.flatMap((t, i) => (t === ti ? [i] : [])) })).filter((a) => a.idx.length);
+}
+function discsFor(state, M, by = "cluster") {
+  const key = `${M.x},${M.y},${M.S},${by}`, per = discCache.get(state) ?? new Map();
   if (per.has(key)) return per.get(key);
   const at = mapView(state.embed.U, M, 1.25);
-  const discs = state.cl.ann.map((a) => {
+  const discs = groupsOf(state, by).map((a) => {
     const pts = a.idx.map((i) => at(state.embed.U[i]));
     const cx = pts.reduce((s, q) => s + q[0], 0) / pts.length, cy = pts.reduce((s, q) => s + q[1], 0) / pts.length;
     const ds = pts.map((q) => Math.hypot(q[0] - cx, q[1] - cy)).sort((p, q) => p - q);
@@ -273,9 +287,14 @@ function discTiles(state, M) {
   per.set(key, tiles); tileCache.set(state, per);
   return tiles;
 }
+/* the dot plot sits under the widest maps (340) with room for its rotated
+   gene names; the page is as tall as its rows, whatever the width (a height
+   that reads the width is what left widget 62's harness NEVER SETTLED) */
+const DOT_TOP = TOP + 340 + 80;
+const clustersHeight = (params) => DOT_TOP + Math.min(MAX_ROWS, clustersFor(params.seed, params.res).k) * 22 + 16;
 function clustersLayout(w) {
   const S = Math.min(340, Math.floor((w - 24) / 2)), x0 = Math.floor((w - (2 * S + 24)) / 2);
-  return { maps: [{ x: x0, y: TOP, S }, { x: x0 + S + 24, y: TOP, S }], dotTop: TOP + 340 + 96, rowH: 22, labelW: 150 };
+  return { maps: [{ x: x0, y: TOP, S }, { x: x0 + S + 24, y: TOP, S }], dotTop: DOT_TOP, rowH: 22, labelW: 150 };
 }
 /* Two clusters: the comparator's map and the baseline's, side by side, and
    "All other cells" under the baseline's (his pick A from the picker mock:
@@ -304,66 +323,41 @@ function heading(ctx, colors, text, x, y) {
   ctx.font = `600 ${colors.fsSm} ${colors.font}`; ctx.fillStyle = colors.ink1; ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
   ctx.fillText(text, x, y);
 }
-function centroid(state, a) {
-  const U = state.embed.U;
-  return [a.idx.reduce((s, i) => s + U[i][0], 0) / a.n, a.idx.reduce((s, i) => s + U[i][1], 0) / a.n];
-}
-/** The map: `style(a, c)` returns { col, alpha } for a cell of cluster a;
-    numbered badges at each cluster's centre, filled for `filled`, outlined
-    for `outlined`; or the type names, for the map coloured by type. */
-function drawMap(ctx, colors, state, M, style, { filled = -1, outlined = -1, typeLabels = false } = {}) {
-  const at = mapView(state.embed.U, M), cl = state.cl;
-  ctx.strokeStyle = colors.grid; ctx.lineWidth = 1; ctx.strokeRect(M.x + 0.5, M.y + 0.5, M.S - 1, M.S - 1);
-  state.stage.cells.forEach((c, i) => {
-    const s = style(cl.ann[cl.clusters[i]], c);
-    const q = at(state.embed.U[i]);
-    ctx.fillStyle = s.col; ctx.globalAlpha = s.alpha;
-    ctx.beginPath(); ctx.arc(q[0], q[1], 2.3, 0, Math.PI * 2); ctx.fill();
-  });
-  ctx.globalAlpha = 1; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-  if (typeLabels) {
-    ctx.font = `${colors.fsXs} ${colors.font}`;
-    TYPES.forEach((t, ti) => {
-      const idx = state.stage.cells.map((c, i) => (c.type === ti ? i : -1)).filter((i) => i >= 0);
-      if (!idx.length) return;
-      const q = at([idx.reduce((s, i) => s + state.embed.U[i][0], 0) / idx.length, idx.reduce((s, i) => s + state.embed.U[i][1], 0) / idx.length]);
-      const tw = ctx.measureText(t.name).width;
-      /* kept inside the box, as the disc maps' names */
-      const lx = Math.max(M.x + tw / 2 + 4, Math.min(M.x + M.S - tw / 2 - 4, q[0]));
-      ctx.fillStyle = colors.surface; ctx.globalAlpha = 0.85; ctx.fillRect(lx - tw / 2 - 3, q[1] - 8, tw + 6, 16); ctx.globalAlpha = 1;
-      ctx.fillStyle = colors.ink1; ctx.fillText(t.name, lx, q[1] + 1);
-    });
-  } else {
-    ctx.font = `600 ${colors.fsXs} ${colors.mono}`;
-    cl.ann.forEach((a) => {
-      const q = at(centroid(state, a)), isF = a.c === filled, isO = a.c === outlined;
-      ctx.fillStyle = isF ? colors.ink1 : colors.surface; ctx.globalAlpha = isF || isO ? 1 : 0.85; ctx.fillRect(q[0] - 9, q[1] - 8, 18, 16); ctx.globalAlpha = 1;
-      if (isO) { ctx.strokeStyle = colors.ink1; ctx.lineWidth = 1.5; ctx.strokeRect(q[0] - 9, q[1] - 8, 18, 16); }
-      ctx.fillStyle = isF ? colors.surface : colors.ink1; ctx.fillText(String(a.c), q[0], q[1] + 1);
-    });
-  }
-  ctx.textBaseline = "alphabetic"; ctx.textAlign = "left";
-}
 const hueOf = (colors, type) => colors.clusters[TYPE_SLOT[type]];
 /** A map of named, shaded discs. `solid` gets a solid ring, `dashed` a dashed
     one; `muted(a)` fades a disc (on a map where it cannot be picked). */
-function drawDiscMap(ctx, colors, state, M, { solid = -1, dashed = -1, muted = () => false, title = null } = {}) {
+function drawDiscMap(ctx, colors, state, M, { solid = -1, dashed = -1, muted = () => false, title = null, name = (a) => `${TYPES[a.type].name} · ${a.c}`, by = "cluster" } = {}) {
   if (title) heading(ctx, colors, title, M.x, M.y - 9);
   ctx.strokeStyle = colors.grid; ctx.lineWidth = 1; ctx.strokeRect(M.x + 0.5, M.y + 0.5, M.S - 1, M.S - 1);
-  const discs = discsFor(state, M);
+  const discs = discsFor(state, M, by);
   discs.forEach((d) => {
     const isS = d.a.c === solid, isD = d.a.c === dashed, off = muted(d.a);
     ctx.fillStyle = hueOf(colors, d.a.type); ctx.globalAlpha = isS ? 0.3 : isD ? 0.22 : off ? 0.04 : 0.12;
     ctx.beginPath(); ctx.arc(d.cx, d.cy, d.r, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
     if (isS) { ctx.strokeStyle = colors.ink1; ctx.lineWidth = 2.5; ctx.stroke(); }
     if (isD) { ctx.strokeStyle = colors.ink1; ctx.lineWidth = 1.5; ctx.setLineDash([5, 4]); ctx.stroke(); ctx.setLineDash([]); }
-    ctx.fillStyle = hueOf(colors, d.a.type); ctx.globalAlpha = off ? 0.25 : 0.9;
+    /* a type split over clusters: its clusters lighter to darker, as the dot plot's swatches */
+    ctx.fillStyle = hueOf(colors, d.a.type); ctx.globalAlpha = off ? 0.25 : (d.a.alpha ?? 0.9);
     d.pts.forEach((q) => { ctx.beginPath(); ctx.arc(q[0], q[1], 1.8, 0, Math.PI * 2); ctx.fill(); });
     ctx.globalAlpha = 1;
+  });
+  /* THE NAMES, AFTER EVERY DISC, so no disc paints over a name. Each takes
+     the first place, below its disc, then above, then beside, that is inside
+     the box and clear of the names already placed; neighbouring clusters
+     printed their names into each other (Immune cell · 3 and Stellate
+     cell · 5, seed 1). Kept inside the box horizontally, as before. */
+  const placed = [];
+  discs.forEach((d) => {
+    const isS = d.a.c === solid, isD = d.a.c === dashed, off = muted(d.a);
     ctx.font = `${isS || isD ? "600 " : ""}${colors.fsXs} ${colors.font}`; ctx.textAlign = "center"; ctx.fillStyle = off ? colors.ink3 : colors.ink1;
-    const below = d.cy + d.r + 14 <= M.y + M.S - 4, text = `${TYPES[d.a.type].name} · ${d.a.c}`, half = ctx.measureText(text).width / 2;
-    /* kept inside the box: a disc near the edge would print its name past it */
-    ctx.fillText(text, Math.max(M.x + half + 3, Math.min(M.x + M.S - half - 3, d.cx)), below ? d.cy + d.r + 14 : d.cy - d.r - 6);
+    const text = name(d.a), half = ctx.measureText(text).width / 2, clampX = (x) => Math.max(M.x + half + 3, Math.min(M.x + M.S - half - 3, x));
+    const spots = [[d.cx, d.cy + d.r + 14], [d.cx, d.cy - d.r - 6], [d.cx + d.r + half + 4, d.cy + 4], [d.cx - d.r - half - 4, d.cy + 4]].map(([x, y]) => [clampX(x), y]);
+    const box = ([x, y]) => ({ x0: x - half - 2, x1: x + half + 2, y0: y - 12, y1: y + 3 });
+    const inside = (b) => b.y0 >= M.y + 2 && b.y1 <= M.y + M.S - 2;
+    const clear = (b) => placed.every((q) => b.x1 < q.x0 || b.x0 > q.x1 || b.y1 < q.y0 || b.y0 > q.y1);
+    const at = spots.find((p) => inside(box(p)) && clear(box(p))) ?? spots.find((p) => inside(box(p))) ?? spots[0];
+    placed.push(box(at));
+    ctx.fillText(text, at[0], at[1]);
   });
   ctx.textAlign = "left";
 }
@@ -372,13 +366,13 @@ function drawClusters(ctx, colors, w, params, state) {
   const L = clustersLayout(w), cl = state.cl;
   heading(ctx, colors, `Coloured by cluster, resolution ${params.res}: ${cl.k} clusters`, L.maps[0].x, TOP - 9);
   heading(ctx, colors, "Coloured by cell type", L.maps[1].x, TOP - 9);
-  drawDiscMap(ctx, colors, state, L.maps[0]);
-  drawMap(ctx, colors, state, L.maps[1], (a, c) => ({ col: hueOf(colors, c.type), alpha: 0.85 }), { typeLabels: true });
+  /* numbers only: the map beside it names the types (his round) */
+  drawDiscMap(ctx, colors, state, L.maps[0], { name: (a) => `Cluster ${a.c}` });
+  drawDiscMap(ctx, colors, state, L.maps[1], { by: "type", name: (a) => TYPES[a.type].name });
   /* the dot plot of each type's markers: how each cluster is named */
   const genes = []; TYPES.forEach((_, t) => { for (let j = 0; j < 3; j += 1) genes.push(t * G_MARK + j); });
-  genes.push(TYPES.length * G_MARK);
   const x0 = L.labelW, x1 = w - 56, cw = Math.min(30, (x1 - x0) / genes.length), top = L.dotTop;
-  heading(ctx, colors, "Canonical markers of each type, by cluster: how each cluster is annotated", 8, top - 62);
+  heading(ctx, colors, "Canonical markers of each type, by cluster: how each cluster is annotated", 8, top - 58);
   ctx.font = `${colors.fsXs} ${colors.mono}`;
   genes.forEach((g, j) => {
     ctx.save(); ctx.translate(x0 + j * cw + cw / 2 - 3, top - 12); ctx.rotate(-Math.PI / 4);
@@ -450,8 +444,8 @@ const easeInOut = (t) => (t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2);
 function drawGeneView(ctx, colors, gv, B, t) {
   const e = easeInOut(t);
   heading(ctx, colors, `${geneName(gv.g)}: ${gv.truth ? "truly changed" : "unchanged"}`, B.x - 40, B.y - 9);
-  const top = B.y + 8, bh = B.h - 100, colW = B.w / 4;
-  const vMax = Math.max(0.5, ...gv.vals.flat(), ...gv.pb) * 1.08, sy = (v) => top + bh - (v / vMax) * bh;
+  const top = B.y + 8, bh = B.h - 114, colW = B.w / 4;
+  const vMax = Math.max(0.5, ...gv.vals.flat(), ...gv.pb, ...gv.tissues.map((T) => T.samples.m + 2 * T.samples.se)) * 1.08, sy = (v) => top + bh - (Math.max(0, v) / vMax) * bh;
   ctx.strokeStyle = colors.axis; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(B.x + 0.5, top); ctx.lineTo(B.x + 0.5, top + bh + 0.5); ctx.lineTo(B.x + B.w, top + bh + 0.5); ctx.stroke();
   ctx.font = `${colors.fsXs} ${colors.mono}`; ctx.fillStyle = colors.ink3; ctx.textAlign = "right";
   [0, vMax / 2, vMax].forEach((v) => ctx.fillText(v.toFixed(1), B.x - 4, sy(v) + 4));
@@ -468,10 +462,6 @@ function drawGeneView(ctx, colors, gv, B, t) {
       dot(cx + jit * (1 - e), sy(v) + (sy(gv.pb[j]) - sy(v)) * e, 2.2, 0.7 * (1 - e * e));
     });
     ctx.globalAlpha = 1;
-    if (e < 0.98) {
-      const m = gv.vals[j].reduce((a, b) => a + b, 0) / Math.max(1, gv.vals[j].length);
-      ctx.strokeStyle = colors.ink1; ctx.lineWidth = 2; ctx.globalAlpha = 1 - e; ctx.beginPath(); ctx.moveTo(cx - colW * 0.32, sy(m)); ctx.lineTo(cx + colW * 0.32, sy(m)); ctx.stroke(); ctx.globalAlpha = 1;
-    }
     if (e > 0.02) {
       ctx.beginPath(); ctx.arc(cx, sy(gv.pb[j]), 2 + 4.5 * e, 0, Math.PI * 2);
       ctx.strokeStyle = colors.ink1; ctx.lineWidth = 1.8 * e;
@@ -481,16 +471,28 @@ function drawGeneView(ctx, colors, gv, B, t) {
     ctx.font = `${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.ink2; ctx.textAlign = "center";
     ctx.fillText(`P${(j % 2) + 1} ${ORDER_NAMES[j][1]}`, cx, top + bh + 14); ctx.fillText(`${gv.vals[j].length} cells`, cx, top + bh + 27);
   });
+  /* EACH TISSUE'S MEAN ± 2 SE, between its two samples' columns (his round:
+     "when we sum, there is no error bar?"). The sum lands where the sample's
+     mean was — it is the sample's counts pooled — so what the press changes
+     is the uncertainty: the cells' SE over ~48 cells, then the SE DESeq2
+     tests with over 2 samples (geneView). The bar grows as the cells are summed. */
+  gv.tissues.forEach((T, ti) => {
+    const m = T.cells.m + (T.samples.m - T.cells.m) * e, se = 2 * (T.cells.se + (T.samples.se - T.cells.se) * e), x = B.x + (2 * ti + 1) * colW;
+    ctx.strokeStyle = colors.ink1; ctx.lineWidth = 2; ctx.beginPath();
+    ctx.moveTo(x, sy(m - se)); ctx.lineTo(x, sy(m + se));
+    ctx.moveTo(x - 5, sy(m - se)); ctx.lineTo(x + 5, sy(m - se)); ctx.moveTo(x - 5, sy(m + se)); ctx.lineTo(x + 5, sy(m + se));
+    ctx.moveTo(x - 8, sy(m)); ctx.lineTo(x + 8, sy(m)); ctx.stroke();
+  });
   /* the two tests, one fading into the other as the cells are summed */
   const n = gv.vals.reduce((a, v) => a + v.length, 0), c = gv.cells, d = gv.deseq;
   const lines = [
-    [`Over cells: n = ${n}${c.lpAdj < LOG05 ? ", called" : ", not called"}`, `Wilcoxon p = ${pFmt(c.lp)}, p_val_adj = ${pFmt(c.lpAdj)}`, "Each dot a cell; bar, the sample's mean"],
-    [`Over samples: n = 4${d && d.padj < 0.05 ? ", called" : ", not called"}`, d ? `DESeq2 p = ${pFmt(Math.log10(Math.max(1e-300, d.p)))}, padj = ${pFmt(Math.log10(Math.max(1e-300, d.padj)))}` : "too few counts for DESeq2 to test", "Each point a sample's cells, summed"],
+    [`Over cells: n = ${n}${c.lpAdj < LOG05 ? ", called" : ", not called"}`, `Wilcoxon p = ${pFmt(c.lp)}, p_val_adj = ${pFmt(c.lpAdj)}`, "Each dot a cell", "Bars: tissue mean ± 2 SE, cells as replicates"],
+    [`Over samples: n = 4${d && d.padj < 0.05 ? ", called" : ", not called"}`, d ? `DESeq2 p = ${pFmt(Math.log10(Math.max(1e-300, d.p)))}, padj = ${pFmt(Math.log10(Math.max(1e-300, d.padj)))}` : "too few counts for DESeq2 to test", "Each point a sample's cells, summed", "Bars: ± 2 SE from DESeq2's dispersion"],
   ];
   lines.forEach((ls, k) => {
     ctx.globalAlpha = k ? e : 1 - e; ctx.textAlign = "left";
     ctx.font = `${colors.fsXs} ${colors.mono}`; ctx.fillStyle = colors.ink1; ctx.fillText(ls[0], B.x - 40, top + bh + 48); ctx.fillText(ls[1], B.x - 40, top + bh + 63);
-    ctx.font = `${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.ink3; ctx.fillText(ls[2], B.x - 40, top + bh + 80);
+    ctx.font = `${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.ink3; ctx.fillText(ls[2], B.x - 40, top + bh + 80); ctx.fillText(ls[3], B.x - 40, top + bh + 94);
   });
   ctx.globalAlpha = 1;
 }
@@ -565,7 +567,7 @@ defineWidget({
     + "each type's share of the samples.",
   layout: "side",
   status: "draft",
-  height: ({ page }) => HEIGHTS[page] ?? HEIGHTS.clusters,
+  height: (params) => (params.page === "clusters" || !HEIGHTS[params.page] ? clustersHeight(params) : HEIGHTS[params.page]),
 
   /* ORDER MATTERS: an option list that follows other parameters reads them
      resolved, so the seed and the resolution come before the lists that read
