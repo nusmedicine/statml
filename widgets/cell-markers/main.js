@@ -55,7 +55,7 @@ const PAGES = [
 ];
 const ON = (page) => ({ param: "page", equals: page });
 const CELL_PAGES = { param: "page", oneOf: ["clusters", "two-clusters", "tumour-liver"] };
-const HEIGHTS = { clusters: 760, "two-clusters": 770, "tumour-liver": 760, composition: 380 };
+const HEIGHTS = { clusters: 760, "two-clusters": 770, "tumour-liver": 600, composition: 380 };
 const RESOLUTIONS = ["0.1", "0.3", "0.5", "0.8", "1.2", "2"];
 const SAMPLE_SD = ["0", "0.1", "0.2", "0.4", "0.65"];
 const PATIENT_SD = ["0", "0.3", "0.65"];
@@ -66,6 +66,17 @@ const CELLS_PER_SAMPLE = 300, COMP_CELLS = 400, MAX_ROWS = 12;
    cells: tumour cells are absent from one liver sample and hepatocytes rare
    in the tumour samples (page3-measure) */
 const MIN_PER_SAMPLE = 5;
+/* the press that sums each sample's cells into its pseudobulk point */
+const SUM_MS = 1200;
+/* the gene beside the map: two picked by p, or any gene, as a volcano click
+   sets it (a region's value must be one of the options, so every gene is one) */
+const GENE_OPTIONS = [
+  { value: "unchanged", label: "Unchanged, smallest p over cells", group: "Picked by p over cells" },
+  { value: "changed", label: "Truly changed, smallest p over cells", group: "Picked by p over cells" },
+  /* a gene's value is its name, so the link reads gene=Kup19 */
+  ...Array.from({ length: G }, (_, g) => ({ value: geneName(g), label: geneName(g), group: { marker: "Marker genes", house: "Common genes" }[geneKind(g).kind] ?? "Other genes" })),
+];
+const GENE_INDEX = new Map(Array.from({ length: G }, (_, g) => [geneName(g), g]));
 const ORDER = ["p1-liver", "p2-liver", "p1-tumour", "p2-tumour"];
 const ORDER_NAMES = [["Patient 1", "liver"], ["Patient 2", "liver"], ["Patient 1", "tumour"], ["Patient 2", "tumour"]];
 const ALL_TYPES = TYPES.map((t) => t.key);
@@ -123,7 +134,6 @@ function clustersFor(seed, res) {
     return { clusters: r.clusters, q: r.q, k: r.k, ann };
   });
 }
-const clusterLabel = (a) => `Cluster ${a.c} · ${TYPES[a.type].name}`;
 /* a cluster as a button: its type's name and its number, with its type's dot */
 const clusterOption = (a) => ({ value: String(a.c), label: `${TYPES[a.type].name} · ${a.c}`, token: `cluster-${"abcdef"[TYPE_SLOT[a.type]]}` });
 function clusterOptions(v) { return clustersFor(v.seed, v.res).ann.slice(0, MAX_ROWS).map(clusterOption); }
@@ -165,11 +175,27 @@ function conditionFor(params, cl) {
     const counts = Array.from({ length: G }, (_, g) => ORDER.map((k) => a.idx.reduce((s, i) => s + (S.cells[i].sample === k ? S.cells[i].x[g] : 0), 0)));
     const an = analyse({ counts, grp: [0, 0, 1, 1], reps: 2, genes: G });
     const volD = an.expressed.map((g) => ({ g, lfc: an.resMAP[g].lfc, nl: -Math.log10(Math.max(1e-300, an.resMAP[g].p)), call: an.resMAP[g].padj < 0.05, truth: truthOf(g) }));
-    /* the unchanged gene with the smallest p over cells, drawn cell by cell */
-    const nullG = fm.res.filter((x) => geneKind(x.g).kind === "spread" && !truthOf(x.g)).sort((p, q) => p.lp - q.lp)[0];
-    const exVals = ORDER.map((k) => a.idx.filter((i) => S.cells[i].sample === k).map((i) => S.Y[i][nullG.g]));
-    return { within, a, testable: true, volC, volD, ex: nullG, exVals, n: fm.n1 + fm.n2 };
+    /* the two genes the rail offers: the unchanged gene with the smallest p
+       over cells, of every kind (the spread genes alone missed the false calls,
+       pseudobulk mock), and the truly changed one with the smallest */
+    const byP = [...fm.res].sort((p, q) => p.lp - q.lp);
+    const nullG = byP.find((x) => !truthOf(x.g)).g, trueG = byP.find((x) => truthOf(x.g))?.g ?? null;
+    const byG = new Map(fm.res.map((x) => [x.g, x]));
+    const tot = counts[0].map((_, j) => counts.reduce((t, row) => t + row[j], 0));
+    return { within, a, testable: true, volC, volD, nullG, trueG, byG, an, counts, tot, truthOf, n: fm.n1 + fm.n2 };
   });
+}
+
+/** The gene beside the map: each of the cluster's cells by sample, each
+    sample's cells summed (pseudobulk, on the same log(1 + per 10,000) scale),
+    and the two tests' results for it. */
+function geneView(params, C, S) {
+  if (!C.testable) return null;
+  const g = params.gene === "changed" && C.trueG !== null ? C.trueG : GENE_INDEX.get(params.gene) ?? C.nullG;
+  const vals = ORDER.map((k) => C.a.idx.filter((i) => S.cells[i].sample === k).map((i) => S.Y[i][g]));
+  const pb = ORDER.map((_, j) => Math.log1p((C.counts[g][j] / C.tot[j]) * 1e4));
+  const r = C.an.resMAP[g], exp = C.an.expressed.includes(g);
+  return { g, vals, pb, truth: C.truthOf(g), cells: C.byG.get(g), deseq: exp ? { p: r.p, padj: r.padj } : null };
 }
 
 /* each sample's share of each type, and a test per type of liver against
@@ -260,9 +286,17 @@ function twoLayout(w) {
   const maps = [{ x: x0, y: TOP, S }, { x: x0 + S + 24, y: TOP, S }];
   return { maps, rest: { x: maps[1].x, y: TOP + S + 10, w: S, h: 28 }, tableTop: TOP + MAP_MAX + 10 + 28 + 50 };
 }
+/* Tumour vs liver: the map, the gene view beside it (where the sample table
+   and five lines of text were, his pick 2026-09-25), the two volcanos under */
 function tlLayout(w) {
-  const S = Math.min(260, Math.floor(w * 0.45));
-  return { map: { x: 8, y: TOP, S }, tableX: 8 + S + 28, volTop: TOP + 260 + 50, stripTop: TOP + 260 + 50 + 250 + 50 };
+  const S = Math.min(260, Math.floor(w * 0.45)), gx = 8 + S + 20 + 40;
+  return { map: { x: 8, y: TOP, S }, gene: { x: gx, y: TOP, w: w - gx - 8, h: S }, volTop: TOP + S + 52 };
+}
+/* one volcano's scales, shared by the drawing and the click targets */
+function volGeom(w, L, pts, k) {
+  const PW = Math.floor((w - 64) / 2), X = [24, 24 + PW + 40][k], top = L.volTop, bh = 210;
+  const yMax = Math.max(5, ...pts.map((q) => Math.min(60, q.nl))) * 1.05, xr = 3.5;
+  return { X, PW, top, bh, sx: (v) => X + PW / 2 + (Math.max(-xr, Math.min(xr, v)) / xr) * (PW / 2), sy: (v) => top + bh - (Math.min(60, v) / yMax) * bh };
 }
 
 /* ------------------------------------------------------------ drawing */
@@ -409,32 +443,69 @@ function broadOf(mk) {
   return mk.fm.res.filter((x) => x.lfc > 0 && x.lpAdj < LOG05 && x.p2 > 0.5 && !(geneKind(x.g).kind === "marker" && geneKind(x.g).type === mk.type)).sort((a, b) => a.lp - b.lp);
 }
 
-function drawTumourLiver(ctx, colors, w, params, state) {
-  const L = tlLayout(w), C = state.cond, M = L.map;
-  drawDiscMap(ctx, colors, state, M, { solid: C.within, muted: (a) => !a.testable, title: "Click a cluster: its cells, tumour against liver samples" });
-  /* the cluster's cells in each sample */
-  heading(ctx, colors, `${clusterLabel(C.a)}: its cells in each sample`, L.tableX, M.y + 14);
+const easeInOut = (t) => (t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2);
+/** One gene, each cell of the cluster by sample (hollow liver, filled
+    tumour), collapsing at `t` into each sample's summed point. Tissue is
+    drawn by fill, not hue: the map beside it already wears the types' hues. */
+function drawGeneView(ctx, colors, gv, B, t) {
+  const e = easeInOut(t);
+  heading(ctx, colors, `${geneName(gv.g)}: ${gv.truth ? "truly changed" : "unchanged"}`, B.x - 40, B.y - 9);
+  const top = B.y + 8, bh = B.h - 100, colW = B.w / 4;
+  const vMax = Math.max(0.5, ...gv.vals.flat(), ...gv.pb) * 1.08, sy = (v) => top + bh - (v / vMax) * bh;
+  ctx.strokeStyle = colors.axis; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(B.x + 0.5, top); ctx.lineTo(B.x + 0.5, top + bh + 0.5); ctx.lineTo(B.x + B.w, top + bh + 0.5); ctx.stroke();
+  ctx.font = `${colors.fsXs} ${colors.mono}`; ctx.fillStyle = colors.ink3; ctx.textAlign = "right";
+  [0, vMax / 2, vMax].forEach((v) => ctx.fillText(v.toFixed(1), B.x - 4, sy(v) + 4));
+  ctx.save(); ctx.translate(B.x - 32, top + bh / 2); ctx.rotate(-Math.PI / 2); ctx.font = `${colors.fsXs} ${colors.font}`; ctx.textAlign = "center"; ctx.fillText("log(1 + per 10,000)", 0, 0); ctx.restore();
   ORDER.forEach((k, j) => {
-    const y = M.y + 42 + j * 22;
-    ctx.font = `${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.ink2; ctx.textAlign = "left"; ctx.fillText(ORDER_NAMES[j].join(" · "), L.tableX, y);
-    ctx.font = `${colors.fsXs} ${colors.mono}`; ctx.fillStyle = colors.ink1; ctx.textAlign = "right"; ctx.fillText(String(C.a.perSample[k]), L.tableX + 190, y);
+    const cx = B.x + j * colW + colW / 2, liver = j < 2;
+    const dot = (x, y, r, a) => {
+      ctx.globalAlpha = a; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2);
+      if (liver) { ctx.strokeStyle = colors.ink2; ctx.lineWidth = 1.2; ctx.stroke(); } else { ctx.fillStyle = colors.ink2; ctx.fill(); }
+    };
+    /* each cell moves only inside its own sample's column */
+    gv.vals[j].forEach((v, i) => {
+      const jit = (((i * 7919) % 101) / 101 - 0.5) * colW * 0.62;
+      dot(cx + jit * (1 - e), sy(v) + (sy(gv.pb[j]) - sy(v)) * e, 2.2, 0.7 * (1 - e * e));
+    });
+    ctx.globalAlpha = 1;
+    if (e < 0.98) {
+      const m = gv.vals[j].reduce((a, b) => a + b, 0) / Math.max(1, gv.vals[j].length);
+      ctx.strokeStyle = colors.ink1; ctx.lineWidth = 2; ctx.globalAlpha = 1 - e; ctx.beginPath(); ctx.moveTo(cx - colW * 0.32, sy(m)); ctx.lineTo(cx + colW * 0.32, sy(m)); ctx.stroke(); ctx.globalAlpha = 1;
+    }
+    if (e > 0.02) {
+      ctx.beginPath(); ctx.arc(cx, sy(gv.pb[j]), 2 + 4.5 * e, 0, Math.PI * 2);
+      ctx.strokeStyle = colors.ink1; ctx.lineWidth = 1.8 * e;
+      if (!liver) { ctx.fillStyle = colors.ink1; ctx.fill(); }
+      ctx.stroke();
+    }
+    ctx.font = `${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.ink2; ctx.textAlign = "center";
+    ctx.fillText(`P${(j % 2) + 1} ${ORDER_NAMES[j][1]}`, cx, top + bh + 14); ctx.fillText(`${gv.vals[j].length} cells`, cx, top + bh + 27);
   });
-  ctx.textAlign = "left"; ctx.font = `${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.ink3;
-  [
-    "Over cells: each cell a replicate,",
-    "as FindMarkers treats them",
-    "Over samples (pseudobulk): each sample's",
-    "cells summed, then DESeq2 as for bulk",
-    "RNA-seq; the four samples are the replicates",
-  ].forEach((t, j) => ctx.fillText(t, L.tableX, M.y + 140 + j * 16 + (j >= 2 ? 6 : 0)));
+  /* the two tests, one fading into the other as the cells are summed */
+  const n = gv.vals.reduce((a, v) => a + v.length, 0), c = gv.cells, d = gv.deseq;
+  const lines = [
+    [`Over cells: n = ${n}${c.lpAdj < LOG05 ? ", called" : ", not called"}`, `Wilcoxon p = ${pFmt(c.lp)}, p_val_adj = ${pFmt(c.lpAdj)}`, "Each dot a cell; bar, the sample's mean"],
+    [`Over samples: n = 4${d && d.padj < 0.05 ? ", called" : ", not called"}`, d ? `DESeq2 p = ${pFmt(Math.log10(Math.max(1e-300, d.p)))}, padj = ${pFmt(Math.log10(Math.max(1e-300, d.padj)))}` : "too few counts for DESeq2 to test", "Each point a sample's cells, summed"],
+  ];
+  lines.forEach((ls, k) => {
+    ctx.globalAlpha = k ? e : 1 - e; ctx.textAlign = "left";
+    ctx.font = `${colors.fsXs} ${colors.mono}`; ctx.fillStyle = colors.ink1; ctx.fillText(ls[0], B.x - 40, top + bh + 48); ctx.fillText(ls[1], B.x - 40, top + bh + 63);
+    ctx.font = `${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.ink3; ctx.fillText(ls[2], B.x - 40, top + bh + 80);
+  });
+  ctx.globalAlpha = 1;
+}
+
+function drawTumourLiver(ctx, colors, w, params, state, anim) {
+  const L = tlLayout(w), C = state.cond, M = L.map;
+  drawDiscMap(ctx, colors, state, M, { solid: C.within, muted: (a) => !a.testable, title: "Click a cluster" });
   if (!C.testable) {
-    ctx.fillStyle = colors.ink1; ctx.fillText(`Fewer than ${MIN_PER_SAMPLE} of this cluster's cells in a sample: it cannot be compared by tissue.`, 8, L.volTop);
+    ctx.font = `${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.ink1; ctx.textAlign = "left";
+    ctx.fillText(`Fewer than ${MIN_PER_SAMPLE} of this cluster's cells in a sample: it cannot be compared by tissue.`, 8, L.volTop);
     return;
   }
-  const PW = Math.floor((w - 64) / 2), xs = [24, 24 + PW + 40], top = L.volTop, bh = 210;
+  drawGeneView(ctx, colors, state.gene, L.gene, anim?.t ?? 0);
   [[C.volC, `Over cells: ${C.n} cells (Wilcoxon)`], [C.volD, "Over samples: 4 pseudobulk samples (DESeq2)"]].forEach(([pts, title], k) => {
-    const X = xs[k], yMax = Math.max(5, ...pts.map((q) => Math.min(60, q.nl))) * 1.05, xr = 3.5;
-    const sx = (v) => X + PW / 2 + (Math.max(-xr, Math.min(xr, v)) / xr) * (PW / 2), sy = (v) => top + bh - (Math.min(60, v) / yMax) * bh;
+    const V = volGeom(w, L, pts, k), { X, PW, top, bh, sx, sy } = V;
     heading(ctx, colors, title, X, top - 12);
     ctx.strokeStyle = colors.axis; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(X, top + bh + 0.5); ctx.lineTo(X + PW, top + bh + 0.5); ctx.moveTo(sx(0) + 0.5, top); ctx.lineTo(sx(0) + 0.5, top + bh); ctx.stroke();
     /* uncalled first, then the calls, then the rings, so nothing hides a call */
@@ -443,25 +514,13 @@ function drawTumourLiver(ctx, colors, w, params, state) {
     pts.filter((q) => q.call).forEach((q) => { ctx.fillStyle = q.truth ? colors.empirical : colors.extreme; ctx.beginPath(); ctx.arc(sx(q.lfc), sy(q.nl), 3, 0, Math.PI * 2); ctx.fill(); });
     ctx.strokeStyle = colors.reference; ctx.lineWidth = 1.2;
     pts.filter((q) => q.truth).forEach((q) => { ctx.beginPath(); ctx.arc(sx(q.lfc), sy(q.nl), 6, 0, Math.PI * 2); ctx.stroke(); });
+    /* the gene beside the map */
+    const sel = pts.find((q) => q.g === state.gene.g);
+    if (sel) { ctx.strokeStyle = colors.highlight; ctx.lineWidth = 2; ctx.strokeRect(sx(sel.lfc) - 7, sy(sel.nl) - 7, 14, 14); }
     ctx.font = `${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.ink3;
     ctx.textAlign = "center"; ctx.fillText("log2 fold change, tumour against liver", X + PW / 2, top + bh + 15);
     ctx.textAlign = "left"; ctx.fillText("−log10 p", X + 4, top + 10);
   });
-  /* one unchanged gene, cell by cell: why cells are not replicates */
-  const sTop = L.stripTop, sH = HEIGHTS["tumour-liver"] - sTop - 30, colW = (w - 140) / 4;
-  heading(ctx, colors, `${geneName(C.ex.g)}: unchanged, with the smallest p over cells. Each cell's value by sample; bar, the sample's mean`, 8, sTop - 12);
-  const vMax = Math.max(...C.exVals.flat(), 0.1);
-  C.exVals.forEach((vals, k) => {
-    const cx = 110 + k * colW + colW / 2;
-    ctx.fillStyle = colors.ink2; ctx.globalAlpha = 0.5;
-    vals.forEach((v, i) => { const jit = (((i * 7919) % 101) / 101 - 0.5) * colW * 0.6; ctx.beginPath(); ctx.arc(cx + jit, sTop + sH - (v / vMax) * sH, 1.8, 0, Math.PI * 2); ctx.fill(); });
-    ctx.globalAlpha = 1;
-    const m = vals.reduce((a, b) => a + b, 0) / Math.max(1, vals.length), my = sTop + sH - (m / vMax) * sH;
-    ctx.strokeStyle = colors.ink1; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(cx - colW * 0.35, my); ctx.lineTo(cx + colW * 0.35, my); ctx.stroke();
-    ctx.font = `${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.ink2; ctx.textAlign = "center";
-    ctx.fillText(ORDER_NAMES[k].join(" · "), cx, sTop + sH + 16);
-  });
-  ctx.save(); ctx.translate(40, sTop + sH / 2); ctx.rotate(-Math.PI / 2); ctx.font = `${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.ink3; ctx.textAlign = "center"; ctx.fillText("log(1 + per 10,000)", 0, 0); ctx.restore();
   ctx.textAlign = "left";
 }
 
@@ -544,6 +603,11 @@ defineWidget({
       options: (v) => testableOptions(v), optionsFrom: ["seed", "res"],
       default: "", when: ON("tumour-liver"),
     },
+    gene: {
+      type: "select", label: "Gene",
+      detail: "the gene drawn beside the map, each cell and each sample's sum; a click on either volcano picks one too",
+      options: GENE_OPTIONS, default: "unchanged", when: ON("tumour-liver"),
+    },
     tlSampSec: { type: "section", label: "The samples", when: ON("tumour-liver") },
     change: {
       type: "choice", label: "True change",
@@ -567,12 +631,16 @@ defineWidget({
       detail: "the SD, in log, by which each sample's share of each type varies about its tissue's mean share",
       options: COMP_SD.map((v) => ({ value: v, label: v })), default: "0.3", when: ON("composition"),
     },
+    /* a finished figure for a lesson: 1 opens Tumour vs liver already summed */
+    shown: { type: "int", min: 0, max: 1, default: 0, hidden: true },
   },
 
   legend: ({ params }) => {
     const types = TYPES.map((t, i) => ({ token: `cluster-${"abcdef"[TYPE_SLOT[i]]}`, label: t.name, mark: params.page === "composition" ? "bar" : "dot" }));
     if (params.page === "clusters") return [...types, { token: "magnitude", label: "Dot plot: size, the share of the cluster's cells detecting the gene; shade, its mean", mark: "dot" }];
     if (params.page === "tumour-liver") return [
+      { token: "ink-2", label: "Beside the map: hollow, a liver sample's; filled, a tumour sample's", mark: "dot" },
+      { token: "highlight", label: "A square: the gene beside the map", mark: "line" },
       { token: "ink-3", label: "A gene not called", mark: "dot" },
       { token: "empirical", label: "Called at adjusted p < 0.05, and truly changed", mark: "dot" },
       { token: "extreme", label: "Called, and unchanged", mark: "dot" },
@@ -583,13 +651,36 @@ defineWidget({
 
   compute: ({ params }) => {
     const cl = clustersFor(params.seed, params.res);
-    return {
+    const out = {
       stage: stageFor(params.seed, params.sampleSd, params.patientSd, params.change),
       embed: embedFor(params.seed), cl,
       mk: markersFor(params, cl),
       cond: conditionFor(params, cl),
+      gene: null,
       comp: compositionFor(params.seed, params.compSd),
     };
+    out.gene = geneView(params, out.cond, out.stage);
+    return out;
+  },
+
+  /* ONE PRESS: each sample's cells slide into its summed point. Nothing to
+     drive on the other pages, or on a cluster that cannot be compared; Reset
+     brings the cells back. */
+  animation: {
+    stepLabel: "Sum each sample",
+    stepTitle: "Sum each sample's cells of this cluster into one profile: the four samples DESeq2 tests",
+    runLabel: null,
+    init: ({ params, state, fromScratch }) => {
+      const t = !fromScratch && Number(params.shown) >= 1 ? 1 : 0;
+      return { t, done: t >= 1, inert: params.page !== "tumour-liver" || !state.cond.testable };
+    },
+    advance: (anim, { dt }) => {
+      if (anim.inert || anim.t >= 1) return false;
+      anim.t = Math.min(1, anim.t + dt / SUM_MS);
+      anim.done = anim.t >= 1;
+      return !anim.done;
+    },
+    rebuild: (anim, { params, state }) => { anim.inert = params.page !== "tumour-liver" || !state.cond.testable; },
   },
 
   regions: ({ w, params, state }) => {
@@ -606,15 +697,22 @@ defineWidget({
     }
     if (params.page === "tumour-liver") {
       const L = tlLayout(w), ok = new Set(state.cl.ann.filter((a) => a.testable).map((a) => a.c));
-      return discTiles(state, L.map).filter((t) => ok.has(t.c) && t.c < MAX_ROWS).map((t) => ({ ...t, set: { within: String(t.c) }, label: `cluster ${t.c}` }));
+      const out = discTiles(state, L.map).filter((t) => ok.has(t.c) && t.c < MAX_ROWS).map((t) => ({ ...t, set: { within: String(t.c) }, label: `cluster ${t.c}` }));
+      /* every point of both volcanos, in drawing order: the last region hit
+         wins, so a call drawn over an uncalled gene is the one picked */
+      if (state.cond.testable) [state.cond.volC, state.cond.volD].forEach((pts, k) => {
+        const V = volGeom(w, L, pts, k);
+        [...pts.filter((q) => !q.call), ...pts.filter((q) => q.call)].forEach((q) => out.push({ x: V.sx(q.lfc) - 5, y: V.sy(q.nl) - 5, w: 10, h: 10, set: { gene: geneName(q.g) }, label: geneName(q.g) }));
+      });
+      return out;
     }
     return [];
   },
 
-  draw: ({ ctx, colors, w, params, state }) => {
+  draw: ({ ctx, colors, w, params, state, anim }) => {
     if (params.page === "clusters") drawClusters(ctx, colors, w, params, state);
     else if (params.page === "two-clusters") drawTwo(ctx, colors, w, params, state);
-    else if (params.page === "tumour-liver") drawTumourLiver(ctx, colors, w, params, state);
+    else if (params.page === "tumour-liver") drawTumourLiver(ctx, colors, w, params, state, anim);
     else drawComposition(ctx, colors, w, params, state);
   },
 
