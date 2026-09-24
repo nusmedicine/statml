@@ -33,6 +33,7 @@ import { defineWidget, fmt } from "../core/index.js";
 import { simulate, integrate, measures, TYPES, KEYS } from "./engine.js";
 
 const STEP_MS = 900;
+const DRAWN = 120;
 const easeInOut = (t) => (t < 0.5 ? 2 * t * t : 1 - ((-2 * t + 2) ** 2) / 2);
 const lerp = (a, b, t) => a + (b - a) * t;
 const pct = (v) => `${Math.round(100 * v)}%`;
@@ -96,7 +97,7 @@ defineWidget({
       { token: "ink-1", label: `${key.labels[0]}: the first batch, which stays where it is`, mark: "dot" },
       { token: "ink-3", label: `${key.labels[1]}: the second batch, which is moved`, mark: "dot" },
       ...TYPES.map((t, i) => ({ token: `cluster-${"abcdef"[TYPE_SLOT[i]]}`, label: t.name, mark: "dot" })),
-      { token: "reference", label: "An anchor: a pair of cells, one from each batch", mark: "line" },
+      { token: "reference", label: "An anchor: a pair of cells, one from each batch; an even sample of them drawn", mark: "line" },
       { token: "ink-1", label: "On the cell-type panel, an anchor between two different types", mark: "line" },
     ];
   },
@@ -110,7 +111,13 @@ defineWidget({
     const m = measures(cells, res);
     const order = cells.map((_, i) => i).sort((a, b) => ((a * 7919) % 613) - ((b * 7919) % 613));
     const across = res.pairs.map(([i, j]) => cells[i].type !== cells[j].type);
-    const state = { cells, res, m, order, across };
+    /* the anchors DRAWN: an even sample of about DRAWN of them, every stride-th
+       in the order they were found, so the share joining two types on the
+       figure is the share in the method. All of them correct the cells and all
+       are counted (his round 1: 878 lines were too busy to read) */
+    const stride = Math.max(1, Math.ceil(res.pairs.length / DRAWN));
+    const drawn = res.pairs.map((_, p) => p).filter((p) => p % stride === 0);
+    const state = { cells, res, m, order, across, drawn, stride };
     state.view = viewOf(state);
     return state;
   },
@@ -164,7 +171,8 @@ defineWidget({
       if (grow > 0 && move < 1) {
         ctx.save();
         ctx.lineWidth = 1;
-        res.pairs.forEach(([i, j], p) => {
+        state.drawn.forEach((p) => {
+          const [i, j] = res.pairs[p];
           const a = view(res.raw[i], P, S), b = view(pos(j), P, S);
           const end = [lerp(b[0], a[0], grow), lerp(b[1], a[1], grow)];
           /* which anchors join two types is a fact about types, so it is drawn on
@@ -172,7 +180,7 @@ defineWidget({
              every anchor is one faint line (draft round 0: white on white merged) */
           const hard = r === 1 && across[p];
           ctx.strokeStyle = hard ? colors.ink1 : colors.reference;
-          ctx.globalAlpha = (hard ? 0.55 : r === 0 ? 0.22 : 0.3) * (1 - move);
+          ctx.globalAlpha = (hard ? 0.7 : r === 0 ? 0.35 : 0.45) * (1 - move);
           ctx.beginPath(); ctx.moveTo(b[0], b[1]); ctx.lineTo(end[0], end[1]); ctx.stroke();
         });
         ctx.restore();
@@ -189,7 +197,7 @@ defineWidget({
     /* the caption: what the figure holds at this press */
     const m = state.m;
     const cap = n === 0 ? "As sequenced: no anchors yet"
-      : n === 1 ? `${m.anchors} anchors, ${m.across} of them between two different cell types`
+      : n === 1 ? `${m.anchors} anchors, ${m.across} of them between two different cell types${state.stride > 1 ? `; one in ${state.stride} drawn` : ""}`
         : `Corrected: every cell of ${key.labels[1]} moved by the anchors near it`;
     ctx.font = `${colors.fsSm} ${colors.font}`; ctx.fillStyle = colors.ink2; ctx.textAlign = "left";
     ctx.fillText(cap, panels[0].x, TOP + S + 18);
