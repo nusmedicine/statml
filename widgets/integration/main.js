@@ -21,6 +21,10 @@
  *
  * Two panels, the same cells: coloured by the declared batch and by cell
  * type, which is the lesson's DimPlot(group.by = c("patient", "type")).
+ * The batch is in dark and light INK, not --c-group-a/b (his pick, draft
+ * round 0): those are the blue and yellow of cluster-a/b, so blue meant
+ * Patient 1 on one panel and hepatocyte on the other — colour carrying two
+ * groupings on one figure.
  * Anchors are drawn where the cells were SEQUENCED, as bridges across the
  * batch gap — drawn in the shared space the batches overlap and they read as
  * specks (the mock's first version).
@@ -89,11 +93,11 @@ defineWidget({
   legend: ({ params }) => {
     const key = KEYS[params.batch];
     return [
-      { token: "group-a", label: `${key.labels[0]}: the first batch, which stays where it is`, mark: "dot" },
-      { token: "group-b", label: `${key.labels[1]}: the second batch, which is moved`, mark: "dot" },
+      { token: "ink-1", label: `${key.labels[0]}: the first batch, which stays where it is`, mark: "dot" },
+      { token: "ink-3", label: `${key.labels[1]}: the second batch, which is moved`, mark: "dot" },
       ...TYPES.map((t, i) => ({ token: `cluster-${"abcdef"[TYPE_SLOT[i]]}`, label: t.name, mark: "dot" })),
-      { token: "reference", label: "An anchor between two cells of one type", mark: "line" },
-      { token: "ink-1", label: "An anchor between two different types", mark: "line" },
+      { token: "reference", label: "An anchor: a pair of cells, one from each batch", mark: "line" },
+      { token: "ink-1", label: "On the cell-type panel, an anchor between two different types", mark: "line" },
     ];
   },
 
@@ -163,8 +167,12 @@ defineWidget({
         res.pairs.forEach(([i, j], p) => {
           const a = view(res.raw[i], P, S), b = view(pos(j), P, S);
           const end = [lerp(b[0], a[0], grow), lerp(b[1], a[1], grow)];
-          ctx.strokeStyle = across[p] ? colors.ink1 : colors.reference;
-          ctx.globalAlpha = (across[p] ? 0.55 : 0.3) * (1 - move);
+          /* which anchors join two types is a fact about types, so it is drawn on
+             the type panel only; on the batch panel, whose dots are the two inks,
+             every anchor is one faint line (draft round 0: white on white merged) */
+          const hard = r === 1 && across[p];
+          ctx.strokeStyle = hard ? colors.ink1 : colors.reference;
+          ctx.globalAlpha = (hard ? 0.55 : r === 0 ? 0.22 : 0.3) * (1 - move);
           ctx.beginPath(); ctx.moveTo(b[0], b[1]); ctx.lineTo(end[0], end[1]); ctx.stroke();
         });
         ctx.restore();
@@ -173,7 +181,7 @@ defineWidget({
       ctx.globalAlpha = 0.85;
       for (const i of order) {
         const q = view(pos(i), P, S);
-        ctx.fillStyle = r === 0 ? (res.batch[i] === 0 ? colors.groupA : colors.groupB) : colors.clusters[TYPE_SLOT[cells[i].type]];
+        ctx.fillStyle = r === 0 ? (res.batch[i] === 0 ? colors.ink1 : colors.ink3) : colors.clusters[TYPE_SLOT[cells[i].type]];
         ctx.beginPath(); ctx.arc(q[0], q[1], 2.6, 0, Math.PI * 2); ctx.fill();
       }
       ctx.restore();
