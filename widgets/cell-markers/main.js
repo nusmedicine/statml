@@ -44,7 +44,7 @@ const PAGES = [
 ];
 const ON = (page) => ({ param: "page", equals: page });
 const CELLS_PAGES = { param: "page", oneOf: ["clusters", "markers"] };
-const HEIGHTS = { clusters: 580, markers: 660, conditions: 520, composition: 380 };
+const HEIGHTS = { clusters: 580, markers: 890, conditions: 520, composition: 380 };
 const RESOLUTIONS = ["0.1", "0.3", "0.5", "0.8", "1.2", "2"];
 const SAMPLE_SD = ["0", "0.1", "0.2", "0.4", "0.65"];
 const PATIENT_SD = ["0", "0.3", "0.65"];
@@ -106,9 +106,11 @@ function clustersFor(seed, zonation, res) {
 const cache2 = new Map();
 function markersFor(params, cl) {
   const k = cl.k, tested = Math.min(Number(params.cluster), k - 1);
-  let otherC = Math.min(Number(params.other), k - 1);
-  if (otherC === tested) otherC = tested === 0 ? Math.min(1, k - 1) : 0;
+  /* the comparison is ONE parameter, "rest" or a cluster's number, so a click
+     on the map sets it the way the dropdown does (a region sets one parameter) */
   const vsRest = params.against === "rest";
+  let otherC = vsRest ? 0 : Math.min(Number(params.against), k - 1);
+  if (!vsRest && otherC === tested) otherC = tested === 0 ? Math.min(1, k - 1) : 0;
   return remember(cache2, `${params.seed}|${params.zonation}|${params.res}|${tested}|${vsRest ? "rest" : otherC}`, () => {
     const S = stageFor(params.seed, params.zonation);
     const inA = (i) => cl.clusters[i] === tested, inB = vsRest ? (i) => cl.clusters[i] !== tested : (i) => cl.clusters[i] === otherC;
@@ -193,7 +195,38 @@ function umapView(U) {
 function markersLayout(w) {
   const labelW = 118, top = TOP + 58, rowH = 22;
   /* the column heads lean up and to the right, so the last needs room past its dot */
-  return { labelW, top, rowH, tableTop: top + MAX_ROWS * rowH + 34, x0: labelW, x1: w - 56 };
+  const mapTop = top + MAX_ROWS * rowH + 34, MAP = 210;
+  return { labelW, top, rowH, mapTop, map: { x: 8, y: mapTop, S: MAP }, chipX: 8 + MAP + 28, tableTop: mapTop + MAP + 46, x0: labelW, x1: w - 56 };
+}
+/* the chips beside the map: which side a click picks, and "All other cells" */
+function markerChips(L) {
+  const x = L.chipX, y = L.mapTop + 30;
+  return [
+    { key: "tested", x, y, w: 150, h: 26, label: "The cluster tested", set: { pick: "tested" } },
+    { key: "against", x: x + 158, y, w: 150, h: 26, label: "The comparison", set: { pick: "against" } },
+    { key: "rest", x, y: y + 64, w: 150, h: 26, label: "All other cells", set: { against: "rest" } },
+  ];
+}
+/* the map's view: the Clusters page's UMAP in a square */
+function mapView(U, M) {
+  let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+  for (const [x, y] of U) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
+  const half = (Math.max(x1 - x0, y1 - y0) / 2) * 1.06, mx = (x0 + x1) / 2, my = (y0 + y1) / 2;
+  return (p) => [M.x + M.S / 2 + ((p[0] - mx) / half) * (M.S / 2 - 6), M.y + M.S / 2 - ((p[1] - my) / half) * (M.S / 2 - 6)];
+}
+/* the map tiled into TILE-pixel squares, each the cluster of the nearest cell
+   within reach, so a click on a cluster's cells picks it and empty space picks
+   nothing (core's hit test takes rectangles) */
+const TILE = 8;
+function mapTiles(state, L) {
+  const at = mapView(state.stage.U, L.map), pts = state.stage.U.map(at), cl = state.cl.clusters, M = L.map, out = [];
+  for (let ty = M.y; ty < M.y + M.S; ty += TILE) for (let tx = M.x; tx < M.x + M.S; tx += TILE) {
+    const cx = tx + TILE / 2, cy = ty + TILE / 2;
+    let best = -1, bd = (2 * TILE) ** 2;
+    for (let i = 0; i < pts.length; i += 1) { const d = (pts[i][0] - cx) ** 2 + (pts[i][1] - cy) ** 2; if (d < bd) { bd = d; best = i; } }
+    if (best >= 0) out.push({ x: tx, y: ty, w: TILE, h: TILE, c: cl[best] });
+  }
+  return out;
 }
 function dotGenes(mk) {
   /* three markers of each type, two portal and two central zonation genes,
@@ -328,6 +361,45 @@ function drawMarkers(ctx, colors, w, params, state) {
     });
     ctx.globalAlpha = 1;
   });
+  /* the map: the tested cluster in its hue, the comparison in its hue with
+     an outlined number, every other cell faint (in its hue when the
+     comparison is all other cells) */
+  const M = L.map, at = mapView(st.U, M);
+  ctx.font = `600 ${colors.fsSm} ${colors.font}`; ctx.fillStyle = colors.ink1; ctx.textAlign = "left";
+  ctx.fillText("Click a cluster on the map", M.x, M.y - 10);
+  ctx.strokeStyle = colors.grid; ctx.lineWidth = 1; ctx.strokeRect(M.x + 0.5, M.y + 0.5, M.S - 1, M.S - 1);
+  st.cells.forEach((c, i) => {
+    const k = cl.clusters[i], a = cl.ann[k], q = at(st.U[i]);
+    const on = k === tested || (!mk.vsRest && k === mk.otherC);
+    ctx.fillStyle = on || mk.vsRest ? colors.clusters[TYPE_SLOT[a.type]] : colors.ink3;
+    ctx.globalAlpha = on ? 0.95 : mk.vsRest ? 0.3 : 0.18;
+    ctx.beginPath(); ctx.arc(q[0], q[1], 1.9, 0, Math.PI * 2); ctx.fill();
+  });
+  ctx.globalAlpha = 1;
+  ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.font = `600 ${colors.fsXs} ${colors.mono}`;
+  cl.ann.forEach((a) => {
+    const q = at([a.idx.reduce((s2, i) => s2 + st.U[i][0], 0) / a.n, a.idx.reduce((s2, i) => s2 + st.U[i][1], 0) / a.n]);
+    const isT = a.c === tested, isO = !mk.vsRest && a.c === mk.otherC;
+    ctx.fillStyle = isT ? colors.ink1 : colors.surface; ctx.globalAlpha = isT || isO ? 1 : 0.8; ctx.fillRect(q[0] - 8, q[1] - 7, 16, 14);
+    ctx.globalAlpha = 1;
+    if (isO) { ctx.strokeStyle = colors.ink1; ctx.lineWidth = 1.5; ctx.strokeRect(q[0] - 8, q[1] - 7, 16, 14); }
+    ctx.fillStyle = isT ? colors.surface : colors.ink1; ctx.fillText(String(a.c), q[0], q[1] + 1);
+  });
+  ctx.textBaseline = "alphabetic";
+  /* the chips */
+  const chips = markerChips(L);
+  ctx.font = `${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.ink2; ctx.textAlign = "left";
+  ctx.fillText("A click picks", L.chipX, chips[0].y - 8);
+  ctx.fillText("Or compare against", L.chipX, chips[2].y - 8);
+  chips.forEach((ch) => {
+    const active = ch.key === "rest" ? mk.vsRest : params.pick === ch.key;
+    ctx.fillStyle = active ? colors.ink1 : colors.surface2; ctx.fillRect(ch.x, ch.y, ch.w, ch.h);
+    ctx.strokeStyle = colors.grid; ctx.lineWidth = 1; ctx.strokeRect(ch.x + 0.5, ch.y + 0.5, ch.w - 1, ch.h - 1);
+    ctx.fillStyle = active ? colors.surface : colors.ink2; ctx.textAlign = "center"; ctx.fillText(ch.label, ch.x + ch.w / 2, ch.y + ch.h / 2 + 4);
+  });
+  ctx.textAlign = "left"; ctx.fillStyle = colors.ink2; ctx.font = `${colors.fsXs} ${colors.font}`;
+  ctx.fillText(`Tested: cluster ${tested} · ${TYPES[mk.type].name} (filled number)`, L.chipX, chips[2].y + 50);
+  ctx.fillText(mk.vsRest ? "Against: all other cells" : `Against: cluster ${mk.otherC} · ${TYPES[cl.ann[mk.otherC].type].name} (outlined number)`, L.chipX, chips[2].y + 68);
   /* the table: FindMarkers for the comparison on screen; conserved markers
      list only the genes up in both patients, then the pooled ones that are not */
   const fm = mk.fm, own = (g) => isOwn(g, mk.type), cons = params.markers === "conserved";
@@ -468,13 +540,15 @@ defineWidget({
       when: ON("markers"),
     },
     against: {
-      type: "segmented", label: "Compared against",
-      options: [{ value: "rest", label: "All other cells" }, { value: "cluster", label: "One cluster" }], default: "rest",
-      when: ON("markers"),
+      type: "select", label: "Compared against",
+      detail: "all other cells, or one cluster; a click on the map picks one too",
+      options: [{ value: "rest", label: "All other cells" }, ...Array.from({ length: MAX_ROWS }, (_, c) => ({ value: String(c), label: `Cluster ${c}` }))],
+      default: "rest", when: ON("markers"),
     },
-    other: {
-      type: "int", label: "The other cluster", min: 0, max: MAX_ROWS - 1, default: 1,
-      when: { all: [ON("markers"), { param: "against", equals: "cluster" }] },
+    pick: {
+      type: "segmented", label: "A click on the map picks",
+      options: [{ value: "tested", label: "The cluster tested" }, { value: "against", label: "The comparison" }],
+      default: "tested", display: true, when: ON("markers"),
     },
     markers: {
       type: "segmented", label: "Markers",
@@ -541,7 +615,12 @@ defineWidget({
     /* core probes the table at load, before compute has run */
     if (params.page !== "markers" || !state) return [];
     const L = markersLayout(w);
-    return state.cl.ann.slice(0, MAX_ROWS).map((a, ri) => ({ x: 4, y: L.top + ri * L.rowH, w: L.x1 - 4, h: L.rowH, set: { cluster: a.c }, label: `cluster ${a.c}` }));
+    const setFor = (c) => (params.pick === "against" ? { against: String(c) } : { cluster: c });
+    return [
+      ...state.cl.ann.slice(0, MAX_ROWS).map((a, ri) => ({ x: 4, y: L.top + ri * L.rowH, w: L.x1 - 4, h: L.rowH, set: setFor(a.c), label: `cluster ${a.c}` })),
+      ...mapTiles(state, L).filter((t) => t.c < MAX_ROWS).map((t) => ({ x: t.x, y: t.y, w: t.w, h: t.h, set: setFor(t.c), label: `cluster ${t.c} on the map` })),
+      ...markerChips(L).map((ch) => ({ x: ch.x, y: ch.y, w: ch.w, h: ch.h, set: ch.set, label: ch.label })),
+    ];
   },
 
   draw: ({ ctx, colors, w, params, state }) => {
@@ -563,7 +642,7 @@ defineWidget({
     if (params.page === "markers") {
       const mk = state.mk, fm = mk.fm, tested = mk.tested;
       const up = fm.res.filter((x) => x.lfc > 0 && x.lpAdj < LOG05), broad = broadOf(mk);
-      const against = mk.vsRest ? `the other ${fm.n2} cells` : `cluster ${mk.otherC}'s ${fm.n2}`;
+      const against = mk.vsRest ? `the other ${fm.n2} cells` : `cluster ${mk.otherC}'s ${fm.n2}${params.against !== String(mk.otherC) ? ` (cluster ${params.against} is the tested one or does not exist at this resolution)` : ""}`;
       return [
         { label: `Genes up in cluster ${tested} at p_val_adj < 0.05`, value: String(up.length), note: `${fm.n1} cells against ${against}${Number(params.cluster) > tested ? `; cluster ${params.cluster} does not exist at this resolution, so the last one is shown` : ""}` },
         params.markers === "conserved"
