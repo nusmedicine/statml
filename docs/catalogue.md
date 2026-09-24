@@ -18695,7 +18695,7 @@ by canonical markers, and calls `FindMarkers` twice: cluster 5 against 7, and
 | 77 | `count-normalization` | Bulk RNA-seq: Normalization — **SHIPPED 2026-09-22** (ab66e5c, 14 states) | 01-2 cells 16 (*DESeq2 accepts only raw count data … we cannot use FPKM, TPM*), 22 (the median of ratios); 01-1 (the GDC object ships `unstranded`, `tpm_unstrand`, `fpkm_unstrand`, `fpkm_uq_unstrand`) | a normalised unit is comparable everywhere, and FPKM and TPM differ only in name | **holds**: with 5% of genes 8× up holding 48% of B's reads, the unchanged genes shift −0.81 log2 under CPM, −0.57 under TPM, −0.02 under the median of ratios; at a 1.5× cutoff TPM calls 48 of 98 unchanged genes down, the median of ratios 2; FPKM's per-sample sums differ (179M against 112M) where TPM's are 10⁶ by construction; a TPM of 50 is 50 reads at 1M depth and 2,500 at 50M, CV 14% against 2% | proposed, **first to build** |
 | 78 | `deseq2` | Differential Expression | 01-2 cells 1 (NB, α, the four steps), 22 (size factors, MLE, MAP, the trend, the GLM and design matrix, `W = β/SE`), 24–25 (`vst`), 35–36 (`plotDispEsts`), 38 (`summary`: independent filtering), 39–45 (MA plot, `lfcShrink`) | a gene's own dispersion from three replicates is an estimate worth using; the log2 fold change is a ratio of means; log is a variance stabiliser | **holds**: at 3 vs 3 the realised FDR at padj < 0.1 is 40% with gene-wise dispersions, 20% shrunk, 8% with the truth (4,000 genes, 10% DE); 11% of low-count genes' own estimates sit at the floor; LFC shrinkage takes 139 null low-count genes at \|LFC\| > 1 to 0 and 274 true ones to 194; the SD across replicates at a mean of 1–5 is 1.09 under log2(x + 1) and 0.33 under the vst, 0.30 everywhere above; the lesson's own table: lfcSE 1.26 at baseMean < 1, 0.22 above 1,000, and 96% of the significant genes at baseMean 1–10 carry \|LFC\| > 1 against 52% above 1,000 | proposed, **second; the heaviest** |
 | 79 | `cell-qc` | Single-Cell QC | 02-2 cells 16–26 | the three thresholds are universal numbers; a low count is a dead cell and a high one a doublet | **holds, on the lesson's own cells**: the script reproduces 40,564 → 31,014 exactly; mt% < 10 removes 9,351 of HB17 background's 11,197 cells (median 14.8%) and 0 / 1 / 27 of the other three; nFeature and nCount remove 1,308 and 1,312 there, 1,199 of them the same cells, and nothing elsewhere. **The CYP3A4 line that stood here was struck 2026-09-23** — it is detected in 91% of the cells removed AND 89% of the cells kept, so the rule removes a sample, not a cell type; § Slot 79 has what replaced it | **SHIPPED 2026-09-24** |
-| 80 | `integration` | Single-Cell Integration | 02-3 cells 1, 9 (the five methods), 13–16; 02-2 cell 53 | integration removes the batch and leaves the biology; a type present in one batch has a partner in the other | **holds**: with every type in both batches MNN pairs 100% within type and Harmony mixes to 0.51 with the unique type 0.2 SD from its own; with a type in one batch only it has 0 MNN pairs and is moved by its neighbours' batch vector (8.6 → 6.9 SD from the nearest shared type), while Harmony at θ = 2 pulls it to 3.6 and 98% of its cells read as that type | proposed, **fourth** |
+| 80 | `integration` | Single-Cell Integration | 02-3 cells 1, 9 (the five methods), 13–16; 02-2 cell 53 | integration removes the batch and leaves the biology; a type present in one batch has a partner in the other | **holds**: with every type in both batches MNN pairs 100% within type and Harmony mixes to 0.51 with the unique type 0.2 SD from its own; with a type in one batch only it has 0 MNN pairs and is moved by its neighbours' batch vector (8.6 → 6.9 SD from the nearest shared type), while Harmony at θ = 2 pulls it to 3.6 and 98% of its cells read as that type | **measured, mocked and picked 2026-09-24** — the control is the batch key, not the method; § Slot 80 |
 | 81 | `cell-markers` | Clusters and Markers | 02-4 cells 5–6 (`FindNeighbors`, `FindClusters`), 10–15 (markers, `FeaturePlot`, `DoHeatmap`), 16–17 (`FindMarkers`'s columns), 18–22 (within a type across conditions) | a marker is a gene expressed in the cluster; a p-value ranks markers; cells are replicates | **holds**: a gene on in 92% of the cluster and 82% of the rest and a gene on in 69% against 5% both test at p < 1e-31 over 1,200 cells; with two patients per arm and no condition effect a Wilcoxon over cells rejects 75% of null genes (5% with no patient effect), a t-test over patients 3% | proposed, **fifth** |
 | 82 | `cell-clusters` | Graph Clustering | 02-4 cell 5 (kNN → SNN → Louvain, the two figures) | the clusters are the cell types; the count is a finding | **holds**: 600 cells, three types and a continuum, k = 20, SNN pruned at 1/15: 2 clusters at resolution 0.05, 3 at 0.1–0.3, 4 at 0.5 (ARI 0.95), 5 at 0.8–1.2, 6 at 2.0 with the continuum cut into pieces | proposed, **the one to cut, or 81's first page** |
 
@@ -20155,6 +20155,73 @@ each option must win somewhere: MNN leaves the batch-only type standing and
 mixes less (0.29); Harmony mixes fully (0.51) and pulls it (8.6 → 3.6 SD).
 CCA anchors, the notebook's method, are MNN in a shared correlation space and
 would be a third arm only if measured to differ.
+
+#### MEASURED, MOCKED AND PICKED 2026-09-24 — the method control replaced by a batch-key control
+
+**The measurement overturned the plan** (`_lab/integration-measure.mjs`, 35 s,
+output in `integration-measure.txt`; slot 79's four samples and six types as
+300-gene vectors, tumour cells in the tumour samples only). The arc's claim
+that "Harmony pulls a one-batch type in, 98%" came from a Harmony stand-in
+that corrects nothing at this scale (raw squared distances at σ = 2D: a hard
+assignment the penalty cannot move). Rewritten as published (cosine-normalised
+PCs, σ = 0.1, ridge correction), and MNN as fastMNN (cosine, a LOCAL kernel —
+a kernel as wide as the batch gap is one global shift and left a third of
+it), **neither merges anything**: both find the 31–40 hepatocytes that do sit
+in the tumour samples and pair within type. **The merge is CCA's, and it
+depends on the batch key**: declared as tissue, 55–59% of anchors join two
+types and tumour cells and hepatocytes reach 50–80% own-type neighbours,
+because each dataset is scaled on its own and the dominant population of each
+(hepatocytes in liver, tumour cells in tumour) is lined up with the other.
+Declared as patient, 2–5% of anchors join two types and scoring marks them.
+That is the lesson's own output (§ *What the lessons' own output says*, 2).
+So MNN against Harmony (call 7.6) had no option that wins somewhere, and the
+control became **which variable is declared the batch**.
+
+**The pedagogy, researched on his ask** (Seurat v5 vignette, Stuart 2019,
+Haghverdi 2018 via batchelor's docs, OSCA's multi-sample chapters,
+sc-best-practices with Luecken 2022, HBC training): every source that explains
+the mechanism leads with mutual nearest neighbours — pairs of similar cells
+across batches whose difference estimates the batch effect; CCA gets one
+sentence at most and Seurat's vignette treats it as a black box. "An anchor
+is a pair of cells that are each other's nearest; each cell moves by the
+average of the anchors near it" is what Stuart's Methods compute. What that
+sentence omits is the ASSUMPTION — the batches hold the same cells — which is
+the failure worth teaching. Luecken 2022: tissue and location "can be regarded
+as batch or biology". OSCA: corrected values are for the picture; per-gene
+tests use uncorrected counts. No source says outright not to integrate over
+tumour against normal; Seurat's and HBC's own examples integrate over the
+stimulation condition.
+
+**The mock** (`_lab/integration-mock.html` on `_lab/integration-mock-engine.js`,
+every number computed on the page): 150 cells a sample in a plane, six types
+on a hexagon (hepatocyte and tumour adjacent), a patient shift, the tumour
+cells in the tumour samples only; the anchor method reduced to centre each
+declared batch on its own mean (the part of CCA's standardisation that
+carries the assumption), mutual nearest neighbours at k = 5, a shared-neighbour
+score, and each cell of the second batch moved by the score-weighted anchor
+vectors near it. Three panels × two rows, the rows coloured by the declared
+batch and by type (the lesson's `DimPlot(group.by = c("patient", "type"))`).
+Over seeds 1–3: **Patient** — 0% of anchors join two types, patients mix
+0.17 → 0.84; **Tissue** — 61–71%, patients stay apart (0.17 → 0.25), and
+hepatocytes become 11–20% of the tumour cells' neighbours from ~1%. The
+anchors are drawn where the cells were SEQUENCED, as bridges across the gap:
+drawn in the shared space they overlap and read as specks (tried first).
+
+**His picks, all four the recommendation:** (1) anchors and correction only,
+the shared-space step one line of caption; (2) one page, Step builds it —
+anchors appear, then cells move along them; (3) Batch = Patient · Tissue;
+(4) the anchor score LEFT OUT — under Tissue the wrong anchors score higher
+(0.66 against 0.40), since a whole cluster aligned with a whole cluster is
+consistent. **And by measurement, no batch-effect slider**: from 0.3 to 1.4
+nothing changes under Patient (0% across, 0.84 mixed), because centring
+removes the shift at any size — a control with no setting that loses.
+
+**Left to the draft, conventional:** across-type anchors in `--ink-1` over
+within-type in `--ink-3` (`--c-extreme` is the tumour cells' red); the batches
+in `--c-group-a` / `--c-group-b`, the types in `--c-cluster-*`; the engine
+moves from `_lab` into `widgets/integration/`. **Still to ask with the draft
+open:** the subtitle and blurb, and whether the title keeps "Single-Cell
+RNA-seq: Integration".
 
 ### Slot 81 · `cell-markers` — Clusters and Markers
 

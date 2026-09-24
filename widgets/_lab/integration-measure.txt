@@ -1,0 +1,81 @@
+M1 THE STAGE — 4 samples × 400 cells, 300 genes, 79's mixes; sample shift sd 0.3, noise 0.6; configs below: strict = no tumour cells in either liver sample; typeBatch = a per-patient gain on each type's marker genes
+
+{"patientShift":0.5} seed 1  (PCA of 1,600 × 300 to 10 dims: 279 ms)
+  batch = patient   cells per type, batch 0 / batch 1: hepa 251/252 tumo 217/194 immu 88/129 endo 121/109 stel 44/39 kupf 79/77
+    none      mixing 0.00  purity 100%   hepa 100% · tumo 100% · immu 100% · endo 100% · stel 100% · kupf 100%
+    MNN       mixing 0.16  purity 100%   hepa 100% · tumo 100% · immu 100% · endo 100% · stel 100% · kupf 100%   [2971 pairs, 0% across types, 157 ms]
+    CCA       mixing 0.62  purity 100%   hepa 100% · tumo 100% · immu 100% · endo 100% · stel 100% · kupf 100%   [2889 anchors, 2% across types; mean score right 0.59 wrong 0.10; 996 ms]
+    Harmony   mixing 0.02  purity 100%   hepa 100% · tumo 100% · immu 100% · endo 100% · stel 100% · kupf 100%   [1078 ms]
+  batch = tissue   cells per type, batch 0 / batch 1: hepa 463/40 tumo 10/401 immu 87/130 endo 131/99 stel 41/42 kupf 68/88
+    none      mixing 0.01  purity 100%   hepa 100% · tumo 100% · immu 100% · endo 100% · stel 100% · kupf 100%
+    MNN       mixing 0.45  purity 100%   hepa 100% · tumo 100% · immu 100% · endo 100% · stel 100% · kupf 100%   [4366 pairs, 0% across types, 189 ms]
+    CCA       mixing 0.42  purity 86%   hepa 69% (31% tumo) · tumo 82% (18% hepa) · immu 100% · endo 100% · stel 100% · kupf 100%   [2917 anchors, 55% across types; mean score right 0.73 wrong 0.47; 1314 ms]
+    Harmony   mixing 0.56  purity 100%   hepa 100% · tumo 100% · immu 100% · endo 100% · stel 100% · kupf 100%   [636 ms]
+  batch = sample (the lesson's four layers), Harmony: mixing 0.01 -> 0.50, purity 100% -> 100%   hepa 100% · tumo 100% · immu 100% · endo 100% · stel 100% · kupf 100%
+
+{"patientShift":0.5} seed 2  (PCA of 1,600 × 300 to 10 dims: 227 ms)
+  batch = patient   cells per type, batch 0 / batch 1: hepa 265/247 tumo 224/180 immu 83/127 endo 129/125 stel 38/54 kupf 61/67
+    none      mixing 0.00  purity 100%   hepa 100% · tumo 99% · immu 100% · endo 100% · stel 100% · kupf 100%
+    MNN       mixing 0.29  purity 100%   hepa 100% · tumo 100% · immu 100% · endo 100% · stel 100% · kupf 100%   [2616 pairs, 0% across types, 160 ms]
+    CCA       mixing 0.49  purity 100%   hepa 100% · tumo 100% · immu 100% · endo 100% · stel 100% · kupf 100%   [2841 anchors, 5% across types; mean score right 0.59 wrong 0.14; 1295 ms]
+    Harmony   mixing 0.16  purity 100%   hepa 100% · tumo 99% · immu 100% · endo 100% · stel 100% · kupf 100%   [598 ms]
+  batch = tissue   cells per type, batch 0 / batch 1: hepa 481/31 tumo 7/397 immu 86/124 endo 134/120 stel 42/50 kupf 50/78
+    none      mixing 0.01  purity 100%   hepa 100% · tumo 99% · immu 100% · endo 100% · stel 100% · kupf 100%
+    MNN       mixing 0.45  purity 98%   hepa 96% · tumo 96% · immu 100% · endo 100% · stel 100% · kupf 100%   [4176 pairs, 6% across types, 197 ms]
+    CCA       mixing 0.30  purity 89%   hepa 82% (18% tumo) · tumo 80% (20% hepa) · immu 100% · endo 100% · stel 100% · kupf 100%   [2829 anchors, 56% across types; mean score right 0.74 wrong 0.48; 1289 ms]
+    Harmony   mixing 0.51  purity 100%   hepa 100% · tumo 100% · immu 100% · endo 100% · stel 100% · kupf 100%   [545 ms]
+  batch = sample (the lesson's four layers), Harmony: mixing 0.01 -> 0.47, purity 100% -> 100%   hepa 100% · tumo 100% · immu 100% · endo 100% · stel 100% · kupf 100%
+
+{"patientShift":0.5,"strict":true} seed 1  (PCA of 1,600 × 300 to 10 dims: 221 ms)
+  batch = patient   cells per type, batch 0 / batch 1: hepa 258/252 tumo 207/194 immu 86/129 endo 124/109 stel 45/39 kupf 80/77
+    none      mixing 0.00  purity 100%   hepa 100% · tumo 100% · immu 100% · endo 100% · stel 100% · kupf 100%
+    MNN       mixing 0.19  purity 100%   hepa 100% · tumo 100% · immu 100% · endo 100% · stel 100% · kupf 100%   [2936 pairs, 0% across types, 163 ms]
+    CCA       mixing 0.63  purity 100%   hepa 100% · tumo 100% · immu 100% · endo 100% · stel 100% · kupf 100%   [2899 anchors, 2% across types; mean score right 0.59 wrong 0.10; 1302 ms]
+    Harmony   mixing 0.02  purity 100%   hepa 100% · tumo 100% · immu 100% · endo 100% · stel 100% · kupf 100%   [532 ms]
+  batch = tissue   cells per type, batch 0 / batch 1: hepa 470/40 tumo 0/401 immu 85/130 endo 134/99 stel 42/42 kupf 69/88
+    none      mixing 0.01  purity 100%   hepa 100% · tumo 100% · immu 100% · endo 100% · stel 100% · kupf 100%
+    MNN       mixing 0.44  purity 99%   hepa 99% · tumo 99% · immu 100% · endo 100% · stel 100% · kupf 100%   [4187 pairs, 0% across types, 201 ms]
+    CCA       mixing 0.39  purity 86%   hepa 70% (30% tumo) · tumo 81% (19% hepa) · immu 100% · endo 100% · stel 100% · kupf 100%   [2881 anchors, 54% across types; mean score right 0.75 wrong 0.47; 1294 ms]
+    Harmony   mixing 0.53  purity 100%   hepa 100% · tumo 100% · immu 100% · endo 100% · stel 100% · kupf 100%   [665 ms]
+  batch = sample (the lesson's four layers), Harmony: mixing 0.00 -> 0.48, purity 100% -> 100%   hepa 100% · tumo 100% · immu 100% · endo 100% · stel 100% · kupf 100%
+
+{"patientShift":0.5,"strict":true} seed 2  (PCA of 1,600 × 300 to 10 dims: 221 ms)
+  batch = patient   cells per type, batch 0 / batch 1: hepa 267/247 tumo 217/180 immu 87/127 endo 129/125 stel 39/54 kupf 61/67
+    none      mixing 0.00  purity 100%   hepa 100% · tumo 100% · immu 100% · endo 100% · stel 100% · kupf 100%
+    MNN       mixing 0.29  purity 100%   hepa 100% · tumo 100% · immu 100% · endo 100% · stel 100% · kupf 100%   [2615 pairs, 0% across types, 155 ms]
+    CCA       mixing 0.51  purity 100%   hepa 100% · tumo 100% · immu 100% · endo 100% · stel 100% · kupf 100%   [2834 anchors, 5% across types; mean score right 0.59 wrong 0.14; 1280 ms]
+    Harmony   mixing 0.16  purity 100%   hepa 100% · tumo 100% · immu 100% · endo 99% · stel 100% · kupf 100%   [658 ms]
+  batch = tissue   cells per type, batch 0 / batch 1: hepa 483/31 tumo 0/397 immu 90/124 endo 134/120 stel 43/50 kupf 50/78
+    none      mixing 0.01  purity 100%   hepa 100% · tumo 100% · immu 100% · endo 100% · stel 100% · kupf 100%
+    MNN       mixing 0.44  purity 98%   hepa 96% · tumo 96% · immu 100% · endo 100% · stel 100% · kupf 100%   [4040 pairs, 6% across types, 195 ms]
+    CCA       mixing 0.30  purity 89%   hepa 82% (18% tumo) · tumo 78% (22% hepa) · immu 100% · endo 100% · stel 100% · kupf 100%   [2824 anchors, 55% across types; mean score right 0.72 wrong 0.43; 809 ms]
+    Harmony   mixing 0.49  purity 100%   hepa 100% · tumo 100% · immu 100% · endo 100% · stel 100% · kupf 100%   [561 ms]
+  batch = sample (the lesson's four layers), Harmony: mixing 0.01 -> 0.47, purity 100% -> 100%   hepa 100% · tumo 100% · immu 100% · endo 100% · stel 100% · kupf 100%
+
+{"patientShift":0.5,"strict":true,"typeBatch":0.4} seed 1  (PCA of 1,600 × 300 to 10 dims: 212 ms)
+  batch = patient   cells per type, batch 0 / batch 1: hepa 258/252 tumo 207/194 immu 86/129 endo 124/109 stel 45/39 kupf 80/77
+    none      mixing 0.00  purity 100%   hepa 100% · tumo 100% · immu 100% · endo 100% · stel 100% · kupf 100%
+    MNN       mixing 0.27  purity 100%   hepa 100% · tumo 100% · immu 100% · endo 100% · stel 100% · kupf 100%   [2874 pairs, 0% across types, 159 ms]
+    CCA       mixing 0.62  purity 100%   hepa 100% · tumo 100% · immu 100% · endo 100% · stel 100% · kupf 100%   [2859 anchors, 2% across types; mean score right 0.64 wrong 0.08; 788 ms]
+    Harmony   mixing 0.01  purity 100%   hepa 100% · tumo 100% · immu 100% · endo 100% · stel 100% · kupf 100%   [673 ms]
+  batch = tissue   cells per type, batch 0 / batch 1: hepa 470/40 tumo 0/401 immu 85/130 endo 134/99 stel 42/42 kupf 69/88
+    none      mixing 0.01  purity 100%   hepa 100% · tumo 100% · immu 100% · endo 100% · stel 100% · kupf 100%
+    MNN       mixing 0.43  purity 99%   hepa 99% · tumo 99% · immu 100% · endo 100% · stel 100% · kupf 100%   [4113 pairs, 0% across types, 195 ms]
+    CCA       mixing 0.94  purity 75%   hepa 50% (50% tumo) · tumo 63% (37% hepa) · immu 100% · endo 100% · stel 100% · kupf 100%   [2635 anchors, 53% across types; mean score right 0.79 wrong 0.40; 765 ms]
+    Harmony   mixing 0.53  purity 100%   hepa 100% · tumo 100% · immu 100% · endo 100% · stel 100% · kupf 100%   [556 ms]
+  batch = sample (the lesson's four layers), Harmony: mixing 0.00 -> 0.48, purity 100% -> 100%   hepa 100% · tumo 100% · immu 100% · endo 100% · stel 100% · kupf 100%
+
+{"patientShift":0.5,"strict":true,"typeBatch":0.4} seed 2  (PCA of 1,600 × 300 to 10 dims: 219 ms)
+  batch = patient   cells per type, batch 0 / batch 1: hepa 267/247 tumo 217/180 immu 87/127 endo 129/125 stel 39/54 kupf 61/67
+    none      mixing 0.00  purity 100%   hepa 100% · tumo 100% · immu 100% · endo 100% · stel 100% · kupf 100%
+    MNN       mixing 0.26  purity 100%   hepa 100% · tumo 100% · immu 100% · endo 100% · stel 100% · kupf 100%   [2508 pairs, 0% across types, 158 ms]
+    CCA       mixing 0.48  purity 100%   hepa 100% · tumo 100% · immu 100% · endo 100% · stel 100% · kupf 100%   [2857 anchors, 5% across types; mean score right 0.62 wrong 0.19; 811 ms]
+    Harmony   mixing 0.05  purity 100%   hepa 100% · tumo 100% · immu 100% · endo 100% · stel 100% · kupf 100%   [587 ms]
+  batch = tissue   cells per type, batch 0 / batch 1: hepa 483/31 tumo 0/397 immu 90/124 endo 134/120 stel 43/50 kupf 50/78
+    none      mixing 0.01  purity 100%   hepa 100% · tumo 100% · immu 100% · endo 100% · stel 100% · kupf 100%
+    MNN       mixing 0.43  purity 98%   hepa 95% · tumo 97% · immu 100% · endo 100% · stel 100% · kupf 100%   [4016 pairs, 6% across types, 192 ms]
+    CCA       mixing 0.85  purity 76%   hepa 61% (39% tumo) · tumo 54% (46% hepa) · immu 100% · endo 100% · stel 100% · kupf 100%   [2677 anchors, 55% across types; mean score right 0.77 wrong 0.41; 761 ms]
+    Harmony   mixing 0.51  purity 100%   hepa 100% · tumo 100% · immu 100% · endo 100% · stel 100% · kupf 100%   [545 ms]
+  batch = sample (the lesson's four layers), Harmony: mixing 0.01 -> 0.47, purity 100% -> 100%   hepa 100% · tumo 100% · immu 100% · endo 100% · stel 100% · kupf 100%
+
+(35.5 s)

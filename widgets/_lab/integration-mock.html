@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · integration — the anchor method, and what the batch key decides</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1240px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 104ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  .rail { position: sticky; top: 0; z-index: 2; background: var(--surface-1); border: 1px solid var(--grid); border-radius: var(--radius);
+          padding: var(--sp-3) var(--sp-4); display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: var(--sp-3) var(--sp-4); margin: 0 0 var(--sp-4); }
+  .fld label { display: block; font-size: var(--fs-xs); color: var(--ink-2); margin: 0 0 4px; }
+  .fld label b { color: var(--ink-1); float: right; font-family: var(--font-mono); }
+  .fld input[type=range], .fld select { width: 100%; }
+  .seg { display: flex; gap: 4px; }
+  .seg button { flex: 1; font: inherit; font-size: var(--fs-sm); padding: 4px 8px; border: 1px solid var(--grid); background: var(--surface-2); color: var(--ink-2); border-radius: var(--radius); cursor: pointer; }
+  .seg button[aria-pressed=true] { background: var(--ink-1); color: var(--surface-1); border-color: var(--ink-1); }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); border-radius: var(--radius); max-width: 100%; }
+  .legend { display: flex; flex-wrap: wrap; gap: var(--sp-2) var(--sp-4); font-size: var(--fs-xs); color: var(--ink-2); margin: var(--sp-2) 0; }
+  .legend span::before { content: ""; display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 5px; background: var(--sw); vertical-align: -1px; }
+  .legend span.line::before { border-radius: 0; height: 2px; width: 14px; vertical-align: 3px; }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--sp-2); margin: var(--sp-3) 0; }
+  .tile { background: var(--surface-2); border-radius: var(--radius); padding: var(--sp-2) var(--sp-3); }
+  .tile .k { font-size: var(--fs-xs); color: var(--ink-3); }
+  .tile .v { font-family: var(--font-mono); font-size: var(--fs-md); color: var(--ink-1); }
+  table.calls { border-collapse: collapse; font-size: var(--fs-sm); width: 100%; }
+  table.calls td, table.calls th { border-top: 1px solid var(--grid); padding: 6px 8px; vertical-align: top; text-align: left; }
+  table.calls th { color: var(--ink-3); font-weight: normal; font-size: var(--fs-xs); }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>integration &middot; the anchor method in three panels, and a batch-key control</h1>
+  <p class="note">
+    Slot 79's four samples and six cell types, 150 cells a sample, placed in a plane: each patient's chemistry shifts the whole plane,
+    and the tumour cells are in the two tumour samples only. The columns follow the lesson's figure: <b>the data as sequenced</b>,
+    <b>the anchors</b> (a pair of cells, one from each batch, that are each other's nearest once each batch is centred on its own mean — the job CCA does in the lesson; drawn here where the cells were sequenced, so each is a bridge across the batch gap),
+    and <b>the corrected data</b> (each cell of the second batch moved by the anchors near it). The top row is coloured by the batch you declare, the bottom row by cell type —
+    the lesson's <code>DimPlot(group.by = c("patient", "type"))</code>.
+    Switch <i>Batch</i> from Patient to Tissue: the method is unchanged, and the anchors now join different cell types.
+  </p>
+  <div class="rail" id="rail"></div>
+  <canvas id="fig"></canvas>
+  <div class="legend" id="legend"></div>
+  <div class="tiles" id="tiles"></div>
+
+  <h2>The calls</h2>
+  <div id="calls"></div>
+</main>
+
+<script type="module">
+import { simulate, integrate, summary, TYPES, KEYS } from "./integration-mock-engine.js";
+
+const css = getComputedStyle(document.documentElement);
+const C = (n) => css.getPropertyValue(n).trim();
+const TYPE_COL = ["--c-cluster-a", "--c-cluster-c", "--c-cluster-b", "--c-cluster-d", "--c-cluster-e", "--c-cluster-f"];
+const BATCH_COL = ["--c-group-a", "--c-group-b"];
+
+const V = { key: "patient", seed: 1, batch: 0.9, show: "all" };
+
+const rail = document.getElementById("rail");
+rail.innerHTML = `
+  <div class="fld"><label>Batch</label><div class="seg" id="key">
+    <button data-v="patient">Patient</button><button data-v="tissue">Tissue</button></div></div>
+  <div class="fld"><label>Batch effect <b id="bv"></b></label><input id="batch" type="range" min="0.3" max="1.4" step="0.05"></div>
+  <div class="fld"><label>Anchors drawn</label><div class="seg" id="show">
+    <button data-v="all">All</button><button data-v="across">Across types</button></div></div>
+  <div class="fld"><label>Seed <b id="sv"></b></label><input id="seed" type="range" min="1" max="12" step="1"></div>`;
+const seg = (id, prop) => {
+  const el = document.getElementById(id);
+  const sync = () => el.querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.v === V[prop])));
+  el.addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; V[prop] = b.dataset.v; sync(); draw(); });
+  sync();
+};
+seg("key", "key"); seg("show", "show");
+const range = (id, prop, out) => {
+  const el = document.getElementById(id); el.value = V[prop];
+  const o = document.getElementById(out);
+  const upd = () => { V[prop] = +el.value; o.textContent = V[prop]; draw(); };
+  el.addEventListener("input", upd); o.textContent = V[prop];
+};
+range("batch", "batch", "bv"); range("seed", "seed", "sv");
+
+const cv = document.getElementById("fig");
+const ctx = cv.getContext("2d");
+const COLS = 3, PANEL = 330, GAP = 18, HEAD = 26, ROWHEAD = 18, PAD = 12;
+const W = COLS * PANEL + (COLS - 1) * GAP + 2 * PAD;
+const H = HEAD + 2 * (PANEL + ROWHEAD) + GAP + 2 * PAD;
+const dpr = window.devicePixelRatio || 1;
+cv.width = W * dpr; cv.height = H * dpr; cv.style.width = W + "px"; cv.style.height = H + "px";
+ctx.scale(dpr, dpr);
+
+function viewOf(pts) {
+  const xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1]);
+  const lo = [Math.min(...xs), Math.min(...ys)], hi = [Math.max(...xs), Math.max(...ys)];
+  const half = Math.max(hi[0] - lo[0], hi[1] - lo[1]) / 2 * 1.08;
+  const mid = [(lo[0] + hi[0]) / 2, (lo[1] + hi[1]) / 2];
+  return (p, x0, y0) => [x0 + PANEL / 2 + ((p[0] - mid[0]) / half) * (PANEL / 2 - 8), y0 + PANEL / 2 - ((p[1] - mid[1]) / half) * (PANEL / 2 - 8)];
+}
+
+function draw() {
+  const cells = simulate(V.seed, { batch: V.batch });
+  const res = integrate(cells, V.key);
+  const s = summary(cells, res, V.key);
+  const key = KEYS[V.key];
+  ctx.clearRect(0, 0, W, H);
+  ctx.font = `600 13px ${C("--font")}`; ctx.fillStyle = C("--ink-1"); ctx.textBaseline = "alphabetic";
+  const titles = ["1 · As sequenced", "2 · Anchors", "3 · Corrected"];
+  const spaces = [res.raw, res.raw, res.corrected];
+  // one view for all three, so an anchor reads as a bridge across the batch gap and the
+  // correction as movement along the bridges. The anchors are FOUND in the shared space
+  // (each batch centred on its own mean); drawn there they overlap and read as specks.
+  const vRaw = viewOf([...res.raw, ...res.corrected]);
+  const views = [vRaw, vRaw, vRaw];
+  const order = cells.map((_, i) => i).sort((a, b) => ((a * 7919) % 613) - ((b * 7919) % 613));
+  for (let c = 0; c < COLS; c += 1) {
+    const x0 = PAD + c * (PANEL + GAP);
+    ctx.fillStyle = C("--ink-1"); ctx.font = `600 13px ${C("--font")}`;
+    ctx.fillText(titles[c], x0, PAD + 14);
+    for (let r = 0; r < 2; r += 1) {
+      const y0 = PAD + HEAD + r * (PANEL + ROWHEAD + GAP) + ROWHEAD;
+      ctx.font = `12px ${C("--font")}`; ctx.fillStyle = C("--ink-3");
+      ctx.fillText(r === 0 ? `coloured by ${key.name.toLowerCase()} (the declared batch)` : "coloured by cell type", x0, y0 - 5);
+      ctx.strokeStyle = C("--grid"); ctx.lineWidth = 1; ctx.strokeRect(x0 + 0.5, y0 + 0.5, PANEL - 1, PANEL - 1);
+      const P = spaces[c], view = views[c];
+      if (c === 1) {
+        // anchors under the cells
+        res.pairs.forEach(([i, j], p) => {
+          const across = cells[i].type !== cells[j].type;
+          if (V.show === "across" && !across) return;
+          const a = view(P[i], x0, y0), b = view(P[j], x0, y0);
+          ctx.strokeStyle = across ? C("--ink-1") : C("--ink-3");
+          ctx.globalAlpha = across ? 0.25 + 0.6 * res.score[p] : 0.12 + 0.35 * res.score[p];
+          ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke();
+        });
+        ctx.globalAlpha = 1;
+      }
+      for (const i of order) {
+        const q = view(P[i], x0, y0);
+        ctx.fillStyle = C(r === 0 ? BATCH_COL[res.batch[i]] : TYPE_COL[cells[i].type]);
+        ctx.globalAlpha = 0.8;
+        ctx.beginPath(); ctx.arc(q[0], q[1], 2.3, 0, Math.PI * 2); ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+      if (c === 1 && r === 0) {
+        ctx.font = `12px ${C("--font-mono")}`; ctx.fillStyle = C("--ink-2");
+        ctx.fillText(`${s.anchors} anchors · ${s.across} join two types`, x0 + 8, y0 + PANEL - 10);
+      }
+    }
+  }
+  document.getElementById("legend").innerHTML =
+    key.labels.map((l, b) => `<span style="--sw:var(${BATCH_COL[b]})">${l}</span>`).join("") +
+    TYPES.map((t, i) => `<span style="--sw:var(${TYPE_COL[i]})">${t.name}</span>`).join("") +
+    `<span class="line" style="--sw:var(--ink-3)">Anchor within one type</span><span class="line" style="--sw:var(--ink-1)">Anchor joining two types</span>`;
+  const f = (v) => (Number.isFinite(v) ? v.toFixed(2) : "–");
+  const pct = (v) => `${Math.round(100 * v)}%`;
+  document.getElementById("tiles").innerHTML = [
+    ["Anchors joining two cell types", `${s.across} of ${s.anchors} (${pct(s.across / Math.max(1, s.anchors))})`],
+    ["Mean anchor score, within / across types", `${f(s.scoreSame)} / ${f(s.scoreAcross)}`],
+    ["Patients mixed (1 = fully)", `${f(s.mixPatient[0])} → ${f(s.mixPatient[1])}`],
+    ["Tissues mixed (1 = fully)", `${f(s.mixTissue[0])} → ${f(s.mixTissue[1])}`],
+    ["Tumour cells' neighbours that are hepatocytes", `${pct(s.tumourHep[0])} → ${pct(s.tumourHep[1])}`],
+  ].map(([k, v]) => `<div class="tile"><div class="k">${k}</div><div class="v">${v}</div></div>`).join("");
+}
+draw();
+
+document.getElementById("calls").innerHTML = `
+<p class="note"><b>The pedagogy research</b> (Seurat v5 vignette, Stuart 2019, Haghverdi 2018 via batchelor, OSCA, sc-best-practices with Luecken 2022, HBC training).
+Every source that explains the mechanism leads with <b>mutual nearest neighbours</b>: pairs of similar cells across batches, whose difference estimates the batch effect.
+CCA gets one sentence at most (HBC: a form of PCA limited to shared variation); Seurat's own vignette treats it as a black box. So
+"an anchor is a pair of cells that are each other's nearest; each cell moves by the average of the anchors near it" is what Stuart's Methods compute,
+and it is how HBC and OSCA teach it. What that sentence leaves out is the <b>assumption</b>, which is the teachable failure: the batches hold the same cells,
+so a population on one side only is still anchored to something. Luecken 2022: tissue and location "can be regarded as batch or biology".
+OSCA: corrected values are for the picture; per-gene tests use the uncorrected counts.</p>
+<table class="calls">
+<tr><th>#</th><th>call</th><th>arms</th><th>recommendation</th></tr>
+<tr><td>1</td><td>How much of the method</td><td>A · anchors and correction only, the shared-space step one line of caption (this mock) &nbsp;·&nbsp; B · a fourth panel drawing the shared space (each batch centred) &nbsp;·&nbsp; C · A, plus OSCA's naive baseline (move each batch by its mean) as a second method</td><td>A — what every teaching source leads with; the shared space overlaps the batches and reads as specks (tried here first)</td></tr>
+<tr><td>2</td><td>Pages and presses</td><td>A · one page, the three panels built by Step: anchors appear, then cells move along them &nbsp;·&nbsp; B · one page, all three at once (this mock) &nbsp;·&nbsp; C · three pages</td><td>A — the order is the argument (pairs first, then the move), which is the test for a walkthrough</td></tr>
+<tr><td>3</td><td>Batch key values</td><td>A · Patient · Tissue (this mock) &nbsp;·&nbsp; B · add Sample, the lesson's four layers</td><td>A — Sample needs pairwise anchors between four batches and a merge order, which is a second mechanism</td></tr>
+<tr><td>4</td><td>Anchor score</td><td>A · drawn as line strength (this mock) and one readout tile &nbsp;·&nbsp; B · left out</td><td>B — under Tissue the wrong anchors score HIGHER (0.66 against 0.40), because a whole cluster is aligned with a whole cluster; the score checks consistency, not type, and teaching it invites the wrong reading</td></tr>
+<tr><td>5</td><td>Batch effect slider</td><td>A · keep &nbsp;·&nbsp; B · fixed</td><td>B — measured over three seeds, the result does not depend on it: under Patient 0% of anchors join two types and the patients mix to 0.84 at every setting from 0.3 to 1.4, because centring each batch removes the shift whatever its size. A control with no setting that changes the outcome is not offered</td></tr>
+</table>`;
+</script>
+</body>
+</html>
