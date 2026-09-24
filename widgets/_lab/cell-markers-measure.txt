@@ -1,0 +1,46 @@
+M1 CLUSTERS — 79's six types and mixes; NormalizeData, ScaleData, PCA 20, kNN 20, SNN 1/15, Louvain best of 10; patient effect 0 (an integrated stage)
+  first run, no zonation: 6–7 clusters at every resolution from 0.05 to 0.5 at 1,600 cells — six well-separated types leave resolution nothing to cut. Hepatocytes are ZONED along the lobule (the lesson's own heatmap spreads them over clusters 0, 1 and 2), so the stage gives them a gradient: 30 genes, half periportal and half pericentral, changing by `zonation` in log across the lobule
+  1600 cells, zonation 0, seed 1 [PCA 688 ms, graph 113 ms, clusters ≤ 441 ms]: 0.1: 7 (hep 1; ARI 1.00) · 0.2: 7 (hep 1; ARI 1.00) · 0.3: 7 (hep 1; ARI 1.00) · 0.5: 7 (hep 1; ARI 1.00) · 0.8: 8 (hep 2 at z̄ 0.52/0.52; ARI 0.83) · 1.2: 8 (hep 2 at z̄ 0.52/0.52; ARI 0.83)
+  1600 cells, zonation 0, seed 2 [PCA 622 ms, graph 106 ms, clusters ≤ 430 ms]: 0.1: 6 (hep 1; ARI 1.00) · 0.2: 6 (hep 1; ARI 1.00) · 0.3: 6 (hep 1; ARI 1.00) · 0.5: 6 (hep 1; ARI 1.00) · 0.8: 7 (hep 2 at z̄ 0.50/0.50; ARI 0.84) · 1.2: 7 (hep 2 at z̄ 0.50/0.50; ARI 0.83)
+  1600 cells, zonation 3, seed 1 [PCA 631 ms, graph 104 ms, clusters ≤ 422 ms]: 0.1: 6 (hep 1; ARI 1.00) · 0.2: 6 (hep 1; ARI 1.00) · 0.3: 6 (hep 1; ARI 1.00) · 0.5: 6 (hep 1; ARI 1.00) · 0.8: 7 (hep 2 at z̄ 0.25/0.72; ARI 0.82) · 1.2: 8 (hep 3 at z̄ 0.18/0.43/0.73; ARI 0.76)
+  1600 cells, zonation 3, seed 2 [PCA 630 ms, graph 105 ms, clusters ≤ 424 ms]: 0.1: 6 (hep 1; ARI 1.00) · 0.2: 6 (hep 1; ARI 1.00) · 0.3: 6 (hep 1; ARI 1.00) · 0.5: 6 (hep 1; ARI 1.00) · 0.8: 7 (hep 2 at z̄ 0.33/0.74; ARI 0.83) · 1.2: 8 (hep 3 at z̄ 0.17/0.45/0.74; ARI 0.77)
+  1600 cells, zonation 5, seed 1 [PCA 628 ms, graph 103 ms, clusters ≤ 387 ms]: 0.1: 6 (hep 1; ARI 1.00) · 0.2: 6 (hep 1; ARI 1.00) · 0.3: 7 (hep 2 at z̄ 0.26/0.76; ARI 0.83) · 0.5: 7 (hep 2 at z̄ 0.26/0.76; ARI 0.83) · 0.8: 7 (hep 2 at z̄ 0.26/0.76; ARI 0.83) · 1.2: 7 (hep 2 at z̄ 0.26/0.76; ARI 0.83)
+  1600 cells, zonation 5, seed 2 [PCA 633 ms, graph 116 ms, clusters ≤ 450 ms]: 0.1: 6 (hep 1; ARI 1.00) · 0.2: 6 (hep 1; ARI 1.00) · 0.3: 6 (hep 1; ARI 1.00) · 0.5: 7 (hep 2 at z̄ 0.19/0.68; ARI 0.85) · 0.8: 7 (hep 2 at z̄ 0.21/0.68; ARI 0.84) · 1.2: 8 (hep 3 at z̄ 0.16/0.47/0.80; ARI 0.77)
+  6400 cells, zonation 3, seed 1 [PCA 2892 ms, graph 795 ms, clusters ≤ 3173 ms]: 0.1: 8 (hep 2 at z̄ 0.43/0.51; ARI 1.00) · 0.2: 8 (hep 2 at z̄ 0.43/0.51; ARI 1.00) · 0.3: 8 (hep 2 at z̄ 0.43/0.51; ARI 1.00) · 0.5: 9 (hep 3 at z̄ 0.25/0.43/0.74; ARI 0.83) · 0.8: 10 (hep 4 at z̄ 0.24/0.43/0.53/0.72; ARI 0.77) · 1.2: 11 (hep 5 at z̄ 0.24/0.27/0.43/0.72/0.77; ARI 0.74)
+  6400 cells, zonation 3, seed 2 [PCA 2797 ms, graph 741 ms, clusters ≤ 3397 ms]: 0.1: 10 (hep 2 at z̄ 0.50/0.85; ARI 1.00) · 0.2: 10 (hep 2 at z̄ 0.50/0.85; ARI 1.00) · 0.3: 10 (hep 2 at z̄ 0.50/0.85; ARI 1.00) · 0.5: 11 (hep 3 at z̄ 0.19/0.67/0.85; ARI 0.84) · 0.8: 12 (hep 4 at z̄ 0.22/0.55/0.72/0.85; ARI 0.77) · 1.2: 13 (hep 5 at z̄ 0.22/0.26/0.71/0.73/0.85; ARI 0.73)
+
+M2 MARKERS — each true type against every other cell (FindAllMarkers' form): of the top 10 genes, how many are that type's own 25 markers
+  seed 1 Hepatocyte       522 vs 1078 cells · own markers in top 10 by p 10, by avg_log2FC 10, by pct.1 − pct.2 10 · p_adj < 0.05: 87 up, 62 not its markers (62 differ a little) · 0 below 1e-300
+      e.g. a marker: lfc 4.45, pct 0.96/0.12, log10 p -268; a gene that differs a little: lfc 0.87, pct 0.95/0.89, log10 p -41
+  seed 1 Tumour cell      412 vs 1188 cells · own markers in top 10 by p 10, by avg_log2FC 10, by pct.1 − pct.2 10 · p_adj < 0.05: 61 up, 36 not its markers (10 other types' markers, 26 differ a little) · 0 below 1e-300
+      e.g. a marker: lfc 3.45, pct 0.90/0.06, log10 p -255; a gene that differs a little: lfc 0.66, pct 1.00/0.98, log10 p -34
+  seed 1 Immune cell      181 vs 1419 cells · own markers in top 10 by p 10, by avg_log2FC 10, by pct.1 − pct.2 10 · p_adj < 0.05: 43 up, 18 not its markers (18 differ a little) · 0 below 1e-300
+      e.g. a marker: lfc 4.35, pct 0.95/0.11, log10 p -191; a gene that differs a little: lfc 0.94, pct 0.99/0.95, log10 p -25
+  seed 1 Endothelial cell 247 vs 1353 cells · own markers in top 10 by p 10, by avg_log2FC 10, by pct.1 − pct.2 10 · p_adj < 0.05: 53 up, 28 not its markers (28 differ a little) · 0 below 1e-300
+      e.g. a marker: lfc 4.17, pct 0.93/0.09, log10 p -216; a gene that differs a little: lfc 0.96, pct 0.98/0.95, log10 p -35
+  seed 1 Stellate cell    108 vs 1492 cells · own markers in top 10 by p 10, by avg_log2FC 10, by pct.1 − pct.2 10 · p_adj < 0.05: 30 up, 5 not its markers (5 differ a little) · 0 below 1e-300
+      e.g. a marker: lfc 3.68, pct 0.91/0.07, log10 p -157; a gene that differs a little: lfc 1.03, pct 0.99/0.95, log10 p -20
+  seed 1 Kupffer cell     130 vs 1470 cells · own markers in top 10 by p 10, by avg_log2FC 10, by pct.1 − pct.2 10 · p_adj < 0.05: 41 up, 16 not its markers (16 differ a little) · 0 below 1e-300
+      e.g. a marker: lfc 3.77, pct 0.95/0.08, log10 p -175; a gene that differs a little: lfc 1.02, pct 0.87/0.72, log10 p -18
+  seed 2 Hepatocyte       500 vs 1100 cells · own markers in top 10 by p 10, by avg_log2FC 10, by pct.1 − pct.2 10 · p_adj < 0.05: 79 up, 54 not its markers (54 differ a little) · 0 below 1e-300
+      e.g. a marker: lfc 4.38, pct 0.94/0.13, log10 p -254; a gene that differs a little: lfc 1.00, pct 0.90/0.85, log10 p -46
+  seed 2 Tumour cell      419 vs 1181 cells · own markers in top 10 by p 10, by avg_log2FC 10, by pct.1 − pct.2 10 · p_adj < 0.05: 52 up, 27 not its markers (10 other types' markers, 17 differ a little) · 0 below 1e-300
+      e.g. a marker: lfc 4.22, pct 0.97/0.11, log10 p -264; a gene that differs a little: lfc 1.12, pct 0.98/0.84, log10 p -56
+  seed 2 Immune cell      217 vs 1383 cells · own markers in top 10 by p 10, by avg_log2FC 10, by pct.1 − pct.2 10 · p_adj < 0.05: 46 up, 21 not its markers (21 differ a little) · 0 below 1e-300
+      e.g. a marker: lfc 4.69, pct 0.98/0.15, log10 p -196; a gene that differs a little: lfc 0.87, pct 0.99/0.91, log10 p -30
+  seed 2 Endothelial cell 242 vs 1358 cells · own markers in top 10 by p 10, by avg_log2FC 10, by pct.1 − pct.2 10 · p_adj < 0.05: 60 up, 35 not its markers (35 differ a little) · 0 below 1e-300
+      e.g. a marker: lfc 4.19, pct 0.95/0.10, log10 p -220; a gene that differs a little: lfc 1.09, pct 0.89/0.78, log10 p -31
+  seed 2 Stellate cell    102 vs 1498 cells · own markers in top 10 by p 10, by avg_log2FC 10, by pct.1 − pct.2 10 · p_adj < 0.05: 39 up, 14 not its markers (14 differ a little) · 0 below 1e-300
+      e.g. a marker: lfc 3.62, pct 0.81/0.06, log10 p -143; a gene that differs a little: lfc 1.15, pct 0.99/0.98, log10 p -24
+  seed 2 Kupffer cell     120 vs 1480 cells · own markers in top 10 by p 10, by avg_log2FC 10, by pct.1 − pct.2 10 · p_adj < 0.05: 46 up, 21 not its markers (21 differ a little) · 0 below 1e-300
+      e.g. a marker: lfc 4.18, pct 0.98/0.11, log10 p -158; a gene that differs a little: lfc 1.14, pct 0.97/0.87, log10 p -25
+
+M3 CONDITIONS — Kupffer cells only, tumour against liver, NO condition effect; the 210 genes that differ a little between types are the null set
+  (the first run swept the PATIENT effect and found nothing: each patient gives cells to both arms, so it cancels. The lesson's two normal livers — two samples — differ by a median |log2 CPM| of 0.90, which a per-sample sd of about 0.65 in natural log gives, an upper bound since 61 cells add their own noise)
+  sample sd 0 (patient sd 0.3): 525 Kupffer cells; null genes called — over cells 10% at p < 0.05, 0% at p_val_adj < 0.05; over the 2 patients 6% at p < 0.05
+  sample sd 0.1 (patient sd 0.3): 525 Kupffer cells; null genes called — over cells 24% at p < 0.05, 0% at p_val_adj < 0.05; over the 2 patients 4% at p < 0.05
+  sample sd 0.2 (patient sd 0.3): 544 Kupffer cells; null genes called — over cells 41% at p < 0.05, 6% at p_val_adj < 0.05; over the 2 patients 4% at p < 0.05
+  sample sd 0.4 (patient sd 0.3): 537 Kupffer cells; null genes called — over cells 66% at p < 0.05, 24% at p_val_adj < 0.05; over the 2 patients 4% at p < 0.05
+  sample sd 0.65 (patient sd 0.3): 515 Kupffer cells; null genes called — over cells 76% at p < 0.05, 40% at p_val_adj < 0.05; over the 2 patients 5% at p < 0.05
+
+(71 s)

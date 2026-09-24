@@ -18696,7 +18696,7 @@ by canonical markers, and calls `FindMarkers` twice: cluster 5 against 7, and
 | 78 | `deseq2` | Differential Expression | 01-2 cells 1 (NB, α, the four steps), 22 (size factors, MLE, MAP, the trend, the GLM and design matrix, `W = β/SE`), 24–25 (`vst`), 35–36 (`plotDispEsts`), 38 (`summary`: independent filtering), 39–45 (MA plot, `lfcShrink`) | a gene's own dispersion from three replicates is an estimate worth using; the log2 fold change is a ratio of means; log is a variance stabiliser | **holds**: at 3 vs 3 the realised FDR at padj < 0.1 is 40% with gene-wise dispersions, 20% shrunk, 8% with the truth (4,000 genes, 10% DE); 11% of low-count genes' own estimates sit at the floor; LFC shrinkage takes 139 null low-count genes at \|LFC\| > 1 to 0 and 274 true ones to 194; the SD across replicates at a mean of 1–5 is 1.09 under log2(x + 1) and 0.33 under the vst, 0.30 everywhere above; the lesson's own table: lfcSE 1.26 at baseMean < 1, 0.22 above 1,000, and 96% of the significant genes at baseMean 1–10 carry \|LFC\| > 1 against 52% above 1,000 | proposed, **second; the heaviest** |
 | 79 | `cell-qc` | Single-Cell QC | 02-2 cells 16–26 | the three thresholds are universal numbers; a low count is a dead cell and a high one a doublet | **holds, on the lesson's own cells**: the script reproduces 40,564 → 31,014 exactly; mt% < 10 removes 9,351 of HB17 background's 11,197 cells (median 14.8%) and 0 / 1 / 27 of the other three; nFeature and nCount remove 1,308 and 1,312 there, 1,199 of them the same cells, and nothing elsewhere. **The CYP3A4 line that stood here was struck 2026-09-23** — it is detected in 91% of the cells removed AND 89% of the cells kept, so the rule removes a sample, not a cell type; § Slot 79 has what replaced it | **SHIPPED 2026-09-24** |
 | 80 | `integration` | Single-Cell Integration | 02-3 cells 1, 9 (the five methods), 13–16; 02-2 cell 53 | integration removes the batch and leaves the biology; a type present in one batch has a partner in the other | **holds**: with every type in both batches MNN pairs 100% within type and Harmony mixes to 0.51 with the unique type 0.2 SD from its own; with a type in one batch only it has 0 MNN pairs and is moved by its neighbours' batch vector (8.6 → 6.9 SD from the nearest shared type), while Harmony at θ = 2 pulls it to 3.6 and 98% of its cells read as that type | **SHIPPED 2026-09-24** — the control is the batch key, not the method; § Slot 80 |
-| 81 | `cell-markers` | Clusters and Markers | 02-4 cells 5–6 (`FindNeighbors`, `FindClusters`), 10–15 (markers, `FeaturePlot`, `DoHeatmap`), 16–17 (`FindMarkers`'s columns), 18–22 (within a type across conditions) | a marker is a gene expressed in the cluster; a p-value ranks markers; cells are replicates | **holds**: a gene on in 92% of the cluster and 82% of the rest and a gene on in 69% against 5% both test at p < 1e-31 over 1,200 cells; with two patients per arm and no condition effect a Wilcoxon over cells rejects 75% of null genes (5% with no patient effect), a t-test over patients 3% | proposed, **fifth** |
+| 81 | `cell-markers` | Clusters and Markers | 02-4 cells 5–6 (`FindNeighbors`, `FindClusters`), 10–15 (markers, `FeaturePlot`, `DoHeatmap`), 16–17 (`FindMarkers`'s columns), 18–22 (within a type across conditions) | a marker is a gene expressed in the cluster; a p-value ranks markers; cells are replicates | **holds**: a gene on in 92% of the cluster and 82% of the rest and a gene on in 69% against 5% both test at p < 1e-31 over 1,200 cells; with two patients per arm and no condition effect a Wilcoxon over cells rejects 75% of null genes (5% with no patient effect), a t-test over patients 3% | **measured 2026-09-24** — one claim struck, two by a different mechanism; § Slot 81 |
 | 82 | `cell-clusters` | Graph Clustering | 02-4 cell 5 (kNN → SNN → Louvain, the two figures) | the clusters are the cell types; the count is a finding | **holds**: 600 cells, three types and a continuum, k = 20, SNN pruned at 1/15: 2 clusters at resolution 0.05, 3 at 0.1–0.3, 4 at 0.5 (ARI 0.95), 5 at 0.8–1.2, 6 at 2.0 with the continuum cut into pieces | proposed, **the one to cut, or 81's first page** |
 
 Six is the honest count for the three asks because ask 3 is three lessons and
@@ -20277,6 +20277,60 @@ condition effect: the p-value histogram of a Wilcoxon over cells against a
 t-test over the patients' pseudobulk means, with a patient-effect slider that
 takes the first from 5% to 75% and leaves the second at 5%.
 
+#### MEASURED 2026-09-24 — three of the arc's claims re-checked, one struck, two with a different mechanism
+
+The arc's numbers for 81 came from the same kind of stand-in that was wrong
+for 80, so none was reused. `_lab/cell-markers-engine.js` carries 79's six
+types and four samples down to 430 genes of counts (a marker block per
+type, genes high everywhere, genes that differ a little between types,
+hepatocyte zonation, a patient effect and a sample effect), with Seurat's
+methods as published: NormalizeData, ScaleData, PCA 20, kNN 20, Jaccard SNN
+pruned at 1/15, **Louvain multi-level until nothing moves, best modularity of
+10 starts** (the arc's ran one aggregation and kept the MEDIAN cluster count),
+and FindMarkers' **tie-corrected** Wilcoxon (the arc's had no tie correction,
+on data that is mostly zeros) with v5's min.pct 0.01, logfc 0.1 and
+Bonferroni over 33,538 genes. `_lab/cell-markers-measure.mjs` (70 s) and
+`_lab/cell-markers-real.mjs` (8 s, on the lesson's four 10x matrices).
+
+**Clusters — holds, once the stage has something to cut.** Six separated
+types give 6–7 clusters at every resolution from 0.05 to 0.5; resolution
+has nothing to divide. Hepatocytes are zoned along the lobule (the lesson's
+own heatmap spreads them over clusters 0, 1 and 2), so the stage gives them
+a periportal–pericentral gradient. At zonation 3 and 1,600 cells: one
+hepatocyte cluster to resolution 0.5, two at 0.8 (mean position 0.25 and
+0.72), three at 1.2 (0.18 / 0.43 / 0.73). **With no zonation the split
+still happens at 0.8 — two halves both at 0.52: the same cut, following
+nothing.** At 6,400 cells the same resolution gives more clusters (8–10 at
+0.3 against 6). Reclustering 1,600 cells takes 0.4 s (10 starts).
+
+**Markers — the arc's claim STRUCK.** "A p-value ranks markers" does not
+fail here: ranking by p, by avg_log2FC or by pct.1 − pct.2 puts 10 of 10 of
+a type's own markers in its top 10, for every type and seed. What holds is
+that **significant is not specific**: of 30–87 genes significantly up in a
+type, 5–62 are not its markers — detected in 80–97% of the other cells too
+(e.g. lfc 0.99, pct 0.93 / 0.80, p 1e-47, beside a marker at lfc 4.1, pct
+0.95 / 0.10, p 1e-261). No simulated p falls below 1e-300.
+
+**Conditions — holds, by the SAMPLE, not the patient.** Kupffer cells,
+tumour against liver, no condition effect. A per-PATIENT effect called
+nothing extra: each patient gives cells to both arms, so it cancels. A
+per-SAMPLE effect — one preparation's ambient RNA, dissociation, handling —
+does not: over cells, 10% / 24% / 41% / 66% / 76% of null genes at p < 0.05
+(0 / 0 / 6 / 24 / 40% after Bonferroni) at sample sd 0 / 0.1 / 0.2 / 0.4 /
+0.65; over the two patients' pseudobulk, 4–6% throughout. **On the lesson's
+own cells** (Kupffer, CD163 ≥ 2, its QC): patient 1's normal liver against
+patient 2's calls **715 genes** at p_val_adj < 0.05 with no condition in the
+comparison; the lesson's tumour-against-background calls **4,614**, of which
+**1,011 change in opposite directions in the two patients**; the same
+comparison over the two patients calls **0** after Bonferroni. The
+tumour-sample GPC3 is ambient RNA (§ below, finding 2, corrected).
+
+**What this changes for the pages.** Clusters needs the zonation gradient
+and a resolution control, and the no-gradient split is its failing case.
+Markers teaches pct.1 against pct.2 as the difference between significant
+and specific, not a p-value ranking failure. Conditions teaches the sample,
+not the cell, as the replicate — with the sample effect as its lever.
+
 ### What in 08 is not a widget
 
 `01-1` downloads. `01-3` is ORA and GSEA, which 43 owns; `01-4` is
@@ -20299,9 +20353,16 @@ mechanism, and the gene-symbol deduplication is data handling.
    separates by type. Then 02-4's test of `tumor_5` against `background_5` —
    cluster 5 is Kupffer cells by CD163 — returns GPC3 at LFC 9.9 (detected in
    95% of the tumour side, 0.4% of the background side), AFP, LIN28B, HMGA2.
-   Those are hepatoblastoma cells sitting in the Kupffer cluster. GPC3 is
-   detected in 98% of cells in both tumour samples and 2–4% of the
-   backgrounds.
+   ~~Those are hepatoblastoma cells sitting in the Kupffer cluster.~~
+   **CORRECTED 2026-09-24 (slot 81's measurement, `_lab/cell-markers-real.mjs`):
+   it is AMBIENT RNA, not misplaced tumour cells.** In the tumour samples
+   GPC3 is detected in 96–97% of Kupffer cells (CD163 ≥ 2) at a median of 3–5
+   counts, in 97% of immune cells (PTPRC ≥ 2) at the same 4–5, and in tumour
+   cells (DLK1 ≥ 3) at 17–57. A sample-wide low level in every cell type is
+   the tumour cells' transcripts in the suspension, landing in every droplet.
+   The conclusion stands — the top genes of that test are not Kupffer biology
+   — and the mechanism is a property of the SAMPLE, which is what 81's
+   Conditions page is about.
 3. **`FindMarkers` prints `p_val 0`** for its top rows over 31,014 cells from
    two patients; the script's null simulation rejects 75% of null genes the
    same way. The lesson's own 05 / 01 (widget 44) is the correction.
@@ -20313,6 +20374,9 @@ mechanism, and the gene-symbol deduplication is data handling.
    `res.shrink.DESeq2`, then cells 61–64 filter `padj < 0.05`, `|LFC| > 1`),
    which is the recommended order; only the heading in cell 46 (*our
    unshrunken DEG results*) says otherwise.
+6. **02-4 cell 15 says the example compares clusters 5 and 6; cell 16's
+   code runs `ident.1 = 5, ident.2 = 7`** (and its comment says "5 vs 7").
+   Found 2026-09-24 planning slot 81.
 
 ### The open calls — put with the mock `_lab/rnaseq-arc-mock.html` § 7, ANSWERED 2026-09-21 by two AskUserQuestion calls, every one the recommendation
 

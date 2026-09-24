@@ -1,0 +1,24 @@
+REAL — the lesson's four 10x samples, its QC, the Kupffer cells (CD163 ≥ 2) of each; FindMarkers' Seurat v5 defaults with a tie-corrected Wilcoxon
+  Kupffer cells after QC: HB17_background 61 of 1688, HB53_background 401 of 8540, HB17_tumor 113 of 7994, HB53_tumor 658 of 12792
+  GPC3 by group, per sample (ambient RNA is low and even across groups; a tumour cell's own level is high):
+    HB17_background: kupffer n=61: GPC3 detected 3%, median count 0, median per 10^4 0.0 | tumourCells n=2: GPC3 detected 100%, median count 10, median per 10^4 12.7 | immune n=66: GPC3 detected 3%, median count 0, median per 10^4 0.0
+    HB53_background: kupffer n=401: GPC3 detected 3%, median count 0, median per 10^4 0.0 | tumourCells n=0: GPC3 detected -%, median count NaN, median per 10^4 NaN | immune n=445: GPC3 detected 2%, median count 0, median per 10^4 0.0
+    HB17_tumor: kupffer n=113: GPC3 detected 96%, median count 3, median per 10^4 7.3 | tumourCells n=518: GPC3 detected 100%, median count 17, median per 10^4 18.8 | immune n=215: GPC3 detected 97%, median count 4, median per 10^4 10.2
+    HB53_tumor: kupffer n=658: GPC3 detected 97%, median count 5, median per 10^4 9.8 | tumourCells n=878: GPC3 detected 100%, median count 57, median per 10^4 40.9 | immune n=1543: GPC3 detected 97%, median count 5, median per 10^4 12.6
+
+A. patient 1's normal liver against patient 2's — the same cell type in the same tissue; no condition
+  HB17_background vs HB53_background: 61 against 401 cells; 8283 genes tested; 715 at p_val_adj < 0.05 (451 of them with |avg_log2FC| > 1); 0 with p below 1e-300, which R prints as 0
+  top by p: MTRNR2L12 (lfc 3.4, pct 0.89/0.03), AC105402.3 (lfc 4.3, pct 1.00/0.25), TAT (lfc 3.3, pct 1.00/0.24), MT-ND2 (lfc 5.0, pct 1.00/0.28), SLC26A3 (lfc 3.5, pct 0.95/0.22), MT-ND3 (lfc 4.9, pct 1.00/0.33), C1QA (lfc 3.7, pct 0.90/0.23), MT-CO2 (lfc 5.0, pct 1.00/0.53)
+
+B. the lesson's comparison: tumour against background, both patients pooled on each side
+  tumour vs background (cells): 771 against 462 cells; 7909 genes tested; 4614 at p_val_adj < 0.05 (446 of them with |avg_log2FC| > 1); 0 with p below 1e-300, which R prints as 0
+  top by avg_log2FC among those: GPC3 (4.0, pct 0.970/0.028), SNAP25-AS1 (2.9, pct 0.721/0.084), PEG10 (2.6, pct 0.799/0.022), CPA6 (2.6, pct 0.638/0.019), SNTG1 (2.5, pct 0.654/0.113), F13A1 (2.1, pct 0.424/0.032), MEG8 (2.1, pct 0.572/0.071), DPP10 (2.1, pct 0.543/0.067)
+
+C. the same comparison over PATIENTS: pseudobulk log2 CPM per sample, paired t over the 2 patients (df 1)
+  7909 genes (those B tested); 751 at p < 0.05 unadjusted, 0 after Bonferroni — with two patients the smallest two-sided p a paired t on df 1 can give is set by how alike the two differences are
+  of B's 4614 cell-level calls, 3603 change the same way in both patients and 1011 change in opposite directions in the two patients
+
+A's pseudobulk: the two patients' normal-liver Kupffer cells, log2 CPM per gene
+  |log2 CPM difference| between the patients over 7909 genes: median 0.90, 90th percentile 2.61 — the patient effect a simulation should carry
+
+(7 s)
