@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · cell-markers — one gene over cells and over samples</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1240px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 104ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  .row { display: grid; grid-template-columns: 280px 1fr; gap: var(--sp-4); align-items: start; }
+  .rail { background: var(--surface-1); border: 1px solid var(--grid); border-radius: var(--radius); padding: var(--sp-3) var(--sp-4); font-size: var(--fs-sm); color: var(--ink-2); }
+  .rail .lbl { font-size: var(--fs-xs); color: var(--ink-2); margin: var(--sp-3) 0 4px; }
+  .rail .lbl:first-child { margin-top: 0; }
+  .seg { display: flex; gap: 0; }
+  .seg button, .full { font: inherit; font-size: var(--fs-xs); padding: 6px 8px; border: 1px solid var(--grid); background: var(--surface-2); color: var(--ink-2); cursor: pointer; flex: 1; }
+  .seg button[aria-pressed=true], .full[aria-pressed=true] { background: var(--ink-1); color: var(--surface-1); border-color: var(--ink-1); }
+  .full { width: 100%; border-radius: var(--radius); margin-top: 4px; text-align: left; }
+  .go { font: inherit; font-size: var(--fs-sm); width: 100%; margin-top: var(--sp-3); padding: 8px; border-radius: var(--radius); border: 1px solid var(--ink-1); background: var(--ink-1); color: var(--surface-1); cursor: pointer; }
+  .row > div { min-width: 0; }
+  @media (max-width: 900px) { .row { grid-template-columns: 1fr; } }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); border-radius: var(--radius); }
+  table.calls { border-collapse: collapse; font-size: var(--fs-sm); width: 100%; }
+  table.calls td, table.calls th { border-top: 1px solid var(--grid); padding: 6px 8px; vertical-align: top; text-align: left; }
+  table.calls th { color: var(--ink-3); font-weight: normal; font-size: var(--fs-xs); }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>cell-markers · Tumour vs liver: one gene, over cells and over samples</h1>
+  <p class="note">The draft explains the difference in five lines of prose beside the map and shows it only as two volcanos. Below, <b>one gene seen both ways</b>, on one cluster's cells (Kupffer cells, about 24 per sample, patient effect 0.3). It opens on the <b>unchanged gene with the smallest p over cells</b>. Raise the sample effect: each sample's cells move up or down together, the Wilcoxon test over ~95 cells calls the gene, and the sum shows the four values behind them. Both p values are computed here, the Wilcoxon one as FindMarkers and the other by the DESeq2 engine of widget 78 on the four summed samples.</p>
+
+  <h2>A · The cells collapse into their sample (one panel, animated)</h2>
+  <p class="note">"Sum each sample" slides each sample's cells to its column's centre and merges them into one point at the sample's pseudobulk value, on the same axis. The p line under the panel changes from the test over cells to the test over samples. Each cell moves only inside its own sample's column.</p>
+  <div class="row"><div class="rail" id="railA"></div><div><canvas id="cA"></canvas></div></div>
+
+  <h2>B · Cells and samples side by side (two panels, static)</h2>
+  <p class="note">The same gene, cells on the left and the four sums on the right, both p values always on screen. No press; the comparison is read directly.</p>
+  <div class="row"><div class="rail" id="railB"></div><div><canvas id="cB"></canvas></div></div>
+
+  <h2>The calls</h2>
+  <table class="calls">
+    <tr><th>#</th><th>call</th><th>arms</th><th>recommendation</th></tr>
+    <tr><td>1</td><td>How the gene view shows the two tests</td><td>A · the cells collapse into four sums, one press · B · both panels side by side, no press</td><td>A — the press is the idea: the ~95 points were four values all along; B leaves the reader to make that connection</td></tr>
+    <tr><td>2</td><td>Where it goes on the page</td><td>replace the five-line text block and the strip under the volcanos · keep both and add it</td><td>replace — the gene view says what the text said, and the page is the most crowded of the four</td></tr>
+    <tr><td>3</td><td>Choosing the gene</td><td>click a point on either volcano · a rail choice (smallest p over cells / a truly changed gene) · both</td><td>both — the volcano click reaches any gene, the rail keeps the keyboard route and the two genes worth comparing</td></tr>
+  </table>
+</main>
+<script type="module">
+import { makeRng } from "../core/rng.js";
+import { simulateType, normalise, findMarkers, geneKind, geneName, isConditionGene, SAMPLES, G } from "../cell-markers/engine.js";
+import { analyse } from "../deseq2/engine.js";
+const css = getComputedStyle(document.documentElement), C = (n) => css.getPropertyValue(n).trim();
+const FONT = C("--font"), MONO = C("--font-mono"), FS = C("--fs-xs"), FSS = C("--fs-sm"), dpr = window.devicePixelRatio || 1;
+const INK1 = C("--ink-1"), INK2 = C("--ink-2"), INK3 = C("--ink-3"), GRID = C("--grid"), AXIS = C("--axis") || INK3, SURF = C("--surface-1");
+const LIVER = C("--c-group-a"), TUMOUR = C("--c-group-b");
+const ORDER = ["p1-liver", "p2-liver", "p1-tumour", "p2-tumour"];
+const NAMES = [["Patient 1", "liver"], ["Patient 2", "liver"], ["Patient 1", "tumour"], ["Patient 2", "tumour"]];
+const pF = (lp) => (lp < -300 ? "<1e-300" : lp > -3 ? (10 ** lp).toFixed(3) : `${(10 ** (lp - Math.floor(lp))).toFixed(1)}e${Math.floor(lp)}`);
+
+const cache = new Map();
+function stage(seed, sampleSd, change) {
+  const key = `${seed}|${sampleSd}|${change}`;
+  if (cache.has(key)) return cache.get(key);
+  const cells = simulateType(makeRng(seed * 7919 + 11), "kupffer", { perSample: 24, patientSd: 0.3, sampleSd, condition: change });
+  const Y = normalise(cells);
+  const fm = findMarkers(Y, (i) => cells[i].tissue === "tumour", (i) => cells[i].tissue === "liver", { minPct: 0, logfc: 0, nGenes: 33538 });
+  const byG = new Map(fm.res.map((r) => [r.g, r]));
+  const sums = ORDER.map((k) => { const s = new Float64Array(G); cells.forEach((c) => { if (c.sample === k) c.x.forEach((v, g) => { s[g] += v; }); }); return s; });
+  const counts = Array.from({ length: G }, (_, g) => sums.map((s) => s[g]));
+  const an = analyse({ counts, grp: [0, 0, 1, 1], reps: 2, genes: G });
+  const tot = sums.map((s) => s.reduce((a, b) => a + b, 0));
+  const truth = (g) => change > 0 && isConditionGene(g);
+  const nullG = fm.res.filter((r) => !truth(r.g)).sort((a, b) => a.lp - b.lp)[0].g;
+  const trueG = change > 0 ? fm.res.filter((r) => truth(r.g)).sort((a, b) => a.lp - b.lp)[0].g : null;
+  const called = { cells: fm.res.filter((r) => r.lpAdj < Math.log10(0.05)).length, samples: an.expressed.filter((g) => an.resMAP[g].padj < 0.05).length };
+  const s = { cells, Y, byG, an, sums, tot, nullG, trueG, called, truth };
+  cache.set(key, s); if (cache.size > 12) cache.delete(cache.keys().next().value);
+  return s;
+}
+
+function view(id, variant) {
+  const st = { seed: 1, sampleSd: 0.4, change: 0, gene: "null", t: 0, target: 0 };
+  const rail = document.getElementById(`rail${id}`), cv = document.getElementById(`c${id}`);
+  const seg = (label, key, opts) => {
+    const lbl = document.createElement("div"); lbl.className = "lbl"; lbl.textContent = label; rail.append(lbl);
+    const box = document.createElement("div"); box.className = "seg"; rail.append(box);
+    opts.forEach((v) => { const b = document.createElement("button"); b.textContent = String(v); b.onclick = () => { st[key] = v; st.t = st.target = 0; render(); }; box.append(b); b.dataset.k = key; b.dataset.v = v; });
+  };
+  seg("Seed", "seed", [1, 2, 3, 4]);
+  seg("Sample effect", "sampleSd", [0, 0.2, 0.4, 0.65]);
+  seg("True change", "change", [0, 1, 2]);
+  const gl = document.createElement("div"); gl.className = "lbl"; gl.textContent = "Gene"; rail.append(gl);
+  const gb = [["null", "Unchanged, smallest p over cells"], ["true", "Truly changed, smallest p over cells"]].map(([v, t]) => { const b = document.createElement("button"); b.className = "full"; b.textContent = t; b.onclick = () => { st.gene = v; st.t = st.target = 0; render(); }; rail.append(b); b.dataset.g = v; return b; });
+  let go = null;
+  if (variant === "A") { go = document.createElement("button"); go.className = "go"; rail.append(go); go.onclick = () => { st.target = st.target ? 0 : 1; animate(); }; }
+
+  let raf = 0, last = 0;
+  function animate() { cancelAnimationFrame(raf); last = performance.now(); const step = (now) => { const dt = (now - last) / 1000; last = now; const dir = Math.sign(st.target - st.t); st.t = Math.max(0, Math.min(1, st.t + dir * dt / 1.2)); draw(); if (st.t !== st.target) raf = requestAnimationFrame(step); else render(); }; raf = requestAnimationFrame(step); }
+
+  function render() {
+    rail.querySelectorAll(".seg button").forEach((b) => b.setAttribute("aria-pressed", String(String(st[b.dataset.k]) === b.dataset.v)));
+    const S = stage(st.seed, st.sampleSd, st.change);
+    gb[1].disabled = S.trueG === null; gb[1].style.opacity = S.trueG === null ? 0.4 : 1;
+    if (S.trueG === null && st.gene === "true") st.gene = "null";
+    gb.forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.g === st.gene)));
+    if (go) go.textContent = st.target ? "Show the cells" : "Sum each sample";
+    draw();
+  }
+
+  function draw() {
+    const S = stage(st.seed, st.sampleSd, st.change), g = st.gene === "true" && S.trueG !== null ? S.trueG : S.nullG;
+    const W = Math.max(320, Math.min(900, cv.parentElement.clientWidth - 2)), H = 420;
+    cv.width = W * dpr; cv.height = H * dpr; cv.style.width = `${W}px`; cv.style.height = `${H}px`;
+    const ctx = cv.getContext("2d"); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
+    const vals = ORDER.map((k) => S.cells.map((c, i) => (c.sample === k ? S.Y[i][g] : null)).filter((v) => v !== null));
+    const pb = ORDER.map((_, j) => Math.log1p((S.sums[j][g] / S.tot[j]) * 1e4));
+    const vMax = Math.max(0.5, ...vals.flat(), ...pb) * 1.08;
+    const top = 66, bh = H - top - 96;
+    const panel = (X, PW, mode) => {
+      const colW = PW / 4, sy = (v) => top + bh - (v / vMax) * bh;
+      ctx.strokeStyle = AXIS; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(X, top); ctx.lineTo(X, top + bh + 0.5); ctx.lineTo(X + PW, top + bh + 0.5); ctx.stroke();
+      ctx.font = `${FS} ${FONT}`; ctx.fillStyle = INK3; ctx.textAlign = "right";
+      [0, vMax / 2, vMax].forEach((v) => ctx.fillText(v.toFixed(1), X - 5, sy(v) + 4));
+      ORDER.forEach((k, j) => {
+        const cx = X + j * colW + colW / 2, col = j < 2 ? LIVER : TUMOUR;
+        const t = mode === "cells" ? 0 : mode === "samples" ? 1 : st.t, e = t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2;
+        vals[j].forEach((v, i) => {
+          const jit = (((i * 7919) % 101) / 101 - 0.5) * colW * 0.62;
+          const x = cx + jit * (1 - e), y = sy(v) + (sy(pb[j]) - sy(v)) * e;
+          ctx.fillStyle = col; ctx.globalAlpha = 0.6 * (1 - e * e); ctx.beginPath(); ctx.arc(x, y, 2.6, 0, Math.PI * 2); ctx.fill();
+        });
+        ctx.globalAlpha = 1;
+        if (e > 0.02) { ctx.fillStyle = col; ctx.beginPath(); ctx.arc(cx, sy(pb[j]), 2 + 5 * e, 0, Math.PI * 2); ctx.fill(); ctx.strokeStyle = INK1; ctx.lineWidth = 1.5 * e; ctx.stroke(); }
+        if (e < 0.98) { const m = vals[j].reduce((a, b) => a + b, 0) / vals[j].length; ctx.strokeStyle = INK1; ctx.globalAlpha = 1 - e; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(cx - colW * 0.33, sy(m)); ctx.lineTo(cx + colW * 0.33, sy(m)); ctx.stroke(); ctx.globalAlpha = 1; }
+        ctx.font = `${FS} ${FONT}`; ctx.fillStyle = INK2; ctx.textAlign = "center";
+        ctx.fillText(`P${j % 2 + 1} ${NAMES[j][1]}`, cx, top + bh + 16); ctx.fillText(`${vals[j].length} cells`, cx, top + bh + 30);
+      });
+    };
+    const cellsLine = (X, y) => { const r = S.byG.get(g); ctx.fillText(`Over cells: n = ${vals.flat().length}, Wilcoxon p = ${pF(r.lp)}, p_val_adj = ${pF(r.lpAdj)}${r.lpAdj < Math.log10(0.05) ? " · called" : ""}`, X, y); };
+    const sampLine = (X, y) => { const r = S.an.resMAP[g]; ctx.fillText(`Over samples: n = 4, DESeq2 p = ${pF(Math.log10(Math.max(1e-300, r.p)))}, padj = ${pF(Math.log10(Math.max(1e-300, r.padj ?? 1)))}${r.padj < 0.05 ? " · called" : ""}`, X, y); };
+    const head = `${geneName(g)}: ${S.truth(g) ? `truly changed, log2 ${st.change}` : "unchanged"}; log(1 + per 10,000), each cell and each sample's sum`;
+    ctx.font = `600 ${FSS} ${FONT}`; ctx.fillStyle = INK1; ctx.textAlign = "left"; ctx.fillText(head, 8, 20);
+    ctx.font = `${FS} ${FONT}`; ctx.fillStyle = INK3; ctx.fillText(`All genes: ${S.called.cells} called over cells, ${S.called.samples} over samples (adjusted p < 0.05)`, 8, 36);
+    if (variant === "A") {
+      panel(44, W - 64, "anim");
+      ctx.font = `${FSS} ${MONO}`; ctx.fillStyle = INK1; ctx.textAlign = "left";
+      ctx.globalAlpha = 1 - st.t; cellsLine(44, H - 30); ctx.globalAlpha = st.t; sampLine(44, H - 30); ctx.globalAlpha = 1;
+      ctx.font = `${FS} ${FONT}`; ctx.fillStyle = INK3;
+      ctx.fillText(st.t < 0.5 ? "Each dot a cell; bar, the sample's mean. The test treats every cell as a replicate." : "Each point a sample's cells summed (pseudobulk). The test has four replicates.", 44, H - 12);
+    } else {
+      const PW = (W - 110) / 2;
+      ctx.font = `600 ${FS} ${FONT}`; ctx.fillStyle = INK1; ctx.textAlign = "left";
+      ctx.fillText("Over cells", 44, top - 10); ctx.fillText("Over samples (pseudobulk)", 44 + PW + 50, top - 10);
+      panel(44, PW, "cells"); panel(44 + PW + 50, PW, "samples");
+      ctx.font = `${FS} ${MONO}`; ctx.fillStyle = INK1; ctx.textAlign = "left";
+      cellsLine(8, H - 30); sampLine(8, H - 12);
+    }
+  }
+  render();
+  window.addEventListener("resize", draw);
+}
+view("A", "A");
+view("B", "B");
+</script>
+</body>
+</html>
