@@ -44,7 +44,7 @@ const PAGES = [
 ];
 const ON = (page) => ({ param: "page", equals: page });
 const CELLS_PAGES = { param: "page", oneOf: ["clusters", "markers"] };
-const HEIGHTS = { clusters: 580, markers: 890, conditions: 520, composition: 380 };
+const HEIGHTS = { clusters: 580, markers: 1050, conditions: 520, composition: 380 };
 const RESOLUTIONS = ["0.1", "0.3", "0.5", "0.8", "1.2", "2"];
 const SAMPLE_SD = ["0", "0.1", "0.2", "0.4", "0.65"];
 const PATIENT_SD = ["0", "0.3", "0.65"];
@@ -202,16 +202,20 @@ function umapView(U) {
 function markersLayout(w) {
   const labelW = 118, top = TOP + 58, rowH = 22;
   /* the column heads lean up and to the right, so the last needs room past its dot */
-  const mapTop = top + MAX_ROWS * rowH + 34, MAP = 210;
-  return { labelW, top, rowH, mapTop, map: { x: 8, y: mapTop, S: MAP }, chipX: 8 + MAP + 28, tableTop: mapTop + MAP + 46, x0: labelW, x1: w - 56 };
+  /* the map as large as the width leaves beside the chips, up to MAP_MAX (his
+     round: "the clusters are too small to click"); the table sits below the
+     largest map at every width, so the height never reads the width */
+  const mapTop = top + MAX_ROWS * rowH + 34, S = Math.max(200, Math.min(MAP_MAX, w - 16 - 28 - CHIP_W * 2 - 8));
+  return { labelW, top, rowH, mapTop, map: { x: 8, y: mapTop, S }, chipX: 8 + S + 28, tableTop: mapTop + MAP_MAX + 46, x0: labelW, x1: w - 56 };
 }
 /* the chips beside the map: which side a click picks, and "All other cells" */
+const MAP_MAX = 360, CHIP_W = 125;
 function markerChips(L) {
   const x = L.chipX, y = L.mapTop + 30;
   return [
-    { key: "comparator", x, y, w: 150, h: 26, label: "The comparator", set: { pick: "comparator" } },
-    { key: "baseline", x: x + 158, y, w: 150, h: 26, label: "The baseline", set: { pick: "baseline" } },
-    { key: "rest", x, y: y + 64, w: 150, h: 26, label: "All other cells", set: { baseline: "rest" } },
+    { key: "comparator", x, y, w: CHIP_W, h: 26, label: "The comparator", set: { pick: "comparator" } },
+    { key: "baseline", x: x + CHIP_W + 8, y, w: CHIP_W, h: 26, label: "The baseline", set: { pick: "baseline" } },
+    { key: "rest", x, y: y + 64, w: CHIP_W, h: 26, label: "All other cells", set: { baseline: "rest" } },
   ];
 }
 /* the map's view: the Clusters page's UMAP in a square */
@@ -222,14 +226,25 @@ function mapView(U, M) {
   return (p) => [M.x + M.S / 2 + ((p[0] - mx) / half) * (M.S / 2 - 6), M.y + M.S / 2 - ((p[1] - my) / half) * (M.S / 2 - 6)];
 }
 /* the map tiled into TILE-pixel squares, each the cluster of the nearest cell
-   within reach, so a click on a cluster's cells picks it and empty space picks
-   nothing (core's hit test takes rectangles) */
+   ANYWHERE, so every point of the map picks the nearest cluster: UMAP draws
+   separate types as small dense blobs, and a click had to land within 16 px
+   of one (his round: "too small to click") (core's hit test takes rectangles) */
 const TILE = 8;
+/* regions are rebuilt on every pointer move; the tiles depend only on the
+   state and the width, so they are kept per state */
+const tileCache = new WeakMap();
 function mapTiles(state, L) {
+  const hit = tileCache.get(state);
+  if (hit && hit.S === L.map.S) return hit.tiles;
+  const tiles = mapTilesFresh(state, L);
+  tileCache.set(state, { S: L.map.S, tiles });
+  return tiles;
+}
+function mapTilesFresh(state, L) {
   const at = mapView(state.stage.U, L.map), pts = state.stage.U.map(at), cl = state.cl.clusters, M = L.map, out = [];
   for (let ty = M.y; ty < M.y + M.S; ty += TILE) for (let tx = M.x; tx < M.x + M.S; tx += TILE) {
     const cx = tx + TILE / 2, cy = ty + TILE / 2;
-    let best = -1, bd = (2 * TILE) ** 2;
+    let best = -1, bd = Infinity;
     for (let i = 0; i < pts.length; i += 1) { const d = (pts[i][0] - cx) ** 2 + (pts[i][1] - cy) ** 2; if (d < bd) { bd = d; best = i; } }
     if (best >= 0) out.push({ x: tx, y: ty, w: TILE, h: TILE, c: cl[best] });
   }
@@ -373,7 +388,7 @@ function drawMarkers(ctx, colors, w, params, state) {
      comparison is all other cells) */
   const M = L.map, at = mapView(st.U, M);
   ctx.font = `600 ${colors.fsSm} ${colors.font}`; ctx.fillStyle = colors.ink1; ctx.textAlign = "left";
-  ctx.fillText("Click a cluster on the map", M.x, M.y - 10);
+  ctx.fillText("Click a cluster on the map: a click picks the nearest", M.x, M.y - 10);
   ctx.strokeStyle = colors.grid; ctx.lineWidth = 1; ctx.strokeRect(M.x + 0.5, M.y + 0.5, M.S - 1, M.S - 1);
   st.cells.forEach((c, i) => {
     const k = cl.clusters[i], a = cl.ann[k], q = at(st.U[i]);
