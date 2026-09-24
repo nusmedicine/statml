@@ -55,7 +55,7 @@ const PAGES = [
 ];
 const ON = (page) => ({ param: "page", equals: page });
 const CELL_PAGES = { param: "page", oneOf: ["clusters", "two-clusters", "tumour-liver"] };
-const HEIGHTS = { clusters: 760, "two-clusters": 720, "tumour-liver": 760, composition: 380 };
+const HEIGHTS = { clusters: 760, "two-clusters": 750, "tumour-liver": 760, composition: 380 };
 const RESOLUTIONS = ["0.1", "0.3", "0.5", "0.8", "1.2", "2"];
 const SAMPLE_SD = ["0", "0.1", "0.2", "0.4", "0.65"];
 const PATIENT_SD = ["0", "0.3", "0.65"];
@@ -124,14 +124,16 @@ function clustersFor(seed, res) {
   });
 }
 const clusterLabel = (a) => `Cluster ${a.c} · ${TYPES[a.type].name}`;
-function clusterOptions(v) { return clustersFor(v.seed, v.res).ann.slice(0, MAX_ROWS).map((a) => ({ value: String(a.c), label: clusterLabel(a) })); }
+/* a cluster as a button: its type's name and its number, with its type's dot */
+const clusterOption = (a) => ({ value: String(a.c), label: `${TYPES[a.type].name} · ${a.c}`, token: `cluster-${"abcdef"[TYPE_SLOT[a.type]]}` });
+function clusterOptions(v) { return clustersFor(v.seed, v.res).ann.slice(0, MAX_ROWS).map(clusterOption); }
 /* the testable clusters, the Kupffer ones first: the lesson's own example is
    its Kupffer cluster (02-4 cell 21), and the page opens on the first */
 function testableOptions(v) {
   const kup = TYPES.findIndex((t) => t.key === "kupffer");
   return clustersFor(v.seed, v.res).ann.slice(0, MAX_ROWS).filter((a) => a.testable)
     .sort((a, b) => (b.type === kup) - (a.type === kup) || a.c - b.c)
-    .map((a) => ({ value: String(a.c), label: clusterLabel(a) }));
+    .map(clusterOption);
 }
 
 /** FindMarkers for the comparison on screen, on the uncorrected counts. */
@@ -203,50 +205,64 @@ function ibeta(x, a, b) {
 
 /* ------------------------------------------------------------ geometry (5.8) */
 const TOP = 26;
-function mapView(U, M) {
+/* the view keeps a margin, so a cluster's disc and name fit inside the box */
+function mapView(U, M, margin = 1.06) {
   let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
   for (const [x, y] of U) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
-  const half = (Math.max(x1 - x0, y1 - y0) / 2) * 1.06, mx = (x0 + x1) / 2, my = (y0 + y1) / 2;
+  const half = (Math.max(x1 - x0, y1 - y0) / 2) * margin, mx = (x0 + x1) / 2, my = (y0 + y1) / 2;
   return (p) => [M.x + M.S / 2 + ((p[0] - mx) / half) * (M.S / 2 - 6), M.y + M.S / 2 - ((p[1] - my) / half) * (M.S / 2 - 6)];
+}
+/* EACH CLUSTER A NAMED, SHADED DISC (his round: "umap with larger clusters,
+   with names of cell types, then clickable"; `_lab/cell-markers-picker-mock`).
+   UMAP draws separated types as small dense blobs; the disc is centred on the
+   cluster's cells and reaches past 95% of them, never smaller than a fixed
+   share of the map, so every cluster is a target of a readable size. */
+const discCache = new WeakMap();
+function discsFor(state, M) {
+  const key = `${M.x},${M.y},${M.S}`, per = discCache.get(state) ?? new Map();
+  if (per.has(key)) return per.get(key);
+  const at = mapView(state.embed.U, M, 1.25);
+  const discs = state.cl.ann.map((a) => {
+    const pts = a.idx.map((i) => at(state.embed.U[i]));
+    const cx = pts.reduce((s, q) => s + q[0], 0) / pts.length, cy = pts.reduce((s, q) => s + q[1], 0) / pts.length;
+    const ds = pts.map((q) => Math.hypot(q[0] - cx, q[1] - cy)).sort((p, q) => p - q);
+    return { a, cx, cy, r: Math.max(M.S * 0.07, ds[Math.floor(0.95 * (ds.length - 1))] * 1.35 + 6), pts };
+  });
+  per.set(key, discs); discCache.set(state, per);
+  return discs;
+}
+/* the discs as TILE-pixel squares for core's rectangle hit test, each the
+   disc it lies deepest inside; kept per state, since regions are rebuilt on
+   every pointer move */
+const TILE = 6, tileCache = new WeakMap();
+function discTiles(state, M) {
+  const key = `${M.x},${M.y},${M.S}`, per = tileCache.get(state) ?? new Map();
+  if (per.has(key)) return per.get(key);
+  const discs = discsFor(state, M), tiles = [];
+  for (let ty = M.y; ty < M.y + M.S; ty += TILE) for (let tx = M.x; tx < M.x + M.S; tx += TILE) {
+    let best = null, bd = 1;
+    for (const d of discs) { const dd = Math.hypot(tx + TILE / 2 - d.cx, ty + TILE / 2 - d.cy) / d.r; if (dd < bd) { bd = dd; best = d.a.c; } }
+    if (best !== null) tiles.push({ x: tx, y: ty, w: TILE, h: TILE, c: best });
+  }
+  per.set(key, tiles); tileCache.set(state, per);
+  return tiles;
 }
 function clustersLayout(w) {
   const S = Math.min(340, Math.floor((w - 24) / 2)), x0 = Math.floor((w - (2 * S + 24)) / 2);
   return { maps: [{ x: x0, y: TOP, S }, { x: x0 + S + 24, y: TOP, S }], dotTop: TOP + 340 + 96, rowH: 22, labelW: 150 };
 }
-const MAP_MAX = 360, CHIP_W = 125;
+/* Two clusters: the comparator's map and the baseline's, side by side, and
+   "All other cells" under the baseline's (his pick A from the picker mock:
+   each map sets one thing, so no switch says what a click does) */
+const MAP_MAX = 360;
 function twoLayout(w) {
-  const S = Math.max(200, Math.min(MAP_MAX, w - 16 - 28 - CHIP_W * 2 - 8));
-  return { map: { x: 8, y: TOP, S }, chipX: 8 + S + 28, tableTop: TOP + MAP_MAX + 46 };
-}
-function twoChips(L) {
-  const x = L.chipX, y = L.map.y + 30;
-  return [
-    { key: "comparator", x, y, w: CHIP_W, h: 26, label: "The comparator", set: { pick: "comparator" } },
-    { key: "baseline", x: x + CHIP_W + 8, y, w: CHIP_W, h: 26, label: "The baseline", set: { pick: "baseline" } },
-    { key: "rest", x, y: y + 64, w: CHIP_W, h: 26, label: "All other cells", set: { baseline: "rest" } },
-  ];
+  const S = Math.min(MAP_MAX, Math.floor((w - 24) / 2)), x0 = Math.floor((w - (2 * S + 24)) / 2);
+  const maps = [{ x: x0, y: TOP, S }, { x: x0 + S + 24, y: TOP, S }];
+  return { maps, rest: { x: maps[1].x, y: TOP + S + 10, w: S, h: 28 }, tableTop: TOP + MAP_MAX + 10 + 28 + 50 };
 }
 function tlLayout(w) {
-  const S = Math.min(230, Math.floor(w * 0.4));
-  return { map: { x: 8, y: TOP, S }, tableX: 8 + S + 28, volTop: TOP + 230 + 60, stripTop: TOP + 230 + 60 + 250 + 50 };
-}
-/* the map tiled into TILE-pixel squares, each the cluster of the nearest cell
-   ANYWHERE, so every point picks the nearest cluster: UMAP draws separate types
-   as small dense blobs (his round: "too small to click"); core's hit test
-   takes rectangles. Rebuilt on every pointer move, so kept per state. */
-const TILE = 8, tileCache = new WeakMap();
-function mapTiles(state, M) {
-  const hit = tileCache.get(state);
-  if (hit && hit.key === `${M.x},${M.y},${M.S}`) return hit.tiles;
-  const at = mapView(state.embed.U, M), pts = state.embed.U.map(at), cl = state.cl.clusters, tiles = [];
-  for (let ty = M.y; ty < M.y + M.S; ty += TILE) for (let tx = M.x; tx < M.x + M.S; tx += TILE) {
-    const cx = tx + TILE / 2, cy = ty + TILE / 2;
-    let best = -1, bd = Infinity;
-    for (let i = 0; i < pts.length; i += 1) { const d = (pts[i][0] - cx) ** 2 + (pts[i][1] - cy) ** 2; if (d < bd) { bd = d; best = i; } }
-    if (best >= 0) tiles.push({ x: tx, y: ty, w: TILE, h: TILE, c: cl[best] });
-  }
-  tileCache.set(state, { key: `${M.x},${M.y},${M.S}`, tiles });
-  return tiles;
+  const S = Math.min(260, Math.floor(w * 0.45));
+  return { map: { x: 8, y: TOP, S }, tableX: 8 + S + 28, volTop: TOP + 260 + 50, stripTop: TOP + 260 + 50 + 250 + 50 };
 }
 
 /* ------------------------------------------------------------ drawing */
@@ -293,12 +309,34 @@ function drawMap(ctx, colors, state, M, style, { filled = -1, outlined = -1, typ
   ctx.textBaseline = "alphabetic"; ctx.textAlign = "left";
 }
 const hueOf = (colors, type) => colors.clusters[TYPE_SLOT[type]];
+/** A map of named, shaded discs. `solid` gets a solid ring, `dashed` a dashed
+    one; `muted(a)` fades a disc (on a map where it cannot be picked). */
+function drawDiscMap(ctx, colors, state, M, { solid = -1, dashed = -1, muted = () => false, title = null } = {}) {
+  if (title) heading(ctx, colors, title, M.x, M.y - 9);
+  ctx.strokeStyle = colors.grid; ctx.lineWidth = 1; ctx.strokeRect(M.x + 0.5, M.y + 0.5, M.S - 1, M.S - 1);
+  const discs = discsFor(state, M);
+  discs.forEach((d) => {
+    const isS = d.a.c === solid, isD = d.a.c === dashed, off = muted(d.a);
+    ctx.fillStyle = hueOf(colors, d.a.type); ctx.globalAlpha = isS ? 0.3 : isD ? 0.22 : off ? 0.04 : 0.12;
+    ctx.beginPath(); ctx.arc(d.cx, d.cy, d.r, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
+    if (isS) { ctx.strokeStyle = colors.ink1; ctx.lineWidth = 2.5; ctx.stroke(); }
+    if (isD) { ctx.strokeStyle = colors.ink1; ctx.lineWidth = 1.5; ctx.setLineDash([5, 4]); ctx.stroke(); ctx.setLineDash([]); }
+    ctx.fillStyle = hueOf(colors, d.a.type); ctx.globalAlpha = off ? 0.25 : 0.9;
+    d.pts.forEach((q) => { ctx.beginPath(); ctx.arc(q[0], q[1], 1.8, 0, Math.PI * 2); ctx.fill(); });
+    ctx.globalAlpha = 1;
+    ctx.font = `${isS || isD ? "600 " : ""}${colors.fsXs} ${colors.font}`; ctx.textAlign = "center"; ctx.fillStyle = off ? colors.ink3 : colors.ink1;
+    const below = d.cy + d.r + 14 <= M.y + M.S - 4, text = `${TYPES[d.a.type].name} · ${d.a.c}`, half = ctx.measureText(text).width / 2;
+    /* kept inside the box: a disc near the edge would print its name past it */
+    ctx.fillText(text, Math.max(M.x + half + 3, Math.min(M.x + M.S - half - 3, d.cx)), below ? d.cy + d.r + 14 : d.cy - d.r - 6);
+  });
+  ctx.textAlign = "left";
+}
 
 function drawClusters(ctx, colors, w, params, state) {
   const L = clustersLayout(w), cl = state.cl;
   heading(ctx, colors, `Coloured by cluster, resolution ${params.res}: ${cl.k} clusters`, L.maps[0].x, TOP - 9);
   heading(ctx, colors, "Coloured by cell type", L.maps[1].x, TOP - 9);
-  drawMap(ctx, colors, state, L.maps[0], (a) => ({ col: hueOf(colors, a.type), alpha: a.alpha }));
+  drawDiscMap(ctx, colors, state, L.maps[0]);
   drawMap(ctx, colors, state, L.maps[1], (a, c) => ({ col: hueOf(colors, c.type), alpha: 0.85 }), { typeLabels: true });
   /* the dot plot of each type's markers: how each cluster is named */
   const genes = []; TYPES.forEach((_, t) => { for (let j = 0; j < 3; j += 1) genes.push(t * G_MARK + j); });
@@ -328,23 +366,14 @@ function drawClusters(ctx, colors, w, params, state) {
 }
 
 function drawTwo(ctx, colors, w, params, state) {
-  const L = twoLayout(w), cl = state.cl, mk = state.mk, M = L.map;
-  heading(ctx, colors, "Click a cluster on the map: a click picks the nearest", M.x, M.y - 9);
-  const on = (a) => a.c === mk.tested || (!mk.vsRest && a.c === mk.otherC);
-  drawMap(ctx, colors, state, M, (a) => ({ col: on(a) || mk.vsRest ? hueOf(colors, a.type) : colors.ink3, alpha: on(a) ? 0.95 : mk.vsRest ? 0.3 : 0.18 }), { filled: mk.tested, outlined: mk.vsRest ? -1 : mk.otherC });
-  const chips = twoChips(L);
-  ctx.font = `${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.ink2; ctx.textAlign = "left";
-  ctx.fillText("A click on the map sets", L.chipX, chips[0].y - 8);
-  ctx.fillText("Or set the baseline to", L.chipX, chips[2].y - 8);
-  chips.forEach((ch) => {
-    const active = ch.key === "rest" ? mk.vsRest : params.pick === ch.key;
-    ctx.fillStyle = active ? colors.ink1 : colors.surface2; ctx.fillRect(ch.x, ch.y, ch.w, ch.h);
-    ctx.strokeStyle = colors.grid; ctx.lineWidth = 1; ctx.strokeRect(ch.x + 0.5, ch.y + 0.5, ch.w - 1, ch.h - 1);
-    ctx.fillStyle = active ? colors.surface : colors.ink2; ctx.textAlign = "center"; ctx.fillText(ch.label, ch.x + ch.w / 2, ch.y + ch.h / 2 + 4);
-  });
-  ctx.textAlign = "left"; ctx.fillStyle = colors.ink2;
-  ctx.fillText(`Comparator: ${clusterLabel(cl.ann[mk.tested]).toLowerCase()} (filled)`, L.chipX, chips[2].y + 50);
-  ctx.fillText(mk.vsRest ? "Baseline: all other cells" : `Baseline: ${clusterLabel(cl.ann[mk.otherC]).toLowerCase()} (outlined)`, L.chipX, chips[2].y + 68);
+  const L = twoLayout(w), cl = state.cl, mk = state.mk;
+  drawDiscMap(ctx, colors, state, L.maps[0], { solid: mk.tested, title: "Comparator: click a cluster" });
+  drawDiscMap(ctx, colors, state, L.maps[1], { dashed: mk.vsRest ? -1 : mk.otherC, muted: (a) => a.c === mk.tested, title: "Baseline: click a cluster, or all other cells" });
+  const R = L.rest;
+  ctx.fillStyle = mk.vsRest ? colors.ink1 : colors.surface2; ctx.fillRect(R.x, R.y, R.w, R.h);
+  ctx.strokeStyle = colors.grid; ctx.lineWidth = 1; ctx.strokeRect(R.x + 0.5, R.y + 0.5, R.w - 1, R.h - 1);
+  ctx.font = `${colors.fsSm} ${colors.font}`; ctx.fillStyle = mk.vsRest ? colors.surface : colors.ink2; ctx.textAlign = "center";
+  ctx.fillText("All other cells", R.x + R.w / 2, R.y + R.h / 2 + 5); ctx.textAlign = "left";
   /* FindMarkers' table: first 8 by p, then significant genes detected in most of the baseline */
   const fm = mk.fm, own = (g) => { const k = geneKind(g); return k.kind === "marker" && k.type === mk.type; };
   const top = fm.res.filter((x) => x.lfc > 0).sort((a, b) => a.lp - b.lp || b.lfc - a.lfc).slice(0, 8);
@@ -379,8 +408,7 @@ function broadOf(mk) {
 
 function drawTumourLiver(ctx, colors, w, params, state) {
   const L = tlLayout(w), C = state.cond, M = L.map;
-  heading(ctx, colors, "Click a cluster: its cells, tumour samples against liver samples", M.x, M.y - 9);
-  drawMap(ctx, colors, state, M, (a) => ({ col: a.c === C.within ? hueOf(colors, a.type) : colors.ink3, alpha: a.c === C.within ? 0.95 : a.testable ? 0.3 : 0.1 }), { filled: C.within });
+  drawDiscMap(ctx, colors, state, M, { solid: C.within, muted: (a) => !a.testable, title: "Click a cluster: its cells, tumour against liver samples" });
   /* the cluster's cells in each sample */
   heading(ctx, colors, `${clusterLabel(C.a)}: its cells in each sample`, L.tableX, M.y + 14);
   ORDER.forEach((k, j) => {
@@ -493,27 +521,21 @@ defineWidget({
 
     twoSec: { type: "section", label: "The comparison", when: ON("two-clusters") },
     comparator: {
-      type: "select", label: "Comparator",
-      detail: "the cluster whose markers are found: FindMarkers' ident.1, whose share detecting a gene is pct.1; numbered by size, 0 the largest",
+      type: "segmented", style: "grid", label: "Comparator",
+      detail: "the cluster whose markers are found: FindMarkers' ident.1, whose share detecting a gene is pct.1; clusters are numbered by size, 0 the largest",
       options: (v) => clusterOptions(v), optionsFrom: ["seed", "res"],
       default: "0", when: ON("two-clusters"),
     },
     baseline: {
-      type: "select", label: "Baseline",
+      type: "segmented", style: "grid", label: "Baseline",
       detail: "the reference the comparator is measured against: FindMarkers' ident.2, whose share is pct.2; all other cells, or one cluster",
-      options: (v) => [{ value: "rest", label: "All other cells" }, ...clusterOptions(v).filter((o) => o.value !== String(v.comparator))],
+      options: (v) => [{ value: "rest", label: "All other cells", span: true }, ...clusterOptions(v).filter((o) => o.value !== String(v.comparator))],
       optionsFrom: ["seed", "res", "comparator"],
       default: "rest", when: ON("two-clusters"),
     },
-    pick: {
-      type: "segmented", label: "A click on the map sets",
-      options: [{ value: "comparator", label: "The comparator" }, { value: "baseline", label: "The baseline" }],
-      default: "comparator", display: true, when: ON("two-clusters"),
-    },
-
     tlSec: { type: "section", label: "The samples", when: ON("tumour-liver") },
     within: {
-      type: "select", label: "Cluster",
+      type: "segmented", style: "grid", label: "Cluster",
       detail: `the cluster whose cells are compared, tumour samples against liver samples; only clusters with at least ${MIN_PER_SAMPLE} cells in every sample are listed`,
       options: (v) => testableOptions(v), optionsFrom: ["seed", "res"],
       default: "", when: ON("tumour-liver"),
@@ -570,17 +592,17 @@ defineWidget({
     /* core probes the table at load, before compute has run */
     if (!state) return [];
     if (params.page === "two-clusters") {
-      const L = twoLayout(w);
-      const setFor = (c) => (params.pick === "baseline" ? { baseline: String(c) } : { comparator: String(c) });
-      /* the comparator is not a baseline it can have */
+      const L = twoLayout(w), tested = state.mk.tested;
       return [
-        ...mapTiles(state, L.map).filter((t) => t.c < MAX_ROWS && !(params.pick === "baseline" && t.c === state.mk.tested)).map((t) => ({ ...t, set: setFor(t.c), label: `cluster ${t.c}` })),
-        ...twoChips(L).map((ch) => ({ x: ch.x, y: ch.y, w: ch.w, h: ch.h, set: ch.set, label: ch.label })),
+        ...discTiles(state, L.maps[0]).filter((t) => t.c < MAX_ROWS).map((t) => ({ ...t, set: { comparator: String(t.c) }, label: `comparator cluster ${t.c}` })),
+        /* the comparator is not a baseline it can have */
+        ...discTiles(state, L.maps[1]).filter((t) => t.c < MAX_ROWS && t.c !== tested).map((t) => ({ ...t, set: { baseline: String(t.c) }, label: `baseline cluster ${t.c}` })),
+        { ...L.rest, set: { baseline: "rest" }, label: "All other cells" },
       ];
     }
     if (params.page === "tumour-liver") {
       const L = tlLayout(w), ok = new Set(state.cl.ann.filter((a) => a.testable).map((a) => a.c));
-      return mapTiles(state, L.map).filter((t) => ok.has(t.c) && t.c < MAX_ROWS).map((t) => ({ ...t, set: { within: String(t.c) }, label: `cluster ${t.c}` }));
+      return discTiles(state, L.map).filter((t) => ok.has(t.c) && t.c < MAX_ROWS).map((t) => ({ ...t, set: { within: String(t.c) }, label: `cluster ${t.c}` }));
     }
     return [];
   },

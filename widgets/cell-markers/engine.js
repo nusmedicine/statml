@@ -348,7 +348,10 @@ export function geneName(g) {
   const k = geneKind(g);
   if (k.kind === "marker") return `${TYPE_ABBR[k.type]}${(g % G_MARK) + 1}`;
   if (k.kind === "house") return `Common${g - TYPES.length * G_MARK + 1}`;
-  if (k.kind === "zone") { const zg = g - (G - G_ZONE); return zg < G_ZONE / 2 ? `Portal${zg + 1}` : `Central${zg - G_ZONE / 2 + 1}`; }
+  /* with zonation off (the widget since 2026-09-25) the zonation genes are
+     genes a little higher in hepatocytes and nothing more, so they carry the
+     neutral name, numbered on from the spread genes */
+  if (k.kind === "zone") return `Gene${G_SPREAD + (g - (G - G_ZONE)) + 1}`;
   return `Gene${g - TYPES.length * G_MARK - G_HOUSE + 1}`;
 }
 
