@@ -20331,6 +20331,34 @@ Markers teaches pct.1 against pct.2 as the difference between significant
 and specific, not a p-value ranking failure. Conditions teaches the sample,
 not the cell, as the replicate — with the sample effect as its lever.
 
+#### MOCKED AND PICKED 2026-09-24 — eight picks, two not the recommendation, and one blocked
+
+The mock (`_lab/cell-markers-mock.html`, da97862) draws all three pages from
+the engine the measurement ran. **His picks:**
+
+| # | call | pick |
+|---|---|---|
+| 1 | pages | **Clusters · Markers · Conditions**, the lesson's order (rec.) |
+| 2 | Clusters' failing case | **a Zonation on/off control** (rec.): on, 0.8 splits the hepatocytes at 0.21 / 0.69 along the lobule; off, the same resolution splits them at 0.50 / 0.51 / 0.65 |
+| 3 | Markers' point | **significant is not specific**, pct.1 against pct.2 (rec.); the arc's "p ranks markers wrongly" was struck |
+| 4 | Conditions' lever | **BOTH the sample and the patient effect** (rec. was sample only). The patient slider moves nothing on this paired design, since each patient gives cells to both arms — the figure must say so rather than leave the reader waiting for a change |
+| 5 | the test over patients | **DESeq2 on pseudobulk** (rec. was a paired t) — widget 78's engine, which fits two groups only, so `~ tissue` over the four samples 2 against 2 |
+| 6 | the map | **a UMAP computed on the page** (rec. was 79/80's hexagon) — BLOCKED, below |
+| 7 | cluster colour | **the type's hue, shaded along the lobule**, the number on the map (rec.) |
+| 8 | title | **"Single-Cell RNA-seq: Clusters and Markers"** kept (rec.) |
+
+**Measured before recording them** (`_lab/cell-markers-feasibility.mjs`):
+DESeq2 on the four samples' summed Kupffer counts takes 16–19 ms and calls
+**0%** of null genes at padj < 0.05 under every sample and patient setting
+(0–14% at unadjusted p < 0.05), against 18–36% for the Wilcoxon over the same
+cells — pick 5 works as asked. **Widget 22's UMAP does not scale to this
+stage**: it is exact full-batch, written and verified at n = 48; at 600 cells
+it takes 1.6–3.8 s and at 1,200 6–16 s, and it has not converged — 30–58%
+5-NN type purity in 2-D and the hepatocyte gradient gone (|r| ≤ 0.08).
+UMAP at this size needs umap-learn's own optimiser (sampled edges with
+negative samples), which is new engine code; umap-learn is not installed
+here to verify it against, and installing it is a download to ask about.
+
 ### What in 08 is not a widget
 
 `01-1` downloads. `01-3` is ORA and GSEA, which 43 owns; `01-4` is

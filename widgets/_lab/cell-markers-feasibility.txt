@@ -1,0 +1,13 @@
+F1 UMAP — widget 22's model on this stage's 20 PCs, n_neighbors 15, min_dist 0.1
+  600 cells, 200 iterations: 1585 ms; 5-NN type purity 42%; hepatocyte lobule position against the better UMAP axis |r| = 0.03
+  600 cells, 500 iterations: 3841 ms; 5-NN type purity 58%; hepatocyte lobule position against the better UMAP axis |r| = 0.08
+  1200 cells, 200 iterations: 6293 ms; 5-NN type purity 30%; hepatocyte lobule position against the better UMAP axis |r| = 0.02
+  1200 cells, 500 iterations: 15676 ms; 5-NN type purity 41%; hepatocyte lobule position against the better UMAP axis |r| = 0.01
+
+F2 DESEQ2 ON PSEUDOBULK — Kupffer cells' summed counts per sample, ~ tissue, 2 against 2; the 210 genes that differ a little between types are the null set; three seeds each
+  patient sd 0.3, sample sd 0: over cells 9% at p < 0.05 (0% adjusted) · DESeq2 over the 4 samples 0% at p < 0.05 (0% at padj < 0.05) · DESeq2 19 ms
+  patient sd 0.3, sample sd 0.2: over cells 35% at p < 0.05 (3% adjusted) · DESeq2 over the 4 samples 1% at p < 0.05 (0% at padj < 0.05) · DESeq2 18 ms
+  patient sd 0.3, sample sd 0.4: over cells 60% at p < 0.05 (19% adjusted) · DESeq2 over the 4 samples 7% at p < 0.05 (0% at padj < 0.05) · DESeq2 17 ms
+  patient sd 0.3, sample sd 0.65: over cells 70% at p < 0.05 (36% adjusted) · DESeq2 over the 4 samples 11% at p < 0.05 (0% at padj < 0.05) · DESeq2 16 ms
+  patient sd 0, sample sd 0.4: over cells 58% at p < 0.05 (22% adjusted) · DESeq2 over the 4 samples 14% at p < 0.05 (0% at padj < 0.05) · DESeq2 16 ms
+  patient sd 0.65, sample sd 0.4: over cells 54% at p < 0.05 (18% adjusted) · DESeq2 over the 4 samples 1% at p < 0.05 (0% at padj < 0.05) · DESeq2 16 ms
