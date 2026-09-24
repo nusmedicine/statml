@@ -105,11 +105,11 @@ function clustersFor(seed, zonation, res) {
     p_val_adj < 0.05). */
 const cache2 = new Map();
 function markersFor(params, cl) {
-  const k = cl.k, tested = Math.min(Number(params.cluster), k - 1);   // the list holds only clusters that exist; the min guards a URL typed by hand
+  const k = cl.k, tested = Math.min(Number(params.comparator), k - 1);   // the list holds only clusters that exist; the min guards a URL typed by hand
   /* the comparison is ONE parameter, "rest" or a cluster's number, so a click
      on the map sets it the way the dropdown does (a region sets one parameter) */
-  const vsRest = params.against === "rest";
-  let otherC = vsRest ? 0 : Math.min(Number(params.against), k - 1);
+  const vsRest = params.baseline === "rest";
+  let otherC = vsRest ? 0 : Math.min(Number(params.baseline), k - 1);
   if (!vsRest && otherC === tested) otherC = tested === 0 ? Math.min(1, k - 1) : 0;
   return remember(cache2, `${params.seed}|${params.zonation}|${params.res}|${tested}|${vsRest ? "rest" : otherC}`, () => {
     const S = stageFor(params.seed, params.zonation);
@@ -209,9 +209,9 @@ function markersLayout(w) {
 function markerChips(L) {
   const x = L.chipX, y = L.mapTop + 30;
   return [
-    { key: "tested", x, y, w: 150, h: 26, label: "The cluster tested", set: { pick: "tested" } },
-    { key: "against", x: x + 158, y, w: 150, h: 26, label: "The comparison", set: { pick: "against" } },
-    { key: "rest", x, y: y + 64, w: 150, h: 26, label: "All other cells", set: { against: "rest" } },
+    { key: "comparator", x, y, w: 150, h: 26, label: "The comparator", set: { pick: "comparator" } },
+    { key: "baseline", x: x + 158, y, w: 150, h: 26, label: "The baseline", set: { pick: "baseline" } },
+    { key: "rest", x, y: y + 64, w: 150, h: 26, label: "All other cells", set: { baseline: "rest" } },
   ];
 }
 /* the map's view: the Clusters page's UMAP in a square */
@@ -396,8 +396,8 @@ function drawMarkers(ctx, colors, w, params, state) {
   /* the chips */
   const chips = markerChips(L);
   ctx.font = `${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.ink2; ctx.textAlign = "left";
-  ctx.fillText("A click picks", L.chipX, chips[0].y - 8);
-  ctx.fillText("Or compare against", L.chipX, chips[2].y - 8);
+  ctx.fillText("A click on the map sets", L.chipX, chips[0].y - 8);
+  ctx.fillText("Or set the baseline to", L.chipX, chips[2].y - 8);
   chips.forEach((ch) => {
     const active = ch.key === "rest" ? mk.vsRest : params.pick === ch.key;
     ctx.fillStyle = active ? colors.ink1 : colors.surface2; ctx.fillRect(ch.x, ch.y, ch.w, ch.h);
@@ -405,8 +405,8 @@ function drawMarkers(ctx, colors, w, params, state) {
     ctx.fillStyle = active ? colors.surface : colors.ink2; ctx.textAlign = "center"; ctx.fillText(ch.label, ch.x + ch.w / 2, ch.y + ch.h / 2 + 4);
   });
   ctx.textAlign = "left"; ctx.fillStyle = colors.ink2; ctx.font = `${colors.fsXs} ${colors.font}`;
-  ctx.fillText(`Tested: cluster ${tested} · ${TYPES[mk.type].name} (filled number)`, L.chipX, chips[2].y + 50);
-  ctx.fillText(mk.vsRest ? "Against: all other cells" : `Against: cluster ${mk.otherC} · ${TYPES[cl.ann[mk.otherC].type].name} (outlined number)`, L.chipX, chips[2].y + 68);
+  ctx.fillText(`Comparator: cluster ${tested} · ${TYPES[mk.type].name} (filled number)`, L.chipX, chips[2].y + 50);
+  ctx.fillText(mk.vsRest ? "Baseline: all other cells" : `Baseline: cluster ${mk.otherC} · ${TYPES[cl.ann[mk.otherC].type].name} (outlined number)`, L.chipX, chips[2].y + 68);
   /* the table: FindMarkers for the comparison on screen; conserved markers
      list only the genes up in both patients, then the pooled ones that are not */
   const fm = mk.fm, own = (g) => isOwn(g, mk.type), cons = params.markers === "conserved";
@@ -420,7 +420,7 @@ function drawMarkers(ctx, colors, w, params, state) {
   const cols = [["gene", cx(0), "left"], ["p_val", cx(0.2), "right"], ["avg_log2FC", cx(0.34), "right"], ["pct.1", cx(0.43), "right"], ["pct.2", cx(0.52), "right"], ["p_val_adj", cx(0.64), "right"], ["", cx(0.67), "left"]];
   let y = L.tableTop;
   ctx.font = `600 ${colors.fsSm} ${colors.font}`; ctx.fillStyle = colors.ink1; ctx.textAlign = "left";
-  ctx.fillText(`${cons ? "Conserved in both patients: " : "FindMarkers: "}cluster ${tested} against ${mk.vsRest ? `the other ${fm.n2} cells` : `cluster ${mk.otherC} (${fm.n2} cells)`}, first 8 by p`, 8, y - 10);
+  ctx.fillText(`${cons ? "Conserved in both patients: " : "FindMarkers: "}comparator cluster ${tested}, baseline ${mk.vsRest ? `the other ${fm.n2} cells` : `cluster ${mk.otherC} (${fm.n2} cells)`}; first 8 by p`, 8, y - 10);
   ctx.font = `${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.ink3;
   cols.forEach(([h, x, al]) => { ctx.textAlign = al; ctx.fillText(h, x, y + 8); });
   y += 24;
@@ -429,7 +429,7 @@ function drawMarkers(ctx, colors, w, params, state) {
     const v = [geneName(x.g), pFmt(x.lp), x.lfc.toFixed(2), x.p1.toFixed(2), x.p2.toFixed(2), pFmt(x.lpAdj), ""];
     cols.forEach(([, cx, al], k) => { ctx.textAlign = al; ctx.fillText(v[k], cx, y); });
     ctx.textAlign = "left"; ctx.font = `${colors.fsXs} ${colors.font}`;
-    ctx.fillText(cons && !mk.conserved.has(x.g) ? `not in both patients: ${pFmt(mk.per[0].get(x.g)?.lpAdj ?? 0)} / ${pFmt(mk.per[1].get(x.g)?.lpAdj ?? 0)}` : own(x.g) ? "" : mk.vsRest ? "detected in most other cells" : `detected in most of cluster ${mk.otherC}`, cx(0.67), y);
+    ctx.fillText(cons && !mk.conserved.has(x.g) ? `not in both patients: ${pFmt(mk.per[0].get(x.g)?.lpAdj ?? 0)} / ${pFmt(mk.per[1].get(x.g)?.lpAdj ?? 0)}` : own(x.g) ? "" : "detected in most of the baseline", cx(0.67), y);
     y += 18;
   };
   top.forEach((x) => row(x, !own(x.g)));
@@ -547,24 +547,24 @@ defineWidget({
        last). They are read from the same cached clustering the figure draws,
        so the list and the figure cannot disagree; a value the new list no
        longer holds returns to the default (core, `optionsFrom`). */
-    cluster: {
-      type: "select", label: "Cluster tested",
-      detail: "numbered by size, 0 the largest; a click on the map or the dot plot picks one too",
+    comparator: {
+      type: "select", label: "Comparator",
+      detail: "the cluster whose markers are found: FindMarkers' ident.1, whose share detecting a gene is pct.1; numbered by size, 0 the largest",
       options: (v) => clusterOptions(v),
       optionsFrom: ["seed", "zonation", "res"],
       default: "0", when: ON("markers"),
     },
-    against: {
-      type: "select", label: "Compared against",
-      detail: "all other cells, or one cluster; a click on the map picks one too",
-      options: (v) => [{ value: "rest", label: "All other cells" }, ...clusterOptions(v).filter((o) => o.value !== String(v.cluster))],
-      optionsFrom: ["seed", "zonation", "res", "cluster"],
+    baseline: {
+      type: "select", label: "Baseline",
+      detail: "the reference the comparator is measured against: FindMarkers' ident.2, whose share is pct.2; all other cells, or one cluster",
+      options: (v) => [{ value: "rest", label: "All other cells" }, ...clusterOptions(v).filter((o) => o.value !== String(v.comparator))],
+      optionsFrom: ["seed", "zonation", "res", "comparator"],
       default: "rest", when: ON("markers"),
     },
     pick: {
-      type: "segmented", label: "A click on the map picks",
-      options: [{ value: "tested", label: "The cluster tested" }, { value: "against", label: "The comparison" }],
-      default: "tested", display: true, when: ON("markers"),
+      type: "segmented", label: "A click on the map sets",
+      options: [{ value: "comparator", label: "The comparator" }, { value: "baseline", label: "The baseline" }],
+      default: "comparator", display: true, when: ON("markers"),
     },
     markers: {
       type: "segmented", label: "Markers",
@@ -611,6 +611,7 @@ defineWidget({
     ];
     if (params.page === "markers") return [
       { token: "magnitude", label: "Dot size: share of the cluster's cells detecting the gene; shade: its mean", mark: "dot" },
+      { token: "ink-1", label: "In the table, pct.1: the share of the comparator's cells detecting the gene; pct.2: the baseline's", mark: "line" },
     ];
     return TYPES.map((t, i) => ({ token: `cluster-${"abcdef"[TYPE_SLOT[i]]}`, label: `${t.name}; its clusters lighter to darker along the lobule`, mark: "dot" })).slice(0, 1)
       .concat(TYPES.slice(1).map((t, i) => ({ token: `cluster-${"abcdef"[TYPE_SLOT[i + 1]]}`, label: t.name, mark: "dot" })));
@@ -631,11 +632,11 @@ defineWidget({
     /* core probes the table at load, before compute has run */
     if (params.page !== "markers" || !state) return [];
     const L = markersLayout(w);
-    const setFor = (c) => (params.pick === "against" ? { against: String(c) } : { cluster: String(c) });
+    const setFor = (c) => (params.pick === "baseline" ? { baseline: String(c) } : { comparator: String(c) });
     return [
       /* in comparison mode the tested cluster is not a comparison it can have */
-      ...state.cl.ann.slice(0, MAX_ROWS).filter((a) => !(params.pick === "against" && a.c === state.mk.tested)).map((a, ri) => ({ x: 4, y: L.top + state.cl.ann.indexOf(a) * L.rowH, w: L.x1 - 4, h: L.rowH, set: setFor(a.c), label: `cluster ${a.c}` })),
-      ...mapTiles(state, L).filter((t) => t.c < MAX_ROWS && !(params.pick === "against" && t.c === state.mk.tested)).map((t) => ({ x: t.x, y: t.y, w: t.w, h: t.h, set: setFor(t.c), label: `cluster ${t.c} on the map` })),
+      ...state.cl.ann.slice(0, MAX_ROWS).filter((a) => !(params.pick === "baseline" && a.c === state.mk.tested)).map((a, ri) => ({ x: 4, y: L.top + state.cl.ann.indexOf(a) * L.rowH, w: L.x1 - 4, h: L.rowH, set: setFor(a.c), label: `cluster ${a.c}` })),
+      ...mapTiles(state, L).filter((t) => t.c < MAX_ROWS && !(params.pick === "baseline" && t.c === state.mk.tested)).map((t) => ({ x: t.x, y: t.y, w: t.w, h: t.h, set: setFor(t.c), label: `cluster ${t.c} on the map` })),
       ...markerChips(L).map((ch) => ({ x: ch.x, y: ch.y, w: ch.w, h: ch.h, set: ch.set, label: ch.label })),
     ];
   },
@@ -659,12 +660,12 @@ defineWidget({
     if (params.page === "markers") {
       const mk = state.mk, fm = mk.fm, tested = mk.tested;
       const up = fm.res.filter((x) => x.lfc > 0 && x.lpAdj < LOG05), broad = broadOf(mk);
-      const against = mk.vsRest ? `the other ${fm.n2} cells` : `cluster ${mk.otherC}'s ${fm.n2}`;
+      const baseline = mk.vsRest ? `the other ${fm.n2} cells` : `cluster ${mk.otherC}'s ${fm.n2}`;
       return [
-        { label: `Genes up in cluster ${tested} at p_val_adj < 0.05`, value: String(up.length), note: `${fm.n1} cells against ${against}; ${state.cl.k} clusters at resolution ${params.res}` },
+        { label: `Genes up in the comparator, cluster ${tested}, at p_val_adj < 0.05`, value: String(up.length), note: `${fm.n1} cells; baseline ${baseline}; ${state.cl.k} clusters at resolution ${params.res}` },
         params.markers === "conserved"
           ? { label: "Of those, up in both patients", value: String(up.filter((x) => mk.conserved.has(x.g)).length), note: "each patient tested separately, each at p_val_adj < 0.05" }
-          : { label: "Of those, detected in more than half of the other group", value: String(broad.length), note: "significant, and not specific to the cluster" },
+          : { label: "Of those, detected in more than half of the baseline", value: String(broad.length), note: "significant, and not specific to the comparator" },
       ];
     }
     if (params.page === "composition") {
