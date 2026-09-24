@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · cell-markers — Tumour vs liver, four layouts</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1100px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: var(--sp-3) 0 var(--sp-1); color: var(--ink-1); }
+  p.note, li { color: var(--ink-2); font-size: var(--fs-sm); max-width: 104ch; }
+  p.note { margin: 0 0 var(--sp-3); }
+  p.note b, li b { color: var(--ink-1); }
+  ul { margin: 0 0 var(--sp-3); padding-left: 1.2em; }
+  .bar { position: sticky; top: 0; z-index: 2; display: flex; flex-wrap: wrap; gap: var(--sp-3); align-items: end; background: var(--surface-2); padding: var(--sp-2) 0; border-bottom: 1px solid var(--grid); font-size: var(--fs-xs); color: var(--ink-2); }
+  .bar .seg { display: flex; }
+  .bar button { font: inherit; font-size: var(--fs-xs); padding: 5px 9px; border: 1px solid var(--grid); background: var(--surface-1); color: var(--ink-2); cursor: pointer; }
+  .bar button[aria-pressed=true] { background: var(--ink-1); color: var(--surface-1); border-color: var(--ink-1); }
+  .bar .go { border-radius: var(--radius); background: var(--ink-1); color: var(--surface-1); border-color: var(--ink-1); }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); border-radius: var(--radius); cursor: pointer; max-width: 100%; }
+  table.calls { border-collapse: collapse; font-size: var(--fs-sm); width: 100%; }
+  table.calls td, table.calls th { border-top: 1px solid var(--grid); padding: 6px 8px; vertical-align: top; text-align: left; }
+  table.calls th { color: var(--ink-3); font-weight: normal; font-size: var(--fs-xs); }
+  #busy { color: var(--ink-3); font-size: var(--fs-sm); }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>cell-markers · Tumour vs liver: four layouts</h1>
+  <p class="note">The page on the widget's own cells (seed 1, resolution 0.3), with every figure computed as the widget does: FindMarkers over cells, DESeq2 over the four pseudobulk samples. Every variant is live: click a cluster on the map, a point on a volcano or a row of a list to pick the gene, and the bar's <b>Sum each sample</b> runs the press in all four at once.</p>
+
+  <h3>What the layouts are judged against</h3>
+  <ul>
+    <li><b>Overview first, then details on demand</b> (Shneiderman's visual-information-seeking mantra). The volcanos are the overview, one gene is the detail; the detail belongs after the thing it is picked from. Your "move it below the volcanos" is this.</li>
+    <li><b>Spatial contiguity and signalling</b> (Mayer's multimedia principles): a result sits next to what explains it; the reader should not travel between the p value and the picture it describes.</li>
+    <li><b>Comparison designs</b> (Gleicher et al. 2011, "Visual comparison for information visualization"): <i>juxtaposition</i> (two panels side by side: the volcanos now), <i>superposition</i> (one panel, both drawn: the press), <i>explicit encoding</i> (draw the difference itself: a list of which test called which gene). When the difference is the message, explicit encoding reads fastest.</li>
+    <li><b>Transfer to the lesson's output.</b> 02-4 cell 21 ends in <code>markers.c5 %&gt;% arrange(-avg_log2FC)</code>, a gene table, and Two clusters already shows FindMarkers' table. A list with gene names is the form students meet in R; Squair et al. 2021 (<i>Nature Communications</i>, "Confronting false discoveries in single-cell differential expression") make the same case by listing the genes single-cell tests call that pseudobulk does not.</li>
+    <li><b>Concrete, then general.</b> One gene's cells (concrete) makes the reason visible; the counts and lists (general) show how often it happens. Either order is defensible; the order below follows the overview mantra.</li>
+  </ul>
+
+  <div class="bar">
+    <div>Sample effect<div class="seg" data-k="sampleSd"></div></div>
+    <div>True change<div class="seg" data-k="change"></div></div>
+    <div>Gene<div class="seg" data-k="gene"></div></div>
+    <button class="go" id="go">Sum each sample</button>
+    <span id="busy">computing…</span>
+  </div>
+
+  <h2>A · Overview, then detail: the map, the two volcanos, the gene below</h2>
+  <p class="note">Your suggestion. The top row is the choice (the cluster, with its cells per sample); the volcanos are the result for every gene; the gene view is underneath, as wide as it reads well (560px), with its two tests' results to its right. No gene names beyond the picked one.</p>
+  <canvas id="cA"></canvas>
+
+  <h2>B · A, with the top genes listed under each volcano</h2>
+  <p class="note">As Two clusters: under each volcano, its first 8 genes by p with the columns FindMarkers and DESeq2 print. A row picks the gene. The false calls appear by name under the cells volcano and are absent under the samples one — but the reader has to compare the two lists by eye. The tallest.</p>
+  <canvas id="cB"></canvas>
+
+  <h2>C · A, with one list beside the map: every gene called, and by which test</h2>
+  <p class="note">Explicit encoding. One list of the genes called by either test, with both adjusted p values in a row and whether the gene truly changes; a line above counts "over cells only / over samples only / both". The disagreement is read off one row, not two lists. It sits beside the map, where the sample table was, so the page is no taller than A.</p>
+  <canvas id="cC"></canvas>
+
+  <h2>D · One column per test, no press</h2>
+  <p class="note">Juxtaposition all the way down: the left column is the test over cells (volcano, its list, the gene's cells), the right the test over samples (volcano, its list, the gene's four sums). Each column is one analysis read top to bottom. It drops the press you picked, and the cells-to-sums step becomes two pictures to compare.</p>
+  <canvas id="cD"></canvas>
+
+  <h2>The calls</h2>
+  <table class="calls">
+    <tr><th>#</th><th>call</th><th>arms</th><th>recommendation</th></tr>
+    <tr><td>1</td><td>The page's order</td><td>A · B · C (overview, then the gene below) · D (a column per test)</td><td>C — your order, the gene view under the volcanos, and the one list that states the difference</td></tr>
+    <tr><td>2</td><td>Gene lists</td><td>none (A) · one per test (B, D) · one merged list (C)</td><td>merged — one row says a gene was called over cells and not over samples; two lists leave that comparison to the reader, and B is the tallest page</td></tr>
+  </table>
+</main>
+<script type="module">
+import { makeRng } from "../core/rng.js";
+import { simulate, normalise, pcaScaled, knn, snn, findClusters, findMarkers, geneName, isConditionGene, TYPES, G } from "../cell-markers/engine.js";
+import { umapSgd } from "../cell-markers/umap.js";
+import { analyse } from "../deseq2/engine.js";
+
+const css = getComputedStyle(document.documentElement), tok = (n) => css.getPropertyValue(n).trim();
+const K = {
+  font: tok("--font"), mono: tok("--font-mono"), xs: tok("--fs-xs"), sm: tok("--fs-sm"),
+  ink1: tok("--ink-1"), ink2: tok("--ink-2"), ink3: tok("--ink-3"), grid: tok("--grid"), axis: tok("--axis"), surface: tok("--surface-1"), surface2: tok("--surface-2"),
+  empirical: tok("--c-empirical"), extreme: tok("--c-extreme"), reference: tok("--c-reference"), highlight: tok("--c-highlight"),
+  clusters: ["a", "b", "c", "d", "e", "f"].map((k) => tok(`--c-cluster-${k}`)),
+};
+const TYPE_SLOT = [0, 2, 1, 3, 4, 5], hue = (t) => K.clusters[TYPE_SLOT[t]];
+const ORDER = ["p1-liver", "p2-liver", "p1-tumour", "p2-tumour"], NAMES = ["P1 liver", "P2 liver", "P1 tumour", "P2 tumour"];
+const LOG05 = Math.log10(0.05), dpr = window.devicePixelRatio || 1;
+const pFmt = (lp) => (lp < -300 ? "0" : lp > -2 ? (10 ** lp).toFixed(3) : `1e${Math.round(lp)}`);
+const derived = (seed, salt) => (seed * 7919 + salt) % 2147483647;
+const ALL = TYPES.map((t) => t.key);
+
+/* ------------------------------------------------ the data, as the widget builds it */
+const SEED = 1;
+const stageOf = (sampleSd, change) => simulate(makeRng(derived(SEED, 1)), { cells: 300, patientSd: 0.3, sampleSd, condition: change, conditionTypes: ALL, integrated: true });
+let E = null;
+function embed() {
+  const cells = stageOf(0, 0);
+  const Yi = normalise(cells.map((c) => ({ x: c.xi })));
+  const P = pcaScaled(Yi, 20, makeRng(derived(SEED, 2)));
+  const adj = snn(knn(P, 20));
+  const U = umapSgd(P, { nEpochs: 200, rng: makeRng(derived(SEED, 3)) }).Y;
+  const r = findClusters(adj, 0.3, makeRng(derived(SEED, 4)));
+  const ann = Array.from({ length: r.k }, (_, c) => {
+    const idx = []; r.clusters.forEach((v, i) => { if (v === c) idx.push(i); });
+    const counts = new Array(TYPES.length).fill(0); idx.forEach((i) => { counts[cells[i].type] += 1; });
+    const perSample = ORDER.map((k) => idx.filter((i) => cells[i].sample === k).length);
+    return { c, idx, type: counts.indexOf(Math.max(...counts)), perSample, testable: perSample.every((n) => n >= 5) };
+  });
+  return { U, clusters: r.clusters, ann };
+}
+const condCache = new Map();
+function cond(sampleSd, change, within) {
+  const key = `${sampleSd}|${change}|${within}`;
+  if (condCache.has(key)) return condCache.get(key);
+  const cells = stageOf(sampleSd, change), Y = normalise(cells), a = E.ann[within];
+  const inC = (i) => E.clusters[i] === within;
+  const fm = findMarkers(Y, (i) => inC(i) && cells[i].tissue === "tumour", (i) => inC(i) && cells[i].tissue === "liver", { logfc: 0, minPct: 0, nGenes: 33538 });
+  const truth = (g) => change > 0 && isConditionGene(g);
+  const counts = Array.from({ length: G }, (_, g) => ORDER.map((k) => a.idx.reduce((s, i) => s + (cells[i].sample === k ? cells[i].x[g] : 0), 0)));
+  const an = analyse({ counts, grp: [0, 0, 1, 1], reps: 2, genes: G });
+  const volC = fm.res.map((x) => ({ g: x.g, lfc: x.lfc, nl: -x.lp, padj: x.lpAdj, call: x.lpAdj < LOG05, truth: truth(x.g) }));
+  const volD = an.expressed.map((g) => ({ g, lfc: an.resMAP[g].lfc, nl: -Math.log10(Math.max(1e-300, an.resMAP[g].p)), padj: Math.log10(Math.max(1e-300, an.resMAP[g].padj)), call: an.resMAP[g].padj < 0.05, truth: truth(g) }));
+  const byC = new Map(volC.map((q) => [q.g, q])), byD = new Map(volD.map((q) => [q.g, q]));
+  const byP = [...volC].sort((p, q) => q.nl - p.nl);
+  const nullG = byP.find((q) => !q.truth).g, trueG = byP.find((q) => q.truth)?.g ?? null;
+  const tot = ORDER.map((_, j) => counts.reduce((t, row) => t + row[j], 0));
+  const out = { cells, Y, a, volC, volD, byC, byD, nullG, trueG, counts, tot, truth, n: fm.n1 + fm.n2 };
+  condCache.set(key, out);
+  return out;
+}
+
+/* ------------------------------------------------ state */
+const S = { sampleSd: 0.4, change: 2, gene: "unchanged", within: null, t: 0, target: 0 };
+function geneOf(C) { return typeof S.gene === "number" ? S.gene : S.gene === "changed" && C.trueG !== null ? C.trueG : C.nullG; }
+
+/* ------------------------------------------------ drawing pieces */
+function heading(ctx, text, x, y) { ctx.font = `600 ${K.sm} ${K.font}`; ctx.fillStyle = K.ink1; ctx.textAlign = "left"; ctx.fillText(text, x, y); }
+function small(ctx, text, x, y, { col = K.ink3, al = "left", mono = false, bold = false } = {}) { ctx.font = `${bold ? "600 " : ""}${K.xs} ${mono ? K.mono : K.font}`; ctx.fillStyle = col; ctx.textAlign = al; ctx.fillText(text, x, y); }
+
+function drawMap(ctx, M, hits) {
+  heading(ctx, "Click a cluster", M.x, M.y - 9);
+  ctx.strokeStyle = K.grid; ctx.lineWidth = 1; ctx.strokeRect(M.x + 0.5, M.y + 0.5, M.S - 1, M.S - 1);
+  let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+  for (const [x, y] of E.U) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
+  const half = (Math.max(x1 - x0, y1 - y0) / 2) * 1.25, mx = (x0 + x1) / 2, my = (y0 + y1) / 2;
+  const at = (p) => [M.x + M.S / 2 + ((p[0] - mx) / half) * (M.S / 2 - 6), M.y + M.S / 2 - ((p[1] - my) / half) * (M.S / 2 - 6)];
+  E.ann.forEach((a) => {
+    const pts = a.idx.map((i) => at(E.U[i])), cx = pts.reduce((s, q) => s + q[0], 0) / pts.length, cy = pts.reduce((s, q) => s + q[1], 0) / pts.length;
+    const ds = pts.map((q) => Math.hypot(q[0] - cx, q[1] - cy)).sort((p, q) => p - q), r = Math.max(M.S * 0.07, ds[Math.floor(0.95 * (ds.length - 1))] * 1.35 + 6);
+    const sel = a.c === S.within, off = !a.testable;
+    ctx.fillStyle = hue(a.type); ctx.globalAlpha = sel ? 0.3 : off ? 0.04 : 0.12; ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
+    if (sel) { ctx.strokeStyle = K.ink1; ctx.lineWidth = 2.5; ctx.stroke(); }
+    ctx.fillStyle = hue(a.type); ctx.globalAlpha = off ? 0.25 : 0.9; pts.forEach((q) => { ctx.beginPath(); ctx.arc(q[0], q[1], 1.6, 0, Math.PI * 2); ctx.fill(); }); ctx.globalAlpha = 1;
+    const text = `${TYPES[a.type].name} · ${a.c}`;
+    ctx.font = `${sel ? "600 " : ""}${K.xs} ${K.font}`; const hw = ctx.measureText(text).width / 2;
+    const lx = Math.max(M.x + hw + 3, Math.min(M.x + M.S - hw - 3, cx)), ly = cy + r + 12 <= M.y + M.S - 4 ? cy + r + 12 : cy - r - 5;
+    small(ctx, text, lx, ly, { col: off ? K.ink3 : K.ink1, al: "center", bold: sel });
+    if (a.testable) hits.push({ x: cx - r, y: cy - r, w: 2 * r, h: 2 * r, act: () => { S.within = a.c; S.t = S.target = 0; } });
+  });
+}
+function drawVolcano(ctx, V, pts, title, g, hits) {
+  heading(ctx, title, V.x, V.y - 10);
+  const yMax = Math.max(5, ...pts.map((q) => Math.min(60, q.nl))) * 1.05, xr = 3.5;
+  const sx = (v) => V.x + V.w / 2 + (Math.max(-xr, Math.min(xr, v)) / xr) * (V.w / 2), sy = (v) => V.y + V.h - (Math.min(60, v) / yMax) * V.h;
+  ctx.strokeStyle = K.axis; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(V.x, V.y + V.h + 0.5); ctx.lineTo(V.x + V.w, V.y + V.h + 0.5); ctx.moveTo(sx(0) + 0.5, V.y); ctx.lineTo(sx(0) + 0.5, V.y + V.h); ctx.stroke();
+  pts.filter((q) => !q.call).forEach((q) => { ctx.fillStyle = K.ink3; ctx.globalAlpha = 0.35; ctx.beginPath(); ctx.arc(sx(q.lfc), sy(q.nl), 2.4, 0, Math.PI * 2); ctx.fill(); });
+  ctx.globalAlpha = 1;
+  pts.filter((q) => q.call).forEach((q) => { ctx.fillStyle = q.truth ? K.empirical : K.extreme; ctx.beginPath(); ctx.arc(sx(q.lfc), sy(q.nl), 3, 0, Math.PI * 2); ctx.fill(); });
+  ctx.strokeStyle = K.reference; ctx.lineWidth = 1.2; pts.filter((q) => q.truth).forEach((q) => { ctx.beginPath(); ctx.arc(sx(q.lfc), sy(q.nl), 6, 0, Math.PI * 2); ctx.stroke(); });
+  const sel = pts.find((q) => q.g === g); if (sel) { ctx.strokeStyle = K.highlight; ctx.lineWidth = 2; ctx.strokeRect(sx(sel.lfc) - 7, sy(sel.nl) - 7, 14, 14); }
+  small(ctx, "log2 fold change, tumour against liver", V.x + V.w / 2, V.y + V.h + 15, { al: "center" });
+  small(ctx, "−log10 p", V.x + 4, V.y + 10);
+  [...pts.filter((q) => !q.call), ...pts.filter((q) => q.call)].forEach((q) => hits.push({ x: sx(q.lfc) - 5, y: sy(q.nl) - 5, w: 10, h: 10, act: () => { S.gene = q.g; S.t = S.target = 0; } }));
+}
+const ease = (t) => (t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2);
+/** the gene view; `mode` "anim" (the press), "cells" or "samples" (D's halves) */
+function drawGene(ctx, B, C, g, mode, { head = true, lines = true, side = false } = {}) {
+  const e = mode === "cells" ? 0 : mode === "samples" ? 1 : ease(S.t);
+  const vals = ORDER.map((k) => C.a.idx.filter((i) => C.cells[i].sample === k).map((i) => C.Y[i][g]));
+  const pb = ORDER.map((_, j) => Math.log1p((C.counts[g][j] / C.tot[j]) * 1e4));
+  if (head) heading(ctx, `${geneName(g)}: ${C.truth(g) ? "truly changed" : "unchanged"}`, B.x - 40, B.y - 9);
+  const top = B.y + 6, bh = B.h - (lines && !side ? 92 : 40), colW = B.w / 4;
+  const vMax = Math.max(0.5, ...vals.flat(), ...pb) * 1.08, sy = (v) => top + bh - (v / vMax) * bh;
+  ctx.strokeStyle = K.axis; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(B.x + 0.5, top); ctx.lineTo(B.x + 0.5, top + bh + 0.5); ctx.lineTo(B.x + B.w, top + bh + 0.5); ctx.stroke();
+  [0, vMax / 2, vMax].forEach((v) => small(ctx, v.toFixed(1), B.x - 4, sy(v) + 4, { al: "right", mono: true }));
+  ctx.save(); ctx.translate(B.x - 30, top + bh / 2); ctx.rotate(-Math.PI / 2); small(ctx, "log(1 + per 10,000)", 0, 0, { al: "center" }); ctx.restore();
+  ORDER.forEach((_, j) => {
+    const cx = B.x + j * colW + colW / 2, liver = j < 2;
+    const dot = (x, y, r, a) => { ctx.globalAlpha = a; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); if (liver) { ctx.strokeStyle = K.ink2; ctx.lineWidth = 1.2; ctx.stroke(); } else { ctx.fillStyle = K.ink2; ctx.fill(); } };
+    vals[j].forEach((v, i) => { const jit = (((i * 7919) % 101) / 101 - 0.5) * colW * 0.62; dot(cx + jit * (1 - e), sy(v) + (sy(pb[j]) - sy(v)) * e, 2.2, 0.7 * (1 - e * e)); });
+    ctx.globalAlpha = 1;
+    if (e > 0.02) { ctx.beginPath(); ctx.arc(cx, sy(pb[j]), 2 + 4.5 * e, 0, Math.PI * 2); ctx.strokeStyle = K.ink1; ctx.lineWidth = 1.8 * e; if (!liver) { ctx.fillStyle = K.ink1; ctx.fill(); } ctx.stroke(); }
+    small(ctx, NAMES[j], cx, top + bh + 14, { col: K.ink2, al: "center" }); small(ctx, `${vals[j].length} cells`, cx, top + bh + 27, { col: K.ink2, al: "center" });
+  });
+  if (!lines) return;
+  const c = C.byC.get(g), d = C.byD.get(g);
+  const L = [
+    [`Over cells: n = ${C.n}, ${c.call ? "called" : "not called"}`, `Wilcoxon p_val_adj = ${pFmt(c.padj)}`, "Each dot a cell, each tested as a replicate"],
+    [`Over samples: n = 4, ${d?.call ? "called" : "not called"}`, d ? `DESeq2 padj = ${pFmt(d.padj)}` : "too few counts for DESeq2", "Each point a sample's cells, summed"],
+  ];
+  /* beside the plot when there is room (side), else under it */
+  const lx = side ? B.x + B.w + 36 : B.x - 40, ly = side ? top + 40 : top + bh + 48;
+  L.forEach((ls, k) => { ctx.globalAlpha = mode === "anim" ? (k ? e : 1 - e) : (mode === "samples") === Boolean(k) ? 1 : 0; small(ctx, ls[0], lx, ly, { col: K.ink1, mono: true }); small(ctx, ls[1], lx, ly + 15, { col: K.ink1, mono: true }); small(ctx, ls[2], lx, ly + 32); });
+  ctx.globalAlpha = 1;
+}
+function drawSampleTable(ctx, x, y, C) {
+  heading(ctx, `${TYPES[C.a.type].name} · ${C.a.c}: its cells in each sample`, x, y);
+  NAMES.forEach((n, j) => { small(ctx, n, x, y + 24 + j * 20, { col: K.ink2 }); small(ctx, String(C.a.perSample[j]), x + 170, y + 24 + j * 20, { col: K.ink1, al: "right", mono: true }); });
+  small(ctx, "Tested over cells, as FindMarkers does, and over", x, y + 118);
+  small(ctx, "the four samples, each sample's cells summed", x, y + 132);
+}
+/** one test's first `n` genes by p, the columns its tool prints; a row picks the gene */
+function drawList(ctx, x, y, w, pts, n, g, hits, pName) {
+  const rows = [...pts].sort((p, q) => q.nl - p.nl).slice(0, n);
+  const cols = [["gene", x, "left"], ["log2FC", x + w * 0.36, "right"], [pName, x + w * 0.62, "right"], ["", x + w * 0.66, "left"]];
+  cols.forEach(([h, cx, al]) => small(ctx, h, cx, y, { al }));
+  rows.forEach((q, i) => {
+    const ry = y + 18 + i * 17;
+    if (q.g === g) { ctx.fillStyle = K.surface2; ctx.fillRect(x - 4, ry - 12, w, 17); }
+    const col = q.call ? (q.truth ? K.ink1 : K.ink1) : K.ink3;
+    small(ctx, geneName(q.g), x, ry, { col, mono: true }); small(ctx, q.lfc.toFixed(2), x + w * 0.36, ry, { col, al: "right", mono: true }); small(ctx, pFmt(q.padj), x + w * 0.62, ry, { col, al: "right", mono: true });
+    small(ctx, q.call ? (q.truth ? "called, truly changed" : "called, unchanged") : "", x + w * 0.66, ry, { col: q.call ? (q.truth ? K.empirical : K.extreme) : K.ink3 });
+    hits.push({ x: x - 4, y: ry - 12, w, h: 17, act: () => { S.gene = q.g; S.t = S.target = 0; } });
+  });
+  return y + 18 + rows.length * 17;
+}
+/** C's list: every gene called by either test, both adjusted p values in a row */
+function drawMerged(ctx, x, y, w, C, g, hits) {
+  const called = new Set([...C.volC.filter((q) => q.call).map((q) => q.g), ...C.volD.filter((q) => q.call).map((q) => q.g)]);
+  const rows = [...called].map((gg) => ({ g: gg, c: C.byC.get(gg), d: C.byD.get(gg), truth: C.truth(gg) }))
+    .sort((p, q) => (q.c.call && !q.d?.call) - (p.c.call && !p.d?.call) || p.c.padj - q.c.padj);
+  const nC = rows.filter((r) => r.c.call && !r.d?.call).length, nD = rows.filter((r) => !r.c.call && r.d?.call).length, nB = rows.filter((r) => r.c.call && r.d?.call).length;
+  heading(ctx, "Genes called, and by which test", x, y);
+  small(ctx, `over cells only ${nC} · over samples only ${nD} · both ${nB}`, x, y + 17, { col: K.ink2 });
+  const cols = [["gene", x, "left"], ["over cells", x + w * 0.42, "right"], ["over samples", x + w * 0.7, "right"], ["truly changed", x + w, "right"]];
+  cols.forEach(([h, cx, al]) => small(ctx, h, cx, y + 38, { al }));
+  const shown = rows.slice(0, 10);
+  shown.forEach((r, i) => {
+    const ry = y + 56 + i * 17;
+    if (r.g === g) { ctx.fillStyle = K.surface2; ctx.fillRect(x - 4, ry - 12, w + 8, 17); }
+    small(ctx, geneName(r.g), x, ry, { col: K.ink1, mono: true });
+    const cell = (q, cx) => small(ctx, q ? pFmt(q.padj) : "—", cx, ry, { col: q?.call ? K.ink1 : K.ink3, al: "right", mono: true, bold: q?.call });
+    cell(r.c, x + w * 0.42); cell(r.d, x + w * 0.7);
+    small(ctx, r.truth ? "yes" : "no", x + w, ry, { col: r.truth ? K.empirical : K.extreme, al: "right" });
+    hits.push({ x: x - 4, y: ry - 12, w: w + 8, h: 17, act: () => { S.gene = r.g; S.t = S.target = 0; } });
+  });
+  if (rows.length > shown.length) small(ctx, `and ${rows.length - shown.length} more; bold, adjusted p < 0.05`, x, y + 56 + shown.length * 17 + 2);
+  else small(ctx, "bold, adjusted p < 0.05", x, y + 56 + shown.length * 17 + 2);
+}
+
+/* ------------------------------------------------ the four layouts */
+const TOP = 26;
+const LAYOUTS = {
+  A: (W) => { const S1 = 250, vT = TOP + S1 + 56, vH = 200, gT = vT + vH + 70; return { H: gT + 250 + 10, draw: (ctx, C, g, hits) => {
+    drawMap(ctx, { x: 8, y: TOP, S: S1 }, hits); drawSampleTable(ctx, 8 + S1 + 30, TOP + 12, C);
+    const PW = Math.floor((W - 64) / 2);
+    drawVolcano(ctx, { x: 24, y: vT, w: PW, h: vH }, C.volC, `Over cells: ${C.n} cells (Wilcoxon)`, g, hits);
+    drawVolcano(ctx, { x: 64 + PW, y: vT, w: PW, h: vH }, C.volD, "Over samples: 4 pseudobulk samples (DESeq2)", g, hits);
+    drawGene(ctx, { x: 60, y: gT, w: Math.min(560, W - 380), h: 250 }, C, g, "anim", { side: W >= 760 }); } }; },
+  B: (W) => { const S1 = 250, vT = TOP + S1 + 56, vH = 200, lT = vT + vH + 44, gT = lT + 8 * 17 + 70; return { H: gT + 250 + 10, draw: (ctx, C, g, hits) => {
+    drawMap(ctx, { x: 8, y: TOP, S: S1 }, hits); drawSampleTable(ctx, 8 + S1 + 30, TOP + 12, C);
+    const PW = Math.floor((W - 64) / 2);
+    drawVolcano(ctx, { x: 24, y: vT, w: PW, h: vH }, C.volC, `Over cells: ${C.n} cells (Wilcoxon)`, g, hits);
+    drawVolcano(ctx, { x: 64 + PW, y: vT, w: PW, h: vH }, C.volD, "Over samples: 4 pseudobulk samples (DESeq2)", g, hits);
+    drawList(ctx, 24, lT, PW, C.volC, 8, g, hits, "p_val_adj"); drawList(ctx, 64 + PW, lT, PW, C.volD, 8, g, hits, "padj");
+    drawGene(ctx, { x: 60, y: gT, w: Math.min(560, W - 380), h: 250 }, C, g, "anim", { side: W >= 760 }); } }; },
+  C: (W) => { const S1 = 250, vT = TOP + S1 + 56, vH = 200, gT = vT + vH + 70; return { H: gT + 250 + 10, draw: (ctx, C, g, hits) => {
+    drawMap(ctx, { x: 8, y: TOP, S: S1 }, hits); drawMerged(ctx, 8 + S1 + 30, TOP - 9, W - S1 - 60, C, g, hits);
+    const PW = Math.floor((W - 64) / 2);
+    drawVolcano(ctx, { x: 24, y: vT, w: PW, h: vH }, C.volC, `Over cells: ${C.n} cells (Wilcoxon)`, g, hits);
+    drawVolcano(ctx, { x: 64 + PW, y: vT, w: PW, h: vH }, C.volD, "Over samples: 4 pseudobulk samples (DESeq2)", g, hits);
+    drawGene(ctx, { x: 60, y: gT, w: Math.min(560, W - 380), h: 250 }, C, g, "anim", { side: W >= 760 }); } }; },
+  D: (W) => { const S1 = 250, vT = TOP + S1 + 56, vH = 200, lT = vT + vH + 44, gT = lT + 8 * 17 + 60; return { H: gT + 240 + 10, draw: (ctx, C, g, hits) => {
+    drawMap(ctx, { x: 8, y: TOP, S: S1 }, hits); drawSampleTable(ctx, 8 + S1 + 30, TOP + 12, C);
+    const PW = Math.floor((W - 64) / 2);
+    drawVolcano(ctx, { x: 24, y: vT, w: PW, h: vH }, C.volC, `Over cells: ${C.n} cells (Wilcoxon)`, g, hits);
+    drawVolcano(ctx, { x: 64 + PW, y: vT, w: PW, h: vH }, C.volD, "Over samples: 4 pseudobulk samples (DESeq2)", g, hits);
+    drawList(ctx, 24, lT, PW, C.volC, 8, g, hits, "p_val_adj"); drawList(ctx, 64 + PW, lT, PW, C.volD, 8, g, hits, "padj");
+    heading(ctx, `${geneName(g)}: ${C.truth(g) ? "truly changed" : "unchanged"}`, 24, gT - 12);
+    drawGene(ctx, { x: 64, y: gT + 6, w: PW - 44, h: 240 }, C, g, "cells", { head: false });
+    drawGene(ctx, { x: 104 + PW, y: gT + 6, w: PW - 44, h: 240 }, C, g, "samples", { head: false }); } }; },
+};
+
+const views = Object.keys(LAYOUTS).map((id) => ({ id, cv: document.getElementById(`c${id}`), hits: [] }));
+function render() {
+  document.querySelectorAll(".seg button").forEach((b) => b.setAttribute("aria-pressed", String(String(S[b.dataset.k]) === b.dataset.v)));
+  document.getElementById("go").textContent = S.target ? "Show the cells" : "Sum each sample";
+  const C = cond(S.sampleSd, S.change, S.within), g = geneOf(C);
+  views.forEach((v) => {
+    const W = Math.min(1060, v.cv.parentElement.clientWidth - 2), L = LAYOUTS[v.id](W);
+    v.cv.width = W * dpr; v.cv.height = L.H * dpr; v.cv.style.width = `${W}px`; v.cv.style.height = `${L.H}px`;
+    const ctx = v.cv.getContext("2d"); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, L.H);
+    v.hits = []; L.draw(ctx, C, g, v.hits);
+  });
+}
+views.forEach((v) => v.cv.addEventListener("click", (ev) => {
+  const r = v.cv.getBoundingClientRect(), x = ev.clientX - r.left, y = ev.clientY - r.top;
+  let hit = null; for (const h of v.hits) if (x >= h.x && x < h.x + h.w && y >= h.y && y < h.y + h.h) hit = h;
+  if (hit) { hit.act(); render(); }
+}));
+const seg = (k, opts) => { const box = document.querySelector(`.seg[data-k="${k}"]`); opts.forEach(([v, label]) => { const b = document.createElement("button"); b.textContent = label; b.dataset.k = k; b.dataset.v = String(v); b.onclick = () => { S[k] = v; S.t = S.target = 0; render(); }; box.append(b); }); };
+seg("sampleSd", [[0, "0"], [0.2, "0.2"], [0.4, "0.4"], [0.65, "0.65"]]);
+seg("change", [[0, "0"], [1, "1"], [2, "2"]]);
+seg("gene", [["unchanged", "Unchanged, smallest p"], ["changed", "Truly changed, smallest p"]]);
+let raf = 0;
+document.getElementById("go").onclick = () => {
+  S.target = S.target ? 0 : 1; cancelAnimationFrame(raf); let last = performance.now();
+  const step = (now) => { const dt = now - last; last = now; S.t = Math.max(0, Math.min(1, S.t + Math.sign(S.target - S.t) * dt / 1200)); render(); if (S.t !== S.target) raf = requestAnimationFrame(step); };
+  raf = requestAnimationFrame(step);
+};
+setTimeout(() => {
+  E = embed();
+  const kup = TYPES.findIndex((t) => t.key === "kupffer");
+  S.within = E.ann.find((a) => a.testable && a.type === kup)?.c ?? E.ann.find((a) => a.testable).c;
+  document.getElementById("busy").textContent = "";
+  render();
+  window.addEventListener("resize", render);
+}, 30);
+</script>
+</body>
+</html>
