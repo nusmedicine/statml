@@ -1,146 +1,172 @@
 /* cell-markers — slot 81, "Single-Cell RNA-seq: Clusters and Markers". DRAFT.
  *
- * Planned 2026-09-24 (catalogue § Slot 81): every method rewritten as
- * published before a number was read (`engine.js`; the arc's stand-ins were
- * wrong the way slot 80's were), measured in `_lab/cell-markers-measure.mjs`
- * and on the lesson's own cells in `_lab/cell-markers-real.mjs`, mocked in
- * `_lab/cell-markers-mock.html`, eight picks:
+ * REORGANISED 2026-09-25 into the notebook's order, on his word ("summarize
+ * what we covered in the notebook … how can we organize the widget so that
+ * it's aligned?"), with Composition kept as a fourth page. 02-4:
  *
- *   Clusters   — a UMAP computed on the page (his pick; `umap.js`, verified
- *                against umap-learn 0.5.12), a resolution control, and a
- *                zonation on/off: on, 0.8 splits the hepatocytes along the
- *                lobule; off, the same resolution splits them where nothing
- *                differs — the page's failing case.
- *   Markers    — significant is not specific: a dot plot (size the share
- *                detecting, shade the mean) and FindMarkers' table, the genes
- *                that pass p_val_adj < 0.05 and are detected in most other
- *                cells set apart. The arc's "p ranks markers wrongly" was
- *                struck by the measurement and is not claimed.
- *   Conditions — Kupffer cells, tumour against liver, NO condition effect:
- *                a Wilcoxon over cells against DESeq2 on the four samples'
- *                summed counts (his pick; widget 78's engine, ~ tissue, 2
- *                against 2), under a sample effect and a patient effect
- *                (his pick: both). The patient effect is shared by both of
- *                a patient's samples and cancels in tumour against liver;
- *                the readout says so rather than leave the reader waiting.
+ *   1 · Clusters        cells 4–14  FindNeighbors + FindClusters on the
+ *                        integrated embedding, then canonical markers
+ *                        (FeaturePlot, DoHeatmap) to name each cluster —
+ *                        here the UMAP by cluster and by type, a resolution
+ *                        control, and the dot plot of each type's markers
+ *   2 · Two clusters     cells 15–16  FindMarkers(ident.1, ident.2) — the
+ *                        comparator against a baseline (one cluster or all
+ *                        other cells), picked on the map; significant is not
+ *                        specific
+ *   3 · Tumour vs liver  cells 17–21  FindMarkers(tumor_5, background_5) —
+ *                        one cluster's cells split by the samples' tissue,
+ *                        tested over cells (the lesson's call) and over
+ *                        samples (pseudobulk: each sample's cells summed,
+ *                        then widget 78's DESeq2), under a true change and
+ *                        the sample and patient effects
+ *   4 · Composition      a type's share per sample, liver against tumour,
+ *                        over cells and over samples (arcsine square root)
  *
- * compute() does the heavy steps once per input and keeps them in module
- * caches keyed by exactly the parameters they read, so a resolution change
- * reclusters without redrawing the UMAP and a Conditions change touches only
- * Conditions. The output depends on the parameters alone, as compute must.
+ * Zonation, conserved markers, the magnified hepatocytes and the lobule strip
+ * are gone as clutter (his word: "we are going deep into liver architecture
+ * but using it as an illustration").
+ *
+ * THE MAP AND THE CLUSTERS ARE BUILT ON INTEGRATED COUNTS, THE TESTS ON THE
+ * UNCORRECTED ONES, as the lesson does (it clusters on integrated.cca and its
+ * FindMarkers reads the RNA assay) and as OSCA recommends. Measured
+ * (`_lab/cell-markers-page3-measure.txt`): clustered on counts that carry the
+ * patient effect, every type split by patient (11–13 clusters for 6 types,
+ * ARI 0.6); on the integrated counts, 6 clusters, ARI 1.00, every cluster
+ * drawing on all four samples. Each cell carries both (`engine.js`,
+ * `integrated`), drawn from separate streams, so moving the sample, patient
+ * or condition effect leaves the map where it is.
+ *
+ * compute() does the heavy steps once per input, kept in module caches keyed
+ * by exactly the parameters they read; the output depends on the parameters
+ * alone, as compute must.
  */
 import { defineWidget, fmt } from "../core/index.js";
 import { makeRng } from "../core/rng.js";
 import { lgamma } from "../core/stats.js";
 import { analyse } from "../deseq2/engine.js";
-import { simulate, simulateType, normalise, pcaScaled, knn, snn, findClusters, findMarkers, geneKind, geneName, isConditionGene, TYPES, SAMPLES, G, G_MARK, G_ZONE } from "./engine.js";
+import { simulate, normalise, pcaScaled, knn, snn, findClusters, findMarkers, geneKind, geneName, isConditionGene, TYPES, SAMPLES, G, G_MARK } from "./engine.js";
 import { umapSgd } from "./umap.js";
 
 const PAGES = [
   { value: "clusters", label: "Clusters" },
-  { value: "markers", label: "Markers" },
-  { value: "conditions", label: "Conditions" },
+  { value: "two-clusters", label: "Two clusters" },
+  { value: "tumour-liver", label: "Tumour vs liver" },
   { value: "composition", label: "Composition" },
 ];
 const ON = (page) => ({ param: "page", equals: page });
-const CELLS_PAGES = { param: "page", oneOf: ["clusters", "markers"] };
-const HEIGHTS = { clusters: 580, markers: 1050, conditions: 520, composition: 380 };
+const CELL_PAGES = { param: "page", oneOf: ["clusters", "two-clusters", "tumour-liver"] };
+const HEIGHTS = { clusters: 760, "two-clusters": 720, "tumour-liver": 760, composition: 380 };
 const RESOLUTIONS = ["0.1", "0.3", "0.5", "0.8", "1.2", "2"];
 const SAMPLE_SD = ["0", "0.1", "0.2", "0.4", "0.65"];
 const PATIENT_SD = ["0", "0.3", "0.65"];
 const CHANGES = ["0", "0.5", "1", "2"];
 const COMP_SD = ["0", "0.3", "0.6"];
-const COMP_CELLS = 400;
-const CELLS_PER_SAMPLE = 250, KUPFFER_PER_SAMPLE = 120, MAX_ROWS = 12;
+const CELLS_PER_SAMPLE = 300, COMP_CELLS = 400, MAX_ROWS = 12;
+/* a cluster is tested by tissue only if every sample holds this many of its
+   cells: tumour cells are absent from one liver sample and hepatocytes rare
+   in the tumour samples (page3-measure) */
+const MIN_PER_SAMPLE = 5;
+const ORDER = ["p1-liver", "p2-liver", "p1-tumour", "p2-tumour"];
+const ORDER_NAMES = [["Patient 1", "liver"], ["Patient 2", "liver"], ["Patient 1", "tumour"], ["Patient 2", "tumour"]];
+const ALL_TYPES = TYPES.map((t) => t.key);
 /* which --c-cluster-* slot each type wears, as widget 80: hepatocyte a (blue), tumour c (red), … */
 const TYPE_SLOT = [0, 2, 1, 3, 4, 5];
 const pct = (v) => `${Math.round(100 * v)}%`;
 const LOG05 = Math.log10(0.05);
+const pFmt = (lp) => (lp < -300 ? "0" : lp > -2 ? (10 ** lp).toFixed(3) : `1e${Math.round(lp)}`);
 
 /* ------------------------------------------------------------ the caches */
-const cache = { stage: new Map(), clusters: new Map(), cond: new Map() };
+const caches = { stage: new Map(), embed: new Map(), clusters: new Map(), markers: new Map(), cond: new Map(), comp: new Map() };
 const remember = (map, key, make) => { if (!map.has(key)) { if (map.size > 8) map.delete(map.keys().next().value); map.set(key, make()); } return map.get(key); };
+const derived = (seed, salt) => (seed * 7919 + salt) % 2147483647;
 
-function stageFor(seed, zonation) {
-  return remember(cache.stage, `${seed}|${zonation}`, () => {
-    const rng = makeRng(seed);
-    const cells = simulate(makeRng(Math.floor(rng.next() * 2 ** 31)), { cells: CELLS_PER_SAMPLE, patientSd: 0, zonation: zonation === "on" ? 3 : 0, interaction: 1 });
-    /* `interaction`: 10 genes raised in patient 1's hepatocytes only, which a
-       pooled test lists and a conserved one does not (compare-measure C4) */
-    const Y = normalise(cells);
-    const P = pcaScaled(Y, 20, makeRng(Math.floor(rng.next() * 2 ** 31)));
+/** The cells, with the sample, patient and condition effects in their
+    uncorrected counts (the ones tested) and not in their integrated counts
+    (the ones mapped and clustered). A true change, when set, is in every
+    type's tumour-sample cells, so whichever cluster is picked carries one. */
+function stageFor(seed, sampleSd, patientSd, change) {
+  return remember(caches.stage, `${seed}|${sampleSd}|${patientSd}|${change}`, () => {
+    const cells = simulate(makeRng(derived(seed, 1)), {
+      cells: CELLS_PER_SAMPLE, patientSd: Number(patientSd), sampleSd: Number(sampleSd),
+      condition: Number(change), conditionTypes: ALL_TYPES, integrated: true,
+    });
+    return { cells, Y: normalise(cells) };
+  });
+}
+/** The map and the graph, from the integrated counts — the same at every
+    setting of the effects, so it is keyed by the seed alone. */
+function embedFor(seed) {
+  return remember(caches.embed, String(seed), () => {
+    const { cells } = stageFor(seed, "0", "0.3", "0");
+    const Yi = normalise(cells.map((c) => ({ x: c.xi })));
+    const P = pcaScaled(Yi, 20, makeRng(derived(seed, 2)));
     const adj = snn(knn(P, 20));
-    const { Y: U } = umapSgd(P, { nEpochs: 200, rng: makeRng(Math.floor(rng.next() * 2 ** 31)) });
-    return { cells, Y, adj, U, clusterRng: Math.floor(rng.next() * 2 ** 31) };
+    const { Y: U } = umapSgd(P, { nEpochs: 200, rng: makeRng(derived(seed, 3)) });
+    return { adj, U };
   });
 }
-
-/** The clusters at a resolution, annotated by the type most of their cells
-    are, with every cluster's FindMarkers against all other cells. */
-function clustersFor(seed, zonation, res) {
-  return remember(cache.clusters, `${seed}|${zonation}|${res}`, () => {
-    const S = stageFor(seed, zonation);
-    const r = findClusters(S.adj, Number(res), makeRng(S.clusterRng));
-    const k = r.k;
-    const ann = Array.from({ length: k }, (_, c) => {
+/** The clusters at a resolution, each named by the type most of its cells
+    are, with its cells in each of the four samples. */
+function clustersFor(seed, res) {
+  return remember(caches.clusters, `${seed}|${res}`, () => {
+    const E = embedFor(seed), { cells } = stageFor(seed, "0", "0.3", "0");
+    const r = findClusters(E.adj, Number(res), makeRng(derived(seed, 4)));
+    const ann = Array.from({ length: r.k }, (_, c) => {
       const idx = []; r.clusters.forEach((v, i) => { if (v === c) idx.push(i); });
-      const counts = new Array(TYPES.length).fill(0); idx.forEach((i) => { counts[S.cells[i].type] += 1; });
+      const counts = new Array(TYPES.length).fill(0); idx.forEach((i) => { counts[cells[i].type] += 1; });
       const type = counts.indexOf(Math.max(...counts));
-      const zs = idx.filter((i) => S.cells[i].type === 0).map((i) => S.cells[i].z);
-      return { c, idx, n: idx.length, type, share: counts[type] / idx.length, zMean: zs.length ? zs.reduce((a, b) => a + b, 0) / zs.length : null, zs };
+      const perSample = Object.fromEntries(ORDER.map((k) => [k, idx.filter((i) => cells[i].sample === k).length]));
+      return { c, idx, n: idx.length, type, perSample, testable: ORDER.every((k) => perSample[k] >= MIN_PER_SAMPLE) };
     });
-    /* a type's clusters take its hue, lighter to darker in lobule order */
-    ann.forEach((a) => {
-      const sib = ann.filter((q) => q.type === a.type).sort((p, q) => (p.zMean ?? 0) - (q.zMean ?? 0) || p.c - q.c);
-      const j = sib.indexOf(a);
-      a.alpha = sib.length === 1 ? 0.9 : 0.4 + 0.55 * (j / (sib.length - 1));
-    });
-    return { clusters: r.clusters, q: r.q, k, ann };
+    /* a type's clusters take its hue, lighter to darker by size */
+    ann.forEach((a) => { const sib = ann.filter((q) => q.type === a.type); const j = sib.indexOf(a); a.alpha = sib.length === 1 ? 0.9 : 0.95 - 0.5 * (j / (sib.length - 1)); });
+    return { clusters: r.clusters, q: r.q, k: r.k, ann };
   });
 }
+const clusterLabel = (a) => `Cluster ${a.c} · ${TYPES[a.type].name}`;
+function clusterOptions(v) { return clustersFor(v.seed, v.res).ann.slice(0, MAX_ROWS).map((a) => ({ value: String(a.c), label: clusterLabel(a) })); }
+/* the testable clusters, the Kupffer ones first: the lesson's own example is
+   its Kupffer cluster (02-4 cell 21), and the page opens on the first */
+function testableOptions(v) {
+  const kup = TYPES.findIndex((t) => t.key === "kupffer");
+  return clustersFor(v.seed, v.res).ann.slice(0, MAX_ROWS).filter((a) => a.testable)
+    .sort((a, b) => (b.type === kup) - (a.type === kup) || a.c - b.c)
+    .map((a) => ({ value: String(a.c), label: clusterLabel(a) }));
+}
 
-/** FindMarkers for the comparison on screen only: the tested cluster against
-    all other cells or against one cluster, and the same test within each
-    patient, for conserved markers (FindConservedMarkers: up in both, each at
-    p_val_adj < 0.05). */
-const cache2 = new Map();
+/** FindMarkers for the comparison on screen, on the uncorrected counts. */
 function markersFor(params, cl) {
-  const k = cl.k, tested = Math.min(Number(params.comparator), k - 1);   // the list holds only clusters that exist; the min guards a URL typed by hand
-  /* the comparison is ONE parameter, "rest" or a cluster's number, so a click
-     on the map sets it the way the dropdown does (a region sets one parameter) */
+  const tested = Math.min(Number(params.comparator), cl.k - 1);
   const vsRest = params.baseline === "rest";
-  let otherC = vsRest ? 0 : Math.min(Number(params.baseline), k - 1);
-  if (!vsRest && otherC === tested) otherC = tested === 0 ? Math.min(1, k - 1) : 0;
-  return remember(cache2, `${params.seed}|${params.zonation}|${params.res}|${tested}|${vsRest ? "rest" : otherC}`, () => {
-    const S = stageFor(params.seed, params.zonation);
+  let otherC = vsRest ? 0 : Math.min(Number(params.baseline), cl.k - 1);
+  if (!vsRest && otherC === tested) otherC = tested === 0 ? Math.min(1, cl.k - 1) : 0;
+  return remember(caches.markers, `${params.seed}|${params.res}|${params.sampleSd}|${params.patientSd}|${params.change}|${tested}|${vsRest ? "rest" : otherC}`, () => {
+    const S = stageFor(params.seed, params.sampleSd, params.patientSd, params.change);
     const inA = (i) => cl.clusters[i] === tested, inB = vsRest ? (i) => cl.clusters[i] !== tested : (i) => cl.clusters[i] === otherC;
-    const fm = findMarkers(S.Y, inA, inB, { nGenes: 33538 });
-    const per = [1, 2].map((pt) => new Map(findMarkers(S.Y, (i) => S.cells[i].patient === pt && inA(i), (i) => S.cells[i].patient === pt && inB(i), { nGenes: 33538, logfc: 0, minPct: 0 }).res.map((x) => [x.g, x])));
-    const conserved = new Set(fm.res.filter((x) => { const a = per[0].get(x.g), b = per[1].get(x.g); return x.lfc > 0 && a && b && a.lfc > 0 && b.lfc > 0 && Math.max(a.lpAdj, b.lpAdj) < LOG05; }).map((x) => x.g));
-    return { fm, tested, otherC, vsRest, conserved, per };
+    return { fm: findMarkers(S.Y, inA, inB, { nGenes: 33538 }), tested, otherC, vsRest, type: cl.ann[tested].type };
   });
 }
 
-/* Kupffer cells only, tumour against liver, no condition effect: both tests
-   on the same cells, and the null gene with the smallest p over cells as the
-   one drawn cell by cell */
-function conditionsFor(seed, sampleSd, patientSd, change) {
-  return remember(cache.cond, `${seed}|${sampleSd}|${patientSd}|${change}`, () => {
-    const cells = simulateType(makeRng(seed * 7919 + 17), "kupffer", { perSample: KUPFFER_PER_SAMPLE, patientSd: Number(patientSd), sampleSd: Number(sampleSd), condition: Number(change) });
-    const Y = normalise(cells);
-    const fm = findMarkers(Y, (i) => cells[i].tissue === "tumour", (i) => cells[i].tissue === "liver", { logfc: 0, minPct: 0, nGenes: 33538 });
-    /* the unchanged genes: the spread genes the true change does not touch */
-    const isNull = (g) => geneKind(g).kind === "spread" && !(Number(change) > 0 && isConditionGene(g));
-    const cellsP = fm.res.filter((x) => isNull(x.g)).map((x) => ({ g: x.g, p: 10 ** x.lp, lp: x.lp, lpAdj: x.lpAdj }));
-    const volC = fm.res.map((x) => ({ g: x.g, lfc: x.lfc, nl: -x.lp, call: x.lpAdj < LOG05, truth: Number(change) > 0 && isConditionGene(x.g) }));
-    const order = ["p1-liver", "p2-liver", "p1-tumour", "p2-tumour"];
-    const counts = Array.from({ length: G }, (_, g) => order.map((sk) => cells.reduce((s, c) => s + (c.sample === sk ? c.x[g] : 0), 0)));
+/** One cluster's cells, tumour samples against liver samples: over cells
+    (the lesson's FindMarkers), and over the four samples (pseudobulk: each
+    sample's cells of the cluster summed, then widget 78's DESeq2). */
+function conditionFor(params, cl) {
+  const within = Math.min(Number(params.within), cl.k - 1);
+  return remember(caches.cond, `${params.seed}|${params.res}|${params.sampleSd}|${params.patientSd}|${params.change}|${within}`, () => {
+    const S = stageFor(params.seed, params.sampleSd, params.patientSd, params.change);
+    const a = cl.ann[within];
+    if (!a.testable) return { within, a, testable: false };
+    const inC = (i) => cl.clusters[i] === within;
+    const fm = findMarkers(S.Y, (i) => inC(i) && S.cells[i].tissue === "tumour", (i) => inC(i) && S.cells[i].tissue === "liver", { logfc: 0, minPct: 0, nGenes: 33538 });
+    const truthOf = (g) => Number(params.change) > 0 && isConditionGene(g);
+    const volC = fm.res.map((x) => ({ g: x.g, lfc: x.lfc, nl: -x.lp, call: x.lpAdj < LOG05, truth: truthOf(x.g) }));
+    const counts = Array.from({ length: G }, (_, g) => ORDER.map((k) => a.idx.reduce((s, i) => s + (S.cells[i].sample === k ? S.cells[i].x[g] : 0), 0)));
     const an = analyse({ counts, grp: [0, 0, 1, 1], reps: 2, genes: G });
-    const pbP = an.expressed.filter(isNull).map((g) => ({ g, p: an.resMAP[g].p, padj: an.resMAP[g].padj }));
-    const volD = an.expressed.map((g) => ({ g, lfc: an.resMAP[g].lfc, nl: -Math.log10(Math.max(1e-300, an.resMAP[g].p)), call: an.resMAP[g].padj < 0.05, truth: Number(change) > 0 && isConditionGene(g) }));
-    const ex = cellsP.slice().sort((a, b) => a.lp - b.lp)[0];
-    const exVals = order.map((sk) => cells.map((c, i) => (c.sample === sk ? Y[i][ex.g] : null)).filter((v) => v !== null));
-    return { n: cells.length, cellsP, pbP, ex, exVals, order, volC, volD };
+    const volD = an.expressed.map((g) => ({ g, lfc: an.resMAP[g].lfc, nl: -Math.log10(Math.max(1e-300, an.resMAP[g].p)), call: an.resMAP[g].padj < 0.05, truth: truthOf(g) }));
+    /* the unchanged gene with the smallest p over cells, drawn cell by cell */
+    const nullG = fm.res.filter((x) => geneKind(x.g).kind === "spread" && !truthOf(x.g)).sort((p, q) => p.lp - q.lp)[0];
+    const exVals = ORDER.map((k) => a.idx.filter((i) => S.cells[i].sample === k).map((i) => S.Y[i][nullG.g]));
+    return { within, a, testable: true, volC, volD, ex: nullG, exVals, n: fm.n1 + fm.n2 };
   });
 }
 
@@ -148,10 +174,9 @@ function conditionsFor(seed, sampleSd, patientSd, change) {
    tumour over CELLS (the pooled 2x2 counts, a chi-square) and over SAMPLES
    (the four shares, arcsine square root, a t-test on 2 against 2 — the logit
    failed on tumour cells, 1% to 50%, in 8 of 8 seeds: compare-measure C3) */
-const cache3 = new Map();
 function compositionFor(seed, compSd) {
-  return remember(cache3, `${seed}|${compSd}`, () => {
-    const cells = simulate(makeRng(seed * 104729 + 7), { cells: COMP_CELLS, patientSd: 0, compSd: Number(compSd) });
+  return remember(caches.comp, `${seed}|${compSd}`, () => {
+    const cells = simulate(makeRng(derived(seed, 5)), { cells: COMP_CELLS, patientSd: 0, compSd: Number(compSd) });
     const n = {}; SAMPLES.forEach((sm) => { n[sm.key] = new Array(TYPES.length).fill(0); }); cells.forEach((c) => { n[c.sample][c.type] += 1; });
     const types = TYPES.map((t, ti) => {
       const a = n["p1-liver"][ti] + n["p2-liver"][ti], c2 = n["p1-tumour"][ti] + n["p2-tumour"][ti], b = 2 * COMP_CELLS - a, d = 2 * COMP_CELLS - c2, N = 4 * COMP_CELLS;
@@ -176,240 +201,138 @@ function ibeta(x, a, b) {
   return x < (a + 1) / (a + b + 2) ? (bt * cf(x, a, b)) / a : 1 - (bt * cf(1 - x, b, a)) / b;
 }
 
-/** The clusters at the current seed, zonation and resolution, as options:
-    "Cluster 0 · Hepatocyte". The first 12 are offered, as the dot plot rows. */
-function clusterOptions(v) {
-  const cl = clustersFor(v.seed, v.zonation, v.res);
-  return cl.ann.slice(0, MAX_ROWS).map((a) => ({ value: String(a.c), label: `Cluster ${a.c} · ${TYPES[a.type].name}` }));
-}
-
 /* ------------------------------------------------------------ geometry (5.8) */
 const TOP = 26;
-function clustersLayout(w) {
-  const S = Math.min(340, Math.floor((w - 24) / 2));
-  const x0 = Math.floor((w - (2 * S + 24)) / 2);
-  /* under the maps: the hepatocytes magnified (a square of MAG), and beside it
-     the strip of their places along the lobule */
-  const stripTop = TOP + S + 44, MAG = Math.min(150, HEIGHTS.clusters - stripTop - 12);
-  return { S, panels: [{ x: x0, y: TOP }, { x: x0 + S + 24, y: TOP }], stripTop, mag: { x: x0, y: stripTop, S: MAG } };
-}
-function umapView(U) {
-  let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
-  for (const [x, y] of U) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
-  const half = (Math.max(x1 - x0, y1 - y0) / 2) * 1.06, mx = (x0 + x1) / 2, my = (y0 + y1) / 2;
-  return (p, P, S) => [P.x + S / 2 + ((p[0] - mx) / half) * (S / 2 - 6), P.y + S / 2 - ((p[1] - my) / half) * (S / 2 - 6)];
-}
-function markersLayout(w) {
-  const labelW = 118, top = TOP + 58, rowH = 22;
-  /* the column heads lean up and to the right, so the last needs room past its dot */
-  /* the map as large as the width leaves beside the chips, up to MAP_MAX (his
-     round: "the clusters are too small to click"); the table sits below the
-     largest map at every width, so the height never reads the width */
-  const mapTop = top + MAX_ROWS * rowH + 34, S = Math.max(200, Math.min(MAP_MAX, w - 16 - 28 - CHIP_W * 2 - 8));
-  return { labelW, top, rowH, mapTop, map: { x: 8, y: mapTop, S }, chipX: 8 + S + 28, tableTop: mapTop + MAP_MAX + 46, x0: labelW, x1: w - 56 };
-}
-/* the chips beside the map: which side a click picks, and "All other cells" */
-const MAP_MAX = 360, CHIP_W = 125;
-function markerChips(L) {
-  const x = L.chipX, y = L.mapTop + 30;
-  return [
-    { key: "comparator", x, y, w: CHIP_W, h: 26, label: "The comparator", set: { pick: "comparator" } },
-    { key: "baseline", x: x + CHIP_W + 8, y, w: CHIP_W, h: 26, label: "The baseline", set: { pick: "baseline" } },
-    { key: "rest", x, y: y + 64, w: CHIP_W, h: 26, label: "All other cells", set: { baseline: "rest" } },
-  ];
-}
-/* the map's view: the Clusters page's UMAP in a square */
 function mapView(U, M) {
   let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
   for (const [x, y] of U) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
   const half = (Math.max(x1 - x0, y1 - y0) / 2) * 1.06, mx = (x0 + x1) / 2, my = (y0 + y1) / 2;
   return (p) => [M.x + M.S / 2 + ((p[0] - mx) / half) * (M.S / 2 - 6), M.y + M.S / 2 - ((p[1] - my) / half) * (M.S / 2 - 6)];
 }
-/* the map tiled into TILE-pixel squares, each the cluster of the nearest cell
-   ANYWHERE, so every point of the map picks the nearest cluster: UMAP draws
-   separate types as small dense blobs, and a click had to land within 16 px
-   of one (his round: "too small to click") (core's hit test takes rectangles) */
-const TILE = 8;
-/* regions are rebuilt on every pointer move; the tiles depend only on the
-   state and the width, so they are kept per state */
-const tileCache = new WeakMap();
-function mapTiles(state, L) {
-  const hit = tileCache.get(state);
-  if (hit && hit.S === L.map.S) return hit.tiles;
-  const tiles = mapTilesFresh(state, L);
-  tileCache.set(state, { S: L.map.S, tiles });
-  return tiles;
+function clustersLayout(w) {
+  const S = Math.min(340, Math.floor((w - 24) / 2)), x0 = Math.floor((w - (2 * S + 24)) / 2);
+  return { maps: [{ x: x0, y: TOP, S }, { x: x0 + S + 24, y: TOP, S }], dotTop: TOP + 340 + 96, rowH: 22, labelW: 150 };
 }
-function mapTilesFresh(state, L) {
-  const at = mapView(state.stage.U, L.map), pts = state.stage.U.map(at), cl = state.cl.clusters, M = L.map, out = [];
+const MAP_MAX = 360, CHIP_W = 125;
+function twoLayout(w) {
+  const S = Math.max(200, Math.min(MAP_MAX, w - 16 - 28 - CHIP_W * 2 - 8));
+  return { map: { x: 8, y: TOP, S }, chipX: 8 + S + 28, tableTop: TOP + MAP_MAX + 46 };
+}
+function twoChips(L) {
+  const x = L.chipX, y = L.map.y + 30;
+  return [
+    { key: "comparator", x, y, w: CHIP_W, h: 26, label: "The comparator", set: { pick: "comparator" } },
+    { key: "baseline", x: x + CHIP_W + 8, y, w: CHIP_W, h: 26, label: "The baseline", set: { pick: "baseline" } },
+    { key: "rest", x, y: y + 64, w: CHIP_W, h: 26, label: "All other cells", set: { baseline: "rest" } },
+  ];
+}
+function tlLayout(w) {
+  const S = Math.min(230, Math.floor(w * 0.4));
+  return { map: { x: 8, y: TOP, S }, tableX: 8 + S + 28, volTop: TOP + 230 + 60, stripTop: TOP + 230 + 60 + 250 + 50 };
+}
+/* the map tiled into TILE-pixel squares, each the cluster of the nearest cell
+   ANYWHERE, so every point picks the nearest cluster: UMAP draws separate types
+   as small dense blobs (his round: "too small to click"); core's hit test
+   takes rectangles. Rebuilt on every pointer move, so kept per state. */
+const TILE = 8, tileCache = new WeakMap();
+function mapTiles(state, M) {
+  const hit = tileCache.get(state);
+  if (hit && hit.key === `${M.x},${M.y},${M.S}`) return hit.tiles;
+  const at = mapView(state.embed.U, M), pts = state.embed.U.map(at), cl = state.cl.clusters, tiles = [];
   for (let ty = M.y; ty < M.y + M.S; ty += TILE) for (let tx = M.x; tx < M.x + M.S; tx += TILE) {
     const cx = tx + TILE / 2, cy = ty + TILE / 2;
     let best = -1, bd = Infinity;
     for (let i = 0; i < pts.length; i += 1) { const d = (pts[i][0] - cx) ** 2 + (pts[i][1] - cy) ** 2; if (d < bd) { bd = d; best = i; } }
-    if (best >= 0) out.push({ x: tx, y: ty, w: TILE, h: TILE, c: cl[best] });
+    if (best >= 0) tiles.push({ x: tx, y: ty, w: TILE, h: TILE, c: cl[best] });
   }
-  return out;
+  tileCache.set(state, { key: `${M.x},${M.y},${M.S}`, tiles });
+  return tiles;
 }
-function dotGenes(mk) {
-  /* three markers of each type, two portal and two central zonation genes,
-     one common gene, and the tested cluster's three most significant genes
-     among those detected in most other cells */
-  const genes = [];
-  TYPES.forEach((_, t) => { for (let j = 0; j < 3; j += 1) genes.push(t * G_MARK + j); });
-  [0, 1].forEach((j) => genes.push(G - G_ZONE + j));
-  [0, 1].forEach((j) => genes.push(G - G_ZONE / 2 + j));
-  genes.push(TYPES.length * G_MARK);
-  broadOf(mk).slice(0, 3).forEach((x) => { if (!genes.includes(x.g)) genes.push(x.g); });
-  return genes;
-}
-const isOwn = (g, type) => { const k = geneKind(g); return (k.kind === "marker" && k.type === type) || (type === 0 && k.kind === "zone"); };
-/* significant, up, and detected in more than half of the other cells */
-function broadOf(mk) {
-  return mk.fm.res.filter((x) => x.lfc > 0 && x.lpAdj < LOG05 && x.p2 > 0.5 && !isOwn(x.g, mk.type)).sort((a, b) => a.lp - b.lp);
-}
-const pFmt = (lp) => (lp < -300 ? "0" : lp > -2 ? (10 ** lp).toFixed(3) : `1e${Math.round(lp)}`);
 
 /* ------------------------------------------------------------ drawing */
-function drawClusters(ctx, colors, w, params, state) {
-  const { S, panels, stripTop } = clustersLayout(w);
-  const st = state.stage, cl = state.cl, view = umapView(st.U);
-  const heads = [`Coloured by cluster, resolution ${params.res}: ${cl.k} clusters`, "Coloured by cell type"];
-  panels.forEach((P, r) => {
-    ctx.font = `600 ${colors.fsSm} ${colors.font}`; ctx.fillStyle = colors.ink1; ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
-    ctx.fillText(heads[r], P.x, P.y - 9);
-    ctx.strokeStyle = colors.grid; ctx.lineWidth = 1; ctx.strokeRect(P.x + 0.5, P.y + 0.5, S - 1, S - 1);
-    st.cells.forEach((c, i) => {
-      const q = view(st.U[i], P, S);
-      if (r === 0) { const a = cl.ann[cl.clusters[i]]; ctx.fillStyle = colors.clusters[TYPE_SLOT[a.type]]; ctx.globalAlpha = a.alpha; }
-      else { ctx.fillStyle = colors.clusters[TYPE_SLOT[c.type]]; ctx.globalAlpha = 0.85; }
-      ctx.beginPath(); ctx.arc(q[0], q[1], 2.4, 0, Math.PI * 2); ctx.fill();
-    });
-    ctx.globalAlpha = 1;
-    ctx.textAlign = "center"; ctx.textBaseline = "middle";
-    if (r === 0) {
-      ctx.font = `600 ${colors.fsSm} ${colors.mono}`;
-      cl.ann.forEach((a) => {
-        const cx = a.idx.reduce((s, i) => s + st.U[i][0], 0) / a.n, cy = a.idx.reduce((s, i) => s + st.U[i][1], 0) / a.n;
-        const q = view([cx, cy], P, S);
-        ctx.fillStyle = colors.surface; ctx.globalAlpha = 0.8; ctx.fillRect(q[0] - 9, q[1] - 8, 18, 16); ctx.globalAlpha = 1;
-        ctx.fillStyle = colors.ink1; ctx.fillText(String(a.c), q[0], q[1] + 1);
-      });
-    } else {
-      ctx.font = `${colors.fsXs} ${colors.font}`;
-      TYPES.forEach((t, ti) => {
-        const idx = st.cells.map((c, i) => (c.type === ti ? i : -1)).filter((i) => i >= 0);
-        if (!idx.length) return;
-        const cx = idx.reduce((s, i) => s + st.U[i][0], 0) / idx.length, cy = idx.reduce((s, i) => s + st.U[i][1], 0) / idx.length;
-        const q = view([cx, cy], P, S);
-        const tw = ctx.measureText(t.name).width;
-        ctx.fillStyle = colors.surface; ctx.globalAlpha = 0.8; ctx.fillRect(q[0] - tw / 2 - 3, q[1] - 8, tw + 6, 16); ctx.globalAlpha = 1;
-        ctx.fillStyle = colors.ink1; ctx.fillText(t.name, q[0], q[1] + 1);
-      });
-    }
-    ctx.textBaseline = "alphabetic";
-  });
-  /* the hepatocytes magnified: the same map, the square around their cells
-     enlarged, so a split among them can be seen at all — UMAP puts six
-     separated types far apart and a type's cells in a small region, which
-     is the method, not a setting (measured: the hepatocytes span 16–20% of
-     the map at umap-learn's and at Seurat's defaults) */
-  const { mag } = clustersLayout(w);
-  const hepIdx = st.cells.map((c, i) => (c.type === 0 ? i : -1)).filter((i) => i >= 0);
-  if (hepIdx.length) {
-    let hx0 = Infinity, hx1 = -Infinity, hy0 = Infinity, hy1 = -Infinity;
-    hepIdx.forEach((i) => { const [x, y] = st.U[i]; hx0 = Math.min(hx0, x); hx1 = Math.max(hx1, x); hy0 = Math.min(hy0, y); hy1 = Math.max(hy1, y); });
-    const half = (Math.max(hx1 - hx0, hy1 - hy0) / 2) * 1.1, mx = (hx0 + hx1) / 2, my = (hy0 + hy1) / 2;
-    ctx.font = `600 ${colors.fsSm} ${colors.font}`; ctx.fillStyle = colors.ink1; ctx.textAlign = "left";
-    ctx.fillText("The hepatocytes, magnified", mag.x, mag.y - 12);
-    ctx.strokeStyle = colors.grid; ctx.lineWidth = 1; ctx.strokeRect(mag.x + 0.5, mag.y + 0.5, mag.S - 1, mag.S - 1);
-    hepIdx.forEach((i) => {
-      const a = cl.ann[cl.clusters[i]];
-      ctx.fillStyle = colors.clusters[TYPE_SLOT[a.type]]; ctx.globalAlpha = a.alpha;
-      const px = mag.x + mag.S / 2 + ((st.U[i][0] - mx) / half) * (mag.S / 2 - 4), py = mag.y + mag.S / 2 - ((st.U[i][1] - my) / half) * (mag.S / 2 - 4);
-      ctx.beginPath(); ctx.arc(px, py, 2.2, 0, Math.PI * 2); ctx.fill();
-    });
-    ctx.globalAlpha = 1;
-  }
-  /* the strip: where along the lobule each hepatocyte cluster's cells lie */
-  const hep = cl.ann.filter((a) => a.type === 0).sort((a, b) => (a.zMean ?? 0) - (b.zMean ?? 0));
-  const x0 = mag.x + mag.S + 90, x1 = panels[1].x + S - 10, rowH = Math.min(26, Math.floor((HEIGHTS.clusters - stripTop - 44) / Math.max(1, hep.length)));
-  ctx.font = `600 ${colors.fsSm} ${colors.font}`; ctx.fillStyle = colors.ink1; ctx.textAlign = "left";
-  ctx.fillText("Their place along the lobule, by cluster", mag.x + mag.S + 24, stripTop - 12);
-  hep.forEach((a, j) => {
-    const y = stripTop + j * rowH + rowH / 2;
-    ctx.font = `${colors.fsXs} ${colors.mono}`; ctx.fillStyle = colors.ink2; ctx.textAlign = "right";
-    ctx.fillText(`cluster ${a.c}`, x0 - 10, y + 4);
-    ctx.fillStyle = colors.clusters[TYPE_SLOT[0]]; ctx.globalAlpha = a.alpha;
-    a.zs.forEach((z, k) => { const jit = (((k * 7919) % 97) / 97 - 0.5) * (rowH - 8); ctx.beginPath(); ctx.arc(x0 + z * (x1 - x0), y + jit, 1.8, 0, Math.PI * 2); ctx.fill(); });
-    ctx.globalAlpha = 1;
-    ctx.strokeStyle = colors.ink1; ctx.lineWidth = 2;
-    const mx = x0 + a.zMean * (x1 - x0); ctx.beginPath(); ctx.moveTo(mx, y - rowH / 2 + 2); ctx.lineTo(mx, y + rowH / 2 - 2); ctx.stroke();
-  });
-  const yAx = stripTop + hep.length * rowH + 6;
-  ctx.strokeStyle = colors.grid; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(x0, yAx + 0.5); ctx.lineTo(x1, yAx + 0.5); ctx.stroke();
-  ctx.font = `${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.ink3;
-  ctx.textAlign = "left"; ctx.fillText("portal", x0, yAx + 16);
-  ctx.textAlign = "right"; ctx.fillText("central", x1, yAx + 16);
-  ctx.textAlign = "left"; ctx.fillText(params.zonation === "on" ? "each dot a hepatocyte; the bar, the cluster's mean" : "zonation off: the hepatocytes do not differ along the lobule", x0, yAx + 34);
-  ctx.textAlign = "left";
+function heading(ctx, colors, text, x, y) {
+  ctx.font = `600 ${colors.fsSm} ${colors.font}`; ctx.fillStyle = colors.ink1; ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+  ctx.fillText(text, x, y);
 }
+function centroid(state, a) {
+  const U = state.embed.U;
+  return [a.idx.reduce((s, i) => s + U[i][0], 0) / a.n, a.idx.reduce((s, i) => s + U[i][1], 0) / a.n];
+}
+/** The map: `style(a, c)` returns { col, alpha } for a cell of cluster a;
+    numbered badges at each cluster's centre, filled for `filled`, outlined
+    for `outlined`; or the type names, for the map coloured by type. */
+function drawMap(ctx, colors, state, M, style, { filled = -1, outlined = -1, typeLabels = false } = {}) {
+  const at = mapView(state.embed.U, M), cl = state.cl;
+  ctx.strokeStyle = colors.grid; ctx.lineWidth = 1; ctx.strokeRect(M.x + 0.5, M.y + 0.5, M.S - 1, M.S - 1);
+  state.stage.cells.forEach((c, i) => {
+    const s = style(cl.ann[cl.clusters[i]], c);
+    const q = at(state.embed.U[i]);
+    ctx.fillStyle = s.col; ctx.globalAlpha = s.alpha;
+    ctx.beginPath(); ctx.arc(q[0], q[1], 2.3, 0, Math.PI * 2); ctx.fill();
+  });
+  ctx.globalAlpha = 1; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  if (typeLabels) {
+    ctx.font = `${colors.fsXs} ${colors.font}`;
+    TYPES.forEach((t, ti) => {
+      const idx = state.stage.cells.map((c, i) => (c.type === ti ? i : -1)).filter((i) => i >= 0);
+      if (!idx.length) return;
+      const q = at([idx.reduce((s, i) => s + state.embed.U[i][0], 0) / idx.length, idx.reduce((s, i) => s + state.embed.U[i][1], 0) / idx.length]);
+      const tw = ctx.measureText(t.name).width;
+      ctx.fillStyle = colors.surface; ctx.globalAlpha = 0.85; ctx.fillRect(q[0] - tw / 2 - 3, q[1] - 8, tw + 6, 16); ctx.globalAlpha = 1;
+      ctx.fillStyle = colors.ink1; ctx.fillText(t.name, q[0], q[1] + 1);
+    });
+  } else {
+    ctx.font = `600 ${colors.fsXs} ${colors.mono}`;
+    cl.ann.forEach((a) => {
+      const q = at(centroid(state, a)), isF = a.c === filled, isO = a.c === outlined;
+      ctx.fillStyle = isF ? colors.ink1 : colors.surface; ctx.globalAlpha = isF || isO ? 1 : 0.85; ctx.fillRect(q[0] - 9, q[1] - 8, 18, 16); ctx.globalAlpha = 1;
+      if (isO) { ctx.strokeStyle = colors.ink1; ctx.lineWidth = 1.5; ctx.strokeRect(q[0] - 9, q[1] - 8, 18, 16); }
+      ctx.fillStyle = isF ? colors.surface : colors.ink1; ctx.fillText(String(a.c), q[0], q[1] + 1);
+    });
+  }
+  ctx.textBaseline = "alphabetic"; ctx.textAlign = "left";
+}
+const hueOf = (colors, type) => colors.clusters[TYPE_SLOT[type]];
 
-function drawMarkers(ctx, colors, w, params, state) {
-  const cl = state.cl, st = state.stage, L = markersLayout(w), mk = state.mk;
-  const tested = mk.tested;
-  const genes = dotGenes(mk);
-  const cw = Math.min(28, (L.x1 - L.x0) / genes.length);
-  ctx.font = `600 ${colors.fsSm} ${colors.font}`; ctx.fillStyle = colors.ink1; ctx.textAlign = "left";
-  ctx.fillText("Each cluster and gene: the share of the cluster's cells detecting it, and its mean", 8, TOP - 9);
-  /* column heads, rotated */
+function drawClusters(ctx, colors, w, params, state) {
+  const L = clustersLayout(w), cl = state.cl;
+  heading(ctx, colors, `Coloured by cluster, resolution ${params.res}: ${cl.k} clusters`, L.maps[0].x, TOP - 9);
+  heading(ctx, colors, "Coloured by cell type", L.maps[1].x, TOP - 9);
+  drawMap(ctx, colors, state, L.maps[0], (a) => ({ col: hueOf(colors, a.type), alpha: a.alpha }));
+  drawMap(ctx, colors, state, L.maps[1], (a, c) => ({ col: hueOf(colors, c.type), alpha: 0.85 }), { typeLabels: true });
+  /* the dot plot of each type's markers: how each cluster is named */
+  const genes = []; TYPES.forEach((_, t) => { for (let j = 0; j < 3; j += 1) genes.push(t * G_MARK + j); });
+  genes.push(TYPES.length * G_MARK);
+  const x0 = L.labelW, x1 = w - 56, cw = Math.min(30, (x1 - x0) / genes.length), top = L.dotTop;
+  heading(ctx, colors, "Each type's markers in each cluster: the name each cluster is given", 8, top - 62);
   ctx.font = `${colors.fsXs} ${colors.mono}`;
   genes.forEach((g, j) => {
-    ctx.save(); ctx.translate(L.x0 + j * cw + cw / 2 - 3, L.top - 12); ctx.rotate(-Math.PI / 4);
-    ctx.fillStyle = geneKind(g).kind === "marker" || geneKind(g).kind === "zone" ? colors.ink1 : colors.ink3; ctx.fillText(geneName(g), 0, 0); ctx.restore();
+    ctx.save(); ctx.translate(x0 + j * cw + cw / 2 - 3, top - 12); ctx.rotate(-Math.PI / 4);
+    ctx.fillStyle = geneKind(g).kind === "marker" ? colors.ink1 : colors.ink3; ctx.fillText(geneName(g), 0, 0); ctx.restore();
   });
-  const rows = cl.ann.slice(0, MAX_ROWS);
-  const stats = rows.map((a) => genes.map((g) => { let det = 0, s = 0; a.idx.forEach((i) => { const v = st.Y[i][g]; if (v > 0) det += 1; s += v; }); return { pct: det / a.n, mean: s / a.n }; }));
+  const Y = state.stage.Y, rows = cl.ann.slice(0, MAX_ROWS);
+  const stats = rows.map((a) => genes.map((g) => { let det = 0, s = 0; a.idx.forEach((i) => { const v = Y[i][g]; if (v > 0) det += 1; s += v; }); return { pct: det / a.n, mean: s / a.n }; }));
   const maxMean = genes.map((_, j) => Math.max(...stats.map((r) => r[j].mean)) || 1);
   rows.forEach((a, ri) => {
-    const y = L.top + ri * L.rowH + L.rowH / 2;
-    if (a.c === tested) { ctx.fillStyle = colors.surface2; ctx.fillRect(4, y - L.rowH / 2, L.x1 - 4, L.rowH); }
-    if (!mk.vsRest && a.c === mk.otherC) { ctx.strokeStyle = colors.ink3; ctx.lineWidth = 1; ctx.setLineDash([3, 3]); ctx.strokeRect(4.5, y - L.rowH / 2 + 0.5, L.x1 - 5, L.rowH - 1); ctx.setLineDash([]); }
-    ctx.font = `${a.c === tested ? "600 " : ""}${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.ink1; ctx.textAlign = "right";
-    ctx.fillText(`${a.c} · ${TYPES[a.type].name}`, L.x0 - 8, y + 4);
+    const y = top + ri * L.rowH + L.rowH / 2;
+    ctx.fillStyle = hueOf(colors, a.type); ctx.globalAlpha = a.alpha; ctx.fillRect(8, y - 5, 10, 10); ctx.globalAlpha = 1;
+    ctx.font = `${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.ink1; ctx.textAlign = "left";
+    ctx.fillText(`${a.c} · ${TYPES[a.type].name}`, 24, y + 4);
     genes.forEach((g, j) => {
       const s = stats[ri][j];
       ctx.fillStyle = colors.magnitude; ctx.globalAlpha = 0.15 + 0.85 * (s.mean / maxMean[j]);
-      ctx.beginPath(); ctx.arc(L.x0 + j * cw + cw / 2, y, 1.5 + 8 * Math.sqrt(s.pct), 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(x0 + j * cw + cw / 2, y, 1.5 + 8 * Math.sqrt(s.pct), 0, Math.PI * 2); ctx.fill();
     });
     ctx.globalAlpha = 1;
   });
-  /* the map: the tested cluster in its hue, the comparison in its hue with
-     an outlined number, every other cell faint (in its hue when the
-     comparison is all other cells) */
-  const M = L.map, at = mapView(st.U, M);
-  ctx.font = `600 ${colors.fsSm} ${colors.font}`; ctx.fillStyle = colors.ink1; ctx.textAlign = "left";
-  ctx.fillText("Click a cluster on the map: a click picks the nearest", M.x, M.y - 10);
-  ctx.strokeStyle = colors.grid; ctx.lineWidth = 1; ctx.strokeRect(M.x + 0.5, M.y + 0.5, M.S - 1, M.S - 1);
-  st.cells.forEach((c, i) => {
-    const k = cl.clusters[i], a = cl.ann[k], q = at(st.U[i]);
-    const on = k === tested || (!mk.vsRest && k === mk.otherC);
-    ctx.fillStyle = on || mk.vsRest ? colors.clusters[TYPE_SLOT[a.type]] : colors.ink3;
-    ctx.globalAlpha = on ? 0.95 : mk.vsRest ? 0.3 : 0.18;
-    ctx.beginPath(); ctx.arc(q[0], q[1], 1.9, 0, Math.PI * 2); ctx.fill();
-  });
-  ctx.globalAlpha = 1;
-  ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.font = `600 ${colors.fsXs} ${colors.mono}`;
-  cl.ann.forEach((a) => {
-    const q = at([a.idx.reduce((s2, i) => s2 + st.U[i][0], 0) / a.n, a.idx.reduce((s2, i) => s2 + st.U[i][1], 0) / a.n]);
-    const isT = a.c === tested, isO = !mk.vsRest && a.c === mk.otherC;
-    ctx.fillStyle = isT ? colors.ink1 : colors.surface; ctx.globalAlpha = isT || isO ? 1 : 0.8; ctx.fillRect(q[0] - 8, q[1] - 7, 16, 14);
-    ctx.globalAlpha = 1;
-    if (isO) { ctx.strokeStyle = colors.ink1; ctx.lineWidth = 1.5; ctx.strokeRect(q[0] - 8, q[1] - 7, 16, 14); }
-    ctx.fillStyle = isT ? colors.surface : colors.ink1; ctx.fillText(String(a.c), q[0], q[1] + 1);
-  });
-  ctx.textBaseline = "alphabetic";
-  /* the chips */
-  const chips = markerChips(L);
+}
+
+function drawTwo(ctx, colors, w, params, state) {
+  const L = twoLayout(w), cl = state.cl, mk = state.mk, M = L.map;
+  heading(ctx, colors, "Click a cluster on the map: a click picks the nearest", M.x, M.y - 9);
+  const on = (a) => a.c === mk.tested || (!mk.vsRest && a.c === mk.otherC);
+  drawMap(ctx, colors, state, M, (a) => ({ col: on(a) || mk.vsRest ? hueOf(colors, a.type) : colors.ink3, alpha: on(a) ? 0.95 : mk.vsRest ? 0.3 : 0.18 }), { filled: mk.tested, outlined: mk.vsRest ? -1 : mk.otherC });
+  const chips = twoChips(L);
   ctx.font = `${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.ink2; ctx.textAlign = "left";
   ctx.fillText("A click on the map sets", L.chipX, chips[0].y - 8);
   ctx.fillText("Or set the baseline to", L.chipX, chips[2].y - 8);
@@ -419,52 +342,69 @@ function drawMarkers(ctx, colors, w, params, state) {
     ctx.strokeStyle = colors.grid; ctx.lineWidth = 1; ctx.strokeRect(ch.x + 0.5, ch.y + 0.5, ch.w - 1, ch.h - 1);
     ctx.fillStyle = active ? colors.surface : colors.ink2; ctx.textAlign = "center"; ctx.fillText(ch.label, ch.x + ch.w / 2, ch.y + ch.h / 2 + 4);
   });
-  ctx.textAlign = "left"; ctx.fillStyle = colors.ink2; ctx.font = `${colors.fsXs} ${colors.font}`;
-  ctx.fillText(`Comparator: cluster ${tested} · ${TYPES[mk.type].name} (filled number)`, L.chipX, chips[2].y + 50);
-  ctx.fillText(mk.vsRest ? "Baseline: all other cells" : `Baseline: cluster ${mk.otherC} · ${TYPES[cl.ann[mk.otherC].type].name} (outlined number)`, L.chipX, chips[2].y + 68);
-  /* the table: FindMarkers for the comparison on screen; conserved markers
-     list only the genes up in both patients, then the pooled ones that are not */
-  const fm = mk.fm, own = (g) => isOwn(g, mk.type), cons = params.markers === "conserved";
-  const up = fm.res.filter((x) => x.lfc > 0 && (!cons || mk.conserved.has(x.g))).sort((a, b) => a.lp - b.lp || b.lfc - a.lfc);
-  const top = up.slice(0, 8);
-  const extra = cons
-    ? fm.res.filter((x) => x.lfc > 0 && x.lpAdj < LOG05 && !mk.conserved.has(x.g)).sort((a, b) => a.lp - b.lp).slice(0, 3)
-    : broadOf(mk).filter((x) => !top.includes(x)).slice(0, 3);
-  /* the table's columns in proportion to the width, the note last */
+  ctx.textAlign = "left"; ctx.fillStyle = colors.ink2;
+  ctx.fillText(`Comparator: ${clusterLabel(cl.ann[mk.tested]).toLowerCase()} (filled)`, L.chipX, chips[2].y + 50);
+  ctx.fillText(mk.vsRest ? "Baseline: all other cells" : `Baseline: ${clusterLabel(cl.ann[mk.otherC]).toLowerCase()} (outlined)`, L.chipX, chips[2].y + 68);
+  /* FindMarkers' table: first 8 by p, then significant genes detected in most of the baseline */
+  const fm = mk.fm, own = (g) => { const k = geneKind(g); return k.kind === "marker" && k.type === mk.type; };
+  const top = fm.res.filter((x) => x.lfc > 0).sort((a, b) => a.lp - b.lp || b.lfc - a.lfc).slice(0, 8);
+  const extra = broadOf(mk).filter((x) => !top.includes(x)).slice(0, 3);
   const cx = (f) => Math.round(8 + f * (w - 16));
-  const cols = [["gene", cx(0), "left"], ["p_val", cx(0.2), "right"], ["avg_log2FC", cx(0.34), "right"], ["pct.1", cx(0.43), "right"], ["pct.2", cx(0.52), "right"], ["p_val_adj", cx(0.64), "right"], ["", cx(0.67), "left"]];
+  const cols = [["gene", cx(0), "left"], ["p_val", cx(0.2), "right"], ["avg_log2FC", cx(0.34), "right"], ["pct.1", cx(0.43), "right"], ["pct.2", cx(0.52), "right"], ["p_val_adj", cx(0.64), "right"]];
   let y = L.tableTop;
-  ctx.font = `600 ${colors.fsSm} ${colors.font}`; ctx.fillStyle = colors.ink1; ctx.textAlign = "left";
-  ctx.fillText(`${cons ? "Conserved in both patients: " : "FindMarkers: "}comparator cluster ${tested}, baseline ${mk.vsRest ? `the other ${fm.n2} cells` : `cluster ${mk.otherC} (${fm.n2} cells)`}; first 8 by p`, 8, y - 10);
+  heading(ctx, colors, `FindMarkers: comparator cluster ${mk.tested}, baseline ${mk.vsRest ? `the other ${fm.n2} cells` : `cluster ${mk.otherC} (${fm.n2} cells)`}; first 8 by p`, 8, y - 10);
   ctx.font = `${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.ink3;
   cols.forEach(([h, x, al]) => { ctx.textAlign = al; ctx.fillText(h, x, y + 8); });
   y += 24;
   const row = (x, grey) => {
     ctx.font = `${colors.fsXs} ${colors.mono}`; ctx.fillStyle = grey ? colors.ink3 : colors.ink1;
-    const v = [geneName(x.g), pFmt(x.lp), x.lfc.toFixed(2), x.p1.toFixed(2), x.p2.toFixed(2), pFmt(x.lpAdj), ""];
-    cols.forEach(([, cx, al], k) => { ctx.textAlign = al; ctx.fillText(v[k], cx, y); });
+    const v = [geneName(x.g), pFmt(x.lp), x.lfc.toFixed(2), x.p1.toFixed(2), x.p2.toFixed(2), pFmt(x.lpAdj)];
+    cols.forEach(([, px, al], k) => { ctx.textAlign = al; ctx.fillText(v[k], px, y); });
     ctx.textAlign = "left"; ctx.font = `${colors.fsXs} ${colors.font}`;
-    ctx.fillText(cons && !mk.conserved.has(x.g) ? `not in both patients: ${pFmt(mk.per[0].get(x.g)?.lpAdj ?? 0)} / ${pFmt(mk.per[1].get(x.g)?.lpAdj ?? 0)}` : own(x.g) ? "" : "detected in most of the baseline", cx(0.67), y);
+    ctx.fillText(own(x.g) ? "" : "detected in most of the baseline", cx(0.67), y);
     y += 18;
   };
   top.forEach((x) => row(x, !own(x.g)));
   if (extra.length) {
     ctx.font = `${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.ink3; ctx.textAlign = "left";
-    ctx.fillText(cons ? "significant pooled, and not in both patients:" : "further down the same list, also p_val_adj < 0.05:", 8, y + 2); y += 20;
+    ctx.fillText("further down the same list, also p_val_adj < 0.05:", 8, y + 2); y += 20;
     extra.forEach((x) => row(x, true));
   }
   ctx.textAlign = "left";
 }
+/* significant, up, detected in more than half of the baseline, and not a marker of the comparator's type */
+function broadOf(mk) {
+  return mk.fm.res.filter((x) => x.lfc > 0 && x.lpAdj < LOG05 && x.p2 > 0.5 && !(geneKind(x.g).kind === "marker" && geneKind(x.g).type === mk.type)).sort((a, b) => a.lp - b.lp);
+}
 
-function drawConditions(ctx, colors, w, params, state) {
-  const C = state.cond;
-  const PW = Math.floor((w - 64) / 2), xs = [24, 24 + PW + 40], top = TOP + 10, bh = 220;
-  const sets = [[C.volC, `Over cells: ${C.n} cells (Wilcoxon)`], [C.volD, "Over samples: 4 summed (DESeq2)"]];
-  sets.forEach(([pts, title], k) => {
+function drawTumourLiver(ctx, colors, w, params, state) {
+  const L = tlLayout(w), C = state.cond, M = L.map;
+  heading(ctx, colors, "Click a cluster: its cells, tumour samples against liver samples", M.x, M.y - 9);
+  drawMap(ctx, colors, state, M, (a) => ({ col: a.c === C.within ? hueOf(colors, a.type) : colors.ink3, alpha: a.c === C.within ? 0.95 : a.testable ? 0.3 : 0.1 }), { filled: C.within });
+  /* the cluster's cells in each sample */
+  heading(ctx, colors, `${clusterLabel(C.a)}: its cells in each sample`, L.tableX, M.y + 14);
+  ORDER.forEach((k, j) => {
+    const y = M.y + 42 + j * 22;
+    ctx.font = `${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.ink2; ctx.textAlign = "left"; ctx.fillText(ORDER_NAMES[j].join(" · "), L.tableX, y);
+    ctx.font = `${colors.fsXs} ${colors.mono}`; ctx.fillStyle = colors.ink1; ctx.textAlign = "right"; ctx.fillText(String(C.a.perSample[k]), L.tableX + 190, y);
+  });
+  ctx.textAlign = "left"; ctx.font = `${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.ink3;
+  [
+    "Over cells: each cell a replicate,",
+    "as the lesson's FindMarkers treats them",
+    "Over samples (pseudobulk): each sample's",
+    "cells summed, then DESeq2 as for bulk",
+    "RNA-seq; the four samples are the replicates",
+  ].forEach((t, j) => ctx.fillText(t, L.tableX, M.y + 140 + j * 16 + (j >= 2 ? 6 : 0)));
+  if (!C.testable) {
+    ctx.fillStyle = colors.ink1; ctx.fillText(`Fewer than ${MIN_PER_SAMPLE} of this cluster's cells in a sample: it cannot be compared by tissue.`, 8, L.volTop);
+    return;
+  }
+  const PW = Math.floor((w - 64) / 2), xs = [24, 24 + PW + 40], top = L.volTop, bh = 210;
+  [[C.volC, `Over cells: ${C.n} cells (Wilcoxon)`], [C.volD, "Over samples: 4 summed (DESeq2)"]].forEach(([pts, title], k) => {
     const X = xs[k], yMax = Math.max(5, ...pts.map((q) => Math.min(60, q.nl))) * 1.05, xr = 3.5;
     const sx = (v) => X + PW / 2 + (Math.max(-xr, Math.min(xr, v)) / xr) * (PW / 2), sy = (v) => top + bh - (Math.min(60, v) / yMax) * bh;
-    ctx.font = `600 ${colors.fsSm} ${colors.font}`; ctx.fillStyle = colors.ink1; ctx.textAlign = "left";
-    ctx.fillText(title, X, TOP - 9);
+    heading(ctx, colors, title, X, top - 12);
     ctx.strokeStyle = colors.axis; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(X, top + bh + 0.5); ctx.lineTo(X + PW, top + bh + 0.5); ctx.moveTo(sx(0) + 0.5, top); ctx.lineTo(sx(0) + 0.5, top + bh); ctx.stroke();
     /* uncalled first, then the calls, then the rings, so nothing hides a call */
     pts.filter((q) => !q.call).forEach((q) => { ctx.fillStyle = colors.ink3; ctx.globalAlpha = 0.35; ctx.beginPath(); ctx.arc(sx(q.lfc), sy(q.nl), 2.6, 0, Math.PI * 2); ctx.fill(); });
@@ -476,49 +416,43 @@ function drawConditions(ctx, colors, w, params, state) {
     ctx.textAlign = "center"; ctx.fillText("log2 fold change, tumour against liver", X + PW / 2, top + bh + 15);
     ctx.textAlign = "left"; ctx.fillText("−log10 p", X + 4, top + 10);
   });
-  /* one unchanged gene, cell by cell: the null gene with the smallest p over cells */
-  const sTop = top + bh + 56, sH = HEIGHTS.conditions - sTop - 30, colW = (w - 140) / 4;
-  ctx.font = `600 ${colors.fsSm} ${colors.font}`; ctx.fillStyle = colors.ink1; ctx.textAlign = "left";
-  ctx.fillText(`${geneName(C.ex.g)}, unchanged, the smallest p over cells: every cell's value, by sample`, 24, sTop - 12);
-  const all = C.exVals.flat(), vMax = Math.max(...all, 0.1);
-  const names = ["Patient 1 · liver", "Patient 2 · liver", "Patient 1 · tumour", "Patient 2 · tumour"];
+  /* one unchanged gene, cell by cell: why cells are not replicates */
+  const sTop = L.stripTop, sH = HEIGHTS["tumour-liver"] - sTop - 30, colW = (w - 140) / 4;
+  heading(ctx, colors, `${geneName(C.ex.g)}, unchanged, the smallest p over cells: each cell's value, by sample`, 24, sTop - 12);
+  const vMax = Math.max(...C.exVals.flat(), 0.1);
   C.exVals.forEach((vals, k) => {
     const cx = 110 + k * colW + colW / 2;
-    /* neutral ink: each column is named by its sample under it, and blue is
-       the volcanos' "called and truly changed" on the same page */
     ctx.fillStyle = colors.ink2; ctx.globalAlpha = 0.5;
     vals.forEach((v, i) => { const jit = (((i * 7919) % 101) / 101 - 0.5) * colW * 0.6; ctx.beginPath(); ctx.arc(cx + jit, sTop + sH - (v / vMax) * sH, 1.8, 0, Math.PI * 2); ctx.fill(); });
     ctx.globalAlpha = 1;
-    const m = vals.reduce((a, b) => a + b, 0) / vals.length, my = sTop + sH - (m / vMax) * sH;
+    const m = vals.reduce((a, b) => a + b, 0) / Math.max(1, vals.length), my = sTop + sH - (m / vMax) * sH;
     ctx.strokeStyle = colors.ink1; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(cx - colW * 0.35, my); ctx.lineTo(cx + colW * 0.35, my); ctx.stroke();
     ctx.font = `${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.ink2; ctx.textAlign = "center";
-    ctx.fillText(names[k], cx, sTop + sH + 16);
+    ctx.fillText(ORDER_NAMES[k].join(" · "), cx, sTop + sH + 16);
   });
   ctx.save(); ctx.translate(40, sTop + sH / 2); ctx.rotate(-Math.PI / 2); ctx.font = `${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.ink3; ctx.textAlign = "center"; ctx.fillText("log(1 + per 10,000)", 0, 0); ctx.restore();
   ctx.textAlign = "left";
 }
 
 function drawComposition(ctx, colors, w, params, state) {
-  const P = state.comp, order = ["p1-liver", "p2-liver", "p1-tumour", "p2-tumour"], names = [["Patient 1", "liver"], ["Patient 2", "liver"], ["Patient 1", "tumour"], ["Patient 2", "tumour"]];
+  const P = state.comp;
   const barW = Math.min(64, Math.floor((w * 0.42 - 20) / 4) - 14), bh = HEIGHTS.composition - TOP - 50;
-  ctx.font = `600 ${colors.fsSm} ${colors.font}`; ctx.fillStyle = colors.ink1; ctx.textAlign = "left";
-  ctx.fillText(`Each sample's ${COMP_CELLS} cells, by type`, 8, TOP - 9);
-  order.forEach((k, j) => {
+  heading(ctx, colors, `Each sample's ${COMP_CELLS} cells, by type`, 8, TOP - 9);
+  ORDER.forEach((k, j) => {
     const x = 16 + j * (barW + 14); let y = TOP + bh;
-    TYPES.forEach((_, t) => { const h = (P.n[k][t] / COMP_CELLS) * bh; ctx.fillStyle = colors.clusters[TYPE_SLOT[t]]; ctx.fillRect(x, y - h, barW, h); y -= h; });
+    TYPES.forEach((_, t) => { const h = (P.n[k][t] / COMP_CELLS) * bh; ctx.fillStyle = hueOf(colors, t); ctx.fillRect(x, y - h, barW, h); y -= h; });
     ctx.font = `${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.ink2; ctx.textAlign = "center";
-    ctx.fillText(names[j][0], x + barW / 2, TOP + bh + 14); ctx.fillText(names[j][1], x + barW / 2, TOP + bh + 28);
+    ctx.fillText(ORDER_NAMES[j][0], x + barW / 2, TOP + bh + 14); ctx.fillText(ORDER_NAMES[j][1], x + barW / 2, TOP + bh + 28);
   });
   const X = Math.round(w * 0.45), cx = (f) => Math.round(X + f * (w - X - 8));
   const cols = [["type", cx(0), "left"], ["liver", cx(0.45), "right"], ["tumour", cx(0.6), "right"], ["p, cells", cx(0.8), "right"], ["p, samples", cx(1), "right"]];
-  ctx.font = `600 ${colors.fsSm} ${colors.font}`; ctx.fillStyle = colors.ink1; ctx.textAlign = "left";
-  ctx.fillText("Each type's share, liver against tumour; bold, p < 0.05", X, TOP - 9);
+  heading(ctx, colors, "Each type's share, liver against tumour; bold, p < 0.05", X, TOP - 9);
   ctx.font = `${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.ink3;
   cols.forEach(([h, x, al]) => { ctx.textAlign = al; ctx.fillText(h, x, TOP + 12); });
   const f = (q) => (q < 1e-4 ? q.toExponential(0) : q.toFixed(3));
   P.types.forEach((r, j) => {
     const y = TOP + 40 + j * 26;
-    ctx.fillStyle = colors.clusters[TYPE_SLOT[r.ti]]; ctx.fillRect(cx(0), y - 9, 10, 10);
+    ctx.fillStyle = hueOf(colors, r.ti); ctx.fillRect(cx(0), y - 9, 10, 10);
     ctx.font = `${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.ink1; ctx.textAlign = "left"; ctx.fillText(TYPES[r.ti].name, cx(0) + 16, y);
     ctx.font = `${colors.fsXs} ${colors.mono}`; ctx.textAlign = "right";
     ctx.fillText(`${Math.round(100 * r.liver)}%`, cx(0.45), y); ctx.fillText(`${Math.round(100 * r.tumour)}%`, cx(0.6), y);
@@ -533,154 +467,147 @@ defineWidget({
   slug: "cell-markers",
   title: "Single-Cell RNA-seq: Clusters and Markers",
   subtitle:
-    "Clusters are communities in a graph of shared nearest neighbours, and the resolution sets how many "
-    + "are found; a cluster may follow a real gradient or divide cells that do not differ. A marker is "
-    + "a gene detected in a cluster and rarely elsewhere, which a p-value over hundreds of cells does not "
-    + "establish. Within one cell type across conditions, the samples, not the cells, are the replicates.",
+    "Cells are clustered in a graph of shared nearest neighbours, and each cluster is named by the known "
+    + "markers it detects; the resolution sets how many clusters are found. Genes that differ between two "
+    + "clusters are tested over cells, and a gene can pass while detected in most cells of both. Genes that "
+    + "differ between conditions within one cluster are tested over samples, by summing each sample's cells, "
+    + "since cells from one sample are not independent replicates; so is a cell type's share of each sample.",
   layout: "side",
   status: "draft",
   height: ({ page }) => HEIGHTS[page] ?? HEIGHTS.clusters,
 
+  /* ORDER MATTERS: an option list that follows other parameters reads them
+     resolved, so the seed and the resolution come before the lists that read
+     them (core params.js) — the seed sat last until 2026-09-25, and every
+     list was built for the default seed */
   params: {
     page: { type: "segmented", label: "Page", options: PAGES, default: "clusters", display: true },
 
-    dataSec: { type: "section", label: "The cells", when: CELLS_PAGES },
-    zonation: {
-      type: "segmented", label: "Hepatocyte zonation",
-      detail: "whether hepatocytes differ along the liver lobule, from the portal to the central vein, in 30 genes",
-      options: [{ value: "on", label: "On" }, { value: "off", label: "Off" }], default: "on", when: CELLS_PAGES,
-    },
+    dataSec: { type: "section", label: "The data" },
+    seed: { type: "int", label: "Seed", min: 1, max: 200, default: 1 },
     res: {
       type: "choice", label: "Resolution",
       detail: "FindClusters' resolution: the weight on the expected number of links within a community",
-      options: RESOLUTIONS.map((v) => ({ value: v, label: v })), default: "0.3", when: CELLS_PAGES,
+      options: RESOLUTIONS.map((v) => ({ value: v, label: v })), default: "0.3", when: CELL_PAGES,
     },
-    markSec: { type: "section", label: "The comparison", when: ON("markers") },
-    /* THE LISTS ARE THE CLUSTERS THAT EXIST (his round: "why are there 11
-       clusters and 5 to compare?" — the controls were fixed at 0–11 while the
-       resolution found 6, and a missing number was quietly swapped for the
-       last). They are read from the same cached clustering the figure draws,
-       so the list and the figure cannot disagree; a value the new list no
-       longer holds returns to the default (core, `optionsFrom`). */
+
+    twoSec: { type: "section", label: "The comparison", when: ON("two-clusters") },
     comparator: {
       type: "select", label: "Comparator",
       detail: "the cluster whose markers are found: FindMarkers' ident.1, whose share detecting a gene is pct.1; numbered by size, 0 the largest",
-      options: (v) => clusterOptions(v),
-      optionsFrom: ["seed", "zonation", "res"],
-      default: "0", when: ON("markers"),
+      options: (v) => clusterOptions(v), optionsFrom: ["seed", "res"],
+      default: "0", when: ON("two-clusters"),
     },
     baseline: {
       type: "select", label: "Baseline",
       detail: "the reference the comparator is measured against: FindMarkers' ident.2, whose share is pct.2; all other cells, or one cluster",
       options: (v) => [{ value: "rest", label: "All other cells" }, ...clusterOptions(v).filter((o) => o.value !== String(v.comparator))],
-      optionsFrom: ["seed", "zonation", "res", "comparator"],
-      default: "rest", when: ON("markers"),
+      optionsFrom: ["seed", "res", "comparator"],
+      default: "rest", when: ON("two-clusters"),
     },
     pick: {
       type: "segmented", label: "A click on the map sets",
       options: [{ value: "comparator", label: "The comparator" }, { value: "baseline", label: "The baseline" }],
-      default: "comparator", display: true, when: ON("markers"),
-    },
-    markers: {
-      type: "segmented", label: "Markers",
-      detail: "pooled: one test over every cell; conserved: up in each patient tested separately, as FindConservedMarkers does",
-      options: [{ value: "pooled", label: "Pooled" }, { value: "conserved", label: "Conserved in both patients" }], default: "pooled",
-      when: ON("markers"),
+      default: "comparator", display: true, when: ON("two-clusters"),
     },
 
-    condSec: { type: "section", label: "The samples", when: ON("conditions") },
+    tlSec: { type: "section", label: "The samples", when: ON("tumour-liver") },
+    within: {
+      type: "select", label: "Cluster",
+      detail: `the cluster whose cells are compared, tumour samples against liver samples; only clusters with at least ${MIN_PER_SAMPLE} cells in every sample are listed`,
+      options: (v) => testableOptions(v), optionsFrom: ["seed", "res"],
+      default: "", when: ON("tumour-liver"),
+    },
     change: {
       type: "choice", label: "True change",
-      detail: "the log2 fold change of 20 genes in the tumour samples' Kupffer cells, half up and half down; every other gene is unchanged",
-      options: CHANGES.map((v) => ({ value: v, label: v })), default: "0", when: ON("conditions"),
+      detail: "the log2 fold change of 20 genes in every cell type's tumour-sample cells, half up and half down; every other gene is unchanged",
+      options: CHANGES.map((v) => ({ value: v, label: v })), default: "0", when: ON("tumour-liver"),
     },
     sampleSd: {
       type: "choice", label: "Sample effect",
       detail: "the SD, in log, of each gene's level in one sample's preparation: ambient RNA, dissociation, handling",
-      options: SAMPLE_SD.map((v) => ({ value: v, label: v })), default: "0", when: ON("conditions"),
+      options: SAMPLE_SD.map((v) => ({ value: v, label: v })), default: "0", when: ON("tumour-liver"),
     },
     patientSd: {
       type: "choice", label: "Patient effect",
       detail: "the SD, in log, of each gene's level in one patient, shared by that patient's liver and tumour samples",
-      options: PATIENT_SD.map((v) => ({ value: v, label: v })), default: "0.3", when: ON("conditions"),
+      options: PATIENT_SD.map((v) => ({ value: v, label: v })), default: "0.3", when: ON("tumour-liver"),
     },
+
     compSec: { type: "section", label: "The samples", when: ON("composition") },
     compSd: {
       type: "choice", label: "Spread between samples",
       detail: "the SD, in log, by which each sample's share of each type moves around its tissue's",
       options: COMP_SD.map((v) => ({ value: v, label: v })), default: "0.3", when: ON("composition"),
     },
-    seed: { type: "int", label: "Seed", min: 1, max: 200, default: 1 },
   },
 
   legend: ({ params }) => {
-    if (params.page === "conditions") return [
+    const types = TYPES.map((t, i) => ({ token: `cluster-${"abcdef"[TYPE_SLOT[i]]}`, label: t.name, mark: params.page === "composition" ? "bar" : "dot" }));
+    if (params.page === "clusters") return [...types, { token: "magnitude", label: "Dot plot: size, the share of the cluster's cells detecting the gene; shade, its mean", mark: "dot" }];
+    if (params.page === "two-clusters") return [...types, { token: "ink-1", label: "pct.1: the share of the comparator's cells detecting the gene; pct.2: the baseline's", mark: "line" }];
+    if (params.page === "tumour-liver") return [
       { token: "ink-3", label: "A gene not called", mark: "dot" },
       { token: "empirical", label: "Called at adjusted p < 0.05, and truly changed", mark: "dot" },
       { token: "extreme", label: "Called, and unchanged", mark: "dot" },
       { token: "reference", label: "A ring: truly changed", mark: "line" },
-      { token: "ink-2", label: "Below: a cell, in its sample's column", mark: "dot" },
     ];
-    if (params.page === "composition") return [
-      ...TYPES.map((t, i) => ({ token: `cluster-${"abcdef"[TYPE_SLOT[i]]}`, label: t.name, mark: "bar" })),
-    ];
-    if (params.page === "markers") return [
-      { token: "magnitude", label: "Dot size: share of the cluster's cells detecting the gene; shade: its mean", mark: "dot" },
-      { token: "ink-1", label: "In the table, pct.1: the share of the comparator's cells detecting the gene; pct.2: the baseline's", mark: "line" },
-    ];
-    return TYPES.map((t, i) => ({ token: `cluster-${"abcdef"[TYPE_SLOT[i]]}`, label: `${t.name}; its clusters lighter to darker along the lobule`, mark: "dot" })).slice(0, 1)
-      .concat(TYPES.slice(1).map((t, i) => ({ token: `cluster-${"abcdef"[TYPE_SLOT[i + 1]]}`, label: t.name, mark: "dot" })));
+    return types;
   },
 
   compute: ({ params }) => {
-    const cl = clustersFor(params.seed, params.zonation, params.res);
-    const mk = markersFor(params, cl);
+    const cl = clustersFor(params.seed, params.res);
     return {
-      stage: stageFor(params.seed, params.zonation), cl,
-      mk: { ...mk, type: cl.ann[mk.tested].type },
-      cond: conditionsFor(params.seed, params.sampleSd, params.patientSd, params.change),
+      stage: stageFor(params.seed, params.sampleSd, params.patientSd, params.change),
+      embed: embedFor(params.seed), cl,
+      mk: markersFor(params, cl),
+      cond: conditionFor(params, cl),
       comp: compositionFor(params.seed, params.compSd),
     };
   },
 
   regions: ({ w, params, state }) => {
     /* core probes the table at load, before compute has run */
-    if (params.page !== "markers" || !state) return [];
-    const L = markersLayout(w);
-    const setFor = (c) => (params.pick === "baseline" ? { baseline: String(c) } : { comparator: String(c) });
-    return [
-      /* in comparison mode the tested cluster is not a comparison it can have */
-      ...state.cl.ann.slice(0, MAX_ROWS).filter((a) => !(params.pick === "baseline" && a.c === state.mk.tested)).map((a, ri) => ({ x: 4, y: L.top + state.cl.ann.indexOf(a) * L.rowH, w: L.x1 - 4, h: L.rowH, set: setFor(a.c), label: `cluster ${a.c}` })),
-      ...mapTiles(state, L).filter((t) => t.c < MAX_ROWS && !(params.pick === "baseline" && t.c === state.mk.tested)).map((t) => ({ x: t.x, y: t.y, w: t.w, h: t.h, set: setFor(t.c), label: `cluster ${t.c} on the map` })),
-      ...markerChips(L).map((ch) => ({ x: ch.x, y: ch.y, w: ch.w, h: ch.h, set: ch.set, label: ch.label })),
-    ];
+    if (!state) return [];
+    if (params.page === "two-clusters") {
+      const L = twoLayout(w);
+      const setFor = (c) => (params.pick === "baseline" ? { baseline: String(c) } : { comparator: String(c) });
+      /* the comparator is not a baseline it can have */
+      return [
+        ...mapTiles(state, L.map).filter((t) => t.c < MAX_ROWS && !(params.pick === "baseline" && t.c === state.mk.tested)).map((t) => ({ ...t, set: setFor(t.c), label: `cluster ${t.c}` })),
+        ...twoChips(L).map((ch) => ({ x: ch.x, y: ch.y, w: ch.w, h: ch.h, set: ch.set, label: ch.label })),
+      ];
+    }
+    if (params.page === "tumour-liver") {
+      const L = tlLayout(w), ok = new Set(state.cl.ann.filter((a) => a.testable).map((a) => a.c));
+      return mapTiles(state, L.map).filter((t) => ok.has(t.c) && t.c < MAX_ROWS).map((t) => ({ ...t, set: { within: String(t.c) }, label: `cluster ${t.c}` }));
+    }
+    return [];
   },
 
   draw: ({ ctx, colors, w, params, state }) => {
     if (params.page === "clusters") drawClusters(ctx, colors, w, params, state);
-    else if (params.page === "markers") drawMarkers(ctx, colors, w, params, state);
-    else if (params.page === "conditions") drawConditions(ctx, colors, w, params, state);
+    else if (params.page === "two-clusters") drawTwo(ctx, colors, w, params, state);
+    else if (params.page === "tumour-liver") drawTumourLiver(ctx, colors, w, params, state);
     else drawComposition(ctx, colors, w, params, state);
   },
 
   readout: ({ params, state }) => {
     const cl = state.cl;
     if (params.page === "clusters") {
-      const hep = cl.ann.filter((a) => a.type === 0).sort((a, b) => a.zMean - b.zMean);
+      const byType = TYPES.map((t, ti) => cl.ann.filter((a) => a.type === ti).length);
+      const split = TYPES.filter((_, ti) => byType[ti] > 1).map((t) => t.name.toLowerCase());
       return [
         { label: "Clusters found", value: String(cl.k), note: `six cell types; modularity ${fmt(cl.q, 3)}, the best of 10 random starts` },
-        { label: "Clusters that are mostly hepatocytes", value: String(hep.length), note: hep.length > 1 ? `their hepatocytes' mean place along the lobule, portal 0 to central 1: ${hep.map((a) => a.zMean.toFixed(2)).join(" · ")}` : "one cluster holds the hepatocytes" },
+        { label: "Cell types split over more than one cluster", value: String(split.length), note: split.length ? `${split.join(", ")}: the markers name each piece the same type` : "each type is one cluster" },
       ];
     }
-    if (params.page === "markers") {
-      const mk = state.mk, fm = mk.fm, tested = mk.tested;
-      const up = fm.res.filter((x) => x.lfc > 0 && x.lpAdj < LOG05), broad = broadOf(mk);
-      const baseline = mk.vsRest ? `the other ${fm.n2} cells` : `cluster ${mk.otherC}'s ${fm.n2}`;
+    if (params.page === "two-clusters") {
+      const mk = state.mk, fm = mk.fm;
+      const up = fm.res.filter((x) => x.lfc > 0 && x.lpAdj < LOG05);
       return [
-        { label: `Genes up in the comparator, cluster ${tested}, at p_val_adj < 0.05`, value: String(up.length), note: `${fm.n1} cells; baseline ${baseline}; ${state.cl.k} clusters at resolution ${params.res}` },
-        params.markers === "conserved"
-          ? { label: "Of those, up in both patients", value: String(up.filter((x) => mk.conserved.has(x.g)).length), note: "each patient tested separately, each at p_val_adj < 0.05" }
-          : { label: "Of those, detected in more than half of the baseline", value: String(broad.length), note: "significant, and not specific to the comparator" },
+        { label: `Genes up in the comparator, cluster ${mk.tested}, at p_val_adj < 0.05`, value: String(up.length), note: `${fm.n1} cells; baseline ${mk.vsRest ? `the other ${fm.n2} cells` : `cluster ${mk.otherC}'s ${fm.n2}`}` },
+        { label: "Of those, detected in more than half of the baseline", value: String(broadOf(mk).length), note: "significant, and not specific to the comparator" },
       ];
     }
     if (params.page === "composition") {
@@ -692,17 +619,12 @@ defineWidget({
       ];
     }
     const C = state.cond;
-    const at = (ps) => ps.filter((x) => x.p < 0.05).length / ps.length;
-    if (Number(params.change) > 0) {
-      const tp = (v) => v.filter((q) => q.call && q.truth).length, fp = (v) => v.filter((q) => q.call && !q.truth).length;
-      return [
-        { label: "Over cells: truly changed genes called", value: `${tp(C.volC)} of 20`, note: `and ${fp(C.volC)} unchanged genes called besides, at p_val_adj < 0.05` },
-        { label: "Over samples: truly changed genes called", value: `${tp(C.volD)} of 20`, note: `and ${fp(C.volD)} unchanged genes called besides, at padj < 0.05; the patient effect is shared by both of a patient's samples, so it cancels between tumour and liver` },
-      ];
-    }
+    if (!C.testable) return [{ label: "Cluster", value: String(C.within), note: "too few cells in a sample to compare by tissue" }];
+    const tp = (v) => v.filter((q) => q.call && q.truth).length, fp = (v) => v.filter((q) => q.call && !q.truth).length;
+    const truth = Number(params.change) > 0;
     return [
-      { label: "Unchanged genes at p < 0.05, over cells", value: pct(at(C.cellsP)), note: `${C.cellsP.filter((x) => x.lpAdj < LOG05).length} of ${C.cellsP.length} at p_val_adj < 0.05; a valid test gives 5% at p < 0.05` },
-      { label: "Unchanged genes at p < 0.05, over samples", value: pct(at(C.pbP)), note: `${C.pbP.filter((x) => x.padj < 0.05).length} of ${C.pbP.length} at padj < 0.05; the patient effect is shared by both of a patient's samples, so it cancels between tumour and liver` },
+      { label: "Over cells: genes called", value: truth ? `${tp(C.volC)} of 20 true` : `${fp(C.volC)}`, note: truth ? `and ${fp(C.volC)} unchanged genes called besides, at p_val_adj < 0.05` : "unchanged genes called at p_val_adj < 0.05; no gene truly changes" },
+      { label: "Over samples: genes called", value: truth ? `${tp(C.volD)} of 20 true` : `${fp(C.volD)}`, note: `${truth ? `and ${fp(C.volD)} unchanged genes called besides, at padj < 0.05` : "unchanged genes called at padj < 0.05"}; the patient effect is shared by both of a patient's samples, so it cancels between tumour and liver` },
     ];
   },
 });

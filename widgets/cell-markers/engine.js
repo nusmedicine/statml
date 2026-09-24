@@ -28,6 +28,7 @@
  *   min.pct 0.01 and logfc.threshold 0.1, Bonferroni over every gene).
  */
 import { TYPES, SAMPLES } from "../cell-qc/engine.js";
+import { makeRng } from "../core/rng.js";
 
 export { TYPES, SAMPLES };
 export const G_MARK = 25, G_HOUSE = 40, G_SPREAD = 210, G_ZONE = 30;
@@ -68,7 +69,7 @@ function poisson(rng, lam) {
 /** Four samples of `cells` cells. Pure given rng. `condition` is a true
     tumour-against-liver change on the Kupffer cells' first `conditionGenes`
     spread genes (log2 fold), zero by default. */
-export function simulate(rng, { cells = 400, patientSd = 0.3, sampleSd = 0, phi = 0.3, depth = 1, condition = 0, conditionGenes = 20, zonation = 0, compSd = 0, interaction = 0, interactionGenes = 10 } = {}) {
+export function simulate(rng, { cells = 400, patientSd = 0.3, sampleSd = 0, phi = 0.3, depth = 1, condition = 0, conditionGenes = 20, conditionTypes = ["kupffer"], zonation = 0, compSd = 0, interaction = 0, interactionGenes = 10, integrated = false } = {}) {
   const P = profiles(rng);
   const pat = [0, 1].map(() => Array.from({ length: G }, () => rng.normal(0, patientSd)));
   /* a SAMPLE's own effect, per gene: what one preparation does that the same
@@ -81,6 +82,11 @@ export function simulate(rng, { cells = 400, patientSd = 0.3, sampleSd = 0, phi 
      log-normal of sd `compSd` and renormalised — what two livers from two
      people differ by, so a composition test has sample-to-sample noise */
   const mixes = SAMPLES.map((s) => { const m = {}; for (const t of TYPES) m[t.key] = (s.mix[t.key] ?? 0) * Math.exp(rng.normal(0, compSd)); return m; });
+  /* with `integrated`, each count vector draws from a stream of its own, so the
+     sample, patient and condition effects — which change only the tested
+     counts — leave the cells, their types and the integrated counts (the map
+     and the clusters) exactly where they were */
+  const rI = integrated ? makeRng(Math.floor(rng.next() * 2 ** 31)) : rng, rX = integrated ? makeRng(Math.floor(rng.next() * 2 ** 31)) : rng;
   for (const [si, s] of SAMPLES.entries()) {
     const mix = mixes[si];
     const tot = Object.values(mix).reduce((a, b) => a + b, 0);
@@ -93,18 +99,31 @@ export function simulate(rng, { cells = 400, patientSd = 0.3, sampleSd = 0, phi 
          pericentral half rising by `zonation` in log over the whole span */
       const z = TYPES[ti].key === "hepatocyte" ? rng.next() : null;
       const x = new Float64Array(G);
+      /* `integrated`: a second count vector drawn WITHOUT the patient, sample
+         and condition effects — the data integration hands clustering, which
+         the lesson clusters on (integrated.cca) while its FindMarkers reads
+         the uncorrected counts. Without it every type splits by patient
+         (page3-measure: 11–13 clusters for 6 types, ARI 0.6). */
+      const xi = integrated ? new Float64Array(G) : null;
       for (let g = 0; g < G; g += 1) {
-        let lm = P[ti][g] + pat[s.patient - 1][g] + samp[si][g];
+        /* the cell's own level: its type, and a hepatocyte's place along the
+           lobule on the zonation genes (which other types barely express) */
         const zg = g - (G - G_ZONE);
-        if (zg >= 0) lm = z === null ? P[ti][g] - 1.5 + pat[s.patient - 1][g] + samp[si][g] : lm + zonation * (zg < G_ZONE / 2 ? 0.5 - z : z - 0.5);
-        if (condition && TYPES[ti].key === "kupffer" && s.tissue === "tumour" && g >= TYPES.length * G_MARK + G_HOUSE && g < TYPES.length * G_MARK + G_HOUSE + conditionGenes) lm += condition * Math.LN2;
+        let base = P[ti][g];
+        if (zg >= 0) base = z === null ? P[ti][g] - 1.5 : P[ti][g] + zonation * (zg < G_ZONE / 2 ? 0.5 - z : z - 0.5);
+        if (xi) xi[g] = nbDraw(rI, size * Math.exp(base), phi);
+        let lm = base + pat[s.patient - 1][g] + samp[si][g];
+        /* a real tumour-against-liver change in the listed types: the first
+           `conditionGenes` spread genes, up or down alternately, as simulateType */
+        const cg = g - (TYPES.length * G_MARK + G_HOUSE);
+        if (condition && conditionTypes.includes(TYPES[ti].key) && s.tissue === "tumour" && cg >= 0 && cg < conditionGenes) lm += (cg % 2 ? -1 : 1) * condition * Math.LN2;
         /* a patient × type interaction: the first `interactionGenes` spread
            genes raised in patient 1's hepatocytes only — a gene one person's
            cells of a type carry and the other's do not */
         if (interaction && ti === 0 && s.patient === 1 && g >= TYPES.length * G_MARK + G_HOUSE && g < TYPES.length * G_MARK + G_HOUSE + interactionGenes) lm += interaction * Math.LN2;
-        x[g] = nbDraw(rng, size * Math.exp(lm), phi);
+        x[g] = nbDraw(rX, size * Math.exp(lm), phi);
       }
-      out.push({ sample: s.key, patient: s.patient, tissue: s.tissue, type: ti, z, x });
+      out.push({ sample: s.key, patient: s.patient, tissue: s.tissue, type: ti, z, x, xi });
     }
   }
   return out;
@@ -213,6 +232,21 @@ export function findClusters(adj, gamma, rng, starts = 10) {
     const c = louvain(adj, gamma, rng), q = modularity(adj, c, gamma);
     if (!best || q > best.q) best = { c, q };
   }
+  /* group.singletons = TRUE, Seurat's default: a community of one cell joins
+     the community it has the largest total SNN weight to. Without it a lone
+     cell became cluster 6 on seed 1 and read as a split of its type. */
+  const count = new Map(); best.c.forEach((v) => count.set(v, (count.get(v) ?? 0) + 1));
+  best.c.forEach((v, i) => {
+    if (count.get(v) !== 1) return;
+    const w = new Map();
+    for (const [j, x] of adj[i]) if (best.c[j] !== v) w.set(best.c[j], (w.get(best.c[j]) ?? 0) + x);
+    let to = null, bw = -1; for (const [c, x] of w) if (x > bw) { bw = x; to = c; }
+    /* a cell with no SNN link to anyone (every Jaccard under 1/15): Seurat's
+       which.max over all-zero connectivities returns the first cluster, which
+       its size ordering makes the largest */
+    if (to === null) { let big = -1; for (const [c, n] of count) if (c !== v && n > big) { big = n; to = c; } }
+    if (to !== null) { best.c[i] = to; count.set(v, 0); count.set(to, count.get(to) + 1); }
+  });
   /* numbered by size, largest first, as Seurat numbers them */
   const size = new Map(); best.c.forEach((v) => size.set(v, (size.get(v) ?? 0) + 1));
   const rank = new Map([...size.entries()].sort((a, b) => b[1] - a[1]).map(([v], i) => [v, i]));
