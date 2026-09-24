@@ -53,7 +53,8 @@
 </main>
 
 <script type="module">
-import { simulate, integrate, summary, TYPES, KEYS } from "./integration-mock-engine.js";
+import { makeRng } from "../core/rng.js";
+import { simulate, integrate, measures, TYPES, KEYS } from "../integration/engine.js";
 
 const css = getComputedStyle(document.documentElement);
 const C = (n) => css.getPropertyValue(n).trim();
@@ -103,9 +104,9 @@ function viewOf(pts) {
 }
 
 function draw() {
-  const cells = simulate(V.seed, { batch: V.batch });
+  const cells = simulate(makeRng(V.seed), { batch: V.batch });
   const res = integrate(cells, V.key);
-  const s = summary(cells, res, V.key);
+  const s = measures(cells, res);
   const key = KEYS[V.key];
   ctx.clearRect(0, 0, W, H);
   ctx.font = `600 13px ${C("--font")}`; ctx.fillStyle = C("--ink-1"); ctx.textBaseline = "alphabetic";

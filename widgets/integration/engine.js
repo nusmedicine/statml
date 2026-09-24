@@ -1,7 +1,7 @@
-/* _lab/integration-mock-engine.js — slot 80's mock stage, in two dimensions.
+/* integration/engine.js — slot 80's stage, in two dimensions.
  *
- * One engine for the mock page and for `node` checks, so the page's numbers
- * are the numbers that were checked. Slot 79's four samples and six types,
+ * One engine for the widget, its mock (`_lab/integration-mock.html`) and
+ * `node` checks, so the page's numbers are the numbers that were checked. Slot 79's four samples and six types,
  * placed in a plane: the six types on a hexagon (hepatocyte and tumour cell
  * adjacent, as they are nearest in expression), each patient's chemistry a
  * shift of the whole plane, each sample a small shift of its own.
@@ -19,19 +19,18 @@
  *      space, by the score-weighted mean of the (first − second) vectors of
  *      the anchors nearest it.
  */
-import { makeRng } from "../core/rng.js";
 import { TYPES, SAMPLES } from "../cell-qc/engine.js";
 
 export { TYPES, SAMPLES };
 export const KEYS = {
   patient: { name: "Patient", of: (c) => c.patient - 1, labels: ["Patient 1", "Patient 2"] },
-  tissue: { name: "Tissue", of: (c) => (c.tissue === "liver" ? 0 : 1), labels: ["Liver", "Tumour"] },
+  tissue: { name: "Tissue", of: (c) => (c.tissue === "liver" ? 0 : 1), labels: ["Liver samples", "Tumour samples"] },
 };
 
 const HEX = TYPES.map((_, i) => [Math.cos((Math.PI * 2 * i) / TYPES.length), Math.sin((Math.PI * 2 * i) / TYPES.length)]);
 
-export function simulate(seed, { cells = 150, batch = 0.9, spread = 0.13, sampleShift = 0.08 } = {}) {
-  const rng = makeRng(seed);
+/** Pure given `rng`: four samples of `cells` cells each. */
+export function simulate(rng, { cells = 150, batch = 0.9, spread = 0.13, sampleShift = 0.08 } = {}) {
   const ang = rng.uniform(0, Math.PI * 2);
   const pShift = [[0, 0], [batch * Math.cos(ang), batch * Math.sin(ang)]];
   const out = [];
@@ -93,7 +92,7 @@ export function integrate(cells, keyName, { k = 5, kScore = 20, kWeight = 30 } =
 }
 
 /* what the reader reads off the figure */
-export function summary(cells, res, keyName) {
+export function measures(cells, res) {
   const across = res.pairs.map(([i, j]) => cells[i].type !== cells[j].type);
   const nAcross = across.filter(Boolean).length;
   const mean = (a) => (a.length ? a.reduce((s, v) => s + v, 0) / a.length : NaN);

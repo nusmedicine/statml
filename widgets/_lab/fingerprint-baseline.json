@@ -10057,6 +10057,13 @@
       },
       "px": "b79c75e9",
       "tx": "a6077a64"
+    },
+    {
+      "$note": "integration · DRAFT placeholder, until the design is agreed",
+      "slug": "integration",
+      "state": "?theme=light&shown=0",
+      "px": "0",
+      "tx": "0"
     }
-  ]
+]
 }

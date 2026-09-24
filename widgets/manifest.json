@@ -1183,6 +1183,21 @@
       ],
       "arc": 79,
       "status": "shipped"
+    },
+    {
+      "slug": "integration",
+      "title": "Single-Cell RNA-seq: Integration",
+      "blurb": "Integration pairs cells across two batches as anchors and moves one onto the other; both must hold the same cell types.",
+      "course": "PHM5003",
+      "topics": [
+        "single-cell RNA-seq",
+        "integration",
+        "batch correction",
+        "anchors",
+        "mutual nearest neighbours"
+      ],
+      "arc": 80,
+      "status": "draft"
     }
   ]
 }
