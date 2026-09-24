@@ -20359,6 +20359,18 @@ UMAP at this size needs umap-learn's own optimiser (sampled edges with
 negative samples), which is new engine code; umap-learn is not installed
 here to verify it against, and installing it is a download to ask about.
 
+**UNBLOCKED the same day, on his word "install umap-learn".** umap-learn
+0.5.12 installed (the version widget 22 was verified against). The layout
+is umap-learn's own edge-sampling optimiser written step for step
+(`_lab/cell-markers-umap.js`), on widget 22's fuzzySet unchanged, and
+verified against the library on this stage
+(`_lab/cell-markers-umap-ref.py`, `-verify.mjs`, `-verify.txt`): the graph
+agrees within 1e-3 on all but 4 of 13,086 edges at 600 cells (a near-tie at
+the 15th neighbour); the layout gives 5-NN type purity 1.00 and a
+hepatocyte-gradient |r| of 0.91–0.93 over five seeds against the library's
+1.00 and 0.87–0.94, in 216 ms at 600 cells and 559 ms at 1,200 (200
+epochs). Pick 6 stands: a UMAP computed on the page.
+
 ### What in 08 is not a widget
 
 `01-1` downloads. `01-3` is ORA and GSEA, which 43 owns; `01-4` is

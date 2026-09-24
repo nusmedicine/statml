@@ -1,0 +1,17 @@
+UMAP VERIFY — the JS edge-sampling layout against umap-learn 0.5.12, on slot 81's stage (zonation 3)
+
+  600 cells — graph: 13086 library edges; largest weight difference 1.4e-1; 4 library edges absent here, 4 here absent there
+    umap-learn spectral 200 epochs: purity 1.00, hepatocyte |r| 0.94, 3994 ms
+    umap-learn spectral 500 epochs: purity 1.00, hepatocyte |r| 0.91, 543 ms
+    umap-learn pca      200 epochs: purity 1.00, hepatocyte |r| 0.94, 304 ms
+    umap-learn pca      500 epochs: purity 1.00, hepatocyte |r| 0.94, 533 ms
+    this file, pca start, 200 epochs, 5 seeds: purity 1.00 (1.00–1.00), hepatocyte |r| 0.93 (0.91–0.94), 216 ms
+    this file, pca start, 500 epochs, 5 seeds: purity 1.00 (1.00–1.00), hepatocyte |r| 0.93 (0.91–0.94), 447 ms
+
+  1200 cells — graph: 26646 library edges; largest weight difference 1.5e-1; 2 library edges absent here, 2 here absent there
+    umap-learn spectral 200 epochs: purity 1.00, hepatocyte |r| 0.87, 949 ms
+    umap-learn spectral 500 epochs: purity 1.00, hepatocyte |r| 0.91, 1373 ms
+    umap-learn pca      200 epochs: purity 1.00, hepatocyte |r| 0.93, 898 ms
+    umap-learn pca      500 epochs: purity 1.00, hepatocyte |r| 0.88, 1357 ms
+    this file, pca start, 200 epochs, 5 seeds: purity 1.00 (1.00–1.00), hepatocyte |r| 0.91 (0.91–0.92), 559 ms
+    this file, pca start, 500 epochs, 5 seeds: purity 1.00 (1.00–1.00), hepatocyte |r| 0.89 (0.83–0.92), 1015 ms
