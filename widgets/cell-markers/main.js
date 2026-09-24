@@ -55,7 +55,7 @@ const PAGES = [
 ];
 const ON = (page) => ({ param: "page", equals: page });
 const CELL_PAGES = { param: "page", oneOf: ["clusters", "two-clusters", "tumour-liver"] };
-const HEIGHTS = { "two-clusters": 770, "tumour-liver": 600, composition: 380 };
+const HEIGHTS = { "two-clusters": 732, "tumour-liver": 600, composition: 380 };
 const RESOLUTIONS = ["0.1", "0.3", "0.5", "0.8", "1.2", "2"];
 const SAMPLE_SD = ["0", "0.1", "0.2", "0.4", "0.65"];
 const PATIENT_SD = ["0", "0.3", "0.65"];
@@ -195,17 +195,7 @@ function geneView(params, C, S) {
   const vals = ORDER.map((k) => C.a.idx.filter((i) => S.cells[i].sample === k).map((i) => S.Y[i][g]));
   const pb = ORDER.map((_, j) => Math.log1p((C.counts[g][j] / C.tot[j]) * 1e4));
   const r = C.an.resMAP[g], exp = C.an.expressed.includes(g);
-  /* each tissue's mean and SE, over its cells and over its two samples. The
-     samples' SE is not the two sums' own spread — two points give an SE from
-     0.008 to 0.7 for the same kind of gene (measured over six seeds) — but
-     the spread DESeq2 tests with: its dispersion, shrunk toward the trend
-     across genes, as √((1/μ + α)/2) on the log scale, 2–3 times the cells' */
-  const cellStat = (v) => { const m = v.reduce((a, b) => a + b, 0) / v.length; return { m, se: Math.sqrt(v.reduce((a, b) => a + (b - m) ** 2, 0) / Math.max(1, v.length - 1) / v.length) }; };
-  const tissues = [0, 1].map((ti) => {
-    const j0 = 2 * ti, j1 = j0 + 1, mu = (C.counts[g][j0] / C.an.sf[j0] + C.counts[g][j1] / C.an.sf[j1]) / 2;
-    return { cells: cellStat([...vals[j0], ...vals[j1]]), samples: { m: (pb[j0] + pb[j1]) / 2, se: Math.sqrt((1 / Math.max(mu, 1e-9) + C.an.alphaMAP[g]) / 2) } };
-  });
-  return { g, vals, pb, tissues, truth: C.truthOf(g), cells: C.byG.get(g), deseq: exp ? { p: r.p, padj: r.padj } : null };
+  return { g, vals, pb, truth: C.truthOf(g), cells: C.byG.get(g), deseq: exp ? { p: r.p, padj: r.padj } : null };
 }
 
 /* each sample's share of each type, and a test per type of liver against
@@ -271,6 +261,13 @@ function discsFor(state, M, by = "cluster") {
   per.set(key, discs); discCache.set(state, per);
   return discs;
 }
+/** The group (cluster or type) whose disc the pointer is deepest inside, or null. */
+function discAt(state, M, by, p) {
+  if (!p || p.x < M.x || p.x > M.x + M.S || p.y < M.y || p.y > M.y + M.S) return null;
+  let best = null, bd = 1;
+  for (const d of discsFor(state, M, by)) { const dd = Math.hypot(p.x - d.cx, p.y - d.cy) / d.r; if (dd < bd) { bd = dd; best = d.a; } }
+  return best;
+}
 /* the discs as TILE-pixel squares for core's rectangle hit test, each the
    disc it lies deepest inside; kept per state, since regions are rebuilt on
    every pointer move */
@@ -294,7 +291,7 @@ const DOT_TOP = TOP + 340 + 80;
 const clustersHeight = (params) => DOT_TOP + Math.min(MAX_ROWS, clustersFor(params.seed, params.res).k) * 22 + 16;
 function clustersLayout(w) {
   const S = Math.min(340, Math.floor((w - 24) / 2)), x0 = Math.floor((w - (2 * S + 24)) / 2);
-  return { maps: [{ x: x0, y: TOP, S }, { x: x0 + S + 24, y: TOP, S }], dotTop: DOT_TOP, rowH: 22, labelW: 150 };
+  return { maps: [{ x: x0, y: TOP, S }, { x: x0 + S + 24, y: TOP, S }], dotTop: DOT_TOP - (340 - S), rowH: 22, labelW: 150 };
 }
 /* Two clusters: the comparator's map and the baseline's, side by side, and
    "All other cells" under the baseline's (his pick A from the picker mock:
@@ -303,7 +300,11 @@ const MAP_MAX = 360;
 function twoLayout(w) {
   const S = Math.min(MAP_MAX, Math.floor((w - 24) / 2)), x0 = Math.floor((w - (2 * S + 24)) / 2);
   const maps = [{ x: x0, y: TOP, S }, { x: x0 + S + 24, y: TOP, S }];
-  return { maps, rest: { x: maps[1].x, y: TOP + S + 10, w: S, h: 28 }, tableTop: TOP + MAP_MAX + 10 + 28 + 50 };
+  /* "All other cells" is a chip at the top of the baseline's map, and the
+     map's background picks it too (his round: "if you click on the
+     background, it's considered all other cells") */
+  const chipW = Math.min(150, S - 16);
+  return { maps, rest: { x: maps[1].x + Math.floor((S - chipW) / 2), y: TOP + 8, w: chipW, h: 24 }, tableTop: TOP + S + 50 };   // under the maps as drawn; the page's height is set for the widest (MAP_MAX), so a narrow canvas leaves its spare room at the bottom, not between
 }
 /* Tumour vs liver: the map, the gene view beside it (where the sample table
    and five lines of text were, his pick 2026-09-25), the two volcanos under */
@@ -326,12 +327,13 @@ function heading(ctx, colors, text, x, y) {
 const hueOf = (colors, type) => colors.clusters[TYPE_SLOT[type]];
 /** A map of named, shaded discs. `solid` gets a solid ring, `dashed` a dashed
     one; `muted(a)` fades a disc (on a map where it cannot be picked). */
-function drawDiscMap(ctx, colors, state, M, { solid = -1, dashed = -1, muted = () => false, title = null, name = (a) => `${TYPES[a.type].name} · ${a.c}`, by = "cluster" } = {}) {
+function drawDiscMap(ctx, colors, state, M, { solid = -1, dashed = -1, ring = () => false, dash = () => false, muted = () => false, title = null, name = (a) => `${TYPES[a.type].name} · ${a.c}`, by = "cluster", reserve = [] } = {}) {
   if (title) heading(ctx, colors, title, M.x, M.y - 9);
   ctx.strokeStyle = colors.grid; ctx.lineWidth = 1; ctx.strokeRect(M.x + 0.5, M.y + 0.5, M.S - 1, M.S - 1);
   const discs = discsFor(state, M, by);
+  const solidOf = (a) => a.c === solid || ring(a), dashOf = (a) => !solidOf(a) && (a.c === dashed || dash(a));
   discs.forEach((d) => {
-    const isS = d.a.c === solid, isD = d.a.c === dashed, off = muted(d.a);
+    const isS = solidOf(d.a), isD = dashOf(d.a), off = muted(d.a);
     ctx.fillStyle = hueOf(colors, d.a.type); ctx.globalAlpha = isS ? 0.3 : isD ? 0.22 : off ? 0.04 : 0.12;
     ctx.beginPath(); ctx.arc(d.cx, d.cy, d.r, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
     if (isS) { ctx.strokeStyle = colors.ink1; ctx.lineWidth = 2.5; ctx.stroke(); }
@@ -346,9 +348,9 @@ function drawDiscMap(ctx, colors, state, M, { solid = -1, dashed = -1, muted = (
      the box and clear of the names already placed; neighbouring clusters
      printed their names into each other (Immune cell · 3 and Stellate
      cell · 5, seed 1). Kept inside the box horizontally, as before. */
-  const placed = [];
+  const placed = reserve.map((r) => ({ x0: r.x, x1: r.x + r.w, y0: r.y, y1: r.y + r.h }));
   discs.forEach((d) => {
-    const isS = d.a.c === solid, isD = d.a.c === dashed, off = muted(d.a);
+    const isS = solidOf(d.a), isD = dashOf(d.a), off = muted(d.a);
     ctx.font = `${isS || isD ? "600 " : ""}${colors.fsXs} ${colors.font}`; ctx.textAlign = "center"; ctx.fillStyle = off ? colors.ink3 : colors.ink1;
     const text = name(d.a), half = ctx.measureText(text).width / 2, clampX = (x) => Math.max(M.x + half + 3, Math.min(M.x + M.S - half - 3, x));
     const spots = [[d.cx, d.cy + d.r + 14], [d.cx, d.cy - d.r - 6], [d.cx + d.r + half + 4, d.cy + 4], [d.cx - d.r - half - 4, d.cy + 4]].map(([x, y]) => [clampX(x), y]);
@@ -362,33 +364,45 @@ function drawDiscMap(ctx, colors, state, M, { solid = -1, dashed = -1, muted = (
   ctx.textAlign = "left";
 }
 
-function drawClusters(ctx, colors, w, params, state) {
-  const L = clustersLayout(w), cl = state.cl;
+function drawClusters(ctx, colors, w, params, state, pointer) {
+  const L = clustersLayout(w), cl = state.cl, rows = cl.ann.slice(0, MAX_ROWS), top = L.dotTop;
+  /* HOVER FOLLOWS ONE CLUSTER (his round): a cluster on the left map or a
+     row of the dot plot lights that cluster in all three and its type on the
+     right; a type on the right lights its clusters. An inspector only —
+     nothing is written, and with no pointer the figure is as before. */
+  let hotC = discAt(state, L.maps[0], "cluster", pointer)?.c ?? null;
+  const hotType = discAt(state, L.maps[1], "type", pointer)?.type ?? null;
+  if (pointer && hotC === null && pointer.y >= top && pointer.y < top + rows.length * L.rowH) hotC = rows[Math.floor((pointer.y - top) / L.rowH)].c;
+  const any = hotC !== null || hotType !== null;
+  const isHot = (a) => (hotC !== null ? a.c === hotC : a.type === hotType);
+  const hotT = hotC !== null ? cl.ann[hotC].type : hotType;
   heading(ctx, colors, `Coloured by cluster, resolution ${params.res}: ${cl.k} clusters`, L.maps[0].x, TOP - 9);
   heading(ctx, colors, "Coloured by cell type", L.maps[1].x, TOP - 9);
   /* numbers only: the map beside it names the types (his round) */
-  drawDiscMap(ctx, colors, state, L.maps[0], { name: (a) => `Cluster ${a.c}` });
-  drawDiscMap(ctx, colors, state, L.maps[1], { by: "type", name: (a) => TYPES[a.type].name });
+  drawDiscMap(ctx, colors, state, L.maps[0], { name: (a) => `Cluster ${a.c}`, ring: (a) => any && isHot(a), muted: (a) => any && !isHot(a) });
+  drawDiscMap(ctx, colors, state, L.maps[1], { by: "type", name: (a) => TYPES[a.type].name, ring: (a) => any && a.type === hotT, muted: (a) => any && a.type !== hotT });
   /* the dot plot of each type's markers: how each cluster is named */
   const genes = []; TYPES.forEach((_, t) => { for (let j = 0; j < 3; j += 1) genes.push(t * G_MARK + j); });
-  const x0 = L.labelW, x1 = w - 56, cw = Math.min(30, (x1 - x0) / genes.length), top = L.dotTop;
+  const x0 = L.labelW, x1 = w - 56, cw = Math.min(30, (x1 - x0) / genes.length);
   heading(ctx, colors, "Canonical markers of each type, by cluster: how each cluster is annotated", 8, top - 58);
   ctx.font = `${colors.fsXs} ${colors.mono}`;
   genes.forEach((g, j) => {
     ctx.save(); ctx.translate(x0 + j * cw + cw / 2 - 3, top - 12); ctx.rotate(-Math.PI / 4);
     ctx.fillStyle = geneKind(g).kind === "marker" ? colors.ink1 : colors.ink3; ctx.fillText(geneName(g), 0, 0); ctx.restore();
   });
-  const Y = state.stage.Y, rows = cl.ann.slice(0, MAX_ROWS);
+  const Y = state.stage.Y;
   const stats = rows.map((a) => genes.map((g) => { let det = 0, s = 0; a.idx.forEach((i) => { const v = Y[i][g]; if (v > 0) det += 1; s += v; }); return { pct: det / a.n, mean: s / a.n }; }));
   const maxMean = genes.map((_, j) => Math.max(...stats.map((r) => r[j].mean)) || 1);
   rows.forEach((a, ri) => {
     const y = top + ri * L.rowH + L.rowH / 2;
-    ctx.fillStyle = hueOf(colors, a.type); ctx.globalAlpha = a.alpha; ctx.fillRect(8, y - 5, 10, 10); ctx.globalAlpha = 1;
+    if (any && isHot(a)) { ctx.fillStyle = colors.surface2; ctx.fillRect(4, y - L.rowH / 2, x0 + genes.length * cw - 4, L.rowH); }
+    ctx.globalAlpha = any && !isHot(a) ? 0.3 : 1;
+    ctx.fillStyle = hueOf(colors, a.type); ctx.globalAlpha *= a.alpha; ctx.fillRect(8, y - 5, 10, 10); ctx.globalAlpha = any && !isHot(a) ? 0.3 : 1;
     ctx.font = `${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.ink1; ctx.textAlign = "left";
     ctx.fillText(`${a.c} · ${TYPES[a.type].name}`, 24, y + 4);
     genes.forEach((g, j) => {
       const s = stats[ri][j];
-      ctx.fillStyle = colors.magnitude; ctx.globalAlpha = 0.15 + 0.85 * (s.mean / maxMean[j]);
+      ctx.fillStyle = colors.magnitude; ctx.globalAlpha = (0.15 + 0.85 * (s.mean / maxMean[j])) * (any && !isHot(a) ? 0.3 : 1);
       ctx.beginPath(); ctx.arc(x0 + j * cw + cw / 2, y, 1.5 + 8 * Math.sqrt(s.pct), 0, Math.PI * 2); ctx.fill();
     });
     ctx.globalAlpha = 1;
@@ -398,12 +412,14 @@ function drawClusters(ctx, colors, w, params, state) {
 function drawTwo(ctx, colors, w, params, state) {
   const L = twoLayout(w), cl = state.cl, mk = state.mk;
   drawDiscMap(ctx, colors, state, L.maps[0], { solid: mk.tested, title: "Comparator: click a cluster" });
-  drawDiscMap(ctx, colors, state, L.maps[1], { dashed: mk.vsRest ? -1 : mk.otherC, muted: (a) => a.c === mk.tested, title: "Baseline: click a cluster, or all other cells" });
   const R = L.rest;
+  /* with all other cells as the baseline, every cluster but the comparator wears the baseline's dashed ring */
+  const dash = (a) => (mk.vsRest ? a.c !== mk.tested : a.c === mk.otherC);
+  drawDiscMap(ctx, colors, state, L.maps[1], { dash, muted: (a) => a.c === mk.tested, reserve: [R], title: "Baseline: click a cluster, or the background" });
   ctx.fillStyle = mk.vsRest ? colors.ink1 : colors.surface2; ctx.fillRect(R.x, R.y, R.w, R.h);
   ctx.strokeStyle = colors.grid; ctx.lineWidth = 1; ctx.strokeRect(R.x + 0.5, R.y + 0.5, R.w - 1, R.h - 1);
-  ctx.font = `${colors.fsSm} ${colors.font}`; ctx.fillStyle = mk.vsRest ? colors.surface : colors.ink2; ctx.textAlign = "center";
-  ctx.fillText("All other cells", R.x + R.w / 2, R.y + R.h / 2 + 5); ctx.textAlign = "left";
+  ctx.font = `${colors.fsXs} ${colors.font}`; ctx.fillStyle = mk.vsRest ? colors.surface : colors.ink2; ctx.textAlign = "center";
+  ctx.fillText("All other cells", R.x + R.w / 2, R.y + R.h / 2 + 4); ctx.textAlign = "left";
   /* FindMarkers' table: first 8 by p, then significant genes detected in most of the baseline */
   const fm = mk.fm, own = (g) => { const k = geneKind(g); return k.kind === "marker" && k.type === mk.type; };
   const top = fm.res.filter((x) => x.lfc > 0).sort((a, b) => a.lp - b.lp || b.lfc - a.lfc).slice(0, 8);
@@ -444,8 +460,8 @@ const easeInOut = (t) => (t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2);
 function drawGeneView(ctx, colors, gv, B, t) {
   const e = easeInOut(t);
   heading(ctx, colors, `${geneName(gv.g)}: ${gv.truth ? "truly changed" : "unchanged"}`, B.x - 40, B.y - 9);
-  const top = B.y + 8, bh = B.h - 114, colW = B.w / 4;
-  const vMax = Math.max(0.5, ...gv.vals.flat(), ...gv.pb, ...gv.tissues.map((T) => T.samples.m + 2 * T.samples.se)) * 1.08, sy = (v) => top + bh - (Math.max(0, v) / vMax) * bh;
+  const top = B.y + 8, bh = B.h - 100, colW = B.w / 4;
+  const vMax = Math.max(0.5, ...gv.vals.flat(), ...gv.pb) * 1.08, sy = (v) => top + bh - (v / vMax) * bh;
   ctx.strokeStyle = colors.axis; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(B.x + 0.5, top); ctx.lineTo(B.x + 0.5, top + bh + 0.5); ctx.lineTo(B.x + B.w, top + bh + 0.5); ctx.stroke();
   ctx.font = `${colors.fsXs} ${colors.mono}`; ctx.fillStyle = colors.ink3; ctx.textAlign = "right";
   [0, vMax / 2, vMax].forEach((v) => ctx.fillText(v.toFixed(1), B.x - 4, sy(v) + 4));
@@ -471,28 +487,21 @@ function drawGeneView(ctx, colors, gv, B, t) {
     ctx.font = `${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.ink2; ctx.textAlign = "center";
     ctx.fillText(`P${(j % 2) + 1} ${ORDER_NAMES[j][1]}`, cx, top + bh + 14); ctx.fillText(`${gv.vals[j].length} cells`, cx, top + bh + 27);
   });
-  /* EACH TISSUE'S MEAN ± 2 SE, between its two samples' columns (his round:
-     "when we sum, there is no error bar?"). The sum lands where the sample's
-     mean was — it is the sample's counts pooled — so what the press changes
-     is the uncertainty: the cells' SE over ~48 cells, then the SE DESeq2
-     tests with over 2 samples (geneView). The bar grows as the cells are summed. */
-  gv.tissues.forEach((T, ti) => {
-    const m = T.cells.m + (T.samples.m - T.cells.m) * e, se = 2 * (T.cells.se + (T.samples.se - T.cells.se) * e), x = B.x + (2 * ti + 1) * colW;
-    ctx.strokeStyle = colors.ink1; ctx.lineWidth = 2; ctx.beginPath();
-    ctx.moveTo(x, sy(m - se)); ctx.lineTo(x, sy(m + se));
-    ctx.moveTo(x - 5, sy(m - se)); ctx.lineTo(x + 5, sy(m - se)); ctx.moveTo(x - 5, sy(m + se)); ctx.lineTo(x + 5, sy(m + se));
-    ctx.moveTo(x - 8, sy(m)); ctx.lineTo(x + 8, sy(m)); ctx.stroke();
-  });
+  /* NO ERROR BARS. Tried 2026-09-25 on his question ("when we sum, there is
+     no error bar?"): each tissue's mean ± 2 SE, over its cells and then from
+     DESeq2's shrunk dispersion (the two sums' own SE ranged 0.008–0.7 over
+     six seeds). He found them weird and confusing, and they came out the
+     same day; the n and the two p values under the plot carry the change. */
   /* the two tests, one fading into the other as the cells are summed */
   const n = gv.vals.reduce((a, v) => a + v.length, 0), c = gv.cells, d = gv.deseq;
   const lines = [
-    [`Over cells: n = ${n}${c.lpAdj < LOG05 ? ", called" : ", not called"}`, `Wilcoxon p = ${pFmt(c.lp)}, p_val_adj = ${pFmt(c.lpAdj)}`, "Each dot a cell", "Bars: tissue mean ± 2 SE, cells as replicates"],
-    [`Over samples: n = 4${d && d.padj < 0.05 ? ", called" : ", not called"}`, d ? `DESeq2 p = ${pFmt(Math.log10(Math.max(1e-300, d.p)))}, padj = ${pFmt(Math.log10(Math.max(1e-300, d.padj)))}` : "too few counts for DESeq2 to test", "Each point a sample's cells, summed", "Bars: ± 2 SE from DESeq2's dispersion"],
+    [`Over cells: n = ${n}${c.lpAdj < LOG05 ? ", called" : ", not called"}`, `Wilcoxon p = ${pFmt(c.lp)}, p_val_adj = ${pFmt(c.lpAdj)}`, "Each dot a cell, each tested as a replicate"],
+    [`Over samples: n = 4${d && d.padj < 0.05 ? ", called" : ", not called"}`, d ? `DESeq2 p = ${pFmt(Math.log10(Math.max(1e-300, d.p)))}, padj = ${pFmt(Math.log10(Math.max(1e-300, d.padj)))}` : "too few counts for DESeq2 to test", "Each point a sample's cells, summed"],
   ];
   lines.forEach((ls, k) => {
     ctx.globalAlpha = k ? e : 1 - e; ctx.textAlign = "left";
     ctx.font = `${colors.fsXs} ${colors.mono}`; ctx.fillStyle = colors.ink1; ctx.fillText(ls[0], B.x - 40, top + bh + 48); ctx.fillText(ls[1], B.x - 40, top + bh + 63);
-    ctx.font = `${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.ink3; ctx.fillText(ls[2], B.x - 40, top + bh + 80); ctx.fillText(ls[3], B.x - 40, top + bh + 94);
+    ctx.font = `${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.ink3; ctx.fillText(ls[2], B.x - 40, top + bh + 80);
   });
   ctx.globalAlpha = 1;
 }
@@ -690,8 +699,11 @@ defineWidget({
     if (!state) return [];
     if (params.page === "two-clusters") {
       const L = twoLayout(w), tested = state.mk.tested;
+      const M2 = L.maps[1];
       return [
         ...discTiles(state, L.maps[0]).filter((t) => t.c < MAX_ROWS).map((t) => ({ ...t, set: { comparator: String(t.c) }, label: `comparator cluster ${t.c}` })),
+        /* the baseline map's background, under its clusters: the last region hit wins */
+        { x: M2.x, y: M2.y, w: M2.S, h: M2.S, set: { baseline: "rest" }, label: "All other cells" },
         /* the comparator is not a baseline it can have */
         ...discTiles(state, L.maps[1]).filter((t) => t.c < MAX_ROWS && t.c !== tested).map((t) => ({ ...t, set: { baseline: String(t.c) }, label: `baseline cluster ${t.c}` })),
         { ...L.rest, set: { baseline: "rest" }, label: "All other cells" },
@@ -711,8 +723,10 @@ defineWidget({
     return [];
   },
 
-  draw: ({ ctx, colors, w, params, state, anim }) => {
-    if (params.page === "clusters") drawClusters(ctx, colors, w, params, state);
+  /* the Clusters page's hover (drawClusters); the other pages ignore it */
+  pointer: true,
+  draw: ({ ctx, colors, w, params, state, anim, pointer }) => {
+    if (params.page === "clusters") drawClusters(ctx, colors, w, params, state, pointer);
     else if (params.page === "two-clusters") drawTwo(ctx, colors, w, params, state);
     else if (params.page === "tumour-liver") drawTumourLiver(ctx, colors, w, params, state, anim);
     else drawComposition(ctx, colors, w, params, state);
