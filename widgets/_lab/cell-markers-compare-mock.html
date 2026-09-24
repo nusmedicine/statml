@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · cell-markers — the four comparisons, computed on the page</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1240px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 104ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  .rail { background: var(--surface-1); border: 1px solid var(--grid); border-radius: var(--radius); padding: var(--sp-3) var(--sp-4);
+          display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: var(--sp-3) var(--sp-4); margin: 0 0 var(--sp-3); }
+  .fld label { display: block; font-size: var(--fs-xs); color: var(--ink-2); margin: 0 0 4px; }
+  .fld label b { color: var(--ink-1); float: right; font-family: var(--font-mono); }
+  .fld input[type=range] { width: 100%; }
+  .two { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: var(--sp-4); }
+  table.fm { border-collapse: collapse; font-size: var(--fs-sm); font-family: var(--font-mono); width: 100%; }
+  table.fm td, table.fm th { padding: 3px 8px; text-align: right; border-bottom: 1px solid var(--grid); }
+  table.fm th { color: var(--ink-3); font-weight: normal; font-family: var(--font); font-size: var(--fs-xs); }
+  table.fm td:first-child, table.fm th:first-child { text-align: left; }
+  table.fm caption { text-align: left; font-family: var(--font); font-weight: 600; font-size: var(--fs-sm); color: var(--ink-1); padding: 0 0 6px; }
+  tr.mark td { background: color-mix(in srgb, var(--c-highlight) 22%, transparent); }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); border-radius: var(--radius); max-width: 100%; }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--sp-2); margin: var(--sp-3) 0; }
+  .tile { background: var(--surface-2); border-radius: var(--radius); padding: var(--sp-2) var(--sp-3); }
+  .tile .k { font-size: var(--fs-xs); color: var(--ink-3); } .tile .v { font-family: var(--font-mono); font-size: var(--fs-md); color: var(--ink-1); } .tile .n { font-size: var(--fs-xs); color: var(--ink-3); }
+  table.calls { border-collapse: collapse; font-size: var(--fs-sm); width: 100%; }
+  table.calls td, table.calls th { border-top: 1px solid var(--grid); padding: 6px 8px; vertical-align: top; text-align: left; }
+  table.calls th { color: var(--ink-3); font-weight: normal; font-size: var(--fs-xs); }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>cell-markers · the four comparisons, on the widget's stage</h1>
+  <p class="note">Every table and figure here is computed on this page from <code>widgets/cell-markers/engine.js</code> and widget 78's DESeq2 engine, the modules the measurement ran (<code>_lab/cell-markers-compare-measure.txt</code>). For clarity the mock groups cells by their TRUE type; the widget would use the clusters found on its Clusters page.</p>
+
+  <h2>1 · Cluster against cluster — the comparison decides what a marker is</h2>
+  <p class="note">Tumour cells tested twice with FindMarkers, first 14 up by p. Highlighted rows are the 10 genes tumour cells share with hepatocytes (hepatoblastoma is a tumour of hepatocyte precursors). Against all other cells some of them read as tumour markers; against hepatocytes they are lower in tumour cells, and leave the list.</p>
+  <div class="two"><div id="c2a"></div><div id="c2b"></div></div>
+
+  <h2>2 · Conserved markers — a marker true in each patient, not only in the pool</h2>
+  <p class="note">Hepatocytes against all other cells. Highlighted rows are 10 genes raised in patient 1's hepatocytes only. Pooled, they reach p_val_adj &lt; 0.05; tested within each patient and combined (FindConservedMarkers, metap's minimump), they do not.</p>
+  <div class="rail"><div class="fld"><label>Patient 1-only rise, log2 <b id="iv"></b></label><input id="inter" type="range" min="0" max="2" step="1"></div></div>
+  <div class="two"><div id="c4a"></div><div id="c4b"></div></div>
+
+  <h2>3 · One cell type across conditions — identifying genes</h2>
+  <p class="note">Kupffer cells, tumour against liver, 20 genes truly changed (ringed). Each dot a gene: its fold change and how small its p-value is, over cells (Wilcoxon) and over the four samples (DESeq2 on summed counts). Filled: called at adjusted p &lt; 0.05.</p>
+  <div class="rail">
+    <div class="fld"><label>True change, log2 <b id="cv"></b></label><input id="cond" type="range" min="0" max="3" step="1"></div>
+    <div class="fld"><label>Sample effect <b id="sv"></b></label><input id="samp" type="range" min="0" max="3" step="1"></div>
+  </div>
+  <canvas id="c1"></canvas>
+  <div class="tiles" id="t1"></div>
+
+  <h2>4 · Composition — does a cell type's share change?</h2>
+  <p class="note">Each sample's share of each cell type, and a test per type of liver against tumour: over cells (the pooled counts, a chi-square) and over samples (the four shares, arcsine square root, a t-test on 2 against 2). Each sample's mix varies around its tissue's.</p>
+  <div class="rail"><div class="fld"><label>Sample-to-sample spread in the mix <b id="mv"></b></label><input id="mix" type="range" min="0" max="2" step="1"></div>
+    <div class="fld"><label>Seed <b id="dv"></b></label><input id="seed" type="range" min="1" max="8" step="1"></div></div>
+  <div class="two"><canvas id="c3"></canvas><div id="t3"></div></div>
+
+  <h2>The calls</h2>
+  <div id="calls"></div>
+</main>
+<script type="module">
+import { makeRng } from "../core/rng.js";
+import { lgamma } from "../core/stats.js";
+import { analyse } from "../deseq2/engine.js";
+import { simulate, simulateType, normalise, findMarkers, geneKind, geneName, isConditionGene, TYPES, SAMPLES, G, G_MARK, G_HOUSE } from "../cell-markers/engine.js";
+const css = getComputedStyle(document.documentElement), C = (n) => css.getPropertyValue(n).trim();
+const FONT = C("--font"), LOG05 = Math.log10(0.05), dpr = window.devicePixelRatio || 1;
+const CL = ["a", "c", "b", "d", "e", "f"].map((k) => C(`--c-cluster-${k}`));
+const pf = (lp) => (lp < -300 ? "0" : lp > -2 ? (10 ** lp).toFixed(3) : `1e${Math.round(lp)}`);
+function canvas(id, W, H) { const cv = document.getElementById(id); cv.width = W * dpr; cv.height = H * dpr; cv.style.width = W + "px"; cv.style.height = H + "px"; const ctx = cv.getContext("2d"); ctx.scale(dpr, dpr); return ctx; }
+function table(el, caption, rows, mark, extra = []) {
+  document.getElementById(el).innerHTML = `<table class="fm"><caption>${caption}</caption><tr><th>gene</th><th>p_val_adj</th><th>avg_log2FC</th><th>pct.1</th><th>pct.2</th>${extra.map((e) => `<th>${e[0]}</th>`).join("")}</tr>${rows.map((x) => `<tr class="${mark(x) ? "mark" : ""}"><td>${geneName(x.g)}</td><td>${pf(x.lpAdj)}</td><td>${x.lfc.toFixed(2)}</td><td>${x.p1.toFixed(2)}</td><td>${x.p2.toFixed(2)}</td>${extra.map((e) => `<td>${e[1](x)}</td>`).join("")}</tr>`).join("")}</table>`;
+}
+function ibeta(x, a, b) { if (x <= 0) return 0; if (x >= 1) return 1; const bt = Math.exp(lgamma(a + b) - lgamma(a) - lgamma(b) + a * Math.log(x) + b * Math.log(1 - x)); const cf = (x, a, b) => { let c = 1, d = 1 - ((a + b) * x) / (a + 1); d = 1 / d; let h = d; for (let m = 1; m <= 300; m += 1) { const m2 = 2 * m; let aa = (m * (b - m) * x) / ((a - 1 + m2) * (a + m2)); d = 1 + aa * d; c = 1 + aa / c; d = 1 / d; h *= d * c; aa = (-(a + m) * (a + b + m) * x) / ((a + m2) * (a + 1 + m2)); d = 1 + aa * d; c = 1 + aa / c; d = 1 / d; const del = d * c; h *= del; if (Math.abs(del - 1) < 3e-12) break; } return h; }; return x < (a + 1) / (a + b + 2) ? (bt * cf(x, a, b)) / a : 1 - (bt * cf(1 - x, b, a)) / b; }
+function chi2P(x2) { const z = Math.sqrt(x2 / 2), t = 1 / (1 + 0.5 * z); return t * Math.exp(-z * z - 1.26551223 + t * (1.00002368 + t * (0.37409196 + t * (0.09678418 + t * (-0.18628806 + t * (0.27886807 + t * (-1.13520398 + t * (1.48851587 + t * (-0.82215223 + t * 0.17087277))))))))); }
+
+/* 1 · cluster against cluster */
+{
+  const cells = simulate(makeRng(1), { cells: 300, patientSd: 0, zonation: 3 });
+  const Y = normalise(cells);
+  const shared = (x) => { const k = geneKind(x.g); return k.kind === "marker" && k.type === 0 && x.g % G_MARK < 10; };
+  const top = (fm) => fm.res.filter((x) => x.lfc > 0).sort((a, b) => a.lp - b.lp);
+  const a = top(findMarkers(Y, (i) => cells[i].type === 1, (i) => cells[i].type !== 1, { nGenes: 33538 }));
+  const bAll = findMarkers(Y, (i) => cells[i].type === 1, (i) => cells[i].type === 0, { nGenes: 33538 });
+  const b = top(bAll);
+  // the shared genes in the first list, shown even if outside the top 14
+  const aRows = [...a.slice(0, 14), ...a.slice(14).filter(shared).slice(0, 3)];
+  table("c2a", "Tumour cells against all other cells", aRows, shared, [["rank", (x) => a.indexOf(x) + 1]]);
+  const bShared = bAll.res.filter(shared).sort((p, q) => p.lfc - q.lfc).slice(0, 3);
+  table("c2b", "Tumour cells against hepatocytes", [...b.slice(0, 14), ...bShared], shared, [["rank", (x) => (b.indexOf(x) >= 0 ? b.indexOf(x) + 1 : "down")]]);
+}
+
+/* 2 · conserved markers */
+const V = { inter: 1, cond: 2, samp: 2, mix: 1, seed: 1 };
+function drawConserved() {
+  const interaction = [0, 1, 2][V.inter];
+  const cells = simulate(makeRng(1), { cells: 300, patientSd: 0.3, zonation: 3, interaction });
+  const Y = normalise(cells);
+  const inter = (x) => x.g >= TYPES.length * G_MARK + G_HOUSE && x.g < TYPES.length * G_MARK + G_HOUSE + 10;
+  const pooled = findMarkers(Y, (i) => cells[i].type === 0, (i) => cells[i].type !== 0, { nGenes: 33538 });
+  const per = [1, 2].map((p) => new Map(findMarkers(Y, (i) => cells[i].patient === p && cells[i].type === 0, (i) => cells[i].patient === p && cells[i].type !== 0, { nGenes: 33538, logfc: 0, minPct: 0 }).res.map((x) => [x.g, x])));
+  const sig = pooled.res.filter((x) => x.lfc > 0 && x.lpAdj < LOG05).sort((a, b) => a.lp - b.lp);
+  const cons = sig.map((x) => { const a = per[0].get(x.g), b = per[1].get(x.g); const ok = a && b && a.lfc > 0 && b.lfc > 0 && Math.max(a.lpAdj, b.lpAdj) < LOG05; return { ...x, ok, p1lp: a?.lp, p2lp: b?.lp }; });
+  const pooledRows = [...sig.slice(0, 8), ...sig.filter(inter)];
+  table("c4a", `Pooled: ${sig.length} genes up at p_val_adj < 0.05 (first 8, then the patient 1-only ones)`, pooledRows, inter, [["rank", (x) => sig.indexOf(x) + 1]]);
+  const consRows = [...cons.filter((x) => x.ok).slice(0, 8), ...cons.filter((x) => inter(x))];
+  table("c4b", `Conserved in both patients: ${cons.filter((x) => x.ok).length} genes (first 8, then the patient 1-only ones)`, consRows, inter, [["patient 1 / 2", (x) => `${pf(x.p1lp)} / ${pf(x.p2lp)}`], ["kept", (x) => (x.ok ? "yes" : "no")]]);
+}
+
+/* 3 · condition with a real effect */
+const COND = [0, 0.5, 1, 2], SAMP = [0, 0.2, 0.4, 0.65];
+function drawVolcano() {
+  const cells = simulateType(makeRng(3), "kupffer", { perSample: 120, patientSd: 0.3, sampleSd: SAMP[V.samp], condition: COND[V.cond] });
+  const Y = normalise(cells);
+  const fm = findMarkers(Y, (i) => cells[i].tissue === "tumour", (i) => cells[i].tissue === "liver", { logfc: 0, minPct: 0, nGenes: 33538 });
+  const order = ["p1-liver", "p2-liver", "p1-tumour", "p2-tumour"];
+  const counts = Array.from({ length: G }, (_, g) => order.map((sk) => cells.reduce((s, c) => s + (c.sample === sk ? c.x[g] : 0), 0)));
+  const an = analyse({ counts, grp: [0, 0, 1, 1], reps: 2, genes: G });
+  const ptsC = fm.res.map((x) => ({ g: x.g, lfc: x.lfc, nl: Math.min(60, -x.lp), call: x.lpAdj < LOG05 }));
+  const ptsD = an.expressed.map((g) => ({ g, lfc: an.resMAP[g].lfc, nl: Math.min(60, -Math.log10(Math.max(1e-300, an.resMAP[g].p))), call: an.resMAP[g].padj < 0.05 }));
+  const W = 1100, H = 330, ctx = canvas("c1", W, H), PW = 500;
+  [[ptsC, "Over cells (Wilcoxon)", 30], [ptsD, "Over samples (DESeq2)", 30 + PW + 60]].forEach(([pts, title, X]) => {
+    const yMax = Math.max(5, ...pts.map((p) => p.nl)) * 1.05, xs = 3.5;
+    const sx = (v) => X + PW / 2 + (Math.max(-xs, Math.min(xs, v)) / xs) * (PW / 2), sy = (v) => 30 + 260 - (v / yMax) * 260;
+    ctx.font = `600 13px ${FONT}`; ctx.fillStyle = C("--ink-1"); ctx.fillText(title, X, 18);
+    ctx.strokeStyle = C("--axis"); ctx.beginPath(); ctx.moveTo(X, 290.5); ctx.lineTo(X + PW, 290.5); ctx.moveTo(sx(0) + 0.5, 30); ctx.lineTo(sx(0) + 0.5, 290); ctx.stroke();
+    ctx.font = `11px ${FONT}`; ctx.fillStyle = C("--ink-3"); ctx.textAlign = "center"; ctx.fillText("log2 fold change, tumour against liver", X + PW / 2, 308); ctx.textAlign = "left"; ctx.fillText("−log10 p", X + 4, 40);
+    pts.forEach((p) => {
+      const truth = isConditionGene(p.g), x = sx(p.lfc), y = sy(p.nl);
+      ctx.beginPath(); ctx.arc(x, y, 3, 0, Math.PI * 2);
+      if (p.call) { ctx.fillStyle = truth ? C("--c-empirical") : C("--c-extreme"); ctx.fill(); } else { ctx.fillStyle = C("--ink-3"); ctx.globalAlpha = 0.35; ctx.fill(); ctx.globalAlpha = 1; }
+      if (truth) { ctx.strokeStyle = C("--c-reference"); ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(x, y, 6, 0, Math.PI * 2); ctx.stroke(); }
+    });
+  });
+  const tp = (pts) => pts.filter((p) => p.call && isConditionGene(p.g)).length, fp = (pts) => pts.filter((p) => p.call && !isConditionGene(p.g)).length;
+  document.getElementById("t1").innerHTML = [
+    ["Over cells: true changes found", `${tp(ptsC)} of 20`, `and ${fp(ptsC)} unchanged genes called (red)`],
+    ["Over samples: true changes found", `${tp(ptsD)} of 20`, `and ${fp(ptsD)} unchanged genes called (red)`],
+  ].map(([k, v, n]) => `<div class="tile"><div class="k">${k}</div><div class="v">${v}</div><div class="n">${n}</div></div>`).join("");
+}
+
+/* 4 · composition */
+const MIX = [0, 0.3, 0.6];
+function drawComposition() {
+  const cells = simulate(makeRng(V.seed), { cells: 400, patientSd: 0, compSd: MIX[V.mix] });
+  const n = {}; SAMPLES.forEach((s) => { n[s.key] = new Array(TYPES.length).fill(0); }); cells.forEach((c) => { n[c.sample][c.type] += 1; });
+  const order = ["p1-liver", "p2-liver", "p1-tumour", "p2-tumour"], names = ["Patient 1 · liver", "Patient 2 · liver", "Patient 1 · tumour", "Patient 2 · tumour"];
+  const W = 520, H = 330, ctx = canvas("c3", W, H), bw = 80;
+  ctx.font = `600 13px ${FONT}`; ctx.fillStyle = C("--ink-1"); ctx.fillText("Each sample's cells, by type", 20, 18);
+  order.forEach((k, j) => {
+    let y = 290; const x = 30 + j * 120;
+    TYPES.forEach((_, t) => { const h = (n[k][t] / 400) * 260; ctx.fillStyle = CL[t]; ctx.fillRect(x, y - h, bw, h); y -= h; });
+    ctx.font = `11px ${FONT}`; ctx.fillStyle = C("--ink-2"); ctx.textAlign = "center"; ctx.fillText(names[k === "p1-liver" ? 0 : k === "p2-liver" ? 1 : k === "p1-tumour" ? 2 : 3], x + bw / 2, 308); ctx.textAlign = "left";
+  });
+  const rows = TYPES.map((t, ti) => {
+    const a = n["p1-liver"][ti] + n["p2-liver"][ti], c2 = n["p1-tumour"][ti] + n["p2-tumour"][ti], b = 800 - a, d = 800 - c2, N = 1600;
+    const x2 = (N * (a * d - b * c2) ** 2) / ((a + b) * (c2 + d) * (a + c2) * (b + d) || 1);
+    const tr = (k) => Math.asin(Math.sqrt(n[k][ti] / 400));
+    const L = [tr("p1-liver"), tr("p2-liver")], T = [tr("p1-tumour"), tr("p2-tumour")], m1 = (L[0] + L[1]) / 2, m2 = (T[0] + T[1]) / 2;
+    const v = ((L[0] - m1) ** 2 + (L[1] - m1) ** 2 + (T[0] - m2) ** 2 + (T[1] - m2) ** 2) / 2, tt = (m2 - m1) / Math.sqrt(v || 1e-12);
+    return { t, ti, liv: a / 800, tum: c2 / 800, pc: chi2P(x2), ps: ibeta(2 / (2 + tt * tt), 1, 0.5) };
+  });
+  const f = (p) => (p < 1e-4 ? p.toExponential(0) : p.toFixed(3));
+  document.getElementById("t3").innerHTML = `<table class="fm"><caption>Liver against tumour, per type</caption><tr><th>type</th><th>liver</th><th>tumour</th><th>p over cells</th><th>p over samples</th></tr>${rows.map((r) => `<tr><td style="font-family:var(--font)"><span style="display:inline-block;width:9px;height:9px;background:${CL[r.ti]};margin-right:6px"></span>${r.t.name}</td><td>${Math.round(100 * r.liv)}%</td><td>${Math.round(100 * r.tum)}%</td><td>${f(r.pc)}</td><td>${f(r.ps)}</td></tr>`).join("")}</table>`;
+}
+
+const range = (id, prop, out, fmtv, then) => { const el = document.getElementById(id); el.value = V[prop]; const o = document.getElementById(out); const upd = () => { V[prop] = +el.value; o.textContent = fmtv(V[prop]); then(); }; el.addEventListener("change", upd); el.addEventListener("input", () => { o.textContent = fmtv(+el.value); }); o.textContent = fmtv(V[prop]); };
+range("inter", "inter", "iv", (v) => [0, 1, 2][v], drawConserved);
+range("cond", "cond", "cv", (v) => COND[v], drawVolcano); range("samp", "samp", "sv", (v) => SAMP[v], drawVolcano);
+range("mix", "mix", "mv", (v) => MIX[v], drawComposition); range("seed", "seed", "dv", (v) => v, drawComposition);
+drawConserved(); drawVolcano(); drawComposition();
+
+document.getElementById("calls").innerHTML = `<table class="calls"><tr><th>#</th><th>call</th><th>arms</th><th>recommendation</th></tr>
+<tr><td>1</td><td>Where the two population comparisons go</td><td>A · on Markers: a "Compared against" control (all other cells · one cluster) and a "Markers" control (pooled · conserved in both patients) · B · a new page, Compare, holding both</td><td>A — both change which genes the same table lists, so they belong beside that table</td></tr>
+<tr><td>2</td><td>Conditions with a real effect</td><td>A · a True change control (0 · 0.5 · 1 · 2 log2) and the two p-value histograms replaced by two volcano plots, true changes ringed · B · keep the histograms and add the volcanos beneath</td><td>A — the histograms only speak to the null; the volcano shows the null (at 0) and the found genes on one figure</td></tr>
+<tr><td>3</td><td>Where composition goes</td><td>A · a fourth page, Composition · B · a panel on Conditions</td><td>A — a different quantity (shares of cells, not genes), with its own figure</td></tr>
+<tr><td>4</td><td>The composition test over samples</td><td>A · arcsine square root, a t-test (one of propeller's transforms) · B · the logit</td><td>A — measured: the logit failed on tumour cells, 1% → 50%, in 8 of 8 seeds</td></tr>
+</table>`;
+</script>
+</body>
+</html>
