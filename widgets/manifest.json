@@ -1187,7 +1187,7 @@
     {
       "slug": "integration",
       "title": "Single-Cell RNA-seq: Integration",
-      "blurb": "Integration pairs cells across two batches as anchors and moves one onto the other; both must hold the same cell types.",
+      "blurb": "Integration removes the differences along the batch variable, including any biological difference along it.",
       "course": "PHM5003",
       "topics": [
         "single-cell RNA-seq",

@@ -69,11 +69,12 @@ defineWidget({
   slug: "integration",
   title: "Single-Cell RNA-seq: Integration",
   subtitle:
-    "Cells sequenced in different samples differ by technical effects as well as by biology. "
-    + "Anchor-based integration pairs cells across two batches that are each other's nearest "
-    + "neighbours, and moves each cell by the average difference across the anchors near it. "
-    + "The method assumes both batches contain the same cell types, so a population present in "
-    + "one batch only is paired with a different type and corrected onto it.",
+    "Cells from different samples differ by technical batch effects as well as by biology. "
+    + "Anchor-based integration uses pairs of mutual nearest neighbours between a reference batch "
+    + "and a query batch as anchors, and shifts each query cell by the weighted mean of the anchor "
+    + "vectors near it. The method assumes the batch variable is technical and the batches share "
+    + "cell types; a population present in one batch only is anchored to cells of another type and "
+    + "corrected onto them.",
   layout: "side",
   status: "draft",
   height: HEIGHT,
@@ -81,8 +82,8 @@ defineWidget({
   params: {
     dataSec: { type: "section", label: "The data" },
     batch: {
-      type: "segmented", label: "Batch",
-      detail: "the variable integration treats as technical and removes: two patients, each with liver and tumour; or liver against tumour, where tumour cells are in one batch only",
+      type: "segmented", label: "Batch variable",
+      detail: "the variable whose differences integration treats as technical and removes. Patient: two batches, each with liver and tumour samples. Tissue: liver samples against tumour samples, with tumour cells in the second batch only. Harmony, FastMNN and scVI correct by other mechanisms and also assume the batches share cell types",
       options: [{ value: "patient", label: "Patient" }, { value: "tissue", label: "Tissue" }],
       default: "patient",
     },
@@ -94,8 +95,8 @@ defineWidget({
   legend: ({ params }) => {
     const key = KEYS[params.batch];
     return [
-      { token: "ink-1", label: `${key.labels[0]}: the first batch, which stays where it is`, mark: "dot" },
-      { token: "ink-3", label: `${key.labels[1]}: the second batch, which is moved`, mark: "dot" },
+      { token: "ink-1", label: `${key.labels[0]}: the reference batch, left unchanged`, mark: "dot" },
+      { token: "ink-3", label: `${key.labels[1]}: the query batch, shifted onto the reference`, mark: "dot" },
       ...TYPES.map((t, i) => ({ token: `cluster-${"abcdef"[TYPE_SLOT[i]]}`, label: t.name, mark: "dot" })),
       { token: "reference", label: "An anchor: a pair of cells, one from each batch; an even sample of them drawn", mark: "line" },
       { token: "ink-1", label: "On the cell-type panel, an anchor between two different types", mark: "line" },
@@ -128,9 +129,9 @@ defineWidget({
   animation: {
     stepLabel: { anim: "labelAt", labels: { s0: "Find anchors", s1: "Correct", done: "Step" }, default: "Step" },
     stepTitle: { anim: "labelAt", labels: {
-      s0: "Pair cells across the two batches that are each other's nearest, once each batch is centred on its own mean",
-      s1: "Move each cell of the second batch by the average of the anchor vectors near it",
-      done: "Both steps have been taken",
+      s0: "Find mutual nearest neighbours between the two batches, after centring each batch on its own mean",
+      s1: "Shift each query cell by the weighted mean of the anchor vectors near it",
+      done: "Both steps are complete",
     }, default: "Step through integration" },
     runLabel: null,
     init: ({ params, fromScratch }) => {
@@ -162,7 +163,7 @@ defineWidget({
       if (!move || res.batch[i] === 0) return res.raw[i];
       return [lerp(res.raw[i][0], res.corrected[i][0], move), lerp(res.raw[i][1], res.corrected[i][1], move)];
     };
-    const heads = [`Coloured by ${key.name.toLowerCase()}, the declared batch`, "Coloured by cell type"];
+    const heads = [`Coloured by ${key.name.toLowerCase()}, the batch variable`, "Coloured by cell type"];
     panels.forEach((P, r) => {
       ctx.font = `600 ${colors.fsSm} ${colors.font}`; ctx.fillStyle = colors.ink1; ctx.textBaseline = "alphabetic"; ctx.textAlign = "left";
       ctx.fillText(heads[r], P.x, P.y - 9);
@@ -196,9 +197,9 @@ defineWidget({
     });
     /* the caption: what the figure holds at this press */
     const m = state.m;
-    const cap = n === 0 ? "As sequenced: no anchors yet"
-      : n === 1 ? `${m.anchors} anchors, ${m.across} of them between two different cell types${state.stride > 1 ? `; one in ${state.stride} drawn` : ""}`
-        : `Corrected: every cell of ${key.labels[1]} moved by the anchors near it`;
+    const cap = n === 0 ? "Before integration: no anchors found"
+      : n === 1 ? `${m.anchors} anchors, ${m.across} of them between two different cell types${state.stride > 1 ? `; 1 in ${state.stride} drawn` : ""}`
+        : "After integration: each query cell shifted by the weighted mean of the anchor vectors near it";
     ctx.font = `${colors.fsSm} ${colors.font}`; ctx.fillStyle = colors.ink2; ctx.textAlign = "left";
     ctx.fillText(cap, panels[0].x, TOP + S + 18);
   },
@@ -208,9 +209,9 @@ defineWidget({
     const m = state.m, key = KEYS[params.batch];
     const done = n >= 2 && (!anim || anim.p >= 1);
     return [
-      { label: "Anchors between two different cell types", value: n >= 1 ? `${m.across} of ${m.anchors}` : "–", note: n >= 1 ? `${pct(m.across / Math.max(1, m.anchors))}; an anchor is a pair of cells, one from each batch, each the other's nearest` : "none found yet" },
-      { label: "Patients mixed, 1 = fully", value: done ? `${fmt(m.mixPatient[0], 2)} → ${fmt(m.mixPatient[1], 2)}` : fmt(m.mixPatient[0], 2), note: "a cell's 15 nearest neighbours from the other patient, as a share of what full mixing gives" },
-      { label: "Tumour cells' neighbours that are hepatocytes", value: done ? `${pct(m.tumourHep[0])} → ${pct(m.tumourHep[1])}` : pct(m.tumourHep[0]), note: key === KEYS.tissue ? "tumour cells are in the tumour batch only" : "tumour cells are in both patients" },
+      { label: "Anchors between two different cell types", value: n >= 1 ? `${m.across} of ${m.anchors}` : "–", note: n >= 1 ? `${pct(m.across / Math.max(1, m.anchors))}; an anchor is a pair of mutual nearest neighbours, one cell from each batch` : "found by Find anchors" },
+      { label: "Patient mixing, 1 = fully mixed", value: done ? `${fmt(m.mixPatient[0], 2)} → ${fmt(m.mixPatient[1], 2)}` : fmt(m.mixPatient[0], 2), note: "of each cell's 15 nearest neighbours, the share from the other patient, relative to the share if fully mixed" },
+      { label: "Tumour cells' neighbours that are hepatocytes", value: done ? `${pct(m.tumourHep[0])} → ${pct(m.tumourHep[1])}` : pct(m.tumourHep[0]), note: key === KEYS.tissue ? "15 nearest neighbours; tumour cells are in the query batch only" : "15 nearest neighbours; tumour cells are in both patients" },
     ];
   },
 });
