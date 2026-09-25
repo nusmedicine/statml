@@ -58,7 +58,7 @@ const PAGES = [
   { value: "annotation", label: "Annotation" },
   { value: "markers", label: "Marker genes" },
   { value: "differential-expression", label: "Differential expression" },
-  { value: "differential-abundance", label: "Differential abundance" },
+  { value: "differential-abundance", label: "Differential abundance", span: true },
 ];
 const ON = (page) => ({ param: "page", equals: page });
 const CELL_PAGES = { param: "page", oneOf: ["annotation", "markers", "differential-expression"] };
