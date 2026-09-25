@@ -227,6 +227,16 @@ export function toQuery(spec, values, extra = {}) {
   for (const [name, field] of Object.entries(spec)) {
     const v = values[name];
     if (v === undefined || v === field.default) continue;
+    /* THE FIRST OPTION STANDING IN FOR AN ABSENT DEFAULT IS A DEFAULT TOO. A
+       list that follows another parameter may not hold the field's default,
+       and then the first option stands in (fromQuery, above); written to the
+       link it read as a choice nobody made — widget 81's Cluster put
+       `within=4` on every page, 2026-09-25. Left out, the link resolves to
+       the same first option when read back. */
+    if (OPTION_TYPES.has(field.type)) {
+      const keys = optionKeys(field, values);
+      if (keys.length && !keys.includes(field.default) && v === keys[0]) continue;
+    }
     const isFlag = field.type === "bool" || field.type === "gate";
     q.set(name, isFlag ? (v ? "1" : "0") : String(v));
   }
