@@ -917,6 +917,7 @@ defineWidget({
        the Pipeline page's list, so switching it starts the page over, and the same
        seed gives the same draws again. */
     task: {
+      role: "page",
       type: "segmented",
       label: "Task",
       /* Classification first and the default, on his word (2026-09-17: "make
@@ -928,6 +929,7 @@ defineWidget({
       default: "classification",
     },
     topic: {
+      role: "page",
       type: "segmented",
       label: "Topic",
       options: [{ value: "transforms", label: "Transforms" }, { value: "pipeline", label: "Pipeline" }],

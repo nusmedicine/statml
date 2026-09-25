@@ -174,6 +174,7 @@ defineWidget({
 
   params: {
     concept: {
+      role: "page",
       type: "segmented",
       label: "Concept",
       /* the notebook's two hierarchy types, in its own words (round 2):

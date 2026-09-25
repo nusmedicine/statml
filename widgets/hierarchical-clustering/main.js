@@ -159,6 +159,7 @@ defineWidget({
        `display: true` so a reader can build the tree, look at the matrix and
        come back to a tree still built. */
     view: {
+      role: "page",
       type: "segmented",
       label: "View",
       options: [

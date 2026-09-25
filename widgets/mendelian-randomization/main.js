@@ -895,6 +895,7 @@ defineWidget({
   params: {
     /* decision 2: the step is display, and the run is per step */
     page: {
+      role: "page",
       type: "segmented",
       label: M.STRINGS.pageLabel,
       options: M.PAGES,

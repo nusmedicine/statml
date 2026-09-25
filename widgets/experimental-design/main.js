@@ -647,6 +647,7 @@ defineWidget({
        the `_lab/` pages share that vocabulary. Grep for those, not for
        "sampling" or "replication". */
     topic: {
+      role: "page",
       type: "segmented",
       label: "Topic",
       options: [

@@ -1321,7 +1321,7 @@ defineWidget({
   height: ({ page, w }) => (page === "metrics" ? HEIGHTS.metrics + METRIC_BLOCK(w ?? 900) : HEIGHTS[page] ?? HEIGHTS.metrics),
 
   params: {
-    page: { type: "segmented", label: "Page", options: PAGES, default: "metrics", display: true },
+    page: { role: "page", type: "segmented", label: "Page", options: PAGES, default: "metrics", display: true },
 
     dataSec: { type: "section", label: "The data" },
     hot: {

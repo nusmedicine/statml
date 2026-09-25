@@ -325,7 +325,7 @@ defineWidget({
   height: ({ page }) => HEIGHTS[page] ?? HEIGHTS.distribution,
 
   params: {
-    page: { type: "segmented", label: "Page", options: PAGES, default: "distribution", display: true },
+    page: { role: "page", type: "segmented", label: "Page", options: PAGES, default: "distribution", display: true },
 
     dataSec: { type: "section", label: "The data" },
     reps: {

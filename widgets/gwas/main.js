@@ -450,6 +450,7 @@ defineWidget({
     /* DECISION 2: the page is display, so the tests survive a visit to the
        cohort and back. */
     page: {
+      role: "page",
       type: "segmented",
       style: "grid",
       label: M.STRINGS.pageLabel,

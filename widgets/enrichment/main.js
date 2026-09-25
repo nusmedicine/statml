@@ -235,6 +235,7 @@ defineWidget({
 
   params: {
     view: {
+      role: "page",
       type: "segmented",
       label: "Method",
       /* NO DETAILS UNDER THE METHOD NAMES. The subtitle already says what each

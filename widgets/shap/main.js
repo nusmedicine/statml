@@ -601,6 +601,7 @@ defineWidget({
        when the kind changes rather than reading a walk index as a patient
        count. */
     page: {
+      role: "page",
       type: "segmented",
       label: "Show",
       options: [

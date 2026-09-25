@@ -749,7 +749,7 @@ defineWidget({
   pointer: true,
 
   params: {
-    page: { type: "segmented", label: S.pageLabel, options: PAGES, default: "tokenize", display: true },
+    page: { role: "page", type: "segmented", label: S.pageLabel, options: PAGES, default: "tokenize", display: true },
     /* two by two: in one row "Amino acids" truncates at the rail's width */
     vocab: { type: "segmented", style: "grid", label: S.vocabLabel, detail: S.vocabDetail, options: VOCABS, default: "dna", display: true },
     dataSec: { type: "section", label: S.dataSection, when: ON("encode") },

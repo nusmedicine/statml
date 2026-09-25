@@ -449,6 +449,7 @@ widgetApi = defineWidget({
     /* DECISION 2: the page is display, so the arrival survives a visit to the
        2,000 SNPs and back. */
     page: {
+      role: "page",
       type: "segmented",
       label: M.STRINGS.pageLabel,
       detail: M.STRINGS.pageDetail,

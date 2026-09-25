@@ -1013,6 +1013,7 @@ defineWidget({
     /* Reading order is the instruction (3.1): which page, then what it is
        looking at, then the dial that paces it. */
     page: {
+      role: "page",
       type: "segmented",
       label: "Show",
       options: [

@@ -572,6 +572,7 @@ const handle = defineWidget({
        Naming the map as a place you can go is the whole workflow: try a
        distribution, press Map, try another. */
     view: {
+      role: "page",
       type: "segmented",
       label: "Show",
       options: [

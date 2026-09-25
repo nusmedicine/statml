@@ -506,7 +506,7 @@ defineWidget({
   height: ({ page }) => HEIGHTS[page] ?? HEIGHTS.clean,
 
   params: {
-    page: { type: "segmented", label: S.pageLabel, options: PAGES, default: "clean", display: true },
+    page: { role: "page", type: "segmented", label: S.pageLabel, options: PAGES, default: "clean", display: true },
 
     recSec: { type: "section", label: S.recSection },
     noise: {

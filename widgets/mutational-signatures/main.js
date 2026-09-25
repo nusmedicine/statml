@@ -944,7 +944,7 @@ defineWidget({
 
   params: {
     /* Decision 5: display, so the extraction survives a visit to page 1. */
-    page: { type: "segmented", label: S.pageLabel, detail: S.pageDetail, options: M.PAGES, default: "catalogue", display: true },
+    page: { role: "page", type: "segmented", label: S.pageLabel, detail: S.pageDetail, options: M.PAGES, default: "catalogue", display: true },
 
     tumorSec: { type: "section", label: S.tumorSection, when: { param: "page", equals: "catalogue" } },
     /* Decision 4 and 5: two of page 2's tumors, and display, so choosing one

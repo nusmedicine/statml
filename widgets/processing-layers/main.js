@@ -2163,6 +2163,7 @@ defineWidget({
        and Attention all truncate; the grid gives each 149px against a widest
        label of 86px (mock §1, Kenneth's pick). */
     block: {
+      role: "page",
       type: "segmented",
       label: "Layer",
       style: "grid",

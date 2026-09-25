@@ -154,6 +154,7 @@ defineWidget({
 
   params: {
     concept: {
+      role: "page",
       type: "segmented",
       label: "Concept",
       /* the notebook's three acts, in its order (Kenneth 2026-08-29 —

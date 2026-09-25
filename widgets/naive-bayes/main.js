@@ -646,6 +646,7 @@ defineWidget({
 
   params: {
     family: {
+      role: "page",
       type: "segmented",
       label: "Features",
       options: [

@@ -3209,6 +3209,7 @@ defineWidget({
        three are arithmetic on two of them, and a reader wants that before
        choosing rather than after (3.4g). */
     tab: {
+      role: "page",
       type: "segmented",
       label: "Topic",
       /* ROUND 30 (Kenneth: the two halves' names under the rows "doesn't show

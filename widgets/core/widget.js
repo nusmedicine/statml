@@ -277,6 +277,8 @@ export function defineWidget(config) {
   document.title = `${title} · statml widgets`;
 
   const values = resolveParams(spec, new URLSearchParams(location.search));
+  /* the state the link opened at, which Reset returns the controls on screen to */
+  const opened = { ...values };
   const host = document.querySelector(mount);
   /* `legend` may be a FUNCTION of the parameters (lm-interaction's ask,
      2026-08-29: "the legend should match the graph" — a tabbed widget's
@@ -1111,12 +1113,12 @@ export function defineWidget(config) {
       primary: true,
       onClick: () => startAnim("run"),
     },
-    /* NO ANIMATION, NO RESET (Kenneth, 2026-09-25, on widget 81 once its
-       press was cut). Alone in a drive row with nothing to step or play, the
-       button read as a leftover. The defaults are then reached control by
-       control, or by the widget's bare link. It takes linear-regularization's
-       Reset with it, the only other widget with no animation. */
-    animation && {
+    /* RESET ON EVERY WIDGET, animated or not (Kenneth, 2026-09-25). It was
+       taken off widgets with no animation the same morning, as a leftover
+       alone in the row; asked whether returning the sliders and the view was
+       useful in itself, he chose to keep it everywhere, as PhET keeps Reset
+       All on every simulation whether anything moves or not. */
+    {
       key: "reset",
       /* THE LABEL NAMES WHAT IT CLEARS, because "Reset" alone does not. The
          usability literature on reset controls is blunt about it — a bare
@@ -1126,20 +1128,55 @@ export function defineWidget(config) {
          every gate and returns to the cohort. Default unchanged, so no existing
          widget moves. */
       text: resetLabel ?? "Reset",
-      title: resetTitle ?? "Return every control to its default and start over",
+      title: resetTitle ?? "Return the controls on this page to the values the page opened with, and start over",
       onClick: () => {
         stopAnim();
-        /* EVERY control, including the gates — so on a staged widget this is
-           the way back to the beginning, and the label below says so. A
-           `keepOnReset` exemption was built for the opposite reading and taken
-           out again: it existed so a narrative could survive Reset, and once the
-           narrative was expressed as gates the honest thing was for Reset to
-           close them.
+        /* THE CONTROLS ON SCREEN RETURN TO THE LINK'S VALUES, AND THE PAGE
+           STAYS (Kenneth, 2026-09-25, B of three). Until then Reset set every
+           parameter to its default, the page control too, so Reset on
+           widget 81's Differential expression landed on Clustering and
+           cleared settings the reader could not see; and a lesson's link that
+           opened a widget on a chosen page with chosen settings lost them to
+           the widget's defaults. Now:
+
+             - a field marked `role: "page"` keeps its value — PhET's rule
+               for a multi-screen simulation, whose Reset All resets the
+               screen in view. `keepOnReset` did this once and was removed
+               with its only user, a narrative that became gates; a page is
+               not a narrative, and the gates on it still close
+             - a field on screen (its `when` holds, and it is not `hidden`,
+               or it is a slot of an `expr` on screen) returns to `opened`,
+               the value the link resolved to at load, which is its default
+               where the link named nothing
+             - a field on another page keeps its value; it is not in view
+             - a `hidden` field that is no slot returns to its default, so an
+               authored `shown` leaves the link as the figure empties
 
            Still a trap for a harness, and it stays written down: a fingerprint
-           sweep that clicks Reset between states tests only the default state
+           sweep that clicks Reset between states tests only the opening state
            and reports "0 problems" from it. */
-        for (const [name, field] of Object.entries(spec)) values[name] = field.default;
+        const slots = new Set(Object.values(spec).flatMap((f) => (f.type === "expr" ? f.slots ?? [] : [])));
+        const onScreen = new Set();
+        for (const [name, field] of Object.entries(spec)) {
+          if (!fieldShowing(field, values)) continue;
+          if (field.type === "expr") {
+            for (const n of field.slots ?? []) if (spec[n] && fieldShowing(spec[n], values)) onScreen.add(n);
+          } else if (!field.hidden) onScreen.add(name);
+        }
+        for (const [name, field] of Object.entries(spec)) {
+          if (!(name in values) || field.role === "page") continue;
+          if (onScreen.has(name)) values[name] = opened[name];
+          else if (field.hidden && !slots.has(name)) values[name] = field.default;
+        }
+        /* a list that follows a field on another page may not hold the value
+           the link opened with; the first option stands in, as it does when
+           the list changes under a click */
+        for (const [n, f] of Object.entries(spec)) {
+          if (!f.optionsFrom) continue;
+          const keys = optionKeys(f, values);
+          if (keys.length && !keys.includes(values[n])) values[n] = keys.includes(f.default) ? f.default : keys[0];
+        }
+        controls.rebuild(values);
         controls.syncAll(values);
         render();
         updateAnimButtons();
@@ -1148,8 +1185,6 @@ export function defineWidget(config) {
       },
     },
   ].filter(Boolean));
-  /* an empty drive row still draws its padding and rule; with no button in it, it goes */
-  if (!Object.keys(drive).length) dom.drive.hidden = true;
 
   /* --- the run button's width is reserved, not discovered ------------------ *
    *

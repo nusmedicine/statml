@@ -687,7 +687,7 @@ defineWidget({
   height: ({ page }) => HEIGHTS[page] ?? HEIGHTS.cnn,
 
   params: {
-    page: { type: "segmented", label: S.pageLabel, options: PAGES, default: "cnn", display: true },
+    page: { role: "page", type: "segmented", label: S.pageLabel, options: PAGES, default: "cnn", display: true },
 
     fragSec: { type: "section", label: S.fragSection },
     copies: {

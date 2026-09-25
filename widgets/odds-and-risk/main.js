@@ -382,6 +382,7 @@ defineWidget({
        tab both are on screen at once, because there the whole point is the
        comparison. */
     view: {
+      role: "page",
       type: "segmented",
       label: "",
       options: [

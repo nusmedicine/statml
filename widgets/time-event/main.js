@@ -410,6 +410,7 @@ defineWidget({
 
   params: {
     concept: {
+      role: "page",
       type: "segmented",
       label: "Concept",
       /* one-word gerunds (round 14 — "Comparing groups" truncated to

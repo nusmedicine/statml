@@ -1315,6 +1315,7 @@ defineWidget({
 
   params: {
     block: {
+      role: "page",
       type: "segmented",
       label: "Layer",
       style: "grid",

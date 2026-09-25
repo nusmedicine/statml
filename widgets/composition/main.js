@@ -2293,6 +2293,7 @@ defineWidget({
 
   params: {
     topic: {
+      role: "page",
       type: "segmented",
       label: "Topic",
       style: "grid",

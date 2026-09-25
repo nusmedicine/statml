@@ -1051,6 +1051,7 @@ defineWidget({
   params: {
     /* DECISION 15: four faces in two groups, the way the losses divide. */
     task: {
+      role: "page",
       type: "segmented",
       label: M.STRINGS.taskLabel,
       options: M.TASKS,

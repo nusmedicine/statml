@@ -701,6 +701,7 @@ widgetApi = defineWidget({
        then picks its metric family — the notebook's threshold-dependent /
        threshold-independent split, carried by the details. */
     outcome: {
+      role: "page",
       type: "segmented",
       label: "Outcome",
       options: [

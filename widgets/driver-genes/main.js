@@ -688,6 +688,7 @@ defineWidget({
     /* Decision 2: the page is display, so the steps survive a visit to the
        cohort and back. */
     page: {
+      role: "page",
       type: "segmented",
       label: S.pageLabel,
       detail: S.pageDetail,

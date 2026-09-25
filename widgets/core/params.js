@@ -60,6 +60,11 @@
    readings, where hiding the alternatives inside a dropdown hides that a choice
    exists at all; `select` only when the list is long enough that neither fits.
 
+   `role: "page"` marks the one field (two, on a widget with pages inside
+   pages) that says which part of the widget is on screen — Page, Topic,
+   Concept, Analysis. Reset keeps it, and returns only the controls on that
+   page to the values the link opened with (widget.js, 2026-09-25).
+
    `matrix` is for the case none of those fit: an option that is a PAIR of things,
    each half ranging over a list. 156 ordered pairs of thirteen body measurements
    is a flat dropdown nobody can navigate, and the grid's own texture — which

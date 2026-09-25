@@ -1178,6 +1178,7 @@ defineWidget({
     /* DECISION 2: the step is display, and the run is per step, so a visit
        elsewhere and back keeps all six. */
     page: {
+      role: "page",
       type: "segmented",
       style: "grid",
       label: M.STRINGS.pageLabel,

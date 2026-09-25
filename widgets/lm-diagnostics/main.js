@@ -222,6 +222,7 @@ defineWidget({
 
   params: {
     concept: {
+      role: "page",
       type: "segmented",
       label: "Concept",
       options: [

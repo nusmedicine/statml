@@ -933,7 +933,7 @@ defineWidget({
   height: ({ page, direction, code, k }) => (page === "lstm" ? HEIGHTS.lstm(code, direction) : page === "combo" ? HEIGHTS.combo(code, Number(k)) : page === "occlusion" ? HEIGHTS.occlusion : HEIGHTS.cnn(code, Number(k))),
 
   params: {
-    page: { type: "segmented", label: S.pageLabel, options: PAGES, default: "cnn", display: true },
+    page: { role: "page", type: "segmented", label: S.pageLabel, options: PAGES, default: "cnn", display: true },
 
     seqSec: { type: "section", label: S.seqSection },
     task: {

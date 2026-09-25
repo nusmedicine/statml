@@ -839,6 +839,7 @@ widgetApi = defineWidget({
     /* Decision 1: the page is display, so the reads survive a visit to the
        clusters and back. */
     page: {
+      role: "page",
       type: "segmented",
       style: "grid",
       label: M.STRINGS.pageLabel,

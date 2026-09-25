@@ -2637,6 +2637,7 @@ widgetApi = defineWidget({
        tab computes a different thing, and there is no work to preserve across
        them. */
     tab: {
+      role: "page",
       type: "segmented",
       label: "Topic",
       options: [

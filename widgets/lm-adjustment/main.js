@@ -265,6 +265,7 @@ defineWidget({
        the DAG) persists underneath. All display: the fits are all computed
        regardless, and a tab change must never reset an ease. */
     concept: {
+      role: "page",
       type: "segmented",
       label: "Concept",
       options: [

@@ -1003,7 +1003,7 @@ defineWidget({
      them (core params.js) — the seed sat last until 2026-09-25, and every
      list was built for the default seed */
   params: {
-    page: { type: "segmented", style: "grid", label: "Analysis", options: PAGES, default: "clustering", display: true },
+    page: { role: "page", type: "segmented", style: "grid", label: "Analysis", options: PAGES, default: "clustering", display: true },
 
     dataSec: { type: "section", label: "The data" },
     seed: { type: "int", label: "Seed", min: 1, max: 200, default: 1 },

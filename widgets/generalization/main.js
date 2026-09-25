@@ -366,6 +366,7 @@ defineWidget({
 
   params: {
     view: {
+      role: "page",
       type: "segmented",
       label: "",
       options: [

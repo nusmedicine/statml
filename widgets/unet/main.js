@@ -714,6 +714,7 @@ defineWidget({
 
   params: {
     topic: {
+      role: "page",
       type: "segmented",
       label: "Topic",
       options: [{ value: "unet", label: "U-Net" }, { value: "dice", label: "Dice loss" }],
