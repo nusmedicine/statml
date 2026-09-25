@@ -21849,8 +21849,7 @@ that trains it: three of the day's eleven rounds took training out.
 pretrained offline and shipped as generated weights); **network leave given**
 — transformers 5.17 and peft 0.21 installed, the configs and tokenizers read
 from the Hub (no weights), his 25 `dl-language-*.png` figures fetched into
-`_lab/figs/`. NEXT: slot 83 — measure its own stage, mock it on his figures
-(`dl-language-attention-weight.png`, `-output.png`, `-multi.png`), picks, draft.
+`_lab/figs/`. Slot 83 MEASURED AND MOCKED the same day (§ *Slot 83* below); NEXT its picks, then the draft.
 
 **Confirmed from the Hub the same day** (`from_config`, so exact without
 weights): `bert-base-uncased` 109,482,240 in the base model, 109,486,085 with
@@ -22026,6 +22025,56 @@ top of this section.**
 10. **08-3's ESM-2 has no default LoRA targets in peft** — worth knowing
    before the lesson adds PEFT to 08-3 as his arc note suggests (08-3 runs
    transfer only today).
+
+### Slot 83 · `attention` — Attention Mechanism — MEASURED AND MOCKED 2026-09-25
+
+**His ask, 2026-09-25:** *start on 83, measure then mock.* Measure script
+`_lab/attention-measure.py` (imports the arc script's grammar and tiny BERT;
+about 8 min; `--one` for the one-block model, `--export` writes
+`_lab/attention-mock-data.json`, the base model's block 1 on four sentences);
+mock `_lab/attention-mock.html`, drawn on his four figures
+(`dl-language-attention-weight.png`, `-output.png`, `-multi.png`, `-mask.png`).
+
+**What earns the slot beside 49.** 49 steps one head at initialisation, where
+the weights are flat. Trained, on this stage:
+
+- **Heads specialise, by position as much as by content** (08-1 cell 1's
+  "one head short-range, another semantic" HOLDS). The base's block 1: head 1
+  puts 0.55 of a row on the NEXT token, head 3 0.64 on the PREVIOUS one,
+  heads 2 and 4 spread over their clause; the correlation between two heads'
+  maps is 0.01–0.27.
+- **The lesson's own sentence reads as the lesson says.** *treated with
+  aspirin for chest pain*: the *aspirin* row puts 0.79 of head 4 on *chest
+  pain*; with `[MASK]` for the drug, 0.84 (head 4) and 0.83 (head 2). Over 300
+  treat clauses, 0.50 and 0.67 against 0.09 for a uniform row. *discharge*'s row
+  puts 0.58–0.95 on its own clause's cue words against 0.28.
+- **A head's weights are not how much the model needs it** — in a one-block
+  model the head with 0.00 on the symptom costs the drug slot most when
+  zeroed (100% → 46%). No copy may say a head "finds" anything.
+- **The scale:** at this widget's d_k 12, training without ÷√d_k made no
+  difference (loss 0.383 against 0.372); at d_k 64 the rows went one-hot
+  (0.98 against 0.70) and training was slower (1.745 against 1.222 at 250
+  steps). Dropping the division at READ time on the trained base sharpens
+  the mean top weight 0.68 → 0.92.
+- **Several heads against one of the same width:** MLM 80% against 78% (two
+  blocks), 79% against 75% (one block); a small gain, not a page's claim.
+
+**Mocked, with a recommendation each** (§ 6 of the mock): pages Weights ·
+Output · Heads · Mask in the lesson's order, or three with Weights and Output
+as one; Weights as his figure (query → keys → the row, the matrix filled a
+row a Step) or arcs over the sentence; the mask as padding here and causal on
+84 (the arc's plan), causal here as his figure, or a control with both; the
+scale as a display control on Weights, the arithmetic figure, or the formula
+alone; the four synthetic sentences (the lesson's *treated with aspirin for
+chest pain* first) or his figures' M K S; the title *Deep Learning -
+Attention* or *Deep Learning - Language: Attention*.
+
+**A finding about his figures, to tell him:** `dl-language-attention-weight.png`
+and `-output.png` draw each token's own key as its largest weight. Trained,
+the own token is the largest in 1–13% of rows (self weight 0.03–0.13); rows
+are peaked (mean top 0.42–0.81), but on the next token, the previous one or
+the clause. A widget drawn from trained weights will not show the figure's
+diagonal.
 
 ### The open calls
 

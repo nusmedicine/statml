@@ -1,0 +1,346 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · slot 83 attention — mock</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1600px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; color: var(--ink-1); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 104ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); min-height: 26px; white-space: pre-line; max-width: 550px; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  img.fig { display: block; max-width: 380px; max-height: 300px; background: #fff; border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 104ch; }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+       border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 104ch; }
+  .q b { display: block; margin-bottom: 2px; }
+  .tell { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+          border-left: 3px solid var(--c-extreme); background: var(--surface-2); max-width: 104ch; }
+  #findings { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--ink-2); white-space: pre-wrap;
+              padding: var(--sp-3); background: var(--surface-2); border: 1px solid var(--grid); max-width: 120ch;
+              max-height: 420px; overflow: auto; }
+  table { border-collapse: collapse; font-size: var(--fs-sm); margin: var(--sp-2) 0; }
+  th, td { border: 1px solid var(--grid); padding: 4px 10px; text-align: left; vertical-align: top; }
+  th { color: var(--ink-2); font-weight: 600; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Slot 83 <code>attention</code> &middot; Attention Mechanism (08-1 cell 1) &middot; mock</h1>
+  <p class="note">
+    Every weight drawn here is the <b>trained</b> tiny BERT's (D 48, four heads of 12, two blocks, masked-token
+    pretraining on the synthetic clinical notes, 3,000 steps, seed 0), <b>block 1</b>, read from
+    <code>attention-mock-data.json</code>, which <code>attention-measure.py --export</code> wrote. Block 1's input is
+    x&#771; itself, the token row plus the position row, where widget 74 stops. Widget 49 already steps one untrained head
+    through <code>[3, 4]</code>, where the weights are flat; this widget begins where training has made them mean
+    something. His figures are shown beside the arms they are drawn from. Filled states so they can be judged; the
+    widget opens empty. On-canvas strings are candidates, not copy.
+  </p>
+
+  <h2>0 &middot; What the measurement found</h2>
+  <div id="findings">loading&hellip;</div>
+
+  <h2>1 &middot; Page Weights &mdash; one query, its keys, its row of &alpha;</h2>
+  <p class="note">
+    <i>treated with aspirin for chest pain</i>, head 4, the query <b>aspirin</b>: 0.79 of its weight falls on
+    <i>chest pain</i> (08-1 cell 1: <i>to understand "aspirin", the model should focus strongly on "treated" and "chest
+    pain"</i>). A Step computes the next query's row, as his figure's three panels do; the matrix fills row by row.
+    <b>A</b> is his figure as drawn. <b>B</b> puts the row on the sentence as arcs, his output figure's glyph, with the
+    matrix left to the Heads page.
+  </p>
+  <div class="row">
+    <div class="cand"><div class="sub">his dl-language-attention-weight.png</div><img class="fig" src="figs/dl-language-attention-weight.png" alt=""></div>
+    <div class="cand"><div class="sub">A · as drawn: query → keys → the row, and the matrix filled to this query</div><canvas id="p1a" width="550" height="462"></canvas></div>
+    <div class="cand"><div class="sub">B · the row as arcs over the sentence, the numbers under the keys</div><canvas id="p1b" width="550" height="250"></canvas></div>
+  </div>
+  <p class="rec">A: it is his figure, and the matrix growing a row a Step is what the Heads page then shows whole.</p>
+
+  <h2>2 &middot; Page Output &mdash; z<sub>i</sub> = &Sigma; &alpha;<sub>ij</sub> v<sub>j</sub></h2>
+  <p class="note">
+    His output figure as drawn: the query's row lifted out, each weight times that key's value vector (12 numbers, head
+    4's v), summed into the query's new vector. The value strips are signed, so they take the two ends of one range;
+    the weights keep the matrix's single ramp.
+  </p>
+  <div class="row">
+    <div class="cand"><div class="sub">his dl-language-attention-output.png</div><img class="fig" src="figs/dl-language-attention-output.png" alt=""></div>
+    <div class="cand"><div class="sub">as drawn, trained head 4, query aspirin</div><canvas id="p2" width="550" height="420"></canvas></div>
+  </div>
+  <p class="rec">One arm: his figure. The open call is below (§ 6, 1): Weights and Output as two pages, as the lesson
+    has them, or one page whose Step runs weights then output for each query, since 49 already draws the output.</p>
+
+  <h2>3 &middot; Page Heads &mdash; four heads on the same x&#771;</h2>
+  <p class="note">
+    His multi-head figure: the embedding into several self-attention heads, joined, into the feed-forward. Each head's
+    whole matrix on the same sentence, with what that head looks at over 500 held-out notes (torch, W1) under it. The
+    join is drawn as the concatenation it is, <code>[L, 4 &times; 12] &rarr; W<sub>O</sub> &rarr; [L, 48]</code>; his
+    figure draws a +. The feed-forward is 84's, drawn and dimmed.
+  </p>
+  <div class="row">
+    <div class="cand"><div class="sub">his dl-language-attention-multi.png</div><img class="fig" src="figs/dl-language-attention-multi.png" alt=""></div>
+    <div class="cand"><div class="sub">four trained heads, block 1</div><canvas id="p3" width="550" height="420"></canvas></div>
+  </div>
+  <p class="rec">Printed under each head: its measured habit (next token 0.55 · the clause 0.55 · previous token 0.64 ·
+    the clause 0.52). Not printed: which head "does" anything. Zeroing heads showed a head's weights are not how much
+    the model needs it (W3): in a one-block model the head with 0.00 on the symptom costs the drug slot most.</p>
+
+  <h2>4 &middot; Page Mask &mdash; padding (08-3 cell 4) and causal (his figure)</h2>
+  <p class="note">
+    His mask figure is the <b>causal</b> mask (08-1 cell 2, the decoder's masked self-attention): a key after the query
+    gets no weight, and the row renormalises. The <b>padding</b> mask is 08-3 cell 4's (<code>src_key_padding_mask</code>)
+    and 08-1 cell 5's <code>attention_mask</code>. <b>A</b>: padding, the same sentence padded to 16 without and with the
+    mask. <b>B</b>: causal as his figure draws it. The arc planned padding here and causal on 84's Decoder page.
+  </p>
+  <div class="row">
+    <div class="cand"><div class="sub">his dl-language-attention-mask.png</div><img class="fig" src="figs/dl-language-attention-mask.png" alt=""></div>
+    <div class="cand"><div class="sub">A · padding: to 16, head 4</div><canvas id="p4a" width="550" height="300"></canvas></div>
+    <div class="cand"><div class="sub">B · causal: head 4, rows renormalised over the keys at or before the query</div><canvas id="p4b" width="550" height="300"></canvas></div>
+  </div>
+
+  <h2>5 &middot; The scale, &divide;&radic;d<sub>k</sub></h2>
+  <p class="note">
+    <b>A</b>: a display control on the Weights page, <i>&divide;&radic;d<sub>k</sub></i> on or off, re-reading the
+    same trained q and k: the rows sharpen (head 4's mean top weight 0.57 &rarr; 0.85 on this sentence; all four heads 0.68 &rarr; 0.92). It reads what the
+    division does to trained scores, not what training without it would give. <b>B</b>: the arithmetic alone, in the
+    formula card's place: ten keys, unit-variance q and k, the top weight against d<sub>k</sub> (the arc mock's figure).
+    <b>C</b>: the formula alone, <code>softmax(q&middot;k / &radic;d<sub>k</sub>)</code>. Trained without the division
+    at d<sub>k</sub> 64 the rows went one-hot (0.98) and training was slower; at this widget's d<sub>k</sub> 12 it made
+    no difference (W4), so no page can show that on its own model.
+  </p>
+  <div class="row">
+    <div class="cand"><div class="sub">A · head 4 scaled and not, same q and k</div><canvas id="p5a" width="550" height="250"></canvas></div>
+    <div class="cand"><div class="sub">B · page arithmetic, 4,000 rows a point</div><canvas id="p5b" width="550" height="250"></canvas></div>
+  </div>
+
+  <h2>6 &middot; The calls</h2>
+  <p class="q"><b>1 &middot; Pages.</b> Weights &middot; Output &middot; Heads &middot; Mask, the lesson's order (recommended) &middot;
+    or three, Weights and Output as one page (each Step: the row, then the sum), since 49 already draws an output.</p>
+  <p class="q"><b>2 &middot; Weights layout.</b> A his figure, query &rarr; keys &rarr; row, matrix filled a row a Step (recommended) &middot;
+    B arcs over the sentence.</p>
+  <p class="q"><b>3 &middot; Mask.</b> A padding here, causal on 84's Decoder page (the arc's plan; recommended) &middot;
+    B causal here, as his figure &middot; C a Mask control None &middot; Padding &middot; Causal on this page.</p>
+  <p class="q"><b>4 &middot; The scale.</b> A a display control on Weights (recommended: the only arm that uses the
+    trained model) &middot; B the arithmetic figure &middot; C the formula only.</p>
+  <p class="q"><b>5 &middot; The sentences.</b> A the four below from the synthetic notes, the lesson's
+    <i>treated with aspirin for chest pain</i> first (recommended) &middot; B his figures' three letters M K S, a
+    protein, which the clinical model cannot read.</p>
+  <table>
+    <tr><th>sentence (a Sentence control)</th><th>what it carries</th></tr>
+    <tr><td><code>treated with aspirin for chest pain</code></td><td>08-1 cell 1's own; aspirin &rarr; chest pain 0.79 in head 4</td></tr>
+    <tr><td><code>treated with [MASK] for chest pain</code></td><td>08-1 cell 4's MLM example; [MASK] &rarr; chest pain 0.84 and 0.83 in heads 4 and 2</td></tr>
+    <tr><td><code>patient presented with fever . yellow discharge from wound</code></td><td>discharge reads its own clause's cue words</td></tr>
+    <tr><td><code>no nausea reported . planned discharge home today</code></td><td>the other sense of the same word</td></tr>
+  </table>
+  <p class="q"><b>6 &middot; The title.</b> <i>Deep Learning - Attention</i> (recommended; the collection's form for a
+    concept) &middot; <i>Deep Learning - Language: Attention</i> (the data-type form of 72&ndash;75) &middot; slug
+    <code>attention</code>.</p>
+  <p class="tell"><b>His weight figure's diagonal.</b> <code>dl-language-attention-weight.png</code> and
+    <code>-output.png</code> draw each token's own key as its largest weight. Trained, the own token is the largest in
+    1&ndash;13% of rows (W1); the weight goes to the next token, the previous one, or the clause. A widget drawn from
+    trained weights will not look like the figure's diagonal, and says so in no caption &mdash; noted here for the lesson.</p>
+  <p class="note"><b>Left to the draft, conventional:</b> block 1 of the arc's base model (84 continues it); the Head
+    control defaulting to head 4; the Step label; the matrix's ramp in <code>--c-magnitude</code>, the query in
+    <code>--c-group-a</code> and the keys in <code>--c-group-b</code> (49's and 53's roles), v and z on
+    <code>--c-value-low</code> / <code>--c-value-high</code>; the JS forward reproducing the export to 1e-6.</p>
+</main>
+
+<script type="module">
+const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const C = {
+  ink1: css("--ink-1"), ink2: css("--ink-2"), ink3: css("--ink-3"), grid: css("--grid"),
+  s1: css("--surface-1"), s2: css("--surface-2"), s3: css("--surface-3"),
+  a: css("--c-group-a"), b: css("--c-group-b"), mag: css("--c-magnitude"), lo: css("--c-value-low"), hi: css("--c-value-high"),
+  emp: css("--c-empirical"), ext: css("--c-extreme"), ref: css("--c-reference"), font: css("--font"), mono: css("--font-mono"),
+};
+function ctx(id) {
+  const cv = document.getElementById(id), dpr = window.devicePixelRatio || 1, w = cv.width, h = cv.height;
+  cv.style.width = w + "px"; cv.style.height = h + "px"; cv.width = w * dpr; cv.height = h * dpr;
+  const g = cv.getContext("2d"); g.scale(dpr, dpr); return g;
+}
+function text(g, s, x, y, { size = 11, color = C.ink2, align = "left", mono = false, bold = false } = {}) {
+  g.font = `${bold ? "600 " : ""}${size}px ${mono ? C.mono : C.font}`; g.fillStyle = color; g.textAlign = align; g.textBaseline = "alphabetic"; g.fillText(s, x, y);
+}
+const rgb = (h) => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+function mix(t, col) { const a = rgb(C.s1), b = rgb(col); return `rgb(${a.map((x, i) => Math.round(x + (b[i] - x) * Math.max(0, Math.min(1, t)))).join(",")})`; }
+const wcol = (w) => mix(Math.sqrt(w), C.mag);                     // a weight on the one ramp
+const vcol = (v, s) => mix(Math.abs(v) / s, v >= 0 ? C.hi : C.lo);  // a signed value, two ends
+function cellText(g, s, x, y, w, h, t) { text(g, s, x + w / 2, y + h / 2 + 4, { align: "center", size: 10, mono: true, color: t > 0.45 ? C.s1 : C.ink1 }); }
+function arrow(g, x1, y1, x2, y2, col = C.ink3) { g.strokeStyle = col; g.lineWidth = 1.2; g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke();
+  const a = Math.atan2(y2 - y1, x2 - x1); g.fillStyle = col; g.beginPath(); g.moveTo(x2, y2); g.lineTo(x2 - 7 * Math.cos(a - 0.4), y2 - 7 * Math.sin(a - 0.4)); g.lineTo(x2 - 7 * Math.cos(a + 0.4), y2 - 7 * Math.sin(a + 0.4)); g.fill(); }
+function matrix(g, A, toks, x0, y0, cs, { upto = A.length - 1, qi = -1, labels = true, digits = false, pad = -1, rowLab = true } = {}) {
+  if (labels) toks.forEach((t, j) => { g.save(); g.translate(x0 + j * cs + cs / 2 + 3, y0 - 4); g.rotate(-Math.PI / 3); text(g, t, 0, 0, { size: 9, mono: true, color: j >= pad && pad >= 0 ? C.ink3 : C.ink2 }); g.restore(); });
+  A.forEach((row, i) => {
+    if (labels && rowLab) text(g, toks[i], x0 - 4, y0 + i * cs + cs / 2 + 4, { size: 9, mono: true, align: "right", color: i === qi ? C.a : C.ink2 });
+    row.forEach((w, j) => {
+      const x = x0 + j * cs, y = y0 + i * cs;
+      if (i > upto) { g.strokeStyle = C.grid; g.strokeRect(x + 0.5, y + 0.5, cs - 1, cs - 1); return; }
+      g.fillStyle = w === null ? C.s1 : wcol(w); g.fillRect(x, y, cs - 1, cs - 1);
+      if (w === null) { g.strokeStyle = C.grid; g.strokeRect(x + 0.5, y + 0.5, cs - 2, cs - 2); }
+      if (digits && w !== null) cellText(g, w.toFixed(2).replace(/^0/, ""), x, y, cs - 1, cs - 1, Math.sqrt(w));
+      if (pad >= 0 && j >= pad) { g.strokeStyle = C.ink3; g.globalAlpha = 0.4; g.beginPath(); g.moveTo(x, y + cs - 1); g.lineTo(x + cs - 1, y); g.stroke(); g.globalAlpha = 1; }
+    });
+  });
+  if (qi >= 0) { g.setLineDash([3, 3]); g.strokeStyle = C.a; g.lineWidth = 1.5; g.strokeRect(x0 - 2, y0 + qi * cs - 2, A[0].length * cs + 3, cs + 3); g.setLineDash([]); }
+}
+
+fetch("attention-measure.py").then(r => r.text()).then(s => { const i = s.indexOf("FINDINGS,"), j = s.indexOf('"""', i);
+  document.getElementById("findings").textContent = s.slice(i, j).trim(); });
+
+const D = await (await fetch("attention-mock-data.json")).json();
+const S = D.sentences[0], H4 = S.heads[3], toks = S.tokens, QI = 3, n = toks.length;
+
+// ------------------------------------------------ page 1 · A as drawn
+{
+  const g = ctx("p1a"), a = H4.alpha, x0 = 110, cw = (540 - x0) / n;
+  const cx = (j) => x0 + j * cw + cw / 2;
+  text(g, "Query", 14, 34, { size: 13, color: C.ink1 });
+  toks.forEach((t, j) => text(g, t, cx(j), 34, { align: "center", mono: true, size: 11, color: j === QI ? C.a : C.ink3 }));
+  g.setLineDash([3, 3]); g.strokeStyle = C.a; g.lineWidth = 1.5; g.beginPath(); g.ellipse(cx(QI), 30, cw / 2 - 2, 13, 0, 0, 7); g.stroke(); g.setLineDash([]);
+  g.strokeStyle = C.ink2; g.lineWidth = 1.2; g.beginPath(); g.moveTo(cx(QI), 44); g.lineTo(cx(QI), 60); g.moveTo(cx(0), 60); g.lineTo(cx(n - 1), 60); g.stroke();
+  toks.forEach((_, j) => arrow(g, cx(j), 60, cx(j), 78, C.ink2));
+  text(g, "Keys", 14, 98, { size: 13, color: C.ink1 });
+  toks.forEach((t, j) => text(g, t, cx(j), 98, { align: "center", mono: true, size: 11, color: C.b }));
+  a[QI].forEach((w, j) => { g.fillStyle = wcol(w); g.fillRect(x0 + j * cw + 1, 108, cw - 2, 28); cellText(g, w.toFixed(2), x0 + j * cw + 1, 108, cw - 2, 28, Math.sqrt(w)); });
+  g.strokeStyle = C.ink1; g.strokeRect(x0 + 0.5, 108.5, n * cw - 1, 28);
+  text(g, `α for the query "${toks[QI]}", head 4`, x0, 154, { size: 10, color: C.ink3 });
+  arrow(g, 320, 162, 320, 180, C.ink2);
+  text(g, "Attention weights α_ij", 14, 300, { size: 12, color: C.ink1 });
+  matrix(g, a, toks, 250, 222, 24, { upto: QI, qi: QI });
+  text(g, "i", 250 + n * 24 + 14, 222 + n * 12, { size: 12, color: C.ink2 }); text(g, "j", 250 + n * 12, 222 + n * 24 + 16, { size: 12, color: C.ink2 });
+  text(g, "Step 4 of 8 · rows below the query fill on later Steps", 250, 454, { size: 9.5, color: C.ink3 });
+}
+// ------------------------------------------------ page 1 · B arcs
+{
+  const g = ctx("p1b"), a = H4.alpha[QI], x0 = 24, cw = (530 - x0) / n, cx = (j) => x0 + j * cw + cw / 2, base = 170;
+  toks.forEach((t, j) => text(g, t, cx(j), base + 16, { align: "center", mono: true, size: 12, color: j === QI ? C.a : C.ink1 }));
+  a.forEach((w, j) => {
+    const x1 = cx(QI), x2 = cx(j), h = j === QI ? 0 : 20 + Math.abs(x2 - x1) * 0.45;
+    g.strokeStyle = C.mag; g.globalAlpha = 0.25 + 0.75 * Math.sqrt(w); g.lineWidth = 1 + 9 * w;
+    g.beginPath();
+    if (j === QI) g.ellipse(x1, base - 14, 10, 12, 0, 0, 7); else { g.moveTo(x1, base); g.quadraticCurveTo((x1 + x2) / 2, base - h, x2, base); }
+    g.stroke(); g.globalAlpha = 1;
+    text(g, w.toFixed(2), cx(j), base + 36, { align: "center", mono: true, size: 10, color: C.ink2 });
+  });
+  text(g, `query "${toks[QI]}", head 4 · line width = α`, 24, 22, { size: 10, color: C.ink3 });
+}
+// ------------------------------------------------ page 2 · output as drawn
+{
+  const g = ctx("p2"), a = H4.alpha[QI], V = H4.v, z = H4.z[QI];
+  const vmax = Math.max(...V.flat().map(Math.abs));
+  text(g, "Attention weights α_ij", 10, 20, { size: 11, color: C.ink1 });
+  matrix(g, H4.alpha, toks, 60, 92, 12, { qi: QI, labels: true, rowLab: true });
+  text(g, "Weights", 186, 20, { size: 11, color: C.ink1 }); text(g, "Features v_j", 380, 20, { size: 11, color: C.ink1 });
+  const y0 = 36, rh = 27, vx = 322, vc = 13;
+  g.strokeStyle = C.ink2; g.beginPath(); g.moveTo(182, y0); g.lineTo(176, y0); g.lineTo(176, y0 + n * rh - 4); g.lineTo(182, y0 + n * rh - 4); g.stroke();
+  toks.forEach((t, j) => {
+    const y = y0 + j * rh;
+    g.fillStyle = wcol(a[j]); g.fillRect(186, y, 34, rh - 5); g.strokeStyle = C.ink2; g.strokeRect(186.5, y + 0.5, 33, rh - 6); cellText(g, a[j].toFixed(2), 186, y, 34, rh - 5, Math.sqrt(a[j]));
+    text(g, `${toks[QI]}–${t}`, 226, y + 15, { size: 9.5, mono: true, color: C.ink2 });
+    text(g, "·", vx - 8, y + 15, { size: 14, color: C.ink1 });
+    V[j].forEach((v, k) => { g.fillStyle = vcol(v, vmax); g.fillRect(vx + k * vc, y, vc - 1, rh - 5); });
+    g.strokeStyle = C.ink2; g.strokeRect(vx + 0.5, y + 0.5, 12 * vc - 1, rh - 6);
+    text(g, t, vx + 12 * vc + 8, y + 15, { size: 10, mono: true, color: C.b });
+  });
+  const yb = y0 + n * rh + 4;
+  g.strokeStyle = C.ink2; g.beginPath(); g.moveTo(186, yb); g.lineTo(186, yb + 8); g.lineTo(vx + 12 * vc, yb + 8); g.lineTo(vx + 12 * vc, yb); g.stroke();
+  text(g, "Sum", (186 + vx + 12 * vc) / 2, yb + 26, { align: "center", size: 11, color: C.ink1 });
+  arrow(g, (186 + vx + 12 * vc) / 2, yb + 30, (186 + vx + 12 * vc) / 2, yb + 44, C.ink2);
+  const zm = Math.max(...z.map(Math.abs));
+  z.forEach((v, k) => { g.fillStyle = vcol(v, vmax); g.fillRect(vx + k * vc, yb + 48, vc - 1, 24); });
+  g.strokeStyle = C.ink1; g.strokeRect(vx + 0.5, yb + 48.5, 12 * vc - 1, 23);
+  text(g, toks[QI], vx - 10, yb + 65, { align: "right", size: 11, mono: true, color: C.a });
+  text(g, "z_i = Σ_j α_ij v_j", vx + 6 * vc, yb + 92, { align: "center", size: 11, color: C.ink1 });
+  text(g, `the query's vector with attention: ${Math.round(100 * (a[5] + a[6]))}% from chest and pain`, 10, 410, { size: 10, color: C.ink3 });
+}
+// ------------------------------------------------ page 3 · heads
+{
+  const g = ctx("p3"), cs = 13, habit = ["next token 0.55", "the clause 0.55", "previous token 0.64", "the clause 0.52"];
+  const box = (x, y, w, h, lab, dim = false) => { g.globalAlpha = dim ? 0.4 : 1; g.fillStyle = C.s2; g.fillRect(x, y, w, h); g.strokeStyle = C.ink2; g.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+    text(g, lab, x + w / 2, y + h / 2 + 4, { align: "center", size: 11, color: C.ink1 }); g.globalAlpha = 1; };
+  box(200, 378, 150, 28, "x̃  [L, 48]");
+  const hx = (k) => 16 + k * 134;
+  g.strokeStyle = C.ink3; g.beginPath(); g.moveTo(275, 378); g.lineTo(275, 364); g.moveTo(hx(0) + 58, 364); g.lineTo(hx(3) + 58, 364); g.stroke();
+  S.heads.forEach((hd, k) => {
+    arrow(g, hx(k) + 58, 364, hx(k) + 58, 344, C.ink3);
+    text(g, `head ${k + 1}`, hx(k) + 58, 216, { align: "center", size: 11, color: C.ink1, bold: true });
+    text(g, habit[k], hx(k) + 58, 229, { align: "center", size: 9.5, color: C.ink2 });
+    matrix(g, hd.alpha, toks, hx(k) + 6, 238, cs, { labels: false });
+    g.strokeStyle = C.ink3; g.beginPath(); g.moveTo(hx(k) + 58, 204); g.lineTo(hx(k) + 58, 196); g.stroke();
+  });
+  g.beginPath(); g.moveTo(hx(0) + 58, 196); g.lineTo(hx(3) + 58, 196); g.stroke();
+  arrow(g, 275, 196, 275, 168, C.ink3);
+  box(170, 138, 210, 28, "concatenate  [L, 4 × 12]");
+  arrow(g, 275, 138, 275, 114, C.ink3);
+  box(170, 84, 210, 28, "W_O  →  [L, 48]");
+  arrow(g, 275, 84, 275, 60, C.ink3);
+  box(200, 30, 150, 28, "Feed forward", true);
+  text(g, "84", 358, 48, { size: 10, color: C.ink3 });
+  text(g, "rows: queries · columns: keys · the sentence as on the Weights page · under each: over 500 notes", 16, 416, { size: 9, color: C.ink3 });
+}
+// ------------------------------------------------ page 4 · A padding
+{
+  const g = ctx("p4a"), P = H4.alpha_pad16_nomask, cs = 13;
+  const padToks = toks.concat(Array(16 - n).fill("[PAD]"));
+  text(g, "no mask", 70 + 8 * cs, 24, { align: "center", color: C.ink1, bold: true });
+  matrix(g, P, padToks, 70, 80, cs, { pad: n });
+  const onPad = P.reduce((s, r) => s + r.slice(n).reduce((a, b) => a + b, 0), 0) / n;
+  text(g, `weight on [PAD]: ${Math.round(onPad * 100)}%`, 70 + 8 * cs, 80 + n * cs + 22, { align: "center", color: C.ext, bold: true });
+  const M = H4.alpha.map(r => r.concat(Array(16 - n).fill(null)));
+  text(g, "attention_mask", 330 + 8 * cs, 24, { align: "center", color: C.ink1, bold: true });
+  matrix(g, M, padToks, 330, 80, cs, { pad: n, rowLab: false });
+  text(g, "weight on [PAD]: 0%", 330 + 8 * cs, 80 + n * cs + 22, { align: "center", color: C.emp, bold: true });
+  text(g, "with the mask the real rows are the unpadded sentence's rows exactly", 20, 288, { size: 9.5, color: C.ink3 });
+}
+// ------------------------------------------------ page 4 · B causal, as his figure
+{
+  const g = ctx("p4b"), A = H4.alpha, cs = 20;
+  const Cz = A.map((r, i) => { const s = r.slice(0, i + 1).reduce((a, b) => a + b, 0); return r.map((w, j) => j <= i ? w / s : null); });
+  matrix(g, Cz, toks, 90, 70, cs, { qi: QI, digits: false });
+  const x = 290, y0 = 70;
+  text(g, `row "${toks[QI]}"`, x, 58, { size: 11, color: C.ink1 });
+  Cz[QI].forEach((w, j) => { const y = y0 + j * 26;
+    g.fillStyle = w === null ? C.s1 : wcol(w); g.fillRect(x, y, 34, 22); g.strokeStyle = C.ink2; g.strokeRect(x + 0.5, y + 0.5, 33, 21);
+    if (w !== null) cellText(g, w.toFixed(2), x, y, 34, 22, Math.sqrt(w));
+    text(g, `${toks[QI]}–${toks[j]}`, x + 42, y + 15, { size: 10, mono: true, color: C.ink2 });
+    if (w === null) text(g, "Masked", x + 150, y + 15, { size: 11, color: C.ink1 }); });
+  text(g, "a key after the query gets −∞ before the softmax; the row sums to 1 over the rest", 16, 292, { size: 9.5, color: C.ink3 });
+}
+// ------------------------------------------------ page 5 · A scale control
+{
+  const g = ctx("p5a"), cs = 16;
+  [[H4.alpha, "÷ √d_k (d_k = 12)"], [H4.alpha_unscaled, "no division"]].forEach(([A, lab], k) => {
+    const x0 = 70 + k * 250; text(g, lab, x0 + n * cs / 2, 20, { align: "center", color: C.ink1, bold: true });
+    matrix(g, A, toks, x0, 74, cs, { labels: true, rowLab: k === 0 });
+    const top = A.reduce((s, r) => s + Math.max(...r), 0) / A.length;
+    text(g, `mean top weight ${top.toFixed(2)}`, x0 + n * cs / 2, 74 + n * cs + 22, { align: "center", color: C.ink1 });
+  });
+}
+// ------------------------------------------------ page 5 · B arithmetic
+{
+  const g = ctx("p5b");
+  let s0 = 7; const r = () => { s0 |= 0; s0 = (s0 + 0x6D2B79F5) | 0; let t = Math.imul(s0 ^ (s0 >>> 15), 1 | s0); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  const nrm = () => Math.sqrt(-2 * Math.log(1 - r())) * Math.cos(2 * Math.PI * r());
+  const sm = (v) => { const m = Math.max(...v), e = v.map(x => Math.exp(x - m)), s = e.reduce((a, b) => a + b); return e.map(x => x / s); };
+  const dks = [1, 2, 4, 8, 16, 32, 64, 128], raw = [], sc = [];
+  for (const dk of dks) { let a = 0, b = 0; for (let t = 0; t < 4000; t++) { const q = Array.from({ length: dk }, nrm);
+    const s = Array.from({ length: 10 }, () => q.reduce((acc, qi) => acc + qi * nrm(), 0)); a += Math.max(...sm(s)); b += Math.max(...sm(s.map(x => x / Math.sqrt(dk)))); }
+    raw.push(a / 4000); sc.push(b / 4000); }
+  const L = 50, R = 518, T = 20, B = 200, X = (i) => L + (R - L) * i / 7, Y = (v) => B - (B - T) * v;
+  g.strokeStyle = C.grid; for (const v of [0, 0.5, 1]) { g.beginPath(); g.moveTo(L, Y(v)); g.lineTo(R, Y(v)); g.stroke(); text(g, v.toFixed(1), L - 6, Y(v) + 4, { align: "right", size: 9, color: C.ink3 }); }
+  dks.forEach((d, i) => text(g, d, X(i), B + 14, { align: "center", size: 9, color: C.ink3 })); text(g, "d_k", (L + R) / 2, B + 30, { align: "center" });
+  [[raw, C.ext, "q·k"], [sc, C.emp, "q·k / √d_k"]].forEach(([arr, col, lab]) => { g.strokeStyle = col; g.lineWidth = 2; g.beginPath(); arr.forEach((v, i) => i ? g.lineTo(X(i), Y(v)) : g.moveTo(X(i), Y(v))); g.stroke();
+    text(g, `${lab} ${arr[7].toFixed(2)}`, R - 4, Y(arr[7]) - 7, { align: "right", color: col, bold: true }); });
+  g.setLineDash([3, 3]); g.strokeStyle = C.ref; g.beginPath(); g.moveTo(L, Y(0.1)); g.lineTo(R, Y(0.1)); g.stroke(); g.setLineDash([]);
+  text(g, "the largest of ten weights; a uniform row gives 0.10", L, 244, { size: 9.5, color: C.ink3 });
+}
+</script>
+</body>
+</html>
