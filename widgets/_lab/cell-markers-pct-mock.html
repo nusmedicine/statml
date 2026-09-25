@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · cell-markers — Two clusters, pct.1 against pct.2 beside the table</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1000px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); font-size: var(--fs-sm); max-width: 104ch; margin: 0 0 var(--sp-3); }
+  p.note b { color: var(--ink-1); }
+  .bar { position: sticky; top: 0; z-index: 2; display: flex; flex-wrap: wrap; gap: var(--sp-3); align-items: end; background: var(--surface-2); padding: var(--sp-2) 0; border-bottom: 1px solid var(--grid); font-size: var(--fs-xs); color: var(--ink-2); }
+  .bar .seg { display: flex; flex-wrap: wrap; }
+  .bar button { font: inherit; font-size: var(--fs-xs); padding: 5px 9px; border: 1px solid var(--grid); background: var(--surface-1); color: var(--ink-2); cursor: pointer; }
+  .bar button[aria-pressed=true] { background: var(--ink-1); color: var(--surface-1); border-color: var(--ink-1); }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); border-radius: var(--radius); cursor: pointer; }
+  table.calls { border-collapse: collapse; font-size: var(--fs-sm); width: 100%; }
+  table.calls td, table.calls th { border-top: 1px solid var(--grid); padding: 6px 8px; vertical-align: top; text-align: left; }
+  table.calls th { color: var(--ink-3); font-weight: normal; font-size: var(--fs-xs); }
+  #busy { color: var(--ink-3); font-size: var(--fs-sm); }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>cell-markers · Two clusters: pct.1 against pct.2, beside the table</h1>
+  <p class="note">Every gene FindMarkers tested, as a dot: the fraction of the comparator's cells expressing it (pct.1, up) against the baseline's (pct.2, across). The comparator's specific markers sit top-left; a gene significant but expressed in most baseline cells sits to the right of the dashed line at pct.2 = 0.5, near the diagonal. Significant genes up in the comparator take its cell type's colour, as on the maps; the table's genes carry their rank. A dot or a row selects a gene, ringed in both. The widget's own cells (seed 1, resolution 0.3), at the widget's two canvas widths.</p>
+
+  <div class="bar">
+    <div>Comparator (ident.1)<div class="seg" data-k="comparator"></div></div>
+    <div>Baseline (ident.2)<div class="seg" data-k="baseline"></div></div>
+    <span id="busy">computing…</span>
+  </div>
+
+  <h2>A · 770 px, the side layout</h2>
+  <canvas id="cW"></canvas>
+  <h2>B · 579 px, the narrow pane</h2>
+  <p class="note">The table drops its p_val column (p_val_adj stays) to make room.</p>
+  <canvas id="cN"></canvas>
+
+  <h2>The calls</h2>
+  <table class="calls">
+    <tr><th>#</th><th>call</th><th>arms</th><th>recommendation</th></tr>
+    <tr><td>1</td><td>Add the scatter beside the table</td><td>yes · no, the table alone</td><td>yes — it puts every tested gene on the page, and "significant but not specific" becomes a place on it, right of the dashed line</td></tr>
+    <tr><td>2</td><td>Which genes it draws</td><td>all tested genes (markers of the baseline fall below the diagonal) · genes up in the comparator only</td><td>all — the baseline's markers below the diagonal show the test is two-sided, and the table keeps listing the comparator's</td></tr>
+    <tr><td>3</td><td>The table's p_val column at narrow widths</td><td>drop it · keep it and wrap</td><td>drop — p_val_adj is the one read</td></tr>
+  </table>
+</main>
+<script type="module">
+import { makeRng } from "../core/rng.js";
+import { simulate, normalise, pcaScaled, knn, snn, findClusters, findMarkers, geneKind, geneName, TYPES } from "../cell-markers/engine.js";
+import { umapSgd } from "../cell-markers/umap.js";
+
+const css = getComputedStyle(document.documentElement), tok = (n) => css.getPropertyValue(n).trim();
+const K = { font: tok("--font"), mono: tok("--font-mono"), xs: tok("--fs-xs"), sm: tok("--fs-sm"), ink1: tok("--ink-1"), ink2: tok("--ink-2"), ink3: tok("--ink-3"), grid: tok("--grid"), axis: tok("--axis"), surface: tok("--surface-1"), surface2: tok("--surface-2"), highlight: tok("--c-highlight"), clusters: ["a", "b", "c", "d", "e", "f"].map((k) => tok(`--c-cluster-${k}`)) };
+const TYPE_SLOT = [0, 2, 1, 3, 4, 5], hue = (t) => K.clusters[TYPE_SLOT[t]], dpr = window.devicePixelRatio || 1, LOG05 = Math.log10(0.05);
+const derived = (seed, salt) => (seed * 7919 + salt) % 2147483647;
+const pFmt = (lp) => (lp < -300 ? "0" : lp > -2 ? (10 ** lp).toFixed(3) : `1e${Math.round(lp)}`);
+const S = { comparator: 0, baseline: "rest", picked: null };
+let D = null;
+
+function build() {
+  const cells = simulate(makeRng(derived(1, 1)), { cells: 300, patientSd: 0.3, sampleSd: 0, condition: 0, conditionTypes: TYPES.map((t) => t.key), conditionByType: true, integrated: true });
+  const Y = normalise(cells), Yi = normalise(cells.map((c) => ({ x: c.xi })));
+  const P = pcaScaled(Yi, 20, makeRng(derived(1, 2))), adj = snn(knn(P, 20));
+  const r = findClusters(adj, 0.3, makeRng(derived(1, 4)));
+  const ann = Array.from({ length: r.k }, (_, c) => { const counts = new Array(TYPES.length).fill(0); r.clusters.forEach((v, i) => { if (v === c) counts[cells[i].type] += 1; }); return { c, type: counts.indexOf(Math.max(...counts)) }; });
+  return { cells, Y, cl: r.clusters, ann, k: r.k };
+}
+const mkCache = new Map();
+function markers() {
+  const key = `${S.comparator}|${S.baseline}`;
+  if (!mkCache.has(key)) {
+    const a = S.comparator, rest = S.baseline === "rest";
+    const fm = findMarkers(D.Y, (i) => D.cl[i] === a, rest ? (i) => D.cl[i] !== a : (i) => D.cl[i] === S.baseline, { nGenes: 33538 });
+    mkCache.set(key, fm);
+  }
+  return mkCache.get(key);
+}
+
+function draw(id, W) {
+  const fm = markers(), type = D.ann[S.comparator].type, narrow = W < 700;
+  const own = (g) => { const k = geneKind(g); return k.kind === "marker" && k.type === type; };
+  const top = fm.res.filter((x) => x.lfc > 0).sort((a, b) => a.lp - b.lp || b.lfc - a.lfc).slice(0, 8);
+  const broad = fm.res.filter((x) => x.lfc > 0 && x.lpAdj < LOG05 && x.p2 > 0.5 && !own(x.g)).sort((a, b) => a.lp - b.lp).filter((x) => !top.includes(x)).slice(0, 3);
+  const rows = [...top, ...broad];
+  const SQ = Math.min(narrow ? 200 : 290, Math.floor(W * 0.38)), TW = W - SQ - 70, H = Math.max(52 + SQ + 48 + 64, 48 + 20 + rows.length * 18 + 30) + 26;
+  const cv = document.getElementById(id); cv.width = W * dpr; cv.height = H * dpr; cv.style.width = `${W}px`; cv.style.height = `${H}px`;
+  const ctx = cv.getContext("2d"); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
+  const text = (t, x, y, { col = K.ink3, al = "left", mono = false, bold = false, size = K.xs } = {}) => { ctx.font = `${bold ? "600 " : ""}${size} ${mono ? K.mono : K.font}`; ctx.fillStyle = col; ctx.textAlign = al; ctx.fillText(t, x, y); };
+  const hits = [];
+  /* the table, left */
+  const vs = S.baseline === "rest" ? "all other cells" : `cluster ${S.baseline}`;
+  text(`FindMarkers, cluster ${S.comparator} (${fm.n1} cells) vs ${vs} (${fm.n2}): top 8 by p`, 8, 20, { col: K.ink1, bold: true, size: K.sm });
+  const cx = (f) => Math.round(8 + f * TW);
+  const cols = narrow
+    ? [["gene", cx(0), "left"], ["avg_log2FC", cx(0.42), "right"], ["pct.1", cx(0.58), "right"], ["pct.2", cx(0.74), "right"], ["p_val_adj", cx(0.98), "right"]]
+    : [["gene", cx(0), "left"], ["p_val", cx(0.32), "right"], ["avg_log2FC", cx(0.52), "right"], ["pct.1", cx(0.64), "right"], ["pct.2", cx(0.77), "right"], ["p_val_adj", cx(0.96), "right"]];
+  let y = 48;
+  cols.forEach(([h, x, al]) => text(h, x, y, { al }));
+  y += 20;
+  const row = (x, rank) => {
+    if (x.g === S.picked) { ctx.fillStyle = K.surface2; ctx.fillRect(4, y - 13, TW + 8, 18); }
+    const col = own(x.g) ? K.ink1 : K.ink3;
+    const v = narrow ? [`${rank} ${geneName(x.g)}`, x.lfc.toFixed(2), x.p1.toFixed(2), x.p2.toFixed(2), pFmt(x.lpAdj)] : [`${rank} ${geneName(x.g)}`, pFmt(x.lp), x.lfc.toFixed(2), x.p1.toFixed(2), x.p2.toFixed(2), pFmt(x.lpAdj)];
+    cols.forEach(([, px, al], k) => text(v[k], px, y, { col, al, mono: true }));
+    hits.push({ x: 4, y: y - 13, w: TW + 8, h: 18, g: x.g });
+    y += 18;
+  };
+  top.forEach((x, i) => row(x, String(i + 1).padStart(2)));
+  if (broad.length) { y += 4; text("Further significant genes with pct.2 > 0.5:", 8, y, {}); y += 20; broad.forEach((x, i) => row(x, String(top.length + i + 1).padStart(2))); }
+  /* the scatter, right */
+  const X0 = W - SQ - 16, Y0 = 52, sx = (v) => X0 + v * SQ, sy = (v) => Y0 + SQ - v * SQ;
+  text("pct.1 against pct.2, every gene tested", X0 - 30, 40, { col: K.ink1, bold: true, size: K.sm });
+  ctx.strokeStyle = K.axis; ctx.lineWidth = 1; ctx.strokeRect(X0 + 0.5, Y0 + 0.5, SQ, SQ);
+  ctx.strokeStyle = K.grid; ctx.setLineDash([4, 4]); ctx.beginPath(); ctx.moveTo(sx(0), sy(0)); ctx.lineTo(sx(1), sy(1)); ctx.moveTo(sx(0.5), sy(0)); ctx.lineTo(sx(0.5), sy(1)); ctx.stroke(); ctx.setLineDash([]);
+  text("0", X0, Y0 + SQ + 14, { mono: true }); text("1", X0 + SQ, Y0 + SQ + 14, { mono: true, al: "right" }); text("pct.2 (baseline)", X0 + SQ / 2, Y0 + SQ + 28, { al: "center" });
+  text("1", X0 - 4, Y0 + 9, { mono: true, al: "right" }); text("0", X0 - 4, Y0 + SQ, { mono: true, al: "right" });
+  ctx.save(); ctx.translate(X0 - 16, Y0 + SQ / 2); ctx.rotate(-Math.PI / 2); text("pct.1 (comparator)", 0, 0, { al: "center" }); ctx.restore();
+  text("specific", X0 + 6, Y0 + 14, { al: "left" });
+  text("pct.2 > 0.5", sx(0.5) + 4, Y0 + SQ - 6, { al: "left" });
+  const sig = (x) => x.lpAdj < LOG05;
+  fm.res.filter((x) => !sig(x)).forEach((x) => { ctx.fillStyle = K.ink3; ctx.globalAlpha = 0.3; ctx.beginPath(); ctx.arc(sx(x.p2), sy(x.p1), 2, 0, Math.PI * 2); ctx.fill(); });
+  ctx.globalAlpha = 1;
+  fm.res.filter((x) => sig(x) && x.lfc < 0).forEach((x) => { ctx.fillStyle = K.ink2; ctx.globalAlpha = 0.7; ctx.beginPath(); ctx.arc(sx(x.p2), sy(x.p1), 2.4, 0, Math.PI * 2); ctx.fill(); });
+  ctx.globalAlpha = 1;
+  fm.res.filter((x) => sig(x) && x.lfc > 0).forEach((x) => { ctx.fillStyle = hue(type); ctx.beginPath(); ctx.arc(sx(x.p2), sy(x.p1), 3, 0, Math.PI * 2); ctx.fill(); });
+  rows.forEach((x, i) => { ctx.strokeStyle = K.ink1; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(sx(x.p2), sy(x.p1), 5, 0, Math.PI * 2); ctx.stroke(); });
+  const p = fm.res.find((x) => x.g === S.picked); if (p) { ctx.strokeStyle = K.highlight; ctx.lineWidth = 2; ctx.strokeRect(sx(p.p2) - 7, sy(p.p1) - 7, 14, 14); }
+  fm.res.forEach((x) => hits.push({ x: sx(x.p2) - 4, y: sy(x.p1) - 4, w: 8, h: 8, g: x.g }));
+  /* its key, under it */
+  const ky = Y0 + SQ + 48;
+  [[hue(type), "significant, up in the comparator"], [K.ink2, "significant, up in the baseline"], [K.ink3, "not significant"]].forEach(([c, t], i) => { ctx.fillStyle = c; ctx.beginPath(); ctx.arc(X0 + 4, ky + i * 16 - 4, 3, 0, Math.PI * 2); ctx.fill(); text(t, X0 + 14, ky + i * 16, { col: K.ink2 }); });
+  ctx.strokeStyle = K.ink1; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(X0 + 4, ky + 48 - 4, 5, 0, Math.PI * 2); ctx.stroke(); text("in the table", X0 + 14, ky + 48, { col: K.ink2 });
+  text("pct.1, pct.2: fraction of cells with nonzero expression in ident.1 and in ident.2", 8, H - 10, {});
+  cv.onclick = (ev) => { const r = cv.getBoundingClientRect(), x = ev.clientX - r.left, yy = ev.clientY - r.top; let h = null; for (const q of hits) if (x >= q.x && x < q.x + q.w && yy >= q.y && yy < q.y + q.h) h = q; if (h) { S.picked = h.g; render(); } };
+}
+function render() {
+  document.querySelectorAll(".seg button").forEach((b) => b.setAttribute("aria-pressed", String(String(S[b.dataset.k]) === b.dataset.v)));
+  draw("cW", 770); draw("cN", 579);
+}
+setTimeout(() => {
+  D = build();
+  const seg = (k, opts) => { const box = document.querySelector(`.seg[data-k="${k}"]`); box.innerHTML = ""; opts.forEach(([v, label]) => { const b = document.createElement("button"); b.textContent = label; b.dataset.k = k; b.dataset.v = String(v); b.onclick = () => { S[k] = v; if (S.baseline === S.comparator) S.baseline = "rest"; S.picked = null; render(); }; box.append(b); }); };
+  const opts = D.ann.map((a) => [a.c, `${TYPES[a.type].name} · ${a.c}`]);
+  seg("comparator", opts); seg("baseline", [["rest", "All other cells"], ...opts]);
+  document.getElementById("busy").textContent = "";
+  render();
+}, 30);
+</script>
+</body>
+</html>
