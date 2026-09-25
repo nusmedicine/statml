@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · cell-markers — stepping through FindNeighbors and FindClusters</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1000px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note, li { color: var(--ink-2); font-size: var(--fs-sm); max-width: 104ch; }
+  p.note { margin: 0 0 var(--sp-3); }
+  p.note b, li b { color: var(--ink-1); }
+  .row { display: flex; gap: var(--sp-2); align-items: center; flex-wrap: wrap; margin: 0 0 var(--sp-2); font-size: var(--fs-xs); color: var(--ink-2); }
+  .row .seg { display: flex; }
+  .row button { font: inherit; font-size: var(--fs-xs); padding: 6px 10px; border: 1px solid var(--grid); background: var(--surface-1); color: var(--ink-2); cursor: pointer; }
+  .row button[aria-pressed=true] { background: var(--ink-1); color: var(--surface-1); border-color: var(--ink-1); }
+  .row button.go { background: var(--ink-1); color: var(--surface-1); border-color: var(--ink-1); border-radius: var(--radius); }
+  .row button:disabled { opacity: 0.4; cursor: default; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); border-radius: var(--radius); }
+  table.calls { border-collapse: collapse; font-size: var(--fs-sm); width: 100%; }
+  table.calls td, table.calls th { border-top: 1px solid var(--grid); padding: 6px 8px; vertical-align: top; text-align: left; }
+  table.calls th { color: var(--ink-3); font-weight: normal; font-size: var(--fs-xs); }
+  #busy { color: var(--ink-3); font-size: var(--fs-sm); }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>cell-markers · stepping through FindNeighbors and FindClusters</h1>
+  <p class="note">The lesson (02-4 cell 4) shows the two steps as figures: the kNN graph becoming the SNN graph, and Louvain's passes (modularity optimisation, then community aggregation, from Blondel et al. 2008). Below, the same steps on the widget's own cells, computed as the widget computes them. <b>Fill is the true cell type; an outline is a community found</b> — colour carries the truth and enclosure the result, so the two can be compared. <span id="busy">computing…</span></p>
+
+  <h2>A · A "Graph" page before Clusters: 45 cells, one step a press</h2>
+  <p class="note">30 hepatocytes and 15 tumour cells — two types that share ten markers, so the kNN graph has bridges between them — laid out by their kNN graph (linked cells pulled together, all cells pushed apart); the neighbours are found in 20 principal components, as the widget does. k = 15 rather than Seurat's 20 for a graph of 45 cells; the prune stays at 1/15. Measured before choosing: three distinct types (Kupffer, immune, endothelial) gave no link between types at k = 10, nothing for the prune to remove and the same three communities at every resolution. The resolution re-runs Louvain on the same graph; it opens at 1.2, where the first pass leaves three communities and the aggregated pass merges two of them, as in the lesson's figure (below 1.2 the first pass already finds the two types; at 2 the hepatocytes break into about a dozen).</p>
+  <div class="row"><button id="aBack">Back</button><button class="go" id="aStep">Step</button><span>Resolution</span><div class="seg" data-k="gamma"></div></div>
+  <canvas id="cA"></canvas>
+
+  <h2>B · Inside the Clusters page: the full graph over the map, three presses</h2>
+  <p class="note">All 1,200 cells on the page's own map (UMAP of the integrated counts), k = 20 as Seurat. The edges are drawn faint; at this density a single edge cannot be read, only where the graph is thick and where it is thin. Press 3 is the page as it is now.</p>
+  <div class="row"><button id="bBack">Back</button><button class="go" id="bStep">Step</button></div>
+  <canvas id="cB"></canvas>
+
+  <h2>The calls</h2>
+  <table class="calls">
+    <tr><th>#</th><th>call</th><th>arms</th><th>recommendation</th></tr>
+    <tr><td>1</td><td>Where the steps go</td><td>A a Graph page on 45 cells · B presses on the Clusters page's full map · both</td><td>A — each edge, weight and move can be read, which is what the lesson's figures show; B shows the real graph's density and nothing a student can point at</td></tr>
+    <tr><td>2</td><td>How far Louvain is stepped</td><td>first pass and aggregation (as the lesson's figure) · every sweep of the first pass</td><td>the lesson's two stages — a sweep-by-sweep view is detail the figure does not need</td></tr>
+    <tr><td>3</td><td>k on the small graph</td><td>10, stated · 20 as Seurat (near-complete graph at 45 cells)</td><td>10, with the page saying the full data use 20</td></tr>
+  </table>
+</main>
+<script type="module">
+import { makeRng } from "../core/rng.js";
+import { simulate, normalise, pcaScaled, knn, snn, modularity, findClusters, TYPES } from "../cell-markers/engine.js";
+import { umapSgd } from "../cell-markers/umap.js";
+
+const css = getComputedStyle(document.documentElement), tok = (n) => css.getPropertyValue(n).trim();
+const K = { font: tok("--font"), mono: tok("--font-mono"), xs: tok("--fs-xs"), sm: tok("--fs-sm"), ink1: tok("--ink-1"), ink2: tok("--ink-2"), ink3: tok("--ink-3"), grid: tok("--grid"), axis: tok("--axis"), surface: tok("--surface-1"), surface2: tok("--surface-2"), extreme: tok("--c-extreme"), clusters: ["a", "b", "c", "d", "e", "f"].map((k) => tok(`--c-cluster-${k}`)) };
+const TYPE_SLOT = [0, 2, 1, 3, 4, 5], hue = (t) => K.clusters[TYPE_SLOT[t]], dpr = window.devicePixelRatio || 1;
+const derived = (seed, salt) => (seed * 7919 + salt) % 2147483647;
+const text = (ctx, t, x, y, { col = K.ink3, al = "left", mono = false, bold = false, size = K.xs } = {}) => { ctx.font = `${bold ? "600 " : ""}${size} ${mono ? K.mono : K.font}`; ctx.fillStyle = col; ctx.textAlign = al; ctx.fillText(t, x, y); };
+function canvas(id, W, H) { const cv = document.getElementById(id); cv.width = W * dpr; cv.height = H * dpr; cv.style.width = `${W}px`; cv.style.height = `${H}px`; const ctx = cv.getContext("2d"); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H); return ctx; }
+
+/* ------------------------------------------------ the data, as the widget builds it */
+let D = null;
+function build() {
+  const cells = simulate(makeRng(derived(1, 1)), { cells: 300, patientSd: 0.3, sampleSd: 0, condition: 0, conditionTypes: TYPES.map((t) => t.key), conditionByType: true, integrated: true });
+  const Yi = normalise(cells.map((c) => ({ x: c.xi })));
+  const P = pcaScaled(Yi, 20, makeRng(derived(1, 2)));
+  /* A: 15 cells each of three types, drawn seeded */
+  const rng = makeRng(99), pick = [];
+  [["hepatocyte", 30], ["tumour", 15]].forEach(([key, count]) => {
+    const ti = TYPES.findIndex((t) => t.key === key), idx = cells.map((c, i) => (c.type === ti ? i : -1)).filter((i) => i >= 0);
+    for (let n = 0; n < count; n += 1) { const j = Math.floor(rng.next() * idx.length); pick.push(idx.splice(j, 1)[0]); }
+  });
+  const Ps = pick.map((i) => P[i]), types = pick.map((i) => cells[i].type);
+  const nn = knn(Ps, 15);
+  /* every pair sharing a neighbour, with its Jaccard, before the prune */
+  const sets = nn.map((a, i) => new Set([i, ...a])), pairs = [];
+  for (let i = 0; i < Ps.length; i += 1) for (let j = i + 1; j < Ps.length; j += 1) {
+    let inter = 0; for (const v of sets[i]) if (sets[j].has(v)) inter += 1;
+    if (inter) pairs.push({ i, j, jac: inter / (sets[i].size + sets[j].size - inter), shared: inter });
+  }
+  const adj = snn(nn);
+  /* the drawing: a force-directed layout of the kNN graph (Fruchterman–
+     Reingold), started from PC 1 and PC 2 and seeded, so linked cells sit
+     together and every edge can be seen; on raw PC 1–2 each type was one
+     tight clump and its edges one solid mass */
+  const n = Ps.length, lr = makeRng(7);
+  let px0 = Infinity, px1 = -Infinity, py0 = Infinity, py1 = -Infinity; Ps.forEach((q) => { px0 = Math.min(px0, q[0]); px1 = Math.max(px1, q[0]); py0 = Math.min(py0, q[1]); py1 = Math.max(py1, q[1]); });
+  const pos = Ps.map((q) => [((q[0] - px0) / (px1 - px0 || 1)) + 0.05 * lr.normal(), ((q[1] - py0) / (py1 - py0 || 1)) + 0.05 * lr.normal()]);
+  const E = new Set(); nn.forEach((nb, i) => nb.forEach((j) => E.add(i < j ? `${i},${j}` : `${j},${i}`)));
+  const edges = [...E].map((e) => e.split(",").map(Number)), kk = Math.sqrt(1 / n);
+  for (let it = 0, T = 0.1; it < 400; it += 1, T *= 0.99) {
+    const d = pos.map(() => [0, 0]);
+    for (let i = 0; i < n; i += 1) for (let j = i + 1; j < n; j += 1) {
+      const dx = pos[i][0] - pos[j][0], dy = pos[i][1] - pos[j][1], r = Math.max(1e-3, Math.hypot(dx, dy)), f = (kk * kk) / r;
+      d[i][0] += (dx / r) * f; d[i][1] += (dy / r) * f; d[j][0] -= (dx / r) * f; d[j][1] -= (dy / r) * f;
+    }
+    for (const [i, j] of edges) {
+      const dx = pos[i][0] - pos[j][0], dy = pos[i][1] - pos[j][1], r = Math.max(1e-3, Math.hypot(dx, dy)), f = (r * r) / kk;
+      d[i][0] -= (dx / r) * f; d[i][1] -= (dy / r) * f; d[j][0] += (dx / r) * f; d[j][1] += (dy / r) * f;
+    }
+    pos.forEach((q, i) => { const m = Math.hypot(d[i][0], d[i][1]) || 1, st = Math.min(m, T); q[0] += (d[i][0] / m) * st; q[1] += (d[i][1] / m) * st; });
+  }
+  /* B: the full graph */
+  const U = umapSgd(P, { nEpochs: 200, rng: makeRng(derived(1, 3)) }).Y;
+  const nnF = knn(P, 20), adjF = snn(nnF), clF = findClusters(adjF, 0.3, makeRng(derived(1, 4)));
+  return { A: { pos, types, nn, pairs, adj }, B: { U, types: cells.map((c) => c.type), nn: nnF, adj: adjF, cl: clF.clusters } };
+}
+
+/* Louvain, instrumented: the first pass's partition, the aggregated graph, the second pass */
+function louvainStages(adj, gamma, rng) {
+  const n = adj.length, k = adj.map((m) => [...m.values()].reduce((s, w) => s + w, 0)), m2 = k.reduce((a, b) => a + b, 0);
+  const local = (A, kk) => {
+    const N = A.length, comm = [...Array(N).keys()], tot = kk.slice(), order = [...Array(N).keys()];
+    let sweeps = 0;
+    for (let pass = 0; pass < 50; pass += 1) {
+      for (let t = N - 1; t > 0; t -= 1) { const s = Math.floor(rng.next() * (t + 1)); [order[t], order[s]] = [order[s], order[t]]; }
+      let moved = false; sweeps += 1;
+      for (const i of order) {
+        const ci = comm[i]; tot[ci] -= kk[i];
+        const wTo = new Map(); for (const [j, w] of A[i]) if (j !== i) wTo.set(comm[j], (wTo.get(comm[j]) ?? 0) + w);
+        let best = ci, bg = (wTo.get(ci) ?? 0) - (gamma * kk[i] * tot[ci]) / m2;
+        for (const [c, w] of wTo) { const g = w - (gamma * kk[i] * tot[c]) / m2; if (g > bg + 1e-12) { bg = g; best = c; } }
+        tot[best] += kk[i]; if (best !== ci) { comm[i] = best; moved = true; }
+      }
+      if (!moved) break;
+    }
+    const ids = [...new Set(comm)], map = new Map(ids.map((c, i) => [c, i]));
+    return { comm: comm.map((c) => map.get(c)), k: ids.length, sweeps };
+  };
+  const p1 = local(adj, k);
+  const agg = Array.from({ length: p1.k }, () => new Map());
+  for (let i = 0; i < n; i += 1) for (const [j, w] of adj[i]) { const a = p1.comm[i], b = p1.comm[j]; agg[a].set(b, (agg[a].get(b) ?? 0) + w); }
+  const kA = agg.map((m) => [...m.values()].reduce((s, w) => s + w, 0));
+  const p2 = local(agg, kA);
+  const final = p1.comm.map((c) => p2.comm[c]);
+  return { p1, agg, final, q1: modularity(adj, p1.comm, gamma), q2: modularity(adj, final, gamma) };
+}
+
+/* ------------------------------------------------ A */
+const SA = { step: 0, gamma: 1.2 };
+const STEPS_A = ["The cells", "k nearest neighbours", "Shared nearest neighbours", "Louvain, first pass", "Aggregate the communities", "Louvain, second pass"];
+function hull(pts) {
+  if (pts.length < 3) return pts;
+  const p = [...pts].sort((a, b) => a[0] - b[0] || a[1] - b[1]), cr = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+  const lo = [], up = [];
+  for (const q of p) { while (lo.length >= 2 && cr(lo[lo.length - 2], lo[lo.length - 1], q) <= 0) lo.pop(); lo.push(q); }
+  for (const q of p.reverse()) { while (up.length >= 2 && cr(up[up.length - 2], up[up.length - 1], q) <= 0) up.pop(); up.push(q); }
+  return lo.slice(0, -1).concat(up.slice(0, -1));
+}
+function drawA() {
+  const W = 770, H = 470, ctx = canvas("cA", W, H), A = D.A, st = louvainStages(A.adj, SA.gamma, makeRng(5));
+  const G = { x: 16, y: 34, w: 470, h: 400 };
+  let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity; A.pos.forEach(([x, y]) => { x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); });
+  const at = ([x, y]) => [G.x + 20 + ((x - x0) / (x1 - x0)) * (G.w - 40), G.y + 20 + (1 - (y - y0) / (y1 - y0)) * (G.h - 40)];
+  const P = A.pos.map(at);
+  text(ctx, `${SA.step + 1} · ${STEPS_A[SA.step]}`, 16, 20, { col: K.ink1, bold: true, size: K.sm });
+  ctx.strokeStyle = K.grid; ctx.lineWidth = 1; ctx.strokeRect(G.x + 0.5, G.y + 0.5, G.w, G.h);
+  text(ctx, "force-directed layout of the kNN graph", G.x + G.w - 4, G.y + G.h - 6, { al: "right" });
+  const s = SA.step;
+  /* edges */
+  if (s === 1) {
+    ctx.strokeStyle = K.ink3; ctx.globalAlpha = 0.55; ctx.lineWidth = 1;
+    A.nn.forEach((nb, i) => nb.forEach((j) => { ctx.beginPath(); ctx.moveTo(P[i][0], P[i][1]); ctx.lineTo(P[j][0], P[j][1]); ctx.stroke(); }));
+    ctx.globalAlpha = 1;
+  }
+  if (s === 2 || s === 3) {
+    A.pairs.forEach((q) => {
+      const kept = q.jac >= 1 / 15, cross = A.types[q.i] !== A.types[q.j];
+      ctx.beginPath(); ctx.moveTo(P[q.i][0], P[q.i][1]); ctx.lineTo(P[q.j][0], P[q.j][1]);
+      if (kept) { ctx.strokeStyle = K.ink2; ctx.globalAlpha = 0.25 + 0.75 * Math.min(1, q.jac / 0.6); ctx.lineWidth = 0.5 + 4 * q.jac; ctx.setLineDash([]); }
+      else if (s === 2) { ctx.strokeStyle = K.extreme; ctx.globalAlpha = 0.5; ctx.lineWidth = 0.8; ctx.setLineDash([3, 3]); }
+      else return;
+      ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha = 1;
+    });
+  }
+  if (s === 4) {
+    /* communities as nodes: at their centroid, with within-weight loops and between-weights on edges */
+    const C = [...Array(st.p1.k).keys()].map((c) => { const m = P.filter((_, i) => st.p1.comm[i] === c); return [m.reduce((a, q) => a + q[0], 0) / m.length, m.reduce((a, q) => a + q[1], 0) / m.length, m.length]; });
+    st.agg.forEach((mm, a) => mm.forEach((w, b) => {
+      if (b <= a) return;
+      ctx.strokeStyle = K.ink2; ctx.lineWidth = 0.5 + Math.min(6, w * 0.8); ctx.beginPath(); ctx.moveTo(C[a][0], C[a][1]); ctx.lineTo(C[b][0], C[b][1]); ctx.stroke();
+      const mx = (C[a][0] + C[b][0]) / 2, my = (C[a][1] + C[b][1]) / 2; ctx.fillStyle = K.surface; ctx.fillRect(mx - 14, my - 9, 28, 14); text(ctx, w.toFixed(1), mx, my + 2, { col: K.ink1, al: "center", mono: true });
+    }));
+    C.forEach(([x, y, n], c) => {
+      const r = 8 + Math.sqrt(n) * 3; ctx.fillStyle = K.surface2; ctx.strokeStyle = K.ink1; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      text(ctx, `${n} cells`, x, y + 4, { col: K.ink1, al: "center" });
+      text(ctx, `within ${(st.agg[c].get(c) ?? 0).toFixed(1)}`, x, y + r + 13, { al: "center" });
+    });
+  }
+  /* communities as outlines */
+  if (s === 3 || s === 5) {
+    const comm = s === 3 ? st.p1.comm : st.final, ids = [...new Set(comm)];
+    ids.forEach((c) => {
+      const h = hull(P.filter((_, i) => comm[i] === c));
+      ctx.strokeStyle = K.ink1; ctx.lineWidth = 1.5; ctx.setLineDash([5, 3]); ctx.beginPath();
+      if (h.length === 1) ctx.arc(h[0][0], h[0][1], 9, 0, Math.PI * 2);
+      else { const cx = h.reduce((a, q) => a + q[0], 0) / h.length, cy = h.reduce((a, q) => a + q[1], 0) / h.length; h.forEach((q, i) => { const dx = q[0] - cx, dy = q[1] - cy, d = Math.hypot(dx, dy) || 1, X = q[0] + (dx / d) * 9, Y = q[1] + (dy / d) * 9; if (i) ctx.lineTo(X, Y); else ctx.moveTo(X, Y); }); ctx.closePath(); }
+      ctx.stroke(); ctx.setLineDash([]);
+    });
+  }
+  /* cells, filled by true type */
+  if (s !== 4) P.forEach((q, i) => { ctx.fillStyle = hue(A.types[i]); ctx.beginPath(); ctx.arc(q[0], q[1], 4.5, 0, Math.PI * 2); ctx.fill(); });
+  /* the side: the steps, and this step's numbers */
+  const X = G.x + G.w + 24;
+  STEPS_A.forEach((t, i) => text(ctx, `${i + 1}  ${t}`, X, 52 + i * 18, { col: i === s ? K.ink1 : K.ink3, bold: i === s }));
+  const kept = A.pairs.filter((q) => q.jac >= 1 / 15), cut = A.pairs.length - kept.length, cross = kept.filter((q) => A.types[q.i] !== A.types[q.j]).length;
+  const knnCross = A.nn.reduce((acc, nb, i) => acc + nb.filter((j) => A.types[j] !== A.types[i]).length, 0);
+  const lines = [
+    ["45 cells, 2 types (fill).", "FindNeighbors reads their principal", "components: 20 in the widget."],
+    [`Each cell linked to its 15 nearest`, `cells in PC space: ${45 * 15} links,`, `${knnCross} of them between types.`],
+    [`Pairs sharing a neighbour: ${A.pairs.length}.`, "Weight: Jaccard of the two cells'", "neighbour sets (line width).", `Below 1/15, removed (red): ${cut}.`, `Kept: ${kept.length}; between types: ${cross}.`],
+    [`Each cell moves to the neighbouring`, "community with the largest gain in", `modularity, until none moves (${st.p1.sweeps} sweeps).`, `${st.p1.k} communities; modularity ${st.q1.toFixed(3)}.`],
+    ["Each community becomes one node;", "edges between cells are summed", "into edges between nodes, and", "within-community weight into a loop."],
+    [`The same moves on the aggregated`, `graph: ${new Set(st.final).size} communities;`, `modularity ${st.q2.toFixed(3)}, resolution ${SA.gamma}.`],
+  ];
+  lines[s].forEach((t, i) => text(ctx, t, X, 190 + i * 16, { col: K.ink2 }));
+  text(ctx, "Fill: true cell type · dashed outline: a community", 16, H - 12);
+  document.getElementById("aBack").disabled = s === 0; document.getElementById("aStep").disabled = s === STEPS_A.length - 1;
+  document.getElementById("aStep").textContent = s < STEPS_A.length - 1 ? `Step: ${STEPS_A[s + 1]}` : "Step";
+}
+
+/* ------------------------------------------------ B */
+const SB = { step: 0 };
+const STEPS_B = ["k nearest neighbours (k = 20)", "Shared nearest neighbours", "Louvain communities (resolution 0.3)"];
+function drawB() {
+  const W = 770, H = 440, ctx = canvas("cB", W, H), B = D.B, M = { x: 16, y: 34, S: 380 };
+  let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity; B.U.forEach(([x, y]) => { x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); });
+  const half = Math.max(x1 - x0, y1 - y0) / 2 * 1.08, mx = (x0 + x1) / 2, my = (y0 + y1) / 2;
+  const at = ([x, y]) => [M.x + M.S / 2 + ((x - mx) / half) * (M.S / 2), M.y + M.S / 2 - ((y - my) / half) * (M.S / 2)];
+  const P = B.U.map(at);
+  text(ctx, `${SB.step + 1} · ${STEPS_B[SB.step]}`, 16, 20, { col: K.ink1, bold: true, size: K.sm });
+  ctx.strokeStyle = K.grid; ctx.strokeRect(M.x + 0.5, M.y + 0.5, M.S, M.S);
+  ctx.lineWidth = 0.5; ctx.strokeStyle = K.ink2;
+  if (SB.step === 0) { ctx.globalAlpha = 0.05; B.nn.forEach((nb, i) => nb.forEach((j) => { ctx.beginPath(); ctx.moveTo(P[i][0], P[i][1]); ctx.lineTo(P[j][0], P[j][1]); ctx.stroke(); })); }
+  if (SB.step === 1) B.adj.forEach((m, i) => m.forEach((w, j) => { if (j < i) return; ctx.globalAlpha = Math.min(0.5, w * 0.4); ctx.beginPath(); ctx.moveTo(P[i][0], P[i][1]); ctx.lineTo(P[j][0], P[j][1]); ctx.stroke(); }));
+  ctx.globalAlpha = 1;
+  P.forEach((q, i) => { ctx.fillStyle = hue(B.types[i]); ctx.globalAlpha = 0.85; ctx.beginPath(); ctx.arc(q[0], q[1], 1.6, 0, Math.PI * 2); ctx.fill(); });
+  ctx.globalAlpha = 1;
+  if (SB.step === 2) {
+    [...new Set(B.cl)].forEach((c) => { const m = P.filter((_, i) => B.cl[i] === c), cx = m.reduce((a, q) => a + q[0], 0) / m.length, cy = m.reduce((a, q) => a + q[1], 0) / m.length, r = Math.sqrt(m.reduce((a, q) => a + (q[0] - cx) ** 2 + (q[1] - cy) ** 2, 0) / m.length) * 2 + 8;
+      ctx.strokeStyle = K.ink1; ctx.lineWidth = 1.5; ctx.setLineDash([5, 3]); ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]); text(ctx, `Cluster ${c}`, cx, cy + r + 13, { col: K.ink1, al: "center" }); });
+  }
+  const X = M.x + M.S + 24;
+  STEPS_B.forEach((t, i) => text(ctx, `${i + 1}  ${t}`, X, 52 + i * 18, { col: i === SB.step ? K.ink1 : K.ink3, bold: i === SB.step }));
+  const nE = B.adj.reduce((a, m) => a + m.size, 0) / 2;
+  const notes = [["1,200 cells × 20 neighbours: 24,000 links,", "drawn at 5% opacity."], [`${nE.toLocaleString()} SNN edges after the 1/15 prune,`, "opacity by weight."], ["The communities Louvain finds;", "the Clusters page as it is now."]];
+  notes[SB.step].forEach((t, i) => text(ctx, t, X, 130 + i * 16, { col: K.ink2 }));
+  document.getElementById("bBack").disabled = SB.step === 0; document.getElementById("bStep").disabled = SB.step === STEPS_B.length - 1;
+}
+
+function render() { document.querySelectorAll('.seg[data-k="gamma"] button').forEach((b) => b.setAttribute("aria-pressed", String(Number(b.dataset.v) === SA.gamma))); drawA(); drawB(); }
+setTimeout(() => {
+  D = build();
+  document.getElementById("busy").textContent = "";
+  const box = document.querySelector('.seg[data-k="gamma"]');
+  [0.5, 1.2, 1.5, 2].forEach((g) => { const b = document.createElement("button"); b.textContent = String(g); b.dataset.v = String(g); b.onclick = () => { SA.gamma = g; render(); }; box.append(b); });
+  document.getElementById("aStep").onclick = () => { SA.step = Math.min(STEPS_A.length - 1, SA.step + 1); render(); };
+  document.getElementById("aBack").onclick = () => { SA.step = Math.max(0, SA.step - 1); render(); };
+  document.getElementById("bStep").onclick = () => { SB.step = Math.min(STEPS_B.length - 1, SB.step + 1); render(); };
+  document.getElementById("bBack").onclick = () => { SB.step = Math.max(0, SB.step - 1); render(); };
+  render();
+}, 30);
+</script>
+</body>
+</html>
