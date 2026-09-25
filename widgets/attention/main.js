@@ -3,13 +3,18 @@
    (step 3, "Computing Self-Attention", and "Extending self-attention"), with
    08-3 cell 4's padding mask. DRAFT, 2026-09-25.
 
-   Four pages in the lesson's order, each drawn as his figure draws it:
+   Four steps in the order the arithmetic runs, each drawn as his figure draws
+   it (the control is labelled Step and Mask sits second, his calls of
+   2026-09-26: the mask acts on the scores before the softmax, so its step
+   comes straight after the weights, not after the heads):
 
      WEIGHTS  dl-language-attention-weight.png: the query circled in the
-              sentence, its bracket to every key, the row of weights under
-              the keys, and the matrix alpha_ij filling a row a press. A
-              Scores switch reads the same trained q and k with and without
-              the division by sqrt(d_k).
+              sentence, its bracket to every key, the scores and then the
+              row of weights under the keys, and the matrix alpha_ij filling
+              a row a press. A Scores switch reads the same trained q and k
+              with and without the division by sqrt(d_k).
+     MASK     08-3 cell 4's src_key_padding_mask: the same sentence padded
+              to 16, without the mask and with it, side by side.
      OUTPUT   dl-language-attention-output.png: the query's row lifted out,
               each weight beside that key's value vector, summed into the
               query's new vector z_i.
@@ -18,8 +23,6 @@
               concatenation it is, [L, 4 x 12], where his figure draws a + —
               then W_O, then the feed-forward, dimmed (the block's other
               half is the next widget's).
-     MASK     08-3 cell 4's src_key_padding_mask: the same sentence padded
-              to 16, without the mask and with it, side by side.
 
    THE MODEL IS TRAINED AND ONLY READ. Block 1 of the language arc's tiny
    BERT, pretrained by masked-token prediction on synthetic clinical notes;
@@ -43,7 +46,7 @@
 import { defineWidget, mathmlRenders } from "../core/index.js";
 import * as M from "./model.js";
 
-const PAGES = [{ value: "weights", label: "Weights" }, { value: "output", label: "Output" }, { value: "heads", label: "Heads" }, { value: "mask", label: "Mask" }];
+const PAGES = [{ value: "weights", label: "Weights" }, { value: "mask", label: "Mask" }, { value: "output", label: "Output" }, { value: "heads", label: "Heads" }];
 const ON = (page) => ({ param: "page", equals: page });
 const STEP_MS = 600, RUN_MS = 320;   // a press's glide on Step, and under Play
 
@@ -53,7 +56,7 @@ const S = {
   title: "Deep Learning - Language: Attention",
   subtitle: "Each token's query is scored against every token's key; a softmax makes each row of scores into weights that sum to one, "
     + "and the token's new vector is the weighted sum of the values. Several heads do this side by side, and a padding mask gives padded positions no weight.",
-  pageLabel: "Page",
+  pageLabel: "Step",
   sentenceLabel: "Sentence",
   sentenceDetail: "Synthetic clinical notes, read by a small model pretrained to fill in masked words.",
   headLabel: "Head",
@@ -91,7 +94,7 @@ const S = {
   tileOpen: "No mask", tileOpenNote: "the rows' weight on [PAD]",
   tileShut: "attention_mask", tileShutNote: "a masked key's score is −∞",
   wait: "—",
-  sum: (page, n, L) => `${page} page: ${n} of ${L} rows computed.`,
+  sum: (step, n, L) => `${step}: ${n} of ${L} rows computed.`,
 };
 
 /* ============================================================ the card */
