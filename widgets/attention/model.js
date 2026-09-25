@@ -54,7 +54,7 @@ function linear(x, W, b) {           // torch's Linear: y = x W^T + b, W is [out
 }
 
 /** x~ for each position: the token's row plus the position's row */
-function embed(toks) {
+export function embed(toks) {
   return toks.map((t, p) => {
     const r = ID[t === PAD ? "[PAD]" : t];
     if (r === undefined) throw new Error(`not in the vocabulary: ${t}`);
@@ -97,7 +97,7 @@ export function attend(toks, { mask = true } = {}) {
     const z = alpha.map((a) => Array.from({ length: DK }, (_, d) => a.reduce((s, w, j) => s + w * v[j][d], 0)));
     heads.push({ score, scoreRaw: raw, alpha, alphaRaw, v, z });
   }
-  return { tokens: toks, heads };
+  return { tokens: toks, heads, X: X.map((x) => Array.from(x)), Vfull: V.map((v) => Array.from(v)) };
 }
 
 /** everything the four pages draw for one sentence */

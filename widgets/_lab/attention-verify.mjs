@@ -72,6 +72,16 @@ for (const key of Object.keys(M.SENTENCES)) {
 }
 near(asp.run.heads[3].score[3][5], 5.28, 0.005, "aspirin → chest, the score head 4 prints");
 
+/* the Output page draws x̃ⱼ → W_V → vⱼ: head h's value is its slice of the 48-number
+   projection of x̃ⱼ, and x̃ⱼ is the token's row plus the position's row */
+for (const key of Object.keys(M.SENTENCES)) {
+  const run = M.stage(key).run, X = M.embed(run.tokens);
+  run.tokens.forEach((_, j) => {
+    X[j].forEach((v, d) => near(v, run.X[j][d], 0, `${key}: x̃ is the embedding`));
+    for (let h = 0; h < M.H; h++) run.heads[h].v[j].forEach((v, d) => near(v, run.Vfull[j][h * M.DK + d], 0, `${key}: head ${h + 1}'s value is its slice of x̃ W_Vᵀ + b`));
+  });
+}
+
 const pad4 = asp.padded.open.heads[3].alpha.slice(0, asp.L).reduce((s, r) => s + M.tailShare(r, asp.L), 0) / asp.L;
 near(pad4, 0.24, 0.005, "aspirin, head 4: [PAD]'s share without the mask, over the rows");
 const wnd = M.stage("wound"), wq = wnd.tokens.indexOf("wound");

@@ -79,7 +79,7 @@ const S = {
   maskLabel: "attention_mask",
   maskDetail: "1 for a token, 0 for padding. Passed, a key with 0 gets the score −∞ before the softmax.",
   maskOpts: [{ value: "passed", label: "Passed" }, { value: "not-passed", label: "Not passed" }],
-  outW: "Weights", outV: ["Features vⱼ"], outZcol: ["Features with", "attention zⱼ"], outSum: "Sum", outZ: "Features with attention",
+  outW: "Weights", outV: ["Features vⱼ", (h) => `head ${h}: 12 of the 48`], outX: ["Embedding x̃ⱼ", "token + position, 48"], outWv: "W_V", outZcol: ["Features with", "attention zⱼ"], outSum: "Sum", outZ: "Features with attention",
   outSoFar: (k, L, pct) => `${k} of ${L} rows added · ${pct}% of the weight`,
   tileAdded: "Rows added", tileAddedNote: "terms of Σⱼ αᵢⱼvⱼ summed so far",
   tileShare: "Weight added", tileShareNote: "the sum of their αᵢⱼ",
@@ -410,17 +410,41 @@ const weightSoFar = (hd, i, k) => hd.alpha[i].slice(0, k).reduce((a, b) => a + b
 const OT = { top: 52, rh: 24, cs: 12, matTop: 114, lane: 22 };
 const heightOutput = (L) => OT.top + L * OT.rh + 124;
 
+/* WHERE A VALUE COMES FROM, IN EVERY ROW (his pick B, 2026-09-26,
+   `_lab/attention-value-mock.html`): each row reads the token's embedding x̃ⱼ
+   (token row + position row, 48 numbers) → W_V → its value vⱼ (this head's 12 of
+   the 48) → zⱼ. Four strips do not fit beside the α matrix on the narrowest
+   canvas, so the matrix stands where the strips keep at least 2.5 px an embedding
+   cell and 9 px a value cell, and drops below that (his call: keep it where there
+   is room). The weights column still carries the query's row of α either way. */
+const OX = { arrow: 42, xcMin: 2.5, xcMax: 3.5, vcMin: 9, vcMax: 14 };
+function outLayout(w, L, lw, withMatrix) {
+  const mx = PAD_L + lw + 6;
+  const wx = withMatrix ? mx + L * OT.cs + 18 : PAD_L, kx = wx + 42, xx = kx + lw + 14;
+  const room = w - PAD_R - xx - OX.arrow - OT.lane;
+  const vc = Math.min(OX.vcMax, Math.floor((room - 48 * OX.xcMin) / (2 * M.DK)));
+  const xc = Math.max(OX.xcMin, Math.min(OX.xcMax, (room - 2 * M.DK * vc) / 48));
+  const vx = xx + 48 * xc + OX.arrow, zx = vx + M.DK * vc + OT.lane;
+  return { withMatrix, mx, wx, kx, xx, xc, vx, vc, zx, fits: vc >= OX.vcMin };
+}
+
 function drawOutput(ctx, colors, w, params, state, anim) {
   const toks = state.tokens, L = state.L, h = Number(params.head) - 1, hd = state.run.heads[h], qi = queryOf(anim);
   const ph = outPhase(anim, L), g = qi >= 0 ? glide(anim, ph.e) : null;
-  const lw = labelWidth(ctx, colors, toks), mx = PAD_L + lw + 6;
-  txt(ctx, S.weightsCap, PAD_L, 18, { font: cap(colors), fill: colors.ink1 });
-  matrix(ctx, colors, hd.alpha, toks, mx, OT.matTop, OT.cs, anim, { ge: ph.e });
-  const wx = mx + L * OT.cs + 18, kx = wx + 42, vx = kx + lw + 16;
-  const vc = Math.max(4, Math.min(14, Math.floor((w - PAD_R - vx - OT.lane) / (2 * M.DK))));
-  const zx = vx + M.DK * vc + OT.lane;
+  const lw = labelWidth(ctx, colors, toks);
+  let lay = outLayout(w, L, lw, true);
+  if (!lay.fits) lay = outLayout(w, L, lw, false);
+  const { wx, kx, xx, xc, vx, vc, zx } = lay;
+  if (lay.withMatrix) {
+    txt(ctx, S.weightsCap, PAD_L, 18, { font: cap(colors), fill: colors.ink1 });
+    matrix(ctx, colors, hd.alpha, toks, lay.mx, OT.matTop, OT.cs, anim, { ge: ph.e });
+  }
   txt(ctx, S.outW, wx, 18, { font: cap(colors), fill: colors.ink1 });
+  txt(ctx, S.outX[0], xx, 18, { font: cap(colors), fill: colors.ink1 });
+  txt(ctx, S.outX[1], xx, 34, { font: small(colors), fill: colors.ink2 });
   txt(ctx, S.outV[0], vx, 18, { font: cap(colors), fill: colors.ink1 });
+  txt(ctx, S.outV[1](h + 1), vx, 34, { font: small(colors), fill: colors.ink2 });
+  const X = state.run.X, xmax = Math.max(...X.flat().map(Math.abs));
   /* the column header pulled in from the canvas edge where the strips are narrower than it */
   ctx.save(); ctx.font = cap(colors); const zhw = Math.max(ctx.measureText(S.outZcol[0]).width, ctx.measureText(S.outZcol[1]).width); ctx.restore();
   const zhx = Math.min(zx, w - PAD_R - zhw);
@@ -440,7 +464,11 @@ function drawOutput(ctx, colors, w, params, state, anim) {
     }
     ctx.strokeStyle = colors.ink2; ctx.lineWidth = 1; ctx.strokeRect(wx + 0.5, y + 0.5, 33, OT.rh - 6);
     txt(ctx, toks[j], kx, ty, { font: mono(colors), fill: colors.groupB, baseline: "middle" });
-    txt(ctx, "·", vx - 9, ty, { font: cap(colors), fill: colors.ink1, align: "center", baseline: "middle" });
+    /* x̃ⱼ → W_V → vⱼ: the embedding in its own range, then the projection */
+    for (let d = 0; d < 48; d++) { ctx.fillStyle = css(signedFill(colors, X[j][d], xmax)); ctx.fillRect(xx + d * xc, y, xc, OT.rh - 5); }
+    ctx.strokeStyle = colors.ink3; ctx.lineWidth = 1; ctx.strokeRect(xx - 0.5, y - 0.5, 48 * xc + 1, OT.rh - 4);
+    txt(ctx, S.outWv, xx + 48 * xc + 16, ty - 1, { font: small(colors), fill: colors.ink3, align: "center", baseline: "middle" });
+    arrow(ctx, xx + 48 * xc + 29, ty, vx - 3, ty, colors.ink3);
     for (let d = 0; d < M.DK; d++) { ctx.fillStyle = css(signedFill(colors, hd.v[j][d], vmax)); ctx.fillRect(vx + d * vc, y, vc - 1, OT.rh - 5); }
     ctx.strokeStyle = colors.ink2; ctx.lineWidth = 1; ctx.strokeRect(vx - 0.5, y - 0.5, M.DK * vc, OT.rh - 4);
     /* zⱼ beside vⱼ: token j's features after attention, once its own query is done */
@@ -453,7 +481,8 @@ function drawOutput(ctx, colors, w, params, state, anim) {
   }
   ctx.lineWidth = 1;
   const yb = OT.top + L * OT.rh + 2;
-  line(ctx, wx, yb, wx, yb + 8, colors.ink2); line(ctx, wx, yb + 8, right, yb + 8, colors.ink2); line(ctx, right, yb, right, yb + 8, colors.ink2);
+  /* the bracket over the values, the terms of the sum */
+  line(ctx, vx, yb, vx, yb + 8, colors.ink2); line(ctx, vx, yb + 8, right, yb + 8, colors.ink2); line(ctx, right, yb, right, yb + 8, colors.ink2);
   /* the key being added: one outline stepping row to row, and a line down the lane
      right of the strips carrying it to the sum */
   if (g && ph.e >= 1 && ph.k < L) {
@@ -463,8 +492,8 @@ function drawOutput(ctx, colors, w, params, state, anim) {
     line(ctx, right + 1, y0, right + 8, y0, colors.groupA, 1.5);
     arrow(ctx, right + 8, y0, right + 8, yb + 6, colors.groupA);
   }
-  txt(ctx, S.outSum, (wx + right) / 2, yb + 26, { font: cap(colors), fill: colors.ink1, align: "center" });
-  arrow(ctx, (wx + right) / 2, yb + 32, (wx + right) / 2, yb + 50, colors.ink2);
+  txt(ctx, S.outSum, (vx + right) / 2, yb + 26, { font: cap(colors), fill: colors.ink1, align: "center" });
+  arrow(ctx, (vx + right) / 2, yb + 32, (vx + right) / 2, yb + 50, colors.ink2);
   const zy = yb + 56;
   /* zᵢ's running total: the last query's z fading out on the glide, then key by key */
   let zNow = null;

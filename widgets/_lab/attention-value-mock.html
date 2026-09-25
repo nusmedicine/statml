@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · 83 Output page, x̃ to value — mock</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1760px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 120ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 6px; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-3) 0 0; padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 120ch; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Widget 83 · Output page · where a value comes from · mock</h1>
+  <p class="note">
+    vⱼ = x̃ⱼ W_Vᵀ + b_V: the token's embedding row plus its position row (48 numbers), times the trained 48 × 48
+    W_V, gives 48 numbers, and head 4's value is the last 12 of them. Real numbers: block 1, head 4, <i>treated with
+    aspirin for chest pain</i>, the query <b>for</b>, mid-press with the 5th key (<b>for</b>) being added. Drawn at the
+    pane's width, 740px; the α matrix at the left of the page is left out, as it does not change.
+  </p>
+
+  <h2>A · a projection panel above the rows, following the outline</h2>
+  <p class="note">One line for the key being added: x̃ⱼ, the W_V box (its 48 × 48 weights drawn small), the 48 numbers
+    it gives cut into the four heads, head 4's 12 lifted down into the row's value strip. It moves key to key with
+    the outline and shows the last key at rest. About 90 px taller; fits the narrowest canvas.</p>
+  <canvas id="A"></canvas>
+
+  <h2>B · a column of x̃ⱼ beside every row</h2>
+  <p class="note">Every row reads left to right: x̃ⱼ (48 thin cells) → W_V → vⱼ → zⱼ. Nothing moves; the projection
+    is there for every key at once. At the narrowest canvas the three strips cannot all fit beside the α matrix: the
+    x̃ column would need the matrix to go, or cells of 2 px.</p>
+  <canvas id="B"></canvas>
+
+  <h2>C · the panel of A, on hover</h2>
+  <p class="note">The same projection line as A, drawn for whichever row the pointer is over (here: <b>chest</b>);
+    nothing moves with the press. Hidden until a row is pointed at, so the page at rest is the page now.</p>
+  <canvas id="C"></canvas>
+
+  <p class="rec">Recommended: <b>A</b>. It is the step the reader asked about, drawn once, beside the key the sum is
+    taking in, and it fits every width. B shows it for every key but costs the narrow layout; C hides it from a
+    reader who does not hover, and from a projector.</p>
+</main>
+<script type="module">
+import * as M from "../attention/model.js";
+import { WEIGHTS } from "../attention/weights.js";
+const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const C = { ink1: css("--ink-1"), ink2: css("--ink-2"), ink3: css("--ink-3"), s1: css("--surface-1"), s2: css("--surface-2"), s3: css("--surface-3"),
+  a: css("--c-group-a"), b: css("--c-group-b"), mag: css("--c-magnitude"), lo: css("--c-value-low"), hi: css("--c-value-high"), grid: css("--grid"),
+  font: css("--font"), mono: css("--font-mono") };
+const rgb = (h) => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+const mixA = (a, b, t) => a.map((x, i) => x + (b[i] - x) * Math.max(0, Math.min(1, t)));
+const str = (p) => `rgb(${p.map(Math.round).join(",")})`;
+const wcol = (w) => str(mixA(rgb(C.s3), rgb(C.mag), Math.sqrt(w)));
+const vcol = (v, s) => str(mixA(rgb(C.s3), rgb(v >= 0 ? C.hi : C.lo), Math.abs(v) / s));
+const capF = "600 12px " + C.font, smF = "11px " + C.font, monoF = "11px " + C.mono;
+function t(g, s, x, y, { f = monoF, c = C.ink2, a = "left" } = {}) { g.font = f; g.fillStyle = c; g.textAlign = a; g.textBaseline = "middle"; g.fillText(s, x, y); }
+function arrow(g, x1, y1, x2, y2, col = C.ink2) { g.strokeStyle = col; g.lineWidth = 1.2; g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke();
+  const a = Math.atan2(y2 - y1, x2 - x1); g.fillStyle = col; g.beginPath(); g.moveTo(x2, y2); g.lineTo(x2 - 7 * Math.cos(a - 0.4), y2 - 7 * Math.sin(a - 0.4)); g.lineTo(x2 - 7 * Math.cos(a + 0.4), y2 - 7 * Math.sin(a + 0.4)); g.fill(); g.lineWidth = 1; }
+
+const st = M.stage("aspirin"), toks = st.tokens, L = st.L, H = 3, QI = 4, K = 4;   // 5th key being added
+const run = st.run, hd = run.heads[H], X = run.X, VF = run.Vfull;
+const xmax = Math.max(...X.flat().map(Math.abs)), vmax = Math.max(...hd.v.flat().map(Math.abs), ...hd.z.flat().map(Math.abs));
+const vfmax = Math.max(...VF.flat().map(Math.abs));
+const partial = (k) => Array.from({ length: 12 }, (_, d) => { let s = 0; for (let j = 0; j < k; j++) s += hd.alpha[QI][j] * hd.v[j][d]; return s; });
+const W = 740;
+function setup(id, h) { const cv = document.getElementById(id), dpr = devicePixelRatio || 1; cv.width = W * dpr; cv.height = h * dpr; cv.style.width = W + "px"; cv.style.height = h + "px"; const g = cv.getContext("2d"); g.scale(dpr, dpr); return g; }
+
+/** the rows as the page draws them now: weights, key, value strip, z column; returns the geometry */
+function rows(g, top, { wx = 12, vx = 150, vc = 13, withX = false } = {}) {
+  const kx = wx + 42, xx = vx, xc = 2.5;
+  const vStart = withX ? xx + 48 * xc + 56 : vx, zx = vStart + 12 * vc + 22;
+  t(g, "Weights", wx, top - 30, { f: capF, c: C.ink1 });
+  if (withX) { t(g, "Embedding x̃ⱼ", xx, top - 30, { f: capF, c: C.ink1 }); t(g, "[48]", xx, top - 14, { f: smF, c: C.ink3 }); }
+  t(g, "Features vⱼ", vStart, top - 30, { f: capF, c: C.ink1 }); t(g, withX ? "head 4's 12" : "", vStart, top - 14, { f: smF, c: C.ink3 });
+  t(g, "Features with", zx, top - 30, { f: capF, c: C.ink1 }); t(g, "attention zⱼ", zx, top - 14, { f: smF, c: C.ink2 });
+  for (let j = 0; j < L; j++) {
+    const y = top + j * 24, w = hd.alpha[QI][j];
+    g.fillStyle = wcol(w); g.fillRect(wx, y, 34, 19); t(g, w.toFixed(2), wx + 17, y + 9.5, { a: "center", c: C.ink1 });
+    t(g, toks[j], kx, y + 9.5, { c: C.b });
+    if (withX) {
+      for (let d = 0; d < 48; d++) { g.fillStyle = vcol(X[j][d], xmax); g.fillRect(xx + d * xc, y, xc, 19); }
+      g.strokeStyle = C.ink3; g.strokeRect(xx - 0.5, y - 0.5, 48 * xc + 1, 20);
+      t(g, "W_V", xx + 48 * xc + 22, y + 9.5, { f: smF, c: C.ink3, a: "center" }); arrow(g, xx + 48 * xc + 36, y + 9.5, vStart - 4, y + 9.5, C.ink3);
+    }
+    for (let d = 0; d < 12; d++) { g.fillStyle = vcol(hd.v[j][d], vmax); g.fillRect(vStart + d * vc, y, vc - 1, 19); }
+    g.strokeStyle = C.ink3; g.strokeRect(vStart - 0.5, y - 0.5, 12 * vc, 20);
+    for (let d = 0; d < 12; d++) { g.fillStyle = j < QI ? vcol(hd.z[j][d], vmax) : C.s2; g.fillRect(zx + d * vc, y, vc - 1, 19); }
+    g.strokeStyle = j === QI ? C.a : C.ink3; g.strokeRect(zx - 0.5, y - 0.5, 12 * vc, 20);
+  }
+  return { vStart, vc, zx, bottom: top + L * 24 };
+}
+function sumPart(g, geo) {
+  const { vStart, vc, bottom } = geo, right = vStart + 12 * vc, yb = bottom + 4;
+  g.strokeStyle = C.ink2; g.beginPath(); g.moveTo(vStart, yb); g.lineTo(vStart, yb + 8); g.lineTo(right, yb + 8); g.lineTo(right, yb); g.stroke();
+  t(g, "Sum", vStart + 6 * vc, yb + 24, { f: capF, c: C.ink1, a: "center" });
+  const z = partial(K);
+  for (let d = 0; d < 12; d++) { g.fillStyle = vcol(z[d], vmax); g.fillRect(vStart + d * vc, yb + 40, vc - 1, 22); }
+  g.strokeStyle = C.ink1; g.strokeRect(vStart - 0.5, yb + 39.5, 12 * vc, 23); t(g, "for", vStart - 10, yb + 51, { c: C.a, a: "right" });
+  t(g, `4 of 8 rows added · ${Math.round(100 * hd.alpha[QI].slice(0, 4).reduce((a, b) => a + b))}% of the weight`, vStart + 6 * vc, yb + 78, { f: smF, a: "center" });
+}
+function outline(g, geo, top, j) { g.strokeStyle = C.a; g.lineWidth = 2; g.strokeRect(geo.vStart - 1.5, top + j * 24 - 1.5, 12 * geo.vc + 2, 22); g.lineWidth = 1; }
+
+/** the projection line for row j: x̃ⱼ [48] → × W_Vᵀ + b → [48] in four heads → head 4's 12 */
+function projection(g, y, j, vx, note) {
+  const xc = 3.2, x0 = 12;
+  t(g, note, x0, y - 16, { f: capF, c: C.ink1 });
+  t(g, `x̃ ${toks[j]}`, x0, y + 10, { c: C.b });
+  const xs = x0 + 78;
+  for (let d = 0; d < 48; d++) { g.fillStyle = vcol(X[j][d], xmax); g.fillRect(xs + d * xc, y, xc, 20); }
+  g.strokeStyle = C.ink3; g.strokeRect(xs - 0.5, y - 0.5, 48 * xc + 1, 21); t(g, "[48]", xs + 24 * xc, y + 32, { f: smF, c: C.ink3, a: "center" });
+  const wx = xs + 48 * xc + 22, ws = 48 * 0.9;
+  arrow(g, xs + 48 * xc + 4, y + 10, wx - 2, y + 10);
+  for (let o = 0; o < 48; o++) for (let i = 0; i < 48; i++) { const v = WEIGHTS.Wv[o * 48 + i]; g.fillStyle = vcol(v, 0.5); g.fillRect(wx + i * 0.9, y - 12 + o * 0.9, 0.9, 0.9); }
+  g.strokeStyle = C.ink3; g.strokeRect(wx - 0.5, y - 12.5, ws + 1, ws + 1);
+  t(g, "× W_Vᵀ + b", wx + ws / 2, y + 44, { f: smF, c: C.ink2, a: "center" });
+  const fs = wx + ws + 24;
+  arrow(g, wx + ws + 4, y + 10, fs - 2, y + 10);
+  for (let d = 0; d < 48; d++) { g.fillStyle = vcol(VF[j][d], vfmax); g.fillRect(fs + d * xc, y, xc, 20); }
+  for (let h = 0; h < 4; h++) { g.strokeStyle = h === H ? C.a : C.ink3; g.lineWidth = h === H ? 2 : 1; g.strokeRect(fs + h * 12 * xc - 0.5, y - 0.5, 12 * xc + 1, 21); g.lineWidth = 1;
+    t(g, `head ${h + 1}`, fs + h * 12 * xc + 6 * xc, y + 32, { f: smF, c: h === H ? C.a : C.ink3, a: "center" }); }
+  return { hx: fs + 3 * 12 * xc + 6 * xc, hy: y + 21 };
+}
+
+/** head 4's slice to row j by the lane between the value and z columns: above the
+    headers, down the lane, into the row from its right edge — over no mark */
+function route(g, p, geo, top, j, col) {
+  const lane = geo.vStart + 12 * geo.vc + 11, ry = top - 44, yj = top + j * 24 + 9.5;
+  g.strokeStyle = col; g.lineWidth = 1.3; g.setLineDash([3, 3]); g.beginPath();
+  g.moveTo(p.hx, p.hy + 16); g.lineTo(p.hx, ry); g.lineTo(lane, ry); g.lineTo(lane, yj); g.stroke(); g.setLineDash([]); g.lineWidth = 1;
+  arrow(g, lane, yj, geo.vStart + 12 * geo.vc + 2, yj, col);
+}
+/* ---- A */
+{ const top = 150, g = setup("A", top + L * 24 + 120);
+  const geo0 = { vStart: 150 };
+  const p = projection(g, 38, K, 150, "Where vⱼ comes from: the key being added");
+  const geo = rows(g, top);
+  outline(g, geo, top, K);
+  route(g, p, geo, top, K, C.a);
+  sumPart(g, geo); void geo0; }
+/* ---- B */
+{ const top = 50, g = setup("B", top + L * 24 + 120);
+  const geo = rows(g, top, { withX: true, vc: 11 });
+  outline(g, geo, top, K); sumPart(g, geo); }
+/* ---- C */
+{ const top = 150, g = setup("C", top + L * 24 + 120);
+  const HOV = 5;
+  const p = projection(g, 38, HOV, 150, `Where vⱼ comes from: ${toks[HOV]} (under the pointer)`);
+  const geo = rows(g, top);
+  outline(g, geo, top, K);
+  g.strokeStyle = C.ink1; g.setLineDash([2, 2]); g.strokeRect(geo.vStart - 3, top + HOV * 24 - 3, 12 * geo.vc + 6, 25); g.setLineDash([]);
+  route(g, p, geo, top, HOV, C.ink2);
+  sumPart(g, geo); }
+</script>
+</body>
+</html>
