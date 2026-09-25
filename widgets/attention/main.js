@@ -69,9 +69,8 @@ const S = {
   weightsCap: "Attention weights αᵢⱼ",
   rowCap: (q, h, raw) => `α for the query "${q}" · head ${h}${raw ? " · q·k without the division" : ""} · the row sums to 1`,
   rowWait: "Next query computes the first row",
-  outW: "Weights", outV: "Features vⱼ, then αᵢⱼvⱼ", outSum: "Sum", outZ: "Features with attention",
+  outW: "Weights", outV: ["Features vⱼ", "then αᵢⱼvⱼ"], outZcol: ["With attention", "zⱼ, row by row"], outSum: "Sum", outZ: "Features with attention",
   outSoFar: (k, L, pct) => `${k} of ${L} rows added · ${pct}% of the weight`,
-  outTable: "Features with attention",
   tileAdded: "Rows added", tileAddedNote: "αᵢⱼvⱼ taken into zᵢ so far",
   tileShare: "Weight added", tileShareNote: "the share of this row's weights",
   headsX: "x̃  [L, 48]", headsCat: "concatenate  [L, 4 × 12]", headsWo: "W_O  →  [L, 48]", headsFf: "Feed-forward",
@@ -278,8 +277,10 @@ function drawWeights(ctx, colors, w, params, state, anim) {
 /* ONE PRESS, IN STAGES (his ask, 2026-09-26: "animate rows added sequentially"; mock
    `_lab/attention-output-mock.html`, his pick C). The press glides to the next query,
    then takes its keys one at a time: the key's features vⱼ fade in place to αᵢⱼvⱼ
-   and zᵢ takes them into its running total; then the finished zᵢ fades into its row
-   of the table under the α matrix, where row i of Z sits under row i of α (Z = αV).
+   and zᵢ takes them into its running total; then the finished zᵢ fades into the
+   column right of the strips, on its own token's row, so every token's features
+   before and after attention sit side by side (his ask, the same day: "move and
+   align to rows of original features").
    Nothing travels over marks already in place (tweens move in lanes): the key being
    added is outlined, and a line down the right edge carries it to the sum. */
 const OUT = { pre: 260, key: 280, drop: 360 }, OUT_RUN = { pre: 160, key: 150, drop: 220 };
@@ -299,9 +300,10 @@ const partialZ = (hd, i, k) => Array.from({ length: M.DK }, (_, d) => { let s = 
 /** the share of query i's weight on its first k keys */
 const weightSoFar = (hd, i, k) => hd.alpha[i].slice(0, k).reduce((a, b) => a + b, 0);
 
-const OT = { top: 46, rh: 24, cs: 14, matTop: 108, tableGap: 40 };
-const outTableTop = (L) => OT.matTop + L * OT.cs + OT.tableGap;
-const heightOutput = (L) => Math.max(OT.top + L * OT.rh + 124, outTableTop(L) + L * OT.cs + 12);
+/* cs 12: the smallest pitch the row labels' face clears; the strips take what is left,
+   two of them, v and z, with the lane for the key being added between */
+const OT = { top: 52, rh: 24, cs: 12, matTop: 114, lane: 22 };
+const heightOutput = (L) => OT.top + L * OT.rh + 124;
 
 function drawOutput(ctx, colors, w, params, state, anim) {
   const toks = state.tokens, L = state.L, h = Number(params.head) - 1, hd = state.run.heads[h], qi = queryOf(anim);
@@ -309,10 +311,17 @@ function drawOutput(ctx, colors, w, params, state, anim) {
   const lw = labelWidth(ctx, colors, toks), mx = PAD_L + lw + 6;
   txt(ctx, S.weightsCap, PAD_L, 18, { font: cap(colors), fill: colors.ink1 });
   matrix(ctx, colors, hd.alpha, toks, mx, OT.matTop, OT.cs, anim, { ge: ph.e });
-  const wx = mx + L * OT.cs + 22, kx = wx + 42, vx = kx + lw + 18;
-  const vc = Math.max(8, Math.min(14, Math.floor((w - PAD_R - vx - 12) / M.DK)));
+  const wx = mx + L * OT.cs + 18, kx = wx + 42, vx = kx + lw + 16;
+  const vc = Math.max(4, Math.min(14, Math.floor((w - PAD_R - vx - OT.lane) / (2 * M.DK))));
+  const zx = vx + M.DK * vc + OT.lane;
   txt(ctx, S.outW, wx, 18, { font: cap(colors), fill: colors.ink1 });
-  txt(ctx, S.outV, vx, 18, { font: cap(colors), fill: colors.ink1 });
+  txt(ctx, S.outV[0], vx, 18, { font: cap(colors), fill: colors.ink1 });
+  txt(ctx, S.outV[1], vx, 34, { font: small(colors), fill: colors.ink2 });
+  /* the column header pulled in from the canvas edge where the strips are narrower than it */
+  ctx.save(); ctx.font = cap(colors); const zhw = Math.max(ctx.measureText(S.outZcol[0]).width, ctx.measureText(S.outZcol[1]).width); ctx.restore();
+  const zhx = Math.min(zx, w - PAD_R - zhw);
+  txt(ctx, S.outZcol[0], zhx, 18, { font: cap(colors), fill: colors.ink1 });
+  txt(ctx, S.outZcol[1], zhx, 34, { font: small(colors), fill: colors.ink2 });
   const vmax = Math.max(...hd.v.flat().map(Math.abs), ...hd.z.flat().map(Math.abs));
   const blank = rgb(colors.surface2), right = vx + M.DK * vc;
   /* what row j's strip shows now: its features, or the features times this query's weight */
@@ -341,6 +350,13 @@ function drawOutput(ctx, colors, w, params, state, anim) {
     for (let d = 0; d < M.DK; d++) { ctx.fillStyle = css(stripAt(j, d)); ctx.fillRect(vx + d * vc, y, vc - 1, OT.rh - 5); }
     const adding = g && ph.e >= 1 && j === ph.k && ph.k < L;
     ctx.strokeStyle = adding ? colors.groupA : colors.ink2; ctx.lineWidth = adding ? 2 : 1; ctx.strokeRect(vx - 0.5, y - 0.5, M.DK * vc, OT.rh - 4);
+    /* zⱼ beside vⱼ: token j's features after attention, once its own query is done */
+    const za = j < qi ? 1 : j === qi ? ph.drop : 0;
+    for (let d = 0; d < M.DK; d++) {
+      ctx.fillStyle = colors.surface2; ctx.fillRect(zx + d * vc, y, vc - 1, OT.rh - 5);
+      if (za > 0) { ctx.save(); ctx.globalAlpha = za; ctx.fillStyle = css(signedFill(colors, hd.z[j][d], vmax)); ctx.fillRect(zx + d * vc, y, vc - 1, OT.rh - 5); ctx.restore(); }
+    }
+    ctx.lineWidth = 1; ctx.strokeStyle = j === qi ? colors.groupA : colors.ink2; ctx.strokeRect(zx - 0.5, y - 0.5, M.DK * vc, OT.rh - 4);
   }
   ctx.lineWidth = 1;
   const yb = OT.top + L * OT.rh + 2;
@@ -373,19 +389,6 @@ function drawOutput(ctx, colors, w, params, state, anim) {
   const added = g ? (ph.e < 1 ? 0 : Math.min(L, ph.k + (ph.u >= 0.5 ? 1 : 0))) : 0;
   txt(ctx, g && added < L ? S.outSoFar(added, L, Math.round(100 * weightSoFar(hd, g.to, added))) : S.outZ, (vx + right) / 2, zy + 44,
     { font: small(colors), fill: colors.ink2, align: "center" });
-  /* Z under α: row i of the table is query i's finished z */
-  const tt = outTableTop(L), zc = (L * OT.cs) / M.DK;
-  txt(ctx, S.outTable, PAD_L, tt - 12, { font: cap(colors), fill: colors.ink1 });
-  for (let i = 0; i < L; i++) {
-    const y = tt + i * OT.cs, a = i < qi ? 1 : i === qi ? ph.drop : 0;
-    txt(ctx, toks[i], mx - 5, y + OT.cs / 2, { font: mono(colors), fill: i === qi ? colors.groupA : colors.ink2, align: "right", baseline: "middle" });
-    for (let d = 0; d < M.DK; d++) {
-      const x = mx + d * zc;
-      ctx.fillStyle = colors.surface2; ctx.fillRect(x, y, zc - 1, OT.cs - 1);
-      if (a > 0) { ctx.save(); ctx.globalAlpha = a; ctx.fillStyle = css(signedFill(colors, hd.z[i][d], vmax)); ctx.fillRect(x, y, zc - 1, OT.cs - 1); ctx.restore(); }
-    }
-  }
-  ctx.strokeStyle = colors.ink2; ctx.strokeRect(mx - 0.5, tt - 0.5, L * OT.cs, L * OT.cs);
 }
 
 /* ================================================================ Heads */
