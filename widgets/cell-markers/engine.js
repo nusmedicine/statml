@@ -73,25 +73,34 @@ function poisson(rng, lam) {
     t-th block of them (conditionGenesOf) — rather than all types the same
     first block (Kenneth, 2026-09-25: "give each cell type its own changed
     genes"; the widget's Tumour vs liver page). */
-export function simulate(rng, { cells = 400, patientSd = 0.3, sampleSd = 0, phi = 0.3, depth = 1, condition = 0, conditionGenes = 20, conditionTypes = ["kupffer"], conditionByType = false, zonation = 0, compSd = 0, interaction = 0, interactionGenes = 10, integrated = false } = {}) {
+export function simulate(rng, { cells = 400, patientSd = 0.3, sampleSd = 0, phi = 0.3, depth = 1, condition = 0, conditionGenes = 20, conditionTypes = ["kupffer"], conditionByType = false, zonation = 0, compSd = 0, interaction = 0, interactionGenes = 10, integrated = false, patients = 2 } = {}) {
   const P = profiles(rng);
-  const pat = [0, 1].map(() => Array.from({ length: G }, () => rng.normal(0, patientSd)));
+  /* `patients` a tissue, each with a liver and a tumour sample; past the
+     data's two, patient p borrows patient ((p − 1) mod 2) + 1's mix and depth
+     and draws effects of its own. At 2 the samples are SAMPLES and every draw
+     falls where it always has (his question 2026-09-25: "should we increase to
+     3 patients per tissue?" — `_lab/cell-markers-patients-measure`). */
+  const SAMP = patients === 2 ? SAMPLES : Array.from({ length: patients }, (_, p) => ["liver", "tumour"].map((tissue) => {
+    const t = SAMPLES.find((q) => q.patient === (p % 2) + 1 && q.tissue === tissue);
+    return { ...t, key: `p${p + 1}-${tissue}`, name: `Patient ${p + 1} · ${tissue}`, patient: p + 1 };
+  })).flat();
+  const pat = Array.from({ length: patients }, () => Array.from({ length: G }, () => rng.normal(0, patientSd)));
   /* a SAMPLE's own effect, per gene: what one preparation does that the same
      patient's other sample does not — ambient RNA, dissociation, handling.
      A patient's effect is shared by both of that patient's samples, so in a
      tumour-against-liver comparison it cancels; a sample's does not. */
-  const samp = SAMPLES.map(() => Array.from({ length: G }, () => rng.normal(0, sampleSd)));
+  const samp = SAMP.map(() => Array.from({ length: G }, () => rng.normal(0, sampleSd)));
   const out = [];
   /* each sample's own mix of types: its tissue's mix, every share moved by a
      log-normal of sd `compSd` and renormalised — what two livers from two
      people differ by, so a composition test has sample-to-sample noise */
-  const mixes = SAMPLES.map((s) => { const m = {}; for (const t of TYPES) m[t.key] = (s.mix[t.key] ?? 0) * Math.exp(rng.normal(0, compSd)); return m; });
+  const mixes = SAMP.map((s) => { const m = {}; for (const t of TYPES) m[t.key] = (s.mix[t.key] ?? 0) * Math.exp(rng.normal(0, compSd)); return m; });
   /* with `integrated`, each count vector draws from a stream of its own, so the
      sample, patient and condition effects — which change only the tested
      counts — leave the cells, their types and the integrated counts (the map
      and the clusters) exactly where they were */
   const rI = integrated ? makeRng(Math.floor(rng.next() * 2 ** 31)) : rng, rX = integrated ? makeRng(Math.floor(rng.next() * 2 ** 31)) : rng;
-  for (const [si, s] of SAMPLES.entries()) {
+  for (const [si, s] of SAMP.entries()) {
     const mix = mixes[si];
     const tot = Object.values(mix).reduce((a, b) => a + b, 0);
     for (let i = 0; i < cells; i += 1) {
