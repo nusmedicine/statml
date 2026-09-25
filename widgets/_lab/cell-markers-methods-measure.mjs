@@ -7,9 +7,11 @@
  * 0.3). The cluster is the true cell type: at resolution 0.3 the clusters are
  * the types (ARI 1.00, page3-measure).
  *
- * Truth: at True change c, the first 20 spread genes (Gene1–Gene20) change by
- * c log2 in every type's tumour-sample cells, half up, half down; every other
- * gene is unchanged. So each test's calls split into
+ * Truth: at True change c, each type's own 20 spread genes (type t: the t-th
+ * block of 20, conditionByType — Kupffer Gene101–Gene120, immune Gene41–Gene60)
+ * change by c log2 in its tumour-sample cells, half up, half down; every
+ * other gene is unchanged. (Before 2026-09-25 evening every type shared
+ * Gene1–Gene20; re-run on his "give each cell type its own changed genes".) So each test's calls split into
  *   true positives  — of the 20 changed genes, how many it calls (power)
  *   false positives — unchanged genes it calls
  *   any false call  — the share of seeds with at least one (family-wise error)
@@ -18,7 +20,7 @@
  */
 import fs from "node:fs";
 import { makeRng } from "../core/rng.js";
-import { simulate, normalise, findMarkers, isConditionGene, TYPES, G } from "../cell-markers/engine.js";
+import { simulate, normalise, findMarkers, conditionGenesOf, TYPES, G } from "../cell-markers/engine.js";
 import { analyse } from "../deseq2/engine.js";
 
 const ORDER = ["p1-liver", "p2-liver", "p1-tumour", "p2-tumour"];
@@ -36,9 +38,9 @@ for (const typeKey of ["kupffer", "immune"]) {
   for (const change of [0, 1, 2]) for (const sampleSd of [0, 0.2, 0.4, 0.65]) {
     const acc = { cTP: 0, cFP: 0, cAny: 0, dTP: 0, dFP: 0, dAny: 0, n: 0 };
     for (let seed = 1; seed <= SEEDS; seed += 1) {
-      const cells = simulate(makeRng(derived(seed, 1)), { cells: 300, patientSd: 0.3, sampleSd, condition: change, conditionTypes: ALL, integrated: false });
+      const cells = simulate(makeRng(derived(seed, 1)), { cells: 300, patientSd: 0.3, sampleSd, condition: change, conditionTypes: ALL, conditionByType: true, integrated: false });
       const Y = normalise(cells), inC = (i) => cells[i].type === ti;
-      const truth = (g) => change > 0 && isConditionGene(g);
+      const own = conditionGenesOf(ti), truth = (g) => change > 0 && own(g);
       const fm = findMarkers(Y, (i) => inC(i) && cells[i].tissue === "tumour", (i) => inC(i) && cells[i].tissue === "liver", { logfc: 0, minPct: 0, nGenes: 33538 });
       const cCalls = fm.res.filter((x) => x.lpAdj < LOG05).map((x) => x.g);
       const counts = Array.from({ length: G }, (_, g) => ORDER.map((k) => cells.reduce((s, c) => s + (c.type === ti && c.sample === k ? c.x[g] : 0), 0)));
