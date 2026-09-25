@@ -69,7 +69,7 @@ const S = {
   weightsCap: "Attention weights αᵢⱼ",
   rowCap: (q, h, raw) => `α for the query "${q}" · head ${h}${raw ? " · q·k without the division" : ""} · the row sums to 1`,
   rowWait: "Next query computes the first row",
-  outW: "Weights", outV: ["Features vⱼ", "× αᵢⱼ"], outZcol: ["With attention", "zⱼ, row by row"], outSum: "Sum", outZ: "Features with attention",
+  outW: "Weights", outV: ["Features vⱼ"], outZcol: ["With attention", "zⱼ, row by row"], outSum: "Sum", outZ: "Features with attention",
   outSoFar: (k, L, pct) => `${k} of ${L} rows added · ${pct}% of the weight`,
   tileAdded: "Rows added", tileAddedNote: "αᵢⱼvⱼ taken into zᵢ so far",
   tileShare: "Weight added", tileShareNote: "the share of this row's weights",
@@ -276,20 +276,23 @@ function drawWeights(ctx, colors, w, params, state, anim) {
 
 /* ONE PRESS, IN STAGES (his ask, 2026-09-26: "animate rows added sequentially"; mock
    `_lab/attention-output-mock.html`, his pick C). The press glides to the next query,
-   then takes its keys one at a time: the key's features vⱼ fade in place to αᵢⱼvⱼ
-   and zᵢ takes them into its running total; then the finished zᵢ fades into the
+   then takes its keys one at a time: an outline steps to the key and zᵢ eases to
+   the next partial sum, one term of Σⱼ αᵢⱼvⱼ a step; then the finished zᵢ fades into the
    column right of the strips, on its own token's row, so every token's features
    before and after attention sit side by side (his ask, the same day: "move and
    align to rows of original features").
    Nothing travels over marks already in place (tweens move in lanes): the key being
    added is outlined, and a line down the right edge carries it to the sum. */
 const OUT = { pre: 260, key: 360, drop: 360 }, OUT_RUN = { pre: 160, key: 200, drop: 220 };
-/* one key's slot in three beats (his ask, 2026-09-26: "dim each row then restore it
-   before moving to the next"): its strip dims to αᵢⱼvⱼ, zᵢ takes it in, the strip
-   restores to vⱼ — so one row at a time is dimmed and the page always shows every
-   other token's own features */
+/* ONE KEY'S SLOT (his pick B, 2026-09-26, from the live mock
+   `_lab/attention-sum-motion-mock.html`): the outline moves to the key over the
+   first 30%, then zᵢ eases to the next partial sum. The strips keep their own vⱼ
+   throughout. Dimming each strip to αᵢⱼvⱼ in place was built first and read as a
+   flicker ("it flickers a bit and can be distracting"), and dimming them all left
+   nothing to compare zⱼ with. */
 const beat = (u, a, b) => ease(Math.max(0, Math.min(1, (u - a) / (b - a))));
-const dimOf = (u) => beat(u, 0, 0.35), sumOf = (u) => beat(u, 0.3, 0.7), backOf = (u) => beat(u, 0.7, 1);
+const moveOf = (u) => beat(u, 0, 0.3), sumOf = (u) => beat(u, 0.3, 0.8);
+const SUM_AT = 0.55;   // where in a slot the count of rows added ticks over
 const outMs = (L, mode) => { const P = mode === "run" ? OUT_RUN : OUT; return P.pre + L * P.key + P.drop; };
 /** where a press is on the Output page: the glide `e`, the key `k` being added and its progress `u`, the table's fade `drop` */
 function outPhase(anim, L) {
@@ -322,7 +325,6 @@ function drawOutput(ctx, colors, w, params, state, anim) {
   const zx = vx + M.DK * vc + OT.lane;
   txt(ctx, S.outW, wx, 18, { font: cap(colors), fill: colors.ink1 });
   txt(ctx, S.outV[0], vx, 18, { font: cap(colors), fill: colors.ink1 });
-  txt(ctx, S.outV[1], vx, 34, { font: small(colors), fill: colors.ink2 });
   /* the column header pulled in from the canvas edge where the strips are narrower than it */
   ctx.save(); ctx.font = cap(colors); const zhw = Math.max(ctx.measureText(S.outZcol[0]).width, ctx.measureText(S.outZcol[1]).width); ctx.restore();
   const zhx = Math.min(zx, w - PAD_R - zhw);
@@ -330,17 +332,6 @@ function drawOutput(ctx, colors, w, params, state, anim) {
   txt(ctx, S.outZcol[1], zhx, 34, { font: small(colors), fill: colors.ink2 });
   const vmax = Math.max(...hd.v.flat().map(Math.abs), ...hd.z.flat().map(Math.abs));
   const blank = rgb(colors.surface2), right = vx + M.DK * vc;
-  /* what row j's strip shows now: its own features, except the key being added,
-     which dims to the features times this query's weight and restores (the beats
-     above), so the page sets each token's features beside its features with attention
-     (his pick A, then one row at a time, 2026-09-26). */
-  const stripAt = (j, d) => {
-    const raw = signedFill(colors, hd.v[j][d], vmax);
-    if (!g || ph.e < 1) return raw;
-    const mine = signedFill(colors, hd.alpha[g.to][j] * hd.v[j][d], vmax);
-    if (j === ph.k && ph.k < L) return mixRgb(mixRgb(raw, mine, dimOf(ph.u)), raw, backOf(ph.u));
-    return raw;
-  };
   for (let j = 0; j < L; j++) {
     const y = OT.top + j * OT.rh, ty = y + (OT.rh - 5) / 2;
     ctx.fillStyle = colors.surface2; ctx.fillRect(wx, y, 34, OT.rh - 5);
@@ -354,9 +345,8 @@ function drawOutput(ctx, colors, w, params, state, anim) {
     ctx.strokeStyle = colors.ink2; ctx.lineWidth = 1; ctx.strokeRect(wx + 0.5, y + 0.5, 33, OT.rh - 6);
     txt(ctx, toks[j], kx, ty, { font: mono(colors), fill: colors.groupB, baseline: "middle" });
     txt(ctx, "·", vx - 9, ty, { font: cap(colors), fill: colors.ink1, align: "center", baseline: "middle" });
-    for (let d = 0; d < M.DK; d++) { ctx.fillStyle = css(stripAt(j, d)); ctx.fillRect(vx + d * vc, y, vc - 1, OT.rh - 5); }
-    const adding = g && ph.e >= 1 && j === ph.k && ph.k < L;
-    ctx.strokeStyle = adding ? colors.groupA : colors.ink2; ctx.lineWidth = adding ? 2 : 1; ctx.strokeRect(vx - 0.5, y - 0.5, M.DK * vc, OT.rh - 4);
+    for (let d = 0; d < M.DK; d++) { ctx.fillStyle = css(signedFill(colors, hd.v[j][d], vmax)); ctx.fillRect(vx + d * vc, y, vc - 1, OT.rh - 5); }
+    ctx.strokeStyle = colors.ink2; ctx.lineWidth = 1; ctx.strokeRect(vx - 0.5, y - 0.5, M.DK * vc, OT.rh - 4);
     /* zⱼ beside vⱼ: token j's features after attention, once its own query is done */
     const za = j < qi ? 1 : j === qi ? ph.drop : 0;
     for (let d = 0; d < M.DK; d++) {
@@ -368,9 +358,12 @@ function drawOutput(ctx, colors, w, params, state, anim) {
   ctx.lineWidth = 1;
   const yb = OT.top + L * OT.rh + 2;
   line(ctx, wx, yb, wx, yb + 8, colors.ink2); line(ctx, wx, yb + 8, right, yb + 8, colors.ink2); line(ctx, right, yb, right, yb + 8, colors.ink2);
-  /* the key being added, carried to the sum down the lane right of the strips */
+  /* the key being added: one outline stepping row to row, and a line down the lane
+     right of the strips carrying it to the sum */
   if (g && ph.e >= 1 && ph.k < L) {
-    const y0 = OT.top + ph.k * OT.rh + (OT.rh - 5) / 2;
+    const at = ph.k === 0 ? 0 : ph.k - 1 + moveOf(ph.u), y = OT.top + at * OT.rh;
+    ctx.strokeStyle = colors.groupA; ctx.lineWidth = 2; ctx.strokeRect(vx - 1.5, y - 1.5, M.DK * vc + 2, OT.rh - 2); ctx.lineWidth = 1;
+    const y0 = y + (OT.rh - 5) / 2;
     line(ctx, right + 1, y0, right + 8, y0, colors.groupA, 1.5);
     arrow(ctx, right + 8, y0, right + 8, yb + 6, colors.groupA);
   }
@@ -393,7 +386,7 @@ function drawOutput(ctx, colors, w, params, state, anim) {
     if (!g.first) txt(ctx, toks[g.from], vx - 10, zy + 12, { font: mono(colors), fill: colors.groupA, align: "right", baseline: "middle", alpha: oldInk(g) });
     txt(ctx, toks[g.to], vx - 10, zy + 12, { font: mono(colors), fill: colors.groupA, align: "right", baseline: "middle", alpha: newInk(g) });
   }
-  const added = g ? (ph.e < 1 ? 0 : Math.min(L, ph.k + (ph.u >= 0.5 ? 1 : 0))) : 0;
+  const added = g ? (ph.e < 1 ? 0 : Math.min(L, ph.k + (ph.u >= SUM_AT ? 1 : 0))) : 0;
   txt(ctx, g && added < L ? S.outSoFar(added, L, Math.round(100 * weightSoFar(hd, g.to, added))) : S.outZ, (vx + right) / 2, zy + 44,
     { font: small(colors), fill: colors.ink2, align: "center" });
 }
@@ -545,7 +538,7 @@ defineWidget({
     const second = { label: S.tileTop, value: row ? `${state.tokens[top]} ${row[top].toFixed(2)}` : S.wait, note: S.tileTopNote };
     if (params.page === "output") {
       const ph = outPhase(anim, L), hd = state.run.heads[h];
-      const k = qi < 0 || ph.e < 1 ? 0 : Math.min(L, ph.k + (ph.u >= 0.5 ? 1 : 0));
+      const k = qi < 0 || ph.e < 1 ? 0 : Math.min(L, ph.k + (ph.u >= SUM_AT ? 1 : 0));
       return [first,
         { label: S.tileAdded, value: qi >= 0 ? `${k} of ${L}` : S.wait, note: S.tileAddedNote },
         { label: S.tileShare, value: qi >= 0 ? `${Math.round(100 * weightSoFar(hd, qi, k))}%` : S.wait, note: S.tileShareNote }];

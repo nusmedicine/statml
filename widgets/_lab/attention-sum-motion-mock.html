@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · 83 Output page, the running sum in motion — mock</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1760px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 120ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  .grid { display: flex; gap: var(--sp-4); flex-wrap: wrap; }
+  .arm h3 { font-size: var(--fs-sm); margin: 0 0 2px; color: var(--ink-1); }
+  .arm p { font-size: var(--fs-xs); color: var(--ink-2); margin: 0 0 6px; max-width: 560px; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .bar { display: flex; gap: 8px; align-items: center; margin: 0 0 var(--sp-3); font-size: var(--fs-sm); color: var(--ink-2); }
+  button { font: inherit; padding: 4px 12px; background: var(--surface-2); color: var(--ink-1); border: 1px solid var(--grid); border-radius: 4px; cursor: pointer; }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-3) 0 0; padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 120ch; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Widget 83 · Output page · the running sum, four motions · mock (live)</h1>
+  <p class="note">
+    Each panel plays the same press on a loop: the trained block 1, head 4, the query <b>for</b>, the widget's own
+    timings (0.26 s glide, 0.36 s a key, 0.36 s drop, then a 1.5 s hold). The layout is the widget's; only how the
+    sum is shown differs. In B, C and D the original features vⱼ never change colour.
+  </p>
+  <div class="bar"><button id="pause">Pause</button><button id="slow">Half speed: off</button><span id="clock"></span></div>
+  <div class="grid">
+    <div class="arm"><h3>A · dim each row, then restore (the draft now)</h3><p>The key's strip dims to αᵢⱼvⱼ, z takes it, the strip restores.</p><canvas id="A"></canvas></div>
+    <div class="arm"><h3>B · an outline steps from key to key; z steps with it</h3><p>Rows untouched. The outline moves to the next key and z eases to the next partial sum; each step is one term of Σⱼ αᵢⱼvⱼ.</p><canvas id="B"></canvas></div>
+    <div class="arm"><h3>C · a continuous scan; z grows with it</h3><p>Rows untouched. The outline glides down at an even speed and z changes continuously, each key's αᵢⱼvⱼ let in as the outline crosses it. No beats.</p><canvas id="C"></canvas></div>
+    <div class="arm"><h3>D · the addend shown under the bracket</h3><p>Rows untouched. Under the bracket, the key being added as one strip, "+ 0.49 × pain", above a rule and the running z. The addend crossfades key to key.</p><canvas id="D"></canvas></div>
+  </div>
+  <p class="rec">To judge: which reads as a SUM, and which is calm enough to watch for eleven keys. C has the least
+    flicker (one smooth motion), B the clearest terms, D the multiplication spelled out. The calls come alongside.</p>
+</main>
+<script type="module">
+const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const C = { ink1: css("--ink-1"), ink2: css("--ink-2"), ink3: css("--ink-3"), s1: css("--surface-1"), s2: css("--surface-2"), s3: css("--surface-3"),
+  a: css("--c-group-a"), b: css("--c-group-b"), mag: css("--c-magnitude"), lo: css("--c-value-low"), hi: css("--c-value-high"),
+  font: css("--font"), mono: css("--font-mono") };
+const rgb = (h) => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+const mixA = (a, b, t) => a.map((x, i) => x + (b[i] - x) * Math.max(0, Math.min(1, t)));
+const str = (p) => `rgb(${p.map(Math.round).join(",")})`;
+const wfill = (w) => str(mixA(rgb(C.s3), rgb(C.mag), Math.sqrt(w)));
+const vcol = (v, s) => mixA(rgb(C.s3), rgb(v >= 0 ? C.hi : C.lo), Math.abs(v) / s);
+const ease = (t) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2);
+const beat = (u, a, b) => ease(Math.max(0, Math.min(1, (u - a) / (b - a))));
+const capF = "600 12px " + C.font, smF = "11px " + C.font, monoF = "11px " + C.mono;
+function t(g, s, x, y, { f = monoF, c = C.ink2, a = "left", al = 1 } = {}) { if (al <= 0) return; g.globalAlpha = al; g.font = f; g.fillStyle = c; g.textAlign = a; g.textBaseline = "middle"; g.fillText(s, x, y); g.globalAlpha = 1; }
+
+const REF = await (await fetch("attention-reference.json")).json();
+const R = REF[0], H = 3, QI = 4, toks = R.tokens, L = toks.length;
+const A = R.alpha[H], V = R.v[H], Z = R.z[H];
+const vmax = Math.max(...V.flat().map(Math.abs), ...Z.flat().map(Math.abs));
+const partial = (k, frac = 0) => Array.from({ length: 12 }, (_, d) => {
+  let s = 0; for (let j = 0; j < Math.min(k, L); j++) s += A[QI][j] * V[j][d];
+  if (k < L) s += frac * A[QI][k] * V[k][d]; return s; });
+const PRE = 260, KEY = 360, DROP = 360, HOLD = 1500, CYCLE = PRE + L * KEY + DROP + HOLD;
+const W = 560, top = 52, rh = 24, wx = 12, kx = 56, vx = 130, vc = 13, lane = 22, zx = vx + 12 * vc + lane;
+
+function setup(id, extra = 0) {
+  const cv = document.getElementById(id), dpr = devicePixelRatio || 1, h = top + L * rh + 124 + extra;
+  cv.width = W * dpr; cv.height = h * dpr; cv.style.width = W + "px"; cv.style.height = h + "px";
+  const g = cv.getContext("2d"); g.scale(dpr, dpr); g.h = h; return g;
+}
+const G = { A: setup("A"), B: setup("B"), C: setup("C"), D: setup("D", 36) };
+
+/** the frame at time tau: phase of the press */
+function phase(tau) {
+  if (tau < PRE) return { pre: true, k: 0, u: 0, drop: 0, p: 0 };
+  const r = tau - PRE;
+  if (r < L * KEY) return { k: Math.floor(r / KEY), u: (r % KEY) / KEY, drop: 0, p: r / KEY };
+  return { k: L, u: 1, drop: ease(Math.min(1, (r - L * KEY) / DROP)), p: L };
+}
+function base(g, ph, stripOf, outlineY) {
+  g.clearRect(0, 0, W, g.h);
+  t(g, "Weights", wx, 18, { f: capF, c: C.ink1 }); t(g, "Features vⱼ", vx, 18, { f: capF, c: C.ink1 }); t(g, "With attention zⱼ", zx, 18, { f: capF, c: C.ink1 });
+  for (let j = 0; j < L; j++) {
+    const y = top + j * rh, w = A[QI][j];
+    g.fillStyle = wfill(w); g.fillRect(wx, y, 34, rh - 5); t(g, w.toFixed(2), wx + 17, y + 9.5, { a: "center", c: w > 0.3 ? C.s1 : C.ink1 });
+    t(g, toks[j], kx, y + 9.5, { c: C.b });
+    for (let d = 0; d < 12; d++) { g.fillStyle = str(stripOf(j, d)); g.fillRect(vx + d * vc, y, vc - 1, rh - 5); }
+    g.strokeStyle = C.ink3; g.lineWidth = 1; g.strokeRect(vx - 0.5, y - 0.5, 12 * vc, rh - 4);
+    const za = j < QI ? 1 : j === QI ? ph.drop : 0;
+    for (let d = 0; d < 12; d++) { g.fillStyle = C.s2; g.fillRect(zx + d * vc, y, vc - 1, rh - 5); if (za > 0) { g.globalAlpha = za; g.fillStyle = str(vcol(Z[j][d], vmax)); g.fillRect(zx + d * vc, y, vc - 1, rh - 5); g.globalAlpha = 1; } }
+    g.strokeStyle = j === QI ? C.a : C.ink3; g.strokeRect(zx - 0.5, y - 0.5, 12 * vc, rh - 4);
+  }
+  if (outlineY !== null) { g.strokeStyle = C.a; g.lineWidth = 2; g.strokeRect(vx - 1.5, outlineY - 1.5, 12 * vc + 2, rh - 2); g.lineWidth = 1; }
+  const yb = top + L * rh + 2;
+  g.strokeStyle = C.ink2; g.beginPath(); g.moveTo(vx, yb); g.lineTo(vx, yb + 8); g.lineTo(vx + 12 * vc, yb + 8); g.lineTo(vx + 12 * vc, yb); g.stroke();
+  return yb;
+}
+function zstrip(g, y, vals) {
+  for (let d = 0; d < 12; d++) { g.fillStyle = vals ? str(vcol(vals[d], vmax)) : C.s2; g.fillRect(vx + d * vc, y, vc - 1, 24); }
+  g.strokeStyle = C.ink1; g.strokeRect(vx - 0.5, y - 0.5, 12 * vc, 25); t(g, "for", vx - 10, y + 12, { c: C.a, a: "right" });
+}
+function caption(g, y, n, done) {
+  const pct = Math.round(100 * A[QI].slice(0, n).reduce((a, b) => a + b, 0));
+  t(g, done ? "Features with attention" : `${n} of ${L} rows added · ${pct}% of the weight`, vx + 6 * vc, y, { f: smF, a: "center" });
+}
+const raw = (j, d) => vcol(V[j][d], vmax), mine = (j, d) => vcol(A[QI][j] * V[j][d], vmax);
+const zmix = (a, b, s) => a.map((x, i) => x + (b[i] - x) * s);
+
+const draw = {
+  A(g, ph) {
+    const yb = base(g, ph, (j, d) => (j === ph.k && ph.k < L ? mixA(mixA(raw(j, d), mine(j, d), beat(ph.u, 0, 0.35)), raw(j, d), beat(ph.u, 0.7, 1)) : raw(j, d)),
+      ph.pre || ph.k >= L ? null : top + ph.k * rh);
+    t(g, "Sum", vx + 6 * vc, yb + 26, { f: capF, c: C.ink1, a: "center" });
+    const z = ph.pre ? null : ph.k >= L ? Z[QI] : zmix(partial(ph.k), partial(ph.k + 1), beat(ph.u, 0.3, 0.7));
+    zstrip(g, yb + 56, z); caption(g, yb + 100, ph.pre ? 0 : Math.min(L, ph.k + (ph.u >= 0.5 ? 1 : 0)), ph.k >= L);
+  },
+  B(g, ph) {
+    const prevY = top + Math.max(0, ph.k - 1) * rh, y = ph.k >= L ? null : ph.k === 0 ? top : prevY + (top + ph.k * rh - prevY) * beat(ph.u, 0, 0.3);
+    const yb = base(g, ph, raw, ph.pre ? null : y);
+    t(g, "Sum", vx + 6 * vc, yb + 26, { f: capF, c: C.ink1, a: "center" });
+    const z = ph.pre ? null : ph.k >= L ? Z[QI] : zmix(partial(ph.k), partial(ph.k + 1), beat(ph.u, 0.3, 0.8));
+    zstrip(g, yb + 56, z); caption(g, yb + 100, ph.pre ? 0 : Math.min(L, ph.k + (ph.u >= 0.55 ? 1 : 0)), ph.k >= L);
+  },
+  C(g, ph) {
+    const yb = base(g, ph, raw, ph.pre || ph.k >= L ? null : top + ph.p * rh - (rh / 2));
+    t(g, "Sum", vx + 6 * vc, yb + 26, { f: capF, c: C.ink1, a: "center" });
+    /* the scan's middle crosses key j's middle at p = j + 0.5: each key let in over the half-row either side */
+    const letIn = (j) => Math.max(0, Math.min(1, ph.p - j));
+    const z = ph.pre ? null : Array.from({ length: 12 }, (_, d) => { let s = 0; for (let j = 0; j < L; j++) s += letIn(j) * A[QI][j] * V[j][d]; return s; });
+    zstrip(g, yb + 56, z); caption(g, yb + 100, ph.pre ? 0 : Math.min(L, Math.floor(ph.p + 0.5)), ph.k >= L);
+  },
+  D(g, ph) {
+    const yb = base(g, ph, raw, ph.pre || ph.k >= L ? null : top + ph.k * rh);
+    const ay = yb + 18;
+    if (!ph.pre && ph.k < L) {
+      const k = ph.k, f = beat(ph.u, 0, 0.3);
+      const add = (j) => Array.from({ length: 12 }, (_, d) => vcol(A[QI][j] * V[j][d], vmax));
+      const now = add(k), before = k > 0 ? add(k - 1) : Array.from({ length: 12 }, () => rgb(C.s2));
+      for (let d = 0; d < 12; d++) { g.fillStyle = str(mixA(before[d], now[d], f)); g.fillRect(vx + d * vc, ay, vc - 1, 22); }
+      g.strokeStyle = C.a; g.strokeRect(vx - 0.5, ay - 0.5, 12 * vc, 23);
+      if (k > 0) t(g, `+ ${A[QI][k - 1].toFixed(2)} × ${toks[k - 1]}`, vx - 8, ay + 11, { c: C.ink1, a: "right", al: 1 - f });
+      t(g, `+ ${A[QI][k].toFixed(2)} × ${toks[k]}`, vx - 8, ay + 11, { c: C.ink1, a: "right", al: f });
+    } else if (ph.k >= L) t(g, "Σ over all 8 keys", vx + 6 * vc, ay + 11, { f: smF, a: "center" });
+    g.strokeStyle = C.ink1; g.lineWidth = 1.5; g.beginPath(); g.moveTo(vx - 70, ay + 32); g.lineTo(vx + 12 * vc, ay + 32); g.stroke(); g.lineWidth = 1;
+    const z = ph.pre ? null : ph.k >= L ? Z[QI] : zmix(partial(ph.k), partial(ph.k + 1), beat(ph.u, 0.35, 0.8));
+    zstrip(g, ay + 40, z); caption(g, ay + 84, ph.pre ? 0 : Math.min(L, ph.k + (ph.u >= 0.6 ? 1 : 0)), ph.k >= L);
+  },
+};
+
+let paused = false, slow = 1, clock = 0, last = performance.now();
+document.getElementById("pause").onclick = (e) => { paused = !paused; e.target.textContent = paused ? "Play" : "Pause"; };
+document.getElementById("slow").onclick = (e) => { slow = slow === 1 ? 0.5 : 1; e.target.textContent = `Half speed: ${slow === 1 ? "off" : "on"}`; };
+function frame(now) {
+  const dt = Math.min(100, now - last); last = now;
+  if (!paused) clock = (clock + dt * slow) % CYCLE;
+  const tau = Math.min(clock, PRE + L * KEY + DROP), ph = phase(tau);
+  for (const k of "ABCD") draw[k](G[k], ph);
+  document.getElementById("clock").textContent = `${(clock / 1000).toFixed(1)} s of ${(CYCLE / 1000).toFixed(1)}`;
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
