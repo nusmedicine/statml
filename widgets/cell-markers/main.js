@@ -55,7 +55,7 @@ const PAGES = [
 ];
 const ON = (page) => ({ param: "page", equals: page });
 const CELL_PAGES = { param: "page", oneOf: ["clusters", "two-clusters", "tumour-liver"] };
-const HEIGHTS = { "two-clusters": 732, "tumour-liver": 1018, composition: 380 };
+const HEIGHTS = { "two-clusters": 732, "tumour-liver": 1420, composition: 380 };
 const RESOLUTIONS = ["0.1", "0.3", "0.5", "0.8", "1.2", "2"];
 const SAMPLE_SD = ["0", "0.1", "0.2", "0.4", "0.65"];
 const PATIENT_SD = ["0", "0.3", "0.65"];
@@ -317,7 +317,44 @@ const LIST_ROWS = 8, LIST_ROW_H = 17;
 function tlLayout(w) {
   const S = Math.min(260, Math.floor(w * 0.45)), PW = Math.floor((w - 64) / 2);
   const volTop = TOP + 260 + 52, volH = 190, listTop = volTop + volH + 52, geneTop = listTop + 18 + LIST_ROWS * LIST_ROW_H + 52;
-  return { map: { x: 8, y: TOP, S }, tableX: 8 + S + 28, PW, cols: [24, 24 + PW + 40], volTop, volH, listTop, geneTop, geneH: 220 };
+  return { map: { x: 8, y: TOP, S }, tableX: 8 + S + 28, PW, cols: [24, 24 + PW + 40], volTop, volH, listTop, geneTop, geneH: 220, vennTop: geneTop + 220 + 70 };
+}
+/* THE CALLS AGAINST THE TRUTH, AS A VENN (his pick from
+   `_lab/cell-markers-explain-mock`, figure 4A): the truly changed genes and
+   each test's calls, three fixed circles with counts — not areas, so no
+   area claims a proportion it cannot keep — and a dot per gene, blue truly
+   changed, red not, which picks the gene as a volcano point does. The dots
+   are laid on a grid of points inside each region, nearest its middle
+   first; the middle point carries the region's count. Kept per state, since
+   regions are rebuilt on every pointer move. */
+const vennCache = new WeakMap();
+function vennOf(state, w, L) {
+  const per = vennCache.get(state) ?? new Map();
+  if (per.has(w)) return per.get(w);
+  const C = state.cond, R = Math.min(90, Math.floor((w - 16) * 0.14)), cx = 16 + Math.round(1.7 * R), top = L.vennTop + 18;
+  const circles = [{ x: cx, y: top + R }, { x: cx - Math.round(0.72 * R), y: top + Math.round(2.05 * R) }, { x: cx + Math.round(0.72 * R), y: top + Math.round(2.05 * R) }];
+  const truth = new Set(), cells = new Set(C.volC.filter((q) => q.call).map((q) => q.g)), samples = new Set(C.volD.filter((q) => q.call).map((q) => q.g));
+  for (let g = 0; g < G; g += 1) if (C.truthOf(g)) truth.add(g);
+  const code = (g) => `${+truth.has(g)}${+cells.has(g)}${+samples.has(g)}`;
+  const grid = {}, STEP = 10;
+  for (let y = top - R; y < top + 3.1 * R; y += STEP) for (let x = cx - 1.8 * R; x < cx + 1.8 * R; x += STEP) {
+    const k = circles.map((c) => +(Math.hypot(x - c.x, y - c.y) < R - 6)).join("");
+    if (k !== "000") (grid[k] ??= []).push([x, y]);
+  }
+  Object.values(grid).forEach((pts) => { const mx = pts.reduce((a, q) => a + q[0], 0) / pts.length, my = pts.reduce((a, q) => a + q[1], 0) / pts.length; pts.sort((a, b) => Math.hypot(a[0] - mx, a[1] - my) - Math.hypot(b[0] - mx, b[1] - my)); });
+  const groups = {};
+  [...new Set([...truth, ...cells, ...samples])].sort((a, b) => a - b).forEach((g) => (groups[code(g)] ??= []).push(g));
+  /* the middle point and its neighbour are the count's; a region with more
+     genes than points stacks the rest on its last (the count stays exact) */
+  const dots = [], counts = [];
+  Object.entries(groups).forEach(([k, gs]) => {
+    const pts = grid[k] ?? [];
+    if (pts.length) counts.push({ x: pts[0][0], y: pts[0][1], n: gs.length });
+    gs.forEach((g, i) => { const q = pts[Math.min(i + 2, pts.length - 1)]; if (q) dots.push({ g, x: q[0], y: q[1], truth: truth.has(g) }); });
+  });
+  const out = { R, circles, dots, counts, nTruth: truth.size, nCells: cells.size, nSamples: samples.size, quiet: G - new Set([...truth, ...cells, ...samples]).size, textX: cx + Math.round(1.72 * R) + 24 };
+  per.set(w, out); vennCache.set(state, per);
+  return out;
 }
 /* one volcano's scales, shared by the drawing and the click targets */
 function volGeom(w, L, pts, k) {
@@ -515,19 +552,84 @@ function drawList(ctx, colors, x, y, w, pts, g, pName) {
   ctx.textAlign = "left";
 }
 
+/** The design as a tree: patients, their samples, the cluster's cells, and
+    a dashed box round the level each test counts as its n. Patients in ink,
+    not a hue: the map beside it wears the types' hues. */
+function drawDesignTree(ctx, colors, C, B) {
+  heading(ctx, colors, `${TYPES[C.a.type].name} · ${C.a.c}: what each test counts`, B.x, B.y + 14);
+  const rowP = B.y + 44, rowS = B.y + 100, rowC = B.y + 150, colW = B.w / 4, sx = (j) => B.x + colW * (j + 0.5), px = (p) => (sx(p) + sx(p + 2)) / 2;
+  const cap = (t, y) => { ctx.font = `${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.ink3; ctx.textAlign = "left"; ctx.fillText(t, B.x, y); };
+  [0, 1].forEach((p) => {
+    ctx.strokeStyle = colors.grid; ctx.lineWidth = 1.5;
+    [p, p + 2].forEach((j) => { ctx.beginPath(); ctx.moveTo(px(p), rowP + 9); ctx.lineTo(sx(j), rowS - 11); ctx.stroke(); });
+    ctx.fillStyle = colors.ink1; ctx.beginPath(); ctx.arc(px(p), rowP, 10, 0, Math.PI * 2); ctx.fill();
+    ctx.font = `600 ${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.surface; ctx.textAlign = "center"; ctx.fillText(`P${p + 1}`, px(p), rowP + 4);
+  });
+  const bw = Math.min(76, colW - 6);
+  ORDER.forEach((k, j) => {
+    const x = sx(j), n = Math.min(24, C.a.perSample[k]), liver = j < 2;
+    for (let i = 0; i < n; i += 1) {
+      const cx = x + ((i % 6) - 2.5) * 8, cy = rowC - 6 + Math.floor(i / 6) * 8;
+      ctx.strokeStyle = colors.grid; ctx.lineWidth = 0.6; ctx.beginPath(); ctx.moveTo(x, rowS + 11); ctx.lineTo(cx, cy - 3); ctx.stroke();
+    }
+    for (let i = 0; i < n; i += 1) {
+      const cx = x + ((i % 6) - 2.5) * 8, cy = rowC - 6 + Math.floor(i / 6) * 8;
+      ctx.beginPath(); ctx.arc(cx, cy, 2.3, 0, Math.PI * 2);
+      if (liver) { ctx.strokeStyle = colors.ink2; ctx.lineWidth = 1.1; ctx.stroke(); } else { ctx.fillStyle = colors.ink2; ctx.fill(); }
+    }
+    ctx.fillStyle = colors.surface; ctx.fillRect(x - bw / 2, rowS - 11, bw, 22); ctx.strokeStyle = colors.ink1; ctx.lineWidth = 1.2; ctx.strokeRect(x - bw / 2, rowS - 11, bw, 22);
+    ctx.font = `${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.ink1; ctx.textAlign = "center"; ctx.fillText(`P${(j % 2) + 1} ${ORDER_NAMES[j][1]}`, x, rowS + 4);
+    ctx.fillStyle = colors.ink2; ctx.fillText(`${C.a.perSample[k]} cells`, x, rowC + 38);
+  });
+  /* the level each test counts */
+  const box = (y0, y1, label, col) => {
+    ctx.strokeStyle = col; ctx.lineWidth = 1.5; ctx.setLineDash([5, 4]); ctx.strokeRect(B.x + 0.5, y0, B.w - 1, y1 - y0); ctx.setLineDash([]);
+    ctx.font = `600 ${colors.fsXs} ${colors.font}`; ctx.fillStyle = col; ctx.textAlign = "right"; ctx.fillText(label, B.x + B.w - 4, y0 - 4);
+  };
+  box(rowS - 17, rowS + 17, "over samples: n = 4 (right column)", colors.ink1);
+  box(rowC - 14, rowC + 26, `over cells: n = ${C.n} (left column)`, colors.ink2);
+  ["A patient's effect is in both of its samples, so", "tumour minus liver removes it. A sample's effect", "is in every one of its cells, the same draw: the", "test over cells counts that draw once per cell."]
+    .forEach((t, i) => cap(t, B.y + 206 + i * 14));
+  ctx.textAlign = "left";
+}
+
+function drawVenn(ctx, colors, V, L, picked) {
+  heading(ctx, colors, "The calls against the truth: each dot a gene", 8, L.vennTop - 12);
+  const [T, Cc, Sc] = V.circles, R = V.R;
+  [[T, colors.reference, []], [Cc, colors.ink1, []], [Sc, colors.ink2, [6, 4]]].forEach(([c, col, dash]) => {
+    ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.setLineDash(dash); ctx.beginPath(); ctx.arc(c.x, c.y, V.R, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]);
+  });
+  ctx.font = `600 ${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.ink1; ctx.textAlign = "center";
+  ctx.fillText(`Truly changed (${V.nTruth})`, T.x, T.y - R - 8);
+  ctx.fillText(`Called over cells (${V.nCells})`, Cc.x - R * 0.3, Cc.y + R + 16);
+  ctx.fillText(`Called over samples (${V.nSamples})`, Sc.x + R * 0.3, Sc.y + R + 32);
+  V.dots.forEach((d) => {
+    ctx.fillStyle = d.truth ? colors.empirical : colors.extreme; ctx.beginPath(); ctx.arc(d.x, d.y, 3.6, 0, Math.PI * 2); ctx.fill();
+    if (d.g === picked) { ctx.strokeStyle = colors.highlight; ctx.lineWidth = 2; ctx.strokeRect(d.x - 7, d.y - 7, 14, 14); }
+  });
+  V.counts.forEach((c) => {
+    ctx.font = `600 ${colors.fsXs} ${colors.mono}`; const tw = ctx.measureText(String(c.n)).width;
+    ctx.fillStyle = colors.surface; ctx.globalAlpha = 0.85; ctx.fillRect(c.x - tw / 2 - 4, c.y - 9, tw + 8, 16); ctx.globalAlpha = 1;
+    ctx.fillStyle = colors.ink1; ctx.textAlign = "center"; ctx.fillText(String(c.n), c.x, c.y + 4);
+  });
+  /* how to read it, to its right */
+  ctx.font = `${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.ink2; ctx.textAlign = "left";
+  ["Blue: truly changed. Red: unchanged.", "Inside a test's circle: it called the gene.", "Red inside a circle: a false call.", "Blue outside both test circles: missed.", "Counts, not areas. A dot picks the gene.", "", `Outside every circle: ${V.quiet} unchanged`, "genes that neither test called."]
+    .forEach((t, i) => ctx.fillText(t, V.textX, T.y - R * 0.4 + i * 16));
+  ctx.textAlign = "left";
+}
+
 function drawTumourLiver(ctx, colors, w, params, state) {
   const L = tlLayout(w), C = state.cond, M = L.map;
   drawDiscMap(ctx, colors, state, M, { solid: C.within, muted: (a) => !a.testable, title: "Click a cluster" });
-  /* the cluster's cells per sample, and which column is which test */
-  heading(ctx, colors, `${TYPES[C.a.type].name} · ${C.a.c}: its cells in each sample`, L.tableX, M.y + 14);
-  ORDER.forEach((k, j) => {
-    const y = M.y + 42 + j * 22;
-    ctx.font = `${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.ink2; ctx.textAlign = "left"; ctx.fillText(ORDER_NAMES[j].join(" · "), L.tableX, y);
-    ctx.font = `${colors.fsXs} ${colors.mono}`; ctx.fillStyle = colors.ink1; ctx.textAlign = "right"; ctx.fillText(String(C.a.perSample[k]), L.tableX + 190, y);
-  });
-  ctx.textAlign = "left"; ctx.font = `${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.ink3;
-  ["Left, over cells: each cell a replicate,", "as FindMarkers tests them", "Right, over samples: each sample's cells", "summed (pseudobulk), then DESeq2"]
-    .forEach((t, j) => ctx.fillText(t, L.tableX, M.y + 150 + j * 16 + (j >= 2 ? 6 : 0)));
+  /* WHICH LEVEL EACH TEST COUNTS AS ITS REPLICATES (his pick, figure 3 of
+     `_lab/cell-markers-explain-mock`): patients, their liver and tumour
+     samples, the cluster's cells in each. A patient's effect reaches both its
+     samples, so tumour minus liver subtracts it; a sample's reaches only its
+     own cells, all alike, so they are one draw of it, which the cell test
+     counts once a cell. Replaced the per-sample table (the tree carries its
+     counts) and the four lines saying which column is which test. */
+  drawDesignTree(ctx, colors, C, { x: L.tableX, y: M.y, w: w - L.tableX - 8 });
   /* A FADED CLUSTER SAYS WHY (his round: "a tumour cell cluster … doesn't
      exist in control liver samples, so if I click on it, what does it do?").
      Nothing: with no liver cells of its own it has no baseline to be compared
@@ -535,8 +637,7 @@ function drawTumourLiver(ctx, colors, w, params, state) {
   const faded = state.cl.ann.filter((a) => !a.testable);
   if (faded.length) {
     ctx.font = `${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.ink3; ctx.textAlign = "left";
-    ctx.fillText(`Faded: fewer than ${MIN_PER_SAMPLE} cells in a sample, so no`, L.tableX, M.y + 232);
-    ctx.fillText(`tissue comparison: ${faded.map((a) => `${TYPES[a.type].name} · ${a.c}`).join(", ")}`, L.tableX, M.y + 248);
+    ctx.fillText(`Faded: fewer than ${MIN_PER_SAMPLE} cells in a sample, so no tissue comparison: ${faded.map((a) => `${TYPES[a.type].name} · ${a.c}`).join(", ")}`, M.x, M.y + M.S + 18);
   }
   if (!C.testable) {
     ctx.fillStyle = colors.ink1; ctx.fillText(`Fewer than ${MIN_PER_SAMPLE} of this cluster's cells in a sample: it cannot be compared by tissue.`, 8, L.volTop);
@@ -565,6 +666,7 @@ function drawTumourLiver(ctx, colors, w, params, state) {
     drawGeneHalf(ctx, colors, gv, { x: X + 30, y: L.geneTop, w: PW - 30, h: L.geneH }, mode, vMax);
   });
   ctx.save(); ctx.translate(12, L.geneTop + (L.geneH - 74) / 2); ctx.rotate(-Math.PI / 2); ctx.font = `${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.ink3; ctx.textAlign = "center"; ctx.fillText("log(1 + per 10,000)", 0, 0); ctx.restore();
+  drawVenn(ctx, colors, vennOf(state, w, L), L, gv.g);
   ctx.textAlign = "left";
 }
 
@@ -649,7 +751,7 @@ defineWidget({
     },
     gene: {
       type: "select", label: "Gene",
-      detail: "the gene drawn under both lists, as each test sees it; a click on a volcano's point or a list's row picks one too",
+      detail: "the gene drawn under both lists, as each test sees it; a click on a volcano's point, a list's row or a dot of the Venn picks one too",
       options: GENE_OPTIONS, default: "unchanged", when: ON("tumour-liver"),
     },
     tlSampSec: { type: "section", label: "The samples", when: ON("tumour-liver") },
@@ -731,6 +833,7 @@ defineWidget({
         [...pts.filter((q) => !q.call), ...pts.filter((q) => q.call)].forEach((q) => out.push({ x: V.sx(q.lfc) - 5, y: V.sy(q.nl) - 5, w: 10, h: 10, set: { gene: geneName(q.g) }, label: geneName(q.g) }));
         listRows(pts).forEach((q, i) => out.push({ x: L.cols[k] - 4, y: L.listTop + 6 + 18 + i * LIST_ROW_H - 12, w: L.PW + 8, h: LIST_ROW_H, set: { gene: geneName(q.g) }, label: geneName(q.g) }));
       });
+      if (state.cond.testable) vennOf(state, w, L).dots.forEach((d) => out.push({ x: d.x - 5, y: d.y - 5, w: 10, h: 10, set: { gene: geneName(d.g) }, label: geneName(d.g) }));
       return out;
     }
     return [];
