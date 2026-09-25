@@ -42,7 +42,7 @@ for (const r of REF) {
 ok(worst < 1e-5, `the forward against torch (torch float32, here float64): largest difference ${worst.toExponential(2)}`);
 
 /* 2 · the printed claims */
-const asp = M.stage("aspirin"), msk = M.stage("masked");
+const asp = M.stage("aspirin"), msk = M.stage("mask");
 const onChest = (st, h, qi) => st.run.heads[h].alpha[qi][5] + st.run.heads[h].alpha[qi][6];
 near(onChest(asp, 3, 3), 0.79, 0.005, "aspirin → chest pain, head 4");
 near(onChest(msk, 3, 3), 0.84, 0.005, "[MASK] → chest pain, head 4");
@@ -77,6 +77,27 @@ near(pad4, 0.24, 0.005, "aspirin, head 4: [PAD]'s share without the mask, over t
 const wnd = M.stage("wound"), wq = wnd.tokens.indexOf("wound");
 near(M.tailShare(wnd.padded.open.heads[3].alpha[wq], wnd.L), 0.84, 0.005, "wound, head 4: the wound row's weight on [PAD] without the mask");
 near(M.tailShare(wnd.padded.masked.heads[3].alpha[wq], wnd.L), 0, 1e-12, "wound, head 4: and with it");
+
+/* 4 · the copy (the audit of 2026-09-26): no struck word in a reader-facing string.
+   Comments are exempt — they carry the record of where a decision came from. A
+   string with no space is an identifier, a parameter value or a token, not copy. */
+{
+  const src = ["main.js", "model.js"].map((f) => readFileSync(join(here, "..", "attention", f), "utf8")).join("\n");
+  const stripped = src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+  const strings = [...stripped.matchAll(/["'`]([^"'`\n]{6,})["'`]/g)].map((m) => m[1].replace(/\$\{[^}]*\}/g, "…")).filter((t) => /\s/.test(t));
+  const STRUCK = [
+    [/\bnever\b/i, "say the positive, literal fact"],
+    [/\byou\b|\byour\b/i, "no second person"],
+    [/\bnotebook\b|\blesson\b|\bcell \d+/i, "no lesson reference in reader-facing copy"],
+    [/\bcarr(y|ies)\b|\bdoes\b|\bdid\b|\bcompares?\b|reads? off|comes? from|\bchose\b|\bwaits?\b|\breach(es)?\b|\bweighs\b|\bread by\b/i, "no personification: the thing does not act"],
+    [/\bpress(es)?\b|\brung\b|\bcard\b|\bwalk\b|\bjoined\b|taken into|like any other|row by row|\bwidth\b/i, "our own vocabulary or phrasing, not the field's"],
+  ];
+  for (const [re, why] of STRUCK) {
+    const hit = strings.filter((t) => re.test(t));
+    ok(hit.length === 0, `${why}: ${hit.slice(0, 3).map((t) => JSON.stringify(t)).join(", ")}`);
+  }
+  ok(strings.length > 30, `the sweep read ${strings.length} strings`);
+}
 
 console.log(fails ? `${fails} of ${checks} checks FAILED` : `${checks} checks passed · the forward within ${worst.toExponential(1)} of torch`);
 process.exit(fails ? 1 : 0);

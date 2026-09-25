@@ -1218,7 +1218,7 @@
     {
       "slug": "attention",
       "title": "Deep Learning - Language: Attention",
-      "blurb": "Each token's new vector is a sum over all tokens, weighted by query and key; several heads, and a padding mask.",
+      "blurb": "Attention weights are a softmax over query–key scores; each token's output is the weighted sum of the values.",
       "course": "PHM5005",
       "topics": [
         "attention",

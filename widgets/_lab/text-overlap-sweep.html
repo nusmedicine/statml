@@ -26,10 +26,10 @@ const Q = new URLSearchParams(location.search);
 const slug = Q.get("slug") || "sequence-encoding", W = Number(Q.get("w") || 900);
 const STATES = {
   "attention": [
-    ...["aspirin", "masked", "wound", "home"].flatMap((st) => ["weights", "output", "heads"].flatMap((pg) =>
+    ...["aspirin", "mask", "wound", "home"].flatMap((st) => ["weights", "output", "heads"].flatMap((pg) =>
       [`?page=${pg}&sentence=${st}&shown=0`, `?page=${pg}&sentence=${st}&shown=4`, `?page=${pg}&sentence=${st}&shown=16`])),
-    "?page=weights&sentence=wound&scores=raw&shown=8", "?page=weights&sentence=wound&mask=off&shown=10",
-    "?page=weights&sentence=wound&mask=off&scores=raw&shown=10", "?page=weights&sentence=home&head=1&shown=16",
+    "?page=weights&sentence=wound&scores=unscaled&shown=8", "?page=weights&sentence=wound&attention_mask=not-passed&shown=10",
+    "?page=weights&sentence=wound&attention_mask=not-passed&scores=unscaled&shown=10", "?page=weights&sentence=home&head=1&shown=16",
   ],
   "sequence-encoding": [
     "?page=tokenize&vocab=dna&shown=48", "?page=tokenize&vocab=codon&shown=16", "?page=tokenize&vocab=aa&shown=26", "?page=tokenize&vocab=words&shown=16",

@@ -54,16 +54,17 @@ const STEP_MS = 600, RUN_MS = 320;   // a press's glide on Step, and under Play
 
 const S = {
   title: "Deep Learning - Language: Attention",
-  subtitle: "Each token's query is scored against every token's key; a softmax makes each row of scores into weights that sum to one, "
-    + "and the token's new vector is the weighted sum of the values. Several heads do this side by side, and a padding mask gives padded positions no weight.",
+  subtitle: "Each token's query is scored against every token's key, the scores are divided by √dₖ, and padded positions are set to −∞; "
+    + "a softmax then normalises each row into weights that sum to one. A token's output is the weighted sum of the values, "
+    + "and multi-head attention computes this in several heads in parallel.",
   pageLabel: "Step",
   sentenceLabel: "Sentence",
-  sentenceDetail: "Synthetic clinical notes, read by a small model pretrained to fill in masked words.",
+  sentenceDetail: "Synthetic clinical notes, the input to a small model pretrained by masked-word prediction.",
   headLabel: "Head",
   headDetail: "Four heads of 12 numbers each, in the model's first block.",
   scoreLabel: "Scores",
   scoreDetail: "The same trained queries and keys, with the dot product divided by √12 or not.",
-  scoreOpts: [{ value: "scaled", label: "q·k / √dₖ" }, { value: "raw", label: "q·k" }],
+  scoreOpts: [{ value: "scaled", label: "q·k / √dₖ" }, { value: "unscaled", label: "q·k" }],
   stepLabel: "Next query",
   stepTitle: "Compute the next token's row of weights, in every head",
   runLabel: "Play",
@@ -76,22 +77,20 @@ const S = {
   softmaxArrow: (raw, masked) => `${masked ? "−∞ where the mask is 0, then " : ""}softmax of ${raw ? "q·k" : "q·k / √dₖ"} ↓`,
   maskRow: "Mask", padGroup: (n) => `[PAD] × ${n}`,
   maskLabel: "attention_mask",
-  maskDetail: "1 over a token, 0 over padding. Passed, each 0 sets its key's score to −∞ before the softmax.",
-  maskOpts: [{ value: "on", label: "Passed" }, { value: "off", label: "Not passed" }],
-  outW: "Weights", outV: ["Features vⱼ"], outZcol: ["With attention", "zⱼ, row by row"], outSum: "Sum", outZ: "Features with attention",
+  maskDetail: "1 for a token, 0 for padding. Passed, a key with 0 gets the score −∞ before the softmax.",
+  maskOpts: [{ value: "passed", label: "Passed" }, { value: "not-passed", label: "Not passed" }],
+  outW: "Weights", outV: ["Features vⱼ"], outZcol: ["Features with", "attention zⱼ"], outSum: "Sum", outZ: "Features with attention",
   outSoFar: (k, L, pct) => `${k} of ${L} rows added · ${pct}% of the weight`,
-  tileAdded: "Rows added", tileAddedNote: "αᵢⱼvⱼ taken into zᵢ so far",
-  tileShare: "Weight added", tileShareNote: "the share of this row's weights",
+  tileAdded: "Rows added", tileAddedNote: "terms of Σⱼ αᵢⱼvⱼ summed so far",
+  tileShare: "Weight added", tileShareNote: "the sum of their αᵢⱼ",
   headsX: "x̃  [L, 48]", headsCat: "concatenate  [L, 4 × 12]", headsWo: "W_O  →  [L, 48]", headsFf: "Feed-forward",
   headsNote: "Rows: queries · columns: keys · each share measured over 500 notes",
-  onPad: (v) => `weight on [PAD]: ${v}`,
   tileQuery: "Query", tileQueryNote: "the row just computed",
-  tileTop: "Largest weight", tileTopNote: "the key this row weighs most",
-  tilePad: "On [PAD]", tilePadNote: (masked) => (masked ? "the mask's 0s get no weight" : "no mask: [PAD] is a key like any other"),
-  tileZ: "zᵢ", tileZNote: "this head's 12 of the block's 48",
-  tileHeads: "Heads", tileHeadsNote: "4 × 12 = 48, the model's width",
-  tileCat: "Joined", tileCatNote: "every head's z side by side",
-  tileRows: "Rows computed", tileRowsNote: "one query a press",
+  tileTop: "Largest weight", tileTopNote: "the key with the largest αᵢⱼ in this row",
+  tilePad: "On [PAD]", tilePadNote: (masked) => (masked ? "keys with mask 0 get weight 0" : "no mask: [PAD] keys are scored and weighted"),
+  tileHeads: "Heads", tileHeadsNote: "48, the model dimension",
+  tileCat: "Concatenated", tileCatNote: "the four heads' z side by side",
+  tileRows: "Rows computed", tileRowsNote: "one row per query",
   wait: "—",
   sum: (step, n, L) => `${step}: ${n} of ${L} rows computed.`,
 };
@@ -122,7 +121,8 @@ const NOTE = {
 function renderCard(params) {
   const figure = document.querySelector("#widget .w-figure");
   if (!figure || !figure.parentNode) return;
-  const which = params.page !== "weights" ? params.page : params.mask !== "off" ? (params.scores === "raw" ? "maskRaw" : "mask") : params.scores;
+  const unscaled = params.scores === "unscaled";
+  const which = params.page !== "weights" ? params.page : params.attention_mask !== "not-passed" ? (unscaled ? "maskRaw" : "mask") : unscaled ? "raw" : "scaled";
   if (!cardHost) { cardHost = document.createElement("div"); cardHost.className = "w-math"; cardHost.style.minHeight = "2.4em"; figure.parentNode.insertBefore(cardHost, figure); cardKey = null; }
   if (which === cardKey) return;
   cardKey = which;
@@ -274,7 +274,7 @@ function scoreText(ctx, colors, v, room) {
 
 /** the numbers the Weights page draws, for the switches as set */
 function weightsView(state, params) {
-  const h = Number(params.head) - 1, raw = params.scores === "raw", masked = params.mask !== "off";
+  const h = Number(params.head) - 1, raw = params.scores === "unscaled", masked = params.attention_mask !== "not-passed";
   const P = state.padded, run = (masked ? P.masked : P.open).heads[h];
   return { raw, masked, toks: P.tokens, K: P.tokens.length, Sc: raw ? P.open.heads[h].scoreRaw : P.open.heads[h].score, A: raw ? run.alphaRaw : run.alpha };
 }
@@ -546,7 +546,7 @@ defineWidget({
       when: { any: [ON("weights"), ON("output")] },
     },
     scores: { type: "segmented", label: S.scoreLabel, detail: S.scoreDetail, options: S.scoreOpts, default: "scaled", display: true, when: ON("weights") },
-    mask: { type: "segmented", label: S.maskLabel, detail: S.maskDetail, options: S.maskOpts, default: "on", display: true, when: ON("weights") },
+    attention_mask: { type: "segmented", label: S.maskLabel, detail: S.maskDetail, options: S.maskOpts, default: "passed", display: true, when: ON("weights") },
     /* authoring escape hatch, first render only: rows already computed */
     shown: { type: "int", min: 0, max: 16, default: 0, hidden: true },
   },
@@ -566,7 +566,7 @@ defineWidget({
     },
     advance: (anim, { dt, params, state }) => {
       /* the Output page's press takes its keys one at a time, so it runs longer */
-      const ms = params.page === "output" ? outMs(state.L, anim.mode) : params.page === "weights" ? weightsMs(state.padded.tokens.length, anim.mode, params.mask !== "off")
+      const ms = params.page === "output" ? outMs(state.L, anim.mode) : params.page === "weights" ? weightsMs(state.padded.tokens.length, anim.mode, params.attention_mask !== "not-passed")
         : anim.mode === "run" ? RUN_MS : STEP_MS;
       let more;
       if (anim.t < 1) { anim.t = Math.min(1, anim.t + dt / ms); more = anim.t < 1 || (anim.mode === "run" && anim.n < state.L); }

@@ -25,7 +25,7 @@ export const PAD = "[PAD]";
    its two senses (cell 0's own example of a word read by its context). */
 export const SENTENCES = {
   aspirin: "treated with aspirin for chest pain",
-  masked: "treated with [MASK] for chest pain",
+  mask: "treated with [MASK] for chest pain",
   wound: "patient presented with fever . yellow discharge from wound",
   home: "no nausea reported . planned discharge home today",
 };

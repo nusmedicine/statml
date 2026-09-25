@@ -22054,7 +22054,30 @@ claims — aspirin → chest pain 0.79 in head 4, [MASK] 0.84 and 0.83, [PAD]'s
 rows; Play runs the rest. Two things settled in the build: every column label
 is upright (slanted neighbours overlapped at 24px cells, the text-overlap
 sweep's catch), and a weight prints without its leading zero where a word's
-column is narrower than "0.00". The switch probe reads 10 switches, 0
+column is narrower than "0.00".
+
+**Rounds, 2026-09-26, from his screenshots, one commit each:** a press glides
+(4b2111c); the Output page adds the keys one at a time and z lands beside each
+token's own features (2ac6bb9, 7df7e20), the dimming tried in place and cut for
+an outline stepping key to key (his pick B of four live motions,
+`_lab/attention-sum-motion-mock.html`, 1711e11); the new α row fades with the
+glide, not across the whole press (his catch, 92a669a); the Weights page runs
+the scores key by key and then the softmax into a second strip (his pick C,
+`_lab/attention-weights-motion-mock.html`, 8f30171); the control is **Step**
+and the padding mask **folded into Weights** as the tokenizer's attention_mask
+row over four [PAD], Passed or Not passed, with a −∞ beat before the softmax
+(his pick B, `_lab/attention-mask-fold-mock.html`, 7677a7e) — so three steps,
+Weights · Output · Heads. "Features" stays (his figure's word); the causal
+mask is 84's Decoder page (08-1 cells 2–4, and 10-3 cells 44–45 use it).
+
+**COPY AUDIT 2026-09-26, all rows applied on his word:** 78 strings, 0 of the
+291 claudisms terms; seventeen rows from the house rules (the subtitle's
+"heads do", "a mask gives", "read by", "each 0 sets", "taken into", "weighs",
+"like any other", "joined", "width", "press", "row by row"; the URL values
+`scores=scaled|unscaled`, `attention_mask=passed|not-passed`,
+`sentence=mask`; two dead strings). Subtitle A and blurb A his picks, both
+scanned before asking. The verify's §4 strikes the rules' words in every
+reader-facing string. The switch probe reads 10 switches, 0
 flagged; the overlap sweep 50 states at 490px, clean. Fingerprint states owed
 at the ship, not before.
 
