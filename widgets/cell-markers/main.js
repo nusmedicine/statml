@@ -314,9 +314,6 @@ function twoLayout(w) {
    is two pictures side by side, on one scale. The height is fixed; a narrow
    canvas narrows the columns. */
 const LIST_ROWS = 8, LIST_ROW_H = 17;
-/* each level's line, shared by the tree's box and the column that counts it:
-   two inks alone are close in the dark theme, so the pattern differs too */
-const LEVEL_DASH = { cells: [2, 3], samples: [8, 4] };
 function tlLayout(w) {
   const S = Math.min(260, Math.floor(w * 0.45)), PW = Math.floor((w - 88) / 2);
   const volTop = TOP + 260 + 96, volH = 190, listTop = volTop + volH + 52, geneTop = listTop + 18 + LIST_ROWS * LIST_ROW_H + 52;
@@ -568,6 +565,17 @@ function drawDesignTree(ctx, colors, C, B) {
   heading(ctx, colors, `${TYPES[C.a.type].name} · ${C.a.c}: what each test counts`, B.x, B.y + 14);
   const rowP = B.y + 44, rowS = B.y + 100, rowC = B.y + 150, colW = B.w / 4, sx = (j) => B.x + colW * (j + 0.5), px = (p) => (sx(p) + sx(p + 2)) / 2;
   const cap = (t, y) => { ctx.font = `${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.ink3; ctx.textAlign = "left"; ctx.fillText(t, B.x, y); };
+  /* the level each test counts: a shaded band, in the fill of the columns'
+     header bands, labelled with the header's own words (his round: the
+     dotted lines were "too obvious and jarring") */
+  const band = (y0, y1) => { ctx.fillStyle = colors.surface2; ctx.fillRect(B.x, y0, B.w, y1 - y0); };
+  /* the bands' labels, last, on the canvas's own surface: the tree's lines pass behind them */
+  const bandLabel = (y0, label) => {
+    ctx.font = `600 ${colors.fsXs} ${colors.font}`; const tw = ctx.measureText(label).width, x = B.x + B.w - 4;
+    ctx.fillStyle = colors.surface; ctx.fillRect(x - tw - 4, y0 - 15, tw + 8, 14);
+    ctx.fillStyle = colors.ink1; ctx.textAlign = "right"; ctx.fillText(label, x, y0 - 4);
+  };
+  band(rowS - 17, rowS + 17); band(rowC - 14, rowC + 26);
   [0, 1].forEach((p) => {
     ctx.strokeStyle = colors.grid; ctx.lineWidth = 1.5;
     [p, p + 2].forEach((j) => { ctx.beginPath(); ctx.moveTo(px(p), rowP + 9); ctx.lineTo(sx(j), rowS - 11); ctx.stroke(); });
@@ -590,14 +598,8 @@ function drawDesignTree(ctx, colors, C, B) {
     ctx.font = `${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.ink1; ctx.textAlign = "center"; ctx.fillText(`P${(j % 2) + 1} ${ORDER_NAMES[j][1]}`, x, rowS + 4);
     ctx.fillStyle = colors.ink2; ctx.fillText(`${C.a.perSample[k]} cells`, x, rowC + 38);
   });
-  /* the level each test counts */
-  const box = (y0, y1, label, col, dash) => {
-    ctx.strokeStyle = col; ctx.lineWidth = 1.5; ctx.setLineDash(dash); ctx.strokeRect(B.x + 0.5, y0, B.w - 1, y1 - y0); ctx.setLineDash([]);
-    ctx.font = `600 ${colors.fsXs} ${colors.font}`; ctx.fillStyle = col; ctx.textAlign = "right"; ctx.fillText(label, B.x + B.w - 4, y0 - 4);
-  };
-  box(rowS - 17, rowS + 17, "over samples: n = 4", colors.ink1, LEVEL_DASH.samples);
-  box(rowC - 14, rowC + 26, `over cells: n = ${C.n}`, colors.ink2, LEVEL_DASH.cells);
-  ["A patient's effect is in both of its samples, so", "tumour minus liver removes it. A sample's effect", "is in every one of its cells, the same draw: the", "test over cells counts that draw once per cell."]
+  bandLabel(rowS - 17, "Over samples: n = 4"); bandLabel(rowC - 14, `Over cells: n = ${C.n}`);
+  ["A patient's shift is in both of its samples, so", "tumour minus liver removes it. A sample's shift", "is in every one of its cells, the same draw: the", "test over cells counts that draw once per cell."]
     .forEach((t, i) => cap(t, B.y + 206 + i * 14));
   ctx.textAlign = "left";
 }
@@ -687,18 +689,18 @@ function drawTumourLiver(ctx, colors, w, params, state) {
     return;
   }
   const gv = state.gene, vMax = Math.max(0.5, ...gv.vals.flat(), ...gv.pb) * 1.08;
-  /* EACH TEST ONE FRAMED COLUMN (his round: "the sample/patient diagram has
-     to say right and column … can we visually show this instead?"): a header
-     band, then its volcano, its list and its gene view inside one frame
-     drawn in the line of the tree's box for the level it counts — dashed ink
-     for samples, dashed grey for cells — so the tree needs no words for
-     which column is which */
-  [[C.volC, `Over cells: n = ${C.n} cells`, "each cell a replicate · Wilcoxon, as FindMarkers", "p_val_adj", "cells", colors.ink2, LEVEL_DASH.cells],
-   [C.volD, "Over samples: n = 4 samples", "each sample's cells summed · DESeq2", "padj", "samples", colors.ink1, LEVEL_DASH.samples]].forEach(([pts, title, sub, pName, mode, line, dash], k) => {
+  /* EACH TEST ONE COLUMN UNDER A HEADER BAND (his round: "the sample/patient
+     diagram has to say right and column … can we visually show this
+     instead?"): the band names the level it counts in the words of the tree's
+     band for that level, and a faint frame holds its volcano, list and gene
+     view together. Dotted and dashed frames matched to the tree were tried
+     the same day and struck as jarring. */
+  [[C.volC, `Over cells: n = ${C.n}`, "each cell a replicate · Wilcoxon, as FindMarkers", "p_val_adj", "cells"],
+   [C.volD, "Over samples: n = 4", "each sample's cells summed · DESeq2", "padj", "samples"]].forEach(([pts, title, sub, pName, mode], k) => {
     const V = volGeom(w, L, pts, k), { X, PW, top, bh, sx, sy } = V;
     const F = { x: X - 12, y: top - 62, w: PW + 24, h: L.geneTop + L.geneH - (top - 62) + 6 };
     ctx.fillStyle = colors.surface2; ctx.fillRect(F.x, F.y, F.w, 40);
-    ctx.strokeStyle = line; ctx.lineWidth = 1.5; ctx.setLineDash(dash); ctx.strokeRect(F.x + 0.5, F.y + 0.5, F.w - 1, F.h - 1); ctx.setLineDash([]);
+    ctx.strokeStyle = colors.grid; ctx.lineWidth = 1; ctx.strokeRect(F.x + 0.5, F.y + 0.5, F.w - 1, F.h - 1);
     heading(ctx, colors, title, X, F.y + 17);
     ctx.font = `${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.ink3; ctx.textAlign = "left"; ctx.fillText(sub, X, F.y + 32);
     ctx.strokeStyle = colors.axis; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(X, top + bh + 0.5); ctx.lineTo(X + PW, top + bh + 0.5); ctx.moveTo(sx(0) + 0.5, top); ctx.lineTo(sx(0) + 0.5, top + bh); ctx.stroke();
@@ -816,13 +818,17 @@ defineWidget({
       options: CHANGES.map((v) => ({ value: v, label: v })), default: "0", when: ON("tumour-liver"),
     },
     sampleSd: {
-      type: "choice", label: "Sample effect",
-      detail: "the SD, in log, of each gene's level in one sample's preparation: ambient RNA, dissociation, handling",
+      /* VARIATION, NOT AN EFFECT (his round: "isn't it variance? I confuse it
+         as the true effect"): every sample draws its own shift for every
+         gene, and this is the SD of those shifts; True change is the one
+         effect size on the page */
+      type: "choice", label: "Variation between samples (SD)",
+      detail: "each sample shifts each gene by its own random amount, from its preparation (ambient RNA, dissociation, handling); this is the SD of those shifts, in log",
       options: SAMPLE_SD.map((v) => ({ value: v, label: v })), default: "0", when: ON("tumour-liver"),
     },
     patientSd: {
-      type: "choice", label: "Patient effect",
-      detail: "the SD, in log, of each gene's level in one patient, shared by that patient's liver and tumour samples",
+      type: "choice", label: "Variation between patients (SD)",
+      detail: "each patient shifts each gene by its own random amount, the same in that patient's liver and tumour samples; this is the SD of those shifts, in log",
       options: PATIENT_SD.map((v) => ({ value: v, label: v })), default: "0.3", when: ON("tumour-liver"),
     },
 
