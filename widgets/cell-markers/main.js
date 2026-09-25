@@ -55,7 +55,7 @@ const PAGES = [
 ];
 const ON = (page) => ({ param: "page", equals: page });
 const CELL_PAGES = { param: "page", oneOf: ["clusters", "two-clusters", "tumour-liver"] };
-const HEIGHTS = { "two-clusters": 732, "tumour-liver": 1544, composition: 380 };
+const HEIGHTS = { "two-clusters": 820, "tumour-liver": 1544, composition: 380 };
 const RESOLUTIONS = ["0.1", "0.3", "0.5", "0.8", "1.2", "2"];
 const SAMPLE_SD = ["0", "0.1", "0.2", "0.4", "0.65"];
 const PATIENT_SD = ["0", "0.3", "0.65"];
@@ -460,7 +460,7 @@ function drawClusters(ctx, colors, w, params, state, pointer) {
   });
 }
 
-function drawTwo(ctx, colors, w, params, state) {
+function drawTwo(ctx, colors, w, params, state, pointer) {
   const L = twoLayout(w), cl = state.cl, mk = state.mk;
   drawDiscMap(ctx, colors, state, L.maps[0], { solid: mk.tested, title: "Comparator: click a cluster" });
   const R = L.rest;
@@ -471,33 +471,91 @@ function drawTwo(ctx, colors, w, params, state) {
   ctx.strokeStyle = colors.grid; ctx.lineWidth = 1; ctx.strokeRect(R.x + 0.5, R.y + 0.5, R.w - 1, R.h - 1);
   ctx.font = `${colors.fsXs} ${colors.font}`; ctx.fillStyle = mk.vsRest ? colors.surface : colors.ink2; ctx.textAlign = "center";
   ctx.fillText("All other cells", R.x + R.w / 2, R.y + R.h / 2 + 4); ctx.textAlign = "left";
-  /* FindMarkers' table: first 8 by p, then significant genes detected in most of the baseline */
+  /* FindMarkers' table, left: first 8 by p, then significant genes detected
+     in most of the baseline; on a canvas narrower than 700 px p_val is
+     dropped (his pick, 2026-09-25): p_val_adj is the one read. Beside it, every gene tested as pct.1 against pct.2 —
+     where "significant but not specific" is a place, right of pct.2 = 0.5
+     (his pick from `_lab/cell-markers-pct-mock`; a volcano saturates at
+     p ~ 1e-190 and has no axis for specificity). A pointer on a dot or a
+     row lights both and names the gene: an inspector, nothing written. */
   const fm = mk.fm, own = (g) => { const k = geneKind(g); return k.kind === "marker" && k.type === mk.type; };
   const top = fm.res.filter((x) => x.lfc > 0).sort((a, b) => a.lp - b.lp || b.lfc - a.lfc).slice(0, 8);
   const extra = broadOf(mk).filter((x) => !top.includes(x)).slice(0, 3);
-  const cx = (f) => Math.round(8 + f * (w - 16));
-  const cols = [["gene", cx(0), "left"], ["p_val", cx(0.2), "right"], ["avg_log2FC", cx(0.34), "right"], ["pct.1", cx(0.43), "right"], ["pct.2", cx(0.52), "right"], ["p_val_adj", cx(0.64), "right"]];
+  const G2 = pctLayout(w, L), TW = G2.tw, cx = (f) => Math.round(8 + f * TW);
+  const narrow = w < 700;
+  const cols = narrow
+    ? [["gene", cx(0), "left"], ["avg_log2FC", cx(0.42), "right"], ["pct.1", cx(0.58), "right"], ["pct.2", cx(0.74), "right"], ["p_val_adj", cx(0.98), "right"]]
+    : [["gene", cx(0), "left"], ["p_val", cx(0.3), "right"], ["avg_log2FC", cx(0.5), "right"], ["pct.1", cx(0.64), "right"], ["pct.2", cx(0.78), "right"], ["p_val_adj", cx(0.98), "right"]];
   let y = L.tableTop;
   heading(ctx, colors, `FindMarkers, cluster ${mk.tested} (${fm.n1} cells) vs ${mk.vsRest ? "all other cells" : `cluster ${mk.otherC}`} (${fm.n2}): top 8 by p`, 8, y - 10);
   ctx.font = `${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.ink3;
   cols.forEach(([h, x, al]) => { ctx.textAlign = al; ctx.fillText(h, x, y + 8); });
-  ctx.textAlign = "left"; ctx.fillText("pct.1, pct.2: fraction of cells with nonzero expression in ident.1 and in ident.2", 8, y + 24);
-  y += 42;
+  y += 28;
+  /* the hovered gene: a dot within 6px, else a row */
+  const rowsAt = [];
+  let hot = null;
+  if (pointer) {
+    let best = 6;
+    for (const x of fm.res) { const d = Math.hypot(pointer.x - G2.sx(x.p2), pointer.y - G2.sy(x.p1)); if (d < best) { best = d; hot = x.g; } }
+  }
+  const all = [...top, ...extra];
+  all.forEach((x, i) => rowsAt.push({ g: x.g, y: y + i * 18 + (i >= top.length ? 22 : 0) }));
+  if (pointer && hot === null && pointer.x < TW + 8) { const r = rowsAt.find((q) => pointer.y >= q.y - 13 && pointer.y < q.y + 5); if (r) hot = r.g; }
   const row = (x, grey) => {
+    if (x.g === hot) { ctx.fillStyle = colors.surface2; ctx.fillRect(4, y - 13, TW + 8, 18); }
     ctx.font = `${colors.fsXs} ${colors.mono}`; ctx.fillStyle = grey ? colors.ink3 : colors.ink1;
-    const v = [geneName(x.g), pFmt(x.lp), x.lfc.toFixed(2), x.p1.toFixed(2), x.p2.toFixed(2), pFmt(x.lpAdj)];
+    const v = narrow ? [geneName(x.g), x.lfc.toFixed(2), x.p1.toFixed(2), x.p2.toFixed(2), pFmt(x.lpAdj)] : [geneName(x.g), pFmt(x.lp), x.lfc.toFixed(2), x.p1.toFixed(2), x.p2.toFixed(2), pFmt(x.lpAdj)];
     cols.forEach(([, px, al], k) => { ctx.textAlign = al; ctx.fillText(v[k], px, y); });
-    ctx.textAlign = "left"; ctx.font = `${colors.fsXs} ${colors.font}`;
-    ctx.fillText(!own(x.g) && x.p2 > 0.5 ? "pct.2 > 0.5" : "", cx(0.67), y);
     y += 18;
   };
   top.forEach((x) => row(x, !own(x.g)));
   if (extra.length) {
     ctx.font = `${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.ink3; ctx.textAlign = "left";
-    ctx.fillText("Further significant genes (p_val_adj < 0.05) with pct.2 > 0.5:", 8, y + 2); y += 20;
+    ctx.fillText("Further significant genes with pct.2 > 0.5:", 8, y + 2); y += 22;
     extra.forEach((x) => row(x, true));
   }
+  ctx.font = `${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.ink3; ctx.textAlign = "left";
+  ctx.fillText("pct.1, pct.2: fraction of cells with nonzero", 8, y + 10); ctx.fillText("expression in ident.1 and in ident.2", 8, y + 24);
+  drawPctScatter(ctx, colors, G2, fm, mk, all, hot);
   ctx.textAlign = "left";
+}
+/* the scatter's square, right of the table; its scales are shared by the drawing and the hover */
+function pctLayout(w, L) {
+  const S = Math.min(260, Math.floor(w * 0.36)), x0 = w - S - 16, y0 = L.tableTop + 18;
+  return { S, x0, y0, tw: x0 - 60, sx: (v) => x0 + v * S, sy: (v) => y0 + S - v * S };
+}
+function drawPctScatter(ctx, colors, P, fm, mk, listed, hot) {
+  const { S, x0, y0, sx, sy } = P, sig = (x) => x.lpAdj < LOG05;
+  ctx.font = `600 ${colors.fsSm} ${colors.font}`; ctx.fillStyle = colors.ink1; ctx.textAlign = "right"; ctx.fillText("pct.1 against pct.2, every gene tested", x0 + S, y0 - 10);
+  ctx.strokeStyle = colors.axis; ctx.lineWidth = 1; ctx.strokeRect(x0 + 0.5, y0 + 0.5, S, S);
+  ctx.strokeStyle = colors.grid; ctx.setLineDash([4, 4]); ctx.beginPath(); ctx.moveTo(sx(0), sy(0)); ctx.lineTo(sx(1), sy(1)); ctx.moveTo(sx(0.5), sy(0)); ctx.lineTo(sx(0.5), sy(1)); ctx.stroke(); ctx.setLineDash([]);
+  const small = (t, x, y, al = "left", col = colors.ink3) => { ctx.font = `${colors.fsXs} ${colors.font}`; ctx.fillStyle = col; ctx.textAlign = al; ctx.fillText(t, x, y); };
+  const mono = (t, x, y, al) => { ctx.font = `${colors.fsXs} ${colors.mono}`; ctx.fillStyle = colors.ink3; ctx.textAlign = al; ctx.fillText(t, x, y); };
+  mono("0", x0, y0 + S + 14, "left"); mono("1", x0 + S, y0 + S + 14, "right"); small("pct.2 (ident.2)", x0 + S / 2, y0 + S + 28, "center");
+  mono("1", x0 - 4, y0 + 9, "right"); mono("0", x0 - 4, y0 + S, "right");
+  ctx.save(); ctx.translate(x0 - 16, y0 + S / 2); ctx.rotate(-Math.PI / 2); small("pct.1 (ident.1)", 0, 0, "center"); ctx.restore();
+  small("specific", x0 + 6, y0 + 14); small("pct.2 > 0.5", sx(0.5) + 4, y0 + S - 6);
+  /* not significant, then up in the baseline, then up in the comparator on top */
+  fm.res.filter((x) => !sig(x)).forEach((x) => { ctx.fillStyle = colors.ink3; ctx.globalAlpha = 0.3; ctx.beginPath(); ctx.arc(sx(x.p2), sy(x.p1), 2, 0, Math.PI * 2); ctx.fill(); });
+  ctx.globalAlpha = 0.7; ctx.fillStyle = colors.ink2;
+  fm.res.filter((x) => sig(x) && x.lfc < 0).forEach((x) => { ctx.beginPath(); ctx.arc(sx(x.p2), sy(x.p1), 2.4, 0, Math.PI * 2); ctx.fill(); });
+  ctx.globalAlpha = 1; ctx.fillStyle = hueOf(colors, mk.type);
+  fm.res.filter((x) => sig(x) && x.lfc > 0).forEach((x) => { ctx.beginPath(); ctx.arc(sx(x.p2), sy(x.p1), 3, 0, Math.PI * 2); ctx.fill(); });
+  ctx.strokeStyle = colors.ink1; ctx.lineWidth = 1;
+  listed.forEach((x) => { ctx.beginPath(); ctx.arc(sx(x.p2), sy(x.p1), 5, 0, Math.PI * 2); ctx.stroke(); });
+  const h = fm.res.find((x) => x.g === hot);
+  if (h) {
+    ctx.strokeStyle = colors.highlight; ctx.lineWidth = 2; ctx.strokeRect(sx(h.p2) - 7, sy(h.p1) - 7, 14, 14);
+    ctx.font = `600 ${colors.fsXs} ${colors.mono}`; const t = geneName(h.g), tw = ctx.measureText(t).width;
+    const lx = Math.min(x0 + S - tw - 4, sx(h.p2) + 10), ly = Math.max(y0 + 12, sy(h.p1) - 8);
+    ctx.fillStyle = colors.surface; ctx.fillRect(lx - 3, ly - 11, tw + 6, 15); ctx.fillStyle = colors.ink1; ctx.textAlign = "left"; ctx.fillText(t, lx, ly);
+  }
+  /* its key */
+  const ky = y0 + S + 48;
+  [[hueOf(colors, mk.type), "significant, up in ident.1"], [colors.ink2, "significant, up in ident.2"], [colors.ink3, "not significant"]].forEach(([c, t], i) => {
+    ctx.fillStyle = c; ctx.beginPath(); ctx.arc(x0 + 4, ky + i * 16 - 4, 3, 0, Math.PI * 2); ctx.fill(); small(t, x0 + 14, ky + i * 16, "left", colors.ink2);
+  });
+  ctx.strokeStyle = colors.ink1; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(x0 + 4, ky + 44, 5, 0, Math.PI * 2); ctx.stroke(); small("in the table", x0 + 14, ky + 48, "left", colors.ink2);
 }
 /* significant, up, detected in more than half of the baseline, and not a marker of the comparator's type */
 function broadOf(mk) {
@@ -900,7 +958,7 @@ defineWidget({
   pointer: true,
   draw: ({ ctx, colors, w, params, state, pointer }) => {
     if (params.page === "clusters") drawClusters(ctx, colors, w, params, state, pointer);
-    else if (params.page === "two-clusters") drawTwo(ctx, colors, w, params, state);
+    else if (params.page === "two-clusters") drawTwo(ctx, colors, w, params, state, pointer);
     else if (params.page === "tumour-liver") drawTumourLiver(ctx, colors, w, params, state);
     else drawComposition(ctx, colors, w, params, state);
   },
