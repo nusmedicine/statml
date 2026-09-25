@@ -527,6 +527,16 @@ function drawTumourLiver(ctx, colors, w, params, state) {
   ctx.textAlign = "left"; ctx.font = `${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.ink3;
   ["Left, over cells: each cell a replicate,", "as FindMarkers tests them", "Right, over samples: each sample's cells", "summed (pseudobulk), then DESeq2"]
     .forEach((t, j) => ctx.fillText(t, L.tableX, M.y + 150 + j * 16 + (j >= 2 ? 6 : 0)));
+  /* A FADED CLUSTER SAYS WHY (his round: "a tumour cell cluster … doesn't
+     exist in control liver samples, so if I click on it, what does it do?").
+     Nothing: with no liver cells of its own it has no baseline to be compared
+     against by tissue, so it is not offered. */
+  const faded = state.cl.ann.filter((a) => !a.testable);
+  if (faded.length) {
+    ctx.font = `${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.ink3; ctx.textAlign = "left";
+    ctx.fillText(`Faded: fewer than ${MIN_PER_SAMPLE} cells in a sample, so no`, L.tableX, M.y + 232);
+    ctx.fillText(`tissue comparison: ${faded.map((a) => `${TYPES[a.type].name} · ${a.c}`).join(", ")}`, L.tableX, M.y + 248);
+  }
   if (!C.testable) {
     ctx.fillStyle = colors.ink1; ctx.fillText(`Fewer than ${MIN_PER_SAMPLE} of this cluster's cells in a sample: it cannot be compared by tissue.`, 8, L.volTop);
     return;
@@ -764,9 +774,19 @@ defineWidget({
     if (!C.testable) return [{ label: "Cluster", value: String(C.within), note: "too few cells in a sample to compare by tissue" }];
     const tp = (v) => v.filter((q) => q.call && q.truth).length, fp = (v) => v.filter((q) => q.call && !q.truth).length;
     const truth = Number(params.change) > 0;
-    return [
-      { label: "Over cells: genes called", value: truth ? `${tp(C.volC)} of 20 true` : `${fp(C.volC)}`, note: truth ? `and ${fp(C.volC)} unchanged genes called besides, at p_val_adj < 0.05` : "unchanged genes called at p_val_adj < 0.05; no gene truly changes" },
-      { label: "Over samples: genes called", value: truth ? `${tp(C.volD)} of 20 true` : `${fp(C.volD)}`, note: truth ? `and ${fp(C.volD)} unchanged genes called besides, at padj < 0.05` : "unchanged genes called at padj < 0.05; no gene truly changes" },
-    ];
+    /* EACH TEST'S SHARE OF CALLS THAT ARE TRUE (his round: "how do we compare
+       which method works better?"): its precision beside its power, since a
+       test is judged on both — over 20 seeds the test over cells called 7.7
+       unchanged genes for 2.5 true ones at sample effect 0.4
+       (`_lab/cell-markers-methods-measure.txt`) */
+    const tile = (v, name, cut) => {
+      const t = tp(v), f = fp(v), n = t + f;
+      return {
+        label: `${name}: calls that are truly changed`,
+        value: n ? `${Math.round((100 * t) / n)}%` : "no calls",
+        note: truth ? `${t} of 20 truly changed genes called, and ${f} unchanged, at ${cut} < 0.05` : `${f} unchanged genes called at ${cut} < 0.05; no gene truly changes`,
+      };
+    };
+    return [tile(C.volC, "Over cells", "p_val_adj"), tile(C.volD, "Over samples", "padj")];
   },
 });
