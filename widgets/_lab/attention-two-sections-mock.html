@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · 83 Output step in two sections — mock</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1760px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 120ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-3) 0 0; padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 120ch; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Widget 83 · the Output step as two sections · mock</h1>
+  <p class="note">
+    <b>1 · Values</b>, vⱼ = x̃ⱼ W_Vᵀ + b: a trained matrix, the same for every sentence and every query, applied to
+    each token on its own. <b>2 · Output</b>, zᵢ = Σⱼ αᵢⱼ vⱼ: the attention weights of this query, computed for this
+    sentence, mixing the values across tokens. Real numbers: block 1, head 4, <i>treated with aspirin for chest
+    pain</i>, the query <b>for</b>, mid-press with the 5th key being added. Drawn at 740px; the α matrix of the page is
+    left out here.
+  </p>
+  <h2>A · stacked: section 1 above section 2</h2>
+  <canvas id="A"></canvas>
+  <h2>B · side by side, under two bands</h2>
+  <canvas id="B"></canvas>
+  <p class="rec">Recommended: <b>A</b>. The two operations get their own formula, their own rows and their own
+    direction of reading (section 1 across each row, section 2 down the column), and the value strips appearing
+    twice is the hand-off from one to the other. It costs height: about 460 px for 8 tokens, 600 for 11. B keeps the
+    height but asks the reader to split one row into two sections by colour.</p>
+</main>
+<script type="module">
+import * as M from "../attention/model.js";
+const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const C = { ink1: css("--ink-1"), ink2: css("--ink-2"), ink3: css("--ink-3"), s1: css("--surface-1"), s2: css("--surface-2"), s3: css("--surface-3"),
+  a: css("--c-group-a"), b: css("--c-group-b"), mag: css("--c-magnitude"), lo: css("--c-value-low"), hi: css("--c-value-high"), grid: css("--grid"),
+  font: css("--font"), mono: css("--font-mono") };
+const rgb = (h) => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+const mixA = (a, b, t) => a.map((x, i) => x + (b[i] - x) * Math.max(0, Math.min(1, t)));
+const str = (p) => `rgb(${p.map(Math.round).join(",")})`;
+const wcol = (w) => str(mixA(rgb(C.s3), rgb(C.mag), Math.sqrt(w)));
+const vcol = (v, s) => str(mixA(rgb(C.s3), rgb(v >= 0 ? C.hi : C.lo), Math.abs(v) / s));
+const capF = "600 12px " + C.font, smF = "11px " + C.font, monoF = "11px " + C.mono;
+function t(g, s, x, y, { f = monoF, c = C.ink2, a = "left" } = {}) { g.font = f; g.fillStyle = c; g.textAlign = a; g.textBaseline = "middle"; g.fillText(s, x, y); }
+function arrow(g, x1, y1, x2, y2, col = C.ink3) { g.strokeStyle = col; g.lineWidth = 1.2; g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke();
+  const a = Math.atan2(y2 - y1, x2 - x1); g.fillStyle = col; g.beginPath(); g.moveTo(x2, y2); g.lineTo(x2 - 6 * Math.cos(a - 0.4), y2 - 6 * Math.sin(a - 0.4)); g.lineTo(x2 - 6 * Math.cos(a + 0.4), y2 - 6 * Math.sin(a + 0.4)); g.fill(); g.lineWidth = 1; }
+
+const st = M.stage("aspirin"), toks = st.tokens, L = st.L, H = 3, QI = 4, K = 4;
+const run = st.run, hd = run.heads[H], X = run.X;
+const xmax = Math.max(...X.flat().map(Math.abs)), vmax = Math.max(...hd.v.flat().map(Math.abs), ...hd.z.flat().map(Math.abs));
+const partial = (k) => Array.from({ length: 12 }, (_, d) => { let s = 0; for (let j = 0; j < k; j++) s += hd.alpha[QI][j] * hd.v[j][d]; return s; });
+const W = 740, RH = 24;
+function setup(id, h) { const cv = document.getElementById(id), dpr = devicePixelRatio || 1; cv.width = W * dpr; cv.height = h * dpr; cv.style.width = W + "px"; cv.style.height = h + "px"; const g = cv.getContext("2d"); g.scale(dpr, dpr); return g; }
+const xStrip = (g, x, y, j, xc) => { for (let d = 0; d < 48; d++) { g.fillStyle = vcol(X[j][d], xmax); g.fillRect(x + d * xc, y, xc, 19); } g.strokeStyle = C.ink3; g.strokeRect(x - 0.5, y - 0.5, 48 * xc + 1, 20); };
+const vStrip = (g, x, y, vals, vc, stroke = C.ink3, lw = 1) => { for (let d = 0; d < 12; d++) { g.fillStyle = vals ? vcol(vals[d], vmax) : C.s2; g.fillRect(x + d * vc, y, vc - 1, 19); } g.strokeStyle = stroke; g.lineWidth = lw; g.strokeRect(x - 0.5, y - 0.5, 12 * vc, 20); g.lineWidth = 1; };
+const wCell = (g, x, y, w) => { g.fillStyle = wcol(w); g.fillRect(x, y, 34, 19); t(g, w.toFixed(2), x + 17, y + 9.5, { a: "center", c: C.ink1 }); };
+function formula(g, x, y, num, title, eq, note) {
+  t(g, `${num} · ${title}`, x, y, { f: capF, c: C.ink1 });
+  t(g, eq, x + 110, y, { f: "italic 13px " + C.font, c: C.ink1 });
+  t(g, note, x, y + 16, { f: smF, c: C.ink3 });
+}
+
+/* ---- A: stacked */
+{
+  const g = setup("A", 60 + L * RH + 70 + L * RH + 150);
+  formula(g, 12, 18, "1", "Values", "vⱼ = x̃ⱼ W_Vᵀ + b", "a trained matrix, the same for every query, applied to each token on its own");
+  const top1 = 62, kx = 12, xx = 90, xc = 3.4, vx = xx + 48 * xc + 50, vc = 13;
+  t(g, "Embedding x̃ⱼ", xx, top1 - 12, { f: smF, c: C.ink2 }); t(g, "Features vⱼ · head 4", vx, top1 - 12, { f: smF, c: C.ink2 });
+  for (let j = 0; j < L; j++) {
+    const y = top1 + j * RH;
+    t(g, toks[j], kx, y + 9.5, { c: C.b }); xStrip(g, xx, y, j, xc);
+    t(g, "W_V", xx + 48 * xc + 18, y + 8.5, { f: smF, c: C.ink3, a: "center" }); arrow(g, xx + 48 * xc + 32, y + 9.5, vx - 3, y + 9.5);
+    vStrip(g, vx, y, hd.v[j], vc);
+  }
+  const top2 = top1 + L * RH + 62;
+  formula(g, 12, top2 - 40, "2", "Output", "zᵢ = Σⱼ αᵢⱼ vⱼ", `the attention weights of the query "${toks[QI]}", mixing the values across tokens`);
+  const wx = 12, kx2 = 56, vx2 = 150, zx = vx2 + 12 * vc + 30;
+  t(g, "Weights αᵢⱼ", wx, top2 - 12, { f: smF, c: C.ink2 }); t(g, "Features vⱼ", vx2, top2 - 12, { f: smF, c: C.ink2 }); t(g, "Features with attention zⱼ", zx, top2 - 12, { f: smF, c: C.ink2 });
+  for (let j = 0; j < L; j++) {
+    const y = top2 + j * RH;
+    wCell(g, wx, y, hd.alpha[QI][j]); t(g, toks[j], kx2, y + 9.5, { c: C.b });
+    vStrip(g, vx2, y, hd.v[j], vc, j === K ? C.a : C.ink3, j === K ? 2 : 1);
+    vStrip(g, zx, y, j < QI ? hd.z[j] : null, vc, j === QI ? C.a : C.ink3);
+  }
+  const yb = top2 + L * RH + 4, right = vx2 + 12 * vc;
+  g.strokeStyle = C.ink2; g.beginPath(); g.moveTo(vx2, yb); g.lineTo(vx2, yb + 8); g.lineTo(right, yb + 8); g.lineTo(right, yb); g.stroke();
+  t(g, "Sum", vx2 + 6 * vc, yb + 24, { f: capF, c: C.ink1, a: "center" });
+  vStrip(g, vx2, yb + 40, partial(K), vc, C.ink1); t(g, "for", vx2 - 10, yb + 50, { c: C.a, a: "right" });
+  t(g, "4 of 8 rows added · 16% of the weight", vx2 + 6 * vc, yb + 78, { f: smF, a: "center" });
+}
+
+/* ---- B: side by side under two bands */
+{
+  const g = setup("B", 70 + L * RH + 130);
+  const top = 70, kx = 12, xx = 84, xc = 2.8, vx = xx + 48 * xc + 46, vc = 12, wx = vx + 12 * vc + 14, zx = wx + 34 + 40;
+  const band = (x0, x1, y, col, label, eq) => { g.fillStyle = col; g.globalAlpha = 0.12; g.fillRect(x0, y, x1 - x0, top - y - 4 + L * RH + 4); g.globalAlpha = 1;
+    t(g, label, x0 + 6, y + 12, { f: capF, c: C.ink1 }); t(g, eq, x0 + 6, y + 28, { f: "italic 12px " + C.font, c: C.ink2 }); };
+  band(xx - 6, vx + 12 * vc + 5, 12, C.b, "1 · Values", "vⱼ = x̃ⱼ W_Vᵀ + b, each token on its own");
+  band(vx + 12 * vc + 8, zx + 12 * vc + 6, 12, C.a, "2 · Output", "zᵢ = Σⱼ αᵢⱼ vⱼ");
+  for (let j = 0; j < L; j++) {
+    const y = top + j * RH;
+    t(g, toks[j], kx, y + 9.5, { c: C.b }); xStrip(g, xx, y, j, xc);
+    t(g, "W_V", xx + 48 * xc + 17, y + 8.5, { f: smF, c: C.ink3, a: "center" }); arrow(g, xx + 48 * xc + 30, y + 9.5, vx - 3, y + 9.5);
+    vStrip(g, vx, y, hd.v[j], vc, j === K ? C.a : C.ink3, j === K ? 2 : 1);
+    wCell(g, wx, y, hd.alpha[QI][j]);
+    vStrip(g, zx, y, j < QI ? hd.z[j] : null, vc, j === QI ? C.a : C.ink3);
+  }
+  const yb = top + L * RH + 4, right = wx + 34;
+  g.strokeStyle = C.ink2; g.beginPath(); g.moveTo(vx, yb); g.lineTo(vx, yb + 8); g.lineTo(right, yb + 8); g.lineTo(right, yb); g.stroke();
+  t(g, "Sum of αᵢⱼ vⱼ", (vx + right) / 2, yb + 24, { f: capF, c: C.ink1, a: "center" });
+  vStrip(g, vx, yb + 40, partial(K), vc, C.ink1); t(g, "for", vx - 10, yb + 50, { c: C.a, a: "right" });
+  t(g, "4 of 8 rows added · 16% of the weight", vx + 6 * vc, yb + 78, { f: smF, a: "center" });
+}
+</script>
+</body>
+</html>

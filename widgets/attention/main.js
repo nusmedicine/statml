@@ -79,7 +79,9 @@ const S = {
   maskLabel: "attention_mask",
   maskDetail: "1 for a token, 0 for padding. Passed, a key with 0 gets the score −∞ before the softmax.",
   maskOpts: [{ value: "passed", label: "Passed" }, { value: "not-passed", label: "Not passed" }],
-  outW: "Weights", outV: ["Features vⱼ", (h) => `head ${h}: 12 of the 48`], outX: ["Embedding x̃ⱼ", "token + position, 48"], outWv: "W_V", outZcol: ["Features with", "attention zⱼ"], outSum: "Sum", outZ: "Features with attention",
+  outW: "Weights", outV: ["Features vⱼ", (h) => `head ${h}: 12 of the 48`], outX: ["Embedding x̃ⱼ", "token + position, 48"], outWv: "W_V",
+  outS1: ["1 · Values", "vⱼ = x̃ⱼ W_Vᵀ + b", "a trained matrix, the same for every query, on each token alone"],
+  outS2: ["2 · Output", "zᵢ = Σⱼ αᵢⱼ vⱼ", "the values of all tokens, weighted by the query's αᵢⱼ and summed"], outZcol: ["Features with", "attention zⱼ"], outSum: "Sum", outZ: "Features with attention",
   outSoFar: (k, L, pct) => `${k} of ${L} rows added · ${pct}% of the weight`,
   tileAdded: "Rows added", tileAddedNote: "terms of Σⱼ αᵢⱼvⱼ summed so far",
   tileShare: "Weight added", tileShareNote: "the sum of their αᵢⱼ",
@@ -407,53 +409,91 @@ const weightSoFar = (hd, i, k) => hd.alpha[i].slice(0, k).reduce((a, b) => a + b
 
 /* cs 12: the smallest pitch the row labels' face clears; the strips take what is left,
    two of them, v and z, with the lane for the key being added between */
-const OT = { top: 52, rh: 24, cs: 12, matTop: 114, lane: 22 };
-const heightOutput = (L) => OT.top + L * OT.rh + 124;
-
-/* WHERE A VALUE COMES FROM, IN EVERY ROW (his pick B, 2026-09-26,
-   `_lab/attention-value-mock.html`): each row reads the token's embedding x̃ⱼ
-   (token row + position row, 48 numbers) → W_V → its value vⱼ (this head's 12 of
-   the 48) → zⱼ. Four strips do not fit beside the α matrix on the narrowest
-   canvas, so the matrix stands where the strips keep at least 2.5 px an embedding
-   cell and 9 px a value cell, and drops below that (his call: keep it where there
-   is room). The weights column still carries the query's row of α either way. */
+/* TWO SECTIONS, STACKED (his ask and pick, 2026-09-26, `_lab/attention-two-sections-mock.html`):
+   two different things are both called W on this step, and they get a section each.
+     1 · VALUES  vⱼ = x̃ⱼ W_Vᵀ + b: a trained matrix, the same for every sentence and
+                 every query, applied to each token on its own; read across a row.
+                 On the page from the start: it does not depend on the query.
+     2 · OUTPUT  zᵢ = Σⱼ αᵢⱼ vⱼ: the query's attention weights, computed for this
+                 sentence, mixing the values across tokens; read down the column into
+                 the sum. The press animates this section only.
+   The value strips appear in both; that is the hand-off. The α matrix stands beside
+   section 2 where the strips keep at least 9 px a value cell and drops below that (his
+   call: keep it where there is room); the Weights column carries the query's row of α
+   either way. */
+const OT = { rh: 24, cs: 12, lane: 22, s1Rows: 62, s2Head: 30, s2Rows: 76, matDrop: 62 };
 const OX = { arrow: 42, xcMin: 2.5, xcMax: 3.5, vcMin: 9, vcMax: 14 };
-function outLayout(w, L, lw, withMatrix) {
+const s2Top = (L) => OT.s1Rows + L * OT.rh + OT.s2Rows;
+const heightOutput = (L) => s2Top(L) + L * OT.rh + 124;
+/** section 1: key · x̃ⱼ → W_V → vⱼ */
+function s1Layout(w, lw) {
+  const xx = PAD_L + lw + 12, room = w - PAD_R - xx - OX.arrow;
+  const vc = Math.min(OX.vcMax, Math.floor((room - 48 * OX.xcMin) / M.DK));
+  const xc = Math.max(OX.xcMin, Math.min(OX.xcMax, (room - M.DK * vc) / 48));
+  return { kx: PAD_L, xx, xc, vx: xx + 48 * xc + OX.arrow, vc };
+}
+/** section 2: (α matrix) · weights · key · vⱼ · zⱼ */
+function s2Layout(w, L, lw, withMatrix) {
   const mx = PAD_L + lw + 6;
-  const wx = withMatrix ? mx + L * OT.cs + 18 : PAD_L, kx = wx + 42, xx = kx + lw + 14;
-  const room = w - PAD_R - xx - OX.arrow - OT.lane;
-  const vc = Math.min(OX.vcMax, Math.floor((room - 48 * OX.xcMin) / (2 * M.DK)));
-  const xc = Math.max(OX.xcMin, Math.min(OX.xcMax, (room - 2 * M.DK * vc) / 48));
-  const vx = xx + 48 * xc + OX.arrow, zx = vx + M.DK * vc + OT.lane;
-  return { withMatrix, mx, wx, kx, xx, xc, vx, vc, zx, fits: vc >= OX.vcMin };
+  const wx = withMatrix ? mx + L * OT.cs + 18 : PAD_L, kx = wx + 42, vx = kx + lw + 16;
+  const vc = Math.min(OX.vcMax, Math.floor((w - PAD_R - vx - OT.lane) / (2 * M.DK)));
+  return { withMatrix, mx, wx, kx, vx, vc, zx: vx + M.DK * vc + OT.lane, fits: vc >= OX.vcMin };
+}
+function sectionHead(ctx, colors, y, [title, formula, note]) {
+  txt(ctx, title, PAD_L, y, { font: cap(colors), fill: colors.ink1, baseline: "middle" });
+  ctx.save(); ctx.font = cap(colors); const tw = ctx.measureText(title).width; ctx.restore();
+  txt(ctx, formula, PAD_L + tw + 14, y, { font: `italic ${colors.fsSm} ${colors.font}`, fill: colors.ink1, baseline: "middle" });
+  ctx.save(); ctx.font = `italic ${colors.fsSm} ${colors.font}`; const fw = ctx.measureText(formula).width; ctx.restore();
+  txt(ctx, note, PAD_L + tw + 14 + fw + 14, y, { font: small(colors), fill: colors.ink3, baseline: "middle" });
 }
 
 function drawOutput(ctx, colors, w, params, state, anim) {
   const toks = state.tokens, L = state.L, h = Number(params.head) - 1, hd = state.run.heads[h], qi = queryOf(anim);
   const ph = outPhase(anim, L), g = qi >= 0 ? glide(anim, ph.e) : null;
   const lw = labelWidth(ctx, colors, toks);
-  let lay = outLayout(w, L, lw, true);
-  if (!lay.fits) lay = outLayout(w, L, lw, false);
-  const { wx, kx, xx, xc, vx, vc, zx } = lay;
-  if (lay.withMatrix) {
-    txt(ctx, S.weightsCap, PAD_L, 18, { font: cap(colors), fill: colors.ink1 });
-    matrix(ctx, colors, hd.alpha, toks, lay.mx, OT.matTop, OT.cs, anim, { ge: ph.e });
+  const vmax = Math.max(...hd.v.flat().map(Math.abs), ...hd.z.flat().map(Math.abs));
+  const X = state.run.X, xmax = Math.max(...X.flat().map(Math.abs)), blank = rgb(colors.surface2);
+  const valueStrip = (x, y, vals, vc, stroke = colors.ink2, lwid = 1) => {
+    for (let d = 0; d < M.DK; d++) { ctx.fillStyle = css(signedFill(colors, vals[d], vmax)); ctx.fillRect(x + d * vc, y, vc - 1, OT.rh - 5); }
+    ctx.strokeStyle = stroke; ctx.lineWidth = lwid; ctx.strokeRect(x - 0.5, y - 0.5, M.DK * vc, OT.rh - 4); ctx.lineWidth = 1;
+  };
+
+  /* ---- 1 · Values: across each row, the same whatever the query */
+  const s1 = s1Layout(w, lw);
+  sectionHead(ctx, colors, 16, S.outS1);
+  txt(ctx, S.outX[0], s1.xx, 36, { font: cap(colors), fill: colors.ink1, baseline: "middle" });
+  txt(ctx, S.outX[1], s1.xx, 50, { font: small(colors), fill: colors.ink2, baseline: "middle" });
+  txt(ctx, S.outV[0], s1.vx, 36, { font: cap(colors), fill: colors.ink1, baseline: "middle" });
+  txt(ctx, S.outV[1](h + 1), s1.vx, 50, { font: small(colors), fill: colors.ink2, baseline: "middle" });
+  for (let j = 0; j < L; j++) {
+    const y = OT.s1Rows + j * OT.rh, ty = y + (OT.rh - 5) / 2;
+    txt(ctx, toks[j], s1.kx, ty, { font: mono(colors), fill: colors.groupB, baseline: "middle" });
+    for (let d = 0; d < 48; d++) { ctx.fillStyle = css(signedFill(colors, X[j][d], xmax)); ctx.fillRect(s1.xx + d * s1.xc, y, s1.xc, OT.rh - 5); }
+    ctx.strokeStyle = colors.ink3; ctx.lineWidth = 1; ctx.strokeRect(s1.xx - 0.5, y - 0.5, 48 * s1.xc + 1, OT.rh - 4);
+    txt(ctx, S.outWv, s1.xx + 48 * s1.xc + 16, ty - 1, { font: small(colors), fill: colors.ink3, align: "center", baseline: "middle" });
+    arrow(ctx, s1.xx + 48 * s1.xc + 29, ty, s1.vx - 3, ty, colors.ink3);
+    valueStrip(s1.vx, y, hd.v[j], s1.vc);
   }
-  txt(ctx, S.outW, wx, 18, { font: cap(colors), fill: colors.ink1 });
-  txt(ctx, S.outX[0], xx, 18, { font: cap(colors), fill: colors.ink1 });
-  txt(ctx, S.outX[1], xx, 34, { font: small(colors), fill: colors.ink2 });
-  txt(ctx, S.outV[0], vx, 18, { font: cap(colors), fill: colors.ink1 });
-  txt(ctx, S.outV[1](h + 1), vx, 34, { font: small(colors), fill: colors.ink2 });
-  const X = state.run.X, xmax = Math.max(...X.flat().map(Math.abs));
+
+  /* ---- 2 · Output: down the column into the sum, one query a press */
+  const top = s2Top(L), headY = OT.s1Rows + L * OT.rh + OT.s2Head;
+  sectionHead(ctx, colors, headY, S.outS2);
+  let lay = s2Layout(w, L, lw, true);
+  if (!lay.fits) lay = s2Layout(w, L, lw, false);
+  const { wx, kx, vx, vc, zx } = lay, right = vx + M.DK * vc;
+  if (lay.withMatrix) {
+    txt(ctx, S.weightsCap, PAD_L, headY + 22, { font: small(colors), fill: colors.ink2, baseline: "middle" });
+    matrix(ctx, colors, hd.alpha, toks, lay.mx, top + OT.matDrop, OT.cs, anim, { ge: ph.e });
+  }
+  txt(ctx, S.outW, wx, top - 26, { font: cap(colors), fill: colors.ink1, baseline: "middle" });
+  txt(ctx, S.outV[0], vx, top - 26, { font: cap(colors), fill: colors.ink1, baseline: "middle" });
   /* the column header pulled in from the canvas edge where the strips are narrower than it */
   ctx.save(); ctx.font = cap(colors); const zhw = Math.max(ctx.measureText(S.outZcol[0]).width, ctx.measureText(S.outZcol[1]).width); ctx.restore();
   const zhx = Math.min(zx, w - PAD_R - zhw);
-  txt(ctx, S.outZcol[0], zhx, 18, { font: cap(colors), fill: colors.ink1 });
-  txt(ctx, S.outZcol[1], zhx, 34, { font: small(colors), fill: colors.ink2 });
-  const vmax = Math.max(...hd.v.flat().map(Math.abs), ...hd.z.flat().map(Math.abs));
-  const blank = rgb(colors.surface2), right = vx + M.DK * vc;
+  txt(ctx, S.outZcol[0], zhx, top - 26, { font: cap(colors), fill: colors.ink1, baseline: "middle" });
+  txt(ctx, S.outZcol[1], zhx, top - 12, { font: small(colors), fill: colors.ink2, baseline: "middle" });
   for (let j = 0; j < L; j++) {
-    const y = OT.top + j * OT.rh, ty = y + (OT.rh - 5) / 2;
+    const y = top + j * OT.rh, ty = y + (OT.rh - 5) / 2;
     ctx.fillStyle = colors.surface2; ctx.fillRect(wx, y, 34, OT.rh - 5);
     if (g) {
       const to = weightFill(colors, hd.alpha[g.to][j]);
@@ -464,13 +504,7 @@ function drawOutput(ctx, colors, w, params, state, anim) {
     }
     ctx.strokeStyle = colors.ink2; ctx.lineWidth = 1; ctx.strokeRect(wx + 0.5, y + 0.5, 33, OT.rh - 6);
     txt(ctx, toks[j], kx, ty, { font: mono(colors), fill: colors.groupB, baseline: "middle" });
-    /* x̃ⱼ → W_V → vⱼ: the embedding in its own range, then the projection */
-    for (let d = 0; d < 48; d++) { ctx.fillStyle = css(signedFill(colors, X[j][d], xmax)); ctx.fillRect(xx + d * xc, y, xc, OT.rh - 5); }
-    ctx.strokeStyle = colors.ink3; ctx.lineWidth = 1; ctx.strokeRect(xx - 0.5, y - 0.5, 48 * xc + 1, OT.rh - 4);
-    txt(ctx, S.outWv, xx + 48 * xc + 16, ty - 1, { font: small(colors), fill: colors.ink3, align: "center", baseline: "middle" });
-    arrow(ctx, xx + 48 * xc + 29, ty, vx - 3, ty, colors.ink3);
-    for (let d = 0; d < M.DK; d++) { ctx.fillStyle = css(signedFill(colors, hd.v[j][d], vmax)); ctx.fillRect(vx + d * vc, y, vc - 1, OT.rh - 5); }
-    ctx.strokeStyle = colors.ink2; ctx.lineWidth = 1; ctx.strokeRect(vx - 0.5, y - 0.5, M.DK * vc, OT.rh - 4);
+    valueStrip(vx, y, hd.v[j], vc);
     /* zⱼ beside vⱼ: token j's features after attention, once its own query is done */
     const za = j < qi ? 1 : j === qi ? ph.drop : 0;
     for (let d = 0; d < M.DK; d++) {
@@ -479,14 +513,13 @@ function drawOutput(ctx, colors, w, params, state, anim) {
     }
     ctx.lineWidth = 1; ctx.strokeStyle = j === qi ? colors.groupA : colors.ink2; ctx.strokeRect(zx - 0.5, y - 0.5, M.DK * vc, OT.rh - 4);
   }
-  ctx.lineWidth = 1;
-  const yb = OT.top + L * OT.rh + 2;
+  const yb = top + L * OT.rh + 2;
   /* the bracket over the values, the terms of the sum */
   line(ctx, vx, yb, vx, yb + 8, colors.ink2); line(ctx, vx, yb + 8, right, yb + 8, colors.ink2); line(ctx, right, yb, right, yb + 8, colors.ink2);
   /* the key being added: one outline stepping row to row, and a line down the lane
      right of the strips carrying it to the sum */
   if (g && ph.e >= 1 && ph.k < L) {
-    const at = ph.k === 0 ? 0 : ph.k - 1 + moveOf(ph.u), y = OT.top + at * OT.rh;
+    const at = ph.k === 0 ? 0 : ph.k - 1 + moveOf(ph.u), y = top + at * OT.rh;
     ctx.strokeStyle = colors.groupA; ctx.lineWidth = 2; ctx.strokeRect(vx - 1.5, y - 1.5, M.DK * vc + 2, OT.rh - 2); ctx.lineWidth = 1;
     const y0 = y + (OT.rh - 5) / 2;
     line(ctx, right + 1, y0, right + 8, y0, colors.groupA, 1.5);
