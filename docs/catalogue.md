@@ -21849,7 +21849,7 @@ that trains it: three of the day's eleven rounds took training out.
 pretrained offline and shipped as generated weights); **network leave given**
 — transformers 5.17 and peft 0.21 installed, the configs and tokenizers read
 from the Hub (no weights), his 25 `dl-language-*.png` figures fetched into
-`_lab/figs/`. Slot 83 MEASURED AND MOCKED the same day (§ *Slot 83* below); NEXT its picks, then the draft.
+`_lab/figs/`. Slot 83 MEASURED, MOCKED AND PICKED the same day (§ *Slot 83* below); NEXT its draft.
 
 **Confirmed from the Hub the same day** (`from_config`, so exact without
 weights): `bert-base-uncased` 109,482,240 in the base model, 109,486,085 with
@@ -22026,7 +22026,20 @@ top of this section.**
    before the lesson adds PEFT to 08-3 as his arc note suggests (08-3 runs
    transfer only today).
 
-### Slot 83 · `attention` — Attention Mechanism — MEASURED AND MOCKED 2026-09-25
+### Slot 83 · `attention` — Attention Mechanism — MEASURED, MOCKED AND PICKED 2026-09-25
+
+**PICKED 2026-09-25, two AskUserQuestion calls:** four pages **Weights ·
+Output · Heads · Mask** in the lesson's order; Weights as **his figure** (query
+circled → keys → the row of α, the matrix filled a row a Step); the Mask page
+is **padding** (08-3 cell 4), the causal mask goes on 84's Decoder page;
+÷√d_k as a **display control** on Weights, re-reading the trained q and k; a
+**Sentence** control over the four clinical sentences, *treated with aspirin
+for chest pain* first; title **Deep Learning - Language: Attention** (his
+pick over the recommended *Deep Learning - Attention*: the data-type form of
+72–75), slug `attention`. Left to the draft as conventional: block 1 of the
+arc's base model, the Head control defaulting to head 4, the colour roles in
+the mock's last note, a JS forward matching the export to 1e-6. NEXT: the
+draft, on his word.
 
 **His ask, 2026-09-25:** *start on 83, measure then mock.* Measure script
 `_lab/attention-measure.py` (imports the arc script's grammar and tiny BERT;
