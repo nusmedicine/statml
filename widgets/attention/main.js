@@ -108,13 +108,17 @@ const SOFT = (inner) => `<msub>${mi("softmax")}${mi("j")}</msub>${mo("(")}${inne
 const MATH = {
   scaled: `<math><mrow>${sub("α", "ij")}${mo("=")}${SOFT(`<mfrac><mrow>${qk}</mrow><msqrt>${sub("d", "k")}</msqrt></mfrac>`)}</mrow></math>`,
   raw: `<math><mrow>${sub("α", "ij")}${mo("=")}${SOFT(qk)}</mrow></math>`,
-  output: `<math><mrow>${sub("z", "i")}${mo("=")}<munder>${mo("∑")}${mi("j")}</munder>${sub("α", "ij")}${sub("v", "j")}</mrow></math>`,
+  /* the Output step's two sections, in order: the values, then the output */
+  output: `<math><mrow>${sub("v", "j")}${mo("=")}<msub><mover accent="true">${mi("x")}${mo("~")}</mover>${mi("j")}</msub>`
+    + `<msubsup>${mi("W")}${mi("V")}${mi("T")}</msubsup>${mo("+")}${mi("b")}</mrow></math>`
+    + `<span style="color:var(--ink-3);font-size:var(--fs-xs);margin:0 14px">then</span>`
+    + `<math><mrow>${sub("z", "i")}${mo("=")}<munder>${mo("∑")}${mi("j")}</munder>${sub("α", "ij")}${sub("v", "j")}</mrow></math>`,
   heads: `<math><mrow>${mi("MultiHead")}${mo("=")}${mo("[")}<msub>${mi("head")}<mn>1</mn></msub>${mo(";")}${mo("…")}${mo(";")}<msub>${mi("head")}<mn>4</mn></msub>${mo("]")}<msub>${mi("W")}${mi("O")}</msub></mrow></math>`,
   mask: `<math><mrow>${sub("α", "ij")}${mo("=")}${SOFT(`<mfrac><mrow>${qk}</mrow><msqrt>${sub("d", "k")}</msqrt></mfrac>${mo("+")}${sub("m", "j")}`)}</mrow></math>`,
   maskRaw: `<math><mrow>${sub("α", "ij")}${mo("=")}${SOFT(`${qk}${mo("+")}${sub("m", "j")}`)}</mrow></math>`,
 };
 const PLAIN = {
-  scaled: "αᵢⱼ = softmaxⱼ(qᵢ·kⱼ / √dₖ)", raw: "αᵢⱼ = softmaxⱼ(qᵢ·kⱼ)", output: "zᵢ = Σⱼ αᵢⱼ vⱼ",
+  scaled: "αᵢⱼ = softmaxⱼ(qᵢ·kⱼ / √dₖ)", raw: "αᵢⱼ = softmaxⱼ(qᵢ·kⱼ)", output: "vⱼ = x̃ⱼ W_Vᵀ + b, then zᵢ = Σⱼ αᵢⱼ vⱼ",
   heads: "MultiHead = [head₁; …; head₄] W_O", mask: "αᵢⱼ = softmaxⱼ(qᵢ·kⱼ / √dₖ + mⱼ)", maskRaw: "αᵢⱼ = softmaxⱼ(qᵢ·kⱼ + mⱼ)",
 };
 const NOTE = {
