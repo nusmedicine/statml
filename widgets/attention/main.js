@@ -3,18 +3,18 @@
    (step 3, "Computing Self-Attention", and "Extending self-attention"), with
    08-3 cell 4's padding mask. DRAFT, 2026-09-25.
 
-   Four steps in the order the arithmetic runs, each drawn as his figure draws
-   it (the control is labelled Step and Mask sits second, his calls of
-   2026-09-26: the mask acts on the scores before the softmax, so its step
-   comes straight after the weights, not after the heads):
+   Three steps in the order the arithmetic runs, each drawn as his figure draws
+   it (the control is labelled Step, his call of 2026-09-26):
 
      WEIGHTS  dl-language-attention-weight.png: the query circled in the
               sentence, its bracket to every key, the scores and then the
               row of weights under the keys, and the matrix alpha_ij filling
-              a row a press. A Scores switch reads the same trained q and k
-              with and without the division by sqrt(d_k).
-     MASK     08-3 cell 4's src_key_padding_mask: the same sentence padded
-              to 16, without the mask and with it, side by side.
+              a row a press. The sentence carries four [PAD] and the
+              tokenizer's attention_mask (08-3 cell 4, 08-1 cell 5): the mask
+              acts on the scores before the softmax, so it lives here, not on
+              a step of its own (a Mask step was built, moved, and folded in
+              on his word the same day, `_lab/attention-mask-fold-mock.html`).
+              Switches: the division by sqrt(d_k), the mask passed or not.
      OUTPUT   dl-language-attention-output.png: the query's row lifted out,
               each weight beside that key's value vector, summed into the
               query's new vector z_i.
@@ -46,7 +46,7 @@
 import { defineWidget, mathmlRenders } from "../core/index.js";
 import * as M from "./model.js";
 
-const PAGES = [{ value: "weights", label: "Weights" }, { value: "mask", label: "Mask" }, { value: "output", label: "Output" }, { value: "heads", label: "Heads" }];
+const PAGES = [{ value: "weights", label: "Weights" }, { value: "output", label: "Output" }, { value: "heads", label: "Heads" }];
 const ON = (page) => ({ param: "page", equals: page });
 const STEP_MS = 600, RUN_MS = 320;   // a press's glide on Step, and under Play
 
@@ -73,26 +73,25 @@ const S = {
   rowCap: (q, h, raw) => `α for the query "${q}" · head ${h}${raw ? " · q·k without the division" : ""} · the row sums to 1`,
   rowWait: "Next query computes the first row",
   scoresRow: "Scores", weightsRow: "Weights",
-  softmaxArrow: (raw) => (raw ? "softmax of q·k ↓" : "softmax of q·k / √dₖ ↓"),
+  softmaxArrow: (raw, masked) => `${masked ? "−∞ where the mask is 0, then " : ""}softmax of ${raw ? "q·k" : "q·k / √dₖ"} ↓`,
+  maskRow: "Mask", padGroup: (n) => `[PAD] × ${n}`,
+  maskLabel: "attention_mask",
+  maskDetail: "1 over a token, 0 over padding. Passed, each 0 sets its key's score to −∞ before the softmax.",
+  maskOpts: [{ value: "on", label: "Passed" }, { value: "off", label: "Not passed" }],
   outW: "Weights", outV: ["Features vⱼ"], outZcol: ["With attention", "zⱼ, row by row"], outSum: "Sum", outZ: "Features with attention",
   outSoFar: (k, L, pct) => `${k} of ${L} rows added · ${pct}% of the weight`,
   tileAdded: "Rows added", tileAddedNote: "αᵢⱼvⱼ taken into zᵢ so far",
   tileShare: "Weight added", tileShareNote: "the share of this row's weights",
   headsX: "x̃  [L, 48]", headsCat: "concatenate  [L, 4 × 12]", headsWo: "W_O  →  [L, 48]", headsFf: "Feed-forward",
   headsNote: "Rows: queries · columns: keys · each share measured over 500 notes",
-  maskOpen: "No mask", maskShut: "attention_mask",
-  maskNote: "[PAD] columns hatched · with the mask each real row is the unpadded sentence's row",
   onPad: (v) => `weight on [PAD]: ${v}`,
   tileQuery: "Query", tileQueryNote: "the row just computed",
   tileTop: "Largest weight", tileTopNote: "the key this row weighs most",
-  tileSum: "Row sum", tileSumNote: (L) => `a softmax over ${L} keys`,
+  tilePad: "On [PAD]", tilePadNote: (masked) => (masked ? "the mask's 0s get no weight" : "no mask: [PAD] is a key like any other"),
   tileZ: "zᵢ", tileZNote: "this head's 12 of the block's 48",
   tileHeads: "Heads", tileHeadsNote: "4 × 12 = 48, the model's width",
   tileCat: "Joined", tileCatNote: "every head's z side by side",
   tileRows: "Rows computed", tileRowsNote: "one query a press",
-  tilePads: "[PAD] positions", tilePadsNote: "padded to 16",
-  tileOpen: "No mask", tileOpenNote: "the rows' weight on [PAD]",
-  tileShut: "attention_mask", tileShutNote: "a masked key's score is −∞",
   wait: "—",
   sum: (step, n, L) => `${step}: ${n} of ${L} rows computed.`,
 };
@@ -111,18 +110,19 @@ const MATH = {
   output: `<math><mrow>${sub("z", "i")}${mo("=")}<munder>${mo("∑")}${mi("j")}</munder>${sub("α", "ij")}${sub("v", "j")}</mrow></math>`,
   heads: `<math><mrow>${mi("MultiHead")}${mo("=")}${mo("[")}<msub>${mi("head")}<mn>1</mn></msub>${mo(";")}${mo("…")}${mo(";")}<msub>${mi("head")}<mn>4</mn></msub>${mo("]")}<msub>${mi("W")}${mi("O")}</msub></mrow></math>`,
   mask: `<math><mrow>${sub("α", "ij")}${mo("=")}${SOFT(`<mfrac><mrow>${qk}</mrow><msqrt>${sub("d", "k")}</msqrt></mfrac>${mo("+")}${sub("m", "j")}`)}</mrow></math>`,
+  maskRaw: `<math><mrow>${sub("α", "ij")}${mo("=")}${SOFT(`${qk}${mo("+")}${sub("m", "j")}`)}</mrow></math>`,
 };
 const PLAIN = {
   scaled: "αᵢⱼ = softmaxⱼ(qᵢ·kⱼ / √dₖ)", raw: "αᵢⱼ = softmaxⱼ(qᵢ·kⱼ)", output: "zᵢ = Σⱼ αᵢⱼ vⱼ",
-  heads: "MultiHead = [head₁; …; head₄] W_O", mask: "αᵢⱼ = softmaxⱼ(qᵢ·kⱼ / √dₖ + mⱼ)",
+  heads: "MultiHead = [head₁; …; head₄] W_O", mask: "αᵢⱼ = softmaxⱼ(qᵢ·kⱼ / √dₖ + mⱼ)", maskRaw: "αᵢⱼ = softmaxⱼ(qᵢ·kⱼ + mⱼ)",
 };
 const NOTE = {
-  scaled: "dₖ = 12", raw: "no division", output: "", heads: "", mask: "mⱼ = 0, or −∞ where key j is [PAD]",
+  scaled: "dₖ = 12", raw: "no division", output: "", heads: "", mask: "dₖ = 12 · mⱼ = 0, or −∞ where the mask is 0", maskRaw: "no division · mⱼ = 0, or −∞ where the mask is 0",
 };
 function renderCard(params) {
   const figure = document.querySelector("#widget .w-figure");
   if (!figure || !figure.parentNode) return;
-  const which = params.page === "weights" ? params.scores : params.page;
+  const which = params.page !== "weights" ? params.page : params.mask !== "off" ? (params.scores === "raw" ? "maskRaw" : "mask") : params.scores;
   if (!cardHost) { cardHost = document.createElement("div"); cardHost.className = "w-math"; cardHost.style.minHeight = "2.4em"; figure.parentNode.insertBefore(cardHost, figure); cardKey = null; }
   if (which === cardKey) return;
   cardKey = which;
@@ -221,34 +221,42 @@ function labelWidth(ctx, colors, toks) { ctx.save(); ctx.font = mono(colors); co
 
 /* ============================================================== Weights */
 
-/* A PRESS IS THE FORMULA'S TWO STEPS (his pick C, 2026-09-26, from the live mock
-   `_lab/attention-weights-motion-mock.html`). The query glides to its token; an
-   outline steps along the keys and each score qᵢ·kⱼ/√dₖ prints in the first strip;
-   then one softmax beat fills the second strip with the weights and the matrix gets
-   the row. Both strips stay after the press, so the Scores switch moves a row the
-   reader can read: the scores by √12, the weights sharpening or flattening under
-   them. A score has no colour — it is not yet a weight. */
-const WP = { pre: 260, key: 300, soft: 700 }, WP_RUN = { pre: 160, key: 150, soft: 350 };
-const weightsMs = (L, mode) => { const P = mode === "run" ? WP_RUN : WP; return P.pre + L * P.key + P.soft; };
-/** where a press is on the Weights page: the glide `e`, the key `k` being scored and its progress `u`, the softmax `soft` */
-function weightsPhase(anim, L) {
-  if (anim.n === 0) return { e: 0, k: -1, u: 0, soft: 0 };
-  if (anim.t >= 1) return { e: 1, k: L, u: 1, soft: 1 };
-  const P = anim.mode === "run" ? WP_RUN : WP, tau = anim.t * weightsMs(L, anim.mode);
-  if (tau < P.pre) return { e: ease(tau / P.pre), k: -1, u: 0, soft: 0 };
-  const r = tau - P.pre;
-  if (r < L * P.key) return { e: 1, k: Math.floor(r / P.key), u: (r % P.key) / P.key, soft: 0 };
-  return { e: 1, k: L, u: 1, soft: ease(Math.min(1, (r - L * P.key) / P.soft)) };
+/* A PRESS IS THE FORMULA'S STEPS (his picks, 2026-09-26: C from
+   `_lab/attention-weights-motion-mock.html`, then the mask folded in, B from
+   `_lab/attention-mask-fold-mock.html`). The sentence carries four [PAD] and the
+   tokenizer's attention_mask under the keys, 1 for a token and 0 for padding.
+   The query glides to its token; an outline steps along every key, [PAD] too, and
+   each score qᵢ·kⱼ/√dₖ prints in the Scores strip; with the mask passed, one beat
+   turns the scores over its 0s to −∞; then the softmax fills the Weights strip and
+   the matrix gets the row. Both strips stay after the press, so the Scores and
+   Mask switches move rows the reader can read. A score has no colour — it is not
+   yet a weight. */
+const WP = { pre: 260, key: 240, cut: 420, soft: 700 }, WP_RUN = { pre: 160, key: 120, cut: 220, soft: 350 };
+const weightsMs = (K, mode, masked) => { const P = mode === "run" ? WP_RUN : WP; return P.pre + K * P.key + (masked ? P.cut : 0) + P.soft; };
+/** where a press is on the Weights page: the glide `e`, the key `k` being scored and its progress `u`, the mask beat `cut`, the softmax `soft` */
+function weightsPhase(anim, K, masked) {
+  if (anim.n === 0) return { e: 0, k: -1, u: 0, cut: 0, soft: 0 };
+  if (anim.t >= 1) return { e: 1, k: K, u: 1, cut: 1, soft: 1 };
+  const P = anim.mode === "run" ? WP_RUN : WP, tau = anim.t * weightsMs(K, anim.mode, masked);
+  if (tau < P.pre) return { e: ease(tau / P.pre), k: -1, u: 0, cut: 0, soft: 0 };
+  let r = tau - P.pre;
+  if (r < K * P.key) return { e: 1, k: Math.floor(r / P.key), u: (r % P.key) / P.key, cut: 0, soft: 0 };
+  r -= K * P.key;
+  const cutMs = masked ? P.cut : 0;
+  if (r < cutMs) return { e: 1, k: K, u: 1, cut: ease(r / cutMs), soft: 0 };
+  return { e: 1, k: K, u: 1, cut: 1, soft: ease(Math.min(1, (r - cutMs) / P.soft)) };
 }
 
-const WT = { qY: 34, keyY: 96, scoreY: 106, stripH: 28, softY: 150, weightY: 164, capY: 208, arrowTo: 228, matTop: 302, cs: 24 };
-const weightsCs = (w, L) => Math.min(WT.cs, Math.floor((w - PAD_L - PAD_R - 150) / L));
-const heightWeights = (w, L) => WT.matTop + L * weightsCs(w, L) + 34;
+const WT = { qY: 34, keyY: 96, maskY: 108, maskH: 22, scoreY: 140, stripH: 28, softY: 184, weightY: 198, capY: 242, arrowTo: 262, matTop: 336, cs: 24 };
+const weightsCs = (w, K) => Math.min(WT.cs, Math.floor((w - PAD_L - PAD_R - 150) / K));
+const heightWeights = (w, L, K) => WT.matTop + L * weightsCs(w, K) + 34;
 
-/** the sentence as columns sized to the words, so the longest sentence fits the narrowest canvas */
-function wordColumns(ctx, colors, toks, x0, avail) {
+/** the keys as columns: the words sized to the words, the [PAD] narrower; the whole row
+    scaled to fit the narrowest canvas */
+function keyColumns(ctx, colors, toks, L, x0, avail) {
   ctx.save(); ctx.font = mono(colors);
-  const want = toks.map((t) => Math.max(ctx.measureText(t).width + 10, ctx.measureText("−0.00").width + 8));
+  const word = (t) => Math.max(ctx.measureText(t).width + 10, ctx.measureText("−0.00").width + 8);
+  const want = toks.map((t, j) => (j < L ? word(t) : ctx.measureText("−0.0").width + 8));
   ctx.restore();
   const s = Math.min(1, avail / want.reduce((a, b) => a + b, 0));
   const xs = []; let x = x0;
@@ -264,36 +272,69 @@ function scoreText(ctx, colors, v, room) {
   return s;
 }
 
+/** the numbers the Weights page draws, for the switches as set */
+function weightsView(state, params) {
+  const h = Number(params.head) - 1, raw = params.scores === "raw", masked = params.mask !== "off";
+  const P = state.padded, run = (masked ? P.masked : P.open).heads[h];
+  return { raw, masked, toks: P.tokens, K: P.tokens.length, Sc: raw ? P.open.heads[h].scoreRaw : P.open.heads[h].score, A: raw ? run.alphaRaw : run.alpha };
+}
+
 function drawWeights(ctx, colors, w, params, state, anim) {
-  const toks = state.tokens, L = state.L, h = Number(params.head) - 1, raw = params.scores === "raw", hd = state.run.heads[h];
-  const A = raw ? hd.alphaRaw : hd.alpha, Sc = raw ? hd.scoreRaw : hd.score, qi = queryOf(anim);
-  const ph = weightsPhase(anim, L), g = qi >= 0 ? glide(anim, ph.e) : null;
-  const cols = wordColumns(ctx, colors, toks, PAD_L + 50, w - PAD_L - PAD_R - 50), cx = (j) => cols[j][0] + cols[j][1] / 2;
+  const L = state.L, h = Number(params.head) - 1, qi = queryOf(anim);
+  const { raw, masked, toks, K, Sc, A } = weightsView(state, params);
+  const ph = weightsPhase(anim, K, masked), g = qi >= 0 ? glide(anim, ph.e) : null;
+  const cols = keyColumns(ctx, colors, toks, L, PAD_L + 50, w - PAD_L - PAD_R - 50), cx = (j) => cols[j][0] + cols[j][1] / 2;
+  const x0 = cols[0][0], x1 = cols[K - 1][0] + cols[K - 1][1];
+  /* where the row is squeezed below the words' own widths (the longest sentence on the
+     narrowest canvas), alternate words stand one line higher, so each stays readable
+     and in its column (the text-overlap sweep, 2026-09-26) */
+  ctx.save(); ctx.font = mono(colors);
+  const crowded = toks.slice(0, L).some((t, j) => ctx.measureText(t).width + 2 > cols[j][1]);
+  ctx.restore();
+  const lift = (j) => (crowded && j % 2 ? 12 : 0), qy = (j) => WT.qY - lift(j), ky = (j) => WT.keyY - 8 - lift(j);
+  const arrowEnd = crowded ? 64 : 74;
   txt(ctx, S.query, PAD_L, WT.qY, { font: cap(colors), fill: colors.ink1, baseline: "middle" });
-  txt(ctx, S.keys, PAD_L, WT.keyY, { font: cap(colors), fill: colors.ink1, baseline: "middle" });
-  toks.forEach((t, j) => {
-    txt(ctx, t, cx(j), WT.qY, { font: mono(colors), fill: j === qi ? colors.groupA : colors.ink3, align: "center", baseline: "middle" });
-    txt(ctx, t, cx(j), WT.keyY, { font: mono(colors), fill: colors.groupB, align: "center", baseline: "middle" });
-  });
-  const x0 = cols[0][0], x1 = cols[L - 1][0] + cols[L - 1][1];
+  txt(ctx, S.keys, PAD_L, WT.keyY - 8, { font: cap(colors), fill: colors.ink1, baseline: "middle" });
+  for (let j = 0; j < L; j++) {
+    txt(ctx, toks[j], cx(j), qy(j), { font: mono(colors), fill: j === qi ? colors.groupA : colors.ink3, align: "center", baseline: "middle" });
+    txt(ctx, toks[j], cx(j), ky(j), { font: mono(colors), fill: colors.groupB, align: "center", baseline: "middle" });
+  }
+  /* the [PAD] keys share one label, over a bracket */
+  txt(ctx, S.padGroup(K - L), (cols[L][0] + x1) / 2, WT.keyY - 8, { font: mono(colors), fill: colors.ink3, align: "center", baseline: "middle" });
+  line(ctx, cols[L][0] + 2, WT.keyY + 1, x1 - 2, WT.keyY + 1, colors.ink3, 1);
+  /* the attention_mask row: 1 over a token, 0 over a [PAD]; grey when not passed */
+  txt(ctx, S.maskRow, x0 - 6, WT.maskY + WT.maskH / 2, { font: small(colors), fill: masked ? colors.ink2 : colors.ink3, align: "right", baseline: "middle" });
+  for (let j = 0; j < K; j++) {
+    ctx.fillStyle = colors.surface2; ctx.fillRect(cols[j][0], WT.maskY, cols[j][1], WT.maskH);
+    const zero = j >= L, hot = masked && zero && ph.cut > 0 && ph.cut < 1;
+    txt(ctx, zero ? "0" : "1", cx(j), WT.maskY + WT.maskH / 2, { font: mono(colors), fill: !masked ? colors.ink3 : zero ? colors.extreme : colors.ink1, align: "center", baseline: "middle" });
+    if (hot) { ctx.strokeStyle = colors.extreme; ctx.lineWidth = 1.5; ctx.strokeRect(cols[j][0] + 1, WT.maskY + 1, cols[j][1] - 2, WT.maskH - 2); ctx.lineWidth = 1; }
+  }
+  ctx.strokeStyle = masked ? colors.ink2 : colors.ink3; ctx.strokeRect(x0 + 0.5, WT.maskY + 0.5, x1 - x0 - 1, WT.maskH - 1);
   txt(ctx, S.scoresRow, x0 - 6, WT.scoreY + WT.stripH / 2, { font: small(colors), fill: colors.ink2, align: "right", baseline: "middle" });
   txt(ctx, S.weightsRow, x0 - 6, WT.weightY + WT.stripH / 2, { font: small(colors), fill: colors.ink2, align: "right", baseline: "middle" });
   for (const y of [WT.scoreY, WT.weightY]) { ctx.fillStyle = colors.surface2; ctx.fillRect(x0, y, x1 - x0, WT.stripH); }
   if (g) {
-    const qx = g.first ? cx(g.to) : lerp(cx(g.from), cx(g.to), g.e);
-    const rx = (g.first ? cols[g.to][1] : lerp(cols[g.from][1], cols[g.to][1], g.e)) / 2;
+    const qx = g.first ? cx(g.to) : lerp(cx(g.from), cx(g.to), g.e), qyy = g.first ? qy(g.to) : lerp(qy(g.from), qy(g.to), g.e);
+    ctx.save(); ctx.font = mono(colors);
+    const tw = (i) => ctx.measureText(toks[i]).width + 10;
+    const rx = (g.first ? tw(g.to) : lerp(tw(g.from), tw(g.to), g.e)) / 2;
+    ctx.restore();
     ctx.save(); ctx.globalAlpha = g.first ? g.e : 1; ctx.strokeStyle = colors.groupA; ctx.lineWidth = 1.5; ctx.setLineDash([3, 3]);
-    ctx.beginPath(); ctx.ellipse(qx, WT.qY, rx, 12, 0, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
-    line(ctx, qx, WT.qY + 13, qx, 58, colors.ink2, 1.2);
-    line(ctx, cx(0), 58, cx(L - 1), 58, colors.ink2, 1.2);
-    for (let j = 0; j < L; j++) arrow(ctx, cx(j), 58, cx(j), 80, colors.ink2);
-    /* on the glide the last query's two rows fade out; then this query's scores print key by key */
+    ctx.beginPath(); ctx.ellipse(qx, qyy, rx, 11, 0, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
+    line(ctx, qx, qyy + 12, qx, 52, colors.ink2, 1.2);
+    line(ctx, cx(0), 52, cx(K - 1), 52, colors.ink2, 1.2);
+    for (let j = 0; j < K; j++) arrow(ctx, cx(j), 52, cx(j), arrowEnd, colors.ink2);
+    /* on the glide the last query's rows fade out; then this query's scores print key by key */
     const out = g.first ? 0 : 1 - ph.e;
-    for (let j = 0; j < L; j++) {
-      const room = cols[j][1] - 4, ty = WT.scoreY + WT.stripH / 2;
-      if (out > 0) txt(ctx, scoreText(ctx, colors, Sc[g.from][j], room), cx(j), ty, { font: mono(colors), fill: colors.ink1, align: "center", baseline: "middle", alpha: out });
+    for (let j = 0; j < K; j++) {
+      const room = cols[j][1] - 4, ty = WT.scoreY + WT.stripH / 2, cut = masked && j >= L;
+      const scoreOf = (row) => scoreText(ctx, colors, Sc[row][j], room);
+      if (out > 0) txt(ctx, cut ? "−∞" : scoreOf(g.from), cx(j), ty, { font: mono(colors), fill: cut ? colors.extreme : colors.ink1, align: "center", baseline: "middle", alpha: out });
       const on = ph.k < 0 ? 0 : j < ph.k ? 1 : j === ph.k ? beat(ph.u, 0, 0.4) : 0;
-      txt(ctx, scoreText(ctx, colors, Sc[g.to][j], room), cx(j), ty, { font: mono(colors), fill: colors.ink1, align: "center", baseline: "middle", alpha: on });
+      /* a masked key's score prints like any other, then the mask beat turns it to −∞ */
+      txt(ctx, scoreOf(g.to), cx(j), ty, { font: mono(colors), fill: colors.ink1, align: "center", baseline: "middle", alpha: on * (cut ? 1 - ph.cut : 1) });
+      if (cut) txt(ctx, "−∞", cx(j), ty, { font: mono(colors), fill: colors.extreme, align: "center", baseline: "middle", alpha: on * ph.cut });
       /* the weights: the last query's fading out, this query's arriving with the softmax */
       for (const [row, a] of [[g.from, out], [g.to, ph.soft]]) {
         if (row === null || a <= 0) continue;
@@ -305,24 +346,26 @@ function drawWeights(ctx, colors, w, params, state, anim) {
   }
   for (const y of [WT.scoreY, WT.weightY]) {
     ctx.strokeStyle = colors.ink1; ctx.lineWidth = 1; ctx.strokeRect(x0 + 0.5, y + 0.5, x1 - x0 - 1, WT.stripH - 1);
-    for (let j = 1; j < L; j++) line(ctx, cols[j][0] + 0.5, y, cols[j][0] + 0.5, y + WT.stripH, colors.grid, 1);
+    for (let j = 1; j < K; j++) line(ctx, cols[j][0] + 0.5, y, cols[j][0] + 0.5, y + WT.stripH, colors.grid, 1);
   }
   /* the key being scored: one outline stepping along the scores */
-  if (g && ph.k >= 0 && ph.k < L) {
+  if (g && ph.k >= 0 && ph.k < K) {
     const m = ph.k === 0 ? 1 : beat(ph.u, 0, 0.3), from = cols[Math.max(0, ph.k - 1)], to = cols[ph.k];
-    const lx = lerp(from[0], to[0], m), lw = lerp(from[1], to[1], m);
-    ctx.strokeStyle = colors.groupA; ctx.lineWidth = 2; ctx.strokeRect(lx - 1, WT.scoreY - 1, lw + 2, WT.stripH + 2); ctx.lineWidth = 1;
+    ctx.strokeStyle = colors.groupA; ctx.lineWidth = 2; ctx.strokeRect(lerp(from[0], to[0], m) - 1, WT.scoreY - 1, lerp(from[1], to[1], m) + 2, WT.stripH + 2); ctx.lineWidth = 1;
   }
-  txt(ctx, S.softmaxArrow(raw), x0, WT.softY, { font: small(colors), fill: g && ph.soft > 0 ? colors.ink1 : colors.ink3, baseline: "middle" });
+  txt(ctx, S.softmaxArrow(raw, masked), x0, WT.softY, { font: small(colors), fill: g && (ph.soft > 0 || ph.cut > 0) ? colors.ink1 : colors.ink3, baseline: "middle" });
   txt(ctx, qi >= 0 ? S.rowCap(toks[qi], h + 1, raw) : S.rowWait, x0, WT.capY, { font: small(colors), fill: colors.ink3 });
   if (qi >= 0) arrow(ctx, w / 2, WT.capY + 8, w / 2, WT.arrowTo, colors.ink3);
-  /* the matrix, his figure's lower half: the row arrives with the softmax */
-  const cs = weightsCs(w, L), lw = labelWidth(ctx, colors, toks);
-  const mx = Math.round(Math.max(PAD_L + lw + 8, w / 2 - (L * cs) / 2 + 40));
-  txt(ctx, S.weightsCap, PAD_L, WT.matTop + (L * cs) / 2, { font: cap(colors), fill: colors.ink1, baseline: "middle" });
-  matrix(ctx, colors, A, toks, mx, WT.matTop, cs, anim, { ge: ph.e, fresh: ph.soft });
-  txt(ctx, "i", mx + L * cs + 12, WT.matTop + (L * cs) / 2, { font: small(colors), fill: colors.ink2, baseline: "middle" });
-  txt(ctx, "j", mx + (L * cs) / 2, WT.matTop + L * cs + 16, { font: small(colors), fill: colors.ink2, align: "center" });
+  /* the matrix, his figure's lower half: rows the sentence's tokens, columns every key, [PAD] hatched */
+  const cs = weightsCs(w, K), lw = labelWidth(ctx, colors, toks.slice(0, L));
+  const mx = Math.round(Math.max(PAD_L + lw + 8, w / 2 - (K * cs) / 2 + 40));
+  /* the matrix's name beside it, or under it where the matrix is wide enough to reach it */
+  ctx.save(); ctx.font = cap(colors); const capW = ctx.measureText(S.weightsCap).width; ctx.restore();
+  const beside = PAD_L + capW + 8 <= mx - lw - 6;
+  txt(ctx, S.weightsCap, PAD_L, beside ? WT.matTop + (L * cs) / 2 : WT.matTop + L * cs + 16, { font: cap(colors), fill: colors.ink1, baseline: "middle" });
+  matrix(ctx, colors, A.slice(0, L), toks, mx, WT.matTop, cs, anim, { ge: ph.e, fresh: ph.soft, padFrom: L });
+  txt(ctx, "i", mx + K * cs + 12, WT.matTop + (L * cs) / 2, { font: small(colors), fill: colors.ink2, baseline: "middle" });
+  txt(ctx, "j", mx + (K * cs) / 2, WT.matTop + L * cs + 16, { font: small(colors), fill: colors.ink2, align: "center" });
 }
 
 /* =============================================================== Output */
@@ -476,37 +519,11 @@ function drawHeads(ctx, colors, w, params, state, anim) {
   txt(ctx, S.headsNote, PAD_L, xb + HD.bh + 30, { font: small(colors), fill: colors.ink3 });
 }
 
-/* ================================================================= Mask */
-
-const MK = { title: 18, matTop: 96 };
-/* two 16-column matrices and one set of row labels (the longest, "discharge", is 9 characters of the mono face) */
-const MASK_LABEL_W = 66, MASK_GAP = 24;
-const maskCs = (w) => Math.max(8, Math.min(16, Math.floor((w - PAD_L - PAD_R - MASK_LABEL_W - MASK_GAP) / (2 * M.LMAX))));
-const heightMask = (w, L) => MK.matTop + L * maskCs(w) + 66;
-const padShare = (A, L, n) => (n ? A.slice(0, n).reduce((s, r) => s + M.tailShare(r, L), 0) / n : null);
-
-function drawMask(ctx, colors, w, params, state, anim) {
-  const L = state.L, h = Number(params.head) - 1, cs = maskCs(w), P = state.padded;
-  const toks = P.tokens, lw = labelWidth(ctx, colors, toks);
-  const open = P.open.heads[h].alpha.slice(0, L);
-  const shut = P.masked.heads[h].alpha.slice(0, L).map((r) => r.map((v, j) => (j < L ? v : null)));
-  const x0 = PAD_L + lw + 6, x1 = Math.max(x0 + M.LMAX * cs + MASK_GAP, w - PAD_R - M.LMAX * cs);
-  const shares = [padShare(open, L, anim.n), anim.n ? 0 : null];
-  [[x0, open, S.maskOpen, true], [x1, shut, S.maskShut, false]].forEach(([x, A, title, rows], k) => {
-    txt(ctx, title, x + (M.LMAX * cs) / 2, MK.title, { font: cap(colors), fill: colors.ink1, align: "center" });
-    matrix(ctx, colors, A, toks, x, MK.matTop, cs, anim, { rowLabels: rows, padFrom: L });
-    const v = shares[k];
-    txt(ctx, S.onPad(v === null ? S.wait : `${Math.round(100 * v)}%`), x + (M.LMAX * cs) / 2, MK.matTop + L * cs + 22,
-      { font: cap(colors), fill: k === 0 ? colors.extreme : colors.empirical, align: "center" });
-  });
-  txt(ctx, S.maskNote, PAD_L, MK.matTop + L * cs + 48, { font: small(colors), fill: colors.ink3 });
-}
-
 /* ============================================================ the widget */
 
 const heightOf = ({ page, sentence, w }) => {
   const L = M.tokensOf(sentence).length;
-  return page === "output" ? heightOutput(L) : page === "heads" ? heightHeads(w, L) : page === "mask" ? heightMask(w, L) : heightWeights(w, L);
+  return page === "output" ? heightOutput(L) : page === "heads" ? heightHeads(w, L) : heightWeights(w, L, L + M.NPAD);
 };
 
 defineWidget({
@@ -518,7 +535,7 @@ defineWidget({
   height: heightOf,
 
   params: {
-    page: { role: "page", type: "segmented", style: "grid", label: S.pageLabel, options: PAGES, default: "weights", display: true },
+    page: { role: "page", type: "segmented", label: S.pageLabel, options: PAGES, default: "weights", display: true },
     sentence: {
       type: "select", label: S.sentenceLabel, detail: S.sentenceDetail,
       options: Object.entries(M.SENTENCES).map(([value, label]) => ({ value, label })), default: "aspirin",
@@ -526,9 +543,10 @@ defineWidget({
     head: {
       type: "segmented", label: S.headLabel, detail: S.headDetail,
       options: ["1", "2", "3", "4"].map((v) => ({ value: v, label: v })), default: "4", display: true,
-      when: { any: [ON("weights"), ON("output"), ON("mask")] },
+      when: { any: [ON("weights"), ON("output")] },
     },
     scores: { type: "segmented", label: S.scoreLabel, detail: S.scoreDetail, options: S.scoreOpts, default: "scaled", display: true, when: ON("weights") },
+    mask: { type: "segmented", label: S.maskLabel, detail: S.maskDetail, options: S.maskOpts, default: "on", display: true, when: ON("weights") },
     /* authoring escape hatch, first render only: rows already computed */
     shown: { type: "int", min: 0, max: 16, default: 0, hidden: true },
   },
@@ -548,7 +566,7 @@ defineWidget({
     },
     advance: (anim, { dt, params, state }) => {
       /* the Output page's press takes its keys one at a time, so it runs longer */
-      const ms = params.page === "output" ? outMs(state.L, anim.mode) : params.page === "weights" ? weightsMs(state.L, anim.mode)
+      const ms = params.page === "output" ? outMs(state.L, anim.mode) : params.page === "weights" ? weightsMs(state.padded.tokens.length, anim.mode, params.mask !== "off")
         : anim.mode === "run" ? RUN_MS : STEP_MS;
       let more;
       if (anim.t < 1) { anim.t = Math.min(1, anim.t + dt / ms); more = anim.t < 1 || (anim.mode === "run" && anim.n < state.L); }
@@ -563,7 +581,6 @@ defineWidget({
     renderCard(params);
     if (params.page === "output") drawOutput(ctx, colors, w, params, state, anim);
     else if (params.page === "heads") drawHeads(ctx, colors, w, params, state, anim);
-    else if (params.page === "mask") drawMask(ctx, colors, w, params, state, anim);
     else drawWeights(ctx, colors, w, params, state, anim);
   },
 
@@ -577,21 +594,14 @@ defineWidget({
         { label: S.tileRows, value: `${anim.n} of ${L}`, note: S.tileRowsNote },
       ];
     }
-    if (params.page === "mask") {
-      const open = state.padded.open.heads[h].alpha;
-      const v = padShare(open, L, anim.n);
-      return [
-        { label: S.tilePads, value: String(M.LMAX - L), note: S.tilePadsNote },
-        { label: S.tileOpen, value: v === null ? S.wait : pct(v), note: S.tileOpenNote },
-        { label: S.tileShut, value: anim.n ? "0%" : S.wait, note: S.tileShutNote },
-      ];
-    }
-    const A = params.page === "weights" && params.scores === "raw" ? state.run.heads[h].alphaRaw : state.run.heads[h].alpha;
+    const view = params.page === "weights" ? weightsView(state, params) : null;
+    const A = view ? view.A : state.run.heads[h].alpha;
     /* on the Weights page the row is a weight only once the softmax has run */
-    const ready = qi >= 0 && (params.page !== "weights" || weightsPhase(anim, L).soft >= 0.5);
+    const ready = qi >= 0 && (!view || weightsPhase(anim, view.K, view.masked).soft >= 0.5);
     const row = ready ? A[qi] : null, top = row ? row.indexOf(Math.max(...row)) : -1;
     const first = { label: S.tileQuery, value: qi >= 0 ? state.tokens[qi] : S.wait, note: S.tileQueryNote };
-    const second = { label: S.tileTop, value: row ? `${state.tokens[top]} ${row[top].toFixed(2)}` : S.wait, note: S.tileTopNote };
+    const keyName = (j) => (view ? view.toks[j] : state.tokens[j]);
+    const second = { label: S.tileTop, value: row ? `${keyName(top)} ${row[top].toFixed(2)}` : S.wait, note: S.tileTopNote };
     if (params.page === "output") {
       const ph = outPhase(anim, L), hd = state.run.heads[h];
       const k = qi < 0 || ph.e < 1 ? 0 : Math.min(L, ph.k + (ph.u >= SUM_AT ? 1 : 0));
@@ -599,7 +609,7 @@ defineWidget({
         { label: S.tileAdded, value: qi >= 0 ? `${k} of ${L}` : S.wait, note: S.tileAddedNote },
         { label: S.tileShare, value: qi >= 0 ? `${Math.round(100 * weightSoFar(hd, qi, k))}%` : S.wait, note: S.tileShareNote }];
     }
-    return [first, second, { label: S.tileSum, value: row ? row.reduce((a, b) => a + b, 0).toFixed(2) : S.wait, note: S.tileSumNote(L) }];
+    return [first, second, { label: S.tilePad, value: row ? pct(M.tailShare(row, L)) : S.wait, note: S.tilePadNote(view.masked) }];
   },
 
   summary({ params, state, anim }) {

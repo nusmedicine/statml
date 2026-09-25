@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · 83 the mask folded into Weights — mock</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1760px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 120ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  .row { display: flex; gap: var(--sp-4); flex-wrap: wrap; align-items: flex-start; }
+  .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 6px; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-3) 0 0; padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 120ch; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Widget 83 · the padding mask folded into the Weights step · mock</h1>
+  <p class="note">
+    No Mask step: the steps become <b>Weights · Output · Heads</b>, and the mask acts where it acts, on the Scores
+    strip before the softmax. Real numbers: the trained block 1, head 4, <i>patient presented with fever . yellow
+    discharge from wound</i> padded with four <code>[PAD]</code>, the query <b>wound</b>. Without the mask its row puts
+    <b>84%</b> of the weight on the padding; with it, 0%. Stills after the press; the scores still print key by key,
+    and the <code>[PAD]</code> keys are scored like any other, then the mask sets theirs to −∞. The <code>[PAD]</code> columns
+    are narrower and share one label so the row fits the narrowest canvas.
+  </p>
+
+  <h2>A · a Padding control: None · Padded · Padded + mask</h2>
+  <p class="note">None is the page as it is now. Padded adds the four <code>[PAD]</code> keys with no mask: they get scores
+    and take weight. Padded + mask prints −∞ in their score cells and 0 after the softmax; the matrix hatches their columns.</p>
+  <div class="row" id="rowA"></div>
+
+  <h2>B · the attention_mask as its own row, as the tokenizer returns it</h2>
+  <p class="note">Padding is always on. Under the keys, the <code>attention_mask</code> row of 1s and 0s (08-2's
+    <code>inputs["attention_mask"]</code>). With the switch on, each 0 becomes −∞ in the score it sits over (the mⱼ of
+    the formula); with it off the row is drawn grey, "not passed", and the scores stand.</p>
+  <div class="row" id="rowB"></div>
+
+  <p class="rec">Recommended: <b>B</b>. It draws the thing the lesson hands the model, <code>attention_mask</code>, and puts
+    each 0 directly over the score it removes, so "mask = −∞ before the softmax" is read off one column. A is the
+    lighter rail and also shows the unpadded sentence. Either way the matrix hatches the <code>[PAD]</code> columns and
+    the readout prints the row's weight on <code>[PAD]</code>.</p>
+</main>
+<script type="module">
+import * as M from "../attention/model.js";
+const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const C = { ink1: css("--ink-1"), ink2: css("--ink-2"), ink3: css("--ink-3"), s1: css("--surface-1"), s2: css("--surface-2"), s3: css("--surface-3"),
+  a: css("--c-group-a"), b: css("--c-group-b"), mag: css("--c-magnitude"), grid: css("--grid"), ext: css("--c-extreme"), emp: css("--c-empirical"),
+  font: css("--font"), mono: css("--font-mono") };
+const rgb = (h) => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+const mixA = (a, b, t) => a.map((x, i) => x + (b[i] - x) * Math.max(0, Math.min(1, t)));
+const str = (p) => `rgb(${p.map(Math.round).join(",")})`;
+const wcol = (w) => mixA(rgb(C.s3), rgb(C.mag), Math.sqrt(w));
+const lum = (p) => (0.2126 * p[0] + 0.7152 * p[1] + 0.0722 * p[2]) / 255;
+const inkOn = (p) => (Math.abs(lum(p) - lum(rgb(C.ink1))) > Math.abs(lum(p) - lum(rgb(C.s1))) ? C.ink1 : C.s1);
+const capF = "600 12px " + C.font, smF = "11px " + C.font, monoF = "11px " + C.mono;
+function t(g, s, x, y, { f = monoF, c = C.ink2, a = "left" } = {}) { g.font = f; g.fillStyle = c; g.textAlign = a; g.textBaseline = "middle"; g.fillText(s, x, y); }
+
+const KEY = "wound", H = 3, NP = 4;
+const real = M.tokensOf(KEY), L = real.length, toks = real.concat(Array(NP).fill(M.PAD)), K = toks.length;
+const open = M.attend(toks, { mask: false }).heads[H], shut = M.attend(toks, { mask: true }).heads[H], bare = M.attend(real).heads[H];
+const QI = real.indexOf("wound");
+const W = 700;
+const fmt = (v) => (v < 0 ? "−" : "") + Math.abs(v).toFixed(2);
+
+function cols(g, x0, keys) {
+  g.font = monoF;
+  const want = keys.map((w) => (w === M.PAD ? 30 : Math.max(g.measureText(w).width + 10, g.measureText("−0.00").width + 8)));
+  const sc = Math.min(1, (W - 12 - x0) / want.reduce((a, b) => a + b, 0));
+  const out = []; let x = x0;
+  want.forEach((c) => { out.push([x, c * sc]); x += c * sc; });
+  return out;
+}
+function panel(host, cap, mode) {
+  const d = document.createElement("div"); d.innerHTML = `<div class="sub">${cap}</div>`;
+  const cv = document.createElement("canvas"), dpr = devicePixelRatio || 1, h = 470;
+  cv.width = W * dpr; cv.height = h * dpr; cv.style.width = W + "px"; cv.style.height = h + "px"; d.appendChild(cv); host.appendChild(d);
+  const g = cv.getContext("2d"); g.scale(dpr, dpr);
+  /* mode: none | open | shut (A) ; maskRow on/off (B) */
+  const padded = mode.pad, masked = mode.mask, keys = padded ? toks : real;
+  const cl = cols(g, 108, keys), cx = (j) => cl[j][0] + cl[j][1] / 2, end = cl[cl.length - 1][0] + cl[cl.length - 1][1];
+  const hd = !padded ? bare : masked ? shut : open;
+  t(g, "Query", 12, 30, { f: capF, c: C.ink1 }); t(g, "Keys", 12, 80, { f: capF, c: C.ink1 });
+  keys.forEach((w, j) => {
+    if (w !== M.PAD) t(g, w, cx(j), 30, { a: "center", c: j === QI ? C.a : C.ink3 });
+    if (w !== M.PAD) t(g, w, cx(j), 80, { a: "center", c: C.b });
+  });
+  if (padded) { const px = cl[L][0], pw = end - px; t(g, "[PAD] × 4", px + pw / 2, 80, { a: "center", c: C.ink3 });
+    g.strokeStyle = C.ink3; g.beginPath(); g.moveTo(px + 2, 88); g.lineTo(end - 2, 88); g.stroke(); }
+  g.setLineDash([3, 3]); g.strokeStyle = C.a; g.lineWidth = 1.5; g.beginPath(); g.ellipse(cx(QI), 30, cl[QI][1] / 2, 12, 0, 0, 7); g.stroke(); g.setLineDash([]); g.lineWidth = 1;
+  let y = 96;
+  if (mode.maskRow !== undefined) {
+    t(g, "attention_mask", cl[0][0] - 6, y + 11, { f: smF, a: "right", c: mode.maskRow ? C.ink1 : C.ink3 });
+    keys.forEach((w, j) => { g.fillStyle = C.s2; g.fillRect(cl[j][0], y, cl[j][1], 22);
+      t(g, w === M.PAD ? "0" : "1", cx(j), y + 11, { a: "center", c: mode.maskRow ? (w === M.PAD ? C.ext : C.ink1) : C.ink3 }); });
+    g.strokeStyle = C.ink3; g.strokeRect(cl[0][0] + 0.5, y + 0.5, end - cl[0][0] - 1, 21);
+    if (!mode.maskRow) t(g, "not passed", end + 6, y + 11, { f: smF, c: C.ink3 });
+    y += 32;
+  }
+  t(g, "Scores", cl[0][0] - 6, y + 14, { f: smF, a: "right" });
+  keys.forEach((w, j) => { g.fillStyle = C.s2; g.fillRect(cl[j][0], y, cl[j][1], 28);
+    const cut = masked && w === M.PAD;
+    t(g, cut ? "−∞" : w === M.PAD ? open.score[QI][j].toFixed(1) : fmt(open.score[QI][j]).replace(/^(−?)0\./, "$1."), cx(j), y + 14, { a: "center", c: cut ? C.ext : C.ink1 }); });
+  g.strokeStyle = C.ink1; g.strokeRect(cl[0][0] + 0.5, y + 0.5, end - cl[0][0] - 1, 27);
+  t(g, masked ? "+ mⱼ (−∞ where the mask is 0), then softmax ↓" : "softmax of q·k / √dₖ ↓", cl[0][0], y + 44, { f: smF, c: C.ink1 });
+  y += 58;
+  t(g, "Weights", cl[0][0] - 6, y + 14, { f: smF, a: "right" });
+  keys.forEach((w, j) => { const v = hd.alpha[QI][j], f = wcol(v); g.fillStyle = str(f); g.fillRect(cl[j][0], y, cl[j][1], 28);
+    t(g, w === M.PAD ? (v < 0.005 ? "0" : v.toFixed(2).replace(/^0/, "")) : v.toFixed(2), cx(j), y + 14, { a: "center", c: inkOn(f) }); });
+  g.strokeStyle = C.ink1; g.strokeRect(cl[0][0] + 0.5, y + 0.5, end - cl[0][0] - 1, 27);
+  const onPad = padded ? hd.alpha[QI].slice(L).reduce((a, b) => a + b, 0) : 0;
+  t(g, padded ? `the row's weight on [PAD]: ${Math.round(100 * onPad)}%` : `α for the query "wound" · head 4 · the row sums to 1`, cl[0][0], y + 44,
+    { f: capF, c: padded ? (masked ? C.emp : C.ext) : C.ink3 });
+  /* the matrix, [PAD] columns hatched */
+  y += 70;
+  const cs = 13, mx = 190;
+  t(g, "Attention weights αᵢⱼ", 12, y + L * cs / 2, { f: capF, c: C.ink1 });
+  for (let i = 0; i < L; i++) {
+    t(g, real[i], mx - 5, y + i * cs + cs / 2, { a: "right", c: i === QI ? C.a : C.ink2 });
+    for (let j = 0; j < keys.length; j++) {
+      const v = hd.alpha[i][j], x = mx + j * cs, yy = y + i * cs;
+      g.fillStyle = str(wcol(v)); g.fillRect(x, yy, cs - 1, cs - 1);
+      if (keys[j] === M.PAD) { g.strokeStyle = C.ink3; g.globalAlpha = 0.5; g.beginPath(); g.moveTo(x + 1, yy + cs - 2); g.lineTo(x + cs - 2, yy + 1); g.stroke(); g.globalAlpha = 1; }
+    }
+  }
+  g.strokeStyle = C.ink2; g.strokeRect(mx - 0.5, y - 0.5, keys.length * cs, L * cs);
+  g.setLineDash([3, 3]); g.strokeStyle = C.a; g.lineWidth = 1.5; g.strokeRect(mx - 1.5, y + QI * cs - 1.5, keys.length * cs + 2, cs + 2); g.setLineDash([]); g.lineWidth = 1;
+}
+panel(document.getElementById("rowA"), "A · Padding: None", { pad: false, mask: false });
+panel(document.getElementById("rowA"), "A · Padding: Padded (no mask)", { pad: true, mask: false });
+panel(document.getElementById("rowA"), "A · Padding: Padded + mask", { pad: true, mask: true });
+panel(document.getElementById("rowB"), "B · attention_mask off", { pad: true, mask: false, maskRow: false });
+panel(document.getElementById("rowB"), "B · attention_mask on", { pad: true, mask: true, maskRow: true });
+</script>
+</body>
+</html>

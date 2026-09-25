@@ -7,7 +7,7 @@
       in float32 and this in float64 (measured 1.3e-6).
    2. The claims the pages print: the aspirin row's weight on "chest pain"
       in head 4 (the Weights page's example), the [MASK] row's in heads 2 and
-      4, [PAD]'s share without the mask, and that the masked rows equal the
+      4, [PAD]'s share without the mask (four [PAD]), and that the masked rows equal the
       unpadded ones — the Mask page's whole claim.
    3. The arithmetic every row keeps: each row sums to 1; the scores the
       Weights page prints are q·k / √d_k and their softmax is the row of alpha.
@@ -52,11 +52,11 @@ for (const key of Object.keys(M.SENTENCES)) {
   for (let h = 0; h < M.H; h++) {
     const open = st.padded.open.heads[h].alpha, masked = st.padded.masked.heads[h].alpha, bare = st.run.heads[h].alpha;
     let same = 0;
-    for (let i = 0; i < L; i++) for (let j = 0; j < M.LMAX; j++) same = Math.max(same, Math.abs(masked[i][j] - (j < L ? bare[i][j] : 0)));
+    for (let i = 0; i < L; i++) for (let j = 0; j < st.padded.tokens.length; j++) same = Math.max(same, Math.abs(masked[i][j] - (j < L ? bare[i][j] : 0)));
     ok(same < 1e-12, `${key} head ${h + 1}: masked rows are the unpadded rows (${same})`);
     for (const A of [bare, st.run.heads[h].alphaRaw, open]) for (const row of A) near(row.reduce((a, b) => a + b, 0), 1, 1e-12, `${key}: a row sums to 1`);
     const pad = open.slice(0, L).reduce((s, r) => s + M.tailShare(r, L), 0) / L;
-    ok(pad > 0.05, `${key} head ${h + 1}: without the mask [PAD] takes ${(100 * pad).toFixed(0)}%`);
+    ok(pad > 0.03, `${key} head ${h + 1}: without the mask [PAD] takes ${(100 * pad).toFixed(0)}%`);
   }
 }
 /* the Weights page prints the scores: softmax of each score row is that row's alpha,
@@ -73,7 +73,10 @@ for (const key of Object.keys(M.SENTENCES)) {
 near(asp.run.heads[3].score[3][5], 5.28, 0.005, "aspirin → chest, the score head 4 prints");
 
 const pad4 = asp.padded.open.heads[3].alpha.slice(0, asp.L).reduce((s, r) => s + M.tailShare(r, asp.L), 0) / asp.L;
-near(pad4, 0.28, 0.005, "aspirin, head 4: [PAD]'s share without the mask");
+near(pad4, 0.24, 0.005, "aspirin, head 4: [PAD]'s share without the mask, over the rows");
+const wnd = M.stage("wound"), wq = wnd.tokens.indexOf("wound");
+near(M.tailShare(wnd.padded.open.heads[3].alpha[wq], wnd.L), 0.84, 0.005, "wound, head 4: the wound row's weight on [PAD] without the mask");
+near(M.tailShare(wnd.padded.masked.heads[3].alpha[wq], wnd.L), 0, 1e-12, "wound, head 4: and with it");
 
 console.log(fails ? `${fails} of ${checks} checks FAILED` : `${checks} checks passed · the forward within ${worst.toExponential(1)} of torch`);
 process.exit(fails ? 1 : 0);

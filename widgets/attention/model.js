@@ -101,9 +101,14 @@ export function attend(toks, { mask = true } = {}) {
 }
 
 /** everything the four pages draw for one sentence */
+/* The Weights step shows the sentence padded with four [PAD], as a batch pads a
+   shorter sentence to a longer one's length; four fits the longest sentence (11
+   tokens) inside the position table (LMAX 16) and the narrowest canvas. */
+export const NPAD = 4;
+
 export function stage(key) {
   const toks = tokensOf(key), L = toks.length;
-  const padded = toks.concat(Array(LMAX - L).fill(PAD));
+  const padded = toks.concat(Array(NPAD).fill(PAD));
   return {
     key, tokens: toks, L,
     run: attend(toks),
