@@ -38,6 +38,10 @@ for (const r of REF) {
       void name;
     }
   }
+  /* the Heads step: the four z side by side, and W_O's output */
+  for (const [a, b] of [[js.concat, r.concat], [js.out, r.out]]) {
+    for (let i = 0; i < a.length; i++) for (let j = 0; j < a[i].length; j++) worst = Math.max(worst, Math.abs(a[i][j] - b[i][j]));
+  }
 }
 ok(worst < 1e-5, `the forward against torch (torch float32, here float64): largest difference ${worst.toExponential(2)}`);
 

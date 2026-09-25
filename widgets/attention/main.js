@@ -48,7 +48,6 @@ import * as M from "./model.js";
 
 const PAGES = [{ value: "weights", label: "Weights" }, { value: "output", label: "Output" }, { value: "heads", label: "Heads" }];
 const ON = (page) => ({ param: "page", equals: page });
-const STEP_MS = 600, RUN_MS = 320;   // a press's glide on Step, and under Play
 
 /* ================================================================== copy */
 
@@ -85,13 +84,12 @@ const S = {
   outSoFar: (k, L, pct) => `${k} of ${L} rows added · ${pct}% of the weight`,
   tileAdded: "Rows added", tileAddedNote: "terms of Σⱼ αᵢⱼvⱼ summed so far",
   tileShare: "Weight added", tileShareNote: "the sum of their αᵢⱼ",
-  headsX: "x̃  [L, 48]", headsCat: "concatenate  [L, 4 × 12]", headsWo: "W_O  →  [L, 48]", headsFf: "Feed-forward",
+  headsX: "x̃  [L, 48]", headsCat: "concatenated [4 × 12]", headsWo: "× W_Oᵀ + b", headsOut: "output [48]", headsFf: "Feed-forward",
   headsNote: "Rows: queries · columns: keys · each share measured over 500 notes",
   tileQuery: "Query", tileQueryNote: "the row just computed",
   tileTop: "Largest weight", tileTopNote: "the key with the largest αᵢⱼ in this row",
   tilePad: "On [PAD]", tilePadNote: (masked) => (masked ? "keys with mask 0 get weight 0" : "no mask: [PAD] keys are scored and weighted"),
   tileHeads: "Heads", tileHeadsNote: "48, the model dimension",
-  tileCat: "Concatenated", tileCatNote: "the four heads' z side by side",
   tileRows: "Rows computed", tileRowsNote: "one row per query",
   wait: "—",
   sum: (step, n, L) => `${step}: ${n} of ${L} rows computed.`,
@@ -187,7 +185,7 @@ const lerp = (a, b, t) => a + (b - a) * t;
 const oldInk = (g) => (g.first ? 0 : Math.max(0, 1 - 2 * g.e)), newInk = (g) => (g.first ? g.e : Math.max(0, 2 * g.e - 1));
 
 /** α_ij as a grid: `A` rows over keys, PAD columns hatched, a null cell blank */
-function matrix(ctx, colors, A, toks, x0, y0, cs, anim, { colLabels = true, rowLabels = true, padFrom = -1, box: outline = true, ge = ease(anim.t), fresh = ge } = {}) {
+function matrix(ctx, colors, A, toks, x0, y0, cs, anim, { colLabels = true, rowLabels = true, padFrom = -1, box: outline = true, ge = ease(anim.t), fresh = ge, frame = null } = {}) {
   const L = A.length, K = A[0].length, qi = queryOf(anim);
   /* upright: slanted, neighbouring names overlapped even at 24px cells (the text-overlap sweep, 2026-09-26) */
   const steep = true;
@@ -205,7 +203,7 @@ function matrix(ctx, colors, A, toks, x0, y0, cs, anim, { colLabels = true, rowL
       if (padFrom >= 0 && j >= padFrom) line(ctx, x + 1, y + cs - 2, x + cs - 2, y + 1, colors.ink3, 1);
     }
   }
-  if (outline) { ctx.strokeStyle = colors.ink2; ctx.lineWidth = 1; ctx.strokeRect(x0 - 0.5, y0 - 0.5, K * cs, L * cs); }
+  if (outline) { ctx.strokeStyle = frame ?? colors.ink2; ctx.lineWidth = frame ? 1.5 : 1; ctx.strokeRect(x0 - 0.5, y0 - 0.5, K * cs, L * cs); ctx.lineWidth = 1; }
   /* the query's row outlined with its label, as his figure boxes "M" with its row */
   if (qi >= 0) {
     const g = glide(anim, ge), lab = (i) => (rowLabels ? labelWidth(ctx, colors, [toks[i]]) + 9 : 2.5);
@@ -555,27 +553,65 @@ function drawOutput(ctx, colors, w, params, state, anim) {
 
 /* ================================================================ Heads */
 
-const HD = { ff: 8, wo: 52, cat: 96, title: 150, habit: 164, matTop: 176, bh: 26 };
+/* HIS FIGURE WITH THE NUMBERS (his pick A, 2026-09-26, `_lab/attention-heads-mock.html`),
+   bottom to top: x̃ into the four heads' α matrices; each head's zᵢ for the press's
+   query (12 numbers, the Output step once per head); the four side by side, [4 × 12]
+   = 48; × W_Oᵀ + b, the attention output for the token (48); the feed-forward, dimmed
+   (the block's other half is the next widget's). A press is four beats: the row glides
+   into all four matrices, the four zᵢ fill, they join, W_O's output arrives. Each head
+   wears one dimension hue on its frames (the head is a dimension of [L, 4, 12]; his
+   pick), the cells keep the value ramp, no text is coloured by it. */
+const HP = { step: 1200, run: 600 };
+/** the beats of a Heads press: glide `e`, the z strips `zf`, the join `cat`, the output `out` */
+function headsPhase(anim) {
+  if (anim.n === 0) return { e: 0, zf: 0, cat: 0, out: 0 };
+  const u = anim.t;
+  return { e: beat(u, 0, 0.35), zf: beat(u, 0.35, 0.55), cat: beat(u, 0.55, 0.75), out: beat(u, 0.75, 1) };
+}
+const HD = { ff: 8, bh: 26, outY: 64, catY: 118, zY: 194, title: 244, habit: 258, matTop: 272 };
 const headsCs = (w, L) => Math.max(6, Math.min(14, Math.floor(((w - PAD_L - PAD_R) / 4 - 16) / L)));
 const heightHeads = (w, L) => HD.matTop + L * headsCs(w, L) + 88;
 
 function drawHeads(ctx, colors, w, params, state, anim) {
-  const L = state.L, cs = headsCs(w, L), colW = (w - PAD_L - PAD_R) / 4, mid = w / 2;
-  const hx = (k) => PAD_L + k * colW + colW / 2, bw = Math.min(230, w * 0.46);
-  box(ctx, colors, mid - bw / 2 + 30, HD.ff, bw - 60, HD.bh, S.headsFf, { alpha: 0.45 });
-  arrow(ctx, mid, HD.wo, mid, HD.ff + HD.bh + 2, colors.ink3);
-  box(ctx, colors, mid - bw / 2, HD.wo, bw, HD.bh, S.headsWo);
-  arrow(ctx, mid, HD.cat, mid, HD.wo + HD.bh + 2, colors.ink3);
-  box(ctx, colors, mid - bw / 2, HD.cat, bw, HD.bh, S.headsCat);
-  const bus = HD.cat + HD.bh + 16;
-  line(ctx, mid, HD.cat + HD.bh, mid, bus, colors.ink3, 1.2);
-  line(ctx, hx(0), bus, hx(3), bus, colors.ink3, 1.2);
+  const L = state.L, cs = headsCs(w, L), colW = (w - PAD_L - PAD_R) / 4, mid = w / 2, qi = queryOf(anim);
+  const hx = (k) => PAD_L + k * colW + colW / 2, ph = headsPhase(anim), g = qi >= 0 ? glide(anim, ph.e) : null;
+  const run = state.run, blank = rgb(colors.surface2);
+  const zmax = Math.max(...run.heads.flatMap((hd) => hd.z.flat()).map(Math.abs)), omax = Math.max(...run.out.flat().map(Math.abs));
+  const zc = Math.max(4, Math.min(8, Math.floor((colW - 14) / M.DK))), cc = Math.max(3, Math.min(5, Math.floor((w * 0.5) / 48)));
+  const cx0 = Math.round(mid - (48 * cc) / 2);
+  /* a strip of values: the last query's fading out to this query's, by `a`; blank before any press */
+  const strip = (x, y, h, c, from, to, a, frame, scale = zmax, lwid = 1.5) => {
+    for (let d = 0; d < to.length; d++) {
+      const fill = !g ? blank : mixRgb(from ? signedFill(colors, from[d], scale) : blank, signedFill(colors, to[d], scale), a);
+      ctx.fillStyle = css(fill); ctx.fillRect(x + d * c, y, c - (c > 4 ? 1 : 0), h);
+    }
+    ctx.strokeStyle = frame; ctx.lineWidth = lwid; ctx.strokeRect(x - 0.5, y - 0.5, to.length * c, h + 1); ctx.lineWidth = 1;
+  };
+  const prevZ = (hd) => (g && !g.first ? hd.z[g.from] : null), nowZ = (hd) => (g ? hd.z[g.to] : hd.z[0]);
+
+  /* the feed-forward, then W_O's output for the query */
+  box(ctx, colors, mid - 80, HD.ff, 160, HD.bh, S.headsFf, { alpha: 0.45 });
+  arrow(ctx, mid, HD.outY - 6, mid, HD.ff + HD.bh + 2, colors.ink3);
+  const outNow = g ? run.out[g.to] : run.out[0], outPrev = g && !g.first ? run.out[g.from] : null;
+  strip(cx0, HD.outY, 18, cc, outPrev, outNow, ph.out, colors.ink1, omax, 1);
+  txt(ctx, S.headsOut, cx0 - 10, HD.outY + 9, { font: small(colors), fill: colors.ink1, align: "right", baseline: "middle" });
+  arrow(ctx, mid, HD.catY - 4, mid, HD.outY + 24, colors.ink3);
+  txt(ctx, S.headsWo, mid + 10, (HD.catY + HD.outY + 18) / 2, { font: small(colors), fill: colors.ink2, baseline: "middle" });
+  /* the four z side by side, each 12 in its head's hue */
+  run.heads.forEach((hd, k) => strip(cx0 + k * M.DK * cc, HD.catY, 18, cc, prevZ(hd), nowZ(hd), ph.cat, colors.dims[k]));
+  txt(ctx, S.headsCat, cx0 - 10, HD.catY + 9, { font: small(colors), fill: colors.ink1, align: "right", baseline: "middle" });
+  if (g) txt(ctx, `"${state.tokens[g.to]}"`, cx0 + 48 * cc + 10, HD.catY + 9, { font: mono(colors), fill: colors.groupA, baseline: "middle" });
+  /* each head: its zᵢ above, its title and habit, its α matrix, the bus from x̃ below */
   const matBottom = HD.matTop + L * cs;
-  state.run.heads.forEach((hd, k) => {
-    line(ctx, hx(k), bus, hx(k), HD.title - 14, colors.ink3, 1.2);
+  run.heads.forEach((hd, k) => {
+    const zx = Math.round(hx(k) - (M.DK * zc) / 2);
+    arrow(ctx, hx(k), HD.zY - 4, cx0 + k * M.DK * cc + (M.DK * cc) / 2, HD.catY + 24, colors.ink3);
+    strip(zx, HD.zY, 16, zc, prevZ(hd), nowZ(hd), ph.zf, colors.dims[k]);
+    arrow(ctx, hx(k), HD.title - 12, hx(k), HD.zY + 22, colors.ink3);
     txt(ctx, `${S.headLabel} ${k + 1}`, hx(k), HD.title, { font: cap(colors), fill: colors.ink1, align: "center" });
     txt(ctx, `${M.HABIT[k].what} ${M.HABIT[k].share.toFixed(2)}`, hx(k), HD.habit, { font: small(colors), fill: colors.ink2, align: "center" });
-    matrix(ctx, colors, hd.alpha, state.tokens, Math.round(hx(k) - (L * cs) / 2), HD.matTop, cs, anim, { colLabels: false, rowLabels: false });
+    matrix(ctx, colors, hd.alpha, state.tokens, Math.round(hx(k) - (L * cs) / 2), HD.matTop, cs, anim,
+      { colLabels: false, rowLabels: false, ge: ph.e, frame: colors.dims[k] });
     arrow(ctx, hx(k), matBottom + 26, hx(k), matBottom + 6, colors.ink3);
   });
   const xb = matBottom + 26;
@@ -633,7 +669,7 @@ defineWidget({
     advance: (anim, { dt, params, state }) => {
       /* the Output page's press takes its keys one at a time, so it runs longer */
       const ms = params.page === "output" ? outMs(state.L, anim.mode) : params.page === "weights" ? weightsMs(state.padded.tokens.length, anim.mode, params.attention_mask !== "not-passed")
-        : anim.mode === "run" ? RUN_MS : STEP_MS;
+        : anim.mode === "run" ? HP.run : HP.step;
       let more;
       if (anim.t < 1) { anim.t = Math.min(1, anim.t + dt / ms); more = anim.t < 1 || (anim.mode === "run" && anim.n < state.L); }
       else if (anim.n < state.L) { anim.n += 1; anim.t = 0; more = true; }
@@ -655,8 +691,8 @@ defineWidget({
     const pct = (v) => `${Math.round(100 * v)}%`;
     if (params.page === "heads") {
       return [
+        { label: S.tileQuery, value: qi >= 0 ? state.tokens[qi] : S.wait, note: S.tileQueryNote },
         { label: S.tileHeads, value: "4 × 12", note: S.tileHeadsNote },
-        { label: S.tileCat, value: `[${L}, 48]`, note: S.tileCatNote },
         { label: S.tileRows, value: `${anim.n} of ${L}`, note: S.tileRowsNote },
       ];
     }

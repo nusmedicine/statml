@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · 83 Heads step, the heads' outputs — mock</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1760px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 120ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-3) 0 0; padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 120ch; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Widget 83 · the Heads step with the heads' outputs drawn · mock</h1>
+  <p class="note">
+    Each head gives every token 12 numbers, zᵢ⁽ʰ⁾ = Σⱼ αᵢⱼ⁽ʰ⁾ vⱼ⁽ʰ⁾ (the Output step, once per head). The four are laid
+    side by side, [4 × 12] = 48, and W_O projects them to the block's 48: MultiHead = [head₁; …; head₄] W_O.
+    Real numbers: block 1, <i>treated with aspirin for chest pain</i>, five queries computed, the last one <b>for</b>.
+    The four heads wear the dimension hues (<code>--c-dim-a…d</code>) on frames and labels only; the cells keep the
+    value ramp. Drawn at 740px.
+  </p>
+  <h2>A · his figure, with the numbers: matrices, each head's zᵢ, the concatenation, W_O</h2>
+  <canvas id="A"></canvas>
+  <h2>B · the concatenation as a table, a row per token</h2>
+  <canvas id="B"></canvas>
+  <p class="rec">Recommended: <b>A</b>. It keeps his figure's order, bottom to top (x̃ → heads → join → W_O →
+    feed-forward), and follows one token, the query of the press, through all four heads, which is the thing the
+    Output step taught for one head. B shows every token's concatenation at once, but the four α matrices shrink to
+    a band to make room, and the [L, 4 × 12] table is the same picture as the Output step's z column four times.</p>
+</main>
+<script type="module">
+import * as M from "../attention/model.js";
+import { WEIGHTS } from "../attention/weights.js";
+const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const C = { ink1: css("--ink-1"), ink2: css("--ink-2"), ink3: css("--ink-3"), s1: css("--surface-1"), s2: css("--surface-2"), s3: css("--surface-3"),
+  a: css("--c-group-a"), b: css("--c-group-b"), mag: css("--c-magnitude"), lo: css("--c-value-low"), hi: css("--c-value-high"), grid: css("--grid"),
+  dims: ["a", "b", "c", "d"].map((k) => css(`--c-dim-${k}`)), font: css("--font"), mono: css("--font-mono") };
+const rgb = (h) => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+const mixA = (a, b, t) => a.map((x, i) => x + (b[i] - x) * Math.max(0, Math.min(1, t)));
+const str = (p) => `rgb(${p.map(Math.round).join(",")})`;
+const wcol = (w) => str(mixA(rgb(C.s3), rgb(C.mag), Math.sqrt(w)));
+const vcol = (v, s) => str(mixA(rgb(C.s3), rgb(v >= 0 ? C.hi : C.lo), Math.abs(v) / s));
+const capF = "600 12px " + C.font, smF = "11px " + C.font, monoF = "11px " + C.mono;
+function t(g, s, x, y, { f = monoF, c = C.ink2, a = "left" } = {}) { g.font = f; g.fillStyle = c; g.textAlign = a; g.textBaseline = "middle"; g.fillText(s, x, y); }
+function arrow(g, x1, y1, x2, y2, col = C.ink3) { g.strokeStyle = col; g.lineWidth = 1.2; g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke();
+  const a = Math.atan2(y2 - y1, x2 - x1); g.fillStyle = col; g.beginPath(); g.moveTo(x2, y2); g.lineTo(x2 - 6 * Math.cos(a - 0.4), y2 - 6 * Math.sin(a - 0.4)); g.lineTo(x2 - 6 * Math.cos(a + 0.4), y2 - 6 * Math.sin(a + 0.4)); g.fill(); g.lineWidth = 1; }
+function box(g, x, y, w, h, label, dim = false) { g.globalAlpha = dim ? 0.45 : 1; g.fillStyle = C.s2; g.fillRect(x, y, w, h); g.strokeStyle = C.ink2; g.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1); t(g, label, x + w / 2, y + h / 2, { f: smF, c: C.ink1, a: "center" }); g.globalAlpha = 1; }
+
+const st = M.stage("aspirin"), toks = st.tokens, L = st.L, run = st.run, QI = 4, N = QI + 1;   // five rows computed
+const zmax = Math.max(...run.heads.flatMap((h) => h.z.flat()).map(Math.abs)), omax = Math.max(...run.out.flat().map(Math.abs));
+const W = 740;
+function setup(id, h) { const cv = document.getElementById(id), dpr = devicePixelRatio || 1; cv.width = W * dpr; cv.height = h * dpr; cv.style.width = W + "px"; cv.style.height = h + "px"; const g = cv.getContext("2d"); g.scale(dpr, dpr); return g; }
+function mini(g, A, x0, y0, cs, rows, qi, col) {
+  for (let i = 0; i < L; i++) for (let j = 0; j < L; j++) { g.fillStyle = i < rows ? wcol(A[i][j]) : C.s2; g.fillRect(x0 + j * cs, y0 + i * cs, cs - 1, cs - 1); }
+  g.strokeStyle = col; g.lineWidth = 1.5; g.strokeRect(x0 - 1, y0 - 1, L * cs + 1, L * cs + 1); g.lineWidth = 1;
+  g.setLineDash([3, 3]); g.strokeStyle = C.a; g.strokeRect(x0 - 2, y0 + qi * cs - 1.5, L * cs + 3, cs + 2); g.setLineDash([]);
+}
+function strip(g, x, y, vals, c, h, s, frame = C.ink2) { vals.forEach((v, d) => { g.fillStyle = vcol(v, s); g.fillRect(x + d * c, y, c - (c > 4 ? 1 : 0), h); }); g.strokeStyle = frame; g.strokeRect(x - 0.5, y - 0.5, vals.length * c, h + 1); }
+
+/* ---- A, bottom to top as his figure */
+{
+  const g = setup("A", 580), colW = (W - 24) / 4, hx = (k) => 12 + k * colW + colW / 2, cs = 13, c12 = 8;
+  box(g, W / 2 - 80, 540, 160, 26, "x̃  [L, 48]");
+  g.strokeStyle = C.ink3; g.beginPath(); g.moveTo(W / 2, 540); g.lineTo(W / 2, 528); g.moveTo(hx(0), 528); g.lineTo(hx(3), 528); g.stroke();
+  const matTop = 400, zy = 300;
+  t(g, `each head's zᵢ for the query "${toks[QI]}", 12 numbers`, 12, zy - 14, { f: smF, c: C.ink2 });
+  run.heads.forEach((hd, k) => {
+    arrow(g, hx(k), 528, hx(k), matTop + L * cs + 4);
+    t(g, `head ${k + 1}`, hx(k), matTop - 28, { f: capF, c: C.ink1, a: "center" });
+    t(g, `${M.HABIT[k].what} ${M.HABIT[k].share.toFixed(2)}`, hx(k), matTop - 13, { f: smF, a: "center" });
+    mini(g, hd.alpha, hx(k) - (L * cs) / 2, matTop, cs, N, QI, C.dims[k]);
+    arrow(g, hx(k) - 50, matTop - 6, hx(k) - 50, zy + 22);
+    strip(g, hx(k) - 6 * c12, zy, hd.z[QI], c12, 16, zmax, C.dims[k]);
+  });
+  /* the concatenation: four segments of 12, in head order */
+  const cc = 5, cw = 48 * cc, cx0 = W / 2 - cw / 2, cy = 200;
+  run.heads.forEach((hd, k) => { strip(g, cx0 + k * 12 * cc, cy, hd.z[QI], cc, 18, zmax, C.dims[k]); arrow(g, hx(k), zy - 4, cx0 + k * 12 * cc + 6 * cc, cy + 24); });
+  t(g, "concatenate  [4 × 12] = 48", cx0 - 10, cy + 9, { f: smF, c: C.ink1, a: "right" });
+  /* W_O and the output */
+  arrow(g, W / 2, cy - 4, W / 2, cy - 30);
+  t(g, "× W_Oᵀ + b", W / 2 + 12, cy - 17, { f: smF, c: C.ink2 });
+  strip(g, cx0, cy - 56, run.out[QI], cc, 18, omax, C.ink1);
+  t(g, `the attention output for "${toks[QI]}", 48`, cx0 - 10, cy - 47, { f: smF, c: C.ink1, a: "right" });
+  arrow(g, W / 2, cy - 60, W / 2, 40);
+  box(g, W / 2 - 80, 12, 160, 26, "Feed-forward", true);
+}
+
+/* ---- B, the concatenation as a table */
+{
+  const g = setup("B", 470), cs = 7, colW = (W - 24) / 4, hx = (k) => 12 + k * colW + colW / 2;
+  run.heads.forEach((hd, k) => { t(g, `head ${k + 1}`, hx(k), 16, { f: capF, c: C.ink1, a: "center" }); mini(g, hd.alpha, hx(k) - (L * cs) / 2, 30, cs, N, QI, C.dims[k]); });
+  const top = 130, rh = 24, lx = 12, tx = 90, c = 5.2, gap = 6, ox = tx + 4 * (12 * c + gap) + 70;
+  t(g, "concatenate  [L, 4 × 12]", tx, top - 16, { f: capF, c: C.ink1 }); t(g, "× W_Oᵀ + b  →  [L, 48]", ox, top - 16, { f: capF, c: C.ink1 });
+  for (let i = 0; i < L; i++) {
+    const y = top + i * rh;
+    t(g, toks[i], lx, y + 9.5, { c: i === QI ? C.a : C.b });
+    run.heads.forEach((hd, k) => { const x = tx + k * (12 * c + gap); if (i < N) strip(g, x, y, hd.z[i], c, 19, zmax, C.dims[k]); else { g.strokeStyle = C.dims[k]; g.strokeRect(x - 0.5, y - 0.5, 12 * c, 20); } });
+    if (i < N) { arrow(g, ox - 60, y + 9.5, ox - 6, y + 9.5); strip(g, ox, y, run.out[i], 5, 19, omax, i === QI ? C.a : C.ink2); }
+    else { g.strokeStyle = C.ink3; g.strokeRect(ox - 0.5, y - 0.5, 240, 20); }
+  }
+  t(g, "rows fill a press at a time, as on the other steps", 12, top + L * rh + 18, { f: smF, c: C.ink3 });
+}
+</script>
+</body>
+</html>

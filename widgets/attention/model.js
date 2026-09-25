@@ -73,7 +73,8 @@ function softmax(row, keep) {
 }
 
 /**
- * Block 1's attention on `toks`. Returns per head: score (q·k / √d_k, the
+ * Block 1's attention on `toks`. Returns the embedding X, the full values, the
+ * heads' outputs concatenated and W_O's output, and per head: score (q·k / √d_k, the
  * numbers the softmax takes), scoreRaw (q·k), alpha (scaled), alphaRaw (no
  * division), v, z, each row over every position of `toks`.
  * `mask` gives [PAD] keys no weight (attention_mask); without it they are
@@ -97,7 +98,10 @@ export function attend(toks, { mask = true } = {}) {
     const z = alpha.map((a) => Array.from({ length: DK }, (_, d) => a.reduce((s, w, j) => s + w * v[j][d], 0)));
     heads.push({ score, scoreRaw: raw, alpha, alphaRaw, v, z });
   }
-  return { tokens: toks, heads, X: X.map((x) => Array.from(x)), Vfull: V.map((v) => Array.from(v)) };
+  /* the heads side by side, [L, 4 × 12], then W_O: the attention sublayer's output, [L, 48] */
+  const concat = toks.map((_, i) => heads.flatMap((hd) => hd.z[i]));
+  const out = concat.map((c) => Array.from(linear(c, WEIGHTS.Wo, WEIGHTS.bo)));
+  return { tokens: toks, heads, X: X.map((x) => Array.from(x)), Vfull: V.map((v) => Array.from(v)), concat, out };
 }
 
 /** everything the four pages draw for one sentence */
