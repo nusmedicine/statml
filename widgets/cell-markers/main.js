@@ -1,4 +1,4 @@
-/* cell-markers — slot 81, "Single-Cell RNA-seq: Clusters and Markers". DRAFT.
+/* cell-markers — slot 81, "Single-Cell RNA-seq: Clustering and Differential Expression". DRAFT.
  *
  * REORGANISED 2026-09-25 into the notebook's order, on his word ("summarize
  * what we covered in the notebook … how can we organize the widget so that
@@ -984,14 +984,16 @@ function drawComposition(ctx, colors, w, params, state) {
 
 defineWidget({
   slug: "cell-markers",
-  title: "Single-Cell RNA-seq: Clusters and Markers",
+  title: "Single-Cell RNA-seq: Clustering and Differential Expression",
+  /* S2 of four, his pick with the title (2026-09-25): the reason cells are
+     not the replicate, in place of a five-line tour of every analysis; the
+     resolution, the pct.1/pct.2 point and the proportions are left to the
+     figure. The title was "Clusters and Markers"; it now pairs with widget
+     78's "Bulk RNA-seq: Differential Expression". */
   subtitle:
-    "Cells are clustered by modularity in a graph of shared nearest neighbours and annotated by the "
-    + "canonical markers they express; the resolution sets how many clusters are found. Between clusters, "
-    + "marker genes are ranked by a Wilcoxon test over cells, and a gene detected in most cells of both "
-    + "clusters can still be significant. Between conditions within a cell type, the replicates are the "
-    + "samples: each sample's cells are summed into a pseudobulk profile and tested as bulk RNA-seq, as are "
-    + "the cell-type proportions.",
+    "Cells are clustered in a graph of shared nearest neighbours and annotated by canonical markers. "
+    + "Between conditions, cells from one sample are not independent replicates; summing them into one "
+    + "pseudobulk profile per sample and testing across samples controls the false-positive rate.",
   layout: "side",
   status: "draft",
   height: (params) => (params.page === "annotation" || !HEIGHTS[params.page] ? clustersHeight(params) : HEIGHTS[params.page]),

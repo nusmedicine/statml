@@ -1201,7 +1201,7 @@
     },
     {
       "slug": "cell-markers",
-      "title": "Single-Cell RNA-seq: Clusters and Markers",
+      "title": "Single-Cell RNA-seq: Clustering and Differential Expression",
       "blurb": "Cells are clustered in a graph and annotated by markers; between conditions, the sample, not the cell, is the replicate.",
       "course": "PHM5003",
       "topics": [
