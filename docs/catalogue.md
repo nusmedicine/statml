@@ -18696,7 +18696,7 @@ by canonical markers, and calls `FindMarkers` twice: cluster 5 against 7, and
 | 78 | `deseq2` | Differential Expression | 01-2 cells 1 (NB, α, the four steps), 22 (size factors, MLE, MAP, the trend, the GLM and design matrix, `W = β/SE`), 24–25 (`vst`), 35–36 (`plotDispEsts`), 38 (`summary`: independent filtering), 39–45 (MA plot, `lfcShrink`) | a gene's own dispersion from three replicates is an estimate worth using; the log2 fold change is a ratio of means; log is a variance stabiliser | **holds**: at 3 vs 3 the realised FDR at padj < 0.1 is 40% with gene-wise dispersions, 20% shrunk, 8% with the truth (4,000 genes, 10% DE); 11% of low-count genes' own estimates sit at the floor; LFC shrinkage takes 139 null low-count genes at \|LFC\| > 1 to 0 and 274 true ones to 194; the SD across replicates at a mean of 1–5 is 1.09 under log2(x + 1) and 0.33 under the vst, 0.30 everywhere above; the lesson's own table: lfcSE 1.26 at baseMean < 1, 0.22 above 1,000, and 96% of the significant genes at baseMean 1–10 carry \|LFC\| > 1 against 52% above 1,000 | proposed, **second; the heaviest** |
 | 79 | `cell-qc` | Single-Cell QC | 02-2 cells 16–26 | the three thresholds are universal numbers; a low count is a dead cell and a high one a doublet | **holds, on the lesson's own cells**: the script reproduces 40,564 → 31,014 exactly; mt% < 10 removes 9,351 of HB17 background's 11,197 cells (median 14.8%) and 0 / 1 / 27 of the other three; nFeature and nCount remove 1,308 and 1,312 there, 1,199 of them the same cells, and nothing elsewhere. **The CYP3A4 line that stood here was struck 2026-09-23** — it is detected in 91% of the cells removed AND 89% of the cells kept, so the rule removes a sample, not a cell type; § Slot 79 has what replaced it | **SHIPPED 2026-09-24** |
 | 80 | `integration` | Single-Cell Integration | 02-3 cells 1, 9 (the five methods), 13–16; 02-2 cell 53 | integration removes the batch and leaves the biology; a type present in one batch has a partner in the other | **holds**: with every type in both batches MNN pairs 100% within type and Harmony mixes to 0.51 with the unique type 0.2 SD from its own; with a type in one batch only it has 0 MNN pairs and is moved by its neighbours' batch vector (8.6 → 6.9 SD from the nearest shared type), while Harmony at θ = 2 pulls it to 3.6 and 98% of its cells read as that type | **SHIPPED 2026-09-24** — the control is the batch key, not the method; § Slot 80 |
-| 81 | `cell-markers` | Clusters and Markers | 02-4 cells 5–6 (`FindNeighbors`, `FindClusters`), 10–15 (markers, `FeaturePlot`, `DoHeatmap`), 16–17 (`FindMarkers`'s columns), 18–22 (within a type across conditions) | a marker is a gene expressed in the cluster; a p-value ranks markers; cells are replicates | **holds**: a gene on in 92% of the cluster and 82% of the rest and a gene on in 69% against 5% both test at p < 1e-31 over 1,200 cells; with two patients per arm and no condition effect a Wilcoxon over cells rejects 75% of null genes (5% with no patient effect), a t-test over patients 3% | **measured 2026-09-24** — one claim struck, two by a different mechanism; § Slot 81 |
+| 81 | `cell-markers` | Single-Cell RNA-seq: Clustering and Differential Expression (planned as Clusters and Markers) | 02-4 cells 5–6 (`FindNeighbors`, `FindClusters`), 10–15 (markers, `FeaturePlot`, `DoHeatmap`), 16–17 (`FindMarkers`'s columns), 18–22 (within a type across conditions) | a marker is a gene expressed in the cluster; a p-value ranks markers; cells are replicates | **holds**: a gene on in 92% of the cluster and 82% of the rest and a gene on in 69% against 5% both test at p < 1e-31 over 1,200 cells; with two patients per arm and no condition effect a Wilcoxon over cells rejects 75% of null genes (5% with no patient effect), a t-test over patients 3% | **SHIPPED 2026-09-25** — measured 2026-09-24 (one claim struck, two by a different mechanism); five analyses; § Slot 81 |
 | 82 | `cell-clusters` | Graph Clustering | 02-4 cell 5 (kNN → SNN → Louvain, the two figures) | the clusters are the cell types; the count is a finding | **holds**: 600 cells, three types and a continuum, k = 20, SNN pruned at 1/15: 2 clusters at resolution 0.05, 3 at 0.1–0.3, 4 at 0.5 (ARI 0.95), 5 at 0.8–1.2, 6 at 2.0 with the continuum cut into pieces | proposed, **the one to cut, or 81's first page** |
 
 Six is the honest count for the three asks because ask 3 is three lessons and
@@ -20261,7 +20261,7 @@ three presses, Tissue at seed 7; three driven at 450 of 900 ms, one of them
 after a completed press), identical across three filtered runs at DPR 1.25
 with the tab visible throughout, and MATCH on a fourth.
 
-### Slot 81 · `cell-markers` — Clusters and Markers
+### Slot 81 · `cell-markers` — Clustering and Differential Expression (planned as Clusters and Markers)
 
 **Host.** 02-4 cells 5–6 (the SNN graph and Louvain, resolution 0.3), 10–15
 (the marker list and its feature plots), 16–17 (`FindMarkers`: Wilcoxon,
@@ -20426,6 +20426,73 @@ cell strip under the volcanos wore the batch blue that the volcanos use for
 "called and truly changed" (now neutral ink), and the composition table
 marked p < 0.05 in --c-extreme, the tumour cells' red on the same page (now
 bold ink).
+
+#### BUILT, REVIEWED AND SHIPPED 2026-09-25
+
+Drafted 2026-09-24 as three pages (Clusters · Markers · Conditions), then
+reorganised the next morning into the notebook's own order, and reviewed
+through some thirty rounds in one day. It shipped as five **analyses**, the
+control renamed from Page on his word and the names taken from the field
+(Seurat, OSCA): **Clustering** (FindNeighbors and FindClusters stepped
+through on 30 hepatocytes and 15 tumour cells: kNN graph, SNN graph with
+Jaccard weights and the 1/15 prune, modularity optimisation, community
+aggregation, a second pass; six tweened presses), **Annotation** (clusters
+beside the canonical-marker types, a dot plot, hover linking the two maps
+and the row), **Marker genes** (FindMarkers between a comparator and a
+baseline, with All other cells inside the baseline map, the table beside
+pct.1 against pct.2 for every gene), **Differential expression** (one cell
+type between tumour and liver: the design tree of patients, samples and
+cells; a cell-level column and a pseudobulk column, each a volcano, a top 8
+and a gene view; a Venn of both tests' significant genes against the
+simulated truth; each cell type with its own 20 DE genes), and
+**Differential abundance**.
+
+What the rounds settled, in the order they cost time:
+
+- **The notebook does no pseudobulk.** Asked, and confirmed from 02-4; he
+  was given R pseudobulk code for the lesson. The widget's pseudobulk runs
+  widget 78's DESeq2 engine on summed counts.
+- **Sample and patient variation are the two sliders, named as SD**
+  ("isn't it variance?"): the cell-level test's false positives rise with
+  the sample SD (8 at 0.4, 28 at 0.65 over 20 seeds); pseudobulk holds at
+  about 0.4 but has little power at 2 against 2. A third patient barely
+  helps it; five do. Measured in `_lab/cell-markers-methods-measure.mjs`
+  and `-patients-measure.mjs`.
+- **Metrics in the field's register:** true positives (of 20, sensitivity)
+  and false positives (of the test's significant genes, the false
+  discovery proportion), with FWER (Bonferroni) for FindMarkers and FDR
+  (BH) for DESeq2.
+- **Layout by columns, not captions:** one column per test under a header
+  band; the dotted frames matched to the tree were struck as jarring.
+- **The tumour cluster keeps its label** (DLK1 and GPC3 are its markers;
+  the notebook's `ct_markers` omits DLK1 — told to him).
+- **Title and subtitle:** "Single-Cell RNA-seq: Clustering and Differential
+  Expression", pairing with 78's "Bulk RNA-seq: Differential Expression";
+  subtitle S2, the reason cells from one sample are not replicates.
+
+Three core changes rode with it, each followed by a full suite run:
+`7bf14df` (then partly reversed), `21a126c` (a link leaves out the first
+option standing in for an absent default — `within=4` had appeared on every
+page), and `26766b5` (**Reset on every widget keeps the page, marked
+`role: "page"` in 38 widgets, and returns the controls on screen to the
+values the link opened with**; it also rebuilds the control block, which
+closed the old gap where gated controls stayed after Reset).
+
+**Shipped** with 35 states: twenty settled (six Clustering stages and
+resolutions, three Annotation, two Marker genes, seven Differential
+expression including a dark one, two Differential abundance), five driven
+(each Clustering press at 450 of 900 ms, and the fifth), two interrupted (a
+resolution change and a page switch mid-press, both settling), and eight
+hit-driven (comparator, baseline, the baseline's background, the map, a top-8
+row, a volcano point, and a DE and a non-DE gene in the Venn). Identical
+across three filtered runs at DPR 1.25, and MATCH on a fourth. Two hits
+first chosen at a target's edge missed in the harness and were moved to
+points 3 px inside. Marking it shipped took the Draft banner off, and the
+Marker genes page (its rail is the tallest) then fit the harness's 1,200 px
+frame with **7 px to spare**: no scrollbar, a 547 px canvas where it had
+been 532, and five px-only DIFFERs with the text unchanged. Those five were
+re-recorded over three more identical runs. A change that adds a line to
+that page's rail brings the scrollbar back and moves them again.
 
 ### What in 08 is not a widget
 

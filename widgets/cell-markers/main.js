@@ -1,4 +1,5 @@
-/* cell-markers — slot 81, "Single-Cell RNA-seq: Clustering and Differential Expression". DRAFT.
+/* cell-markers — slot 81, "Single-Cell RNA-seq: Clustering and Differential Expression".
+ * SHIPPED 2026-09-25, with 35 fingerprint states.
  *
  * REORGANISED 2026-09-25 into the notebook's order, on his word ("summarize
  * what we covered in the notebook … how can we organize the widget so that
@@ -995,7 +996,7 @@ defineWidget({
     + "Between conditions, cells from one sample are not independent replicates; summing them into one "
     + "pseudobulk profile per sample and testing across samples controls the false-positive rate.",
   layout: "side",
-  status: "draft",
+  status: "shipped",
   height: (params) => (params.page === "annotation" || !HEIGHTS[params.page] ? clustersHeight(params) : HEIGHTS[params.page]),
 
   /* ORDER MATTERS: an option list that follows other parameters reads them

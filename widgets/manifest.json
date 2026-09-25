@@ -1208,11 +1208,12 @@
         "single-cell RNA-seq",
         "graph clustering",
         "marker genes",
+        "differential expression",
         "pseudobulk",
         "pseudoreplication"
       ],
       "arc": 81,
-      "status": "draft"
+      "status": "shipped"
     }
   ]
 }

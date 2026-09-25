@@ -10150,11 +10150,430 @@
       "tx": "04bfd847"
     },
     {
-      "$note": "cell-markers · DRAFT placeholder, until the design is agreed",
+      "$note": "cell-markers · Clustering, the 45 cells before any graph",
       "slug": "cell-markers",
       "state": "?theme=light&shown=0",
-      "px": "0",
-      "tx": "0"
+      "px": "858a79fd",
+      "tx": "b4f89dde"
+    },
+    {
+      "$note": "cell-markers · Clustering, the kNN graph at k = 15",
+      "slug": "cell-markers",
+      "state": "?theme=light&shown=1",
+      "px": "e09162c5",
+      "tx": "ffbdca03"
+    },
+    {
+      "$note": "cell-markers · Clustering, the SNN graph: Jaccard weights, pruned edges in red",
+      "slug": "cell-markers",
+      "state": "?theme=light&shown=2",
+      "px": "1c24418c",
+      "tx": "ad40aba5"
+    },
+    {
+      "$note": "cell-markers · Clustering, community aggregation: communities as nodes with self-loops",
+      "slug": "cell-markers",
+      "state": "?theme=light&shown=4",
+      "px": "6c7f1434",
+      "tx": "56651b4e"
+    },
+    {
+      "$note": "cell-markers · Clustering, after both passes at resolution 1",
+      "slug": "cell-markers",
+      "state": "?theme=light&shown=5",
+      "px": "e274ab55",
+      "tx": "22df3aa6"
+    },
+    {
+      "$note": "cell-markers · Clustering, after both passes at resolution 2",
+      "slug": "cell-markers",
+      "state": "?theme=light&graphRes=2&shown=5",
+      "px": "2a94231a",
+      "tx": "7a226dbe"
+    },
+    {
+      "$note": "cell-markers · Annotation at resolution 0.3: clusters beside the cell types, and the dot plot",
+      "slug": "cell-markers",
+      "state": "?theme=light&page=annotation&shown=0",
+      "px": "47ad2403",
+      "tx": "0b04b6e4"
+    },
+    {
+      "$note": "cell-markers · Annotation at resolution 1.2: split clusters shaded",
+      "slug": "cell-markers",
+      "state": "?theme=light&page=annotation&res=1.2&shown=0",
+      "px": "389a006e",
+      "tx": "edcc3af8"
+    },
+    {
+      "$note": "cell-markers · Annotation at seed 7: another draw",
+      "slug": "cell-markers",
+      "state": "?theme=light&page=annotation&seed=7&shown=0",
+      "px": "06a9e142",
+      "tx": "bafcb665"
+    },
+    {
+      "$note": "cell-markers · Marker genes, hepatocytes against all other cells: the table and pct.1 against pct.2",
+      "slug": "cell-markers",
+      "state": "?theme=light&page=markers&shown=0",
+      "px": "5ada5257",
+      "tx": "2a239bc6"
+    },
+    {
+      "$note": "cell-markers · Marker genes, Kupffer cells against hepatocytes",
+      "slug": "cell-markers",
+      "state": "?theme=light&page=markers&comparator=4&baseline=0&shown=0",
+      "px": "e4658d5a",
+      "tx": "b437eb16"
+    },
+    {
+      "$note": "cell-markers · Differential expression at the defaults: no change, patient SD 0.3",
+      "slug": "cell-markers",
+      "state": "?theme=light&page=differential-expression&shown=0",
+      "px": "ba58dd0b",
+      "tx": "4302179c"
+    },
+    {
+      "$note": "cell-markers · Differential expression, change 2, no sample variation: both tests find the DE genes",
+      "slug": "cell-markers",
+      "state": "?theme=light&page=differential-expression&change=2&shown=0",
+      "px": "e7a64b19",
+      "tx": "d135d50c"
+    },
+    {
+      "$note": "cell-markers · Differential expression, change 2, sample SD 0.65: the cell-level test's false positives",
+      "slug": "cell-markers",
+      "state": "?theme=light&page=differential-expression&change=2&sampleSd=0.65&shown=0",
+      "px": "f958af9e",
+      "tx": "c2d165a5"
+    },
+    {
+      "$note": "cell-markers · Differential expression, change 2, no sample or patient variation",
+      "slug": "cell-markers",
+      "state": "?theme=light&page=differential-expression&change=2&patientSd=0&shown=0",
+      "px": "db568970",
+      "tx": "f8de44ae"
+    },
+    {
+      "$note": "cell-markers · Differential expression within immune cells",
+      "slug": "cell-markers",
+      "state": "?theme=light&page=differential-expression&within=3&change=2&shown=0",
+      "px": "c93c23a1",
+      "tx": "49e0820c"
+    },
+    {
+      "$note": "cell-markers · Differential expression, a false positive of the cell-level test selected",
+      "slug": "cell-markers",
+      "state": "?theme=light&page=differential-expression&change=2&sampleSd=0.4&gene=Kup18&shown=0",
+      "px": "ca2b2e8e",
+      "tx": "07aceca7"
+    },
+    {
+      "$note": "cell-markers · Differential expression, dark theme",
+      "slug": "cell-markers",
+      "state": "?theme=dark&page=differential-expression&change=2&sampleSd=0.4&shown=0",
+      "px": "7c898273",
+      "tx": "07aceca7"
+    },
+    {
+      "$note": "cell-markers · Differential abundance at sample SD 0.3",
+      "slug": "cell-markers",
+      "state": "?theme=light&page=differential-abundance&shown=0",
+      "px": "9806c46d",
+      "tx": "4d1bf3e5"
+    },
+    {
+      "$note": "cell-markers · Differential abundance at sample SD 0.6",
+      "slug": "cell-markers",
+      "state": "?theme=light&page=differential-abundance&compSd=0.6&shown=0",
+      "px": "72f43b30",
+      "tx": "3c840afb"
+    },
+    {
+      "$note": "cell-markers · DRIVEN mid-press: the kNN edges fading in at 450 of 900 ms",
+      "slug": "cell-markers",
+      "state": "?theme=light",
+      "drive": {
+        "click": "step",
+        "frames": 14,
+        "dt": 32
+      },
+      "px": "7883a2ea",
+      "tx": "ffbdca03"
+    },
+    {
+      "$note": "cell-markers · DRIVEN after 1 press, mid-press: kNN edges becoming SNN weights, pruned pairs appearing",
+      "slug": "cell-markers",
+      "state": "?theme=light",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 30
+          }
+        ],
+        "click": "step",
+        "frames": 14,
+        "dt": 32
+      },
+      "px": "43c635ce",
+      "tx": "ad40aba5"
+    },
+    {
+      "$note": "cell-markers · DRIVEN after 2 presses, mid-press: cells moving into their first-pass communities",
+      "slug": "cell-markers",
+      "state": "?theme=light",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 30
+          },
+          {
+            "click": "step",
+            "frames": 30
+          }
+        ],
+        "click": "step",
+        "frames": 14,
+        "dt": 32
+      },
+      "px": "a1ac11e0",
+      "tx": "56651b4e"
+    },
+    {
+      "$note": "cell-markers · DRIVEN after 3 presses, mid-press: communities gathering into nodes",
+      "slug": "cell-markers",
+      "state": "?theme=light",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 30
+          },
+          {
+            "click": "step",
+            "frames": 30
+          },
+          {
+            "click": "step",
+            "frames": 30
+          }
+        ],
+        "click": "step",
+        "frames": 14,
+        "dt": 32
+      },
+      "px": "89b79f7d",
+      "tx": "56651b4e"
+    },
+    {
+      "$note": "cell-markers · DRIVEN after 5 presses: every stage shown, the button reads Step",
+      "slug": "cell-markers",
+      "state": "?theme=light",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 30
+          },
+          {
+            "click": "step",
+            "frames": 30
+          },
+          {
+            "click": "step",
+            "frames": 30
+          },
+          {
+            "click": "step",
+            "frames": 30
+          }
+        ],
+        "click": "step",
+        "frames": 30,
+        "dt": 32
+      },
+      "px": "e274ab55",
+      "tx": "22df3aa6"
+    },
+    {
+      "$note": "cell-markers · INTERRUPTED: resolution changed to 2 mid-press on the first pass; the press settles",
+      "slug": "cell-markers",
+      "state": "?theme=light",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 30
+          },
+          {
+            "click": "step",
+            "frames": 30
+          },
+          {
+            "click": "step",
+            "frames": 10
+          }
+        ],
+        "set": {
+          "graphRes": "2"
+        },
+        "frames": 4,
+        "dt": 32
+      },
+      "px": "2d2abf21",
+      "tx": "991235f9"
+    },
+    {
+      "$note": "cell-markers · INTERRUPTED: Annotation opened mid-press, then Clustering again; the press settled",
+      "slug": "cell-markers",
+      "state": "?theme=light",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 30
+          },
+          {
+            "click": "step",
+            "frames": 10
+          },
+          {
+            "set": {
+              "page": "annotation"
+            },
+            "frames": 2
+          }
+        ],
+        "set": {
+          "page": "clustering"
+        },
+        "frames": 4,
+        "dt": 32
+      },
+      "px": "1c24418c",
+      "tx": "ad40aba5"
+    },
+    {
+      "$note": "cell-markers · HIT: the Kupffer disc on the comparator map",
+      "slug": "cell-markers",
+      "state": "?theme=light&page=markers",
+      "drive": {
+        "hit": [
+          100,
+          120
+        ],
+        "frames": 2,
+        "dt": 32
+      },
+      "px": "627db455",
+      "tx": "73e337b5"
+    },
+    {
+      "$note": "cell-markers · HIT: the Kupffer disc on the baseline map",
+      "slug": "cell-markers",
+      "state": "?theme=light&page=markers",
+      "drive": {
+        "hit": [
+          370,
+          120
+        ],
+        "frames": 2,
+        "dt": 32
+      },
+      "px": "ed12df5c",
+      "tx": "d2a33037"
+    },
+    {
+      "$note": "cell-markers · HIT: the baseline map's background, back to all other cells",
+      "slug": "cell-markers",
+      "state": "?theme=light&page=markers&baseline=4",
+      "drive": {
+        "hit": [
+          420,
+          60
+        ],
+        "frames": 2,
+        "dt": 32
+      },
+      "px": "5ada5257",
+      "tx": "2a239bc6"
+    },
+    {
+      "$note": "cell-markers · HIT: the endothelial cluster on the map",
+      "slug": "cell-markers",
+      "state": "?theme=light&page=differential-expression",
+      "drive": {
+        "hit": [
+          41,
+          192
+        ],
+        "frames": 2,
+        "dt": 32
+      },
+      "px": "ca810997",
+      "tx": "4302179c"
+    },
+    {
+      "$note": "cell-markers · HIT: a row of the cell-level top 8",
+      "slug": "cell-markers",
+      "state": "?theme=light&page=differential-expression",
+      "drive": {
+        "hit": [
+          42,
+          662
+        ],
+        "frames": 2,
+        "dt": 32
+      },
+      "px": "3cb0b402",
+      "tx": "4302179c"
+    },
+    {
+      "$note": "cell-markers · HIT: a point on the cell-level volcano",
+      "slug": "cell-markers",
+      "state": "?theme=light&page=differential-expression&change=2&sampleSd=0.4",
+      "drive": {
+        "hit": [
+          174,
+          470
+        ],
+        "frames": 2,
+        "dt": 32
+      },
+      "px": "c6752700",
+      "tx": "07aceca7"
+    },
+    {
+      "$note": "cell-markers · HIT: a DE gene in the Venn",
+      "slug": "cell-markers",
+      "state": "?theme=light&page=differential-expression&change=2&sampleSd=0.4",
+      "drive": {
+        "hit": [
+          178,
+          1230
+        ],
+        "frames": 2,
+        "dt": 32
+      },
+      "px": "63d4f365",
+      "tx": "07aceca7"
+    },
+    {
+      "$note": "cell-markers · HIT: a non-DE gene significant at the cell level, in the Venn",
+      "slug": "cell-markers",
+      "state": "?theme=light&page=differential-expression&change=2&sampleSd=0.4",
+      "drive": {
+        "hit": [
+          122,
+          1354
+        ],
+        "frames": 2,
+        "dt": 32
+      },
+      "px": "6b05caec",
+      "tx": "07aceca7"
     }
-]
+  ]
 }
