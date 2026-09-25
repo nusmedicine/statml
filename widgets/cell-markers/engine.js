@@ -243,6 +243,38 @@ export function louvain(adj0, gamma, rng) {
   const ids = [...new Set(member)], map = new Map(ids.map((c, i) => [c, i]));
   return member.map((c) => map.get(c));
 }
+/** Louvain's two stages kept for a figure (the widget's Graph page, as the
+    lesson's figure from Blondel et al. 2008 draws them): the first pass's
+    local moving on the cells, the aggregated graph of its communities
+    (self-loops carry the within-community weight), and the second pass on
+    that graph. The moves are `louvain`'s; only two levels are run. */
+export function louvainTwoPasses(adj, gamma, rng) {
+  const k0 = adj.map((m) => [...m.values()].reduce((s, w) => s + w, 0)), m2 = k0.reduce((a, b) => a + b, 0);
+  const local = (A, kk) => {
+    const N = A.length, comm = [...Array(N).keys()], tot = kk.slice(), order = [...Array(N).keys()];
+    for (let pass = 0; pass < 50; pass += 1) {
+      for (let t = N - 1; t > 0; t -= 1) { const s = Math.floor(rng.next() * (t + 1)); [order[t], order[s]] = [order[s], order[t]]; }
+      let moved = false;
+      for (const i of order) {
+        const ci = comm[i]; tot[ci] -= kk[i];
+        const wTo = new Map(); for (const [j, w] of A[i]) if (j !== i) wTo.set(comm[j], (wTo.get(comm[j]) ?? 0) + w);
+        let best = ci, bg = (wTo.get(ci) ?? 0) - (gamma * kk[i] * tot[ci]) / m2;
+        for (const [c, w] of wTo) { const g = w - (gamma * kk[i] * tot[c]) / m2; if (g > bg + 1e-12) { bg = g; best = c; } }
+        tot[best] += kk[i]; if (best !== ci) { comm[i] = best; moved = true; }
+      }
+      if (!moved) break;
+    }
+    const ids = [...new Set(comm)], map = new Map(ids.map((c, i) => [c, i]));
+    return comm.map((c) => map.get(c));
+  };
+  const first = local(adj, k0), n1 = new Set(first).size;
+  const agg = Array.from({ length: n1 }, () => new Map());
+  adj.forEach((m, i) => { for (const [j, w] of m) { const a = first[i], b = first[j]; agg[a].set(b, (agg[a].get(b) ?? 0) + w); } });
+  const second = local(agg, agg.map((m) => [...m.values()].reduce((s, w) => s + w, 0)));
+  const final = first.map((c) => second[c]);
+  return { first, agg, final, q1: modularity(adj, first, gamma), q2: modularity(adj, final, gamma) };
+}
+
 /** FindClusters: the best modularity over `starts` random starts. */
 export function findClusters(adj, gamma, rng, starts = 10) {
   let best = null;

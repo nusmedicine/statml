@@ -44,10 +44,11 @@ import { defineWidget, fmt } from "../core/index.js";
 import { makeRng } from "../core/rng.js";
 import { lgamma } from "../core/stats.js";
 import { analyse } from "../deseq2/engine.js";
-import { simulate, normalise, pcaScaled, knn, snn, findClusters, findMarkers, geneKind, geneName, conditionGenesOf, TYPES, SAMPLES, G, G_MARK } from "./engine.js";
+import { simulate, normalise, pcaScaled, knn, snn, findClusters, louvainTwoPasses, findMarkers, geneKind, geneName, conditionGenesOf, TYPES, SAMPLES, G, G_MARK } from "./engine.js";
 import { umapSgd } from "./umap.js";
 
 const PAGES = [
+  { value: "graph", label: "Graph" },
   { value: "clusters", label: "Clusters" },
   { value: "two-clusters", label: "Two clusters" },
   { value: "tumour-liver", label: "Tumour vs liver" },
@@ -55,7 +56,7 @@ const PAGES = [
 ];
 const ON = (page) => ({ param: "page", equals: page });
 const CELL_PAGES = { param: "page", oneOf: ["clusters", "two-clusters", "tumour-liver"] };
-const HEIGHTS = { "two-clusters": 820, "tumour-liver": 1544, composition: 380 };
+const HEIGHTS = { graph: 470, "two-clusters": 820, "tumour-liver": 1544, composition: 380 };
 const RESOLUTIONS = ["0.1", "0.3", "0.5", "0.8", "1.2", "2"];
 const SAMPLE_SD = ["0", "0.1", "0.2", "0.4", "0.65"];
 const PATIENT_SD = ["0", "0.3", "0.65"];
@@ -85,7 +86,7 @@ const LOG05 = Math.log10(0.05);
 const pFmt = (lp) => (lp < -300 ? "0" : lp > -2 ? (10 ** lp).toFixed(3) : `1e${Math.round(lp)}`);
 
 /* ------------------------------------------------------------ the caches */
-const caches = { stage: new Map(), embed: new Map(), clusters: new Map(), markers: new Map(), cond: new Map(), comp: new Map() };
+const caches = { graph: new Map(), gstages: new Map(), stage: new Map(), embed: new Map(), clusters: new Map(), markers: new Map(), cond: new Map(), comp: new Map() };
 const remember = (map, key, make) => { if (!map.has(key)) { if (map.size > 8) map.delete(map.keys().next().value); map.set(key, make()); } return map.get(key); };
 const derived = (seed, salt) => (seed * 7919 + salt) % 2147483647;
 
@@ -111,9 +112,62 @@ function embedFor(seed) {
     const P = pcaScaled(Yi, 20, makeRng(derived(seed, 2)));
     const adj = snn(knn(P, 20));
     const { Y: U } = umapSgd(P, { nEpochs: 200, rng: makeRng(derived(seed, 3)) });
-    return { adj, U, types: cells.map((c) => c.type) };
+    return { adj, U, P, types: cells.map((c) => c.type) };
   });
 }
+/* THE GRAPH PAGE'S 45 CELLS (his pick A from `_lab/cell-markers-graph-mock`,
+   2026-09-25): 30 hepatocytes and 15 tumour cells, the two types that share
+   ten markers, so the kNN graph has links between them for the SNN prune to
+   remove. Measured in the mock: three distinct types (Kupffer, immune,
+   endothelial) gave no link between types at k = 10, nothing to prune and one
+   answer at every resolution. k = 15 for 45 cells (20 on the full data); the
+   neighbours are found in the page's own 20 principal components. Drawn by a
+   seeded force-directed layout of the kNN graph: on PC 1–2 each type was one
+   tight clump and its edges one solid mass. */
+/* resolution 1 opens the page: there, on seeds 1 and 3, the first pass
+   leaves 3 communities and the second merges them to 2, as the lesson's
+   figure does; at 1.2 the split hepatocytes stay split (measured
+   2026-09-25, seeds 1–3) */
+const GRAPH_K = 15, GRAPH_RES = ["0.5", "1", "1.5", "2"];
+function graphFor(seed) {
+  return remember(caches.graph, String(seed), () => {
+    const { cells } = stageFor(seed, "0", "0.3", "0"), { P } = embedFor(seed), rng = makeRng(derived(seed, 6)), pick = [];
+    [["hepatocyte", 30], ["tumour", 15]].forEach(([key, count]) => {
+      const ti = TYPES.findIndex((t) => t.key === key), idx = cells.map((c, i) => (c.type === ti ? i : -1)).filter((i) => i >= 0);
+      for (let n = 0; n < count; n += 1) { const j = Math.floor(rng.next() * idx.length); pick.push(idx.splice(j, 1)[0]); }
+    });
+    const Ps = pick.map((i) => P[i]), types = pick.map((i) => cells[i].type), nn = knn(Ps, GRAPH_K), n = Ps.length;
+    /* every pair sharing a neighbour, with its Jaccard, before the prune (snn's rule) */
+    const sets = nn.map((a, i) => new Set([i, ...a])), pairs = [];
+    for (let i = 0; i < n; i += 1) for (let j = i + 1; j < n; j += 1) {
+      let inter = 0; for (const v of sets[i]) if (sets[j].has(v)) inter += 1;
+      if (inter) pairs.push({ i, j, jac: inter / (sets[i].size + sets[j].size - inter) });
+    }
+    /* Fruchterman–Reingold on the kNN graph, from PC 1–2, seeded */
+    const lr = makeRng(derived(seed, 7));
+    let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity; Ps.forEach((q) => { x0 = Math.min(x0, q[0]); x1 = Math.max(x1, q[0]); y0 = Math.min(y0, q[1]); y1 = Math.max(y1, q[1]); });
+    const pos = Ps.map((q) => [(q[0] - x0) / (x1 - x0 || 1) + 0.05 * lr.normal(), (q[1] - y0) / (y1 - y0 || 1) + 0.05 * lr.normal()]);
+    const E = new Set(); nn.forEach((nb, i) => nb.forEach((j) => E.add(i < j ? `${i},${j}` : `${j},${i}`)));
+    const edges = [...E].map((e) => e.split(",").map(Number)), kk = Math.sqrt(1 / n);
+    for (let it = 0, T = 0.1; it < 400; it += 1, T *= 0.99) {
+      const d = pos.map(() => [0, 0]);
+      for (let i = 0; i < n; i += 1) for (let j = i + 1; j < n; j += 1) {
+        const dx = pos[i][0] - pos[j][0], dy = pos[i][1] - pos[j][1], r = Math.max(1e-3, Math.hypot(dx, dy)), f = (kk * kk) / r;
+        d[i][0] += (dx / r) * f; d[i][1] += (dy / r) * f; d[j][0] -= (dx / r) * f; d[j][1] -= (dy / r) * f;
+      }
+      for (const [i, j] of edges) {
+        const dx = pos[i][0] - pos[j][0], dy = pos[i][1] - pos[j][1], r = Math.max(1e-3, Math.hypot(dx, dy)), f = (r * r) / kk;
+        d[i][0] -= (dx / r) * f; d[i][1] -= (dy / r) * f; d[j][0] += (dx / r) * f; d[j][1] += (dy / r) * f;
+      }
+      pos.forEach((q, i) => { const m = Math.hypot(d[i][0], d[i][1]) || 1, st = Math.min(m, T); q[0] += (d[i][0] / m) * st; q[1] += (d[i][1] / m) * st; });
+    }
+    return { types, nn, pairs, adj: snn(nn), pos };
+  });
+}
+function graphStagesFor(seed, res) {
+  return remember(caches.gstages, `${seed}|${res}`, () => louvainTwoPasses(graphFor(seed).adj, Number(res), makeRng(derived(seed, 8))));
+}
+
 /** The clusters at a resolution, each named by the type most of its cells
     are, with its cells in each of the four samples. */
 function clustersFor(seed, res) {
@@ -412,6 +466,113 @@ function drawDiscMap(ctx, colors, state, M, { solid = -1, dashed = -1, ring = ()
     placed.push(box(at));
     ctx.fillText(text, at[0], at[1]);
   });
+  ctx.textAlign = "left";
+}
+
+/* the Graph page: six stages, one a press, tweened (his pick) */
+const GRAPH_STAGES = ["The cells", "k nearest neighbours", "Shared nearest neighbours", "Louvain, first pass", "Aggregation", "Louvain, second pass"];
+const GRAPH_TWEEN_MS = 900;
+const easeInOut = (t) => (t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2);
+function graphLayout(w) {
+  const gw = Math.min(470, Math.floor(w * 0.6));
+  return { G: { x: 8, y: 34, w: gw, h: 400 }, sideX: 8 + gw + 22 };
+}
+function hullOf(pts) {
+  if (pts.length < 3) return pts;
+  const p = [...pts].sort((a, b) => a[0] - b[0] || a[1] - b[1]), cr = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+  const lo = [], up = [];
+  for (const q of p) { while (lo.length >= 2 && cr(lo[lo.length - 2], lo[lo.length - 1], q) <= 0) lo.pop(); lo.push(q); }
+  for (const q of p.reverse()) { while (up.length >= 2 && cr(up[up.length - 2], up[up.length - 1], q) <= 0) up.pop(); up.push(q); }
+  return lo.slice(0, -1).concat(up.slice(0, -1));
+}
+function drawGraph(ctx, colors, w, params, state, anim) {
+  const Gd = state.graph, St = state.gstages, { G, sideX } = graphLayout(w);
+  const s = anim?.stage ?? 0, moving = Boolean(anim?.moving), e = moving ? easeInOut(anim.t) : 1;
+  /* a quantity per stage, eased from the last stage to this one while a press runs */
+  const at = (f) => (moving ? f(s - 1) + (f(s) - f(s - 1)) * e : f(s));
+  let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity; Gd.pos.forEach(([x, y]) => { x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); });
+  const home = Gd.pos.map(([x, y]) => [G.x + 22 + ((x - x0) / (x1 - x0 || 1)) * (G.w - 44), G.y + 22 + (1 - (y - y0) / (y1 - y0 || 1)) * (G.h - 44)]);
+  const k1 = new Set(St.first).size, kf = new Set(St.final).size;
+  const cent = [...Array(k1).keys()].map((c) => { const m = home.filter((_, i) => St.first[i] === c); return [m.reduce((a, q) => a + q[0], 0) / m.length, m.reduce((a, q) => a + q[1], 0) / m.length, m.length]; });
+  /* stage 4 gathers each cell into its community's node; every other stage leaves it home */
+  const posAt = (st, i) => (st === 4 ? cent[St.first[i]] : home[i]);
+  const P = home.map((_, i) => { const a = posAt(moving ? s - 1 : s, i), b = posAt(s, i); return [a[0] + (b[0] - a[0]) * e, a[1] + (b[1] - a[1]) * e]; });
+  heading(ctx, colors, `${s + 1} · ${GRAPH_STAGES[s]}`, G.x, 20);
+  ctx.strokeStyle = colors.grid; ctx.lineWidth = 1; ctx.strokeRect(G.x + 0.5, G.y + 0.5, G.w, G.h);
+  /* LINES LIGHT WHERE DENSE (his round): 675 kNN links and 540 SNN edges on
+     45 cells; opacity capped, SNN width and opacity by weight */
+  const aKnn = at((q) => (q === 1 ? 1 : 0));
+  if (aKnn > 0.01) {
+    ctx.strokeStyle = colors.ink3; ctx.lineWidth = 0.8;
+    Gd.nn.forEach((nb, i) => nb.forEach((j) => { ctx.globalAlpha = 0.2 * aKnn; ctx.beginPath(); ctx.moveTo(P[i][0], P[i][1]); ctx.lineTo(P[j][0], P[j][1]); ctx.stroke(); }));
+  }
+  const aSnn = at((q) => (q === 2 || q === 3 ? 1 : 0)), aCut = at((q) => (q === 2 ? 1 : 0));
+  if (aSnn > 0.01 || aCut > 0.01) Gd.pairs.forEach((q) => {
+    const kept = q.jac >= 1 / 15, a = kept ? aSnn : aCut;
+    if (a <= 0.01) return;
+    ctx.beginPath(); ctx.moveTo(P[q.i][0], P[q.i][1]); ctx.lineTo(P[q.j][0], P[q.j][1]);
+    if (kept) { ctx.strokeStyle = colors.ink2; ctx.globalAlpha = Math.min(0.35, 0.05 + q.jac * 0.45) * a; ctx.lineWidth = 0.4 + 2.2 * q.jac; ctx.setLineDash([]); }
+    else { ctx.strokeStyle = colors.extreme; ctx.globalAlpha = 0.22 * a; ctx.lineWidth = 0.8; ctx.setLineDash([3, 3]); }
+    ctx.stroke(); ctx.setLineDash([]);
+  });
+  ctx.globalAlpha = 1;
+  /* stage 4: the communities as nodes, the edges between them summed */
+  const aNode = at((q) => (q === 4 ? 1 : 0));
+  if (aNode > 0.01) {
+    ctx.globalAlpha = aNode;
+    St.agg.forEach((mm, a) => mm.forEach((wt, b) => {
+      if (b <= a) return;
+      ctx.strokeStyle = colors.ink2; ctx.lineWidth = 0.8 + Math.min(6, wt * 0.8); ctx.beginPath(); ctx.moveTo(cent[a][0], cent[a][1]); ctx.lineTo(cent[b][0], cent[b][1]); ctx.stroke();
+      const mx = (cent[a][0] + cent[b][0]) / 2, my = (cent[a][1] + cent[b][1]) / 2;
+      ctx.font = `${colors.fsXs} ${colors.mono}`; const tw = ctx.measureText(wt.toFixed(1)).width;
+      ctx.fillStyle = colors.surface; ctx.fillRect(mx - tw / 2 - 3, my - 10, tw + 6, 14); ctx.fillStyle = colors.ink1; ctx.textAlign = "center"; ctx.fillText(wt.toFixed(1), mx, my + 1);
+    }));
+    cent.forEach(([x, y, n], c) => {
+      const r = 10 + Math.sqrt(n) * 3.2;
+      ctx.fillStyle = colors.surface2; ctx.strokeStyle = colors.ink1; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      ctx.font = `${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.ink1; ctx.textAlign = "center"; ctx.fillText(`${n} cells`, x, y + 4);
+      ctx.fillStyle = colors.ink3; ctx.fillText(`within ${(St.agg[c].get(c) ?? 0).toFixed(1)}`, x, y + r + 13);
+    });
+    ctx.globalAlpha = 1;
+  }
+  /* the cells, filled by true type; hidden inside the nodes at stage 4 */
+  const aCell = at((q) => (q === 4 ? 0 : 1));
+  if (aCell > 0.01) {
+    ctx.globalAlpha = aCell;
+    P.forEach((q, i) => { ctx.fillStyle = hueOf(colors, Gd.types[i]); ctx.beginPath(); ctx.arc(q[0], q[1], 4.2, 0, Math.PI * 2); ctx.fill(); });
+    ctx.globalAlpha = 1;
+  }
+  /* communities as dashed outlines: the first pass's at stage 3, the final at stage 5 */
+  const outline = (comm, a) => {
+    if (a <= 0.01) return;
+    ctx.globalAlpha = a; ctx.strokeStyle = colors.ink1; ctx.lineWidth = 1.5; ctx.setLineDash([5, 3]);
+    [...new Set(comm)].forEach((c) => {
+      const h = hullOf(home.filter((_, i) => comm[i] === c)); ctx.beginPath();
+      if (h.length < 3) { const q = h[0]; ctx.arc(q[0], q[1], 10, 0, Math.PI * 2); }
+      else { const cx = h.reduce((acc, q) => acc + q[0], 0) / h.length, cy = h.reduce((acc, q) => acc + q[1], 0) / h.length; h.forEach((q, i) => { const dx = q[0] - cx, dy = q[1] - cy, d = Math.hypot(dx, dy) || 1, X = q[0] + (dx / d) * 10, Y = q[1] + (dy / d) * 10; if (i) ctx.lineTo(X, Y); else ctx.moveTo(X, Y); }); ctx.closePath(); }
+      ctx.stroke();
+    });
+    ctx.setLineDash([]); ctx.globalAlpha = 1;
+  };
+  outline(St.first, at((q) => (q === 3 ? 1 : 0)));
+  outline(St.final, at((q) => (q === 5 ? 1 : 0)));
+  /* the side: the stages, and this one's numbers */
+  const small = (t, y, col = colors.ink2, bold = false) => { ctx.font = `${bold ? "600 " : ""}${colors.fsXs} ${colors.font}`; ctx.fillStyle = col; ctx.textAlign = "left"; ctx.fillText(t, sideX, y); };
+  GRAPH_STAGES.forEach((t, i) => small(`${i + 1}  ${t}`, 52 + i * 18, i === s ? colors.ink1 : colors.ink3, i === s));
+  const kept = Gd.pairs.filter((q) => q.jac >= 1 / 15), cut = Gd.pairs.length - kept.length;
+  const crossKept = kept.filter((q) => Gd.types[q.i] !== Gd.types[q.j]).length, crossCut = Gd.pairs.filter((q) => q.jac < 1 / 15 && Gd.types[q.i] !== Gd.types[q.j]).length;
+  const knnCross = Gd.nn.reduce((acc, nb, i) => acc + nb.filter((j) => Gd.types[j] !== Gd.types[i]).length, 0);
+  const text = [
+    ["45 cells: 30 hepatocytes and", "15 tumour cells. FindNeighbors", "finds neighbours in 20", "principal components."],
+    [`Each cell is linked to its ${GRAPH_K}`, `nearest cells: ${45 * GRAPH_K} links,`, `${knnCross} of them between types.`],
+    [`${Gd.pairs.length} pairs share a neighbour.`, "Edge weight: the Jaccard index", "of the two neighbour sets.", `${cut} pairs below 1/15 pruned`, `(red), ${crossCut} of them between`, `types; ${crossKept} kept between types.`],
+    ["Each cell moves to the", "neighbouring community with", "the largest modularity gain,", `until none moves: ${k1}`, `communities, Q = ${St.q1.toFixed(3)}.`],
+    ["Each community becomes one", "node: the edges between its", "cells are summed into edges", "between nodes."],
+    ["The same moves on the", `aggregated graph: ${kf}`, `communities, Q = ${St.q2.toFixed(3)},`, `at resolution ${params.graphRes}.`],
+  ];
+  text[s].forEach((t, i) => small(t, 180 + i * 16));
+  small(`k = ${GRAPH_K} for 45 cells; the Clusters`, G.y + G.h - 20, colors.ink3);
+  small("page uses all cells and k = 20.", G.y + G.h - 4, colors.ink3);
   ctx.textAlign = "left";
 }
 
@@ -833,7 +994,7 @@ defineWidget({
      them (core params.js) — the seed sat last until 2026-09-25, and every
      list was built for the default seed */
   params: {
-    page: { type: "segmented", label: "Page", options: PAGES, default: "clusters", display: true },
+    page: { type: "segmented", style: "grid", label: "Page", options: PAGES, default: "graph", display: true },
 
     dataSec: { type: "section", label: "The data" },
     seed: { type: "int", label: "Seed", min: 1, max: 200, default: 1 },
@@ -843,6 +1004,11 @@ defineWidget({
       options: RESOLUTIONS.map((v) => ({ value: v, label: v })), default: "0.3", when: CELL_PAGES,
     },
 
+    graphRes: {
+      type: "choice", label: "Resolution",
+      detail: "the resolution parameter of FindClusters on this graph of 45 cells",
+      options: GRAPH_RES.map((v) => ({ value: v, label: v })), default: "1", display: true, when: ON("graph"),
+    },
     twoSec: { type: "section", label: "The comparison", when: ON("two-clusters") },
     comparator: {
       type: "segmented", style: "grid", label: "Comparator",
@@ -896,10 +1062,19 @@ defineWidget({
       detail: "SD of a sample-specific shift in each cell type's log proportion, about its tissue's mean",
       options: COMP_SD.map((v) => ({ value: v, label: v })), default: "0.3", when: ON("composition"),
     },
+    /* a finished figure for a lesson: the Graph page opened at stage N (0–5) */
+    shown: { type: "int", min: 0, max: 5, default: 0, hidden: true },
   },
 
   legend: ({ params }) => {
     const types = TYPES.map((t, i) => ({ token: `cluster-${"abcdef"[TYPE_SLOT[i]]}`, label: t.name, mark: params.page === "composition" ? "bar" : "dot" }));
+    if (params.page === "graph") return [
+      { token: `cluster-${"abcdef"[TYPE_SLOT[0]]}`, label: "Hepatocyte", mark: "dot" },
+      { token: `cluster-${"abcdef"[TYPE_SLOT[1]]}`, label: "Tumour cell", mark: "dot" },
+      { token: "ink-2", label: "Edge; SNN width by Jaccard weight", mark: "line" },
+      { token: "extreme", label: "Pair pruned (Jaccard < 1/15)", mark: "line" },
+      { token: "ink-1", label: "Dashed outline: a community", mark: "line" },
+    ];
     if (params.page === "clusters") return [...types, { token: "magnitude", label: "Dot plot: size, fraction of cells expressing the gene; shade, mean expression", mark: "dot" }];
     /* Tumour vs liver draws its key on the canvas, between the gene views
        and the Venn it does not key (his round: "move these legends above the
@@ -915,11 +1090,49 @@ defineWidget({
       embed: embedFor(params.seed), cl,
       mk: markersFor(params, cl),
       cond: conditionFor(params, cl),
+      graph: graphFor(params.seed),
+      gstages: graphStagesFor(params.seed, params.graphRes),
       gene: null,
       comp: compositionFor(params.seed, params.compSd),
     };
     out.gene = geneView(params, out.cond, out.stage);
     return out;
+  },
+
+  /* THE GRAPH PAGE'S PRESSES: six stages, each a tween (his pick). Nothing to
+     drive on the other pages; leaving mid-press settles the tween, so the
+     page is not left half-drawn when it comes back (principle: mid-press
+     page switch). The resolution is a display parameter: a new one re-runs
+     Louvain and keeps the stage. */
+  animation: {
+    stepLabel: { anim: "labelAt", labels: { g0: "Find neighbours", g1: "Weight by shared neighbours", g2: "First pass", g3: "Aggregate", g4: "Second pass", done: "Step" }, default: "Step" },
+    stepTitle: { anim: "labelAt", labels: {
+      g0: "Link each cell to its k nearest cells in principal-component space",
+      g1: "Weight each pair of cells by the Jaccard index of their neighbour sets, and prune pairs below 1/15",
+      g2: "Move each cell to the neighbouring community with the largest modularity gain, until none moves",
+      g3: "Merge each community into one node, summing the edges between them",
+      g4: "Repeat the moves on the aggregated graph",
+      done: "Every stage has been taken; Reset returns to the cells",
+    }, default: "Step" },
+    runLabel: null,
+    init: ({ params, fromScratch }) => {
+      const stage = !fromScratch ? Math.max(0, Math.min(5, Number(params.shown) || 0)) : 0;
+      return { stage, t: 1, moving: false, done: stage >= 5, labelAt: stage >= 5 ? "done" : `g${stage}`, inert: params.page !== "graph" };
+    },
+    advance: (anim, { dt }) => {
+      if (anim.inert) return false;
+      if (!anim.moving) {
+        if (anim.stage >= 5) { anim.done = true; return false; }
+        anim.stage += 1; anim.t = 0; anim.moving = true;
+      }
+      anim.t = Math.min(1, anim.t + dt / GRAPH_TWEEN_MS);
+      if (anim.t >= 1) { anim.moving = false; anim.done = anim.stage >= 5; anim.labelAt = anim.done ? "done" : `g${anim.stage}`; return false; }
+      return true;
+    },
+    rebuild: (anim, { params }) => {
+      anim.inert = params.page !== "graph";
+      if (anim.inert && anim.moving) { anim.t = 1; anim.moving = false; anim.done = anim.stage >= 5; anim.labelAt = anim.done ? "done" : `g${anim.stage}`; }
+    },
   },
 
   regions: ({ w, params, state }) => {
@@ -956,15 +1169,23 @@ defineWidget({
 
   /* the Clusters page's hover (drawClusters); the other pages ignore it */
   pointer: true,
-  draw: ({ ctx, colors, w, params, state, pointer }) => {
-    if (params.page === "clusters") drawClusters(ctx, colors, w, params, state, pointer);
+  draw: ({ ctx, colors, w, params, state, anim, pointer }) => {
+    if (params.page === "graph") drawGraph(ctx, colors, w, params, state, anim);
+    else if (params.page === "clusters") drawClusters(ctx, colors, w, params, state, pointer);
     else if (params.page === "two-clusters") drawTwo(ctx, colors, w, params, state, pointer);
     else if (params.page === "tumour-liver") drawTumourLiver(ctx, colors, w, params, state);
     else drawComposition(ctx, colors, w, params, state);
   },
 
-  readout: ({ params, state }) => {
+  readout: ({ params, state, anim }) => {
     const cl = state.cl;
+    if (params.page === "graph") {
+      const s = anim?.stage ?? 0, St = state.gstages, kept = state.graph.pairs.filter((q) => q.jac >= 1 / 15).length;
+      return [
+        { label: "Edges", value: s >= 2 ? String(kept) : s >= 1 ? String(45 * GRAPH_K) : "–", note: s >= 2 ? "SNN edges after the 1/15 prune" : s >= 1 ? `kNN links, k = ${GRAPH_K}` : "45 cells, no graph yet" },
+        { label: "Communities", value: s >= 5 ? String(new Set(St.final).size) : s >= 3 ? String(new Set(St.first).size) : "–", note: s >= 5 ? `after both passes; modularity ${St.q2.toFixed(3)}` : s >= 3 ? `after the first pass; modularity ${St.q1.toFixed(3)}` : `resolution ${params.graphRes}` },
+      ];
+    }
     if (params.page === "clusters") {
       const byType = TYPES.map((t, ti) => cl.ann.filter((a) => a.type === ti).length);
       const split = TYPES.filter((_, ti) => byType[ti] > 1).map((t) => t.name);

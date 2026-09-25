@@ -10152,7 +10152,7 @@
     {
       "$note": "cell-markers · DRAFT placeholder, until the design is agreed",
       "slug": "cell-markers",
-      "state": "?theme=light",
+      "state": "?theme=light&shown=0",
       "px": "0",
       "tx": "0"
     }
