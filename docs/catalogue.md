@@ -12,7 +12,7 @@ answer can be checked against what was assumed.
 
 | looking for | go to |
 |---|---|
-| what to build next | **The sequence arc (PHM5005 07-1 to 07-3), PROPOSED, MEASURED AND PICKED 2026-09-20: four widgets by data type; 73 `signal-cnn-lstm` SHIPPED AND PUSHED the same day (`fbe62c2`); 75 `sequence-cnn-lstm` SHIPPED AND PUSHED 2026-09-20 evening (`77fd1d7`, 42 states) after thirteen review rounds, the copy audit and three subtitle rounds; 72 `signal-windows` SHIPPED AND PUSHED 2026-09-21 (`1fe6062`, 33 states, four pages Clean · Window · Split · Normalize, the cleaning page added on his ask); 74 `sequence-encoding` (planned as `embedding-space`, renamed at the ship) SHIPPED AND PUSHED 2026-09-21 after eleven review rounds in one day, sixteen states — the arc COMPLETE** — § *The sequence arc*, under PHM5005. Slot 71 `somatic-interactions` CUT 2026-09-20 and slot 52 `training-loop` DISCARDED 2026-09-13, both his call. The cancer mutation arc (67, 69, 70) is complete; the image arc has 61, 64, 65 and 62 shipped, 63 `pretrained` on KIV (his call 2026-09-15), 66 folded into 65; the GWAS and PRS arc (56, 57, 59, 60) and the high-throughput arc are complete |
+| what to build next | **The language arc (PHM5005 08-1 to 08-3), PROPOSED AND MEASURED 2026-09-25: four slots 83 `attention` · 84 `transformer` · 85 `clinical-text` · 86 `protein-transformer`, his four ideas, awaiting his picks** — § *The language arc*, under PHM5005. Before it: **The sequence arc (PHM5005 07-1 to 07-3), PROPOSED, MEASURED AND PICKED 2026-09-20: four widgets by data type; 73 `signal-cnn-lstm` SHIPPED AND PUSHED the same day (`fbe62c2`); 75 `sequence-cnn-lstm` SHIPPED AND PUSHED 2026-09-20 evening (`77fd1d7`, 42 states) after thirteen review rounds, the copy audit and three subtitle rounds; 72 `signal-windows` SHIPPED AND PUSHED 2026-09-21 (`1fe6062`, 33 states, four pages Clean · Window · Split · Normalize, the cleaning page added on his ask); 74 `sequence-encoding` (planned as `embedding-space`, renamed at the ship) SHIPPED AND PUSHED 2026-09-21 after eleven review rounds in one day, sixteen states — the arc COMPLETE** — § *The sequence arc*, under PHM5005. Slot 71 `somatic-interactions` CUT 2026-09-20 and slot 52 `training-loop` DISCARDED 2026-09-13, both his call. The cancer mutation arc (67, 69, 70) is complete; the image arc has 61, 64, 65 and 62 shipped, 63 `pretrained` on KIV (his call 2026-09-15), 66 folded into 65; the GWAS and PRS arc (56, 57, 59, 60) and the high-throughput arc are complete |
 | how a widget got its shape | § *Widget N*, in order |
 | the four-method reconnaissance | § *Widget 19*, under the PCA sections |
 | the arcs, and what is deliberately not a widget | the arc sections below |
@@ -21836,6 +21836,203 @@ overturned two lines of this section's proposal — the unrewarded rows DO
 move, and the axes must come from the rows with a geometry. (2) A page that
 shows a mechanism (one-hot as the identity, position as a sum) beats a page
 that trains it: three of the day's eleven rounds took training out.
+
+---
+
+## The language arc — PROPOSED, MEASURED AND PICKED 2026-09-25, from `08-1` to `08-3`
+
+**PICKED 2026-09-25, one AskUserQuestion call, every recommendation:** shape
+**A, his four** (83 `attention` · 84 `transformer` · 85 `clinical-text` · 86
+`protein-transformer`, pages as in the mock's § 5 A); order **the notebooks',
+83 → 84 → 85 → 86**, the engine and the pretrained tiny BERT born in 83; stage
+**synthetic** (the clinical grammar and synthetic proteins, tiny models
+pretrained offline and shipped as generated weights); **network leave given**
+— transformers 5.17 and peft 0.21 installed, the configs and tokenizers read
+from the Hub (no weights), his 25 `dl-language-*.png` figures fetched into
+`_lab/figs/`. NEXT: slot 83 — measure its own stage, mock it on his figures
+(`dl-language-attention-weight.png`, `-output.png`, `-multi.png`), picks, draft.
+
+**Confirmed from the Hub the same day** (`from_config`, so exact without
+weights): `bert-base-uncased` 109,482,240 in the base model, 109,486,085 with
+5 labels, transfer trains 3,845, LoRA r 8 (peft's default targets for BERT are
+`query` and `value`) prints *trainable 298,757 · all 109,784,842 · 0.2721%*;
+`Bio_ClinicalBERT` vocabulary 28,996, 108,310,272 in the base, 108,311,810
+with 2 labels, transfer trains 1,538, LoRA r 8 296,450 of 108,608,260
+(0.2730%); `esm2_t6_8M_UR50D` 320 wide, 6 layers, 20 heads, 7,511,801 in the
+base, 7,512,443 with 2 labels, transfer trains 103,362 (its head is dense →
+tanh → out), and **peft has no default LoRA targets for ESM** — `LoraConfig`
+without `target_modules` raises; with `query`, `value` it trains 164,802 of
+7,677,245 (2.15%). Neither BERT class has a `backbone` attribute (finding 1).
+ESM-2's tokenizer: `<cls>` 0, `<pad>` 1, `<eos>` 2, `<unk>` 3, `<mask>` 32;
+*MKAS* → `[0, 20, 15, 5, 8, 2]`; `EsmClassificationHead.forward` reads
+`features[:, 0, :]`. Findings 3 and 7 are confirmed.
+
+**Kenneth's ask, 2026-09-25:** *plan the next set of widgets to support
+PHM5005 Deep Learning for Language Data*, with four ideas: the attention
+mechanism; the transformer architecture; clinical text → BERT → adapting a
+pretrained model (transfer learning, fine-tuning including PEFT) → LIG for
+explainability; protein language → build a transformer, use a pretrained one
+(transfer, PEFT) → occlusion.
+
+**The three notebooks were read in full the same day** from the Master copies
+(no outputs): `08-1 Overview` (21 cells), `08-2 Clinical` (77), `08-3
+Biological` (90); hosts below are cell indices in those files. Every number is
+from `_lab/language-arc-measure.py` (torch 2.14 CPU, about 4 min; its header
+carries the findings in full). transformers, peft and captum are NOT installed
+here, so the measured models are a tiny BERT written in plain torch — post-LN
+blocks and learned positions as 08-3 cell 28 builds them, 46,716 parameters —
+pretrained by masked-token prediction on a synthetic clinical grammar of 58
+tokens (*presented with*, *treated with ‹drug› for ‹symptom›*, *no ‹symptom›*,
+*discharge home*, *discharge from a wound*, *recovered well* / *deteriorated*),
+with LoRA and integrated gradients written out by hand. The mock is
+`_lab/language-arc-mock.html`.
+
+**What the lessons run.** 08-1 is the week's concepts in its own order:
+embedding → positional encoding → self-attention (`q k v`, `α_ij`,
+`z_i = Σ α_ij v_j`) → multi-head; the transformer (encoder block = MHA + FFN,
+×N; decoder = masked self-attention + cross-attention + FFN); the three
+families; pretraining (MLM, causal LM, seq2seq, with the lesson's own examples
+*treated with [MASK] for chest pain → aspirin* and *treated with aspirin for →
+chest*); pretrained models; adapting (transfer: freeze the backbone, train a
+head; fine-tuning: full or PEFT/LoRA, `W' = W + ABᵀ`); explainability
+(attention maps, IG, LIG). 08-2 runs it on clinical text with Hugging Face:
+a task-ready sentiment model, `Bio_ClinicalBERT`'s [CLS] embeddings and their
+dot products, then `clinical_outcome.csv` adapted three ways (transfer at
+5e-3, full at 1e-4, LoRA r 8 α 32 at 5e-4, 100 epochs each), and
+`LayerIntegratedGradients` on the transfer model, clipped at zero and
+normalised. 08-3 builds `TransformerModel` from scratch on influenza HA
+proteins (human against animal host: `Pad` → `Tokenize` with an attention
+mask → token + learned position embeddings → `nn.TransformerEncoder` with
+`src_key_padding_mask` → mask-aware mean pool → linear), then freezes ESM-2
+(`esm2_t6_8M_UR50D`) and trains its head, then `Occlusion` at k 4, stride 2,
+baseline PAD.
+
+### What is already covered — read before proposing anything
+
+| existing widget | what it already does for this week | so the arc must not |
+|---|---|---|
+| 49 `processing-layers` | an Attention page: `[3, 4]` X → Q, K → scores → softmax → weights, one query a step, `projection` Random · Identity; flat at the notebook's init (0.339–0.392 against 1/3) | redraw single-head arithmetic at init; 83 starts from TRAINED weights, several heads and the masks |
+| 74 `sequence-encoding` | Tokenize (with `<unk>` and `<pad>`), Encode (one-hot · embedding), Position (x + p = x̃; learned, sinusoidal, rotary) | re-teach step 1 or 2 of 08-1 cell 1; 83 begins at x̃ |
+| 50 `support-layers` | Embedding as reading a row; Normalization | re-teach the lookup or LayerNorm; 84 draws Add & Norm as a box |
+| 51 `composition` | skip connections, branches | re-teach the residual; 84's block uses it |
+| 75 `sequence-cnn-lstm` | occlusion on sequences: window, stride, PAD baseline, the heat behind the letters | re-teach occlusion; 86 has only what is new for a pretrained tokenizer |
+| 38 `shap`, 64 `grad-cam` | what an attribution is (tabular, image) | re-teach "which input mattered"; 85's claim is the path integral and what the clip hides |
+| 63 `pretrained` (KIV) | transfer and fine-tuning on images, MEASURED to fail as a three-strategy stage: synthetic shapes made feature overlap all or nothing | forget why it stalled; the language stage below is the answer it lacked |
+
+What no widget touches: attention weights that have LEARNED something; several
+heads; the √d_k; the padding and causal masks; the encoder block as a unit
+that keeps `[L, D]`; a token's vector changing with its context; MLM against
+causal LM; which parameters each adaptation trains and what it costs; LoRA's
+low rank; integrated gradients; `[CLS]` against mean pooling.
+
+### Four slots, his four ideas — his call on the shape
+
+| # | slug (provisional) | title (the notebook's own heading) | host | misconception | measured | state |
+|---|---|---|---|---|---|---|
+| 83 | `attention` | Attention Mechanism | 08-1 cell 1 (`dl-language-attention-weight.png`, `-output.png`, `-multi.png`); 08-3 cell 4 §3 and *Handling Padding* | α is a similarity between two words, so symmetric; √d_k is cosmetic; padding is harmless once the sequences are the same length | **holds**: at init the largest \|α_ij − α_ji\| is 0.394; unscaled at d_k 64 the mean top weight of ten is 0.86 and 60% of rows exceed 0.9, scaled 0.32 at every width; the same sentence padded to 12 and 40 gives identical logits with the mask and 0.074 apart without it, the real tokens putting 78% of their weight on 32 PADs | proposed, **first** |
+| 84 | `transformer` | Transformer Architecture · Transformer Tasks · Pre-training | 08-1 cells 2–4 (`dl-language-transformer*.png`, `-attention-mask.png`, `-transformer-types.png`); 08-3 cell 4 §3 | a token's vector is fixed once embedded; an encoder and a decoder are different machinery; MLM and next-token prediction learn the same thing | **holds**: "discharge" (home) and "discharge" (wound) are one table row (probe 50%) and separate after block 1 (cos 0.996 → 0.786, probe 100%); on the lesson's own example the MLM model fills *treated with [MASK] for ‹symptom›* with a right drug 100%, the causal model 17% (chance 20%), and both predict the symptom after *treated with ‹drug› for* 100% | proposed, **second** |
+| 85 | `clinical-text` | Clinical: Pre-trained Model Inference · Adapting Models · Explainability | 08-2 cells 3–18 (inference, [CLS] / mean / max, dot products), 19–65 (transfer · full · LoRA, `dl-language-pretrain-*.png`), 66–76 (LIG); 08-1 cells 13–20 | the frozen backbone is the cautious choice that always works; more trainable parameters is always better; LoRA is a smaller network; an attribution explains the clinical reasoning | **holds, and is the stage slot 63 never found**: on a target the pretraining carries (an asserted finding) transfer wins at n = 16 (93 against 88 full, 87 scratch) and all meet by 256; on one it does not (a drug given for the wrong symptom) transfer sits at 50–55% at EVERY n while full fine-tuning reaches 86% at 1,024; MLM accuracy 80% falls to 65% after full, LoRA's W untouched; LoRA r 1 trains 482 parameters and reaches 97%; IG's completeness gap is 0.81 · 0.067 · 0.011 at 5 · 50 · 300 steps, and the lesson's clip hid a "no" that pushed against the prediction in 52 of 120 notes | proposed, **third**; the heaviest |
+| 86 | `protein-transformer` | Biological: Building/Training Transformer Models · Adapting Pre-trained Models · Explainability | 08-3 cells 4–5 (the components table, `dl-language-biology-encoder.png`, pooling figures), 21–29 (`Pad`, `Tokenize`, the model), 50–68 (ESM-2 transfer), 80–89 (occlusion) | the model sees padding the way it sees residues; [CLS] summarises a sequence whatever the model was trained on; a pretrained tokenizer's ids are the lesson's ids | **partly**: the mask arithmetic holds (A3); under transfer an MLM-only backbone's [CLS] scores 91–97% where the mean scores 99–100% (the lesson's own caveat, 08-3 cell 4); the scratch-against-CNN claim of 08-3 cell 1 did NOT hold (below) | proposed, **fourth** |
+
+**The count is his four.** 08-1 carries two concept widgets' worth (cell 1 is
+attention end to end; cells 2–4 are the block, the families and pretraining),
+and 08-2 and 08-3 are cut by data type as 07-2 and 07-3 were, which is the
+grouping he picked for the sequence arc. Two alternatives go in the mock's
+§ 5: three (83 and 84 as one widget, *Attention and the Transformer*, five
+pages) and five (85's Explainability as its own widget, since LIG is 08-2's
+largest single method and 85 is otherwise five pages).
+
+**What the measurement ruled out, so no draft proposes it:**
+
+1. **A transformer-against-CNN page on proteins.** Two charged sites flagged
+   by short motifs, d apart. Class = co-occurrence (site 1 positive AND site 2
+   negative): a 1D CNN with a global max and a LINEAR head 100% at d = 4 and
+   64; the lesson's one-layer transformer, trained from scratch on 2,000
+   sequences, 70% and 65%. Class = complementary charges (XOR): the CNN 100%
+   at d = 4 and 50% beyond its window; the transformer 48–51% at every d, at
+   1,500 and 6,000 steps. 08-3 cell 1's table (*captures long-distance
+   relations*: CNN No, transformer Yes) is right about what a WINDOW sees and
+   wrong about what a global max carries; and a transformer from scratch is
+   the harder model to train on a lesson-sized set, which is the argument for
+   the pretrained half of the same notebook. Told to him as a notebook
+   finding; not a page.
+2. **LoRA's rank as an accuracy dial.** r 1, 2 and 8 all reach 95–97% at
+   n = 64 and 100% at 1,024; r changes what trains (2dr against d²), not the
+   score, on this stage. A rank control shows the count and the product's
+   shape, and claims nothing about accuracy.
+3. **The discharge-sense target as the adaptation stage.** 96–100% for all
+   four strategies at every n: too easy to lose.
+
+**A thing the attribution found that the stage must be designed around.** On
+the fully fine-tuned outcome model (120 of 120 right), IG put the largest
+attributions on *with* (+4.35) and *patient* (+2.04), not on the finding —
+in this grammar every asserted finding follows *with*, and the model read the
+cue. The widget's grammar must either break that cue or show it on purpose
+(64's shortcut stage was built and removed on his call; ask before planting
+one).
+
+**The engine, and where it lives.** A plain-JS transformer (multi-head
+attention with backward, LayerNorm, FFN, residuals, learned positions) is born
+in 83 beside `signal-cnn-lstm/engine.js`'s single `AttentionHead`, which it
+generalises. The tiny BERT is pretrained OFFLINE and shipped as a generated
+weights file (46,716 numbers), the way 65 and 75 ship theirs; an adaptation
+run is 400 steps and torch takes about 2 s a run on this CPU, so 85's curves
+are a generated table of runs, regenerated after any engine change, and the
+page re-runs one live only if JS measures fast enough. 84 reuses the weights;
+86 needs a protein stage of its own and an MLM-pretrained protein encoder as
+its "ESM".
+
+**Facts not yet fetched, owed before any number goes on a figure:** the real
+parameter counts (BERT-base 109,482,240 and `Bio_ClinicalBERT` 108,310,272 by
+formula from their configs; LoRA r 8 on query and value 294,912 for 12 layers
+of 768; ESM-2 t6 8M), and ESM-2's token ids (`<cls>` 0, `<pad>` 1 from memory
+of its vocabulary, which is what finding 3 below turns on). **All fetched
+and confirmed the same day on his leave — the numbers are under PICKED at the
+top of this section.**
+
+### Notebook findings, to tell him
+
+1. **08-1 cell 14** freezes with `model.backbone.parameters()`;
+   `BertForSequenceClassification` has no `backbone` (it is `model.bert`, as
+   08-2 cell 20's table says), so the snippet raises `AttributeError`.
+2. **08-1 cell 15** describes LoRA as *insert small trainable adapter layers
+   between transformer blocks*. That is adapter tuning; LoRA adds a low-rank
+   bypass BESIDE existing weight matrices (peft's default for BERT: query and
+   value) and scales it by α/r, which `W' = W + ABᵀ` leaves out.
+3. **08-3 cell 85** occludes ESM-2 with `PAD_IDX = aa_vocab["*"] = 0`, the
+   scratch model's vocabulary. In ESM-2's own tokenizer id 0 is `<cls>` and
+   `<pad>` is 1 (to confirm by loading it), so the occluded window is filled
+   with copies of the start token; the window also slides over `<cls>` and
+   `<eos>`.
+4. **08-3 cell 4**, *Handling Padding*, passes
+   `src_key_padding_mask=src_key_padding_mask`, a name the line above never
+   defines (it defines `padding_mask`); cell 28 has it right.
+5. **08-3 cell 1's table** — see ruled-out 1.
+6. **08-2 cells 67 and 72** keep only positive attributions. In 52 of 120 toy
+   notes a *no* pushed against the predicted class and would print as zero —
+   a teaching choice worth one sentence in the lesson.
+7. **08-3's transfer run** trains `EsmForSequenceClassification`, whose head
+   reads position 0 (`<cls>`) through dense → tanh → out; ESM-2 was pretrained
+   by MLM alone, so with the backbone frozen that position was never trained
+   as a summary — 08-3 cell 4's own caveat. The toy: [CLS] 91–97% against the
+   mean's 99–100%. To measure on ESM-2 itself once it can be loaded.
+8. **08-1 cell 4**'s MLM replaces the chosen 15% with `[MASK]`; BERT's recipe
+   is 80% `[MASK]`, 10% a random token, 10% unchanged. Minor.
+9. **`dl-language-pretrain-lora.png`** writes the result as `W′ = ABᵀ`,
+   dropping the frozen `W` that the text beside it keeps (`W' = W + ABᵀ`);
+   and `dl-language-pretrain-adapt.png` draws PEFT as an *Adapter* box between
+   the backbone and the head, which is adapter tuning's picture, not LoRA's
+   (finding 2). 85's LoRA page is drawn on his figure, so the fix is his first.
+10. **08-3's ESM-2 has no default LoRA targets in peft** — worth knowing
+   before the lesson adds PEFT to 08-3 as his arc note suggests (08-3 runs
+   transfer only today).
+
+### The open calls
+
+Asked with the mock open (§ 5 and § 6 of `_lab/language-arc-mock.html`):
+the arc's shape (his four · three · five); the build order; the stage
+(synthetic clinical grammar and synthetic proteins, recommended, as every
+arc's); and leave for the network (pip, the Hub configs, his figures).
 
 ---
 

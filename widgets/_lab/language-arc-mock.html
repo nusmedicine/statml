@@ -1,0 +1,511 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · the language arc — mock</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1600px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 2px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 104ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); min-height: 26px; white-space: pre-line; max-width: 550px; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 104ch; }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+       border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 104ch; }
+  .q b { display: block; margin-bottom: 2px; }
+  .tell { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+          border-left: 3px solid var(--c-extreme); background: var(--surface-2); max-width: 104ch; }
+  table { border-collapse: collapse; font-size: var(--fs-sm); margin: var(--sp-2) 0; max-width: 130ch; }
+  th, td { border: 1px solid var(--grid); padding: 4px 10px; text-align: left; vertical-align: top; }
+  th { color: var(--ink-2); font-weight: 600; }
+  #findings { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--ink-2); white-space: pre-wrap;
+              padding: var(--sp-3); background: var(--surface-2); border: 1px solid var(--grid); max-width: 120ch;
+              max-height: 420px; overflow: auto; }
+  .rail { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin: 4px 0 10px; }
+  .rail .w { font-family: var(--font-mono); font-size: 11px; color: var(--ink-1); min-width: 190px; }
+  .rail .pg { font-size: 11px; padding: 3px 9px; border: 1px solid var(--grid); border-radius: 3px; background: var(--surface-2); color: var(--ink-1); }
+  .rail .n { font-size: 10px; color: var(--ink-3); margin-left: 6px; }
+  .opt { border: 1px solid var(--grid); padding: var(--sp-2) var(--sp-3); margin: var(--sp-2) 0; max-width: 104ch; background: var(--surface-1); }
+  .opt h3 { margin-bottom: 6px; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>The language arc &middot; PHM5005 08 (08-1 Overview, 08-2 Clinical, 08-3 Biological) &middot; mock</h1>
+  <p class="note">
+    Four candidate slots, his four ideas, one leading figure or two each at the widget's 550px. Figures marked
+    <b>page</b> are computed on this page (softmax arithmetic, masks, parameter counts by formula); figures marked
+    <b>torch</b> draw the numbers <code>_lab/language-arc-measure.py</code> printed on 2026-09-25 (a tiny BERT of
+    46,716 parameters pretrained by masked-token prediction on a synthetic clinical grammar; LoRA and integrated
+    gradients written out by hand), because nothing here can train a transformer in a tab yet. The panels are the
+    LEADING figure of each slot, not its pages, and they are filled so they can be judged; a widget opens empty.
+    On-canvas strings are candidates, not copy. Blue-ruled boxes are recommendations, grey-ruled boxes are calls
+    only you can answer, and red-ruled boxes are things found in the lessons.
+  </p>
+
+  <h2>0 &middot; What the measurement found</h2>
+  <div id="findings">loading the script's findings&hellip;</div>
+
+  <h2>1 &middot; Slot 83 <code>attention</code> &mdash; Attention Mechanism (08-1 cell 1; 08-3 cell 4 &sect;3)</h2>
+  <p class="note">
+    Widget 49 already steps one untrained head through <code>[3, 4]</code>; 74 already adds position. What 83 adds is
+    what 49 cannot show at init: weights that have learned something, several heads, and the two things that change a
+    row of weights without changing the sentence &mdash; the <b>&radic;d_k</b> and the <b>padding mask</b>. Left
+    (<b>page</b>): the mean largest of ten softmax weights for unit-variance q and k, against d_k, with and without the
+    division. Right (<b>page</b>): one head's weights over <i>treated with aspirin for chest pain</i> padded to 12, with
+    and without <code>src_key_padding_mask</code>; the PAD columns are hatched.
+  </p>
+  <div class="row">
+    <div class="cand"><div class="sub">page · 4,000 rows of 10 keys a point, seeded</div><canvas id="cScale" width="550" height="300"></canvas></div>
+    <div class="cand"><div class="sub">page · random W_Q, W_K on 8-wide token vectors; a PAD row is its position vector alone (padding_idx)</div><canvas id="cPad" width="550" height="300"></canvas></div>
+  </div>
+  <p class="rec">Recommended pages, in 08-1 cell 1's order and starting where 74 stops: <b>Weights</b> (one query's row:
+    q&middot;k, &divide;&radic;d_k, softmax; the matrix is not symmetric, 0.39 at init) &middot; <b>Output</b>
+    (z_i = &Sigma; &alpha;_ij v_j) &middot; <b>Heads</b> (H heads side by side, concatenated, W_O) &middot;
+    <b>Mask</b> (padding). The weights are the pretrained tiny BERT's, shipped as a generated file, so every head has
+    learned something from the first press.</p>
+
+  <h2>2 &middot; Slot 84 <code>transformer</code> &mdash; Transformer Architecture &middot; Tasks &middot; Pre-training (08-1 cells 2&ndash;4)</h2>
+  <p class="note">
+    Left (<b>page</b>): the encoder block as the lesson draws it, the shape carried along it, and the three masks that
+    make the three families &mdash; every query sees every key (encoder), a query sees only earlier keys (decoder), the
+    decoder's queries against the encoder's keys (cross-attention). Right (<b>torch</b>): the two claims that measured
+    &mdash; the lesson's own pretraining example, filled by each objective, and one word's vector before and after a block.
+  </p>
+  <div class="row">
+    <div class="cand"><div class="sub">page · the block and its masks</div><canvas id="cBlock" width="550" height="320"></canvas></div>
+    <div class="cand"><div class="sub">torch · MLM and causal models pretrained 3,000 steps each on the same 20,000 notes</div><canvas id="cPre" width="550" height="320"></canvas></div>
+  </div>
+  <p class="rec">Recommended pages: <b>Encoder</b> (the block, stacked; one word followed through it, its row
+    changing with its neighbours) &middot; <b>Decoder</b> (masked self-attention, then cross-attention) &middot;
+    <b>Pre-training</b> (MLM against next-token on 08-1 cell 4's own two examples, each objective reading its own
+    direction). The three families are the Decoder page's mask switch, not a page: the table in cell 3 IS the three masks.</p>
+
+  <h2>3 &middot; Slot 85 <code>clinical-text</code> &mdash; Inference &middot; Adapting Models &middot; Explainability (08-2)</h2>
+  <p class="note">
+    The stage slot 63 could not find for images. Left (<b>page</b>): the lesson's figure as three columns &mdash; what
+    each strategy trains, counted for <code>Bio_ClinicalBERT</code> with two labels <b>by formula</b> (matches the Hub
+    config's count, 108,311,810). Right (<b>torch</b>): test accuracy after 400 fixed steps, three seeds, on two targets &mdash; one the
+    pretraining carries (an asserted finding, 08-2's <code>clinical_outcome</code>) and one it does not (a drug given
+    for a symptom it does not treat). The frozen backbone wins the first at n = 16 and never learns the second.
+  </p>
+  <div class="row">
+    <div class="cand"><div class="sub">page · BERT-base shapes, vocabulary 28,996, 2 labels (confirmed from the Hub config); LoRA r 8 on query and value</div><canvas id="cAdapt" width="550" height="330"></canvas></div>
+    <div class="cand"><div class="sub">torch · tiny BERT, transfer 98 · LoRA 1,634 · full 46,716 trainable</div><canvas id="cCurves" width="550" height="330"></canvas></div>
+  </div>
+  <p class="note">
+    Explainability (<b>torch</b>): integrated gradients from the [PAD] baseline on a fine-tuned outcome model that gets
+    all 120 notes right. Top, the signed attribution per token; bottom, the lesson's version (keep positive values,
+    divide by the largest). <i>no</i> pushed against the prediction and prints as nothing; and the largest attribution
+    sits on <i>with</i>, because in this grammar every asserted finding follows it &mdash; the model read the cue.
+  </p>
+  <div class="row">
+    <div class="cand"><div class="sub">torch · "no nausea on exam . patient was with nausea", predicted 1 (a finding)</div><canvas id="cIG" width="550" height="250"></canvas></div>
+    <div class="cand"><div class="sub">torch · |sum(attr) − (f(x) − f(PAD))| over 120 notes, a right Riemann sum</div><canvas id="cComp" width="550" height="250"></canvas></div>
+  </div>
+  <p class="rec">Recommended pages, in 08-2's order: <b>Inference</b> ([CLS] &middot; mean &middot; max; the three notes'
+    dot products, cells 14&ndash;18) &middot; <b>Adapt</b> (the three columns and the two targets' curves) &middot;
+    <b>LoRA</b> (W + (&alpha;/r)BA, the rank as a count) &middot; <b>Explain</b> (the path from the baseline, the
+    completeness gap, signed against clipped). Four pages, the heaviest of the four widgets.</p>
+
+  <h2>4 &middot; Slot 86 <code>protein-transformer</code> &mdash; Building &middot; Adapting &middot; Occlusion (08-3)</h2>
+  <p class="note">
+    Left (<b>page</b>): 08-3's <code>TransformerModel</code> as its shapes, on cell 21's own example
+    <code>MKASRR****</code>, with the mask carried from <code>Tokenize</code> to the encoder and the pool. Right
+    (<b>page</b>): what a pretrained tokenizer changes &mdash; the lesson's scratch vocabulary against ESM-2's special
+    tokens (ids read from its tokenizer), and what the occlusion in cell 85 actually writes into the window.
+  </p>
+  <div class="row">
+    <div class="cand"><div class="sub">page · B = 1, L = 10, D = 128, K = 2 as cell 28 sets them</div><canvas id="cBuild" width="550" height="300"></canvas></div>
+    <div class="cand"><div class="sub">page · the two vocabularies</div><canvas id="cVocab" width="550" height="300"></canvas></div>
+  </div>
+  <table>
+    <tr><th>torch, 2,000 proteins of 120, two flagged sites d apart</th><th>d = 4</th><th>d = 16</th><th>d = 64</th></tr>
+    <tr><td>co-occurrence (site 1 + AND site 2 &minus;): CNN, global max, linear head</td><td>100%</td><td>&mdash;</td><td>100%</td></tr>
+    <tr><td>co-occurrence: the lesson's transformer, 1 layer, from scratch</td><td>70%</td><td>&mdash;</td><td>65%</td></tr>
+    <tr><td>complementary charges (XOR): CNN</td><td>100%</td><td>50%</td><td>48%</td></tr>
+    <tr><td>complementary charges: the transformer, 1,500 or 6,000 steps</td><td>48&ndash;51%</td><td>49%</td><td>49%</td></tr>
+  </table>
+  <p class="rec">Recommended pages: <b>Build</b> (the pipeline above, one press a stage) &middot; <b>Pool</b> (mean
+    &middot; max &middot; [CLS]: a [CLS] that no objective trained is a worse summary, 91&ndash;97% against 99&ndash;100%
+    under transfer) &middot; <b>Pretrained</b> (a protein encoder pretrained by MLM, frozen, its head trained; the
+    tokenizer's own ids) &middot; <b>Occlusion</b> (only what is new since 75: the baseline token and the special
+    tokens). The table above is a notebook finding, not a page.</p>
+
+  <h2>5 &middot; The arc's shape</h2>
+  <div class="opt"><h3>A &middot; his four (recommended)</h3>
+    <div class="rail"><span class="w">83 attention</span><span class="pg">Weights</span><span class="pg">Output</span><span class="pg">Heads</span><span class="pg">Mask</span><span class="n">08-1 cell 1</span></div>
+    <div class="rail"><span class="w">84 transformer</span><span class="pg">Encoder</span><span class="pg">Decoder</span><span class="pg">Pre-training</span><span class="n">08-1 cells 2&ndash;4</span></div>
+    <div class="rail"><span class="w">85 clinical-text</span><span class="pg">Inference</span><span class="pg">Adapt</span><span class="pg">LoRA</span><span class="pg">Explain</span><span class="n">08-2</span></div>
+    <div class="rail"><span class="w">86 protein-transformer</span><span class="pg">Build</span><span class="pg">Pool</span><span class="pg">Pretrained</span><span class="pg">Occlusion</span><span class="n">08-3</span></div>
+    <p class="note">Two concept widgets for 08-1, then one widget a data type, as the sequence arc was cut.</p></div>
+  <div class="opt"><h3>B &middot; three: 08-1 as one widget</h3>
+    <div class="rail"><span class="w">83 transformer</span><span class="pg">Weights</span><span class="pg">Heads</span><span class="pg">Mask</span><span class="pg">Encoder</span><span class="pg">Pre-training</span><span class="n">08-1</span></div>
+    <div class="rail"><span class="w">85 clinical-text</span><span class="pg">Inference</span><span class="pg">Adapt</span><span class="pg">LoRA</span><span class="pg">Explain</span></div>
+    <div class="rail"><span class="w">86 protein-transformer</span><span class="pg">Build</span><span class="pg">Pool</span><span class="pg">Pretrained</span><span class="pg">Occlusion</span></div>
+    <p class="note">One widget a notebook. Output and Decoder fold into neighbours; five pages is the most any widget has.</p></div>
+  <div class="opt"><h3>C &middot; five: explainability on its own</h3>
+    <div class="rail"><span class="w">83 attention</span><span class="pg">Weights</span><span class="pg">Output</span><span class="pg">Heads</span><span class="pg">Mask</span></div>
+    <div class="rail"><span class="w">84 transformer</span><span class="pg">Encoder</span><span class="pg">Decoder</span><span class="pg">Pre-training</span></div>
+    <div class="rail"><span class="w">85 clinical-text</span><span class="pg">Inference</span><span class="pg">Adapt</span><span class="pg">LoRA</span></div>
+    <div class="rail"><span class="w">87 integrated-gradients</span><span class="pg">Path</span><span class="pg">Completeness</span><span class="pg">Signed</span><span class="pg">Attention &ne; attribution</span></div>
+    <div class="rail"><span class="w">86 protein-transformer</span><span class="pg">Build</span><span class="pg">Pool</span><span class="pg">Pretrained</span><span class="pg">Occlusion</span></div>
+    <p class="note">LIG is 08-2's largest single method, and 08-1 cell 20 also offers attention maps as an explanation;
+      a widget of its own could put the two side by side. Costs a fifth widget.</p></div>
+
+  <h2>6 &middot; Found in the lessons</h2>
+  <p class="tell"><b>08-1 cell 14</b> freezes with <code>model.backbone.parameters()</code>. A
+    <code>BertForSequenceClassification</code> has no <code>backbone</code>; it is <code>model.bert</code>, as 08-2
+    cell 20's table says. The snippet raises <code>AttributeError</code>.</p>
+  <p class="tell"><b>08-1 cell 15</b> describes LoRA as small adapter layers inserted <i>between</i> transformer blocks.
+    That is adapter tuning. LoRA adds a low-rank bypass beside existing weight matrices (for BERT, peft's default is
+    query and value), scaled by &alpha;/r, which the formula <code>W' = W + ABᵀ</code> leaves out.</p>
+  <p class="tell"><b>08-3 cell 85</b> occludes ESM-2 with <code>PAD_IDX = aa_vocab["*"] = 0</code>, the scratch model's
+    vocabulary. In ESM-2's tokenizer id 0 is <code>&lt;cls&gt;</code> and <code>&lt;pad&gt;</code> is 1 (read from its
+    tokenizer, 2026-09-25), so the window is filled with copies of the start token. The window also slides over
+    <code>&lt;cls&gt;</code> and <code>&lt;eos&gt;</code>.</p>
+  <p class="tell"><b>08-3 cell 4</b>, <i>Handling Padding</i>: <code>src_key_padding_mask=src_key_padding_mask</code>
+    uses a name the line above never defines (it defines <code>padding_mask</code>). Cell 28 has it right.</p>
+  <p class="tell"><b>08-3 cell 1's table</b> (long-distance relations: CNN No, transformer Yes): on the stage in &sect; 4 a
+    CNN with a global max carried two sites 64 apart into a linear head at 100%, and the lesson's transformer trained
+    from scratch reached 65%. A window cannot see a distant PAIR's arrangement; a global max still carries both
+    motifs' presence. And from scratch on a lesson-sized set the transformer is the harder model to train, which is
+    the notebook's own case for its pretrained half.</p>
+  <p class="tell"><b>08-2 cells 67 and 72</b> keep only positive attributions. In 52 of 120 toy notes a <i>no</i> pushed
+    against the predicted class and would print as zero.</p>
+  <p class="tell"><b>08-3's transfer run</b>: <code>EsmForSequenceClassification</code>'s head reads position 0,
+    <code>&lt;cls&gt;</code>. ESM-2 was pretrained by masked tokens alone, so with the backbone frozen that position was
+    never trained as a summary (cell 4's own caveat). The toy: [CLS] 91&ndash;97% against the mean's 99&ndash;100%.</p>
+  <p class="tell"><b><code>dl-language-pretrain-lora.png</code></b> writes <code>W′ = ABᵀ</code>, without the frozen
+    <code>W</code> the text keeps; and <code>dl-language-pretrain-adapt.png</code> draws PEFT as an <i>Adapter</i> box
+    between backbone and head, adapter tuning's picture rather than LoRA's. 85's LoRA page would be drawn on these.</p>
+  <p class="tell"><b>peft has no default LoRA targets for ESM-2</b>: <code>LoraConfig</code> without
+    <code>target_modules</code> raises on <code>esm2_t6_8M_UR50D</code>; with query and value it trains 164,802 of
+    7,677,245 (2.15%). Worth knowing if 08-3 gains a PEFT run; today it runs transfer only.</p>
+  <p class="tell"><b>08-1 cell 4</b> (minor): BERT's masking is 80% <code>[MASK]</code>, 10% a random token, 10% unchanged,
+    not always <code>[MASK]</code>.</p>
+
+  <h2>7 &middot; The calls</h2>
+  <p class="q"><b>1 &middot; The shape.</b> A his four (recommended) &middot; B three, 08-1 as one &middot; C five,
+    explainability its own.</p>
+  <p class="q"><b>2 &middot; The order.</b> The notebooks' order 83 &rarr; 84 &rarr; 85 &rarr; 86 (recommended: the
+    transformer engine and the pretrained weights are born in 83 and every later slot reuses them) &middot; or the
+    data-type widgets first.</p>
+  <p class="q"><b>3 &middot; The stage.</b> A synthetic clinical grammar and synthetic proteins, pretrained offline and
+    shipped as weights (recommended, as every arc's stage is) &middot; or real sentences, with numbers from the real
+    models printed but nothing run.</p>
+  <p class="q"><b>4 &middot; The network.</b> Leave to <code>pip install transformers peft</code> and read
+    <code>Bio_ClinicalBERT</code>'s and <code>esm2_t6_8M_UR50D</code>'s configs and tokenizers from the Hub (a few MB,
+    no weights needed for the counts and ids), and to fetch your 08 figures from the notebooks' Dropbox links into
+    <code>_lab/figs/</code>.</p>
+</main>
+
+<script type="module">
+const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const C = {
+  ink1: css("--ink-1"), ink2: css("--ink-2"), ink3: css("--ink-3"), grid: css("--grid"),
+  s1: css("--surface-1"), s2: css("--surface-2"), s3: css("--surface-3"),
+  emp: css("--c-empirical"), th: css("--c-theory"), ref: css("--c-reference"), hi: css("--c-highlight"),
+  a: css("--c-group-a"), b: css("--c-group-b"), c: css("--c-group-c"), ext: css("--c-extreme"),
+  mag: css("--c-magnitude"), font: css("--font"), mono: css("--font-mono"),
+};
+function ctx(id) {
+  const cv = document.getElementById(id), dpr = window.devicePixelRatio || 1;
+  const w = cv.width, h = cv.height;
+  cv.style.width = w + "px"; cv.style.height = h + "px";
+  cv.width = w * dpr; cv.height = h * dpr;
+  const g = cv.getContext("2d"); g.scale(dpr, dpr); g.w = w; g.h = h;
+  return g;
+}
+function text(g, s, x, y, { size = 11, color = C.ink2, align = "left", base = "alphabetic", mono = false, bold = false } = {}) {
+  g.font = `${bold ? "600 " : ""}${size}px ${mono ? C.mono : C.font}`;
+  g.fillStyle = color; g.textAlign = align; g.textBaseline = base; g.fillText(s, x, y);
+}
+function mulberry(a) { return () => { a |= 0; a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a);
+  t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+function normal(r) { return Math.sqrt(-2 * Math.log(1 - r())) * Math.cos(2 * Math.PI * r()); }
+function softmax(v) { const m = Math.max(...v.filter(Number.isFinite)); const e = v.map(x => Number.isFinite(x) ? Math.exp(x - m) : 0);
+  const s = e.reduce((a, b) => a + b, 0); return e.map(x => x / s); }
+function heat(t, col) { // mix surface-1 to a colour by t
+  const p = (h) => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+  const [a, b] = [p(C.s1.length === 7 ? C.s1 : "#ffffff"), p(col)];
+  return `rgb(${a.map((x, i) => Math.round(x + (b[i] - x) * t)).join(",")})`;
+}
+
+// ---------------------------------------------------------------- findings
+fetch("language-arc-measure.py").then(r => r.text()).then(s => {
+  const i = s.indexOf("FINDINGS,"), j = s.indexOf('"""', i);
+  document.getElementById("findings").textContent = i > 0 ? s.slice(i, j).trim() : "(no FINDINGS block)";
+}).catch(() => { document.getElementById("findings").textContent = "(serve from the dev server to read the script)"; });
+
+// ---------------------------------------------------------------- 83 · the scale
+{
+  const g = ctx("cScale"), r = mulberry(7);
+  const dks = [1, 2, 4, 8, 16, 32, 64, 128], raw = [], sc = [];
+  for (const dk of dks) {
+    let a = 0, b = 0; const N = 4000;
+    for (let n = 0; n < N; n++) {
+      const q = Array.from({ length: dk }, () => normal(r));
+      const s = Array.from({ length: 10 }, () => q.reduce((acc, qi) => acc + qi * normal(r), 0));
+      a += Math.max(...softmax(s)); b += Math.max(...softmax(s.map(x => x / Math.sqrt(dk))));
+    }
+    raw.push(a / N); sc.push(b / N);
+  }
+  const L = 56, R = 530, T = 28, B = 250;
+  const X = (i) => L + (R - L) * i / (dks.length - 1), Y = (v) => B - (B - T) * v;
+  g.strokeStyle = C.grid; g.lineWidth = 1;
+  for (const v of [0, 0.25, 0.5, 0.75, 1]) { g.beginPath(); g.moveTo(L, Y(v)); g.lineTo(R, Y(v)); g.stroke(); text(g, v.toFixed(2), L - 6, Y(v) + 4, { align: "right", size: 10, color: C.ink3 }); }
+  dks.forEach((d, i) => text(g, String(d), X(i), B + 16, { align: "center", size: 10, color: C.ink3 }));
+  text(g, "d_k", (L + R) / 2, B + 32, { align: "center", size: 11 });
+  g.save(); g.translate(16, (T + B) / 2); g.rotate(-Math.PI / 2); text(g, "largest of ten weights (mean)", 0, 0, { align: "center" }); g.restore();
+  g.setLineDash([4, 4]); g.strokeStyle = C.ref; g.beginPath(); g.moveTo(L, Y(0.1)); g.lineTo(R, Y(0.1)); g.stroke(); g.setLineDash([]);
+  text(g, "uniform 0.10", R, Y(0.1) - 5, { align: "right", size: 10, color: C.ref });
+  for (const [arr, col, lab] of [[raw, C.ext, "q·k"], [sc, C.emp, "q·k / √d_k"]]) {
+    g.strokeStyle = col; g.lineWidth = 2; g.beginPath(); arr.forEach((v, i) => i ? g.lineTo(X(i), Y(v)) : g.moveTo(X(i), Y(v))); g.stroke();
+    arr.forEach((v, i) => { g.fillStyle = col; g.beginPath(); g.arc(X(i), Y(v), 3, 0, 7); g.fill(); });
+    text(g, `${lab}  ${arr[arr.length - 1].toFixed(2)}`, X(dks.length - 1) - 6, Y(arr[arr.length - 1]) - 8, { align: "right", color: col, bold: true });
+  }
+  text(g, `at d_k = 64: unscaled ${raw[6].toFixed(2)}, scaled ${sc[6].toFixed(2)}`, L, 18, { size: 11, color: C.ink1 });
+}
+
+// ---------------------------------------------------------------- 83 · the padding mask
+{
+  const g = ctx("cPad"), r = mulberry(11);
+  const words = ["[CLS]", "treated", "with", "aspirin", "for", "chest", "pain", "[SEP]"];
+  const L = 12, D = 8, dk = 8;
+  const pos = Array.from({ length: L }, () => Array.from({ length: D }, () => normal(r)));
+  const tok = words.map(() => Array.from({ length: D }, () => normal(r)));
+  const X = Array.from({ length: L }, (_, i) => pos[i].map((p, j) => p + (i < words.length ? tok[i][j] : 0)));
+  const Wq = Array.from({ length: dk }, () => Array.from({ length: D }, () => normal(r) / Math.sqrt(D)));
+  const Wk = Array.from({ length: dk }, () => Array.from({ length: D }, () => normal(r) / Math.sqrt(D)));
+  const mv = (W, x) => W.map(row => row.reduce((a, w, j) => a + w * x[j], 0));
+  const Q = X.map(x => mv(Wq, x)), K = X.map(x => mv(Wk, x));
+  const S = Q.map(q => K.map(k => q.reduce((a, qi, j) => a + qi * k[j], 0) / Math.sqrt(dk)));
+  const n = words.length;
+  const Aun = S.slice(0, n).map(row => softmax(row));
+  const Am = S.slice(0, n).map(row => softmax(row.map((v, j) => j < n ? v : -Infinity)));
+  const cell = 17, gx = [70, 320], gy = 60;
+  const labs = words.concat(Array(L - n).fill("PAD"));
+  for (const [k, A] of [[0, Aun], [1, Am]]) {
+    const x0 = gx[k];
+    text(g, k ? "with the mask" : "no mask", x0 + L * cell / 2, 22, { align: "center", color: C.ink1, bold: true });
+    let onPad = 0;
+    A.forEach((row, i) => row.forEach((w, j) => {
+      g.fillStyle = heat(Math.min(1, w * 2.2), C.mag); g.fillRect(x0 + j * cell, gy + i * cell, cell - 1, cell - 1);
+      if (j >= n) { onPad += w; g.strokeStyle = C.grid; g.beginPath(); g.moveTo(x0 + j * cell, gy + i * cell + cell - 1); g.lineTo(x0 + j * cell + cell - 1, gy + i * cell); g.stroke(); }
+    }));
+    labs.forEach((w, j) => { g.save(); g.translate(x0 + j * cell + cell / 2 + 3, gy - 4); g.rotate(-Math.PI / 2.6); text(g, w, 0, 0, { size: 9, color: j < n ? C.ink2 : C.ink3 }); g.restore(); });
+    if (k === 0) words.forEach((w, i) => text(g, w, x0 - 4, gy + i * cell + 12, { size: 9, align: "right" }));
+    text(g, `weight on PAD: ${(100 * onPad / n).toFixed(0)}%`, x0 + L * cell / 2, gy + n * cell + 22, { align: "center", color: k ? C.emp : C.ext, bold: true });
+  }
+  text(g, "rows: queries · columns: keys · 4 PADs to length 12", 275, 290, { align: "center", size: 10, color: C.ink3 });
+}
+
+// ---------------------------------------------------------------- 84 · the block and its masks
+{
+  const g = ctx("cBlock");
+  const box = (x, y, w, h, lab, col = C.ink2, fill = C.s2) => { g.fillStyle = fill; g.fillRect(x, y, w, h); g.strokeStyle = col; g.lineWidth = 1.5; g.strokeRect(x, y, w, h); text(g, lab, x + w / 2, y + h / 2 + 4, { align: "center", color: C.ink1 }); };
+  const arrow = (x1, y1, x2, y2) => { g.strokeStyle = C.ink3; g.lineWidth = 1.2; g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke(); g.beginPath(); g.moveTo(x2, y2); g.lineTo(x2 - 4, y2 + 7); g.lineTo(x2 + 4, y2 + 7); g.closePath(); g.fillStyle = C.ink3; g.fill(); };
+  const bx = 40, bw = 170;
+  text(g, "x̃  [L, D]", bx + bw / 2, 306, { align: "center", mono: true });
+  arrow(bx + bw / 2, 292, bx + bw / 2, 262);
+  box(bx, 230, bw, 30, "Multi-head self-attention", C.a);
+  arrow(bx + bw / 2, 230, bx + bw / 2, 206); box(bx, 180, bw, 26, "Add & Norm");
+  arrow(bx + bw / 2, 180, bx + bw / 2, 156); box(bx, 124, bw, 30, "Feed-forward, per token", C.b);
+  arrow(bx + bw / 2, 124, bx + bw / 2, 100); box(bx, 74, bw, 26, "Add & Norm");
+  arrow(bx + bw / 2, 74, bx + bw / 2, 44); text(g, "h  [L, D]", bx + bw / 2, 34, { align: "center", mono: true });
+  g.strokeStyle = C.ink3; g.setLineDash([3, 3]); g.strokeRect(bx - 12, 66, bw + 24, 202); g.setLineDash([]);
+  text(g, "× N", bx + bw + 16, 70, { color: C.ink1, bold: true });
+  // three masks, 6 × 6
+  const m = 6, cs = 12, mx = [262, 358, 454], my = 110;
+  const kinds = [["encoder", (i, j) => true], ["decoder", (i, j) => j <= i], ["cross", (i, j) => true]];
+  kinds.forEach(([lab, ok], k) => {
+    text(g, lab, mx[k] + m * cs / 2, my - 12, { align: "center", color: C.ink1, bold: true });
+    for (let i = 0; i < m; i++) for (let j = 0; j < m; j++) {
+      g.fillStyle = ok(i, j) ? (k === 2 ? C.c : C.a) : C.s3; g.globalAlpha = ok(i, j) ? 0.75 : 1;
+      g.fillRect(mx[k] + j * cs, my + i * cs, cs - 1, cs - 1); g.globalAlpha = 1;
+    }
+    text(g, k === 2 ? "keys: encoder" : "keys", mx[k] + m * cs / 2, my + m * cs + 14, { align: "center", size: 9, color: C.ink3 });
+    text(g, k === 2 ? "queries: decoder" : "queries", mx[k] + m * cs / 2, my + m * cs + 26, { align: "center", size: 9, color: C.ink3 });
+  });
+  text(g, "which keys each query may weigh", 406, 60, { align: "center", color: C.ink2 });
+  text(g, "shaded = allowed; grey = −∞ before the softmax", 406, 290, { align: "center", size: 10, color: C.ink3 });
+}
+
+// ---------------------------------------------------------------- 84 · pretraining (torch numbers)
+{
+  const g = ctx("cPre");
+  text(g, "08-1 cell 4's two examples, filled by each objective", 16, 20, { color: C.ink1, bold: true });
+  const rows = [["treated with [MASK] for chest pain → a right drug", 1.00, 0.17, 0.20],
+                ["treated with aspirin for ___ → the symptom", 1.00, 1.00, 0.20]];
+  const x0 = 60, x1 = 520;
+  rows.forEach(([lab, mlm, cau, ch], k) => {
+    const y = 48 + k * 78;
+    text(g, lab, 16, y, { mono: true, size: 10.5, color: C.ink1 });
+    [["MLM", mlm, C.a], ["causal", cau, C.b]].forEach(([n, v, col], j) => {
+      const yy = y + 10 + j * 22;
+      text(g, n, x0 - 6, yy + 12, { align: "right", size: 10 });
+      g.fillStyle = col; g.fillRect(x0, yy, (x1 - x0) * v, 16);
+      text(g, `${Math.round(v * 100)}%`, x0 + (x1 - x0) * v + 4, yy + 12, { size: 10, color: C.ink1 });
+    });
+    g.setLineDash([3, 3]); g.strokeStyle = C.ref; g.beginPath(); g.moveTo(x0 + (x1 - x0) * ch, y + 6); g.lineTo(x0 + (x1 - x0) * ch, y + 58); g.stroke(); g.setLineDash([]);
+    text(g, "chance", x0 + (x1 - x0) * ch + 3, y + 56, { size: 9, color: C.ref });
+  });
+  text(g, "one word through the encoder: \"discharge\" home against \"discharge\" from a wound", 16, 222, { color: C.ink1, bold: true });
+  const lay = [["token + position", 0.996, 0.50], ["after block 1", 0.786, 1.00], ["after block 2", 0.688, 1.00]];
+  lay.forEach(([n, cos, pr], k) => {
+    const x = 60 + k * 160, y = 248;
+    text(g, n, x + 50, y, { align: "center", size: 10 });
+    text(g, `cos ${cos.toFixed(3)}`, x + 50, y + 22, { align: "center", mono: true, color: C.ink1 });
+    text(g, `probe ${Math.round(pr * 100)}%`, x + 50, y + 42, { align: "center", mono: true, color: pr > 0.9 ? C.emp : C.ext });
+  });
+  text(g, "cos of the two senses' mean vectors; a linear probe on held-out rows", 16, 312, { size: 10, color: C.ink3 });
+}
+
+// ---------------------------------------------------------------- 85 · what each strategy trains (by formula)
+{
+  const g = ctx("cAdapt");
+  const Vv = 28996, D = 768, Fh = 3072, Lp = 512, N = 12, K = 2, r = 8;
+  const emb = Vv * D + Lp * D + 2 * D + 2 * D;
+  const layer = 4 * (D * D + D) + 2 * D + (D * Fh + Fh) + (Fh * D + D) + 2 * D;
+  const pooler = D * D + D, head = D * K + K, backbone = emb + N * layer + pooler;
+  const lora = N * 2 * (D * r + r * D);
+  const fmt = (n) => n.toLocaleString("en-US");
+  const cols = [["Transfer learning", head, false, false], ["Full fine-tuning", backbone + head, true, false], ["LoRA (PEFT)", lora + head, false, true]];
+  cols.forEach(([lab, tr, bbT, lo], k) => {
+    const x = 20 + k * 178, w = 150;
+    text(g, lab, x + w / 2, 22, { align: "center", color: C.ink1, bold: true });
+    g.fillStyle = bbT ? heat(0.55, C.a) : C.s3; g.fillRect(x, 40, w, 150); g.strokeStyle = C.ink3; g.strokeRect(x, 40, w, 150);
+    text(g, "backbone", x + w / 2, 104, { align: "center", color: C.ink1 });
+    text(g, fmt(backbone), x + w / 2, 122, { align: "center", mono: true, size: 10 });
+    text(g, bbT ? "trained" : "frozen", x + w / 2, 140, { align: "center", size: 10, color: bbT ? C.ink1 : C.ink3 });
+    if (lo) { g.fillStyle = heat(0.8, C.b); for (let i = 0; i < 6; i++) g.fillRect(x + w - 16, 48 + i * 23, 10, 16);
+      text(g, "B·A beside Q, V", x + w - 20, 186, { align: "right", size: 9, color: C.ink2 }); }
+    g.fillStyle = heat(0.55, C.a); g.fillRect(x, 200, w, 34); g.strokeRect(x, 200, w, 34);
+    text(g, `head ${fmt(head)}`, x + w / 2, 222, { align: "center", size: 10, color: C.ink1 });
+    text(g, "trains", x + w / 2, 262, { align: "center", size: 10 });
+    text(g, fmt(tr), x + w / 2, 282, { align: "center", mono: true, bold: true, color: C.ink1 });
+    text(g, `${(100 * tr / (backbone + head + (lo ? lora : 0))).toFixed(tr > 1e6 ? 0 : 3)}% of the model`, x + w / 2, 300, { align: "center", size: 10 });
+  });
+  text(g, `by formula; LoRA r ${r}: 12 layers × 2 matrices × (768·8 + 8·768) = ${fmt(lora)}`, 275, 322, { align: "center", size: 9.5, color: C.ink3 });
+}
+
+// ---------------------------------------------------------------- 85 · the two targets (torch numbers)
+{
+  const g = ctx("cCurves");
+  const ns = [16, 64, 256, 1024];
+  const data = {
+    "a finding asserted (the pretraining carries it)": { scratch: [87, 95, 100, 100], transfer: [93, 99, 99, 99], full: [88, 96, 99, 100], lora: [92, 97, 100, 100] },
+    "a drug for the wrong symptom (it does not)": { scratch: [51, 54, 79, 84], transfer: [50, 51, 55, 51], full: [51, 59, 81, 86], lora: [50, 58, 71, 76] },
+  };
+  const cols = { scratch: C.ink3, transfer: C.a, full: C.b, lora: C.c };
+  Object.entries(data).forEach(([title, rows], k) => {
+    const x0 = 44 + k * 262, x1 = x0 + 210, T = 44, B = 270;
+    const X = (i) => x0 + (x1 - x0) * i / 3, Y = (v) => B - (B - T) * (v - 50) / 50;
+    text(g, title, (x0 + x1) / 2, 20, { align: "center", size: 10, color: C.ink1, bold: true });
+    g.strokeStyle = C.grid; for (const v of [50, 75, 100]) { g.beginPath(); g.moveTo(x0, Y(v)); g.lineTo(x1, Y(v)); g.stroke(); text(g, v + "%", x0 - 4, Y(v) + 4, { align: "right", size: 9, color: C.ink3 }); }
+    ns.forEach((n, i) => text(g, String(n), X(i), B + 14, { align: "center", size: 9, color: C.ink3 }));
+    text(g, "labelled notes n", (x0 + x1) / 2, B + 28, { align: "center", size: 10 });
+    Object.entries(rows).forEach(([s, v]) => {
+      g.strokeStyle = cols[s]; g.lineWidth = s === "scratch" ? 1.5 : 2; g.setLineDash(s === "scratch" ? [4, 3] : []);
+      g.beginPath(); v.forEach((a, i) => i ? g.lineTo(X(i), Y(a)) : g.moveTo(X(i), Y(a))); g.stroke(); g.setLineDash([]);
+      v.forEach((a, i) => { g.fillStyle = cols[s]; g.beginPath(); g.arc(X(i), Y(a), 2.5, 0, 7); g.fill(); });
+    });
+  });
+  [["transfer", C.a], ["full", C.b], ["LoRA", C.c], ["scratch", C.ink3]].forEach(([s, col], i) => {
+    const x = 70 + i * 110; g.fillStyle = col; g.fillRect(x, 318, 14, 4); text(g, s, x + 20, 323, { size: 10 });
+  });
+}
+
+// ---------------------------------------------------------------- 85 · IG signed against clipped (torch numbers)
+{
+  const g = ctx("cIG");
+  const toks = ["[CLS]", "no", "nausea", "on", "exam", ".", "patient", "was", "with", "nausea", "[SEP]"];
+  const a = [-0.53, -0.42, -0.26, 0.36, -0.32, 0.29, 2.04, -0.30, 4.35, -0.92, 1.06];
+  const x0 = 20, cw = 46, mid = 90, sc = 14;
+  text(g, "signed", 8, 18, { color: C.ink1, bold: true });
+  g.strokeStyle = C.ink3; g.beginPath(); g.moveTo(x0, mid); g.lineTo(x0 + cw * toks.length, mid); g.stroke();
+  toks.forEach((t, i) => {
+    const x = x0 + i * cw + 6, h = a[i] * sc;
+    g.fillStyle = a[i] >= 0 ? C.emp : C.ext; g.fillRect(x, h >= 0 ? mid - h : mid, cw - 12, Math.abs(h));
+    text(g, a[i].toFixed(2), x + (cw - 12) / 2, h >= 0 ? mid - h - 4 : mid - h + 12, { align: "center", size: 9, color: C.ink2 });
+  });
+  const mx = Math.max(...a);
+  text(g, "the lesson's: clip at 0, divide by the largest", 8, 170, { color: C.ink1, bold: true });
+  toks.forEach((t, i) => {
+    const x = x0 + i * cw, v = Math.max(0, a[i]) / mx;
+    g.fillStyle = heat(v, C.ext); g.fillRect(x + 1, 184, cw - 2, 26);
+    text(g, t, x + cw / 2, 201, { align: "center", size: 10, mono: true, color: C.ink1 });
+    text(g, t, x + cw / 2, 150, { align: "center", size: 9.5, mono: true, color: C.ink3 });
+  });
+  text(g, "\"no\" −0.42 and the finding \"nausea\" −0.92 print as nothing; \"with\" takes the colour", 275, 236, { align: "center", size: 10, color: C.ink2 });
+}
+
+// ---------------------------------------------------------------- 85 · completeness (torch numbers)
+{
+  const g = ctx("cComp");
+  const rows = [[5, 0.8063, 1.739], [50, 0.0668, 0.183], [300, 0.0107, 0.034]];
+  const x0 = 110, x1 = 520, lg = (v) => Math.log10(v), X = (v) => x0 + (x1 - x0) * (lg(v) + 2) / 2.4;
+  text(g, "integrated gradients: the sum of the attributions against f(x) − f(baseline)", 16, 22, { color: C.ink1, bold: true });
+  for (const v of [0.01, 0.1, 1]) { g.strokeStyle = C.grid; g.beginPath(); g.moveTo(X(v), 40); g.lineTo(X(v), 200); g.stroke(); text(g, String(v), X(v), 216, { align: "center", size: 9, color: C.ink3 }); }
+  rows.forEach(([st, med, worst], k) => {
+    const y = 60 + k * 50;
+    text(g, `${st} steps`, x0 - 10, y + 12, { align: "right", size: 11, color: C.ink1 });
+    g.strokeStyle = C.ink3; g.beginPath(); g.moveTo(X(Math.max(med * 0.3, 0.0101)), y + 8); g.lineTo(X(worst), y + 8); g.stroke();
+    g.fillStyle = C.emp; g.beginPath(); g.arc(X(med), y + 8, 5, 0, 7); g.fill();
+    text(g, `median ${med.toFixed(3)} · worst ${worst.toFixed(3)}`, X(worst) - 2, y - 4, { align: "right", size: 9.5 });
+  });
+  text(g, "absolute gap, log scale · captum's default is 50 steps (Gauss–Legendre, closer than this sum)", 275, 238, { align: "center", size: 9.5, color: C.ink3 });
+}
+
+// ---------------------------------------------------------------- 86 · the model's shapes
+{
+  const g = ctx("cBuild");
+  const vocab = { "*": 0, A: 1, C: 2, D: 3, E: 4, F: 5, G: 6, H: 7, I: 8, K: 9, L: 10, M: 11, N: 12, P: 13, Q: 14, R: 15, S: 16, T: 17, V: 18, W: 19, Y: 20, X: 21 };
+  const seq = "MKASRR****", ids = [...seq].map(c => vocab[c]), mask = ids.map(i => i ? 1 : 0);
+  const cw = 34, x0 = 100;
+  const rowOf = (lab, vals, y, colf) => { text(g, lab, x0 - 8, y + 15, { align: "right", size: 10 });
+    vals.forEach((v, i) => { g.fillStyle = colf(i); g.fillRect(x0 + i * cw, y, cw - 2, 22); text(g, String(v), x0 + i * cw + cw / 2 - 1, y + 15, { align: "center", mono: true, size: 11, color: C.ink1 }); }); };
+  rowOf("Pad(10)", [...seq], 20, i => mask[i] ? C.s2 : C.s3);
+  rowOf("input_ids", ids, 52, i => mask[i] ? C.s2 : C.s3);
+  rowOf("attention_mask", mask, 84, i => mask[i] ? heat(0.4, C.emp) : C.s3);
+  const stages = [["tok_embedding + pos_embedding", "[1, 10, 128]"], ["TransformerEncoder(src_key_padding_mask = mask == 0)", "[1, 10, 128]"],
+                  ["mean over the 6 unmasked positions", "[1, 128]"], ["Linear(128, 2)", "[1, 2]"]];
+  stages.forEach(([s, sh], k) => { const y = 136 + k * 38;
+    g.strokeStyle = C.ink3; g.strokeRect(20, y, 400, 28); text(g, s, 30, y + 18, { size: 10.5, mono: true, color: C.ink1 });
+    text(g, sh, 520, y + 18, { align: "right", mono: true, color: C.ink1 }); });
+  text(g, "the mask made by Tokenize reaches the attention and the pool", 20, 294, { size: 10, color: C.ink3 });
+}
+
+// ---------------------------------------------------------------- 86 · the two vocabularies
+{
+  const g = ctx("cVocab");
+  const lesson = [["*", 0], ["A", 1], ["C", 2], ["D", 3], ["E", 4], ["…", ""], ["Y", 20], ["X", 21]];
+  const esm = [["<cls>", 0], ["<pad>", 1], ["<eos>", 2], ["<unk>", 3], ["L", 4], ["A", 5], ["G", 6], ["…", ""]];
+  const col = (lab, rows, x, hl) => { text(g, lab, x + 60, 22, { align: "center", color: C.ink1, bold: true });
+    rows.forEach(([t, i], k) => { const y = 36 + k * 22; g.fillStyle = hl(i) ? heat(0.45, C.ext) : C.s2; g.fillRect(x, y, 120, 20);
+      text(g, t, x + 8, y + 14, { mono: true, size: 11, color: C.ink1 }); text(g, String(i), x + 112, y + 14, { mono: true, size: 11, align: "right", color: C.ink1 }); }); };
+  col("08-3 cells 23, 85", lesson, 40, i => i === 0);
+  col("ESM-2 tokenizer", esm, 230, i => i === 0);
+  text(g, "PAD_IDX =", 372, 50, { mono: true, size: 10, color: C.ext });
+  text(g, "aa_vocab['*'] = 0", 372, 64, { mono: true, size: 10, color: C.ext });
+  text(g, "and id 0 in ESM-2", 372, 84, { size: 10, color: C.ext });
+  text(g, "is <cls>", 372, 98, { size: 10, color: C.ext });
+  const occ = ["<cls>", "M", "K", "<cls>", "<cls>", "<cls>", "<cls>", "R", "T", "…"];
+  text(g, "k = 4 at position 3, as cell 85 writes it:", 40, 234, { size: 10.5, color: C.ink1 });
+  occ.forEach((t, i) => { const x = 40 + i * 48; g.fillStyle = i >= 3 && i <= 6 ? heat(0.45, C.ext) : C.s2; g.fillRect(x, 244, 46, 24);
+    text(g, t, x + 23, 260, { align: "center", mono: true, size: 10, color: C.ink1 }); });
+  text(g, "ids read from the esm2_t6_8M_UR50D tokenizer, 2026-09-25", 40, 290, { size: 10, color: C.ink3 });
+}
+</script>
+</body>
+</html>
