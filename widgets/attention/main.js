@@ -160,8 +160,8 @@ function box(ctx, colors, x, y, w, h, label, { alpha = 1 } = {}) {
   txt(ctx, label, x + w / 2, y + h / 2, { font: small(colors), fill: colors.ink1, align: "center", baseline: "middle", alpha });
 }
 
-/** how far along each row is: rows before the newest full, the newest at its tween, the rest empty */
-const rowAlpha = (anim, i) => (i < anim.n - 1 ? 1 : i === anim.n - 1 ? ease(anim.t) : 0);
+/** how far along each row is: rows before the newest full, the newest at `fresh` (its tween), the rest empty */
+const rowAlpha = (anim, i, fresh) => (i < anim.n - 1 ? 1 : i === anim.n - 1 ? fresh : 0);
 const queryOf = (anim) => anim.n - 1;
 /* THE GLIDE. A press moves the query from the last row to the next: the circle, the
    dashed row outline and every colour ride `e` from the old row to the new, so the
@@ -186,7 +186,7 @@ function matrix(ctx, colors, A, toks, x0, y0, cs, anim, { colLabels = true, rowL
   });
   for (let i = 0; i < L; i++) {
     if (rowLabels) txt(ctx, toks[i], x0 - 5, y0 + i * cs + cs / 2, { font: mono(colors), fill: i === qi ? colors.groupA : colors.ink2, align: "right", baseline: "middle" });
-    const a = rowAlpha(anim, i);
+    const a = rowAlpha(anim, i, ge);
     for (let j = 0; j < K; j++) {
       const x = x0 + j * cs, y = y0 + i * cs;
       ctx.fillStyle = colors.surface2; ctx.fillRect(x, y, cs - 1, cs - 1);
