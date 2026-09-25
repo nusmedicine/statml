@@ -1111,7 +1111,12 @@ export function defineWidget(config) {
       primary: true,
       onClick: () => startAnim("run"),
     },
-    {
+    /* NO ANIMATION, NO RESET (Kenneth, 2026-09-25, on widget 81 once its
+       press was cut). Alone in a drive row with nothing to step or play, the
+       button read as a leftover. The defaults are then reached control by
+       control, or by the widget's bare link. It takes linear-regularization's
+       Reset with it, the only other widget with no animation. */
+    animation && {
       key: "reset",
       /* THE LABEL NAMES WHAT IT CLEARS, because "Reset" alone does not. The
          usability literature on reset controls is blunt about it — a bare
@@ -1143,6 +1148,8 @@ export function defineWidget(config) {
       },
     },
   ].filter(Boolean));
+  /* an empty drive row still draws its padding and rule; with no button in it, it goes */
+  if (!Object.keys(drive).length) dom.drive.hidden = true;
 
   /* --- the run button's width is reserved, not discovered ------------------ *
    *
