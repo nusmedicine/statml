@@ -786,7 +786,7 @@ defineWidget({
     const tiles = (v, name, cut, promise) => {
       const t = tp(v), f = fp(v), n = t + f;
       const found = { label: `${name}: truly changed genes found`, value: `${t} of 20`, note: `the cluster's type's own changed genes, called at ${cut} < 0.05` };
-      const falseCalls = { label: `${name}: false calls`, value: n ? `${f} of ${n}` : "0", note: `${n ? `${Math.round((100 * f) / n)}% of its calls; ` : "no calls; "}${promise}` };
+      const falseCalls = { label: `${name}: false calls`, value: n ? `${f} of its ${n} call${n === 1 ? "" : "s"}` : "no calls", note: `${n ? `${Math.round((100 * f) / n)}% of the genes it called; ` : ""}${promise}` };
       return truth ? [found, falseCalls] : [falseCalls];
     };
     return [
