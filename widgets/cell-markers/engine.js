@@ -139,6 +139,11 @@ export function simulate(rng, { cells = 400, patientSd = 0.3, sampleSd = 0, phi 
       out.push({ sample: s.key, patient: s.patient, tissue: s.tissue, type: ti, z, x, xi });
     }
   }
+  /* the effects each count was drawn with, for a figure that shows where a
+     gene's shift came from (the explainer mock, his round 2026-09-25: "can
+     sample and patient effect be visualized?"). Read after every draw, so
+     nothing drawn moves. pat[p][g] in log; samp[si][g] by SAMP's order. */
+  out.effects = { pat, samp, samples: SAMP.map((q) => q.key) };
   return out;
 }
 

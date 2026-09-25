@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · cell-markers — explaining the sample and patient effects</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1000px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: var(--sp-3) 0 var(--sp-1); color: var(--ink-1); }
+  p.note, li { color: var(--ink-2); font-size: var(--fs-sm); max-width: 104ch; }
+  p.note { margin: 0 0 var(--sp-3); }
+  p.note b, li b { color: var(--ink-1); }
+  ul { margin: 0 0 var(--sp-3); padding-left: 1.2em; }
+  .bar { position: sticky; top: 0; z-index: 2; display: flex; flex-wrap: wrap; gap: var(--sp-3); align-items: end; background: var(--surface-2); padding: var(--sp-2) 0; border-bottom: 1px solid var(--grid); font-size: var(--fs-xs); color: var(--ink-2); }
+  .bar .seg { display: flex; }
+  .bar button { font: inherit; font-size: var(--fs-xs); padding: 5px 9px; border: 1px solid var(--grid); background: var(--surface-1); color: var(--ink-2); cursor: pointer; }
+  .bar button[aria-pressed=true] { background: var(--ink-1); color: var(--surface-1); border-color: var(--ink-1); }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); border-radius: var(--radius); max-width: 100%; }
+  table.calls { border-collapse: collapse; font-size: var(--fs-sm); width: 100%; }
+  table.calls td, table.calls th { border-top: 1px solid var(--grid); padding: 6px 8px; vertical-align: top; text-align: left; }
+  table.calls th { color: var(--ink-3); font-weight: normal; font-size: var(--fs-xs); }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>cell-markers · Tumour vs liver: showing why the sample and patient effects matter</h1>
+  <p class="note">Your two questions: can the sample and patient effects be seen, and can the call tiles become a Venn diagram with the truth. Four figures below, all on the widget's own simulation (Kupffer cells, 300 cells a sample, each type its own 20 changed genes). The bar drives all of them. Start at <b>Patient 0.3, Sample 0</b>, then raise the sample effect and watch figure 1's grey bars and figure 2's left histogram.</p>
+
+  <h3>What the figures draw on</h3>
+  <ul>
+    <li><b>Pseudoreplication</b> (Lazic 2010, <i>BMC Neuroscience</i>; Zimmerman, Espeland &amp; Langefeld 2021, <i>Nature Communications</i>, for single-cell data): cells nested in samples nested in patients, and a test that counts the wrong level as its replicates. They explain it with the nesting itself — figure 3.</li>
+    <li><b>Variance partitioning</b> (Hoffman &amp; Schadt 2016, <i>BMC Bioinformatics</i>, variancePartition): a gene's variation split by where it comes from — patient, sample, cell. Figure 1 does it for one gene, with the simulation's own offsets, which a real study cannot see.</li>
+    <li><b>The p-value histogram as a calibration check</b> (Breheny, Stromberg &amp; Lambert 2018, <i>High-Throughput</i>): for genes that do not change, an honest test's p values are flat; an overconfident one piles them at 0. Figure 2.</li>
+    <li><b>Set diagrams</b> (Lex et al. 2014, UpSet, <i>IEEE TVCG</i>): a Venn diagram reads well up to three sets — truth, called over cells, called over samples is three. Fixed circles with counts, not areas, so no area claims a proportion it cannot keep. Figure 4, with the 2 × 2 table (what a DE benchmark prints) as the alternative.</li>
+  </ul>
+
+  <div class="bar">
+    <div>Patient effect<div class="seg" data-k="patientSd"></div></div>
+    <div>Sample effect<div class="seg" data-k="sampleSd"></div></div>
+    <div>True change<div class="seg" data-k="change"></div></div>
+    <div>Seed<div class="seg" data-k="seed"></div></div>
+    <div>Gene<div class="seg" data-k="gene"></div></div>
+  </div>
+
+  <h2>1 · Where one gene's shift comes from</h2>
+  <p class="note">Top: the gene's cells in each sample. Bottom: what moved each sample, as the simulation drew it — the <b>patient</b> offset (the same for a patient's liver and tumour sample), the <b>sample</b> offset (its own), and the <b>true change</b> (tumour samples, truly changed genes only). The lines under it add the parts up for tumour minus liver. The patient offsets appear once on each side, so they subtract away; the sample offsets do not, and with two samples a side they can line up with tissue by chance. Over cells, that chance shift is carried by ~95 cells and looks certain; over samples it is four numbers and looks like what it is.</p>
+  <canvas id="c1"></canvas>
+
+  <h2>2 · Across every unchanged gene: are the p values honest?</h2>
+  <p class="note">The p values of the ~410 genes that do not change, over cells and over samples. The dashed line is what an honest test gives (flat: 5% of genes below 0.05 by chance, and adjustment removes those). With a sample effect, the test over cells piles unchanged genes at p ≈ 0 — it counts cells as replicates, so it reads a sample's shift as a real difference. The test over samples stays flat. This is the whole-page version of figure 1.</p>
+  <canvas id="c2"></canvas>
+
+  <h2>3 · The design: which level each test counts as a replicate</h2>
+  <p class="note">A static diagram. Each effect lives at one level; each test counts one level as its n. The cell test's n is the bottom row, where cells of one sample share their sample's shift; the pseudobulk's n is the middle row.</p>
+  <canvas id="c3"></canvas>
+
+  <h2>4 · The calls against the truth</h2>
+  <p class="note"><b>A · Venn.</b> Three circles: the 20 truly changed genes, and each test's calls. Each dot is a gene — blue truly changed, red unchanged — so a red dot inside a test's circle is a false call, and a blue dot outside both test circles is a gene both missed. Numbers are counts, not areas. <b>B · the 2 × 2 table</b> per test, as a benchmark prints it. The page's four tiles would stay either way, as the text the figure is read against.</p>
+  <canvas id="c4"></canvas>
+
+  <h2>The calls</h2>
+  <table class="calls">
+    <tr><th>#</th><th>call</th><th>arms</th><th>recommendation</th></tr>
+    <tr><td>1</td><td>Explaining the two effects</td><td>fig 1 (one gene's parts) · fig 2 (p histograms) · fig 3 (design tree) · a mix</td><td>1 and 3 — the tree says where each effect lives and what each test counts; figure 1 shows it happening to the gene on screen, with the sums that make patient cancel and sample not. Figure 2 is the strongest evidence but a second abstraction (a distribution of p values); keep it for the lesson's discussion, or as a later page</td></tr>
+    <tr><td>2</td><td>Where figure 1 goes</td><td>under each column's gene view (its parts beside its cells) · one panel across both columns · a toggle on the gene view</td><td>one panel across both columns, under the gene views: the parts are the same for both tests; only how many replicates carry them differs</td></tr>
+    <tr><td>3</td><td>The calls</td><td>A Venn · B two 2 × 2 tables · keep the tiles only</td><td>A — it puts the truth and both tests in one picture, and a dot is a gene, so it can pick the gene as the lists do; the tiles stay as its text</td></tr>
+  </table>
+</main>
+<script type="module">
+import { makeRng } from "../core/rng.js";
+import { simulate, normalise, findMarkers, conditionGenesOf, geneName, TYPES, G, G_MARK, G_HOUSE } from "../cell-markers/engine.js";
+import { analyse } from "../deseq2/engine.js";
+
+const css = getComputedStyle(document.documentElement), tok = (n) => css.getPropertyValue(n).trim();
+const K = {
+  font: tok("--font"), mono: tok("--font-mono"), xs: tok("--fs-xs"), sm: tok("--fs-sm"),
+  ink1: tok("--ink-1"), ink2: tok("--ink-2"), ink3: tok("--ink-3"), grid: tok("--grid"), axis: tok("--axis"), surface: tok("--surface-1"), surface2: tok("--surface-2"),
+  empirical: tok("--c-empirical"), extreme: tok("--c-extreme"), reference: tok("--c-reference"), highlight: tok("--c-highlight"),
+  groupA: tok("--c-group-a"), groupB: tok("--c-group-b"), theory: tok("--c-theory"),
+};
+const dpr = window.devicePixelRatio || 1, LOG05 = Math.log10(0.05);
+const ORDER = ["p1-liver", "p2-liver", "p1-tumour", "p2-tumour"], NAMES = ["P1 liver", "P2 liver", "P1 tumour", "P2 tumour"];
+const derived = (seed, salt) => (seed * 7919 + salt) % 2147483647;
+const ALL = TYPES.map((t) => t.key), TI = TYPES.findIndex((t) => t.key === "kupffer"), OWN = conditionGenesOf(TI);
+const pFmt = (lp) => (lp < -300 ? "0" : lp > -2 ? (10 ** lp).toFixed(3) : `1e${Math.round(lp)}`);
+const S = { patientSd: 0.3, sampleSd: 0.4, change: 1, seed: 1, gene: "unchanged", picked: null };
+
+const cache = new Map();
+function data() {
+  const key = `${S.patientSd}|${S.sampleSd}|${S.change}|${S.seed}`;
+  if (cache.has(key)) return cache.get(key);
+  const cells = simulate(makeRng(derived(S.seed, 1)), { cells: 300, patientSd: S.patientSd, sampleSd: S.sampleSd, condition: S.change, conditionTypes: ALL, conditionByType: true });
+  const Y = normalise(cells), inC = (i) => cells[i].type === TI, truth = (g) => S.change > 0 && OWN(g);
+  const fm = findMarkers(Y, (i) => inC(i) && cells[i].tissue === "tumour", (i) => inC(i) && cells[i].tissue === "liver", { logfc: 0, minPct: 0, nGenes: 33538 });
+  const counts = Array.from({ length: G }, (_, g) => ORDER.map((k) => cells.reduce((s, c) => s + (c.type === TI && c.sample === k ? c.x[g] : 0), 0)));
+  const an = analyse({ counts, grp: [0, 0, 1, 1], reps: 2, genes: G });
+  const byC = new Map(fm.res.map((x) => [x.g, x]));
+  const cCall = new Set(fm.res.filter((x) => x.lpAdj < LOG05).map((x) => x.g)), dCall = new Set(an.expressed.filter((g) => an.resMAP[g].padj < 0.05));
+  const byP = [...fm.res].sort((a, b) => a.lp - b.lp);
+  const d = { cells, Y, truth, byC, an, cCall, dCall, counts, nullG: byP.find((x) => !truth(x.g)).g, trueG: byP.find((x) => truth(x.g))?.g ?? null, n: ORDER.map((k) => cells.filter((c) => c.type === TI && c.sample === k).length) };
+  cache.set(key, d); return d;
+}
+const geneOf = (d) => (S.picked !== null ? S.picked : S.gene === "changed" && d.trueG !== null ? d.trueG : d.nullG);
+
+function canvas(id, W, H) {
+  const cv = document.getElementById(id); cv.width = W * dpr; cv.height = H * dpr; cv.style.width = `${W}px`; cv.style.height = `${H}px`;
+  const ctx = cv.getContext("2d"); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H); return ctx;
+}
+function text(ctx, t, x, y, { col = K.ink3, al = "left", mono = false, bold = false, size = K.xs } = {}) { ctx.font = `${bold ? "600 " : ""}${size} ${mono ? K.mono : K.font}`; ctx.fillStyle = col; ctx.textAlign = al; ctx.fillText(t, x, y); }
+const head = (ctx, t, x, y) => text(ctx, t, x, y, { col: K.ink1, bold: true, size: K.sm });
+
+/* ------------------------------------------------ 1 · one gene's parts */
+function fig1(W) {
+  const d = data(), g = geneOf(d), E = d.cells.effects, H = 520, ctx = canvas("c1", W, H);
+  const x0 = 70, colW = (W - x0 - 250) / 4;
+  const vals = ORDER.map((k) => d.cells.map((c, i) => (c.type === TI && c.sample === k ? d.Y[i][g] : null)).filter((v) => v !== null));
+  const vMax = Math.max(0.5, ...vals.flat()) * 1.08, top = 34, bh = 170, sy = (v) => top + bh - (v / vMax) * bh;
+  head(ctx, `${geneName(g)}, ${d.truth(g) ? "truly changed" : "unchanged"}: each cell, by sample`, 8, 18);
+  ctx.strokeStyle = K.axis; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(x0, top); ctx.lineTo(x0, top + bh); ctx.lineTo(x0 + 4 * colW, top + bh); ctx.stroke();
+  [0, vMax / 2, vMax].forEach((v) => text(ctx, v.toFixed(1), x0 - 5, sy(v) + 4, { al: "right", mono: true }));
+  vals.forEach((vs, j) => {
+    const cx = x0 + j * colW + colW / 2, liver = j < 2;
+    ctx.globalAlpha = 0.7; ctx.strokeStyle = K.ink2; ctx.fillStyle = K.ink2; ctx.lineWidth = 1.2;
+    vs.forEach((v, i) => { const jit = (((i * 7919) % 101) / 101 - 0.5) * colW * 0.6; ctx.beginPath(); ctx.arc(cx + jit, sy(v), 2.2, 0, Math.PI * 2); if (liver) ctx.stroke(); else ctx.fill(); });
+    ctx.globalAlpha = 1;
+    const m = vs.reduce((a, b) => a + b, 0) / vs.length; ctx.strokeStyle = K.ink1; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(cx - colW * 0.3, sy(m)); ctx.lineTo(cx + colW * 0.3, sy(m)); ctx.stroke();
+    text(ctx, NAMES[j], cx, top + bh + 14, { col: K.ink2, al: "center" }); text(ctx, `${vs.length} cells`, cx, top + bh + 27, { col: K.ink2, al: "center" });
+  });
+  /* the parts, per sample, as drawn */
+  const sampIdx = ORDER.map((k) => E.samples.indexOf(k)), patIdx = [0, 1, 0, 1];
+  const cg = g - (TYPES.length * G_MARK + G_HOUSE) - TI * 20, sign = cg % 2 ? -1 : 1;
+  const parts = ORDER.map((k, j) => ({ pat: E.pat[patIdx[j]][g], samp: E.samp[sampIdx[j]][g], change: j >= 2 && d.truth(g) ? sign * S.change * Math.LN2 : 0 }));
+  const pTop = top + bh + 70, pH = 120, pMid = pTop + pH / 2, lim = Math.max(0.6, ...parts.map((q) => Math.abs(q.pat) + Math.abs(q.samp) + Math.abs(q.change))) * 1.1, py = (v) => pMid - (v / lim) * (pH / 2);
+  head(ctx, "What moved each sample (log scale, as the simulation drew it)", 8, pTop - 16);
+  ctx.strokeStyle = K.axis; ctx.beginPath(); ctx.moveTo(x0, pMid + 0.5); ctx.lineTo(x0 + 4 * colW, pMid + 0.5); ctx.stroke();
+  text(ctx, "0", x0 - 5, pMid + 4, { al: "right", mono: true });
+  const bw = Math.min(22, colW * 0.18);
+  parts.forEach((q, j) => {
+    const cx = x0 + j * colW + colW / 2;
+    [[q.pat, K.groupA, -1.2], [q.samp, K.ink3, 0], [q.change, K.reference, 1.2]].forEach(([v, col, off]) => {
+      if (!v && col === K.reference) return;
+      ctx.fillStyle = col; ctx.fillRect(cx + off * bw - bw / 2, Math.min(py(0), py(v)), bw, Math.max(1, Math.abs(py(v) - py(0))));
+    });
+    text(ctx, NAMES[j], cx, pTop + pH + 14, { col: K.ink2, al: "center" });
+  });
+  /* the legend of the parts, and the sums */
+  const lx = x0 + 4 * colW + 24;
+  [[K.groupA, "patient: the same for a patient's", "liver and tumour sample"], [K.ink3, "sample: this sample's own", ""], [K.reference, "true change: tumour samples,", "truly changed genes only"]].forEach(([col, a, b], k) => {
+    ctx.fillStyle = col; ctx.fillRect(lx, pTop + k * 38, 10, 10); text(ctx, a, lx + 16, pTop + 9 + k * 38, { col: K.ink2 }); if (b) text(ctx, b, lx + 16, pTop + 23 + k * 38, { col: K.ink2 });
+  });
+  const mean = (a) => a.reduce((s, v) => s + v, 0) / a.length;
+  const diff = (key, w) => { const T = [2, 3], L = [0, 1], wm = (idx) => idx.reduce((s, j) => s + parts[j][key] * w[j], 0) / idx.reduce((s, j) => s + w[j], 0); return wm(T) - wm(L); };
+  const eq = [1, 1, 1, 1], byCells = d.n, f = (v) => `${v >= 0 ? "+" : "−"}${Math.abs(v).toFixed(2)}`;
+  const y0 = pTop + pH + 44;
+  head(ctx, "Tumour minus liver, added up", 8, y0);
+  text(ctx, `each sample once (the test over samples):  patient ${f(diff("pat", eq))}  ·  sample ${f(diff("samp", eq))}  ·  true change ${f(diff("change", eq))}`, 8, y0 + 20, { col: K.ink1, mono: true });
+  text(ctx, `each cell once (the test over cells):         patient ${f(diff("pat", byCells))}  ·  sample ${f(diff("samp", byCells))}  ·  true change ${f(diff("change", byCells))}`, 8, y0 + 37, { col: K.ink1, mono: true });
+  const c = d.byC.get(g), r = d.an.resMAP[g];
+  text(ctx, `over cells: n = ${d.n.reduce((a, b) => a + b, 0)}, p_val_adj = ${pFmt(c.lpAdj)}${c.lpAdj < LOG05 ? ", called" : ""}      over samples: n = 4, padj = ${r && r.padj !== undefined ? pFmt(Math.log10(Math.max(1e-300, r.padj))) : "—"}${d.dCall.has(g) ? ", called" : ""}`, 8, y0 + 58, { col: K.ink2 });
+}
+
+/* ------------------------------------------------ 2 · p histograms of unchanged genes */
+function fig2(W) {
+  const d = data(), H = 262, ctx = canvas("c2", W, H), B = 20;
+  const pc = [...d.byC.values()].filter((x) => !d.truth(x.g)).map((x) => 10 ** x.lp);
+  const ps = d.an.expressed.filter((g) => !d.truth(g)).map((g) => d.an.resMAP[g].p);
+  const PW = (W - 100) / 2;
+  [[pc, "Over cells (Wilcoxon, each cell a replicate)", d.cCall], [ps, "Over samples (DESeq2 on the 4 sums)", d.dCall]].forEach(([p, title, calls], k) => {
+    const X = 40 + k * (PW + 40), top = 40, bh = 150;
+    const h = new Array(B).fill(0); p.forEach((v) => { h[Math.min(B - 1, Math.floor(v * B))] += 1; });
+    const flat = p.length / B, yMax = Math.max(flat * 2.2, ...h) * 1.05, sy = (v) => top + bh - (Math.min(v, yMax) / yMax) * bh, bw = PW / B;
+    head(ctx, title, X, 18);
+    h.forEach((v, i) => { ctx.fillStyle = K.empirical; ctx.globalAlpha = 0.75; ctx.fillRect(X + i * bw + 1, sy(v), bw - 2, top + bh - sy(v)); ctx.globalAlpha = 1; if (v > yMax) text(ctx, `${v}`, X + i * bw + bw / 2, top - 3, { al: "center", mono: true }); });
+    ctx.strokeStyle = K.theory; ctx.setLineDash([5, 4]); ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(X, sy(flat)); ctx.lineTo(X + PW, sy(flat)); ctx.stroke(); ctx.setLineDash([]);
+    ctx.strokeStyle = K.axis; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(X, top + bh + 0.5); ctx.lineTo(X + PW, top + bh + 0.5); ctx.stroke();
+    text(ctx, "0", X, top + bh + 14, { mono: true }); text(ctx, "p", X + PW / 2, top + bh + 14, { al: "center" }); text(ctx, "1", X + PW, top + bh + 14, { al: "right", mono: true });
+    const low = p.filter((v) => v < 0.05).length, fc = [...calls].filter((g) => !d.truth(g)).length;
+    text(ctx, `${p.length} unchanged genes: ${low} below p = 0.05 (${Math.round(0.05 * p.length)} expected by chance),`, X, top + bh + 34, { col: K.ink1 }); text(ctx, `${fc} called after adjustment`, X, top + bh + 50, { col: K.ink1 });
+  });
+}
+
+/* ------------------------------------------------ 3 · the design tree */
+function fig3(W) {
+  const d = data(), H = 318, ctx = canvas("c3", W, H);
+  const rowP = 40, rowS = 130, rowC = 215, x0 = 150, span = W - x0 - 30;
+  text(ctx, "Patient", 8, rowP + 4, { col: K.ink1, bold: true }); text(ctx, "patient effect lives here", 8, rowP + 20);
+  text(ctx, "Sample", 8, rowS + 4, { col: K.ink1, bold: true }); text(ctx, "sample effect lives here", 8, rowS + 20);
+  text(ctx, "Cell", 8, rowC + 4, { col: K.ink1, bold: true }); text(ctx, "each cell's own noise", 8, rowC + 20);
+  const sx = (j) => x0 + span * (j + 0.5) / 4, px = (p) => (sx(p) + sx(p + 2)) / 2;
+  [0, 1].forEach((p) => {
+    [p, p + 2].forEach((j) => { ctx.strokeStyle = K.grid; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(px(p), rowP + 10); ctx.lineTo(sx(j), rowS - 14); ctx.stroke(); });
+    ctx.fillStyle = K.groupA; ctx.beginPath(); ctx.arc(px(p), rowP, 11, 0, Math.PI * 2); ctx.fill(); text(ctx, `P${p + 1}`, px(p), rowP + 4, { col: K.surface, al: "center", bold: true });
+  });
+  ORDER.forEach((k, j) => {
+    const x = sx(j), n = Math.min(24, d.n[j]);
+    for (let i = 0; i < n; i += 1) { const cx = x + (i % 8 - 3.5) * 9, cy = rowC - 8 + Math.floor(i / 8) * 9; ctx.strokeStyle = K.grid; ctx.lineWidth = 0.8; ctx.beginPath(); ctx.moveTo(x, rowS + 12); ctx.lineTo(cx, cy - 3); ctx.stroke(); }
+    for (let i = 0; i < n; i += 1) { const cx = x + (i % 8 - 3.5) * 9, cy = rowC - 8 + Math.floor(i / 8) * 9; ctx.beginPath(); ctx.arc(cx, cy, 2.6, 0, Math.PI * 2); if (j < 2) { ctx.strokeStyle = K.ink2; ctx.lineWidth = 1.2; ctx.stroke(); } else { ctx.fillStyle = K.ink2; ctx.fill(); } }
+    ctx.fillStyle = K.surface; ctx.strokeStyle = K.ink1; ctx.lineWidth = 1.5; ctx.fillRect(x - 38, rowS - 12, 76, 24); ctx.strokeRect(x - 38, rowS - 12, 76, 24);
+    text(ctx, NAMES[j], x, rowS + 4, { col: K.ink1, al: "center" });
+    text(ctx, `${d.n[j]} cells`, x, rowC + 44, { col: K.ink2, al: "center" });
+  });
+  /* which row each test counts */
+  const bx = (y, label, col) => { ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.setLineDash([6, 4]); ctx.strokeRect(x0 - 6, y - 20, span + 12, 44); ctx.setLineDash([]); text(ctx, label, W - 30, y - 26, { col, al: "right", bold: true }); };
+  bx(rowS, "over samples: n = 4", K.ink1);
+  bx(rowC + 4, `over cells: n = ${d.n.reduce((a, b) => a + b, 0)}`, K.extreme);
+  text(ctx, "A patient's effect reaches both its samples, so tumour minus liver subtracts it away. A sample's effect reaches only its own cells — all of them, the same way —", 8, H - 26, { col: K.ink2 });
+  text(ctx, "so its ~24 cells are one draw of that effect, not 24: the cell test's n counts them 24 times.", 8, H - 10, { col: K.ink2 });
+}
+
+/* ------------------------------------------------ 4 · the calls against the truth */
+function fig4(W) {
+  const d = data(), H = 420, ctx = canvas("c4", W, H);
+  const truthSet = new Set(Array.from({ length: G }, (_, g) => g).filter(d.truth));
+  const genes = [...new Set([...truthSet, ...d.cCall, ...d.dCall])].sort((a, b) => a - b);
+  const VW = Math.min(420, W * 0.55), cx0 = VW / 2 + 10, R = 105;
+  const C = [{ x: cx0, y: 150, lab: `Truly changed (${truthSet.size})`, col: K.reference }, { x: cx0 - 72, y: 262, lab: `Called over cells (${d.cCall.size})`, col: K.ink1 }, { x: cx0 + 72, y: 262, lab: `Called over samples (${d.dCall.size})`, col: K.ink2 }];
+  head(ctx, "A · Venn: each dot a gene", 8, 18);
+  C.forEach((c, k) => { ctx.strokeStyle = c.col; ctx.lineWidth = 2; if (k === 2) ctx.setLineDash([6, 4]); ctx.beginPath(); ctx.arc(c.x, c.y, R, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]); });
+  text(ctx, C[0].lab, C[0].x, C[0].y - R - 8, { col: K.ink1, al: "center", bold: true });
+  text(ctx, C[1].lab, C[1].x - 30, C[1].y + R + 18, { col: K.ink1, al: "center", bold: true });
+  text(ctx, C[2].lab, C[2].x + 30, C[2].y + R + 18, { col: K.ink1, al: "center", bold: true });
+  const inside = (x, y) => C.map((c) => Math.hypot(x - c.x, y - c.y) < R - 6);
+  const code = (g) => [truthSet.has(g), d.cCall.has(g), d.dCall.has(g)].map((b) => (b ? 1 : 0)).join("");
+  const pts = {};
+  for (let y = 40; y < 380; y += 11) for (let x = 12; x < VW + 10; x += 11) { const k = inside(x, y).map((b) => (b ? 1 : 0)).join(""); if (k !== "000") (pts[k] ??= []).push([x, y]); }
+  Object.values(pts).forEach((list) => { const mx = list.reduce((s, p) => s + p[0], 0) / list.length, my = list.reduce((s, p) => s + p[1], 0) / list.length; list.sort((a, b) => Math.hypot(a[0] - mx, a[1] - my) - Math.hypot(b[0] - mx, b[1] - my)); });
+  const byRegion = {}; genes.forEach((g) => (byRegion[code(g)] ??= []).push(g));
+  const picked = geneOf(d);
+  Object.entries(byRegion).forEach(([k, gs]) => {
+    const list = pts[k] ?? [];
+    gs.forEach((g, i) => { const p = list[i + 2] ?? list[list.length - 1]; if (!p) return; ctx.fillStyle = truthSet.has(g) ? K.empirical : K.extreme; ctx.beginPath(); ctx.arc(p[0], p[1], 4, 0, Math.PI * 2); ctx.fill(); if (g === picked) { ctx.strokeStyle = K.highlight; ctx.lineWidth = 2; ctx.strokeRect(p[0] - 7, p[1] - 7, 14, 14); } hits.push({ x: p[0] - 6, y: p[1] - 6, w: 12, h: 12, g }); });
+    const c0 = list[0]; if (c0) { ctx.fillStyle = K.surface; ctx.globalAlpha = 0.85; ctx.fillRect(c0[0] - 10, c0[1] - 9, 20, 16); ctx.globalAlpha = 1; text(ctx, String(gs.length), c0[0], c0[1] + 4, { col: K.ink1, al: "center", bold: true, mono: true }); }
+  });
+  const quiet = G - genes.length;
+  text(ctx, `outside every circle: ${quiet} unchanged genes neither test called`, 8, H - 10);
+  /* B · the 2 × 2 tables */
+  const tx = VW + 50, tw = W - tx - 10;
+  head(ctx, "B · 2 × 2 per test", tx, 18);
+  [[d.cCall, "Over cells"], [d.dCall, "Over samples"]].forEach(([calls, name], k) => {
+    const y = 50 + k * 170, cw = tw / 3;
+    const tp = [...calls].filter((g) => truthSet.has(g)).length, fp = calls.size - tp, fn = truthSet.size - tp, tn = G - truthSet.size - fp;
+    text(ctx, name, tx, y, { col: K.ink1, bold: true });
+    ["", "truly changed", "unchanged"].forEach((h, i) => text(ctx, h, tx + i * cw + (i ? cw - 6 : 0), y + 24, { al: i ? "right" : "left" }));
+    [["called", tp, fp], ["not called", fn, tn]].forEach(([lab, a, b], r) => {
+      const ry = y + 48 + r * 26;
+      text(ctx, lab, tx, ry, { col: K.ink2 });
+      text(ctx, String(a), tx + 2 * cw - 6, ry, { col: r ? K.ink3 : K.empirical, al: "right", mono: true, bold: !r });
+      text(ctx, String(b), tx + 3 * cw - 6, ry, { col: r ? K.ink3 : K.extreme, al: "right", mono: true, bold: !r });
+    });
+    text(ctx, `found ${tp} of ${truthSet.size}; false: ${fp} of its ${calls.size} calls`, tx, y + 110, { col: K.ink2 });
+  });
+}
+
+let hits = [];
+function render() {
+  document.querySelectorAll(".seg button").forEach((b) => b.setAttribute("aria-pressed", String(String(S[b.dataset.k]) === b.dataset.v && !(b.dataset.k === "gene" && S.picked !== null))));
+  const W = Math.min(980, document.querySelector(".lab").clientWidth - 2);
+  hits = []; fig1(W); fig2(W); fig3(W); fig4(W);
+}
+document.getElementById("c4").addEventListener("click", (ev) => {
+  const r = ev.target.getBoundingClientRect(), x = ev.clientX - r.left, y = ev.clientY - r.top;
+  const h = hits.find((q) => x >= q.x && x < q.x + q.w && y >= q.y && y < q.y + q.h); if (h) { S.picked = h.g; render(); document.getElementById("c1").scrollIntoView({ behavior: "smooth" }); }
+});
+const seg = (k, opts) => { const box = document.querySelector(`.seg[data-k="${k}"]`); opts.forEach(([v, label]) => { const b = document.createElement("button"); b.textContent = label; b.dataset.k = k; b.dataset.v = String(v); b.onclick = () => { S[k] = v; S.picked = null; render(); }; box.append(b); }); };
+seg("patientSd", [[0, "0"], [0.3, "0.3"], [0.65, "0.65"]]);
+seg("sampleSd", [[0, "0"], [0.2, "0.2"], [0.4, "0.4"], [0.65, "0.65"]]);
+seg("change", [[0, "0"], [1, "1"], [2, "2"]]);
+seg("seed", [[1, "1"], [2, "2"], [3, "3"], [4, "4"]]);
+seg("gene", [["unchanged", "Unchanged, smallest p over cells"], ["changed", "Truly changed, smallest p"]]);
+render();
+window.addEventListener("resize", render);
+</script>
+</body>
+</html>
