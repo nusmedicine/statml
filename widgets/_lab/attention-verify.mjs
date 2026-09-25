@@ -9,7 +9,8 @@
       in head 4 (the Weights page's example), the [MASK] row's in heads 2 and
       4, [PAD]'s share without the mask, and that the masked rows equal the
       unpadded ones — the Mask page's whole claim.
-   3. The arithmetic every row keeps: each row sums to 1.
+   3. The arithmetic every row keeps: each row sums to 1; the scores the
+      Weights page prints are q·k / √d_k and their softmax is the row of alpha.
 
    Run:  node widgets/_lab/attention-verify.mjs
 */
@@ -58,6 +59,19 @@ for (const key of Object.keys(M.SENTENCES)) {
     ok(pad > 0.05, `${key} head ${h + 1}: without the mask [PAD] takes ${(100 * pad).toFixed(0)}%`);
   }
 }
+/* the Weights page prints the scores: softmax of each score row is that row's alpha,
+   and the scaled score is the raw one over √d_k */
+for (const key of Object.keys(M.SENTENCES)) {
+  for (const hdx of M.stage(key).run.heads) {
+    hdx.score.forEach((row, i) => {
+      const m = Math.max(...row), e = row.map((v) => Math.exp(v - m)), z = e.reduce((a, b) => a + b, 0);
+      e.forEach((v, j) => near(v / z, hdx.alpha[i][j], 1e-12, `${key}: softmax of the scores is alpha`));
+      row.forEach((v, j) => near(v, hdx.scoreRaw[i][j] / Math.sqrt(M.DK), 1e-12, `${key}: score = q·k / √d_k`));
+    });
+  }
+}
+near(asp.run.heads[3].score[3][5], 5.28, 0.005, "aspirin → chest, the score head 4 prints");
+
 const pad4 = asp.padded.open.heads[3].alpha.slice(0, asp.L).reduce((s, r) => s + M.tailShare(r, asp.L), 0) / asp.L;
 near(pad4, 0.28, 0.005, "aspirin, head 4: [PAD]'s share without the mask");
 

@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · 83 Weights page, scores then softmax — mock</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1760px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 120ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  .grid { display: flex; gap: var(--sp-4); flex-wrap: wrap; }
+  .arm h3 { font-size: var(--fs-sm); margin: 0 0 2px; color: var(--ink-1); }
+  .arm p { font-size: var(--fs-xs); color: var(--ink-2); margin: 0 0 6px; max-width: 600px; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .bar { display: flex; gap: 8px; align-items: center; margin: 0 0 var(--sp-3); font-size: var(--fs-sm); color: var(--ink-2); }
+  button { font: inherit; padding: 4px 12px; background: var(--surface-2); color: var(--ink-1); border: 1px solid var(--grid); border-radius: 4px; cursor: pointer; }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-3) 0 0; padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 120ch; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Widget 83 · Weights page · a press as scores, then softmax · mock (live)</h1>
+  <p class="note">
+    Each panel plays the widget's presses on a loop, query after query, <i>treated with aspirin for chest pain</i>,
+    head 4, from the trained block 1 (scores read through <code>widgets/attention/model.js</code>). His figure's
+    layout: the query circled, its bracket to the keys, the row under the keys, the matrix filling below. The
+    scores are qᵢ·kⱼ / √dₖ; for <b>aspirin</b> they run from −2.28 to 5.28 (chest), which the softmax makes 0.73.
+  </p>
+  <div class="bar"><button id="pause">Pause</button><button id="slow">Half speed: off</button><span id="clock"></span></div>
+  <div class="grid">
+    <div class="arm"><h3>A · the page now: the row of weights arrives at once</h3><p>0.6 s a press.</p><canvas id="A"></canvas></div>
+    <div class="arm"><h3>B · scores key by key, then one softmax beat, in the same strip</h3><p>The outline steps to each key and its score prints in the strip (no colour: a score is not yet a weight). Then the softmax: the numbers turn into weights, the colour arrives, the row sums to 1, and the row drops into the matrix.</p><canvas id="B"></canvas></div>
+    <div class="arm"><h3>C · scores key by key in one strip, softmax into a second</h3><p>As B, but the weights fill a second strip under the scores with "softmax" between them, so after the press both rows stay: the scores and what the softmax made of them.</p><canvas id="C"></canvas></div>
+  </div>
+  <p class="rec">Recommended: <b>C</b>. It keeps the scores on the page, so the ÷√dₖ switch changes a row the reader can
+    read (the scores shrink or grow by √12 = 3.46 and the weights flatten or sharpen under them), and the gap
+    between 5.28 and 0.73 is the softmax made visible. B is the lighter page (one strip). Either makes a press about
+    3 s for 8 keys, as on the Output page.</p>
+</main>
+<script type="module">
+import * as M from "../attention/model.js";
+const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const C = { ink1: css("--ink-1"), ink2: css("--ink-2"), ink3: css("--ink-3"), s1: css("--surface-1"), s2: css("--surface-2"), s3: css("--surface-3"),
+  a: css("--c-group-a"), b: css("--c-group-b"), mag: css("--c-magnitude"), grid: css("--grid"), font: css("--font"), mono: css("--font-mono") };
+const rgb = (h) => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+const mixA = (a, b, t) => a.map((x, i) => x + (b[i] - x) * Math.max(0, Math.min(1, t)));
+const str = (p) => `rgb(${p.map(Math.round).join(",")})`;
+const wcol = (w) => mixA(rgb(C.s3), rgb(C.mag), Math.sqrt(w));
+const lum = (p) => (0.2126 * p[0] + 0.7152 * p[1] + 0.0722 * p[2]) / 255;
+const inkOn = (p) => (Math.abs(lum(p) - lum(rgb(C.ink1))) > Math.abs(lum(p) - lum(rgb(C.s1))) ? C.ink1 : C.s1);
+const ease = (t) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2);
+const beat = (u, a, b) => ease(Math.max(0, Math.min(1, (u - a) / (b - a))));
+const capF = "600 12px " + C.font, smF = "11px " + C.font, monoF = "11px " + C.mono;
+function t(g, s, x, y, { f = monoF, c = C.ink2, a = "left", al = 1 } = {}) { if (al <= 0) return; g.globalAlpha = al; g.font = f; g.fillStyle = c; g.textAlign = a; g.textBaseline = "middle"; g.fillText(s, x, y); g.globalAlpha = 1; }
+
+const st = M.stage("aspirin"), hd = st.run.heads[3], toks = st.tokens, L = st.L;
+const W = 600, x0 = 70, top = 40;
+/* word columns as the widget sizes them */
+const probe = document.createElement("canvas").getContext("2d"); probe.font = monoF;
+const want = toks.map((w) => Math.max(probe.measureText(w).width + 14, probe.measureText("−0.00").width + 12));
+const cols = []; { let x = x0; for (const c of want) { cols.push([x, c]); x += c; } }
+const cx = (j) => cols[j][0] + cols[j][1] / 2, xEnd = cols[L - 1][0] + cols[L - 1][1];
+
+function setup(id, two) {
+  const cv = document.getElementById(id), dpr = devicePixelRatio || 1, h = (two ? 250 : 216) + L * 20 + 40;
+  cv.width = W * dpr; cv.height = h * dpr; cv.style.width = W + "px"; cv.style.height = h + "px";
+  const g = cv.getContext("2d"); g.scale(dpr, dpr); g.h = h; return g;
+}
+const G = { A: setup("A"), B: setup("B"), C: setup("C", true) };
+
+/* timings: A 600 ms a press; B and C a glide, a slot a key, the softmax beat */
+const PRE = 260, KEY = 300, SOFT = 700, HOLD = 500;
+const pressB = PRE + L * KEY + SOFT;
+const cycleOf = (arm) => (arm === "A" ? L * (600 + HOLD) : L * (pressB + HOLD)) + 1500;
+
+function header(g, q, qx) {
+  t(g, "Query", 12, top, { f: capF, c: C.ink1 }); t(g, "Keys", 12, top + 62, { f: capF, c: C.ink1 });
+  toks.forEach((w, j) => { t(g, w, cx(j), top, { a: "center", c: j === q ? C.a : C.ink3 }); t(g, w, cx(j), top + 62, { a: "center", c: C.b }); });
+  if (q >= 0) {
+    g.strokeStyle = C.a; g.lineWidth = 1.5; g.setLineDash([3, 3]); g.beginPath(); g.ellipse(qx, top, cols[q][1] / 2, 12, 0, 0, 7); g.stroke(); g.setLineDash([]);
+    g.strokeStyle = C.ink2; g.lineWidth = 1.2; g.beginPath(); g.moveTo(qx, top + 13); g.lineTo(qx, top + 24); g.moveTo(cx(0), top + 24); g.lineTo(cx(L - 1), top + 24); g.stroke();
+    for (let j = 0; j < L; j++) { g.beginPath(); g.moveTo(cx(j), top + 24); g.lineTo(cx(j), top + 46); g.stroke(); }
+  }
+}
+function strip(g, y, cell) {
+  for (let j = 0; j < L; j++) cell(j, cols[j][0], y, cols[j][1]);
+  g.strokeStyle = C.ink1; g.lineWidth = 1; g.strokeRect(x0 + 0.5, y + 0.5, xEnd - x0 - 1, 27);
+  for (let j = 1; j < L; j++) { g.strokeStyle = C.grid; g.beginPath(); g.moveTo(cols[j][0] + 0.5, y); g.lineTo(cols[j][0] + 0.5, y + 28); g.stroke(); }
+}
+/* rows before query q full, row q at `fresh` */
+function matrix(g, y0, q, fresh) {
+  const cs = 20, mx = W / 2 - (L * cs) / 2 + 40;
+  t(g, "Attention weights αᵢⱼ", 12, y0 + L * cs / 2, { f: capF, c: C.ink1 });
+  for (let i = 0; i < L; i++) {
+    t(g, toks[i], mx - 5, y0 + i * cs + cs / 2, { a: "right", c: i === q ? C.a : C.ink2 });
+    const a = i < q ? 1 : i === q ? fresh : 0;
+    for (let j = 0; j < L; j++) {
+      g.fillStyle = C.s2; g.fillRect(mx + j * cs, y0 + i * cs, cs - 1, cs - 1);
+      if (a > 0) { g.globalAlpha = a; g.fillStyle = str(wcol(hd.alpha[i][j])); g.fillRect(mx + j * cs, y0 + i * cs, cs - 1, cs - 1); g.globalAlpha = 1; }
+    }
+  }
+  g.strokeStyle = C.ink2; g.strokeRect(mx - 0.5, y0 - 0.5, L * cs, L * cs);
+}
+const wCell = (g, j, x, y, w, q, al) => {
+  const f = wcol(hd.alpha[q][j]); g.fillStyle = C.s2; g.fillRect(x, y, w, 28);
+  if (al > 0) { g.globalAlpha = al; g.fillStyle = str(f); g.fillRect(x, y, w, 28); g.globalAlpha = 1; }
+  t(g, hd.alpha[q][j].toFixed(2), x + w / 2, y + 14, { a: "center", c: al > 0.5 ? inkOn(f) : C.ink1, al });
+};
+
+function drawA(g, clk) {
+  g.clearRect(0, 0, W, g.h);
+  const per = 600 + HOLD, n = Math.min(L, Math.floor(clk / per) + 1), u = Math.min(1, (clk - (n - 1) * per) / 600), q = n - 1;
+  const qx = q > 0 ? cx(q - 1) + (cx(q) - cx(q - 1)) * ease(u) : cx(0);
+  header(g, q, qx);
+  strip(g, top + 72, (j, x, y, w) => wCell(g, j, x, y, w, q, ease(u)));
+  t(g, `α for the query "${toks[q]}" · head 4 · the row sums to 1`, x0, top + 118, { f: smF, c: C.ink3 });
+  matrix(g, top + 190, q, ease(u));
+}
+function drawBC(g, clk, two) {
+  g.clearRect(0, 0, W, g.h);
+  const per = pressB + HOLD, n = Math.min(L, Math.floor(clk / per) + 1), tau = Math.min(pressB, clk - (n - 1) * per), q = n - 1;
+  const e = beat(tau, 0, PRE), r = tau - PRE, k = r < 0 ? -1 : Math.min(L, Math.floor(r / KEY)), soft = beat(r - L * KEY, 0, SOFT);
+  const qx = q > 0 ? cx(q - 1) + (cx(q) - cx(q - 1)) * e : cx(0);
+  header(g, q, qx);
+  const sy = top + 72;
+  const shown = (j) => (k < 0 ? 0 : j < k ? 1 : j === k ? beat((r - k * KEY) / KEY, 0, 0.4) : 0);
+  const scoreCell = (j, x, y, w, al) => { g.fillStyle = C.s2; g.fillRect(x, y, w, 28); const s = hd.score[q][j]; t(g, (s < 0 ? "−" : "") + Math.abs(s).toFixed(2), x + w / 2, y + 14, { a: "center", c: C.ink1, al }); };
+  if (!two) {
+    strip(g, sy, (j, x, y, w) => { scoreCell(j, x, y, w, shown(j) * (1 - soft)); if (soft > 0) wCell(g, j, x, y, w, q, soft); });
+    t(g, soft > 0 ? `α for the query "${toks[q]}" · the row sums to 1` : k >= 0 ? `scores qᵢ·kⱼ / √dₖ for "${toks[q]}"` : "", x0, sy + 46, { f: smF, c: C.ink3 });
+  } else {
+    t(g, "scores", x0 - 8, sy + 14, { f: smF, c: C.ink2, a: "right" });
+    strip(g, sy, (j, x, y, w) => scoreCell(j, x, y, w, shown(j)));
+    t(g, "softmax ↓", cx(0), sy + 44, { f: smF, c: soft > 0 ? C.ink1 : C.ink3, a: "left" });
+    t(g, "weights", x0 - 8, sy + 72, { f: smF, c: C.ink2, a: "right" });
+    strip(g, sy + 58, (j, x, y, w) => wCell(g, j, x, y, w, q, soft));
+    t(g, `the row sums to 1`, x0, sy + 104, { f: smF, c: C.ink3, al: soft });
+  }
+  if (k >= 0 && k < L) { g.strokeStyle = C.a; g.lineWidth = 2; g.strokeRect(cols[k][0] - 1, sy - 1, cols[k][1] + 2, 30); g.lineWidth = 1; }
+  matrix(g, sy + (two ? 170 : 118), q, soft);
+}
+
+let paused = false, slow = 1, clock = 0, last = performance.now();
+document.getElementById("pause").onclick = (e) => { paused = !paused; e.target.textContent = paused ? "Play" : "Pause"; };
+document.getElementById("slow").onclick = (e) => { slow = slow === 1 ? 0.5 : 1; e.target.textContent = `Half speed: ${slow === 1 ? "off" : "on"}`; };
+function frame(now) {
+  const dt = Math.max(0, Math.min(100, now - last)); last = now;
+  if (!paused) clock += dt * slow;
+  drawA(G.A, clock % cycleOf("A"));
+  drawBC(G.B, clock % cycleOf("B"), false);
+  drawBC(G.C, clock % cycleOf("B"), true);
+  document.getElementById("clock").textContent = `${(clock / 1000).toFixed(1)} s`;
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

@@ -73,8 +73,9 @@ function softmax(row, keep) {
 }
 
 /**
- * Block 1's attention on `toks`. Returns per head: alpha (scaled),
- * alphaRaw (no division), v, z, each row over every position of `toks`.
+ * Block 1's attention on `toks`. Returns per head: score (q·k / √d_k, the
+ * numbers the softmax takes), scoreRaw (q·k), alpha (scaled), alphaRaw (no
+ * division), v, z, each row over every position of `toks`.
  * `mask` gives [PAD] keys no weight (attention_mask); without it they are
  * keys like any other.
  */
@@ -90,10 +91,11 @@ export function attend(toks, { mask = true } = {}) {
     const sl = (vec) => Array.from(vec.slice(o, o + DK));
     const q = Q.map(sl), k = K.map(sl), v = V.map(sl);
     const raw = q.map((qi) => k.map((kj) => qi.reduce((s, x, d) => s + x * kj[d], 0)));
-    const alpha = raw.map((r) => softmax(r.map((s) => s / Math.sqrt(DK)), keep));
+    const score = raw.map((r) => r.map((s) => s / Math.sqrt(DK)));
+    const alpha = score.map((r) => softmax(r, keep));
     const alphaRaw = raw.map((r) => softmax(r, keep));
     const z = alpha.map((a) => Array.from({ length: DK }, (_, d) => a.reduce((s, w, j) => s + w * v[j][d], 0)));
-    heads.push({ alpha, alphaRaw, v, z });
+    heads.push({ score, scoreRaw: raw, alpha, alphaRaw, v, z });
   }
   return { tokens: toks, heads };
 }
