@@ -775,19 +775,23 @@ defineWidget({
     if (!C.testable) return [{ label: "Cluster", value: String(C.within), note: "too few cells in a sample to compare by tissue" }];
     const tp = (v) => v.filter((q) => q.call && q.truth).length, fp = (v) => v.filter((q) => q.call && !q.truth).length;
     const truth = Number(params.change) > 0;
-    /* EACH TEST'S SHARE OF CALLS THAT ARE TRUE (his round: "how do we compare
-       which method works better?"): its precision beside its power, since a
-       test is judged on both — over 20 seeds the test over cells called 7.7
-       unchanged genes for 2.5 true ones at sample effect 0.4
-       (`_lab/cell-markers-methods-measure.txt`) */
-    const tile = (v, name, cut) => {
+    /* EACH TEST LEADS WITH WHAT IT FOUND AND ITS FALSE CALLS (his round,
+       2026-09-25: "should we report TP/FP?" — the share of calls that are
+       true read 100% for FindMarkers wherever samples do not differ, and a
+       test that calls one gene scores 100% too). Power and the false calls
+       together, as the DE benchmarks report them, with the promise each cut
+       makes, so the page shows when the promise holds. Over 20 seeds the test
+       over cells made 6.8 false calls for 3.5 true at sample effect 0.4
+       (`_lab/cell-markers-methods-measure.txt`). */
+    const tiles = (v, name, cut, promise) => {
       const t = tp(v), f = fp(v), n = t + f;
-      return {
-        label: `${name}: calls that are truly changed`,
-        value: n ? `${Math.round((100 * t) / n)}%` : "no calls",
-        note: truth ? `${t} of 20 truly changed genes called, and ${f} unchanged, at ${cut} < 0.05` : `${f} unchanged genes called at ${cut} < 0.05; no gene truly changes`,
-      };
+      const found = { label: `${name}: truly changed genes found`, value: `${t} of 20`, note: `the cluster's type's own changed genes, called at ${cut} < 0.05` };
+      const falseCalls = { label: `${name}: false calls`, value: n ? `${f} of ${n}` : "0", note: `${n ? `${Math.round((100 * f) / n)}% of its calls; ` : "no calls; "}${promise}` };
+      return truth ? [found, falseCalls] : [falseCalls];
     };
-    return [tile(C.volC, "Over cells", "p_val_adj"), tile(C.volD, "Over samples", "padj")];
+    return [
+      ...tiles(C.volC, "Over cells", "p_val_adj", "Bonferroni aims for at most a 5% chance of any false call"),
+      ...tiles(C.volD, "Over samples", "padj", "Benjamini–Hochberg aims for about 5% of calls false, on average"),
+    ];
   },
 });
