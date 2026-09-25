@@ -55,7 +55,7 @@ const PAGES = [
 ];
 const ON = (page) => ({ param: "page", equals: page });
 const CELL_PAGES = { param: "page", oneOf: ["clusters", "two-clusters", "tumour-liver"] };
-const HEIGHTS = { "two-clusters": 732, "tumour-liver": 1470, composition: 380 };
+const HEIGHTS = { "two-clusters": 732, "tumour-liver": 1500, composition: 380 };
 const RESOLUTIONS = ["0.1", "0.3", "0.5", "0.8", "1.2", "2"];
 const SAMPLE_SD = ["0", "0.1", "0.2", "0.4", "0.65"];
 const PATIENT_SD = ["0", "0.3", "0.65"];
@@ -317,7 +317,7 @@ const LIST_ROWS = 8, LIST_ROW_H = 17;
 function tlLayout(w) {
   const S = Math.min(260, Math.floor(w * 0.45)), PW = Math.floor((w - 64) / 2);
   const volTop = TOP + 260 + 52, volH = 190, listTop = volTop + volH + 52, geneTop = listTop + 18 + LIST_ROWS * LIST_ROW_H + 52;
-  return { map: { x: 8, y: TOP, S }, tableX: 8 + S + 28, PW, cols: [24, 24 + PW + 40], volTop, volH, listTop, geneTop, geneH: 220, vennTop: geneTop + 220 + 70 };
+  return { map: { x: 8, y: TOP, S }, tableX: 8 + S + 28, PW, cols: [24, 24 + PW + 40], volTop, volH, listTop, geneTop, geneH: 220, keyTop: geneTop + 220 + 26, vennTop: geneTop + 220 + 100 };
 }
 /* THE CALLS AGAINST THE TRUTH, AS A VENN (his pick from
    `_lab/cell-markers-explain-mock`, figure 4A): the truly changed genes and
@@ -598,6 +598,30 @@ function drawDesignTree(ctx, colors, C, B) {
   ctx.textAlign = "left";
 }
 
+/** The volcanos' and gene views' key, each mark drawn as it is drawn there
+    (a ring, a square, hollow and filled cells), flowing onto a second line
+    when the canvas is narrow. The Venn keys its own dots: its blue is truly
+    changed whether called or not, where a volcano's blue is a call. */
+function drawKey(ctx, colors, L, w) {
+  const items = [
+    [(x, y) => { ctx.fillStyle = colors.ink3; ctx.globalAlpha = 0.6; ctx.beginPath(); ctx.arc(x, y, 3.2, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1; }, "Not called"],
+    [(x, y) => { ctx.fillStyle = colors.empirical; ctx.beginPath(); ctx.arc(x, y, 3.2, 0, Math.PI * 2); ctx.fill(); }, "Called, truly changed"],
+    [(x, y) => { ctx.fillStyle = colors.extreme; ctx.beginPath(); ctx.arc(x, y, 3.2, 0, Math.PI * 2); ctx.fill(); }, "Called, unchanged"],
+    [(x, y) => { ctx.strokeStyle = colors.reference; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(x, y, 5.5, 0, Math.PI * 2); ctx.stroke(); }, "Ring: truly changed"],
+    [(x, y) => { ctx.strokeStyle = colors.highlight; ctx.lineWidth = 2; ctx.strokeRect(x - 6, y - 6, 12, 12); }, "Square: the picked gene"],
+    [(x, y) => { ctx.strokeStyle = colors.ink2; ctx.fillStyle = colors.ink2; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(x - 4, y, 2.4, 0, Math.PI * 2); ctx.stroke(); ctx.beginPath(); ctx.arc(x + 4, y, 2.4, 0, Math.PI * 2); ctx.fill(); }, "Cells: hollow liver, filled tumour"],
+  ];
+  ctx.font = `${colors.fsXs} ${colors.font}`;
+  let x = L.cols[0], y = L.keyTop;
+  items.forEach(([mark, label]) => {
+    const iw = 18 + ctx.measureText(label).width;
+    if (x + iw > w - 8) { x = L.cols[0]; y += 20; }
+    mark(x + 6, y - 4);
+    ctx.font = `${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.ink2; ctx.textAlign = "left"; ctx.fillText(label, x + 16, y);
+    x += iw + 18;
+  });
+}
+
 function drawVenn(ctx, colors, V, L, picked) {
   heading(ctx, colors, "The calls against the truth", V.box.x0, L.vennTop - 12);
   const [T, Cc, Sc] = V.circles, R = V.R, B = V.box;
@@ -681,6 +705,7 @@ function drawTumourLiver(ctx, colors, w, params, state) {
     drawGeneHalf(ctx, colors, gv, { x: X + 30, y: L.geneTop, w: PW - 30, h: L.geneH }, mode, vMax);
   });
   ctx.save(); ctx.translate(12, L.geneTop + (L.geneH - 74) / 2); ctx.rotate(-Math.PI / 2); ctx.font = `${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.ink3; ctx.textAlign = "center"; ctx.fillText("log(1 + per 10,000)", 0, 0); ctx.restore();
+  drawKey(ctx, colors, L, w);
   drawVenn(ctx, colors, vennOf(state, w, L), L, gv.g);
   ctx.textAlign = "left";
 }
@@ -797,18 +822,10 @@ defineWidget({
   legend: ({ params }) => {
     const types = TYPES.map((t, i) => ({ token: `cluster-${"abcdef"[TYPE_SLOT[i]]}`, label: t.name, mark: params.page === "composition" ? "bar" : "dot" }));
     if (params.page === "clusters") return [...types, { token: "magnitude", label: "Dot plot: size, the share of the cluster's cells detecting the gene; shade, its mean", mark: "dot" }];
-    if (params.page === "tumour-liver") return [
-      /* the volcanos' and gene views' key, short (his round: "do you need the
-         other legend?" — yes: the Venn keys its own dots, and its blue is
-         truly changed whether called or not, where the volcanos' blue is a
-         call) */
-      { token: "ink-3", label: "Not called", mark: "dot" },
-      { token: "empirical", label: "Called, truly changed", mark: "dot" },
-      { token: "extreme", label: "Called, unchanged", mark: "dot" },
-      { token: "reference", label: "Ring: truly changed", mark: "line" },
-      { token: "highlight", label: "Square: the picked gene", mark: "line" },
-      { token: "ink-2", label: "Cells: hollow liver, filled tumour", mark: "dot" },
-    ];
+    /* Tumour vs liver draws its key on the canvas, between the gene views
+       and the Venn it does not key (his round: "move these legends above the
+       venn diagram closer to volcano and gene views"); drawKey */
+    if (params.page === "tumour-liver") return [];
     return types;
   },
 
