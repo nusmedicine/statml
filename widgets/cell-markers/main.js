@@ -55,7 +55,7 @@ const PAGES = [
 ];
 const ON = (page) => ({ param: "page", equals: page });
 const CELL_PAGES = { param: "page", oneOf: ["clusters", "two-clusters", "tumour-liver"] };
-const HEIGHTS = { "two-clusters": 732, "tumour-liver": 1500, composition: 380 };
+const HEIGHTS = { "two-clusters": 732, "tumour-liver": 1544, composition: 380 };
 const RESOLUTIONS = ["0.1", "0.3", "0.5", "0.8", "1.2", "2"];
 const SAMPLE_SD = ["0", "0.1", "0.2", "0.4", "0.65"];
 const PATIENT_SD = ["0", "0.3", "0.65"];
@@ -314,9 +314,12 @@ function twoLayout(w) {
    is two pictures side by side, on one scale. The height is fixed; a narrow
    canvas narrows the columns. */
 const LIST_ROWS = 8, LIST_ROW_H = 17;
+/* each level's line, shared by the tree's box and the column that counts it:
+   two inks alone are close in the dark theme, so the pattern differs too */
+const LEVEL_DASH = { cells: [2, 3], samples: [8, 4] };
 function tlLayout(w) {
-  const S = Math.min(260, Math.floor(w * 0.45)), PW = Math.floor((w - 64) / 2);
-  const volTop = TOP + 260 + 52, volH = 190, listTop = volTop + volH + 52, geneTop = listTop + 18 + LIST_ROWS * LIST_ROW_H + 52;
+  const S = Math.min(260, Math.floor(w * 0.45)), PW = Math.floor((w - 88) / 2);
+  const volTop = TOP + 260 + 96, volH = 190, listTop = volTop + volH + 52, geneTop = listTop + 18 + LIST_ROWS * LIST_ROW_H + 52;
   return { map: { x: 8, y: TOP, S }, tableX: 8 + S + 28, PW, cols: [24, 24 + PW + 40], volTop, volH, listTop, geneTop, geneH: 220, keyTop: geneTop + 220 + 26, vennTop: geneTop + 220 + 100 };
 }
 /* THE CALLS AGAINST THE TRUTH, AS A VENN (his pick from
@@ -510,7 +513,7 @@ function broadOf(mk) {
     sit where the cells' levels are. Tissue is drawn by fill, not hue: the
     map above already wears the types' hues. */
 function drawGeneHalf(ctx, colors, gv, B, mode, vMax) {
-  const top = B.y, bh = B.h - 74, colW = B.w / 4, sy = (v) => top + bh - (v / vMax) * bh;
+  const top = B.y, bh = B.h - 88, colW = B.w / 4, sy = (v) => top + bh - (v / vMax) * bh;
   ctx.strokeStyle = colors.axis; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(B.x + 0.5, top); ctx.lineTo(B.x + 0.5, top + bh + 0.5); ctx.lineTo(B.x + B.w, top + bh + 0.5); ctx.stroke();
   ctx.font = `${colors.fsXs} ${colors.mono}`; ctx.fillStyle = colors.ink3; ctx.textAlign = "right";
   [0, vMax / 2, vMax].forEach((v) => ctx.fillText(v.toFixed(1), B.x - 4, sy(v) + 4));
@@ -529,15 +532,16 @@ function drawGeneHalf(ctx, colors, gv, B, mode, vMax) {
       ctx.stroke();
     }
     ctx.font = `${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.ink2; ctx.textAlign = "center";
-    ctx.fillText(`P${(j % 2) + 1} ${ORDER_NAMES[j][1]}`, cx, top + bh + 14);
-    ctx.fillText(mode === "cells" ? `${gv.vals[j].length} cells` : "1 sum", cx, top + bh + 27);
+    /* three short lines, not "P1 tumour": a column is ~52px on a narrow canvas */
+    ctx.fillText(ORDER_NAMES[j][1], cx, top + bh + 14); ctx.fillText(`P${(j % 2) + 1}`, cx, top + bh + 27);
+    ctx.fillText(mode === "cells" ? `${gv.vals[j].length} cells` : "1 sum", cx, top + bh + 40);
   });
   const n = gv.vals.reduce((a, v) => a + v.length, 0), c = gv.cells, d = gv.deseq;
   const lines = mode === "cells"
     ? [`n = ${n} cells, ${c.lpAdj < LOG05 ? "called" : "not called"}`, `p_val_adj = ${pFmt(c.lpAdj)}`]
     : [`n = 4 samples, ${d && d.padj < 0.05 ? "called" : "not called"}`, d ? `padj = ${pFmt(Math.log10(Math.max(1e-300, d.padj)))}` : "too few counts for DESeq2 to test"];
   ctx.textAlign = "left"; ctx.font = `${colors.fsXs} ${colors.mono}`; ctx.fillStyle = colors.ink1;
-  lines.forEach((t, k) => ctx.fillText(t, B.x - 30, top + bh + 50 + k * 15));
+  lines.forEach((t, k) => ctx.fillText(t, B.x - 30, top + bh + 60 + k * 15));
 }
 /** One test's first genes by p, as its tool prints them; the dot is the
     volcano's colour for that gene, the picked gene's row shaded. */
@@ -587,12 +591,12 @@ function drawDesignTree(ctx, colors, C, B) {
     ctx.fillStyle = colors.ink2; ctx.fillText(`${C.a.perSample[k]} cells`, x, rowC + 38);
   });
   /* the level each test counts */
-  const box = (y0, y1, label, col) => {
-    ctx.strokeStyle = col; ctx.lineWidth = 1.5; ctx.setLineDash([5, 4]); ctx.strokeRect(B.x + 0.5, y0, B.w - 1, y1 - y0); ctx.setLineDash([]);
+  const box = (y0, y1, label, col, dash) => {
+    ctx.strokeStyle = col; ctx.lineWidth = 1.5; ctx.setLineDash(dash); ctx.strokeRect(B.x + 0.5, y0, B.w - 1, y1 - y0); ctx.setLineDash([]);
     ctx.font = `600 ${colors.fsXs} ${colors.font}`; ctx.fillStyle = col; ctx.textAlign = "right"; ctx.fillText(label, B.x + B.w - 4, y0 - 4);
   };
-  box(rowS - 17, rowS + 17, "over samples: n = 4 (right column)", colors.ink1);
-  box(rowC - 14, rowC + 26, `over cells: n = ${C.n} (left column)`, colors.ink2);
+  box(rowS - 17, rowS + 17, "over samples: n = 4", colors.ink1, LEVEL_DASH.samples);
+  box(rowC - 14, rowC + 26, `over cells: n = ${C.n}`, colors.ink2, LEVEL_DASH.cells);
   ["A patient's effect is in both of its samples, so", "tumour minus liver removes it. A sample's effect", "is in every one of its cells, the same draw: the", "test over cells counts that draw once per cell."]
     .forEach((t, i) => cap(t, B.y + 206 + i * 14));
   ctx.textAlign = "left";
@@ -683,9 +687,20 @@ function drawTumourLiver(ctx, colors, w, params, state) {
     return;
   }
   const gv = state.gene, vMax = Math.max(0.5, ...gv.vals.flat(), ...gv.pb) * 1.08;
-  [[C.volC, `Over cells: ${C.n} cells (Wilcoxon)`, "p_val_adj", "cells"], [C.volD, "Over samples: 4 pseudobulk samples (DESeq2)", "padj", "samples"]].forEach(([pts, title, pName, mode], k) => {
+  /* EACH TEST ONE FRAMED COLUMN (his round: "the sample/patient diagram has
+     to say right and column … can we visually show this instead?"): a header
+     band, then its volcano, its list and its gene view inside one frame
+     drawn in the line of the tree's box for the level it counts — dashed ink
+     for samples, dashed grey for cells — so the tree needs no words for
+     which column is which */
+  [[C.volC, `Over cells: n = ${C.n} cells`, "each cell a replicate · Wilcoxon, as FindMarkers", "p_val_adj", "cells", colors.ink2, LEVEL_DASH.cells],
+   [C.volD, "Over samples: n = 4 samples", "each sample's cells summed · DESeq2", "padj", "samples", colors.ink1, LEVEL_DASH.samples]].forEach(([pts, title, sub, pName, mode, line, dash], k) => {
     const V = volGeom(w, L, pts, k), { X, PW, top, bh, sx, sy } = V;
-    heading(ctx, colors, title, X, top - 12);
+    const F = { x: X - 12, y: top - 62, w: PW + 24, h: L.geneTop + L.geneH - (top - 62) + 6 };
+    ctx.fillStyle = colors.surface2; ctx.fillRect(F.x, F.y, F.w, 40);
+    ctx.strokeStyle = line; ctx.lineWidth = 1.5; ctx.setLineDash(dash); ctx.strokeRect(F.x + 0.5, F.y + 0.5, F.w - 1, F.h - 1); ctx.setLineDash([]);
+    heading(ctx, colors, title, X, F.y + 17);
+    ctx.font = `${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.ink3; ctx.textAlign = "left"; ctx.fillText(sub, X, F.y + 32);
     ctx.strokeStyle = colors.axis; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(X, top + bh + 0.5); ctx.lineTo(X + PW, top + bh + 0.5); ctx.moveTo(sx(0) + 0.5, top); ctx.lineTo(sx(0) + 0.5, top + bh); ctx.stroke();
     /* uncalled first, then the calls, then the rings, so nothing hides a call */
     pts.filter((q) => !q.call).forEach((q) => { ctx.fillStyle = colors.ink3; ctx.globalAlpha = 0.35; ctx.beginPath(); ctx.arc(sx(q.lfc), sy(q.nl), 2.6, 0, Math.PI * 2); ctx.fill(); });
@@ -701,10 +716,10 @@ function drawTumourLiver(ctx, colors, w, params, state) {
     ctx.textAlign = "left"; ctx.fillText("−log10 p", X + 4, top + 10);
     heading(ctx, colors, `First ${LIST_ROWS} genes by p`, X, L.listTop - 12);
     drawList(ctx, colors, X, L.listTop + 6, PW, pts, gv.g, pName);
-    heading(ctx, colors, `${geneName(gv.g)}, ${gv.truth ? "truly changed" : "unchanged"}: ${mode === "cells" ? "each cell" : "each sample's cells summed"}`, X, L.geneTop - 12);
-    drawGeneHalf(ctx, colors, gv, { x: X + 30, y: L.geneTop, w: PW - 30, h: L.geneH }, mode, vMax);
+    heading(ctx, colors, `${geneName(gv.g)}, ${gv.truth ? "truly changed" : "unchanged"}: ${mode === "cells" ? "each cell" : "the four sums"}`, X, L.geneTop - 12);
+    drawGeneHalf(ctx, colors, gv, { x: X + 38, y: L.geneTop, w: PW - 38, h: L.geneH }, mode, vMax);
+    ctx.save(); ctx.translate(X + 4, L.geneTop + (L.geneH - 88) / 2); ctx.rotate(-Math.PI / 2); ctx.font = `${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.ink3; ctx.textAlign = "center"; ctx.fillText("log(1 + per 10,000)", 0, 0); ctx.restore();
   });
-  ctx.save(); ctx.translate(12, L.geneTop + (L.geneH - 74) / 2); ctx.rotate(-Math.PI / 2); ctx.font = `${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.ink3; ctx.textAlign = "center"; ctx.fillText("log(1 + per 10,000)", 0, 0); ctx.restore();
   drawKey(ctx, colors, L, w);
   drawVenn(ctx, colors, vennOf(state, w, L), L, gv.g);
   ctx.textAlign = "left";
