@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · 83 Output page, the sum row by row — mock</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1700px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 110ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  .row { display: flex; gap: var(--sp-4); flex-wrap: wrap; align-items: flex-start; }
+  .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 6px; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 110ch; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Widget 83 · the Output page, the sum shown row by row · mock</h1>
+  <p class="note">
+    Your note: <i>animate rows added sequentially</i>, so the reader sees how each token's features are adjusted by
+    the attention weights. Two readings, drawn as stills from the real numbers (the trained block 1, head 4, the query
+    <b>for</b>, as in your screenshot), at the narrowest canvas, 541px. Values are coloured on one scale, so a row
+    multiplied by a small weight fades toward blank.
+  </p>
+
+  <h2>A · within one query: each key's row is multiplied by its weight, then added into z</h2>
+  <p class="note">
+    A press is still one query, now in stages: the rows are taken one key at a time. Each row's features
+    <b>vⱼ</b> are replaced in place by <b>αᵢⱼ vⱼ</b> (the same strip, faded by its weight), then slide down into the
+    sum, and z shows the running total. Three stills of one press: after 3 keys, after 6, and done.
+  </p>
+  <div class="row" id="rowA"></div>
+
+  <h2>B · across queries: each query's z stacks into a table of new features</h2>
+  <p class="note">
+    The sum stays one step, and each finished z drops into a table under the sum, one row per query, beside
+    the features the tokens started with (their own vᵢ). After all eight presses the table is the head's whole output
+    <code>[8, 12]</code>, set against its input <code>[8, 12]</code>. Still: after five queries.
+  </p>
+  <div class="row" id="rowB"></div>
+
+  <p class="rec">A is the one your arrow points at (the sum itself, row by row). B answers "every token's features", and
+    costs a table under the page. They combine: A inside a press, B across presses. The calls are asked alongside.</p>
+</main>
+<script type="module">
+const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const C = { ink1: css("--ink-1"), ink2: css("--ink-2"), ink3: css("--ink-3"), s1: css("--surface-1"), s2: css("--surface-2"), s3: css("--surface-3"),
+  a: css("--c-group-a"), b: css("--c-group-b"), mag: css("--c-magnitude"), lo: css("--c-value-low"), hi: css("--c-value-high"), grid: css("--grid"),
+  font: css("--font"), mono: css("--font-mono") };
+const rgb = (h) => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+const mix = (a, b, t) => `rgb(${rgb(a).map((x, i) => Math.round(x + (rgb(b)[i] - x) * Math.max(0, Math.min(1, t)))).join(",")})`;
+const wfill = (w) => mix(C.s3, C.mag, Math.sqrt(w));
+const vfill = (v, s) => mix(C.s3, v >= 0 ? C.hi : C.lo, Math.abs(v) / s);
+function mk(host, cap, w, h) {
+  const d = document.createElement("div"); d.innerHTML = `<div class="sub">${cap}</div>`;
+  const cv = document.createElement("canvas"), dpr = devicePixelRatio || 1;
+  cv.width = w * dpr; cv.height = h * dpr; cv.style.width = w + "px"; cv.style.height = h + "px"; d.appendChild(cv); host.appendChild(d);
+  const g = cv.getContext("2d"); g.scale(dpr, dpr); return g;
+}
+function t(g, s, x, y, { f = "11px " + C.mono, c = C.ink2, a = "left", b = "middle" } = {}) { g.font = f; g.fillStyle = c; g.textAlign = a; g.textBaseline = b; g.fillText(s, x, y); }
+const cap = "600 12px " + C.font;
+
+const REF = await (await fetch("attention-reference.json")).json();
+const R = REF[0], H = 3, QI = 4, toks = R.tokens, L = toks.length;
+const A = R.alpha[H], V = R.v[H], Z = R.z[H];
+const vmax = Math.max(...V.flat().map(Math.abs));
+const W = 541, top = 44, rh = 24, wx = 150, kx = 194, vx = 268, vc = 13;
+
+function frameA(k) {
+  const g = mk(document.getElementById("rowA"), k < L ? `A · after ${k} of ${L} keys` : `A · done: z for "for"`, W, top + L * rh + 130);
+  t(g, "Weights", wx, 18, { f: cap, c: C.ink1 }); t(g, "Features vⱼ  →  αᵢⱼ vⱼ", vx, 18, { f: cap, c: C.ink1 });
+  t(g, `query "${toks[QI]}"`, 12, 18, { f: cap, c: C.a });
+  const partial = Array(12).fill(0);
+  for (let j = 0; j < L; j++) {
+    const y = top + j * rh, w = A[QI][j], added = j < k, cur = j === k - 1;
+    g.fillStyle = wfill(w); g.fillRect(wx, y, 34, rh - 5); t(g, w.toFixed(2), wx + 17, y + 9, { a: "center", c: w > 0.3 ? C.s1 : C.ink1 });
+    t(g, toks[j], kx, y + 9, { c: C.b });
+    for (let d = 0; d < 12; d++) {
+      const v = added ? w * V[j][d] : V[j][d];
+      g.fillStyle = vfill(v, vmax); g.fillRect(vx + d * vc, y, vc - 1, rh - 5);
+      if (added) partial[d] += w * V[j][d];
+    }
+    g.strokeStyle = cur ? C.a : C.ink3; g.lineWidth = cur ? 2 : 1; g.strokeRect(vx - 0.5, y - 0.5, 12 * vc, rh - 4);
+    t(g, added ? "✓ added" : "", vx + 12 * vc + 8, y + 9, { f: "11px " + C.font, c: C.ink3 });
+  }
+  const yb = top + L * rh + 4, right = vx + 12 * vc;
+  g.strokeStyle = C.ink2; g.beginPath(); g.moveTo(vx, yb); g.lineTo(vx, yb + 8); g.lineTo(right, yb + 8); g.lineTo(right, yb); g.stroke();
+  t(g, "Sum", (vx + right) / 2, yb + 22, { f: cap, c: C.ink1, a: "center" });
+  if (k > 0 && k < L) { g.strokeStyle = C.a; g.setLineDash([3, 3]); g.beginPath(); g.moveTo(right - 30, top + (k - 1) * rh + 18); g.quadraticCurveTo(right + 40, yb, (vx + right) / 2 + 30, yb + 44); g.stroke(); g.setLineDash([]); }
+  const zy = yb + 40;
+  for (let d = 0; d < 12; d++) { g.fillStyle = vfill(partial[d], vmax); g.fillRect(vx + d * vc, zy, vc - 1, 24); }
+  g.strokeStyle = C.ink1; g.strokeRect(vx - 0.5, zy - 0.5, 12 * vc, 25);
+  t(g, toks[QI], vx - 10, zy + 12, { c: C.a, a: "right" });
+  const got = A[QI].slice(0, k).reduce((a, b) => a + b, 0);
+  t(g, k < L ? `z so far: ${k} of ${L} rows · ${Math.round(100 * got)}% of the weight` : `z = Σⱼ αᵢⱼ vⱼ · all ${L} rows · 100% of the weight`, vx - 10 + 12 * vc / 2 + 10, zy + 44, { f: "11px " + C.font, c: C.ink2, a: "center" });
+}
+[3, 6, L].forEach(frameA);
+
+function frameB(nq) {
+  const hgt = 60 + L * 22 + 40;
+  const g = mk(document.getElementById("rowB"), `B · after ${nq} of ${L} queries`, W, hgt);
+  const x1 = 90, x2 = 90 + 12 * 13 + 60, cw = 13;
+  t(g, "Features vᵢ (in)", x1, 18, { f: cap, c: C.ink1 }); t(g, "Features with attention zᵢ (out)", x2, 18, { f: cap, c: C.ink1 });
+  for (let i = 0; i < L; i++) {
+    const y = 40 + i * 22;
+    t(g, toks[i], x1 - 8, y + 9, { a: "right", c: i === nq - 1 ? C.a : C.ink2 });
+    for (let d = 0; d < 12; d++) { g.fillStyle = vfill(V[i][d], vmax); g.fillRect(x1 + d * cw, y, cw - 1, 18); }
+    for (let d = 0; d < 12; d++) { g.fillStyle = i < nq ? vfill(Z[i][d], vmax) : C.s2; g.fillRect(x2 + d * cw, y, cw - 1, 18); }
+    t(g, "→", x2 - 30, y + 9, { c: i < nq ? C.ink2 : C.ink3, a: "center" });
+  }
+  t(g, "each row out is its query's weighted sum of every row in", 12, 40 + L * 22 + 22, { f: "11px " + C.font, c: C.ink3 });
+}
+frameB(5);
+</script>
+</body>
+</html>

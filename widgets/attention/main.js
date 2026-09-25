@@ -69,7 +69,11 @@ const S = {
   weightsCap: "Attention weights αᵢⱼ",
   rowCap: (q, h, raw) => `α for the query "${q}" · head ${h}${raw ? " · q·k without the division" : ""} · the row sums to 1`,
   rowWait: "Next query computes the first row",
-  outW: "Weights", outV: "Features vⱼ", outSum: "Sum", outZ: "Features with attention",
+  outW: "Weights", outV: "Features vⱼ, then αᵢⱼvⱼ", outSum: "Sum", outZ: "Features with attention",
+  outSoFar: (k, L, pct) => `${k} of ${L} rows added · ${pct}% of the weight`,
+  outTable: "Features with attention",
+  tileAdded: "Rows added", tileAddedNote: "αᵢⱼvⱼ taken into zᵢ so far",
+  tileShare: "Weight added", tileShareNote: "the share of this row's weights",
   headsX: "x̃  [L, 48]", headsCat: "concatenate  [L, 4 × 12]", headsWo: "W_O  →  [L, 48]", headsFf: "Feed-forward",
   headsNote: "Rows: queries · columns: keys · each share measured over 500 notes",
   maskOpen: "No mask", maskShut: "attention_mask",
@@ -139,6 +143,7 @@ const cap = (colors) => `600 ${colors.fsSm} ${colors.font}`;
 const small = (colors) => `${colors.fsXs} ${colors.font}`;
 
 function txt(ctx, s, x, y, { font, fill, align = "left", baseline = "alphabetic", alpha = 1 }) {
+  if (alpha <= 0) return;   // a faded-out label is not painted: under the new one it is an overlap nobody sees
   ctx.save(); ctx.globalAlpha = alpha; ctx.font = font; ctx.fillStyle = fill; ctx.textAlign = align; ctx.textBaseline = baseline; ctx.fillText(s, x, y); ctx.restore();
 }
 function line(ctx, x1, y1, x2, y2, stroke, lw = 1, dash = null) {
@@ -164,15 +169,15 @@ const queryOf = (anim) => anim.n - 1;
    eye follows one thing moving rather than a row blinking out and another in. No
    in-between NUMBER is ever printed: the old digits fade out over the first half,
    the new ones in over the second. */
-function glide(anim) {
-  const to = anim.n - 1, from = anim.n >= 2 ? anim.n - 2 : null, e = ease(anim.t);
+function glide(anim, e = ease(anim.t)) {
+  const to = anim.n - 1, from = anim.n >= 2 ? anim.n - 2 : null;
   return { from, to, e, pos: from === null ? to : from + (to - from) * e, first: from === null };
 }
 const lerp = (a, b, t) => a + (b - a) * t;
 const oldInk = (g) => (g.first ? 0 : Math.max(0, 1 - 2 * g.e)), newInk = (g) => (g.first ? g.e : Math.max(0, 2 * g.e - 1));
 
 /** α_ij as a grid: `A` rows over keys, PAD columns hatched, a null cell blank */
-function matrix(ctx, colors, A, toks, x0, y0, cs, anim, { colLabels = true, rowLabels = true, padFrom = -1, box: outline = true } = {}) {
+function matrix(ctx, colors, A, toks, x0, y0, cs, anim, { colLabels = true, rowLabels = true, padFrom = -1, box: outline = true, ge = ease(anim.t) } = {}) {
   const L = A.length, K = A[0].length, qi = queryOf(anim);
   /* upright: slanted, neighbouring names overlapped even at 24px cells (the text-overlap sweep, 2026-09-26) */
   const steep = true;
@@ -193,7 +198,7 @@ function matrix(ctx, colors, A, toks, x0, y0, cs, anim, { colLabels = true, rowL
   if (outline) { ctx.strokeStyle = colors.ink2; ctx.lineWidth = 1; ctx.strokeRect(x0 - 0.5, y0 - 0.5, K * cs, L * cs); }
   /* the query's row outlined with its label, as his figure boxes "M" with its row */
   if (qi >= 0) {
-    const g = glide(anim), lab = (i) => (rowLabels ? labelWidth(ctx, colors, [toks[i]]) + 9 : 2.5);
+    const g = glide(anim, ge), lab = (i) => (rowLabels ? labelWidth(ctx, colors, [toks[i]]) + 9 : 2.5);
     const lx = g.first ? lab(g.to) : lerp(lab(g.from), lab(g.to), g.e);
     ctx.save(); ctx.globalAlpha = g.first ? g.e : 1; ctx.strokeStyle = colors.groupA; ctx.lineWidth = 1.5; ctx.setLineDash([3, 3]);
     ctx.strokeRect(x0 - lx, y0 + g.pos * cs - 2, K * cs + lx + 2, cs + 3); ctx.restore();
@@ -270,56 +275,117 @@ function drawWeights(ctx, colors, w, params, state, anim) {
 
 /* =============================================================== Output */
 
-const OT = { top: 46, rh: 24, cs: 14, matTop: 108 };
-const heightOutput = (L) => OT.top + L * OT.rh + 118;
+/* ONE PRESS, IN STAGES (his ask, 2026-09-26: "animate rows added sequentially"; mock
+   `_lab/attention-output-mock.html`, his pick C). The press glides to the next query,
+   then takes its keys one at a time: the key's features vⱼ fade in place to αᵢⱼvⱼ
+   and zᵢ takes them into its running total; then the finished zᵢ fades into its row
+   of the table under the α matrix, where row i of Z sits under row i of α (Z = αV).
+   Nothing travels over marks already in place (tweens move in lanes): the key being
+   added is outlined, and a line down the right edge carries it to the sum. */
+const OUT = { pre: 260, key: 280, drop: 360 }, OUT_RUN = { pre: 160, key: 150, drop: 220 };
+const outMs = (L, mode) => { const P = mode === "run" ? OUT_RUN : OUT; return P.pre + L * P.key + P.drop; };
+/** where a press is on the Output page: the glide `e`, the key `k` being added and its progress `u`, the table's fade `drop` */
+function outPhase(anim, L) {
+  if (anim.n === 0) return { e: 0, k: 0, u: 0, drop: 0 };
+  if (anim.t >= 1) return { e: 1, k: L, u: 1, drop: 1 };
+  const P = anim.mode === "run" ? OUT_RUN : OUT, tau = anim.t * outMs(L, anim.mode);
+  if (tau < P.pre) return { e: ease(tau / P.pre), k: 0, u: 0, drop: 0 };
+  const r = tau - P.pre;
+  if (r < L * P.key) return { e: 1, k: Math.floor(r / P.key), u: (r % P.key) / P.key, drop: 0 };
+  return { e: 1, k: L, u: 1, drop: ease(Math.min(1, (r - L * P.key) / P.drop)) };
+}
+/** Σ over the first k keys of αᵢⱼ vⱼ, for query i */
+const partialZ = (hd, i, k) => Array.from({ length: M.DK }, (_, d) => { let s = 0; for (let j = 0; j < k; j++) s += hd.alpha[i][j] * hd.v[j][d]; return s; });
+/** the share of query i's weight on its first k keys */
+const weightSoFar = (hd, i, k) => hd.alpha[i].slice(0, k).reduce((a, b) => a + b, 0);
+
+const OT = { top: 46, rh: 24, cs: 14, matTop: 108, tableGap: 40 };
+const outTableTop = (L) => OT.matTop + L * OT.cs + OT.tableGap;
+const heightOutput = (L) => Math.max(OT.top + L * OT.rh + 124, outTableTop(L) + L * OT.cs + 12);
 
 function drawOutput(ctx, colors, w, params, state, anim) {
   const toks = state.tokens, L = state.L, h = Number(params.head) - 1, hd = state.run.heads[h], qi = queryOf(anim);
+  const ph = outPhase(anim, L), g = qi >= 0 ? glide(anim, ph.e) : null;
   const lw = labelWidth(ctx, colors, toks), mx = PAD_L + lw + 6;
   txt(ctx, S.weightsCap, PAD_L, 18, { font: cap(colors), fill: colors.ink1 });
-  matrix(ctx, colors, hd.alpha, toks, mx, OT.matTop, OT.cs, anim);
+  matrix(ctx, colors, hd.alpha, toks, mx, OT.matTop, OT.cs, anim, { ge: ph.e });
   const wx = mx + L * OT.cs + 22, kx = wx + 42, vx = kx + lw + 18;
-  const vc = Math.max(8, Math.min(14, Math.floor((w - PAD_R - vx) / M.DK)));
+  const vc = Math.max(8, Math.min(14, Math.floor((w - PAD_R - vx - 12) / M.DK)));
   txt(ctx, S.outW, wx, 18, { font: cap(colors), fill: colors.ink1 });
   txt(ctx, S.outV, vx, 18, { font: cap(colors), fill: colors.ink1 });
   const vmax = Math.max(...hd.v.flat().map(Math.abs), ...hd.z.flat().map(Math.abs));
-  const g = qi >= 0 ? glide(anim) : null;
+  const blank = rgb(colors.surface2), right = vx + M.DK * vc;
+  /* what row j's strip shows now: its features, or the features times this query's weight */
+  const stripAt = (j, d) => {
+    const raw = signedFill(colors, hd.v[j][d], vmax);
+    if (!g) return raw;
+    const mine = signedFill(colors, hd.alpha[g.to][j] * hd.v[j][d], vmax);
+    if (ph.e < 1) return g.first ? raw : mixRgb(signedFill(colors, hd.alpha[g.from][j] * hd.v[j][d], vmax), raw, ph.e);
+    if (j < ph.k) return mine;
+    if (j === ph.k) return mixRgb(raw, mine, ease(Math.min(1, 2 * ph.u)));
+    return raw;
+  };
   for (let j = 0; j < L; j++) {
-    const y = OT.top + j * OT.rh;
+    const y = OT.top + j * OT.rh, ty = y + (OT.rh - 5) / 2;
     ctx.fillStyle = colors.surface2; ctx.fillRect(wx, y, 34, OT.rh - 5);
     if (g) {
       const to = weightFill(colors, hd.alpha[g.to][j]);
-      const f = g.first ? mixRgb(rgb(colors.surface2), to, g.e) : mixRgb(weightFill(colors, hd.alpha[g.from][j]), to, g.e);
+      const f = g.first ? mixRgb(blank, to, g.e) : mixRgb(weightFill(colors, hd.alpha[g.from][j]), to, g.e);
       ctx.fillStyle = css(f); ctx.fillRect(wx, y, 34, OT.rh - 5);
-      const ty = y + (OT.rh - 5) / 2;
       if (!g.first) txt(ctx, hd.alpha[g.from][j].toFixed(2), wx + 17, ty, { font: mono(colors), fill: inkOn(colors, f), align: "center", baseline: "middle", alpha: oldInk(g) });
       txt(ctx, hd.alpha[g.to][j].toFixed(2), wx + 17, ty, { font: mono(colors), fill: inkOn(colors, f), align: "center", baseline: "middle", alpha: newInk(g) });
     }
-    ctx.strokeStyle = colors.ink2; ctx.strokeRect(wx + 0.5, y + 0.5, 33, OT.rh - 6);
-    txt(ctx, toks[j], kx, y + (OT.rh - 5) / 2, { font: mono(colors), fill: colors.groupB, baseline: "middle" });
-    txt(ctx, "·", vx - 9, y + (OT.rh - 5) / 2, { font: cap(colors), fill: colors.ink1, align: "center", baseline: "middle" });
-    hd.v[j].forEach((v, d) => { ctx.fillStyle = css(signedFill(colors, v, vmax)); ctx.fillRect(vx + d * vc, y, vc - 1, OT.rh - 5); });
-    ctx.strokeStyle = colors.ink2; ctx.strokeRect(vx - 0.5, y - 0.5, M.DK * vc, OT.rh - 4);
+    ctx.strokeStyle = colors.ink2; ctx.lineWidth = 1; ctx.strokeRect(wx + 0.5, y + 0.5, 33, OT.rh - 6);
+    txt(ctx, toks[j], kx, ty, { font: mono(colors), fill: colors.groupB, baseline: "middle" });
+    txt(ctx, "·", vx - 9, ty, { font: cap(colors), fill: colors.ink1, align: "center", baseline: "middle" });
+    for (let d = 0; d < M.DK; d++) { ctx.fillStyle = css(stripAt(j, d)); ctx.fillRect(vx + d * vc, y, vc - 1, OT.rh - 5); }
+    const adding = g && ph.e >= 1 && j === ph.k && ph.k < L;
+    ctx.strokeStyle = adding ? colors.groupA : colors.ink2; ctx.lineWidth = adding ? 2 : 1; ctx.strokeRect(vx - 0.5, y - 0.5, M.DK * vc, OT.rh - 4);
   }
-  const yb = OT.top + L * OT.rh + 2, right = vx + M.DK * vc;
+  ctx.lineWidth = 1;
+  const yb = OT.top + L * OT.rh + 2;
   line(ctx, wx, yb, wx, yb + 8, colors.ink2); line(ctx, wx, yb + 8, right, yb + 8, colors.ink2); line(ctx, right, yb, right, yb + 8, colors.ink2);
+  /* the key being added, carried to the sum down the lane right of the strips */
+  if (g && ph.e >= 1 && ph.k < L) {
+    const y0 = OT.top + ph.k * OT.rh + (OT.rh - 5) / 2;
+    line(ctx, right + 1, y0, right + 8, y0, colors.groupA, 1.5);
+    arrow(ctx, right + 8, y0, right + 8, yb + 6, colors.groupA);
+  }
   txt(ctx, S.outSum, (wx + right) / 2, yb + 26, { font: cap(colors), fill: colors.ink1, align: "center" });
   arrow(ctx, (wx + right) / 2, yb + 32, (wx + right) / 2, yb + 50, colors.ink2);
   const zy = yb + 56;
-  for (let d = 0; d < M.DK; d++) {
-    ctx.fillStyle = colors.surface2; ctx.fillRect(vx + d * vc, zy, vc - 1, 24);
-    if (g) {
-      const to = signedFill(colors, hd.z[g.to][d], vmax);
-      ctx.fillStyle = css(g.first ? mixRgb(rgb(colors.surface2), to, g.e) : mixRgb(signedFill(colors, hd.z[g.from][d], vmax), to, g.e));
-      ctx.fillRect(vx + d * vc, zy, vc - 1, 24);
+  /* zᵢ's running total: the last query's z fading out on the glide, then key by key */
+  let zNow = null;
+  if (g) {
+    if (ph.e < 1) zNow = (d) => (g.first ? blank : mixRgb(signedFill(colors, hd.z[g.from][d], vmax), blank, ph.e));
+    else if (ph.k >= L) zNow = (d) => signedFill(colors, hd.z[g.to][d], vmax);
+    else {
+      const a = partialZ(hd, g.to, ph.k), b = partialZ(hd, g.to, ph.k + 1), s = ease(Math.max(0, 2 * ph.u - 1));
+      zNow = (d) => mixRgb(ph.k === 0 ? blank : signedFill(colors, a[d], vmax), signedFill(colors, b[d], vmax), s);
     }
   }
+  for (let d = 0; d < M.DK; d++) { ctx.fillStyle = zNow ? css(zNow(d)) : colors.surface2; ctx.fillRect(vx + d * vc, zy, vc - 1, 24); }
   ctx.strokeStyle = colors.ink1; ctx.strokeRect(vx - 0.5, zy - 0.5, M.DK * vc, 25);
   if (g) {
     if (!g.first) txt(ctx, toks[g.from], vx - 10, zy + 12, { font: mono(colors), fill: colors.groupA, align: "right", baseline: "middle", alpha: oldInk(g) });
     txt(ctx, toks[g.to], vx - 10, zy + 12, { font: mono(colors), fill: colors.groupA, align: "right", baseline: "middle", alpha: newInk(g) });
   }
-  txt(ctx, S.outZ, (vx + right) / 2, zy + 44, { font: small(colors), fill: colors.ink2, align: "center" });
+  const added = g ? (ph.e < 1 ? 0 : Math.min(L, ph.k + (ph.u >= 0.5 ? 1 : 0))) : 0;
+  txt(ctx, g && added < L ? S.outSoFar(added, L, Math.round(100 * weightSoFar(hd, g.to, added))) : S.outZ, (vx + right) / 2, zy + 44,
+    { font: small(colors), fill: colors.ink2, align: "center" });
+  /* Z under α: row i of the table is query i's finished z */
+  const tt = outTableTop(L), zc = (L * OT.cs) / M.DK;
+  txt(ctx, S.outTable, PAD_L, tt - 12, { font: cap(colors), fill: colors.ink1 });
+  for (let i = 0; i < L; i++) {
+    const y = tt + i * OT.cs, a = i < qi ? 1 : i === qi ? ph.drop : 0;
+    txt(ctx, toks[i], mx - 5, y + OT.cs / 2, { font: mono(colors), fill: i === qi ? colors.groupA : colors.ink2, align: "right", baseline: "middle" });
+    for (let d = 0; d < M.DK; d++) {
+      const x = mx + d * zc;
+      ctx.fillStyle = colors.surface2; ctx.fillRect(x, y, zc - 1, OT.cs - 1);
+      if (a > 0) { ctx.save(); ctx.globalAlpha = a; ctx.fillStyle = css(signedFill(colors, hd.z[i][d], vmax)); ctx.fillRect(x, y, zc - 1, OT.cs - 1); ctx.restore(); }
+    }
+  }
+  ctx.strokeStyle = colors.ink2; ctx.strokeRect(mx - 0.5, tt - 0.5, L * OT.cs, L * OT.cs);
 }
 
 /* ================================================================ Heads */
@@ -424,8 +490,9 @@ defineWidget({
       const n = fromScratch ? 0 : Math.max(0, Math.min(state.L, Number(params.shown) || 0));
       return { n, t: 1, done: n >= state.L };
     },
-    advance: (anim, { dt, state }) => {
-      const ms = anim.mode === "run" ? RUN_MS : STEP_MS;
+    advance: (anim, { dt, params, state }) => {
+      /* the Output page's press takes its keys one at a time, so it runs longer */
+      const ms = params.page === "output" ? outMs(state.L, anim.mode) : anim.mode === "run" ? RUN_MS : STEP_MS;
       let more;
       if (anim.t < 1) { anim.t = Math.min(1, anim.t + dt / ms); more = anim.t < 1 || (anim.mode === "run" && anim.n < state.L); }
       else if (anim.n < state.L) { anim.n += 1; anim.t = 0; more = true; }
@@ -466,7 +533,13 @@ defineWidget({
     const row = qi >= 0 ? A[qi] : null, top = row ? row.indexOf(Math.max(...row)) : -1;
     const first = { label: S.tileQuery, value: qi >= 0 ? state.tokens[qi] : S.wait, note: S.tileQueryNote };
     const second = { label: S.tileTop, value: row ? `${state.tokens[top]} ${row[top].toFixed(2)}` : S.wait, note: S.tileTopNote };
-    if (params.page === "output") return [first, second, { label: S.tileZ, value: `[${M.DK}]`, note: S.tileZNote }];
+    if (params.page === "output") {
+      const ph = outPhase(anim, L), hd = state.run.heads[h];
+      const k = qi < 0 || ph.e < 1 ? 0 : Math.min(L, ph.k + (ph.u >= 0.5 ? 1 : 0));
+      return [first,
+        { label: S.tileAdded, value: qi >= 0 ? `${k} of ${L}` : S.wait, note: S.tileAddedNote },
+        { label: S.tileShare, value: qi >= 0 ? `${Math.round(100 * weightSoFar(hd, qi, k))}%` : S.wait, note: S.tileShareNote }];
+    }
     return [first, second, { label: S.tileSum, value: row ? row.reduce((a, b) => a + b, 0).toFixed(2) : S.wait, note: S.tileSumNote(L) }];
   },
 
