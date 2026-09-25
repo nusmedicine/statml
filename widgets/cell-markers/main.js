@@ -48,15 +48,21 @@ import { simulate, normalise, pcaScaled, knn, snn, findClusters, louvainTwoPasse
 import { umapSgd } from "./umap.js";
 
 const PAGES = [
-  { value: "graph", label: "Graph" },
-  { value: "clusters", label: "Clusters" },
-  { value: "two-clusters", label: "Two clusters" },
-  { value: "tumour-liver", label: "Tumour vs liver" },
-  { value: "composition", label: "Composition" },
+  /* THE ANALYSES IN THE FIELD'S TERMS (his pick, 2026-09-25): each is one
+     stage of the standard workflow, as Seurat and OSCA name them — graph-based
+     clustering (FindNeighbors, FindClusters), annotation by canonical markers,
+     marker genes (FindMarkers between clusters), differential expression
+     between conditions, and differential abundance of cell types. They were
+     Graph · Clusters · Two clusters · Tumour vs liver · Composition. */
+  { value: "clustering", label: "Clustering" },
+  { value: "annotation", label: "Annotation" },
+  { value: "markers", label: "Marker genes" },
+  { value: "differential-expression", label: "Differential expression" },
+  { value: "differential-abundance", label: "Differential abundance" },
 ];
 const ON = (page) => ({ param: "page", equals: page });
-const CELL_PAGES = { param: "page", oneOf: ["clusters", "two-clusters", "tumour-liver"] };
-const HEIGHTS = { graph: 470, "two-clusters": 820, "tumour-liver": 1544, composition: 380 };
+const CELL_PAGES = { param: "page", oneOf: ["annotation", "markers", "differential-expression"] };
+const HEIGHTS = { clustering: 470, markers: 820, "differential-expression": 1544, "differential-abundance": 380 };
 const RESOLUTIONS = ["0.1", "0.3", "0.5", "0.8", "1.2", "2"];
 const SAMPLE_SD = ["0", "0.1", "0.2", "0.4", "0.65"];
 const PATIENT_SD = ["0", "0.3", "0.65"];
@@ -470,7 +476,8 @@ function drawDiscMap(ctx, colors, state, M, { solid = -1, dashed = -1, ring = ()
 }
 
 /* the Graph page: six stages, one a press, tweened (his pick) */
-const GRAPH_STAGES = ["The cells", "k nearest neighbours", "Shared nearest neighbours", "Louvain, first pass", "Aggregation", "Louvain, second pass"];
+/* the stages in the lesson figure's own terms (Blondel et al. 2008: modularity optimisation, community aggregation) */
+const GRAPH_STAGES = ["The cells", "kNN graph", "SNN graph", "Modularity optimisation (pass 1)", "Community aggregation", "Modularity optimisation (pass 2)"];
 const GRAPH_TWEEN_MS = 900;
 const easeInOut = (t) => (t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2);
 function graphLayout(w) {
@@ -531,7 +538,7 @@ function drawGraph(ctx, colors, w, params, state, anim) {
       const r = 10 + Math.sqrt(n) * 3.2;
       ctx.fillStyle = colors.surface2; ctx.strokeStyle = colors.ink1; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
       ctx.font = `${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.ink1; ctx.textAlign = "center"; ctx.fillText(`${n} cells`, x, y + 4);
-      ctx.fillStyle = colors.ink3; ctx.fillText(`within ${(St.agg[c].get(c) ?? 0).toFixed(1)}`, x, y + r + 13);
+      ctx.fillStyle = colors.ink3; ctx.fillText(`self-loop ${(St.agg[c].get(c) ?? 0).toFixed(1)}`, x, y + r + 13);
     });
     ctx.globalAlpha = 1;
   }
@@ -563,16 +570,16 @@ function drawGraph(ctx, colors, w, params, state, anim) {
   const crossKept = kept.filter((q) => Gd.types[q.i] !== Gd.types[q.j]).length, crossCut = Gd.pairs.filter((q) => q.jac < 1 / 15 && Gd.types[q.i] !== Gd.types[q.j]).length;
   const knnCross = Gd.nn.reduce((acc, nb, i) => acc + nb.filter((j) => Gd.types[j] !== Gd.types[i]).length, 0);
   const text = [
-    ["45 cells: 30 hepatocytes and", "15 tumour cells. FindNeighbors", "finds neighbours in 20", "principal components."],
-    [`Each cell is linked to its ${GRAPH_K}`, `nearest cells: ${45 * GRAPH_K} links,`, `${knnCross} of them between types.`],
-    [`${Gd.pairs.length} pairs share a neighbour.`, "Edge weight: the Jaccard index", "of the two neighbour sets.", `${cut} pairs below 1/15 pruned`, `(red), ${crossCut} of them between`, `types; ${crossKept} kept between types.`],
-    ["Each cell moves to the", "neighbouring community with", "the largest modularity gain,", `until none moves: ${k1}`, `communities, Q = ${St.q1.toFixed(3)}.`],
-    ["Each community becomes one", "node: the edges between its", "cells are summed into edges", "between nodes."],
-    ["The same moves on the", `aggregated graph: ${kf}`, `communities, Q = ${St.q2.toFixed(3)},`, `at resolution ${params.graphRes}.`],
+    ["45 cells: 30 hepatocytes and", "15 tumour cells. Input: the", "first 20 principal components", "of the integrated data", "(dims = 1:20)."],
+    ["Each cell is connected to its", `k = ${GRAPH_K} nearest neighbours by`, `Euclidean distance: ${45 * GRAPH_K} edges,`, `${knnCross} between cell types.`],
+    ["Edge weight: Jaccard index of", "the two cells' neighbour sets", `(${Gd.pairs.length} pairs overlap). Edges`, "below 1/15 are pruned", `(prune.SNN): ${cut}, ${crossCut} of them`, `between types; ${crossKept} retained`, "between types."],
+    ["Local moving: each node joins", "the neighbouring community", "with the largest modularity", "gain, until no move increases", `Q. ${k1} communities, Q = ${St.q1.toFixed(3)}.`],
+    ["Each community becomes one", "node; weights between", "communities are summed, and", "weights within a community", "become a self-loop."],
+    ["Modularity optimisation on the", `aggregated graph: ${kf}`, `communities, Q = ${St.q2.toFixed(3)}`, `(resolution ${params.graphRes}).`],
   ];
   text[s].forEach((t, i) => small(t, 180 + i * 16));
-  small(`k = ${GRAPH_K} for 45 cells; the Clusters`, G.y + G.h - 20, colors.ink3);
-  small("page uses all cells and k = 20.", G.y + G.h - 4, colors.ink3);
+  small(`k = ${GRAPH_K} for 45 cells; for all cells,`, G.y + G.h - 20, colors.ink3);
+  small("FindNeighbors' default k.param = 20.", G.y + G.h - 4, colors.ink3);
   ctx.textAlign = "left";
 }
 
@@ -948,7 +955,7 @@ function drawTumourLiver(ctx, colors, w, params, state) {
 
 function drawComposition(ctx, colors, w, params, state) {
   const P = state.comp;
-  const barW = Math.min(64, Math.floor((w * 0.42 - 20) / 4) - 14), bh = HEIGHTS.composition - TOP - 50;
+  const barW = Math.min(64, Math.floor((w * 0.42 - 20) / 4) - 14), bh = HEIGHTS["differential-abundance"] - TOP - 50;
   heading(ctx, colors, `Composition per sample (${COMP_CELLS} cells)`, 8, TOP - 9);
   ORDER.forEach((k, j) => {
     const x = 16 + j * (barW + 14); let y = TOP + bh;
@@ -987,14 +994,14 @@ defineWidget({
     + "the cell-type proportions.",
   layout: "side",
   status: "draft",
-  height: (params) => (params.page === "clusters" || !HEIGHTS[params.page] ? clustersHeight(params) : HEIGHTS[params.page]),
+  height: (params) => (params.page === "annotation" || !HEIGHTS[params.page] ? clustersHeight(params) : HEIGHTS[params.page]),
 
   /* ORDER MATTERS: an option list that follows other parameters reads them
      resolved, so the seed and the resolution come before the lists that read
      them (core params.js) — the seed sat last until 2026-09-25, and every
      list was built for the default seed */
   params: {
-    page: { type: "segmented", style: "grid", label: "Page", options: PAGES, default: "graph", display: true },
+    page: { type: "segmented", style: "grid", label: "Analysis", options: PAGES, default: "clustering", display: true },
 
     dataSec: { type: "section", label: "The data" },
     seed: { type: "int", label: "Seed", min: 1, max: 200, default: 1 },
@@ -1006,40 +1013,40 @@ defineWidget({
 
     graphRes: {
       type: "choice", label: "Resolution",
-      detail: "the resolution parameter of FindClusters on this graph of 45 cells",
-      options: GRAPH_RES.map((v) => ({ value: v, label: v })), default: "1", display: true, when: ON("graph"),
+      detail: "FindClusters resolution: the weight of the expected-edges term in modularity; here on the 45-cell graph",
+      options: GRAPH_RES.map((v) => ({ value: v, label: v })), default: "1", display: true, when: ON("clustering"),
     },
-    twoSec: { type: "section", label: "The comparison", when: ON("two-clusters") },
+    twoSec: { type: "section", label: "The comparison", when: ON("markers") },
     comparator: {
       type: "segmented", style: "grid", label: "Comparator",
       detail: "ident.1 of FindMarkers: the cluster tested for markers; clusters are numbered by size, 0 the largest",
       options: (v) => clusterOptions(v), optionsFrom: ["seed", "res"],
-      default: "0", when: ON("two-clusters"),
+      default: "0", when: ON("markers"),
     },
     baseline: {
       type: "segmented", style: "grid", label: "Baseline",
       detail: "ident.2 of FindMarkers: the reference group, either one cluster or all other cells",
       options: (v) => [{ value: "rest", label: "All other cells", span: true }, ...clusterOptions(v).filter((o) => o.value !== String(v.comparator))],
       optionsFrom: ["seed", "res", "comparator"],
-      default: "rest", when: ON("two-clusters"),
+      default: "rest", when: ON("markers"),
     },
-    tlSec: { type: "section", label: "The comparison", when: ON("tumour-liver") },
+    tlSec: { type: "section", label: "The comparison", when: ON("differential-expression") },
     within: {
       type: "segmented", style: "grid", label: "Cluster",
       detail: `the cluster whose cells are compared between tumour and liver samples; clusters with fewer than ${MIN_PER_SAMPLE} cells in any sample are not testable`,
       options: (v) => testableOptions(v), optionsFrom: ["seed", "res"],
-      default: "", when: ON("tumour-liver"),
+      default: "", when: ON("differential-expression"),
     },
     gene: {
       type: "select", label: "Gene",
       detail: "the gene shown in both expression panels; also selected from the volcano plots, the gene lists and the Venn diagram",
-      options: GENE_OPTIONS, default: "unchanged", when: ON("tumour-liver"),
+      options: GENE_OPTIONS, default: "unchanged", when: ON("differential-expression"),
     },
-    tlSampSec: { type: "section", label: "The samples", when: ON("tumour-liver") },
+    tlSampSec: { type: "section", label: "The samples", when: ON("differential-expression") },
     change: {
       type: "choice", label: "True log2 fold change",
       detail: "the simulated effect: 20 DE genes per cell type, a different set in each, half up and half down in tumour samples; all other genes are non-DE",
-      options: CHANGES.map((v) => ({ value: v, label: v })), default: "0", when: ON("tumour-liver"),
+      options: CHANGES.map((v) => ({ value: v, label: v })), default: "0", when: ON("differential-expression"),
     },
     sampleSd: {
       /* VARIATION, NOT AN EFFECT (his round: "isn't it variance? I confuse it
@@ -1048,38 +1055,39 @@ defineWidget({
          effect size on the page */
       type: "choice", label: "Variation between samples (SD)",
       detail: "SD of a sample-specific shift in each gene's log expression, from sample preparation (ambient RNA, dissociation, handling)",
-      options: SAMPLE_SD.map((v) => ({ value: v, label: v })), default: "0", when: ON("tumour-liver"),
+      options: SAMPLE_SD.map((v) => ({ value: v, label: v })), default: "0", when: ON("differential-expression"),
     },
     patientSd: {
       type: "choice", label: "Variation between patients (SD)",
       detail: "SD of a patient-specific shift in each gene's log expression, shared by that patient's liver and tumour samples",
-      options: PATIENT_SD.map((v) => ({ value: v, label: v })), default: "0.3", when: ON("tumour-liver"),
+      options: PATIENT_SD.map((v) => ({ value: v, label: v })), default: "0.3", when: ON("differential-expression"),
     },
 
-    compSec: { type: "section", label: "The samples", when: ON("composition") },
+    compSec: { type: "section", label: "The samples", when: ON("differential-abundance") },
     compSd: {
       type: "choice", label: "Variation between samples (SD)",
       detail: "SD of a sample-specific shift in each cell type's log proportion, about its tissue's mean",
-      options: COMP_SD.map((v) => ({ value: v, label: v })), default: "0.3", when: ON("composition"),
+      options: COMP_SD.map((v) => ({ value: v, label: v })), default: "0.3", when: ON("differential-abundance"),
     },
     /* a finished figure for a lesson: the Graph page opened at stage N (0–5) */
     shown: { type: "int", min: 0, max: 5, default: 0, hidden: true },
   },
 
   legend: ({ params }) => {
-    const types = TYPES.map((t, i) => ({ token: `cluster-${"abcdef"[TYPE_SLOT[i]]}`, label: t.name, mark: params.page === "composition" ? "bar" : "dot" }));
-    if (params.page === "graph") return [
+    const types = TYPES.map((t, i) => ({ token: `cluster-${"abcdef"[TYPE_SLOT[i]]}`, label: t.name, mark: params.page === "differential-abundance" ? "bar" : "dot" }));
+    if (params.page === "clustering") return [
       { token: `cluster-${"abcdef"[TYPE_SLOT[0]]}`, label: "Hepatocyte", mark: "dot" },
       { token: `cluster-${"abcdef"[TYPE_SLOT[1]]}`, label: "Tumour cell", mark: "dot" },
-      { token: "ink-2", label: "Edge; SNN width by Jaccard weight", mark: "line" },
-      { token: "extreme", label: "Pair pruned (Jaccard < 1/15)", mark: "line" },
-      { token: "ink-1", label: "Dashed outline: a community", mark: "line" },
+      { token: "ink-2", label: "Edge (width: Jaccard weight)", mark: "line" },
+      { token: "extreme", label: "Pruned edge (Jaccard < 1/15)", mark: "dash" },
+      { token: "ink-1", label: "Dashed outline: community", mark: "dash" },
+      { token: "ink-1", label: "Circle: a community as one node", mark: "ring" },
     ];
-    if (params.page === "clusters") return [...types, { token: "magnitude", label: "Dot plot: size, fraction of cells expressing the gene; shade, mean expression", mark: "dot" }];
+    if (params.page === "annotation") return [...types, { token: "magnitude", label: "Dot plot: size, fraction of cells expressing the gene; shade, mean expression", mark: "dot" }];
     /* Tumour vs liver draws its key on the canvas, between the gene views
        and the Venn it does not key (his round: "move these legends above the
        venn diagram closer to volcano and gene views"); drawKey */
-    if (params.page === "tumour-liver") return [];
+    if (params.page === "differential-expression") return [];
     return types;
   },
 
@@ -1105,19 +1113,19 @@ defineWidget({
      page switch). The resolution is a display parameter: a new one re-runs
      Louvain and keeps the stage. */
   animation: {
-    stepLabel: { anim: "labelAt", labels: { g0: "Find neighbours", g1: "Weight by shared neighbours", g2: "First pass", g3: "Aggregate", g4: "Second pass", done: "Step" }, default: "Step" },
+    stepLabel: { anim: "labelAt", labels: { g0: "Build kNN graph", g1: "Build SNN graph", g2: "Optimise modularity", g3: "Aggregate communities", g4: "Optimise again", done: "Step" }, default: "Step" },
     stepTitle: { anim: "labelAt", labels: {
-      g0: "Link each cell to its k nearest cells in principal-component space",
-      g1: "Weight each pair of cells by the Jaccard index of their neighbour sets, and prune pairs below 1/15",
-      g2: "Move each cell to the neighbouring community with the largest modularity gain, until none moves",
-      g3: "Merge each community into one node, summing the edges between them",
-      g4: "Repeat the moves on the aggregated graph",
-      done: "Every stage has been taken; Reset returns to the cells",
+      g0: "Connect each cell to its k nearest neighbours in principal-component space",
+      g1: "Weight each edge by the Jaccard index of the two neighbour sets, and prune edges below 1/15",
+      g2: "Local moving: reassign each node to the neighbouring community with the largest modularity gain",
+      g3: "Collapse each community into one node, summing the edge weights",
+      g4: "Optimise modularity on the aggregated graph",
+      done: "All stages shown; Reset returns to the cells",
     }, default: "Step" },
     runLabel: null,
     init: ({ params, fromScratch }) => {
       const stage = !fromScratch ? Math.max(0, Math.min(5, Number(params.shown) || 0)) : 0;
-      return { stage, t: 1, moving: false, done: stage >= 5, labelAt: stage >= 5 ? "done" : `g${stage}`, inert: params.page !== "graph" };
+      return { stage, t: 1, moving: false, done: stage >= 5, labelAt: stage >= 5 ? "done" : `g${stage}`, inert: params.page !== "clustering" };
     },
     advance: (anim, { dt }) => {
       if (anim.inert) return false;
@@ -1130,7 +1138,7 @@ defineWidget({
       return true;
     },
     rebuild: (anim, { params }) => {
-      anim.inert = params.page !== "graph";
+      anim.inert = params.page !== "clustering";
       if (anim.inert && anim.moving) { anim.t = 1; anim.moving = false; anim.done = anim.stage >= 5; anim.labelAt = anim.done ? "done" : `g${anim.stage}`; }
     },
   },
@@ -1138,7 +1146,7 @@ defineWidget({
   regions: ({ w, params, state }) => {
     /* core probes the table at load, before compute has run */
     if (!state) return [];
-    if (params.page === "two-clusters") {
+    if (params.page === "markers") {
       const L = twoLayout(w), tested = state.mk.tested;
       const M2 = L.maps[1];
       return [
@@ -1150,7 +1158,7 @@ defineWidget({
         { ...L.rest, set: { baseline: "rest" }, label: "All other cells" },
       ];
     }
-    if (params.page === "tumour-liver") {
+    if (params.page === "differential-expression") {
       const L = tlLayout(w), ok = new Set(state.cl.ann.filter((a) => a.testable).map((a) => a.c));
       const out = discTiles(state, L.map).filter((t) => ok.has(t.c) && t.c < MAX_ROWS).map((t) => ({ ...t, set: { within: String(t.c) }, label: `cluster ${t.c}` }));
       /* every point of both volcanos, in drawing order: the last region hit
@@ -1170,23 +1178,23 @@ defineWidget({
   /* the Clusters page's hover (drawClusters); the other pages ignore it */
   pointer: true,
   draw: ({ ctx, colors, w, params, state, anim, pointer }) => {
-    if (params.page === "graph") drawGraph(ctx, colors, w, params, state, anim);
-    else if (params.page === "clusters") drawClusters(ctx, colors, w, params, state, pointer);
-    else if (params.page === "two-clusters") drawTwo(ctx, colors, w, params, state, pointer);
-    else if (params.page === "tumour-liver") drawTumourLiver(ctx, colors, w, params, state);
+    if (params.page === "clustering") drawGraph(ctx, colors, w, params, state, anim);
+    else if (params.page === "annotation") drawClusters(ctx, colors, w, params, state, pointer);
+    else if (params.page === "markers") drawTwo(ctx, colors, w, params, state, pointer);
+    else if (params.page === "differential-expression") drawTumourLiver(ctx, colors, w, params, state);
     else drawComposition(ctx, colors, w, params, state);
   },
 
   readout: ({ params, state, anim }) => {
     const cl = state.cl;
-    if (params.page === "graph") {
+    if (params.page === "clustering") {
       const s = anim?.stage ?? 0, St = state.gstages, kept = state.graph.pairs.filter((q) => q.jac >= 1 / 15).length;
       return [
-        { label: "Edges", value: s >= 2 ? String(kept) : s >= 1 ? String(45 * GRAPH_K) : "–", note: s >= 2 ? "SNN edges after the 1/15 prune" : s >= 1 ? `kNN links, k = ${GRAPH_K}` : "45 cells, no graph yet" },
-        { label: "Communities", value: s >= 5 ? String(new Set(St.final).size) : s >= 3 ? String(new Set(St.first).size) : "–", note: s >= 5 ? `after both passes; modularity ${St.q2.toFixed(3)}` : s >= 3 ? `after the first pass; modularity ${St.q1.toFixed(3)}` : `resolution ${params.graphRes}` },
+        { label: "Edges", value: s >= 2 ? String(kept) : s >= 1 ? String(45 * GRAPH_K) : "–", note: s >= 2 ? "SNN graph, pruned at Jaccard < 1/15" : s >= 1 ? `kNN graph, k = ${GRAPH_K}` : "graph not built" },
+        { label: "Communities", value: s >= 5 ? String(new Set(St.final).size) : s >= 3 ? String(new Set(St.first).size) : "–", note: s >= 5 ? `after pass 2; Q = ${St.q2.toFixed(3)}` : s >= 3 ? `after pass 1; Q = ${St.q1.toFixed(3)}` : `resolution ${params.graphRes}` },
       ];
     }
-    if (params.page === "clusters") {
+    if (params.page === "annotation") {
       const byType = TYPES.map((t, ti) => cl.ann.filter((a) => a.type === ti).length);
       const split = TYPES.filter((_, ti) => byType[ti] > 1).map((t) => t.name);
       return [
@@ -1194,7 +1202,7 @@ defineWidget({
         { label: "Cell types split across clusters", value: String(split.length), note: split.length ? `${split.join(", ")}: its clusters share the same canonical markers` : "one cluster per cell type" },
       ];
     }
-    if (params.page === "two-clusters") {
+    if (params.page === "markers") {
       const mk = state.mk, fm = mk.fm;
       const up = fm.res.filter((x) => x.lfc > 0 && x.lpAdj < LOG05);
       return [
@@ -1202,7 +1210,7 @@ defineWidget({
         { label: "Of those, with pct.2 > 0.5", value: String(broadOf(mk).length), note: "significant, but not specific to the cluster" },
       ];
     }
-    if (params.page === "composition") {
+    if (params.page === "differential-abundance") {
       const T = state.comp.types;
       const names = (k) => T.filter((r) => r[k] < 0.05).map((r) => TYPES[r.ti].name).join(", ") || "none";
       return [
