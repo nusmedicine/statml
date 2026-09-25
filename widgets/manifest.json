@@ -1214,6 +1214,24 @@
       ],
       "arc": 81,
       "status": "shipped"
+    },
+    {
+      "slug": "attention",
+      "title": "Deep Learning - Language: Attention",
+      "blurb": "Each token's new vector is a sum over all tokens, weighted by query and key; several heads, and a padding mask.",
+      "course": "PHM5005",
+      "topics": [
+        "attention",
+        "self-attention",
+        "query key value",
+        "multi-head attention",
+        "padding mask",
+        "transformer",
+        "language",
+        "deep learning"
+      ],
+      "arc": 83,
+      "status": "draft"
     }
   ]
 }

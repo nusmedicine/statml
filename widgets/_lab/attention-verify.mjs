@@ -1,0 +1,65 @@
+/* Widget 83's checks, run by `npm test`.
+
+   1. The JS forward against torch: `_lab/attention-reference.json` is what
+      torch computes from the SAME rounded weights (`attention-weights.py`
+      writes both), on the four sentences, unpadded and padded to 16 with NO
+      mask (the masked case is check 2's: the unpadded rows exactly). Every alpha, unscaled alpha, v and z within 1e-5: torch runs
+      in float32 and this in float64 (measured 1.3e-6).
+   2. The claims the pages print: the aspirin row's weight on "chest pain"
+      in head 4 (the Weights page's example), the [MASK] row's in heads 2 and
+      4, [PAD]'s share without the mask, and that the masked rows equal the
+      unpadded ones — the Mask page's whole claim.
+   3. The arithmetic every row keeps: each row sums to 1.
+
+   Run:  node widgets/_lab/attention-verify.mjs
+*/
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
+
+const here = dirname(fileURLToPath(import.meta.url));
+const M = await import(pathToFileURL(join(here, "..", "attention", "model.js")).href);
+const REF = JSON.parse(readFileSync(join(here, "attention-reference.json"), "utf8"));
+
+let fails = 0, checks = 0;
+const ok = (cond, msg) => { checks++; if (!cond) { fails++; console.log(`FAIL ${msg}`); } };
+const near = (a, b, tol, msg) => ok(Math.abs(a - b) <= tol, `${msg}: ${a} against ${b}`);
+
+/* 1 · against torch */
+let worst = 0;
+for (const r of REF) {
+  const toks = r.tokens.concat(Array(r.L - r.tokens.length).fill(M.PAD));
+  const js = M.attend(toks, { mask: false });   // torch's padded reference is the no-mask case
+  for (let h = 0; h < M.H; h++) {
+    for (const [name, a, b] of [["alpha", js.heads[h].alpha, r.alpha[h]], ["alphaRaw", js.heads[h].alphaRaw, r.alpha_unscaled[h]],
+                                ["v", js.heads[h].v, r.v[h]], ["z", js.heads[h].z, r.z[h]]]) {
+      for (let i = 0; i < a.length; i++) for (let j = 0; j < a[i].length; j++) worst = Math.max(worst, Math.abs(a[i][j] - b[i][j]));
+      void name;
+    }
+  }
+}
+ok(worst < 1e-5, `the forward against torch (torch float32, here float64): largest difference ${worst.toExponential(2)}`);
+
+/* 2 · the printed claims */
+const asp = M.stage("aspirin"), msk = M.stage("masked");
+const onChest = (st, h, qi) => st.run.heads[h].alpha[qi][5] + st.run.heads[h].alpha[qi][6];
+near(onChest(asp, 3, 3), 0.79, 0.005, "aspirin → chest pain, head 4");
+near(onChest(msk, 3, 3), 0.84, 0.005, "[MASK] → chest pain, head 4");
+near(onChest(msk, 1, 3), 0.83, 0.005, "[MASK] → chest pain, head 2");
+for (const key of Object.keys(M.SENTENCES)) {
+  const st = M.stage(key), L = st.L;
+  for (let h = 0; h < M.H; h++) {
+    const open = st.padded.open.heads[h].alpha, masked = st.padded.masked.heads[h].alpha, bare = st.run.heads[h].alpha;
+    let same = 0;
+    for (let i = 0; i < L; i++) for (let j = 0; j < M.LMAX; j++) same = Math.max(same, Math.abs(masked[i][j] - (j < L ? bare[i][j] : 0)));
+    ok(same < 1e-12, `${key} head ${h + 1}: masked rows are the unpadded rows (${same})`);
+    for (const A of [bare, st.run.heads[h].alphaRaw, open]) for (const row of A) near(row.reduce((a, b) => a + b, 0), 1, 1e-12, `${key}: a row sums to 1`);
+    const pad = open.slice(0, L).reduce((s, r) => s + M.tailShare(r, L), 0) / L;
+    ok(pad > 0.05, `${key} head ${h + 1}: without the mask [PAD] takes ${(100 * pad).toFixed(0)}%`);
+  }
+}
+const pad4 = asp.padded.open.heads[3].alpha.slice(0, asp.L).reduce((s, r) => s + M.tailShare(r, asp.L), 0) / asp.L;
+near(pad4, 0.28, 0.005, "aspirin, head 4: [PAD]'s share without the mask");
+
+console.log(fails ? `${fails} of ${checks} checks FAILED` : `${checks} checks passed · the forward within ${worst.toExponential(1)} of torch`);
+process.exit(fails ? 1 : 0);
