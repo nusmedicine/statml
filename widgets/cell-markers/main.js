@@ -55,7 +55,7 @@ const PAGES = [
 ];
 const ON = (page) => ({ param: "page", equals: page });
 const CELL_PAGES = { param: "page", oneOf: ["clusters", "two-clusters", "tumour-liver"] };
-const HEIGHTS = { "two-clusters": 732, "tumour-liver": 1450, composition: 380 };
+const HEIGHTS = { "two-clusters": 732, "tumour-liver": 1470, composition: 380 };
 const RESOLUTIONS = ["0.1", "0.3", "0.5", "0.8", "1.2", "2"];
 const SAMPLE_SD = ["0", "0.1", "0.2", "0.4", "0.65"];
 const PATIENT_SD = ["0", "0.3", "0.65"];
@@ -331,7 +331,8 @@ const vennCache = new WeakMap();
 function vennOf(state, w, L) {
   const per = vennCache.get(state) ?? new Map();
   if (per.has(w)) return per.get(w);
-  const C = state.cond, R = Math.min(90, Math.floor((w - 16) * 0.14)), cx = 38 + Math.round(1.7 * R), top = L.vennTop + 40;
+  const C = state.cond, x0 = L.cols[0], x1 = Math.min(w - 2, L.cols[1] + L.PW), lw = x1 - x0 - 200;
+  const R = Math.min(96, Math.floor(lw / 3.7)), cx = x0 + Math.round(lw / 2) + 10, top = L.vennTop + 40;
   const circles = [{ x: cx, y: top + R }, { x: cx - Math.round(0.72 * R), y: top + Math.round(2.05 * R) }, { x: cx + Math.round(0.72 * R), y: top + Math.round(2.05 * R) }];
   const truth = new Set(), cells = new Set(C.volC.filter((q) => q.call).map((q) => q.g)), samples = new Set(C.volD.filter((q) => q.call).map((q) => q.g));
   for (let g = 0; g < G; g += 1) if (C.truthOf(g)) truth.add(g);
@@ -356,7 +357,7 @@ function vennOf(state, w, L) {
     /* the box is every gene (his round: "put it in a box … and the number of
        unchanged genes"): the circles sit in its left part, the legend and the
        genes outside every circle in a column on its right */
-    box: { x0: 8, y0: L.vennTop + 6, x1: Math.min(w - 8, cx + Math.round(1.72 * R) + 180), y1: top + Math.round(2.05 * R) + R + 34 }, colX: cx + Math.round(1.72 * R) + 18 };
+    box: { x0, y0: L.vennTop + 6, x1, y1: top + Math.round(2.05 * R) + R + 34 }, colX: x1 - 186 };
   per.set(w, out); vennCache.set(state, per);
   return out;
 }
@@ -598,7 +599,7 @@ function drawDesignTree(ctx, colors, C, B) {
 }
 
 function drawVenn(ctx, colors, V, L, picked) {
-  heading(ctx, colors, "The calls against the truth", 8, L.vennTop - 12);
+  heading(ctx, colors, "The calls against the truth", V.box.x0, L.vennTop - 12);
   const [T, Cc, Sc] = V.circles, R = V.R, B = V.box;
   /* the box: every gene */
   ctx.strokeStyle = colors.axis; ctx.lineWidth = 1; ctx.strokeRect(B.x0 + 0.5, B.y0 + 0.5, B.x1 - B.x0 - 1, B.y1 - B.y0 - 1);
@@ -797,12 +798,16 @@ defineWidget({
     const types = TYPES.map((t, i) => ({ token: `cluster-${"abcdef"[TYPE_SLOT[i]]}`, label: t.name, mark: params.page === "composition" ? "bar" : "dot" }));
     if (params.page === "clusters") return [...types, { token: "magnitude", label: "Dot plot: size, the share of the cluster's cells detecting the gene; shade, its mean", mark: "dot" }];
     if (params.page === "tumour-liver") return [
-      { token: "ink-2", label: "The gene's view: hollow, a liver sample's; filled, a tumour sample's", mark: "dot" },
-      { token: "highlight", label: "A square: the gene in the views below", mark: "line" },
-      { token: "ink-3", label: "A gene not called", mark: "dot" },
-      { token: "empirical", label: "Called at adjusted p < 0.05, and truly changed", mark: "dot" },
-      { token: "extreme", label: "Called, and unchanged", mark: "dot" },
-      { token: "reference", label: "A ring: truly changed", mark: "line" },
+      /* the volcanos' and gene views' key, short (his round: "do you need the
+         other legend?" — yes: the Venn keys its own dots, and its blue is
+         truly changed whether called or not, where the volcanos' blue is a
+         call) */
+      { token: "ink-3", label: "Not called", mark: "dot" },
+      { token: "empirical", label: "Called, truly changed", mark: "dot" },
+      { token: "extreme", label: "Called, unchanged", mark: "dot" },
+      { token: "reference", label: "Ring: truly changed", mark: "line" },
+      { token: "highlight", label: "Square: the picked gene", mark: "line" },
+      { token: "ink-2", label: "Cells: hollow liver, filled tumour", mark: "dot" },
     ];
     return types;
   },
