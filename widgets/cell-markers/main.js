@@ -44,7 +44,7 @@ import { defineWidget, fmt } from "../core/index.js";
 import { makeRng } from "../core/rng.js";
 import { lgamma } from "../core/stats.js";
 import { analyse } from "../deseq2/engine.js";
-import { simulate, normalise, pcaScaled, knn, snn, findClusters, findMarkers, geneKind, geneName, isConditionGene, TYPES, SAMPLES, G, G_MARK } from "./engine.js";
+import { simulate, normalise, pcaScaled, knn, snn, findClusters, findMarkers, geneKind, geneName, conditionGenesOf, TYPES, SAMPLES, G, G_MARK } from "./engine.js";
 import { umapSgd } from "./umap.js";
 
 const PAGES = [
@@ -97,7 +97,7 @@ function stageFor(seed, sampleSd, patientSd, change) {
   return remember(caches.stage, `${seed}|${sampleSd}|${patientSd}|${change}`, () => {
     const cells = simulate(makeRng(derived(seed, 1)), {
       cells: CELLS_PER_SAMPLE, patientSd: Number(patientSd), sampleSd: Number(sampleSd),
-      condition: Number(change), conditionTypes: ALL_TYPES, integrated: true,
+      condition: Number(change), conditionTypes: ALL_TYPES, conditionByType: true, integrated: true,
     });
     return { cells, Y: normalise(cells) };
   });
@@ -168,7 +168,8 @@ function conditionFor(params, cl) {
     if (!a.testable) return { within, a, testable: false };
     const inC = (i) => cl.clusters[i] === within;
     const fm = findMarkers(S.Y, (i) => inC(i) && S.cells[i].tissue === "tumour", (i) => inC(i) && S.cells[i].tissue === "liver", { logfc: 0, minPct: 0, nGenes: 33538 });
-    const truthOf = (g) => Number(params.change) > 0 && isConditionGene(g);
+    /* the cluster's type's own changed genes (engine, conditionByType) */
+    const own = conditionGenesOf(a.type), truthOf = (g) => Number(params.change) > 0 && own(g);
     const volC = fm.res.map((x) => ({ g: x.g, lfc: x.lfc, nl: -x.lp, lpAdj: x.lpAdj, call: x.lpAdj < LOG05, truth: truthOf(x.g) }));
     const counts = Array.from({ length: G }, (_, g) => ORDER.map((k) => a.idx.reduce((s, i) => s + (S.cells[i].sample === k ? S.cells[i].x[g] : 0), 0)));
     const an = analyse({ counts, grp: [0, 0, 1, 1], reps: 2, genes: G });
@@ -654,7 +655,7 @@ defineWidget({
     tlSampSec: { type: "section", label: "The samples", when: ON("tumour-liver") },
     change: {
       type: "choice", label: "True change",
-      detail: "the log2 fold change of 20 genes in every cell type's tumour-sample cells, half up and half down; every other gene is unchanged",
+      detail: "the log2 fold change of 20 genes in the tumour-sample cells, a different 20 in each cell type, half up and half down; every other gene is unchanged",
       options: CHANGES.map((v) => ({ value: v, label: v })), default: "0", when: ON("tumour-liver"),
     },
     sampleSd: {

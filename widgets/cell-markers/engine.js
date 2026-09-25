@@ -68,8 +68,12 @@ function poisson(rng, lam) {
 
 /** Four samples of `cells` cells. Pure given rng. `condition` is a true
     tumour-against-liver change on the Kupffer cells' first `conditionGenes`
-    spread genes (log2 fold), zero by default. */
-export function simulate(rng, { cells = 400, patientSd = 0.3, sampleSd = 0, phi = 0.3, depth = 1, condition = 0, conditionGenes = 20, conditionTypes = ["kupffer"], zonation = 0, compSd = 0, interaction = 0, interactionGenes = 10, integrated = false } = {}) {
+    spread genes (log2 fold), zero by default. With `conditionByType`, each
+    listed type changes its OWN `conditionGenes` spread genes — type t the
+    t-th block of them (conditionGenesOf) — rather than all types the same
+    first block (Kenneth, 2026-09-25: "give each cell type its own changed
+    genes"; the widget's Tumour vs liver page). */
+export function simulate(rng, { cells = 400, patientSd = 0.3, sampleSd = 0, phi = 0.3, depth = 1, condition = 0, conditionGenes = 20, conditionTypes = ["kupffer"], conditionByType = false, zonation = 0, compSd = 0, interaction = 0, interactionGenes = 10, integrated = false } = {}) {
   const P = profiles(rng);
   const pat = [0, 1].map(() => Array.from({ length: G }, () => rng.normal(0, patientSd)));
   /* a SAMPLE's own effect, per gene: what one preparation does that the same
@@ -115,7 +119,7 @@ export function simulate(rng, { cells = 400, patientSd = 0.3, sampleSd = 0, phi 
         let lm = base + pat[s.patient - 1][g] + samp[si][g];
         /* a real tumour-against-liver change in the listed types: the first
            `conditionGenes` spread genes, up or down alternately, as simulateType */
-        const cg = g - (TYPES.length * G_MARK + G_HOUSE);
+        const cg = g - (TYPES.length * G_MARK + G_HOUSE) - (conditionByType ? ti * conditionGenes : 0);
         if (condition && conditionTypes.includes(TYPES[ti].key) && s.tissue === "tumour" && cg >= 0 && cg < conditionGenes) lm += (cg % 2 ? -1 : 1) * condition * Math.LN2;
         /* a patient × type interaction: the first `interactionGenes` spread
            genes raised in patient 1's hepatocytes only — a gene one person's
@@ -357,3 +361,6 @@ export function geneName(g) {
 
 /** the spread genes that truly change in simulateType's tumour samples */
 export const isConditionGene = (g, conditionGenes = 20) => { const cg = g - (TYPES.length * G_MARK + G_HOUSE); return cg >= 0 && cg < conditionGenes; };
+/** with `conditionByType`, whether gene g is one of type ti's changed genes:
+    the ti-th block of `conditionGenes` spread genes (6 × 20 = 120 of 210) */
+export const conditionGenesOf = (ti, conditionGenes = 20) => (g) => isConditionGene(g - ti * conditionGenes, conditionGenes) && g - ti * conditionGenes >= TYPES.length * G_MARK + G_HOUSE;
