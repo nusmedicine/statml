@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · integration — Harmony in place of anchors</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1240px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 104ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  .rail { position: sticky; top: 0; z-index: 2; background: var(--surface-1); border: 1px solid var(--grid); border-radius: var(--radius);
+          padding: var(--sp-3) var(--sp-4); display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--sp-3) var(--sp-4); margin: 0 0 var(--sp-4); }
+  .fld label { display: block; font-size: var(--fs-xs); color: var(--ink-2); margin: 0 0 4px; }
+  .seg { display: flex; gap: 4px; }
+  .seg button, .drive button { flex: 1; font: inherit; font-size: var(--fs-sm); padding: 4px 8px; border: 1px solid var(--grid); background: var(--surface-2); color: var(--ink-2); border-radius: var(--radius); cursor: pointer; }
+  .seg button[aria-pressed=true] { background: var(--ink-1); color: var(--surface-1); border-color: var(--ink-1); }
+  .drive { display: flex; gap: 4px; }
+  .drive button.primary { background: var(--ink-1); color: var(--surface-1); border-color: var(--ink-1); }
+  .drive button:disabled { opacity: 0.4; cursor: default; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); border-radius: var(--radius); max-width: 100%; }
+  .legend { display: flex; flex-wrap: wrap; gap: var(--sp-2) var(--sp-4); font-size: var(--fs-xs); color: var(--ink-2); margin: var(--sp-2) 0; }
+  .legend span::before { content: ""; display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 5px; background: var(--sw); vertical-align: -1px; }
+  .legend span.line::before { border-radius: 0; height: 2px; width: 14px; vertical-align: 3px; }
+  .legend span.ring::before { background: none; border: 1.5px solid var(--sw); }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: var(--sp-2); margin: var(--sp-3) 0; }
+  .tile { background: var(--surface-2); border-radius: var(--radius); padding: var(--sp-2) var(--sp-3); }
+  .tile .k { font-size: var(--fs-xs); color: var(--ink-3); }
+  .tile .v { font-family: var(--font-mono); font-size: var(--fs-md); color: var(--ink-1); }
+  .tile .n { font-size: var(--fs-xs); color: var(--ink-3); }
+  table.calls { border-collapse: collapse; font-size: var(--fs-sm); width: 100%; }
+  table.calls td, table.calls th { border-top: 1px solid var(--grid); padding: 6px 8px; vertical-align: top; text-align: left; }
+  table.calls th { color: var(--ink-3); font-weight: normal; font-size: var(--fs-xs); }
+  table.calls td:first-child { font-weight: 600; white-space: nowrap; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>integration &middot; Harmony in place of the anchors</h1>
+  <p class="note">
+    Widget 80's stage — four samples, six cell types, tumour cells in the tumour samples only — with the patient shift at 0.5 rather than 0.9, and six clusters
+    (why, under <i>The measurement</i>). Harmony alternates two steps until the cells stop moving:
+    <b>Cluster</b> — soft k-means in the embedding, with a <b>diversity penalty θ</b> that lowers a cell's membership of a cluster its own batch
+    already fills beyond its share, so each cluster is pushed to hold both batches; and
+    <b>Correct</b> — within each cluster, each batch's centre is moved onto the cluster's centre, and every cell moves by its clusters' corrections,
+    weighted by its membership. Circles are the clusters, sized by the cells they hold, split by the batch (left) and by the cell types (right) inside them.
+    The arrows run from each batch's centre to the cluster's centre: the correction.
+  </p>
+  <div class="rail" id="rail"></div>
+  <canvas id="fig"></canvas>
+  <div class="legend" id="legend"></div>
+  <div class="tiles" id="tiles"></div>
+
+  <h2>The measurement</h2>
+  <p class="note">
+    <code>_lab/integration-harmony-measure.mjs</code>, Harmony as published (soft k-means with the diversity penalty, updated in blocks; a per-cluster ridge
+    fit of the original embedding on batch), in two dimensions without the cosine normalisation. <b>On the shipped stage (patient shift 0.9) Harmony fails
+    for a reason that is not the lesson</b>: a shift nearly as large as the distance between neighbouring types lays one patient's hepatocytes over the
+    other's tumour cells, the soft clusters form across the two, and on five seeds of eight tumour cells end up among hepatocytes (19–28% of their
+    neighbours) with Patient as the batch — where the anchors merge nothing. At 0.5 with six clusters (the package would use 20 for 600 cells;
+    twelve drew in overlapping pairs), the clusters form within types: under Patient, θ = 2 mixes the patients (0.91–1.03, 1 is fully mixed) with at
+    most 2% of tumour neighbours hepatocytes, on all eight seeds; under Tissue the tumour cells are pulled onto hepatocytes as θ grows, on every seed —
+    0.00–0.27 at θ = 0, 0.01–0.37 at θ = 2, 0.07–0.46 at θ = 4. <b>The seeds differ widely</b>: seed 1 reads 0% · 6% · 17%, seed 5 3% · 10% · 30%, and
+    seeds 2 and 3 merge 20–27% with no penalty at all, because a soft cluster there spans the two types. The anchors under Tissue: 10–27%. They do not
+    change with the shift (centring removes it at any size).
+  </p>
+
+  <h2>The calls</h2>
+  <table class="calls">
+    <tr><th></th><th>options</th><th>recommendation</th></tr>
+    <tr><td>1 · the method</td><td>A Harmony replaces the anchors · B a Method control, Anchors | Harmony · C keep the anchors</td>
+      <td><b>A</b> if the lesson moves to Harmony. B was rejected for 80 once: neither arm wins anywhere — both merge tumour cells into hepatocytes under Tissue and neither does under Patient.</td></tr>
+    <tr><td>2 · the presses</td><td>A Cluster, Correct, three rounds (six presses) · B one press a round · C Cluster and Correct once, then the rest at once</td>
+      <td><b>A</b>: the round is the idea — the clusters re-form on the corrected cells and the arrows shrink. Three rounds carry most of the movement.</td></tr>
+    <tr><td>3 · θ</td><td>A a control, 0 · 1 · 2 · 4, default 2 · B fixed at 2</td>
+      <td><b>A</b>: under Tissue it is the cause of the merge, and θ = 0 is the arm that shows it (a pick needs an arm that loses somewhere).</td></tr>
+    <tr><td>4 · the stage</td><td>A patient shift 0.4 · B keep 0.9 and say Harmony fails there</td>
+      <td><b>A</b>: at 0.9 the failure is geometry, not the batch key, and it would read as the lesson.</td></tr>
+  </table>
+</main>
+
+<script type="module">
+import { makeRng } from "../core/rng.js";
+import { simulate, integrate, measures, TYPES, KEYS } from "../integration/engine.js";
+import { harmony2d } from "./integration-harmony.js";
+
+const css = getComputedStyle(document.documentElement);
+const C = (n) => css.getPropertyValue(n).trim();
+const TYPE_COL = ["--c-cluster-a", "--c-cluster-c", "--c-cluster-b", "--c-cluster-d", "--c-cluster-e", "--c-cluster-f"];
+const ROUNDS = 3, K = 6, SIGMA = 0.05, SHIFT = 0.5, TWEEN = 900;
+const S = { key: "patient", theta: 2, seed: 5, stage: 0 };
+const STAGES = ["As sequenced", ...Array.from({ length: ROUNDS }, (_, r) => [`Cluster · round ${r + 1}`, `Correct · round ${r + 1}`]).flat()];
+
+let cells, H, A, view;
+function compute() {
+  cells = simulate(makeRng(S.seed), { batch: SHIFT });
+  H = harmony2d(cells, S.key, makeRng(100 + S.seed), { K, theta: S.theta, sigma: SIGMA, rounds: ROUNDS, trace: true });
+  A = measures(cells, integrate(cells, S.key));
+  const pts = [...H.raw, ...H.history.map((h) => h.after).flat()];
+  let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+  for (const [x, y] of pts) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
+  const half = Math.max(x1 - x0, y1 - y0) / 2 * 1.06, mx = (x0 + x1) / 2, my = (y0 + y1) / 2;
+  view = (p, P, s) => [P.x + s / 2 + ((p[0] - mx) / half) * (s / 2 - 6), P.y + s / 2 - ((p[1] - my) / half) * (s / 2 - 6)];
+}
+
+/* ------------------------------------------------------------------ rail */
+const rail = document.getElementById("rail");
+function seg(label, name, opts) {
+  const d = document.createElement("div"); d.className = "fld";
+  d.innerHTML = `<label>${label}</label><div class="seg">${opts.map(([v, t]) => `<button data-v="${v}" aria-pressed="${String(S[name]) === String(v)}">${t}</button>`).join("")}</div>`;
+  d.querySelectorAll("button").forEach((b) => b.onclick = () => { S[name] = typeof S[name] === "number" ? Number(b.dataset.v) : b.dataset.v; S.stage = 0; t = 1; d.querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", String(x === b))); compute(); frame(); });
+  rail.appendChild(d);
+}
+seg("Batch variable", "key", [["patient", "Patient"], ["tissue", "Tissue"]]);
+seg("Diversity penalty θ", "theta", [[0, "0"], [1, "1"], [2, "2"], [4, "4"]]);
+seg("Seed", "seed", [1, 2, 3, 4, 5, 6, 7, 8].map((v) => [v, String(v)]));
+const drive = document.createElement("div"); drive.className = "fld";
+drive.innerHTML = `<label id="next">Next</label><div class="drive"><button class="primary" id="step">Step</button><button id="reset">Reset</button></div>`;
+rail.appendChild(drive);
+
+/* ------------------------------------------------------------------ draw */
+const cv = document.getElementById("fig"), ctx = cv.getContext("2d");
+let t = 1, t0 = 0;
+const ease = (u) => (u < 0.5 ? 2 * u * u : 1 - ((-2 * u + 2) ** 2) / 2);
+function pie(x, y, r, parts, cols) {
+  const tot = parts.reduce((a, v) => a + v, 0) || 1; let a = -Math.PI / 2;
+  parts.forEach((v, i) => { if (v <= 0) return; const b = a + (2 * Math.PI * v) / tot; ctx.beginPath(); ctx.moveTo(x, y); ctx.arc(x, y, r, a, b); ctx.closePath(); ctx.fillStyle = cols[i]; ctx.fill(); a = b; });
+  ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.strokeStyle = C("--surface-1"); ctx.lineWidth = 1.5; ctx.stroke();
+}
+function arrow(a, b, col) {
+  const dx = b[0] - a[0], dy = b[1] - a[1], L = Math.hypot(dx, dy); if (L < 3) return;
+  ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = 1.6;
+  ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke();
+  const ux = dx / L, uy = dy / L; ctx.beginPath(); ctx.moveTo(b[0], b[1]); ctx.lineTo(b[0] - 7 * ux + 3.5 * uy, b[1] - 7 * uy - 3.5 * ux); ctx.lineTo(b[0] - 7 * ux - 3.5 * uy, b[1] - 7 * uy + 3.5 * ux); ctx.closePath(); ctx.fill();
+}
+function frame() {
+  const W = Math.min(1200, cv.parentElement.clientWidth), dpr = devicePixelRatio || 1;
+  const s = Math.floor((W - 24 - 2) / 2), Hh = s + 56;
+  cv.width = W * dpr; cv.height = Hh * dpr; cv.style.width = `${W}px`; cv.style.height = `${Hh}px`;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, Hh);
+  const P = [{ x: 1, y: 26 }, { x: 1 + s + 24, y: 26 }];
+  const st = S.stage, round = st === 0 ? -1 : Math.floor((st - 1) / 2), phase = st === 0 ? "raw" : (st - 1) % 2 === 0 ? "cluster" : "correct";
+  const hist = H.history;
+  const pos = (i) => {
+    if (round < 0) return H.raw[i];
+    const h = hist[round];
+    if (phase === "cluster") return h.before[i];
+    const e = ease(t); return [h.before[i][0] + (h.after[i][0] - h.before[i][0]) * e, h.before[i][1] + (h.after[i][1] - h.before[i][1]) * e];
+  };
+  const inks = [C("--ink-1"), C("--ink-3")];
+  const heads = [`Coloured by ${KEYS[S.key].name.toLowerCase()}`, "Coloured by cell type"];
+  P.forEach((Pn, panel) => {
+    ctx.font = `600 13px ${C("--font")}`; ctx.fillStyle = C("--ink-1"); ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+    ctx.fillText(heads[panel], Pn.x, 17);
+    ctx.strokeStyle = C("--grid"); ctx.lineWidth = 1; ctx.strokeRect(Pn.x + 0.5, Pn.y + 0.5, s, s);
+    const dim = phase === "cluster";
+    ctx.globalAlpha = dim ? 0.35 : 0.8;
+    cells.forEach((c, i) => {
+      const [x, y] = view(pos(i), Pn, s);
+      ctx.fillStyle = panel === 0 ? inks[H.batch[i]] : C(TYPE_COL[c.type]);
+      ctx.beginPath(); ctx.arc(x, y, 2.2, 0, Math.PI * 2); ctx.fill();
+    });
+    ctx.globalAlpha = 1;
+    if (round < 0) return;
+    const h = hist[round];
+    const maxW = Math.max(...h.cur.map((q) => q.W));
+    h.cur.forEach((q, k) => {
+      if (!q.mid || q.W < 3) return;
+      const [x, y] = view(q.mid, Pn, s), r = 5 + 13 * Math.sqrt(q.W / maxW);
+      if (phase === "cluster") {
+        if (panel === 0) pie(x, y, r, q.w, inks);
+        else { const tw = TYPES.map(() => 0); cells.forEach((c, i) => { tw[c.type] += h.R[i][k]; }); pie(x, y, r, tw, TYPE_COL.map(C)); }
+      } else if (panel === 0) {
+        ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.strokeStyle = C("--ink-2"); ctx.lineWidth = 1; ctx.setLineDash([3, 3]); ctx.stroke(); ctx.setLineDash([]);
+        [0, 1].forEach((v) => { if (q.bc[v] && q.w[v] > 1) arrow(view(q.bc[v], Pn, s), [x, y], inks[v]); });
+      }
+    });
+  });
+  // caption
+  ctx.font = `12px ${C("--font")}`; ctx.fillStyle = C("--ink-2"); ctx.textAlign = "left";
+  const h = round >= 0 ? hist[round] : null;
+  const cap = st === 0 ? `600 cells as sequenced. Batch declared: ${KEYS[S.key].name}. Step clusters them.`
+    : phase === "cluster" ? `Round ${round + 1}: ${h.cur.filter((q) => q.W >= 3).length} soft clusters at θ = ${S.theta}; the circles show which batches and types each holds.`
+    : `Round ${round + 1}: each batch's centre moved onto its cluster's centre; the cells moved ${h.moved.toFixed(3)} on average.`;
+  ctx.fillText(cap, 1, s + 26 + 22);
+  document.getElementById("next").textContent = `Next: ${STAGES[st + 1] ?? "every round shown"}`;
+  document.getElementById("step").disabled = st >= STAGES.length - 1;
+  tiles();
+}
+function tick(ts) { if (!t0) t0 = ts; t = Math.min(1, (ts - t0) / TWEEN); frame(); if (t < 1) requestAnimationFrame(tick); }
+document.getElementById("step").onclick = () => { if (S.stage >= STAGES.length - 1) return; S.stage += 1; const correct = S.stage > 0 && (S.stage - 1) % 2 === 1; if (correct) { t = 0; t0 = 0; requestAnimationFrame(tick); } else { t = 1; frame(); } };
+document.getElementById("reset").onclick = () => { S.stage = 0; t = 1; frame(); };
+
+/* ----------------------------------------------------------------- tiles */
+function tiles() {
+  const done = S.stage >= 2 ? Math.floor(S.stage / 2) : 0;
+  const Z = done ? H.history[done - 1].after : H.raw;
+  const m = measures(cells, { raw: H.raw, corrected: Z, pairs: [], score: [], batch: H.batch });
+  const mixKey = S.key === "patient" ? m.mixPatient : m.mixTissue;
+  const f = (x) => x.toFixed(2), pc = (x) => `${Math.round(100 * x)}%`;
+  const mixA = S.key === "patient" ? A.mixPatient : A.mixTissue;
+  document.getElementById("tiles").innerHTML = [
+    ["Mixing of the declared batch", `${f(mixKey[0])} → ${f(mixKey[1])}`, `after ${done} round${done === 1 ? "" : "s"}; 1 is fully mixed. Anchors: ${f(mixA[0])} → ${f(mixA[1])}`],
+    ["Tumour cells' neighbours that are hepatocytes", `${pc(m.tumourHep[0])} → ${pc(m.tumourHep[1])}`, `of 15 nearest. Anchors: ${pc(A.tumourHep[0])} → ${pc(A.tumourHep[1])}`],
+    ["Movement per round", H.history.map((h) => h.moved.toFixed(3)).join(" · "), "mean distance each cell moved; shrinking as the rounds converge"],
+  ].map(([k, v, n]) => `<div class="tile"><div class="k">${k}</div><div class="v">${v}</div><div class="n">${n}</div></div>`).join("");
+  document.getElementById("legend").innerHTML = [
+    ...KEYS[S.key].labels.map((l, v) => `<span style="--sw:${v ? "var(--ink-3)" : "var(--ink-1)"}">${l}</span>`),
+    ...TYPES.map((ty, i) => `<span style="--sw:var(${TYPE_COL[i]})">${ty.name}</span>`),
+    `<span style="--sw:var(--ink-2)" class="ring">A soft cluster</span>`,
+    `<span class="line" style="--sw:var(--ink-1)">A batch's centre to its cluster's centre</span>`,
+  ].join("");
+}
+
+compute(); frame();
+addEventListener("resize", frame);
+</script>
+</body>
+</html>

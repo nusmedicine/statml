@@ -1,0 +1,83 @@
+Harmony on slot 80's 2-D stage (600 cells, 4 samples). mixing = batch share among 15 neighbours / expected (0 apart, 1 mixed); tumour→hep = share of a tumour cell's 15 neighbours that are hepatocytes
+
+seed 1  key patient  ANCHORS   mixPatient 0.19 → 0.92  mixTissue 0.45 → 0.45  tumour→hep 0.00 → 0.00
+            HARMONY K 12 σ 0.1 θ 0  mixPatient 0.40  mixTissue 0.46  tumour→hep 0.00   moved per round 0.100 0.013 0.011 0.013 0.018
+            HARMONY K 12 σ 0.1 θ 1  mixPatient 0.92  mixTissue 0.42  tumour→hep 0.00   moved per round 0.130 0.093 0.063 0.061 0.077
+            HARMONY K 12 σ 0.1 θ 2  mixPatient 0.94  mixTissue 0.42  tumour→hep 0.00   moved per round 0.176 0.106 0.064 0.052 0.013
+            HARMONY K 12 σ 0.1 θ 4  mixPatient 0.98  mixTissue 0.44  tumour→hep 0.00   moved per round 0.248 0.094 0.068 0.053 0.022
+            HARMONY K 20 σ 0.1 θ 0  mixPatient 0.39  mixTissue 0.46  tumour→hep 0.00   moved per round 0.052 0.024 0.023 0.020 0.028
+            HARMONY K 20 σ 0.1 θ 1  mixPatient 0.74  mixTissue 0.43  tumour→hep 0.00   moved per round 0.107 0.076 0.046 0.040 0.056
+            HARMONY K 20 σ 0.1 θ 2  mixPatient 0.90  mixTissue 0.42  tumour→hep 0.00   moved per round 0.169 0.086 0.055 0.049 0.039
+            HARMONY K 20 σ 0.1 θ 4  mixPatient 0.92  mixTissue 0.43  tumour→hep 0.00   moved per round 0.225 0.077 0.060 0.032 0.029
+            HARMONY K 12 σ 0.05 θ 0  mixPatient 0.33  mixTissue 0.46  tumour→hep 0.00   moved per round 0.105 0.010 0.007 0.006 0.005
+            HARMONY K 12 σ 0.05 θ 1  mixPatient 0.51  mixTissue 0.46  tumour→hep 0.00   moved per round 0.105 0.028 0.025 0.021 0.026
+            HARMONY K 12 σ 0.05 θ 2  mixPatient 0.70  mixTissue 0.47  tumour→hep 0.00   moved per round 0.122 0.071 0.048 0.036 0.031
+            HARMONY K 12 σ 0.05 θ 4  mixPatient 0.86  mixTissue 0.47  tumour→hep 0.00   moved per round 0.173 0.081 0.064 0.042 0.031
+seed 1  key tissue   ANCHORS   mixPatient 0.19 → 0.19  mixTissue 0.45 → 0.38  tumour→hep 0.00 → 0.16
+            HARMONY K 12 σ 0.1 θ 0  mixPatient 0.21  mixTissue 0.49  tumour→hep 0.00   moved per round 0.041 0.007 0.002 0.001 0.000
+            HARMONY K 12 σ 0.1 θ 1  mixPatient 0.25  mixTissue 0.54  tumour→hep 0.05   moved per round 0.046 0.031 0.018 0.009 0.007
+            HARMONY K 12 σ 0.1 θ 2  mixPatient 0.34  mixTissue 0.76  tumour→hep 0.28   moved per round 0.081 0.063 0.081 0.069 0.043
+            HARMONY K 12 σ 0.1 θ 4  mixPatient 0.23  mixTissue 0.73  tumour→hep 0.27   moved per round 0.194 0.096 0.054 0.026 0.029
+            HARMONY K 20 σ 0.1 θ 0  mixPatient 0.21  mixTissue 0.49  tumour→hep 0.00   moved per round 0.038 0.005 0.001 0.000 0.000
+            HARMONY K 20 σ 0.1 θ 1  mixPatient 0.24  mixTissue 0.54  tumour→hep 0.04   moved per round 0.043 0.021 0.018 0.010 0.011
+            HARMONY K 20 σ 0.1 θ 2  mixPatient 0.33  mixTissue 0.77  tumour→hep 0.28   moved per round 0.079 0.078 0.077 0.068 0.029
+            HARMONY K 20 σ 0.1 θ 4  mixPatient 0.27  mixTissue 0.74  tumour→hep 0.27   moved per round 0.177 0.089 0.036 0.027 0.049
+            HARMONY K 12 σ 0.05 θ 0  mixPatient 0.21  mixTissue 0.49  tumour→hep 0.00   moved per round 0.043 0.003 0.000 0.000 0.000
+            HARMONY K 12 σ 0.05 θ 1  mixPatient 0.21  mixTissue 0.50  tumour→hep 0.00   moved per round 0.043 0.004 0.002 0.002 0.008
+            HARMONY K 12 σ 0.05 θ 2  mixPatient 0.24  mixTissue 0.54  tumour→hep 0.04   moved per round 0.049 0.024 0.021 0.013 0.019
+            HARMONY K 12 σ 0.05 θ 4  mixPatient 0.30  mixTissue 0.69  tumour→hep 0.22   moved per round 0.079 0.038 0.059 0.059 0.051
+
+seed 2  key patient  ANCHORS   mixPatient 0.15 → 0.84  mixTissue 0.46 → 0.41  tumour→hep 0.03 → 0.02
+            HARMONY K 12 σ 0.1 θ 0  mixPatient 0.68  mixTissue 0.69  tumour→hep 0.28   moved per round 0.095 0.089 0.012 0.003 0.001
+            HARMONY K 12 σ 0.1 θ 1  mixPatient 0.66  mixTissue 0.67  tumour→hep 0.26   moved per round 0.162 0.032 0.009 0.006 0.009
+            HARMONY K 12 σ 0.1 θ 2  mixPatient 0.67  mixTissue 0.59  tumour→hep 0.19   moved per round 0.172 0.050 0.047 0.034 0.038
+            HARMONY K 12 σ 0.1 θ 4  mixPatient 0.87  mixTissue 0.43  tumour→hep 0.03   moved per round 0.198 0.101 0.079 0.068 0.072
+            HARMONY K 20 σ 0.1 θ 0  mixPatient 0.65  mixTissue 0.69  tumour→hep 0.28   moved per round 0.088 0.077 0.016 0.006 0.003
+            HARMONY K 20 σ 0.1 θ 1  mixPatient 0.65  mixTissue 0.67  tumour→hep 0.25   moved per round 0.152 0.026 0.012 0.016 0.022
+            HARMONY K 20 σ 0.1 θ 2  mixPatient 0.64  mixTissue 0.60  tumour→hep 0.19   moved per round 0.157 0.042 0.048 0.034 0.024
+            HARMONY K 20 σ 0.1 θ 4  mixPatient 0.84  mixTissue 0.45  tumour→hep 0.03   moved per round 0.185 0.095 0.081 0.065 0.056
+            HARMONY K 12 σ 0.05 θ 0  mixPatient 0.49  mixTissue 0.59  tumour→hep 0.16   moved per round 0.052 0.032 0.022 0.019 0.017
+            HARMONY K 12 σ 0.05 θ 1  mixPatient 0.67  mixTissue 0.70  tumour→hep 0.28   moved per round 0.100 0.058 0.039 0.010 0.005
+            HARMONY K 12 σ 0.05 θ 2  mixPatient 0.66  mixTissue 0.70  tumour→hep 0.28   moved per round 0.132 0.052 0.013 0.006 0.005
+            HARMONY K 12 σ 0.05 θ 4  mixPatient 0.68  mixTissue 0.65  tumour→hep 0.24   moved per round 0.159 0.042 0.034 0.028 0.029
+seed 2  key tissue   ANCHORS   mixPatient 0.15 → 0.27  mixTissue 0.46 → 0.50  tumour→hep 0.03 → 0.15
+            HARMONY K 12 σ 0.1 θ 0  mixPatient 0.40  mixTissue 0.75  tumour→hep 0.26   moved per round 0.082 0.057 0.014 0.003 0.001
+            HARMONY K 12 σ 0.1 θ 1  mixPatient 0.36  mixTissue 0.76  tumour→hep 0.28   moved per round 0.127 0.019 0.016 0.014 0.006
+            HARMONY K 12 σ 0.1 θ 2  mixPatient 0.28  mixTissue 0.78  tumour→hep 0.31   moved per round 0.140 0.039 0.027 0.020 0.014
+            HARMONY K 12 σ 0.1 θ 4  mixPatient 0.15  mixTissue 0.87  tumour→hep 0.41   moved per round 0.164 0.061 0.043 0.058 0.046
+            HARMONY K 20 σ 0.1 θ 0  mixPatient 0.39  mixTissue 0.75  tumour→hep 0.26   moved per round 0.079 0.052 0.017 0.003 0.002
+            HARMONY K 20 σ 0.1 θ 1  mixPatient 0.35  mixTissue 0.75  tumour→hep 0.26   moved per round 0.121 0.017 0.012 0.013 0.006
+            HARMONY K 20 σ 0.1 θ 2  mixPatient 0.28  mixTissue 0.78  tumour→hep 0.30   moved per round 0.135 0.038 0.028 0.019 0.012
+            HARMONY K 20 σ 0.1 θ 4  mixPatient 0.15  mixTissue 0.86  tumour→hep 0.41   moved per round 0.161 0.064 0.047 0.035 0.051
+            HARMONY K 12 σ 0.05 θ 0  mixPatient 0.24  mixTissue 0.64  tumour→hep 0.11   moved per round 0.064 0.019 0.011 0.007 0.007
+            HARMONY K 12 σ 0.05 θ 1  mixPatient 0.40  mixTissue 0.79  tumour→hep 0.28   moved per round 0.080 0.036 0.028 0.020 0.012
+            HARMONY K 12 σ 0.05 θ 2  mixPatient 0.39  mixTissue 0.79  tumour→hep 0.28   moved per round 0.099 0.042 0.017 0.013 0.007
+            HARMONY K 12 σ 0.05 θ 4  mixPatient 0.35  mixTissue 0.82  tumour→hep 0.32   moved per round 0.130 0.034 0.030 0.017 0.011
+
+seed 3  key patient  ANCHORS   mixPatient 0.18 → 0.77  mixTissue 0.35 → 0.42  tumour→hep 0.04 → 0.00
+            HARMONY K 12 σ 0.1 θ 0  mixPatient 0.60  mixTissue 0.65  tumour→hep 0.26   moved per round 0.093 0.061 0.034 0.007 0.004
+            HARMONY K 12 σ 0.1 θ 1  mixPatient 0.60  mixTissue 0.62  tumour→hep 0.22   moved per round 0.139 0.042 0.017 0.011 0.010
+            HARMONY K 12 σ 0.1 θ 2  mixPatient 0.56  mixTissue 0.54  tumour→hep 0.15   moved per round 0.163 0.044 0.029 0.024 0.023
+            HARMONY K 12 σ 0.1 θ 4  mixPatient 0.96  mixTissue 0.39  tumour→hep 0.00   moved per round 0.197 0.130 0.108 0.073 0.054
+            HARMONY K 20 σ 0.1 θ 0  mixPatient 0.59  mixTissue 0.65  tumour→hep 0.26   moved per round 0.088 0.058 0.034 0.006 0.004
+            HARMONY K 20 σ 0.1 θ 1  mixPatient 0.61  mixTissue 0.64  tumour→hep 0.23   moved per round 0.131 0.038 0.022 0.014 0.010
+            HARMONY K 20 σ 0.1 θ 2  mixPatient 0.62  mixTissue 0.56  tumour→hep 0.17   moved per round 0.152 0.047 0.033 0.032 0.031
+            HARMONY K 20 σ 0.1 θ 4  mixPatient 0.88  mixTissue 0.39  tumour→hep 0.01   moved per round 0.192 0.098 0.086 0.081 0.058
+            HARMONY K 12 σ 0.05 θ 0  mixPatient 0.52  mixTissue 0.62  tumour→hep 0.17   moved per round 0.081 0.029 0.020 0.016 0.014
+            HARMONY K 12 σ 0.05 θ 1  mixPatient 0.58  mixTissue 0.66  tumour→hep 0.23   moved per round 0.099 0.047 0.030 0.018 0.015
+            HARMONY K 12 σ 0.05 θ 2  mixPatient 0.61  mixTissue 0.64  tumour→hep 0.22   moved per round 0.113 0.054 0.035 0.017 0.015
+            HARMONY K 12 σ 0.05 θ 4  mixPatient 0.66  mixTissue 0.63  tumour→hep 0.22   moved per round 0.139 0.052 0.044 0.027 0.022
+seed 3  key tissue   ANCHORS   mixPatient 0.18 → 0.28  mixTissue 0.35 → 0.44  tumour→hep 0.04 → 0.13
+            HARMONY K 12 σ 0.1 θ 0  mixPatient 0.43  mixTissue 0.73  tumour→hep 0.23   moved per round 0.081 0.038 0.029 0.013 0.004
+            HARMONY K 12 σ 0.1 θ 1  mixPatient 0.35  mixTissue 0.70  tumour→hep 0.21   moved per round 0.111 0.034 0.013 0.011 0.010
+            HARMONY K 12 σ 0.1 θ 2  mixPatient 0.28  mixTissue 0.73  tumour→hep 0.25   moved per round 0.130 0.051 0.023 0.014 0.009
+            HARMONY K 12 σ 0.1 θ 4  mixPatient 0.21  mixTissue 0.76  tumour→hep 0.30   moved per round 0.163 0.046 0.032 0.026 0.039
+            HARMONY K 20 σ 0.1 θ 0  mixPatient 0.43  mixTissue 0.73  tumour→hep 0.24   moved per round 0.079 0.036 0.031 0.014 0.004
+            HARMONY K 20 σ 0.1 θ 1  mixPatient 0.39  mixTissue 0.77  tumour→hep 0.28   moved per round 0.118 0.034 0.024 0.015 0.010
+            HARMONY K 20 σ 0.1 θ 2  mixPatient 0.33  mixTissue 0.74  tumour→hep 0.27   moved per round 0.135 0.041 0.020 0.011 0.007
+            HARMONY K 20 σ 0.1 θ 4  mixPatient 0.22  mixTissue 0.72  tumour→hep 0.26   moved per round 0.155 0.049 0.028 0.024 0.029
+            HARMONY K 12 σ 0.05 θ 0  mixPatient 0.35  mixTissue 0.67  tumour→hep 0.12   moved per round 0.096 0.025 0.013 0.009 0.010
+            HARMONY K 12 σ 0.05 θ 1  mixPatient 0.42  mixTissue 0.77  tumour→hep 0.22   moved per round 0.109 0.036 0.022 0.012 0.012
+            HARMONY K 12 σ 0.05 θ 2  mixPatient 0.43  mixTissue 0.81  tumour→hep 0.26   moved per round 0.122 0.043 0.025 0.012 0.014
+            HARMONY K 12 σ 0.05 θ 4  mixPatient 0.40  mixTissue 0.85  tumour→hep 0.31   moved per round 0.136 0.045 0.023 0.013 0.010
+
