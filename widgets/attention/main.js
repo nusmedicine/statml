@@ -283,7 +283,13 @@ function drawWeights(ctx, colors, w, params, state, anim) {
    align to rows of original features").
    Nothing travels over marks already in place (tweens move in lanes): the key being
    added is outlined, and a line down the right edge carries it to the sum. */
-const OUT = { pre: 260, key: 280, drop: 360 }, OUT_RUN = { pre: 160, key: 150, drop: 220 };
+const OUT = { pre: 260, key: 360, drop: 360 }, OUT_RUN = { pre: 160, key: 200, drop: 220 };
+/* one key's slot in three beats (his ask, 2026-09-26: "dim each row then restore it
+   before moving to the next"): its strip dims to αᵢⱼvⱼ, zᵢ takes it in, the strip
+   restores to vⱼ — so one row at a time is dimmed and the page always shows every
+   other token's own features */
+const beat = (u, a, b) => ease(Math.max(0, Math.min(1, (u - a) / (b - a))));
+const dimOf = (u) => beat(u, 0, 0.35), sumOf = (u) => beat(u, 0.3, 0.7), backOf = (u) => beat(u, 0.7, 1);
 const outMs = (L, mode) => { const P = mode === "run" ? OUT_RUN : OUT; return P.pre + L * P.key + P.drop; };
 /** where a press is on the Output page: the glide `e`, the key `k` being added and its progress `u`, the table's fade `drop` */
 function outPhase(anim, L) {
@@ -324,18 +330,15 @@ function drawOutput(ctx, colors, w, params, state, anim) {
   txt(ctx, S.outZcol[1], zhx, 34, { font: small(colors), fill: colors.ink2 });
   const vmax = Math.max(...hd.v.flat().map(Math.abs), ...hd.z.flat().map(Math.abs));
   const blank = rgb(colors.surface2), right = vx + M.DK * vc;
-  /* what row j's strip shows now: its own features, or — only while the press adds
-     them — the features times this query's weight. The dimming marks the keys already
-     in the sum; as the finished z drops into its row every strip fades back to vⱼ, so
-     the page at rest sets each token's features beside its features with attention
-     (his pick A, 2026-09-26, `_lab/attention-sum-mock.html`). */
+  /* what row j's strip shows now: its own features, except the key being added,
+     which dims to the features times this query's weight and restores (the beats
+     above), so the page sets each token's features beside its features with attention
+     (his pick A, then one row at a time, 2026-09-26). */
   const stripAt = (j, d) => {
     const raw = signedFill(colors, hd.v[j][d], vmax);
     if (!g || ph.e < 1) return raw;
     const mine = signedFill(colors, hd.alpha[g.to][j] * hd.v[j][d], vmax);
-    if (ph.k >= L) return mixRgb(mine, raw, ph.drop);
-    if (j < ph.k) return mine;
-    if (j === ph.k) return mixRgb(raw, mine, ease(Math.min(1, 2 * ph.u)));
+    if (j === ph.k && ph.k < L) return mixRgb(mixRgb(raw, mine, dimOf(ph.u)), raw, backOf(ph.u));
     return raw;
   };
   for (let j = 0; j < L; j++) {
@@ -380,7 +383,7 @@ function drawOutput(ctx, colors, w, params, state, anim) {
     if (ph.e < 1) zNow = (d) => (g.first ? blank : mixRgb(signedFill(colors, hd.z[g.from][d], vmax), blank, ph.e));
     else if (ph.k >= L) zNow = (d) => signedFill(colors, hd.z[g.to][d], vmax);
     else {
-      const a = partialZ(hd, g.to, ph.k), b = partialZ(hd, g.to, ph.k + 1), s = ease(Math.max(0, 2 * ph.u - 1));
+      const a = partialZ(hd, g.to, ph.k), b = partialZ(hd, g.to, ph.k + 1), s = sumOf(ph.u);
       zNow = (d) => mixRgb(ph.k === 0 ? blank : signedFill(colors, a[d], vmax), signedFill(colors, b[d], vmax), s);
     }
   }
