@@ -69,8 +69,8 @@ const MIN_PER_SAMPLE = 5;
 /* the gene in both columns' gene views: two picked by p, or any gene, as a volcano click
    sets it (a region's value must be one of the options, so every gene is one) */
 const GENE_OPTIONS = [
-  { value: "unchanged", label: "Unchanged, smallest p over cells", group: "Picked by p over cells" },
-  { value: "changed", label: "Truly changed, smallest p over cells", group: "Picked by p over cells" },
+  { value: "unchanged", label: "Non-DE gene with the smallest cell-level p", group: "Selected by cell-level p" },
+  { value: "changed", label: "DE gene with the smallest cell-level p", group: "Selected by cell-level p" },
   /* a gene's value is its name, so the link reads gene=Kup19 */
   ...Array.from({ length: G }, (_, g) => ({ value: geneName(g), label: geneName(g), group: { marker: "Marker genes", house: "Common genes" }[geneKind(g).kind] ?? "Other genes" })),
 ];
@@ -427,15 +427,15 @@ function drawClusters(ctx, colors, w, params, state, pointer) {
   const any = hotC !== null || hotType !== null;
   const isHot = (a) => (hotC !== null ? a.c === hotC : a.type === hotType);
   const hotT = hotC !== null ? cl.ann[hotC].type : hotType;
-  heading(ctx, colors, `Coloured by cluster, resolution ${params.res}: ${cl.k} clusters`, L.maps[0].x, TOP - 9);
-  heading(ctx, colors, "Coloured by cell type", L.maps[1].x, TOP - 9);
+  heading(ctx, colors, `Louvain clusters, resolution ${params.res}: ${cl.k}`, L.maps[0].x, TOP - 9);
+  heading(ctx, colors, "True cell type (simulated)", L.maps[1].x, TOP - 9);
   /* numbers only: the map beside it names the types (his round) */
   drawDiscMap(ctx, colors, state, L.maps[0], { name: (a) => `Cluster ${a.c}`, ring: (a) => any && isHot(a), muted: (a) => any && !isHot(a) });
   drawDiscMap(ctx, colors, state, L.maps[1], { by: "type", name: (a) => TYPES[a.type].name, ring: (a) => any && a.type === hotT, muted: (a) => any && a.type !== hotT });
   /* the dot plot of each type's markers: how each cluster is named */
   const genes = []; TYPES.forEach((_, t) => { for (let j = 0; j < 3; j += 1) genes.push(t * G_MARK + j); });
   const x0 = L.labelW, x1 = w - 56, cw = Math.min(30, (x1 - x0) / genes.length);
-  heading(ctx, colors, "Canonical markers of each type, by cluster: how each cluster is annotated", 8, top - 58);
+  heading(ctx, colors, "Canonical marker expression by cluster: the basis of annotation", 8, top - 58);
   ctx.font = `${colors.fsXs} ${colors.mono}`;
   genes.forEach((g, j) => {
     ctx.save(); ctx.translate(x0 + j * cw + cw / 2 - 3, top - 12); ctx.rotate(-Math.PI / 4);
@@ -478,23 +478,23 @@ function drawTwo(ctx, colors, w, params, state) {
   const cx = (f) => Math.round(8 + f * (w - 16));
   const cols = [["gene", cx(0), "left"], ["p_val", cx(0.2), "right"], ["avg_log2FC", cx(0.34), "right"], ["pct.1", cx(0.43), "right"], ["pct.2", cx(0.52), "right"], ["p_val_adj", cx(0.64), "right"]];
   let y = L.tableTop;
-  heading(ctx, colors, `FindMarkers: comparator cluster ${mk.tested}, baseline ${mk.vsRest ? `the other ${fm.n2} cells` : `cluster ${mk.otherC} (${fm.n2} cells)`}; first 8 by p`, 8, y - 10);
+  heading(ctx, colors, `FindMarkers, cluster ${mk.tested} (${fm.n1} cells) vs ${mk.vsRest ? "all other cells" : `cluster ${mk.otherC}`} (${fm.n2}): top 8 by p`, 8, y - 10);
   ctx.font = `${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.ink3;
   cols.forEach(([h, x, al]) => { ctx.textAlign = al; ctx.fillText(h, x, y + 8); });
-  ctx.textAlign = "left"; ctx.fillText("pct.1: the share of the comparator's cells detecting the gene; pct.2: the baseline's", 8, y + 24);
+  ctx.textAlign = "left"; ctx.fillText("pct.1, pct.2: fraction of cells with nonzero expression in ident.1 and in ident.2", 8, y + 24);
   y += 42;
   const row = (x, grey) => {
     ctx.font = `${colors.fsXs} ${colors.mono}`; ctx.fillStyle = grey ? colors.ink3 : colors.ink1;
     const v = [geneName(x.g), pFmt(x.lp), x.lfc.toFixed(2), x.p1.toFixed(2), x.p2.toFixed(2), pFmt(x.lpAdj)];
     cols.forEach(([, px, al], k) => { ctx.textAlign = al; ctx.fillText(v[k], px, y); });
     ctx.textAlign = "left"; ctx.font = `${colors.fsXs} ${colors.font}`;
-    ctx.fillText(own(x.g) ? "" : "detected in most of the baseline", cx(0.67), y);
+    ctx.fillText(!own(x.g) && x.p2 > 0.5 ? "pct.2 > 0.5" : "", cx(0.67), y);
     y += 18;
   };
   top.forEach((x) => row(x, !own(x.g)));
   if (extra.length) {
     ctx.font = `${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.ink3; ctx.textAlign = "left";
-    ctx.fillText("further down the same list, also p_val_adj < 0.05:", 8, y + 2); y += 20;
+    ctx.fillText("Further significant genes (p_val_adj < 0.05) with pct.2 > 0.5:", 8, y + 2); y += 20;
     extra.forEach((x) => row(x, true));
   }
   ctx.textAlign = "left";
@@ -531,12 +531,12 @@ function drawGeneHalf(ctx, colors, gv, B, mode, vMax) {
     ctx.font = `${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.ink2; ctx.textAlign = "center";
     /* three short lines, not "P1 tumour": a column is ~52px on a narrow canvas */
     ctx.fillText(ORDER_NAMES[j][1], cx, top + bh + 14); ctx.fillText(`P${(j % 2) + 1}`, cx, top + bh + 27);
-    ctx.fillText(mode === "cells" ? `${gv.vals[j].length} cells` : "1 sum", cx, top + bh + 40);
+    ctx.fillText(mode === "cells" ? `${gv.vals[j].length} cells` : "summed", cx, top + bh + 40);
   });
   const n = gv.vals.reduce((a, v) => a + v.length, 0), c = gv.cells, d = gv.deseq;
   const lines = mode === "cells"
-    ? [`n = ${n} cells, ${c.lpAdj < LOG05 ? "called" : "not called"}`, `p_val_adj = ${pFmt(c.lpAdj)}`]
-    : [`n = 4 samples, ${d && d.padj < 0.05 ? "called" : "not called"}`, d ? `padj = ${pFmt(Math.log10(Math.max(1e-300, d.padj)))}` : "too few counts for DESeq2 to test"];
+    ? [`n = ${n} cells: ${c.lpAdj < LOG05 ? "significant" : "not significant"}`, `p_val_adj = ${pFmt(c.lpAdj)}`]
+    : [`n = 4 samples: ${d && d.padj < 0.05 ? "significant" : "not significant"}`, d ? `padj = ${pFmt(Math.log10(Math.max(1e-300, d.padj)))}` : "filtered by DESeq2: too few counts"];
   ctx.textAlign = "left"; ctx.font = `${colors.fsXs} ${colors.mono}`; ctx.fillStyle = colors.ink1;
   lines.forEach((t, k) => ctx.fillText(t, B.x - 30, top + bh + 60 + k * 15));
 }
@@ -562,7 +562,7 @@ function drawList(ctx, colors, x, y, w, pts, g, pName) {
     a dashed box round the level each test counts as its n. Patients in ink,
     not a hue: the map beside it wears the types' hues. */
 function drawDesignTree(ctx, colors, C, B) {
-  heading(ctx, colors, `${TYPES[C.a.type].name} · ${C.a.c}: what each test counts`, B.x, B.y + 14);
+  heading(ctx, colors, `${TYPES[C.a.type].name} · ${C.a.c}: the replicate unit of each test`, B.x, B.y + 14);
   const rowP = B.y + 44, rowS = B.y + 100, rowC = B.y + 150, colW = B.w / 4, sx = (j) => B.x + colW * (j + 0.5), px = (p) => (sx(p) + sx(p + 2)) / 2;
   const cap = (t, y) => { ctx.font = `${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.ink3; ctx.textAlign = "left"; ctx.fillText(t, B.x, y); };
   /* the level each test counts: a shaded band, in the fill of the columns'
@@ -598,8 +598,8 @@ function drawDesignTree(ctx, colors, C, B) {
     ctx.font = `${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.ink1; ctx.textAlign = "center"; ctx.fillText(`P${(j % 2) + 1} ${ORDER_NAMES[j][1]}`, x, rowS + 4);
     ctx.fillStyle = colors.ink2; ctx.fillText(`${C.a.perSample[k]} cells`, x, rowC + 38);
   });
-  bandLabel(rowS - 17, "Over samples: n = 4"); bandLabel(rowC - 14, `Over cells: n = ${C.n}`);
-  ["A patient's shift is in both of its samples, so", "tumour minus liver removes it. A sample's shift", "is in every one of its cells, the same draw: the", "test over cells counts that draw once per cell."]
+  bandLabel(rowS - 17, "Pseudobulk: n = 4"); bandLabel(rowC - 14, `Cell-level: n = ${C.n}`);
+  ["Variation between patients is shared by a", "patient's two samples and cancels in the tumour–", "liver contrast. Variation between samples is shared", "by all cells of a sample: they are not independent."]
     .forEach((t, i) => cap(t, B.y + 206 + i * 14));
   ctx.textAlign = "left";
 }
@@ -610,12 +610,12 @@ function drawDesignTree(ctx, colors, C, B) {
     changed whether called or not, where a volcano's blue is a call. */
 function drawKey(ctx, colors, L, w) {
   const items = [
-    [(x, y) => { ctx.fillStyle = colors.ink3; ctx.globalAlpha = 0.6; ctx.beginPath(); ctx.arc(x, y, 3.2, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1; }, "Not called"],
-    [(x, y) => { ctx.fillStyle = colors.empirical; ctx.beginPath(); ctx.arc(x, y, 3.2, 0, Math.PI * 2); ctx.fill(); }, "Called, truly changed"],
-    [(x, y) => { ctx.fillStyle = colors.extreme; ctx.beginPath(); ctx.arc(x, y, 3.2, 0, Math.PI * 2); ctx.fill(); }, "Called, unchanged"],
-    [(x, y) => { ctx.strokeStyle = colors.reference; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(x, y, 5.5, 0, Math.PI * 2); ctx.stroke(); }, "Ring: truly changed"],
-    [(x, y) => { ctx.strokeStyle = colors.highlight; ctx.lineWidth = 2; ctx.strokeRect(x - 6, y - 6, 12, 12); }, "Square: the picked gene"],
-    [(x, y) => { ctx.strokeStyle = colors.ink2; ctx.fillStyle = colors.ink2; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(x - 4, y, 2.4, 0, Math.PI * 2); ctx.stroke(); ctx.beginPath(); ctx.arc(x + 4, y, 2.4, 0, Math.PI * 2); ctx.fill(); }, "Cells: hollow liver, filled tumour"],
+    [(x, y) => { ctx.fillStyle = colors.ink3; ctx.globalAlpha = 0.6; ctx.beginPath(); ctx.arc(x, y, 3.2, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1; }, "Not significant"],
+    [(x, y) => { ctx.fillStyle = colors.empirical; ctx.beginPath(); ctx.arc(x, y, 3.2, 0, Math.PI * 2); ctx.fill(); }, "Significant, DE (true positive)"],
+    [(x, y) => { ctx.fillStyle = colors.extreme; ctx.beginPath(); ctx.arc(x, y, 3.2, 0, Math.PI * 2); ctx.fill(); }, "Significant, non-DE (false positive)"],
+    [(x, y) => { ctx.strokeStyle = colors.reference; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(x, y, 5.5, 0, Math.PI * 2); ctx.stroke(); }, "Ring: DE gene"],
+    [(x, y) => { ctx.strokeStyle = colors.highlight; ctx.lineWidth = 2; ctx.strokeRect(x - 6, y - 6, 12, 12); }, "Square: selected gene"],
+    [(x, y) => { ctx.strokeStyle = colors.ink2; ctx.fillStyle = colors.ink2; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(x - 4, y, 2.4, 0, Math.PI * 2); ctx.stroke(); ctx.beginPath(); ctx.arc(x + 4, y, 2.4, 0, Math.PI * 2); ctx.fill(); }, "Hollow: liver; filled: tumour"],
   ];
   ctx.font = `${colors.fsXs} ${colors.font}`;
   let x = L.cols[0], y = L.keyTop;
@@ -629,7 +629,7 @@ function drawKey(ctx, colors, L, w) {
 }
 
 function drawVenn(ctx, colors, V, L, picked) {
-  heading(ctx, colors, "The calls against the truth", V.box.x0, L.vennTop - 12);
+  heading(ctx, colors, "Significant genes against the simulated truth", V.box.x0, L.vennTop - 12);
   const [T, Cc, Sc] = V.circles, R = V.R, B = V.box;
   /* the box: every gene */
   ctx.strokeStyle = colors.axis; ctx.lineWidth = 1; ctx.strokeRect(B.x0 + 0.5, B.y0 + 0.5, B.x1 - B.x0 - 1, B.y1 - B.y0 - 1);
@@ -638,9 +638,9 @@ function drawVenn(ctx, colors, V, L, picked) {
     ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.setLineDash(dash); ctx.beginPath(); ctx.arc(c.x, c.y, R, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]);
   });
   ctx.font = `600 ${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.ink1; ctx.textAlign = "center";
-  ctx.fillText(`Truly changed (${V.nTruth})`, T.x, T.y - R - 8);
-  ctx.fillText(`Called over cells (${V.nCells})`, Cc.x - R * 0.3, Cc.y + R + 18);
-  ctx.fillText(`Called over samples (${V.nSamples})`, Sc.x + R * 0.3, Sc.y + R + 18);
+  ctx.fillText(`DE genes (${V.nTruth})`, T.x, T.y - R - 8);
+  ctx.fillText(`Significant, cell-level (${V.nCells})`, Cc.x - R * 0.3, Cc.y + R + 18);
+  ctx.fillText(`Significant, pseudobulk (${V.nSamples})`, Sc.x + R * 0.3, Sc.y + R + 18);
   V.dots.forEach((d) => {
     ctx.fillStyle = d.truth ? colors.empirical : colors.extreme; ctx.beginPath(); ctx.arc(d.x, d.y, 3.6, 0, Math.PI * 2); ctx.fill();
     if (d.g === picked) { ctx.strokeStyle = colors.highlight; ctx.lineWidth = 2; ctx.strokeRect(d.x - 7, d.y - 7, 14, 14); }
@@ -653,14 +653,14 @@ function drawVenn(ctx, colors, V, L, picked) {
   V.counts.forEach((c) => count(c.n, c.x, c.y + 4));
   /* the column: a short legend, then the genes outside every circle */
   const x = V.colX, small = (t, xx, y, col = colors.ink2) => { ctx.font = `${colors.fsXs} ${colors.font}`; ctx.fillStyle = col; ctx.textAlign = "left"; ctx.fillText(t, xx, y); };
-  [[colors.empirical, "truly changed"], [colors.extreme, "unchanged"]].forEach(([col, t], i) => {
+  [[colors.empirical, "DE gene"], [colors.extreme, "non-DE gene"]].forEach(([col, t], i) => {
     const y = B.y0 + 34 + i * 18; ctx.fillStyle = col; ctx.beginPath(); ctx.arc(x + 4, y - 4, 3.6, 0, Math.PI * 2); ctx.fill(); small(t, x + 14, y);
   });
   count("n", x, B.y0 + 70, "left"); small("genes in the region", x + 20, B.y0 + 70);
-  small("a dot picks the gene", x, B.y0 + 88, colors.ink3);
+  small("click a dot to select the gene", x, B.y0 + 88, colors.ink3);
   const yq = B.y1 - 60;
   ctx.font = `600 ${colors.fsMd} ${colors.mono}`; ctx.fillStyle = colors.ink1; ctx.textAlign = "left"; ctx.fillText(String(V.quiet), x, yq);
-  small("in the box, outside every", x, yq + 17); small("circle: unchanged, and", x, yq + 31); small("called by neither test", x, yq + 45);
+  small("true negatives: non-DE", x, yq + 17); small("genes significant in", x, yq + 31); small("neither test", x, yq + 45);
   ctx.textAlign = "left";
 }
 
@@ -682,10 +682,10 @@ function drawTumourLiver(ctx, colors, w, params, state) {
   const faded = state.cl.ann.filter((a) => !a.testable);
   if (faded.length) {
     ctx.font = `${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.ink3; ctx.textAlign = "left";
-    ctx.fillText(`Faded: fewer than ${MIN_PER_SAMPLE} cells in a sample, so no tissue comparison: ${faded.map((a) => `${TYPES[a.type].name} · ${a.c}`).join(", ")}`, M.x, M.y + M.S + 18);
+    ctx.fillText(`Not testable (fewer than ${MIN_PER_SAMPLE} cells in a sample): ${faded.map((a) => `${TYPES[a.type].name} · ${a.c}`).join(", ")}`, M.x, M.y + M.S + 18);
   }
   if (!C.testable) {
-    ctx.fillStyle = colors.ink1; ctx.fillText(`Fewer than ${MIN_PER_SAMPLE} of this cluster's cells in a sample: it cannot be compared by tissue.`, 8, L.volTop);
+    ctx.fillStyle = colors.ink1; ctx.fillText(`Not testable: fewer than ${MIN_PER_SAMPLE} cells of this cluster in at least one sample.`, 8, L.volTop);
     return;
   }
   const gv = state.gene, vMax = Math.max(0.5, ...gv.vals.flat(), ...gv.pb) * 1.08;
@@ -695,8 +695,8 @@ function drawTumourLiver(ctx, colors, w, params, state) {
      band for that level, and a faint frame holds its volcano, list and gene
      view together. Dotted and dashed frames matched to the tree were tried
      the same day and struck as jarring. */
-  [[C.volC, `Over cells: n = ${C.n}`, "each cell a replicate · Wilcoxon, as FindMarkers", "p_val_adj", "cells"],
-   [C.volD, "Over samples: n = 4", "each sample's cells summed · DESeq2", "padj", "samples"]].forEach(([pts, title, sub, pName, mode], k) => {
+  [[C.volC, `Cell-level: n = ${C.n} cells`, "Wilcoxon rank-sum test (FindMarkers); cells as replicates", "p_val_adj", "cells"],
+   [C.volD, "Pseudobulk: n = 4 samples", "DESeq2 on summed counts; samples as replicates", "padj", "samples"]].forEach(([pts, title, sub, pName, mode], k) => {
     const V = volGeom(w, L, pts, k), { X, PW, top, bh, sx, sy } = V;
     const F = { x: X - 12, y: top - 62, w: PW + 24, h: L.geneTop + L.geneH - (top - 62) + 6 };
     ctx.fillStyle = colors.surface2; ctx.fillRect(F.x, F.y, F.w, 40);
@@ -716,11 +716,11 @@ function drawTumourLiver(ctx, colors, w, params, state) {
     ctx.font = `${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.ink3;
     ctx.textAlign = "center"; ctx.fillText("log2 fold change, tumour against liver", X + PW / 2, top + bh + 15);
     ctx.textAlign = "left"; ctx.fillText("−log10 p", X + 4, top + 10);
-    heading(ctx, colors, `First ${LIST_ROWS} genes by p`, X, L.listTop - 12);
+    heading(ctx, colors, `Top ${LIST_ROWS} genes by p`, X, L.listTop - 12);
     drawList(ctx, colors, X, L.listTop + 6, PW, pts, gv.g, pName);
-    heading(ctx, colors, `${geneName(gv.g)}, ${gv.truth ? "truly changed" : "unchanged"}: ${mode === "cells" ? "each cell" : "the four sums"}`, X, L.geneTop - 12);
+    heading(ctx, colors, `${geneName(gv.g)} (${gv.truth ? "DE" : "non-DE"}): ${mode === "cells" ? "expression per cell" : "pseudobulk per sample"}`, X, L.geneTop - 12);
     drawGeneHalf(ctx, colors, gv, { x: X + 38, y: L.geneTop, w: PW - 38, h: L.geneH }, mode, vMax);
-    ctx.save(); ctx.translate(X + 4, L.geneTop + (L.geneH - 88) / 2); ctx.rotate(-Math.PI / 2); ctx.font = `${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.ink3; ctx.textAlign = "center"; ctx.fillText("log(1 + per 10,000)", 0, 0); ctx.restore();
+    ctx.save(); ctx.translate(X + 4, L.geneTop + (L.geneH - 88) / 2); ctx.rotate(-Math.PI / 2); ctx.font = `${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.ink3; ctx.textAlign = "center"; ctx.fillText("log1p(CP10k)", 0, 0); ctx.restore();
   });
   drawKey(ctx, colors, L, w);
   drawVenn(ctx, colors, vennOf(state, w, L), L, gv.g);
@@ -730,7 +730,7 @@ function drawTumourLiver(ctx, colors, w, params, state) {
 function drawComposition(ctx, colors, w, params, state) {
   const P = state.comp;
   const barW = Math.min(64, Math.floor((w * 0.42 - 20) / 4) - 14), bh = HEIGHTS.composition - TOP - 50;
-  heading(ctx, colors, `Each sample's ${COMP_CELLS} cells, by type`, 8, TOP - 9);
+  heading(ctx, colors, `Composition per sample (${COMP_CELLS} cells)`, 8, TOP - 9);
   ORDER.forEach((k, j) => {
     const x = 16 + j * (barW + 14); let y = TOP + bh;
     TYPES.forEach((_, t) => { const h = (P.n[k][t] / COMP_CELLS) * bh; ctx.fillStyle = hueOf(colors, t); ctx.fillRect(x, y - h, barW, h); y -= h; });
@@ -739,7 +739,7 @@ function drawComposition(ctx, colors, w, params, state) {
   });
   const X = Math.round(w * 0.45), cx = (f) => Math.round(X + f * (w - X - 8));
   const cols = [["type", cx(0), "left"], ["liver", cx(0.45), "right"], ["tumour", cx(0.6), "right"], ["p, cells", cx(0.8), "right"], ["p, samples", cx(1), "right"]];
-  heading(ctx, colors, "Each type's share, liver against tumour; bold, p < 0.05", X, TOP - 9);
+  heading(ctx, colors, "Proportions, liver vs tumour (bold: p < 0.05)", X, TOP - 9);
   ctx.font = `${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.ink3;
   cols.forEach(([h, x, al]) => { ctx.textAlign = al; ctx.fillText(h, x, TOP + 12); });
   const f = (q) => (q < 1e-4 ? q.toExponential(0) : q < 0.001 ? "<0.001" : q.toFixed(3));
@@ -764,8 +764,8 @@ defineWidget({
     + "canonical markers they express; the resolution sets how many clusters are found. Between clusters, "
     + "marker genes are ranked by a Wilcoxon test over cells, and a gene detected in most cells of both "
     + "clusters can still be significant. Between conditions within a cell type, the replicates are the "
-    + "samples: each sample's cells are summed into a pseudobulk profile and tested as bulk RNA-seq, as is "
-    + "each type's share of the samples.",
+    + "samples: each sample's cells are summed into a pseudobulk profile and tested as bulk RNA-seq, as are "
+    + "the cell-type proportions.",
   layout: "side",
   status: "draft",
   height: (params) => (params.page === "clusters" || !HEIGHTS[params.page] ? clustersHeight(params) : HEIGHTS[params.page]),
@@ -781,20 +781,20 @@ defineWidget({
     seed: { type: "int", label: "Seed", min: 1, max: 200, default: 1 },
     res: {
       type: "choice", label: "Resolution",
-      detail: "FindClusters' resolution: the weight on the expected number of links within a community",
+      detail: "the resolution parameter of FindClusters: the weight of the expected-edges term in the modularity",
       options: RESOLUTIONS.map((v) => ({ value: v, label: v })), default: "0.3", when: CELL_PAGES,
     },
 
     twoSec: { type: "section", label: "The comparison", when: ON("two-clusters") },
     comparator: {
       type: "segmented", style: "grid", label: "Comparator",
-      detail: "the cluster whose markers are found: FindMarkers' ident.1, whose share detecting a gene is pct.1; clusters are numbered by size, 0 the largest",
+      detail: "ident.1 of FindMarkers: the cluster tested for markers; clusters are numbered by size, 0 the largest",
       options: (v) => clusterOptions(v), optionsFrom: ["seed", "res"],
       default: "0", when: ON("two-clusters"),
     },
     baseline: {
       type: "segmented", style: "grid", label: "Baseline",
-      detail: "the reference the comparator is measured against: FindMarkers' ident.2, whose share is pct.2; all other cells, or one cluster",
+      detail: "ident.2 of FindMarkers: the reference group, either one cluster or all other cells",
       options: (v) => [{ value: "rest", label: "All other cells", span: true }, ...clusterOptions(v).filter((o) => o.value !== String(v.comparator))],
       optionsFrom: ["seed", "res", "comparator"],
       default: "rest", when: ON("two-clusters"),
@@ -802,19 +802,19 @@ defineWidget({
     tlSec: { type: "section", label: "The comparison", when: ON("tumour-liver") },
     within: {
       type: "segmented", style: "grid", label: "Cluster",
-      detail: `the cluster whose cells are compared, tumour samples against liver samples; only clusters with at least ${MIN_PER_SAMPLE} cells in every sample are listed`,
+      detail: `the cluster whose cells are compared between tumour and liver samples; clusters with fewer than ${MIN_PER_SAMPLE} cells in any sample are not testable`,
       options: (v) => testableOptions(v), optionsFrom: ["seed", "res"],
       default: "", when: ON("tumour-liver"),
     },
     gene: {
       type: "select", label: "Gene",
-      detail: "the gene drawn under both lists, as each test sees it; a click on a volcano's point, a list's row or a dot of the Venn picks one too",
+      detail: "the gene shown in both expression panels; also selected from the volcano plots, the gene lists and the Venn diagram",
       options: GENE_OPTIONS, default: "unchanged", when: ON("tumour-liver"),
     },
     tlSampSec: { type: "section", label: "The samples", when: ON("tumour-liver") },
     change: {
-      type: "choice", label: "True change",
-      detail: "the log2 fold change of 20 genes in the tumour-sample cells, a different 20 in each cell type, half up and half down; every other gene is unchanged",
+      type: "choice", label: "True log2 fold change",
+      detail: "the simulated effect: 20 DE genes per cell type, a different set in each, half up and half down in tumour samples; all other genes are non-DE",
       options: CHANGES.map((v) => ({ value: v, label: v })), default: "0", when: ON("tumour-liver"),
     },
     sampleSd: {
@@ -823,26 +823,26 @@ defineWidget({
          gene, and this is the SD of those shifts; True change is the one
          effect size on the page */
       type: "choice", label: "Variation between samples (SD)",
-      detail: "each sample shifts each gene by its own random amount, from its preparation (ambient RNA, dissociation, handling); this is the SD of those shifts, in log",
+      detail: "SD of a sample-specific shift in each gene's log expression, from sample preparation (ambient RNA, dissociation, handling)",
       options: SAMPLE_SD.map((v) => ({ value: v, label: v })), default: "0", when: ON("tumour-liver"),
     },
     patientSd: {
       type: "choice", label: "Variation between patients (SD)",
-      detail: "each patient shifts each gene by its own random amount, the same in that patient's liver and tumour samples; this is the SD of those shifts, in log",
+      detail: "SD of a patient-specific shift in each gene's log expression, shared by that patient's liver and tumour samples",
       options: PATIENT_SD.map((v) => ({ value: v, label: v })), default: "0.3", when: ON("tumour-liver"),
     },
 
     compSec: { type: "section", label: "The samples", when: ON("composition") },
     compSd: {
-      type: "choice", label: "Spread between samples",
-      detail: "the SD, in log, by which each sample's share of each type varies about its tissue's mean share",
+      type: "choice", label: "Variation between samples (SD)",
+      detail: "SD of a sample-specific shift in each cell type's log proportion, about its tissue's mean",
       options: COMP_SD.map((v) => ({ value: v, label: v })), default: "0.3", when: ON("composition"),
     },
   },
 
   legend: ({ params }) => {
     const types = TYPES.map((t, i) => ({ token: `cluster-${"abcdef"[TYPE_SLOT[i]]}`, label: t.name, mark: params.page === "composition" ? "bar" : "dot" }));
-    if (params.page === "clusters") return [...types, { token: "magnitude", label: "Dot plot: size, the share of the cluster's cells detecting the gene; shade, its mean", mark: "dot" }];
+    if (params.page === "clusters") return [...types, { token: "magnitude", label: "Dot plot: size, fraction of cells expressing the gene; shade, mean expression", mark: "dot" }];
     /* Tumour vs liver draws its key on the canvas, between the gene views
        and the Venn it does not key (his round: "move these legends above the
        venn diagram closer to volcano and gene views"); drawKey */
@@ -911,28 +911,28 @@ defineWidget({
       const byType = TYPES.map((t, ti) => cl.ann.filter((a) => a.type === ti).length);
       const split = TYPES.filter((_, ti) => byType[ti] > 1).map((t) => t.name);
       return [
-        { label: "Clusters found", value: String(cl.k), note: `the data hold 6 cell types; modularity ${fmt(cl.q, 3)}, the best of 10 random starts` },
-        { label: "Cell types split over more than one cluster", value: String(split.length), note: split.length ? `${split.join(", ")}: each of its clusters expresses the same type's markers` : "each type is one cluster" },
+        { label: "Clusters found", value: String(cl.k), note: `6 simulated cell types; modularity ${fmt(cl.q, 3)}, best of 10 random starts` },
+        { label: "Cell types split across clusters", value: String(split.length), note: split.length ? `${split.join(", ")}: its clusters share the same canonical markers` : "one cluster per cell type" },
       ];
     }
     if (params.page === "two-clusters") {
       const mk = state.mk, fm = mk.fm;
       const up = fm.res.filter((x) => x.lfc > 0 && x.lpAdj < LOG05);
       return [
-        { label: `Genes up in the comparator, cluster ${mk.tested}, at p_val_adj < 0.05`, value: String(up.length), note: `${fm.n1} cells; baseline ${mk.vsRest ? `the other ${fm.n2} cells` : `cluster ${mk.otherC}'s ${fm.n2}`}` },
-        { label: "Of those, detected in more than half of the baseline", value: String(broadOf(mk).length), note: "significant, and not specific to the comparator" },
+        { label: `Genes upregulated in cluster ${mk.tested}, p_val_adj < 0.05`, value: String(up.length), note: `${fm.n1} cells vs ${fm.n2} (${mk.vsRest ? "all other cells" : `cluster ${mk.otherC}`})` },
+        { label: "Of those, with pct.2 > 0.5", value: String(broadOf(mk).length), note: "significant, but not specific to the cluster" },
       ];
     }
     if (params.page === "composition") {
       const T = state.comp.types;
       const names = (k) => T.filter((r) => r[k] < 0.05).map((r) => TYPES[r.ti].name).join(", ") || "none";
       return [
-        { label: "Types whose share differs, over cells", value: String(T.filter((r) => r.pCells < 0.05).length), note: `p < 0.05: ${names("pCells")}` },
-        { label: "Types whose share differs, over samples", value: String(T.filter((r) => r.pSamples < 0.05).length), note: `p < 0.05: ${names("pSamples")}` },
+        { label: "Proportions differing, cell-level χ² test", value: String(T.filter((r) => r.pCells < 0.05).length), note: `p < 0.05: ${names("pCells")}` },
+        { label: "Proportions differing, sample-level t-test", value: String(T.filter((r) => r.pSamples < 0.05).length), note: `p < 0.05: ${names("pSamples")}` },
       ];
     }
     const C = state.cond;
-    if (!C.testable) return [{ label: "Cluster", value: String(C.within), note: "too few cells in a sample to compare by tissue" }];
+    if (!C.testable) return [{ label: "Cluster", value: String(C.within), note: "not testable: fewer than 5 cells in at least one sample" }];
     const tp = (v) => v.filter((q) => q.call && q.truth).length, fp = (v) => v.filter((q) => q.call && !q.truth).length;
     const truth = Number(params.change) > 0;
     /* EACH TEST LEADS WITH WHAT IT FOUND AND ITS FALSE CALLS (his round,
@@ -945,13 +945,13 @@ defineWidget({
        (`_lab/cell-markers-methods-measure.txt`). */
     const tiles = (v, name, cut, promise) => {
       const t = tp(v), f = fp(v), n = t + f;
-      const found = { label: `${name}: truly changed genes found`, value: `${t} of 20`, note: `the cluster's type's own changed genes, called at ${cut} < 0.05` };
-      const falseCalls = { label: `${name}: false calls`, value: n ? `${f} of its ${n} call${n === 1 ? "" : "s"}` : "no calls", note: `${n ? `${Math.round((100 * f) / n)}% of the genes it called; ` : ""}${promise}` };
+      const found = { label: `${name}: true positives`, value: `${t} of 20`, note: `sensitivity ${Math.round((100 * t) / 20)}%: DE genes of the cluster's cell type significant at ${cut} < 0.05` };
+      const falseCalls = { label: `${name}: false positives`, value: n ? `${f} of ${n} significant` : "none significant", note: `${n ? `false discovery proportion ${Math.round((100 * f) / n)}%; ` : ""}${promise}` };
       return truth ? [found, falseCalls] : [falseCalls];
     };
     return [
-      ...tiles(C.volC, "Over cells", "p_val_adj", "Bonferroni aims for at most a 5% chance of any false call"),
-      ...tiles(C.volD, "Over samples", "padj", "Benjamini–Hochberg aims for about 5% of calls false, on average"),
+      ...tiles(C.volC, "Cell-level", "p_val_adj", "Bonferroni controls the family-wise error rate at 5%"),
+      ...tiles(C.volD, "Pseudobulk", "padj", "Benjamini–Hochberg controls the false discovery rate at 5%"),
     ];
   },
 });
