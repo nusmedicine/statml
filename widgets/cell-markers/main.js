@@ -55,7 +55,7 @@ const PAGES = [
 ];
 const ON = (page) => ({ param: "page", equals: page });
 const CELL_PAGES = { param: "page", oneOf: ["clusters", "two-clusters", "tumour-liver"] };
-const HEIGHTS = { "two-clusters": 732, "tumour-liver": 1420, composition: 380 };
+const HEIGHTS = { "two-clusters": 732, "tumour-liver": 1450, composition: 380 };
 const RESOLUTIONS = ["0.1", "0.3", "0.5", "0.8", "1.2", "2"];
 const SAMPLE_SD = ["0", "0.1", "0.2", "0.4", "0.65"];
 const PATIENT_SD = ["0", "0.3", "0.65"];
@@ -331,7 +331,7 @@ const vennCache = new WeakMap();
 function vennOf(state, w, L) {
   const per = vennCache.get(state) ?? new Map();
   if (per.has(w)) return per.get(w);
-  const C = state.cond, R = Math.min(90, Math.floor((w - 16) * 0.14)), cx = 16 + Math.round(1.7 * R), top = L.vennTop + 18;
+  const C = state.cond, R = Math.min(90, Math.floor((w - 16) * 0.14)), cx = 38 + Math.round(1.7 * R), top = L.vennTop + 40;
   const circles = [{ x: cx, y: top + R }, { x: cx - Math.round(0.72 * R), y: top + Math.round(2.05 * R) }, { x: cx + Math.round(0.72 * R), y: top + Math.round(2.05 * R) }];
   const truth = new Set(), cells = new Set(C.volC.filter((q) => q.call).map((q) => q.g)), samples = new Set(C.volD.filter((q) => q.call).map((q) => q.g));
   for (let g = 0; g < G; g += 1) if (C.truthOf(g)) truth.add(g);
@@ -352,7 +352,11 @@ function vennOf(state, w, L) {
     if (pts.length) counts.push({ x: pts[0][0], y: pts[0][1], n: gs.length });
     gs.forEach((g, i) => { const q = pts[Math.min(i + 2, pts.length - 1)]; if (q) dots.push({ g, x: q[0], y: q[1], truth: truth.has(g) }); });
   });
-  const out = { R, circles, dots, counts, nTruth: truth.size, nCells: cells.size, nSamples: samples.size, quiet: G - new Set([...truth, ...cells, ...samples]).size, textX: cx + Math.round(1.72 * R) + 24 };
+  const out = { R, circles, dots, counts, nTruth: truth.size, nCells: cells.size, nSamples: samples.size, quiet: G - new Set([...truth, ...cells, ...samples]).size,
+    /* the box is every gene (his round: "put it in a box … and the number of
+       unchanged genes"): the circles sit in its left part, the legend and the
+       genes outside every circle in a column on its right */
+    box: { x0: 8, y0: L.vennTop + 6, x1: Math.min(w - 8, cx + Math.round(1.72 * R) + 180), y1: top + Math.round(2.05 * R) + R + 34 }, colX: cx + Math.round(1.72 * R) + 18 };
   per.set(w, out); vennCache.set(state, per);
   return out;
 }
@@ -594,28 +598,38 @@ function drawDesignTree(ctx, colors, C, B) {
 }
 
 function drawVenn(ctx, colors, V, L, picked) {
-  heading(ctx, colors, "The calls against the truth: each dot a gene", 8, L.vennTop - 12);
-  const [T, Cc, Sc] = V.circles, R = V.R;
+  heading(ctx, colors, "The calls against the truth", 8, L.vennTop - 12);
+  const [T, Cc, Sc] = V.circles, R = V.R, B = V.box;
+  /* the box: every gene */
+  ctx.strokeStyle = colors.axis; ctx.lineWidth = 1; ctx.strokeRect(B.x0 + 0.5, B.y0 + 0.5, B.x1 - B.x0 - 1, B.y1 - B.y0 - 1);
+  ctx.font = `600 ${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.ink2; ctx.textAlign = "left"; ctx.fillText(`All ${G} genes`, B.x0 + 8, B.y0 + 16);
   [[T, colors.reference, []], [Cc, colors.ink1, []], [Sc, colors.ink2, [6, 4]]].forEach(([c, col, dash]) => {
-    ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.setLineDash(dash); ctx.beginPath(); ctx.arc(c.x, c.y, V.R, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]);
+    ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.setLineDash(dash); ctx.beginPath(); ctx.arc(c.x, c.y, R, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]);
   });
   ctx.font = `600 ${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.ink1; ctx.textAlign = "center";
   ctx.fillText(`Truly changed (${V.nTruth})`, T.x, T.y - R - 8);
-  ctx.fillText(`Called over cells (${V.nCells})`, Cc.x - R * 0.3, Cc.y + R + 16);
-  ctx.fillText(`Called over samples (${V.nSamples})`, Sc.x + R * 0.3, Sc.y + R + 32);
+  ctx.fillText(`Called over cells (${V.nCells})`, Cc.x - R * 0.3, Cc.y + R + 18);
+  ctx.fillText(`Called over samples (${V.nSamples})`, Sc.x + R * 0.3, Sc.y + R + 18);
   V.dots.forEach((d) => {
     ctx.fillStyle = d.truth ? colors.empirical : colors.extreme; ctx.beginPath(); ctx.arc(d.x, d.y, 3.6, 0, Math.PI * 2); ctx.fill();
     if (d.g === picked) { ctx.strokeStyle = colors.highlight; ctx.lineWidth = 2; ctx.strokeRect(d.x - 7, d.y - 7, 14, 14); }
   });
-  V.counts.forEach((c) => {
-    ctx.font = `600 ${colors.fsXs} ${colors.mono}`; const tw = ctx.measureText(String(c.n)).width;
-    ctx.fillStyle = colors.surface; ctx.globalAlpha = 0.85; ctx.fillRect(c.x - tw / 2 - 4, c.y - 9, tw + 8, 16); ctx.globalAlpha = 1;
-    ctx.fillStyle = colors.ink1; ctx.textAlign = "center"; ctx.fillText(String(c.n), c.x, c.y + 4);
+  const count = (n, x, y, al = "center") => {
+    ctx.font = `600 ${colors.fsXs} ${colors.mono}`; const tw = ctx.measureText(String(n)).width, l = al === "center" ? x - tw / 2 : x;
+    ctx.fillStyle = colors.surface; ctx.globalAlpha = 0.85; ctx.fillRect(l - 4, y - 12, tw + 8, 16); ctx.globalAlpha = 1;
+    ctx.fillStyle = colors.ink1; ctx.textAlign = al; ctx.fillText(String(n), x, y);
+  };
+  V.counts.forEach((c) => count(c.n, c.x, c.y + 4));
+  /* the column: a short legend, then the genes outside every circle */
+  const x = V.colX, small = (t, xx, y, col = colors.ink2) => { ctx.font = `${colors.fsXs} ${colors.font}`; ctx.fillStyle = col; ctx.textAlign = "left"; ctx.fillText(t, xx, y); };
+  [[colors.empirical, "truly changed"], [colors.extreme, "unchanged"]].forEach(([col, t], i) => {
+    const y = B.y0 + 34 + i * 18; ctx.fillStyle = col; ctx.beginPath(); ctx.arc(x + 4, y - 4, 3.6, 0, Math.PI * 2); ctx.fill(); small(t, x + 14, y);
   });
-  /* how to read it, to its right */
-  ctx.font = `${colors.fsXs} ${colors.font}`; ctx.fillStyle = colors.ink2; ctx.textAlign = "left";
-  ["Blue: truly changed. Red: unchanged.", "Inside a test's circle: it called the gene.", "Red inside a circle: a false call.", "Blue outside both test circles: missed.", "Counts, not areas. A dot picks the gene.", "", `Outside every circle: ${V.quiet} unchanged`, "genes that neither test called."]
-    .forEach((t, i) => ctx.fillText(t, V.textX, T.y - R * 0.4 + i * 16));
+  count("n", x, B.y0 + 70, "left"); small("genes in the region", x + 20, B.y0 + 70);
+  small("a dot picks the gene", x, B.y0 + 88, colors.ink3);
+  const yq = B.y1 - 60;
+  ctx.font = `600 ${colors.fsMd} ${colors.mono}`; ctx.fillStyle = colors.ink1; ctx.textAlign = "left"; ctx.fillText(String(V.quiet), x, yq);
+  small("in the box, outside every", x, yq + 17); small("circle: unchanged, and", x, yq + 31); small("called by neither test", x, yq + 45);
   ctx.textAlign = "left";
 }
 
