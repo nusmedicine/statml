@@ -22077,7 +22077,20 @@ mask is 84's Decoder page (08-1 cells 2–4, and 10-3 cells 44–45 use it).
 `scores=scaled|unscaled`, `attention_mask=passed|not-passed`,
 `sentence=mask`; two dead strings). Subtitle A and blurb A his picks, both
 scanned before asking. The verify's §4 strikes the rules' words in every
-reader-facing string. The switch probe reads 10 switches, 0
+reader-facing string.
+
+**Then, the same day:** the Output step became two stacked sections on his
+ask (87d2ff6, `_lab/attention-two-sections-mock.html`): **1 · Values**
+vⱼ = x̃ⱼ W_Vᵀ + b, every row's embedding → W_V → value, on the page from the
+start; **2 · Output** zᵢ = Σⱼ αᵢⱼ vⱼ, the press's section, the α matrix beside
+it where there is room. The card carries both formulas (a9cd9b6).
+**Measured on his question "why not attend on the embedding directly?":** the
+base model trained with V = x̃ (each head a fixed 12-number slice of x̃, W_O
+kept) reaches masked-word accuracy 79.7 / 79.1% against 80.4 / 79.7% with W_V,
+the drug slot 100% both, loss 0.40 against 0.37 (two seeds). Per head,
+(Σ α x̃ W_V) W_O = Σ α x̃ (W_V W_O), so W_O and the feed-forward make up most
+of it on this task; what W_V buys is each head's own choice of content, which a
+toy this small does not show. No copy claims W_V's worth. The switch probe reads 10 switches, 0
 flagged; the overlap sweep 50 states at 490px, clean. Fingerprint states owed
 at the ship, not before.
 
