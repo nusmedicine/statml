@@ -45,7 +45,7 @@ import * as M from "./model.js";
 
 const PAGES = [{ value: "weights", label: "Weights" }, { value: "output", label: "Output" }, { value: "heads", label: "Heads" }, { value: "mask", label: "Mask" }];
 const ON = (page) => ({ param: "page", equals: page });
-const STEP_MS = 380, RUN_MS = 200;
+const STEP_MS = 600, RUN_MS = 320;   // a press's glide on Step, and under Play
 
 /* ================================================================== copy */
 
@@ -159,6 +159,17 @@ function box(ctx, colors, x, y, w, h, label, { alpha = 1 } = {}) {
 /** how far along each row is: rows before the newest full, the newest at its tween, the rest empty */
 const rowAlpha = (anim, i) => (i < anim.n - 1 ? 1 : i === anim.n - 1 ? ease(anim.t) : 0);
 const queryOf = (anim) => anim.n - 1;
+/* THE GLIDE. A press moves the query from the last row to the next: the circle, the
+   dashed row outline and every colour ride `e` from the old row to the new, so the
+   eye follows one thing moving rather than a row blinking out and another in. No
+   in-between NUMBER is ever printed: the old digits fade out over the first half,
+   the new ones in over the second. */
+function glide(anim) {
+  const to = anim.n - 1, from = anim.n >= 2 ? anim.n - 2 : null, e = ease(anim.t);
+  return { from, to, e, pos: from === null ? to : from + (to - from) * e, first: from === null };
+}
+const lerp = (a, b, t) => a + (b - a) * t;
+const oldInk = (g) => (g.first ? 0 : Math.max(0, 1 - 2 * g.e)), newInk = (g) => (g.first ? g.e : Math.max(0, 2 * g.e - 1));
 
 /** α_ij as a grid: `A` rows over keys, PAD columns hatched, a null cell blank */
 function matrix(ctx, colors, A, toks, x0, y0, cs, anim, { colLabels = true, rowLabels = true, padFrom = -1, box: outline = true } = {}) {
@@ -182,8 +193,10 @@ function matrix(ctx, colors, A, toks, x0, y0, cs, anim, { colLabels = true, rowL
   if (outline) { ctx.strokeStyle = colors.ink2; ctx.lineWidth = 1; ctx.strokeRect(x0 - 0.5, y0 - 0.5, K * cs, L * cs); }
   /* the query's row outlined with its label, as his figure boxes "M" with its row */
   if (qi >= 0) {
-    const lx = rowLabels ? labelWidth(ctx, colors, [toks[qi]]) + 9 : 2.5;
-    ctx.save(); ctx.strokeStyle = colors.groupA; ctx.lineWidth = 1.5; ctx.setLineDash([3, 3]); ctx.strokeRect(x0 - lx, y0 + qi * cs - 2, K * cs + lx + 2, cs + 3); ctx.restore();
+    const g = glide(anim), lab = (i) => (rowLabels ? labelWidth(ctx, colors, [toks[i]]) + 9 : 2.5);
+    const lx = g.first ? lab(g.to) : lerp(lab(g.from), lab(g.to), g.e);
+    ctx.save(); ctx.globalAlpha = g.first ? g.e : 1; ctx.strokeStyle = colors.groupA; ctx.lineWidth = 1.5; ctx.setLineDash([3, 3]);
+    ctx.strokeRect(x0 - lx, y0 + g.pos * cs - 2, K * cs + lx + 2, cs + 3); ctx.restore();
   }
 }
 
@@ -226,16 +239,20 @@ function drawWeights(ctx, colors, w, params, state, anim) {
   });
   const x0 = cols[0][0], x1 = cols[L - 1][0] + cols[L - 1][1];
   if (qi >= 0) {
-    const a = ease(anim.n - 1 === qi ? anim.t : 1);
-    ctx.save(); ctx.strokeStyle = colors.groupA; ctx.lineWidth = 1.5; ctx.setLineDash([3, 3]);
-    ctx.beginPath(); ctx.ellipse(cx(qi), WT.qY, cols[qi][1] / 2, 12, 0, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
-    line(ctx, cx(qi), WT.qY + 13, cx(qi), 58, colors.ink2, 1.2);
+    const g = glide(anim), qx = g.first ? cx(g.to) : lerp(cx(g.from), cx(g.to), g.e);
+    const rx = (g.first ? cols[g.to][1] : lerp(cols[g.from][1], cols[g.to][1], g.e)) / 2;
+    ctx.save(); ctx.globalAlpha = g.first ? g.e : 1; ctx.strokeStyle = colors.groupA; ctx.lineWidth = 1.5; ctx.setLineDash([3, 3]);
+    ctx.beginPath(); ctx.ellipse(qx, WT.qY, rx, 12, 0, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
+    line(ctx, qx, WT.qY + 13, qx, 58, colors.ink2, 1.2);
     line(ctx, cx(0), 58, cx(L - 1), 58, colors.ink2, 1.2);
     for (let j = 0; j < L; j++) arrow(ctx, cx(j), 58, cx(j), 80, colors.ink2);
     for (let j = 0; j < L; j++) {
-      const fill = weightFill(colors, A[qi][j]);
-      ctx.save(); ctx.globalAlpha = a; ctx.fillStyle = css(fill); ctx.fillRect(cols[j][0], WT.stripY, cols[j][1], WT.stripH); ctx.restore();
-      txt(ctx, digits(ctx, colors, A[qi][j], cols[j][1] - 4), cx(j), WT.stripY + WT.stripH / 2, { font: mono(colors), fill: inkOn(colors, fill), align: "center", baseline: "middle", alpha: a });
+      const to = weightFill(colors, A[g.to][j]);
+      const fill = g.first ? mixRgb(rgb(colors.surface2), to, g.e) : mixRgb(weightFill(colors, A[g.from][j]), to, g.e);
+      ctx.fillStyle = css(fill); ctx.fillRect(cols[j][0], WT.stripY, cols[j][1], WT.stripH);
+      const ty = WT.stripY + WT.stripH / 2, room = cols[j][1] - 4;
+      if (!g.first) txt(ctx, digits(ctx, colors, A[g.from][j], room), cx(j), ty, { font: mono(colors), fill: inkOn(colors, fill), align: "center", baseline: "middle", alpha: oldInk(g) });
+      txt(ctx, digits(ctx, colors, A[g.to][j], room), cx(j), ty, { font: mono(colors), fill: inkOn(colors, fill), align: "center", baseline: "middle", alpha: newInk(g) });
     }
   }
   ctx.strokeStyle = colors.ink1; ctx.lineWidth = 1; ctx.strokeRect(x0 + 0.5, WT.stripY + 0.5, x1 - x0 - 1, WT.stripH - 1);
@@ -266,14 +283,17 @@ function drawOutput(ctx, colors, w, params, state, anim) {
   txt(ctx, S.outW, wx, 18, { font: cap(colors), fill: colors.ink1 });
   txt(ctx, S.outV, vx, 18, { font: cap(colors), fill: colors.ink1 });
   const vmax = Math.max(...hd.v.flat().map(Math.abs), ...hd.z.flat().map(Math.abs));
-  const a = qi >= 0 ? ease(anim.t) : 0;
+  const g = qi >= 0 ? glide(anim) : null;
   for (let j = 0; j < L; j++) {
     const y = OT.top + j * OT.rh;
     ctx.fillStyle = colors.surface2; ctx.fillRect(wx, y, 34, OT.rh - 5);
-    if (qi >= 0) {
-      const f = weightFill(colors, hd.alpha[qi][j]);
-      ctx.save(); ctx.globalAlpha = a; ctx.fillStyle = css(f); ctx.fillRect(wx, y, 34, OT.rh - 5); ctx.restore();
-      txt(ctx, hd.alpha[qi][j].toFixed(2), wx + 17, y + (OT.rh - 5) / 2, { font: mono(colors), fill: inkOn(colors, f), align: "center", baseline: "middle", alpha: a });
+    if (g) {
+      const to = weightFill(colors, hd.alpha[g.to][j]);
+      const f = g.first ? mixRgb(rgb(colors.surface2), to, g.e) : mixRgb(weightFill(colors, hd.alpha[g.from][j]), to, g.e);
+      ctx.fillStyle = css(f); ctx.fillRect(wx, y, 34, OT.rh - 5);
+      const ty = y + (OT.rh - 5) / 2;
+      if (!g.first) txt(ctx, hd.alpha[g.from][j].toFixed(2), wx + 17, ty, { font: mono(colors), fill: inkOn(colors, f), align: "center", baseline: "middle", alpha: oldInk(g) });
+      txt(ctx, hd.alpha[g.to][j].toFixed(2), wx + 17, ty, { font: mono(colors), fill: inkOn(colors, f), align: "center", baseline: "middle", alpha: newInk(g) });
     }
     ctx.strokeStyle = colors.ink2; ctx.strokeRect(wx + 0.5, y + 0.5, 33, OT.rh - 6);
     txt(ctx, toks[j], kx, y + (OT.rh - 5) / 2, { font: mono(colors), fill: colors.groupB, baseline: "middle" });
@@ -288,10 +308,17 @@ function drawOutput(ctx, colors, w, params, state, anim) {
   const zy = yb + 56;
   for (let d = 0; d < M.DK; d++) {
     ctx.fillStyle = colors.surface2; ctx.fillRect(vx + d * vc, zy, vc - 1, 24);
-    if (qi >= 0) { ctx.save(); ctx.globalAlpha = a; ctx.fillStyle = css(signedFill(colors, hd.z[qi][d], vmax)); ctx.fillRect(vx + d * vc, zy, vc - 1, 24); ctx.restore(); }
+    if (g) {
+      const to = signedFill(colors, hd.z[g.to][d], vmax);
+      ctx.fillStyle = css(g.first ? mixRgb(rgb(colors.surface2), to, g.e) : mixRgb(signedFill(colors, hd.z[g.from][d], vmax), to, g.e));
+      ctx.fillRect(vx + d * vc, zy, vc - 1, 24);
+    }
   }
   ctx.strokeStyle = colors.ink1; ctx.strokeRect(vx - 0.5, zy - 0.5, M.DK * vc, 25);
-  if (qi >= 0) txt(ctx, toks[qi], vx - 10, zy + 12, { font: mono(colors), fill: colors.groupA, align: "right", baseline: "middle" });
+  if (g) {
+    if (!g.first) txt(ctx, toks[g.from], vx - 10, zy + 12, { font: mono(colors), fill: colors.groupA, align: "right", baseline: "middle", alpha: oldInk(g) });
+    txt(ctx, toks[g.to], vx - 10, zy + 12, { font: mono(colors), fill: colors.groupA, align: "right", baseline: "middle", alpha: newInk(g) });
+  }
   txt(ctx, S.outZ, (vx + right) / 2, zy + 44, { font: small(colors), fill: colors.ink2, align: "center" });
 }
 
