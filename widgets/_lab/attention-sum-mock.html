@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · 83 Output page, three ways to show the sum — mock</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1700px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 110ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  .row { display: flex; gap: var(--sp-4); flex-wrap: wrap; align-items: flex-start; }
+  .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 6px; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 110ch; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Widget 83 · Output page · three ways to show the sum · mock</h1>
+  <p class="note">
+    Your note: dimming the features in place shows the summing, but afterwards the originals are gone, so vⱼ and
+    zⱼ cannot be compared. Three arms, each drawn at two moments of one press: <b>mid-press</b> (5 of 8 keys added)
+    and <b>done</b>. Real numbers: the trained block 1, head 4, the query <b>for</b>, earlier queries already in the
+    right-hand column. Drawn at 640px; the α matrix on the left of the page is left out here, as it does not change.
+  </p>
+
+  <h2>A · dim in place during the press, restore when it ends</h2>
+  <p class="note">What the draft does now, with one change: when the press lands, every strip fades back to its own
+    vⱼ, so the finished page shows original features beside the features with attention.</p>
+  <div class="row" id="rowA"></div>
+
+  <h2>B · the originals untouched; the key being added shows as an addend over the running total</h2>
+  <p class="note">Under the bracket, set out as a sum on paper: the current key's weighted features on one line
+    (<i>+ 0.49 × pain</i>), a rule, the running zᵢ under it. The addend changes key by key; the vⱼ rows only get an
+    outline while they are being added and a tick once they are in.</p>
+  <div class="row" id="rowB"></div>
+
+  <h2>C · the originals untouched; every weighted row stacks up as the column of addends</h2>
+  <p class="note">Under the bracket, one thin line per key, αᵢⱼvⱼ, added in turn, and zᵢ below the rule as their
+    column sum. The whole sum Σⱼ αᵢⱼvⱼ is on the page at once: large weights stand out as coloured lines, the rest
+    are near blank. Costs about 8 px of height per token.</p>
+  <div class="row" id="rowC"></div>
+
+  <p class="rec">Recommended: <b>C</b>. It draws the formula itself, leaves every vⱼ as it is for the comparison with zⱼ,
+    and shows which keys the sum came from after the press is over, where A and B keep that only while it runs.
+    B is the lighter page if height matters.</p>
+</main>
+<script type="module">
+const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const C = { ink1: css("--ink-1"), ink2: css("--ink-2"), ink3: css("--ink-3"), s1: css("--surface-1"), s2: css("--surface-2"), s3: css("--surface-3"),
+  a: css("--c-group-a"), b: css("--c-group-b"), mag: css("--c-magnitude"), lo: css("--c-value-low"), hi: css("--c-value-high"),
+  font: css("--font"), mono: css("--font-mono") };
+const rgb = (h) => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+const mix = (a, b, t) => `rgb(${rgb(a).map((x, i) => Math.round(x + (rgb(b)[i] - x) * Math.max(0, Math.min(1, t)))).join(",")})`;
+const wfill = (w) => mix(C.s3, C.mag, Math.sqrt(w));
+const vfill = (v, s) => mix(C.s3, v >= 0 ? C.hi : C.lo, Math.abs(v) / s);
+const capF = "600 12px " + C.font, smF = "11px " + C.font, monoF = "11px " + C.mono;
+function mk(host, cap, w, h) {
+  const d = document.createElement("div"); d.innerHTML = `<div class="sub">${cap}</div>`;
+  const cv = document.createElement("canvas"), dpr = devicePixelRatio || 1;
+  cv.width = w * dpr; cv.height = h * dpr; cv.style.width = w + "px"; cv.style.height = h + "px"; d.appendChild(cv); host.appendChild(d);
+  const g = cv.getContext("2d"); g.scale(dpr, dpr); return g;
+}
+function t(g, s, x, y, { f = monoF, c = C.ink2, a = "left" } = {}) { g.font = f; g.fillStyle = c; g.textAlign = a; g.textBaseline = "middle"; g.fillText(s, x, y); }
+
+const REF = await (await fetch("attention-reference.json")).json();
+const R = REF[0], H = 3, QI = 4, toks = R.tokens, L = toks.length;
+const A = R.alpha[H], V = R.v[H], Z = R.z[H];
+const vmax = Math.max(...V.flat().map(Math.abs), ...Z.flat().map(Math.abs));
+const W = 640, top = 50, rh = 24, wx = 12, kx = 56, vx = 130, vc = 14, lane = 26, zx = vx + 12 * vc + lane;
+const partial = (k) => Array.from({ length: 12 }, (_, d) => { let s = 0; for (let j = 0; j < k; j++) s += A[QI][j] * V[j][d]; return s; });
+
+/** the rows: weights, key, v strip (as `strip(j)` says), z column (queries before QI, and QI when done) */
+function rows(g, k, done, { strip, tick }) {
+  t(g, "Weights", wx, 18, { f: capF, c: C.ink1 }); t(g, "Features vⱼ", vx, 18, { f: capF, c: C.ink1 });
+  t(g, "With attention zⱼ", zx, 18, { f: capF, c: C.ink1 });
+  for (let j = 0; j < L; j++) {
+    const y = top + j * rh, w = A[QI][j];
+    g.fillStyle = wfill(w); g.fillRect(wx, y, 34, rh - 5); t(g, w.toFixed(2), wx + 17, y + 9.5, { a: "center", c: w > 0.3 ? C.s1 : C.ink1 });
+    t(g, toks[j], kx, y + 9.5, { c: C.b });
+    for (let d = 0; d < 12; d++) { g.fillStyle = strip(j, d); g.fillRect(vx + d * vc, y, vc - 1, rh - 5); }
+    const cur = !done && j === k - 1;   // the key being added
+    g.strokeStyle = cur ? C.a : C.ink3; g.lineWidth = cur ? 2 : 1; g.strokeRect(vx - 0.5, y - 0.5, 12 * vc, rh - 4); g.lineWidth = 1;
+    if (tick && (done || j < k - 1)) t(g, "✓", vx + 12 * vc + 8, y + 9.5, { f: smF, c: C.ink3 });
+    const zin = j < QI || (done && j === QI);
+    for (let d = 0; d < 12; d++) { g.fillStyle = zin ? vfill(Z[j][d], vmax) : C.s2; g.fillRect(zx + d * vc, y, vc - 1, rh - 5); }
+    g.strokeStyle = j === QI ? C.a : C.ink3; g.strokeRect(zx - 0.5, y - 0.5, 12 * vc, rh - 4);
+  }
+  return top + L * rh;
+}
+function bracket(g, yb) { g.strokeStyle = C.ink2; g.beginPath(); g.moveTo(vx, yb); g.lineTo(vx, yb + 8); g.lineTo(vx + 12 * vc, yb + 8); g.lineTo(vx + 12 * vc, yb); g.stroke(); }
+function zstrip(g, y, vals, label) {
+  for (let d = 0; d < 12; d++) { g.fillStyle = vals ? vfill(vals[d], vmax) : C.s2; g.fillRect(vx + d * vc, y, vc - 1, 22); }
+  g.strokeStyle = C.ink1; g.strokeRect(vx - 0.5, y - 0.5, 12 * vc, 23); t(g, label, vx - 8, y + 11, { c: C.a, a: "right" });
+}
+
+/* ---- A */
+for (const [k, done] of [[5, false], [L, true]]) {
+  const g = mk(document.getElementById("rowA"), done ? "A · done: every strip back to its own vⱼ" : "A · mid-press, 5 of 8 keys", W, 420);
+  const yb = rows(g, k, done, { strip: (j, d) => (!done && j < k ? vfill(A[QI][j] * V[j][d], vmax) : vfill(V[j][d], vmax)), tick: false });
+  bracket(g, yb + 2); t(g, "Sum", vx + 6 * vc, yb + 26, { f: capF, c: C.ink1, a: "center" });
+  zstrip(g, yb + 44, done ? Z[QI] : partial(k), "for");
+  t(g, done ? "Features with attention" : `5 of 8 rows added · ${Math.round(100 * A[QI].slice(0, 5).reduce((a, b) => a + b))}% of the weight`, vx + 6 * vc, yb + 84, { f: smF, a: "center" });
+}
+
+/* ---- B */
+for (const [k, done] of [[5, false], [L, true]]) {
+  const g = mk(document.getElementById("rowB"), done ? "B · done" : "B · mid-press: the 5th key's addend over the total of the first four", W, 440);
+  const yb = rows(g, k, done, { strip: (j, d) => vfill(V[j][d], vmax), tick: true });
+  bracket(g, yb + 2);
+  const ay = yb + 20;
+  if (!done) {
+    const j = k - 1, w = A[QI][j];
+    t(g, `+ ${w.toFixed(2)} × ${toks[j]}`, vx - 8, ay + 11, { c: C.ink1, a: "right" });
+    for (let d = 0; d < 12; d++) { g.fillStyle = vfill(w * V[j][d], vmax); g.fillRect(vx + d * vc, ay, vc - 1, 22); }
+    g.strokeStyle = C.a; g.strokeRect(vx - 0.5, ay - 0.5, 12 * vc, 23);
+  } else t(g, "Σ over all 8 keys", vx + 6 * vc, ay + 11, { f: smF, a: "center" });
+  g.strokeStyle = C.ink1; g.lineWidth = 1.5; g.beginPath(); g.moveTo(vx - 60, ay + 30); g.lineTo(vx + 12 * vc, ay + 30); g.stroke(); g.lineWidth = 1;
+  zstrip(g, ay + 36, done ? Z[QI] : partial(k - 1), "for");
+  t(g, done ? "Features with attention" : "the running total of the first 4 keys; the addend joins it next", vx + 6 * vc, ay + 76, { f: smF, a: "center" });
+}
+
+/* ---- C */
+for (const [k, done] of [[5, false], [L, true]]) {
+  const lh = 8, g = mk(document.getElementById("rowC"), done ? "C · done: the column of addends stays" : "C · mid-press: 5 of 8 addends in", W, top + L * rh + 30 + L * lh + 90);
+  const yb = rows(g, k, done, { strip: (j, d) => vfill(V[j][d], vmax), tick: false });
+  bracket(g, yb + 2);
+  const sy = yb + 18;
+  for (let j = 0; j < L; j++) {
+    const y = sy + j * lh, on = done || j < k;
+    for (let d = 0; d < 12; d++) { g.fillStyle = on ? vfill(A[QI][j] * V[j][d], vmax) : C.s2; g.fillRect(vx + d * vc, y, vc - 1, lh - 1); }
+    if (on) t(g, `${A[QI][j].toFixed(2)} × ${toks[j]}`, vx - 8, y + lh / 2, { f: "9px " + C.mono, c: j === k - 1 && !done ? C.a : C.ink3, a: "right" });
+  }
+  g.strokeStyle = C.ink1; g.strokeRect(vx - 0.5, sy - 0.5, 12 * vc, L * lh);
+  const ry = sy + L * lh + 6;
+  g.lineWidth = 1.5; g.beginPath(); g.moveTo(vx - 8, ry); g.lineTo(vx + 12 * vc, ry); g.stroke(); g.lineWidth = 1;
+  zstrip(g, ry + 6, done ? Z[QI] : partial(k), "for");
+  t(g, done ? "Features with attention = the column sum" : "the running total of the addends so far", vx + 6 * vc, ry + 46, { f: smF, a: "center" });
+}
+</script>
+</body>
+</html>

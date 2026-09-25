@@ -69,7 +69,7 @@ const S = {
   weightsCap: "Attention weights αᵢⱼ",
   rowCap: (q, h, raw) => `α for the query "${q}" · head ${h}${raw ? " · q·k without the division" : ""} · the row sums to 1`,
   rowWait: "Next query computes the first row",
-  outW: "Weights", outV: ["Features vⱼ", "then αᵢⱼvⱼ"], outZcol: ["With attention", "zⱼ, row by row"], outSum: "Sum", outZ: "Features with attention",
+  outW: "Weights", outV: ["Features vⱼ", "× αᵢⱼ"], outZcol: ["With attention", "zⱼ, row by row"], outSum: "Sum", outZ: "Features with attention",
   outSoFar: (k, L, pct) => `${k} of ${L} rows added · ${pct}% of the weight`,
   tileAdded: "Rows added", tileAddedNote: "αᵢⱼvⱼ taken into zᵢ so far",
   tileShare: "Weight added", tileShareNote: "the share of this row's weights",
@@ -324,12 +324,16 @@ function drawOutput(ctx, colors, w, params, state, anim) {
   txt(ctx, S.outZcol[1], zhx, 34, { font: small(colors), fill: colors.ink2 });
   const vmax = Math.max(...hd.v.flat().map(Math.abs), ...hd.z.flat().map(Math.abs));
   const blank = rgb(colors.surface2), right = vx + M.DK * vc;
-  /* what row j's strip shows now: its features, or the features times this query's weight */
+  /* what row j's strip shows now: its own features, or — only while the press adds
+     them — the features times this query's weight. The dimming marks the keys already
+     in the sum; as the finished z drops into its row every strip fades back to vⱼ, so
+     the page at rest sets each token's features beside its features with attention
+     (his pick A, 2026-09-26, `_lab/attention-sum-mock.html`). */
   const stripAt = (j, d) => {
     const raw = signedFill(colors, hd.v[j][d], vmax);
-    if (!g) return raw;
+    if (!g || ph.e < 1) return raw;
     const mine = signedFill(colors, hd.alpha[g.to][j] * hd.v[j][d], vmax);
-    if (ph.e < 1) return g.first ? raw : mixRgb(signedFill(colors, hd.alpha[g.from][j] * hd.v[j][d], vmax), raw, ph.e);
+    if (ph.k >= L) return mixRgb(mine, raw, ph.drop);
     if (j < ph.k) return mine;
     if (j === ph.k) return mixRgb(raw, mine, ease(Math.min(1, 2 * ph.u)));
     return raw;
