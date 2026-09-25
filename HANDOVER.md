@@ -1,5 +1,63 @@
 # Handover
 
+**2026-09-25: 81 `cell-markers` SHIPPED AND PUSHED (3ae2857, 35 states,
+"Single-Cell RNA-seq: Clustering and Differential Expression"), the RNA-seq
+arc's last and the gallery's 71st card, after some thirty review rounds in
+one day — the record is the catalogue's § Slot 81.** Five analyses under a
+control called **Analysis**, named in the field's terms: Clustering
+(FindNeighbors and FindClusters stepped through in six tweened presses on 45
+cells), Annotation, Marker genes (FindMarkers with pct.1 against pct.2),
+Differential expression (cell-level against pseudobulk, one column per test,
+a Venn against the simulated truth), Differential abundance.
+
+**Three core changes went up with it, and they reach every widget:**
+
+- **Reset (26766b5).** Reset is on every widget again, animated or not
+  (7bf14df had taken it off the two with no animation, the same morning).
+  It keeps the field marked **`role: "page"`**, returns the controls ON
+  SCREEN to the values the link opened with (`opened`, resolved at load),
+  leaves other pages' controls alone, and sends a hidden non-slot field
+  such as `shown` to its default. Gates still close. It now rebuilds the
+  control block, which closed the old gap where gated controls stayed in
+  the rail after Reset. **A new widget with pages declares `role: "page"`
+  on its page control** — 38 do; the list came from a stub-import of every
+  config, because no derived rule finds them (cell-qc's page gates nothing;
+  gradients' tab is not `display`). One state moved:
+  mendelian-randomization's Play → Reset → Step, whose old hashes had
+  recorded Reset leaving for Overview.
+- **Links (21a126c).** `toQuery` leaves out a value that is only the first
+  option standing in for an absent default — `within=4` had appeared on
+  every page of 81.
+- **The drive row (7bf14df)** hid itself when empty; with Reset everywhere
+  that line was removed again in 26766b5.
+
+**The things worth knowing before the next widget, in the order they cost
+time:**
+
+- **Taking the Draft banner off can move a baseline.** The banner is about
+  50 px; without it 81's Marker genes page fits the harness's 1,200 px frame
+  with 7 px to spare, the scrollbar goes, the canvas widens 532 → 547, and
+  five states DIFFER on px alone. **Mark a widget shipped BEFORE its three
+  determinism runs**, or run them again after. A line added to that page's
+  rail brings the scrollbar back.
+- **A hit at a target's edge can pass in a test iframe and miss in the
+  harness.** Choose a hit point with 3 px of region on every side (scan the
+  cursor, keep points whose neighbours are all `pointer`).
+- **`check` wants `shown=` on every settled state** of a widget that
+  declares `shown`, even on pages where `shown` does nothing.
+- **Apply a pick exactly as worded.** p_val was dropped at every width when
+  the pick said narrow widths only, and he caught it.
+- **Notebook findings told to him (02-4):** the lesson does no pseudobulk
+  (he has R code for it); cell 10's `ct_markers` omits DLK1; cell 4 says SNN
+  keeps only mutual neighbours, where Seurat links every pair by Jaccard and
+  prunes below 1/15.
+
+**SEVENTY-TWO WIDGETS IN THE MANIFEST — 71 on the gallery and `roc-auc`
+UNLISTED.** The RNA-seq arc (77–81) is COMPLETE. NEXT: his call. Untracked
+and safe to leave: `_lab/cell-markers-umap-*.json` (regenerate with the
+verify's `--export`), `_lab/rnaseq-sc-qc.json`, two `_lab/figs/sc-markers-*`
+figures, and 65's `unet-lookup-test/`. **SESSION CLOSED.**
+
 **2026-09-24 (later the same day): 80 `integration` SHIPPED ("Single-Cell
 RNA-seq: Integration", 10 states), planned, drafted, reviewed and shipped in
 one session — the record is the catalogue's § Slot 80.** What it is: slot
@@ -243,7 +301,6 @@ past half the genes changing), mock, then build.
 
 ## Open across the collection, none blocking
 
-- **Core gap, not a widget's:** Reset does not rebuild a gated control block (`cnn-architecture`, `power-and-error`). The section and its control stay in the DOM after Reset while the parameter, the URL and the figure reset. A `widget.js` reset-path fix, and a full suite run when taken.
 - **The shooters' copy proof has drifted from the harness** (2026-09-20, at 75's ship; *Working on this machine* has the numbers). `fingerprint.html?only=` covers what they were for. Re-deriving one shooter from the harness's current functions, or deleting the twenty-nine copies, is a cleanup for a quiet session.
 - **Widget 75 `sequence-cnn-lstm`'s 208 networks are a generated file**, like 65's: after any change to `widgets/sequence-cnn-lstm/model.js` or the shared `widgets/signal-cnn-lstm/engine.js`, run `node widgets/_lab/sequence-cnn-lstm-table.mjs`, or its verify's retrain-and-compare fails. And a change to that engine reaches 73, which trains in the browser: run both widgets' states.
 - **Widget 65 `unet`'s six networks are a generated file.** After any change to `widgets/unet/engine.js`, run `node widgets/_lab/unet-table.mjs`, or its verify's retrain-and-compare fails. Its link words (`topic=dice`, `truth`, `prediction`, `predictionsize`, `across`, `down`) are public.
@@ -507,6 +564,11 @@ design with him before briefing.
   once (2026-09-09, fixed in the next commit).
 
 ## Core doors widgets have added
+
+**From 81 `cell-markers` (2026-09-25):** **`role: "page"`** on the field
+that says which part of the widget is on screen (params.js documents it;
+widget.js's Reset reads it), and Reset returning the controls on screen to
+the link's values rather than the defaults. See the top of this file.
 
 **From widgets 30–38 (2026-08-29 to 09-01):** **THE CORE DOORS THOSE SESSIONS ADDED**, which are the part a new widget needs
 to know about — each is documented at its own definition in `widgets/core/`:
