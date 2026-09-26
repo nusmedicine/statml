@@ -203,9 +203,18 @@ function glide(anim, e = ease(anim.t)) {
 const lerp = (a, b, t) => a + (b - a) * t;
 const oldInk = (g) => (g.first ? 0 : Math.max(0, 1 - 2 * g.e)), newInk = (g) => (g.first ? g.e : Math.max(0, 2 * g.e - 1));
 
-/** α_ij as a grid: `A` rows over keys, PAD columns hatched, a null cell blank */
-function matrix(ctx, colors, A, toks, x0, y0, cs, anim, { colLabels = true, rowLabels = true, padFrom = -1, box: outline = true, ge = ease(anim.t), fresh = ge, frame = null } = {}) {
-  const L = A.length, K = A[0].length, qi = queryOf(anim);
+/** α_ij as a grid: `A` rows over keys, the [PAD] columns on a band, a null cell blank.
+    `row` puts the query's outline on that row, still, in place of the press's glide (the hover).
+    THE BAND (his pick P1, 2026-09-26, `_lab/attention-weights-hover-pad-mock.html`): a
+    diagonal hatch in every [PAD] cell was "distracting"; a lighter band behind the [PAD]
+    columns and their labels, split off by a dashed rule, marks padding as the one block it
+    is and leaves each cell's own colour alone, so an unmasked [PAD] weight reads plainly. */
+function matrix(ctx, colors, A, toks, x0, y0, cs, anim, { colLabels = true, rowLabels = true, padFrom = -1, box: outline = true, ge = ease(anim.t), fresh = ge, frame = null, row = null } = {}) {
+  const L = A.length, K = A[0].length, qi = row ?? queryOf(anim);
+  if (padFrom >= 0) {
+    ctx.save(); ctx.font = mono(colors); const labH = colLabels ? ctx.measureText(toks[padFrom]).width + 10 : 0; ctx.restore();
+    ctx.fillStyle = colors.surface3; ctx.fillRect(x0 + padFrom * cs - 1, y0 - labH - 4, (K - padFrom) * cs + 2, L * cs + labH + 8);
+  }
   /* upright: slanted, neighbouring names overlapped even at 24px cells (the text-overlap sweep, 2026-09-26) */
   const steep = true;
   if (colLabels) toks.forEach((t, j) => {
@@ -219,13 +228,13 @@ function matrix(ctx, colors, A, toks, x0, y0, cs, anim, { colLabels = true, rowL
       const x = x0 + j * cs, y = y0 + i * cs;
       ctx.fillStyle = colors.surface2; ctx.fillRect(x, y, cs - 1, cs - 1);
       if (a > 0 && A[i][j] !== null) { ctx.save(); ctx.globalAlpha = a; ctx.fillStyle = css(weightFill(colors, A[i][j])); ctx.fillRect(x, y, cs - 1, cs - 1); ctx.restore(); }
-      if (padFrom >= 0 && j >= padFrom) line(ctx, x + 1, y + cs - 2, x + cs - 2, y + 1, colors.ink3, 1);
     }
   }
   if (outline) { ctx.strokeStyle = frame ?? colors.ink2; ctx.lineWidth = frame ? 1.5 : 1; ctx.strokeRect(x0 - 0.5, y0 - 0.5, K * cs, L * cs); ctx.lineWidth = 1; }
+  if (padFrom >= 0) line(ctx, x0 + padFrom * cs - 0.5, y0 - 4, x0 + padFrom * cs - 0.5, y0 + L * cs + 4, colors.ink2, 1.5, [3, 3]);
   /* the query's row outlined with its label, as his figure boxes "M" with its row */
   if (qi >= 0) {
-    const g = glide(anim, ge), lab = (i) => (rowLabels ? labelWidth(ctx, colors, [toks[i]]) + 9 : 2.5);
+    const g = row !== null ? { from: null, to: row, e: 1, pos: row, first: false } : glide(anim, ge), lab = (i) => (rowLabels ? labelWidth(ctx, colors, [toks[i]]) + 9 : 2.5);
     const lx = g.first ? lab(g.to) : lerp(lab(g.from), lab(g.to), g.e);
     ctx.save(); ctx.globalAlpha = g.first ? g.e : 1; ctx.strokeStyle = colors.groupA; ctx.lineWidth = 1.5; ctx.setLineDash([3, 3]);
     ctx.strokeRect(x0 - lx, y0 + g.pos * cs - 2, K * cs + lx + 2, cs + 3); ctx.restore();
@@ -491,12 +500,34 @@ function weightsView(state, params) {
   return { raw, masked, toks: P.tokens, K: P.tokens.length, Sc: raw ? P.open.heads[h].scoreRaw : P.open.heads[h].score, A: raw ? run.alphaRaw : run.alpha };
 }
 
-function drawWeights(ctx, colors, w, params, state, anim) {
-  const L = state.L, h = Number(params.head) - 1, qi = queryOf(anim);
+/* HOVER, AN INSPECTOR (his pick H1 + H2, 2026-09-26, `_lab/attention-weights-hover-pad-mock.html`),
+   once the press is still and only over computed rows. H1: a cell αᵢⱼ of the matrix brings
+   query i into the strips (its circle, its qᵢ, its scores and weights) with key j outlined
+   through kⱼ, its score and its weight, the whole path of that one number. H2: a key's
+   column in the strips outlines its column of α, every computed query's weight on it.
+   Off the figure, the press's own query returns. Every number it shows a press shows too. */
+function drawWeights(ctx, colors, w, params, state, anim, pointer) {
+  const L = state.L, h = Number(params.head) - 1, press = queryOf(anim);
   const { raw, masked, toks, K, Sc, A } = weightsView(state, params);
-  const ph = weightsPhase(anim, K, masked), g = qi >= 0 ? glide(anim, ph.e) : null;
+  const ph = weightsPhase(anim, K, masked);
   const cols = keyColumns(ctx, colors, toks, L, PAD_L + 50, w - PAD_L - PAD_R - 50), cx = (j) => cols[j][0] + cols[j][1] / 2;
   const x0 = cols[0][0], x1 = cols[K - 1][0] + cols[K - 1][1];
+  const cs = weightsCs(w, K), lw = labelWidth(ctx, colors, toks.slice(0, L));
+  const mx = Math.round(Math.max(PAD_L + lw + 8, w / 2 - (K * cs) / 2 + 40));
+  let hov = null;
+  if (pointer && anim.n > 0 && anim.t >= 1) {
+    const { x, y } = pointer;
+    if (x >= mx && x < mx + K * cs && y >= WT.matTop && y < WT.matTop + L * cs) {
+      const i = Math.floor((y - WT.matTop) / cs), j = Math.floor((x - mx) / cs);
+      if (i < anim.n) hov = { i, j, cell: true };
+    } else if (y >= WT.kBar - 4 && y < WT.weightY + WT.stripH) {
+      const j = cols.findIndex(([c0, cw]) => x >= c0 && x < c0 + cw);
+      if (j >= 0) hov = { i: press, j, cell: false };
+    }
+  }
+  /* the query the strips show: the hovered cell's, else the press's */
+  const qi = hov ? hov.i : press;
+  const g = qi < 0 ? null : hov ? { from: null, to: qi, e: 1, pos: qi, first: true } : glide(anim, ph.e);
   /* where the row is squeezed below the words' own widths (the longest sentence on the
      narrowest canvas), alternate words stand one line higher, so each stays readable
      and in its column (the text-overlap sweep, 2026-09-26) */
@@ -581,6 +612,16 @@ function drawWeights(ctx, colors, w, params, state, anim) {
     ctx.strokeStyle = colors.ink1; ctx.lineWidth = 1; ctx.strokeRect(x0 + 0.5, y + 0.5, x1 - x0 - 1, WT.stripH - 1);
     for (let j = 1; j < K; j++) line(ctx, cols[j][0] + 0.5, y, cols[j][0] + 0.5, y + WT.stripH, colors.grid, 1);
   }
+  /* the hovered key: its kⱼ, score and weight outlined, and qᵢ with them for a cell of α */
+  if (hov) {
+    const j = hov.j;
+    ctx.strokeStyle = colors.groupA; ctx.lineWidth = 2;
+    ctx.strokeRect(cx(j) - WT.vw / 2 - 2, WT.kBar - 2, WT.vw + 4, M.DK * WT.vc + 3);
+    ctx.strokeRect(cols[j][0] - 1, WT.scoreY - 1, cols[j][1] + 2, WT.stripH + 2);
+    ctx.strokeRect(cols[j][0] - 1, WT.weightY - 1, cols[j][1] + 2, WT.stripH + 2);
+    if (hov.cell) ctx.strokeRect(cx(qi) - WT.vw / 2 - 2, WT.qBar - 2, WT.vw + 4, M.DK * WT.vc + 3);
+    ctx.lineWidth = 1;
+  }
   /* the key being scored: one outline stepping along the scores, and over the kⱼ it
      multiplies; qᵢ outlined with it while the keys are scored */
   if (g && ph.k >= 0 && ph.k < K) {
@@ -593,14 +634,18 @@ function drawWeights(ctx, colors, w, params, state, anim) {
   txt(ctx, S.softmaxArrow(raw, masked), x0, WT.softY, { font: small(colors), fill: g && (ph.soft > 0 || ph.cut > 0) ? colors.ink1 : colors.ink3, baseline: "middle" });
   txt(ctx, qi >= 0 ? S.rowCap(toks[qi], h + 1, raw) : S.rowWait, x0, WT.capY, { font: small(colors), fill: colors.ink3 });
   if (qi >= 0) arrow(ctx, w / 2, WT.capY + 8, w / 2, WT.arrowTo, colors.ink3);
-  /* the matrix, his figure's lower half: rows the sentence's tokens, columns every key, [PAD] hatched */
-  const cs = weightsCs(w, K), lw = labelWidth(ctx, colors, toks.slice(0, L));
-  const mx = Math.round(Math.max(PAD_L + lw + 8, w / 2 - (K * cs) / 2 + 40));
+  /* the matrix, his figure's lower half: rows the sentence's tokens, columns every key, [PAD] on a band */
   /* the matrix's name beside it, or under it where the matrix is wide enough to reach it */
   ctx.save(); ctx.font = cap(colors); const capW = ctx.measureText(S.weightsCap).width; ctx.restore();
   const beside = PAD_L + capW + 8 <= mx - lw - 6;
   txt(ctx, S.weightsCap, PAD_L, beside ? WT.matTop + (L * cs) / 2 : WT.matTop + L * cs + 16, { font: cap(colors), fill: colors.ink1, baseline: "middle" });
-  matrix(ctx, colors, A.slice(0, L), toks, mx, WT.matTop, cs, anim, { ge: ph.e, fresh: ph.soft, padFrom: L });
+  matrix(ctx, colors, A.slice(0, L), toks, mx, WT.matTop, cs, anim, { ge: ph.e, fresh: ph.soft, padFrom: L, row: hov ? hov.i : null });
+  if (hov) {
+    ctx.strokeStyle = colors.groupA; ctx.lineWidth = hov.cell ? 2.5 : 2;
+    if (hov.cell) ctx.strokeRect(mx + hov.j * cs - 1.5, WT.matTop + hov.i * cs - 1.5, cs + 2, cs + 2);
+    else ctx.strokeRect(mx + hov.j * cs - 1.5, WT.matTop - 1.5, cs + 2, anim.n * cs + 2);
+    ctx.lineWidth = 1;
+  }
   txt(ctx, "i", mx + K * cs + 12, WT.matTop + (L * cs) / 2, { font: small(colors), fill: colors.ink2, baseline: "middle" });
   txt(ctx, "j", mx + (K * cs) / 2, WT.matTop + L * cs + 16, { font: small(colors), fill: colors.ink2, align: "center" });
 }
@@ -921,7 +966,7 @@ defineWidget({
     if (params.page === "projections") drawProjections(ctx, colors, w, params, state, anim, pointer);
     else if (params.page === "output") drawOutput(ctx, colors, w, params, state, anim);
     else if (params.page === "heads") drawHeads(ctx, colors, w, params, state, anim);
-    else drawWeights(ctx, colors, w, params, state, anim);
+    else drawWeights(ctx, colors, w, params, state, anim, pointer);
   },
 
   readout({ params, state, anim }) {

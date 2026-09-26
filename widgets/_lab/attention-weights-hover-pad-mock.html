@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · 83 Weights hover and padding marks — mock</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1760px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 120ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .bar { display: flex; gap: var(--sp-3); align-items: center; flex-wrap: wrap; margin: var(--sp-2) 0; font-size: var(--fs-sm); color: var(--ink-2); }
+  .seg { display: inline-flex; border: 1px solid var(--grid); border-radius: 4px; overflow: hidden; }
+  .seg button { font: inherit; padding: 4px 12px; background: var(--surface-2); color: var(--ink-2); border: 0; border-right: 1px solid var(--grid); cursor: pointer; }
+  .seg button:last-child { border-right: 0; }
+  .seg button[aria-pressed="true"] { background: var(--surface-3); color: var(--ink-1); font-weight: 600; }
+  ul.opts { font-size: var(--fs-sm); color: var(--ink-2); max-width: 120ch; margin: 0 0 var(--sp-3); }
+  ul.opts b { color: var(--ink-1); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-3) 0 0; padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 120ch; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Widget 83 · the Weights step: hover, and a mark for [PAD] · mock</h1>
+
+  <h2>1 · Padding in the α matrix: four marks in place of the diagonal hatch</h2>
+  <p class="note">Each drawn twice: <b>mask passed</b> (the [PAD] columns weigh 0) and <b>not passed</b> (they take weight,
+    here up to 0.84 on the wound row). Head 4, <i>patient presented with fever . yellow discharge from wound</i>, all
+    rows computed.</p>
+  <canvas id="pad"></canvas>
+  <ul class="opts">
+    <li><b>P0 · now:</b> the diagonal hatch in every [PAD] cell.</li>
+    <li><b>P1 · a band:</b> the [PAD] columns sit on a lighter band behind the cells, split from the tokens by a dashed rule; the cells themselves plain.</li>
+    <li><b>P2 · a dot:</b> a small dot in each [PAD] cell, and nothing else.</li>
+    <li><b>P3 · the rule alone:</b> one dashed rule between the last token and the first [PAD], and the [PAD] labels grey, as they are now.</li>
+  </ul>
+
+  <h2>2 · Hover on the Weights step (live)</h2>
+  <p class="note">Four queries computed. Try each mode; moving off the figure returns to the press's own query. Hover
+    reaches computed rows only, and only while the press is still.</p>
+  <ul class="opts">
+    <li><b>H1 · a cell of α:</b> hovering αᵢⱼ makes the strips above show query i (its circle, its qᵢ, its scores and
+      weights) with key j outlined through kⱼ, its score and its weight: the whole path of one number.</li>
+    <li><b>H2 · a key in the strips:</b> hovering a key's kⱼ, score or weight outlines that key's column of α, all
+      computed queries' weights on that one key.</li>
+    <li><b>H3 · a query word:</b> hovering a computed word in the Query row brings its row back into the strips.</li>
+  </ul>
+  <div class="bar"><span>Hover mode</span><span class="seg" id="mode"><button data-v="cell">H1 a cell of α</button><button data-v="key">H2 a key</button><button data-v="word">H3 a query word</button><button data-v="both">H1 + H2</button></span><span id="read"></span></div>
+  <canvas id="cv"></canvas>
+
+  <p class="rec">Recommended: <b>P1</b> for the padding, and <b>H1 + H2</b> for hover. P1 marks the [PAD] block as a
+    block, which is what padding is, and leaves every cell's own colour alone, so an unmasked [PAD] weight reads as
+    clearly as any other. H1 answers "where does this weight come from?" by walking one number back through its
+    strips; H2 is its reverse, one key's column down the matrix. H3 is H1 with the key left out.</p>
+</main>
+<script type="module">
+import * as M from "../attention/model.js";
+const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const C = { ink1: css("--ink-1"), ink2: css("--ink-2"), ink3: css("--ink-3"), s1: css("--surface-1"), s2: css("--surface-2"), s3: css("--surface-3"), grid: css("--grid"),
+  a: css("--c-group-a"), b: css("--c-group-b"), ext: css("--c-extreme"), mag: css("--c-magnitude"), lo: css("--c-value-low"), hi: css("--c-value-high"),
+  font: css("--font"), mono: css("--font-mono") };
+const rgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+const mixA = (a, b, t) => a.map((x, i) => x + (b[i] - x) * Math.max(0, Math.min(1, t)));
+const str = (p) => `rgb(${p.map(Math.round).join(",")})`;
+const wfill = (w) => mixA(rgb(C.s3), rgb(C.mag), Math.sqrt(w));
+const vcol = (v, s) => str(mixA(rgb(C.s3), rgb(v >= 0 ? C.hi : C.lo), Math.abs(v) / s));
+const lum = (p) => (0.2126 * p[0] + 0.7152 * p[1] + 0.0722 * p[2]) / 255;
+const inkOn = (p) => (Math.abs(lum(p) - lum(rgb(C.ink1))) > Math.abs(lum(p) - lum(rgb(C.s1))) ? C.ink1 : C.s1);
+const capF = "600 12px " + C.font, smF = "11px " + C.font, monoF = "11px " + C.mono;
+function t(g, s, x, y, { f = smF, c = C.ink2, a = "left", rot = 0 } = {}) { g.save(); g.translate(x, y); g.rotate(rot); g.font = f; g.fillStyle = c; g.textAlign = a; g.textBaseline = "middle"; g.fillText(s, 0, 0); g.restore(); }
+function line(g, x1, y1, x2, y2, col, lw = 1.2, dash = null) { g.save(); g.strokeStyle = col; g.lineWidth = lw; if (dash) g.setLineDash(dash); g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke(); g.restore(); }
+function arrow(g, x1, y1, x2, y2, col) { line(g, x1, y1, x2, y2, col); const a = Math.atan2(y2 - y1, x2 - x1); g.fillStyle = col; g.beginPath(); g.moveTo(x2, y2); g.lineTo(x2 - 5 * Math.cos(a - 0.45), y2 - 5 * Math.sin(a - 0.45)); g.lineTo(x2 - 5 * Math.cos(a + 0.45), y2 - 5 * Math.sin(a + 0.45)); g.fill(); }
+const box = (g, x, y, w, h, col, lw = 2) => { g.strokeStyle = col; g.lineWidth = lw; g.strokeRect(x, y, w, h); g.lineWidth = 1; };
+function setup(id, W, h) { const cv = document.getElementById(id), dpr = devicePixelRatio || 1; cv.width = W * dpr; cv.height = h * dpr; cv.style.width = W + "px"; cv.style.height = h + "px"; const g = cv.getContext("2d"); g.scale(dpr, dpr); return g; }
+
+/* the α matrix with a padding mark */
+function alphaMatrix(g, A, toks, L, x0, y0, cs, rows, style, { hoverRow = -1, hoverCol = -1, qRow = -1, labels = true } = {}) {
+  const K = toks.length, R = A.length;
+  if (style === "band") { g.fillStyle = C.s3; g.fillRect(x0 + L * cs - 1, y0 - 62, (K - L) * cs + 2, R * cs + 68); }
+  if (labels) toks.forEach((s, j) => t(g, s, x0 + j * cs + cs / 2, y0 - 6, { f: monoF, c: j >= L ? C.ink3 : C.b, a: "left", rot: -Math.PI / 2 }));
+  for (let i = 0; i < R; i++) for (let j = 0; j < K; j++) {
+    const x = x0 + j * cs, y = y0 + i * cs, pad = j >= L;
+    g.fillStyle = C.s2; g.fillRect(x, y, cs - 1, cs - 1);
+    if (i < rows) { g.fillStyle = str(wfill(A[i][j])); g.fillRect(x, y, cs - 1, cs - 1); }
+    if (pad && style === "hatch") line(g, x + 1, y + cs - 2, x + cs - 2, y + 1, C.ink3, 1);
+    if (pad && style === "dot") { g.fillStyle = C.ink3; g.beginPath(); g.arc(x + cs / 2 - 0.5, y + cs / 2 - 0.5, 1.8, 0, Math.PI * 2); g.fill(); }
+  }
+  g.strokeStyle = C.ink2; g.strokeRect(x0 - 0.5, y0 - 0.5, K * cs, R * cs);
+  if (style === "band" || style === "rule") line(g, x0 + L * cs - 0.5, y0 - 3, x0 + L * cs - 0.5, y0 + R * cs + 3, C.ink2, 1.5, [3, 3]);
+  if (qRow >= 0) { g.save(); g.setLineDash([3, 3]); g.strokeStyle = C.a; g.lineWidth = 1.5; g.strokeRect(x0 - 2, y0 + qRow * cs - 2, K * cs + 3, cs + 3); g.restore(); }
+  if (hoverCol >= 0) box(g, x0 + hoverCol * cs - 1.5, y0 - 1.5, cs + 2, Math.min(rows, R) * cs + 2, C.a);
+  if (hoverRow >= 0 && hoverCol >= 0) box(g, x0 + hoverCol * cs - 1.5, y0 + hoverRow * cs - 1.5, cs + 2, cs + 2, C.a, 2.5);
+}
+
+/* ---- 1 · padding */
+{
+  const st = M.stage("wound"), L = st.L, toks = st.padded.tokens, cs = 17, K = toks.length;
+  const styles = [["hatch", "P0 · now"], ["band", "P1 · a band"], ["dot", "P2 · a dot"], ["rule", "P3 · the rule alone"]];
+  const colW = K * cs + 60, rowH = L * cs + 110, W = 150 + 2 * colW, h = 30 + 4 * rowH, g = setup("pad", W, h);
+  [[st.padded.masked.heads[3].alpha, "mask passed"], [st.padded.open.heads[3].alpha, "mask not passed"]].forEach(([A, lab], c) => {
+    t(g, lab, 150 + c * colW, 14, { f: capF, c: C.ink1 });
+    styles.forEach(([style, name], r) => {
+      const y0 = 30 + r * rowH + 84;
+      if (c === 0) t(g, name, 12, y0 + (L * cs) / 2, { f: capF, c: C.ink1 });
+      alphaMatrix(g, A.slice(0, L), toks, L, 150 + c * colW, y0, cs, L, style, { labels: true });
+    });
+  });
+}
+
+/* ---- 2 · hover, live */
+const st = M.stage("aspirin"), L = st.L, toks = st.padded.tokens, K = toks.length, hd = st.padded.masked.heads[3], open = st.padded.open.heads[3], N = 4, QI = 3;
+const vmax = Math.max(...hd.q.flat().map(Math.abs), ...hd.k.flat().map(Math.abs));
+const W = 740, Y = { qY: 34, qBar: 46, bus: 102, keyY: 130, kBar: 142, maskY: 198, maskH: 22, scoreY: 230, stripH: 28, weightY: 288, matTop: 390 }, VC = 4, VW = 12, CS = 24;
+const cv = document.getElementById("cv"), H = Y.matTop + L * CS + 40, g = setup("cv", W, H);
+g.font = monoF;
+const want = toks.map((s, j) => (j < L ? Math.max(g.measureText(s).width + 10, g.measureText("−0.00").width + 8) : g.measureText("−0.0").width + 8));
+const cols = []; { let x = 62; const sc = Math.min(1, (W - 24 - 50) / want.reduce((a, b) => a + b, 0)); for (const c of want) { cols.push([x, c * sc]); x += c * sc; } }
+const cx = (j) => cols[j][0] + cols[j][1] / 2, x0 = cols[0][0], x1 = cols[K - 1][0] + cols[K - 1][1];
+const mx = Math.round(W / 2 - (K * CS) / 2 + 40);
+let mode = "cell", ptr = null;
+
+function hit(p) {
+  if (!p) return null;
+  if (p.x >= mx && p.x < mx + K * CS && p.y >= Y.matTop && p.y < Y.matTop + L * CS) return { where: "mat", i: Math.floor((p.y - Y.matTop) / CS), j: Math.floor((p.x - mx) / CS) };
+  for (let j = 0; j < K; j++) if (p.x >= cols[j][0] && p.x < cols[j][0] + cols[j][1]) {
+    if (p.y >= Y.kBar - 4 && p.y < Y.weightY + Y.stripH) return { where: "key", j };
+    if (p.y >= Y.qY - 12 && p.y < Y.qY + 12 && j < L) return { where: "word", i: j };
+  }
+  return null;
+}
+function inspect() {
+  const h = hit(ptr), base = { i: QI, j: -1, colOnly: false, hovered: false };
+  if (!h) return base;
+  const cell = mode === "cell" || mode === "both", key = mode === "key" || mode === "both";
+  if (cell && h.where === "mat" && h.i < N) return { i: h.i, j: h.j, colOnly: false, hovered: true };
+  if (key && h.where === "key") return { i: QI, j: h.j, colOnly: true, hovered: true };
+  if (mode === "word" && h.where === "word" && h.i < N) return { i: h.i, j: -1, colOnly: false, hovered: true };
+  return base;
+}
+function draw() {
+  const ins = inspect(), qi = ins.i;
+  g.clearRect(0, 0, W, H);
+  t(g, "Query", 12, Y.qY, { f: capF, c: C.ink1 }); t(g, "Keys", 12, Y.keyY, { f: capF, c: C.ink1 });
+  for (let j = 0; j < L; j++) { t(g, toks[j], cx(j), Y.qY, { f: monoF, c: j === qi ? C.a : j < N ? C.ink2 : C.ink3, a: "center" }); t(g, toks[j], cx(j), Y.keyY, { f: monoF, c: C.b, a: "center" }); }
+  t(g, `[PAD] × ${K - L}`, (cols[L][0] + x1) / 2, Y.keyY, { f: monoF, c: C.ink3, a: "center" });
+  /* query circle and qᵢ */
+  g.font = monoF; const rx = (g.measureText(toks[qi]).width + 10) / 2;
+  g.save(); g.strokeStyle = C.a; g.lineWidth = 1.5; g.setLineDash([3, 3]); g.beginPath(); g.ellipse(cx(qi), Y.qY, rx, 11, 0, 0, Math.PI * 2); g.stroke(); g.restore();
+  const bx = cx(qi) - VW / 2;
+  for (let d = 0; d < 12; d++) { g.fillStyle = vcol(hd.q[qi][d], vmax); g.fillRect(bx, Y.qBar + d * VC, VW, VC - 1); }
+  g.strokeStyle = C.a; g.lineWidth = 1.5; g.strokeRect(bx - 0.5, Y.qBar - 0.5, VW + 1, 12 * VC); g.lineWidth = 1;
+  t(g, "qᵢ", bx - 6, Y.qBar + 24, { f: capF, c: C.a, a: "right" });
+  line(g, cx(qi), Y.qBar + 49, cx(qi), Y.bus, C.ink2); line(g, cx(0), Y.bus, cx(K - 1), Y.bus, C.ink2);
+  for (let j = 0; j < K; j++) arrow(g, cx(j), Y.bus, cx(j), Y.keyY - 10, C.ink2);
+  for (let j = 0; j < K; j++) {
+    for (let d = 0; d < 12; d++) { g.fillStyle = vcol(hd.k[j][d], vmax); g.fillRect(cx(j) - VW / 2, Y.kBar + d * VC, VW, VC - 1); }
+    g.strokeStyle = j >= L ? C.ink3 : C.ink2; g.strokeRect(cx(j) - VW / 2 - 0.5, Y.kBar - 0.5, VW + 1, 12 * VC);
+  }
+  t(g, "kⱼ", x0 - 8, Y.kBar + 24, { f: capF, c: C.ink1, a: "right" });
+  t(g, "Mask", x0 - 6, Y.maskY + 11, { a: "right" }); t(g, "Scores", x0 - 6, Y.scoreY + 14, { a: "right" }); t(g, "Weights", x0 - 6, Y.weightY + 14, { a: "right" });
+  for (let j = 0; j < K; j++) {
+    const pad = j >= L, fmt = (v) => (v < 0 ? "−" : "") + Math.abs(v).toFixed(cols[j][1] > 40 ? 2 : 1);
+    g.fillStyle = C.s2; g.fillRect(cols[j][0], Y.maskY, cols[j][1], Y.maskH);
+    t(g, pad ? "0" : "1", cx(j), Y.maskY + 11, { f: monoF, c: pad ? C.ext : C.ink1, a: "center" });
+    g.fillStyle = C.s2; g.fillRect(cols[j][0], Y.scoreY, cols[j][1], Y.stripH);
+    t(g, pad ? "−∞" : fmt(open.score[qi][j]), cx(j), Y.scoreY + 14, { f: monoF, c: pad ? C.ext : C.ink1, a: "center" });
+    const f = wfill(hd.alpha[qi][j]); g.fillStyle = str(f); g.fillRect(cols[j][0], Y.weightY, cols[j][1], Y.stripH);
+    t(g, hd.alpha[qi][j].toFixed(2), cx(j), Y.weightY + 14, { f: monoF, c: inkOn(f), a: "center" });
+    for (const y of [Y.maskY, Y.scoreY, Y.weightY]) { g.strokeStyle = C.ink2; g.strokeRect(cols[j][0] + 0.5, y + 0.5, cols[j][1] - 1, (y === Y.maskY ? Y.maskH : Y.stripH) - 1); }
+  }
+  if (ins.j >= 0) {
+    const j = ins.j;
+    box(g, cx(j) - VW / 2 - 2, Y.kBar - 2, VW + 4, 12 * VC + 3, C.a);
+    box(g, cols[j][0] + 0.5, Y.scoreY - 1, cols[j][1] - 1, Y.stripH + 2, C.a);
+    box(g, cols[j][0] + 0.5, Y.weightY - 1, cols[j][1] - 1, Y.stripH + 2, C.a);
+    if (!ins.colOnly) box(g, bx - 2, Y.qBar - 2, VW + 4, 12 * VC + 3, C.a);
+  }
+  t(g, `α for the query "${toks[qi]}" · head 4 · the row sums to 1`, x0, Y.weightY + 44, { c: C.ink3 });
+  toks.slice(0, L).forEach((s, i) => t(g, s, mx - 6, Y.matTop + i * CS + CS / 2, { f: monoF, c: i === qi ? C.a : C.ink2, a: "right" }));
+  alphaMatrix(g, hd.alpha.slice(0, L), toks, L, mx, Y.matTop, CS, N, "band", { qRow: qi, hoverCol: ins.j, hoverRow: ins.colOnly ? -1 : ins.j >= 0 ? qi : -1 });
+  document.getElementById("read").textContent = !ins.hovered ? `the press's own query, "${toks[QI]}"` : ins.j < 0 ? `query "${toks[qi]}"` : ins.colOnly ? `key "${toks[ins.j]}": its weight from every computed query` : `α of "${toks[qi]}" on "${toks[ins.j]}" = ${hd.alpha[qi][ins.j].toFixed(2)}, from score ${ins.j >= L ? "−∞" : open.score[qi][ins.j].toFixed(2)}`;
+  const hh = hit(ptr); cv.style.cursor = hh ? "crosshair" : "default";
+}
+const pos = (e) => { const r = cv.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
+cv.addEventListener("pointermove", (e) => { ptr = pos(e); draw(); });
+cv.addEventListener("pointerleave", () => { ptr = null; draw(); });
+const sync = () => document.querySelectorAll("#mode button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.v === mode));
+document.querySelectorAll("#mode button").forEach((b) => (b.onclick = () => { mode = b.dataset.v; sync(); draw(); }));
+sync(); draw();
+window.__hover = (x, y) => { ptr = { x, y }; draw(); return document.getElementById("read").textContent; };
+window.__geo = { mx, matTop: Y.matTop, CS, cols, Y };
+</script>
+</body>
+</html>
