@@ -1,5 +1,39 @@
 # Handover
 
+**2026-09-26 (later): 67 `tumor-heterogeneity` RESTRUCTURED, RE-SHIPPED AND
+PUSHED (470c49e, 23 states, deploy green) — the record is the catalogue's § Slot
+67 from *RESTRUCTURED TO THE NOTEBOOK'S ORDER* on.** Kenneth: the widget did not
+help him teach 01-2 — CCF appeared before cell 17's VAF readings, and the tree
+before the samples. Now four pages in the notebook's order: **One mutation**
+(cell 17 only: purity 1.00 by default, the case control *The mutation is on* ·
+1 of 2 · 2 of 2 · 1 of 1 · 1 of 4 copies, one kind of line in the cells, the
+three readings labelled on the VAF scale, no CCF) · **Many mutations** (VAF
+only) · **Cancer cell fraction** (new: page 1's sample and reads, cell 25 §3's
+binomial likelihood per m, *Given*, *Clonal if* the whole 95% interval / the
+best estimate is above a *Clonal threshold* 0.80–0.95; an All mutations view
+with the fraction axis) · **Clonal architecture** (the tree BUILT from the
+samples, Surgery then Recurrence 1–3, a press per sample with two beats where
+the tree changes; the Tree and Samples used controls gone). Purity is one
+parameter across pages 1–3; he links page 3 with `purity=0.70`.
+
+**Worth knowing before the next widget:**
+
+- **"Don't use fade for static transitions … only tween for movement."** His
+  rule, applied repo-wide in this widget: appearing and disappearing things
+  switch at once; only things that move are eased. The verify records every
+  `globalAlpha` painted mid-transition and allows none that follow the clock.
+- **Measure a control's effect before mocking it.** The threshold control he
+  asked about barely changes a call; the RULE does (range vs best estimate).
+  A threshold-only design would have taught the opposite.
+- **A new rule in the struck-word sweep catches strings the scan missed** —
+  it found two within seconds of being added. Add the audit's words to the
+  verify in the same commit as the audit.
+- **`_lab/tumor-heterogeneity-copy-sweep.html`** collects canvas and DOM
+  strings; its canvas side needs the theme repaint on EVERY state.
+- **The RETCHER paper** (PMC11483135) is readable through Europe PMC's API
+  when OUP serves a bot check; P2 is a TNBC patient, "three recurrent samples
+  and one surgical sample", no dates given.
+
 **2026-09-26: 83 `attention` SHIPPED AND PUSHED (984afbf, 17 states, "Deep
 Learning - Language: Attention"), the language arc's first and the gallery's
 72nd card, after two days of review rounds — the record is the catalogue's
