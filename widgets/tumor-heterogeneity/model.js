@@ -680,11 +680,20 @@ export function axisAt(many, cfg, mix) {
    even the children's lower ends (0.495 + 0.444) pass the trunk's upper end,
    0.750 — while P2.2st's is within 0.016 of closing, so the figure's own bars
    are what say that sample's evidence is weak. */
+/* WHAT THE FOUR SAMPLES ARE — the RETCHER paper (Wang et al., Brief Bioinform
+   2024, bbae516; PMC11483135), read 2026-09-26: patient P2 has triple-negative
+   breast cancer, and gave "three recurrent samples and one surgical sample",
+   all sequenced on a targeted panel at about 30,000×. P2.1st, P2.2st and P2.3st
+   are the first, second and third recurrences. The paper gives no dates; his
+   call the same day was to ASSUME THE SURGERY CAME FIRST (the usual course:
+   the primary removed, recurrences later, and the paper's sample tree puts the
+   surgical sample nearest the ancestral mutations) and to name them for
+   students as Surgery and Recurrence 1–3. `key` stays the figure's code. */
 export const SAMPLES = [
-  { key: "P2.1st", ccf: [0.729, 0.534, 0.512], lo: [0.706, 0.495, 0.444], hi: [0.750, 0.573, 0.579] },
-  { key: "P2.2st", ccf: [0.826, 0.597, 0.353], lo: [0.793, 0.549, 0.325], hi: [0.858, 0.647, 0.382] },
-  { key: "P2.3st", ccf: [0.926, 0.767, 0.348], lo: [0.896, 0.716, 0.294], hi: [0.959, 0.819, 0.402] },
-  { key: "P2.surgery", ccf: [0.806, 0.476, 0.304], lo: [0.770, 0.424, 0.281], hi: [0.844, 0.529, 0.328] },
+  { key: "P2.1st", label: "Recurrence 1", ccf: [0.729, 0.534, 0.512], lo: [0.706, 0.495, 0.444], hi: [0.750, 0.573, 0.579] },
+  { key: "P2.2st", label: "Recurrence 2", ccf: [0.826, 0.597, 0.353], lo: [0.793, 0.549, 0.325], hi: [0.858, 0.647, 0.382] },
+  { key: "P2.3st", label: "Recurrence 3", ccf: [0.926, 0.767, 0.348], lo: [0.896, 0.716, 0.294], hi: [0.959, 0.819, 0.402] },
+  { key: "P2.surgery", label: "Surgery", ccf: [0.806, 0.476, 0.304], lo: [0.770, 0.424, 0.281], hi: [0.844, 0.529, 0.328] },
 ];
 /* The three genes his figure names beside each cluster. */
 export const CLUSTER_GENES = [
@@ -693,27 +702,19 @@ export const CLUSTER_GENES = [
   ["NWD1", "USP54", "NCL"],
 ];
 
-/* WHICH SAMPLES JOIN FIRST. Page 3 exists to show that more biopsies narrow the
-   tree, and in the figure's own order it could not: P2.1st on its own already
-   rules out branching (0.534 + 0.512 = 1.05 past 0.729) and it was always the
-   first used, so the trees that fit read 1 of 2 at every setting
-   (`_lab/vaf-trees-mock.html` § 0). Only P2.surgery on its own leaves both
-   open, so it joins first — his pick, 2026-09-17 — and the count reads 2 of 2,
-   then 1 of 2. The samples still DRAW in the figure's time order; only which
-   of them are included changes. */
+/* THE SAMPLES IN TIME ORDER, which is also the order Step adds them (his
+   picks, 2026-09-26: "a play step by step for the clonal architecture … we can
+   infer them at each stage of sample sequencing"; time order; surgery first).
+   It is the join order the widget already used for another reason — the
+   surgical sample is the only one that leaves both trees open on its own
+   (2026-09-17) — so the count reads 2 of 2, then 1 of 2 once Recurrence 1 is
+   sequenced (1.046 past 0.729), and each later recurrence rules branching out
+   again. `JOIN_ORDER` indexes `SAMPLES`; `SAMPLES_IN_TIME` is the list. */
 export const JOIN_ORDER = [3, 0, 1, 2];
-export const TAKEN_OPTIONS = [
-  { key: "1", n: 1 },
-  { key: "2", n: 2 },
-  { key: "4", n: 4 },
-];
-export const takenOf = (key) => TAKEN_OPTIONS.find((t) => t.key === key) ?? TAKEN_OPTIONS[2];
-/** The samples in use, back in the figure's time order. */
-export const usedSamples = (taken) => {
-  const n = takenOf(taken).n;
-  const picked = new Set(JOIN_ORDER.slice(0, n));
-  return SAMPLES.filter((_, i) => picked.has(i));
-};
+export const SAMPLES_IN_TIME = JOIN_ORDER.map((i) => SAMPLES[i]);
+/** How long one sample takes to arrive, and the pause before the next under Play. */
+export const JOIN_MS = 620;
+export const JOIN_HOLD = 0.8;
 
 /* Clusters ordered by cancer cell fraction, descending; cluster 1 is the trunk
    and every later cluster's parent is an earlier one, so three clusters have
@@ -834,7 +835,9 @@ export function layout(w, params) {
   }
   const lines = { x: PAD + 30, y: 34, w: Math.round(inner * 0.56), h: 150 };
   const trees = { x: lines.x + lines.w + 26, y: 34, w: inner - lines.w - 52, h: 150 };
-  const bars = { x: PAD, y: lines.y + lines.h + 54, w: inner, h: 4 * 34 };
+  /* 62px under the lines: the sample ticks are two lines since 2026-09-26
+     ("Recurrence" over its number), and the rows' caption sits below them. */
+  const bars = { x: PAD, y: lines.y + lines.h + 62, w: inner, h: 4 * 34 };
   return { page, lines, trees, bars, height: bars.y + bars.h + 12 };
 }
 export const stageHeight = (w, values) => layout(w, values).height;
@@ -896,8 +899,6 @@ export const STRINGS = {
   clustersDetail: "a Gaussian mixture, the number of components chosen by BIC",
 
   samplesSection: "The samples",
-  takenLabel: "Samples used",
-  takenDetail: "biopsies of one patient, counted from the surgery sample",
   shapeLabel: "Tree",
   shapeDetail: "which cluster is inside which",
   cellsLabel: "Draw the cells",

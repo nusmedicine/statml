@@ -165,10 +165,13 @@ function cardForPage(params, state, anim) {
   const S = M.STRINGS;
   if (params.page === "clonal") {
     const shape = M.shapeOf(params.tree);
+    const used = joinedOf(anim);
+    /* Before the first sample is sequenced the card states the rule alone. */
+    if (!used.length) return { rows: [[S.labelRule, MATHML ? RULE_MATH : RULE_PLAIN]], note: S.noteTree };
     /* The sample that decides: the one that rules this shape out if any does,
        and otherwise the one whose children come closest to their parent. */
-    const decided = state.used.find((s) => !M.fitsSumRule(shape, s.ccf))
-      ?? state.used.reduce((a, b) => (M.tightestNode(shape, b.ccf).ratio > M.tightestNode(shape, a.ccf).ratio ? b : a));
+    const decided = used.find((s) => !M.fitsSumRule(shape, s.ccf))
+      ?? used.reduce((a, b) => (M.tightestNode(shape, b.ccf).ratio > M.tightestNode(shape, a.ccf).ratio ? b : a));
     const tight = M.tightestNode(shape, decided.ccf);
     const sum = tight.kids.map((k) => M.n2(decided.ccf[k])).join(" + ");
     const fails = tight.sum > tight.parent + 1e-12;
@@ -176,7 +179,7 @@ function cardForPage(params, state, anim) {
     return {
       rows: [
         [S.labelRule, MATHML ? RULE_MATH : RULE_PLAIN],
-        [decided.key, numbers(line)],
+        [decided.label, numbers(line)],
       ],
       note: S.noteTree,
     };
@@ -742,8 +745,11 @@ function drawMany(ctx, colors, L, params, state, anim) {
 
 /* ---- page 3 -------------------------------------------------------------- */
 
+/** The samples sequenced so far, in time order — Step adds the next. */
+const joinedOf = (anim) => M.SAMPLES_IN_TIME.slice(0, Math.max(0, Math.min(M.SAMPLES_IN_TIME.length, anim?.joined ?? 0)));
+
 function drawTreePage(ctx, colors, L, params, state, anim) {
-  const used = state.used;
+  const used = joinedOf(anim);
   const shape = M.shapeOf(params.tree);
   const cols = [colors.groupA, colors.groupB, colors.groupC];
   /* WHERE THE SHAPE GLIDE HAS GOT TO. 0 is SHAPES[0], 1 is SHAPES[1]; at rest
@@ -756,44 +762,31 @@ function drawTreePage(ctx, colors, L, params, state, anim) {
   /* the CCF lines, his figure's left panel */
   const plot = makePlot({ ctx, colors, rect: L.lines, xDomain: [0, M.SAMPLES.length], yDomain: [0, 1] });
   plot.caption(M.STRINGS.linesCaption);
-  /* EACH SAMPLE STAYS AT ITS PLACE ON THE FIGURE'S TIMELINE. Positions came
-     from the order of the samples in use, so once the surgery sample joined
-     first it would have been drawn at the left, before the biopsies it
-     followed. The axis is the figure's four samples; only the ones in use are
-     drawn, and joined in time order. */
-  const at = (s) => M.SAMPLES.indexOf(s) + 0.5;
-  /* SAMPLES JOINING AND LEAVING (2026-09-26, his "tweening where
-     appropriate"). While the samples-used control is easing, the figure draws
-     every sample in either set, in time order: a sample in both is solid, one
-     joining fades in over the second half and one leaving fades out over the
-     first, and a line segment is as faint as its fainter end — so a new
-     biopsy's points arrive and the lines reach them, rather than the whole
-     panel being redrawn. */
-  const tt = anim?.takenFrom && (anim.takenT ?? 1) < 1 ? anim.takenT : 1;
-  const before = tt < 1 ? anim.takenFrom : used.map((smp) => smp.key);
-  const drawn = M.SAMPLES.filter((smp) => used.includes(smp) || before.includes(smp.key));
-  const alphaOf = (smp) => {
-    const inNew = used.includes(smp);
-    const inOld = before.includes(smp.key);
-    if (inNew && inOld) return 1;
-    if (inNew) return tt < 0.5 ? 0 : 2 * tt - 1;
-    return tt < 0.5 ? 1 - 2 * tt : 0;
-  };
+  /* THE AXIS IS TIME, surgery first (his call, 2026-09-26), and all four
+     places are on it from the start, so the reader sees which samples are
+     still to come; Step fills them in order. */
+  const at = (s) => M.SAMPLES_IN_TIME.indexOf(s) + 0.5;
+  /* THE NEWEST SAMPLE ARRIVES (2026-09-26): its points fade in over the first
+     part of the press and the lines reach it from the sample before, each
+     segment as faint as its fainter end. Nothing else moves. */
+  const jt = Math.min(1, anim?.joinT ?? 1);
+  const newest = jt < 1 ? used[used.length - 1] : null;
+  const alphaOf = (smp) => (smp === newest ? M.easeOut(jt) : 1);
   for (let c = 0; c < 3; c += 1) {
-    for (let i = 1; i < drawn.length; i += 1) {
-      const a = Math.min(alphaOf(drawn[i - 1]), alphaOf(drawn[i]));
+    for (let i = 1; i < used.length; i += 1) {
+      const a = Math.min(alphaOf(used[i - 1]), alphaOf(used[i]));
       if (a <= 0) continue;
       ctx.save();
       ctx.globalAlpha = a;
       ctx.beginPath();
-      ctx.moveTo(plot.sx(at(drawn[i - 1])), plot.sy(drawn[i - 1].ccf[c]));
-      ctx.lineTo(plot.sx(at(drawn[i])), plot.sy(drawn[i].ccf[c]));
+      ctx.moveTo(plot.sx(at(used[i - 1])), plot.sy(used[i - 1].ccf[c]));
+      ctx.lineTo(plot.sx(at(used[i])), plot.sy(used[i].ccf[c]));
       ctx.strokeStyle = cols[c];
       ctx.lineWidth = 2;
       ctx.stroke();
       ctx.restore();
     }
-    drawn.forEach((smp) => {
+    used.forEach((smp) => {
       const a = alphaOf(smp);
       if (a <= 0) return;
       ctx.save();
@@ -813,11 +806,18 @@ function drawTreePage(ctx, colors, L, params, state, anim) {
     });
   }
   plot.axisY({ ticks: [0, 0.5, 1], format: (v) => M.n2(v) });
-  plot.axisX({
-    ticks: used.map(at),
-    format: (v) => M.SAMPLES[Math.floor(v)].key,
+  /* "Recurrence 1" is wider than a quarter of the panel at the narrowest
+     layout, so the tick labels are drawn here on two lines — the word, then
+     the number — and a sample not yet sequenced is labelled in the faint ink. */
+  plot.axisX({ ticks: M.SAMPLES_IN_TIME.map(at), format: () => "" });
+  M.SAMPLES_IN_TIME.forEach((smp) => {
+    const [word, num] = smp.label.split(" ");
+    const x = plot.sx(at(smp));
+    const fill = used.includes(smp) ? colors.ink2 : colors.ink3;
+    const f = noteFont(colors);
+    text(ctx, word, x, L.lines.y + L.lines.h + 15, { font: f, fill, align: "center" });
+    if (num) text(ctx, num, x, L.lines.y + L.lines.h + 27, { font: f, fill, align: "center" });
   });
-
   /* the two shapes, the chosen one marked */
   const box = L.trees;
   M.SHAPES.forEach((s, i) => {
@@ -876,8 +876,9 @@ function drawTreePage(ctx, colors, L, params, state, anim) {
     /* Both labels sit INSIDE the highlight, which is why the box reaches four
        pixels past them rather than through them. */
     text(ctx, s.label, cx, box.y + box.h - 30, { font: noteFont(colors), fill: colors.ink2, align: "center" });
-    text(ctx, fits ? M.STRINGS.fits : M.STRINGS.ruledOut, cx, box.y + box.h - 12, {
-      font: capFont(colors), fill: fits ? colors.ink1 : colors.extreme, align: "center",
+    /* No sample sequenced, no verdict: the page opens on the trees alone. */
+    text(ctx, !used.length ? "—" : fits ? M.STRINGS.fits : M.STRINGS.ruledOut, cx, box.y + box.h - 12, {
+      font: capFont(colors), fill: !used.length || fits ? colors.ink1 : colors.extreme, align: "center",
     });
   });
 
@@ -887,16 +888,11 @@ function drawTreePage(ctx, colors, L, params, state, anim) {
     font: capFont(colors), fill: colors.ink1,
   });
   const rowH = L.bars.h / M.SAMPLES.length;
-  /* Each row slides from its old place to its new one as samples join above
-     it; a joining row fades in at its new place, a leaving one out at its old. */
-  const oldIdx = (smp) => M.SAMPLES.filter((x) => before.includes(x.key)).indexOf(smp);
-  const newIdx = (smp) => used.indexOf(smp);
-  drawn.forEach((s) => {
+  /* One row a sample, in time order, so the newest is always the last row:
+     it fades in with its points. */
+  used.forEach((s, slot) => {
     const alpha = alphaOf(s);
     if (alpha <= 0) return;
-    const io = oldIdx(s);
-    const inew = newIdx(s);
-    const slot = io >= 0 && inew >= 0 ? M.lerp(io, inew, M.easeOut(tt)) : (inew >= 0 ? inew : io);
     const y = L.bars.y + slot * rowH;
     const h = 16;
     ctx.save();
@@ -937,8 +933,14 @@ function drawTreePage(ctx, colors, L, params, state, anim) {
        one worth reading. */
     const tight = M.tightestNode(shape, s.ccf);
     const fails = tight.sum > tight.parent + 1e-12;
-    text(ctx, `${s.key}  ${M.n2(tight.sum)} ${fails ? ">" : "≤"} ${M.n2(tight.parent)}`, L.bars.x + L.bars.w * 0.7, y + 12, {
-      font: `${colors.fsXs} ${colors.mono}`, fill: fails ? colors.extreme : colors.ink2,
+    /* The sample's name at 64% and its arithmetic right-aligned at the edge:
+       "Recurrence 1" is twice the width of "P2.1st", and one string starting at
+       70% ran past the canvas. */
+    text(ctx, s.label, L.bars.x + L.bars.w * 0.64, y + 12, {
+      font: noteFont(colors), fill: fails ? colors.extreme : colors.ink2,
+    });
+    text(ctx, `${M.n2(tight.sum)} ${fails ? ">" : "≤"} ${M.n2(tight.parent)}`, L.bars.x + L.bars.w, y + 12, {
+      font: `${colors.fsXs} ${colors.mono}`, fill: fails ? colors.extreme : colors.ink2, align: "right",
     });
     ctx.restore();
   });
@@ -1109,15 +1111,6 @@ widgetApi = defineWidget({
     },
 
     samplesSec: { type: "section", label: M.STRINGS.samplesSection, when: { param: "page", equals: "clonal" } },
-    taken: {
-      type: "choice",
-      label: M.STRINGS.takenLabel,
-      detail: M.STRINGS.takenDetail,
-      options: M.TAKEN_OPTIONS.map((t) => t.key),
-      default: "4",
-      display: true,
-      when: { param: "page", equals: "clonal" },
-    },
     /* "Tree", not "Shape" — the field's word and what the diagram is
        (Kenneth, 2026-09-17). The link word follows the control. */
     tree: {
@@ -1217,16 +1210,34 @@ widgetApi = defineWidget({
     const one = M.buildReads(rng, cfg);
     const manyCfg = M.configMany({ ...params, purity2: params.purity, depth2: params.depth });
     const many = M.buildMany(rng, manyCfg);
-    const used = M.usedSamples(params.taken);
-    return { cfg, one, manyCfg, many, used };
+    return { cfg, one, manyCfg, many };
   },
 
   animation: {
     /* Decision 2: the reads are the animation, and a unit is a fixed number of
        them, so every depth fills in a few seconds (3.4c names the noun). */
-    stepLabel: { param: "depth", labels: { 31: "Add one read", 88: "Add two reads", 161: "Add three reads", 500: "Add eight reads" }, default: "Add one read" },
-    stepTitle: "Draw one more read from the sample's alleles",
-    runTitle: "Draw reads until the pileup is full",
+    /* Page 4 steps SAMPLES since 2026-09-26 (his "a play step by step for
+       the clonal architecture"), so the button names what this page's press
+       does: the reads' labels on pages 1 and 3, "Add a sample" on page 4. */
+    stepLabel: {
+      param: "page",
+      labels: {
+        clonal: "Add a sample",
+        one: { param: "depth", labels: { 31: "Add one read", 88: "Add two reads", 161: "Add three reads", 500: "Add eight reads" }, default: "Add one read" },
+        ccf: { param: "depth", labels: { 31: "Add one read", 88: "Add two reads", 161: "Add three reads", 500: "Add eight reads" }, default: "Add one read" },
+      },
+      default: "Add one read",
+    },
+    stepTitle: {
+      param: "page",
+      labels: { clonal: "Sequence the next sample and check each tree against it" },
+      default: "Draw one more read from the sample's alleles",
+    },
+    runTitle: {
+      param: "page",
+      labels: { clonal: "Sequence the samples in time order" },
+      default: "Draw reads until the pileup is full",
+    },
 
     init: ({ params, state, fromScratch }) => {
       const authored = params.all ? state.one.depth : Math.max(0, params.shown ?? 0);
@@ -1244,10 +1255,16 @@ widgetApi = defineWidget({
          move from the figure on screen (the carry, above). */
       const oneMorph = Boolean(carryOne) && M.readsPage(params) && carryOne.key !== oneKey(state.cfg)
         && !reducedMotion();
+      /* Page 4 opens with no sample sequenced; `?shown=` gives a finished
+         figure there, as it gives reads on page 1. */
+      const joined = fromScratch ? 0 : Math.min(M.SAMPLES_IN_TIME.length, Math.max(0, params.shown ?? 0));
       return {
         k,
         beat: 0,
-        done: k >= state.one.depth,
+        joined,
+        joinT: 1,
+        press: null,
+        done: params.page === "clonal" ? joined >= M.SAMPLES_IN_TIME.length : k >= state.one.depth,
         oneFrom: oneMorph ? carryOne : null,
         oneT: oneMorph ? 0 : 1,
         /* The display changes that ease, each remembered so rebuild can tell
@@ -1259,11 +1276,9 @@ widgetApi = defineWidget({
         assumed: params.assumed,
         assumedFrom: null,
         assumedT: 1,
-        taken: params.taken,
-        takenFrom: null,
-        takenT: 1,
-        /* Decision 2: only the reads animate. */
-        inert: !M.readsPage(params),
+        /* Decision 2, widened 2026-09-26: the reads animate on pages 1 and 3,
+           and page 4 steps samples. The histograms land finished. */
+        inert: !(M.readsPage(params) || params.page === "clonal"),
         /* Where page 2's axis has got to, and which axis it is heading for. */
         mix: params.axis === "ccf" ? 1 : 0,
         axis: params.axis,
@@ -1281,7 +1296,7 @@ widgetApi = defineWidget({
       };
     },
 
-    advance: (anim, { dt, state }) => {
+    advance: (anim, { dt, params, state }) => {
       /* Core's ease mode: the frames for the axis, and nothing else moves in
          them (widget 60's shape). */
       if (anim.mode === "ease") {
@@ -1309,7 +1324,16 @@ widgetApi = defineWidget({
         /* The four clocks added 2026-09-26, one rule each: run to 1, then
            clear what they moved from, so nothing downstream reads a finished
            transition as a live one. */
-        for (const [from, t] of [["oneFrom", "oneT"], ["likFrom", "likT"], ["assumedFrom", "assumedT"], ["takenFrom", "takenT"]]) {
+        /* A SAMPLE STILL ARRIVING when the Tree control eases lands in the same
+           frames: the glide takes over core's clock, and a sample left half
+           faded would be neither sequenced nor not (`_lab/switch-probe.html`
+           flagged tree=branching mid-press, 2026-09-26). */
+        if (anim.joinT < 1) {
+          anim.joinT = Math.min(1, anim.joinT + dt / M.JOIN_MS);
+          if (anim.joinT < 1) moving = true;
+          else anim.press = null;
+        }
+        for (const [from, t] of [["oneFrom", "oneT"], ["likFrom", "likT"], ["assumedFrom", "assumedT"]]) {
           if (anim[from] == null) continue;
           anim[t] = Math.min(1, anim[t] + step);
           if (anim[t] < 1) moving = true;
@@ -1322,15 +1346,52 @@ widgetApi = defineWidget({
          screen would be a sample of neither setting. */
       anim.oneFrom = null; anim.oneT = 1;
       anim.likFrom = null; anim.likT = 1;
+      /* A PRESS BELONGS TO THE PAGE IT STARTED ON (§ *Mid-press page switch*,
+         the sweep of 2026-09-20): a switch from page 4 to page 1 in the middle
+         of Play must not carry on as reads, nor reads as samples. The press
+         lands where it is and stops. */
+      const kind = params.page === "clonal" ? "samples" : "reads";
+      if (anim.press && anim.press !== kind) {
+        anim.press = null; anim.joinT = 1; anim.beat = 0;
+        return false;
+      }
+      anim.press = kind;
+      if (kind === "samples") {
+        /* ONE PRESS, ONE SAMPLE SEQUENCED: its points, its row and its check
+           fade in over JOIN_MS, and under Play a short hold follows so each
+           verdict can be read before the next sample arrives. */
+        const total = M.SAMPLES_IN_TIME.length;
+        const hold = anim.mode === "run" ? 1 + M.JOIN_HOLD : 1;
+        if (anim.joined > 0 && anim.joinT < hold) {
+          anim.joinT = Math.min(hold, anim.joinT + dt / M.JOIN_MS);
+          if (anim.joinT < hold) return true;
+          if (anim.mode === "step" || anim.joined >= total) {
+            anim.joinT = 1; anim.press = null;
+            anim.done = anim.joined >= total;
+            return false;
+          }
+        }
+        if (anim.joined >= total) { anim.joinT = 1; anim.done = true; anim.press = null; return false; }
+        anim.joined += 1;
+        /* Reduced motion: the sample lands at once, and a Step still adds one. */
+        if (reducedMotion()) {
+          anim.joinT = 1;
+          if (anim.mode === "step" || anim.joined >= total) { anim.press = null; anim.done = anim.joined >= total; return false; }
+          return true;
+        }
+        anim.joinT = 0;
+        return true;
+      }
       const end = state.one.depth;
-      if (anim.k >= end) { anim.beat = 0; anim.done = true; return false; }
+      if (anim.k >= end) { anim.beat = 0; anim.done = true; anim.press = null; return false; }
       anim.beat += dt / M.UNIT_MS;
       if (anim.beat < 1) return true;
       const batch = M.batchFor(end);
       const units = anim.mode === "step" ? 1 : Math.floor(anim.beat);
       anim.beat = anim.mode === "step" ? 0 : anim.beat - units;
       anim.k = Math.min(end, anim.k + units * batch);
-      if (anim.k >= end) { anim.beat = 0; anim.done = true; return false; }
+      if (anim.k >= end) { anim.beat = 0; anim.done = true; anim.press = null; return false; }
+      if (anim.mode === "step") anim.press = null;
       return anim.mode !== "step";
     },
 
@@ -1341,8 +1402,13 @@ widgetApi = defineWidget({
         clearDrawAll();
       }
       anim.k = Math.min(anim.k, state.one.depth);
-      anim.inert = !M.readsPage(params);
-      anim.done = anim.k >= state.one.depth;
+      anim.inert = !(M.readsPage(params) || params.page === "clonal");
+      /* Done is the page's own process: the pileup on pages 1 and 3, the
+         samples on page 4 — so Play reads Replay only where there is nothing
+         left to add on the page in view. */
+      anim.done = params.page === "clonal"
+        ? anim.joined >= M.SAMPLES_IN_TIME.length && anim.joinT >= 1
+        : anim.k >= state.one.depth;
       /* The axis moved: ask core for frames once, and ease from wherever the
          figure IS — an ease turned round mid-flight starts there, not at the
          end it was heading for. A page change is not eased. */
@@ -1374,19 +1440,10 @@ widgetApi = defineWidget({
           anim.assumedFrom = wasPurity; anim.assumedT = 0; anim.easing = true;
         }
       }
-      /* THE SAMPLES USED ON PAGE 4: the samples joining fade in, the ones
-         leaving fade out, and the rows below slide to their new places. */
-      if (params.taken !== anim.taken) {
-        const was = anim.taken;
-        anim.taken = params.taken;
-        if (params.page === "clonal" && !reducedMotion()) {
-          anim.takenFrom = M.usedSamples(was).map((smp) => smp.key); anim.takenT = 0; anim.easing = true;
-        }
-      }
       /* A page change lands whatever belongs to the page being left. */
       if (!(params.page === "ccf" && params.view !== "all")) { anim.likFrom = null; anim.likT = 1; }
       if (!(params.page === "ccf" && params.view === "all")) { anim.assumedFrom = null; anim.assumedT = 1; }
-      if (params.page !== "clonal") { anim.takenFrom = null; anim.takenT = 1; }
+      if (params.page !== "clonal") anim.joinT = Math.min(1, anim.joinT);
       /* The shape moved: the same door as the axis, on the same page-3 terms.
          Off page 3 it lands, so a reader who switches shape from elsewhere and
          then arrives finds the figure already there. */
@@ -1428,18 +1485,26 @@ widgetApi = defineWidget({
       ];
     }
     if (params.page === "clonal") {
+      const used = joinedOf(anim);
       const shape = M.shapeOf(params.tree);
-      const fits = state.used.every((s) => M.fitsSumRule(shape, s.ccf));
-      /* A shape fits the evidence when it fits EVERY sample used, so the count
-         is the shapes surviving the first sample intersected with the rest. */
-      const both = state.used
+      if (!used.length) {
+        return [
+          { label: "This tree", value: "—", note: "no sample sequenced yet" },
+          { label: "Trees that fit", value: "—", note: "given the samples sequenced" },
+          { label: "Samples sequenced", value: `0 of ${M.SAMPLES_IN_TIME.length}`, note: "surgery, then three recurrences" },
+        ];
+      }
+      const fits = used.every((s) => M.fitsSumRule(shape, s.ccf));
+      /* A shape fits the evidence when it fits EVERY sample so far, so the
+         count is the shapes surviving the first sample intersected with the rest. */
+      const both = used
         .map((s) => M.shapesFitting(s.ccf))
         .reduce((keep, fitting) => keep.filter((s) => fitting.includes(s)), [...M.SHAPES]).length;
-      const failing = state.used.find((s) => !M.fitsSumRule(shape, s.ccf));
+      const failing = used.find((s) => !M.fitsSumRule(shape, s.ccf));
       return [
-        { label: "This tree", value: fits ? "Fits" : "Ruled out", note: failing ? `by ${failing.key}` : `on ${state.used.length} sample${state.used.length > 1 ? "s" : ""}` },
-        { label: "Trees that fit", value: `${both} of ${M.SHAPES.length}`, note: "given the samples used" },
-        { label: "Samples used", value: String(state.used.length), note: "biopsies of one patient" },
+        { label: "This tree", value: fits ? "Fits" : "Ruled out", note: failing ? `by ${failing.label}` : `on ${used.length} sample${used.length > 1 ? "s" : ""}` },
+        { label: "Trees that fit", value: `${both} of ${M.SHAPES.length}`, note: "given the samples sequenced" },
+        { label: "Samples sequenced", value: `${used.length} of ${M.SAMPLES_IN_TIME.length}`, note: "surgery, then three recurrences" },
       ];
     }
     const k = Math.min(anim?.k ?? 0, state.one.depth);
@@ -1498,11 +1563,13 @@ widgetApi = defineWidget({
         + `${state.many.fit.K > 1 ? "s" : ""} has the lowest BIC, and MATH is ${state.many.math.toFixed(1)}.`;
     }
     if (params.page === "clonal") {
+      const used = joinedOf(anim);
       const shape = M.shapeOf(params.tree);
-      const failing = state.used.find((s) => !M.fitsSumRule(shape, s.ccf));
-      return `Three clusters' mean cancer cell fraction across ${state.used.length} sample`
-        + `${state.used.length > 1 ? "s" : ""} of one patient, against the tree ${shape.label}, which `
-        + `${failing ? `is ruled out by ${failing.key}` : "fits every sample used"}.`;
+      if (!used.length) return `Two candidate trees for three clusters, with none of one patient's four samples sequenced yet.`;
+      const failing = used.find((s) => !M.fitsSumRule(shape, s.ccf));
+      return `Three clusters' mean cancer cell fraction across ${used.length} sample`
+        + `${used.length > 1 ? "s" : ""} of one patient, in time order, against the tree ${shape.label}, which `
+        + `${failing ? `is ruled out by ${failing.label}` : "fits every sample sequenced"}.`;
     }
     const k = Math.min(anim?.k ?? 0, state.one.depth);
     const cfg = state.cfg;

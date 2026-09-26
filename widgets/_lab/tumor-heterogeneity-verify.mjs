@@ -587,13 +587,13 @@ const defaults = async () => resolveParams(await spec(), new URLSearchParams("")
     state: "segmented", seqSec: "section", depth: "choice",
     analysisSec: "section", knows: "segmented",
     clones: "segmented", mutations: "choice", lookSec: "section",
-    axis: "segmented", assumed: "segmented", clusters: "bool", samplesSec: "section", taken: "choice",
+    axis: "segmented", assumed: "segmented", clusters: "bool", samplesSec: "section",
     tree: "segmented", showcells: "bool", dataSec: "section", seed: "int", all: "bool", shown: "int",
   };
   for (const [name, type] of Object.entries(WANT)) check(`${name} is ${type}`, W.params[name]?.type === type);
   check("no parameters beyond those",
     Object.keys(W.params).sort().join() === Object.keys(WANT).sort().join());
-  for (const name of ["page", "view", "knows", "axis", "assumed", "clusters", "taken", "tree", "showcells", "all"]) {
+  for (const name of ["page", "view", "knows", "axis", "assumed", "clusters", "tree", "showcells", "all"]) {
     check(`${name} is a display parameter`, W.params[name].display === true);
   }
   for (const name of ["purity", "ccf", "state", "depth", "clones", "mutations", "seed"]) {
@@ -646,8 +646,9 @@ const defaults = async () => resolveParams(await spec(), new URLSearchParams("")
   const params = { ...values, page: "ccf", view: "all", axis: "vaf" };
   const state = W.compute({ params, rng: makeRng(1) });
   const inert = (p) => W.animation.init({ params: { ...values, ...p }, state, fromScratch: true }).inert;
-  check("the histograms and the trees take Step and Play out of the row",
-    inert({ page: "many" }) && inert({ page: "ccf", view: "all" }) && inert({ page: "clonal" }));
+  check("the histograms take Step and Play out of the row",
+    inert({ page: "many" }) && inert({ page: "ccf", view: "all" }));
+  check("…and page 4 keeps them, since it steps samples (2026-09-26)", inert({ page: "clonal" }) === false);
   check("…and page 3's One mutation keeps them, since its reads are the inference",
     inert({ page: "ccf", view: "one" }) === false && inert({ page: "one" }) === false);
 
@@ -707,9 +708,9 @@ const defaults = async () => resolveParams(await spec(), new URLSearchParams("")
   for (const page of ["many", "ccf"]) for (const clones of ["one", "two", "three"]) for (const axis of ["vaf", "ccf"]) for (const assumed of ["purity", "nothing"]) {
     cells.push({ ...values, page, view: "all", clones, axis, assumed, mutations: "120" });
   }
-  for (const taken of ["1", "2", "4"]) for (const shape of ["linear", "branching"]) {
-    cells.push({ ...values, page: "clonal", taken, shape });
-  }
+  /* Page 4 is driven by Play below, which sequences all four samples. */
+  for (const tree of ["linear", "branching"]) cells.push({ ...values, page: "clonal", tree });
+  for (const tree of ["linear", "branching"]) cells.push({ ...values, page: "clonal", tree, __still: true });
   let bad = 0;
   let painted = 0;
   const notes = [];
@@ -717,7 +718,8 @@ const defaults = async () => resolveParams(await spec(), new URLSearchParams("")
     const state = W.compute({ params, rng: makeRng(params.seed) });
     const anim = W.animation.init({ params, state, fromScratch: true });
     anim.mode = "run";
-    for (let i = 0; i < 400 && W.animation.advance(anim, { dt: 32, params, state }); i += 1) painted += 0;
+    /* `__still` leaves page 4 with no sample sequenced: its empty state. */
+    for (let i = 0; i < 400 && !params.__still && W.animation.advance(anim, { dt: 32, params, state }); i += 1) painted += 0;
     const { ctx } = recorder();
     W.draw({ ctx, colors: COLORS, w: 550, h: W.height({ w: 550, ...params }), params, state, anim });
     const strings = [
@@ -801,17 +803,28 @@ const defaults = async () => resolveParams(await spec(), new URLSearchParams("")
     && /m is one when the mutation arose after the copy number changed/.test(card3one)
     && /more when it arose before and was copied with it/.test(card3one));
 
-  /* Page 4: the rule, and the sample that decides it. */
-  const { state: tree } = drawWith({ ...values, page: "clonal", tree: "branching" });
+  /* Page 4: the rule, and the sample that decides it — with every sample
+     sequenced, then with none. */
+  const allFour = (params) => {
+    const st = W.compute({ params, rng: makeRng(params.seed) });
+    const an = W.animation.init({ params, state: st, fromScratch: true });
+    an.joined = 4;
+    const { ctx } = recorder();
+    W.draw({ ctx, colors: COLORS, w: 550, h: W.height({ w: 550, ...params }), params, state: st, anim: an });
+  };
+  drawWith({ ...values, page: "clonal", tree: "branching" });
+  check("page 4's card with no sample sequenced states the rule alone",
+    /Σ over the children/.test(cardText()) && !/[<>≤]\s*0\.\d/.test(cardText().replace(/c ≤ c/, "")), cardText().slice(0, 70));
+  allFour({ ...values, page: "clonal", tree: "branching" });
   const card3 = cardText();
+  const tree = { used: M.SAMPLES_IN_TIME };
   check("page 4's card states the sum rule", /Σ over the children of a cluster: c ≤ c of the parent/.test(card3), card3.slice(0, 60));
   const decided = tree.used.find((s) => !M.fitsSumRule(M.shapeOf("branching"), s.ccf));
   const tight = M.tightestNode(M.shapeOf("branching"), decided.ccf);
   check("…and the arithmetic of the sample that rules the shape out",
-    card3.includes(`${M.n2(tight.sum)} > ${M.n2(tight.parent)}`) && card3.includes(decided.key),
-    `${decided.key}: ${M.n2(tight.sum)} > ${M.n2(tight.parent)}`);
-  const linear = drawWith({ ...values, page: "clonal", tree: "linear" });
-  void linear;
+    card3.includes(`${M.n2(tight.sum)} > ${M.n2(tight.parent)}`) && card3.includes(decided.label),
+    `${decided.label}: ${M.n2(tight.sum)} > ${M.n2(tight.parent)}`);
+  allFour({ ...values, page: "clonal", tree: "linear" });
   check("…and the tightest one when the shape fits", /≤/.test(cardText()), cardText().slice(-40));
   check("the card is rebuilt when the page changes", cardText() !== card2 && cardText() !== full);
 }
@@ -834,7 +847,7 @@ const defaults = async () => resolveParams(await spec(), new URLSearchParams("")
   for (const page of ["many", "ccf"]) for (const purity of M.PURITY_OPTIONS) for (const axis of ["vaf", "ccf"]) {
     for (const mutations of M.MUTATION_OPTIONS) cells.push({ ...values, page, view: "all", purity, axis, mutations });
   }
-  for (const taken of ["1", "2", "4"]) for (const shape of ["linear", "branching"]) cells.push({ ...values, page: "clonal", taken, shape });
+  for (const joined of [0, 1, 2, 4]) for (const tree of ["linear", "branching"]) cells.push({ ...values, page: "clonal", __joined: joined, tree });
   /* PAGE 3'S ONE MUTATION AT EVERY LEVEL OF KNOWLEDGE, every purity, state and
      mutated-copy count: the caption above the likelihood names what was given,
      and its longest form ("assuming a pure sample and a diploid genome") is
@@ -858,6 +871,7 @@ const defaults = async () => resolveParams(await spec(), new URLSearchParams("")
     anim.spansFrom = null;
     anim.oneFrom = null;
     anim.likFrom = null;
+    if (params.__joined != null) anim.joined = params.__joined;
     const { ctx, box } = recorder();
     W.draw({ ctx, colors: COLORS, w: W_PX, h: height, params, state, anim });
     const over = Math.max(0, box.x1 - W_PX, -box.x0, box.y1 - height, -box.y0);
@@ -912,21 +926,17 @@ const defaults = async () => resolveParams(await spec(), new URLSearchParams("")
      setting (_lab/vaf-trees-mock.html § 0). The surgery sample joins first
      now, which is the only single sample that leaves both open. */
   {
-    const counts = M.TAKEN_OPTIONS.map((t) => M.usedSamples(t.key)
+    /* SURGERY FIRST, THEN THE RECURRENCES (his call, 2026-09-26, from the
+       RETCHER paper's "three recurrent samples and one surgical sample"). */
+    check("the samples are sequenced surgery first, then Recurrence 1, 2 and 3",
+      M.SAMPLES_IN_TIME.map((smp) => smp.label).join() === "Surgery,Recurrence 1,Recurrence 2,Recurrence 3"
+      && M.SAMPLES_IN_TIME.map((smp) => smp.key).join() === "P2.surgery,P2.1st,P2.2st,P2.3st");
+    const counts = M.SAMPLES_IN_TIME.map((_, n) => M.SAMPLES_IN_TIME.slice(0, n + 1)
       .map((smp) => M.shapesFitting(smp.ccf))
       .reduce((keep, f) => keep.filter((x) => f.includes(x)), [...M.SHAPES]).length);
-    check("the sample control narrows the tree as samples join",
-      counts[0] === 2 && counts[counts.length - 1] === 1, counts.join(" → ") + " of 2");
-    const one = M.usedSamples("1");
-    check("…one sample is the surgery sample, the only one that leaves both trees",
-      one.length === 1 && one[0].key === "P2.surgery"
-      && M.SAMPLES.filter((smp) => M.shapesFitting(smp.ccf).length === 2).map((smp) => smp.key).join() === "P2.surgery");
-    /* The samples still draw in the figure's time order, whichever joined first. */
-    const ordered = M.TAKEN_OPTIONS.every((t) => {
-      const idx = M.usedSamples(t.key).map((smp) => M.SAMPLES.indexOf(smp));
-      return idx.every((v, i) => i === 0 || v > idx[i - 1]);
-    });
-    check("…and they are drawn in the figure's time order, not the order they joined", ordered);
+    check("…and the trees that fit narrow as they are sequenced", counts.join() === "2,1,1,1", counts.join(" → ") + " of 2");
+    check("…the surgical sample the only one that leaves both trees on its own",
+      M.SAMPLES.filter((smp) => M.shapesFitting(smp.ccf).length === 2).map((smp) => smp.key).join() === "P2.surgery");
 
     /* The error bars are read off the figure: each brackets its own mean. */
     const bracket = M.SAMPLES.every((smp) => smp.ccf.every((m, c) => smp.lo[c] <= m && m <= smp.hi[c]));
@@ -1120,8 +1130,9 @@ const defaults = async () => resolveParams(await spec(), new URLSearchParams("")
       if (!worstOver || over > worstOver.over) worstOver = { over, params, height, box };
     };
     for (const t of [0.15, 0.35, 0.5, 0.65, 0.85]) {
-      for (const taken of ["1", "2", "4"]) {
-        mid({ ...values, page: "clonal", taken }, (a) => { a.shapeMix = t; a.tree = "branching"; });
+      for (const joined of [1, 2, 4]) {
+        mid({ ...values, page: "clonal", joined }, (a) => { a.joined = joined; a.shapeMix = t; a.tree = "branching"; });
+        mid({ ...values, page: "clonal", joined }, (a) => { a.joined = joined; a.joinT = t; });
       }
       for (const axis of ["vaf", "ccf"]) {
         mid({ ...many, page: "ccf", view: "all", axis, purity: "0.35" }, (a) => {
@@ -1135,7 +1146,7 @@ const defaults = async () => resolveParams(await spec(), new URLSearchParams("")
     }
     check("nothing is painted outside the canvas mid-tween either",
       worstOver.over <= 0.5, `worst ${worstOver.over.toFixed(1)}px on ${worstOver.params.page}`
-        + ` axis=${worstOver.params.axis} taken=${worstOver.params.taken}`
+        + ` axis=${worstOver.params.axis} joined=${worstOver.params.joined}`
         + ` box x ${worstOver.box.x0.toFixed(1)}–${worstOver.box.x1.toFixed(1)}`
         + ` y ${worstOver.box.y0.toFixed(1)}–${worstOver.box.y1.toFixed(1)} in 550×${worstOver.height}`);
   }
@@ -1215,18 +1226,46 @@ const defaults = async () => resolveParams(await spec(), new URLSearchParams("")
     land(aA, { ...pa, assumed: "nothing" }, stAn);
     check("…and lands", aA.assumedT === 1 && aA.assumedFrom === null);
 
-    /* page 4: samples joining and leaving */
-    const p4 = { ...values, page: "clonal", taken: "1" };
+    /* page 4: a press sequences one sample (2026-09-26) */
+    const p4 = { ...values, page: "clonal" };
     const st4 = W.compute({ params: p4, rng: makeRng(1) });
     const a4 = W.animation.init({ params: p4, state: st4, fromScratch: true });
-    const st4b = W.compute({ params: { ...p4, taken: "4" }, rng: makeRng(1) });
-    W.animation.rebuild(a4, { params: { ...p4, taken: "4" }, state: st4b });
-    check("page 4: adding samples fades them in", a4.takenFrom?.join() === "P2.surgery" && a4.easing === true);
+    check("page 4 opens with no sample sequenced, and Step is live there",
+      a4.joined === 0 && a4.inert === false && a4.done === false);
+    a4.mode = "step";
+    let f4 = 0;
+    while (W.animation.advance(a4, { dt: 32, params: p4, state: st4 }) && f4 < 200) f4 += 1;
+    check("one Step sequences one sample, fading it in",
+      a4.joined === 1 && a4.joinT === 1 && !a4.done, `${f4} frames, ${f4 * 32}ms against JOIN_MS ${M.JOIN_MS}`);
     let worstTree = 0;
-    for (const t of [0.2, 0.5, 0.8]) { a4.takenT = t; worstTree = Math.max(worstTree, draw({ ...p4, taken: "4" }, a4, st4b)); }
-    a4.takenT = 0;
-    land(a4, { ...p4, taken: "4" }, st4b);
-    check("…and lands", a4.takenT === 1 && a4.takenFrom === null);
+    a4.joined = 2;
+    for (const t of [0.2, 0.5, 0.8]) { a4.joinT = t; worstTree = Math.max(worstTree, draw(p4, a4, st4)); }
+    a4.joinT = 1;
+    const play = W.animation.init({ params: p4, state: st4, fromScratch: true });
+    play.mode = "run";
+    let fp = 0;
+    while (W.animation.advance(play, { dt: 32, params: p4, state: st4 }) && fp < 1000) fp += 1;
+    check("Play sequences all four in time order and stops",
+      play.joined === 4 && play.done === true, `${fp} frames, ${(fp * 32 / 1000).toFixed(1)} s`);
+    /* THE MID-PRESS PAGE SWITCH (§ the sweep of 2026-09-20): Play on page 4,
+       then page 1 — the press stops; it does not start adding reads. */
+    const sw = W.animation.init({ params: p4, state: st4, fromScratch: true });
+    sw.mode = "run";
+    for (let i = 0; i < 5; i += 1) W.animation.advance(sw, { dt: 32, params: p4, state: st4 });
+    const onOne = { ...values, page: "one" };
+    W.animation.rebuild(sw, { params: onOne, state: st4 });
+    const kept = W.animation.advance(sw, { dt: 32, params: onOne, state: st4 });
+    check("a page switch mid-press stops the press rather than running the other page's",
+      kept === false && sw.k === 0 && sw.joinT === 1, `joined ${sw.joined}, reads ${sw.k}`);
+    const back = W.animation.init({ params: onOne, state: st4, fromScratch: true });
+    back.mode = "run";
+    for (let i = 0; i < 5; i += 1) W.animation.advance(back, { dt: 32, params: onOne, state: st4 });
+    W.animation.rebuild(back, { params: p4, state: st4 });
+    const keptBack = W.animation.advance(back, { dt: 32, params: p4, state: st4 });
+    check("…and the other way round", keptBack === false && back.joined === 0, `reads ${back.k}`);
+    W.animation.rebuild(back, { params: p4, state: st4 });
+    check("…and Play reads Replay only for the page in view's own process",
+      back.done === false, `page 4 with ${back.k} reads drawn and no sample`);
 
     check("nothing is painted off the canvas mid-way through any of them",
       Math.max(worstOne, worstLik, worstAll, worstTree) <= 1.5,
