@@ -194,7 +194,10 @@ async function open(slug) {
   frame.width = FRAME_W;
   frame.height = FRAME_H;
   frame.style.border = "0";
-  frame.src = `../${slug}/?theme=light`;
+  /* `at` opens the widget elsewhere than its defaults, so a control shown on one step
+     only gets probed: ?only=attention&at=page%3Doutput (widget 83's Query, 2026-09-26) */
+  const at = new URLSearchParams(location.search).get("at");
+  frame.src = `../${slug}/?theme=light${at ? `&${at}` : ""}`;
   frames.appendChild(frame);
   await new Promise((r) => frame.addEventListener("load", r));
   const rest = await settle(frame);
