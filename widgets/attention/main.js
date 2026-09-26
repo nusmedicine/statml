@@ -82,8 +82,8 @@ const S = {
   softmaxArrow: (raw, masked) => `${masked ? "−∞ where the mask is 0, then " : ""}softmax of ${raw ? "q·k" : "q·k / √dₖ"} ↓`,
   maskRow: "Mask", padGroup: (n) => `[PAD] × ${n}`,
   maskLabel: "attention_mask",
-  maskDetail: "1 for a token, 0 for padding. Passed, a key with 0 gets the score −∞ before the softmax.",
-  maskOpts: [{ value: "passed", label: "Passed" }, { value: "not-passed", label: "Not passed" }],
+  maskDetail: "1 for a token, 0 for padding. On, a key with 0 gets the score −∞ before the softmax.",
+  maskOpts: [{ value: "on", label: "On" }, { value: "off", label: "Off" }],
   projS1: ["1 · Projections", "Q = X W_Qᵀ + b,  K = X W_Kᵀ + b,  V = X W_Vᵀ + b", ""],
   projS2: (n) => [`2 · One number of ${n}ᵢ`, `${n}ₘ = Σₖ x̃ₖ Wₖₘ + bₘ`, ""],
   projWhy: "Each column of W is a trained set of 48 weights, applied to every token the same way a convolution kernel "
@@ -150,7 +150,7 @@ function renderCard(params) {
   const figure = document.querySelector("#widget .w-figure");
   if (!figure || !figure.parentNode) return;
   const unscaled = params.scores === "unscaled";
-  const which = params.page !== "weights" ? params.page : params.attention_mask !== "not-passed" ? (unscaled ? "maskRaw" : "mask") : unscaled ? "raw" : "scaled";
+  const which = params.page !== "weights" ? params.page : params.attention_mask !== "off" ? (unscaled ? "maskRaw" : "mask") : unscaled ? "raw" : "scaled";
   if (!cardHost) { cardHost = document.createElement("div"); cardHost.className = "w-math"; cardHost.style.minHeight = "2.4em"; figure.parentNode.insertBefore(cardHost, figure); cardKey = null; }
   if (which === cardKey) return;
   cardKey = which;
@@ -503,7 +503,7 @@ function scoreText(ctx, colors, v, room) {
 
 /** the numbers the Weights page draws, for the switches as set */
 function weightsView(state, params) {
-  const h = Number(params.head) - 1, raw = params.scores === "unscaled", masked = params.attention_mask !== "not-passed";
+  const h = Number(params.head) - 1, raw = params.scores === "unscaled", masked = params.attention_mask !== "off";
   const P = state.padded, run = (masked ? P.masked : P.open).heads[h];
   return { raw, masked, toks: P.tokens, K: P.tokens.length, Sc: raw ? P.open.heads[h].scoreRaw : P.open.heads[h].score, A: raw ? run.alphaRaw : run.alpha };
 }
@@ -1041,7 +1041,7 @@ defineWidget({
       optionsFrom: ["sentence"], default: "latest", display: true, when: ON("output"),
     },
     scores: { type: "segmented", label: S.scoreLabel, detail: S.scoreDetail, options: S.scoreOpts, default: "scaled", display: true, when: ON("weights") },
-    attention_mask: { type: "segmented", label: S.maskLabel, detail: S.maskDetail, options: S.maskOpts, default: "passed", display: true, when: ON("weights") },
+    attention_mask: { type: "segmented", label: S.maskLabel, detail: S.maskDetail, options: S.maskOpts, default: "on", display: true, when: ON("weights") },
     /* authoring escape hatch, first render only: rows already computed */
     shown: { type: "int", min: 0, max: 16, default: 0, hidden: true },
   },
@@ -1068,7 +1068,7 @@ defineWidget({
     },
     advance: (anim, { dt, params, state }) => {
       /* the Output page's press takes its keys one at a time, so it runs longer */
-      const ms = params.page === "projections" ? projMs(anim.mode) : params.page === "output" ? outMs(state.L, anim.mode) : params.page === "weights" ? weightsMs(state.padded.tokens.length, anim.mode, params.attention_mask !== "not-passed")
+      const ms = params.page === "projections" ? projMs(anim.mode) : params.page === "output" ? outMs(state.L, anim.mode) : params.page === "weights" ? weightsMs(state.padded.tokens.length, anim.mode, params.attention_mask !== "off")
         : anim.mode === "run" ? HP.run : HP.step;
       let more;
       if (anim.t < 1) { anim.t = Math.min(1, anim.t + dt / ms); more = anim.t < 1 || (anim.mode === "run" && anim.n < state.L); }

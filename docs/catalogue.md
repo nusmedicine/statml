@@ -22065,7 +22065,7 @@ glide, not across the whole press (his catch, 92a669a); the Weights page runs
 the scores key by key and then the softmax into a second strip (his pick C,
 `_lab/attention-weights-motion-mock.html`, 8f30171); the control is **Step**
 and the padding mask **folded into Weights** as the tokenizer's attention_mask
-row over four [PAD], Passed or Not passed, with a −∞ beat before the softmax
+row over four [PAD], On or Off, with a −∞ beat before the softmax
 (his pick B, `_lab/attention-mask-fold-mock.html`, 7677a7e) — so three steps,
 Weights · Output · Heads. "Features" stays (his figure's word); the causal
 mask is 84's Decoder page (08-1 cells 2–4, and 10-3 cells 44–45 use it).
@@ -22074,7 +22074,7 @@ mask is 84's Decoder page (08-1 cells 2–4, and 10-3 cells 44–45 use it).
 291 claudisms terms; seventeen rows from the house rules (the subtitle's
 "heads do", "a mask gives", "read by", "each 0 sets", "taken into", "weighs",
 "like any other", "joined", "width", "press", "row by row"; the URL values
-`scores=scaled|unscaled`, `attention_mask=passed|not-passed`,
+`scores=scaled|unscaled`, `attention_mask=on|off`,
 `sentence=mask`; two dead strings). Subtitle A and blurb A his picks, both
 scanned before asking. The verify's §4 strikes the rules' words in every
 reader-facing string.
