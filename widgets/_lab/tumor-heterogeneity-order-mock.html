@@ -159,13 +159,19 @@
   <div class="row" id="manyRow"></div>
   <p class="rec" id="recMany"></p>
 
-  <h2>7 &middot; What is asked</h2>
-  <ol class="note" id="asks" style="max-width:110ch">
-    <li><b>The pages</b>: One mutation &middot; Many mutations &middot; Cancer cell fraction &middot; Clonal architecture, page 3 with a One mutation &middot; Many mutations view.</li>
-    <li><b>Page 1's reading</b>: A, B or C in &sect;4.</li>
-    <li><b>Page 3's picture</b>: the solved rows (A) or the likelihood (B) in &sect;5.</li>
-    <li><b>Page 3's call rule</b>, from the table in &sect;5.</li>
-  </ol>
+  <h2>7 &middot; Picked, 2026-09-26</h2>
+  <p class="note"><b>All four recommendations:</b> four pages with page 3's One mutation &middot; Many mutations view;
+    page 1's reading A; page 3's likelihood B; the call on the whole plausible set &ge; 0.9.</p>
+
+  <h2>8 &middot; Page 3 as a whole: what sits above the likelihood, and its rail</h2>
+  <p class="note">
+    The picks settle the picture; they leave the stage around it. <b>L1</b> is the analysis's view &mdash; the reads,
+    what it was given, the curves &mdash; with the true sample as one line of text. <b>L2</b> keeps page 1's cells on
+    top, so the tick on the c axis is a fraction the reader can count in the cells above it. Both at the real 550px,
+    purity 0.70, 1 + 1, every tumor cell, 88 reads, told purity and copy number.
+  </p>
+  <div class="row" id="p3Row"></div>
+  <p class="rec" id="recP3"></p>
 </main>
 
 <script type="module">
@@ -519,6 +525,80 @@ function solvedRows(ctx, cfg, k, n, level) {
     plausible c is 0.79–1.00, so <i>Cannot tell</i> is the common answer until the reads run deep, where the shipped
     page said <i>Clonal</i> from a number the analysis never had. <b>A</b> is simpler arithmetic but cannot show
     depth at all.`;
+}
+
+/* ---- §8 page 3 as a whole ---- */
+{
+  const host = document.getElementById("p3Row");
+  const cfg = cfgOf({ purity: "0.70" });
+  const one = reads(cfg);
+  const tiles = (r) => {
+    const d = document.createElement("div");
+    d.style.cssText = "display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:552px;margin-top:8px;font-size:12px";
+    const t = (a, b, c) => `<div><div style="color:var(--ink-2)">${a}</div><div style="font-size:20px;font-weight:600;color:var(--ink-1)">${b}</div><div style="color:var(--ink-3)">${c}</div></div>`;
+    d.innerHTML = t("Reads carrying it", `${one.alt} / ${one.depth}`, `VAF ${f3(one.alt / one.depth)}`)
+      + t("Cancer cell fraction", `${f2(r.lo)}–${f2(r.hi)}`, "the c values the reads allow, 95%")
+      + t("Clonal or subclonal", r.call, r.call === "Cannot tell" ? "the plausible c straddles 0.9" : "every plausible c on one side of 0.9");
+    return d;
+  };
+  const withOffset = (ctx, dy, fn) => { ctx.save(); ctx.translate(0, dy); const r = fn(); ctx.restore(); return r; };
+
+  // L1
+  {
+    const col = document.createElement("div"); col.className = "cand";
+    col.innerHTML = `<h3>L1 · the analysis's view</h3><div class="sub">the true sample as text; the reads; the curves</div>`;
+    const cv = document.createElement("canvas"); col.appendChild(cv); host.appendChild(col);
+    const ctx = canvas(cv, W, 340);
+    text(ctx, "The true sample: purity 0.70, 1 + 1, every tumor cell carrying it on 1 copy", 14, 18, { fill: T.ink2 });
+    text(ctx, "The reads", 14, 44, { font: cap, fill: T.ink1 });
+    text(ctx, `${one.depth} of ${one.depth}`, 536, 44, { font: mono, fill: T.ink3, align: "right" });
+    drawPileup(ctx, { x: 14, y: 52, w: 522, h: 56 }, one);
+    const r = withOffset(ctx, 118, () => likPlot(ctx, cfg, one.alt, one.depth, "both", { h: 220, title: "Likelihood of the reads over c" }));
+    col.appendChild(tiles(r));
+  }
+  // L2
+  {
+    const col = document.createElement("div"); col.className = "cand";
+    col.innerHTML = `<h3>L2 · page 1's cells kept on top (recommended)</h3><div class="sub">the sample; the reads; the curves</div>`;
+    const cv = document.createElement("canvas"); col.appendChild(cv); host.appendChild(col);
+    const ctx = canvas(cv, W, 570);
+    text(ctx, "The sample", 14, 18, { font: cap, fill: T.ink1 });
+    const cnt = drawCells(ctx, { x: 14, y: 26, w: 522, h: 190 }, cfg);
+    text(ctx, `${cnt.tumour} of 60 cells are tumor cells, ${cnt.carrying} of them carrying the mutation`, 14, 234, { fill: T.ink2 });
+    text(ctx, "The reads", 14, 262, { font: cap, fill: T.ink1 });
+    text(ctx, `${one.depth} of ${one.depth}`, 536, 262, { font: mono, fill: T.ink3, align: "right" });
+    drawPileup(ctx, { x: 14, y: 270, w: 522, h: 56 }, one);
+    const r = withOffset(ctx, 344, () => likPlot(ctx, cfg, one.alt, one.depth, "both", { h: 222, title: "Likelihood of the reads over c" }));
+    col.appendChild(tiles(r));
+  }
+  // the rail
+  {
+    const rail = document.createElement("div");
+    rail.className = "rail";
+    const seg = (cols, items, on) => `<div class="seg" style="grid-template-columns:repeat(${cols},1fr)">${items.map((s) => `<span class="${s === on ? "on" : ""}">${s}</span>`).join("")}</div>`;
+    const slider = (nm, v, pct, dt) => `<div class="ctl"><div class="nm"><span>${nm}</span><b>${v}</b></div><div class="bar"><i style="width:${pct}%"></i></div><div class="dt">${dt}</div></div>`;
+    rail.innerHTML = `
+      <div class="sec">Page</div>${seg(2, ["One mutation", "Many mutations", "Cancer cell fraction", "Clonal architecture"], "Cancer cell fraction")}
+      <div class="ctl"><div class="nm"><span>View</span></div>${seg(2, ["One mutation", "Many mutations"], "One mutation")}<div class="dt">one mutation's reads, or a tumor's mutations together</div></div>
+      <div class="sec">The sample</div>
+      ${slider("Tumor purity", "0.70", 66, "the fraction of cells in the sample that are tumor cells")}
+      ${slider("Tumor cells carrying it", "1.00", 100, "the fraction of tumor cells that carry the mutation")}
+      <div class="ctl"><div class="nm"><span>Copy number</span></div>${seg(2, ["1 + 1", "2 + 0", "1 + 0", "2 + 1", "3 + 1"], "1 + 1")}</div>
+      <div class="sec">The sequencing</div>
+      ${slider("Read depth", "88", 33, "reads covering the position")}
+      <div class="sec">The analysis</div>
+      <div class="ctl"><div class="nm"><span>Given</span></div>${seg(2, ["Nothing", "Purity", "Purity and copy number"], "Purity and copy number")}<div class="dt">what the analysis is given; the rest is assumed</div></div>`;
+    const wrap = document.createElement("div"); wrap.className = "cand";
+    wrap.innerHTML = `<h3>The rail on page 3</h3><div class="sub">the sample and sequencing controls are page 1's, shared; Given is page 3's own</div>`;
+    wrap.appendChild(rail);
+    host.appendChild(wrap);
+  }
+  document.getElementById("recP3").innerHTML = `<b>Recommendation: L2 and this rail.</b> The page reads top-down the way
+    cell 25 argues &mdash; the sample, its reads, what the reads allow &mdash; and switching from page 1 keeps the same cells and
+    the same reads on screen, so the only new thing is the curve. The tick at c = 1.00 is the 42 of 42 tumor cells
+    above it. The sample's controls are shared with page 1 (one set of parameters, one URL), so changing the purity on
+    either page changes both. <b>L1</b> is 230px shorter, but the true c becomes a sentence, and a reader who
+    arrives on page 3 first has no picture of what a fraction of tumor cells is.`;
 }
 
 /* ---- §6 many mutations on the CCF axis ---- */

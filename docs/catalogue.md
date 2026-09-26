@@ -9431,6 +9431,62 @@ sentence with two consumers.
 **Open after ship:** no mutation can be built sitting ON the 0.9 line (offered
 as a note, not taken), and the four-cluster patient stays a mock.
 
+#### RESTRUCTURED TO THE NOTEBOOK'S ORDER — asked 2026-09-26, measured and mocked the same day
+
+**His ask:** *"The current one doesn't help me explain concepts in the PHM5003
+07 … (01-02 notebook). VAF ~1, ~0.5, <0.5: need to start with simple things
+and see how they vary with copy number and purity. don't put CCF here as we
+will need to explain how to infer later in the notebook … Need to explain how
+to infer CCF before we link it to clonal reconstruction."*
+
+**What the notebook's order says against the shipped widget.** 01-2 teaches
+VAF in cells 17–23 and names the cancer cell fraction first in cell 25. The
+shipped page 1 opened at purity 0.70 on a Cancer cell fraction control, the
+CCF line in the card, *Given* (cell 24), a CCF tile and a clonal call — cells
+24 and 25 before cell 17 — and page 2's axis switch did the same to cells
+21–23. Cell 25 §3's binomial likelihood was never drawn: the shipped panel
+solved §2 from the EXPECTED VAF, a number the analysis does not have, chosen
+so the rows would not flicker.
+
+**Measured — `_lab/ccf-measure.mjs`** (seeded, 40 draws of every sample page 1
+can build, 95% set = c within 1.92 log-likelihood of the best):
+
+- A mutation in every tumor cell reads 0.130 to 1.000 across the copy states
+  and purities page 1 offers; at purity 1 two of the nine state × copies rows
+  read below 0.5 (2 + 1 and 3 + 1 with one mutated copy).
+- (c = 1, m = 1) and (c = 1/m, m) expect the same VAF in every state with
+  major > 1, so their likelihoods are identical: the m ambiguity is exact.
+- Told both, the plausible c holds the truth 96–99% of the time at every
+  depth; told nothing, 34–70%, FALLING with depth — reading deeper makes a
+  wrong assumption more confident.
+- One mutation at purity 0.70, 1 + 1, every tumor cell, told both: plausible c
+  0.58–1.00 at 31 reads, 0.79–1.00 at 88, 0.93–1.00 at 500.
+- Three call rules, right / wrong / cannot tell (%), told both at 88 reads:
+  whole plausible set ≥ 0.9 34 / 0 / 66; set reaches 1 53 / 7 / 40; best c ≥
+  0.9 83 / 17 / 0. The first is never wrong told both at any depth (500
+  reads: 64 / 0 / 36). The shipped call was 80.6 / 0.0 / 19.4 because it
+  carried no read noise.
+
+**Mocked — `_lab/tumor-heterogeneity-order-mock.html` (456c7c2).** His four
+picks, one `AskUserQuestion`, all four recommendations:
+
+1. **Four pages in the notebook's order**: One mutation (cell 17, VAF only) ·
+   Many mutations (cells 21–23, VAF only) · **Cancer cell fraction** (cells
+   24–25, new) · Clonal architecture (unchanged). Page 2's CCF axis moves to
+   page 3 as a **One mutation · Many mutations** view sharing page 3's
+   *Given*. `page=ccf` joins the link words; the old three stand.
+2. **Page 1, candidate A**: cell 17's readings labelled on the VAF scale —
+   *< 0.5 — in a subset of tumor cells*, *≈ 0.5 — one of two copies, every
+   cell*, *≈ 1 — every copy* — and the sample's mark moving off them. Opens at
+   purity 1.00 and 1 + 1 (reads 0.5). The CCF control becomes *Tumor cells
+   carrying it*; the card counts copies in words (mutated copies / all
+   copies) with no c; no *Given*, no CCF tile, no call, no scenarios panel.
+3. **Page 3's picture, candidate B**: cell 25 §3 — one likelihood curve over c
+   per multiplicity, narrowing as reads arrive, the 95% set shaded, 0.9 dashed,
+   the true c as a tick.
+4. **The call: the whole plausible set ≥ 0.9** is Clonal, all below is
+   Subclonal, else Cannot tell.
+
 ### Slot 68 · `clonal-architecture` — cuttable, or 67's last page
 
 **Host.** 01-2 cell 25's closing paragraph (CCFs clustered to "reconstruct the
