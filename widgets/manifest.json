@@ -1232,6 +1232,25 @@
       ],
       "arc": 83,
       "status": "shipped"
+    },
+    {
+      "slug": "transformer",
+      "title": "Deep Learning - Language: Transformer",
+      "blurb": "Encoder and decoder blocks, the masks that make the three families, and the two ways of pretraining them.",
+      "course": "PHM5005",
+      "topics": [
+        "transformer",
+        "encoder",
+        "decoder",
+        "causal mask",
+        "cross-attention",
+        "masked language modelling",
+        "pretraining",
+        "language",
+        "deep learning"
+      ],
+      "arc": 84,
+      "status": "draft"
     }
   ]
 }
