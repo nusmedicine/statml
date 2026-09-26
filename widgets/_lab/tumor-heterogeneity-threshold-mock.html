@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · tumor-heterogeneity — the clonal threshold as a control</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1500px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 4px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 110ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); white-space: pre-line; max-width: 552px; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 110ch; }
+  table { border-collapse: collapse; font-size: var(--fs-sm); margin: var(--sp-2) 0; }
+  th, td { border: 1px solid var(--grid); padding: 4px 10px; text-align: left; vertical-align: top; }
+  th { color: var(--ink-2); font-weight: 600; }
+  td.num { font-family: var(--font-mono); text-align: right; }
+  td.cur { outline: 2px solid var(--c-highlight); outline-offset: -2px; }
+  .rail { width: 300px; border: 1px solid var(--grid); background: var(--surface-1); padding: var(--sp-3); font-size: var(--fs-sm); }
+  .rail .sec { font-weight: 600; color: var(--ink-1); margin: var(--sp-3) 0 4px; }
+  .rail .sec:first-child { margin-top: 0; }
+  .rail .ctl { margin: 0 0 var(--sp-3); }
+  .rail .nm { display: flex; justify-content: space-between; color: var(--ink-1); }
+  .rail .dt { color: var(--ink-3); font-size: var(--fs-xs); margin-top: 3px; }
+  .rail .seg { display: grid; border: 1px solid var(--grid); border-radius: 4px; overflow: hidden; margin: 3px 0; }
+  .rail .seg span { padding: 5px 4px; text-align: center; font-size: var(--fs-xs); color: var(--ink-2); border-right: 1px solid var(--grid); border-bottom: 1px solid var(--grid); }
+  .rail .seg span.on { background: var(--surface-3); color: var(--ink-1); font-weight: 600; }
+  .rail .bar { height: 4px; background: var(--grid); border-radius: 2px; margin: 5px 0 3px; position: relative; }
+  .rail .bar i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--c-group-a); border-radius: 2px; }
+  .rail .ticks { display: flex; justify-content: space-between; color: var(--ink-3); font-size: 10px; }
+  .tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; width: 552px; margin-top: 6px; font-size: 12px; }
+  .tiles b { display: block; font-size: 18px; color: var(--ink-1); }
+  .tiles span { color: var(--ink-3); }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>tumor-heterogeneity &middot; the clonal threshold as a control, page 3</h1>
+  <p class="note">
+    <b>Your ask, 2026-09-26:</b> &ldquo;in practice, do we set different thresholds for CCF?&rdquo; then &ldquo;mock the controls for
+    thresholds&rdquo;. Every number below is computed on this page by the widget's own <code>model.js</code>: each sample page 1
+    can build (4 cases &times; 4 shares carrying it &times; 4 purities = 64), 20 seeded reads each, told purity and copy number.
+  </p>
+
+  <h2>1 &middot; What varies in practice (from memory &mdash; each to be checked before any copy quotes it)</h2>
+  <table style="max-width:1100px">
+    <tr><th>rule</th><th>where it is used</th><th>here</th></tr>
+    <tr><td>best estimate &ge; a line (0.8, 0.85, 0.9 or 0.95)</td><td>many single-sample studies; the line is the paper's choice</td><td><i>Best c</i></td></tr>
+    <tr><td>the 95% interval for c reaches 1</td><td>McGranahan and colleagues, TRACERx lung</td><td><i>Reaches 1</i></td></tr>
+    <tr><td>Pr(c &gt; 0.95) &gt; 0.5</td><td>ABSOLUTE-based studies (e.g. Landau et al., CLL)</td><td><i>Probability</i></td></tr>
+    <tr><td>every c the reads allow &ge; a line</td><td>the widget now, at 0.9 &mdash; the strictest</td><td><i>Whole range</i></td></tr>
+  </table>
+
+  <h2>2 &middot; What the threshold and the rule do to the call (measured)</h2>
+  <p class="note">Right / wrong / cannot tell, % of 1,280 calls, at 88 reads (the file's median) and 500. The widget today is
+    highlighted.</p>
+  <div id="table"></div>
+  <p class="note" id="tableNote"></p>
+
+  <h2>3 &middot; Three ways to put it on page 3</h2>
+  <p class="note">Each drawn on the same sample: purity 0.70, 1 of 2 copies, every tumor cell, 88 reads (33 carry it) &mdash;
+    the reading you asked about, which the widget calls Cannot tell. Under each, the figure and tiles for two settings.
+    <b>On this reading the threshold alone changes nothing</b>: the reads allow c from 0.79, below even 0.80, so it is
+    Cannot tell at every line (A shows 0.80 and 0.95 both). The rule is what changes it.</p>
+  <div id="cands"></div>
+  <p class="rec" id="rec"></p>
+</main>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+import { makeRng } from "../core/rng.js";
+import * as M from "../tumor-heterogeneity/model.js";
+
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+const f2 = (x) => x.toFixed(2);
+
+/* the four rules, on the widget's own likelihood */
+function posteriorAbove(lik, x) {
+  // uniform prior over (c, m): normalise the likelihood over the grid
+  let all = 0, above = 0;
+  for (const cv of lik.curves) cv.ys.forEach((y, i) => { const w = Math.exp(y - lik.top); all += w; if (M.LIK_GRID[i] > x) above += w; });
+  return above / all;
+}
+const RULES = {
+  whole: { label: "Whole range", call: (lik, cut) => (lik.lo >= cut ? "clonal" : lik.hi < cut ? "subclonal" : "split") },
+  best: { label: "Best c", call: (lik, cut) => {
+    const best = lik.curves.reduce((a, b) => (b.max > a.max ? b : a));
+    return best.cHat >= cut ? "clonal" : "subclonal";
+  } },
+  reach: { label: "Reaches 1", call: (lik) => {
+    const reach = lik.allowed.map((cv) => cv.interval.hi >= 1);
+    return reach.every(Boolean) ? "clonal" : reach.some(Boolean) ? "split" : "subclonal";
+  } },
+  prob: { label: "Probability", call: (lik) => (posteriorAbove(lik, 0.95) > 0.5 ? "clonal" : "subclonal") },
+};
+
+/* §2 */
+function sweep(rule, cut, depth) {
+  const t = { right: 0, wrong: 0, split: 0, n: 0 };
+  for (const purity of M.PURITY_OPTIONS) for (const c of M.CASES) for (const ccf of ["0.25", "0.50", "0.75", "1.00"]) {
+    const cfg = M.configOne({ purity, ccf, state: c.key, depth: String(depth) });
+    const rng = makeRng(1000 + depth);
+    for (let d = 0; d < 20; d += 1) {
+      let k = 0;
+      for (let i = 0; i < depth; i += 1) if (rng.next() < cfg.expected) k += 1;
+      const lik = M.likelihoodOf(k, depth, cfg, "both");
+      const said = RULES[rule].call(lik, cut);
+      const truth = cfg.ccf >= 0.999 ? "clonal" : "subclonal";
+      t.n += 1;
+      if (said === "split") t.split += 1; else if (said === truth) t.right += 1; else t.wrong += 1;
+    }
+  }
+  const pc = (x) => Math.round((100 * x) / t.n);
+  return `${pc(t.right)} / ${pc(t.wrong)} / ${pc(t.split)}`;
+}
+{
+  const cuts = [0.8, 0.85, 0.9, 0.95];
+  let h = `<table><tr><th>rule</th><th>line</th><th>88 reads</th><th>500 reads</th></tr>`;
+  for (const rule of ["whole", "best"]) for (const cut of cuts) {
+    const cur = rule === "whole" && cut === 0.9;
+    h += `<tr><td>${RULES[rule].label}</td><td class="num">${cut.toFixed(2)}</td><td class="num${cur ? " cur" : ""}">${sweep(rule, cut, 88)}</td><td class="num${cur ? " cur" : ""}">${sweep(rule, cut, 500)}</td></tr>`;
+  }
+  for (const rule of ["reach", "prob"]) {
+    h += `<tr><td>${RULES[rule].label}</td><td class="num">${rule === "prob" ? "0.95, p &gt; 0.5" : "1"}</td><td class="num">${sweep(rule, 0.9, 88)}</td><td class="num">${sweep(rule, 0.9, 500)}</td></tr>`;
+  }
+  document.getElementById("table").innerHTML = h + "</table>";
+  document.getElementById("tableNote").innerHTML = `<b>What it says.</b> <b>The line matters less than the rule.</b>
+    Under <i>Whole range</i> no line from 0.80 to 0.95 is ever wrong, and the line only moves which calls get settled (right
+    39% → 48% at 88 reads, the rest <i>Cannot tell</i>): a low line settles more clonal mutations, a high one more subclonal
+    ones. Under <i>Best c</i> there is never a <i>Cannot tell</i>, and the price is a wrong call 13–16% of the time at 88 reads
+    whatever the line. <i>Reaches 1</i> sits between (10% wrong, 23% cannot tell), and <i>Probability</i> behaves like
+    <i>Best c</i>. The shares carrying it on page 1 are 0.25, 0.50, 0.75 and 1.00, so every line from 0.80 to 0.95 separates
+    the same truths; what it changes is how much read noise it lets through.`;
+}
+
+/* §3: a likelihood panel with a movable line */
+function panel(ctx, lik, cut, { ruleName = "whole", w = 552, h = 190, x0 = 0 } = {}) {
+  const P = { x: x0 + 22, y: 26, w: w - 44, h: h - 70 };
+  ctx.strokeStyle = T.axis; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(P.x, P.y + P.h); ctx.lineTo(P.x + P.w, P.y + P.h); ctx.stroke();
+  const sx = (c) => P.x + P.w * c, sy = (v) => P.y + P.h - (v / 1.08) * P.h;
+  lik.allowed.forEach((cv) => { ctx.fillStyle = "rgba(90,140,220,0.14)"; ctx.fillRect(sx(cv.interval.lo), P.y, sx(cv.interval.hi) - sx(cv.interval.lo), P.h); });
+  const lineX = ruleName === "reach" ? 1 : ruleName === "prob" ? 0.95 : cut;
+  ctx.save(); ctx.setLineDash([4, 3]); ctx.strokeStyle = T.ink2; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(sx(lineX), P.y - 6); ctx.lineTo(sx(lineX), P.y + P.h); ctx.stroke(); ctx.restore();
+  ctx.fillStyle = T.ink2; ctx.font = `${T.fsXs} ${T.font}`; ctx.textAlign = "center";
+  ctx.fillText(ruleName === "prob" ? "0.95" : f2(lineX), sx(lineX), P.y - 10);
+  lik.curves.forEach((cv) => {
+    ctx.beginPath(); cv.ys.forEach((y, j) => { const X = sx(M.LIK_GRID[j]), Y = sy(Math.exp(y - lik.top)); j ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y); });
+    ctx.strokeStyle = T.groupA; ctx.lineWidth = 2; ctx.stroke();
+  });
+  for (const t of [0, 0.25, 0.5, 0.75, 1]) { ctx.fillStyle = T.ink3; ctx.font = `${T.fsXs} ${T.mono}`; ctx.fillText(t.toFixed(2), sx(t), P.y + P.h + 14); }
+  ctx.fillStyle = T.ink2; ctx.font = `${T.fsXs} ${T.font}`; ctx.fillText("Cancer cell fraction c", P.x + P.w / 2, P.y + P.h + 30);
+  ctx.strokeStyle = T.reference; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(sx(1) - 1, P.y + P.h - 9); ctx.lineTo(sx(1) - 1, P.y + P.h + 3); ctx.stroke();
+}
+function canvasIn(parent, w, h) {
+  const c = document.createElement("canvas"); parent.appendChild(c);
+  c.width = w * DPR; c.height = h * DPR; c.style.width = `${w}px`; c.style.height = `${h}px`;
+  const ctx = c.getContext("2d"); ctx.scale(DPR, DPR); return ctx;
+}
+const seg = (cols, items, on) => `<div class="seg" style="grid-template-columns:repeat(${cols},1fr)">${items.map((s) => `<span class="${s === on ? "on" : ""}">${s}</span>`).join("")}</div>`;
+const slider = (nm, v, pct, ticks, dt) => `<div class="ctl"><div class="nm"><span>${nm}</span><b>${v}</b></div><div class="bar"><i style="width:${pct}%"></i></div><div class="ticks">${ticks.map((t) => `<span>${t}</span>`).join("")}</div><div class="dt">${dt}</div></div>`;
+const CALL = { clonal: "Clonal", subclonal: "Subclonal", split: "Cannot tell" };
+
+{
+  const cfg = M.configOne({ purity: "0.70", ccf: "1.00", state: "1+1", depth: "88" });
+  const lik = M.likelihoodOf(33, 88, cfg, "both");
+  const host = document.getElementById("cands");
+  const given = `<div class="sec">The analysis</div><div class="ctl"><div class="nm"><span>Given</span></div>${seg(2, ["Nothing", "Purity", "Purity and copy number"], "Purity and copy number")}</div>`;
+  const cands = [
+    {
+      title: "A · Threshold only (the rule stays the whole range)",
+      rail: (v) => given + slider("Clonal threshold", f2(v), (v - 0.8) / 0.15 * 100, ["0.80", "0.85", "0.90", "0.95"], "the cancer cell fraction at or above which a mutation is called clonal"),
+      settings: [["whole", 0.8], ["whole", 0.95]],
+    },
+    {
+      title: "B′ · Two rules and a threshold: the cautious call and the confident one",
+      rail: (v, rule) => given + `<div class="ctl"><div class="nm"><span>Clonal if</span></div>${seg(1, ["every fraction the reads allow is above", "the best estimate is above"],
+        rule === "whole" ? "every fraction the reads allow is above" : "the best estimate is above")}
+        <div class="dt">whether the call reads the range of fractions the reads allow, or the single best estimate</div></div>`
+        + slider("Clonal threshold", f2(v), (v - 0.8) / 0.15 * 100, ["0.80", "0.85", "0.90", "0.95"], "the cancer cell fraction the rule compares against"),
+      settings: [["whole", 0.9], ["best", 0.9]],
+    },
+    {
+      title: "B · Four rules and a threshold",
+      rail: (v, rule) => given + `<div class="ctl"><div class="nm"><span>Clonal if</span></div>${seg(2, ["the whole range is above", "the best c is above", "the range reaches 1", "Pr(c > 0.95) > 0.5"],
+        { whole: "the whole range is above", best: "the best c is above", reach: "the range reaches 1", prob: "Pr(c > 0.95) > 0.5" }[rule])}
+        <div class="dt">how a call is made from the fractions the reads allow; each is used in published work</div></div>`
+        + (rule === "whole" || rule === "best" ? slider("Clonal threshold", f2(v), (v - 0.8) / 0.15 * 100, ["0.80", "0.85", "0.90", "0.95"], "the line the rule compares against") : ""),
+      settings: [["best", 0.9], ["reach", 1]],
+    },
+    {
+      title: "C · Threshold as the line on the figure (drag or click the plot), rule fixed",
+      rail: () => given + `<div class="dt" style="margin-top:6px">no rail control: the dashed line on the likelihood plot is the threshold, moved by pointer, with the value printed on it; the keyboard path is a Threshold control kept in a collapsed “How to call it” section</div>`,
+      settings: [["whole", 0.8], ["whole", 0.95]],
+    },
+  ];
+  for (const cand of cands) {
+    const h = document.createElement("h3"); h.textContent = cand.title; h.style.marginTop = "18px"; host.appendChild(h);
+    const row = document.createElement("div"); row.className = "row"; host.appendChild(row);
+    for (const [rule, cut] of cand.settings) {
+      const col = document.createElement("div"); col.className = "cand";
+      col.innerHTML = `<div class="rail">${cand.rail(cut, rule)}</div>`;
+      row.appendChild(col);
+      const fig = document.createElement("div"); fig.className = "cand";
+      row.appendChild(fig);
+      const ctx = canvasIn(fig, 552, 190);
+      panel(ctx, lik, cut, { ruleName: rule });
+      const call = RULES[rule].call(lik, cut);
+      const tiles = document.createElement("div"); tiles.className = "tiles";
+      const why = rule === "whole" ? `every allowed c ${lik.lo >= cut ? "is" : "is not"} ≥ ${f2(cut)}`
+        : rule === "best" ? `the best c, ${f2(lik.curves[0].cHat)}, ${lik.curves[0].cHat >= cut ? "≥" : "<"} ${f2(cut)}`
+          : rule === "reach" ? `the allowed range ${lik.hi >= 1 ? "reaches" : "stops short of"} 1`
+            : `Pr(c > 0.95) = ${f2(posteriorAbove(lik, 0.95))}`;
+      tiles.innerHTML = `<div>Cancer cell fraction<b>${f2(lik.lo)}–${f2(lik.hi)}</b><span>what the reads allow, 95%</span></div>
+        <div>Clonal or subclonal<b>${CALL[call]}</b><span>${why}</span></div>
+        <div>${rule === "whole" || rule === "best" ? "Threshold" : "Rule"}<b>${rule === "whole" || rule === "best" ? f2(cut) : RULES[rule].label}</b><span>${rule === "whole" ? "whole range" : rule === "best" ? "best c" : "no line to set"}</span></div>`;
+      fig.appendChild(tiles);
+    }
+  }
+  document.getElementById("rec").innerHTML = `<b>Recommendation: B′ — two rules and a threshold</b>, under The analysis:
+    <i>Clonal if every fraction the reads allow is above</i> (today's rule, the default) · <i>the best estimate is above</i>, and a
+    Clonal threshold of 0.80 · 0.85 · 0.90 · 0.95 (default 0.90) that moves the dashed line on the figure. The measurement says
+    the rule, not the line, is what changes a call — this reading goes from Cannot tell to Clonal only by switching rule — and
+    the two rules are the trade-off every published rule sits on: cautious and never wrong here, or confident and wrong 13–16%
+    of the time at 88 reads. <b>A</b> alone would teach that the line matters when on this page it barely does. <b>B</b>'s four
+    rules add two that behave like the ones in B′ (Reaches 1 between them, Probability like Best c) at the cost of a
+    probability on a page whose job is the likelihood. <b>C</b>, the draggable line, is a new interaction and still needs the
+    rail control as the keyboard path. Each rule's name in practice stays in the notebook, not on the widget.`;
+}
+</script>
+</body>
+</html>
