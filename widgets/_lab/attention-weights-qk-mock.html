@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · 83 Weights with Q and K — mock</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1760px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 120ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-3) 0 0; padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 120ch; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Widget 83 · the Weights step with Q and K drawn · mock</h1>
+  <p class="note">
+    The Projections step ends on Q and K [L × 12]; the Weights step starts from qᵢ·kⱼ. Two ways to carry the two
+    matrices across. Real numbers: head 4, <i>treated with aspirin for chest pain</i> padded with four [PAD], mask
+    passed, four queries computed, the press's outline on the key <b>chest</b>: 5.28 = q<sub>aspirin</sub>·k<sub>chest</sub> / √12.
+    Drawn at 740px.
+  </p>
+
+  <h2>A · the matrix product again: Q to the left of the matrix, Kᵀ above it, α where a row of Q meets a column of Kᵀ</h2>
+  <canvas id="A"></canvas>
+  <p class="note">The same layout as the Projections step: [L × 12] times [12 × (L + 4)] gives the [L × (L + 4)] scores, and the
+    softmax of each row is the row of α drawn there. The strips above the matrix (Query, Keys, Mask, Scores, Weights)
+    stay as they are; only the matrix gains Q and Kᵀ. About 90px taller.</p>
+
+  <h2>B · the vectors in the strips: qᵢ beside the Keys label, each kⱼ under its key, the score under its kⱼ</h2>
+  <canvas id="B"></canvas>
+  <p class="note">One query at a time, as the strips already are: the press's outline steps along the kⱼ columns and each
+    score prints under the k it came from. The matrix below is unchanged. About 70px taller.</p>
+
+  <p class="rec">Recommended: <b>A</b>. It is the picture the Projections step taught, applied a second time
+    (QKᵀ, rows of one against columns of the other), so the two steps read as one computation; and it shows Q and K as
+    the matrices they are, which B's per-query vectors do not. B ties each score to its k more closely, but the
+    Scores strip already does that job for the press's query.</p>
+</main>
+<script type="module">
+import * as M from "../attention/model.js";
+const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const C = { ink1: css("--ink-1"), ink2: css("--ink-2"), ink3: css("--ink-3"), s2: css("--surface-2"), s3: css("--surface-3"),
+  a: css("--c-group-a"), b: css("--c-group-b"), hl: css("--c-highlight"), mag: css("--c-magnitude"), lo: css("--c-value-low"), hi: css("--c-value-high"),
+  font: css("--font"), mono: css("--font-mono") };
+const rgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+const mixA = (a, b, t) => a.map((x, i) => x + (b[i] - x) * Math.max(0, Math.min(1, t)));
+const str = (p) => `rgb(${p.map(Math.round).join(",")})`;
+const wcol = (w) => str(mixA(rgb(C.s3), rgb(C.mag), Math.sqrt(w)));
+const vcol = (v, s) => str(mixA(rgb(C.s3), rgb(v >= 0 ? C.hi : C.lo), Math.abs(v) / s));
+const capF = "600 12px " + C.font, smF = "11px " + C.font, monoF = "11px " + C.mono;
+function t(g, s, x, y, { f = smF, c = C.ink2, a = "left", rot = 0 } = {}) { g.save(); g.translate(x, y); g.rotate(rot); g.font = f; g.fillStyle = c; g.textAlign = a; g.textBaseline = "middle"; g.fillText(s, 0, 0); g.restore(); }
+const frame = (g, x, y, w, h, col = C.ink2, lw = 1.5) => { g.strokeStyle = col; g.lineWidth = lw; g.strokeRect(x - 1, y - 1, w + 1, h + 1); g.lineWidth = 1; };
+const mark = (g, x, y, w, h) => frame(g, x - 0.5, y - 0.5, w + 1, h + 1, C.hl, 2);
+const dash = (g, x, y, w, h) => { g.setLineDash([3, 3]); g.strokeStyle = C.a; g.lineWidth = 1.5; g.strokeRect(x - 2.5, y - 1.5, w + 4, h + 2); g.setLineDash([]); g.lineWidth = 1; };
+function setup(id, W, h) { const cv = document.getElementById(id), dpr = devicePixelRatio || 1; cv.width = W * dpr; cv.height = h * dpr; cv.style.width = W + "px"; cv.style.height = h + "px"; const g = cv.getContext("2d"); g.scale(dpr, dpr); return g; }
+
+const st = M.stage("aspirin"), L = st.L, P = st.padded, toks = P.tokens, K = toks.length, hd = P.masked.heads[3], N = 4, QI = 3, J = 5;
+const qk = Math.max(...hd.q.flat().map(Math.abs), ...hd.k.flat().map(Math.abs));
+console.log("CHECK", hd.score[QI][J].toFixed(2), (hd.q[QI].reduce((s, v, d) => s + v * hd.k[J][d], 0) / Math.sqrt(12)).toFixed(2));
+const W = 740;
+
+/* ---- A */
+{
+  const cs = 24, qc = 7, kr = 7, lab = 70, qx = 12 + lab + 6, mx = qx + 12 * qc + 22, kTop = 92, mTop = kTop + 12 * kr + 18;
+  const h = mTop + L * cs + 50, g = setup("A", W, h);
+  t(g, "…the strips above the matrix, unchanged…", 12, 14, { c: C.ink3 });
+  t(g, "Attention weights αᵢⱼ = softmaxⱼ(qᵢ·kⱼ / √dₖ + mⱼ)", 12, 34, { f: capF, c: C.ink1 });
+  /* key labels, then Kᵀ [12 × K] */
+  toks.forEach((s, j) => t(g, s, mx + j * cs + cs / 2, kTop - 8, { f: monoF, c: j >= L ? C.ink3 : C.b, rot: -Math.PI / 2 }));
+  for (let d = 0; d < 12; d++) for (let j = 0; j < K; j++) { g.fillStyle = vcol(hd.k[j][d], qk); g.fillRect(mx + j * cs, kTop + d * kr, cs - 1, kr - 1); }
+  frame(g, mx, kTop, K * cs, 12 * kr);
+  t(g, `Kᵀ  [12 × ${K}]`, mx + K * cs + 10, kTop + 6 * kr, { c: C.ink1 });
+  mark(g, mx + J * cs, kTop, cs, 12 * kr);
+  /* Q [L × 12] */
+  t(g, `Q  [${L} × 12]`, qx + 6 * qc, mTop - 10, { c: C.ink1, a: "center" });
+  toks.slice(0, L).forEach((s, i) => t(g, s, qx - 6, mTop + i * cs + cs / 2, { f: monoF, c: i === QI ? C.a : C.ink2, a: "right" }));
+  for (let i = 0; i < L; i++) for (let d = 0; d < 12; d++) { g.fillStyle = i < N ? vcol(hd.q[i][d], qk) : C.s2; g.fillRect(qx + d * qc, mTop + i * cs, qc - 1, cs - 1); }
+  frame(g, qx, mTop, 12 * qc, L * cs);
+  dash(g, qx, mTop + QI * cs, 12 * qc, cs);
+  /* α */
+  for (let i = 0; i < L; i++) for (let j = 0; j < K; j++) {
+    g.fillStyle = i < N ? wcol(hd.alpha[i][j]) : C.s2; g.fillRect(mx + j * cs, mTop + i * cs, cs - 1, cs - 1);
+    if (j >= L) { g.strokeStyle = C.ink3; g.beginPath(); g.moveTo(mx + j * cs + 1, mTop + i * cs + cs - 2); g.lineTo(mx + j * cs + cs - 2, mTop + i * cs + 1); g.stroke(); }
+  }
+  frame(g, mx, mTop, K * cs, L * cs);
+  dash(g, mx, mTop + QI * cs, K * cs, cs);
+  mark(g, mx + J * cs, mTop + QI * cs, cs, cs);
+  t(g, `[${L} × ${K}]`, mx + K * cs + 10, mTop + (L * cs) / 2, { c: C.ink1 });
+  t(g, `the marked cell: q of "aspirin" · k of "chest" / √12 = ${hd.score[QI][J].toFixed(2)}, then the row's softmax`, 12, mTop + L * cs + 26, { c: C.ink3 });
+}
+
+/* ---- B */
+{
+  const lab = 70, x0 = 12 + lab + 50, colW = Math.floor((W - x0 - 12) / K), kc = 5, keyY = 30, kTop = 44, sTop = kTop + 12 * kc + 26;
+  const h = sTop + 100, g = setup("B", W, h), cxj = (j) => x0 + j * colW + colW / 2;
+  t(g, "Keys", 12, keyY, { f: capF, c: C.ink1 });
+  toks.forEach((s, j) => t(g, s, cxj(j), keyY, { f: monoF, c: j >= L ? C.ink3 : C.b, a: "center" }));
+  /* qᵢ at the left, vertical, beside the key columns it meets */
+  t(g, "qᵢ", 12 + 20, kTop + 12 * kc + 10, { f: capF, c: C.a, a: "center" });
+  for (let d = 0; d < 12; d++) { g.fillStyle = vcol(hd.q[QI][d], qk); g.fillRect(12 + 14, kTop + d * kc, 12, kc - 1); }
+  frame(g, 12 + 14, kTop, 12, 12 * kc, C.a);
+  t(g, "aspirin", 12 + 32, kTop + 6 * kc, { f: monoF, c: C.a });
+  t(g, "kⱼ", x0 - 12, kTop + 6 * kc, { f: capF, c: C.ink1, a: "center" });
+  toks.forEach((_, j) => {
+    for (let d = 0; d < 12; d++) { g.fillStyle = vcol(hd.k[j][d], qk); g.fillRect(cxj(j) - 6, kTop + d * kc, 12, kc - 1); }
+    frame(g, cxj(j) - 6, kTop, 12, 12 * kc, C.ink3, 1);
+  });
+  mark(g, cxj(J) - 6, kTop, 12, 12 * kc);
+  t(g, "Mask", 12, sTop + 11, { f: capF, c: C.ink1 });
+  toks.forEach((_, j) => { g.strokeStyle = C.ink2; g.strokeRect(x0 + j * colW + 1.5, sTop + 0.5, colW - 3, 20); t(g, j < L ? "1" : "0", cxj(j), sTop + 11, { f: monoF, c: j < L ? C.ink1 : C.lo, a: "center" }); });
+  t(g, "Scores", 12, sTop + 41, { f: capF, c: C.ink1 });
+  toks.forEach((_, j) => { g.strokeStyle = C.ink2; g.strokeRect(x0 + j * colW + 1.5, sTop + 30.5, colW - 3, 20); t(g, j < L ? hd.score[QI][j].toFixed(2) : "−∞", cxj(j), sTop + 41, { f: monoF, c: j < L ? C.ink1 : C.lo, a: "center" }); });
+  mark(g, x0 + J * colW + 1, sTop + 30, colW - 2, 21);
+  t(g, "…Weights strip and the matrix below, unchanged…", 12, sTop + 78, { c: C.ink3 });
+}
+</script>
+</body>
+</html>

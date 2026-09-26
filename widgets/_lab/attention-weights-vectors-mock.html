@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · 83 Weights with q and k at the words — mock</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1760px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 120ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .bar { display: flex; gap: var(--sp-3); align-items: center; flex-wrap: wrap; margin: var(--sp-2) 0; font-size: var(--fs-sm); color: var(--ink-2); }
+  .bar button, .bar select { font: inherit; padding: 4px 12px; background: var(--surface-2); color: var(--ink-1); border: 1px solid var(--grid); border-radius: 4px; cursor: pointer; }
+  .seg { display: inline-flex; border: 1px solid var(--grid); border-radius: 4px; overflow: hidden; }
+  .seg button { border: 0; border-right: 1px solid var(--grid); border-radius: 0; color: var(--ink-2); }
+  .seg button:last-child { border-right: 0; }
+  .seg button[aria-pressed="true"] { background: var(--surface-3); color: var(--ink-1); font-weight: 600; }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-3) 0 0; padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 120ch; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Widget 83 · the Weights step with qᵢ and kⱼ at their words · mock</h1>
+  <p class="note">
+    The Weights step as it is (the sentence, the query circled, the bracket to the keys, Mask, Scores, Weights), with
+    two additions: the query's <b>qᵢ</b> [12] stands under its word and glides with it as the query moves, and every
+    key carries its <b>kⱼ</b> [12] under its word. While the outline steps along the keys, the qᵢ and the kⱼ being
+    multiplied are both marked, and the score prints under that kⱼ. Press <b>Next query</b>. Head 4, mask passed,
+    the matrix below unchanged (not drawn). Live, with the widget's own timing.
+  </p>
+  <div class="bar">
+    <button id="next">Next query</button><button id="reset">Reset</button>
+    <select id="sent"><option value="aspirin">treated with aspirin … (L 8)</option><option value="wound">patient presented … (L 11)</option></select>
+    <select id="width"><option value="740">740px</option><option value="541">541px (narrowest)</option></select>
+    <span>kⱼ</span><span class="seg" id="kmode"><button data-v="full">K1 all from the start</button><button data-v="step">K2 each as its key is scored</button></span>
+  </div>
+  <canvas id="cv"></canvas>
+  <p class="rec">Recommended: <b>K1</b>. The keys' vectors are the step's input, computed on the Projections step, so they
+    stand there from the start as X does there; what a press adds is the query's qᵢ and the scores. K2 makes every
+    press rebuild the same twelve vectors, the same each time, which reads as if they depended on the query.</p>
+</main>
+<script type="module">
+import * as M from "../attention/model.js";
+const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const C = { ink1: css("--ink-1"), ink2: css("--ink-2"), ink3: css("--ink-3"), s2: css("--surface-2"), s3: css("--surface-3"), surface: css("--surface-1"),
+  a: css("--c-group-a"), b: css("--c-group-b"), hl: css("--c-highlight"), ext: css("--c-extreme"), mag: css("--c-magnitude"), lo: css("--c-value-low"), hi: css("--c-value-high"),
+  font: css("--font"), mono: css("--font-mono") };
+const rgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+const mixA = (a, b, t) => a.map((x, i) => x + (b[i] - x) * Math.max(0, Math.min(1, t)));
+const str = (p) => `rgb(${p.map(Math.round).join(",")})`;
+const wfill = (w) => mixA(rgb(C.s3), rgb(C.mag), Math.sqrt(w));
+const vcol = (v, s) => str(mixA(rgb(C.s3), rgb(v >= 0 ? C.hi : C.lo), Math.abs(v) / s));
+const lum = (p) => (0.2126 * p[0] + 0.7152 * p[1] + 0.0722 * p[2]) / 255;
+const inkOn = (p) => (Math.abs(lum(p) - lum(rgb(C.ink1))) > Math.abs(lum(p) - lum(rgb(C.surface))) ? C.ink1 : C.surface);
+const capF = "600 12px " + C.font, smF = "11px " + C.font, monoF = "11px " + C.mono;
+const ease = (t) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2), lerp = (a, b, t) => a + (b - a) * t;
+function t(g, s, x, y, { f = smF, c = C.ink2, a = "left", alpha = 1 } = {}) { if (alpha <= 0) return; g.save(); g.globalAlpha = alpha; g.font = f; g.fillStyle = c; g.textAlign = a; g.textBaseline = "middle"; g.fillText(s, x, y); g.restore(); }
+function line(g, x1, y1, x2, y2, col, lw = 1.2) { g.strokeStyle = col; g.lineWidth = lw; g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke(); g.lineWidth = 1; }
+function arrow(g, x1, y1, x2, y2, col) { line(g, x1, y1, x2, y2, col); const a = Math.atan2(y2 - y1, x2 - x1); g.fillStyle = col; g.beginPath(); g.moveTo(x2, y2); g.lineTo(x2 - 5 * Math.cos(a - 0.45), y2 - 5 * Math.sin(a - 0.45)); g.lineTo(x2 - 5 * Math.cos(a + 0.45), y2 - 5 * Math.sin(a + 0.45)); g.fill(); }
+const mark = (g, x, y, w, h) => { g.strokeStyle = C.hl; g.lineWidth = 2; g.strokeRect(x - 1.5, y - 1.5, w + 3, h + 3); g.lineWidth = 1; };
+
+/* layout: the widget's rows moved down to make room for qᵢ under the query and kⱼ under each key */
+const Y = { qY: 34, qBar: 48, bus: 108, keyY: 130, kBar: 142, maskY: 198, maskH: 22, scoreY: 230, stripH: 28, weightY: 288, softY: 274, end: 350 };
+const VC = 4, VW = 12;   // a vector: 12 cells of 4 px, 12 px wide
+const P = { pre: 260, key: 240, cut: 420, soft: 700 };
+let key = "aspirin", W = 740, kmode = "full", anim = { n: 0, t: 1 }, last = null;
+const cv = document.getElementById("cv"), dpr = devicePixelRatio || 1, g0 = cv.getContext("2d");
+
+function phase(K) {
+  if (anim.n === 0) return { e: 0, k: -1, u: 0, cut: 0, soft: 0 };
+  if (anim.t >= 1) return { e: 1, k: K, u: 1, cut: 1, soft: 1 };
+  const tau = anim.t * (P.pre + K * P.key + P.cut + P.soft);
+  if (tau < P.pre) return { e: ease(tau / P.pre), k: -1, u: 0, cut: 0, soft: 0 };
+  let r = tau - P.pre;
+  if (r < K * P.key) return { e: 1, k: Math.floor(r / P.key), u: (r % P.key) / P.key, cut: 0, soft: 0 };
+  r -= K * P.key;
+  if (r < P.cut) return { e: 1, k: K, u: 1, cut: ease(r / P.cut), soft: 0 };
+  return { e: 1, k: K, u: 1, cut: 1, soft: ease(Math.min(1, (r - P.cut) / P.soft)) };
+}
+function draw() {
+  const st = M.stage(key), L = st.L, toks = st.padded.tokens, K = toks.length, hd = st.padded.masked.heads[3], open = st.padded.open.heads[3];
+  const vmax = Math.max(...hd.q.flat().map(Math.abs), ...hd.k.flat().map(Math.abs));
+  cv.width = W * dpr; cv.height = Y.end * dpr; cv.style.width = W + "px"; cv.style.height = Y.end + "px";
+  const g = g0; g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, W, Y.end);
+  /* key columns as the widget sizes them */
+  g.font = monoF;
+  const want = toks.map((s, j) => (j < L ? Math.max(g.measureText(s).width + 10, g.measureText("−0.00").width + 8) : g.measureText("−0.0").width + 8));
+  const avail = W - 24 - 50, sc = Math.min(1, avail / want.reduce((a, b) => a + b, 0));
+  const cols = []; let x = 12 + 50; for (const c of want) { cols.push([x, c * sc]); x += c * sc; }
+  const cx = (j) => cols[j][0] + cols[j][1] / 2, x0 = cols[0][0], x1 = cols[K - 1][0] + cols[K - 1][1];
+  const crowded = toks.slice(0, L).some((s, j) => g.measureText(s).width + 2 > cols[j][1]);
+  const lift = (j) => (crowded && j % 2 ? 12 : 0);
+  const qi = anim.n - 1, ph = phase(K), gl = qi >= 0 ? { from: anim.n >= 2 ? anim.n - 2 : null, to: qi, e: ph.e } : null;
+  if (gl) gl.first = gl.from === null;
+
+  t(g, "Query", 12, Y.qY, { f: capF, c: C.ink1 });
+  t(g, "Keys", 12, Y.keyY, { f: capF, c: C.ink1 });
+  for (let j = 0; j < L; j++) {
+    t(g, toks[j], cx(j), Y.qY - lift(j), { f: monoF, c: j === qi ? C.a : C.ink3, a: "center" });
+    t(g, toks[j], cx(j), Y.keyY - lift(j), { f: monoF, c: C.b, a: "center" });
+  }
+  t(g, `[PAD] × ${K - L}`, (cols[L][0] + x1) / 2, Y.keyY, { f: monoF, c: C.ink3, a: "center" });
+  /* kⱼ under every key: K1 from the start, K2 as its key is scored (and kept) */
+  for (let j = 0; j < K; j++) {
+    const shown = kmode === "full" ? 1 : !gl ? 0 : j < ph.k ? 1 : j === ph.k ? Math.min(1, ph.u / 0.4) : ph.k >= K ? 1 : (anim.n > 1 ? 1 : 0);
+    const bx = cx(j) - VW / 2;
+    for (let d = 0; d < 12; d++) { g.fillStyle = C.s2; g.fillRect(bx, Y.kBar + d * VC, VW, VC - 1); if (shown > 0) { g.globalAlpha = shown; g.fillStyle = vcol(hd.k[j][d], vmax); g.fillRect(bx, Y.kBar + d * VC, VW, VC - 1); g.globalAlpha = 1; } }
+    g.strokeStyle = j >= L ? C.ink3 : C.ink2; g.strokeRect(bx - 0.5, Y.kBar - 0.5, VW + 1, 12 * VC);
+  }
+  t(g, "kⱼ", x0 - 8, Y.kBar + 6 * VC, { f: capF, c: C.ink1, a: "right" });
+  /* Mask, Scores, Weights, as the widget draws them */
+  t(g, "Mask", x0 - 6, Y.maskY + Y.maskH / 2, { c: C.ink2, a: "right" });
+  for (let j = 0; j < K; j++) { g.fillStyle = C.s2; g.fillRect(cols[j][0], Y.maskY, cols[j][1], Y.maskH); t(g, j >= L ? "0" : "1", cx(j), Y.maskY + Y.maskH / 2, { f: monoF, c: j >= L ? C.ext : C.ink1, a: "center" }); }
+  g.strokeStyle = C.ink2; g.strokeRect(x0 + 0.5, Y.maskY + 0.5, x1 - x0 - 1, Y.maskH - 1);
+  t(g, "Scores", x0 - 6, Y.scoreY + Y.stripH / 2, { a: "right" }); t(g, "Weights", x0 - 6, Y.weightY + Y.stripH / 2, { a: "right" });
+  for (const y of [Y.scoreY, Y.weightY]) { g.fillStyle = C.s2; g.fillRect(x0, y, x1 - x0, Y.stripH); }
+  if (gl) {
+    /* the query: its circle and its qᵢ under it, gliding together; the last query's qᵢ fading out */
+    const qx = gl.first ? cx(gl.to) : lerp(cx(gl.from), cx(gl.to), gl.e), qyy = gl.first ? Y.qY - lift(gl.to) : lerp(Y.qY - lift(gl.from), Y.qY - lift(gl.to), gl.e);
+    g.font = monoF; const tw = (i) => g.measureText(toks[i]).width + 10, rx = (gl.first ? tw(gl.to) : lerp(tw(gl.from), tw(gl.to), gl.e)) / 2;
+    g.save(); g.globalAlpha = gl.first ? gl.e : 1; g.strokeStyle = C.a; g.lineWidth = 1.5; g.setLineDash([3, 3]); g.beginPath(); g.ellipse(qx, qyy, rx, 11, 0, 0, Math.PI * 2); g.stroke(); g.restore();
+    const bx = qx - VW / 2;
+    for (let d = 0; d < 12; d++) {
+      g.fillStyle = C.s2; g.fillRect(bx, Y.qBar + d * VC, VW, VC - 1);
+      const from = gl.first ? null : hd.q[gl.from][d], to = hd.q[gl.to][d];
+      if (from !== null && gl.e < 1) { g.globalAlpha = 1 - gl.e; g.fillStyle = vcol(from, vmax); g.fillRect(bx, Y.qBar + d * VC, VW, VC - 1); }
+      g.globalAlpha = gl.e; g.fillStyle = vcol(to, vmax); g.fillRect(bx, Y.qBar + d * VC, VW, VC - 1); g.globalAlpha = 1;
+    }
+    g.strokeStyle = C.a; g.lineWidth = 1.5; g.strokeRect(bx - 0.5, Y.qBar - 0.5, VW + 1, 12 * VC); g.lineWidth = 1;
+    t(g, "qᵢ", bx - 6, Y.qBar + 6 * VC, { f: capF, c: C.a, a: "right" });
+    /* the bracket from qᵢ to every key */
+    line(g, qx, Y.qBar + 12 * VC + 2, qx, Y.bus, C.ink2);
+    line(g, cx(0), Y.bus, cx(K - 1), Y.bus, C.ink2);
+    for (let j = 0; j < K; j++) arrow(g, cx(j), Y.bus, cx(j), Y.keyY - 10 - (crowded ? 12 : 0), C.ink2);
+    /* the key being scored: its kⱼ and qᵢ marked together */
+    if (ph.k >= 0 && ph.k < K && gl.e >= 1) { mark(g, cx(ph.k) - VW / 2, Y.kBar, VW, 12 * VC - 1); mark(g, bx, Y.qBar, VW, 12 * VC - 1); mark(g, cols[ph.k][0] + 1, Y.scoreY, cols[ph.k][1] - 2, Y.stripH); }
+    const out = gl.first ? 0 : 1 - ph.e;
+    for (let j = 0; j < K; j++) {
+      const ty = Y.scoreY + Y.stripH / 2, cut = j >= L, fmt = (v) => (v < 0 ? "−" : "") + Math.abs(v).toFixed(cols[j][1] > 40 ? 2 : 1);
+      if (out > 0) t(g, cut ? "−∞" : fmt(open.score[gl.from][j]), cx(j), ty, { f: monoF, c: cut ? C.ext : C.ink1, a: "center", alpha: out });
+      const on = ph.k < 0 ? 0 : j < ph.k ? 1 : j === ph.k ? Math.min(1, ph.u / 0.4) : 0;
+      t(g, fmt(open.score[gl.to][j]), cx(j), ty, { f: monoF, c: C.ink1, a: "center", alpha: on * (cut ? 1 - ph.cut : 1) });
+      if (cut) t(g, "−∞", cx(j), ty, { f: monoF, c: C.ext, a: "center", alpha: on * ph.cut });
+      for (const [row, a] of [[gl.from, out], [gl.to, ph.soft]]) {
+        if (row === null || a <= 0) continue;
+        const fill = wfill(hd.alpha[row][j]);
+        g.globalAlpha = a; g.fillStyle = str(fill); g.fillRect(cols[j][0], Y.weightY, cols[j][1], Y.stripH); g.globalAlpha = 1;
+        t(g, hd.alpha[row][j].toFixed(2).replace(/^0/, cols[j][1] > 40 ? "0" : ""), cx(j), Y.weightY + Y.stripH / 2, { f: monoF, c: inkOn(fill), a: "center", alpha: a });
+      }
+    }
+    t(g, `−∞ where the mask is 0, then softmax of q·k / √dₖ ↓`, x0, Y.softY, { c: C.ink1 });
+  }
+  for (const y of [Y.scoreY, Y.weightY]) { g.strokeStyle = C.ink2; for (let j = 0; j < K; j++) g.strokeRect(cols[j][0] + 0.5, y + 0.5, cols[j][1] - 1, Y.stripH - 1); }
+  if (!gl) t(g, "Next query computes the first row", x0, Y.qBar + 24, { c: C.ink3 });
+  t(g, "…the α matrix below, unchanged", 12, Y.end - 10, { c: C.ink3 });
+}
+function frame(ts) {
+  const K = M.stage(key).padded.tokens.length, ms = P.pre + K * P.key + P.cut + P.soft;
+  const dt = last === null ? 16 : Math.min(64, ts - last); last = ts;
+  anim.t = Math.min(1, anim.t + dt / ms); draw();
+  if (anim.t < 1) requestAnimationFrame(frame); else last = null;
+}
+document.getElementById("next").onclick = () => { const L = M.stage(key).L; if (anim.n >= L) return; anim.n += 1; anim.t = 0; last = null; requestAnimationFrame(frame); };
+document.getElementById("reset").onclick = () => { anim = { n: 0, t: 1 }; draw(); };
+document.getElementById("sent").onchange = (e) => { key = e.target.value; anim = { n: 0, t: 1 }; draw(); };
+document.getElementById("width").onchange = (e) => { W = +e.target.value; draw(); };
+const sync = () => document.querySelectorAll("#kmode button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.v === kmode));
+document.querySelectorAll("#kmode button").forEach((b) => (b.onclick = () => { kmode = b.dataset.v; sync(); draw(); }));
+sync(); anim = { n: 4, t: 1 }; draw();
+window.__mock = { set: (n, tt) => { anim = { n, t: tt }; draw(); } };
+</script>
+</body>
+</html>

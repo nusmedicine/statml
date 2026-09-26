@@ -74,7 +74,7 @@ const S = {
   stepTitleTok: "Compute the next token's query, key and value",
   runLabel: "Play",
   runTitle: "Compute the remaining rows",
-  query: "Query", keys: "Keys",
+  query: "Query", keys: "Keys", qLabel: "qᵢ", kLabel: "kⱼ",
   weightsCap: "Attention weights αᵢⱼ",
   rowCap: (q, h, raw) => `α for the query "${q}" · head ${h}${raw ? " · q·k without the division" : ""} · the row sums to 1`,
   rowWait: "Next query computes the first row",
@@ -433,7 +433,15 @@ function drawProjections(ctx, colors, w, params, state, anim, pointer) {
    turns the scores over its 0s to −∞; then the softmax fills the Weights strip and
    the matrix gets the row. Both strips stay after the press, so the Scores and
    Mask switches move rows the reader can read. A score has no colour — it is not
-   yet a weight. */
+   yet a weight.
+   THE VECTORS AT THEIR WORDS (his ask, 2026-09-26: "retain the original layout ...
+   the vectors appear with the words as you cycle. the keys have the vectors also";
+   `_lab/attention-weights-vectors-mock.html`, his pick K1). The query's qᵢ [12] stands
+   under its circled word and glides with it; every key's kⱼ [12] stands under its word
+   from the start, the step's input as X is the Projections step's. While the outline
+   steps along the scores it rides over the kⱼ being multiplied too, and qᵢ is outlined,
+   so each score prints under the two vectors it came from. The marks are the query's
+   hue, not --c-highlight: the Weights strip wears --c-magnitude, its violet twin. */
 const WP = { pre: 260, key: 240, cut: 420, soft: 700 }, WP_RUN = { pre: 160, key: 120, cut: 220, soft: 350 };
 const weightsMs = (K, mode, masked) => { const P = mode === "run" ? WP_RUN : WP; return P.pre + K * P.key + (masked ? P.cut : 0) + P.soft; };
 /** where a press is on the Weights page: the glide `e`, the key `k` being scored and its progress `u`, the mask beat `cut`, the softmax `soft` */
@@ -450,7 +458,8 @@ function weightsPhase(anim, K, masked) {
   return { e: 1, k: K, u: 1, cut: 1, soft: ease(Math.min(1, (r - cutMs) / P.soft)) };
 }
 
-const WT = { qY: 34, keyY: 96, maskY: 108, maskH: 22, scoreY: 140, stripH: 28, softY: 184, weightY: 198, capY: 242, arrowTo: 262, matTop: 336, cs: 24 };
+const WT = { qY: 34, qBar: 46, vc: 4, vw: 12, bus: 102, keyY: 138, kBar: 142, maskY: 198, maskH: 22, scoreY: 230, stripH: 28, softY: 274, weightY: 288,
+  capY: 332, arrowTo: 352, matTop: 426, cs: 24 };
 const weightsCs = (w, K) => Math.min(WT.cs, Math.floor((w - PAD_L - PAD_R - 150) / K));
 const heightWeights = (w, L, K) => WT.matTop + L * weightsCs(w, K) + 34;
 
@@ -495,7 +504,7 @@ function drawWeights(ctx, colors, w, params, state, anim) {
   const crowded = toks.slice(0, L).some((t, j) => ctx.measureText(t).width + 2 > cols[j][1]);
   ctx.restore();
   const lift = (j) => (crowded && j % 2 ? 12 : 0), qy = (j) => WT.qY - lift(j), ky = (j) => WT.keyY - 8 - lift(j);
-  const arrowEnd = crowded ? 64 : 74;
+  const arrowEnd = crowded ? 108 : 120;
   txt(ctx, S.query, PAD_L, WT.qY, { font: cap(colors), fill: colors.ink1, baseline: "middle" });
   txt(ctx, S.keys, PAD_L, WT.keyY - 8, { font: cap(colors), fill: colors.ink1, baseline: "middle" });
   for (let j = 0; j < L; j++) {
@@ -504,7 +513,15 @@ function drawWeights(ctx, colors, w, params, state, anim) {
   }
   /* the [PAD] keys share one label, over a bracket */
   txt(ctx, S.padGroup(K - L), (cols[L][0] + x1) / 2, WT.keyY - 8, { font: mono(colors), fill: colors.ink3, align: "center", baseline: "middle" });
-  line(ctx, cols[L][0] + 2, WT.keyY + 1, x1 - 2, WT.keyY + 1, colors.ink3, 1);
+  line(ctx, cols[L][0] + 2, WT.keyY - 1, x1 - 2, WT.keyY - 1, colors.ink3, 1);
+  /* every key's kⱼ under its word, from the start */
+  const QK = state.padded.open.heads[h], vmax = Math.max(...QK.q.flat().map(Math.abs), ...QK.k.flat().map(Math.abs));
+  const vec = (x, y, vals, stroke) => {
+    for (let d = 0; d < M.DK; d++) { ctx.fillStyle = css(signedFill(colors, vals[d], vmax)); ctx.fillRect(x, y + d * WT.vc, WT.vw, WT.vc - 1); }
+    ctx.strokeStyle = stroke; ctx.lineWidth = 1; ctx.strokeRect(x - 0.5, y - 0.5, WT.vw + 1, M.DK * WT.vc);
+  };
+  for (let j = 0; j < K; j++) vec(cx(j) - WT.vw / 2, WT.kBar, QK.k[j], j >= L ? colors.ink3 : colors.ink2);
+  txt(ctx, S.kLabel, x0 - 8, WT.kBar + (M.DK * WT.vc) / 2, { font: cap(colors), fill: colors.ink1, align: "right", baseline: "middle" });
   /* the attention_mask row: 1 over a token, 0 over a [PAD]; grey when not passed */
   txt(ctx, S.maskRow, x0 - 6, WT.maskY + WT.maskH / 2, { font: small(colors), fill: masked ? colors.ink2 : colors.ink3, align: "right", baseline: "middle" });
   for (let j = 0; j < K; j++) {
@@ -525,9 +542,22 @@ function drawWeights(ctx, colors, w, params, state, anim) {
     ctx.restore();
     ctx.save(); ctx.globalAlpha = g.first ? g.e : 1; ctx.strokeStyle = colors.groupA; ctx.lineWidth = 1.5; ctx.setLineDash([3, 3]);
     ctx.beginPath(); ctx.ellipse(qx, qyy, rx, 11, 0, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
-    line(ctx, qx, qyy + 12, qx, 52, colors.ink2, 1.2);
-    line(ctx, cx(0), 52, cx(K - 1), 52, colors.ink2, 1.2);
-    for (let j = 0; j < K; j++) arrow(ctx, cx(j), 52, cx(j), arrowEnd, colors.ink2);
+    /* qᵢ under the circle, gliding with it: the last query's fading out, this one's in */
+    const bx = qx - WT.vw / 2;
+    for (let d = 0; d < M.DK; d++) {
+      const y = WT.qBar + d * WT.vc;
+      ctx.fillStyle = colors.surface2; ctx.fillRect(bx, y, WT.vw, WT.vc - 1);
+      for (const [row, a] of [[g.from, g.first ? 0 : 1 - g.e], [g.to, g.e]]) {
+        if (row === null || a <= 0) continue;
+        ctx.save(); ctx.globalAlpha = a; ctx.fillStyle = css(signedFill(colors, QK.q[row][d], vmax)); ctx.fillRect(bx, y, WT.vw, WT.vc - 1); ctx.restore();
+      }
+    }
+    ctx.strokeStyle = colors.groupA; ctx.lineWidth = 1.5; ctx.strokeRect(bx - 0.5, WT.qBar - 0.5, WT.vw + 1, M.DK * WT.vc); ctx.lineWidth = 1;
+    txt(ctx, S.qLabel, bx - 6, WT.qBar + (M.DK * WT.vc) / 2, { font: cap(colors), fill: colors.groupA, align: "right", baseline: "middle" });
+    if (qyy + 12 < WT.qBar) line(ctx, qx, qyy + 12, qx, WT.qBar - 1, colors.ink2, 1.2);
+    line(ctx, qx, WT.qBar + M.DK * WT.vc + 1, qx, WT.bus, colors.ink2, 1.2);
+    line(ctx, cx(0), WT.bus, cx(K - 1), WT.bus, colors.ink2, 1.2);
+    for (let j = 0; j < K; j++) arrow(ctx, cx(j), WT.bus, cx(j), arrowEnd, colors.ink2);
     /* on the glide the last query's rows fade out; then this query's scores print key by key */
     const out = g.first ? 0 : 1 - ph.e;
     for (let j = 0; j < K; j++) {
@@ -551,10 +581,14 @@ function drawWeights(ctx, colors, w, params, state, anim) {
     ctx.strokeStyle = colors.ink1; ctx.lineWidth = 1; ctx.strokeRect(x0 + 0.5, y + 0.5, x1 - x0 - 1, WT.stripH - 1);
     for (let j = 1; j < K; j++) line(ctx, cols[j][0] + 0.5, y, cols[j][0] + 0.5, y + WT.stripH, colors.grid, 1);
   }
-  /* the key being scored: one outline stepping along the scores */
+  /* the key being scored: one outline stepping along the scores, and over the kⱼ it
+     multiplies; qᵢ outlined with it while the keys are scored */
   if (g && ph.k >= 0 && ph.k < K) {
     const m = ph.k === 0 ? 1 : beat(ph.u, 0, 0.3), from = cols[Math.max(0, ph.k - 1)], to = cols[ph.k];
-    ctx.strokeStyle = colors.groupA; ctx.lineWidth = 2; ctx.strokeRect(lerp(from[0], to[0], m) - 1, WT.scoreY - 1, lerp(from[1], to[1], m) + 2, WT.stripH + 2); ctx.lineWidth = 1;
+    ctx.strokeStyle = colors.groupA; ctx.lineWidth = 2; ctx.strokeRect(lerp(from[0], to[0], m) - 1, WT.scoreY - 1, lerp(from[1], to[1], m) + 2, WT.stripH + 2);
+    const kx = lerp(cx(Math.max(0, ph.k - 1)), cx(ph.k), m) - WT.vw / 2;
+    ctx.strokeRect(kx - 2, WT.kBar - 2, WT.vw + 4, M.DK * WT.vc + 3);
+    ctx.strokeRect(cx(g.to) - WT.vw / 2 - 2, WT.qBar - 2, WT.vw + 4, M.DK * WT.vc + 3); ctx.lineWidth = 1;
   }
   txt(ctx, S.softmaxArrow(raw, masked), x0, WT.softY, { font: small(colors), fill: g && (ph.soft > 0 || ph.cut > 0) ? colors.ink1 : colors.ink3, baseline: "middle" });
   txt(ctx, qi >= 0 ? S.rowCap(toks[qi], h + 1, raw) : S.rowWait, x0, WT.capY, { font: small(colors), fill: colors.ink3 });
