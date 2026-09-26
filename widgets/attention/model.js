@@ -76,7 +76,7 @@ function softmax(row, keep) {
  * Block 1's attention on `toks`. Returns the embedding X, the full values, the
  * heads' outputs concatenated and W_O's output, and per head: score (q·k / √d_k, the
  * numbers the softmax takes), scoreRaw (q·k), alpha (scaled), alphaRaw (no
- * division), v, z, each row over every position of `toks`.
+ * division), q, k, v, z, each row over every position of `toks`.
  * `mask` gives [PAD] keys no weight (attention_mask); without it they are
  * keys like any other.
  */
@@ -96,12 +96,22 @@ export function attend(toks, { mask = true } = {}) {
     const alpha = score.map((r) => softmax(r, keep));
     const alphaRaw = raw.map((r) => softmax(r, keep));
     const z = alpha.map((a) => Array.from({ length: DK }, (_, d) => a.reduce((s, w, j) => s + w * v[j][d], 0)));
-    heads.push({ score, scoreRaw: raw, alpha, alphaRaw, v, z });
+    heads.push({ q, k, score, scoreRaw: raw, alpha, alphaRaw, v, z });
   }
   /* the heads side by side, [L, 4 × 12], then W_O: the attention sublayer's output, [L, 48] */
   const concat = toks.map((_, i) => heads.flatMap((hd) => hd.z[i]));
   const out = concat.map((c) => Array.from(linear(c, WEIGHTS.Wo, WEIGHTS.bo)));
   return { tokens: toks, heads, X: X.map((x) => Array.from(x)), Vfull: V.map((v) => Array.from(v)), concat, out };
+}
+
+/** head h's part of a projection as the Projections step draws it: Wᵀ [48 × 12], the
+    columns h·12 … h·12 + 11 of Wᵀ (torch keeps W as [out][in]), and those 12 biases */
+export function headWeights(which, h) {
+  const Wf = WEIGHTS[`W${which}`], b = WEIGHTS[`b${which}`];
+  return {
+    WT: Array.from({ length: D }, (_, i) => Array.from({ length: DK }, (_, d) => Wf[(h * DK + d) * D + i])),
+    b: Array.from({ length: DK }, (_, d) => b[h * DK + d]),
+  };
 }
 
 /** everything the four pages draw for one sentence */

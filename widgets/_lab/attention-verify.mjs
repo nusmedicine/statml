@@ -86,6 +86,25 @@ for (const key of Object.keys(M.SENTENCES)) {
   });
 }
 
+/* the Projections step draws head h's slice of each Wᵀ [48 × 12] and the q, k, v it
+   gives: x̃ times the slice plus its biases is the head's q, k and v, and q·k / √d_k of
+   those same q and k is the score the Weights step prints, so the drawn q and k are the
+   ones the verified weights came from; the number section 2 prints is Σ x̃ₖ Wₖₘ + bₘ */
+for (const key of Object.keys(M.SENTENCES)) {
+  const run = M.stage(key).run;
+  for (let h = 0; h < M.H; h++) {
+    const hd = run.heads[h];
+    for (const [which, R] of [["q", hd.q], ["k", hd.k], ["v", hd.v]]) {
+      const { WT, b } = M.headWeights(which, h);
+      let worstP = 0;
+      run.X.forEach((x, i) => { for (let m = 0; m < M.DK; m++) worstP = Math.max(worstP, Math.abs(x.reduce((s, v, k) => s + v * WT[k][m], 0) + b[m] - R[i][m])); });
+      ok(worstP < 1e-12, `${key} head ${h + 1}: x̃ times W_${which.toUpperCase()}ᵀ's slice plus b is ${which} (${worstP})`);
+    }
+    hd.q.forEach((qi, i) => hd.k.forEach((kj, j) => near(qi.reduce((s, v, d) => s + v * kj[d], 0) / Math.sqrt(M.DK), hd.score[i][j], 1e-12, `${key}: q·k / √d_k of the drawn q and k`)));
+  }
+}
+near(asp.run.heads[3].q[3][11], -4.15, 0.005, "aspirin, head 4: q's twelfth number, the mock's example");
+
 const pad4 = asp.padded.open.heads[3].alpha.slice(0, asp.L).reduce((s, r) => s + M.tailShare(r, asp.L), 0) / asp.L;
 near(pad4, 0.24, 0.005, "aspirin, head 4: [PAD]'s share without the mask, over the rows");
 const wnd = M.stage("wound"), wq = wnd.tokens.indexOf("wound");

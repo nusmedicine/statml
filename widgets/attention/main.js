@@ -3,9 +3,12 @@
    (step 3, "Computing Self-Attention", and "Extending self-attention"), with
    08-3 cell 4's padding mask. DRAFT, 2026-09-25.
 
-   Three steps in the order the arithmetic runs, each drawn as his figure draws
+   Four steps in the order the arithmetic runs, each drawn as his figure draws
    it (the control is labelled Step, his call of 2026-09-26):
 
+     PROJECTIONS  where q, k and v come from: X times W_Q, W_K and W_V, the
+              whole product and one number of it (added 2026-09-26 on his
+              question "they are the embeddings right?"; they are not).
      WEIGHTS  dl-language-attention-weight.png: the query circled in the
               sentence, its bracket to every key, the scores and then the
               row of weights under the keys, and the matrix alpha_ij filling
@@ -17,7 +20,8 @@
               Switches: the division by sqrt(d_k), the mask passed or not.
      OUTPUT   dl-language-attention-output.png: the query's row lifted out,
               each weight beside that key's value vector, summed into the
-              query's new vector z_i.
+              query's new vector z_i. (Its section 1, x~ → W_V → v, moved to
+              Projections, his call the same day.)
      HEADS    dl-language-attention-multi.png, bottom to top: x~ into four
               heads side by side, their outputs joined — drawn as the
               concatenation it is, [L, 4 x 12], where his figure draws a + —
@@ -46,7 +50,7 @@
 import { defineWidget, mathmlRenders } from "../core/index.js";
 import * as M from "./model.js";
 
-const PAGES = [{ value: "weights", label: "Weights" }, { value: "output", label: "Output" }, { value: "heads", label: "Heads" }];
+const PAGES = [{ value: "projections", label: "Projections" }, { value: "weights", label: "Weights" }, { value: "output", label: "Output" }, { value: "heads", label: "Heads" }];
 const ON = (page) => ({ param: "page", equals: page });
 
 /* ================================================================== copy */
@@ -66,6 +70,8 @@ const S = {
   scoreOpts: [{ value: "scaled", label: "q·k / √dₖ" }, { value: "unscaled", label: "q·k" }],
   stepLabel: "Next query",
   stepTitle: "Compute the next token's row of weights, in every head",
+  stepLabelTok: "Next token",
+  stepTitleTok: "Compute the next token's query, key and value",
   runLabel: "Play",
   runTitle: "Compute the remaining rows",
   query: "Query", keys: "Keys",
@@ -78,9 +84,20 @@ const S = {
   maskLabel: "attention_mask",
   maskDetail: "1 for a token, 0 for padding. Passed, a key with 0 gets the score −∞ before the softmax.",
   maskOpts: [{ value: "passed", label: "Passed" }, { value: "not-passed", label: "Not passed" }],
-  outW: "Weights", outV: ["Features vⱼ", (h) => `head ${h}: 12 of the 48`], outX: ["Embedding x̃ⱼ", "token + position, 48"], outWv: "W_V",
-  outS1: ["1 · Values", "vⱼ = x̃ⱼ W_Vᵀ + b", "a trained matrix, the same for every query, on each token alone"],
-  outS2: ["2 · Output", "zᵢ = Σⱼ αᵢⱼ vⱼ", "the values of all tokens, weighted by the query's αᵢⱼ and summed"], outZcol: ["Features with", "attention zⱼ"], outSum: "Sum", outZ: "Features with attention",
+  projS1: ["1 · Projections", "Q = X W_Qᵀ + b,  K = X W_Kᵀ + b,  V = X W_Vᵀ + b", ""],
+  projS2: ["2 · One number of qᵢ", "qₘ = Σₖ x̃ₖ Wₖₘ + bₘ", ""],
+  projWhy: "Each column of W is a trained set of 48 weights, applied to every token the same way a convolution kernel "
+    + "is applied at every position; each of a vector's 12 numbers is how strongly x̃ matches one column.",
+  projX: (L) => `X  [${L} × 48]`, projXNote: "a row per token, its x̃",
+  projW: (key) => `W_${key}ᵀ`, projWSize: "[48 × 12]", projR: (key, L) => `${key}  [${L} × 12]`,
+  projHead: (h) => `head ${h}: 12 of the 48 columns of each Wᵀ`,
+  projXi: "x̃ᵢ", projProd: "x̃ₖ Wₖₘ", projQ: "qᵢ", projCol: (m) => `m = ${m}`,
+  projSum: (v) => `Σ + b = ${v.toFixed(2)}`, projWait: "Next token computes the first row",
+  tileTok: "Token", tileTokNote: "the row just computed",
+  tileCol: "Column of W_Qᵀ", tileColNote: "the number of qᵢ being computed",
+  tileRowsTokNote: "one row per token",
+  outW: "Weights", outV: "Features vⱼ",
+  outS2: ["Output", "zᵢ = Σⱼ αᵢⱼ vⱼ", "the values of all tokens, weighted by the query's αᵢⱼ and summed"], outZcol: ["Features with", "attention zⱼ"], outSum: "Sum", outZ: "Features with attention",
   outSoFar: (k, L, pct) => `${k} of ${L} rows added · ${pct}% of the weight`,
   tileAdded: "Rows added", tileAddedNote: "terms of Σⱼ αᵢⱼvⱼ summed so far",
   tileShare: "Weight added", tileShareNote: "the sum of their αᵢⱼ",
@@ -107,21 +124,21 @@ const SOFT = (inner) => `<msub>${mi("softmax")}${mi("j")}</msub>${mo("(")}${inne
 const MATH = {
   scaled: `<math><mrow>${sub("α", "ij")}${mo("=")}${SOFT(`<mfrac><mrow>${qk}</mrow><msqrt>${sub("d", "k")}</msqrt></mfrac>`)}</mrow></math>`,
   raw: `<math><mrow>${sub("α", "ij")}${mo("=")}${SOFT(qk)}</mrow></math>`,
-  /* the Output step's two sections, in order: the values, then the output */
-  output: `<math><mrow>${sub("v", "j")}${mo("=")}<msub><mover accent="true">${mi("x")}${mo("~")}</mover>${mi("j")}</msub>`
-    + `<msubsup>${mi("W")}${mi("V")}${mi("T")}</msubsup>${mo("+")}${mi("b")}</mrow></math>`
-    + `<span style="color:var(--ink-3);font-size:var(--fs-xs);margin:0 14px">then</span>`
-    + `<math><mrow>${sub("z", "i")}${mo("=")}<munder>${mo("∑")}${mi("j")}</munder>${sub("α", "ij")}${sub("v", "j")}</mrow></math>`,
+  /* the three projections of the one X (the values used to be the Output step's section 1) */
+  projections: ["Q", "K", "V"].map((k) => `<math><mrow>${mi(k)}${mo("=")}${mi("X")}<msubsup>${mi("W")}${mi(k)}${mi("T")}</msubsup>${mo("+")}${mi("b")}</mrow></math>`)
+    .join(`<span style="margin:0 10px"></span>`),
+  output: `<math><mrow>${sub("z", "i")}${mo("=")}<munder>${mo("∑")}${mi("j")}</munder>${sub("α", "ij")}${sub("v", "j")}</mrow></math>`,
   heads: `<math><mrow>${mi("MultiHead")}${mo("=")}${mo("[")}<msub>${mi("head")}<mn>1</mn></msub>${mo(";")}${mo("…")}${mo(";")}<msub>${mi("head")}<mn>4</mn></msub>${mo("]")}<msub>${mi("W")}${mi("O")}</msub></mrow></math>`,
   mask: `<math><mrow>${sub("α", "ij")}${mo("=")}${SOFT(`<mfrac><mrow>${qk}</mrow><msqrt>${sub("d", "k")}</msqrt></mfrac>${mo("+")}${sub("m", "j")}`)}</mrow></math>`,
   maskRaw: `<math><mrow>${sub("α", "ij")}${mo("=")}${SOFT(`${qk}${mo("+")}${sub("m", "j")}`)}</mrow></math>`,
 };
 const PLAIN = {
-  scaled: "αᵢⱼ = softmaxⱼ(qᵢ·kⱼ / √dₖ)", raw: "αᵢⱼ = softmaxⱼ(qᵢ·kⱼ)", output: "vⱼ = x̃ⱼ W_Vᵀ + b, then zᵢ = Σⱼ αᵢⱼ vⱼ",
+  scaled: "αᵢⱼ = softmaxⱼ(qᵢ·kⱼ / √dₖ)", raw: "αᵢⱼ = softmaxⱼ(qᵢ·kⱼ)", output: "zᵢ = Σⱼ αᵢⱼ vⱼ",
+  projections: "Q = X W_Qᵀ + b,  K = X W_Kᵀ + b,  V = X W_Vᵀ + b",
   heads: "MultiHead = [head₁; …; head₄] W_O", mask: "αᵢⱼ = softmaxⱼ(qᵢ·kⱼ / √dₖ + mⱼ)", maskRaw: "αᵢⱼ = softmaxⱼ(qᵢ·kⱼ + mⱼ)",
 };
 const NOTE = {
-  scaled: "dₖ = 12", raw: "no division", output: "", heads: "", mask: "dₖ = 12 · mⱼ = 0, or −∞ where the mask is 0", maskRaw: "no division · mⱼ = 0, or −∞ where the mask is 0",
+  scaled: "dₖ = 12", raw: "no division", output: "", heads: "", projections: "each Wᵀ is 48 × 48; a head takes 12 of its columns", mask: "dₖ = 12 · mⱼ = 0, or −∞ where the mask is 0", maskRaw: "no division · mⱼ = 0, or −∞ where the mask is 0",
 };
 function renderCard(params) {
   const figure = document.querySelector("#widget .w-figure");
@@ -223,6 +240,148 @@ function digits(ctx, colors, v, room) {
 
 /** the longest token's width in the mono face (for row labels) */
 function labelWidth(ctx, colors, toks) { ctx.save(); ctx.font = mono(colors); const w = Math.max(...toks.map((t) => ctx.measureText(t).width)); ctx.restore(); return w; }
+
+/* ========================================================== Projections */
+
+/* WHERE q, k AND v COME FROM (his question, 2026-09-26: "do we have to explain where q
+   and k come from? they are the embeddings right?"). They are not: each is x̃ times its
+   own trained matrix, and measured on this model q = k = x̃ would put 1.00 of every
+   row's weight on the token itself and score each pair alike in both directions. His
+   picks from `_lab/attention-projections-mock.html`: a step of its own ahead of Weights,
+   P1 with P2 under it, W1's wording (the kernel reading, his), no comparison panel, and
+   the Output step's section 1 removed, since v is drawn here.
+     1 · PROJECTIONS  X [L × 48] times each of W_Qᵀ, W_Kᵀ, W_Vᵀ (head h's 12 columns of
+                      each) gives Q, K, V [L × 12], laid out as a matrix product is taught:
+                      each W above its result, X to the left of the results, so a number
+                      sits where its row of X meets its column of W. X's 48 columns and
+                      W's 48 rows share one pitch.
+     2 · ONE NUMBER   the token's 48 numbers beside one column of W_Qᵀ, the 48 products
+                      and their sum plus the bias: one number of qᵢ.
+   A press is a token: its row outline glides down X, then the sweep takes W_Qᵀ's twelve
+   columns in turn, each filling one number of qᵢ and redrawing section 2 for that column;
+   then kᵢ's row and vᵢ's row fill, the same arithmetic with the other two matrices. */
+const PJ = { pre: 300, col: 180, kv: 300 }, PJ_RUN = { pre: 150, col: 70, kv: 150 };
+const projMs = (mode) => { const P = mode === "run" ? PJ_RUN : PJ; return P.pre + M.DK * P.col + 2 * P.kv; };
+/** where a Projections press is: the glide `e`, the column `m` of W_Qᵀ and its fill `u`, then kᵢ's row `k` and vᵢ's `v` */
+function projPhase(anim) {
+  if (anim.n === 0) return { e: 0, m: -1, u: 0, k: 0, v: 0 };
+  if (anim.t >= 1) return { e: 1, m: M.DK - 1, u: 1, k: 1, v: 1 };
+  const P = anim.mode === "run" ? PJ_RUN : PJ, tau = anim.t * projMs(anim.mode);
+  if (tau < P.pre) return { e: ease(tau / P.pre), m: -1, u: 0, k: 0, v: 0 };
+  const r = tau - P.pre;
+  if (r < M.DK * P.col) return { e: 1, m: Math.floor(r / P.col), u: ease(Math.min(1, (r % P.col) / (0.6 * P.col))), k: 0, v: 0 };
+  const s = r - M.DK * P.col;
+  return { e: 1, m: M.DK - 1, u: 1, k: ease(Math.min(1, s / P.kv)), v: ease(Math.max(0, Math.min(1, (s - P.kv) / P.kv))) };
+}
+/* the pitches depend on the width alone, so the height can be known without a context;
+   LABEL_W is the widest token label's room ("presented", "discharge" in the mono face) */
+const PL = { wLab: 40, wTop: 64, gap: 44, rh: 14, s2Gap: 50, lineH: 15, LABEL_W: 64 };
+const projPitch = (w) => ({ xc: w >= 600 ? 3 : 2, ch: w >= 600 ? 4 : 3 });
+/** section 1's geometry: X's cells `xc` (and W's rows), the results' cells `wc`, the results' x `ox(k)` */
+function projLayout(w, L) {
+  const { xc } = projPitch(w), xx = PAD_L + PL.LABEL_W + 8, x1 = xx + 48 * xc + 24;
+  const room = w - PAD_R - x1;
+  const wc = Math.max(5, Math.min(9, Math.floor((room - 2 * 16) / (3 * M.DK))));
+  const gap = Math.min(34, Math.floor((room - 3 * M.DK * wc) / 2));
+  const oTop = PL.wTop + 48 * xc + PL.gap;
+  return { xx, xc, wc, ox: (k) => x1 + k * (M.DK * wc + gap), oTop, s2: oTop + L * PL.rh + PL.s2Gap };
+}
+/* W1's sentence wraps; the line count is estimated from the width at 6 px a character,
+   generously, so the height is known before any text is measured */
+const projLines = (w) => Math.ceil((S.projWhy.length * 6) / (w - PAD_L - PAD_R));
+const heightProjections = (w, L) => projLayout(w, L).s2 + 22 + projLines(w) * PL.lineH + 30 + 48 * projPitch(w).ch + 40;
+
+function wrapLines(ctx, font, text, maxW) {
+  ctx.save(); ctx.font = font;
+  const lines = [];
+  let cur = "";
+  for (const word of text.split(" ")) {
+    const next = cur ? `${cur} ${word}` : word;
+    if (ctx.measureText(next).width > maxW && cur) { lines.push(cur); cur = word; } else cur = next;
+  }
+  if (cur) lines.push(cur);
+  ctx.restore();
+  return lines;
+}
+
+function drawProjections(ctx, colors, w, params, state, anim) {
+  const toks = state.tokens, L = state.L, h = Number(params.head) - 1, hd = state.run.heads[h], qi = queryOf(anim);
+  const ph = projPhase(anim), lay = projLayout(w, L), { xx, xc, wc, ox, oTop } = lay, rh = PL.rh;
+  const X = state.run.X, xmax = Math.max(...X.flat().map(Math.abs));
+  const Wt = { Q: M.headWeights("q", h), K: M.headWeights("k", h), V: M.headWeights("v", h) };
+  const R = { Q: hd.q, K: hd.k, V: hd.v };
+  const wmax = Math.max(...Object.values(Wt).flatMap((p) => p.WT.flat()).map(Math.abs));
+  const omax = Math.max(...Object.values(R).flatMap((A) => A.flat()).map(Math.abs));
+  const gap = (c) => (c > 4 ? 1 : 0);
+  const cell = (x, y, cw, chh, fill) => { ctx.fillStyle = fill; ctx.fillRect(x, y, cw - gap(cw), chh - gap(chh)); };
+  const frame = (x, y, wid, hgt, stroke = colors.ink2) => { ctx.strokeStyle = stroke; ctx.lineWidth = 1.5; ctx.strokeRect(x - 1, y - 1, wid + 1, hgt + 1); ctx.lineWidth = 1; };
+  const mark = (x, y, wid, hgt) => { ctx.strokeStyle = colors.highlight; ctx.lineWidth = 2; ctx.strokeRect(x - 1.5, y - 1.5, wid + 2, hgt + 2); ctx.lineWidth = 1; };
+  const m = qi >= 0 ? ph.m : -1;
+
+  /* ---- 1 · Projections: X to the left, each W above its result */
+  sectionHead(ctx, colors, 16, S.projS1);
+  txt(ctx, S.projX(L), xx, oTop - 30, { font: cap(colors), fill: colors.ink1, baseline: "middle" });
+  txt(ctx, S.projXNote, xx, oTop - 15, { font: small(colors), fill: colors.ink2, baseline: "middle" });
+  toks.forEach((t, i) => txt(ctx, t, xx - 7, oTop + i * rh + rh / 2, { font: mono(colors), fill: i === qi ? colors.groupA : colors.ink2, align: "right", baseline: "middle" }));
+  X.forEach((row, i) => row.forEach((v, d) => cell(xx + d * xc, oTop + i * rh, xc, rh, css(signedFill(colors, v, xmax)))));
+  frame(xx, oTop, 48 * xc, L * rh);
+  queryOutline(ctx, colors, xx, oTop, 48 * xc, rh, anim, ph.e);
+  ["Q", "K", "V"].forEach((key, k) => {
+    const x0 = ox(k), cw = M.DK * wc, WT = Wt[key].WT;
+    txt(ctx, S.projW(key), x0 + cw / 2, PL.wLab, { font: cap(colors), fill: colors.ink1, align: "center", baseline: "middle" });
+    txt(ctx, S.projWSize, x0 + cw / 2, PL.wLab + 14, { font: small(colors), fill: colors.ink2, align: "center", baseline: "middle" });
+    WT.forEach((row, i) => row.forEach((v, d) => cell(x0 + d * wc, PL.wTop + i * xc, wc, xc, css(signedFill(colors, v, wmax)))));
+    frame(x0, PL.wTop, cw, 48 * xc);
+    /* the result: rows before the token full; the token's row by the sweep (q) or its beat (k, v) */
+    for (let i = 0; i < L; i++) for (let d = 0; d < M.DK; d++) {
+      const a = i < qi ? 1 : i > qi ? 0 : key === "Q" ? (d < m ? 1 : d === m ? ph.u : 0) : key === "K" ? ph.k : ph.v;
+      cell(x0 + d * wc, oTop + i * rh, wc, rh, colors.surface2);
+      if (a > 0) { ctx.save(); ctx.globalAlpha = a; cell(x0 + d * wc, oTop + i * rh, wc, rh, css(signedFill(colors, R[key][i][d], omax))); ctx.restore(); }
+    }
+    frame(x0, oTop, cw, L * rh);
+    queryOutline(ctx, colors, x0, oTop, cw, rh, anim, ph.e);
+    txt(ctx, S.projR(key, L), x0 + cw / 2, oTop + L * rh + 14, { font: small(colors), fill: colors.ink1, align: "center", baseline: "middle" });
+    if (key === "Q" && m >= 0) { mark(x0 + m * wc, PL.wTop, wc, 48 * xc); mark(x0 + m * wc, oTop + qi * rh, wc, rh); }
+  });
+  txt(ctx, S.projHead(h + 1), ox(0), oTop + L * rh + 30, { font: small(colors), fill: colors.ink3, baseline: "middle" });
+
+  /* ---- 2 · One number: x̃ᵢ, column m of W_Qᵀ, the 48 products, their sum plus the bias */
+  const s2 = lay.s2, { ch } = projPitch(w);
+  sectionHead(ctx, colors, s2, S.projS2);
+  const lines = wrapLines(ctx, small(colors), S.projWhy, w - PAD_L - PAD_R);
+  lines.forEach((ln, k) => txt(ctx, ln, PAD_L, s2 + 22 + k * PL.lineH, { font: small(colors), fill: colors.ink2, baseline: "middle" }));
+  const fy = s2 + 22 + projLines(w) * PL.lineH + 30, fh = 48 * ch, mid = fy + fh / 2;
+  const cx = xx, wx = cx + 14 + 26, px = wx + M.DK * wc + 44, qx = px + 14 + 116;
+  const on = qi >= 0 && m >= 0, WQ = Wt.Q.WT, x = on ? X[qi] : null;
+  const prod = on ? x.map((v, k) => v * WQ[k][m]) : null, pmax = on ? Math.max(...prod.map(Math.abs)) : 1;
+  txt(ctx, S.projXi, cx + 7, fy - 12, { font: cap(colors), fill: colors.ink1, align: "center", baseline: "middle" });
+  if (qi >= 0) txt(ctx, toks[qi], cx - 7, mid, { font: mono(colors), fill: colors.groupA, align: "right", baseline: "middle" });
+  for (let k = 0; k < 48; k++) cell(cx, fy + k * ch, 14, ch, on ? css(signedFill(colors, x[k], xmax)) : colors.surface2);
+  frame(cx, fy, 14, fh, qi >= 0 ? colors.groupA : colors.ink2);
+  txt(ctx, "×", cx + 14 + 13, mid, { font: cap(colors), fill: colors.ink3, align: "center", baseline: "middle" });
+  txt(ctx, S.projW("Q"), wx + (M.DK * wc) / 2, fy - 12, { font: cap(colors), fill: colors.ink1, align: "center", baseline: "middle" });
+  WQ.forEach((row, k) => row.forEach((v, d) => cell(wx + d * wc, fy + k * ch, wc, ch, css(signedFill(colors, v, wmax)))));
+  frame(wx, fy, M.DK * wc, fh);
+  if (on) {
+    mark(wx + m * wc, fy, wc, fh);
+    txt(ctx, S.projCol(m + 1), wx + m * wc + wc / 2, fy + fh + 14, { font: small(colors), fill: colors.ink2, align: "center", baseline: "middle" });
+  }
+  arrow(ctx, wx + M.DK * wc + 8, mid, px - 8, mid, colors.ink3);
+  txt(ctx, S.projProd, px + 7, fy - 12, { font: cap(colors), fill: colors.ink1, align: "center", baseline: "middle" });
+  for (let k = 0; k < 48; k++) cell(px, fy + k * ch, 14, ch, on ? css(signedFill(colors, prod[k], pmax)) : colors.surface2);
+  frame(px, fy, 14, fh);
+  arrow(ctx, px + 22, mid, qx - 8, mid, colors.ink3);
+  if (on) txt(ctx, S.projSum(hd.q[qi][m]), (px + 22 + qx - 8) / 2, mid - 10, { font: mono(colors), fill: colors.ink1, align: "center", baseline: "middle" });
+  txt(ctx, S.projQ, qx + (M.DK * wc) / 2, mid - 24, { font: cap(colors), fill: colors.ink1, align: "center", baseline: "middle" });
+  for (let d = 0; d < M.DK; d++) {
+    const a = !on ? 0 : d < m ? 1 : d === m ? ph.u : 0;
+    cell(qx + d * wc, mid - 9, wc, 18, colors.surface2);
+    if (a > 0) { ctx.save(); ctx.globalAlpha = a; cell(qx + d * wc, mid - 9, wc, 18, css(signedFill(colors, hd.q[qi][d], omax))); ctx.restore(); }
+  }
+  frame(qx, mid - 9, M.DK * wc, 18);
+  if (on) mark(qx + m * wc, mid - 9, wc, 18);
+  if (qi < 0) txt(ctx, S.projWait, qx + (M.DK * wc) / 2, mid + 26, { font: small(colors), fill: colors.ink3, align: "center", baseline: "middle" });
+}
 
 /* ============================================================== Weights */
 
@@ -412,30 +571,18 @@ const weightSoFar = (hd, i, k) => hd.alpha[i].slice(0, k).reduce((a, b) => a + b
 
 /* cs 12: the smallest pitch the row labels' face clears; the strips take what is left,
    two of them, v and z, with the lane for the key being added between */
-/* TWO SECTIONS, STACKED (his ask and pick, 2026-09-26, `_lab/attention-two-sections-mock.html`):
-   two different things are both called W on this step, and they get a section each.
-     1 · VALUES  vⱼ = x̃ⱼ W_Vᵀ + b: a trained matrix, the same for every sentence and
-                 every query, applied to each token on its own; read across a row.
-                 On the page from the start: it does not depend on the query.
-     2 · OUTPUT  zᵢ = Σⱼ αᵢⱼ vⱼ: the query's attention weights, computed for this
-                 sentence, mixing the values across tokens; read down the column into
-                 the sum. The press animates this section only.
-   The value strips appear in both; that is the hand-off. The α matrix stands beside
-   section 2 where the strips keep at least 9 px a value cell and drops below that (his
+/* ONE SECTION (it was two, his ask and pick, 2026-09-26, `_lab/attention-two-sections-mock.html`:
+   1 · Values, x̃ⱼ → W_V → vⱼ, above 2 · Output). The values section moved to the
+   Projections step the same day, his call, where v is drawn beside q and k from the one
+   X. What stays: zᵢ = Σⱼ αᵢⱼ vⱼ, the query's attention weights mixing the values across
+   tokens, read down the column into the sum; the press animates it. The α matrix stands
+   beside it where the strips keep at least 9 px a value cell and drops below that (his
    call: keep it where there is room); the Weights column carries the query's row of α
    either way. */
-const OT = { rh: 24, cs: 12, lane: 22, s1Rows: 62, s2Head: 30, s2Rows: 76, matDrop: 62 };
-const OX = { arrow: 42, xcMin: 2.5, xcMax: 3.5, vcMin: 9, vcMax: 14 };
-const s2Top = (L) => OT.s1Rows + L * OT.rh + OT.s2Rows;
-const heightOutput = (L) => s2Top(L) + L * OT.rh + 124;
-/** section 1: key · x̃ⱼ → W_V → vⱼ */
-function s1Layout(w, lw) {
-  const xx = PAD_L + lw + 12, room = w - PAD_R - xx - OX.arrow;
-  const vc = Math.min(OX.vcMax, Math.floor((room - 48 * OX.xcMin) / M.DK));
-  const xc = Math.max(OX.xcMin, Math.min(OX.xcMax, (room - M.DK * vc) / 48));
-  return { kx: PAD_L, xx, xc, vx: xx + 48 * xc + OX.arrow, vc };
-}
-/** section 2: (α matrix) · weights · key · vⱼ · zⱼ */
+const OT = { rh: 24, cs: 12, lane: 22, head: 16, top: 62, matDrop: 62 };
+const OX = { vcMin: 9, vcMax: 14 };
+const heightOutput = (L) => OT.top + L * OT.rh + 124;
+/** (α matrix) · weights · key · vⱼ · zⱼ */
 function s2Layout(w, L, lw, withMatrix) {
   const mx = PAD_L + lw + 6;
   const wx = withMatrix ? mx + L * OT.cs + 18 : PAD_L, kx = wx + 42, vx = kx + lw + 16;
@@ -455,31 +602,14 @@ function drawOutput(ctx, colors, w, params, state, anim) {
   const ph = outPhase(anim, L), g = qi >= 0 ? glide(anim, ph.e) : null;
   const lw = labelWidth(ctx, colors, toks);
   const vmax = Math.max(...hd.v.flat().map(Math.abs), ...hd.z.flat().map(Math.abs));
-  const X = state.run.X, xmax = Math.max(...X.flat().map(Math.abs)), blank = rgb(colors.surface2);
+  const blank = rgb(colors.surface2);
   const valueStrip = (x, y, vals, vc, stroke = colors.ink2, lwid = 1) => {
     for (let d = 0; d < M.DK; d++) { ctx.fillStyle = css(signedFill(colors, vals[d], vmax)); ctx.fillRect(x + d * vc, y, vc - 1, OT.rh - 5); }
     ctx.strokeStyle = stroke; ctx.lineWidth = lwid; ctx.strokeRect(x - 0.5, y - 0.5, M.DK * vc, OT.rh - 4); ctx.lineWidth = 1;
   };
 
-  /* ---- 1 · Values: across each row, the same whatever the query */
-  const s1 = s1Layout(w, lw);
-  sectionHead(ctx, colors, 16, S.outS1);
-  txt(ctx, S.outX[0], s1.xx, 36, { font: cap(colors), fill: colors.ink1, baseline: "middle" });
-  txt(ctx, S.outX[1], s1.xx, 50, { font: small(colors), fill: colors.ink2, baseline: "middle" });
-  txt(ctx, S.outV[0], s1.vx, 36, { font: cap(colors), fill: colors.ink1, baseline: "middle" });
-  txt(ctx, S.outV[1](h + 1), s1.vx, 50, { font: small(colors), fill: colors.ink2, baseline: "middle" });
-  for (let j = 0; j < L; j++) {
-    const y = OT.s1Rows + j * OT.rh, ty = y + (OT.rh - 5) / 2;
-    txt(ctx, toks[j], s1.kx, ty, { font: mono(colors), fill: colors.groupB, baseline: "middle" });
-    for (let d = 0; d < 48; d++) { ctx.fillStyle = css(signedFill(colors, X[j][d], xmax)); ctx.fillRect(s1.xx + d * s1.xc, y, s1.xc, OT.rh - 5); }
-    ctx.strokeStyle = colors.ink3; ctx.lineWidth = 1; ctx.strokeRect(s1.xx - 0.5, y - 0.5, 48 * s1.xc + 1, OT.rh - 4);
-    txt(ctx, S.outWv, s1.xx + 48 * s1.xc + 16, ty - 1, { font: small(colors), fill: colors.ink3, align: "center", baseline: "middle" });
-    arrow(ctx, s1.xx + 48 * s1.xc + 29, ty, s1.vx - 3, ty, colors.ink3);
-    valueStrip(s1.vx, y, hd.v[j], s1.vc);
-  }
-
-  /* ---- 2 · Output: down the column into the sum, one query a press */
-  const top = s2Top(L), headY = OT.s1Rows + L * OT.rh + OT.s2Head;
+  /* ---- down the column into the sum, one query a press */
+  const top = OT.top, headY = OT.head;
   sectionHead(ctx, colors, headY, S.outS2);
   let lay = s2Layout(w, L, lw, true);
   if (!lay.fits) lay = s2Layout(w, L, lw, false);
@@ -489,7 +619,7 @@ function drawOutput(ctx, colors, w, params, state, anim) {
     matrix(ctx, colors, hd.alpha, toks, lay.mx, top + OT.matDrop, OT.cs, anim, { ge: ph.e });
   }
   txt(ctx, S.outW, wx, top - 26, { font: cap(colors), fill: colors.ink1, baseline: "middle" });
-  txt(ctx, S.outV[0], vx, top - 26, { font: cap(colors), fill: colors.ink1, baseline: "middle" });
+  txt(ctx, S.outV, vx, top - 26, { font: cap(colors), fill: colors.ink1, baseline: "middle" });
   /* the column header pulled in from the canvas edge where the strips are narrower than it */
   ctx.save(); ctx.font = cap(colors); const zhw = Math.max(ctx.measureText(S.outZcol[0]).width, ctx.measureText(S.outZcol[1]).width); ctx.restore();
   const zhx = Math.min(zx, w - PAD_R - zhw);
@@ -648,7 +778,8 @@ function drawHeads(ctx, colors, w, params, state, anim) {
 
 const heightOf = ({ page, sentence, w }) => {
   const L = M.tokensOf(sentence).length;
-  return page === "output" ? heightOutput(L) : page === "heads" ? heightHeads(w, L) : heightWeights(w, L, L + M.NPAD);
+  return page === "projections" ? heightProjections(w, L) : page === "output" ? heightOutput(L) : page === "heads" ? heightHeads(w, L)
+    : heightWeights(w, L, L + M.NPAD);
 };
 
 defineWidget({
@@ -660,7 +791,7 @@ defineWidget({
   height: heightOf,
 
   params: {
-    page: { role: "page", type: "segmented", label: S.pageLabel, options: PAGES, default: "weights", display: true },
+    page: { role: "page", type: "segmented", label: S.pageLabel, options: PAGES, default: "projections", display: true },
     sentence: {
       type: "select", label: S.sentenceLabel, detail: S.sentenceDetail,
       options: Object.entries(M.SENTENCES).map(([value, label]) => ({ value, label })), default: "aspirin",
@@ -668,7 +799,7 @@ defineWidget({
     head: {
       type: "segmented", label: S.headLabel, detail: S.headDetail,
       options: ["1", "2", "3", "4"].map((v) => ({ value: v, label: v })), default: "4", display: true,
-      when: { any: [ON("weights"), ON("output")] },
+      when: { any: [ON("projections"), ON("weights"), ON("output")] },
     },
     scores: { type: "segmented", label: S.scoreLabel, detail: S.scoreDetail, options: S.scoreOpts, default: "scaled", display: true, when: ON("weights") },
     attention_mask: { type: "segmented", label: S.maskLabel, detail: S.maskDetail, options: S.maskOpts, default: "passed", display: true, when: ON("weights") },
@@ -681,8 +812,9 @@ defineWidget({
   compute: ({ params }) => M.stage(params.sentence),
 
   animation: {
-    stepLabel: S.stepLabel,
-    stepTitle: S.stepTitle,
+    /* a Projections press computes a token's q, k and v, not a query's row of weights */
+    stepLabel: { param: "page", labels: { projections: S.stepLabelTok }, default: S.stepLabel },
+    stepTitle: { param: "page", labels: { projections: S.stepTitleTok }, default: S.stepTitle },
     runLabel: S.runLabel,
     runTitle: S.runTitle,
     init: ({ params, state, fromScratch }) => {
@@ -691,7 +823,7 @@ defineWidget({
     },
     advance: (anim, { dt, params, state }) => {
       /* the Output page's press takes its keys one at a time, so it runs longer */
-      const ms = params.page === "output" ? outMs(state.L, anim.mode) : params.page === "weights" ? weightsMs(state.padded.tokens.length, anim.mode, params.attention_mask !== "not-passed")
+      const ms = params.page === "projections" ? projMs(anim.mode) : params.page === "output" ? outMs(state.L, anim.mode) : params.page === "weights" ? weightsMs(state.padded.tokens.length, anim.mode, params.attention_mask !== "not-passed")
         : anim.mode === "run" ? HP.run : HP.step;
       let more;
       if (anim.t < 1) { anim.t = Math.min(1, anim.t + dt / ms); more = anim.t < 1 || (anim.mode === "run" && anim.n < state.L); }
@@ -704,7 +836,8 @@ defineWidget({
 
   draw({ ctx, colors, w, params, state, anim }) {
     renderCard(params);
-    if (params.page === "output") drawOutput(ctx, colors, w, params, state, anim);
+    if (params.page === "projections") drawProjections(ctx, colors, w, params, state, anim);
+    else if (params.page === "output") drawOutput(ctx, colors, w, params, state, anim);
     else if (params.page === "heads") drawHeads(ctx, colors, w, params, state, anim);
     else drawWeights(ctx, colors, w, params, state, anim);
   },
@@ -712,6 +845,14 @@ defineWidget({
   readout({ params, state, anim }) {
     const qi = queryOf(anim), h = Number(params.head) - 1, L = state.L;
     const pct = (v) => `${Math.round(100 * v)}%`;
+    if (params.page === "projections") {
+      const m = qi >= 0 ? projPhase(anim).m : -1;
+      return [
+        { label: S.tileTok, value: qi >= 0 ? state.tokens[qi] : S.wait, note: S.tileTokNote },
+        { label: S.tileCol, value: m >= 0 ? `${m + 1} of ${M.DK}` : S.wait, note: S.tileColNote },
+        { label: S.tileRows, value: `${anim.n} of ${L}`, note: S.tileRowsTokNote },
+      ];
+    }
     if (params.page === "heads") {
       return [
         { label: S.tileQuery, value: qi >= 0 ? state.tokens[qi] : S.wait, note: S.tileQueryNote },

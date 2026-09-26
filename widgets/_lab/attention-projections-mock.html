@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · 83 the Projections step — mock</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1760px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: var(--sp-3) 0 var(--sp-1); color: var(--ink-1); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 120ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  blockquote { margin: var(--sp-1) 0 var(--sp-3); padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--grid); background: var(--surface-2); font-size: var(--fs-sm); max-width: 110ch; color: var(--ink-1); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-3) 0 0; padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 120ch; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Widget 83 · a Projections step before Weights · mock</h1>
+  <p class="note">
+    Steps would read <b>Projections · Weights · Output · Heads</b>. Three things to decide: how the step shows the
+    multiplication (P1 the whole matrices, P2 one number of it), whether it says why (P3), and in which words.
+    Real numbers, block 1, head 4, <i>treated with aspirin for chest pain</i>, four tokens computed, the last
+    <b>aspirin</b>. Drawn at 740px.
+  </p>
+
+  <h2>P1 · the whole multiplication: X [L × 48] times each W [48 × 12] gives Q, K, V [L × 12]</h2>
+  <p class="note">Laid out as a matrix product is taught: X to the left of each result, the W above it, so a number of Q
+    sits where its row of X meets its column of W_Qᵀ (outlined: aspirin's row, W_Qᵀ's column 12, and the cell they
+    make, −4.15). A press fills the next token's row of Q, K and V. One X, three matrices, three results.</p>
+  <canvas id="P1"></canvas>
+
+  <h2>P2 · one number of it: qᵢ,d = Σₖ x̃ᵢ,ₖ · Wₖ,d</h2>
+  <p class="note">The token's 48 numbers beside one column of W_Qᵀ, their 48 products, and the sum, which is one of
+    the query's 12 numbers. A press could step d through the 12 columns (the Output step's key-by-key motion), or
+    P2 could sit under P1 as the detail of the outlined cell.</p>
+  <canvas id="P2"></canvas>
+
+  <h2>P3 · why three matrices: the same scores with q = k = x̃</h2>
+  <p class="note">Two measured facts. The embedding's own dot product puts each token's weight on itself (1.00 over
+    the rows, here and in all four sentences), and it is symmetric: aspirin → chest equals chest → aspirin. With
+    W_Q and W_K head 4 gives aspirin → chest 5.28 and chest → aspirin −1.49. This panel is the comparison control
+    you asked to see after the projections; it could live here as a section 2, or as the control on Weights.</p>
+  <canvas id="P3"></canvas>
+
+  <h2>The sentence that says why, two wordings for the section head</h2>
+  <h3>W1 · as a filter, the analogy you suggested</h3>
+  <blockquote>Each column of W is a trained set of 48 weights, applied to every token the same way a convolution
+    kernel is applied at every position; each of a vector's 12 numbers is how strongly x̃ matches one column.</blockquote>
+  <h3>W2 · by role</h3>
+  <blockquote>Three trained matrices give each token a query, to score the other tokens with, a key, to be scored
+    by, and a value, the numbers the weighted sum adds up. Scored against itself, the embedding gives every token
+    its largest score with itself, and the same score in both directions.</blockquote>
+
+  <p class="rec">Recommended: <b>P1 with P2 under it</b>, and <b>P3 as section 2</b> of the same step, with <b>W1</b> on
+    section 1 and <b>W2</b>'s second sentence on section 2. P1 shows the shapes and that one X feeds three
+    matrices, the question behind "is W shared?"; P2 shows what one number is, which is where the filter reading
+    becomes literal (a column of W dotted with x̃); P3 shows what the matrices buy. Each wording then sits on the
+    picture it describes.</p>
+</main>
+<script type="module">
+import * as M from "../attention/model.js";
+import { WEIGHTS as W } from "../attention/weights.js";
+const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const C = { ink1: css("--ink-1"), ink2: css("--ink-2"), ink3: css("--ink-3"), s2: css("--surface-2"), s3: css("--surface-3"),
+  a: css("--c-group-a"), b: css("--c-group-b"), hl: css("--c-highlight"), mag: css("--c-magnitude"), lo: css("--c-value-low"), hi: css("--c-value-high"),
+  dims: ["a", "b", "c", "d"].map((k) => css(`--c-dim-${k}`)), font: css("--font"), mono: css("--font-mono") };
+const rgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+const mixA = (a, b, t) => a.map((x, i) => x + (b[i] - x) * Math.max(0, Math.min(1, t)));
+const str = (p) => `rgb(${p.map(Math.round).join(",")})`;
+const wcol = (w) => str(mixA(rgb(C.s3), rgb(C.mag), Math.sqrt(w)));
+const vcol = (s) => (v) => str(mixA(rgb(C.s3), rgb(v >= 0 ? C.hi : C.lo), Math.abs(v) / s));
+const capF = "600 12px " + C.font, smF = "11px " + C.font, monoF = "11px " + C.mono;
+function t(g, s, x, y, { f = smF, c = C.ink2, a = "left" } = {}) { g.font = f; g.fillStyle = c; g.textAlign = a; g.textBaseline = "middle"; g.fillText(s, x, y); }
+function arrow(g, x1, y1, x2, y2, col = C.ink3) { g.strokeStyle = col; g.lineWidth = 1.2; g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke();
+  const a = Math.atan2(y2 - y1, x2 - x1); g.fillStyle = col; g.beginPath(); g.moveTo(x2, y2); g.lineTo(x2 - 6 * Math.cos(a - 0.4), y2 - 6 * Math.sin(a - 0.4)); g.lineTo(x2 - 6 * Math.cos(a + 0.4), y2 - 6 * Math.sin(a + 0.4)); g.fill(); g.lineWidth = 1; }
+function setup(id, Wd, h) { const cv = document.getElementById(id), dpr = devicePixelRatio || 1; cv.width = Wd * dpr; cv.height = h * dpr; cv.style.width = Wd + "px"; cv.style.height = h + "px"; const g = cv.getContext("2d"); g.scale(dpr, dpr); return g; }
+/* a matrix of values: R rows of K, cells cw × ch; rows ≥ n blank */
+function grid(g, A, x0, y0, cw, ch, col, frame, n = Infinity) {
+  A.forEach((row, i) => row.forEach((v, j) => { g.fillStyle = i < n ? col(v) : C.s2; g.fillRect(x0 + j * cw, y0 + i * ch, cw - (cw > 4 ? 1 : 0), ch - (ch > 4 ? 1 : 0)); }));
+  g.strokeStyle = frame; g.lineWidth = 1.5; g.strokeRect(x0 - 1, y0 - 1, A[0].length * cw + 1, A.length * ch + 1); g.lineWidth = 1;
+}
+const dash = (g, x, y, w, h, col = C.a) => { g.setLineDash([3, 3]); g.strokeStyle = col; g.lineWidth = 1.5; g.strokeRect(x, y, w, h); g.setLineDash([]); g.lineWidth = 1; };
+const solid = (g, x, y, w, h, col) => { g.strokeStyle = col; g.lineWidth = 2; g.strokeRect(x, y, w, h); g.lineWidth = 1; };
+const sm = (r) => { const m = Math.max(...r), e = r.map((v) => Math.exp(v - m)), z = e.reduce((a, b) => a + b, 0); return e.map((v) => v / z); };
+
+const st = M.stage("aspirin"), toks = st.tokens, L = st.L, X = st.run.X, H = 3, QI = 3, N = QI + 1, D = 11;
+/* head H's slice of each projection, as Wᵀ [48 × 12]: element (k, d) = W[(H·12 + d)·48 + k] */
+const slice = (Wf) => [...Array(48)].map((_, k) => [...Array(12)].map((_, d) => Wf[(H * 12 + d) * 48 + k]));
+const WT = { Q: slice(W.Wq), K: slice(W.Wk), V: slice(W.Wv) }, B = { Q: W.bq, K: W.bk, V: W.bv };
+const out = (key) => X.map((x) => [...Array(12)].map((_, d) => B[key][H * 12 + d] + x.reduce((s, v, k) => s + v * WT[key][k][d], 0)));
+const R = { Q: out("Q"), K: out("K"), V: out("V") };
+console.log("CHECK v", Math.max(...R.V.flatMap((r, i) => r.map((v, d) => Math.abs(v - st.run.heads[H].v[i][d])))).toExponential(1), "q", R.Q[QI][D].toFixed(2));
+const xmax = Math.max(...X.flat().map(Math.abs)), wmax = Math.max(...Object.values(WT).flatMap((m) => m.flat()).map(Math.abs));
+const omax = Math.max(...Object.values(R).flatMap((m) => m.flat()).map(Math.abs));
+const Wd = 740;
+
+/* ---- P1 */
+{
+  const lab = 82, xx = 90, xc = 3, rh = 16, wc = 9, wr = 3, ox = (k) => 268 + k * (12 * wc + 34);
+  const wTop = 44, oTop = wTop + 48 * wr + 34, h = oTop + L * rh + 70;
+  const g = setup("P1", Wd, h);
+  t(g, "1 · Projections   Q = X W_Qᵀ + b,  K = X W_Kᵀ + b,  V = X W_Vᵀ + b", 16, 16, { f: capF, c: C.ink1 });
+  /* X */
+  t(g, `Embeddings X [${L} × 48]`, xx, oTop - 12, { c: C.ink1 });
+  toks.forEach((s, i) => t(g, s, lab, oTop + i * rh + rh / 2, { f: monoF, c: i === QI ? C.a : C.ink2, a: "right" }));
+  grid(g, X, xx, oTop, xc, rh, vcol(xmax), C.ink2);
+  dash(g, xx - 2.5, oTop + QI * rh - 1.5, 48 * xc + 4, rh + 2);
+  ["Q", "K", "V"].forEach((key, k) => {
+    const x0 = ox(k);
+    t(g, `W_${key}ᵀ  [48 × 12]`, x0 + 6 * wc, wTop - 10, { c: C.ink1, a: "center" });
+    grid(g, WT[key], x0, wTop, wc, wr, vcol(wmax), C.ink2);
+    grid(g, R[key], x0, oTop, wc, rh, vcol(omax), C.dims[H], N);
+    dash(g, x0 - 2.5, oTop + QI * rh - 1.5, 12 * wc + 4, rh + 2);
+    t(g, `${key} [${L} × 12]`, x0 + 6 * wc, oTop + L * rh + 14, { c: C.ink1, a: "center" });
+    if (key === "Q") {
+      solid(g, x0 + D * wc - 1, wTop - 1, wc + 1, 48 * wr + 1, C.hl);
+      solid(g, x0 + D * wc - 1, oTop + QI * rh - 1, wc + 1, rh + 1, C.hl);
+    }
+  });
+  t(g, "head 4: 12 of each 48 · one X, three trained matrices · the outlined cell is aspirin's row of X times column 12 of W_Qᵀ", 16, oTop + L * rh + 42, { c: C.ink3 });
+}
+
+/* ---- P2 */
+{
+  const top = 56, ch = 5, h = top + 48 * ch + 60, g = setup("P2", Wd, h);
+  const xx = 110, wx = 170, wc = 10, px = wx + 12 * wc + 60, qx = px + 110, x = X[QI], col = WT.Q.map((r) => r[D]), prod = x.map((v, k) => v * col[k]);
+  const pmax = Math.max(...prod.map(Math.abs));
+  t(g, `One number of the query for "aspirin":  q₁₂ = Σₖ x̃ₖ · (W_Qᵀ)ₖ,₁₂ + b₁₂`, 16, 16, { f: capF, c: C.ink1 });
+  t(g, "x̃ aspirin", xx + 8, top - 12, { c: C.a, a: "center" });
+  grid(g, x.map((v) => [v]), xx, top, 16, ch, vcol(xmax), C.a);
+  t(g, "×", (xx + 16 + wx) / 2, top + 24 * ch, { f: capF, c: C.ink3, a: "center" });
+  t(g, "W_Qᵀ [48 × 12]", wx + 6 * wc, top - 12, { c: C.ink1, a: "center" });
+  grid(g, WT.Q, wx, top, wc, ch, vcol(wmax), C.ink2);
+  solid(g, wx + D * wc - 1, top - 1, wc + 1, 48 * ch + 1, C.hl);
+  t(g, "column 12", wx + D * wc + wc / 2, top + 48 * ch + 12, { c: C.ink2, a: "center" });
+  arrow(g, wx + 12 * wc + 8, top + 24 * ch, px - 8, top + 24 * ch);
+  t(g, "48 products", px + 8, top - 12, { c: C.ink1, a: "center" });
+  grid(g, prod.map((v) => [v]), px, top, 16, ch, vcol(pmax), C.ink2);
+  arrow(g, px + 24, top + 24 * ch, qx - 8, top + 24 * ch);
+  t(g, `Σ + b = ${R.Q[QI][D].toFixed(2)}`, px + 30, top + 24 * ch - 10, { f: monoF, c: C.ink1 });
+  t(g, "q aspirin [12]", qx + 6 * wc, top + 24 * ch - 22, { c: C.ink1, a: "center" });
+  grid(g, [R.Q[QI]], qx, top + 24 * ch - 8, wc, 16, vcol(omax), C.dims[H]);
+  solid(g, qx + D * wc - 1, top + 24 * ch - 9, wc + 1, 17, C.hl);
+  t(g, "the other 11 numbers: the same 48 × the other 11 columns · the other tokens: the same columns × their own 48", 16, top + 48 * ch + 34, { c: C.ink3 });
+}
+
+/* ---- P3 */
+{
+  const cs = 22, h = 70 + L * cs + 76, g = setup("P3", Wd, h), hd = st.run.heads[H];
+  const E = X.map((xi) => X.map((xj) => xi.reduce((s, v, d) => s + v * xj[d], 0) / Math.sqrt(48))), bare = E.map(sm);
+  const self = (A) => A.reduce((s, r, i) => s + r[i], 0) / L;
+  const panel = (x0, A, S, title, sub) => {
+    t(g, title, x0, 18, { f: capF, c: C.ink1 }); t(g, sub, x0, 34, { c: C.ink3 });
+    toks.forEach((s, i) => t(g, s, x0 - 6, 60 + i * cs + cs / 2, { f: monoF, c: i === QI ? C.a : C.ink2, a: "right" }));
+    for (let i = 0; i < L; i++) for (let j = 0; j < L; j++) { g.fillStyle = wcol(A[i][j]); g.fillRect(x0 + j * cs, 60 + i * cs, cs - 1, cs - 1); }
+    g.strokeStyle = C.dims[H]; g.lineWidth = 1.5; g.strokeRect(x0 - 1, 59, L * cs + 1, L * cs + 1); g.lineWidth = 1;
+    t(g, `weight on itself, over the rows: ${self(A).toFixed(2)}`, x0, 60 + L * cs + 18, { c: C.ink1 });
+    t(g, `aspirin → chest ${S[3][5].toFixed(2)} · chest → aspirin ${S[5][3].toFixed(2)}`, x0, 60 + L * cs + 36, { f: monoF, c: C.ink1 });
+  };
+  panel(90, hd.alpha, hd.score, "Projected   qᵢ·kⱼ / √12", "head 4, the trained W_Q and W_K");
+  panel(440, bare, E, "The embedding   x̃ᵢ·x̃ⱼ / √48", "q = k = x̃, no matrices");
+}
+</script>
+</body>
+</html>
