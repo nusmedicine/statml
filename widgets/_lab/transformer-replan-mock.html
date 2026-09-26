@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · slot 84 replanned — mock</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1600px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 104ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); min-height: 26px; white-space: pre-line; max-width: 550px; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 104ch; }
+  .tell { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--c-extreme); background: var(--surface-2); max-width: 104ch; }
+  table { border-collapse: collapse; font-size: var(--fs-sm); margin: var(--sp-2) 0; max-width: 140ch; }
+  th, td { border: 1px solid var(--grid); padding: 4px 10px; text-align: left; vertical-align: top; }
+  th { color: var(--ink-2); font-weight: 600; }
+  .ctl { font-size: var(--fs-sm); margin: 0 0 var(--sp-2); }
+  .ctl button { font: inherit; padding: 2px 10px; margin-right: 4px; border: 1px solid var(--grid); background: var(--surface-2); cursor: pointer; }
+  .ctl button.on { background: var(--surface-3); border-color: var(--ink-3); font-weight: 600; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Slot 84 replanned &middot; what a transformer widget is for &middot; mock</h1>
+  <p class="note">Drawn live from the draft's trained models (<code>widgets/transformer/model.js</code>, held to torch within 3e-15):
+    the <b>encoder</b> is the masked-token model (widget 83's), the <b>decoder</b> the next-token model, same size, same notes.
+    On-canvas strings are candidates, not copy.</p>
+
+  <h2>1 &middot; Where each idea of 08-1 is used afterwards</h2>
+  <table>
+    <tr><th>08-1 idea</th><th>used hands-on in</th><th>covered by a widget</th></tr>
+    <tr><td>self-attention, heads, padding mask</td><td>08-2, 08-3</td><td>83 <code>attention</code></td></tr>
+    <tr><td>the encoder block, stacked; <code>last_hidden_state</code>; [CLS]</td><td>08-2 (Bio_ClinicalBERT), 08-3 (scratch encoder, ESM-2): <b>every model in week 8 is an encoder</b></td><td>&mdash; (residual, LayerNorm: 50, 51)</td></tr>
+    <tr><td>the decoder: causal mask, generation fed back</td><td><b>10-3</b> (decoder model on HA proteins, conditional generation by a prefix token)</td><td>&mdash;</td></tr>
+    <tr><td>cross-attention (encoder&ndash;decoder)</td><td><b>10-2</b> (multimodal early fusion, a template not run)</td><td>&mdash;</td></tr>
+    <tr><td>pre-training by self-supervision (masked tokens, next token)</td><td>08-2, 08-3 use pretrained models; <b>10-1</b> teaches masked prediction on images</td><td>&mdash;</td></tr>
+    <tr><td>adapting: transfer, full fine-tuning, LoRA</td><td><b>08-2</b> (all three on the clinical outcome), 08-3 (ESM-2 transfer), 06-2 (images)</td><td>63 <code>pretrained</code> on KIV</td></tr>
+    <tr><td>explainability: attention maps, IG, LIG</td><td>08-2 (LIG), 08-3 (occlusion)</td><td>38, 64, 75 (occlusion)</td></tr>
+  </table>
+
+  <h2>2 &middot; Encoder against decoder: change a later token, which rows move?</h2>
+  <p class="note">Your first point, as one comparison on one sentence. Left the encoder, right the decoder; each draws its block-1 weights
+    (the decoder's triangle is the causal mask) and, beneath, how far each token's final vector moves when the token chosen below is
+    replaced. In the encoder every row moves, because every row attends to the change; in the decoder the rows before it move by exactly 0,
+    which is what lets it generate one token at a time and train on every position at once. Measured on three pairs: encoder rows before
+    the change move 4.0&ndash;11.2, decoder rows 0.00.</p>
+  <div class="ctl" id="pairCtl"></div>
+  <div class="row"><div class="cand"><div class="sub">A · side by side, the same sentence, the change's effect on every row</div><canvas id="c2" width="720" height="480"></canvas></div></div>
+  <p class="rec">A page of 84, the widget's centre: it carries <i>encoder and decoder differ only in the mask</i> with its consequence, which neither
+    the draft's Encoder page nor its Decoder page showed (each drew one model alone). Generation fed back (the draft's section 1) follows it as the
+    decoder's use.</p>
+
+  <h2>3 &middot; Cross-attention: queries from one sequence, keys and values from another</h2>
+  <p class="note">Your second point. <b>A</b>, the draft's DNA &rarr; protein staircase (0.95 of each amino acid's weight on its own codon).
+    <b>B</b>, what 10-2's template does: it unsqueezes each modality's embedding to <b>one</b> token, <code>(B, 1, D)</code>, so the softmax runs over
+    one key and every weight is exactly 1.0. Measured with <code>nn.MultiheadAttention</code>: three very different queries give outputs
+    0.0 apart, so modality A never reaches the prediction; with six key tokens the weights spread (0.14&ndash;0.19) and the output moves
+    with the query (0.41).</p>
+  <div class="row"><div class="cand"><div class="sub">B · the same query row over six keys, and over one</div><canvas id="c3" width="720" height="210"></canvas></div></div>
+  <p class="rec">A page of 84 with a Keys control (the gene's 18 nucleotides · one pooled vector): the staircase, then the one-key case,
+    whose row is 1.00 whatever the query. 10-2 can link the same page.</p>
+  <p class="tell"><b>For 10-2 cell 5.</b> With <code>Q</code> and <code>K</code> each <code>(B, 1, D)</code> the attention weight is always 1, so
+    <code>h = W_O(W_V z_B + b)</code>: modality A is ignored. Cross-attention needs several key tokens (the mutations, or image patches, as
+    tokens), or it is a linear map of B.</p>
+
+  <h2>4 &middot; The arc, reshaped</h2>
+  <table>
+    <tr><th></th><th>84 (this widget)</th><th>85</th><th>86</th></tr>
+    <tr><td><b>A</b> recommended</td>
+      <td><b>Encoder and decoder</b>: Masks (&sect; 2) &middot; Generation &middot; Cross-attention (&sect; 3). 08-1 cells 2&ndash;3; linked again from 10-2 and 10-3.</td>
+      <td><b>Pre-training and adapting</b>: Pre-training (masked tokens against next token, the labels made from the text; the draft's page) &middot;
+        Adapting (transfer &middot; full &middot; LoRA: what trains, and the stage measured on 2026-09-25 where each wins). 08-1 cells 4, 13&ndash;15; 08-2's runs.</td>
+      <td>as planned: proteins (08-3), or cut</td></tr>
+    <tr><td><b>B</b></td><td>as A, and the draft's Encoder page (the block stage by stage) kept first</td><td>as A</td><td>as planned</td></tr>
+    <tr><td><b>C</b></td><td>Masks and Generation only; cross-attention waits for a 10-2 widget</td><td>as A</td><td>as planned</td></tr>
+  </table>
+  <p class="note">What leaves 84 from the draft: the Encoder page stage by stage (what it could say honestly is that the block keeps one row a token and
+    that context arrives at the attention; the FFN claim of cell 2 did not hold, the layer hierarchy did not show), the Tasks page (its three masks
+    are &sect; 2 and &sect; 3), the Pre-training page (to 85). Explainability (08-2's LIG, 08-3's occlusion) had a page in the old 85; 38, 64 and 75
+    already teach attribution.</p>
+</main>
+
+<script type="module">
+import * as M from "../transformer/model.js";
+const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const C = { ink1: css("--ink-1"), ink2: css("--ink-2"), ink3: css("--ink-3"), grid: css("--grid"), s1: css("--surface-1"), s2: css("--surface-2"), s3: css("--surface-3"),
+  a: css("--c-group-a"), b: css("--c-group-b"), mag: css("--c-magnitude"), hl: css("--c-highlight"), font: css("--font"), mono: css("--font-mono") };
+function ctx(id) { const cv = document.getElementById(id), dpr = devicePixelRatio || 1, w = cv.width, h = cv.height;
+  if (!cv.dataset.w) { cv.dataset.w = w; cv.dataset.h = h; cv.style.width = w + "px"; cv.style.height = h + "px"; cv.width = w * dpr; cv.height = h * dpr; }
+  const g = cv.getContext("2d"); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, +cv.dataset.w, +cv.dataset.h); return g; }
+function text(g, s, x, y, { size = 11, color = C.ink2, align = "left", mono = false, bold = false } = {}) { g.font = `${bold ? "600 " : ""}${size}px ${mono ? C.mono : C.font}`; g.fillStyle = color; g.textAlign = align; g.fillText(s, x, y); }
+const rgb = (h) => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+const mix = (t, col) => { const a = rgb(C.s3), b = rgb(col); return `rgb(${a.map((x, i) => Math.round(x + (b[i] - x) * Math.max(0, Math.min(1, t)))).join(",")})`; };
+const toks = (s) => ["[CLS]", ...s.split(" "), "[SEP]"];
+
+const PAIRS = [["treated with aspirin for chest pain", "treated with aspirin for fever"], ["planned discharge home today", "planned discharge to rehab today"], ["no fever reported", "no fever on exam"]];
+let pick = 0;
+const ctl = document.getElementById("pairCtl");
+function buttons() { ctl.innerHTML = "Replace: " + PAIRS.map(([a, b], i) => `<button class="${i === pick ? "on" : ""}" data-i="${i}">${a} → ${b}</button>`).join(""); }
+ctl.addEventListener("click", (e) => { if (e.target.dataset.i) { pick = +e.target.dataset.i; buttons(); draw2(); } });
+
+function draw2() {
+  const g = ctx("c2"), [sa, sb] = PAIRS[pick], ta = toks(sa), tb = toks(sb), L = ta.length;
+  const first = ta.findIndex((t, i) => t !== tb[i]);
+  const models = [["base", "Encoder · masked-token model", 3], ["causal", "Decoder · next-token model", 1]];
+  const cs = 26, W = 360;
+  models.forEach(([which, title, head], k) => {
+    const x0 = k * W + 100, fa = M.forward(which, ta), fb = M.forward(which, tb), A = fa.alpha[0][head];
+    text(g, title, k * W + 14, 20, { size: 12, color: C.ink1, bold: true }); text(g, `block 1, head ${head + 1}`, k * W + 14, 36, { size: 10, color: C.ink3 });
+    ta.forEach((t, j) => { g.save(); g.translate(x0 + j * cs + cs / 2 + 4, 116); g.rotate(-Math.PI / 2); text(g, t, 0, 0, { size: 10, mono: true, color: j >= first ? C.hl : C.b }); g.restore(); });
+    for (let i = 0; i < L; i++) {
+      text(g, ta[i], x0 - 6, 124 + i * cs + cs / 2 + 4, { size: 10, mono: true, align: "right", color: i >= first ? C.hl : C.ink2 });
+      for (let j = 0; j < L; j++) { const w = A[i][j]; g.fillStyle = which === "causal" && j > i ? C.s2 : mix(Math.sqrt(w), C.mag); g.fillRect(x0 + j * cs, 124 + i * cs, cs - 1, cs - 1);
+        if (!(which === "causal" && j > i)) text(g, w.toFixed(2).replace(/^0/, ""), x0 + j * cs + cs / 2, 124 + i * cs + cs / 2 + 4, { size: 8, mono: true, align: "center", color: Math.sqrt(w) > 0.55 ? C.s1 : C.ink1 }); }
+    }
+    g.strokeStyle = C.hl; g.lineWidth = 1.5; g.strokeRect(x0 + first * cs - 1, 122, (L - first) * cs + 1, L * cs + 3); g.lineWidth = 1;
+    /* how far each row's final vector moves */
+    const by = 124 + L * cs + 22, hA = fa.h, hB = fb.h;
+    text(g, `each token's final vector: how far it moves`, k * W + 14, by, { size: 10, color: C.ink2 });
+    for (let i = 0; i < L; i++) {
+      const d = Math.hypot(...hA[i].map((v, q) => v - (hB[i] ? hB[i][q] : 0)));
+      const y = by + 10 + i * 0, bx = x0 + i * cs, hh = Math.min(60, d * 5);
+      g.fillStyle = i >= first ? C.s3 : (d > 1e-9 ? C.a : C.s3); g.fillRect(bx + 3, by + 76 - hh, cs - 7, hh);
+      text(g, i >= first ? "" : d.toFixed(2), bx + cs / 2, by + 90, { size: 9, mono: true, align: "center", color: C.ink1 });
+    }
+    g.strokeStyle = C.grid; g.beginPath(); g.moveTo(x0, by + 76.5); g.lineTo(x0 + L * cs, by + 76.5); g.stroke();
+    text(g, `rows before "${ta[first]}"`, x0, by + 106, { size: 10, color: C.ink3 });
+  });
+}
+buttons(); draw2();
+
+/* 3 B: a query row over six keys and over one */
+{
+  const g = ctx("c3");
+  const row6 = [0.173, 0.185, 0.144, 0.193, 0.168, 0.138];
+  text(g, "Six key tokens (e.g. six mutations, or six image patches)", 14, 22, { size: 12, color: C.ink1, bold: true });
+  row6.forEach((w, j) => { g.fillStyle = mix(Math.sqrt(w), C.mag); g.fillRect(120 + j * 46, 36, 44, 34); text(g, w.toFixed(2), 120 + j * 46 + 22, 58, { size: 11, mono: true, align: "center", color: C.ink1 }); text(g, `k${j + 1}`, 120 + j * 46 + 22, 84, { size: 10, mono: true, align: "center", color: C.b }); });
+  text(g, "query A", 110, 58, { size: 10, mono: true, align: "right", color: C.a });
+  text(g, "the output moves with the query: 0.41", 420, 58, { size: 10, color: C.ink2 });
+  text(g, "One key token, (B, 1, D) (10-2 cell 5)", 14, 124, { size: 12, color: C.ink1, bold: true });
+  g.fillStyle = mix(1, C.mag); g.fillRect(120, 138, 44, 34); text(g, "1.00", 142, 160, { size: 11, mono: true, align: "center", color: C.s1 }); text(g, "k1", 142, 186, { size: 10, mono: true, align: "center", color: C.b });
+  text(g, "any query", 110, 160, { size: 10, mono: true, align: "right", color: C.a });
+  text(g, "softmax over one key is 1: the output is W_O(W_V k1 + b), 0.0 apart for any query", 190, 160, { size: 10, color: C.ink2 });
+}
+</script>
+</body>
+</html>

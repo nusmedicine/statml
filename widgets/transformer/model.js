@@ -122,6 +122,8 @@ function run(T, toks, { causal = false } = {}) {
   return { stages, alpha, h };
 }
 const predict = (T, row) => softmax(linear(row, T.mlm, T.mlmb));
+/** any tokens through the base (encoder) or causal (decoder) model: every stage and each block's weights */
+export const forward = (which, toks) => run(W[which], toks, { causal: which === "causal" });
 
 /* The Encoder page's pair: "discharge" in its two senses, one row of the token
    table at the same position, 2 (08-1 cell 0's own example of a word read by
