@@ -872,11 +872,11 @@ console.log("\n§6e the Rank page");
   const p = paramsOf({ page: "rank" });
   const st = W.compute({ params: p });
   const a = W.animation.init({ params: p, state: st, fromScratch: false, restart: false });
-  check("the Rank page opens empty, its button naming rank 2", a.rk === 0 && a.labelAt === "r0" && M.STRINGS.stepLabels.r0 === "Run 10 starts at rank 2");
+  check("the Rank page opens empty, its button naming rank 2", a.rk === 0 && a.labelAt === "r0" && M.STRINGS.stepLabels.r0 === "Factorize 10 times at rank 2");
   const pressFrames = [];
   for (let i = 0; i < M.RANK_STAGES; i += 1) pressFrames.push(press(a, p, st));
   check("seven presses run ranks 2 to 8, one each, and the page is done", a.rk === 7 && a.rkT === 1 && a.done === true, `rk ${a.rk}, frames ${pressFrames.join(",")}`);
-  const labelsOk = M.RANKS_TRIED.every((r, i) => M.STRINGS.stepLabels[`r${i}`] === `Run 10 starts at rank ${r}`);
+  const labelsOk = M.RANKS_TRIED.every((r, i) => M.STRINGS.stepLabels[`r${i}`] === `Factorize 10 times at rank ${r}`);
   check("a label for every press, naming its rank", labelsOk);
 
   /* the ranks run survive a rank change; Reset, Replay and another cohort clear them */

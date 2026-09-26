@@ -10766,6 +10766,21 @@ it".
   page too and marks the planted number; its detail gained a clause.
 - A formula card: cor(1 − C, T), with C and T in its note.
 
+**The reading line and the copy audit, 2026-09-26.** He asked why not take
+the highest correlation: it is rank 2 on almost any cohort (on this one, 2 in
+10 of 10 seeds with the tumour left out and 8 of 10 with it in), so a line
+under the charts says so — *At rank 2 the groups are the same in nearly every
+run, on almost any cohort, so the correlation begins near 1; the usual choice
+is the largest rank before a clear decrease* (page 474 tall for up to three
+lines). The audit: 0 of the claudisms banlist's 292 terms in 280 strings; the
+eye pass found four things, all his picks the recommendation — **run** for our
+"start" (NMF's `nrun`; the button *Factorize 10 times at rank 2*),
+**simulated** for our "planted", **KL divergence** as on page 2 for "divergence
+left", and a subtitle clause (*the number of signatures is chosen by how
+consistently repeated factorizations group the tumors*). The personification
+("runs that put them", "every start agrees") went with the first; "falls" was
+struck by the verify's own list. The blurb stays (115 of 120 characters).
+
 **True processes defaults to off on both pages** (his call, 2026-09-26): on,
 it marked the planted number before a rank was run. The seven Matching states
 that relied on the old default now carry `truth=on` in their links, and read

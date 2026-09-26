@@ -991,7 +991,9 @@ function drawRank(ctx, colors, w, params, state, anim) {
     for (const P of [L.coph, L.fit]) {
       const x = Math.round(rankX(P, est.planted)) + 0.5;
       rule(ctx, x, P.top, x, P.top + P.h, colors.reference, 1.5, [4, 4]);
-      text(ctx, S.plantedLabel(est.planted), x + 5, P.top + P.h - 5, { font: noteFont(colors), fill: colors.ink2 });
+      /* where each curve is not: low on the agreement chart, high on the fit's */
+      const ly = P === L.fit ? P.top + 12 : P.top + P.h - 5;
+      text(ctx, S.simulatedLabel(est.planted), x + 5, ly, { font: noteFont(colors), fill: colors.ink2 });
     }
   }
 
@@ -1053,6 +1055,19 @@ function drawRank(ctx, colors, w, params, state, anim) {
   };
   series(L.coph, (v) => cophY(L.coph, v), (x) => x.coph, true);
   series(L.fit, (v) => fitY(L.fit, sc, v), (x) => x.kl, false);
+
+  /* the reading, wrapped to the canvas: two lines at 535 and at 770 */
+  ctx.save();
+  ctx.font = noteFont(colors);
+  const lines = [];
+  let line = "";
+  for (const word of S.rankReading.split(" ")) {
+    const next = line ? `${line} ${word}` : word;
+    if (line && ctx.measureText(next).width > L.reading.x1 - L.reading.x) { lines.push(line); line = word; } else line = next;
+  }
+  lines.push(line);
+  ctx.restore();
+  lines.forEach((t, i) => text(ctx, t, L.reading.x, L.reading.y + i * L.reading.lead, { font: noteFont(colors), fill: colors.ink2 }));
 }
 
 /** One frame of the Rank page's press: ten starts laid in, then the glide. */
@@ -1234,7 +1249,7 @@ defineWidget({
         { token: "empirical", label: S.legendCoph, mark: "dot" },
         { token: "ink-2", label: S.legendFit, mark: "dot" },
         { token: "ink-1", label: S.legendChosen, mark: "hollow" },
-        ...(params.truth === "on" ? [{ token: "reference", label: S.legendPlanted, mark: "dash" }] : []),
+        ...(params.truth === "on" ? [{ token: "reference", label: S.legendSimulated, mark: "dash" }] : []),
         ...(params.hypermutated === "out" ? [] : [{ token: "ink-1", label: S.legendHyperMark, mark: "tri" }]),
       ];
     }

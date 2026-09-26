@@ -785,7 +785,7 @@ export const SIG_ROW = 104;       // one signature opened out
 export const MATCH_HEAD = 150;    // the references' names, set vertically
 export const MATCH_ROW = 26;
 export const BUILT_ROW = 15;
-export const RANK_H = 440;        // the Rank page, at every width
+export const RANK_H = 474;        // the Rank page, at every width: 440, and up to three lines for the reading (his ask)
 
 export function layout(w, params) {
   const rank = params.rank;
@@ -818,6 +818,9 @@ export function layout(w, params) {
       number: { x: mx, y: my + side + 24 },
       coph: { x0, x1, top: 54, h: 120 },
       fit: { x0, x1, top: 252, h: 120 },
+      /* HOW TO READ THE CURVE, under both charts (his ask, 2026-09-26): the
+         highest point is nearly always rank 2, so the reading is the drop */
+      reading: { x: mx, x1: w - 18, y: 432, lead: 15 },
     };
   }
   if (params.page === "matching") {
@@ -1062,11 +1065,12 @@ export function builtText(mix) {
 export const STRINGS = {
   subtitle: "A mutational signature is the pattern of substitutions associated with one mutational process, over 96 types: "
     + "the change read from the pyrimidine, with the base on either side. Non-negative matrix factorization decomposes "
-    + "a cohort's counts into signatures and their exposures, and cosine similarity compares each with reference signatures.",
+    + "a cohort's counts into signatures and their exposures; the number of signatures is chosen by how consistently "
+    + "repeated factorizations group the tumors, and cosine similarity compares each signature with reference signatures.",
 
   pageLabel: "Page",
-  pageDetail: "one tumor's mutations, the cohort factorized, the number of signatures chosen by how often ten starts "
-    + "agree, or each signature compared with the references",
+  pageDetail: "one tumor's mutations, the cohort factorized, the number of signatures chosen by the agreement between "
+    + "10 runs, or each signature compared with the references",
   tumorSection: "The tumor",
   tumorLabel: "Tumor",
   tumorDetail: "two tumors of the cohort: the one with the most mutations apart from the hypermutated one, and the "
@@ -1083,7 +1087,7 @@ export const STRINGS = {
   seedLabel: "Seed",
   seedDetail: "draws a different cohort",
   truthLabel: "True processes",
-  truthDetail: "what the simulation built: each signature's processes, and how many processes it planted",
+  truthDetail: "what the simulation built each signature from, and how many processes it used",
 
   stepLabels: {
     k0: "Add the mutations",
@@ -1095,7 +1099,7 @@ export const STRINGS = {
     s2: "Show each signature's exposures",
     mX: "Extract the signatures",
     m0: "Compare with the references",
-    ...Object.fromEntries(RANKS_TRIED.map((r, i) => [`r${i}`, `Run 10 starts at rank ${r}`])),
+    ...Object.fromEntries(RANKS_TRIED.map((r, i) => [`r${i}`, `Factorize 10 times at rank ${r}`])),
   },
   stepTitle: "Take the next step",
 
@@ -1145,13 +1149,15 @@ export const STRINGS = {
   topTumor: (j, hyper, share) => (hyper ? `tumor 101, the hypermutated one, has ${pct(share)}` : `tumor ${j + 1} has the most, ${pct(share)}`),
 
   /* the Rank page */
-  rankEmpty: "Tumors × tumors: no starts run yet",
-  rankTitle: (r, k) => `Tumors × tumors, rank ${r}: ${k} of ${NRUN} starts`,
+  rankEmpty: "Tumors × tumors: no runs yet",
+  rankTitle: (r, k) => `Tumors × tumors, rank ${r}: ${k} of ${NRUN} runs`,
   rankNumber: (c) => `Cophenetic correlation ${c.toFixed(3)}`,
   rankCophTitle: "Cophenetic correlation",
-  rankFitTitle: "Divergence left by the best start",
+  rankFitTitle: "KL divergence of the best run",
   rankAxis: "signatures extracted (rank)",
-  plantedLabel: (n) => `planted: ${n}`,
+  simulatedLabel: (n) => `simulated: ${n}`,
+  rankReading: "At rank 2 the groups are the same in nearly every run, on almost any cohort, so the correlation begins "
+    + "near 1; the usual choice is the largest rank before a clear decrease.",
 
   /* page 3 */
   matchCaption: "Cosine similarity with each reference",
@@ -1173,11 +1179,11 @@ export const STRINGS = {
   legendCosine: "A higher cosine similarity: a stronger shade",
   legendBest: "The best match in each row: outlined",
   legendHyper: "Tumor 101, the hypermutated one: outlined, then marked under its bar",
-  legendConsensus: "The share of the 10 starts that put two tumors in one group: a stronger shade",
+  legendConsensus: "The share of the 10 runs in which two tumors are in one group: a stronger shade",
   legendCoph: "The cophenetic correlation at a rank",
-  legendFit: "The divergence the best of the 10 starts leaves",
+  legendFit: "The KL divergence of the best of the 10 runs: lower fits better",
   legendChosen: "Signatures to extract: ringed",
-  legendPlanted: "The number of processes the simulation planted",
+  legendSimulated: "The number of processes in the simulation",
   legendHyperMark: "Tumor 101, the hypermutated one: marked",
 
   /* the tiles */
@@ -1201,12 +1207,12 @@ export const STRINGS = {
   tileMargin: "Margin",
   tileMarginNote: "the best match's cosine minus the runner-up's",
   tileRanksRun: "Ranks run",
-  tileRanksRunNote: `of ${RANKS_TRIED.length}, ${NRUN} starts each`,
+  tileRanksRunNote: `of ${RANKS_TRIED.length}, ${NRUN} runs each`,
   tileCoph: "Cophenetic correlation",
   tileAtRank: (r) => `at rank ${r}`,
   tileNotRun: (r) => `rank ${r} not run yet`,
-  tileFit: "Divergence left",
-  tileFitNote: "by the best of the 10 starts",
+  tileFit: "KL divergence",
+  tileFitNote: `the lowest of the ${NRUN} runs`,
 
   /* the summaries, the figure's accessible label */
   sumCatalogue: (cat, t) => [
@@ -1220,8 +1226,8 @@ export const STRINGS = {
   sumExtracted: (n, r, it) => `M, 96 types by ${n} tumors, factorized into ${r} signatures and their exposures after ${intText(it)} iterations.`,
   sumShown: (r) => `${r} signatures, each a column of S plotted as bars over the 96 types, beside W, the matrix of their exposures.`,
   sumOpened: (r, own) => `${r} signatures, each with its exposure in each tumor${own ? `; half of signature ${own}'s exposure is in one tumor` : ""}.`,
-  sumRankEmpty: (n) => `Ten starts at each rank from 2 to 8 on ${n} tumors, none run yet.`,
-  sumRank: (runs, r, c) => `Ten starts at each of ${runs.length === 1 ? "rank" : "ranks"} ${runs.join(", ")}; `
+  sumRankEmpty: (n) => `${n} tumors, to be factorized ${NRUN} times at each rank from 2 to 8; no rank run yet.`,
+  sumRank: (runs, r, c) => `Factorized ${NRUN} times at each of ${runs.length === 1 ? "rank" : "ranks"} ${runs.join(", ")}; `
     + (c == null ? `rank ${r} not run yet.` : `at rank ${r} the cophenetic correlation is ${c.toFixed(3)}.`),
   sumNoSignatures: "Ten reference profiles, and no signature extracted yet to compare with them.",
   sumNotCompared: (r) => `${r} signatures and ten reference profiles, not yet compared.`,
@@ -1235,7 +1241,7 @@ export const STRINGS = {
     + "Each column of S is a signature, summing to one; each column of W holds one tumor's exposures, in mutations.",
   noteMatching: "A and B are the signature and a reference, each as its 96 values.",
   labelCoph: "cophenetic correlation",
-  noteRank: "Each start groups the tumors by their largest signature. C holds, for each pair of tumors, the share of "
-    + "the ten starts that put them in one group; T is the height at which an average-linkage tree built from 1 − C joins "
-    + "them. The correlation is 1 when every start agrees.",
+  noteRank: "In each run, each tumor is grouped by its largest signature. C holds, for each pair of tumors, the share "
+    + "of the 10 runs in which the two are in one group; T is the height at which the two join in an average-linkage "
+    + "tree built from 1 − C. The correlation is 1 when every run gives the same groups.",
 };
