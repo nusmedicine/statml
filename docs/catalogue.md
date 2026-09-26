@@ -9518,6 +9518,38 @@ and *Purity* agree; a lesson link to page 3 wants `&purity=0.70`. **His call,
 2026-09-26: keep purity shared; he links page 3 with `purity=0.70`.** Not to
 be re-argued as a per-page purity.
 
+#### PAGE 1'S COPY NUMBER AS THE NOTEBOOK'S FOUR CASES — 2026-09-26, `_lab/tumor-heterogeneity-cases-mock.html` (105b2c6)
+
+*"is there a way to simplify this? … i get confused with solid and dashed
+lines..they represent parental copies? so does a 2+0 cell mean the duplicated
+chromosomes must have the same mutation? … start from simple case first purity
+1, diploid 1 mutation … if there are too many versions of aneuploidy can get
+confusing"*. Answered: the lines were the two inherited copies; 2 + 0 carries
+the mutation on both only if it arose before the duplication. **The VAF uses
+only the total copies and the mutated count**, so page 1 needs no parental
+notation. The rail built nine cells; cell 17 uses four (its 0.5 panel, its two
+VAF-1 cells, its four-copies example). His four picks, all recommendations:
+
+1. **One control, "The mutation is on": 1 of 2 copies · 2 of 2 copies · 1 of 1
+   copy · 1 of 4 copies** (`model.js` `CASES`), first in the rail, then Tumor
+   cells carrying it, then purity. The Mutated copies control is gone; its
+   timing now lives in the control's detail ("two of two when the mutated copy
+   was duplicated and the other lost") and in page 3's card. 2 + 1 left the
+   widget (kept in `COPY_STATES` for the lab's measurements).
+2. **One kind of line**: every copy drawn the same, the mark on the mutated
+   ones. Pick D of 2026-09-16 (solid/dashed parental copies) retired.
+3. **Page 3's caption names both**: *copy number 3 + 1 (four copies)* — the
+   allele-specific call appears only there, with cell 24. Each case is still
+   an allele-specific state behind the scenes, so page 3's cap on m and the
+   2 + 0 tie are unchanged.
+4. **Link words unchanged**: `state=` carries the case; the count follows it,
+   so an old `copies=` is ignored.
+
+Verify 218 checks (the case control, each case's VAF at purity 1, no `copies`
+parameter), `check` and `test` green. **Open:** page 3's fraction tile wraps
+when three multiplicities are allowed (1 of 4 copies, e.g. "0.72–1.00 or
+0.36–0.78 or 0.24–0.52").
+
 **Verified:** `tumor-heterogeneity-verify.mjs` 220 checks (section 2's page-1
 height block replaced by the likelihood's: told both wrong 0.0% at 88 reads
 over 2,880 draws, truth held 96.8%; told nothing wrong 14.9%, truth held 51.0%

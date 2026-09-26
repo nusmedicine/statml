@@ -584,7 +584,7 @@ const defaults = async () => resolveParams(await spec(), new URLSearchParams("")
   }
   const WANT = {
     page: "segmented", view: "segmented", truthSec: "section", sampleSec: "section", purity: "choice", ccf: "choice",
-    state: "segmented", copies: "choice", seqSec: "section", depth: "choice",
+    state: "segmented", seqSec: "section", depth: "choice",
     analysisSec: "section", knows: "segmented",
     clones: "segmented", mutations: "choice", lookSec: "section",
     axis: "segmented", assumed: "segmented", clusters: "bool", samplesSec: "section", taken: "choice",
@@ -596,7 +596,7 @@ const defaults = async () => resolveParams(await spec(), new URLSearchParams("")
   for (const name of ["page", "view", "knows", "axis", "assumed", "clusters", "taken", "tree", "showcells", "all"]) {
     check(`${name} is a display parameter`, W.params[name].display === true);
   }
-  for (const name of ["purity", "ccf", "state", "copies", "depth", "clones", "mutations", "seed"]) {
+  for (const name of ["purity", "ccf", "state", "depth", "clones", "mutations", "seed"]) {
     check(`${name} is a data parameter`, !W.params[name].display);
   }
   check("four pages in the notebook's order",
@@ -607,6 +607,17 @@ const defaults = async () => resolveParams(await spec(), new URLSearchParams("")
     && !JSON.stringify(W.params.axis.when).includes('"many"'));
   check("page 1 draws no analysis: Given is page 3's alone",
     !JSON.stringify(W.params.knows.when).includes('"one"') || JSON.stringify(W.params.knows.when).includes('"view"'));
+  /* THE FOUR CASES, his pick A of 2026-09-26: the control offers cell 17's
+     four cells and nothing else, and each carries its own mutated count. */
+  check("the copy-number control offers the notebook's four cases",
+    W.params.state.options.map((o) => `${o.value}:${o.label}`).join(" · ")
+      === "1+1:1 of 2 copies · 2+0:2 of 2 copies · 1+0:1 of 1 copy · 3+1:1 of 4 copies",
+    W.params.state.options.map((o) => o.label).join(" · "));
+  check("…each reading what cell 17 says at purity 1",
+    M.CASES.map((c) => M.n3(M.configOne({ purity: "1.00", ccf: "1.00", state: c.key, depth: "88" }).expected)).join()
+      === "0.500,1.000,1.000,0.250");
+  check("…and the case, not a second control, sets the mutated count",
+    !("copies" in W.params) && M.configOne({ purity: "1.00", ccf: "1.00", state: "2+0", depth: "88" }).copies === 2);
   check("the widget is shipped", W.status === "shipped");
   check("the manifest agrees",
     JSON.parse(read("widgets/manifest.json")).widgets
@@ -687,8 +698,8 @@ const defaults = async () => resolveParams(await spec(), new URLSearchParams("")
   for (const [page, view] of [["one", "one"], ["many", "one"], ["ccf", "one"], ["ccf", "all"], ["clonal", "one"]]) {
     for (const purity of M.PURITY_OPTIONS) {
       for (const depth of M.DEPTH_OPTIONS) {
-        for (const state of M.COPY_STATES.map((s) => s.key)) {
-          for (const knows of M.KNOWLEDGE.map((k) => k.key)) cells.push({ ...values, page, view, purity, depth, state, copies: 2, knows });
+        for (const state of M.CASES.map((c) => c.key)) {
+          for (const knows of M.KNOWLEDGE.map((k) => k.key)) cells.push({ ...values, page, view, purity, depth, state, knows });
         }
       }
     }
@@ -753,21 +764,12 @@ const defaults = async () => resolveParams(await spec(), new URLSearchParams("")
     full.includes(`(0.70 × 1.00 × 1) / (0.70 × 2 + 0.30 × 2) = ${M.n3(state.cfg.expected)}`), full.slice(60, 160));
   check("…and no cancer cell fraction on it anywhere",
     !/cancer cell fraction|c = VAF|p c m/i.test(full), full.slice(-80));
-  /* THE MUTATED-COPY COUNT IS A TIMING, and both places that can say so must.
-     Kenneth read 2 + 0 with one mutated copy as impossible on 2026-09-16 —
-     "isn't the mutation copied when the copy number increases?" — because the
-     figure named what m counts and never what it encodes. 01-2 cell 25 states
-     both orders of m, so a copy pass that drops either loses the answer. */
-  check("the mutated-copy control says which order of events it stands for",
-    /arose after the copy number changed/.test(M.STRINGS.copiesDetail)
-    && /arose before/.test(M.STRINGS.copiesDetail), M.STRINGS.copiesDetail);
-  /* And both orders stay reachable: one mutated copy is the usual case the
-     lesson names, and `major` of them is his reading, on every gained state. */
-  for (const st of M.COPY_STATES.filter((x) => x.major > 1)) {
-    check(`${st.label} offers both the mutation before the gain and after it`,
-      M.copyOptions(st.key).includes("1") && M.copyOptions(st.key).includes(String(st.major)),
-      M.copyOptions(st.key).join(", "));
-  }
+  /* THE MUTATED-COPY COUNT IS A TIMING (Kenneth, 2026-09-16: "isn't the
+     mutation copied when the copy number increases?"). Since the four cases
+     replaced the Mutated copies control (2026-09-26) the case's detail says it
+     for two of two, and page 3's card says it of m in general. */
+  check("the case control says how two of two copies comes about",
+    /mutated copy was duplicated and the other lost/.test(M.STRINGS.stateDetail), M.STRINGS.stateDetail);
 
   /* Page 2: MATH as cell 23's title, and no fraction. */
   const { state: many } = drawWith({ ...values, page: "many", purity: "0.70" });
@@ -822,8 +824,8 @@ const defaults = async () => resolveParams(await spec(), new URLSearchParams("")
   let worst = null;
   const cells = [];
   for (const [page, view] of [["one", "one"], ["many", "one"], ["ccf", "one"], ["ccf", "all"], ["clonal", "one"]]) {
-    for (const state of M.COPY_STATES.map((s) => s.key)) {
-      for (const depth of M.DEPTH_OPTIONS) cells.push({ ...values, page, view, state, depth, copies: 2 });
+    for (const state of M.CASES.map((c) => c.key)) {
+      for (const depth of M.DEPTH_OPTIONS) cells.push({ ...values, page, view, state, depth });
     }
   }
   for (const page of ["many", "ccf"]) for (const clones of ["one", "two", "three"]) for (const axis of ["vaf", "ccf"]) cells.push({ ...values, page, view: "all", clones, axis });
@@ -840,9 +842,7 @@ const defaults = async () => resolveParams(await spec(), new URLSearchParams("")
      panel's note until 2026-09-26. */
   for (const knows of M.KNOWLEDGE.map((k) => k.key)) {
     for (const purity of M.PURITY_OPTIONS) {
-      for (const st of M.COPY_STATES) {
-        for (const copies of st.copies.map(String)) cells.push({ ...values, page: "ccf", view: "one", knows, purity, state: st.key, copies });
-      }
+      for (const c of M.CASES) cells.push({ ...values, page: "ccf", view: "one", knows, purity, state: c.key });
     }
   }
   for (const params of cells) {

@@ -283,27 +283,27 @@ function drawCells(ctx, colors, rect, cfg, { n = M.CELLS } = {}) {
        state, so the mutation is one size whatever the copy number is, and no
        copy or mark reaches the cell's border (model, CELL_RIM).
 
-       THE TWO INHERITED CHROMOSOMES ARE TOLD APART, his pick D from
+       UNTIL 2026-09-26 THE TWO INHERITED CHROMOSOMES WERE TOLD APART, his pick D from
        `_lab/vaf-cell-mock.html`: the copies the mutation could be on are drawn
        solid and the other chromosome's are open, which keeps the lesson
        figure's horizontal copies while making 2 + 0 — two copies of one
        chromosome — a different picture from 1 + 1. The marks land on the solid
        copies only, because a mutation arises on one chromosome. */
+    /* ONE KIND OF LINE since 2026-09-26, his pick: the solid and dashed
+       parental copies (pick D of 2026-09-16) confused more than they taught,
+       and the VAF never uses which parent a copy came from. The mark sits on
+       the first `copies` copies. */
     const state = isTumour ? cfg.state : M.stateOf("1+1");
     const { mark, lines } = M.cellMarks(r, state.total);
     lines.forEach(({ dy, len }, c) => {
       const oy = cy + dy;
-      const own = c < state.major;
-      ctx.save();
-      if (!own) ctx.setLineDash([3, 2]);
       ctx.beginPath();
       ctx.moveTo(cx - len / 2, oy);
       ctx.lineTo(cx + len / 2, oy);
       ctx.strokeStyle = colors.ink3;
-      ctx.lineWidth = own ? 1.6 : 1.2;
+      ctx.lineWidth = 1.6;
       ctx.stroke();
-      ctx.restore();
-      if (isTumour && carries && own && c < cfg.copies) {
+      if (isTumour && carries && c < cfg.copies) {
         ctx.beginPath();
         ctx.arc(cx, oy, mark, 0, Math.PI * 2);
         ctx.fillStyle = colors.highlight;
@@ -475,7 +475,7 @@ function drawCcfOne(ctx, colors, L, params, state, anim) {
   const given = M.givenOf(cfg, params.knows);
   const what = given.known === "nothing" ? M.STRINGS.assumingPure
     : given.known === "purity" ? M.STRINGS.assumingDiploid(M.n2(cfg.purity))
-      : M.STRINGS.givenBoth(M.n2(cfg.purity), cfg.state.label);
+      : M.STRINGS.givenBoth(M.n2(cfg.purity), cfg.state.label, M.caseOf(cfg.state.key).copiesText);
   text(ctx, `${M.STRINGS.likCaption} — ${what}`, R.x - 8, R.y - 14, { font: capFont(colors), fill: colors.ink1 });
 
   const plot = makePlot({ ctx, colors, rect: R, xDomain: [0, 1], yDomain: [0, 1.08] });
@@ -882,6 +882,17 @@ widgetApi = defineWidget({
        own heading. */
     truthSec: { type: "section", label: M.STRINGS.truthSection, when: { any: [{ param: "page", equals: "one" }, { all: [{ param: "page", equals: "ccf" }, { param: "view", equals: "one" }] }] } },
     sampleSec: { type: "section", label: M.STRINGS.sampleSection, when: { any: [{ param: "page", equals: "many" }, { all: [{ param: "page", equals: "ccf" }, { param: "view", equals: "all" }] }] } },
+    /* THE CASE FIRST, then the share of cells, then purity — cell 17's own
+       order: its figure, then its considerations (the mock's rail A). */
+    state: {
+      type: "segmented",
+      style: "grid",
+      label: M.STRINGS.stateLabel,
+      detail: M.STRINGS.stateDetail,
+      options: M.CASES.map((c) => ({ value: c.key, label: c.label })),
+      default: "1+1",
+      when: { any: [{ param: "page", equals: "one" }, { all: [{ param: "page", equals: "ccf" }, { param: "view", equals: "one" }] }] },
+    },
     /* 1.00 by default since 2026-09-26: cell 17's simple case is a pure
        sample, and page 1 opens on it, reading 0.5. */
     purity: {
@@ -899,34 +910,6 @@ widgetApi = defineWidget({
       options: ["0.25", "0.50", "0.75", "1.00"],
       default: "1.00",
       when: { any: [{ param: "page", equals: "one" }, { all: [{ param: "page", equals: "ccf" }, { param: "view", equals: "one" }] }] },
-    },
-    state: {
-      type: "segmented",
-      style: "grid",
-      label: M.STRINGS.stateLabel,
-      detail: M.STRINGS.stateDetail,
-      options: M.COPY_STATES.map((s) => ({ value: s.key, label: s.label })),
-      default: "1+1",
-      when: { any: [{ param: "page", equals: "one" }, { all: [{ param: "page", equals: "ccf" }, { param: "view", equals: "one" }] }] },
-    },
-    /* The list is a function of the copy state — core's `optionsFrom` — because
-       how many copies may carry the mutation is a property of the state: one
-       per copy of the chromosome it arose on. A slider ran to three in every
-       state and let 2 + 1 be asked for three mutated copies, which no cell
-       has (Kenneth, 2026-09-16). */
-    copies: {
-      type: "choice",
-      label: M.STRINGS.copiesLabel,
-      detail: M.STRINGS.copiesDetail,
-      options: (v) => M.copyOptions(v.state),
-      optionsFrom: "state",
-      default: "1",
-      when: {
-        all: [
-          { any: [{ param: "page", equals: "one" }, { all: [{ param: "page", equals: "ccf" }, { param: "view", equals: "one" }] }] },
-          { param: "state", oneOf: ["2+0", "2+1", "3+1"] },
-        ],
-      },
     },
     seqSec: { type: "section", label: M.STRINGS.seqSection, when: { any: [{ param: "page", equals: "one" }, { all: [{ param: "page", equals: "ccf" }, { param: "view", equals: "one" }] }] } },
     depth: {
@@ -1092,7 +1075,7 @@ widgetApi = defineWidget({
     }
     const sample = [
       { token: "group-a", label: "Tumor cells", mark: "dot" },
-      { token: "ink-3", label: "Copies of the chromosome the mutation is on, solid; copies of the other, dashed", mark: "line" },
+      { token: "ink-3", label: "Copies of the chromosome in a cell", mark: "line" },
       { token: "highlight", label: "The mutation, and the reads that carry it", mark: "bar" },
       { token: "ink-3", label: "Reads that carry the reference allele", mark: "bar" },
     ];

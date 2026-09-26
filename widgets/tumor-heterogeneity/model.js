@@ -167,6 +167,31 @@ export const COPY_STATES = [
   { key: "3+1", label: "3 + 1", major: 3, minor: 1 },
 ].map((s) => ({ ...s, total: s.major + s.minor, copies: Array.from({ length: s.major }, (_, i) => i + 1) }));
 export const stateOf = (key) => COPY_STATES.find((s) => s.key === key) ?? COPY_STATES[0];
+
+/* THE WIDGET'S FOUR CASES, his pick A of 2026-09-26
+   (`_lab/tumor-heterogeneity-cases-mock.html`): "is there a way to simplify
+   this? … i get confused with solid and dashed lines … we just want to
+   illustrate the core concepts". The rail offered nine cells (five states ×
+   the mutated-copy counts each allows); 01-2 cell 17 uses four — its figure's
+   0.5 panel and two VAF-1 cells, and its "4 total copies, with the mutation
+   present on 1 copy" — so the control is those four, named by what is on the
+   copies. The VAF uses only the total and the mutated count, so page 1 needs
+   no parental notation at all.
+
+   Each case is still an allele-specific state behind the scenes, because page
+   3's "Given: Purity and copy number" is cell 24's ASCAT call, and that call
+   is what caps the multiplicities the analysis considers — so the page-3
+   inference, and the 2 + 0 tie, are unchanged. The link word stays `state`
+   (his pick: the field's notation, and existing links keep working); the
+   mutated count now follows the case, so `copies=` in an old link is
+   ignored. `COPY_STATES` keeps 2 + 1 for the lab's measurements. */
+export const CASES = [
+  { key: "1+1", m: 1, label: "1 of 2 copies", copiesText: "two copies" },
+  { key: "2+0", m: 2, label: "2 of 2 copies", copiesText: "two copies" },
+  { key: "1+0", m: 1, label: "1 of 1 copy", copiesText: "one copy" },
+  { key: "3+1", m: 1, label: "1 of 4 copies", copiesText: "four copies" },
+];
+export const caseOf = (key) => CASES.find((c) => c.key === key) ?? CASES[0];
 /** How many copies may carry the mutation in this state: one per copy of the
     chromosome it arose on, so the list is 1…major. */
 export const copyOptions = (key) => stateOf(key).copies.map(String);
@@ -202,9 +227,12 @@ export function configOne(params) {
   const purity = Number(params.purity);
   const ccf = Number(params.ccf);
   const st = stateOf(params.state);
-  /* Capped by `major`, not by the total: the mutation sits on copies of one
-     chromosome. A link carrying more comes back to what the state allows. */
-  const copies = Math.min(Math.max(1, Number(params.copies) || 1), st.major);
+  /* The widget passes no `copies` since 2026-09-26: the case names the count.
+     The lab's measurements still pass one, capped by `major`, not by the total,
+     because the mutation sits on copies of one chromosome. */
+  const copies = params.copies == null
+    ? caseOf(st.key).m
+    : Math.min(Math.max(1, Number(params.copies) || 1), st.major);
   const depth = Number(params.depth);
   return { purity, ccf, state: st, copies, depth, expected: vafExpected(purity, ccf, copies, st.total) };
 }
@@ -839,18 +867,13 @@ export const STRINGS = {
      links already carry it. */
   ccfLabel: "Tumor cells carrying it",
   ccfDetail: "the fraction of tumor cells that carry the mutation",
-  stateLabel: "Copy number",
-  stateDetail: "copies of one inherited chromosome + copies of the other, as an allele-specific caller reports them",
-  copiesLabel: "Mutated copies",
-  /* THE COUNT IS A TIMING, and saying only what it counts is what confused
-     Kenneth on 2026-09-16: "there is 1 mutated copy but copy number is 2 + 0?
-     isn't the mutation copied when the copy number increases?" Both orders are
-     real cells. 2 + 0 with two mutated copies is his reading — the mutation was
-     already there and the duplication carried it — and 2 + 0 with one is the
-     other order, the chromosome lost and the survivor duplicated first, the
-     mutation arising afterwards on one of the two copies. 01-2 cell 25 states
-     it of m and calls one the usual case, which is why the control opens there. */
-  copiesDetail: "copies of that chromosome carrying it: one if the mutation arose after the copy number changed, more if it arose before and was copied with it",
+  /* His pick A of 2026-09-26: the four cases, named by what is on the copies.
+     The detail says how a cell comes to each, which is where the old
+     Mutated copies control's timing ("one if the mutation arose after the copy
+     number changed …") now lives: two of two is the mutated copy duplicated. */
+  stateLabel: "The mutation is on",
+  stateDetail: "copies in a tumor cell: two normally, one when the other is lost, four when the "
+    + "region is gained; two of two when the mutated copy was duplicated and the other lost",
   depthLabel: "Read depth",
   depthDetail: "reads covering the position",
   readsSection: "The reads",
@@ -913,7 +936,9 @@ export const STRINGS = {
      never named the purity it had been handed — the audit of 2026-09-16. */
   assumingPure: "assuming a pure sample and a diploid genome",
   assumingDiploid: (p) => `purity ${p}, assuming a diploid genome`,
-  givenBoth: (p, state) => `purity ${p}, copy number ${state}`,
+  /* Both notations (his pick, 2026-09-26): the allele-specific call is cell
+     24's and appears only here, tied back to page 1's count in words. */
+  givenBoth: (p, state, words) => `purity ${p}, copy number ${state} (${words})`,
   callLabel: "Clonal or subclonal",
   callValue: { clonal: "Clonal", subclonal: "Subclonal", split: "Cannot tell", none: "—" },
   /* Page 3's call reads the likelihood's plausible set (his pick, 2026-09-26). */
