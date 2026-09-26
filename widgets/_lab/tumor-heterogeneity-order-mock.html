@@ -1,0 +1,559 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · tumor-heterogeneity — the notebook's order, VAF before CCF</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1500px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 4px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 110ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); white-space: pre-line; max-width: 552px; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 110ch; }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+       border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 110ch; }
+  table { border-collapse: collapse; font-size: var(--fs-sm); margin: var(--sp-2) 0; }
+  th, td { border: 1px solid var(--grid); padding: 4px 10px; text-align: left; vertical-align: top; }
+  th { color: var(--ink-2); font-weight: 600; }
+  td.num { font-family: var(--font-mono); text-align: right; }
+  td.cur { outline: 2px solid var(--c-highlight); outline-offset: -2px; }
+  td.gone { color: var(--c-extreme); }
+  td.moved { color: var(--ink-2); }
+  .rail { width: 300px; border: 1px solid var(--grid); background: var(--surface-1); padding: var(--sp-3); font-size: var(--fs-sm); }
+  .rail .sec { font-weight: 600; color: var(--ink-1); margin: var(--sp-3) 0 4px; }
+  .rail .sec:first-child { margin-top: 0; }
+  .rail .ctl { margin: 0 0 var(--sp-2); }
+  .rail .nm { display: flex; justify-content: space-between; color: var(--ink-1); }
+  .rail .dt { color: var(--ink-3); font-size: var(--fs-xs); }
+  .rail .seg { display: grid; border: 1px solid var(--grid); border-radius: 4px; overflow: hidden; margin: 3px 0; }
+  .rail .seg span { padding: 5px 4px; text-align: center; font-size: var(--fs-xs); color: var(--ink-2); border-right: 1px solid var(--grid); border-bottom: 1px solid var(--grid); }
+  .rail .seg span.on { background: var(--surface-3); color: var(--ink-1); font-weight: 600; }
+  .rail .bar { height: 4px; background: var(--grid); border-radius: 2px; margin: 5px 0 3px; position: relative; }
+  .rail .bar i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--c-group-a); border-radius: 2px; }
+  .rail .struck { color: var(--c-extreme); font-size: var(--fs-xs); margin: 0 0 var(--sp-2); }
+  .card { width: 552px; border: 1px solid var(--grid); background: var(--surface-2); padding: var(--sp-2) var(--sp-3); font-size: var(--fs-sm); }
+  .card .ln { display: grid; grid-template-columns: 110px 1fr; gap: 8px; margin: 4px 0; font-family: var(--font-mono); font-size: 12px; }
+  .card .ln span:first-child { color: var(--ink-3); text-align: right; font-family: var(--font-sans, inherit); }
+  .card .nt { color: var(--ink-3); font-size: var(--fs-xs); margin-top: 6px; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>tumor-heterogeneity &middot; the notebook's order: VAF first, then how to infer CCF, then clonal architecture</h1>
+  <p class="note">
+    <b>Your ask, 2026-09-26:</b> &ldquo;VAF ~1, ~0.5, &lt;0.5: need to start with simple things and see how they vary with
+    copy number and purity. don't put CCF here &hellip; Need to explain how to infer CCF before we link it to clonal
+    reconstruction.&rdquo; Everything on this page is computed by the widget's own <code>model.js</code>; the
+    likelihood numbers come from <code>_lab/ccf-measure.mjs</code> (seeded, 40 draws of every sample page 1 can
+    build). Stages are drawn at the real 550px.
+  </p>
+
+  <h2>1 &middot; The notebook, cell by cell, against the widget as it shipped</h2>
+  <p class="note">
+    01-2 teaches VAF in cells 17&ndash;23 and does not name the cancer cell fraction until cell 25. The shipped page 1
+    opens on the CCF formula, a CCF control, a <i>Given</i> control and a clonal call &mdash; cells 24 and 25 before
+    cell 17 has been read. Page 2's CCF axis does the same to cells 21&ndash;23.
+  </p>
+  <table>
+    <tr><th>cell</th><th>what it teaches</th><th>shipped</th><th>proposed</th></tr>
+    <tr><td>17</td><td>VAF = variant reads / reads. Three readings under purity 1, no copy change, the mutation on one copy: <b>&asymp; 1</b> (both copies, or the wild-type lost), <b>&asymp; 0.5</b>, <b>&lt; 0.5</b> (a subset of tumor cells). Then copy number (four copies &rarr; 0.25; wild-type deleted &rarr; &asymp; 1) and purity (70% &rarr; 0.35).</td>
+      <td class="gone">page 1 opens at purity 0.70, with a Cancer cell fraction control, the CCF line in the card, <i>Given</i>, a CCF tile and a Clonal or subclonal tile</td>
+      <td>page 1 <b>One mutation</b>: opens at purity 1.00 and 1 + 1 (reads 0.5); the three readings marked on the VAF scale; copy number and purity move the mark. No CCF, no <i>Given</i>, no call</td></tr>
+    <tr><td>19&ndash;20</td><td><code>plotVaf</code>: median &asymp; 0.5 read as clonal, &lt; 0.5 as subclonal, &ldquo;assume purity 100% and no copy number changes&rdquo;</td><td class="moved">not drawn (page 2 is one tumor)</td><td class="moved">unchanged</td></tr>
+    <tr><td>21&ndash;23</td><td><code>inferHeterogeneity</code>: <code>mclust</code> clusters on VAF, MATH</td><td class="gone">page 2, with an axis switch to CCF and its <i>Given</i></td><td>page 2 <b>Many mutations</b> on VAF only; the CCF axis moves to page 3</td></tr>
+    <tr><td>24</td><td>Refining estimates: purity (CPE), allele-specific copy number (ASCAT major + minor)</td><td class="gone"><i>Given</i> on page 1 and on page 2</td><td>page 3's <i>Given</i>: Nothing &middot; Purity &middot; Purity and copy number</td></tr>
+    <tr><td>25 &sect;1</td><td>expected VAF = p&middot;c&middot;m / (p&middot;C<sub>t</sub> + 2(1 &minus; p))</td><td class="moved">page 1 card, second line</td><td>page 3 card, first line</td></tr>
+    <tr><td>25 &sect;2</td><td>&ccirc; solved from the observed VAF, one value per m</td><td class="moved">page 1 card, third line, and the <i>Scenarios that fit</i> panel</td><td>page 3</td></tr>
+    <tr><td>25 &sect;3</td><td>binomial likelihood of the alt reads k of n over c and m</td><td class="gone">not drawn</td><td>page 3's picture (&sect;5 below)</td></tr>
+    <tr><td>25, end</td><td>CCF &asymp; 1 clonal, &lt; 1 subclonal; clustering CCFs gives the clonal architecture (RETCHER figure)</td><td class="moved">page 1's call, page 2's CCF axis, page 3</td><td>page 3's call and its <b>Many mutations</b> view; page 4 <b>Clonal architecture</b> unchanged</td></tr>
+  </table>
+
+  <h2>2 &middot; Four pages in the notebook's order</h2>
+  <p class="note">
+    <b>One sample links pages 1 and 3.</b> Tumor purity, copy number, mutated copies and the tumor cells carrying it
+    are one set of parameters: page 1 builds the sample and shows what it reads; page 3 starts from the same reads
+    and shows what an analysis can infer back. The truth on page 3 is the sample built on page 1.
+  </p>
+  <div class="row">
+    <div class="rail" style="width:300px">
+      <div class="sec">Page</div>
+      <div class="seg" style="grid-template-columns:1fr 1fr">
+        <span class="on">One mutation</span><span>Many mutations</span>
+        <span>Cancer cell fraction</span><span>Clonal architecture</span>
+      </div>
+      <div class="dt">one mutation's VAF, a tumor's VAFs together, the fraction inferred from them, or several samples of one patient</div>
+    </div>
+    <div style="max-width:780px">
+      <table>
+        <tr><th>page</th><th>cells</th><th>the question</th></tr>
+        <tr><td>1 One mutation</td><td>17</td><td>what VAF does a sample read, and how do copy number and purity move it?</td></tr>
+        <tr><td>2 Many mutations</td><td>19&ndash;23</td><td>what do a tumor's VAFs look like together; what do clusters and MATH say?</td></tr>
+        <tr><td>3 Cancer cell fraction</td><td>24&ndash;25</td><td>given purity and copy number, which fractions of tumor cells fit the reads?</td></tr>
+        <tr><td>4 Clonal architecture</td><td>25, end</td><td>which trees do the clusters' fractions allow? (unchanged)</td></tr>
+      </table>
+      <p class="note">The page control becomes a 2 &times; 2 grid: at the 300px rail each button is 148px, and
+        &ldquo;Cancer cell fraction&rdquo; and &ldquo;Clonal architecture&rdquo; both fit (the audit of 2026-09-16 measured the
+        second at 114px). Link words: <code>page=one|many|ccf|clonal</code>, the old three unchanged.</p>
+    </div>
+  </div>
+
+  <h2>3 &middot; Page 1: what one mutation reads, by copy number and purity</h2>
+  <p class="note">
+    The table page 1 makes watchable, for a mutation in <b>every</b> tumor cell. <b>It reads anywhere from 0.13 to
+    1.00.</b> Two of the nine rows read below 0.5 at purity 1 (a gain with one copy mutated), and at purity 0.70 the plain heterozygote reads 0.35:
+    cell 17's &ldquo;other considerations&rdquo;, each a cell of this table. The highlighted cell is the page's opening
+    state.
+  </p>
+  <div id="vafTable"></div>
+
+  <h2>4 &middot; Page 1: the stage, and three ways to show the lesson's readings</h2>
+  <p class="note">
+    The cells, the reads and the VAF bar stay as they shipped. What goes: the CCF control's name (it becomes
+    <i>Tumor cells carrying it</i>, the figure's percentage), the scenarios panel, the CCF and call tiles and
+    the card's CCF line. What is new is a way to read the bar against cell 17's three readings. Drawn first at
+    the case that carries the lesson &mdash; purity 0.70, every tumor cell carrying it, reading 0.35.
+  </p>
+  <div class="row">
+    <div class="cand"><h3>The stage at purity 0.70, 1 + 1, every tumor cell, 88 reads</h3><canvas id="stage1"></canvas></div>
+    <div class="cand">
+      <h3>The card, with no c in it</h3>
+      <div class="card" id="card1"></div>
+      <p class="note" style="max-width:552px;margin-top:8px">The second line counts copies in the sample in words rather than
+        naming p, c, m and C<sub>t</sub>, which page 3 introduces as cell 25 does. The readout tiles become
+        <i>Reads carrying it</i> &middot; <i>Variant allele frequency</i> &middot; <i>Tumor cells carrying it</i>.</p>
+    </div>
+  </div>
+  <p class="note"><b>The three candidates for the reading, each across the five cases</b> &mdash; the figure's three
+    columns at purity 1, then its two considerations. Each strip replaces the bare VAF bar under the reads.</p>
+  <div class="row" id="rulers"></div>
+  <p class="rec" id="recRuler"></p>
+
+  <h2>5 &middot; Page 3: the cancer cell fraction, inferred</h2>
+  <p class="note">
+    Cell 25 in its own three steps: the model (&sect;1), c solved for each m (&sect;2), and the binomial likelihood
+    of the reads (&sect;3). The shipped page 1 drew &sect;2 as rows solved from the <i>expected</i> VAF &mdash; a number
+    the analysis does not have, chosen then so the rows would not flicker as reads came in. Drawing &sect;3 instead
+    solves from the reads themselves, and what the reads cannot settle shows as width.
+  </p>
+  <div class="row" id="ccfCands"></div>
+  <p class="note"><b>Candidate B across what the page can show.</b> The same sample read to 31, 88 and 500 reads;
+    a 2 + 0 region where one copy and two fit equally; and the sample at purity 0.70 read with nothing given.</p>
+  <div class="row" id="likRow"></div>
+  <div id="callTable"></div>
+  <p class="rec" id="recCcf"></p>
+
+  <h2>6 &middot; Page 3: where the many-mutation CCF axis goes</h2>
+  <p class="note">
+    Page 2's switch from VAF to cancer cell fraction is cell 25's last paragraph (&ldquo;by clustering CCFs&hellip;&rdquo;),
+    the bridge into the clonal architecture page. It moves out of page 2 so page 2 stays in cells 21&ndash;23.
+  </p>
+  <div class="row" id="manyRow"></div>
+  <p class="rec" id="recMany"></p>
+
+  <h2>7 &middot; What is asked</h2>
+  <ol class="note" id="asks" style="max-width:110ch">
+    <li><b>The pages</b>: One mutation &middot; Many mutations &middot; Cancer cell fraction &middot; Clonal architecture, page 3 with a One mutation &middot; Many mutations view.</li>
+    <li><b>Page 1's reading</b>: A, B or C in &sect;4.</li>
+    <li><b>Page 3's picture</b>: the solved rows (A) or the likelihood (B) in &sect;5.</li>
+    <li><b>Page 3's call rule</b>, from the table in &sect;5.</li>
+  </ol>
+</main>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+import { makeRng } from "../core/rng.js";
+import * as M from "../tumor-heterogeneity/model.js";
+
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+const W = 552;
+const f2 = (x) => x.toFixed(2);
+const f3 = (x) => x.toFixed(3);
+
+function canvas(el, w, h) {
+  const c = typeof el === "string" ? document.getElementById(el) : el;
+  c.width = w * DPR; c.height = h * DPR;
+  c.style.width = `${w}px`; c.style.height = `${h}px`;
+  const ctx = c.getContext("2d");
+  ctx.scale(DPR, DPR);
+  return ctx;
+}
+function newCanvas(parent, title, sub, w, h) {
+  const d = document.createElement("div");
+  d.className = "cand";
+  d.innerHTML = `<h3>${title}</h3>${sub ? `<div class="sub">${sub}</div>` : ""}`;
+  const c = document.createElement("canvas");
+  d.appendChild(c);
+  parent.appendChild(d);
+  return canvas(c, w, h);
+}
+function text(ctx, s, x, y, { font = `${T.fsXs} ${T.font}`, fill = T.ink2, align = "left", baseline = "alphabetic" } = {}) {
+  ctx.save(); ctx.font = font; ctx.fillStyle = fill; ctx.textAlign = align; ctx.textBaseline = baseline; ctx.fillText(s, x, y); ctx.restore();
+}
+const cap = `600 ${T.fsSm} ${T.font}`;
+const mono = `${T.fsXs} ${T.mono}`;
+function wash(color, a) {
+  const m = String(color).match(/^#([0-9a-f]{6})$/i);
+  if (!m) return color;
+  const p = [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16));
+  return `rgba(${p[0]},${p[1]},${p[2]},${a})`;
+}
+
+/* ---- the cell, as the widget draws it (main.js drawCells, pick D) ---- */
+function drawCell(ctx, cx, cy, r, state, mutated, tumour = true) {
+  ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.fillStyle = tumour ? wash(T.groupA, 0.16) : T.surface3; ctx.fill();
+  ctx.strokeStyle = tumour ? wash(T.groupA, 0.75) : wash(T.ink3, 0.55); ctx.lineWidth = 1; ctx.stroke();
+  const { mark, lines } = M.cellMarks(r, state.total);
+  lines.forEach(({ dy, len }, c) => {
+    const oy = cy + dy, own = c < state.major;
+    ctx.save(); if (!own) ctx.setLineDash([3, 2]);
+    ctx.beginPath(); ctx.moveTo(cx - len / 2, oy); ctx.lineTo(cx + len / 2, oy);
+    ctx.strokeStyle = T.ink3; ctx.lineWidth = own ? 1.6 : 1.2; ctx.stroke(); ctx.restore();
+    if (own && c < mutated) { ctx.beginPath(); ctx.arc(cx, oy, mark, 0, Math.PI * 2); ctx.fillStyle = T.highlight; ctx.fill(); }
+  });
+}
+function drawCells(ctx, rect, cfg) {
+  const { cols, px, py, r } = M.cellGrid(rect, M.CELLS);
+  const { tumour, carrying } = M.cellCounts(cfg);
+  for (let i = 0; i < M.CELLS; i += 1) {
+    const cx = rect.x + (i % cols) * px + px / 2, cy = rect.y + Math.floor(i / cols) * py + py / 2;
+    const t = i < tumour;
+    drawCell(ctx, cx, cy, r, t ? cfg.state : M.stateOf("1+1"), t && i < carrying ? cfg.copies : 0, t);
+  }
+  return { tumour, carrying };
+}
+function reads(cfg, seed = 1) { return M.buildReads(makeRng(seed), cfg); }
+function drawPileup(ctx, rect, one) {
+  const depth = one.depth;
+  const perRow = depth <= 40 ? 20 : depth <= 100 ? 22 : depth <= 200 ? 40 : 50;
+  const rowsN = Math.ceil(depth / perRow);
+  const rh = Math.max(3, Math.min(9, (rect.h - (rowsN - 1) * 3) / rowsN));
+  const cw = (rect.w - (perRow - 1) * 2) / perRow;
+  for (let i = 0; i < depth; i += 1) {
+    const rx = rect.x + (i % perRow) * (cw + 2), ry = rect.y + Math.floor(i / perRow) * (rh + 3);
+    const v = one.reads[i] === 1;
+    ctx.globalAlpha = v ? 1 : 0.45; ctx.fillStyle = v ? T.highlight : T.ink3; ctx.fillRect(rx, ry, cw, rh); ctx.globalAlpha = 1;
+  }
+}
+function bar(ctx, rect, vaf, expected) {
+  ctx.fillStyle = T.surface3; ctx.fillRect(rect.x, rect.y, rect.w, rect.h);
+  if (Number.isFinite(vaf)) { ctx.fillStyle = wash(T.highlight, 0.85); ctx.fillRect(rect.x, rect.y, rect.w * vaf, rect.h); }
+  ctx.strokeStyle = T.grid; ctx.lineWidth = 1; ctx.strokeRect(rect.x + 0.5, rect.y + 0.5, rect.w - 1, rect.h - 1);
+  if (expected != null) {
+    ctx.beginPath(); ctx.moveTo(rect.x + rect.w * expected, rect.y - 4); ctx.lineTo(rect.x + rect.w * expected, rect.y + rect.h + 4);
+    ctx.strokeStyle = T.theory; ctx.lineWidth = 2; ctx.stroke();
+  }
+}
+function scale(ctx, rect, y) {
+  for (const t of [0, 0.25, 0.5, 0.75, 1]) text(ctx, t.toFixed(2), rect.x + rect.w * t, y, { font: mono, fill: T.ink3, align: t === 0 ? "left" : t === 1 ? "right" : "center" });
+}
+
+const cfgOf = (o) => M.configOne({ purity: "1.00", ccf: "1.00", state: "1+1", copies: "1", depth: "88", ...o });
+
+/* ---- §3 the table ---- */
+{
+  const P = ["0.35", "0.50", "0.70", "1.00"];
+  let h = `<table><tr><th>copy number</th><th>mutated copies</th>${P.map((p) => `<th>purity ${p}</th>`).join("")}</tr>`;
+  for (const st of M.COPY_STATES) for (const m of st.copies) {
+    h += `<tr><td>${st.label}</td><td>${m}</td>` + P.map((p) => {
+      const v = M.vafExpected(Number(p), 1, m, st.total);
+      const cur = st.key === "1+1" && p === "1.00";
+      return `<td class="num${cur ? " cur" : ""}">${f3(v)}</td>`;
+    }).join("") + "</tr>";
+  }
+  document.getElementById("vafTable").innerHTML = h + "</table>";
+}
+
+/* ---- §4 the stage and the card ---- */
+{
+  const cfg = cfgOf({ purity: "0.70" });
+  const one = reads(cfg);
+  const ctx = canvas("stage1", W, 380);
+  text(ctx, "The sample", 14, 18, { font: cap, fill: T.ink1 });
+  const cnt = drawCells(ctx, { x: 14, y: 26, w: 522, h: 190 }, cfg);
+  text(ctx, `${cnt.tumour} of 60 cells are tumor cells, ${cnt.carrying} of them carrying the mutation`, 14, 234, { fill: T.ink2 });
+  text(ctx, "The reads", 14, 262, { font: cap, fill: T.ink1 });
+  text(ctx, `${one.depth} of ${one.depth}`, 536, 262, { font: mono, fill: T.ink3, align: "right" });
+  drawPileup(ctx, { x: 14, y: 270, w: 522, h: 56 }, one);
+  const vaf = one.alt / one.depth;
+  bar(ctx, { x: 14, y: 346, w: 522, h: 16 }, vaf, cfg.expected);
+  scale(ctx, { x: 14, w: 522 }, 376);
+
+  const tum = f2(cfg.purity), norm = f2(1 - cfg.purity);
+  document.getElementById("card1").innerHTML = `
+    <div class="ln"><span>the reading</span><span>VAF = variant reads / reads = ${one.alt} / ${one.depth} = ${f3(vaf)}</span></div>
+    <div class="ln"><span>the sample</span><span>VAF = mutated copies / all copies<br>= ${tum} × 1.00 × 1 / (${tum} × 2 + ${norm} × 2) = ${f3(cfg.expected)}</span></div>
+    <div class="nt">The sample's line counts copies at this position: tumor cells × the share carrying it × the copies it is on,
+    over tumor cells × their copies plus normal cells × 2. Normal cells add copies and no mutation, which is how purity lowers a VAF.</div>`;
+}
+
+/* ---- §4 the three rulers across five cases ---- */
+const CASES = [
+  { name: "≈ 0.5", o: {}, note: "1 + 1, every tumor cell, purity 1" },
+  { name: "< 0.5", o: { ccf: "0.25" }, note: "1 + 1, 25% of tumor cells, purity 1" },
+  { name: "≈ 1", o: { state: "2+0", copies: "2" }, note: "2 + 0, both copies, purity 1" },
+  { name: "copy number", o: { state: "3+1" }, note: "3 + 1, one copy, every tumor cell, purity 1" },
+  { name: "purity", o: { purity: "0.70" }, note: "1 + 1, every tumor cell, purity 0.70" },
+];
+const RULER_H = 96;
+function rulerA(ctx, cfg, vaf) {
+  const R = { x: 14, y: 40, w: 522, h: 14 };
+  // the three readings, as marks above the bar
+  ctx.strokeStyle = T.ink3; ctx.lineWidth = 1;
+  const y0 = 30;
+  ctx.beginPath(); ctx.moveTo(R.x, y0); ctx.lineTo(R.x, y0 - 5); ctx.moveTo(R.x, y0); ctx.lineTo(R.x + R.w * 0.49, y0); ctx.lineTo(R.x + R.w * 0.49, y0 - 5); ctx.stroke();
+  text(ctx, "< 0.5 — in a subset of tumor cells", R.x + R.w * 0.245, y0 - 8, { align: "center", fill: T.ink2 });
+  /* Two heights, so the 0.5 label and the 1 label never meet. */
+  for (const [v, s, ly] of [[0.5, "≈ 0.5 — one of two copies, every cell", y0 - 18], [1, "≈ 1 — every copy", y0 - 4]]) {
+    const x = R.x + R.w * v;
+    ctx.beginPath(); ctx.moveTo(x, ly - 10); ctx.lineTo(x, R.y + R.h); ctx.setLineDash([2, 2]); ctx.stroke(); ctx.setLineDash([]);
+    text(ctx, s, v === 1 ? x - 4 : x + 4, ly, { align: v === 1 ? "right" : "left", fill: T.ink2 });
+  }
+  bar(ctx, R, vaf, cfg.expected);
+  scale(ctx, R, R.y + R.h + 14);
+  text(ctx, `VAF ${f3(vaf)}`, R.x, R.y + R.h + 32, { font: `600 ${T.fsXs} ${T.mono}`, fill: T.ink1 });
+  text(ctx, `the sample reads ${f3(cfg.expected)}`, R.x + R.w, R.y + R.h + 32, { font: mono, fill: T.theory, align: "right" });
+}
+function rulerB(ctx, cfg, vaf) {
+  // the figure's own cells, placed at the VAF each reads under its assumptions
+  const R = { x: 14, y: 52, w: 522, h: 14 };
+  const r = 11;
+  const fig = [
+    { v: 0.125, st: "1+1", m: 1, label: "25%" },
+    { v: 0.5, st: "1+1", m: 1, label: "100%" },
+    { v: 1, st: "2+0", m: 2, label: "" },
+    { v: 1, st: "1+0", m: 1, label: "" },
+  ];
+  fig.forEach((f, i) => {
+    let x = R.x + R.w * f.v;
+    if (f.v === 1) x = R.x + R.w - r - 1 - (i === 2 ? 2 * r + 6 : 0);
+    const cy = 22;
+    drawCell(ctx, x, cy, r, M.stateOf(f.st), f.m);
+    if (f.label) text(ctx, f.label, x + r + 3, cy + 3, { font: mono, fill: T.ink3 });
+    ctx.strokeStyle = wash(T.ink3, 0.6); ctx.setLineDash([2, 2]); ctx.beginPath();
+    ctx.moveTo(R.x + R.w * f.v - (f.v === 1 ? 0.5 : 0), cy + r + 2); ctx.lineTo(R.x + R.w * f.v - (f.v === 1 ? 0.5 : 0), R.y); ctx.stroke(); ctx.setLineDash([]);
+  });
+  bar(ctx, R, vaf, cfg.expected);
+  scale(ctx, R, R.y + R.h + 14);
+  text(ctx, `VAF ${f3(vaf)}`, R.x, R.y + R.h + 30, { font: `600 ${T.fsXs} ${T.mono}`, fill: T.ink1 });
+  text(ctx, `the sample reads ${f3(cfg.expected)}`, R.x + R.w, R.y + R.h + 30, { font: mono, fill: T.theory, align: "right" });
+}
+function rulerC(ctx, cfg, vaf) {
+  // bar, then a strip: this mutation's VAF at every copy number and purity
+  const R = { x: 14, y: 8, w: 522, h: 12 };
+  bar(ctx, R, vaf, cfg.expected);
+  scale(ctx, R, R.y + R.h + 13);
+  const P = [0.35, 0.5, 0.7, 1];
+  const rows = [];
+  for (const st of M.COPY_STATES) for (const m of st.copies) rows.push({ st, m });
+  const x0 = 60, cw = (522 - 46) / rows.length, y0 = 46, rh = 11;
+  rows.forEach(({ st, m }, j) => {
+    text(ctx, `${st.label.replace(/ /g, "")}${st.major > 1 ? `·${m}` : ""}`, x0 + j * cw + cw / 2, y0 - 3, { font: `9px ${T.mono}`, fill: T.ink3, align: "center" });
+  });
+  P.forEach((p, i) => {
+    text(ctx, `p ${f2(p)}`, 14, y0 + i * rh + 9, { font: `9px ${T.mono}`, fill: T.ink3 });
+    rows.forEach(({ st, m }, j) => {
+      const v = M.vafExpected(p, cfg.ccf, m, st.total);
+      const cur = st.key === cfg.state.key && m === cfg.copies && Math.abs(p - cfg.purity) < 1e-9;
+      ctx.fillStyle = wash(T.highlight, 0.12 + 0.8 * v);
+      ctx.fillRect(x0 + j * cw + 1, y0 + i * rh + 1, cw - 2, rh - 2);
+      if (cur) { ctx.strokeStyle = T.ink1; ctx.lineWidth = 1.5; ctx.strokeRect(x0 + j * cw + 0.5, y0 + i * rh + 0.5, cw - 1, rh - 1); }
+    });
+  });
+}
+{
+  const host = document.getElementById("rulers");
+  const specs = [
+    ["A · the readings marked on the bar", rulerA, RULER_H],
+    ["B · the figure's cells as the scale", rulerB, RULER_H + 6],
+    ["C · the bar, and this mutation at every copy number × purity", rulerC, 96],
+  ];
+  for (const [title, fn, h] of specs) {
+    const col = document.createElement("div");
+    col.className = "cand";
+    col.innerHTML = `<h3>${title}</h3>`;
+    host.appendChild(col);
+    for (const c of CASES) {
+      const cfg = cfgOf(c.o);
+      const one = reads(cfg);
+      const d = document.createElement("div");
+      d.innerHTML = `<div class="sub">${c.name} · ${c.note}</div>`;
+      const cv = document.createElement("canvas");
+      d.appendChild(cv); col.appendChild(d);
+      const ctx = canvas(cv, W, h);
+      fn(ctx, cfg, one.alt / one.depth);
+      d.style.marginBottom = "10px";
+    }
+  }
+  document.getElementById("recRuler").innerHTML = `<b>Recommendation: A.</b> It names cell 17's three readings in the
+    notebook's own words at the place on the scale each one means, and the sample's mark visibly leaves them — at purity
+    0.70 the mark sits inside <i>&lt; 0.5 — in a subset of tumor cells</i> while the cells above show every tumor cell
+    carrying it, which is the whole of cell 17's &ldquo;other considerations&rdquo;. <b>B</b> is the most faithful to your
+    figure, but its cells are 11px and the two VAF-1 cells have to be pushed apart to fit, so the scale position is
+    approximate at the end that matters. <b>C</b> answers &ldquo;how do they vary&rdquo; all at once but is a 9 × 4 grid
+    of shades beside a figure that is already cells plus reads &mdash; it is the §3 table, which may serve better in the
+    notebook than on the stage.`;
+}
+
+/* ---- §5 page 3 ---- */
+const GRID = Array.from({ length: 200 }, (_, i) => (i + 1) / 200);
+const CHI = 1.92;
+const ll = (k, n, v) => { const e = Math.min(1 - 1e-9, Math.max(1e-9, v)); return k * Math.log(e) + (n - k) * Math.log(1 - e); };
+function infer(k, n, h) {
+  const curves = h.ms.map((m) => {
+    const ys = GRID.map((c) => ll(k, n, M.vafExpected(h.p, c, m, h.C)));
+    let b = 0; ys.forEach((y, i) => { if (y > ys[b]) b = i; });
+    return { m, ys, cHat: GRID[b], max: ys[b] };
+  });
+  const top = Math.max(...curves.map((c) => c.max));
+  const plaus = [];
+  curves.forEach((cv) => cv.ys.forEach((y, i) => { if (y >= top - CHI) plaus.push({ m: cv.m, c: GRID[i] }); }));
+  const lo = Math.min(...plaus.map((q) => q.c)), hi = Math.max(...plaus.map((q) => q.c));
+  return { curves, top, lo, hi, call: lo >= 0.9 ? "Clonal" : hi < 0.9 ? "Subclonal" : "Cannot tell" };
+}
+const hyp = (cfg, level) => level === "nothing" ? { p: 1, C: 2, ms: [1, 2] } : level === "purity" ? { p: cfg.purity, C: 2, ms: [1, 2] } : { p: cfg.purity, C: cfg.state.total, ms: cfg.state.copies };
+const MCOL = () => [T.groupA, T.groupB, T.groupC];
+function likPlot(ctx, cfg, k, n, level, { w = W, h = 210, title = "" } = {}) {
+  const hy = hyp(cfg, level);
+  const r = infer(k, n, hy);
+  const P = { x: 44, y: 34, w: w - 44 - 16, h: h - 34 - 50 };
+  text(ctx, title || `Likelihood of the reads, ${k} of ${n}, over c`, 14, 18, { font: cap, fill: T.ink1 });
+  // axes
+  ctx.strokeStyle = T.axis; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(P.x, P.y); ctx.lineTo(P.x, P.y + P.h); ctx.lineTo(P.x + P.w, P.y + P.h); ctx.stroke();
+  for (const t of [0, 0.25, 0.5, 0.75, 0.9, 1]) {
+    const x = P.x + P.w * t;
+    text(ctx, t === 0.9 ? "0.9" : t.toFixed(2), x, P.y + P.h + 13, { font: mono, fill: t === 0.9 ? T.ink2 : T.ink3, align: "center" });
+  }
+  text(ctx, "cancer cell fraction c", P.x + P.w / 2, P.y + P.h + 27, { fill: T.ink2, align: "center" });
+  // plausible band
+  const xl = P.x + P.w * (r.lo - 0.0025), xh = P.x + P.w * r.hi;
+  ctx.fillStyle = wash(T.ink3, 0.14); ctx.fillRect(xl, P.y, xh - xl, P.h);
+  // threshold
+  ctx.save(); ctx.setLineDash([3, 3]); ctx.strokeStyle = T.ink3; ctx.beginPath(); ctx.moveTo(P.x + P.w * 0.9, P.y); ctx.lineTo(P.x + P.w * 0.9, P.y + P.h); ctx.stroke(); ctx.restore();
+  // truth
+  const tx = P.x + P.w * cfg.ccf;
+  ctx.strokeStyle = T.reference; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(tx, P.y + P.h - 8); ctx.lineTo(tx, P.y + P.h + 3); ctx.stroke();
+  // curves, relative likelihood
+  r.curves.forEach((cv, i) => {
+    ctx.beginPath();
+    cv.ys.forEach((y, j) => { const X = P.x + P.w * GRID[j], Y = P.y + P.h - P.h * Math.exp(y - r.top); j ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y); });
+    ctx.strokeStyle = MCOL()[i]; ctx.lineWidth = 2; ctx.stroke();
+    const lx = P.x + P.w * cv.cHat, ly = P.y + P.h - P.h * Math.exp(cv.max - r.top);
+    text(ctx, `m = ${cv.m}`, Math.min(P.x + P.w - 2, Math.max(P.x + 20, lx)), Math.max(P.y + 10, ly - 5 - 11 * i), { font: `600 ${T.fsXs} ${T.font}`, fill: MCOL()[i], align: lx > P.x + P.w - 30 ? "right" : "center" });
+  });
+  const given = level === "nothing" ? "purity 1 and 1 + 1 assumed" : level === "purity" ? `purity ${f2(cfg.purity)} given, 1 + 1 assumed` : `purity ${f2(cfg.purity)} and ${cfg.state.label} given`;
+  text(ctx, `${given} · plausible c ${f2(r.lo)}–${f2(r.hi)} · ${r.call}`, 14, h - 6, { fill: r.call === "Cannot tell" ? T.ink2 : T.ink1 });
+  return r;
+}
+function solvedRows(ctx, cfg, k, n, level) {
+  const hy = hyp(cfg, level);
+  const vaf = k / n;
+  text(ctx, `c solved for each m — VAF ${f3(vaf)} (${k} of ${n})`, 14, 18, { font: cap, fill: T.ink1 });
+  const factor = M.ccfFrom(1, hy.p, 1, hy.C);
+  hy.ms.forEach((m, i) => {
+    const c = vaf * factor / m;
+    const y = 40 + i * 36;
+    const Rb = { x: 110, y, w: 426, h: 14 };
+    text(ctx, `m = ${m}`, 14, y + 11, { font: `600 ${T.fsXs} ${T.font}`, fill: MCOL()[i] });
+    ctx.fillStyle = T.surface3; ctx.fillRect(Rb.x, Rb.y, Rb.w, Rb.h);
+    ctx.fillStyle = wash(MCOL()[i], 0.8); ctx.fillRect(Rb.x, Rb.y, Rb.w * Math.min(1, c), Rb.h);
+    text(ctx, `${f3(vaf)} × ${f2(factor)} ÷ ${m} = ${f2(c)}${c > 1 ? " — more than every tumor cell" : ""}`, Rb.x, y + 28, { font: mono, fill: c > 1 ? T.extreme : T.ink2 });
+  });
+  const fits = hy.ms.map((m) => vaf * factor / m).filter((c) => c <= 1);
+  text(ctx, fits.length ? `fits: ${fits.map(f2).join(", ")} · the reads' noise is not in these numbers` : "nothing fits", 14, 40 + hy.ms.length * 36 + 12, { fill: T.ink2 });
+}
+{
+  const cfg = cfgOf({ purity: "0.70" });
+  const one = reads(cfg);
+  const host = document.getElementById("ccfCands");
+  solvedRows(newCanvas(host, "A · cell 25 §2, c solved for each m (the shipped panel, moved)", "purity 0.70, 1 + 1, every tumor cell, told purity and copy number, 88 reads · solved from the reads, a mutation in every tumor cell reads past 1 in about half of draws, this one among them — why the shipped panel solved from the expected VAF instead", W, 210), cfg, one.alt, one.depth, "both");
+  likPlot(newCanvas(host, "B · cell 25 §3, the likelihood of c for each m", "the same sample · grey: the c values within 1.92 log-likelihood of the best (95%) · dashed: 0.9 · tick: the true c", W, 210), cfg, one.alt, one.depth, "both");
+
+  const lik = document.getElementById("likRow");
+  for (const n of [31, 88, 500]) {
+    const c = cfgOf({ purity: "0.70", depth: String(n) });
+    const o = reads(c);
+    likPlot(newCanvas(lik, `${n} reads`, "", 360, 200), c, o.alt, o.depth, "both", { w: 360, h: 200, title: `${o.alt} of ${n} reads` });
+  }
+  {
+    const c = cfgOf({ purity: "0.70", state: "2+0", copies: "1", ccf: "1.00" });
+    const o = reads(c);
+    likPlot(newCanvas(lik, "2 + 0, one copy, every tumor cell", "m = 1 at c 1.00 and m = 2 at c 0.50 expect the same VAF: both stay in the plausible set", 360, 200), c, o.alt, o.depth, "both", { w: 360, h: 200, title: `${o.alt} of ${o.depth} reads` });
+  }
+  {
+    const c = cfgOf({ purity: "0.70" });
+    const o = reads(c);
+    likPlot(newCanvas(lik, "Given nothing", "purity 1 and two copies assumed: the plausible c leaves out the truth", 360, 200), c, o.alt, o.depth, "nothing", { w: 360, h: 200, title: `${o.alt} of ${o.depth} reads` });
+  }
+
+  document.getElementById("callTable").innerHTML = `
+    <p class="note" style="margin-top:12px"><b>Three call rules on the same likelihood</b>, over every sample page 1 can build
+    (right / wrong / cannot tell, %, 40 draws each, <code>_lab/ccf-measure.mjs</code> §6). The shipped call, solved from
+    the expected VAF with no read noise, was 80.6 / 0.0 / 19.4 told both.</p>
+    <table><tr><th>given</th><th>reads</th><th>whole plausible c ≥ 0.9</th><th>plausible c reaches 1</th><th>best c ≥ 0.9</th></tr>
+    <tr><td>nothing</td><td class="num">88</td><td class="num">67 / 14 / 19</td><td class="num">70 / 16 / 14</td><td class="num">77 / 23 / 0</td></tr>
+    <tr><td>nothing</td><td class="num">500</td><td class="num">72 / 18 / 9</td><td class="num">73 / 19 / 8</td><td class="num">77 / 23 / 0</td></tr>
+    <tr><td>both</td><td class="num">31</td><td class="num">22 / <b>0</b> / 78</td><td class="num">43 / 13 / 44</td><td class="num">80 / 20 / 0</td></tr>
+    <tr><td>both</td><td class="num">88</td><td class="num">34 / <b>0</b> / 66</td><td class="num">53 / 7 / 40</td><td class="num">83 / 17 / 0</td></tr>
+    <tr><td>both</td><td class="num">161</td><td class="num">46 / <b>0</b> / 54</td><td class="num">66 / 3 / 31</td><td class="num">87 / 13 / 0</td></tr>
+    <tr><td>both</td><td class="num">500</td><td class="num">64 / <b>0</b> / 36</td><td class="num">77 / 1 / 22</td><td class="num">89 / 11 / 0</td></tr></table>
+    <p class="note">And the plausible set told both contains the true c 96–99% of the time at every depth; told nothing,
+    34–70%, falling as depth rises — reading deeper makes a wrong assumption more confident, not less.</p>`;
+
+  document.getElementById("recCcf").innerHTML = `<b>Recommendation: B, with the whole-plausible-set rule.</b> It is cell 25
+    §3 drawn: one curve per multiplicity, sharpening as reads arrive, so Step and Play on page 3 do something the
+    reader can see &mdash; the curve narrowing is the inference happening. The tie in 2 + 0 is two curves inside the plausible set rather
+    than a sentence, and <i>Given nothing</i> is a narrow curve in the wrong place. The rule keeps the shipped threshold
+    0.9 and the shipped property that told both it is never wrong; its cost is honest: at 88 reads a clonal mutation's
+    plausible c is 0.79–1.00, so <i>Cannot tell</i> is the common answer until the reads run deep, where the shipped
+    page said <i>Clonal</i> from a number the analysis never had. <b>A</b> is simpler arithmetic but cannot show
+    depth at all.`;
+}
+
+/* ---- §6 many mutations on the CCF axis ---- */
+{
+  const host = document.getElementById("manyRow");
+  const cfg = M.configMany({ clones: "two", mutations: "300", purity2: "0.70", depth2: "88", assumed: "purity" });
+  const many = M.buildMany(makeRng(1), cfg);
+  const drawHist = (ctx, axis, title) => {
+    const a = M.onAxis(many, cfg, axis);
+    const counts = M.histOf(a.values, many.muts, a.max);
+    const top = M.histTop(counts);
+    const P = { x: 44, y: 28, w: 320 - 60, h: 120 };
+    text(ctx, title, 14, 16, { font: cap, fill: T.ink1 });
+    const bw = P.w / counts.length;
+    counts.forEach(([cl, sub], i) => {
+      const hc = (cl / top) * P.h, hs = (sub / top) * P.h;
+      ctx.fillStyle = T.empirical; ctx.fillRect(P.x + i * bw, P.y + P.h - hc, bw - 1, hc);
+      ctx.fillStyle = T.groupB; ctx.fillRect(P.x + i * bw, P.y + P.h - hc - hs, bw - 1, hs);
+    });
+    ctx.strokeStyle = T.axis; ctx.beginPath(); ctx.moveTo(P.x, P.y + P.h); ctx.lineTo(P.x + P.w, P.y + P.h); ctx.stroke();
+    for (const t of a.ticks) text(ctx, String(t), P.x + (P.w * t) / a.max, P.y + P.h + 13, { font: mono, fill: T.ink3, align: "center" });
+    text(ctx, a.label, P.x + P.w / 2, P.y + P.h + 28, { fill: T.ink2, align: "center" });
+  };
+  drawHist(newCanvas(host, "Page 2 — VAF only", "cells 21–23: clusters and MATH on the reads", 320, 180), "vaf", "300 mutations, purity 0.70");
+  drawHist(newCanvas(host, "Page 3, Many mutations — the same tumor", "purity given; clonal at 1, the subclone at 0.5", 320, 180), "ccf", "Cancer cell fraction, purity given");
+  const opt = document.createElement("div");
+  opt.innerHTML = `<table style="max-width:560px"><tr><th>option</th><th>what it costs</th></tr>
+    <tr><td><b>a</b> · page 3 has a view control, <i>One mutation · Many mutations</i></td><td>one extra control on page 3; page 2's axis ease moves with it, eased from VAF to c as it does now</td></tr>
+    <tr><td><b>b</b> · five pages, <i>Many fractions</i> its own</td><td>a fifth page button; the grid becomes 2 + 2 + 1</td></tr>
+    <tr><td><b>c</b> · page 4 opens on it, then the samples</td><td>page 4 already has three panels and 4 samples; the histogram is one tumor, a different unit</td></tr></table>`;
+  host.appendChild(opt);
+  document.getElementById("recMany").innerHTML = `<b>Recommendation: a.</b> One page for one idea, the fraction, read for
+    one mutation and then for all of them; the <i>Given</i> control is shared by both views, which is cell 24's
+    refinement applied twice. The histogram keeps page 2's truth-in-colour and its mixture brackets, now on c.`;
+}
+</script>
+</body>
+</html>
