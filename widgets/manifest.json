@@ -1218,7 +1218,7 @@
     {
       "slug": "attention",
       "title": "Deep Learning - Language: Attention",
-      "blurb": "Attention weights are a softmax over query–key scores; each token's output is the weighted sum of the values.",
+      "blurb": "A word's meaning depends on its context; attention computes each token's vector as a weighted sum over every token.",
       "course": "PHM5005",
       "topics": [
         "attention",
