@@ -9514,7 +9514,9 @@ the plausible set. Page 3 All mutations is page 2's histogram with the axis
 
 **One consequence of shared parameters, for him:** purity is one parameter
 across pages 1–3, so `?page=ccf` opens at purity 1.00, where *Given: Nothing*
-and *Purity* agree; a lesson link to page 3 wants `&purity=0.70`.
+and *Purity* agree; a lesson link to page 3 wants `&purity=0.70`. **His call,
+2026-09-26: keep purity shared; he links page 3 with `purity=0.70`.** Not to
+be re-argued as a per-page purity.
 
 **Verified:** `tumor-heterogeneity-verify.mjs` 220 checks (section 2's page-1
 height block replaced by the likelihood's: told both wrong 0.0% at 88 reads
