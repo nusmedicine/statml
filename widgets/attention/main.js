@@ -57,11 +57,10 @@ const ON = (page) => ({ param: "page", equals: page });
 
 const S = {
   title: "Deep Learning - Language: Attention",
-  /* his pick D1, 2026-09-26: why attention before the steps, in the widget's own sentences */
-  subtitle: "A word's meaning depends on its context: \"discharge\" in \"yellow discharge from wound\" is not \"discharge\" in \"planned discharge home\". "
-    + "Attention computes each token's new vector as a weighted sum over all the tokens in the sequence, with weights computed from the tokens themselves. "
-    + "Queries, keys and values are projections of each embedding; the weights are a softmax over query–key dot products divided by √dₖ, "
-    + "with padded positions masked to −∞; the output is the weighted sum of the values, computed in several heads in parallel.",
+  /* his pick E1, 2026-09-26: why and what, no example and no arithmetic (D1 before it
+     carried both, the two senses of "discharge" and the softmax; he cut them) */
+  subtitle: "A word's meaning depends on its context. Attention computes each token's new vector as a weighted sum over all the tokens "
+    + "in the sequence, with weights computed from the tokens themselves, in several heads in parallel.",
   pageLabel: "Step",
   sentenceLabel: "Sentence",
   sentenceDetail: "Synthetic clinical notes, the input to a small model pretrained by masked-word prediction.",
