@@ -9611,6 +9611,30 @@ TRACERx lung, Gerlinger et al. 2012 renal); longitudinal sampling — the
 primary at surgery, then recurrences or metastases later, or plasma at time
 points; and primary–metastasis pairs. P2 is the longitudinal kind.
 
+**His call, 2026-09-26: assume the surgery came first; label the samples
+Surgery and Recurrence 1–3.** Built the same day as candidate S (a press per
+sample; T was not picked, S was the recommendation — offered to switch):
+
+- **Step "Add a sample", Play "Sequence the samples in time order"** on page 4
+  (core's nested `stepLabel` keyed on the page, the reads' labels kept on pages
+  1 and 3). Page 4 opens with no sample sequenced; each press fades in the
+  sample's points, its row and its verdicts over `JOIN_MS` 620 ms, with a hold
+  between samples under Play. Trees that fit: 2 → 1 → 1 → 1.
+- **The Samples used control is gone**; `?page=clonal&shown=N` gives N samples
+  (0–4). Old `taken=` links are ignored.
+- **The axis is time**, all four places labelled from the start on two lines
+  ("Recurrence" over its number, which did not fit a quarter of the panel),
+  unsequenced samples in the faint ink; the rows name the sample and put the
+  arithmetic right-aligned. Tiles: This tree · Trees that fit · Samples
+  sequenced "n of 4".
+- **A press belongs to the page it started on**: a page switch mid-Play stops
+  the press (samples do not become reads, nor reads samples); `done` is the
+  page's own process. `switch-probe.html` found one flag, the Tree control
+  mid-press leaving the arriving sample half-faded — its glide now lands the
+  arrival — and then 0 of 40 switches flagged from pages 1, 3 and 4.
+
+Verify 234 checks, `check` and `test` green, the overlap sweep clean on page 4.
+
 **Verified:** `tumor-heterogeneity-verify.mjs` 220 checks (section 2's page-1
 height block replaced by the likelihood's: told both wrong 0.0% at 88 reads
 over 2,880 draws, truth held 96.8%; told nothing wrong 14.9%, truth held 51.0%
