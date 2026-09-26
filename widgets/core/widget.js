@@ -376,13 +376,21 @@ export function defineWidget(config) {
    */
   let seededOnce = false;
 
-  function resetAnim({ fromScratch = false, keepLead = false } = {}) {
+  function resetAnim({ fromScratch = false, keepLead = false, restart = false } = {}) {
     if (!animation) return;
     anim = animation.init({
       params: { ...values },
       state,
       colors,
       fromScratch: fromScratch || seededOnce,
+      /* THE READER ASKED TO START OVER: Reset, or Replay on a finished figure.
+         `fromScratch` cannot say so, because it is true on every re-init after
+         the first render, a parameter change included. A widget that carries
+         work across a data change (widget 70's Rank page keeps the ranks it
+         has run when only the rank moves, since the starts do not depend on
+         it) needs to tell "the reader changed a setting" from "the reader
+         pressed Reset", or its Reset stops starting over (2026-09-26). */
+      restart,
       /* REPLAY REPLAYS THE LOOP; IT DOES NOT UN-DEAL THE DATA. A lead action is
          the thing you get once — bootstrap's single sample, widget 8's twelve
          counts — and a Replay that threw it away left the reader looking at a
@@ -396,9 +404,9 @@ export function defineWidget(config) {
     seededOnce = true;
   }
 
-  function render(opts = {}) {
+  function render({ restart = false, ...opts } = {}) {
     recompute();
-    resetAnim();
+    resetAnim({ restart });
     paint({ syncAddressBar: true, ...opts });
   }
 
@@ -898,7 +906,7 @@ export function defineWidget(config) {
        Without the guard, toggling the denominator on a completed widget would
        Replay it instead of easing. */
     if (mode !== "ease" && anim.done === true) {
-      resetAnim({ fromScratch: true, keepLead: Boolean(anim.leadDone) }); // Replay
+      resetAnim({ fromScratch: true, keepLead: Boolean(anim.leadDone), restart: true }); // Replay
     }
     anim.mode = mode;
 
@@ -1178,7 +1186,7 @@ export function defineWidget(config) {
         }
         controls.rebuild(values);
         controls.syncAll(values);
-        render();
+        render({ restart: true });
         updateAnimButtons();
         // No toast: the panel visibly emptying and the controls visibly moving
         // are the confirmation. A message would restate what just happened.

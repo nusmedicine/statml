@@ -238,7 +238,9 @@ animation: {
 - `advance` returns `false` to stop, leaving `anim` in place so a partly built
   picture stays on screen. Set `anim.done = true` when nothing is left.
 - `anim.mode` is `'run'` or `'step'`; the widget decides what one step is.
-- `fromScratch` is `false` on first render (honour `?shown=`) and `true` on Replay.
+- `fromScratch` is `false` on first render (honour `?shown=`) and `true` on every
+  re-init after it. `restart` is `true` only on Reset and Replay, so a widget that
+  carries work across a data change can still start over when asked.
 - **Pacing is chosen, not automatic.** Offer a `speed` `choice` param. Above a
   threshold, switch the per-item choreography off and show arrivals only — as a
   declared property of the chosen speed, never something the animation decides

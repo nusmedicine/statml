@@ -159,10 +159,16 @@ the click, so repeated clicking feels responsive) and is disabled only when
 `done`. **Play** reads Play → Pause → Resume → Replay. Reduced-motion skips the
 choreography and jumps to the result.
 
-`init` receives `fromScratch`. It is `false` on load and on data changes (honour
-whatever starting state the author asked for) and `true` on Replay (skip it —
-someone pressing Replay wants to watch it build). Without this, Replay is a dead
-button on every pre-filled figure.
+`init` receives `fromScratch`. It is `false` on the first render only (honour
+whatever starting state the author asked for, `?shown=`) and `true` on every
+re-init after it — a data change, Reset, Replay (someone pressing Replay wants to
+watch it build). Without this, Replay is a dead button on every pre-filled figure.
+
+It also receives `restart`: `true` only when the reader asked to start over —
+Reset, or Replay on a finished figure — and `false` on a data change. A widget
+that keeps work across a data change needs it to tell the two apart; widget 70's
+Rank page keeps the ranks it has run when only the rank moves, and must not keep
+them on Reset.
 
 #### A lead action
 
