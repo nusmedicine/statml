@@ -757,9 +757,6 @@ export const SHAPES = [
   { key: "branching", label: "2 and 3 under 1", parents: [0, 0] },
 ];
 export const shapeOf = (key) => SHAPES.find((s) => s.key === key) ?? SHAPES[0];
-/** Where a shape sits on the glide's one scalar. Two shapes, so it is 0 or 1;
-    a third would need a different mechanism, and the verify says so. */
-export const shapeIndex = (key) => Math.max(0, SHAPES.findIndex((s) => s.key === key));
 export const childrenOf = (shape, node) => shape.parents
   .map((p, i) => [p, i + 1])
   .filter(([p]) => p === node)
@@ -824,6 +821,30 @@ export function tightestNode(shape, ccf) {
   return best;
 }
 export const shapesFitting = (ccf) => SHAPES.filter((s) => fitsSumRule(s, ccf));
+
+/* THE TREE IS BUILT FROM THE SAMPLES, his pick G of 2026-09-26
+   (`_lab/tumor-heterogeneity-build-tree-mock.html`): "i don't think we show
+   the trees first before we add samples..also how do we sequence 1->2->3 in
+   the tree? can this be animated?" Two rules, in every sample so far:
+
+     a parent's CCF is at least its child's — a subclone lives inside its
+       parent's cells — which on his figure leaves 2 only under 1, and 3 under
+       1 or under 2: the two SHAPES;
+     the children of one parent cannot need more cells than it has — the sum
+       rule — which Recurrence 1 breaks for 3 beside 2 (1.05 > 0.73).
+
+   So the page draws no tree before the first sample, both of 3's possible
+   parents after Surgery, and 1 → 2 → 3 from Recurrence 1 on. */
+export const precedes = (shape, ccf) => shape.parents.every((p, ci) => ccf[p] >= ccf[ci + 1] - 1e-12);
+export const treesFitting = (samples) => (samples.length
+  ? SHAPES.filter((s) => samples.every((u) => precedes(s, u.ccf) && fitsSumRule(s, u.ccf)))
+  : []);
+/** How many beats the press that sequences sample n (1-based) takes: the first
+    ranks the clusters and then draws their possible parents; a sample that
+    rules a tree out shows the arrangement failing and then the one that
+    stands; any other sample only arrives. */
+export const beatsOf = (n) => (n <= 1 ? 2
+  : treesFitting(SAMPLES_IN_TIME.slice(0, n)).length < treesFitting(SAMPLES_IN_TIME.slice(0, n - 1)).length ? 2 : 1);
 
 /* ---- layout -------------------------------------------------------------- */
 
@@ -931,8 +952,6 @@ export const STRINGS = {
   clustersDetail: "a Gaussian mixture, the number of components chosen by BIC",
 
   samplesSection: "The samples",
-  shapeLabel: "Tree",
-  shapeDetail: "which cluster is inside which",
   cellsLabel: "Draw the cells",
   cellsDetail: "each sample's tumor cells under its fractions",
 
@@ -1046,6 +1065,9 @@ export const STRINGS = {
   labelMath: "MATH",
   labelThese: "these mutations",
   labelRule: "the rule",
+  treeCaption: "The tree",
+  treeEmpty: "no sample sequenced yet",
+  treeOpen: "3 under 1 or under 2",
 
   linesCaption: "Cluster mean cancer cell fraction",
   rulePrefix: "No parent's children may sum past it",

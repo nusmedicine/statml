@@ -165,7 +165,10 @@ const worked = (num, den, result) => (MATHML
 function cardForPage(params, state, anim) {
   const S = M.STRINGS;
   if (params.page === "clonal") {
-    const shape = M.shapeOf(params.tree);
+    /* The arrangement the sum rule tests is 2 and 3 side by side under 1 —
+       the page infers the tree, so the card names the sample that rules that
+       out, or the one that comes closest (his pick G, 2026-09-26). */
+    const shape = M.SHAPES[1];
     const used = joinedOf(anim);
     /* Before the first sample is sequenced the card states the rule alone. */
     if (!used.length) return { rows: [[S.labelRule, MATHML ? RULE_MATH : RULE_PLAIN]], note: S.noteTree };
@@ -764,33 +767,31 @@ const joinedOf = (anim) => M.SAMPLES_IN_TIME.slice(0, Math.max(0, Math.min(M.SAM
 
 function drawTreePage(ctx, colors, L, params, state, anim) {
   const used = joinedOf(anim);
-  const shape = M.shapeOf(params.tree);
+  const n = used.length;
   const cols = [colors.groupA, colors.groupB, colors.groupC];
-  /* WHERE THE SHAPE GLIDE HAS GOT TO. 0 is SHAPES[0], 1 is SHAPES[1]; at rest
-     it is whichever the control names. Only the PICTURE glides — the caption,
-     the arithmetic and the readout tiles state the shape the reader has just
-     chosen, immediately, because a printed number that lags the data is a
-     number the data does not support (page 1's VAF bar, the same ruling). */
-  const sMix = M.easeOut(anim?.shapeMix ?? M.shapeIndex(params.tree));
+  /* WHERE THE PRESS HAS GOT TO. `joinT` runs from 0 over the press's beats
+     (model `beatsOf`): the first sample's nodes slide from its points into the
+     tree, then its possible parents are drawn; a later sample's lines grow to
+     it, and a sample that rules a tree out shows the failing arrangement and
+     then cluster 3 sliding to where it stands. Movement only (his rule,
+     2026-09-26); anything that simply arrives appears at once. */
+  const beats = n ? M.beatsOf(n) : 1;
+  const jt = Math.min(beats, anim?.joinT ?? beats);
+  const pressing = jt < beats;
+  const phase1 = Math.min(1, jt);
+  const phase2 = Math.max(0, Math.min(1, jt - 1));
 
   /* the CCF lines, his figure's left panel */
   const plot = makePlot({ ctx, colors, rect: L.lines, xDomain: [0, M.SAMPLES.length], yDomain: [0, 1] });
   plot.caption(M.STRINGS.linesCaption);
-  /* THE AXIS IS TIME, surgery first (his call, 2026-09-26), and all four
-     places are on it from the start, so the reader sees which samples are
-     still to come; Step fills them in order. */
   const at = (s) => M.SAMPLES_IN_TIME.indexOf(s) + 0.5;
-  /* THE NEWEST SAMPLE ARRIVES BY MOVEMENT (his rule, 2026-09-26: "only tween
-     for movement"): each cluster's line grows from the sample before to the
-     new one, and the new sample's points, its row and the trees' verdicts
-     appear when the lines get there. The first sample has no line to grow, so
-     it appears with its press. Nothing fades. */
-  const jt = Math.min(1, anim?.joinT ?? 1);
-  const arriving = jt < 1 && used.length > 1 ? used[used.length - 1] : null;
-  const shownSamples = arriving ? used.slice(0, -1) : used;
-  const grow = M.easeOut(jt);
+  /* A later sample's lines grow to it; its points arrive with them. The first
+     has no line to grow, so its points are there from the press. */
+  const arriving = pressing && n > 1 && phase1 < 1 ? used[n - 1] : null;
+  const pointed = arriving ? used.slice(0, -1) : used;
+  const grow = M.easeOut(phase1);
   for (let c = 0; c < 3; c += 1) {
-    for (let i = 1; i < used.length; i += 1) {
+    for (let i = 1; i < n; i += 1) {
       const a = used[i - 1], b = used[i];
       const t = b === arriving ? grow : 1;
       ctx.beginPath();
@@ -800,20 +801,20 @@ function drawTreePage(ctx, colors, L, params, state, anim) {
       ctx.lineWidth = 2;
       ctx.stroke();
     }
-    shownSamples.forEach((smp) => {
-      ctx.save();
+    pointed.forEach((smp) => {
       /* The figure's error bar, under the point it belongs to. */
+      ctx.save();
       ctx.strokeStyle = wash(cols[c], 0.55);
       ctx.lineWidth = 3;
       ctx.beginPath();
       ctx.moveTo(plot.sx(at(smp)), plot.sy(smp.lo[c]));
       ctx.lineTo(plot.sx(at(smp)), plot.sy(smp.hi[c]));
       ctx.stroke();
+      ctx.restore();
       ctx.beginPath();
       ctx.arc(plot.sx(at(smp)), plot.sy(smp.ccf[c]), 3.5, 0, Math.PI * 2);
       ctx.fillStyle = cols[c];
       ctx.fill();
-      ctx.restore();
     });
   }
   plot.axisY({ ticks: [0, 0.5, 1], format: (v) => M.n2(v) });
@@ -824,101 +825,122 @@ function drawTreePage(ctx, colors, L, params, state, anim) {
   M.SAMPLES_IN_TIME.forEach((smp) => {
     const [word, num] = smp.label.split(" ");
     const x = plot.sx(at(smp));
-    const fill = shownSamples.includes(smp) ? colors.ink2 : colors.ink3;
+    const fill = pointed.includes(smp) ? colors.ink2 : colors.ink3;
     const f = noteFont(colors);
     text(ctx, word, x, L.lines.y + L.lines.h + 15, { font: f, fill, align: "center" });
     if (num) text(ctx, num, x, L.lines.y + L.lines.h + 27, { font: f, fill, align: "center" });
   });
-  /* the two shapes, the chosen one marked */
+
+  /* THE TREE, BUILT FROM THE SAMPLES (his pick G, 2026-09-26). Nothing before
+     the first sample. Which trees the samples allow is read over the samples
+     whose check has run: during a press's first beat that is the samples
+     before it, from the second beat on it includes the new one. */
   const box = L.trees;
-  M.SHAPES.forEach((s, i) => {
-    const x = box.x + i * (box.w / 2);
-    const w = box.w / 2;
-    const cx = x + w / 2;
-    const fits = shownSamples.every((u) => M.fitsSumRule(s, u.ccf));
-    /* One box, slid between the panels rather than two boxes cross-fading: at
-       rest it is on the chosen tree, and mid-glide it is between them, which is
-       what a reader following it expects to see. Drawn on the first pass only
-       so it never lands on top of a tree. */
-    if (i === 0) {
-      const bx = box.x + sMix * (box.w / 2);
+  text(ctx, M.STRINGS.treeCaption, box.x, box.y - 8, { font: capFont(colors), fill: colors.ink1 });
+  const checked = pressing && jt < 1 && n > 1 ? used.slice(0, -1) : used;
+  const fitting = M.treesFitting(checked);
+  const before = M.treesFitting(used.slice(0, -1));
+  /* the edge struck by this press, shown during its second beat */
+  const strikes = pressing && jt >= 1 && n > 1 && fitting.length < before.length;
+  const cx = box.x + box.w * 0.4;
+  const pos = [[cx, box.y + 22], [cx, box.y + 64], [cx, box.y + 106]];
+  const beside = [cx + 52, box.y + 64];
+  if (!n) {
+    text(ctx, M.STRINGS.treeEmpty, box.x + box.w / 2, box.y + 64, { font: noteFont(colors), fill: colors.ink3, align: "center" });
+  } else {
+    /* The first sample's beat 1: each cluster's node slides from its point at
+       Surgery into the tree, top to bottom in the order of their fractions —
+       the ranking IS the move. */
+    const first = n === 1 && pressing;
+    const slide = first ? M.easeOut(phase1) : 1;
+    const from = (c) => [plot.sx(at(used[0])), plot.sy(used[0].ccf[c])];
+    const nodeAt = (c) => (slide < 1 ? [M.lerp(from(c)[0], pos[c][0], slide), M.lerp(from(c)[1], pos[c][1], slide)] : pos[c]);
+    /* Edges, from beat 2 of the first press on, grown from parent to child. */
+    const edgeT = first ? M.easeOut(phase2) : 1;
+    const edge = (a, b, { dashed = false, struck = false } = {}) => {
+      if (edgeT <= 0) return;
+      const { from: e0, to: e1 } = M.connectorEnds(a, b);
+      const to = [M.lerp(e0[0], e1[0], edgeT), M.lerp(e0[1], e1[1], edgeT)];
       ctx.save();
-      ctx.fillStyle = wash(colors.highlight, 0.1);
-      ctx.strokeStyle = colors.highlight;
-      ctx.lineWidth = 1;
-      ctx.fillRect(bx + 2, box.y - 6, w - 4, box.h + 4);
-      ctx.strokeRect(bx + 2.5, box.y - 5.5, w - 5, box.h + 3);
+      ctx.strokeStyle = struck ? colors.extreme : colors.ink3;
+      ctx.lineWidth = 1.5;
+      if (dashed || struck) ctx.setLineDash([4, 3]);
+      ctx.beginPath(); ctx.moveTo(e0[0], e0[1]); ctx.lineTo(to[0], to[1]); ctx.stroke();
       ctx.restore();
-    }
-    const pos = s.key === "linear"
-      ? [[cx, box.y + 22], [cx, box.y + 58], [cx, box.y + 94]]
-      : [[cx, box.y + 22], [cx - 22, box.y + 70], [cx + 22, box.y + 70]];
-    ctx.save();
-    ctx.strokeStyle = colors.ink3;
-    ctx.lineWidth = 1.5;
-    s.parents.forEach((p, ci) => {
-      const { from, to } = M.connectorEnds(pos[p], pos[ci + 1]);
+      if (edgeT < 1) return;
+      /* AN ARROWHEAD, as his figure draws: a parent gives rise to a child. */
+      const ang = Math.atan2(e1[1] - e0[1], e1[0] - e0[0]);
       ctx.beginPath();
-      ctx.moveTo(from[0], from[1]);
-      ctx.lineTo(to[0], to[1]);
-      ctx.stroke();
-      /* AN ARROWHEAD, as his figure draws: a parent gives rise to a child,
-         which a plain line does not say. Its tip is the connector's own end,
-         so it lands on the child's edge along the same radial line. */
-      const ang = Math.atan2(to[1] - from[1], to[0] - from[0]);
-      ctx.beginPath();
-      ctx.moveTo(to[0], to[1]);
-      ctx.lineTo(to[0] - 6 * Math.cos(ang - 0.45), to[1] - 6 * Math.sin(ang - 0.45));
-      ctx.lineTo(to[0] - 6 * Math.cos(ang + 0.45), to[1] - 6 * Math.sin(ang + 0.45));
+      ctx.moveTo(e1[0], e1[1]);
+      ctx.lineTo(e1[0] - 6 * Math.cos(ang - 0.45), e1[1] - 6 * Math.sin(ang - 0.45));
+      ctx.lineTo(e1[0] - 6 * Math.cos(ang + 0.45), e1[1] - 6 * Math.sin(ang + 0.45));
       ctx.closePath();
-      ctx.fillStyle = colors.ink3;
+      ctx.fillStyle = struck ? colors.extreme : colors.ink3;
       ctx.fill();
-    });
-    ctx.restore();
-    pos.forEach((p, ci) => {
+    };
+    const open = fitting.length > 1;
+    if (!first || phase1 >= 1) {
+      edge(pos[0], pos[1]);
+      /* Cluster 3's parent: both possible while two trees fit (dashed, and a
+         ringed "3?" at the place beside 2); the one this press rules out in
+         the extreme colour during its second beat; the one that stands solid. */
+      if (open) {
+        edge(pos[1], pos[2], { dashed: true });
+        edge(pos[0], beside, { dashed: true });
+      } else {
+        edge(pos[1], pos[2]);
+        if (strikes && phase2 < 1) edge(pos[0], beside, { struck: true });
+      }
+      if (edgeT >= 1 && (open || (strikes && phase2 < 1))) {
+        ctx.save();
+        ctx.setLineDash([3, 2]);
+        ctx.strokeStyle = open ? cols[2] : colors.extreme;
+        ctx.lineWidth = 1.2;
+        ctx.beginPath(); ctx.arc(beside[0], beside[1], M.NODE_R, 0, Math.PI * 2); ctx.stroke();
+        ctx.restore();
+        if (open) text(ctx, "3?", beside[0], beside[1] + 4, { font: `${colors.fsXs} ${colors.mono}`, fill: cols[2], align: "center" });
+      }
+    }
+    [0, 1, 2].forEach((c) => {
+      const p = nodeAt(c);
       ctx.beginPath();
       ctx.arc(p[0], p[1], M.NODE_R, 0, Math.PI * 2);
-      ctx.fillStyle = wash(cols[ci], 0.85);
+      ctx.fillStyle = wash(cols[c], 0.85);
       ctx.fill();
-      text(ctx, String(ci + 1), p[0], p[1] + 4, {
-        font: `${colors.fsXs} ${colors.mono}`, fill: colors.surface, align: "center",
+      text(ctx, String(c + 1), p[0], p[1] + 4, { font: `${colors.fsXs} ${colors.mono}`, fill: colors.surface, align: "center" });
+    });
+    if (!first) {
+      text(ctx, open ? M.STRINGS.treeOpen : M.SHAPES[0].label, box.x + box.w / 2, box.y + box.h - 4, {
+        font: noteFont(colors), fill: colors.ink2, align: "center",
       });
-    });
-    /* Both labels sit INSIDE the highlight, which is why the box reaches four
-       pixels past them rather than through them. */
-    text(ctx, s.label, cx, box.y + box.h - 30, { font: noteFont(colors), fill: colors.ink2, align: "center" });
-    /* No sample sequenced, no verdict: the page opens on the trees alone. */
-    text(ctx, !shownSamples.length ? "—" : fits ? M.STRINGS.fits : M.STRINGS.ruledOut, cx, box.y + box.h - 12, {
-      font: capFont(colors), fill: !shownSamples.length || fits ? colors.ink1 : colors.extreme, align: "center",
-    });
-  });
+    }
+  }
 
-  /* the cells of each sample under the chosen shape */
-  if (!params.showcells) return;
-  text(ctx, `${M.STRINGS.rulePrefix} — ${shape.label}`, L.bars.x, L.bars.y - 14, {
+  /* the cells of each sample, nested as the tree allows */
+  if (!params.showcells || !n) return;
+  /* WHICH ARRANGEMENT THE ROWS SHOW: while 3 has two possible parents, the
+     one under test — 3 beside 2 under 1 — so a sample that breaks it shows
+     the overflow the moment it arrives; once only 1 → 2 → 3 stands, 3 inside
+     2, reached by sliding in the second beat of the press that decided it. */
+  const mixRows = fitting.length > 1 ? 1 : strikes ? 1 - M.easeOut(phase2) : 0;
+  text(ctx, `${M.STRINGS.rulePrefix} — ${mixRows > 0.5 ? M.SHAPES[1].label : M.SHAPES[0].label}`, L.bars.x, L.bars.y - 14, {
     font: capFont(colors), fill: colors.ink1,
   });
   const rowH = L.bars.h / M.SAMPLES.length;
-  /* One row a sample, in time order, so the newest is always the last row:
-     it appears with its points. */
-  shownSamples.forEach((s, slot) => {
+  /* A row appears when its sample's check runs: the first sample's when its
+     edges are drawn, a later sample's when its lines arrive. */
+  const rowsOf = pressing && (n === 1 ? jt < 2 : jt < 1) ? used.slice(0, -1) : used;
+  rowsOf.forEach((s, slot) => {
     const y = L.bars.y + slot * rowH;
     const h = 16;
-    ctx.save();
     /* Two subclones under one trunk can reach 1.1 times the trunk's own width,
        and the overflow is drawn where it would fall — so the bar takes 56% of
-       the row and the arithmetic starts at 70%, clear of the widest overflow. */
+       the row and the text starts at 64%, clear of the widest overflow. */
     const w = L.bars.w * 0.56;
     ctx.fillStyle = colors.surface3;
     ctx.fillRect(L.bars.x, y, w, h);
-    /* HIS TWEEN: cluster 3 slides out of cluster 2 to beside it. One rect per
-       cluster under each shape, interpolated — the trunk and cluster 2 hold
-       still in both, so what moves is cluster 3, and the overflow read off the
-       rects as drawn grows under it as it goes. */
     const geom = { x: L.bars.x, y, w, h };
-    const rects = M.lerpRects(
-      M.barRects(M.SHAPES[0], s.ccf, geom), M.barRects(M.SHAPES[1], s.ccf, geom), sMix,
-    );
+    const rects = M.lerpRects(M.barRects(M.SHAPES[0], s.ccf, geom), M.barRects(M.SHAPES[1], s.ccf, geom), mixRows);
     const overlap = M.overflowOf(rects);
     /* Painted parent first so a nested child stays on top of it. */
     [0, 1, 2].forEach((c) => {
@@ -935,22 +957,17 @@ function drawTreePage(ctx, colors, L, params, state, anim) {
       ctx.strokeRect(rects[0].x + rects[0].w + 0.5, y - 1.5, overlap, h + 3);
       ctx.restore();
     }
-    /* The arithmetic sits to the right of the bar, so it is measured against
-       the room it has: the sample, then the ONE constraint that comes closest
-       to failing — under 1 → 2 → 3 the root's is slack and cluster 2's is the
-       one worth reading. */
+    /* The sample's name, then the one constraint of the arrangement drawn that
+       comes closest to failing, right-aligned at the edge. */
+    const shape = mixRows > 0.5 ? M.SHAPES[1] : M.SHAPES[0];
     const tight = M.tightestNode(shape, s.ccf);
     const fails = tight.sum > tight.parent + 1e-12;
-    /* The sample's name at 64% and its arithmetic right-aligned at the edge:
-       "Recurrence 1" is twice the width of "P2.1st", and one string starting at
-       70% ran past the canvas. */
     text(ctx, s.label, L.bars.x + L.bars.w * 0.64, y + 12, {
       font: noteFont(colors), fill: fails ? colors.extreme : colors.ink2,
     });
     text(ctx, `${M.n2(tight.sum)} ${fails ? ">" : "≤"} ${M.n2(tight.parent)}`, L.bars.x + L.bars.w, y + 12, {
       font: `${colors.fsXs} ${colors.mono}`, fill: fails ? colors.extreme : colors.ink2, align: "right",
     });
-    ctx.restore();
   });
 }
 
@@ -1142,17 +1159,6 @@ widgetApi = defineWidget({
     },
 
     samplesSec: { type: "section", label: M.STRINGS.samplesSection, when: { param: "page", equals: "clonal" } },
-    /* "Tree", not "Shape" — the field's word and what the diagram is
-       (Kenneth, 2026-09-17). The link word follows the control. */
-    tree: {
-      type: "segmented",
-      label: M.STRINGS.shapeLabel,
-      detail: M.STRINGS.shapeDetail,
-      options: M.SHAPES.map((s) => ({ value: s.key, label: s.label })),
-      default: "linear",
-      display: true,
-      when: { param: "page", equals: "clonal" },
-    },
     /* Named `showcells` and not `cells`: widget 54's grid rail declares a
        `cells` property on a field, and its verify proves no other widget
        has one — a parameter of that name reads as an opt-in to a rail
@@ -1212,7 +1218,8 @@ widgetApi = defineWidget({
           label: `Cluster ${c + 1}: ${genes.join(", ")}`,
           mark: "line",
         })),
-        { token: "extreme", label: "Cells the tree would need and the sample does not have", mark: "line" },
+        { token: "ink-3", label: "A parent still possible", mark: "line" },
+        { token: "extreme", label: "Cells an arrangement would need and the sample does not have", mark: "line" },
       ];
     }
     const sample = [
@@ -1262,7 +1269,7 @@ widgetApi = defineWidget({
     },
     stepTitle: {
       param: "page",
-      labels: { clonal: "Sequence the next sample and check each tree against it" },
+      labels: { clonal: "Sequence the next sample and check the tree against it" },
       default: "Draw one more read from the sample's alleles",
     },
     runTitle: {
@@ -1294,7 +1301,7 @@ widgetApi = defineWidget({
         k,
         beat: 0,
         joined,
-        joinT: 1,
+        joinT: joined ? M.beatsOf(joined) : 1,
         press: null,
         done: params.page === "clonal" ? joined >= M.SAMPLES_IN_TIME.length : k >= state.one.depth,
         oneFrom: oneMorph ? carryOne : null,
@@ -1323,11 +1330,6 @@ widgetApi = defineWidget({
         spansFrom: morph ? carryMany.spans : null,
         histT: 0,
         easing: morph || oneMorph,
-        /* Page 3's shape: 0 is SHAPES[0], 1 is SHAPES[1], and it eases toward
-           whichever the control names — one scalar, exactly like `mix`, so a
-           switch turned round mid-glide leaves from where the figure is. */
-        shapeMix: M.shapeIndex(params.tree),
-        tree: params.tree,
       };
     },
 
@@ -1343,9 +1345,6 @@ widgetApi = defineWidget({
         anim.mix = toward(anim.mix, axisTarget);
         if (anim.mix !== axisTarget) moving = true;
 
-        const shapeTarget = M.shapeIndex(anim.tree);
-        anim.shapeMix = toward(anim.shapeMix, shapeTarget);
-        if (anim.shapeMix !== shapeTarget) moving = true;
 
         /* The bars' clock runs one way: `init` sets where it starts from, and a
            change landing mid-morph re-inits from the figure on screen. Cleared
@@ -1359,15 +1358,6 @@ widgetApi = defineWidget({
         /* The four clocks added 2026-09-26, one rule each: run to 1, then
            clear what they moved from, so nothing downstream reads a finished
            transition as a live one. */
-        /* A SAMPLE STILL ARRIVING when the Tree control eases lands in the same
-           frames: the glide takes over core's clock, and a sample left half
-           faded would be neither sequenced nor not (`_lab/switch-probe.html`
-           flagged tree=branching mid-press, 2026-09-26). */
-        if (anim.joinT < 1) {
-          anim.joinT = Math.min(1, anim.joinT + dt / M.JOIN_MS);
-          if (anim.joinT < 1) moving = true;
-          else anim.press = null;
-        }
         for (const [from, t] of [["oneFrom", "oneT"], ["likFrom", "likT"], ["assumedFrom", "assumedT"], ["cutFrom", "cutT"]]) {
           if (anim[from] == null) continue;
           anim[t] = Math.min(1, anim[t] + step);
@@ -1387,7 +1377,7 @@ widgetApi = defineWidget({
          lands where it is and stops. */
       const kind = params.page === "clonal" ? "samples" : "reads";
       if (anim.press && anim.press !== kind) {
-        anim.press = null; anim.joinT = 1; anim.beat = 0;
+        anim.press = null; anim.joinT = anim.joined ? M.beatsOf(anim.joined) : 1; anim.beat = 0;
         return false;
       }
       anim.press = kind;
@@ -1396,22 +1386,25 @@ widgetApi = defineWidget({
            fade in over JOIN_MS, and under Play a short hold follows so each
            verdict can be read before the next sample arrives. */
         const total = M.SAMPLES_IN_TIME.length;
-        const hold = anim.mode === "run" ? 1 + M.JOIN_HOLD : 1;
+        /* A press runs its sample's beats (`beatsOf`: two for the first and
+           for one that rules a tree out, one otherwise), then under Play a hold
+           so the verdict can be read before the next sample. */
+        const beats = anim.joined > 0 ? M.beatsOf(anim.joined) : 1;
+        const hold = anim.mode === "run" ? beats + M.JOIN_HOLD : beats;
         if (anim.joined > 0 && anim.joinT < hold) {
           anim.joinT = Math.min(hold, anim.joinT + dt / M.JOIN_MS);
           if (anim.joinT < hold) return true;
           if (anim.mode === "step" || anim.joined >= total) {
-            anim.joinT = 1; anim.press = null;
+            anim.joinT = beats; anim.press = null;
             anim.done = anim.joined >= total;
             return false;
           }
         }
-        if (anim.joined >= total) { anim.joinT = 1; anim.done = true; anim.press = null; return false; }
+        if (anim.joined >= total) { anim.joinT = beats; anim.done = true; anim.press = null; return false; }
         anim.joined += 1;
-        /* Reduced motion, or the first sample (no line to grow): it lands at
-           once, and a Step still adds one. */
-        if (reducedMotion() || anim.joined === 1) {
-          anim.joinT = 1;
+        /* Reduced motion: the sample lands at once, and a Step still adds one. */
+        if (reducedMotion()) {
+          anim.joinT = M.beatsOf(anim.joined);
           if (anim.mode === "step" || anim.joined >= total) { anim.press = null; anim.done = anim.joined >= total; return false; }
           return true;
         }
@@ -1443,7 +1436,7 @@ widgetApi = defineWidget({
          samples on page 4 — so Play reads Replay only where there is nothing
          left to add on the page in view. */
       anim.done = params.page === "clonal"
-        ? anim.joined >= M.SAMPLES_IN_TIME.length && anim.joinT >= 1
+        ? anim.joined >= M.SAMPLES_IN_TIME.length && anim.joinT >= M.beatsOf(anim.joined)
         : anim.k >= state.one.depth;
       /* The axis moved: ask core for frames once, and ease from wherever the
          figure IS — an ease turned round mid-flight starts there, not at the
@@ -1487,16 +1480,8 @@ widgetApi = defineWidget({
       if (!(params.page === "ccf" && params.view !== "all")) { anim.likFrom = null; anim.likT = 1; }
       if (params.page !== "ccf") { anim.cutFrom = null; anim.cutT = 1; }
       if (!(params.page === "ccf" && params.view === "all")) { anim.assumedFrom = null; anim.assumedT = 1; }
-      if (params.page !== "clonal") anim.joinT = Math.min(1, anim.joinT);
-      /* The shape moved: the same door as the axis, on the same page-3 terms.
-         Off page 3 it lands, so a reader who switches shape from elsewhere and
-         then arrives finds the figure already there. */
-      if (params.tree !== anim.tree) {
-        anim.tree = params.tree;
-        if (params.page === "clonal" && !reducedMotion()) anim.easing = true;
-        else anim.shapeMix = M.shapeIndex(params.tree);
-      }
-      if (params.page !== "clonal" && !anim.easing) anim.shapeMix = M.shapeIndex(params.tree);
+      /* Leaving page 4 mid-press lands the press where its beats end. */
+      if (params.page !== "clonal" && anim.joined) anim.joinT = M.beatsOf(anim.joined);
     },
   },
 
@@ -1530,25 +1515,24 @@ widgetApi = defineWidget({
     }
     if (params.page === "clonal") {
       const used = joinedOf(anim);
-      const shape = M.shapeOf(params.tree);
+      const sequenced = { label: "Samples sequenced", value: `${used.length} of ${M.SAMPLES_IN_TIME.length}`, note: "surgery, then three recurrences" };
       if (!used.length) {
         return [
-          { label: "This tree", value: "—", note: "no sample sequenced yet" },
+          { label: "The tree", value: "—", note: "no sample sequenced yet" },
           { label: "Trees that fit", value: "—", note: "given the samples sequenced" },
-          { label: "Samples sequenced", value: `0 of ${M.SAMPLES_IN_TIME.length}`, note: "surgery, then three recurrences" },
+          sequenced,
         ];
       }
-      const fits = used.every((s) => M.fitsSumRule(shape, s.ccf));
-      /* A shape fits the evidence when it fits EVERY sample so far, so the
-         count is the shapes surviving the first sample intersected with the rest. */
-      const both = used
-        .map((s) => M.shapesFitting(s.ccf))
-        .reduce((keep, fitting) => keep.filter((s) => fitting.includes(s)), [...M.SHAPES]).length;
-      const failing = used.find((s) => !M.fitsSumRule(shape, s.ccf));
+      /* The tiles state what the samples so far allow, at once — the figure
+         catches up over the press's beats (the VAF bar's ruling). */
+      const fitting = M.treesFitting(used);
+      const decider = used.find((s) => !M.fitsSumRule(M.SHAPES[1], s.ccf));
       return [
-        { label: "This tree", value: fits ? "Fits" : "Ruled out", note: failing ? `by ${failing.label}` : `on ${used.length} sample${used.length > 1 ? "s" : ""}` },
-        { label: "Trees that fit", value: `${both} of ${M.SHAPES.length}`, note: "given the samples sequenced" },
-        { label: "Samples sequenced", value: `${used.length} of ${M.SAMPLES_IN_TIME.length}`, note: "surgery, then three recurrences" },
+        fitting.length > 1
+          ? { label: "The tree", value: "Not settled", note: M.STRINGS.treeOpen }
+          : { label: "The tree", value: fitting[0].label, note: decider ? `3 beside 2 ruled out by ${decider.label}` : "the only tree the samples allow" },
+        { label: "Trees that fit", value: `${fitting.length} of ${M.SHAPES.length}`, note: "given the samples sequenced" },
+        sequenced,
       ];
     }
     const k = Math.min(anim?.k ?? 0, state.one.depth);
@@ -1608,12 +1592,11 @@ widgetApi = defineWidget({
     }
     if (params.page === "clonal") {
       const used = joinedOf(anim);
-      const shape = M.shapeOf(params.tree);
-      if (!used.length) return `Two candidate trees for three clusters, with none of one patient's four samples sequenced yet.`;
-      const failing = used.find((s) => !M.fitsSumRule(shape, s.ccf));
+      if (!used.length) return "A timeline of one patient's four samples, none sequenced yet, and no tree.";
+      const fitting = M.treesFitting(used);
       return `Three clusters' mean cancer cell fraction across ${used.length} sample`
-        + `${used.length > 1 ? "s" : ""} of one patient, in time order, against the tree ${shape.label}, which `
-        + `${failing ? `is ruled out by ${failing.label}` : "fits every sample sequenced"}.`;
+        + `${used.length > 1 ? "s" : ""} of one patient, in time order, and the tree they allow: `
+        + `${fitting.length > 1 ? "cluster 3 could sit under 1 or under 2" : fitting[0].label}.`;
     }
     const k = Math.min(anim?.k ?? 0, state.one.depth);
     const cfg = state.cfg;

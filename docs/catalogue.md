@@ -9676,6 +9676,29 @@ tell" answered on the figure. Rule names from practice (TRACERx, ABSOLUTE) stay
 out of the widget. Verify 246 checks (§ 2b holds the measurement), `check` and
 `test` green, overlap sweep 11 page-3 states clean, switch probe 0 of 23.
 
+#### PAGE 4 BUILDS THE TREE — 2026-09-26 (`_lab/tumor-heterogeneity-build-tree-mock.html`, 3018ab6)
+
+*"for clonal architecture, i don't think we show the trees first before we add
+samples..also how do we sequence 1->2->3 in the tree? can this be animated?"*
+Answered with the two rules — a parent's CCF is at least its child's (so 2
+only under 1, 3 under 1 or 2), and the sum rule (Recurrence 1: 0.53 + 0.51 =
+1.05 > 0.73, so 3 cannot sit beside 2) — and his three picks, all
+recommendations: **G** (the tree grows as the samples arrive), **the Tree
+control removed**, **one press with two beats** where the tree changes.
+
+Built: no tree before the first sample. Surgery's press: beat 1 slides each
+cluster's node from its point at Surgery into the tree, top to bottom by
+fraction (the ranking is the move); beat 2 grows the edges — 2 under 1 solid,
+3's two possible parents dashed, a ringed "3?" beside 2. Recurrence 1's press:
+beat 1 grows its lines and its row appears with 3 beside 2, overflowing; beat 2
+strikes the edge from 1 and slides 3 inside 2 in every row. Recurrences 2 and
+3: one beat, the lines grow. Tiles: The tree (Not settled · 1 → 2 → 3, "3
+beside 2 ruled out by Recurrence 1") · Trees that fit · Samples sequenced. The
+card tests 3 beside 2 against the sample that decides it. Model:
+`treesFitting`, `precedes`, `beatsOf` (2, 2, 1, 1). Link word `tree=` retired.
+Verify 244 checks (a driven Step walk reads the rows' caption at each press),
+`check` and `test` green, switch probe 0 of 4 on page 4, overlap sweep clean.
+
 **Verified:** `tumor-heterogeneity-verify.mjs` 220 checks (section 2's page-1
 height block replaced by the likelihood's: told both wrong 0.0% at 88 reads
 over 2,880 draws, truth held 96.8%; told nothing wrong 14.9%, truth held 51.0%
