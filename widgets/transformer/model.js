@@ -247,7 +247,8 @@ export function translate(dna) {
   const T = W.dna, src = dna.split("").map((c) => SRC.indexOf(c)), tgt = [1, ...protein(dna).map((a) => TGT.indexOf(a))];
   const emb = (tok, pos, ids) => ids.map((r, p) => Array.from({ length: D }, (_, d) => T[tok].v[r * D + d] + T[pos].v[p * D + d]));
   let m = emb("stok", "spos", src);
-  for (const b of ["e0", "e1"]) m = block(T, b, m).out;
+  const enc = [];
+  for (const b of ["e0", "e1"]) { const r = block(T, b, m); enc.push(r.alpha); m = r.out; }
   let y = emb("ttok", "tpos", tgt);
   const self = [], cross = [];
   for (const b of ["d0", "d1"]) {
@@ -259,7 +260,7 @@ export function translate(dna) {
     self.push(s.alpha); cross.push(c.alpha);
   }
   const top = y.map((r) => { const p = linear(r, T.out, T.outb); return TGT[p.indexOf(Math.max(...p))]; });
-  return { dna, codons: codons(dna), protein: protein(dna), self, cross, top };
+  return { dna, codons: codons(dna), protein: protein(dna), enc, self, cross, top };
 }
 /** decoder block 2's cross-attention, the mean of its four heads (what the page draws) */
 export const crossMean = (t) => t.cross[1][0].map((row, i) => row.map((_, j) => t.cross[1].reduce((s, hd) => s + hd[i][j], 0) / H));

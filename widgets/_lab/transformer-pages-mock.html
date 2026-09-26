@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · slot 84 three pages — mock</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1700px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 110ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); min-height: 26px; white-space: pre-line; max-width: 550px; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rail { width: 200px; font-size: var(--fs-sm); color: var(--ink-1); border: 1px solid var(--grid); background: var(--surface-2); padding: var(--sp-2) var(--sp-3); }
+  .rail div { margin: 0 0 8px; } .rail .k { color: var(--ink-3); font-size: var(--fs-xs); display: block; }
+  .rail b { font-weight: 600; }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 110ch; }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 110ch; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Slot 84 &middot; three pages by architecture &middot; mock</h1>
+  <p class="note">Your pages: <b>Encoder &middot; Decoder &middot; Encoder&ndash;decoder</b>, each showing its attention. Your four yeses: no Step on the
+    Encoder page, a <b>Sentence</b> toggle <i>Original &middot; Replaced</i> instead; the same toggle on the Decoder page; DNA &rarr; protein on page 3;
+    cell 3's models and tasks as one line on each page. Every canvas is 550 wide, the narrowest the harness draws, and computed live from the
+    draft's models (held to torch). Two states of each page side by side. On-canvas strings are candidates, not copy.</p>
+
+  <h2>1 &middot; Encoder</h2>
+  <p class="note">The masked-token model's block-1 weights on <i>treated with aspirin for chest pain</i>, every key. <b>Replaced</b> swaps <i>chest pain</i>
+    for <i>fever</i>: the matrix redraws for the new sentence, and beneath each earlier token's column a bar shows how far that token's final vector
+    moved. The changed token and those after it carry no bar (they are different tokens).</p>
+  <div class="row">
+    <div class="rail"><div><span class="k">Step</span><b>Encoder</b> · Decoder · Encoder–decoder</div><div><span class="k">Sentence</span><b>Original</b> · Replaced</div><div><span class="k">Head</span>1 · 2 · 3 · <b>4</b></div><div><span class="k">(no Step, no Play on this page)</span></div></div>
+    <div class="cand"><div class="sub">A · Original</div><canvas id="e1" width="550" height="490"></canvas></div>
+    <div class="cand"><div class="sub">B · Replaced: every earlier row moves</div><canvas id="e2" width="550" height="490"></canvas></div>
+  </div>
+
+  <h2>2 &middot; Decoder</h2>
+  <p class="note">Section 1 is the Encoder page's figure, in the same place, for the next-token model: the keys after each query are masked, and under
+    <b>Replaced</b> the earlier rows move by exactly 0. Section 2 is generation, the page's Step: from the prompt <i>treated with aspirin for</i>, each press
+    reads the tokens so far, prints the next token's probabilities and feeds the largest back, stopping at the first &ldquo;.&rdquo;.</p>
+  <div class="row">
+    <div class="rail"><div><span class="k">Step</span>Encoder · <b>Decoder</b> · Encoder–decoder</div><div><span class="k">Sentence</span>Original · <b>Replaced</b></div><div><span class="k">Head</span>1 · 2 · 3 · <b>4</b></div><div><span class="k">Prompt</span>treated with aspirin for …</div><div>[ Next token ] [ Play ]</div></div>
+    <div class="cand"><div class="sub">A · Original, two presses of generation</div><canvas id="d1" width="550" height="700"></canvas></div>
+    <div class="cand"><div class="sub">B · Replaced: earlier rows move 0.00; generation finished</div><canvas id="d2" width="550" height="700"></canvas></div>
+  </div>
+
+  <h2>3 &middot; Encoder&ndash;decoder</h2>
+  <p class="note">The DNA &rarr; protein model's three attentions, block 2, the mean of its four heads: the encoder's over the gene (every key), the decoder's
+    over the protein so far (earlier keys), and cross-attention, the protein's queries against the gene's keys. A press generates the next amino
+    acid: a row is added to both decoder matrices. <b>Keys</b> set to <i>One vector</i> draws what 10-2's template does, the gene pooled to one key:
+    the weight is 1.00 whatever the query (by arithmetic; no model is trained that way here).</p>
+  <div class="row">
+    <div class="rail"><div><span class="k">Step</span>Encoder · Decoder · <b>Encoder–decoder</b></div><div><span class="k">Gene</span>AAA CTG GTA …</div><div><span class="k">Keys</span><b>Every nucleotide</b> · One vector</div><div>[ Next amino acid ] [ Play ]</div></div>
+    <div class="cand"><div class="sub">A · four presses: K L V H generated, each row a query reading the gene</div><canvas id="x1" width="550" height="600"></canvas></div>
+    <div class="cand"><div class="sub">B · Keys: One vector</div><canvas id="x2" width="550" height="600"></canvas></div>
+  </div>
+
+  <h2>4 &middot; To answer with the mock open</h2>
+  <p class="q"><b>1 · The bar's quantity.</b> How far a row's final vector moves (the length of the difference, 4.0&ndash;11.2 here) &middot; or 1 &minus; cos between
+    the two (0 to 1, a scale with an end). Recommended: the length, printed; the scale is shared by both pages so the decoder's zeros read against the encoder's bars.</p>
+  <p class="q"><b>2 · Head, or the mean of heads.</b> One head, a Head control on both pages (drawn, head 4) &middot; the four heads' mean, no control.
+    Heads in the two models are not the same heads, so a Head control compares head 4 with head 4 only by name. Recommended: the mean, on pages 1 and 2
+    as on page 3, so the three pages draw the same quantity.</p>
+  <p class="q"><b>3 · The decoder's generation</b> below its figure (drawn) &middot; or the figure itself grows with each press (the matrix is the tokens so far,
+    and Replaced applies once <i>chest pain</i> is generated). Recommended: below, so section 1 stays identical to the Encoder page's.</p>
+  <p class="q"><b>4 · Page 3's encoder matrix</b> at 18 &times; 18 small cells (drawn) &middot; left out, the page showing the decoder's two attentions only.</p>
+</main>
+
+<script type="module">
+import * as M from "../transformer/model.js";
+const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const C = { ink1: css("--ink-1"), ink2: css("--ink-2"), ink3: css("--ink-3"), grid: css("--grid"), s1: css("--surface-1"), s2: css("--surface-2"), s3: css("--surface-3"),
+  a: css("--c-group-a"), b: css("--c-group-b"), mag: css("--c-magnitude"), hl: css("--c-highlight"), emp: css("--c-empirical"), ref: css("--c-reference"), font: css("--font"), mono: css("--font-mono") };
+function ctx(id) { const cv = document.getElementById(id), dpr = devicePixelRatio || 1, w = cv.width, h = cv.height;
+  cv.style.width = w + "px"; cv.style.height = h + "px"; cv.width = w * dpr; cv.height = h * dpr; const g = cv.getContext("2d"); g.scale(dpr, dpr); return g; }
+function text(g, s, x, y, { size = 11, color = C.ink2, align = "left", mono = false, bold = false, base = "alphabetic" } = {}) { g.font = `${bold ? "600 " : ""}${size}px ${mono ? C.mono : C.font}`; g.fillStyle = color; g.textAlign = align; g.textBaseline = base; g.fillText(s, x, y); }
+const rgb = (h) => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+const mix = (t, col) => { const a = rgb(C.s3), b = rgb(col); return `rgb(${a.map((x, i) => Math.round(x + (b[i] - x) * Math.max(0, Math.min(1, t)))).join(",")})`; };
+const lumOf = (t) => { const a = rgb(C.s3), b = rgb(C.mag), p = a.map((x, i) => x + (b[i] - x) * t); return (0.2126 * p[0] + 0.7152 * p[1] + 0.0722 * p[2]) / 255; };
+const inkOn = (w) => (Math.abs(lumOf(Math.sqrt(w)) - lumOf(0)) > 0.3 ? C.s1 : C.ink1);
+const toks = (s) => ["[CLS]", ...s.split(" "), "[SEP]"];
+const mean = (heads) => heads[0].map((r, i) => r.map((_, j) => heads.reduce((s, h) => s + h[i][j], 0) / heads.length));
+
+/* a weights matrix: rows queries, columns keys; `causal` masks j > i as a band */
+function matrix(g, A, rt, ct, x0, y0, cs, { causal = false, digits = true, hot = -1, rows = A.length, colLab = true, rowLab = true, small = false } = {}) {
+  const fs = small ? 8 : 10;
+  if (colLab) ct.forEach((t, j) => { g.save(); g.translate(x0 + j * cs + cs / 2, y0 - 5); g.rotate(-Math.PI / 2); text(g, t, 0, 0, { size: fs, mono: true, color: j >= hot && hot >= 0 ? C.hl : C.b, base: "middle" }); g.restore(); });
+  for (let i = 0; i < A.length; i++) {
+    if (rowLab) text(g, rt[i], x0 - 5, y0 + i * cs + cs / 2, { size: fs, mono: true, align: "right", color: i >= hot && hot >= 0 ? C.hl : C.ink2, base: "middle" });
+    for (let j = 0; j < A[i].length; j++) {
+      const x = x0 + j * cs, y = y0 + i * cs;
+      if (causal && j > i) { g.fillStyle = C.s2; g.fillRect(x, y, cs - 1, cs - 1); continue; }
+      if (i >= rows) { g.fillStyle = C.s2; g.fillRect(x, y, cs - 1, cs - 1); continue; }
+      const w = A[i][j]; g.fillStyle = mix(Math.sqrt(w), C.mag); g.fillRect(x, y, cs - 1, cs - 1);
+      if (digits && cs >= 22) text(g, w.toFixed(2).replace(/^0/, ""), x + cs / 2, y + cs / 2, { size: 9, mono: true, align: "center", color: inkOn(w), base: "middle" });
+    }
+  }
+  g.strokeStyle = C.ink2; g.strokeRect(x0 - 0.5, y0 - 0.5, A[0].length * cs, A.length * cs);
+  if (hot >= 0) { g.strokeStyle = C.hl; g.lineWidth = 1.5; g.strokeRect(x0 + hot * cs - 1, y0 - 1, (A[0].length - hot) * cs + 1, A.length * cs + 1); g.lineWidth = 1; }
+}
+
+/* ---------------- pages 1 and 2, section 1: the same figure for either model */
+const SA = "treated with aspirin for chest pain", SB = "treated with aspirin for fever";
+const TA = toks(SA), TB = toks(SB), FIRST = TA.findIndex((t, i) => t !== TB[i]);
+const SCALE = 60 / 12;   // px per unit of movement, one scale for both pages
+function section1(g, which, replaced, title, sub, eg) {
+  const t = replaced ? TB : TA, f = M.forward(which, t), A = mean(f.alpha[0]);
+  text(g, title, 12, 18, { size: 12, color: C.ink1, bold: true }); text(g, sub, 12, 34, { size: 10, color: C.ink3 });
+  const cs = 28, x0 = 104, y0 = 112;
+  matrix(g, A, t, t, x0, y0, cs, { causal: which === "causal", hot: replaced ? FIRST : -1 });
+  /* movement bars under the columns of the tokens before the change */
+  const by = y0 + t.length * cs + 26, bh = 64;
+  text(g, "How far each token's final vector moves when chest pain → fever", 12, by, { size: 10, color: C.ink2 });
+  const fa = M.forward(which, TA), fb = M.forward(which, TB);
+  for (let i = 0; i < FIRST; i++) {
+    const x = x0 + i * cs, base = by + 14 + bh;
+    g.fillStyle = C.s2; g.fillRect(x + 3, by + 14, cs - 7, bh);
+    if (replaced) {
+      const d = Math.hypot(...fa.h[i].map((v, q) => v - fb.h[i][q]));
+      const hh = Math.min(bh, d * SCALE); g.fillStyle = C.a; g.fillRect(x + 3, base - hh, cs - 7, hh);
+      text(g, d.toFixed(2), x + cs / 2, base + 12, { size: 9, mono: true, align: "center", color: C.ink1 });
+    }
+  }
+  if (!replaced) text(g, "Sentence: Replaced draws them", x0 + FIRST * cs + 8, by + 14 + bh / 2, { size: 10, color: C.ink3, base: "middle" });
+  g.strokeStyle = C.grid; g.beginPath(); g.moveTo(x0, by + 14 + bh + 0.5); g.lineTo(x0 + FIRST * cs, by + 14 + bh + 0.5); g.stroke();
+  text(g, eg, 12, by + 14 + bh + 34, { size: 10, color: C.ink3 });
+  return by + 14 + bh + 34;
+}
+section1(ctx("e1"), "base", false, "Encoder · every key", "masked-token model, block 1, mean of 4 heads", "e.g. BERT · understanding: classification, named entity recognition, de-identification");
+section1(ctx("e2"), "base", true, "Encoder · every key", "masked-token model, block 1, mean of 4 heads", "e.g. BERT · understanding: classification, named entity recognition, de-identification");
+
+/* ---------------- page 2, section 2: generation */
+const GEN = M.generate("treated with aspirin for");
+function generation(g, y, presses) {
+  text(g, "Generation, the output fed back", 12, y, { size: 12, color: C.ink1, bold: true });
+  const k = Math.min(presses, GEN.steps.length), st = GEN.steps[k - 1], shown = [...st.context, st.next].slice(1);
+  let x = 12;
+  shown.forEach((t, i) => { text(g, t, x, y + 24, { size: 11, mono: true, color: i >= 4 ? C.emp : C.ink1, base: "middle" }); g.font = `11px ${C.mono}`; x += g.measureText(t).width + 8; });
+  if (k < GEN.steps.length) text(g, "→ ?", x, y + 24, { size: 11, color: C.ink3, base: "middle" });
+  const order = st.probs.map((p, i) => [p, i]).sort((a, b) => b[0] - a[0]).slice(0, 5), lx = 116, bmax = 360;
+  text(g, `next after "${st.context.at(-1)}"`, 12, y + 48, { size: 10, color: C.ink3, base: "middle" });
+  order.forEach(([p, i], r) => { const yy = y + 60 + r * 18; text(g, M.VOCAB[i], lx - 6, yy + 7, { size: 10, mono: true, align: "right", color: r ? C.ink2 : C.ink1, base: "middle" });
+    g.fillStyle = r ? C.s3 : C.emp; g.fillRect(lx, yy, Math.max(1, p * bmax), 14); text(g, p.toFixed(3), lx + Math.max(1, p * bmax) + 5, yy + 7, { size: 10, mono: true, base: "middle" }); });
+}
+{
+  const g = ctx("d1"), end = section1(g, "causal", false, "Decoder · earlier keys only", "next-token model, block 1, mean of 4 heads", "e.g. GPT · generation: language modelling, text generation, dialogue");
+  generation(g, end + 34, 2);
+}
+{
+  const g = ctx("d2"), end = section1(g, "causal", true, "Decoder · earlier keys only", "next-token model, block 1, mean of 4 heads", "e.g. GPT · generation: language modelling, text generation, dialogue");
+  generation(g, end + 34, 3);
+}
+
+/* ---------------- page 3 */
+const T = M.translate(M.GENES[0]);
+function encdec(g, presses, oneKey) {
+  const nt = T.dna.split(""), R = presses, prot = ["[BOS]", ...T.protein];
+  text(g, "Encoder–decoder · DNA → protein", 12, 18, { size: 12, color: C.ink1, bold: true });
+  text(g, "block 2, mean of 4 heads", 12, 34, { size: 10, color: C.ink3 });
+  /* encoder self-attention over the gene */
+  const E = mean(T.enc[1]), ce = 11, ex = 30, ey = 110;
+  text(g, "Encoder: the gene, every key", ex - 18, 58, { size: 10, color: C.ink2 });
+  nt.forEach((c, j) => text(g, c, ex + j * ce + ce / 2, ey - 8, { size: 8, mono: true, align: "center", color: C.b }));
+  nt.forEach((c, i) => text(g, c, ex - 4, ey + i * ce + ce / 2, { size: 8, mono: true, align: "right", color: C.ink2, base: "middle" }));
+  matrix(g, E, nt, nt, ex, ey, ce, { digits: false, colLab: false, rowLab: false });
+  /* decoder self-attention over the protein so far */
+  const Ds = mean(T.self[1]).slice(0, 7).map((r) => r.slice(0, 7)), cd = 24, dx = 330, dy = 110;
+  text(g, "Decoder: the protein so far, earlier keys", dx - 50, 58, { size: 10, color: C.ink2 });
+  matrix(g, Ds, prot, prot, dx, dy, cd, { causal: true, rows: R, colLab: true });
+  /* cross-attention */
+  const cy = 384, cc = 22, cx = 96;
+  text(g, "Cross-attention: queries from the protein, keys and values from the gene", 12, cy - 54, { size: 10, color: C.ink2 });
+  if (!oneKey) {
+    const X = mean(T.cross[1]);
+    T.codons.forEach((c, k) => { g.strokeStyle = C.ink3; g.beginPath(); g.moveTo(cx + 3 * k * cc + 2, cy - 22.5); g.lineTo(cx + 3 * k * cc + 3 * cc - 3, cy - 22.5); g.stroke(); text(g, c, cx + 3 * k * cc + 1.5 * cc, cy - 28, { size: 9, mono: true, align: "center", color: C.ink3 }); });
+    nt.forEach((c, j) => text(g, c, cx + j * cc + cc / 2, cy - 8, { size: 10, mono: true, align: "center", color: C.b }));
+    for (let r = 0; r < 6; r++) {
+      text(g, `${prot[r]} → ${r < R ? prot[r + 1] : "?"}`, cx - 6, cy + r * cc + cc / 2, { size: 10, mono: true, align: "right", color: r < R ? C.a : C.ink3, base: "middle" });
+      for (let j = 0; j < 18; j++) { g.fillStyle = r < R ? mix(Math.sqrt(X[r][j]), C.mag) : C.s2; g.fillRect(cx + j * cc, cy + r * cc, cc - 1, cc - 1); }
+    }
+    g.strokeStyle = C.ink2; g.strokeRect(cx - 0.5, cy - 0.5, 18 * cc, 6 * cc);
+  } else {
+    text(g, "the gene pooled", cx + cc / 2, cy - 22, { size: 10, align: "center", color: C.b });
+    text(g, "to one vector", cx + cc / 2, cy - 8, { size: 10, align: "center", color: C.b });
+    for (let r = 0; r < 6; r++) {
+      text(g, `${prot[r]} → ${r < R ? prot[r + 1] : "?"}`, cx - 6, cy + r * cc + cc / 2, { size: 10, mono: true, align: "right", color: r < R ? C.a : C.ink3, base: "middle" });
+      g.fillStyle = r < R ? mix(1, C.mag) : C.s2; g.fillRect(cx, cy + r * cc, 2 * cc - 1, cc - 1);
+      if (r < R) text(g, "1.00", cx + cc, cy + r * cc + cc / 2, { size: 9, mono: true, align: "center", color: C.s1, base: "middle" });
+    }
+    g.strokeStyle = C.ink2; g.strokeRect(cx - 0.5, cy - 0.5, 2 * cc, 6 * cc);
+    ["Softmax over one key is 1 whatever the query:", "the output is W_O(W_V k + b), the same", "for every amino acid, so the protein's", "queries reach nothing."].forEach((s, i) => text(g, s, cx + 2 * cc + 20, cy + 14 + i * 16, { size: 10, color: C.ink2 }));
+  }
+  text(g, `next: ${R < 6 ? T.top[R] : "[EOS]"}`, 12, cy + 6 * cc + 26, { size: 11, color: C.ink1, mono: true });
+  text(g, "e.g. T5, BART · sequence to sequence: translation, summarisation, image → text", 12, cy + 6 * cc + 50, { size: 10, color: C.ink3 });
+}
+encdec(ctx("x1"), 4, false);
+encdec(ctx("x2"), 4, true);
+</script>
+</body>
+</html>
