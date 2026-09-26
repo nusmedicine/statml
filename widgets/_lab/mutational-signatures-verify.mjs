@@ -272,8 +272,8 @@ const W = await widget();
   check("page, tumor, signature and truth are display; hypermutated, rank and seed are data",
     spec.page.display && spec.tumor.display && spec.signature.display && spec.truth.display
     && !spec.hypermutated.display && !spec.rank.display && !spec.seed.display);
-  check("the cohort opens with the hypermutated tumor in, at rank 4, truth on",
-    spec.hypermutated.default === "in" && spec.rank.default === 4 && spec.truth.default === "on");
+  check("the cohort opens with the hypermutated tumor in, at rank 4, truth off (his call, 2026-09-26)",
+    spec.hypermutated.default === "in" && spec.rank.default === 4 && spec.truth.default === "off");
   check("the signature control offers one button a signature, following the rank",
     optionKeys(spec.signature, { rank: 6 }).join() === "1,2,3,4,5,6" && optionKeys(spec.signature, { rank: 2 }).join() === "1,2");
   check("shown is hidden and runs 0 to 7, the Rank page's seven presses", spec.shown.hidden === true && spec.shown.max === 7);

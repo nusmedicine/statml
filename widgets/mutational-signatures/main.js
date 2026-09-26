@@ -1203,13 +1203,15 @@ defineWidget({
     /* 1–20 since the Rank page (round 5, his pick): it reads a table computed
        ahead, about 14 KB a seed. */
     seed: { type: "int", label: S.seedLabel, detail: S.seedDetail, min: 1, max: M.SEED_MAX, default: 1, afterDrive: true },
-    /* 3.7: a reveal is "True <noun>", Off/On, directly after Seed. On by
-       default, his pick 4: what built each signature is printed. The link
+    /* 3.7: a reveal is "True <noun>", Off/On, directly after Seed. Off by
+       default since the Rank page (Kenneth, 2026-09-26, for both pages): on,
+       it marks the planted number before a rank is run, which is the answer
+       the page asks for. Was on, his pick 4 of 2026-09-18, for Matching. The link
        carries the words the control shows, off/on, as every True-X switch in
        the collection does (5.9; the copy audit, 2026-09-19). */
     truth: {
       type: "segmented", label: S.truthLabel, detail: S.truthDetail,
-      options: [{ value: "off", label: "Off" }, { value: "on", label: "On" }], default: "on",
+      options: [{ value: "off", label: "Off" }, { value: "on", label: "On" }], default: "off",
       display: true, afterDrive: true, when: { param: "page", oneOf: ["rank", "matching"] },
     },
 

@@ -8069,21 +8069,21 @@
     {
       "$note": "mutational-signatures · Matching, before any press: the references named, nothing extracted",
       "slug": "mutational-signatures",
-      "state": "?theme=light&page=matching&shown=0",
+      "state": "?theme=light&page=matching&truth=on&shown=0",
       "px": "ea4d05e5",
       "tx": "fb49a37b"
     },
     {
       "$note": "mutational-signatures · compared: every cosine, signature 1 beside its best match and the runner-up",
       "slug": "mutational-signatures",
-      "state": "?theme=light&page=matching&shown=1",
+      "state": "?theme=light&page=matching&truth=on&shown=1",
       "px": "7552287b",
       "tx": "0444dfdd"
     },
     {
       "$note": "mutational-signatures · signature 4 beside its matches",
       "slug": "mutational-signatures",
-      "state": "?theme=light&page=matching&signature=4&shown=1",
+      "state": "?theme=light&page=matching&truth=on&signature=4&shown=1",
       "px": "803ef584",
       "tx": "5795dd40"
     },
@@ -8097,7 +8097,7 @@
     {
       "$note": "mutational-signatures · the hypermutated tumor left out, compared",
       "slug": "mutational-signatures",
-      "state": "?theme=light&page=matching&hypermutated=out&shown=1",
+      "state": "?theme=light&page=matching&truth=on&hypermutated=out&shown=1",
       "px": "672bd5f0",
       "tx": "80d27125"
     },
@@ -8234,7 +8234,7 @@
     {
       "$note": "mutational-signatures · DRIVEN - the comparison scanning signature 1's row",
       "slug": "mutational-signatures",
-      "state": "?theme=light&page=matching",
+      "state": "?theme=light&page=matching&truth=on",
       "drive": {
         "before": [
           {
@@ -8252,7 +8252,7 @@
     {
       "$note": "mutational-signatures · DRIVEN - the panel easing from signature 1 to 3, after the comparison",
       "slug": "mutational-signatures",
-      "state": "?theme=light&page=matching",
+      "state": "?theme=light&page=matching&truth=on",
       "drive": {
         "before": [
           {
@@ -8378,7 +8378,7 @@
     {
       "$note": "mutational-signatures · HIT-DRIVEN: after the comparison, signature 3's row at [212,215] opens it, the panel mid-ease",
       "slug": "mutational-signatures",
-      "state": "?theme=light&page=matching",
+      "state": "?theme=light&page=matching&truth=on",
       "drive": {
         "before": [
           {

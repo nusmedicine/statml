@@ -10766,8 +10766,10 @@ it".
   page too and marks the planted number; its detail gained a clause.
 - A formula card: cor(1 − C, T), with C and T in its note.
 
-Open for him: True processes defaults to **on** (his pick 4 for Matching), so
-the Rank page opens with the planted number marked before any press.
+**True processes defaults to off on both pages** (his call, 2026-09-26): on,
+it marked the planted number before a rank was run. The seven Matching states
+that relied on the old default now carry `truth=on` in their links, and read
+34 of 34 identical.
 
 ### Slot 71 · `somatic-interactions` — CUT 2026-09-20, Kenneth's call; measured, kept as the record
 
