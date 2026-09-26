@@ -1,0 +1,315 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · mutational-signatures — round 5c mock (B: a Rank page after Signatures)</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  body { background: var(--surface-2); color: var(--ink-1); font-family: var(--font); }
+  .lab { max-width: 1240px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 112ch; font-size: var(--fs-sm); line-height: 1.5; }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .bar { display: flex; flex-wrap: wrap; gap: var(--sp-2) var(--sp-5); align-items: center;
+         padding: var(--sp-2) var(--sp-3); margin: 0 0 var(--sp-3); background: var(--surface-1); border: 1px dashed var(--axis);
+         border-radius: var(--radius); font-size: var(--fs-sm); color: var(--ink-2); }
+  .grp { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  button { font: inherit; font-size: var(--fs-sm); padding: 3px 10px; border: 1px solid var(--axis); background: var(--surface-1);
+           color: var(--ink-1); border-radius: var(--radius); cursor: pointer; }
+  button[aria-pressed="true"] { background: var(--ink-1); color: var(--surface-1); border-color: var(--ink-1); }
+  button:disabled { opacity: 0.45; cursor: default; }
+  canvas { display: block; background: var(--surface-1); }
+  /* the widget, roughly: a rail beside the stage */
+  .widget { display: flex; gap: 20px; align-items: flex-start; background: var(--surface-1); border: 1px solid var(--grid);
+            border-radius: var(--radius); padding: 16px; }
+  .rail { width: 250px; flex: none; font-size: var(--fs-sm); color: var(--ink-1); }
+  .rail .sec { font-weight: 600; margin: 14px 0 6px; padding-top: 10px; border-top: 1px solid var(--grid); }
+  .rail .sec:first-child { border-top: 0; padding-top: 0; margin-top: 0; }
+  .rail .lbl { display: flex; justify-content: space-between; margin: 8px 0 4px; }
+  .rail .det { color: var(--ink-2); font-size: var(--fs-xs); margin: 3px 0 0; line-height: 1.4; }
+  .rail .seg { display: flex; flex-wrap: wrap; }
+  .rail .seg button { border-radius: 0; margin: 0 -1px 0 0; }
+  .rail .drive button { width: 100%; margin: 4px 0; padding: 7px; font-weight: 600; }
+  .rail input[type="range"] { width: 100%; accent-color: var(--focus); }
+  .new { outline: 2px solid var(--c-highlight); outline-offset: 2px; border-radius: 2px; }
+  .stage { flex: 1; min-width: 0; }
+  .readout { font-size: var(--fs-sm); color: var(--ink-2); margin: 8px 0 0; }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 var(--sp-3); padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--c-reference); background: var(--surface-1); max-width: 112ch; line-height: 1.5; }
+  @media (max-width: 880px) { .widget { flex-direction: column; } .rail { width: 100%; } }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>mutational-signatures &middot; round 5c mock &middot; B: a Rank page after Signatures</h1>
+  <p class="note">
+    Your point: students meet NMF on the Signatures page, so they <b>move the number of signatures first</b> and see
+    signatures split and merge; only then does "which number is right?" mean something. So the step is <b>its own page
+    after Signatures</b>: Catalogue &middot; Signatures &middot; <b>Rank</b> &middot; Matching. Everything else is your
+    earlier picks: one press a rank, the fit chart on, seeds 1&ndash;20. Controls new or changed on this page are
+    outlined in violet. The widget below is live: press <i>Run 10 starts at rank 2</i>, then again; after a few, move
+    <i>Signatures to extract</i> or click a point.
+  </p>
+  <div class="bar">
+    <span>Mock only:</span>
+    <div class="grp">Stage width <span id="widthBtns"></span></div>
+    <div class="grp">Theme <span id="themeBtns"></span></div>
+    <div class="grp"><button id="play">Play the ranks</button></div>
+  </div>
+
+  <div class="widget">
+    <div class="rail">
+      <div class="sec" style="border:0;padding:0;margin-top:0">Page</div>
+      <div class="seg new" id="pageSeg"></div>
+      <p class="det" id="pageDet"></p>
+
+      <div class="sec">The cohort</div>
+      <div class="lbl">The hypermutated tumor</div>
+      <div class="seg" id="hyperSeg"></div>
+      <p class="det">one tumor with 7.1% of the cohort's mutations, from a polymerase epsilon profile</p>
+      <div class="lbl new"><span>Signatures to extract</span><b id="rankV">4</b></div>
+      <input id="rank" type="range" min="2" max="8" value="4">
+      <p class="det" id="rankDet"></p>
+
+      <div class="drive"><button id="step"></button><button id="reset">Reset</button></div>
+
+      <div class="sec">The data</div>
+      <div class="lbl new"><span>Seed</span><b>1</b></div>
+      <input type="range" min="1" max="20" value="1" disabled>
+      <p class="det">draws a different cohort (1&ndash;20; this mock has seed 1 only)</p>
+      <div class="lbl new">True processes</div>
+      <div class="seg" id="truthSeg"></div>
+      <p class="det" id="truthDet"></p>
+    </div>
+    <div class="stage">
+      <canvas id="page"></canvas>
+      <p class="readout" id="readout"></p>
+    </div>
+  </div>
+
+  <h2>What changes</h2>
+  <p class="note">
+    <b>Page.</b> A fourth option, <i>Rank</i>, third in the row. The page detail gains a clause (draft, for the copy
+    audit): <i>one tumor's mutations, the cohort factorized, the number of signatures chosen by how often ten starts
+    agree, or each signature compared with the references</i>. The lesson can link cell 19 straight to it:
+    <code>?page=rank</code>.<br>
+    <b>Signatures to extract</b> goes 2&ndash;8 on all three pages (today 2&ndash;6) and is shared: the rank ringed
+    here is the one Signatures extracts and Matching compares. Moving it on this page keeps the ranks already run
+    (the ten starts do not depend on it) and only moves the ring and the matrix; clicking a point sets it, as a row
+    click does on Matching.<br>
+    <b>The press.</b> Seven, one a rank. Each builds that rank's matrix a start at a time (a tenth of a cell's shade
+    each), prints the cophenetic correlation under it, and the number slides to its place on the chart while the fit
+    chart's line grows to the new point. Nothing fades in (your rule): the cells switch shade at each start, the
+    point and the line move.<br>
+    <b>True processes</b>, today Matching's, shows here too: on, a dashed line marks the planted number (4, or 5 with
+    the hypermutated tumor, which carries its own). Its detail would need a clause for this page.<br>
+    <b>Seed</b> 1&ndash;20 on every page; the Rank page reads a table computed ahead for those seeds (about 280 KB),
+    since ten starts a rank take about 7 s in the browser.<br>
+    <b>Page height</b>: 440 at 770, 740 at 535 (the charts go under the matrix); it never reads the width's value
+    beyond that switch, the rule that keeps the harness settled.
+  </p>
+  <div class="rec">
+    Nothing to pick on this mock unless something reads wrong. Things I would settle in the copy audit rather than
+    now: the page's name (<i>Rank</i> is the notebook's word, cell 19's <code>nTry</code> "number of ranks"; the
+    alternative is <i>How many</i>), and the matrix's one-line caption.
+  </div>
+</main>
+
+<script type="module">
+const data = await (await fetch("./mutational-signatures-rank-mock.json")).json();
+const RANKS = data.ranks;
+const state = { width: 770, theme: "light", hyper: "in", truth: "off", rank: 4, press: 0, starts: 0, glide: 1, playing: false };
+const START_MS = 180, GLIDE_MS = 650;
+
+function seg(id, key, opts, onChange) {
+  const el = document.getElementById(id);
+  el.innerHTML = "";
+  for (const [v, label] of opts) {
+    const b = document.createElement("button");
+    b.textContent = label; b.setAttribute("aria-pressed", String(state[key] === v));
+    b.onclick = () => { state[key] = v; onChange?.(); renderAll(); };
+    el.append(b);
+  }
+}
+function renderAll() {
+  seg("widthBtns", "width", [[770, "770"], [535, "535"]]);
+  seg("themeBtns", "theme", [["light", "Light"], ["dark", "Dark"]], () => { document.documentElement.dataset.theme = state.theme; });
+  const pageEl = document.getElementById("pageSeg"); pageEl.innerHTML = "";
+  for (const p of ["Catalogue", "Signatures", "Rank", "Matching"]) { const b = document.createElement("button"); b.textContent = p; b.setAttribute("aria-pressed", String(p === "Rank")); pageEl.append(b); }
+  document.getElementById("pageDet").textContent = "one tumor's mutations, the cohort factorized, the number of signatures chosen by how often ten starts agree, or each signature compared with the references";
+  seg("hyperSeg", "hyper", [["in", "In"], ["out", "Left out"]], resetRun);
+  seg("truthSeg", "truth", [["off", "Off"], ["on", "On"]]);
+  document.getElementById("rankDet").textContent = "the rank of the factorization: the number of signatures extracted";
+  document.getElementById("truthDet").textContent = "what the simulation built each signature from, and here how many processes it planted";
+  draw();
+}
+document.getElementById("rank").oninput = (e) => { state.rank = +e.target.value; document.getElementById("rankV").textContent = state.rank; draw(); };
+
+const probe = document.createElement("canvas").getContext("2d");
+function rgb(css) { probe.fillStyle = "#000"; probe.fillStyle = css; const h = probe.fillStyle; if (h.startsWith("#")) return [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16)); return h.match(/\d+/g).slice(0, 3).map(Number); }
+function colors() {
+  const cs = getComputedStyle(document.documentElement);
+  const g = (n) => cs.getPropertyValue(n).trim();
+  return { s1: g("--surface-1"), s3: g("--surface-3"), ink1: g("--ink-1"), ink2: g("--ink-2"), ink3: g("--ink-3"), grid: g("--grid"),
+    mag: g("--c-magnitude"), emp: g("--c-empirical"), ref: g("--c-reference"), font: g("--font") };
+}
+function mix(a, b, t) { const A = rgb(a), B = rgb(b); return `rgb(${A.map((x, i) => Math.round(x + (B[i] - x) * t)).join(",")})`; }
+
+const cohort = () => data[state.hyper];
+const rankOfPress = (p) => RANKS[p];
+function resetRun() { state.press = 0; state.starts = 0; state.glide = 1; state.playing = false; }
+const running = () => (state.starts > 0 && state.starts < 10) || (state.starts === 10 && state.glide < 1);
+const placed = () => RANKS.slice(0, state.press);
+/* the matrix on screen: the rank being run; else the slider's rank once run; else the last run */
+function matrixRank() {
+  if (running()) return rankOfPress(state.press);
+  if (state.press === 0) return null;
+  return placed().includes(state.rank) ? state.rank : rankOfPress(state.press - 1);
+}
+function consensus(r, upto) {
+  const labs = cohort().ranks[r].labels.slice(0, upto);
+  const n = cohort().counts.length;
+  const C = Array.from({ length: n }, () => new Float32Array(n));
+  for (const L of labs) for (let i = 0; i < n; i += 1) for (let j = 0; j < n; j += 1) if (L[i] === L[j]) C[i][j] += 0.1;
+  return C;
+}
+
+const canvas = document.getElementById("page");
+let hits = [];
+function draw() {
+  const c = colors();
+  const W = state.width, narrow = W < 600;
+  const n = cohort().counts.length;
+  const cell = narrow ? 2.4 : 2.7, S = n * cell;
+  const mx = 30, my = 54;
+  const ky = my + S + 14;
+  const chartH = 120;
+  const coph = narrow ? { x0: 62, x1: W - 22, top: ky + 76 } : { x0: mx + S + 72, x1: W - 22, top: 54 };
+  const fit = narrow ? { x0: 62, x1: W - 22, top: coph.top + chartH + 72 } : { x0: coph.x0, x1: W - 22, top: coph.top + chartH + 78 };
+  const H = narrow ? 740 : 440;
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = W * dpr; canvas.height = H * dpr; canvas.style.width = W + "px"; canvas.style.height = H + "px";
+  const ctx = canvas.getContext("2d");
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.fillStyle = c.s1; ctx.fillRect(0, 0, W, H);
+  const font = (px, w = 400) => `${w} ${px}px ${c.font}`;
+
+  /* matrix */
+  const r = matrixRank();
+  const upto = r == null ? 0 : (running() && r === rankOfPress(state.press) ? state.starts : 10);
+  ctx.fillStyle = c.ink1; ctx.font = font(13, 600);
+  ctx.fillText(r == null ? "Tumors × tumors" : `Tumors × tumors, rank ${r}: ${upto} of 10 starts`, mx, 14);
+  ctx.fillStyle = c.ink2; ctx.font = font(11);
+  ctx.fillText("each start groups a tumor by its largest signature; a cell is", mx, 30);
+  ctx.fillText("the share of starts that put the two tumors in one group", mx, 43);
+  ctx.fillStyle = c.s3; ctx.fillRect(mx, my, S, S);
+  if (r != null && upto > 0) {
+    const C = consensus(r, upto), ord = cohort().ranks[r].order;
+    for (let a = 0; a < n; a += 1) for (let b = 0; b < n; b += 1) {
+      const v = C[ord[a]][ord[b]];
+      if (v <= 0.001) continue;
+      ctx.fillStyle = mix(c.s3, c.mag, Math.min(1, v));
+      const x0 = Math.floor(mx + b * cell), y0 = Math.floor(my + a * cell);
+      ctx.fillRect(x0, y0, Math.floor(mx + (b + 1) * cell) - x0, Math.floor(my + (a + 1) * cell) - y0);
+    }
+    const hi = cohort().hyperIndex;
+    if (hi >= 0) {
+      const p = ord.indexOf(hi);
+      ctx.fillStyle = c.ink1;
+      const tri = (x, y, rot) => { ctx.save(); ctx.translate(x, y); ctx.rotate(rot); ctx.beginPath(); ctx.moveTo(0, -4); ctx.lineTo(4, 3); ctx.lineTo(-4, 3); ctx.closePath(); ctx.fill(); ctx.restore(); };
+      tri(mx + (p + 0.5) * cell, my + S + 6, 0); tri(mx - 7, my + (p + 0.5) * cell, -Math.PI / 2);
+    }
+  }
+  for (let i = 0; i < 60; i += 1) { ctx.fillStyle = mix(c.s3, c.mag, i / 59); ctx.fillRect(mx + i * 1.5, ky + 4, 1.6, 8); }
+  ctx.fillStyle = c.ink3; ctx.font = font(10);
+  ctx.fillText("none", mx, ky + 24); ctx.textAlign = "right"; ctx.fillText("all 10", mx + 90, ky + 24); ctx.textAlign = "left";
+  const cophOf = (rk) => cohort().ranks[rk].coph;
+  const numX = mx + 108, numY = ky + 14;
+  if (r != null && upto === 10) { ctx.fillStyle = c.ink1; ctx.font = font(12, 600); ctx.fillText(`Cophenetic correlation ${cophOf(r).toFixed(3)}`, numX, numY); }
+
+  /* charts */
+  const xOf = (P, rk) => P.x0 + ((rk - 2) / 6) * (P.x1 - P.x0);
+  const panel = (P, title, ticks, fmtY, yMap) => {
+    ctx.fillStyle = c.ink1; ctx.font = font(13, 600); ctx.fillText(title, P.x0 - 44, P.top - 14);
+    ctx.strokeStyle = c.grid; ctx.lineWidth = 1; ctx.fillStyle = c.ink3; ctx.font = font(10); ctx.textAlign = "right";
+    for (const t of ticks) { const y = Math.round(yMap(t)) + 0.5; ctx.beginPath(); ctx.moveTo(P.x0 - 6, y); ctx.lineTo(P.x1 + 6, y); ctx.stroke(); ctx.fillText(fmtY(t), P.x0 - 10, y + 3); }
+    ctx.textAlign = "center"; for (const rk of RANKS) ctx.fillText(String(rk), xOf(P, rk), P.top + chartH + 14);
+    ctx.fillStyle = c.ink2; ctx.font = font(11); ctx.fillText("signatures extracted (rank)", (P.x0 + P.x1) / 2, P.top + chartH + 30); ctx.textAlign = "left";
+  };
+  const cY = (v) => coph.top + chartH - ((v - 0.85) / 0.17) * chartH;
+  const kls = RANKS.map((rk) => cohort().ranks[rk].kl);
+  const lo = Math.floor(Math.min(...kls) / 500) * 500, hi = Math.ceil(Math.max(...kls) / 500) * 500;
+  const fY = (v) => fit.top + chartH - ((v - lo) / (hi - lo)) * chartH;
+  const ft = []; for (let t = lo; t <= hi; t += 500) ft.push(t);
+  panel(coph, "Cophenetic correlation: how often the starts agree", [0.85, 0.9, 0.95, 1.0], (t) => t.toFixed(2), cY);
+  panel(fit, "Divergence left after the best start: the fit", ft, (t) => t.toLocaleString(), fY);
+  const truthRank = state.hyper === "in" ? 5 : 4;
+  if (state.truth === "on") for (const P of [coph, fit]) {
+    const x = Math.round(xOf(P, truthRank)) + 0.5;
+    ctx.strokeStyle = c.ref; ctx.setLineDash([4, 4]); ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(x, P.top); ctx.lineTo(x, P.top + chartH); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = c.ink2; ctx.font = font(10); ctx.fillText(`planted: ${truthRank}`, x + 4, P.top + chartH - 4);
+  }
+  const done = placed();
+  const glidingRank = state.starts === 10 && state.glide < 1 ? rankOfPress(state.press) : null;
+  const e = glidingRank == null ? 1 : (state.glide < 0.5 ? 2 * state.glide ** 2 : 1 - (-2 * state.glide + 2) ** 2 / 2);
+  hits = [];
+  const series = (P, yOf, val, big) => {
+    const pts = done.map((rk) => [xOf(P, rk), yOf(val(rk))]);
+    ctx.strokeStyle = c.ink2; ctx.lineWidth = 1.5;
+    ctx.beginPath(); pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.stroke();
+    if (glidingRank != null) {
+      const tx = xOf(P, glidingRank), ty = yOf(val(glidingRank));
+      const sx = big ? numX + 70 : tx, sy = big ? numY - 4 : ty;
+      const x = sx + (tx - sx) * e, y = sy + (ty - sy) * e;
+      if (pts.length && e > 0.7) { const [px, py] = pts[pts.length - 1]; const g = (e - 0.7) / 0.3; ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(px + (tx - px) * g, py + (ty - py) * g); ctx.stroke(); }
+      if (big || e >= 1) { ctx.fillStyle = big ? c.emp : c.ink2; ctx.beginPath(); ctx.arc(x, y, big ? 5 : 3.5, 0, 2 * Math.PI); ctx.fill(); }
+    }
+    for (const [i, rk] of done.entries()) {
+      const [x, y] = pts[i];
+      hits.push({ x, y, rk });
+      ctx.fillStyle = big ? c.emp : c.ink2; ctx.beginPath(); ctx.arc(x, y, big ? 5 : 3.5, 0, 2 * Math.PI); ctx.fill();
+      if (rk === state.rank) { ctx.strokeStyle = c.ink1; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(x, y, big ? 8.5 : 7, 0, 2 * Math.PI); ctx.stroke(); }
+      if (big) { ctx.font = font(10); ctx.textAlign = "center"; ctx.lineWidth = 4; ctx.strokeStyle = c.s1; ctx.strokeText(val(rk).toFixed(3), x, y - 11); ctx.fillStyle = c.ink2; ctx.fillText(val(rk).toFixed(3), x, y - 11); ctx.textAlign = "left"; }
+    }
+  };
+  series(coph, cY, cophOf, true);
+  series(fit, fY, (rk) => cohort().ranks[rk].kl, false);
+
+  const btn = document.getElementById("step");
+  btn.textContent = state.press < RANKS.length ? `Run 10 starts at rank ${rankOfPress(state.press)}` : "Run 10 starts";
+  btn.disabled = running() || state.playing || state.press >= RANKS.length;
+  const rr = matrixRank();
+  document.getElementById("readout").textContent = rr == null
+    ? `Nothing run yet. Signatures to extract: ${state.rank}.`
+    : `Rank ${rr}: cophenetic correlation ${cophOf(rr).toFixed(3)}; divergence left ${cohort().ranks[rr].kl.toLocaleString()}. Signatures to extract: ${state.rank}${placed().includes(state.rank) ? "" : " (not run yet)"}.`;
+}
+canvas.onclick = (ev) => {
+  const b = canvas.getBoundingClientRect(), x = ev.clientX - b.left, y = ev.clientY - b.top;
+  for (const h of hits) if (Math.hypot(x - h.x, y - h.y) < 12) { state.rank = h.rk; document.getElementById("rank").value = h.rk; document.getElementById("rankV").textContent = h.rk; draw(); return; }
+};
+function press() {
+  return new Promise((resolve) => {
+    state.starts = 0; state.glide = 0;
+    const t0 = performance.now();
+    const tick = (now) => {
+      const el = now - t0;
+      state.starts = Math.min(10, 1 + Math.floor(el / START_MS));
+      if (el >= 10 * START_MS) state.glide = Math.min(1, (el - 10 * START_MS) / GLIDE_MS);
+      draw();
+      if (state.glide < 1) requestAnimationFrame(tick);
+      else { state.press += 1; state.starts = 0; state.glide = 1; draw(); resolve(); }
+    };
+    requestAnimationFrame(tick);
+  });
+}
+document.getElementById("step").onclick = () => press();
+document.getElementById("play").onclick = async () => { state.playing = true; while (state.press < RANKS.length && state.playing) await press(); state.playing = false; draw(); };
+document.getElementById("reset").onclick = () => { resetRun(); draw(); };
+renderAll();
+</script>
+</body>
+</html>
