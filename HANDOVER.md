@@ -1,5 +1,64 @@
 # Handover
 
+**2026-09-26: 83 `attention` SHIPPED AND PUSHED (984afbf, 17 states, "Deep
+Learning - Language: Attention"), the language arc's first and the gallery's
+72nd card, after two days of review rounds — the record is the catalogue's
+§ Slot 83.** Four steps under **Step**: **Projections** (X · Wᵀ = Q, K, V as a
+matrix product, and one number of it as 48 products summed), **Weights** (the
+sentence, qᵢ under the query and every kⱼ under its key, the attention_mask
+row On · Off, scores key by key, the softmax, the α matrix with [PAD] on a
+band), **Output** (zᵢ = Σⱼ αᵢⱼ vⱼ key by key, a **Query** pin by rail or click),
+**Heads** (every head's Zₕ, the concatenation and W_O's output at their real
+sizes). Every step has a hover inspector, picked from live mocks. The model is
+the arc's trained tiny BERT, block 1, read in JS from `weights.js` (generated
+by `_lab/attention-weights.py`); `_lab/attention-verify.mjs` holds it to torch
+within 1.3e-6 and asserts every printed number (8344 checks).
+
+**The things worth knowing before 84, in the order they cost time:**
+
+- **Core validates `regions` at load, before `compute` has run** — `state` is
+  null there. A region table that reads `state` throws and the widget does
+  not render at all, while verify and check both pass (neither loads the
+  page). Read sizes from `params` (`M.tokensOf(params.sentence).length`), or
+  cache the last draw's geometry and return `[]` until there is one
+  (`outRegions`). Load the page after touching `regions`.
+- **Hover cannot be fingerprinted** — the harness clicks, it does not hover.
+  Keep a hover's arithmetic in the verify (83 checks that the drawn slices
+  reproduce q, k, v, and that the heads' parts add up to every output number).
+  To see a hover in the browser pane, the pane must be painting: a hidden
+  pane runs no frames, so a synthetic `pointermove` draws nothing and reads as
+  a bug. A screenshot fronts it.
+- **Determinism runs: front the pane BEFORE the reload.** A run that loads
+  hidden hashes at DPR 1 (550 px wide, not 688) and reads DIFFER; discard it.
+  And a state taller than about 1,000 px can tip the page scrollbar and hash
+  669 or 688 wide run to run — 83's Heads on the 11-token sentence did; keep
+  states at 963 px or less.
+- **`check`: a driven or hit state may not set `shown=`** (nothing would be in
+  flight). Reach its rows with `before: [{ click: "step", frames: 200 }]` —
+  `before` stops when the press ends, so a generous count is safe.
+- **`switch-probe.html` gained `at=`** (dfcbe14): it only ever opened a widget
+  at its defaults, so a control shown on one step was never probed.
+  `?only=attention&at=page%3Doutput%26shown%3D3`.
+- **`--c-highlight` and `--c-magnitude` are one violet** and never share a
+  page: 83's Weights and Heads steps wear the magnitude ramp, so their marks
+  are the query's `--c-group-a`; Projections, with no ramp, uses the highlight.
+- **The manifest blurb cap is 120 characters** (`check`), not a guideline.
+- **A bulk rename reaches dated history.** Replacing `passed` → `on` across
+  files rewrote two lines of the catalogue's dated round records; restored.
+  Rename in code and live copy; leave dated records in the names of their day.
+- **Copy, his standing notes this time:** token, not word, when the widget says
+  token; the intuition before the mechanism; say why several heads; no worked
+  example and no arithmetic in the subtitle; a subtitle's drafts go through the
+  struck-word sweep AND the banlist before he sees them — and confirm the pane
+  is on the banlist page when you scan (one scan ran against the widget page
+  and "passed" on zero terms).
+
+**SEVENTY-THREE WIDGETS IN THE MANIFEST — 72 on the gallery and `roc-auc`
+UNLISTED.** NEXT: 84 `transformer`, measure then mock (§ *The language arc*;
+the causal mask belongs on its Decoder page). Untracked and safe to leave, as
+before: `_lab/cell-markers-umap-*.json`, `_lab/rnaseq-sc-qc.json`, two
+`_lab/figs/sc-markers-*` figures, 65's `unet-lookup-test/`. **SESSION CLOSED.**
+
 **2026-09-25: 81 `cell-markers` SHIPPED AND PUSHED (3ae2857, 35 states,
 "Single-Cell RNA-seq: Clustering and Differential Expression"), the RNA-seq
 arc's last and the gallery's 71st card, after some thirty review rounds in
