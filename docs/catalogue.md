@@ -9574,6 +9574,43 @@ Printed numbers take the destination at once throughout (the VAF bar's
 ruling). Verify 230 checks: each tween starts only for the changes that earn
 it, lands and clears, and paints nothing off the canvas mid-flight.
 
+#### PAGE 4 SAMPLE BY SAMPLE — mocked 2026-09-26 (`_lab/tumor-heterogeneity-steps-mock.html`, 4511672), then a question
+
+*"consider including a play step by step for the clonal architecture? … we can
+infer them at each stage of sample sequencing and CCF?"* Measured on his
+figure: surgery first, trees that fit go 2 → 1 → 1 → 1 (P2.1st rules
+branching out, 1.046 > 0.729; P2.2st and P2.3st rule it out again, 0.950 >
+0.826 and 1.115 > 0.926); in the figure's order it reads 1 of 2 from the first
+press. Candidates S (a press per sample) and T (two presses per sample, the
+glide testing branching). His answer: order **time order**, and first *"i get
+confused how the sampling is done, can you do research … what is P2.1 P2.2
+P2.3 P2.surgery? where do they come from? patient is operated first?"*
+
+**What the RETCHER paper says** (Wang et al., Brief Bioinform 2024, bbae516;
+open access as PMC11483135, read from Europe PMC's full text on 2026-09-26 —
+OUP's own page served a bot check): patient **P2 is a triple-negative breast
+cancer patient** from a TNBC dataset on NCBI SRA, **targeted region sequencing
+at about 30,000×**; P2 gave **"three recurrent samples and one surgical
+sample"** — Fig. 5A's caption: "four tumor samples (three recurrent
+progressions and one surgical sample)". So P2.1st, P2.2st and P2.3st are the
+first, second and third recurrences (progressions), and P2.surgery the
+surgical sample. The results say cluster 2 (TP53, PDGFRB) "expanded during
+tumor recurrence and decreased [in the] surgery" sample, and the sample tree
+puts the surgical sample "more similar to the first-stage recurrent sample and
+closer to ancestral mutations than the other two". **Not stated in the main
+text:** the dates, whether the surgery preceded the recurrences, what the
+surgery removed, or whether the recurrent samples are tissue or plasma (a
+30,000× targeted panel is typical of ctDNA, but the paper does not say); the
+SRA accession is cited only as the NCBI database (ref 14). The supplementary
+methods may say; reading them means downloading the supplementary zip.
+
+**What "the samples" usually are, for the lesson** (from the field's standard
+designs, named from memory, to re-read before any copy quotes them):
+multi-region sampling — several pieces of one tumour at one operation (e.g.
+TRACERx lung, Gerlinger et al. 2012 renal); longitudinal sampling — the
+primary at surgery, then recurrences or metastases later, or plasma at time
+points; and primary–metastasis pairs. P2 is the longitudinal kind.
+
 **Verified:** `tumor-heterogeneity-verify.mjs` 220 checks (section 2's page-1
 height block replaced by the likelihood's: told both wrong 0.0% at 88 reads
 over 2,880 draws, truth held 96.8%; told nothing wrong 14.9%, truth held 51.0%
