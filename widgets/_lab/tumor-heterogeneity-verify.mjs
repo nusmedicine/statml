@@ -856,6 +856,8 @@ const defaults = async () => resolveParams(await spec(), new URLSearchParams("")
        Mid-flight is swept on its own, below. */
     anim.histFrom = null;
     anim.spansFrom = null;
+    anim.oneFrom = null;
+    anim.likFrom = null;
     const { ctx, box } = recorder();
     W.draw({ ctx, colors: COLORS, w: W_PX, h: height, params, state, anim });
     const over = Math.max(0, box.x1 - W_PX, -box.x0, box.y1 - height, -box.y0);
@@ -1073,7 +1075,9 @@ const defaults = async () => resolveParams(await spec(), new URLSearchParams("")
     const st = W.compute({ params: next, rng: makeRng(next.seed) });
     return W.animation.init({ params: next, state: st, fromScratch: true });
   })();
-  check("…and so does a change made away from page 2", !offPage.histFrom && !offPage.easing);
+  /* Page 1 has its own transition since 2026-09-26 (the cells and the line),
+     so the claim here is only that page 2's bars do not morph off page 2. */
+  check("…and a change made away from page 2 does not morph its bars", !offPage.histFrom);
   /* And a morph left in flight lands when the reader leaves the page, so
      coming back never shows a figure halfway between two sets of parameters. */
   const left = morphFor({ purity: "0.35" });
@@ -1134,6 +1138,99 @@ const defaults = async () => resolveParams(await spec(), new URLSearchParams("")
         + ` axis=${worstOver.params.axis} taken=${worstOver.params.taken}`
         + ` box x ${worstOver.box.x0.toFixed(1)}–${worstOver.box.x1.toFixed(1)}`
         + ` y ${worstOver.box.y0.toFixed(1)}–${worstOver.box.y1.toFixed(1)} in 550×${worstOver.height}`);
+  }
+
+  /* ---- the tweens of 2026-09-26: "tweening where appropriate, including
+     responding to slider control changes". Each is held to three things: it
+     starts for the changes that earn it and not for the others, it lands and
+     clears what it moved from, and nothing is painted off the canvas while it
+     runs. */
+  {
+    const draw = (params, a, st) => {
+      const { ctx, box } = recorder();
+      const height = W.height({ w: 550, ...params });
+      W.draw({ ctx, colors: COLORS, w: 550, h: height, params, state: st, anim: a });
+      return Math.max(0, box.x1 - 550, -box.x0, box.y1 - height, -box.y0);
+    };
+    const land = (a, params, st) => {
+      a.mode = "ease";
+      let f = 0;
+      while (W.animation.advance(a, { dt: 32, params, state: st }) && f < 200) f += 1;
+      return f;
+    };
+    const one = { ...values, page: "one" };
+    const st1 = W.compute({ params: one, rng: makeRng(one.seed) });
+    const a1 = W.animation.init({ params: one, state: st1, fromScratch: true });
+    draw(one, a1, st1);                                        // the sample on screen
+    const moved = { ...one, purity: "0.70", state: "3+1" };
+    const st2 = W.compute({ params: moved, rng: makeRng(moved.seed) });
+    const a2 = W.animation.init({ params: moved, state: st2, fromScratch: true });
+    check("page 1: a change to the sample fades the cells and glides the line",
+      Boolean(a2.oneFrom) && a2.easing === true && a2.oneT === 0 && a2.k === 0,
+      "the reads still start over");
+    let worstOne = 0;
+    for (const t of [0.2, 0.5, 0.8]) { a2.oneT = t; worstOne = Math.max(worstOne, draw(moved, a2, st2)); }
+    a2.oneT = 0;
+    const f1 = land(a2, moved, st2);
+    check("…lands and clears what it moved from", a2.oneT === 1 && a2.oneFrom === null, `${f1} frames`);
+    draw(moved, a2, st2);
+    const seeded = { ...moved, seed: 5 };
+    const stS = W.compute({ params: seeded, rng: makeRng(seeded.seed) });
+    check("…and a new seed, the same sample, moves nothing",
+      !W.animation.init({ params: seeded, state: stS, fromScratch: true }).oneFrom);
+    const stepped = W.animation.init({ params: { ...moved, purity: "0.35" }, state: W.compute({ params: { ...moved, purity: "0.35" }, rng: makeRng(1) }), fromScratch: true });
+    stepped.mode = "step";
+    W.animation.advance(stepped, { dt: 200, params: { ...moved, purity: "0.35" }, state: st2 });
+    check("…and a read pressed mid-fade lands the fade first", stepped.oneFrom === null && stepped.oneT === 1);
+
+    /* page 3: Given moves the curves */
+    const p3 = { ...values, page: "ccf", view: "one", purity: "0.70", state: "3+1" };
+    const st3p = W.compute({ params: p3, rng: makeRng(p3.seed) });
+    const a3 = W.animation.init({ params: p3, state: st3p, fromScratch: true });
+    a3.k = 88; a3.oneFrom = null; a3.oneT = 1;
+    draw(p3, a3, st3p);
+    W.animation.rebuild(a3, { params: { ...p3, knows: "nothing" }, state: st3p });
+    check("page 3: changing Given moves the curves, keeping the reads",
+      Boolean(a3.likFrom) && a3.easing === true && a3.k === 88, `${a3.likFrom ? a3.likFrom.length : 0} curves carried`);
+    let worstLik = 0;
+    for (const t of [0.2, 0.5, 0.8]) { a3.likT = t; worstLik = Math.max(worstLik, draw({ ...p3, knows: "nothing" }, a3, st3p)); }
+    a3.likT = 0;
+    land(a3, { ...p3, knows: "nothing" }, st3p);
+    check("…and lands", a3.likT === 1 && a3.likFrom === null);
+    const empty3 = W.animation.init({ params: p3, state: st3p, fromScratch: true });
+    empty3.oneFrom = null;
+    W.animation.rebuild(empty3, { params: { ...p3, knows: "purity" }, state: st3p });
+    check("…and with no reads there are no curves to move", !empty3.likFrom);
+
+    /* All mutations: Given rescales every mutation */
+    const pa = { ...values, page: "ccf", view: "all", axis: "ccf", purity: "0.70", assumed: "purity" };
+    const stA = W.compute({ params: pa, rng: makeRng(pa.seed) });
+    const aA = W.animation.init({ params: pa, state: stA, fromScratch: true });
+    W.animation.rebuild(aA, { params: { ...pa, assumed: "nothing" }, state: stA });
+    check("All mutations: changing Given slides the mutations", aA.assumedFrom === 0.7 && aA.easing === true);
+    let worstAll = 0;
+    const stAn = W.compute({ params: { ...pa, assumed: "nothing" }, rng: makeRng(pa.seed) });
+    for (const t of [0.2, 0.5, 0.8]) { aA.assumedT = t; worstAll = Math.max(worstAll, draw({ ...pa, assumed: "nothing" }, aA, stAn)); }
+    aA.assumedT = 0;
+    land(aA, { ...pa, assumed: "nothing" }, stAn);
+    check("…and lands", aA.assumedT === 1 && aA.assumedFrom === null);
+
+    /* page 4: samples joining and leaving */
+    const p4 = { ...values, page: "clonal", taken: "1" };
+    const st4 = W.compute({ params: p4, rng: makeRng(1) });
+    const a4 = W.animation.init({ params: p4, state: st4, fromScratch: true });
+    const st4b = W.compute({ params: { ...p4, taken: "4" }, rng: makeRng(1) });
+    W.animation.rebuild(a4, { params: { ...p4, taken: "4" }, state: st4b });
+    check("page 4: adding samples fades them in", a4.takenFrom?.join() === "P2.surgery" && a4.easing === true);
+    let worstTree = 0;
+    for (const t of [0.2, 0.5, 0.8]) { a4.takenT = t; worstTree = Math.max(worstTree, draw({ ...p4, taken: "4" }, a4, st4b)); }
+    a4.takenT = 0;
+    land(a4, { ...p4, taken: "4" }, st4b);
+    check("…and lands", a4.takenT === 1 && a4.takenFrom === null);
+
+    check("nothing is painted off the canvas mid-way through any of them",
+      Math.max(worstOne, worstLik, worstAll, worstTree) <= 1.5,
+      `page 1 ${worstOne.toFixed(1)}, page 3 ${worstLik.toFixed(1)}, all ${worstAll.toFixed(1)}, page 4 ${worstTree.toFixed(1)} px`);
   }
 
   /* The clock: one length for every transition in the widget, and it lands. */

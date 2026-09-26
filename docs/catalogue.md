@@ -9550,6 +9550,30 @@ parameter), `check` and `test` green. **Open:** page 3's fraction tile wraps
 when three multiplicities are allowed (1 of 4 copies, e.g. "0.72–1.00 or
 0.36–0.78 or 0.24–0.52").
 
+#### THE TILE, AND TWEENS ON SLIDER CHANGES — 2026-09-26
+
+*"fix the page 3 tile wrapping. Also include tweening where appropriate,
+including responding to slider control changes"*.
+
+- **The tile** shows the span of c the reads allow; where several m fit, the
+  note lists each range by m, so the tile claims no c that no curve allows.
+- **Page 1 and page 3's sample:** a change to the case, the share carrying it
+  or the purity is still a data change (the reads start over), but the cells
+  that change fade out and then in, never blended, and the expected-VAF line
+  and the true-c tick glide (`carryOne`). Seed and depth carry nothing. A read
+  pressed mid-fade lands the fade.
+- **Page 3, Given:** the curves and their bands move from one assumption's
+  answer to the next, keeping the reads (`carryLik`); an m only one side
+  considers fades.
+- **All mutations, Given:** every mutation slides, eased through the 2 / purity
+  factor, as the axis ease does.
+- **Page 4, Samples used:** joining samples fade in, leaving ones out, each line
+  segment as faint as its fainter end, and the rows below slide to their places.
+
+Printed numbers take the destination at once throughout (the VAF bar's
+ruling). Verify 230 checks: each tween starts only for the changes that earn
+it, lands and clears, and paints nothing off the canvas mid-flight.
+
 **Verified:** `tumor-heterogeneity-verify.mjs` 220 checks (section 2's page-1
 height block replaced by the likelihood's: told both wrong 0.0% at 88 reads
 over 2,880 draws, truth held 96.8%; told nothing wrong 14.9%, truth held 51.0%

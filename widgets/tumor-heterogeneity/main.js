@@ -39,6 +39,21 @@ const reducedMotion = () => (typeof matchMedia === "function"
    all match. That leaves exactly purity, read depth and the mutation count. */
 let carryMany = null;
 
+/* PAGES 1 AND 3'S SAMPLE, AS LAST DRAWN (2026-09-26, his "tweening … including
+   responding to slider control changes"). A change to the case, the share of
+   cells carrying it or the purity is a data change — the reads start over, as
+   they must (invariant 3) — but the sample on screen is the same sixty cells
+   read again, so the cells that change fade across and the expected VAF's line
+   and the true fraction's tick glide to where the new sample puts them. The
+   seed and the depth change only the reads, so they carry nothing. */
+let carryOne = null;
+const oneKey = (cfg) => `${cfg.purity}|${cfg.ccf}|${cfg.state.key}|${cfg.copies}`;
+
+/* PAGE 3'S CURVES, AS LAST DRAWN: relative likelihood per m, and each band.
+   "Given" is a display change, so the reads stay and the curves move from what
+   one assumption allows to what the next allows. */
+let carryLik = null;
+
 /* ---- the formula card ----------------------------------------------------
    Kenneth's ask, 2026-09-16: "include the MathML formulas so students can see
    how it's calculated and the general logic". Widget 14's machinery, as
@@ -260,60 +275,76 @@ function wash(color, a) {
 /* ---- the sample, as cells ------------------------------------------------ */
 
 /**
- * Sixty cells: normal cells carry two wild-type copies, tumour cells the copy
- * state's copies, and the ones inside the cancer cell fraction carry the
- * mutation on `copies` of them (model decision 3).
+ * Sixty cells: normal cells carry two wild-type copies, tumour cells the case's
+ * copies, and the ones inside the share carrying it hold the mutation on
+ * `copies` of them (model decision 3).
+ *
+ * A CELL THAT CHANGES FADES OUT, THEN IN (Kenneth, 2026-09-26: "tweening …
+ * including responding to slider control changes"). `from` is the sample the
+ * last draw showed and `t` how far the change has run; a cell whose look is the
+ * same under both is drawn once, still, and a cell whose look differs leaves
+ * over the first half and arrives over the second — never both at once, since
+ * two cells blended read as a third kind of cell (§ *Widget 62*, a blend reads
+ * as a third technique). So a purity change turns cells grey one by one in the
+ * grid's own order, and a change of case redraws only the tumour cells.
  */
-function drawCells(ctx, colors, rect, cfg, { n = M.CELLS } = {}) {
-  const { cols, rows, px, py, r } = M.cellGrid(rect, n);
+function cellLook(cfg, i, n) {
   const { tumour, carrying } = M.cellCounts(cfg, n);
+  const isTumour = i < tumour;
+  const state = isTumour ? cfg.state : M.stateOf("1+1");
+  const marks = isTumour && i < carrying ? cfg.copies : 0;
+  return { isTumour, state, marks, key: `${isTumour}|${state.total}|${marks}` };
+}
+
+function paintCell(ctx, colors, cx, cy, r, look) {
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.fillStyle = look.isTumour ? wash(colors.groupA, 0.16) : colors.surface3;
+  ctx.fill();
+  ctx.strokeStyle = look.isTumour ? wash(colors.groupA, 0.75) : wash(colors.ink3, 0.55);
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  /* `cellMarks` solves the four-copy case first and uses that mark in every
+     state, so the mutation is one size whatever the copy number is, and no
+     copy or mark reaches the cell's border (model, CELL_RIM).
+
+     ONE KIND OF LINE since 2026-09-26, his pick: the solid and dashed parental
+     copies (pick D of 2026-09-16, `_lab/vaf-cell-mock.html`) confused more
+     than they taught, and the VAF never uses which parent a copy came from.
+     The mark sits on the first `marks` copies. */
+  const { mark, lines } = M.cellMarks(r, look.state.total);
+  lines.forEach(({ dy, len }, c) => {
+    const oy = cy + dy;
+    ctx.beginPath();
+    ctx.moveTo(cx - len / 2, oy);
+    ctx.lineTo(cx + len / 2, oy);
+    ctx.strokeStyle = colors.ink3;
+    ctx.lineWidth = 1.6;
+    ctx.stroke();
+    if (c < look.marks) {
+      ctx.beginPath();
+      ctx.arc(cx, oy, mark, 0, Math.PI * 2);
+      ctx.fillStyle = colors.highlight;
+      ctx.fill();
+    }
+  });
+}
+
+function drawCells(ctx, colors, rect, cfg, { n = M.CELLS, from = null, t = 1 } = {}) {
+  const { cols, px, py, r } = M.cellGrid(rect, n);
   for (let i = 0; i < n; i += 1) {
     const cx = rect.x + (i % cols) * px + px / 2;
     const cy = rect.y + Math.floor(i / cols) * py + py / 2;
-    const isTumour = i < tumour;
-    const carries = i < carrying;
-    ctx.beginPath();
-    ctx.arc(cx, cy, r, 0, Math.PI * 2);
-    ctx.fillStyle = isTumour ? wash(colors.groupA, 0.16) : colors.surface3;
-    ctx.fill();
-    ctx.strokeStyle = isTumour ? wash(colors.groupA, 0.75) : wash(colors.ink3, 0.55);
-    ctx.lineWidth = 1;
-    ctx.stroke();
-    /* `cellMarks` solves the four-copy case first and uses that mark in every
-       state, so the mutation is one size whatever the copy number is, and no
-       copy or mark reaches the cell's border (model, CELL_RIM).
-
-       UNTIL 2026-09-26 THE TWO INHERITED CHROMOSOMES WERE TOLD APART, his pick D from
-       `_lab/vaf-cell-mock.html`: the copies the mutation could be on are drawn
-       solid and the other chromosome's are open, which keeps the lesson
-       figure's horizontal copies while making 2 + 0 — two copies of one
-       chromosome — a different picture from 1 + 1. The marks land on the solid
-       copies only, because a mutation arises on one chromosome. */
-    /* ONE KIND OF LINE since 2026-09-26, his pick: the solid and dashed
-       parental copies (pick D of 2026-09-16) confused more than they taught,
-       and the VAF never uses which parent a copy came from. The mark sits on
-       the first `copies` copies. */
-    const state = isTumour ? cfg.state : M.stateOf("1+1");
-    const { mark, lines } = M.cellMarks(r, state.total);
-    lines.forEach(({ dy, len }, c) => {
-      const oy = cy + dy;
-      ctx.beginPath();
-      ctx.moveTo(cx - len / 2, oy);
-      ctx.lineTo(cx + len / 2, oy);
-      ctx.strokeStyle = colors.ink3;
-      ctx.lineWidth = 1.6;
-      ctx.stroke();
-      if (isTumour && carries && c < cfg.copies) {
-        ctx.beginPath();
-        ctx.arc(cx, oy, mark, 0, Math.PI * 2);
-        ctx.fillStyle = colors.highlight;
-        ctx.fill();
-      }
-    });
+    const look = cellLook(cfg, i, n);
+    const was = from && t < 1 ? cellLook(from, i, n) : null;
+    if (!was || was.key === look.key) { paintCell(ctx, colors, cx, cy, r, look); continue; }
+    ctx.save();
+    ctx.globalAlpha = t < 0.5 ? 1 - 2 * t : 2 * t - 1;
+    paintCell(ctx, colors, cx, cy, r, t < 0.5 ? was : look);
+    ctx.restore();
   }
-  return { tumour, carrying };
+  return M.cellCounts(cfg, n);
 }
-
 /* ---- the reads ----------------------------------------------------------- */
 
 /**
@@ -392,8 +423,10 @@ function drawVafBar(ctx, colors, rect, vaf, expected, { scale = true } = {}) {
 function drawSampleAndReads(ctx, colors, L, state, anim) {
   const cfg = state.cfg;
   const k = Math.min(anim?.k ?? 0, state.one.depth);
+  /* The change in flight, if any: where the sample was and how far it has run. */
+  const mo = anim?.oneFrom && (anim.oneT ?? 1) < 1 ? { from: anim.oneFrom, t: anim.oneT, e: M.easeOut(anim.oneT) } : null;
   text(ctx, M.STRINGS.cellsCaption, L.cells.x, L.cells.y - 8, { font: capFont(colors), fill: colors.ink1 });
-  const counts = drawCells(ctx, colors, L.cells, cfg);
+  const counts = drawCells(ctx, colors, L.cells, cfg, mo ? { from: mo.from.cfg, t: mo.t } : {});
   const cellNote = `${counts.tumour} of ${M.CELLS} cells are tumor cells, ${counts.carrying} of them carrying the mutation`;
   text(ctx, cellNote, L.cells.x, L.cells.y + L.cells.h + 18, { font: noteFont(colors), fill: colors.ink2 });
 
@@ -406,7 +439,7 @@ function drawSampleAndReads(ctx, colors, L, state, anim) {
     ? { from: Math.max(0, k - M.batchFor(state.one.depth)), t: 0.25 + 0.75 * M.easeOut(anim.beat ?? 0) }
     : null;
   drawPileup(ctx, colors, L.reads, state.one, k, fade);
-  return k;
+  return { k, mo };
 }
 
 /* CELL 17'S THREE READINGS, ON THE SCALE THEY ARE READINGS OF — his pick A of
@@ -444,10 +477,16 @@ function drawReadings(ctx, colors, rect) {
 
 function drawOne(ctx, colors, L, params, state, anim) {
   const cfg = state.cfg;
-  const k = drawSampleAndReads(ctx, colors, L, state, anim);
+  const { k, mo } = drawSampleAndReads(ctx, colors, L, state, anim);
   const vaf = M.vafAt(state.one, k);
   drawReadings(ctx, colors, L.marks);
-  drawVafBar(ctx, colors, L.bar, vaf, cfg.expected);
+  /* The line is the sample's claim, so it glides; the printed number beside it
+     is the destination at once, since a number that lags the parameters is a
+     number they do not support (the same ruling as the VAF bar). */
+  const expected = mo ? M.lerp(mo.from.expected, cfg.expected, mo.e) : cfg.expected;
+  const tick = mo ? M.lerp(mo.from.ccf, cfg.ccf, mo.e) : cfg.ccf;
+  carryOne = { cfg, key: oneKey(cfg), expected, ccf: tick };
+  drawVafBar(ctx, colors, L.bar, vaf, expected);
   const readY = L.bar.y + L.bar.h + 32;
   text(ctx, k > 0 ? `VAF ${M.n3(vaf)}` : "VAF —", L.bar.x, readY, {
     font: `${colors.fsSm} ${colors.mono}`, fill: colors.ink1,
@@ -470,7 +509,7 @@ function drawOne(ctx, colors, L, params, state, anim) {
  */
 function drawCcfOne(ctx, colors, L, params, state, anim) {
   const cfg = state.cfg;
-  const k = drawSampleAndReads(ctx, colors, L, state, anim);
+  const { k, mo } = drawSampleAndReads(ctx, colors, L, state, anim);
   const R = L.lik;
   const given = M.givenOf(cfg, params.knows);
   const what = given.known === "nothing" ? M.STRINGS.assumingPure
@@ -483,13 +522,41 @@ function drawCcfOne(ctx, colors, L, params, state, anim) {
   const lik = k > 0 ? M.likelihoodOf(alt, k, cfg, params.knows) : null;
   const cols = [colors.groupA, colors.groupB, colors.groupC];
 
-  if (lik) {
-    lik.allowed.forEach((cv) => {
-      ctx.fillStyle = wash(cols[cv.m - 1], 0.14);
-      const x0 = plot.sx(cv.interval.lo - 0.0025);
-      ctx.fillRect(x0, R.y, plot.sx(cv.interval.hi) - x0, R.h);
-    });
+  /* WHAT IS DRAWN, per m: the relative curve and its band, each a blend of
+     where "Given" left it and where it is now. An m on both sides moves; an m
+     only one side considers fades, out over the first half or in over the
+     second (never both at once — the same rule as the cells). */
+  const now = lik ? lik.curves.map((cv) => ({
+    m: cv.m, rel: cv.ys.map((y) => Math.exp(y - lik.top)), cHat: cv.cHat, peak: Math.exp(cv.max - lik.top), band: cv.interval,
+  })) : [];
+  const lt = anim?.likFrom && (anim.likT ?? 1) < 1 && lik ? anim.likT : 1;
+  const le = M.easeOut(lt);
+  const was = lt < 1 ? anim.likFrom : [];
+  const shown = [];
+  for (const cv of now) {
+    const old = was.find((o) => o.m === cv.m);
+    if (lt >= 1) { shown.push({ ...cv, alpha: 1 }); continue; }
+    if (old) {
+      shown.push({
+        m: cv.m, alpha: 1,
+        rel: cv.rel.map((v, i) => M.lerp(old.rel[i], v, le)),
+        cHat: M.lerp(old.cHat, cv.cHat, le), peak: M.lerp(old.peak, cv.peak, le),
+        band: old.band && cv.band ? { lo: M.lerp(old.band.lo, cv.band.lo, le), hi: M.lerp(old.band.hi, cv.band.hi, le) } : (lt < 0.5 ? old.band : cv.band),
+      });
+    } else if (lt >= 0.5) shown.push({ ...cv, alpha: 2 * lt - 1 });
   }
+  if (lt < 0.5) for (const old of was) if (!now.some((cv) => cv.m === old.m)) shown.push({ ...old, alpha: 1 - 2 * lt });
+  if (lik) carryLik = shown.map(({ alpha, ...cv }) => cv);
+
+  shown.forEach((cv) => {
+    if (!cv.band) return;
+    ctx.save();
+    ctx.globalAlpha = cv.alpha;
+    ctx.fillStyle = wash(cols[cv.m - 1], 0.14);
+    const x0 = plot.sx(cv.band.lo - 0.0025);
+    ctx.fillRect(x0, R.y, plot.sx(cv.band.hi) - x0, R.h);
+    ctx.restore();
+  });
   /* the threshold, in ink: `--c-reference` is the truth's tick on this page */
   ctx.save();
   ctx.setLineDash([4, 3]);
@@ -499,24 +566,28 @@ function drawCcfOne(ctx, colors, L, params, state, anim) {
   ctx.restore();
 
   if (lik) {
-    lik.curves.forEach((cv, i) => {
+    shown.forEach((cv) => {
+      const i = cv.m - 1;
+      ctx.save();
+      ctx.globalAlpha = cv.alpha;
       ctx.beginPath();
-      cv.ys.forEach((y, j) => {
+      cv.rel.forEach((v, j) => {
         const X = plot.sx(M.LIK_GRID[j]);
-        const Y = plot.sy(Math.exp(y - lik.top));
+        const Y = plot.sy(v);
         if (j) ctx.lineTo(X, Y); else ctx.moveTo(X, Y);
       });
-      ctx.strokeStyle = cols[cv.m - 1];
+      ctx.strokeStyle = cols[i];
       ctx.lineWidth = 2;
       ctx.stroke();
       /* The label sits over the curve's peak; labels are stacked by m, so two
          peaks at one place do not print on each other. */
       const px = plot.sx(cv.cHat);
-      const py = plot.sy(Math.exp(cv.max - lik.top));
+      const py = plot.sy(cv.peak);
       const right = px > R.x + R.w - 28;
       text(ctx, `m = ${cv.m}`, right ? px - 4 : Math.max(R.x + 22, px), Math.max(R.y + 10 + 12 * i, py - 6), {
-        font: `600 ${colors.fsXs} ${colors.font}`, fill: cols[cv.m - 1], align: right ? "right" : "center",
+        font: `600 ${colors.fsXs} ${colors.font}`, fill: cols[i], align: right ? "right" : "center",
       });
+      ctx.restore();
     });
   } else {
     text(ctx, M.STRINGS.likNoRead, R.x + R.w / 2, R.y + R.h / 2, { font: noteFont(colors), fill: colors.ink3, align: "center" });
@@ -524,7 +595,9 @@ function drawCcfOne(ctx, colors, L, params, state, anim) {
 
   /* The truth: the fraction of tumor cells carrying it, counted in the cells
      above. Drawn from the first frame, as the cells are. */
-  const tx = plot.sx(cfg.ccf);
+  const tick = mo ? M.lerp(mo.from.ccf, cfg.ccf, mo.e) : cfg.ccf;
+  carryOne = { cfg, key: oneKey(cfg), expected: mo ? M.lerp(mo.from.expected, cfg.expected, mo.e) : cfg.expected, ccf: tick };
+  const tx = plot.sx(tick);
   ctx.save();
   ctx.strokeStyle = colors.reference;
   ctx.lineWidth = 3;
@@ -541,7 +614,16 @@ function drawMany(ctx, colors, L, params, state, anim) {
      fraction. At rest it is whichever axis the control names. */
   /* Page 2 reads VAF only (2026-09-26); the axis and its ease are page 3's. */
   const mix = params.page === "many" ? 0 : (anim?.mix ?? (params.axis === "ccf" ? 1 : 0));
-  const axis = M.axisAt(state.many, state.manyCfg, M.easeOut(mix));
+  /* "Given" on the fraction axis multiplies every mutation by 2 / purity, so a
+     switch between Nothing and Purity is one rescaling — eased through the
+     factor, like the axis, so the mutations slide rather than jump (2026-09-26).
+     The card and the tiles state the destination at once. */
+  let cfgMany = state.manyCfg;
+  if (anim?.assumedFrom != null && (anim.assumedT ?? 1) < 1) {
+    const f = M.lerp(2 / anim.assumedFrom, 2 / state.manyCfg.assumed, M.easeOut(anim.assumedT));
+    cfgMany = { ...state.manyCfg, assumed: 2 / f };
+  }
+  const axis = M.axisAt(state.many, cfgMany, M.easeOut(mix));
   const bins = M.HIST_BINS;
 
   /* THE DATA MORPH. The bars the new parameters ask for, and — while one is in
@@ -593,7 +675,7 @@ function drawMany(ctx, colors, L, params, state, anim) {
 
   /* DECISION 6: the mixture's components as enclosure, one level each, fitted
      on the VAF axis and carried onto whichever axis is drawn. */
-  const toAxis = (v) => M.lerp(v, M.ccfFrom(v, state.manyCfg.assumed, 1, 2), M.easeOut(mix));
+  const toAxis = (v) => M.lerp(v, M.ccfFrom(v, cfgMany.assumed, 1, 2), M.easeOut(mix));
   /* THE BRACKETS THROUGH A MORPH. Re-fitting the same number of components is
      the same clusters moved, so they glide. A different number is not, and two
      sets drawn at once would read as their sum — augmentation's lesson about a
@@ -680,30 +762,54 @@ function drawTreePage(ctx, colors, L, params, state, anim) {
      followed. The axis is the figure's four samples; only the ones in use are
      drawn, and joined in time order. */
   const at = (s) => M.SAMPLES.indexOf(s) + 0.5;
+  /* SAMPLES JOINING AND LEAVING (2026-09-26, his "tweening where
+     appropriate"). While the samples-used control is easing, the figure draws
+     every sample in either set, in time order: a sample in both is solid, one
+     joining fades in over the second half and one leaving fades out over the
+     first, and a line segment is as faint as its fainter end — so a new
+     biopsy's points arrive and the lines reach them, rather than the whole
+     panel being redrawn. */
+  const tt = anim?.takenFrom && (anim.takenT ?? 1) < 1 ? anim.takenT : 1;
+  const before = tt < 1 ? anim.takenFrom : used.map((smp) => smp.key);
+  const drawn = M.SAMPLES.filter((smp) => used.includes(smp) || before.includes(smp.key));
+  const alphaOf = (smp) => {
+    const inNew = used.includes(smp);
+    const inOld = before.includes(smp.key);
+    if (inNew && inOld) return 1;
+    if (inNew) return tt < 0.5 ? 0 : 2 * tt - 1;
+    return tt < 0.5 ? 1 - 2 * tt : 0;
+  };
   for (let c = 0; c < 3; c += 1) {
-    ctx.beginPath();
-    used.forEach((s, i) => {
-      const x = plot.sx(at(s));
-      const y = plot.sy(s.ccf[c]);
-      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-    });
-    ctx.strokeStyle = cols[c];
-    ctx.lineWidth = 2;
-    ctx.stroke();
-    used.forEach((s) => {
-      /* The figure's error bar, under the point it belongs to. */
+    for (let i = 1; i < drawn.length; i += 1) {
+      const a = Math.min(alphaOf(drawn[i - 1]), alphaOf(drawn[i]));
+      if (a <= 0) continue;
       ctx.save();
+      ctx.globalAlpha = a;
+      ctx.beginPath();
+      ctx.moveTo(plot.sx(at(drawn[i - 1])), plot.sy(drawn[i - 1].ccf[c]));
+      ctx.lineTo(plot.sx(at(drawn[i])), plot.sy(drawn[i].ccf[c]));
+      ctx.strokeStyle = cols[c];
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.restore();
+    }
+    drawn.forEach((smp) => {
+      const a = alphaOf(smp);
+      if (a <= 0) return;
+      ctx.save();
+      ctx.globalAlpha = a;
+      /* The figure's error bar, under the point it belongs to. */
       ctx.strokeStyle = wash(cols[c], 0.55);
       ctx.lineWidth = 3;
       ctx.beginPath();
-      ctx.moveTo(plot.sx(at(s)), plot.sy(s.lo[c]));
-      ctx.lineTo(plot.sx(at(s)), plot.sy(s.hi[c]));
+      ctx.moveTo(plot.sx(at(smp)), plot.sy(smp.lo[c]));
+      ctx.lineTo(plot.sx(at(smp)), plot.sy(smp.hi[c]));
       ctx.stroke();
-      ctx.restore();
       ctx.beginPath();
-      ctx.arc(plot.sx(at(s)), plot.sy(s.ccf[c]), 3.5, 0, Math.PI * 2);
+      ctx.arc(plot.sx(at(smp)), plot.sy(smp.ccf[c]), 3.5, 0, Math.PI * 2);
       ctx.fillStyle = cols[c];
       ctx.fill();
+      ctx.restore();
     });
   }
   plot.axisY({ ticks: [0, 0.5, 1], format: (v) => M.n2(v) });
@@ -781,9 +887,20 @@ function drawTreePage(ctx, colors, L, params, state, anim) {
     font: capFont(colors), fill: colors.ink1,
   });
   const rowH = L.bars.h / M.SAMPLES.length;
-  used.forEach((s, i) => {
-    const y = L.bars.y + i * rowH;
+  /* Each row slides from its old place to its new one as samples join above
+     it; a joining row fades in at its new place, a leaving one out at its old. */
+  const oldIdx = (smp) => M.SAMPLES.filter((x) => before.includes(x.key)).indexOf(smp);
+  const newIdx = (smp) => used.indexOf(smp);
+  drawn.forEach((s) => {
+    const alpha = alphaOf(s);
+    if (alpha <= 0) return;
+    const io = oldIdx(s);
+    const inew = newIdx(s);
+    const slot = io >= 0 && inew >= 0 ? M.lerp(io, inew, M.easeOut(tt)) : (inew >= 0 ? inew : io);
+    const y = L.bars.y + slot * rowH;
     const h = 16;
+    ctx.save();
+    ctx.globalAlpha = alpha;
     /* Two subclones under one trunk can reach 1.1 times the trunk's own width,
        and the overflow is drawn where it would fall — so the bar takes 56% of
        the row and the arithmetic starts at 70%, clear of the widest overflow. */
@@ -823,6 +940,7 @@ function drawTreePage(ctx, colors, L, params, state, anim) {
     text(ctx, `${s.key}  ${M.n2(tight.sum)} ${fails ? ">" : "≤"} ${M.n2(tight.parent)}`, L.bars.x + L.bars.w * 0.7, y + 12, {
       font: `${colors.fsXs} ${colors.mono}`, fill: fails ? colors.extreme : colors.ink2,
     });
+    ctx.restore();
   });
 }
 
@@ -1122,10 +1240,28 @@ widgetApi = defineWidget({
         && carryMany.axis === M.axisOf(params) && carryMany.assumed === params.assumed
         && carryMany.seed === params.seed && carryMany.clones === params.clones
         && !reducedMotion();
+      /* Pages 1 and 3: the sample changed, so the cells, the line and the tick
+         move from the figure on screen (the carry, above). */
+      const oneMorph = Boolean(carryOne) && M.readsPage(params) && carryOne.key !== oneKey(state.cfg)
+        && !reducedMotion();
       return {
         k,
         beat: 0,
         done: k >= state.one.depth,
+        oneFrom: oneMorph ? carryOne : null,
+        oneT: oneMorph ? 0 : 1,
+        /* The display changes that ease, each remembered so rebuild can tell
+           what moved: Given on page 3 (curves), Given on All mutations
+           (the rescaling), and the samples used on page 4. */
+        knows: params.knows,
+        likFrom: null,
+        likT: 1,
+        assumed: params.assumed,
+        assumedFrom: null,
+        assumedT: 1,
+        taken: params.taken,
+        takenFrom: null,
+        takenT: 1,
         /* Decision 2: only the reads animate. */
         inert: !M.readsPage(params),
         /* Where page 2's axis has got to, and which axis it is heading for. */
@@ -1136,7 +1272,7 @@ widgetApi = defineWidget({
         topFrom: morph ? carryMany.top : 0,
         spansFrom: morph ? carryMany.spans : null,
         histT: 0,
-        easing: morph,
+        easing: morph || oneMorph,
         /* Page 3's shape: 0 is SHAPES[0], 1 is SHAPES[1], and it eases toward
            whichever the control names — one scalar, exactly like `mix`, so a
            switch turned round mid-glide leaves from where the figure is. */
@@ -1170,8 +1306,22 @@ widgetApi = defineWidget({
           if (anim.histT < 1) moving = true;
           else { anim.histFrom = null; anim.spansFrom = null; }
         }
+        /* The four clocks added 2026-09-26, one rule each: run to 1, then
+           clear what they moved from, so nothing downstream reads a finished
+           transition as a live one. */
+        for (const [from, t] of [["oneFrom", "oneT"], ["likFrom", "likT"], ["assumedFrom", "assumedT"], ["takenFrom", "takenT"]]) {
+          if (anim[from] == null) continue;
+          anim[t] = Math.min(1, anim[t] + step);
+          if (anim[t] < 1) moving = true;
+          else anim[from] = null;
+        }
         return moving;
       }
+      /* A read pressed while a change is still fading lands the change first:
+         core's frame clock is the reads' now, and a half-faded sample left on
+         screen would be a sample of neither setting. */
+      anim.oneFrom = null; anim.oneT = 1;
+      anim.likFrom = null; anim.likT = 1;
       const end = state.one.depth;
       if (anim.k >= end) { anim.beat = 0; anim.done = true; return false; }
       anim.beat += dt / M.UNIT_MS;
@@ -1208,6 +1358,35 @@ widgetApi = defineWidget({
          a figure still halfway between two sets of parameters would be a
          figure of neither. The same ruling as the shape, below. */
       if (!M.histPage(params)) { anim.histFrom = null; anim.spansFrom = null; }
+      /* GIVEN ON PAGE 3 moves the curves; off that view it lands. */
+      if (params.knows !== anim.knows) {
+        anim.knows = params.knows;
+        if (params.page === "ccf" && params.view !== "all" && carryLik && anim.k > 0 && !reducedMotion()) {
+          anim.likFrom = carryLik; anim.likT = 0; anim.easing = true;
+        }
+      }
+      /* GIVEN ON ALL MUTATIONS rescales every mutation; it eases from the
+         purity the figure was divided by. */
+      if (params.assumed !== anim.assumed) {
+        const wasPurity = anim.assumed === "nothing" ? 1 : Number(params.purity);
+        anim.assumed = params.assumed;
+        if (params.page === "ccf" && params.view === "all" && params.axis === "ccf" && !reducedMotion()) {
+          anim.assumedFrom = wasPurity; anim.assumedT = 0; anim.easing = true;
+        }
+      }
+      /* THE SAMPLES USED ON PAGE 4: the samples joining fade in, the ones
+         leaving fade out, and the rows below slide to their new places. */
+      if (params.taken !== anim.taken) {
+        const was = anim.taken;
+        anim.taken = params.taken;
+        if (params.page === "clonal" && !reducedMotion()) {
+          anim.takenFrom = M.usedSamples(was).map((smp) => smp.key); anim.takenT = 0; anim.easing = true;
+        }
+      }
+      /* A page change lands whatever belongs to the page being left. */
+      if (!(params.page === "ccf" && params.view !== "all")) { anim.likFrom = null; anim.likT = 1; }
+      if (!(params.page === "ccf" && params.view === "all")) { anim.assumedFrom = null; anim.assumedT = 1; }
+      if (params.page !== "clonal") { anim.takenFrom = null; anim.takenT = 1; }
       /* The shape moved: the same door as the axis, on the same page-3 terms.
          Off page 3 it lands, so a reader who switches shape from elsewhere and
          then arrives finds the figure already there. */
@@ -1283,18 +1462,24 @@ widgetApi = defineWidget({
       ];
     }
     /* PAGE 3: what the reads allow and the call, both read off the likelihood
-       the figure draws (5.8). A range per multiplicity, joined by "or", because
-       two curves allow two separate intervals and one range across them would
-       include fractions neither allows. */
+       the figure draws (5.8). THE VALUE IS THE SPAN, THE NOTE THE PIECES
+       (Kenneth, 2026-09-26: the tile wrapped). With one of four copies three
+       multiplicities can fit, and "0.72–1.00 or 0.36–0.78 or 0.24–0.52" ran to
+       three lines at a 20px value. The span is a true bound on every c the
+       reads allow; where the multiplicities allow separate ranges the note
+       lists each one by m, so the tile never claims a c no curve allows. */
     const lik = k > 0 ? M.likelihoodOf(alt, k, cfg, params.knows) : null;
-    const spans = lik ? lik.allowed.map((cv) => (cv.interval.hi - cv.interval.lo < 0.005
-      ? M.n2(cv.interval.lo) : `${M.n2(cv.interval.lo)}–${M.n2(cv.interval.hi)}`)) : [];
+    const piece = (cv) => (cv.interval.hi - cv.interval.lo < 0.005
+      ? M.n2(cv.interval.lo) : `${M.n2(cv.interval.lo)}–${M.n2(cv.interval.hi)}`);
+    const span = lik ? (lik.hi - lik.lo < 0.005 ? M.n2(lik.lo) : `${M.n2(lik.lo)}–${M.n2(lik.hi)}`) : "—";
     return [
       { ...reads, note: k > 0 ? `VAF ${M.n3(vaf)}` : reads.note },
       {
         label: "Cancer cell fraction",
-        value: lik ? spans.join(" or ") : "—",
-        note: lik ? `what the reads allow, 95%${lik.allowed.length > 1 ? `, at m = ${lik.allowed.map((cv) => cv.m).join(" or ")}` : ""}` : "no read yet",
+        value: span,
+        note: !lik ? "no read yet"
+          : lik.allowed.length === 1 ? `what the reads allow, 95%, at m = ${lik.allowed[0].m}`
+            : `what the reads allow, 95%: ${lik.allowed.map((cv) => `${piece(cv)} at m = ${cv.m}`).join(", ")}`,
       },
       {
         label: M.STRINGS.callLabel,
