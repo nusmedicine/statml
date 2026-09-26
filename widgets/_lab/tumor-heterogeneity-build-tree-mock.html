@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · tumor-heterogeneity — building the tree from the samples</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1500px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 4px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 110ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; }
+  .cand .sub { font-size: 11px; color: var(--ink-2); margin: 0 0 var(--sp-2); max-width: 552px; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 110ch; }
+  table { border-collapse: collapse; font-size: var(--fs-sm); margin: var(--sp-2) 0; }
+  th, td { border: 1px solid var(--grid); padding: 4px 10px; text-align: left; vertical-align: top; }
+  th { color: var(--ink-2); font-weight: 600; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>tumor-heterogeneity &middot; page 4 builds the tree from the samples</h1>
+  <p class="note">
+    <b>Your ask, 2026-09-26:</b> &ldquo;i don't think we show the trees first before we add samples..also how do we sequence
+    1-&gt;2-&gt;3 in the tree? can this be animated?&rdquo; Every edge below is derived on this page from your figure's
+    numbers by the widget's own <code>model.js</code>.
+  </p>
+
+  <h2>1 &middot; How the tree is built (the two rules)</h2>
+  <table style="max-width:1100px">
+    <tr><th>step</th><th>rule</th><th>on your figure</th></tr>
+    <tr><td>number the clusters</td><td>by cancer cell fraction, highest first; cluster 1 is the trunk</td><td>1 &gt; 2 &gt; 3 in every sample</td></tr>
+    <tr><td>who can be whose parent</td><td>a parent's CCF is at least its child's, in every sample &mdash; a subclone lives inside its parent's cells</td><td>2 can only sit under 1; 3 under 1 or under 2</td></tr>
+    <tr><td>which of those fit</td><td>the children of one parent cannot need more cells than the parent has (the sum rule), in every sample</td><td>Surgery: 3 beside 2 fits (0.48 + 0.30 &le; 0.81). Recurrence 1: it does not (0.53 + 0.51 = 1.05 &gt; 0.73), so 3 sits inside 2</td></tr>
+  </table>
+
+  <h2>2 &middot; Candidate G: the tree grows as the samples arrive</h2>
+  <p class="note">No tree before the first sample. Each press sequences a sample and runs the two rules on it; a dashed edge is a
+    parent still possible, and an edge a sample rules out is shown struck in that press and gone after. The rows under the
+    tree are each sample's cells nested as the tree says, the check the sum rule makes. Six frames; the first two samples each take two beats.</p>
+  <div class="row" id="grow"></div>
+
+  <h2>3 &middot; Candidate B: sequence all four samples, then build the tree in three presses</h2>
+  <p class="note">The samples first, as now but with no trees drawn; then <i>Build the tree</i>: place the trunk, attach 2,
+    attach 3 &mdash; the last press slides 3 beside 2 under 1, the overflow shows in Recurrence 1's row, and 3 slides inside 2.</p>
+  <div class="row" id="build"></div>
+
+  <p class="rec" id="rec"></p>
+</main>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+import * as M from "../tumor-heterogeneity/model.js";
+
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+const W = 552, H = 330;
+const cols = [T.groupA, T.groupB, T.groupC];
+function wash(color, a) {
+  const m = String(color).match(/^#([0-9a-f]{6})$/i); if (!m) return color;
+  const p = [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16)); return `rgba(${p[0]},${p[1]},${p[2]},${a})`;
+}
+function text(ctx, s, x, y, { font = `${T.fsXs} ${T.font}`, fill = T.ink2, align = "left" } = {}) {
+  ctx.save(); ctx.font = font; ctx.fillStyle = fill; ctx.textAlign = align; ctx.fillText(s, x, y); ctx.restore();
+}
+function canvasIn(parent, title, sub) {
+  const d = document.createElement("div"); d.className = "cand";
+  d.innerHTML = `<h3>${title}</h3><div class="sub">${sub}</div>`;
+  const c = document.createElement("canvas"); d.appendChild(c); parent.appendChild(d);
+  c.width = W * DPR; c.height = H * DPR; c.style.width = `${W}px`; c.style.height = `${H}px`;
+  const ctx = c.getContext("2d"); ctx.scale(DPR, DPR); return ctx;
+}
+
+/* the inference, from the data */
+function edges(used) {
+  const cand = [1, 2].map((j) => [0, 1, 2].filter((i) => i !== j && used.every((s) => s.ccf[i] >= s.ccf[j])));
+  const fits = [];
+  for (const p2 of cand[0]) for (const p3 of cand[1]) {
+    const parents = [p2, p3];
+    const ok = used.every((s) => [0, 1, 2].every((node) => [1, 2].filter((c, ci) => parents[ci] === node).reduce((a, c) => a + s.ccf[c], 0) <= s.ccf[node] + 1e-12));
+    if (ok) fits.push(parents);
+  }
+  const alive = [1, 2].map((_, ci) => [...new Set(fits.map((f) => f[ci]))]);
+  return { cand, alive, fits };
+}
+
+/* one frame */
+function frame(ctx, used, { stage = "full", struck = null, treeShape = null, slide = null, caption = "" } = {}) {
+  // lines panel
+  const P = { x: 40, y: 26, w: 280, h: 110 };
+  text(ctx, "Cluster mean cancer cell fraction", P.x, 16, { font: `600 ${T.fsSm} ${T.font}`, fill: T.ink1 });
+  ctx.strokeStyle = T.axis; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(P.x, P.y); ctx.lineTo(P.x, P.y + P.h); ctx.lineTo(P.x + P.w, P.y + P.h); ctx.stroke();
+  const at = (s) => P.x + ((M.SAMPLES_IN_TIME.indexOf(s) + 0.5) / 4) * P.w, sy = (v) => P.y + P.h - v * P.h;
+  M.SAMPLES_IN_TIME.forEach((s) => {
+    const [w1, w2] = s.label.split(" ");
+    const f = used.includes(s) ? T.ink2 : T.ink3;
+    text(ctx, w1, at(s), P.y + P.h + 13, { align: "center", fill: f }); if (w2) text(ctx, w2, at(s), P.y + P.h + 24, { align: "center", fill: f });
+  });
+  for (let c = 0; c < 3; c += 1) {
+    ctx.beginPath(); used.forEach((s, i) => (i ? ctx.lineTo(at(s), sy(s.ccf[c])) : ctx.moveTo(at(s), sy(s.ccf[c]))));
+    ctx.strokeStyle = cols[c]; ctx.lineWidth = 2; ctx.stroke();
+    used.forEach((s) => { ctx.beginPath(); ctx.arc(at(s), sy(s.ccf[c]), 3.5, 0, 7); ctx.fillStyle = cols[c]; ctx.fill(); });
+  }
+  // tree panel
+  const box = { x: 350, y: 20, w: 190, h: 130 };
+  text(ctx, "The tree", box.x, 16, { font: `600 ${T.fsSm} ${T.font}`, fill: T.ink1 });
+  if (!used.length || stage === "none") {
+    text(ctx, "no sample sequenced yet", box.x + box.w / 2, box.y + 60, { align: "center", fill: T.ink3 });
+  } else {
+    const pos = { 0: [box.x + 70, box.y + 22], 1: [box.x + 70, box.y + 64], 2: [box.x + 70, box.y + 106] };
+    const alt3 = [box.x + 130, box.y + 64]; // 3 under 1, beside 2
+    const e = edges(used);
+    const drawEdge = (a, b, style) => {
+      ctx.save();
+      ctx.strokeStyle = style === "struck" ? T.extreme : T.ink3; ctx.lineWidth = style === "solid" ? 1.8 : 1.4;
+      if (style !== "solid") ctx.setLineDash([4, 3]);
+      ctx.beginPath(); ctx.moveTo(a[0], a[1] + 11); ctx.lineTo(b[0], b[1] - 11); ctx.stroke(); ctx.restore();
+    };
+    if (stage === "nodes") {
+      // nodes only, ranked
+    } else if (treeShape) {
+      // candidate B: an explicit placement
+      const p3 = slide != null ? [M.lerp(alt3[0], pos[2][0], slide), M.lerp(alt3[1], pos[2][1], slide)] : treeShape === "linear" ? pos[2] : alt3;
+      drawEdge(pos[0], pos[1], "solid");
+      if (treeShape !== "two") drawEdge(slide != null && slide < 0.5 ? pos[0] : treeShape === "linear" || (slide != null && slide >= 0.5) ? pos[1] : pos[0], p3, "solid");
+      pos[2] = p3;
+    } else {
+      drawEdge(pos[0], pos[1], e.alive[0].length === 1 ? "solid" : "dashed");
+      const three = [0, 1];
+      for (const par of three) {
+        const isAlive = e.alive[1].includes(par);
+        const target = par === 0 ? alt3 : pos[2];
+        if (isAlive) drawEdge(pos[par], target, e.alive[1].length === 1 ? "solid" : "dashed");
+        else if (struck === par) drawEdge(pos[par], target, "struck");
+      }
+      if (e.alive[1].length === 2) {
+        // 3 shown at both candidate places, faint ring at the second
+        ctx.save(); ctx.setLineDash([3, 2]); ctx.strokeStyle = cols[2]; ctx.beginPath(); ctx.arc(alt3[0], alt3[1], 11, 0, 7); ctx.stroke(); ctx.restore();
+        text(ctx, "3?", alt3[0], alt3[1] + 4, { align: "center", fill: cols[2], font: `${T.fsXs} ${T.mono}` });
+      } else if (struck === 0) {
+        ctx.save(); ctx.setLineDash([3, 2]); ctx.strokeStyle = T.extreme; ctx.beginPath(); ctx.arc(alt3[0], alt3[1], 11, 0, 7); ctx.stroke(); ctx.restore();
+      }
+    }
+    [0, 1, 2].forEach((c) => {
+      if (treeShape === "two" && c === 2) return;
+      ctx.beginPath(); ctx.arc(pos[c][0], pos[c][1], 11, 0, 7); ctx.fillStyle = wash(cols[c], 0.85); ctx.fill();
+      text(ctx, String(c + 1), pos[c][0], pos[c][1] + 4, { align: "center", fill: T.surface, font: `${T.fsXs} ${T.mono}` });
+    });
+  }
+  // rows
+  const top = 196;
+  if (used.length && stage !== "none" && stage !== "nodes") {
+    const e = edges(used);
+    const linear = treeShape ? (treeShape === "linear" || (slide != null && slide >= 0.5)) : e.alive[1].length === 1 && e.alive[1][0] === 1;
+    const mix = slide != null ? 1 - slide : struck != null ? 1 : linear ? 0 : 1;
+    text(ctx, "Each sample's tumor cells, nested as the tree says", 14, top - 12, { font: `600 ${T.fsSm} ${T.font}`, fill: T.ink1 });
+    M.SAMPLES_IN_TIME.filter((s) => used.includes(s)).forEach((s, i) => {
+      const y = top + i * 30, g = { x: 14, y, w: 300, h: 14 };
+      ctx.fillStyle = T.surface3; ctx.fillRect(14, y, 300, 14);
+      const rects = M.lerpRects(M.barRects(M.SHAPES[0], s.ccf, g), M.barRects(M.SHAPES[1], s.ccf, g), treeShape === "two" ? 0 : mix);
+      rects.forEach((r, c) => { if (treeShape === "two" && c === 2) return; ctx.fillStyle = wash(cols[c], c === 0 ? 0.45 : c === 1 ? 0.75 : 0.9); ctx.fillRect(r.x, r.y, r.w, r.h); });
+      const over = treeShape === "two" ? 0 : M.overflowOf(rects);
+      if (over > 0.5) { ctx.strokeStyle = T.extreme; ctx.lineWidth = 1.5; ctx.strokeRect(rects[0].x + rects[0].w + 0.5, y - 1.5, over, 17); }
+      text(ctx, s.label, 330, y + 11, { fill: over > 0.5 ? T.extreme : T.ink2 });
+    });
+  }
+  if (caption) text(ctx, caption, 14, H - 10, { fill: T.ink1 });
+}
+
+/* §2 G */
+{
+  const host = document.getElementById("grow");
+  const S = M.SAMPLES_IN_TIME;
+  const f = [
+    ["Before any press", [], { stage: "none" }, "the page opens with the timeline and nothing else"],
+    ["Press 1, beat 1: Surgery sequenced", [S[0]], { stage: "nodes" }, "three clusters, ranked by their fraction: 1 above 2 above 3"],
+    ["Press 1, beat 2: the rules on Surgery", [S[0]], {}, "2 can only sit under 1; 3 fits under 1 or 2 — both drawn dashed"],
+    ["Press 2, beat 1: Recurrence 1, 3 tested beside 2", S.slice(0, 2), { struck: 0 }, "0.53 + 0.51 = 1.05 > 0.73: Recurrence 1's row overflows, so the edge from 1 is struck"],
+    ["Press 2, beat 2: 3 settles inside 2", S.slice(0, 2), {}, "cluster 3 slides inside cluster 2 in every row; the tree is 1 → 2 → 3"],
+    ["Presses 3 and 4: Recurrences 2 and 3", S, {}, "each fits 1 → 2 → 3 again; the tree stands"],
+  ];
+  for (const [title, used, opts, sub] of f) frame(canvasIn(host, title, sub), used, opts);
+}
+/* §3 B */
+{
+  const host = document.getElementById("build");
+  const S = M.SAMPLES_IN_TIME;
+  const f = [
+    ["After four sample presses", S, { stage: "none" }, "samples first; no tree yet — the button now reads Build the tree"],
+    ["Build 1–2: the trunk, then 2 under it", S, { treeShape: "two" }, "1 is the highest in every sample; 2 can only sit under 1"],
+    ["Build 3, mid-slide: 3 tried beside 2", S, { treeShape: "branching", slide: 0 }, "the overflow shows in three samples' rows"],
+    ["Build 3, landed: 3 inside 2", S, { treeShape: "linear", slide: 1 }, "the only place every sample allows"],
+  ];
+  for (const [title, used, opts, sub] of f) frame(canvasIn(host, title, sub), used, opts);
+}
+document.getElementById("rec").innerHTML = `<b>Recommendation: G.</b> It is what you described earlier — inferring at each
+  stage of sequencing — and it answers &ldquo;how do we sequence 1 &rarr; 2 &rarr; 3&rdquo; with the two rules visibly
+  applied to each sample: the first sample places the clusters and leaves 3 two possible parents, Recurrence 1 strikes one,
+  and the rest confirm. The Tree control (1 &rarr; 2 &rarr; 3 · 2 and 3 under 1) goes, since the page now infers the tree
+  rather than asking the reader to pick one; the rows under it are nested as the tree currently allows (when two parents
+  are open, as after Surgery, the rows are drawn with 3 beside 2, the arrangement being tested). <b>B</b> separates
+  sequencing from building, which is tidier to explain but makes the samples themselves inert: the tree only appears after
+  all four, so no sample is seen to change it.`;
+</script>
+</body>
+</html>
