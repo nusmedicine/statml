@@ -12,7 +12,7 @@ answer can be checked against what was assumed.
 
 | looking for | go to |
 |---|---|
-| what to build next | **The language arc (PHM5005 08-1 to 08-3), PICKED 2026-09-25: four slots 83 `attention` · 84 `transformer` · 85 `clinical-text` · 86 `protein-transformer`, his four ideas; 83 `attention` SHIPPED AND PUSHED 2026-09-26 (four steps, seventeen states); NEXT 84 `transformer`, measure then mock** — § *The language arc*, under PHM5005. Before it: **The sequence arc (PHM5005 07-1 to 07-3), PROPOSED, MEASURED AND PICKED 2026-09-20: four widgets by data type; 73 `signal-cnn-lstm` SHIPPED AND PUSHED the same day (`fbe62c2`); 75 `sequence-cnn-lstm` SHIPPED AND PUSHED 2026-09-20 evening (`77fd1d7`, 42 states) after thirteen review rounds, the copy audit and three subtitle rounds; 72 `signal-windows` SHIPPED AND PUSHED 2026-09-21 (`1fe6062`, 33 states, four pages Clean · Window · Split · Normalize, the cleaning page added on his ask); 74 `sequence-encoding` (planned as `embedding-space`, renamed at the ship) SHIPPED AND PUSHED 2026-09-21 after eleven review rounds in one day, sixteen states — the arc COMPLETE** — § *The sequence arc*, under PHM5005. Slot 71 `somatic-interactions` CUT 2026-09-20 and slot 52 `training-loop` DISCARDED 2026-09-13, both his call. The cancer mutation arc (67, 69, 70) is complete; the image arc has 61, 64, 65 and 62 shipped, 63 `pretrained` on KIV (his call 2026-09-15), 66 folded into 65; the GWAS and PRS arc (56, 57, 59, 60) and the high-throughput arc are complete |
+| what to build next | **The language arc (PHM5005 08-1 to 08-3), PICKED 2026-09-25: four slots 83 `attention` · 84 `transformer` · 85 `clinical-text` · 86 `protein-transformer`, his four ideas; 83 `attention` SHIPPED AND PUSHED 2026-09-26 (four steps, seventeen states); 84 `transformer` MEASURED, MOCKED AND PICKED 2026-09-26 (Encoder · Decoder · Tasks · Pre-training); NEXT its draft** — § *The language arc*, under PHM5005. Before it: **The sequence arc (PHM5005 07-1 to 07-3), PROPOSED, MEASURED AND PICKED 2026-09-20: four widgets by data type; 73 `signal-cnn-lstm` SHIPPED AND PUSHED the same day (`fbe62c2`); 75 `sequence-cnn-lstm` SHIPPED AND PUSHED 2026-09-20 evening (`77fd1d7`, 42 states) after thirteen review rounds, the copy audit and three subtitle rounds; 72 `signal-windows` SHIPPED AND PUSHED 2026-09-21 (`1fe6062`, 33 states, four pages Clean · Window · Split · Normalize, the cleaning page added on his ask); 74 `sequence-encoding` (planned as `embedding-space`, renamed at the ship) SHIPPED AND PUSHED 2026-09-21 after eleven review rounds in one day, sixteen states — the arc COMPLETE** — § *The sequence arc*, under PHM5005. Slot 71 `somatic-interactions` CUT 2026-09-20 and slot 52 `training-loop` DISCARDED 2026-09-13, both his call. The cancer mutation arc (67, 69, 70) is complete; the image arc has 61, 64, 65 and 62 shipped, 63 `pretrained` on KIV (his call 2026-09-15), 66 folded into 65; the GWAS and PRS arc (56, 57, 59, 60) and the high-throughput arc are complete |
 | how a widget got its shape | § *Widget N*, in order |
 | the four-method reconnaissance | § *Widget 19*, under the PCA sections |
 | the arcs, and what is deliberately not a widget | the arc sections below |
@@ -22343,7 +22343,7 @@ low rank; integrated gradients; `[CLS]` against mean pooling.
 | # | slug (provisional) | title (the notebook's own heading) | host | misconception | measured | state |
 |---|---|---|---|---|---|---|
 | 83 | `attention` | Attention Mechanism | 08-1 cell 1 (`dl-language-attention-weight.png`, `-output.png`, `-multi.png`); 08-3 cell 4 §3 and *Handling Padding* | α is a similarity between two words, so symmetric; √d_k is cosmetic; padding is harmless once the sequences are the same length | **holds**: at init the largest \|α_ij − α_ji\| is 0.394; unscaled at d_k 64 the mean top weight of ten is 0.86 and 60% of rows exceed 0.9, scaled 0.32 at every width; the same sentence padded to 12 and 40 gives identical logits with the mask and 0.074 apart without it, the real tokens putting 78% of their weight on 32 PADs | **SHIPPED 2026-09-26** |
-| 84 | `transformer` | Transformer Architecture · Transformer Tasks · Pre-training | 08-1 cells 2–4 (`dl-language-transformer*.png`, `-attention-mask.png`, `-transformer-types.png`); 08-3 cell 4 §3 | a token's vector is fixed once embedded; an encoder and a decoder are different machinery; MLM and next-token prediction learn the same thing | **holds**: "discharge" (home) and "discharge" (wound) are one table row (probe 50%) and separate after block 1 (cos 0.996 → 0.786, probe 100%); on the lesson's own example the MLM model fills *treated with [MASK] for ‹symptom›* with a right drug 100%, the causal model 17% (chance 20%), and both predict the symptom after *treated with ‹drug› for* 100% | proposed, **second** |
+| 84 | `transformer` | Transformer Architecture · Transformer Tasks · Pre-training | 08-1 cells 2–4 (`dl-language-transformer*.png`, `-attention-mask.png`, `-transformer-types.png`); 08-3 cell 4 §3 | a token's vector is fixed once embedded; an encoder and a decoder are different machinery; MLM and next-token prediction learn the same thing | **holds**: "discharge" (home) and "discharge" (wound) are one table row (probe 50%) and separate after block 1 (cos 0.996 → 0.786, probe 100%); on the lesson's own example the MLM model fills *treated with [MASK] for ‹symptom›* with a right drug 100%, the causal model 17% (chance 20%), and both predict the symptom after *treated with ‹drug› for* 100% | **MEASURED, MOCKED AND PICKED 2026-09-26**: four pages Encoder · Decoder · Tasks · Pre-training |
 | 85 | `clinical-text` | Clinical: Pre-trained Model Inference · Adapting Models · Explainability | 08-2 cells 3–18 (inference, [CLS] / mean / max, dot products), 19–65 (transfer · full · LoRA, `dl-language-pretrain-*.png`), 66–76 (LIG); 08-1 cells 13–20 | the frozen backbone is the cautious choice that always works; more trainable parameters is always better; LoRA is a smaller network; an attribution explains the clinical reasoning | **holds, and is the stage slot 63 never found**: on a target the pretraining carries (an asserted finding) transfer wins at n = 16 (93 against 88 full, 87 scratch) and all meet by 256; on one it does not (a drug given for the wrong symptom) transfer sits at 50–55% at EVERY n while full fine-tuning reaches 86% at 1,024; MLM accuracy 80% falls to 65% after full, LoRA's W untouched; LoRA r 1 trains 482 parameters and reaches 97%; IG's completeness gap is 0.81 · 0.067 · 0.011 at 5 · 50 · 300 steps, and the lesson's clip hid a "no" that pushed against the prediction in 52 of 120 notes | proposed, **third**; the heaviest |
 | 86 | `protein-transformer` | Biological: Building/Training Transformer Models · Adapting Pre-trained Models · Explainability | 08-3 cells 4–5 (the components table, `dl-language-biology-encoder.png`, pooling figures), 21–29 (`Pad`, `Tokenize`, the model), 50–68 (ESM-2 transfer), 80–89 (occlusion) | the model sees padding the way it sees residues; [CLS] summarises a sequence whatever the model was trained on; a pretrained tokenizer's ids are the lesson's ids | **partly**: the mask arithmetic holds (A3); under transfer an MLM-only backbone's [CLS] scores 91–97% where the mean scores 99–100% (the lesson's own caveat, 08-3 cell 4); the scratch-against-CNN claim of 08-3 cell 1 did NOT hold (below) | proposed, **fourth** |
 
@@ -22606,6 +22606,65 @@ the own token is the largest in 1–13% of rows (self weight 0.03–0.13); rows
 are peaked (mean top 0.42–0.81), but on the next token, the previous one or
 the clause. A widget drawn from trained weights will not show the figure's
 diagonal.
+
+### Slot 84 · `transformer` — Transformer Architecture · Tasks · Pre-training — MEASURED, MOCKED AND PICKED 2026-09-26
+
+**PICKED 2026-09-26, two AskUserQuestion calls, every recommendation:** four
+pages **Encoder · Decoder · Tasks · Pre-training**, 08-1's headings in order
+(the arc's three-page plan, with the families as a Decoder control, set
+aside: cell 3 is its own heading and its own table); **Encoder** as his
+encoder figure bottom to top, a Step a stage (x̃ → attention + Add & Norm →
+FFN + Add & Norm, two blocks), the two *discharge* rows (*planned discharge
+home today*, *yellow discharge from wound*) beside each stage with their
+cosine, the [L × 48] matrix as a hover and the shape on each box; **Decoder**
+two sections in his figure's order, 1 masked self-attention with generation
+fed back as its Step, 2 cross-attention on **DNA → protein** (cell 4's own
+encoder–decoder example); generation **greedy, stopping at [SEP] or the first
+"."**; **Tasks** the three families as the keys each query may see (mock § 4
+A), with cell 3's models and tasks; **Pre-training** cell 4's two examples as
+the two models' probabilities, the clause token by token beneath; title
+**Deep Learning - Language: Transformer**, slug `transformer`. Left to the
+draft as conventional (mock § 6's last note): the base's full weights and the
+causal model's as generated files beside 83's, a JS forward held to torch as
+83's is, the DNA → protein model as a third generated file, the colour roles
+listed there. NEXT: the draft, on his word.
+
+**His ask, 2026-09-26:** *plan the next widget, continuing the language arc.*
+Measure script `_lab/transformer-measure.py` (imports 83's measure, so the
+base is widget 83's own model; about 4 min; `--export` writes
+`_lab/transformer-mock-data.json`); mock `_lab/transformer-mock.html` on his
+figures (`dl-language-transformer-encoder.png`, `-decoder.png`,
+`-attention-mask.png`, `-transformer-types.png`). Committed 2178d8c.
+
+**What measured (the script's header has it in full):**
+
+- **Context arrives at the attention sublayer.** A linear probe on one
+  token's vector, positions matched: the sense of *discharge* 47% at x̃, 100%
+  after block 1's attention + Add & Norm; a symptom negated or asserted 46% →
+  100% at the same stage. The drawn pair: cos 1.000 → 0.880 → 0.831 → 0.425
+  → 0.512.
+- **The token stays itself through block 1** (the nearest table row is its
+  own 100%), *discharge* 38% after block 1's FFN and 0% after block 2.
+- **08-1 cell 2's "the FFN provides the nonlinearity needed for … negation"
+  does not hold here:** with no FFN at all, MLM 79.6% against 80.4%, drug
+  slot 100%, negation read 100% after the first attention. No copy says what
+  the FFN does; it says what it is (one small network on each row alone).
+- **"Lower layers local, higher semantic" does not show in two blocks**
+  (mean distance 2.0–3.3 against 2.5–3.5).
+- **The causal model:** 299 of 300 sampled notes grammatical; greedy from
+  *treated with aspirin for* → *chest pain* (0.998), then a repeated clause;
+  rows before a changed token are exactly unchanged.
+- **Cross-attention:** DNA → protein puts 0.95 of each amino acid's weight on
+  its codon (argmax 100%); English → Malay translates 100% with weights
+  0.36–0.44 on the aligned word, so it was not drawn.
+- **Pre-training, token by token:** MLM 100% at every position; causal 0% at
+  the first word, 17% at the drug, 100% elsewhere. At the lesson's [MASK],
+  MLM 0.61 aspirin and 0.39 nitrate; causal after *treated with* 0.08–0.15
+  over all ten drugs.
+
+**Told to him for the lesson:** the FFN-and-negation claim and the
+layer-hierarchy claim of 08-1 cell 2 (both about large models; the widget
+draws neither).
 
 ### The open calls
 
