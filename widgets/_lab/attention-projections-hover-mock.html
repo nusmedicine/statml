@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · 83 Projections, choosing Q/K/V and hover — mock</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1760px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 120ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .bar { display: flex; gap: var(--sp-3); align-items: center; flex-wrap: wrap; margin: var(--sp-2) 0; font-size: var(--fs-sm); color: var(--ink-2); }
+  .seg { display: inline-flex; border: 1px solid var(--grid); border-radius: 4px; overflow: hidden; }
+  .seg button { font: inherit; padding: 4px 12px; background: var(--surface-2); color: var(--ink-2); border: 0; border-right: 1px solid var(--grid); cursor: pointer; }
+  .seg button:last-child { border-right: 0; }
+  .seg button[aria-pressed="true"] { background: var(--surface-3); color: var(--ink-1); font-weight: 600; }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-3) 0 0; padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 120ch; }
+  ul.opts { font-size: var(--fs-sm); color: var(--ink-2); max-width: 120ch; margin: 0 0 var(--sp-3); }
+  ul.opts b { color: var(--ink-1); }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Widget 83 · Projections: choosing Q, K or V, and hover · mock</h1>
+  <p class="note">
+    Live: <b>click a W or its result on the canvas</b>, or use the control, to choose which projection section 2
+    takes apart (and the press sweeps). <b>Hover</b> the figure to try the three hover modes. Real numbers, head 4,
+    <i>treated with aspirin for chest pain</i>, four tokens computed. Hover only reaches computed rows (the rest
+    are still blank), and moving off the figure returns it to the press's own column.
+  </p>
+  <ul class="opts">
+    <li><b>C · choosing:</b> a rail control <i>Projection: Query · Key · Value</i>, and the same choice by clicking
+      a W block or its result (a region writing the same parameter; the control stays, as the keyboard route).</li>
+    <li><b>H1 · a cell:</b> hover any number of Q, K or V; section 2 becomes that number's own sum, x̃ of its row
+      times its column of W; its row of X and its column of W are outlined above.</li>
+    <li><b>H2 · a column:</b> hover a column of a W (or of its result); section 2 shows the press's token with that
+      column; the whole column of the result is outlined, one feature across every token.</li>
+    <li><b>H3 · a row:</b> hover a token (a row of X or of any result); its row is outlined through X, Q, K and V
+      and section 2 takes that token.</li>
+  </ul>
+  <div class="bar">
+    <span>Projection</span><span class="seg" id="sel"><button data-v="Q">Query</button><button data-v="K">Key</button><button data-v="V">Value</button></span>
+    <span>Hover mode</span><span class="seg" id="mode"><button data-v="cell">H1 a cell</button><button data-v="column">H2 a column</button><button data-v="row">H3 a row</button><button data-v="none">none</button></span>
+    <span id="read"></span>
+  </div>
+  <canvas id="cv"></canvas>
+  <p class="rec">Recommended: <b>C</b> (control + click) with <b>H1</b>. H1 answers "where does this number come
+    from?" for every number on the page, and it contains the other two: the row and the column it outlines are H3's
+    and H2's. The control is what a lecture screen uses; hover is the inspector on top of it.</p>
+</main>
+<script type="module">
+import * as M from "../attention/model.js";
+const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const C = { ink1: css("--ink-1"), ink2: css("--ink-2"), ink3: css("--ink-3"), s2: css("--surface-2"), s3: css("--surface-3"),
+  a: css("--c-group-a"), hl: css("--c-highlight"), lo: css("--c-value-low"), hi: css("--c-value-high"), font: css("--font"), mono: css("--font-mono") };
+const rgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+const mixA = (a, b, t) => a.map((x, i) => x + (b[i] - x) * Math.max(0, Math.min(1, t)));
+const str = (p) => `rgb(${p.map(Math.round).join(",")})`;
+const vcol = (v, s) => str(mixA(rgb(C.s3), rgb(v >= 0 ? C.hi : C.lo), Math.abs(v) / s));
+const capF = "600 12px " + C.font, smF = "11px " + C.font, monoF = "11px " + C.mono, itF = "italic 12px " + C.font;
+function t(g, s, x, y, { f = smF, c = C.ink2, a = "left" } = {}) { g.font = f; g.fillStyle = c; g.textAlign = a; g.textBaseline = "middle"; g.fillText(s, x, y); }
+function arrow(g, x1, y1, x2, y2, col = C.ink3) { g.strokeStyle = col; g.lineWidth = 1.2; g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke();
+  const a = Math.atan2(y2 - y1, x2 - x1); g.fillStyle = col; g.beginPath(); g.moveTo(x2, y2); g.lineTo(x2 - 6 * Math.cos(a - 0.4), y2 - 6 * Math.sin(a - 0.4)); g.lineTo(x2 - 6 * Math.cos(a + 0.4), y2 - 6 * Math.sin(a + 0.4)); g.fill(); g.lineWidth = 1; }
+const frame = (g, x, y, w, h, col = C.ink2, lw = 1.5) => { g.strokeStyle = col; g.lineWidth = lw; g.strokeRect(x - 1, y - 1, w + 1, h + 1); g.lineWidth = 1; };
+const mark = (g, x, y, w, h) => frame(g, x - 0.5, y - 0.5, w + 1, h + 1, C.hl, 2);
+const dash = (g, x, y, w, h) => { g.setLineDash([3, 3]); g.strokeStyle = C.a; g.lineWidth = 1.5; g.strokeRect(x - 2.5, y - 1.5, w + 4, h + 2); g.setLineDash([]); g.lineWidth = 1; };
+
+const st = M.stage("aspirin"), toks = st.tokens, L = st.L, X = st.run.X, H = 3, N = 4, QI = N - 1;
+const hd = st.run.heads[H], Wt = { Q: M.headWeights("q", H), K: M.headWeights("k", H), V: M.headWeights("v", H) }, R = { Q: hd.q, K: hd.k, V: hd.v };
+const xmax = Math.max(...X.flat().map(Math.abs)), wmax = Math.max(...Object.values(Wt).flatMap((p) => p.WT.flat()).map(Math.abs));
+const omax = Math.max(...Object.values(R).flatMap((A) => A.flat()).map(Math.abs));
+const NAME = { Q: "q", K: "k", V: "v" };
+
+const W = 740, lab = 76, xx = 12 + lab + 8, xc = 3, wc = 9, rh = 14, x1 = xx + 48 * xc + 24, gap = 34;
+const ox = (k) => x1 + k * (12 * wc + gap), wTop = 64, oTop = wTop + 48 * xc + 44, s2 = oTop + L * rh + 50;
+const ch = 4, fy = s2 + 34, fh = 48 * ch, mid = fy + fh / 2, cx = xx, wx = cx + 40, px = wx + 12 * wc + 44, qx = px + 14 + 116, H_ = fy + fh + 40;
+const KEYS = ["Q", "K", "V"];
+
+let sel = "Q", mode = "cell", ptr = null;
+const cv = document.getElementById("cv"), dpr = devicePixelRatio || 1;
+cv.width = W * dpr; cv.height = H_ * dpr; cv.style.width = W + "px"; cv.style.height = H_ + "px";
+const g = cv.getContext("2d"); g.scale(dpr, dpr);
+
+/* what the pointer is over: a result cell, a W column, an X row */
+function hit(p) {
+  if (!p) return null;
+  for (let k = 0; k < 3; k++) {
+    const x0 = ox(k);
+    if (p.x >= x0 && p.x < x0 + 12 * wc) {
+      const m = Math.floor((p.x - x0) / wc);
+      if (p.y >= wTop && p.y < wTop + 48 * xc) return { where: "W", key: KEYS[k], m };
+      if (p.y >= oTop && p.y < oTop + L * rh) return { where: "R", key: KEYS[k], m, i: Math.floor((p.y - oTop) / rh) };
+    }
+  }
+  if (p.x >= 12 && p.x < xx + 48 * xc && p.y >= oTop && p.y < oTop + L * rh) return { where: "X", i: Math.floor((p.y - oTop) / rh) };
+  return null;
+}
+/* the number section 2 takes apart, and what section 1 outlines */
+function inspect() {
+  const base = { key: sel, i: QI, m: 11, rowAll: false, colAll: false, hovered: false };
+  const h = mode === "none" ? null : hit(ptr);
+  if (!h) return base;
+  if (mode === "cell" && h.where === "R" && h.i < N) return { key: h.key, i: h.i, m: h.m, rowAll: false, colAll: false, hovered: true };
+  if (mode === "column" && (h.where === "W" || h.where === "R")) return { key: h.key, i: QI, m: h.m, rowAll: false, colAll: true, hovered: true };
+  if (mode === "row" && (h.where === "X" || h.where === "R") && h.i < N) return { key: h.key ?? sel, i: h.i, m: 11, rowAll: true, colAll: false, hovered: true };
+  return base;
+}
+
+function draw() {
+  const ins = inspect();
+  g.clearRect(0, 0, W, H_);
+  /* section 1 */
+  t(g, "1 · Projections", 12, 16, { f: capF, c: C.ink1 }); t(g, "Q = X W_Qᵀ + b,  K = X W_Kᵀ + b,  V = X W_Vᵀ + b", 120, 16, { f: itF, c: C.ink1 });
+  t(g, `X  [${L} × 48]`, xx, oTop - 30, { f: capF, c: C.ink1 }); t(g, "a row per token, its x̃", xx, oTop - 15);
+  toks.forEach((s, i) => t(g, s, xx - 7, oTop + i * rh + rh / 2, { f: monoF, c: i === ins.i ? C.a : C.ink2, a: "right" }));
+  X.forEach((row, i) => row.forEach((v, d) => { g.fillStyle = vcol(v, xmax); g.fillRect(xx + d * xc, oTop + i * rh, xc, rh - 1); }));
+  frame(g, xx, oTop, 48 * xc, L * rh);
+  dash(g, xx, oTop + ins.i * rh, 48 * xc, rh);
+  KEYS.forEach((key, k) => {
+    const x0 = ox(k), cw = 12 * wc, chosen = key === ins.key;
+    t(g, `W_${key}ᵀ`, x0 + cw / 2, 40, { f: capF, c: C.ink1, a: "center" }); t(g, "[48 × 12]", x0 + cw / 2, 54, { a: "center" });
+    Wt[key].WT.forEach((row, i) => row.forEach((v, d) => { g.fillStyle = vcol(v, wmax); g.fillRect(x0 + d * wc, wTop + i * xc, wc - 1, xc); }));
+    frame(g, x0, wTop, cw, 48 * xc, chosen ? C.ink1 : C.ink3, chosen ? 2 : 1);
+    for (let i = 0; i < L; i++) for (let d = 0; d < 12; d++) { g.fillStyle = i < N ? vcol(R[key][i][d], omax) : C.s2; g.fillRect(x0 + d * wc, oTop + i * rh, wc - 1, rh - 1); }
+    frame(g, x0, oTop, cw, L * rh, chosen ? C.ink1 : C.ink3, chosen ? 2 : 1);
+    if (!ins.rowAll || true) dash(g, x0, oTop + ins.i * rh, cw, rh);
+    t(g, `${key}  [${L} × 12]`, x0 + cw / 2, oTop + L * rh + 14, { c: chosen ? C.ink1 : C.ink2, a: "center", f: chosen ? capF : smF });
+    if (chosen) {
+      mark(g, x0 + ins.m * wc, wTop, wc, 48 * xc);
+      if (ins.colAll) mark(g, x0 + ins.m * wc, oTop, wc, N * rh);
+      else mark(g, x0 + ins.m * wc, oTop + ins.i * rh, wc, rh);
+    }
+  });
+  /* section 2 */
+  const key = ins.key, n = NAME[key], m = ins.m, i = ins.i, x = X[i], col = Wt[key].WT.map((r) => r[m]), prod = x.map((v, k) => v * col[k]);
+  const pmax = Math.max(...prod.map(Math.abs)), val = R[key][i][m];
+  t(g, `2 · One number of ${n}ᵢ`, 12, s2, { f: capF, c: C.ink1 }); t(g, `${n}ₘ = Σₖ x̃ₖ Wₖₘ + bₘ`, 165, s2, { f: itF, c: C.ink1 });
+  t(g, "x̃ᵢ", cx + 7, fy - 12, { f: capF, c: C.ink1, a: "center" });
+  t(g, toks[i], cx - 7, mid, { f: monoF, c: C.a, a: "right" });
+  x.forEach((v, k) => { g.fillStyle = vcol(v, xmax); g.fillRect(cx, fy + k * ch, 14, ch - 1); }); frame(g, cx, fy, 14, fh, C.a);
+  t(g, "×", cx + 27, mid, { f: capF, c: C.ink3, a: "center" });
+  t(g, `W_${key}ᵀ`, wx + 6 * wc, fy - 12, { f: capF, c: C.ink1, a: "center" });
+  Wt[key].WT.forEach((row, k) => row.forEach((v, d) => { g.fillStyle = vcol(v, wmax); g.fillRect(wx + d * wc, fy + k * ch, wc - 1, ch - 1); }));
+  frame(g, wx, fy, 12 * wc, fh); mark(g, wx + m * wc, fy, wc, fh);
+  t(g, `m = ${m + 1}`, wx + m * wc + wc / 2, fy + fh + 14, { a: "center" });
+  arrow(g, wx + 12 * wc + 8, mid, px - 8, mid);
+  t(g, "x̃ₖ Wₖₘ", px + 7, fy - 12, { f: capF, c: C.ink1, a: "center" });
+  prod.forEach((v, k) => { g.fillStyle = vcol(v, pmax); g.fillRect(px, fy + k * ch, 14, ch - 1); }); frame(g, px, fy, 14, fh);
+  arrow(g, px + 22, mid, qx - 8, mid);
+  t(g, `Σ + b = ${val.toFixed(2)}`, (px + 22 + qx - 8) / 2, mid - 10, { f: monoF, c: C.ink1, a: "center" });
+  t(g, `${n}ᵢ`, qx + 6 * wc, mid - 24, { f: capF, c: C.ink1, a: "center" });
+  R[key][i].forEach((v, d) => { g.fillStyle = vcol(v, omax); g.fillRect(qx + d * wc, mid - 9, wc - 1, 18); }); frame(g, qx, mid - 9, 12 * wc, 18); mark(g, qx + m * wc, mid - 9, wc, 18);
+  document.getElementById("read").textContent = ins.hovered ? `inspecting ${n} of "${toks[i]}", number ${m + 1}` : `the press's own: ${NAME[sel]} of "${toks[QI]}", number 12`;
+  cv.style.cursor = (() => { const h = hit(ptr); return h && (h.where === "W" || h.where === "R") ? "pointer" : "default"; })();
+}
+const pos = (e) => { const r = cv.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
+cv.addEventListener("pointermove", (e) => { ptr = pos(e); draw(); });
+cv.addEventListener("pointerleave", () => { ptr = null; draw(); });
+cv.addEventListener("click", (e) => { const h = hit(pos(e)); if (h && h.key) { sel = h.key; syncSeg(); draw(); } });
+function syncSeg() {
+  document.querySelectorAll("#sel button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.v === sel));
+  document.querySelectorAll("#mode button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.v === mode));
+}
+document.querySelectorAll("#sel button").forEach((b) => (b.onclick = () => { sel = b.dataset.v; syncSeg(); draw(); }));
+document.querySelectorAll("#mode button").forEach((b) => (b.onclick = () => { mode = b.dataset.v; syncSeg(); draw(); }));
+syncSeg(); draw();
+</script>
+</body>
+</html>
