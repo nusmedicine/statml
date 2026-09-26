@@ -9463,8 +9463,9 @@ can build, 95% set = c within 1.92 log-likelihood of the best):
   0.58–1.00 at 31 reads, 0.79–1.00 at 88, 0.93–1.00 at 500.
 - Three call rules, right / wrong / cannot tell (%), told both at 88 reads:
   whole plausible set ≥ 0.9 34 / 0 / 66; set reaches 1 53 / 7 / 40; best c ≥
-  0.9 83 / 17 / 0. The first is never wrong told both at any depth (500
-  reads: 64 / 0 / 36). The shipped call was 80.6 / 0.0 / 19.4 because it
+  0.9 83 / 17 / 0. The first is wrong in 0.2% or fewer told both at every
+  depth (0.0 / 0.1 / 0.1 / 0.2% at 31 / 88 / 161 / 500; the mock's table
+  rounds these to 0; 500 reads: 64 / 0 / 36). The shipped call was 80.6 / 0.0 / 19.4 because it
   carried no read noise.
 
 **Mocked — `_lab/tumor-heterogeneity-order-mock.html` (456c7c2).** His four
@@ -9486,6 +9487,44 @@ picks, one `AskUserQuestion`, all four recommendations:
    the true c as a tick.
 4. **The call: the whole plausible set ≥ 0.9** is Clonal, all below is
    Subclonal, else Cannot tell.
+
+Then the stage around the picture, mock §8 (89d2c42), two more picks, both
+recommendations: **L2** — page 3 keeps page 1's cells on top, then the reads,
+then the curves, so the true c is a count of the cells above its tick; the
+sample and sequencing controls are page 1's, shared, and *Given* is page 3's
+own. And page 3's view is **One mutation · All mutations**, so *Many mutations*
+is not a page and a view at once.
+
+**Built 2026-09-26, local, not pushed.** Four pages (`page=one|many|ccf|clonal`,
+`view=one|all` new link words). Page 1: purity defaults to **1.00** (cell 17's
+simple case; it reads 0.5 on opening), the CCF control is *Tumor cells
+carrying it*, cell 17's three readings are labelled above the VAF bar on two
+rows, the card is `VAF = mutated copies / all copies` with the sample's shares
+in it, and the tiles are Reads carrying it · VAF · Tumor cells carrying it.
+Page 2 reads VAF only: its card is MATH alone and it has no axis or *Given*.
+Page 3 One mutation: page 1's cells and reads at the same place, then
+`likelihoodOf` (model.js) drawn as one curve per m with each m's 95% band
+shaded, 0.9 dashed in ink and the true c as a `--c-reference` tick; Step and
+Play run the reads there too, so the curves narrow as they come. Its card is
+cell 25's three steps: the model at what the analysis is given (c and m left
+as letters), c solved from the READING for each m (which can pass 1), and
+L(c, m) = Pr(k | n, VAF(c, m)) with this reading's k and n. The call reads
+the plausible set. Page 3 All mutations is page 2's histogram with the axis
+(default now *Cancer cell fraction*) and its *Given*, eased as before.
+
+**One consequence of shared parameters, for him:** purity is one parameter
+across pages 1–3, so `?page=ccf` opens at purity 1.00, where *Given: Nothing*
+and *Purity* agree; a lesson link to page 3 wants `&purity=0.70`.
+
+**Verified:** `tumor-heterogeneity-verify.mjs` 220 checks (section 2's page-1
+height block replaced by the likelihood's: told both wrong 0.0% at 88 reads
+over 2,880 draws, truth held 96.8%; told nothing wrong 14.9%, truth held 51.0%
+at 88 and 26.6% at 500; the 2 + 0 tie as two separate intervals; the three
+reading labels on separate rows); `check` and `test` green;
+`text-overlap-sweep.html?slug=tumor-heterogeneity&w=900` 17 states, no
+overlap and nothing off the 534px canvas. **Fingerprint states not re-recorded**
+— every page-1 state and the page-2 axis states have moved, and baselining
+waits for his review.
 
 ### Slot 68 · `clonal-architecture` — cuttable, or 67's last page
 

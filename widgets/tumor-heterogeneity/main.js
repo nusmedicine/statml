@@ -2,8 +2,9 @@
    Widget 67 · Tumor Heterogeneity — PHM5003 07 / 01-2 cells 17–25.
 
    `model.js` carries the stage, the arithmetic and the copy, and the decisions
-   taken while building; this file draws them. Three pages, from Kenneth's
-   picks of 2026-09-16: One mutation · Many mutations · Clonal architecture.
+   taken while building; this file draws them. Four pages in the notebook's
+   order, from Kenneth's picks of 2026-09-16 and 2026-09-26: One mutation ·
+   Many mutations · Cancer cell fraction · Clonal architecture.
 
    The drawing rules this file keeps to:
 
@@ -90,6 +91,17 @@ const CCF_MATH = `<math><mrow>${mi("c")}${mo("=")}${mi("VAF")}${mo("&#xD7;")}<mf
   + `<mrow>${mi("p")}${mo("&#x2062;")}${mi("m")}</mrow></mfrac></mrow></math>`;
 const CCF_PLAIN = "c = VAF × (p Cₜ + 2(1 − p)) / (p m)";
 
+/* Page 1's line, in words: cell 17 names no letter for the fraction. */
+const SAMPLE_MATH = `<math><mrow>${mi("VAF")}${mo("=")}<mfrac><mtext>mutated copies</mtext>`
+  + `<mtext>all copies</mtext></mfrac></mrow></math>`;
+const SAMPLE_PLAIN = "VAF = mutated copies / all copies";
+
+/* L(c, m) = Pr(k | n, VAF(c, m)), 01-2 cell 25 §3, for one mutation. */
+const LIK_MATH = `<math><mrow>${mi("L")}${mo("(")}${mi("c")}${mo(",")}${mi("m")}${mo(")")}${mo("=")}`
+  + `${mi("Pr")}${mo("(")}${mi("k")}${mo("|")}${mi("n")}${mo(",")}${mi("VAF")}${mo("(")}${mi("c")}`
+  + `${mo(",")}${mi("m")}${mo(")")}${mo(")")}</mrow></math>`;
+const LIK_PLAIN = "L(c, m) = Pr(k | n, VAF(c, m))";
+
 /* The definition, 01-2 cell 17 — with this reading's own counts in it once a
    read has landed. */
 const readingMath = (alt, k, vaf) => `<math><mrow>${mi("VAF")}${mo("=")}`
@@ -154,20 +166,23 @@ function cardForPage(params, state, anim) {
       note: S.noteTree,
     };
   }
-  if (params.page === "many") {
+  if (M.histPage(params)) {
     const cfg = state.manyCfg;
-    const factor = M.ccfFrom(1, cfg.assumed, 1, 2);
     const vafs = state.many.muts.map((m) => m.vaf);
     const mid = M.median(vafs);
     const mad = M.median(vafs.map((v) => Math.abs(v - mid)));
+    const mathRow = [S.labelMath, MATHML ? MATH_SCORE_MATH : MATH_SCORE_PLAIN,
+      numbers(`= 100 × 1.4826 × ${M.n3(mad)} / ${M.n3(mid)} = ${state.many.math.toFixed(1)}`)];
+    /* Page 2 is cells 21–23 and reads VAF only (2026-09-26), so its card is
+       MATH alone; the fraction's line is page 3's, where the axis is. */
+    if (params.page === "many") return { rows: [mathRow], note: S.noteMany };
+    const factor = M.ccfFrom(1, cfg.assumed, 1, 2);
     return {
       rows: [
         [S.labelFraction, MATHML ? CCF_MATH : CCF_PLAIN,
           numbers(`= VAF × ${M.n2(factor)}   at purity ${M.n2(cfg.assumed)}, one copy of two`)],
-        [S.labelMath, MATHML ? MATH_SCORE_MATH : MATH_SCORE_PLAIN,
-          numbers(`= 100 × 1.4826 × ${M.n3(mad)} / ${M.n3(mid)} = ${state.many.math.toFixed(1)}`)],
       ],
-      note: S.noteMany,
+      note: S.noteAll,
     };
   }
   const cfg = state.cfg;
@@ -178,43 +193,47 @@ function cardForPage(params, state, anim) {
     ? readingMath(alt, k, M.n3(vaf))
     : `${READING_PLAIN}${k > 0 ? ` = ${alt} / ${k} = ${M.n3(vaf)}` : ""}`;
   const p = cfg.purity;
-  /* The general form and this sample's own numbers share a row, so the card
-     stays three lines: two display equations stacked took 265px on widget 64
-     and pushed the figure down. */
-  const rows = [
-    [S.labelReading, reading],
-    [S.labelModel, MATHML ? MODEL_MATH : MODEL_PLAIN, worked(
-      `${M.n2(p)} × ${M.n2(cfg.ccf)} × ${cfg.copies}`,
-      `${M.n2(p)} × ${cfg.state.total} + 2 × ${M.n2(1 - p)}`,
-      M.n3(cfg.expected),
-    )],
-  ];
-  /* THE CARD SOLVES WHAT THE TILE REPORTS (Kenneth, 2026-09-16: "line the card
-     up with the tile"). It solved ONE scenario from the READING, so at "Nothing"
-     it printed 0.528 × 2.00 = 1.06 beside a tile reading 0.50–1.00 — two correct
-     numbers that read as a disagreement, one of them a fraction past 1. It now
-     inverts the model's own expected VAF, the row directly above, at what the
-     analysis was given, for every multiplicity that fits: the round trip from
-     the sample to the reading and back, with the scenarios it leaves.
-
-     Every scenario at one level shares its purity and its copy total — they
-     differ only in m and in which chromosome — so the factor is printed once
-     and divided by each m in turn. Rows that differ only by chromosome carry
-     the same m and the same fraction, so they are listed once. */
-  const fit = M.scenariosFor(cfg.expected, cfg, params.knows);
-  const factor = M.ccfFrom(1, fit.purity, 1, fit.rows[0].state.total);
-  const byM = [...new Map(fit.fits.map((r) => [r.m, r])).values()].sort((a, b) => a.m - b.m);
-  const solved = byM.map((r) => `${M.n2(r.c)} at m = ${r.m}`).join(", ");
-  rows.push([S.labelFraction, MATHML ? CCF_MATH : CCF_PLAIN,
-    k > 0
-      ? numbers(byM.length
-        ? `= ${M.n3(cfg.expected)} × ${M.n2(factor)} ÷ m = ${solved}`
-        : `= ${M.n3(cfg.expected)} × ${M.n2(factor)} ÷ m, past 1 at every m`)
-      : numbers(`= VAF × ${M.n2(factor)} ÷ m`)]);
-  /* The level's own line follows the letters, so the card says what the panel
-     below it is solving with. `renderCard` keys its memo on the note, so this
-     rebuilds the card when the level changes and nothing else does. */
-  return { rows, note: `${S.noteOne} ${S.levelNote[M.knowsOf(params.knows).key]}` };
+  if (params.page === "one") {
+    /* NO LETTER FOR THE FRACTION ON PAGE 1 (Kenneth, 2026-09-26: "don't put
+       CCF here"). Cell 17 states the readings in words and numbers; the
+       letters arrive with cell 25 on page 3. So the sample's line is copies
+       counted in words, with this sample's shares in it. */
+    return {
+      rows: [
+        [S.labelReading, reading],
+        [S.labelSampleLine, MATHML ? SAMPLE_MATH : SAMPLE_PLAIN, worked(
+          `${M.n2(p)} × ${M.n2(cfg.ccf)} × ${cfg.copies}`,
+          `${M.n2(p)} × ${cfg.state.total} + ${M.n2(1 - p)} × 2`,
+          M.n3(cfg.expected),
+        )],
+      ],
+      note: S.noteOne,
+    };
+  }
+  /* PAGE 3, CELL 25 IN ITS OWN THREE STEPS: the model at what the analysis is
+     given, c solved from the reading for each m (§2), and the likelihood (§3).
+     The model's line prints the given purity and copies with c and m left as
+     letters, because those two are what the page infers. §2 is solved from
+     the READING, so it can pass 1 — the shipped page solved it from the
+     expected VAF to avoid that, which put a number the analysis does not have
+     on the card; the likelihood below it is what keeps c inside 0 to 1. */
+  const given = M.givenOf(cfg, params.knows);
+  const per = M.vafExpected(given.p, 1, 1, given.C);
+  const factor = M.ccfFrom(1, given.p, 1, given.C);
+  const lik = k > 0 ? M.likelihoodOf(alt, k, cfg, params.knows) : null;
+  const solved = given.ms.map((m) => `${M.n2((vaf * factor) / m)} at m = ${m}`).join(", ");
+  const allowed = lik ? lik.allowed.map((cv) => `${M.n2(cv.interval.lo)}–${M.n2(cv.interval.hi)} at m = ${cv.m}`).join(", ") : "";
+  return {
+    rows: [
+      [S.labelModel, MATHML ? MODEL_MATH : MODEL_PLAIN,
+        numbers(`= ${M.n2(given.p)} c m / (${M.n2(given.p)} × ${given.C} + 2 × ${M.n2(1 - given.p)}) = ${M.n3(per)} × c × m`)],
+      [S.labelFraction, MATHML ? CCF_MATH : CCF_PLAIN,
+        numbers(k > 0 ? `= ${M.n3(vaf)} × ${M.n2(factor)} ÷ m = ${solved}` : `= VAF × ${M.n2(factor)} ÷ m`)],
+      [S.labelLikelihood, MATHML ? LIK_MATH : LIK_PLAIN,
+        numbers(lik ? `k = ${alt}, n = ${k}: c ${allowed}` : "k and n come from the reads")],
+    ],
+    note: `${S.noteCcf} ${S.levelNote[given.known]}`,
+  };
 }
 
 const capFont = (colors) => `600 ${colors.fsSm} ${colors.font}`;
@@ -368,11 +387,11 @@ function drawVafBar(ctx, colors, rect, vaf, expected, { scale = true } = {}) {
 
 /* ---- page 1 -------------------------------------------------------------- */
 
-function drawOne(ctx, colors, L, params, state, anim) {
+/** The sample's cells and its reads, drawn the same on pages 1 and 3 (his pick
+    L2, 2026-09-26), so switching pages changes only what is under the reads. */
+function drawSampleAndReads(ctx, colors, L, state, anim) {
   const cfg = state.cfg;
   const k = Math.min(anim?.k ?? 0, state.one.depth);
-  const vaf = M.vafAt(state.one, k);
-
   text(ctx, M.STRINGS.cellsCaption, L.cells.x, L.cells.y - 8, { font: capFont(colors), fill: colors.ink1 });
   const counts = drawCells(ctx, colors, L.cells, cfg);
   const cellNote = `${counts.tumour} of ${M.CELLS} cells are tumor cells, ${counts.carrying} of them carrying the mutation`;
@@ -387,145 +406,132 @@ function drawOne(ctx, colors, L, params, state, anim) {
     ? { from: Math.max(0, k - M.batchFor(state.one.depth)), t: 0.25 + 0.75 * M.easeOut(anim.beat ?? 0) }
     : null;
   drawPileup(ctx, colors, L.reads, state.one, k, fade);
+  return k;
+}
+
+/* CELL 17'S THREE READINGS, ON THE SCALE THEY ARE READINGS OF — his pick A of
+   2026-09-26 (`_lab/tumor-heterogeneity-order-mock.html` § 4). The lesson
+   reads a VAF as ≈ 1, ≈ 0.5 or < 0.5 under purity 1, no copy change and the
+   mutation on one copy; the marks put those words where each one means, and
+   the sample's own expected VAF (the red line) moves off them as copy number
+   and purity change — at purity 0.70 it sits inside "< 0.5" while every tumor
+   cell above carries the mutation, which is cell 17's "other considerations"
+   in one picture. Drawn from the first frame: they are the lesson's scale,
+   not a reading of this sample, so there is nothing for them to give away. */
+function drawReadings(ctx, colors, rect) {
+  const at = (v) => rect.x + rect.w * v;
+  const low = rect.y + rect.h - 8;
+  const high = rect.y + 10;
+  ctx.save();
+  ctx.strokeStyle = colors.ink3;
+  ctx.lineWidth = 1;
+  /* < 0.5: a bracket from 0 to just short of 0.5, on the lower row */
+  ctx.beginPath();
+  ctx.moveTo(at(0) + 0.5, low - 5); ctx.lineTo(at(0) + 0.5, low); ctx.lineTo(at(0.49), low); ctx.lineTo(at(0.49), low - 5);
+  ctx.stroke();
+  /* ≈ 0.5 and ≈ 1: a dotted rule down to the bar, each label on its own row */
+  ctx.setLineDash([2, 2]);
+  for (const [v, y] of [[0.5, high], [1, low]]) {
+    const x = v === 1 ? at(1) - 0.5 : at(v);
+    ctx.beginPath(); ctx.moveTo(x, y - 10); ctx.lineTo(x, rect.y + rect.h + 6); ctx.stroke();
+  }
+  ctx.restore();
+  const f = noteFont(colors);
+  text(ctx, M.STRINGS.readingLow, at(0.245), low - 4, { font: f, fill: colors.ink2, align: "center" });
+  text(ctx, M.STRINGS.readingHalf, at(0.5) + 5, high, { font: f, fill: colors.ink2 });
+  text(ctx, M.STRINGS.readingOne, at(1) - 5, low - 4, { font: f, fill: colors.ink2, align: "right" });
+}
+
+function drawOne(ctx, colors, L, params, state, anim) {
+  const cfg = state.cfg;
+  const k = drawSampleAndReads(ctx, colors, L, state, anim);
+  const vaf = M.vafAt(state.one, k);
+  drawReadings(ctx, colors, L.marks);
   drawVafBar(ctx, colors, L.bar, vaf, cfg.expected);
   const readY = L.bar.y + L.bar.h + 32;
   text(ctx, k > 0 ? `VAF ${M.n3(vaf)}` : "VAF —", L.bar.x, readY, {
     font: `${colors.fsSm} ${colors.mono}`, fill: colors.ink1,
   });
-  text(ctx, `expected ${M.n3(cfg.expected)}`, L.bar.x + L.bar.w, readY, {
+  text(ctx, `the sample gives ${M.n3(cfg.expected)}`, L.bar.x + L.bar.w, readY, {
     font: `${colors.fsSm} ${colors.mono}`, fill: colors.theory, align: "right",
   });
-
-  /* DECISION 4: the other arrangements that read what the reader has read.
-     Nothing is drawn until a read has landed — the rows are a statement about
-     a reading, and there is no reading yet (2.4). Each row is the sample's
-     ALLELES rather than its cells: at a row's height the cells are 5px across,
-     and the alleles are what the arithmetic divides by anyway. */
-  if (!(k > 0)) {
-    text(ctx, M.STRINGS.scenariosCaption, L.rows.x, L.rows.y - 12, { font: capFont(colors), fill: colors.ink1 });
-    text(ctx, "—", L.rows.x, L.rows.y + 14, { font: noteFont(colors), fill: colors.ink3 });
-    return;
-  }
-  /* WHAT THE ANALYSIS CONCLUDES, at the level of knowledge the reader has given
-     it (model decision 4). One row per multiplicity it can consider, each with
-     the cell it would be and the cancer cell fraction it implies; a fraction
-     past 1 is ruled out. The reader's own cell is marked, so a level that
-     leaves it out says so on its face — which is cell 24's whole argument.
-
-     It answers the EXPECTED VAF, not the reading: which scenarios could have
-     produced this tumour does not depend on which reads happened to land, and
-     following the reading had the set changing 55 times over 500 reads. The
-     rows still wait for a read, so the page does not open on its own answer. */
-  const fit = M.scenariosFor(cfg.expected, cfg, params.knows);
-  const assuming = fit.known === "nothing" ? M.STRINGS.assumingPure
-    : fit.known === "purity" ? M.STRINGS.assumingDiploid(M.n2(cfg.purity))
-      : M.STRINGS.givenBoth(M.n2(cfg.purity), cfg.state.label);
-  text(ctx, `${M.STRINGS.scenariosCaption} — ${assuming}`, L.rows.x, L.rows.y - 12,
-    { font: capFont(colors), fill: colors.ink1 });
-  /* ONLY WHAT FITS IS DRAWN. The caption promises scenarios that fit, and the
-     panel used to list the ones that do not as well — each with a fraction past
-     1 and a line underneath to explain what that meant, which is three hops
-     from "1.18" to "more than every tumor cell" (Kenneth, 2026-09-16: "still
-     confusing … information overload"). What is left is the answer and, when
-     the reader's own sample is not among it, one line naming the assumption
-     that excludes it — by name, not as "the assumption". */
-  const hosts = M.hostsOf(fit.fits[0]?.state ?? cfg.state).length;
-  fit.fits.forEach((row, i) => {
-    const y = L.rows.y + i * L.rowH;
-    /* THE READER'S OWN CELL IS A RULE DOWN THE ROW, not a phrase competing with
-       the note for width: `--c-reference` is the token for the truth where one
-       exists, and page 3 already marks the reader's choice by enclosure. */
-    if (row.truth) {
-      ctx.save();
-      ctx.fillStyle = wash(colors.reference, 0.09);
-      ctx.fillRect(L.rows.x - 6, y - 3, L.rows.w + 6, L.cellR * 2 + 6);
-      ctx.fillStyle = colors.reference;
-      ctx.fillRect(L.rows.x - 6, y - 3, 3, L.cellR * 2 + 6);
-      ctx.restore();
-    }
-    /* The cell this scenario would be: the analysis's own state and count, so
-       an assumed diploid draws a plain heterozygote or a lost copy and the
-       allele-specific level draws the reader's own state on either chromosome. */
-    drawScenarioCell(ctx, colors, L.rows.x + L.cellR, y + L.cellR, L.cellR, row);
-    const barX = L.rows.x + L.cellR * 2 + 10;
-    const barW = L.rows.w * 0.22;
-    ctx.fillStyle = colors.surface3;
-    ctx.fillRect(barX, y + L.cellR - 7, barW, 14);
-    ctx.fillStyle = wash(colors.groupA, 0.85);
-    ctx.fillRect(barX, y + L.cellR - 7, barW * Math.min(1, row.c), 14);
-    ctx.strokeStyle = colors.grid;
-    ctx.lineWidth = 1;
-    ctx.strokeRect(barX + 0.5, y + L.cellR - 6.5, barW - 1, 13);
-    /* WHICH CHROMOSOME, but only where there is a choice to name. Two rows that
-       differ by host are the same count and the same fraction, so without this
-       they read as the figure repeating itself. */
-    const which = hosts > 1
-      ? `${row.m} of ${row.state.total} on the ${hostCopies(row)}-copy chromosome`
-      : `${row.m} of ${row.state.total} copies`;
-    text(ctx, `${which} — ${M.pctText(row.c)} of tumor cells carry it`,
-      barX + barW + 10, y + L.cellR + 4, { font: noteFont(colors), fill: colors.ink2 });
-  });
-
-  /* One line under the panel, and only when there is something to say: which
-     assumption leaves the reader's own sample out. */
-  const wrong = M.assumptionsWrong(cfg, params.knows)
-    .map((w) => (w === "pure" ? M.STRINGS.assumedPure : M.STRINGS.assumedDiploid));
-  const named = wrong.length === 2 ? `${wrong[0]} and ${wrong[1]}` : wrong[0];
-  /* "purity 1 was assumed", but "two copies were" — the verb follows the words */
-  const verb = named === M.STRINGS.assumedPure ? "was" : "were";
-  const below = L.rows.y + fit.fits.length * L.rowH + 4;
-  /* `scenarioNote` decides, so the height that reserved the line and the draw
-     that paints it cannot disagree. */
-  const note = M.scenarioNote(params);
-  if (note === "nothing") {
-    text(ctx, M.STRINGS.nothingFits(named, verb), L.rows.x, below,
-      { font: noteFont(colors), fill: colors.extreme });
-  } else if (note === "notHere") {
-    text(ctx, M.STRINGS.notHere(M.pctText(cfg.ccf), named, verb), L.rows.x, below,
-      { font: noteFont(colors), fill: colors.extreme });
-  }
 }
-/** How many copies the chromosome this scenario's mutation arose on has. */
-const hostCopies = (row) => (row.host === "major" ? row.state.major : row.state.minor);
+
+/* ---- page 3, one mutation: cell 25 §3 ------------------------------------ */
 
 /**
- * One scenario's cell: the copies of the chromosome the mutation arose on drawn
- * solid and the other's dashed, his pick D, with the mutation on `m` of the
- * solid ones. The layout never moves between hosts — only which block is solid
- * — so the two rows that differ by host read as one arrangement with the
- * mutation on the other chromosome.
+ * One curve per multiplicity the analysis considers, relative likelihood over
+ * c in (0, 1], the band each allows shaded under it, the threshold dashed and
+ * the true fraction as a tick (his picks B and L2, 2026-09-26). The curves
+ * narrow as reads arrive, which is Step and Play doing the inference.
+ *
+ * m takes the group colours in order — parallel hypotheses about one reading,
+ * the role `--c-group-c` was added for (CLAUDE.md, 2026-09-10).
  */
-function drawScenarioCell(ctx, colors, cx, cy, r, row) {
-  ctx.beginPath();
-  ctx.arc(cx, cy, r, 0, Math.PI * 2);
-  ctx.fillStyle = wash(colors.groupA, 0.16);
-  ctx.fill();
-  ctx.strokeStyle = wash(colors.groupA, 0.75);
+function drawCcfOne(ctx, colors, L, params, state, anim) {
+  const cfg = state.cfg;
+  const k = drawSampleAndReads(ctx, colors, L, state, anim);
+  const R = L.lik;
+  const given = M.givenOf(cfg, params.knows);
+  const what = given.known === "nothing" ? M.STRINGS.assumingPure
+    : given.known === "purity" ? M.STRINGS.assumingDiploid(M.n2(cfg.purity))
+      : M.STRINGS.givenBoth(M.n2(cfg.purity), cfg.state.label);
+  text(ctx, `${M.STRINGS.likCaption} — ${what}`, R.x - 8, R.y - 14, { font: capFont(colors), fill: colors.ink1 });
+
+  const plot = makePlot({ ctx, colors, rect: R, xDomain: [0, 1], yDomain: [0, 1.08] });
+  const alt = M.altAt(state.one, k);
+  const lik = k > 0 ? M.likelihoodOf(alt, k, cfg, params.knows) : null;
+  const cols = [colors.groupA, colors.groupB, colors.groupC];
+
+  if (lik) {
+    lik.allowed.forEach((cv) => {
+      ctx.fillStyle = wash(cols[cv.m - 1], 0.14);
+      const x0 = plot.sx(cv.interval.lo - 0.0025);
+      ctx.fillRect(x0, R.y, plot.sx(cv.interval.hi) - x0, R.h);
+    });
+  }
+  /* the threshold, in ink: `--c-reference` is the truth's tick on this page */
+  ctx.save();
+  ctx.setLineDash([4, 3]);
+  ctx.strokeStyle = colors.ink3;
   ctx.lineWidth = 1;
-  ctx.stroke();
-  const { mark, lines } = M.cellMarks(r, row.state.total);
-  let placed = 0;
-  lines.forEach(({ dy, len }, c) => {
-    const inMajorBlock = c < row.state.major;
-    const own = row.host === "major" ? inMajorBlock : !inMajorBlock;
-    const oy = cy + dy;
-    ctx.save();
-    if (!own) ctx.setLineDash([3, 2]);
-    ctx.beginPath();
-    ctx.moveTo(cx - len / 2, oy);
-    ctx.lineTo(cx + len / 2, oy);
-    ctx.strokeStyle = colors.ink3;
-    ctx.lineWidth = own ? 1.6 : 1.2;
-    ctx.stroke();
-    ctx.restore();
-    if (own && placed < row.m) {
-      placed += 1;
+  ctx.beginPath(); ctx.moveTo(plot.sx(M.CUT), R.y); ctx.lineTo(plot.sx(M.CUT), R.y + R.h); ctx.stroke();
+  ctx.restore();
+
+  if (lik) {
+    lik.curves.forEach((cv, i) => {
       ctx.beginPath();
-      ctx.arc(cx, oy, mark, 0, Math.PI * 2);
-      ctx.fillStyle = colors.highlight;
-      ctx.fill();
-    }
-  });
+      cv.ys.forEach((y, j) => {
+        const X = plot.sx(M.LIK_GRID[j]);
+        const Y = plot.sy(Math.exp(y - lik.top));
+        if (j) ctx.lineTo(X, Y); else ctx.moveTo(X, Y);
+      });
+      ctx.strokeStyle = cols[cv.m - 1];
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      /* The label sits over the curve's peak; labels are stacked by m, so two
+         peaks at one place do not print on each other. */
+      const px = plot.sx(cv.cHat);
+      const py = plot.sy(Math.exp(cv.max - lik.top));
+      const right = px > R.x + R.w - 28;
+      text(ctx, `m = ${cv.m}`, right ? px - 4 : Math.max(R.x + 22, px), Math.max(R.y + 10 + 12 * i, py - 6), {
+        font: `600 ${colors.fsXs} ${colors.font}`, fill: cols[cv.m - 1], align: right ? "right" : "center",
+      });
+    });
+  } else {
+    text(ctx, M.STRINGS.likNoRead, R.x + R.w / 2, R.y + R.h / 2, { font: noteFont(colors), fill: colors.ink3, align: "center" });
+  }
+
+  /* The truth: the fraction of tumor cells carrying it, counted in the cells
+     above. Drawn from the first frame, as the cells are. */
+  const tx = plot.sx(cfg.ccf);
+  ctx.save();
+  ctx.strokeStyle = colors.reference;
+  ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.moveTo(tx, R.y + R.h - 9); ctx.lineTo(tx, R.y + R.h + 3); ctx.stroke();
+  ctx.restore();
+
+  plot.axisX({ ticks: [0, 0.25, 0.5, 0.75, M.CUT, 1], format: (v) => (v === M.CUT ? String(M.CUT) : M.n2(v)), label: M.STRINGS.likAxis });
 }
 
 /* ---- page 2 -------------------------------------------------------------- */
@@ -533,7 +539,8 @@ function drawScenarioCell(ctx, colors, cx, cy, r, row) {
 function drawMany(ctx, colors, L, params, state, anim) {
   /* The mix is where the ease has got to: 0 the reads as they came, 1 the
      fraction. At rest it is whichever axis the control names. */
-  const mix = anim?.mix ?? (params.axis === "ccf" ? 1 : 0);
+  /* Page 2 reads VAF only (2026-09-26); the axis and its ease are page 3's. */
+  const mix = params.page === "many" ? 0 : (anim?.mix ?? (params.axis === "ccf" ? 1 : 0));
   const axis = M.axisAt(state.many, state.manyCfg, M.easeOut(mix));
   const bins = M.HIST_BINS;
 
@@ -641,7 +648,7 @@ function drawMany(ctx, colors, L, params, state, anim) {
      DRAWN, so an interrupted morph carries on from the figure on screen. */
   carryMany = {
     page: params.page,
-    axis: params.axis,
+    axis: M.axisOf(params),
     assumed: params.assumed,
     seed: params.seed,
     clones: params.clones,
@@ -849,22 +856,41 @@ widgetApi = defineWidget({
       display: true,
     },
 
+    /* Page 3 reads one mutation or the whole tumour, his "One mutation · All
+       mutations" of 2026-09-26 — "All", so "Many mutations" is not a page and
+       a view at once. Display, as the page is. */
+    view: {
+      type: "segmented",
+      label: M.STRINGS.viewLabel,
+      detail: M.STRINGS.viewDetail,
+      options: M.VIEWS,
+      default: "one",
+      display: true,
+      when: { param: "page", equals: "ccf" },
+    },
+
     /* THREE GROUPS, his pick of 2026-09-16 over a measured/inferred split:
        the reader SETS purity, so calling it "measured" in the rail says two
        things at once — the truth of the sample, and separately what the
        analysis was told. Naming the truth, the sequencing and the analysis
        keeps those apart, and it is what makes "which are the free parameters"
-       answerable. Page 2 keeps its own heading, since it has no analysis
-       control and a section with no visible field renders a bare heading. */
-    truthSec: { type: "section", label: M.STRINGS.truthSection, when: { param: "page", equals: "one" } },
-    sampleSec: { type: "section", label: M.STRINGS.sampleSection, when: { param: "page", equals: "many" } },
+       answerable.
+
+       ONE SAMPLE FOR PAGES 1 AND 3 (his pick L2, 2026-09-26): the same
+       parameters, so page 1 builds the sample and page 3 infers it back, and
+       changing the purity on either changes both. The histograms keep their
+       own heading. */
+    truthSec: { type: "section", label: M.STRINGS.truthSection, when: { any: [{ param: "page", equals: "one" }, { all: [{ param: "page", equals: "ccf" }, { param: "view", equals: "one" }] }] } },
+    sampleSec: { type: "section", label: M.STRINGS.sampleSection, when: { any: [{ param: "page", equals: "many" }, { all: [{ param: "page", equals: "ccf" }, { param: "view", equals: "all" }] }] } },
+    /* 1.00 by default since 2026-09-26: cell 17's simple case is a pure
+       sample, and page 1 opens on it, reading 0.5. */
     purity: {
       type: "choice",
       label: M.STRINGS.purityLabel,
       detail: M.STRINGS.purityDetail,
       options: M.PURITY_OPTIONS,
-      default: "0.70",
-      when: { param: "page", oneOf: ["one", "many"] },
+      default: "1.00",
+      when: { param: "page", oneOf: ["one", "many", "ccf"] },
     },
     ccf: {
       type: "choice",
@@ -872,7 +898,7 @@ widgetApi = defineWidget({
       detail: M.STRINGS.ccfDetail,
       options: ["0.25", "0.50", "0.75", "1.00"],
       default: "1.00",
-      when: { param: "page", equals: "one" },
+      when: { any: [{ param: "page", equals: "one" }, { all: [{ param: "page", equals: "ccf" }, { param: "view", equals: "one" }] }] },
     },
     state: {
       type: "segmented",
@@ -881,7 +907,7 @@ widgetApi = defineWidget({
       detail: M.STRINGS.stateDetail,
       options: M.COPY_STATES.map((s) => ({ value: s.key, label: s.label })),
       default: "1+1",
-      when: { param: "page", equals: "one" },
+      when: { any: [{ param: "page", equals: "one" }, { all: [{ param: "page", equals: "ccf" }, { param: "view", equals: "one" }] }] },
     },
     /* The list is a function of the copy state — core's `optionsFrom` — because
        how many copies may carry the mutation is a property of the state: one
@@ -895,21 +921,27 @@ widgetApi = defineWidget({
       options: (v) => M.copyOptions(v.state),
       optionsFrom: "state",
       default: "1",
-      when: { all: [{ param: "page", equals: "one" }, { param: "state", oneOf: ["2+0", "2+1", "3+1"] }] },
+      when: {
+        all: [
+          { any: [{ param: "page", equals: "one" }, { all: [{ param: "page", equals: "ccf" }, { param: "view", equals: "one" }] }] },
+          { param: "state", oneOf: ["2+0", "2+1", "3+1"] },
+        ],
+      },
     },
-    seqSec: { type: "section", label: M.STRINGS.seqSection, when: { param: "page", equals: "one" } },
+    seqSec: { type: "section", label: M.STRINGS.seqSection, when: { any: [{ param: "page", equals: "one" }, { all: [{ param: "page", equals: "ccf" }, { param: "view", equals: "one" }] }] } },
     depth: {
       type: "choice",
       label: M.STRINGS.depthLabel,
       detail: M.STRINGS.depthDetail,
       options: M.DEPTH_OPTIONS,
       default: M.DEPTH_DEFAULT,
-      when: { param: "page", oneOf: ["one", "many"] },
+      when: { param: "page", oneOf: ["one", "many", "ccf"] },
     },
     /* Cell 24, "Refining Estimates (Optional)", as a control: what the analysis
        is told, and what it therefore has to assume. Display, because it changes
-       what is concluded from the reads and never the reads themselves. */
-    analysisSec: { type: "section", label: M.STRINGS.analysisSection, when: { param: "page", equals: "one" } },
+       what is concluded from the reads and never the reads themselves. Page 3's
+       since 2026-09-26; page 1 draws no analysis. */
+    analysisSec: { type: "section", label: M.STRINGS.analysisSection, when: { all: [{ param: "page", equals: "ccf" }, { param: "view", equals: "one" }] } },
     knows: {
       type: "segmented",
       style: "grid",
@@ -918,7 +950,7 @@ widgetApi = defineWidget({
       options: M.KNOWLEDGE.map((k) => ({ value: k.key, label: k.label, span: k.key === "both" })),
       default: "both",
       display: true,
-      when: { param: "page", equals: "one" },
+      when: { all: [{ param: "page", equals: "ccf" }, { param: "view", equals: "one" }] },
     },
     clones: {
       type: "segmented",
@@ -926,7 +958,7 @@ widgetApi = defineWidget({
       detail: M.STRINGS.clonesDetail,
       options: M.CLONE_SETS.map((c) => ({ value: c.key, label: c.label })),
       default: "two",
-      when: { param: "page", equals: "many" },
+      when: { any: [{ param: "page", equals: "many" }, { all: [{ param: "page", equals: "ccf" }, { param: "view", equals: "all" }] }] },
     },
     mutations: {
       type: "choice",
@@ -934,7 +966,7 @@ widgetApi = defineWidget({
       detail: M.STRINGS.mutationsDetail,
       options: M.MUTATION_OPTIONS,
       default: "300",
-      when: { param: "page", equals: "many" },
+      when: { any: [{ param: "page", equals: "many" }, { all: [{ param: "page", equals: "ccf" }, { param: "view", equals: "all" }] }] },
     },
 
     /* A section and its fields must agree about the drive row: a section marked
@@ -942,16 +974,20 @@ widgetApi = defineWidget({
        buttons and the fields above them (read in the browser, 2026-09-16).
        "How to read it" is not a withheld answer, so it stays in place; the
        seed and the momentary action belong below the row. */
-    lookSec: { type: "section", label: M.STRINGS.lookSection, when: { param: "page", equals: "many" } },
+    lookSec: { type: "section", label: M.STRINGS.lookSection, when: { any: [{ param: "page", equals: "many" }, { all: [{ param: "page", equals: "ccf" }, { param: "view", equals: "all" }] }] } },
+    /* THE AXIS IS PAGE 3'S since 2026-09-26 — page 2 is cells 21–23 and reads
+       VAF only — and opens on the fraction there, which is the view's point;
+       Variant allele frequency stays an option so the ease can run both ways
+       over one set of mutations. */
     axis: {
       type: "segmented",
       style: "grid",
       label: M.STRINGS.axisLabel,
       detail: M.STRINGS.axisDetail,
       options: M.AXES,
-      default: "vaf",
+      default: "ccf",
       display: true,
-      when: { param: "page", equals: "many" },
+      when: { all: [{ param: "page", equals: "ccf" }, { param: "view", equals: "all" }] },
     },
     assumed: {
       type: "segmented",
@@ -960,7 +996,7 @@ widgetApi = defineWidget({
       options: M.ASSUMED,
       default: "purity",
       display: true,
-      when: { all: [{ param: "page", equals: "many" }, { param: "axis", equals: "ccf" }] },
+      when: { all: [{ param: "page", equals: "ccf" }, { param: "view", equals: "all" }, { param: "axis", equals: "ccf" }] },
     },
     clusters: {
       type: "bool",
@@ -968,7 +1004,7 @@ widgetApi = defineWidget({
       detail: M.STRINGS.clustersDetail,
       default: true,
       display: true,
-      when: { param: "page", equals: "many" },
+      when: { any: [{ param: "page", equals: "many" }, { all: [{ param: "page", equals: "ccf" }, { param: "view", equals: "all" }] }] },
     },
 
     samplesSec: { type: "section", label: M.STRINGS.samplesSection, when: { param: "page", equals: "clonal" } },
@@ -1007,7 +1043,7 @@ widgetApi = defineWidget({
 
     /* Kenneth's ruling on 59: the seed sits in its own section under the drive
        row. The momentary action joins it, as widget 56's does. */
-    dataSec: { type: "section", label: M.STRINGS.readsSection, afterDrive: true, when: { param: "page", oneOf: ["one", "many"] } },
+    dataSec: { type: "section", label: M.STRINGS.readsSection, afterDrive: true, when: { param: "page", oneOf: ["one", "many", "ccf"] } },
     seed: {
       type: "int",
       label: M.STRINGS.seedLabel,
@@ -1016,7 +1052,7 @@ widgetApi = defineWidget({
       max: 200,
       default: 1,
       afterDrive: true,
-      when: { param: "page", oneOf: ["one", "many"] },
+      when: { param: "page", oneOf: ["one", "many", "ccf"] },
     },
     all: {
       type: "bool",
@@ -1026,7 +1062,7 @@ widgetApi = defineWidget({
       default: false,
       display: true,
       afterDrive: true,
-      when: { param: "page", equals: "one" },
+      when: { any: [{ param: "page", equals: "one" }, { all: [{ param: "page", equals: "ccf" }, { param: "view", equals: "one" }] }] },
     },
 
     /* Authoring escape hatch, first render only: reads already drawn. */
@@ -1034,12 +1070,12 @@ widgetApi = defineWidget({
   },
 
   legend: ({ params }) => {
-    if (params.page === "many") {
+    if (M.histPage(params)) {
       return [
         { token: "group-a", label: "Clonal: in every tumor cell", mark: "bar" },
         { token: "group-b", label: "Subclonal: in some tumor cells", mark: "bar" },
         ...(params.clusters ? [{ token: "ink-2", label: "A cluster the mixture found, at its mean ± one standard deviation", mark: "line" }] : []),
-        ...(params.axis === "ccf" ? [{ token: "reference", label: "The threshold at a cancer cell fraction of 0.9", mark: "line" }] : []),
+        ...(M.axisOf(params) === "ccf" ? [{ token: "reference", label: M.STRINGS.thresholdLegend, mark: "line" }] : []),
       ];
     }
     if (params.page === "clonal") {
@@ -1054,13 +1090,23 @@ widgetApi = defineWidget({
         { token: "extreme", label: "Cells the tree would need and the sample does not have", mark: "line" },
       ];
     }
-    return [
+    const sample = [
       { token: "group-a", label: "Tumor cells", mark: "dot" },
       { token: "ink-3", label: "Copies of the chromosome the mutation is on, solid; copies of the other, dashed", mark: "line" },
       { token: "highlight", label: "The mutation, and the reads that carry it", mark: "bar" },
       { token: "ink-3", label: "Reads that carry the reference allele", mark: "bar" },
-      { token: "theory", label: "The variant allele frequency the model expects", mark: "line" },
-      { token: "reference", label: M.STRINGS.truthLegend, mark: "bar" },
+    ];
+    if (params.page === "one") {
+      return [...sample, { token: "theory", label: "The variant allele frequency the sample's copies give", mark: "line" }];
+    }
+    /* Page 3: one entry per multiplicity the analysis considers, so the legend
+       names exactly the curves on the figure (§ *Legend must match the graph*). */
+    const ms = M.givenOf(M.configOne(params), params.knows).ms;
+    return [
+      ...sample,
+      ...ms.map((m) => ({ token: ["group-a", "group-b", "group-c"][m - 1], label: `The likelihood of c with the mutation on ${m} cop${m > 1 ? "ies" : "y"} (m = ${m})`, mark: "line" })),
+      { token: "ink-3", label: M.STRINGS.thresholdLegend, mark: "line" },
+      { token: "reference", label: M.STRINGS.truthCcfLegend, mark: "line" },
     ];
   },
 
@@ -1089,16 +1135,16 @@ widgetApi = defineWidget({
          the same tumour when only purity, the read depth or how many mutations
          were called has moved; a different seed or a different set of cell
          populations is a different tumour and lands without one. */
-      const morph = Boolean(carryMany) && params.page === "many" && carryMany.page === "many"
-        && carryMany.axis === params.axis && carryMany.assumed === params.assumed
+      const morph = Boolean(carryMany) && M.histPage(params) && carryMany.page === params.page
+        && carryMany.axis === M.axisOf(params) && carryMany.assumed === params.assumed
         && carryMany.seed === params.seed && carryMany.clones === params.clones
         && !reducedMotion();
       return {
         k,
         beat: 0,
         done: k >= state.one.depth,
-        /* Decision 2: pages 2 and 3 land finished. */
-        inert: params.page !== "one",
+        /* Decision 2: only the reads animate. */
+        inert: !M.readsPage(params),
         /* Where page 2's axis has got to, and which axis it is heading for. */
         mix: params.axis === "ccf" ? 1 : 0,
         axis: params.axis,
@@ -1162,22 +1208,23 @@ widgetApi = defineWidget({
         clearDrawAll();
       }
       anim.k = Math.min(anim.k, state.one.depth);
-      anim.inert = params.page !== "one";
+      anim.inert = !M.readsPage(params);
       anim.done = anim.k >= state.one.depth;
       /* The axis moved: ask core for frames once, and ease from wherever the
          figure IS — an ease turned round mid-flight starts there, not at the
          end it was heading for. A page change is not eased. */
+      const onAxisView = params.page === "ccf" && params.view === "all";
       if (params.axis !== anim.axis) {
         anim.axis = params.axis;
-        if (params.page === "many") anim.easing = true;
+        if (onAxisView && !reducedMotion()) anim.easing = true;
         else anim.mix = params.axis === "ccf" ? 1 : 0;
       }
-      if (params.page !== "many" && !anim.easing) anim.mix = params.axis === "ccf" ? 1 : 0;
+      if (!onAxisView && !anim.easing) anim.mix = params.axis === "ccf" ? 1 : 0;
       /* Leaving page 2 lands its morph rather than leaving it in flight: a
          transition nobody is watching has nothing to show, and coming back to
          a figure still halfway between two sets of parameters would be a
          figure of neither. The same ruling as the shape, below. */
-      if (params.page !== "many") { anim.histFrom = null; anim.spansFrom = null; }
+      if (!M.histPage(params)) { anim.histFrom = null; anim.spansFrom = null; }
       /* The shape moved: the same door as the axis, on the same page-3 terms.
          Off page 3 it lands, so a reader who switches shape from elsewhere and
          then arrives finds the figure already there. */
@@ -1199,18 +1246,20 @@ widgetApi = defineWidget({
     const L = M.layout(w, params);
     if (L.page === "many") { drawMany(ctx, colors, L, params, state, anim); return; }
     if (L.page === "clonal") { drawTreePage(ctx, colors, L, params, state, anim); return; }
+    if (L.page === "ccf") { drawCcfOne(ctx, colors, L, params, state, anim); return; }
     drawOne(ctx, colors, L, params, state, anim);
   },
 
   readout({ params, state, anim }) {
-    if (params.page === "many") {
-      const axis = M.onAxis(state.many, state.manyCfg, params.axis);
+    if (M.histPage(params)) {
+      const axisKey = M.axisOf(params);
+      const axis = M.onAxis(state.many, state.manyCfg, axisKey);
       const past = axis.cut == null ? null : axis.values.filter((v) => v >= axis.cut).length;
       return [
         { label: "Clusters found", value: String(state.many.fit.K), note: "components in the mixture with the lowest BIC" },
         { label: "MATH", value: state.many.math.toFixed(1), note: "the width of the VAF distribution over its median" },
         {
-          label: params.axis === "ccf" ? "At a fraction of 0.9 or more" : "Populations in the tumor",
+          label: axisKey === "ccf" ? "At a fraction of 0.9 or more" : "Populations in the tumor",
           value: past == null ? String(state.manyCfg.clones.length) : M.intText(past),
           note: past == null ? "what the mutations were drawn from" : `of ${M.intText(state.manyCfg.n)} mutations`,
         },
@@ -1233,48 +1282,48 @@ widgetApi = defineWidget({
     }
     const k = Math.min(anim?.k ?? 0, state.one.depth);
     const vaf = M.vafAt(state.one, k);
+    const alt = M.altAt(state.one, k);
     const cfg = state.cfg;
-    /* THE FRACTION AND THE CALL COME FROM THE SAME SCENARIOS THE PANEL DRAWS,
-       which are read off the EXPECTED VAF. Solving the tile from the draw
-       instead put 0.92 beside a verdict of "subclonal" in 2.7% of settings —
-       the noise having crossed the cut — and it disagreed with the panel's own
-       first row (0.55 against 52%). The draw's own story is told by the tile
-       above, which prints the reading against what the model expects, and by
-       the pileup; it does not need telling twice at the cost of a figure that
-       contradicts itself. */
-    const span = M.fractionSpan(cfg.expected, cfg, params.knows);
-    const call = M.verdictFor(cfg.expected, cfg, params.knows);
-    const given = M.knowsOf(params.knows).key === "nothing" ? "at purity 1.00" : `at purity ${M.n2(cfg.purity)}`;
-    /* A RANGE WHEN SEVERAL SCENARIOS FIT (his pick, 2026-09-16). One number
-       there was the reader's own scenario, which the analysis could not have
-       singled out, so "1.00" beside "Cannot tell" read as a contradiction. The
-       range makes the call its visible consequence: it straddles 0.9. */
-    const spanText = !span ? "—"
-      : Math.abs(span.hi - span.lo) < 0.005 ? M.n2(span.lo)
-        : `${M.n2(span.lo)}–${M.n2(span.hi)}`;
+    const reads = { label: "Reads carrying it", value: k > 0 ? `${M.intText(alt)} / ${M.intText(k)}` : "—", note: `of ${M.intText(state.one.depth)} at this depth` };
+    if (params.page === "one") {
+      /* NO FRACTION AND NO CALL ON PAGE 1 (2026-09-26); both are page 3's,
+         where cell 25 names them. The third tile is the figure's percentage. */
+      return [
+        reads,
+        { label: "Variant allele frequency", value: k > 0 ? M.n3(vaf) : "—", note: `the sample's copies give ${M.n3(cfg.expected)}` },
+        {
+          label: M.STRINGS.ccfLabel,
+          /* The control's own format, so the tile and the slider say one number. */
+          value: M.n2(cfg.ccf),
+          note: `on ${cfg.copies} of ${cfg.state.total} cop${cfg.state.total > 1 ? "ies" : "y"} in each`,
+        },
+      ];
+    }
+    /* PAGE 3: what the reads allow and the call, both read off the likelihood
+       the figure draws (5.8). A range per multiplicity, joined by "or", because
+       two curves allow two separate intervals and one range across them would
+       include fractions neither allows. */
+    const lik = k > 0 ? M.likelihoodOf(alt, k, cfg, params.knows) : null;
+    const spans = lik ? lik.allowed.map((cv) => (cv.interval.hi - cv.interval.lo < 0.005
+      ? M.n2(cv.interval.lo) : `${M.n2(cv.interval.lo)}–${M.n2(cv.interval.hi)}`)) : [];
     return [
-      { label: "Reads carrying it", value: k > 0 ? `${M.intText(M.altAt(state.one, k))} / ${M.intText(k)}` : "—", note: `of ${M.intText(state.one.depth)} at this depth` },
-      { label: "Variant allele frequency", value: k > 0 ? M.n3(vaf) : "—", note: `the model expects ${M.n3(cfg.expected)}` },
+      { ...reads, note: k > 0 ? `VAF ${M.n3(vaf)}` : reads.note },
       {
         label: "Cancer cell fraction",
-        value: k > 0 ? spanText : "—",
-        note: !span ? "no scenario fits this reading"
-          : span.n === 1 ? `${given}, one scenario fits`
-            : `${given}, ${span.n} scenarios fit`,
+        value: lik ? spans.join(" or ") : "—",
+        note: lik ? `what the reads allow, 95%${lik.allowed.length > 1 ? `, at m = ${lik.allowed.map((cv) => cv.m).join(" or ")}` : ""}` : "no read yet",
       },
-      /* WHAT THE ANALYSIS IS FOR (cell 17), and the reason the corrections are
-         worth making: the fraction is the number, this is the call. */
       {
         label: M.STRINGS.callLabel,
-        value: k > 0 ? M.STRINGS.callValue[call] : "—",
-        note: k > 0 ? M.STRINGS.callNote[call] : `the threshold is a fraction of ${M.CUT}`,
+        value: lik ? M.STRINGS.callValue[lik.call] : "—",
+        note: lik ? M.STRINGS.callNote[lik.call] : `the threshold is a fraction of ${M.CUT}`,
       },
     ];
   },
 
   summary({ params, state, anim }) {
-    if (params.page === "many") {
-      const axis = M.onAxis(state.many, state.manyCfg, params.axis);
+    if (M.histPage(params)) {
+      const axis = M.onAxis(state.many, state.manyCfg, M.axisOf(params));
       return `A histogram of ${M.intText(state.manyCfg.n)} mutations on the ${axis.label.toLowerCase()} axis, `
         + `from ${state.manyCfg.clones.length} cell population${state.manyCfg.clones.length > 1 ? "s" : ""} at purity `
         + `${M.n2(state.manyCfg.purity)}. A Gaussian mixture of ${state.many.fit.K} component`
@@ -1292,8 +1341,11 @@ widgetApi = defineWidget({
     const cells = `${Math.round(M.CELLS * cfg.purity)} of ${M.CELLS} cells are tumor cells, `
       + `${M.pctText(cfg.ccf)} of them carrying the mutation on ${cfg.copies} of ${cfg.state.total} copies`;
     if (k === 0) return `A sample of ${M.CELLS} cells in which ${cells}, with an empty pileup of ${M.intText(state.one.depth)} reads below it.`;
-    return `A sample of ${M.CELLS} cells in which ${cells}. `
-      + `${M.intText(M.altAt(state.one, k))} of the ${M.intText(k)} reads drawn so far carry the mutation, `
-      + `a variant allele frequency of ${M.n3(M.vafAt(state.one, k))} against the ${M.n3(cfg.expected)} the model expects.`;
+    const reading = `${M.intText(M.altAt(state.one, k))} of the ${M.intText(k)} reads drawn so far carry the mutation, `
+      + `a variant allele frequency of ${M.n3(M.vafAt(state.one, k))}`;
+    if (params.page === "one") return `A sample of ${M.CELLS} cells in which ${cells}. ${reading} against the ${M.n3(cfg.expected)} the sample's copies give.`;
+    const lik = M.likelihoodOf(M.altAt(state.one, k), k, cfg, params.knows);
+    return `A sample of ${M.CELLS} cells in which ${cells}. ${reading}. The likelihood of the reads allows a cancer cell `
+      + `fraction of ${M.n2(lik.lo)} to ${M.n2(lik.hi)}: ${M.STRINGS.callValue[lik.call].toLowerCase()}.`;
   },
 });

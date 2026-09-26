@@ -3,16 +3,28 @@
    `main.js` draws them; `_lab/vaf-model.js` re-exports this file so the mock
    and `_lab/vaf-measure.mjs` cannot drift from what the widget runs.
 
-   PHM5003 07 / 01-2 cells 17–25. Three pages, from Kenneth's picks of
-   2026-09-16 (catalogue § *The cancer mutation arc*, slot 67):
+   PHM5003 07 / 01-2 cells 17–25. Four pages in the notebook's own order, from
+   Kenneth's picks of 2026-09-16 and his restructure of 2026-09-26 (catalogue §
+   *The cancer mutation arc*, slot 67, *RESTRUCTURED TO THE NOTEBOOK'S ORDER*):
 
-     One mutation          a sample of cells, the reads drawn from it, and the
-                           other arrangements that read the same VAF
-     Many mutations        one tumour's mutations on the VAF axis or the
-                           cancer cell fraction axis, with the clusters a
-                           Gaussian mixture returns
+     One mutation          cell 17: a sample of cells, the reads drawn from it,
+                           and the VAF against the lesson's three readings —
+                           ≈ 1, ≈ 0.5, < 0.5 — with no cancer cell fraction
+     Many mutations        cells 19–23: one tumour's mutations on the VAF axis,
+                           the clusters a Gaussian mixture returns, and MATH
+     Cancer cell fraction  cells 24–25: the same sample as page 1, and the
+                           binomial likelihood of its reads over c for each
+                           multiplicity, at what the analysis is given; and
+                           page 2's tumour on the fraction axis
      Clonal architecture   his RETCHER figure: four samples, three clusters,
                            and which trees their fractions allow
+
+   WHY THE ORDER CHANGED (2026-09-26). The first build opened page 1 on the
+   cancer cell fraction — a control, the card's third line, a tile and a
+   clonal call — and page 2 on an axis switch to it: cells 24 and 25 before
+   cell 17 had been read. His words: "need to start with simple things and see
+   how they vary with copy number and purity. don't put CCF here … Need to
+   explain how to infer CCF before we link it to clonal reconstruction."
 
    DECISIONS TAKEN WHILE BUILDING, so they are not re-argued:
 
@@ -20,21 +32,22 @@
        builds all three pages, so a visit to the clusters and back does not
        throw away the reads the reader has been adding (3.2, invariant 3).
 
-    2. THE READS ARE THE ANIMATION, and only on page 1. Pages 2 and 3 land
+    2. THE READS ARE THE ANIMATION, on page 1 and on page 3's One mutation
+       view, which read the same sample. The histograms and the trees land
        finished, so `anim.inert` takes Step and Play out of the row there
        (4.5, widget 56's Many SNPs page).
 
     3. SIXTY CELLS, because purity is a proportion. Ten cells cannot draw 0.35
        or 0.75, and his figure's four cannot draw 0.70 (mock § 1).
 
-    4. PAGE 1 ASKS THE LESSON'S OWN QUESTION, and how much the analysis is
+    4. PAGE 3 ASKS THE LESSON'S OWN QUESTION, and how much the analysis is
        told is a control. Cell 25 §3 fits c and m with p and Cₜ given, and cell
        24 — "Refining Estimates (Optional)" — treats those two as information
-       you bring. So the panel lists the scenarios a reading leaves standing at
-       the reader's level of knowledge, and marks the cell they actually built.
-       It asked which SINGLE cause could explain the reading until 2026-09-16;
-       `_lab/vaf-rows-measure.mjs` carries that version and the catalogue says
-       why it went.
+       you bring. Until 2026-09-26 this was page 1's panel, solved from the
+       EXPECTED VAF so its rows would not flicker; page 3 draws §3 itself, the
+       likelihood of the reads, so what the reads cannot settle shows as width
+       (`_lab/ccf-measure.mjs`). `scenariosFor` below is §2 — c solved for each
+       m — and the lab's measurements still read it.
 
     5. THE MIXTURE IS FITTED ON THE VAF AXIS AND DRAWN ON WHICHEVER AXIS IS
        SHOWN. `mclust` in cell 22 clusters VAFs; switching the axis is a
@@ -323,21 +336,6 @@ export function verdictFor(vaf, cfg, level) {
   return "split";
 }
 
-/**
- * WHICH ASSUMPTION IS ACTUALLY WRONG, so the figure can name it instead of
- * saying "the assumption" and leaving the reader to work out which (Kenneth,
- * 2026-09-16: "is this diploid assumption only?"). It is checkable rather than
- * inferred: an assumed purity of 1 is wrong when the sample is not pure, and an
- * assumed diploid genome is wrong when the copies do not come to two.
- */
-export function assumptionsWrong(cfg, level) {
-  const known = knowsOf(level).key;
-  const out = [];
-  if (known === "nothing" && cfg.purity < 1) out.push("pure");
-  if (known !== "both" && cfg.state.total !== 2) out.push("diploid");
-  return out;
-}
-
 /** The span of the fractions that fit — one number when one scenario does, a
     range when several do. What the tile reports, since a single number where
     the reading supports several is a claim the reading does not make. */
@@ -383,6 +381,81 @@ export function scenariosFor(vaf, cfg, level) {
 
 /* The label is the COUNT, because a segmented option is read on its own face:
    "And a subclone" beside "One" reads as a sentence with its subject missing. */
+/* ---- page 3: the likelihood of the reads, 01-2 cell 25 §3 ----------------
+
+   k variant reads of n are binomial with success probability the expected VAF
+   at (c, m), so for each multiplicity the analysis considers there is one
+   curve over c. c runs over (0, 1] only: a fraction past every tumor cell is
+   not a fraction, which is why the curve for too few copies peaks at 1.
+
+   WHAT THE READS ALLOW is every (c, m) within 1.92 log-likelihood units of the
+   best — half of χ²(1) at 95% — kept per m, because the curves for two
+   multiplicities are two separate intervals and their union read as one range
+   would include fractions no curve allows. `_lab/ccf-measure.mjs`, over every
+   sample page 1 can build: told purity and copy number the set holds the true
+   c 96–99% of the time at every depth; told nothing, 34–70%, FALLING as depth
+   rises, because more reads make a wrong assumption more confident.
+
+   THE CALL, his pick of 2026-09-26 among three rules on this likelihood:
+   Clonal when every plausible c is at CUT or more, Subclonal when every one is
+   below it, Cannot tell otherwise. Told both it is wrong in 0.2% of
+   samples or fewer at every depth (0.0, 0.1, 0.1, 0.2% at 31, 88, 161, 500);
+   its cost is that at 88 reads a mutation in every tumor cell reads c
+   0.79–1.00 and is Cannot tell, which is what 88 reads can say. The two rules
+   not taken: the set reaching 1 (wrong 7–13% at shallow depth) and the best c
+   alone (wrong 11–20%, with no Cannot tell). */
+export const LIK_GRID = Array.from({ length: 200 }, (_, i) => (i + 1) / 200);
+export const LIK_DROP = 1.92;
+
+const logLik = (k, n, v) => {
+  const e = Math.min(1 - 1e-9, Math.max(1e-9, v));
+  return k * Math.log(e) + (n - k) * Math.log(1 - e);
+};
+
+/** What the analysis works with at each level: the purity it divides by, the
+    copies it assumes, and the multiplicities it considers. Told only "diploid"
+    it cannot tell 1 + 1 from 2 + 0, so one mutated copy and two are both open
+    to it — the same reading `scenariosFor` takes. */
+export function givenOf(cfg, level) {
+  const known = knowsOf(level).key;
+  if (known === "nothing") return { known, p: 1, C: 2, ms: [1, 2] };
+  if (known === "purity") return { known, p: cfg.purity, C: 2, ms: [1, 2] };
+  return { known, p: cfg.purity, C: cfg.state.total, ms: cfg.state.copies };
+}
+
+/** The curves, the intervals each allows, and the call. `null` before a read. */
+export function likelihoodOf(k, n, cfg, level) {
+  if (!(n > 0)) return null;
+  const given = givenOf(cfg, level);
+  const curves = given.ms.map((m) => {
+    const ys = LIK_GRID.map((c) => logLik(k, n, vafExpected(given.p, c, m, given.C)));
+    let best = 0;
+    ys.forEach((y, i) => { if (y > ys[best]) best = i; });
+    return { m, ys, cHat: LIK_GRID[best], max: ys[best] };
+  });
+  const top = Math.max(...curves.map((cv) => cv.max));
+  curves.forEach((cv) => {
+    const inside = LIK_GRID.filter((_, i) => cv.ys[i] >= top - LIK_DROP);
+    cv.interval = inside.length ? { lo: inside[0], hi: inside[inside.length - 1] } : null;
+  });
+  const allowed = curves.filter((cv) => cv.interval);
+  const lo = Math.min(...allowed.map((cv) => cv.interval.lo));
+  const hi = Math.max(...allowed.map((cv) => cv.interval.hi));
+  const call = lo >= CUT ? "clonal" : hi < CUT ? "subclonal" : "split";
+  return { given, curves, allowed, top, lo, hi, call };
+}
+
+export const VIEWS = [
+  { value: "one", label: "One mutation" },
+  { value: "all", label: "All mutations" },
+];
+/** Which pages draw the reads of one sample, and which draw a tumour's
+    histogram. Page 3 does both, by its view. */
+export const readsPage = (params) => params.page === "one" || (params.page === "ccf" && params.view !== "all");
+export const histPage = (params) => params.page === "many" || (params.page === "ccf" && params.view === "all");
+/** Page 2 is cells 21–23 and reads VAF only; the fraction axis is page 3's. */
+export const axisOf = (params) => (params.page === "many" ? "vaf" : params.axis);
+
 export const CLONE_SETS = [
   { key: "one", label: "One", clones: [{ ccf: 1, share: 1 }] },
   { key: "two", label: "Two", clones: [{ ccf: 1, share: 0.6 }, { ccf: 0.5, share: 0.4 }] },
@@ -695,70 +768,41 @@ export const shapesFitting = (ccf) => SHAPES.filter((s) => fitsSumRule(s, ccf));
 
 const PAD = 14;
 
-const ROW_H = 44;
-/** How many scenarios the panel will list, without building them: the height
-    is computed before `compute` runs, so it can only read the parameters. */
-/** Whether the panel draws a line under its rows — nothing fits, or the
-    reader's own sample is left out by an assumption that is wrong. Read by
-    the height, so only the space a line needs is reserved, and by `draw`, so
-    the two cannot disagree about whether it is there. */
-export function scenarioNote(params) {
-  const cfg = configOne(params);
-  const { fits } = scenariosFor(cfg.expected, cfg, params.knows);
-  if (!fits.length) return "nothing";
-  if (!fits.some((r) => r.truth) && assumptionsWrong(cfg, params.knows).length) return "notHere";
-  return null;
-}
-
-export function scenarioRows(params) {
-  /* The panel draws only the scenarios that FIT, and how many that is depends
-     on the reading — which is itself a pure function of the parameters, so the
-     height can still be computed before `compute` runs. */
-  const cfg = configOne(params);
-  return scenariosFor(cfg.expected, cfg, params.knows).fits.length;
-}
-
 export function layout(w, params) {
   const page = params.page;
   const inner = w - 2 * PAD;
   /* Every row below is measured, not guessed: the first build drew the note
-     under the cells on top of the reads' caption and the VAF's own reading on
-     top of the arrangements' (the browser found both). ROW_H is the height one
-     arrangement takes, and the page's height follows from it (5.8). */
+     under the cells on top of the reads' caption (the browser found it).
+
+     190px of field for the cells rather than 150: at 150 the grid that fits
+     sixty cells is 15 columns of 4 and a 29px cell, at 190 it is 12 of 5 and a
+     32px cell — and what has to be legible inside one is up to four copies
+     with a mark on them (Kenneth, 2026-09-16). Pages 1 and 3 share the cells
+     and the reads at the same place, his pick L2 of 2026-09-26, so switching
+     between them changes only what is under the reads. */
+  const cells = { x: PAD, y: 26, w: inner, h: 190 };
+  const reads = { x: PAD, y: 270, w: inner, h: 56 };
   if (page === "one") {
-    /* 190px of field rather than 150: at 150 the grid that fits sixty cells is
-       15 columns of 4 and a 29px cell, at 190 it is 12 of 5 and a 32px cell —
-       and what has to be legible inside one is up to four copies with a mark
-       on them (Kenneth, 2026-09-16). */
-    const cells = { x: PAD, y: 26, w: inner, h: 190 };
-    const reads = { x: PAD, y: 270, w: inner, h: 56 };
-    const bar = { x: PAD, y: 346, w: inner, h: 16 };
-    /* HOW MANY SCENARIO ROWS THERE ARE FOLLOWS THE STATE AND THE LEVEL — one
-       per multiplicity the analysis can consider, plus the minor chromosome
-       where it survives. An assumed diploid gives two; 3 + 1 with an
-       allele-specific call gives four. The height reads the count rather than a
-       fixed three, and the extra line is the room the "not among them" note
-       needs when a level misses the reader's own cell. */
-    const n = scenarioRows(params);
-    const rows = { x: PAD, y: 430, w: inner, h: n * ROW_H };
-    return {
-      page, cells, reads, bar, rows, rowH: ROW_H, cellR: 15,
-      /* ROOM FOR A NOTE ONLY WHEN THERE IS ONE. It reserved 42px under the rows
-         always — two lines, from when the panel explained ruled-out rows — and
-         once only the fits were drawn that left 56px of empty canvas under a
-         panel with nothing to add (Kenneth, 2026-09-16: "compact"). The last
-         row already carries its own space below the cell, so without a note the
-         page ends a margin after it. */
-      height: rows.y + rows.h + (scenarioNote(params) ? 22 : 6),
-    };
+    /* Cell 17's three readings sit on two label rows above the bar, the 0.5
+       one above the 1 one, so the two never meet at any width (mock § 4). */
+    const marks = { x: PAD, y: 350, w: inner, h: 36 };
+    const bar = { x: PAD, y: 392, w: inner, h: 16 };
+    return { page, cells, reads, marks, bar, height: bar.y + bar.h + 44 };
   }
-  if (page === "many") {
+  if (page === "ccf" && params.view !== "all") {
+    /* The likelihood's y axis is relative and unlabelled, so the plot needs
+       only a small gutter for its frame; its caption sits where page 1's
+       marks do. */
+    const lik = { x: PAD + 8, y: 372, w: inner - 16, h: 150 };
+    return { page, view: "one", cells, reads, lik, height: lik.y + lik.h + 42 };
+  }
+  if (page === "many" || page === "ccf") {
     /* The clusters are brackets ABOVE the bars, one level each, so the stage
        reserves three levels between the caption and the plot. The left gutter
        is 44px because core draws a y-axis LABEL rotated about x − 40, and at
        the first build it was painted off the canvas (the verify caught it). */
     const hist = { x: PAD + 44, y: 86, w: inner - 56, h: 190 };
-    return { page, hist, height: hist.y + hist.h + 60 };
+    return { page: "many", hist, height: hist.y + hist.h + 60 };
   }
   const lines = { x: PAD + 30, y: 34, w: Math.round(inner * 0.56), h: 150 };
   const trees = { x: lines.x + lines.w + 26, y: 34, w: inner - lines.w - 52, h: 150 };
@@ -782,13 +826,18 @@ export const STRINGS = {
     + "once both are divided out.",
 
   pageLabel: "Page",
-  pageDetail: "one mutation, a tumor's mutations together, or several samples of one patient",
+  pageDetail: "one mutation's VAF, a tumor's VAFs together, the cancer cell fraction inferred from them, or several samples of one patient",
   sampleSection: "The sample",
   purityLabel: "Tumor purity",
   purityDetail: "the fraction of cells in the sample that are tumor cells",
-  /* The same quantity page 1's own tile reads out as "Cancer cell fraction",
-     so it is set under that name too (the terminology pass of 2026-09-17). */
-  ccfLabel: "Cancer cell fraction",
+  /* THE FIGURE'S PERCENTAGE, NOT ITS NAME. The terminology pass of 2026-09-17
+     set this under "Cancer cell fraction", page 1's own tile then; the
+     restructure of 2026-09-26 took the fraction off page 1 until cell 25
+     names it ("don't put CCF here"), so the control says what it sets in cell
+     17's words. Page 3 names the quantity and draws it against this control's
+     value as the truth. The link word stays `ccf`: it is the field's term, and
+     links already carry it. */
+  ccfLabel: "Tumor cells carrying it",
   ccfDetail: "the fraction of tumor cells that carry the mutation",
   stateLabel: "Copy number",
   stateDetail: "copies of one inherited chromosome + copies of the other, as an allele-specific caller reports them",
@@ -859,7 +908,6 @@ export const STRINGS = {
   truthSection: "The sample",
   seqSection: "The sequencing",
   analysisSection: "The analysis",
-  scenariosCaption: "Scenarios that fit",
   /* One shape at all three levels: what the analysis was GIVEN, then what it
      had to assume. At "Purity" this said only "assuming a diploid genome" and
      never named the purity it had been handed — the audit of 2026-09-16. */
@@ -868,47 +916,34 @@ export const STRINGS = {
   givenBoth: (p, state) => `purity ${p}, copy number ${state}`,
   callLabel: "Clonal or subclonal",
   callValue: { clonal: "Clonal", subclonal: "Subclonal", split: "Cannot tell", none: "—" },
+  /* Page 3's call reads the likelihood's plausible set (his pick, 2026-09-26). */
   callNote: {
-    clonal: `every scenario that fits is at ${CUT} or more`,
-    subclonal: `no scenario that fits reaches ${CUT}`,
-    split: `the scenarios that fit straddle ${CUT}`,
-    none: "no scenario fits this reading",
+    clonal: `every fraction the reads allow is ${CUT} or more`,
+    subclonal: `every fraction the reads allow is below ${CUT}`,
+    split: `the fractions the reads allow straddle ${CUT}`,
+    none: "no read yet",
   },
-  /* The rule marks the one scenario that is true — `--c-reference` is the token
-     for the truth where one exists — so it is named for what it marks. */
-  truthLegend: "The true scenario",
-  /* IT HAS TO NAME THE READER'S OWN NUMBER. "The sample you built is not among
-     them" points at an absence — no row is marked, and the reader has to notice
-     that the row which WOULD have been marked is missing. Kenneth read it and
-     asked what it referred to (2026-09-16), which is the whole answer: it means
-     the analysis has ruled out the very sample he made, and saying his fraction
-     beside the ones it does offer is what makes that land. */
-  /* Named rather than "the assumption", and only the ones that are actually
-     wrong. The reader's own sample is the one thing on the figure they already
-     know, so what it needs to say is why it is not there. */
-  /* THE CARD'S OWN WORDS, and short enough to fit. With both assumptions wrong
-     "a pure sample and a diploid genome were assumed" measured 539px against a
-     528px line, and ran 52px off the canvas under the recorder — found only
-     once the extent sweep began painting a note at all (2026-09-16). "purity 1
-     and two copies" is what the card already says the fraction is solved at,
-     so the note and the card now name the assumption the same way. The verb
-     follows the PHRASE, not the count: "two copies" alone still takes "were". */
-  assumedPure: "purity 1",
-  assumedDiploid: "two copies",
-  nothingFits: (what, verb) => `No scenario fits this reading — ${what} ${verb} assumed`,
-  notHere: (pct, what, verb) => `The true scenario — ${pct} of tumor cells — is not listed: ${what} ${verb} assumed`,
   /* The formula card's notes. Each names its letters and then says what the
      line divides by what — the general logic, in the lesson's own terms. */
-  noteOne: "p is the fraction of cells in the sample that are tumor cells, c the fraction of those "
+  /* PAGE 1 NAMES NO LETTER FOR THE FRACTION (2026-09-26): cell 17 gives the
+     readings in words and numbers, and the letters p, c, m and Cₜ arrive with
+     cell 25 on page 3. So the sample's line counts copies in words. */
+  noteOne: "The reading divides variant reads by reads. The sample's line counts copies at this "
+    + "position: the tumor share × the share of tumor cells carrying it × the copies it is on, over "
+    + "the tumor share × the copies in a tumor cell + the normal share × 2. Normal cells add copies "
+    + "and no mutation, so a lower purity lowers the VAF; a gain adds copies, and lowers it unless "
+    + "the mutation is on the copies that were gained.",
+  noteCcf: "p is the fraction of cells in the sample that are tumor cells, c the fraction of those "
     + "cells carrying the mutation, m the copies carrying it in such a cell, and Cₜ all the copies "
-    + "there. The reading divides variant reads by reads; the model divides the mutated copies in "
-    + "the sample by every copy at that position, normal cells included. m is one when the "
-    + "mutation arose after the copy number changed and more when it arose before and was copied "
-    + "with it, which is how a mutation is timed against a gain.",
-  noteMany: "The same model, solved for c: at a fixed purity and copy number it is the reading "
-    + "multiplied by one number. Each cluster is one component of a Gaussian mixture, the number of "
-    + "them chosen by BIC — mutations at similar frequencies. MAD is the median absolute deviation, "
-    + "and 1.4826 scales it to a standard deviation.",
+    + "there. m is one when the mutation arose after the copy number changed and more when it "
+    + "arose before and was copied with it. Solved from the reads, c can pass 1; in the likelihood "
+    + "c runs from 0 to 1, and every c whose curve is within 1.92 of the highest is allowed.",
+  noteMany: "Each cluster is one component of a Gaussian mixture, the number of them chosen by "
+    + "BIC — mutations at similar frequencies. MAD is the median absolute deviation, and 1.4826 "
+    + "scales it to a standard deviation.",
+  noteAll: "The same model solved for c: at a fixed purity and two copies it is the reading "
+    + "multiplied by one number, so every mutation moves by the same factor. The clusters are "
+    + "fitted on the variant allele frequency and carried onto the fraction.",
   /* A CLUSTER IS A GROUP OF MUTATIONS, NOT OF CELLS. Page 2 teaches exactly that
      — the populations are the truth, the clusters are what a mixture finds —
      so page 3 cannot then give a cluster cells of its own (the terminology pass
@@ -917,6 +952,23 @@ export const STRINGS = {
     + "so a cluster's children cannot need more cells than their parent has. Two clusters that "
     + "would are one inside the other rather than side by side.",
   labelReading: "the reading",
+  labelSampleLine: "the sample",
+  labelLikelihood: "the likelihood",
+  /* Cell 17's three readings in its own words, placed on page 1's scale (his
+     pick A, 2026-09-26). Each says what the reading is taken to mean under the
+     lesson's simple assumptions; the red line says where this sample is. */
+  readingLow: "< 0.5 — in a subset of tumor cells",
+  readingHalf: "≈ 0.5 — one of two copies, every cell",
+  readingOne: "≈ 1 — every copy",
+  /* Page 3's One mutation view. */
+  viewLabel: "View",
+  viewDetail: "one mutation's reads, or a tumor's mutations together",
+  likCaption: "Likelihood of the reads over c",
+  likAxis: "Cancer cell fraction c",
+  likNoRead: "Each curve starts once the first read is drawn",
+  thresholdLegend: `The threshold at a cancer cell fraction of ${CUT}`,
+  truthCcfLegend: "The true cancer cell fraction",
+  allowedLegend: "The fractions the reads allow, 95%",
   labelModel: "the model",
   labelSample: "this sample",
   labelFraction: "cancer cell fraction",
@@ -933,7 +985,9 @@ export const STRINGS = {
   ruledOut: "Ruled out",
 };
 
-/* TWO COLUMNS AND A SPANNING THIRD, because three page names do not fit one
+/* FOUR PAGES IN A 2 × 2 GRID since 2026-09-26 (a spanning third before): at a
+   300px rail each button is 148px, which holds "Cancer cell fraction" and
+   "Clonal architecture". Before that — TWO COLUMNS AND A SPANNING THIRD, because three page names do not fit one
    rail row: at a 300px rail a segmented row gives each 99px, and "Clonal
    architecture" needs 114 and "Many mutations" 101 when it is the selected one
    (measured in the pane, 2026-09-16). Shortening the names was the other way
@@ -941,7 +995,8 @@ export const STRINGS = {
 export const PAGES = [
   { value: "one", label: "One mutation" },
   { value: "many", label: "Many mutations" },
-  { value: "clonal", label: "Clonal architecture", span: true },
+  { value: "ccf", label: "Cancer cell fraction" },
+  { value: "clonal", label: "Clonal architecture" },
 ];
 /* ONE ROW EACH. Named in full so the two options match the tiles, and neither
    fits half a rail: at a narrow rail "Variant allele frequency" measured 135px

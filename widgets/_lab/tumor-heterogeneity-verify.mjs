@@ -13,10 +13,10 @@
    states the formula they come from. If those drift, every page is drawing a
    number the lesson does not have.
 
-   THE ARRANGEMENTS MUST READ THE SAME VAF. Page 1's whole claim is an
-   equality, and it is computed rather than authored, so it is asserted over a
-   sweep rather than at one setting — including the settings where a row
-   cannot exist and has to say so (2.6).
+   THE INFERENCE MUST BE THE LESSON'S. Page 3 draws cell 25 §3, the binomial
+   likelihood of the reads, and its call is a claim, so the numbers the
+   measurement found before the mock (`_lab/ccf-measure.mjs`) are asserted
+   over a sweep of seeded reads rather than at one setting.
 
    THE GEOMETRY. `height` and `draw` share one layout precisely so this script
    can drive `draw` through a recording context and check that nothing is
@@ -216,9 +216,11 @@ const defaults = async () => resolveParams(await spec(), new URLSearchParams("")
   check("a link asking for more copies than the state has comes back to it", overAsked.copies === 2);
 }
 
-/* --- 2 · page 1's scenarios, and what the analysis is told ---------------- */
+/* --- 2 · page 3's inference, and what the analysis is told ----------------- */
 {
-  /* Rebuilt with the panel on 2026-09-16 (model decision 4). It asks the
+  /* `scenariosFor` is cell 25 §2, which page 1's panel drew until 2026-09-26
+     and the lab's measurements still read; page 3 draws §3, checked at the end
+     of this block. Rebuilt with the panel on 2026-09-16 (model decision 4). It asks the
      lesson's own question now — cell 25 §3 fits c and m with p and Cₜ given —
      and how much it is given is a control, which is Kenneth's own idea. What
      has to hold: one method at every level so none is a straw man, a row that
@@ -445,39 +447,67 @@ const defaults = async () => resolveParams(await spec(), new URLSearchParams("")
   check("a scenario needing more than every tumor cell is ruled out",
     over && over.c > 1, over ? `m${over.m} would need ${M.n2(over.c)}` : "none");
 
-  /* THE HEIGHT RESERVES EXACTLY THE ROWS THE PANEL DRAWS, which since
-     2026-09-16 is the scenarios that FIT and not every one the level could
-     consider — the caption promised fits and the panel listed the rest as
-     well (Kenneth: "information overload"). Swept rather than pinned to four
-     counts, because the number now depends on the reading: `height` runs
-     before `compute`, so what it may read is the parameters, and the reading
-     is a pure function of those.  */
+  /* PAGE 3'S LIKELIHOOD, cell 25 §3 (2026-09-26). The shipped panel solved §2
+     from the expected VAF; page 3 draws the likelihood of the reads, so what
+     has to hold is what `_lab/ccf-measure.mjs` measured before the mock: the
+     set the reads allow holds the truth when the analysis is told enough, a
+     wrong assumption makes it confidently wrong, a multiplicity tie shows as
+     two curves, and the call — his pick, the whole set against 0.9 — is almost
+     never wrong told both. */
   {
-    let off = 0;
-    let zero = 0;
-    let most = 0;
-    let n = 0;
-    for (const purity of M.PURITY_OPTIONS) {
-      for (const ccf of ["0.25", "0.50", "0.75", "1.00"]) {
-        for (const st of M.COPY_STATES) {
-          for (const copies of st.copies.map(String)) {
-            for (const k of M.KNOWLEDGE) {
-              const params = { ...(await defaults()), page: "one", purity, ccf, state: st.key, copies, knows: k.key };
-              const cfg = M.configOne(params);
-              const drawn = M.scenariosFor(cfg.expected, cfg, k.key).fits.length;
-              n += 1;
-              if (M.scenarioRows(params) !== drawn) off += 1;
-              if (drawn === 0) zero += 1;
-              most = Math.max(most, drawn);
-            }
+    const base = cfgOf({ state: "1+1", copies: "1", purity: "0.70" });
+    check("the likelihood waits for a read", M.likelihoodOf(0, 0, base, "both") === null);
+    const at88 = M.likelihoodOf(33, 88, base, "both");
+    check("the widget's own default reading allows c 0.79–1.00 and cannot tell",
+      M.n2(at88.lo) === "0.79" && M.n2(at88.hi) === "1.00" && at88.call === "split",
+      `${M.n2(at88.lo)}–${M.n2(at88.hi)} ${at88.call}`);
+    check("c runs over (0, 1] only", M.LIK_GRID[0] > 0 && M.LIK_GRID[M.LIK_GRID.length - 1] === 1);
+    check("one curve per multiplicity the level considers",
+      M.likelihoodOf(30, 88, cfgOf({}), "both").curves.map((cv) => cv.m).join() === "1,2,3"
+      && M.likelihoodOf(30, 88, cfgOf({}), "nothing").curves.map((cv) => cv.m).join() === "1,2");
+    /* the tie: (c 1, m 1) and (c 0.5, m 2) expect one VAF in 2 + 0 */
+    const tie = cfgOf({ state: "2+0", copies: "1", purity: "0.70" });
+    const tl = M.likelihoodOf(Math.round(88 * tie.expected), 88, tie, "both");
+    check("a 2 + 0 reading leaves two multiplicities, as two separate intervals",
+      tl.allowed.length === 2 && tl.allowed[1].interval.hi < tl.allowed[0].interval.lo,
+      tl.allowed.map((cv) => `m${cv.m} ${M.n2(cv.interval.lo)}–${M.n2(cv.interval.hi)}`).join(", "));
+
+    const sweep = (level, depth) => {
+      const t = { right: 0, wrong: 0, split: 0, n: 0, cover: 0 };
+      for (const purity of M.PURITY_OPTIONS) for (const st of M.COPY_STATES) for (const copies of st.copies.map(String)) {
+        for (const ccf of ["0.25", "0.50", "0.75", "1.00"]) {
+          const cfg = cfgOf({ purity, ccf, state: st.key, copies });
+          const rng = makeRng(1000 + depth);
+          for (let d = 0; d < 20; d += 1) {
+            let k = 0;
+            for (let i = 0; i < depth; i += 1) if (rng.next() < cfg.expected) k += 1;
+            const r = M.likelihoodOf(k, depth, cfg, level);
+            const truth = cfg.ccf >= 0.999 ? "clonal" : "subclonal";
+            t.n += 1;
+            if (r.call === "split") t.split += 1; else if (r.call === truth) t.right += 1; else t.wrong += 1;
+            if (r.allowed.some((cv) => cv.interval.lo - 1e-9 <= cfg.ccf && cfg.ccf <= cv.interval.hi + 1e-9)) t.cover += 1;
           }
         }
       }
-    }
-    check("the panel reserves exactly the rows it draws, at every setting",
-      off === 0, `${n} settings, ${off} off, at most ${most} rows`);
-    check("…including the settings where nothing fits and it draws none",
-      zero > 0, `${zero} of ${n}`);
+      return t;
+    };
+    const pc = (x, t) => (100 * x) / t.n;
+    const both88 = sweep("both", 88);
+    const none88 = sweep("nothing", 88);
+    check("told purity and copy number, the call is wrong in under 1% of samples",
+      pc(both88.wrong, both88) < 1, `${pc(both88.wrong, both88).toFixed(1)}% at 88 reads, ${both88.n} draws`);
+    check("…told nothing, it is wrong often enough to matter",
+      pc(none88.wrong, none88) > 10, `${pc(none88.wrong, none88).toFixed(1)}%`);
+    check("told both, the fractions allowed hold the truth at least 95% of the time",
+      pc(both88.cover, both88) >= 95, `${pc(both88.cover, both88).toFixed(1)}%`);
+    const none500 = sweep("nothing", 500);
+    check("…told nothing, less often, and less often still with more reads",
+      pc(none88.cover, none88) < 80 && pc(none500.cover, none500) < pc(none88.cover, none88),
+      `${pc(none88.cover, none88).toFixed(1)}% at 88, ${pc(none500.cover, none500).toFixed(1)}% at 500`);
+    const both500 = sweep("both", 500);
+    check("reading deeper settles more calls, told both",
+      pc(both500.split, both500) < pc(both88.split, both88),
+      `cannot tell ${pc(both88.split, both88).toFixed(1)}% at 88, ${pc(both500.split, both500).toFixed(1)}% at 500`);
   }
 }
 
@@ -553,7 +583,7 @@ const defaults = async () => resolveParams(await spec(), new URLSearchParams("")
     check(`declares \`${key}\``, W[key] != null);
   }
   const WANT = {
-    page: "segmented", truthSec: "section", sampleSec: "section", purity: "choice", ccf: "choice",
+    page: "segmented", view: "segmented", truthSec: "section", sampleSec: "section", purity: "choice", ccf: "choice",
     state: "segmented", copies: "choice", seqSec: "section", depth: "choice",
     analysisSec: "section", knows: "segmented",
     clones: "segmented", mutations: "choice", lookSec: "section",
@@ -563,12 +593,20 @@ const defaults = async () => resolveParams(await spec(), new URLSearchParams("")
   for (const [name, type] of Object.entries(WANT)) check(`${name} is ${type}`, W.params[name]?.type === type);
   check("no parameters beyond those",
     Object.keys(W.params).sort().join() === Object.keys(WANT).sort().join());
-  for (const name of ["page", "axis", "assumed", "clusters", "taken", "tree", "showcells", "all"]) {
+  for (const name of ["page", "view", "knows", "axis", "assumed", "clusters", "taken", "tree", "showcells", "all"]) {
     check(`${name} is a display parameter`, W.params[name].display === true);
   }
   for (const name of ["purity", "ccf", "state", "copies", "depth", "clones", "mutations", "seed"]) {
     check(`${name} is a data parameter`, !W.params[name].display);
   }
+  check("four pages in the notebook's order",
+    W.params.page.options.map((o) => o.value).join() === "one,many,ccf,clonal");
+  check("page 1 opens on cell 17's simple case, a pure sample", W.params.purity.default === "1.00");
+  check("the fraction axis is page 3's and opens there on the fraction",
+    W.params.axis.default === "ccf" && JSON.stringify(W.params.axis.when).includes('"ccf"')
+    && !JSON.stringify(W.params.axis.when).includes('"many"'));
+  check("page 1 draws no analysis: Given is page 3's alone",
+    !JSON.stringify(W.params.knows.when).includes('"one"') || JSON.stringify(W.params.knows.when).includes('"view"'));
   check("the widget is shipped", W.status === "shipped");
   check("the manifest agrees",
     JSON.parse(read("widgets/manifest.json")).widgets
@@ -594,16 +632,19 @@ const defaults = async () => resolveParams(await spec(), new URLSearchParams("")
     check(`depth ${depth}: one step adds one unit`, stepAnim.k === Math.max(1, Math.ceil(state.one.depth / 66)),
       `k = ${stepAnim.k}`);
   }
-  const params = { ...values, page: "many" };
+  const params = { ...values, page: "ccf", view: "all", axis: "vaf" };
   const state = W.compute({ params, rng: makeRng(1) });
-  const anim = W.animation.init({ params, state, fromScratch: true });
-  check("pages 2 and 3 take Step and Play out of the row", anim.inert === true);
+  const inert = (p) => W.animation.init({ params: { ...values, ...p }, state, fromScratch: true }).inert;
+  check("the histograms and the trees take Step and Play out of the row",
+    inert({ page: "many" }) && inert({ page: "ccf", view: "all" }) && inert({ page: "clonal" }));
+  check("…and page 3's One mutation keeps them, since its reads are the inference",
+    inert({ page: "ccf", view: "one" }) === false && inert({ page: "one" }) === false);
 
   /* The axis ease: core supplies the frames, the widget asks once in rebuild
      and clears the request by landing (§ core/widget.js, the display path). */
-  const eased = W.animation.init({ params: { ...values, page: "one" }, state, fromScratch: true });
+  const eased = W.animation.init({ params: { ...values, page: "one", axis: "vaf" }, state, fromScratch: true });
   eased.mode = "run";
-  for (let i = 0; i < 20; i += 1) W.animation.advance(eased, { dt: 32, params: { ...values, page: "one" }, state });
+  for (let i = 0; i < 20; i += 1) W.animation.advance(eased, { dt: 32, params: { ...values, page: "one", axis: "vaf" }, state });
   const readsBefore = eased.k;
   W.animation.rebuild(eased, { params: { ...params, axis: "ccf" }, state });
   check("switching the axis asks core for frames", eased.easing === true);
@@ -619,6 +660,10 @@ const defaults = async () => resolveParams(await spec(), new URLSearchParams("")
   W.animation.advance(back, { dt: 32, params: { ...params, axis: "vaf" }, state });
   check("…and an ease turned round leaves from where it is", back.mix < 1 && back.mix > 0.7, M.n3(back.mix));
 
+  /* Page 2 reads VAF only: an axis change there asks for nothing. */
+  const onTwo = W.animation.init({ params: { ...values, page: "many", axis: "vaf" }, state, fromScratch: true });
+  W.animation.rebuild(onTwo, { params: { ...values, page: "many", axis: "ccf" }, state });
+  check("page 2 has no axis to ease", !onTwo.easing);
   /* What the ease interpolates: one set of mutations read twice, so nothing
      may overtake anything on the way (it is a rescaling, not a reshuffle). */
   const many = W.compute({ params, rng: makeRng(4) });
@@ -639,17 +684,17 @@ const defaults = async () => resolveParams(await spec(), new URLSearchParams("")
   const W = await widget();
   const values = await defaults();
   const cells = [];
-  for (const page of ["one", "many", "clonal"]) {
+  for (const [page, view] of [["one", "one"], ["many", "one"], ["ccf", "one"], ["ccf", "all"], ["clonal", "one"]]) {
     for (const purity of M.PURITY_OPTIONS) {
       for (const depth of M.DEPTH_OPTIONS) {
         for (const state of M.COPY_STATES.map((s) => s.key)) {
-          cells.push({ ...values, page, purity, depth, state, copies: 2 });
+          for (const knows of M.KNOWLEDGE.map((k) => k.key)) cells.push({ ...values, page, view, purity, depth, state, copies: 2, knows });
         }
       }
     }
   }
-  for (const clones of ["one", "two", "three"]) for (const axis of ["vaf", "ccf"]) for (const assumed of ["purity", "nothing"]) {
-    cells.push({ ...values, page: "many", clones, axis, assumed, mutations: "120" });
+  for (const page of ["many", "ccf"]) for (const clones of ["one", "two", "three"]) for (const axis of ["vaf", "ccf"]) for (const assumed of ["purity", "nothing"]) {
+    cells.push({ ...values, page, view: "all", clones, axis, assumed, mutations: "120" });
   }
   for (const taken of ["1", "2", "4"]) for (const shape of ["linear", "branching"]) {
     cells.push({ ...values, page: "clonal", taken, shape });
@@ -696,25 +741,24 @@ const defaults = async () => resolveParams(await spec(), new URLSearchParams("")
   const empty = cardText();
   check("page 1's card states the definition before any read", /VAF = variant reads \/ reads/.test(empty), empty.slice(0, 48));
   check("…and reports no count yet", !/= \d+ \/ \d+ =/.test(empty));
-  const { state } = drawWith({ ...values, page: "one" }, 88);
+  const { state } = drawWith({ ...values, page: "one", purity: "0.70" }, 88);
   const full = cardText();
   const alt = M.altAt(state.one, 88);
   check("…and carries this reading's own counts once they exist",
     full.includes(`= ${alt} / 88 = ${M.n3(M.vafAt(state.one, 88))}`), full.slice(0, 60));
-  check("…the model in cell 25's letters", full.includes("VAF = p c m / (p Cₜ + 2(1 − p))"));
-  check("…the model with this sample's numbers",
-    full.includes(`(0.70 × 1.00 × 1) / (0.70 × 2 + 2 × 0.30) = ${M.n3(state.cfg.expected)}`), full.slice(60, 140));
-  check("…and the fraction solved from the reading", /c = VAF × \(p Cₜ \+ 2\(1 − p\)\) \/ \(p m\)/.test(full));
-  check("…with every letter named underneath", /p is the fraction of cells/.test(full));
+  /* NO LETTER FOR THE FRACTION ON PAGE 1 (Kenneth, 2026-09-26: "don't put CCF
+     here"): copies counted in words, and cell 25's letters on page 3. */
+  check("…the sample's line in words", full.includes("VAF = mutated copies / all copies"));
+  check("…with this sample's numbers",
+    full.includes(`(0.70 × 1.00 × 1) / (0.70 × 2 + 0.30 × 2) = ${M.n3(state.cfg.expected)}`), full.slice(60, 160));
+  check("…and no cancer cell fraction on it anywhere",
+    !/cancer cell fraction|c = VAF|p c m/i.test(full), full.slice(-80));
   /* THE MUTATED-COPY COUNT IS A TIMING, and both places that can say so must.
      Kenneth read 2 + 0 with one mutated copy as impossible on 2026-09-16 —
      "isn't the mutation copied when the copy number increases?" — because the
      figure named what m counts and never what it encodes. 01-2 cell 25 states
      both orders of m, so a copy pass that drops either loses the answer. */
-  check("…and says which order of events m stands for",
-    /m is one when the mutation arose after the copy number changed/.test(full)
-    && /more when it arose before and was copied with it/.test(full));
-  check("the mutated-copy control says it too, where the question was asked",
+  check("the mutated-copy control says which order of events it stands for",
     /arose after the copy number changed/.test(M.STRINGS.copiesDetail)
     && /arose before/.test(M.STRINGS.copiesDetail), M.STRINGS.copiesDetail);
   /* And both orders stay reachable: one mutated copy is the usual case the
@@ -725,19 +769,40 @@ const defaults = async () => resolveParams(await spec(), new URLSearchParams("")
       M.copyOptions(st.key).join(", "));
   }
 
-  /* Page 2: the same model solved for c, and MATH as cell 23's title. */
-  const { state: many } = drawWith({ ...values, page: "many" });
+  /* Page 2: MATH as cell 23's title, and no fraction. */
+  const { state: many } = drawWith({ ...values, page: "many", purity: "0.70" });
   const card2 = cardText();
-  check("page 2's card states the correction", card2.includes("c = VAF × (p Cₜ + 2(1 − p)) / (p m)"));
-  check("…and what it multiplies by at this purity", /= VAF × 2\.86 at purity 0\.70/.test(card2), card2.slice(0, 90));
-  check("…states MATH as it is computed", card2.includes("MATH = 100 × 1.4826 × MAD(VAF) / median(VAF)"));
+  check("page 2's card states MATH as it is computed", card2.includes("MATH = 100 × 1.4826 × MAD(VAF) / median(VAF)"));
   check("…and the same line with this tumour's numbers",
     card2.includes(`= ${many.many.math.toFixed(1)}`), card2.slice(-70));
+  check("…and no correction: the fraction is page 3's", !card2.includes("c = VAF"));
 
-  /* Page 3: the rule, and the sample that decides it. */
+  /* Page 3, All mutations: the same model solved for c. */
+  drawWith({ ...values, page: "ccf", view: "all", purity: "0.70" });
+  const cardAll = cardText();
+  check("page 3's All mutations card states the correction", cardAll.includes("c = VAF × (p Cₜ + 2(1 − p)) / (p m)"));
+  check("…and what it multiplies by at this purity", /= VAF × 2\.86 at purity 0\.70/.test(cardAll), cardAll.slice(0, 90));
+
+  /* Page 3, One mutation: cell 25's three steps. */
+  const { state: s3 } = drawWith({ ...values, page: "ccf", purity: "0.70" }, 88);
+  const card3one = cardText();
+  const alt3 = M.altAt(s3.one, 88);
+  check("page 3's card states the model in cell 25's letters", card3one.includes("VAF = p c m / (p Cₜ + 2(1 − p))"));
+  check("…at what the analysis is given, c and m left as letters",
+    card3one.includes("= 0.70 c m / (0.70 × 2 + 2 × 0.30) = 0.350 × c × m"), card3one.slice(0, 120));
+  check("…c solved from the reading for each m",
+    card3one.includes(`= ${M.n3(alt3 / 88)} × 2.86 ÷ m =`), card3one.slice(100, 220));
+  check("…and the likelihood with this reading's k and n",
+    card3one.includes("L(c, m) = Pr(k | n, VAF(c, m))") && card3one.includes(`k = ${alt3}, n = 88`));
+  check("…with every letter named underneath, and what m stands for",
+    /p is the fraction of cells/.test(card3one)
+    && /m is one when the mutation arose after the copy number changed/.test(card3one)
+    && /more when it arose before and was copied with it/.test(card3one));
+
+  /* Page 4: the rule, and the sample that decides it. */
   const { state: tree } = drawWith({ ...values, page: "clonal", tree: "branching" });
   const card3 = cardText();
-  check("page 3's card states the sum rule", /Σ over the children of a cluster: c ≤ c of the parent/.test(card3), card3.slice(0, 60));
+  check("page 4's card states the sum rule", /Σ over the children of a cluster: c ≤ c of the parent/.test(card3), card3.slice(0, 60));
   const decided = tree.used.find((s) => !M.fitsSumRule(M.shapeOf("branching"), s.ccf));
   const tight = M.tightestNode(M.shapeOf("branching"), decided.ccf);
   check("…and the arithmetic of the sample that rules the shape out",
@@ -756,37 +821,30 @@ const defaults = async () => resolveParams(await spec(), new URLSearchParams("")
   const W_PX = 550; // the harness's canvas at FRAME_W 900 (HANDOVER § THE BIG ONE)
   let worst = null;
   const cells = [];
-  for (const page of ["one", "many", "clonal"]) {
+  for (const [page, view] of [["one", "one"], ["many", "one"], ["ccf", "one"], ["ccf", "all"], ["clonal", "one"]]) {
     for (const state of M.COPY_STATES.map((s) => s.key)) {
-      for (const depth of M.DEPTH_OPTIONS) cells.push({ ...values, page, state, depth, copies: 2 });
+      for (const depth of M.DEPTH_OPTIONS) cells.push({ ...values, page, view, state, depth, copies: 2 });
     }
   }
-  for (const clones of ["one", "two", "three"]) for (const axis of ["vaf", "ccf"]) cells.push({ ...values, page: "many", clones, axis });
+  for (const page of ["many", "ccf"]) for (const clones of ["one", "two", "three"]) for (const axis of ["vaf", "ccf"]) cells.push({ ...values, page, view: "all", clones, axis });
   /* Page 2 at every purity and every mutation count: the sweep above holds the
      purity at its default, and the mid-tween check below reached 0.35 first. */
-  for (const purity of M.PURITY_OPTIONS) for (const axis of ["vaf", "ccf"]) {
-    for (const mutations of M.MUTATION_OPTIONS) cells.push({ ...values, page: "many", purity, axis, mutations });
+  for (const page of ["many", "ccf"]) for (const purity of M.PURITY_OPTIONS) for (const axis of ["vaf", "ccf"]) {
+    for (const mutations of M.MUTATION_OPTIONS) cells.push({ ...values, page, view: "all", purity, axis, mutations });
   }
   for (const taken of ["1", "2", "4"]) for (const shape of ["linear", "branching"]) cells.push({ ...values, page: "clonal", taken, shape });
-  /* PAGE 1 AT EVERY LEVEL OF KNOWLEDGE, every state and every mutated-copy
-     count. The cells above leave \`knows\` at its default, where the reader's own
-     sample is always among the scenarios — so no line was ever drawn under the
-     panel, and when the height stopped reserving room it did not need
-     (2026-09-16) the tightest case, a note in 22px, had never been painted by
-     this check at all. */
-  let noted = 0;
+  /* PAGE 3'S ONE MUTATION AT EVERY LEVEL OF KNOWLEDGE, every purity, state and
+     mutated-copy count: the caption above the likelihood names what was given,
+     and its longest form ("assuming a pure sample and a diploid genome") is
+     the one to hold against the canvas. Page 1 had the same sweep for its
+     panel's note until 2026-09-26. */
   for (const knows of M.KNOWLEDGE.map((k) => k.key)) {
     for (const purity of M.PURITY_OPTIONS) {
       for (const st of M.COPY_STATES) {
-        for (const copies of st.copies.map(String)) {
-          const p = { ...values, page: "one", knows, purity, state: st.key, copies };
-          if (M.scenarioNote(p)) noted += 1;
-          cells.push(p);
-        }
+        for (const copies of st.copies.map(String)) cells.push({ ...values, page: "ccf", view: "one", knows, purity, state: st.key, copies });
       }
     }
   }
-  check("the sweep paints the panel's note, not only the panels without one", noted > 0, `${noted} cells with a note`);
   for (const params of cells) {
     const height = W.height({ w: W_PX, ...params });
     const state = W.compute({ params, rng: makeRng(params.seed) });
@@ -813,8 +871,28 @@ const defaults = async () => resolveParams(await spec(), new URLSearchParams("")
   const L = M.layout(W_PX, { ...values, page: "one" });
   check("page 1's rows do not overlap",
     L.cells.y + L.cells.h + 24 <= L.reads.y - 10
-    && L.reads.y + L.reads.h < L.bar.y
-    && L.bar.y + L.bar.h + 34 <= L.rows.y - 12);
+    && L.reads.y + L.reads.h < L.marks.y
+    && L.marks.y + L.marks.h <= L.bar.y);
+  const L3 = M.layout(W_PX, { ...values, page: "ccf", view: "one" });
+  check("page 3's rows do not overlap, and its cells and reads are page 1's",
+    L3.reads.y + L3.reads.h + 24 <= L3.lik.y - 14
+    && JSON.stringify(L3.cells) === JSON.stringify(L.cells) && JSON.stringify(L3.reads) === JSON.stringify(L.reads));
+  /* Cell 17's three labels: the 0.5 one and the 1 one on separate rows, and
+     the < 0.5 one ending before the 0.5 rule — the collision the mock found. */
+  {
+    const { ctx, seen } = recorder();
+    const params = { ...values, page: "one" };
+    const st = W.compute({ params, rng: makeRng(1) });
+    W.draw({ ctx, colors: COLORS, w: W_PX, h: W.height({ w: W_PX, ...params }), params, state: st, anim: W.animation.init({ params, state: st, fromScratch: true }) });
+    const find = (t) => seen.find((x) => x.s === t);
+    const half = find(M.STRINGS.readingHalf);
+    const one = find(M.STRINGS.readingOne);
+    const low = find(M.STRINGS.readingLow);
+    check("cell 17's three readings are all painted", Boolean(half && one && low));
+    check("…the 0.5 and the 1 labels on separate rows", half && one && half.y !== one.y, `${half?.y} and ${one?.y}`);
+    check("…and the < 0.5 label clear of the 0.5 rule",
+      low && low.x + (M.STRINGS.readingLow.length * 5.6) / 2 < L.marks.x + L.marks.w * 0.5);
+  }
 }
 
 /* --- the two tweens Kenneth asked for on 2026-09-16 ------------------------
@@ -934,10 +1012,10 @@ const defaults = async () => resolveParams(await spec(), new URLSearchParams("")
   W.animation.advance(back3, { dt: 32, params: clonal, state: st3 });
   check("…and a glide turned round leaves from where it is",
     back3.shapeMix < 1 && back3.shapeMix > 0.7, M.n3(back3.shapeMix));
-  /* Off page 3 there is nothing to watch, so it lands rather than glides. */
+  /* Off page 4 there is nothing to watch, so it lands rather than glides. */
   const off = W.animation.init({ params: { ...values, page: "one" }, state: st3, fromScratch: true });
   W.animation.rebuild(off, { params: { ...values, page: "one", tree: "branching" }, state: st3 });
-  check("…and a shape changed off page 3 lands with no frames",
+  check("…and a shape changed off page 4 lands with no frames",
     !off.easing && off.shapeMix === 1);
 
   /* ---- page 2: the bars morph, and only for the sample's own parameters ---- */
@@ -1042,12 +1120,12 @@ const defaults = async () => resolveParams(await spec(), new URLSearchParams("")
         mid({ ...values, page: "clonal", taken }, (a) => { a.shapeMix = t; a.tree = "branching"; });
       }
       for (const axis of ["vaf", "ccf"]) {
-        mid({ ...many, axis, purity: "0.35" }, (a) => {
+        mid({ ...many, page: "ccf", view: "all", axis, purity: "0.35" }, (a) => {
           a.histFrom = hA; a.topFrom = M.histTop(hA); a.histT = t; a.spansFrom = null;
         });
       }
       /* both clocks at once: a shape switched while the bars are still moving */
-      mid({ ...many, purity: "0.35" }, (a) => {
+      mid({ ...many, page: "ccf", view: "all", purity: "0.35" }, (a) => {
         a.histFrom = hA; a.topFrom = M.histTop(hA); a.histT = t; a.mix = t;
       });
     }
