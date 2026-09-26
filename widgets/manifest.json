@@ -1218,7 +1218,7 @@
     {
       "slug": "attention",
       "title": "Deep Learning - Language: Attention",
-      "blurb": "A word's meaning depends on its context; attention computes each token's vector as a weighted sum over every token.",
+      "blurb": "Attention replaces each token's vector with a weighted mix of all the tokens, weighted by how relevant each is to it.",
       "course": "PHM5005",
       "topics": [
         "attention",
