@@ -114,6 +114,10 @@ export function headWeights(which, h) {
   };
 }
 
+/** W_O as torch keeps it, [out][in] row-major, and its bias: the Heads step splits an
+    output number into what each head's 12 columns add */
+export const outWeights = () => ({ W: WEIGHTS.Wo, b: WEIGHTS.bo });
+
 /** everything the four pages draw for one sentence */
 /* The Weights step shows the sentence padded with four [PAD], as a batch pads a
    shorter sentence to a longer one's length; four fits the longest sentence (11

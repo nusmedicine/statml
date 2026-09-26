@@ -108,6 +108,8 @@ const S = {
   headsX: (L) => `x̃  [${L} × 48]`, headsZ: (L) => `[${L} × 12]`, headsCat: (L) => `concatenated [${L} × 48]`, headsWo: "× W_Oᵀ + b",
   headsOut: (L) => `output [${L} × 48]`, headsFf: "Feed-forward",
   headsNote: "Rows: queries · α columns: keys · each share measured over 500 notes",
+  headsSplit: (d, tok, parts, b, tot) => `number ${d} of the output for "${tok}" = `
+    + parts.map((v, k) => `head ${k + 1} ${v}`).join(" · ") + ` · b ${b} = ${tot}`,
   tileQuery: "Query", tileQueryNote: "the row just computed", tileQueryPinNote: "the row chosen in Query",
   tileTop: "Largest weight", tileTopNote: "the key with the largest αᵢⱼ in this row",
   tilePad: "On [PAD]", tilePadNote: (masked) => (masked ? "keys with mask 0 get weight 0" : "no mask: [PAD] keys are scored and weighted"),
@@ -212,7 +214,7 @@ const oldInk = (g) => (g.first ? 0 : Math.max(0, 1 - 2 * g.e)), newInk = (g) => 
     diagonal hatch in every [PAD] cell was "distracting"; a lighter band behind the [PAD]
     columns and their labels, split off by a dashed rule, marks padding as the one block it
     is and leaves each cell's own colour alone, so an unmasked [PAD] weight reads plainly. */
-function matrix(ctx, colors, A, toks, x0, y0, cs, anim, { colLabels = true, rowLabels = true, padFrom = -1, box: outline = true, ge = ease(anim.t), fresh = ge, frame = null, row = null } = {}) {
+function matrix(ctx, colors, A, toks, x0, y0, cs, anim, { colLabels = true, rowLabels = true, padFrom = -1, box: outline = true, ge = ease(anim.t), fresh = ge, frame = null, row = null, dim = false } = {}) {
   const L = A.length, K = A[0].length, qi = row ?? queryOf(anim);
   if (padFrom >= 0) {
     ctx.save(); ctx.font = mono(colors); const labH = colLabels ? ctx.measureText(toks[padFrom]).width + 10 : 0; ctx.restore();
@@ -230,7 +232,10 @@ function matrix(ctx, colors, A, toks, x0, y0, cs, anim, { colLabels = true, rowL
     for (let j = 0; j < K; j++) {
       const x = x0 + j * cs, y = y0 + i * cs;
       ctx.fillStyle = colors.surface2; ctx.fillRect(x, y, cs - 1, cs - 1);
-      if (a > 0 && A[i][j] !== null) { ctx.save(); ctx.globalAlpha = a; ctx.fillStyle = css(weightFill(colors, A[i][j])); ctx.fillRect(x, y, cs - 1, cs - 1); ctx.restore(); }
+      if (a > 0 && A[i][j] !== null) {
+        const f = weightFill(colors, A[i][j]);
+        ctx.save(); ctx.globalAlpha = a; ctx.fillStyle = css(dim ? mixRgb(f, rgb(colors.surface), 0.7) : f); ctx.fillRect(x, y, cs - 1, cs - 1); ctx.restore();
+      }
     }
   }
   if (outline) { ctx.strokeStyle = frame ?? colors.ink2; ctx.lineWidth = frame ? 1.5 : 1; ctx.strokeRect(x0 - 0.5, y0 - 0.5, K * cs, L * cs); ctx.lineWidth = 1; }
@@ -884,60 +889,94 @@ function headsY(L) {
   return { cat, z, dim, title: dim + 18, habit: dim + 32, matTop: dim + 46 };
 }
 const headsCs = (w, L) => Math.max(6, Math.min(14, Math.floor(((w - PAD_L - PAD_R) / 4 - 16) / L)));
-const heightHeads = (w, L) => headsY(L).matTop + L * headsCs(w, L) + 88;
+/* +64: room under the note for the split of an output number (the hover, Hd3): two lines of
+   it at the narrowest width, then the bars */
+const heightHeads = (w, L) => headsY(L).matTop + L * headsCs(w, L) + 152;
 
 /** a matrix of values at its real size: rows before the query full, the query's row at
     `fresh`, the rest blank; the query's row outlined, gliding with `ge` as in matrix() */
-function valueGrid(ctx, colors, A, x0, y0, cw, ch, anim, { fresh, ge, frame, scale, toks = null, outline = true }) {
-  const R = A.length, K = A[0].length, qi = queryOf(anim), gap = cw > 4 ? 1 : 0;
+function valueGrid(ctx, colors, A, x0, y0, cw, ch, anim, { fresh, ge, frame, scale, toks = null, outline = true, row = null, dim = false }) {
+  const R = A.length, K = A[0].length, qi = row ?? queryOf(anim), gap = cw > 4 ? 1 : 0;
   for (let i = 0; i < R; i++) {
     if (toks) txt(ctx, toks[i], x0 - 7, y0 + i * ch + ch / 2, { font: mono(colors), fill: i === qi ? colors.groupA : colors.ink2, align: "right", baseline: "middle" });
     const a = rowAlpha(anim, i, fresh);
     for (let j = 0; j < K; j++) {
       const x = x0 + j * cw, y = y0 + i * ch;
       ctx.fillStyle = colors.surface2; ctx.fillRect(x, y, cw - gap, ch - 1);
-      if (a > 0) { ctx.save(); ctx.globalAlpha = a; ctx.fillStyle = css(signedFill(colors, A[i][j], scale)); ctx.fillRect(x, y, cw - gap, ch - 1); ctx.restore(); }
+      if (a > 0) {
+        const f = signedFill(colors, A[i][j], scale);
+        ctx.save(); ctx.globalAlpha = a; ctx.fillStyle = css(dim ? mixRgb(f, rgb(colors.surface), 0.7) : f); ctx.fillRect(x, y, cw - gap, ch - 1); ctx.restore();
+      }
     }
   }
   ctx.strokeStyle = frame; ctx.lineWidth = 1.5; ctx.strokeRect(x0 - 1, y0 - 1, K * cw + 1, R * ch + 1); ctx.lineWidth = 1;
-  if (outline) queryOutline(ctx, colors, x0, y0, K * cw, ch, anim, ge);
+  if (outline) queryOutline(ctx, colors, x0, y0, K * cw, ch, anim, ge, row);
 }
-function queryOutline(ctx, colors, x0, y0, wid, ch, anim, ge) {
+/** the query's row outlined: gliding with the press, or still on `row` (the hover) */
+function queryOutline(ctx, colors, x0, y0, wid, ch, anim, ge, row = null) {
   if (queryOf(anim) < 0) return;
-  const g = glide(anim, ge);
+  const g = row !== null ? { e: 1, pos: row, first: false } : glide(anim, ge);
   ctx.save(); ctx.globalAlpha = g.first ? g.e : 1; ctx.strokeStyle = colors.groupA; ctx.lineWidth = 1.5; ctx.setLineDash([3, 3]);
   ctx.strokeRect(x0 - 2.5, y0 + g.pos * ch - 2, wid + 4, ch + 3); ctx.restore();
 }
 
-function drawHeads(ctx, colors, w, params, state, anim) {
+/* HOVER, AN INSPECTOR, THREE TARGETS (his pick "all three", 2026-09-26,
+   `_lab/attention-heads-hover-mock.html`), once the press is still, over computed rows:
+     Hd1  a row of a head's Zₕ: that token's row outlined through every matrix.
+     Hd2  a head's α or its 12 columns of the concatenation: that head at full strength,
+          outlined, the other three dimmed, so its 12 are seen landing in the 48.
+     Hd3  a number d of the output: split into what each head adds through W_O, Σ over
+          its 12 of zₕ × W_O[d], plus the bias; one bar per head in its hue. The only
+          picture of what W_O does: every output number draws on all four heads. */
+function drawHeads(ctx, colors, w, params, state, anim, pointer) {
   const L = state.L, cs = headsCs(w, L), colW = (w - PAD_L - PAD_R) / 4, mid = w / 2, Y = headsY(L), rh = HD.rh;
   const hx = (k) => PAD_L + k * colW + colW / 2, ph = headsPhase(anim), run = state.run;
   const zmax = Math.max(...run.heads.flatMap((hd) => hd.z.flat()).map(Math.abs)), omax = Math.max(...run.out.flat().map(Math.abs));
   const zc = Math.max(4, Math.min(8, Math.floor((colW - 14) / M.DK))), cc = Math.max(3, Math.min(5, Math.floor((w * 0.5) / 48)));
   const cx0 = Math.round(mid - (48 * cc) / 2), right = cx0 + 48 * cc + 10;
+  const zxOf = (k) => Math.round(hx(k) - (M.DK * zc) / 2), mxOf = (k) => Math.round(hx(k) - (L * cs) / 2);
+  let hov = null;
+  if (pointer && anim.n > 0 && anim.t >= 1) {
+    const { x, y } = pointer, rowAt = (y0, h) => (y >= y0 && y < y0 + L * h ? Math.floor((y - y0) / h) : -1), done = (i) => i >= 0 && i < anim.n;
+    if (x >= cx0 && x < cx0 + 48 * cc) {
+      const c = Math.floor((x - cx0) / cc), io = rowAt(HD.outY, rh), ic = rowAt(Y.cat, rh);
+      if (done(io)) hov = { i: io, d: c, head: -1 };
+      else if (ic >= 0) hov = { i: done(ic) ? ic : null, d: -1, head: Math.floor(c / M.DK) };
+    }
+    for (let k = 0; k < 4 && !hov; k++) {
+      const iz = x >= zxOf(k) && x < zxOf(k) + M.DK * zc ? rowAt(Y.z, rh) : -1, ia = x >= mxOf(k) && x < mxOf(k) + L * cs ? rowAt(Y.matTop, cs) : -1;
+      if (done(iz)) hov = { i: iz, d: -1, head: -1 };
+      else if (ia >= 0) hov = { i: done(ia) ? ia : null, d: -1, head: k };
+    }
+  }
+  const row = hov && hov.i !== null ? hov.i : null, lit = (k) => !hov || hov.head < 0 || hov.head === k;
+  const mark = (x, y, wid, hgt) => { ctx.strokeStyle = colors.groupA; ctx.lineWidth = 2; ctx.strokeRect(x - 1.5, y - 1.5, wid + 2, hgt + 2); ctx.lineWidth = 1; };
 
   /* the feed-forward, then W_O's output [L × 48] */
   box(ctx, colors, mid - 80, HD.ff, 160, HD.bh, S.headsFf, { alpha: 0.45 });
   arrow(ctx, mid, HD.outY - 6, mid, HD.ff + HD.bh + 2, colors.ink3);
-  valueGrid(ctx, colors, run.out, cx0, HD.outY, cc, rh, anim, { fresh: ph.out, ge: ph.e, frame: colors.ink1, scale: omax, toks: state.tokens });
+  valueGrid(ctx, colors, run.out, cx0, HD.outY, cc, rh, anim, { fresh: ph.out, ge: ph.e, frame: colors.ink1, scale: omax, toks: state.tokens, row });
+  if (hov && hov.d >= 0) mark(cx0 + hov.d * cc, HD.outY + hov.i * rh, cc, rh);
   txt(ctx, S.headsOut(L), right, HD.outY + (L * rh) / 2, { font: small(colors), fill: colors.ink1, baseline: "middle" });
   arrow(ctx, mid, Y.cat - 5, mid, HD.outY + L * rh + 5, colors.ink3);
   txt(ctx, S.headsWo, mid + 10, (Y.cat + HD.outY + L * rh) / 2, { font: small(colors), fill: colors.ink2, baseline: "middle" });
   /* the four Zₕ side by side [L × 48], each 12 columns in its head's hue */
   run.heads.forEach((hd, k) => valueGrid(ctx, colors, hd.z, cx0 + k * M.DK * cc, Y.cat, cc, rh, anim,
-    { fresh: ph.cat, ge: ph.e, frame: colors.dims[k], scale: zmax, toks: k === 0 ? state.tokens : null, outline: false }));
-  queryOutline(ctx, colors, cx0, Y.cat, 48 * cc, rh, anim, ph.e);
+    { fresh: ph.cat, ge: ph.e, frame: colors.dims[k], scale: zmax, toks: k === 0 ? state.tokens : null, outline: false, row, dim: !lit(k) }));
+  queryOutline(ctx, colors, cx0, Y.cat, 48 * cc, rh, anim, ph.e, row);
+  if (hov && hov.head >= 0) mark(cx0 + hov.head * M.DK * cc, Y.cat, M.DK * cc, L * rh);
   txt(ctx, S.headsCat(L), right, Y.cat + (L * rh) / 2, { font: small(colors), fill: colors.ink1, baseline: "middle" });
   /* each head: Zₕ [L × 12], its size, its title and habit, its α matrix, the bus from x̃ below */
   const matBottom = Y.matTop + L * cs;
   run.heads.forEach((hd, k) => {
     arrow(ctx, hx(k), Y.z - 5, cx0 + k * M.DK * cc + (M.DK * cc) / 2, Y.cat + L * rh + 5, colors.ink3);
-    valueGrid(ctx, colors, hd.z, Math.round(hx(k) - (M.DK * zc) / 2), Y.z, zc, rh, anim, { fresh: ph.zf, ge: ph.e, frame: colors.dims[k], scale: zmax });
+    valueGrid(ctx, colors, hd.z, zxOf(k), Y.z, zc, rh, anim, { fresh: ph.zf, ge: ph.e, frame: colors.dims[k], scale: zmax, row, dim: !lit(k) });
     txt(ctx, S.headsZ(L), hx(k), Y.dim, { font: small(colors), fill: colors.ink2, align: "center", baseline: "middle" });
-    txt(ctx, `${S.headLabel} ${k + 1}`, hx(k), Y.title, { font: cap(colors), fill: colors.ink1, align: "center" });
-    txt(ctx, `${M.HABIT[k].what} ${M.HABIT[k].share.toFixed(2)}`, hx(k), Y.habit, { font: small(colors), fill: colors.ink2, align: "center" });
-    matrix(ctx, colors, hd.alpha, state.tokens, Math.round(hx(k) - (L * cs) / 2), Y.matTop, cs, anim,
-      { colLabels: false, rowLabels: false, ge: ph.e, frame: colors.dims[k] });
+    txt(ctx, `${S.headLabel} ${k + 1}`, hx(k), Y.title, { font: cap(colors), fill: lit(k) ? colors.ink1 : colors.ink3, align: "center" });
+    txt(ctx, `${M.HABIT[k].what} ${M.HABIT[k].share.toFixed(2)}`, hx(k), Y.habit, { font: small(colors), fill: lit(k) ? colors.ink2 : colors.ink3, align: "center" });
+    matrix(ctx, colors, hd.alpha, state.tokens, mxOf(k), Y.matTop, cs, anim,
+      { colLabels: false, rowLabels: false, ge: ph.e, frame: colors.dims[k], row, dim: !lit(k) });
+    if (hov && hov.head === k) { mark(zxOf(k), Y.z, M.DK * zc, L * rh); mark(mxOf(k), Y.matTop, L * cs, L * cs); }
     arrow(ctx, hx(k), matBottom + 26, hx(k), matBottom + 6, colors.ink3);
   });
   const xb = matBottom + 26;
@@ -945,6 +984,23 @@ function drawHeads(ctx, colors, w, params, state, anim) {
   line(ctx, mid, xb, mid, xb + 10, colors.ink3, 1.2);
   box(ctx, colors, mid - 70, xb + 10, 140, HD.bh, S.headsX(L));
   txt(ctx, S.headsNote, PAD_L, xb + HD.bh + 30, { font: small(colors), fill: colors.ink3 });
+  /* Hd3: the hovered output number, split by head */
+  if (hov && hov.d >= 0) {
+    const d = hov.d, cat = run.concat[hov.i], Wo = M.outWeights();
+    const parts = [0, 1, 2, 3].map((k) => { let v = 0; for (let c = k * M.DK; c < (k + 1) * M.DK; c++) v += cat[c] * Wo.W[d * M.D + c]; return v; });
+    const signed = (v) => (v < 0 ? "−" : "+") + Math.abs(v).toFixed(2);
+    const lines = wrapLines(ctx, mono(colors), S.headsSplit(d + 1, state.tokens[hov.i], parts.map(signed), signed(Wo.b[d]), fmt2(run.out[hov.i][d])), w - PAD_L - PAD_R);
+    const ly = xb + HD.bh + 50;
+    lines.slice(0, 2).forEach((ln, k) => txt(ctx, ln, PAD_L, ly + k * 15, { font: mono(colors), fill: colors.ink1, baseline: "middle" }));
+    /* one bar a head, from its column's centre, to one scale */
+    const by = ly + 26, big = Math.max(...parts.map(Math.abs), 1e-9), sc = (colW / 2 - 12) / big;
+    parts.forEach((v, k) => {
+      const x = hx(k), len = v * sc;
+      ctx.fillStyle = colors.surface3; ctx.fillRect(Math.min(x, x + len), by, Math.abs(len), 10);
+      ctx.strokeStyle = colors.dims[k]; ctx.lineWidth = 1.5; ctx.strokeRect(Math.min(x, x + len), by, Math.abs(len), 10); ctx.lineWidth = 1;
+      line(ctx, x, by - 3, x, by + 13, colors.ink3, 1);
+    });
+  }
 }
 
 /* ============================================================ the widget */
@@ -1027,7 +1083,7 @@ defineWidget({
     renderCard(params);
     if (params.page === "projections") drawProjections(ctx, colors, w, params, state, anim, pointer);
     else if (params.page === "output") drawOutput(ctx, colors, w, params, state, anim, pointer);
-    else if (params.page === "heads") drawHeads(ctx, colors, w, params, state, anim);
+    else if (params.page === "heads") drawHeads(ctx, colors, w, params, state, anim, pointer);
     else drawWeights(ctx, colors, w, params, state, anim, pointer);
   },
 

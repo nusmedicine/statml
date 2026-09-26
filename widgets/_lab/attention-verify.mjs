@@ -105,6 +105,22 @@ for (const key of Object.keys(M.SENTENCES)) {
 }
 near(asp.run.heads[3].q[3][11], -4.15, 0.005, "aspirin, head 4: q's twelfth number, the mock's example");
 
+/* the Heads step's hover splits an output number by head: the four heads' Σ over their
+   12 of zₕ × W_O[d] plus the bias is that number, every row and every d */
+{
+  const { W: Wo, b: bo } = M.outWeights();
+  let worstS = 0;
+  for (const key of Object.keys(M.SENTENCES)) {
+    const run = M.stage(key).run;
+    run.concat.forEach((cat, i) => { for (let d = 0; d < M.D; d++) {
+      let v = bo[d];
+      for (let k = 0; k < M.H; k++) for (let c = k * M.DK; c < (k + 1) * M.DK; c++) v += cat[c] * Wo[d * M.D + c];
+      worstS = Math.max(worstS, Math.abs(v - run.out[i][d]));
+    } });
+  }
+  ok(worstS < 1e-12, `the heads' parts of an output number add up to it (${worstS})`);
+}
+
 const pad4 = asp.padded.open.heads[3].alpha.slice(0, asp.L).reduce((s, r) => s + M.tailShare(r, asp.L), 0) / asp.L;
 near(pad4, 0.24, 0.005, "aspirin, head 4: [PAD]'s share without the mask, over the rows");
 const wnd = M.stage("wound"), wq = wnd.tokens.indexOf("wound");
