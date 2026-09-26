@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · slot 84 transformer — mock</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1600px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 104ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); min-height: 26px; white-space: pre-line; max-width: 550px; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  img.fig { display: block; max-width: 380px; max-height: 320px; background: #fff; border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 104ch; }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+       border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 104ch; }
+  .q b { display: block; margin-bottom: 2px; }
+  .tell { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+          border-left: 3px solid var(--c-extreme); background: var(--surface-2); max-width: 104ch; }
+  #findings { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--ink-2); white-space: pre-wrap;
+              padding: var(--sp-3); background: var(--surface-2); border: 1px solid var(--grid); max-width: 120ch;
+              max-height: 420px; overflow: auto; }
+  table { border-collapse: collapse; font-size: var(--fs-sm); margin: var(--sp-2) 0; }
+  th, td { border: 1px solid var(--grid); padding: 4px 10px; text-align: left; vertical-align: top; }
+  th { color: var(--ink-2); font-weight: 600; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Slot 84 <code>transformer</code> &middot; Transformer Architecture &middot; Tasks &middot; Pre-training (08-1 cells 2&ndash;4) &middot; mock</h1>
+  <p class="note">
+    The encoder is <b>widget 83's own model</b> (the arc's tiny BERT: D 48, four heads of 12, two post-LN blocks,
+    masked-token pretraining on the synthetic clinical notes), now read through both blocks, the Add &amp; Norms and the
+    feed-forward. The decoder is a <b>causal model</b> of the same size trained on the same notes by next-token
+    prediction; cross-attention is a tiny <b>encoder&ndash;decoder</b> trained on DNA &rarr; protein, 08-1 cell 4's own
+    biological example. Every number is from <code>transformer-mock-data.json</code>
+    (<code>transformer-measure.py --export</code>). Filled states so they can be judged; the widget opens empty.
+    On-canvas strings are candidates, not copy.
+  </p>
+
+  <h2>0 &middot; What the measurement found</h2>
+  <div id="findings">loading&hellip;</div>
+
+  <h2>1 &middot; The pages</h2>
+  <p class="note">
+    08-1 has three headings: <i>Transformer Architecture</i> (§1 Encoder Block, §2 Decoder Block), <i>Transformer
+    Tasks</i> (the three families, a table) and <i>Pre-training</i> (the three objectives, a table). The arc plan
+    picked <b>A</b> and folded the families into the Decoder page as a mask switch. <b>B</b> gives the families their
+    own page, the lesson's four headings in order.
+  </p>
+  <table>
+    <tr><th></th><th>pages</th><th>what it costs</th></tr>
+    <tr><td><b>A</b> the arc's pick</td><td>Encoder &middot; Decoder &middot; Pre-training</td><td>Tasks is a control on Decoder: <i>Encoder-only &middot; Decoder-only &middot; Encoder&ndash;decoder</i> changes the diagram and the masks</td></tr>
+    <tr><td><b>B</b> the lesson's headings</td><td>Encoder &middot; Decoder &middot; Tasks &middot; Pre-training</td><td>four pages; Tasks is the families side by side (§ 4 A), the Decoder page only its own block</td></tr>
+    <tr><td><b>C</b> fewer</td><td>Architecture &middot; Pre-training</td><td>Encoder / Decoder a control on one page; the families on Architecture; the Decoder's two attentions share a page with the encoder's</td></tr>
+  </table>
+
+  <h2>2 &middot; Page Encoder &mdash; one token through the block</h2>
+  <p class="note">
+    The claim the page carries: <b>a token's vector is not fixed once embedded.</b> <i>discharge</i> in <i>planned
+    discharge home today</i> and in <i>yellow discharge from wound</i> is one row of the token table (and the same
+    position, 2), so the two x&#771; rows are identical (cos 1.000). After block 1's attention 0.880, after block 2's
+    0.425; over 600 notes a linear probe tells the senses apart 47% at x&#771; and 100% after the first attention (E1). <b>A</b>: his encoder figure, stage by stage bottom to
+    top, the two <i>discharge</i> rows beside each stage and how alike they are. <b>B</b>: the whole sentence as an
+    [L &times; 48] matrix at every stage, the block keeping its shape, the FFN drawn as the same network on each row.
+  </p>
+  <div class="row">
+    <div class="cand"><div class="sub">his dl-language-transformer-encoder.png</div><img class="fig" src="figs/dl-language-transformer-encoder.png" alt=""></div>
+    <div class="cand"><div class="sub">A · his block, a Step a stage; the two "discharge" rows beside it (48 numbers each)</div><canvas id="e1" width="550" height="470"></canvas></div>
+    <div class="cand"><div class="sub">B · the sentence at each stage, [6 × 48]; the discharge row outlined</div><canvas id="e2" width="550" height="470"></canvas></div>
+  </div>
+  <p class="rec">A: it carries the misconception, on his figure. B's matrix can be A's hover (a stage shows the
+    whole sentence), and the [L &times; 48] shape goes on each box as a label.</p>
+
+  <h2>3 &middot; Page Decoder &mdash; masked self-attention, generation, cross-attention</h2>
+  <p class="note">
+    His decoder figure has three sublayers and a loop from the output back to the input. <b>A</b>, section 1: the causal
+    model's weights on the lesson's sentence, every key after the query set to &minus;&infin; before the softmax (the
+    band); section 2: generation fed back, a Step computing the next token's probabilities from the tokens so far and
+    appending the largest. Changing tokens 5 onward leaves rows 0&ndash;4 exactly unchanged (D1). <b>B</b>:
+    cross-attention on DNA &rarr; protein, each amino acid a query and the encoder's nucleotides the keys: 0.95 of each
+    row lands on its own codon (D2). The English &rarr; Malay stage was measured too and translates 100%, but its
+    weights spread (0.36&ndash;0.44 on the aligned word), so it is not drawn.
+  </p>
+  <div class="row">
+    <div class="cand"><div class="sub">his dl-language-transformer-decoder.png</div><img class="fig" src="figs/dl-language-transformer-decoder.png" alt=""></div>
+    <div class="cand"><div class="sub">A · masked self-attention (causal model, block 1) and generation fed back</div><canvas id="d1" width="550" height="470"></canvas></div>
+  </div>
+  <div class="row">
+    <div class="cand"><div class="sub">his dl-language-attention-mask.png</div><img class="fig" src="figs/dl-language-attention-mask.png" alt=""></div>
+    <div class="cand"><div class="sub">B · cross-attention: queries from the decoder (protein), keys and values from the encoder (DNA); decoder block 2, mean of 4 heads</div><canvas id="d2" width="550" height="300"></canvas></div>
+  </div>
+  <p class="rec">Both, as the page's sections in his figure's order: 1 Masked self-attention, 2 Cross-attention,
+    with generation as the Step on section 1. DNA &rarr; protein for cross-attention: it is cell 4's own
+    encoder&ndash;decoder example, and the only stage whose weights show where the decoder reads.</p>
+
+  <h2>4 &middot; Transformer Tasks &mdash; the three families</h2>
+  <p class="note">
+    08-1 cell 3's table: encoder-only (BERT), decoder-only (GPT), encoder&ndash;decoder (T5, BART). What differs between
+    them is which blocks exist and which keys a query may see, so the three masks are the table. <b>A</b>: the three side
+    by side with the lesson's model and task examples (a page, pick B in § 1; or the control on Decoder, pick A).
+  </p>
+  <div class="row">
+    <div class="cand"><div class="sub">his dl-language-transformer-types.png</div><img class="fig" src="figs/dl-language-transformer-types.png" alt=""></div>
+    <div class="cand"><div class="sub">A · the three families as the keys each query may see</div><canvas id="t1" width="550" height="330"></canvas></div>
+  </div>
+
+  <h2>5 &middot; Page Pre-training &mdash; each objective reads its own direction</h2>
+  <p class="note">
+    08-1 cell 4's own two examples, each objective on the model it trains. <b>A</b>: the two predictions as bars.
+    MLM, <i>treated with [MASK] for chest pain</i>: 0.61 aspirin, 0.39 nitrate, the two chest-pain drugs. Causal,
+    <i>treated with</i> &rarr; next: 0.08&ndash;0.15 over all ten drugs, because the symptom that sets the drug is to its
+    right. Then the lesson's decoder example, <i>treated with aspirin for</i> &rarr; <i>chest</i> 0.998. <b>B</b>: the
+    same along the whole clause, 600 clauses: which tokens each objective recovers (P1).
+  </p>
+  <div class="row">
+    <div class="cand"><div class="sub">A · cell 4's examples, the two models' probabilities</div><canvas id="p1" width="550" height="380"></canvas></div>
+    <div class="cand"><div class="sub">B · every token of the clause, 600 clauses</div><canvas id="p2" width="550" height="210"></canvas></div>
+  </div>
+  <p class="rec">A with B beneath it as the page's second section: A is the lesson's example, B shows the drug is
+    the only token where the two part. The third objective, sequence-to-sequence, is the Decoder page's
+    cross-attention model; this page names it and links no figure of its own.</p>
+
+  <h2>6 &middot; The calls</h2>
+  <p class="q"><b>1 &middot; Pages.</b> A Encoder &middot; Decoder &middot; Pre-training, the families a control on
+    Decoder (the arc's pick) &middot; B Encoder &middot; Decoder &middot; Tasks &middot; Pre-training, the lesson's
+    headings (recommended: cell 3 is its own heading and its own table, and a control that redraws the Decoder page
+    as an encoder hides that the encoder page already is one) &middot; C Architecture &middot; Pre-training.</p>
+  <p class="q"><b>2 &middot; Encoder.</b> A his block, a Step a stage, the two <i>discharge</i> rows and how alike
+    they are (recommended) &middot; B the whole [L &times; 48] matrix at each stage.</p>
+  <p class="q"><b>3 &middot; Decoder.</b> A both sections, masked self-attention with generation, then
+    cross-attention (recommended) &middot; B masked self-attention and generation only, cross-attention on Tasks &middot;
+    and the cross-attention stage: DNA &rarr; protein (recommended) or English &rarr; Malay (his figure's direction,
+    diffuse weights).</p>
+  <p class="q"><b>4 &middot; Generation.</b> Greedy from <i>treated with aspirin for</i> gives <i>chest pain</i>, then
+    repeats <i>. patient deteriorated overnight</i> until the length runs out. A stop at [SEP] or the first
+    &ldquo;.&rdquo; (recommended: the lesson's example ends at the clause) &middot; B greedy as it is, the loop shown
+    &middot; C sampled with a Seed control, which gives varied notes (299 of 300 grammatical).</p>
+  <p class="q"><b>5 &middot; Pre-training.</b> A the two predictions, with the clause's token-by-token rows beneath
+    (recommended) &middot; B the predictions only.</p>
+  <p class="q"><b>6 &middot; Title and slug.</b> <i>Deep Learning - Language: Transformer</i> (recommended; 83's
+    form) &middot; <i>Deep Learning - Language: Transformers</i> &middot; slug <code>transformer</code>.</p>
+  <p class="tell"><b>For the lesson, 08-1 cell 2.</b> <i>"The FFN provides the nonlinearity needed to capture complex
+    patterns such as negation"</i> did not hold here: a model with no FFN at all reads negation 100% after its first
+    attention sublayer and loses under one point of masked-word accuracy (E3). Softmax and LayerNorm are nonlinear
+    too. And <i>"lower layers capture local patterns … higher layers semantic meaning"</i> does not show in two blocks
+    (E4). Both are claims about large models; the widget draws neither and says nothing about what the FFN does.</p>
+  <p class="note"><b>Left to the draft, conventional:</b> the base model's full weights and the causal model's as
+    generated files (83's <code>weights.js</code> carries block 1 only), a JS forward held to torch within 1e-5 as
+    83's is; the DNA &rarr; protein model as a third generated file; the two senses in <code>--c-group-a</code> /
+    <code>--c-group-b</code>, signed rows on <code>--c-value-low</code> / <code>--c-value-high</code>, weights on
+    <code>--c-magnitude</code>, the masked band as 83's [PAD] band.</p>
+</main>
+
+<script type="module">
+const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const C = {
+  ink1: css("--ink-1"), ink2: css("--ink-2"), ink3: css("--ink-3"), grid: css("--grid"),
+  s1: css("--surface-1"), s2: css("--surface-2"), s3: css("--surface-3"),
+  a: css("--c-group-a"), b: css("--c-group-b"), mag: css("--c-magnitude"), lo: css("--c-value-low"), hi: css("--c-value-high"),
+  emp: css("--c-empirical"), ref: css("--c-reference"), font: css("--font"), mono: css("--font-mono"),
+};
+function ctx(id) {
+  const cv = document.getElementById(id), dpr = window.devicePixelRatio || 1, w = cv.width, h = cv.height;
+  cv.style.width = w + "px"; cv.style.height = h + "px"; cv.width = w * dpr; cv.height = h * dpr;
+  const g = cv.getContext("2d"); g.scale(dpr, dpr); return g;
+}
+function text(g, s, x, y, { size = 11, color = C.ink2, align = "left", mono = false, bold = false } = {}) {
+  g.font = `${bold ? "600 " : ""}${size}px ${mono ? C.mono : C.font}`; g.fillStyle = color; g.textAlign = align; g.textBaseline = "alphabetic"; g.fillText(s, x, y);
+}
+const rgb = (h) => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+function mix(t, col) { const a = rgb(C.s1), b = rgb(col); return `rgb(${a.map((x, i) => Math.round(x + (b[i] - x) * Math.max(0, Math.min(1, t)))).join(",")})`; }
+const wcol = (w) => mix(Math.sqrt(w), C.mag);
+const vcol = (v, s) => mix(Math.abs(v) / s, v >= 0 ? C.hi : C.lo);
+function arrow(g, x1, y1, x2, y2, col = C.ink3) { g.strokeStyle = col; g.lineWidth = 1.2; g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke();
+  const a = Math.atan2(y2 - y1, x2 - x1); g.fillStyle = col; g.beginPath(); g.moveTo(x2, y2); g.lineTo(x2 - 7 * Math.cos(a - 0.4), y2 - 7 * Math.sin(a - 0.4)); g.lineTo(x2 - 7 * Math.cos(a + 0.4), y2 - 7 * Math.sin(a + 0.4)); g.fill(); }
+function box(g, x, y, w, h, label, { fill = C.s3, stroke = C.ink3, color = C.ink1, size = 11 } = {}) {
+  g.fillStyle = fill; g.fillRect(x, y, w, h); g.strokeStyle = stroke; g.lineWidth = 1; g.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+  text(g, label, x + w / 2, y + h / 2 + 4, { align: "center", size, color });
+}
+function strip(g, v, x, y, cw, h, s = 2.5) { v.forEach((u, k) => { g.fillStyle = vcol(u, s); g.fillRect(x + k * cw, y, cw, h); }); g.strokeStyle = C.grid; g.strokeRect(x + 0.5, y + 0.5, v.length * cw - 1, h - 1); }
+const cos = (u, v) => { let a = 0, b = 0, c = 0; u.forEach((x, i) => { a += x * v[i]; b += x * x; c += v[i] * v[i]; }); return a / Math.sqrt(b * c); };
+function dash(g, x, y, w, h) { g.setLineDash([4, 3]); g.strokeStyle = C.ref; g.lineWidth = 1.3; g.strokeRect(x, y, w, h); g.setLineDash([]); }
+
+fetch("transformer-measure.py").then(r => r.text()).then(s => { const i = s.indexOf("FINDINGS,"), j = s.indexOf('"""', i);
+  document.getElementById("findings").textContent = s.slice(i, j).trim(); });
+
+const D = await (await fetch("transformer-mock-data.json")).json();
+const [HOME, WOUND] = D.encoder;
+const STAGE = ["x̃ = token + position", "Self-attention, Add & Norm", "Feed forward, Add & Norm", "Self-attention, Add & Norm", "Feed forward, Add & Norm"];
+
+// ------------------------------------------------ 2 A · his block, stage by stage, the two discharge rows
+{
+  const g = ctx("e1"), di = 2, rowH = 64, top = 58, bx = 14, bw = 176, sx = 300, cw = 4.5;
+  text(g, "discharge", sx, 20, { size: 11, color: C.ink1, bold: true });
+  text(g, "planned discharge home today", sx, 36, { size: 10, mono: true, color: C.a });
+  text(g, "yellow discharge from wound", sx, 50, { size: 10, mono: true, color: C.b });
+  text(g, "alike (cos)", 540, 50, { size: 10, align: "right", color: C.ink3 });
+  // bottom-up, as his figure: stage 0 at the bottom
+  const yOf = (k) => top + (4 - k) * (rowH + 14) + 8;
+  [1, 2].forEach(bl => { const y1 = yOf(bl * 2) - 8, y2 = yOf(bl * 2 - 1) + rowH - 12; dash(g, bx - 6, y1, bw + 12, y2 - y1 + 4); text(g, `block ${bl}`, bx + bw + 12, y1 + 12, { size: 10, color: C.ref }); });
+  for (let k = 0; k < 5; k++) {
+    const y = yOf(k), a = HOME.stages[k].H[di], b = WOUND.stages[k].H[di];
+    box(g, bx, y + 6, bw, 30, STAGE[k], { fill: k === 0 ? C.s2 : C.s3, size: 11 });
+    text(g, "[6 × 48]", bx + bw / 2, y + 50, { size: 9, mono: true, align: "center", color: C.ink3 });
+    if (k < 4) arrow(g, bx + bw / 2, y - 2, bx + bw / 2, y - 12, C.ink3);
+    strip(g, a, sx, y + 6, cw, 13); strip(g, b, sx, y + 23, cw, 13);
+    text(g, cos(a, b).toFixed(3), 540, y + 26, { size: 12, mono: true, align: "right", color: C.ink1 });
+    g.strokeStyle = C.grid; g.beginPath(); g.moveTo(bx + bw + 4, y + 21); g.lineTo(sx - 6, y + 21); g.stroke();
+  }
+  text(g, "the same table row, the same position", sx, yOf(0) + 52, { size: 10, color: C.ink3 });
+}
+
+// ------------------------------------------------ 2 B · the whole matrix at each stage
+{
+  const g = ctx("e2"), S = WOUND, L = S.tokens.length, cw = 2.2, ch = 11, x0 = 250, rowH = 86, top = 20;
+  for (let k = 0; k < 5; k++) {
+    const y = top + (4 - k) * rowH, H = S.stages[k].H;
+    text(g, STAGE[k], 14, y + 14, { size: 11, color: C.ink1 }); text(g, k === 0 ? "" : `block ${k <= 2 ? 1 : 2}`, 14, y + 30, { size: 10, color: C.ref });
+    H.forEach((row, i) => { row.forEach((u, j) => { g.fillStyle = vcol(u, 2.5); g.fillRect(x0 + j * cw, y + i * ch, cw, ch - 1); });
+      text(g, S.tokens[i], x0 - 6, y + i * ch + 9, { size: 9, mono: true, align: "right", color: i === 2 ? C.b : C.ink3 }); });
+    g.strokeStyle = C.b; g.lineWidth = 1.4; g.strokeRect(x0 - 1, y + 2 * ch - 1, 48 * cw + 2, ch + 1);
+    text(g, "[6 × 48]", x0 + 48 * cw + 10, y + 36, { size: 10, mono: true, color: C.ink3 });
+    if (k === 2) { // the FFN on each row alone
+      for (let i = 0; i < L; i++) arrow(g, x0 + 48 * cw + 70, y + rowH + i * ch + 5, x0 + 48 * cw + 70, y + i * ch + 8, C.grid);
+      text(g, "the same FFN on each row", x0 + 48 * cw + 78, y + 70, { size: 10, color: C.ink3 });
+    }
+  }
+}
+
+// ------------------------------------------------ 3 A · masked self-attention and generation
+{
+  const g = ctx("d1"), T = D.decoder.tokens, n = T.length;
+  // the head with the most weight off the diagonal
+  let best = 0, bv = -1; D.decoder.alpha1.forEach((a, h) => { let s = 0; a.forEach((r, i) => r.forEach((w, j) => { if (j < i) s += w; })); if (s > bv) { bv = s; best = h; } });
+  const A = D.decoder.alpha1[best], cs = 26, x0 = 96, y0 = 58;
+  text(g, `1 · Masked self-attention, head ${best + 1}`, 14, 18, { size: 12, color: C.ink1 });
+  T.forEach((t, j) => { g.save(); g.translate(x0 + j * cs + cs / 2 + 3, y0 - 4); g.rotate(-Math.PI / 3); text(g, t, 0, 0, { size: 9, mono: true }); g.restore(); });
+  A.forEach((row, i) => { text(g, T[i], x0 - 4, y0 + i * cs + cs / 2 + 4, { size: 9, mono: true, align: "right" });
+    row.forEach((w, j) => { const x = x0 + j * cs, y = y0 + i * cs;
+      if (j > i) { g.fillStyle = C.s3; g.fillRect(x, y, cs - 1, cs - 1); return; }
+      g.fillStyle = wcol(w); g.fillRect(x, y, cs - 1, cs - 1);
+      text(g, w.toFixed(2).replace(/^0/, ""), x + cs / 2, y + cs / 2 + 4, { size: 8, mono: true, align: "center", color: Math.sqrt(w) > 0.55 ? C.s1 : C.ink1 }); }); });
+  text(g, "later keys: −∞ before the softmax, 0 after", x0 + n * cs + 8, y0 + 20, { size: 10, color: C.ink3 });
+  text(g, "each row sums to 1 over", x0 + n * cs + 8, y0 + 36, { size: 10, color: C.ink3 });
+  text(g, "the keys at or before it", x0 + n * cs + 8, y0 + 50, { size: 10, color: C.ink3 });
+  // generation
+  const G = D.decoder.generate, st = G[1], gy = 300;
+  text(g, "2 · Generation, the output fed back", 14, gy, { size: 12, color: C.ink1 });
+  let x = 14; st.context.slice(1).forEach((t, i) => { const w = g.measureText(t).width; text(g, t, x, gy + 24, { size: 11, mono: true, color: i >= 4 ? C.emp : C.ink1 }); x += t.length * 7 + 8; });
+  text(g, "→ next token", x, gy + 24, { size: 11, color: C.ink3 });
+  st.top.forEach(([t, p], i) => { const y = gy + 40 + i * 20; text(g, t, 120, y + 11, { size: 10, mono: true, align: "right", color: i === 0 ? C.ink1 : C.ink2 });
+    g.fillStyle = i === 0 ? C.emp : C.s3; g.fillRect(128, y, Math.max(1, p * 300), 14); text(g, p.toFixed(3), 128 + Math.max(1, p * 300) + 6, y + 11, { size: 10, mono: true }); });
+  // the loop arrow, his figure's
+  g.strokeStyle = C.ink3; g.beginPath(); g.moveTo(500, gy + 50); g.lineTo(530, gy + 50); g.lineTo(530, gy + 14); g.lineTo(x + 90, gy + 14); g.stroke();
+  text(g, "Step 2 of the prompt treated with aspirin for", 14, 462, { size: 10, color: C.ink3 });
+}
+
+// ------------------------------------------------ 3 B · cross-attention, DNA -> protein
+{
+  const g = ctx("d2"), X = D.cross, blk = X.blocks[1], H = blk.length, Lt = X.protein.length + 1, Ls = X.dna.length;
+  const avg = Array.from({ length: Lt }, (_, r) => Array.from({ length: Ls }, (_, j) => blk.reduce((s, h) => s + h[r][j], 0) / H));
+  const cs = 24, x0 = 96, y0 = 70;
+  text(g, "Keys, values: the encoder's DNA", x0, 16, { size: 11, color: C.ink1 });
+  X.codons.forEach((c, k) => { const x = x0 + 3 * k * cs; g.strokeStyle = C.ink3; g.beginPath(); g.moveTo(x + 2, 34); g.lineTo(x + 3 * cs - 3, 34); g.stroke();
+    text(g, c, x + 1.5 * cs, 30, { size: 10, mono: true, align: "center", color: C.ink3 }); });
+  X.dna.split("").forEach((c, j) => text(g, c, x0 + j * cs + cs / 2, y0 - 12, { size: 12, mono: true, align: "center", color: C.ink1 }));
+  const rowLab = ["[BOS]", ...X.protein];
+  for (let r = 0; r < X.protein.length; r++) {
+    text(g, `${rowLab[r]} → ${X.protein[r]}`, x0 - 8, y0 + r * cs + cs / 2 + 4, { size: 10, mono: true, align: "right", color: C.ink1 });
+    avg[r].forEach((w, j) => { const x = x0 + j * cs, y = y0 + r * cs; g.fillStyle = wcol(w); g.fillRect(x, y, cs - 1, cs - 1); });
+    g.strokeStyle = C.ink1; g.lineWidth = 1; g.strokeRect(x0 + 3 * r * cs - 0.5, y0 + r * cs - 0.5, 3 * cs, cs);
+  }
+  text(g, "Queries: the decoder's protein so far → the next amino acid", 14, y0 + X.protein.length * cs + 22, { size: 11, color: C.ink1 });
+  const on = avg.slice(0, X.protein.length).map((row, r) => row[3 * r] + row[3 * r + 1] + row[3 * r + 2]);
+  text(g, `weight on its own codon: ${on.map(v => v.toFixed(2)).join(" · ")}`, 14, y0 + X.protein.length * cs + 42, { size: 10, mono: true, color: C.ink3 });
+}
+
+// ------------------------------------------------ 4 A · the families as masks
+{
+  const g = ctx("t1"), cs = 12;
+  const fam = [["Encoder-only", "BERT", "classification · NER · de-identification"], ["Decoder-only", "GPT", "language modelling · generation"], ["Encoder–decoder", "T5, BART", "translation · summarisation"]];
+  const sq = (x, y, n, m, f) => { for (let i = 0; i < n; i++) for (let j = 0; j < m; j++) { g.fillStyle = f(i, j) ? mix(0.55, C.mag) : C.s3; g.fillRect(x + j * cs, y + i * cs, cs - 1, cs - 1); } };
+  fam.forEach(([name, eg, task], k) => {
+    const x = 14 + k * 180, y = 60;
+    text(g, name, x, 22, { size: 12, color: C.ink1, bold: true }); text(g, `e.g. ${eg}`, x, 40, { size: 10, color: C.ink3 });
+    if (k === 0) { sq(x, y, 6, 6, () => true); text(g, "self: every key", x, y + 6 * cs + 16, { size: 10 }); }
+    if (k === 1) { sq(x, y, 6, 6, (i, j) => j <= i); text(g, "self: earlier keys", x, y + 6 * cs + 16, { size: 10 }); }
+    if (k === 2) {
+      sq(x, y, 5, 5, () => true); text(g, "encoder self", x, y + 5 * cs + 14, { size: 10 });
+      sq(x, y + 5 * cs + 26, 4, 4, (i, j) => j <= i); text(g, "decoder self", x, y + 9 * cs + 40, { size: 10 });
+      sq(x + 70, y + 5 * cs + 26, 4, 5, () => true); text(g, "cross", x + 70, y + 9 * cs + 40, { size: 10 });
+    }
+    task.split(" · ").forEach((t, i) => text(g, t, x, 250 + i * 16, { size: 10, color: C.ink2 }));
+  });
+  text(g, "rows are queries, columns keys; grey cells are −∞ before the softmax", 14, 318, { size: 10, color: C.ink3 });
+}
+
+// ------------------------------------------------ 5 A · the two objectives' predictions
+{
+  const g = ctx("p1"), P = D.pretrain, right = new Set(P.drugs_for_chest_pain);
+  const bars = (x, y, list, title, sub, col, ok = right) => {
+    text(g, title, x, y, { size: 12, color: C.ink1, bold: true }); text(g, sub, x, y + 16, { size: 10, mono: true, color: C.ink2 });
+    list.forEach(([t, p], i) => { const yy = y + 28 + i * 18; text(g, t, x + 88, yy + 11, { size: 10, mono: true, align: "right", color: ok.has(t) ? C.ink1 : C.ink3 });
+      g.fillStyle = ok.has(t) ? col : C.s3; g.fillRect(x + 94, yy, Math.max(1, p * 130), 13); text(g, p.toFixed(2), x + 98 + Math.max(1, p * 130), yy + 11, { size: 9, mono: true }); });
+  };
+  bars(14, 20, P.mlm_mask, "Masked (MLM)", "treated with [MASK] for chest pain", C.a);
+  bars(284, 20, P.causal_after_with.slice(0, 8), "Next token (causal)", "treated with → ?", C.b);
+  text(g, "right answers in ink", 14, 200, { size: 10, color: C.ink3 });
+  bars(284, 236, P.causal_after_for.slice(0, 5), "Next token (causal)", "treated with aspirin for → ?", C.b, new Set(["chest"]));
+}
+
+// ------------------------------------------------ 5 B · token by token
+{
+  const g = ctx("p2"), toks = ["treated", "with", "‹drug›", "for", "‹symptom›", "(pain)"], mlm = [1, 1, 1, 1, 1, 1], cau = [0, 1, 0.17, 1, 1, 1];
+  const x0 = 130, cw = 66;
+  toks.forEach((t, j) => text(g, t, x0 + j * cw + cw / 2, 26, { size: 10, mono: true, align: "center", color: C.ink1 }));
+  [["MLM, that token masked", mlm, C.a], ["causal, from the left", cau, C.b]].forEach(([name, v, col], r) => {
+    const y = 44 + r * 60; text(g, name, x0 - 8, y + 26, { size: 10, align: "right" });
+    v.forEach((p, j) => { const x = x0 + j * cw + 8, h = 44; g.fillStyle = C.s3; g.fillRect(x, y, cw - 16, h); g.fillStyle = col; g.fillRect(x, y + h * (1 - p), cw - 16, h * p);
+      text(g, `${Math.round(p * 100)}%`, x + (cw - 16) / 2, y + h + 13, { size: 9, mono: true, align: "center" }); });
+  });
+  text(g, "a right answer, 600 clauses", 14, 200, { size: 10, color: C.ink3 });
+}
+</script>
+</body>
+</html>
