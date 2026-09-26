@@ -252,7 +252,7 @@ function cardForPage(params, state, anim) {
       [S.labelFraction, MATHML ? CCF_MATH : CCF_PLAIN,
         numbers(k > 0 ? `= ${M.n3(vaf)} × ${M.n2(factor)} ÷ m = ${solved}` : `= VAF × ${M.n2(factor)} ÷ m`)],
       [S.labelLikelihood, MATHML ? LIK_MATH : LIK_PLAIN,
-        numbers(lik ? `k = ${alt}, n = ${k}: c ${allowed}` : "k and n come from the reads")],
+        numbers(lik ? `k = ${alt}, n = ${k}: c ${allowed}` : "k and n are counted in the reads")],
     ],
     note: `${S.noteCcf} ${S.levelNote[given.known]}`,
   };
@@ -492,7 +492,7 @@ function drawOne(ctx, colors, L, params, state, anim) {
   text(ctx, k > 0 ? `VAF ${M.n3(vaf)}` : "VAF —", L.bar.x, readY, {
     font: `${colors.fsSm} ${colors.mono}`, fill: colors.ink1,
   });
-  text(ctx, `the sample gives ${M.n3(cfg.expected)}`, L.bar.x + L.bar.w, readY, {
+  text(ctx, `expected ${M.n3(cfg.expected)}`, L.bar.x + L.bar.w, readY, {
     font: `${colors.fsSm} ${colors.mono}`, fill: colors.theory, align: "right",
   });
 }
@@ -1090,7 +1090,7 @@ widgetApi = defineWidget({
       label: M.STRINGS.ruleLabel,
       detail: M.STRINGS.ruleDetail,
       options: M.RULES,
-      default: "every",
+      default: "interval",
       display: true,
       when: { all: [{ param: "page", equals: "ccf" }, { param: "view", equals: "one" }] },
     },
@@ -1219,17 +1219,17 @@ widgetApi = defineWidget({
           mark: "line",
         })),
         { token: "ink-3", label: "A parent still possible", mark: "line" },
-        { token: "extreme", label: "Cells an arrangement would need and the sample does not have", mark: "line" },
+        { token: "extreme", label: "Cells the tree would need and the sample does not have", mark: "line" },
       ];
     }
     const sample = [
       { token: "group-a", label: "Tumor cells", mark: "dot" },
       { token: "ink-3", label: "Copies of the chromosome in a cell", mark: "line" },
-      { token: "highlight", label: "The mutation, and the reads that carry it", mark: "bar" },
-      { token: "ink-3", label: "Reads that carry the reference allele", mark: "bar" },
+      { token: "highlight", label: "The mutation, and the reads with it", mark: "bar" },
+      { token: "ink-3", label: "Reads with the reference allele", mark: "bar" },
     ];
     if (params.page === "one") {
-      return [...sample, { token: "theory", label: "The variant allele frequency the sample's copies give", mark: "line" }];
+      return [...sample, { token: "theory", label: "The expected variant allele frequency", mark: "line" }];
     }
     /* Page 3: one entry per multiplicity the analysis considers, so the legend
        names exactly the curves on the figure (§ *Legend must match the graph*). */
@@ -1529,8 +1529,8 @@ widgetApi = defineWidget({
       const decider = used.find((s) => !M.fitsSumRule(M.SHAPES[1], s.ccf));
       return [
         fitting.length > 1
-          ? { label: "The tree", value: "Not settled", note: M.STRINGS.treeOpen }
-          : { label: "The tree", value: fitting[0].label, note: decider ? `3 beside 2 ruled out by ${decider.label}` : "the only tree the samples allow" },
+          ? { label: "The tree", value: "Two possible", note: M.STRINGS.treeOpen }
+          : { label: "The tree", value: fitting[0].label, note: decider ? `3 beside 2 ruled out by ${decider.label}` : "the one tree consistent with every sample" },
         { label: "Trees that fit", value: `${fitting.length} of ${M.SHAPES.length}`, note: "given the samples sequenced" },
         sequenced,
       ];
@@ -1539,13 +1539,13 @@ widgetApi = defineWidget({
     const vaf = M.vafAt(state.one, k);
     const alt = M.altAt(state.one, k);
     const cfg = state.cfg;
-    const reads = { label: "Reads carrying it", value: k > 0 ? `${M.intText(alt)} / ${M.intText(k)}` : "—", note: `of ${M.intText(state.one.depth)} at this depth` };
+    const reads = { label: "Variant reads", value: k > 0 ? `${M.intText(alt)} / ${M.intText(k)}` : "—", note: `of ${M.intText(state.one.depth)} at this depth` };
     if (params.page === "one") {
       /* NO FRACTION AND NO CALL ON PAGE 1 (2026-09-26); both are page 3's,
          where cell 25 names them. The third tile is the figure's percentage. */
       return [
         reads,
-        { label: "Variant allele frequency", value: k > 0 ? M.n3(vaf) : "—", note: `the sample's copies give ${M.n3(cfg.expected)}` },
+        { label: "Variant allele frequency", value: k > 0 ? M.n3(vaf) : "—", note: `expected ${M.n3(cfg.expected)}` },
         {
           label: M.STRINGS.ccfLabel,
           /* The control's own format, so the tile and the slider say one number. */
@@ -1571,8 +1571,8 @@ widgetApi = defineWidget({
         label: "Cancer cell fraction",
         value: span,
         note: !lik ? "no read yet"
-          : lik.allowed.length === 1 ? `what the reads allow, 95%, at m = ${lik.allowed[0].m}`
-            : `what the reads allow, 95%: ${lik.allowed.map((cv) => `${piece(cv)} at m = ${cv.m}`).join(", ")}`,
+          : lik.allowed.length === 1 ? `95% likelihood interval, at m = ${lik.allowed[0].m}`
+            : `95% likelihood interval: ${lik.allowed.map((cv) => `${piece(cv)} at m = ${cv.m}`).join(", ")}`,
       },
       {
         label: M.STRINGS.callLabel,
@@ -1595,7 +1595,7 @@ widgetApi = defineWidget({
       if (!used.length) return "A timeline of one patient's four samples, none sequenced yet, and no tree.";
       const fitting = M.treesFitting(used);
       return `Three clusters' mean cancer cell fraction across ${used.length} sample`
-        + `${used.length > 1 ? "s" : ""} of one patient, in time order, and the tree they allow: `
+        + `${used.length > 1 ? "s" : ""} of one patient, in time order, and the tree consistent with them: `
         + `${fitting.length > 1 ? "cluster 3 could sit under 1 or under 2" : fitting[0].label}.`;
     }
     const k = Math.min(anim?.k ?? 0, state.one.depth);
@@ -1603,11 +1603,11 @@ widgetApi = defineWidget({
     const cells = `${Math.round(M.CELLS * cfg.purity)} of ${M.CELLS} cells are tumor cells, `
       + `${M.pctText(cfg.ccf)} of them carrying the mutation on ${cfg.copies} of ${cfg.state.total} copies`;
     if (k === 0) return `A sample of ${M.CELLS} cells in which ${cells}, with an empty pileup of ${M.intText(state.one.depth)} reads below it.`;
-    const reading = `${M.intText(M.altAt(state.one, k))} of the ${M.intText(k)} reads drawn so far carry the mutation, `
+    const reading = `${M.intText(M.altAt(state.one, k))} of the ${M.intText(k)} reads drawn so far have the variant, `
       + `a variant allele frequency of ${M.n3(M.vafAt(state.one, k))}`;
-    if (params.page === "one") return `A sample of ${M.CELLS} cells in which ${cells}. ${reading} against the ${M.n3(cfg.expected)} the sample's copies give.`;
+    if (params.page === "one") return `A sample of ${M.CELLS} cells in which ${cells}. ${reading} against the expected ${M.n3(cfg.expected)}.`;
     const lik = M.likelihoodOf(M.altAt(state.one, k), k, cfg, params.knows, { rule: params.rule, cut: cutOf(params) });
-    return `A sample of ${M.CELLS} cells in which ${cells}. ${reading}. The likelihood of the reads allows a cancer cell `
-      + `fraction of ${M.n2(lik.lo)} to ${M.n2(lik.hi)}: ${M.STRINGS.callValue[lik.call].toLowerCase()}.`;
+    return `A sample of ${M.CELLS} cells in which ${cells}. ${reading}. The 95% likelihood interval for the cancer cell `
+      + `fraction is ${M.n2(lik.lo)} to ${M.n2(lik.hi)}: ${M.STRINGS.callValue[lik.call].toLowerCase()}.`;
   },
 });

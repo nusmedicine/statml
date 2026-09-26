@@ -9699,6 +9699,40 @@ card tests 3 beside 2 against the sample that decides it. Model:
 Verify 244 checks (a driven Step walk reads the rows' caption at each press),
 `check` and `test` green, switch probe 0 of 4 on page 4, overlap sweep clean.
 
+#### THE COPY AUDIT AFTER THE RESTRUCTURE, AND THE NEW SUBTITLE AND BLURB — 2026-09-26
+
+*"do copy audit and draft versions of subtitle and blurb based on style of
+previous widgets"*. `_lab/tumor-heterogeneity-copy-sweep.html` collected 184
+reader-facing strings, canvas and DOM, from 19 states over the four pages (its
+canvas side needed the theme repaint on every state, not only when empty); the
+claudisms banlist (292 terms, fetched live) found "settled", "moves" and
+"carry/carrying"; the project's passes found the reads that "allow", the sample
+that "gives", a rule that "compares", "holds" for "is true", "the sample's
+line" and "arrangement". **Twelve rows, all applied on his pick:** Two possible
+(for Not settled); multiplied by (moves); redrawn on the fraction axis (carried
+onto); **"95% interval"** throughout page 3 — *The whole 95% interval is above*
+(`rule=interval`, renamed before anything was public), "95% likelihood
+interval", "the 95% interval, 0.79 to 1.00, spans 0.90"; "expected 0.500" and
+"The expected variant allele frequency"; the threshold detail "the fraction at
+or above which a mutation is called clonal"; "The expected VAF counts copies";
+"Cells the tree would need…"; "is true only where"; **"Variant reads" and
+"reads with …" for reads, "carrying" kept for cells** (literal genetics, not
+the banlist's metaphor); the axis detail's "with purity divided out, at two
+copies" (it had claimed copy number too); and page 4's note gains the first
+rule. The verify's struck-word sweep gained the audit's words and at once
+caught two strings the scan had missed (the page-1 summary's "copies give",
+and "the mutations come from").
+
+**Subtitle S1**, his pick: *A tumor is a mixture of cell populations. A
+mutation's variant allele frequency is the fraction of sequencing reads that
+contain it, and it depends on tumor purity and copy number as well as on the
+fraction of tumor cells with the mutation. Given purity and copy number, the
+cancer cell fraction is estimated from the reads, and the fractions of mutation
+clusters across samples of one tumor determine its clonal tree.* **Blurb B1**
+(117): *A VAF depends on purity and copy number; given both, the cancer cell
+fraction is estimated and the clonal tree built.* Both checked against the
+banlist and the personification verbs before he saw them.
+
 **Verified:** `tumor-heterogeneity-verify.mjs` 220 checks (section 2's page-1
 height block replaced by the likelihood's: told both wrong 0.0% at 88 reads
 over 2,880 draws, truth held 96.8%; told nothing wrong 14.9%, truth held 51.0%

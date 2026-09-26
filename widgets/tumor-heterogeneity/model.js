@@ -469,20 +469,20 @@ export function givenOf(cfg, level) {
    the range reaching 1 sits between them, Pr(c > 0.95) > 0.5 like the best
    estimate. The link words are the options' first words. */
 export const RULES = [
-  { value: "every", label: "Every fraction the reads allow is above", span: true },
+  { value: "interval", label: "The whole 95% interval is above", span: true },
   { value: "best", label: "The best estimate is above", span: true },
 ];
 export const THRESHOLD_OPTIONS = ["0.80", "0.85", "0.90", "0.95"];
 
 /** The call under a rule and a line. The best estimate is the peak of the
     highest curve — the (c, m) the reads favour most. */
-export function callOf(lik, rule = "every", cut = CUT) {
+export function callOf(lik, rule = "interval", cut = CUT) {
   if (!lik) return "none";
   if (rule === "best") return lik.best.c >= cut - 1e-9 ? "clonal" : "subclonal";
   return lik.lo >= cut - 1e-9 ? "clonal" : lik.hi < cut - 1e-9 ? "subclonal" : "split";
 }
 
-export function likelihoodOf(k, n, cfg, level, { rule = "every", cut = CUT } = {}) {
+export function likelihoodOf(k, n, cfg, level, { rule = "interval", cut = CUT } = {}) {
   if (!(n > 0)) return null;
   const given = givenOf(cfg, level);
   const curves = given.ms.map((m) => {
@@ -898,16 +898,20 @@ export const stageHeight = (w, values) => layout(w, values).height;
 /* ---- copy ---------------------------------------------------------------- */
 
 export const STRINGS = {
-  /* His pick, 2026-09-16, subtitle B, rephrased on his "sequencing reads from"
+  /* UNTIL 2026-09-26 — his pick, 2026-09-16, subtitle B, rephrased on his "sequencing reads from"
      the same day: "falls" is on the struck list of the sit/fall/lie pass, and
      what replaces it says what the frequency is a fraction OF. Page 1 exists to
      correct that a VAF is a share of READS and not a share of cells, so the
      subtitle states it before the figure does. */
-  subtitle: "A tumor is a mixture of cell populations, and its mutations are read as variant "
-    + "allele frequencies — the fraction of sequencing reads from a sample that carry them. "
-    + "Purity and copy number set that fraction for a mutation carried by every tumor cell, "
-    + "sequencing depth sets how wide its peak is, and the cancer cell fraction is what is left "
-    + "once both are divided out.",
+  /* S1, his pick of 2026-09-26 after the restructure: the concept first, then
+     the four pages in order — the VAF and what sets it, the cancer cell
+     fraction estimated from the reads, the tree from clusters across samples.
+     Checked against the banlist and the personification verbs before he saw it. */
+  subtitle: "A tumor is a mixture of cell populations. A mutation's variant allele frequency is the "
+    + "fraction of sequencing reads that contain it, and it depends on tumor purity and copy number as "
+    + "well as on the fraction of tumor cells with the mutation. Given purity and copy number, the "
+    + "cancer cell fraction is estimated from the reads, and the fractions of mutation clusters across "
+    + "samples of one tumor determine its clonal tree.",
 
   pageLabel: "Page",
   pageDetail: "one mutation's VAF, a tumor's VAFs together, the cancer cell fraction inferred from them, or several samples of one patient",
@@ -940,12 +944,12 @@ export const STRINGS = {
 
   tumourSection: "The tumor",
   clonesLabel: "Populations",
-  clonesDetail: "the cell populations the mutations come from",
+  clonesDetail: "the cell populations the mutations are drawn from",
   mutationsLabel: "Mutations",
   mutationsDetail: "somatic mutations called in the tumor",
   lookSection: "How to read it",
   axisLabel: "Axis",
-  axisDetail: "the variant allele frequency, or the cancer cell fraction with purity and copy number divided out",
+  axisDetail: "the variant allele frequency, or the cancer cell fraction with purity divided out, at two copies",
   assumedLabel: "Given",
   assumedDetail: "what the correction is given; without purity it assumes a pure sample",
   clustersLabel: "Clusters found",
@@ -968,9 +972,9 @@ export const STRINGS = {
     nothing: "The fraction is solved at purity 1 and two copies, so reads from normal cells count "
       + "as tumor reads and lower it.",
     purity: "The fraction is solved at the sample's purity, which removes the dilution, and at two "
-      + "copies, which holds only where the genome is diploid.",
+      + "copies, which is true only where the genome is diploid.",
     both: "The fraction is solved at the sample's purity and copy number, which leaves m as the "
-      + "only unknown: each value of m gives one fraction.",
+      + "only unknown: each value of m has one fraction.",
   },
   knowsLabel: "Given",
   knowsDetail: "what the analysis is given; the rest is assumed",
@@ -1003,21 +1007,21 @@ export const STRINGS = {
       const b = lik.best.c.toFixed(2);
       return call === "clonal" ? `the best estimate, ${b}, is ${t} or more` : `the best estimate, ${b}, is below ${t}`;
     }
-    if (call === "clonal") return `every fraction the reads allow is ${t} or more`;
-    if (call === "subclonal") return `every fraction the reads allow is below ${t}`;
-    return `the reads allow ${lik.lo.toFixed(2)} to ${lik.hi.toFixed(2)}, on both sides of ${t}`;
+    if (call === "clonal") return `the whole 95% interval is ${t} or more`;
+    if (call === "subclonal") return `the whole 95% interval is below ${t}`;
+    return `the 95% interval, ${lik.lo.toFixed(2)} to ${lik.hi.toFixed(2)}, spans ${t}`;
   },
   ruleLabel: "Clonal if",
-  ruleDetail: "whether the call reads the range of fractions the reads allow, or the single best estimate",
+  ruleDetail: "whether the call uses the 95% interval or the single best estimate",
   thresholdLabel: "Clonal threshold",
-  thresholdDetail: "the cancer cell fraction the rule compares against",
+  thresholdDetail: "the fraction at or above which a mutation is called clonal",
   bestLegend: "The best estimate of c",
   /* The formula card's notes. Each names its letters and then says what the
      line divides by what — the general logic, in the lesson's own terms. */
   /* PAGE 1 NAMES NO LETTER FOR THE FRACTION (2026-09-26): cell 17 gives the
      readings in words and numbers, and the letters p, c, m and Cₜ arrive with
      cell 25 on page 3. So the sample's line counts copies in words. */
-  noteOne: "The reading divides variant reads by reads. The sample's line counts copies at this "
+  noteOne: "The reading divides variant reads by reads. The expected VAF counts copies at this "
     + "position: the tumor share × the share of tumor cells carrying it × the copies it is on, over "
     + "the tumor share × the copies in a tumor cell + the normal share × 2. Normal cells add copies "
     + "and no mutation, so a lower purity lowers the VAF; a gain adds copies, and lowers it unless "
@@ -1026,20 +1030,24 @@ export const STRINGS = {
     + "cells carrying the mutation, m the copies carrying it in such a cell, and Cₜ all the copies "
     + "there. m is one when the mutation arose after the copy number changed and more when it "
     + "arose before and was copied with it. Solved from the reads, c can pass 1; in the likelihood "
-    + "c runs from 0 to 1, and every c whose curve is within 1.92 of the highest is allowed.",
+    + "c runs from 0 to 1, and the 95% interval is every c within 1.92 log-likelihood units of the "
+    + "highest point.",
   noteMany: "Each cluster is one component of a Gaussian mixture, the number of them chosen by "
     + "BIC — mutations at similar frequencies. MAD is the median absolute deviation, and 1.4826 "
     + "scales it to a standard deviation.",
   noteAll: "The same model solved for c: at a fixed purity and two copies it is the reading "
-    + "multiplied by one number, so every mutation moves by the same factor. The clusters are "
-    + "fitted on the variant allele frequency and carried onto the fraction.",
+    + "multiplied by one number, so every mutation is multiplied by the same factor. The clusters "
+    + "are fitted on the variant allele frequency and redrawn on the fraction axis.",
   /* A CLUSTER IS A GROUP OF MUTATIONS, NOT OF CELLS. Page 2 teaches exactly that
      — the populations are the truth, the clusters are what a mixture finds —
      so page 3 cannot then give a cluster cells of its own (the terminology pass
      of 2026-09-17). The rule is about the cells that carry the mutations. */
-  noteTree: "The cells carrying a cluster's mutations are a subset of those carrying its parent's, "
-    + "so a cluster's children cannot need more cells than their parent has. Two clusters that "
-    + "would are one inside the other rather than side by side.",
+  /* Two rules since page 4 builds the tree (2026-09-26): the parent's
+     fraction first, then the sum rule the card's arithmetic shows. */
+  noteTree: "A cluster's parent has a fraction at least its own in every sample. The cells carrying a "
+    + "cluster's mutations are a subset of those carrying its parent's, so a cluster's children cannot "
+    + "need more cells than their parent has. Two clusters that would are one inside the other rather "
+    + "than side by side.",
   labelReading: "the reading",
   labelSampleLine: "the sample",
   labelLikelihood: "the likelihood",
@@ -1057,7 +1065,6 @@ export const STRINGS = {
   likNoRead: "Each curve starts once the first read is drawn",
   thresholdLegend: (cut) => `The threshold at a cancer cell fraction of ${cut.toFixed(2)}`,
   truthCcfLegend: "The true cancer cell fraction",
-  allowedLegend: "The fractions the reads allow, 95%",
   labelModel: "the model",
   labelSample: "this sample",
   labelFraction: "cancer cell fraction",

@@ -382,7 +382,7 @@ const defaults = async () => resolveParams(await spec(), new URLSearchParams("")
     for (const key of ["clonal", "subclonal", "split", "none"]) {
       check("…the " + key + " answer has a value and a note",
         Boolean(M.STRINGS.callValue[key])
-        && ["every", "best"].every((rule) => Boolean(M.STRINGS.callNote(key, rule, 0.9, { lo: 0.5, hi: 1, best: { c: 0.8 } }))));
+        && ["interval", "best"].every((rule) => Boolean(M.STRINGS.callNote(key, rule, 0.9, { lo: 0.5, hi: 1, best: { c: 0.8 } }))));
     }
 
     /* THE FRACTION TILE SHOWS THE SPAN OF WHAT FITS, and the call is its visible
@@ -533,7 +533,7 @@ const defaults = async () => resolveParams(await spec(), new URLSearchParams("")
     }
     return { right: (100 * t.right) / t.n, wrong: (100 * t.wrong) / t.n, split: (100 * t.split) / t.n };
   };
-  const every = M.THRESHOLD_OPTIONS.map((c) => sweep("every", Number(c)));
+  const every = M.THRESHOLD_OPTIONS.map((c) => sweep("interval", Number(c)));
   const best = M.THRESHOLD_OPTIONS.map((c) => sweep("best", Number(c)));
   check("every fraction allowed: under 1% wrong at every threshold",
     every.every((r) => r.wrong < 1), every.map((r) => r.wrong.toFixed(1)).join(" · "));
@@ -545,9 +545,9 @@ const defaults = async () => resolveParams(await spec(), new URLSearchParams("")
   const cfg = M.configOne({ purity: "0.70", ccf: "1.00", state: "1+1", depth: "88" });
   const at = (rule, cut) => M.likelihoodOf(33, 88, cfg, "both", { rule, cut }).call;
   check("his reading, 33 of 88: Cannot tell at every threshold under the range, Clonal under the best estimate",
-    M.THRESHOLD_OPTIONS.every((c) => at("every", Number(c)) === "split") && M.THRESHOLD_OPTIONS.every((c) => at("best", Number(c)) === "clonal"));
-  const note = M.STRINGS.callNote("split", "every", 0.9, M.likelihoodOf(33, 88, cfg, "both"));
-  check("…and the note names the range and the line between its ends", note === "the reads allow 0.79 to 1.00, on both sides of 0.90", note);
+    M.THRESHOLD_OPTIONS.every((c) => at("interval", Number(c)) === "split") && M.THRESHOLD_OPTIONS.every((c) => at("best", Number(c)) === "clonal"));
+  const note = M.STRINGS.callNote("split", "interval", 0.9, M.likelihoodOf(33, 88, cfg, "both"));
+  check("…and the note names the range and the line between its ends", note === "the 95% interval, 0.79 to 1.00, spans 0.90", note);
 }
 
 /* --- 3 · the reads -------------------------------------------------------- */
@@ -903,7 +903,7 @@ const defaults = async () => resolveParams(await spec(), new URLSearchParams("")
   for (const knows of M.KNOWLEDGE.map((k) => k.key)) {
     for (const purity of M.PURITY_OPTIONS) {
       for (const c of M.CASES) cells.push({ ...values, page: "ccf", view: "one", knows, purity, state: c.key });
-      for (const [rule, threshold] of [["best", "0.80"], ["every", "0.95"], ["best", "0.95"]]) cells.push({ ...values, page: "ccf", view: "one", knows, purity, rule, threshold });
+      for (const [rule, threshold] of [["best", "0.80"], ["interval", "0.95"], ["best", "0.95"]]) cells.push({ ...values, page: "ccf", view: "one", knows, purity, rule, threshold });
     }
   }
   for (const params of cells) {
@@ -1411,6 +1411,11 @@ const defaults = async () => resolveParams(await spec(), new URLSearchParams("")
        things; it does not address the reader or narrate the arithmetic. */
     ["the reader addressed", /\b(you|your|yours)\b/i],
     ["narration", /\b(here it is|comes back as|worth on its own|as they came|copied too)\b/i],
+    /* THE AUDIT OF 2026-09-26, after the restructure: the claudisms banlist's
+       "settled", "moves" and carry-as-metaphor, the reads that "allow" and the
+       sample that "gives", a rule that "compares", "holds" for "is true", and
+       our own "arrangement". Literal "carrying" for cells stays (his pick). */
+    ["the 2026-09-26 audit", /\b(allows?|settled|moves|carried onto|holds only|compares against|arrangement|gives?|come from)\b/i],
   ];
   const hits = [];
   for (const t of strings) {

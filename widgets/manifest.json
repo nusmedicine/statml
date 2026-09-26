@@ -997,7 +997,7 @@
     {
       "slug": "tumor-heterogeneity",
       "title": "Tumor Heterogeneity",
-      "blurb": "A variant allele frequency is a share of reads: purity and copy number set what a mutation reads.",
+      "blurb": "A VAF depends on purity and copy number; given both, the cancer cell fraction is estimated and the clonal tree built.",
       "course": "PHM5003",
       "topics": [
         "variant allele frequency",
