@@ -2,8 +2,10 @@
    Widget 70 · Mutational Signatures — PHM5003 07 / 01-4, end to end.
 
    `model.js` carries the engine, the stage and the copy, and the decisions
-   taken while building; this file draws them. Three pages, from Kenneth's picks
-   of 2026-09-18 and 2026-09-19: Catalogue · Signatures · Matching.
+   taken while building; this file draws them. Four pages: Catalogue ·
+   Signatures · Matching from Kenneth's picks of 2026-09-18 and 2026-09-19, and
+   Rank, 01-4 cell 19's estimate of the number of signatures, added after
+   Signatures on 2026-09-26 (round 5).
 
    The drawing rules this file keeps to:
 
@@ -54,6 +56,8 @@ const COSINE_MATH = `<math><mrow>${mi("cos")}${mo("(")}${mi("A")}${mo(",")}${mi(
   + `<mrow>${mi("A")}${mo("&#x00B7;")}${mi("B")}</mrow>`
   + `<mrow>${mo("&#x2016;")}${mi("A")}${mo("&#x2016;")}${mo("&#x2016;")}${mi("B")}${mo("&#x2016;")}</mrow></mfrac></mrow></math>`;
 const COSINE_PLAIN = "cos(A, B) = A · B / (‖A‖ ‖B‖)";
+const COPH_MATH = `<math><mrow>${mi("cor")}${mo("(")}<mn>1</mn>${mo("&#x2212;")}${mi("C")}${mo(",")}${mi("T")}${mo(")")}</mrow></math>`;
+const COPH_PLAIN = "cor(1 − C, T)";
 
 const numbers = (s) => (MATHML
   ? `<math><mrow><mtext>${s}</mtext></mrow></math>`
@@ -89,6 +93,15 @@ function cardFor(params, state, anim) {
       rows: [[S.labelFactor, MATHML ? FACTOR_MATH : FACTOR_PLAIN,
         numbers(`96 × ${f.cols} ≈ (96 × ${f.rank})(${f.rank} × ${f.cols})`)]],
       note: S.noteSignatures,
+    };
+  }
+  if (params.page === "rank" && state.estimate) {
+    const prog = rankProgress(anim);
+    const R = state.estimate.ranks[params.rank - M.RANKS_TRIED[0]];
+    return {
+      rows: [[S.labelCoph, MATHML ? COPH_MATH : COPH_PLAIN,
+        prog.placed.includes(params.rank) ? numbers(`rank ${params.rank}: ${M.cos3(R.coph)}`) : null]],
+      note: S.noteRank,
     };
   }
   if (params.page === "matching" && state.fit) {
@@ -865,6 +878,203 @@ function drawMatching(ctx, colors, w, params, state, anim) {
   text(ctx, S.referencesNote, L.x0 - 36, L.height - 10, { font: noteFont(colors), fill: colors.ink3 });
 }
 
+/* ---- the Rank page (round 5) -------------------------------------------------------- */
+
+/* NOTHING FADES (Kenneth, 2026-09-26, widget 67): a start's cells switch to
+   their new shade at once, and only the number moves — from under the matrix
+   to its place on the chart — while each chart's line grows to the new point. */
+
+/** The ranks whose ten starts are finished, and the one a press is running. */
+function rankProgress(anim) {
+  const rk = anim?.rk ?? 0, t = anim?.rkT ?? 1;
+  const running = rk > 0 && t < 1 ? M.RANKS_TRIED[rk - 1] : null;
+  const placed = M.RANKS_TRIED.slice(0, running == null ? rk : rk - 1);
+  return { running, placed, at: running == null ? null : M.rankPressAt(t) };
+}
+
+/** The rank whose matrix is on screen: the one running; else the slider's, once
+    run; else the last run. */
+function matrixRank(params, prog) {
+  if (prog.running != null) return prog.running;
+  if (prog.placed.includes(params.rank)) return params.rank;
+  return prog.placed.length ? prog.placed[prog.placed.length - 1] : null;
+}
+
+/* inset from the axis, so rank 2's value clears the tick labels */
+const rankX = (P, r) => P.x0 + 18 + ((r - M.RANKS_TRIED[0]) / (M.RANKS_TRIED.length - 1)) * (P.x1 - P.x0 - 26);
+const COPH_LO = 0.85, COPH_HI = 1.02;
+const cophY = (P, v) => P.top + P.h - ((Math.max(COPH_LO, v) - COPH_LO) / (COPH_HI - COPH_LO)) * P.h;
+function fitScale(est) {
+  const kls = est.ranks.map((x) => x.kl);
+  const lo = Math.floor(Math.min(...kls) / 500) * 500, hi = Math.ceil(Math.max(...kls) / 500) * 500;
+  const ticks = [];
+  for (let t = lo; t <= hi; t += 500) ticks.push(t);
+  return { lo, hi, ticks };
+}
+const fitY = (P, sc, v) => P.top + P.h - ((v - sc.lo) / (sc.hi - sc.lo)) * P.h;
+
+/** The points a click can reach: every finished rank, on both charts. */
+function rankTargets(L, est, prog) {
+  const sc = fitScale(est);
+  return prog.placed.flatMap((r) => {
+    const x = est.ranks[r - M.RANKS_TRIED[0]];
+    return [{ r, x: rankX(L.coph, r), y: cophY(L.coph, x.coph) }, { r, x: rankX(L.fit, r), y: fitY(L.fit, sc, x.kl) }];
+  });
+}
+
+function drawRank(ctx, colors, w, params, state, anim) {
+  const L = M.layout(w, params);
+  const est = state.estimate;
+  const prog = rankProgress(anim);
+  const byRank = (r) => est.ranks[r - M.RANKS_TRIED[0]];
+  const r = matrixRank(params, prog);
+  const starts = r == null ? 0 : r === prog.running ? prog.at.starts : M.NRUN;
+
+  /* the matrix: tumors in the finished tree's order, so agreement is squares */
+  text(ctx, r == null ? S.rankEmpty : S.rankTitle(r, starts), L.mx, 18, { font: capFont(colors), fill: colors.ink1 });
+  ctx.fillStyle = colors.surface3;
+  ctx.fillRect(L.mx, L.my, L.side, L.side);
+  if (r != null && starts > 0) {
+    const R = byRank(r);
+    const C = starts === M.NRUN ? R.cons : M.consensusOf(R.labels, starts);
+    const n = est.n, cell = L.cell;
+    const edge = (i) => Math.round(L.mx + i * cell);
+    const edgeY = (i) => Math.round(L.my + i * cell);
+    for (let a = 0; a < n; a += 1) {
+      const y0 = edgeY(a), y1 = edgeY(a + 1);
+      for (let b = 0; b < n; b += 1) {
+        const v = C[R.order[a]][R.order[b]];
+        if (v <= 1e-9) continue;
+        ctx.fillStyle = shade(colors, v);
+        const x0 = edge(b);
+        ctx.fillRect(x0, y0, edge(b + 1) - x0, y1 - y0);
+      }
+    }
+    if (est.hyperIndex >= 0) {
+      const p = R.order.indexOf(est.hyperIndex);
+      const tri = (x, y, rot) => {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(rot);
+        ctx.fillStyle = colors.ink1;
+        ctx.beginPath();
+        ctx.moveTo(0, -4);
+        ctx.lineTo(4, 3);
+        ctx.lineTo(-4, 3);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+      };
+      tri(L.mx + (p + 0.5) * cell, L.my + L.side + 7, 0);
+      tri(L.mx - 8, L.my + (p + 0.5) * cell, -Math.PI / 2);
+    }
+    if (starts === M.NRUN) {
+      text(ctx, S.rankNumber(R.coph), L.number.x, L.number.y, { font: capFont(colors), fill: colors.ink1 });
+    }
+  }
+
+  /* the two charts */
+  const sc = fitScale(est);
+  const panel = (P, title, ticks, fmtY, yOf) => {
+    text(ctx, title, P.x0 - 44, P.top - 16, { font: capFont(colors), fill: colors.ink1 });
+    for (const t of ticks) {
+      const y = Math.round(yOf(t)) + 0.5;
+      rule(ctx, P.x0 - 6, y, P.x1 + 6, y, colors.grid);
+      text(ctx, fmtY(t), P.x0 - 10, y + 3, { font: noteFont(colors), fill: colors.ink3, align: "right" });
+    }
+    for (const rr of M.RANKS_TRIED) text(ctx, String(rr), rankX(P, rr), P.top + P.h + 15, { font: noteFont(colors), fill: colors.ink3, align: "center" });
+    text(ctx, S.rankAxis, (P.x0 + P.x1) / 2, P.top + P.h + 31, { font: noteFont(colors), fill: colors.ink2, align: "center" });
+  };
+  panel(L.coph, S.rankCophTitle, [0.85, 0.9, 0.95, 1.0], (t) => t.toFixed(2), (v) => cophY(L.coph, v));
+  panel(L.fit, S.rankFitTitle, sc.ticks, (t) => M.intText(t), (v) => fitY(L.fit, sc, v));
+  if (params.truth === "on") {
+    for (const P of [L.coph, L.fit]) {
+      const x = Math.round(rankX(P, est.planted)) + 0.5;
+      rule(ctx, x, P.top, x, P.top + P.h, colors.reference, 1.5, [4, 4]);
+      text(ctx, S.plantedLabel(est.planted), x + 5, P.top + P.h - 5, { font: noteFont(colors), fill: colors.ink2 });
+    }
+  }
+
+  /* each chart's points and the line through them; a running press's number
+     glides in from under the matrix once its tenth start is laid */
+  const glide = prog.running != null && prog.at.starts === M.NRUN ? M.easeInOut(prog.at.glide) : null;
+  const series = (P, yOf, value, big) => {
+    const pts = prog.placed.map((rr) => [rankX(P, rr), yOf(value(byRank(rr)))]);
+    ctx.save();
+    ctx.strokeStyle = colors.ink2;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
+    if (glide != null && pts.length && glide > 0.7) {
+      const tx = rankX(P, prog.running), ty = yOf(value(byRank(prog.running)));
+      const [px, py] = pts[pts.length - 1];
+      const g = (glide - 0.7) / 0.3;
+      ctx.moveTo(px, py);
+      ctx.lineTo(M.lerp(px, tx, g), M.lerp(py, ty, g));
+    }
+    ctx.stroke();
+    ctx.restore();
+    const dot = (x, y) => {
+      ctx.fillStyle = big ? colors.empirical : colors.ink2;
+      ctx.beginPath();
+      ctx.arc(x, y, big ? 5 : 3.5, 0, 2 * Math.PI);
+      ctx.fill();
+    };
+    prog.placed.forEach((rr, i) => {
+      const [x, y] = pts[i];
+      dot(x, y);
+      if (rr === params.rank) {
+        ctx.save();
+        ctx.strokeStyle = colors.ink1;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(x, y, big ? 8.5 : 7, 0, 2 * Math.PI);
+        ctx.stroke();
+        ctx.restore();
+      }
+      if (big) {
+        ctx.save();
+        ctx.font = noteFont(colors);
+        ctx.textAlign = "center";
+        ctx.lineWidth = 4;
+        ctx.lineJoin = "round";
+        ctx.strokeStyle = colors.surface;
+        ctx.strokeText(M.cos3(value(byRank(rr))), x, y - 11);
+        ctx.fillStyle = colors.ink2;
+        ctx.fillText(M.cos3(value(byRank(rr))), x, y - 11);
+        ctx.restore();
+      }
+    });
+    if (glide != null) {
+      const tx = rankX(P, prog.running), ty = yOf(value(byRank(prog.running)));
+      if (big) dot(M.lerp(L.number.x + 170, tx, glide), M.lerp(L.number.y - 4, ty, glide));
+      else if (glide >= 1) dot(tx, ty);
+    }
+  };
+  series(L.coph, (v) => cophY(L.coph, v), (x) => x.coph, true);
+  series(L.fit, (v) => fitY(L.fit, sc, v), (x) => x.kl, false);
+}
+
+/** One frame of the Rank page's press: ten starts laid in, then the glide. */
+function takeRankStep(anim, dt) {
+  if (anim.rkT < 1) {
+    anim.rkT = Math.min(1, anim.rkT + dt / M.RANK_PRESS_MS);
+    return anim.rkT < 1;
+  }
+  if (anim.rk >= M.RANK_STAGES) return false;
+  anim.rk += 1;
+  anim.rkT = Math.min(1, dt / M.RANK_PRESS_MS);
+  return anim.rkT < 1;
+}
+
+/* THE RANKS RUN SURVIVE A RANK CHANGE. The rank is a data parameter, so moving
+   the slider re-inits the animation, but the ten starts at each rank do not
+   depend on it: the reader who runs ranks 2–8 and then picks 5 must not lose
+   the chart. Carried across a re-init that only moved the rank, and dropped on
+   Reset or Replay (core's `restart`, added for this), or when the cohort
+   changes. */
+let rankCarry = null;
+
 /* ---- the drives ------------------------------------------------------------------- */
 
 /** One frame of page 1's press: the arrival, the fold, the split into grids
@@ -924,15 +1134,17 @@ function takeMatchStep(anim, dt) {
 
 function settle(anim) {
   if (anim.page === "signatures") anim.done = anim.sig >= M.SIG_STAGES && anim.sigT >= 1;
+  else if (anim.page === "rank") anim.done = anim.rk >= M.RANK_STAGES && anim.rkT >= 1;
   else if (anim.page === "matching") anim.done = anim.match >= M.MATCH_STAGES && anim.matchT >= 1;
   else anim.done = anim.cat >= M.CAT_STAGES && anim.catT >= 1;
   anim.labelAt = M.labelStage(anim);
+  rankCarry = { seed: anim.seed, hypermutated: anim.hypermutated, rk: anim.rk };
 }
 
 /* ---- the widget ------------------------------------------------------------------- */
 
 const classLegend = () => M.CLASSES.map((c, k) => ({ token: SUB_TOKENS[k], label: c, mark: "bar" }));
-const ON_PAGES_2_3 = { param: "page", oneOf: ["signatures", "matching"] };
+const ON_PAGES_2_3 = { param: "page", oneOf: ["signatures", "rank", "matching"] };
 
 defineWidget({
   slug: "mutational-signatures",
@@ -988,7 +1200,9 @@ defineWidget({
     },
 
     dataSec: { type: "section", label: S.dataSection, afterDrive: true },
-    seed: { type: "int", label: S.seedLabel, detail: S.seedDetail, min: 1, max: 200, default: 1, afterDrive: true },
+    /* 1–20 since the Rank page (round 5, his pick): it reads a table computed
+       ahead, about 14 KB a seed. */
+    seed: { type: "int", label: S.seedLabel, detail: S.seedDetail, min: 1, max: M.SEED_MAX, default: 1, afterDrive: true },
     /* 3.7: a reveal is "True <noun>", Off/On, directly after Seed. On by
        default, his pick 4: what built each signature is printed. The link
        carries the words the control shows, off/on, as every True-X switch in
@@ -996,12 +1210,12 @@ defineWidget({
     truth: {
       type: "segmented", label: S.truthLabel, detail: S.truthDetail,
       options: [{ value: "off", label: "Off" }, { value: "on", label: "On" }], default: "on",
-      display: true, afterDrive: true, when: { param: "page", equals: "matching" },
+      display: true, afterDrive: true, when: { param: "page", oneOf: ["rank", "matching"] },
     },
 
     /* Authoring escape hatch, first render only: the presses already taken on
        the page it opens with. */
-    shown: { type: "int", min: 0, max: M.CAT_STAGES, default: 0, hidden: true },
+    shown: { type: "int", min: 0, max: Math.max(M.CAT_STAGES, M.RANK_STAGES), default: 0, hidden: true },
   },
 
   legend: ({ params }) => {
@@ -1010,6 +1224,16 @@ defineWidget({
         { token: "magnitude", label: S.legendHeat, mark: "bar" },
         ...classLegend(),
         ...(params.hypermutated === "out" ? [] : [{ token: "ink-1", label: S.legendHyper, mark: "tri" }]),
+      ];
+    }
+    if (params.page === "rank") {
+      return [
+        { token: "magnitude", label: S.legendConsensus, mark: "bar" },
+        { token: "empirical", label: S.legendCoph, mark: "dot" },
+        { token: "ink-2", label: S.legendFit, mark: "dot" },
+        { token: "ink-1", label: S.legendChosen, mark: "hollow" },
+        ...(params.truth === "on" ? [{ token: "reference", label: S.legendPlanted, mark: "dash" }] : []),
+        ...(params.hypermutated === "out" ? [] : [{ token: "ink-1", label: S.legendHyperMark, mark: "tri" }]),
       ];
     }
     if (params.page === "matching") {
@@ -1025,9 +1249,12 @@ defineWidget({
   compute({ params }) {
     const cohort = M.cohortFor(params.seed);
     const tumor = M.tumorFor(params.seed, params.tumor);
-    /* Page 1 draws no extraction, so it waits for a page that does (decision 7). */
-    const fit = params.page === "catalogue" ? null : M.fitFor(params.seed, params.hypermutated, params.rank);
-    return { cohort, tumor, fit };
+    /* Page 1 draws no extraction, so it waits for a page that does (decision 7);
+       the Rank page reads the ten starts at every rank, and no extraction at the
+       slider's, so moving the slider there costs nothing. */
+    const fit = params.page === "catalogue" || params.page === "rank" ? null : M.fitFor(params.seed, params.hypermutated, params.rank);
+    const estimate = params.page === "rank" ? M.rankEstimateFor(params.seed, params.hypermutated) : null;
+    return { cohort, tumor, fit, estimate };
   },
 
   /* Round 4: the pointer names the type under it on page 1, and a click pins
@@ -1040,6 +1267,16 @@ defineWidget({
       if (!state || cat < 3) return [];
       const Lw = M.wideOf(M.layout(w, params));
       return M.CHANNELS.map((c, ch) => ({ ...typeTarget(Lw, cat, ch), set: { type: c }, label: c }));
+    }
+    /* The Rank page: a click on a finished rank's point sets the slider to it,
+       on either chart. `anim` is read for the stage counter alone, which ranks
+       are finished. */
+    if (params.page === "rank") {
+      if (!state?.estimate) return [];
+      const L = M.layout(w, params);
+      return rankTargets(L, state.estimate, rankProgress(anim)).map((t) => ({
+        x: t.x - 10, y: t.y - 10, w: 20, h: 20, set: { rank: t.r }, label: S.tileAtRank(t.r),
+      }));
     }
     if (params.page !== "matching" || !state?.fit) return [];
     const L = M.layout(w, params);
@@ -1057,7 +1294,7 @@ defineWidget({
     /* Decision 6: no Play. */
     runLabel: null,
 
-    init: ({ params, state, fromScratch }) => {
+    init: ({ params, state, fromScratch, restart }) => {
       /* `shown` opens the page it is given with, and the others stay empty. */
       const shown = fromScratch ? 0 : Math.max(0, params.shown ?? 0);
       /* shownRow is the signature page 3's panel shows; fromRow and easeT ease
@@ -1065,13 +1302,19 @@ defineWidget({
       const row = openIndex(params);
       const anim = {
         page: params.page, tumor: params.tumor, cat: 0, catT: 1, landed: 0, clock: 0, sig: 0, sigT: 1, match: 0, matchT: 1,
+        rk: 0, rkT: 1, seed: params.seed, hypermutated: params.hypermutated,
         shownRow: row, fromRow: row, easeT: 1, scanRow: row,
       };
+      if (!restart && rankCarry && rankCarry.seed === params.seed && rankCarry.hypermutated === params.hypermutated) {
+        anim.rk = rankCarry.rk;
+      }
       if (params.page === "catalogue") {
         anim.cat = Math.min(M.CAT_STAGES, shown);
         anim.landed = anim.cat >= 1 ? state.tumor.n : 0;
       } else if (params.page === "signatures") {
         anim.sig = Math.min(M.SIG_STAGES, shown);
+      } else if (params.page === "rank") {
+        anim.rk = Math.max(anim.rk, Math.min(M.RANK_STAGES, shown));
       } else {
         anim.sig = shown >= 1 ? 1 : 0;
         anim.match = Math.min(M.MATCH_STAGES, shown);
@@ -1095,8 +1338,9 @@ defineWidget({
         return false;
       }
       const more = anim.page === "signatures" ? takeSigStep(anim, dt, state.fit.rank)
-        : anim.page === "matching" ? takeMatchStep(anim, dt)
-          : takeCatStep(anim, dt, state.tumor);
+        : anim.page === "rank" ? takeRankStep(anim, dt)
+          : anim.page === "matching" ? takeMatchStep(anim, dt)
+            : takeCatStep(anim, dt, state.tumor);
       anim.moving = more;
       settle(anim);
       return more;
@@ -1118,6 +1362,7 @@ defineWidget({
         if (anim.cat === 1) anim.landed = state.tumor.n;
         anim.sigT = 1;
         anim.matchT = 1;
+        anim.rkT = 1;
         anim.halt = true;
       }
       /* Each page keeps its place, because the page is a display parameter
@@ -1149,11 +1394,22 @@ defineWidget({
        creates `.w-figure` inside `defineWidget`. */
     renderCard(cardFor(params, state, anim));
     if (params.page === "signatures") { drawSignatures(ctx, colors, w, params, state, anim); return; }
+    if (params.page === "rank") { drawRank(ctx, colors, w, params, state, anim); return; }
     if (params.page === "matching") { drawMatching(ctx, colors, w, params, state, anim); return; }
     drawCatalogue(ctx, colors, w, params, state, anim, pointer);
   },
 
   readout({ params, state, anim }) {
+    if (params.page === "rank") {
+      const prog = rankProgress(anim);
+      const run = prog.placed.includes(params.rank);
+      const R = state.estimate.ranks[params.rank - M.RANKS_TRIED[0]];
+      return [
+        { label: S.tileRanksRun, value: String(prog.placed.length), note: S.tileRanksRunNote },
+        { label: S.tileCoph, value: run ? M.cos3(R.coph) : "—", note: run ? S.tileAtRank(params.rank) : S.tileNotRun(params.rank) },
+        { label: S.tileFit, value: run ? M.intText(R.kl) : "—", note: S.tileFitNote },
+      ];
+    }
     if (params.page === "signatures") {
       const f = state.fit;
       const sig = anim?.sig ?? 0;
@@ -1192,6 +1448,12 @@ defineWidget({
   },
 
   summary({ params, state, anim }) {
+    if (params.page === "rank") {
+      const prog = rankProgress(anim);
+      if (!prog.placed.length) return S.sumRankEmpty(state.estimate.n);
+      const R = state.estimate.ranks[params.rank - M.RANKS_TRIED[0]];
+      return S.sumRank(prog.placed, params.rank, prog.placed.includes(params.rank) ? R.coph : null);
+    }
     if (params.page === "signatures") {
       const f = state.fit;
       const sig = anim?.sig ?? 0;

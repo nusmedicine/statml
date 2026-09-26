@@ -10699,6 +10699,76 @@ Verification at the ship: verify 104 checks, `npm run check` and `npm test`
 (31 scripts) each run alone and read, and the full suite fronted at DPR 1.25
 reading 880 of 880 identical.
 
+#### Round 5, 2026-09-26: a Rank page for 01-4's "Estimate number of signatures"
+
+**His ask:** 01-4 cells 19–20 estimate the number of signatures with the
+cophenetic correlation plot; can the widget help explain it.
+
+**Measured first** (`_lab/mutational-signatures-rank-measure.mjs` and `.txt`,
+`_lab/mutational-signatures-rank.R`):
+
+- **What `estimateSignatures` runs**, read from maftools 2.26.0 and NMF 0.28:
+  `nmfEstimateRank(ranks, "brunet", nrun = 10, seed = 123456)` on
+  t(nmf_matrix) + pConstant. brunet stops on the connectivity (labels by each
+  tumour's largest exposure, unchanged for 41 checks of every 10 iterations).
+  The consensus is the share of the runs that label two tumours alike;
+  `cophcor()` correlates 1 − consensus with an average-linkage tree's
+  cophenetic distance. It measures **agreement between random starts**, not
+  fit — cell 19's wording is finding 6 above.
+- **The lesson's plot reproduces**: on cell 11's matrix at maftools' seed
+  123456 the curve is 0.997 0.993 0.975 0.948 0.955 0.959 0.902 0.914 0.830,
+  cell 20's to three decimals. **Its dip at 5 is partly the seed**: seed 1
+  holds 0.980 at 5 and dips at 6; seed 2's dip at 5 is 0.004 deep. Every seed
+  is above 0.97 through 4. The residuals agree to five figures at every seed.
+- **On the widget's cohort** (4 planted processes, 5 with the hypermutated
+  tumour), ten seeds: the curve falls from rank 2, steepest just past the
+  truth; the largest drop lands on the planted number in 4–5 of 10 seeds and
+  on it or beside it in 9. The fit (best KL) improves at every rank.
+- **Cost**: ten starts to the connectivity stop take about 7 s a rank in the
+  browser, so the page reads a table computed ahead.
+
+**Mocks and picks** (`_lab/mutational-signatures-round5-mock.html`, then
+`round5b`, `round5c`): first a page in the notebook's order; he picked a panel
+on the Signatures page, one press a rank, the fit chart on, seeds 1–20 (all
+recommendations but the panel). Then his point: **students may not
+understand NMF yet, so they should move the number of signatures first and
+only then meet the rank step**. So, B: a page of its own AFTER Signatures —
+Catalogue · Signatures · **Rank** · Matching (`round5c`), "go ahead and build
+it".
+
+**Built:**
+
+- **The engine** is in `model.js` § the Rank page: `rankRun` (brunet to the
+  connectivity stop), `estimateRank` (ten starts, seeded from the cohort's
+  seed and the rank), `consensusOf`, `hclustAverage`, `cophcor` (held to R's
+  `cophcor` on a small consensus, 0.934072478605, in the verify).
+- **The table**, `widgets/mutational-signatures/rank-table.js` (312 KB),
+  written by `_lab/mutational-signatures-rank-table.mjs` on 28 workers in
+  162 s: each start's labels and divergence, seeds 1–20, the tumour in and
+  out, ranks 2–8. The consensus, the tree and the correlation are rebuilt
+  from the labels in about 20 ms. The verify reruns one rank live against it.
+  **Regenerate it whenever the cohort or the engine changes.**
+- **The page**: seven presses, *Run 10 starts at rank 2* … *8*. Each lays the
+  ten starts into the tumours × tumours matrix one at a time (cells switch
+  shade; nothing fades), prints the cophenetic correlation under it, and the
+  point glides to its place while the fit chart's line grows. The matrix is
+  ordered by the finished matrix's average-linkage tree; ▲ marks tumour 101.
+  The matrix sits beside the charts at every width, so the height (440)
+  never reads the width.
+- **Signatures to extract goes 2–8 on every page** and is shared: ringed on
+  the Rank page's charts, a click on a finished point sets it, and it is the
+  rank Signatures extracts. **Moving it keeps the ranks run** — the rank is a
+  data parameter, and a module-level carry restores the presses when only
+  the rank moved. **Core now tells `init` when the reader asked to start
+  over** (`restart`: Reset or Replay), since `fromScratch` is true on every
+  re-init; without it the carry would survive Reset. Full suite run for it.
+- **Seed 1–20** on every page (his pick). **True processes** shows on the Rank
+  page too and marks the planted number; its detail gained a clause.
+- A formula card: cor(1 − C, T), with C and T in its note.
+
+Open for him: True processes defaults to **on** (his pick 4 for Matching), so
+the Rank page opens with the planted number marked before any press.
+
 ### Slot 71 · `somatic-interactions` — CUT 2026-09-20, Kenneth's call; measured, kept as the record
 
 **Cut on his word, 2026-09-20**, in the message that asked for the sequence arc ("can scrap the other planned widgets training-loop and somatic-interactions"). The measurement below stays as the record of what the lesson's table shows; nothing in the repo links to the slot.

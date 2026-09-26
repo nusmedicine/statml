@@ -31,7 +31,7 @@
    THE PRESSES THAT OPEN THE SIGNATURES (rounds 1 and 2): each starts on the
    last one's final frame op for op, one column leaves S at a time, and — his
    ask of round 2 — nothing moves over a finished signature, swept every 5 ms
-   as rotated rectangles at three widths and ranks 2 to 6.
+   as rotated rectangles at three widths and ranks 2 to 8.
 
    ROUND 3: page 3's comparison is a scan of the chosen row and its numbers
    wait for the scan; a later click eases the panel, starting and ending on
@@ -42,6 +42,11 @@
    one mutation from both strands; the split makes a 4×4 grid a class, square
    areas proportional to counts, and a fourth press lines the grids up; a click
    names a type through regions that read the stage core now hands them.
+
+   ROUND 5 (2026-09-26): the Rank page, 01-4 cell 19's estimate of the number
+   of signatures. cophcor against R's NMF; the table computed ahead is complete
+   and is what the engine gives live; seven presses, the ranks run surviving a
+   rank change and not Reset; nothing fades; the clicks reach finished ranks.
 
    A SWITCH MID-PRESS (2026-09-19): another page or tumor finishes the press
    in flight and ends its loop, rather than taking the other page's press.
@@ -271,7 +276,7 @@ const W = await widget();
     spec.hypermutated.default === "in" && spec.rank.default === 4 && spec.truth.default === "on");
   check("the signature control offers one button a signature, following the rank",
     optionKeys(spec.signature, { rank: 6 }).join() === "1,2,3,4,5,6" && optionKeys(spec.signature, { rank: 2 }).join() === "1,2");
-  check("shown is hidden and runs 0 to 4", spec.shown.hidden === true && spec.shown.max === 4);
+  check("shown is hidden and runs 0 to 7, the Rank page's seven presses", spec.shown.hidden === true && spec.shown.max === 7);
   const labels = W.animation.stepLabel.labels;
   check("the step label follows the drive's own counter, a label for every press",
     W.animation.stepLabel.anim === "labelAt" && ["k0", "k1", "k2", "s0", "s1", "mX", "m0"].every((k) => typeof labels[k] === "string"));
@@ -393,8 +398,8 @@ console.log("\n§6 the geometry");
 {
   const widths = [535, 550, 755, 770];
   let heightsVary = false;
-  for (const page of ["catalogue", "signatures", "matching"]) {
-    for (const rank of [2, 4, 6]) {
+  for (const page of ["catalogue", "signatures", "rank", "matching"]) {
+    for (const rank of [2, 4, 6, 8]) {
       const hs = widths.map((w) => W.height({ w, ...paramsOf({ page, rank }) }));
       if (new Set(hs).size !== 1) heightsVary = true;
     }
@@ -426,7 +431,7 @@ console.log("\n§6 the geometry");
         }
       }
     }
-    for (const rank of [2, 4, 6]) {
+    for (const rank of [2, 4, 6, 8]) {
       for (const hypermutated of ["in", "out"]) {
         const p2 = paramsOf({ page: "signatures", rank, hypermutated });
         const along = [0, 0.04, 0.08, 0.12, 0.2, 0.3, 0.45, 0.6, 0.75, 0.85, 0.95, 1];
@@ -489,7 +494,7 @@ console.log("\n§6b the presses that open the signatures, and the ramp");
   /* each press starts on the last one's final frame, op for op */
   const seams = [];
   for (const w of [535, 770]) {
-    for (const rank of [2, 4, 6]) {
+    for (const rank of [2, 4, 6, 8]) {
       for (const hypermutated of ["in", "out"]) {
         const p = paramsOf({ page: "signatures", rank, hypermutated });
         for (const [from, to] of [[1, 2], [2, 3]]) {
@@ -525,7 +530,7 @@ console.log("\n§6b the presses that open the signatures, and the ramp");
 
   /* one column leaves S at a time, and every column leaves */
   const clash = [];
-  for (let rank = 2; rank <= 6; rank += 1) {
+  for (let rank = 2; rank <= M.RANK_MAX; rank += 1) {
     const T = M.showTiming(rank);
     const left = new Set();
     for (let now = 0; now <= T.total; now += 2) {
@@ -535,7 +540,7 @@ console.log("\n§6b the presses that open the signatures, and the ramp");
     }
     if (left.size !== rank) clash.push(`rank ${rank}: ${left.size} of ${rank} left`);
   }
-  check("one column leaves S at a time, and every column leaves, at ranks 2 to 6", clash.length === 0, clash.join(" | "));
+  check("one column leaves S at a time, and every column leaves, at ranks 2 to 8", clash.length === 0, clash.join(" | "));
   const totals = [2, 3, 4, 5, 6].map((r) => M.showTiming(r).total);
   check("press 2 runs under 4 s at every rank, press 3 under 2.5 s", totals.every((t) => t < 4000) && M.openTiming().total < 2500,
     `${totals.map((t) => t.toFixed(0)).join(" · ")} ms; ${M.openTiming().total} ms`);
@@ -564,7 +569,7 @@ console.log("\n§6b the presses that open the signatures, and the ramp");
   const hits = { finished: [], moving: [], waiting: [], w: [], edge: [] };
   let frames = 0;
   for (const w of [535, 626, 770]) {
-    for (let rank = 2; rank <= 6; rank += 1) {
+    for (let rank = 2; rank <= M.RANK_MAX; rank += 1) {
       const p = paramsOf({ page: "signatures", rank });
       const L = M.layout(w, p), H = L.heat, h = W.height({ w, ...p });
       const sigBox = (j) => box({ x: L.x0, y: L.rows[j].title - 12, w: M.shortRight(L) - L.x0, h: L.rows[j].profile.base + 6 - (L.rows[j].title - 12) });
@@ -603,7 +608,7 @@ console.log("\n§6b the presses that open the signatures, and the ramp");
       }
     }
   }
-  check(`nothing moves over a finished signature, at 535, 626 and 770 and ranks 2 to 6 (${frames} frames)`, hits.finished.length === 0, hits.finished.slice(0, 2).join(" | "));
+  check(`nothing moves over a finished signature, at 535, 626 and 770 and ranks 2 to 8 (${frames} frames)`, hits.finished.length === 0, hits.finished.slice(0, 2).join(" | "));
   check("no two moving strips meet, and none passes over W or a column of S still waiting",
     hits.moving.length + hits.w.length + hits.waiting.length === 0, [...hits.moving, ...hits.w, ...hits.waiting].slice(0, 2).join(" | "));
   check("every moving strip stays on the canvas", hits.edge.length === 0, hits.edge.slice(0, 2).join(" | "));
@@ -825,6 +830,134 @@ console.log("\n§6d page 1: the counts and the strands, the grids and the line-u
   check("the Type control offers the 96 in maftools' order, grouped by class, and starts on the example",
     W.params.type.options.length === 96 && W.params.type.options.every((o, i) => o.value === M.CHANNELS[i] && o.group === M.CLASSES[i >> 4])
       && W.params.type.default === "A[C>T]G" && W.params.type.display === true);
+}
+
+/* --- 6e · round 5 (2026-09-26): the Rank page, 01-4 cell 19's estimate ---------- */
+console.log("\n§6e the Rank page");
+{
+  /* NMF's cophcor() on a small consensus, printed by R's NMF 0.28 (2026-09-26):
+     four starts' labels over eight items, the consensus built as consensusOf does. */
+  const L = [[0, 0, 1, 1, 2, 2, 0, 1], [0, 0, 1, 1, 1, 2, 2, 1], [1, 1, 0, 0, 2, 2, 1, 0], [0, 1, 1, 1, 2, 2, 0, 2]];
+  const c = M.cophcor(M.consensusOf(L)).coph;
+  check("cophcor matches R's NMF on a small consensus (0.934072478605)", Math.abs(c - 0.934072478605) < 1e-9, c.toFixed(12));
+  check("cophcor is 1 when every start agrees", Math.abs(M.cophcor(M.consensusOf([L[0], L[0], L[0]])).coph - 1) < 1e-12);
+
+  /* the table: complete, and what the engine gives live */
+  const T = (await import("../mutational-signatures/rank-table.js")).RANK_TABLE;
+  let complete = T && T.nrun === M.NRUN && T.ranks.join() === M.RANKS_TRIED.join();
+  for (let seed = 1; seed <= M.SEED_MAX && complete; seed += 1) {
+    for (const h of ["in", "out"]) {
+      const n = M.cohortMatrix(seed, h)[0].length;
+      for (const r of M.RANKS_TRIED) {
+        const e = T.seeds[seed]?.[h]?.[r];
+        if (!e || e.labels.length !== M.NRUN || e.kls.length !== M.NRUN || e.labels.some((s) => s.length !== n || /[^0-9]/.test(s))) complete = false;
+      }
+    }
+  }
+  check(`the table holds ten starts at ranks 2–8 for seeds 1–${M.SEED_MAX}, the tumor in and out`, complete);
+  const live = M.estimateRank(M.cohortMatrix(3, "out"), 2, 3);
+  const row = T.seeds[3].out[2];
+  check("the table is the engine's: seed 3, the tumor out, rank 2 rerun live gives the same labels and divergences",
+    live.labels.every((l, i) => Array.from(l).join("") === row.labels[i]) && live.kls.every((k, i) => Math.abs(k - row.kls[i]) < 0.006));
+
+  /* the default: the numbers measured when the page was planned */
+  const est = M.rankEstimateFor(1, "in");
+  const want = [0.9924, 0.9735, 0.9935, 0.9415, 0.9516, 0.9231, 0.8932];
+  check("seed 1, the tumor in: the cophenetic curve measured for the mock", est.ranks.every((x, i) => Math.abs(x.coph - want[i]) < 5e-5),
+    est.ranks.map((x) => x.coph.toFixed(4)).join(" "));
+  check("the divergence the best start leaves falls with every rank", est.ranks.every((x, i) => i === 0 || x.kl < est.ranks[i - 1].kl));
+  check("the planted number is 5 with the tumor in and 4 left out", est.planted === 5 && M.rankEstimateFor(1, "out").planted === 4);
+
+  /* the presses: seven, each ten starts then the glide, and a label for each */
+  const p = paramsOf({ page: "rank" });
+  const st = W.compute({ params: p });
+  const a = W.animation.init({ params: p, state: st, fromScratch: false, restart: false });
+  check("the Rank page opens empty, its button naming rank 2", a.rk === 0 && a.labelAt === "r0" && M.STRINGS.stepLabels.r0 === "Run 10 starts at rank 2");
+  const pressFrames = [];
+  for (let i = 0; i < M.RANK_STAGES; i += 1) pressFrames.push(press(a, p, st));
+  check("seven presses run ranks 2 to 8, one each, and the page is done", a.rk === 7 && a.rkT === 1 && a.done === true, `rk ${a.rk}, frames ${pressFrames.join(",")}`);
+  const labelsOk = M.RANKS_TRIED.every((r, i) => M.STRINGS.stepLabels[`r${i}`] === `Run 10 starts at rank ${r}`);
+  check("a label for every press, naming its rank", labelsOk);
+
+  /* the ranks run survive a rank change; Reset, Replay and another cohort clear them */
+  const moved = W.animation.init({ params: paramsOf({ page: "rank", rank: 6 }), state: st, fromScratch: true, restart: false });
+  check("moving the rank keeps the ranks run", moved.rk === 7);
+  const reset = W.animation.init({ params: paramsOf({ page: "rank", rank: 6 }), state: st, fromScratch: true, restart: true });
+  check("Reset or Replay (restart) starts the page over", reset.rk === 0);
+  W.animation.init({ params: p, state: st, fromScratch: false, restart: false });
+  const b = W.animation.init({ params: p, state: st, fromScratch: false, restart: false });
+  press(b, p, st);
+  press(b, p, st);
+  const other = W.animation.init({ params: paramsOf({ page: "rank", seed: 2 }), state: W.compute({ params: paramsOf({ page: "rank", seed: 2 }) }), fromScratch: true, restart: false });
+  check("another seed starts the page over", other.rk === 0);
+  const hyperOut = W.animation.init({ params: paramsOf({ page: "rank", hypermutated: "out" }), state: W.compute({ params: paramsOf({ page: "rank", hypermutated: "out" }) }), fromScratch: true, restart: false });
+  check("leaving the tumor out starts the page over", hyperOut.rk === 0);
+
+  /* geometry, frames, no fades, the regions, the tiles */
+  const out = [], alphas = new Set(), texts = [];
+  let overMatrix = 0;
+  for (const w of [535, 770]) {
+    for (const hypermutated of ["in", "out"]) {
+      for (const truth of ["off", "on"]) {
+        const pr = paramsOf({ page: "rank", hypermutated, truth, rank: 5 });
+        const s = W.compute({ params: pr });
+        const h = W.height({ w, ...pr });
+        const Lr = M.layout(w, pr);
+        const states = [{ rk: 0, rkT: 1 }];
+        for (let rk = 1; rk <= 7; rk += 1) for (const t of [0.05, 0.3, 0.6, 0.74, 0.8, 0.9, 0.97, 1]) states.push({ rk, rkT: t });
+        for (const st2 of states) {
+          const anim = { page: "rank", tumor: "largest", cat: 0, catT: 1, landed: 0, clock: 0, sig: 0, sigT: 1, match: 0, matchT: 1, ...st2 };
+          const { ctx, box, seen, ops } = recorder({ record: true });
+          W.draw({ ctx, colors: COLORS, w, h, params: pr, state: s, anim });
+          texts.push(...seen, cardText());
+          for (const op of ops) alphas.add(op.match(/ (\d+\.\d{4}) -?[\d.]+,-?[\d.]+/)?.[1] ?? `unparsed: ${op.slice(0, 30)}`);
+          if (box.bad || box.x0 < -0.5 || box.y0 < -0.5 || box.x1 > w + 0.5 || box.y1 > h + 0.5) out.push(`${w} ${JSON.stringify(st2)}`);
+          /* no text lands on the matrix, and the charts keep clear of it */
+          for (const op of ops) {
+            if (!op.startsWith("T ")) continue;
+            const m = op.match(/ (-?[\d.]+),(-?[\d.]+)$/);
+            const x = Number(m[1]), y = Number(m[2]);
+            if (x > Lr.mx && x < Lr.mx + Lr.side && y > Lr.my + 12 && y < Lr.my + Lr.side) overMatrix += 1;
+          }
+          W.readout({ params: pr, state: s, anim }).forEach((t) => texts.push(`${t.label} ${t.value} ${t.note}`));
+          texts.push(W.summary({ params: pr, state: s, anim }));
+        }
+      }
+    }
+    check(`at ${w}, the charts start right of the matrix, with room for their titles`, M.layout(w, paramsOf({ page: "rank" })).coph.x0 - 44 > M.layout(w, paramsOf({ page: "rank" })).mx + M.layout(w, paramsOf({ page: "rank" })).side + 20);
+  }
+  check("the Rank page's height is one number at every width", new Set([343, 535, 626, 770, 900].map((w) => W.height({ w, ...paramsOf({ page: "rank" }) }))).size === 1);
+  check("nothing on the Rank page is painted outside the canvas, at any stage of any press", out.length === 0, out.slice(0, 3).join(" | "));
+  check("no text is painted over the matrix", overMatrix === 0, `${overMatrix}`);
+  check("nothing fades: every mark on the Rank page is painted at full alpha, mid-press included", [...alphas].every((x) => x === "1.0000"), [...alphas].join(" "));
+  const bad = texts.filter((t) => /NaN|undefined|Infinity|\[object/.test(t));
+  check(`${texts.length} Rank page strings carry no NaN or undefined`, bad.length === 0, bad.slice(0, 2).join(" | "));
+
+  const pr = paramsOf({ page: "rank" });
+  const s = W.compute({ params: pr });
+  const none = W.regions({ w: 770, h: 440, params: pr, state: s, anim: { rk: 0, rkT: 1 } });
+  const three = W.regions({ w: 770, h: 440, params: pr, state: s, anim: { rk: 3, rkT: 1 } });
+  const running = W.regions({ w: 770, h: 440, params: pr, state: s, anim: { rk: 3, rkT: 0.4 } });
+  const keys = new Set(three.map((r) => r.set.rank));
+  check("a click reaches each finished rank's point on both charts and sets the rank; none before a press, none for the rank running",
+    none.length === 0 && three.length === 6 && [...keys].join() === "2,3,4" && running.length === 4
+      && three.every((r) => Number.isInteger(r.set.rank) && r.set.rank >= W.params.rank.min && r.set.rank <= W.params.rank.max));
+  const tiles0 = W.readout({ params: pr, state: s, anim: { rk: 0, rkT: 1 } });
+  check("before a press, the tiles wait", tiles0[0].value === "0" && tiles0[1].value === "—" && tiles0[2].value === "—");
+  const tilesRun = W.readout({ params: paramsOf({ page: "rank", rank: 5 }), state: s, anim: { rk: 7, rkT: 1 } });
+  check("after every rank, rank 5's tile prints its cophenetic correlation", tilesRun[1].value === M.cos3(est.ranks[3].coph), tilesRun[1].value);
+
+  /* the mid-press page switch, as the other pages have it */
+  const a2 = W.animation.init({ params: pr, state: s, fromScratch: true, restart: true });
+  a2.mode = "step";
+  for (let i = 0; i < 20; i += 1) W.animation.advance(a2, { dt: 32, params: pr, state: s });
+  a2.moving = true;
+  const pSig = paramsOf({ page: "signatures" });
+  const sSig = W.compute({ params: pSig });
+  W.animation.rebuild(a2, { params: pSig, state: sSig });
+  const more = W.animation.advance(a2, { dt: 32, params: pSig, state: sSig });
+  check("a switch mid-press finishes the rank in flight and ends the loop, taking no press on the new page",
+    a2.rk === 1 && a2.rkT === 1 && more === false && a2.sig === 0);
 }
 
 /* --- 7 · the copy, against the words this collection has struck ----------------- */

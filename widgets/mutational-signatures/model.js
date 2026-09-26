@@ -60,6 +60,7 @@
 
 import { makeRng } from "../core/rng.js";
 import { updateKL, cosine } from "../matrix-factorization/model.js";
+import { RANK_TABLE } from "./rank-table.js";
 
 export { cosine };
 
@@ -456,6 +457,183 @@ export function writtenCounts(tumor, k = tumor.n) {
   return out;
 }
 
+/* ---- the Rank page: 01-4 cell 19's `estimateSignatures` (round 5) ------------------
+   Kenneth, 2026-09-26: the notebook's step 2, "Estimate number of signatures",
+   and its cophenetic plot, as a page AFTER Signatures, so the reader has moved
+   the number of signatures before asking which is right (his call over the
+   notebook's order; `_lab/mutational-signatures-round5c-mock.html`).
+
+   WHAT RUNS is what maftools 2.26.0 and NMF 0.28 run, read from the installed
+   sources: brunet from a random start, stopping on the CONNECTIVITY (every 10
+   iterations each tumor is labelled by its largest exposure, and the run stops
+   once those labels have not changed for 41 checks in a row, or at 2,000); ten
+   starts a rank (maftools' `nrun` default; cell 19 leaves it); the consensus of
+   two tumors is the share of the starts that label them alike; `cophcor()` is
+   the Pearson correlation between 1 − consensus and the cophenetic distance of
+   an average-linkage tree drawn on 1 − consensus.
+
+   IT IS READ FROM A TABLE, `rank-table.js`, computed ahead by
+   `_lab/mutational-signatures-rank-table.mjs` with this code: ten starts to the
+   connectivity stop take about 7 s a rank in the browser, so `compute()` cannot
+   run them on a parameter change. The table holds each start's labels and
+   divergence; the consensus, the tree and the correlation are rebuilt from the
+   labels here, in milliseconds, and the verify checks them against a live run.
+   The seeds stop at 20 for it (his pick, 2026-09-26: about 280 KB for 20
+   seeds, 2.8 MB for 200). REGENERATE IT whenever the cohort or the engine
+   changes. Measured (`_lab/mutational-signatures-rank-measure.txt`): the
+   lesson's own curve reproduces at maftools' seed 123456, and on this cohort
+   the largest drop falls on the planted number in 4–5 of 10 seeds. */
+
+export const NRUN = 10;
+export const RANKS_TRIED = [2, 3, 4, 5, 6, 7, 8];
+export const RANK_STAGES = RANKS_TRIED.length;
+export const SEED_MAX = 20;
+
+function samePartition(a, b) {
+  const map = new Map(), back = new Map();
+  for (let j = 0; j < a.length; j += 1) {
+    if (map.has(a[j]) ? map.get(a[j]) !== b[j] : back.has(b[j])) return false;
+    map.set(a[j], b[j]); back.set(b[j], a[j]);
+  }
+  return true;
+}
+
+/** One start of `estimateSignatures`: brunet to NMF's connectivity stop.
+    Returns each tumor's label (its largest exposure) and the KL divergence. */
+export function rankRun(V, r, rng, mean) {
+  const m = V.length, n = V[0].length;
+  const W = Array.from({ length: m }, () => Float64Array.from({ length: r }, () => rng.next() * mean + 1e-6));
+  const H = Array.from({ length: r }, () => Float64Array.from({ length: n }, () => rng.next() * mean + 1e-6));
+  const label = () => Int32Array.from({ length: n }, (_, j) => { let b = 0; for (let k = 1; k < r; k += 1) if (H[k][j] > H[b][j]) b = k; return b; });
+  let old = null, inc = 0, iter = 0;
+  while (iter < MAX_ITER) {
+    iter += 1;
+    brunetStep(V, W, H, r, iter);
+    if (iter % 10 !== 0) continue;
+    const lab = label();
+    if (old && samePartition(lab, old)) inc += 1; else { old = lab; inc = 0; }
+    if (inc > 40) break;
+  }
+  return { label: label(), iter, kl: klDivergence(V, W, H) };
+}
+
+/** Ten starts at rank `r`, seeded from the cohort's seed and the rank. */
+export function estimateRank(Mat, r, seed) {
+  const V = Mat.map((row) => Float64Array.from(row, (x) => x + P_CONSTANT));
+  let mean = 0;
+  for (const row of V) for (const x of row) mean += x;
+  mean /= V.length * V[0].length;
+  const runs = [];
+  for (let run = 0; run < NRUN; run += 1) runs.push(rankRun(V, r, makeRng(seed * 104729 + r * 131 + run), mean));
+  return { labels: runs.map((x) => x.label), kls: runs.map((x) => x.kl), iters: runs.map((x) => x.iter) };
+}
+
+/** The consensus: for each pair of tumors, the share of the starts that label them alike. */
+export function consensusOf(labels, upto = labels.length) {
+  const n = labels[0].length;
+  const C = Array.from({ length: n }, () => new Float64Array(n));
+  for (let s = 0; s < upto; s += 1) {
+    const L = labels[s];
+    for (let i = 0; i < n; i += 1) for (let j = 0; j < n; j += 1) if (L[i] === L[j]) C[i][j] += 1 / labels.length;
+  }
+  return C;
+}
+
+/** Average-linkage hclust on a distance matrix: the cophenetic distances and the leaf order. */
+export function hclustAverage(D) {
+  const n = D.length;
+  const members = Array.from({ length: n }, (_, i) => [i]);
+  const d = D.map((row) => Float64Array.from(row));
+  const C = Array.from({ length: n }, () => new Float64Array(n));
+  let active = members.map((_, i) => i);
+  while (active.length > 1) {
+    let bi = -1, bj = -1, best = Infinity;
+    for (let a = 0; a < active.length; a += 1) for (let b = a + 1; b < active.length; b += 1) {
+      const x = d[active[a]][active[b]];
+      if (x < best) { best = x; bi = active[a]; bj = active[b]; }
+    }
+    for (const p of members[bi]) for (const q of members[bj]) { C[p][q] = best; C[q][p] = best; }
+    const ni = members[bi].length, nj = members[bj].length;
+    for (const k of active) if (k !== bi && k !== bj) {
+      const v = (ni * d[bi][k] + nj * d[bj][k]) / (ni + nj);
+      d[bi][k] = v; d[k][bi] = v;
+    }
+    members[bi] = members[bi].concat(members[bj]);
+    active = active.filter((k) => k !== bj);
+  }
+  return { C, order: members[active[0]] };
+}
+
+/** NMF's cophcor(): 1 when the consensus is all 0 off the diagonal, as NMF has it. */
+export function cophcor(cons) {
+  const n = cons.length;
+  const D = cons.map((row) => Float64Array.from(row, (x) => 1 - x));
+  const { C, order } = hclustAverage(D);
+  let allZero = true;
+  for (let i = 0; i < n; i += 1) for (let j = i + 1; j < n; j += 1) if (cons[i][j] !== 0) allZero = false;
+  if (allZero) return { coph: 1, order };
+  let sx = 0, sy = 0, k = 0;
+  for (let i = 0; i < n; i += 1) for (let j = i + 1; j < n; j += 1) { sx += D[i][j]; sy += C[i][j]; k += 1; }
+  const mx = sx / k, my = sy / k;
+  let sxy = 0, sxx = 0, syy = 0;
+  for (let i = 0; i < n; i += 1) for (let j = i + 1; j < n; j += 1) {
+    const a = D[i][j] - mx, b = C[i][j] - my;
+    sxy += a * b; sxx += a * a; syy += b * b;
+  }
+  return { coph: sxy / Math.sqrt(sxx * syy), order };
+}
+
+/** The matrix `estimateSignatures` reads: the cohort with the tumor in or left out. */
+export function cohortMatrix(seed, hypermutated) {
+  const co = cohortFor(seed);
+  const cols = hypermutated === "out" ? co.hyperIndex : co.hyperIndex + 1;
+  return co.M.map((row) => row.slice(0, cols));
+}
+
+/** One rank's starts, from the table when it holds them and live when it does not. */
+export function startsFor(seed, hypermutated, r) {
+  const t = RANK_TABLE?.seeds?.[seed]?.[hypermutated]?.[r];
+  if (t) return { labels: t.labels.map((s) => Int8Array.from(s, (ch) => ch.charCodeAt(0) - 48)), kls: t.kls, table: true };
+  const live = estimateRank(cohortMatrix(seed, hypermutated), r, seed);
+  return { ...live, table: false };
+}
+
+const estimates = new Map();
+/** The Rank page's data at a seed, the tumor in or left out: at each rank tried,
+    the ten starts' labels, the consensus, the tree's leaf order, the cophenetic
+    correlation and the divergence the best start leaves. */
+export function rankEstimateFor(seed, hypermutated) {
+  return remember(estimates, `${seed}|${hypermutated}`, () => {
+    const co = cohortFor(seed);
+    const ranks = RANKS_TRIED.map((r) => {
+      const s = startsFor(seed, hypermutated, r);
+      const cons = consensusOf(s.labels);
+      const { coph, order } = cophcor(cons);
+      return { rank: r, labels: s.labels, cons, order, coph, kl: Math.min(...s.kls), table: s.table };
+    });
+    return {
+      seed, hypermutated, ranks,
+      n: ranks[0].labels[0].length,
+      hyperIndex: hypermutated === "out" ? -1 : co.hyperIndex,
+      planted: PLANTED.length + (hypermutated === "out" ? 0 : 1),
+    };
+  }, 4);
+}
+
+/* One press of the Rank page: the ten starts laid in one at a time, then the
+   number glides to its place on the chart. */
+export const START_MS = 180;
+export const GLIDE_MS = 650;
+export const RANK_PRESS_MS = NRUN * START_MS + GLIDE_MS;
+/** Where a press is, `t` of the way through: starts laid in, and the glide. */
+export function rankPressAt(t) {
+  const el = Math.min(1, Math.max(0, t)) * RANK_PRESS_MS;
+  return {
+    starts: t >= 1 ? NRUN : Math.min(NRUN, Math.floor(el / START_MS) + 1),
+    glide: Math.min(1, Math.max(0, (el - NRUN * START_MS) / GLIDE_MS)),
+  };
+}
+
 /* ---- the drives ---------------------------------------------------------------- */
 
 /* Page 1: 0 empty, 1 the mutations as written, 2 read from the pyrimidine,
@@ -579,6 +757,7 @@ export function compareAt(now, rank, k) {
     when page 2 has not. */
 export function labelStage(anim) {
   if (anim.page === "signatures") return `s${Math.min(SIG_STAGES - 1, anim.sig)}`;
+  if (anim.page === "rank") return `r${Math.min(RANK_STAGES - 1, anim.rk)}`;
   if (anim.page === "matching") return anim.sig === 0 ? "mX" : "m0";
   return `k${Math.min(CAT_STAGES - 1, anim.cat)}`;
 }
@@ -606,6 +785,7 @@ export const SIG_ROW = 104;       // one signature opened out
 export const MATCH_HEAD = 150;    // the references' names, set vertically
 export const MATCH_ROW = 26;
 export const BUILT_ROW = 15;
+export const RANK_H = 440;        // the Rank page, at every width
 
 export function layout(w, params) {
   const rank = params.rank;
@@ -625,6 +805,20 @@ export function layout(w, params) {
       return { y, title: y + 12, profile: { top: y + 20, base: y + 56 }, stripLabel: y + 76, strip: { top: y + 82, base: y + 100 } };
     });
     return { page: "signatures", x0: 52, x1: w - 18, heat, rows, height: Math.max(SIG_A_H, 48 + rank * SIG_ROW) };
+  }
+  if (params.page === "rank") {
+    /* The matrix beside the two charts at every width, so the height never
+       reads the width: a tumor is 2.7px at 770 and about 1.9px at 535. */
+    const cell = Math.max(1.6, Math.min(2.7, (0.36 * w) / (TUMORS + 1)));
+    const mx = 30, my = 54;
+    const side = (TUMORS + 1) * cell;
+    const x0 = mx + side + 72, x1 = w - 22;
+    return {
+      page: "rank", height: RANK_H, cell, mx, my, side,
+      number: { x: mx, y: my + side + 24 },
+      coph: { x0, x1, top: 54, h: 120 },
+      fit: { x0, x1, top: 252, h: 120 },
+    };
   }
   if (params.page === "matching") {
     const labelX = 96, cellX = 104, right = w - 16;
@@ -837,6 +1031,7 @@ export const pct = (x) => `${Math.round(100 * x)}%`;
 export const PAGES = [
   { value: "catalogue", label: "Catalogue" },
   { value: "signatures", label: "Signatures" },
+  { value: "rank", label: "Rank" },
   { value: "matching", label: "Matching" },
 ];
 /* The 96 types for the Type control, in maftools' order and grouped by class,
@@ -852,7 +1047,9 @@ export const HYPER_OPTIONS = [
   { value: "in", label: "In" },
   { value: "out", label: "Left out" },
 ];
-export const RANK_MIN = 2, RANK_MAX = 6, RANK_DEFAULT = 4;
+/* 2–8 since the Rank page (round 5): it tries ranks 2 to 8, so the fall past
+   the planted number shows, and the rank chosen there is extracted here. */
+export const RANK_MIN = 2, RANK_MAX = 8, RANK_DEFAULT = 4;
 
 /** The builders of a signature, the largest first: at most three, and none
     under 5%, so the line fits the narrowest canvas. */
@@ -868,7 +1065,8 @@ export const STRINGS = {
     + "a cohort's counts into signatures and their exposures, and cosine similarity compares each with reference signatures.",
 
   pageLabel: "Page",
-  pageDetail: "one tumor's mutations, the cohort factorized, or each signature compared with the references",
+  pageDetail: "one tumor's mutations, the cohort factorized, the number of signatures chosen by how often ten starts "
+    + "agree, or each signature compared with the references",
   tumorSection: "The tumor",
   tumorLabel: "Tumor",
   tumorDetail: "two tumors of the cohort: the one with the most mutations apart from the hypermutated one, and the "
@@ -885,7 +1083,7 @@ export const STRINGS = {
   seedLabel: "Seed",
   seedDetail: "draws a different cohort",
   truthLabel: "True processes",
-  truthDetail: "what the simulation built each signature from",
+  truthDetail: "what the simulation built: each signature's processes, and how many processes it planted",
 
   stepLabels: {
     k0: "Add the mutations",
@@ -897,6 +1095,7 @@ export const STRINGS = {
     s2: "Show each signature's exposures",
     mX: "Extract the signatures",
     m0: "Compare with the references",
+    ...Object.fromEntries(RANKS_TRIED.map((r, i) => [`r${i}`, `Run 10 starts at rank ${r}`])),
   },
   stepTitle: "Take the next step",
 
@@ -945,6 +1144,15 @@ export const STRINGS = {
   halfLine: (n) => (n === 1 ? "Half of its exposure is in one tumor" : `Half of its exposure is in ${n} tumors`),
   topTumor: (j, hyper, share) => (hyper ? `tumor 101, the hypermutated one, has ${pct(share)}` : `tumor ${j + 1} has the most, ${pct(share)}`),
 
+  /* the Rank page */
+  rankEmpty: "Tumors × tumors: no starts run yet",
+  rankTitle: (r, k) => `Tumors × tumors, rank ${r}: ${k} of ${NRUN} starts`,
+  rankNumber: (c) => `Cophenetic correlation ${c.toFixed(3)}`,
+  rankCophTitle: "Cophenetic correlation",
+  rankFitTitle: "Divergence left by the best start",
+  rankAxis: "signatures extracted (rank)",
+  plantedLabel: (n) => `planted: ${n}`,
+
   /* page 3 */
   matchCaption: "Cosine similarity with each reference",
   noSignatures: "No signatures extracted yet",
@@ -965,6 +1173,12 @@ export const STRINGS = {
   legendCosine: "A higher cosine similarity: a stronger shade",
   legendBest: "The best match in each row: outlined",
   legendHyper: "Tumor 101, the hypermutated one: outlined, then marked under its bar",
+  legendConsensus: "The share of the 10 starts that put two tumors in one group: a stronger shade",
+  legendCoph: "The cophenetic correlation at a rank",
+  legendFit: "The divergence the best of the 10 starts leaves",
+  legendChosen: "Signatures to extract: ringed",
+  legendPlanted: "The number of processes the simulation planted",
+  legendHyperMark: "Tumor 101, the hypermutated one: marked",
 
   /* the tiles */
   tileSubstitutions: "Substitutions",
@@ -986,6 +1200,13 @@ export const STRINGS = {
   tileFor: (k) => `for signature ${k}`,
   tileMargin: "Margin",
   tileMarginNote: "the best match's cosine minus the runner-up's",
+  tileRanksRun: "Ranks run",
+  tileRanksRunNote: `of ${RANKS_TRIED.length}, ${NRUN} starts each`,
+  tileCoph: "Cophenetic correlation",
+  tileAtRank: (r) => `at rank ${r}`,
+  tileNotRun: (r) => `rank ${r} not run yet`,
+  tileFit: "Divergence left",
+  tileFitNote: "by the best of the 10 starts",
 
   /* the summaries, the figure's accessible label */
   sumCatalogue: (cat, t) => [
@@ -999,6 +1220,9 @@ export const STRINGS = {
   sumExtracted: (n, r, it) => `M, 96 types by ${n} tumors, factorized into ${r} signatures and their exposures after ${intText(it)} iterations.`,
   sumShown: (r) => `${r} signatures, each a column of S plotted as bars over the 96 types, beside W, the matrix of their exposures.`,
   sumOpened: (r, own) => `${r} signatures, each with its exposure in each tumor${own ? `; half of signature ${own}'s exposure is in one tumor` : ""}.`,
+  sumRankEmpty: (n) => `Ten starts at each rank from 2 to 8 on ${n} tumors, none run yet.`,
+  sumRank: (runs, r, c) => `Ten starts at each of ${runs.length === 1 ? "rank" : "ranks"} ${runs.join(", ")}; `
+    + (c == null ? `rank ${r} not run yet.` : `at rank ${r} the cophenetic correlation is ${c.toFixed(3)}.`),
   sumNoSignatures: "Ten reference profiles, and no signature extracted yet to compare with them.",
   sumNotCompared: (r) => `${r} signatures and ten reference profiles, not yet compared.`,
   sumCompared: (r, k, a, b) => `${r} signatures compared with ten references by cosine similarity; signature ${k}'s best match is `
@@ -1010,4 +1234,8 @@ export const STRINGS = {
   noteSignatures: "M holds each tumor's counts of the 96 types, with 0.1 added to every count so that none is zero. "
     + "Each column of S is a signature, summing to one; each column of W holds one tumor's exposures, in mutations.",
   noteMatching: "A and B are the signature and a reference, each as its 96 values.",
+  labelCoph: "cophenetic correlation",
+  noteRank: "Each start groups the tumors by their largest signature. C holds, for each pair of tumors, the share of "
+    + "the ten starts that put them in one group; T is the height at which an average-linkage tree built from 1 − C joins "
+    + "them. The correlation is 1 when every start agrees.",
 };
