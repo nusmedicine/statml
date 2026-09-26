@@ -1,5 +1,39 @@
 # Handover
 
+**2026-09-26 (evening): 70 `mutational-signatures` gains a RANK PAGE, SHIPPED
+AND PUSHED — the record is the catalogue's § Slot 70, *Round 5*.** Kenneth
+asked whether 01-4 cells 19–20 (estimating the number of signatures, the
+cophenetic plot) could go in. Measured first: the lesson's plot reproduces on
+its own matrix at maftools' seed 123456, its dip at 5 moves with the seed, and
+the cophenetic correlation measures agreement between NMF runs, not fit. Now
+four pages: Catalogue · Signatures · **Rank** · Matching — Rank AFTER
+Signatures on his point that students should move the number of signatures
+before asking which is right. Seven presses (*Factorize 10 times at rank 2*
+… *8*): the consensus matrix fills a run at a time, the cophenetic
+correlation glides to its chart, the KL divergence chart grows beside it, and
+a line says rank 2 is near 1 on almost any cohort, so the choice is the
+largest rank before a clear decrease. Read from `rank-table.js`, computed
+ahead by `_lab/mutational-signatures-rank-table.mjs` (seeds 1–20; regenerate
+when the cohort or engine changes). Rank 2–8 and Seed 1–20 on every page;
+True processes off by default on both pages (his call). 46 states, verify
+129 checks. Suggested notebook edits for cells 19–20 were given to him in
+chat (the cophenetic wording, `nrun`, reading the drop, the seed caveat, the
+`?page=rank` link).
+
+**Worth knowing:**
+
+- **Core's `init` now gets `restart`** — true on Reset and Replay only.
+  `fromScratch` is true on every re-init after the first render, a data
+  change included, so a widget that carries work across a data change (the
+  Rank page keeps its ranks when only the rank moves) could not tell a slider
+  from Reset. Additive; full suite 1138/1138 identical when it went in.
+- **The harness canvas for this widget's Rank page is 550 wide, not 534** —
+  compute a `hit` from the size the harness reports on the row, not from the
+  text-overlap sweep's.
+- **A table computed ahead is the answer when `compute` would take seconds**
+  (as 65's networks): store the raw per-run outcome (labels, divergences),
+  rebuild the summary in the page, and have the verify rerun one entry live.
+
 **2026-09-26 (later): 67 `tumor-heterogeneity` RESTRUCTURED, RE-SHIPPED AND
 PUSHED (470c49e, 23 states, deploy green) — the record is the catalogue's § Slot
 67 from *RESTRUCTURED TO THE NOTEBOOK'S ORDER* on.** Kenneth: the widget did not

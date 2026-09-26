@@ -8401,6 +8401,158 @@
       "tx": "a70bc930"
     },
     {
+      "slug": "mutational-signatures",
+      "px": "e07465ac",
+      "tx": "0bf90c25",
+      "$note": "mutational-signatures · RANK PAGE (round 5), no rank run: the empty matrix, the two empty charts and the reading line",
+      "state": "?theme=light&page=rank&shown=0"
+    },
+    {
+      "slug": "mutational-signatures",
+      "px": "81f4cbb9",
+      "tx": "92bac382",
+      "$note": "mutational-signatures · Rank page, ranks 2–4 run: rank 4's matrix, three points on each chart, rank 4 ringed",
+      "state": "?theme=light&page=rank&shown=3"
+    },
+    {
+      "slug": "mutational-signatures",
+      "px": "ac2b5794",
+      "tx": "7cb70492",
+      "$note": "mutational-signatures · Rank page, every rank run, rank 5 ringed, True processes on: simulated: 5 on both charts",
+      "state": "?theme=light&page=rank&rank=5&truth=on&shown=7"
+    },
+    {
+      "slug": "mutational-signatures",
+      "px": "c109f4a5",
+      "tx": "41de6db5",
+      "$note": "mutational-signatures · Rank page, the hypermutated tumor left out, True processes on: simulated: 4",
+      "state": "?theme=light&page=rank&hypermutated=out&truth=on&shown=7"
+    },
+    {
+      "slug": "mutational-signatures",
+      "px": "fc179352",
+      "tx": "758c5f76",
+      "$note": "mutational-signatures · Rank page, every rank run, rank 8 ringed: the grey matrix",
+      "state": "?theme=light&page=rank&rank=8&shown=7"
+    },
+    {
+      "slug": "mutational-signatures",
+      "px": "d278704d",
+      "tx": "69521b69",
+      "$note": "mutational-signatures · Rank page at seed 7, every rank run: another cohort from the table",
+      "state": "?theme=light&page=rank&seed=7&shown=7"
+    },
+    {
+      "slug": "mutational-signatures",
+      "px": "4370318d",
+      "tx": "b99cfe7d",
+      "$note": "mutational-signatures · Signatures at rank 8, opened: the slider's new top",
+      "state": "?theme=light&page=signatures&rank=8&shown=3"
+    },
+    {
+      "slug": "mutational-signatures",
+      "px": "d8e36341",
+      "tx": "0bf90c25",
+      "$note": "mutational-signatures · DRIVEN - the Rank page's first press, the runs laid in part-way",
+      "state": "?theme=light&page=rank",
+      "drive": {
+        "click": "step",
+        "frames": 20,
+        "dt": 32
+      }
+    },
+    {
+      "slug": "mutational-signatures",
+      "px": "18f13820",
+      "tx": "ddbc1472",
+      "$note": "mutational-signatures · DRIVEN - rank 3's press mid-glide: its point on the way to the chart, the fit line growing",
+      "state": "?theme=light&page=rank",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 80
+          }
+        ],
+        "click": "step",
+        "frames": 66,
+        "dt": 32
+      }
+    },
+    {
+      "slug": "mutational-signatures",
+      "px": "a047581f",
+      "tx": "32fa2d18",
+      "$note": "mutational-signatures · HIT-DRIVEN - after ranks 2–4, rank 3's point at [352,87] clicked: the rank set to 3, the runs kept, rank 3's matrix",
+      "state": "?theme=light&page=rank",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 80
+          },
+          {
+            "click": "step",
+            "frames": 80
+          },
+          {
+            "click": "step",
+            "frames": 80
+          }
+        ],
+        "hit": [
+          352,
+          87
+        ],
+        "frames": 2,
+        "dt": 32
+      }
+    },
+    {
+      "slug": "mutational-signatures",
+      "px": "b84d7ccc",
+      "tx": "20ac3651",
+      "$note": "mutational-signatures · INTERRUPTED - after ranks 2 and 3, the rank set to 6: both ranks kept, rank 3's matrix, no ring",
+      "state": "?theme=light&page=rank",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 80
+          },
+          {
+            "click": "step",
+            "frames": 80
+          }
+        ],
+        "set": {
+          "rank": "6"
+        },
+        "frames": 4,
+        "dt": 32
+      }
+    },
+    {
+      "slug": "mutational-signatures",
+      "px": "9cc7eb8d",
+      "tx": "4b2cab87",
+      "$note": "mutational-signatures · INTERRUPTED - the Rank page's press, then Signatures: the press ends, no extraction taken",
+      "state": "?theme=light&page=rank",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 20
+          }
+        ],
+        "set": {
+          "page": "signatures"
+        },
+        "frames": 8,
+        "dt": 32
+      }
+    },
+    {
       "$note": "signal-cnn-lstm · 1D-CNN, before any press: the fragment alone",
       "slug": "signal-cnn-lstm",
       "state": "?theme=light&shown=0",
