@@ -517,7 +517,7 @@ function drawCcfOne(ctx, colors, L, params, state, anim) {
 
   const plot = makePlot({ ctx, colors, rect: R, xDomain: [0, 1], yDomain: [0, 1.08] });
   const alt = M.altAt(state.one, k);
-  const lik = k > 0 ? M.likelihoodOf(alt, k, cfg, params.knows) : null;
+  const lik = k > 0 ? M.likelihoodOf(alt, k, cfg, params.knows, { rule: params.rule, cut: cutOf(params) }) : null;
   const cols = [colors.groupA, colors.groupB, colors.groupC];
 
   /* WHAT IS DRAWN, per m: the relative curve and its band, each a blend of
@@ -554,13 +554,18 @@ function drawCcfOne(ctx, colors, L, params, state, anim) {
     ctx.fillRect(x0, R.y, plot.sx(cv.band.hi) - x0, R.h);
     ctx.restore();
   });
-  /* the threshold, in ink: `--c-reference` is the truth's tick on this page */
+  /* THE THRESHOLD, in ink (`--c-reference` is the truth's tick on this page),
+     with its value printed on it, just above the plot, since it is now the
+     reader's to set (his pick B′, 2026-09-26). The axis keeps its quarters; a
+     tick at 0.80 or 0.95 printed on the axis met 0.75 or 1.00. */
+  const cutX = plot.sx(cutDrawn(params, anim));
   ctx.save();
   ctx.setLineDash([4, 3]);
-  ctx.strokeStyle = colors.ink3;
-  ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.moveTo(plot.sx(M.CUT), R.y); ctx.lineTo(plot.sx(M.CUT), R.y + R.h); ctx.stroke();
+  ctx.strokeStyle = colors.ink2;
+  ctx.lineWidth = 1.2;
+  ctx.beginPath(); ctx.moveTo(cutX, R.y - 2); ctx.lineTo(cutX, R.y + R.h); ctx.stroke();
   ctx.restore();
+  text(ctx, M.n2(cutOf(params)), cutX, R.y - 4, { font: `${colors.fsXs} ${colors.mono}`, fill: colors.ink2, align: "center" });
 
   if (lik) {
     shown.forEach((cv) => {
@@ -586,6 +591,14 @@ function drawCcfOne(ctx, colors, L, params, state, anim) {
       });
       ctx.restore();
     });
+    /* Under "The best estimate is above", the estimate the call reads is
+       marked at its peak, so the rule's one number is on the figure. */
+    if (params.rule === "best") {
+      ctx.beginPath();
+      ctx.arc(plot.sx(lik.best.c), plot.sy(1), 4.5, 0, Math.PI * 2);
+      ctx.fillStyle = colors.ink1;
+      ctx.fill();
+    }
   } else {
     text(ctx, M.STRINGS.likNoRead, R.x + R.w / 2, R.y + R.h / 2, { font: noteFont(colors), fill: colors.ink3, align: "center" });
   }
@@ -601,7 +614,7 @@ function drawCcfOne(ctx, colors, L, params, state, anim) {
   ctx.beginPath(); ctx.moveTo(tx, R.y + R.h - 9); ctx.lineTo(tx, R.y + R.h + 3); ctx.stroke();
   ctx.restore();
 
-  plot.axisX({ ticks: [0, 0.25, 0.5, 0.75, M.CUT, 1], format: (v) => (v === M.CUT ? String(M.CUT) : M.n2(v)), label: M.STRINGS.likAxis });
+  plot.axisX({ ticks: [0, 0.25, 0.5, 0.75, 1], format: (v) => M.n2(v), label: M.STRINGS.likAxis });
 }
 
 /* ---- page 2 -------------------------------------------------------------- */
@@ -620,7 +633,7 @@ function drawMany(ctx, colors, L, params, state, anim) {
     const f = M.lerp(2 / anim.assumedFrom, 2 / state.manyCfg.assumed, M.easeOut(anim.assumedT));
     cfgMany = { ...state.manyCfg, assumed: 2 / f };
   }
-  const axis = M.axisAt(state.many, cfgMany, M.easeOut(mix));
+  const axis = M.axisAt(state.many, cfgMany, M.easeOut(mix), cutDrawn(params, anim));
   const bins = M.HIST_BINS;
 
   /* THE DATA MORPH. The bars the new parameters ask for, and — while one is in
@@ -739,6 +752,12 @@ function drawMany(ctx, colors, L, params, state, anim) {
 }
 
 /* ---- page 3 -------------------------------------------------------------- */
+
+/** The clonal threshold the reader set, and the one the figure draws: the
+    dashed line glides to a new value (movement, so it tweens; 2026-09-26). */
+const cutOf = (params) => Number(params.threshold ?? M.CUT);
+const cutDrawn = (params, anim) => (anim?.cutFrom != null && (anim.cutT ?? 1) < 1
+  ? M.lerp(anim.cutFrom, cutOf(params), M.easeOut(anim.cutT)) : cutOf(params));
 
 /** The samples sequenced so far, in time order — Step adds the next. */
 const joinedOf = (anim) => M.SAMPLES_IN_TIME.slice(0, Math.max(0, Math.min(M.SAMPLES_IN_TIME.length, anim?.joined ?? 0)));
@@ -1044,6 +1063,29 @@ widgetApi = defineWidget({
       display: true,
       when: { all: [{ param: "page", equals: "ccf" }, { param: "view", equals: "one" }] },
     },
+    /* HOW THE CALL IS MADE, his pick B′ of 2026-09-26: the rule, then the line
+       it compares against. Display, because they change what is concluded from
+       the reads and never the reads. The line is page 3's one threshold, so the
+       All mutations view draws the same value. */
+    rule: {
+      type: "segmented",
+      style: "grid",
+      label: M.STRINGS.ruleLabel,
+      detail: M.STRINGS.ruleDetail,
+      options: M.RULES,
+      default: "every",
+      display: true,
+      when: { all: [{ param: "page", equals: "ccf" }, { param: "view", equals: "one" }] },
+    },
+    threshold: {
+      type: "choice",
+      label: M.STRINGS.thresholdLabel,
+      detail: M.STRINGS.thresholdDetail,
+      options: M.THRESHOLD_OPTIONS,
+      default: "0.90",
+      display: true,
+      when: { all: [{ param: "page", equals: "ccf" }, { param: "view", equals: "one" }] },
+    },
     clones: {
       type: "segmented",
       label: M.STRINGS.clonesLabel,
@@ -1158,7 +1200,7 @@ widgetApi = defineWidget({
         { token: "group-a", label: "Clonal: in every tumor cell", mark: "bar" },
         { token: "group-b", label: "Subclonal: in some tumor cells", mark: "bar" },
         ...(params.clusters ? [{ token: "ink-2", label: "A cluster the mixture found, at its mean ± one standard deviation", mark: "line" }] : []),
-        ...(M.axisOf(params) === "ccf" ? [{ token: "reference", label: M.STRINGS.thresholdLegend, mark: "line" }] : []),
+        ...(M.axisOf(params) === "ccf" ? [{ token: "reference", label: M.STRINGS.thresholdLegend(cutOf(params)), mark: "line" }] : []),
       ];
     }
     if (params.page === "clonal") {
@@ -1188,7 +1230,8 @@ widgetApi = defineWidget({
     return [
       ...sample,
       ...ms.map((m) => ({ token: ["group-a", "group-b", "group-c"][m - 1], label: `The likelihood of c with the mutation on ${m} cop${m > 1 ? "ies" : "y"} (m = ${m})`, mark: "line" })),
-      { token: "ink-3", label: M.STRINGS.thresholdLegend, mark: "line" },
+      { token: "ink-2", label: M.STRINGS.thresholdLegend(cutOf(params)), mark: "line" },
+      ...(params.rule === "best" ? [{ token: "ink-1", label: M.STRINGS.bestLegend, mark: "dot" }] : []),
       { token: "reference", label: M.STRINGS.truthCcfLegend, mark: "line" },
     ];
   },
@@ -1262,6 +1305,9 @@ widgetApi = defineWidget({
         knows: params.knows,
         likFrom: null,
         likT: 1,
+        threshold: params.threshold,
+        cutFrom: null,
+        cutT: 1,
         assumed: params.assumed,
         assumedFrom: null,
         assumedT: 1,
@@ -1322,7 +1368,7 @@ widgetApi = defineWidget({
           if (anim.joinT < 1) moving = true;
           else anim.press = null;
         }
-        for (const [from, t] of [["oneFrom", "oneT"], ["likFrom", "likT"], ["assumedFrom", "assumedT"]]) {
+        for (const [from, t] of [["oneFrom", "oneT"], ["likFrom", "likT"], ["assumedFrom", "assumedT"], ["cutFrom", "cutT"]]) {
           if (anim[from] == null) continue;
           anim[t] = Math.min(1, anim[t] + step);
           if (anim[t] < 1) moving = true;
@@ -1430,8 +1476,16 @@ widgetApi = defineWidget({
           anim.assumedFrom = wasPurity; anim.assumedT = 0; anim.easing = true;
         }
       }
+      /* THE THRESHOLD moved: the dashed line glides from where it is drawn. */
+      if (params.threshold !== anim.threshold) {
+        const was = anim.cutFrom != null && anim.cutT < 1
+          ? M.lerp(anim.cutFrom, Number(anim.threshold), M.easeOut(anim.cutT)) : Number(anim.threshold ?? M.CUT);
+        anim.threshold = params.threshold;
+        if (params.page === "ccf" && !reducedMotion()) { anim.cutFrom = was; anim.cutT = 0; anim.easing = true; }
+      }
       /* A page change lands whatever belongs to the page being left. */
       if (!(params.page === "ccf" && params.view !== "all")) { anim.likFrom = null; anim.likT = 1; }
+      if (params.page !== "ccf") { anim.cutFrom = null; anim.cutT = 1; }
       if (!(params.page === "ccf" && params.view === "all")) { anim.assumedFrom = null; anim.assumedT = 1; }
       if (params.page !== "clonal") anim.joinT = Math.min(1, anim.joinT);
       /* The shape moved: the same door as the axis, on the same page-3 terms.
@@ -1462,13 +1516,13 @@ widgetApi = defineWidget({
   readout({ params, state, anim }) {
     if (M.histPage(params)) {
       const axisKey = M.axisOf(params);
-      const axis = M.onAxis(state.many, state.manyCfg, axisKey);
+      const axis = M.onAxis(state.many, state.manyCfg, axisKey, cutOf(params));
       const past = axis.cut == null ? null : axis.values.filter((v) => v >= axis.cut).length;
       return [
         { label: "Clusters found", value: String(state.many.fit.K), note: "components in the mixture with the lowest BIC" },
         { label: "MATH", value: state.many.math.toFixed(1), note: "the width of the VAF distribution over its median" },
         {
-          label: axisKey === "ccf" ? "At a fraction of 0.9 or more" : "Populations in the tumor",
+          label: axisKey === "ccf" ? `At a fraction of ${M.n2(cutOf(params))} or more` : "Populations in the tumor",
           value: past == null ? String(state.manyCfg.clones.length) : M.intText(past),
           note: past == null ? "what the mutations were drawn from" : `of ${M.intText(state.manyCfg.n)} mutations`,
         },
@@ -1523,7 +1577,7 @@ widgetApi = defineWidget({
        three lines at a 20px value. The span is a true bound on every c the
        reads allow; where the multiplicities allow separate ranges the note
        lists each one by m, so the tile never claims a c no curve allows. */
-    const lik = k > 0 ? M.likelihoodOf(alt, k, cfg, params.knows) : null;
+    const lik = k > 0 ? M.likelihoodOf(alt, k, cfg, params.knows, { rule: params.rule, cut: cutOf(params) }) : null;
     const piece = (cv) => (cv.interval.hi - cv.interval.lo < 0.005
       ? M.n2(cv.interval.lo) : `${M.n2(cv.interval.lo)}–${M.n2(cv.interval.hi)}`);
     const span = lik ? (lik.hi - lik.lo < 0.005 ? M.n2(lik.lo) : `${M.n2(lik.lo)}–${M.n2(lik.hi)}`) : "—";
@@ -1539,14 +1593,14 @@ widgetApi = defineWidget({
       {
         label: M.STRINGS.callLabel,
         value: lik ? M.STRINGS.callValue[lik.call] : "—",
-        note: lik ? M.STRINGS.callNote[lik.call] : `the threshold is a fraction of ${M.CUT}`,
+        note: lik ? M.STRINGS.callNote(lik.call, params.rule, cutOf(params), lik) : `the threshold is a fraction of ${M.n2(cutOf(params))}`,
       },
     ];
   },
 
   summary({ params, state, anim }) {
     if (M.histPage(params)) {
-      const axis = M.onAxis(state.many, state.manyCfg, M.axisOf(params));
+      const axis = M.onAxis(state.many, state.manyCfg, M.axisOf(params), cutOf(params));
       return `A histogram of ${M.intText(state.manyCfg.n)} mutations on the ${axis.label.toLowerCase()} axis, `
         + `from ${state.manyCfg.clones.length} cell population${state.manyCfg.clones.length > 1 ? "s" : ""} at purity `
         + `${M.n2(state.manyCfg.purity)}. A Gaussian mixture of ${state.many.fit.K} component`
@@ -1569,7 +1623,7 @@ widgetApi = defineWidget({
     const reading = `${M.intText(M.altAt(state.one, k))} of the ${M.intText(k)} reads drawn so far carry the mutation, `
       + `a variant allele frequency of ${M.n3(M.vafAt(state.one, k))}`;
     if (params.page === "one") return `A sample of ${M.CELLS} cells in which ${cells}. ${reading} against the ${M.n3(cfg.expected)} the sample's copies give.`;
-    const lik = M.likelihoodOf(M.altAt(state.one, k), k, cfg, params.knows);
+    const lik = M.likelihoodOf(M.altAt(state.one, k), k, cfg, params.knows, { rule: params.rule, cut: cutOf(params) });
     return `A sample of ${M.CELLS} cells in which ${cells}. ${reading}. The likelihood of the reads allows a cancer cell `
       + `fraction of ${M.n2(lik.lo)} to ${M.n2(lik.hi)}: ${M.STRINGS.callValue[lik.call].toLowerCase()}.`;
   },

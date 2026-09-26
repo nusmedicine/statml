@@ -9652,6 +9652,30 @@ purity 0.70, 1 + 1: the reads allow c 0.79–1.00 (a VAF standard error of about
 0.05, × 2.86), which includes subclones in 79–89% of tumor cells, under the
 0.9 line; at 161 reads the same sample reads 0.92–1.00, Clonal.
 
+#### THE RULE AND THE THRESHOLD, B′ — 2026-09-26 (`_lab/tumor-heterogeneity-threshold-mock.html`, 582ef44)
+
+*"in practice, do we set different thresholds for CCF?"*, then *"mock the
+controls for thresholds"*, then **B′**. Measured in the mock on page 1's 64
+samples, 20 draws each, told both, 88 reads: under *every fraction the reads
+allow*, lines 0.80–0.95 are wrong 0.0–0.4% and settle 39 → 48% of calls (the
+rest Cannot tell); under *the best estimate*, never Cannot tell, wrong 13–16%
+at every line. **The rule changes a call; the line barely does** — his 33 of 88
+reading is Cannot tell at every line under the range (it allows c from 0.79)
+and Clonal under the best estimate. A threshold-only control (A) would have
+taught the opposite.
+
+Built: under The analysis on page 3, **Clonal if**: *Every fraction the reads
+allow is above* (default) · *The best estimate is above* (`rule=every|best`),
+and **Clonal threshold** 0.80 · 0.85 · 0.90 · 0.95, default 0.90
+(`threshold=`), both display. The dashed line carries its value above the plot
+and glides when the threshold changes; the best estimate is marked at its peak
+under that rule, with a legend entry; the All mutations view draws the same
+threshold and counts past it. The split note now names the range and the line:
+*"the reads allow 0.79 to 1.00, on both sides of 0.90"* — his "why cannot
+tell" answered on the figure. Rule names from practice (TRACERx, ABSOLUTE) stay
+out of the widget. Verify 246 checks (§ 2b holds the measurement), `check` and
+`test` green, overlap sweep 11 page-3 states clean, switch probe 0 of 23.
+
 **Verified:** `tumor-heterogeneity-verify.mjs` 220 checks (section 2's page-1
 height block replaced by the likelihood's: told both wrong 0.0% at 88 reads
 over 2,880 draws, truth held 96.8%; told nothing wrong 14.9%, truth held 51.0%

@@ -452,7 +452,37 @@ export function givenOf(cfg, level) {
 }
 
 /** The curves, the intervals each allows, and the call. `null` before a read. */
-export function likelihoodOf(k, n, cfg, level) {
+/* THE RULE AND THE LINE, his pick B′ of 2026-09-26
+   (`_lab/tumor-heterogeneity-threshold-mock.html`): "in practice, do we set
+   different thresholds for CCF?" — and the measurement there said the RULE
+   changes a call far more than the line does. Over page 1's 64 samples, 20
+   draws each, told both, at 88 reads:
+
+                          line 0.80    0.85    0.90    0.95    (right / wrong / cannot tell, %)
+     every c allowed ≥    39/0/60   42/0/58  44/0/56  48/0/52
+     best estimate ≥      84/16/0   86/14/0  87/13/0  86/14/0
+
+   So the two rules are the trade-off every published rule sits on — cautious
+   (can answer Cannot tell, almost never wrong) or confident (always answers,
+   wrong 13–16% of the time at this depth) — and the line moves only which
+   calls get settled. The two published rules not offered behave like these:
+   the range reaching 1 sits between them, Pr(c > 0.95) > 0.5 like the best
+   estimate. The link words are the options' first words. */
+export const RULES = [
+  { value: "every", label: "Every fraction the reads allow is above", span: true },
+  { value: "best", label: "The best estimate is above", span: true },
+];
+export const THRESHOLD_OPTIONS = ["0.80", "0.85", "0.90", "0.95"];
+
+/** The call under a rule and a line. The best estimate is the peak of the
+    highest curve — the (c, m) the reads favour most. */
+export function callOf(lik, rule = "every", cut = CUT) {
+  if (!lik) return "none";
+  if (rule === "best") return lik.best.c >= cut - 1e-9 ? "clonal" : "subclonal";
+  return lik.lo >= cut - 1e-9 ? "clonal" : lik.hi < cut - 1e-9 ? "subclonal" : "split";
+}
+
+export function likelihoodOf(k, n, cfg, level, { rule = "every", cut = CUT } = {}) {
   if (!(n > 0)) return null;
   const given = givenOf(cfg, level);
   const curves = given.ms.map((m) => {
@@ -469,8 +499,10 @@ export function likelihoodOf(k, n, cfg, level) {
   const allowed = curves.filter((cv) => cv.interval);
   const lo = Math.min(...allowed.map((cv) => cv.interval.lo));
   const hi = Math.max(...allowed.map((cv) => cv.interval.hi));
-  const call = lo >= CUT ? "clonal" : hi < CUT ? "subclonal" : "split";
-  return { given, curves, allowed, top, lo, hi, call };
+  const topCurve = curves.reduce((a, b) => (b.max > a.max ? b : a));
+  const out = { given, curves, allowed, top, lo, hi, best: { c: topCurve.cHat, m: topCurve.m } };
+  out.call = callOf(out, rule, cut);
+  return out;
 }
 
 export const VIEWS = [
@@ -597,10 +629,10 @@ export function pickK(x, maxK = 5) {
    measured rather than about where the convention sits. */
 export const CUT = 0.9;
 /** The mutations on whichever axis is shown, and the cut that reads them. */
-export function onAxis(many, cfg, axis) {
+export function onAxis(many, cfg, axis, cut = CUT) {
   if (axis === "vaf") return { values: many.muts.map((m) => m.vaf), max: 1, cut: null, label: "Variant allele frequency", ticks: [0, 0.25, 0.5, 0.75, 1] };
   const values = many.muts.map((m) => ccfFrom(m.vaf, cfg.assumed, 1, 2));
-  return { values, max: 1.4, cut: CUT, label: "Cancer cell fraction", ticks: [0, 0.5, CUT, 1.4] };
+  return { values, max: 1.4, cut, label: "Cancer cell fraction", ticks: [0, 0.5, cut, 1.4] };
 }
 
 /* THE AXIS IS EASED BECAUSE IT IS ONE SET OF MUTATIONS READ TWICE. 4.4 says a
@@ -644,10 +676,10 @@ export const lerpHist = (a, b, t) => a.map((c, i) => [lerp(c[0], b[i][0], t), le
    keeps the VAF bar on page 1 un-eased. */
 
 /** The view at a mix: 0 is the reads as they came, 1 is the fraction. */
-export function axisAt(many, cfg, mix) {
+export function axisAt(many, cfg, mix, cut = CUT) {
   const a = onAxis(many, cfg, "vaf");
   if (mix <= 0) return { ...a, mix: 0 };
-  const b = onAxis(many, cfg, "ccf");
+  const b = onAxis(many, cfg, "ccf", cut);
   if (mix >= 1) return { ...b, mix: 1 };
   return {
     values: a.values.map((v, i) => lerp(v, b.values[i], mix)),
@@ -942,13 +974,25 @@ export const STRINGS = {
   givenBoth: (p, state, words) => `purity ${p}, copy number ${state} (${words})`,
   callLabel: "Clonal or subclonal",
   callValue: { clonal: "Clonal", subclonal: "Subclonal", split: "Cannot tell", none: "—" },
-  /* Page 3's call reads the likelihood's plausible set (his pick, 2026-09-26). */
-  callNote: {
-    clonal: `every fraction the reads allow is ${CUT} or more`,
-    subclonal: `every fraction the reads allow is below ${CUT}`,
-    split: `the fractions the reads allow straddle ${CUT}`,
-    none: "no read yet",
+  /* Page 3's call, by rule (his pick B′, 2026-09-26). The split note names
+     both ends of the range and the line between them, because "straddle 0.9"
+     left Kenneth asking why a reading so near clonal was Cannot tell. */
+  callNote: (call, rule, cut, lik) => {
+    const t = cut.toFixed(2);
+    if (call === "none") return "no read yet";
+    if (rule === "best") {
+      const b = lik.best.c.toFixed(2);
+      return call === "clonal" ? `the best estimate, ${b}, is ${t} or more` : `the best estimate, ${b}, is below ${t}`;
+    }
+    if (call === "clonal") return `every fraction the reads allow is ${t} or more`;
+    if (call === "subclonal") return `every fraction the reads allow is below ${t}`;
+    return `the reads allow ${lik.lo.toFixed(2)} to ${lik.hi.toFixed(2)}, on both sides of ${t}`;
   },
+  ruleLabel: "Clonal if",
+  ruleDetail: "whether the call reads the range of fractions the reads allow, or the single best estimate",
+  thresholdLabel: "Clonal threshold",
+  thresholdDetail: "the cancer cell fraction the rule compares against",
+  bestLegend: "The best estimate of c",
   /* The formula card's notes. Each names its letters and then says what the
      line divides by what — the general logic, in the lesson's own terms. */
   /* PAGE 1 NAMES NO LETTER FOR THE FRACTION (2026-09-26): cell 17 gives the
@@ -992,7 +1036,7 @@ export const STRINGS = {
   likCaption: "Likelihood of the reads over c",
   likAxis: "Cancer cell fraction c",
   likNoRead: "Each curve starts once the first read is drawn",
-  thresholdLegend: `The threshold at a cancer cell fraction of ${CUT}`,
+  thresholdLegend: (cut) => `The threshold at a cancer cell fraction of ${cut.toFixed(2)}`,
   truthCcfLegend: "The true cancer cell fraction",
   allowedLegend: "The fractions the reads allow, 95%",
   labelModel: "the model",

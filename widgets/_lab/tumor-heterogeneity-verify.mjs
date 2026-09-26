@@ -381,7 +381,8 @@ const defaults = async () => resolveParams(await spec(), new URLSearchParams("")
       seen.has("clonal") && seen.has("subclonal") && seen.has("split"), [...seen].join(", "));
     for (const key of ["clonal", "subclonal", "split", "none"]) {
       check("…the " + key + " answer has a value and a note",
-        Boolean(M.STRINGS.callValue[key]) && Boolean(M.STRINGS.callNote[key]));
+        Boolean(M.STRINGS.callValue[key])
+        && ["every", "best"].every((rule) => Boolean(M.STRINGS.callNote(key, rule, 0.9, { lo: 0.5, hi: 1, best: { c: 0.8 } }))));
     }
 
     /* THE FRACTION TILE SHOWS THE SPAN OF WHAT FITS, and the call is its visible
@@ -511,6 +512,44 @@ const defaults = async () => resolveParams(await spec(), new URLSearchParams("")
   }
 }
 
+/* --- 2b · the rule and the line, his pick B′ of 2026-09-26 -------------------
+   The mock's measurement, held: the rule changes a call and the line only
+   moves which calls are settled. Over page 1's samples, 20 seeded draws each,
+   told both, at 88 reads. */
+{
+  const sweep = (rule, cut) => {
+    const t = { right: 0, wrong: 0, split: 0, n: 0 };
+    for (const purity of M.PURITY_OPTIONS) for (const c of M.CASES) for (const ccf of ["0.25", "0.50", "0.75", "1.00"]) {
+      const cfg = M.configOne({ purity, ccf, state: c.key, depth: "88" });
+      const rng = makeRng(1088);
+      for (let d = 0; d < 20; d += 1) {
+        let k = 0;
+        for (let i = 0; i < 88; i += 1) if (rng.next() < cfg.expected) k += 1;
+        const call = M.likelihoodOf(k, 88, cfg, "both", { rule, cut }).call;
+        const truth = cfg.ccf >= 0.999 ? "clonal" : "subclonal";
+        t.n += 1;
+        if (call === "split") t.split += 1; else if (call === truth) t.right += 1; else t.wrong += 1;
+      }
+    }
+    return { right: (100 * t.right) / t.n, wrong: (100 * t.wrong) / t.n, split: (100 * t.split) / t.n };
+  };
+  const every = M.THRESHOLD_OPTIONS.map((c) => sweep("every", Number(c)));
+  const best = M.THRESHOLD_OPTIONS.map((c) => sweep("best", Number(c)));
+  check("every fraction allowed: under 1% wrong at every threshold",
+    every.every((r) => r.wrong < 1), every.map((r) => r.wrong.toFixed(1)).join(" · "));
+  check("…and the threshold moves how many calls are settled, not whether they are right",
+    Math.max(...every.map((r) => r.right)) - Math.min(...every.map((r) => r.right)) < 15,
+    every.map((r) => r.right.toFixed(0)).join(" · ") + "% right");
+  check("the best estimate: never Cannot tell, and wrong 10–20% at every threshold",
+    best.every((r) => r.split === 0 && r.wrong >= 10 && r.wrong <= 20), best.map((r) => r.wrong.toFixed(1)).join(" · ") + "% wrong");
+  const cfg = M.configOne({ purity: "0.70", ccf: "1.00", state: "1+1", depth: "88" });
+  const at = (rule, cut) => M.likelihoodOf(33, 88, cfg, "both", { rule, cut }).call;
+  check("his reading, 33 of 88: Cannot tell at every threshold under the range, Clonal under the best estimate",
+    M.THRESHOLD_OPTIONS.every((c) => at("every", Number(c)) === "split") && M.THRESHOLD_OPTIONS.every((c) => at("best", Number(c)) === "clonal"));
+  const note = M.STRINGS.callNote("split", "every", 0.9, M.likelihoodOf(33, 88, cfg, "both"));
+  check("…and the note names the range and the line between its ends", note === "the reads allow 0.79 to 1.00, on both sides of 0.90", note);
+}
+
 /* --- 3 · the reads -------------------------------------------------------- */
 {
   const cfg = M.configOne({ purity: "0.70", ccf: "1.00", state: "1+1", copies: 1, depth: "88" });
@@ -585,7 +624,7 @@ const defaults = async () => resolveParams(await spec(), new URLSearchParams("")
   const WANT = {
     page: "segmented", view: "segmented", truthSec: "section", sampleSec: "section", purity: "choice", ccf: "choice",
     state: "segmented", seqSec: "section", depth: "choice",
-    analysisSec: "section", knows: "segmented",
+    analysisSec: "section", knows: "segmented", rule: "segmented", threshold: "choice",
     clones: "segmented", mutations: "choice", lookSec: "section",
     axis: "segmented", assumed: "segmented", clusters: "bool", samplesSec: "section",
     tree: "segmented", showcells: "bool", dataSec: "section", seed: "int", all: "bool", shown: "int",
@@ -593,7 +632,7 @@ const defaults = async () => resolveParams(await spec(), new URLSearchParams("")
   for (const [name, type] of Object.entries(WANT)) check(`${name} is ${type}`, W.params[name]?.type === type);
   check("no parameters beyond those",
     Object.keys(W.params).sort().join() === Object.keys(WANT).sort().join());
-  for (const name of ["page", "view", "knows", "axis", "assumed", "clusters", "tree", "showcells", "all"]) {
+  for (const name of ["page", "view", "knows", "rule", "threshold", "axis", "assumed", "clusters", "tree", "showcells", "all"]) {
     check(`${name} is a display parameter`, W.params[name].display === true);
   }
   for (const name of ["purity", "ccf", "state", "depth", "clones", "mutations", "seed"]) {
@@ -856,6 +895,7 @@ const defaults = async () => resolveParams(await spec(), new URLSearchParams("")
   for (const knows of M.KNOWLEDGE.map((k) => k.key)) {
     for (const purity of M.PURITY_OPTIONS) {
       for (const c of M.CASES) cells.push({ ...values, page: "ccf", view: "one", knows, purity, state: c.key });
+      for (const [rule, threshold] of [["best", "0.80"], ["every", "0.95"], ["best", "0.95"]]) cells.push({ ...values, page: "ccf", view: "one", knows, purity, rule, threshold });
     }
   }
   for (const params of cells) {
@@ -1201,6 +1241,11 @@ const defaults = async () => resolveParams(await spec(), new URLSearchParams("")
     a3.k = 88; a3.oneFrom = null; a3.oneT = 1;
     draw(p3, a3, st3p);
     W.animation.rebuild(a3, { params: { ...p3, knows: "nothing" }, state: st3p });
+    const aCut = W.animation.init({ params: p3, state: st3p, fromScratch: true });
+    W.animation.rebuild(aCut, { params: { ...p3, threshold: "0.80" }, state: st3p });
+    check("page 3: changing the threshold glides its line", aCut.cutFrom === 0.9 && aCut.easing === true);
+    land(aCut, { ...p3, threshold: "0.80" }, st3p);
+    check("…and lands", aCut.cutT === 1 && aCut.cutFrom === null);
     check("page 3: changing Given moves the curves, keeping the reads",
       Boolean(a3.likFrom) && a3.easing === true && a3.k === 88, `${a3.likFrom ? a3.likFrom.length : 0} curves carried`);
     let worstLik = 0;
