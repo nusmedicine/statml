@@ -57,10 +57,12 @@ const ON = (page) => ({ param: "page", equals: page });
 
 const S = {
   title: "Deep Learning - Language: Attention",
-  /* his pick E1, 2026-09-26: why and what, no example and no arithmetic (D1 before it
-     carried both, the two senses of "discharge" and the softmax; he cut them) */
-  subtitle: "A word's meaning depends on its context. Attention computes each token's new vector as a weighted sum over all the tokens "
-    + "in the sequence, with weights computed from the tokens themselves, in several heads in parallel.",
+  /* his pick F3, 2026-09-26: token throughout (E1 said word, then token), the intuition
+     before the mechanism, and why several heads. D1 and E1 before it carried an example and
+     the arithmetic; he cut both */
+  subtitle: "The meaning of a token depends on the tokens around it. Attention replaces each token's vector with a weighted mix of all "
+    + "the tokens in the sequence, the weights expressing how relevant each token is to it and computed from the tokens themselves. "
+    + "Several sets of weights are computed in parallel, one per head, because a token can relate to the others in more than one way at once.",
   pageLabel: "Step",
   sentenceLabel: "Sentence",
   sentenceDetail: "Synthetic clinical notes, the input to a small model pretrained by masked-word prediction.",
