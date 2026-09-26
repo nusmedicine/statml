@@ -87,17 +87,17 @@ const S = {
   projS1: ["1 · Projections", "Q = X W_Qᵀ + b,  K = X W_Kᵀ + b,  V = X W_Vᵀ + b", ""],
   projS2: (n) => [`2 · One number of ${n}ᵢ`, `${n}ₘ = Σₖ x̃ₖ Wₖₘ + bₘ`, ""],
   projWhy: "Each column of W is a trained set of 48 weights, applied to every token the same way a convolution kernel "
-    + "is applied at every position; each of a vector's 12 numbers is how strongly x̃ matches one column.",
+    + "is applied at every position; each of the 12 numbers of qᵢ, kᵢ or vᵢ is x̃ᵢ's dot product with one column, plus its bias.",
   projX: (L) => `X  [${L} × 48]`, projXNote: "a row per token, its x̃",
   projW: (key) => `W_${key}ᵀ`, projWSize: "[48 × 12]", projR: (key, L) => `${key}  [${L} × 12]`,
   projHead: (h) => `head ${h}: 12 of the 48 columns of each Wᵀ`,
   projXi: "x̃ᵢ", projProd: "x̃ₖ Wₖₘ", projQ: (n) => `${n}ᵢ`, projCol: (m) => `m = ${m}`,
-  projSum: (v) => `Σ + b = ${v.toFixed(2)}`, projWait: "Next token computes the first row",
+  projSum: (v) => `Σ + b = ${(v < 0 ? "−" : "") + Math.abs(v).toFixed(2)}`, projWait: "Next token computes the first row",
   tileTok: "Token", tileTokNote: "the row just computed",
   tileCol: (key) => `Column of W_${key}ᵀ`, tileColNote: (n) => `the number of ${n}ᵢ being computed`,
-  projLabel: "Projection", projDetail: "The projection written out below as the sum behind one of its numbers: the query, the key or the value.",
+  projLabel: "Projection", projDetail: "The projection whose numbers are written out below as sums: the query, the key or the value.",
   tileRowsTokNote: "one row per token",
-  outW: "Weights", outV: "Features vⱼ",
+  outW: "Weights", outV: "Values vⱼ",
   queryLabel: "Query", queryLatest: "Latest",
   queryDetail: "The computed row shown in the Weights column and the Sum: the latest, or one chosen here or by a click on its row.",
   outTerms: ["The terms", (d) => `αᵢⱼ × vⱼ, number ${d}`], outTermSum: (d, v) => `number ${d} of zᵢ: the terms summed = ${v}`,
@@ -144,7 +144,7 @@ const PLAIN = {
   heads: "MultiHead = [head₁; …; head₄] W_O", mask: "αᵢⱼ = softmaxⱼ(qᵢ·kⱼ / √dₖ + mⱼ)", maskRaw: "αᵢⱼ = softmaxⱼ(qᵢ·kⱼ + mⱼ)",
 };
 const NOTE = {
-  scaled: "dₖ = 12", raw: "no division", output: "", heads: "", projections: "each Wᵀ is 48 × 48; a head takes 12 of its columns", mask: "dₖ = 12 · mⱼ = 0, or −∞ where the mask is 0", maskRaw: "no division · mⱼ = 0, or −∞ where the mask is 0",
+  scaled: "dₖ = 12", raw: "no division", output: "", heads: "", projections: "each Wᵀ is 48 × 48, 12 columns per head", mask: "dₖ = 12 · mⱼ = 0, or −∞ where the mask is 0", maskRaw: "no division · mⱼ = 0, or −∞ where the mask is 0",
 };
 function renderCard(params) {
   const figure = document.querySelector("#widget .w-figure");

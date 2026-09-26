@@ -127,7 +127,8 @@ const wnd = M.stage("wound"), wq = wnd.tokens.indexOf("wound");
 near(M.tailShare(wnd.padded.open.heads[3].alpha[wq], wnd.L), 0.84, 0.005, "wound, head 4: the wound row's weight on [PAD] without the mask");
 near(M.tailShare(wnd.padded.masked.heads[3].alpha[wq], wnd.L), 0, 1e-12, "wound, head 4: and with it");
 
-/* 4 · the copy (the audit of 2026-09-26): no struck word in a reader-facing string.
+/* 4 · the copy (the audits of 2026-09-26, the second after Projections and the hovers):
+   no struck word in a reader-facing string.
    Comments are exempt — they carry the record of where a decision came from. A
    string with no space is an identifier, a parameter value or a token, not copy. */
 {
@@ -138,7 +139,7 @@ near(M.tailShare(wnd.padded.masked.heads[3].alpha[wq], wnd.L), 0, 1e-12, "wound,
     [/\bnever\b/i, "say the positive, literal fact"],
     [/\byou\b|\byour\b/i, "no second person"],
     [/\bnotebook\b|\blesson\b|\bcell \d+/i, "no lesson reference in reader-facing copy"],
-    [/\bcarr(y|ies)\b|\bdoes\b|\bdid\b|\bcompares?\b|reads? off|comes? from|\bchose\b|\bwaits?\b|\breach(es)?\b|\bweighs\b|\bread by\b/i, "no personification: the thing does not act"],
+    [/\bcarr(y|ies)\b|\bdoes\b|\bdid\b|\bcompares?\b|reads? off|comes? from|\bchose\b|\bwaits?\b|\breach(es)?\b|\bweighs\b|\bread by\b|\btakes?\b|\bbehind\b|\bmatch(es)?\b/i, "no personification: the thing does not act"],
     [/\bpress(es)?\b|\brung\b|\bcard\b|\bwalk\b|\bjoined\b|taken into|like any other|row by row|\bwidth\b/i, "our own vocabulary or phrasing, not the field's"],
   ];
   for (const [re, why] of STRUCK) {
