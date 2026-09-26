@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · tumor-heterogeneity — clonal architecture, sample by sample</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1500px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  h3 { font-size: var(--fs-sm); margin: 0 0 4px; }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 110ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand { flex: 0 0 auto; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); white-space: pre-line; max-width: 552px; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3);
+         border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 110ch; }
+  table { border-collapse: collapse; font-size: var(--fs-sm); margin: var(--sp-2) 0; }
+  th, td { border: 1px solid var(--grid); padding: 4px 10px; text-align: left; vertical-align: top; }
+  th { color: var(--ink-2); font-weight: 600; }
+  td.num { font-family: var(--font-mono); }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>tumor-heterogeneity &middot; clonal architecture, sample by sample</h1>
+  <p class="note">
+    <b>Your ask, 2026-09-26:</b> &ldquo;consider including a play step by step for the clonal architecture? i may be wrong,
+    but we can infer them at each stage of sample sequencing and CCF?&rdquo; All numbers are your RETCHER figure's, read by
+    the widget's own <code>model.js</code>.
+  </p>
+
+  <h2>1 &middot; Is it right? Yes, with one caveat</h2>
+  <table style="max-width:1100px">
+    <tr><th>stage</th><th>what it gives</th><th>on the widget</th></tr>
+    <tr><td>sequence a sample</td><td>reads at each mutation: a VAF</td><td>page 1</td></tr>
+    <tr><td>correct for purity and copy number</td><td>each mutation's CCF</td><td>page 3</td></tr>
+    <tr><td>cluster the CCFs</td><td>each cluster's mean CCF in this sample</td><td>page 3, All mutations</td></tr>
+    <tr><td>apply the sum rule</td><td>the trees this sample allows</td><td>page 4</td></tr>
+    <tr><td>add the next sample</td><td>a tree must fit <b>every</b> sample so far</td><td>page 4, the step</td></tr>
+  </table>
+  <p class="note"><b>The caveat:</b> tools such as RETCHER and PyClone find the clusters from all samples together, so the
+    three clusters are fixed before any tree is tested. Stepping adds evidence for trees over fixed clusters; it does not
+    discover the clusters one sample at a time.</p>
+
+  <h2>2 &middot; What a step would change, on your figure's numbers</h2>
+  <div id="countTable"></div>
+  <p class="note" id="countNote"></p>
+
+  <h2>3 &middot; Candidate S: Step adds a sample</h2>
+  <p class="note">Four presses. Each draws the new sample's three points on the fraction panel, its row of nested
+    bars, and ticks each tree: the tree that the sample breaks is marked, with the arithmetic beside the row.</p>
+  <div class="row" id="stepS"></div>
+
+  <h2>4 &middot; Candidate T: each sample in two presses, testing the trees in turn</h2>
+  <p class="note">Eight presses: the sample arrives nested as 1 &rarr; 2 &rarr; 3 (every sample fits it), then cluster 3
+    slides out of cluster 2 to beside it, the glide the page already has, and the overflow shows whether this sample
+    allows branching. Shown for the sample that decides, P2.1st.</p>
+  <div class="row" id="stepT"></div>
+
+  <h2>5 &middot; What happens to the rail</h2>
+  <table style="max-width:1100px">
+    <tr><th></th><th>today</th><th>with the step</th></tr>
+    <tr><td>Samples used (1 &middot; 2 &middot; 4)</td><td>a display control</td>
+      <td><b>goes</b>: Step and Play become the way samples join, and a link to a finished figure uses
+        <code>shown=</code> (the samples joined), as page 1 uses it for reads. Old <code>taken=</code> links are ignored</td></tr>
+    <tr><td>Tree (1 &rarr; 2 &rarr; 3 &middot; 2 and 3 under 1)</td><td>which tree the bars are nested under</td>
+      <td>S: unchanged. T: the second press of each sample shows it, so the control only picks the tree drawn at rest</td></tr>
+    <tr><td>Step and Play</td><td>absent on page 4</td><td>&ldquo;Add a sample&rdquo; &middot; Play; Reset starts from no samples</td></tr>
+  </table>
+  <p class="rec" id="rec"></p>
+</main>
+
+<script type="module">
+import { readTokens } from "../core/env.js";
+import * as M from "../tumor-heterogeneity/model.js";
+
+const T = readTokens();
+const DPR = window.devicePixelRatio || 1;
+const W = 552;
+function canvasIn(parent, w, h, title, sub) {
+  const d = document.createElement("div"); d.className = "cand";
+  d.innerHTML = `<h3>${title}</h3>${sub ? `<div class="sub">${sub}</div>` : ""}`;
+  const c = document.createElement("canvas"); d.appendChild(c); parent.appendChild(d);
+  c.width = w * DPR; c.height = h * DPR; c.style.width = `${w}px`; c.style.height = `${h}px`;
+  const ctx = c.getContext("2d"); ctx.scale(DPR, DPR); return ctx;
+}
+function text(ctx, s, x, y, { font = `${T.fsXs} ${T.font}`, fill = T.ink2, align = "left" } = {}) {
+  ctx.save(); ctx.font = font; ctx.fillStyle = fill; ctx.textAlign = align; ctx.fillText(s, x, y); ctx.restore();
+}
+function wash(color, a) {
+  const m = String(color).match(/^#([0-9a-f]{6})$/i); if (!m) return color;
+  const p = [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16)); return `rgba(${p[0]},${p[1]},${p[2]},${a})`;
+}
+const cols = [T.groupA, T.groupB, T.groupC];
+const ORDER = M.JOIN_ORDER.map((i) => M.SAMPLES[i]);
+
+/* §2 */
+{
+  let keep = [...M.SHAPES];
+  let h = `<table><tr><th>press</th><th>sample joins</th><th>linear 1 → 2 → 3</th><th>branching: 2 + 3 against 1</th><th>trees that fit</th></tr>`;
+  ORDER.forEach((s, i) => {
+    const fit = M.shapesFitting(s.ccf); keep = keep.filter((x) => fit.includes(x));
+    const tb = M.tightestNode(M.shapeOf("branching"), s.ccf);
+    const over = tb.sum > tb.parent;
+    h += `<tr><td>${i + 1}</td><td>${s.key}</td><td>fits</td><td class="num">${tb.sum.toFixed(3)} ${over ? "&gt;" : "≤"} ${tb.parent.toFixed(3)} — ${over ? "ruled out" : "fits"}</td><td>${keep.length} of 2</td></tr>`;
+  });
+  document.getElementById("countTable").innerHTML = h + "</table>";
+  document.getElementById("countNote").innerHTML = `<b>The count changes once</b>, at press 2, and each later sample rules
+    branching out again on its own. That is still worth watching &mdash; the evidence against branching grows from one
+    sample to three &mdash; but a reader expecting the answer to narrow at every press will see it narrow only once. With
+    three clusters there are only two trees; a four-cluster patient (six trees, narrowing 3 &rarr; 1 over its samples) was
+    mocked on 2026-09-17 and set aside for your figure's data.`;
+}
+
+/* a frame: lines panel, trees, rows */
+function frame(ctx, joined, { newest = null, shapeMix = 0, chosen = "linear", pending = null } = {}) {
+  const P = { x: 44, y: 26, w: 290, h: 120 };
+  text(ctx, "Cluster mean cancer cell fraction", P.x, 16, { font: `600 ${T.fsSm} ${T.font}`, fill: T.ink1 });
+  ctx.strokeStyle = T.axis; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(P.x, P.y); ctx.lineTo(P.x, P.y + P.h); ctx.lineTo(P.x + P.w, P.y + P.h); ctx.stroke();
+  const sx = (s) => P.x + ((M.SAMPLES.indexOf(s) + 0.5) / 4) * P.w;
+  const sy = (v) => P.y + P.h - v * P.h;
+  M.SAMPLES.forEach((s) => text(ctx, s.key, sx(s), P.y + P.h + 14, { align: "center", fill: joined.includes(s) ? T.ink2 : T.grid, font: `10px ${T.mono}` }));
+  const inTime = M.SAMPLES.filter((s) => joined.includes(s));
+  for (let c = 0; c < 3; c += 1) {
+    ctx.beginPath();
+    inTime.forEach((s, i) => (i ? ctx.lineTo(sx(s), sy(s.ccf[c])) : ctx.moveTo(sx(s), sy(s.ccf[c]))));
+    ctx.strokeStyle = cols[c]; ctx.lineWidth = 2; ctx.stroke();
+    inTime.forEach((s) => { ctx.beginPath(); ctx.arc(sx(s), sy(s.ccf[c]), 3.5, 0, 7); ctx.fillStyle = cols[c]; ctx.fill(); });
+  }
+  if (newest) { ctx.strokeStyle = T.highlight; ctx.lineWidth = 1.5; ctx.strokeRect(sx(newest) - 12, P.y - 4, 24, P.h + 8); }
+  // trees
+  const box = { x: 360, y: 20, w: 180, h: 130 };
+  M.SHAPES.forEach((s, i) => {
+    const cx = box.x + i * 90 + 45;
+    /* In T, a tree whose test for the newest sample has not run yet stands on the samples before it. */
+    const fits = (pending === s.key ? joined.filter((u) => u !== newest) : joined).every((u) => M.fitsSumRule(s, u.ccf));
+    const pos = s.key === "linear" ? [[cx, 30], [cx, 60], [cx, 90]] : [[cx, 30], [cx - 20, 72], [cx + 20, 72]];
+    ctx.strokeStyle = T.ink3; ctx.lineWidth = 1.5;
+    s.parents.forEach((p, ci) => { ctx.beginPath(); ctx.moveTo(...pos[p]); ctx.lineTo(...pos[ci + 1]); ctx.stroke(); });
+    pos.forEach((q, ci) => { ctx.beginPath(); ctx.arc(q[0], q[1], 9, 0, 7); ctx.fillStyle = cols[ci]; ctx.fill(); });
+    text(ctx, s.key === "linear" ? "1 → 2 → 3" : "2 and 3 under 1", cx, 118, { align: "center" });
+    text(ctx, joined.length ? (fits ? "Fits" : "Ruled out") : "—", cx, 136, { align: "center", fill: fits ? T.ink1 : T.extreme, font: `600 ${T.fsSm} ${T.font}` });
+  });
+  // rows
+  const top = 200;
+  text(ctx, `Each sample's tumor cells, nested as ${chosen === "linear" && shapeMix < 0.5 ? "1 → 2 → 3" : "2 and 3 under 1"}`, 14, top - 8, { font: `600 ${T.fsSm} ${T.font}`, fill: T.ink1 });
+  inTime.forEach((s, i) => {
+    const y = top + i * 30, w = 300, g = { x: 14, y, w, h: 14 };
+    ctx.fillStyle = T.surface3; ctx.fillRect(14, y, w, 14);
+    const rects = M.lerpRects(M.barRects(M.SHAPES[0], s.ccf, g), M.barRects(M.SHAPES[1], s.ccf, g), shapeMix);
+    rects.forEach((r, c) => { ctx.fillStyle = wash(cols[c], c === 0 ? 0.45 : c === 1 ? 0.75 : 0.9); ctx.fillRect(r.x, r.y, r.w, r.h); });
+    const over = M.overflowOf(rects);
+    if (over > 0.5) { ctx.strokeStyle = T.extreme; ctx.lineWidth = 1.5; ctx.strokeRect(rects[0].x + rects[0].w + 0.5, y - 1.5, over, 17); }
+    const shape = shapeMix < 0.5 ? M.SHAPES[0] : M.SHAPES[1];
+    const tl = M.tightestNode(shape, s.ccf), bad = tl.sum > tl.parent + 1e-12;
+    text(ctx, `${s.key}  ${tl.sum.toFixed(2)} ${bad ? ">" : "≤"} ${tl.parent.toFixed(2)}`, 380, y + 11, { font: `${T.fsXs} ${T.mono}`, fill: bad ? T.extreme : T.ink2 });
+    if (s === newest) { ctx.strokeStyle = T.highlight; ctx.lineWidth = 1.5; ctx.strokeRect(10, y - 4, 530, 22); }
+  });
+}
+
+/* §3 */
+{
+  const host = document.getElementById("stepS");
+  ORDER.forEach((s, i) => {
+    const joined = ORDER.slice(0, i + 1);
+    const keep = M.SHAPES.filter((sh) => joined.every((u) => M.fitsSumRule(sh, u.ccf))).length;
+    const ctx = canvasIn(host, W, 330, `Press ${i + 1}: ${s.key} joins`, `trees that fit: ${keep} of 2`);
+    frame(ctx, joined, { newest: s, shapeMix: 1 });
+  });
+}
+/* §4 */
+{
+  const host = document.getElementById("stepT");
+  const joined = ORDER.slice(0, 2);
+  const s = ORDER[1];
+  [["Press 3: P2.1st arrives, nested 1 → 2 → 3 — fits", 0], ["mid-glide: cluster 3 sliding out of 2", 0.5], ["Press 4: 2 and 3 side by side under 1 — they need more cells than 1 has", 1]]
+    .forEach(([title, mix]) => {
+      const ctx = canvasIn(host, W, 330, title, "");
+      frame(ctx, joined, { newest: s, shapeMix: mix, chosen: mix < 0.5 ? "linear" : "branching", pending: mix < 1 ? "branching" : null });
+    });
+}
+document.getElementById("rec").innerHTML = `<b>Recommendation: S, with Step named &ldquo;Add a sample&rdquo;.</b> One press is one
+  sample sequenced and its fractions checked, which is the stage-by-stage reading you described, and the rows under the
+  chosen tree keep the existing glide for the Tree control. <b>T</b> is the rule made more visible, sample by sample,
+  but eight presses to reach an answer that changes once is long for a lecture, and every sample's first press
+  says the same thing (1 &rarr; 2 &rarr; 3 fits). Either way the count changes at one press, which the page should not hide.`;
+</script>
+</body>
+</html>
