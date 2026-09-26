@@ -1016,7 +1016,7 @@ const heightOf = ({ page, sentence, w }) => {
 
 defineWidget({
   slug: "attention",
-  status: "draft",
+  status: "shipped",
   title: S.title,
   subtitle: S.subtitle,
   layout: "side",

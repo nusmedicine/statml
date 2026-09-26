@@ -12,7 +12,7 @@ answer can be checked against what was assumed.
 
 | looking for | go to |
 |---|---|
-| what to build next | **The language arc (PHM5005 08-1 to 08-3), PROPOSED AND MEASURED 2026-09-25: four slots 83 `attention` · 84 `transformer` · 85 `clinical-text` · 86 `protein-transformer`, his four ideas, awaiting his picks** — § *The language arc*, under PHM5005. Before it: **The sequence arc (PHM5005 07-1 to 07-3), PROPOSED, MEASURED AND PICKED 2026-09-20: four widgets by data type; 73 `signal-cnn-lstm` SHIPPED AND PUSHED the same day (`fbe62c2`); 75 `sequence-cnn-lstm` SHIPPED AND PUSHED 2026-09-20 evening (`77fd1d7`, 42 states) after thirteen review rounds, the copy audit and three subtitle rounds; 72 `signal-windows` SHIPPED AND PUSHED 2026-09-21 (`1fe6062`, 33 states, four pages Clean · Window · Split · Normalize, the cleaning page added on his ask); 74 `sequence-encoding` (planned as `embedding-space`, renamed at the ship) SHIPPED AND PUSHED 2026-09-21 after eleven review rounds in one day, sixteen states — the arc COMPLETE** — § *The sequence arc*, under PHM5005. Slot 71 `somatic-interactions` CUT 2026-09-20 and slot 52 `training-loop` DISCARDED 2026-09-13, both his call. The cancer mutation arc (67, 69, 70) is complete; the image arc has 61, 64, 65 and 62 shipped, 63 `pretrained` on KIV (his call 2026-09-15), 66 folded into 65; the GWAS and PRS arc (56, 57, 59, 60) and the high-throughput arc are complete |
+| what to build next | **The language arc (PHM5005 08-1 to 08-3), PICKED 2026-09-25: four slots 83 `attention` · 84 `transformer` · 85 `clinical-text` · 86 `protein-transformer`, his four ideas; 83 `attention` SHIPPED AND PUSHED 2026-09-26 (four steps, seventeen states); NEXT 84 `transformer`, measure then mock** — § *The language arc*, under PHM5005. Before it: **The sequence arc (PHM5005 07-1 to 07-3), PROPOSED, MEASURED AND PICKED 2026-09-20: four widgets by data type; 73 `signal-cnn-lstm` SHIPPED AND PUSHED the same day (`fbe62c2`); 75 `sequence-cnn-lstm` SHIPPED AND PUSHED 2026-09-20 evening (`77fd1d7`, 42 states) after thirteen review rounds, the copy audit and three subtitle rounds; 72 `signal-windows` SHIPPED AND PUSHED 2026-09-21 (`1fe6062`, 33 states, four pages Clean · Window · Split · Normalize, the cleaning page added on his ask); 74 `sequence-encoding` (planned as `embedding-space`, renamed at the ship) SHIPPED AND PUSHED 2026-09-21 after eleven review rounds in one day, sixteen states — the arc COMPLETE** — § *The sequence arc*, under PHM5005. Slot 71 `somatic-interactions` CUT 2026-09-20 and slot 52 `training-loop` DISCARDED 2026-09-13, both his call. The cancer mutation arc (67, 69, 70) is complete; the image arc has 61, 64, 65 and 62 shipped, 63 `pretrained` on KIV (his call 2026-09-15), 66 folded into 65; the GWAS and PRS arc (56, 57, 59, 60) and the high-throughput arc are complete |
 | how a widget got its shape | § *Widget N*, in order |
 | the four-method reconnaissance | § *Widget 19*, under the PCA sections |
 | the arcs, and what is deliberately not a widget | the arc sections below |
@@ -21928,7 +21928,7 @@ low rank; integrated gradients; `[CLS]` against mean pooling.
 
 | # | slug (provisional) | title (the notebook's own heading) | host | misconception | measured | state |
 |---|---|---|---|---|---|---|
-| 83 | `attention` | Attention Mechanism | 08-1 cell 1 (`dl-language-attention-weight.png`, `-output.png`, `-multi.png`); 08-3 cell 4 §3 and *Handling Padding* | α is a similarity between two words, so symmetric; √d_k is cosmetic; padding is harmless once the sequences are the same length | **holds**: at init the largest \|α_ij − α_ji\| is 0.394; unscaled at d_k 64 the mean top weight of ten is 0.86 and 60% of rows exceed 0.9, scaled 0.32 at every width; the same sentence padded to 12 and 40 gives identical logits with the mask and 0.074 apart without it, the real tokens putting 78% of their weight on 32 PADs | proposed, **first** |
+| 83 | `attention` | Attention Mechanism | 08-1 cell 1 (`dl-language-attention-weight.png`, `-output.png`, `-multi.png`); 08-3 cell 4 §3 and *Handling Padding* | α is a similarity between two words, so symmetric; √d_k is cosmetic; padding is harmless once the sequences are the same length | **holds**: at init the largest \|α_ij − α_ji\| is 0.394; unscaled at d_k 64 the mean top weight of ten is 0.86 and 60% of rows exceed 0.9, scaled 0.32 at every width; the same sentence padded to 12 and 40 gives identical logits with the mask and 0.074 apart without it, the real tokens putting 78% of their weight on 32 PADs | **SHIPPED 2026-09-26** |
 | 84 | `transformer` | Transformer Architecture · Transformer Tasks · Pre-training | 08-1 cells 2–4 (`dl-language-transformer*.png`, `-attention-mask.png`, `-transformer-types.png`); 08-3 cell 4 §3 | a token's vector is fixed once embedded; an encoder and a decoder are different machinery; MLM and next-token prediction learn the same thing | **holds**: "discharge" (home) and "discharge" (wound) are one table row (probe 50%) and separate after block 1 (cos 0.996 → 0.786, probe 100%); on the lesson's own example the MLM model fills *treated with [MASK] for ‹symptom›* with a right drug 100%, the causal model 17% (chance 20%), and both predict the symptom after *treated with ‹drug› for* 100% | proposed, **second** |
 | 85 | `clinical-text` | Clinical: Pre-trained Model Inference · Adapting Models · Explainability | 08-2 cells 3–18 (inference, [CLS] / mean / max, dot products), 19–65 (transfer · full · LoRA, `dl-language-pretrain-*.png`), 66–76 (LIG); 08-1 cells 13–20 | the frozen backbone is the cautious choice that always works; more trainable parameters is always better; LoRA is a smaller network; an attribution explains the clinical reasoning | **holds, and is the stage slot 63 never found**: on a target the pretraining carries (an asserted finding) transfer wins at n = 16 (93 against 88 full, 87 scratch) and all meet by 256; on one it does not (a drug given for the wrong symptom) transfer sits at 50–55% at EVERY n while full fine-tuning reaches 86% at 1,024; MLM accuracy 80% falls to 65% after full, LoRA's W untouched; LoRA r 1 trains 482 parameters and reaches 97%; IG's completeness gap is 0.81 · 0.067 · 0.011 at 5 · 50 · 300 steps, and the lesson's clip hid a "no" that pushed against the prediction in 52 of 120 notes | proposed, **third**; the heaviest |
 | 86 | `protein-transformer` | Biological: Building/Training Transformer Models · Adapting Pre-trained Models · Explainability | 08-3 cells 4–5 (the components table, `dl-language-biology-encoder.png`, pooling figures), 21–29 (`Pad`, `Tokenize`, the model), 50–68 (ESM-2 transfer), 80–89 (occlusion) | the model sees padding the way it sees residues; [CLS] summarises a sequence whatever the model was trained on; a pretrained tokenizer's ids are the lesson's ids | **partly**: the mask arithmetic holds (A3); under transfer an MLM-only backbone's [CLS] scores 91–97% where the mean scores 99–100% (the lesson's own caveat, 08-3 cell 4); the scratch-against-CNN claim of 08-3 cell 1 did NOT hold (below) | proposed, **fourth** |
@@ -22026,7 +22026,7 @@ top of this section.**
    before the lesson adds PEFT to 08-3 as his arc note suggests (08-3 runs
    transfer only today).
 
-### Slot 83 · `attention` — Attention Mechanism — MEASURED, MOCKED AND PICKED 2026-09-25
+### Slot 83 · `attention` — Attention Mechanism — MEASURED, MOCKED AND PICKED 2026-09-25 — SHIPPED AND PUSHED 2026-09-26
 
 **PICKED 2026-09-25, two AskUserQuestion calls:** four pages **Weights ·
 Output · Heads · Mask** in the lesson's order; Weights as **his figure** (query
@@ -22065,7 +22065,7 @@ glide, not across the whole press (his catch, 92a669a); the Weights page runs
 the scores key by key and then the softmax into a second strip (his pick C,
 `_lab/attention-weights-motion-mock.html`, 8f30171); the control is **Step**
 and the padding mask **folded into Weights** as the tokenizer's attention_mask
-row over four [PAD], On or Off, with a −∞ beat before the softmax
+row over four [PAD], Passed or Not passed, with a −∞ beat before the softmax
 (his pick B, `_lab/attention-mask-fold-mock.html`, 7677a7e) — so three steps,
 Weights · Output · Heads. "Features" stays (his figure's word); the causal
 mask is 84's Decoder page (08-1 cells 2–4, and 10-3 cells 44–45 use it).
@@ -22074,7 +22074,7 @@ mask is 84's Decoder page (08-1 cells 2–4, and 10-3 cells 44–45 use it).
 291 claudisms terms; seventeen rows from the house rules (the subtitle's
 "heads do", "a mask gives", "read by", "each 0 sets", "taken into", "weighs",
 "like any other", "joined", "width", "press", "row by row"; the URL values
-`scores=scaled|unscaled`, `attention_mask=on|off`,
+`scores=scaled|unscaled`, `attention_mask=passed|not-passed`,
 `sentence=mask`; two dead strings). Subtitle A and blurb A his picks, both
 scanned before asking. The verify's §4 strikes the rules' words in every
 reader-facing string.
@@ -22093,6 +22093,57 @@ of it on this task; what W_V buys is each head's own choice of content, which a
 toy this small does not show. No copy claims W_V's worth. The switch probe reads 10 switches, 0
 flagged; the overlap sweep 50 states at 490px, clean. Fingerprint states owed
 at the ship, not before.
+
+**Then, the second day's rounds (2026-09-26), each mocked first and picked, one
+commit each:**
+
+- **Heads as matrices** (e3e2cbd, `_lab/attention-heads-matrix-mock.html`, A
+  stacked): his "is it done one by one? or are head1-4 actually matrices?" —
+  every Zₕ [L × 12], the concatenation and W_O's output [L × 48] at their real
+  sizes, blank until a press fills the query's row in each, in beats.
+- **A Projections step ahead of Weights** (78a0234,
+  `_lab/attention-projections-mock.html`): his "they are the embeddings
+  right?" — they are not; measured, q = k = x̃ puts 1.00 of every row on the
+  token itself and scores each pair alike both ways (trained head 4: 0.07, and
+  aspirin → chest 5.28 against chest → aspirin −1.49). Section 1 X · Wᵀ = Q, K, V
+  laid out as a matrix product; section 2 one number as x̃ᵢ beside a column of W,
+  48 products, the sum. Output's values section moved here. The comparison panel
+  was mocked and left out on his word.
+- **Projection control and hover** (ade0090,
+  `_lab/attention-projections-hover-mock.html`): Query · Key · Value, by rail or
+  by a click on a W block (a region); hover on a computed number writes out its
+  sum.
+- **qᵢ and kⱼ at their words on Weights** (8410a25,
+  `_lab/attention-weights-vectors-mock.html`, K1): the original layout kept, his
+  call over the matrix-product layout; qᵢ glides with the query, every kⱼ from
+  the start, both outlined as each score prints.
+- **[PAD] on a band, and Weights hover** (ea319a9,
+  `_lab/attention-weights-hover-pad-mock.html`): the diagonal hatch "can be
+  distracting"; a cell of α brings its query into the strips with the key
+  outlined, a key outlines its column of α.
+- **Output: a Query pin and the one-number hover** (7db06ba,
+  `_lab/attention-output-hover-mock.html`, round 2): he found hover alone could
+  only take apart the press's query, so Query (Latest · 1 … L) holds a row, by
+  rail or a click on it; a hovered number of vⱼ writes out its terms. The switch
+  probe gained `at=` for it (dfcbe14).
+- **Heads hover, all three** (d0f8706, `_lab/attention-heads-hover-mock.html`):
+  a token's row through every matrix, a head lit with the others dimmed, an
+  output number split into each head's part through W_O plus the bias.
+- **The second copy audit** (bbdfc68): 0 of 292 terms; "matches", "the sum
+  behind", "a head takes" rewritten literally; Output's column named **Values
+  vⱼ**. The mask buttons **On · Off**, `attention_mask=on|off` (2535589; the
+  entries above keep the names of their day). Subtitle F3 and blurb G2 after
+  four rounds (D1 with an example → E1 short → F3: token throughout, the
+  intuition, why several heads).
+
+**SHIPPED AND PUSHED 2026-09-26** on his "tested ok, push it". Four steps,
+**Projections · Weights · Output · Heads**. Seventeen fingerprint states (ten
+settled, four driven, one interrupted, two hit), each identical over three runs
+and a MATCH pass; a first tall Heads state (home, 1,050px) hashed 669 or 688
+wide run to run (the page scrollbar) and was replaced by aspirin's (963px).
+Hover has no harness drive and is not fingerprinted; the verify holds its
+arithmetic (the drawn slices reproduce q, k, v; q·k/√d_k of them is the verified
+score; the heads' parts add up to every output number; 8344 checks).
 
 **His ask, 2026-09-25:** *start on 83, measure then mock.* Measure script
 `_lab/attention-measure.py` (imports the arc script's grammar and tiny BERT;

@@ -10574,6 +10574,212 @@
       },
       "px": "6b05caec",
       "tx": "07aceca7"
+    },
+    {
+      "$note": "attention · Projections, opens empty: X and the three W, no row computed",
+      "slug": "attention",
+      "state": "?theme=light&shown=0",
+      "px": "5ce77f5f",
+      "tx": "7f421386"
+    },
+    {
+      "$note": "attention · Projections, four tokens: aspirin's row, column 12 of W_Qᵀ and section 2's sum −4.15",
+      "slug": "attention",
+      "state": "?theme=light&shown=4",
+      "px": "48dc8e52",
+      "tx": "a8c02ea1"
+    },
+    {
+      "$note": "attention · Projections, Value chosen, every row computed, head 1",
+      "slug": "attention",
+      "state": "?theme=light&projection=value&head=1&shown=8",
+      "px": "c512e6e9",
+      "tx": "62fe820f"
+    },
+    {
+      "$note": "attention · Weights, opens empty: qᵢ absent, every kⱼ under its key, the [PAD] band",
+      "slug": "attention",
+      "state": "?theme=light&page=weights&shown=0",
+      "px": "bf34c171",
+      "tx": "13cf34d5"
+    },
+    {
+      "$note": "attention · Weights, four queries, mask on",
+      "slug": "attention",
+      "state": "?theme=light&page=weights&shown=4",
+      "px": "986fe6ac",
+      "tx": "3e134abf"
+    },
+    {
+      "$note": "attention · Weights, wound, mask off, unscaled, every row",
+      "slug": "attention",
+      "state": "?theme=light&page=weights&sentence=wound&attention_mask=off&scores=unscaled&shown=11",
+      "px": "aca79c59",
+      "tx": "caeae564"
+    },
+    {
+      "$note": "attention · Output, four queries, the press's own",
+      "slug": "attention",
+      "state": "?theme=light&page=output&shown=4",
+      "px": "25c29169",
+      "tx": "108e558a"
+    },
+    {
+      "$note": "attention · Output, Query pinned to row 3 (with)",
+      "slug": "attention",
+      "state": "?theme=light&page=output&query=3&shown=4",
+      "px": "464753db",
+      "tx": "3901804a"
+    },
+    {
+      "$note": "attention · Heads, four rows",
+      "slug": "attention",
+      "state": "?theme=light&page=heads&shown=4",
+      "px": "791e31af",
+      "tx": "1da878e7"
+    },
+    {
+      "$note": "attention · Heads, every row (aspirin: 963 tall; home at 1,050 tipped the page scrollbar and hashed at 669 or 688 wide, run to run)",
+      "slug": "attention",
+      "state": "?theme=light&page=heads&shown=8",
+      "px": "889b76f9",
+      "tx": "4676868d"
+    },
+    {
+      "$note": "attention · DRIVEN Projections mid-press: the sweep in W_Qᵀ's columns",
+      "slug": "attention",
+      "state": "?theme=light",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 200
+          }
+        ],
+        "click": "step",
+        "frames": 30,
+        "dt": 32
+      },
+      "px": "f72bf846",
+      "tx": "016d09d3"
+    },
+    {
+      "$note": "attention · DRIVEN Weights mid-press: the outline over a kⱼ and qᵢ, a score printing",
+      "slug": "attention",
+      "state": "?theme=light&page=weights",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 200
+          }
+        ],
+        "click": "step",
+        "frames": 30,
+        "dt": 32
+      },
+      "px": "d918f012",
+      "tx": "3b79f70c"
+    },
+    {
+      "$note": "attention · DRIVEN Output mid-press: a key being added to the sum",
+      "slug": "attention",
+      "state": "?theme=light&page=output",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 200
+          }
+        ],
+        "click": "step",
+        "frames": 30,
+        "dt": 32
+      },
+      "px": "90ab179d",
+      "tx": "480c3a96"
+    },
+    {
+      "$note": "attention · DRIVEN Heads mid-press: the four Zₕ rows filling",
+      "slug": "attention",
+      "state": "?theme=light&page=heads",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 200
+          }
+        ],
+        "click": "step",
+        "frames": 15,
+        "dt": 32
+      },
+      "px": "aff8623f",
+      "tx": "19bf1bb6"
+    },
+    {
+      "$note": "attention · INTERRUPTED Projections: Key chosen mid-sweep; the press settles on K",
+      "slug": "attention",
+      "state": "?theme=light",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 200
+          },
+          {
+            "click": "step",
+            "frames": 20
+          }
+        ],
+        "set": {
+          "projection": "key"
+        },
+        "frames": 200,
+        "dt": 32
+      },
+      "px": "79932c07",
+      "tx": "3e94c44a"
+    },
+    {
+      "$note": "attention · HIT Projections: a click on W_Vᵀ's block chooses Value",
+      "slug": "attention",
+      "state": "?theme=light",
+      "drive": {
+        "hit": [
+          480,
+          120
+        ],
+        "frames": 2,
+        "dt": 32
+      },
+      "px": "6bc62d0f",
+      "tx": "cce549b0"
+    },
+    {
+      "$note": "attention · HIT Output: a click on row 2 of zⱼ pins Query to treated",
+      "slug": "attention",
+      "state": "?theme=light&page=output",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 200
+          },
+          {
+            "click": "step",
+            "frames": 200
+          }
+        ],
+        "hit": [
+          460,
+          94
+        ],
+        "frames": 2,
+        "dt": 32
+      },
+      "px": "626ba206",
+      "tx": "bc58f95b"
     }
   ]
 }
