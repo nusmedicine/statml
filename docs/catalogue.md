@@ -9733,6 +9733,21 @@ clusters across samples of one tumor determine its clonal tree.* **Blurb B1**
 fraction is estimated and the clonal tree built.* Both checked against the
 banlist and the personification verbs before he saw them.
 
+#### RE-SHIPPED AND PUSHED 2026-09-26, on his "tested ok, push it to gallery"
+
+Four pages in the notebook's order — One mutation · Many mutations · Cancer cell
+fraction · Clonal architecture. **Twenty-three fingerprint states** replace the
+sixteen of 2026-09-17 (all of which described the old design): sixteen settled
+across the four pages, six driven (Play through the reads; Surgery's nodes
+sliding into the tree; Recurrence 1's second beat, the edge struck and 3
+sliding inside 2; the threshold glide; Given moving the curves; the All
+mutations axis ease) and one interrupted (Play on page 4, then page 1: the
+press stops). Recorded with `fingerprint.html?only=tumor-heterogeneity`, fronted
+and visible at DPR 1.25, three identical runs, then a fourth reading 23 of 23
+MATCH. `widgets/core/` was not touched this session, so no other widget can
+have moved and the full suite was not run. `check` and `test` green (the
+verify 244 checks).
+
 **Verified:** `tumor-heterogeneity-verify.mjs` 220 checks (section 2's page-1
 height block replaced by the likelihood's: told both wrong 0.0% at 88 reads
 over 2,880 draws, truth held 96.8%; told nothing wrong 14.9%, truth held 51.0%

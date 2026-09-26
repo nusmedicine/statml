@@ -7425,135 +7425,232 @@
       "tx": "31114b46"
     },
     {
-      "$note": "tumor-heterogeneity · One mutation, nothing read: the empty pileup, and the card stating the definition only",
       "slug": "tumor-heterogeneity",
-      "state": "?theme=light&shown=0",
-      "px": "3dddfbc7",
-      "tx": "3dbed873"
+      "px": "c76df3ee",
+      "tx": "c81a856a",
+      "$note": "tumor-heterogeneity · One mutation, nothing read: the pure 1 + 1 sample, cell 17's three readings on the scale",
+      "state": "?theme=light&shown=0"
     },
     {
-      "$note": "tumor-heterogeneity · One mutation, 88 reads at the defaults: 1 + 1, told both, one scenario and a clonal call",
       "slug": "tumor-heterogeneity",
-      "state": "?theme=light&shown=88",
-      "px": "c50f208a",
-      "tx": "fbe81274"
+      "px": "1d259706",
+      "tx": "0ceafead",
+      "$note": "tumor-heterogeneity · One mutation, 88 reads: VAF near 0.5 on the '≈ 0.5' mark",
+      "state": "?theme=light&shown=88"
     },
     {
-      "$note": "tumor-heterogeneity · 3 + 1 with two mutated copies, told both: the fits, the true scenario marked, and Cannot tell",
       "slug": "tumor-heterogeneity",
-      "state": "?theme=light&state=3%2B1&copies=2&shown=88",
-      "px": "f42fa5a3",
-      "tx": "85f0392b"
+      "px": "cb3a0795",
+      "tx": "bda89c3a",
+      "$note": "tumor-heterogeneity · purity 0.70: every tumor cell carries it and the expected line sits in '< 0.5'",
+      "state": "?theme=light&purity=0.70&shown=88"
     },
     {
-      "$note": "tumor-heterogeneity · 2 + 1 with one mutated copy: the same fraction on either chromosome, side by side",
       "slug": "tumor-heterogeneity",
-      "state": "?theme=light&state=2%2B1&copies=1&shown=88",
-      "px": "536581d7",
-      "tx": "5d385944"
+      "px": "551f915f",
+      "tx": "7019f7e7",
+      "$note": "tumor-heterogeneity · 2 of 2 copies: VAF 1.000 on the '≈ 1' mark",
+      "state": "?theme=light&state=2%2B0&shown=88"
     },
     {
-      "$note": "tumor-heterogeneity · told nothing at 75% of tumor cells: the true scenario not listed, purity 1 assumed",
       "slug": "tumor-heterogeneity",
-      "state": "?theme=light&knows=nothing&ccf=0.75&shown=88",
-      "px": "16f6cac4",
-      "tx": "2758eb5c"
+      "px": "11a83a5d",
+      "tx": "58d74bcb",
+      "$note": "tumor-heterogeneity · 1 of 4 copies in 25% of tumor cells: four-copy cells, VAF near 0.06",
+      "state": "?theme=light&state=3%2B1&ccf=0.25&shown=88"
     },
     {
-      "$note": "tumor-heterogeneity · told purity on a 3 + 1 sample: the true scenario not listed, two copies assumed",
       "slug": "tumor-heterogeneity",
-      "state": "?theme=light&knows=purity&state=3%2B1&copies=2&shown=88",
-      "px": "d3f6f16e",
-      "tx": "de0988a8"
+      "px": "77875ebf",
+      "tx": "3209d5f0",
+      "$note": "tumor-heterogeneity · Many mutations: the VAF histogram, clusters and MATH, no fraction axis",
+      "state": "?theme=light&page=many&shown=0"
     },
     {
-      "$note": "tumor-heterogeneity · told nothing on a pure 1 + 1 sample: the range 0.50–1.00 beside Cannot tell",
       "slug": "tumor-heterogeneity",
-      "state": "?theme=light&purity=1.00&knows=nothing&shown=88",
-      "px": "6d342904",
-      "tx": "5a46befc"
+      "px": "a96188a2",
+      "tx": "2adca49d",
+      "$note": "tumor-heterogeneity · Cancer cell fraction before a read: the cells and the empty likelihood",
+      "state": "?theme=light&page=ccf&purity=0.70&shown=0"
     },
     {
-      "$note": "tumor-heterogeneity · Many mutations on the variant allele frequency axis: the histogram, the clusters and MATH",
       "slug": "tumor-heterogeneity",
-      "state": "?theme=light&page=many&shown=0",
-      "px": "f982e78c",
-      "tx": "92c1ea12"
+      "px": "13775a57",
+      "tx": "dc5d140e",
+      "$note": "tumor-heterogeneity · Cancer cell fraction, 33 of 88: interval 0.79-1.00 spans 0.90, Cannot tell",
+      "state": "?theme=light&page=ccf&purity=0.70&shown=88"
     },
     {
-      "$note": "tumor-heterogeneity · Many mutations on the cancer cell fraction axis, given purity: the threshold at 0.9",
       "slug": "tumor-heterogeneity",
-      "state": "?theme=light&page=many&axis=ccf&shown=0",
+      "px": "18767a1f",
+      "tx": "29236cfd",
+      "$note": "tumor-heterogeneity · given nothing: purity 1 and two copies assumed, curves for m 1 and 2 in the wrong place",
+      "state": "?theme=light&page=ccf&purity=0.70&knows=nothing&shown=88"
+    },
+    {
+      "slug": "tumor-heterogeneity",
+      "px": "3201bda7",
+      "tx": "abc7b39b",
+      "$note": "tumor-heterogeneity · 1 of 4 copies given purity and copy number: three curves, 3 + 1 (four copies)",
+      "state": "?theme=light&page=ccf&purity=0.70&state=3%2B1&shown=88"
+    },
+    {
+      "slug": "tumor-heterogeneity",
+      "px": "2d195445",
+      "tx": "21a12efc",
+      "$note": "tumor-heterogeneity · the best-estimate rule at threshold 0.80: the estimate marked, Clonal",
+      "state": "?theme=light&page=ccf&purity=0.70&rule=best&threshold=0.80&shown=88"
+    },
+    {
+      "slug": "tumor-heterogeneity",
       "px": "843fcc64",
-      "tx": "65030e70"
+      "tx": "c3c096c7",
+      "$note": "tumor-heterogeneity · All mutations on the fraction axis, purity given: threshold 0.90 and the count past it",
+      "state": "?theme=light&page=ccf&view=all&purity=0.70&shown=0"
     },
     {
-      "$note": "tumor-heterogeneity · Many mutations on the cancer cell fraction axis, given nothing: the clonal peak emptied",
       "slug": "tumor-heterogeneity",
-      "state": "?theme=light&page=many&axis=ccf&assumed=nothing&shown=0",
       "px": "f2d879a5",
-      "tx": "cac6d6b5"
+      "tx": "b6736a08",
+      "$note": "tumor-heterogeneity · All mutations given nothing: the clonal peak below the threshold",
+      "state": "?theme=light&page=ccf&view=all&purity=0.70&assumed=nothing&shown=0"
     },
     {
-      "$note": "tumor-heterogeneity · Clonal architecture, all four samples: the linear tree fits, error bars and genes",
       "slug": "tumor-heterogeneity",
-      "state": "?theme=light&page=clonal&shown=0",
-      "px": "e8e070ee",
-      "tx": "291ab4f4"
+      "px": "65096486",
+      "tx": "0abcf27e",
+      "$note": "tumor-heterogeneity · Clonal architecture before a sample: the timeline and no tree",
+      "state": "?theme=light&page=clonal&shown=0"
     },
     {
-      "$note": "tumor-heterogeneity · the branching tree ruled out: the overflow on three samples, arrowheads on the tree",
       "slug": "tumor-heterogeneity",
-      "state": "?theme=light&page=clonal&tree=branching&shown=0",
-      "px": "a0f8f726",
-      "tx": "9bdcc2b2"
+      "px": "ca77e53f",
+      "tx": "d8385a84",
+      "$note": "tumor-heterogeneity · Surgery sequenced: 3 under 1 or under 2, the rows testing 3 beside 2",
+      "state": "?theme=light&page=clonal&shown=1"
     },
     {
-      "$note": "tumor-heterogeneity · the surgery sample alone: both trees fit",
       "slug": "tumor-heterogeneity",
-      "state": "?theme=light&page=clonal&taken=1&shown=0",
-      "px": "47b674c5",
-      "tx": "447177d9"
+      "px": "071ce3c1",
+      "tx": "cc4c9816",
+      "$note": "tumor-heterogeneity · all four samples: 1 -> 2 -> 3, ruled in by Recurrence 1",
+      "state": "?theme=light&page=clonal&shown=4"
     },
     {
-      "$note": "tumor-heterogeneity · DRIVEN - Play part-way through the reads: the newest fading in",
       "slug": "tumor-heterogeneity",
+      "px": "7c7be750",
+      "tx": "1280e7df",
+      "$note": "tumor-heterogeneity · DRIVEN - Play part-way through the reads",
       "state": "?theme=light",
       "drive": {
         "click": "run",
         "frames": 24,
         "dt": 32
-      },
-      "px": "901cbd0f",
-      "tx": "0cfdccd4"
+      }
     },
     {
-      "$note": "tumor-heterogeneity · DRIVEN - the tree switched to branching, mid-glide: cluster 3 sliding out of cluster 2",
       "slug": "tumor-heterogeneity",
+      "px": "7df80fea",
+      "tx": "d8385a84",
+      "$note": "tumor-heterogeneity · DRIVEN - Surgery's press, beat 1: the nodes sliding from the points into the tree",
       "state": "?theme=light&page=clonal",
       "drive": {
+        "click": "step",
+        "frames": 10,
+        "dt": 32
+      }
+    },
+    {
+      "slug": "tumor-heterogeneity",
+      "px": "5e57f06d",
+      "tx": "70c91330",
+      "$note": "tumor-heterogeneity · DRIVEN - Recurrence 1's press, beat 2: the edge from 1 struck and 3 sliding inside 2",
+      "state": "?theme=light&page=clonal",
+      "drive": {
+        "before": [
+          {
+            "click": "step",
+            "frames": 200
+          }
+        ],
+        "click": "step",
+        "frames": 26,
+        "dt": 32
+      }
+    },
+    {
+      "slug": "tumor-heterogeneity",
+      "px": "4b802aae",
+      "tx": "5813ae48",
+      "$note": "tumor-heterogeneity · DRIVEN - the threshold set to 0.80 mid-glide, after every read",
+      "state": "?theme=light&page=ccf&purity=0.70",
+      "drive": {
+        "before": [
+          {
+            "click": "run",
+            "frames": 200
+          }
+        ],
         "set": {
-          "tree": "branching"
+          "threshold": "0.80"
         },
         "frames": 6,
         "dt": 32
-      },
-      "px": "589bb925",
-      "tx": "9bdcc2b2"
+      }
     },
     {
-      "$note": "tumor-heterogeneity · DRIVEN - the axis switched to cancer cell fraction, mid-ease: every mutation sliding",
       "slug": "tumor-heterogeneity",
-      "state": "?theme=light&page=many",
+      "px": "7649e68a",
+      "tx": "f8fb7b6e",
+      "$note": "tumor-heterogeneity · DRIVEN - Given set to nothing mid-morph, after every read: the curves moving",
+      "state": "?theme=light&page=ccf&purity=0.70&state=2%2B0",
+      "drive": {
+        "before": [
+          {
+            "click": "run",
+            "frames": 200
+          }
+        ],
+        "set": {
+          "knows": "nothing"
+        },
+        "frames": 6,
+        "dt": 32
+      }
+    },
+    {
+      "slug": "tumor-heterogeneity",
+      "px": "1ca67fda",
+      "tx": "2485df11",
+      "$note": "tumor-heterogeneity · DRIVEN - the All mutations axis eased from VAF to the fraction, mid-ease",
+      "state": "?theme=light&page=ccf&view=all&axis=vaf",
       "drive": {
         "set": {
           "axis": "ccf"
         },
         "frames": 6,
         "dt": 32
-      },
-      "px": "0af52a98",
-      "tx": "65030e70"
+      }
+    },
+    {
+      "slug": "tumor-heterogeneity",
+      "px": "c76df3ee",
+      "tx": "c81a856a",
+      "$note": "tumor-heterogeneity · INTERRUPTED - Play on the clonal page, then page 1: the press stops, no reads added",
+      "state": "?theme=light&page=clonal",
+      "drive": {
+        "before": [
+          {
+            "click": "run",
+            "frames": 10
+          }
+        ],
+        "set": {
+          "page": "one"
+        },
+        "frames": 8,
+        "dt": 32
+      }
     },
     {
       "$note": "driver-genes · One gene, before any press: the protein, its residues and nothing else",
