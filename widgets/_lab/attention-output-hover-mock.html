@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · 83 Output hover — mock</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1760px; margin: 0 auto; padding: var(--sp-4); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 120ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .bar { display: flex; gap: var(--sp-3); align-items: center; flex-wrap: wrap; margin: var(--sp-2) 0; font-size: var(--fs-sm); color: var(--ink-2); }
+  .seg { display: inline-flex; border: 1px solid var(--grid); border-radius: 4px; overflow: hidden; }
+  .seg button { font: inherit; padding: 4px 12px; background: var(--surface-2); color: var(--ink-2); border: 0; border-right: 1px solid var(--grid); cursor: pointer; }
+  .seg button:last-child { border-right: 0; }
+  .seg button[aria-pressed="true"] { background: var(--surface-3); color: var(--ink-1); font-weight: 600; }
+  ul.opts { font-size: var(--fs-sm); color: var(--ink-2); max-width: 120ch; margin: 0 0 var(--sp-3); }
+  ul.opts b { color: var(--ink-1); }
+  .rec { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-3) 0 0; padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--c-highlight); background: var(--surface-2); max-width: 120ch; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Widget 83 · hover on the Output step · mock</h1>
+  <p class="note">The Output step as it is, four queries computed, the last <b>aspirin</b>; head 4. Live: pick a mode and
+    hover. As on the other steps, hover reaches computed rows only, once the press is still, and moving off returns
+    the press's own query.</p>
+  <ul class="opts">
+    <li><b>O1 · a query:</b> hover a computed row of the <i>Features with attention</i> column, or of the α matrix: that
+      token becomes the query, its weights fill the Weights column, and the Sum shows its zᵢ.</li>
+    <li><b>O2 · a term:</b> hover a key's row (its weight or its vⱼ): its term αᵢⱼ vⱼ is drawn under the sum, the
+      values scaled by the weight, with the share it is of the whole.</li>
+    <li><b>O3 · one number:</b> hover a single number of any vⱼ or of zᵢ: that column is outlined down every vⱼ and in
+      zᵢ, and the sum for that one number is written out, Σⱼ αᵢⱼ vⱼ,d, term by term.</li>
+  </ul>
+  <p class="note"><b>Round 2, his catch:</b> with O2 and O3 the pointer has left the row that chose the query, so the
+    query falls back to the press's. Two ways to choose the query and still take a number apart:</p>
+  <ul class="opts">
+    <li><b>QA · click to pin:</b> click a computed row of zⱼ or of α and that query stays; O3 then takes apart any number of
+      it. Click the row again to let go. In the widget the pin is a parameter (a rail control <i>Query: Latest · 1 … L</i>,
+      and in the link), since a click writes a parameter or nothing.</li>
+    <li><b>QB · hover a number of zⱼ:</b> no pin. The zⱼ column is the outputs, so hovering number d of zⱼ explains that
+      very number: query j into the Weights column and the Sum, number d outlined down every vⱼ, and the sum
+      written out as an equation under the Sum. One target picks both.</li>
+  </ul>
+  <div class="bar"><span>Mode</span><span class="seg" id="mode"><button data-v="q">O1 a query</button><button data-v="term">O2 a term</button><button data-v="num">O3 one number</button><button data-v="all">O1 + O2 + O3</button><button data-v="pin">QA click to pin + O3</button><button data-v="zb">QB a number of zⱼ</button></span><span id="read"></span></div>
+  <canvas id="cv"></canvas>
+  <p class="rec">Recommended (round 2): <b>QB</b>, with O1's α-matrix rows kept for reading back a query's weights.
+    The number being explained is the thing under the pointer, so no second hover has to keep a first one alive, and
+    nothing new goes in the rail or the link. QA works, but it adds a control whose value the press would fight over
+    (a pinned query and the press's next query both want the Weights column).</p>
+</main>
+<script type="module">
+import * as M from "../attention/model.js";
+const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const C = { ink1: css("--ink-1"), ink2: css("--ink-2"), ink3: css("--ink-3"), s1: css("--surface-1"), s2: css("--surface-2"), s3: css("--surface-3"),
+  a: css("--c-group-a"), b: css("--c-group-b"), mag: css("--c-magnitude"), lo: css("--c-value-low"), hi: css("--c-value-high"), font: css("--font"), mono: css("--font-mono") };
+const rgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+const mixA = (a, b, t) => a.map((x, i) => x + (b[i] - x) * Math.max(0, Math.min(1, t)));
+const str = (p) => `rgb(${p.map(Math.round).join(",")})`;
+const wfill = (w) => mixA(rgb(C.s3), rgb(C.mag), Math.sqrt(w));
+const vcol = (v, s) => str(mixA(rgb(C.s3), rgb(v >= 0 ? C.hi : C.lo), Math.abs(v) / s));
+const lum = (p) => (0.2126 * p[0] + 0.7152 * p[1] + 0.0722 * p[2]) / 255;
+const inkOn = (p) => (Math.abs(lum(p) - lum(rgb(C.ink1))) > Math.abs(lum(p) - lum(rgb(C.s1))) ? C.ink1 : C.s1);
+const capF = "600 12px " + C.font, smF = "11px " + C.font, monoF = "11px " + C.mono;
+function t(g, s, x, y, { f = smF, c = C.ink2, a = "left", rot = 0 } = {}) { g.save(); g.translate(x, y); g.rotate(rot); g.font = f; g.fillStyle = c; g.textAlign = a; g.textBaseline = "middle"; g.fillText(s, 0, 0); g.restore(); }
+function arrow(g, x1, y1, x2, y2, col) { g.strokeStyle = col; g.lineWidth = 1.2; g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke(); const a = Math.atan2(y2 - y1, x2 - x1); g.fillStyle = col; g.beginPath(); g.moveTo(x2, y2); g.lineTo(x2 - 5 * Math.cos(a - 0.45), y2 - 5 * Math.sin(a - 0.45)); g.lineTo(x2 - 5 * Math.cos(a + 0.45), y2 - 5 * Math.sin(a + 0.45)); g.fill(); g.lineWidth = 1; }
+const box = (g, x, y, w, h, col = C.a, lw = 2) => { g.strokeStyle = col; g.lineWidth = lw; g.strokeRect(x, y, w, h); g.lineWidth = 1; };
+
+const st = M.stage("aspirin"), toks = st.tokens, L = st.L, hd = st.run.heads[3], N = 4, QI = 3;
+const vmax = Math.max(...hd.v.flat().map(Math.abs), ...hd.z.flat().map(Math.abs));
+const W = 740, rh = 24, cs = 12, lw = 52, mx = 12 + lw + 6, wx = mx + L * cs + 18, kx = wx + 42, vx = kx + lw + 16, vc = 14, zx = vx + 12 * vc + 22, top = 62, right = vx + 12 * vc;
+const yb = top + L * rh + 2, zy = yb + 56, H = zy + 150;
+const cv = document.getElementById("cv"), dpr = devicePixelRatio || 1; cv.width = W * dpr; cv.height = H * dpr; cv.style.width = W + "px"; cv.style.height = H + "px";
+const g = cv.getContext("2d"); g.scale(dpr, dpr);
+let mode = "q", ptr = null, pin = -1;
+
+function hit(p) {
+  if (!p) return null;
+  const row = Math.floor((p.y - top) / rh), inRows = p.y >= top && row < L;
+  if (inRows && p.x >= zx && p.x < zx + 12 * vc) return { where: "z", i: row, d: Math.floor((p.x - zx) / vc) };
+  if (p.x >= mx && p.x < mx + L * cs && p.y >= top + 62 && p.y < top + 62 + L * cs) return { where: "mat", i: Math.floor((p.y - top - 62) / cs) };
+  if (inRows && p.x >= vx && p.x < right) return { where: "v", j: row, d: Math.floor((p.x - vx) / vc) };
+  if (inRows && p.x >= wx && p.x < vx) return { where: "w", j: row };
+  if (p.y >= zy && p.y < zy + 24 && p.x >= vx && p.x < right) return { where: "zi", d: Math.floor((p.x - vx) / vc) };
+  return null;
+}
+function inspect() {
+  const h = hit(ptr), on = (m) => mode === m || mode === "all" || (mode === "pin" && m === "num");
+  const s = { i: mode === "pin" && pin >= 0 ? pin : QI, j: -1, d: -1, hovered: mode === "pin" && pin >= 0 };
+  if (!h) return s;
+  if (mode === "zb") {
+    if (h.where === "z" && h.i < N) return { ...s, i: h.i, d: h.d, hovered: true, eq: true };
+    if (h.where === "mat" && h.i < N) return { ...s, i: h.i, hovered: true };
+    return s;
+  }
+  if (on("q") && (h.where === "z" || h.where === "mat") && h.i < N) return { ...s, i: h.i, hovered: true, d: h.where === "z" && on("num") ? h.d : -1 };
+  if (on("num") && (h.where === "v" || h.where === "zi")) return { ...s, d: h.d, j: on("term") && h.where === "v" ? h.j : -1, hovered: true };
+  if (on("term") && (h.where === "v" || h.where === "w")) return { ...s, j: h.j, hovered: true };
+  return s;
+}
+function draw() {
+  const ins = inspect(), i = ins.i, A = hd.alpha[i];
+  g.clearRect(0, 0, W, H);
+  t(g, "Output", 12, 16, { f: capF, c: C.ink1 }); t(g, "zᵢ = Σⱼ αᵢⱼ vⱼ", 70, 16, { f: "italic 12px " + C.font, c: C.ink1 });
+  t(g, "Attention weights αᵢⱼ", 12, 38); t(g, "Weights", wx, top - 26, { f: capF, c: C.ink1 }); t(g, "Features vⱼ", vx, top - 26, { f: capF, c: C.ink1 });
+  if (ins.d >= 0 && !ins.eq) { t(g, "The terms", zx, top - 26, { f: capF, c: C.ink1 }); t(g, `αᵢⱼ × vⱼ, number ${ins.d + 1}`, zx, top - 12); }
+  else { t(g, "Features with", zx, top - 26, { f: capF, c: C.ink1 }); t(g, "attention zⱼ", zx, top - 12); }
+  /* the α matrix */
+  const my = top + 62;
+  toks.forEach((s, r) => t(g, s, mx - 5, my + r * cs + cs / 2, { f: monoF, c: r === i ? C.a : C.ink2, a: "right" }));
+  for (let r = 0; r < L; r++) for (let c = 0; c < L; c++) { g.fillStyle = r < N ? str(wfill(hd.alpha[r][c])) : C.s2; g.fillRect(mx + c * cs, my + r * cs, cs - 1, cs - 1); }
+  g.strokeStyle = C.ink2; g.strokeRect(mx - 0.5, my - 0.5, L * cs, L * cs);
+  g.save(); g.setLineDash([3, 3]); box(g, mx - 2, my + i * cs - 2, L * cs + 3, cs + 3, C.a, 1.5); g.restore();
+  for (let j = 0; j < L; j++) {
+    const y = top + j * rh, f = wfill(A[j]);
+    g.fillStyle = str(f); g.fillRect(wx, y, 34, rh - 5); t(g, A[j].toFixed(2), wx + 17, y + 10, { f: monoF, c: inkOn(f), a: "center" });
+    g.strokeStyle = C.ink2; g.strokeRect(wx + 0.5, y + 0.5, 33, rh - 6);
+    t(g, toks[j], kx, y + 10, { f: monoF, c: C.b });
+    for (let d = 0; d < 12; d++) { g.fillStyle = vcol(hd.v[j][d], vmax); g.fillRect(vx + d * vc, y, vc - 1, rh - 5); }
+    g.strokeStyle = C.ink2; g.strokeRect(vx - 0.5, y - 0.5, 12 * vc, rh - 4);
+    if (ins.d < 0 || ins.eq) {
+      for (let d = 0; d < 12; d++) { g.fillStyle = j < N ? vcol(hd.z[j][d], vmax) : C.s2; g.fillRect(zx + d * vc, y, vc - 1, rh - 5); }
+      g.strokeStyle = j === i ? C.a : C.ink2; g.strokeRect(zx - 0.5, y - 0.5, 12 * vc, rh - 4);
+      if (ins.eq) { box(g, vx + ins.d * vc - 1, y - 1, vc + 1, rh - 3, C.a, 1.5); if (j === i) box(g, zx + ins.d * vc - 1.5, y - 1.5, vc + 2, rh - 2); }
+    } else {
+      /* the column of zⱼ gives way to this number's terms while it is inspected */
+      box(g, vx + ins.d * vc - 1, y - 1, vc + 1, rh - 3, C.a, 1.5);
+      const f = (v) => (v < 0 ? "−" : "") + Math.abs(v).toFixed(2);
+      t(g, `${A[j].toFixed(2)} × ${f(hd.v[j][ins.d])} = ${f(A[j] * hd.v[j][ins.d])}`, zx, y + 10, { f: monoF, c: j === ins.j ? C.a : C.ink1 });
+    }
+  }
+  if (ins.j >= 0) { box(g, wx - 1, top + ins.j * rh - 1, 36, rh - 3); box(g, vx - 1.5, top + ins.j * rh - 1.5, 12 * vc + 2, rh - 2); }
+  line(); function line() { g.strokeStyle = C.ink2; g.beginPath(); g.moveTo(vx, yb); g.lineTo(vx, yb + 8); g.lineTo(right, yb + 8); g.lineTo(right, yb); g.stroke(); }
+  t(g, "Sum", (vx + right) / 2, yb + 22, { f: capF, c: C.ink1, a: "center" }); arrow(g, (vx + right) / 2, yb + 30, (vx + right) / 2, yb + 50, C.ink2);
+  for (let d = 0; d < 12; d++) { g.fillStyle = vcol(hd.z[i][d], vmax); g.fillRect(vx + d * vc, zy, vc - 1, 24); }
+  g.strokeStyle = C.ink1; g.strokeRect(vx - 0.5, zy - 0.5, 12 * vc, 25);
+  t(g, toks[i], vx - 10, zy + 12, { f: monoF, c: C.a, a: "right" });
+  if (ins.d >= 0) {
+    box(g, vx + ins.d * vc - 1.5, zy - 1.5, vc + 2, 27);
+    if (!ins.eq) t(g, `number ${ins.d + 1} of zᵢ: the terms summed = ${hd.z[i][ins.d].toFixed(2)}`, vx, zy + 44, { f: monoF, c: C.ink1 });
+    else {
+      /* the sum written out, wrapped under the Sum */
+      const f = (v) => (v < 0 ? `(−${Math.abs(v).toFixed(2)})` : v.toFixed(2));
+      const terms = A.map((a, j) => `${a.toFixed(2)}×${f(hd.v[j][ins.d])}`);
+      const words = [`number ${ins.d + 1} of z for "${toks[i]}" =`, ...terms.map((tm, k) => (k ? `+ ${tm}` : tm)), `= ${hd.z[i][ins.d].toFixed(2)}`];
+      g.font = monoF; const lines = []; let cur = "";
+      for (const wd of words) { const nx = cur ? cur + " " + wd : wd; if (g.measureText(nx).width > W - 24 - 12 && cur) { lines.push(cur); cur = wd; } else cur = nx; }
+      lines.push(cur); lines.forEach((ln, k) => t(g, ln, 12, zy + 44 + k * 16, { f: monoF, c: C.ink1 }));
+    }
+  } else t(g, "Features with attention", (vx + right) / 2, zy + 44, { c: C.ink2, a: "center" });
+  if (ins.j >= 0 && ins.d < 0) {
+    const term = hd.v[ins.j].map((v) => A[ins.j] * v), tot = hd.z[i].reduce((s, v) => s + Math.abs(v), 0), part = term.reduce((s, v) => s + Math.abs(v), 0);
+    const ty = zy + 70;
+    for (let d = 0; d < 12; d++) { g.fillStyle = vcol(term[d], vmax); g.fillRect(vx + d * vc, ty, vc - 1, 20); }
+    g.strokeStyle = C.a; g.strokeRect(vx - 0.5, ty - 0.5, 12 * vc, 21);
+    t(g, `${A[ins.j].toFixed(2)} × v("${toks[ins.j]}")`, vx - 10, ty + 10, { f: monoF, c: C.ink1, a: "right" });
+    t(g, `the term αᵢⱼ vⱼ, one of the ${L} added`, right + 10, ty + 10, { c: C.ink2 });
+  }
+  document.getElementById("read").textContent = !ins.hovered ? `the press's own query, "${toks[QI]}"` : `query "${toks[i]}"${ins.j >= 0 ? `, key "${toks[ins.j]}"` : ""}${ins.d >= 0 ? `, number ${ins.d + 1}` : ""}`;
+  cv.style.cursor = hit(ptr) ? "crosshair" : "default";
+}
+const pos = (e) => { const r = cv.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
+cv.addEventListener("pointermove", (e) => { ptr = pos(e); draw(); });
+cv.addEventListener("pointerleave", () => { ptr = null; draw(); });
+cv.addEventListener("click", (e) => { if (mode !== "pin") return; const h = hit(pos(e)); if (h && (h.where === "z" || h.where === "mat") && h.i < N) { pin = pin === h.i ? -1 : h.i; draw(); } });
+const sync = () => document.querySelectorAll("#mode button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.v === mode));
+document.querySelectorAll("#mode button").forEach((b) => (b.onclick = () => { mode = b.dataset.v; sync(); draw(); }));
+sync(); draw();
+window.__hover = (x, y, m) => { if (m) { mode = m; sync(); } ptr = { x, y }; draw(); return document.getElementById("read").textContent; };
+window.__geo = { vx, vc, top, rh, zx, zy };
+</script>
+</body>
+</html>

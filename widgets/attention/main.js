@@ -98,6 +98,9 @@ const S = {
   projLabel: "Projection", projDetail: "The projection written out below as the sum behind one of its numbers: the query, the key or the value.",
   tileRowsTokNote: "one row per token",
   outW: "Weights", outV: "Features vⱼ",
+  queryLabel: "Query", queryLatest: "Latest",
+  queryDetail: "The computed row shown in the Weights column and the Sum: the latest, or one chosen here or by a click on its row.",
+  outTerms: ["The terms", (d) => `αᵢⱼ × vⱼ, number ${d}`], outTermSum: (d, v) => `number ${d} of zᵢ: the terms summed = ${v}`,
   outS2: ["Output", "zᵢ = Σⱼ αᵢⱼ vⱼ", "the values of all tokens, weighted by the query's αᵢⱼ and summed"], outZcol: ["Features with", "attention zⱼ"], outSum: "Sum", outZ: "Features with attention",
   outSoFar: (k, L, pct) => `${k} of ${L} rows added · ${pct}% of the weight`,
   tileAdded: "Rows added", tileAddedNote: "terms of Σⱼ αᵢⱼvⱼ summed so far",
@@ -105,7 +108,7 @@ const S = {
   headsX: (L) => `x̃  [${L} × 48]`, headsZ: (L) => `[${L} × 12]`, headsCat: (L) => `concatenated [${L} × 48]`, headsWo: "× W_Oᵀ + b",
   headsOut: (L) => `output [${L} × 48]`, headsFf: "Feed-forward",
   headsNote: "Rows: queries · α columns: keys · each share measured over 500 notes",
-  tileQuery: "Query", tileQueryNote: "the row just computed",
+  tileQuery: "Query", tileQueryNote: "the row just computed", tileQueryPinNote: "the row chosen in Query",
   tileTop: "Largest weight", tileTopNote: "the key with the largest αᵢⱼ in this row",
   tilePad: "On [PAD]", tilePadNote: (masked) => (masked ? "keys with mask 0 get weight 0" : "no mask: [PAD] keys are scored and weighted"),
   tileHeads: "Heads", tileHeadsNote: "48, the model dimension",
@@ -715,9 +718,43 @@ function sectionHead(ctx, colors, y, [title, formula, note]) {
   txt(ctx, note, PAD_L + tw + 14 + fw + 14, y, { font: small(colors), fill: colors.ink3, baseline: "middle" });
 }
 
-function drawOutput(ctx, colors, w, params, state, anim) {
+/* THE PIN AND THE ONE NUMBER (his picks, 2026-09-26, `_lab/attention-output-hover-mock.html`,
+   round 2). He found that hovering a number could only ever take apart the press's own
+   query: the pointer had left the row that chose another. So the query is a parameter,
+   Query: Latest (the press's, as before) or a computed row, set from the rail or by a
+   click on that row of zⱼ or of α (a click on the pinned row lets go). A pin HOLDS: the
+   Weights column, the α outline and the Sum stay on it, fully summed, while Next query
+   still computes rows and fills the zⱼ column. A pin on a row not yet computed shows the
+   latest. Then, once the press is still, hovering one number d of any vⱼ or of the Sum
+   takes it apart: number d outlined down every vⱼ, and the zⱼ column gives way to the
+   terms αᵢⱼ × vⱼ,d with their total under the Sum. */
+const outPinned = (params, anim) => {
+  const p = params.query === "latest" ? -1 : Number(params.query) - 1;
+  return p >= 0 && p < anim.n - (anim.t < 1 ? 1 : 0) ? p : -1;
+};
+/* the last drawn geometry, for the click regions: regions have no context to measure the
+   labels with, and are built at click time, after a draw */
+let outGeo = null;
+function outRegions(w, params, anim) {
+  const G = outGeo;
+  if (!G || !anim || G.w !== w || G.sentence !== params.sentence) return [];
+  const out = [];
+  for (let i = 0; i < Math.min(anim.n, G.L); i++) {
+    const set = { query: params.query === String(i + 1) ? "latest" : String(i + 1) }, label = `row ${i + 1}`;
+    out.push({ x: G.zx, y: G.top + i * G.rh, w: M.DK * G.vc, h: G.rh - 5, set, label });
+    if (G.mx !== null) out.push({ x: G.mx, y: G.matTop + i * G.cs, w: G.L * G.cs, h: G.cs, set, label });
+  }
+  return out;
+}
+const fmt2 = (v) => { const r = Math.abs(v) < 0.005 ? 0 : v; return (r < 0 ? "−" : "") + Math.abs(r).toFixed(2); };
+
+function drawOutput(ctx, colors, w, params, state, anim, pointer) {
   const toks = state.tokens, L = state.L, h = Number(params.head) - 1, hd = state.run.heads[h], qi = queryOf(anim);
-  const ph = outPhase(anim, L), g = qi >= 0 ? glide(anim, ph.e) : null;
+  const phPress = outPhase(anim, L), pinned = outPinned(params, anim);
+  /* what the Weights column and the Sum show: the pinned row, still and summed, or the press */
+  const ph = pinned >= 0 ? { e: 1, k: L, u: 1, drop: 1 } : phPress;
+  const si = pinned >= 0 ? pinned : qi;
+  const g = pinned >= 0 ? { from: null, to: pinned, e: 1, pos: pinned, first: true } : qi >= 0 ? glide(anim, ph.e) : null;
   const lw = labelWidth(ctx, colors, toks);
   const vmax = Math.max(...hd.v.flat().map(Math.abs), ...hd.z.flat().map(Math.abs));
   const blank = rgb(colors.surface2);
@@ -732,17 +769,24 @@ function drawOutput(ctx, colors, w, params, state, anim) {
   let lay = s2Layout(w, L, lw, true);
   if (!lay.fits) lay = s2Layout(w, L, lw, false);
   const { wx, kx, vx, vc, zx } = lay, right = vx + M.DK * vc;
+  const yb = top + L * OT.rh + 2, zy = yb + 56;
+  outGeo = { w, sentence: params.sentence, L, top, rh: OT.rh, zx, vc, mx: lay.withMatrix ? lay.mx : null, matTop: top + OT.matDrop, cs: OT.cs };
+  /* the one number under the pointer, once the press is still */
+  let hovD = -1;
+  if (pointer && anim.t >= 1 && si >= 0 && pointer.x >= vx && pointer.x < right
+    && ((pointer.y >= top && pointer.y < top + L * OT.rh) || (pointer.y >= zy && pointer.y < zy + 24))) hovD = Math.floor((pointer.x - vx) / vc);
   if (lay.withMatrix) {
     txt(ctx, S.weightsCap, PAD_L, headY + 22, { font: small(colors), fill: colors.ink2, baseline: "middle" });
-    matrix(ctx, colors, hd.alpha, toks, lay.mx, top + OT.matDrop, OT.cs, anim, { ge: ph.e });
+    matrix(ctx, colors, hd.alpha, toks, lay.mx, top + OT.matDrop, OT.cs, anim, { ge: phPress.e, row: pinned >= 0 ? pinned : null });
   }
   txt(ctx, S.outW, wx, top - 26, { font: cap(colors), fill: colors.ink1, baseline: "middle" });
   txt(ctx, S.outV, vx, top - 26, { font: cap(colors), fill: colors.ink1, baseline: "middle" });
   /* the column header pulled in from the canvas edge where the strips are narrower than it */
-  ctx.save(); ctx.font = cap(colors); const zhw = Math.max(ctx.measureText(S.outZcol[0]).width, ctx.measureText(S.outZcol[1]).width); ctx.restore();
+  const zhead = hovD >= 0 ? [S.outTerms[0], S.outTerms[1](hovD + 1)] : S.outZcol;
+  ctx.save(); ctx.font = cap(colors); const zhw = Math.max(ctx.measureText(zhead[0]).width, ctx.measureText(zhead[1]).width); ctx.restore();
   const zhx = Math.min(zx, w - PAD_R - zhw);
-  txt(ctx, S.outZcol[0], zhx, top - 26, { font: cap(colors), fill: colors.ink1, baseline: "middle" });
-  txt(ctx, S.outZcol[1], zhx, top - 12, { font: small(colors), fill: colors.ink2, baseline: "middle" });
+  txt(ctx, zhead[0], zhx, top - 26, { font: cap(colors), fill: colors.ink1, baseline: "middle" });
+  txt(ctx, zhead[1], zhx, top - 12, { font: small(colors), fill: colors.ink2, baseline: "middle" });
   for (let j = 0; j < L; j++) {
     const y = top + j * OT.rh, ty = y + (OT.rh - 5) / 2;
     ctx.fillStyle = colors.surface2; ctx.fillRect(wx, y, 34, OT.rh - 5);
@@ -756,15 +800,22 @@ function drawOutput(ctx, colors, w, params, state, anim) {
     ctx.strokeStyle = colors.ink2; ctx.lineWidth = 1; ctx.strokeRect(wx + 0.5, y + 0.5, 33, OT.rh - 6);
     txt(ctx, toks[j], kx, ty, { font: mono(colors), fill: colors.groupB, baseline: "middle" });
     valueStrip(vx, y, hd.v[j], vc);
+    if (hovD >= 0) {
+      /* the zⱼ column gives way to number d's terms while it is inspected */
+      ctx.strokeStyle = colors.groupA; ctx.lineWidth = 1.5; ctx.strokeRect(vx + hovD * vc - 1, y - 1, vc + 1, OT.rh - 3); ctx.lineWidth = 1;
+      const a = hd.alpha[si][j], v = hd.v[j][hovD], full = `${a.toFixed(2)} × ${fmt2(v)} = ${fmt2(a * v)}`;
+      ctx.save(); ctx.font = mono(colors); const fits = ctx.measureText(full).width <= w - PAD_R - zx; ctx.restore();
+      txt(ctx, fits ? full : fmt2(a * v), zx, ty, { font: mono(colors), fill: colors.ink1, baseline: "middle" });
+      continue;
+    }
     /* zⱼ beside vⱼ: token j's features after attention, once its own query is done */
-    const za = j < qi ? 1 : j === qi ? ph.drop : 0;
+    const za = j < qi ? 1 : j === qi ? phPress.drop : 0;
     for (let d = 0; d < M.DK; d++) {
       ctx.fillStyle = colors.surface2; ctx.fillRect(zx + d * vc, y, vc - 1, OT.rh - 5);
       if (za > 0) { ctx.save(); ctx.globalAlpha = za; ctx.fillStyle = css(signedFill(colors, hd.z[j][d], vmax)); ctx.fillRect(zx + d * vc, y, vc - 1, OT.rh - 5); ctx.restore(); }
     }
-    ctx.lineWidth = 1; ctx.strokeStyle = j === qi ? colors.groupA : colors.ink2; ctx.strokeRect(zx - 0.5, y - 0.5, M.DK * vc, OT.rh - 4);
+    ctx.lineWidth = 1; ctx.strokeStyle = j === si ? colors.groupA : colors.ink2; ctx.strokeRect(zx - 0.5, y - 0.5, M.DK * vc, OT.rh - 4);
   }
-  const yb = top + L * OT.rh + 2;
   /* the bracket over the values, the terms of the sum */
   line(ctx, vx, yb, vx, yb + 8, colors.ink2); line(ctx, vx, yb + 8, right, yb + 8, colors.ink2); line(ctx, right, yb, right, yb + 8, colors.ink2);
   /* the key being added: one outline stepping row to row, and a line down the lane
@@ -778,7 +829,6 @@ function drawOutput(ctx, colors, w, params, state, anim) {
   }
   txt(ctx, S.outSum, (vx + right) / 2, yb + 26, { font: cap(colors), fill: colors.ink1, align: "center" });
   arrow(ctx, (vx + right) / 2, yb + 32, (vx + right) / 2, yb + 50, colors.ink2);
-  const zy = yb + 56;
   /* zᵢ's running total: the last query's z fading out on the glide, then key by key */
   let zNow = null;
   if (g) {
@@ -794,6 +844,11 @@ function drawOutput(ctx, colors, w, params, state, anim) {
   if (g) {
     if (!g.first) txt(ctx, toks[g.from], vx - 10, zy + 12, { font: mono(colors), fill: colors.groupA, align: "right", baseline: "middle", alpha: oldInk(g) });
     txt(ctx, toks[g.to], vx - 10, zy + 12, { font: mono(colors), fill: colors.groupA, align: "right", baseline: "middle", alpha: newInk(g) });
+  }
+  if (hovD >= 0) {
+    ctx.strokeStyle = colors.groupA; ctx.lineWidth = 2; ctx.strokeRect(vx + hovD * vc - 1.5, zy - 1.5, vc + 2, 27); ctx.lineWidth = 1;
+    txt(ctx, S.outTermSum(hovD + 1, fmt2(hd.z[si][hovD])), (vx + right) / 2, zy + 44, { font: small(colors), fill: colors.ink1, align: "center" });
+    return;
   }
   const added = g ? (ph.e < 1 ? 0 : Math.min(L, ph.k + (ph.u >= SUM_AT ? 1 : 0))) : 0;
   txt(ctx, g && added < L ? S.outSoFar(added, L, Math.round(100 * weightSoFar(hd, g.to, added))) : S.outZ, (vx + right) / 2, zy + 44,
@@ -923,6 +978,12 @@ defineWidget({
       type: "segmented", label: S.projLabel, detail: S.projDetail,
       options: PROJ.map(({ value, label }) => ({ value, label })), default: "query", display: true, when: ON("projections"),
     },
+    query: {
+      type: "select", label: S.queryLabel, detail: S.queryDetail,
+      options: (v) => [{ value: "latest", label: S.queryLatest },
+        ...M.tokensOf(v.sentence ?? "aspirin").map((t, i) => ({ value: String(i + 1), label: `${i + 1} · ${t}` }))],
+      optionsFrom: ["sentence"], default: "latest", display: true, when: ON("output"),
+    },
     scores: { type: "segmented", label: S.scoreLabel, detail: S.scoreDetail, options: S.scoreOpts, default: "scaled", display: true, when: ON("weights") },
     attention_mask: { type: "segmented", label: S.maskLabel, detail: S.maskDetail, options: S.maskOpts, default: "passed", display: true, when: ON("weights") },
     /* authoring escape hatch, first render only: rows already computed */
@@ -934,7 +995,8 @@ defineWidget({
   /* the Projections step's hover inspector (H1) and its clickable W blocks */
   pointer: true,
   /* L from the sentence, not the state: core validates the table at load, before compute has run */
-  regions: ({ w, params }) => (params.page === "projections" ? projRegions(w, M.tokensOf(params.sentence).length) : []),
+  regions: ({ w, params, anim }) => (params.page === "projections" ? projRegions(w, M.tokensOf(params.sentence).length)
+    : params.page === "output" ? outRegions(w, params, anim) : []),
 
   compute: ({ params }) => M.stage(params.sentence),
 
@@ -964,7 +1026,7 @@ defineWidget({
   draw({ ctx, colors, w, params, state, anim, pointer }) {
     renderCard(params);
     if (params.page === "projections") drawProjections(ctx, colors, w, params, state, anim, pointer);
-    else if (params.page === "output") drawOutput(ctx, colors, w, params, state, anim);
+    else if (params.page === "output") drawOutput(ctx, colors, w, params, state, anim, pointer);
     else if (params.page === "heads") drawHeads(ctx, colors, w, params, state, anim);
     else drawWeights(ctx, colors, w, params, state, anim, pointer);
   },
@@ -996,11 +1058,11 @@ defineWidget({
     const keyName = (j) => (view ? view.toks[j] : state.tokens[j]);
     const second = { label: S.tileTop, value: row ? `${keyName(top)} ${row[top].toFixed(2)}` : S.wait, note: S.tileTopNote };
     if (params.page === "output") {
-      const ph = outPhase(anim, L), hd = state.run.heads[h];
-      const k = qi < 0 || ph.e < 1 ? 0 : Math.min(L, ph.k + (ph.u >= SUM_AT ? 1 : 0));
-      return [first,
-        { label: S.tileAdded, value: qi >= 0 ? `${k} of ${L}` : S.wait, note: S.tileAddedNote },
-        { label: S.tileShare, value: qi >= 0 ? `${Math.round(100 * weightSoFar(hd, qi, k))}%` : S.wait, note: S.tileShareNote }];
+      const ph = outPhase(anim, L), hd = state.run.heads[h], pin = outPinned(params, anim), si = pin >= 0 ? pin : qi;
+      const k = pin >= 0 ? L : qi < 0 || ph.e < 1 ? 0 : Math.min(L, ph.k + (ph.u >= SUM_AT ? 1 : 0));
+      return [{ ...first, value: si >= 0 ? state.tokens[si] : S.wait, note: pin >= 0 ? S.tileQueryPinNote : S.tileQueryNote },
+        { label: S.tileAdded, value: si >= 0 ? `${k} of ${L}` : S.wait, note: S.tileAddedNote },
+        { label: S.tileShare, value: si >= 0 ? `${Math.round(100 * weightSoFar(hd, si, k))}%` : S.wait, note: S.tileShareNote }];
     }
     return [first, second, { label: S.tilePad, value: row ? pct(M.tailShare(row, L)) : S.wait, note: S.tilePadNote(view.masked) }];
   },
