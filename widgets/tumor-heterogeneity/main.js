@@ -43,9 +43,10 @@ let carryMany = null;
    responding to slider control changes"). A change to the case, the share of
    cells carrying it or the purity is a data change — the reads start over, as
    they must (invariant 3) — but the sample on screen is the same sixty cells
-   read again, so the cells that change fade across and the expected VAF's line
-   and the true fraction's tick glide to where the new sample puts them. The
-   seed and the depth change only the reads, so they carry nothing. */
+   read again, so the expected VAF's line and the true fraction's tick glide to
+   where the new sample puts them; the cells redraw at once (no fades, his rule
+   of the same day). The seed and the depth change only the reads, so they
+   carry nothing. */
 let carryOne = null;
 const oneKey = (cfg) => `${cfg.purity}|${cfg.ccf}|${cfg.state.key}|${cfg.copies}`;
 
@@ -282,21 +283,17 @@ function wash(color, a) {
  * copies, and the ones inside the share carrying it hold the mutation on
  * `copies` of them (model decision 3).
  *
- * A CELL THAT CHANGES FADES OUT, THEN IN (Kenneth, 2026-09-26: "tweening …
- * including responding to slider control changes"). `from` is the sample the
- * last draw showed and `t` how far the change has run; a cell whose look is the
- * same under both is drawn once, still, and a cell whose look differs leaves
- * over the first half and arrives over the second — never both at once, since
- * two cells blended read as a third kind of cell (§ *Widget 62*, a blend reads
- * as a third technique). So a purity change turns cells grey one by one in the
- * grid's own order, and a change of case redraws only the tumour cells.
+ * A CHANGED CELL IS REDRAWN AT ONCE. They faded out and in for one round
+ * (2026-09-26); Kenneth: "don't use fade for static transitions. it's
+ * distracting..only tween for movement". What moves when the sample changes is
+ * the expected VAF's line and the true fraction's tick, and those glide.
  */
 function cellLook(cfg, i, n) {
   const { tumour, carrying } = M.cellCounts(cfg, n);
   const isTumour = i < tumour;
   const state = isTumour ? cfg.state : M.stateOf("1+1");
   const marks = isTumour && i < carrying ? cfg.copies : 0;
-  return { isTumour, state, marks, key: `${isTumour}|${state.total}|${marks}` };
+  return { isTumour, state, marks };
 }
 
 function paintCell(ctx, colors, cx, cy, r, look) {
@@ -333,21 +330,16 @@ function paintCell(ctx, colors, cx, cy, r, look) {
   });
 }
 
-function drawCells(ctx, colors, rect, cfg, { n = M.CELLS, from = null, t = 1 } = {}) {
+function drawCells(ctx, colors, rect, cfg, { n = M.CELLS } = {}) {
   const { cols, px, py, r } = M.cellGrid(rect, n);
   for (let i = 0; i < n; i += 1) {
     const cx = rect.x + (i % cols) * px + px / 2;
     const cy = rect.y + Math.floor(i / cols) * py + py / 2;
-    const look = cellLook(cfg, i, n);
-    const was = from && t < 1 ? cellLook(from, i, n) : null;
-    if (!was || was.key === look.key) { paintCell(ctx, colors, cx, cy, r, look); continue; }
-    ctx.save();
-    ctx.globalAlpha = t < 0.5 ? 1 - 2 * t : 2 * t - 1;
-    paintCell(ctx, colors, cx, cy, r, t < 0.5 ? was : look);
-    ctx.restore();
+    paintCell(ctx, colors, cx, cy, r, cellLook(cfg, i, n));
   }
   return M.cellCounts(cfg, n);
 }
+
 /* ---- the reads ----------------------------------------------------------- */
 
 /**
@@ -370,8 +362,11 @@ function drawPileup(ctx, colors, rect, one, k, fade = null) {
     const rx = rect.x + (i % perRow) * (cw + 2);
     const ry = rect.y + Math.floor(i / perRow) * (rh + 3);
     const variant = one.reads[i] === 1;
-    const fresh = fade && i >= fade.from ? fade.t : 1;
-    ctx.globalAlpha = (variant ? 1 : 0.45) * fresh;
+    /* A read appears at full strength when it lands: the landing fade went on
+       2026-09-26 with the others ("don't use fade for static transitions").
+       `fade` is kept in the signature so the caller's pacing is untouched. */
+    void fade;
+    ctx.globalAlpha = variant ? 1 : 0.45;
     ctx.fillStyle = variant ? colors.highlight : colors.ink3;
     ctx.fillRect(rx, ry, cw, rh);
     ctx.globalAlpha = 1;
@@ -429,7 +424,7 @@ function drawSampleAndReads(ctx, colors, L, state, anim) {
   /* The change in flight, if any: where the sample was and how far it has run. */
   const mo = anim?.oneFrom && (anim.oneT ?? 1) < 1 ? { from: anim.oneFrom, t: anim.oneT, e: M.easeOut(anim.oneT) } : null;
   text(ctx, M.STRINGS.cellsCaption, L.cells.x, L.cells.y - 8, { font: capFont(colors), fill: colors.ink1 });
-  const counts = drawCells(ctx, colors, L.cells, cfg, mo ? { from: mo.from.cfg, t: mo.t } : {});
+  const counts = drawCells(ctx, colors, L.cells, cfg);
   const cellNote = `${counts.tumour} of ${M.CELLS} cells are tumor cells, ${counts.carrying} of them carrying the mutation`;
   text(ctx, cellNote, L.cells.x, L.cells.y + L.cells.h + 18, { font: noteFont(colors), fill: colors.ink2 });
 
@@ -526,9 +521,9 @@ function drawCcfOne(ctx, colors, L, params, state, anim) {
   const cols = [colors.groupA, colors.groupB, colors.groupC];
 
   /* WHAT IS DRAWN, per m: the relative curve and its band, each a blend of
-     where "Given" left it and where it is now. An m on both sides moves; an m
-     only one side considers fades, out over the first half or in over the
-     second (never both at once — the same rule as the cells). */
+     where "Given" left it and where it is now. An m on both sides MOVES; an m
+     only the new level considers is drawn at once and one it no longer
+     considers is gone at once — no fades (his rule, 2026-09-26). */
   const now = lik ? lik.curves.map((cv) => ({
     m: cv.m, rel: cv.ys.map((y) => Math.exp(y - lik.top)), cHat: cv.cHat, peak: Math.exp(cv.max - lik.top), band: cv.interval,
   })) : [];
@@ -544,11 +539,10 @@ function drawCcfOne(ctx, colors, L, params, state, anim) {
         m: cv.m, alpha: 1,
         rel: cv.rel.map((v, i) => M.lerp(old.rel[i], v, le)),
         cHat: M.lerp(old.cHat, cv.cHat, le), peak: M.lerp(old.peak, cv.peak, le),
-        band: old.band && cv.band ? { lo: M.lerp(old.band.lo, cv.band.lo, le), hi: M.lerp(old.band.hi, cv.band.hi, le) } : (lt < 0.5 ? old.band : cv.band),
+        band: old.band && cv.band ? { lo: M.lerp(old.band.lo, cv.band.lo, le), hi: M.lerp(old.band.hi, cv.band.hi, le) } : cv.band,
       });
-    } else if (lt >= 0.5) shown.push({ ...cv, alpha: 2 * lt - 1 });
+    } else shown.push({ ...cv, alpha: 1 });
   }
-  if (lt < 0.5) for (const old of was) if (!now.some((cv) => cv.m === old.m)) shown.push({ ...old, alpha: 1 - 2 * lt });
   if (lik) carryLik = shown.map(({ alpha, ...cv }) => cv);
 
   shown.forEach((cv) => {
@@ -662,10 +656,10 @@ function drawMany(ctx, colors, L, params, state, anim) {
     }
   }
 
-  /* The cut belongs to the fraction, so it arrives with it. */
-  if (axis.cut != null && axis.mix > 0) {
+  /* The threshold belongs to the fraction, so it is drawn once the axis has
+     landed on it — not faded in with the ease (his rule, 2026-09-26). */
+  if (axis.cut != null && axis.mix >= 1) {
     ctx.save();
-    ctx.globalAlpha = axis.mix;
     ctx.setLineDash([4, 3]);
     ctx.beginPath();
     ctx.moveTo(plot.sx(axis.cut), L.hist.y);
@@ -696,8 +690,9 @@ function drawMany(ctx, colors, L, params, state, anim) {
       mu: M.lerp(spansFrom[i].mu, sp.mu, mt),
     }));
   } else if (spansFrom) {
+    /* A different number of clusters is not the same clusters moved, so the
+       set swaps at the midpoint of the bars' morph — no fade (2026-09-26). */
     spans = mt < 0.5 ? spansFrom : spansWant;
-    spanAlpha = Math.abs(mt * 2 - 1);
   }
   if (params.clusters && spanAlpha > 0.01) {
     spans.forEach((sp, i) => {
@@ -766,31 +761,28 @@ function drawTreePage(ctx, colors, L, params, state, anim) {
      places are on it from the start, so the reader sees which samples are
      still to come; Step fills them in order. */
   const at = (s) => M.SAMPLES_IN_TIME.indexOf(s) + 0.5;
-  /* THE NEWEST SAMPLE ARRIVES (2026-09-26): its points fade in over the first
-     part of the press and the lines reach it from the sample before, each
-     segment as faint as its fainter end. Nothing else moves. */
+  /* THE NEWEST SAMPLE ARRIVES BY MOVEMENT (his rule, 2026-09-26: "only tween
+     for movement"): each cluster's line grows from the sample before to the
+     new one, and the new sample's points, its row and the trees' verdicts
+     appear when the lines get there. The first sample has no line to grow, so
+     it appears with its press. Nothing fades. */
   const jt = Math.min(1, anim?.joinT ?? 1);
-  const newest = jt < 1 ? used[used.length - 1] : null;
-  const alphaOf = (smp) => (smp === newest ? M.easeOut(jt) : 1);
+  const arriving = jt < 1 && used.length > 1 ? used[used.length - 1] : null;
+  const shownSamples = arriving ? used.slice(0, -1) : used;
+  const grow = M.easeOut(jt);
   for (let c = 0; c < 3; c += 1) {
     for (let i = 1; i < used.length; i += 1) {
-      const a = Math.min(alphaOf(used[i - 1]), alphaOf(used[i]));
-      if (a <= 0) continue;
-      ctx.save();
-      ctx.globalAlpha = a;
+      const a = used[i - 1], b = used[i];
+      const t = b === arriving ? grow : 1;
       ctx.beginPath();
-      ctx.moveTo(plot.sx(at(used[i - 1])), plot.sy(used[i - 1].ccf[c]));
-      ctx.lineTo(plot.sx(at(used[i])), plot.sy(used[i].ccf[c]));
+      ctx.moveTo(plot.sx(at(a)), plot.sy(a.ccf[c]));
+      ctx.lineTo(M.lerp(plot.sx(at(a)), plot.sx(at(b)), t), M.lerp(plot.sy(a.ccf[c]), plot.sy(b.ccf[c]), t));
       ctx.strokeStyle = cols[c];
       ctx.lineWidth = 2;
       ctx.stroke();
-      ctx.restore();
     }
-    used.forEach((smp) => {
-      const a = alphaOf(smp);
-      if (a <= 0) return;
+    shownSamples.forEach((smp) => {
       ctx.save();
-      ctx.globalAlpha = a;
       /* The figure's error bar, under the point it belongs to. */
       ctx.strokeStyle = wash(cols[c], 0.55);
       ctx.lineWidth = 3;
@@ -813,7 +805,7 @@ function drawTreePage(ctx, colors, L, params, state, anim) {
   M.SAMPLES_IN_TIME.forEach((smp) => {
     const [word, num] = smp.label.split(" ");
     const x = plot.sx(at(smp));
-    const fill = used.includes(smp) ? colors.ink2 : colors.ink3;
+    const fill = shownSamples.includes(smp) ? colors.ink2 : colors.ink3;
     const f = noteFont(colors);
     text(ctx, word, x, L.lines.y + L.lines.h + 15, { font: f, fill, align: "center" });
     if (num) text(ctx, num, x, L.lines.y + L.lines.h + 27, { font: f, fill, align: "center" });
@@ -824,7 +816,7 @@ function drawTreePage(ctx, colors, L, params, state, anim) {
     const x = box.x + i * (box.w / 2);
     const w = box.w / 2;
     const cx = x + w / 2;
-    const fits = used.every((u) => M.fitsSumRule(s, u.ccf));
+    const fits = shownSamples.every((u) => M.fitsSumRule(s, u.ccf));
     /* One box, slid between the panels rather than two boxes cross-fading: at
        rest it is on the chosen tree, and mid-glide it is between them, which is
        what a reader following it expects to see. Drawn on the first pass only
@@ -877,8 +869,8 @@ function drawTreePage(ctx, colors, L, params, state, anim) {
        pixels past them rather than through them. */
     text(ctx, s.label, cx, box.y + box.h - 30, { font: noteFont(colors), fill: colors.ink2, align: "center" });
     /* No sample sequenced, no verdict: the page opens on the trees alone. */
-    text(ctx, !used.length ? "—" : fits ? M.STRINGS.fits : M.STRINGS.ruledOut, cx, box.y + box.h - 12, {
-      font: capFont(colors), fill: !used.length || fits ? colors.ink1 : colors.extreme, align: "center",
+    text(ctx, !shownSamples.length ? "—" : fits ? M.STRINGS.fits : M.STRINGS.ruledOut, cx, box.y + box.h - 12, {
+      font: capFont(colors), fill: !shownSamples.length || fits ? colors.ink1 : colors.extreme, align: "center",
     });
   });
 
@@ -889,14 +881,11 @@ function drawTreePage(ctx, colors, L, params, state, anim) {
   });
   const rowH = L.bars.h / M.SAMPLES.length;
   /* One row a sample, in time order, so the newest is always the last row:
-     it fades in with its points. */
-  used.forEach((s, slot) => {
-    const alpha = alphaOf(s);
-    if (alpha <= 0) return;
+     it appears with its points. */
+  shownSamples.forEach((s, slot) => {
     const y = L.bars.y + slot * rowH;
     const h = 16;
     ctx.save();
-    ctx.globalAlpha = alpha;
     /* Two subclones under one trunk can reach 1.1 times the trunk's own width,
        and the overflow is drawn where it would fall — so the bar takes 56% of
        the row and the arithmetic starts at 70%, clear of the widest overflow. */
@@ -1373,8 +1362,9 @@ widgetApi = defineWidget({
         }
         if (anim.joined >= total) { anim.joinT = 1; anim.done = true; anim.press = null; return false; }
         anim.joined += 1;
-        /* Reduced motion: the sample lands at once, and a Step still adds one. */
-        if (reducedMotion()) {
+        /* Reduced motion, or the first sample (no line to grow): it lands at
+           once, and a Step still adds one. */
+        if (reducedMotion() || anim.joined === 1) {
           anim.joinT = 1;
           if (anim.mode === "step" || anim.joined >= total) { anim.press = null; anim.done = anim.joined >= total; return false; }
           return true;

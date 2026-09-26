@@ -9635,6 +9635,23 @@ sample; T was not picked, S was the recommendation — offered to switch):
 
 Verify 234 checks, `check` and `test` green, the overlap sweep clean on page 4.
 
+**No fades, 2026-09-26** — *"don't use fade for static transitions. it's
+distracting..only tween for movement"*. Removed: the cells' fade on a sample
+change (they redraw at once; the line and tick still glide), a likelihood
+curve's fade when an m joins or leaves (at once; curves that move still move),
+page 4's fade-in (the lines now GROW from the previous sample to the new one,
+and its points, row and verdicts appear on arrival; the first sample appears
+with its press), and three older ones from 2026-09-16: the newest reads' fade
+under Play, the 0.9 threshold fading in with the axis (drawn once the axis
+lands), and the cluster brackets' fade when their number changes (swap at the
+midpoint). The verify's new check records every `globalAlpha` painted
+mid-transition on every page and allows only 1 and the reference reads' 0.45.
+
+*His question, the same day: "why cannot tell for CCF here?"* — 33 of 88 at
+purity 0.70, 1 + 1: the reads allow c 0.79–1.00 (a VAF standard error of about
+0.05, × 2.86), which includes subclones in 79–89% of tumor cells, under the
+0.9 line; at 161 reads the same sample reads 0.92–1.00, Clonal.
+
 **Verified:** `tumor-heterogeneity-verify.mjs` 220 checks (section 2's page-1
 height block replaced by the likelihood's: told both wrong 0.0% at 88 reads
 over 2,880 draws, truth held 96.8%; told nothing wrong 14.9%, truth held 51.0%

@@ -1267,6 +1267,34 @@ const defaults = async () => resolveParams(await spec(), new URLSearchParams("")
     check("…and Play reads Replay only for the page in view's own process",
       back.done === false, `page 4 with ${back.k} reads drawn and no sample`);
 
+    /* NO FADES (Kenneth, 2026-09-26: "don't use fade for static transitions.
+       it's distracting..only tween for movement"). Mid-way through every
+       transition on every page, the only translucency painted is the reference
+       reads' fixed 0.45 and a wash colour's own alpha — never a globalAlpha
+       that changes with the clock. */
+    {
+      const alphas = new Set();
+      const watch = (params, fix) => {
+        const st = W.compute({ params, rng: makeRng(params.seed) });
+        const an = W.animation.init({ params, state: st, fromScratch: true });
+        fix(an, st);
+        const { ctx } = recorder();
+        let ga = 1;
+        Object.defineProperty(ctx, "globalAlpha", { get: () => ga, set: (v) => { ga = v; alphas.add(Math.round(v * 1000) / 1000); } });
+        W.draw({ ctx, colors: COLORS, w: 550, h: W.height({ w: 550, ...params }), params, state: st, anim: an });
+      };
+      for (const t of [0.25, 0.5, 0.75]) {
+        watch({ ...values, page: "one", purity: "0.70" }, (an) => { an.k = 40; an.oneFrom = { cfg: M.configOne({ ...values, purity: "1.00", state: "3+1" }), expected: 0.25, ccf: 1 }; an.oneT = t; an.mode = "run"; an.beat = 0.3; });
+        watch({ ...values, page: "ccf", purity: "0.70", state: "3+1" }, (an) => { an.k = 88; an.likFrom = [{ m: 1, rel: M.LIK_GRID.map(() => 0.5), cHat: 0.5, peak: 0.5, band: { lo: 0.4, hi: 0.6 } }]; an.likT = t; });
+        watch({ ...values, page: "ccf", view: "all", axis: "ccf" }, (an) => { an.mix = t; an.assumedFrom = 1; an.assumedT = t; });
+        watch({ ...values, page: "many" }, (an, st) => { const h = M.histOf(st.many.muts.map((m) => m.vaf), st.many.muts, 1); an.histFrom = h; an.topFrom = M.histTop(h); an.histT = t; an.spansFrom = st.many.fit.spans.slice(0, 1); });
+        watch({ ...values, page: "clonal" }, (an) => { an.joined = 3; an.joinT = t; an.shapeMix = t; });
+      }
+      const odd = [...alphas].filter((v) => v !== 1 && v !== 0.45);
+      check("no fades: nothing is drawn with a clock-driven transparency mid-transition",
+        odd.length === 0, odd.length ? `alphas ${odd.join(", ")}` : `alphas used: ${[...alphas].join(", ")}`);
+    }
+
     check("nothing is painted off the canvas mid-way through any of them",
       Math.max(worstOne, worstLik, worstAll, worstTree) <= 1.5,
       `page 1 ${worstOne.toFixed(1)}, page 3 ${worstLik.toFixed(1)}, all ${worstAll.toFixed(1)}, page 4 ${worstTree.toFixed(1)} px`);
