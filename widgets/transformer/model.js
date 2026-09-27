@@ -125,34 +125,32 @@ const predict = (T, row) => softmax(linear(row, T.mlm, T.mlmb));
 /** any tokens through the base (encoder) or causal (decoder) model: every stage and each block's weights */
 export const forward = (which, toks) => run(W[which], toks, { causal: which === "causal" });
 
-/* THE SENTENCE AND ITS REPLACEMENT (the replan, 2026-09-27, his pick of three
-   pairs, the lesson's first): one later token is swapped, and every token before
-   it is compared. Measured: the encoder's earlier rows move 4.0-11.2, the
-   decoder's by exactly 0 (`_lab/transformer-replan-mock.html`). */
-export const PAIRS = [
-  ["treated with aspirin for chest pain", "treated with aspirin for fever"],
-  ["planned discharge home today", "planned discharge to rehab today"],
-  ["no fever reported", "no fever on exam"],
-];
-/** one pair through one model: both sentences' tokens and weights (block 1, the mean of
-    the four heads), where they first differ, and how far each earlier token's final vector moves */
-export function replace(which, k) {
-  const [a, b] = PAIRS[k].map(tokensOf), fa = forward(which, a), fb = forward(which, b);
-  const first = a.findIndex((t, i) => t !== b[i]);
-  const move = Array.from({ length: first }, (_, i) => Math.hypot(...fa.h[i].map((v, d) => v - fb.h[i][d])));
-  return { original: { tokens: a, alpha: meanHeads(fa.alpha[0]) }, replaced: { tokens: b, alpha: meanHeads(fb.alpha[0]) }, first, move };
+/* ONE SENTENCE, ITS TOKENS ENTERING ONE AT A TIME (his simplification of
+   2026-09-27: "just have 1 example? toggling gets confusing"). Each prefix goes
+   through the model, so a press can show which earlier rows change when a token
+   enters. Measured (`_lab/transformer-steps-mock.html`): every earlier encoder
+   token's FINAL vector moves 1.53-14.92 on every press; the decoder's exactly 0.
+   Block 1's weights alone can barely move (aspirin 0.001 when [SEP] enters), which
+   is why the bars measure the final vector. */
+export const SENTENCE = "treated with aspirin for chest pain";
+/** every prefix of the sentence through one model: runs[k] holds the first k tokens'
+    block-1 weights (the mean of the four heads) and final vectors; move[k][i] is how far
+    token i's final vector moved when token k entered (k = 2 … N, i < k − 1) */
+export function entering(which) {
+  const tokens = tokensOf(SENTENCE), N = tokens.length, runs = [null], move = [null, []];
+  for (let k = 1; k <= N; k++) { const r = forward(which, tokens.slice(0, k)); runs.push({ alpha: meanHeads(r.alpha[0]), h: r.h }); }
+  for (let k = 2; k <= N; k++) move.push(Array.from({ length: k - 1 }, (_, i) => Math.hypot(...runs[k - 1].h[i].map((v, d) => v - runs[k].h[i][d]))));
+  return { tokens, runs, move };
 }
 /** the mean of the heads' weights, [H][L][L] -> [L][L] */
 export const meanHeads = (heads) => heads[0].map((r, i) => r.map((_, j) => heads.reduce((s, h) => s + h[i][j], 0) / heads.length));
 
 /* ------------------------------------------------------------ generation */
 
-/* The Decoder page's prompt: 08-1 cell 4's own decoder example ("The patient was
-   treated with aspirin for" -> "chest"), his pick of the lesson's alone
-   (2026-09-27). Greedy, fed back, and stopping at the first "." or [SEP] (his
-   pick, 2026-09-26: without the stop, greedy repeats one clause to the length
-   limit). `generate` takes any prompt; the verify runs it on five. */
-export const PROMPT = "treated with aspirin for";
+/* Greedy generation, fed back, stopping at the first "." or [SEP]. The Decoder
+   page no longer draws it (his pick, 2026-09-27: the tokens entering are the step,
+   and his diagram's loop says the output is fed back); the verify runs it on five
+   prompts as its check of the causal model against torch. */
 export const STOP = new Set([".", "[SEP]"]);
 const MAX_LEN = 16;
 /** every step of greedy generation: the context, the next-token probabilities, each block's weights */
@@ -175,7 +173,7 @@ const AA = "FFLLSSSSYY**CC*WLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG";
 export const CODE = {};
 "TCAG".split("").forEach((a, i) => "TCAG".split("").forEach((b, j) => "TCAG".split("").forEach((c, k) => { CODE[a + b + c] = AA[16 * i + 4 * j + k]; })));
 /* three genes of six codons, drawn by the generator's seeds 5, 11 and 23; the
-   third reads glycine from three different codons (GGA, GGG, GGT) */
+   page shows the first (his pick of one example, 2026-09-27), the verify all three */
 export const GENES = ["AAACTGGTACACGCCAGG", "CGGGAAACAGACGGAGCT", "GGAGCTGGGCCCGGTGAT"];
 export const codons = (dna) => dna.match(/.../g);
 export const protein = (dna) => codons(dna).map((c) => CODE[c]);

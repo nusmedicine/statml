@@ -22714,6 +22714,29 @@ waiting line moved under the bars, the one-key column kept to the rows'
 height); the switch probe reads 10 switches, 0 flagged. Subtitle and blurb are
 drafts for the copy audit.
 
+**SIMPLIFIED 2026-09-27 on his ask** (*"let's try and simplify? i think we just
+have 1 example? toggling gets confusing … step-wise animation to show how tokens
+enter then the scores get updated … i had a diagram with loops and arcs on a
+sentence … do we need to show the last layer for softmax?"*). Mocked with a
+working Step (`_lab/transformer-steps-mock.html`, cbcb02e) and picked, four
+recommendations: **one sentence**, no Sentence select, no Replace toggle; **a
+press enters the next token** on the Encoder and Decoder pages — it glides in,
+then the encoder's outline steps down every row (each computed again) while
+the decoder computes the new row alone; **his arcs** (the bottom-left of
+`dl-language-attention-output.png`: a loop for itself, an arc to each other
+token, thickness by weight) for **one chosen word**, *aspirin* first, a click on
+a token or the Query control choosing; the **bars** are how far each earlier
+token's **final vector** moved on the press (measured: 1.53–14.92 for every
+earlier encoder token on every press, 0 in the decoder — block 1's weights
+alone can move 0.001, *aspirin* when [SEP] enters, so they were not the
+measure); **no next-token softmax** (his diagram's loop says the output is fed
+back); page 3 **one gene**, no Gene select, no Keys toggle, the amino acids
+written over their codons with lines from the newest down to the nucleotides
+it reads. The verify (1,737 checks) asserts every entering token's effect on
+both models; every page fits the harness frame (the tallest 688); the overlap
+sweep is clean on 20 states at 440; the switch probe reads 12 switches, 0
+flagged; a click on a token sets `query`.
+
 **His ask, 2026-09-26:** *plan the next widget, continuing the language arc.*
 Measure script `_lab/transformer-measure.py` (imports 83's measure, so the
 base is widget 83's own model; about 4 min; `--export` writes

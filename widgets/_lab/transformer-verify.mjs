@@ -8,12 +8,12 @@
       generation; the DNA model's self- and cross-attention and its top token
       on each gene. (The reference also carries a Pre-training page's numbers;
       that page left 84 in the replan of 2026-09-27 and is not checked here.)
-   2. The claims the pages print: on each of the three pairs, the encoder's
-      earlier tokens move when a later one is replaced and the decoder's move
-      by exactly 0; greedy from the lesson's prompt gives "chest pain ." and
-      every prompt stops at the first "."; each amino acid's cross-attention
-      lands on its own codon; the weights of the mean of heads are rows that
-      sum to 1, and the decoder's are 0 past the diagonal.
+   2. The claims the pages print: as each token of the sentence enters, every
+      earlier encoder token's final vector moves and every decoder token's stays
+      exactly, its weights the same numbers; greedy from the lesson's prompt
+      gives "chest pain ." and every prompt stops at the first "."; each amino
+      acid's cross-attention lands on its own codon; the rows of the mean of
+      heads sum to 1, and the decoder's are 0 past the diagonal.
 
    Run:  node widgets/_lab/transformer-verify.mjs
 */
@@ -50,20 +50,24 @@ ok(worst < 1e-9, `the forward against torch (both float64 on float32 weights): l
 
 /* 2 · the printed claims */
 const moves = [];
-M.PAIRS.forEach((_, k) => {
-  const e = M.replace("base", k), d = M.replace("causal", k);
-  ok(e.first > 0 && e.first === d.first, `pair ${k + 1}: the first change at ${e.first}`);
-  ok(e.move.every((v) => v > 1), `pair ${k + 1}: every earlier encoder row moves (${e.move.map((v) => v.toFixed(2)).join(" ")})`);
-  ok(d.move.every((v) => v === 0), `pair ${k + 1}: every earlier decoder row stays exactly (${d.move.join(" ")})`);
-  moves.push(...e.move);
-  for (const [which, r] of [["base", e], ["causal", d]]) for (const s of [r.original, r.replaced]) {
-    s.alpha.forEach((row, i) => {
-      ok(Math.abs(row.reduce((a, b) => a + b, 0) - 1) < 1e-12, `${which} pair ${k + 1} row ${i}: sums to 1`);
-      if (which === "causal") ok(row.every((w, j) => j <= i || w === 0), `causal pair ${k + 1} row ${i}: 0 past the diagonal`);
+for (const which of ["base", "causal"]) {
+  const E = M.entering(which), N = E.tokens.length;
+  ok(E.tokens.join(" ") === "[CLS] treated with aspirin for chest pain [SEP]", `${which}: the sentence's tokens`);
+  for (let k = 2; k <= N; k++) {
+    const mv = E.move[k];
+    if (which === "base") { ok(mv.every((v) => v > 1), `encoder, ${E.tokens[k - 1]} enters: every earlier token moves (${mv.map((v) => v.toFixed(2)).join(" ")})`); moves.push(...mv); }
+    else {
+      ok(mv.every((v) => v === 0), `decoder, ${E.tokens[k - 1]} enters: every earlier token stays exactly`);
+      const a = E.runs[k - 1].alpha, b = E.runs[k].alpha;
+      ok(a.every((row, i) => row.every((w, j) => w === b[i][j])) && b[k - 1].every((w, j) => j <= k - 1), `decoder, ${E.tokens[k - 1]} enters: the earlier rows' weights are the same numbers`);
+    }
+    E.runs[k].alpha.forEach((row, i) => {
+      ok(Math.abs(row.reduce((x, y) => x + y, 0) - 1) < 1e-12, `${which} ${k} tokens, row ${i}: sums to 1`);
+      if (which === "causal") ok(row.every((w, j) => j <= i || w === 0), `causal ${k} tokens, row ${i}: 0 past the diagonal`);
     });
   }
-});
-const lesson = M.generate(M.PROMPT);
+}
+const lesson = M.generate("treated with aspirin for");
 ok(lesson.tokens.slice(5).join(" ") === "chest pain .", `the lesson's prompt: ${lesson.tokens.join(" ")}`);
 ok(lesson.steps[0].probs[M.VOCAB.indexOf("chest")] > 0.99, "chest after the lesson's prompt, above 0.99");
 for (const g of REF.generate) {
@@ -78,5 +82,5 @@ for (const dna of M.GENES) {
   }
 }
 
-console.log(`${checks - fails} of ${checks} checks pass · forward within ${worst.toExponential(1)} of torch · encoder rows move ${Math.min(...moves).toFixed(2)}–${Math.max(...moves).toFixed(2)}, decoder rows 0`);
+console.log(`${checks - fails} of ${checks} checks pass · forward within ${worst.toExponential(1)} of torch · encoder tokens move ${Math.min(...moves).toFixed(2)}–${Math.max(...moves).toFixed(2)} as each token enters, decoder tokens 0`);
 process.exit(fails ? 1 : 0);
