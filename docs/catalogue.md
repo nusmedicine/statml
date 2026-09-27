@@ -22652,6 +22652,43 @@ treat clauses, the next-token model is right 0 · 20 · 4 · 20 · 20 · 4 of 20
 review: the five prompts, the three genes, head 2 by default, the subtitle and
 blurb (drafts). Fingerprint states owed at the ship.
 
+**REPLANNED 2026-09-27 on his ask** (*"take a step back and plan again … we
+may not need to cover everything but key ones"*; his three thoughts: encoder
+and decoder differ in their attention, with and without the mask; maybe the
+encoder–decoder, since cross-attention is used in multimodal training;
+pre-training by self-supervision and adapting pre-trained models split off to
+another widget). The research (`_lab/transformer-replan-mock.html`, 79cc33c):
+every model in week 8 is an encoder (08-2, 08-3); the decoder is used hands-on
+in **10-3** (a decoder on HA proteins, conditional generation by a prefix),
+cross-attention in **10-2** (early fusion, a template not run), masked
+self-supervision again in **10-1**. Measured the same day: change a later
+token and the ENCODER's earlier rows move 4.0–11.2 (*aspirin* 11.22 on
+*chest pain → fever*), the DECODER's exactly 0.00, on three pairs; and 10-2
+cell 5's template, Q and K each `(B, 1, D)`, gives weight 1.0 on its one key
+and outputs 0.0 apart for three very different queries in
+`nn.MultiheadAttention` (six keys: 0.14–0.19 and 0.41 apart) — modality A never
+reaches the prediction; told to him for 10-2.
+
+**PICKED, three AskUserQuestion calls, every recommendation**
+(`_lab/transformer-pages-mock.html`, 1bd6da6): pages **by architecture,
+Encoder · Decoder · Encoder–decoder** (his framing), each showing its
+attention in the same place so a page switch is the comparison; the Encoder
+page has **no Step**, a **Sentence** toggle *Original · Replaced* instead, and
+beneath each earlier token's column a bar of **how far its final vector
+moves** (the length, one scale on both pages); the same toggle and figure on
+the Decoder page, with **generation below it** as the page's Step, on **the
+lesson's prompt only** (*treated with aspirin for* → *chest pain .*); page 3 the
+DNA → protein model's **three attentions** (encoder 18 × 18, decoder
+triangle, cross), a press adds a row to both decoder matrices, a **Keys**
+control *Every nucleotide · One vector* (the one-key case, weight 1.00 by
+arithmetic), **three genes**; **the mean of the four heads** everywhere, no
+Head control; the Sentence select over **three pairs**, the lesson's first;
+cell 3's models and tasks as one line a page; title **Deep Learning -
+Language: Transformer**. Out of 84: the stage-by-stage Encoder page, the Tasks
+page, the Pre-training page (to a new 85, *Pre-training and adapting*, his
+third thought, to be planned). NEXT: rebuild the draft to these picks, on his
+word.
+
 **His ask, 2026-09-26:** *plan the next widget, continuing the language arc.*
 Measure script `_lab/transformer-measure.py` (imports 83's measure, so the
 base is widget 83's own model; about 4 min; `--export` writes
