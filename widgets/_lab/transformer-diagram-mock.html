@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · slot 84 diagram to matrix — mock</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1700px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 110ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); min-height: 26px; white-space: pre-line; max-width: 550px; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  img.fig { display: block; max-width: 380px; max-height: 320px; background: #fff; border: 1px solid var(--grid); }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 110ch; }
+  .q b { display: block; margin-bottom: 2px; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Slot 84 &middot; the architecture diagram, joined to its attention matrix &middot; mock</h1>
+  <p class="note">Your ask: each page carries its architecture, drawn as your figures draw it, and the attention box it is about is joined to
+    the matrix, with the matrix's rows and columns labelled by where they come from. <b>Rows are queries, columns are keys</b>: in
+    cross-attention the rows come from the <b>decoder</b> and the columns from the <b>encoder</b>. The encoder is blue and the decoder amber, as in
+    your figures (<code>--c-group-a</code> / <code>--c-group-b</code>), and every token label takes the hue of the stack it came from. 550 wide, the
+    narrowest canvas; numbers live from the draft's models. Filled states; strings are candidates.</p>
+
+  <h2>1 &middot; Encoder and Decoder: the diagram at the left, a leader from its attention box to the matrix</h2>
+  <div class="row">
+    <div class="cand"><div class="sub">his dl-language-transformer-encoder.png</div><img class="fig" src="figs/dl-language-transformer-encoder.png" alt=""></div>
+    <div class="cand"><div class="sub">Encoder · Replaced</div><canvas id="p1" width="550" height="470"></canvas></div>
+    <div class="cand"><div class="sub">Decoder · Replaced (generation below it, not drawn here)</div><canvas id="p2" width="550" height="470"></canvas></div>
+  </div>
+
+  <h2>2 &middot; Encoder&ndash;decoder: the diagram on top, a leader down from each attention box to its matrix</h2>
+  <p class="note">Two stacks side by side as in your figure, the encoder's output (<i>Representation</i>) running into the decoder's cross-attention.
+    Three leaders: the encoder's self-attention to its matrix, the masked self-attention to the decoder's, the cross-attention to the cross matrix,
+    whose <b>columns</b> are joined to the encoder's output and whose <b>rows</b> to the decoder. At the side, the diagram leaves no width for
+    three matrices without one leader crossing the decoder's stack, so page 3 cannot match pages 1&ndash;2's layout.</p>
+  <div class="row">
+    <div class="cand"><div class="sub">his dl-language-transformer.png</div><img class="fig" src="figs/dl-language-transformer.png" alt=""></div>
+    <div class="cand"><div class="sub">Encoder–decoder · four presses</div><canvas id="p3" width="550" height="640"></canvas></div>
+  </div>
+
+  <h2>3 &middot; To answer with the mock open</h2>
+  <p class="q"><b>1 · The connection.</b> A leader line from the attention box to its matrix, and the source named along the matrix's edges (drawn) &middot;
+    or the box and the matrix sharing a coloured outline, no line.</p>
+  <p class="q"><b>2 · Pages 1 and 2:</b> diagram at the left (drawn) &middot; or on top, as page 3 (the three pages alike, but pages 1 and 2 grow about
+    220 px taller, and page 2 still carries generation).</p>
+  <p class="q"><b>3 · The boxes filled in the stack's hue</b>, as your figures (drawn) &middot; or outlined in it on the plain surface, the attention box
+    the only filled one.</p>
+</main>
+
+<script type="module">
+import * as M from "../transformer/model.js";
+const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const C = { ink1: css("--ink-1"), ink2: css("--ink-2"), ink3: css("--ink-3"), grid: css("--grid"), s1: css("--surface-1"), s2: css("--surface-2"), s3: css("--surface-3"),
+  enc: css("--c-group-a"), dec: css("--c-group-b"), mag: css("--c-magnitude"), hl: css("--c-highlight"), ref: css("--c-reference"), font: css("--font"), mono: css("--font-mono") };
+function ctx(id) { const cv = document.getElementById(id), dpr = devicePixelRatio || 1, w = cv.width, h = cv.height;
+  cv.style.width = w + "px"; cv.style.height = h + "px"; cv.width = w * dpr; cv.height = h * dpr; const g = cv.getContext("2d"); g.scale(dpr, dpr); return g; }
+function text(g, s, x, y, { size = 11, color = C.ink2, align = "left", mono = false, bold = false, base = "middle" } = {}) { g.font = `${bold ? "600 " : ""}${size}px ${mono ? C.mono : C.font}`; g.fillStyle = color; g.textAlign = align; g.textBaseline = base; g.fillText(s, x, y); }
+const rgb = (h) => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+const lum = (p) => (0.2126 * p[0] + 0.7152 * p[1] + 0.0722 * p[2]) / 255;
+const mix = (t, col) => { const a = rgb(C.s3), b = rgb(col); return `rgb(${a.map((x, i) => Math.round(x + (b[i] - x) * Math.max(0, Math.min(1, t)))).join(",")})`; };
+const onFill = (hex) => (Math.abs(lum(rgb(hex)) - lum(rgb(C.ink1))) > Math.abs(lum(rgb(hex)) - lum(rgb(C.s1))) ? C.ink1 : C.s1);
+const lumMix = (t) => { const a = rgb(C.s3), b = rgb(C.mag); return lum(a.map((x, i) => x + (b[i] - x) * t)); };
+const inkOnW = (w) => (Math.abs(lumMix(Math.sqrt(w)) - lum(rgb(C.ink1))) > Math.abs(lumMix(Math.sqrt(w)) - lum(rgb(C.s1))) ? C.ink1 : C.s1);
+const mean = (heads) => heads[0].map((r, i) => r.map((_, j) => heads.reduce((s, h) => s + h[i][j], 0) / heads.length));
+function arrow(g, x1, y1, x2, y2, col = C.ink3, lw = 1.2) { g.strokeStyle = col; g.lineWidth = lw; g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke();
+  const a = Math.atan2(y2 - y1, x2 - x1); g.fillStyle = col; g.beginPath(); g.moveTo(x2, y2); g.lineTo(x2 - 6 * Math.cos(a - 0.45), y2 - 6 * Math.sin(a - 0.45)); g.lineTo(x2 - 6 * Math.cos(a + 0.45), y2 - 6 * Math.sin(a + 0.45)); g.fill(); g.lineWidth = 1; }
+function poly(g, pts, col, lw = 1.5, dash = null) { g.save(); g.strokeStyle = col; g.lineWidth = lw; if (dash) g.setLineDash(dash); g.beginPath(); pts.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y))); g.stroke(); g.restore(); }
+function box(g, x, y, w, h, lines, hue, { hot = false } = {}) {
+  g.fillStyle = hue; g.fillRect(x, y, w, h);
+  if (hot) { g.strokeStyle = C.ink1; g.lineWidth = 2; g.strokeRect(x - 1.5, y - 1.5, w + 3, h + 3); g.lineWidth = 1; }
+  [].concat(lines).forEach((l, i, all) => text(g, l, x + w / 2, y + h / 2 + (i - (all.length - 1) / 2) * 12, { size: 10.5, align: "center", color: onFill(hue) }));
+}
+function frame(g, x, y, w, h) { g.save(); g.setLineDash([4, 3]); g.strokeStyle = C.ref; g.lineWidth = 1.3; g.strokeRect(x, y, w, h); g.restore(); }
+
+/* one stack, top to bottom as drawn, bottom to top as it runs: returns each box's rectangle by name */
+function stack(g, x, top, w, hue, { title, blocks, input, output, bh = 28, gap = 16 }) {
+  const r = {}; let y = top;
+  text(g, output, x + w / 2, y, { size: 10.5, align: "center", color: C.ink2 }); y += 10;
+  arrow(g, x + w / 2, y + 14, x + w / 2, y + 2); y += 18;
+  const fTop = y - 4;
+  blocks.forEach((b, i) => { const lines = b.split("|"), h = lines.length > 1 ? bh + 10 : bh; r[b] = { x, y, w, h }; box(g, x, y, w, h, lines, hue); y += h + (i < blocks.length - 1 ? gap : 0); });
+  frame(g, x - 7, fTop, w + 14, y - fTop + 4);
+  text(g, "× 2", x + w + 7, fTop - 8, { size: 11, align: "right", color: C.ref });
+  blocks.slice(0, -1).forEach((b, i) => arrow(g, x + w / 2, r[blocks[i + 1]].y - 1, x + w / 2, r[b].y + r[b].h + 1));
+  y += 10; arrow(g, x + w / 2, y + 14, x + w / 2, y + 2); y += 18;
+  r.Embedding = { x, y, w, h: bh }; box(g, x, y, w, bh, "Embedding", hue); y += bh;
+  arrow(g, x + w / 2, y + 16, x + w / 2, y + 2); y += 26;
+  text(g, input, x + w / 2, y, { size: 10.5, align: "center", color: C.ink2 });
+  if (title) { g.save(); g.translate(x - 16, (fTop + r.Embedding.y) / 2); g.rotate(-Math.PI / 2); text(g, title, 0, 0, { size: 11, align: "center", color: C.ink1, bold: true }); g.restore(); }
+  r.bottom = y; return r;
+}
+/* the matrix, token labels in their source's hue, the source named along two edges */
+function matrix(g, A, rt, ct, x0, y0, cs, { rowHue, colHue, causal = false, digits = true, rows = A.length, fs = 10, rowSrc = null, colSrc = null, colLabels = true, hotFrom = -1 } = {}) {
+  if (colLabels) ct.forEach((t, j) => { g.save(); g.translate(x0 + j * cs + cs / 2, y0 - 5); g.rotate(-Math.PI / 2); text(g, t, 0, 0, { size: fs, mono: true, color: colHue }); g.restore(); });
+  rt.forEach((t, i) => text(g, t, x0 - 5, y0 + i * cs + cs / 2, { size: fs, mono: true, align: "right", color: i < rows ? rowHue : C.ink3 }));
+  for (let i = 0; i < A.length; i++) for (let j = 0; j < A[i].length; j++) {
+    const x = x0 + j * cs, y = y0 + i * cs;
+    if ((causal && j > i) || i >= rows) { g.fillStyle = C.s2; g.fillRect(x, y, cs - 1, cs - 1); continue; }
+    const w = A[i][j]; g.fillStyle = mix(Math.sqrt(w), C.mag); g.fillRect(x, y, cs - 1, cs - 1);
+    if (digits && cs >= 22) text(g, w.toFixed(2).replace(/^0/, ""), x + cs / 2, y + cs / 2, { size: 9, mono: true, align: "center", color: inkOnW(w) });
+  }
+  g.strokeStyle = C.ink2; g.strokeRect(x0 - 0.5, y0 - 0.5, A[0].length * cs, A.length * cs);
+  if (hotFrom >= 0) { g.strokeStyle = C.hl; g.lineWidth = 1.5; g.strokeRect(x0 + hotFrom * cs - 1, y0 - 1, (A[0].length - hotFrom) * cs + 1, A.length * cs + 1); g.lineWidth = 1; }
+  return { x0, y0, w: A[0].length * cs, h: A.length * cs };
+}
+
+/* ---------------- pages 1 and 2 */
+const TA = ["[CLS]", ..."treated with aspirin for chest pain".split(" "), "[SEP]"], TB = ["[CLS]", ..."treated with aspirin for fever".split(" "), "[SEP]"];
+const FIRST = 5;
+function page12(id, which) {
+  const g = ctx(id), enc = which === "base", hue = enc ? C.enc : C.dec, name = enc ? "encoder" : "decoder";
+  const att = enc ? "Self-attention" : "Masked self-|attention";
+  const S = stack(g, 34, 16, 118, hue, { title: enc ? "Encoder" : "Decoder", blocks: ["Feed forward", att], input: "Input sequence", output: enc ? "Representation" : "Next token" });
+  const f = M.forward(which, TB), A = mean(f.alpha[0]), cs = 26, x0 = 262, y0 = 104;
+  const m = matrix(g, A, TB, TB, x0, y0, cs, { rowHue: hue, colHue: hue, causal: !enc, hotFrom: FIRST });
+  /* the sources, along the edges */
+  text(g, `keys (columns): the ${name}'s tokens`, x0, 22, { size: 10, color: hue });
+  g.save(); g.translate(x0 - 78, y0 + m.h / 2); g.rotate(-Math.PI / 2); text(g, `queries (rows): the ${name}'s tokens`, 0, 0, { size: 10, align: "center", color: hue }); g.restore();
+  /* the leader, from the attention box to the rows' edge */
+  const b = S[att]; poly(g, [[b.x + b.w + 3, b.y + b.h / 2], [x0 - 94, b.y + b.h / 2], [x0 - 94, y0 + m.h / 2], [x0 - 88, y0 + m.h / 2]], C.ink1, 1.5);
+  g.strokeStyle = C.ink1; g.lineWidth = 1.5; g.beginPath(); g.moveTo(x0 - 86, y0); g.lineTo(x0 - 86, y0 + m.h); g.stroke(); g.lineWidth = 1;
+  text(g, "block 1, mean of 4 heads", x0, y0 + m.h + 12, { size: 10, color: C.ink3 });
+  /* movement bars */
+  const by = y0 + m.h + 34, fa = M.forward(which, TA), fb = f;
+  text(g, "How far each earlier token's final vector moves", x0 - 80, by, { size: 10, color: C.ink2 });
+  for (let i = 0; i < FIRST; i++) {
+    const d = Math.hypot(...fa.h[i].map((v, q) => v - fb.h[i][q])), hh = Math.min(50, d * 4.2), bx = x0 + i * cs, base = by + 64;
+    g.fillStyle = C.s2; g.fillRect(bx + 3, by + 14, cs - 7, 50); g.fillStyle = hue; g.fillRect(bx + 3, base - hh, cs - 7, hh);
+    text(g, d.toFixed(2), bx + cs / 2, base + 10, { size: 9, mono: true, align: "center", color: C.ink1 });
+  }
+  text(g, enc ? "e.g. BERT · understanding: classification, named entity recognition, de-identification" : "e.g. GPT · generation: language modelling, text generation, dialogue", 12, 456, { size: 10, color: C.ink3 });
+}
+page12("p1", "base");
+page12("p2", "causal");
+
+/* ---------------- page 3 */
+{
+  const g = ctx("p3"), T = M.translate(M.GENES[0]), nt = T.dna.split(""), prot = ["[BOS]", ...T.protein], R = 4;
+  const E = mean(T.enc[1]), Ds = mean(T.self[1]).slice(0, 7).map((r) => r.slice(0, 7)), X = mean(T.cross[1]);
+  const Se = stack(g, 70, 20, 112, C.enc, { title: "Encoder", blocks: ["Feed forward", "Self-attention"], input: "the gene (DNA)", output: "Representation" });
+  const Sd = stack(g, 330, 20, 124, C.dec, { title: "Decoder", blocks: ["Feed forward", "Cross-attention", "Masked self-|attention"], input: "the protein so far", output: "next amino acid" });
+  /* Representation → the decoder's cross-attention, as his figure */
+  const cr = Sd["Cross-attention"];
+  poly(g, [[126, 20 + 8], [126, 8], [250, 8], [250, cr.y + cr.h / 2]], C.enc, 1.5); arrow(g, 250, cr.y + cr.h / 2, cr.x - 22, cr.y + cr.h / 2, C.enc, 1.5);
+  /* the three matrices */
+  const top = Math.max(Se.bottom, Sd.bottom) + 34;
+  const me = matrix(g, E, nt, nt, 30, top + 14, 8, { rowHue: C.enc, colHue: C.enc, digits: false, fs: 7, colLabels: false });
+  text(g, "rows and columns: the gene", 30, top, { size: 10, color: C.enc });
+  const md = matrix(g, Ds, prot, prot, 250, top + 40, 15, { rowHue: C.dec, colHue: C.dec, causal: true, rows: R, fs: 9 });
+  text(g, "rows and columns: the protein", 205, top, { size: 10, color: C.dec });
+  const cy = top + 40 + 7 * 15 + 64, cx = 96, cc = 16;
+  const mx = matrix(g, X.slice(0, 6), prot.slice(0, 6).map((p, r) => `${p} → ${r < R ? prot[r + 1] : "?"}`), nt, cx, cy, cc, { rowHue: C.dec, colHue: C.enc, rows: R, fs: 9, digits: false });
+  text(g, "columns (keys, values): the encoder's output", cx, cy - 30, { size: 10, color: C.enc });
+  text(g, "rows (queries): the decoder", cx - 88, cy + 6 * cc + 16, { size: 10, color: C.dec });
+  /* leaders: each attention box down to its matrix */
+  const lead = (b, tx, ty, col) => poly(g, [[b.x + b.w / 2, b.y + b.h + 2], [b.x + b.w / 2, b.y + b.h + 8], [b.x + b.w + 12, b.y + b.h + 8], [b.x + b.w + 12, ty - 8], [tx, ty - 8], [tx, ty - 2]], col, 1.5);
+  const se = Se["Self-attention"], ms = Sd["Masked self-|attention"];
+  poly(g, [[se.x - 3, se.y + se.h / 2], [16, se.y + se.h / 2], [16, me.y0 + 40], [26, me.y0 + 40]], C.ink1, 1.5);
+  poly(g, [[ms.x + ms.w + 3, ms.y + ms.h / 2], [520, ms.y + ms.h / 2], [520, md.y0 + md.h / 2], [md.x0 + md.w + 4, md.y0 + md.h / 2]], C.ink1, 1.5);
+  poly(g, [[cr.x + cr.w + 3, cr.y + cr.h / 2], [536, cr.y + cr.h / 2], [536, mx.y0 + mx.h / 2], [mx.x0 + mx.w + 4, mx.y0 + mx.h / 2]], C.ink1, 1.5);
+  text(g, "e.g. T5, BART · sequence to sequence: translation, summarisation, image → text", 12, 626, { size: 10, color: C.ink3 });
+}
+</script>
+</body>
+</html>
