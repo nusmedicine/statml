@@ -1236,7 +1236,7 @@
     {
       "slug": "transformer",
       "title": "Deep Learning - Language: Transformer",
-      "blurb": "Encoder and decoder blocks, the masks that make the three families, and the two ways of pretraining them.",
+      "blurb": "Encoders attend to every token, decoders only to earlier ones; cross-attention reads one sequence from another.",
       "course": "PHM5005",
       "topics": [
         "transformer",
@@ -1244,8 +1244,7 @@
         "decoder",
         "causal mask",
         "cross-attention",
-        "masked language modelling",
-        "pretraining",
+        "generation",
         "language",
         "deep learning"
       ],

@@ -22689,6 +22689,31 @@ page, the Pre-training page (to a new 85, *Pre-training and adapting*, his
 third thought, to be planned). NEXT: rebuild the draft to these picks, on his
 word.
 
+**THE DIAGRAM, his ask for the draft (2026-09-27):** *"include a diagram with
+the relevant architecture and somehow show a connection to the attention
+matrix with the labels of where the inputs come from e.g. self, or cross"*.
+Mocked (`_lab/transformer-diagram-mock.html`, 3875133) and picked, all three
+recommendations: a **leader line** from the attention box to a bracket on its
+matrix, the rows' and columns' sources written along the edges (*queries
+(rows): the encoder's tokens*; on page 3 *queries (rows): the decoder* in amber
+and *keys and values (columns): the encoder's output* in blue — his example had
+rows and columns the other way round, and was told); the diagram **at the
+left** on pages 1–2 and **on top** on page 3 (at the side, one leader would
+cross the decoder's stack); boxes **filled** in the stack's hue as his figures,
+the joined box outlined in ink. Encoder `--c-group-a`, decoder `--c-group-b`,
+his figures' blue and orange; every token label in its source's hue.
+
+**DRAFT REBUILT 2026-09-27** to the replan and the diagram: three pages
+Encoder · Decoder · Encoder–decoder; `model.js` lost the stage-by-stage and
+Pre-training code (kept in ba7d9c8 for the new 85) and gained `PAIRS`,
+`replace()`, `meanHeads()`; the verify (1,735 checks, forward within 3e-15 of
+torch) asserts on all three pairs that the encoder's earlier rows move (4.00–11.22)
+and the decoder's stay exactly (0). Every page fits the harness frame (canvas
+547 wide, the tallest 670); the overlap sweep is clean at 440 on 24 states (the
+waiting line moved under the bars, the one-key column kept to the rows'
+height); the switch probe reads 10 switches, 0 flagged. Subtitle and blurb are
+drafts for the copy audit.
+
 **His ask, 2026-09-26:** *plan the next widget, continuing the language arc.*
 Measure script `_lab/transformer-measure.py` (imports 83's measure, so the
 base is widget 83's own model; about 4 min; `--export` writes

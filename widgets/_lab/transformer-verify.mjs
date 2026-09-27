@@ -2,19 +2,18 @@
 
    1. The JS forward against torch: `_lab/transformer-reference.json` is what
       torch computes (in float64) from the same float32 weights
-      (`transformer-weights.py` writes both): the base model's every stage and
-      weight on the Encoder page's pair; the causal model's next-token
-      probabilities and weights at every step of every prompt's generation; the
-      two models' predictions along the lesson's clause and their top token on
-      every treat clause; the DNA model's self- and cross-attention and its top
-      token on each gene.
-   2. The claims the pages print: the pair's two x~ rows are one row (cos 1),
-      and part after block 1's attention; greedy from the lesson's prompt gives
-      "chest pain ." and every prompt stops at the first "."; a generated token
-      leaves the rows before it unchanged; MLM puts the lesson's [MASK] on the
-      two chest-pain drugs and the causal model spreads "treated with" over
-      all ten; the drug is the one position where the two part; each amino
-      acid's cross-attention lands on its own codon.
+      (`transformer-weights.py` writes both): the base (encoder) model's every
+      stage and weight on two sentences; the causal (decoder) model's
+      next-token probabilities and weights at every step of five prompts'
+      generation; the DNA model's self- and cross-attention and its top token
+      on each gene. (The reference also carries a Pre-training page's numbers;
+      that page left 84 in the replan of 2026-09-27 and is not checked here.)
+   2. The claims the pages print: on each of the three pairs, the encoder's
+      earlier tokens move when a later one is replaced and the decoder's move
+      by exactly 0; greedy from the lesson's prompt gives "chest pain ." and
+      every prompt stops at the first "."; each amino acid's cross-attention
+      lands on its own codon; the weights of the mean of heads are rows that
+      sum to 1, and the decoder's are 0 past the diagonal.
 
    Run:  node widgets/_lab/transformer-verify.mjs
 */
@@ -35,24 +34,11 @@ const diff = (a, b) => {
 };
 
 /* 1 · against torch */
-ok(JSON.stringify(M.PAIR) === JSON.stringify(REF.pair), "the pair is the reference's");
-ok(JSON.stringify(M.PROMPTS) === JSON.stringify(REF.prompts), "the prompts are the reference's");
-const pair = M.encoderPair();
-pair.forEach((p, s) => { diff(p.stages, REF.encoder[s].stages); diff(p.alpha, REF.encoder[s].alpha); });
+REF.encoder.forEach((r) => { const js = M.forward("base", r.tokens); diff(js.stages, r.stages); diff(js.alpha, r.alpha); });
 REF.generate.forEach((g) => {
   const js = M.generate(g.prompt);
   ok(JSON.stringify(js.tokens) === JSON.stringify(g.tokens), `${g.prompt}: generates ${js.tokens.join(" ")}`);
   js.steps.forEach((st, k) => { diff(st.probs, g.steps[k].probs); diff(st.alpha, g.steps[k].alpha); });
-});
-const cl = M.clauseSteps();
-cl.forEach((st, j) => { diff(st.mlm, REF.pretrain.mlm[j]); diff(st.causal, REF.pretrain.causal[j]); });
-const argmax = (p) => p.indexOf(Math.max(...p));
-REF.pretrain.treats.forEach((t) => {
-  const toks = t.clause.split(" ");
-  toks.forEach((_, j) => {
-    ok(argmax(M.mlmAt(toks, j)) === t.mlm[j], `${t.clause} ${j}: MLM's top token`);
-    ok(argmax(M.causalAt(toks, j)) === t.causal[j], `${t.clause} ${j}: causal's top token`);
-  });
 });
 REF.dna.forEach((r, g) => {
   ok(M.GENES[g] === r.dna, `gene ${g + 1} is the reference's`);
@@ -63,28 +49,27 @@ REF.dna.forEach((r, g) => {
 ok(worst < 1e-9, `the forward against torch (both float64 on float32 weights): largest difference ${worst.toExponential(2)}`);
 
 /* 2 · the printed claims */
-const cosAt = (k) => M.cosine(pair[0].stages[k][M.PAIR_AT], pair[1].stages[k][M.PAIR_AT]);
-ok(pair.every((p) => p.tokens[M.PAIR_AT] === "discharge"), "the pair's position 2 is discharge");
-ok(Math.abs(cosAt(0) - 1) < 1e-12, `x~: one row (${cosAt(0)})`);
-ok(cosAt(1) < 0.9 && cosAt(4) < 0.6, `apart after the blocks: ${[0, 1, 2, 3, 4].map((k) => cosAt(k).toFixed(3)).join(" → ")}`);
-ok(M.nearestToken(pair[0].stages[0][M.PAIR_AT]) === "discharge", "x~ reads as its own table row");
-const lesson = M.generate(M.PROMPTS[0]);
+const moves = [];
+M.PAIRS.forEach((_, k) => {
+  const e = M.replace("base", k), d = M.replace("causal", k);
+  ok(e.first > 0 && e.first === d.first, `pair ${k + 1}: the first change at ${e.first}`);
+  ok(e.move.every((v) => v > 1), `pair ${k + 1}: every earlier encoder row moves (${e.move.map((v) => v.toFixed(2)).join(" ")})`);
+  ok(d.move.every((v) => v === 0), `pair ${k + 1}: every earlier decoder row stays exactly (${d.move.join(" ")})`);
+  moves.push(...e.move);
+  for (const [which, r] of [["base", e], ["causal", d]]) for (const s of [r.original, r.replaced]) {
+    s.alpha.forEach((row, i) => {
+      ok(Math.abs(row.reduce((a, b) => a + b, 0) - 1) < 1e-12, `${which} pair ${k + 1} row ${i}: sums to 1`);
+      if (which === "causal") ok(row.every((w, j) => j <= i || w === 0), `causal pair ${k + 1} row ${i}: 0 past the diagonal`);
+    });
+  }
+});
+const lesson = M.generate(M.PROMPT);
 ok(lesson.tokens.slice(5).join(" ") === "chest pain .", `the lesson's prompt: ${lesson.tokens.join(" ")}`);
 ok(lesson.steps[0].probs[M.VOCAB.indexOf("chest")] > 0.99, "chest after the lesson's prompt, above 0.99");
-for (const p of M.PROMPTS) {
-  const g = M.generate(p);
-  ok(M.STOP.has(g.tokens.at(-1)) && g.tokens.slice(0, -1).every((t) => !M.STOP.has(t)), `${p}: stops at the first "."`);
-  for (let k = 1; k < g.steps.length; k++) for (let b = 0; b < 2; b++) for (let h = 0; h < M.H; h++)
-    ok(M.earlierRowChange(g, k, b, h) === 0, `${p} step ${k + 1}, block ${b + 1} head ${h + 1}: earlier rows unchanged`);
+for (const g of REF.generate) {
+  const js = M.generate(g.prompt);
+  ok(M.STOP.has(js.tokens.at(-1)) && js.tokens.slice(0, -1).every((t) => !M.STOP.has(t)), `${g.prompt}: stops at the first "."`);
 }
-const drugAt = cl[2], V = M.VOCAB;
-const mass = (p, words) => words.reduce((s, w) => s + p[V.indexOf(w)], 0);
-ok(mass(drugAt.mlm, ["aspirin", "nitrate"]) > 0.99, `MLM's [MASK]: ${mass(drugAt.mlm, ["aspirin", "nitrate"]).toFixed(3)} on the chest-pain drugs`);
-const drugs = Object.values(M.SYM_DRUG).flat();
-ok(drugs.every((d) => drugAt.causal[V.indexOf(d)] > 0.05 && drugAt.causal[V.indexOf(d)] < 0.2), "causal after 'treated with': every drug 0.05–0.2");
-const tab = M.treatTable();
-ok(tab.every((c, j) => c.mlm === c.n), `MLM right at every position: ${tab.map((c) => `${c.mlm}/${c.n}`).join(" ")}`);
-ok(tab.every((c, j) => (j === 0 || j === 2 ? c.causal < c.n : c.causal === c.n)), `causal right except the first word and the drug: ${tab.map((c) => `${c.causal}/${c.n}`).join(" ")}`);
 for (const dna of M.GENES) {
   const t = M.translate(dna), A = M.crossMean(t);
   for (let r = 0; r < 6; r++) {
@@ -93,5 +78,5 @@ for (const dna of M.GENES) {
   }
 }
 
-console.log(`${checks - fails} of ${checks} checks pass · forward within ${worst.toExponential(1)} of torch · causal by position ${tab.map((c) => `${c.causal}/${c.n}`).join(" ")}`);
+console.log(`${checks - fails} of ${checks} checks pass · forward within ${worst.toExponential(1)} of torch · encoder rows move ${Math.min(...moves).toFixed(2)}–${Math.max(...moves).toFixed(2)}, decoder rows 0`);
 process.exit(fails ? 1 : 0);

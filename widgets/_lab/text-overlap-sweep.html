@@ -45,12 +45,12 @@ const STATES = {
     "?page=weights&sentence=wound&attention_mask=off&scores=unscaled&shown=10", "?page=weights&sentence=home&head=1&shown=16",
     "?page=output&sentence=wound&query=3&shown=8", "?page=output&sentence=home&query=10&shown=10",
   ],
-  /* widget 84's draft (2026-09-27) */
+  /* widget 84's draft, rebuilt to the replan (2026-09-27) */
   "transformer": [
-    "?page=encoder&shown=0", "?page=encoder&shown=1", "?page=encoder&shown=3", "?page=encoder&shown=5",
-    ...["1", "2", "3", "4", "5"].flatMap((p) => [`?page=decoder&prompt=${p}&shown=0`, `?page=decoder&prompt=${p}&shown=1`, `?page=decoder&prompt=${p}&shown=16`]),
-    "?page=decoder&prompt=5&head=1&shown=16", "?page=decoder&prompt=5&head=4&shown=16", "?page=decoder&gene=2&shown=2", "?page=decoder&gene=3&shown=2",
-    "?page=tasks&shown=0", "?page=pretraining&shown=0", "?page=pretraining&shown=1", "?page=pretraining&shown=3", "?page=pretraining&shown=6",
+    ...["1", "2", "3"].flatMap((k) => ["encoder", "decoder"].flatMap((pg) => [`?page=${pg}&sentence=${k}&replace=original&shown=0`, `?page=${pg}&sentence=${k}&replace=replaced&shown=0`])),
+    "?page=decoder&shown=1", "?page=decoder&shown=3",
+    ...["1", "2", "3"].flatMap((g) => [`?page=encoder-decoder&gene=${g}&shown=0`, `?page=encoder-decoder&gene=${g}&shown=6`]),
+    "?page=encoder-decoder&keys=one&shown=0", "?page=encoder-decoder&keys=one&shown=6",
   ],
   "sequence-encoding": [
     "?page=tokenize&vocab=dna&shown=48", "?page=tokenize&vocab=codon&shown=16", "?page=tokenize&vocab=aa&shown=26", "?page=tokenize&vocab=words&shown=16",
