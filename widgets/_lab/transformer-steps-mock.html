@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · slot 84 tokens entering — mock</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1700px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 110ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); min-height: 16px; max-width: 550px; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  img.fig { display: block; max-width: 300px; background: #fff; border: 1px solid var(--grid); }
+  .drive { margin: 0 0 var(--sp-3); font-size: var(--fs-sm); }
+  .drive button { font: inherit; padding: 4px 14px; margin-right: 6px; border: 1px solid var(--ink-3); background: var(--surface-2); color: var(--ink-1); cursor: pointer; }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 110ch; }
+  .q b { display: block; margin-bottom: 2px; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Slot 84 &middot; one sentence, tokens entering &middot; mock</h1>
+  <p class="note">Your three points: <b>one example</b> (the lesson's sentence, no Sentence select, no Replace toggle); <b>tokens enter a press at a time</b>
+    and the weights update; <b>arcs on the sentence</b> as your output figure draws them (a loop for self, arcs to the other tokens), for one query word,
+    <i>aspirin</i> to start &mdash; click a word to choose another. The two pages are drawn side by side here, each 550 wide, and driven by the same
+    buttons. Block 1, the mean of the four heads, computed live from the draft's models.</p>
+  <div class="row">
+    <div class="cand"><div class="sub">his dl-language-attention-output.png (the arcs, bottom left)</div><img class="fig" src="figs/dl-language-attention-output.png" alt=""></div>
+    <div class="cand"><div class="sub">his dl-language-attention-mask.png (causal: M keeps only its loop)</div><img class="fig" src="figs/dl-language-attention-mask.png" alt=""></div>
+  </div>
+
+  <h2>1 &middot; Encoder and Decoder, driven together</h2>
+  <p class="note">A press: the next token glides in from the right; then the weights are computed. In the <b>encoder</b> an outline steps down
+    <b>every</b> row and each one's weights change, because every row now has one more key to share its weight with (the bar at its right is how far
+    that token's final vector moved on this press, after both blocks). In the <b>decoder</b> the earlier rows cannot see the new token, so only the new row is
+    computed and the others' bars read 0.00. The chosen word's arcs thin in the encoder as later words arrive, and stay as they were in the decoder.</p>
+  <div class="drive"><button id="step">Next token</button><button id="play">Play</button><button id="reset">Reset</button> <span id="where" style="color:var(--ink-3)"></span></div>
+  <div class="row">
+    <div class="cand"><div class="sub">Encoder page</div><canvas id="enc" width="550" height="500"></canvas></div>
+    <div class="cand"><div class="sub">Decoder page</div><canvas id="dec" width="550" height="500"></canvas></div>
+  </div>
+
+  <h2>2 &middot; To answer with the mock open</h2>
+  <p class="q"><b>1 · The softmax.</b> The generation section's next-token probabilities (the model's output softmax) are left out here: the token entering is
+    the whole of it, and your diagram's loop says the output is fed back. Recommended: leave them out.</p>
+  <p class="q"><b>2 · The query's arcs.</b> One chosen word, <i>aspirin</i> first, a click on a word to choose (drawn) &middot; or the newest token's arcs, moving
+    with each press (but in the encoder the newest token has nothing after it yet, so its arcs never reach forward).</p>
+  <p class="q"><b>3 · The bars</b> beside each row: how far that token's final vector moved on this press (drawn; 1.5&ndash;14.9 for every earlier encoder row on every press, 0 in the decoder) &middot; or none, the outline sweeping the rows alone. Block 1's weights alone are not the measure: <i>aspirin</i>'s row moves 0.001 when [SEP] enters, which would read as the decoder's zero.</p>
+  <p class="q"><b>4 · The Encoder–decoder page</b> simplified the same way: one gene, no Gene select, no <i>Keys: One vector</i> toggle (the 10-2 point
+    stays a note for the lesson), and arcs from the newest amino acid down to the nucleotides it reads.</p>
+</main>
+
+<script type="module">
+import * as M from "../transformer/model.js";
+const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const C = { ink1: css("--ink-1"), ink2: css("--ink-2"), ink3: css("--ink-3"), grid: css("--grid"), s1: css("--surface-1"), s2: css("--surface-2"), s3: css("--surface-3"),
+  enc: css("--c-group-a"), dec: css("--c-group-b"), mag: css("--c-magnitude"), ref: css("--c-reference"), font: css("--font"), mono: css("--font-mono") };
+const rgb = (h) => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+const lum = (p) => (0.2126 * p[0] + 0.7152 * p[1] + 0.0722 * p[2]) / 255;
+const mixP = (t, col) => { const a = rgb(C.s3), b = rgb(col); return a.map((x, i) => Math.round(x + (b[i] - x) * Math.max(0, Math.min(1, t)))); };
+const cssP = (p) => `rgb(${p.join(",")})`;
+const inkOn = (p) => (Math.abs(lum(p) - lum(rgb(C.ink1))) > Math.abs(lum(p) - lum(rgb(C.s1))) ? C.ink1 : C.s1);
+const ease = (t) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2);
+function setup(id) { const cv = document.getElementById(id), dpr = devicePixelRatio || 1, w = cv.width, h = cv.height;
+  cv.style.width = w + "px"; cv.style.height = h + "px"; cv.width = w * dpr; cv.height = h * dpr; const g = cv.getContext("2d"); g.scale(dpr, dpr); return { cv, g, w, h }; }
+function text(g, s, x, y, { size = 10.5, color = C.ink2, align = "left", mono = false, bold = false } = {}) { g.font = `${bold ? "600 " : ""}${size}px ${mono ? C.mono : C.font}`; g.fillStyle = color; g.textAlign = align; g.textBaseline = "middle"; g.fillText(s, x, y); }
+function poly(g, pts, col, lw = 1.5) { g.strokeStyle = col; g.lineWidth = lw; g.beginPath(); pts.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y))); g.stroke(); g.lineWidth = 1; }
+function arrow(g, x1, y1, x2, y2, col) { poly(g, [[x1, y1], [x2, y2]], col, 1.2); const a = Math.atan2(y2 - y1, x2 - x1); g.fillStyle = col; g.beginPath(); g.moveTo(x2, y2); g.lineTo(x2 - 6 * Math.cos(a - 0.45), y2 - 6 * Math.sin(a - 0.45)); g.lineTo(x2 - 6 * Math.cos(a + 0.45), y2 - 6 * Math.sin(a + 0.45)); g.fill(); }
+function box(g, x, y, w, h, lines, hue, hot) { g.fillStyle = hue; g.fillRect(x, y, w, h); if (hot) { g.strokeStyle = C.ink1; g.lineWidth = 2; g.strokeRect(x - 1.5, y - 1.5, w + 3, h + 3); g.lineWidth = 1; }
+  [].concat(lines).forEach((l, i, a) => text(g, l, x + w / 2, y + h / 2 + (i - (a.length - 1) / 2) * 12, { align: "center", color: inkOn(rgb(hue)) })); }
+
+/* the one example, and every prefix through both models */
+const TOK = M.tokensOf("treated with aspirin for chest pain"), N = TOK.length;
+const W = { base: [null], causal: [null] }, F = { base: [null], causal: [null] };
+for (const which of ["base", "causal"]) for (let k = 1; k <= N; k++) { const r = M.forward(which, TOK.slice(0, k)); W[which].push(M.meanHeads(r.alpha[0])); F[which].push(r.h); }
+/* how far row i's FINAL vector (after both blocks) moved when token k entered: measured, 1.53-14.9 for
+   every earlier encoder row on every press, 0 for the decoder's. Block 1's weights alone can barely move
+   (aspirin 0.001 when [SEP] enters), so they would read as a near-zero in the encoder too. */
+const change = (which, k, i) => Math.hypot(...F[which][k - 1][i].map((v, d) => v - F[which][k][i][d]));
+
+let n = 0, t = 1, playing = false, query = 3, last = 0;
+const GLIDE = 0.35, MS = 1400;
+
+function page(id, which) {
+  const { cv, g, w, h } = setup(id), enc = which === "base", hue = enc ? C.enc : C.dec;
+  const R0 = 196, slotW = (w - 12 - R0) / N, sy = 128, x0 = 262, cs = 26, mTop = 232;
+  const slotX = (j) => R0 + j * slotW + slotW / 2;
+  cv.addEventListener("click", (e) => { const r = cv.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
+    if (Math.abs(y - sy) < 12) { const j = Math.floor((x - R0) / slotW); if (j >= 0 && j < N) { query = j; draw(); } } });
+  return () => {
+    g.clearRect(0, 0, w, h);
+    /* the stack at the left */
+    const sx = 40, sw = 108, att = enc ? "Self-attention" : ["Masked self-", "attention"];
+    text(g, enc ? "Representation" : "Next token", sx + sw / 2, 16, { align: "center" }); arrow(g, sx + sw / 2, 40, sx + sw / 2, 26, C.ink3);
+    g.save(); g.setLineDash([4, 3]); g.strokeStyle = C.ref; g.strokeRect(sx - 7, 44, sw + 14, enc ? 84 : 92); g.restore();
+    text(g, "× 2", sx + sw + 7, 36, { align: "right", color: C.ref });
+    box(g, sx, 50, sw, 26, "Feed forward", hue, false); arrow(g, sx + sw / 2, 90, sx + sw / 2, 78, C.ink3);
+    const ay = 90, ah = enc ? 26 : 34; box(g, sx, ay, sw, ah, att, hue, true);
+    arrow(g, sx + sw / 2, ay + ah + 36, sx + sw / 2, ay + ah + 10, C.ink3);
+    box(g, sx, ay + ah + 38, sw, 26, "Embedding", hue, false); arrow(g, sx + sw / 2, ay + ah + 90, sx + sw / 2, ay + ah + 66, C.ink3);
+    text(g, enc ? "Input sequence" : "Tokens so far", sx + sw / 2, ay + ah + 100, { align: "center" });
+    g.save(); g.translate(sx - 16, 110); g.rotate(-Math.PI / 2); text(g, enc ? "Encoder" : "Decoder", 0, 0, { align: "center", color: C.ink1, bold: true, size: 12 }); g.restore();
+    /* the leader from the attention box to the matrix */
+    poly(g, [[sx + sw + 3, ay + ah / 2], [x0 - 70, ay + ah / 2], [x0 - 70, mTop + N * cs / 2], [x0 - 64, mTop + N * cs / 2]], C.ink1);
+    poly(g, [[x0 - 64, mTop], [x0 - 64, mTop + N * cs]], C.ink1);
+
+    /* the sentence: the tokens entered, the newest gliding in from the right */
+    const glide = n > 0 && t < GLIDE, sweep = t < GLIDE ? -1 : (t - GLIDE) / (1 - GLIDE);
+    const kIn = glide ? n - 1 : n;             // tokens whose weights are on the page (the newest waits for the glide)
+    for (let j = 0; j < n; j++) {
+      let x = slotX(j);
+      if (glide && j === n - 1) x = (w - 6) + (slotX(j) - (w - 6)) * ease(t / GLIDE);
+      text(g, TOK[j], x, sy, { align: "center", mono: true, size: 10, color: j === query ? C.ink1 : hue, bold: j === query });
+    }
+    text(g, `query: ${TOK[query]} (click a word)`, R0, 16, { color: C.ink3 });
+    /* the query's arcs: forward above, back above too, the loop below; thickness by weight */
+    const A = kIn > 0 ? W[which][kIn] : null;
+    if (A && query < kIn) {
+      A[query].forEach((wt, j) => {
+        if (wt < 0.005) return;
+        const lw = 0.6 + 9 * wt, xa = slotX(query), xb = slotX(j);
+        g.strokeStyle = cssP(mixP(0.35 + 0.65 * Math.sqrt(wt), C.mag)); g.lineWidth = lw;
+        if (j === query) { g.beginPath(); g.arc(xa, sy + 20, 9, 0, 2 * Math.PI); g.stroke(); }
+        else { const hgt = 16 + 11 * Math.abs(j - query); g.beginPath(); g.moveTo(xa, sy - 9); g.bezierCurveTo(xa, sy - 9 - hgt, xb, sy - 9 - hgt, xb, sy - 11); g.stroke(); }
+        g.lineWidth = 1;
+      });
+    } else if (A) text(g, `${TOK[query]} has not entered yet`, R0, sy + 26, { color: C.ink3 });
+
+    /* the matrix: rows update in turn (encoder: every row; decoder: the new row only) */
+    TOK.forEach((tk, j) => { g.save(); g.translate(x0 + j * cs + cs / 2, mTop - 5); g.rotate(-Math.PI / 2); text(g, tk, 0, 0, { mono: true, size: 9.5, color: j < n ? hue : C.ink3 }); g.restore(); });
+    const newK = n, oldK = n - 1;
+    let doneRows = n;                          // rows showing the new weights
+    let cursor = -1;
+    if (n > 0 && t < 1) {
+      if (t < GLIDE) doneRows = 0;
+      else if (enc) { cursor = Math.min(n - 1, Math.floor(sweep * n)); doneRows = cursor; }
+      else { cursor = n - 1; doneRows = n - 1; }
+    }
+    for (let i = 0; i < N; i++) {
+      text(g, TOK[i], x0 - 5, mTop + i * cs + cs / 2, { mono: true, size: 9.5, align: "right", color: i < n ? hue : C.ink3 });
+      for (let j = 0; j < N; j++) {
+        const x = x0 + j * cs, y = mTop + i * cs;
+        let src = null;
+        if (i < n) {
+          const fresh = !enc ? true : i < doneRows || (t >= 1);
+          const K = (t >= 1 || (enc ? i < doneRows : true)) ? newK : oldK;
+          if (i < K && j < K && (enc || j <= i)) src = W[which][K][i][j];
+          if (!enc && i === n - 1 && t < 1 && cursor !== n - 1) src = null;
+          if (!enc && i === n - 1 && t < GLIDE) src = null;
+          void fresh;
+        }
+        const masked = !enc && j > i;
+        g.fillStyle = src === null ? (masked && i < n ? C.s2 : C.s2) : cssP(mixP(Math.sqrt(src), C.mag)); g.fillRect(x, y, cs - 1, cs - 1);
+        if (src !== null) text(g, src.toFixed(2).replace(/^0/, ""), x + cs / 2, y + cs / 2, { mono: true, size: 9, align: "center", color: inkOn(mixP(Math.sqrt(src), C.mag)) });
+      }
+      /* the change bar: how far this row's weights moved on this press */
+      const showBar = n > 1 && i < n - 1 && (t >= 1 || (enc ? i < doneRows : t >= GLIDE));
+      if (showBar) {
+        const c = change(which, n, i), bx = x0 + N * cs + 6;
+        g.fillStyle = hue; g.fillRect(bx, mTop + i * cs + 6, Math.min(30, c * 2), cs - 13);
+        text(g, c.toFixed(1), bx + Math.min(30, c * 2) + 3, mTop + i * cs + cs / 2, { mono: true, size: 9, color: C.ink1 });
+      }
+    }
+    g.strokeStyle = C.ink2; g.strokeRect(x0 - 0.5, mTop - 0.5, N * cs, N * cs);
+    if (cursor >= 0) { g.save(); g.setLineDash([3, 3]); g.strokeStyle = C.ink1; g.lineWidth = 1.5; g.strokeRect(x0 - 2.5, mTop + cursor * cs - 2, N * cs + 4, cs + 3); g.restore(); }
+    text(g, `queries (rows) and keys (columns): the ${enc ? "encoder" : "decoder"}'s tokens`, x0 - 60, mTop + N * cs + 14, { color: hue });
+    text(g, "moved", x0 + N * cs + 6, mTop - 22, { color: C.ink3, size: 9.5 }); text(g, "this press", x0 + N * cs + 6, mTop - 10, { color: C.ink3, size: 9.5 });
+    text(g, enc ? "every row changes: each has a new key to share its weight with" : "earlier rows cannot see the new token: only the new row is computed", 12, h - 12, { color: C.ink2 });
+  };
+}
+const pages = [page("enc", "base"), page("dec", "causal")];
+function draw() { pages.forEach((p) => p()); document.getElementById("where").textContent = `${n} of ${N} tokens`; }
+function tick(now) {
+  const dt = Math.min(64, now - (last || now)); last = now;
+  if (t < 1) { t = Math.min(1, t + dt / MS); draw(); requestAnimationFrame(tick); return; }
+  if (playing && n < N) { n += 1; t = 0; draw(); requestAnimationFrame(tick); return; }
+  playing = false; last = 0; draw();
+}
+document.getElementById("step").onclick = () => { if (t < 1) { t = 1; draw(); return; } if (n < N) { n += 1; t = 0; last = 0; requestAnimationFrame(tick); } };
+document.getElementById("play").onclick = () => { playing = true; if (t >= 1 && n < N) { n += 1; t = 0; } last = 0; requestAnimationFrame(tick); };
+document.getElementById("reset").onclick = () => { n = 0; t = 1; playing = false; draw(); };
+/* opens at four tokens, the query entered, so the arcs show */
+n = 4; t = 1; draw();
+</script>
+</body>
+</html>
