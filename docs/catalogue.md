@@ -22868,6 +22868,29 @@ text sweep clean on 26 states at 440 and 900 and on every frame of every press o
 all six pages and phases; switch probe 0 flagged from the Encoder's Prediction and
 the Decoder's Generation.
 
+**THE SENTENCE'S EMBEDDING TO A CLASS, 2026-09-30 (mock 6612ea5, build 1edff78).**
+His *"could we show embedding that we can use to predict the entire sentence e.g.
+positive/negative? or some other relevant class?"*. The lesson's own class is
+08-2's `clinical_outcome`, 0 negative / 1 positive (the grammar's asserted
+abnormal finding); 08-1 cells 12–13 pass the [CLS] row's embedding to a classifier
+head, 08-3 uses mask-aware mean pooling (his pooling figures). Measured
+(`_lab/transformer-task-measure.py` K3, frozen encoder, Linear head): [CLS] 79.0%
+from token + position (the share of positive notes: the row carries nothing
+before attention), 96.6% after block 1, 98.0% after block 2; mean pooling 100% from
+the plain token vectors (a bag of words decides this class); max 96.4 → 99.6%.
+P(positive): the lesson's sentence 1.000, "no chest pain on exam" 0.001, "yellow
+discharge from wound" 1.000 against "planned discharge home today" 0.002.
+**Picked, all the recommendation:** [CLS] pooling; a **Task** control *Tokens ·
+Sentence* inside Prediction; a row a press through the block, then one press that
+pools and classifies. **Built:** the map gains a Pooling box between the block and
+Linear + softmax (08-3 cell 4's order); the pooling press draws [CLS]'s arcs, then
+its final vector as 48 bars about a line in ink (the signed ramp
+`--c-value-low/high` starts in the encoder's blue), then the two-class head. The
+head ships in `weights.js` beside the tag head (earlier models byte-identical),
+held to torch (1,764 checks). Height 644, inside the frame with the Task row in the
+rail; sweep clean on 29 states at 440 and 900 and on every frame of a Sentence run;
+switch probe 0 flagged from Sentence.
+
 **His ask, 2026-09-26:** *plan the next widget, continuing the language arc.*
 Measure script `_lab/transformer-measure.py` (imports 83's measure, so the
 base is widget 83's own model; about 4 min; `--export` writes
