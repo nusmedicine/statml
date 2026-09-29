@@ -6,7 +6,7 @@
       stage and weight on two sentences; the causal (decoder) model's
       next-token probabilities and weights at every step of five prompts'
       generation; the DNA model's self- and cross-attention and its top token
-      on each gene; the tag head's probabilities on two sentences read whole.
+      on each gene; the tag and sentence heads' probabilities on two sentences read whole.
       (The reference also carries a Pre-training page's numbers;
       that page left 84 in the replan of 2026-09-27 and is not checked here.)
    2. The claims the pages print: as each token of the sentence enters, every
@@ -48,7 +48,9 @@ REF.dna.forEach((r, g) => {
   ok(t.top.slice(0, 6).join("") === r.protein.join("") && t.top[6] === "[EOS]", `gene ${g + 1}: the decoder reads ${t.top.join(" ")}`);
 });
 /* the tag head on the frozen encoder (the Encoder page's Prediction): its probabilities, and the tags the page prints */
-REF.tags.forEach((r) => { const js = M.forward("base", r.tokens); diff(js.h.map((row) => M.tagsOf(row)), r.probs); });
+REF.tags.forEach((r) => { const js = M.forward("base", r.tokens); diff(js.h.map((row) => M.tagsOf(row)), r.probs); diff(M.classOf(js.h[0]), r.sentence); });
+ok(M.classOf(M.forward("base", REF.tags[0].tokens).h[0])[1] > 0.99, "the lesson's sentence, from its [CLS] row: positive above 0.99");
+ok(M.classOf(M.forward("base", REF.tags[1].tokens).h[0])[1] < 0.01, "\"no chest pain on exam\", from its [CLS] row: positive below 0.01");
 {
   const js = M.forward("base", REF.tags[0].tokens), top = js.h.map((row) => { const p = M.tagsOf(row); return M.TAGS[p.indexOf(Math.max(...p))]; });
   ok(top.join(" ") === "other other other drug other finding finding other", `the lesson's sentence, read whole: ${top.join(" ")}`);

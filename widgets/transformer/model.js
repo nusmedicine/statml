@@ -14,7 +14,9 @@
              Encoder-decoder page.
      tag     a Linear head on base's FROZEN final vectors, a tag for every
              token: other, drug, finding, negated finding. The Encoder page's
-             Prediction phase.
+             Prediction phase, Task Tokens.
+     cls     a Linear head on the same frozen model's final [CLS] row, the
+             sentence's embedding: negative / positive. Task Sentence.
 
    A post-LN block, as nn.TransformerEncoderLayer's default and 08-3 cell 28:
      h = LayerNorm(x + Attention(x));  y = LayerNorm(h + FFN(h)).
@@ -48,7 +50,7 @@ function unpack({ spec, b64 }) {
   if (o !== all.length) throw new Error(`weights: ${o} of ${all.length} numbers read`);
   return out;
 }
-const W = { base: unpack(MODELS.base), causal: unpack(MODELS.causal), dna: unpack(MODELS.dna), tag: unpack(MODELS.tag) };
+const W = { base: unpack(MODELS.base), causal: unpack(MODELS.causal), dna: unpack(MODELS.dna), tag: unpack(MODELS.tag), cls: unpack(MODELS.cls) };
 
 /* ------------------------------------------------------------ arithmetic */
 
@@ -132,6 +134,9 @@ export const nextTokens = (which, row) => predict(W[which], row);
 export const TAGS = VOCABS.tags;
 /** a base model's final vector through the tag head: the probability of each tag */
 export const tagsOf = (row) => softmax(linear(row, W.tag.tag, W.tag.tagb));
+export const CLASSES = VOCABS.classes;
+/** a base model's final [CLS] row, the sentence's embedding, through the sentence head: negative, positive */
+export const classOf = (cls) => softmax(linear(cls, W.cls.cls, W.cls.clsb));
 
 /* ONE SENTENCE, ITS TOKENS ENTERING ONE AT A TIME (his simplification of
    2026-09-27: "just have 1 example? toggling gets confusing"). Each prefix goes
