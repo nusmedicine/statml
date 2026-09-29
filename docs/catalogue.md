@@ -22901,7 +22901,23 @@ H A R and its outputs K L V H A R [EOS], seven rows in BOTH phases (training sco
 [EOS] as the last target), Generation's seventh press writing [EOS] 1.000 and
 feeding nothing back. The [EOS] row reads no codon of its own: 0.48 of its weight
 on nucleotide 15, the rest mostly on codons' third letters. Height 688, inside the
-frame (body 1,162 of 1,200, canvas 547, three columns kept).
+frame (body 1,162 of 1,200, canvas 547, three columns kept). Then his "add the line
+that each row reads all 18 nucleotides" (79bef49): section 5's note, and beside the
+matrix "the weight on its own codon is learned".
+
+**COPY AUDIT, 2026-09-30 (20c44f1).** The claudisms banlist: 0 of 292 terms in 137
+strings. The project's own passes found nineteen rows, all applied on his word:
+attention "reads" and a row "carried" (figurative) became "attends to" and
+"passes"; "in ink" (our colour-token name) became "marked"; the page control
+**Step** became **Architecture** (its options are architectures, not steps); "not
+scored; training predicts only the masked token" became "the loss counts only the
+masked token" (every row predicts); the feed-forward "small network on each row
+alone" became "the same two-layer network, applied to each row separately"; four
+more rewordings. **Subtitle B** (his pick over keeping it): adds that an encoder's
+vectors are a task head's input, and that a decoder trains every position in one
+pass while generation adds a token at a time. **Blurb:** "Encoders attend to every
+token, decoders only to earlier ones; in cross-attention one sequence attends to
+another." The longer subtitle leaves page 3 at body 1,180 of the 1,200 frame.
 
 **His ask, 2026-09-26:** *plan the next widget, continuing the language arc.*
 Measure script `_lab/transformer-measure.py` (imports 83's measure, so the
