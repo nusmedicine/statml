@@ -124,3 +124,37 @@ for sent in ("no chest pain on exam", "patient presented with chest pain", "yell
     toks = sent.split(); h, _ = vectors([toks], 2)
     with torch.no_grad(): P = heads[2](h[0, 1:len(toks) + 1]).softmax(-1)
     log(f"  {sent:35s} " + " ".join(f"{w}:{TAGS[P[j].argmax()]}({P[j].max():.2f})" for j, w in enumerate(toks)))
+
+# ---------------------------------------------------------------- K3 (his ask, 2026-09-30: "show embedding that we can use to predict the entire sentence")
+log("\n== K3  THE SENTENCE'S EMBEDDING -> NEGATIVE / POSITIVE (08-2's clinical_outcome), by pooling ==")
+def pooled(data, where, pool):
+    h, m = vectors([d[0] for d in data], where)
+    if pool == "cls": return h[:, 0]
+    mm = m[..., None].float()
+    if pool == "mean": return (h * mm).sum(1) / mm.sum(1)
+    return h.masked_fill(mm == 0, float("-inf")).max(1).values
+K3 = {}
+for pool in ("cls", "mean", "max"):
+    row = []
+    for where in (0, 1, 2):
+        head = fit(pooled(train, where, pool), ytr, 2); K3[(pool, where)] = head
+        with torch.no_grad(): row.append((head(pooled(test, where, pool)).argmax(-1) == yte).float().mean().item())
+    log(f"  {pool:4s}: token + position {row[0]:.1%}   after block 1 {row[1]:.1%}   after block 2 {row[2]:.1%}")
+# the hard notes: every finding denied, or no finding at all, against one asserted among denials
+for sent in ("treated with aspirin for chest pain", "no chest pain on exam", "patient recovered well", "no fever reported . patient presented with nausea",
+             "no chest pain on exam . no fever reported", "planned discharge home today", "yellow discharge from wound"):
+    toks = sent.split()
+    out = []
+    for pool in ("cls", "mean"):
+        z = pooled([(toks, None, None)], 2, pool)
+        with torch.no_grad(): p = K3[(pool, 2)](z).softmax(-1)[0, 1].item()
+        out.append(f"{pool} {p:.3f}")
+    log(f"  P(positive)  {sent:48s} " + "   ".join(out))
+# what [CLS] reads: its block-1 and block-2 weights on the lesson's sentence (mean of heads)
+ids, m = A.batchify([S])
+with torch.no_grad():
+    h = base.embed(ids)
+    for bi, b in enumerate(base.blocks):
+        b.att(h, m == 0); a = b.att.last[0].mean(0)[0, :len(S) + 2]
+        log(f"  [CLS]'s weights, block {bi + 1}: " + " ".join(f"{w}:{v:.2f}" for w, v in zip(["[CLS]"] + S + ["[SEP]"], a.tolist())))
+        h = b(h, m == 0)

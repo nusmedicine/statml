@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · slot 84 a sentence's embedding to a class — mock</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1800px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 115ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  table { border-collapse: collapse; font-size: var(--fs-sm); margin: 0 0 var(--sp-3); }
+  td, th { padding: 3px 10px; border-bottom: 1px solid var(--grid); text-align: right; } td:first-child, th:first-child { text-align: left; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 115ch; }
+  .q b { display: block; margin-bottom: 2px; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Slot 84 &middot; the Encoder's Prediction: a sentence's embedding to a class &middot; mock</h1>
+  <p class="note">Your ask: an embedding of the whole sentence, used to predict a class. The lesson's own class is <b>08-2's clinical_outcome</b>,
+    0 = negative, 1 = positive (in the grammar: an abnormal finding asserted, or not). 08-1 cells 12&ndash;13 pass the <b>[CLS]</b> row's embedding to a
+    classifier head; 08-3 uses <b>mask-aware mean pooling</b> (your pooling figures). Measured on this encoder, frozen, a Linear head on 3,000 notes,
+    1,000 held out (<code>_lab/transformer-task-measure.py</code> K3):</p>
+  <table>
+    <tr><th>the sentence's vector</th><th>token + position (no attention)</th><th>after block 1</th><th>after block 2</th></tr>
+    <tr><td>[CLS] row</td><td>79.0% &nbsp;(the share of positive notes)</td><td>96.6%</td><td>98.0%</td></tr>
+    <tr><td>mean of the rows</td><td>100.0%</td><td>99.9%</td><td>99.7%</td></tr>
+    <tr><td>max of the rows</td><td>96.4%</td><td>97.7%</td><td>99.6%</td></tr>
+  </table>
+  <p class="note">[CLS] is a token with no meaning of its own: before attention its row says nothing about the note, and attention is what fills it
+    (block 1, it reads <i>aspirin</i> 0.34, <i>chest</i> 0.23, <i>pain</i> 0.13). The mean of the plain token vectors already scores 100%: on this grammar
+    a bag of words decides the class, so mean pooling shows no work done by attention. P(positive) from the [CLS] head: the lesson's sentence 1.000,
+    <i>no chest pain on exam</i> 0.001, <i>yellow discharge from wound</i> 1.000 against <i>planned discharge home today</i> 0.002.</p>
+
+  <h2>Two poolings, drawn at the end of the press (the lesson's sentence, read whole)</h2>
+  <p class="note">The embedding is the 48 numbers of one vector, drawn as bars up and down from a line (ink only: the signed colour ramp starts in the
+    encoder's blue). The map gains a <b>Pooling</b> box between the block and Linear + softmax, 08-3 cell 4's order. The sections 1&ndash;3 above these
+    (sentence, self-attention, feed forward) are as the page draws them now and are left out here.</p>
+  <div class="row">
+    <div class="cand"><div class="sub">P1 · [CLS] pooling (08-1 cells 12–13)</div><canvas id="cls" width="550" height="400"></canvas></div>
+    <div class="cand"><div class="sub">P2 · mean pooling (08-3; your figure)</div><canvas id="mean" width="550" height="400"></canvas></div>
+  </div>
+
+  <h2>To answer</h2>
+  <p class="q"><b>1 · Pooling.</b> [CLS] (recommended: 08-1's own, and the one where attention visibly does the work: 79% without it, 98% with) &middot; mean (your pooling figure; a bag of words already solves this class).</p>
+  <p class="q"><b>2 · Beside the tags, or instead.</b> A Task control inside Prediction, <i>Tokens &middot; Sentence</i> (recommended: token tags are NER, the sentence class is classification, both the lesson's encoder examples) &middot; the sentence class replaces the tags.</p>
+  <p class="q"><b>3 · The press.</b> A row a press through the block as now, then one more press that pools and classifies (recommended) &middot; the [CLS] row alone, then pool and classify.</p>
+</main>
+<script type="module">
+import * as M from "../transformer/model.js";
+const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const C = { ink1: css("--ink-1"), ink2: css("--ink-2"), ink3: css("--ink-3"), grid: css("--grid"), s1: css("--surface-1"), s2: css("--surface-2"), s3: css("--surface-3"),
+  enc: css("--c-group-a"), mag: css("--c-magnitude"), ref: css("--c-reference"), font: css("--font"), mono: css("--font-mono"), xs: css("--fs-xs"), sm: css("--fs-sm") };
+const rgb = (h) => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)), lum = (p) => (0.2126 * p[0] + 0.7152 * p[1] + 0.0722 * p[2]) / 255;
+const inkOn = (p) => (Math.abs(lum(p) - lum(rgb(C.ink1))) > Math.abs(lum(p) - lum(rgb(C.s1))) ? C.ink1 : C.s1);
+function setup(id) { const cv = document.getElementById(id), dpr = devicePixelRatio || 1, w = cv.width, h = cv.height;
+  cv.style.width = w + "px"; cv.style.height = h + "px"; cv.width = w * dpr; cv.height = h * dpr; const g = cv.getContext("2d"); g.setTransform(dpr, 0, 0, dpr, 0, 0); return { g, w }; }
+function text(g, s, x, y, { color = C.ink2, align = "left", mono = false, bold = false, size = C.xs } = {}) { g.font = `${bold ? "600 " : ""}${size} ${mono ? C.mono : C.font}`; g.fillStyle = color; g.textAlign = align; g.textBaseline = "middle"; g.fillText(s, x, y); }
+function arrow(g, x1, y1, x2, y2, col = C.ink3) { g.strokeStyle = col; g.lineWidth = 1.2; g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke(); const a = Math.atan2(y2 - y1, x2 - x1); g.fillStyle = col; g.beginPath(); g.moveTo(x2, y2); g.lineTo(x2 - 6 * Math.cos(a - 0.45), y2 - 6 * Math.sin(a - 0.45)); g.lineTo(x2 - 6 * Math.cos(a + 0.45), y2 - 6 * Math.sin(a + 0.45)); g.fill(); }
+function box(g, x, y, w, h, s, k) { g.fillStyle = C.enc; g.fillRect(x, y, w, h); text(g, s, x + w / 2 + (k ? 5 : 0), y + h / 2, { align: "center", color: inkOn(rgb(C.enc)) });
+  if (k) { g.beginPath(); g.arc(x, y + h / 2, 7, 0, 7); g.fillStyle = C.s1; g.fill(); text(g, String(k), x, y + h / 2 + 0.5, { align: "center", bold: true, color: C.ink1 }); } }
+function badge(g, x, y, k) { g.beginPath(); g.arc(x, y, 8, 0, 7); g.fillStyle = C.s1; g.fill(); g.beginPath(); g.arc(x, y, 6.5, 0, 7); g.fillStyle = C.enc; g.fill(); text(g, String(k), x, y + 0.5, { align: "center", bold: true, color: inkOn(rgb(C.enc)) }); }
+function head(g, x, y, k, name, note) { badge(g, x + 8, y, k); text(g, name, x + 21, y, { bold: true, color: C.ink1, size: C.sm }); g.font = `600 ${C.sm} ${C.font}`; if (note) text(g, note, x + 21 + g.measureText(name).width + 8, y, { color: C.ink3 }); }
+/* the vector as 48 bars up and down from a line, ink only */
+function vec(g, v, x, y, w, h, col = C.ink2) { const m = Math.max(...v.map(Math.abs)), bw = w / v.length;
+  g.strokeStyle = C.grid; g.beginPath(); g.moveTo(x, y); g.lineTo(x + w, y); g.stroke(); g.fillStyle = col;
+  v.forEach((a, i) => { const hh = (a / m) * h; g.fillRect(x + i * bw + 0.5, hh >= 0 ? y - hh : y, Math.max(1, bw - 1), Math.abs(hh)); }); }
+function map(g, x, y, pool) {
+  const bw = 91, cx = x + 12 + bw / 2, bx = x + 12;
+  text(g, "Negative / positive", cx, y + 6, { align: "center" }); arrow(g, cx, y + 22, cx, y + 13);
+  box(g, bx, y + 22, bw, 20, "Linear + softmax", 5); arrow(g, cx, y + 56, cx, y + 45);
+  box(g, bx, y + 56, bw, 20, pool, 4); arrow(g, cx, y + 88, cx, y + 79);
+  const bT = y + 88; g.save(); g.setLineDash([4, 3]); g.strokeStyle = C.ref; g.lineWidth = 1.3; g.strokeRect(bx - 12, bT, bw + 18, 62); g.restore();
+  box(g, bx, bT + 8, bw, 20, "Feed forward", 3); arrow(g, cx, bT + 34, cx, bT + 31); box(g, bx, bT + 34, bw, 20, "Self-attention", 2);
+  text(g, "× 2", bx + bw + 6, bT + 70, { align: "right", color: C.ref }); arrow(g, cx, bT + 78, cx, bT + 65);
+  box(g, bx, bT + 78, bw, 20, "Embedding", 1); arrow(g, cx, bT + 120, cx, bT + 101); text(g, "Input sequence", cx, bT + 128, { align: "center" });
+}
+const TOK = M.tokensOf(M.SENTENCE), F = M.forward("base", TOK), H = F.h, A2 = M.meanHeads(F.alpha[1]);
+const mean = H[0].map((_, d) => H.reduce((s, r) => s + r[d], 0) / H.length);
+function outBars(g, x, y, probs) { [["negative", probs[0]], ["positive", probs[1]]].forEach(([t, p], k) => { const yy = y + k * 17, on = p > 0.5;
+  text(g, t, x + 62, yy + 6, { align: "right", mono: true, bold: on, color: on ? C.ink1 : C.ink2 }); g.fillStyle = on ? C.enc : C.s3; g.fillRect(x + 68, yy, Math.max(1, p * 300), 12); text(g, p.toFixed(3), x + 72 + p * 300, yy + 6, { mono: true }); }); }
+{ /* P1 */
+  const { g, w } = setup("cls"); map(g, w - 140, 8, "Pooling: [CLS]");
+  head(g, 12, 16, 4, "Pooling", "the [CLS] row, its final vector");
+  text(g, "what [CLS] read, block 2 (mean of 4 heads):", 12, 42, { color: C.ink3 });
+  /* two lines of four, so the words keep their room left of the map */
+  TOK.forEach((t, j) => { const x = 16 + (j % 4) * 92, y = 62 + Math.floor(j / 4) * 30; text(g, t, x, y, { mono: true, color: j === 0 ? C.ink1 : C.enc, bold: j === 0 }); text(g, A2[0][j].toFixed(2), x, y + 13, { mono: true, color: C.ink3 }); });
+  text(g, "the sentence's embedding: [CLS]'s 48 numbers", 12, 132, { color: C.ink3 });
+  vec(g, H[0], 12, 180, 384, 34);
+  text(g, "Without attention this row reads nothing: 79%, the share of", 12, 224, { color: C.ink3 });
+  text(g, "positive notes. After two blocks: 98%.", 12, 238, { color: C.ink3 });
+  head(g, 12, 266, 5, "Linear + softmax", "a new head: negative or positive");
+  outBars(g, 12, 284, [0.0, 1.0]);
+  text(g, "Positive: an abnormal finding is asserted.", 12, 338, { color: C.ink2 });
+}
+{ /* P2 */
+  const { g, w } = setup("mean"); map(g, w - 140, 8, "Pooling: mean");
+  head(g, 12, 16, 4, "Pooling", "the mean of every row's final vector");
+  TOK.forEach((t, j) => { const y = 42 + j * 16; text(g, t, 60, y, { mono: true, align: "right", color: C.enc }); vec(g, H[j], 68, y, 300, 6, C.ink3); });
+  text(g, "mean", 60, 42 + 8 * 16 + 14, { align: "right", bold: true, color: C.ink1 }); vec(g, mean, 68, 42 + 8 * 16 + 14, 300, 12);
+  text(g, "the plain token vectors' mean already scores 100%: a bag of words", 12, 222, { color: C.ink3 });
+  head(g, 12, 254, 5, "Linear + softmax", "a new head: negative or positive");
+  outBars(g, 12, 272, [0.0, 1.0]);
+  text(g, "Positive: an abnormal finding is asserted.", 12, 326, { color: C.ink2 });
+}
+</script>
+</body>
+</html>
