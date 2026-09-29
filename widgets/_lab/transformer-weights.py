@@ -12,6 +12,12 @@ The models, trained exactly as `transformer-measure.py` trains them:
   dna     a tiny encoder-decoder (D 48, 4 heads, 2 + 2 blocks), DNA -> protein
           (3-8 codons, stops excluded), 3,000 steps, seed 0. Decoder page's
           cross-attention.
+  tag     a head on the FROZEN base: Linear(48 -> 4) over its final vectors,
+          a tag for every token (other, drug, finding, negated finding),
+          trained on 3,000 tagged notes (seed 101), Adam 1e-2, 1,500 steps,
+          seed 0 -- exactly as `transformer-task-measure.py` K1 trains it,
+          which scored 99.5% on 1,000 held-out notes. The Encoder page's
+          Prediction phase (his pick, 2026-09-30).
 Each is stored as float32 in base64 (widget 75's form), one string a model,
 its tensors in the order `SPEC` lists them, torch's layout (weight[out][in]).
 
@@ -41,6 +47,32 @@ dna = TM.seq2seq("DNA -> protein", TM.dna_stage(20000, 0), TM.dna_stage(300, 1),
                  lambda s, t: [[3 * r, 3 * r + 1, 3 * r + 2] for r in range(len(t))])
 for m in (base, causal, dna): m.eval()
 
+# the tag head, on the frozen base's final vectors (transformer-task-measure.py K1)
+TAGS = ["other", "drug", "finding", "negated"]
+def tagged_note(rng):
+    n = rng.choice([1, 2, 3]); toks, tags = [], []
+    sym = set(w for s in A.SYMS for w in s.split())
+    for i in range(n):
+        k = rng.choice(["present", "treat", "neg", "dhome", "dwound", "course"])
+        t, _ = A.clause(rng, k)
+        if toks: toks.append("."); tags.append(0)
+        for w in t:
+            if w in A.DRUGS: tags.append(1)
+            elif w in sym: tags.append(3 if k == "neg" else 2)
+            elif w == "discharge" and k == "dwound": tags.append(2)
+            else: tags.append(0)
+        toks += t
+    return toks, tags
+rng = random.Random(101); tagged = [tagged_note(rng) for _ in range(3000)]
+with torch.no_grad():
+    ids, msk = A.batchify([t for t, _ in tagged]); hfin, _ = base.encode(ids, msk)
+X = torch.stack([hfin[i, j + 1] for i, (t, _) in enumerate(tagged) for j in range(len(t))])
+Y = torch.tensor([g for _, tg in tagged for g in tg])
+torch.manual_seed(0); tag = torch.nn.Linear(48, len(TAGS)); opt = torch.optim.Adam(tag.parameters(), 1e-2)
+for _ in range(1500):
+    loss = torch.nn.functional.cross_entropy(tag(X), Y); opt.zero_grad(); loss.backward(); opt.step()
+tag.eval()
+
 # ---------------------------------------------------------------- export
 def att(pre, m):
     return [(f"{pre}.{k}", getattr(m, k).weight) for k in "qkvo"] + [(f"{pre}.{k}b", getattr(m, k).bias) for k in "qkvo"]
@@ -65,10 +97,10 @@ def pack(tensors):
     spec = [[n, list(t.shape)] for n, t in tensors]
     return spec, base64.b64encode(np.concatenate(arrs).tobytes()).decode("ascii")
 
-MODELS = {"base": clinical(base), "causal": clinical(causal), "dna": encdec(dna)}
+MODELS = {"base": clinical(base), "causal": clinical(causal), "dna": encdec(dna), "tag": [("tag", tag.weight), ("tagb", tag.bias)]}
 packed = {k: pack(v) for k, v in MODELS.items()}
 # the widget computes in float64 from the float32 weights; so does torch below, in float64
-for m in (base, causal, dna): m.double()
+for m in (base, causal, dna, tag): m.double()
 
 # ---------------------------------------------------------------- the widget's inputs
 PAIR = ["planned discharge home today", "yellow discharge from wound"]
@@ -79,7 +111,7 @@ DNA_SEEDS = [5, 11, 23]
 ids_of = lambda toks: torch.tensor([[A.ID[w] for w in toks]])
 L2 = lambda t: t.tolist()
 
-ref = {"encoder": [], "pretrain": {}, "generate": [], "dna": []}
+ref = {"encoder": [], "pretrain": {}, "generate": [], "dna": [], "tags": []}
 with torch.no_grad():
     for s in PAIR:
         toks = ["[CLS]"] + s.split() + ["[SEP]"]; ids = ids_of(toks); m = torch.ones_like(ids)
@@ -111,6 +143,10 @@ with torch.no_grad():
             steps.append({"context": list(cur), "probs": L2(pr), "alpha": al}); cur.append(nxt)
             if nxt in (".", "[SEP]"): break
         ref["generate"].append({"prompt": p, "tokens": cur, "steps": steps})
+    # the tag head on sentences read whole: the lesson's, and one that denies a finding
+    for s_ in (CLAUSE, "no chest pain on exam"):
+        toks = ["[CLS]"] + s_.split() + ["[SEP]"]; x = ids_of(toks); h, _ = base.encode(x, torch.ones_like(x))
+        ref["tags"].append({"tokens": toks, "probs": L2(tag(h[0]).softmax(-1))})
     # DNA -> protein
     for sd in DNA_SEEDS:
         rng = random.Random(sd); cod = [rng.choice(TM.SENSE) for _ in range(6)]
@@ -121,12 +157,12 @@ with torch.no_grad():
                            "cross": [L2(b.cross.last[0]) for b in dna.dec], "self": [L2(b.self_att.last[0]) for b in dna.dec],
                            "argmax": L2(logits[0].argmax(-1))})
 
-VOCABS = {"clinical": A.VOCAB, "dnaSrc": ["[PAD]", "A", "C", "G", "T"], "dnaTgt": ["[PAD]", "[BOS]", "[EOS]"] + TM.AAS}
+VOCABS = {"clinical": A.VOCAB, "dnaSrc": ["[PAD]", "A", "C", "G", "T"], "dnaTgt": ["[PAD]", "[BOS]", "[EOS]"] + TM.AAS, "tags": TAGS}
 W = {k: {"spec": s, "b64": b} for k, (s, b) in packed.items()}
 src = ("/* GENERATED by widgets/_lab/transformer-weights.py — do not edit by hand.\n"
        "   Three trained models, float32 in base64, each tensor in SPEC's order in torch's layout (weight[out][in]):\n"
        "   base, the language arc's tiny BERT (widget 83's model, masked-token pretraining); causal, the same size\n"
-       "   trained on next-token prediction; dna, a tiny encoder-decoder trained on DNA -> protein. */\n"
+       "   trained on next-token prediction; dna, a tiny encoder-decoder trained on DNA -> protein; tag, a head on base's frozen final vectors, a tag for every token. */\n"
        f"export const VOCABS = {json.dumps(VOCABS)};\n"
        f"export const MODELS = {json.dumps(W, separators=(',', ':'))};\n")
 (here.parent / "transformer").mkdir(exist_ok=True)
@@ -135,3 +171,4 @@ src = ("/* GENERATED by widgets/_lab/transformer-weights.py — do not edit by h
 print(f"wrote widgets/transformer/weights.js ({len(src):,} bytes) and _lab/transformer-reference.json")
 for g in ref["generate"]: print("  ", " ".join(g["tokens"][1:]))
 for d in ref["dna"]: print("  ", d["dna"], "".join(d["protein"]), [TM.AAS[i - 3] if i >= 3 else i for i in d["argmax"]])
+for t in ref["tags"]: print("  ", " ".join(f"{w}:{TAGS[max(range(4), key=lambda c: p[c])]}({max(p):.3f})" for w, p in zip(t["tokens"], t["probs"])))

@@ -8,9 +8,16 @@
    PHASE, Training · Generation (his pick A, 2026-09-29,
    `_lab/transformer-phases-mock.html`):
 
-     ENCODER          the lesson's own masked sentence (08-1 cell 4, "treated
-                      with [MASK] for chest pain"): every row reads every token;
-                      the [MASK] row's prediction is the one training scores.
+     ENCODER          Training: the lesson's own masked sentence (08-1 cell 4,
+                      "treated with [MASK] for chest pain"): every row reads every
+                      token; the [MASK] row's prediction is the one training
+                      scores. Prediction (his ask, 2026-09-30: an encoder has no
+                      generation): the sentence read whole, the same encoder
+                      frozen, and a head trained afterwards on its vectors gives
+                      every token a tag — other, drug, finding, negated finding
+                      (measured, `_lab/transformer-task-measure.py`: 94.9% from
+                      the token + position vector, where "chest" asserted and
+                      denied are one row; 99.7% after block 1).
      DECODER          Training: the whole sentence, each row's true next token and
                       the probability the model gives it. Generation: the lesson's
                       prompt read a token at a time, then each prediction fed back.
@@ -48,7 +55,6 @@ import { defineWidget, mathmlRenders } from "../core/index.js";
 import * as M from "./model.js";
 
 const PAGES = [{ value: "encoder", label: "Encoder" }, { value: "decoder", label: "Decoder" }, { value: "encoder-decoder", label: "Encoder–decoder" }];
-const ON_DECODER = { any: [{ param: "page", equals: "decoder" }, { param: "page", equals: "encoder-decoder" }] };
 const TOKENS = M.tokensOf(M.SENTENCE), N = TOKENS.length, MASK_AT = 3;
 const PROMPT = "treated with aspirin for";
 
@@ -61,8 +67,14 @@ const S = {
     + "only to the tokens before it, which lets the output be generated one token at a time. An encoder–decoder adds cross-attention: "
     + "queries from the output so far, keys and values from the encoded input.",
   pageLabel: "Step",
-  phaseLabel: "Phase", phaseDetail: "Training reads the whole sequence in one pass; generation adds one token a step, each output fed back.",
-  phaseOpts: [{ value: "training", label: "Training" }, { value: "generation", label: "Generation" }],
+  phaseLabel: "Phase",
+  /* the Encoder has no generation: its second phase is prediction, a task read from its vectors (his ask, 2026-09-30) */
+  phaseOpts: {
+    encoder: [{ value: "training", label: "Training", detail: "Masked-token pretraining: tokens hidden at random, each prediction scored against the hidden original." },
+      { value: "prediction", label: "Prediction", detail: "The pretrained encoder, unchanged, and a head trained afterwards on tagged notes: a tag for every token." }],
+    decoder: [{ value: "training", label: "Training", detail: "The whole sequence in one pass, each row scored on the true next token." },
+      { value: "generation", label: "Generation", detail: "One token a step, each output fed back as the next input." }],
+  },
   step: { encoder: "Next token", decoder: "Next token", "encoder-decoder": "Next amino acid" },
   stepTitle: { encoder: "Carry the next token's row through the block",
     decoder: { param: "phase", labels: { training: "Carry the next token's row through the block", generation: "Compute the next token and feed it back" } },
@@ -73,16 +85,17 @@ const S = {
   /* the boxes, as his figures label them, and Linear + softmax on top */
   ffn: "Feed forward", selfAtt: "Self-attention", masked: ["Masked self-", "attention"], maskedOne: "Masked self-attention", cross: "Cross-attention",
   embedding: "Embedding", linear: "Linear + softmax", times: "× 2",
-  encIn: "Input sequence", encOut: "Predicted token", decIn: "Tokens so far", decOut: "Next token",
+  encIn: "Input sequence", encOut: "Predicted token", tagOut: "Tag per token", decIn: "Tokens so far", decOut: "Next token",
   geneIn: "The gene", protIn: "Protein so far", protOut: "Next amino acid",
 
   /* the sections' notes */
-  note1: (v) => (v.enc ? "the sentence, one token masked" : !v.gen ? "the whole sentence, given"
+  note1: (v) => (v.tagging ? "the sentence, nothing hidden" : v.enc ? "the sentence, one token masked" : !v.gen ? "the whole sentence, given"
     : v.pr.n < v.k0 ? "the prompt" : "the prompt and the tokens fed back"),
   note2enc: "each row: its weights over every token", note2dec: "each row: over the tokens up to it",
   blockNote: (b) => [`block ${b},`, "mean of 4 heads"],
   note3: "the same small network on each row alone",
-  note4: (n, what) => `a probability for each of the ${n} ${what}`, tokensWord: "tokens", aminoWord: "amino acids",
+  note4: (n, what) => `a probability for each of the ${n} ${what}`, note4tag: (n) => `a new head: a probability for each of the ${n} tags`,
+  tagHead: "tag", tokensWord: "tokens", aminoWord: "amino acids",
   gene: "the gene", encRows: "rows and columns: the gene", note5: "each protein row reads the gene",
   crossRows: "rows: protein", crossCols: "columns: gene",
 
@@ -93,12 +106,15 @@ const S = {
   outGen: (q, t) => `the row of ${q}: the six largest; ${t}, the most likely, is fed back`,
   outTrainX: (q, t) => `the row of ${q}: the six largest; the true next amino acid (${t}) in ink`,
   outGenX: (q, t) => `the row of ${q}: the six largest; ${t}, the most likely, is fed back`,
+  noTag: (q) => `the row of ${q}: not a word, so no tag`,
+  outTag: (q, t) => `the row of ${q}: ${t}, the most likely tag`,
   notScored: (q) => `the row of ${q}: not scored; training predicts only the masked token`,
 
   /* the line under the figure */
   line: (params, v, state) => {
     const n = v.pr.n;
     if (n === 0) return v.gen ? "Next token reads the prompt's first token." : "Next token carries the first row through the block.";
+    if (v.tagging) return "The pretrained encoder, unchanged, and a head trained afterwards on tagged notes: each row's vector gives its token's tag. One pass tags every token; a press shows one.";
     if (v.enc) return `Every row reads every token. One pass computes all ${N} rows together; a press shows one.`;
     if (!v.gen) return `Each row reads only the tokens up to it. One pass computes all ${N} rows together; a press shows one.`;
     const G = state.decG, r = v.pr.r;
@@ -121,6 +137,7 @@ const S = {
 
   tileRows: "Rows", tileRowsNote: "computed, a press a row",
   tileMask: "[MASK]", tileMaskNote: "the masked row's most likely token",
+  tileTag: "Tag", tileTagNote: "the newest row's most likely tag",
   tileKeys: "Keys per row", tileKeysNote: "every token of the sentence",
   tileTarget: "Target", tileTargetNote: "the newest row's true next token, its probability",
   tileTargetNoteX: "the newest row's true amino acid, its probability",
@@ -214,7 +231,9 @@ function head(ctx, x, y, ang, size, col) {
    number, and the widest label ("Linear + softmax", 81 px at --fs-xs) leaves 91 px
    room for 5. 91 is also the widest that keeps page 3's three columns at 547. */
 const MP = { bw: 91, bh: 20, bh2: 30, pad: 12, shift: 5 };
-const MAP1_W = MP.pad + MP.bw + 20, MAP2_W = MP.pad + MP.bw + 22 + MP.bw + 20;
+/* the one-stack map keeps 14 px right of its feed-back arrow for the word riding it ("pain" is 28 px);
+   page 3's riders are single letters */
+const MAP1_W = MP.pad + MP.bw + 20 + 14, MAP2_W = MP.pad + MP.bw + 22 + MP.bw + 20;
 const bold = (colors) => `600 ${colors.fsXs} ${colors.font}`;
 
 /** the number that ties a box to its section: the box's hue, ringed in ink when lit */
@@ -226,9 +245,9 @@ function badge(ctx, colors, x, y, k, hue, lit) {
   ctx.restore();
   txt(ctx, String(k), x, y + 0.5, { font: bold(colors), fill: inkOn(colors, rgb(hue)), align: "center" });
 }
-function mapBox(ctx, colors, b, lines, hue, k, lit) {
+function mapBox(ctx, colors, b, lines, hue, k, lit, ring = lit) {
   ctx.fillStyle = hue; ctx.fillRect(b.x, b.y, b.w, b.h);
-  if (lit) rect(ctx, b.x - 1.5, b.y - 1.5, b.w + 3, b.h + 3, colors.ink1, 2);
+  if (ring) rect(ctx, b.x - 1.5, b.y - 1.5, b.w + 3, b.h + 3, colors.ink1, 2);
   const lx = b.x + b.w / 2 + (k ? MP.shift : 0);
   [].concat(lines).forEach((l, i, all) => txt(ctx, l, lx, b.y + b.h / 2 + (i - (all.length - 1) / 2) * 12, { font: small(colors), fill: inkOn(colors, rgb(hue)), align: "center" }));
   if (!k) return;
@@ -239,22 +258,52 @@ function mapBox(ctx, colors, b, lines, hue, k, lit) {
   ctx.restore();
   txt(ctx, String(k), x, y + 0.5, { font: bold(colors), fill: colors.ink1, align: "center" });
 }
-function feedBack(ctx, colors, lit, x, yTop, yIn, lx, outHalf, inHalf) {
+function feedBack(ctx, colors, lit, x, yTop, yIn, lx, outHalf, inHalf, motion, hue) {
   const on = lit.has("back"), c = on ? colors.ink1 : colors.ink3, lw = on ? 2 : 1.2;
-  poly(ctx, [[x + outHalf + 4, yTop], [lx, yTop], [lx, yIn]], c, lw);
-  arrow(ctx, lx, yIn, x + inHalf + 4, yIn, c, lw);
+  const pts = [[x + outHalf + 4, yTop], [lx, yTop], [lx, yIn], [x + inHalf + 4, yIn]];
+  poly(ctx, pts.slice(0, 3), c, lw);
+  arrow(ctx, lx, yIn, pts[3][0], yIn, c, lw);
+  /* THE CHOSEN TOKEN RIDES HIS FEED-BACK ARROW from the output to the input (the arrow is
+     its lane, nothing else lies on it), on a chip of the surface so it reads over the line */
+  if (motion?.token) {
+    const font = monoBold(colors), tw = textW(ctx, font, motion.token.text), half = tw / 2 + 4;
+    /* its path stops half a chip short of each end, so the chip never covers the labels the arrow joins */
+    const ride = [[pts[0][0] + half, pts[0][1]], pts[1], pts[2], [pts[3][0] + half, pts[3][1]]];
+    const [px, py] = along(ride, motion.token.e);
+    ctx.fillStyle = colors.surface; ctx.fillRect(px - tw / 2 - 3, py - 8, tw + 6, 16);
+    txt(ctx, motion.token.text, px, py, { font, fill: hue, align: "center" });
+  }
 }
+/** the point a fraction `e` of the way along a polyline */
+function along(pts, e) {
+  const seg = pts.slice(1).map((p, i) => Math.hypot(p[0] - pts[i][0], p[1] - pts[i][1])), total = seg.reduce((a, b) => a + b, 0);
+  let d = Math.max(0, Math.min(1, e)) * total;
+  for (let i = 0; i < seg.length; i++) {
+    if (d <= seg[i] || i === seg.length - 1) { const u = seg[i] ? Math.min(1, d / seg[i]) : 1; return [pts[i][0] + (pts[i + 1][0] - pts[i][0]) * u, pts[i][1] + (pts[i + 1][1] - pts[i][1]) * u]; }
+    d -= seg[i];
+  }
+  return pts[pts.length - 1];
+}
+/* THE RING TRAVELS from one box to the next along the arrow between them (his "tween where
+   appropriate", 2026-09-30); between boxes no arrow joins (page 3's encoder to the decoder's
+   embedding) it moves at once */
+function travellingRing(ctx, colors, boxes, glide) {
+  if (!glide || glide.e >= 1) return;
+  const a = boxes[glide.from], b = boxes[glide.to], e = glide.e, l = (p, q) => p + (q - p) * e;
+  rect(ctx, l(a.x, b.x) - 1.5, l(a.y, b.y) - 1.5, l(a.w, b.w) + 3, l(a.h, b.h) + 3, colors.ink1, 2);
+}
+const ringOn = (lit, motion, k) => lit.has(k) && !(motion?.glide && motion.glide.e < 1 && motion.glide.to === k);
 const ioLabel = (colors, on) => ({ font: on ? bold(colors) : small(colors), fill: on ? colors.ink1 : colors.ink2, align: "center" });
 
 /** one stack, his encoder or decoder figure with Linear + softmax on top: its boxes by number, and a draw */
-function mapOne(x, y, enc) {
+function mapOne(x, y, enc, outLabel) {
   const bx = x + MP.pad, cx = bx + MP.bw / 2, B = (yy, h = MP.bh) => ({ x: bx, y: yy, w: MP.bw, h });
   const out = B(y + 22), bT = y + 54, ffn = B(bT + 8), att = B(bT + 42, enc ? MP.bh : MP.bh2);
   const bB = att.y + att.h + 8, emb = B(bB + 16), inY = bB + 58;
   const boxes = { 1: emb, 2: att, 3: ffn, 4: out };
-  return { boxes, x, y, w: MAP1_W, bottom: inY + 8, draw(ctx, colors, lit, gen) {
+  return { boxes, x, y, w: MAP1_W, bottom: inY + 8, draw(ctx, colors, lit, gen, motion) {
     const hue = enc ? colors.groupA : colors.groupB, f = small(colors);
-    txt(ctx, enc ? S.encOut : S.decOut, cx, y + 6, ioLabel(colors, lit.has("back")));
+    txt(ctx, outLabel, cx, y + 6, ioLabel(colors, lit.has("back")));
     arrow(ctx, cx, out.y - 1, cx, y + 13, colors.ink3);
     arrow(ctx, cx, bT - 1, cx, out.y + out.h + 3, colors.ink3);
     arrow(ctx, cx, att.y - 1, cx, ffn.y + ffn.h + 3, colors.ink3);
@@ -263,8 +312,9 @@ function mapOne(x, y, enc) {
     arrow(ctx, cx, emb.y - 1, cx, bB + 3, colors.ink3);
     arrow(ctx, cx, inY - 7, cx, emb.y + emb.h + 3, colors.ink3);
     txt(ctx, enc ? S.encIn : S.decIn, cx, inY, { font: f, fill: colors.ink2, align: "center" });
-    [[1, S.embedding], [2, enc ? S.selfAtt : S.masked], [3, S.ffn], [4, S.linear]].forEach(([k, l]) => mapBox(ctx, colors, boxes[k], l, hue, k, lit.has(k)));
-    if (gen) feedBack(ctx, colors, lit, cx, y + 6, inY, bx + MP.bw + 16, textW(ctx, f, S.decOut) / 2, textW(ctx, f, S.decIn) / 2);
+    [[1, S.embedding], [2, enc ? S.selfAtt : S.masked], [3, S.ffn], [4, S.linear]].forEach(([k, l]) => mapBox(ctx, colors, boxes[k], l, hue, k, lit.has(k), ringOn(lit, motion, k)));
+    travellingRing(ctx, colors, boxes, motion?.glide);
+    if (gen) feedBack(ctx, colors, lit, cx, y + 6, inY, bx + MP.bw + 16, textW(ctx, f, S.decOut) / 2, textW(ctx, f, S.decIn) / 2, motion, hue);
   } };
 }
 /** his two-stack figure: the encoder lower, its frame ending where the decoder's does, the representation into cross-attention */
@@ -275,7 +325,7 @@ function mapTwo(x, y) {
   const bB = masked.y + masked.h + 8, demb = D(bB + 16), inY = bB + 58;
   const eself = E(bB - 8 - MP.bh), effn = E(eself.y - 8 - MP.bh), eT = effn.y - 8, eemb = E(bB + 16);
   const boxes = { 1: eemb, 2: eself, 3: demb, 4: masked, 5: cross, 6: ffn, 7: out };
-  return { boxes, x, y, w: MAP2_W, bottom: inY + 8, draw(ctx, colors, lit, gen) {
+  return { boxes, x, y, w: MAP2_W, bottom: inY + 8, draw(ctx, colors, lit, gen, motion) {
     const blue = colors.groupA, amber = colors.groupB, f = small(colors), ry = (ffn.y + ffn.h + cross.y) / 2;
     txt(ctx, S.protOut, dcx, y + 6, ioLabel(colors, lit.has("back")));
     arrow(ctx, dcx, out.y - 1, dcx, y + 13, colors.ink3);
@@ -294,9 +344,10 @@ function mapTwo(x, y) {
     poly(ctx, [[ecx, eT - 1], [ecx, ry]], on ? colors.ink1 : blue, on ? 2 : 1.5);
     arrow(ctx, ecx, ry, dx - 14, ry, on ? colors.ink1 : blue, on ? 2 : 1.5);
     [[1, S.embedding, blue], [2, S.selfAtt, blue], [3, S.embedding, amber], [4, S.masked, amber], [5, S.cross, amber], [6, S.ffn, amber], [7, S.linear, amber]]
-      .forEach(([k, l, hue]) => mapBox(ctx, colors, boxes[k], l, hue, k, lit.has(k)));
+      .forEach(([k, l, hue]) => mapBox(ctx, colors, boxes[k], l, hue, k, lit.has(k), ringOn(lit, motion, k)));
     mapBox(ctx, colors, effn, S.ffn, blue, 0, false);
-    if (gen) feedBack(ctx, colors, lit, dcx, y + 6, inY, dx + MP.bw + 16, textW(ctx, f, S.protOut) / 2, textW(ctx, f, S.protIn) / 2);
+    travellingRing(ctx, colors, boxes, motion?.glide);
+    if (gen) feedBack(ctx, colors, lit, dcx, y + 6, inY, dx + MP.bw + 16, textW(ctx, f, S.protOut) / 2, textW(ctx, f, S.protIn) / 2, motion, amber);
   } };
 }
 const inBox = (p, b) => p.x >= b.x - 2 && p.x <= b.x + b.w + 2 && p.y >= b.y - 2 && p.y <= b.y + b.h + 2;
@@ -340,12 +391,12 @@ const rowRing = (ctx, colors, m, r, cs) => rect(ctx, m.x0 - 2.5, m.y0 + r * cs -
    chosen (generation) in ink and filled in the stack's hue. */
 const OUT = { rows: 6, pitch: 16, bar: 12, maxBar: 300 };
 const outHeight = 14 + OUT.rows * OUT.pitch;
-function outputPanel(ctx, colors, probs, vocab, mark, x, y, w, title, hue) {
+function outputPanel(ctx, colors, probs, vocab, mark, x, y, w, title, hue, grow = 1) {
   txt(ctx, title, x, y, { font: small(colors), fill: colors.ink3 });
   const order = probs.map((p, i) => [p, vocab[i]]).sort((a, b) => b[0] - a[0]).slice(0, OUT.rows);
   const lw = Math.max(...order.map(([, t]) => textW(ctx, monoBold(colors), t))), lx = x + lw + 8, bmax = Math.min(OUT.maxBar, w - lw - 8 - 50);
   order.forEach(([p, t], k) => {
-    const yy = y + 12 + k * OUT.pitch, on = t === mark, bw = Math.max(1, p * bmax);
+    const yy = y + 12 + k * OUT.pitch, on = t === mark, bw = Math.max(1, p * bmax * grow);
     txt(ctx, t, lx - 6, yy + OUT.bar / 2, { font: on ? monoBold(colors) : mono(colors), fill: on ? colors.ink1 : colors.ink2, align: "right" });
     ctx.fillStyle = on ? hue : colors.surface3; ctx.fillRect(lx, yy, bw, OUT.bar);
     txt(ctx, p.toFixed(3), lx + bw + 4, yy + OUT.bar / 2, { font: mono(colors), fill: colors.ink2 });
@@ -362,7 +413,12 @@ function outputPanel(ctx, colors, probs, vocab, mark, x, y, w, title, hue) {
    press ends on his feed-back arrow, the chosen token entering the input. Training
    is still one pass (measured, `_lab/transformer-phases-measure.mjs`): the press
    shows its rows one at a time and the caption says so. */
-const BEAT = 320;
+const BEAT = 380, WEIGHT = { back: 2 };   // the feed-back beat is a journey, twice a box's
+/* what a beat's tweens run over: the first 60% of it, eased, so each part settles before the next box */
+const settleIn = (u) => ease(Math.min(1, u / 0.6));
+const ease = (t) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2);
+/* the boxes an arrow joins, which the ring travels between */
+const JOINED = new Set(["1>2", "2>3", "3>4", "4>5", "5>6", "6>7"]);
 function beatsOf(params, state, n) {
   if (params.page === "encoder-decoder") {
     const b = n === 1 ? [1, 2, 3, 4, 5, 6, 7] : [3, 4, 5, 6, 7];
@@ -372,10 +428,24 @@ function beatsOf(params, state, n) {
   return gen && r >= state.decG.promptLen - 1 ? [1, 2, 3, 4, "back"] : [1, 2, 3, 4];
 }
 /** where the page's press stands: the row, the beat it is at (null at rest), and whether a box is reached */
-function pressOf(params, state, pg) {
+function pressOf(params, state, pg, xd = false) {
   const n = pg.n, beats = n > 0 ? beatsOf(params, state, n) : [], moving = n > 0 && pg.t < 1;
-  const bi = moving ? Math.min(beats.length - 1, Math.floor(pg.t * beats.length)) : beats.length;
-  return { n, r: n - 1, beat: moving ? beats[bi] : null, reached: (k) => !moving || bi >= beats.indexOf(k) };
+  const wts = beats.map((b) => WEIGHT[b] ?? 1), total = wts.reduce((a, b) => a + b, 0);
+  let bi = beats.length, u = 1;
+  if (moving) { let d = pg.t * total; bi = 0; while (bi < beats.length - 1 && d >= wts[bi]) { d -= wts[bi]; bi += 1; } u = Math.min(1, d / wts[bi]); }
+  const beat = moving ? beats[bi] : null, prev = moving && bi > 0 ? beats[bi - 1] : null;
+  /* page 3's encoder boxes (1, 2) and decoder boxes (3 on) sit in two stacks: 2 to 3 is no arrow */
+  const joined = prev !== null && typeof beat === "number" && JOINED.has(`${prev}>${beat}`) && !(xd && prev === 2);
+  return { n, r: n - 1, beat, u, moving, reached: (k) => !moving || bi >= beats.indexOf(k),
+    grow: (k) => (beat === k ? settleIn(u) : 1),
+    motion: { glide: joined ? { from: prev, to: beat, e: settleIn(u) } : null, token: null } };
+}
+
+/** the first `t` of a cubic Bézier, as its three later control points (de Casteljau) */
+function splitBezier([P0, P1, P2, P3], t) {
+  const l = (p, q) => [p[0] + (q[0] - p[0]) * t, p[1] + (q[1] - p[1]) * t];
+  const a = l(P0, P1), b = l(P1, P2), c = l(P2, P3), ab = l(a, b), bc = l(b, c);
+  return [a, ab, l(ab, bc)];
 }
 
 /* ================================================= pages 1–2: Encoder and Decoder */
@@ -387,26 +457,35 @@ function pressOf(params, state, pg) {
    sits in the top-right corner while the sentence still has 44 px a token beside
    it, else beside the matrix. */
 const P12 = { top: 8, lab: 50, colLab: 50, notes: 92, cs: 24 };
-function selfLayout(w, enc) {
+const TAG_COL = 60;
+function selfLayout(w, enc, tagging = false) {
   const mapTop = (w - PAD_L - PAD_R - MAP1_W - 12) / N >= 44;
   const right1 = mapTop ? w - PAD_R - MAP1_W - 12 : w - PAD_R;
   const y1 = P12.top + 8, sy = y1 + 16 + (enc ? 52 : 34), slot = (right1 - PAD_L) / N, y2 = sy + 58;
-  const x0 = PAD_L + P12.lab, notesBeside = mapTop;
-  const avail = (mapTop ? w - PAD_R - P12.notes : w - PAD_R - MAP1_W - 12) - x0;
+  const x0 = PAD_L + P12.lab, notesBeside = mapTop && !tagging;
+  const avail = (notesBeside ? w - PAD_R - P12.notes : mapTop ? w - PAD_R - TAG_COL : w - PAD_R - MAP1_W - 12 - (tagging ? TAG_COL : 0)) - x0;
   const cs = Math.max(14, Math.min(P12.cs, Math.floor(avail / N)));
   const mTop = y2 + 16 + P12.colLab, mBot = mTop + N * cs;
-  const map = mapOne(w - PAD_R - MAP1_W + 4, mapTop ? P12.top : y2 - 8, enc);
+  const map = mapOne(w - PAD_R - MAP1_W + 4, mapTop ? P12.top : y2 - 8, enc, tagging ? S.tagOut : enc ? S.encOut : S.decOut);
   const y3 = Math.max(mBot + (notesBeside ? 20 : 36), mapTop ? 0 : map.bottom + 12), y4 = y3 + 22, yo = y4 + 20;
   const yc = yo + outHeight + 14;
   const secs = { 1: { x: 0, y: y1 - 10, w: right1, h: y2 - y1 }, 2: { x: 0, y: y2 - 10, w: mapTop ? w : map.x, h: y3 - y2 }, 3: { x: 0, y: y3 - 10, w, h: 22 }, 4: { x: 0, y: y4 - 10, w, h: yc - y4 } };
   return { mapTop, map, y1, sy, slot, y2, x0, cs, mTop, mBot, notesBeside, y3, y4, yo, yc, eg: yc + 32, height: yc + 46, secs };
 }
-const heightSelf = (w, enc) => selfLayout(w, enc).height;
+const heightSelf = (w, enc, tagging) => selfLayout(w, enc, tagging).height;
 
 /** what a self-attention page shows at this press */
 function selfView(state, params, pg) {
   const enc = params.page === "encoder", gen = !enc && params.phase === "generation", pr = pressOf(params, state, pg), r = pr.r;
   const rowIn = r >= 0 && pr.reached(2), outIn = r >= 0 && pr.reached(4), rows = rowIn ? pr.n : Math.max(0, pr.n - 1);
+  if (enc && params.phase === "prediction") {
+    /* [CLS] and [SEP] are not words: the head was trained on word rows only, so they get no tag */
+    const E = state.encP, word = (i) => !E.tokens[i].startsWith("["), tagOf = (i) => { const p = E.tags[i]; return M.TAGS[p.indexOf(Math.max(...p))]; };
+    return { enc, gen, tagging: true, pr, toks: E.tokens, shown: N, rows, rowIn, outIn, A: E.A, masked: false, tagOf, word,
+      tagsDone: outIn ? pr.n : Math.max(0, pr.n - 1),
+      out: outIn && word(r) ? { probs: E.tags[r], mark: tagOf(r), title: S.outTag(E.tokens[r], tagOf(r)), vocab: M.TAGS } : null,
+      noTag: outIn && !word(r) };
+  }
   if (enc) {
     const E = state.enc;
     return { enc, gen, pr, toks: E.tokens, shown: N, rows, rowIn, outIn, A: E.A, masked: false,
@@ -417,7 +496,7 @@ function selfView(state, params, pg) {
     return { enc, gen, pr, toks: D.tokens, shown: N, rows, rowIn, outIn, A: D.A, masked: true,
       out: outIn ? { probs: D.probs[r], mark: D.tokens[r + 1], title: S.outTrain(D.tokens[r], D.tokens[r + 1]) } : null };
   }
-  const G = state.decG, k0 = G.promptLen, back = r >= k0 - 1 && pr.reached("back");
+  const G = state.decG, k0 = G.promptLen, back = r >= k0 - 1 && !pr.moving;   // in only once it has ridden the arrow
   const shown = Math.min(G.tokens.length, Math.max(k0, back ? pr.n + 1 : pr.n));
   const out = outIn ? (r < k0 - 1 ? { probs: G.probs[r], mark: G.tokens[r + 1], title: S.outPrompt(G.tokens[r], G.tokens[r + 1]) }
     : { probs: G.probs[r], mark: G.tokens[r + 1], title: S.outGen(G.tokens[r], G.tokens[r + 1]) }) : null;
@@ -425,7 +504,7 @@ function selfView(state, params, pg) {
 }
 
 function drawSelf(ctx, colors, w, params, state, pg, pointer) {
-  const L = selfLayout(w, params.page === "encoder"), v = selfView(state, params, pg), enc = v.enc, hue = enc ? colors.groupA : colors.groupB;
+  const v = selfView(state, params, pg), L = selfLayout(w, v.enc, !!v.tagging), enc = v.enc, hue = enc ? colors.groupA : colors.groupB;
   const toks = v.toks, T = toks.length, pr = v.pr, cellOf = (i, j) => (i < v.rows && (!v.masked || j <= i) ? v.A[i][j] : null);
   const slots = toks.map((_, j) => ({ x: PAD_L + j * L.slot + L.slot / 2, y: L.sy }));
   const cs = L.cs;
@@ -439,30 +518,30 @@ function drawSelf(ctx, colors, w, params, state, pg, pointer) {
     if (ci >= 0 && ci < T && cj >= 0 && cj < T && cellOf(ci, cj) !== null) { hovRow = ci; hovCol = cj; }
   }
   const lit = new Set(pr.beat ? [pr.beat] : hovBox ? [hovBox] : []);
-  L.map.draw(ctx, colors, lit, v.gen);
+  const motion = { ...pr.motion, token: pr.beat === "back" ? { text: toks[pr.r + 1], e: ease(pr.u) } : null };
+  L.map.draw(ctx, colors, lit, v.gen, motion);
 
   /* 1 · Embedding, the sentence and one row's arcs */
   sectionHead(ctx, colors, PAD_L, L.y1, 1, S.embedding, hue, S.note1(v), lit.has(1));
   const arcRow = hovRow >= 0 ? hovRow : v.rowIn ? pr.r : -1;
+  /* THE ARCS DRAW OUT FROM THE QUERY to each key while the press is at the attention box
+     (`g` the share drawn, the arrowhead riding the tip); each arc is its own lane */
+  const g = hovRow >= 0 ? 1 : pr.grow(2);
   const arc = (i, j, wt, on) => {
     const col = on ? colors.ink1 : css(weightRgb(colors, 0.35 + 0.65 * wt)), lw = on ? Math.max(1.8, 1 + 2.5 * wt) : 1 + 2.5 * wt, size = 5 + lw, a = slots[i];
     ctx.save(); ctx.strokeStyle = col; ctx.lineWidth = lw; ctx.beginPath();
     if (j === i) {
-      const cy = a.y - 24, rr = 9, t1 = Math.PI * 0.35 + 2 * Math.PI;
-      ctx.arc(a.x, cy, rr, Math.PI * 0.65, t1 - 0.25); ctx.stroke(); ctx.restore();
-      head(ctx, a.x + rr * Math.cos(t1), cy + rr * Math.sin(t1), t1 + Math.PI / 2, size, col);
+      const cy = a.y - 24, rr = 9, a0 = Math.PI * 0.65, t1 = Math.PI * 0.35 + 2 * Math.PI, end = a0 + (t1 - 0.25 - a0) * g, th = end + 0.25;
+      ctx.arc(a.x, cy, rr, a0, end); ctx.stroke(); ctx.restore();
+      head(ctx, a.x + rr * Math.cos(th), cy + rr * Math.sin(th), th + Math.PI / 2, size, col);
       return;
     }
-    const b = slots[j], d = Math.abs(j - i);
-    if (j > i) {
-      const hgt = Math.min(L.sy - L.y1 - 30, 16 + 6 * d), y0 = a.y - 9, x0 = a.x + 12, x1 = b.x - 4;
-      ctx.moveTo(x0, y0); ctx.bezierCurveTo(x0, y0 - hgt, x1, y0 - hgt, x1, y0 - size * 0.7); ctx.stroke(); ctx.restore();
-      head(ctx, x1, y0, Math.PI / 2, size, col);
-    } else {
-      const hgt = Math.min(46, 12 + 7 * d), y0 = a.y + 8, x0 = a.x - 4, x1 = b.x + 4;
-      ctx.moveTo(x0, y0); ctx.bezierCurveTo(x0, y0 + hgt, x1, y0 + hgt, x1, y0 + size * 0.7); ctx.stroke(); ctx.restore();
-      head(ctx, x1, y0, -Math.PI / 2, size, col);
-    }
+    const b = slots[j], d = Math.abs(j - i), up = j > i;
+    const hgt = up ? Math.min(L.sy - L.y1 - 30, 16 + 6 * d) : Math.min(46, 12 + 7 * d), y0 = up ? a.y - 9 : a.y + 8, x0 = up ? a.x + 12 : a.x - 4, x1 = up ? b.x - 4 : b.x + 4, sg = up ? -1 : 1;
+    const P = [[x0, y0], [x0, y0 + sg * hgt], [x1, y0 + sg * hgt], [x1, y0 + sg * size * 0.7]], [Q1, Q2, Q3] = splitBezier(P, g);
+    ctx.moveTo(x0, y0); ctx.bezierCurveTo(Q1[0], Q1[1], Q2[0], Q2[1], Q3[0], Q3[1]); ctx.stroke(); ctx.restore();
+    const dx = Q3[0] - Q2[0], dy = Q3[1] - Q2[1], len = Math.hypot(dx, dy) || 1, ang = len > 0.01 ? Math.atan2(dy, dx) : (up ? Math.PI / 2 : -Math.PI / 2);
+    head(ctx, Q3[0] + (dx / len) * size * 0.7, Q3[1] + (dy / len) * size * 0.7, ang, size, col);
   };
   if (arcRow >= 0) {
     for (let j = 0; j < T; j++) { const wv = cellOf(arcRow, j); if (wv !== null && wv >= 0.02 && j !== hovCol) arc(arcRow, j, wv, false); }
@@ -475,13 +554,23 @@ function drawSelf(ctx, colors, w, params, state, pg, pointer) {
   const m = matrix(ctx, colors, cellOf, T, T, toks, toks, L.x0, L.mTop, cs, { rowHue: hue, colHue: hue, rowOn: (i) => i < v.shown, colOn: (j) => j < v.shown });
   if (arcRow >= 0) rowRing(ctx, colors, m, arcRow, cs);
   if (hovCol >= 0) rect(ctx, L.x0 + hovCol * cs - 1, L.mTop + arcRow * cs - 1, cs + 1, cs + 1, colors.ink1, 2);
+  /* prediction: each row's tag beside it, once the press has reached the head */
+  if (v.tagging) {
+    txt(ctx, S.tagHead, m.x0 + m.w + 10, m.y0 - 10, { font: small(colors), fill: colors.ink3 });
+    for (let i = 0; i < v.tagsDone; i++) {
+      if (!v.word(i)) continue;
+      const t = v.tagOf(i), on = t !== "other";
+      txt(ctx, t, m.x0 + m.w + 10, m.y0 + i * cs + cs / 2, { font: on ? monoBold(colors) : mono(colors), fill: on ? colors.ink1 : colors.ink3 });
+    }
+  }
   if (L.notesBeside) S.blockNote(1).forEach((s, i) => txt(ctx, s, m.x0 + m.w + 10, m.y0 + 8 + i * 13, { font: small(colors), fill: colors.ink3 }));
   else txt(ctx, S.blockNote(1).join(" "), PAD_L, L.mBot + 16, { font: small(colors), fill: colors.ink3 });
 
   /* 3 · Feed forward; 4 · Linear + softmax */
   sectionHead(ctx, colors, PAD_L, L.y3, 3, S.ffn, hue, S.note3, lit.has(3));
-  sectionHead(ctx, colors, PAD_L, L.y4, 4, S.linear, hue, S.note4(M.VOCAB.length, S.tokensWord), lit.has(4));
-  if (v.out) outputPanel(ctx, colors, v.out.probs, M.VOCAB, v.out.mark, PAD_L, L.yo, w - PAD_L - PAD_R, v.out.title, hue);
+  sectionHead(ctx, colors, PAD_L, L.y4, 4, S.linear, hue, v.tagging ? S.note4tag(M.TAGS.length) : S.note4(M.VOCAB.length, S.tokensWord), lit.has(4));
+  if (v.out) outputPanel(ctx, colors, v.out.probs, v.out.vocab ?? M.VOCAB, v.out.mark, PAD_L, L.yo, w - PAD_L - PAD_R, v.out.title, hue, pr.grow(4));
+  else if (v.noTag) txt(ctx, S.noTag(toks[pr.r]), PAD_L, L.yo, { font: small(colors), fill: colors.ink3 });
   else if (v.notScored) txt(ctx, S.notScored(toks[pr.r]), PAD_L, L.yo, { font: small(colors), fill: colors.ink3 });
 
   /* the line under: the hovered cell's weight, else what a press does */
@@ -520,10 +609,10 @@ const heightEncDec = (w) => xdLayout(w).height;
 
 function drawEncDec(ctx, colors, w, params, state, pg, pointer) {
   const L = xdLayout(w), training = params.phase === "training", gen = !training, T = state.dna, nt = T.dna.split(""), prot = ["[BOS]", ...T.protein];
-  const pr = pressOf(params, state, pg), r = pr.r, blue = colors.groupA, amber = colors.groupB;
+  const pr = pressOf(params, state, pg, true), r = pr.r, blue = colors.groupA, amber = colors.groupB;
   const encIn = pr.n >= 2 || (pr.n === 1 && pr.reached(2));
   const selfIn = r >= 0 && pr.reached(4), crossIn = r >= 0 && pr.reached(5), outIn = r >= 0 && pr.reached(7);
-  const inShown = training ? XD.rows : Math.min(XD.rows, Math.max(1, r >= 0 && pr.reached("back") && r < XD.rows - 1 ? pr.n + 1 : pr.n));
+  const inShown = training ? XD.rows : Math.min(XD.rows, Math.max(1, r >= 0 && !pr.moving && r < XD.rows - 1 ? pr.n + 1 : pr.n));
   const E = M.meanHeads(T.enc[1]), Ds = M.meanHeads(T.self[1]), X = M.crossMean(T), ins = prot.slice(0, XD.rows);
   const rowsS = selfIn ? pr.n : Math.max(0, pr.n - 1), rowsC = crossIn ? pr.n : Math.max(0, pr.n - 1);
   const selfCell = (i, j) => (i < rowsS && j <= i ? Ds[i][j] : null), crossCell = (i, j) => (i < rowsC ? X[i][j] : null);
@@ -540,7 +629,7 @@ function drawEncDec(ctx, colors, w, params, state, pg, pointer) {
     if (si >= 0 && si < XD.rows && sj >= 0 && sj < XD.rows && selfCell(si, sj) !== null) hov = { m: "self", i: si, j: sj };
   }
   const lit = new Set(pr.beat ? [pr.beat] : hovBox ? [hovBox] : []);
-  L.map.draw(ctx, colors, lit, gen);
+  L.map.draw(ctx, colors, lit, gen, { ...pr.motion, token: pr.beat === "back" ? { text: prot[r + 1], e: ease(pr.u) } : null });
 
   /* 1, 2 · the encoder's column */
   const e = L.e, gx = (j) => e.x + 4 + j * XD.pitch + XD.pitch / 2;
@@ -571,7 +660,9 @@ function drawEncDec(ctx, colors, w, params, state, pg, pointer) {
       const v = crossCell(lineRow, j);
       if (v === null || (!on && v < 0.01)) return;
       ctx.save(); ctx.strokeStyle = on ? colors.ink1 : css(weightRgb(colors, 0.35 + 0.65 * v)); ctx.lineWidth = on ? Math.max(1.8, 1 + 2.5 * v) : 1 + 2.5 * v;
-      ctx.beginPath(); ctx.moveTo(qX(lineRow), L.yQ + 9); ctx.lineTo(colX(j), L.yN - 16); ctx.stroke(); ctx.restore();
+      /* drawn out from the query to the gene while the press is at cross-attention */
+      const g = on || hov ? 1 : pr.grow(5), x0 = qX(lineRow), y0 = L.yQ + 9;
+      ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x0 + (colX(j) - x0) * g, y0 + (L.yN - 16 - y0) * g); ctx.stroke(); ctx.restore();
     };
     for (let j = 0; j < 18; j++) if (j !== litJ) drawLine(j, false);
     if (litJ >= 0) drawLine(litJ, true);
@@ -587,7 +678,7 @@ function drawEncDec(ctx, colors, w, params, state, pg, pointer) {
   const aminos = M.TGT.filter((t) => !t.startsWith("[")).length;
   sectionHead(ctx, colors, PAD_L, L.y6, 6, S.ffn, amber, S.note3, lit.has(6));
   sectionHead(ctx, colors, PAD_L, L.y7, 7, S.linear, amber, S.note4(aminos, S.aminoWord), lit.has(7));
-  if (outIn) outputPanel(ctx, colors, T.probs[r], M.TGT, prot[r + 1], PAD_L, L.yo, w - PAD_L - PAD_R, training ? S.outTrainX(ins[r], prot[r + 1]) : S.outGenX(ins[r], prot[r + 1]), amber);
+  if (outIn) outputPanel(ctx, colors, T.probs[r], M.TGT, prot[r + 1], PAD_L, L.yo, w - PAD_L - PAD_R, training ? S.outTrainX(ins[r], prot[r + 1]) : S.outGenX(ins[r], prot[r + 1]), amber, pr.grow(7));
 
   const line = hov ? S.weightOf(ins[hov.i], hov.m === "cross" ? `${nt[hov.j]} (nucleotide ${hov.j + 1})` : ins[hov.j], (hov.m === "cross" ? X : Ds)[hov.i][hov.j])
     : S.xLine(params, pr, T);
@@ -597,7 +688,7 @@ function drawEncDec(ctx, colors, w, params, state, pg, pointer) {
 
 /* ============================================================ the widget */
 
-const keyOf = (params) => (params.page === "encoder" ? "encoder" : `${params.page}:${params.phase}`);
+const keyOf = (params) => `${params.page}:${params.phase}`;
 const maxOf = (params, state) => (params.page === "encoder" ? N : params.page === "decoder" ? (params.phase === "training" ? N - 1 : state.decG.tokens.length - 1) : XD.rows);
 const msOf = (params, state, mode, n) => beatsOf(params, state, Math.max(1, n)).length * BEAT * (mode === "run" ? 0.5 : 1);
 const pageOf = (anim, params) => anim.p[keyOf(params)];
@@ -621,7 +712,10 @@ function stage() {
      sequence gives every row a token-at-a-time run gives (the mask; measured), so it is read once */
   const gen = M.generate(PROMPT), fg = M.forward("causal", gen.tokens);
   const decG = { tokens: gen.tokens, promptLen: gen.steps[0].context.length, A: M.meanHeads(fg.alpha[0]), probs: gen.tokens.slice(1).map((_, i) => M.nextTokens("causal", fg.h[i])) };
-  STAGE = { enc, decT, decG, dna: M.translate(M.GENES[0]) };
+  /* the encoder in prediction: the sentence read whole, each final vector through the tag head */
+  const fp = M.forward("base", TOKENS);
+  const encP = { tokens: TOKENS, A: M.meanHeads(fp.alpha[0]), tags: fp.h.map((row) => M.tagsOf(row)) };
+  STAGE = { enc, encP, decT, decG, dna: M.translate(M.GENES[0]) };
   return STAGE;
 }
 
@@ -631,11 +725,12 @@ defineWidget({
   title: S.title,
   subtitle: S.subtitle,
   layout: "side",
-  height: ({ page, w }) => (page === "encoder-decoder" ? heightEncDec(w) : heightSelf(w, page === "encoder")),
+  height: ({ page, phase, w }) => (page === "encoder-decoder" ? heightEncDec(w) : heightSelf(w, page === "encoder", page === "encoder" && phase === "prediction")),
 
   params: {
     page: { role: "page", type: "segmented", label: S.pageLabel, options: PAGES, default: "encoder", display: true },
-    phase: { type: "segmented", label: S.phaseLabel, detail: S.phaseDetail, options: S.phaseOpts, default: "training", display: true, when: ON_DECODER },
+    phase: { type: "segmented", label: S.phaseLabel, options: (v) => (v.page === "encoder" ? S.phaseOpts.encoder : S.phaseOpts.decoder), optionsFrom: ["page"],
+      default: "training", display: true },
     /* authoring escape hatch, first render only: presses already made on the page opened */
     shown: { type: "int", min: 0, max: 8, default: 0, hidden: true },
   },
@@ -652,7 +747,7 @@ defineWidget({
     runLabel: S.runLabel,
     runTitle: S.runTitle,
     init: ({ params, state, fromScratch }) => {
-      const anim = { p: Object.fromEntries(["encoder", "decoder:training", "decoder:generation", "encoder-decoder:training", "encoder-decoder:generation"].map((k) => [k, { n: 0, t: 1 }])), moving: false, halt: false };
+      const anim = { p: Object.fromEntries(["encoder:training", "encoder:prediction", "decoder:training", "decoder:generation", "encoder-decoder:training", "encoder-decoder:generation"].map((k) => [k, { n: 0, t: 1 }])), moving: false, halt: false };
       if (!fromScratch) anim.p[keyOf(params)].n = Math.max(0, Math.min(maxOf(params, state), Number(params.shown) || 0));
       settle(anim, params, state);
       return anim;
@@ -690,6 +785,14 @@ defineWidget({
   readout({ params, state, anim }) {
     const pg = pageOf(anim, params), k = pg.t >= 1 ? pg.n : pg.n - 1, r = k - 1, max = maxOf(params, state);
     const rowsTile = { label: S.tileRows, value: `${Math.max(0, k)} of ${max}`, note: S.tileRowsNote };
+    if (params.page === "encoder" && params.phase === "prediction") {
+      const E = state.encP, p = r >= 0 && !E.tokens[r].startsWith("[") ? E.tags[r] : null;
+      return [
+        rowsTile,
+        { label: S.tileTag, value: p ? `${M.TAGS[p.indexOf(Math.max(...p))]} ${Math.max(...p).toFixed(2)}` : S.wait, note: S.tileTagNote },
+        { label: S.tileKeys, value: `${N}`, note: S.tileKeysNote },
+      ];
+    }
     if (params.page === "encoder") {
       const E = state.enc, top = E.probs.indexOf(Math.max(...E.probs));
       return [

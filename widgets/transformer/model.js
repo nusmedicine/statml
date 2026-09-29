@@ -12,6 +12,9 @@
      dna     an encoder-decoder, 2 + 2 blocks, trained on DNA -> protein
              (08-1 cell 4's own sequence-to-sequence example). The
              Encoder-decoder page.
+     tag     a Linear head on base's FROZEN final vectors, a tag for every
+             token: other, drug, finding, negated finding. The Encoder page's
+             Prediction phase.
 
    A post-LN block, as nn.TransformerEncoderLayer's default and 08-3 cell 28:
      h = LayerNorm(x + Attention(x));  y = LayerNorm(h + FFN(h)).
@@ -45,7 +48,7 @@ function unpack({ spec, b64 }) {
   if (o !== all.length) throw new Error(`weights: ${o} of ${all.length} numbers read`);
   return out;
 }
-const W = { base: unpack(MODELS.base), causal: unpack(MODELS.causal), dna: unpack(MODELS.dna) };
+const W = { base: unpack(MODELS.base), causal: unpack(MODELS.causal), dna: unpack(MODELS.dna), tag: unpack(MODELS.tag) };
 
 /* ------------------------------------------------------------ arithmetic */
 
@@ -126,6 +129,9 @@ const predict = (T, row) => softmax(linear(row, T.mlm, T.mlmb));
 export const forward = (which, toks) => run(W[which], toks, { causal: which === "causal" });
 /** a final vector through its model's output layer: the probability of every token in the vocabulary */
 export const nextTokens = (which, row) => predict(W[which], row);
+export const TAGS = VOCABS.tags;
+/** a base model's final vector through the tag head: the probability of each tag */
+export const tagsOf = (row) => softmax(linear(row, W.tag.tag, W.tag.tagb));
 
 /* ONE SENTENCE, ITS TOKENS ENTERING ONE AT A TIME (his simplification of
    2026-09-27: "just have 1 example? toggling gets confusing"). Each prefix goes

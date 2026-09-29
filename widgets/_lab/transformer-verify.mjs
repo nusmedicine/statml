@@ -6,7 +6,8 @@
       stage and weight on two sentences; the causal (decoder) model's
       next-token probabilities and weights at every step of five prompts'
       generation; the DNA model's self- and cross-attention and its top token
-      on each gene. (The reference also carries a Pre-training page's numbers;
+      on each gene; the tag head's probabilities on two sentences read whole.
+      (The reference also carries a Pre-training page's numbers;
       that page left 84 in the replan of 2026-09-27 and is not checked here.)
    2. The claims the pages print: as each token of the sentence enters, every
       earlier encoder token's final vector moves and every decoder token's stays
@@ -46,6 +47,14 @@ REF.dna.forEach((r, g) => {
   diff(t.cross, r.cross); diff(t.self, r.self);
   ok(t.top.slice(0, 6).join("") === r.protein.join("") && t.top[6] === "[EOS]", `gene ${g + 1}: the decoder reads ${t.top.join(" ")}`);
 });
+/* the tag head on the frozen encoder (the Encoder page's Prediction): its probabilities, and the tags the page prints */
+REF.tags.forEach((r) => { const js = M.forward("base", r.tokens); diff(js.h.map((row) => M.tagsOf(row)), r.probs); });
+{
+  const js = M.forward("base", REF.tags[0].tokens), top = js.h.map((row) => { const p = M.tagsOf(row); return M.TAGS[p.indexOf(Math.max(...p))]; });
+  ok(top.join(" ") === "other other other drug other finding finding other", `the lesson's sentence, read whole: ${top.join(" ")}`);
+  const neg = M.forward("base", REF.tags[1].tokens).h.map((row) => { const p = M.tagsOf(row); return M.TAGS[p.indexOf(Math.max(...p))]; });
+  ok(neg[2] === "negated" && neg[3] === "negated", `"no chest pain on exam": chest and pain negated (${neg.join(" ")})`);
+}
 ok(worst < 1e-9, `the forward against torch (both float64 on float32 weights): largest difference ${worst.toExponential(2)}`);
 
 /* 2 · the printed claims */
