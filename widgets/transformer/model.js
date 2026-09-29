@@ -124,6 +124,8 @@ function run(T, toks, { causal = false } = {}) {
 const predict = (T, row) => softmax(linear(row, T.mlm, T.mlmb));
 /** any tokens through the base (encoder) or causal (decoder) model: every stage and each block's weights */
 export const forward = (which, toks) => run(W[which], toks, { causal: which === "causal" });
+/** a final vector through its model's output layer: the probability of every token in the vocabulary */
+export const nextTokens = (which, row) => predict(W[which], row);
 
 /* ONE SENTENCE, ITS TOKENS ENTERING ONE AT A TIME (his simplification of
    2026-09-27: "just have 1 example? toggling gets confusing"). Each prefix goes
@@ -179,8 +181,8 @@ export const codons = (dna) => dna.match(/.../g);
 export const protein = (dna) => codons(dna).map((c) => CODE[c]);
 /** the gene through the encoder, and the protein (after [BOS]) through the decoder, teacher-forced:
     each decoder block's self- and cross-attention, and the decoder's top token at each position */
-export function translate(dna) {
-  const T = W.dna, src = dna.split("").map((c) => SRC.indexOf(c)), tgt = [1, ...protein(dna).map((a) => TGT.indexOf(a))];
+export function translate(dna, upto = Infinity) {
+  const T = W.dna, src = dna.split("").map((c) => SRC.indexOf(c)), tgt = [1, ...protein(dna).map((a) => TGT.indexOf(a))].slice(0, upto);
   const emb = (tok, pos, ids) => ids.map((r, p) => Array.from({ length: D }, (_, d) => T[tok].v[r * D + d] + T[pos].v[p * D + d]));
   let m = emb("stok", "spos", src);
   const enc = [];

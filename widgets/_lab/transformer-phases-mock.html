@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · slot 84 training and inference — mock</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1700px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 110ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  code { font-family: var(--font-mono); font-size: 0.92em; }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); min-height: 16px; max-width: 550px; white-space: pre-line; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  table { border-collapse: collapse; font-size: var(--fs-sm); margin: var(--sp-2) 0; max-width: 150ch; }
+  th, td { border: 1px solid var(--grid); padding: 4px 10px; text-align: left; vertical-align: top; }
+  th { color: var(--ink-2); font-weight: 600; }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 110ch; }
+  .q b { display: block; margin-bottom: 2px; }
+  #findings { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--ink-2); white-space: pre-wrap; padding: var(--sp-3); background: var(--surface-2); border: 1px solid var(--grid); max-width: 120ch; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Slot 84 &middot; training and inference &middot; mock</h1>
+  <p class="note">Your question: <i>in practice, is everything in parallel? should we split into training and inference?</i> The notebooks draw the
+    same line: attention processes all positions <b>in parallel</b>, which is what makes pretraining feasible (08-1 cells 0 and 4, 05-3 cell 20,
+    08-3 cell 1); and <i>"during training, the model sees the full sequence … during generation, it must rely entirely on its own past predictions,
+    which makes generation a sequential process"</i> (10-3 cell 45). Teacher forcing and the key-value cache are named nowhere. Every number below is
+    from the draft's own models, <code>_lab/transformer-phases-measure.mjs</code>.</p>
+  <div id="findings">T1 decoder, one pass over the whole sentence against the sentence built a token at a time: every row's weights and every
+   next-token distribution identical (largest difference 0.0). The mask is what lets training run in one pass.
+T2 encoder: training (masked tokens) and inference (the tokens' vectors) are both ONE pass over the whole sentence.
+   aspirin masked: aspirin 0.61, nitrate 0.39 from the one pass.
+T3 encoder-decoder, the whole protein at once (training, the true protein given) against a prefix at a time (generation):
+   identical self- and cross-attention rows (0.0).
+T4 rows computed for 7 tokens: one training pass 7, at once; generation keeping the earlier rows 7, over 7 steps;
+   generation recomputing everything 28.
+So: the ENCODER always runs in parallel; the DECODER runs in parallel in TRAINING and one token at a time in GENERATION.
+Within a row, a real computation is one matrix product: the cell-by-cell sweep is a way of showing, not the order of the arithmetic.</div>
+
+  <h2>1 &middot; What each architecture does in each phase</h2>
+  <table>
+    <tr><th></th><th>training</th><th>inference</th></tr>
+    <tr><td><b>Encoder</b> (BERT)</td><td>one pass over the whole sentence, a few tokens masked; each masked row predicts its token</td><td>one pass over the whole sentence; every token's vector (08-1 cells 8&ndash;12)</td></tr>
+    <tr><td><b>Decoder</b> (GPT)</td><td>one pass over the whole sentence, the triangle filled at once; <b>every</b> row predicts the token after it</td><td>generation: one token a step, fed back; only the new row is computed</td></tr>
+    <tr><td><b>Encoder&ndash;decoder</b> (T5)</td><td>the encoder's one pass; the decoder's one pass over the whole true protein; every row predicts the next amino acid</td><td>the encoder's one pass, once; then the decoder one amino acid a step, fed back</td></tr>
+  </table>
+
+  <h2>2 &middot; Decoder: training, in one pass, against generation</h2>
+  <p class="note"><b>Training</b>: the whole sentence is given and one press fills the whole triangle; beside each row, the token that follows it in the
+    sentence and the probability the model gives it &mdash; seven predictions from one pass, the training signal. <i>with &rarr; aspirin</i> 0.08: the
+    drug is set by the symptom to its right, which this row cannot see. <b>Generation</b>: as the page is now, one token a press, the new row only, the
+    output fed back.</p>
+  <div class="row">
+    <div class="cand"><div class="sub">A · Decoder, Training: one press, every row at once, every row's next token</div><canvas id="dT" width="550" height="400"></canvas></div>
+    <div class="cand"><div class="sub">B · Decoder, Generation: a token a press (the page as it is, shown at rest)</div><canvas id="dG" width="550" height="400"></canvas></div>
+  </div>
+
+  <h2>3 &middot; Encoder: training and inference are the same one pass</h2>
+  <p class="note">The whole sentence in one pass, every row at once; in training, a masked token's row predicts it (08-1 cell 4's own example). No
+    tokens entering: an encoder does not read one token at a time in either phase. The every-row-moves comparison of the current page would leave;
+    the arcs in both directions and the full square carry the difference from the decoder.</p>
+  <div class="row"><div class="cand"><div class="sub">Encoder: one press, the whole matrix; the [MASK] row's prediction</div><canvas id="eT" width="550" height="400"></canvas></div></div>
+
+  <h2>4 &middot; Encoder&ndash;decoder: training against generation</h2>
+  <div class="row">
+    <div class="cand"><div class="sub">A · Training: the whole protein given, every row of both decoder matrices at once, each row's target</div><canvas id="xT" width="550" height="330"></canvas></div>
+    <div class="cand"><div class="sub">B · Generation: the page as it is (encoder once, a row a press, fed back)</div><canvas id="xG" width="550" height="330"></canvas></div>
+  </div>
+
+  <h2>5 &middot; To answer with the mock open</h2>
+  <p class="q"><b>1 · How to split.</b> <b>A</b> a <i>Phase</i> control, Training &middot; Generation, on the Decoder and Encoder&ndash;decoder pages; the Encoder page
+    one pass and says both phases are that pass (recommended: the architecture pages stay, the phase is the one control that changes what runs) &middot;
+    <b>B</b> five pages (Encoder &middot; Decoder training &middot; Decoder generation &middot; Enc&ndash;dec training &middot; Enc&ndash;dec generation) &middot;
+    <b>C</b> no control: on each page the first press is a training pass, the later presses generate.</p>
+  <p class="q"><b>2 · The Encoder page.</b> One pass with a [MASK] (recommended: true to both phases, and cell 4's example) &middot; keep tokens entering and the
+    every-row-moves bars (a device; no encoder runs that way).</p>
+  <p class="q"><b>3 · Within a row.</b> At once, as the one product it is, with hover tying a cell to its arrow (recommended) &middot; keep the key-by-key sweep
+    in generation only.</p>
+  <p class="q"><b>4 · The training view's column.</b> Each row's next token and its probability (drawn; the training signal) &middot; the weights alone.</p>
+</main>
+
+<script type="module">
+import * as M from "../transformer/model.js";
+const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const C = { ink1: css("--ink-1"), ink2: css("--ink-2"), ink3: css("--ink-3"), grid: css("--grid"), s1: css("--surface-1"), s2: css("--surface-2"), s3: css("--surface-3"),
+  enc: css("--c-group-a"), dec: css("--c-group-b"), mag: css("--c-magnitude"), font: css("--font"), mono: css("--font-mono") };
+const rgb = (h) => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+const lum = (p) => (0.2126 * p[0] + 0.7152 * p[1] + 0.0722 * p[2]) / 255;
+const mixP = (t, col) => { const a = rgb(C.s3), b = rgb(col); return a.map((x, i) => Math.round(x + (b[i] - x) * Math.max(0, Math.min(1, t)))); };
+const cssP = (p) => `rgb(${p.join(",")})`;
+const inkOn = (p) => (Math.abs(lum(p) - lum(rgb(C.ink1))) > Math.abs(lum(p) - lum(rgb(C.s1))) ? C.ink1 : C.s1);
+function setup(id) { const cv = document.getElementById(id), dpr = devicePixelRatio || 1, w = cv.width, h = cv.height;
+  cv.style.width = w + "px"; cv.style.height = h + "px"; cv.width = w * dpr; cv.height = h * dpr; const g = cv.getContext("2d"); g.scale(dpr, dpr); return { g, w, h }; }
+function text(g, s, x, y, { size = 10.5, color = C.ink2, align = "left", mono = false, bold = false } = {}) { g.font = `${bold ? "600 " : ""}${size}px ${mono ? C.mono : C.font}`; g.fillStyle = color; g.textAlign = align; g.textBaseline = "middle"; g.fillText(s, x, y); }
+function mat(g, cell, rt, ct, x0, y0, cs, rowHue, colHue, digits = true) {
+  ct.forEach((t, j) => { g.save(); g.translate(x0 + j * cs + cs / 2, y0 - 5); g.rotate(-Math.PI / 2); text(g, t, 0, 0, { mono: true, size: 9, color: colHue }); g.restore(); });
+  rt.forEach((t, i) => { text(g, t, x0 - 5, y0 + i * cs + cs / 2, { mono: true, size: 9, align: "right", color: rowHue });
+    ct.forEach((_, j) => { const v = cell(i, j), p = v === null ? null : mixP(Math.sqrt(v), C.mag); g.fillStyle = p ? cssP(p) : C.s2; g.fillRect(x0 + j * cs, y0 + i * cs, cs - 1, cs - 1);
+      if (p && digits && cs >= 22) text(g, v.toFixed(2).replace(/^0/, ""), x0 + j * cs + cs / 2, y0 + i * cs + cs / 2, { mono: true, size: 9, align: "center", color: inkOn(p) }); }); });
+  g.strokeStyle = C.ink2; g.strokeRect(x0 - 0.5, y0 - 0.5, ct.length * cs, rt.length * cs);
+}
+const TOK = M.tokensOf(M.SENTENCE), N = TOK.length;
+
+/* 2A decoder training: one pass, every row, each row's true next token */
+{
+  const { g } = setup("dT"), f = M.forward("causal", TOK), A = M.meanHeads(f.alpha[0]), x0 = 90, y0 = 96, cs = 26;
+  text(g, "Training: the whole sentence, one pass", 12, 16, { color: C.ink1, bold: true, size: 12 });
+  text(g, "every row at once; each row predicts the token after it", 12, 34, { color: C.ink3 });
+  mat(g, (i, j) => (j <= i ? A[i][j] : null), TOK, TOK, x0, y0, cs, C.dec, C.dec);
+  const bx = x0 + N * cs + 14;
+  text(g, "next token", bx, y0 - 26, { color: C.ink3 }); text(g, "its probability", bx, y0 - 13, { color: C.ink3 });
+  for (let i = 0; i < N - 1; i++) {
+    const p = M.nextTokens("causal", f.h[i])[M.VOCAB.indexOf(TOK[i + 1])], y = y0 + i * cs;
+    text(g, `→ ${TOK[i + 1]}`, bx, y + cs / 2, { mono: true, size: 9.5, color: C.ink1 });
+    g.fillStyle = C.dec; g.fillRect(bx + 76, y + 7, Math.max(1, p * 60), cs - 14);
+    text(g, p.toFixed(2), bx + 80 + Math.max(1, p * 60), y + cs / 2, { mono: true, size: 9, color: C.ink1 });
+  }
+  text(g, "7 predictions from one pass: the mask keeps each row to the tokens before it", 12, y0 + N * cs + 22, { color: C.ink2 });
+}
+/* 2B decoder generation: the page as it is at rest after 6 tokens */
+{
+  const { g } = setup("dG"), n = 6, f = M.forward("causal", TOK.slice(0, n)), A = M.meanHeads(f.alpha[0]), x0 = 90, y0 = 96, cs = 26;
+  text(g, "Generation: one token a press, fed back", 12, 16, { color: C.ink1, bold: true, size: 12 });
+  text(g, "only the new row is computed; the earlier rows keep their weights", 12, 34, { color: C.ink3 });
+  mat(g, (i, j) => (i < n && j <= i ? A[i][j] : null), TOK, TOK, x0, y0, cs, C.dec, C.dec);
+  g.save(); g.setLineDash([3, 3]); g.strokeStyle = C.ink1; g.lineWidth = 1.5; g.strokeRect(x0 - 2.5, y0 + (n - 1) * cs - 2, N * cs + 4, cs + 3); g.restore();
+  const bx = x0 + N * cs + 14, p = M.nextTokens("causal", f.h[n - 1]), top = p.indexOf(Math.max(...p));
+  text(g, `${TOK[n - 1]} → ${M.VOCAB[top]} ${p[top].toFixed(2)}`, bx, y0 + (n - 1) * cs + cs / 2, { mono: true, size: 9.5, color: C.ink1 });
+  text(g, "fed back as the next token", bx, y0 + n * cs + cs / 2, { color: C.ink3 });
+  text(g, "7 steps for 7 tokens, one new row each", 12, y0 + N * cs + 22, { color: C.ink2 });
+}
+/* 3 encoder: one pass with a [MASK] */
+{
+  const { g } = setup("eT"), T = TOK.map((t, i) => (i === 3 ? "[MASK]" : t)), f = M.forward("base", T), A = M.meanHeads(f.alpha[0]), x0 = 90, y0 = 96, cs = 26;
+  text(g, "One pass over the whole sentence, training or inference", 12, 16, { color: C.ink1, bold: true, size: 12 });
+  text(g, "every row at once, every key; in training a masked token's row predicts it", 12, 34, { color: C.ink3 });
+  mat(g, (i, j) => A[i][j], T, T, x0, y0, cs, C.enc, C.enc);
+  const bx = x0 + N * cs + 14, p = M.nextTokens("base", f.h[3]), order = p.map((v, i) => [v, M.VOCAB[i]]).sort((a, b) => b[0] - a[0]).slice(0, 3);
+  g.save(); g.setLineDash([3, 3]); g.strokeStyle = C.ink1; g.lineWidth = 1.5; g.strokeRect(x0 - 2.5, y0 + 3 * cs - 2, N * cs + 4, cs + 3); g.restore();
+  text(g, "[MASK] →", bx, y0 + 3 * cs - 6, { color: C.ink3 });
+  order.forEach(([v, w], k) => { const y = y0 + 3 * cs + 8 + k * 16; text(g, w, bx, y, { mono: true, size: 9.5, color: C.ink1 }); g.fillStyle = C.enc; g.fillRect(bx + 62, y - 5, Math.max(1, v * 40), 10); text(g, v.toFixed(2), bx + 66 + Math.max(1, v * 40), y, { mono: true, size: 9 }); });
+  text(g, "the same pass gives every token's vector at inference", 12, y0 + N * cs + 22, { color: C.ink2 });
+}
+/* 4 encoder-decoder: training (all rows) against generation (rows so far) */
+function xd(id, training) {
+  const { g } = setup(id), T = M.translate(M.GENES[0]), nt = T.dna.split(""), prot = ["[BOS]", ...T.protein], R = training ? 6 : 3;
+  const X = M.crossMean(T), x0 = 96, y0 = 96, cc = 20;
+  text(g, training ? "Training: the whole protein given, one pass" : "Generation: one amino acid a press, fed back", 12, 16, { color: C.ink1, bold: true, size: 12 });
+  text(g, training ? "every cross row at once; each row's target is the true next amino acid" : "the encoder once; then a row a press, the output the next query", 12, 34, { color: C.ink3 });
+  const rows = prot.slice(0, 6).map((q, i) => `${q} → ${i < R ? prot[i + 1] : "?"}`);
+  mat(g, (i, j) => (i < R ? X[i][j] : null), rows, nt, x0, y0, cc, C.dec, C.enc, false);
+  if (!training) { g.save(); g.setLineDash([3, 3]); g.strokeStyle = C.ink1; g.lineWidth = 1.5; g.strokeRect(x0 - 2.5, y0 + (R - 1) * cc - 2, 18 * cc + 4, cc + 3); g.restore(); }
+  text(g, training ? "6 rows, one pass; the decoder's inputs are the true protein, not its own outputs" : "6 steps; each output becomes the next row's query", 12, y0 + 6 * cc + 24, { color: C.ink2 });
+}
+xd("xT", true);
+xd("xG", false);
+</script>
+</body>
+</html>
