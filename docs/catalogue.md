@@ -22761,6 +22761,20 @@ ms a cell, the new row at 120 (the last encoder press about 3.6 s, a decoder pre
 Hover: a token shows its arcs, a cell lights its arc. Sweep clean, switch probe 0
 flagged, test 36 of 36.
 
+**Why the encoder rescans, 2026-09-29.** His question: *"why can it start
+scanning from the top each time i have a new token? i thought it only computes
+the current token and relevant row?"* — answered: in the encoder every earlier
+row gains the new token as a key and its softmax re-divides its weight, so every
+row is recomputed (the bars: 1.5–14.9); the decoder computes the new row alone,
+which is what he expected and why decoders can keep the earlier keys and values
+(a KV cache). Tokens entering is a device for the encoder, which reads a sentence
+at once. His pick of three (keep the rescan and show why, over the encoder reading
+it all at once, or the earlier rows switching without a sweep): during a press the
+new token's column is outlined down the matrix, and the rule line gives way to
+what the row being computed is doing (*treated gains the key pain: its weights are
+recomputed over 7 keys*; *pain, the new row: its weights over all 7 keys*; on the
+decoder *pain, the new row; the earlier rows keep their weights*).
+
 **His ask, 2026-09-26:** *plan the next widget, continuing the language arc.*
 Measure script `_lab/transformer-measure.py` (imports 83's measure, so the
 base is widget 83's own model; about 4 min; `--export` writes

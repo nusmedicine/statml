@@ -76,6 +76,11 @@ const S = {
              decoder: ["Arcs: one token's weights, a loop to itself;", "below to earlier tokens"] },
   sources: (who) => `queries (rows) and keys (columns): the ${who}'s tokens`,
   moved: ["moved", "this press"],
+  /* what the row being computed is doing, in place of the rule while a press runs (his question,
+     2026-09-29: "why can it start scanning from the top each time i have a new token?") */
+  gains: (a, b, k) => `${a} gains the key ${b}: its weights are recomputed over ${k} keys`,
+  newRowEnc: (b, k) => `${b}, the new row: its weights over all ${k} keys`,
+  newRowDec: (b) => `${b}, the new row; the earlier rows keep their weights`,
   rule: { encoder: "Every query attends to every key, so every row is computed again.",
           decoder: "The keys after each query are masked, so only the new token's row is computed." },
   firstWait: "Next token adds the first token",
@@ -358,7 +363,15 @@ function drawSelf(ctx, colors, w, params, state, pg, pointer) {
     txt(ctx, v.toFixed(1), g.bx + len + 3, y + g.cs / 2, { font: mono(colors), fill: colors.ink1 });
   }
   txt(ctx, S.sources(who), PAD_L, g.mBot + 16, { font: small(colors), fill: hue });
-  txt(ctx, S.rule[params.page], PAD_L, g.mBot + 36, { font: small(colors), fill: colors.ink2 });
+  /* THE REASON FOR THE RESCAN, while a press runs (his pick, 2026-09-29): the new token's column
+     outlined in every row — in the encoder each row gains it, in the decoder only the new row
+     does — and the line says what the row being computed is doing */
+  const sweeping = ph.row >= 0;
+  if (sweeping) rect(ctx, g.x0 + (n - 1) * g.cs - 2, g.mTop - 2, g.cs + 3, n * g.cs + 3, colors.ink2, 1.2, [2, 2]);
+  const why = !sweeping ? S.rule[params.page]
+    : !enc ? S.newRowDec(TOKENS[n - 1])
+      : ph.row < n - 1 ? S.gains(TOKENS[ph.row], TOKENS[n - 1], n) : S.newRowEnc(TOKENS[n - 1], n);
+  txt(ctx, why, PAD_L, g.mBot + 36, { font: small(colors), fill: sweeping ? colors.ink1 : colors.ink2 });
   txt(ctx, S.eg[params.page], PAD_L, g.mBot + 56, { font: small(colors), fill: colors.ink3 });
 }
 
