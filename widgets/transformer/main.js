@@ -100,7 +100,7 @@ const S = {
   note4: (n, what) => `a probability for each of the ${n} ${what}`, note4tag: (n) => `a new head: a probability for each of the ${n} tags`,
   tagHead: "tag", note4pool: "the [CLS] row's final vector: the sentence's embedding", note5cls: "a new head: negative or positive",
   vecCap: "the embedding: [CLS]'s 48 numbers, each a bar up or down from 0",
-  outCls: (c) => `the sentence: ${c}, the more likely (positive: an abnormal finding is asserted)`, tokensWord: "tokens", aminoWord: "amino acids",
+  outCls: (c) => `the sentence: ${c}, the more likely (positive: an abnormal finding is asserted)`, tokensWord: "tokens", note7: (n) => `a probability for each of the ${n} amino acids and [EOS]`,
   gene: "the gene", encRows: "rows and columns: the gene", note5: "each protein row reads the gene",
   crossRows: "rows: protein", crossCols: "columns: gene",
 
@@ -111,6 +111,8 @@ const S = {
   outGen: (q, t) => `the row of ${q}: the six largest; ${t}, the most likely, is fed back`,
   outTrainX: (q, t) => `the row of ${q}: the six largest; the true next amino acid (${t}) in ink`,
   outGenX: (q, t) => `the row of ${q}: the six largest; ${t}, the most likely, is fed back`,
+  outTrainEos: (q) => `the row of ${q}: the six largest; the target, [EOS], in ink: the protein ends here`,
+  outGenEos: (q) => `the row of ${q}: the six largest; [EOS], the most likely, ends the protein`,
   noTag: (q) => `the row of ${q}: not a word, so no tag`,
   outTag: (q, t) => `the row of ${q}: ${t}, the most likely tag`,
   notScored: (q) => `the row of ${q}: not scored; training predicts only the masked token`,
@@ -134,7 +136,7 @@ const S = {
       : "Next amino acid encodes the gene, then computes the first amino acid.";
     if (pr.beat === 1 || pr.beat === 2) return "The encoder's pass over the whole gene, computed once.";
     if (params.phase === "training") return "The true protein is the decoder's input. One pass computes every row together; a press shows one.";
-    if (pr.n === XD.rows && !pr.beat) return `The protein is written: ${T.protein.join("")}.`;
+    if (pr.n === XD.rows && !pr.beat) return `[EOS] is the most likely, so the decoder stops. The protein: ${T.protein.join("")}.`;
     return "Generating: the most likely amino acid is fed back as the next input.";
   },
   weightOf: (q, k, v) => `${q}'s weight on ${k}: ${v.toFixed(2)}`,
@@ -148,7 +150,7 @@ const S = {
   tileTag: "Tag", tileTagNote: "the newest row's most likely tag",
   tileKeys: "Keys per row", tileKeysNote: "every token of the sentence",
   tileTarget: "Target", tileTargetNote: "the newest row's true next token, its probability",
-  tileTargetNoteX: "the newest row's true amino acid, its probability",
+  tileTargetNoteX: "the newest row's target, its probability",
   tileKeysRow: "Keys", tileKeysRowNote: "the newest row's: the tokens up to it",
   tileGen: "Tokens", tileGenNote: "the prompt and those fed back",
   tileNext: "Next token", tileNextNote: "the most likely, fed back",
@@ -630,7 +632,9 @@ function drawSelf(ctx, colors, w, params, state, pg, pointer) {
    softmax over the amino acids. Where the two columns and the map will not fit side
    by side the decoder's column goes under the encoder's, and on the narrowest
    canvas the map goes on top. */
-const XD = { rows: 6, ce: 6, cd: 13, pitch: 9, ecolW: 166, dcolW: 116, dLab: 36 };
+/* SEVEN DECODER ROWS: the inputs [BOS] K L V H A R, the outputs K L V H A R [EOS]. The last row's
+   output is [EOS], the model's own stop (his ask, 2026-09-30), scored as a target in training too */
+const XD = { rows: 7, ce: 6, cd: 13, pitch: 9, ecolW: 166, dcolW: 116, dLab: 36 };
 function xdLayout(w) {
   const wide = w >= PAD_L + XD.ecolW + 6 + XD.dcolW + 4 + MAP2_W + 6, mid = !wide && w >= PAD_L + XD.ecolW + 10 + MAP2_W + 6;
   const map = mapTwo(wide || mid ? w - 6 - MAP2_W : Math.max(0, Math.round((w - MAP2_W) / 2)), 8);
@@ -649,7 +653,7 @@ function xdLayout(w) {
 const heightEncDec = (w) => xdLayout(w).height;
 
 function drawEncDec(ctx, colors, w, params, state, pg, pointer) {
-  const L = xdLayout(w), training = params.phase === "training", gen = !training, T = state.dna, nt = T.dna.split(""), prot = ["[BOS]", ...T.protein];
+  const L = xdLayout(w), training = params.phase === "training", gen = !training, T = state.dna, nt = T.dna.split(""), prot = ["[BOS]", ...T.protein], outs = [...T.protein, "[EOS]"];
   const pr = pressOf(params, state, pg, true), r = pr.r, blue = colors.groupA, amber = colors.groupB;
   const encIn = pr.n >= 2 || (pr.n === 1 && pr.reached(2));
   const selfIn = r >= 0 && pr.reached(4), crossIn = r >= 0 && pr.reached(5), outIn = r >= 0 && pr.reached(7);
@@ -670,7 +674,7 @@ function drawEncDec(ctx, colors, w, params, state, pg, pointer) {
     if (si >= 0 && si < XD.rows && sj >= 0 && sj < XD.rows && selfCell(si, sj) !== null) hov = { m: "self", i: si, j: sj };
   }
   const lit = new Set(pr.beat ? [pr.beat] : hovBox ? [hovBox] : []);
-  L.map.draw(ctx, colors, lit, gen, { ...pr.motion, token: pr.beat === "back" ? { text: prot[r + 1], e: ease(pr.u) } : null });
+  L.map.draw(ctx, colors, lit, gen, { ...pr.motion, token: pr.beat === "back" ? { text: outs[r], e: ease(pr.u) } : null });
 
   /* 1, 2 · the encoder's column */
   const e = L.e, gx = (j) => e.x + 4 + j * XD.pitch + XD.pitch / 2;
@@ -718,8 +722,11 @@ function drawEncDec(ctx, colors, w, params, state, pg, pointer) {
   /* 6 · Feed forward; 7 · Linear + softmax over the amino acids */
   const aminos = M.TGT.filter((t) => !t.startsWith("[")).length;
   sectionHead(ctx, colors, PAD_L, L.y6, 6, S.ffn, amber, S.note3, lit.has(6));
-  sectionHead(ctx, colors, PAD_L, L.y7, 7, S.linear, amber, S.note4(aminos, S.aminoWord), lit.has(7));
-  if (outIn) outputPanel(ctx, colors, T.probs[r], M.TGT, prot[r + 1], PAD_L, L.yo, w - PAD_L - PAD_R, training ? S.outTrainX(ins[r], prot[r + 1]) : S.outGenX(ins[r], prot[r + 1]), amber, pr.grow(7));
+  sectionHead(ctx, colors, PAD_L, L.y7, 7, S.linear, amber, S.note7(aminos), lit.has(7));
+  if (outIn) {
+    const t = outs[r], title = t === "[EOS]" ? (training ? S.outTrainEos(ins[r]) : S.outGenEos(ins[r])) : training ? S.outTrainX(ins[r], t) : S.outGenX(ins[r], t);
+    outputPanel(ctx, colors, T.probs[r], M.TGT, t, PAD_L, L.yo, w - PAD_L - PAD_R, title, amber, pr.grow(7));
+  }
 
   const line = hov ? S.weightOf(ins[hov.i], hov.m === "cross" ? `${nt[hov.j]} (nucleotide ${hov.j + 1})` : ins[hov.j], (hov.m === "cross" ? X : Ds)[hov.i][hov.j])
     : S.xLine(params, pr, T);
@@ -868,9 +875,10 @@ defineWidget({
         { label: S.tileNext, value: p && genR ? `${G.tokens[r + 1]} ${Math.max(...p).toFixed(2)}` : S.wait, note: S.tileNextNote },
       ];
     }
-    const T = state.dna, A = M.crossMean(T), codon = r >= 0 ? (A[r][3 * r] + A[r][3 * r + 1] + A[r][3 * r + 2]).toFixed(2) : S.wait;
+    /* the [EOS] row has no codon of its own */
+    const T = state.dna, A = M.crossMean(T), codon = r >= 0 && r < T.protein.length ? (A[r][3 * r] + A[r][3 * r + 1] + A[r][3 * r + 2]).toFixed(2) : S.wait;
     if (params.phase === "training") {
-      const t = r >= 0 ? T.protein[r] : null;
+      const t = r >= 0 ? [...T.protein, "[EOS]"][r] : null;
       return [
         rowsTile,
         { label: S.tileTarget, value: t ? `${t} ${T.probs[r][M.TGT.indexOf(t)].toFixed(2)}` : S.wait, note: S.tileTargetNoteX },
