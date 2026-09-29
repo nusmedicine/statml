@@ -22816,6 +22816,31 @@ decoder matrices now six rows each. The verify (1,741 checks) holds both
 equivalences. Fits the frame (688); sweep clean on 15 states at 440; switch probe
 0 flagged across the phase control.
 
+**SECTIONS UNDER A MAP, 2026-09-30.** His three points: *"check the layout ..
+maybe we don't need the lines linking the attention boxes to the matrices? mockup
+and test alternate layouts"*, *"animate the token one at a time. one-pass looks
+strange now"*, *"show the final prediction layer and the softmax"*. Mocked
+(`_lab/transformer-layout-mock.html`, ffc7275): L1 leaders, L2 a titled matrix, L3
+his boxes as section heads read top to bottom. He took L3 but found the whole hard
+to picture, *"especially for complicated diagrams like encoder-decoder"*: mocked an
+overview two ways (`_lab/transformer-overview-mock.html`, ca1c0db) — O1 a strip
+across the top, O2 his figure small in the corner — with a number on each box and
+its section in place of leaders. **Picked, every one the recommendation:** O2; the
+lit box follows the press; hover both ways; the output layer as the row's six
+largest; the Encoder page a row a press too, its [MASK] row the one scored.
+**Built (2e17e3d):** a press carries one row through the block a box at a time
+(320 ms a box), each section's part appearing as the press reaches it — nothing
+moves, so the old glide is gone; page 3's first press runs the encoder (1, 2) and
+every later one starts at the decoder (3); Generation ends each press on his
+feed-back arrow (drawn in Generation only). Training still one pass, the caption
+says so. The map's numbers sit on each box's left edge with the label moved 5 px
+right: at `--fs-xs` (the mock's 9 px is not a token) the labels fill 88 px boxes, so
+the boxes are 91, the widest that keeps page 3's three columns at 547 (the columns
+fall back to two below 546 and the map goes on top below 430). Heights 632 / 614 /
+668, all inside the 900×1200 frame with the canvas at 549; the text sweep clean on
+22 states at 440 and 900 and on every beat of every press; switch probe 0 flagged
+from the Encoder and from page 3's Generation.
+
 **His ask, 2026-09-26:** *plan the next widget, continuing the language arc.*
 Measure script `_lab/transformer-measure.py` (imports 83's measure, so the
 base is widget 83's own model; about 4 min; `--export` writes
