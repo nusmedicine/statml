@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab · slot 84 layouts and the output layer — mock</title>
+<link rel="stylesheet" href="../core/tokens.css">
+<style>
+  .lab { max-width: 1800px; margin: 0 auto; padding: var(--sp-4) var(--sp-4) var(--sp-5); }
+  h1 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
+  h2 { font-size: var(--fs-md); margin: var(--sp-5) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--grid); }
+  p.note { color: var(--ink-2); margin: 0 0 var(--sp-3); max-width: 115ch; font-size: var(--fs-sm); }
+  p.note b { color: var(--ink-1); }
+  .row { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; padding-bottom: var(--sp-2); }
+  .cand .sub { font-size: 10px; font-family: var(--font-mono); color: var(--ink-3); margin: 0 0 var(--sp-2); min-height: 16px; max-width: 550px; white-space: pre-line; }
+  canvas { display: block; background: var(--surface-1); border: 1px solid var(--grid); }
+  .drive { margin: 0 0 var(--sp-3); font-size: var(--fs-sm); }
+  .drive button { font: inherit; padding: 4px 14px; margin-right: 6px; border: 1px solid var(--ink-3); background: var(--surface-2); color: var(--ink-1); cursor: pointer; }
+  .drive button.on { background: var(--surface-3); font-weight: 600; }
+  .q { font-size: var(--fs-sm); color: var(--ink-1); margin: var(--sp-2) 0 0; padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--c-reference); background: var(--surface-2); max-width: 115ch; }
+  .q b { display: block; margin-bottom: 2px; }
+</style>
+</head>
+<body>
+<main class="lab">
+  <h1>Slot 84 &middot; layouts, one token at a time, the output layer &middot; mock</h1>
+  <p class="note">Your three points. Every canvas is 550 wide (the narrowest the harness draws), drawn live from the draft's decoder, the lesson's
+    sentence, at the row of <i>for</i>. The heights are printed under each: the harness frame fits a canvas of about 690.</p>
+
+  <h2>1 &middot; Three layouts, all with the output layer</h2>
+  <p class="note"><b>L1</b> as now: his block at the left, a leader from the attention box to the matrix. <b>L2</b> no leaders: the block at the left, the
+    matrix titled with its box's name, the box outlined in ink as the one the page is about. <b>L3</b> the block <i>is</i> the page: his boxes from the
+    input up, each box heading what it produces &mdash; Embedding over the sentence, Masked self-attention over the matrix and the arcs, Feed forward
+    as a line, Linear + softmax over the prediction &mdash; read top to bottom, so no leader is needed and the output layer sits where his figure puts
+    <i>Next token</i>.</p>
+  <div class="row">
+    <div class="cand"><div class="sub" id="h1">L1 · leaders (as now)</div><canvas id="L1" width="550" height="660"></canvas></div>
+    <div class="cand"><div class="sub" id="h2">L2 · no leaders, titled matrix</div><canvas id="L2" width="550" height="660"></canvas></div>
+    <div class="cand"><div class="sub" id="h3">L3 · the boxes as section heads</div><canvas id="L3" width="550" height="660"></canvas></div>
+  </div>
+
+  <h2>2 &middot; One token at a time, with the output layer (L3, working)</h2>
+  <p class="note">A press computes the next token's row: it appears at once (a row is one product), its arcs are drawn, and the output layer turns that
+    row into a probability for every token in the vocabulary (58 here), the six largest shown. <b>Training</b>: the whole sentence is there; the bar
+    marked is the true next token (what the loss rewards), and the caption says one pass computes all rows together &mdash; the press shows them one
+    at a time. <b>Generation</b>: the prompt's tokens are read the same way, then the largest bar is fed back as the next token.</p>
+  <div class="drive"><button id="mT" class="on">Training</button><button id="mG">Generation</button> &nbsp; <button id="step">Next token</button><button id="play">Play</button><button id="reset">Reset</button> <span id="where" style="color:var(--ink-3)"></span></div>
+  <div class="row"><div class="cand"><div class="sub">L3 · Decoder page</div><canvas id="live" width="550" height="660"></canvas></div></div>
+
+  <h2>3 &middot; To answer with the mock open</h2>
+  <p class="q"><b>1 · Layout.</b> L1 leaders &middot; L2 no leaders, titled matrix &middot; L3 the boxes as section heads (recommended: nothing to link, the page reads
+    in the block's order, and the output layer has its place under <i>Linear + softmax</i>).</p>
+  <p class="q"><b>2 · One at a time in training.</b> A press per token's row, the caption saying one pass computes them together (drawn) &middot; one press for the pass, as now.</p>
+  <p class="q"><b>3 · The output layer.</b> The current row's six largest probabilities, the target or chosen token marked (drawn) &middot; the whole vocabulary as a strip &middot; the chosen token alone with its probability.</p>
+  <p class="q"><b>4 · The same on the Encoder page</b> (a row a press, the [MASK] row's output over the vocabulary) and on page 3 (the output layer over 20 amino acids).</p>
+</main>
+
+<script type="module">
+import * as M from "../transformer/model.js";
+const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const C = { ink1: css("--ink-1"), ink2: css("--ink-2"), ink3: css("--ink-3"), grid: css("--grid"), s1: css("--surface-1"), s2: css("--surface-2"), s3: css("--surface-3"),
+  dec: css("--c-group-b"), mag: css("--c-magnitude"), ref: css("--c-reference"), font: css("--font"), mono: css("--font-mono") };
+const rgb = (h) => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+const lum = (p) => (0.2126 * p[0] + 0.7152 * p[1] + 0.0722 * p[2]) / 255;
+const mixP = (t, col) => { const a = rgb(C.s3), b = rgb(col); return a.map((x, i) => Math.round(x + (b[i] - x) * Math.max(0, Math.min(1, t)))); };
+const cssP = (p) => `rgb(${p.join(",")})`;
+const inkOn = (p) => (Math.abs(lum(p) - lum(rgb(C.ink1))) > Math.abs(lum(p) - lum(rgb(C.s1))) ? C.ink1 : C.s1);
+function setup(id) { const cv = document.getElementById(id), dpr = devicePixelRatio || 1, w = cv.width, h = cv.height;
+  if (!cv.dataset.w) { cv.dataset.w = w; cv.dataset.h = h; cv.style.width = w + "px"; cv.style.height = h + "px"; cv.width = w * dpr; cv.height = h * dpr; }
+  const g = cv.getContext("2d"); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, +cv.dataset.w, +cv.dataset.h); return { g, w: +cv.dataset.w }; }
+function text(g, s, x, y, { size = 10.5, color = C.ink2, align = "left", mono = false, bold = false } = {}) { g.font = `${bold ? "600 " : ""}${size}px ${mono ? C.mono : C.font}`; g.fillStyle = color; g.textAlign = align; g.textBaseline = "middle"; g.fillText(s, x, y); }
+function poly(g, pts, col, lw = 1.5) { g.strokeStyle = col; g.lineWidth = lw; g.beginPath(); pts.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y))); g.stroke(); g.lineWidth = 1; }
+function arrow(g, x1, y1, x2, y2, col = C.ink3) { poly(g, [[x1, y1], [x2, y2]], col, 1.2); const a = Math.atan2(y2 - y1, x2 - x1); g.fillStyle = col; g.beginPath(); g.moveTo(x2, y2); g.lineTo(x2 - 6 * Math.cos(a - 0.45), y2 - 6 * Math.sin(a - 0.45)); g.lineTo(x2 - 6 * Math.cos(a + 0.45), y2 - 6 * Math.sin(a + 0.45)); g.fill(); }
+function box(g, x, y, w, h, lines, hot = false) { g.fillStyle = C.dec; g.fillRect(x, y, w, h); if (hot) { g.strokeStyle = C.ink1; g.lineWidth = 2; g.strokeRect(x - 1.5, y - 1.5, w + 3, h + 3); g.lineWidth = 1; }
+  [].concat(lines).forEach((l, i, a) => text(g, l, x + w / 2, y + h / 2 + (i - (a.length - 1) / 2) * 12, { align: "center", color: inkOn(rgb(C.dec)) })); }
+function head(g, x, y, ang, size, col) { g.fillStyle = col; g.beginPath(); g.moveTo(x, y); g.lineTo(x - size * Math.cos(ang - 0.45), y - size * Math.sin(ang - 0.45)); g.lineTo(x - size * Math.cos(ang + 0.45), y - size * Math.sin(ang + 0.45)); g.fill(); }
+
+const TOK = M.tokensOf(M.SENTENCE), N = TOK.length;
+const FULL = M.forward("causal", TOK), A = M.meanHeads(FULL.alpha[0]);
+const GEN = M.generate("treated with aspirin for"), GTOK = GEN.tokens;
+
+/* the pieces every layout shares */
+function sentence(g, toks, n, x0, slot, y, arcRow, Aw, hotTok = -1) {
+  const xs = toks.map((_, j) => x0 + j * slot + slot / 2);
+  if (arcRow >= 0) Aw[arcRow].forEach((wt, j) => {
+    if (j > arcRow || wt < 0.02) return;
+    const col = cssP(mixP(Math.sqrt(0.35 + 0.65 * wt), C.mag)), lw = 1 + 2.5 * wt, size = 5 + lw;
+    g.strokeStyle = col; g.lineWidth = lw; g.beginPath();
+    if (j === arcRow) { const cy = y - 26, r = 10, t1 = Math.PI * 0.35 + 2 * Math.PI; g.arc(xs[j], cy, r, Math.PI * 0.65, t1 - 0.25); g.stroke(); head(g, xs[j] + r * Math.cos(t1), cy + r * Math.sin(t1), t1 + Math.PI / 2, size, col); }
+    else { const d = arcRow - j, hgt = Math.min(52, 12 + 8 * d), a = xs[arcRow] - 4, b = xs[j] + 4; g.moveTo(a, y + 8); g.bezierCurveTo(a, y + 8 + hgt, b, y + 8 + hgt, b, y + 8 + size * 0.7); g.stroke(); head(g, b, y + 8, -Math.PI / 2, size, col); }
+    g.lineWidth = 1;
+  });
+  for (let j = 0; j < n; j++) text(g, toks[j], xs[j], y, { mono: true, size: 9.5, align: "center", color: j === arcRow ? C.ink1 : j === hotTok ? C.ink1 : C.dec, bold: j === arcRow || j === hotTok });
+  return xs;
+}
+function matrixDraw(g, toks, rows, Aw, x0, y0, cs, cur) {
+  toks.forEach((t, j) => { g.save(); g.translate(x0 + j * cs + cs / 2, y0 - 5); g.rotate(-Math.PI / 2); text(g, t, 0, 0, { mono: true, size: 9, color: j < rows ? C.dec : C.ink3 }); g.restore(); });
+  for (let i = 0; i < toks.length; i++) {
+    text(g, toks[i], x0 - 5, y0 + i * cs + cs / 2, { mono: true, size: 9, align: "right", color: i < rows ? C.dec : C.ink3 });
+    for (let j = 0; j < toks.length; j++) { const v = i < rows && j <= i ? Aw[i][j] : null, p = v === null ? null : mixP(Math.sqrt(v), C.mag);
+      g.fillStyle = p ? cssP(p) : C.s2; g.fillRect(x0 + j * cs, y0 + i * cs, cs - 1, cs - 1);
+      if (p && cs >= 22) text(g, v.toFixed(2).replace(/^0/, ""), x0 + j * cs + cs / 2, y0 + i * cs + cs / 2, { mono: true, size: 9, align: "center", color: inkOn(p) }); }
+  }
+  g.strokeStyle = C.ink2; g.strokeRect(x0 - 0.5, y0 - 0.5, toks.length * cs, toks.length * cs);
+  if (cur >= 0) { g.save(); g.setLineDash([3, 3]); g.strokeStyle = C.ink1; g.lineWidth = 1.5; g.strokeRect(x0 - 2.5, y0 + cur * cs - 2, toks.length * cs + 4, cs + 3); g.restore(); }
+}
+/* the output layer: the row's vector through Linear, then softmax over the vocabulary; the six largest, the marked one in ink */
+function outputPanel(g, probs, mark, x, y, w, title) {
+  text(g, title, x, y, { color: C.ink3 });
+  const order = probs.map((p, i) => [p, M.VOCAB[i]]).sort((a, b) => b[0] - a[0]).slice(0, 6), lx = x + 84, bmax = w - 84 - 46;
+  order.forEach(([p, t], k) => { const yy = y + 16 + k * 17, on = t === mark;
+    text(g, t, lx - 6, yy + 6, { mono: true, size: 9.5, align: "right", color: on ? C.ink1 : C.ink2, bold: on });
+    g.fillStyle = on ? C.dec : C.s3; g.fillRect(lx, yy, Math.max(1, p * bmax), 12); text(g, p.toFixed(3), lx + Math.max(1, p * bmax) + 4, yy + 6, { mono: true, size: 9 }); });
+  return y + 16 + 6 * 17;
+}
+
+/* L1 and L2: the block at the left */
+function stackLeft(g, x, y, w, hotMasked = true) {
+  text(g, "Next token", x + w / 2, y, { align: "center" }); arrow(g, x + w / 2, y + 22, x + w / 2, y + 10);
+  box(g, x, y + 26, w, 24, "Linear + softmax"); arrow(g, x + w / 2, y + 66, x + w / 2, y + 54);
+  g.save(); g.setLineDash([4, 3]); g.strokeStyle = C.ref; g.strokeRect(x - 7, y + 66, w + 14, 86); g.restore(); text(g, "× 2", x + w + 7, y + 60, { align: "right", color: C.ref });
+  box(g, x, y + 72, w, 24, "Feed forward"); arrow(g, x + w / 2, y + 112, x + w / 2, y + 100);
+  box(g, x, y + 112, w, 34, ["Masked self-", "attention"], hotMasked); arrow(g, x + w / 2, y + 176, x + w / 2, y + 154);
+  box(g, x, y + 178, w, 24, "Embedding"); arrow(g, x + w / 2, y + 226, x + w / 2, y + 206);
+  text(g, "Tokens so far", x + w / 2, y + 236, { align: "center" });
+  g.save(); g.translate(x - 16, y + 130); g.rotate(-Math.PI / 2); text(g, "Decoder", 0, 0, { align: "center", color: C.ink1, bold: true, size: 12 }); g.restore();
+  return { att: { x, y: y + 112, w, h: 34 }, out: { x, y: y + 26, w, h: 24 } };
+}
+const ROW = 4;
+function L12(id, leaders) {
+  const { g, w } = setup(id), st = stackLeft(g, 36, 16, 108), r0 = 188, slot = (w - 12 - r0) / N, sy = 70;
+  sentence(g, TOK, N, r0, slot, sy, ROW, A);
+  const x0 = r0 + 62, cs = 26, mTop = 214;
+  if (!leaders) text(g, "Masked self-attention: block 1, mean of 4 heads", r0, mTop - 78, { color: C.dec, bold: true });
+  matrixDraw(g, TOK, ROW + 1, A, x0, mTop, cs, ROW);
+  if (leaders) { poly(g, [[st.att.x + st.att.w + 3, st.att.y + 17], [x0 - 66, st.att.y + 17], [x0 - 66, mTop + N * cs / 2], [x0 - 60, mTop + N * cs / 2]], C.ink1); poly(g, [[x0 - 60, mTop], [x0 - 60, mTop + N * cs]], C.ink1);
+    poly(g, [[st.out.x + st.out.w + 3, st.out.y + 12], [168, st.out.y + 12], [168, mTop + N * cs + 60], [176, mTop + N * cs + 60]], C.ink1); }
+  const yo = mTop + N * cs + 36;
+  if (!leaders) text(g, "Linear + softmax: the row of for, over 58 tokens", 12, yo - 16, { color: C.dec, bold: true });
+  const end = outputPanel(g, M.nextTokens("causal", FULL.h[ROW]), "chest", leaders ? 180 : 12, yo, leaders ? w - 192 : w - 24, leaders ? "the row of for, through Linear + softmax" : "the six largest; the true next token in ink");
+  text(g, "e.g. GPT · generation: language modelling, text generation, dialogue", 12, end + 18, { color: C.ink3 });
+  document.getElementById(leaders ? "h1" : "h2").textContent += ` · content to y = ${Math.round(end + 26)}`;
+}
+L12("L1", true); L12("L2", false);
+
+/* L3: his boxes as section heads, read top to bottom */
+function L3(id, st) {
+  const { g, w } = setup(id), bw = w - 24, X = 12;
+  const band = (y, lines, note, hot = false) => { box(g, X, y, 150, 22, lines, hot); if (note) text(g, note, X + 160, y + 11, { color: C.ink3 }); };
+  let y = 8;
+  band(y, "Embedding", st.embNote); y += 32;
+  const toks = st.toks, slot = (w - 24) / toks.length, sy = y + 40;
+  sentence(g, toks, st.shownToks, X, slot, sy, st.row, st.A, st.hotTok);
+  y = sy + 62;
+  band(y, ["Masked self-attention"], st.attNote, true); y += 34;
+  const cs = 24, x0 = X + 70, mTop = y + 62;
+  matrixDraw(g, toks, st.rows, st.A, x0, mTop, cs, st.row);
+  text(g, "block 1,", x0 + toks.length * cs + 10, mTop + 8, { color: C.ink3, size: 9.5 }); text(g, "mean of 4 heads", x0 + toks.length * cs + 10, mTop + 21, { color: C.ink3, size: 9.5 }); text(g, "× 2 blocks", x0 + toks.length * cs + 10, mTop + 34, { color: C.ref, size: 9.5 });
+  y = mTop + toks.length * cs + 14;
+  band(y, "Feed forward", "the same small network on each row alone"); y += 36;
+  band(y, "Linear + softmax", st.row >= 0 ? `the row of ${toks[st.row]}: a probability for each of the 58 tokens` : "a probability for each of the 58 tokens"); y += 30;
+  let end = y;
+  if (st.row >= 0) end = outputPanel(g, st.probs, st.mark, X, y, bw, st.outTitle);
+  text(g, st.caption, X, end + 18, { color: C.ink2 });
+  return end + 26;
+}
+{
+  const end = L3("L3", { toks: TOK, shownToks: N, row: ROW, rows: ROW + 1, A, probs: M.nextTokens("causal", FULL.h[ROW]), mark: "chest", hotTok: ROW + 1,
+    embNote: "the whole sentence (training)", attNote: "each row: its weights over the tokens up to it", outTitle: "the six largest; the true next token (chest) in ink",
+    caption: "One pass computes every row together; a press shows one." });
+  document.getElementById("h3").textContent += ` · content to y = ${Math.round(end)}`;
+}
+
+/* 2: the working L3, a row a press */
+let mode = "training", n = 0, t = 1, playing = false, last = 0;
+const maxN = () => (mode === "training" ? N - 1 : GTOK.length - 1);
+function live() {
+  if (mode === "training") {
+    const row = n - 1;
+    L3("live", { toks: TOK, shownToks: N, row, rows: n, A, probs: row >= 0 ? M.nextTokens("causal", FULL.h[row]) : null, mark: row >= 0 ? TOK[row + 1] : null, hotTok: row + 1,
+      embNote: "the whole sentence (training)", attNote: "each row: its weights over the tokens up to it", outTitle: row >= 0 ? `the six largest; the true next token (${TOK[row + 1]}) in ink` : "",
+      caption: n === 0 ? "Next token computes the first row." : "One pass computes every row together; a press shows one." });
+  } else {
+    const k0 = GEN.steps[0].context.length, row = n - 1, ctxLen = Math.max(n, 0), f = n > 0 ? M.forward("causal", GTOK.slice(0, n)) : null;
+    const Aw = f ? M.meanHeads(f.alpha[0]) : A, probs = f ? M.nextTokens("causal", f.h[row]) : null, top = probs ? M.VOCAB[probs.indexOf(Math.max(...probs))] : null;
+    const Afull = GTOK.map((_, i) => GTOK.map((__, j) => (Aw[i] && Aw[i][j] !== undefined ? Aw[i][j] : 0)));
+    L3("live", { toks: GTOK, shownToks: Math.max(n, k0 - 1 >= 0 ? (n < k0 ? k0 - 1 : n) : n), row, rows: n, A: Afull, probs, mark: n >= k0 - 1 ? top : GTOK[row + 1], hotTok: -1,
+      embNote: n < k0 ? "the prompt, read a token at a time" : "the prompt and the tokens fed back", attNote: "each row: its weights over the tokens up to it",
+      outTitle: row >= 0 ? (n < k0 - 1 ? "the six largest; the prompt's next token in ink" : `the six largest; ${top}, the largest, fed back next`) : "",
+      caption: n === 0 ? "Next token reads the prompt's first token." : n < k0 - 1 ? "Reading the prompt: its next token is given." : "Generating: the largest is fed back as the next token." });
+  }
+  document.getElementById("where").textContent = `${n} of ${maxN()} rows`;
+}
+function tick(now) { const dt = Math.min(64, now - (last || now)); last = now; if (t < 1) { t = Math.min(1, t + dt / 500); live(); requestAnimationFrame(tick); return; }
+  if (playing && n < maxN()) { n += 1; t = 0; live(); requestAnimationFrame(tick); return; } playing = false; last = 0; live(); }
+document.getElementById("step").onclick = () => { if (n < maxN()) { n += 1; t = 0; last = 0; requestAnimationFrame(tick); } };
+document.getElementById("play").onclick = () => { playing = true; if (n < maxN()) { n += 1; t = 0; } last = 0; requestAnimationFrame(tick); };
+document.getElementById("reset").onclick = () => { n = 0; playing = false; live(); };
+for (const [id, m] of [["mT", "training"], ["mG", "generation"]]) document.getElementById(id).onclick = () => { mode = m; n = 0; document.getElementById("mT").classList.toggle("on", m === "training"); document.getElementById("mG").classList.toggle("on", m === "generation"); live(); };
+n = 5; live();
+</script>
+</body>
+</html>
