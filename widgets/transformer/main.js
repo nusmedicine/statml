@@ -62,11 +62,12 @@ const PROMPT = "treated with aspirin for";
 
 const S = {
   title: "Deep Learning - Language: Transformer",
-  subtitle: "Encoders and decoders are built from the same blocks and differ in which tokens each query may attend to. In an encoder "
-    + "every token attends to the whole sequence, so each token's vector depends on the tokens after it; in a decoder a token attends "
-    + "only to the tokens before it, which lets the output be generated one token at a time. An encoder–decoder adds cross-attention: "
-    + "queries from the output so far, keys and values from the encoded input.",
-  pageLabel: "Step",
+  subtitle: "Encoders and decoders are built from the same blocks and differ in which tokens each query may attend to. An encoder "
+    + "attends to the whole sequence, so each token's vector depends on the tokens on both sides, and its vectors are the input to a "
+    + "task head; a decoder attends only to earlier tokens, so training computes every position in one pass while generation adds one "
+    + "token at a time, each output fed back as input. An encoder–decoder adds cross-attention: queries from the output so far, keys "
+    + "and values from the encoded input.",
+  pageLabel: "Architecture",
   phaseLabel: "Phase",
   /* the Encoder has no generation: its second phase is prediction, a task read from its vectors (his ask, 2026-09-30) */
   phaseOpts: {
@@ -76,12 +77,12 @@ const S = {
       { value: "generation", label: "Generation", detail: "One token a step, each output fed back as the next input." }],
   },
   step: { encoder: "Next token", decoder: "Next token", "encoder-decoder": "Next amino acid" },
-  stepTitle: { encoder: "Carry the next token's row through the block",
-    decoder: { param: "phase", labels: { training: "Carry the next token's row through the block", generation: "Compute the next token and feed it back" } },
-    "encoder-decoder": { param: "phase", labels: { training: "Carry the next row through the decoder", generation: "Compute the next amino acid and feed it back" } } },
+  stepTitle: { encoder: "Pass the next token's row through the block",
+    decoder: { param: "phase", labels: { training: "Pass the next token's row through the block", generation: "Compute the next token and feed it back" } },
+    "encoder-decoder": { param: "phase", labels: { training: "Pass the next row through the decoder", generation: "Compute the next amino acid and feed it back" } } },
   taskLabel: "Task",
   taskOpts: [{ value: "tokens", label: "Tokens", detail: "A tag for every word: other, drug, finding or negated finding." },
-    { value: "sentence", label: "Sentence", detail: "The [CLS] row's final vector as the sentence's embedding, read by a head: negative or positive." }],
+    { value: "sentence", label: "Sentence", detail: "The [CLS] row's final vector as the sentence's embedding, the input to a head: negative or positive." }],
   runLabel: "Play", runTitle: "Run the rest",
   wait: "—",
 
@@ -94,47 +95,47 @@ const S = {
   /* the sections' notes */
   note1: (v) => (v.tagging || v.sentence ? "the sentence, nothing hidden" : v.enc ? "the sentence, one token masked" : !v.gen ? "the whole sentence, given"
     : v.pr.n < v.k0 ? "the prompt" : "the prompt and the tokens fed back"),
-  note2enc: "each row: its weights over every token", note2dec: "each row: over the tokens up to it",
+  note2enc: "each row: its weights over every token", note2dec: "each row: its weights over the tokens up to it",
   blockNote: (b) => [`block ${b},`, "mean of 4 heads"],
-  note3: "the same small network on each row alone",
+  note3: "the same two-layer network, applied to each row separately",
   note4: (n, what) => `a probability for each of the ${n} ${what}`, note4tag: (n) => `a new head: a probability for each of the ${n} tags`,
   tagHead: "tag", note4pool: "the [CLS] row's final vector: the sentence's embedding", note5cls: "a new head: negative or positive",
-  vecCap: "the embedding: [CLS]'s 48 numbers, each a bar up or down from 0",
+  vecCap: "the embedding: the 48 values of [CLS]'s final vector, as bars above and below 0",
   outCls: (c) => `the sentence: ${c}, the more likely (positive: an abnormal finding is asserted)`, tokensWord: "tokens", note7: (n) => `a probability for each of the ${n} amino acids and [EOS]`,
-  gene: "the gene", encRows: "rows and columns: the gene", note5: (n) => `each row reads all ${n} nucleotides at once`,
+  gene: "the gene", encRows: "rows and columns: the gene", note5: (n) => `each row attends to all ${n} nucleotides at once`,
   /* his ask, 2026-09-30: nothing ties output k to codon k; block 2 puts 0.95 of each row's weight on its own codon because it was trained to */
   learned: ["the weight on its", "own codon is learned"],
   crossRows: "rows: protein", crossCols: "columns: gene",
 
   /* the output layer's titles */
-  outMask: (t) => `the [MASK] row: the six largest; the masked token (${t}) in ink`,
-  outTrain: (q, t) => `the row of ${q}: the six largest; the true next token (${t}) in ink`,
-  outPrompt: (q, t) => `the row of ${q}: the six largest; the prompt's next token (${t}) in ink`,
+  outMask: (t) => `the [MASK] row: the six largest; the masked token (${t}) marked`,
+  outTrain: (q, t) => `the row of ${q}: the six largest; the true next token (${t}) marked`,
+  outPrompt: (q, t) => `the row of ${q}: the six largest; the prompt's next token (${t}) marked`,
   outGen: (q, t) => `the row of ${q}: the six largest; ${t}, the most likely, is fed back`,
-  outTrainX: (q, t) => `the row of ${q}: the six largest; the true next amino acid (${t}) in ink`,
+  outTrainX: (q, t) => `the row of ${q}: the six largest; the true next amino acid (${t}) marked`,
   outGenX: (q, t) => `the row of ${q}: the six largest; ${t}, the most likely, is fed back`,
-  outTrainEos: (q) => `the row of ${q}: the six largest; the target, [EOS], in ink: the protein ends here`,
+  outTrainEos: (q) => `the row of ${q}: the six largest; the target, [EOS], marked: the protein ends here`,
   outGenEos: (q) => `the row of ${q}: the six largest; [EOS], the most likely, ends the protein`,
   noTag: (q) => `the row of ${q}: not a word, so no tag`,
   outTag: (q, t) => `the row of ${q}: ${t}, the most likely tag`,
-  notScored: (q) => `the row of ${q}: not scored; training predicts only the masked token`,
+  notScored: (q) => `the row of ${q}: not scored: the loss counts only the masked token`,
 
   /* the line under the figure */
   line: (params, v, state) => {
     const n = v.pr.n;
-    if (n === 0) return v.gen ? "Next token reads the prompt's first token." : "Next token carries the first row through the block.";
+    if (n === 0) return v.gen ? "Next token computes the prompt's first row." : "Next token passes the first row through the block.";
     if (v.sentence) return v.pr.n <= N ? "Each row goes through the block. The last press takes the [CLS] row's final vector as the sentence's embedding and classifies it."
-      : "Before attention the [CLS] row carries nothing of the note: a head on it scores 79%, the share of positive notes. After two blocks, 98%.";
+      : "Before attention the [CLS] row holds no information about the note: a head on it is right for 79% of held-out notes, the share that are positive. After two blocks, 98%.";
     if (v.tagging) return "The pretrained encoder, unchanged, and a head trained afterwards on tagged notes: each row's vector gives its token's tag. One pass tags every token; a press shows one.";
-    if (v.enc) return `Every row reads every token. One pass computes all ${N} rows together; a press shows one.`;
-    if (!v.gen) return `Each row reads only the tokens up to it. One pass computes all ${N} rows together; a press shows one.`;
+    if (v.enc) return `Every row attends to every token. One pass computes all ${N} rows together; a press shows one.`;
+    if (!v.gen) return `Each row attends only to the tokens up to it. One pass computes all ${N} rows together; a press shows one.`;
     const G = state.decG, r = v.pr.r;
-    if (r < G.promptLen - 1) return "Reading the prompt: the token after each is given.";
+    if (r < G.promptLen - 1) return "In the prompt the token after each is given, not generated.";
     if (r === G.tokens.length - 2 && !v.pr.beat) return `The most likely next token is “${G.tokens[r + 1]}”, so generation stops.`;
     return "Generating: the most likely token is fed back as the next input, and only its row is computed.";
   },
   xLine: (params, pr, T) => {
-    if (pr.n === 0) return params.phase === "training" ? "Next amino acid encodes the gene, then carries the first row through the decoder."
+    if (pr.n === 0) return params.phase === "training" ? "Next amino acid encodes the gene, then passes the first row through the decoder."
       : "Next amino acid encodes the gene, then computes the first amino acid.";
     if (pr.beat === 1 || pr.beat === 2) return "The encoder's pass over the whole gene, computed once.";
     if (params.phase === "training") return "The true protein is the decoder's input. One pass computes every row together; a press shows one.";
@@ -146,14 +147,14 @@ const S = {
         decoder: "e.g. GPT · generation: language modelling, text generation, dialogue",
         "encoder-decoder": "e.g. T5, BART · sequence to sequence: translation, summarisation, image → text" },
 
-  tileRows: "Rows", tileRowsNote: "computed, a press a row",
+  tileRows: "Rows", tileRowsNote: "computed, one row a press",
   tileMask: "[MASK]", tileMaskNote: "the masked row's most likely token",
   tileClass: "Class", tileClassNote: "the sentence, from its [CLS] row",
   tileTag: "Tag", tileTagNote: "the newest row's most likely tag",
   tileKeys: "Keys per row", tileKeysNote: "every token of the sentence",
   tileTarget: "Target", tileTargetNote: "the newest row's true next token, its probability",
   tileTargetNoteX: "the newest row's target, its probability",
-  tileKeysRow: "Keys", tileKeysRowNote: "the newest row's: the tokens up to it",
+  tileKeysRow: "Keys", tileKeysRowNote: "the tokens up to the newest row",
   tileGen: "Tokens", tileGenNote: "the prompt and those fed back",
   tileNext: "Next token", tileNextNote: "the most likely, fed back",
   tileProt: "Protein", tileProtNote: "the amino acids written",
@@ -491,7 +492,8 @@ function selfLayout(w, enc, mode = "") {
   const avail = (notesBeside ? w - PAD_R - P12.notes : mapTop ? w - PAD_R - TAG_COL : w - PAD_R - MAP1_W - 12 - (tagging ? TAG_COL : 0)) - x0;
   const cs = Math.max(14, Math.min(P12.cs, Math.floor(avail / N)));
   const mTop = y2 + 16 + P12.colLab, mBot = mTop + N * cs;
-  const map = mapOne(w - PAD_R - MAP1_W + 4, mapTop ? P12.top : y2 - 8, enc, tagging ? S.tagOut : sentence ? S.clsOut : enc ? S.encOut : S.decOut, sentence);
+  /* where it cannot sit in the corner, the map starts below section 2's head line, beside the matrix alone */
+  const map = mapOne(w - PAD_R - MAP1_W + 4, mapTop ? P12.top : y2 + 12, enc, tagging ? S.tagOut : sentence ? S.clsOut : enc ? S.encOut : S.decOut, sentence);
   const y3 = Math.max(mBot + (notesBeside ? 20 : 36), mapTop ? 0 : map.bottom + 12), y4 = y3 + 22;
   /* the sentence class: 4 Pooling (the embedding's bars about a line at vy), 5 Linear + softmax over two classes */
   const vy = y4 + 44, y5 = y4 + 78, yo = sentence ? y5 + 20 : y4 + 20;

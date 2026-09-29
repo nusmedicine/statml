@@ -1236,7 +1236,7 @@
     {
       "slug": "transformer",
       "title": "Deep Learning - Language: Transformer",
-      "blurb": "Encoders attend to every token, decoders only to earlier ones; cross-attention reads one sequence from another.",
+      "blurb": "Encoders attend to every token, decoders only to earlier ones; in cross-attention one sequence attends to another.",
       "course": "PHM5005",
       "topics": [
         "transformer",
