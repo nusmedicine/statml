@@ -45,10 +45,9 @@ const STATES = {
     "?page=weights&sentence=wound&attention_mask=off&scores=unscaled&shown=10", "?page=weights&sentence=home&head=1&shown=16",
     "?page=output&sentence=wound&query=3&shown=8", "?page=output&sentence=home&query=10&shown=10",
   ],
-  /* widget 84's draft, simplified to one sentence (2026-09-27) */
+  /* widget 84's draft, one sentence, every token's arcs (2026-09-29) */
   "transformer": [
     ...["encoder", "decoder"].flatMap((pg) => ["0", "1", "2", "4", "6", "8"].map((k) => `?page=${pg}&shown=${k}`)),
-    "?page=encoder&query=1&shown=8", "?page=encoder&query=8&shown=8", "?page=decoder&query=7&shown=8", "?page=decoder&query=6&shown=3",
     "?page=encoder-decoder&shown=0", "?page=encoder-decoder&shown=1", "?page=encoder-decoder&shown=4", "?page=encoder-decoder&shown=6",
   ],
   "sequence-encoding": [

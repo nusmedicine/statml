@@ -22737,6 +22737,17 @@ both models; every page fits the harness frame (the tallest 688); the overlap
 sweep is clean on 20 states at 440; the switch probe reads 12 switches, 0
 flagged; a click on a token sets `query`.
 
+**Every token's arcs, 2026-09-29, from his annotated screenshot** (*"can you do
+it for each token rather than just highlight one?"*, his sketch: [CLS]'s loop
+and arcs between [CLS] and *treated*, arrowheads). Every entered token's arcs
+at once: a loop above the token, an arc ABOVE the sentence to each later token
+and BELOW it to each earlier one, arrowheads at the key, thickness by weight,
+weights under 0.05 left out. The encoder draws both sides, the decoder only
+below, so the mask reads at a glance. The Query control and its click region
+are gone; hover on a token draws its arcs at full strength and lightens the
+rest. Sweep clean on 16 states at 440 (the caption split to two lines); switch
+probe 0 flagged.
+
 **His ask, 2026-09-26:** *plan the next widget, continuing the language arc.*
 Measure script `_lab/transformer-measure.py` (imports 83's measure, so the
 base is widget 83's own model; about 4 min; `--export` writes

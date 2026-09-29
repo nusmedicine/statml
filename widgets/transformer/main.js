@@ -48,8 +48,6 @@ import { defineWidget, mathmlRenders } from "../core/index.js";
 import * as M from "./model.js";
 
 const PAGES = [{ value: "encoder", label: "Encoder" }, { value: "decoder", label: "Decoder" }, { value: "encoder-decoder", label: "Encoder–decoder" }];
-const ON = (page) => ({ param: "page", equals: page });
-const SELF = { any: [ON("encoder"), ON("decoder")] };
 const TOKENS = M.tokensOf(M.SENTENCE), N = TOKENS.length;
 
 /* ================================================================== copy */
@@ -61,7 +59,6 @@ const S = {
     + "only to the tokens before it, which lets the output be generated one token at a time. An encoder–decoder adds cross-attention: "
     + "queries from the output so far, keys and values from the encoded input.",
   pageLabel: "Step",
-  queryLabel: "Query", queryDetail: "The token whose weights are drawn as arcs on the sentence; a click on a token chooses it too.",
   step: { encoder: "Next token", decoder: "Next token", "encoder-decoder": "Next amino acid" },
   stepTitle: { encoder: "Add the sentence's next token and compute the weights", decoder: "Add the sentence's next token and compute the weights",
     "encoder-decoder": "Compute the next amino acid from the gene and the protein so far" },
@@ -75,7 +72,8 @@ const S = {
   geneIn: "The gene (DNA)", protIn: "The protein so far", protOut: "Next amino acid",
 
   /* pages 1–2 */
-  queryCap: (t) => `${t}: its weights as arcs`, notYet: (t) => `${t} has not entered yet`,
+  arcsCap: { encoder: ["Arcs: each token's weights, a loop to itself;", "above to later tokens, below to earlier ones"],
+             decoder: ["Arcs: each token's weights, a loop to itself;", "below to earlier tokens"] },
   sources: (who) => `queries (rows) and keys (columns): the ${who}'s tokens`,
   moved: ["moved", "this press"],
   rule: { encoder: "Every query attends to every key, so every row is computed again.",
@@ -235,11 +233,11 @@ function rowOutline(ctx, colors, m, ch, n, t) {
    the new row alone, and the earlier rows' bars read 0 at once. */
 const GLIDE = 0.35;
 const SELF_MS = { step: 1400, run: 800 }, ENCDEC_MS = { step: 520, run: 300 };
-const PG = { top: 16, sy: 128, labH: 66, stackW: 108 };
+const PG = { top: 16, sy: 112, below: 70, labH: 66, stackW: 108 };
 const pgGeom = (w) => {
   const sx = PAD_L + 24, sw = Math.min(PG.stackW, Math.round(w * 0.22)), r0 = sx + sw + 44, slot = (w - PAD_R - r0) / N;
   const x0 = r0 + 62, cs = Math.max(14, Math.min(26, Math.floor((w - PAD_R - 58 - x0) / N)));
-  const mTop = PG.sy + 36 + PG.labH, mBot = mTop + N * cs;
+  const mTop = PG.sy + PG.below + 10 + PG.labH, mBot = mTop + N * cs;
   return { sx, sw, r0, slot, x0, cs, mTop, mBot, bx: x0 + N * cs + 6 };
 };
 const heightSelf = (w) => pgGeom(w).mBot + 16 + 20 + 20 + 14;
@@ -259,9 +257,9 @@ function selfPhase(pg, enc) {
   return { n, e: 1, gliding: false, done: cursor, cursor };
 }
 
-function drawSelf(ctx, colors, w, params, state, pg) {
+function drawSelf(ctx, colors, w, params, state, pg, pointer) {
   const enc = params.page === "encoder", hue = enc ? colors.groupA : colors.groupB, who = enc ? "encoder" : "decoder";
-  const E = enc ? state.enc : state.dec, g = pgGeom(w), ph = selfPhase(pg, enc), { n } = ph, q = Number(params.query) - 1;
+  const E = enc ? state.enc : state.dec, g = pgGeom(w), ph = selfPhase(pg, enc), { n } = ph;
   const attKey = enc ? "self" : "masked";
   const st = stack(ctx, colors, g.sx, PG.top, g.sw, hue, {
     title: enc ? S.enc : S.dec, hot: [attKey], input: enc ? S.encIn : S.decIn, output: enc ? S.encOut : S.decOut,
@@ -275,27 +273,52 @@ function drawSelf(ctx, colors, w, params, state, pg) {
     if (i >= k || j >= k || (!enc && j > i)) return null;
     return E.runs[k].alpha[i][j];
   };
-  /* the sentence, the newest token gliding in */
+  /* EVERY TOKEN'S ARCS (his sketch, 2026-09-29: "can you do it for each token rather than
+     just highlight one?"), his output figure's glyph: a loop above the token for its own
+     weight, an arc ABOVE the sentence to each later token and BELOW it to each earlier one,
+     arrowheads at the key, thickness by weight. The encoder draws both sides; the decoder,
+     whose later keys are masked, draws only below. Weights under 0.05 are not drawn. A row's
+     arcs switch with the row, so they update as the outline passes in the encoder and
+     appear for the new token alone in the decoder. */
   const slots = slotsOf(ctx, colors, g);
-  txt(ctx, n > q ? S.queryCap(TOKENS[q]) : S.notYet(TOKENS[q]), g.r0, PG.top, { font: small(colors), fill: colors.ink3 });
+  S.arcsCap[params.page].forEach((l, i) => txt(ctx, l, g.r0 - 20, PG.top - 6 + i * 13, { font: small(colors), fill: colors.ink3 }));
+  let hov = -1;
+  if (pointer && pg.t >= 1 && Math.abs(pointer.y - PG.sy) < 16) { const j = Math.floor((pointer.x - g.r0) / g.slot); if (j >= 0 && j < n) hov = j; }
+  const head = (x, y, ang, size, col) => {
+    ctx.save(); ctx.fillStyle = col; ctx.beginPath(); ctx.moveTo(x, y);
+    ctx.lineTo(x - size * Math.cos(ang - 0.5), y - size * Math.sin(ang - 0.5)); ctx.lineTo(x - size * Math.cos(ang + 0.5), y - size * Math.sin(ang + 0.5)); ctx.fill(); ctx.restore();
+  };
+  const arcsOf = (i) => {
+    const k = runOf(i);
+    if (i >= n || i >= k) return;
+    const row = E.runs[k].alpha[i], a = slots[i];
+    row.forEach((wt, j) => {
+      if (j >= k || (!enc && j > i) || wt < 0.05) return;
+      let p = weightRgb(colors, 0.3 + 0.7 * wt);
+      if (hov >= 0 && hov !== i) p = mixRgb(p, rgb(colors.surface), 0.75);
+      const col = css(p), lw = 0.6 + 6 * wt, size = 4 + 2 * lw;
+      ctx.save(); ctx.strokeStyle = col; ctx.lineWidth = lw; ctx.beginPath();
+      if (j === i) { ctx.arc(a.x, a.y - 17, 5, 0, 2 * Math.PI); ctx.stroke(); ctx.restore(); return; }
+      const bb = slots[j], d = Math.abs(j - i);
+      if (j > i) {
+        const hgt = Math.min(PG.sy - PG.top - 30, 12 + 9 * d), y0 = a.y - 9, y1 = bb.y - 9, x0 = a.x + 6, x1 = bb.x - 6;
+        ctx.moveTo(x0, y0); ctx.bezierCurveTo(x0, y0 - hgt, x1, y1 - hgt, x1, y1 - size * 0.6); ctx.stroke(); ctx.restore();
+        head(x1, y1, Math.PI / 2, size, col);
+      } else {
+        const hgt = Math.min(PG.below - 12, 10 + 8 * d), y0 = a.y + 8, y1 = bb.y + 8, x0 = a.x - 6, x1 = bb.x + 6;
+        ctx.moveTo(x0, y0); ctx.bezierCurveTo(x0, y0 + hgt, x1, y1 + hgt, x1, y1 + size * 0.6); ctx.stroke(); ctx.restore();
+        head(x1, y1, -Math.PI / 2, size, col);
+      }
+    });
+  };
+  for (let i = 0; i < n; i++) if (i !== hov) arcsOf(i);
+  if (hov >= 0) arcsOf(hov);
+  /* the sentence on top of its arcs, the newest token gliding in along the line */
   for (let j = 0; j < n; j++) {
     const s = slots[j], x = ph.gliding && j === n - 1 ? lerp(w - PAD_R, s.x, ph.e) : s.x;
-    txt(ctx, TOKENS[j], x, s.y, { font: j === q ? `600 ${colors.fsXs} ${colors.mono}` : mono(colors), fill: j === q ? colors.ink1 : hue, align: "center" });
+    txt(ctx, TOKENS[j], x, s.y, { font: j === hov ? `600 ${colors.fsXs} ${colors.mono}` : mono(colors), fill: j === hov ? colors.ink1 : hue, align: "center" });
   }
   if (n === 0) txt(ctx, S.firstWait, g.r0, PG.sy, { font: small(colors), fill: colors.ink3 });
-  /* the query's arcs, his figure's: a loop below for itself, an arc above to each other token */
-  const kq = q < n ? runOf(q) : 0;
-  if (q < kq) {
-    const row = E.runs[kq].alpha[q], a = slots[q];
-    row.forEach((wt, j) => {
-      if ((!enc && j > q) || wt < 0.004) return;
-      const p = weightRgb(colors, 0.3 + 0.7 * wt), lw = 0.8 + 8 * wt;
-      ctx.save(); ctx.strokeStyle = css(p); ctx.lineWidth = lw; ctx.beginPath();
-      if (j === q) ctx.arc(a.x, a.y + 19, 8, 0, 2 * Math.PI);
-      else { const b = slots[j], hgt = Math.min(84, 14 + 10 * Math.abs(j - q)); ctx.moveTo(a.x, a.y - 9); ctx.bezierCurveTo(a.x, a.y - 9 - hgt, b.x, b.y - 9 - hgt, b.x, b.y - 10); }
-      ctx.stroke(); ctx.restore();
-    });
-  }
   /* the matrix, joined to the attention box */
   const m = matrix(ctx, colors, cellOf, N, N, TOKENS, TOKENS, g.x0, g.mTop, g.cs, { rowHue: hue, colHue: hue, rowOn: (i) => i < n, colOn: (j) => j < n });
   const b = st[attKey], bx = g.x0 - 60, lx = g.x0 - 66;
@@ -409,23 +432,14 @@ defineWidget({
 
   params: {
     page: { role: "page", type: "segmented", label: S.pageLabel, options: PAGES, default: "encoder", display: true },
-    query: {
-      type: "select", label: S.queryLabel, detail: S.queryDetail, display: true, when: SELF,
-      options: TOKENS.map((t, i) => ({ value: String(i + 1), label: `${i + 1} · ${t}` })), default: "4",
-    },
     /* authoring escape hatch, first render only: presses already made on the page opened */
     shown: { type: "int", min: 0, max: 8, default: 0, hidden: true },
   },
 
   legend: [],
 
-  /* a click on an entered token of the sentence chooses the query; the geometry from the
-     width and the page's press count alone (core validates the table before compute runs) */
-  regions: ({ w, params, anim }) => {
-    if (params.page === "encoder-decoder" || !anim?.p) return [];
-    const g = pgGeom(w), n = anim.p[params.page].n;
-    return TOKENS.slice(0, n).map((t, j) => ({ x: g.r0 + j * g.slot, y: PG.sy - 26, w: g.slot, h: 40, set: { query: String(j + 1) }, label: t }));
-  },
+  /* hover on a token of the sentence draws its arcs at full strength and lightens the rest */
+  pointer: true,
 
   compute: () => stage(),
 
@@ -464,10 +478,10 @@ defineWidget({
     },
   },
 
-  draw({ ctx, colors, w, params, state, anim }) {
+  draw({ ctx, colors, w, params, state, anim, pointer }) {
     renderCard(params);
     if (params.page === "encoder-decoder") drawEncDec(ctx, colors, w, params, state, pageOf(anim, params));
-    else drawSelf(ctx, colors, w, params, state, pageOf(anim, params));
+    else drawSelf(ctx, colors, w, params, state, pageOf(anim, params), pointer);
   },
 
   readout({ params, state, anim }) {
